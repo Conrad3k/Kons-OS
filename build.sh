@@ -18,6 +18,7 @@ fi
 # Wersja systemu (z pliku VERSION)
 KONS_VERSION="$(cat VERSION)"
 export KONS_VERSION
+mkdir -p config/includes.chroot/etc
 echo "$KONS_VERSION" > config/includes.chroot/etc/kons-version
 
 # Sprzątanie po poprzednim buildzie (konfiguracja w config/ zostaje)
