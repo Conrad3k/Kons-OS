@@ -5,6 +5,10 @@ Numeracja wersji opisana w [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonow
 
 ## [Niewydane]
 
+### Dodane
+- Lokalne budowanie ISO (`scripts/local-build.sh`) — test zmian przed scaleniem do `main`.
+- `build.sh`: mirrory na czas budowy konfigurowalne (`KONS_MIRROR`, `KONS_MIRROR_SECURITY`).
+
 ## [0.1.1] — 2026-11-02
 
 System odchudzony do podstaw: pulpit, ustawienia, przeglądarka.

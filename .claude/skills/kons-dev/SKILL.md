@@ -23,9 +23,8 @@ Przeczytaj najpierw `docs/ARCHITEKTURA.md` — tam jest mapa repo, konwencje i z
 
 ## 2. Wprowadzanie zmian
 
-- Pakiety → `config/package-lists/`; nazwy weryfikuj dla Debiana **trixie** (pakiet nieistniejący = build pada
-  po ~10 min). Nie masz dostępu do deb.debian.org, więc przy niepewności wybierz pakiet, którego jesteś pewien,
-  i powiedz o tym.
+- Pakiety → `config/package-lists/`; nazwy weryfikuj dla Debiana **trixie** (pakiet nieistniejący = build pada).
+  Szybkie sprawdzenie: `chroot /srv/kons-builder apt-cache policy <pakiet>` (po pierwszym `local-build.sh`).
 - Pliki → `config/includes.chroot/<ścieżka w systemie>`; konfiguracja poleceniami → hook w `config/hooks/live/`.
 - Hooki: `sh -n` na każdym zmienionym; skrypty: `bash -n`; uruchom lokalnie to, co da się uruchomić
   (np. `kons-*` poza chrootem).
@@ -34,6 +33,21 @@ Przeczytaj najpierw `docs/ARCHITEKTURA.md` — tam jest mapa repo, konwencje i z
   - dopisz wpis w `CHANGELOG.md` (przenieś „Niewydane” do nowej sekcji wersji z datą).
 - Zmiana tylko docs/CI/repo: bez podbijania wersji, wpis w „Niewydane”.
 - Aktualizuj `docs/ARCHITEKTURA.md`, gdy zmieniasz strukturę lub konwencje.
+
+## 2a. Lokalny build przed scaleniem
+
+Każdą zmianę **systemu** zbuduj najpierw lokalnie (oszczędza minuty GitHuba i wyłapuje błędy wcześniej):
+
+```bash
+sudo scripts/local-build.sh > /tmp/kons-build.log 2>&1   # w tle, ~20–30 min
+```
+
+- Środowisko budowania (Debian 13 + live-build) jest w `/srv/kons-builder`; tworzy się samo przy pierwszym
+  uruchomieniu w nowym kontenerze (~2 min).
+- Pobieranie idzie przez `scripts/mirror-proxy.py` (HTTP→HTTPS), bo kontener ma tylko HTTPS przez proxy.
+- Wynik: `kons-os-<wersja>-amd64.hybrid.iso` w katalogu repo (ignorowany przez git). Usuń go po sprawdzeniu,
+  a przy braku miejsca także `cache/` i `chroot/`.
+- Scalaj do `main` dopiero po udanym lokalnym buildzie. Wyjątek: zmiany tylko w CI/dokumentacji.
 
 ## 3. Scalanie do main
 
