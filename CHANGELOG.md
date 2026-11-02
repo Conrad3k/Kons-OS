@@ -5,6 +5,9 @@ Numeracja wersji opisana w [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonow
 
 ## [Niewydane]
 
+### Naprawione
+- Tapeta Kons-OS na pulpicie XFCE: XFCE ignorował ustawienie z `desktop-base` i pokazywał swoją domyślną tapetę.
+
 ### Dodane
 - Lokalne budowanie ISO (`scripts/local-build.sh`) — test zmian przed scaleniem do `main`.
 - Firmware wybrane ręcznie (Wi-Fi, grafika, dźwięk typowych laptopów) zamiast automatycznego „wszystko” —
