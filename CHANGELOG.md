@@ -5,6 +5,20 @@ Numeracja wersji opisana w [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonow
 
 ## [Niewydane]
 
+## [0.1.2] — 2026-11-02
+
+### Naprawione
+- Tapeta Kons-OS na pulpicie XFCE: XFCE ignorował ustawienie z `desktop-base` i pokazywał swoją domyślną tapetę.
+
+### Zmienione
+- Firmware wybrane ręcznie (Wi-Fi, grafika, dźwięk typowych laptopów) zamiast automatycznego „wszystko” —
+  build nie pobiera już plików spoza Debiana (pakiety `*-installer`). ISO mniejsze (~1,3 GB).
+
+### Dodane
+- Lokalne budowanie ISO (`scripts/local-build.sh`) — test zmian przed scaleniem do `main`.
+- `build.sh`: mirrory na czas budowy konfigurowalne (`KONS_MIRROR`, `KONS_MIRROR_SECURITY`);
+  `lb clean` bez `--purge`, więc lokalnie pobrane pakiety zostają między buildami.
+
 ## [0.1.1] — 2026-11-02
 
 System odchudzony do podstaw: pulpit, ustawienia, przeglądarka.

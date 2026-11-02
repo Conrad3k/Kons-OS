@@ -12,6 +12,8 @@ local/
 *.zsync
 build.log
 chroot.files
+chroot.installed_tmp_pkgs
+auto/
 chroot.packages.*
 binary.modified_timestamps
 config/*
@@ -19,3 +21,9 @@ config/*
 !config/hooks/
 !config/includes.chroot/
 config/includes.chroot/etc/kons-version
+.lock
+# Pliki generowane przez `lb config` (dowiązania do domyślnych hooków i lista live)
+config/hooks/normal/
+config/hooks/live/0010-disable-kexec-tools.hook.chroot
+config/hooks/live/0050-disable-sysvinit-tmpfs.hook.chroot
+config/package-lists/live.list.chroot

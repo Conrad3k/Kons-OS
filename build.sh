@@ -21,8 +21,13 @@ export KONS_VERSION
 mkdir -p config/includes.chroot/etc
 echo "$KONS_VERSION" > config/includes.chroot/etc/kons-version
 
-# Sprzątanie po poprzednim buildzie (konfiguracja w config/ zostaje)
-lb clean --purge || true
+# Mirrory używane PODCZAS budowy (lokalnie można podać własne, np. scripts/local-build.sh).
+# Gotowy system zawsze dostaje oficjalne mirrory (--mirror-binary*).
+MIRROR="${KONS_MIRROR:-http://deb.debian.org/debian/}"
+MIRROR_SECURITY="${KONS_MIRROR_SECURITY:-http://security.debian.org/debian-security/}"
+
+# Sprzątanie po poprzednim buildzie (konfiguracja w config/ i cache pakietów zostają)
+lb clean || true   # bez --purge: pobrane pakiety (cache/) zostają między buildami
 
 lb config \
     --mode debian \
@@ -30,14 +35,17 @@ lb config \
     --architectures amd64 \
     --linux-flavours amd64 \
     --archive-areas "main contrib non-free non-free-firmware" \
-    --mirror-bootstrap "http://deb.debian.org/debian/" \
+    --mirror-bootstrap "$MIRROR" \
+    --mirror-chroot "$MIRROR" \
+    --mirror-chroot-security "$MIRROR_SECURITY" \
     --mirror-binary "http://deb.debian.org/debian/" \
+    --mirror-binary-security "http://security.debian.org/debian-security/" \
     --security true \
     --updates true \
     --binary-images iso-hybrid \
     --bootloaders "grub-efi,syslinux" \
     --debian-installer none \
-    --firmware-chroot true \
+    --firmware-chroot false \
     --iso-application "Kons-OS" \
     --iso-publisher "Kons-OS; https://github.com/conrad3k/kons-os" \
     --iso-volume "KONS-OS ${KONS_VERSION}" \

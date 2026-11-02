@@ -36,12 +36,25 @@ EOR
 # --- Hostname ---
 echo "kons-os" > /etc/hostname
 
-# --- Tapeta: ustawiamy Kons-OS jako domyślne tło (desktop-base) ---
+# --- Tapeta ---
 WALL=/usr/share/backgrounds/kons-os/kons-wallpaper.png
+# 1) Alternatywa desktop-base (używają jej m.in. inne pulpity i GRUB-owe motywy Debiana).
 if [ -f "$WALL" ]; then
     update-alternatives --install /usr/share/images/desktop-base/desktop-background \
         desktop-background "$WALL" 100
     update-alternatives --set desktop-background "$WALL"
+fi
+# 2) XFCE (xfdesktop) ma wkompilowaną domyślną tapetę xfce-x.svg i ignoruje desktop-base.
+#    Podmieniamy ten plik (dpkg-divert, więc aktualizacje go nie nadpiszą) na SVG z naszą tapetą.
+XFCE_DEFAULT=/usr/share/backgrounds/xfce/xfce-x.svg
+if [ -f "$WALL" ] && [ -e "$XFCE_DEFAULT" ]; then
+    dpkg-divert --local --rename --divert "${XFCE_DEFAULT}.distrib" --add "$XFCE_DEFAULT"
+    {
+        echo '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1920" height="1080" viewBox="0 0 1920 1080">'
+        printf '<image width="1920" height="1080" preserveAspectRatio="xMidYMid slice" xlink:href="data:image/png;base64,'
+        base64 -w0 "$WALL"
+        echo '"/></svg>'
+    } > "$XFCE_DEFAULT"
 fi
 
 # --- Domyślny wygląd XFCE dla nowych użytkowników ---

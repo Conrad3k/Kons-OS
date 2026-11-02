@@ -35,6 +35,7 @@ push na main
 | `config/package-lists/*.list.chroot` | **co jest zainstalowane** | dodanie/usunięcie programu |
 | `config/includes.chroot/` | **pliki wgrywane 1:1** do systemu (ścieżka = ścieżka w systemie) | tapety, własne skrypty, gotowe pliki konfiguracyjne |
 | `config/hooks/live/NNNN-*.hook.chroot` | **skrypty uruchamiane w środku systemu** podczas budowy | konfiguracja wymagająca poleceń (locale, alternatives, generowanie plików) |
+| `scripts/local-build.sh`, `scripts/mirror-proxy.py` | build lokalny (chroot z live-build, bez Dockera) | test zmian przed scaleniem |
 | `.github/workflows/build-iso.yml` | CI: budowa ISO, artefakty, tagi | zmiana procesu budowania |
 | `.github/ISSUE_TEMPLATE/` | formularze feedbacku | — |
 | `.claude/skills/kons-dev/` | proces pracy dla Claude | — |
