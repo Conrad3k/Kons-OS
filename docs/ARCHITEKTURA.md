@@ -46,8 +46,9 @@ Pliki w `config/` generowane przez `lb config` (np. `config/binary`, `config/chr
 ## Warstwy systemu
 
 1. **Baza** — Debian trixie z repo `main contrib non-free non-free-firmware` + aktualizacje bezpieczeństwa.
-2. **Sprzęt** — firmware, NetworkManager, PipeWire, Bluetooth (`kons-base.list.chroot`).
-3. **Pulpit** — Xorg, LightDM, XFCE, motywy, aplikacje (`kons-desktop.list.chroot`).
+2. **Sprzęt** — firmware, NetworkManager, PipeWire (`kons-base.list.chroot`).
+3. **Pulpit** — Xorg, LightDM, XFCE (z ustawieniami, terminalem, Thunarem), motywy, Firefox (`kons-desktop.list.chroot`).
+   Zasada od 0.1.1: **minimum** — każdy dodatkowy program to świadoma decyzja właściciela.
 4. **Tożsamość Kons-OS** — hooki `0100-kons-branding` (os-release, motd, tapeta, motyw XFCE/LightDM)
    i `0200-kons-locale` (polski), plus `includes.chroot` (tapeta, `kons-info`).
 5. **Sesja live** — `live-boot`/`live-config`: użytkownik `kons`/`live`, autologowanie,

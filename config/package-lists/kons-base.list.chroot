@@ -10,18 +10,9 @@ keyboard-configuration
 console-setup
 tzdata
 bash-completion
-man-db
 nano
-vim-tiny
-curl
-wget
-git
-htop
-fastfetch
-unzip
-zip
 
-# --- Sprzęt / sieć ---
+# --- Sprzęt / sieć (internet dla przeglądarki) ---
 firmware-linux
 firmware-linux-nonfree
 firmware-misc-nonfree
@@ -29,9 +20,7 @@ firmware-iwlwifi
 firmware-realtek
 network-manager
 network-manager-gnome
-bluez
-blueman
 
-# --- Dźwięk ---
+# --- Dźwięk + jego ustawienia ---
 pipewire-audio
 pavucontrol
