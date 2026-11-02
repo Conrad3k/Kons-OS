@@ -1,0 +1,34 @@
+# --- Środowisko graficzne XFCE ---
+xorg
+lightdm
+lightdm-gtk-greeter
+xfce4
+xfce4-goodies
+xfce4-terminal
+thunar
+mousepad
+ristretto
+xdg-user-dirs
+xdg-user-dirs-gtk
+
+# --- Wygląd ---
+desktop-base
+papirus-icon-theme
+arc-theme
+fonts-noto
+fonts-noto-color-emoji
+fonts-dejavu
+
+# --- Aplikacje ---
+firefox-esr
+firefox-esr-l10n-pl
+vlc
+evince
+file-roller
+gparted
+synaptic
+
+# --- Polski ---
+hunspell-pl
+manpages-pl
+task-polish

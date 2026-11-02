@@ -1,0 +1,21 @@
+# Artefakty live-build (generowane przez build.sh)
+.build/
+cache/
+chroot/
+binary/
+local/
+*.iso
+*.hybrid.iso
+*.contents
+*.files
+*.packages
+*.zsync
+build.log
+chroot.files
+chroot.packages.*
+binary.modified_timestamps
+config/*
+!config/package-lists/
+!config/hooks/
+!config/includes.chroot/
+config/includes.chroot/etc/kons-version

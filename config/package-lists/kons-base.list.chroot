@@ -1,0 +1,37 @@
+# --- System bazowy / live ---
+live-boot
+live-config
+live-config-systemd
+systemd-sysv
+sudo
+user-setup
+locales
+keyboard-configuration
+console-setup
+tzdata
+bash-completion
+man-db
+nano
+vim-tiny
+curl
+wget
+git
+htop
+fastfetch
+unzip
+zip
+
+# --- Sprzęt / sieć ---
+firmware-linux
+firmware-linux-nonfree
+firmware-misc-nonfree
+firmware-iwlwifi
+firmware-realtek
+network-manager
+network-manager-gnome
+bluez
+blueman
+
+# --- Dźwięk ---
+pipewire-audio
+pavucontrol
