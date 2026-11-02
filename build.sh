@@ -26,8 +26,8 @@ echo "$KONS_VERSION" > config/includes.chroot/etc/kons-version
 MIRROR="${KONS_MIRROR:-http://deb.debian.org/debian/}"
 MIRROR_SECURITY="${KONS_MIRROR_SECURITY:-http://security.debian.org/debian-security/}"
 
-# Sprzątanie po poprzednim buildzie (konfiguracja w config/ zostaje)
-lb clean --purge || true
+# Sprzątanie po poprzednim buildzie (konfiguracja w config/ i cache pakietów zostają)
+lb clean || true   # bez --purge: pobrane pakiety (cache/) zostają między buildami
 
 lb config \
     --mode debian \
