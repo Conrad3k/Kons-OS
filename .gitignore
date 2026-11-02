@@ -12,6 +12,8 @@ local/
 *.zsync
 build.log
 chroot.files
+chroot.installed_tmp_pkgs
+auto/
 chroot.packages.*
 binary.modified_timestamps
 config/*
