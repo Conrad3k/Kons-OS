@@ -2,6 +2,7 @@ name: Zbuduj ISO Kons-OS
 
 on:
   push:
+    branches: [main]
     paths:
       - "config/**"
       - "build.sh"
@@ -16,7 +17,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Pobierz kod
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Zwolnij miejsce na dysku
         run: |
@@ -34,7 +35,7 @@ jobs:
         run: ls -lh *.iso
 
       - name: Wyślij ISO jako artefakt
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: kons-os-iso
           path: "*.iso"
@@ -43,7 +44,7 @@ jobs:
 
       - name: Wyślij log buildu (także przy błędzie)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: build-log
           path: build.log
