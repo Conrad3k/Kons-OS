@@ -45,7 +45,7 @@ lb config \
     --binary-images iso-hybrid \
     --bootloaders "grub-efi,syslinux" \
     --debian-installer none \
-    --firmware-chroot true \
+    --firmware-chroot false \
     --iso-application "Kons-OS" \
     --iso-publisher "Kons-OS; https://github.com/conrad3k/kons-os" \
     --iso-volume "KONS-OS ${KONS_VERSION}" \

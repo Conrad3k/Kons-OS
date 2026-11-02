@@ -7,6 +7,8 @@ Numeracja wersji opisana w [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonow
 
 ### Dodane
 - Lokalne budowanie ISO (`scripts/local-build.sh`) — test zmian przed scaleniem do `main`.
+- Firmware wybrane ręcznie (Wi-Fi, grafika, dźwięk typowych laptopów) zamiast automatycznego „wszystko” —
+  build nie pobiera już plików spoza Debiana (pakiety `*-installer`).
 - `build.sh`: mirrory na czas budowy konfigurowalne (`KONS_MIRROR`, `KONS_MIRROR_SECURITY`).
 
 ## [0.1.1] — 2026-11-02
