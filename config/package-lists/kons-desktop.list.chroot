@@ -1,34 +1,22 @@
-# --- Środowisko graficzne XFCE ---
+# --- Środowisko graficzne XFCE (z panelem ustawień xfce4-settings) ---
 xorg
 lightdm
 lightdm-gtk-greeter
 xfce4
-xfce4-goodies
 xfce4-terminal
-thunar
-mousepad
-ristretto
 xdg-user-dirs
 xdg-user-dirs-gtk
 
-# --- Wygląd ---
+# --- Wygląd Kons-OS ---
 desktop-base
 papirus-icon-theme
 arc-theme
-fonts-noto
+fonts-noto-core
+fonts-noto-mono
 fonts-noto-color-emoji
 fonts-dejavu
 
-# --- Aplikacje ---
+# --- Przeglądarka ---
 firefox-esr
 firefox-esr-l10n-pl
-vlc
-evince
-file-roller
-gparted
-synaptic
-
-# --- Polski ---
 hunspell-pl
-manpages-pl
-task-polish

@@ -6,7 +6,7 @@ Projektujemy system operacyjny na bazie Linuxa.
 
 Kons-OS to dystrybucja Linuksa oparta na **Debianie 13 (trixie)** z pulpitem **XFCE**,
 polskim językiem i klawiaturą ustawionymi domyślnie oraz własnym wyglądem (tapeta,
-ciemny motyw Arc-Dark, ikony Papirus). Uruchamia się jako system *live* z pendrive'a albo w maszynie wirtualnej.
+ciemny motyw Arc-Dark, ikony Papirus). Jest celowo minimalny: pulpit, ustawienia i przeglądarka Firefox. Uruchamia się jako system *live* z pendrive'a albo w maszynie wirtualnej.
 
 ## Jak zdobyć plik ISO (bez instalowania niczego)
 
