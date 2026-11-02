@@ -1,0 +1,15 @@
+name: Pomysł
+description: Nowa funkcja, program albo zmiana wyglądu
+title: "[Pomysł] "
+labels: ["pomysł"]
+body:
+  - type: textarea
+    id: co
+    attributes:
+      label: Co chcesz mieć w Kons-OS
+    validations:
+      required: true
+  - type: textarea
+    id: dlaczego
+    attributes:
+      label: Po co / jak będziesz tego używać

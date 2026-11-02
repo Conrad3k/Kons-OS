@@ -1,0 +1,34 @@
+name: Błąd
+description: Coś nie działa tak, jak powinno
+title: "[Błąd] "
+labels: ["błąd"]
+body:
+  - type: input
+    id: wersja
+    attributes:
+      label: Wersja
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: gdzie
+    attributes:
+      label: Gdzie uruchomione
+      options:
+        - VMware
+        - VirtualBox
+        - Pendrive (prawdziwy komputer)
+        - Inne
+    validations:
+      required: true
+  - type: textarea
+    id: co
+    attributes:
+      label: Co się stało
+      description: Krok po kroku, co zrobiłeś i co zobaczyłeś. Zrzut ekranu bardzo pomaga.
+    validations:
+      required: true
+  - type: textarea
+    id: oczekiwane
+    attributes:
+      label: Czego się spodziewałeś

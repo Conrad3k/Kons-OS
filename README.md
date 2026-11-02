@@ -14,9 +14,10 @@ System buduje się automatycznie na serwerach GitHuba (GitHub Actions):
 
 1. Wejdź w zakładkę **Actions** w repozytorium.
 2. Wybierz workflow **„Zbuduj ISO Kons-OS”** i ostatnie udane uruchomienie (zielony ✔).
-3. Na dole strony, w sekcji **Artifacts**, pobierz `kons-os-iso` (plik zip z ISO w środku).
+3. Na dole strony, w sekcji **Artifacts**, pobierz `kons-os-<wersja>-iso` (plik zip z ISO w środku).
 
-Build można też uruchomić ręcznie przyciskiem **Run workflow**. Zajmuje około 20–40 minut.
+ISO buduje się automatycznie po każdej zmianie systemu na `main` (ok. 20–25 minut) i jest dostępne przez 30 dni.
+Build można też uruchomić ręcznie przyciskiem **Run workflow**.
 
 ## Jak uruchomić
 
@@ -38,7 +39,9 @@ W terminalu wpisz `kons-info`.
 | `config/hooks/live/` | Skrypty uruchamiane podczas budowy (branding, język) |
 | `config/includes.chroot/` | Pliki kopiowane 1:1 do systemu (np. tapeta, `kons-info`) |
 | `.github/workflows/build-iso.yml` | Automatyczne budowanie ISO na GitHubie |
+| `CHANGELOG.md` | Historia zmian |
 | `docs/` | Dokumentacja i pomysły na rozwój |
+| `.claude/skills/kons-dev/` | Proces pracy dla Claude |
 
 ## Budowanie lokalnie
 
@@ -51,4 +54,13 @@ sudo ./build.sh
 
 Gotowy plik pojawi się jako `kons-os-<wersja>-amd64.hybrid.iso`.
 
-Więcej: [docs/jak-modyfikowac.md](docs/jak-modyfikowac.md).
+## Feedback
+
+Po przetestowaniu wersji napisz w czacie z Claude albo załóż zgłoszenie w zakładce **Issues → New issue**
+(szablony: *Feedback z testu*, *Błąd*, *Pomysł*). Zrzuty ekranu bardzo pomagają.
+
+## Więcej
+
+- [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md) — jak zbudowany jest system, konwencje, wersjonowanie
+- [CHANGELOG.md](CHANGELOG.md) — co się zmieniło w każdej wersji
+- [docs/jak-modyfikowac.md](docs/jak-modyfikowac.md) — jak samemu coś zmienić

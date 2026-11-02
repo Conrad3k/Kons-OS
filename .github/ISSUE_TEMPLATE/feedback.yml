@@ -1,0 +1,37 @@
+name: Feedback z testu
+description: Wrażenia po uruchomieniu wersji Kons-OS
+title: "[Feedback] "
+labels: ["feedback"]
+body:
+  - type: input
+    id: wersja
+    attributes:
+      label: Wersja
+      description: Z nazwy pliku ISO albo z polecenia kons-info
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: gdzie
+    attributes:
+      label: Gdzie uruchomione
+      options:
+        - VMware
+        - VirtualBox
+        - Pendrive (prawdziwy komputer)
+        - Inne
+    validations:
+      required: true
+  - type: textarea
+    id: dobre
+    attributes:
+      label: Co działa / podoba się
+  - type: textarea
+    id: zle
+    attributes:
+      label: Co nie działa / nie podoba się
+      description: Możesz wkleić zrzuty ekranu (przeciągnij je tutaj)
+  - type: textarea
+    id: pomysly
+    attributes:
+      label: Pomysły na zmiany

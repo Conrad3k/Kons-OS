@@ -19,9 +19,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: write   # do tworzenia tagu wersji po udanym buildzie
     steps:
       - name: Pobierz kod
         uses: actions/checkout@v5
+
+      - name: Odczytaj wersję
+        run: echo "KONS_VERSION=$(cat VERSION)" >> "$GITHUB_ENV"
 
       - name: Zwolnij miejsce na dysku
         run: |
@@ -41,15 +46,26 @@ jobs:
       - name: Wyślij ISO jako artefakt
         uses: actions/upload-artifact@v5
         with:
-          name: kons-os-iso
+          name: kons-os-${{ env.KONS_VERSION }}-iso
           path: "*.iso"
           compression-level: 0
-          retention-days: 14
+          retention-days: 30
+
+      - name: Oznacz wersję tagiem (tylko main, jeśli tagu jeszcze nie ma)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          TAG="v${KONS_VERSION}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null; then
+            echo "Tag ${TAG} już istnieje — pomijam (czy podbito VERSION?)"
+          else
+            git tag "${TAG}" "${GITHUB_SHA}"
+            git push origin "${TAG}"
+          fi
 
       - name: Wyślij log buildu (także przy błędzie)
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: build-log
+          name: build-log-${{ env.KONS_VERSION }}
           path: build.log
           if-no-files-found: ignore
