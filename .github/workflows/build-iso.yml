@@ -8,8 +8,12 @@ on:
       - "build.sh"
       - "VERSION"
       - ".github/workflows/build-iso.yml"
-  pull_request:
   workflow_dispatch:
+
+# Nowszy build na main anuluje starszy, który jeszcze trwa (oszczędza minuty).
+concurrency:
+  group: build-iso-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
