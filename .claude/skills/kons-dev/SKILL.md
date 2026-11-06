@@ -1,87 +1,68 @@
 ---
 name: kons-dev
-description: Proces pracy nad Kons-OS — jak wprowadzać zmiany w systemie, wersjonować, scalać do main, pilnować buildu ISO i obsługiwać feedback właściciela. Używaj przy każdej zmianie w repo Kons-OS (pakiety, wygląd, hooki, build, CI) oraz gdy właściciel zgłasza uwagi o działaniu systemu.
+description: Proces pracy nad Kons K1 Sovereign — etapy (milestones), ADR, budowa i testy w QEMU, wersjonowanie, scalanie do main, pilnowanie CI, raport i feedback właściciela. Używaj przy każdej zmianie w repo (kod C, jądro, skrypty, CI, dokumentacja) oraz gdy właściciel zgłasza uwagi.
 ---
 
-# Praca nad Kons-OS
+# Praca nad K1
 
-Przeczytaj najpierw `docs/ARCHITEKTURA.md` — tam jest mapa repo, konwencje i zasady wersjonowania.
+Najpierw przeczytaj `docs/SPEC.md` (nadrzędna), `docs/ARCHITEKTURA.md` (mapa repo, konwencje,
+wersje) i `docs/TESTY.md`. Specyfikację zmienia się tylko przez ADR (`docs/adr/`).
 
 ## 0. Na start sesji
+1. `git fetch origin main`; pracuj na gałęzi opartej o `origin/main` (gałąź sesji ze scalonymi już
+   commitami → `git merge origin/main`, bez force-pusha).
+2. Zgłoszenia na GitHubie (`list_issues`, repo `conrad3k/kons-os`, etykiety `feedback`, `błąd`, `pomysł`).
+3. Ostatni run workflow **„K1 — budowa i testy”** na `main` (`actions_list` → `list_workflow_runs`).
+   Czerwony = napraw najpierw.
+4. Środowisko (kontener jest efemeryczny):
+   `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/test-m1.sh` (~5 min; jądro ~2–3 min).
 
-1. `git fetch origin main` i pracuj na gałęzi opartej o `origin/main` (jeśli gałąź sesji ma już
-   scalone wcześniej commity — `git merge origin/main`, **bez force-pusha**).
-2. Sprawdź otwarte zgłoszenia na GitHubie (`list_issues`, repo `conrad3k/kons-os`) — zwłaszcza z etykietą
-   `feedback` i `błąd`. Jeśli są, zaproponuj właścicielowi, które bierzemy w tej paczce.
-3. Sprawdź wynik ostatniego buildu na `main` (`actions_list` → `list_workflow_runs`). Czerwony = napraw najpierw.
+## 1. Zasady etapu (SPEC §2)
+- Jeden etap (milestone) naraz; następny dopiero, gdy bieżący ma **powtarzalny test** (skrypt
+  `scripts/test-mN.sh`, opis w `docs/TESTY.md`).
+- Nie wymyślaj nazw syscalli, flag, opcji Kconfig ani zachowań jądra — sprawdzaj w źródłach
+  (`build/zrodla/linux-*/`), nagłówkach (`build/naglowki/`), man-pages. Niepewność oznaczaj wprost.
+- Statusy: ZAIMPLEMENTOWANE / PRZETESTOWANE (tylko z dowodem: log szeregowy, zrzut ekranu, wynik
+  testu) / PLANOWANE. Nigdy „działa”, jeśli nie było uruchomione.
+- Każdy mechanizm bezpieczeństwa: opis ograniczeń + test negatywny (co ma się NIE udać).
+- Nowy komponent → `docs/komponenty/<nazwa>.md` (cel, granica zaufania, uprawnienia, wejścia/wyjścia,
+  zależności, syscalle, błędy, powierzchnia ataku, testy).
+- Nowa zależność → `docs/ZALEZNOSCI.md` z uzasadnieniem. Nowe ryzyko/ograniczenie → `docs/RYZYKA.md`.
+- Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta + ADR + dopisek `[korekta: ADR NNNN]` w SPEC.
 
-## 1. Planowanie paczki zmian
-
-- Build kosztuje ~25 minut z miesięcznego limitu → **łącz kilka zmian w jedno scalenie**.
-- Jeśli prośba jest niejasna co do efektu wizualnego, zapytaj krótko zanim zaczniesz; jeśli jest wybór
-  techniczny, zdecyduj sam i powiedz, co wybrałeś.
-
-## 2. Wprowadzanie zmian
-
-- Pakiety → `config/package-lists/`; nazwy weryfikuj dla Debiana **trixie** (pakiet nieistniejący = build pada).
-  Szybkie sprawdzenie: `chroot /srv/kons-builder apt-cache policy <pakiet>` (po pierwszym `local-build.sh`).
-- Pliki → `config/includes.chroot/<ścieżka w systemie>`; konfiguracja poleceniami → hook w `config/hooks/live/`.
-- Hooki: `sh -n` na każdym zmienionym; skrypty: `bash -n`; uruchom lokalnie to, co da się uruchomić
-  (np. `kons-*` poza chrootem).
-- Każda zmiana **systemu** (cokolwiek w `config/`, `build.sh`):
-  - podbij `VERSION` wg tabeli w ARCHITEKTURA.md (raz na paczkę, nie na commit),
-  - dopisz wpis w `CHANGELOG.md` (przenieś „Niewydane” do nowej sekcji wersji z datą).
-- Zmiana tylko docs/CI/repo: bez podbijania wersji, wpis w „Niewydane”.
-- Aktualizuj `docs/ARCHITEKTURA.md`, gdy zmieniasz strukturę lub konwencje.
-
-## 2a. Lokalny build przed scaleniem
-
-Każdą zmianę **systemu** zbuduj najpierw lokalnie (oszczędza minuty GitHuba i wyłapuje błędy wcześniej):
-
-```bash
-sudo scripts/local-build.sh > /tmp/kons-build.log 2>&1   # w tle, ~20–30 min
-```
-
-- Środowisko budowania (Debian 13 + live-build) jest w `/srv/kons-builder`; tworzy się samo przy pierwszym
-  uruchomieniu w nowym kontenerze (~2 min).
-- Pobieranie idzie przez `scripts/mirror-proxy.py` (HTTP→HTTPS), bo kontener ma tylko HTTPS przez proxy.
-- Wynik: `kons-os-<wersja>-amd64.hybrid.iso` w katalogu repo (ignorowany przez git). Usuń go po sprawdzeniu,
-  a przy braku miejsca także `cache/` i `chroot/`.
-- Scalaj do `main` dopiero po udanym lokalnym buildzie. Wyjątek: zmiany tylko w CI/dokumentacji.
+## 2. Zmiany
+- **Jądro:** tylko przez `jadro/k1.config` (fragment do `allnoconfig`). Nazwy opcji sprawdź w `Kconfig*`;
+  `scripts/zbuduj-jadro.sh` przerwie build, jeśli opcja nie weszła. Zmiana wersji: `jadro/README.md`.
+- **Kod C:** flagi w `Makefile` (zmiana = ADR); `make` musi przejść bez ostrzeżeń (`-Werror`);
+  parsery mają testy w `testy/host/` (ASan/UBSan) i fuzzing (`make fuzz`).
+- **Skrypty:** `sh -n` na zmienionych; uruchom je.
+- Przed scaleniem zmian systemu: pełny test etapu lokalnie (`scripts/test-mN.sh` + wcześniejszych).
+  Przy zmianach w budowie: `scripts/sprawdz-powtarzalnosc.sh`.
+- **Wersja** (`VERSION`, raz na paczkę): ukończony etap → MINOR, poprawka/aktualizacja jądra → PATCH,
+  tylko docs/CI → bez zmiany. Wpis w `CHANGELOG.md` (sekcja nowej wersji z datą albo „Niewydane”).
+- Łącz zmiany w paczki — CI kosztuje minuty (~10 min na run), a właściciel ma ograniczony limit Claude.
 
 ## 3. Scalanie do main
+Repo prywatne, właściciel zgodził się na scalanie bez pytania:
+1. Commit po angielsku, `git push -u origin <gałąź>`.
+2. PR po polsku: najpierw co się zmienia **dla użytkownika**, potem technika. `Closes #N` dla zgłoszeń.
+3. Scal **squash**. Zmiany tylko w docs: dopisz `[skip ci]` do tytułu commita scalenia
+   (workflow i tak startuje tylko przy zmianach w `src/`, `jadro/`, `testy/`, `scripts/`, `Makefile`, `VERSION`).
 
-Repo jest prywatne, właściciel zgodził się na scalanie bez pytania:
+## 4. Pilnowanie CI
+- Run na `main` startuje sam. Sprawdzaj przez `send_later` co ~5 min (logi przez `get_job_logs`
+  dostępne po zakończeniu kroku). Po zakończeniu usuń zaplanowane sprawdzenia.
+- **Padł** → przeczytaj log (`get_job_logs`, `failed_only`), napraw, scal poprawkę (PATCH), pilnuj dalej.
+  Logi testów: artefakt `k1-<wersja>-logi`.
+- **Udał się** → tag `k1-v<wersja>` zakłada CI; podaj właścicielowi link do runu.
 
-1. Commit (wiadomość po angielsku), `git push -u origin <gałąź>`.
-2. PR po polsku: co się zmienia **z perspektywy użytkownika systemu**, potem szczegóły techniczne.
-   Zamknij powiązane zgłoszenia przez `Closes #N`.
-3. Scal **squash**. Jeśli zmiana nie dotyka systemu (tylko docs), dodaj `[skip ci]` do tytułu commita scalenia,
-   żeby nie palić minut. (Workflow i tak buduje tylko przy zmianach w `config/`, `build.sh`, `VERSION`, workflow.)
+## 5. Raport po etapie (SPEC §2.11)
+Krótko, po polsku, prostym językiem (skutki, nie mechanika): cel i kryteria, co zrobiono, dowody
+(fragment logu, wynik testów), testy negatywne, ograniczenia (z `docs/RYZYKA.md`), statusy.
+Nie wklejaj całych plików. Linki do PR i runów — pełnym URL-em.
 
-## 4. Pilnowanie buildu
-
-- Build na `main` startuje automatycznie. Sprawdzaj go `send_later` co ~5 min (logi przez `get_job_logs`
-  są dostępne dopiero po zakończeniu kroku/joba).
-- **Padł** → przeczytaj log (`get_job_logs`, `failed_only`), napraw, scal poprawkę jako PATCH, pilnuj dalej.
-  Najczęstsze przyczyny: nieistniejący pakiet, błąd w hooku (`set -e`), brak katalogu w `includes.chroot`
-  (git nie trzyma pustych katalogów).
-- **Udał się** → podaj właścicielowi link do runu i nazwę artefaktu `kons-os-<wersja>-iso`, wypisz w punktach,
-  co ma sprawdzić w tej wersji (konkretne rzeczy do kliknięcia/zobaczenia).
-- Po zakończeniu usuń pozostałe zaplanowane sprawdzenia.
-
-## 5. Feedback właściciela
-
-Właściciel testuje ISO w VMware/VirtualBox albo z pendrive'a — **on jest jedynym, który widzi ekran**.
-
-- Feedback przychodzi w czacie albo jako zgłoszenie z szablonu (`.github/ISSUE_TEMPLATE/`).
-- Uwagi z czatu, których nie robisz od razu, zapisz jako zgłoszenie (`issue_write`, etykieta `feedback`/`pomysł`),
-  żeby nie zginęły między sesjami.
-- Przy błędach dopytaj o: wersję (`kons-info` albo nazwa ISO), gdzie uruchomione (VM/sprzęt), co widać
-  (zrzut ekranu), co było oczekiwane.
-- Nie zgłaszaj, że coś „działa”, dopóki właściciel tego nie potwierdził — mów „zbudowało się, do sprawdzenia: …”.
-
-## 6. Komunikacja
-
-- Po polsku, prosto — właściciel nie jest programistą (studiuje psychologię). Wyjaśniaj skutki, nie mechanikę.
-- Linki do PR i runów zawsze pełnym URL-em.
+## 6. Feedback właściciela
+Właściciel jest jedynym, kto ma prawdziwy sprzęt (laptop, pendrive) — od M2 będzie testował obraz.
+- Uwagi z czatu, których nie robisz od razu → zgłoszenie (`issue_write`, etykieta `feedback`/`pomysł`).
+- Przy błędach dopytaj: wersja, gdzie uruchomione, co widać (zdjęcie/zrzut ekranu), czego się spodziewał.
+- Decyzje produktowe podejmuje właściciel; techniczne — Ty (krótko powiedz, co wybrałeś i dlaczego).

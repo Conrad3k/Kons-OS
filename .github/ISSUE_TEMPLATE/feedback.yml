@@ -1,5 +1,5 @@
 name: Feedback z testu
-description: Wrażenia po uruchomieniu wersji Kons-OS
+description: Wrażenia po uruchomieniu wersji K1
 title: "[Feedback] "
 labels: ["feedback"]
 body:
@@ -7,7 +7,7 @@ body:
     id: wersja
     attributes:
       label: Wersja
-      description: Z nazwy pliku ISO albo z polecenia kons-info
+      description: Z nazwy artefaktu k1-<wersja>-obraz albo z logu (linia „K1:”)
       placeholder: "0.1.0"
     validations:
       required: true
@@ -16,8 +16,8 @@ body:
     attributes:
       label: Gdzie uruchomione
       options:
-        - VMware
-        - VirtualBox
+        - QEMU (maszyna wirtualna)
+        - VMware / VirtualBox
         - Pendrive (prawdziwy komputer)
         - Inne
     validations:

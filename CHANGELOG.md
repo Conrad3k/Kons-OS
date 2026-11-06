@@ -1,51 +1,44 @@
-# Historia zmian Kons-OS
+# Historia zmian K1
 
-Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko te, które są potrzebne).
-Numeracja wersji opisana w [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie).
+Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
+Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
 ## [Niewydane]
 
-## [0.1.2] — 2026-11-02
+## [0.1.0] — 2026-11-06
 
-### Naprawione
-- Tapeta Kons-OS na pulpicie XFCE: XFCE ignorował ustawienie z `desktop-base` i pokazywał swoją domyślną tapetę.
-
-### Zmienione
-- Firmware wybrane ręcznie (Wi-Fi, grafika, dźwięk typowych laptopów) zamiast automatycznego „wszystko” —
-  build nie pobiera już plików spoza Debiana (pakiety `*-installer`). ISO mniejsze (~1,3 GB).
+Pierwsza wersja Kons K1 Sovereign: etapy **M0** (porządki) i **M1** (start systemu).
+Na razie bez ekranu — system startuje w maszynie wirtualnej i zgłasza się na porcie szeregowym.
 
 ### Dodane
-- Lokalne budowanie ISO (`scripts/local-build.sh`) — test zmian przed scaleniem do `main`.
-- `build.sh`: mirrory na czas budowy konfigurowalne (`KONS_MIRROR`, `KONS_MIRROR_SECURITY`);
-  `lb clean` bez `--purge`, więc lokalnie pobrane pakiety zostają między buildami.
-
-## [0.1.1] — 2026-11-02
-
-System odchudzony do podstaw: pulpit, ustawienia, przeglądarka.
+- Jądro Linux 6.18.60 (LTS) z własną, minimalną konfiguracją: bez modułów, bez swapu i hibernacji,
+  bez terminali, lockdown + Landlock + Yama, wzmocnienia według KSPP, sprawdzanie sumy i podpisu źródeł.
+- `k1-initramfs`: znajduje obraz systemu, montuje go tylko do odczytu jako `/rdzen` i przekazuje
+  sterowanie dalej; przy każdym błędzie czytelny komunikat i bezpieczne wyłączenie maszyny.
+- `/rdzen/init` (PID 1): montowania pod `/rdzen/jadro`, 13 ustawień bezpieczeństwa jądra,
+  sprzątanie osieroconych procesów, kontrolowane wyłączanie. W korzeniu systemu są tylko
+  `/rdzen`, `/aplikacje`, `/dane_uzytkownika`.
+- Testy: 33 sprawdzenia wewnątrz systemu (w tym negatywne: nie da się uruchomić programu z danych
+  ani z pamięci, nie ma terminali, usunięte niebezpieczne wywołania jądra), 6 scenariuszy błędów
+  startu, testy jednostkowe z sanitizerami i fuzzing parsera.
+- Skrypty: budowa (powtarzalna), uruchamianie w QEMU z logiem, zrzut ekranu, testy.
+- CI: GitHub Actions buduje i testuje `main`, publikuje obrazy i logi jako artefakt, zakłada tag `k1-v0.1.0`.
+- Dokumentacja: specyfikacja, ADR 0001–0005, architektura, komponenty, testy, zależności, ryzyka.
 
 ### Usunięte
-- Aplikacje: VLC, Evince, Ristretto, Mousepad, menedżer archiwów, GParted, Synaptic, dodatki `xfce4-goodies`.
-- Bluetooth (bluez, blueman).
-- Narzędzia konsolowe: git, curl, wget, htop, fastfetch, vim-tiny, zip/unzip, strony `man` (także polskie), `task-polish`.
-- Pełny zestaw czcionek Noto — zostały tylko podstawowe (`fonts-noto-core`, `fonts-noto-mono`, emoji).
+- Kons-OS na bazie Debiana (live-build, XFCE) — przeniesiony do gałęzi `archiwum/debian-0.1.2`.
 
-### Dodane
-- Zasady pracy nad repo: skill `kons-dev`, `docs/ARCHITEKTURA.md`, ten plik, szablony zgłoszeń (feedback, błąd, pomysł).
-- Automatyczny tag `vX.Y.Z` po udanym buildzie na `main`; numer wersji w nazwie artefaktu ISO.
+---
 
-### Zostało
-- Pulpit XFCE z panelem ustawień, terminal, menedżer plików Thunar (część XFCE).
-- Firefox ESR po polsku ze słownikiem, sieć/Wi-Fi, dźwięk z ustawieniami głośności.
-- Polski język, wygląd Kons-OS, `kons-info`.
+# Archiwum: Kons-OS (Debian, live-build)
 
-## [0.1.0] — 2026-11-02
+Historia poprzedniego systemu; kod w gałęzi `archiwum/debian-0.1.2`, tagi `v0.1.0`–`v0.1.2`.
 
-Pierwsza wersja, która się buduje.
+## [Kons-OS 0.1.2] — 2026-11-02
+- Naprawiona tapeta XFCE; firmware wybierane ręcznie (ISO ~1,3 GB); lokalne budowanie ISO.
 
-### Dodane
-- System live na bazie Debiana 13 (trixie), amd64, start BIOS i UEFI.
-- Pulpit XFCE + LightDM, motyw Arc-Dark, ikony Papirus, tapeta Kons-OS.
-- Polski język, klawiatura i strefa czasowa domyślnie.
-- Firefox ESR, VLC, Evince, GParted, Synaptic, NetworkManager, PipeWire, firmware non-free.
-- Polecenie `kons-info`.
-- Budowanie ISO w GitHub Actions (tylko na `main`).
+## [Kons-OS 0.1.1] — 2026-11-02
+- System odchudzony do pulpitu XFCE, ustawień i Firefoksa; szablony zgłoszeń; tagi wersji.
+
+## [Kons-OS 0.1.0] — 2026-11-02
+- Pierwsza wersja: Debian 13 live, XFCE, polski język, budowanie ISO w GitHub Actions.

@@ -6,7 +6,7 @@ body:
   - type: textarea
     id: co
     attributes:
-      label: Co chcesz mieć w Kons-OS
+      label: Co chcesz mieć w K1
     validations:
       required: true
   - type: textarea

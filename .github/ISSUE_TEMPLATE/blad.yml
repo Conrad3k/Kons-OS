@@ -7,7 +7,7 @@ body:
     id: wersja
     attributes:
       label: Wersja
-      placeholder: "0.1.0"
+      placeholder: "0.1.0 (z nazwy artefaktu k1-<wersja>-obraz)"
     validations:
       required: true
   - type: dropdown
@@ -15,8 +15,8 @@ body:
     attributes:
       label: Gdzie uruchomione
       options:
-        - VMware
-        - VirtualBox
+        - QEMU (maszyna wirtualna)
+        - VMware / VirtualBox
         - Pendrive (prawdziwy komputer)
         - Inne
     validations:

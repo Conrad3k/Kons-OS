@@ -1,0 +1,35 @@
+# Decyzje architektoniczne (ADR)
+
+Każda zmiana architektury i każda korekta specyfikacji (`docs/SPEC.md`) ma tu swój plik
+`NNNN-krotki-opis.md`. Raz przyjętego ADR-u nie zmieniamy treściowo — nowa decyzja to nowy ADR,
+który „zastępuje” stary (status starego: *Zastąpiony przez NNNN*).
+
+Szablon:
+
+```markdown
+# NNNN. Tytuł
+
+- Status: Przyjęty | Zastąpiony przez NNNN | Proponowany
+- Data: RRRR-MM-DD
+- Dotyczy: SPEC §…, etap M…
+
+## Kontekst
+Problem, fakty (ze źródłami: plik w źródłach jądra, man-page, wynik testu).
+
+## Decyzja
+Co wybieramy.
+
+## Konsekwencje
+Co zyskujemy, co tracimy, co trzeba zrobić później. Ograniczenia bezpieczeństwa.
+
+## Rozważane alternatywy
+Krótko, dlaczego nie.
+```
+
+| Nr | Tytuł | Status |
+|---|---|---|
+| [0001](0001-k1-zamiast-kons-os.md) | K1 zamiast dystrybucji Kons-OS; archiwum i struktura repo | Przyjęty |
+| [0002](0002-toolchain-i-flagi-kompilacji.md) | Toolchain (musl, statyczne PIE) i flagi kompilacji | Przyjęty |
+| [0003](0003-jadro-wersja-i-konfiguracja.md) | Jądro: wersja, źródło, konfiguracja, wzmocnienia | Przyjęty |
+| [0004](0004-start-i-uklad-systemu-plikow.md) | Start (initramfs → init) i układ systemu plików | Przyjęty |
+| [0005](0005-bledy-krytyczne-przy-starcie.md) | Obsługa błędów krytycznych przy starcie | Przyjęty |

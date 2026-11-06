@@ -1,0 +1,11 @@
+#!/bin/sh
+# Instaluje narzędzia potrzebne do budowy i testów K1 (Ubuntu 24.04: kontener deweloperski i CI).
+# Wersje pakietów zapisuje build w build/wynik/srodowisko.txt (zob. docs/ZALEZNOSCI.md).
+set -eu
+SUDO=; [ "$(id -u)" -eq 0 ] || SUDO=sudo
+PAKIETY="build-essential gcc-13-plugin-dev flex bison bc libelf-dev libssl-dev rsync cpio xz-utils
+ curl gnupg musl-tools musl-dev squashfs-tools qemu-system-x86 ovmf clang libclang-rt-18-dev python3"
+$SUDO apt-get update -qq
+# shellcheck disable=SC2086
+DEBIAN_FRONTEND=noninteractive $SUDO apt-get install -y -qq --no-install-recommends $PAKIETY >/dev/null
+echo "[k1] narzędzia zainstalowane"
