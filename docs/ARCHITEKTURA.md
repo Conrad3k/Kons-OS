@@ -1,86 +1,96 @@
-# Architektura Kons-OS
+# Architektura K1 — jak to jest zbudowane
+
+Specyfikacja (co i dlaczego): [`SPEC.md`](SPEC.md). Decyzje: [`adr/`](adr/README.md).
+Ten plik opisuje **stan obecny**: mapę repo, przebieg budowy i startu, konwencje.
 
 ## W jednym zdaniu
-
-Kons-OS = **Debian 13 (trixie)** + nasza lista pakietów + nasze pliki i skrypty konfiguracyjne,
-złożone narzędziem **live-build** w obraz ISO, który budują **GitHub Actions**.
-
-Nie mamy własnego jądra ani własnych pakietów `.deb` (jeszcze). Wszystko, co „nasze”, to konfiguracja.
-
-## Jak powstaje ISO
-
-```
-push na main
-   └─ GitHub Actions (.github/workflows/build-iso.yml)
-        └─ kontener debian:trixie (--privileged)
-             └─ ./build.sh
-                  ├─ lb config   ← opcje obrazu (dystrybucja, bootloadery, parametry startu)
-                  └─ lb build
-                       ├─ bootstrap: debootstrap bazowego Debiana
-                       ├─ chroot:    instalacja pakietów z config/package-lists/
-                       │             skopiowanie config/includes.chroot/ do systemu
-                       │             uruchomienie config/hooks/live/*.hook.chroot
-                       └─ binary:    squashfs + GRUB (UEFI) + syslinux (BIOS) → *.hybrid.iso
-   └─ artefakt kons-os-<wersja>-iso (30 dni) + log buildu
-   └─ tag v<wersja> (jeśli nowy)
-```
+K1 = jądro Linux (własna, minimalna konfiguracja) + nasz initramfs + nasz init, wszystko w C
+(statycznie z musl), uruchamiane na razie w QEMU. Nie ma dystrybucji, powłoki ani bibliotek.
 
 ## Mapa repozytorium
 
-| Ścieżka | Rola | Kiedy tu zaglądać |
-|---|---|---|
-| `VERSION` | numer wersji (jedno źródło prawdy) | przy każdej zmianie systemu |
-| `CHANGELOG.md` | historia zmian dla ludzi | przy każdej zmianie systemu |
-| `build.sh` | wywołanie `lb config` + `lb build` | zmiana bootloadera, parametrów startu, architektury |
-| `config/package-lists/*.list.chroot` | **co jest zainstalowane** | dodanie/usunięcie programu |
-| `config/includes.chroot/` | **pliki wgrywane 1:1** do systemu (ścieżka = ścieżka w systemie) | tapety, własne skrypty, gotowe pliki konfiguracyjne |
-| `config/hooks/live/NNNN-*.hook.chroot` | **skrypty uruchamiane w środku systemu** podczas budowy | konfiguracja wymagająca poleceń (locale, alternatives, generowanie plików) |
-| `scripts/local-build.sh`, `scripts/mirror-proxy.py` | build lokalny (chroot z live-build, bez Dockera) | test zmian przed scaleniem |
-| `.github/workflows/build-iso.yml` | CI: budowa ISO, artefakty, tagi | zmiana procesu budowania |
-| `.github/ISSUE_TEMPLATE/` | formularze feedbacku | — |
-| `.claude/skills/kons-dev/` | proces pracy dla Claude | — |
-| `docs/` | dokumentacja | — |
+| Ścieżka | Co tu jest |
+|---|---|
+| `VERSION`, `CHANGELOG.md` | wersja K1 (SemVer) i historia zmian |
+| `Makefile` | kompilacja programów K1 (musl) i testów na hoście |
+| `src/wspolne/` | wspólne moduły: log + błąd krytyczny (`k1_log`), parser linii poleceń jądra (`k1_cmdline`) |
+| `src/initramfs/` | `/init` w initramfs: montuje obraz rdzenia, przełącza korzeń |
+| `src/init/` | `/rdzen/init` — PID 1 |
+| `jadro/` | wersja, konfiguracja i linia poleceń jądra, klucze PGP |
+| `testy/m1/` | program testowy uruchamiany wewnątrz K1 |
+| `testy/host/` | testy jednostkowe (ASan/UBSan) i fuzzing na hoście |
+| `scripts/` | budowa, QEMU, zrzuty ekranu, testy, kontrole (opis niżej) |
+| `docs/` | SPEC, ADR, ten plik, TESTY, ZALEZNOSCI, RYZYKA, `komponenty/` (opis każdego komponentu) |
+| `.github/workflows/k1.yml` | CI: budowa + testy na `main`, artefakty, tag wersji |
+| `build/` | wszystko, co powstaje przy budowie (ignorowane przez git) |
 
-Pliki w `config/` generowane przez `lb config` (np. `config/binary`, `config/chroot`) są w `.gitignore`:
-źródłem prawdy jest `build.sh`.
+### Skrypty
 
-## Warstwy systemu
+| Skrypt | Co robi |
+|---|---|
+| `przygotuj-srodowisko.sh` | instaluje pakiety Ubuntu potrzebne do budowy i testów |
+| `zbuduj.sh` | wszystko: `zbuduj-jadro.sh` + `zbuduj-obraz.sh` |
+| `zbuduj-jadro.sh` | pobiera jądro (suma + podpis PGP), konfiguruje, sprawdza fragment, kompiluje |
+| `zbuduj-obraz.sh` | kompiluje programy, sprawdza binaria, składa `initramfs.cpio` i obrazy SquashFS |
+| `uruchom-qemu.sh` | uruchamia K1 w QEMU (log szeregowy do pliku, monitor do gniazda) |
+| `zrzut-ekranu.sh` | zrzut ekranu działającej maszyny (PNG) |
+| `test-m1.sh` | pełny test etapu M1 |
+| `sprawdz-binaria.sh`, `sprawdz-konfiguracje-jadra.sh`, `sprawdz-kspp.sh` | kontrole bezpieczeństwa |
+| `sprawdz-powtarzalnosc.sh` | drugi build w osobnym katalogu i porównanie sum (powtarzalność) |
 
-1. **Baza** — Debian trixie z repo `main contrib non-free non-free-firmware` + aktualizacje bezpieczeństwa.
-2. **Sprzęt** — firmware, NetworkManager, PipeWire (`kons-base.list.chroot`).
-3. **Pulpit** — Xorg, LightDM, XFCE (z ustawieniami, terminalem, Thunarem), motywy, Firefox (`kons-desktop.list.chroot`).
-   Zasada od 0.1.1: **minimum** — każdy dodatkowy program to świadoma decyzja właściciela.
-4. **Tożsamość Kons-OS** — hooki `0100-kons-branding` (os-release, motd, tapeta, motyw XFCE/LightDM)
-   i `0200-kons-locale` (polski), plus `includes.chroot` (tapeta, `kons-info`).
-5. **Sesja live** — `live-boot`/`live-config`: użytkownik `kons`/`live`, autologowanie,
-   parametry z `--bootappend-live` w `build.sh`.
+## Jak powstaje obraz
+
+```
+jadro/wersja.env ──► pobranie + SHA-256 + podpis PGP ──► allnoconfig + jadro/k1.config ──► bzImage
+                                                         (sprawdzenie każdej opcji)    └► nagłówki UAPI, gen_init_cpio
+src/ ──► musl-gcc (static-pie, flagi SPEC §11) ──► k1-initramfs, init, k1-test-m1 ──► sprawdzenie ELF
+                                                       │
+                     initramfs.cpio  ◄── /init ────────┘
+                     rdzen.squashfs  ◄── init (+ katalogi jadro/{dev,proc,sys}, system/)
+                     rdzen-test.squashfs ◄── + k1-test-m1 jako system/nadzorca
+```
+Wynik w `build/wynik/` (+ `SHA256SUMS`, `srodowisko.txt`). Build jest powtarzalny: stały
+`SOURCE_DATE_EPOCH` (data ostatniego commita), stałe dane budowy jądra, `-frandom-seed`.
+
+## Jak startuje system (M1)
+
+```
+QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs)
+ └─ jądro 6.18 ── otwiera /dev/console w initramfs, uruchamia /init
+     └─ k1-initramfs (PID 1)
+          /proc/cmdline → k1.rdzen=/dev/vda (walidacja)
+          tmpfs → nowy korzeń: aplikacje/ dane_uzytkownika/ rdzen/
+          SquashFS z /dev/vda → /rdzen (ro) ; korzeń → ro ; usunięcie initramfs ; MS_MOVE + chroot
+          execve /rdzen/init
+     └─ /rdzen/init (PID 1)
+          sysctl bezpieczeństwa → montowania /rdzen/jadro/{dev,proc,sys}, cgroup2, /dane_uzytkownika
+          „K1: init OK” → nadzorca (M3; w obrazie testowym: program testowy) → pętla sygnałów
+```
+Szczegóły i tabela montowań: ADR 0004. Błędy: ADR 0005.
 
 ## Konwencje
-
-- **Hooki** numerujemy co 100 (`0100`, `0200`, …), żeby dało się wstawić coś pomiędzy. Każdy hook:
-  `#!/bin/sh`, `set -e`, komentarz na górze „co i po co”, musi być wykonywalny.
-- **Domyślne ustawienia użytkownika** trafiają do `/etc/skel/` (kopiowane do katalogu domowego nowego użytkownika).
-- **Własne polecenia** mają prefiks `kons-` i leżą w `config/includes.chroot/usr/local/bin/`.
-- **Listy pakietów** grupujemy komentarzami `# --- Sekcja ---`; nowa duża grupa = nowy plik `kons-<nazwa>.list.chroot`.
-- **Język**: komunikaty widoczne w systemie, dokumentacja i opisy PR — po polsku. Komunikaty commitów — po angielsku.
+- **Język:** komunikaty w systemie, dokumentacja, PR-y — po polsku; identyfikatory i komentarze
+  w kodzie oraz commity — po angielsku.
+- **Kod C:** małe moduły, jawne limity długości, sprawdzanie każdego błędu, bez `strcpy/strcat/sprintf`
+  (tylko `snprintf`/`strncat` z limitem). Flagi w `Makefile` — zmiana tylko przez ADR.
+- **Prefiksy logów:** `K1-INITRAMFS:`, `K1:` (init), `K1-TEST:`; błędy krytyczne `BŁĄD KRYTYCZNY:`.
+- **Ścieżki w systemie** po polsku (`/rdzen`, `/dane_uzytkownika`, `/rdzen/system/…`).
+- **Komponent = dokument** w `docs/komponenty/` (cel, granica zaufania, uprawnienia, wejścia/wyjścia,
+  zależności, syscalle, błędy, powierzchnia ataku, testy) — SPEC §2.6.
+- **Statusy:** ZAIMPLEMENTOWANE / PRZETESTOWANE (z dowodem) / PLANOWANE — SPEC §2.4.
 
 ## Wersjonowanie
+SemVer od 0.1.0 w `VERSION`; tagi `k1-vX.Y.Z` zakłada CI po udanym buildzie i testach na `main`
+(stare tagi `v0.1.x` to Kons-OS na Debianie, ADR 0001).
 
-Format `MAJOR.MINOR.PATCH` (SemVer), dopóki jesteśmy przed 1.0:
+| Zmiana | Co podbić |
+|---|---|
+| ukończony etap (M2, M3, …) | MINOR: 0.1.0 → 0.2.0 |
+| poprawka, aktualizacja jądra, drobna zmiana w systemie | PATCH: 0.1.0 → 0.1.1 |
+| tylko dokumentacja / CI / repo | bez zmiany |
 
-| Zmiana | Przykład | Co podbić |
-|---|---|---|
-| naprawa, drobna poprawka wyglądu | tapeta się nie ustawiała | PATCH: 0.1.0 → 0.1.1 |
-| nowa funkcja, program, zmiana wyglądu | dodanie LibreOffice, instalator | MINOR: 0.1.1 → 0.2.0 |
-| zmiana tylko dokumentacji / CI / repo | ten plik | **bez zmiany** wersji |
-| system gotowy do codziennego używania (instalator, stabilność) | — | 1.0.0 (decyzja właściciela) |
-
-Wersja trafia do `/etc/os-release`, nazwy ISO, nazwy artefaktu i tagu `vX.Y.Z` (tag zakłada CI po udanym buildzie).
-
-## Ograniczenia, o których warto pamiętać
-
-- **Minuty GitHub Actions**: prywatne repo ma limit (darmowy plan ~2000 min/mies.), build trwa ~20–25 min.
-  Dlatego budujemy tylko `main`, a zmiany łączymy w paczki.
-- **GitHub Releases** przyjmują pliki do 2 GiB, a ISO ma ~2,2 GB — dlatego ISO jest w artefaktach Actions, nie w Releases.
-- **Brak testu uruchomienia w CI** — to, że ISO się zbudowało, nie znaczy, że system dobrze działa.
-  Weryfikacja wizualna = feedback właściciela.
+## Ograniczenia środowiska pracy
+- Kontener deweloperski bez `/dev/kvm` → QEMU w emulacji TCG (start K1 ~1–2 s, cały test M1 ~1,5 min).
+- Sieć kontenera: tylko HTTPS przez proxy; dozwolone m.in. apt Ubuntu, deb.debian.org, GitHub,
+  cdn/www/git.kernel.org.
+- CI (GitHub Actions) buduje tylko `main` — minuty prywatnego repo są ograniczone.

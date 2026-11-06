@@ -1,0 +1,80 @@
+name: K1 — budowa i testy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "jadro/**"
+      - "testy/**"
+      - "scripts/**"
+      - "Makefile"
+      - "VERSION"
+      - ".github/workflows/k1.yml"
+  workflow_dispatch:
+
+# Nowszy build na main anuluje starszy, który jeszcze trwa (oszczędza minuty).
+concurrency:
+  group: k1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  k1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write   # tag k1-vX.Y.Z po udanym buildzie i testach
+    steps:
+      - name: Pobierz kod
+        uses: actions/checkout@v5
+
+      - name: Odczytaj wersję
+        run: echo "K1_WERSJA=$(cat VERSION)" >> "$GITHUB_ENV"
+
+      - name: Włącz KVM, jeśli runner go ma (inaczej QEMU użyje emulacji TCG)
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+            sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+          fi
+          ls -l /dev/kvm || echo "brak /dev/kvm"
+
+      - name: Zainstaluj narzędzia
+        run: scripts/przygotuj-srodowisko.sh
+
+      - name: Zbuduj jądro, programy i obrazy
+        run: scripts/zbuduj.sh
+
+      - name: Testy M1 (host + QEMU, także negatywne)
+        run: K1_FUZZ_CZAS=30 scripts/test-m1.sh
+
+      - name: Wyślij obrazy jako artefakt
+        uses: actions/upload-artifact@v5
+        with:
+          name: k1-${{ env.K1_WERSJA }}-obraz
+          path: |
+            build/wynik/
+          retention-days: 30
+
+      - name: Oznacz wersję tagiem (jeśli tagu jeszcze nie ma)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          TAG="k1-v${K1_WERSJA}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null; then
+            echo "Tag ${TAG} już istnieje — pomijam (czy podbito VERSION?)"
+          else
+            git tag "${TAG}" "${GITHUB_SHA}"
+            git push origin "${TAG}"
+          fi
+
+      - name: Wyślij logi testów (także przy błędzie)
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: k1-${{ env.K1_WERSJA }}-logi
+          path: |
+            build/testy/*.log
+            build/wynik/SHA256SUMS
+            build/wynik/srodowisko.txt
+          if-no-files-found: ignore
+          retention-days: 30

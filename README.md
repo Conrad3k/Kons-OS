@@ -1,66 +1,53 @@
-# Kons-OS
+# Kons K1 Sovereign
 
-Linux-Based, Vibe-Coded operating system.
+Własny, minimalistyczny i bezpieczny system operacyjny na jądrze Linux. Nie jest dystrybucją
+Linuksa: ma własny program startowy, (wkrótce) własny ekran i pulpit, własny magazyn danych
+i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
 
-Projektujemy system operacyjny na bazie Linuxa.
+> Wcześniej w tym repozytorium był **Kons-OS** — dystrybucja na bazie Debiana (wersje 0.1.0–0.1.2).
+> Jest zachowany w gałęzi [`archiwum/debian-0.1.2`](../../tree/archiwum/debian-0.1.2) i tagach `v0.1.x`.
 
-Kons-OS to dystrybucja Linuksa oparta na **Debianie 13 (trixie)** z pulpitem **XFCE**,
-polskim językiem i klawiaturą ustawionymi domyślnie oraz własnym wyglądem (tapeta,
-ciemny motyw Arc-Dark, ikony Papirus). Jest celowo minimalny: pulpit, ustawienia i przeglądarka Firefox. Uruchamia się jako system *live* z pendrive'a albo w maszynie wirtualnej.
+## Na jakim etapie jesteśmy
 
-## Jak zdobyć plik ISO (bez instalowania niczego)
+| Etap | Co to daje | Status |
+|---|---|---|
+| M0 Porządki | nowe repo, dokumenty, narzędzia, automatyczne budowanie | PRZETESTOWANE |
+| M1 Start | system startuje w maszynie wirtualnej (QEMU) i pisze „K1: init OK” | PRZETESTOWANE |
+| M2 Ekran | pierwszy obraz na ekranie: tapeta, logo, kursor myszy | PLANOWANE |
+| M3 Trusted Core | nadzorca usług, każda usługa we własnej „klatce” | PLANOWANE |
+| M4 GUI | pulpit, okna, pierwsze aplikacje (zegar, notatki) | PLANOWANE |
+| M5–M12 | magazyn danych, sieć, przeglądarka w izolacji, bezpieczny start, audyt | PLANOWANE |
 
-System buduje się automatycznie na serwerach GitHuba (GitHub Actions):
+Pełny plan i zasady: [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-1. Wejdź w zakładkę **Actions** w repozytorium.
-2. Wybierz workflow **„Zbuduj ISO Kons-OS”** i ostatnie udane uruchomienie (zielony ✔).
-3. Na dole strony, w sekcji **Artifacts**, pobierz `kons-os-<wersja>-iso` (plik zip z ISO w środku).
+**Ważne:** na tym etapie K1 nie ma jeszcze nic do oglądania na ekranie i działa tylko w maszynie
+wirtualnej QEMU — cały „dowód życia” to tekst wysyłany na port szeregowy. Testowanie na laptopie
+ma sens od etapu M2.
 
-ISO buduje się automatycznie po każdej zmianie systemu na `main` (ok. 20–25 minut) i jest dostępne przez 30 dni.
-Build można też uruchomić ręcznie przyciskiem **Run workflow**.
+## Jak to sprawdzić bez instalowania niczego
+Po każdej zmianie na `main` GitHub sam buduje system i uruchamia testy:
 
-## Jak uruchomić
+1. Zakładka **Actions** → workflow **„K1 — budowa i testy”** → ostatnie uruchomienie.
+2. Zielony ✔ = system się zbudował i przeszedł wszystkie testy.
+3. Na dole strony w **Artifacts**: `k1-<wersja>-obraz` (jądro, initramfs, obrazy, logi testów).
 
-- **VirtualBox** (najprościej): nowa maszyna → typ *Linux / Debian (64-bit)*, 4 GB RAM,
-  2 rdzenie → jako dysk optyczny wybierz pobrany plik `.iso` → Start.
-- **Pendrive**: nagraj ISO programem [Rufus](https://rufus.ie) (tryb DD) albo
-  [balenaEtcher](https://etcher.balena.io), a potem uruchom komputer z pendrive'a.
-
-Użytkownik systemu live: `kons`, hasło: `live` (logowanie jest automatyczne).
-W terminalu wpisz `kons-info`.
-
-## Struktura repozytorium
-
-| Ścieżka | Co tu jest |
-|---|---|
-| `build.sh` | Skrypt budujący ISO (live-build) |
-| `VERSION` | Numer wersji systemu |
-| `config/package-lists/` | Lista programów wchodzących w skład systemu |
-| `config/hooks/live/` | Skrypty uruchamiane podczas budowy (branding, język) |
-| `config/includes.chroot/` | Pliki kopiowane 1:1 do systemu (np. tapeta, `kons-info`) |
-| `.github/workflows/build-iso.yml` | Automatyczne budowanie ISO na GitHubie |
-| `CHANGELOG.md` | Historia zmian |
-| `docs/` | Dokumentacja i pomysły na rozwój |
-| `.claude/skills/kons-dev/` | Proces pracy dla Claude |
-
-## Budowanie lokalnie
-
-Potrzebny jest Debian 13 (np. w maszynie wirtualnej) i ok. 15 GB miejsca:
-
+## Budowanie i testy (dla programisty)
+Ubuntu 24.04:
 ```bash
-sudo apt install live-build
-sudo ./build.sh
+scripts/przygotuj-srodowisko.sh   # pakiety (raz)
+scripts/zbuduj.sh                 # jądro + programy + obrazy → build/wynik/
+scripts/test-m1.sh                # testy (QEMU, także negatywne)
+scripts/uruchom-qemu.sh           # ręczne uruchomienie; log: build/qemu/serial.log
 ```
+Szczegóły: [`docs/ARCHITEKTURA.md`](docs/ARCHITEKTURA.md), [`docs/TESTY.md`](docs/TESTY.md).
 
-Gotowy plik pojawi się jako `kons-os-<wersja>-amd64.hybrid.iso`.
+## Dokumentacja
+- [`docs/SPEC.md`](docs/SPEC.md) — specyfikacja (nadrzędna), [`docs/adr/`](docs/adr/README.md) — decyzje
+- [`docs/ARCHITEKTURA.md`](docs/ARCHITEKTURA.md) — jak to jest zbudowane, mapa repo
+- [`docs/komponenty/`](docs/komponenty/) — opis każdego elementu systemu
+- [`docs/RYZYKA.md`](docs/RYZYKA.md) — czego system jeszcze nie chroni
+- [`docs/ZALEZNOSCI.md`](docs/ZALEZNOSCI.md) — z czego korzystamy i dlaczego
 
 ## Feedback
-
-Po przetestowaniu wersji napisz w czacie z Claude albo załóż zgłoszenie w zakładce **Issues → New issue**
-(szablony: *Feedback z testu*, *Błąd*, *Pomysł*). Zrzuty ekranu bardzo pomagają.
-
-## Więcej
-
-- [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md) — jak zbudowany jest system, konwencje, wersjonowanie
-- [CHANGELOG.md](CHANGELOG.md) — co się zmieniło w każdej wersji
-- [docs/jak-modyfikowac.md](docs/jak-modyfikowac.md) — jak samemu coś zmienić
+Napisz w czacie z Claude albo załóż zgłoszenie: **Issues → New issue** (szablony: *Feedback z testu*,
+*Błąd*, *Pomysł*).
