@@ -50,6 +50,8 @@ static int ustawienie(int32_t klucz, int32_t wartosc)
         return w(wartosc, 0, 1);
     case K1_UST_MYSZ:
         return w(wartosc, 1, 3);
+    case K1_UST_TAPETA:
+        return w(wartosc, 0, 3);
     default:
         return 0;
     }

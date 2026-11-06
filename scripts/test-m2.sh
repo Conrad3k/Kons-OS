@@ -1,7 +1,8 @@
 #!/bin/sh
 # Test etapu M2 (powtarzalny): ekran i wejście w działającym K1 (obraz produkcyjny).
-# 1. start → pierwsza klatka (tapeta + logo), 2. mysz (monitor QEMU: mouse_move),
-# 3. klawiatura (sendkey: strzałki przesuwają kursor) i przycisk myszy (zmiana koloru kursora).
+# 1. start → pierwsza klatka (tapeta, pulpit), 2. mysz (monitor QEMU: mouse_move),
+# 3. klawiatura (sendkey: strzałki przesuwają kursor, gdy żadne okno nie ma fokusu) i przycisk myszy
+#    (zmiana koloru kursora).
 # Każdy krok: zapis w logu ekranu + zrzut ekranu sprawdzany automatycznie (kolory pikseli).
 # Zrzuty: build/testy/m2-*.png (dowód dla człowieka). Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
@@ -67,9 +68,11 @@ W, H = int(tryb.group(1)), int(tryb.group(2)); x0, y0 = int(k0.group(1)), int(k0
 time.sleep(1)
 w, h, px = zrzut("1-start")
 sprawdz(f"zrzut 1: rozmiar {w}x{h} = tryb {W}x{H}", (w, h) == (W, H))
-sprawdz("zrzut 1: logo (terakota w tarczy)", akcent(px(W // 2, int(0.535 * H))), str(px(W // 2, int(0.535 * H))))
-sprawdz("zrzut 1: ciemna tapeta w rogach", ciemny(px(3, 3)) and ciemny(px(W - 4, 3)), str(px(3, 3)))
+sprawdz("zrzut 1: tapeta (kolorowa, nie jednolita)", px(W // 4, H // 2) != px(W - 20, H // 3) and max(px(W // 3, H // 2)) > 80,
+        str(px(W // 4, H // 2)))
+sprawdz("zrzut 1: ciemny górny pasek", max(px(W // 2, 4)) < 120, str(px(W // 2, 4)))
 sprawdz("zrzut 1: kursor w miejscu z logu", krem(px(x0 + 3, y0 + 9)), str(px(x0 + 3, y0 + 9)))
+px1 = px
 
 monitor(*["mouse_move -60 -30"] * 4)
 x1, y1 = x0 - 240, y0 - 120
@@ -78,7 +81,7 @@ sprawdz(f"mysz: kursor przesunięty o (-240,-120) → {x1},{y1}", m is not None)
 time.sleep(1)
 w, h, px = zrzut("2-mysz")
 sprawdz("zrzut 2: kursor w nowym miejscu", krem(px(x1 + 3, y1 + 9)), str(px(x1 + 3, y1 + 9)))
-sprawdz("zrzut 2: w starym miejscu znów tapeta (brak śladu)", not krem(px(x0 + 3, y0 + 9)), str(px(x0 + 3, y0 + 9)))
+px2 = px
 
 monitor(*["sendkey right"] * 3 + ["mouse_button 1"])
 x2 = x1 + 60
@@ -87,6 +90,9 @@ sprawdz(f"klawiatura: 3 x strzałka w prawo → {x2},{y1}; przycisk myszy wciśn
 time.sleep(1)
 w, h, px = zrzut("3-klawiatura-przycisk")
 sprawdz("zrzut 3: kursor w kolorze akcentu (przycisk wciśnięty)", akcent(px(x2 + 3, y1 + 9)), str(px(x2 + 3, y1 + 9)))
+# Where the cursor was at the start, screenshots 2 and 3 show the same wallpaper again (no trace).
+sprawdz("zrzut 2 i 3: w starym miejscu kursora znów tapeta (brak śladu)",
+        px2(x0 + 3, y0 + 9) == px(x0 + 3, y0 + 9) != px1(x0 + 3, y0 + 9), f"{px1(x0 + 3, y0 + 9)} {px2(x0 + 3, y0 + 9)}")
 monitor("mouse_button 0")
 
 tekst = open(log, encoding="utf-8", errors="replace").read()

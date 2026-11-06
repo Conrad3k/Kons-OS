@@ -1,0 +1,57 @@
+/* K1 przybornik — drawing for the native GUI processes (gui, applications), ADR 0008.
+ *
+ * All drawing goes into premultiplied ARGB8888 images (struct k1_obraz) that the screen process
+ * composes. Shapes use signed distance functions for anti-aliased edges; text uses the build-time
+ * bitmap fonts (k1_czcionka.h). Pure functions without system calls or allocation — tested on the
+ * host with ASan/UBSan (testy/host/test_przybornik.c). */
+#ifndef K1_RYSUJ_H
+#define K1_RYSUJ_H
+
+#include <stdint.h>
+
+#include "k1_czcionka.h"
+#include "k1_grafika.h"
+
+/* 0xRRGGBB + alpha 0..255 → premultiplied ARGB. */
+uint32_t k1_kolor(uint32_t rgb, uint32_t alfa);
+
+void k1_wyczysc(struct k1_obraz *o, uint32_t kolor); /* set every pixel */
+/* Blend `kolor` over a rectangle / rounded rectangle (radius r) / its outline (width g). */
+void k1_prostokat(struct k1_obraz *o, int32_t x, int32_t y, int32_t w, int32_t h, uint32_t kolor);
+void k1_zaokraglony(struct k1_obraz *o, float x, float y, float w, float h, float r, uint32_t kolor);
+void k1_obrys(struct k1_obraz *o, float x, float y, float w, float h, float r, float g, uint32_t kolor);
+void k1_kolo(struct k1_obraz *o, float cx, float cy, float r, uint32_t kolor);
+void k1_okrag(struct k1_obraz *o, float cx, float cy, float r, float g, uint32_t kolor);
+void k1_kreska(struct k1_obraz *o, float x0, float y0, float x1, float y1, float g, uint32_t kolor);
+/* Soft shadow of a rounded rectangle, drawn outside it (for panels drawn by the shell). */
+void k1_cien(struct k1_obraz *o, float x, float y, float w, float h, float r, float rozmycie, uint32_t alfa);
+
+/* Text (UTF-8; invalid sequences are drawn as '?'). `y` is the baseline. Returns the advance in px.
+ * With max_szer > 0 the text is cut and ended with "…" so that it fits. */
+int32_t k1_tekst(struct k1_obraz *o, enum k1_cz cz, int32_t x, int32_t y, const char *utf8, uint32_t kolor,
+                 int32_t max_szer);
+int32_t k1_tekst_szer(enum k1_cz cz, const char *utf8);
+/* Decodes one UTF-8 code point at s (at most `n` bytes); returns its length (>= 1), *kod = U+FFFD
+ * for invalid input. */
+int k1_utf8(const char *s, uint32_t n, uint32_t *kod);
+/* Appends code point `kod` as UTF-8; returns the number of bytes (0 if it does not fit). */
+int k1_utf8_zapisz(uint32_t kod, char *dst, uint32_t miejsce);
+
+/* Line icons drawn on a 24×24 grid scaled to `rozmiar` px, stroke 1.5 (at 24 px). */
+enum k1_ikona {
+    K1_IK_ZEGAR = 1,
+    K1_IK_NOTATKI,
+    K1_IK_USTAWIENIA,
+    K1_IK_GLOSNIK,
+    K1_IK_ZASILANIE,
+    K1_IK_RESTART,
+    K1_IK_ZAMKNIJ,
+    K1_IK_MINIMALIZUJ,
+    K1_IK_KLODKA,
+    K1_IK_INFO,
+    K1_IK_MYSZ,
+    K1_IK_WYGLAD,
+};
+void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozmiar, uint32_t kolor);
+
+#endif

@@ -42,10 +42,10 @@ jobs:
       - name: Zainstaluj narzędzia
         run: scripts/przygotuj-srodowisko.sh
 
-      - name: Zbuduj jądro, programy i obrazy
+      - name: Zbuduj jądro, programy, obrazy i ISO
         run: scripts/zbuduj.sh
 
-      - name: Testy (host + QEMU, także negatywne; M1 + M2)
+      - name: Testy (host + QEMU, także negatywne; M1–M4, start z ISO)
         run: K1_FUZZ_CZAS=30 scripts/testy.sh
 
       - name: Oznacz wersję tagiem (jeśli tagu jeszcze nie ma)
@@ -57,6 +57,22 @@ jobs:
           else
             git tag "${TAG}" "${GITHUB_SHA}"
             git push origin "${TAG}"
+          fi
+
+      - name: Opublikuj obraz ISO jako wydanie (Releases → k1-vX.Y.Z)
+        # Wydanie nie zajmuje limitu artefaktów i ma stały adres do pobrania.
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="k1-v${K1_WERSJA}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Wydanie $TAG już istnieje — pomijam"
+          else
+            gh release create "$TAG" "build/wynik/k1-${K1_WERSJA}.iso" "build/wynik/k1-${K1_WERSJA}.iso.sha256" \
+              build/wynik/SHA256SUMS --title "Kons K1 ${K1_WERSJA}" \
+              --notes "Obraz ISO do uruchomienia w maszynie wirtualnej (UEFI albo BIOS). Instrukcja: README.md, sekcja „Uruchom w maszynie wirtualnej”. Zmiany: CHANGELOG.md."
           fi
 
       - name: Wyślij obrazy jako artefakt

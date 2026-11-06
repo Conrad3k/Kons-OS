@@ -7,8 +7,8 @@ zrzut ekranu albo wynik testu. Każdy mechanizm bezpieczeństwa ma test negatywn
 
 ```bash
 scripts/przygotuj-srodowisko.sh   # raz w nowym kontenerze (pakiety Ubuntu)
-scripts/zbuduj.sh                 # jądro + programy + obrazy → build/wynik/
-scripts/testy.sh                  # wszystkie testy (~2,5 min w emulacji TCG): test-m1.sh + test-m2.sh
+scripts/zbuduj.sh                 # jądro + programy + obrazy + ISO → build/wynik/
+scripts/testy.sh                  # wszystkie testy (~6 min w emulacji TCG): test-m1.sh, test-m2.sh, test-m4.sh
 ```
 
 Logi każdego scenariusza: `build/testy/<nazwa>.log`. Limit czasu na uruchomienie: `K1_TEST_CZAS`
@@ -38,8 +38,8 @@ Ręcznie: `scripts/uruchom-qemu.sh [--obraz build/wynik/rdzen-test.squashfs]` i 
 
 | Scenariusz | Oczekiwane | Rodzaj |
 |---|---|---|
-| jednostkowe | parser linii poleceń (32), protokół zdarzeń (32), renderer (3 rozmiary) — ASan/UBSan | funkcjonalny + negatywny |
-| fuzzing | linia poleceń i protokół zdarzeń, libFuzzer po 20 s | fuzzing |
+| jednostkowe | parser linii poleceń (32), protokół zdarzeń (32), protokół usług i kanały na prawdziwych gniazdach (85), przybornik GUI (55: czas polski ze zmianami czasu, układ PL, UTF-8, rysowanie na krawędziach, tapety), renderer — ASan/UBSan | funkcjonalny + negatywny |
+| fuzzing | linia poleceń, protokół zdarzeń, protokół usług (32 B, wszystkie kierunki), libFuzzer po 20 s | fuzzing |
 | zabezpieczenia binariów | static-pie, RELRO, BIND_NOW, NX, brak RWX | konfiguracja |
 | konfiguracja jądra | każda linia `jadro/k1.config` w `.config` | konfiguracja |
 | qemu: start | `K1: init OK`, nadzorca uruchomiony, pierwsza klatka ekranu | funkcjonalny |
@@ -118,11 +118,44 @@ sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
 4. Testy negatywne: przejęcie ekranu, złośliwe komunikaty IPC, awaria procesu ekran.
 5. Wszystkie testy M1 nadal przechodzą.
 
+- M4 (ADR 0008): klatki `gui` i trzech aplikacji (uruchomionych przez kanał testowy jak przez gui);
+  próby w ich klatkach (dla gui i aplikacji: zwykły memfd tak, `MFD_EXEC` nie; Notatki: `/rdzen`
+  i reszta `/dane_uzytkownika` → EACCES, cudze procesy niewidoczne, własny katalog — tak).
+- M4 NEGATYWNE, złośliwe okna (kanał testowy jako aplikacja): powierzchnia bez deskryptora, z `/dev/null`,
+  memfd bez pieczęci, za mały, panel od aplikacji, ustawienie od aplikacji innej niż Ustawienia,
+  minimalizacja cudzego okna, poprawne okno od obcego UID — odrzucone (harness: powody w logu);
+  poprawne okno przyjęte (`RAMKA`).
+- M4: awaria `gui` → wraca, okna aplikacji zostają; zabita aplikacja nie wraca sama.
+
+## M4 — kryteria zaliczenia
+1. Pulpit: górny pasek (aplikacja, dźwięk, zegar), dolny wyśrodkowany pasek, menu Start — zrzuty.
+2. Aplikacje Zegar, Notatki (polskie znaki, zapis), Ustawienia (motyw, tapeta, mysz, sekundy)
+   uruchamiane z paska i menu, okna przeciągane, minimalizowane, wyłączenie z menu Start.
+3. Każda aplikacja i gui w klatce; przejęte gui nie ma plików ani treści okien; Notatki tylko swój
+   katalog — testy w systemie (próby).
+4. Złośliwe komunikaty okien odrzucane; role (powłoka, Ustawienia) egzekwowane przez ekran.
+5. Obraz ISO startuje przez UEFI i BIOS z grafiką z firmware (simpledrm).
+6. Wszystkie testy M1–M3 nadal przechodzą.
+
+## M4 — `scripts/test-m4.sh`
+
+| Scenariusz | Sprawdzenie | Dowód |
+|---|---|---|
+| pulpit | rozmiar, ciemny górny pasek, jasny dolny, kolorowa tapeta | `m4-pulpit-1-pulpit.png` |
+| menu Start | otwiera się po kliknięciu znaku K1 | `m4-2-menu.png` |
+| Notatki | z menu; „Zażółć K1” przez AltGr; „zapisano notatkę (9 znaków)”; tekst na zrzucie; przeciągnięcie okna o (120, 60) | `m4-3-notatki.png` |
+| Zegar | z dolnego paska; środek tarczy w kolorze akcentu | `m4-4-zegar.png` |
+| Ustawienia | ciemny motyw (`ustawienie 1=1`, ciemne okno), tapeta „Zmierzch” (fiolet w rogu), minimalizacja kliknięciem na pasku | `m4-5-ciemny.png`, `m4-6-tapeta.png` |
+| czystość logu | brak „Kernel panic”, „BŁĄD”, zablokowanych wywołań, odrzuconych komunikatów | `m4-pulpit.log` |
+| wyłączenie | Start → Wyłącz → `K1: wyłączanie zasilania`, `reboot: Power down` | log |
+| ISO UEFI | OVMF + `virtio-vga` (bez sterownika K1): rdzeń przez loop, simpledrm, pulpit | `m4-iso-uefi-1-pulpit.png` |
+| ISO BIOS | SeaBIOS + `virtio-vga`: GRUB ustawia VESA, simpledrm, pulpit | `m4-iso-bios-1-pulpit.png` |
+
 ## M2 — `scripts/test-m2.sh` (obraz produkcyjny, sterowanie przez monitor QEMU)
 
 | Krok | Sprawdzenie | Dowód |
 |---|---|---|
-| start | w logu tryb i „pierwsza klatka”; zrzut: rozmiar = tryb, terakota w tarczy, ciemne rogi, kursor tam, gdzie mówi log | `build/testy/m2-1-start.png` |
-| mysz | 4 × `mouse_move -60 -30` → kursor (−240, −120); na zrzucie kursor w nowym miejscu, w starym znów tapeta | `m2-2-mysz.png` |
-| klawiatura i przycisk | 3 × `sendkey right` → +60 px; `mouse_button 1` → kursor w kolorze akcentu | `m2-3-klawiatura-przycisk.png` |
+| start | w logu tryb i „pierwsza klatka”; zrzut: rozmiar = tryb, kolorowa tapeta, ciemny górny pasek, kursor tam, gdzie mówi log | `build/testy/m2-1-start.png` |
+| mysz | 4 × `mouse_move -60 -30` → kursor (−240, −120); na zrzucie kursor w nowym miejscu | `m2-2-mysz.png` |
+| klawiatura i przycisk | 3 × `sendkey right` (żadne okno nie ma fokusu) → +60 px; `mouse_button 1` → kursor w kolorze akcentu; w starym miejscu kursora na zrzutach 2 i 3 ta sama tapeta (brak śladu) | `m2-3-klawiatura-przycisk.png` |
 | koniec | brak „Kernel panic”, błędów usług, odrzuconych i zgubionych zdarzeń | `m2-ekran.log` |

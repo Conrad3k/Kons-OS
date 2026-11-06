@@ -1,5 +1,5 @@
 /* Host preview of the K1 renderer: writes the wallpaper (+ cursor) as a PPM image.
- *   podglad_grafiki SZER WYS X Y WCISNIETY > obraz.ppm
+ *   podglad_grafiki SZER WYS X Y WCISNIETY [TAPETA] > obraz.ppm
  * Used to look at the design without booting QEMU, and by the host tests (ASan/UBSan). */
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +11,7 @@ int main(int argc, char **argv)
     unsigned long w = argc > 1 ? strtoul(argv[1], NULL, 10) : 1280;
     unsigned long h = argc > 2 ? strtoul(argv[2], NULL, 10) : 800;
     long cx = argc > 3 ? strtol(argv[3], NULL, 10) : -100, cy = argc > 4 ? strtol(argv[4], NULL, 10) : -100;
-    int pressed = argc > 5 ? atoi(argv[5]) : 0;
+    int pressed = argc > 5 ? atoi(argv[5]) : 0, wariant = argc > 6 ? atoi(argv[6]) : 0;
     uint32_t sprite[K1_KURSOR_SZER * K1_KURSOR_WYS];
     struct k1_obraz o;
     size_t i;
@@ -24,7 +24,7 @@ int main(int argc, char **argv)
     o.px = calloc((size_t)w * (size_t)h, sizeof *o.px);
     if (o.px == NULL)
         return 1;
-    k1_rysuj_tlo(&o);
+    k1_rysuj_tlo(&o, wariant);
     k1_rysuj_kursor(sprite, pressed);
     k1_naloz_sprite(&o, sprite, K1_KURSOR_SZER, K1_KURSOR_WYS, (int32_t)cx - K1_KURSOR_HOT_X,
                     (int32_t)cy - K1_KURSOR_HOT_Y);

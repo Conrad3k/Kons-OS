@@ -101,13 +101,10 @@ static uint32_t kwantyzuj(struct rgb c, uint32_t x, uint32_t y)
 }
 
 /* ---- palette (docs/WYGLAD.md) ---- */
-#define KOLOR_TLO_SRODEK 0x2a231eu
-#define KOLOR_TLO_BRZEG 0x0e0c0bu
 #define KOLOR_AKCENT 0xd9774fu
 #define KOLOR_AKCENT_JASNY 0xe8956cu
 #define KOLOR_AKCENT_CIEMNY 0xa94f34u
 #define KOLOR_KREM 0xf3ede2u
-#define KOLOR_CIEN 0x050404u
 
 /* ---- logo: a shield with a battlement top (fortress = security, sovereignty) and "K1" ---- */
 
@@ -166,75 +163,178 @@ static float sd_monogram(struct v2 p)
     return d;
 }
 
-/* Colour of the logo layers over background colour `c` at logo-space point p (L = logo size in px). */
-static struct rgb logo_piksel(struct rgb c, const struct logo *l, struct v2 p, float L)
+/* ---- wallpaper: layered ribbons of folded paper (owner's reference, docs/WYGLAD.md) ----
+ *
+ * Nested, rotated ellipses are "sheets" lying one on another; each inner one is a step higher.
+ * Where a sheet ends towards the viewer (lower-left part of its edge) its cut face — the wall —
+ * is visible, lit warm; below the wall the lower sheet is in soft shadow. Sheet surfaces reflect a
+ * sky: light near the edge, deeper colour further in, with faint clouds (value noise). Rendered
+ * at half resolution and scaled up (the image is smooth), dithered against banding. */
+
+struct paleta {
+    uint32_t niebo[3];     /* sky: top-right, left, bottom */
+    uint32_t powierzchnia[4]; /* sheet surface from the edge inwards */
+    uint32_t sciana[2];    /* wall: under the rim, bottom */
+    uint32_t krawedz;      /* rim highlight */
+};
+
+static const struct paleta palety[K1_TAPETY] = {
+    /* 0 Glina (default) — the system's own colours: terracotta and cream on dark warm brown */
+    { { 0x3e302au, 0x271e1au, 0x15100eu }, { 0xe9b89du, 0xc96f50u, 0x8a4532u, 0x55322au }, { 0xf0c48au, 0x86452au }, 0xffeedcu },
+    /* 1 Zmierzch — after the owner's reference picture: violet, blue, pink, gold */
+    { { 0xa79be0u, 0x6f5cc0u, 0x3b3f8cu }, { 0xf6c3b0u, 0xdc86b8u, 0x8b74d2u, 0x4d66c4u }, { 0xf6c86cu, 0xb4603au }, 0xffe9cdu },
+    /* 2 Noc — indigo and teal */
+    { { 0x2c3766u, 0x1b2244u, 0x0b0e1cu }, { 0xb6cdf2u, 0x6b80dcu, 0x34419au, 0x1a2257u }, { 0x8fe0dcu, 0x2b6688u }, 0xe6fbffu },
+    /* 3 Świt — light: peach and lavender */
+    { { 0xf0ebf8u, 0xd3cdeeu, 0xb9b4e2u }, { 0xfff1e6u, 0xf8c9d3u, 0xcdbaf0u, 0xa9b6eeu }, { 0xffdba3u, 0xde9466u }, 0xffffffu },
+};
+
+static float hash2(int32_t x, int32_t y)
 {
-    struct v2 ps = { p.x, p.y - 0.035f };
-    float d = sd_polygon(p, l->tarcza, l->n) * L;           /* px, <0 inside */
-    float dcien = sd_polygon(ps, l->tarcza, l->n) * L;
-    float a;
+    uint32_t h = (uint32_t)x * 374761393u + (uint32_t)y * 668265263u;
+    h = (h ^ (h >> 13)) * 1274126177u;
+    return (float)((h ^ (h >> 16)) & 0xffffu) / 65535.0f;
+}
 
-    /* soft drop shadow, then a warm glow around the shield */
-    a = 0.55f * (1.0f - smoothstep(-0.02f * L, 0.09f * L, dcien));
-    c = mix(c, hex(KOLOR_CIEN), a);
-    if (d > 0.0f)
-        c = add(c, hex(KOLOR_AKCENT), 0.22f * expf(-d / (0.045f * L)));
+static float szum(float x, float y)
+{
+    int32_t ix = (int32_t)floorf(x), iy = (int32_t)floorf(y);
+    float fx = x - (float)ix, fy = y - (float)iy;
+    float a = hash2(ix, iy), b = hash2(ix + 1, iy), c = hash2(ix, iy + 1), d = hash2(ix + 1, iy + 1);
+    fx = fx * fx * (3 - 2 * fx);
+    fy = fy * fy * (3 - 2 * fy);
+    return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+}
 
-    /* shield fill: vertical gradient with a soft highlight in the upper left */
-    a = pokrycie(d);
-    if (a > 0.0f) {
-        struct rgb f = mix(hex(KOLOR_AKCENT_JASNY), hex(KOLOR_AKCENT_CIEMNY), smoothstep(0.0f, 1.0f, p.y));
-        float hl = expf(-(((p.x + 0.18f) * (p.x + 0.18f)) + (p.y - 0.12f) * (p.y - 0.12f)) / 0.05f);
-        f = add(f, hex(0xffffffu), 0.10f * hl);
-        c = mix(c, f, a);
-        /* thin cream inner border */
-        a = clampf(0.006f * L + 0.5f - fabsf(d + 0.034f * L), 0.0f, 1.0f);
-        c = mix(c, hex(KOLOR_KREM), 0.85f * a);
-        /* monogram with a faint shadow */
-        {
-            struct v2 pm = { p.x + 0.006f, p.y + 0.012f };
-            float dm = sd_monogram(p) * L;
-            c = mix(c, hex(KOLOR_AKCENT_CIEMNY), 0.6f * (1.0f - smoothstep(-0.01f * L, 0.02f * L, sd_monogram(pm) * L)));
-            c = mix(c, hex(KOLOR_KREM), pokrycie(dm));
+static float chmury(float x, float y)
+{
+    return 0.55f * szum(x * 3.0f, y * 5.0f) + 0.3f * szum(x * 7.0f + 3.1f, y * 11.0f) + 0.15f * szum(x * 15.0f, y * 23.0f);
+}
+
+/* Gradient through n colours, t in [0, 1]. */
+static struct rgb przejscie(const uint32_t *k, int n, float t)
+{
+    float s = clampf(t, 0.0f, 1.0f) * (float)(n - 1);
+    int i = (int)s;
+    if (i >= n - 1)
+        return hex(k[n - 1]);
+    return mix(hex(k[i]), hex(k[i + 1]), smoothstep(0.0f, 1.0f, s - (float)i));
+}
+
+struct elipsa {
+    float cx, cy, rx, ry, kat;
+};
+
+/* Approximate signed distance to an ellipse (normalised units) and the outward normal. */
+static float sd_elipsa(const struct elipsa *e, float px, float py, float *nx, float *ny)
+{
+    float c = cosf(e->kat), s = sinf(e->kat);
+    float qx = (px - e->cx) * c + (py - e->cy) * s, qy = -(px - e->cx) * s + (py - e->cy) * c;
+    float ux = qx / e->rx, uy = qy / e->ry, k = sqrtf(ux * ux + uy * uy);
+    float gx = qx / (e->rx * e->rx), gy = qy / (e->ry * e->ry), gl = sqrtf(gx * gx + gy * gy);
+    if (gl < 1e-3f) { /* at the centre: deep inside, direction irrelevant */
+        *nx = 0;
+        *ny = -1;
+        return -fminf(e->rx, e->ry);
+    }
+    *nx = (gx * c - gy * s) / gl;
+    *ny = (gx * s + gy * c) / gl;
+    return (k - 1.0f) * k / gl;
+}
+
+#define WARSTWY 4
+
+/* Long, tilted sheets: each edge comes down from the top, turns and leaves at the bottom right. */
+static const struct elipsa arkusze[WARSTWY] = {
+    { 1.36f, 0.86f, 1.42f, 0.86f, 0.50f },
+    { 1.56f, 0.94f, 1.12f, 0.66f, 0.50f },
+    { 1.74f, 1.02f, 0.86f, 0.48f, 0.50f },
+    { 1.90f, 1.10f, 0.64f, 0.32f, 0.50f },
+};
+
+/* Look of level `lvl` (-1 = ground) at (u, v), with the wall and shadow of sheet lvl+1 whose
+ * signed distance and normal are d, nx, ny. */
+static struct rgb poziom(const struct paleta *pl, int lvl, float u, float v, float cl, const float *d, const float *nx,
+                         const float *ny)
+{
+    struct rgb c;
+    int n = lvl + 1;
+    if (lvl < 0) { /* the ground: sky colours */
+        c = mix(hex(pl->niebo[0]), hex(pl->niebo[1]), smoothstep(0.0f, 1.0f, clampf(0.9f - u * 0.4f + v * 0.3f, 0, 1)));
+        c = mix(c, hex(pl->niebo[2]), smoothstep(0.3f, 1.2f, v * 0.9f + (1.0f - u / 1.6f) * 0.4f));
+        c = add(c, hex(pl->powierzchnia[1]), 0.10f * (cl - 0.3f) * clampf(1.2f - v * 1.5f, 0, 1));
+    } else {
+        /* reflection of the sky: warm near the edge and to the upper left, cool further in */
+        float sd = -d[lvl];
+        float k = sd / 0.42f + 0.65f * clampf((u - 0.35f - 0.25f * (float)lvl) / 1.1f, 0, 1) -
+                  0.2f * clampf(1.0f - v * 2.0f, 0, 1);
+        c = przejscie(pl->powierzchnia, 4, k);
+        c = add(c, hex(0xffffffu), 0.14f * (cl - 0.45f) * (1.0f - clampf(sd / 0.35f, 0, 1)));
+    }
+    if (n < WARSTWY) {
+        /* sheet n ends here: its cut face (wall) where the edge faces left/down, then a soft shadow */
+        float fron = clampf(-nx[n] * 0.85f + ny[n] * 0.35f, 0.0f, 1.0f), t = 0.065f * fron * sqrtf(fron);
+        float dd = d[n], krawedz = smoothstep(-0.004f, 0.006f, t - dd); /* >= 2 px at half resolution */
+        if (dd < t + 0.006f) {
+            struct rgb w = mix(hex(pl->sciana[0]), hex(pl->sciana[1]), smoothstep(0.0f, 1.0f, fmaxf(dd, 0.0f) / (t + 1e-6f)));
+            w = mix(w, c, 0.35f * (1.0f - fron));
+            c = mix(c, w, krawedz * smoothstep(0.05f, 0.35f, fron));
         }
+        if (dd > 0)
+            c = mix(c, hex(0x0a0814u), 0.22f * fron * expf(-fmaxf(dd - t, 0.0f) / 0.07f) * (1.0f - krawedz));
+        c = add(c, hex(pl->krawedz), 0.20f * expf(-(dd * dd) / 0.00003f) * (0.2f + 0.8f * fron));
     }
     return c;
 }
 
-void k1_rysuj_tlo(struct k1_obraz *o)
+static struct rgb tapeta_piksel(const struct paleta *pl, float x, float y, float A)
 {
-    const float W = (float)o->szer, H = (float)o->wys;
-    const float L = 0.30f * H;                   /* logo height */
-    const float lx = 0.5f * W, ly = 0.43f * H;   /* logo centre */
-    const float hR = 1.6f * H, hx = 0.5f * W, hy = 0.79f * H + hR; /* horizon circle */
-    struct logo logo;
-    uint32_t x, y;
+    const float sx = A / 1.6f, w = 0.004f; /* designed for 16:10, stretched in x for other screens */
+    float u = x / sx, v = y, cl = chmury(u, v), d[WARSTWY], nx[WARSTWY], ny[WARSTWY];
+    struct rgb c;
+    int i, top = -1;
 
-    zbuduj_tarcze(&logo);
+    for (i = 0; i < WARSTWY; i++) {
+        d[i] = sd_elipsa(&arkusze[i], u, v, &nx[i], &ny[i]);
+        if (d[i] < 0 && top == i - 1)
+            top = i; /* sheets are nested */
+    }
+    c = poziom(pl, top, u, v, cl, d, nx, ny);
+    /* anti-aliasing across the edge of a sheet: blend the upper surface with the wall below it */
+    if (top + 1 < WARSTWY && d[top + 1] < w)
+        c = mix(poziom(pl, top + 1, u, v, cl, d, nx, ny), c, smoothstep(-w, w, d[top + 1]));
+    else if (top >= 0 && d[top] > -w)
+        c = mix(c, poziom(pl, top - 1, u, v, cl, d, nx, ny), smoothstep(-w, w, d[top]));
+    return c;
+}
+
+#define MAKS_POL (8192 / 2 + 2)
+
+void k1_rysuj_tlo(struct k1_obraz *o, int wariant)
+{
+    const struct paleta *pl = &palety[wariant >= 0 && wariant < K1_TAPETY ? wariant : 0];
+    const uint32_t w2 = o->szer / 2 + 2;
+    const float H = (float)o->wys, A = (float)o->szer / H;
+    static struct rgb wiersze[2][MAKS_POL]; /* two rows at half resolution, no allocation */
+    uint32_t x, y, wczytany = UINT32_MAX;
+
+    if (w2 > MAKS_POL)
+        return;
     for (y = 0; y < o->wys; y++) {
-        uint32_t *row = o->px + (size_t)y * o->krok;
+        uint32_t *row = o->px + (size_t)y * o->krok, y0 = y / 2;
+        float ty = (float)(y & 1) * 0.5f;
+        if (wczytany != y0) {
+            uint32_t r;
+            for (r = 0; r < 2; r++)
+                for (x = 0; x < w2; x++)
+                    wiersze[r][x] = tapeta_piksel(pl, 2.0f * (float)x / H, 2.0f * (float)(y0 + r) / H, A);
+            wczytany = y0;
+        }
         for (x = 0; x < o->szer; x++) {
-            float fx = (float)x + 0.5f, fy = (float)y + 0.5f;
-            float nx = (fx - lx) / H, ny = (fy - ly) / H;
-            float r = sqrtf(nx * nx + ny * ny);
-            float dh, fade;
-            struct rgb c = mix(hex(KOLOR_TLO_SRODEK), hex(KOLOR_TLO_BRZEG), smoothstep(0.0f, 0.95f, r));
-
-            c = add(c, hex(KOLOR_AKCENT), 0.09f * expf(-(r * r) / 0.09f)); /* glow behind logo */
-
-            /* horizon: a large dark planet with a lit rim, fading towards the sides */
-            dh = sqrtf((fx - hx) * (fx - hx) + (fy - hy) * (fy - hy)) - hR;
-            fade = expf(-((fx - hx) / W) * ((fx - hx) / W) / 0.08f);
-            if (dh < 0.0f)
-                c = mix(c, hex(KOLOR_TLO_BRZEG), 0.55f * smoothstep(0.0f, 0.08f * H, -dh));
-            c = add(c, hex(KOLOR_AKCENT), 0.75f * fade * clampf(1.2f - fabsf(dh), 0.0f, 1.0f));
-            c = add(c, hex(KOLOR_AKCENT), 0.20f * fade * expf(-(dh * dh) / (0.0009f * H * H)));
-
-            if (fabsf(fx - lx) < 0.62f * L && fy > ly - 0.62f * L && fy < ly + 0.70f * L) {
-                struct v2 p = { (fx - lx) / L, (fy - (ly - 0.5f * L)) / L };
-                c = logo_piksel(c, &logo, p, L);
-            }
-            row[x] = kwantyzuj(c, x, y);
+            uint32_t x0 = x / 2;
+            float tx = (float)(x & 1) * 0.5f;
+            struct rgb a = mix(wiersze[0][x0], wiersze[0][x0 + 1], tx), b = mix(wiersze[1][x0], wiersze[1][x0 + 1], tx);
+            row[x] = kwantyzuj(mix(a, b, ty), x, y);
         }
     }
 }
@@ -336,5 +436,81 @@ void k1_kopiuj_prostokat(struct k1_obraz *dst, const struct k1_obraz *src, int32
         int32_t i;
         for (i = 0; i < w; i++)
             d[i] = s[i];
+    }
+}
+
+/* The K1 mark (docs/WYGLAD.md): a flat shield with two notches of a battlement and a thin "K1",
+ * no gradients or glow. Blended onto a premultiplied ARGB image, centred at (cx, cy), `wys` px tall. */
+void k1_rysuj_znak(struct k1_obraz *o, float cx, float cy, float wys)
+{
+    struct logo logo;
+    const float L = wys;
+    int32_t x0 = (int32_t)(cx - 0.45f * L), x1 = (int32_t)(cx + 0.45f * L) + 1;
+    int32_t y0 = (int32_t)(cy - 0.55f * L), y1 = (int32_t)(cy + 0.55f * L) + 1, x, y;
+    const struct rgb tarcza = hex(KOLOR_AKCENT), krem = hex(KOLOR_KREM);
+
+    zbuduj_tarcze(&logo);
+    if (x0 < 0)
+        x0 = 0;
+    if (y0 < 0)
+        y0 = 0;
+    if (x1 > (int32_t)o->szer)
+        x1 = (int32_t)o->szer;
+    if (y1 > (int32_t)o->wys)
+        y1 = (int32_t)o->wys;
+    for (y = y0; y < y1; y++) {
+        uint32_t *row = o->px + (size_t)y * o->krok;
+        for (x = x0; x < x1; x++) {
+            struct v2 p = { ((float)x + 0.5f - cx) / L, ((float)y + 0.5f - (cy - 0.5f * L)) / L };
+            float a = pokrycie(sd_polygon(p, logo.tarcza, logo.n) * L), m, da;
+            struct rgb f, d;
+            uint32_t px = row[x];
+            if (a <= 0.0f)
+                continue;
+            m = pokrycie((sd_monogram(p) + 0.014f) * L); /* thinner strokes than the full logo */
+            f = mix(tarcza, krem, m);
+            da = (float)(px >> 24) / 255.0f;
+            d.r = f.r * a + (float)((px >> 16) & 0xff) / 255.0f * (1 - a);
+            d.g = f.g * a + (float)((px >> 8) & 0xff) / 255.0f * (1 - a);
+            d.b = f.b * a + (float)(px & 0xff) / 255.0f * (1 - a);
+            da = a + da * (1 - a);
+            row[x] = ((uint32_t)(da * 255.0f + 0.5f) << 24) | ((uint32_t)(d.r * 255.0f + 0.5f) << 16) |
+                     ((uint32_t)(d.g * 255.0f + 0.5f) << 8) | (uint32_t)(d.b * 255.0f + 0.5f);
+        }
+    }
+}
+
+void k1_skladaj(struct k1_obraz *dst, const struct k1_obraz *src, int32_t x, int32_t y, int32_t kx, int32_t ky,
+                int32_t kw, int32_t kh)
+{
+    int32_t x0 = x > kx ? x : kx, y0 = y > ky ? y : ky;
+    int64_t x1 = (int64_t)x + src->szer, y1 = (int64_t)y + src->wys, i, j;
+    if (x1 > (int64_t)kx + kw)
+        x1 = (int64_t)kx + kw;
+    if (y1 > (int64_t)ky + kh)
+        y1 = (int64_t)ky + kh;
+    if (x0 < 0)
+        x0 = 0;
+    if (y0 < 0)
+        y0 = 0;
+    if (x1 > dst->szer)
+        x1 = dst->szer;
+    if (y1 > dst->wys)
+        y1 = dst->wys;
+    for (j = y0; j < y1; j++) {
+        uint32_t *d = dst->px + (size_t)j * dst->krok;
+        const uint32_t *s = src->px + (size_t)(j - y) * src->krok;
+        for (i = x0; i < x1; i++) {
+            uint32_t sp = s[i - x], a = sp >> 24;
+            if (a == 255) {
+                d[i] = sp & 0xffffffu;
+            } else if (a != 0 || (sp & 0xffffffu) != 0) {
+                uint32_t dp = d[i], ia = 255u - a;
+                uint32_t r = ((sp >> 16) & 0xffu) + (((dp >> 16) & 0xffu) * ia + 127u) / 255u;
+                uint32_t g = ((sp >> 8) & 0xffu) + (((dp >> 8) & 0xffu) * ia + 127u) / 255u;
+                uint32_t b = (sp & 0xffu) + ((dp & 0xffu) * ia + 127u) / 255u;
+                d[i] = ((r > 255u ? 255u : r) << 16) | ((g > 255u ? 255u : g) << 8) | (b > 255u ? 255u : b);
+            }
+        }
     }
 }

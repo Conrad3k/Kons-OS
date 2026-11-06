@@ -1,5 +1,5 @@
 #!/bin/sh
-# Test etapów M1–M3 (powtarzalny): testy na hoście + uruchomienia K1 w QEMU, także negatywne
+# Test etapów M1–M4 (powtarzalny): testy na hoście + uruchomienia K1 w QEMU, także negatywne
 # (start, testy w systemie, błędy startu). Ekran i wejście z zewnątrz: scripts/test-m2.sh.
 # Wymaga zbudowanych obrazów (scripts/zbuduj.sh). Logi: build/testy/<scenariusz>.log
 # Kod wyjścia 0 = wszystko zaliczone. Opis scenariuszy: docs/TESTY.md.
@@ -66,7 +66,7 @@ krok() { # $1 = nazwa, $2 = plik logu, reszta = polecenie
     r=0; "$@" >"$l" 2>&1 || r=$?
     wynik "$n" "$r" "log: $l"
 }
-krok "jednostkowe: linia poleceń, protokoły zdarzeń i usług, kanały, renderer (ASan/UBSan)" "$TESTY/host.log" \
+krok "jednostkowe: linia poleceń, protokoły, kanały, przybornik GUI, renderer (ASan/UBSan)" "$TESTY/host.log" \
     make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" testy-host
 krok "fuzzing: linia poleceń, protokoły zdarzeń i usług (${K1_FUZZ_CZAS:-20} s każdy, libFuzzer)" "$TESTY/fuzz.log" \
     make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" fuzz FUZZ_CZAS="${K1_FUZZ_CZAS:-20}"
@@ -82,10 +82,14 @@ mksquashfs "$TESTY/bez-init" "$TESTY/bez-init.squashfs" -quiet -no-progress -noa
 
 echo "[k1] uruchomienia w QEMU ($( [ -w /dev/kvm ] && echo KVM || echo 'emulacja TCG'))"
 scenariusz start czekaj "$K1_WYNIK/rdzen.squashfs" "$CMDLINE" \
-    "K1-INITRAMFS: start" "K1: init OK" "uruchomiono nadzorcę" "K1-EKRAN: pierwsza klatka"
+    "K1-INITRAMFS: start" "K1: init OK" "uruchomiono nadzorcę" "K1-EKRAN: pierwsza klatka" "K1-GUI: pulpit gotowy"
 scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE" \
     "K1: init OK" "K1-TEST: WYNIK: OK" "odrzucone 5)" "komunikat od obcego nadawcy (uid 0, oczekiwano 100)" \
     "K1-PROBA: koniec próby „proba-wejscie”: 0 błędów" "K1-PROBA: koniec próby „proba-ekran”: 0 błędów" \
+    "K1-PROBA: koniec próby „proba-gui”: 0 błędów" "K1-PROBA: koniec próby „proba-zegar”: 0 błędów" \
+    "K1-PROBA: koniec próby „proba-notatki”: 0 błędów" "K1-PROBA: koniec próby „proba-ustawienia”: 0 błędów" \
+    "deskryptor nie jest memfd" "memfd bez pieczęci" "zły rozmiar memfd" "panele tylko dla powłoki" \
+    "zmiana ustawień tylko dla aplikacji Ustawienia" "zarządzanie cudzymi oknami tylko dla powłoki" \
     "ekran zakończony sygnałem 11" "ponowne uruchomienie ekran" "wejscie wyłączony: 6 zakończeń" \
     "K1: wyłączanie zasilania" "reboot: Power down"
 scenariusz neg-brak-dysku wylaczenie - "$CMDLINE" \

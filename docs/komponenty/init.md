@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | PRZETESTOWANE (M1) — `scripts/test-m1.sh`, scenariusze `start` i `testy-w-systemie` (33 sprawdzenia w systemie) |
 | **Kod** | `src/init/main.c` (+ `src/wspolne/k1_log.c`) |
-| **Decyzje** | ADR 0004, ADR 0005 |
+| **Decyzje** | ADR 0004, ADR 0005; M4: `/dane_uzytkownika` z `mode=0711` (aplikacje wchodzą do własnego podkatalogu, ADR 0008) |
 
 ## Cel
 Pierwszy proces świata natywnego: montuje pseudo-systemy plików pod `/rdzen/jadro`, ustawia sysctl

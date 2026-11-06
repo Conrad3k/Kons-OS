@@ -1,0 +1,36 @@
+#include "k1_klawiatura.h"
+
+#include <linux/input-event-codes.h>
+
+#include "k1_komunikat.h"
+
+uint32_t k1_znak_klawisza(unsigned kod, unsigned mody)
+{
+    /* Rows of the US layout from KEY_1 (2) to KEY_SLASH (53): normal / shift. */
+    static const char zwykle[] = "1234567890-=\0\0qwertyuiop[]\0\0asdfghjkl;'`\0\\zxcvbnm,./";
+    static const char shift[] = "!@#$%^&*()_+\0\0QWERTYUIOP{}\0\0ASDFGHJKL:\"~\0|ZXCVBNM<>?";
+    static const struct {
+        unsigned kod;
+        uint16_t male, duze;
+    } pl[] = { { KEY_A, 0x105, 0x104 }, { KEY_C, 0x107, 0x106 }, { KEY_E, 0x119, 0x118 },
+               { KEY_L, 0x142, 0x141 }, { KEY_N, 0x144, 0x143 }, { KEY_O, 0xf3, 0xd3 },
+               { KEY_S, 0x15b, 0x15a }, { KEY_X, 0x17a, 0x179 }, { KEY_Z, 0x17c, 0x17b } };
+    int s = (mody & K1_MOD_SHIFT) != 0;
+    unsigned i;
+
+    if (mody & (K1_MOD_CTRL | K1_MOD_ALT))
+        return 0;
+    if (mody & K1_MOD_ALTGR) {
+        for (i = 0; i < sizeof pl / sizeof pl[0]; i++)
+            if (pl[i].kod == kod)
+                return s ? pl[i].duze : pl[i].male;
+        return 0;
+    }
+    if (kod == KEY_SPACE)
+        return ' ';
+    if (kod >= KEY_1 && kod <= KEY_SLASH) {
+        char c = (s ? shift : zwykle)[kod - KEY_1];
+        return (unsigned char)c;
+    }
+    return 0;
+}

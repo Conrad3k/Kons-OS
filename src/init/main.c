@@ -43,7 +43,7 @@ static const struct k1_mount mounts[] = {
       "nsdelegate" },
     /* Placeholder for Blob Vault until M5: RAM only, not encrypted, lost on power-off. */
     { "dane", "/dane_uzytkownika", "tmpfs", MS_NOSUID | MS_NODEV | MS_NOEXEC,
-      "mode=0700,size=16m,nr_inodes=4096" },
+      "mode=0711,size=16m,nr_inodes=4096" }, /* 0711: services may enter their own subdirectory */
 };
 
 struct k1_sysctl {

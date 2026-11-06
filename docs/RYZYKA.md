@@ -2,7 +2,7 @@
 
 Zasada (SPEC §2.5): mechanizm bezpieczeństwa to nie gwarancja. Tu zapisujemy, czego system
 **jeszcze nie chroni** albo **nie może chronić**, i kiedy planujemy to zmienić.
-Stan na wersję 0.3.0 (koniec M3). Klasyfikacja: **W** — wysokie, **Ś** — średnie, **N** — niskie.
+Stan na wersję 0.4.0 (koniec M4). Klasyfikacja: **W** — wysokie, **Ś** — średnie, **N** — niskie.
 
 | Nr | Ryzyko / ograniczenie | Waga | Co je ogranicza teraz | Plan |
 |---|---|---|---|---|
@@ -11,7 +11,7 @@ Stan na wersję 0.3.0 (koniec M3). Klasyfikacja: **W** — wysokie, **Ś** — �
 | R3 | ~~Wszystko działa jako root~~ — **od M3 usługi w klatkach** (UID, brak capabilities, seccomp, Landlock, cgroups; ADR 0007). Zostaje: luka w jądrze osiągalna przez dozwolone wywołania (DRM `ioctl`, evdev, gniazda UNIX) daje przejęcie systemu. | Ś | biała lista seccomp, warunki na argumenty, testy-próby | M11, M12 |
 | R4 | **Jądro to wspólna granica zaufania.** Luka zero-day w jądrze daje przejęcie całego świata natywnego. | W | minimalna konfiguracja (brak modułów, io_uring, BPF, userfaultfd, 32-bit, VT…), wzmocnienia KSPP, lockdown | szybkie aktualizacje LTS (`jadro/README.md`); M11: osobne jądro dla przeglądarki |
 | R5 | **Awaria PID 1 = kernel panic** (cecha Linuksa). Błąd pamięci w init zatrzyma system. | Ś | init ≈240 linii, bez parsowania danych zewnętrznych; flagi i testy | audyt w M12 |
-| R6 | **`/dane_uzytkownika` to tmpfs w RAM**: bez szyfrowania, dane znikają po wyłączeniu. | Ś (M1 nie przechowuje danych) | `noexec,nosuid,nodev`, limit 16 MiB, `mode=0700` | M5: Blob Vault + szyfrowanie |
+| R6 | **`/dane_uzytkownika` to tmpfs w RAM**: bez szyfrowania, dane (notatki) i ustawienia znikają po wyłączeniu. | Ś | `noexec,nosuid,nodev`, limit 16 MiB, `mode=0711`; do katalogu notatek ma dostęp tylko Notatki (Landlock, UID 201, `0700`); napis w oknie Notatek mówi o tym wprost | M5: Blob Vault + szyfrowanie |
 | R7 | **`_FORTIFY_SOURCE` nie działa z musl** (brak kontroli przepełnień w funkcjach libc w czasie działania). | Ś | jawne limity długości, `-Wformat=2`, testy ASan/UBSan i fuzzing na hoście, klatki usług | ADR 0007: na razie bez `fortify-headers`; ponownie przy własnym buildzie musl |
 | R8 | **musl 1.2.4-2 z Ubuntu bez poprawki CVE-2025-26519** (iconv). | N | nasze programy nie linkują `iconv` (sprawdzone `nm`) | własny build musl 1.2.5 z poprawkami przed M3 |
 | R9 | **`PERF_EVENTS` wymuszone na x86** — duża, historycznie podatna część jądra dostępna przez `perf_event_open`. | N | `kernel.perf_event_paranoid=2`, lockdown confidentiality, **seccomp usług blokuje `perf_event_open`** (test-próba) | — (dostępne tylko dla nadzorcy i init) |
@@ -20,13 +20,18 @@ Stan na wersję 0.3.0 (koniec M3). Klasyfikacja: **W** — wysokie, **Ś** — �
 | R12 | **Brak ochrony CET w przestrzeni użytkownika** (musl nie obsługuje shadow stack/IBT). | N | PIE, RELRO, NX, kanarki stosu | — |
 | R13 | **Pseudo-losowość przy starcie:** brak sprzętowego źródła (TPM) w konfiguracji. | N | jądro korzysta z RDRAND/RDSEED (gdy CPU je ma) i jittera; wtyczka LATENT_ENTROPY | M10: `HW_RANDOM_TPM` |
 | R14 | **Łańcuch dostaw budowy:** kompilator i musl z Ubuntu, runner GitHub Actions; artefakty CI niepodpisane. | Ś | przypięte sumy i podpis PGP jądra; powtarzalny build (można odtworzyć i porównać `SHA256SUMS`) | M10: podpisy obrazów |
-| R15 | **Testy tylko w QEMU (TCG).** M1 nie startuje na prawdziwym sprzęcie (brak sterowników dysków, grafiki, klawiatury). | N (etap rozwojowy) | — | M2+ i testy właściciela na laptopie |
+| R15 | **Testy tylko w QEMU (TCG).** Od M4 obraz ISO startuje w maszynach wirtualnych (UEFI/BIOS, simpledrm, PS/2); na laptopie brak jeszcze USB, I2C-HID, NVMe. | N (etap rozwojowy) | test ISO w QEMU przez UEFI i BIOS | testy właściciela w VM, potem sprzęt |
 | R16 | **`ptrace_scope=3` jest nieodwracalne** — także debugowanie awarii jest niemożliwe w działającym systemie. | N (świadomy wybór) | logi | — |
 | R17 | **Błąd krytyczny przy starcie widać tylko na porcie szeregowym** — ekran startuje dopiero po init. | N | — | M3/M10: komunikat na ekranie (np. `DRM_PANIC`, ekran awarii) |
 | R18 | **Nowa powierzchnia ataku jądra (M2):** podsystem DRM (ioctl) i wejścia (evdev, i8042). | Ś | tylko jeden mały sterownik (`bochs`), bez fbdev/fbcon i mousedev; w M3 dostęp do karty tylko dla `ekran` | M3 |
 | R19 | ~~Kanał wejscie→ekran bez sprawdzania nadawcy~~ — **od M3 gniazda UNIX z `SO_PASSCRED`**: ekran odrzuca pakiety od innego UID (test). Root (nadzorca, init) mógłby podać fałszywe dane nadawcy — ale root i tak jest bazą zaufania. | N | walidacja pól + UID nadawcy | — |
 | R20 | ~~Ekran po awarii nie wraca~~ — **od M3 restart przez nadzorcę** (test); usługa padająca > 5 razy na minutę zostaje wyłączona — wtedy bez ekranu do ponownego uruchomienia komputera. | N | limit restartów zapobiega pętli awarii | M10: tryb ratunkowy |
 | R21 | **Log zdradza liczbę i czas zdarzeń klawiatury** (nie kody). | N | zapis ≤ 2×/s, bez kodów klawiszy | M10: obraz produkcyjny bez logu na port szeregowy |
-| R22 | **Obraz tylko w QEMU** — na prawdziwym sprzęcie nie ma jeszcze sterownika grafiki (np. `simpledrm`) ani USB. | N | — | przy pierwszych testach właściciela na laptopie |
+| R22 | ~~Obraz tylko w QEMU~~ — od M4 `simpledrm` (grafika z firmware) działa w VM; brak USB (klawiatury, myszy, tablety USB) i Hyper-V. | N | ISO testowane z kartą bez sterownika K1 | przy testach na sprzęcie |
 | R23 | **Nadzorca działa jako root bez klatki** (zmienia UID, tworzy cgroups, otwiera urządzenia) — błąd w nim to przejęcie systemu. | Ś | mały kod, stała lista usług, od usług przyjmuje tylko wiersze logu (oczyszczane, limit) i komunikaty 32 B (walidacja, fuzzing) | M12: audyt; ewentualnie własny filtr seccomp nadzorcy |
 | R24 | **Zablokowane wywołanie systemowe kończy usługę** (`SECCOMP_RET_TRAP` + wyjście). Nowa wersja musl/jądra może wymagać wywołania spoza listy → usługa nie wstanie. | N | test w CI: każde „zabronione wywołanie systemowe” w logu = błąd testu | przy aktualizacjach |
+| R25 | **GRUB w łańcuchu startu obrazu ISO** (M4): duży, niepodpisany program ładujący, bez Secure Boot; linię poleceń i pliki z płyty może zmienić każdy, kto ma nośnik. | Ś | ISO to obraz do testów w VM; jądro, initramfs i rdzeń powtarzalne (sumy w `SHA256SUMS`, `.iso.sha256`) | M10: podpisany UKI, Secure Boot, dm-verity |
+| R26 | **Aplikacje rysują własne ramki okien** — złośliwa aplikacja może udawać okno systemowe (np. prośbę o hasło). | Ś | aplikacje tylko z obrazu rdzenia (nasz kod); ekran rysuje cień i kolejność; role w protokole | przed aplikacjami spoza rdzenia: oznaczenie okien przez ekran (zaufany pasek / ramka) |
+| R27 | **Przejęta powłoka (gui)** może przestawiać i minimalizować okna, uruchamiać 3 aplikacje i wyłączyć komputer; nie widzi treści okien ani plików. | N | klatka gui, role w ekranie, nadzorca przyjmuje od gui tylko `URUCHOM`/`WYLACZ` | — |
+| R28 | **Ekran czyta pamięć współdzieloną klientów** — klient może zmieniać piksele w trakcie składania (rozdarcie obrazu tylko w jego oknie). | N | memfd z pieczęciami (brak SIGBUS), mapowanie tylko do odczytu, własna kopia sceny | — |
+| R29 | **Ustawienia (motyw, tapeta, mysz)** trzyma ekran w pamięci — po restarcie ekranu wracają domyślne. | N | — | M5: zapis w Blob Vault |

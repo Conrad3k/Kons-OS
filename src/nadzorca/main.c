@@ -51,10 +51,22 @@ static const struct k1_warunek wa_wejscie[] = { { SYS_ioctl, 1, 0xff00u, 'E' << 
 static const long sc_ekran[] = { 0 };
 static const struct k1_warunek wa_ekran[] = { { SYS_ioctl, 1, 0xff00u, 'd' << 8 } };   /* DRM only */
 
+/* gui and applications: shared memory for their surfaces, nothing else. */
+static const long sc_okna[] = { SYS_memfd_create, SYS_ftruncate };
+/* Notatki: additionally its own directory (Landlock limits the paths). */
+static const long sc_notatki[] = { SYS_memfd_create, SYS_ftruncate, SYS_open, SYS_openat, SYS_fsync, SYS_rename };
+
 static const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
     [K1_PROFIL_WEJSCIE] = { "wejscie", K1_UID_WEJSCIE, sc_wejscie, 0, wa_wejscie, N(wa_wejscie), NULL,
                             8u << 20, 1, 32, 0 },
     [K1_PROFIL_EKRAN] = { "ekran", K1_UID_EKRAN, sc_ekran, 0, wa_ekran, N(wa_ekran), NULL, 128u << 20, 1, 64, 0 },
+    /* RLIMIT_FSIZE also limits memfd_create+ftruncate: 16 MiB is enough for the largest surface. */
+    [K1_PROFIL_GUI] = { "gui", K1_UID_GUI, sc_okna, N(sc_okna), NULL, 0, NULL, 48u << 20, 1, 32, 16u << 20 },
+    [K1_PROFIL_ZEGAR] = { "zegar", K1_UID_ZEGAR, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32, 16u << 20 },
+    [K1_PROFIL_NOTATKI] = { "notatki", K1_UID_NOTATKI, sc_notatki, N(sc_notatki), NULL, 0, K1_KATALOG_NOTATEK,
+                            32u << 20, 1, 32, 16u << 20 },
+    [K1_PROFIL_USTAWIENIA] = { "ustawienia", K1_UID_USTAWIENIA, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32,
+                               16u << 20 },
 };
 
 /* ---- services ---- */
@@ -86,7 +98,15 @@ struct usluga {
 static struct usluga uslugi[] = {
     USLUGA("ekran", "/rdzen/system/ekran", "K1-EKRAN", K1_PROFIL_EKRAN, R_EKRAN, 0, 0, 1),
     USLUGA("wejscie", "/rdzen/system/wejscie", "K1-WEJSCIE", K1_PROFIL_WEJSCIE, R_KLIENT, K1_ROLA_WEJSCIE, 0, 1),
+    USLUGA("gui", "/rdzen/system/gui", "K1-GUI", K1_PROFIL_GUI, R_KLIENT, K1_ROLA_POWLOKA, 0, 1),
+    /* applications: started on request of gui, not restarted (the user starts them again) */
+    USLUGA("zegar", "/rdzen/aplikacje/zegar", "K1-ZEGAR", K1_PROFIL_ZEGAR, R_KLIENT, K1_ROLA_APLIKACJA, K1_APL_ZEGAR, 0),
+    USLUGA("notatki", "/rdzen/aplikacje/notatki", "K1-NOTATKI", K1_PROFIL_NOTATKI, R_KLIENT, K1_ROLA_APLIKACJA,
+           K1_APL_NOTATKI, 0),
+    USLUGA("ustawienia", "/rdzen/aplikacje/ustawienia", "K1-USTAWIENIA", K1_PROFIL_USTAWIENIA, R_KLIENT,
+           K1_ROLA_APLIKACJA, K1_APL_USTAWIENIA, 0),
 };
+#define PIERWSZA_APLIKACJA 3
 #define N_USLUG N(uslugi)
 
 /* Test probes: one at a time. */
@@ -95,6 +115,7 @@ static struct usluga proba = USLUGA("proba", TEST, "K1-PROBA", 0, R_PROBA, 0, 0,
 static int sterowanie = -1;  /* our end of ekran's control channel */
 static int zero = -1;        /* /dev/null for fds 0 and 1 of services */
 static int test_kanal = -1;  /* our end of the test channel (test image) */
+static int gui_kanal = -1;   /* our end of gui's request channel (gui's fd 4) */
 static pid_t test_pid;
 
 static double teraz(void)
@@ -355,6 +376,18 @@ static void start(struct usluga *u)
     n++;
     if (u->profil == K1_PROFIL_WEJSCIE)
         n += otworz_wejscia(fds + n);
+    if (u->profil == K1_PROFIL_GUI) {
+        int para[2];
+        if (k1_kanal_utworz(para) != 0) {
+            close(fds[0]);
+            u->nastepny = teraz() + 1.0;
+            return;
+        }
+        if (gui_kanal >= 0)
+            close(gui_kanal);
+        gui_kanal = para[0]; /* we check the sender (SO_PASSCRED) */
+        fds[n++] = para[1];
+    }
     if (uruchom(u, p, fds, n) > 0)
         k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
     for (i = 0; i < n; i++)
@@ -417,6 +450,56 @@ static void zakonczona(struct usluga *u, int status)
     k1_log(TAG, "ponowne uruchomienie %s za %.1f s (%u/%d)", u->nazwa, u->nastepny - t, u->awarie, K1_RESTARTY_MAKS);
 }
 
+/* Starts application `apl` unless it is already running. */
+static void uruchom_aplikacje(int apl)
+{
+    size_t i;
+    for (i = PIERWSZA_APLIKACJA; i < N_USLUG; i++) {
+        if (uslugi[i].aplikacja != apl)
+            continue;
+        if (uslugi[i].pid > 0)
+            return;
+        start(&uslugi[i]);
+        return;
+    }
+}
+
+static void wylacz(int restart)
+{
+    k1_log(TAG, "%s na prośbę pulpitu", restart ? "ponowne uruchamianie" : "wyłączanie");
+    kill(1, restart ? SIGINT : SIGTERM); /* init: SIGTERM = power off, SIGINT = restart */
+}
+
+/* Requests from gui (fd 4 of gui): only URUCHOM and WYLACZ, only from gui's UID. */
+static void obsluz_gui(void)
+{
+    int i;
+    for (i = 0; i < 16 && gui_kanal >= 0; i++) {
+        struct k1_odebrane o;
+        struct k1_komunikat k;
+        enum k1_kanal_wynik w = k1_kanal_odbierz(gui_kanal, &o);
+        if (w == K1_KANAL_PUSTO)
+            return;
+        if (w != K1_KANAL_KOMUNIKAT) {
+            close(gui_kanal);
+            gui_kanal = -1;
+            return;
+        }
+        if (o.fd >= 0)
+            close(o.fd);
+        if (o.fd >= 0 || o.obciete || !o.ma_nadawce || o.uid != K1_UID_GUI ||
+            k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_DO_NADZORCY, &k) != 0 ||
+            (k.typ != K1_KOM_URUCHOM && k.typ != K1_KOM_WYLACZ)) {
+            k1_log(TAG, "odrzucono prośbę od pulpitu");
+            continue;
+        }
+        if (k.typ == K1_KOM_URUCHOM)
+            uruchom_aplikacje(k.a);
+        else
+            wylacz(k.a);
+    }
+}
+
 /* ---- test channel (test image only) ---- */
 
 static void odpowiedz_testowi(int wynik, int fd)
@@ -455,7 +538,10 @@ static void obsluz_test(void)
             odpowiedz_testowi(0, fd);
             close(fd);
         }
-    } else if (k.typ == K1_KOM_TEST_PROBA && proba.pid == 0 && k.a <= K1_PROFIL_EKRAN) {
+    } else if (k.typ == K1_KOM_URUCHOM) {
+        uruchom_aplikacje(k.a);
+        odpowiedz_testowi(0, -1);
+    } else if (k.typ == K1_KOM_TEST_PROBA && proba.pid == 0) {
         static struct k1_profil p;
         static char nazwa[32];
         p = profile[k.a];
@@ -520,7 +606,11 @@ int main(void)
     if (k1_klatka_cgroupy() != 0)
         k1_koniec(TAG, "cgroup: nie można włączyć kontrolerów memory i pids: %s", strerror(errno));
 
-    for (i = 0; i < N_USLUG; i++)
+    /* The notes directory belongs to Notatki (until M5: in RAM). */
+    if ((mkdir(K1_KATALOG_NOTATEK, 0700) != 0 && errno != EEXIST) ||
+        chown(K1_KATALOG_NOTATEK, K1_UID_NOTATKI, K1_UID_NOTATKI) != 0)
+        k1_log(TAG, "katalog notatek: %s", strerror(errno));
+    for (i = 0; i < PIERWSZA_APLIKACJA; i++)
         start(&uslugi[i]);
     if (stat(TEST, &st) == 0) {
         test_pid = uruchom_test();
@@ -528,8 +618,8 @@ int main(void)
     }
 
     for (;;) {
-        struct pollfd pfd[N_USLUG + 4];
-        struct usluga *zrodla[N_USLUG + 4];
+        struct pollfd pfd[N_USLUG + 5];
+        struct usluga *zrodla[N_USLUG + 5];
         nfds_t n = 0;
         double t = teraz(), najblizszy = -1;
         int czas;
@@ -538,6 +628,9 @@ int main(void)
         pfd[n].events = POLLIN;
         zrodla[n++] = NULL;
         pfd[n].fd = test_kanal;
+        pfd[n].events = POLLIN;
+        zrodla[n++] = NULL;
+        pfd[n].fd = gui_kanal;
         pfd[n].events = POLLIN;
         zrodla[n++] = NULL;
         for (i = 0; i < N_USLUG; i++) {
@@ -555,11 +648,13 @@ int main(void)
         if (poll(pfd, n, czas) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
 
-        for (i = 2; i < n; i++)
+        for (i = 3; i < n; i++)
             if (pfd[i].fd >= 0 && (pfd[i].revents & (POLLIN | POLLHUP | POLLERR)))
                 czytaj_log(zrodla[i]);
         if (test_kanal >= 0 && (pfd[1].revents & (POLLIN | POLLHUP | POLLERR)))
             obsluz_test();
+        if (gui_kanal >= 0 && (pfd[2].revents & (POLLIN | POLLHUP | POLLERR)))
+            obsluz_gui();
 
         if (pfd[0].revents & POLLIN) {
             struct signalfd_siginfo si;
