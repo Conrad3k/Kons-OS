@@ -149,6 +149,12 @@ monitor QEMU — `mouse_move`, `mouse_button`, `sendkey alt_r-a`); zrzuty pokazu
 `feedback`, `błąd`, `pomysł`); ostatni run „K1 — budowa i testy” na `main` (czerwony = napraw najpierw);
 środowisko: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh` (~6 min).
 
+**Kolejność etapów** po M4 (ADR 0011): M4.1 porządki i audyt → M5 dane i sprzęt (dyski, USB, szyfrowanie)
+→ M5.1 próba przeglądarki → M5.2 dm-verity → M6 … M12.
+
+**CI na PR-ze:** dodaj etykietę `testy` (`issue_write`, labels) — workflow buduje i testuje PR bez scalania
+(bez tagu i wydania). `workflow_dispatch` jest dla Claude niedostępny (403).
+
 **Zasady etapu (SPEC §2):** jeden etap naraz, następny dopiero z powtarzalnym testem; nie wymyślaj nazw
 syscalli, flag, opcji Kconfig ani zachowań jądra — sprawdzaj w źródłach (`build/zrodla/`), nagłówkach
 (`build/naglowki/`), man-pages, a niepewność oznaczaj wprost; statusy ZAIMPLEMENTOWANE / PRZETESTOWANE

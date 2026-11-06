@@ -38,3 +38,4 @@ Krótko, dlaczego nie.
 | [0008](0008-pulpit-okna-i-aplikacje-m4.md) | Pulpit, okna i pierwsze aplikacje (M4) | Przyjęty |
 | [0009](0009-czcionki-i-tekst.md) | Czcionki i rysowanie tekstu | Przyjęty |
 | [0010](0010-obraz-iso-do-maszyn-wirtualnych.md) | Obraz ISO do maszyn wirtualnych i grafika z firmware | Przyjęty (tymczasowy do M10) |
+| [0011](0011-kolejnosc-etapow-po-m4.md) | Kolejność etapów po M4 | Przyjęty |

@@ -12,6 +12,9 @@ on:
       - "VERSION"
       - ".github/workflows/k1.yml"
   workflow_dispatch:
+  # Claude cannot call workflow_dispatch (403): it starts a PR build by adding the label "testy".
+  pull_request:
+    types: [labeled]
 
 # Nowszy build na main anuluje starszy, który jeszcze trwa (oszczędza minuty).
 concurrency:
@@ -20,6 +23,7 @@ concurrency:
 
 jobs:
   k1:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'testy'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:

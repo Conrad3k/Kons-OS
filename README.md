@@ -16,7 +16,9 @@ i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
 | M2 Ekran | obraz na ekranie: tapeta, kursor; mysz i klawiatura | PRZETESTOWANE (w QEMU) |
 | M3 Trusted Core | nadzorca usług, każda usługa we własnej „klatce”, restart po awarii | PRZETESTOWANE |
 | M4 GUI | pulpit, okna, aplikacje Zegar, Notatki, Ustawienia; obraz ISO do maszyny wirtualnej | PRZETESTOWANE (QEMU: UEFI i BIOS) |
-| M5–M12 | magazyn danych, sieć, przeglądarka w izolacji, bezpieczny start, audyt | PLANOWANE |
+| M4.1 Porządki i audyt | przegląd bezpieczeństwa i porządki w kodzie | NASTĘPNY |
+| M5 Dane i sprzęt | trwałe, zaszyfrowane dane, hasło, dyski i USB, start z pendrive'a | PLANOWANE |
+| M5.1–M12 | próba przeglądarki, weryfikacja obrazu, sieć, przeglądarka w izolacji, bezpieczny start, audyt | PLANOWANE (kolejność: ADR 0011) |
 
 Pełny plan i zasady: [`docs/SPEC.md`](docs/SPEC.md). Co zostało do zrobienia (i czego potrzeba od właściciela):
 [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).

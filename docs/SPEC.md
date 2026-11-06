@@ -170,6 +170,7 @@ UEFI + Secure Boot → podpisany UKI (jądro + initramfs + cmdline) → jądro L
 - Każda luka: opis, klasyfikacja, naprawa. To, że komponent się uruchamia, nie znaczy, że jest bezpieczny.
 
 ## 14. Milestones
+**[korekta: ADR 0011 — kolejność po M4: M4.1 porządki i audyt → M5 rozszerzony o dyski i USB → M5.1 próba przeglądarki (bez sieci) → M5.2 dm-verity (z M10) → M6 → M7 → M8 → M9 → M10 → M11 → M12]**
 - M0 Porządki:
   - archiwum wersji debianowej (gałąź archiwum/debian-0.1.2), nowa struktura repo, dokumenty z §2.9,
   - toolchain musl ze statycznym linkowaniem,
