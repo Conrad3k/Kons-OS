@@ -1,0 +1,27 @@
+name: Sprzątanie artefaktów
+
+# Uruchamiane ręcznie (Actions → „Sprzątanie artefaktów” → Run workflow).
+# Usuwa artefakty starego Kons-OS (Debian, obrazy ISO) — zajmują limit miejsca konta,
+# przez co obrazy K1 nie dają się wysłać. Artefakty K1 (nazwy „k1-…”) zostają.
+on:
+  workflow_dispatch:
+
+jobs:
+  sprzataj:
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    steps:
+      - name: Usuń artefakty spoza K1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api --paginate "repos/$REPO/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name | startswith("k1-") | not) | "\(.id) \(.name) \(.size_in_bytes)"' \
+            > stare.txt
+          echo "Do usunięcia: $(wc -l < stare.txt) artefaktów"
+          while read -r id nazwa rozmiar; do
+            echo "usuwam $nazwa ($((rozmiar / 1048576)) MiB)"
+            gh api -X DELETE "repos/$REPO/actions/artifacts/$id"
+          done < stare.txt
