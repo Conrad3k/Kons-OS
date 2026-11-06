@@ -18,7 +18,8 @@ i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
 | M4 GUI | pulpit, okna, pierwsze aplikacje (zegar, notatki) | PLANOWANE |
 | M5–M12 | magazyn danych, sieć, przeglądarka w izolacji, bezpieczny start, audyt | PLANOWANE |
 
-Pełny plan i zasady: [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
+Pełny plan i zasady: [`docs/SPEC.md`](docs/SPEC.md). Co zostało do zrobienia (i czego potrzeba od właściciela):
+[`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
 **Ważne:** K1 działa na razie tylko w maszynie wirtualnej QEMU: pokazuje tapetę z logo i kursor,
 który rusza się myszą i strzałkami. Na prawdziwym komputerze jeszcze nie wystartuje (brak sterowników
