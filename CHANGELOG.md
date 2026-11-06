@@ -8,6 +8,10 @@ Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wers
 ### Dodane
 - `docs/DO_ZROBIENIA.txt` — lista tego, co zostało do zrobienia, i decyzji potrzebnych od właściciela.
 
+### Zmienione
+- Skill `kons-dev` opisuje teraz architekturę K1 (łańcuch startu, układ plików, komponenty), niezmienniki
+  bezpieczeństwa i przepisy na typowe zmiany, a nie tylko proces pracy.
+
 ## [0.2.0] — 2026-11-06
 
 Etap **M2 — Ekran**: K1 pokazuje obraz i reaguje na mysz i klawiaturę.

@@ -3,8 +3,8 @@
 Własny system operacyjny na jądrze Linux: nasz initramfs, init i (od M2) grafika w C, statycznie z musl.
 Budowany skryptami w `scripts/`, testowany w QEMU, CI w GitHub Actions (tylko `main`).
 
-- **Przy każdej pracy w repo użyj skilla `kons-dev`** (`.claude/skills/kons-dev/SKILL.md`) — proces,
-  etapy (milestones), testy, scalanie, raport dla właściciela.
+- **Przy każdej pracy w repo użyj skilla `kons-dev`** (`.claude/skills/kons-dev/SKILL.md`) — architektura K1
+  i niezmienniki bezpieczeństwa, przepisy (nowa usługa, protokół, opcja jądra, testy), proces, scalanie, raport.
 - Specyfikacja nadrzędna: `docs/SPEC.md` (zmiany tylko przez ADR w `docs/adr/`).
 - Architektura, mapa repo, konwencje, wersje: `docs/ARCHITEKTURA.md`. Testy: `docs/TESTY.md`.
 - Historia zmian: `CHANGELOG.md`; wersja: `VERSION` (SemVer od 0.1.0, tagi `k1-vX.Y.Z`).
