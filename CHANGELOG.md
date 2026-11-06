@@ -5,6 +5,9 @@ Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wers
 
 ## [Niewydane]
 
+### Zmienione
+- CI: tag wersji zakładany zaraz po udanych testach; brak miejsca na artefakty GitHuba nie blokuje już wersji.
+
 ## [0.1.0] — 2026-11-06
 
 Pierwsza wersja Kons K1 Sovereign: etapy **M0** (porządki) i **M1** (start systemu).
