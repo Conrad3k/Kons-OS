@@ -28,6 +28,9 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
     wygiętych wstęg), może być w stylu systemu, kilka wariantów; logo prostsze i eleganckie.
     → Zrobione: 4 tapety (Glina — domyślna, Zmierzch — jak zdjęcie, Noc, Świt) do wyboru
     w Ustawieniach → Wygląd; płaski znak K1 (docs/WYGLAD.md).
+  - Plan rozwoju: Claude zmienia kolejność według własnej oceny → ADR 0011 (punkt 3).
+  - KVM (szybsze testy, potrzebne w M11): komputer z Windowsem — na razie zostajemy przy emulacji
+    w chmurze; wracamy do tematu przed M11 (runner na Twoim komputerze albo WSL2).
 
 [!] Pierwsze uruchomienie w maszynie wirtualnej: obraz k1-0.4.0.iso (Releases), instrukcja
     w README („Uruchom w maszynie wirtualnej”). Napisz, co widać i co nie działa
