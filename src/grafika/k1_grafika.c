@@ -73,15 +73,6 @@ static float sd_polygon(struct v2 p, const struct v2 *v, size_t n)
     return s * sqrtf(d);
 }
 
-/* Distance to a capsule (segment a–b with radius r). */
-static float sd_kreska(struct v2 p, struct v2 a, struct v2 b, float r)
-{
-    struct v2 pa = sub(p, a), ba = sub(b, a);
-    float h = clampf(dot(pa, ba) / dot(ba, ba), 0.0f, 1.0f);
-    struct v2 q = { pa.x - ba.x * h, pa.y - ba.y * h };
-    return sqrtf(dot(q, q)) - r;
-}
-
 /* Anti-aliased coverage from a distance in pixels. */
 static float pokrycie(float d_px)
 {
@@ -105,63 +96,6 @@ static uint32_t kwantyzuj(struct rgb c, uint32_t x, uint32_t y)
 #define KOLOR_AKCENT_JASNY 0xe8956cu
 #define KOLOR_AKCENT_CIEMNY 0xa94f34u
 #define KOLOR_KREM 0xf3ede2u
-
-/* ---- logo: a shield with a battlement top (fortress = security, sovereignty) and "K1" ---- */
-
-#define TARCZA_PUNKTY 52
-
-struct logo {
-    struct v2 tarcza[TARCZA_PUNKTY];
-    size_t n;
-};
-
-/* Shield outline in logo units: u in [-0.4, 0.4], v from 0 (top) to 1 (tip). */
-static void zbuduj_tarcze(struct logo *l)
-{
-    static const struct v2 gora[] = {
-        { -0.40f, 0.00f }, { -0.22f, 0.00f }, { -0.22f, 0.085f }, { -0.09f, 0.085f },
-        { -0.09f, 0.00f }, { 0.09f, 0.00f },  { 0.09f, 0.085f },  { 0.22f, 0.085f },
-        { 0.22f, 0.00f },  { 0.40f, 0.00f },
-    };
-    /* Right side: straight down to v=0.45, then a cubic Bézier to the tip at (0, 1). */
-    const struct v2 p0 = { 0.40f, 0.45f }, p1 = { 0.40f, 0.72f }, p2 = { 0.12f, 0.86f }, p3 = { 0.0f, 1.0f };
-    struct v2 prawa[20];
-    size_t i, n = 0;
-    for (i = 0; i < 20; i++) {
-        float t = (float)i / 19.0f, it = 1.0f - t;
-        float a = it * it * it, b = 3.0f * it * it * t, c = 3.0f * it * t * t, d = t * t * t;
-        prawa[i].x = a * p0.x + b * p1.x + c * p2.x + d * p3.x;
-        prawa[i].y = a * p0.y + b * p1.y + c * p2.y + d * p3.y;
-    }
-    for (i = 0; i < sizeof gora / sizeof gora[0]; i++)
-        l->tarcza[n++] = gora[i];
-    for (i = 0; i < 20; i++)
-        l->tarcza[n++] = prawa[i]; /* down the right side, ends at the tip */
-    for (i = 19; i-- > 0;) {       /* mirrored left side, back up (tip already added) */
-        struct v2 q = { -prawa[i].x, prawa[i].y };
-        l->tarcza[n++] = q;
-    }
-    l->n = n;
-}
-
-/* Monogram "K1" as strokes (logo units). */
-static float sd_monogram(struct v2 p)
-{
-    const float r = 0.042f, dx = 0.018f;
-    static const struct v2 k[][2] = {
-        { { -0.19f, 0.27f }, { -0.19f, 0.70f } }, /* K stem */
-        { { -0.165f, 0.505f }, { 0.01f, 0.27f } }, /* K arm */
-        { { -0.10f, 0.425f }, { 0.025f, 0.70f } }, /* K leg */
-        { { 0.165f, 0.27f }, { 0.165f, 0.70f } }, /* 1 stem */
-        { { 0.165f, 0.27f }, { 0.085f, 0.345f } }, /* 1 flag */
-    };
-    float d = 1e9f;
-    size_t i;
-    struct v2 q = { p.x + dx, p.y };
-    for (i = 0; i < sizeof k / sizeof k[0]; i++)
-        d = fminf(d, sd_kreska(q, k[i][0], k[i][1], r));
-    return d;
-}
 
 /* ---- wallpaper: layered ribbons of folded paper (owner's reference, docs/WYGLAD.md) ----
  *
@@ -439,17 +373,19 @@ void k1_kopiuj_prostokat(struct k1_obraz *dst, const struct k1_obraz *src, int32
     }
 }
 
-/* The K1 mark (docs/WYGLAD.md): a flat shield with two notches of a battlement and a thin "K1",
- * no gradients or glow. Blended onto a premultiplied ARGB image, centred at (cx, cy), `wys` px tall. */
+/* The K1 mark (docs/WYGLAD.md, owner's choice „Warstwy”): three sheets of paper lying one on
+ * another — the same idea as the wallpaper — as quarter circles from the lower right corner of a
+ * rounded square, in three shades of terracotta. Flat, no outline or glow. Blended onto a
+ * premultiplied ARGB image, centred at (cx, cy), `wys` px tall (and wide). */
 void k1_rysuj_znak(struct k1_obraz *o, float cx, float cy, float wys)
 {
-    struct logo logo;
-    const float L = wys;
-    int32_t x0 = (int32_t)(cx - 0.45f * L), x1 = (int32_t)(cx + 0.45f * L) + 1;
-    int32_t y0 = (int32_t)(cy - 0.55f * L), y1 = (int32_t)(cy + 0.55f * L) + 1, x, y;
-    const struct rgb tarcza = hex(KOLOR_AKCENT), krem = hex(KOLOR_KREM);
+    static const uint32_t kolory[3] = { 0xb55c3eu, KOLOR_AKCENT, 0xe9a88bu };
+    static const float promienie[3] = { 1.75f, 1.25f, 0.75f };
+    const float h = wys / 2.0f, px = 2.0f / wys; /* unit square [-1, 1]; one pixel in units */
+    int32_t x0 = (int32_t)floorf(cx - h), x1 = (int32_t)ceilf(cx + h), y0 = (int32_t)floorf(cy - h),
+            y1 = (int32_t)ceilf(cy + h), x, y;
+    int k;
 
-    zbuduj_tarcze(&logo);
     if (x0 < 0)
         x0 = 0;
     if (y0 < 0)
@@ -461,21 +397,29 @@ void k1_rysuj_znak(struct k1_obraz *o, float cx, float cy, float wys)
     for (y = y0; y < y1; y++) {
         uint32_t *row = o->px + (size_t)y * o->krok;
         for (x = x0; x < x1; x++) {
-            struct v2 p = { ((float)x + 0.5f - cx) / L, ((float)y + 0.5f - (cy - 0.5f * L)) / L };
-            float a = pokrycie(sd_polygon(p, logo.tarcza, logo.n) * L), m, da;
-            struct rgb f, d;
-            uint32_t px = row[x];
-            if (a <= 0.0f)
-                continue;
-            m = pokrycie((sd_monogram(p) + 0.014f) * L); /* thinner strokes than the full logo */
-            f = mix(tarcza, krem, m);
-            da = (float)(px >> 24) / 255.0f;
-            d.r = f.r * a + (float)((px >> 16) & 0xff) / 255.0f * (1 - a);
-            d.g = f.g * a + (float)((px >> 8) & 0xff) / 255.0f * (1 - a);
-            d.b = f.b * a + (float)(px & 0xff) / 255.0f * (1 - a);
-            da = a + da * (1 - a);
-            row[x] = ((uint32_t)(da * 255.0f + 0.5f) << 24) | ((uint32_t)(d.r * 255.0f + 0.5f) << 16) |
-                     ((uint32_t)(d.g * 255.0f + 0.5f) << 8) | (uint32_t)(d.b * 255.0f + 0.5f);
+            float u = ((float)x + 0.5f - cx) / h, v = ((float)y + 0.5f - cy) / h;
+            /* rounded square (radius 0.30 of the half size, inset 0.86) */
+            float qx = fabsf(u) - 0.86f + 0.30f, qy = fabsf(v) - 0.86f + 0.30f;
+            float kw = sqrtf(fmaxf(qx, 0) * fmaxf(qx, 0) + fmaxf(qy, 0) * fmaxf(qy, 0)) + fminf(fmaxf(qx, qy), 0.0f) - 0.30f;
+            float r = sqrtf((u - 0.86f) * (u - 0.86f) + (v - 0.86f) * (v - 0.86f));
+            uint32_t p = row[x];
+            float pa = (float)(p >> 24) / 255.0f, pr = (float)((p >> 16) & 0xff) / 255.0f,
+                  pg = (float)((p >> 8) & 0xff) / 255.0f, pb = (float)(p & 0xff) / 255.0f;
+            int zmiana = 0;
+            for (k = 0; k < 3; k++) {
+                float a = pokrycie(fmaxf(kw, r - promienie[k]) / px);
+                struct rgb c = hex(kolory[k]);
+                if (a <= 0.0f)
+                    continue;
+                pr = c.r * a + pr * (1 - a);
+                pg = c.g * a + pg * (1 - a);
+                pb = c.b * a + pb * (1 - a);
+                pa = a + pa * (1 - a);
+                zmiana = 1;
+            }
+            if (zmiana)
+                row[x] = ((uint32_t)(pa * 255.0f + 0.5f) << 24) | ((uint32_t)(pr * 255.0f + 0.5f) << 16) |
+                         ((uint32_t)(pg * 255.0f + 0.5f) << 8) | (uint32_t)(pb * 255.0f + 0.5f);
         }
     }
 }
