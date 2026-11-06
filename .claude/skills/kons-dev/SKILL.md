@@ -19,12 +19,12 @@ Docelowo są dwa światy (SPEC §4): **natywny** (nasz kod) i **strefa zgodnośc
 Linux” dla obcych programów, np. przeglądarki — od M7). Pliki przechodzą między nimi tylko przez
 Gatekeepera (M9).
 
-**Łańcuch startu** (stan: M2; od M10 — UEFI + Secure Boot + podpisany UKI + dm-verity):
+**Łańcuch startu** (stan: M3; od M10 — UEFI + Secure Boot + podpisany UKI + dm-verity):
 ```
 jądro 6.18 LTS (jadro/k1.config) ──► /init = k1-initramfs (src/initramfs)
    k1.rdzen=/dev/XXX → SquashFS jako /rdzen (ro) w korzeniu-tmpfs (ro) → switch_root
  ──► /rdzen/init = PID 1 (src/init): sysctl, montowania pod /rdzen/jadro, sieroty, sygnały, wyłączanie
- ──► /rdzen/system/nadzorca (src/nadzorca): uruchamia usługi, łączy je kanałami (fd 3)
+ ──► /rdzen/system/nadzorca (src/nadzorca, root): usługi w klatkach (k1_klatka), kanały UNIX, logi, restarty
        ├─ wejscie (src/wejscie): evdev → komunikaty k1_zdarzenie → fd 3
        └─ ekran   (src/ekran):   jedyny DRM master; tapeta+logo+kursor (src/grafika), page flip
 ```
@@ -45,10 +45,10 @@ dekodery w jednorazowych procesach (M6), `siec` (M7), Gatekeeper (M9).
 |---|---|---|---|
 | `src/initramfs/` | `/init` (initramfs) | `komponenty/initramfs.md` | montuje rdzeń, przełącza korzeń |
 | `src/init/` | `/rdzen/init` | `komponenty/init.md` | PID 1 |
-| `src/nadzorca/` | `/rdzen/system/nadzorca` | `komponenty/nadzorca.md` | usługi (M2: minimalny, M3: pełny) |
+| `src/nadzorca/` | `/rdzen/system/nadzorca` | `komponenty/nadzorca.md` | usługi w klatkach, kanały, logi, restarty (ADR 0007) |
 | `src/wejscie/` | `/rdzen/system/wejscie` | `komponenty/wejscie.md` | klawiatura, mysz |
 | `src/ekran/` + `src/grafika/` | `/rdzen/system/ekran` | `komponenty/ekran.md` | KMS, składanie klatek, kursor |
-| `src/wspolne/` | (linkowane) | — | `k1_log` (log, `k1_awaria`, `k1_koniec`), `k1_cmdline`, `k1_zdarzenie` |
+| `src/wspolne/` | (linkowane) | — | `k1_log` (log, `k1_awaria`, `k1_koniec`), `k1_cmdline`, `k1_zdarzenie`, `k1_komunikat` (32 B, wszystkie kanały), `k1_kanal` (SEQPACKET, SCM_RIGHTS, SO_PASSCRED), `k1_klatka` (sandbox), `k1_uslugi.h` (UID-y, role) |
 | `jadro/` | `bzImage` | `komponenty/jadro.md` | wersja, konfiguracja, linia poleceń, klucze |
 | `testy/system/` | `/rdzen/system/test-systemu` (tylko obraz testowy) | `TESTY.md` | sprawdzenia w systemie |
 
@@ -68,7 +68,10 @@ Każdy z nich pilnuje test; jeśli zmiana go narusza, to jest zmiana architektur
 6. **Każdy komunikat IPC sprawdzany pole po polu** po stronie odbiorcy (wersja, typ, długość, zakresy,
    pole zarezerwowane = 0), parser ma testy jednostkowe i fuzzing. Kanał od nadzorcy to zawsze fd 3.
 7. **Jeden właściciel zasobu:** tylko `ekran` dotyka karty graficznej (DRM master), tylko `wejscie`
-   urządzeń wejścia (EVIOCGRAB). Od M3: osobne UID, seccomp, Landlock, cgroups dla każdej usługi.
+   urządzeń wejścia (EVIOCGRAB); urządzenia otwiera nadzorca i przekazuje deskryptory. Każda usługa
+   w klatce (ADR 0007): własny UID, 0 capabilities, NO_NEW_PRIVS, Landlock (tylko własny program),
+   seccomp (biała lista, kod 159 = zabronione wywołanie), cgroup; nowy syscall usługi = wpis w profilu
+   w `src/nadzorca/main.c` + uzasadnienie; odbiorca kanału sprawdza UID nadawcy (`SO_PASSCRED`).
 8. **Żadnych sekretów ani kodów klawiszy w logach** (najwyżej liczniki, ≤ 2 wpisy/s).
 9. **Powtarzalny build:** `SOURCE_DATE_EPOCH`, stałe dane budowy jądra, `-frandom-seed`; brak `__DATE__`
    i losowości przy budowie (`scripts/sprawdz-powtarzalnosc.sh`).
@@ -81,7 +84,8 @@ Każdy z nich pilnuje test; jeśli zmiana go narusza, to jest zmiana architektur
    z prefiksem `K1-<NAZWA>`; kanały od nadzorcy na fd 3 (kolejne — ustal w ADR).
 2. `Makefile` — cel `$(BIN)/<nazwa>` i dopisanie do `PROGRAMY`; `scripts/zbuduj-obraz.sh` — instalacja
    do `/rdzen/system/` (pętla w `przygotuj_rdzen`).
-3. `src/nadzorca/main.c` — wpis w tablicy usług i kanały.
+3. `src/nadzorca/main.c` — profil klatki (UID w `k1_uslugi.h`, syscalle, limity), wpis w tablicy usług
+   i kanały; pierwsza linia `main()` usługi: `k1_klatka_w_usludze(TAG)`; próba klatki w teście (`t_proby`).
 4. `testy/system/k1_test_systemu.c` — **zaktualizuj spis plików** (`t_inventory`), dodaj sprawdzenia
    funkcjonalne i **negatywne**; scenariusz QEMU w `scripts/test-mN.sh` (+ dopisz do `scripts/testy.sh`).
 5. `docs/komponenty/<nazwa>.md` (cel, granica zaufania, uprawnienia, wejścia/wyjścia, zależności,

@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE (M2) — `scripts/test-m2.sh` (zrzuty ekranu), testy w systemie |
+| **Status** | PRZETESTOWANE (M2, M3) — `scripts/test-m2.sh` (zrzuty ekranu), testy w systemie (klatka, IPC, restart) |
 | **Kod** | `src/ekran/main.c`, renderer `src/grafika/k1_grafika.c`, protokół `src/wspolne/k1_zdarzenie.c` |
-| **Decyzje** | ADR 0006; wygląd: `docs/WYGLAD.md` |
+| **Decyzje** | ADR 0006, ADR 0007 (klatka, kanały); wygląd: `docs/WYGLAD.md` |
 
 ## Cel
 Jedyny proces z dostępem do karty graficznej (DRM/KMS): ustawia tryb obrazu, składa klatki
@@ -15,12 +15,15 @@ Ufa jądru (sterownik DRM). **Nie ufa** komunikatom z kanału wejścia — każd
 (`k1_zdarzenie_sprawdz`), błędne są liczone i odrzucane. Nie przyjmuje innych danych z zewnątrz.
 
 ## Uprawnienia
-**M2:** root, wszystkie capabilities (RYZYKA R3). Potrzebne naprawdę: odczyt/zapis
-`/rdzen/jadro/dev/dri/card0` i bycie DRM master (pierwszy, kto otworzy kartę). M3: osobny UID,
-dostęp tylko do karty i kanału wejścia, seccomp, Landlock.
+**M3 (ADR 0007):** UID/GID 101, bez capabilities, `NO_NEW_PRIVS`, seccomp (baza + `ioctl` tylko typu
+`'d'` = DRM), Landlock bez żadnej ścieżki, cgroup `ekran` (128 MiB, 1 proces). Kartę otwiera nadzorca
+(to otwarcie jest DRM masterem) i przekazuje jako fd 4.
 
 ## Wejścia i wyjścia
-- fd 3: komunikaty `k1_zdarzenie` (16 B) od `wejscie` — ruch myszy, przyciski, klawisze.
+- fd 3: kanał sterujący od nadzorcy — komunikaty `KLIENT(rola, aplikacja, uid)` z końcem kanału
+  klienta (`SCM_RIGHTS`); ekran sprawdza, że nadawcą jest root (nadzorca).
+- kanały klientów roli WEJSCIE (do 4): komunikaty `k1_zdarzenie` (16 B) — ruch myszy, przyciski,
+  klawisze; UID nadawcy każdego pakietu (`SCM_CREDENTIALS`) musi być tym, który podał nadzorca.
 - Karta graficzna: dwa bufory „dumb” XRGB8888 w trybie preferowanym przez monitor (QEMU: 1280×800).
 - Log: tryb, czas pierwszej klatki, stan kursora (pozycja, przycisk, liczniki zdarzeń) ≤ 2×/s.
   **Bez kodów klawiszy.**
@@ -41,7 +44,8 @@ MODE_ADDFB, MODE_MAP_DUMB, MODE_SETCRTC, MODE_PAGE_FLIP, MODE_DIRTYFB), `mmap`, 
 
 ## Obsługa błędów
 Brak karty/monitora/trybu → `k1_koniec()`: komunikat i wyjście z kodem 1 (nadzorca zapisuje to
-w logu; system działa dalej — test). Zamknięty kanał wejścia → obraz zostaje, sterowanie wyłączone.
+w logu i uruchamia ekran ponownie). Zamknięty kanał wejścia → źródło usunięte. Zamknięty kanał
+sterujący → koniec.
 Błędne komunikaty → odrzucone i policzone. Nieprawidłowe zdarzenia DRM (długość) → pominięte.
 
 ## Powierzchnia ataku
@@ -55,6 +59,7 @@ trybu, ograniczony do 8192×8192).
 | `test-m2.sh`: tryb, pierwsza klatka, zrzut (logo, tapeta, kursor) | funkcjonalny |
 | `test-m2.sh`: ruch myszy, strzałki, przycisk — log + zrzuty | funkcjonalny |
 | w systemie: drugi proces nie przejmie ekranu (`SET_MASTER` → EBUSY) | negatywny |
-| w systemie: 4 złośliwe komunikaty odrzucone, poprawny przyjęty, ekran działa | negatywny (IPC) |
-| w systemie: awaria ekranu (SIGSEGV) nie zatrzymuje systemu | negatywny |
+| w systemie: 4 złośliwe komunikaty odrzucone, poprawny przyjęty, poprawny od obcego UID odrzucony | negatywny (IPC) |
+| w systemie: awaria ekranu (SIGSEGV) nie zatrzymuje systemu, ekran wraca | negatywny + funkcjonalny |
+| w systemie: klatka (UID, capabilities, seccomp, cgroup, deskryptory) i próba w klatce | negatywny |
 | host: `test_zdarzenie` (32 przypadki), `fuzz_zdarzenie`, renderer z ASan/UBSan | jednostkowy / fuzzing |

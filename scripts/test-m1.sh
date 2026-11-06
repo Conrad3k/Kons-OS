@@ -1,5 +1,5 @@
 #!/bin/sh
-# Test etapów M1–M2 (powtarzalny): testy na hoście + uruchomienia K1 w QEMU, także negatywne
+# Test etapów M1–M3 (powtarzalny): testy na hoście + uruchomienia K1 w QEMU, także negatywne
 # (start, testy w systemie, błędy startu). Ekran i wejście z zewnątrz: scripts/test-m2.sh.
 # Wymaga zbudowanych obrazów (scripts/zbuduj.sh). Logi: build/testy/<scenariusz>.log
 # Kod wyjścia 0 = wszystko zaliczone. Opis scenariuszy: docs/TESTY.md.
@@ -53,6 +53,8 @@ scenariusz() {
     for w in "$@"; do grep -qF -- "$w" "$log" || problem="$problem brak:'$w'"; done
     grep -q 'Kernel panic' "$log" && problem="$problem kernel-panic"
     grep -qF 'K1-TEST: [BŁĄD]' "$log" && problem="$problem nieudany-test-w-systemie"
+    grep -qF 'K1-PROBA: [BŁĄD]' "$log" && problem="$problem nieudana-próba-klatki"
+    grep -qF 'zabronione wywołanie systemowe' "$log" && problem="$problem usługa-zatrzymana-przez-seccomp"
     [ "$tryb" = wylaczenie ] && [ $sam -eq 0 ] && problem="$problem brak-wyłączenia-przed-limitem"
     if [ -z "$problem" ]; then wynik "qemu: $nazwa (${t} s)" 0 ""
     else wynik "qemu: $nazwa" 1 "$problem; czas ${t} s, QEMU zakończyło się samo: $sam, kod: $kod (log: $log)"; fi
@@ -64,9 +66,9 @@ krok() { # $1 = nazwa, $2 = plik logu, reszta = polecenie
     r=0; "$@" >"$l" 2>&1 || r=$?
     wynik "$n" "$r" "log: $l"
 }
-krok "jednostkowe: linia poleceń, protokół zdarzeń, renderer (ASan/UBSan)" "$TESTY/host.log" \
+krok "jednostkowe: linia poleceń, protokoły zdarzeń i usług, kanały, renderer (ASan/UBSan)" "$TESTY/host.log" \
     make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" testy-host
-krok "fuzzing: linia poleceń i protokół zdarzeń (${K1_FUZZ_CZAS:-20} s każdy, libFuzzer)" "$TESTY/fuzz.log" \
+krok "fuzzing: linia poleceń, protokoły zdarzeń i usług (${K1_FUZZ_CZAS:-20} s każdy, libFuzzer)" "$TESTY/fuzz.log" \
     make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" fuzz FUZZ_CZAS="${K1_FUZZ_CZAS:-20}"
 krok "zabezpieczenia binariów (static-pie, RELRO, NX)" "$TESTY/binaria.log" \
     "$K1_REPO/scripts/sprawdz-binaria.sh" "$K1_BUDOWA"/bin/*
@@ -82,7 +84,10 @@ echo "[k1] uruchomienia w QEMU ($( [ -w /dev/kvm ] && echo KVM || echo 'emulacja
 scenariusz start czekaj "$K1_WYNIK/rdzen.squashfs" "$CMDLINE" \
     "K1-INITRAMFS: start" "K1: init OK" "uruchomiono nadzorcę" "K1-EKRAN: pierwsza klatka"
 scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE" \
-    "K1: init OK" "K1-TEST: WYNIK: OK" "odrzucone 4)" "ekran zakończony sygnałem 11" "K1: wyłączanie zasilania" "reboot: Power down"
+    "K1: init OK" "K1-TEST: WYNIK: OK" "odrzucone 5)" "komunikat od obcego nadawcy (uid 0, oczekiwano 100)" \
+    "K1-PROBA: koniec próby „proba-wejscie”: 0 błędów" "K1-PROBA: koniec próby „proba-ekran”: 0 błędów" \
+    "ekran zakończony sygnałem 11" "ponowne uruchomienie ekran" "wejscie wyłączony: 6 zakończeń" \
+    "K1: wyłączanie zasilania" "reboot: Power down"
 scenariusz neg-brak-dysku wylaczenie - "$CMDLINE" \
     "nie znaleziono urządzenia z obrazem rdzenia: /dev/vda" "system zostanie wyłączony" "reboot: Power down"
 scenariusz neg-dysk-bez-obrazu wylaczenie "$TESTY/zera.img" "$CMDLINE" \

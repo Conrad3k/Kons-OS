@@ -2,20 +2,20 @@
 
 Zasada (SPEC §2.5): mechanizm bezpieczeństwa to nie gwarancja. Tu zapisujemy, czego system
 **jeszcze nie chroni** albo **nie może chronić**, i kiedy planujemy to zmienić.
-Stan na wersję 0.2.0 (koniec M2). Klasyfikacja: **W** — wysokie, **Ś** — średnie, **N** — niskie.
+Stan na wersję 0.3.0 (koniec M3). Klasyfikacja: **W** — wysokie, **Ś** — średnie, **N** — niskie.
 
 | Nr | Ryzyko / ograniczenie | Waga | Co je ogranicza teraz | Plan |
 |---|---|---|---|---|
 | R1 | **Brak weryfikacji integralności obrazu rdzenia.** Jądro parsuje niezweryfikowany SquashFS; podmieniony lub uszkodzony obraz może uruchomić dowolny kod jako PID 1 albo wywołać kernel panic. | W | nic poza fizyczną kontrolą nośnika | M10: dm-verity z root hash w podpisanej linii poleceń |
 | R2 | **Brak Secure Boot i podpisanego UKI.** Linię poleceń jądra (`k1.rdzen`, `lsm=`, `lockdown=`) może zmienić każdy, kto kontroluje bootloader/QEMU. | W | — | M10 |
-| R3 | **Wszystko działa jako root** z pełnymi capabilities — także `ekran` i `wejscie` (M2). Przejęcie którejkolwiek usługi = przejęcie systemu. | W | usługi nie przyjmują danych spoza systemu (tylko urządzenia wejścia i kanał wejscie→ekran ze sprawdzaniem pól) | M3: UID, capabilities, seccomp, Landlock, cgroups |
+| R3 | ~~Wszystko działa jako root~~ — **od M3 usługi w klatkach** (UID, brak capabilities, seccomp, Landlock, cgroups; ADR 0007). Zostaje: luka w jądrze osiągalna przez dozwolone wywołania (DRM `ioctl`, evdev, gniazda UNIX) daje przejęcie systemu. | Ś | biała lista seccomp, warunki na argumenty, testy-próby | M11, M12 |
 | R4 | **Jądro to wspólna granica zaufania.** Luka zero-day w jądrze daje przejęcie całego świata natywnego. | W | minimalna konfiguracja (brak modułów, io_uring, BPF, userfaultfd, 32-bit, VT…), wzmocnienia KSPP, lockdown | szybkie aktualizacje LTS (`jadro/README.md`); M11: osobne jądro dla przeglądarki |
 | R5 | **Awaria PID 1 = kernel panic** (cecha Linuksa). Błąd pamięci w init zatrzyma system. | Ś | init ≈240 linii, bez parsowania danych zewnętrznych; flagi i testy | audyt w M12 |
 | R6 | **`/dane_uzytkownika` to tmpfs w RAM**: bez szyfrowania, dane znikają po wyłączeniu. | Ś (M1 nie przechowuje danych) | `noexec,nosuid,nodev`, limit 16 MiB, `mode=0700` | M5: Blob Vault + szyfrowanie |
-| R7 | **`_FORTIFY_SOURCE` nie działa z musl** (brak kontroli przepełnień w funkcjach libc w czasie działania). | Ś | jawne limity długości, `-Wformat=2`, testy ASan/UBSan i fuzzing na hoście | decyzja o `fortify-headers` w M3 (ADR 0002) |
+| R7 | **`_FORTIFY_SOURCE` nie działa z musl** (brak kontroli przepełnień w funkcjach libc w czasie działania). | Ś | jawne limity długości, `-Wformat=2`, testy ASan/UBSan i fuzzing na hoście, klatki usług | ADR 0007: na razie bez `fortify-headers`; ponownie przy własnym buildzie musl |
 | R8 | **musl 1.2.4-2 z Ubuntu bez poprawki CVE-2025-26519** (iconv). | N | nasze programy nie linkują `iconv` (sprawdzone `nm`) | własny build musl 1.2.5 z poprawkami przed M3 |
-| R9 | **`PERF_EVENTS` wymuszone na x86** — duża, historycznie podatna część jądra dostępna przez `perf_event_open`. | Ś | `kernel.perf_event_paranoid=2`, lockdown confidentiality | M3: seccomp usług blokuje `perf_event_open` |
-| R10 | **Port szeregowy w developmencie:** konsola jądra na `ttyS0` i węzeł `/rdzen/jadro/dev/ttyS0`. „Jednokierunkowość” wynika z tego, że nic nie czyta wejścia — nie jest wymuszona sprzętowo. | Ś | brak getty/powłoki, SysRq wyłączone, w M3 usługi bez dostępu do `/dev` | M10: obraz produkcyjny bez `console=ttyS0` (decyzja w ADR) |
+| R9 | **`PERF_EVENTS` wymuszone na x86** — duża, historycznie podatna część jądra dostępna przez `perf_event_open`. | N | `kernel.perf_event_paranoid=2`, lockdown confidentiality, **seccomp usług blokuje `perf_event_open`** (test-próba) | — (dostępne tylko dla nadzorcy i init) |
+| R10 | **Port szeregowy w developmencie:** konsola jądra na `ttyS0` i węzeł `/rdzen/jadro/dev/ttyS0`. „Jednokierunkowość” wynika z tego, że nic nie czyta wejścia — nie jest wymuszona sprzętowo. | N | brak getty/powłoki, SysRq wyłączone; **od M3 usługi nie mają konsoli** (fd 0/1 = `/dev/null`, log przez nadzorcę) ani dostępu do `/dev` | M10: obraz produkcyjny bez `console=ttyS0` (decyzja w ADR) |
 | R11 | **Brak kCFI i RANDSTRUCT** w jądrze (budujemy GCC; RANDSTRUCT kłóci się z powtarzalnym buildem). | Ś | IBT (sprzętowa ochrona skoków pośrednich na nowszych CPU), pozostałe wzmocnienia | ocena przy M10/M12 |
 | R12 | **Brak ochrony CET w przestrzeni użytkownika** (musl nie obsługuje shadow stack/IBT). | N | PIE, RELRO, NX, kanarki stosu | — |
 | R13 | **Pseudo-losowość przy starcie:** brak sprzętowego źródła (TPM) w konfiguracji. | N | jądro korzysta z RDRAND/RDSEED (gdy CPU je ma) i jittera; wtyczka LATENT_ENTROPY | M10: `HW_RANDOM_TPM` |
@@ -24,7 +24,9 @@ Stan na wersję 0.2.0 (koniec M2). Klasyfikacja: **W** — wysokie, **Ś** — �
 | R16 | **`ptrace_scope=3` jest nieodwracalne** — także debugowanie awarii jest niemożliwe w działającym systemie. | N (świadomy wybór) | logi | — |
 | R17 | **Błąd krytyczny przy starcie widać tylko na porcie szeregowym** — ekran startuje dopiero po init. | N | — | M3/M10: komunikat na ekranie (np. `DRM_PANIC`, ekran awarii) |
 | R18 | **Nowa powierzchnia ataku jądra (M2):** podsystem DRM (ioctl) i wejścia (evdev, i8042). | Ś | tylko jeden mały sterownik (`bochs`), bez fbdev/fbcon i mousedev; w M3 dostęp do karty tylko dla `ekran` | M3 |
-| R19 | **Kanał wejscie→ekran bez sprawdzania nadawcy.** Każdy proces z uprawnieniami roota może pisać do niego przez `/proc/<pid>/fd` (test to wykorzystuje). | Ś | walidacja każdego pola, odrzucanie i liczenie błędnych komunikatów | M3: osobne UID (brak dostępu do `/proc` innych), M4: gniazda UNIX z `SO_PEERCRED` |
-| R20 | **Ekran po awarii nie wraca** (brak restartu usług). | N | awaria nie zatrzymuje systemu (test) | M3: restart przez nadzorcę |
+| R19 | ~~Kanał wejscie→ekran bez sprawdzania nadawcy~~ — **od M3 gniazda UNIX z `SO_PASSCRED`**: ekran odrzuca pakiety od innego UID (test). Root (nadzorca, init) mógłby podać fałszywe dane nadawcy — ale root i tak jest bazą zaufania. | N | walidacja pól + UID nadawcy | — |
+| R20 | ~~Ekran po awarii nie wraca~~ — **od M3 restart przez nadzorcę** (test); usługa padająca > 5 razy na minutę zostaje wyłączona — wtedy bez ekranu do ponownego uruchomienia komputera. | N | limit restartów zapobiega pętli awarii | M10: tryb ratunkowy |
 | R21 | **Log zdradza liczbę i czas zdarzeń klawiatury** (nie kody). | N | zapis ≤ 2×/s, bez kodów klawiszy | M10: obraz produkcyjny bez logu na port szeregowy |
 | R22 | **Obraz tylko w QEMU** — na prawdziwym sprzęcie nie ma jeszcze sterownika grafiki (np. `simpledrm`) ani USB. | N | — | przy pierwszych testach właściciela na laptopie |
+| R23 | **Nadzorca działa jako root bez klatki** (zmienia UID, tworzy cgroups, otwiera urządzenia) — błąd w nim to przejęcie systemu. | Ś | mały kod, stała lista usług, od usług przyjmuje tylko wiersze logu (oczyszczane, limit) i komunikaty 32 B (walidacja, fuzzing) | M12: audyt; ewentualnie własny filtr seccomp nadzorcy |
+| R24 | **Zablokowane wywołanie systemowe kończy usługę** (`SECCOMP_RET_TRAP` + wyjście). Nowa wersja musl/jądra może wymagać wywołania spoza listy → usługa nie wstanie. | N | test w CI: każde „zabronione wywołanie systemowe” w logu = błąd testu | przy aktualizacjach |

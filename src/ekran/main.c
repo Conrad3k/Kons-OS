@@ -2,12 +2,15 @@
  *
  * SPEC §7: sets the display mode, composes buffers, does page flips. In M2 it composes the
  * wallpaper with the logo and the mouse cursor (software cursor); from M4 it will also compose
- * windows drawn by `gui` in shared memory. Input events arrive from `wejscie` on fd 3
- * (src/wspolne/k1_zdarzenie.h) and are validated field by field. Uses the kernel KMS API
- * directly (ioctl on /dev/dri/card0, legacy SETCRTC + PAGE_FLIP) — no libdrm.
- * Documentation: docs/komponenty/ekran.md.
+ * windows drawn by `gui` in shared memory. Uses the kernel KMS API directly (ioctl, legacy
+ * SETCRTC + PAGE_FLIP) — no libdrm. Documentation: docs/komponenty/ekran.md.
  *
- * M2: runs as root (privilege separation, seccomp and Landlock come in M3). */
+ * M3 (ADR 0007): own UID, no capabilities, seccomp (ioctl only of the DRM type), Landlock without
+ * any path. The supervisor opens the graphics card and passes it as fd 4 (that open file is the DRM
+ * master); fd 3 is the control channel from the supervisor, on which client channels arrive
+ * (k1_komunikat KLIENT + SCM_RIGHTS). Input clients (role WEJSCIE) send k1_zdarzenie messages;
+ * every message is validated field by field and its sender's UID (SCM_CREDENTIALS) must be the one
+ * the supervisor assigned to that channel. */
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -25,12 +28,17 @@
 #include <linux/input-event-codes.h>
 
 #include "k1_grafika.h"
+#include "k1_kanal.h"
+#include "k1_klatka.h"
+#include "k1_komunikat.h"
 #include "k1_log.h"
+#include "k1_uslugi.h"
 #include "k1_zdarzenie.h"
 
 #define TAG "K1-EKRAN"
-#define KARTA "/rdzen/jadro/dev/dri/card0"
-#define FD_WEJSCIE 3
+#define FD_STEROWANIE 3
+#define FD_KARTA 4
+#define MAKS_WEJSC 4
 #define MAKS_OBIEKTOW 32
 #define MAKS_TRYBOW 256
 #define KROK_STRZALEK 20
@@ -56,7 +64,8 @@ struct stan {
     uint32_t kursor[2][K1_KURSOR_SZER * K1_KURSOR_WYS];
     int32_t x, y;           /* cursor hotspot */
     int wcisniety, zmiana;
-    unsigned long klatki, klawisze, ruchy, odrzucone;
+    unsigned long klatki, klawisze, ruchy, odrzucone, obcy;
+    struct { int fd; uid_t uid; } wejscia[MAKS_WEJSC];
 };
 
 static int drm(int fd, unsigned long req, void *arg)
@@ -78,19 +87,6 @@ static double teraz(void)
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);
     return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
-}
-
-static int otworz_karte(void)
-{
-    int i, fd;
-    for (i = 0; i < 50; i++) {
-        fd = open(KARTA, O_RDWR | O_CLOEXEC);
-        if (fd >= 0)
-            return fd;
-        struct timespec t = { 0, 100 * 1000 * 1000 };
-        nanosleep(&t, NULL);
-    }
-    k1_koniec(TAG, "brak karty graficznej %s: %s", KARTA, strerror(errno));
 }
 
 /* Finds a connected output, its preferred mode and a CRTC that can drive it. */
@@ -318,19 +314,28 @@ static void zastosuj(struct stan *s, const struct k1_zdarzenie *z)
     s->zmiana = 1;
 }
 
-/* Returns 0 when the input channel is closed. */
-static int odbierz_wejscie(struct stan *s)
+/* Reads pending messages of input client `i`; returns 0 when its channel is closed. */
+static int odbierz_wejscie(struct stan *s, int i)
 {
-    int i;
-    for (i = 0; i < 64; i++) {
-        unsigned char buf[64]; /* larger than a message: oversized packets are detected */
+    int k;
+    for (k = 0; k < 64; k++) {
+        struct k1_odebrane o;
         struct k1_zdarzenie z;
-        ssize_t n = read(FD_WEJSCIE, buf, sizeof buf);
-        if (n < 0)
-            return errno == EAGAIN || errno == EINTR;
-        if (n == 0)
+        enum k1_kanal_wynik w = k1_kanal_odbierz(s->wejscia[i].fd, &o);
+        if (w == K1_KANAL_PUSTO)
+            return 1;
+        if (w != K1_KANAL_KOMUNIKAT)
             return 0;
-        if (k1_zdarzenie_sprawdz(buf, (size_t)n, &z) != 0) {
+        if (o.fd >= 0)
+            close(o.fd); /* input messages never carry descriptors */
+        if (!o.ma_nadawce || o.uid != s->wejscia[i].uid) {
+            if (s->obcy++ < 3)
+                k1_log(TAG, "komunikat od obcego nadawcy (uid %d, oczekiwano %d) — odrzucony",
+                       o.ma_nadawce ? (int)o.uid : -1, (int)s->wejscia[i].uid);
+            s->odrzucone++;
+            continue;
+        }
+        if (o.fd >= 0 || o.obciete || k1_zdarzenie_sprawdz(o.dane, o.dlugosc, &z) != 0) {
             s->odrzucone++;
             continue;
         }
@@ -339,22 +344,61 @@ static int odbierz_wejscie(struct stan *s)
     return 1;
 }
 
+/* Control channel from the supervisor: new clients. Returns 0 when it is closed. */
+static int odbierz_sterowanie(struct stan *s)
+{
+    struct k1_odebrane o;
+    struct k1_komunikat k;
+    enum k1_kanal_wynik w = k1_kanal_odbierz(FD_STEROWANIE, &o);
+    int i;
+
+    if (w == K1_KANAL_PUSTO)
+        return 1;
+    if (w != K1_KANAL_KOMUNIKAT)
+        return 0;
+    /* Only the supervisor (root) holds the other end; check it anyway, and every field. */
+    if (!o.ma_nadawce || o.uid != 0 || o.obciete || o.fd < 0 ||
+        k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &k) != 0) {
+        k1_log(TAG, "odrzucono komunikat sterujący");
+        if (o.fd >= 0)
+            close(o.fd);
+        return 1;
+    }
+    if (k.a != K1_ROLA_WEJSCIE) {
+        k1_log(TAG, "klient roli %d nieobsługiwany w tej wersji", (int)k.a);
+        close(o.fd);
+        return 1;
+    }
+    for (i = 0; i < MAKS_WEJSC && s->wejscia[i].fd >= 0; i++) {
+    }
+    if (i == MAKS_WEJSC || fcntl(o.fd, F_SETFL, O_NONBLOCK) != 0) {
+        k1_log(TAG, "za dużo źródeł wejścia — odrzucono");
+        close(o.fd);
+        return 1;
+    }
+    s->wejscia[i].fd = o.fd;
+    s->wejscia[i].uid = (uid_t)k.c;
+    k1_log(TAG, "nowe źródło wejścia (uid %d)", (int)k.c);
+    return 1;
+}
+
 int main(void)
 {
     static struct stan s;
     struct drm_get_cap cap;
     struct drm_mode_crtc crtc;
-    struct pollfd pfd[2];
+    struct pollfd pfd[2 + MAKS_WEJSC];
     double t0, t_log = 0.0;
     int32_t ost_x = -1, ost_y = -1;
-    int ost_w = -1, wejscie_ok = 1, i;
+    int ost_w = -1, i;
     uint32_t y;
 
-    if (fcntl(FD_WEJSCIE, F_SETFL, O_NONBLOCK) < 0) {
-        k1_log(TAG, "brak kanału wejścia (fd %d) — tylko obraz", FD_WEJSCIE);
-        wejscie_ok = 0;
-    }
-    s.fd = otworz_karte();
+    k1_klatka_w_usludze(TAG);
+    for (i = 0; i < MAKS_WEJSC; i++)
+        s.wejscia[i].fd = -1;
+    if (fcntl(FD_STEROWANIE, F_SETFL, O_NONBLOCK) < 0 || fcntl(FD_KARTA, F_GETFD) < 0)
+        k1_koniec(TAG, "brak kanału sterującego (fd %d) albo karty graficznej (fd %d)", FD_STEROWANIE, FD_KARTA);
+    s.fd = FD_KARTA;
     memset(&cap, 0, sizeof cap);
     cap.capability = DRM_CAP_DUMB_BUFFER;
     if (drm(s.fd, DRM_IOCTL_GET_CAP, &cap) < 0 || cap.value == 0)
@@ -394,20 +438,27 @@ int main(void)
     s.przedni = 0;
     k1_log(TAG, "pierwsza klatka: tapeta i logo K1 (%.1f s)", teraz() - t0);
 
-    pfd[0].fd = s.fd;
-    pfd[0].events = POLLIN;
-    pfd[1].fd = wejscie_ok ? FD_WEJSCIE : -1;
-    pfd[1].events = POLLIN;
     for (;;) {
         double t;
-        if (poll(pfd, 2, 250) < 0 && errno != EINTR)
+        pfd[0].fd = s.fd;
+        pfd[0].events = POLLIN;
+        pfd[1].fd = FD_STEROWANIE;
+        pfd[1].events = POLLIN;
+        for (i = 0; i < MAKS_WEJSC; i++) {
+            pfd[2 + i].fd = s.wejscia[i].fd;
+            pfd[2 + i].events = POLLIN;
+        }
+        if (poll(pfd, 2 + MAKS_WEJSC, 250) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
         if (pfd[0].revents & POLLIN)
             odbierz_drm(&s);
-        if (pfd[1].fd >= 0 && (pfd[1].revents & (POLLIN | POLLHUP | POLLERR))) {
-            if (!odbierz_wejscie(&s)) {
-                k1_log(TAG, "kanał wejścia zamknięty — obraz zostaje, sterowanie wyłączone");
-                pfd[1].fd = -1;
+        if ((pfd[1].revents & (POLLIN | POLLHUP | POLLERR)) && !odbierz_sterowanie(&s))
+            k1_koniec(TAG, "nadzorca zamknął kanał sterujący");
+        for (i = 0; i < MAKS_WEJSC; i++) {
+            if (s.wejscia[i].fd >= 0 && (pfd[2 + i].revents & (POLLIN | POLLHUP | POLLERR)) && !odbierz_wejscie(&s, i)) {
+                k1_log(TAG, "źródło wejścia zamknięte");
+                close(s.wejscia[i].fd);
+                s.wejscia[i].fd = -1;
             }
         }
         if (s.zmiana && !s.flip_w_toku) {
