@@ -5,9 +5,17 @@
 #ifndef K1_LOG_H
 #define K1_LOG_H
 
+#include <stddef.h>
+
 /* Writes "<tag>: <message>\n" to fd 2. Never fails (errors are ignored: there is nowhere
  * else to report them). Truncated messages end with "…". */
 void k1_log(const char *tag, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+
+/* Makes untrusted text (a log line of a service) safe for a terminal, in place: control
+ * characters (C0, DEL and the C1 range U+0080..U+009F), invalid or overlong UTF-8 and surrogates
+ * become '?' (one per byte); valid UTF-8 such as Polish letters stays. Returns the number of bytes
+ * replaced. */
+size_t k1_log_oczysc(char *tekst, size_t dlugosc);
 
 /* Critical error (SPEC §7: controlled handling of critical errors). Logs
  * "<tag>: BŁĄD KRYTYCZNY: <message>", waits K1_AWARIA_ZWLOKA_S seconds so that a human can read

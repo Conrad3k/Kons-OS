@@ -1,8 +1,9 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.4.0 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
-M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej).
+Stan: wersja 0.5.0 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
+M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby).
 Data: 2026-11-06. Plik aktualizujemy po każdym etapie.
 Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
 
@@ -36,7 +37,12 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
     rozmiary „bardzo fajne”; rozdzielczość dziwna (1024×768 z firmware); logo „okropne” →
     wybrany nowy znak C „Warstwy” (0.4.2).
 
-[!] Czy obejście rozdzielczości z README (VBoxManage … EfiGraphicsResolution 1920x1080) działa?
+  - Po M4: „pod paskiem zadań i pod menu dźwięku wyjeżdża szklana podstawa” → naprawione (0.5.0);
+    prośba o aplikację „Zużycie zasobów” z wykresem → Zasoby (0.5.0).
+
+[!] Rozdzielczość (0.5.0): VirtualBox z kontrolerem VMSVGA i pamięcią wideo 64 MB+ →
+    Ustawienia → Ekran. Czy lista rozdzielczości się pokazuje i zmiana działa? Gdyby obraz się nie
+    pojawił — kontroler VBoxSVGA (README) i daj znać.
 [!] Dalsze uwagi do pulpitu, tapet i nowego znaku (Issues → „Feedback z testu” albo w czacie).
 [!] Kiedy pierwszy test na laptopie (pendrive)? Wymaga pracy z punktu 2 („prawdziwy sprzęt”).
     Przyda się model laptopa.
@@ -86,14 +92,19 @@ M4  GUI — GOTOWE (0.4.0)
 
 Nowa kolejność od 2026-11-06 (ADR 0011): M4.1 → M5 → M5.1 → M5.2 → M6 → M7 → … Numery etapów zostają.
 
-M4.1 Porządki i audyt — NASTĘPNY
-    [ ] ekran dopasowany do okna VirtualBoxa/VMware: sterownik karty VMSVGA (vmwgfx) albo tryb
-        z firmware o wyższej rozdzielczości (dziś w VirtualBoxie z EFI: 1024×768)
-    [ ] celowany przegląd bezpieczeństwa: nadzorca, ekran, kanały, klatka (+ poprawki)
-    [ ] podział największych plików (ekran: kompozycja / okna / wejście; program testowy) i usunięcie powtórzeń
-    [ ] CI uruchamiane przez Claude etykietą „testy” na PR-ze (bez czekania na scalenie)
+M4.1 Porządki i audyt — GOTOWE (0.5.0, ADR 0012)
+    [x] wybór rozdzielczości w Ustawieniach → Ekran (zmiana w locie); sterownik VMSVGA (vmwgfx)
+        [!] działanie w VirtualBoxie/VMware sprawdzisz Ty (w QEMU ta karta nie działa — opis w README)
+        [ ] dopasowanie do rozmiaru okna VirtualBoxa „samo z siebie” — wymaga dodatków gościa (później)
+    [x] celowany przegląd bezpieczeństwa: nadzorca, ekran, kanały, klatka — 6 poprawek (ochrona
+        klawiatury przed nowymi oknami, limit pamięci okien, obszar odświeżania, czyszczenie logu,
+        zamykanie deskryptorów, katalog notatek) + testy
+    [x] podział największych plików (ekran: 5 plików; program testowy: 6 plików)
+    [x] CI uruchamiane przez Claude etykietą „testy” na PR-ze
+    [x] aplikacja Zasoby (procesor, pamięć, usługi — wykresy z ostatniej minuty)
+    [x] naprawa cienia pod dolnym paskiem i menu dźwięku
 
-M5  Dane i sprzęt (rozszerzony)
+M5  Dane i sprzęt (rozszerzony) — NASTĘPNY
     [ ] sterowniki dysków: virtio, SATA (AHCI), NVMe; partycja danych na dysku / pendrivie
     [ ] magazyn obiektów zamiast katalogów (identyfikator, metadane, hash, pochodzenie)
     [ ] szyfrowanie danych na dysku (dziś dane są tylko w RAM)
@@ -142,7 +153,7 @@ M12 Audyt
 ----------------------------------------------------------------------------------------------
 M3   (podjęte, ADR 0007) fortify-headers — na razie nie; kanały: gniazda UNIX SEQPACKET + SO_PASSCRED
 M4   (podjęte) czcionki IBM Plex (OFL), własne rysowanie tekstu bez LVGL (ADR 0009); obraz ISO z GRUB (ADR 0010)
-M4.1 zakres przeglądu i podział plików (ADR 0011 — kolejność etapów: podjęte)
+M4.1 (podjęte, ADR 0012) przegląd, tryby ekranu, vmwgfx, Zasoby
 M5   fscrypt czy dm-crypt; skąd klucz (hasło, TPM); które sterowniki dysków i USB do jądra
 M7   przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP
 M5.1 Firefox czy WPE WebKit (sprawdzenie sandboxa Firefoksa w strefie), USER_NS tak/nie

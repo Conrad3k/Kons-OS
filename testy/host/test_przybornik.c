@@ -93,8 +93,9 @@ static void t_rysowanie(void)
     k1_zaokraglony(&o, -10, -10, 200, 100, 12, k1_kolor(0x123456, 128));
     k1_obrys(&o, 50, 20, 30, 30, 40, 1, 0xff000000u);
     k1_kreska(&o, -100, -100, 200, 200, 3, 0xffffffff);
-    k1_cien(&o, 10, 10, 40, 10, 8, 16, 60);
-    for (v = 1; v <= K1_IK_WYGLAD; v++)
+    k1_cien(&o, 10, 10, 40, 10, 8, 4, 16, 60);
+    k1_cien(&o, 10, 10, 0, 10, 8, 4, 16, 60);
+    for (v = 1; v <= K1_IK_EKRAN; v++)
         k1_ikona(&o, (enum k1_ikona)v, 50, 20, 24, 0xffffffff);
     k1_ikona(&o, (enum k1_ikona)99, 0, 0, 24, 0xffffffff);
     k1_rysuj_znak(&o, 60, 30, 26);

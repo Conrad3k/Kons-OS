@@ -1,6 +1,6 @@
 /* K1 Ustawienia — native application: the first settings (M4, ADR 0008). The only client ekran
  * accepts settings changes from (role + UID checked by ekran). Settings live in ekran's memory
- * until M5 (Blob Vault). Sandbox: UID 202, seccomp (base + memfd_create, ftruncate), no paths.
+ * until M5 (Blob Vault); the screen mode list comes from ekran (K1_KOM_TRYB). Sandbox: UID 202, seccomp (base + memfd_create, ftruncate), no paths.
  * Documentation: docs/komponenty/aplikacje.md. */
 #include <stdio.h>
 
@@ -15,14 +15,21 @@
 #define SEG_W 260
 #define SEG_H 36
 
-enum { S_WYGLAD, S_MYSZ, S_CZAS, S_HASLO, S_INFO, S_LICZBA };
+enum { S_WYGLAD, S_EKRAN, S_MYSZ, S_CZAS, S_HASLO, S_INFO, S_LICZBA };
+
+/* screen modes: three columns of buttons */
+#define TRYB_W 136
+#define TRYB_H 32
+#define TRYB_ODST_X 8
+#define TRYB_ODST_Y 8
+#define TRYBY_W_KOLUMNIE 6
 
 #define KARTA_W 100
 #define KARTA_H 64
 #define KARTA_ODST 12
 
 static struct k1_apl apl;
-static int sekcja, hover_nav = -1, hover_seg = -1, hover_karta = -1;
+static int sekcja, hover_nav = -1, hover_seg = -1, hover_karta = -1, hover_tryb = -1, tryby_zalogowane;
 static uint32_t miniatury[K1_TAPETY][KARTA_W * KARTA_H];
 static const char *const nazwy_tapet[K1_TAPETY] = { "Glina", "Zmierzch", "Noc", "Świt" };
 
@@ -30,7 +37,7 @@ static const struct {
     const char *nazwa;
     enum k1_ikona ikona;
 } sekcje[S_LICZBA] = {
-    { "Wygląd", K1_IK_WYGLAD }, { "Mysz", K1_IK_MYSZ }, { "Data i czas", K1_IK_ZEGAR },
+    { "Wygląd", K1_IK_WYGLAD }, { "Ekran", K1_IK_EKRAN }, { "Mysz", K1_IK_MYSZ }, { "Data i czas", K1_IK_ZEGAR },
     { "Hasło", K1_IK_KLODKA },  { "Informacje", K1_IK_INFO },
 };
 
@@ -103,6 +110,54 @@ static int karta_pod(int32_t x, int32_t y)
     return -1;
 }
 
+static void tryb_pole(int nr, int32_t *x, int32_t *y)
+{
+    *x = TRESC_X + ((nr - 1) / TRYBY_W_KOLUMNIE) * (TRYB_W + TRYB_ODST_X);
+    *y = seg_y() + ((nr - 1) % TRYBY_W_KOLUMNIE) * (TRYB_H + TRYB_ODST_Y);
+}
+
+static int tryb_pod(int32_t x, int32_t y)
+{
+    int nr;
+    for (nr = 1; nr <= apl.k.n_trybow; nr++) {
+        int32_t tx, ty;
+        tryb_pole(nr, &tx, &ty);
+        if (x >= tx && x < tx + TRYB_W && y >= ty && y < ty + TRYB_H)
+            return nr;
+    }
+    return -1;
+}
+
+static void tryby(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    char buf[128];
+    int nr, biezacy = apl.k.ustawienia[K1_UST_ROZDZIELCZOSC];
+    for (nr = 1; nr <= apl.k.n_trybow; nr++) {
+        int32_t x, y;
+        int wybrany = nr == biezacy;
+        tryb_pole(nr, &x, &y);
+        if (wybrany)
+            k1_zaokraglony(o, (float)x, (float)y, TRYB_W, TRYB_H, 8, k1_kolor(m->akcent, 255));
+        else
+            k1_zaokraglony(o, (float)x, (float)y, TRYB_W, TRYB_H, 8, k1_kolor(hover_tryb == nr ? m->najechanie : m->pole, 255));
+        if (!wybrany)
+            k1_obrys(o, (float)x, (float)y, TRYB_W, TRYB_H, 8, 1.0f, k1_kolor(m->tekst, 24));
+        snprintf(buf, sizeof buf, "%d × %d", (int)apl.k.tryby[nr].szer, (int)apl.k.tryby[nr].wys);
+        k1_tekst(o, wybrany ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, x + (TRYB_W - k1_tekst_szer(wybrany ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, buf)) / 2,
+                 y + 21, buf, k1_kolor(wybrany ? m->na_akcencie : m->tekst, 255), 0);
+    }
+    if (apl.k.n_trybow <= 1) {
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + TRYB_H + 28, "Karta graficzna podaje tylko ten jeden tryb (obraz z firmware).",
+                 k1_kolor(m->tekst2, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + TRYB_H + 48, "W VirtualBoxie wybierz kartę VMSVGA, aby mieć więcej rozdzielczości.",
+                 k1_kolor(m->tekst3, 255), 0);
+    } else if (apl.k.zalecany > 0) {
+        snprintf(buf, sizeof buf, "Zalecana: %d × %d. Wybór obowiązuje do wyłączenia komputera.", (int)apl.k.tryby[apl.k.zalecany].szer,
+                 (int)apl.k.tryby[apl.k.zalecany].wys);
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, apl.wys - 24, buf, k1_kolor(m->tekst3, 255), 0);
+    }
+}
+
 static void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul, const char *opis)
 {
     k1_tekst(o, K1_CZ_TYTUL, TRESC_X, K1_OKNO_TYTUL + 40, tytul, k1_kolor(m->tekst, 255), 0);
@@ -133,6 +188,10 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         naglowek(o, m, "Wygląd", "Motyw okien i paneli, tapeta pulpitu");
         k1_segment(o, m, TRESC_X, seg_y(), SEG_W, SEG_H, motywy, 2, apl.k.ustawienia[K1_UST_MOTYW], hover_seg);
         karty(o, m);
+        break;
+    case S_EKRAN:
+        naglowek(o, m, "Ekran", "Rozdzielczość obrazu");
+        tryby(o, m);
         break;
     case S_MYSZ:
         naglowek(o, m, "Mysz", "Prędkość wskaźnika");
@@ -168,6 +227,21 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     }
 }
 
+/* The tests click the mode buttons by this line. */
+static void loguj_tryby(void)
+{
+    char buf[400];
+    size_t n = 0;
+    int nr;
+    if (tryby_zalogowane++)
+        return;
+    for (nr = 1; nr <= apl.k.n_trybow && n < sizeof buf - 16; nr++)
+        n += (size_t)snprintf(buf + n, sizeof buf - n, " %dx%d", (int)apl.k.tryby[nr].szer, (int)apl.k.tryby[nr].wys);
+    buf[n] = '\0';
+    k1_log(TAG, "tryby ekranu:%s (przyciski od %d,%d, %d w kolumnie, co %d i %d)", buf, TRESC_X + TRYB_W / 2,
+           seg_y() + TRYB_H / 2, TRYBY_W_KOLUMNIE, TRYB_W + TRYB_ODST_X, TRYB_H + TRYB_ODST_Y);
+}
+
 static int segmenty(int32_t *w)
 {
     *w = sekcja == S_MYSZ ? SEG_W + 60 : (sekcja == S_CZAS ? SEG_W + 40 : SEG_W);
@@ -178,13 +252,15 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
 {
     int32_t w;
     int n = segmenty(&w), nav = -1, seg, karta = sekcja == S_WYGLAD && rodzaj != K1_WSK_WYJSCIE ? karta_pod(x, y) : -1;
+    int tryb = sekcja == S_EKRAN && rodzaj != K1_WSK_WYJSCIE ? tryb_pod(x, y) : -1;
     if (rodzaj != K1_WSK_WYJSCIE && x >= 8 && x < BOK - 8 && y >= NAV_Y && y < NAV_Y + S_LICZBA * NAV_WIERSZ)
         nav = (y - NAV_Y) / NAV_WIERSZ;
     seg = rodzaj == K1_WSK_WYJSCIE ? -1 : k1_segment_trafienie(TRESC_X, seg_y(), w, SEG_H, n, x, y);
-    if (nav != hover_nav || seg != hover_seg || karta != hover_karta) {
+    if (nav != hover_nav || seg != hover_seg || karta != hover_karta || tryb != hover_tryb) {
         hover_nav = nav;
         hover_seg = seg;
         hover_karta = karta;
+        hover_tryb = tryb;
         k1_apl_odswiez(&apl);
     }
     if (rodzaj != K1_WSK_PUSZCZENIE || przycisk != K1_PRZYCISK_LEWY)
@@ -192,6 +268,11 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     if (nav >= 0) {
         sekcja = nav;
         k1_apl_odswiez(&apl);
+        if (sekcja == S_EKRAN)
+            loguj_tryby();
+    } else if (tryb >= 0) {
+        k1_log(TAG, "zmiana ustawienia %d → %d", K1_UST_ROZDZIELCZOSC, tryb);
+        k1_wyslij(&apl.k, k1_komunikat_nowy(K1_KOM_USTAW, 0, K1_UST_ROZDZIELCZOSC, tryb, 0, 0, 0));
     } else if (karta >= 0) {
         k1_log(TAG, "zmiana ustawienia %d → %d", K1_UST_TAPETA, karta);
         k1_wyslij(&apl.k, k1_komunikat_nowy(K1_KOM_USTAW, 0, K1_UST_TAPETA, karta, 0, 0, 0));

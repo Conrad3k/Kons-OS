@@ -52,6 +52,8 @@ static int ustawienie(int32_t klucz, int32_t wartosc)
         return w(wartosc, 1, 3);
     case K1_UST_TAPETA:
         return w(wartosc, 0, 3);
+    case K1_UST_ROZDZIELCZOSC:
+        return w(wartosc, 1, K1_TRYBY_MAKS);
     default:
         return 0;
     }
@@ -117,6 +119,10 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
                w(k->b, 1, K1_OKNO_STAN_MAKS) && zera(k, 2);
     case K1_KOM_USTAWIENIE:
         return kier == K1_KIER_OD_EKRANU && k->obiekt == 0 && ustawienie(k->a, k->b) && zera(k, 2);
+    case K1_KOM_TRYB:
+        return kier == K1_KIER_OD_EKRANU && k->obiekt >= 1 && k->obiekt <= K1_TRYBY_MAKS &&
+               w(k->a, K1_TRYB_MIN_SZER, K1_POW_MAKS_BOK) && w(k->b, K1_TRYB_MIN_WYS, K1_POW_MAKS_BOK) &&
+               w(k->c, 0, 1000) && w(k->d, 0, 1) && k->e == 0;
 
     case K1_KOM_URUCHOM:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_APL_MAKS) && zera(k, 1);
@@ -131,6 +137,12 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, -1, 255) && zera(k, 1);
     case K1_KOM_TEST_GNIAZDO:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && zera(k, 0);
+    case K1_KOM_ZASOBY_SYSTEM:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, 1000) && w(k->b, 0, K1_PAMIEC_MAKS_MIB) &&
+               w(k->c, 1, K1_PAMIEC_MAKS_MIB) && k->b <= k->c && w(k->d, 1, 4096) && k->e >= 0;
+    case K1_KOM_ZASOBY_USLUGA:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt >= 1 && k->obiekt <= K1_PROFIL_MAKS && w(k->a, 0, 1000) &&
+               k->b >= 0 && w(k->c, 0, 1) && zera(k, 3);
     default:
         return 0;
     }

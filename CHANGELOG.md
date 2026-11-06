@@ -3,6 +3,35 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.5.0] — 2026-11-06
+
+Etap **M4.1 — porządki i audyt** (ADR 0011, ADR 0012).
+
+### Dodane
+- Aplikacja **Zasoby**: procesor i pamięć całego systemu (liczby i wykresy z ostatniej minuty) oraz
+  zużycie każdej usługi i aplikacji. Dane podaje nadzorca (statystyki cgroup) przez kanał, do którego
+  aplikacja nie może pisać.
+- **Ustawienia → Ekran**: wybór rozdzielczości z listy, którą podaje karta graficzna; zmiana od razu,
+  pulpit układa się od nowa.
+- Sterownik karty graficznej **VMware SVGA** (VirtualBox „VMSVGA”, VMware) — w maszynach wirtualnych
+  więcej rozdzielczości niż 1024×768 z firmware.
+- Ikony: Zasoby (puls), Ekran (monitor).
+
+### Naprawione
+- Pod dolnym paskiem i pod menu dźwięku „wyjeżdżała” jaśniejsza podstawa: cień panelu miał w środku
+  dziurę przesuniętą 4 px w dół. Cień jest teraz liczony tylko poza panelem.
+- Bezpieczeństwo (przegląd M4.1): nowe okno innej aplikacji nie przejmuje już klawiatury (ochrona
+  przed „kradzieżą fokusu”); limit pamięci okien jednego klienta; ekran przycina obszar odświeżania
+  do własnego okna klienta; log usług oczyszczany także ze znaków sterujących C1 i błędnego UTF-8;
+  klatka zamyka wszystkie zbędne deskryptory (`close_range`); katalog notatek bez podążania za
+  dowiązaniami.
+
+### Zmienione
+- Kod: kompozytor podzielony na `main.c`, `scena.c`, `okna.c`, `wskaznik.c`, `drm.c`; program
+  testowy na pliki tematyczne (`testy/system/`).
+- Testy: zmiana rozdzielczości i Zasoby w `test-m4.sh`; w systemie — ochrona fokusu, limit pamięci
+  okien, klatka i próba aplikacji Zasoby; na hoście — `test_log`, nowe komunikaty w `test_komunikat`.
+
 ## [0.4.2] — 2026-11-06
 
 ### Zmienione

@@ -12,6 +12,7 @@
 #define K1_UID_ZEGAR 200
 #define K1_UID_NOTATKI 201
 #define K1_UID_USTAWIENIA 202
+#define K1_UID_ZASOBY 203
 
 /* Roles of clients of the screen process (who is on the other end of a channel). */
 enum k1_rola {
@@ -21,13 +22,14 @@ enum k1_rola {
 };
 #define K1_ROLA_MAKS 3
 
-/* Native applications (M4). Names and icons are known to the shell; only the number travels. */
+/* Native applications (M4; Zasoby: M4.1). Names and icons are known to the shell; only the number travels. */
 enum k1_aplikacja {
     K1_APL_ZEGAR = 1,
     K1_APL_NOTATKI = 2,
     K1_APL_USTAWIENIA = 3,
+    K1_APL_ZASOBY = 4,
 };
-#define K1_APL_MAKS 3
+#define K1_APL_MAKS 4
 
 /* Sandbox profiles the supervisor knows (also used for test probes in the test image). */
 enum k1_profil_nr {
@@ -37,8 +39,9 @@ enum k1_profil_nr {
     K1_PROFIL_ZEGAR = 4,
     K1_PROFIL_NOTATKI = 5,
     K1_PROFIL_USTAWIENIA = 6,
+    K1_PROFIL_ZASOBY = 7,
 };
-#define K1_PROFIL_MAKS 6
+#define K1_PROFIL_MAKS 7
 
 /* The only place an application may write (M4; Blob Vault replaces it in M5). */
 #define K1_KATALOG_NOTATEK "/dane_uzytkownika/notatki"

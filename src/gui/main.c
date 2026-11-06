@@ -70,7 +70,8 @@ static const struct {
 } aplikacje[K1_APL_MAKS + 1] = {
     [K1_APL_ZEGAR] = { "Zegar", "Godzina i data", K1_IK_ZEGAR },
     [K1_APL_NOTATKI] = { "Notatki", "Zapisywane w tym komputerze", K1_IK_NOTATKI },
-    [K1_APL_USTAWIENIA] = { "Ustawienia", "Wygląd, mysz, data, informacje", K1_IK_USTAWIENIA },
+    [K1_APL_USTAWIENIA] = { "Ustawienia", "Wygląd, ekran, mysz, data, informacje", K1_IK_USTAWIENIA },
+    [K1_APL_ZASOBY] = { "Zasoby", "Procesor i pamięć — co pracuje", K1_IK_ZASOBY },
 };
 
 static const struct k1_motyw *motyw(void)
@@ -176,7 +177,7 @@ static void tlo_panelu(struct k1_obraz *o, float w, float h)
 {
     const struct k1_motyw *m = motyw();
     k1_wyczysc(o, 0);
-    k1_cien(o, MARG, MARG + 4, w, h, 16, 16, 60);
+    k1_cien(o, MARG, MARG, w, h, 16, 4, 16, 60);
     k1_zaokraglony(o, MARG, MARG, w, h, 16, k1_kolor(m->tlo, m->panel_alfa));
     k1_obrys(o, MARG, MARG, w, h, 16, 1.0f, k1_kolor(m->tekst, 22));
 }
@@ -426,31 +427,48 @@ static void wskaznik(const struct k1_komunikat *m)
     }
 }
 
-int main(void)
+/* Positions of the panels for the current screen size. The first time it creates the surfaces;
+ * after a change of the screen mode it recreates the top bar (full width) and moves the rest. */
+static void uloz(int pierwszy)
 {
-    struct k1_komunikat m;
-    int32_t W, H, sek = -1;
-
-    k1_klatka_w_usludze(TAG);
-    k1_klient_start(&k, TAG);
-    W = k.szer_ekranu;
-    H = k.wys_ekranu;
+    int32_t W = k.szer_ekranu, H = k.wys_ekranu;
     dok_x = (W - DOK_SZER) / 2 - MARG;
     dok_y = H - 8 - DOK_WYS - MARG;
     menu_x = (W - MENU_SZER) / 2 - MARG;
     menu_y = dok_y + MARG - 8 - MENU_WYS - MARG;
     dzw_x = W - 16 - DZW_SZER - MARG;
     dzw_y = GORA_WYS + 4 - MARG;
-    k1_pow_utworz(&k, &gora, P_GORA, W, GORA_WYS, K1_POW_PANEL, 0, 0);
-    k1_pow_utworz(&k, &dok, P_DOK, DOK_SZER + 2 * MARG, DOK_WYS + 2 * MARG, K1_POW_PANEL, dok_x, dok_y);
-    k1_pow_utworz(&k, &menu, P_MENU, MENU_SZER + 2 * MARG, MENU_WYS + 2 * MARG, K1_POW_PANEL, menu_x, menu_y);
-    k1_pow_utworz(&k, &dzwiek, P_DZWIEK, DZW_SZER + 2 * MARG, DZW_WYS + 2 * MARG, K1_POW_PANEL, dzw_x, dzw_y);
-    k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_MENU, 0, 0, 0, 0, 0));
-    k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_DZWIEK, 0, 0, 0, 0, 0));
+    if (pierwszy) {
+        k1_pow_utworz(&k, &gora, P_GORA, W, GORA_WYS, K1_POW_PANEL, 0, 0);
+        k1_pow_utworz(&k, &dok, P_DOK, DOK_SZER + 2 * MARG, DOK_WYS + 2 * MARG, K1_POW_PANEL, dok_x, dok_y);
+        k1_pow_utworz(&k, &menu, P_MENU, MENU_SZER + 2 * MARG, MENU_WYS + 2 * MARG, K1_POW_PANEL, menu_x, menu_y);
+        k1_pow_utworz(&k, &dzwiek, P_DZWIEK, DZW_SZER + 2 * MARG, DZW_WYS + 2 * MARG, K1_POW_PANEL, dzw_x, dzw_y);
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_MENU, 0, 0, 0, 0, 0));
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_DZWIEK, 0, 0, 0, 0, 0));
+    } else {
+        pokaz_menu(0);
+        pokaz_dzwiek(0);
+        k1_pow_usun(&k, &gora);
+        k1_pow_utworz(&k, &gora, P_GORA, W, GORA_WYS, K1_POW_PANEL, 0, 0);
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_DOK, dok_x, dok_y, 0, 0, 0));
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_MENU, menu_x, menu_y, 0, 0, 0));
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_DZWIEK, dzw_x, dzw_y, 0, 0, 0));
+        rysuj_wszystko();
+    }
     odswiez();
     k1_log(TAG, "pulpit gotowy: Start %d,%d, aplikacje od %d,%d co %d, dźwięk %d,16", dok_x + MARG + element_x(0) + EL / 2,
            dok_y + MARG + DOK_PAD + EL / 2, dok_x + MARG + element_x(1) + EL / 2, dok_y + MARG + DOK_PAD + EL / 2, EL + ODST,
            glosnik_x() + 14);
+}
+
+int main(void)
+{
+    struct k1_komunikat m;
+    int32_t sek = -1;
+
+    k1_klatka_w_usludze(TAG);
+    k1_klient_start(&k, TAG);
+    uloz(1);
 
     for (;;) {
         struct pollfd p = { k.fd, POLLIN, 0 };
@@ -475,6 +493,12 @@ int main(void)
                 break;
             case K1_KOM_USTAWIENIE:
                 rysuj_wszystko();
+                break;
+            case K1_KOM_WITAJ:
+                if (k.nowy_rozmiar) {
+                    k.nowy_rozmiar = 0;
+                    uloz(0);
+                }
                 break;
             default:
                 break;

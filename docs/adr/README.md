@@ -39,3 +39,4 @@ Krótko, dlaczego nie.
 | [0009](0009-czcionki-i-tekst.md) | Czcionki i rysowanie tekstu | Przyjęty |
 | [0010](0010-obraz-iso-do-maszyn-wirtualnych.md) | Obraz ISO do maszyn wirtualnych i grafika z firmware | Przyjęty (tymczasowy do M10) |
 | [0011](0011-kolejnosc-etapow-po-m4.md) | Kolejność etapów po M4 | Przyjęty |
+| [0012](0012-przeglad-m4-1-tryby-ekranu-zasoby.md) | M4.1: przegląd bezpieczeństwa, tryby ekranu, aplikacja Zasoby | Przyjęty |

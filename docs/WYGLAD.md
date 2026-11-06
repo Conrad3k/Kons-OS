@@ -51,13 +51,25 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   IBM Plex Sans Medium 13: z lewej nazwa aktywnej aplikacji (albo „Kons K1”), z prawej ikona
   głośnika i data z godziną („pt. 6 lis   19:42”; sekundy — w Ustawieniach).
 - **Dolny pasek** (unosi się 8 px nad krawędzią, zaokrąglenie 16, tło okien 94%, włoskowaty obrys,
-  miękki cień): Start (znak K1 „Warstwy”), separator, ikony aplikacji 24 px w polach 44 px. Uruchomiona —
+  miękki cień rzucany 4 px w dół, tylko poza panelem — od 0.5.0 bez „podstawy” pod paskiem): Start (znak K1 „Warstwy”), separator, ikony aplikacji 24 px w polach 44 px. Uruchomiona —
   kropka pod ikoną, aktywna — kreska 16×3 w kolorze akcentu.
 - **Menu Start** (360 px): znak + „Kons K1” (Plex Serif 24) i wersja; wiersze aplikacji 56 px
   (ikona, nazwa, opis); stopka: „Uruchom ponownie”, „Wyłącz”.
 - **Okna:** zaokrąglenie 12, pasek tytułu 44 px w kolorze okna (tytuł Plex Sans Medium 15,
   przyciski minimalizuj i zamknij po prawej), włoskowaty obrys, miękki cień rzucany przez ekran
   (mocniejszy dla aktywnego okna).
+
+## Zasoby (M4.1)
+Okno 560×520: „Procesor” i „Pamięć” — nazwa, liczba po prawej (Plex Sans Medium 15), pod spodem
+wykres z ostatniej minuty na karcie (`pole`, zaokrąglenie 8, włoskowaty obrys): jedna seria w kolorze
+akcentu (linia 2 px, delikatne wypełnienie pod nią), linia pomocnicza na 50%, najnowsza próbka przy
+prawej krawędzi. Niżej tabela usług (procesor, pamięć) tekstem drugorzędnym. Bez drugiej osi
+i bez kolorów spoza motywu.
+
+## Ustawienia → Ekran (M4.1)
+Rozdzielczości jako przyciski w trzech kolumnach (136×32): wybrana — wypełnienie akcentem, pozostałe
+— `pole` z obrysem; pod listą „Zalecana: …” (tryb preferowany przez monitor/kartę). Przy jednym trybie (obraz z firmware) — wyjaśnienie
+i wskazówka dla VirtualBoxa.
 
 ## Motywy okien
 
@@ -77,7 +89,7 @@ zegara). Hierarchia rozmiarem i kolorem, nie grubością. ADR 0009.
 ## Ikony
 Liniowe, jedna grubość (1,6 przy 24 px), kolor roli tekstu, rysowane w kodzie (`k1_ikona`):
 zegar, notatki, ustawienia (suwaki), głośnik, zasilanie, restart, zamknij, minimalizuj, kłódka,
-informacja, mysz, wygląd (obrazek).
+informacja, mysz, wygląd (obrazek), zasoby (ramka z pulsem), ekran (monitor).
 
 ## Kursor
 Klasyczna strzałka: kremowe wypełnienie, ciemny obrys, lekki cień; przy wciśniętym przycisku —

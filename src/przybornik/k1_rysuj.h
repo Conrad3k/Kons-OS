@@ -23,8 +23,9 @@ void k1_obrys(struct k1_obraz *o, float x, float y, float w, float h, float r, f
 void k1_kolo(struct k1_obraz *o, float cx, float cy, float r, uint32_t kolor);
 void k1_okrag(struct k1_obraz *o, float cx, float cy, float r, float g, uint32_t kolor);
 void k1_kreska(struct k1_obraz *o, float x0, float y0, float x1, float y1, float g, uint32_t kolor);
-/* Soft shadow of a rounded rectangle, drawn outside it (for panels drawn by the shell). */
-void k1_cien(struct k1_obraz *o, float x, float y, float w, float h, float r, float rozmycie, uint32_t alfa);
+/* Soft shadow of a rounded rectangle cast `dy` pixels down, drawn only outside the rectangle itself
+ * (panels of the shell are translucent: the shadow must not show through them). */
+void k1_cien(struct k1_obraz *o, float x, float y, float w, float h, float r, float dy, float rozmycie, uint32_t alfa);
 
 /* Text (UTF-8; invalid sequences are drawn as '?'). `y` is the baseline. Returns the advance in px.
  * With max_szer > 0 the text is cut and ended with "…" so that it fits. */
@@ -51,6 +52,8 @@ enum k1_ikona {
     K1_IK_INFO,
     K1_IK_MYSZ,
     K1_IK_WYGLAD,
+    K1_IK_ZASOBY,
+    K1_IK_EKRAN,
 };
 void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozmiar, uint32_t kolor);
 

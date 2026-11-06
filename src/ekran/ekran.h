@@ -1,4 +1,5 @@
-/* K1 ekran — state shared by the compositor (main.c) and the KMS part (drm.c). */
+/* K1 ekran — state shared by the parts of the compositor: main.c (start, control channel, loop),
+ * scena.c (composing, output), okna.c (clients, surfaces), wskaznik.c (input), drm.c (KMS). */
 #ifndef K1_EKRAN_H
 #define K1_EKRAN_H
 
@@ -16,6 +17,13 @@
 #define MAKS_KLIENTOW 12
 #define MAKS_POW 48
 #define MAKS_PROST 16
+#define KROK_STRZALEK 20
+#define PASEK_GORNY 32    /* windows never go above the top bar */
+#define CIEN 28           /* shadow margin around windows */
+#define MAKS_BLEDOW 50    /* invalid messages before a client is disconnected */
+#define MAKS_OKIEN_KLIENTA 4
+#define MAKS_TRYBOW_LISTY 64 /* distinct sizes collected from the connector */
+#define CZAS_PIERWSZEGO_OKNA 10.0 /* s after connecting: the first window may take the focus */
 
 struct prost {
     int32_t x, y, w, h;
@@ -42,6 +50,8 @@ struct klient {
     int rola, apl;
     unsigned long odrzucone;
     int zalogowane;       /* rejection log lines written (rate limit) */
+    double od;            /* when it connected */
+    int mial_okno;        /* it has shown a window before (focus stealing protection) */
 };
 
 struct pow {
@@ -63,6 +73,10 @@ struct stan {
     int fd;
     uint32_t crtc, zlacze;
     struct drm_mode_modeinfo tryb;
+    struct drm_mode_modeinfo tryby[MAKS_TRYBOW_LISTY]; /* distinct modes, widest first; the first
+                                                        * K1_TRYBY_MAKS are offered */
+    int n_trybow, tryb_nr, tryb_zalecany; /* current and preferred, 1-based */
+    int nowy_tryb;          /* requested by Ustawienia, applied between frames (0: none) */
     struct bufor buf[2];
     int przedni, flip_w_toku, brak_flip;
     int32_t W, H;
@@ -83,10 +97,43 @@ struct stan {
     struct pow p[MAKS_POW];
 };
 
+extern struct stan s;
+
+/* scena.c */
+int przetnij(struct prost *a, const struct prost *b);
+void dodaj(struct obszar *o, struct prost r);
+void uszkodz(int32_t x, int32_t y, int32_t w, int32_t h);
+void uszkodz_pow(const struct pow *p);
+int widac(const struct pow *p);
+int kolejnosc(int *idx); /* visible surfaces bottom to top; returns how many */
+void zapisz_klatke(struct bufor *b);
+void pokaz(void);
+void odbierz_drm(void);
+
+/* okna.c */
+void wyslij(int kl, struct k1_komunikat m);
+int powloka(void);
+const char *nazwa_roli(const struct klient *k);
+void odrzuc(int kl, const char *powod);
+void zglos_okno(const struct pow *p, int stan);
+void aktywuj(int i);
+void rozlacz(int kl);
+int znajdz_okno(uint32_t okno);
+int odbierz_klienta(int kl); /* 0 when the channel is closed */
+void ustawienie(int k, int32_t v);
+
+/* wskaznik.c */
+void ruch_wskaznika(void);
+struct k1_zdarzenie;
+void zastosuj(const struct k1_zdarzenie *z);
+
 /* drm.c */
 int drm(int fd, unsigned long req, void *arg);
 double teraz(void);
-void wybierz_wyjscie(struct stan *s);
-void utworz_bufor(struct stan *s, struct bufor *b);
+void wybierz_wyjscie(void);
+int utworz_bufor(struct bufor *b, uint32_t w, uint32_t h);
+void usun_bufor(struct bufor *b);
+int ustaw_crtc(uint32_t fb, const struct drm_mode_modeinfo *tryb);
+int zmien_tryb(int nr);
 
 #endif

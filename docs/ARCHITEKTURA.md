@@ -60,7 +60,7 @@ IBM Plex (fonts-ibm-plex) ──► narzedzia/czcionki.c (FreeType, host) ──
 src/ ──► musl-gcc (static-pie, flagi SPEC §11) ──► k1-initramfs, init, nadzorca, wejscie, ekran, gui,
                                                       zegar, notatki, ustawienia, k1-test-systemu ──► sprawdzenie ELF
                      initramfs.cpio  ◄── /init (k1-initramfs)
-                     rdzen.squashfs  ◄── init, system/{nadzorca,wejscie,ekran,gui}, aplikacje/{zegar,notatki,ustawienia},
+                     rdzen.squashfs  ◄── init, system/{nadzorca,wejscie,ekran,gui}, aplikacje/{zegar,notatki,ustawienia,zasoby},
                                          katalogi jadro/{dev,proc,sys}
                      rdzen-test.squashfs ◄── + system/test-systemu (+ plik ze „#!” do testu negatywnego)
                      k1-<wersja>.iso ◄── GRUB (UEFI + BIOS) + bzImage + initramfs.cpio + rdzen.cpio (/rdzen.squashfs)
@@ -88,7 +88,8 @@ QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs)
           │            kompozytor: tapeta + okna + panele (memfd z pieczęciami) + cienie + kursor
           ├─ wejscie (uid 100) fd 3: kanał SEQPACKET do ekranu (SO_PASSCRED), fd 4…: urządzenia event*
           ├─ gui     (uid 102) fd 3: kanał do ekranu (rola: powłoka), fd 4: prośby do nadzorcy (URUCHOM, WYLACZ)
-          └─ na prośbę gui: zegar (200), notatki (201, Landlock: /dane_uzytkownika/notatki), ustawienia (202)
+          └─ na prośbę gui: zegar (200), notatki (201, Landlock: /dane_uzytkownika/notatki), ustawienia (202),
+             zasoby (203; fd 4: dane od nadzorcy — cgroup cpu/memory, jednokierunkowo)
           restart po awarii (0,2/1/2/4/4 s, maks. 5 na minutę); koniec ekranu → restart klientów
           [obraz testowy: test-systemu (root, fd 3: kanał testowy) → po jego końcu nadzorca kończy się]
 ```

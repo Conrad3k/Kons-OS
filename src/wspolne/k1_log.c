@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,6 +24,53 @@ static void write_all(int fd, const char *buf, size_t len)
         buf += (size_t)n;
         len -= (size_t)n;
     }
+}
+
+/* Length of the valid UTF-8 sequence at t[0..n) that is not a control character, or 0. */
+static size_t znak_utf8(const unsigned char *t, size_t n)
+{
+    size_t dl, i;
+    uint32_t kod;
+    if (t[0] >= 0x20 && t[0] < 0x7f)
+        return 1;
+    if (t[0] >= 0xc2 && t[0] <= 0xdf) {
+        dl = 2;
+        kod = t[0] & 0x1fu;
+    } else if (t[0] >= 0xe0 && t[0] <= 0xef) {
+        dl = 3;
+        kod = t[0] & 0x0fu;
+    } else if (t[0] >= 0xf0 && t[0] <= 0xf4) {
+        dl = 4;
+        kod = t[0] & 0x07u;
+    } else {
+        return 0;
+    }
+    if (n < dl)
+        return 0;
+    for (i = 1; i < dl; i++) {
+        if ((t[i] & 0xc0) != 0x80)
+            return 0;
+        kod = (kod << 6) | (t[i] & 0x3fu);
+    }
+    if ((dl == 3 && kod < 0x800) || (dl == 4 && kod < 0x10000) || kod > 0x10ffff || (kod >= 0xd800 && kod <= 0xdfff) ||
+        (kod >= 0x80 && kod <= 0x9f))
+        return 0; /* overlong, out of range, surrogate, C1 control */
+    return dl;
+}
+
+size_t k1_log_oczysc(char *tekst, size_t dlugosc)
+{
+    size_t i = 0, zmienione = 0;
+    while (i < dlugosc) {
+        size_t dl = znak_utf8((const unsigned char *)tekst + i, dlugosc - i);
+        if (dl == 0) {
+            tekst[i++] = '?';
+            zmienione++;
+        } else {
+            i += dl;
+        }
+    }
+    return zmienione;
 }
 
 static void k1_vlog(const char *tag, const char *prefix, const char *fmt, va_list ap)

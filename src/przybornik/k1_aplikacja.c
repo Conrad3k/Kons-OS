@@ -84,6 +84,8 @@ void k1_apl_uruchom(struct k1_apl *a)
                 k1_apl_odswiez(a);
                 break;
             case K1_KOM_USTAWIENIE:
+            case K1_KOM_WITAJ:
+            case K1_KOM_TRYB:
                 k1_apl_odswiez(a);
                 break;
             default:

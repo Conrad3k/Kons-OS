@@ -111,20 +111,24 @@ void k1_obrys(struct k1_obraz *o, float x, float y, float w, float h, float r, f
     box(o, x, y, w, h, r, g, kolor);
 }
 
-void k1_cien(struct k1_obraz *o, float x, float y, float w, float h, float r, float rozmycie, uint32_t alfa)
+void k1_cien(struct k1_obraz *o, float x, float y, float w, float h, float r, float dy, float rozmycie, uint32_t alfa)
 {
     int32_t x0, y0, x1, y1, i, j;
     float cx = x + w / 2, cy = y + h / 2;
-    if (!ramka(o, x - rozmycie, y - rozmycie, x + w + rozmycie, y + h + rozmycie, &x0, &y0, &x1, &y1))
+    r = ogr(r, 0.0f, fminf(w, h) / 2);
+    if (w <= 0 || h <= 0 ||
+        !ramka(o, x - rozmycie, y + dy - rozmycie, x + w + rozmycie, y + dy + h + rozmycie, &x0, &y0, &x1, &y1))
         return;
     for (j = y0; j < y1; j++) {
         uint32_t *row = o->px + (size_t)j * o->krok;
         for (i = x0; i < x1; i++) {
-            float d = sd_box((float)i + 0.5f, (float)j + 0.5f, cx, cy, w / 2, h / 2, r);
-            float a;
-            if (d < 0)
-                continue;
-            a = (float)alfa * expf(-(d * d) / (0.25f * rozmycie * rozmycie));
+            float px = (float)i + 0.5f, py = (float)j + 0.5f;
+            float d = sd_box(px, py, cx, cy + dy, w / 2, h / 2, r);
+            /* Only outside the box itself: a translucent panel must not show its shadow through
+             * itself (and an offset shadow must stay solid under the box's edge). */
+            float poza = ogr(sd_box(px, py, cx, cy, w / 2, h / 2, r) + 0.5f, 0.0f, 1.0f);
+            float a = d <= 0 ? (float)alfa : (float)alfa * expf(-(d * d) / (0.25f * rozmycie * rozmycie));
+            a *= poza;
             if (a >= 1.0f)
                 row[i] = mieszaj(row[i], (uint32_t)a << 24, 256);
         }
@@ -347,6 +351,14 @@ static const struct prym ik_wyglad[] = { { P_PROST, 3.5f, 5, 17, 14, 2.5f }, { P
                                         { P_KRESKA, 10.5f, 11, 13, 14, 0 }, { P_KRESKA, 13, 14, 15, 12, 0 },
                                         { P_KRESKA, 15, 12, 17.5f, 16, 0 }, { P_KOLO, 15.5f, 8.5f, 1.3f, 0, 0 } };
 
+/* activity: a frame with a pulse line */
+static const struct prym ik_zasoby[] = { { P_PROST, 3.5f, 4.5f, 17, 15, 2.5f }, { P_KRESKA, 6.5f, 13, 9.5f, 13, 0 },
+                                        { P_KRESKA, 9.5f, 13, 11.5f, 8.5f, 0 }, { P_KRESKA, 11.5f, 8.5f, 13.5f, 15.5f, 0 },
+                                        { P_KRESKA, 13.5f, 15.5f, 15, 12, 0 },  { P_KRESKA, 15, 12, 17.5f, 12, 0 } };
+/* display: a monitor on a stand */
+static const struct prym ik_ekran[] = { { P_PROST, 3.5f, 4.5f, 17, 12, 2 }, { P_KRESKA, 12, 16.5f, 12, 19.5f, 0 },
+                                       { P_KRESKA, 8, 19.5f, 16, 19.5f, 0 } };
+
 static float sd_prym(const struct prym *p, float x, float y, float g)
 {
     switch (p->typ) {
@@ -392,6 +404,7 @@ void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozm
         [K1_IK_ZAMKNIJ] = { ik_zamknij, 2 },   [K1_IK_MINIMALIZUJ] = { ik_minimalizuj, 1 },
         [K1_IK_KLODKA] = { ik_klodka, 4 },     [K1_IK_INFO] = { ik_info, 3 },
         [K1_IK_MYSZ] = { ik_mysz, 2 },         [K1_IK_WYGLAD] = { ik_wyglad, 6 },
+        [K1_IK_ZASOBY] = { ik_zasoby, 6 },     [K1_IK_EKRAN] = { ik_ekran, 3 },
     };
     float s = rozmiar / 24.0f, g = 1.6f;
     int32_t x0, y0, x1, y1, i, j;

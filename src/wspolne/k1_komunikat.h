@@ -23,7 +23,7 @@ enum k1_kanal_kierunek {
     K1_KIER_DO_EKRANU = 2,   /* client (gui, application) → ekran */
     K1_KIER_OD_EKRANU = 3,   /* ekran → client */
     K1_KIER_DO_NADZORCY = 4, /* gui / test program → nadzorca */
-    K1_KIER_OD_NADZORCY = 5, /* nadzorca → test program */
+    K1_KIER_OD_NADZORCY = 5, /* nadzorca → test program, nadzorca → Zasoby (one way) */
 };
 
 enum k1_komunikat_typ {
@@ -50,6 +50,8 @@ enum k1_komunikat_typ {
     K1_KOM_RAMKA = 34,      /* obiekt=surface: the last commit is on screen, the other half may be drawn */
     K1_KOM_OKNO = 35,       /* shell only: obiekt=window id, a=aplikacja, b=K1_OKNO_* state */
     K1_KOM_USTAWIENIE = 36, /* obiekt=0, a=key, b=value (broadcast to all clients) */
+    K1_KOM_TRYB = 37,       /* to Ustawienia: obiekt=mode 1..K1_TRYBY_MAKS, a,b = width,height, c=Hz, d=1 preferred */
+    /* WITAJ is sent again when the screen size changes (K1_UST_ROZDZIELCZOSC): clients lay out anew. */
 
     /* gui / test → nadzorca */
     K1_KOM_URUCHOM = 50,      /* gui: a=aplikacja */
@@ -60,6 +62,10 @@ enum k1_komunikat_typ {
     /* nadzorca → test */
     K1_KOM_TEST_WYNIK = 60,   /* a=result (exit code, 128+signal, or -1 on error) */
     K1_KOM_TEST_GNIAZDO = 61, /* reply to TEST_POLACZ: + 1 fd (the client end of the new channel) */
+
+    /* nadzorca → Zasoby (once a second; the application never writes to this channel) */
+    K1_KOM_ZASOBY_SYSTEM = 62, /* obiekt=0, a=CPU ‰ (all CPUs), b,c = memory used,total MiB, d=CPUs, e=uptime s */
+    K1_KOM_ZASOBY_USLUGA = 63, /* obiekt=K1_PROFIL_* of a service, a=CPU ‰ (of all CPUs), b=memory KiB, c=1 running */
 };
 
 /* Surfaces */
@@ -91,8 +97,15 @@ enum k1_ustawienie {
     K1_UST_SEKUNDY = 2, /* clock on the top bar with seconds: 0/1 */
     K1_UST_MYSZ = 3,    /* pointer speed 1..3 */
     K1_UST_TAPETA = 4,  /* wallpaper variant 0..3 (k1_grafika.h: K1_TAPETY) */
+    K1_UST_ROZDZIELCZOSC = 5, /* screen mode number 1..K1_TRYBY_MAKS (list: K1_KOM_TRYB) */
 };
-#define K1_UST_MAKS 4
+#define K1_UST_MAKS 5
+
+/* Screen modes offered in Ustawienia (distinct sizes, widest first). */
+#define K1_TRYBY_MAKS 18
+#define K1_TRYB_MIN_SZER 800
+#define K1_TRYB_MIN_WYS 600
+#define K1_PAMIEC_MAKS_MIB (1 << 24) /* 16 TiB: range check only */
 
 struct k1_komunikat {
     uint8_t wersja;   /* K1_KOMUNIKAT_WERSJA */

@@ -21,9 +21,13 @@
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <sys/signalfd.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
+#include <sys/sysinfo.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
@@ -37,6 +41,7 @@
 #define TAG "K1-NADZORCA"
 #define DEV "/rdzen/jadro/dev"
 #define TEST "/rdzen/system/test-systemu"
+#define K1_CGROUP "/rdzen/jadro/sys/fs/cgroup"
 #define MAKS_URZADZEN 16
 #define K1_RESTARTY_MAKS 5
 #define OKNO_RESTARTOW 60.0
@@ -67,6 +72,8 @@ static const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
                             32u << 20, 1, 32, 16u << 20 },
     [K1_PROFIL_USTAWIENIA] = { "ustawienia", K1_UID_USTAWIENIA, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32,
                                16u << 20 },
+    /* Zasoby: like the other apps; its numbers come from us on fd 4 (it reads no files). */
+    [K1_PROFIL_ZASOBY] = { "zasoby", K1_UID_ZASOBY, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32, 16u << 20 },
 };
 
 /* ---- services ---- */
@@ -105,6 +112,8 @@ static struct usluga uslugi[] = {
            K1_APL_NOTATKI, 0),
     USLUGA("ustawienia", "/rdzen/aplikacje/ustawienia", "K1-USTAWIENIA", K1_PROFIL_USTAWIENIA, R_KLIENT,
            K1_ROLA_APLIKACJA, K1_APL_USTAWIENIA, 0),
+    USLUGA("zasoby", "/rdzen/aplikacje/zasoby", "K1-ZASOBY", K1_PROFIL_ZASOBY, R_KLIENT, K1_ROLA_APLIKACJA,
+           K1_APL_ZASOBY, 0),
 };
 #define PIERWSZA_APLIKACJA 3
 #define N_USLUG N(uslugi)
@@ -116,6 +125,7 @@ static int sterowanie = -1;  /* our end of ekran's control channel */
 static int zero = -1;        /* /dev/null for fds 0 and 1 of services */
 static int test_kanal = -1;  /* our end of the test channel (test image) */
 static int gui_kanal = -1;   /* our end of gui's request channel (gui's fd 4) */
+static int zasoby_kanal = -1; /* our end of the channel to Zasoby (its fd 4; we only write) */
 static pid_t test_pid;
 
 static double teraz(void)
@@ -135,7 +145,7 @@ static struct usluga *ekran(void)
 static void wypisz_linie(struct usluga *u)
 {
     char wyj[LOG_LINIA + 64];
-    size_t i, tl = strlen(u->tag);
+    size_t tl = strlen(u->tag);
     double t = teraz();
     int ma_tag;
 
@@ -148,11 +158,9 @@ static void wypisz_linie(struct usluga *u)
         return;
     }
     u->zetony -= 1.0;
-    for (i = 0; i < u->dl; i++) {
-        unsigned char c = (unsigned char)u->linia[i];
-        if (c < 0x20 || c == 0x7f)
-            u->linia[i] = '?'; /* no terminal control sequences on the console */
-    }
+    /* No terminal control sequences on the console (C0, DEL, C1, broken UTF-8). A line cut at
+     * LOG_LINIA may end inside a Polish letter: that byte becomes '?'. */
+    k1_log_oczysc(u->linia, u->dl);
     u->linia[u->dl] = '\0';
     /* The tag must be the service's own one followed by ':' — otherwise mark the line. */
     ma_tag = strncmp(u->linia, u->tag, tl) == 0 && u->linia[tl] == ':';
@@ -388,6 +396,20 @@ static void start(struct usluga *u)
         gui_kanal = para[0]; /* we check the sender (SO_PASSCRED) */
         fds[n++] = para[1];
     }
+    if (u->profil == K1_PROFIL_ZASOBY) {
+        int para[2];
+        if (k1_kanal_utworz(para) != 0) {
+            close(fds[0]);
+            return;
+        }
+        if (zasoby_kanal >= 0)
+            close(zasoby_kanal);
+        /* One way: the application checks that we (UID 0) are the sender; it cannot write back. */
+        zasoby_kanal = para[1];
+        if (shutdown(zasoby_kanal, SHUT_RD) != 0)
+            k1_log(TAG, "shutdown kanału Zasobów: %s", strerror(errno));
+        fds[n++] = para[0];
+    }
     if (uruchom(u, p, fds, n) > 0)
         k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
     for (i = 0; i < n; i++)
@@ -417,6 +439,10 @@ static void zakonczona(struct usluga *u, int status)
     opisz(u->nazwa, status);
     zamknij_log(u);
     u->pid = 0;
+    if (u->profil == K1_PROFIL_ZASOBY && zasoby_kanal >= 0) {
+        close(zasoby_kanal);
+        zasoby_kanal = -1;
+    }
     if (u->rodzaj == R_EKRAN) {
         if (sterowanie >= 0)
             close(sterowanie);
@@ -498,6 +524,102 @@ static void obsluz_gui(void)
         else
             wylacz(k.a);
     }
+}
+
+/* ---- resource usage for Zasoby (cgroup v2 statistics, sysinfo) ---- */
+
+/* Value of `klucz` ("usage_usec", "file", ...) in a cgroup key-value file, or of the single number
+ * in the file when klucz is NULL. -1 if missing. */
+static long long liczba_z_pliku(const char *sciezka, const char *klucz)
+{
+    char buf[4096];
+    ssize_t n;
+    int fd = open(sciezka, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    const char *p = buf;
+    size_t kl = klucz ? strlen(klucz) : 0;
+    if (fd < 0)
+        return -1;
+    n = read(fd, buf, sizeof buf - 1);
+    close(fd);
+    if (n <= 0)
+        return -1;
+    buf[n] = '\0';
+    while (klucz != NULL) {
+        if (strncmp(p, klucz, kl) == 0 && p[kl] == ' ') {
+            p += kl + 1;
+            break;
+        }
+        p = strchr(p, '\n');
+        if (p == NULL)
+            return -1;
+        p++;
+    }
+    if (*p < '0' || *p > '9')
+        return -1;
+    return strtoll(p, NULL, 10);
+}
+
+static long long cpu_usec(const char *grupa)
+{
+    char sciezka[128];
+    snprintf(sciezka, sizeof sciezka, K1_CGROUP "%s%s/cpu.stat", grupa[0] ? "/" : "", grupa);
+    return liczba_z_pliku(sciezka, "usage_usec");
+}
+
+static int32_t promile(long long delta_usec, double delta_s, long cpus)
+{
+    double v = (double)delta_usec / (delta_s * 1e6 * (double)cpus) * 1000.0;
+    return v < 0 ? 0 : (v > 1000 ? 1000 : (int32_t)(v + 0.5));
+}
+
+/* Once a second while Zasoby runs: the whole system, then every service. */
+static void raport_zasobow(void)
+{
+    static long long poprz_sys = -1, poprz[K1_PROFIL_MAKS + 1];
+    static double poprz_t;
+    double t = teraz(), dt = t - poprz_t;
+    long cpus = sysconf(_SC_NPROCESSORS_ONLN);
+    long long uz = cpu_usec(""), plik, shmem, uzyta;
+    struct sysinfo si;
+    size_t i;
+    struct k1_komunikat k;
+
+    if (cpus < 1 || cpus > 4096)
+        cpus = 1;
+    if (sysinfo(&si) != 0 || si.mem_unit == 0)
+        return;
+    plik = liczba_z_pliku(K1_CGROUP "/memory.stat", "file");
+    shmem = liczba_z_pliku(K1_CGROUP "/memory.stat", "shmem");
+    /* used = total - free - page cache that can be dropped (tmpfs data stays "used") */
+    uzyta = ((long long)si.totalram - (long long)si.freeram) * (long long)si.mem_unit;
+    if (plik >= 0 && shmem >= 0 && plik > shmem)
+        uzyta -= plik - shmem;
+    if (uzyta < 0)
+        uzyta = 0;
+    k = k1_komunikat_nowy(K1_KOM_ZASOBY_SYSTEM, 0, poprz_sys >= 0 && uz >= 0 && dt > 0.1 ? promile(uz - poprz_sys, dt, cpus) : 0,
+                          (int32_t)(uzyta >> 20), (int32_t)(((long long)si.totalram * si.mem_unit) >> 20), (int32_t)cpus,
+                          (int32_t)(si.uptime > INT32_MAX ? INT32_MAX : si.uptime));
+    if (k.b > k.c)
+        k.b = k.c;
+    if (k.c < 1)
+        k.c = 1;
+    k1_kanal_wyslij(zasoby_kanal, &k, sizeof k, -1);
+    for (i = 0; i < N_USLUG; i++) {
+        const struct k1_profil *p = &profile[uslugi[i].profil];
+        char sciezka[128];
+        long long u = cpu_usec(p->nazwa), pam;
+        int pr = uslugi[i].profil;
+        snprintf(sciezka, sizeof sciezka, K1_CGROUP "/%s/memory.current", p->nazwa);
+        pam = uslugi[i].pid > 0 ? liczba_z_pliku(sciezka, NULL) : 0;
+        k = k1_komunikat_nowy(K1_KOM_ZASOBY_USLUGA, (uint32_t)pr,
+                              uslugi[i].pid > 0 && poprz[pr] > 0 && u >= poprz[pr] && dt > 0.1 ? promile(u - poprz[pr], dt, cpus) : 0,
+                              (int32_t)(pam > 0 ? (pam >> 10 > INT32_MAX ? INT32_MAX : pam >> 10) : 0),
+                              uslugi[i].pid > 0 ? 1 : 0, 0, 0);
+        poprz[pr] = u;
+        k1_kanal_wyslij(zasoby_kanal, &k, sizeof k, -1);
+    }
+    poprz_sys = uz;
+    poprz_t = t;
 }
 
 /* ---- test channel (test image only) ---- */
@@ -590,6 +712,7 @@ int main(void)
     int sfd;
     size_t i;
     struct stat st;
+    double nastepny_raport = 0;
 
     sigemptyset(&maska);
     sigaddset(&maska, SIGCHLD);
@@ -606,10 +729,17 @@ int main(void)
     if (k1_klatka_cgroupy() != 0)
         k1_koniec(TAG, "cgroup: nie można włączyć kontrolerów memory i pids: %s", strerror(errno));
 
-    /* The notes directory belongs to Notatki (until M5: in RAM). */
-    if ((mkdir(K1_KATALOG_NOTATEK, 0700) != 0 && errno != EEXIST) ||
-        chown(K1_KATALOG_NOTATEK, K1_UID_NOTATKI, K1_UID_NOTATKI) != 0)
-        k1_log(TAG, "katalog notatek: %s", strerror(errno));
+    /* The notes directory belongs to Notatki (until M5: in RAM). Never follow a link: from M5 on
+     * this place survives a restart. */
+    {
+        int kat = -1;
+        if ((mkdir(K1_KATALOG_NOTATEK, 0700) != 0 && errno != EEXIST) ||
+            (kat = open(K1_KATALOG_NOTATEK, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)) < 0 ||
+            fchown(kat, K1_UID_NOTATKI, K1_UID_NOTATKI) != 0 || fchmod(kat, 0700) != 0)
+            k1_log(TAG, "katalog notatek: %s", strerror(errno));
+        if (kat >= 0)
+            close(kat);
+    }
     for (i = 0; i < PIERWSZA_APLIKACJA; i++)
         start(&uslugi[i]);
     if (stat(TEST, &st) == 0) {
@@ -644,6 +774,8 @@ int main(void)
         pfd[n].fd = proba.log;
         pfd[n].events = POLLIN;
         zrodla[n++] = &proba;
+        if (zasoby_kanal >= 0 && (najblizszy < 0 || nastepny_raport < najblizszy))
+            najblizszy = nastepny_raport;
         czas = najblizszy < 0 ? 1000 : (najblizszy <= t ? 0 : (int)((najblizszy - t) * 1000.0) + 1);
         if (poll(pfd, n, czas) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
@@ -694,5 +826,9 @@ int main(void)
         for (i = 0; i < N_USLUG; i++)
             if (uslugi[i].pid == 0 && !uslugi[i].wylaczona && uslugi[i].nastepny > 0 && uslugi[i].nastepny <= t)
                 start(&uslugi[i]);
+        if (zasoby_kanal >= 0 && t >= nastepny_raport) {
+            raport_zasobow();
+            nastepny_raport = t + 1.0;
+        }
     }
 }
