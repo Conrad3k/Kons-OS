@@ -9,5 +9,5 @@ PAKIETY="build-essential gcc-13-plugin-dev flex bison bc libelf-dev libssl-dev r
 $SUDO apt-get update -qq
 # shellcheck disable=SC2086
 # sudo resets the environment: pass DEBIAN_FRONTEND explicitly (no debconf prompts in CI).
-$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends $PAKIETY </dev/null >/dev/null
+$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends $PAKIETY </dev/null
 echo "[k1] narzędzia zainstalowane"

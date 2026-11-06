@@ -32,7 +32,7 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
   - KVM (szybsze testy, potrzebne w M11): komputer z Windowsem — na razie zostajemy przy emulacji
     w chmurze; wracamy do tematu przed M11 (runner na Twoim komputerze albo WSL2).
 
-[!] Pierwsze uruchomienie w maszynie wirtualnej: obraz k1-0.4.0.iso (Releases), instrukcja
+[!] Pierwsze uruchomienie w maszynie wirtualnej: obraz k1-0.4.1.iso (Releases), instrukcja
     w README („Uruchom w maszynie wirtualnej”). Napisz, co widać i co nie działa
     (Issues → „Feedback z testu” albo w czacie).
 [!] Ocena pulpitu i nowych tapet: co zmienić (kolory, rozmiary, pasek, okna)?

@@ -44,6 +44,7 @@ jobs:
           ls -l /dev/kvm || echo "brak /dev/kvm"
 
       - name: Zainstaluj narzędzia
+        timeout-minutes: 10
         run: scripts/przygotuj-srodowisko.sh
 
       - name: Zbuduj jądro, programy, obrazy i ISO
