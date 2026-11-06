@@ -53,6 +53,15 @@ jobs:
       - name: Testy (host + QEMU, także negatywne; M1–M4, start z ISO)
         run: K1_FUZZ_CZAS=30 scripts/testy.sh
 
+      - name: Pokaż logi testów (przy błędzie; artefakty mogą nie mieć miejsca)
+        if: failure()
+        run: |
+          for f in build/testy/m4-*.log build/testy/m2-*.log build/testy/testy-w-systemie.log; do
+            [ -f "$f" ] || continue
+            echo "===== $f (bez wierszy kursora, ostatnie 150)"
+            grep -av "K1-EKRAN: kursor" "$f" | tail -n 150
+          done
+
       - name: Oznacz wersję tagiem (jeśli tagu jeszcze nie ma)
         if: github.ref == 'refs/heads/main'
         run: |
