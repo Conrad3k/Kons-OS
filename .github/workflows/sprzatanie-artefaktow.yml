@@ -1,10 +1,14 @@
 name: Sprzątanie artefaktów
 
-# Uruchamiane ręcznie (Actions → „Sprzątanie artefaktów” → Run workflow).
+# Uruchamiane ręcznie (Actions → „Sprzątanie artefaktów” → Run workflow) albo przy zmianie tego pliku na main.
 # Usuwa artefakty starego Kons-OS (Debian, obrazy ISO) — zajmują limit miejsca konta,
 # przez co obrazy K1 nie dają się wysłać. Artefakty K1 (nazwy „k1-…”) zostają.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/sprzatanie-artefaktow.yml"
 
 jobs:
   sprzataj:
