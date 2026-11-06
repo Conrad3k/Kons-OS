@@ -1,7 +1,8 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.2.0 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura).
+Stan: wersja 0.3.0 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+M3 (klatki usług, restarty).
 Data: 2026-11-06. Plik aktualizujemy po każdym etapie.
 Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
 
@@ -13,15 +14,17 @@ Oznaczenia:
 
 1. TWOJE DECYZJE I DZIAŁANIA
 ----------------------------
-[!] Miejsce na artefakty GitHuba zajmują stare obrazy ISO Kons-OS — przez to obrazy K1 nie dają się
-    wysłać. Usuń je (Actions → stare runy „Zbuduj ISO Kons-OS” → Artifacts → kosz) albo poczekaj,
-    aż same wygasną (ok. 2 grudnia).
-[!] Ocena wyglądu z M2: tapeta, logo (tarcza z blankami i K1), kursor. Co zmienić?
-[!] Przed M4 — pulpit: bardziej jak Windows (pasek zadań na dole, menu Start) czy jak macOS
-    (pasek menu u góry + dock na dole)? Gdzie zegar? Jasny czy ciemny motyw okien?
-[!] Przed M4 — pierwsze aplikacje: zegar i notatki są w planie. Coś jeszcze na start?
-[!] Przed M5 — dostęp do danych: hasło przy starcie systemu? PIN? Co ma się dziać, gdy ktoś
-    zapomni hasła (dane zaszyfrowane = bez hasła nie do odzyskania)?
+Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
+  - Stare artefakty Kons-OS: „usuń je”. → Zrobione: workflow „Sprzątanie artefaktów” usunął je
+    przy scaleniu (Claude nie może sam klikać w Actions).
+  - Wygląd z M2 (tapeta, logo, kursor): „na razie jest okej”.
+  - Pulpit: główny pasek na dole, wyśrodkowany jak w Windows 11; na górze dźwięk, (w przyszłości)
+    bateria i zegar. Cały interfejs w minimalistyczno-ciepłym stylu Claude Code / Anthropic.
+  - Pierwsze aplikacje: zegar, notatki + Ustawienia z początkowymi ustawieniami.
+  - Hasło (M5): opcjonalne, włączane w Ustawieniach. Zapomniane hasło = trzeba założyć nowe konto
+    (dane zaszyfrowane starym hasłem przepadają).
+  - Przeglądarka (M8): osobne sesje — jeszcze do przemyślenia.
+
 [!] Kiedy pierwszy test na laptopie (pendrive)? Wymaga pracy z punktu 2 („prawdziwy sprzęt”).
     Przyda się model laptopa.
 [!] Przed M8 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)?
@@ -36,24 +39,23 @@ Oznaczenia:
       - dyski NVMe / SATA.
 [ ] Komunikat o błędzie startu widoczny na ekranie (dziś tylko na porcie szeregowym).
 [ ] Własny build biblioteki musl 1.2.5 z poprawkami bezpieczeństwa (dziś 1.2.4 z Ubuntu).
-[ ] Ochrona _FORTIFY_SOURCE dla programów K1 (decyzja w M3).
+[~] Ochrona _FORTIFY_SOURCE: decyzja z M3 — na razie nie (ADR 0007), wracamy przy własnym musl.
 [ ] Podłączanie klawiatury/myszy w trakcie pracy (hotplug) i polski układ klawiatury (przy M4).
-[ ] Restart usług po awarii (M3) — dziś awaria ekranu nie wyłącza systemu, ale ekran nie wraca.
 
 
 3. ETAPY
 --------
-M3  Trusted Core — NASTĘPNY
-    [ ] prawdziwy nadzorca: każda usługa z osobnym użytkownikiem (UID/GID) i minimum uprawnień
-    [ ] blokada podnoszenia uprawnień (PR_SET_NO_NEW_PRIVS)
-    [ ] seccomp: każda usługa może wołać tylko potrzebne funkcje jądra (biała lista)
-    [ ] Landlock: każda usługa widzi tylko swoje pliki i urządzenia
-    [ ] cgroups v2: limity pamięci i liczby procesów
-    [ ] restart ekranu (i później GUI) po awarii, reguły restartów
-    [ ] kanały między usługami z kontrolą nadawcy (gniazda UNIX, SO_PEERCRED)
-    [ ] testy negatywne: próba podniesienia uprawnień, ucieczki z „klatki”, zabronione wywołania
+M3  Trusted Core — GOTOWE (0.3.0)
+    [x] prawdziwy nadzorca: każda usługa z osobnym użytkownikiem (UID/GID) i minimum uprawnień
+    [x] blokada podnoszenia uprawnień (PR_SET_NO_NEW_PRIVS)
+    [x] seccomp: każda usługa może wołać tylko potrzebne funkcje jądra (biała lista)
+    [x] Landlock: każda usługa widzi tylko swój program (urządzenia przekazuje nadzorca)
+    [x] cgroups v2: limity pamięci i liczby procesów
+    [x] restart ekranu po awarii, reguły restartów (limit 5 na minutę)
+    [x] kanały między usługami z kontrolą nadawcy (gniazda UNIX, SO_PASSCRED)
+    [x] testy negatywne: próby podniesienia uprawnień, ucieczki z „klatki”, zabronione wywołania
 
-M4  GUI
+M4  GUI — NASTĘPNY
     [ ] proces gui: pulpit, okna, pasek (wygląd wg Twoich decyzji z punktu 1)
     [ ] tekst: czcionka i jej rysowanie (z polskimi znakami)
     [ ] okna rysowane w pamięci współdzielonej, składane przez ekran
@@ -95,7 +97,7 @@ M12 Audyt
 
 4. DECYZJE TECHNICZNE DO PODJĘCIA (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
 ----------------------------------------------------------------------------------------------
-M3   fortify-headers tak/nie; format kanałów IPC (gniazda UNIX)
+M3   (podjęte, ADR 0007) fortify-headers — na razie nie; kanały: gniazda UNIX SEQPACKET + SO_PASSCRED
 M4   czcionka (źródło, licencja), rysowanie tekstu: własne czy biblioteka (np. LVGL)
 M5   fscrypt czy dm-crypt; skąd klucz (hasło, TPM)
 M7   przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP

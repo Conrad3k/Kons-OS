@@ -2,29 +2,32 @@
  *
  * SPEC §7: the input process reads evdev and passes events to the screen process. It knows
  * nothing about the screen; it only translates Linux input events into K1 messages
- * (src/wspolne/k1_zdarzenie.h) and writes them to fd 3 (packet-mode pipe from the supervisor).
- * It never logs key codes (keystrokes must not end up in a log). Documentation:
- * docs/komponenty/wejscie.md.
+ * (src/wspolne/k1_zdarzenie.h) and sends them on fd 3 (SOCK_SEQPACKET channel to ekran, created
+ * by the supervisor; ekran checks that the sender's UID is ours). It never logs key codes
+ * (keystrokes must not end up in a log). Documentation: docs/komponenty/wejscie.md.
  *
- * M2: runs as root, devices scanned once at start (no hotplug). M3: own UID, only /dev/input. */
+ * M3 (ADR 0007): own UID, no capabilities, seccomp (ioctl only of the evdev type), Landlock without
+ * any path. The supervisor opens the input devices and passes them as fds 4, 5, ...; devices that
+ * are neither a keyboard nor a mouse are closed here. No hotplug yet. */
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <time.h>
 #include <unistd.h>
 
 #include <linux/input.h>
 
+#include "k1_kanal.h"
+#include "k1_klatka.h"
 #include "k1_log.h"
 #include "k1_zdarzenie.h"
 
 #define TAG "K1-WEJSCIE"
 #define FD_WYJSCIE 3
 #define MAKS_URZADZEN 16
-#define KATALOG "/rdzen/jadro/dev/input"
+#define FD_PIERWSZE 4
 
 #define BITY_NA_LONG (8 * sizeof(unsigned long))
 #define BIT_JEST(tab, n) (((tab)[(n) / BITY_NA_LONG] >> ((n) % BITY_NA_LONG)) & 1UL)
@@ -44,14 +47,12 @@ static int ioctl_k1(int fd, unsigned long req, void *arg)
 
 static void wyslij(const struct k1_zdarzenie *z)
 {
-    ssize_t n;
-    do {
-        n = write(FD_WYJSCIE, z, sizeof *z);
-    } while (n < 0 && errno == EINTR);
-    if (n < 0 && errno == EAGAIN)
+    if (k1_kanal_wyslij(FD_WYJSCIE, z, sizeof *z, -1) == 0)
+        return;
+    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS)
         zgubione++; /* ekran is not reading: drop rather than block */
-    else if (n != (ssize_t)sizeof *z)
-        k1_koniec(TAG, "zapis do ekranu: %s", n < 0 ? strerror(errno) : "niepełny");
+    else
+        k1_koniec(TAG, "kanał do ekranu: %s", strerror(errno));
 }
 
 static void wyslij_ruch(struct urzadzenie *u)
@@ -105,19 +106,17 @@ static void obsluz(struct urzadzenie *u, const struct input_event *ev)
     }
 }
 
-/* Opens event devices that are keyboards (EV_KEY with letter keys) or mice (EV_REL with X/Y). */
+/* Keeps the passed descriptors (fds 4..) that are keyboards (EV_KEY with letter keys) or mice
+ * (EV_REL with X/Y); closes the others. */
 static size_t znajdz_urzadzenia(struct urzadzenie *u, size_t maks)
 {
     size_t n = 0;
-    int i;
-    for (i = 0; i < 32 && n < maks; i++) {
-        char sciezka[64];
+    int fd;
+    for (fd = FD_PIERWSZE; fd < FD_PIERWSZE + MAKS_URZADZEN && n < maks; fd++) {
         unsigned long typy[EV_MAX / BITY_NA_LONG + 1], klawisze[KEY_MAX / BITY_NA_LONG + 1],
             wzgledne[REL_MAX / BITY_NA_LONG + 1];
-        int fd, klawiatura, mysz;
-        snprintf(sciezka, sizeof sciezka, KATALOG "/event%d", i);
-        fd = open(sciezka, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
-        if (fd < 0)
+        int klawiatura, mysz;
+        if (fcntl(fd, F_GETFD) < 0)
             continue;
         memset(typy, 0, sizeof typy);
         memset(klawisze, 0, sizeof klawisze);
@@ -136,11 +135,11 @@ static size_t znajdz_urzadzenia(struct urzadzenie *u, size_t maks)
         }
         /* Exclusive access: no other reader of this device gets the events. */
         if (ioctl(fd, (int)EVIOCGRAB, 1) < 0)
-            k1_log(TAG, "event%d: EVIOCGRAB: %s", i, strerror(errno));
+            k1_log(TAG, "urządzenie (fd %d): EVIOCGRAB: %s", fd, strerror(errno));
         u[n].fd = fd;
         u[n].dx = u[n].dy = 0;
         n++;
-        k1_log(TAG, "urządzenie event%d: %s%s", i, klawiatura ? "klawiatura " : "", mysz ? "mysz" : "");
+        k1_log(TAG, "urządzenie %zu: %s%s", n, klawiatura ? "klawiatura " : "", mysz ? "mysz" : "");
     }
     return n;
 }
@@ -148,23 +147,13 @@ static size_t znajdz_urzadzenia(struct urzadzenie *u, size_t maks)
 int main(void)
 {
     struct urzadzenie u[MAKS_URZADZEN];
-    struct pollfd pfd[MAKS_URZADZEN];
+    struct pollfd pfd[MAKS_URZADZEN + 1];
     size_t n = 0, i;
-    int proba;
-    int fl = fcntl(FD_WYJSCIE, F_GETFL);
 
-    if (fl < 0 || (fl & O_ACCMODE) != O_WRONLY)
+    k1_klatka_w_usludze(TAG);
+    if (fcntl(FD_WYJSCIE, F_GETFD) < 0)
         k1_koniec(TAG, "brak kanału do ekranu (fd %d)", FD_WYJSCIE);
-    if (fcntl(FD_WYJSCIE, F_SETFL, fl | O_NONBLOCK) < 0)
-        k1_koniec(TAG, "fcntl: %s", strerror(errno));
-
-    /* Devices are probed during boot; give slow (emulated) hardware a moment. */
-    for (proba = 0; proba < 20 && n == 0; proba++) {
-        struct timespec t = { 0, 100 * 1000 * 1000 };
-        n = znajdz_urzadzenia(u, MAKS_URZADZEN);
-        if (n == 0)
-            nanosleep(&t, NULL);
-    }
+    n = znajdz_urzadzenia(u, MAKS_URZADZEN);
     if (n == 0)
         k1_log(TAG, "nie znaleziono klawiatury ani myszy");
     k1_log(TAG, "gotowe (%zu urządzeń)", n);
@@ -173,12 +162,18 @@ int main(void)
         pfd[i].fd = u[i].fd;
         pfd[i].events = POLLIN;
     }
+    pfd[n].fd = FD_WYJSCIE; /* only to notice that ekran went away */
+    pfd[n].events = 0;
     for (;;) {
-        int r = poll(pfd, (nfds_t)n, -1);
+        int r = poll(pfd, (nfds_t)n + 1, -1);
         if (r < 0) {
             if (errno == EINTR)
                 continue;
             k1_koniec(TAG, "poll: %s", strerror(errno));
+        }
+        if (pfd[n].revents & (POLLHUP | POLLERR)) {
+            k1_log(TAG, "ekran zamknął kanał — koniec");
+            return 0;
         }
         for (i = 0; i < n; i++) {
             struct input_event ev[32];

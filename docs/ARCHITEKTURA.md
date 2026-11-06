@@ -13,11 +13,11 @@ K1 = jądro Linux (własna, minimalna konfiguracja) + nasz initramfs + nasz init
 |---|---|
 | `VERSION`, `CHANGELOG.md` | wersja K1 (SemVer) i historia zmian |
 | `Makefile` | kompilacja programów K1 (musl) i testów na hoście |
-| `src/wspolne/` | wspólne moduły: log i błędy (`k1_log`), parser linii poleceń jądra (`k1_cmdline`), protokół zdarzeń wejścia (`k1_zdarzenie`) |
+| `src/wspolne/` | wspólne moduły: log i błędy (`k1_log`), parser linii poleceń jądra (`k1_cmdline`), protokół zdarzeń wejścia (`k1_zdarzenie`), protokół usług (`k1_komunikat`), kanały UNIX (`k1_kanal`), klatka usług (`k1_klatka`), tożsamości usług (`k1_uslugi.h`) |
 | `src/grafika/` | renderer programowy: tapeta, logo, kursor (`k1_grafika`) |
 | `src/initramfs/` | `/init` w initramfs: montuje obraz rdzenia, przełącza korzeń |
 | `src/init/` | `/rdzen/init` — PID 1 |
-| `src/nadzorca/` | `/rdzen/system/nadzorca` — uruchamia usługi (M2: wersja minimalna) |
+| `src/nadzorca/` | `/rdzen/system/nadzorca` — uruchamia usługi w klatkach, łączy je kanałami, restartuje (M3) |
 | `src/wejscie/` | `/rdzen/system/wejscie` — klawiatura i mysz (evdev) → ekran |
 | `src/ekran/` | `/rdzen/system/ekran` — jedyny proces z DRM/KMS: tryb, klatki, kursor |
 | `jadro/` | wersja, konfiguracja i linia poleceń jądra, klucze PGP |
@@ -58,7 +58,7 @@ src/ ──► musl-gcc (static-pie, flagi SPEC §11) ──► k1-initramfs, in
 Wynik w `build/wynik/` (+ `SHA256SUMS`, `srodowisko.txt`). Build jest powtarzalny: stały
 `SOURCE_DATE_EPOCH` (data ostatniego commita), stałe dane budowy jądra, `-frandom-seed`.
 
-## Jak startuje system (M2)
+## Jak startuje system (M3)
 
 ```
 QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs)
@@ -71,10 +71,12 @@ QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs)
      └─ /rdzen/init (PID 1)
           sysctl bezpieczeństwa → montowania /rdzen/jadro/{dev,proc,sys}, cgroup2, /dane_uzytkownika
           „K1: init OK” → /rdzen/system/nadzorca → pętla sygnałów (sieroty, wyłączanie)
-     └─ nadzorca (M2: minimalny)
-          pipe pakietowy ──► wejscie (fd 3: zapis)   evdev → komunikaty k1_zdarzenie
-                        └──► ekran   (fd 3: odczyt)  DRM/KMS: tapeta + logo + kursor, page flip
-          [obraz testowy: test-systemu → po jego końcu nadzorca kończy się, init wyłącza maszynę]
+     └─ nadzorca (root; ADR 0007) — każda usługa w klatce: UID, 0 capabilities, NO_NEW_PRIVS,
+        │  Landlock, seccomp, cgroup; fd 0/1 = /dev/null, fd 2 = pipe logu → nadzorca → konsola
+          ├─ ekran   (uid 101) fd 3: kanał sterujący (KLIENT + SCM_RIGHTS), fd 4: karta (DRM master)
+          └─ wejscie (uid 100) fd 3: kanał SEQPACKET do ekranu (SO_PASSCRED), fd 4…: urządzenia event*
+          restart po awarii (0,2/1/2/4/4 s, maks. 5 na minutę); koniec ekranu → restart klientów
+          [obraz testowy: test-systemu (root, fd 3: kanał testowy) → po jego końcu nadzorca kończy się]
 ```
 Szczegóły i tabela montowań: ADR 0004. Błędy: ADR 0005.
 

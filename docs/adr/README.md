@@ -34,3 +34,4 @@ Krótko, dlaczego nie.
 | [0004](0004-start-i-uklad-systemu-plikow.md) | Start (initramfs → init) i układ systemu plików | Przyjęty |
 | [0005](0005-bledy-krytyczne-przy-starcie.md) | Obsługa błędów krytycznych przy starcie | Przyjęty |
 | [0006](0006-ekran-wejscie-i-nadzorca-m2.md) | Ekran (DRM/KMS), wejście (evdev) i minimalny nadzorca (M2) | Przyjęty |
+| [0007](0007-nadzorca-klatki-uslug-m3.md) | Nadzorca, klatki usług i kanały między nimi (M3) | Przyjęty |

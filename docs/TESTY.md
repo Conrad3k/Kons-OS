@@ -43,7 +43,7 @@ Ręcznie: `scripts/uruchom-qemu.sh [--obraz build/wynik/rdzen-test.squashfs]` i 
 | zabezpieczenia binariów | static-pie, RELRO, BIND_NOW, NX, brak RWX | konfiguracja |
 | konfiguracja jądra | każda linia `jadro/k1.config` w `.config` | konfiguracja |
 | qemu: start | `K1: init OK`, nadzorca uruchomiony, pierwsza klatka ekranu | funkcjonalny |
-| qemu: testy-w-systemie | `K1-TEST: WYNIK: OK`, `odrzucone 4)`, awaria ekranu zapisana, kontrolowane wyłączenie | funkcjonalny + negatywne |
+| qemu: testy-w-systemie | `K1-TEST: WYNIK: OK`, `odrzucone 5)`, obcy nadawca odrzucony, próby klatek bez błędów, restart ekranu, wyłączenie padającej usługi, brak „zabronione wywołanie systemowe”, kontrolowane wyłączenie | funkcjonalny + negatywne |
 | qemu: neg-brak-dysku | `nie znaleziono urządzenia…`, wyłączenie | negatywny |
 | qemu: neg-dysk-bez-obrazu | `nie udało się zamontować obrazu rdzenia…` | negatywny |
 | qemu: neg-obraz-bez-init | `obraz rdzenia nie zawiera programu init` | negatywny |
@@ -85,8 +85,30 @@ NEGATYWNE = coś, co ma się nie udać.
   (harness sprawdza w logu `odrzucone 4`), poprawny przyjęty; awaria `ekran` (SIGSEGV) nie zatrzymuje
   nadzorcy ani init.
 
-Ograniczenie: test działa jako root ze wszystkimi uprawnieniami — sprawdza stan systemu i jądra,
-nie izolację usług (M3).
+- M3 (ADR 0007): dla `ekran` i `wejscie` — własny UID/GID, brak grup dodatkowych, wszystkie zbiory
+  capabilities = 0 (także graniczny), `NoNewPrivs: 1`, `Seccomp: 2` z 2 filtrami, własna cgroup
+  z `pids.max=1` i `memory.max`, tylko przekazane deskryptory (`/dev/null`, pipe logu, gniazda,
+  karta / `event*`); brak sieci IP, gniazda UNIX są (kanały).
+- M3 NEGATYWNE, złośliwe IPC przez kanał testowy od nadzorcy: 4 złe komunikaty odrzucone, poprawny
+  przyjęty, poprawny od obcego UID odrzucony (harness: `odrzucone 5)` i wpis o obcym nadawcy).
+- M3 NEGATYWNE, **próby w klatkach**: nadzorca uruchamia program testowy w klatce `wejscie` i `ekran`
+  (`--proba`), a ten próbuje: uruchomić inny program (Landlock → EACCES), `open`, `openat`, `setuid`,
+  `setresgid`, `socket`, `fork`, `clone`, `kill(1)`, `ptrace`, `mount`, `unshare`, `chroot`,
+  `perf_event_open`, `keyctl`, `memfd_create`, `mmap`/`mprotect` z `PROT_EXEC`, obcy typ `ioctl`,
+  `execve` po starcie usługi — każde musi zostać zablokowane (log `K1-PROBA: … 0 błędów`).
+- M3: awaria `ekran` (SIGSEGV) → nadzorca i init działają, po chwili jest nowy `ekran` z kartą i nowy
+  `wejscie`; 6 zabić `wejscie` → usługa wyłączona (limit restartów).
+
+Program testowy sam działa jako root bez klatki (potrzebuje wglądu w `/proc` i jądro); izolację
+sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
+
+## M3 — kryteria zaliczenia
+1. Każda usługa ma własny UID/GID, zero capabilities, `NO_NEW_PRIVS`, seccomp (biała lista),
+   Landlock i własną cgroup z limitami — potwierdzone w systemie.
+2. Próby w klatkach: wszystkie zabronione działania zablokowane.
+3. Kanały między usługami sprawdzają nadawcę (`SO_PASSCRED`) — komunikat od obcego UID odrzucony.
+4. Ekran wraca po awarii (z klientami); usługa padająca w kółko zostaje wyłączona.
+5. Wszystkie testy M1 i M2 nadal przechodzą.
 
 ## M2 — kryteria zaliczenia
 1. `ekran` ustawia tryb i pokazuje pierwszą klatkę: tapetę z logo K1 (dowód: zrzut ekranu).

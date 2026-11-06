@@ -3,14 +3,30 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
-## [Niewydane]
+## [0.3.0] — 2026-11-06
+
+Etap **M3 — Trusted Core**: każda usługa systemu działa w osobnej „klatce” i wraca po awarii.
 
 ### Dodane
+- Nadzorca w pełnej wersji (ADR 0007): każda usługa ma własnego użytkownika, zero uprawnień
+  administratora, blokadę podnoszenia uprawnień, białą listę wywołań jądra (seccomp), dostęp do plików
+  tylko do własnego programu (Landlock) i limity pamięci oraz procesów (cgroups v2).
+- Urządzenia (karta graficzna, klawiatura, mysz) otwiera nadzorca i przekazuje usługom — usługi nie
+  widzą żadnych plików ani urządzeń poza przekazanymi.
+- Kanały między usługami przez gniazda UNIX z kontrolą nadawcy: ekran odrzuca komunikaty od kogoś
+  innego niż przypisana usługa. Nowy wspólny protokół komunikatów (32 bajty, testy + fuzzing).
+- Logi usług przechodzą przez nadzorcę: bez znaków sterujących, z limitem, usługa nie podszyje się
+  pod inną; usługi nie mają już dostępu do konsoli.
+- Restart usług po awarii (ekran wraca razem z klientami), usługa padająca w kółko zostaje wyłączona.
+- Testy: sprawdzenie klatek z zewnątrz, „próby” w klatkach (22 zabronione działania), obcy nadawca,
+  restart ekranu, limit restartów; testy jednostkowe protokołu i kanałów, fuzzing protokołu.
 - `docs/DO_ZROBIENIA.txt` — lista tego, co zostało do zrobienia, i decyzji potrzebnych od właściciela.
+- CI: workflow „Sprzątanie artefaktów” (usuwa stare obrazy Kons-OS, które zajmowały miejsce).
 
 ### Zmienione
-- Skill `kons-dev` opisuje teraz architekturę K1 (łańcuch startu, układ plików, komponenty), niezmienniki
-  bezpieczeństwa i przepisy na typowe zmiany, a nie tylko proces pracy.
+- Jądro: gniazda UNIX (`CONFIG_UNIX`) — tylko do kanałów między usługami.
+- Skill `kons-dev` opisuje architekturę K1, niezmienniki bezpieczeństwa i przepisy na typowe zmiany.
+- Decyzja: na razie bez `fortify-headers` (ADR 0007).
 
 ## [0.2.0] — 2026-11-06
 
