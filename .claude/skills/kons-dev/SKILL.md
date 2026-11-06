@@ -53,7 +53,9 @@ Repo prywatne, właściciel zgodził się na scalanie bez pytania:
 - Run na `main` startuje sam. Sprawdzaj przez `send_later` co ~5 min (logi przez `get_job_logs`
   dostępne po zakończeniu kroku). Po zakończeniu usuń zaplanowane sprawdzenia.
 - **Padł** → przeczytaj log (`get_job_logs`, `failed_only`), napraw, scal poprawkę (PATCH), pilnuj dalej.
-  Logi testów: artefakt `k1-<wersja>-logi`.
+  Logi testów: artefakt `k1-<wersja>-logi`. Artefakty mają wspólny limit miejsca konta (prywatne repo);
+  gdy się zapełni, wysyłka artefaktów pada, ale nie blokuje tagu (`continue-on-error`) — powiedz właścicielowi,
+  że stare artefakty można usunąć w Actions (ikona kosza) albo poczekać, aż wygasną (30 dni).
 - **Udał się** → tag `k1-v<wersja>` zakłada CI; podaj właścicielowi link do runu.
 
 ## 5. Raport po etapie (SPEC §2.11)

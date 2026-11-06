@@ -48,14 +48,6 @@ jobs:
       - name: Testy M1 (host + QEMU, także negatywne)
         run: K1_FUZZ_CZAS=30 scripts/test-m1.sh
 
-      - name: Wyślij obrazy jako artefakt
-        uses: actions/upload-artifact@v5
-        with:
-          name: k1-${{ env.K1_WERSJA }}-obraz
-          path: |
-            build/wynik/
-          retention-days: 30
-
       - name: Oznacz wersję tagiem (jeśli tagu jeszcze nie ma)
         if: github.ref == 'refs/heads/main'
         run: |
@@ -67,8 +59,19 @@ jobs:
             git push origin "${TAG}"
           fi
 
+      - name: Wyślij obrazy jako artefakt
+        # Brak miejsca na artefakty (limit konta) nie może blokować wersji — tag jest wyżej.
+        continue-on-error: true
+        uses: actions/upload-artifact@v5
+        with:
+          name: k1-${{ env.K1_WERSJA }}-obraz
+          path: |
+            build/wynik/
+          retention-days: 30
+
       - name: Wyślij logi testów (także przy błędzie)
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v5
         with:
           name: k1-${{ env.K1_WERSJA }}-logi
