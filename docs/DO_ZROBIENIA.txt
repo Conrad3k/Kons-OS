@@ -79,12 +79,29 @@ M4  GUI — GOTOWE (0.4.0)
     [x] przejęcie gui nie daje dostępu do danych ani systemu (klatki, próby, złośliwe okna — testy)
     [x] obraz ISO do maszyny wirtualnej (UEFI i BIOS), tapety, znak K1
 
-M5  Blob Vault i szyfrowanie danych — NASTĘPNY
+Nowa kolejność od 2026-11-06 (ADR 0011): M4.1 → M5 → M5.1 → M5.2 → M6 → M7 → … Numery etapów zostają.
+
+M4.1 Porządki i audyt — NASTĘPNY
+    [ ] celowany przegląd bezpieczeństwa: nadzorca, ekran, kanały, klatka (+ poprawki)
+    [ ] podział największych plików (ekran: kompozycja / okna / wejście; program testowy) i usunięcie powtórzeń
+    [ ] CI uruchamiane przez Claude etykietą „testy” na PR-ze (bez czekania na scalenie)
+
+M5  Dane i sprzęt (rozszerzony)
+    [ ] sterowniki dysków: virtio, SATA (AHCI), NVMe; partycja danych na dysku / pendrivie
     [ ] magazyn obiektów zamiast katalogów (identyfikator, metadane, hash, pochodzenie)
-    [ ] szyfrowanie /dane_uzytkownika na dysku (dziś dane są tylko w RAM)
+    [ ] szyfrowanie danych na dysku (dziś dane są tylko w RAM)
     [ ] dostęp aplikacji tylko do obiektów, na które się zgodzisz
     [ ] opcjonalne hasło przy starcie (włączane w Ustawieniach); zapomniane hasło = nowe konto
-    [ ] trwały zapis notatek i ustawień; sterownik dysku (virtio / SATA / NVMe)
+    [ ] trwały zapis notatek i ustawień
+    [ ] USB: klawiatura, mysz, tablet (mysz „USB” w VirtualBoxie), podłączanie w trakcie pracy
+    [!] pierwszy start z pendrive'a na Twoim laptopie
+
+M5.1 Próba przeglądarki (wycinek M7/M8, bez sieci)
+    [ ] minimalna strefa zgodności; Firefox i WPE WebKit w izolacji
+    [ ] strona testowa wyrenderowana i pokazana w oknie K1 → decyzja Firefox czy WPE (ADR)
+
+M5.2 dm-verity (wycinek M10)
+    [ ] system wykrywa podmieniony obraz rdzenia i bezpiecznie się wyłącza
 
 M6  Dekodery w izolacji
     [ ] każdy plik (np. PNG) dekodowany w jednorazowym, zamkniętym procesie
@@ -96,14 +113,14 @@ M7  Sieć i strefa zgodności (zaplecze A)
     [ ] prosta aplikacja testowa ze strefy wyświetlana w K1
 
 M8  Przeglądarka w strefie
-    [ ] wybór: Firefox czy WPE WebKit
+    [ ] (wybór Firefox / WPE — po próbie w M5.1)
     [ ] osobne, jednorazowe sesje (sesje wg Twoich decyzji z punktu 1)
 
 M9  Gatekeeper
     [ ] pobieranie plików, okno zgody, import do Blob Vault, sprzątanie
 
 M10 Bezpieczny start
-    [ ] dm-verity: system wykrywa podmieniony obraz
+    [ ] (dm-verity — przeniesione do M5.2)
     [ ] Secure Boot z własnymi kluczami, podpisane obrazy, ochrona przed starszą wersją
     [ ] aktualizacje A/B z powrotem do poprzedniej wersji, tryb ratunkowy (recovery)
 
@@ -118,8 +135,9 @@ M12 Audyt
 ----------------------------------------------------------------------------------------------
 M3   (podjęte, ADR 0007) fortify-headers — na razie nie; kanały: gniazda UNIX SEQPACKET + SO_PASSCRED
 M4   (podjęte) czcionki IBM Plex (OFL), własne rysowanie tekstu bez LVGL (ADR 0009); obraz ISO z GRUB (ADR 0010)
-M5   fscrypt czy dm-crypt; skąd klucz (hasło, TPM)
+M4.1 zakres przeglądu i podział plików (ADR 0011 — kolejność etapów: podjęte)
+M5   fscrypt czy dm-crypt; skąd klucz (hasło, TPM); które sterowniki dysków i USB do jądra
 M7   przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP
-M8   Firefox czy WPE WebKit (sprawdzenie sandboxa Firefoksa w strefie)
+M5.1 Firefox czy WPE WebKit (sprawdzenie sandboxa Firefoksa w strefie), USER_NS tak/nie
 M10  obraz produkcyjny bez logu na porcie szeregowym; RANDSTRUCT w jądrze; zarządzanie kluczami
 M11  wybór VMM (do porównania m.in. Cloud Hypervisor, Firecracker, crosvm); test KVM na Twoim sprzęcie
