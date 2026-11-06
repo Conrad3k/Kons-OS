@@ -90,8 +90,9 @@ enum k1_ustawienie {
     K1_UST_MOTYW = 1,   /* 0 light, 1 dark */
     K1_UST_SEKUNDY = 2, /* clock on the top bar with seconds: 0/1 */
     K1_UST_MYSZ = 3,    /* pointer speed 1..3 */
+    K1_UST_TAPETA = 4,  /* wallpaper variant 0..3 (k1_grafika.h: K1_TAPETY) */
 };
-#define K1_UST_MAKS 3
+#define K1_UST_MAKS 4
 
 struct k1_komunikat {
     uint8_t wersja;   /* K1_KOMUNIKAT_WERSJA */

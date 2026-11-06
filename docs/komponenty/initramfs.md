@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE (M1) — `scripts/test-m1.sh`: start + 5 scenariuszy negatywnych |
+| **Status** | PRZETESTOWANE (M1, M4) — `scripts/test-m1.sh`: start + 5 scenariuszy negatywnych; `scripts/test-m4.sh`: start z ISO (UEFI, BIOS) |
 | **Kod** | `src/initramfs/main.c`, `src/wspolne/k1_cmdline.c`, `src/wspolne/k1_log.c` |
-| **Decyzje** | ADR 0004 (start, układ plików), ADR 0005 (błędy krytyczne) |
+| **Decyzje** | ADR 0004 (start, układ plików), ADR 0005 (błędy krytyczne), ADR 0010 (obraz wbudowany w ISO) |
 
 ## Cel
 Jedno zadanie: znaleźć obraz rdzenia, zamontować go jako `/rdzen` w nowym, tylko-do-odczytu
@@ -20,13 +20,16 @@ UID 0, wszystkie capabilities (potrzebne: `CAP_SYS_ADMIN` do montowania i chroot
 do wyłączenia). Działa kilkadziesiąt milisekund, potem `execve` zastępuje go przez `/rdzen/init`.
 
 ## Wejścia i wyjścia
-- Wejście: `/proc/cmdline` (≤ 4095 bajtów), parametr `k1.rdzen=/dev/[a-z0-9]{1,31}` (dokładnie raz,
-  bez cudzysłowów), węzeł urządzenia w devtmpfs, obraz SquashFS.
+- Wejście: `/proc/cmdline` (≤ 4095 bajtów), parametr `k1.rdzen=/dev/[a-z0-9]{1,31}` albo
+  `k1.rdzen=wbudowany` (dokładnie raz, bez cudzysłowów), węzeł urządzenia w devtmpfs, obraz SquashFS.
+- `wbudowany` (ISO, ADR 0010): plik `/rdzen.squashfs` z drugiego archiwum initramfs podpinany przez
+  `/dev/loop-control` → `LOOP_CTL_GET_FREE` → `LOOP_CONFIGURE` (tylko do odczytu, auto-odłączanie;
+  urządzenie zamykane dopiero po zamontowaniu); plik usuwany z initramfs (dane trzyma loop).
 - Wyjście: komunikaty `K1-INITRAMFS: …` na konsoli; zamontowany korzeń; `execve("/rdzen/init")`
   z pustym środowiskiem.
 
 ## Zależności
-musl (statycznie), jądro: proc, devtmpfs, tmpfs, squashfs (zstd), virtio-blk.
+musl (statycznie), jądro: proc, devtmpfs, tmpfs, squashfs (zstd), virtio-blk, loop.
 
 ## Wywołania systemowe
 `getpid`, `umask`, `mount` (proc, devtmpfs, tmpfs, squashfs, remount ro, MS_MOVE), `umount2`, `open`,

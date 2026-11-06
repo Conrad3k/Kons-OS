@@ -19,17 +19,20 @@ Docelowo są dwa światy (SPEC §4): **natywny** (nasz kod) i **strefa zgodnośc
 Linux” dla obcych programów, np. przeglądarki — od M7). Pliki przechodzą między nimi tylko przez
 Gatekeepera (M9).
 
-**Łańcuch startu** (stan: M3; od M10 — UEFI + Secure Boot + podpisany UKI + dm-verity):
+**Łańcuch startu** (stan: M4; od M10 — UEFI + Secure Boot + podpisany UKI + dm-verity):
 ```
 jądro 6.18 LTS (jadro/k1.config) ──► /init = k1-initramfs (src/initramfs)
-   k1.rdzen=/dev/XXX → SquashFS jako /rdzen (ro) w korzeniu-tmpfs (ro) → switch_root
+   k1.rdzen=/dev/XXX albo =wbudowany (ISO: /rdzen.squashfs z initramfs przez loop) → SquashFS jako /rdzen
+   (ro) w korzeniu-tmpfs (ro) → switch_root   [ISO: firmware UEFI/BIOS → GRUB → jądro; ADR 0010]
  ──► /rdzen/init = PID 1 (src/init): sysctl, montowania pod /rdzen/jadro, sieroty, sygnały, wyłączanie
  ──► /rdzen/system/nadzorca (src/nadzorca, root): usługi w klatkach (k1_klatka), kanały UNIX, logi, restarty
-       ├─ wejscie (src/wejscie): evdev → komunikaty k1_zdarzenie → fd 3
-       └─ ekran   (src/ekran):   jedyny DRM master; tapeta+logo+kursor (src/grafika), page flip
+       ├─ wejscie (100): evdev (fd 4… od nadzorcy) → k1_zdarzenie → kanał do ekranu
+       ├─ ekran   (101): DRM master (fd 4), kompozytor: tapeta + okna + panele (memfd) + cienie + kursor
+       ├─ gui     (102): powłoka — górny pasek, dolny pasek, menu Start; fd 4 → nadzorca (URUCHOM, WYLACZ)
+       └─ aplikacje na prośbę gui: zegar (200), notatki (201, tylko /dane_uzytkownika/notatki), ustawienia (202)
 ```
-Planowane usługi (SPEC §7–§9): `gui` (M4, rysuje w pamięci współdzielonej, bez GPU), Blob Vault (M5),
-dekodery w jednorazowych procesach (M6), `siec` (M7), Gatekeeper (M9).
+Planowane (SPEC §7–§9): Blob Vault (M5), dekodery w jednorazowych procesach (M6), `siec` (M7),
+Gatekeeper (M9).
 
 **System plików po starcie** (ADR 0004):
 - `/` — tmpfs tylko do odczytu z dokładnie trzema katalogami: `rdzen`, `aplikacje`, `dane_uzytkownika`.
@@ -47,7 +50,11 @@ dekodery w jednorazowych procesach (M6), `siec` (M7), Gatekeeper (M9).
 | `src/init/` | `/rdzen/init` | `komponenty/init.md` | PID 1 |
 | `src/nadzorca/` | `/rdzen/system/nadzorca` | `komponenty/nadzorca.md` | usługi w klatkach, kanały, logi, restarty (ADR 0007) |
 | `src/wejscie/` | `/rdzen/system/wejscie` | `komponenty/wejscie.md` | klawiatura, mysz |
-| `src/ekran/` + `src/grafika/` | `/rdzen/system/ekran` | `komponenty/ekran.md` | KMS, składanie klatek, kursor |
+| `src/ekran/` + `src/grafika/` | `/rdzen/system/ekran` | `komponenty/ekran.md` | KMS, kompozytor okien, wejście, ustawienia; tapety i znak K1 |
+| `src/gui/` | `/rdzen/system/gui` | `komponenty/gui.md` | powłoka pulpitu |
+| `src/aplikacje/*` | `/rdzen/aplikacje/*` | `komponenty/aplikacje.md` | Zegar, Notatki, Ustawienia |
+| `src/przybornik/` | (linkowane do gui i aplikacji) | ADR 0008, 0009 | rysowanie, tekst, okna, klient, czas PL, klawiatura PL |
+| `narzedzia/czcionki.c` | (host, przy budowie) | ADR 0009 | FreeType → bitmapy IBM Plex (`build/gen/`) |
 | `src/wspolne/` | (linkowane) | — | `k1_log` (log, `k1_awaria`, `k1_koniec`), `k1_cmdline`, `k1_zdarzenie`, `k1_komunikat` (32 B, wszystkie kanały), `k1_kanal` (SEQPACKET, SCM_RIGHTS, SO_PASSCRED), `k1_klatka` (sandbox), `k1_uslugi.h` (UID-y, role) |
 | `jadro/` | `bzImage` | `komponenty/jadro.md` | wersja, konfiguracja, linia poleceń, klucze |
 | `testy/system/` | `/rdzen/system/test-systemu` (tylko obraz testowy) | `TESTY.md` | sprawdzenia w systemie |
@@ -91,6 +98,13 @@ Każdy z nich pilnuje test; jeśli zmiana go narusza, to jest zmiana architektur
 5. `docs/komponenty/<nazwa>.md` (cel, granica zaufania, uprawnienia, wejścia/wyjścia, zależności,
    syscalle, błędy, powierzchnia ataku, testy), ADR jeśli zmienia architekturę, `docs/RYZYKA.md`.
 
+**Nowa aplikacja natywna** (wzór: `src/aplikacje/zegar/main.c`): `struct k1_apl` + callbacki
+(`rysuj`, `wskaznik`, `klawisz`, `zegar`) i `k1_apl_uruchom()`; numer w `k1_uslugi.h` (`K1_APL_*`, UID,
+profil), wpis w `uslugi[]` i profil w `src/nadzorca/main.c`, nazwa/ikona/opis w `src/gui/main.c`,
+instalacja w `zbuduj-obraz.sh` (`/rdzen/aplikacje`), spis plików i próba klatki w teście, scenariusz
+w `test-m4.sh` (położenia elementów loguj — test klika według logu). Zmiana zakresów protokołu
+(np. `K1_APL_MAKS`, ustawienia) = testy `test_komunikat`.
+
 **Nowy protokół / komunikat:** nagłówek w `src/wspolne/` ze stałym układem (`_Static_assert` na rozmiar
 i przesunięcia), funkcja sprawdzająca bez założeń o wyrównaniu (`memcpy`), testy w `testy/host/test_*.c`
 (ASan/UBSan) i harness `testy/host/fuzz_*.c` (cele w `Makefile`: `testy-host`, `fuzz`), test negatywny
@@ -101,25 +115,37 @@ dopisz do `jadro/k1.config` z komentarzem po co, `scripts/zbuduj-jadro.sh` (prze
 przy wzmocnieniach `scripts/sprawdz-kspp.sh`, a odstępstwa opisz w `docs/komponenty/jadro.md`.
 Zmiana wersji jądra: procedura w `jadro/README.md`.
 
-**Wygląd:** podgląd na hoście (`make build/obj/podglad_grafiki`, PPM → `python3 -I scripts/ppm-na-png.py`),
-potem QEMU + `scripts/zrzut-ekranu.sh`; pokaż właścicielowi; ustalenia → `docs/WYGLAD.md`.
+**Wygląd:** tapety na hoście (`make build/obj/podglad_grafiki`, `podglad_grafiki W H -1 -1 0 WARIANT`,
+PPM → `python3 -I scripts/ppm-na-png.py`), pulpit w QEMU + `scripts/zrzut-ekranu.sh` (mysz/klawisze:
+monitor QEMU — `mouse_move`, `mouse_button`, `sendkey alt_r-a`); zrzuty pokazuj właścicielowi
+(`SendUserFile`); ustalenia i paleta → `docs/WYGLAD.md`. Interfejs: neutralne tła, jeden akcent,
+4-px siatka, Plex Sans/Serif, ikony liniowe z `k1_ikona`.
 
 ## 4. Testy — warstwy i pułapki
 - **Host:** `make testy-host` (glibc + ASan/UBSan + `_FORTIFY_SOURCE=3`), `make fuzz` (clang, libFuzzer).
 - **W systemie:** obraz testowy = produkcyjny + `/rdzen/system/test-systemu`; nadzorca uruchamia go po
   usługach, kończy się jego kodem, init wyłącza maszynę. Wynik: `K1-TEST: WYNIK: OK (n/n)`.
 - **QEMU z zewnątrz:** `scripts/test-m1.sh` (start, testy w systemie, błędy startu — maszyna ma się sama
-  wyłączyć bez „Kernel panic”), `scripts/test-m2.sh` (monitor QEMU: `mouse_move`, `sendkey`,
-  `mouse_button`; zrzuty sprawdzane po kolorach pikseli). Wszystko: `scripts/testy.sh` (to uruchamia CI).
+  wyłączyć bez „Kernel panic”), `scripts/test-m2.sh` (kursor: `mouse_move`, `sendkey`, `mouse_button`),
+  `scripts/test-m4.sh` (pulpit i aplikacje — klikanie według położeń z logu, zrzuty sprawdzane po
+  kolorach pikseli; start z ISO przez UEFI/OVMF i BIOS z `virtio-vga` → simpledrm). Wszystko:
+  `scripts/testy.sh` (to uruchamia CI, ~6 min w TCG). Kanał testowy (fd 3 programu testowego):
+  `TEST_POLACZ` (kanał do ekranu z dowolną rolą/UID), `TEST_PROBA` (program testowy w klatce
+  usługi), `URUCHOM` (aplikacja).
 - **Pułapki, które już wystąpiły:** usuń stary log/gniazdo **przed** startem QEMU w tle (wyścig ze starym
   logiem); pipe otwarty ponownie przez `/proc/<pid>/fd` nie jest pakietowy (a `O_DIRECT` przy open → EINVAL);
   rodzicem procesów usług jest nadzorca, nie init; musl ma `ioctl(int, int, …)` — rzutuj numer żądania
   na `int`; GCC `-Wformat-truncation` wymaga buforów na pełny `d_name`; niestabilny test = najpierw szukaj
   błędu w harnessie, potem w systemie, ale nigdy nie ignoruj.
+  `SO_PASSCRED` ustawia się na końcu **odbiorcy** (`k1_kanal_utworz`: `pary[0]` dostaje ten, kto
+  sprawdza); `RLIMIT_FSIZE` ogranicza też `ftruncate` memfd (SIGXFSZ = sygnał 25); `LO_FLAGS_AUTOCLEAR`
+  odłącza loop przy zamknięciu ostatniego deskryptora — zamykaj po `mount`; filtr seccomp działa od
+  `execve`, więc obejmuje start musl; `hidepid` daje ENOENT zamiast EACCES dla cudzych procesów.
 
 ## 5. Proces
 
-**Start sesji:** `git fetch origin main`, gałąź od `origin/main`; zgłoszenia (`list_issues`, etykiety
+**Start sesji:** `git fetch origin main`, gałąź od `origin/main` (gdy PR gałęzi jest scalony: `git checkout -B
+<gałąź> origin/main`); zgłoszenia (`list_issues`, etykiety
 `feedback`, `błąd`, `pomysł`); ostatni run „K1 — budowa i testy” na `main` (czerwony = napraw najpierw);
 środowisko: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh` (~6 min).
 
@@ -139,9 +165,11 @@ PR po polsku (najpierw co widzi użytkownik, potem technika, `Closes #N`) → sq
 w tytule commita scalenia (workflow i tak startuje tylko przy zmianach w `src/`, `jadro/`, `testy/`,
 `scripts/`, `Makefile`, `VERSION`, workflow).
 
-**CI:** sprawdzaj przez `send_later` (~10 min po scaleniu); padł → `get_job_logs` (`failed_only`), napraw
-(PATCH); udał się → CI zakłada tag `k1-v<wersja>`. Artefakty mają wspólny limit miejsca konta — gdy pełny,
-wysyłka pada bez blokowania tagu; powiedz właścicielowi, że stare artefakty usuwa się w Actions.
+**CI:** sprawdzaj przez `send_later` (~15 min po scaleniu); padł → `get_job_logs` (`failed_only`), napraw
+(PATCH); udał się → CI zakłada tag `k1-v<wersja>` i wydanie (Releases) z `k1-<wersja>.iso` — to link
+do pobrania dla właściciela. Artefakty mają wspólny limit miejsca konta; stare (spoza `k1-…`) usuwa
+workflow „Sprzątanie artefaktów” (uruchamia się przy zmianie jego pliku na `main` — Claude nie
+może wywołać `workflow_dispatch`).
 
 **Raport po etapie (SPEC §2.11):** zaktualizuj `docs/DO_ZROBIENIA.txt`; po polsku, prosto (skutki, nie
 mechanika): cel i kryteria, co zrobiono, dowody (log, testy, zrzuty), testy negatywne, ograniczenia,

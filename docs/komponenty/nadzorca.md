@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE (M3) — testy w systemie (`scripts/test-m1.sh`, scenariusz `testy-w-systemie`) |
+| **Status** | PRZETESTOWANE (M3, M4) — testy w systemie (`scripts/test-m1.sh`, scenariusz `testy-w-systemie`), `scripts/test-m4.sh` (uruchamianie aplikacji, wyłączanie) |
 | **Kod** | `src/nadzorca/main.c`, klatka `src/wspolne/k1_klatka.c`, kanały `src/wspolne/k1_kanal.c`, protokół `src/wspolne/k1_komunikat.c` |
-| **Decyzje** | ADR 0006 (wersja M2), ADR 0007 (M3) |
+| **Decyzje** | ADR 0006 (wersja M2), ADR 0007 (M3), ADR 0008 (pulpit i aplikacje) |
 
 ## Cel
 Uruchamia usługi świata natywnego, każdą w osobnej klatce, łączy je kanałami, przekazuje ich logi na
@@ -24,6 +24,12 @@ root, wszystkie capabilities (RYZYKA R23). Usługi — patrz tabela.
 |---|---|---|---|---|---|
 | `ekran` | 101 | 3: kanał sterujący, 4: karta graficzna (DRM master) | `ioctl` typu `'d'` | tylko własny program | 128 MiB, pids 1 |
 | `wejscie` | 100 | 3: kanał do ekranu, 4…: urządzenia `event*` | `ioctl` typu `'E'` | tylko własny program | 8 MiB, pids 1 |
+| `gui` | 102 | 3: kanał do ekranu, 4: kanał do nadzorcy | `memfd_create`, `ftruncate` | tylko własny program | 48 MiB, pids 1 |
+| `zegar` (na żądanie) | 200 | 3: kanał do ekranu | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
+| `notatki` (na żądanie) | 201 | 3: kanał do ekranu | + `open`, `openat`, `fsync`, `rename` | + `/dane_uzytkownika/notatki` | 32 MiB, pids 1 |
+| `ustawienia` (na żądanie) | 202 | 3: kanał do ekranu | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
+
+`RLIMIT_FSIZE`: 0 dla ekranu i wejścia, 16 MiB dla gui i aplikacji (ogranicza też memfd powierzchni).
 
 Wspólne dla usług: fd 0 i 1 = `/dev/null`, fd 2 = pipe logu do nadzorcy; brak capabilities (także
 zbiór graniczny), `NO_NEW_PRIVS`, securebits zablokowane, `RLIMIT_CORE=0`, niezrzucalne
@@ -34,11 +40,14 @@ recvfrom seccomp set_tid_address restart_syscall execve` + `mmap`/`mprotect` bez
 `arch_prctl(ARCH_SET_FS)`, `prctl(PR_SET_DUMPABLE)`.
 
 ## Wejścia i wyjścia
-Wejście: statusy procesów (`signalfd`), logi usług, kanał testowy (obraz testowy). Wyjście: procesy
+Wejście: statusy procesów (`signalfd`), logi usług, prośby od gui, kanał testowy (obraz testowy). Wyjście: procesy
 usług, kanały (`socketpair`, strona odbiorcy z `SO_PASSCRED`), komunikaty `KLIENT` do ekranu, log.
 
 ## Zachowanie
-- Start: ekran (gdy brak karty — ponowna próba za 4 s), potem jego klienci (wejscie).
+- Start: katalog notatek (`/dane_uzytkownika/notatki`, właściciel 201), ekran (karta `card0`…`card7`;
+  gdy brak — ponowna próba za 4 s), potem jego klienci (wejscie, gui).
+- Prośby od `gui` (fd 4, nadawca UID 102): `URUCHOM` — aplikacja, jeśli jeszcze nie działa
+  (aplikacje nie są restartowane); `WYLACZ` — `SIGTERM` (wyłączenie) albo `SIGINT` (restart) do init.
 - Zakończenie usługi → wpis w logu (kod 159 = zabronione wywołanie systemowe) → restart po
   0,2 / 1 / 2 / 4 / 4 s; 6. zakończenie w ciągu 60 s → „wyłączony”.
 - Zakończenie ekranu → klienci zatrzymani (bez liczenia jako awarię) i uruchomieni ponownie.

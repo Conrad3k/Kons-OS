@@ -1,65 +1,72 @@
-# Komponent: ekran (`/rdzen/system/ekran`)
+# Komponent: ekran — obraz i okna (`/rdzen/system/ekran`)
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE (M2, M3) — `scripts/test-m2.sh` (zrzuty ekranu), testy w systemie (klatka, IPC, restart) |
-| **Kod** | `src/ekran/main.c`, renderer `src/grafika/k1_grafika.c`, protokół `src/wspolne/k1_zdarzenie.c` |
-| **Decyzje** | ADR 0006, ADR 0007 (klatka, kanały); wygląd: `docs/WYGLAD.md` |
+| **Status** | PRZETESTOWANE (M2–M4) — `scripts/test-m2.sh`, `scripts/test-m4.sh` (zrzuty), testy w systemie (klatka, złośliwe IPC, restart) |
+| **Kod** | `src/ekran/main.c` (kompozytor, wejście), `src/ekran/drm.c` (KMS), renderer `src/grafika/k1_grafika.c`, protokoły `src/wspolne/k1_zdarzenie.c`, `k1_komunikat.c` |
+| **Decyzje** | ADR 0006, ADR 0007 (klatka, kanały), ADR 0008 (okna), ADR 0010 (simpledrm); wygląd: `docs/WYGLAD.md` |
 
 ## Cel
-Jedyny proces z dostępem do karty graficznej (DRM/KMS): ustawia tryb obrazu, składa klatki
-(tapeta z logo + kursor), robi page flip. Od M4 będzie też składał okna rysowane przez `gui`.
+Jedyny proces z dostępem do karty graficznej (DRM/KMS) i kompozytor okien: ustawia tryb, rysuje
+tapetę (jeden z 4 wariantów), składa okna aplikacji i panele powłoki z ich pamięci współdzielonej,
+dodaje cienie okien i kursor, robi page flip. Kieruje wejście (mysz do powierzchni pod kursorem,
+klawiatura do okna z fokusem, Super do powłoki), zarządza fokusem, kolejnością, przeciąganiem
+i minimalizacją okien, przechowuje ustawienia i rozsyła je klientom.
 
 ## Granica zaufania
-Ufa jądru (sterownik DRM). **Nie ufa** komunikatom z kanału wejścia — każde pole jest sprawdzane
-(`k1_zdarzenie_sprawdz`), błędne są liczone i odrzucane. Nie przyjmuje innych danych z zewnątrz.
+Ufa jądru (DRM) i nadzorcy (kanał sterujący, UID 0 sprawdzany). **Nie ufa** klientom: każdy
+komunikat sprawdzany pole po polu, UID nadawcy każdego pakietu porównywany z tożsamością od
+nadzorcy, role egzekwowane (panele i cudze okna — tylko powłoka; ustawienia — tylko Ustawienia),
+powierzchnia przyjmowana tylko jako memfd z pieczęciami SHRINK/GROW/SEAL i dokładnym rozmiarem,
+mapowana tylko do odczytu; po 50 błędach klient jest rozłączany. Treść pikseli klientów jest
+tylko kopiowana i mieszana (bez interpretacji).
 
 ## Uprawnienia
-**M3 (ADR 0007):** UID/GID 101, bez capabilities, `NO_NEW_PRIVS`, seccomp (baza + `ioctl` tylko typu
-`'d'` = DRM), Landlock bez żadnej ścieżki, cgroup `ekran` (128 MiB, 1 proces). Kartę otwiera nadzorca
-(to otwarcie jest DRM masterem) i przekazuje jako fd 4.
+UID/GID 101, bez capabilities, `NO_NEW_PRIVS`, seccomp (baza + `ioctl` typu `'d'` = DRM),
+Landlock bez żadnej ścieżki, cgroup `ekran` (128 MiB, 1 proces). Kartę otwiera nadzorca (to
+otwarcie jest DRM masterem) i przekazuje jako fd 4.
 
 ## Wejścia i wyjścia
-- fd 3: kanał sterujący od nadzorcy — komunikaty `KLIENT(rola, aplikacja, uid)` z końcem kanału
-  klienta (`SCM_RIGHTS`); ekran sprawdza, że nadawcą jest root (nadzorca).
-- kanały klientów roli WEJSCIE (do 4): komunikaty `k1_zdarzenie` (16 B) — ruch myszy, przyciski,
-  klawisze; UID nadawcy każdego pakietu (`SCM_CREDENTIALS`) musi być tym, który podał nadzorca.
-- Karta graficzna: dwa bufory „dumb” XRGB8888 w trybie preferowanym przez monitor (QEMU: 1280×800).
-- Log: tryb, czas pierwszej klatki, stan kursora (pozycja, przycisk, liczniki zdarzeń) ≤ 2×/s.
-  **Bez kodów klawiszy.**
+- fd 3: kanał sterujący od nadzorcy — `KLIENT(rola, aplikacja, uid)` + koniec kanału klienta.
+- Kanały klientów: wejście (`k1_zdarzenie` 16 B, do 4 źródeł), powłoka i aplikacje (`k1_komunikat`
+  32 B, ADR 0008), razem do 12.
+- Karta: dwa bufory „dumb” XRGB8888 w trybie preferowanym (QEMU `bochs` 1280×800; simpledrm — tryb
+  z firmware), scena i tapeta w RAM.
+- Log: tryb, pierwsza klatka, okna (powstanie, przesunięcie, minimalizacja, zamknięcie), ustawienia,
+  odrzucone komunikaty (z powodem, ≤ 8 na klienta), stan kursora ≤ 2×/s. **Bez kodów klawiszy.**
 
-## Zachowanie (M2)
-Mysz przesuwa kursor; strzałki — o 20 px; lewy przycisk myszy zmienia kolor kursora na akcent.
-Kursor jest programowy: przed każdą klatką z tła w RAM odtwarzany jest fragment spod poprzedniej
-pozycji kursora w danym buforze, potem kursor rysowany na nowo i page flip (czekanie na zdarzenie
-zakończenia przed kolejną klatką).
+## Zachowanie
+- Scena składana tylko w uszkodzonych prostokątach (do 16, potem prostokąt obejmujący), osobno
+  dla każdego z dwóch buforów; kursor programowy odtwarzany ze sceny.
+- Nowe okno: na środku z przesunięciem kaskadowym, dostaje fokus; kliknięcie okna — fokus
+  i wierzch; okno nie wchodzi pod górny pasek, pasek tytułu zostaje w zasięgu.
+- Prędkość myszy: 0,5× / 1× / 2× (ustawienie). Bez okna z fokusem strzałki przesuwają kursor o 20 px.
+- Zmiana tapety: ponowne liczenie (ok. 2 s w emulacji TCG) i przerysowanie.
 
 ## Zależności
-musl (statycznie, w tym libm), jądro: DRM + `bochs` (QEMU stdvga). Bez libdrm.
+musl (statycznie, w tym libm), jądro: DRM + `bochs` (QEMU) albo `simpledrm` (firmware). Bez libdrm.
 
 ## Wywołania systemowe
-`open`, `ioctl` (DRM: GET_CAP, MODE_GETRESOURCES, MODE_GETCONNECTOR, MODE_GETENCODER, MODE_CREATE_DUMB,
-MODE_ADDFB, MODE_MAP_DUMB, MODE_SETCRTC, MODE_PAGE_FLIP, MODE_DIRTYFB), `mmap`, `read`, `poll`, `fcntl`,
-`clock_gettime`, `nanosleep`, `write` (log), `brk`/`mmap` (malloc tła), `exit_group`.
+`ioctl` (DRM: GET_CAP, MODE_GETRESOURCES/GETCONNECTOR/GETENCODER, CREATE_DUMB, ADDFB, MAP_DUMB,
+SETCRTC, PAGE_FLIP, DIRTYFB), `mmap` (bufory, powierzchnie — bez `PROT_EXEC`), `munmap`, `fcntl`
+(`F_GET_SEALS`), `fstat`, `recvmsg`/`sendmsg`, `read`, `poll`, `close`, `clock_gettime`, `write` (log).
 
 ## Obsługa błędów
-Brak karty/monitora/trybu → `k1_koniec()`: komunikat i wyjście z kodem 1 (nadzorca zapisuje to
-w logu i uruchamia ekran ponownie). Zamknięty kanał wejścia → źródło usunięte. Zamknięty kanał
-sterujący → koniec.
-Błędne komunikaty → odrzucone i policzone. Nieprawidłowe zdarzenia DRM (długość) → pominięte.
+Brak karty/monitora/trybu → `k1_koniec()` (nadzorca uruchomi ponownie). Zamknięty kanał klienta →
+usunięcie jego powierzchni (powłoka dostaje „okno zamknięte”). Zamknięty kanał sterujący → koniec.
 
 ## Powierzchnia ataku
-Parser komunikatów wejścia (mały, testy + fuzzing), parser zdarzeń DRM (dane z jądra, sprawdzana
-długość), sterownik DRM w jądrze (ioctl). Renderer nie przetwarza danych zewnętrznych (tylko rozmiar
-trybu, ograniczony do 8192×8192).
+Parsery komunikatów 16 B i 32 B (testy + fuzzing), zdarzenia DRM (sprawdzana długość), deskryptory
+od klientów (tylko memfd z pieczęciami), piksele klientów (kopiowanie z przycinaniem). Sterownik DRM
+w jądrze (ioctl).
 
 ## Testy
 | Test | Rodzaj |
 |---|---|
-| `test-m2.sh`: tryb, pierwsza klatka, zrzut (logo, tapeta, kursor) | funkcjonalny |
-| `test-m2.sh`: ruch myszy, strzałki, przycisk — log + zrzuty | funkcjonalny |
+| `test-m2.sh`: tryb, pierwsza klatka, mysz, strzałki, przycisk — log + zrzuty | funkcjonalny |
+| `test-m4.sh`: okna, przeciąganie, fokus, minimalizacja, motyw, tapeta — log + zrzuty | funkcjonalny |
 | w systemie: drugi proces nie przejmie ekranu (`SET_MASTER` → EBUSY) | negatywny |
-| w systemie: 4 złośliwe komunikaty odrzucone, poprawny przyjęty, poprawny od obcego UID odrzucony | negatywny (IPC) |
-| w systemie: awaria ekranu (SIGSEGV) nie zatrzymuje systemu, ekran wraca | negatywny + funkcjonalny |
-| w systemie: klatka (UID, capabilities, seccomp, cgroup, deskryptory) i próba w klatce | negatywny |
-| host: `test_zdarzenie` (32 przypadki), `fuzz_zdarzenie`, renderer z ASan/UBSan | jednostkowy / fuzzing |
+| w systemie: złośliwe zdarzenia wejścia i obcy nadawca (`odrzucone 5`) | negatywny (IPC) |
+| w systemie: powierzchnia bez memfd / bez pieczęci / zły rozmiar, panel od aplikacji, ustawienia od aplikacji, sterowanie cudzym oknem, okno od obcego UID — odrzucone; poprawne przyjęte (RAMKA) | negatywny (IPC) |
+| w systemie: klatka, próba w klatce; awaria ekranu → wraca z klientami | negatywny |
+| host: `test_komunikat`, `fuzz_komunikat`, `test_zdarzenie`, `fuzz_zdarzenie`, renderer z ASan/UBSan | jednostkowy / fuzzing |

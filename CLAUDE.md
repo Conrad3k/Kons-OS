@@ -15,4 +15,5 @@ Budowany skryptami w `scripts/`, testowany w QEMU, CI w GitHub Actions (tylko `m
 - Kontener: brak KVM (QEMU w TCG), sieć tylko HTTPS przez proxy (apt Ubuntu, deb.debian.org, GitHub,
   cdn/www/git.kernel.org). Start pracy: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh`
   (~6 min). Przed scaleniem zmian w systemie: pełny `scripts/testy.sh` lokalnie.
-- Wygląd (ustalenia właściciela, paleta, logo): `docs/WYGLAD.md`. Zrzuty ekranu z testów: `build/testy/m2-*.png`.
+- Wygląd (ustalenia właściciela, paleta, znak K1, tapety): `docs/WYGLAD.md`. Zrzuty ekranu z testów: `build/testy/m2-*.png`,
+  `build/testy/m4-*.png`. Obraz do maszyny wirtualnej: `build/wynik/k1-<wersja>.iso` (CI: Releases).

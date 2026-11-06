@@ -14,15 +14,20 @@ CC_K1     ?= musl-gcc
 CC_HOST   ?= gcc
 CC_FUZZ   ?= clang
 FUZZ_CZAS ?= 30
+GEN       := $(BUDOWA)/gen
+CZCIONKI  ?= /usr/share/fonts/truetype/ibm-plex
+WERSJA    := $(shell cat VERSION)
 
 OSTRZEZENIA := -Wall -Wextra -Werror -Wformat=2 -Wformat-security -Wconversion -Wshadow \
                -Wstrict-prototypes -Wmissing-prototypes
 CFLAGS_K1   := -std=c11 -O2 -D_GNU_SOURCE $(OSTRZEZENIA) -fstack-protector-strong \
                -fstack-clash-protection -fPIE -ftrivial-auto-var-init=zero \
-               -ffile-prefix-map=$(CURDIR)=. -isystem $(NAGLOWKI) -Isrc/wspolne -Isrc/grafika
+               -ffile-prefix-map=$(CURDIR)=. -isystem $(NAGLOWKI) -Isrc/wspolne -Isrc/grafika -Isrc/przybornik \
+               '-DK1_WERSJA="$(WERSJA)"'
 LDFLAGS_K1  := -static-pie -Wl,-z,relro,-z,now,-z,noexecstack -Wl,--build-id=none -s
 CFLAGS_HOST := -std=c11 -O1 -g -D_GNU_SOURCE $(OSTRZEZENIA) -fsanitize=address,undefined \
-               -fno-sanitize-recover=all -fno-omit-frame-pointer -D_FORTIFY_SOURCE=3 -Isrc/wspolne -Isrc/grafika
+               -fno-sanitize-recover=all -fno-omit-frame-pointer -D_FORTIFY_SOURCE=3 -Isrc/wspolne -Isrc/grafika \
+               -Isrc/przybornik '-DK1_WERSJA="$(WERSJA)"'
 
 WSPOLNE := src/wspolne/k1_log.c src/wspolne/k1_cmdline.c src/wspolne/k1_zdarzenie.c
 NAGL    := src/wspolne/k1_log.h src/wspolne/k1_cmdline.h src/wspolne/k1_zdarzenie.h src/wspolne/k1_uslugi.h
@@ -30,8 +35,15 @@ NAGL    := src/wspolne/k1_log.h src/wspolne/k1_cmdline.h src/wspolne/k1_zdarzeni
 USLUGI  := src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c
 NAGL_U  := src/wspolne/k1_komunikat.h src/wspolne/k1_kanal.h src/wspolne/k1_klatka.h
 GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
+# GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
+PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
+           src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_aplikacja.c \
+           src/grafika/k1_grafika.c $(GEN)/k1_czcionki_dane.c
+NAGL_P  := $(wildcard src/przybornik/*.h) src/grafika/k1_grafika.h src/grafika/k1_czcionka.h VERSION
+APLIKACJE := $(BIN)/zegar $(BIN)/notatki $(BIN)/ustawienia
 
-PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(BIN)/wejscie $(BIN)/ekran $(BIN)/k1-test-systemu
+PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(BIN)/wejscie $(BIN)/ekran $(BIN)/gui $(APLIKACJE) \
+            $(BIN)/k1-test-systemu
 
 all: $(PROGRAMY)
 
@@ -47,13 +59,28 @@ $(BIN)/nadzorca: src/nadzorca/main.c $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(
 $(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
-$(BIN)/ekran: src/ekran/main.c $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ src/ekran/main.c src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/ekran: src/ekran/main.c src/ekran/drm.c src/ekran/ekran.h $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ src/ekran/main.c src/ekran/drm.c src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+
+$(BIN)/gui: src/gui/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) $(NAGL_P) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ src/gui/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+
+$(BIN)/%: src/aplikacje/%/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) $(NAGL_P) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $< $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+
+# Fonts: rasterised on the host with FreeType (narzedzia/czcionki.c), compiled into the programs.
+FT_CFLAGS = $(shell pkg-config --cflags freetype2)
+FT_LIBS = $(shell pkg-config --libs freetype2)
+$(OBJ)/czcionki: narzedzia/czcionki.c | $(OBJ)
+	$(CC_HOST) -std=c11 -O1 -Wall -Wextra -Werror $(FT_CFLAGS) -o $@ narzedzia/czcionki.c $(FT_LIBS)
+
+$(GEN)/k1_czcionki_dane.c: $(OBJ)/czcionki | $(GEN)
+	$(OBJ)/czcionki $(CZCIONKI) > $@.tmp && mv $@.tmp $@
 
 $(BIN)/k1-test-systemu: testy/system/k1_test_systemu.c $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ testy/system/k1_test_systemu.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
-$(BIN) $(OBJ):
+$(BIN) $(OBJ) $(GEN):
 	mkdir -p $@
 
 # --- testy na hoście ---
@@ -69,10 +96,17 @@ $(OBJ)/test_komunikat: testy/host/test_komunikat.c src/wspolne/k1_komunikat.c sr
 $(OBJ)/podglad_grafiki: testy/host/podglad_grafiki.c $(GRAFIKA) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/podglad_grafiki.c src/grafika/k1_grafika.c -lm
 
-testy-host: $(OBJ)/test_cmdline $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/podglad_grafiki
+# Host: without the sandbox and the app skeleton (they need our kernel's headers).
+HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c,$(PRZYB)) src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c \
+              src/wspolne/k1_log.c
+$(OBJ)/test_przybornik: testy/host/test_przybornik.c $(PRZYB) $(NAGL_P) | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przybornik.c $(HOST_PRZYB) -lm
+
+testy-host: $(OBJ)/test_cmdline $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki
 	$(OBJ)/test_cmdline
 	$(OBJ)/test_zdarzenie
 	$(OBJ)/test_komunikat
+	$(OBJ)/test_przybornik
 	$(OBJ)/podglad_grafiki 1280 800 900 400 0 > $(OBJ)/podglad.ppm
 	$(OBJ)/podglad_grafiki 13 7 -50 3 1 > /dev/null
 	$(OBJ)/podglad_grafiki 1 1 0 0 0 > /dev/null

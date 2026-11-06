@@ -35,3 +35,6 @@ Krótko, dlaczego nie.
 | [0005](0005-bledy-krytyczne-przy-starcie.md) | Obsługa błędów krytycznych przy starcie | Przyjęty |
 | [0006](0006-ekran-wejscie-i-nadzorca-m2.md) | Ekran (DRM/KMS), wejście (evdev) i minimalny nadzorca (M2) | Przyjęty |
 | [0007](0007-nadzorca-klatki-uslug-m3.md) | Nadzorca, klatki usług i kanały między nimi (M3) | Przyjęty |
+| [0008](0008-pulpit-okna-i-aplikacje-m4.md) | Pulpit, okna i pierwsze aplikacje (M4) | Przyjęty |
+| [0009](0009-czcionki-i-tekst.md) | Czcionki i rysowanie tekstu | Przyjęty |
+| [0010](0010-obraz-iso-do-maszyn-wirtualnych.md) | Obraz ISO do maszyn wirtualnych i grafika z firmware | Przyjęty (tymczasowy do M10) |

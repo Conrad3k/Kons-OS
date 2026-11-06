@@ -22,8 +22,10 @@ struct k1_obraz {
 #define K1_KURSOR_HOT_X 2
 #define K1_KURSOR_HOT_Y 2
 
-/* Wallpaper + logo for the whole image. Deterministic (same size → same pixels). */
-void k1_rysuj_tlo(struct k1_obraz *o);
+/* Wallpaper `wariant` (0..K1_TAPETY-1, docs/WYGLAD.md) for the whole image. Deterministic (same size
+ * and variant → same pixels). */
+#define K1_TAPETY 4
+void k1_rysuj_tlo(struct k1_obraz *o, int wariant);
 
 /* Renders the cursor sprite (K1_KURSOR_SZER x K1_KURSOR_WYS). `wcisniety` = mouse button held. */
 void k1_rysuj_kursor(uint32_t *sprite, int wcisniety);
@@ -35,5 +37,13 @@ void k1_naloz_sprite(struct k1_obraz *o, const uint32_t *sprite, uint32_t sw, ui
 /* Copies rectangle (x, y, w, h) from `src` to the same place in `dst` (same size); clipped. */
 void k1_kopiuj_prostokat(struct k1_obraz *dst, const struct k1_obraz *src, int32_t x, int32_t y,
                          int32_t w, int32_t h);
+
+/* Small K1 mark (shield with battlements + monogram) over a premultiplied ARGB image. */
+void k1_rysuj_znak(struct k1_obraz *o, float cx, float cy, float wys);
+
+/* Blends a premultiplied ARGB image (`src`, its own size) onto `dst` at (x, y), clipped to the
+ * rectangle (kx, ky, kw, kh) of `dst`. Used by the screen process to compose surfaces. */
+void k1_skladaj(struct k1_obraz *dst, const struct k1_obraz *src, int32_t x, int32_t y, int32_t kx, int32_t ky,
+                int32_t kw, int32_t kh);
 
 #endif

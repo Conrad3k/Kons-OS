@@ -1,8 +1,8 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.3.0 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
-M3 (klatki usług, restarty).
+Stan: wersja 0.4.0 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej).
 Data: 2026-11-06. Plik aktualizujemy po każdym etapie.
 Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
 
@@ -24,23 +24,39 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
   - Hasło (M5): opcjonalne, włączane w Ustawieniach. Zapomniane hasło = trzeba założyć nowe konto
     (dane zaszyfrowane starym hasłem przepadają).
   - Przeglądarka (M8): osobne sesje — jeszcze do przemyślenia.
+  - Po pierwszych zrzutach M4: „fenomenalna robota”; tapeta na wzór Twojego zdjęcia (warstwy
+    wygiętych wstęg), może być w stylu systemu, kilka wariantów; logo prostsze i eleganckie.
+    → Zrobione: 4 tapety (Glina — domyślna, Zmierzch — jak zdjęcie, Noc, Świt) do wyboru
+    w Ustawieniach → Wygląd; płaski znak K1 (docs/WYGLAD.md).
 
+[!] Pierwsze uruchomienie w maszynie wirtualnej: obraz k1-0.4.0.iso (Releases), instrukcja
+    w README („Uruchom w maszynie wirtualnej”). Napisz, co widać i co nie działa
+    (Issues → „Feedback z testu” albo w czacie).
+[!] Ocena pulpitu i nowych tapet: co zmienić (kolory, rozmiary, pasek, okna)?
 [!] Kiedy pierwszy test na laptopie (pendrive)? Wymaga pracy z punktu 2 („prawdziwy sprzęt”).
     Przyda się model laptopa.
+[!] Przed M5 — jak ma wyglądać ekran hasła przy starcie (gdy włączysz hasło w Ustawieniach)?
+    Czy zostawiamy jedno konto na komputer?
 [!] Przed M8 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)?
 
 
 2. ZALEGŁOŚCI I RZECZY PRZEKROJOWE
 ----------------------------------
-[ ] Prawdziwy sprzęt (potrzebne do testów na laptopie):
-      - start z pendrive'a przez UEFI,
-      - grafika z firmware (simpledrm) zamiast karty QEMU,
-      - klawiatura i mysz USB, touchpad (I2C-HID),
-      - dyski NVMe / SATA.
+[~] Prawdziwy sprzęt (potrzebne do testów na laptopie):
+      [x] start z płyty/obrazu przez UEFI i BIOS (ISO z GRUB-em; ADR 0010, tymczasowo do M10),
+      [x] grafika z firmware (simpledrm) — działa w VM,
+      [ ] zapis ISO na pendrive i start z niego (obraz jest hybrydowy — do sprawdzenia na sprzęcie),
+      [ ] klawiatura i mysz USB, tablet USB w VM, touchpad (I2C-HID),
+      [ ] dyski NVMe / SATA (potrzebne dopiero z trwałymi danymi, M5).
 [ ] Komunikat o błędzie startu widoczny na ekranie (dziś tylko na porcie szeregowym).
 [ ] Własny build biblioteki musl 1.2.5 z poprawkami bezpieczeństwa (dziś 1.2.4 z Ubuntu).
 [~] Ochrona _FORTIFY_SOURCE: decyzja z M3 — na razie nie (ADR 0007), wracamy przy własnym musl.
-[ ] Podłączanie klawiatury/myszy w trakcie pracy (hotplug) i polski układ klawiatury (przy M4).
+[~] Polski układ klawiatury (programisty, prawy Alt) — gotowy (M4). Podłączanie klawiatury/myszy
+    w trakcie pracy (hotplug) — do zrobienia (razem z USB).
+[ ] Dźwięk (ikona na górnym pasku jest, sterownika i usługi dźwięku jeszcze nie ma).
+[ ] Bateria na górnym pasku (ACPI battery) — przy testach na laptopie.
+[ ] Oznaczanie okien przez ekran (zaufana ramka), zanim pojawią się aplikacje spoza rdzenia (RYZYKA R26).
+[ ] Trwały zapis ustawień i notatek — z Blob Vault (M5).
 
 
 3. ETAPY
@@ -55,17 +71,20 @@ M3  Trusted Core — GOTOWE (0.3.0)
     [x] kanały między usługami z kontrolą nadawcy (gniazda UNIX, SO_PASSCRED)
     [x] testy negatywne: próby podniesienia uprawnień, ucieczki z „klatki”, zabronione wywołania
 
-M4  GUI — NASTĘPNY
-    [ ] proces gui: pulpit, okna, pasek (wygląd wg Twoich decyzji z punktu 1)
-    [ ] tekst: czcionka i jej rysowanie (z polskimi znakami)
-    [ ] okna rysowane w pamięci współdzielonej, składane przez ekran
-    [ ] pierwsze aplikacje natywne: zegar, notatki
-    [ ] przejęcie gui nie daje dostępu do danych ani systemu (testy)
+M4  GUI — GOTOWE (0.4.0)
+    [x] proces gui: górny pasek (aplikacja, dźwięk, zegar), dolny pasek jak w Windows 11, menu Start
+    [x] tekst: IBM Plex Sans/Serif z polskimi znakami (bitmapy liczone przy budowie)
+    [x] okna rysowane w pamięci współdzielonej, składane przez ekran (cienie, przeciąganie, minimalizacja)
+    [x] aplikacje natywne: Zegar, Notatki, Ustawienia (motyw, tapeta, mysz, sekundy)
+    [x] przejęcie gui nie daje dostępu do danych ani systemu (klatki, próby, złośliwe okna — testy)
+    [x] obraz ISO do maszyny wirtualnej (UEFI i BIOS), tapety, znak K1
 
-M5  Blob Vault i szyfrowanie danych
+M5  Blob Vault i szyfrowanie danych — NASTĘPNY
     [ ] magazyn obiektów zamiast katalogów (identyfikator, metadane, hash, pochodzenie)
     [ ] szyfrowanie /dane_uzytkownika na dysku (dziś dane są tylko w RAM)
     [ ] dostęp aplikacji tylko do obiektów, na które się zgodzisz
+    [ ] opcjonalne hasło przy starcie (włączane w Ustawieniach); zapomniane hasło = nowe konto
+    [ ] trwały zapis notatek i ustawień; sterownik dysku (virtio / SATA / NVMe)
 
 M6  Dekodery w izolacji
     [ ] każdy plik (np. PNG) dekodowany w jednorazowym, zamkniętym procesie
@@ -98,7 +117,7 @@ M12 Audyt
 4. DECYZJE TECHNICZNE DO PODJĘCIA (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
 ----------------------------------------------------------------------------------------------
 M3   (podjęte, ADR 0007) fortify-headers — na razie nie; kanały: gniazda UNIX SEQPACKET + SO_PASSCRED
-M4   czcionka (źródło, licencja), rysowanie tekstu: własne czy biblioteka (np. LVGL)
+M4   (podjęte) czcionki IBM Plex (OFL), własne rysowanie tekstu bez LVGL (ADR 0009); obraz ISO z GRUB (ADR 0010)
 M5   fscrypt czy dm-crypt; skąd klucz (hasło, TPM)
 M7   przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP
 M8   Firefox czy WPE WebKit (sprawdzenie sandboxa Firefoksa w strefie)

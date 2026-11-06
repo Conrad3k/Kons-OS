@@ -9,9 +9,16 @@ co trafia **do obrazu** (działa na komputerze użytkownika), od tego, co służ
 |---|---|---|---|---|
 | Jądro Linux | 6.18.60 (LTS) | GPL-2.0 | cdn.kernel.org; SHA-256 przypięta w `jadro/wersja.env`, podpis PGP wydania sprawdzany przy każdym pobraniu | fundament systemu (SPEC §4) |
 | musl libc (statycznie w każdym programie) | 1.2.4-2 (Ubuntu 24.04) | MIT | archiwum Ubuntu (podpisane repozytoria apt) | mała, czytelna libc ze wsparciem statycznego linkowania (SPEC §4); ADR 0002 |
+| IBM Plex Sans / Serif — **tylko bitmapy glifów** wbudowane w `gui` i aplikacje | 6.1.1 (`fonts-ibm-plex`) | SIL OFL 1.1 | archiwum Ubuntu | tekst z polskimi znakami bez parsera czcionek w systemie (ADR 0009) |
 
-Nic więcej: brak bibliotek współdzielonych, interpreterów, powłoki. Grafika (M2) bez bibliotek:
-API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer własny (`src/grafika/`).
+Nic więcej: brak bibliotek współdzielonych, interpreterów, powłoki. Grafika bez bibliotek:
+API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybornik GUI własne
+(`src/grafika/`, `src/przybornik/`).
+
+### Tylko w obrazie ISO (start w maszynie wirtualnej, do M10)
+| Zależność | Wersja | Licencja | Źródło | Uzasadnienie |
+|---|---|---|---|---|
+| GRUB (EFI x86_64 i BIOS i386-pc) | 2.12-1ubuntu7.3 | GPL-3.0 | archiwum Ubuntu (`grub-efi-amd64-bin`, `grub-pc-bin`) | start z płyty przez UEFI i BIOS w maszynach wirtualnych; tymczasowo do podpisanego UKI w M10 (ADR 0010, RYZYKA R25) |
 
 ## Do budowy (wpływają na wynik)
 
@@ -22,6 +29,8 @@ API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer własny 
 | binutils, make, flex, bison, bc, libelf, libssl, rsync, cpio, xz | Ubuntu 24.04 | Ubuntu | wymagania budowy jądra |
 | `gen_init_cpio` | z jądra 6.18.60 | źródła jądra | budowa initramfs bez uprawnień roota, deterministycznie (`-t`) |
 | squashfs-tools (`mksquashfs`) | 4.6.1 | Ubuntu 24.04 | budowa obrazu `/rdzen` (zstd, `SOURCE_DATE_EPOCH`) |
+| FreeType (`libfreetype-dev`) + `pkg-config` | 2.13.2 | Ubuntu 24.04 | `narzedzia/czcionki.c`: rasteryzacja czcionek do bitmap przy budowie (ADR 0009); nie trafia do obrazu |
+| `grub-mkrescue` (`grub-common`), `xorriso`, `mtools` | 2.12 / 1.5.6 / 4.0.43 | Ubuntu 24.04 | składanie obrazu ISO (ADR 0010) |
 
 Wersje użyte w danym buildzie zapisuje `build/wynik/srodowisko.txt`.
 
@@ -37,5 +46,5 @@ Wersje użyte w danym buildzie zapisuje `build/wynik/srodowisko.txt`.
 | kernel-hardening-checker | v0.6.17.1 (`afc376f2…`) | GitHub | **tylko dane**: lista zaleceń KSPP czytana jako tekst przez `scripts/sprawdz-kspp.sh`; kod narzędzia nie jest uruchamiany |
 
 ## Planowane (do decyzji)
-- `fortify-headers` (GitHub) — `_FORTIFY_SOURCE` z musl; decyzja w M3 (ADR 0002).
-- Własny build musl 1.2.5 z poprawkami bezpieczeństwa (pakiet źródłowy Debiana) — przed M3.
+- `fortify-headers` (GitHub) — na razie nie (ADR 0007); ponownie przy własnym buildzie musl.
+- Własny build musl 1.2.5 z poprawkami bezpieczeństwa (pakiet źródłowy Debiana).

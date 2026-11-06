@@ -1,0 +1,98 @@
+#include "k1_aplikacja.h"
+
+#include <errno.h>
+#include <poll.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "k1_klatka.h"
+#include "k1_log.h"
+
+void k1_apl_odswiez(struct k1_apl *a)
+{
+    a->okno.brudna = 1;
+}
+
+const struct k1_motyw *k1_apl_motyw(const struct k1_apl *a)
+{
+    return k1_motyw(a->k.ustawienia[K1_UST_MOTYW]);
+}
+
+static void rysuj(struct k1_apl *a)
+{
+    struct k1_obraz *o = k1_pow_rysuj(&a->okno);
+    const struct k1_motyw *m = k1_apl_motyw(a);
+    if (o == NULL)
+        return;
+    k1_ramka_okna(o, m, a->tytul, a->aktywne, a->najechany);
+    if (a->rysuj)
+        a->rysuj(o, m);
+    k1_pow_zatwierdz(&a->k, &a->okno);
+}
+
+static void wskaznik(struct k1_apl *a, const struct k1_komunikat *m)
+{
+    enum k1_trafienie t = m->c == K1_WSK_WYJSCIE ? K1_TR_BRAK : k1_trafienie_ramki((uint32_t)a->szer, (uint32_t)a->wys, m->a, m->b);
+    int najechany = (t == K1_TR_ZAMKNIJ || t == K1_TR_MINIMALIZUJ) ? (int)t : 0;
+    if (najechany != a->najechany) {
+        a->najechany = najechany;
+        k1_apl_odswiez(a);
+    }
+    if (m->c == K1_WSK_WCISNIECIE && m->d == K1_PRZYCISK_LEWY) {
+        a->wcisniety = (int)t;
+        if (t == K1_TR_TYTUL)
+            k1_wyslij(&a->k, k1_komunikat_nowy(K1_KOM_PRZECIAGNIJ, a->okno.id, 0, 0, 0, 0, 0));
+    } else if (m->c == K1_WSK_PUSZCZENIE && m->d == K1_PRZYCISK_LEWY) {
+        if (t == K1_TR_ZAMKNIJ && a->wcisniety == K1_TR_ZAMKNIJ) {
+            k1_log(a->tag, "okno zamknięte przez użytkownika");
+            exit(0);
+        }
+        if (t == K1_TR_MINIMALIZUJ && a->wcisniety == K1_TR_MINIMALIZUJ)
+            k1_wyslij(&a->k, k1_komunikat_nowy(K1_KOM_MINIMALIZUJ, a->okno.id, 0, 0, 0, 0, 0));
+        a->wcisniety = 0;
+    }
+    if (a->wskaznik && (t == K1_TR_TRESC || m->c == K1_WSK_PUSZCZENIE || m->c == K1_WSK_WYJSCIE))
+        a->wskaznik(m->c, m->a, m->b, m->d);
+}
+
+void k1_apl_uruchom(struct k1_apl *a)
+{
+    struct k1_powierzchnia *pow[1] = { &a->okno };
+    k1_klatka_w_usludze(a->tag);
+    k1_klient_start(&a->k, a->tag);
+    k1_pow_utworz(&a->k, &a->okno, 1, a->szer, a->wys, K1_POW_OKNO, 0, 0);
+    rysuj(a);
+    k1_log(a->tag, "okno gotowe (%dx%d)", (int)a->szer, (int)a->wys);
+    for (;;) {
+        struct pollfd p = { a->k.fd, POLLIN, 0 };
+        struct k1_komunikat m;
+        int czas = a->zegar ? a->zegar() : -1;
+        if (poll(&p, 1, czas) < 0 && errno != EINTR)
+            k1_koniec(a->tag, "poll: %s", strerror(errno));
+        while (k1_odbierz(&a->k, pow, 1, &m)) {
+            switch (m.typ) {
+            case K1_KOM_WSKAZNIK:
+                if (m.obiekt == a->okno.id)
+                    wskaznik(a, &m);
+                break;
+            case K1_KOM_KLAWISZ:
+                if (a->klawisz)
+                    a->klawisz((unsigned)m.a, m.b, (unsigned)m.c);
+                break;
+            case K1_KOM_FOKUS:
+                a->aktywne = m.a;
+                k1_apl_odswiez(a);
+                break;
+            case K1_KOM_USTAWIENIE:
+                k1_apl_odswiez(a);
+                break;
+            default:
+                break;
+            }
+        }
+        if (a->zegar)
+            a->zegar();
+        if (a->okno.brudna)
+            rysuj(a);
+    }
+}

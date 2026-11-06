@@ -572,7 +572,8 @@ static void t_inventory(void)
         strncat(joined, inventory[i], sizeof joined - strlen(joined) - 1);
         strncat(joined, " ", sizeof joined - strlen(joined) - 1);
     }
-    check(strcmp(joined, "/rdzen/init /rdzen/system/ekran /rdzen/system/nadzorca /rdzen/system/skrypt-testowy "
+    check(strcmp(joined, "/rdzen/aplikacje/notatki /rdzen/aplikacje/ustawienia /rdzen/aplikacje/zegar /rdzen/init "
+                         "/rdzen/system/ekran /rdzen/system/gui /rdzen/system/nadzorca /rdzen/system/skrypt-testowy "
                          "/rdzen/system/test-systemu /rdzen/system/wejscie ") == 0,
           "obraz rdzenia zawiera tylko programy K1 i pliki testowe (brak powłoki i innych programów)", "pliki: %s",
           joined);
@@ -840,16 +841,36 @@ static void t_klatki(void)
                                             "/memfd:", NULL };
     static const char *const fd_wejscie[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/rdzen/jadro/dev/input/event",
                                               NULL };
+    static const char *const fd_okna[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/memfd:", NULL };
+    static const struct { int apl; const char *nazwa; int uid; } apl[] = {
+        { K1_APL_ZEGAR, "zegar", K1_UID_ZEGAR },
+        { K1_APL_NOTATKI, "notatki", K1_UID_NOTATKI },
+        { K1_APL_USTAWIENIA, "ustawienia", K1_UID_USTAWIENIA },
+    };
+    size_t i;
+    int j;
     t_klatka("ekran", K1_UID_EKRAN, fd_ekran);
     t_klatka("wejscie", K1_UID_WEJSCIE, fd_wejscie);
+    for (j = 0; j < 100 && find_process("gui") == 0; j++)
+        msleep(100);
+    t_klatka("gui", K1_UID_GUI, fd_okna);
+    /* M4: applications are started on request (here: of the test channel, normally of gui) */
+    for (i = 0; i < sizeof apl / sizeof apl[0]; i++)
+        zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM, 0, apl[i].apl, 0, 0, 0, 0), NULL, 10);
+    for (i = 0; i < sizeof apl / sizeof apl[0]; i++) {
+        for (j = 0; j < 150 && find_process(apl[i].nazwa) == 0; j++)
+            msleep(100);
+        msleep(500);
+        t_klatka(apl[i].nazwa, apl[i].uid, fd_okna);
+    }
 }
 
 /* Probes: this program in the sandbox of a service, trying forbidden things (see proba()). */
 static void t_proby(void)
 {
     static const struct { int profil; const char *nazwa; } p[] = {
-        { K1_PROFIL_WEJSCIE, "wejscie" },
-        { K1_PROFIL_EKRAN, "ekran" },
+        { K1_PROFIL_WEJSCIE, "wejscie" },     { K1_PROFIL_EKRAN, "ekran" },     { K1_PROFIL_GUI, "gui" },
+        { K1_PROFIL_ZEGAR, "zegar" },         { K1_PROFIL_NOTATKI, "notatki" }, { K1_PROFIL_USTAWIENIA, "ustawienia" },
     };
     size_t i;
     for (i = 0; i < sizeof p / sizeof p[0]; i++) {
@@ -857,6 +878,112 @@ static void t_proby(void)
         check(r == 0, "NEGATYWNY: w klatce usługi nie da się podnieść uprawnień, uciec ani wołać zabronionych funkcji jądra",
               "klatka %s: wynik próby %d (0 = wszystko zablokowane)", p[i].nazwa, r);
     }
+}
+
+/* ---- M4: window protocol ---- */
+
+static int memfd(size_t rozmiar, int pieczecie)
+{
+    int fd = (int)syscall(SYS_memfd_create, "test-okno", MFD_CLOEXEC | 0x0002U /* ALLOW_SEALING */ | MFD_NOEXEC_SEAL);
+    if (fd < 0 || ftruncate(fd, (off_t)rozmiar) != 0)
+        return -1;
+    if (pieczecie && fcntl(fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_SEAL) != 0)
+        return -1;
+    return fd;
+}
+
+/* Waits up to `ms` for a message of type `typ` from ekran on `fd`. */
+static int czekaj_na(int fd, int typ, uint32_t obiekt, int ms)
+{
+    int i;
+    for (i = 0; i < ms / 20; i++) {
+        struct k1_odebrane o;
+        struct k1_komunikat m;
+        enum k1_kanal_wynik w = k1_kanal_odbierz(fd, &o);
+        if (w == K1_KANAL_PUSTO) {
+            msleep(20);
+            continue;
+        }
+        if (o.fd >= 0)
+            close(o.fd);
+        if (w != K1_KANAL_KOMUNIKAT)
+            return 0;
+        if (k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_EKRANU, &m) == 0 && m.typ == typ && m.obiekt == obiekt)
+            return 1;
+    }
+    return 0;
+}
+
+static int wyslij_k(int fd, struct k1_komunikat m, int przekaz)
+{
+    return k1_kanal_wyslij(fd, &m, sizeof m, przekaz) == 0;
+}
+
+/* Malicious window clients (SPEC §13). The harness checks ekran's log for each reason. */
+static void t_okna_ipc(void)
+{
+    const int32_t w = 64, h = 48;
+    const size_t rozmiar = (size_t)w * (size_t)h * 8u;
+    int fd = polacz(K1_ROLA_APLIKACJA, K1_APL_ZEGAR, 0), obcy = polacz(K1_ROLA_APLIKACJA, K1_APL_ZEGAR, K1_UID_ZEGAR);
+    int null = open("/rdzen/jadro/dev/null", O_RDWR | O_CLOEXEC), m1 = memfd(rozmiar, 0), m2 = memfd(rozmiar / 2, 1),
+        m3 = memfd(rozmiar, 1), m4 = memfd(rozmiar, 1), ok, ramka, ramka_obcy;
+    if (fd < 0 || obcy < 0 || null < 0 || m1 < 0 || m2 < 0 || m3 < 0 || m4 < 0) {
+        check(0, "M4: protokół okien", "przygotowanie: %d %d %d %d %d %d %d", fd, obcy, null, m1, m2, m3, m4);
+        return;
+    }
+    ok = czekaj_na(fd, K1_KOM_WITAJ, 0, 5000);
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 1, w, h, K1_POW_OKNO, 0, 0), -1);  /* no fd */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 2, w, h, K1_POW_OKNO, 0, 0), null); /* not memfd */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 3, w, h, K1_POW_OKNO, 0, 0), m1);   /* no seals */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 4, w, h, K1_POW_OKNO, 0, 0), m2);   /* too small */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 5, w, h, K1_POW_PANEL, 0, 0), m3);  /* panel */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_USTAW, 0, K1_UST_MOTYW, 1, 0, 0, 0), -1);         /* not Ustawienia */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_MINIMALIZUJ_OKNO, 1, 0, 0, 0, 0, 0), -1);         /* not the shell */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 6, w, h, K1_POW_OKNO, 0, 0), m4);   /* valid */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 6, 0, 0, 0, 0, 0), -1);
+    ramka = czekaj_na(fd, K1_KOM_RAMKA, 6, 10000);
+    /* a valid window from a foreign UID is not accepted */
+    ok &= czekaj_na(obcy, K1_KOM_WITAJ, 0, 5000);
+    ok &= wyslij_k(obcy, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 1, w, h, K1_POW_OKNO, 0, 0), m3);
+    ok &= wyslij_k(obcy, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 1, 0, 0, 0, 0, 0), -1);
+    ramka_obcy = czekaj_na(obcy, K1_KOM_RAMKA, 1, 2000);
+    check(ok && ramka && !ramka_obcy && find_process("ekran") > 0,
+          "NEGATYWNY M4: ekran odrzuca złe powierzchnie (bez memfd, bez pieczęci, zły rozmiar), panel i ustawienia od "
+          "aplikacji, sterowanie cudzymi oknami i okno od obcego UID; poprawne okno przyjmuje",
+          "wysłanie=%d ramka=%d ramka_obcego=%d", ok, ramka, ramka_obcy);
+    close(fd);
+    close(obcy);
+    close(null);
+    close(m1);
+    close(m2);
+    close(m3);
+    close(m4);
+}
+
+/* The shell crashes: it comes back, the application windows stay. */
+static void t_gui_crash(void)
+{
+    long gui = find_process("gui"), zegar = find_process("zegar"), nowy = 0;
+    int i, zabity = gui > 0 && kill((pid_t)gui, SIGSEGV) == 0;
+    for (i = 0; i < 100; i++) {
+        nowy = find_process("gui");
+        if (nowy > 0 && nowy != gui)
+            break;
+        msleep(100);
+    }
+    check(zabity && nowy > 0 && nowy != gui && zegar > 0 && find_process("zegar") == zegar,
+          "M4: awaria pulpitu (gui) — wraca sam, okna aplikacji zostają", "gui %ld → %ld, zegar %ld → %ld", gui, nowy,
+          zegar, find_process("zegar"));
+}
+
+/* Applications are not restarted: closing (or a crash) ends them. */
+static void t_aplikacja_bez_restartu(void)
+{
+    long zegar = find_process("zegar");
+    int zabity = zegar > 0 && kill((pid_t)zegar, SIGKILL) == 0;
+    msleep(2500);
+    check(zabity && find_process("zegar") == 0, "M4: zamknięta aplikacja nie uruchamia się sama ponownie", "zegar=%ld",
+          find_process("zegar"));
 }
 
 /* A crash of the screen process must not take the system down (SPEC §7) and ekran must come back
@@ -935,7 +1062,9 @@ static int proba(const char *profil)
     char *const envp[] = { NULL };
     long r;
     void *m;
-    int e;
+    int e, pliki = strstr(profil, "notatki") != NULL;
+    int okna = pliki || strstr(profil, "gui") != NULL || strstr(profil, "zegar") != NULL ||
+               strstr(profil, "ustawienia") != NULL;
 
     memset(&sa, 0, sizeof sa);
     sa.sa_sigaction = proba_sigsys;
@@ -953,8 +1082,28 @@ static int proba(const char *profil)
         proba_bledy++;
         k1_log("K1-PROBA", "[BŁĄD] uruchomienie innego programu: r=%ld errno=%d", r, e);
     }
-    zablokowane("otwarcie pliku (open)", SYS_open, (long)"/rdzen/init", O_RDONLY, 0, 0, 0);
-    zablokowane("otwarcie pliku (openat)", SYS_openat, AT_FDCWD, (long)"/rdzen/jadro/proc/1/status", O_RDONLY, 0, 0);
+    if (pliki) {
+        /* Notatki: open is allowed, Landlock limits it to its own directory */
+        int f1 = open("/rdzen/init", O_RDONLY | O_CLOEXEC), e1 = errno;
+        int f2 = open("/dane_uzytkownika/obcy", O_WRONLY | O_CREAT | O_CLOEXEC, 0600), e2 = errno;
+        int f3 = open("/rdzen/jadro/proc/1/status", O_RDONLY | O_CLOEXEC), e3 = errno;
+        int f4 = open(K1_KATALOG_NOTATEK "/proba", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
+        /* /proc/1 is invisible to other users (hidepid): ENOENT is a denial as well */
+        if (f1 < 0 && e1 == EACCES && f2 < 0 && e2 == EACCES && f3 < 0 && (e3 == EACCES || e3 == ENOENT) && f4 >= 0) {
+            k1_log("K1-PROBA", "[OK] pliki: tylko własny katalog (Landlock: /rdzen i reszta danych → EACCES, cudze procesy niewidoczne)");
+        } else {
+            proba_bledy++;
+            k1_log("K1-PROBA", "[BŁĄD] pliki poza katalogiem notatek: %d/%d %d/%d %d/%d, własny %d", f1, e1, f2, e2, f3,
+                   e3, f4);
+        }
+        if (f4 >= 0) {
+            close(f4);
+            unlink(K1_KATALOG_NOTATEK "/proba");
+        }
+    } else {
+        zablokowane("otwarcie pliku (open)", SYS_open, (long)"/rdzen/init", O_RDONLY, 0, 0, 0);
+        zablokowane("otwarcie pliku (openat)", SYS_openat, AT_FDCWD, (long)"/rdzen/jadro/proc/1/status", O_RDONLY, 0, 0);
+    }
     zablokowane("setuid(0)", SYS_setuid, 0, 0, 0, 0, 0);
     zablokowane("setresgid(0)", SYS_setresgid, 0, 0, 0, 0, 0);
     zablokowane("nowe gniazdo (socket)", SYS_socket, AF_UNIX, SOCK_STREAM, 0, 0, 0);
@@ -967,7 +1116,21 @@ static int proba(const char *profil)
     zablokowane("chroot", SYS_chroot, (long)"/", 0, 0, 0, 0);
     zablokowane("perf_event_open (RYZYKA R9)", SYS_perf_event_open, 0, 0, 0, 0, 0);
     zablokowane("keyctl", SYS_keyctl, 0, 0, 0, 0, 0);
-    zablokowane("memfd_create", SYS_memfd_create, (long)"x", 0, 0, 0, 0);
+    if (okna) {
+        /* gui and applications: shared memory yes, but never executable (vm.memfd_noexec=2) */
+        int mx = (int)syscall(SYS_memfd_create, "x", MFD_CLOEXEC | MFD_EXEC), ex = errno;
+        int n = (int)syscall(SYS_memfd_create, "x", MFD_CLOEXEC);
+        if (mx < 0 && ex == EACCES && n >= 0) {
+            k1_log("K1-PROBA", "[OK] pamięć współdzielona: zwykła tak, wykonywalna nie (MFD_EXEC → EACCES)");
+        } else {
+            proba_bledy++;
+            k1_log("K1-PROBA", "[BŁĄD] memfd: exec=%d/%d zwykły=%d", mx, ex, n);
+        }
+        if (n >= 0)
+            close(n);
+    } else {
+        zablokowane("memfd_create", SYS_memfd_create, (long)"x", 0, 0, 0, 0);
+    }
     zablokowane("pamięć wykonywalna (mmap PROT_EXEC)", SYS_mmap, 0, 4096, PROT_READ | PROT_EXEC,
                 MAP_PRIVATE | MAP_ANONYMOUS, -1);
     m = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -995,7 +1158,7 @@ int main(int argc, char **argv)
     }
     if (argc > 2 && strcmp(argv[1], "--proba") == 0)
         return proba(argv[2]);
-    k1_log(TAG, "start testów M1–M3 (pid %d)", (int)getpid());
+    k1_log(TAG, "start testów M1–M4 (pid %d)", (int)getpid());
     t_parent();
     t_root_layout();
     t_readonly();
@@ -1015,6 +1178,9 @@ int main(int argc, char **argv)
     t_klatki();
     t_malicious_ipc();
     t_proby();
+    t_okna_ipc();
+    t_gui_crash();
+    t_aplikacja_bez_restartu();
     t_screen_crash();
     t_restart_limit();
     if (failed == 0)
