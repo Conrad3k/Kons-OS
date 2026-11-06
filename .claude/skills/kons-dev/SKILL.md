@@ -29,10 +29,13 @@ jądro 6.18 LTS (jadro/k1.config) ──► /init = k1-initramfs (src/initramfs)
        ├─ wejscie (100): evdev (fd 4… od nadzorcy) → k1_zdarzenie → kanał do ekranu
        ├─ ekran   (101): DRM master (fd 4), kompozytor: tapeta + okna + panele (memfd) + cienie + kursor
        ├─ gui     (102): powłoka — górny pasek, dolny pasek, menu Start; fd 4 → nadzorca (URUCHOM, WYLACZ)
-       └─ aplikacje na prośbę gui: zegar (200), notatki (201, tylko /dane_uzytkownika/notatki), ustawienia (202)
+       └─ aplikacje na prośbę gui: zegar (200), notatki (201, tylko /dane_uzytkownika/notatki), ustawienia (202),
+          zasoby (203; fd 4: statystyki cgroup od nadzorcy, jednokierunkowo)
 ```
 Planowane (SPEC §7–§9): Blob Vault (M5), dekodery w jednorazowych procesach (M6), `siec` (M7),
 Gatekeeper (M9).
+
+Stan: M4.1 (0.5.0) — przegląd bezpieczeństwa, tryby ekranu, Zasoby (ADR 0012).
 
 **System plików po starcie** (ADR 0004):
 - `/` — tmpfs tylko do odczytu z dokładnie trzema katalogami: `rdzen`, `aplikacje`, `dane_uzytkownika`.
@@ -50,14 +53,14 @@ Gatekeeper (M9).
 | `src/init/` | `/rdzen/init` | `komponenty/init.md` | PID 1 |
 | `src/nadzorca/` | `/rdzen/system/nadzorca` | `komponenty/nadzorca.md` | usługi w klatkach, kanały, logi, restarty (ADR 0007) |
 | `src/wejscie/` | `/rdzen/system/wejscie` | `komponenty/wejscie.md` | klawiatura, mysz |
-| `src/ekran/` + `src/grafika/` | `/rdzen/system/ekran` | `komponenty/ekran.md` | KMS, kompozytor okien, wejście, ustawienia; tapety i znak K1 |
+| `src/ekran/` + `src/grafika/` | `/rdzen/system/ekran` | `komponenty/ekran.md` | `main.c` (pętla, zmiana trybu), `scena.c` (składanie), `okna.c` (klienci, fokus, limity), `wskaznik.c` (wejście), `drm.c` (KMS, tryby); tapety i znak K1 |
 | `src/gui/` | `/rdzen/system/gui` | `komponenty/gui.md` | powłoka pulpitu |
-| `src/aplikacje/*` | `/rdzen/aplikacje/*` | `komponenty/aplikacje.md` | Zegar, Notatki, Ustawienia |
+| `src/aplikacje/*` | `/rdzen/aplikacje/*` | `komponenty/aplikacje.md` | Zegar, Notatki, Ustawienia, Zasoby |
 | `src/przybornik/` | (linkowane do gui i aplikacji) | ADR 0008, 0009 | rysowanie, tekst, okna, klient, czas PL, klawiatura PL |
 | `narzedzia/czcionki.c` | (host, przy budowie) | ADR 0009 | FreeType → bitmapy IBM Plex (`build/gen/`) |
 | `src/wspolne/` | (linkowane) | — | `k1_log` (log, `k1_awaria`, `k1_koniec`), `k1_cmdline`, `k1_zdarzenie`, `k1_komunikat` (32 B, wszystkie kanały), `k1_kanal` (SEQPACKET, SCM_RIGHTS, SO_PASSCRED), `k1_klatka` (sandbox), `k1_uslugi.h` (UID-y, role) |
 | `jadro/` | `bzImage` | `komponenty/jadro.md` | wersja, konfiguracja, linia poleceń, klucze |
-| `testy/system/` | `/rdzen/system/test-systemu` (tylko obraz testowy) | `TESTY.md` | sprawdzenia w systemie |
+| `testy/system/` | `/rdzen/system/test-systemu` (tylko obraz testowy) | `TESTY.md` | sprawdzenia w systemie: `t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4+), `proba.c`, `wspolne.c`, nagłówek `k1_test.h` |
 
 ## 2. Niezmienniki — tego nie wolno złamać
 Każdy z nich pilnuje test; jeśli zmiana go narusza, to jest zmiana architektury → ADR i decyzja.
@@ -93,7 +96,7 @@ Każdy z nich pilnuje test; jeśli zmiana go narusza, to jest zmiana architektur
    do `/rdzen/system/` (pętla w `przygotuj_rdzen`).
 3. `src/nadzorca/main.c` — profil klatki (UID w `k1_uslugi.h`, syscalle, limity), wpis w tablicy usług
    i kanały; pierwsza linia `main()` usługi: `k1_klatka_w_usludze(TAG)`; próba klatki w teście (`t_proby`).
-4. `testy/system/k1_test_systemu.c` — **zaktualizuj spis plików** (`t_inventory`), dodaj sprawdzenia
+4. `testy/system/` — **zaktualizuj spis plików** (`t_inventory` w `t_system.c`), dodaj sprawdzenia
    funkcjonalne i **negatywne**; scenariusz QEMU w `scripts/test-mN.sh` (+ dopisz do `scripts/testy.sh`).
 5. `docs/komponenty/<nazwa>.md` (cel, granica zaufania, uprawnienia, wejścia/wyjścia, zależności,
    syscalle, błędy, powierzchnia ataku, testy), ADR jeśli zmienia architekturę, `docs/RYZYKA.md`.
@@ -102,7 +105,9 @@ Każdy z nich pilnuje test; jeśli zmiana go narusza, to jest zmiana architektur
 (`rysuj`, `wskaznik`, `klawisz`, `zegar`) i `k1_apl_uruchom()`; numer w `k1_uslugi.h` (`K1_APL_*`, UID,
 profil), wpis w `uslugi[]` i profil w `src/nadzorca/main.c`, nazwa/ikona/opis w `src/gui/main.c`,
 instalacja w `zbuduj-obraz.sh` (`/rdzen/aplikacje`), spis plików i próba klatki w teście, scenariusz
-w `test-m4.sh` (położenia elementów loguj — test klika według logu). Zmiana zakresów protokołu
+w `test-m4.sh` (położenia elementów loguj — test klika według logu), opis w `docs/komponenty/aplikacje.md`,
+`t_klatki`/`t_proby` w `testy/system/t_uslugi.c`. Dane spoza okna (np. statystyki) daje nadzorca
+przez osobny, jednokierunkowy kanał (wzór: Zasoby, fd 4) — aplikacja nie dostaje ścieżek. Zmiana zakresów protokołu
 (np. `K1_APL_MAKS`, ustawienia) = testy `test_komunikat`.
 
 **Nowy protokół / komunikat:** nagłówek w `src/wspolne/` ze stałym układem (`_Static_assert` na rozmiar

@@ -19,6 +19,11 @@ struct k1_klient {
     int rola, aplikacja;
     int ustawienia[K1_UST_MAKS + 1];
     const char *tag;
+    struct {
+        int32_t szer, wys, hz;
+    } tryby[K1_TRYBY_MAKS + 1]; /* screen modes (Ustawienia only), 1..n_trybow */
+    int n_trybow, zalecany; /* zalecany: the preferred mode (1..n_trybow, 0: unknown) */
+    int nowy_rozmiar;           /* WITAJ with a new screen size arrived (cleared by the client) */
 };
 
 struct k1_powierzchnia {
@@ -39,10 +44,13 @@ void k1_pow_utworz(struct k1_klient *k, struct k1_powierzchnia *p, uint32_t id, 
 /* Image to draw into, or NULL while a commit is still pending (then the surface stays `brudna`). */
 struct k1_obraz *k1_pow_rysuj(struct k1_powierzchnia *p);
 void k1_pow_zatwierdz(struct k1_klient *k, struct k1_powierzchnia *p);
+/* Destroys the surface (USUN) and unmaps its memory. */
+void k1_pow_usun(struct k1_klient *k, struct k1_powierzchnia *p);
 /* Sends one message; ends the program if ekran went away. */
 void k1_wyslij(struct k1_klient *k, struct k1_komunikat m);
-/* Next validated message from ekran: 1 = message in *m, 0 = nothing more. RAMKA and USTAWIENIE are
- * also handled internally (k->ustawienia, p->czeka), but still returned. Ends the program when the
+/* Next validated message from ekran: 1 = message in *m, 0 = nothing more. RAMKA, USTAWIENIE, TRYB
+ * and WITAJ are also handled internally (p->czeka, k->ustawienia, k->tryby, screen size), but still
+ * returned. Ends the program when the
  * channel closes. `pow` (n) are the client's surfaces, for RAMKA. */
 int k1_odbierz(struct k1_klient *k, struct k1_powierzchnia **pow, int n, struct k1_komunikat *m);
 

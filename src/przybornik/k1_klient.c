@@ -57,8 +57,18 @@ int k1_odbierz(struct k1_klient *k, struct k1_powierzchnia **pow, int n, struct 
         if (m->typ == K1_KOM_USTAWIENIE)
             ustaw(k, m);
         if (m->typ == K1_KOM_WITAJ) {
+            k->nowy_rozmiar = k->szer_ekranu != 0 && (k->szer_ekranu != m->a || k->wys_ekranu != m->b);
             k->szer_ekranu = m->a;
             k->wys_ekranu = m->b;
+        }
+        if (m->typ == K1_KOM_TRYB) {
+            k->tryby[m->obiekt].szer = m->a;
+            k->tryby[m->obiekt].wys = m->b;
+            k->tryby[m->obiekt].hz = m->c;
+            if (m->d)
+                k->zalecany = (int)m->obiekt;
+            if ((int)m->obiekt > k->n_trybow)
+                k->n_trybow = (int)m->obiekt;
         }
         return 1;
     }
@@ -137,4 +147,12 @@ void k1_pow_zatwierdz(struct k1_klient *k, struct k1_powierzchnia *p)
     p->pokazywana = pol;
     p->czeka = 1;
     p->brudna = 0;
+}
+
+void k1_pow_usun(struct k1_klient *k, struct k1_powierzchnia *p)
+{
+    k1_wyslij(k, k1_komunikat_nowy(K1_KOM_USUN, p->id, 0, 0, 0, 0, 0));
+    if (p->pamiec != NULL)
+        munmap(p->pamiec, (size_t)p->szer * (size_t)p->wys * 4u * 2u);
+    memset(p, 0, sizeof *p);
 }

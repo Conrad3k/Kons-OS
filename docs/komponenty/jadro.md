@@ -50,7 +50,9 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
 ## Uprawnienia, urządzenia
 - Sterowniki: PCI, ACPI (wyłączanie zasilania), virtio-blk, 8250 (port szeregowy), IOMMU, EFI stub;
   od M2: DRM + `bochs` (karta QEMU stdvga, tylko KMS — bez fbdev/fbcon), evdev, i8042 + atkbd + psmouse
-  (bez rozszerzeń producentów i bez mousedev). Brak VT, sieci (protokołów), USB, dysków SATA/NVMe.
+  (bez rozszerzeń producentów i bez mousedev); od M4: `simpledrm` (obraz z firmware), loop, CMOS RTC;
+  od M4.1: `vmwgfx` (VirtualBox VMSVGA, VMware) z `HYPERVISOR_GUEST` — bez PARAVIRT, KVM_GUEST, Xen
+  (ADR 0012). Brak VT, sieci (protokołów), USB, dysków SATA/NVMe.
 
 ## Wywołania systemowe usunięte z jądra (test: `t_syscalls`)
 `init_module`, `finit_module`, `kexec_load`, `kexec_file_load`, `io_uring_setup`, `bpf`,

@@ -166,15 +166,51 @@ if u and l:
     w, h, px = zrzut("6-tapeta")
     c = px(12, H - 12)
     sprawdz("zrzut: nowa tapeta (fiolet/niebieski w rogu)", c[2] > c[0], str(c))
+    # Ustawienia → Ekran: inna rozdzielczość, pulpit układa się od nowa (karta bochs ma wiele trybów)
+    sek = czekaj(r"sekcje od (\d+),(\d+) co (\d+)")
+    klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + int(sek.group(3)))
+    tr = czekaj(r"tryby ekranu: ([\dx ]+) \(przyciski od (\d+),(\d+), (\d+) w kolumnie, co (\d+) i (\d+)\)")
+    sprawdz("Ustawienia → Ekran: lista rozdzielczości od ekranu", tr and len(tr.group(1).split()) >= 2,
+            tr.group(1) if tr else "brak")
+    if tr:
+        lista = tr.group(1).split(); cel = "1024x768" if "1024x768" in lista and f"{W}x{H}" != "1024x768" else \
+            next(t for t in lista if t != f"{W}x{H}")
+        i = lista.index(cel); bx0, by0, nk, dx, dy = (int(tr.group(j)) for j in range(2, 7))
+        klik(ux + bx0 + (i // nk) * dx, uy + by0 + (i % nk) * dy)
+        cw, ch = (int(v) for v in cel.split("x"))
+        nowy = czekaj(rf"K1-EKRAN: tryb {cw}x{ch} @ \d+ Hz \(zmiana")
+        g2 = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", od=1)
+        sprawdz(f"zmiana rozdzielczości {W}x{H} → {cel}: ekran przełącza tryb, pulpit układa się od nowa", nowy and g2)
+        if nowy and g2:
+            W, H = cw, ch
+            sx, sy, ax, ay, krok = (int(g2.group(i)) for i in range(1, 6))
+            time.sleep(2.5)
+            w, h, px = zrzut("7-rozdzielczosc")
+            sprawdz(f"zrzut: obraz {w}x{h} = {cel}, górny pasek na całą szerokość", (w, h) == (W, H)
+                    and max(px(W - 8, 6)) < 120, f"{w}x{h} {px(W - 8, 6)}")
     klik(ax + 2 * krok, ay)
     sprawdz("kliknięcie aktywnej aplikacji na pasku minimalizuje okno", czekaj(rf"K1-EKRAN: okno {uid_} zminimalizowane"))
+
+# Zasoby: wykresy z danymi od nadzorcy
+klik(ax + 3 * krok, ay)
+zs = czekaj(r"K1-EKRAN: okno (\d+) \(zasoby\) (\d+)x(\d+) w (\d+),(\d+)")
+dane = czekaj(r"K1-ZASOBY: dane od nadzorcy: procesor (\d+)‰, pamięć (\d+) z (\d+) MiB, (\d+) CPU")
+sprawdz("Zasoby: uruchomione z dolnego paska, dane od nadzorcy (procesor, pamięć)", zs and dane and int(dane.group(3)) > 100,
+        dane.group(0) if dane else "brak danych")
+if zs:
+    zx, zy = int(zs.group(4)), int(zs.group(5)); time.sleep(6)
+    w, h, px = zrzut("8-zasoby")
+    # wykres pamięci: linia w kolorze akcentu (motyw ciemny)
+    linia = sum(1 for x in range(zx + 40, zx + 520, 4) for y in range(zy + 200, zy + 276) if akcent(px(x, y)))
+    sprawdz("zrzut: wykres pamięci w oknie Zasobów", linia > 10, f"pikseli linii: {linia}")
 
 tx_ = tekst()
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów",
         "Kernel panic" not in tx_ and "BŁĄD" not in tx_ and "zabronione wywołanie" not in tx_ and "odrzucono" not in tx_)
 # Start → Wyłącz: kontrolowane wyłączenie
 klik(sx, sy)
-czekaj(r"menu Start otwarte", od=1)
+m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+)\)", od=1)
+if m: wx, wy = int(m.group(4)), int(m.group(5))
 klik(wx, wy)
 sprawdz("Start → Wyłącz: system się wyłącza", czekaj(r"K1: wyłączanie zasilania") and czekaj(r"reboot: Power down"))
 sys.exit(0 if all(wyniki) else 1)

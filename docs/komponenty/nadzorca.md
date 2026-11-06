@@ -28,6 +28,7 @@ root, wszystkie capabilities (RYZYKA R23). Usługi — patrz tabela.
 | `zegar` (na żądanie) | 200 | 3: kanał do ekranu | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
 | `notatki` (na żądanie) | 201 | 3: kanał do ekranu | + `open`, `openat`, `fsync`, `rename` | + `/dane_uzytkownika/notatki` | 32 MiB, pids 1 |
 | `ustawienia` (na żądanie) | 202 | 3: kanał do ekranu | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
+| `zasoby` (na żądanie, M4.1) | 203 | 3: kanał do ekranu, 4: dane od nadzorcy (tylko do odczytu) | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
 
 `RLIMIT_FSIZE`: 0 dla ekranu i wejścia, 16 MiB dla gui i aplikacji (ogranicza też memfd powierzchni).
 
@@ -48,6 +49,12 @@ usług, kanały (`socketpair`, strona odbiorcy z `SO_PASSCRED`), komunikaty `KLI
   gdy brak — ponowna próba za 4 s), potem jego klienci (wejscie, gui).
 - Prośby od `gui` (fd 4, nadawca UID 102): `URUCHOM` — aplikacja, jeśli jeszcze nie działa
   (aplikacje nie są restartowane); `WYLACZ` — `SIGTERM` (wyłączenie) albo `SIGINT` (restart) do init.
+- Zasoby (M4.1, ADR 0012): gdy aplikacja działa, co sekundę `ZASOBY_SYSTEM` (procesor ‰ z
+  `cpu.stat` korzenia cgroup, pamięć: `sysinfo` minus odzyskiwalna pamięć podręczna z `memory.stat`,
+  liczba CPU, czas pracy) i `ZASOBY_USLUGA` dla każdej usługi (`cpu.stat`, `memory.current` jej
+  cgroup). Kanał jednokierunkowy: po stronie nadzorcy `shutdown(SHUT_RD)` — nic od aplikacji nie czyta.
+- Logi usług: wiersz oczyszczany przez `k1_log_oczysc` (znaki sterujące C0/DEL/C1, błędne UTF-8 → `?`),
+  sprawdzany prefiks usługi, limit 20 wierszy/s.
 - Zakończenie usługi → wpis w logu (kod 159 = zabronione wywołanie systemowe) → restart po
   0,2 / 1 / 2 / 4 / 4 s; 6. zakończenie w ciągu 60 s → „wyłączony”.
 - Zakończenie ekranu → klienci zatrzymani (bez liczenia jako awarię) i uruchomieni ponownie.

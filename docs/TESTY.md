@@ -54,7 +54,9 @@ Ręcznie: `scripts/uruchom-qemu.sh [--obraz build/wynik/rdzen-test.squashfs]` i 
 We wszystkich scenariuszach QEMU: brak `Kernel panic`; w negatywnych maszyna musi sama się wyłączyć
 przed upływem limitu.
 
-### Sprawdzenia w systemie (`testy/system/k1_test_systemu.c`, obraz `rdzen-test.squashfs`)
+### Sprawdzenia w systemie (`testy/system/*.c`, obraz `rdzen-test.squashfs`)
+Pliki (od M4.1): `k1_test_systemu.c` (kolejność), `wspolne.c` (pomocnicze, kanał testowy),
+`t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4–M4.1), `proba.c` (tryb `--proba`).
 Program testowy jest w obrazie testowym jako `/rdzen/system/test-systemu` (uruchamia go nadzorca).
 NEGATYWNE = coś, co ma się nie udać.
 
@@ -101,6 +103,20 @@ NEGATYWNE = coś, co ma się nie udać.
 
 Program testowy sam działa jako root bez klatki (potrzebuje wglądu w `/proc` i jądro); izolację
 sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
+
+- M4.1 NEGATYWNE (ADR 0012): okno klienta połączonego > 10 s temu nie dostaje fokusu, gdy fokus ma
+  okno innej aplikacji (harness: `bez fokusu (ochrona klawiatury)`); trzecie pełnoekranowe okno
+  jednego klienta odrzucone (`przekroczony limit pamięci powierzchni`); próba w klatce `zasoby`;
+  aplikacja Zasoby dostaje dane od nadzorcy (`K1-ZASOBY: dane od nadzorcy`).
+
+## M4.1 — kryteria zaliczenia
+1. Ustawienia → Ekran pokazuje listę rozdzielczości od karty, wybór przełącza tryb w locie,
+   pulpit układa się od nowa (QEMU `bochs`: zrzut w nowym rozmiarze).
+2. Zasoby: dane od nadzorcy (procesor, pamięć, usługi), wykres pamięci widoczny na zrzucie.
+3. Poprawki z przeglądu mają testy: ochrona fokusu i limit pamięci okien (w systemie), oczyszczanie
+   logu (`test_log`, host), nowe komunikaty (`test_komunikat`, `fuzz_komunikat`).
+4. Cień paneli bez „podstawy” pod dolnym paskiem i menu dźwięku (zrzuty).
+5. Wszystkie testy M1–M4 nadal przechodzą.
 
 ## M3 — kryteria zaliczenia
 1. Każda usługa ma własny UID/GID, zero capabilities, `NO_NEW_PRIVS`, seccomp (biała lista),

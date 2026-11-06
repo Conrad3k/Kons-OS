@@ -36,16 +36,19 @@ Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
    - Pamięć: **1024 MB**, procesory: **2**.
    - Mysz i klawiatura działają od razu (sprawdzone w VirtualBoxie z EFI). Jeśli kursor się nie
      rusza: System → Płyta główna → Urządzenie wskazujące: **Mysz PS/2**.
-   - „Włącz EFI” może być włączone albo nie. Z EFI VirtualBox daje tylko 1024×768; większy obraz
-     (przy wyłączonej maszynie, w Wierszu polecenia Windows):
-     `"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" setextradata "NAZWA MASZYNY" VBoxInternal2/EfiGraphicsResolution 1920x1080`
-   - Ekran: kontroler **VMSVGA**, pamięć wideo 16 MB lub więcej.
+   - „Włącz EFI” może być włączone albo nie.
+   - Ekran: kontroler **VMSVGA**, pamięć wideo **64 MB lub więcej** (większe rozdzielczości
+     potrzebują więcej pamięci karty). Od wersji 0.5.0 rozdzielczość wybierasz w K1:
+     **Ustawienia → Ekran**. Gdyby przy VMSVGA obraz w ogóle się nie pojawił, zmień kontroler na
+     **VBoxSVGA** — wtedy K1 użyje obrazu z firmware (z EFI tylko 1024×768; większy:
+     `"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" setextradata "NAZWA MASZYNY" VBoxInternal2/EfiGraphicsResolution 1920x1080`).
    - Pamięć masowa: napęd optyczny → wybierz pobrany plik ISO. Sieć i dźwięk można wyłączyć.
 3. Uruchom. Po kilku sekundach pojawi się pulpit. Kliknij w okno maszyny, żeby „złapać” mysz
    (prawy Ctrl ją uwalnia). Polskie znaki: prawy Alt + litera (np. prawy Alt + a = ą).
 4. Wyłączenie: znak K1 na dolnym pasku → **Wyłącz**.
 
-Działa też w VMware (UEFI lub BIOS) i QEMU/virt-manager; Hyper-V — jeszcze nie.
+Działa też w VMware (UEFI lub BIOS) i QEMU/virt-manager (karta `std` lub `virtio`; nie `vmware` —
+sterownik VMware nie działa z tą kartą QEMU); Hyper-V — jeszcze nie.
 
 ## Jak sprawdzić testy bez instalowania niczego
 Po każdej zmianie na `main` GitHub sam buduje system i uruchamia testy:

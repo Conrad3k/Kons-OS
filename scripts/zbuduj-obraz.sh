@@ -29,7 +29,7 @@ przygotuj_rdzen() { # $1 = katalog docelowy
     install -m 0555 "$K1_BUDOWA/bin/init" "$1/init"
     for p in nadzorca wejscie ekran gui; do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/system/$p"; done
     # Built-in native applications (M4); signed application images come with M10 (/aplikacje).
-    for p in zegar notatki ustawienia; do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/aplikacje/$p"; done
+    for p in zegar notatki ustawienia zasoby; do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/aplikacje/$p"; done
     chmod 0755 "$1" "$1/jadro" "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje"
 }
 squashfs() { # $1 = katalog, $2 = plik wynikowy

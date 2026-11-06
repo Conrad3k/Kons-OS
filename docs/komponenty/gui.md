@@ -12,7 +12,7 @@ Rysuje panele pulpitu i obsługuje je myszą:
   „Dźwięk — ta wersja nie obsługuje jeszcze karty dźwiękowej”), data i godzina (czas polski;
   z sekundami — w Ustawieniach),
 - **dolny pasek** wyśrodkowany (jak Windows 11): przycisk Start (znak K1) i aplikacje Zegar,
-  Notatki, Ustawienia; kropka = uruchomiona, kreska w kolorze akcentu = aktywna; kliknięcie:
+  Notatki, Ustawienia, Zasoby; kropka = uruchomiona, kreska w kolorze akcentu = aktywna; kliknięcie:
   uruchom / pokaż / zminimalizuj,
 - **menu Start**: aplikacje z opisami, „Uruchom ponownie”, „Wyłącz”; klawisz Super otwiera/zamyka.
 
@@ -29,6 +29,8 @@ UID/GID 102, klatka (ADR 0007): seccomp = baza + `memfd_create`, `ftruncate`; La
 - fd 3: kanał do ekranu — powitanie, ustawienia, wskaźnik/klawisz Super, lista okien (`OKNO`).
 - fd 4: kanał do nadzorcy — `URUCHOM(aplikacja)`, `WYLACZ(0 = wyłącz, 1 = uruchom ponownie)`.
 - Powierzchnie (panele): górny pasek, dolny pasek, menu, okienko dźwięku (memfd, ADR 0008).
+- Zmiana rozdzielczości (M4.1): ekran wysyła ponownie `WITAJ` z nowym rozmiarem → gui zamyka menu,
+  tworzy górny pasek na nową szerokość, przesuwa pozostałe panele i loguje nowe położenia.
 - Log: położenie przycisków (dla testów), uruchamiane aplikacje. Bez treści.
 
 ## Obsługa błędów

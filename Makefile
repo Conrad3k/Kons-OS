@@ -40,7 +40,7 @@ PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_czas.c src/przybornik/k1_
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_aplikacja.c \
            src/grafika/k1_grafika.c $(GEN)/k1_czcionki_dane.c
 NAGL_P  := $(wildcard src/przybornik/*.h) src/grafika/k1_grafika.h src/grafika/k1_czcionka.h VERSION
-APLIKACJE := $(BIN)/zegar $(BIN)/notatki $(BIN)/ustawienia
+APLIKACJE := $(BIN)/zegar $(BIN)/notatki $(BIN)/ustawienia $(BIN)/zasoby
 
 PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(BIN)/wejscie $(BIN)/ekran $(BIN)/gui $(APLIKACJE) \
             $(BIN)/k1-test-systemu
@@ -59,8 +59,9 @@ $(BIN)/nadzorca: src/nadzorca/main.c $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(
 $(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
-$(BIN)/ekran: src/ekran/main.c src/ekran/drm.c src/ekran/ekran.h $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ src/ekran/main.c src/ekran/drm.c src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/wskaznik.c src/ekran/drm.c
+$(BIN)/ekran: $(EKRAN) src/ekran/ekran.h $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(EKRAN) src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 $(BIN)/gui: src/gui/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/gui/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
@@ -77,8 +78,9 @@ $(OBJ)/czcionki: narzedzia/czcionki.c | $(OBJ)
 $(GEN)/k1_czcionki_dane.c: $(OBJ)/czcionki | $(GEN)
 	$(OBJ)/czcionki $(CZCIONKI) > $@.tmp && mv $@.tmp $@
 
-$(BIN)/k1-test-systemu: testy/system/k1_test_systemu.c $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ testy/system/k1_test_systemu.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+TEST_SYS := $(sort $(wildcard testy/system/*.c))
+$(BIN)/k1-test-systemu: $(TEST_SYS) testy/system/k1_test.h $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(TEST_SYS) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 $(BIN) $(OBJ) $(GEN):
 	mkdir -p $@
@@ -93,6 +95,9 @@ $(OBJ)/test_zdarzenie: testy/host/test_zdarzenie.c src/wspolne/k1_zdarzenie.c sr
 $(OBJ)/test_komunikat: testy/host/test_komunikat.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_komunikat.h src/wspolne/k1_kanal.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_komunikat.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c
 
+$(OBJ)/test_log: testy/host/test_log.c src/wspolne/k1_log.c src/wspolne/k1_log.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_log.c src/wspolne/k1_log.c
+
 $(OBJ)/podglad_grafiki: testy/host/podglad_grafiki.c $(GRAFIKA) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/podglad_grafiki.c src/grafika/k1_grafika.c -lm
 
@@ -102,8 +107,9 @@ HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c,$(PRZYB)) src/wspolne/k
 $(OBJ)/test_przybornik: testy/host/test_przybornik.c $(PRZYB) $(NAGL_P) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przybornik.c $(HOST_PRZYB) -lm
 
-testy-host: $(OBJ)/test_cmdline $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki
+testy-host: $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki
 	$(OBJ)/test_cmdline
+	$(OBJ)/test_log
 	$(OBJ)/test_zdarzenie
 	$(OBJ)/test_komunikat
 	$(OBJ)/test_przybornik

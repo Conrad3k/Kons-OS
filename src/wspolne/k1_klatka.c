@@ -263,7 +263,6 @@ static void limit(int zasob, rlim_t v, const char *nazwa)
 void k1_klatka_uruchom(const struct k1_profil *p, const char *program, char *const argv[], int ostatni_fd)
 {
     char *const envp[] = { NULL };
-    int fd;
 
     {
         char sciezka[128];
@@ -273,8 +272,11 @@ void k1_klatka_uruchom(const struct k1_profil *p, const char *program, char *con
             _exit(126);
         }
     }
-    for (fd = ostatni_fd + 1; fd < 1024; fd++)
-        close(fd);
+    /* Every descriptor above the ones set up for the service, whatever its number. */
+    if (syscall(SYS_close_range, (unsigned)ostatni_fd + 1u, ~0u, 0u) != 0) {
+        k1_log(TAG, "%s: close_range: %s", p->nazwa, strerror(errno));
+        _exit(126);
+    }
     umask(0077);
     if (chdir("/") != 0)
         _exit(126);

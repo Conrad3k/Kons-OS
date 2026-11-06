@@ -88,6 +88,8 @@ scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE
     "K1-PROBA: koniec próby „proba-wejscie”: 0 błędów" "K1-PROBA: koniec próby „proba-ekran”: 0 błędów" \
     "K1-PROBA: koniec próby „proba-gui”: 0 błędów" "K1-PROBA: koniec próby „proba-zegar”: 0 błędów" \
     "K1-PROBA: koniec próby „proba-notatki”: 0 błędów" "K1-PROBA: koniec próby „proba-ustawienia”: 0 błędów" \
+    "K1-PROBA: koniec próby „proba-zasoby”: 0 błędów" "bez fokusu (ochrona klawiatury)" \
+    "przekroczony limit pamięci powierzchni" "K1-ZASOBY: dane od nadzorcy" \
     "deskryptor nie jest memfd" "memfd bez pieczęci" "zły rozmiar memfd" "panele tylko dla powłoki" \
     "zmiana ustawień tylko dla aplikacji Ustawienia" "zarządzanie cudzymi oknami tylko dla powłoki" \
     "ekran zakończony sygnałem 11" "ponowne uruchomienie ekran" "wejscie wyłączony: 6 zakończeń" \
