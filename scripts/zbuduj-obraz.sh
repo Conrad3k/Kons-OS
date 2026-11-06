@@ -1,8 +1,8 @@
 #!/bin/sh
 # Buduje programy K1 i składa z nich obrazy startowe:
 #   build/wynik/initramfs.cpio     — /init (k1-initramfs) + /dev/console, bez kompresji
-#   build/wynik/rdzen.squashfs     — obraz /rdzen (init + katalogi na pseudo-systemy plików)
-#   build/wynik/rdzen-test.squashfs — to samo + program testowy M1 jako /rdzen/system/nadzorca
+#   build/wynik/rdzen.squashfs     — obraz /rdzen: init, system/{nadzorca,wejscie,ekran}, katalogi jadro/
+#   build/wynik/rdzen-test.squashfs — to samo + program testowy jako /rdzen/system/test-systemu
 # Wymaga zbudowanego jądra (scripts/zbuduj-jadro.sh: nagłówki i gen_init_cpio).
 . "$(dirname "$0")/wspolne.sh"
 
@@ -27,6 +27,7 @@ LISTA
 przygotuj_rdzen() { # $1 = katalog docelowy
     rm -rf "$1"; mkdir -p "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system"
     install -m 0555 "$K1_BUDOWA/bin/init" "$1/init"
+    for p in nadzorca wejscie ekran; do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/system/$p"; done
     chmod 0755 "$1" "$1/jadro" "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system"
 }
 squashfs() { # $1 = katalog, $2 = plik wynikowy
@@ -38,11 +39,11 @@ info "rdzen.squashfs"
 przygotuj_rdzen "$K1_BUDOWA/rdzen"
 squashfs "$K1_BUDOWA/rdzen" "$K1_WYNIK/rdzen.squashfs"
 
-info "rdzen-test.squashfs (z programem testowym M1)"
+info "rdzen-test.squashfs (z programem testowym)"
 przygotuj_rdzen "$K1_BUDOWA/rdzen-test"
-install -m 0555 "$K1_BUDOWA/bin/k1-test-m1" "$K1_BUDOWA/rdzen-test/system/nadzorca"
+install -m 0555 "$K1_BUDOWA/bin/k1-test-systemu" "$K1_BUDOWA/rdzen-test/system/test-systemu"
 # Plik ze „#!” — test sprawdza, że jądro NIE uruchamia skryptów (brak CONFIG_BINFMT_SCRIPT).
-printf '#!/rdzen/system/nadzorca --echo\n' > "$K1_BUDOWA/rdzen-test/system/skrypt-testowy"
+printf '#!/rdzen/system/test-systemu --echo\n' > "$K1_BUDOWA/rdzen-test/system/skrypt-testowy"
 chmod 0555 "$K1_BUDOWA/rdzen-test/system/skrypt-testowy"
 squashfs "$K1_BUDOWA/rdzen-test" "$K1_WYNIK/rdzen-test.squashfs"
 

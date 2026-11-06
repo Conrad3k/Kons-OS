@@ -1,5 +1,6 @@
 #!/bin/sh
-# Test etapu M1 (powtarzalny): testy na hoście + uruchomienia K1 w QEMU, także negatywne.
+# Test etapów M1–M2 (powtarzalny): testy na hoście + uruchomienia K1 w QEMU, także negatywne
+# (start, testy w systemie, błędy startu). Ekran i wejście z zewnątrz: scripts/test-m2.sh.
 # Wymaga zbudowanych obrazów (scripts/zbuduj.sh). Logi: build/testy/<scenariusz>.log
 # Kod wyjścia 0 = wszystko zaliczone. Opis scenariuszy: docs/TESTY.md.
 . "$(dirname "$0")/wspolne.sh"
@@ -63,12 +64,12 @@ krok() { # $1 = nazwa, $2 = plik logu, reszta = polecenie
     r=0; "$@" >"$l" 2>&1 || r=$?
     wynik "$n" "$r" "log: $l"
 }
-krok "jednostkowe: parser linii poleceń (ASan/UBSan)" "$TESTY/host.log" \
+krok "jednostkowe: linia poleceń, protokół zdarzeń, renderer (ASan/UBSan)" "$TESTY/host.log" \
     make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" testy-host
-krok "fuzzing: parser linii poleceń (${K1_FUZZ_CZAS:-20} s, libFuzzer)" "$TESTY/fuzz.log" \
+krok "fuzzing: linia poleceń i protokół zdarzeń (${K1_FUZZ_CZAS:-20} s każdy, libFuzzer)" "$TESTY/fuzz.log" \
     make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" fuzz FUZZ_CZAS="${K1_FUZZ_CZAS:-20}"
 krok "zabezpieczenia binariów (static-pie, RELRO, NX)" "$TESTY/binaria.log" \
-    "$K1_REPO/scripts/sprawdz-binaria.sh" "$K1_BUDOWA"/bin/init "$K1_BUDOWA"/bin/k1-initramfs "$K1_BUDOWA"/bin/k1-test-m1
+    "$K1_REPO/scripts/sprawdz-binaria.sh" "$K1_BUDOWA"/bin/*
 krok "konfiguracja jądra zgodna z jadro/k1.config" "$TESTY/jadro.log" \
     "$K1_REPO/scripts/sprawdz-konfiguracje-jadra.sh" "$K1_REPO/jadro/k1.config" "$K1_WYNIK/jadro.config"
 
@@ -79,9 +80,9 @@ mksquashfs "$TESTY/bez-init" "$TESTY/bez-init.squashfs" -quiet -no-progress -noa
 
 echo "[k1] uruchomienia w QEMU ($( [ -w /dev/kvm ] && echo KVM || echo 'emulacja TCG'))"
 scenariusz start czekaj "$K1_WYNIK/rdzen.squashfs" "$CMDLINE" \
-    "K1-INITRAMFS: start" "K1: init OK" "brak nadzorcy"
+    "K1-INITRAMFS: start" "K1: init OK" "uruchomiono nadzorcę" "K1-EKRAN: pierwsza klatka"
 scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE" \
-    "K1: init OK" "K1-TEST: WYNIK: OK" "K1: wyłączanie zasilania" "reboot: Power down"
+    "K1: init OK" "K1-TEST: WYNIK: OK" "odrzucone 4)" "ekran zakończony sygnałem 11" "K1: wyłączanie zasilania" "reboot: Power down"
 scenariusz neg-brak-dysku wylaczenie - "$CMDLINE" \
     "nie znaleziono urządzenia z obrazem rdzenia: /dev/vda" "system zostanie wyłączony" "reboot: Power down"
 scenariusz neg-dysk-bez-obrazu wylaczenie "$TESTY/zera.img" "$CMDLINE" \

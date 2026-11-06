@@ -15,7 +15,7 @@ wersje) i `docs/TESTY.md`. Specyfikację zmienia się tylko przez ADR (`docs/adr
 3. Ostatni run workflow **„K1 — budowa i testy”** na `main` (`actions_list` → `list_workflow_runs`).
    Czerwony = napraw najpierw.
 4. Środowisko (kontener jest efemeryczny):
-   `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/test-m1.sh` (~5 min; jądro ~2–3 min).
+   `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh` (~6 min; jądro ~3 min).
 
 ## 1. Zasady etapu (SPEC §2)
 - Jeden etap (milestone) naraz; następny dopiero, gdy bieżący ma **powtarzalny test** (skrypt
@@ -36,7 +36,9 @@ wersje) i `docs/TESTY.md`. Specyfikację zmienia się tylko przez ADR (`docs/adr
 - **Kod C:** flagi w `Makefile` (zmiana = ADR); `make` musi przejść bez ostrzeżeń (`-Werror`);
   parsery mają testy w `testy/host/` (ASan/UBSan) i fuzzing (`make fuzz`).
 - **Skrypty:** `sh -n` na zmienionych; uruchom je.
-- Przed scaleniem zmian systemu: pełny test etapu lokalnie (`scripts/test-mN.sh` + wcześniejszych).
+- Przed scaleniem zmian systemu: wszystkie testy lokalnie (`scripts/testy.sh` — dopisz tam nowy `test-mN.sh`).
+- Zmiany wyglądu: najpierw podgląd na hoście (`build/obj/podglad_grafiki`, PPM → `scripts/ppm-na-png.py`),
+  potem zrzut z QEMU (`scripts/zrzut-ekranu.sh`) — pokaż właścicielowi; ustalenia zapisuj w `docs/WYGLAD.md`.
   Przy zmianach w budowie: `scripts/sprawdz-powtarzalnosc.sh`.
 - **Wersja** (`VERSION`, raz na paczkę): ukończony etap → MINOR, poprawka/aktualizacja jądra → PATCH,
   tylko docs/CI → bez zmiany. Wpis w `CHANGELOG.md` (sekcja nowej wersji z datą albo „Niewydane”).

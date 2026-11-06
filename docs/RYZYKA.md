@@ -2,13 +2,13 @@
 
 Zasada (SPEC §2.5): mechanizm bezpieczeństwa to nie gwarancja. Tu zapisujemy, czego system
 **jeszcze nie chroni** albo **nie może chronić**, i kiedy planujemy to zmienić.
-Stan na wersję 0.1.0 (koniec M1). Klasyfikacja: **W** — wysokie, **Ś** — średnie, **N** — niskie.
+Stan na wersję 0.2.0 (koniec M2). Klasyfikacja: **W** — wysokie, **Ś** — średnie, **N** — niskie.
 
 | Nr | Ryzyko / ograniczenie | Waga | Co je ogranicza teraz | Plan |
 |---|---|---|---|---|
 | R1 | **Brak weryfikacji integralności obrazu rdzenia.** Jądro parsuje niezweryfikowany SquashFS; podmieniony lub uszkodzony obraz może uruchomić dowolny kod jako PID 1 albo wywołać kernel panic. | W | nic poza fizyczną kontrolą nośnika | M10: dm-verity z root hash w podpisanej linii poleceń |
 | R2 | **Brak Secure Boot i podpisanego UKI.** Linię poleceń jądra (`k1.rdzen`, `lsm=`, `lockdown=`) może zmienić każdy, kto kontroluje bootloader/QEMU. | W | — | M10 |
-| R3 | **W M1 wszystko działa jako root** z pełnymi capabilities (brak nadzorcy, UID usług, seccomp, Landlock dla procesów). | W | w obrazie nie ma żadnych programów poza init (i testem w obrazie testowym) | M3 |
+| R3 | **Wszystko działa jako root** z pełnymi capabilities — także `ekran` i `wejscie` (M2). Przejęcie którejkolwiek usługi = przejęcie systemu. | W | usługi nie przyjmują danych spoza systemu (tylko urządzenia wejścia i kanał wejscie→ekran ze sprawdzaniem pól) | M3: UID, capabilities, seccomp, Landlock, cgroups |
 | R4 | **Jądro to wspólna granica zaufania.** Luka zero-day w jądrze daje przejęcie całego świata natywnego. | W | minimalna konfiguracja (brak modułów, io_uring, BPF, userfaultfd, 32-bit, VT…), wzmocnienia KSPP, lockdown | szybkie aktualizacje LTS (`jadro/README.md`); M11: osobne jądro dla przeglądarki |
 | R5 | **Awaria PID 1 = kernel panic** (cecha Linuksa). Błąd pamięci w init zatrzyma system. | Ś | init ≈240 linii, bez parsowania danych zewnętrznych; flagi i testy | audyt w M12 |
 | R6 | **`/dane_uzytkownika` to tmpfs w RAM**: bez szyfrowania, dane znikają po wyłączeniu. | Ś (M1 nie przechowuje danych) | `noexec,nosuid,nodev`, limit 16 MiB, `mode=0700` | M5: Blob Vault + szyfrowanie |
@@ -22,4 +22,9 @@ Stan na wersję 0.1.0 (koniec M1). Klasyfikacja: **W** — wysokie, **Ś** — �
 | R14 | **Łańcuch dostaw budowy:** kompilator i musl z Ubuntu, runner GitHub Actions; artefakty CI niepodpisane. | Ś | przypięte sumy i podpis PGP jądra; powtarzalny build (można odtworzyć i porównać `SHA256SUMS`) | M10: podpisy obrazów |
 | R15 | **Testy tylko w QEMU (TCG).** M1 nie startuje na prawdziwym sprzęcie (brak sterowników dysków, grafiki, klawiatury). | N (etap rozwojowy) | — | M2+ i testy właściciela na laptopie |
 | R16 | **`ptrace_scope=3` jest nieodwracalne** — także debugowanie awarii jest niemożliwe w działającym systemie. | N (świadomy wybór) | logi | — |
-| R17 | **Zatrzymanie po błędzie krytycznym widać tylko na porcie szeregowym** (brak ekranu w M1). | N | — | M2: komunikat na ekranie |
+| R17 | **Błąd krytyczny przy starcie widać tylko na porcie szeregowym** — ekran startuje dopiero po init. | N | — | M3/M10: komunikat na ekranie (np. `DRM_PANIC`, ekran awarii) |
+| R18 | **Nowa powierzchnia ataku jądra (M2):** podsystem DRM (ioctl) i wejścia (evdev, i8042). | Ś | tylko jeden mały sterownik (`bochs`), bez fbdev/fbcon i mousedev; w M3 dostęp do karty tylko dla `ekran` | M3 |
+| R19 | **Kanał wejscie→ekran bez sprawdzania nadawcy.** Każdy proces z uprawnieniami roota może pisać do niego przez `/proc/<pid>/fd` (test to wykorzystuje). | Ś | walidacja każdego pola, odrzucanie i liczenie błędnych komunikatów | M3: osobne UID (brak dostępu do `/proc` innych), M4: gniazda UNIX z `SO_PEERCRED` |
+| R20 | **Ekran po awarii nie wraca** (brak restartu usług). | N | awaria nie zatrzymuje systemu (test) | M3: restart przez nadzorcę |
+| R21 | **Log zdradza liczbę i czas zdarzeń klawiatury** (nie kody). | N | zapis ≤ 2×/s, bez kodów klawiszy | M10: obraz produkcyjny bez logu na port szeregowy |
+| R22 | **Obraz tylko w QEMU** — na prawdziwym sprzęcie nie ma jeszcze sterownika grafiki (np. `simpledrm`) ani USB. | N | — | przy pierwszych testach właściciela na laptopie |
