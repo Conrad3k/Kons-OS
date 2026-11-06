@@ -48,8 +48,9 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
 `perf_event_paranoid=2`, a od M3 seccomp usług.
 
 ## Uprawnienia, urządzenia
-- W M1 sterowniki: PCI, ACPI (wyłączanie zasilania), virtio-blk, 8250 (port szeregowy), IOMMU,
-  EFI stub. Brak VT, framebuffera, klawiatury, sieci (protokołów), USB, dysków SATA/NVMe.
+- Sterowniki: PCI, ACPI (wyłączanie zasilania), virtio-blk, 8250 (port szeregowy), IOMMU, EFI stub;
+  od M2: DRM + `bochs` (karta QEMU stdvga, tylko KMS — bez fbdev/fbcon), evdev, i8042 + atkbd + psmouse
+  (bez rozszerzeń producentów i bez mousedev). Brak VT, sieci (protokołów), USB, dysków SATA/NVMe.
 
 ## Wywołania systemowe usunięte z jądra (test: `t_syscalls`)
 `init_module`, `finit_module`, `kexec_load`, `kexec_file_load`, `io_uring_setup`, `bpf`,

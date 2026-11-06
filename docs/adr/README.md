@@ -33,3 +33,4 @@ Krótko, dlaczego nie.
 | [0003](0003-jadro-wersja-i-konfiguracja.md) | Jądro: wersja, źródło, konfiguracja, wzmocnienia | Przyjęty |
 | [0004](0004-start-i-uklad-systemu-plikow.md) | Start (initramfs → init) i układ systemu plików | Przyjęty |
 | [0005](0005-bledy-krytyczne-przy-starcie.md) | Obsługa błędów krytycznych przy starcie | Przyjęty |
+| [0006](0006-ekran-wejscie-i-nadzorca-m2.md) | Ekran (DRM/KMS), wejście (evdev) i minimalny nadzorca (M2) | Przyjęty |

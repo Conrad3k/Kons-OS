@@ -17,8 +17,8 @@ działa — test). Nie przyjmuje żadnych danych wejściowych poza sygnałami i 
 Awaria init = kernel panic, więc kod jest mały i nie przetwarza niezaufanych danych.
 
 ## Uprawnienia
-UID 0, wszystkie capabilities. **M1:** nadzorca (jeśli jest w obrazie) też startuje jako root —
-podział uprawnień to M3.
+UID 0, wszystkie capabilities. Nadzorca (od M2 w obrazie) też startuje jako root — podział
+uprawnień to M3.
 
 ## Wejścia i wyjścia
 - Wejście: sygnały (SIGCHLD, SIGTERM, SIGINT), statusy zakończenia procesów potomnych.

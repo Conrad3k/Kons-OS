@@ -13,16 +13,17 @@ i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
 |---|---|---|
 | M0 Porządki | nowe repo, dokumenty, narzędzia, automatyczne budowanie | PRZETESTOWANE |
 | M1 Start | system startuje w maszynie wirtualnej (QEMU) i pisze „K1: init OK” | PRZETESTOWANE |
-| M2 Ekran | pierwszy obraz na ekranie: tapeta, logo, kursor myszy | PLANOWANE |
+| M2 Ekran | obraz na ekranie: tapeta, logo, kursor; mysz i klawiatura | PRZETESTOWANE (w QEMU) |
 | M3 Trusted Core | nadzorca usług, każda usługa we własnej „klatce” | PLANOWANE |
 | M4 GUI | pulpit, okna, pierwsze aplikacje (zegar, notatki) | PLANOWANE |
 | M5–M12 | magazyn danych, sieć, przeglądarka w izolacji, bezpieczny start, audyt | PLANOWANE |
 
 Pełny plan i zasady: [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-**Ważne:** na tym etapie K1 nie ma jeszcze nic do oglądania na ekranie i działa tylko w maszynie
-wirtualnej QEMU — cały „dowód życia” to tekst wysyłany na port szeregowy. Testowanie na laptopie
-ma sens od etapu M2.
+**Ważne:** K1 działa na razie tylko w maszynie wirtualnej QEMU: pokazuje tapetę z logo i kursor,
+który rusza się myszą i strzałkami. Na prawdziwym komputerze jeszcze nie wystartuje (brak sterowników
+dysków, USB i grafiki dla prawdziwego sprzętu) — to przyjdzie przed pierwszymi testami na laptopie.
+Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
 
 ## Jak to sprawdzić bez instalowania niczego
 Po każdej zmianie na `main` GitHub sam buduje system i uruchamia testy:
@@ -36,7 +37,7 @@ Ubuntu 24.04:
 ```bash
 scripts/przygotuj-srodowisko.sh   # pakiety (raz)
 scripts/zbuduj.sh                 # jądro + programy + obrazy → build/wynik/
-scripts/test-m1.sh                # testy (QEMU, także negatywne)
+scripts/testy.sh                  # wszystkie testy (QEMU, także negatywne)
 scripts/uruchom-qemu.sh           # ręczne uruchomienie; log: build/qemu/serial.log
 ```
 Szczegóły: [`docs/ARCHITEKTURA.md`](docs/ARCHITEKTURA.md), [`docs/TESTY.md`](docs/TESTY.md).

@@ -13,5 +13,6 @@ Budowany skryptami w `scripts/`, testowany w QEMU, CI w GitHub Actions (tylko `m
   commity i komentarze w kodzie — po angielsku.
 - Repo jest prywatne: po zakończeniu pracy scalaj PR do `main` bez pytania (squash).
 - Kontener: brak KVM (QEMU w TCG), sieć tylko HTTPS przez proxy (apt Ubuntu, deb.debian.org, GitHub,
-  cdn/www/git.kernel.org). Start pracy: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/test-m1.sh`
-  (~5 min). Przed scaleniem zmian w systemie: pełny `scripts/test-m1.sh` lokalnie (i testy bieżącego etapu).
+  cdn/www/git.kernel.org). Start pracy: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh`
+  (~6 min). Przed scaleniem zmian w systemie: pełny `scripts/testy.sh` lokalnie.
+- Wygląd (ustalenia właściciela, paleta, logo): `docs/WYGLAD.md`. Zrzuty ekranu z testów: `build/testy/m2-*.png`.

@@ -16,4 +16,8 @@ void k1_log(const char *tag, const char *fmt, ...) __attribute__((format(printf,
 #define K1_AWARIA_ZWLOKA_S 5
 _Noreturn void k1_awaria(const char *tag, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
+/* Fatal error in a service (not PID 1): logs "<tag>: BŁĄD: <message>" and exits with code 1.
+ * The supervisor decides what happens next; a failing service must never take the system down. */
+_Noreturn void k1_koniec(const char *tag, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+
 #endif

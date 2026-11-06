@@ -13,12 +13,16 @@ K1 = jądro Linux (własna, minimalna konfiguracja) + nasz initramfs + nasz init
 |---|---|
 | `VERSION`, `CHANGELOG.md` | wersja K1 (SemVer) i historia zmian |
 | `Makefile` | kompilacja programów K1 (musl) i testów na hoście |
-| `src/wspolne/` | wspólne moduły: log + błąd krytyczny (`k1_log`), parser linii poleceń jądra (`k1_cmdline`) |
+| `src/wspolne/` | wspólne moduły: log i błędy (`k1_log`), parser linii poleceń jądra (`k1_cmdline`), protokół zdarzeń wejścia (`k1_zdarzenie`) |
+| `src/grafika/` | renderer programowy: tapeta, logo, kursor (`k1_grafika`) |
 | `src/initramfs/` | `/init` w initramfs: montuje obraz rdzenia, przełącza korzeń |
 | `src/init/` | `/rdzen/init` — PID 1 |
+| `src/nadzorca/` | `/rdzen/system/nadzorca` — uruchamia usługi (M2: wersja minimalna) |
+| `src/wejscie/` | `/rdzen/system/wejscie` — klawiatura i mysz (evdev) → ekran |
+| `src/ekran/` | `/rdzen/system/ekran` — jedyny proces z DRM/KMS: tryb, klatki, kursor |
 | `jadro/` | wersja, konfiguracja i linia poleceń jądra, klucze PGP |
-| `testy/m1/` | program testowy uruchamiany wewnątrz K1 |
-| `testy/host/` | testy jednostkowe (ASan/UBSan) i fuzzing na hoście |
+| `testy/system/` | program testowy uruchamiany wewnątrz K1 (obraz testowy) |
+| `testy/host/` | testy jednostkowe (ASan/UBSan), fuzzing i podgląd grafiki na hoście |
 | `scripts/` | budowa, QEMU, zrzuty ekranu, testy, kontrole (opis niżej) |
 | `docs/` | SPEC, ADR, ten plik, TESTY, ZALEZNOSCI, RYZYKA, `komponenty/` (opis każdego komponentu) |
 | `.github/workflows/k1.yml` | CI: budowa + testy na `main`, artefakty, tag wersji |
@@ -34,7 +38,9 @@ K1 = jądro Linux (własna, minimalna konfiguracja) + nasz initramfs + nasz init
 | `zbuduj-obraz.sh` | kompiluje programy, sprawdza binaria, składa `initramfs.cpio` i obrazy SquashFS |
 | `uruchom-qemu.sh` | uruchamia K1 w QEMU (log szeregowy do pliku, monitor do gniazda) |
 | `zrzut-ekranu.sh` | zrzut ekranu działającej maszyny (PNG) |
-| `test-m1.sh` | pełny test etapu M1 |
+| `testy.sh` | wszystkie testy (to uruchamia CI) |
+| `test-m1.sh` | start, testy w systemie, błędy startu (M1–M2) |
+| `test-m2.sh` | ekran i wejście: mysz/klawiatura przez monitor QEMU, zrzuty ekranu sprawdzane automatycznie |
 | `sprawdz-binaria.sh`, `sprawdz-konfiguracje-jadra.sh`, `sprawdz-kspp.sh` | kontrole bezpieczeństwa |
 | `sprawdz-powtarzalnosc.sh` | drugi build w osobnym katalogu i porównanie sum (powtarzalność) |
 
@@ -43,16 +49,16 @@ K1 = jądro Linux (własna, minimalna konfiguracja) + nasz initramfs + nasz init
 ```
 jadro/wersja.env ──► pobranie + SHA-256 + podpis PGP ──► allnoconfig + jadro/k1.config ──► bzImage
                                                          (sprawdzenie każdej opcji)    └► nagłówki UAPI, gen_init_cpio
-src/ ──► musl-gcc (static-pie, flagi SPEC §11) ──► k1-initramfs, init, k1-test-m1 ──► sprawdzenie ELF
-                                                       │
-                     initramfs.cpio  ◄── /init ────────┘
-                     rdzen.squashfs  ◄── init (+ katalogi jadro/{dev,proc,sys}, system/)
-                     rdzen-test.squashfs ◄── + k1-test-m1 jako system/nadzorca
+src/ ──► musl-gcc (static-pie, flagi SPEC §11) ──► k1-initramfs, init, nadzorca, wejscie, ekran,
+                                                      k1-test-systemu ──► sprawdzenie ELF
+                     initramfs.cpio  ◄── /init (k1-initramfs)
+                     rdzen.squashfs  ◄── init, system/{nadzorca,wejscie,ekran}, katalogi jadro/{dev,proc,sys}
+                     rdzen-test.squashfs ◄── + system/test-systemu (+ plik ze „#!” do testu negatywnego)
 ```
 Wynik w `build/wynik/` (+ `SHA256SUMS`, `srodowisko.txt`). Build jest powtarzalny: stały
 `SOURCE_DATE_EPOCH` (data ostatniego commita), stałe dane budowy jądra, `-frandom-seed`.
 
-## Jak startuje system (M1)
+## Jak startuje system (M2)
 
 ```
 QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs)
@@ -64,7 +70,11 @@ QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs)
           execve /rdzen/init
      └─ /rdzen/init (PID 1)
           sysctl bezpieczeństwa → montowania /rdzen/jadro/{dev,proc,sys}, cgroup2, /dane_uzytkownika
-          „K1: init OK” → nadzorca (M3; w obrazie testowym: program testowy) → pętla sygnałów
+          „K1: init OK” → /rdzen/system/nadzorca → pętla sygnałów (sieroty, wyłączanie)
+     └─ nadzorca (M2: minimalny)
+          pipe pakietowy ──► wejscie (fd 3: zapis)   evdev → komunikaty k1_zdarzenie
+                        └──► ekran   (fd 3: odczyt)  DRM/KMS: tapeta + logo + kursor, page flip
+          [obraz testowy: test-systemu → po jego końcu nadzorca kończy się, init wyłącza maszynę]
 ```
 Szczegóły i tabela montowań: ADR 0004. Błędy: ADR 0005.
 
@@ -73,7 +83,10 @@ Szczegóły i tabela montowań: ADR 0004. Błędy: ADR 0005.
   w kodzie oraz commity — po angielsku.
 - **Kod C:** małe moduły, jawne limity długości, sprawdzanie każdego błędu, bez `strcpy/strcat/sprintf`
   (tylko `snprintf`/`strncat` z limitem). Flagi w `Makefile` — zmiana tylko przez ADR.
-- **Prefiksy logów:** `K1-INITRAMFS:`, `K1:` (init), `K1-TEST:`; błędy krytyczne `BŁĄD KRYTYCZNY:`.
+- **Prefiksy logów:** `K1-INITRAMFS:`, `K1:` (init), `K1-NADZORCA:`, `K1-WEJSCIE:`, `K1-EKRAN:`, `K1-TEST:`;
+  błędy krytyczne PID 1 `BŁĄD KRYTYCZNY:` (`k1_awaria` — wyłączenie), błędy usług `BŁĄD:` (`k1_koniec` — wyjście z kodem 1).
+- **Kanały usług:** kanał od nadzorcy to zawsze fd 3. Komunikaty: stały rozmiar, wersja, typ, długość,
+  pole zarezerwowane = 0, odbiorca sprawdza każde pole (SPEC §12).
 - **Ścieżki w systemie** po polsku (`/rdzen`, `/dane_uzytkownika`, `/rdzen/system/…`).
 - **Komponent = dokument** w `docs/komponenty/` (cel, granica zaufania, uprawnienia, wejścia/wyjścia,
   zależności, syscalle, błędy, powierzchnia ataku, testy) — SPEC §2.6.
@@ -90,7 +103,8 @@ SemVer od 0.1.0 w `VERSION`; tagi `k1-vX.Y.Z` zakłada CI po udanym buildzie i t
 | tylko dokumentacja / CI / repo | bez zmiany |
 
 ## Ograniczenia środowiska pracy
-- Kontener deweloperski bez `/dev/kvm` → QEMU w emulacji TCG (start K1 ~1–2 s, cały test M1 ~1,5 min).
+- Kontener deweloperski bez `/dev/kvm` → QEMU w emulacji TCG (start K1 ~1–2 s, pierwsza klatka ~2 s,
+  wszystkie testy ~2,5 min). QEMU: karta `-vga std` (sterownik `bochs`), klawiatura i mysz PS/2.
 - Sieć kontenera: tylko HTTPS przez proxy; dozwolone m.in. apt Ubuntu, deb.debian.org, GitHub,
   cdn/www/git.kernel.org.
 - CI (GitHub Actions) buduje tylko `main` — minuty prywatnego repo są ograniczone.

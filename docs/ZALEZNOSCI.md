@@ -10,7 +10,8 @@ co trafia **do obrazu** (działa na komputerze użytkownika), od tego, co służ
 | Jądro Linux | 6.18.60 (LTS) | GPL-2.0 | cdn.kernel.org; SHA-256 przypięta w `jadro/wersja.env`, podpis PGP wydania sprawdzany przy każdym pobraniu | fundament systemu (SPEC §4) |
 | musl libc (statycznie w każdym programie) | 1.2.4-2 (Ubuntu 24.04) | MIT | archiwum Ubuntu (podpisane repozytoria apt) | mała, czytelna libc ze wsparciem statycznego linkowania (SPEC §4); ADR 0002 |
 
-Nic więcej: brak bibliotek współdzielonych, interpreterów, powłoki.
+Nic więcej: brak bibliotek współdzielonych, interpreterów, powłoki. Grafika (M2) bez bibliotek:
+API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer własny (`src/grafika/`).
 
 ## Do budowy (wpływają na wynik)
 
@@ -32,7 +33,7 @@ Wersje użyte w danym buildzie zapisuje `build/wynik/srodowisko.txt`.
 | OVMF | 2024.02 | Ubuntu 24.04 | firmware UEFI (M10: Secure Boot) |
 | clang + `libclang-rt-18-dev` | 18 | Ubuntu 24.04 | libFuzzer + sanitizery (fuzzing parserów) |
 | glibc + ASan/UBSan (gcc) | systemowe | Ubuntu 24.04 | testy jednostkowe na hoście |
-| Python 3 | systemowy | Ubuntu 24.04 | zrzuty ekranu (PPM→PNG), obsługa monitora QEMU w testach |
+| Python 3 | systemowy | Ubuntu 24.04 | zrzuty ekranu (PPM→PNG), sterowanie monitorem QEMU (mysz, klawiatura) i sprawdzanie zrzutów w testach |
 | kernel-hardening-checker | v0.6.17.1 (`afc376f2…`) | GitHub | **tylko dane**: lista zaleceń KSPP czytana jako tekst przez `scripts/sprawdz-kspp.sh`; kod narzędzia nie jest uruchamiany |
 
 ## Planowane (do decyzji)

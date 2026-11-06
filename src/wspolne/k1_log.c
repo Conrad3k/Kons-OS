@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/reboot.h>
 #include <time.h>
@@ -81,4 +82,13 @@ void k1_awaria(const char *tag, const char *fmt, ...)
     k1_log(tag, "wyłączenie nie powiodło się (%s) — zatrzymano", strerror(errno));
     for (;;)
         pause();
+}
+
+void k1_koniec(const char *tag, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    k1_vlog(tag, "BŁĄD: ", fmt, ap);
+    va_end(ap);
+    exit(1);
 }
