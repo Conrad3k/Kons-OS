@@ -32,10 +32,12 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
   - KVM (szybsze testy, potrzebne w M11): komputer z Windowsem — na razie zostajemy przy emulacji
     w chmurze; wracamy do tematu przed M11 (runner na Twoim komputerze albo WSL2).
 
-[!] Pierwsze uruchomienie w maszynie wirtualnej: obraz k1-0.4.1.iso (Releases), instrukcja
-    w README („Uruchom w maszynie wirtualnej”). Napisz, co widać i co nie działa
-    (Issues → „Feedback z testu” albo w czacie).
-[!] Ocena pulpitu i nowych tapet: co zmienić (kolory, rozmiary, pasek, okna)?
+  - Pierwszy test (VirtualBox z EFI, 0.4.1): „działa!”; mysz i klawiatura bez zmiany na PS/2;
+    rozmiary „bardzo fajne”; rozdzielczość dziwna (1024×768 z firmware); logo „okropne” →
+    wybrany nowy znak C „Warstwy” (0.4.2).
+
+[!] Czy obejście rozdzielczości z README (VBoxManage … EfiGraphicsResolution 1920x1080) działa?
+[!] Dalsze uwagi do pulpitu, tapet i nowego znaku (Issues → „Feedback z testu” albo w czacie).
 [!] Kiedy pierwszy test na laptopie (pendrive)? Wymaga pracy z punktu 2 („prawdziwy sprzęt”).
     Przyda się model laptopa.
 [!] Przed M5 — jak ma wyglądać ekran hasła przy starcie (gdy włączysz hasło w Ustawieniach)?
@@ -85,6 +87,8 @@ M4  GUI — GOTOWE (0.4.0)
 Nowa kolejność od 2026-11-06 (ADR 0011): M4.1 → M5 → M5.1 → M5.2 → M6 → M7 → … Numery etapów zostają.
 
 M4.1 Porządki i audyt — NASTĘPNY
+    [ ] ekran dopasowany do okna VirtualBoxa/VMware: sterownik karty VMSVGA (vmwgfx) albo tryb
+        z firmware o wyższej rozdzielczości (dziś w VirtualBoxie z EFI: 1024×768)
     [ ] celowany przegląd bezpieczeństwa: nadzorca, ekran, kanały, klatka (+ poprawki)
     [ ] podział największych plików (ekran: kompozycja / okna / wejście; program testowy) i usunięcie powtórzeń
     [ ] CI uruchamiane przez Claude etykietą „testy” na PR-ze (bez czekania na scalenie)

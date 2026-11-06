@@ -13,19 +13,24 @@ Podgląd tapety bez QEMU: `make build/obj/podglad_grafiki && build/obj/podglad_g
   i Anthropic**. Aplikacje: Zegar, Notatki, **Ustawienia**.
 - 2026-11-06 (M4, po zrzutach): tapeta **na wzór zdjęcia** właściciela (warstwy wygiętych
   „wstęg”), może być w kolorach systemu, **kilka wariantów**; **logo zminimalizowane**, eleganckie.
+- 2026-11-06 (po pierwszym teście w VirtualBoxie): płaska tarcza „okropna — przebudować od zera”;
+  z czterech kierunków (Pieczęć, Brama, Warstwy, Baszta) właściciel wybrał **C — Warstwy**.
+  Rozmiary pulpitu: „bardzo fajne”.
 
 ## Kierunek (M4)
 - **Charakter:** spokojny, rzeczowy, lekko ciepły.
 - **Świat:** papier i glina — kremowy papier okien, terakota, ciemny brąz wieczoru.
 - **Bogate miejsca:** tapeta (warstwy papieru) i tarcza Zegara; reszta interfejsu cicha: neutralne
   tła, włoskowate linie, jeden akcent.
-- **Znak rozpoznawczy:** tarcza z blankami — przycisk Start i nagłówek menu.
+- **Znak rozpoznawczy:** znak „Warstwy” — przycisk Start i nagłówek menu.
 
-## Znak K1 (od M4)
-Płaska tarcza w kolorze terakoty z dwoma wcięciami blanków (twierdza = niezależność, tarcza =
-bezpieczeństwo) i cienkim kremowym monogramem **K1** — bez gradientów, poświaty i obrysu.
-Rysowany w kodzie (`k1_rysuj_znak` w `src/grafika/k1_grafika.c`), w każdym rozmiarze. Duże logo
-z M2 (z gradientem i poświatą) nie jest już na tapecie.
+## Znak K1 (od 0.4.2): „Warstwy”
+Trzy arkusze papieru leżące jeden na drugim — ta sama myśl co tapeta: warstwy ochrony, każda
+osobno. Ćwiartki koła wychodzące z prawego dolnego rogu zaokrąglonego kwadratu, w trzech odcieniach
+terakoty (`#B55C3E`, `#D97757`, `#E9A88B`), płasko, bez obrysu i poświaty. Rysowany w kodzie
+(`k1_rysuj_znak` w `src/grafika/k1_grafika.c`) w każdym rozmiarze; czytelny od 20 px.
+Wcześniej: tarcza z blankami i monogramem K1 (M2–0.4.1) — porzucona na prośbę właściciela.
+Szkice kierunków: `build/podglad/logo-kierunki.png` (generowane skryptem w sesji, nie w repo).
 
 ## Tapety (od M4)
 Warstwy długich, pochylonych arkuszy papieru: krawędź każdego schodzi z góry, zakręca i wychodzi
@@ -46,7 +51,7 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   IBM Plex Sans Medium 13: z lewej nazwa aktywnej aplikacji (albo „Kons K1”), z prawej ikona
   głośnika i data z godziną („pt. 6 lis   19:42”; sekundy — w Ustawieniach).
 - **Dolny pasek** (unosi się 8 px nad krawędzią, zaokrąglenie 16, tło okien 94%, włoskowaty obrys,
-  miękki cień): Start (znak K1), separator, ikony aplikacji 24 px w polach 44 px. Uruchomiona —
+  miękki cień): Start (znak K1 „Warstwy”), separator, ikony aplikacji 24 px w polach 44 px. Uruchomiona —
   kropka pod ikoną, aktywna — kreska 16×3 w kolorze akcentu.
 - **Menu Start** (360 px): znak + „Kons K1” (Plex Serif 24) i wersja; wiersze aplikacji 56 px
   (ikona, nazwa, opis); stopka: „Uruchom ponownie”, „Wyłącz”.

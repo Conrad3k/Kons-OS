@@ -34,8 +34,11 @@ Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
    (Albo Actions → „K1 — budowa i testy” → ostatnie zielone uruchomienie → Artifacts → `k1-<wersja>-obraz`.)
 2. **VirtualBox** (zalecany): Nowa maszyna → typ *Other Linux (64-bit)*, bez dysku twardego.
    - Pamięć: **1024 MB**, procesory: **2**.
-   - System → Płyta główna: **Urządzenie wskazujące: Mysz PS/2** (ważne — mysz USB/tablet nie działa);
-     „Włącz EFI” może być włączone albo nie (oba działają).
+   - Mysz i klawiatura działają od razu (sprawdzone w VirtualBoxie z EFI). Jeśli kursor się nie
+     rusza: System → Płyta główna → Urządzenie wskazujące: **Mysz PS/2**.
+   - „Włącz EFI” może być włączone albo nie. Z EFI VirtualBox daje tylko 1024×768; większy obraz
+     (przy wyłączonej maszynie, w Wierszu polecenia Windows):
+     `"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" setextradata "NAZWA MASZYNY" VBoxInternal2/EfiGraphicsResolution 1920x1080`
    - Ekran: kontroler **VMSVGA**, pamięć wideo 16 MB lub więcej.
    - Pamięć masowa: napęd optyczny → wybierz pobrany plik ISO. Sieć i dźwięk można wyłączyć.
 3. Uruchom. Po kilku sekundach pojawi się pulpit. Kliknij w okno maszyny, żeby „złapać” mysz

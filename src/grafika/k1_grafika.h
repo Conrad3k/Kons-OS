@@ -1,10 +1,10 @@
 /* K1 — software renderer for the screen process (SPEC §7: own software renderer in C).
  *
- * Draws the wallpaper with the K1 logo and the mouse cursor into plain XRGB8888 pixel buffers.
+ * Draws the wallpapers, the K1 mark and the mouse cursor into plain pixel buffers.
  * Shapes are described by signed distance functions (SDF), which gives anti-aliased edges with
  * very little code. Pure functions without syscalls or allocation: the same code runs in the
  * `ekran` process and in host tests/previews (testy/host/podglad_grafiki.c).
- * Visual design (colours, logo): docs/WYGLAD.md. */
+ * Visual design (colours, wallpapers, mark): docs/WYGLAD.md. */
 #ifndef K1_GRAFIKA_H
 #define K1_GRAFIKA_H
 
@@ -38,7 +38,7 @@ void k1_naloz_sprite(struct k1_obraz *o, const uint32_t *sprite, uint32_t sw, ui
 void k1_kopiuj_prostokat(struct k1_obraz *dst, const struct k1_obraz *src, int32_t x, int32_t y,
                          int32_t w, int32_t h);
 
-/* Small K1 mark (shield with battlements + monogram) over a premultiplied ARGB image. */
+/* The K1 mark („Warstwy”: three sheets of paper) over a premultiplied ARGB image, wys × wys px. */
 void k1_rysuj_znak(struct k1_obraz *o, float cx, float cy, float wys);
 
 /* Blends a premultiplied ARGB image (`src`, its own size) onto `dst` at (x, y), clipped to the
