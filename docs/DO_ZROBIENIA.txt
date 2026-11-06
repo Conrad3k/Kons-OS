@@ -1,0 +1,104 @@
+K1 — CO ZOSTAŁO DO ZROBIENIA
+=============================
+
+Stan: wersja 0.2.0 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura).
+Data: 2026-11-06. Plik aktualizujemy po każdym etapie.
+Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
+
+Oznaczenia:
+  [!]  wymaga Twojej decyzji albo działania
+  [ ]  do zrobienia
+  [~]  zrobione częściowo
+
+
+1. TWOJE DECYZJE I DZIAŁANIA
+----------------------------
+[!] Miejsce na artefakty GitHuba zajmują stare obrazy ISO Kons-OS — przez to obrazy K1 nie dają się
+    wysłać. Usuń je (Actions → stare runy „Zbuduj ISO Kons-OS” → Artifacts → kosz) albo poczekaj,
+    aż same wygasną (ok. 2 grudnia).
+[!] Ocena wyglądu z M2: tapeta, logo (tarcza z blankami i K1), kursor. Co zmienić?
+[!] Przed M4 — pulpit: bardziej jak Windows (pasek zadań na dole, menu Start) czy jak macOS
+    (pasek menu u góry + dock na dole)? Gdzie zegar? Jasny czy ciemny motyw okien?
+[!] Przed M4 — pierwsze aplikacje: zegar i notatki są w planie. Coś jeszcze na start?
+[!] Przed M5 — dostęp do danych: hasło przy starcie systemu? PIN? Co ma się dziać, gdy ktoś
+    zapomni hasła (dane zaszyfrowane = bez hasła nie do odzyskania)?
+[!] Kiedy pierwszy test na laptopie (pendrive)? Wymaga pracy z punktu 2 („prawdziwy sprzęt”).
+    Przyda się model laptopa.
+[!] Przed M8 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)?
+
+
+2. ZALEGŁOŚCI I RZECZY PRZEKROJOWE
+----------------------------------
+[ ] Prawdziwy sprzęt (potrzebne do testów na laptopie):
+      - start z pendrive'a przez UEFI,
+      - grafika z firmware (simpledrm) zamiast karty QEMU,
+      - klawiatura i mysz USB, touchpad (I2C-HID),
+      - dyski NVMe / SATA.
+[ ] Komunikat o błędzie startu widoczny na ekranie (dziś tylko na porcie szeregowym).
+[ ] Własny build biblioteki musl 1.2.5 z poprawkami bezpieczeństwa (dziś 1.2.4 z Ubuntu).
+[ ] Ochrona _FORTIFY_SOURCE dla programów K1 (decyzja w M3).
+[ ] Podłączanie klawiatury/myszy w trakcie pracy (hotplug) i polski układ klawiatury (przy M4).
+[ ] Restart usług po awarii (M3) — dziś awaria ekranu nie wyłącza systemu, ale ekran nie wraca.
+
+
+3. ETAPY
+--------
+M3  Trusted Core — NASTĘPNY
+    [ ] prawdziwy nadzorca: każda usługa z osobnym użytkownikiem (UID/GID) i minimum uprawnień
+    [ ] blokada podnoszenia uprawnień (PR_SET_NO_NEW_PRIVS)
+    [ ] seccomp: każda usługa może wołać tylko potrzebne funkcje jądra (biała lista)
+    [ ] Landlock: każda usługa widzi tylko swoje pliki i urządzenia
+    [ ] cgroups v2: limity pamięci i liczby procesów
+    [ ] restart ekranu (i później GUI) po awarii, reguły restartów
+    [ ] kanały między usługami z kontrolą nadawcy (gniazda UNIX, SO_PEERCRED)
+    [ ] testy negatywne: próba podniesienia uprawnień, ucieczki z „klatki”, zabronione wywołania
+
+M4  GUI
+    [ ] proces gui: pulpit, okna, pasek (wygląd wg Twoich decyzji z punktu 1)
+    [ ] tekst: czcionka i jej rysowanie (z polskimi znakami)
+    [ ] okna rysowane w pamięci współdzielonej, składane przez ekran
+    [ ] pierwsze aplikacje natywne: zegar, notatki
+    [ ] przejęcie gui nie daje dostępu do danych ani systemu (testy)
+
+M5  Blob Vault i szyfrowanie danych
+    [ ] magazyn obiektów zamiast katalogów (identyfikator, metadane, hash, pochodzenie)
+    [ ] szyfrowanie /dane_uzytkownika na dysku (dziś dane są tylko w RAM)
+    [ ] dostęp aplikacji tylko do obiektów, na które się zgodzisz
+
+M6  Dekodery w izolacji
+    [ ] każdy plik (np. PNG) dekodowany w jednorazowym, zamkniętym procesie
+    [ ] tapeta z pliku PNG przez taki dekoder; testy złośliwymi plikami
+
+M7  Sieć i strefa zgodności (zaplecze A)
+    [ ] usługa sieci: Ethernet + DHCP
+    [ ] „równoległy Linux” dla obcych programów w izolacji (namespaces, seccomp, Landlock)
+    [ ] prosta aplikacja testowa ze strefy wyświetlana w K1
+
+M8  Przeglądarka w strefie
+    [ ] wybór: Firefox czy WPE WebKit
+    [ ] osobne, jednorazowe sesje (sesje wg Twoich decyzji z punktu 1)
+
+M9  Gatekeeper
+    [ ] pobieranie plików, okno zgody, import do Blob Vault, sprzątanie
+
+M10 Bezpieczny start
+    [ ] dm-verity: system wykrywa podmieniony obraz
+    [ ] Secure Boot z własnymi kluczami, podpisane obrazy, ochrona przed starszą wersją
+    [ ] aktualizacje A/B z powrotem do poprzedniej wersji, tryb ratunkowy (recovery)
+
+M11 Mikro-maszyna wirtualna dla przeglądarki (zaplecze B)
+    [ ] przeglądarka z własnym jądrem — luka w nim nie daje dostępu do K1 (wymaga KVM)
+
+M12 Audyt
+    [ ] fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa
+
+
+4. DECYZJE TECHNICZNE DO PODJĘCIA (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
+----------------------------------------------------------------------------------------------
+M3   fortify-headers tak/nie; format kanałów IPC (gniazda UNIX)
+M4   czcionka (źródło, licencja), rysowanie tekstu: własne czy biblioteka (np. LVGL)
+M5   fscrypt czy dm-crypt; skąd klucz (hasło, TPM)
+M7   przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP
+M8   Firefox czy WPE WebKit (sprawdzenie sandboxa Firefoksa w strefie)
+M10  obraz produkcyjny bez logu na porcie szeregowym; RANDSTRUCT w jądrze; zarządzanie kluczami
+M11  wybór VMM (do porównania m.in. Cloud Hypervisor, Firecracker, crosvm); test KVM na Twoim sprzęcie

@@ -5,6 +5,9 @@ Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wers
 
 ## [Niewydane]
 
+### Dodane
+- `docs/DO_ZROBIENIA.txt` — lista tego, co zostało do zrobienia, i decyzji potrzebnych od właściciela.
+
 ## [0.2.0] — 2026-11-06
 
 Etap **M2 — Ekran**: K1 pokazuje obraz i reaguje na mysz i klawiaturę.

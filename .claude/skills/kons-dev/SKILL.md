@@ -61,6 +61,8 @@ Repo prywatne, właściciel zgodził się na scalanie bez pytania:
 - **Udał się** → tag `k1-v<wersja>` zakłada CI; podaj właścicielowi link do runu.
 
 ## 5. Raport po etapie (SPEC §2.11)
+Po każdym etapie zaktualizuj `docs/DO_ZROBIENIA.txt` (co zostało, decyzje właściciela, ADR do podjęcia).
+
 Krótko, po polsku, prostym językiem (skutki, nie mechanika): cel i kryteria, co zrobiono, dowody
 (fragment logu, wynik testów), testy negatywne, ograniczenia (z `docs/RYZYKA.md`), statusy.
 Nie wklejaj całych plików. Linki do PR i runów — pełnym URL-em.
