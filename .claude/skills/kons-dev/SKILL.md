@@ -178,7 +178,11 @@ w tytule commita scalenia (workflow i tak startuje tylko przy zmianach w `src/`,
 
 **CI:** sprawdzaj przez `send_later` (~15 min po scaleniu); padł → `get_job_logs` (`failed_only`), napraw
 (PATCH); udał się → CI zakłada tag `k1-v<wersja>` i wydanie (Releases) z `k1-<wersja>.iso` — to link
-do pobrania dla właściciela. Artefakty mają wspólny limit miejsca konta; stare (spoza `k1-…`) usuwa
+do pobrania dla właściciela. **Logi testów są zawsze** (decyzja właściciela, 0.5.1), niezależnie od
+limitu artefaktów: w konsoli zadania (krok „Logi testów”, grupa na plik, bez wierszy kursora — czytaj
+`get_job_logs` z `job_id`), w podsumowaniu zadania (linie `[OK]`/`[BŁĄD]`), w wydaniu
+(`k1-<wersja>-logi.tar.gz`: logi, zrzuty, sumy) i jako artefakt (7 dni). Obraz jako artefakt tylko
+na PR-ach (na `main` jest w wydaniu). Artefakty mają wspólny limit miejsca konta; stare (spoza `k1-…`) usuwa
 workflow „Sprzątanie artefaktów” (uruchamia się przy zmianie jego pliku na `main` — Claude nie
 może wywołać `workflow_dispatch`).
 
