@@ -31,6 +31,21 @@ int powloka(void)
     return -1;
 }
 
+/* The boot password screen (M5e, role LOGOWANIE): while it is connected it gets every key. */
+int logowanie(void)
+{
+    int i;
+    for (i = 0; i < MAKS_KLIENTOW; i++)
+        if (s.kl[i].fd >= 0 && s.kl[i].rola == K1_ROLA_LOGOWANIE)
+            return i;
+    return -1;
+}
+
+static int panele(const struct klient *k)
+{
+    return k->rola == K1_ROLA_POWLOKA || k->rola == K1_ROLA_LOGOWANIE;
+}
+
 const char *nazwa_roli(const struct klient *k)
 {
     static const char *const apl[K1_APL_MAKS + 1] = { "?", "zegar", "notatki", "ustawienia", "zasoby" };
@@ -38,6 +53,8 @@ const char *nazwa_roli(const struct klient *k)
         return "wejście";
     if (k->rola == K1_ROLA_POWLOKA)
         return "powłoka";
+    if (k->rola == K1_ROLA_LOGOWANIE)
+        return "logowanie";
     return k->apl >= 1 && k->apl <= K1_APL_MAKS ? apl[k->apl] : "?";
 }
 
@@ -181,7 +198,7 @@ int znajdz_okno(uint32_t okno)
 static size_t budzet_klienta(const struct klient *k)
 {
     size_t ekran = (size_t)s.W * (size_t)s.H * 4u * 2u;
-    return k->rola == K1_ROLA_POWLOKA ? ekran : 2u * ekran;
+    return panele(k) ? ekran : 2u * ekran;
 }
 
 static void nowa_pow(int kl, const struct k1_komunikat *m, int fd)
@@ -199,7 +216,7 @@ static void nowa_pow(int kl, const struct k1_komunikat *m, int fd)
         close(fd);
         { odrzuc(kl, "powierzchnia o tym numerze już istnieje"); return; }
     }
-    if ((m->c == K1_POW_PANEL) != (k->rola == K1_ROLA_POWLOKA)) {
+    if ((m->c == K1_POW_PANEL) != panele(k)) {
         close(fd);
         { odrzuc(kl, m->c == K1_POW_PANEL ? "panele tylko dla powłoki" : "okna tylko dla aplikacji"); return; }
     }
@@ -215,7 +232,7 @@ static void nowa_pow(int kl, const struct k1_komunikat *m, int fd)
             zajete += s.p[i].rozmiar;
         }
     }
-    if (wolny < 0 || okien >= (k->rola == K1_ROLA_POWLOKA ? K1_POW_MAKS : MAKS_OKIEN_KLIENTA)) {
+    if (wolny < 0 || okien >= (panele(k) ? K1_POW_MAKS : MAKS_OKIEN_KLIENTA)) {
         close(fd);
         { odrzuc(kl, "za dużo powierzchni"); return; }
     }

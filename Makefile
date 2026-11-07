@@ -48,7 +48,7 @@ PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_czas.c src/przybornik/k1_
 NAGL_P  := $(wildcard src/przybornik/*.h) src/grafika/k1_grafika.h src/grafika/k1_czcionka.h VERSION
 APLIKACJE := $(BIN)/zegar $(BIN)/notatki $(BIN)/ustawienia $(BIN)/zasoby
 
-PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(BIN)/wejscie $(BIN)/ekran $(BIN)/gui $(BIN)/skarbiec $(APLIKACJE) \
+PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(BIN)/wejscie $(BIN)/ekran $(BIN)/gui $(BIN)/skarbiec $(BIN)/logowanie $(APLIKACJE) \
             $(BIN)/k1-test-systemu
 
 all: $(PROGRAMY)
@@ -72,6 +72,9 @@ $(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BI
 EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/wskaznik.c src/ekran/drm.c src/ekran/zapis.c
 $(BIN)/ekran: $(EKRAN) src/ekran/ekran.h $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(EKRAN) src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+
+$(BIN)/logowanie: src/logowanie/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) $(NAGL_P) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ src/logowanie/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 $(BIN)/gui: src/gui/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/gui/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)

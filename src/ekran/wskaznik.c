@@ -120,6 +120,16 @@ static void klawisz(const struct k1_zdarzenie *z)
         s.mody = z->wartosc ? (s.mody | bit) : (s.mody & ~bit);
         return;
     }
+    /* The password screen (M5e) takes every key: nothing else is on screen while it runs. */
+    if ((i = logowanie()) >= 0) {
+        int j;
+        for (j = 0; j < MAKS_POW; j++)
+            if (s.p[j].uzyta && s.p[j].kl == i) {
+                wyslij(i, k1_komunikat_nowy(K1_KOM_KLAWISZ, s.p[j].id, z->kod, z->wartosc, s.mody, 0, 0));
+                break;
+            }
+        return;
+    }
     if (z->kod == KEY_LEFTMETA || z->kod == KEY_RIGHTMETA) {
         for (i = 0; i < MAKS_POW && sh >= 0; i++)
             if (s.p[i].uzyta && s.p[i].kl == sh) {

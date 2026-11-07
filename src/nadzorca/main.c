@@ -75,6 +75,9 @@ static const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
                           64u << 10 },
     /* skarbiec: Argon2id needs up to 256 MiB (ADR 0015); memfd up to 1 MiB (RLIMIT_FSIZE does not apply to
      * the block device: block/fops.c blkdev_write_iter has no rlimit check). */
+    /* the boot password screen (M5e): like the shell, no files; password → skarbiec on fd 6 */
+    [K1_PROFIL_LOGOWANIE] = { "logowanie", K1_UID_LOGOWANIE, sc_okna, N(sc_okna), NULL, 0, NULL, 48u << 20, 1, 32,
+                              16u << 20 },
     [K1_PROFIL_SKARBIEC] = { "skarbiec", K1_UID_SKARBIEC, sc_skarbiec, N(sc_skarbiec), NULL, 0, NULL, 320u << 20, 1, 32,
                              2u << 20 },
     /* RLIMIT_FSIZE also limits memfd_create+ftruncate: 16 MiB is enough for the largest surface. */
@@ -120,6 +123,8 @@ static struct usluga uslugi[] = {
     USLUGA("ekran", "/rdzen/system/ekran", "K1-EKRAN", K1_PROFIL_EKRAN, R_EKRAN, 0, 0, 1),
     USLUGA("wejscie", "/rdzen/system/wejscie", "K1-WEJSCIE", K1_PROFIL_WEJSCIE, R_KLIENT, K1_ROLA_WEJSCIE, 0, 1),
     USLUGA("gui", "/rdzen/system/gui", "K1-GUI", K1_PROFIL_GUI, R_KLIENT, K1_ROLA_POWLOKA, 0, 1),
+    /* instead of gui while the vault waits for its password (M5e) */
+    USLUGA("logowanie", "/rdzen/system/logowanie", "K1-LOGOWANIE", K1_PROFIL_LOGOWANIE, R_KLIENT, K1_ROLA_LOGOWANIE, 0, 1),
     /* applications: started on request of gui, not restarted (the user starts them again) */
     USLUGA("zegar", "/rdzen/aplikacje/zegar", "K1-ZEGAR", K1_PROFIL_ZEGAR, R_KLIENT, K1_ROLA_APLIKACJA, K1_APL_ZEGAR, 0),
     USLUGA("notatki", "/rdzen/aplikacje/notatki", "K1-NOTATKI", K1_PROFIL_NOTATKI, R_KLIENT, K1_ROLA_APLIKACJA,
@@ -129,7 +134,7 @@ static struct usluga uslugi[] = {
     USLUGA("zasoby", "/rdzen/aplikacje/zasoby", "K1-ZASOBY", K1_PROFIL_ZASOBY, R_KLIENT, K1_ROLA_APLIKACJA,
            K1_APL_ZASOBY, 0),
 };
-#define PIERWSZA_APLIKACJA 4
+#define PIERWSZA_APLIKACJA 5
 #define N_USLUG N(uslugi)
 
 /* Test probes: one at a time. */
@@ -138,6 +143,7 @@ static struct usluga proba = USLUGA("proba", TEST, "K1-PROBA", 0, R_PROBA, 0, 0,
 static int sterowanie = -1;  /* our end of ekran's control channel */
 static int skarb_ster = -1;  /* our end of skarbiec's control channel (M5d) */
 static int skarb_czekal;     /* skarbiec already waited for the data partition at boot */
+static int stan_skarbca = -1; /* K1_SKARB_* reported by skarbiec (-1: not yet) — M5e */
 static int zero = -1;        /* /dev/null for fds 0 and 1 of services */
 static int test_kanal = -1;  /* our end of the test channel (test image) */
 static int gui_kanal = -1;   /* our end of gui's request channel (gui's fd 4) */
@@ -508,6 +514,10 @@ static void start(struct usluga *u)
         fds[n++] = para[0]; /* fd 3: control channel (its end checks us) */
         if (dysk >= 0)
             fds[n++] = dysk; /* fd 4: the partition */
+        {
+            int tak = 1; /* we check that the state comes from skarbiec (M5e) */
+            setsockopt(para[1], SOL_SOCKET, SO_PASSCRED, &tak, sizeof tak);
+        }
         if (uruchom(u, p, fds, n) > 0) {
             if (skarb_ster >= 0)
                 close(skarb_ster);
@@ -556,6 +566,15 @@ static void start(struct usluga *u)
             close(skarb);
         return;
     }
+    /* M5e: the desktop only when the vault is not waiting for its password; the password screen only
+     * when it is. Without word from skarbiec for 20 s after boot: the desktop. */
+    if (u->profil == K1_PROFIL_LOGOWANIE && stan_skarbca != K1_SKARB_ZABLOKOWANY)
+        return; /* not scheduled: started when skarbiec reports a locked vault */
+    if (u->profil == K1_PROFIL_GUI && (stan_skarbca == K1_SKARB_ZABLOKOWANY ||
+                                       (stan_skarbca < 0 && skarbiec()->pid > 0 && od_startu_systemu() < 20.0))) {
+        u->nastepny = teraz() + 0.25;
+        return;
+    }
     if (ekran()->pid <= 0) {
         u->nastepny = teraz() + 0.5; /* wait for ekran */
         return;
@@ -573,7 +592,7 @@ static void start(struct usluga *u)
         if (skarb >= 0)
             fds[n++] = skarb; /* fd 4 = skarbiec: the note (M5d) */
     }
-    if (u->profil == K1_PROFIL_GUI) {
+    if (u->profil == K1_PROFIL_GUI || u->profil == K1_PROFIL_LOGOWANIE) {
         int para[2];
         if (k1_kanal_utworz(para) != 0) {
             close(fds[0]);
@@ -598,9 +617,14 @@ static void start(struct usluga *u)
         if (shutdown(bateria_kanal, SHUT_RD) != 0)
             k1_log(TAG, "shutdown kanału baterii: %s", strerror(errno));
         fds[n++] = para[0];
+        if (u->profil == K1_PROFIL_LOGOWANIE) {
+            int skarb = kanal_do_skarbca(K1_PROFIL_LOGOWANIE, (int)p->uid);
+            if (skarb >= 0)
+                fds[n++] = skarb; /* fd 6 = skarbiec: the password */
+        }
     }
     if (u->profil == K1_PROFIL_USTAWIENIA) {
-        int para[2];
+        int para[2], skarb;
         if (k1_kanal_utworz(para) != 0) {
             close(fds[0]);
             return;
@@ -614,6 +638,9 @@ static void start(struct usluga *u)
         if (shutdown(ustaw_kanal, SHUT_RD) != 0)
             k1_log(TAG, "shutdown kanału Ustawień: %s", strerror(errno));
         fds[n++] = para[0];
+        skarb = kanal_do_skarbca(K1_PROFIL_USTAWIENIA, (int)p->uid);
+        if (skarb >= 0)
+            fds[n++] = skarb; /* fd 5 = skarbiec: the password settings (M5e) */
     }
     if (u->profil == K1_PROFIL_ZASOBY) {
         int para[2];
@@ -827,6 +854,41 @@ static void wylacz(int restart)
 }
 
 /* Requests from gui (fd 4 of gui): only URUCHOM and WYLACZ, only from gui's UID. */
+/* State of the vault from skarbiec (M5e): locked → the password screen instead of the desktop;
+ * unlocked → restart ekran (the settings are readable now) and with it the desktop. */
+static void obsluz_skarbiec(void)
+{
+    int i;
+    for (i = 0; i < 8 && skarb_ster >= 0; i++) {
+        struct k1_odebrane o;
+        struct k1_komunikat k;
+        enum k1_kanal_wynik w = k1_kanal_odbierz(skarb_ster, &o);
+        int poprzedni = stan_skarbca;
+        if (w != K1_KANAL_KOMUNIKAT)
+            return; /* empty, or skarbiec ended (handled when it exits) */
+        if (o.fd >= 0)
+            close(o.fd);
+        if (o.fd >= 0 || o.obciete || !o.ma_nadawce || o.uid != K1_UID_SKARBIEC ||
+            k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_DO_NADZORCY, &k) != 0 || k.typ != K1_KOM_SKARB_STAN) {
+            k1_log(TAG, "odrzucono komunikat od skarbca");
+            continue;
+        }
+        stan_skarbca = k.a;
+        if (k.a == K1_SKARB_ZABLOKOWANY && poprzedni != K1_SKARB_ZABLOKOWANY) {
+            k1_log(TAG, "magazyn danych chroniony hasłem — ekran logowania");
+            for (size_t j = 0; j < N_USLUG; j++)
+                if (uslugi[j].profil == K1_PROFIL_LOGOWANIE && uslugi[j].pid <= 0)
+                    uslugi[j].nastepny = teraz();
+        } else if (poprzedni == K1_SKARB_ZABLOKOWANY && k.a != K1_SKARB_ZABLOKOWANY) {
+            k1_log(TAG, "magazyn odblokowany — uruchamiam pulpit z zapisanymi ustawieniami");
+            if (ekran()->pid > 0) {
+                ekran()->bez_liczenia = 1;
+                kill(ekran()->pid, SIGTERM); /* its clients (the password screen) stop with it */
+            }
+        }
+    }
+}
+
 static void obsluz_gui(void)
 {
     int i;
@@ -843,9 +905,11 @@ static void obsluz_gui(void)
         }
         if (o.fd >= 0)
             close(o.fd);
-        if (o.fd >= 0 || o.obciete || !o.ma_nadawce || o.uid != K1_UID_GUI ||
+        /* gui: start an application, power off; the password screen (M5e): power off only */
+        if (o.fd >= 0 || o.obciete || !o.ma_nadawce || (o.uid != K1_UID_GUI && o.uid != K1_UID_LOGOWANIE) ||
             k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_DO_NADZORCY, &k) != 0 ||
-            (k.typ != K1_KOM_URUCHOM && k.typ != K1_KOM_WYLACZ)) {
+            (k.typ != K1_KOM_URUCHOM && k.typ != K1_KOM_WYLACZ) ||
+            (k.typ == K1_KOM_URUCHOM && o.uid != K1_UID_GUI)) {
             k1_log(TAG, "odrzucono prośbę od pulpitu");
             continue;
         }
@@ -1068,8 +1132,8 @@ int main(void)
     }
 
     for (;;) {
-        struct pollfd pfd[N_USLUG + 5];
-        struct usluga *zrodla[N_USLUG + 5];
+        struct pollfd pfd[N_USLUG + 6];
+        struct usluga *zrodla[N_USLUG + 6];
         nfds_t n = 0;
         double t = teraz(), najblizszy = -1;
         int czas;
@@ -1081,6 +1145,9 @@ int main(void)
         pfd[n].events = POLLIN;
         zrodla[n++] = NULL;
         pfd[n].fd = gui_kanal;
+        pfd[n].events = POLLIN;
+        zrodla[n++] = NULL;
+        pfd[n].fd = skarb_ster; /* M5e: the state of the vault */
         pfd[n].events = POLLIN;
         zrodla[n++] = NULL;
         for (i = 0; i < N_USLUG; i++) {
@@ -1100,13 +1167,15 @@ int main(void)
         if (poll(pfd, n, czas) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
 
-        for (i = 3; i < n; i++)
+        for (i = 4; i < n; i++)
             if (pfd[i].fd >= 0 && (pfd[i].revents & (POLLIN | POLLHUP | POLLERR)))
                 czytaj_log(zrodla[i]);
         if (test_kanal >= 0 && (pfd[1].revents & (POLLIN | POLLHUP | POLLERR)))
             obsluz_test();
         if (gui_kanal >= 0 && (pfd[2].revents & (POLLIN | POLLHUP | POLLERR)))
             obsluz_gui();
+        if (skarb_ster >= 0 && (pfd[3].revents & POLLIN))
+            obsluz_skarbiec();
 
         if (pfd[0].revents & POLLIN) {
             struct signalfd_siginfo si;

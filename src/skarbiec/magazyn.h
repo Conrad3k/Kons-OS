@@ -92,6 +92,8 @@ int k1_mag_usun(struct k1_magazyn *m, uint16_t wlasciciel, const char *nazwa);
 /* Sets, changes (`nowe` != NULL) or removes (`nowe` == NULL) the password: only the wrapped key
  * in the header changes. */
 int k1_mag_zmien_haslo(struct k1_magazyn *m, const char *nowe);
+/* Checks `haslo` (NULL = no password) against the open vault without changing anything (Argon2id). */
+int k1_mag_sprawdz_haslo(struct k1_magazyn *m, const char *haslo);
 
 /* Forgets the key (memory wiped). */
 void k1_mag_zamknij(struct k1_magazyn *m);

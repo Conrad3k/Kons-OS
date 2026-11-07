@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/sysinfo.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "k1_kanal.h"
@@ -26,6 +27,7 @@
 #include "k1_memfd.h"
 #include "k1_uslugi.h"
 #include "magazyn.h"
+#include "monocypher.h"
 
 #define TAG "K1-SKARBIEC"
 #define FD_STEROWANIE 3
@@ -46,7 +48,10 @@ struct obiekt_ram {
 static struct klient kl[MAKS_KLIENTOW];
 static struct k1_magazyn mag;
 static struct k1_mag_dysk dysk;
-static int trwaly; /* 1: the vault on the partition is open */
+static int trwaly;     /* 1: the vault on the partition is open */
+static int zablokowany; /* 1: a vault with a password, not opened yet (M5e) */
+static int zle_proby;   /* wrong passwords in a row */
+static double nastepna_proba; /* CLOCK_MONOTONIC: no attempt before this (grows after wrong ones) */
 static struct obiekt_ram ram[MAKS_RAM];
 static uint8_t bufor[K1_SKARB_MAKS];
 
@@ -97,7 +102,8 @@ static void otworz_magazyn(void)
         return;
     }
     if (w == K1_MAG_JEST && haslo) {
-        k1_log(TAG, "magazyn chroniony hasłem — odblokowanie ekranem logowania (M5e); dane tylko w pamięci");
+        zablokowany = 1;
+        k1_log(TAG, "magazyn chroniony hasłem — czekam na hasło z ekranu logowania");
         return;
     }
     if (w == K1_MAG_JEST) {
@@ -115,6 +121,48 @@ static void otworz_magazyn(void)
         k1_log(TAG, "partycja K1-DANE zawiera nieznane dane — nie nadpisuję; dane tylko w pamięci");
     else
         k1_log(TAG, "partycja K1-DANE: %s — dane tylko w pamięci", k1_mag_opis(w));
+}
+
+static int tryb(void)
+{
+    return trwaly ? K1_SKARB_TRWALY : (zablokowany ? K1_SKARB_ZABLOKOWANY : K1_SKARB_RAM);
+}
+
+static int haslo_ustawione(void)
+{
+    return zablokowany || (trwaly && mag.haslo);
+}
+
+static double teraz(void)
+{
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
+}
+
+static int sekund_do_proby(void)
+{
+    double d = nastepna_proba - teraz();
+    return d <= 0 ? 0 : (int)d + 1;
+}
+
+/* After a wrong password: from the third one on, 5 s, 10 s, 20 s … up to 5 minutes. */
+static void zla_proba(void)
+{
+    int n = ++zle_proby;
+    double przerwa = n < 3 ? 0 : 5.0 * (double)(1u << (n - 3 < 6 ? n - 3 : 6));
+    if (przerwa > K1_HASLO_PRZERWA)
+        przerwa = K1_HASLO_PRZERWA;
+    nastepna_proba = teraz() + przerwa;
+    k1_log(TAG, "złe hasło (%d. raz z rzędu)%s", n, przerwa > 0 ? " — następna próba za chwilę" : "");
+}
+
+/* Tells nadzorca the state of the vault (it starts the login screen or the desktop accordingly). */
+static void zglos_stan(void)
+{
+    struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_SKARB_STAN, 0, tryb(), haslo_ustawione(), 0, 0, 0);
+    if (k1_kanal_wyslij(FD_STEROWANIE, &m, sizeof m, -1) != 0)
+        k1_log(TAG, "zgłoszenie stanu do nadzorcy: %s", strerror(errno));
 }
 
 /* ---- objects in memory (no partition) ---- */
@@ -139,6 +187,8 @@ static int czytaj_obiekt(int wl, int id, uint32_t *dl)
 {
     char n[K1_MAG_NAZWA];
     struct obiekt_ram *o;
+    if (zablokowany)
+        return K1_MAG_HASLO;
     if (trwaly) {
         nazwa(id, n);
         return k1_mag_czytaj(&mag, (uint16_t)wl, n, bufor, sizeof bufor, dl);
@@ -156,6 +206,8 @@ static int zapisz_obiekt(int wl, int id, uint32_t dl)
     char n[K1_MAG_NAZWA];
     struct obiekt_ram *o;
     uint8_t *kopia;
+    if (zablokowany)
+        return K1_MAG_HASLO;
     if (trwaly) {
         nazwa(id, n);
         return k1_mag_zapisz(&mag, (uint16_t)wl, n, bufor, dl);
@@ -177,6 +229,8 @@ static int usun_obiekt(int wl, int id)
 {
     char n[K1_MAG_NAZWA];
     struct obiekt_ram *o;
+    if (zablokowany)
+        return K1_MAG_HASLO;
     if (trwaly) {
         nazwa(id, n);
         return k1_mag_usun(&mag, (uint16_t)wl, n);
@@ -193,8 +247,8 @@ static int usun_obiekt(int wl, int id)
 
 static void odpowiedz(struct klient *k, int id, int typ, int wynik)
 {
-    struct k1_komunikat m =
-        k1_komunikat_nowy(K1_KOM_SKARB_WYNIK, (uint32_t)id, typ, wynik, trwaly ? K1_SKARB_TRWALY : K1_SKARB_RAM, 0, 0);
+    struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_SKARB_WYNIK, (uint32_t)id, typ, wynik, tryb(), haslo_ustawione(),
+                                              sekund_do_proby());
     k1_kanal_wyslij(k->fd, &m, sizeof m, -1);
 }
 
@@ -239,6 +293,75 @@ static void obsluz_sterowanie(void)
         kl[i].uid = m.b;
         k1_log(TAG, "nowy klient: właściciel %d (uid %d)", m.a, m.b);
     }
+}
+
+/* A password from a sealed memfd: 1..K1_HASLO_MAKS bytes, no NUL inside → NUL-terminated in `h`. */
+static int czytaj_haslo(int fd, size_t dl, char *h)
+{
+    if (dl < 1 || dl > K1_HASLO_MAKS || k1_memfd_czytaj(fd, h, dl) != 0 || memchr(h, '\0', dl) != NULL)
+        return -1;
+    h[dl] = '\0';
+    return 0;
+}
+
+/* Login screen: unlock the vault with a password (rate-limited here, whatever the client does). */
+static int odblokuj(int fd, size_t dl)
+{
+    char h[K1_HASLO_MAKS + 1];
+    int r;
+    if (!zablokowany)
+        return trwaly ? K1_MAG_OK : K1_MAG_ARG;
+    if (sekund_do_proby() > 0)
+        return K1_MAG_HASLO;
+    if (czytaj_haslo(fd, dl, h) != 0)
+        return K1_MAG_ARG;
+    r = k1_mag_otworz(&mag, &dysk, h);
+    crypto_wipe(h, sizeof h);
+    if (r == K1_MAG_OK) {
+        zablokowany = 0;
+        trwaly = 1;
+        zle_proby = 0;
+        k1_log(TAG, "magazyn odblokowany: %d obiektów", mag.n_wpisow);
+        zglos_stan();
+    } else if (r == K1_MAG_HASLO) {
+        zla_proba();
+    } else {
+        k1_log(TAG, "odblokowanie: %s", k1_mag_opis(r));
+    }
+    return r;
+}
+
+/* Ustawienia: set, change or remove the password; the current one must be given (if there is one). */
+static int zmien_haslo(int fd, size_t dl)
+{
+    char b[2 * K1_HASLO_MAKS + 2], *nowe;
+    size_t n1, n2;
+    int r;
+    if (!trwaly)
+        return zablokowany ? K1_MAG_HASLO : K1_MAG_ARG;
+    if (sekund_do_proby() > 0)
+        return K1_MAG_HASLO;
+    if (dl < 2 || dl > sizeof b || k1_memfd_czytaj(fd, b, dl) != 0 || b[dl - 1] != '\0')
+        return K1_MAG_ARG;
+    n1 = strnlen(b, dl);
+    if (n1 >= dl - 1 || n1 > K1_HASLO_MAKS)
+        return K1_MAG_ARG;
+    nowe = b + n1 + 1;
+    n2 = strnlen(nowe, dl - n1 - 1);
+    if (n1 + 1 + n2 + 1 != dl || n2 > K1_HASLO_MAKS || (n2 > 0 && n2 < 4)) {
+        crypto_wipe(b, sizeof b);
+        return K1_MAG_ARG;
+    }
+    r = k1_mag_sprawdz_haslo(&mag, n1 ? b : NULL);
+    if (r == K1_MAG_OK) {
+        zle_proby = 0;
+        r = k1_mag_zmien_haslo(&mag, n2 ? nowe : NULL);
+        k1_log(TAG, "%s", r != K1_MAG_OK ? "zmiana hasła nieudana" : n2 ? "hasło ustawione" : "hasło wyłączone");
+    } else if (r == K1_MAG_HASLO) {
+        zla_proba();
+    }
+    crypto_wipe(b, sizeof b);
+    return r;
 }
 
 static void obsluz_klienta(struct klient *k)
@@ -299,6 +422,19 @@ static void obsluz_klienta(struct klient *k)
         case K1_KOM_SKARB_USUN:
             odpowiedz(k, (int)m.obiekt, m.typ, usun_obiekt(k->wlasciciel, (int)m.obiekt));
             break;
+        case K1_KOM_SKARB_ODBLOKUJ: /* only the login screen */
+            r = k->wlasciciel == K1_PROFIL_LOGOWANIE ? odblokuj(o.fd, (size_t)m.a) : K1_MAG_ARG;
+            close(o.fd);
+            odpowiedz(k, 1, m.typ, r);
+            break;
+        case K1_KOM_SKARB_HASLO: /* only Ustawienia */
+            r = k->wlasciciel == K1_PROFIL_USTAWIENIA ? zmien_haslo(o.fd, (size_t)m.a) : K1_MAG_ARG;
+            close(o.fd);
+            odpowiedz(k, 1, m.typ, r);
+            break;
+        case K1_KOM_SKARB_INFO:
+            odpowiedz(k, 1, m.typ, K1_MAG_OK);
+            break;
         default:
             break;
         }
@@ -316,7 +452,8 @@ int main(void)
     for (i = 0; i < MAKS_KLIENTOW; i++)
         kl[i].fd = -1;
     otworz_magazyn();
-    k1_log(TAG, "gotowy (%s)", trwaly ? "dane na dysku" : "dane tylko w pamięci");
+    k1_log(TAG, "gotowy (%s)", trwaly ? "dane na dysku" : zablokowany ? "zablokowany hasłem" : "dane tylko w pamięci");
+    zglos_stan();
     for (;;) {
         pfd[0].fd = FD_STEROWANIE;
         pfd[0].events = POLLIN;

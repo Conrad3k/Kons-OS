@@ -76,10 +76,16 @@ enum k1_komunikat_typ {
     K1_KOM_SKARB_CZYTAJ = 70, /* obiekt=object id (K1_OB_*) */
     K1_KOM_SKARB_ZAPISZ = 71, /* obiekt=object id, a=length (0..K1_SKARB_MAKS); + 1 sealed memfd of that size */
     K1_KOM_SKARB_USUN = 72,   /* obiekt=object id */
+    K1_KOM_SKARB_ODBLOKUJ = 73, /* login screen only (M5e): obiekt=1, a=password length 1..K1_HASLO_MAKS; + 1 memfd */
+    K1_KOM_SKARB_HASLO = 74,    /* Ustawienia only: obiekt=1, a=length; + 1 memfd "current\0new\0" (empty: none) */
+    K1_KOM_SKARB_INFO = 75,     /* obiekt=1: the state of the vault (reply: WYNIK with c, d) */
     /* skarbiec → client */
     K1_KOM_SKARB_DANE = 80,   /* obiekt=object id, a=length; + 1 sealed memfd of that size */
-    K1_KOM_SKARB_WYNIK = 81,  /* obiekt=object id, a=request type (70..72), b=result (0 or K1_MAG_* < 0),
-                               * c=K1_SKARB_TRWALY / K1_SKARB_RAM */
+    K1_KOM_SKARB_WYNIK = 81,  /* obiekt=object id, a=request type (70..75), b=result (0 or K1_MAG_* < 0),
+                               * c=K1_SKARB_TRWALY / _RAM / _ZABLOKOWANY, d=1 password set,
+                               * e=seconds until the next password attempt is accepted (0..K1_HASLO_PRZERWA) */
+    /* skarbiec → nadzorca, on the control channel (direction K1_KIER_DO_NADZORCY) */
+    K1_KOM_SKARB_STAN = 82,   /* a=K1_SKARB_* mode, b=1 password set */
     K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample
                                 * (0 = history starts again), a=seconds between samples, b..e = up to 16
                                 * samples, one byte each (b: samples 0-3 from the lowest byte, …):
@@ -134,6 +140,9 @@ enum k1_ustawienie {
 #define K1_SKARB_MAKS (1 << 20)   /* bytes in one object (Blob Vault limit) */
 #define K1_SKARB_TRWALY 0         /* saved on the K1-DANE partition */
 #define K1_SKARB_RAM 1            /* no (usable) partition: kept in memory until power off */
+#define K1_SKARB_ZABLOKOWANY 2    /* the vault needs the password (M5e): nothing readable yet */
+#define K1_HASLO_MAKS 256         /* bytes of a password */
+#define K1_HASLO_PRZERWA 300      /* longest wait between password attempts, seconds */
 #define K1_MAG_WYNIK_MIN (-8)     /* most negative K1_MAG_* result */
 
 /* Battery state (K1_KOM_BATERIA c), from the kernel's power_supply "status". */

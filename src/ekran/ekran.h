@@ -121,6 +121,7 @@ void odbierz_drm(void);
 /* okna.c */
 void wyslij(int kl, struct k1_komunikat m);
 int powloka(void);
+int logowanie(void);
 const char *nazwa_roli(const struct klient *k);
 void odrzuc(int kl, const char *powod);
 void zglos_okno(const struct pow *p, int stan);
