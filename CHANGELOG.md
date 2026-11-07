@@ -3,6 +3,25 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.5.7] — 2026-11-07
+
+Etap **M5e — hasło i ekran logowania** (ADR 0017).
+
+### Dodane
+- **Ustawienia → Hasło:** włączenie hasła (nowe + powtórz), zmiana (obecne + nowe) i wyłączenie
+  (obecne). Hasło szyfruje klucz do Twoich danych; zapomniane hasło = nowe konto.
+- **Ekran hasła przy włączaniu** (Twój wybór — szkic B „Zegar”): duży zegar i data na tapecie
+  „Zmierzch”, przezroczyste pole hasła na dole, bateria i wyłączanie w rogu. Po poprawnym haśle
+  pulpit startuje z Twoimi ustawieniami.
+- Ochrona przed zgadywaniem: od trzeciej złej próby coraz dłuższa przerwa (5 s, 10 s … do 5 min) —
+  pilnuje tego usługa danych, nie ekran hasła.
+- Hasło nigdy nie trafia do logu.
+
+### Testy
+- QEMU: ustawienie hasła w Ustawieniach → ponowne uruchomienie → ekran hasła zamiast pulpitu → złe
+  hasło odrzucone → dobre hasło → pulpit z zapisaną tapetą i motywem; zrzuty ekranu.
+- Próba klatki nowego programu „logowanie”; nowe komunikaty — testy na hoście.
+
 ## [0.5.6] — 2026-11-07
 
 Etap **M5c + M5d — zaszyfrowany zapis danych** (ADR 0015, ADR 0016).

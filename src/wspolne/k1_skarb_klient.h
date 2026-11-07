@@ -16,4 +16,9 @@ int k1_skarb_zapisz(int fd, int id, const void *dane, size_t n);
  * 0 = nothing, -1 = the channel is closed (stop using it). Anything else is dropped. */
 int k1_skarb_wynik(int fd, int *wynik, int *tryb);
 
+struct k1_komunikat;
+/* Like k1_skarb_wynik, but returns the whole WYNIK (request type, result, mode, password set,
+ * seconds until the next password attempt) — Ustawienia → Hasło (M5e). */
+int k1_skarb_wynik_pelny(int fd, struct k1_komunikat *k);
+
 #endif

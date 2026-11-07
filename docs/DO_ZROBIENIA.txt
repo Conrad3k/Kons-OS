@@ -1,7 +1,7 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.5.6 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.5.7 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 w toku — M5a (dyski i USB).
 Data: 2026-11-07. Plik aktualizujemy po każdym etapie.
@@ -63,7 +63,8 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
     opcjonalne — bez hasła dane zaszyfrowane, ale bez ochrony przed kradzieżą nośnika (akceptuję).
     Kolejność: M5c format magazynu → M5d skarbiec i trwałe dane → obraz USB z partycją na dane →
     M5e hasło i ekran logowania. Potem M5b (hotplug, tablet).
-[!] Test 0.5.5 na X230: czy kursor i pulpit są płynne (także zmiana tapety); Ustawienia → Bateria.
+[!] Test na X230 (0.5.7, obraz USB): płynność, zapis po wyłączeniu, hasło (Ustawienia → Hasło →
+    wyłącz i włącz komputer → ekran hasła), czy Defender nadal ostrzega.
 [x] Pierwszy test na X230 z pendrive'a (od 0.5.2 — instrukcja w README, „Uruchom na laptopie”;
     najpierw F1 → Security → Secure Boot → Disabled):
     czy pulpit się pojawia, ostrość obrazu, klawiatura, TrackPoint, touchpad, mysz USB, bateria
@@ -145,7 +146,8 @@ M5  Dane i sprzęt (rozszerzony) — W TOKU (rozpoznanie: docs/M5-ROZPOZNANIE.tx
     [ ] magazyn obiektów zamiast katalogów (identyfikator, metadane, hash, pochodzenie)
     [ ] szyfrowanie danych na dysku (dziś dane są tylko w RAM)
     [ ] dostęp aplikacji tylko do obiektów, na które się zgodzisz
-    [ ] opcjonalne hasło przy starcie (włączane w Ustawieniach); zapomniane hasło = nowe konto
+    [x] M5e (0.5.7, ADR 0017): opcjonalne hasło (Ustawienia → Hasło), ekran hasła „Zegar” przy starcie,
+        limit prób w skarbcu; zapomniane hasło = nowe konto
     [ ] trwały zapis notatek i ustawień
     [~] USB: klawiatura, mysz (M5a), podłączanie w trakcie pracy (przez restart wejścia — M5a;
         bez restartu — M5b), tablet (mysz „USB” w VirtualBoxie — M5b)

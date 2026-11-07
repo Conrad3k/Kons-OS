@@ -205,11 +205,15 @@ int main(void)
     EXPECT(k1_mag_otworz(&m, &d, "kocham-k1") == K1_MAG_HASLO);
     EXPECT(k1_mag_otworz(&m, &d, "") == K1_MAG_ARG);
     EXPECT(k1_mag_otworz(&m, &d, "Kocham-K1") == K1_MAG_OK && odczyt(&m, 5, "notatka", "z haslem"));
+    EXPECT(k1_mag_sprawdz_haslo(&m, "Kocham-K1") == K1_MAG_OK);
+    EXPECT(k1_mag_sprawdz_haslo(&m, "kocham-K1") == K1_MAG_HASLO && k1_mag_sprawdz_haslo(&m, NULL) == K1_MAG_HASLO);
     EXPECT(k1_mag_zmien_haslo(&m, "Nowe haslo 2") == K1_MAG_OK);
+    EXPECT(k1_mag_sprawdz_haslo(&m, "Kocham-K1") == K1_MAG_HASLO && k1_mag_sprawdz_haslo(&m, "Nowe haslo 2") == K1_MAG_OK);
     k1_mag_zamknij(&m);
     EXPECT(k1_mag_otworz(&m, &d, "Kocham-K1") == K1_MAG_HASLO);
     EXPECT(k1_mag_otworz(&m, &d, "Nowe haslo 2") == K1_MAG_OK && odczyt(&m, 5, "notatka", "z haslem"));
     EXPECT(k1_mag_zmien_haslo(&m, NULL) == K1_MAG_OK);
+    EXPECT(k1_mag_sprawdz_haslo(&m, NULL) == K1_MAG_OK);
     k1_mag_zamknij(&m);
     EXPECT(k1_mag_sprawdz(&d, &h) == K1_MAG_JEST && h == 0);
     EXPECT(k1_mag_otworz(&m, &d, "Nowe haslo 2") == K1_MAG_HASLO);

@@ -102,13 +102,22 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     case K1_KOM_SKARB_ZAPISZ:
         return kier == K1_KIER_DO_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS && w(k->a, 0, K1_SKARB_MAKS) &&
                zera(k, 1);
+    case K1_KOM_SKARB_ODBLOKUJ:
+        return kier == K1_KIER_DO_SKARBCA && k->obiekt == 1 && w(k->a, 1, K1_HASLO_MAKS) && zera(k, 1);
+    case K1_KOM_SKARB_HASLO:
+        return kier == K1_KIER_DO_SKARBCA && k->obiekt == 1 && w(k->a, 2, 2 * K1_HASLO_MAKS + 2) && zera(k, 1);
+    case K1_KOM_SKARB_INFO:
+        return kier == K1_KIER_DO_SKARBCA && k->obiekt == 1 && zera(k, 0);
+    case K1_KOM_SKARB_STAN:
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_SKARB_TRWALY, K1_SKARB_ZABLOKOWANY) &&
+               w(k->b, 0, 1) && zera(k, 2);
     case K1_KOM_SKARB_DANE:
         return kier == K1_KIER_OD_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS && w(k->a, 0, K1_SKARB_MAKS) &&
                zera(k, 1);
     case K1_KOM_SKARB_WYNIK:
         return kier == K1_KIER_OD_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS &&
-               w(k->a, K1_KOM_SKARB_CZYTAJ, K1_KOM_SKARB_USUN) && w(k->b, K1_MAG_WYNIK_MIN, 0) &&
-               w(k->c, K1_SKARB_TRWALY, K1_SKARB_RAM) && zera(k, 3);
+               w(k->a, K1_KOM_SKARB_CZYTAJ, K1_KOM_SKARB_INFO) && w(k->b, K1_MAG_WYNIK_MIN, 0) &&
+               w(k->c, K1_SKARB_TRWALY, K1_SKARB_ZABLOKOWANY) && w(k->d, 0, 1) && w(k->e, 0, K1_HASLO_PRZERWA);
 
     case K1_KOM_POWIERZCHNIA:
         if (kier != K1_KIER_DO_EKRANU || !powierzchnia(k->obiekt) || !w(k->a, 1, K1_POW_MAKS_BOK) ||
@@ -212,5 +221,7 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            (typ == K1_KOM_TEST_GNIAZDO && kierunek == K1_KIER_OD_NADZORCY) ||
            (typ == K1_KOM_SKARB_KLIENT && kierunek == K1_KIER_STEROWANIE) ||
            (typ == K1_KOM_SKARB_ZAPISZ && kierunek == K1_KIER_DO_SKARBCA) ||
+           (typ == K1_KOM_SKARB_ODBLOKUJ && kierunek == K1_KIER_DO_SKARBCA) ||
+           (typ == K1_KOM_SKARB_HASLO && kierunek == K1_KIER_DO_SKARBCA) ||
            (typ == K1_KOM_SKARB_DANE && kierunek == K1_KIER_OD_SKARBCA);
 }

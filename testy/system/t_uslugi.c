@@ -221,7 +221,7 @@ void t_proby(void)
     static const struct { int profil; const char *nazwa; } p[] = {
         { K1_PROFIL_WEJSCIE, "wejscie" },     { K1_PROFIL_EKRAN, "ekran" },     { K1_PROFIL_GUI, "gui" },
         { K1_PROFIL_ZEGAR, "zegar" },         { K1_PROFIL_NOTATKI, "notatki" }, { K1_PROFIL_USTAWIENIA, "ustawienia" },
-        { K1_PROFIL_ZASOBY, "zasoby" },       { K1_PROFIL_SKARBIEC, "skarbiec" },
+        { K1_PROFIL_ZASOBY, "zasoby" },       { K1_PROFIL_SKARBIEC, "skarbiec" }, { K1_PROFIL_LOGOWANIE, "logowanie" },
     };
     size_t i;
     for (i = 0; i < sizeof p / sizeof p[0]; i++) {

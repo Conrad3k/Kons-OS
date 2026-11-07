@@ -17,7 +17,8 @@
   (rozdzielczość z listy od ekranu — do 18 trybów w trzech kolumnach, „zalecana” = preferowana przez monitor/kartę;
   zmiana w locie, ADR 0012), Bateria (0.5.5: procent, stan, wykres naładowania od uruchomienia — linia
   w kolorze akcentu z delikatnym wypełnieniem, pasek pod wykresem = zasilacz podłączony, godzina startu,
-  najniższy poziom; bez baterii — napis), Mysz (prędkość),
+  najniższy poziom; bez baterii — napis), Hasło (0.5.7: włącz / zmień / wyłącz, pola z kropkami, Tab/Enter/Esc;
+  przez skarbiec — fd 5), Mysz (prędkość),
   Data i czas (sekundy na pasku), Hasło (opis: przyjdzie z szyfrowaniem w M5; zapomniane hasło =
   nowe konto), Informacje (wersja, ekran, jądro).
 

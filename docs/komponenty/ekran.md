@@ -29,6 +29,8 @@ otwarcie jest DRM masterem) i przekazuje jako fd 4.
 
 ## Wejścia i wyjścia
 - fd 3: kanał sterujący od nadzorcy — `KLIENT(rola, aplikacja, uid)` + koniec kanału klienta.
+- Rola `LOGOWANIE` (0.5.7, ADR 0017): panele jak powłoka; dopóki taki klient jest połączony, dostaje
+  każdy klawisz (także Super).
 - fd 5 (0.5.6, opcjonalny): kanał do skarbca — przy starcie odczyt `K1_OB_USTAWIENIA` (≤ 1,5 s; tapeta,
   motyw, mysz, sekundy, rozdzielczość jako szer.×wys.; każda wartość sprawdzana jak `USTAW`, zła →
   domyślna), po każdej zmianie zapis nowej wersji (`src/ekran/zapis.c`). Rozdzielczość przywracana po

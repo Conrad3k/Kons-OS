@@ -107,6 +107,30 @@ def klik(x, y):
 def pisz(*klawisze):
     monitor(*[f"sendkey {k}" for k in klawisze])
 
+if tryb == "haslo":
+    # M5e: the vault has a password now — the password screen instead of the desktop
+    e = czekaj(r"K1-LOGOWANIE: ekran hasła gotowy", czas=90)
+    sprawdz("magazyn z hasłem: zamiast pulpitu ekran hasła (wariant B „Zegar”)", e and "K1-GUI: pulpit gotowy" not in tekst())
+    time.sleep(2)
+    zrzut("haslo-1-ekran")
+    pisz("z", "l", "e", "1", "ret")
+    sprawdz("złe hasło odrzucone (skarbiec i ekran hasła)",
+            czekaj(r"K1-SKARBIEC: złe hasło", czas=90) and czekaj(r"K1-LOGOWANIE: złe hasło", czas=30))
+    time.sleep(1)
+    zrzut("haslo-2-zle")
+    pisz("t", "a", "j", "n", "e", "1", "ret")
+    sprawdz("dobre hasło: magazyn odblokowany", czekaj(r"K1-SKARBIEC: magazyn odblokowany", czas=120))
+    sprawdz("po odblokowaniu pulpit z zapisanymi ustawieniami (tapeta Zmierzch, ciemny motyw)",
+            czekaj(r"K1-EKRAN: ustawienia wczytane ze skarbca \(tapeta 1, motyw 1", czas=90) and
+            czekaj(r"K1-GUI: pulpit gotowy", czas=90))
+    time.sleep(3)
+    zrzut("haslo-3-pulpit")
+    t_ = tekst()
+    sprawdz("hasło nie trafia do logu", "tajne1" not in t_ and "zle1" not in t_)
+    sprawdz("brak 'Kernel panic', błędów i zablokowanych wywołań", "Kernel panic" not in t_ and "BŁĄD" not in t_
+            and "zabronione wywołanie" not in t_)
+    sys.exit(0 if all(wyniki) else 1)
+
 g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)")
 k0 = czekaj(r"K1-EKRAN: kursor (\d+),(\d+) ")
 t = czekaj(r"K1-EKRAN: tryb (\d+)x(\d+)")
@@ -131,6 +155,23 @@ if tryb == "ponownie":
     sprawdz("notatka wróciła: „Zażółć K1” (13 B) wczytana ze skarbca", czekaj(r"K1-NOTATKI: notatka wczytana \(13 B\)", czas=40))
     time.sleep(2)
     zrzut("ponownie-notatki")
+    # M5e: Ustawienia → Hasło: set the password "tajne1" (the next boot asks for it)
+    klik(ax + 2 * krok, ay)
+    uo = czekaj(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)", czas=30)
+    sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
+    if uo and sk:
+        ux, uy = int(uo.group(4)), int(uo.group(5))
+        time.sleep(1)
+        klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + 5 * int(sk.group(3)))
+        hp = czekaj(r"K1-USTAWIENIA: hasło: przełącznik (\d+),(\d+);", czas=20)
+        time.sleep(2)
+        if hp:
+            klik(ux + int(hp.group(1)), uy + int(hp.group(2)))
+            time.sleep(1)
+            pisz("t", "a", "j", "n", "e", "1", "tab", "t", "a", "j", "n", "e", "1", "ret")
+    sprawdz("Ustawienia → Hasło: hasło ustawione (skarbiec)", czekaj(r"K1-SKARBIEC: hasło ustawione", czas=90))
+    time.sleep(2)
+    zrzut("ponownie-haslo")
     sprawdz("brak 'Kernel panic', błędów i zablokowanych wywołań", "Kernel panic" not in tekst() and "BŁĄD" not in tekst()
             and "zabronione wywołanie" not in tekst())
     sys.exit(0 if all(wyniki) else 1)
@@ -275,6 +316,9 @@ PY
 echo "[k1] test M5d: ponowne uruchomienie z tym samym dyskiem danych"
 uruchom ponownie --qemu "$DYSK_DANYCH"
 sprawdz ponownie
+echo "[k1] test M5e: start z hasłem — ekran hasła, złe i dobre hasło, pulpit z ustawieniami"
+uruchom haslo --qemu "$DYSK_DANYCH"
+sprawdz haslo
 if [ -f "$ISO" ]; then
     echo "[k1] test M4: start z obrazu ISO — UEFI (OVMF), grafika z firmware (simpledrm)"
     uruchom iso-uefi --iso "$ISO" --uefi --vga virtio

@@ -121,6 +121,12 @@ sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
   `K1-GUI: bateria 73%, rozładowywanie, zasilacz odłączony`. Scenariusz `start` (bez baterii):
   `K1-GUI: brak baterii`.
 
+## M5e — kryteria zaliczenia (0.5.7)
+1. Ustawienia → Hasło ustawia hasło (skarbiec: „hasło ustawione”), zmiana i wyłączenie wymagają obecnego.
+2. Po ponownym starcie z tym samym dyskiem: ekran hasła zamiast pulpitu; złe hasło odrzucone; dobre →
+   pulpit z zapisanymi ustawieniami (`test-m4.sh`, scenariusze `ponownie` i `haslo`, zrzuty `m4-haslo-*.png`).
+3. Hasła brak w logu; próba klatki `logowanie` bez błędów; nowe komunikaty — testy na hoście.
+
 ## M5c/M5d — kryteria zaliczenia (0.5.6)
 1. Format magazynu na hoście: `test_magazyn` (62 przypadki) i `fuzz_magazyn` bez błędów.
 2. Ustawienia (tapeta, motyw, rozdzielczość) i notatka wracają po wyłączeniu i ponownym starcie

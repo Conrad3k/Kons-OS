@@ -27,7 +27,7 @@ LISTA
 przygotuj_rdzen() { # $1 = katalog docelowy
     rm -rf "$1"; mkdir -p "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje"
     install -m 0555 "$K1_BUDOWA/bin/init" "$1/init"
-    for p in nadzorca wejscie ekran gui skarbiec; do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/system/$p"; done
+    for p in nadzorca wejscie ekran gui skarbiec logowanie; do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/system/$p"; done
     # Built-in native applications (M4); signed application images come with M10 (/aplikacje).
     for p in zegar notatki ustawienia zasoby; do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/aplikacje/$p"; done
     chmod 0755 "$1" "$1/jadro" "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje"
