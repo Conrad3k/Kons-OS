@@ -332,6 +332,7 @@ void ustawienie(int k, int32_t v)
     for (i = 0; i < MAKS_KLIENTOW; i++)
         if (s.kl[i].fd >= 0 && s.kl[i].rola != K1_ROLA_WEJSCIE)
             wyslij(i, k1_komunikat_nowy(K1_KOM_USTAWIENIE, 0, k, v, 0, 0, 0));
+    ustawienia_zapisz(); /* M5d: a new version in skarbiec */
 }
 
 static void komunikat(int kl, const struct k1_komunikat *m, int fd)

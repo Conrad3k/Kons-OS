@@ -187,6 +187,9 @@ void t_klatki(void)
     static const char *const fd_wejscie[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/rdzen/jadro/dev/input/event",
                                               NULL };
     static const char *const fd_okna[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/memfd:", NULL };
+    /* skarbiec (M5d): the K1-DANE partition (sda1 in the test machine) and nothing else */
+    static const char *const fd_skarbiec[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/memfd:",
+                                               "/rdzen/jadro/dev/sd", NULL };
     static const struct { int apl; const char *nazwa; int uid; } apl[] = {
         { K1_APL_ZEGAR, "zegar", K1_UID_ZEGAR },
         { K1_APL_NOTATKI, "notatki", K1_UID_NOTATKI },
@@ -195,6 +198,7 @@ void t_klatki(void)
     };
     size_t i;
     int j;
+    t_klatka("skarbiec", K1_UID_SKARBIEC, fd_skarbiec);
     t_klatka("ekran", K1_UID_EKRAN, fd_ekran);
     t_klatka("wejscie", K1_UID_WEJSCIE, fd_wejscie);
     for (j = 0; j < 100 && find_process("gui") == 0; j++)
@@ -217,7 +221,7 @@ void t_proby(void)
     static const struct { int profil; const char *nazwa; } p[] = {
         { K1_PROFIL_WEJSCIE, "wejscie" },     { K1_PROFIL_EKRAN, "ekran" },     { K1_PROFIL_GUI, "gui" },
         { K1_PROFIL_ZEGAR, "zegar" },         { K1_PROFIL_NOTATKI, "notatki" }, { K1_PROFIL_USTAWIENIA, "ustawienia" },
-        { K1_PROFIL_ZASOBY, "zasoby" },
+        { K1_PROFIL_ZASOBY, "zasoby" },       { K1_PROFIL_SKARBIEC, "skarbiec" },
     };
     size_t i;
     for (i = 0; i < sizeof p / sizeof p[0]; i++) {

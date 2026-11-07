@@ -63,7 +63,7 @@ UEFI + Secure Boot → podpisany UKI (jądro + initramfs + cmdline) → jądro L
 ## 5. System plików świata natywnego
 - /rdzen: system, obraz SquashFS tylko do odczytu, chroniony dm-verity.
 - /aplikacje: natywne aplikacje K1, tylko do odczytu, podpisane. **[korekta: ADR 0008 — do M10 (podpisy) wbudowane aplikacje leżą w obrazie rdzenia jako `/rdzen/aplikacje/`; `/aplikacje` jest pusty]**
-- /dane_uzytkownika: Blob Vault, jedyne miejsce zapisu. Zaszyfrowane (fscrypt albo dm-crypt, decyzja w ADR), montowane z MS_NOEXEC|MS_NOSUID|MS_NODEV.
+- /dane_uzytkownika: Blob Vault, jedyne miejsce zapisu. Zaszyfrowane (fscrypt albo dm-crypt, decyzja w ADR), montowane z MS_NOEXEC|MS_NOSUID|MS_NODEV. **[korekta: ADR 0015 — Blob Vault to własny format na surowej partycji GPT „K1-DANE”, szyfrowany i uwierzytelniany w przestrzeni użytkownika (usługa `skarbiec`, Monocypher: XChaCha20-Poly1305, Argon2id), bez systemu plików w jądrze; `/dane_uzytkownika` zostaje tmpfs na dane tymczasowe]**
 - Nie ma /usr, /lib, /lib64, /etc, /home, /bin, /sbin. Programy są linkowane statycznie, więc nie potrzebują bibliotek współdzielonych.
 - Korekta: jądro wymaga punktów montowania dla devtmpfs, proc, sysfs i cgroup2 oraz /dev/console przy starcie. Umieść je pod /rdzen (np. /rdzen/jadro/{dev,proc,sys}). Jeśli to niemożliwe, dopuść minimalny wyjątek (ADR po sprawdzeniu).
   **[korekta: ADR 0004]** Punkty montowania są w `/rdzen/jadro/{dev,proc,sys}` (cgroup2 w `/rdzen/jadro/sys/fs/cgroup`). `/dev/console` istnieje wyłącznie w initramfs (jądro otwiera go przed uruchomieniem `/init`); po przełączeniu korzenia nie ma go w systemie. Korzeń `/` to mały tmpfs tylko do odczytu z trzema katalogami. Do M5 `/dane_uzytkownika` to tmpfs w RAM (bez szyfrowania).

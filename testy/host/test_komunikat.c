@@ -196,6 +196,39 @@ static void zasoby(void)
     EXPECT(zle(K(K1_KOM_BATERIA_HIST, 0, 30, (int32_t)0xffffff10, -1, -1, -1), K1_KIER_DO_NADZORCY));
 }
 
+/* skarbiec (M5d): control from nadzorca, requests from clients, replies */
+static void skarbiec(void)
+{
+    EXPECT(ok(K(K1_KOM_SKARB_KLIENT, 0, K1_PROFIL_EKRAN, K1_UID_EKRAN, 0, 0, 0), K1_KIER_STEROWANIE));
+    EXPECT(ok(K(K1_KOM_SKARB_KLIENT, 0, K1_WL_SYSTEM, 0, 0, 0, 0), K1_KIER_STEROWANIE));
+    EXPECT(zle(K(K1_KOM_SKARB_KLIENT, 0, 0, 101, 0, 0, 0), K1_KIER_STEROWANIE));              /* owner 0 */
+    EXPECT(zle(K(K1_KOM_SKARB_KLIENT, 0, K1_PROFIL_MAKS + 1, 101, 0, 0, 0), K1_KIER_STEROWANIE));
+    EXPECT(zle(K(K1_KOM_SKARB_KLIENT, 0, 2, 70000, 0, 0, 0), K1_KIER_STEROWANIE));            /* uid */
+    EXPECT(zle(K(K1_KOM_SKARB_KLIENT, 0, 2, 101, 0, 0, 0), K1_KIER_DO_SKARBCA));              /* direction */
+    EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_SKARB_KLIENT, K1_KIER_STEROWANIE));
+    EXPECT(ok(K(K1_KOM_SKARB_CZYTAJ, K1_OB_NOTATKA, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_USUN, K1_OB_MAKS, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_CZYTAJ, 0, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));                /* id 0 */
+    EXPECT(zle(K(K1_KOM_SKARB_CZYTAJ, K1_OB_MAKS + 1, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_CZYTAJ, 1, 5, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_ZAPISZ, 1, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_ZAPISZ, 1, K1_SKARB_MAKS, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_ZAPISZ, 1, K1_SKARB_MAKS + 1, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_ZAPISZ, 1, -1, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_ZAPISZ, 1, 10, 0, 0, 0, 0), K1_KIER_OD_SKARBCA));
+    EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_SKARB_ZAPISZ, K1_KIER_DO_SKARBCA));
+    EXPECT(!k1_komunikat_z_deskryptorem(K1_KOM_SKARB_CZYTAJ, K1_KIER_DO_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_DANE, 2, 300, 0, 0, 0, 0), K1_KIER_OD_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_DANE, 2, 300, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_SKARB_DANE, K1_KIER_OD_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_WYNIK, 2, K1_KOM_SKARB_ZAPISZ, 0, K1_SKARB_TRWALY, 0, 0), K1_KIER_OD_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_WYNIK, 2, K1_KOM_SKARB_CZYTAJ, -6, K1_SKARB_RAM, 0, 0), K1_KIER_OD_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_WYNIK, 2, K1_KOM_SKARB_CZYTAJ, 1, 0, 0, 0), K1_KIER_OD_SKARBCA));  /* result > 0 */
+    EXPECT(zle(K(K1_KOM_SKARB_WYNIK, 2, K1_KOM_SKARB_CZYTAJ, -9, 0, 0, 0), K1_KIER_OD_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_WYNIK, 2, K1_KOM_SKARB_DANE, 0, 0, 0, 0), K1_KIER_OD_SKARBCA));   /* request type */
+    EXPECT(zle(K(K1_KOM_SKARB_WYNIK, 2, K1_KOM_SKARB_CZYTAJ, 0, 2, 0, 0), K1_KIER_OD_SKARBCA));  /* mode */
+}
+
 static void do_nadzorcy(void)
 {
     EXPECT(ok(K(K1_KOM_URUCHOM, 0, K1_APL_USTAWIENIA, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
@@ -278,6 +311,7 @@ int main(void)
     od_ekranu();
     do_nadzorcy();
     zasoby();
+    skarbiec();
     kanal();
     if (failures) {
         fprintf(stderr, "test_komunikat: %d z %d BŁĘDNYCH\n", failures, count);

@@ -42,7 +42,7 @@ static int zera(const struct k1_komunikat *k, int od)
     return 1;
 }
 
-static int ustawienie(int32_t klucz, int32_t wartosc)
+int k1_ustawienie_poprawne(int32_t klucz, int32_t wartosc)
 {
     switch (klucz) {
     case K1_UST_MOTYW:
@@ -93,6 +93,22 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     switch (k->typ) {
     case K1_KOM_KLIENT:
         return kier == K1_KIER_STEROWANIE && klient(k);
+    case K1_KOM_SKARB_KLIENT:
+        return kier == K1_KIER_STEROWANIE && k->obiekt == 0 &&
+               (w(k->a, 1, K1_PROFIL_MAKS) || k->a == K1_WL_SYSTEM) && w(k->b, 0, 65535) && zera(k, 2);
+    case K1_KOM_SKARB_CZYTAJ:
+    case K1_KOM_SKARB_USUN:
+        return kier == K1_KIER_DO_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS && zera(k, 0);
+    case K1_KOM_SKARB_ZAPISZ:
+        return kier == K1_KIER_DO_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS && w(k->a, 0, K1_SKARB_MAKS) &&
+               zera(k, 1);
+    case K1_KOM_SKARB_DANE:
+        return kier == K1_KIER_OD_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS && w(k->a, 0, K1_SKARB_MAKS) &&
+               zera(k, 1);
+    case K1_KOM_SKARB_WYNIK:
+        return kier == K1_KIER_OD_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS &&
+               w(k->a, K1_KOM_SKARB_CZYTAJ, K1_KOM_SKARB_USUN) && w(k->b, K1_MAG_WYNIK_MIN, 0) &&
+               w(k->c, K1_SKARB_TRWALY, K1_SKARB_RAM) && zera(k, 3);
 
     case K1_KOM_POWIERZCHNIA:
         if (kier != K1_KIER_DO_EKRANU || !powierzchnia(k->obiekt) || !w(k->a, 1, K1_POW_MAKS_BOK) ||
@@ -117,7 +133,7 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     case K1_KOM_MINIMALIZUJ_OKNO:
         return kier == K1_KIER_DO_EKRANU && k->obiekt != 0 && zera(k, 0);
     case K1_KOM_USTAW:
-        return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && ustawienie(k->a, k->b) && zera(k, 2);
+        return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && k1_ustawienie_poprawne(k->a, k->b) && zera(k, 2);
 
     case K1_KOM_WITAJ:
         return kier == K1_KIER_OD_EKRANU && k->obiekt == 0 && w(k->a, 1, K1_POZ_MAKS) && w(k->b, 1, K1_POZ_MAKS) &&
@@ -137,7 +153,7 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         return kier == K1_KIER_OD_EKRANU && k->obiekt != 0 && w(k->a, 1, K1_APL_MAKS) &&
                w(k->b, 1, K1_OKNO_STAN_MAKS) && zera(k, 2);
     case K1_KOM_USTAWIENIE:
-        return kier == K1_KIER_OD_EKRANU && k->obiekt == 0 && ustawienie(k->a, k->b) && zera(k, 2);
+        return kier == K1_KIER_OD_EKRANU && k->obiekt == 0 && k1_ustawienie_poprawne(k->a, k->b) && zera(k, 2);
     case K1_KOM_TRYB:
         return kier == K1_KIER_OD_EKRANU && k->obiekt >= 1 && k->obiekt <= K1_TRYBY_MAKS &&
                w(k->a, K1_TRYB_MIN_SZER, K1_POW_MAKS_BOK) && w(k->b, K1_TRYB_MIN_WYS, K1_POW_MAKS_BOK) &&
@@ -193,5 +209,8 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
 {
     return (typ == K1_KOM_KLIENT && kierunek == K1_KIER_STEROWANIE) ||
            (typ == K1_KOM_POWIERZCHNIA && kierunek == K1_KIER_DO_EKRANU) ||
-           (typ == K1_KOM_TEST_GNIAZDO && kierunek == K1_KIER_OD_NADZORCY);
+           (typ == K1_KOM_TEST_GNIAZDO && kierunek == K1_KIER_OD_NADZORCY) ||
+           (typ == K1_KOM_SKARB_KLIENT && kierunek == K1_KIER_STEROWANIE) ||
+           (typ == K1_KOM_SKARB_ZAPISZ && kierunek == K1_KIER_DO_SKARBCA) ||
+           (typ == K1_KOM_SKARB_DANE && kierunek == K1_KIER_OD_SKARBCA);
 }

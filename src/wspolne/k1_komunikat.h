@@ -24,11 +24,15 @@ enum k1_kanal_kierunek {
     K1_KIER_OD_EKRANU = 3,   /* ekran → client */
     K1_KIER_DO_NADZORCY = 4, /* gui / test program → nadzorca */
     K1_KIER_OD_NADZORCY = 5, /* nadzorca → test program, → Zasoby, → gui (battery); one way */
+    K1_KIER_DO_SKARBCA = 6,  /* client (ekran, Notatki, nadzorca) → skarbiec (M5d) */
+    K1_KIER_OD_SKARBCA = 7,  /* skarbiec → client */
 };
 
 enum k1_komunikat_typ {
     /* nadzorca → ekran */
     K1_KOM_KLIENT = 1, /* a=rola, b=aplikacja (rola APLIKACJA: 1..K1_APL_MAKS, else 0), c=uid; + 1 fd */
+    /* nadzorca → skarbiec (same direction K1_KIER_STEROWANIE) */
+    K1_KOM_SKARB_KLIENT = 2, /* a=owner (K1_WL_*), b=uid of the client; + 1 fd (skarbiec's end) */
 
     /* client → ekran (obiekt = surface number 1..K1_POW_MAKS unless noted) */
     K1_KOM_POWIERZCHNIA = 10, /* a=width, b=height, c=kind (K1_POW_OKNO/PANEL), d,e = x,y (panel; window: 0); + 1 fd */
@@ -68,6 +72,14 @@ enum k1_komunikat_typ {
     K1_KOM_ZASOBY_USLUGA = 63, /* obiekt=K1_PROFIL_* of a service, a=CPU ‰ (of all CPUs), b=memory KiB, c=1 running */
     K1_KOM_BATERIA = 64,       /* to gui: obiekt=0, a=1 battery present, b=percent 0..100 (-1 unknown), c=K1_BAT_*,
                                 * d=1 on mains power; no battery: a=0, b=-1, c=0 (also to Ustawienia) */
+    /* client → skarbiec (M5d, ADR 0015): objects of the client's owner only (the owner comes from nadzorca) */
+    K1_KOM_SKARB_CZYTAJ = 70, /* obiekt=object id (K1_OB_*) */
+    K1_KOM_SKARB_ZAPISZ = 71, /* obiekt=object id, a=length (0..K1_SKARB_MAKS); + 1 sealed memfd of that size */
+    K1_KOM_SKARB_USUN = 72,   /* obiekt=object id */
+    /* skarbiec → client */
+    K1_KOM_SKARB_DANE = 80,   /* obiekt=object id, a=length; + 1 sealed memfd of that size */
+    K1_KOM_SKARB_WYNIK = 81,  /* obiekt=object id, a=request type (70..72), b=result (0 or K1_MAG_* < 0),
+                               * c=K1_SKARB_TRWALY / K1_SKARB_RAM */
     K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample
                                 * (0 = history starts again), a=seconds between samples, b..e = up to 16
                                 * samples, one byte each (b: samples 0-3 from the lowest byte, …):
@@ -113,6 +125,17 @@ enum k1_ustawienie {
 #define K1_TRYB_MIN_WYS 600
 #define K1_PAMIEC_MAKS_MIB (1 << 24) /* 16 TiB: range check only */
 
+/* skarbiec (M5d): owners (K1_WL_*: K1_PROFIL_* of the client, or the system) and object ids */
+#define K1_WL_SYSTEM 100          /* nadzorca itself */
+#define K1_OB_MAKS 64             /* object ids 1..64 per owner */
+#define K1_OB_USTAWIENIA 1        /* ekran: the settings */
+#define K1_OB_NOTATKA 2           /* Notatki: the note */
+#define K1_OB_BATERIA 3           /* nadzorca: battery history */
+#define K1_SKARB_MAKS (1 << 20)   /* bytes in one object (Blob Vault limit) */
+#define K1_SKARB_TRWALY 0         /* saved on the K1-DANE partition */
+#define K1_SKARB_RAM 1            /* no (usable) partition: kept in memory until power off */
+#define K1_MAG_WYNIK_MIN (-8)     /* most negative K1_MAG_* result */
+
 /* Battery state (K1_KOM_BATERIA c), from the kernel's power_supply "status". */
 enum k1_bateria_stan {
     K1_BAT_NIEZNANY = 0,
@@ -147,6 +170,10 @@ static inline unsigned k1_bat_probka(const struct k1_komunikat *k, int i)
     const int32_t p[4] = { k->b, k->c, k->d, k->e };
     return ((uint32_t)p[i / 4] >> (8 * (i % 4))) & 0xffu;
 }
+
+/* Whether `wartosc` is allowed for setting `klucz` (K1_UST_*): USTAW/USTAWIENIE and the settings
+ * ekran reads back from skarbiec (M5d). */
+int k1_ustawienie_poprawne(int32_t klucz, int32_t wartosc);
 
 /* Builds a message (all other fields zero). */
 struct k1_komunikat k1_komunikat_nowy(enum k1_komunikat_typ typ, uint32_t obiekt, int32_t a, int32_t b, int32_t c,
