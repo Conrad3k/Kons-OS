@@ -212,11 +212,12 @@ dane = czekaj(r"K1-ZASOBY: dane od nadzorcy: procesor (\d+)‰, pamięć (\d+) z
 sprawdz("Zasoby: uruchomione z dolnego paska, dane od nadzorcy (procesor, pamięć)", zs and dane and int(dane.group(3)) > 100,
         dane.group(0) if dane else "brak danych")
 if zs:
-    zx, zy = int(zs.group(4)), int(zs.group(5)); time.sleep(6)
+    zx, zy = int(zs.group(4)), int(zs.group(5)); time.sleep(8)
     w, h, px = zrzut("8-zasoby")
-    # wykres pamięci: linia w kolorze akcentu (motyw ciemny)
-    linia = sum(1 for x in range(zx + 40, zx + 520, 4) for y in range(zy + 200, zy + 276) if akcent(px(x, y)))
-    sprawdz("zrzut: wykres pamięci w oknie Zasobów", linia > 10, f"pikseli linii: {linia}")
+    # wykres pamięci: linia w kolorze akcentu (motyw ciemny); po 8 s ma ok. 7 próbek (≈ 50 px
+    # szerokości przy prawej krawędzi) — liczymy każdą kolumnę, bo linia jest płaska i cienka
+    linia = sum(1 for x in range(zx + 32, zx + 536) for y in range(zy + 200, zy + 276) if akcent(px(x, y)))
+    sprawdz("zrzut: wykres pamięci w oknie Zasobów", linia >= 30, f"pikseli linii: {linia}")
 
 tx_ = tekst()
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów",
