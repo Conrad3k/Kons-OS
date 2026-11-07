@@ -16,17 +16,17 @@ i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
 | M2 Ekran | obraz na ekranie: tapeta, kursor; mysz i klawiatura | PRZETESTOWANE (w QEMU) |
 | M3 Trusted Core | nadzorca usług, każda usługa we własnej „klatce”, restart po awarii | PRZETESTOWANE |
 | M4 GUI | pulpit, okna, aplikacje Zegar, Notatki, Ustawienia; obraz ISO do maszyny wirtualnej | PRZETESTOWANE (QEMU: UEFI i BIOS) |
-| M4.1 Porządki i audyt | przegląd bezpieczeństwa i porządki w kodzie | NASTĘPNY |
-| M5 Dane i sprzęt | trwałe, zaszyfrowane dane, hasło, dyski i USB, start z pendrive'a | PLANOWANE |
+| M4.1 Porządki i audyt | przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby | PRZETESTOWANE |
+| M5 Dane i sprzęt | trwałe, zaszyfrowane dane, hasło, dyski i USB, start z pendrive'a | W TOKU: M5a (dyski i USB) PRZETESTOWANE w QEMU |
 | M5.1–M12 | próba przeglądarki, weryfikacja obrazu, sieć, przeglądarka w izolacji, bezpieczny start, audyt | PLANOWANE (kolejność: ADR 0011) |
 
 Pełny plan i zasady: [`docs/SPEC.md`](docs/SPEC.md). Co zostało do zrobienia (i czego potrzeba od właściciela):
 [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
 **Ważne:** K1 działa w maszynie wirtualnej: pulpit z paskiem na dole (Start, Zegar, Notatki,
-Ustawienia), paskiem na górze (dźwięk, data i godzina), oknami i polską klawiaturą. Na prawdziwym
-laptopie jeszcze nie (brak sterowników USB, dysków NVMe, touchpada) — to przyjdzie przed testami
-na sprzęcie. Notatki i ustawienia są na razie tylko w pamięci (znikają po wyłączeniu, do M5).
+Ustawienia), paskiem na górze (dźwięk, data i godzina), oknami i polską klawiaturą. Od 0.5.2 zna
+dyski SATA/NVMe oraz klawiatury, myszy i pamięci USB — można spróbować startu z pendrive'a na laptopie
+ThinkPad X230 (niżej). Notatki i ustawienia są na razie tylko w pamięci (znikają po wyłączeniu, do M5).
 Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
 
 ## Uruchom w maszynie wirtualnej
@@ -49,6 +49,24 @@ Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
 
 Działa też w VMware (UEFI lub BIOS) i QEMU/virt-manager (karta `std` lub `virtio`; nie `vmware` —
 sterownik VMware nie działa z tą kartą QEMU); Hyper-V — jeszcze nie.
+
+## Uruchom na laptopie (ThinkPad X230) — pierwsza próba
+K1 startuje z pendrive'a i **niczego nie zapisuje na dysku laptopa** (w tej wersji nie otwiera dysków —
+pilnuje tego test). Pendrive zostanie w całości nadpisany.
+1. Nagraj `k1-X.Y.Z.iso` na pendrive (≥ 64 MB): w Windowsie **Rufus** → wybierz plik ISO → Start;
+   na pytanie o obraz hybrydowy wybierz **„Zapisz w trybie obrazu DD”**. (Albo balenaEtcher.)
+2. W laptopie: włącz i od razu wciskaj **F1** (ustawienia BIOS-u):
+   - Startup → **UEFI/Legacy Boot**: *Both* albo *UEFI Only*,
+   - Security → Secure Boot (jeśli jest) → **Disabled** (K1 nie jest jeszcze podpisany — M10).
+   Zapisz (F10). Potem przy włączaniu wciskaj **F12** i wybierz pendrive (USB HDD).
+3. Po kilku sekundach powinien pojawić się pulpit. Klawiatura, TrackPoint, touchpad (ruch i kliknięcia,
+   bez przewijania dwoma palcami) i mysz USB powinny działać. Jasność ekranu i klawisze Fn — jeszcze nie.
+4. Wyłączenie: znak K1 → **Wyłącz** (laptop powinien się sam wyłączyć), potem wyjmij pendrive.
+
+Napisz (Issues → „Feedback z testu” albo w czacie): czy pulpit się pojawił (jeśli ekran został czarny
+— po ilu sekundach i czy wcześniej było logo Lenovo/GRUB), czy obraz jest ostry (1366×768), co działa
+z klawiatury, TrackPointa, touchpada i myszy USB, czy laptop sam się wyłączył. Wersja BIOS-u
+(widać w F1 → Main) też się przyda.
 
 ## Jak sprawdzić testy bez instalowania niczego
 Po każdej zmianie na `main` GitHub sam buduje system i uruchamia testy:

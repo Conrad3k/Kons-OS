@@ -35,7 +35,9 @@ jądro 6.18 LTS (jadro/k1.config) ──► /init = k1-initramfs (src/initramfs)
 Planowane (SPEC §7–§9): Blob Vault (M5), dekodery w jednorazowych procesach (M6), `siec` (M7),
 Gatekeeper (M9).
 
-Stan: M4.1 (0.5.0) — przegląd bezpieczeństwa, tryby ekranu, Zasoby (ADR 0012).
+Stan: M5a (0.5.2) — dyski SATA/NVMe, GPT, USB (xHCI/EHCI/OHCI, HID, mass storage) (ADR 0013).
+Pierwszy laptop właściciela: **ThinkPad X230** (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez
+simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
 
 **System plików po starcie** (ADR 0004):
 - `/` — tmpfs tylko do odczytu z dokładnie trzema katalogami: `rdzen`, `aplikacje`, `dane_uzytkownika`.
@@ -60,7 +62,7 @@ Stan: M4.1 (0.5.0) — przegląd bezpieczeństwa, tryby ekranu, Zasoby (ADR 0012
 | `narzedzia/czcionki.c` | (host, przy budowie) | ADR 0009 | FreeType → bitmapy IBM Plex (`build/gen/`) |
 | `src/wspolne/` | (linkowane) | — | `k1_log` (log, `k1_awaria`, `k1_koniec`), `k1_cmdline`, `k1_zdarzenie`, `k1_komunikat` (32 B, wszystkie kanały), `k1_kanal` (SEQPACKET, SCM_RIGHTS, SO_PASSCRED), `k1_klatka` (sandbox), `k1_uslugi.h` (UID-y, role) |
 | `jadro/` | `bzImage` | `komponenty/jadro.md` | wersja, konfiguracja, linia poleceń, klucze |
-| `testy/system/` | `/rdzen/system/test-systemu` (tylko obraz testowy) | `TESTY.md` | sprawdzenia w systemie: `t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4+), `proba.c`, `wspolne.c`, nagłówek `k1_test.h` |
+| `testy/system/` | `/rdzen/system/test-systemu` (tylko obraz testowy) | `TESTY.md` | sprawdzenia w systemie: `t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4+), `t_sprzet.c` (M5a), `proba.c`, `wspolne.c`, nagłówek `k1_test.h` |
 
 ## 2. Niezmienniki — tego nie wolno złamać
 Każdy z nich pilnuje test; jeśli zmiana go narusza, to jest zmiana architektury → ADR i decyzja.
@@ -133,7 +135,9 @@ monitor QEMU — `mouse_move`, `mouse_button`, `sendkey alt_r-a`); zrzuty pokazu
 - **QEMU z zewnątrz:** `scripts/test-m1.sh` (start, testy w systemie, błędy startu — maszyna ma się sama
   wyłączyć bez „Kernel panic”), `scripts/test-m2.sh` (kursor: `mouse_move`, `sendkey`, `mouse_button`),
   `scripts/test-m4.sh` (pulpit i aplikacje — klikanie według położeń z logu, zrzuty sprawdzane po
-  kolorach pikseli; start z ISO przez UEFI/OVMF i BIOS z `virtio-vga` → simpledrm). Wszystko:
+  kolorach pikseli; start z ISO przez UEFI/OVMF i BIOS z `virtio-vga` → simpledrm), `scripts/test-m5.sh`
+  (USB bez PS/2: `--maszyna ",i8042=off"`, `--qemu "-device …"`; `device_add`/`device_del`). Dyski i USB
+  w teście w systemie: `SPRZET_TEST` w `test-m1.sh` (obrazy `sfdisk`: GPT „K1-DANE”, MBR). Wszystko:
   `scripts/testy.sh` (to uruchamia CI, ~6 min w TCG). Kanał testowy (fd 3 programu testowego):
   `TEST_POLACZ` (kanał do ekranu z dowolną rolą/UID), `TEST_PROBA` (program testowy w klatce
   usługi), `URUCHOM` (aplikacja).
@@ -145,7 +149,9 @@ monitor QEMU — `mouse_move`, `mouse_button`, `sendkey alt_r-a`); zrzuty pokazu
   `SO_PASSCRED` ustawia się na końcu **odbiorcy** (`k1_kanal_utworz`: `pary[0]` dostaje ten, kto
   sprawdza); `RLIMIT_FSIZE` ogranicza też `ftruncate` memfd (SIGXFSZ = sygnał 25); `LO_FLAGS_AUTOCLEAR`
   odłącza loop przy zamknięciu ostatniego deskryptora — zamykaj po `mount`; filtr seccomp działa od
-  `execve`, więc obejmuje start musl; `hidepid` daje ENOENT zamiast EACCES dla cudzych procesów.
+  `execve`, więc obejmuje start musl; `hidepid` daje ENOENT zamiast EACCES dla cudzych procesów. `read_file` w testach zwraca 0 przy
+  sukcesie (nie liczbę bajtów); q35 ma wbudowany AHCI (`bus=ide.0`); HMP `mouse_move`/`sendkey` idą do
+  ostatnio aktywnego urządzenia QEMU (z USB w maszynie — do USB).
 
 ## 5. Proces
 

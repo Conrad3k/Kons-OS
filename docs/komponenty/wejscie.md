@@ -41,5 +41,7 @@ do ekranu inny niż „pełny kanał” → `k1_koniec()`.
 Struktury `input_event` od jądra (stały rozmiar), ioctl evdev. Brak parsowania danych użytkownika.
 
 ## Ograniczenia
-Brak hotplugu (urządzenia wykrywane raz przy starcie), brak układu klawiatury (kody, nie znaki —
-M4), brak obsługi USB/I2C HID (prawdziwy sprzęt — później).
+Hotplug przez nadzorcę: nowe urządzenie = ponowne uruchomienie `wejscie` z pełnym zestawem (co 2 s);
+odłączone urządzenie `wejscie` przestaje czytać (log „urządzenie odłączone”). Od M5a klawiatury
+i myszy USB (HID generic) — te same zdarzenia evdev co PS/2. Brak: pozycji bezwzględnej (tablet USB,
+touchpad w trybie rozszerzonym — M5b), I2C-HID (nowsze laptopy), układ klawiatury liczy przybornik (M4).

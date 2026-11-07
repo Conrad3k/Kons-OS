@@ -21,7 +21,9 @@ printf 'file /rdzen.squashfs %s 0400 0 0\n' "$K1_WYNIK/rdzen.squashfs" > "$K1_BU
 CMDLINE=$(sed 's/k1\.rdzen=[^ ]*/k1.rdzen=wbudowany/' "$K1_REPO/jadro/cmdline")
 cat > "$ISO/boot/grub/grub.cfg" <<CFG
 # Kons K1 $K1_WERSJA — start bez menu. Tryb graficzny ustawia GRUB (UEFI GOP albo VESA),
-# jądro przejmuje go sterownikiem simpledrm.
+# jądro przejmuje go sterownikiem simpledrm. 1366x768 = ekran ThinkPada X230 (firmware laptopa
+# nie oferuje 1280x800 — za dużo linii); nie jako pierwszy: karty emulowane (QEMU) pokazują ten
+# tryb krzywo (szerokość zaokrąglona do 1360).
 set timeout=0
 set timeout_style=hidden
 insmod all_video

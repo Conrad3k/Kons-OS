@@ -51,7 +51,9 @@ usług, kanały (`socketpair`, strona odbiorcy z `SO_PASSCRED`), komunikaty `KLI
   (aplikacje nie są restartowane); `WYLACZ` — `SIGTERM` (wyłączenie) albo `SIGINT` (restart) do init.
 - Urządzenia wejścia (0.5.1): co 2 s sprawdza, czy pojawiło się nowe `event*` (szybki start może
   wyprzedzić rejestrację myszy przez jądro; później — urządzenia USB); jeśli tak, uruchamia `wejscie`
-  ponownie z pełnym zestawem (bez liczenia jako awaria). Pełny hotplug bez restartu — M5.
+  ponownie z pełnym zestawem (bez liczenia jako awaria). Od 0.5.2 (M5a) zapomina urządzenia, których
+  węzeł zniknął (odłączone USB) — ponownie podłączone pod tym samym numerem jest zauważane. Pełny
+  hotplug bez restartu (zdarzenia jądra) — M5b.
 - Zasoby (M4.1, ADR 0012): gdy aplikacja działa, co sekundę `ZASOBY_SYSTEM` (procesor ‰ z
   `cpu.stat` korzenia cgroup, pamięć: `sysinfo` minus odzyskiwalna pamięć podręczna z `memory.stat`,
   liczba CPU, czas pracy) i `ZASOBY_USLUGA` dla każdej usługi (`cpu.stat`, `memory.current` jej

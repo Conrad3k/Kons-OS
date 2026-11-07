@@ -3,6 +3,26 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.5.2] — 2026-11-07
+
+Etap **M5a — dyski i USB** (pierwszy krok M5; ADR 0013). Pierwszy laptop: ThinkPad X230.
+
+### Dodane
+- Jądro rozpoznaje **dyski SATA** (kontroler AHCI — m.in. ThinkPad X230, VirtualBox) i **NVMe**,
+  tablice partycji **GPT** (partycja danych K1 będzie szukana po nazwie „K1-DANE”).
+- **USB**: kontrolery USB 3 (xHCI), USB 2 (EHCI) i USB 1.1 (OHCI); **klawiatury i myszy USB**
+  działają w pulpicie, **pamięci USB** (pendrive'y) są widoczne. Tylko standardowe urządzenia —
+  bez sterowników producentów i bez surowego dostępu do urządzeń.
+- README: jak spróbować startu z pendrive'a na ThinkPadzie X230.
+
+### Zmienione
+- Odłączona mysz lub klawiatura USB jest „zapominana”, więc ponowne podłączenie (także pod tym samym
+  numerem urządzenia) działa.
+- Stare tablice partycji MBR nie są czytane przez jądro (mniej kodu wystawionego na obce nośniki).
+- Testy: test w systemie z dyskami SATA/NVMe, pendrive'em i USB na trzech kontrolerach (dostęp do
+  dysków tylko dla roota, nikt ich nie otwiera); nowy `scripts/test-m5.sh` — maszyna bez PS/2,
+  tylko klawiatura i mysz USB, podłączanie i odłączanie myszy w trakcie pracy.
+
 ## [0.5.1] — 2026-11-07
 
 ### Naprawione
