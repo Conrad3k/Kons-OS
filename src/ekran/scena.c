@@ -33,9 +33,22 @@ void dodaj(struct obszar *o, struct prost r)
     if (!przetnij(&r, &ekran))
         return;
     for (i = 0; i < o->n; i++) {
-        struct prost t = o->r[i];
+        struct prost t = o->r[i], u;
+        int64_t pole_u, pole_t = (int64_t)t.w * t.h, pole_r = (int64_t)r.w * r.h;
         if (r.x >= t.x && r.y >= t.y && r.x + r.w <= t.x + t.w && r.y + r.h <= t.y + t.h)
             return; /* already covered */
+        /* Overlapping rectangles (a window moved by a few pixels: its old and new place) are composed
+         * once as their union when that is not larger than the two apart. */
+        u.x = r.x < t.x ? r.x : t.x;
+        u.y = r.y < t.y ? r.y : t.y;
+        u.w = (r.x + r.w > t.x + t.w ? r.x + r.w : t.x + t.w) - u.x;
+        u.h = (r.y + r.h > t.y + t.h ? r.y + r.h : t.y + t.h) - u.y;
+        pole_u = (int64_t)u.w * u.h;
+        if (pole_u <= pole_t + pole_r) {
+            o->r[i] = o->r[--o->n];
+            dodaj(o, u); /* the union may now overlap another one */
+            return;
+        }
     }
     if (o->n == MAKS_PROST) {
         int32_t x0 = r.x, y0 = r.y, x1 = r.x + r.w, y1 = r.y + r.h;
@@ -106,33 +119,71 @@ static float sd_box(float px, float py, float cx, float cy, float hx, float hy, 
     return sqrtf(ox * ox + oy * oy) + fminf(fmaxf(qx, qy), 0.0f) - r;
 }
 
+/* Shadow opacity by the distance d from the window's edge (d >= 0), in 1/8 px steps: a table instead
+ * of expf for every pixel (0.5.9 — moving a window cost ~190 ms a frame in emulation). */
+#define CIEN_KROKI (CIEN * 8 + 64)
+static uint8_t cien_alfa[2][CIEN_KROKI];
+
+static void cien_tablica(void)
+{
+    static const int sily[2] = { 46, 70 };
+    static int gotowa;
+    int k, n;
+    if (gotowa)
+        return;
+    for (k = 0; k < 2; k++)
+        for (n = 0; n < CIEN_KROKI; n++) {
+            float d = (float)n / 8.0f;
+            cien_alfa[k][n] = (uint8_t)((float)sily[k] * expf(-(d + 4) * (d + 4) / 200.0f));
+        }
+    gotowa = 1;
+}
+
+/* x * a / 255 for x, a in 0..255 (exact for these ranges). */
+static inline uint32_t mnoz255(uint32_t x, uint32_t a)
+{
+    uint32_t t = x * a + 128;
+    return (t + (t >> 8)) >> 8;
+}
+
 /* Soft neutral shadow under a window, only where the window does not cover it. */
 static void cien(const struct pow *p, const struct prost *k)
 {
     struct prost r = { p->x - CIEN, p->y - CIEN, p->w + 2 * CIEN, p->h + 2 * CIEN };
     float cx = (float)p->x + (float)p->w / 2, cy = (float)p->y + (float)p->h / 2 + 6;
-    int32_t i, j, sila = p->kl >= 0 && (int)(p - s.p) == s.fokus ? 70 : 46;
+    int mocny = p->kl >= 0 && (int)(p - s.p) == s.fokus;
+    uint32_t sila = mocny ? 70 : 46;
+    const uint8_t *tab = cien_alfa[mocny];
+    int32_t i, j;
     if (!przetnij(&r, k))
         return;
+    cien_tablica();
     for (j = r.y; j < r.y + r.h; j++) {
         uint32_t *row = s.scena.px + (size_t)j * s.scena.krok;
         int wewnatrz_y = j >= p->y + 12 && j < p->y + p->h - 12;
         for (i = r.x; i < r.x + r.w; i++) {
             float d;
             uint32_t a, ia, px;
-            if (wewnatrz_y && i >= p->x && i < p->x + p->w)
-                continue; /* covered by the opaque middle of the window */
+            if (wewnatrz_y && i >= p->x && i < p->x + p->w) {
+                i = p->x + p->w - 1; /* covered by the opaque middle of the window: skip it */
+                continue;
+            }
             d = sd_box((float)i + 0.5f, (float)j + 0.5f, cx, cy, (float)p->w / 2 - 4, (float)p->h / 2 - 4, 14);
             if (d < -14)
                 continue;
-            a = (uint32_t)((float)sila * expf(-(d + 4) * (d + 4) / 200.0f));
             if (d < 0)
-                a = (uint32_t)sila;
+                a = sila;
+            else {
+                int n = (int)(d * 8.0f);
+                if (n >= CIEN_KROKI)
+                    continue;
+                a = tab[n];
+            }
             if (a == 0)
                 continue;
             ia = 255 - a;
             px = row[i];
-            row[i] = ((((px >> 16) & 0xff) * ia / 255) << 16) | ((((px >> 8) & 0xff) * ia / 255) << 8) | ((px & 0xff) * ia / 255);
+            row[i] = (mnoz255((px >> 16) & 0xff, ia) << 16) | (mnoz255((px >> 8) & 0xff, ia) << 8) | mnoz255(px & 0xff, ia);
         }
     }
 }

@@ -1,9 +1,9 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.5.8 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.5.9 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
-M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 w toku — M5a (dyski i USB).
+M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 prawie gotowe (dyski, USB, zaszyfrowane dane, hasło, instalator); dalej plan z ADR 0019.
 Data: 2026-11-07. Plik aktualizujemy po każdym etapie.
 Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
 
@@ -144,54 +144,50 @@ M4.1 Porządki i audyt — GOTOWE (0.5.0, ADR 0012)
     [x] aplikacja Zasoby (procesor, pamięć, usługi — wykresy z ostatniej minuty)
     [x] naprawa cienia pod dolnym paskiem i menu dźwięku
 
-M5  Dane i sprzęt (rozszerzony) — W TOKU (rozpoznanie: docs/M5-ROZPOZNANIE.txt)
-    [x] M5a (0.5.2, ADR 0013): sterowniki dysków SATA (AHCI), NVMe, virtio; GPT; USB xHCI/EHCI/OHCI,
-        klawiatury i myszy USB, pendrive'y; testy w QEMU (także maszyna bez PS/2)
-    [x] M5c/M5d (0.5.6, ADR 0015/0016): skarbiec, zaszyfrowany magazyn na partycji „K1-DANE” (dysk
-        albo pendrive — obraz k1-<wersja>-usb.img.xz), trwałe ustawienia i notatka
-    [ ] magazyn obiektów zamiast katalogów (identyfikator, metadane, hash, pochodzenie)
-    [ ] szyfrowanie danych na dysku (dziś dane są tylko w RAM)
-    [ ] dostęp aplikacji tylko do obiektów, na które się zgodzisz
-    [x] M5e (0.5.7, ADR 0017): opcjonalne hasło (Ustawienia → Hasło), ekran hasła „Zegar” przy starcie,
-        limit prób w skarbcu; zapomniane hasło = nowe konto
-    [ ] trwały zapis notatek i ustawień
-    [~] USB: klawiatura, mysz (M5a), podłączanie w trakcie pracy (przez restart wejścia — M5a;
-        bez restartu — M5b), tablet (mysz „USB” w VirtualBoxie — M5b)
-    [!] pierwszy start z pendrive'a na Twoim ThinkPadzie X230
+M5  Dane i sprzęt (rozszerzony) — PRAWIE GOTOWE (0.5.2–0.5.9; rozpoznanie: docs/M5-ROZPOZNANIE.txt)
+    [x] M5a (0.5.2, ADR 0013): dyski SATA/NVMe/virtio, GPT, USB (xHCI/EHCI/OHCI), klawiatury, myszy, pendrive'y
+    [x] M5c/M5d (0.5.6, ADR 0015/0016): skarbiec — zaszyfrowany magazyn na partycji „K1-DANE”, trwałe
+        ustawienia i notatki, obraz na pendrive k1-<wersja>-usb.img.xz
+    [x] M5e (0.5.7, ADR 0017): opcjonalne hasło, ekran hasła „Zegar”, limit prób w skarbcu
+    [x] 0.5.8: logo przy starcie, K1-DANE wykrywana też po starcie, wiele notatek
+    [x] M5f (0.5.9, ADR 0018): Instalator — K1 na dysku laptopa (dane na całym dysku), aktualizacja
+        z pendrive'a bez ruszania danych; przesuwanie okien ~10× taniej
+    [!] Test na X230 (0.5.9): instalacja na dysk, start bez pendrive'a, hasło, notatki po wyłączeniu,
+        płynność przeciągania okien
 
-M5.1 Próba przeglądarki (wycinek M7/M8, bez sieci)
-    [ ] minimalna strefa zgodności; Firefox i WPE WebKit w izolacji
-    [ ] strona testowa wyrenderowana i pokazana w oknie K1 → decyzja Firefox czy WPE (ADR)
+Nowa kolejność od 0.5.9 (ADR 0019 — przegląd i plan; zastępuje ADR 0011):
 
-M5.2 dm-verity (wycinek M10)
-    [ ] system wykrywa podmieniony obraz rdzenia i bezpiecznie się wyłącza
+0.6.0 Fundament (zamyka M5)
+    [ ] nadzorca w modułach, main.c < 600 wierszy, jawna maszyna stanów startu
+    [ ] zdarzenia jądra (uevent) zamiast odpytywania: wejście, dyski, bateria (dawne M5b; tablet USB w VM)
+    [ ] wspólny odbiór komunikatów; wspólna biblioteka testów QEMU; testy równolegle; KVM w CI
+    [ ] historia baterii między uruchomieniami
 
-M6  Dekodery w izolacji
-    [ ] każdy plik (np. PNG) dekodowany w jednorazowym, zamkniętym procesie
-    [ ] tapeta z pliku PNG przez taki dekoder; testy złośliwymi plikami
+M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku)
+    [ ] podpisane wydania (własny klucz); Instalator odmawia niepodpisanego albo starszego systemu
+    [ ] dm-verity dla rdzenia (dawne M5.2)
+    [ ] A/B w partycji K1-EFI z powrotem do poprzedniej wersji
+    [ ] Secure Boot włączony: własny klucz wpisany raz przez MokManager (krok dla Ciebie), podpisane jądro
 
-M7  Sieć i strefa zgodności (zaplecze A)
-    [ ] usługa sieci: Ethernet + DHCP
-    [ ] „równoległy Linux” dla obcych programów w izolacji (namespaces, seccomp, Landlock)
-    [ ] prosta aplikacja testowa ze strefy wyświetlana w K1
+M7  Sieć
+    [ ] kabel (X230: Intel 82579LM, e1000e, bez firmware) + DHCP w osobnej klatce, czas z sieci
+    [ ] Wi-Fi (iwlwifi + firmware — osobny ADR)
+    [ ] „równoległy Linux” (strefa zgodności) z prostą aplikacją testową
 
-M8  Przeglądarka w strefie
-    [ ] (wybór Firefox / WPE — po próbie w M5.1)
-    [ ] osobne, jednorazowe sesje (sesje wg Twoich decyzji z punktu 1)
+M8  Przeglądarka (z dawnym M5.1)
+    [ ] próba Firefox / WPE w strefie, z siecią → wybór (ADR)
+    [ ] osobne sesje (Twoja decyzja z punktu 1)
 
-M9  Gatekeeper
-    [ ] pobieranie plików, okno zgody, import do Blob Vault, sprzątanie
+M9  Pliki (Gatekeeper + dawne M6)
+    [ ] aplikacja Pliki w skarbcu; podgląd obrazów przez jednorazowy dekoder w izolacji
+    [ ] pobieranie przez Gatekeepera: zgoda, import, sprzątanie
 
-M10 Bezpieczny start
-    [ ] (dm-verity — przeniesione do M5.2)
-    [ ] Secure Boot z własnymi kluczami, podpisane obrazy, ochrona przed starszą wersją
-    [ ] aktualizacje A/B z powrotem do poprzedniej wersji, tryb ratunkowy (recovery)
+M5.3 Laptop (małe kroki między etapami, po Twoich zgłoszeniach)
+    [ ] i915 (płynniejszy obraz, jasność), klawisze Fn, dźwięk, przewijanie touchpadem
 
-M11 Mikro-maszyna wirtualna dla przeglądarki (zaplecze B)
-    [ ] przeglądarka z własnym jądrem — luka w nim nie daje dostępu do K1 (wymaga KVM)
-
-M12 Audyt
-    [ ] fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa
+M10 Bezpieczny start — reszta: tryb ratunkowy (recovery), licznik wersji w TPM
+M11 Mikro-maszyna wirtualna dla przeglądarki (zaplecze B, wymaga KVM)
+M12 Audyt: fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa
 
 
 4. DECYZJE TECHNICZNE DO PODJĘCIA (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)

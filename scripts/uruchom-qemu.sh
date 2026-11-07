@@ -7,6 +7,7 @@
 #                           [--maszyna ",i8042=off"] [--qemu "-device ..."]   (dyski, USB — M5a)
 #   scripts/uruchom-qemu.sh --iso PLIK [--uefi] [--vga std|virtio] ...   (start z obrazu ISO, ADR 0010)
 #   scripts/uruchom-qemu.sh --pendrive PLIK ...   (obraz USB jako pamięć USB, start przez UEFI — M5d)
+#   scripts/uruchom-qemu.sh --dysk-uefi PLIK ...  (dysk SATA, start z niego przez UEFI — zainstalowany K1, M5f)
 #
 # Domyślnie: build/wynik/rdzen.squashfs, linia poleceń z jadro/cmdline, log build/qemu/serial.log.
 # Podgląd na żywo: tail -f build/qemu/serial.log
@@ -17,7 +18,7 @@ CMDLINE=$(cat "$K1_REPO/jadro/cmdline")
 LOG=$K1_BUDOWA/qemu/serial.log
 MONITOR=$K1_BUDOWA/qemu/monitor.sock
 CZAS=0
-ISO= UEFI= VGA=std MASZYNA= DODATKI= PENDRIVE=
+ISO= UEFI= VGA=std MASZYNA= DODATKI= PENDRIVE= DYSK_UEFI=
 while [ $# -gt 0 ]; do
     case $1 in
         --obraz) OBRAZ=$2; shift 2 ;;
@@ -28,6 +29,7 @@ while [ $# -gt 0 ]; do
         --czas) CZAS=$2; shift 2 ;;
         --iso) ISO=$2; shift 2 ;;
         --pendrive) PENDRIVE=$2; shift 2 ;;
+        --dysk-uefi) DYSK_UEFI=$2; shift 2 ;;
         --uefi) UEFI=1; shift ;;
         --vga) VGA=$2; shift 2 ;;
         --maszyna) MASZYNA=$2; shift 2 ;;
@@ -43,7 +45,12 @@ if [ -w /dev/kvm ]; then AKCEL="-accel kvm -cpu host"; else AKCEL="-accel tcg -c
 DYSK=
 [ -n "$OBRAZ" ] && DYSK="-drive file=$OBRAZ,if=virtio,format=raw,readonly=on"
 
-if [ -n "$PENDRIVE" ]; then
+if [ -n "$DYSK_UEFI" ]; then
+    # An installed K1 (M5f): UEFI firmware boots the SATA disk (AHCI of q35, like the X230's disk).
+    set -- -machine "q35$MASZYNA" $AKCEL -m 512M -smp 2 -nodefaults -no-reboot -bios /usr/share/ovmf/OVMF.fd \
+        -vga virtio -display none -nic none -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" \
+        -drive if=none,id=dysk,file="$DYSK_UEFI",format=raw -device ide-hd,bus=ide.0,drive=dysk,bootindex=1
+elif [ -n "$PENDRIVE" ]; then
     # Like the ThinkPad: UEFI firmware boots the stick (usb-storage on xHCI); picture from GOP → simpledrm.
     set -- -machine "q35$MASZYNA" $AKCEL -m 512M -smp 2 -nodefaults -no-reboot -bios /usr/share/ovmf/OVMF.fd \
         -vga virtio -display none -nic none -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" \

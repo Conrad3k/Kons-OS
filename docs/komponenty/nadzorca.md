@@ -65,6 +65,11 @@ usług, kanały (`socketpair`, strona odbiorcy z `SO_PASSCRED`), komunikaty `KLI
   (pendrive zgłoszony później — wolny albo przełączony z EHCI na xHCI w X230). Kanały klientów
   (`kanal_do_skarbca`: ekran fd 5, Notatki fd 4) zgłasza skarbcowi przez `SKARB_KLIENT` z właścicielem;
   oba końce mają `SO_PASSCRED`. Koniec skarbca → restart ekranu (klienci dostają nowe kanały).
+- Instalator (0.5.9, ADR 0018): lista dysków z sysfs (`dyski.c`), na prośbę okna Instalatora (UID 204,
+  fd 4 w obie strony) otwiera źródło (K1-EFI pendrive'a, odczyt) i cel (cały dysk albo jego K1-EFI,
+  `O_EXCL`) i uruchamia program `instalator` (UID 105) z nimi jako fd 4 i 5; postęp i wynik przekazuje
+  oknu; `WYLACZ` od okna tylko po udanej instalacji. Dwie partycje K1-DANE: wybiera tę z dysku
+  wewnętrznego (nie USB).
 - Bateria (0.5.3, ADR 0014): co 15 s `src/nadzorca/bateria.c` czyta `sys/class/power_supply` (baterie
   systemowe: procent z energii/ładunku/`capacity`, stan, zasilacz) i przy zmianie wysyła `BATERIA` do
   gui kanałem fd 5 (jednokierunkowo, `SHUT_RD`); test na hoście `test_bateria` (także śmieciowe dane).

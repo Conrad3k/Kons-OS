@@ -3,6 +3,35 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.5.9] — 2026-11-07
+
+Etap **M5f — instalator** (ADR 0018) i szybsze przesuwanie okien.
+
+### Dodane
+- **Instalator** (Twój pomysł): menu Start → Instalator → wybierasz dysk → wpisujesz **USUŃ** → K1
+  instaluje się na dysku komputera: system + zaszyfrowane miejsce na dane **na całym dysku** (zamiast
+  64 MB na pendrivie). Potem startujesz bez pendrive'a — szybciej, bo dysk SATA jest dużo szybszy od USB.
+- **Aktualizacja bez utraty danych:** uruchamiasz nowszą wersję z pendrive'a → Instalator →
+  *Zaktualizuj system*. Wymieniany jest tylko system; Twoje dane (ustawienia, notatki, hasło) zostają.
+- Bezpieczeństwo instalatora: okno nie ma dostępu do dysków; zapisuje osobny, malutki program w
+  ciasnej klatce, który dostaje od nadzorcy tylko dwa urządzenia. Zapis kończy się sprawdzeniem
+  (odczyt i porównanie), a tablica partycji jest zapisywana na samym końcu — przerwana instalacja nie
+  zostawia pół-działającego systemu. Aktualizacja fizycznie nie dostaje partycji z Twoimi danymi.
+- Z podłączonym pendrive'em K1 zainstalowany system i tak używa swoich danych z dysku.
+
+### Zmienione
+- **Przesuwanie okien ~10× mniej obciąża procesor** (Twoja uwaga): w X230 (grafika z firmware) ekran
+  składał klatkę przy każdym ruchu myszy, bez limitu, i liczył cień okna wolną funkcją dla każdego
+  piksela. Teraz: najwyżej 60 klatek na sekundę, cień z gotowej tabeli, stare i nowe miejsce okna
+  składane raz. W emulatorze: ~19 ms zamiast ~190 ms na klatkę; przeciąganie jest płynne.
+- Instalator ma ikonę dysku w menu Start (na dolnym pasku zostają cztery aplikacje).
+
+### Testy
+- QEMU: pendrive + pusty dysk → instalacja → start z samego dysku → nowy magazyn → aktualizacja z
+  pendrive'a → dane przetrwały; bez wpisania „USUŃ” nic się nie dzieje; tablica partycji sprawdzona
+  przez `sfdisk --verify`. Na hoście: tablica GPT dla dysków 4 GB … 3 TB i sektorów 512/4096 B,
+  lista dysków na sztucznym sysfs, nowe komunikaty. Próby klatek nowych programów.
+
 ## [0.5.8] — 2026-11-07
 
 Poprawki po Twoim teście 0.5.7 na X230.

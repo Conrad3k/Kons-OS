@@ -41,6 +41,10 @@ insmod png
 # terminal_output, which resets the colours) hides its cursor.
 terminal_output gfxterm
 set color_normal=black/black
+# M5f: everything from the partition GRUB itself was loaded from — with K1 on the disk and a K1 stick
+# plugged in, its search by /.disk/info may find the other one first.
+regexp --set=1:k1_dysk '^\(([^)]+)\)' "\$cmdpath"
+if [ -n "\$k1_dysk" -a -e "(\$k1_dysk)/k1/bzImage" ]; then set root=\$k1_dysk; fi
 background_image -m stretch /boot/grub/start.png
 echo ""
 menuentry "Kons K1 $K1_WERSJA" {

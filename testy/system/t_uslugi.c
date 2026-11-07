@@ -195,6 +195,7 @@ void t_klatki(void)
         { K1_APL_NOTATKI, "notatki", K1_UID_NOTATKI },
         { K1_APL_USTAWIENIA, "ustawienia", K1_UID_USTAWIENIA },
         { K1_APL_ZASOBY, "zasoby", K1_UID_ZASOBY },
+        { K1_APL_INSTALACJA, "instalacja", K1_UID_INSTALACJA },
     };
     size_t i;
     int j;
@@ -222,6 +223,7 @@ void t_proby(void)
         { K1_PROFIL_WEJSCIE, "wejscie" },     { K1_PROFIL_EKRAN, "ekran" },     { K1_PROFIL_GUI, "gui" },
         { K1_PROFIL_ZEGAR, "zegar" },         { K1_PROFIL_NOTATKI, "notatki" }, { K1_PROFIL_USTAWIENIA, "ustawienia" },
         { K1_PROFIL_ZASOBY, "zasoby" },       { K1_PROFIL_SKARBIEC, "skarbiec" }, { K1_PROFIL_LOGOWANIE, "logowanie" },
+        { K1_PROFIL_INSTALATOR, "instalator" }, { K1_PROFIL_INSTALACJA, "instalacja" },
     };
     size_t i;
     for (i = 0; i < sizeof p / sizeof p[0]; i++) {

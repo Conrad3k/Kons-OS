@@ -135,6 +135,18 @@ sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
    drugi go otwiera (`test-m5.sh`).
 4. Dysk trzyma tylko skarbiec (w systemie), próba klatki skarbca bez błędów, Notatki bez plików.
 
+## M5f — `scripts/test-m5f.sh` (instalator, ADR 0018)
+
+| Krok | Sprawdzenie | Dowód |
+|---|---|---|
+| 1. pendrive + pusty dysk SATA 4 GiB | Instalator z menu Start: 1 dysk, system z pendrive'a; bez „USUŃ” nic; po „usuń” nadzorca uruchamia program zapisujący (UID 105, cel `sda`, źródło K1-EFI pendrive'a); „gotowe”; „Wyłącz komputer” wyłącza | `m5f-1-lista.png`, `m5f-1-potwierdzenie.png`, `m5f-1-gotowe.png` |
+| dysk po instalacji | `sfdisk -d`: K1-EFI i K1-DANE; `sfdisk --verify` bez błędów | log testu |
+| 2. start z samego dysku (UEFI) | pulpit; skarbiec: nowy magazyn na K1-DANE dysku | `m5f-2-z-dysku.png` |
+| 3. pendrive + dysk | skarbiec dostaje `sda2` (dysk), Instalator: „Kons K1: tak (dane otwarte)” → aktualizacja tylko `sda1` → „zaktualizowano” | `m5f-3-aktualizacja.png` |
+| 4. start z dysku (pendrive też podłączony) | magazyn z kroku 2 otwarty, żaden nowy — dane przetrwały aktualizację; GRUB bierze jądro z dysku (`$cmdpath`) | log |
+
+Wszędzie: brak „Kernel panic”, „BŁĄD” i zabronionych wywołań.
+
 ## M5a — kryteria zaliczenia
 1. Jądro widzi dyski SATA (AHCI), NVMe i pamięci USB; tablice GPT (tylko), nazwy partycji w sysfs.
 2. Kontrolery USB xHCI, EHCI, OHCI; klawiatura i mysz USB działają w pulpicie — także na maszynie bez

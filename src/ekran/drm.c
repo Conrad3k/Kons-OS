@@ -62,6 +62,13 @@ double teraz(void)
     return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
 }
 
+double czas_procesora(void)
+{
+    struct timespec t;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t);
+    return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
+}
+
 /* The modes offered in Ustawienia: distinct sizes within limits, widest first, the preferred
  * one always included (for each size the mode with the highest refresh rate). */
 static void lista_trybow(const struct drm_mode_modeinfo *tryby, uint32_t n, uint32_t preferowany)

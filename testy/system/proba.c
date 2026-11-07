@@ -40,7 +40,7 @@ int proba(const char *profil)
     int okna = strstr(profil, "notatki") != NULL || strstr(profil, "gui") != NULL || strstr(profil, "zegar") != NULL ||
                strstr(profil, "ustawienia") != NULL || strstr(profil, "zasoby") != NULL ||
                strstr(profil, "ekran") != NULL || strstr(profil, "skarbiec") != NULL ||
-               strstr(profil, "logowanie") != NULL;
+               strstr(profil, "logowanie") != NULL || strstr(profil, "instalacja") != NULL;
 
     memset(&sa, 0, sizeof sa);
     sa.sa_sigaction = proba_sigsys;

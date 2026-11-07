@@ -89,6 +89,9 @@ struct stan {
     int wcisniety, zmiana, mody;
     int pod, chwyt, ciagniete, fokus; /* surface indices or -1 */
     int32_t ciag_dx, ciag_dy;
+    unsigned long ciag_klatki; /* frames when the drag started (log: cost of a drag) */
+    double ciag_cpu;           /* our CPU time then, s */
+    double ost_klatka;         /* when the last frame was composed (frame pacing without page flip) */
     unsigned z_licznik;
     uint32_t nastepne_okno;
     int ust[K1_UST_MAKS + 1];
@@ -139,6 +142,7 @@ void zastosuj(const struct k1_zdarzenie *z);
 /* drm.c */
 int drm(int fd, unsigned long req, void *arg);
 double teraz(void);
+double czas_procesora(void); /* CPU time of this process, s */
 void wybierz_wyjscie(void);
 int utworz_bufor(struct bufor *b, uint32_t w, uint32_t h);
 void usun_bufor(struct bufor *b);

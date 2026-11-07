@@ -52,8 +52,8 @@ sterownik VMware nie działa z tą kartą QEMU); Hyper-V — jeszcze nie.
 
 ## Uruchom na laptopie (ThinkPad X230) — z pendrive'a, z zapisem danych
 Od 0.5.6 jest osobny obraz na pendrive: **`k1-X.Y.Z-usb.img.xz`** (Releases). Ma miejsce na Twoje dane
-(ustawienia, notatki) — **zaszyfrowane, na tym samym pendrivie**. K1 **niczego nie zapisuje na dysku
-laptopa** (nie otwiera innych dysków — pilnuje tego test). Pendrive zostanie w całości nadpisany.
+(ustawienia, notatki) — **zaszyfrowane, na tym samym pendrivie**. Bez Twojej decyzji K1 **niczego nie
+zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive zostanie w całości nadpisany.
 1. Nagraj `k1-X.Y.Z-usb.img.xz` na pendrive (≥ 128 MB): w Windowsie **Rufus** → wybierz plik
    (Rufus sam rozpakuje .xz; jeśli zapyta — tryb obrazu DD) → Start. Albo balenaEtcher.
    (Obraz `.iso` też zadziała z pendrive'a, ale bez zapisu danych — po wyłączeniu wszystko znika,
@@ -81,6 +81,13 @@ laptopa** (nie otwiera innych dysków — pilnuje tego test). Pendrive zostanie 
 6. Hasło (od 0.5.7): Ustawienia → Hasło → przełącznik „Wymagaj hasła przy włączaniu” → wpisz hasło
    dwa razy → Zapisz. Przy następnym włączeniu zobaczysz ekran hasła. **Zapomniane hasło = nowe
    konto** (dane zaszyfrowane starym hasłem przepadają — trzeba nagrać pendrive od nowa).
+7. **Instalacja na dysk laptopa** (od 0.5.9): znak K1 → **Instalator** → wybierz dysk → *Zainstaluj* →
+   wpisz **USUŃ** → *Usuń wszystko i zainstaluj*. **Wszystko na tym dysku zostanie usunięte** (Windows,
+   pliki). Po „Gotowe”: *Wyłącz komputer*, wyjmij pendrive, włącz laptop — K1 startuje z dysku (jeśli nie:
+   F12 → dysk), a Twoje zaszyfrowane dane mają cały dysk. Dane z pendrive'a nie są przenoszone (nowe
+   konto). **Ustaw hasło** (punkt 6) — bez niego złodziej laptopa może odczytać dane.
+   **Aktualizacja:** nagraj nowszy `k1-…-usb.img.xz` na pendrive, uruchom z niego (F12), Instalator →
+   *Zaktualizuj system* → *Zaktualizuj*. Wymienia tylko system — Twoje dane zostają.
 
 Napisz (Issues → „Feedback z testu” albo w czacie): czy pulpit się pojawił (jeśli ekran został czarny
 — po ilu sekundach i czy wcześniej było logo Lenovo/GRUB), czy obraz jest ostry (1366×768), co działa

@@ -96,6 +96,29 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     case K1_KOM_SKARB_KLIENT:
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 &&
                (w(k->a, 1, K1_PROFIL_MAKS) || k->a == K1_WL_SYSTEM) && w(k->b, 0, 65535) && zera(k, 2);
+    case K1_KOM_INST_ZADANIE:
+        return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && w(k->a, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ) &&
+               (k->b == 512 || k->b == 4096) && zera(k, 2);
+    case K1_KOM_INST_DYSKI:
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && zera(k, 0);
+    case K1_KOM_INST_START:
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt >= 1 && k->obiekt <= K1_INST_DYSKI_MAKS &&
+               w(k->a, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ) && zera(k, 1);
+    case K1_KOM_INST_ETAP:
+    case K1_KOM_INST_POSTEP:
+        return kier == (k->typ == K1_KOM_INST_ETAP ? K1_KIER_DO_NADZORCY : K1_KIER_OD_NADZORCY) && k->obiekt == 0 &&
+               w(k->a, 0, 100) && w(k->b, 1, K1_INST_ETAP_MAKS) && zera(k, 2);
+    case K1_KOM_INST_GOTOWE:
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_INST_BLAD_MIN, 0) && zera(k, 1);
+    case K1_KOM_INST_WYNIK:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, K1_INST_BLAD_MIN, 0) &&
+               w(k->b, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ) && zera(k, 2);
+    case K1_KOM_INST_DYSK:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt >= 1 && k->obiekt <= K1_INST_DYSKI_MAKS && k->a >= 0 &&
+               w(k->b, K1_DYSK_SATA, K1_DYSK_INNY) && w(k->c, 0, 1) && (k->d == 512 || k->d == 4096) && w(k->e, 0, 1);
+    case K1_KOM_INST_LISTA:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_INST_DYSKI_MAKS) && w(k->b, 0, 1) &&
+               zera(k, 2);
     case K1_KOM_SKARB_CZYTAJ:
     case K1_KOM_SKARB_USUN:
         return kier == K1_KIER_DO_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS && zera(k, 0);

@@ -11,10 +11,12 @@
 #define K1_UID_GUI 102
 #define K1_UID_SKARBIEC 103
 #define K1_UID_LOGOWANIE 104
+#define K1_UID_INSTALATOR 105 /* M5f: the program that writes the disk (no window) */
 #define K1_UID_ZEGAR 200
 #define K1_UID_NOTATKI 201
 #define K1_UID_USTAWIENIA 202
 #define K1_UID_ZASOBY 203
+#define K1_UID_INSTALACJA 204 /* M5f: the Instalator window (no disks) */
 
 /* Roles of clients of the screen process (who is on the other end of a channel). */
 enum k1_rola {
@@ -31,8 +33,9 @@ enum k1_aplikacja {
     K1_APL_NOTATKI = 2,
     K1_APL_USTAWIENIA = 3,
     K1_APL_ZASOBY = 4,
+    K1_APL_INSTALACJA = 5, /* M5f: Instalator */
 };
-#define K1_APL_MAKS 4
+#define K1_APL_MAKS 5
 
 /* Sandbox profiles the supervisor knows (also used for test probes in the test image). */
 enum k1_profil_nr {
@@ -45,8 +48,10 @@ enum k1_profil_nr {
     K1_PROFIL_ZASOBY = 7,
     K1_PROFIL_SKARBIEC = 8, /* M5d: Blob Vault */
     K1_PROFIL_LOGOWANIE = 9, /* M5e: boot password screen */
+    K1_PROFIL_INSTALATOR = 10, /* M5f: writes the target disk (fds from nadzorca), one job */
+    K1_PROFIL_INSTALACJA = 11, /* M5f: the Instalator window */
 };
-#define K1_PROFIL_MAKS 9
+#define K1_PROFIL_MAKS 11
 
 
 /* Exit code of a service that hit a forbidden system call (seccomp, k1_klatka_w_usludze). */

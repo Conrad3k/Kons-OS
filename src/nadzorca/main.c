@@ -40,6 +40,7 @@
 #include "k1_uslugi.h"
 
 #include "bateria.h"
+#include "dyski.h"
 
 #define TAG "K1-NADZORCA"
 #define DEV "/rdzen/jadro/dev"
@@ -67,6 +68,8 @@ static const long sc_skarbiec[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, SY
                                     SYS_sysinfo };
 /* gui and applications: shared memory for their surfaces, nothing else. */
 static const long sc_okna[] = { SYS_memfd_create, SYS_ftruncate };
+/* instalator (M5f): the two devices it gets from us, randomness for the GPT GUIDs. No open. */
+static const long sc_instalator[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, SYS_getrandom };
 
 static const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
     [K1_PROFIL_WEJSCIE] = { "wejscie", K1_UID_WEJSCIE, sc_wejscie, 0, wa_wejscie, N(wa_wejscie), NULL,
@@ -89,11 +92,18 @@ static const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
                                16u << 20 },
     /* Zasoby: like the other apps; its numbers come from us on fd 4 (it reads no files). */
     [K1_PROFIL_ZASOBY] = { "zasoby", K1_UID_ZASOBY, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32, 16u << 20 },
+    /* M5f (ADR 0018): the program that writes the disk — no window, no paths, only the source and the
+     * target device we open for it; RLIMIT_FSIZE does not apply to block devices (see skarbiec). */
+    [K1_PROFIL_INSTALATOR] = { "instalator", K1_UID_INSTALATOR, sc_instalator, N(sc_instalator), NULL, 0, NULL,
+                               16u << 20, 1, 16, 0 },
+    /* the Instalator window: like the other applications; asks us on fd 4 */
+    [K1_PROFIL_INSTALACJA] = { "instalacja", K1_UID_INSTALACJA, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32,
+                               16u << 20 },
 };
 
 /* ---- services ---- */
 
-enum rodzaj { R_SKARBIEC, R_EKRAN, R_KLIENT, R_PROBA };
+enum rodzaj { R_SKARBIEC, R_EKRAN, R_KLIENT, R_PROBA, R_INSTALATOR };
 
 struct usluga {
     const char *nazwa, *program, *tag;
@@ -133,6 +143,10 @@ static struct usluga uslugi[] = {
            K1_ROLA_APLIKACJA, K1_APL_USTAWIENIA, 0),
     USLUGA("zasoby", "/rdzen/aplikacje/zasoby", "K1-ZASOBY", K1_PROFIL_ZASOBY, R_KLIENT, K1_ROLA_APLIKACJA,
            K1_APL_ZASOBY, 0),
+    USLUGA("instalacja", "/rdzen/aplikacje/instalacja", "K1-INSTALACJA", K1_PROFIL_INSTALACJA, R_KLIENT,
+           K1_ROLA_APLIKACJA, K1_APL_INSTALACJA, 0),
+    /* M5f: started only by an install/update request of the Instalator window (inst_zapis) */
+    USLUGA("instalator", "/rdzen/system/instalator", "K1-INSTALATOR", K1_PROFIL_INSTALATOR, R_INSTALATOR, 0, 0, 0),
 };
 #define PIERWSZA_APLIKACJA 5
 #define N_USLUG N(uslugi)
@@ -146,6 +160,11 @@ static int skarb_czekal;     /* skarbiec already waited for the data partition a
 static int stan_skarbca = -1; /* K1_SKARB_* reported by skarbiec (-1: not yet) — M5e */
 static int przelaczanie;      /* unlocked: waiting for the new ekran before the desktop starts */
 static int skarb_bez_dysku;   /* skarbiec runs without any K1-DANE: keep looking for a late one (0.5.8) */
+static char skarb_dane[32];   /* the K1-DANE partition skarbiec has (M5f: "in use" for the installer) */
+static int inst_kanal = -1;   /* our end of the Instalator window's channel (its fd 4) — M5f */
+static int inst_ster = -1;    /* our end of the writing program's channel (its fd 3) */
+static int inst_tryb, inst_wynik_wyslany, inst_sukces;
+static struct k1_dyski inst_lista; /* the list the window saw (INST_START refers to it) */
 static int zero = -1;        /* /dev/null for fds 0 and 1 of services */
 static int test_kanal = -1;  /* our end of the test channel (test image) */
 static int gui_kanal = -1;   /* our end of gui's request channel (gui's fd 4) */
@@ -412,14 +431,18 @@ static int kanal_do_skarbca(int wlasciciel, int uid)
     return para[1];
 }
 
-/* The data partition: the one block device partition named "K1-DANE" (GPT, sysfs PARTNAME —
- * block/partitions/core.c part_uevent). None or more than one → -1 (*ile = how many). */
+/* The data partition: a block device partition named "K1-DANE" (GPT, sysfs PARTNAME —
+ * block/partitions/core.c part_uevent). Exactly one, or (M5f, ADR 0018) exactly one on an internal disk:
+ * an installed K1 keeps its data there even when started from a K1 stick (an update), the stick's own
+ * partition is then left alone. Otherwise -1 (*ile = how many were found; errno set if open failed). */
 static int otworz_partycje_danych(int *ile)
 {
-    char dev[64] = "";
+    char dev[64] = "", wew[64] = "";
+    int wewn = 0;
     DIR *d = opendir(SYS "/class/block");
     struct dirent *de;
     *ile = 0;
+    skarb_dane[0] = '\0';
     while (d != NULL && (de = readdir(d)) != NULL) {
         char sciezka[320], buf[512];
         ssize_t n;
@@ -445,17 +468,30 @@ static int otworz_partycje_danych(int *ile)
         if (strcspn(p, "\n") >= 32 || strchr(p, '/') != NULL)
             continue;
         snprintf(dev, sizeof dev, "%.*s", (int)strcspn(p, "\n"), p);
+        if (!k1_dysk_na_usb(SYS, dev)) {
+            wewn++;
+            snprintf(wew, sizeof wew, "%s", dev);
+        }
         (*ile)++;
     }
     if (d != NULL)
         closedir(d);
-    if (*ile != 1)
+    if (*ile > 1 && wewn == 1) {
+        k1_log(TAG, "K1-DANE na dysku wewnętrznym (%s) — partycja na pendrivie pominięta", wew);
+        snprintf(dev, sizeof dev, "%s", wew);
+    } else if (*ile != 1) {
+        errno = EINVAL;
         return -1;
+    }
     {
         char sciezka[96];
+        int fd;
         snprintf(sciezka, sizeof sciezka, DEV "/%s", dev);
         /* O_EXCL on a block device: nobody else (no mount) may hold it exclusively */
-        return open(sciezka, O_RDWR | O_CLOEXEC | O_NOFOLLOW | O_EXCL);
+        fd = open(sciezka, O_RDWR | O_CLOEXEC | O_NOFOLLOW | O_EXCL);
+        if (fd >= 0)
+            snprintf(skarb_dane, sizeof skarb_dane, "%s", dev);
+        return fd;
     }
 }
 
@@ -533,6 +569,8 @@ static void start(struct usluga *u)
     int fds[MAKS_URZADZEN + 1], n = 0, i;
 
     u->nastepny = 0;
+    if (u->rodzaj == R_INSTALATOR)
+        return; /* only on request of the Instalator window (inst_zapis) */
     if (u->rodzaj == R_SKARBIEC) {
         int para[2], ile, dysk = otworz_partycje_danych(&ile);
         /* A USB stick shows up a moment after the kernel started: wait for it (czekaj_na_dane). */
@@ -542,12 +580,12 @@ static void start(struct usluga *u)
         }
         skarb_czekal = 1;
         skarb_bez_dysku = dysk < 0 && ile == 0;
-        if (ile > 1)
+        if (ile > 1 && dysk < 0 && errno != EBUSY)
             k1_log(TAG, "znaleziono %d partycje K1-DANE — nie wiadomo, której użyć; dane tylko w pamięci", ile);
-        else if (ile == 1 && dysk < 0)
+        else if (ile >= 1 && dysk < 0)
             k1_log(TAG, "partycja K1-DANE zajęta albo niedostępna: %s", strerror(errno));
         else if (dysk >= 0)
-            k1_log(TAG, "partycja danych K1-DANE otwarta dla skarbca");
+            k1_log(TAG, "partycja danych K1-DANE otwarta dla skarbca (%s)", skarb_dane);
         if (k1_kanal_utworz(para) != 0) {
             if (dysk >= 0)
                 close(dysk);
@@ -700,6 +738,18 @@ static void start(struct usluga *u)
             k1_log(TAG, "shutdown kanału Zasobów: %s", strerror(errno));
         fds[n++] = para[0];
     }
+    if (u->profil == K1_PROFIL_INSTALACJA) { /* M5f: both ways — requests in, list and progress out */
+        int para[2], tak = 1;
+        if (k1_kanal_utworz(para) != 0 || setsockopt(para[1], SOL_SOCKET, SO_PASSCRED, &tak, sizeof tak) != 0) {
+            close(fds[0]);
+            return;
+        }
+        if (inst_kanal >= 0)
+            close(inst_kanal);
+        inst_kanal = para[1]; /* we check the sender (UID 204) */
+        inst_sukces = 0;
+        fds[n++] = para[0];
+    }
     if (uruchom(u, p, fds, n) > 0)
         k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
     for (i = 0; i < n; i++)
@@ -740,6 +790,20 @@ static void zakonczona(struct usluga *u, int status)
     if (u->profil == K1_PROFIL_GUI && bateria_kanal >= 0) {
         close(bateria_kanal);
         bateria_kanal = -1;
+    }
+    if (u->profil == K1_PROFIL_INSTALACJA && inst_kanal >= 0) {
+        close(inst_kanal);
+        inst_kanal = -1;
+    }
+    if (u->rodzaj == R_INSTALATOR) {
+        if (inst_ster >= 0)
+            close(inst_ster);
+        inst_ster = -1;
+        if (!inst_wynik_wyslany && inst_kanal >= 0) { /* ended without a result */
+            struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, K1_INST_BLAD_PRZERWANE, inst_tryb, 0, 0, 0);
+            k1_kanal_wyslij(inst_kanal, &k, sizeof k, -1);
+        }
+        inst_wynik_wyslany = 1;
     }
     if (u->rodzaj == R_SKARBIEC) {
         if (skarb_ster >= 0)
@@ -967,6 +1031,178 @@ static void obsluz_skarbiec(void)
                 ekran()->bez_liczenia = 1;
                 kill(ekran()->pid, SIGTERM); /* its clients (the password screen) stop with it */
             }
+        }
+    }
+}
+
+/* ---- the installer (M5f, ADR 0018) ---- */
+
+static struct usluga *instalator(void)
+{
+    return &uslugi[N_USLUG - 1];
+}
+
+static void inst_wyslij(struct k1_komunikat k)
+{
+    if (inst_kanal >= 0 && k1_kanal_wyslij(inst_kanal, &k, sizeof k, -1) != 0)
+        k1_log(TAG, "instalator: wysłanie do okna nieudane");
+}
+
+static void inst_lista_dyskow(void)
+{
+    int i;
+    if (k1_dyski_skanuj(SYS, &inst_lista) != 0)
+        inst_lista.n = 0;
+    for (i = 0; i < inst_lista.n; i++) {
+        const struct k1_dysk *d = &inst_lista.d[i];
+        long long mib = (long long)(d->bajty >> 20);
+        inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_DYSK, (uint32_t)i + 1, (int32_t)(mib > 0x7fffffff ? 0x7fffffff : mib),
+                                      d->rodzaj, d->efi[0] && d->dane[0], d->sektor,
+                                      d->dane[0] && strcmp(d->dane, skarb_dane) == 0));
+    }
+    inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_LISTA, 0, inst_lista.n, inst_lista.zrodlo[0] != 0, 0, 0, 0));
+    k1_log(TAG, "instalator: dysków %d, system do skopiowania: %s", inst_lista.n,
+           inst_lista.zrodlo[0] ? inst_lista.zrodlo : "brak (nie z pendrive'a K1)");
+}
+
+static int otworz_urzadzenie(const char *nazwa, int flagi)
+{
+    char sciezka[96];
+    snprintf(sciezka, sizeof sciezka, DEV "/%s", nazwa);
+    return open(sciezka, flagi | O_CLOEXEC | O_NOFOLLOW);
+}
+
+/* Starts the writing program for disk `nr` (1-based, from the list the window saw). The disk must
+ * still be there with the same size; install opens the whole disk exclusively (fails while anything
+ * on it is open — the data partition of the running system too), update only its K1-EFI. */
+static int inst_zapis(int nr, int tryb)
+{
+    struct k1_dyski teraz_l;
+    const struct k1_dysk *d;
+    struct k1_komunikat k;
+    char cel[32];
+    int fds[3], para[2], tak = 1, i;
+    if (nr < 1 || nr > inst_lista.n || instalator()->pid > 0)
+        return K1_INST_BLAD_ARG;
+    d = &inst_lista.d[nr - 1];
+    if (k1_dyski_skanuj(SYS, &teraz_l) != 0)
+        return K1_INST_BLAD_ARG;
+    for (i = 0; i < teraz_l.n; i++)
+        if (strcmp(teraz_l.d[i].nazwa, d->nazwa) == 0 && teraz_l.d[i].bajty == d->bajty)
+            break;
+    if (i == teraz_l.n)
+        return K1_INST_BLAD_ARG;
+    if (!teraz_l.zrodlo[0])
+        return K1_INST_BLAD_ZRODLO;
+    if (tryb == K1_INST_AKTUALIZUJ && !(teraz_l.d[i].efi[0] && teraz_l.d[i].dane[0]))
+        return K1_INST_BLAD_ARG;
+    snprintf(cel, sizeof cel, "%s", tryb == K1_INST_INSTALUJ ? d->nazwa : teraz_l.d[i].efi);
+    fds[1] = otworz_urzadzenie(teraz_l.zrodlo, O_RDONLY);
+    if (fds[1] < 0)
+        return K1_INST_BLAD_ZRODLO;
+    fds[2] = otworz_urzadzenie(cel, O_RDWR | O_EXCL);
+    if (fds[2] < 0) {
+        int e = errno;
+        close(fds[1]);
+        k1_log(TAG, "instalator: %s niedostępny: %s", cel, strerror(e));
+        return e == EBUSY ? K1_INST_BLAD_ZAJETY : K1_INST_BLAD_ARG;
+    }
+    if (k1_kanal_utworz(para) != 0 || setsockopt(para[1], SOL_SOCKET, SO_PASSCRED, &tak, sizeof tak) != 0) {
+        close(fds[1]);
+        close(fds[2]);
+        return K1_INST_BLAD_ARG;
+    }
+    fds[0] = para[0];
+    inst_tryb = tryb;
+    inst_wynik_wyslany = 0;
+    inst_sukces = 0;
+    if (uruchom(instalator(), &profile[K1_PROFIL_INSTALATOR], fds, 3) <= 0) {
+        for (i = 0; i < 3; i++)
+            close(fds[i]);
+        close(para[1]);
+        return K1_INST_BLAD_ARG;
+    }
+    for (i = 0; i < 3; i++)
+        close(fds[i]);
+    if (inst_ster >= 0)
+        close(inst_ster);
+    inst_ster = para[1];
+    k = k1_komunikat_nowy(K1_KOM_INST_ZADANIE, 0, tryb, d->sektor, 0, 0, 0);
+    k1_kanal_wyslij(inst_ster, &k, sizeof k, -1);
+    k1_log(TAG, "instalator: %s — %s (z %s), pid %d, uid %d", tryb == K1_INST_INSTALUJ ? "instalacja na dysku" : "aktualizacja",
+           cel, teraz_l.zrodlo, (int)instalator()->pid, (int)profile[K1_PROFIL_INSTALATOR].uid);
+    return 0;
+}
+
+/* Requests from the Instalator window (UID 204): the list, start, and — after a finished job only —
+ * power off / restart. */
+static void obsluz_instalacje(void)
+{
+    int i;
+    for (i = 0; i < 8 && inst_kanal >= 0; i++) {
+        struct k1_odebrane o;
+        struct k1_komunikat k;
+        enum k1_kanal_wynik w = k1_kanal_odbierz(inst_kanal, &o);
+        if (w == K1_KANAL_PUSTO)
+            return;
+        if (w != K1_KANAL_KOMUNIKAT) {
+            close(inst_kanal);
+            inst_kanal = -1;
+            return;
+        }
+        if (o.fd >= 0)
+            close(o.fd);
+        if (o.fd >= 0 || o.obciete || !o.ma_nadawce || o.uid != K1_UID_INSTALACJA ||
+            k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_DO_NADZORCY, &k) != 0 ||
+            (k.typ != K1_KOM_INST_DYSKI && k.typ != K1_KOM_INST_START && k.typ != K1_KOM_WYLACZ) ||
+            (k.typ == K1_KOM_WYLACZ && !inst_sukces)) {
+            k1_log(TAG, "odrzucono prośbę od Instalatora");
+            continue;
+        }
+        if (k.typ == K1_KOM_INST_DYSKI) {
+            inst_lista_dyskow();
+        } else if (k.typ == K1_KOM_INST_START) {
+            int r = inst_zapis((int)k.obiekt, k.a);
+            if (r != 0) {
+                inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, r, k.a, 0, 0, 0));
+                k1_log(TAG, "instalator: odmowa (%d)", r);
+            }
+        } else {
+            wylacz(k.a);
+        }
+    }
+}
+
+/* Progress and result from the writing program (UID 105), passed on to the window. */
+static void obsluz_zapis(void)
+{
+    int i;
+    for (i = 0; i < 16 && inst_ster >= 0; i++) {
+        struct k1_odebrane o;
+        struct k1_komunikat k;
+        enum k1_kanal_wynik w = k1_kanal_odbierz(inst_ster, &o);
+        if (w == K1_KANAL_PUSTO)
+            return;
+        if (w != K1_KANAL_KOMUNIKAT) {
+            close(inst_ster);
+            inst_ster = -1;
+            return;
+        }
+        if (o.fd >= 0)
+            close(o.fd);
+        if (o.fd >= 0 || o.obciete || !o.ma_nadawce || o.uid != K1_UID_INSTALATOR ||
+            k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_DO_NADZORCY, &k) != 0 ||
+            (k.typ != K1_KOM_INST_ETAP && k.typ != K1_KOM_INST_GOTOWE) || inst_wynik_wyslany) {
+            k1_log(TAG, "odrzucono komunikat od instalatora");
+            continue;
+        }
+        if (k.typ == K1_KOM_INST_ETAP) {
+            inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_POSTEP, 0, k.a, k.b, 0, 0, 0));
+        } else {
+            inst_wynik_wyslany = 1;
+            inst_sukces = k.a == 0;
+            inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, k.a, inst_tryb, 0, 0, 0));
+            k1_log(TAG, "instalator: %s", k.a == 0 ? "zakończono pomyślnie" : "błąd");
         }
     }
 }
@@ -1214,8 +1450,8 @@ int main(void)
     }
 
     for (;;) {
-        struct pollfd pfd[N_USLUG + 6];
-        struct usluga *zrodla[N_USLUG + 6];
+        struct pollfd pfd[N_USLUG + 8];
+        struct usluga *zrodla[N_USLUG + 8];
         nfds_t n = 0;
         double t = teraz(), najblizszy = -1;
         int czas;
@@ -1230,6 +1466,12 @@ int main(void)
         pfd[n].events = POLLIN;
         zrodla[n++] = NULL;
         pfd[n].fd = skarb_ster; /* M5e: the state of the vault */
+        pfd[n].events = POLLIN;
+        zrodla[n++] = NULL;
+        pfd[n].fd = inst_kanal; /* M5f: the Instalator window */
+        pfd[n].events = POLLIN;
+        zrodla[n++] = NULL;
+        pfd[n].fd = inst_ster;  /* M5f: the writing program */
         pfd[n].events = POLLIN;
         zrodla[n++] = NULL;
         for (i = 0; i < N_USLUG; i++) {
@@ -1249,7 +1491,7 @@ int main(void)
         if (poll(pfd, n, czas) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
 
-        for (i = 4; i < n; i++)
+        for (i = 6; i < n; i++)
             if (pfd[i].fd >= 0 && (pfd[i].revents & (POLLIN | POLLHUP | POLLERR)))
                 czytaj_log(zrodla[i]);
         if (test_kanal >= 0 && (pfd[1].revents & (POLLIN | POLLHUP | POLLERR)))
@@ -1258,6 +1500,10 @@ int main(void)
             obsluz_gui();
         if (skarb_ster >= 0 && (pfd[3].revents & POLLIN))
             obsluz_skarbiec();
+        if (inst_kanal >= 0 && pfd[4].fd == inst_kanal && (pfd[4].revents & (POLLIN | POLLHUP | POLLERR)))
+            obsluz_instalacje();
+        if (inst_ster >= 0 && pfd[5].fd == inst_ster && (pfd[5].revents & (POLLIN | POLLHUP | POLLERR)))
+            obsluz_zapis();
 
         if (pfd[0].revents & POLLIN) {
             struct signalfd_siginfo si;

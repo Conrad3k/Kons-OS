@@ -42,7 +42,8 @@
 #define ODST 4
 #define DOK_PAD 8
 #define DOK_WYS (EL + 2 * DOK_PAD)
-#define DOK_SZER (DOK_PAD + EL + 13 + K1_APL_MAKS * EL + (K1_APL_MAKS - 1) * ODST + DOK_PAD)
+#define DOK_APL 4  /* applications on the bottom bar (Instalator only in the menu) */
+#define DOK_SZER (DOK_PAD + EL + 13 + DOK_APL * EL + (DOK_APL - 1) * ODST + DOK_PAD)
 #define MARG 16    /* shadow margin inside panel surfaces */
 #define MENU_SZER 360
 #define MENU_WIERSZ 56
@@ -75,6 +76,7 @@ static const struct {
     [K1_APL_NOTATKI] = { "Notatki", "Zapisywane w tym komputerze", K1_IK_NOTATKI },
     [K1_APL_USTAWIENIA] = { "Ustawienia", "Wygląd, ekran, mysz, data, informacje", K1_IK_USTAWIENIA },
     [K1_APL_ZASOBY] = { "Zasoby", "Procesor i pamięć — co pracuje", K1_IK_ZASOBY },
+    [K1_APL_INSTALACJA] = { "Instalator", "Zainstaluj K1 na dysku tego komputera", K1_IK_DYSK },
 };
 
 static const struct k1_motyw *motyw(void)
@@ -280,7 +282,7 @@ static void rysuj_dok(void)
     if (o == NULL)
         return;
     tlo_panelu(o, DOK_SZER, DOK_WYS);
-    for (i = 0; i <= K1_APL_MAKS; i++) {
+    for (i = 0; i <= DOK_APL; i++) {
         float x = (float)(MARG + element_x(i)), y = MARG + DOK_PAD;
         if (i == hover_dok || (i == 0 && menu_otwarte))
             k1_zaokraglony(o, x, y, EL, EL, 10, k1_kolor(m->najechanie, 255));
@@ -445,7 +447,7 @@ static void aplikacja(int apl)
 static int element_dok(int32_t x, int32_t y)
 {
     int i;
-    for (i = 0; i <= K1_APL_MAKS; i++) {
+    for (i = 0; i <= DOK_APL; i++) {
         int32_t ex = MARG + element_x(i), ey = MARG + DOK_PAD;
         if (x >= ex && x < ex + EL && y >= ey && y < ey + EL)
             return i;
