@@ -33,9 +33,9 @@ WSPOLNE := src/wspolne/k1_log.c src/wspolne/k1_cmdline.c src/wspolne/k1_zdarzeni
 NAGL    := src/wspolne/k1_log.h src/wspolne/k1_cmdline.h src/wspolne/k1_zdarzenie.h src/wspolne/k1_uslugi.h
 # Services (M3): protocol, channels, sandbox.
 USLUGI  := src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
-           src/wspolne/k1_skarb_klient.c
+           src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c
 NAGL_U  := src/wspolne/k1_komunikat.h src/wspolne/k1_kanal.h src/wspolne/k1_klatka.h src/wspolne/k1_memfd.h \
-           src/wspolne/k1_skarb_klient.h
+           src/wspolne/k1_skarb_klient.h src/wspolne/k1_odbior.h src/wspolne/k1_bat_arch.h
 # Blob Vault (M5c, ADR 0015): format + Monocypher (src/zewnetrzne, docs/ZALEZNOSCI.md). Monocypher is
 # compiled as is; on the host (ASan build) -Wconversion warns about its code, so only there it is off.
 MONOCYPHER := src/zewnetrzne/monocypher/monocypher.c
@@ -66,8 +66,11 @@ $(BIN)/k1-initramfs: src/initramfs/main.c $(WSPOLNE) $(NAGL) | $(BIN)
 $(BIN)/init: src/init/main.c $(WSPOLNE) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/init/main.c $(WSPOLNE) $(LDFLAGS_K1)
 
-$(BIN)/nadzorca: src/nadzorca/main.c src/nadzorca/bateria.c src/nadzorca/bateria.h src/nadzorca/dyski.c src/nadzorca/dyski.h $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ src/nadzorca/main.c src/nadzorca/bateria.c src/nadzorca/dyski.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+# nadzorca in modules (0.6.0, ADR 0019): main.c (loop), uslugi, profile, urzadzenia, skarb, instalacja, zasoby,
+# test; pure parts with host tests: bateria, dyski, uevent.
+NADZORCA := $(sort $(wildcard src/nadzorca/*.c))
+$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(NADZORCA) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
 $(BIN)/instalator: src/instalator/main.c src/instalator/gpt.c src/instalator/gpt.h $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
@@ -144,7 +147,19 @@ $(OBJ)/szkice_logowania: testy/host/szkice_logowania.c $(PRZYB) $(NAGL_P) | $(OB
 $(OBJ)/test_instalator: testy/host/test_instalator.c src/instalator/gpt.c src/instalator/gpt.h src/nadzorca/dyski.c src/nadzorca/dyski.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/instalator -Isrc/nadzorca -o $@ testy/host/test_instalator.c src/instalator/gpt.c src/nadzorca/dyski.c
 
-testy-host: $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator
+$(OBJ)/test_uevent: testy/host/test_uevent.c src/nadzorca/uevent.c src/nadzorca/uevent.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_uevent.c src/nadzorca/uevent.c
+
+$(OBJ)/test_odbior: testy/host/test_odbior.c src/wspolne/k1_odbior.c src/wspolne/k1_odbior.h src/wspolne/k1_kanal.c src/wspolne/k1_komunikat.c | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_odbior.c src/wspolne/k1_odbior.c src/wspolne/k1_kanal.c src/wspolne/k1_komunikat.c
+
+$(OBJ)/test_bat_arch: testy/host/test_bat_arch.c src/wspolne/k1_bat_arch.c src/wspolne/k1_bat_arch.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_bat_arch.c src/wspolne/k1_bat_arch.c
+
+testy-host: $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator
+	$(OBJ)/test_bat_arch
+	$(OBJ)/test_odbior
+	$(OBJ)/test_uevent
 	$(OBJ)/test_instalator $(OBJ)/gpt.img
 	sfdisk -d $(OBJ)/gpt.img | grep -q 'start=        2048, size=     1048576, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B.*name="K1-EFI"'
 	sfdisk -d $(OBJ)/gpt.img | grep -q 'start=     1050624, size=     7335936, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4.*name="K1-DANE"'
@@ -179,13 +194,25 @@ $(OBJ)/fuzz_magazyn: testy/host/fuzz_magazyn.c $(MAGAZYN) src/skarbiec/magazyn.h
 	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
 		-fno-sanitize-recover=all -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/fuzz_magazyn.c $(MAGAZYN)
 
-fuzz: $(OBJ)/fuzz_cmdline $(OBJ)/fuzz_zdarzenie $(OBJ)/fuzz_komunikat $(OBJ)/fuzz_magazyn
+$(OBJ)/fuzz_uevent: testy/host/fuzz_uevent.c src/nadzorca/uevent.c src/nadzorca/uevent.h | $(OBJ)
+	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
+		-fno-sanitize-recover=all -Isrc/nadzorca -o $@ testy/host/fuzz_uevent.c src/nadzorca/uevent.c
+
+$(OBJ)/fuzz_bat_arch: testy/host/fuzz_bat_arch.c src/wspolne/k1_bat_arch.c src/wspolne/k1_bat_arch.h | $(OBJ)
+	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
+		-fno-sanitize-recover=all -Isrc/wspolne -o $@ testy/host/fuzz_bat_arch.c src/wspolne/k1_bat_arch.c
+
+fuzz: $(OBJ)/fuzz_cmdline $(OBJ)/fuzz_zdarzenie $(OBJ)/fuzz_komunikat $(OBJ)/fuzz_magazyn $(OBJ)/fuzz_uevent $(OBJ)/fuzz_bat_arch
 	mkdir -p $(BUDOWA)/fuzz-korpus $(BUDOWA)/fuzz-korpus-zdarzenie $(BUDOWA)/fuzz-korpus-komunikat
 	$(OBJ)/fuzz_cmdline -max_total_time=$(FUZZ_CZAS) -max_len=8192 $(BUDOWA)/fuzz-korpus testy/host/korpus
 	$(OBJ)/fuzz_zdarzenie -max_total_time=$(FUZZ_CZAS) -max_len=64 $(BUDOWA)/fuzz-korpus-zdarzenie
 	$(OBJ)/fuzz_komunikat -max_total_time=$(FUZZ_CZAS) -max_len=64 $(BUDOWA)/fuzz-korpus-komunikat
 	mkdir -p $(BUDOWA)/fuzz-korpus-magazyn
 	$(OBJ)/fuzz_magazyn -max_total_time=$(FUZZ_CZAS) -max_len=16384 $(BUDOWA)/fuzz-korpus-magazyn
+	mkdir -p $(BUDOWA)/fuzz-korpus-uevent
+	$(OBJ)/fuzz_uevent -max_total_time=$(FUZZ_CZAS) -max_len=8192 $(BUDOWA)/fuzz-korpus-uevent
+	mkdir -p $(BUDOWA)/fuzz-korpus-bat-arch
+	$(OBJ)/fuzz_bat_arch -max_total_time=$(FUZZ_CZAS) -max_len=9000 $(BUDOWA)/fuzz-korpus-bat-arch
 
 clean:
 	rm -rf $(BIN) $(OBJ)

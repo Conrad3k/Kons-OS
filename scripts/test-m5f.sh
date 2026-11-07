@@ -26,64 +26,17 @@ uruchom() {
     LOG=$TESTY/m5f-$nazwa.log MON=$TESTY/m5f-$nazwa.sock
     "$K1_REPO/scripts/uruchom-qemu.sh" --log "$LOG" --monitor "$MON" --czas "$CZAS" "$@" &
     QPID=$!
-    python3 -I - "$tryb" "$LOG" "$MON" "$TESTY" "$K1_REPO/scripts/zrzut-ekranu.sh" "$CZAS" <<'PY' || r=1
-import re, socket, subprocess, sys, time
-tryb, log, mon, out, zrzut_sh, limit = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], float(sys.argv[6])
-start = time.time(); wyniki = []
-
-def tekst():
-    try: return open(log, encoding="utf-8", errors="replace").read()
-    except OSError: return ""
-def czekaj(wzor, od=0, czas=120):
-    koniec = time.time() + czas
-    while time.time() < koniec and time.time() - start < limit:
-        m = list(re.finditer(wzor, tekst()))
-        if len(m) > od: return m[-1]
-        if "Kernel panic" in tekst(): break
-        time.sleep(0.4)
-    return None
-def monitor(*cmds):
-    for _ in range(50):
-        try:
-            s = socket.socket(socket.AF_UNIX); s.connect(mon); break
-        except OSError: time.sleep(0.2)
-    else: return
-    s.settimeout(2)
-    try: s.recv(4096)
-    except OSError: pass
-    for c in cmds:
-        s.sendall((c + "\n").encode()); time.sleep(0.05)
-    time.sleep(0.2); s.close()
-def sprawdz(nazwa, warunek, opis=""):
-    wyniki.append(bool(warunek))
-    print(f"  [{'OK' if warunek else 'BŁĄD'}]    {nazwa}" + ("" if warunek else f" — {opis}"), flush=True)
-    return warunek
-def zrzut(nazwa):
-    subprocess.run([zrzut_sh, f"{out}/m5f-{nazwa}.png", mon], stdout=subprocess.DEVNULL)
-kursor = [0, 0]
-def kursor_teraz():
-    m = list(re.finditer(r"K1-EKRAN: kursor (\d+),(\d+) ", tekst()))
-    return (int(m[-1].group(1)), int(m[-1].group(2))) if m else None
-def idz(x, y):
-    for _ in range(5):
-        k = kursor_teraz() or tuple(kursor)
-        dx, dy = x - k[0], y - k[1]; cmds = []
-        while dx or dy:
-            sx, sy = max(-100, min(100, dx)), max(-100, min(100, dy)); cmds.append(f"mouse_move {sx} {sy}"); dx -= sx; dy -= sy
-        if cmds: monitor(*cmds)
-        kursor[:] = [x, y]
-        koniec = time.time() + 2.5
-        while time.time() < koniec and kursor_teraz() != (x, y): time.sleep(0.15)
-        if kursor_teraz() == (x, y): return
-def klik(x, y):
-    idz(x, y); time.sleep(0.4)
-    monitor("mouse_button 1"); time.sleep(0.3); monitor("mouse_button 0"); time.sleep(0.5)
+    K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$tryb" "$LOG" "$MON" "$TESTY" "$K1_REPO/scripts/zrzut-ekranu.sh" "$CZAS" <<'PY' || r=1
+import os, sys, time
+sys.path.insert(0, os.environ["K1_TESTY_PY"])
+from k1qemu import Maszyna
+tryb = sys.argv[1]
+q = Maszyna(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], "m5f")
+czekaj, sprawdz, tekst, monitor, klik = q.czekaj, q.sprawdz, q.tekst, q.monitor, q.klik
+def zrzut(nazwa): q.zrzut(nazwa)
 def koniec():
-    t = tekst()
-    sprawdz("brak 'Kernel panic', błędów usług i zabronionych wywołań",
-            "Kernel panic" not in t and "BŁĄD" not in t and "zabronione wywołanie" not in t)
-    monitor("quit")
-    sys.exit(0 if all(wyniki) else 1)
+    q.czysty_log()
+    q.koniec()
 
 g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", czas=200)
 sprawdz("pulpit gotowy", g)
@@ -139,10 +92,8 @@ if tryb == "instaluj":
     time.sleep(1); zrzut("1-gotowe")
     klik(px, py)  # Wyłącz komputer
     sprawdz("„Wyłącz komputer” wyłącza system", czekaj(r"K1: wyłączanie zasilania|reboot: Power down", czas=60))
-    t = tekst()
-    sprawdz("brak 'Kernel panic', błędów usług i zabronionych wywołań",
-            "Kernel panic" not in t and "BŁĄD" not in t and "zabronione wywołanie" not in t)
-    sys.exit(0 if all(wyniki) else 1)
+    q.czysty_log()
+    q.koniec(wylacz=False)
 
 if tryb == "aktualizuj":
     sprawdz("pendrive + dysk z K1: skarbiec dostaje K1-DANE dysku wewnętrznego (sda2), nie pendrive'a",

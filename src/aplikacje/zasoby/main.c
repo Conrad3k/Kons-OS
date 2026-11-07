@@ -14,6 +14,7 @@
 #include "k1_aplikacja.h"
 #include "k1_kanal.h"
 #include "k1_log.h"
+#include "k1_odbior.h"
 #include "k1_uslugi.h"
 
 #define TAG "K1-ZASOBY"
@@ -150,20 +151,15 @@ static int odbierz(void)
 {
     int zmiana = 0, i;
     for (i = 0; i < 64; i++) {
-        struct k1_odebrane o;
         struct k1_komunikat k;
-        enum k1_kanal_wynik w = k1_kanal_odbierz(FD_NADZORCA, &o);
-        if (w == K1_KANAL_PUSTO)
+        enum k1_odbior_wynik w = k1_odbierz_komunikat(FD_NADZORCA, 0, K1_KIER_OD_NADZORCY, &k, NULL);
+        if (w == K1_ODB_PUSTO)
             break;
-        if (w != K1_KANAL_KOMUNIKAT)
+        if (w == K1_ODB_KONIEC)
             k1_koniec(TAG, "nadzorca zamknął kanał");
-        if (o.fd >= 0)
-            close(o.fd);
-        if (o.fd >= 0 || o.obciete || !o.ma_nadawce || o.uid != 0 ||
-            k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_NADZORCY, &k) != 0 ||
-            (k.typ != K1_KOM_ZASOBY_SYSTEM && k.typ != K1_KOM_ZASOBY_USLUGA)) {
+        if (w != K1_ODB_JEST || (k.typ != K1_KOM_ZASOBY_SYSTEM && k.typ != K1_KOM_ZASOBY_USLUGA)) {
             if (odrzucone++ < 3)
-                k1_log(TAG, "odrzucono komunikat (nadawca uid %d)", o.ma_nadawce ? (int)o.uid : -1);
+                k1_log(TAG, "odrzucono komunikat od nadzorcy");
             continue;
         }
         if (k.typ == K1_KOM_ZASOBY_SYSTEM) {

@@ -1,2 +1,3 @@
 # Wszystko, co powstaje przy budowie i testach K1 (źródła jądra, obiekty, obrazy, logi)
 /build/
+__pycache__/

@@ -8,7 +8,7 @@ zrzut ekranu albo wynik testu. Każdy mechanizm bezpieczeństwa ma test negatywn
 ```bash
 scripts/przygotuj-srodowisko.sh   # raz w nowym kontenerze (pakiety Ubuntu)
 scripts/zbuduj.sh                 # jądro + programy + obrazy + ISO → build/wynik/
-scripts/testy.sh                  # wszystkie testy (~7 min w emulacji TCG): test-m1.sh, test-m2.sh, test-m4.sh, test-m5.sh
+scripts/testy.sh                  # wszystkie testy: test-m1.sh, potem test-m2/m4/m5/m5f (z KVM równolegle; bez KVM po kolei, ~45 min TCG)
 ```
 
 Logi każdego scenariusza: `build/testy/<nazwa>.log`. Limit czasu na uruchomienie: `K1_TEST_CZAS`
@@ -166,6 +166,7 @@ Wszędzie: brak „Kernel panic”, „BŁĄD” i zabronionych wywołań.
 | odłączenie | `device_del` → nadzorca: „urządzenie wejścia odłączone”, `wejscie`: „urządzenie odłączone” |
 | ponowne podłączenie | znów 3 urządzenia (ten sam numer `eventN` rozpoznany jako nowy) |
 | zrzut `m5-usb.png` | kursor w miejscu z logu; brak błędów usług, odrzuconych i zgubionych zdarzeń |
+| historia baterii (0.6.0) | dwa starty z pendrive'a z baterią ACPI: pierwszy — „historia baterii zapisana”, drugi — „historia baterii: 1 poprzednich uruchomień” |
 | bateria (0.5.3) | tablica ACPI: 73 %, ładowanie, zasilacz podłączony → log powłoki i jasne piksele wskaźnika na górnym pasku obok dźwięku |
 | pendrive po starcie (0.5.8) | start bez K1-DANE („dane tylko w pamięci”) → `drive_add` + `device_add usb-storage` z pustą partycją K1-DANE → nadzorca: „partycja K1-DANE pojawiła się po starcie”, skarbiec: nowy magazyn, nowy „pulpit gotowy” |
 | Ustawienia → Bateria (0.5.5) | otwarcie Ustawień z paska i sekcji Bateria (mysz USB); log: 73 %, ≥ 2 próbki co 30 s, położenie wykresu; zrzut `m5-bateria.png`: linia akcentu na całą szerokość |

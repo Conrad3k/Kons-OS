@@ -13,10 +13,12 @@
 #include "k1_aplikacja.h"
 #include <linux/input-event-codes.h>
 
+#include "k1_bat_arch.h"
 #include "k1_czas.h"
 #include "k1_kanal.h"
 #include "k1_klawiatura.h"
 #include "k1_log.h"
+#include "k1_odbior.h"
 #include "k1_memfd.h"
 #include "k1_skarb_klient.h"
 
@@ -190,31 +192,47 @@ static struct {
 } bat;
 static uint8_t hist[K1_BAT_HIST_MAKS];
 static int hist_n, hist_interwal = 30, kanal_nadzorcy = 1, odrzucone;
+static struct k1_bat_arch arch; /* earlier boots (0.6.0), from the supervisor as a sealed memfd */
+static int arch_znane;
+
+static void odbierz_archiwum(const struct k1_komunikat *k, int fd)
+{
+    static uint8_t buf[K1_BAT_ARCH_BAJTY];
+    if (k->a <= (int32_t)sizeof buf && k1_memfd_czytaj(fd, buf, (size_t)k->a) == 0 &&
+        k1_bat_arch_czytaj(buf, (size_t)k->a, &arch) == 0) {
+        arch_znane = 1;
+        k1_log(TAG, "bateria: poprzednich uruchomień %d", arch.n);
+    } else {
+        k1_log(TAG, "bateria: odrzucono historię poprzednich uruchomień");
+    }
+}
 
 /* Reads what the supervisor sent; returns 1 if the battery section must be redrawn. */
 static int odbierz(void)
 {
     int zmiana = 0, i, j;
     for (i = 0; i < 128 && kanal_nadzorcy; i++) {
-        struct k1_odebrane o;
         struct k1_komunikat k;
-        enum k1_kanal_wynik w = k1_kanal_odbierz(FD_NADZORCA, &o);
-        if (w == K1_KANAL_PUSTO)
+        int fd = -1;
+        enum k1_odbior_wynik w = k1_odbierz_komunikat(FD_NADZORCA, 0, K1_KIER_OD_NADZORCY, &k, &fd);
+        if (w == K1_ODB_PUSTO)
             break;
-        if (w != K1_KANAL_KOMUNIKAT) {
+        if (w == K1_ODB_KONIEC) {
             kanal_nadzorcy = 0; /* closed or missing: the rest of the settings work without it */
             break;
         }
-        if (o.fd >= 0)
-            close(o.fd);
-        if (o.fd >= 0 || o.obciete || !o.ma_nadawce || o.uid != 0 ||
-            k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_NADZORCY, &k) != 0 ||
-            (k.typ != K1_KOM_BATERIA && k.typ != K1_KOM_BATERIA_HIST)) {
+        if (w != K1_ODB_JEST ||
+            (k.typ != K1_KOM_BATERIA && k.typ != K1_KOM_BATERIA_HIST && k.typ != K1_KOM_BATERIA_ARCH)) {
+            if (fd >= 0)
+                close(fd);
             if (odrzucone++ < 3)
-                k1_log(TAG, "odrzucono komunikat (nadawca uid %d)", o.ma_nadawce ? (int)o.uid : -1);
+                k1_log(TAG, "odrzucono komunikat od nadzorcy");
             continue;
         }
-        if (k.typ == K1_KOM_BATERIA) {
+        if (k.typ == K1_KOM_BATERIA_ARCH) {
+            odbierz_archiwum(&k, fd);
+            close(fd);
+        } else if (k.typ == K1_KOM_BATERIA) {
             bat.znana = 1;
             bat.obecna = k.a;
             bat.procent = k.b;
@@ -582,6 +600,35 @@ static void wykres_baterii(struct k1_obraz *o, const struct k1_motyw *m)
     }
 }
 
+/* The last earlier boot in one line — when, how long, from … to … % — with a small sparkline
+ * (0.6.0: the history is kept in skarbiec between boots). */
+static void poprzednie(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y, int32_t w)
+{
+    const struct k1_bat_sesja *s;
+    struct k1_data d;
+    char buf[160], a[32];
+    int32_t sx = x + w - 96, i;
+    if (!arch_znane || arch.n == 0) {
+        k1_tekst(o, K1_CZ_MALA, x, y,
+                 arch_znane ? "Poprzednie uruchomienia pojawią się tutaj (zapis na dysku K1)."
+                            : "Historia z poprzednich uruchomień — gdy dane są zapisywane na dysku K1.",
+                 k1_kolor(m->tekst3, 255), 0);
+        return;
+    }
+    s = &arch.s[arch.n - 1];
+    k1_czas_warszawa((int64_t)s->start_min * 60, &d);
+    czas_tekst(a, sizeof a, (long)(s->n - 1) * s->interwal);
+    snprintf(buf, sizeof buf, "Poprzednio: %s %d:%02d · %s · %d %% → %d %%%s", k1_dzien_skrot(d.dzien_tygodnia), d.godzina,
+             d.minuta, a, arch.p[s->od] & 0x7f, arch.p[s->od + s->n - 1] & 0x7f, arch.n > 1 ? " · i starsze" : "");
+    k1_tekst(o, K1_CZ_MALA, x, y, buf, k1_kolor(m->tekst2, 255), sx - x - 12);
+    for (i = 1; i < s->n && s->n >= 2; i++) { /* sparkline 96 × 16 */
+        float x0 = (float)sx + 96.0f * (float)(i - 1) / (float)(s->n - 1), x1 = (float)sx + 96.0f * (float)i / (float)(s->n - 1);
+        float y0 = (float)y - 2 - 16.0f * (float)(arch.p[s->od + i - 1] & 0x7f) / 100.0f;
+        float y1 = (float)y - 2 - 16.0f * (float)(arch.p[s->od + i] & 0x7f) / 100.0f;
+        k1_kreska(o, x0, y0, x1, y1, 1.5f, k1_kolor(m->akcent, 200));
+    }
+}
+
 static void rysuj_baterie(struct k1_obraz *o, const struct k1_motyw *m)
 {
     static const char *const stany[] = { "Stan nieznany", "Na baterii", "Ładowanie", "Naładowana",
@@ -625,8 +672,7 @@ static void rysuj_baterie(struct k1_obraz *o, const struct k1_motyw *m)
         snprintf(buf, sizeof buf, "Od uruchomienia: %s · najniżej %d %%", a, (int)najnizej);
         k1_tekst(o, K1_CZ_MALA, x, y + h + 50, buf, k1_kolor(m->tekst2, 255), 0);
     }
-    k1_tekst(o, K1_CZ_MALA, x, apl.wys - 18, "Historia z poprzednich uruchomień — razem z trwałym zapisem danych (M5).",
-             k1_kolor(m->tekst3, 255), 0);
+    poprzednie(o, m, x, apl.wys - 18, w);
 }
 
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)

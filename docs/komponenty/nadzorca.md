@@ -3,8 +3,25 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M3, M4) — testy w systemie (`scripts/test-m1.sh`, scenariusz `testy-w-systemie`), `scripts/test-m4.sh` (uruchamianie aplikacji, wyłączanie) |
-| **Kod** | `src/nadzorca/main.c`, klatka `src/wspolne/k1_klatka.c`, kanały `src/wspolne/k1_kanal.c`, protokół `src/wspolne/k1_komunikat.c` |
+| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (tablica usług, uruchamianie w klatkach, logi, restarty, prośby pulpitu), `profile.c` (klatki), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
 | **Decyzje** | ADR 0006 (wersja M2), ADR 0007 (M3), ADR 0008 (pulpit i aplikacje) |
+
+## Etapy startu (0.6.0)
+`dane` (czeka na partycję K1-DANE: do 3 s, z pendrive'em bez dysku do 15 s) → `stan magazynu` (skarbiec
+działa; do 20 s na jego stan) → `hasło` (magazyn zablokowany: ekran hasła zamiast pulpitu) →
+`przełączanie` (po haśle: nowy ekran z ustawieniami) → `pulpit`. Ponowny start skarbca wraca do
+`stan magazynu`. Każde przejście: wiersz `start: A → B (powód)` w logu.
+
+## Zdarzenia jądra (0.6.0)
+Gniazdo netlink `NETLINK_KOBJECT_UEVENT` (grupa jądra; tylko nadawca o porcie 0): nowe/usunięte
+`input/eventN` → wejscie z nowym zestawem; partycja → K1-DANE (start, późne wykrycie); `power_supply`
+→ odczyt baterii od razu. Bez gniazda albo po przepełnieniu kolejki — pełne sprawdzenie (co 10 s
+zawsze jako zapas). Parser: `uevent.c` (test + fuzzing).
+
+## Historia baterii (0.6.0)
+Nadzorca jest klientem skarbca jako właściciel `K1_WL_SYSTEM` (obiekt `K1_OB_BATERIA`, format
+`k1_bat_arch.h`): odczyt raz po otwarciu magazynu, zapis tego uruchomienia od razu, co 5 min i przy
+wyłączaniu; Ustawienia dostają archiwum jako zapieczętowany memfd (`BATERIA_ARCH`).
 
 ## Cel
 Uruchamia usługi świata natywnego, każdą w osobnej klatce, łączy je kanałami, przekazuje ich logi na

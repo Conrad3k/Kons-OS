@@ -212,19 +212,24 @@ if [ -f "$USBIMG" ]; then
     for n in 1 2; do
         PLOG=$TESTY/m5-pendrive$n.log PMON=$TESTY/m5-pendrive$n.sock
         rm -f "$PLOG" "$PMON"
-        "$K1_REPO/scripts/uruchom-qemu.sh" --pendrive "$TESTY/m5-pendrive.img" --log "$PLOG" --monitor "$PMON" --czas "$CZAS" &
+        "$K1_REPO/scripts/uruchom-qemu.sh" --pendrive "$TESTY/m5-pendrive.img" --log "$PLOG" --monitor "$PMON" --czas "$CZAS" \
+            --qemu "-acpitable file=$TESTY/bateria-ladowanie.aml" &
         PPID_=$!
-        if [ $n -eq 1 ]; then OCZ="K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE"; else OCZ="K1-SKARBIEC: magazyn otwarty"; fi
+        # 0.6.0: the battery history of the first boot is kept in skarbiec and read by the second one
+        if [ $n -eq 1 ]; then OCZ="K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE" BAT="historia baterii zapisana (poprzednich uruchomień: 0)"
+        else OCZ="K1-SKARBIEC: magazyn otwarty" BAT="K1-NADZORCA: historia baterii: 1 poprzednich uruchomień"; fi
         t=0
-        while [ $t -lt "$CZAS" ] && ! { grep -qF "$OCZ" "$PLOG" 2>/dev/null && grep -qF "K1-GUI: pulpit gotowy" "$PLOG" 2>/dev/null; }; do
+        while [ $t -lt "$CZAS" ] && ! { grep -qF "$OCZ" "$PLOG" 2>/dev/null && grep -qF "K1-GUI: pulpit gotowy" "$PLOG" 2>/dev/null \
+            && grep -qF "$BAT" "$PLOG" 2>/dev/null; }; do
             kill -0 $PPID_ 2>/dev/null || break; sleep 1; t=$((t + 1))
         done
         python3 -I -c 'import socket,sys; s=socket.socket(socket.AF_UNIX); s.settimeout(5); s.connect(sys.argv[1]); s.sendall(b"quit\n"); s.recv(64)' "$PMON" 2>/dev/null \
             || kill $PPID_ 2>/dev/null || true
         wait $PPID_ 2>/dev/null || true
         if grep -qF "$OCZ" "$PLOG" && grep -qF "K1-GUI: pulpit gotowy" "$PLOG" && grep -qF "partycja danych K1-DANE otwarta" "$PLOG" \
+            && grep -qF "$BAT" "$PLOG" \
             && ! grep -q "Kernel panic" "$PLOG" && ! grep -qF "BŁĄD" "$PLOG"; then
-            echo "  [OK]    start $n z pendrive'a: pulpit, $( [ $n -eq 1 ] && echo 'nowy zaszyfrowany magazyn' || echo 'magazyn z poprzedniego startu otwarty') (${t} s)"
+            echo "  [OK]    start $n z pendrive'a: pulpit, $( [ $n -eq 1 ] && echo 'nowy zaszyfrowany magazyn, historia baterii zapisana' || echo 'magazyn z poprzedniego startu otwarty, historia baterii z poprzedniego startu') (${t} s)"
         else
             echo "  [BŁĄD]  start $n z pendrive'a (log: $PLOG)"; r=1
         fi

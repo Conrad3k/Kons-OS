@@ -1,7 +1,7 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.5.9 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.6.0 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 prawie gotowe (dyski, USB, zaszyfrowane dane, hasło, instalator); dalej plan z ADR 0019.
 Data: 2026-11-07. Plik aktualizujemy po każdym etapie.
@@ -161,11 +161,14 @@ M5  Dane i sprzęt (rozszerzony) — PRAWIE GOTOWE (0.5.2–0.5.9; rozpoznanie: 
 
 Nowa kolejność od 0.5.9 (ADR 0019 — przegląd i plan; zastępuje ADR 0011):
 
-0.6.0 Fundament (zamyka M5)
-    [ ] nadzorca w modułach, main.c < 600 wierszy, jawna maszyna stanów startu
-    [ ] zdarzenia jądra (uevent) zamiast odpytywania: wejście, dyski, bateria (dawne M5b; tablet USB w VM)
-    [ ] wspólny odbiór komunikatów; wspólna biblioteka testów QEMU; testy równolegle; KVM w CI
-    [ ] historia baterii między uruchomieniami
+0.6.0 Fundament (zamyka M5) — GOTOWE
+    [x] nadzorca w 8 modułach (main.c: ~180 wierszy), jawne etapy startu w logu
+    [x] zdarzenia jądra (uevent) zamiast odpytywania: wejście, dyski, bateria (kontrola co 10 s zostaje
+        jako zapas)
+    [x] wspólny odbiór komunikatów (12 miejsc); wspólna biblioteka testów QEMU (testy/qemu/k1qemu.py —
+        na razie test instalatora, reszta przy kolejnych zmianach); testy równolegle z KVM (CI)
+    [x] historia baterii między uruchomieniami (skarbiec, Ustawienia → Bateria)
+    [ ] tablet USB w VM i przewijanie touchpadem — przy M5.3 „Laptop"
 
 M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku)
     [ ] podpisane wydania (własny klucz); Instalator odmawia niepodpisanego albo starszego systemu
