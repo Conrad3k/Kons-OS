@@ -76,7 +76,7 @@ static const struct {
     [K1_APL_ZEGAR] = { "Zegar", "Godzina i data", K1_IK_ZEGAR },
     [K1_APL_NOTATKI] = { "Notatki", "Zapisywane w tym komputerze", K1_IK_NOTATKI },
     [K1_APL_USTAWIENIA] = { "Ustawienia", "Wygląd, ekran, mysz, data, informacje", K1_IK_USTAWIENIA },
-    [K1_APL_ZASOBY] = { "Zasoby", "Procesor i pamięć — co pracuje", K1_IK_ZASOBY },
+    [K1_APL_ZASOBY] = { "Zasoby", "Procesor, pamięć, bateria", K1_IK_ZASOBY },
     [K1_APL_INSTALACJA] = { "Instalator", "Zainstaluj K1 na dysku tego komputera", K1_IK_DYSK },
 };
 

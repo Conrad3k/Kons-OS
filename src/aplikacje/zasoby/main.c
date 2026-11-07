@@ -267,7 +267,7 @@ int main(void)
     apl.tag = TAG;
     apl.tytul = "Zasoby";
     apl.szer = 560;
-    apl.wys = 556;
+    apl.wys = 580;
     apl.rysuj = rysuj;
     apl.zegar = zegar;
     k1_apl_uruchom(&apl);
