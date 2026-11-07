@@ -55,6 +55,11 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   głośnika i data z godziną („pt. 6 lis   19:42”; sekundy — w Ustawieniach). Na laptopie (0.5.3)
   przed głośnikiem bateria: [błyskawica przy ładowaniu] „73%” + kontur baterii 22×12 (zaokrąglenie 3,
   linia 1,25) z kremowym wypełnieniem; ≤ 15 % przy rozładowywaniu wypełnienie `#D97757`.
+- **Ekran hasła (M5e)** — wybrany szkic A „Karta” (2026-11-07): tapeta przyciemniona (czarny 43%),
+  zegar Plex Serif Light 64 i data nad kremową kartą 360×236 (promień 20, cień), znak K1 40 px,
+  „Witaj z powrotem” (Serif 24), pole hasła z obrysem akcentu i okrągłym przyciskiem ze strzałką,
+  pod kartą „Zapomniane hasło = nowe konto”; w rogu bateria i wyłączanie. Szkic:
+  `make build/obj/szkice_logowania` (`testy/host/szkice_logowania.c`).
 - **Ustawienia → Bateria** (0.5.5): „73 %” (Plex Serif 24) + stan; wykres jak w Zasobach (pole 8 px,
   linia akcentu 2 px, wypełnienie akcentu 14 %, linia 50 %), pod nim pasek 3 px (tekst2) = zasilacz,
   oś: godzina startu … „teraz”.

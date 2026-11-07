@@ -56,13 +56,19 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
   - Prośba: bateria w Ustawieniach z ładnym, minimalistycznym wykresem naładowania od uruchomienia
     i historii → 0.5.5: Ustawienia → Bateria (od uruchomienia); historia między uruchomieniami —
     z trwałym zapisem (M5d).
-[!] Test 0.5.4 na X230: czy kursor i pulpit są płynne (także zmiana tapety)?
+  - Decyzje do M5 (2026-11-07): ekran hasła — szkic A „Karta” (zegar i data nad kremową kartą
+    ze znakiem K1 i polem hasła, tapeta przyciemniona; szkice: testy/host/szkice_logowania.c);
+    dane na X230 — na pendrivie (obraz z partycją na dane, dysk laptopa nietknięty); hasło
+    opcjonalne — bez hasła dane zaszyfrowane, ale bez ochrony przed kradzieżą nośnika (akceptuję).
+    Kolejność: M5c format magazynu → M5d skarbiec i trwałe dane → obraz USB z partycją na dane →
+    M5e hasło i ekran logowania. Potem M5b (hotplug, tablet).
+[!] Test 0.5.5 na X230: czy kursor i pulpit są płynne (także zmiana tapety); Ustawienia → Bateria.
 [x] Pierwszy test na X230 z pendrive'a (od 0.5.2 — instrukcja w README, „Uruchom na laptopie”;
     najpierw F1 → Security → Secure Boot → Disabled):
     czy pulpit się pojawia, ostrość obrazu, klawiatura, TrackPoint, touchpad, mysz USB, bateria
     (procent i błyskawica po podłączeniu zasilacza — zmiana do 15 s), wyłączanie.
 [x] Ekran hasła przy starcie (2026-11-07): „bardzo ładny, w stylu, jaki jest system — Claude'owy”.
-    → W M5 najpierw szkice do wyboru (zrzuty).
+    → Szkice A/B/C; wybrany A „Karta” (2026-11-07).
 [x] Jedno konto na komputer — tak (2026-11-07).
 [!] Przed M8 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)?
 

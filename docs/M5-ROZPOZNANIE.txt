@@ -212,14 +212,14 @@ z planem B: A, jeśli prototyp C okaże się za trudny. Pierwszy krok M5 = mały
       Claude'owy” (ciepły, minimalistyczny: tapeta, kremowy/terakotowy akcent, Plex, znak K1).
       Przed kodem: 2–3 szkice do wyboru (zrzuty), jak przy znaku K1.
   [x] Jedno konto na komputer — tak (2026-11-07).
-  [!] Czy akceptujesz, że bez hasła dane na dysku nie są chronione przed kradzieżą (do czasu
-      TPM po M10)?
+  [x] Bez hasła dane nie są chronione przed kradzieżą — akceptuję (2026-11-07).
+  [x] Ekran hasła: szkic A „Karta” (2026-11-07).
   [x] Model laptopa: ThinkPad X230, 8 GB (2026-11-07) — touchpad PS/2, SATA, Intel HD 4000.
       Uwaga do kluczy: X230 ma TPM 1.2 (nie 2.0) — plan „TPM po M10” trzeba będzie przemyśleć;
       hasło jest jedyną ochroną danych przed kradzieżą laptopa. Argon2id: 8 GB RAM pozwala na
       duży koszt pamięci (np. 256 MiB–1 GiB) — do dobrania na X230 (~1 s).
-  [!] VirtualBox: czy dodasz drugi dysk na dane (SATA), czy wolisz jeden obraz „wszystko
-      w jednym” (wtedy instalator na dysk — większa praca)?
+  [x] X230: dane na pendrivie (obraz USB z partycją na dane), dysk laptopa nietknięty (2026-11-07).
+  [ ] VirtualBox: drugi dysk na dane (SATA) — do opisania w README przy M5d.
 
 
 12. NA START SESJI JUTRO (lista kontrolna)
