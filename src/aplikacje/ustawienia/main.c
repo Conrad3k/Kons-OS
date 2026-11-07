@@ -1,13 +1,21 @@
 /* K1 Ustawienia — native application: the first settings (M4, ADR 0008). The only client ekran
  * accepts settings changes from (role + UID checked by ekran). Settings live in ekran's memory
- * until M5 (Blob Vault); the screen mode list comes from ekran (K1_KOM_TRYB). Sandbox: UID 202, seccomp (base + memfd_create, ftruncate), no paths.
+ * until M5 (Blob Vault); the screen mode list comes from ekran (K1_KOM_TRYB). The battery state and
+ * its history since boot come from the supervisor on fd 4 (one way, sender UID 0 checked; 0.5.5).
+ * Sandbox: UID 202, seccomp (base + memfd_create, ftruncate), no paths.
  * Documentation: docs/komponenty/aplikacje.md. */
 #include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "k1_aplikacja.h"
+#include "k1_czas.h"
+#include "k1_kanal.h"
 #include "k1_log.h"
 
 #define TAG "K1-USTAWIENIA"
+#define FD_NADZORCA 4
 #define BOK 188        /* side navigation width */
 #define NAV_Y (K1_OKNO_TYTUL + 8)
 #define NAV_WIERSZ 36
@@ -15,7 +23,11 @@
 #define SEG_W 260
 #define SEG_H 36
 
-enum { S_WYGLAD, S_EKRAN, S_MYSZ, S_CZAS, S_HASLO, S_INFO, S_LICZBA };
+enum { S_WYGLAD, S_EKRAN, S_BATERIA, S_MYSZ, S_CZAS, S_HASLO, S_INFO, S_LICZBA };
+
+/* battery chart (0.5.5) */
+#define WYKRES_Y_OD 40 /* below seg_y() */
+#define WYKRES_H 150
 
 /* screen modes: three columns of buttons */
 #define TRYB_W 136
@@ -37,8 +49,8 @@ static const struct {
     const char *nazwa;
     enum k1_ikona ikona;
 } sekcje[S_LICZBA] = {
-    { "Wygląd", K1_IK_WYGLAD }, { "Ekran", K1_IK_EKRAN }, { "Mysz", K1_IK_MYSZ }, { "Data i czas", K1_IK_ZEGAR },
-    { "Hasło", K1_IK_KLODKA },  { "Informacje", K1_IK_INFO },
+    { "Wygląd", K1_IK_WYGLAD },  { "Ekran", K1_IK_EKRAN }, { "Bateria", K1_IK_BATERIA }, { "Mysz", K1_IK_MYSZ },
+    { "Data i czas", K1_IK_ZEGAR }, { "Hasło", K1_IK_KLODKA }, { "Informacje", K1_IK_INFO },
 };
 
 /* The control of the current section: segmented buttons at (TRESC_X, seg_y). */
@@ -164,6 +176,164 @@ static void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *t
     k1_tekst(o, K1_CZ_TEKST, TRESC_X, K1_OKNO_TYTUL + 72, opis, k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 24);
 }
 
+/* ---- battery (0.5.5): state and charge history since boot, from the supervisor ---- */
+
+static struct {
+    int znana, obecna, procent, stan, zasilacz;
+} bat;
+static uint8_t hist[K1_BAT_HIST_MAKS];
+static int hist_n, hist_interwal = 30, kanal_nadzorcy = 1, odrzucone;
+
+/* Reads what the supervisor sent; returns 1 if the battery section must be redrawn. */
+static int odbierz(void)
+{
+    int zmiana = 0, i, j;
+    for (i = 0; i < 128 && kanal_nadzorcy; i++) {
+        struct k1_odebrane o;
+        struct k1_komunikat k;
+        enum k1_kanal_wynik w = k1_kanal_odbierz(FD_NADZORCA, &o);
+        if (w == K1_KANAL_PUSTO)
+            break;
+        if (w != K1_KANAL_KOMUNIKAT) {
+            kanal_nadzorcy = 0; /* closed or missing: the rest of the settings work without it */
+            break;
+        }
+        if (o.fd >= 0)
+            close(o.fd);
+        if (o.fd >= 0 || o.obciete || !o.ma_nadawce || o.uid != 0 ||
+            k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_NADZORCY, &k) != 0 ||
+            (k.typ != K1_KOM_BATERIA && k.typ != K1_KOM_BATERIA_HIST)) {
+            if (odrzucone++ < 3)
+                k1_log(TAG, "odrzucono komunikat (nadawca uid %d)", o.ma_nadawce ? (int)o.uid : -1);
+            continue;
+        }
+        if (k.typ == K1_KOM_BATERIA) {
+            bat.znana = 1;
+            bat.obecna = k.a;
+            bat.procent = k.b;
+            bat.stan = k.c;
+            bat.zasilacz = k.d;
+        } else {
+            if (k.obiekt == 0)
+                hist_n = 0; /* the history starts again (compacted by the supervisor) */
+            hist_interwal = k.a;
+            for (j = 0; j < K1_BAT_HIST_W_KOM; j++) {
+                unsigned v = k1_bat_probka(&k, j), idx = k.obiekt + (unsigned)j;
+                if (v == K1_BAT_BRAK_PROBKI || idx >= K1_BAT_HIST_MAKS)
+                    break;
+                hist[idx] = (uint8_t)v;
+                if ((int)idx + 1 > hist_n)
+                    hist_n = (int)idx + 1;
+            }
+        }
+        zmiana = 1;
+    }
+    return zmiana;
+}
+
+static int zegar(void)
+{
+    if (odbierz() && sekcja == S_BATERIA)
+        k1_apl_odswiez(&apl);
+    return 500;
+}
+
+static void wykres_prost(int32_t *x, int32_t *y, int32_t *w, int32_t *h)
+{
+    *x = TRESC_X;
+    *y = seg_y() + WYKRES_Y_OD;
+    *w = apl.szer - TRESC_X - 24;
+    *h = WYKRES_H;
+}
+
+static void czas_tekst(char *buf, size_t n, long s)
+{
+    if (s >= 3600)
+        snprintf(buf, n, "%ld h %ld min", s / 3600, s / 60 % 60);
+    else
+        snprintf(buf, n, "%ld min", s / 60);
+}
+
+/* One series, one hue (like Zasoby): a soft area under a 2-px accent line, a hairline at 50 %;
+ * under the chart a thin strip where the computer was on mains. Left edge = boot, right = now. */
+static void wykres_baterii(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    int32_t x, y, w, h, i;
+    float x0, y0, wys, krok;
+    wykres_prost(&x, &y, &w, &h);
+    k1_zaokraglony(o, (float)x, (float)y, (float)w, (float)h, 8, k1_kolor(m->pole, 255));
+    k1_obrys(o, (float)x, (float)y, (float)w, (float)h, 8, 1.0f, k1_kolor(m->tekst, 20));
+    k1_prostokat(o, x + 8, y + h / 2, w - 16, 1, k1_kolor(m->tekst, 14));
+    k1_tekst(o, K1_CZ_MALA, x + w - 8 - k1_tekst_szer(K1_CZ_MALA, "50 %"), y + h / 2 - 5, "50 %", k1_kolor(m->tekst3, 255), 0);
+    if (hist_n < 2) {
+        k1_tekst(o, K1_CZ_MALA, x + 16, y + h / 2 + 20, "Zbieram dane — pomiar co pół minuty…", k1_kolor(m->tekst3, 255), 0);
+        return;
+    }
+    x0 = (float)x + 8;
+    y0 = (float)y + 10;
+    wys = (float)(h - 20);
+    krok = (float)(w - 16) / (float)(hist_n - 1);
+    for (i = 0; i < hist_n; i++) {
+        float px = x0 + (float)i * krok, py = y0 + wys - wys * (float)(hist[i] & 0x7f) / 100.0f;
+        if (i < hist_n - 1) {
+            int32_t sx = (int32_t)px, sw = (int32_t)(px + krok) - sx, sy = (int32_t)py;
+            k1_prostokat(o, sx, sy, sw, (int32_t)(y0 + wys) - sy, k1_kolor(m->akcent, 36));
+            if (hist[i] & K1_BAT_ZASILACZ) /* on mains: strip under the chart */
+                k1_prostokat(o, sx, y + h + 6, sw, 3, k1_kolor(m->tekst2, 160));
+        }
+        if (i > 0)
+            k1_kreska(o, px - krok, y0 + wys - wys * (float)(hist[i - 1] & 0x7f) / 100.0f, px, py, 2.0f,
+                      k1_kolor(m->akcent, 255));
+    }
+}
+
+static void rysuj_baterie(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    static const char *const stany[] = { "Stan nieznany", "Na baterii", "Ładowanie", "Naładowana",
+                                          "Zasilacz podłączony, nie ładuje" };
+    char buf[96], a[32];
+    int32_t x, y, w, h, i, najnizej = 100;
+    naglowek(o, m, "Bateria", "Poziom naładowania od uruchomienia systemu");
+    if (!bat.znana || !bat.obecna) {
+        k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16,
+                 bat.znana ? "Ten komputer nie ma baterii (albo system jej nie widzi)." : "Czekam na dane…",
+                 k1_kolor(m->tekst2, 255), 0);
+        return;
+    }
+    if (bat.procent >= 0)
+        snprintf(buf, sizeof buf, "%d %%", bat.procent);
+    else
+        snprintf(buf, sizeof buf, "— %%");
+    k1_tekst(o, K1_CZ_TYTUL, TRESC_X, seg_y() + 18, buf, k1_kolor(m->tekst, 255), 0);
+    snprintf(a, sizeof a, "%s", stany[bat.stan]);
+    snprintf(buf, sizeof buf, "%s%s", a,
+             (bat.stan == K1_BAT_LADOWANIE || bat.stan == K1_BAT_PELNA) && bat.zasilacz ? " · zasilacz podłączony" : "");
+    k1_tekst(o, K1_CZ_TEKST, TRESC_X + 88, seg_y() + 16, buf, k1_kolor(m->tekst2, 255), 0);
+    wykres_baterii(o, m);
+    wykres_prost(&x, &y, &w, &h);
+    /* time axis: boot … now; summary */
+    if (hist_n >= 2) {
+        long trwa = (long)(hist_n - 1) * hist_interwal;
+        struct timespec t;
+        struct k1_data d;
+        clock_gettime(CLOCK_REALTIME, &t);
+        k1_czas_warszawa((int64_t)t.tv_sec - trwa, &d);
+        snprintf(buf, sizeof buf, "%d:%02d", d.godzina, d.minuta);
+        k1_tekst(o, K1_CZ_MALA, x, y + h + 26, buf, k1_kolor(m->tekst3, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, x + w - k1_tekst_szer(K1_CZ_MALA, "teraz"), y + h + 26, "teraz", k1_kolor(m->tekst3, 255), 0);
+        k1_prostokat(o, x + w / 2 - 60, y + h + 20, 12, 3, k1_kolor(m->tekst2, 160));
+        k1_tekst(o, K1_CZ_MALA, x + w / 2 - 42, y + h + 26, "zasilacz podłączony", k1_kolor(m->tekst3, 255), 0);
+        for (i = 0; i < hist_n; i++)
+            if ((int32_t)(hist[i] & 0x7f) < najnizej)
+                najnizej = hist[i] & 0x7f;
+        czas_tekst(a, sizeof a, trwa);
+        snprintf(buf, sizeof buf, "Od uruchomienia: %s · najniżej %d %%", a, (int)najnizej);
+        k1_tekst(o, K1_CZ_MALA, x, y + h + 50, buf, k1_kolor(m->tekst2, 255), 0);
+    }
+    k1_tekst(o, K1_CZ_MALA, x, apl.wys - 18, "Historia z poprzednich uruchomień — razem z trwałym zapisem danych (M5).",
+             k1_kolor(m->tekst3, 255), 0);
+}
+
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     static const char *const motywy[] = { "Jasny", "Ciemny" };
@@ -192,6 +362,9 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     case S_EKRAN:
         naglowek(o, m, "Ekran", "Rozdzielczość obrazu");
         tryby(o, m);
+        break;
+    case S_BATERIA:
+        rysuj_baterie(o, m);
         break;
     case S_MYSZ:
         naglowek(o, m, "Mysz", "Prędkość wskaźnika");
@@ -270,6 +443,12 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         k1_apl_odswiez(&apl);
         if (sekcja == S_EKRAN)
             loguj_tryby();
+        if (sekcja == S_BATERIA) { /* the tests check the chart by this line */
+            int32_t wx, wy, ww, wh;
+            wykres_prost(&wx, &wy, &ww, &wh);
+            k1_log(TAG, "bateria: %s, %d%%, próbek %d co %d s; wykres %d,%d %dx%d", bat.obecna ? "jest" : "brak",
+                   bat.procent, hist_n, hist_interwal, wx, wy, ww, wh);
+        }
     } else if (tryb >= 0) {
         k1_log(TAG, "zmiana ustawienia %d → %d", K1_UST_ROZDZIELCZOSC, tryb);
         k1_wyslij(&apl.k, k1_komunikat_nowy(K1_KOM_USTAW, 0, K1_UST_ROZDZIELCZOSC, tryb, 0, 0, 0));
@@ -292,6 +471,7 @@ int main(void)
     apl.wys = 440;
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
+    apl.zegar = zegar;
     przygotuj_miniatury();
     k1_log(TAG, "układ: sekcje od 100,%d co %d; przyciski od %d,%d (szer. %d, wys. %d); tapety od %d,%d co %d", NAV_Y + 16,
            NAV_WIERSZ, TRESC_X, seg_y(), SEG_W, SEG_H, TRESC_X + KARTA_W / 2, karty_y() + KARTA_H / 2,

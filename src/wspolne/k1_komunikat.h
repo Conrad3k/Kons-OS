@@ -67,7 +67,11 @@ enum k1_komunikat_typ {
     K1_KOM_ZASOBY_SYSTEM = 62, /* obiekt=0, a=CPU ‰ (all CPUs), b,c = memory used,total MiB, d=CPUs, e=uptime s */
     K1_KOM_ZASOBY_USLUGA = 63, /* obiekt=K1_PROFIL_* of a service, a=CPU ‰ (of all CPUs), b=memory KiB, c=1 running */
     K1_KOM_BATERIA = 64,       /* to gui: obiekt=0, a=1 battery present, b=percent 0..100 (-1 unknown), c=K1_BAT_*,
-                                * d=1 on mains power; no battery: a=0, b=-1, c=0 */
+                                * d=1 on mains power; no battery: a=0, b=-1, c=0 (also to Ustawienia) */
+    K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample
+                                * (0 = history starts again), a=seconds between samples, b..e = up to 16
+                                * samples, one byte each (b: samples 0-3 from the lowest byte, …):
+                                * percent 0..100, +128 = on mains; 0xFF = no sample (only at the end) */
 };
 
 /* Surfaces */
@@ -118,6 +122,10 @@ enum k1_bateria_stan {
     K1_BAT_NIE_LADUJE = 4,   /* Not charging (on mains, e.g. charge threshold) */
 };
 #define K1_BAT_STAN_MAKS 4
+#define K1_BAT_HIST_MAKS 1440   /* samples of the battery history (nadzorca halves it when full) */
+#define K1_BAT_HIST_W_KOM 16    /* samples per K1_KOM_BATERIA_HIST */
+#define K1_BAT_ZASILACZ 0x80    /* sample bit: on mains */
+#define K1_BAT_BRAK_PROBKI 0xFF
 
 struct k1_komunikat {
     uint8_t wersja;   /* K1_KOMUNIKAT_WERSJA */
@@ -132,6 +140,13 @@ _Static_assert(sizeof(struct k1_komunikat) == 32, "k1_komunikat: unexpected size
 _Static_assert(offsetof(struct k1_komunikat, obiekt) == 4, "k1_komunikat: unexpected layout");
 _Static_assert(offsetof(struct k1_komunikat, a) == 8, "k1_komunikat: unexpected layout");
 _Static_assert(offsetof(struct k1_komunikat, zarezerwowane) == 28, "k1_komunikat: unexpected layout");
+
+/* Sample `i` (0..15) of a K1_KOM_BATERIA_HIST message. */
+static inline unsigned k1_bat_probka(const struct k1_komunikat *k, int i)
+{
+    const int32_t p[4] = { k->b, k->c, k->d, k->e };
+    return ((uint32_t)p[i / 4] >> (8 * (i % 4))) & 0xffu;
+}
 
 /* Builds a message (all other fields zero). */
 struct k1_komunikat k1_komunikat_nowy(enum k1_komunikat_typ typ, uint32_t obiekt, int32_t a, int32_t b, int32_t c,

@@ -188,6 +188,11 @@ PR po polsku (najpierw co widzi użytkownik, potem technika, `Closes #N`) → sq
 w tytule commita scalenia (workflow i tak startuje tylko przy zmianach w `src/`, `jadro/`, `testy/`,
 `scripts/`, `Makefile`, `VERSION`, workflow).
 
+**Squash zawsze z własnym `commit_message`** (bez „[skip ci]”, gdy zmiana dotyczy systemu): domyślny opis
+sklejają wszystkie commity gałęzi — „[skip ci]” z wcześniejszego commita docs wyłączył CI dla 0.5.4 (brak
+wydania). Gałąź po scaleniu: `git checkout -B <gałąź> origin/main` (wypychanie z nadpisaniem jest
+zablokowane — wtedy `git merge -s ours origin/<gałąź>` i zwykły push).
+
 **CI:** sprawdzaj przez `send_later` (~15 min po scaleniu); padł → `get_job_logs` (`failed_only`), napraw
 (PATCH); udał się → CI zakłada tag `k1-v<wersja>` i wydanie (Releases) z `k1-<wersja>.iso` — to link
 do pobrania dla właściciela. **Logi testów są zawsze** (decyzja właściciela, 0.5.1), niezależnie od

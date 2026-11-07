@@ -15,7 +15,9 @@
   to mówi.
 - **Ustawienia** — Wygląd (motyw jasny/ciemny, tapeta: 4 warianty z miniaturami), Ekran
   (rozdzielczość z listy od ekranu — do 18 trybów w trzech kolumnach, „zalecana” = preferowana przez monitor/kartę;
-  zmiana w locie, ADR 0012), Mysz (prędkość),
+  zmiana w locie, ADR 0012), Bateria (0.5.5: procent, stan, wykres naładowania od uruchomienia — linia
+  w kolorze akcentu z delikatnym wypełnieniem, pasek pod wykresem = zasilacz podłączony, godzina startu,
+  najniższy poziom; bez baterii — napis), Mysz (prędkość),
   Data i czas (sekundy na pasku), Hasło (opis: przyjdzie z szyfrowaniem w M5; zapomniane hasło =
   nowe konto), Informacje (wersja, ekran, jądro).
 
@@ -42,7 +44,9 @@ Katalog notatek tworzy nadzorca (właściciel 201, `0700`); `/dane_uzytkownika` 
 ## Wejścia i wyjścia
 fd 3: kanał do ekranu. Okno: memfd (ADR 0008). Notatki: `notatka.txt` (≤ 16 KiB). Zasoby: fd 4 —
 kanał od nadzorcy (`ZASOBY_SYSTEM`, `ZASOBY_USLUGA`), aplikacja nie może do niego pisać.
-Ustawienia: lista trybów ekranu (`K1_KOM_TRYB`) dostaje tylko ona.
+Ustawienia: lista trybów ekranu (`K1_KOM_TRYB`) dostaje tylko ona; od 0.5.5 fd 4 — kanał od nadzorcy
+(`BATERIA`, `BATERIA_HIST`: do 16 próbek po 1 bajcie w komunikacie), jednokierunkowy, nadawca UID 0.
+Bez kanału (zamknięty) reszta Ustawień działa.
 
 ## Obsługa błędów
 Zamknięcie okna (×) albo kanału → koniec procesu; aplikacje nie są restartowane (test).
@@ -53,6 +57,7 @@ Błąd zapisu notatki → komunikat w oknie i w logu.
 |---|---|
 | `test-m4.sh`: Notatki — „Zażółć K1” (AltGr), zapis 9 znaków, tekst na zrzucie, przeciąganie okna | funkcjonalny |
 | `test-m4.sh`: Zegar — tarcza na zrzucie; Ustawienia — ciemny motyw i tapeta na zrzucie | funkcjonalny |
+| `test-m5.sh`: Ustawienia → Bateria — historia od nadzorcy (≥ 2 próbki), linia wykresu na całą szerokość na zrzucie `m5-bateria.png` | funkcjonalny |
 | `test-m4.sh`: Ustawienia → Ekran — zmiana rozdzielczości (zrzut w nowym rozmiarze, pulpit ułożony od nowa); Zasoby — dane od nadzorcy, wykres pamięci na zrzucie | funkcjonalny |
 | w systemie: klatki czterech aplikacji | funkcjonalny |
 | w systemie: próby w klatkach; Notatki — `/rdzen`, reszta danych → EACCES, własny katalog → OK | negatywny |
