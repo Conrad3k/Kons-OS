@@ -33,6 +33,7 @@ API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybo
 | `gen_init_cpio` | z jądra 6.18.60 | źródła jądra | budowa initramfs bez uprawnień roota, deterministycznie (`-t`) |
 | squashfs-tools (`mksquashfs`) | 4.6.1 | Ubuntu 24.04 | budowa obrazu `/rdzen` (zstd, `SOURCE_DATE_EPOCH`) |
 | FreeType (`libfreetype-dev`) + `pkg-config` | 2.13.2 | Ubuntu 24.04 | `narzedzia/czcionki.c`: rasteryzacja czcionek do bitmap przy budowie (ADR 0009); nie trafia do obrazu |
+| zlib (`zlib1g-dev`) | 1.3 | Ubuntu 24.04 | `narzedzia/ekran_startowy.c`: kompresja PNG logo startowego dla GRUB-a (0.5.8); nie trafia do systemu K1 |
 | `grub-mkimage` (`grub-common`), `xorriso`, `mtools` | 2.12 / 1.5.6 / 4.0.43 | Ubuntu 24.04 | składanie obrazu ISO (ADR 0010; od 0.5.6 bez `grub-mkrescue` — powtarzalne) |
 | `mtools`, `sfdisk` (`fdisk`), `xz`, `apt-get download` + `dpkg-deb` | 4.0.43 / 2.39.3 / 5.4 | Ubuntu 24.04 | obraz na pendrive z partycją danych (ADR 0016); podpisane pliki EFI |
 

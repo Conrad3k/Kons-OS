@@ -51,7 +51,14 @@ APLIKACJE := $(BIN)/zegar $(BIN)/notatki $(BIN)/ustawienia $(BIN)/zasoby
 PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(BIN)/wejscie $(BIN)/ekran $(BIN)/gui $(BIN)/skarbiec $(BIN)/logowanie $(APLIKACJE) \
             $(BIN)/k1-test-systemu
 
-all: $(PROGRAMY)
+all: $(PROGRAMY) $(GEN)/start.png
+
+# Boot screen for GRUB (0.5.8): the K1 mark drawn on the host with the same code, as a PNG.
+$(OBJ)/ekran_startowy: narzedzia/ekran_startowy.c $(PRZYB) $(NAGL_P) | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ narzedzia/ekran_startowy.c $(HOST_PRZYB) -lm -lz
+
+$(GEN)/start.png: $(OBJ)/ekran_startowy | $(GEN)
+	$(OBJ)/ekran_startowy > $@.tmp && mv $@.tmp $@
 
 $(BIN)/k1-initramfs: src/initramfs/main.c $(WSPOLNE) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/initramfs/main.c $(WSPOLNE) $(LDFLAGS_K1)

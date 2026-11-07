@@ -135,7 +135,7 @@ enum k1_ustawienie {
 #define K1_WL_SYSTEM 100          /* nadzorca itself */
 #define K1_OB_MAKS 64             /* object ids 1..64 per owner */
 #define K1_OB_USTAWIENIA 1        /* ekran: the settings */
-#define K1_OB_NOTATKA 2           /* Notatki: the note */
+#define K1_OB_NOTATKA 2           /* Notatki: the first note (0.5.8: 1 = the list, 2..33 = notes) */
 #define K1_OB_BATERIA 3           /* nadzorca: battery history */
 #define K1_SKARB_MAKS (1 << 20)   /* bytes in one object (Blob Vault limit) */
 #define K1_SKARB_TRWALY 0         /* saved on the K1-DANE partition */

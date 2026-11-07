@@ -19,7 +19,7 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 | `src/przybornik/` | przybornik GUI (M4): rysowanie i tekst (`k1_rysuj`), motywy i części okien (`k1_okno`), klient protokołu okien (`k1_klient`), szkielet aplikacji (`k1_aplikacja`), czas polski (`k1_czas`), układ klawiatury PL (`k1_klawiatura`) |
 | `src/gui/` | `/rdzen/system/gui` — powłoka pulpitu: górny pasek, dolny pasek, menu Start (M4) |
 | `src/aplikacje/` | `/rdzen/aplikacje/{zegar,notatki,ustawienia}` — aplikacje natywne (M4) |
-| `narzedzia/` | narzędzia budowy na hoście: `czcionki.c` (FreeType → bitmapy czcionek) |
+| `narzedzia/` | narzędzia budowy na hoście: `czcionki.c` (FreeType → bitmapy czcionek), `ekran_startowy.c` (logo dla GRUB-a, PNG przez zlib — 0.5.8) |
 | `src/initramfs/` | `/init` w initramfs: montuje obraz rdzenia, przełącza korzeń |
 | `src/init/` | `/rdzen/init` — PID 1 |
 | `src/nadzorca/` | `/rdzen/system/nadzorca` — uruchamia usługi w klatkach, łączy je kanałami, restartuje (M3) |

@@ -402,13 +402,17 @@ static void pole_hasla(struct k1_obraz *o, const struct k1_motyw *m, int i, cons
 
 static void rysuj_haslo(struct k1_obraz *o, const struct k1_motyw *m)
 {
+    char buf[160];
     const char *n[3];
     int ile, i;
     naglowek(o, m, "Hasło", "Hasło przy włączaniu komputera");
     if (skarb < 0 || (hs.znane && hs.tryb == K1_SKARB_RAM)) {
-        k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, "Hasło wymaga miejsca na dane na nośniku K1", k1_kolor(m->tekst2, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 40, "(pendrive z obrazem k1-…-usb.img). Teraz dane są tylko w pamięci.",
+        k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, "Nie znaleziono miejsca na dane (partycji K1-DANE)",
+                 k1_kolor(m->tekst2, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 40, "Hasło i zapis po wyłączeniu działają z pendrive'a, na który zapisano",
                  k1_kolor(m->tekst3, 255), 0);
+        snprintf(buf, sizeof buf, "plik k1-%s-usb.img.xz (nie plik .iso). Teraz dane są tylko w pamięci.", K1_WERSJA);
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 60, buf, k1_kolor(m->tekst3, 255), 0);
         return;
     }
     k1_przelacznik(o, m, TRESC_X, seg_y() + 8, hs.wlaczone, !hs.znane || hs.czeka);
@@ -524,7 +528,7 @@ static int zegar(void)
     if (odbierz() && sekcja == S_BATERIA)
         k1_apl_odswiez(&apl);
     hs_odbierz();
-    if (sekcja == S_HASLO)
+    if (sekcja == S_HASLO || sekcja == S_INFO)
         k1_apl_odswiez(&apl);
     return 500;
 }
@@ -677,7 +681,12 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         snprintf(buf, sizeof buf, "Ekran    %d × %d", (int)apl.k.szer_ekranu, (int)apl.k.wys_ekranu);
         k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 44, buf, k1_kolor(m->tekst, 255), 0);
         k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 72, "Jądro    Linux 6.18 (własna konfiguracja)", k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 108, "Każda część systemu działa w osobnej, zamkniętej klatce.",
+        k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 100,
+                 skarb < 0 || (hs.znane && hs.tryb == K1_SKARB_RAM) ? "Dane    tylko w pamięci (brak partycji K1-DANE)"
+                 : hs.znane                                         ? "Dane    zaszyfrowane na nośniku K1 (partycja K1-DANE)"
+                                                                    : "Dane    …",
+                 k1_kolor(m->tekst, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 136, "Każda część systemu działa w osobnej, zamkniętej klatce.",
                  k1_kolor(m->tekst3, 255), 0);
         break;
     }
@@ -727,6 +736,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         if (nav != sekcja)
             hs_formularz(F_BRAK);
         sekcja = nav;
+        if (sekcja == S_INFO)
+            hs_info();
         if (sekcja == S_HASLO) {
             hs_info();
             k1_log(TAG, "hasło: przełącznik %d,%d; zmień %d,%d; pola od %d,%d co %d; Zapisz %d,+%d", TRESC_X + 18,

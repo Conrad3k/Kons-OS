@@ -13,14 +13,16 @@ USB=$K1_BUDOWA/usb
 WYJSCIE=$K1_WYNIK/k1-$K1_WERSJA-usb.img
 ESP_MIB=48
 DANE_MIB=64
-[ -f "$K1_WYNIK/rdzen.squashfs" ] && [ -x "$GEN_CPIO" ] || blad "najpierw zbuduj system: scripts/zbuduj.sh"
+[ -f "$K1_WYNIK/rdzen.squashfs" ] && [ -f "$K1_BUDOWA/gen/start.png" ] && [ -x "$GEN_CPIO" ] || blad "najpierw zbuduj system: scripts/zbuduj.sh"
 for n in apt-get dpkg-deb mformat mmd mcopy sfdisk xz truncate; do command -v $n >/dev/null || blad "brak $n (scripts/przygotuj-srodowisko.sh)"; done
 
 info "obraz USB $WYJSCIE"
 rm -rf "$USB"; mkdir -p "$USB"
 printf 'file /rdzen.squashfs %s 0400 0 0\n' "$K1_WYNIK/rdzen.squashfs" > "$USB/rdzen.lista"
 "$GEN_CPIO" -t "$SOURCE_DATE_EPOCH" "$USB/rdzen.lista" > "$USB/rdzen.cpio"
-CMDLINE=$(sed 's/k1\.rdzen=[^ ]*/k1.rdzen=wbudowany/' "$K1_REPO/jadro/cmdline")
+# quiet: the kernel's EFI stub prints nothing over the boot screen ("EFI stub: Loaded initrd…");
+# loglevel=7 keeps the kernel's messages on the serial console as before (tests, diagnosis).
+CMDLINE="$(sed 's/k1\.rdzen=[^ ]*/k1.rdzen=wbudowany/' "$K1_REPO/jadro/cmdline") quiet loglevel=7"
 
 # Boot loader: shim + GRUB signed by Microsoft / Canonical, from Ubuntu (efi_podpisane, wspolne.sh).
 # K1 itself is not signed yet (M10): Secure Boot must stay off.
@@ -33,7 +35,14 @@ insmod all_video
 insmod gfxterm
 set gfxmode=1280x800,1366x768,1280x720,1024x768,auto
 set gfxpayload=keep
+insmod png
+# Boot screen (0.5.8): the K1 mark on black; the kernel keeps it until the desktop's first frame.
+# GRUB draws the picture only when something is written (echo); black text on black (set after
+# terminal_output, which resets the colours) hides its cursor.
 terminal_output gfxterm
+set color_normal=black/black
+background_image -m stretch /boot/grub/start.png
+echo ""
 menuentry "Kons K1 $K1_WERSJA" {
     linux /k1/bzImage $CMDLINE
     initrd /k1/initramfs.cpio /k1/rdzen.cpio
@@ -45,6 +54,7 @@ ESP=$USB/esp.img
 printf 'Kons K1 %s\n' "$K1_WERSJA" > "$USB/info"
 obraz_fat "$ESP" "$ESP_MIB" 4b315553 "$K1_EFI/shimx64.efi.signed.latest:/EFI/BOOT/BOOTX64.EFI" \
     "$K1_EFI/gcdx64.efi.signed:/EFI/BOOT/grubx64.efi" "$USB/info:/.disk/info" "$USB/grub.cfg:/boot/grub/grub.cfg" \
+    "$K1_BUDOWA/gen/start.png:/boot/grub/start.png" \
     "$K1_WYNIK/bzImage:/k1/bzImage" "$K1_WYNIK/initramfs.cpio:/k1/initramfs.cpio" "$USB/rdzen.cpio:/k1/rdzen.cpio"
 
 # The disk: GPT with fixed GUIDs, the EFI partition copied in, K1-DANE left as zeros.

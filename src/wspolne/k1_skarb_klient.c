@@ -87,6 +87,12 @@ int k1_skarb_zapisz(int fd, int id, const void *dane, size_t n)
     return r;
 }
 
+int k1_skarb_usun(int fd, int id)
+{
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_SKARB_USUN, (uint32_t)id, 0, 0, 0, 0, 0);
+    return fd < 0 ? -1 : k1_kanal_wyslij(fd, &k, sizeof k, -1);
+}
+
 int k1_skarb_wynik_pelny(int fd, struct k1_komunikat *k)
 {
     for (;;) {

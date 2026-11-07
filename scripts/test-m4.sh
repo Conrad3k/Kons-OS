@@ -152,9 +152,21 @@ if tryb == "ponownie":
     kursor[:] = [int(k1.group(1)), int(k1.group(2))]
     ax, ay, krok = int(g.group(3)), int(g.group(4)), int(g.group(5))
     klik(ax + krok, ay)  # Notatki
-    sprawdz("notatka wróciła: „Zażółć K1” (13 B) wczytana ze skarbca", czekaj(r"K1-NOTATKI: notatka wczytana \(13 B\)", czas=40))
+    sprawdz("notatki wróciły: 2, na górze ostatnio zmieniona „Druga” (5 B)",
+            czekaj(r"K1-NOTATKI: notatki wczytane: 2 \(pierwsza: 5 B\)", czas=40))
+    o = czekaj(r"K1-EKRAN: okno (\d+) \(notatki\) (\d+)x(\d+) w (\d+),(\d+)", czas=20)
+    u_n = czekaj(r"K1-NOTATKI: układ: nowa (\d+),(\d+); lista od (\d+),(\d+) co (\d+); usuń (\d+),(\d+), potwierdź (\d+)")
     time.sleep(2)
     zrzut("ponownie-notatki")
+    if o and u_n:
+        nx, ny = int(o.group(4)), int(o.group(5))
+        lx, ly, lk = int(u_n.group(3)), int(u_n.group(4)), int(u_n.group(5))
+        klik(nx + lx, ny + ly + lk)  # the second row: „Zażółć K1”
+        sprawdz("Notatki: druga na liście to „Zażółć K1” (13 B)", czekaj(r"K1-NOTATKI: otwarto notatkę \(13 B\)"))
+        klik(nx + int(u_n.group(6)), ny + int(u_n.group(7)))   # Usuń notatkę
+        time.sleep(0.5)
+        klik(nx + int(u_n.group(8)), ny + int(u_n.group(7)))   # Usuń (potwierdzenie)
+        sprawdz("Notatki: usunięcie z potwierdzeniem (została 1)", czekaj(r"K1-NOTATKI: usunięto notatkę \(zostało: 1\)"))
     # M5e: Ustawienia → Hasło: set the password "tajne1" (the next boot asks for it)
     klik(ax + 2 * krok, ay)
     uo = czekaj(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)", czas=30)
@@ -208,8 +220,16 @@ time.sleep(2)
 pisz("shift-z", "a", "alt_r-z", "alt_r-o", "alt_r-l", "alt_r-c", "spc", "shift-k", "1")
 sprawdz("Notatki: polskie znaki wpisane i zapisane automatycznie (9 znaków)", czekaj(r"K1-NOTATKI: zapisano notatkę \(9 znaków\)"))
 w, h, px = zrzut("3-notatki")
-ciemne = sum(1 for x in range(nx + 24, nx + 140) for y in range(ny + 58, ny + 76) if max(px(x, y)) < 110)
+ciemne = sum(1 for x in range(nx + 256, nx + 372) for y in range(ny + 58, ny + 76) if max(px(x, y)) < 110)
 sprawdz("zrzut: tekst w oknie Notatek", ciemne > 40, f"ciemnych pikseli: {ciemne}")
+# 0.5.8: a second note („Druga”) — the list keeps both, the last changed on top
+u_n = czekaj(r"K1-NOTATKI: układ: nowa (\d+),(\d+); lista od (\d+),(\d+) co (\d+)")
+if u_n:
+    klik(nx + int(u_n.group(1)), ny + int(u_n.group(2)))
+    sprawdz("Notatki: „Nowa notatka” dodaje drugą", czekaj(r"K1-NOTATKI: nowa notatka \(notatek: 2\)"))
+    pisz("shift-d", "r", "u", "g", "a")
+    sprawdz("Notatki: druga notatka zapisana (5 znaków)", czekaj(r"K1-NOTATKI: zapisano notatkę \(5 znaków\)"))
+    zrzut("3-notatki-dwie")
 # przeciąganie okna za pasek tytułu
 idz(nx + 200, ny + 20); time.sleep(0.3); monitor("mouse_button 1"); time.sleep(0.3)
 idz(nx + 320, ny + 80); time.sleep(0.5); monitor("mouse_button 0")

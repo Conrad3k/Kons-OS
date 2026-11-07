@@ -1,7 +1,7 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.5.7 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.5.8 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 w toku — M5a (dyski i USB).
 Data: 2026-11-07. Plik aktualizujemy po każdym etapie.
@@ -63,8 +63,14 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
     opcjonalne — bez hasła dane zaszyfrowane, ale bez ochrony przed kradzieżą nośnika (akceptuję).
     Kolejność: M5c format magazynu → M5d skarbiec i trwałe dane → obraz USB z partycją na dane →
     M5e hasło i ekran logowania. Potem M5b (hotplug, tablet).
-[!] Test na X230 (0.5.7, obraz USB): płynność, zapis po wyłączeniu, hasło (Ustawienia → Hasło →
-    wyłącz i włącz komputer → ekran hasła), czy Defender nadal ostrzega.
+  - Test 0.5.7 na X230 (2026-11-07): brak logo przy starcie („nie rób widocznych poleceń terminala —
+    system długo się odpala”); zapis i hasło niedostępne („Wymaga nośnika K1”); notatki „bare-bones”
+    — „można dodać wiele”.
+    → 0.5.8: logo bez tekstu od GRUB-a do pulpitu; partycja K1-DANE wykrywana też po starcie
+      i krótsze czekanie na pendrive; wiele notatek (lista, nowa, usuń).
+[!] Test na X230 (0.5.8): który plik jest na pendrivie? Do zapisu i hasła potrzebny
+    k1-0.5.8-usb.img.xz (rozpakowany przez Rufusa/Etchera), nie .iso. Sprawdź: logo przy starcie,
+    Ustawienia → Informacje → „Dane: zaszyfrowane na nośniku K1”, notatki po wyłączeniu, hasło.
 [x] Pierwszy test na X230 z pendrive'a (od 0.5.2 — instrukcja w README, „Uruchom na laptopie”;
     najpierw F1 → Security → Secure Boot → Disabled):
     czy pulpit się pojawia, ostrość obrazu, klawiatura, TrackPoint, touchpad, mysz USB, bateria
@@ -99,7 +105,7 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
 [x] Bateria na górnym pasku (0.5.3, ADR 0014) — tylko gdy komputer ma baterię; sprawdzone w QEMU
     ze sztuczną baterią ACPI; na X230 — w Twoim teście.
 [ ] Oznaczanie okien przez ekran (zaufana ramka), zanim pojawią się aplikacje spoza rdzenia (RYZYKA R26).
-[~] Trwały zapis: ustawienia i notatka — zrobione (0.5.6); historia baterii — następna.
+[~] Trwały zapis: ustawienia i notatki (od 0.5.8 wiele) — zrobione (0.5.6); historia baterii — następna.
 [ ] Partycja „K1-DANE” powiększana do końca pendrive'a (dziś 64 MiB) i drugi dysk w VirtualBoxie
     (pusty dysk bez tablicy partycji — dziś K1 go nie używa).
 

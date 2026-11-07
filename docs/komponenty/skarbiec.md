@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE (M5c na hoście, M5d w QEMU: dysk SATA i pendrive przez UEFI) — 0.5.6 |
+| **Status** | PRZETESTOWANE (M5c na hoście, M5d w QEMU: dysk SATA i pendrive przez UEFI; 0.5.8: pendrive podłączony po starcie) — 0.5.8 |
 | **Pliki** | `src/skarbiec/main.c` (usługa), `src/skarbiec/magazyn.{c,h}` (format), `src/zewnetrzne/monocypher/` (kryptografia), `src/wspolne/k1_memfd.*`, `src/wspolne/k1_skarb_klient.*` (strona klienta) |
 | **Decyzje** | ADR 0015 (format, szyfrowanie), ADR 0016 (obraz USB), ADR 0013 (partycja „K1-DANE”) |
 
 ## Cel
-Trwałe, zaszyfrowane dane użytkownika: ustawienia (ekran), notatka (Notatki); później historia baterii,
+Trwałe, zaszyfrowane dane użytkownika: ustawienia (ekran), notatki (Notatki); później historia baterii,
 pliki (M9). Jedyny proces z dostępem do partycji danych.
 
 ## Granica zaufania
@@ -27,7 +27,8 @@ deskryptorze partycji — innych plików nie ma), `getrandom`, `memfd_create`, `
 - fd 4: partycja GPT „K1-DANE” (otwarta przez nadzorcę `O_RDWR|O_EXCL`); brak → tryb „tylko w pamięci”.
 - Kanały klientów: `SKARB_CZYTAJ`, `SKARB_ZAPISZ` (+ zapieczętowany memfd o podanym rozmiarze),
   `SKARB_USUN` → `SKARB_DANE` (+ memfd) albo `SKARB_WYNIK` (wynik, tryb: dysk / pamięć).
-- Klienci (0.5.6): ekran (fd 5, obiekt `K1_OB_USTAWIENIA`), Notatki (fd 4, `K1_OB_NOTATKA`).
+- Klienci (0.5.6): ekran (fd 5, obiekt `K1_OB_USTAWIENIA`), Notatki (fd 4; od 0.5.8 obiekt 1 = lista,
+  2…33 = notatki), Ustawienia (fd 5: `SKARB_INFO`, `SKARB_HASLO`), ekran hasła (`SKARB_ODBLOKUJ`).
 - Hasło (0.5.7, ADR 0017): stan „zablokowany” (magazyn z hasłem, nieotwarty) → `SKARB_STAN` do nadzorcy;
   `SKARB_ODBLOKUJ` tylko od ekranu hasła, `SKARB_HASLO` (obecne + nowe) tylko od Ustawień, `SKARB_INFO`
   od każdego; limit prób (od trzeciej złej: 5 s … 5 min) liczy skarbiec. Zablokowany: odczyt/zapis
@@ -70,3 +71,4 @@ zna klucz), komunikaty klientów (32 B), memfd od klientów (pieczęcie i rozmia
 | w systemie: klatka (UID, tylko partycja „K1-DANE”), próba w klatce `skarbiec`, dysk trzyma tylko skarbiec | funkcjonalny + negatywny |
 | `test-m4.sh`: tapeta, motyw, rozdzielczość i notatka wracają po wyłączeniu i ponownym starcie z tym samym dyskiem; na dysku brak jawnego tekstu | funkcjonalny |
 | `test-m5.sh`: obraz USB przez UEFI — pierwszy start tworzy magazyn, drugi go otwiera | funkcjonalny |
+| `test-m5.sh` (0.5.8): pendrive z pustą K1-DANE podłączony po starcie → restart skarbca, nowy magazyn, pulpit od nowa | funkcjonalny |

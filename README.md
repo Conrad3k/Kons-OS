@@ -56,7 +56,9 @@ Od 0.5.6 jest osobny obraz na pendrive: **`k1-X.Y.Z-usb.img.xz`** (Releases). Ma
 laptopa** (nie otwiera innych dysków — pilnuje tego test). Pendrive zostanie w całości nadpisany.
 1. Nagraj `k1-X.Y.Z-usb.img.xz` na pendrive (≥ 128 MB): w Windowsie **Rufus** → wybierz plik
    (Rufus sam rozpakuje .xz; jeśli zapyta — tryb obrazu DD) → Start. Albo balenaEtcher.
-   (Obraz `.iso` też zadziała z pendrive'a, ale bez zapisu danych — po wyłączeniu wszystko znika.)
+   (Obraz `.iso` też zadziała z pendrive'a, ale bez zapisu danych — po wyłączeniu wszystko znika,
+   a Ustawienia → Hasło piszą „Nie znaleziono miejsca na dane”. Sprawdzisz w Ustawieniach → Informacje:
+   „Dane: zaszyfrowane na nośniku K1”.)
 2. **Najpierw wyłącz Secure Boot** — K1 nie jest jeszcze podpisany (M10). Bez tego laptop pokaże
    „Secure Boot Violation” / „Invalid signature”, a po „OK” uruchomi system z dysku (sprawdzone
    na X230, 2026-11-07). Włącz laptop i od razu wciskaj **F1** (ustawienia BIOS-u):
