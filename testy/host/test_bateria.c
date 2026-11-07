@@ -143,6 +143,37 @@ int main(void)
     fclose(fopen(p, "w"));
     EXPECT(jest(k, 0, -1, K1_BAT_NIEZNANY, 0));
 
+    /* history (0.5.5): samples, packing into messages, compaction when full */
+    {
+        static struct k1_bat_historia h;
+        struct k1_bateria s1 = { 1, 73, K1_BAT_ROZLADOWANIE, 0 }, s2 = { 1, 74, K1_BAT_LADOWANIE, 1 },
+                          brak = { 0, -1, 0, 0 }, nieznany = { 1, -1, 0, 1 };
+        struct k1_komunikat km, sp;
+        int i, ok = 1;
+        k1_bat_hist_init(&h, 30);
+        EXPECT(k1_bat_hist_dodaj(&h, &brak) == 0 && k1_bat_hist_dodaj(&h, &nieznany) == 0 && h.n == 0);
+        EXPECT(k1_bat_hist_komunikat(&h, 0, &km) == 0);
+        k1_bat_hist_dodaj(&h, &s1);
+        k1_bat_hist_dodaj(&h, &s2);
+        EXPECT(h.n == 2 && h.p[0] == 73 && h.p[1] == (74 | K1_BAT_ZASILACZ));
+        EXPECT(k1_bat_hist_komunikat(&h, 0, &km) == 2 && km.obiekt == 0 && km.a == 30);
+        EXPECT(k1_komunikat_sprawdz(&km, sizeof km, K1_KIER_OD_NADZORCY, &sp) == 0);
+        EXPECT(k1_bat_probka(&sp, 0) == 73 && k1_bat_probka(&sp, 1) == (74 | K1_BAT_ZASILACZ) &&
+               k1_bat_probka(&sp, 2) == K1_BAT_BRAK_PROBKI && k1_bat_probka(&sp, 15) == K1_BAT_BRAK_PROBKI);
+        EXPECT(k1_bat_hist_komunikat(&h, 2, &km) == 0 && k1_bat_hist_komunikat(&h, -1, &km) == 0);
+        for (i = 2; i < K1_BAT_HIST_MAKS; i++)
+            ok &= k1_bat_hist_dodaj(&h, i % 2 ? &s2 : &s1) == 0;
+        EXPECT(ok && h.n == K1_BAT_HIST_MAKS && h.interwal == 30);
+        /* every packed message of a full history is valid */
+        for (i = 0, ok = 1; i < h.n; i += K1_BAT_HIST_W_KOM)
+            ok &= k1_bat_hist_komunikat(&h, i, &km) == K1_BAT_HIST_W_KOM &&
+                  k1_komunikat_sprawdz(&km, sizeof km, K1_KIER_OD_NADZORCY, &sp) == 0;
+        EXPECT(ok);
+        EXPECT(k1_bat_hist_dodaj(&h, &s1) == 1); /* full: pairs merged, interval doubled */
+        EXPECT(h.n == K1_BAT_HIST_MAKS / 2 + 1 && h.interwal == 60);
+        EXPECT(h.p[0] == (74 | K1_BAT_ZASILACZ) && h.p[h.n - 1] == 73); /* (73+74+1)/2, mains from either */
+    }
+
     snprintf(p, sizeof p, "rm -rf '%s'", baza);
     if (system(p) != 0)
         fprintf(stderr, "uwaga: nie usunięto %s\n", baza);

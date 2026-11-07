@@ -59,6 +59,25 @@ static int ustawienie(int32_t klucz, int32_t wartosc)
     }
 }
 
+/* K1_KOM_BATERIA_HIST: at least one sample, each 0..100 (+ mains bit), 0xFF only after the last one,
+ * none beyond the end of the history. */
+static int probki_baterii(const struct k1_komunikat *k)
+{
+    int i, koniec = 0;
+    for (i = 0; i < K1_BAT_HIST_W_KOM; i++) {
+        unsigned v = k1_bat_probka(k, i);
+        if (v == K1_BAT_BRAK_PROBKI) {
+            if (i == 0)
+                return 0;
+            koniec = 1;
+            continue;
+        }
+        if (koniec || (v & ~(unsigned)K1_BAT_ZASILACZ) > 100 || k->obiekt + (uint32_t)i >= K1_BAT_HIST_MAKS)
+            return 0;
+    }
+    return 1;
+}
+
 /* rola + aplikacja + uid, as in KLIENT and TEST_POLACZ. */
 static int klient(const struct k1_komunikat *k)
 {
@@ -149,6 +168,8 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         if (k->a == 0)
             return k->b == -1 && k->c == K1_BAT_NIEZNANY;
         return w(k->b, -1, 100) && w(k->c, K1_BAT_NIEZNANY, K1_BAT_STAN_MAKS);
+    case K1_KOM_BATERIA_HIST:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt < K1_BAT_HIST_MAKS && w(k->a, 1, 86400) && probki_baterii(k);
     default:
         return 0;
     }

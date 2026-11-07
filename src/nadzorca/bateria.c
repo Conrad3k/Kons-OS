@@ -143,3 +143,45 @@ int k1_bateria_odczytaj(const char *katalog, struct k1_bateria *b)
         b->stan = K1_BAT_NIE_LADUJE;
     return 0;
 }
+
+void k1_bat_hist_init(struct k1_bat_historia *h, int interwal)
+{
+    memset(h, 0, sizeof *h);
+    h->interwal = interwal;
+}
+
+int k1_bat_hist_dodaj(struct k1_bat_historia *h, const struct k1_bateria *b)
+{
+    int skompaktowano = 0;
+    if (!b->obecna || b->procent < 0 || b->procent > 100)
+        return 0;
+    if (h->n == K1_BAT_HIST_MAKS) {
+        int i;
+        for (i = 0; i < h->n / 2; i++) {
+            unsigned x = h->p[2 * i], y = h->p[2 * i + 1];
+            unsigned sr = ((x & 0x7fu) + (y & 0x7fu) + 1) / 2;
+            h->p[i] = (uint8_t)(sr | ((x | y) & K1_BAT_ZASILACZ));
+        }
+        h->n /= 2;
+        h->interwal *= 2;
+        skompaktowano = 1;
+    }
+    h->p[h->n++] = (uint8_t)(b->procent | (b->zasilacz ? K1_BAT_ZASILACZ : 0));
+    return skompaktowano;
+}
+
+int k1_bat_hist_komunikat(const struct k1_bat_historia *h, int od, struct k1_komunikat *k)
+{
+    uint32_t pola[4] = { 0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu };
+    int i, ile = 0;
+    if (od < 0 || od >= h->n)
+        return 0;
+    for (i = 0; i < K1_BAT_HIST_W_KOM && od + i < h->n; i++) {
+        pola[i / 4] &= ~(0xffu << (8 * (i % 4)));
+        pola[i / 4] |= (uint32_t)h->p[od + i] << (8 * (i % 4));
+        ile++;
+    }
+    *k = k1_komunikat_nowy(K1_KOM_BATERIA_HIST, (uint32_t)od, h->interwal, (int32_t)pola[0], (int32_t)pola[1],
+                           (int32_t)pola[2], (int32_t)pola[3]);
+    return ile;
+}

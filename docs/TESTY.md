@@ -38,7 +38,7 @@ Ręcznie: `scripts/uruchom-qemu.sh [--obraz build/wynik/rdzen-test.squashfs]` i 
 
 | Scenariusz | Oczekiwane | Rodzaj |
 |---|---|---|
-| jednostkowe | parser linii poleceń (32), stan baterii z sysfs (14, także śmieciowe dane), protokół zdarzeń (32), protokół usług i kanały na prawdziwych gniazdach (85), przybornik GUI (55: czas polski ze zmianami czasu, układ PL, UTF-8, rysowanie na krawędziach, tapety), renderer — ASan/UBSan | funkcjonalny + negatywny |
+| jednostkowe | parser linii poleceń (32), stan i historia baterii (26, także śmieciowe dane i zapełnienie historii), protokół zdarzeń (32), protokół usług i kanały na prawdziwych gniazdach (85), przybornik GUI (55: czas polski ze zmianami czasu, układ PL, UTF-8, rysowanie na krawędziach, tapety), renderer — ASan/UBSan | funkcjonalny + negatywny |
 | fuzzing | linia poleceń, protokół zdarzeń, protokół usług (32 B, wszystkie kierunki), libFuzzer po 20 s | fuzzing |
 | zabezpieczenia binariów | static-pie, RELRO, BIND_NOW, NX, brak RWX | konfiguracja |
 | konfiguracja jądra | każda linia `jadro/k1.config` w `.config` | konfiguracja |
@@ -141,6 +141,7 @@ sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
 | ponowne podłączenie | znów 3 urządzenia (ten sam numer `eventN` rozpoznany jako nowy) |
 | zrzut `m5-usb.png` | kursor w miejscu z logu; brak błędów usług, odrzuconych i zgubionych zdarzeń |
 | bateria (0.5.3) | tablica ACPI: 73 %, ładowanie, zasilacz podłączony → log powłoki i jasne piksele wskaźnika na górnym pasku obok dźwięku |
+| Ustawienia → Bateria (0.5.5) | otwarcie Ustawień z paska i sekcji Bateria (mysz USB); log: 73 %, ≥ 2 próbki co 30 s, położenie wykresu; zrzut `m5-bateria.png`: linia akcentu na całą szerokość |
 
 ## M4.1 — kryteria zaliczenia
 1. Ustawienia → Ekran pokazuje listę rozdzielczości od karty, wybór przełącza tryb w locie,

@@ -179,6 +179,21 @@ static void zasoby(void)
     EXPECT(zle(K(K1_KOM_BATERIA, 0, 1, 50, 1, 0, 0), K1_KIER_OD_EKRANU));   /* direction */
     EXPECT(zle(K(K1_KOM_BATERIA, 0, 1, 50, 1, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(!k1_komunikat_z_deskryptorem(K1_KOM_BATERIA, K1_KIER_OD_NADZORCY));
+    /* battery history (0.5.5): samples packed 4 per field, 0xFF = end */
+    EXPECT(ok(K(K1_KOM_BATERIA_HIST, 0, 30, (int32_t)0xffff8049, -1, -1, -1), K1_KIER_OD_NADZORCY)); /* 73, 128+0 */
+    EXPECT(ok(K(K1_KOM_BATERIA_HIST, 0, 30, 0x64646464, 0x64646464, 0x00000000, (int32_t)0xe4e4e4e4), K1_KIER_OD_NADZORCY));
+    EXPECT(ok(K(K1_KOM_BATERIA_HIST, K1_BAT_HIST_MAKS - 1, 30, (int32_t)0xffffff10, -1, -1, -1), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_BATERIA_HIST, K1_BAT_HIST_MAKS - 1, 30, (int32_t)0xffff1010, -1, -1, -1), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_BATERIA_HIST, K1_BAT_HIST_MAKS, 30, (int32_t)0xffffff10, -1, -1, -1), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_BATERIA_HIST, 0, 30, -1, -1, -1, -1), K1_KIER_OD_NADZORCY));                      /* empty */
+    EXPECT(zle(K(K1_KOM_BATERIA_HIST, 0, 30, (int32_t)0xffff65ff, -1, -1, -1), K1_KIER_OD_NADZORCY));      /* first 0xFF */
+    EXPECT(zle(K(K1_KOM_BATERIA_HIST, 0, 30, (int32_t)0xffffff65, -1, -1, -1), K1_KIER_OD_NADZORCY));      /* 101 % */
+    EXPECT(zle(K(K1_KOM_BATERIA_HIST, 0, 30, (int32_t)0xffffffe5, -1, -1, -1), K1_KIER_OD_NADZORCY));      /* 101 % + mains */
+    EXPECT(zle(K(K1_KOM_BATERIA_HIST, 0, 30, (int32_t)0x10ff1010, -1, -1, -1), K1_KIER_OD_NADZORCY));      /* gap */
+    EXPECT(zle(K(K1_KOM_BATERIA_HIST, 0, 30, (int32_t)0xffffff10, -1, -1, 0x10), K1_KIER_OD_NADZORCY));    /* after end */
+    EXPECT(zle(K(K1_KOM_BATERIA_HIST, 0, 0, (int32_t)0xffffff10, -1, -1, -1), K1_KIER_OD_NADZORCY));       /* interval */
+    EXPECT(zle(K(K1_KOM_BATERIA_HIST, 0, 86401, (int32_t)0xffffff10, -1, -1, -1), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_BATERIA_HIST, 0, 30, (int32_t)0xffffff10, -1, -1, -1), K1_KIER_DO_NADZORCY));
 }
 
 static void do_nadzorcy(void)

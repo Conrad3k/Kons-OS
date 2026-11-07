@@ -127,6 +127,57 @@ if glosnik:  # battery icon, percent and bolt: left of the sound icon on the top
 else:
     sprawdz("zrzut: wskaźnik baterii na górnym pasku", False, "brak położenia dźwięku w logu")
 
+# 0.5.5: Ustawienia → Bateria — the charge chart since boot (samples every 30 s)
+poz = list(kursor() or (0, 0))
+def idz(x, y):
+    for _ in range(4):
+        dx, dy = x - poz[0], y - poz[1]
+        cmds = []
+        while dx or dy:
+            sx, sy = max(-100, min(100, dx)), max(-100, min(100, dy)); cmds.append(f"mouse_move {sx} {sy}"); dx -= sx; dy -= sy
+        if cmds: monitor(*cmds)
+        poz[:] = [x, y]
+        koniec = time.time() + 2.5
+        while time.time() < koniec and kursor() != (x, y): time.sleep(0.15)
+        teraz = kursor()
+        if teraz == (x, y) or teraz is None: return
+        poz[:] = list(teraz)
+def klik(x, y):
+    idz(x, y); time.sleep(0.4)
+    monitor("mouse_button 1"); time.sleep(0.3); monitor("mouse_button 0"); time.sleep(0.3)
+g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", sekundy=5)
+if g:
+    ax, ay, krok = int(g.group(3)), int(g.group(4)), int(g.group(5))
+    klik(ax + 2 * krok, ay)
+    u = czekaj(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)", sekundy=30)
+    sek = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", sekundy=30)
+    if u and sek:
+        ux, uy = int(u.group(4)), int(u.group(5))
+        time.sleep(1)
+        klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + 2 * int(sek.group(3)))
+        WZB = r"K1-USTAWIENIA: bateria: jest, 73%, próbek (\d+) co 30 s; wykres (\d+),(\d+) (\d+)x(\d+)"
+        b = czekaj(WZB, sekundy=20)
+        if b and int(b.group(1)) < 2:  # a sample every 30 s: wait for the second one, open the section again
+            time.sleep(35)
+            klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + 2 * int(sek.group(3)))
+            b = czekaj(WZB, od=1, sekundy=20)
+        sprawdz("Ustawienia → Bateria: stan i historia od nadzorcy (73 %, próbki co 30 s)", b and int(b.group(1)) >= 2,
+                b.group(0) if b else "brak")
+        if b:
+            wx, wy, ww, wh = (int(b.group(i)) for i in range(2, 6))
+            time.sleep(1.5)
+            p = f"{out}/m5-bateria.png"
+            subprocess.run([zrzut_sh, p, mon], check=True, stdout=subprocess.DEVNULL)
+            w, h, px = png(p)
+            akcent = lambda c: c[0] > 150 and c[1] < 140 and c[2] < 110 and c[0] > c[1] > c[2]
+            linia = sum(1 for x in range(ux + wx + 8, ux + wx + ww - 8) for y in range(uy + wy, uy + wy + wh) if akcent(px(x, y)))
+            sprawdz(f"zrzut: wykres naładowania na całą szerokość ({linia} pikseli linii)", linia >= (ww - 16) * 2 * 0.8,
+                    str(linia))
+    else:
+        sprawdz("Ustawienia otwarte z dolnego paska", False, f"okno: {bool(u)}, układ: {bool(sek)}")
+else:
+    sprawdz("położenia pulpitu w logu", False)
+
 t = tekst()
 sprawdz("brak 'Kernel panic' i błędów usług", "Kernel panic" not in t and "BŁĄD" not in t)
 sprawdz("brak odrzuconych i zgubionych zdarzeń", re.findall(r"odrzucone (\d+)\)", t)[-1:] == ["0"] and "pominięto" not in t)

@@ -132,6 +132,14 @@ static int zasoby_kanal = -1; /* our end of the channel to Zasoby (its fd 4; we 
 static int bateria_kanal = -1; /* our end of the battery channel to gui (its fd 5; we only write) */
 static struct k1_bateria bateria_wyslana;
 static int bateria_znana; /* bateria_wyslana is what gui got on this channel */
+/* 0.5.5: battery state and charge history since boot for Ustawienia (its fd 4; we only write) */
+static int ustaw_kanal = -1;
+static struct k1_bateria bateria_teraz, ustaw_wyslana;
+static int bateria_odczytana, ustaw_znana, ustaw_hist_wyslane;
+static struct k1_bat_historia bat_hist;
+static double nastepna_probka;
+#define BATERIA_CO 15.0     /* s between reads (ACPI: the embedded controller) */
+#define BATERIA_PROBKA 30   /* s between history samples (doubles when the history is compacted) */
 static pid_t test_pid;
 
 static double teraz(void)
@@ -426,6 +434,22 @@ static void start(struct usluga *u)
             k1_log(TAG, "shutdown kanału baterii: %s", strerror(errno));
         fds[n++] = para[0];
     }
+    if (u->profil == K1_PROFIL_USTAWIENIA) {
+        int para[2];
+        if (k1_kanal_utworz(para) != 0) {
+            close(fds[0]);
+            return;
+        }
+        if (ustaw_kanal >= 0)
+            close(ustaw_kanal);
+        /* One way, like Zasoby: battery state and history; the application checks our UID. */
+        ustaw_kanal = para[1];
+        ustaw_znana = 0;
+        ustaw_hist_wyslane = 0;
+        if (shutdown(ustaw_kanal, SHUT_RD) != 0)
+            k1_log(TAG, "shutdown kanału Ustawień: %s", strerror(errno));
+        fds[n++] = para[0];
+    }
     if (u->profil == K1_PROFIL_ZASOBY) {
         int para[2];
         if (k1_kanal_utworz(para) != 0) {
@@ -472,6 +496,10 @@ static void zakonczona(struct usluga *u, int status)
     if (u->profil == K1_PROFIL_ZASOBY && zasoby_kanal >= 0) {
         close(zasoby_kanal);
         zasoby_kanal = -1;
+    }
+    if (u->profil == K1_PROFIL_USTAWIENIA && ustaw_kanal >= 0) {
+        close(ustaw_kanal);
+        ustaw_kanal = -1;
     }
     if (u->profil == K1_PROFIL_GUI && bateria_kanal >= 0) {
         close(bateria_kanal);
@@ -547,23 +575,58 @@ static void sprawdz_nowe_wejscia(void)
     }
 }
 
-/* Battery state for gui's top bar (0.5.3): read from sysfs power_supply, sent when it changed
- * (the first time after gui started: always). Reading an ACPI battery talks to the embedded
- * controller, so it is done every 15 s only. */
+/* Battery (0.5.3, 0.5.5): read from sysfs power_supply every BATERIA_CO s (an ACPI battery talks to
+ * the embedded controller), a history sample every bat_hist.interwal s. */
+static void odczytaj_baterie(double t)
+{
+    k1_bateria_odczytaj(SYS "/class/power_supply", &bateria_teraz);
+    bateria_odczytana = 1;
+    if (t >= nastepna_probka) {
+        if (k1_bat_hist_dodaj(&bat_hist, &bateria_teraz))
+            ustaw_hist_wyslane = 0; /* compacted: Ustawienia gets it again from the start */
+        nastepna_probka = t + bat_hist.interwal;
+    }
+}
+
+static struct k1_komunikat komunikat_baterii(const struct k1_bateria *b)
+{
+    return k1_komunikat_nowy(K1_KOM_BATERIA, 0, b->obecna, b->obecna ? b->procent : -1, b->obecna ? b->stan : 0,
+                             b->zasilacz, 0);
+}
+
+/* gui's top bar: the state when it changed (the first time after gui started: always). */
 static void wyslij_baterie(void)
 {
-    struct k1_bateria b;
     struct k1_komunikat k;
-    if (bateria_kanal < 0)
+    if (bateria_kanal < 0 || !bateria_odczytana ||
+        (bateria_znana && memcmp(&bateria_teraz, &bateria_wyslana, sizeof bateria_teraz) == 0))
         return;
-    k1_bateria_odczytaj(SYS "/class/power_supply", &b);
-    if (bateria_znana && memcmp(&b, &bateria_wyslana, sizeof b) == 0)
-        return;
-    k = k1_komunikat_nowy(K1_KOM_BATERIA, 0, b.obecna, b.obecna ? b.procent : -1, b.obecna ? b.stan : 0, b.zasilacz,
-                          0);
+    k = komunikat_baterii(&bateria_teraz);
     if (k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1) == 0) {
-        bateria_wyslana = b;
+        bateria_wyslana = bateria_teraz;
         bateria_znana = 1;
+    }
+}
+
+/* Ustawienia → Bateria: the state when it changed and the history not sent yet, as long as the
+ * channel takes it (a full socket buffer: the rest on the next loop). */
+static void wyslij_ustawieniom(void)
+{
+    struct k1_komunikat k;
+    int ile;
+    if (ustaw_kanal < 0 || !bateria_odczytana)
+        return;
+    if (!ustaw_znana || memcmp(&bateria_teraz, &ustaw_wyslana, sizeof bateria_teraz) != 0) {
+        k = komunikat_baterii(&bateria_teraz);
+        if (k1_kanal_wyslij(ustaw_kanal, &k, sizeof k, -1) != 0)
+            return;
+        ustaw_wyslana = bateria_teraz;
+        ustaw_znana = 1;
+    }
+    while ((ile = k1_bat_hist_komunikat(&bat_hist, ustaw_hist_wyslane, &k)) > 0) {
+        if (k1_kanal_wyslij(ustaw_kanal, &k, sizeof k, -1) != 0)
+            return;
+        ustaw_hist_wyslane += ile;
     }
 }
 
@@ -831,6 +894,7 @@ int main(void)
         if (kat >= 0)
             close(kat);
     }
+    k1_bat_hist_init(&bat_hist, BATERIA_PROBKA);
     for (i = 0; i < PIERWSZA_APLIKACJA; i++)
         start(&uslugi[i]);
     if (stat(TEST, &st) == 0) {
@@ -921,10 +985,12 @@ int main(void)
             sprawdz_nowe_wejscia();
             nastepne_skanowanie = t + 2.0;
         }
-        if (bateria_kanal >= 0 && (!bateria_znana || t >= nastepna_bateria)) {
-            wyslij_baterie();
-            nastepna_bateria = t + 15.0;
+        if (t >= nastepna_bateria) {
+            odczytaj_baterie(t);
+            nastepna_bateria = t + BATERIA_CO;
         }
+        wyslij_baterie();
+        wyslij_ustawieniom();
         if (zasoby_kanal >= 0 && t >= nastepny_raport) {
             raport_zasobow();
             nastepny_raport = t + 1.0;

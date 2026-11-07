@@ -3,6 +3,16 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.5.5] — 2026-11-07
+
+### Dodane
+- **Ustawienia → Bateria** (Twój pomysł): procent i stan baterii oraz minimalistyczny wykres
+  naładowania od uruchomienia systemu (linia w kolorze akcentu, pod wykresem pasek — kiedy był
+  podłączony zasilacz), godzina startu i najniższy poziom. Pomiar co pół minuty; po wielu godzinach
+  wykres sam „zagęszcza” starsze pomiary, więc zawsze pokazuje cały czas od uruchomienia.
+  Historia z poprzednich uruchomień — razem z trwałym zapisem danych (M5).
+- Ikona baterii (Ustawienia).
+
 ## [0.5.4] — 2026-11-07
 
 ### Naprawione

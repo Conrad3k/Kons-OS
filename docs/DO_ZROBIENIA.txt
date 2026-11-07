@@ -1,7 +1,7 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.5.4 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.5.5 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 w toku — M5a (dyski i USB).
 Data: 2026-11-07. Plik aktualizujemy po każdym etapie.
@@ -54,7 +54,8 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
     mysz i cały system „strasznie lagują”, zmiana tapety zacina system.
     → 0.5.4: obsługa typów pamięci w jądrze (MTRR/PAT) + przy obrazie z firmware do karty tylko zmiany.
   - Prośba: bateria w Ustawieniach z ładnym, minimalistycznym wykresem naładowania od uruchomienia
-    i historii → 0.5.5 (od uruchomienia); historia między uruchomieniami — z trwałym zapisem (M5d).
+    i historii → 0.5.5: Ustawienia → Bateria (od uruchomienia); historia między uruchomieniami —
+    z trwałym zapisem (M5d).
 [!] Test 0.5.4 na X230: czy kursor i pulpit są płynne (także zmiana tapety)?
 [x] Pierwszy test na X230 z pendrive'a (od 0.5.2 — instrukcja w README, „Uruchom na laptopie”;
     najpierw F1 → Security → Secure Boot → Disabled):
@@ -86,7 +87,7 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
 [x] Bateria na górnym pasku (0.5.3, ADR 0014) — tylko gdy komputer ma baterię; sprawdzone w QEMU
     ze sztuczną baterią ACPI; na X230 — w Twoim teście.
 [ ] Oznaczanie okien przez ekran (zaufana ramka), zanim pojawią się aplikacje spoza rdzenia (RYZYKA R26).
-[ ] Trwały zapis ustawień i notatek — z Blob Vault (M5).
+[ ] Trwały zapis ustawień, notatek i historii baterii — z Blob Vault (M5).
 
 
 3. ETAPY
