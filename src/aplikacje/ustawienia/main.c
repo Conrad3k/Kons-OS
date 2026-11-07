@@ -266,13 +266,13 @@ enum { F_BRAK, F_USTAW, F_ZMIEN, F_WYLACZ };
 #define POLA_KROK 62
 
 static struct {
-    int znane, wlaczone, tryb, przerwa, czeka;
+    int znane, wlaczone, tryb, przerwa, czeka, usb;
     int formularz, pole; /* F_*, active field */
     char tekst[3][K1_HASLO_MAKS + 1];
     size_t dl[3];
     char komunikat[120];
     int blad;
-} hs = { 0, 0, -1, 0, 0, F_BRAK, 0, { "", "", "" }, { 0, 0, 0 }, "", 0 };
+} hs = { 0, 0, -1, 0, 0, 0, F_BRAK, 0, { "", "", "" }, { 0, 0, 0 }, "", 0 };
 static int skarb = -1;
 
 static void hs_wyczysc(void)
@@ -379,7 +379,8 @@ static void hs_odbierz(void)
         }
         hs.znane = 1;
         hs.tryb = k.c;
-        hs.wlaczone = k.d;
+        hs.wlaczone = k.d & 1;
+        hs.usb = (k.d & 2) != 0;
         hs.przerwa = k.e;
         if (k.a != K1_KOM_SKARB_HASLO)
             continue;
@@ -427,9 +428,10 @@ static void rysuj_haslo(struct k1_obraz *o, const struct k1_motyw *m)
     if (skarb < 0 || (hs.znane && hs.tryb == K1_SKARB_RAM)) {
         k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, "Nie znaleziono miejsca na dane (partycji K1-DANE)",
                  k1_kolor(m->tekst2, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 40, "Hasło i zapis po wyłączeniu działają z pendrive'a, na który zapisano",
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 40, "Hasło i zapis po wyłączeniu wymagają K1 zainstalowanego na dysku",
                  k1_kolor(m->tekst3, 255), 0);
-        snprintf(buf, sizeof buf, "plik k1-%s-usb.img.xz (nie plik .iso). Teraz dane są tylko w pamięci.", K1_WERSJA);
+        snprintf(buf, sizeof buf, "(Instalator) albo pendrive'a z pliku k1-%s-usb.img.xz. Teraz dane są tylko w pamięci.",
+                 K1_WERSJA);
         k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 60, buf, k1_kolor(m->tekst3, 255), 0);
         return;
     }
@@ -458,7 +460,8 @@ static void rysuj_haslo(struct k1_obraz *o, const struct k1_motyw *m)
                  hs.wlaczone ? "Dane są zaszyfrowane hasłem." : "Bez hasła dane są zaszyfrowane, ale bez ochrony przed",
                  k1_kolor(m->tekst3, 255), 0);
         if (!hs.wlaczone)
-            k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 162, "kradzieżą nośnika.", k1_kolor(m->tekst3, 255), 0);
+            k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 162, hs.usb ? "kradzieżą pendrive'a." : "kradzieżą komputera.",
+                     k1_kolor(m->tekst3, 255), 0);
     }
 }
 
@@ -729,7 +732,8 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 72, "Jądro    Linux 6.18 (własna konfiguracja)", k1_kolor(m->tekst, 255), 0);
         k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 100,
                  skarb < 0 || (hs.znane && hs.tryb == K1_SKARB_RAM) ? "Dane    tylko w pamięci (brak partycji K1-DANE)"
-                 : hs.znane                                         ? "Dane    zaszyfrowane na nośniku K1 (partycja K1-DANE)"
+                 : hs.znane && hs.usb                               ? "Dane    zaszyfrowane na pendrivie K1 (partycja K1-DANE)"
+                 : hs.znane                                         ? "Dane    zaszyfrowane na dysku komputera (K1-DANE)"
                                                                     : "Dane    …",
                  k1_kolor(m->tekst, 255), 0);
         k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 136, "Każda część systemu działa w osobnej, zamkniętej klatce.",

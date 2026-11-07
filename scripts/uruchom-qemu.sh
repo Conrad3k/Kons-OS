@@ -44,6 +44,11 @@ rm -f "$LOG" "$MONITOR"
 if [ -w /dev/kvm ]; then AKCEL="-accel kvm -cpu host"; else AKCEL="-accel tcg -cpu max"; fi
 DYSK=
 [ -n "$OBRAZ" ] && DYSK="-drive file=$OBRAZ,if=virtio,format=raw,readonly=on"
+# M6b: the image's dm-verity root hash (OBRAZ.skrot from the build) unless the command line has one
+# already (negative tests pass their own — or none).
+if [ -n "$OBRAZ" ] && [ -f "$OBRAZ.skrot" ] && ! echo "$CMDLINE" | grep -q 'k1\.rdzen_skrot='; then
+    CMDLINE="$CMDLINE k1.rdzen_skrot=$(cat "$OBRAZ.skrot")"
+fi
 
 if [ -n "$DYSK_UEFI" ]; then
     # An installed K1 (M5f): UEFI firmware boots the SATA disk (AHCI of q35, like the X230's disk).

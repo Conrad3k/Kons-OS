@@ -13,10 +13,18 @@ struct k1_bat_historia bat_hist;
 double nastepna_probka;
 /* Battery (0.5.3, 0.5.5): read from sysfs power_supply every BATERIA_CO s (an ACPI battery talks to
  * the embedded controller), a history sample every bat_hist.interwal s. */
+static long long moc_srednia = -1; /* smoothed power draw, mW (0.6.3, Zasoby) */
+static int moc_stan = -1;          /* the battery state it was measured in */
+
 void odczytaj_baterie(double t)
 {
     k1_bateria_odczytaj(SYS "/class/power_supply", &bateria_teraz);
     bateria_odczytana = 1;
+    if (bateria_teraz.stan != moc_stan) { /* charging ↔ discharging: start the average again */
+        moc_stan = bateria_teraz.stan;
+        moc_srednia = -1;
+    }
+    moc_srednia = k1_bateria_srednia(moc_srednia, bateria_teraz.moc_mw);
     if (t >= nastepna_probka) {
         if (k1_bat_hist_dodaj(&bat_hist, &bateria_teraz))
             ustaw_hist_wyslane = 0; /* compacted: Ustawienia gets it again from the start */
@@ -35,7 +43,7 @@ void wyslij_baterie(void)
 {
     struct k1_komunikat k;
     if (bateria_kanal < 0 || !bateria_odczytana ||
-        (bateria_znana && memcmp(&bateria_teraz, &bateria_wyslana, sizeof bateria_teraz) == 0))
+        (bateria_znana && k1_bateria_ta_sama(&bateria_teraz, &bateria_wyslana)))
         return;
     k = komunikat_baterii(&bateria_teraz);
     if (k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1) == 0) {
@@ -52,7 +60,7 @@ void wyslij_ustawieniom(void)
     int ile;
     if (ustaw_kanal < 0 || !bateria_odczytana)
         return;
-    if (!ustaw_znana || memcmp(&bateria_teraz, &ustaw_wyslana, sizeof bateria_teraz) != 0) {
+    if (!ustaw_znana || !k1_bateria_ta_sama(&bateria_teraz, &ustaw_wyslana)) {
         k = komunikat_baterii(&bateria_teraz);
         if (k1_kanal_wyslij(ustaw_kanal, &k, sizeof k, -1) != 0)
             return;
@@ -142,6 +150,15 @@ void raport_zasobow(void)
     if (k.c < 1)
         k.c = 1;
     k1_kanal_wyslij(zasoby_kanal, &k, sizeof k, -1);
+    /* 0.6.3: the battery — percent, state, power draw now and the time left at that rate */
+    {
+        const struct k1_bateria *b = &bateria_teraz;
+        long long moc = b->obecna ? moc_srednia : -1;
+        k = k1_komunikat_nowy(K1_KOM_ZASOBY_BATERIA, 0, b->obecna, b->obecna ? b->procent : -1, b->obecna ? b->stan : 0,
+                              (int32_t)(moc < 0 || moc > K1_MOC_MAKS_MW ? -1 : moc),
+                              b->obecna ? k1_bateria_minuty(b, moc_srednia) : -1);
+        k1_kanal_wyslij(zasoby_kanal, &k, sizeof k, -1);
+    }
     for (i = 0; i < N_USLUG; i++) {
         const struct k1_profil *p = &profile[uslugi[i].profil];
         char sciezka[128];

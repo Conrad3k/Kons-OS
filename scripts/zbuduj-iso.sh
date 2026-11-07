@@ -21,7 +21,8 @@ printf 'file /rdzen.squashfs %s 0400 0 0\n' "$K1_WYNIK/rdzen.squashfs" > "$K1_BU
 "$GEN_CPIO" -t "$SOURCE_DATE_EPOCH" "$K1_BUDOWA/rdzen-iso.lista" > "$ISO/k1/rdzen.cpio"
 # quiet: the kernel's EFI stub prints nothing over the boot screen ("EFI stub: Loaded initrd…");
 # loglevel=7 keeps the kernel's messages on the serial console as before (tests, diagnosis).
-CMDLINE="$(sed 's/k1\.rdzen=[^ ]*/k1.rdzen=wbudowany/' "$K1_REPO/jadro/cmdline") quiet loglevel=7"
+# M6b: k1.rdzen_skrot = the dm-verity root hash of rdzen.squashfs (initramfs refuses a changed image).
+CMDLINE="$(sed 's/k1\.rdzen=[^ ]*/k1.rdzen=wbudowany/' "$K1_REPO/jadro/cmdline") k1.rdzen_skrot=$(cat "$K1_WYNIK/rdzen.squashfs.skrot") quiet loglevel=7"
 cat > "$ISO/boot/grub/grub.cfg" <<CFG
 # Kons K1 $K1_WERSJA — start bez menu. Tryb graficzny ustawia GRUB (UEFI GOP albo VESA),
 # jądro przejmuje go sterownikiem simpledrm. 1366x768 = ekran ThinkPada X230 (firmware laptopa

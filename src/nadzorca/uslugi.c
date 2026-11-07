@@ -525,16 +525,21 @@ void obsluz_gui(void)
             gui_kanal = -1;
             return;
         }
-        /* gui: start an application, power off; the password screen (M5e): power off only */
+        /* gui: start an application, power off, log out; the password screen (M5e): power off only */
         if (w != K1_ODB_JEST || (k.typ != K1_KOM_URUCHOM && k.typ != K1_KOM_WYLACZ) ||
-            (k.typ == K1_KOM_URUCHOM && gui_kanal_uid != K1_UID_GUI)) {
+            ((k.typ == K1_KOM_URUCHOM || k.a == 2) && gui_kanal_uid != K1_UID_GUI)) {
             k1_log(TAG, "odrzucono prośbę od pulpitu");
             continue;
         }
-        if (k.typ == K1_KOM_URUCHOM)
+        if (k.typ == K1_KOM_URUCHOM) {
             uruchom_aplikacje(k.a);
-        else
+        } else if (k.a == 2) {
+            k1_log(TAG, "wylogowanie na prośbę pulpitu: zamykam aplikacje i magazyn danych");
+            zamknij_sesje();
+            return; /* our channel to gui closes with it */
+        } else {
             wylacz(k.a);
+        }
     }
 }
 

@@ -6,7 +6,7 @@ Stan na wersję 0.4.0 (koniec M4). Klasyfikacja: **W** — wysokie, **Ś** — �
 
 | Nr | Ryzyko / ograniczenie | Waga | Co je ogranicza teraz | Plan |
 |---|---|---|---|---|
-| R1 | **Brak weryfikacji integralności obrazu rdzenia.** Jądro parsuje niezweryfikowany SquashFS; podmieniony lub uszkodzony obraz może uruchomić dowolny kod jako PID 1 albo wywołać kernel panic. | W | nic poza fizyczną kontrolą nośnika | M10: dm-verity z root hash w podpisanej linii poleceń |
+| R1 | **Obraz rdzenia sprawdzany, ale skrót niepodpisany.** Od 0.6.3 (M6b) initramfs weryfikuje cały SquashFS przez dm-verity przed montowaniem; skrót główny jest w linii poleceń GRUB-a, którą może zmienić każdy, kto ma nośnik (razem z obrazem). | Ś | dm-verity (podmiana bajtu = zatrzymanie, test `neg-zmieniony-obraz`); Instalator sprawdza odcisk i podpis całości (M6a) | M6d: skrót w podpisanym UKI, Secure Boot |
 | R2 | **Brak Secure Boot i podpisanego UKI.** Linię poleceń jądra (`k1.rdzen`, `lsm=`, `lockdown=`) może zmienić każdy, kto kontroluje bootloader/QEMU. | W | — | M10 |
 | R3 | ~~Wszystko działa jako root~~ — **od M3 usługi w klatkach** (UID, brak capabilities, seccomp, Landlock, cgroups; ADR 0007). Zostaje: luka w jądrze osiągalna przez dozwolone wywołania (DRM `ioctl`, evdev, gniazda UNIX) daje przejęcie systemu. | Ś | biała lista seccomp, warunki na argumenty, testy-próby | M11, M12 |
 | R4 | **Jądro to wspólna granica zaufania.** Luka zero-day w jądrze daje przejęcie całego świata natywnego. | W | minimalna konfiguracja (brak modułów, io_uring, BPF, userfaultfd, 32-bit, VT…), wzmocnienia KSPP, lockdown | szybkie aktualizacje LTS (`jadro/README.md`); M11: osobne jądro dla przeglądarki |

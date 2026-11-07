@@ -15,7 +15,7 @@ Rysuje panele pulpitu i obsługuje je myszą:
 - **dolny pasek** wyśrodkowany (jak Windows 11): przycisk Start (znak K1) i aplikacje Zegar,
   Notatki, Ustawienia, Zasoby; kropka = uruchomiona, kreska w kolorze akcentu = aktywna; kliknięcie:
   uruchom / pokaż / zminimalizuj,
-- **menu Start**: aplikacje z opisami, „Uruchom ponownie”, „Wyłącz”; klawisz Super otwiera/zamyka.
+- **menu Start**: aplikacje z opisami, „Wyloguj” (0.6.3), „Uruchom ponownie”, „Wyłącz”; klawisz Super otwiera/zamyka.
 
 ## Granica zaufania
 Klient `ekran` w roli **powłoki** i jedyny klient nadzorcy (kanał fd 4). Nie widzi treści okien
@@ -28,7 +28,7 @@ UID/GID 102, klatka (ADR 0007): seccomp = baza + `memfd_create`, `ftruncate`; La
 
 ## Wejścia i wyjścia
 - fd 3: kanał do ekranu — powitanie, ustawienia, wskaźnik/klawisz Super, lista okien (`OKNO`).
-- fd 4: kanał do nadzorcy — `URUCHOM(aplikacja)`, `WYLACZ(0 = wyłącz, 1 = uruchom ponownie)`.
+- fd 4: kanał do nadzorcy — `URUCHOM(aplikacja)`, `WYLACZ(0 = wyłącz, 1 = uruchom ponownie, 2 = wyloguj)`.
 - fd 5 (0.5.3, ADR 0014): od nadzorcy, jednokierunkowo — `BATERIA` (jest, procent, stan, zasilacz);
   nadawca musi mieć UID 0, każde pole sprawdzane; po zamknięciu kanału gui przestaje go czytać.
   Log przy zmianie obecności, stanu, zasilacza lub co 5 % („bateria 73%, rozładowywanie, …”).
@@ -48,7 +48,7 @@ o uruchomienie jednej z trzech aplikacji, wyłączyć komputer (RYZYKA R27).
 ## Testy
 | Test | Rodzaj |
 |---|---|
-| `test-m4.sh`: menu Start, uruchamianie z paska i z menu, minimalizacja, Start → Wyłącz, zrzuty | funkcjonalny |
+| `test-m4.sh`: menu Start, uruchamianie z paska i z menu, minimalizacja, Start → Wyłącz, Start → Wyloguj (z hasłem: ekran hasła wraca), zrzuty | funkcjonalny |
 | w systemie: klatka (UID, capabilities, seccomp, cgroup, deskryptory) | funkcjonalny |
 | w systemie: próba w klatce `gui` (22 zabronione działania, pamięć wykonywalna) | negatywny |
 | w systemie: awaria gui → wraca, okna zostają | negatywny |

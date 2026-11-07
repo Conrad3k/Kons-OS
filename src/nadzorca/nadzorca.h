@@ -77,6 +77,7 @@ struct usluga {
 #define N_USLUG 11 /* entries of uslugi[] (checked in uslugi.c) */
 
 #define BATERIA_CO 15.0     /* s between reads (ACPI: the embedded controller) */
+#define BATERIA_CO_ZASOBY 5.0 /* while Zasoby shows the power draw */
 #define BATERIA_PROBKA 30   /* s between history samples (doubles when the history is compacted) */
 /* profile.c */
 extern const struct k1_profil profile[K1_PROFIL_MAKS + 1];
@@ -131,6 +132,7 @@ extern int skarb_bez_dysku;
 extern char skarb_dane[32];
 int kanal_do_skarbca(int wlasciciel, int uid);
 void szukaj_pozno(void);
+void zamknij_sesje(void);
 void obsluz_skarbiec(void);
 
 /* instalacja.c */

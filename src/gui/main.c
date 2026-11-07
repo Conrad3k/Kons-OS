@@ -46,7 +46,7 @@
 #define DOK_APL 4  /* applications on the bottom bar (Instalator only in the menu) */
 #define DOK_SZER (DOK_PAD + EL + 13 + DOK_APL * EL + (DOK_APL - 1) * ODST + DOK_PAD)
 #define MARG 16    /* shadow margin inside panel surfaces */
-#define MENU_SZER 360
+#define MENU_SZER 400
 #define MENU_WIERSZ 56
 #define MENU_NAGL 72
 #define MENU_STOPKA 56
@@ -76,7 +76,7 @@ static const struct {
     [K1_APL_ZEGAR] = { "Zegar", "Godzina i data", K1_IK_ZEGAR },
     [K1_APL_NOTATKI] = { "Notatki", "Zapisywane w tym komputerze", K1_IK_NOTATKI },
     [K1_APL_USTAWIENIA] = { "Ustawienia", "Wygląd, ekran, mysz, data, informacje", K1_IK_USTAWIENIA },
-    [K1_APL_ZASOBY] = { "Zasoby", "Procesor i pamięć — co pracuje", K1_IK_ZASOBY },
+    [K1_APL_ZASOBY] = { "Zasoby", "Procesor, pamięć, bateria", K1_IK_ZASOBY },
     [K1_APL_INSTALACJA] = { "Instalator", "Zainstaluj K1 na dysku tego komputera", K1_IK_DYSK },
 };
 
@@ -298,6 +298,11 @@ static void rysuj_dok(void)
     k1_pow_zatwierdz(&k, &dok);
 }
 
+/* Footer of the Start menu, right-aligned: 10 + index (10 = log out, 11 = restart, 12 = power off). */
+#define STOPKA_N 3
+static const char *const stopka_etykiety[STOPKA_N] = { "Wyloguj", "Uruchom ponownie", "Wyłącz" };
+static const enum k1_ikona stopka_ikony[STOPKA_N] = { K1_IK_KLODKA, K1_IK_RESTART, K1_IK_ZASILANIE };
+
 static void rysuj_menu(void)
 {
     const struct k1_motyw *m = motyw();
@@ -325,35 +330,37 @@ static void rysuj_menu(void)
     k1_prostokat(o, MARG + 16, y, MENU_SZER - 32, 1, k1_kolor(m->tekst, 24));
     y += 10;
     {
-        static const char *const etykiety[] = { "Uruchom ponownie", "Wyłącz" };
-        static const enum k1_ikona ikony[] = { K1_IK_RESTART, K1_IK_ZASILANIE };
         int32_t x = MARG + MENU_SZER - 12;
         int b;
-        for (b = 1; b >= 0; b--) {
-            int32_t tw = k1_tekst_szer(K1_CZ_TEKST, etykiety[b]), bw = tw + 44;
+        for (b = STOPKA_N - 1; b >= 0; b--) {
+            int32_t tw = k1_tekst_szer(K1_CZ_TEKST, stopka_etykiety[b]), bw = tw + 44;
             x -= bw;
             if (hover_menu == 10 + b)
                 k1_zaokraglony(o, (float)x, (float)y, (float)bw, 36, 10, k1_kolor(m->najechanie, 255));
-            k1_ikona(o, ikony[b], (float)x + 12, (float)y + 10, 16, k1_kolor(m->tekst2, 255));
-            k1_tekst(o, K1_CZ_TEKST, x + 34, y + 23, etykiety[b], k1_kolor(m->tekst, 255), 0);
+            k1_ikona(o, stopka_ikony[b], (float)x + 12, (float)y + 10, 16, k1_kolor(m->tekst2, 255));
+            k1_tekst(o, K1_CZ_TEKST, x + 34, y + 23, stopka_etykiety[b], k1_kolor(m->tekst, 255), 0);
             x -= 4;
         }
     }
     k1_pow_zatwierdz(&k, &menu);
 }
 
-/* Footer button under (x, y) in menu coordinates: 10 = restart, 11 = power off, -1 = none. */
-static int przycisk_stopki(int32_t x, int32_t y)
+/* Footer button under (x, y) in menu coordinates: 10 + its index, -1 = none. With `srodek` != NULL
+ * it gives the centre x of button `*srodek - 10` instead (for the test log). */
+static int przycisk_stopki(int32_t x, int32_t y, int32_t *srodek)
 {
-    static const char *const etykiety[] = { "Uruchom ponownie", "Wyłącz" };
     int32_t yb = MARG + MENU_NAGL + K1_APL_MAKS * MENU_WIERSZ + 18, px = MARG + MENU_SZER - 12;
     int b;
-    if (y < yb || y >= yb + 36)
+    if (srodek == NULL && (y < yb || y >= yb + 36))
         return -1;
-    for (b = 1; b >= 0; b--) {
-        int32_t bw = k1_tekst_szer(K1_CZ_TEKST, etykiety[b]) + 44;
+    for (b = STOPKA_N - 1; b >= 0; b--) {
+        int32_t bw = k1_tekst_szer(K1_CZ_TEKST, stopka_etykiety[b]) + 44;
         px -= bw;
-        if (x >= px && x < px + bw)
+        if (srodek != NULL && *srodek == 10 + b) {
+            *srodek = px + bw / 2;
+            return 10 + b;
+        }
+        if (srodek == NULL && x >= px && x < px + bw)
             return 10 + b;
         px -= 4;
     }
@@ -409,8 +416,12 @@ static void pokaz_menu(int tak)
     if (tak) {
         dzwiek_otwarty = 0;
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_DZWIEK, 0, 0, 0, 0, 0));
-        k1_log(TAG, "menu Start otwarte (pierwszy wiersz %d,%d co %d; Wyłącz %d,%d)", menu_x + MARG + MENU_SZER / 2,
-               menu_y + MARG + MENU_NAGL + MENU_WIERSZ / 2 - 2, MENU_WIERSZ, menu_x + MARG + MENU_SZER - 50,
+        int32_t wyl = 12, wyg = 10;
+        przycisk_stopki(0, 0, &wyl);
+        przycisk_stopki(0, 0, &wyg);
+        k1_log(TAG, "menu Start otwarte (pierwszy wiersz %d,%d co %d; Wyłącz %d,%d; Wyloguj %d,%d)",
+               menu_x + MARG + MENU_SZER / 2, menu_y + MARG + MENU_NAGL + MENU_WIERSZ / 2 - 2, MENU_WIERSZ,
+               menu_x + wyl, menu_y + MARG + MENU_NAGL + K1_APL_MAKS * MENU_WIERSZ + 36, menu_x + wyg,
                menu_y + MARG + MENU_NAGL + K1_APL_MAKS * MENU_WIERSZ + 36);
     }
 }
@@ -456,9 +467,9 @@ static int wiersz_menu(int32_t x, int32_t y)
 {
     int32_t r;
     if (x < MARG + 8 || x >= MARG + MENU_SZER - 8 || y < MARG + MENU_NAGL)
-        return przycisk_stopki(x, y);
+        return przycisk_stopki(x, y, NULL);
     r = (y - MARG - MENU_NAGL) / MENU_WIERSZ + 1;
-    return r <= K1_APL_MAKS ? (int)r : przycisk_stopki(x, y);
+    return r <= K1_APL_MAKS ? (int)r : przycisk_stopki(x, y, NULL);
 }
 
 static void wskaznik(const struct k1_komunikat *m)
@@ -496,8 +507,11 @@ static void wskaznik(const struct k1_komunikat *m)
         if (puszcz && nowy >= 1 && nowy <= K1_APL_MAKS) {
             aplikacja(nowy);
         } else if (puszcz && nowy >= 10) {
-            k1_log(TAG, "%s", nowy == 11 ? "wyłączanie komputera" : "ponowne uruchamianie komputera");
-            do_nadzorcy(k1_komunikat_nowy(K1_KOM_WYLACZ, 0, nowy == 11 ? 0 : 1, 0, 0, 0, 0));
+            static const char *const co[] = { "wylogowanie", "ponowne uruchamianie komputera", "wyłączanie komputera" };
+            k1_log(TAG, "%s", co[nowy - 10]);
+            pokaz_menu(0);
+            /* WYLACZ a: 0 power off, 1 restart, 2 log out */
+            do_nadzorcy(k1_komunikat_nowy(K1_KOM_WYLACZ, 0, nowy == 12 ? 0 : nowy == 11 ? 1 : 2, 0, 0, 0, 0));
         }
         break;
     case P_GORA:

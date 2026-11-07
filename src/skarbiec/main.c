@@ -125,6 +125,8 @@ static void otworz_magazyn(void)
         k1_log(TAG, "partycja K1-DANE: %s — dane tylko w pamięci", k1_mag_opis(w));
 }
 
+static int na_usb; /* K1-DANE is on a USB stick (from nadzorca's SKARB_KLIENT) */
+
 static int tryb(void)
 {
     return trwaly ? K1_SKARB_TRWALY : (zablokowany ? K1_SKARB_ZABLOKOWANY : K1_SKARB_RAM);
@@ -249,8 +251,8 @@ static int usun_obiekt(int wl, int id)
 
 static void odpowiedz(struct klient *k, int id, int typ, int wynik)
 {
-    struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_SKARB_WYNIK, (uint32_t)id, typ, wynik, tryb(), haslo_ustawione(),
-                                              sekund_do_proby());
+    struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_SKARB_WYNIK, (uint32_t)id, typ, wynik, tryb(),
+                                              haslo_ustawione() | (trwaly && na_usb ? 2 : 0), sekund_do_proby());
     k1_kanal_wyslij(k->fd, &m, sizeof m, -1);
 }
 
@@ -293,6 +295,7 @@ static void obsluz_sterowanie(void)
         kl[i].fd = o.fd;
         kl[i].wlasciciel = m.a;
         kl[i].uid = m.b;
+        na_usb = m.c; /* where the K1-DANE is (nadzorca knows; shown in Ustawienia and Notatki) */
         k1_log(TAG, "nowy klient: właściciel %d (uid %d)", m.a, m.b);
     }
 }

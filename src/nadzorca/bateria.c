@@ -53,12 +53,60 @@ struct suma {
     long long teraz, pelna;
 };
 
+#define MAKS_LADUNEK 1000000000LL /* µAh: 1000 Ah */
+#define MAKS_NAPIECIE 100000000LL /* µV: 100 V — the products below stay far from overflow */
+
+/* Power of one battery in µW: power_now, else current_now × voltage_now; -1 unknown. */
+static long long moc_baterii(int fd)
+{
+    long long p = liczba(fd, "power_now"), i, u;
+    if (p >= 0)
+        return p;
+    i = liczba(fd, "current_now");
+    u = liczba(fd, "voltage_now");
+    if (i < 0 || u < 0 || i > MAKS_LADUNEK || u > MAKS_NAPIECIE)
+        return -1;
+    return i * u / 1000000;
+}
+
+int k1_bateria_ta_sama(const struct k1_bateria *a, const struct k1_bateria *b)
+{
+    return a->obecna == b->obecna && a->procent == b->procent && a->stan == b->stan && a->zasilacz == b->zasilacz;
+}
+
+long long k1_bateria_srednia(long long poprz, long long moc_mw)
+{
+    if (moc_mw < 0)
+        return poprz;
+    if (poprz < 0)
+        return moc_mw;
+    return (poprz * 7 + moc_mw * 3 + 5) / 10;
+}
+
+int k1_bateria_minuty(const struct k1_bateria *b, long long moc_mw)
+{
+    long long e, m;
+    if (!b->obecna || moc_mw < 100 || b->energia_mwh < 0 || b->pelna_mwh <= 0)
+        return -1;
+    if (b->stan == K1_BAT_ROZLADOWANIE)
+        e = b->energia_mwh;
+    else if (b->stan == K1_BAT_LADOWANIE)
+        e = b->pelna_mwh - b->energia_mwh;
+    else
+        return -1;
+    if (e < 0)
+        return -1;
+    m = (e * 60 + moc_mw / 2) / moc_mw;
+    return m <= K1_BAT_MINUT_MAKS ? (int)m : -1;
+}
+
 int k1_bateria_odczytaj(const char *katalog, struct k1_bateria *b)
 {
     struct suma energia = { 0, 0 }, ladunek = { 0, 0 };
     long long procenty = 0;
     int n_procent = 0, baterie = 0, laduje = 0, rozladowuje = 0, pelne = 0, nie_laduje = 0;
-    int grupy = 0, suma_proc = 0;
+    int grupy = 0, suma_proc = 0, moc_znana = 1, energia_znana = 1;
+    long long moc = 0, e_teraz = 0, e_pelna = 0;
     struct dirent *de;
     DIR *d;
 
@@ -66,12 +114,13 @@ int k1_bateria_odczytaj(const char *katalog, struct k1_bateria *b)
     b->procent = -1;
     b->stan = K1_BAT_NIEZNANY;
     b->zasilacz = 0;
+    b->moc_mw = b->energia_mwh = b->pelna_mwh = -1;
     d = opendir(katalog);
     if (d == NULL)
         return -1;
     while ((de = readdir(d)) != NULL) {
         char typ[32], s[32];
-        long long n, f, c;
+        long long n, f, c, u, w;
         int fd;
         if (de->d_name[0] == '.')
             continue;
@@ -94,13 +143,31 @@ int k1_bateria_odczytaj(const char *katalog, struct k1_bateria *b)
             if (n >= 0 && f > 0) {
                 energia.teraz += n < f ? n : f;
                 energia.pelna += f;
+                e_teraz += n < f ? n : f;
+                e_pelna += f;
             } else if ((n = liczba(fd, "charge_now")) >= 0 && (f = liczba(fd, "charge_full")) > 0) {
                 ladunek.teraz += n < f ? n : f;
                 ladunek.pelna += f;
+                /* µAh × µV → µWh (voltage_now, else the design minimum) */
+                u = liczba(fd, "voltage_now");
+                if (u <= 0)
+                    u = liczba(fd, "voltage_min_design");
+                if (u > 0 && u <= MAKS_NAPIECIE && f <= MAKS_LADUNEK) {
+                    e_teraz += (n < f ? n : f) * u / 1000000;
+                    e_pelna += f * u / 1000000;
+                } else {
+                    energia_znana = 0;
+                }
             } else if ((c = liczba(fd, "capacity")) >= 0 && c <= 100) {
                 procenty += c;
                 n_procent++;
+                energia_znana = 0;
             }
+            w = moc_baterii(fd);
+            if (w >= 0)
+                moc += w;
+            else
+                moc_znana = 0;
             if (czytaj(fd, "status", s, sizeof s) == 0) {
                 if (strcmp(s, "Charging") == 0)
                     laduje++;
@@ -118,6 +185,12 @@ int k1_bateria_odczytaj(const char *katalog, struct k1_bateria *b)
     if (baterie == 0)
         return 0;
     b->obecna = 1;
+    if (moc_znana)
+        b->moc_mw = moc / 1000;
+    if (energia_znana && e_pelna > 0) {
+        b->energia_mwh = e_teraz / 1000;
+        b->pelna_mwh = e_pelna / 1000;
+    }
     /* Batteries in the same unit are weighted by their size; different units are averaged. */
     if (energia.pelna > 0) {
         suma_proc += (int)((energia.teraz * 100 + energia.pelna / 2) / energia.pelna);

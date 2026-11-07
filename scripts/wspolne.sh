@@ -16,6 +16,22 @@ info() { printf '[k1] %s\n' "$*"; }
 blad() { printf '[k1] BŁĄD: %s\n' "$*" >&2; exit 1; }
 # Test battery for QEMU (testy/acpi/bateria.asl → ACPI table): $1 = state (1 discharging,
 # 2 charging), $2 = AC adapter online (0/1), $3 = output .aml file.
+# M6b (ADR 0021): dm-verity hash tree appended to a SquashFS image (data padded to 4 KiB blocks, the
+# tree right after it, no superblock); the root hash goes to PLIK.skrot (k1.rdzen_skrot=… on the
+# kernel command line). Fixed salt: the same image gives the same bytes and the same root hash.
+K1_VERITY_SOL=4b31207264657a656e2056657269747920736f6c00000000000000000000000000
+verity() { # $1 = plik SquashFS (rozszerzany w miejscu)
+    command -v veritysetup >/dev/null || blad "brak veritysetup (scripts/przygotuj-srodowisko.sh: cryptsetup-bin)"
+    _rozm=$(stat -c %s "$1"); _bloki=$(( (_rozm + 4095) / 4096 ))
+    truncate -s $((_bloki * 4096)) "$1"
+    veritysetup format --no-superblock --hash-offset=$((_bloki * 4096)) --data-blocks="$_bloki" \
+        --data-block-size=4096 --hash-block-size=4096 --salt="$K1_VERITY_SOL" "$1" "$1" > "$1.verity.log" 2>&1 \
+        || { cat "$1.verity.log"; blad "veritysetup: $1"; }
+    sed -n 's/^Root hash:[[:space:]]*\([0-9a-f]\{64\}\)$/\1/p' "$1.verity.log" > "$1.skrot"
+    rm -f "$1.verity.log"
+    [ "$(wc -c < "$1.skrot")" -eq 65 ] || blad "veritysetup: brak skrótu głównego dla $1"
+}
+
 bateria_aml() {
     sed "s/@STAN@/$1/; s/@ZASILACZ@/$2/" "$K1_REPO/testy/acpi/bateria.asl" > "${3%.aml}.asl"
     iasl -p "${3%.aml}" "${3%.aml}.asl" >/dev/null 2>&1 || blad "iasl: nie udało się skompilować ${3%.aml}.asl"

@@ -12,7 +12,18 @@ struct k1_bateria {
     int procent;  /* 0..100, -1 unknown (or no battery) */
     int stan;     /* enum k1_bateria_stan (k1_komunikat.h) */
     int zasilacz; /* 1: a "Mains" supply is online */
+    /* 0.6.3, for Zasoby: power flowing in or out of the batteries, mW (-1 unknown), and their energy
+     * now and when full, mWh (-1 unknown: some battery reports neither energy nor charge+voltage) */
+    long long moc_mw, energia_mwh, pelna_mwh;
 };
+
+/* gui and Ustawienia get only these fields (the power changes on every read). */
+int k1_bateria_ta_sama(const struct k1_bateria *a, const struct k1_bateria *b);
+/* Smoothed power: the firmware's reading jumps with every burst of work. `poprz` < 0: none yet. */
+long long k1_bateria_srednia(long long poprz, long long moc_mw);
+/* Minutes until empty (discharging) or full (charging) at power `moc_mw`; -1 when there is no sane
+ * estimate (unknown energy or power, under 0.1 W, other states, over 99 h). */
+int k1_bateria_minuty(const struct k1_bateria *b, long long moc_mw);
 
 /* Reads every entry of `katalog` (/sys/class/power_supply). Returns 0 (also when the directory
  * is empty), -1 when it cannot be opened (then `b` = no battery). Values outside sane ranges or
