@@ -56,6 +56,10 @@ kodzie zamiast ręcznego `k1_kanal_odbierz` + sprawdzeń), historia baterii (`k1
 `K1_WL_SYSTEM`), biblioteka testów `testy/qemu/k1qemu.py` (klasa `Maszyna`; nowe testy QEMU pisz na niej),
 `testy.sh` równolegle z KVM. **Nie edytuj `scripts/testy.sh` ani innych skryptów, gdy testy działają w tle**
 (powłoka czyta skrypt w trakcie — przebieg staje się niewiarygodny).
+0.6.2 — **M6a** (ADR 0021): manifest w K1-EFI na 47 MiB (`k1_manifest.c`, FAT 47 MiB), podpis EdDSA (Monocypher)
+narzędziem `narzedzia/podpisz.c` z sekretu CI `K1_KLUCZ_PODPISU` (właściciel dodaje sam — **nigdy nie proś o klucz w
+czacie**); bez sekretu = wersja deweloperska (`build/gen/k1_klucz.h`: `K1_KLUCZ_JEST 0`). Instalator: skrót, podpis
+(gdy klucz), zakaz starszej wersji. Kolejne kroki M6: b dm-verity, c A/B, d Secure Boot (MOK).
 Pierwszy laptop właściciela: **ThinkPad X230** (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez
 simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
 

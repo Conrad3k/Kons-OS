@@ -13,7 +13,7 @@ USB=$K1_BUDOWA/usb
 WYJSCIE=$K1_WYNIK/k1-$K1_WERSJA-usb.img
 ESP_MIB=48
 DANE_MIB=64
-[ -f "$K1_WYNIK/rdzen.squashfs" ] && [ -f "$K1_BUDOWA/gen/start.png" ] && [ -x "$GEN_CPIO" ] || blad "najpierw zbuduj system: scripts/zbuduj.sh"
+[ -f "$K1_WYNIK/rdzen.squashfs" ] && [ -f "$K1_BUDOWA/gen/start.png" ] && [ -x "$K1_BUDOWA/obj/podpisz" ] && [ -x "$GEN_CPIO" ] || blad "najpierw zbuduj system: scripts/zbuduj.sh"
 for n in apt-get dpkg-deb mformat mmd mcopy sfdisk xz truncate; do command -v $n >/dev/null || blad "brak $n (scripts/przygotuj-srodowisko.sh)"; done
 
 info "obraz USB $WYJSCIE"
@@ -56,10 +56,15 @@ CFG
 # EFI partition (FAT): the same inputs give the same image (obraz_fat, wspolne.sh)
 ESP=$USB/esp.img
 printf 'Kons K1 %s\n' "$K1_WERSJA" > "$USB/info"
-obraz_fat "$ESP" "$ESP_MIB" 4b315553 "$K1_EFI/shimx64.efi.signed.latest:/EFI/BOOT/BOOTX64.EFI" \
+# FAT: 47 MiB; the last MiB of the partition holds the manifest (version, checksum, signature — M6a,
+# ADR 0021) at 47 MiB, written by narzedzia/podpisz.c (key from K1_KLUCZ_PODPISU, else unsigned).
+obraz_fat "$ESP" $((ESP_MIB - 1)) 4b315553 "$K1_EFI/shimx64.efi.signed.latest:/EFI/BOOT/BOOTX64.EFI" \
     "$K1_EFI/gcdx64.efi.signed:/EFI/BOOT/grubx64.efi" "$USB/info:/.disk/info" "$USB/grub.cfg:/boot/grub/grub.cfg" \
     "$K1_BUDOWA/gen/start.png:/boot/grub/start.png" \
     "$K1_WYNIK/bzImage:/k1/bzImage" "$K1_WYNIK/initramfs.cpio:/k1/initramfs.cpio" "$USB/rdzen.cpio:/k1/rdzen.cpio"
+
+truncate -s "${ESP_MIB}M" "$ESP"
+"$K1_BUDOWA/obj/podpisz" obraz "$ESP" "$K1_WERSJA" || blad "manifest obrazu systemu (podpisz)"
 
 # The disk: GPT with fixed GUIDs, the EFI partition copied in, K1-DANE left as zeros.
 rm -f "$WYJSCIE" "$WYJSCIE.xz"

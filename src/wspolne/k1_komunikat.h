@@ -97,10 +97,12 @@ enum k1_komunikat_typ {
     /* skarbiec → nadzorca, on the control channel (direction K1_KIER_DO_NADZORCY) */
     K1_KOM_SKARB_STAN = 82,   /* a=K1_SKARB_* mode, b=1 password set */
     /* nadzorca → Instalator application (M5f) */
-    K1_KOM_INST_DYSK = 66,    /* obiekt=1..K1_INST_DYSKI_MAKS, a=size MiB, b=K1_DYSK_* kind, c=1 Kons K1 on it,
+    K1_KOM_INST_DYSK = 66,    /* obiekt=1..K1_INST_DYSKI_MAKS, a=size MiB, b=K1_DYSK_* kind, c=Kons K1 on it: 0 no,
+                               * 1 yes without a manifest (0.5.9–0.6.1), K1_INST_WERSJA|version (M6a),
                                * d=logical sector size, e=1 in use (its data partition is open now) */
     K1_KOM_INST_LISTA = 67,   /* obiekt=0, a=number of disks sent, b=the system to copy: 1 found (one K1 stick),
-                               * 0 none (not started from a K1 stick — e.g. the .iso on it), 2 two K1 sticks */
+                               * 0 none (not started from a K1 stick — e.g. the .iso on it), 2 two K1 sticks;
+                               * c=its version (M6a manifest; 0 = none), d=1 signed */
     K1_KOM_INST_POSTEP = 68,  /* obiekt=0, a=percent 0..100, b=K1_INST_ETAP_* */
     K1_KOM_INST_WYNIK = 69,   /* obiekt=0, a=result (0 or K1_INST_BLAD_* < 0), b=K1_INST_* mode */
     K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample
@@ -166,6 +168,7 @@ enum k1_ustawienie {
 /* Installer (M5f, ADR 0018) */
 #define K1_INST_DYSKI_MAKS 8
 enum { K1_INST_INSTALUJ = 1, K1_INST_AKTUALIZUJ = 2 };
+#define K1_INST_WERSJA 0x1000000 /* INST_DYSK c: flag "version follows" (major<<16|minor<<8|patch) */
 enum { K1_DYSK_SATA = 1, K1_DYSK_NVME = 2, K1_DYSK_VIRTIO = 3, K1_DYSK_INNY = 4 };
 enum { K1_INST_ETAP_CZYSZCZENIE = 1, K1_INST_ETAP_KOPIA = 2, K1_INST_ETAP_SPRAWDZANIE = 3, K1_INST_ETAP_PARTYCJE = 4 };
 #define K1_INST_ETAP_MAKS 4
@@ -176,7 +179,9 @@ enum { K1_INST_ETAP_CZYSZCZENIE = 1, K1_INST_ETAP_KOPIA = 2, K1_INST_ETAP_SPRAWD
 #define K1_INST_BLAD_SPRAWDZ (-5)  /* what was written reads back differently */
 #define K1_INST_BLAD_ZRODLO (-6)   /* no system to copy (not started from a K1 stick) */
 #define K1_INST_BLAD_PRZERWANE (-7) /* the writing program ended without a result */
-#define K1_INST_BLAD_MIN (-7)
+#define K1_INST_BLAD_PODPIS (-8)   /* M6a: no manifest, wrong checksum, or no valid K1 signature */
+#define K1_INST_BLAD_STARSZA (-9)  /* M6a: the stick has an older version than the disk */
+#define K1_INST_BLAD_MIN (-9)
 
 /* Battery state (K1_KOM_BATERIA c), from the kernel's power_supply "status". */
 enum k1_bateria_stan {

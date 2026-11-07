@@ -16,6 +16,28 @@ void inst_wyslij(struct k1_komunikat k)
         k1_log(TAG, "instalator: wysłanie do okna nieudane");
 }
 
+/* The manifest of a K1-EFI partition (M6a): its version, 0 when there is none; *podpis = signed. */
+static uint32_t wersja_partycji(const char *nazwa, int *podpis)
+{
+    uint8_t man[K1_MANIFEST_BAJTY];
+    struct k1_manifest m;
+    char sciezka[96];
+    int fd, ok;
+    *podpis = 0;
+    if (nazwa[0] == '\0')
+        return 0;
+    snprintf(sciezka, sizeof sciezka, DEV "/%s", nazwa);
+    fd = open(sciezka, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    if (fd < 0)
+        return 0;
+    ok = pread(fd, man, sizeof man, K1_MANIFEST_OFF) == (ssize_t)sizeof man && k1_manifest_czytaj(man, &m) == 0;
+    close(fd);
+    if (!ok)
+        return 0;
+    *podpis = (m.flagi & K1_MANIFEST_PODPISANY) != 0;
+    return m.wersja;
+}
+
 void inst_lista_dyskow(void)
 {
     int i;
@@ -24,12 +46,22 @@ void inst_lista_dyskow(void)
     for (i = 0; i < inst_lista.n; i++) {
         const struct k1_dysk *d = &inst_lista.d[i];
         long long mib = (long long)(d->bajty >> 20);
+        int podpis, k1 = 0;
+        if (d->efi[0] && d->dane[0]) { /* K1 on it: 1 without a manifest (0.5.9–0.6.1), else its version */
+            uint32_t w = wersja_partycji(d->efi, &podpis);
+            k1 = w ? (int)(K1_INST_WERSJA | w) : 1;
+        }
         inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_DYSK, (uint32_t)i + 1, (int32_t)(mib > 0x7fffffff ? 0x7fffffff : mib),
-                                      d->rodzaj, d->efi[0] && d->dane[0], d->sektor,
+                                      d->rodzaj, k1, d->sektor,
                                       d->dane[0] && strcmp(d->dane, skarb_dane) == 0));
     }
-    inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_LISTA, 0, inst_lista.n,
-                                  inst_lista.zrodlo[0] ? 1 : (inst_lista.zrodel > 1 ? 2 : 0), 0, 0, 0));
+    {
+        int podpis;
+        uint32_t w = inst_lista.zrodlo[0] ? wersja_partycji(inst_lista.zrodlo, &podpis) : 0;
+        inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_LISTA, 0, inst_lista.n,
+                                      inst_lista.zrodlo[0] ? 1 : (inst_lista.zrodel > 1 ? 2 : 0), (int32_t)w,
+                                      w ? podpis : 0, 0));
+    }
     k1_log(TAG, "instalator: dysków %d, system do skopiowania: %s", inst_lista.n,
            inst_lista.zrodlo[0] ? inst_lista.zrodlo : "brak (nie z pendrive'a K1)");
 }
