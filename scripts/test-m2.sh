@@ -73,6 +73,9 @@ sprawdz("zrzut 1: tapeta (kolorowa, nie jednolita)", px(W // 4, H // 2) != px(W 
 sprawdz("zrzut 1: ciemny górny pasek", max(px(W // 2, 4)) < 120, str(px(W // 2, 4)))
 sprawdz("zrzut 1: kursor w miejscu z logu", krem(px(x0 + 3, y0 + 9)), str(px(x0 + 3, y0 + 9)))
 px1 = px
+# the mouse must be open in wejscie before it is moved (a fast boot may find it a moment later —
+# nadzorca then restarts wejscie with the full set of devices)
+sprawdz("wejście: mysz otwarta", czekaj(r"K1-WEJSCIE: urządzenie \d+: mysz") is not None)
 
 monitor(*["mouse_move -60 -30"] * 4)
 x1, y1 = x0 - 240, y0 - 120

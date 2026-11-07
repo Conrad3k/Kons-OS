@@ -51,7 +51,36 @@ jobs:
         run: scripts/zbuduj.sh
 
       - name: Testy (host + QEMU, także negatywne; M1–M4, start z ISO)
-        run: K1_FUZZ_CZAS=30 scripts/testy.sh
+        run: |
+          set -o pipefail
+          mkdir -p build/testy
+          K1_FUZZ_CZAS=30 scripts/testy.sh 2>&1 | tee build/testy/wynik.txt
+
+      # Logs are always kept in three places that do not depend on the artifact quota:
+      # the job console, the job summary and (on main) the release.
+      - name: Logi testów — podsumowanie i konsola (zawsze)
+        if: always()
+        run: |
+          {
+            echo "## K1 ${K1_WERSJA} — wynik testów"
+            echo '```'
+            grep -a -E '\[(OK|BŁĄD)\]|wynik|WYNIK|zaliczone|BŁĄD' build/testy/wynik.txt 2>/dev/null || echo "brak wyniku testów"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          for f in build/testy/*.log; do
+            [ -f "$f" ] || continue
+            echo "::group::$f (bez wierszy kursora, ostatnie 300)"
+            grep -av "K1-EKRAN: kursor" "$f" | tail -n 300
+            echo "::endgroup::"
+          done
+
+      - name: Spakuj logi testów (zawsze)
+        if: always()
+        run: |
+          tar -czf "build/k1-${K1_WERSJA}-logi.tar.gz" --ignore-failed-read \
+            build/testy/*.log build/testy/*.png build/testy/wynik.txt build/wynik/SHA256SUMS \
+            build/wynik/srodowisko.txt 2>/dev/null || true
+          ls -l "build/k1-${K1_WERSJA}-logi.tar.gz" || true
 
       - name: Oznacz wersję tagiem (jeśli tagu jeszcze nie ma)
         if: github.ref == 'refs/heads/main'
@@ -76,30 +105,27 @@ jobs:
             echo "Wydanie $TAG już istnieje — pomijam"
           else
             gh release create "$TAG" "build/wynik/k1-${K1_WERSJA}.iso" "build/wynik/k1-${K1_WERSJA}.iso.sha256" \
-              build/wynik/SHA256SUMS --title "Kons K1 ${K1_WERSJA}" \
+              build/wynik/SHA256SUMS "build/k1-${K1_WERSJA}-logi.tar.gz" --title "Kons K1 ${K1_WERSJA}" \
               --notes "Obraz ISO do uruchomienia w maszynie wirtualnej (UEFI albo BIOS). Instrukcja: README.md, sekcja „Uruchom w maszynie wirtualnej”. Zmiany: CHANGELOG.md."
           fi
 
-      - name: Wyślij obrazy jako artefakt
+      - name: Wyślij obrazy jako artefakt (tylko PR — na main obraz jest w wydaniu)
         # Brak miejsca na artefakty (limit konta) nie może blokować wersji — tag jest wyżej.
+        if: github.ref != 'refs/heads/main'
         continue-on-error: true
         uses: actions/upload-artifact@v5
         with:
           name: k1-${{ env.K1_WERSJA }}-obraz
           path: |
             build/wynik/
-          retention-days: 30
+          retention-days: 7
 
-      - name: Wyślij logi testów (także przy błędzie)
+      - name: Wyślij logi testów jako artefakt (zawsze; dodatkowo do konsoli i wydania)
         if: always()
         continue-on-error: true
         uses: actions/upload-artifact@v5
         with:
           name: k1-${{ env.K1_WERSJA }}-logi
-          path: |
-            build/testy/*.log
-            build/testy/*.png
-            build/wynik/SHA256SUMS
-            build/wynik/srodowisko.txt
+          path: build/k1-${{ env.K1_WERSJA }}-logi.tar.gz
           if-no-files-found: ignore
-          retention-days: 30
+          retention-days: 7

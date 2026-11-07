@@ -1,0 +1,227 @@
+K1 — WSTĘPNE ROZPOZNANIE ETAPU M5 (dane i sprzęt)
+=================================================
+
+Data: 2026-11-07, przed rozpoczęciem M5. Stan systemu: 0.5.0 (po M4.1).
+To są notatki do rozpoczęcia pracy, a nie decyzje. Decyzje zapadną w ADR (0013 i dalsze)
+po prototypach. Nazwy opcji jądra sprawdziłem w źródłach Linux 6.18.60 (build/zrodla); rzeczy
+niesprawdzone mają dopisek „DO SPRAWDZENIA”.
+
+
+1. CEL M5 (z docs/DO_ZROBIENIA.txt i ADR 0011)
+----------------------------------------------
+  - Dane przetrwają wyłączenie: notatki, ustawienia (motyw, tapeta, mysz, rozdzielczość).
+  - Dane zaszyfrowane na dysku / pendrivie; opcjonalne hasło przy starcie (włączane
+    w Ustawieniach); zapomniane hasło = nowe konto.
+  - Blob Vault: magazyn obiektów zamiast katalogów (identyfikator, metadane, rozmiar, typ, hash,
+    pochodzenie, uprawnienia; obiekty niezmienne, nigdy wykonywalne — SPEC §9).
+  - Aplikacja dostaje tylko obiekty, na które się zgodzisz (deskryptory przez SCM_RIGHTS).
+  - Sprzęt: dyski virtio / SATA (AHCI) / NVMe; USB: klawiatura, mysz, tablet (VirtualBox),
+    pendrive; podłączanie w trakcie pracy (hotplug).
+  - Pierwszy start z pendrive'a na laptopie właściciela.
+
+Kryteria zaliczenia (propozycja): notatka i ustawienia wracają po restarcie maszyny w QEMU
+(AHCI, NVMe, virtio); dysk odczytany bez klucza = same szumy; zmieniony bajt na dysku =
+wykryty i odrzucony obiekt; klawiatura/mysz/tablet USB działają i można je podłączyć w trakcie;
+testy negatywne (złe hasło, uszkodzony nagłówek, obcy proces bez dostępu do dysku, aplikacja bez
+zgody nie dostaje obiektu).
+
+
+2. CO MAMY DZIŚ
+---------------
+  - /dane_uzytkownika = tmpfs w RAM (noexec,nosuid,nodev, 16 MiB). Notatki: plik w
+    /dane_uzytkownika/notatki (Landlock: tylko ten katalog dla Notatek).
+  - Ustawienia trzyma ekran w pamięci (giną po restarcie ekranu/komputera).
+  - Jądro: CONFIG_BLOCK, VIRTIO_BLK (tylko dla testów M1 z obrazem na /dev/vda), LOOP (ISO),
+    CONFIG_NET=y (dla gniazd UNIX). Brak: ATA/AHCI, NVMe, SCSI, USB, HID, DM, ext4, fscrypt.
+  - Urządzenia wejścia otwiera nadzorca RAZ przy starcie (otworz_wejscia: event0..31) i przekazuje
+    do `wejscie` — nowe urządzenia po starcie nie są widziane.
+  - Brak udev (i tak ma zostać): nikt nie reaguje na nowe urządzenia.
+
+
+3. SPRZĘT — DYSKI
+-----------------
+Opcje jądra (nazwy zweryfikowane w Kconfig 6.18):
+  - SATA:  CONFIG_ATA, CONFIG_SATA_AHCI, + CONFIG_SCSI, CONFIG_BLK_DEV_SD (dysk SATA = sd*).
+  - NVMe:  CONFIG_BLK_DEV_NVME (NVME_CORE wybierze się sam).
+  - virtio: CONFIG_VIRTIO_BLK (już jest).
+  - Partycje: CONFIG_PARTITION_ADVANCED + CONFIG_EFI_PARTITION (GPT); MSDOS_PARTITION
+    (sprawdzić, czy domyślnie włączony przy allnoconfig — DO SPRAWDZENIA).
+  - Karta SD w laptopie: CONFIG_MMC, CONFIG_MMC_SDHCI — raczej później.
+Ważne: VirtualBox NIE ma virtio-blk (ma AHCI/SATA, NVMe, virtio-scsi). Dysk z danymi
+w VirtualBoxie to najpewniej SATA (AHCI) → AHCI jest obowiązkowe; NVMe dla laptopów.
+
+Jak znaleźć partycję danych bez udev: sysfs /rdzen/jadro/sys/class/block/*/uevent zawiera
+PARTNAME (nazwa partycji GPT) i PARTUUID (sprawdzone: block/partitions/core.c, part_uevent).
+Propozycja: partycja GPT o nazwie „K1-DANE” (+ ewentualnie własny GUID typu). Szukamy po nazwie,
+nie po numerze urządzenia. Urządzenie otwiera tylko nadzorca i przekazuje deskryptor jednej
+usłudze (wzór: karta graficzna → ekran). Nikt inny nie ma dostępu do dysku.
+
+Testy w QEMU (wszystko jest w QEMU 8.2 w kontenerze, sprawdzone `-device help`):
+  - AHCI:   -device ahci,id=a -drive if=none,id=d,file=dane.img,format=raw -device ide-hd,drive=d,bus=a.0
+  - NVMe:   -drive if=none,id=n,file=dane.img,format=raw -device nvme,drive=n,serial=k1
+  - virtio: -drive file=dane.img,if=virtio,format=raw
+  - pendrive USB: -device qemu-xhci -device usb-storage,drive=u (USB_STORAGE, UAS)
+Restart „komputera” w teście = zatrzymanie QEMU i ponowne uruchomienie z tym samym dane.img.
+
+
+4. SPRZĘT — USB I PODŁĄCZANIE W TRAKCIE PRACY
+---------------------------------------------
+Opcje jądra (zweryfikowane): CONFIG_USB_SUPPORT, CONFIG_USB, CONFIG_USB_XHCI_HCD,
+CONFIG_USB_XHCI_PCI (USB 3 — wystarczy dla nowych laptopów i QEMU qemu-xhci; EHCI/OHCI/UHCI
+tylko jeśli VirtualBox bez rozszerzeń używa OHCI — DO SPRAWDZENIA: VirtualBox bez Extension Pack
+daje kontroler USB 1.1 OHCI → CONFIG_USB_OHCI_HCD), CONFIG_HID, CONFIG_HID_GENERIC,
+CONFIG_USB_HID; pendrive: CONFIG_USB_STORAGE (+ USB_UAS). Laptop: touchpad zwykle I2C-HID
+(CONFIG_I2C_HID_ACPI + kontroler I2C, np. I2C_DESIGNWARE_PLATFORM, często też Intel LPSS
+i GPIO/pinctrl — zależy od modelu, potrzebny model laptopa).
+
+Tablet USB (domyślna mysz VirtualBoxa/QEMU usb-tablet) podaje położenie BEZWZGLĘDNE (EV_ABS).
+Dziś `wejscie`/`k1_zdarzenie` znają tylko ruch względny → nowy typ zdarzenia (np. K1_ZD_POZYCJA,
+x,y przeskalowane do 0..32767; ekran mnoży przez rozmiar ekranu). Zmiana protokołu = testy
+`test_zdarzenie` + fuzzing.
+
+Hotplug bez udev — propozycja: nadzorca słucha zdarzeń jądra przez gniazdo NETLINK_KOBJECT_UEVENT
+(działa, bo CONFIG_NET=y; lib/kobject_uevent.c — DO SPRAWDZENIA prototypem: czy nasza minimalna
+konfiguracja sieci wystarcza do otwarcia gniazda netlink). Przy „add” dla input/eventN: nadzorca
+otwiera /rdzen/jadro/dev/input/eventN i przekazuje deskryptor do `wejscie` nowym kanałem
+sterującym (SCM_RIGHTS), przy „remove” — wejscie zamyka swój fd (dostaje ENODEV). Parsowanie
+komunikatów uevent w nadzorcy (root!) = nowa powierzchnia ataku → mały, osobny parser z
+testami i fuzzingiem; przyjmujemy tylko komunikaty od jądra (nadawca pid 0 w sockaddr_nl).
+Alternatywa: inotify na devtmpfs (CONFIG_INOTIFY_USER — dziś wyłączone) albo okresowe
+skanowanie co 1–2 s (najprostsze, bez parsera; minus: opóźnienie). Do wyboru w ADR.
+Test w QEMU: monitor `device_add usb-kbd,id=k2` / `device_del k2` w trakcie pracy.
+
+
+5. BLOB VAULT I SZYFROWANIE — WARIANTY
+--------------------------------------
+Wspólne: nowa usługa (robocza nazwa `skarbiec`), jedyna z dostępem do partycji danych
+(deskryptor od nadzorcy), klatka jak inne, protokół k1_komunikat + obiekty przekazywane jako
+memfd z pieczęciami (odczyt) / memfd od aplikacji (zapis nowego obiektu).
+
+A) dm-crypt + ext4 w jądrze; Blob Vault jako katalog obiektów na ext4.
+   + sprawdzone, szybkie (AES-NI), cały dysk zaszyfrowany (także nazwy i rozmiary).
+   − duży kod w jądrze (ext4, device-mapper), jądro parsuje ext4 z dysku, który ktoś mógł
+     podmienić (ryzyko R4); brak mkfs w K1 — trzeba sformatować przy budowie obrazu albo napisać
+     własny mkfs; dm-crypt bez integralności (zmiana bajtu = śmieci, nie wykryty błąd), chyba że
+     dm-integrity/AEAD (wolno, złożone). Konfiguracja dm przez ioctl na /dev/mapper/control
+     (bez cryptsetup) — do zrobienia własnymi siłami.
+   Opcje: BLK_DEV_DM, DM_CRYPT, EXT4_FS, CRYPTO_AES_NI_INTEL, CRYPTO_XTS (sprawdzone).
+
+B) fscrypt (szyfrowanie plików w ext4/f2fs).
+   + klucz per katalog, prostsze zarządzanie kluczami (FS_IOC_ADD_ENCRYPTION_KEY).
+   − to samo ryzyko parsowania ext4; widać liczbę i rozmiary plików; dalej potrzebny mkfs.
+   Opcje: FS_ENCRYPTION (+ EXT4_FS).
+
+C) Własny format Blob Vault na surowej partycji, szyfrowanie w przestrzeni użytkownika
+   (REKOMENDACJA WSTĘPNA).
+   + jądro tylko daje blok urządzenia (bez ext4, bez device-mappera) — mniej kodu jądra
+     wystawionego na podmieniony dysk; pasuje do „obiekty niezmienne”: log dopisywany na końcu
+     + indeks; KAŻDY obiekt uwierzytelniony (AEAD, np. XChaCha20-Poly1305) → zmieniony bajt =
+     wykryty błąd, czego dm-crypt nie da; nie potrzeba mkfs (formatujemy sami, przy pierwszym
+     uruchomieniu); cały kod nasz, testowalny na hoście (ASan, fuzzing parsera nagłówków).
+   − musimy sami zadbać o spójność po nagłym wyłączeniu (zapis: dane → fsync → wpis w logu →
+     fsync), o odzyskiwanie miejsca (sprzątanie usuniętych obiektów — może później) i o
+     wydajność (dla notatek i ustawień bez znaczenia).
+   Kryptografia: nie piszemy własnej. Kandydat: Monocypher 4.x (jeden plik C, CC0 lub BSD-2,
+   ma XChaCha20-Poly1305, BLAKE2b i Argon2) — DO SPRAWDZENIA: wersja, sumy, licencja, wpis
+   w docs/ZALEZNOSCI.md; w apt Ubuntu nie znalazłem pakietu — pobranie z GitHuba z przypiętą
+   sumą SHA-256 (jak jądro). Klucz z hasła: Argon2id (parametry dobrane do laptopa, ~1 s).
+
+Moja rekomendacja na start: C (najlepiej pasuje do SPEC §9 i zasady „mało kodu w jądrze”),
+z planem B: A, jeśli prototyp C okaże się za trudny. Pierwszy krok M5 = mały prototyp C na hoście
+(format, testy, fuzzing) przed jakimkolwiek kodem w systemie.
+
+
+6. HASŁO I KLUCZ
+----------------
+  - Z hasłem: klucz główny losowy, zaszyfrowany kluczem z Argon2id(hasło, sól); w nagłówku
+    partycji. Zapomniane hasło = nowe konto (decyzja właściciela) — przyjmujemy wprost.
+  - BEZ hasła (domyślnie): uczciwie — dane NIE są chronione przed kradzieżą dysku, chyba że klucz
+    trzyma TPM (CONFIG_TCG_TPM + TCG_TIS / TCG_CRB; komendy TPM2 trzeba złożyć samemu, bez
+    tpm2-tools — DO SPRAWDZENIA zakres pracy). Propozycja: M5 bez TPM (klucz w nagłówku, napis
+    w Ustawieniach „bez hasła dane nie są chronione przed kradzieżą dysku”); TPM po M10
+    (Secure Boot) — wtedy ma sens („klucz tylko dla podpisanego systemu”).
+  - Ekran hasła przy starcie: nowy klient ekranu (rola „logowanie”, nad pulpitem, bez innych
+    okien); skarbiec dostaje hasło kanałem, nigdy przez log; limit prób z opóźnieniem.
+  - Zmiana / wyłączenie hasła = przeszyfrowanie tylko klucza głównego (szybkie).
+
+
+7. TRWAŁE USTAWIENIA I NOTATKI — PRZEPŁYW (szkic)
+-------------------------------------------------
+  - Ustawienia: ekran po starcie dostaje od skarbca obiekt „ustawienia” (32-bajtowe rekordy klucz/
+    wartość, te same zakresy co K1_UST_*), a przy zmianie wysyła nowy. Ekran nie dostaje dostępu
+    do niczego innego. Zła zawartość = wartości domyślne (fail safe).
+  - Notatki: zamiast pliku w katalogu — obiekt; Notatki dostają od skarbca tylko swój obiekt
+    (deskryptor). Landlock „/dane_uzytkownika/notatki” znika; /dane_uzytkownika może zostać
+    tmpfs na pliki tymczasowe albo zniknąć (zmiana ADR 0004/SPEC §5 → ADR).
+  - „Dostęp tylko do obiektów, na które się zgodzisz”: w M5 wystarczy własność (aplikacja
+    widzi tylko swoje obiekty); okno zgody na cudze obiekty — razem z Gatekeeperem (M9).
+
+
+8. OBRAZ NA PENDRIVE I DYSK W MASZYNIE WIRTUALNEJ
+-------------------------------------------------
+  - Dziś ISO jest hybrydowe (grub-mkrescue/xorriso) — po nagraniu na pendrive jest tylko do
+    odczytu i nie ma miejsca na dane. Propozycja: drugi produkt budowy `k1-<wersja>-usb.img`
+    (GPT: partycja EFI z GRUB-em + jądro/initramfs/rdzeń, partycja „K1-DANE” pusta lub do końca
+    nośnika — rozszerzana przy pierwszym starcie?). Nagrywanie: Rufus w trybie DD / balenaEtcher.
+    Narzędzia na hoście do zbudowania obrazu GPT: DO SPRAWDZENIA (sgdisk nie ma w kontenerze;
+    są xorriso, mkfs.ext4; może wystarczy własny skrypt Pythona piszący GPT albo `sfdisk` z
+    util-linux).
+  - VM: README — „dodaj drugi dysk (SATA, 64 MB+)”; K1 przy pierwszym starcie zakłada na nim
+    partycję/format (tylko gdy dysk jest pusty! nigdy nie nadpisujemy dysku z innymi danymi —
+    test negatywny: dysk z „obcą” tablicą partycji zostaje nietknięty).
+  - Laptop: najpierw sam start z pendrive'a (obraz z firmware/simpledrm, klawiatura i touchpad),
+    dane dopiero potem. Potrzebny model laptopa (touchpad I2C, karta Wi-Fi bez znaczenia w M5).
+
+
+9. PROPONOWANA KOLEJNOŚĆ PRAC W M5 (każdy krok z testem)
+--------------------------------------------------------
+  M5a  Jądro: AHCI, NVMe, SCSI/sd, GPT; USB xHCI(+OHCI?), HID, usb-storage. Test: dyski
+       i urządzenia USB widoczne w systemie (QEMU), klatki bez zmian. ~mały.
+  M5b  Wejście: hotplug (uevent albo skanowanie) + tablet (pozycja bezwzględna). Test: usb-tablet
+       w QEMU, device_add/device_del w trakcie. Od razu przyda się w VirtualBoxie.
+  M5c  Prototyp formatu Blob Vault na hoście (bez systemu): nagłówek, log, indeks, AEAD, Argon2id;
+       testy jednostkowe, fuzzing nagłówka i logu, test „zmieniony bajt”. ADR 0013 (wybór A/B/C).
+  M5d  Usługa skarbiec w systemie: partycja K1-DANE, pierwsze formatowanie (tylko pusty dysk),
+       trwałe ustawienia i notatki. Test: restart QEMU → notatka i ustawienia wracają (AHCI,
+       NVMe, virtio).
+  M5e  Hasło: ekran logowania, Ustawienia → Hasło (włącz/zmień/wyłącz), złe hasło, limit prób.
+  M5f  Obraz USB (`k1-<wersja>-usb.img`), README, pierwszy start na laptopie (właściciel).
+  Każdy krok osobnym PR-em z wersją PATCH, etap zamknięty jako 0.6.0.
+
+
+10. RYZYKA (do docs/RYZYKA.md przy starcie)
+------------------------------------------
+  - Nowy kod jądra: USB i HID to duże podsystemy, a urządzenia USB podłączane z zewnątrz
+    (złośliwy pendrive / „klawiatura”). Ograniczyć do HID generic + mass storage; bez
+    sterowników producentów; w przyszłości: autoryzacja urządzeń USB (sysfs `authorized`).
+  - Nadzorca (root) zaczyna parsować dane od jądra (uevent) i otwiera dyski — kod minimalny,
+    testy, fuzzing.
+  - Własny format magazynu: utrata danych przy błędzie — testy przerwania zapisu
+    (zabicie QEMU w trakcie), kopia nagłówka.
+  - Bez hasła i bez TPM szyfrowanie nie chroni przed kradzieżą — mówimy to wprost w UI.
+  - Wydajność Argon2id w emulacji TCG (testy CI) — parametry testowe mniejsze, produkcyjne
+    większe (jawnie oznaczone).
+
+
+11. PYTANIA DO WŁAŚCICIELA (przed M5d/M5e)
+------------------------------------------
+  [x] Ekran hasła — odpowiedź właściciela (2026-11-07): „bardzo ładny, w stylu, jaki jest system —
+      Claude'owy” (ciepły, minimalistyczny: tapeta, kremowy/terakotowy akcent, Plex, znak K1).
+      Przed kodem: 2–3 szkice do wyboru (zrzuty), jak przy znaku K1.
+  [!] Czy jedno konto na komputer (już pytane w DO_ZROBIENIA)?
+  [!] Czy akceptujesz, że bez hasła dane na dysku nie są chronione przed kradzieżą (do czasu
+      TPM po M10)?
+  [!] Model laptopa (touchpad, karta graficzna, NVMe/SATA) — do M5a/M5f.
+  [!] VirtualBox: czy dodasz drugi dysk na dane (SATA), czy wolisz jeden obraz „wszystko
+      w jednym” (wtedy instalator na dysk — większa praca)?
+
+
+12. NA START SESJI JUTRO (lista kontrolna)
+------------------------------------------
+  - git fetch, gałąź od origin/main; CI na main zielony (0.5.0 opublikowane?).
+  - Uwagi właściciela z testu 0.5.0 (VMSVGA, Ustawienia → Ekran, Zasoby) — najpierw poprawki.
+  - Sprawdzić prototypem: gniazdo NETLINK_KOBJECT_UEVENT w naszej konfiguracji; które opcje
+    domyślnie włączają się przy allnoconfig (MSDOS_PARTITION); kontroler USB VirtualBoxa
+    bez Extension Pack.
+  - Monocypher: pobrać, sprawdzić licencję i wersję, zdecydować o wpisie w ZALEZNOSCI.md.
+  - Zacząć od M5a (jądro) — mały, bezpieczny krok, od razu testowalny w QEMU.

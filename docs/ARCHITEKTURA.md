@@ -30,7 +30,7 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 | `testy/host/` | testy jednostkowe (ASan/UBSan), fuzzing i podgląd grafiki na hoście |
 | `scripts/` | budowa, QEMU, zrzuty ekranu, testy, kontrole (opis niżej) |
 | `docs/` | SPEC, ADR, ten plik, TESTY, ZALEZNOSCI, RYZYKA, `komponenty/` (opis każdego komponentu) |
-| `.github/workflows/k1.yml` | CI: budowa + testy na `main`, artefakty, tag wersji |
+| `.github/workflows/k1.yml` | CI: budowa + testy na `main` (i PR z etykietą `testy`), tag wersji, wydanie z ISO; logi testów zawsze: konsola, podsumowanie, wydanie (`k1-<wersja>-logi.tar.gz`) |
 | `build/` | wszystko, co powstaje przy budowie (ignorowane przez git) |
 
 ### Skrypty
