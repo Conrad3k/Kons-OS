@@ -59,6 +59,18 @@ int main(void)
     EXPECT(k1_cmdline_get("a=b\0k1.rdzen=/dev/vda", 21, "k1.rdzen", v, sizeof v) == K1_CMDLINE_ABSENT);
 
     /* device path validation */
+    /* M6b: the dm-verity root hash */
+    EXPECT(k1_valid_hex64("850753a64481635de535a2f708f32b1e3f9912f49d67a63122202b752a6178e3") == 1);
+    EXPECT(k1_valid_hex64("850753A64481635de535a2f708f32b1e3f9912f49d67a63122202b752a6178e3") == 0); /* upper case */
+    EXPECT(k1_valid_hex64("850753a64481635de535a2f708f32b1e3f9912f49d67a63122202b752a6178e") == 0);  /* 63 */
+    EXPECT(k1_valid_hex64("850753a64481635de535a2f708f32b1e3f9912f49d67a63122202b752a6178e30") == 0); /* 65 */
+    EXPECT(k1_valid_hex64("850753a64481635de535a2f708f32b1e3f9912f49d67a63122202b752a6178eg") == 0);
+    EXPECT(k1_valid_hex64("") == 0 && k1_valid_hex64(NULL) == 0);
+    {
+        char h[80];
+        const char *c = "x k1.rdzen_skrot=850753a64481635de535a2f708f32b1e3f9912f49d67a63122202b752a6178e3 y";
+        EXPECT(k1_cmdline_get(c, strlen(c), "k1.rdzen_skrot", h, sizeof h) == K1_CMDLINE_FOUND && k1_valid_hex64(h));
+    }
     EXPECT(k1_valid_block_device("/dev/vda") == 1);
     EXPECT(k1_valid_block_device("/dev/nvme0n1p2") == 1);
     EXPECT(k1_valid_block_device("/dev/") == 0);

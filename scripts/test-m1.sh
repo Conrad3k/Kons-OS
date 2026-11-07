@@ -89,6 +89,15 @@ echo "[k1] obrazy do testów negatywnych"
 dd if=/dev/zero of="$TESTY/zera.img" bs=1M count=4 status=none
 rm -rf "$TESTY/bez-init"; mkdir -p "$TESTY/bez-init/jadro/dev" "$TESTY/bez-init/jadro/proc" "$TESTY/bez-init/jadro/sys"
 mksquashfs "$TESTY/bez-init" "$TESTY/bez-init.squashfs" -quiet -no-progress -noappend -comp zstd -all-root -no-xattrs >/dev/null
+verity "$TESTY/bez-init.squashfs"  # M6b: a correctly verified image — only /rdzen/init is missing
+ZERA_SKROT=0000000000000000000000000000000000000000000000000000000000000000
+echo "$ZERA_SKROT" > "$TESTY/zera.img.skrot"
+# M6b: the image without its root hash; the image with one changed byte (its correct root hash)
+cp "$K1_WYNIK/rdzen.squashfs" "$TESTY/bez-skrotu.squashfs"
+cp "$K1_WYNIK/rdzen.squashfs" "$TESTY/zmieniony.squashfs"
+cp "$K1_WYNIK/rdzen.squashfs.skrot" "$TESTY/zmieniony.squashfs.skrot"
+python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); f.seek(200000); b=f.read(1); f.seek(200000); f.write(bytes([b[0]^1])); f.close()' \
+    "$TESTY/zmieniony.squashfs"
 # M5a: extra hardware for the in-system test — SATA disk (q35's built-in AHCI) with a GPT partition
 # "K1-DANE", NVMe disk with an old MBR table, USB stick on EHCI, USB keyboard on xHCI, mouse on OHCI.
 for d in sata:16 nvme:8 usb:4; do
@@ -107,7 +116,7 @@ SPRZET=
 
 echo "[k1] uruchomienia w QEMU ($( [ -w /dev/kvm ] && echo KVM || echo 'emulacja TCG'))"
 scenariusz start czekaj "$K1_WYNIK/rdzen.squashfs" "$CMDLINE" \
-    "K1-INITRAMFS: start" "K1: init OK" "uruchomiono nadzorcę" "K1-EKRAN: pierwsza klatka" "K1-GUI: pulpit gotowy" \
+    "K1-INITRAMFS: start" "K1-INITRAMFS: obraz rdzenia sprawdzony (dm-verity" "K1: init OK" "uruchomiono nadzorcę" "K1-EKRAN: pierwsza klatka" "K1-GUI: pulpit gotowy" \
     "K1-GUI: brak baterii"
 SPRZET=$SPRZET_TEST
 scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE" \
@@ -125,7 +134,7 @@ scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE
     "ekran zakończony sygnałem 11" "ponowne uruchomienie ekran" "wejscie wyłączony: 6 zakończeń" \
     "K1: wyłączanie zasilania" "reboot: Power down"
 SPRZET=
-scenariusz neg-brak-dysku wylaczenie - "$CMDLINE" \
+scenariusz neg-brak-dysku wylaczenie - "$CMDLINE k1.rdzen_skrot=$ZERA_SKROT" \
     "nie znaleziono urządzenia z obrazem rdzenia: /dev/vda" "system zostanie wyłączony" "reboot: Power down"
 scenariusz neg-dysk-bez-obrazu wylaczenie "$TESTY/zera.img" "$CMDLINE" \
     "nie udało się zamontować obrazu rdzenia z /dev/vda" "reboot: Power down"
@@ -137,6 +146,13 @@ scenariusz neg-zly-parametr wylaczenie "$K1_WYNIK/rdzen.squashfs" "$BAZA k1.rdze
     "niepoprawny parametr k1.rdzen: dozwolone tylko" "reboot: Power down"
 scenariusz neg-powtorzony-parametr wylaczenie "$K1_WYNIK/rdzen.squashfs" "$CMDLINE k1.rdzen=/dev/vdb" \
     "niepoprawny parametr k1.rdzen (za długi, powtórzony" "reboot: Power down"
+# M6b (ADR 0021): dm-verity — no root hash, a wrong one, one changed byte in the image
+scenariusz neg-brak-skrotu wylaczenie "$TESTY/bez-skrotu.squashfs" "$CMDLINE" \
+    "brak parametru k1.rdzen_skrot" "reboot: Power down"
+scenariusz neg-zly-skrot wylaczenie "$K1_WYNIK/rdzen.squashfs" "$CMDLINE k1.rdzen_skrot=$(echo "$ZERA_SKROT" | tr 0 a)" \
+    "obraz rdzenia jest zmieniony albo uszkodzony" "reboot: Power down"
+scenariusz neg-zmieniony-obraz wylaczenie "$TESTY/zmieniony.squashfs" "$CMDLINE" \
+    "obraz rdzenia jest zmieniony albo uszkodzony" "reboot: Power down"
 
 echo "[k1] wynik: zaliczone $zaliczone, niezaliczone $niezaliczone"
 [ "$niezaliczone" -eq 0 ]

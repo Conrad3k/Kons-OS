@@ -89,3 +89,14 @@ int k1_valid_block_device(const char *path)
     }
     return 1;
 }
+
+int k1_valid_hex64(const char *s)
+{
+    size_t i;
+    if (s == NULL)
+        return 0;
+    for (i = 0; i < 64; i++)
+        if (!((s[i] >= '0' && s[i] <= '9') || (s[i] >= 'a' && s[i] <= 'f')))
+            return 0;
+    return s[64] == '\0';
+}

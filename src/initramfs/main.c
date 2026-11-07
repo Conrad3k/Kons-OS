@@ -7,12 +7,15 @@
  * k1.rdzen=wbudowany (ADR 0010, ISO image): the core image is the file /rdzen.squashfs inside the
  * initramfs itself (second cpio archive loaded by the boot loader) and is mounted through a
  * read-only loop device — no storage drivers needed, works in any virtual machine.
- * M10 adds dm-verity activation (root hash from the signed command line) before the mount.
+ * M6b (ADR 0021): the image is mounted through dm-verity — its hash tree follows the SquashFS data,
+ * the root hash is k1.rdzen_skrot= (signed with the kernel in M6d). The whole device is read once
+ * before the mount: one changed byte stops the boot here, before the kernel parses anything of it.
  *
  * Any error ends in k1_awaria(): message on the console, power-off. Never exit(): PID 1
  * exiting means kernel panic. Documentation: docs/komponenty/initramfs.md. */
 #include <errno.h>
 #include <fcntl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/mount.h>
@@ -21,7 +24,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <linux/dm-ioctl.h>
 #include <linux/loop.h>
+#include <sys/sysmacros.h>
 
 #include "k1_cmdline.h"
 #include "k1_log.h"
@@ -35,6 +40,10 @@
 #define DEVICE_WAIT_STEPS 100 /* x 100 ms = 10 s */
 #define BUILTIN "wbudowany"
 #define BUILTIN_IMAGE "/rdzen.squashfs"
+#define VERITY_NAME "k1-rdzen"
+#define VERITY_BLOCK 4096u
+/* the build's fixed salt (scripts/wspolne.sh: K1_VERITY_SOL) */
+#define VERITY_SALT "4b31207264657a656e2056657269747920736f6c00000000000000000000000000"
 
 /* Reads /proc/cmdline into buf (NUL-terminated). Mounts proc only for the duration of the read. */
 static void read_cmdline(char *buf, size_t size)
@@ -112,6 +121,89 @@ static int attach_builtin(char *device, size_t size)
     return loop;
 }
 
+static void dm_init(struct dm_ioctl *io, size_t size)
+{
+    memset(io, 0, size);
+    io->version[0] = DM_VERSION_MAJOR;
+    io->data_size = (uint32_t)size;
+    io->data_start = sizeof *io;
+    snprintf(io->name, sizeof io->name, "%s", VERITY_NAME);
+}
+
+/* M6b: puts a dm-verity device over `device` (data: the SquashFS rounded up to 4 KiB, then the hash
+ * tree; no superblock), reads it all once and writes its path ("/dev/dm-N") into `out`. */
+static void verity(const char *device, const char *skrot, char *out, size_t outsz)
+{
+    union {
+        struct dm_ioctl io;
+        char b[4096];
+    } u;
+    struct dm_target_spec *t;
+    unsigned char sb[96];
+    static char buf[65536];
+    unsigned long long bajty, bloki, rozmiar, i;
+    struct stat st;
+    int fd = open(device, O_RDONLY | O_CLOEXEC), ctl, dm;
+    ssize_t n;
+
+    if (fd < 0 || fstat(fd, &st) != 0 || pread(fd, sb, sizeof sb, 0) != (ssize_t)sizeof sb)
+        k1_awaria(TAG, "nie można odczytać obrazu rdzenia z %s: %s", device, strerror(errno));
+    if (sb[0] != 'h' || sb[1] != 's' || sb[2] != 'q' || sb[3] != 's')
+        k1_awaria(TAG, "nie udało się zamontować obrazu rdzenia z %s: to nie jest obraz SquashFS", device);
+    bajty = 0;
+    for (i = 0; i < 8; i++)
+        bajty |= (unsigned long long)sb[40 + i] << (8 * i); /* bytes_used */
+    bloki = (bajty + VERITY_BLOCK - 1) / VERITY_BLOCK;
+    rozmiar = (unsigned long long)lseek(fd, 0, SEEK_END);
+    close(fd);
+    /* one data block: the root hash is its own hash, no tree blocks follow */
+    if (bloki == 0 || rozmiar < (bloki + (bloki > 1 ? 1 : 0)) * VERITY_BLOCK)
+        k1_awaria(TAG, "obraz rdzenia bez drzewa skrótów (dm-verity) — nie może być sprawdzony");
+
+    ctl = open("/dev/mapper/control", O_RDWR | O_CLOEXEC);
+    if (ctl < 0)
+        k1_awaria(TAG, "brak /dev/mapper/control (dm-verity): %s", strerror(errno));
+    dm_init(&u.io, sizeof u);
+    if (ioctl(ctl, (int)DM_DEV_CREATE, &u.io) != 0)
+        k1_awaria(TAG, "DM_DEV_CREATE: %s", strerror(errno));
+    dm_init(&u.io, sizeof u);
+    u.io.target_count = 1;
+    u.io.flags = DM_READONLY_FLAG;
+    t = (struct dm_target_spec *)(u.b + sizeof u.io);
+    t->sector_start = 0;
+    t->length = bloki * (VERITY_BLOCK / 512);
+    snprintf(t->target_type, sizeof t->target_type, "verity");
+    snprintf((char *)(t + 1), sizeof u - sizeof u.io - sizeof *t, "1 %u:%u %u:%u %u %u %llu %llu sha256 %s %s",
+             major(st.st_rdev), minor(st.st_rdev), major(st.st_rdev), minor(st.st_rdev), VERITY_BLOCK, VERITY_BLOCK,
+             bloki, bloki, skrot, VERITY_SALT);
+    t->next = 0;
+    if (ioctl(ctl, (int)DM_TABLE_LOAD, &u.io) != 0)
+        k1_awaria(TAG, "DM_TABLE_LOAD (dm-verity): %s", strerror(errno));
+    dm_init(&u.io, sizeof u);
+    if (ioctl(ctl, (int)DM_DEV_SUSPEND, &u.io) != 0) /* no SUSPEND flag: resume = activate the table */
+        k1_awaria(TAG, "DM_DEV_SUSPEND (dm-verity): %s", strerror(errno));
+    close(ctl);
+    /* huge_encode_dev: minor = low 8 bits | bits 20.. */
+    snprintf(out, outsz, "/dev/dm-%u", (unsigned)((u.io.dev & 0xff) | ((u.io.dev >> 12) & ~0xffull)));
+    wait_for_block_device(out);
+
+    dm = open(out, O_RDONLY | O_CLOEXEC);
+    if (dm < 0)
+        k1_awaria(TAG, "%s: %s", out, strerror(errno));
+    for (i = 0; i < bloki * VERITY_BLOCK; i += (unsigned long long)n) {
+        n = read(dm, buf, sizeof buf);
+        if (n < 0 && errno == EINTR) {
+            n = 0;
+            continue;
+        }
+        if (n <= 0)
+            k1_awaria(TAG, "obraz rdzenia jest zmieniony albo uszkodzony (dm-verity: %s przy %llu KiB) — "
+                           "system się nie uruchomi", n < 0 ? strerror(errno) : "koniec danych", i / 1024);
+    }
+    close(dm);
+    k1_log(TAG, "obraz rdzenia sprawdzony (dm-verity, %llu bloków po 4 KiB)", bloki);
+}
+
 static void make_dir(const char *path)
 {
     if (mkdir(path, 0755) != 0)
@@ -121,7 +213,7 @@ static void make_dir(const char *path)
 int main(void)
 {
     char cmdline[CMDLINE_MAX];
-    char device[K1_CMDLINE_VALUE_MAX];
+    char device[K1_CMDLINE_VALUE_MAX], skrot[80], dm[32];
     struct stat st;
     char *const argv[] = { (char *)"/rdzen/init", NULL };
     char *const envp[] = { NULL };
@@ -144,6 +236,17 @@ int main(void)
     default:
         k1_awaria(TAG, "niepoprawny parametr k1.rdzen (za długi, powtórzony albo z cudzysłowem)");
     }
+    switch (k1_cmdline_get(cmdline, strlen(cmdline), "k1.rdzen_skrot", skrot, sizeof skrot)) {
+    case K1_CMDLINE_FOUND:
+        if (!k1_valid_hex64(skrot))
+            k1_awaria(TAG, "niepoprawny parametr k1.rdzen_skrot: potrzebne 64 znaki szesnastkowe (a-f, 0-9)");
+        break;
+    case K1_CMDLINE_ABSENT:
+        k1_awaria(TAG, "brak parametru k1.rdzen_skrot — obrazu rdzenia nie da się sprawdzić (dm-verity)");
+    case K1_CMDLINE_INVALID:
+    default:
+        k1_awaria(TAG, "niepoprawny parametr k1.rdzen_skrot (za długi, powtórzony albo z cudzysłowem)");
+    }
     builtin = strcmp(device, BUILTIN) == 0;
     if (!builtin && !k1_valid_block_device(device))
         k1_awaria(TAG, "niepoprawny parametr k1.rdzen: dozwolone tylko /dev/[a-z0-9]{1,31} albo " BUILTIN);
@@ -163,8 +266,8 @@ int main(void)
     make_dir(NEW_ROOT "/aplikacje");
     make_dir(NEW_ROOT "/dane_uzytkownika");
 
-    /* M10: dm-verity goes here; until then the kernel parses an unverified image (RYZYKA.md). */
-    if (mount(device, CORE_DIR, "squashfs", MS_RDONLY | MS_NOSUID | MS_NODEV, NULL) != 0)
+    verity(device, skrot, dm, sizeof dm); /* M6b: the kernel parses only verified bytes */
+    if (mount(dm, CORE_DIR, "squashfs", MS_RDONLY | MS_NOSUID | MS_NODEV, NULL) != 0)
         k1_awaria(TAG, "nie udało się zamontować obrazu rdzenia z %s: %s", device, strerror(errno));
     if (loop >= 0)
         close(loop); /* the mount holds the device now */

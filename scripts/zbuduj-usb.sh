@@ -22,7 +22,8 @@ printf 'file /rdzen.squashfs %s 0400 0 0\n' "$K1_WYNIK/rdzen.squashfs" > "$USB/r
 "$GEN_CPIO" -t "$SOURCE_DATE_EPOCH" "$USB/rdzen.lista" > "$USB/rdzen.cpio"
 # quiet: the kernel's EFI stub prints nothing over the boot screen ("EFI stub: Loaded initrd…");
 # loglevel=7 keeps the kernel's messages on the serial console as before (tests, diagnosis).
-CMDLINE="$(sed 's/k1\.rdzen=[^ ]*/k1.rdzen=wbudowany/' "$K1_REPO/jadro/cmdline") quiet loglevel=7"
+# M6b: k1.rdzen_skrot = the dm-verity root hash of rdzen.squashfs (initramfs refuses a changed image).
+CMDLINE="$(sed 's/k1\.rdzen=[^ ]*/k1.rdzen=wbudowany/' "$K1_REPO/jadro/cmdline") k1.rdzen_skrot=$(cat "$K1_WYNIK/rdzen.squashfs.skrot") quiet loglevel=7"
 
 # Boot loader: shim + GRUB signed by Microsoft / Canonical, from Ubuntu (efi_podpisane, wspolne.sh).
 # K1 itself is not signed yet (M10): Secure Boot must stay off.

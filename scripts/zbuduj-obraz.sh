@@ -35,6 +35,7 @@ przygotuj_rdzen() { # $1 = katalog docelowy
 squashfs() { # $1 = katalog, $2 = plik wynikowy
     rm -f "$2"
     mksquashfs "$1" "$2" -quiet -no-progress -noappend -comp zstd -all-root -no-xattrs >/dev/null
+    verity "$2" # M6b: hash tree appended, root hash in $2.skrot
 }
 
 info "rdzen.squashfs"
@@ -50,7 +51,7 @@ chmod 0555 "$K1_BUDOWA/rdzen-test/system/skrypt-testowy"
 squashfs "$K1_BUDOWA/rdzen-test" "$K1_WYNIK/rdzen-test.squashfs"
 
 cp "$K1_REPO/jadro/cmdline" "$K1_WYNIK/cmdline"
-(cd "$K1_WYNIK" && sha256sum bzImage initramfs.cpio rdzen.squashfs rdzen-test.squashfs cmdline > SHA256SUMS)
+(cd "$K1_WYNIK" && sha256sum bzImage initramfs.cpio rdzen.squashfs rdzen-test.squashfs rdzen.squashfs.skrot cmdline > SHA256SUMS)
 {
     echo "K1 $K1_WERSJA, jądro $K1_JADRO_WERSJA, SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
     dpkg-query -W -f '${Package} ${Version}\n' gcc-13 musl-tools squashfs-tools 2>/dev/null || true

@@ -30,4 +30,8 @@ enum k1_cmdline_result k1_cmdline_get(const char *cmdline, size_t len, const cha
  * no "..", no other characters). */
 int k1_valid_block_device(const char *path);
 
+/* Returns 1 if `s` is exactly 64 lowercase hexadecimal digits (a SHA-256 hash, e.g. the dm-verity root
+ * hash k1.rdzen_skrot — M6b), 0 otherwise. */
+int k1_valid_hex64(const char *s);
+
 #endif
