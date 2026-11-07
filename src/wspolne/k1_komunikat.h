@@ -99,7 +99,8 @@ enum k1_komunikat_typ {
     /* nadzorca → Instalator application (M5f) */
     K1_KOM_INST_DYSK = 66,    /* obiekt=1..K1_INST_DYSKI_MAKS, a=size MiB, b=K1_DYSK_* kind, c=1 Kons K1 on it,
                                * d=logical sector size, e=1 in use (its data partition is open now) */
-    K1_KOM_INST_LISTA = 67,   /* obiekt=0, a=number of disks sent, b=1 the system to copy was found (a K1 stick) */
+    K1_KOM_INST_LISTA = 67,   /* obiekt=0, a=number of disks sent, b=the system to copy: 1 found (one K1 stick),
+                               * 0 none (not started from a K1 stick — e.g. the .iso on it), 2 two K1 sticks */
     K1_KOM_INST_POSTEP = 68,  /* obiekt=0, a=percent 0..100, b=K1_INST_ETAP_* */
     K1_KOM_INST_WYNIK = 69,   /* obiekt=0, a=result (0 or K1_INST_BLAD_* < 0), b=K1_INST_* mode */
     K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample

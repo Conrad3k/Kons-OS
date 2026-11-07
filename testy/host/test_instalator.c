@@ -167,11 +167,11 @@ static void dyski(void)
     EXPECT(strcmp(w.d[0].nazwa, "nvme0n1") == 0 && w.d[0].rodzaj == K1_DYSK_NVME && w.d[0].efi[0] == 0);
     EXPECT(strcmp(w.d[1].nazwa, "sda") == 0 && w.d[1].rodzaj == K1_DYSK_SATA && w.d[1].sektor == 512);
     EXPECT(w.d[1].bajty == 625142448ull * 512 && strcmp(w.d[1].efi, "sda1") == 0 && strcmp(w.d[1].dane, "sda2") == 0);
-    EXPECT(strcmp(w.zrodlo, "sdb1") == 0);
+    EXPECT(strcmp(w.zrodlo, "sdb1") == 0 && w.zrodel == 1);
     EXPECT(k1_dysk_na_usb(sys, "sdb2") && !k1_dysk_na_usb(sys, "sda2"));
     /* a second K1 stick: no source (which one would we copy?) */
     blok("pci0/usb3/3-1/3-1:1.0/host7/target7:0:0/7:0:0:0/block/sdc", "sdc1", "98304\n", "K1-EFI");
-    EXPECT(k1_dyski_skanuj(sys, &w) == 0 && w.zrodlo[0] == 0);
+    EXPECT(k1_dyski_skanuj(sys, &w) == 0 && w.zrodlo[0] == 0 && w.zrodel == 2);
     EXPECT(k1_dyski_skanuj("/nie/ma/takiego", &w) == -1 && w.n == 0);
     {
         char cmd[400];

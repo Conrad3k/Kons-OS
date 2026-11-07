@@ -3,6 +3,17 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.6.1] — 2026-11-07
+
+### Naprawione
+- **Instalator: „Nie znaleziono systemu do skopiowania”** (Twój test 0.5.9): gdy K1 działa z pliku
+  `.iso` nagranego na pendrive, nie ma skąd skopiować systemu — a Instalator mimo to pokazywał przycisk
+  „Zainstaluj”. Teraz zamiast przycisku mówi wprost, co zrobić: pobrać `k1-…-usb.img.xz`, nagrać go
+  na pendrive i uruchomić komputer z niego. Osobny komunikat, gdy podłączone są dwa pendrive'y K1.
+
+### Testy
+- QEMU: start z obrazu `.iso` z dyskiem SATA → Instalator bez przycisku, nic się nie zaczyna.
+
 ## [0.6.0] — 2026-11-07
 
 Etap **„Fundament”** (ADR 0019) — zamyka M5. Mniej widać na ekranie, więcej pod spodem.

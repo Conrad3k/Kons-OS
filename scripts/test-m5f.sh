@@ -64,13 +64,23 @@ sprawdz("menu Start otwarte", m)
 if not m: koniec()
 klik(int(m.group(1)), int(m.group(2)) + 4 * int(m.group(3)))
 o = czekaj(r"K1-EKRAN: okno (\d+) \(instalacja\) (\d+)x(\d+) w (\d+),(\d+)", czas=30)
-d = czekaj(r"K1-INSTALACJA: dyski: (\d+) \(system do skopiowania: (\w+)\); dysk 1 (\d+),(\d+) co (\d+); przycisk (\d+),(\d+)", czas=30)
-sprawdz("Instalator: okno z listą dysków (1 dysk, system do skopiowania z pendrive'a)",
-        o and d and d.group(1) == "1" and d.group(2) == "jest", d.group(0) if d else "brak listy")
+d = czekaj(r"K1-INSTALACJA: dyski: (\d+) \(system do skopiowania: ([\w' ]+)\); dysk 1 (\d+),(\d+) co (\d+); przycisk (\d+),(\d+)", czas=30)
+sprawdz("Instalator: okno z listą dysków (1 dysk" + (")" if tryb == "z-iso" else ", system do skopiowania z pendrive'a)"),
+        o and d and d.group(1) == "1" and (tryb == "z-iso" or d.group(2) == "jest"), d.group(0) if d else "brak listy")
 if not (o and d): koniec()
 ox, oy = int(o.group(4)), int(o.group(5))
 px, py = ox + int(d.group(6)), oy + int(d.group(7))
 time.sleep(1)
+
+if tryb == "z-iso":
+    sprawdz("start z obrazu .iso: Instalator mówi, że nie ma skąd kopiować (0.6.1)",
+            d.group(2) == "brak", d.group(0))
+    time.sleep(1); zrzut("0-z-iso")
+    klik(px, py)  # where the button would be: nothing may start
+    time.sleep(2)
+    sprawdz("bez kopii systemu nie ma przycisku „Zainstaluj” (nic się nie zaczyna)",
+            "potwierdzono" not in tekst() and "instalator: odmowa" not in tekst())
+    koniec()
 
 if tryb == "instaluj":
     sprawdz("dysk pusty: bez Kons K1", czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: nie", czas=5))
@@ -116,6 +126,7 @@ PY
 }
 
 SATA="-drive if=none,id=dysk,file=$DYSK,format=raw -device ide-hd,bus=ide.0,drive=dysk"
+uruchom z-iso 0-z-iso --iso "$K1_WYNIK/k1-$K1_WERSJA.iso" --uefi --vga virtio --qemu "$SATA"
 uruchom instaluj 1-instalacja --pendrive "$PEN" --qemu "$SATA"
 if sfdisk -d "$DYSK" 2>/dev/null | grep -q 'name="K1-EFI"' && sfdisk -d "$DYSK" | grep -q 'name="K1-DANE"' \
     && sfdisk --verify "$DYSK" >/dev/null 2>&1; then

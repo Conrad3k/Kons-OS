@@ -189,6 +189,8 @@ static void zasoby(void)
     EXPECT(zle(K(K1_KOM_INST_DYSK, 1, 100, K1_DYSK_SATA, 0, 520, 0), K1_KIER_OD_NADZORCY));
     EXPECT(ok(K(K1_KOM_INST_LISTA, 0, 2, 1, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(zle(K(K1_KOM_INST_LISTA, 0, K1_INST_DYSKI_MAKS + 1, 1, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(ok(K(K1_KOM_INST_LISTA, 0, 1, 2, 0, 0, 0), K1_KIER_OD_NADZORCY));  /* two K1 sticks */
+    EXPECT(zle(K(K1_KOM_INST_LISTA, 0, 1, 3, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(!k1_komunikat_z_deskryptorem(K1_KOM_INST_START, K1_KIER_DO_NADZORCY));
     /* battery (0.5.3): nadzorca → gui */
     EXPECT(ok(K(K1_KOM_BATERIA, 0, 1, 73, K1_BAT_ROZLADOWANIE, 0, 0), K1_KIER_OD_NADZORCY));

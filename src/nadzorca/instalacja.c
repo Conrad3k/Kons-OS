@@ -28,7 +28,8 @@ void inst_lista_dyskow(void)
                                       d->rodzaj, d->efi[0] && d->dane[0], d->sektor,
                                       d->dane[0] && strcmp(d->dane, skarb_dane) == 0));
     }
-    inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_LISTA, 0, inst_lista.n, inst_lista.zrodlo[0] != 0, 0, 0, 0));
+    inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_LISTA, 0, inst_lista.n,
+                                  inst_lista.zrodlo[0] ? 1 : (inst_lista.zrodel > 1 ? 2 : 0), 0, 0, 0));
     k1_log(TAG, "instalator: dysków %d, system do skopiowania: %s", inst_lista.n,
            inst_lista.zrodlo[0] ? inst_lista.zrodlo : "brak (nie z pendrive'a K1)");
 }

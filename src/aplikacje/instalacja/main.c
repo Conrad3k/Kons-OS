@@ -103,6 +103,8 @@ static void przyciski(int32_t *x1, int32_t *x2, int32_t *w1, int32_t *w2, const 
     *e1 = *e2 = NULL;
     switch (stan) {
     case S_LISTA:
+        if (zrodlo != 1)
+            break; /* nothing to install from: no button (0.6.1) */
         if (wybrany >= 0 && dyski[wybrany].k1) {
             *e1 = "Zaktualizuj system";
             *e2 = dyski[wybrany].zajety ? NULL : "Zainstaluj od nowa";
@@ -171,11 +173,22 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "System i Twoje zaszyfrowane dane zamieszkają na dysku tego komputera —",
                  k1_kolor(m->tekst2, 255), 0);
         k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 68, "pendrive nie będzie już potrzebny.", k1_kolor(m->tekst2, 255), 0);
-        if (!zrodlo) {
-            snprintf(buf, sizeof buf, "plik k1-%s-usb.img.xz (nie z obrazu .iso).", K1_WERSJA);
-            k1_tekst(o, K1_CZ_TEKST, LEWO, DYSKI_Y + 20, "Instalować można tylko z pendrive'a, na który zapisano",
-                     k1_kolor(m->tekst, 255), 0);
-            k1_tekst(o, K1_CZ_TEKST, LEWO, DYSKI_Y + 42, buf, k1_kolor(m->tekst, 255), 0);
+        if (zrodlo != 1) { /* nothing to copy: no button, only what to do */
+            static const char *const kroki_iso[] = {
+                "K1 działa teraz z obrazu .iso — w nim nie ma kopii systemu do instalacji.",
+                "1. Pobierz plik k1-…-usb.img.xz (Releases, obok .iso).",
+                "2. Nagraj go na pendrive (Rufus albo balenaEtcher).",
+                "3. Uruchom komputer z tego pendrive'a (F12) i otwórz Instalator.",
+            };
+            static const char *const kroki_dwa[] = {
+                "Podłączone są dwa pendrive'y z Kons K1 — nie wiadomo, który skopiować.",
+                "Odłącz ten, z którego komputer nie startował, i otwórz Instalator jeszcze raz.",
+            };
+            const char *const *t = zrodlo == 2 ? kroki_dwa : kroki_iso;
+            int ile = zrodlo == 2 ? 2 : 4;
+            for (i = 0; i < ile; i++)
+                k1_tekst(o, i == 0 ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, LEWO, DYSKI_Y + 20 + i * 26 + (i > 0 ? 8 : 0), t[i],
+                         k1_kolor(i == 0 ? m->tekst : m->tekst2, 255), apl.szer - 2 * LEWO);
             break;
         }
         if (n_dyskow == 0)
@@ -315,7 +328,7 @@ static void odbierz(void)
             wybrany = n_dyskow == 1 ? 0 : -1;
             /* the tests click by this line (the main button: its right end, whatever its label) */
             k1_log(TAG, "dyski: %d (system do skopiowania: %s); dysk 1 %d,%d co %d; przycisk %d,%d", n_dyskow,
-                   zrodlo ? "jest" : "brak", apl.szer / 2, DYSKI_Y + DYSK_H / 2, DYSK_H + 8, apl.szer - LEWO - 24,
+                   zrodlo == 1 ? "jest" : zrodlo == 2 ? "dwa pendrive'y K1" : "brak", apl.szer / 2, DYSKI_Y + DYSK_H / 2, DYSK_H + 8, apl.szer - LEWO - 24,
                    przyciski_y() + PRZ_H / 2);
             for (i = 0; i < n_dyskow; i++)
                 k1_log(TAG, "dysk %d: %d MiB, rodzaj %d, Kons K1: %s%s", i + 1, (int)dyski[i].mib, (int)dyski[i].rodzaj,
@@ -360,7 +373,7 @@ static void glowny(void)
 {
     switch (stan) {
     case S_LISTA:
-        if (wybrany < 0)
+        if (wybrany < 0 || zrodlo != 1)
             return;
         tryb = dyski[wybrany].k1 ? K1_INST_AKTUALIZUJ : K1_INST_INSTALUJ;
         pole_dl = 0;
@@ -409,7 +422,7 @@ static int pod(int32_t x, int32_t y)
         return 10;
     if (e2 && x >= x2 && x < x2 + w2 && y >= py && y < py + PRZ_H)
         return 11;
-    if (stan == S_LISTA && zrodlo && x >= LEWO && x < apl.szer - LEWO && y >= DYSKI_Y) {
+    if (stan == S_LISTA && zrodlo == 1 && x >= LEWO && x < apl.szer - LEWO && y >= DYSKI_Y) {
         int i = (y - DYSKI_Y) / (DYSK_H + 8);
         if (i < n_dyskow && (y - DYSKI_Y) % (DYSK_H + 8) < DYSK_H)
             return i;

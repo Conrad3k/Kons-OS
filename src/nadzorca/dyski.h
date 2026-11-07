@@ -19,6 +19,7 @@ struct k1_dyski {
     struct k1_dysk d[K1_DYSKI_MAKS]; /* internal disks (not USB), at least 1 GiB, in name order */
     int n;
     char zrodlo[32];      /* "K1-EFI" on a USB stick: the system the installer copies ("" none or two) */
+    int zrodel;           /* how many K1 sticks (K1-EFI on USB) there are: 0, 1, 2+ */
 };
 
 /* Scans `sys`/class/block. 0, or -1 when it cannot be read. */
