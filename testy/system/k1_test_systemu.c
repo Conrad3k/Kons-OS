@@ -38,6 +38,7 @@ int main(int argc, char **argv)
     t_inventory();
     t_screen_input();
     t_sprzet();
+    t_bateria();
     t_klatki();
     t_malicious_ipc();
     t_proby();

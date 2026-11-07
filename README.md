@@ -60,12 +60,15 @@ pilnuje tego test). Pendrive zostanie w całości nadpisany.
    - Security → Secure Boot (jeśli jest) → **Disabled** (K1 nie jest jeszcze podpisany — M10).
    Zapisz (F10). Potem przy włączaniu wciskaj **F12** i wybierz pendrive (USB HDD).
 3. Po kilku sekundach powinien pojawić się pulpit. Klawiatura, TrackPoint, touchpad (ruch i kliknięcia,
-   bez przewijania dwoma palcami) i mysz USB powinny działać. Jasność ekranu i klawisze Fn — jeszcze nie.
+   bez przewijania dwoma palcami) i mysz USB powinny działać. Na górnym pasku przy głośniku — bateria
+   (procent; błyskawica, gdy podłączysz zasilacz — zmiana widoczna do 15 s). Jasność ekranu i klawisze
+   Fn — jeszcze nie.
 4. Wyłączenie: znak K1 → **Wyłącz** (laptop powinien się sam wyłączyć), potem wyjmij pendrive.
 
 Napisz (Issues → „Feedback z testu” albo w czacie): czy pulpit się pojawił (jeśli ekran został czarny
 — po ilu sekundach i czy wcześniej było logo Lenovo/GRUB), czy obraz jest ostry (1366×768), co działa
-z klawiatury, TrackPointa, touchpada i myszy USB, czy laptop sam się wyłączył. Wersja BIOS-u
+z klawiatury, TrackPointa, touchpada i myszy USB, czy bateria pokazuje sensowny procent, czy laptop
+sam się wyłączył. Wersja BIOS-u
 (widać w F1 → Main) też się przyda.
 
 ## Jak sprawdzić testy bez instalowania niczego

@@ -282,3 +282,19 @@ void t_sprzet(void)
     k = procesy_z_dyskiem(opis, sizeof opis);
     check(k == 0, "NEGATYWNY: żaden proces nie ma otwartego dysku", "procesy: %s", opis);
 }
+
+/* 0.5.3: the battery and AC adapter from the test ACPI table (testy/acpi/bateria.asl) through the
+ * kernel's ACPI drivers. That gui shows it is checked by scripts/test-m1.sh (gui's log) and
+ * scripts/test-m5.sh (screenshot). */
+void t_bateria(void)
+{
+    char typ[32] = "", proc[16] = "", stan[32] = "", ac[8] = "";
+    read_file(SYS "/class/power_supply/BAT0/type", typ, sizeof typ);
+    read_file(SYS "/class/power_supply/BAT0/capacity", proc, sizeof proc);
+    read_file(SYS "/class/power_supply/BAT0/status", stan, sizeof stan);
+    read_file(SYS "/class/power_supply/AC/online", ac, sizeof ac);
+    check(strcmp(typ, "Battery") == 0 && strcmp(proc, "73") == 0 && strcmp(stan, "Discharging") == 0 &&
+              strcmp(ac, "0") == 0,
+          "bateria laptopa (ACPI): BAT0 73 %, rozładowywanie, zasilacz AC odłączony",
+          "type='%s' capacity='%s' status='%s' AC online='%s'", typ, proc, stan, ac);
+}

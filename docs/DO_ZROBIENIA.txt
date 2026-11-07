@@ -1,7 +1,7 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.5.2 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.5.3 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 w toku — M5a (dyski i USB).
 Data: 2026-11-07. Plik aktualizujemy po każdym etapie.
@@ -45,8 +45,11 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
 [!] Dalsze uwagi do pulpitu, tapet i nowego znaku (Issues → „Feedback z testu” albo w czacie).
   - Laptop i konto (2026-11-07): „akceptuję jedno konto”; pierwszy laptop: ThinkPad X230, 8 GB RAM.
     → M5a dostosowane do X230 (SATA/AHCI, USB 2 i 3, klawiatura i touchpad PS/2; ADR 0013).
+  - „Może w ramach tej wersji dodać wskaźnik baterii, jeśli system wykryje, że to laptop?”
+    → 0.5.3: ikona z procentami na górnym pasku, błyskawica przy ładowaniu (ADR 0014).
 [!] Pierwszy test na X230 z pendrive'a (od 0.5.2 — instrukcja w README, „Uruchom na laptopie”):
-    czy pulpit się pojawia, ostrość obrazu, klawiatura, TrackPoint, touchpad, mysz USB, wyłączanie.
+    czy pulpit się pojawia, ostrość obrazu, klawiatura, TrackPoint, touchpad, mysz USB, bateria
+    (procent i błyskawica po podłączeniu zasilacza — zmiana do 15 s), wyłączanie.
 [x] Ekran hasła przy starcie (2026-11-07): „bardzo ładny, w stylu, jaki jest system — Claude'owy”.
     → W M5 najpierw szkice do wyboru (zrzuty).
 [x] Jedno konto na komputer — tak (2026-11-07).
@@ -70,7 +73,8 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
 [~] Polski układ klawiatury (programisty, prawy Alt) — gotowy (M4). Podłączanie klawiatury/myszy
     w trakcie pracy (hotplug) — do zrobienia (razem z USB).
 [ ] Dźwięk (ikona na górnym pasku jest, sterownika i usługi dźwięku jeszcze nie ma).
-[ ] Bateria na górnym pasku (ACPI battery) — przy testach na laptopie.
+[x] Bateria na górnym pasku (0.5.3, ADR 0014) — tylko gdy komputer ma baterię; sprawdzone w QEMU
+    ze sztuczną baterią ACPI; na X230 — w Twoim teście.
 [ ] Oznaczanie okien przez ekran (zaufana ramka), zanim pojawią się aplikacje spoza rdzenia (RYZYKA R26).
 [ ] Trwały zapis ustawień i notatek — z Blob Vault (M5).
 
@@ -162,7 +166,7 @@ M12 Audyt
 M3   (podjęte, ADR 0007) fortify-headers — na razie nie; kanały: gniazda UNIX SEQPACKET + SO_PASSCRED
 M4   (podjęte) czcionki IBM Plex (OFL), własne rysowanie tekstu bez LVGL (ADR 0009); obraz ISO z GRUB (ADR 0010)
 M4.1 (podjęte, ADR 0012) przegląd, tryby ekranu, vmwgfx, Zasoby
-M5   (podjęte, ADR 0013) sterowniki dysków i USB; dalej: format Blob Vault i szyfrowanie (ADR 0014),
+M5   (podjęte, ADR 0013) sterowniki dysków i USB; dalej: format Blob Vault i szyfrowanie (ADR 0015),
      skąd klucz (hasło; X230 ma TPM 1.2, nie 2.0)
 M7   przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP
 M5.1 Firefox czy WPE WebKit (sprawdzenie sandboxa Firefoksa w strefie), USER_NS tak/nie

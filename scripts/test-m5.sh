@@ -4,7 +4,9 @@
 # 1. start → wejscie znajduje klawiaturę i mysz USB, 2. mysz USB przesuwa kursor (monitor QEMU),
 # 3. klawiatura USB (strzałki przesuwają kursor, gdy żadne okno nie ma fokusu),
 # 4. podłączenie drugiej myszy w trakcie pracy (device_add), odłączenie (device_del) i ponowne
-#    podłączenie — system zauważa zmiany, nic się nie zawiesza.
+#    podłączenie — system zauważa zmiany, nic się nie zawiesza,
+# 5. (0.5.3) bateria laptopa (tablica ACPI z testy/acpi/bateria.asl: 73 %, ładowanie, zasilacz
+#    podłączony) — wskaźnik na górnym pasku (log powłoki + zrzut).
 # Dyski (SATA, NVMe, pendrive) i kontrolery EHCI/OHCI sprawdza test w systemie (scripts/test-m1.sh).
 # Zrzut: build/testy/m5-usb.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
@@ -13,9 +15,11 @@ LOG=$TESTY/m5-usb.log MON=$TESTY/m5-usb.sock
 CZAS=${K1_TEST_CZAS:-240}
 mkdir -p "$TESTY"; rm -f "$LOG" "$MON" "$TESTY"/m5-*.png
 
-echo "[k1] test M5a: klawiatura i mysz USB (bez PS/2), podłączanie w trakcie pracy"
+echo "[k1] test M5a: klawiatura i mysz USB (bez PS/2), podłączanie w trakcie pracy, bateria"
+bateria_aml 2 1 "$TESTY/bateria-ladowanie.aml"
 "$K1_REPO/scripts/uruchom-qemu.sh" --log "$LOG" --monitor "$MON" --czas "$CZAS" --maszyna ",i8042=off" \
-    --qemu "-device qemu-xhci,id=xhci -device usb-kbd,bus=xhci.0 -device usb-mouse,bus=xhci.0" &
+    --qemu "-device qemu-xhci,id=xhci -device usb-kbd,bus=xhci.0 -device usb-mouse,bus=xhci.0
+            -acpitable file=$TESTY/bateria-ladowanie.aml" &
 QPID=$!
 r=0
 python3 -I - "$LOG" "$MON" "$TESTY" "$K1_REPO/scripts/zrzut-ekranu.sh" "$CZAS" <<'PY' || r=$?
@@ -113,6 +117,15 @@ p = f"{out}/m5-usb.png"
 subprocess.run([zrzut_sh, p, mon], check=True, stdout=subprocess.DEVNULL)
 w, h, px = png(p)
 sprawdz("zrzut: kursor w miejscu z logu", krem(px(x3 + 3, y3 + 9)), str(px(x3 + 3, y3 + 9)))
+sprawdz("bateria: powłoka dostała stan od nadzorcy (73 %, ładowanie, zasilacz podłączony)",
+        czekaj(r"K1-GUI: bateria 73%, ładowanie, zasilacz podłączony", sekundy=10))
+glosnik = czekaj(r"K1-GUI: pulpit gotowy: .* dźwięk (\d+),16", sekundy=5)
+if glosnik:  # battery icon, percent and bolt: left of the sound icon on the top bar
+    gx = int(glosnik.group(1))
+    jasne = sum(1 for x in range(max(0, gx - 110), gx - 16) for y in range(6, 26) if krem(px(x, y)))
+    sprawdz(f"zrzut: wskaźnik baterii na górnym pasku ({jasne} jasnych pikseli)", jasne > 60, str(jasne))
+else:
+    sprawdz("zrzut: wskaźnik baterii na górnym pasku", False, "brak położenia dźwięku w logu")
 
 t = tekst()
 sprawdz("brak 'Kernel panic' i błędów usług", "Kernel panic" not in t and "BŁĄD" not in t)

@@ -91,6 +91,7 @@ int inventory_cb(const char *path, const struct stat *st, int type, struct FTW *
 void t_inventory(void);
 void t_screen_input(void);
 void t_sprzet(void);
+void t_bateria(void);
 void t_malicious_ipc(void);
 void status_pole(long pid, const char *pole, char *out, size_t size);
 int deskryptory_ok(long pid, const char *const *dozwolone, char *zle, size_t zle_size);

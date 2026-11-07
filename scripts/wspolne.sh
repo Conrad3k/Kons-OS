@@ -14,3 +14,9 @@ export SOURCE_DATE_EPOCH
 K1_CPU=$(nproc 2>/dev/null || echo 2)
 info() { printf '[k1] %s\n' "$*"; }
 blad() { printf '[k1] BŁĄD: %s\n' "$*" >&2; exit 1; }
+# Test battery for QEMU (testy/acpi/bateria.asl → ACPI table): $1 = state (1 discharging,
+# 2 charging), $2 = AC adapter online (0/1), $3 = output .aml file.
+bateria_aml() {
+    sed "s/@STAN@/$1/; s/@ZASILACZ@/$2/" "$K1_REPO/testy/acpi/bateria.asl" > "${3%.aml}.asl"
+    iasl -p "${3%.aml}" "${3%.aml}.asl" >/dev/null 2>&1 || blad "iasl: nie udało się skompilować ${3%.aml}.asl"
+}
