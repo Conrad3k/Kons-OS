@@ -56,6 +56,9 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
   tablice partycji tylko GPT, USB (xHCI, EHCI, OHCI), HID generic (klawiatury, myszy USB), mass
   storage — bez napędów CD, `sg`/bsg, `hidraw`/`hiddev`, UAS i sterowników producentów.
   Od 0.5.3 (ADR 0014): ACPI Embedded Controller, bateria i zasilacz (`power_supply`).
+  Od 0.5.4: `MTRR` + `X86_PAT` — bez nich `ioremap_wc` (pamięć obrazu simpledrm) daje mapowanie bez
+  buforowania zapisu i pulpit na X230 się zacinał. Skutek uboczny: `/proc/mtrr` (tylko root; usługi
+  nie widzą `/proc` poza własnymi procesami i nie mają do niego dostępu w klatce).
   Brak VT, sieci (protokołów), I2C-HID, `i915`.
 
 ## Wywołania systemowe usunięte z jądra (test: `t_syscalls`)

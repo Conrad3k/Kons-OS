@@ -155,6 +155,9 @@ monitor QEMU — `mouse_move`, `mouse_button`, `sendkey alt_r-a`); zrzuty pokazu
   `execve`, więc obejmuje start musl; `hidepid` daje ENOENT zamiast EACCES dla cudzych procesów. `read_file` w testach zwraca 0 przy
   sukcesie (nie liczbę bajtów); q35 ma wbudowany AHCI (`bus=ide.0`); HMP `mouse_move`/`sendkey` idą do
   ostatnio aktywnego urządzenia QEMU (z USB w maszynie — do USB).
+  **Wydajności nie widać w QEMU (TCG):** emulator ignoruje typy pamięci (MTRR/PAT) — na X230 brak PAT
+  dał niebuforowaną pamięć obrazu i zacinający się pulpit (0.5.4). allnoconfig wyłącza też opcje
+  „default y” za `if EXPERT` (MTRR, PAT, ACPI_EC) — przy sprzęcie sprawdzaj je świadomie.
 
 ## 5. Proces
 

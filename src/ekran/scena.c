@@ -169,7 +169,22 @@ static void skomponuj(void)
 
 /* ---- output ---- */
 
-void zapisz_klatke(struct bufor *b)
+/* Clip rectangle for DIRTYFB (screen coordinates, clamped; empty → not added). */
+static void dodaj_zmiane(struct drm_clip_rect *z, unsigned *n, struct prost r)
+{
+    struct prost ekran = { 0, 0, s.W, s.H };
+    if (z == NULL || !przetnij(&r, &ekran) || *n >= MAKS_PROST + 1)
+        return;
+    z[*n].x1 = (unsigned short)r.x;
+    z[*n].y1 = (unsigned short)r.y;
+    z[*n].x2 = (unsigned short)(r.x + r.w);
+    z[*n].y2 = (unsigned short)(r.y + r.h);
+    (*n)++;
+}
+
+/* Copies the damaged parts of the scene into buffer `b` and draws the cursor. When `zmiany` is not
+ * NULL it receives the changed rectangles (at most MAKS_PROST + 1; *n_zmian must start at 0). */
+void zapisz_klatke(struct bufor *b, struct drm_clip_rect *zmiany, unsigned *n_zmian)
 {
     int k;
     int32_t y;
@@ -180,12 +195,14 @@ void zapisz_klatke(struct bufor *b)
         for (y = r.y; y < r.y + r.h; y++)
             memcpy(b->obraz.px + (size_t)y * b->obraz.krok + (size_t)r.x, s.scena.px + (size_t)y * s.scena.krok + (size_t)r.x,
                    (size_t)r.w * sizeof(uint32_t));
+        dodaj_zmiane(zmiany, n_zmian, r);
     }
     b->brud.n = 0;
     b->kx = s.x - K1_KURSOR_HOT_X;
     b->ky = s.y - K1_KURSOR_HOT_Y;
     k1_naloz_sprite(&b->obraz, s.kursor[s.wcisniety ? 1 : 0], K1_KURSOR_SZER, K1_KURSOR_WYS, b->kx, b->ky);
     b->ma_kursor = 1;
+    dodaj_zmiane(zmiany, n_zmian, (struct prost){ b->kx, b->ky, K1_KURSOR_SZER, K1_KURSOR_WYS });
 }
 
 void pokaz(void)
@@ -194,9 +211,15 @@ void pokaz(void)
     if (s.brak_flip) {
         struct bufor *b = &s.buf[s.przedni];
         struct drm_mode_fb_dirty_cmd dc;
-        zapisz_klatke(b);
+        struct drm_clip_rect zmiany[MAKS_PROST + 1];
+        unsigned n = 0;
+        zapisz_klatke(b, zmiany, &n);
+        if (n == 0)
+            return;
         memset(&dc, 0, sizeof dc);
         dc.fb_id = b->fb;
+        dc.num_clips = n;
+        dc.clips_ptr = (uint64_t)(uintptr_t)zmiany;
         drm(s.fd, DRM_IOCTL_MODE_DIRTYFB, &dc);
         s.klatki++;
         return;
@@ -204,7 +227,7 @@ void pokaz(void)
     {
         int tylny = 1 - s.przedni;
         struct drm_mode_crtc_page_flip pf;
-        zapisz_klatke(&s.buf[tylny]);
+        zapisz_klatke(&s.buf[tylny], NULL, NULL);
         memset(&pf, 0, sizeof pf);
         pf.crtc_id = s.crtc;
         pf.fb_id = s.buf[tylny].fb;
