@@ -177,6 +177,7 @@ int main(void)
     cap.capability = DRM_CAP_DUMB_BUFFER;
     if (drm(s.fd, DRM_IOCTL_GET_CAP, &cap) < 0 || cap.value == 0)
         k1_koniec(TAG, "sterownik nie obsługuje buforów „dumb”");
+    sprawdz_sterownik();
     wybierz_wyjscie();
     s.W = (int32_t)s.tryb.hdisplay;
     s.H = (int32_t)s.tryb.vdisplay;
@@ -199,7 +200,7 @@ int main(void)
     }
     s.x = s.W * 3 / 4;
     s.y = s.H / 2;
-    zapisz_klatke(&s.buf[0]);
+    zapisz_klatke(&s.buf[0], NULL, NULL);
 
     if (ustaw_crtc(s.buf[0].fb, &s.tryb) < 0)
         k1_koniec(TAG, "SETCRTC: %s", strerror(errno));

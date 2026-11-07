@@ -1,7 +1,7 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.5.3 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.5.4 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 w toku — M5a (dyski i USB).
 Data: 2026-11-07. Plik aktualizujemy po każdym etapie.
@@ -49,7 +49,14 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
     → 0.5.3: ikona z procentami na górnym pasku, błyskawica przy ładowaniu (ADR 0014).
   - Pierwsza próba na X230 (0.5.3, 2026-11-07): komunikat o Secure Boot, po „OK” laptop uruchomił
     system z dysku — Secure Boot był włączony (K1 niepodpisany do M10). README: wyraźny krok.
-[!] Pierwszy test na X230 z pendrive'a (od 0.5.2 — instrukcja w README, „Uruchom na laptopie”;
+  - Test 0.5.3 na X230 po wyłączeniu Secure Boot (2026-11-07): „DZIAŁA!!! NAWET BATERIA JEST GIT!”;
+    widzi 4 rdzenie i 8 GB; rozdzielczość ustawiła się sama (jedyna w Ustawieniach — natywna);
+    mysz i cały system „strasznie lagują”, zmiana tapety zacina system.
+    → 0.5.4: obsługa typów pamięci w jądrze (MTRR/PAT) + przy obrazie z firmware do karty tylko zmiany.
+  - Prośba: bateria w Ustawieniach z ładnym, minimalistycznym wykresem naładowania od uruchomienia
+    i historii → 0.5.5 (od uruchomienia); historia między uruchomieniami — z trwałym zapisem (M5d).
+[!] Test 0.5.4 na X230: czy kursor i pulpit są płynne (także zmiana tapety)?
+[x] Pierwszy test na X230 z pendrive'a (od 0.5.2 — instrukcja w README, „Uruchom na laptopie”;
     najpierw F1 → Security → Secure Boot → Disabled):
     czy pulpit się pojawia, ostrość obrazu, klawiatura, TrackPoint, touchpad, mysz USB, bateria
     (procent i błyskawica po podłączeniu zasilacza — zmiana do 15 s), wyłączanie.

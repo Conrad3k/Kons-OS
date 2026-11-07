@@ -30,6 +30,31 @@ static uint64_t wsk(const void *p)
     return (uint64_t)(uintptr_t)p;
 }
 
+/* simpledrm (picture from the firmware: laptops, VMs without our driver) has no real page flip: every
+ * flip copies the whole frame into the firmware framebuffer, which is slow on real hardware (0.5.4,
+ * ThinkPad X230: the cursor and the whole desktop lagged). With it ekran keeps one buffer and reports
+ * only the changed rectangles (DIRTYFB with clips) — the kernel copies just those. */
+void sprawdz_sterownik(void)
+{
+    char nazwa[32];
+    struct drm_version v;
+    memset(nazwa, 0, sizeof nazwa);
+    memset(&v, 0, sizeof v);
+    v.name_len = sizeof nazwa - 1;
+    v.name = nazwa;
+    if (drm(s.fd, DRM_IOCTL_VERSION, &v) < 0) {
+        k1_log(TAG, "DRM_IOCTL_VERSION: %s", strerror(errno));
+        return;
+    }
+    nazwa[sizeof nazwa - 1] = '\0';
+    if (strcmp(nazwa, "simpledrm") == 0) {
+        s.brak_flip = 1;
+        k1_log(TAG, "sterownik simpledrm: jeden bufor, do karty tylko zmienione obszary");
+    } else {
+        k1_log(TAG, "sterownik %s: dwa bufory (page flip)", nazwa);
+    }
+}
+
 double teraz(void)
 {
     struct timespec t;

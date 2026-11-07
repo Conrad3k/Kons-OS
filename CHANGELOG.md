@@ -3,6 +3,16 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.5.4] — 2026-11-07
+
+### Naprawione
+- **Zacinanie się całego pulpitu na prawdziwym laptopie** (ThinkPad X230, Twój pierwszy test):
+  kursor, zmiana tapety i cały system działały skokowo. Dwie przyczyny: (1) w jądrze brakowało obsługi
+  typów pamięci procesora (MTRR/PAT), więc każdy piksel szedł do karty bez buforowania; (2) przy
+  obrazie z firmware ekran przy każdej klatce przepisywał cały ekran (ok. 4 MB). Teraz przy obrazie
+  z firmware jest jeden bufor, a do karty trafiają tylko zmienione miejsca (np. sam kursor).
+  W QEMU tego nie było widać — emulator nie odwzorowuje typów pamięci.
+
 ## [0.5.3] — 2026-11-07
 
 ### Dodane

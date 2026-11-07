@@ -106,7 +106,8 @@ void uszkodz(int32_t x, int32_t y, int32_t w, int32_t h);
 void uszkodz_pow(const struct pow *p);
 int widac(const struct pow *p);
 int kolejnosc(int *idx); /* visible surfaces bottom to top; returns how many */
-void zapisz_klatke(struct bufor *b);
+void zapisz_klatke(struct bufor *b, struct drm_clip_rect *zmiany, unsigned *n_zmian);
+void sprawdz_sterownik(void);
 void pokaz(void);
 void odbierz_drm(void);
 
