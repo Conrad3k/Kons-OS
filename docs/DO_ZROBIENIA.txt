@@ -104,7 +104,7 @@ M4.1 Porządki i audyt — GOTOWE (0.5.0, ADR 0012)
     [x] aplikacja Zasoby (procesor, pamięć, usługi — wykresy z ostatniej minuty)
     [x] naprawa cienia pod dolnym paskiem i menu dźwięku
 
-M5  Dane i sprzęt (rozszerzony) — NASTĘPNY
+M5  Dane i sprzęt (rozszerzony) — NASTĘPNY (rozpoznanie: docs/M5-ROZPOZNANIE.txt)
     [ ] sterowniki dysków: virtio, SATA (AHCI), NVMe; partycja danych na dysku / pendrivie
     [ ] magazyn obiektów zamiast katalogów (identyfikator, metadane, hash, pochodzenie)
     [ ] szyfrowanie danych na dysku (dziś dane są tylko w RAM)
