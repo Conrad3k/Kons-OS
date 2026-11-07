@@ -28,14 +28,17 @@ jądro 6.18 LTS (jadro/k1.config) ──► /init = k1-initramfs (src/initramfs)
  ──► /rdzen/system/nadzorca (src/nadzorca, root): usługi w klatkach (k1_klatka), kanały UNIX, logi, restarty
        ├─ wejscie (100): evdev (fd 4… od nadzorcy) → k1_zdarzenie → kanał do ekranu
        ├─ ekran   (101): DRM master (fd 4), kompozytor: tapeta + okna + panele (memfd) + cienie + kursor
-       ├─ gui     (102): powłoka — górny pasek, dolny pasek, menu Start; fd 4 → nadzorca (URUCHOM, WYLACZ)
+       ├─ gui     (102): powłoka — górny pasek, dolny pasek, menu Start; fd 4 → nadzorca (URUCHOM, WYLACZ),
+       │          fd 5 ← nadzorca (BATERIA, jednokierunkowo)
        └─ aplikacje na prośbę gui: zegar (200), notatki (201, tylko /dane_uzytkownika/notatki), ustawienia (202),
           zasoby (203; fd 4: statystyki cgroup od nadzorcy, jednokierunkowo)
 ```
 Planowane (SPEC §7–§9): Blob Vault (M5), dekodery w jednorazowych procesach (M6), `siec` (M7),
 Gatekeeper (M9).
 
-Stan: M5a (0.5.2) — dyski SATA/NVMe, GPT, USB (xHCI/EHCI/OHCI, HID, mass storage) (ADR 0013).
+Stan: M5a (0.5.2) — dyski SATA/NVMe, GPT, USB (xHCI/EHCI/OHCI, HID, mass storage) (ADR 0013);
+0.5.3 — wskaźnik baterii (nadzorca czyta sysfs `power_supply` → gui fd 5, ADR 0014; w QEMU bateria
+z tablicy ACPI `testy/acpi/bateria.asl`, `bateria_aml` w `scripts/wspolne.sh`).
 Pierwszy laptop właściciela: **ThinkPad X230** (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez
 simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
 

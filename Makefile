@@ -53,8 +53,8 @@ $(BIN)/k1-initramfs: src/initramfs/main.c $(WSPOLNE) $(NAGL) | $(BIN)
 $(BIN)/init: src/init/main.c $(WSPOLNE) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/init/main.c $(WSPOLNE) $(LDFLAGS_K1)
 
-$(BIN)/nadzorca: src/nadzorca/main.c $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ src/nadzorca/main.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/nadzorca: src/nadzorca/main.c src/nadzorca/bateria.c src/nadzorca/bateria.h $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ src/nadzorca/main.c src/nadzorca/bateria.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 $(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
@@ -98,6 +98,9 @@ $(OBJ)/test_komunikat: testy/host/test_komunikat.c src/wspolne/k1_komunikat.c sr
 $(OBJ)/test_log: testy/host/test_log.c src/wspolne/k1_log.c src/wspolne/k1_log.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_log.c src/wspolne/k1_log.c
 
+$(OBJ)/test_bateria: testy/host/test_bateria.c src/nadzorca/bateria.c src/nadzorca/bateria.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_bateria.c src/nadzorca/bateria.c
+
 $(OBJ)/podglad_grafiki: testy/host/podglad_grafiki.c $(GRAFIKA) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/podglad_grafiki.c src/grafika/k1_grafika.c -lm
 
@@ -107,9 +110,10 @@ HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c,$(PRZYB)) src/wspolne/k
 $(OBJ)/test_przybornik: testy/host/test_przybornik.c $(PRZYB) $(NAGL_P) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przybornik.c $(HOST_PRZYB) -lm
 
-testy-host: $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki
+testy-host: $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki
 	$(OBJ)/test_cmdline
 	$(OBJ)/test_log
+	$(OBJ)/test_bateria
 	$(OBJ)/test_zdarzenie
 	$(OBJ)/test_komunikat
 	$(OBJ)/test_przybornik

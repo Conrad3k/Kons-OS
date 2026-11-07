@@ -6,7 +6,7 @@ To są notatki do rozpoczęcia pracy, a nie decyzje. Decyzje zapadną w ADR (001
 po prototypach.
 AKTUALIZACJA 2026-11-07: M5a zrobione (0.5.2, ADR 0013). Właściciel: jedno konto; laptop ThinkPad
 X230, 8 GB RAM (SATA/AHCI, bez NVMe, PS/2, EHCI + xHCI, Intel HD 4000, TPM 1.2 — szczegóły w ADR 0013).
-Format Blob Vault i szyfrowanie — ADR 0014 (nie 0013). Nazwy opcji jądra sprawdziłem w źródłach Linux 6.18.60 (build/zrodla); rzeczy
+0.5.3: wskaźnik baterii (ADR 0014). Format Blob Vault i szyfrowanie — ADR 0015. Nazwy opcji jądra sprawdziłem w źródłach Linux 6.18.60 (build/zrodla); rzeczy
 niesprawdzone mają dopisek „DO SPRAWDZENIA”.
 
 

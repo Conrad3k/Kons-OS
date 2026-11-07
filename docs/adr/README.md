@@ -41,3 +41,4 @@ Krótko, dlaczego nie.
 | [0011](0011-kolejnosc-etapow-po-m4.md) | Kolejność etapów po M4 | Przyjęty |
 | [0012](0012-przeglad-m4-1-tryby-ekranu-zasoby.md) | M4.1: przegląd bezpieczeństwa, tryby ekranu, aplikacja Zasoby | Przyjęty |
 | [0013](0013-dyski-i-usb-m5a.md) | M5a: sterowniki dysków i USB; pierwszy laptop — ThinkPad X230 | Przyjęty |
+| [0014](0014-wskaznik-baterii.md) | Wskaźnik baterii na górnym pasku | Przyjęty |

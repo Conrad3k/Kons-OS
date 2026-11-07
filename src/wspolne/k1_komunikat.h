@@ -23,7 +23,7 @@ enum k1_kanal_kierunek {
     K1_KIER_DO_EKRANU = 2,   /* client (gui, application) → ekran */
     K1_KIER_OD_EKRANU = 3,   /* ekran → client */
     K1_KIER_DO_NADZORCY = 4, /* gui / test program → nadzorca */
-    K1_KIER_OD_NADZORCY = 5, /* nadzorca → test program, nadzorca → Zasoby (one way) */
+    K1_KIER_OD_NADZORCY = 5, /* nadzorca → test program, → Zasoby, → gui (battery); one way */
 };
 
 enum k1_komunikat_typ {
@@ -66,6 +66,8 @@ enum k1_komunikat_typ {
     /* nadzorca → Zasoby (once a second; the application never writes to this channel) */
     K1_KOM_ZASOBY_SYSTEM = 62, /* obiekt=0, a=CPU ‰ (all CPUs), b,c = memory used,total MiB, d=CPUs, e=uptime s */
     K1_KOM_ZASOBY_USLUGA = 63, /* obiekt=K1_PROFIL_* of a service, a=CPU ‰ (of all CPUs), b=memory KiB, c=1 running */
+    K1_KOM_BATERIA = 64,       /* to gui: obiekt=0, a=1 battery present, b=percent 0..100 (-1 unknown), c=K1_BAT_*,
+                                * d=1 on mains power; no battery: a=0, b=-1, c=0 */
 };
 
 /* Surfaces */
@@ -106,6 +108,16 @@ enum k1_ustawienie {
 #define K1_TRYB_MIN_SZER 800
 #define K1_TRYB_MIN_WYS 600
 #define K1_PAMIEC_MAKS_MIB (1 << 24) /* 16 TiB: range check only */
+
+/* Battery state (K1_KOM_BATERIA c), from the kernel's power_supply "status". */
+enum k1_bateria_stan {
+    K1_BAT_NIEZNANY = 0,
+    K1_BAT_ROZLADOWANIE = 1, /* Discharging */
+    K1_BAT_LADOWANIE = 2,    /* Charging */
+    K1_BAT_PELNA = 3,        /* Full */
+    K1_BAT_NIE_LADUJE = 4,   /* Not charging (on mains, e.g. charge threshold) */
+};
+#define K1_BAT_STAN_MAKS 4
 
 struct k1_komunikat {
     uint8_t wersja;   /* K1_KOMUNIKAT_WERSJA */

@@ -87,16 +87,19 @@ for d in sata:16 nvme:8 usb:4; do
 done
 printf 'label: gpt\nstart=2048, size=8192, name="K1-DANE"\n' | sfdisk -q "$TESTY/sata.img" >/dev/null
 printf 'label: dos\nstart=2048, size=4096, type=83\n' | sfdisk -q "$TESTY/nvme.img" >/dev/null
+bateria_aml 1 0 "$TESTY/bateria-rozladowanie.aml"   # 0.5.3: a laptop battery (73 %, discharging)
 SPRZET_TEST="-drive if=none,id=sata,file=$TESTY/sata.img,format=raw -device ide-hd,drive=sata,bus=ide.0
  -drive if=none,id=nvme,file=$TESTY/nvme.img,format=raw -device nvme,drive=nvme,serial=k1test
  -device qemu-xhci,id=xhci -device usb-kbd,bus=xhci.0
  -device usb-ehci,id=ehci -drive if=none,id=usb,file=$TESTY/usb.img,format=raw -device usb-storage,drive=usb,bus=ehci.0
- -device pci-ohci,id=ohci -device usb-mouse,bus=ohci.0"
+ -device pci-ohci,id=ohci -device usb-mouse,bus=ohci.0
+ -acpitable file=$TESTY/bateria-rozladowanie.aml"
 SPRZET=
 
 echo "[k1] uruchomienia w QEMU ($( [ -w /dev/kvm ] && echo KVM || echo 'emulacja TCG'))"
 scenariusz start czekaj "$K1_WYNIK/rdzen.squashfs" "$CMDLINE" \
-    "K1-INITRAMFS: start" "K1: init OK" "uruchomiono nadzorcę" "K1-EKRAN: pierwsza klatka" "K1-GUI: pulpit gotowy"
+    "K1-INITRAMFS: start" "K1: init OK" "uruchomiono nadzorcę" "K1-EKRAN: pierwsza klatka" "K1-GUI: pulpit gotowy" \
+    "K1-GUI: brak baterii"
 SPRZET=$SPRZET_TEST
 scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE" \
     "K1: init OK" "K1-TEST: WYNIK: OK" "odrzucone 5)" "komunikat od obcego nadawcy (uid 0, oczekiwano 100)" \
@@ -104,6 +107,7 @@ scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE
     "K1-PROBA: koniec próby „proba-gui”: 0 błędów" "K1-PROBA: koniec próby „proba-zegar”: 0 błędów" \
     "K1-PROBA: koniec próby „proba-notatki”: 0 błędów" "K1-PROBA: koniec próby „proba-ustawienia”: 0 błędów" \
     "K1-PROBA: koniec próby „proba-zasoby”: 0 błędów" "bez fokusu (ochrona klawiatury)" \
+    "K1-GUI: bateria 73%, rozładowywanie, zasilacz odłączony" \
     "przekroczony limit pamięci powierzchni" "K1-ZASOBY: dane od nadzorcy" \
     "deskryptor nie jest memfd" "memfd bez pieczęci" "zły rozmiar memfd" "panele tylko dla powłoki" \
     "zmiana ustawień tylko dla aplikacji Ustawienia" "zarządzanie cudzymi oknami tylko dla powłoki" \

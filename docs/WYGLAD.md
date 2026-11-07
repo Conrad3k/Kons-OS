@@ -52,7 +52,9 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
 ## Pulpit (M4)
 - **Górny pasek** (32 px, cała szerokość): przyciemnienie tapety (czarny 59%), kremowy tekst
   IBM Plex Sans Medium 13: z lewej nazwa aktywnej aplikacji (albo „Kons K1”), z prawej ikona
-  głośnika i data z godziną („pt. 6 lis   19:42”; sekundy — w Ustawieniach).
+  głośnika i data z godziną („pt. 6 lis   19:42”; sekundy — w Ustawieniach). Na laptopie (0.5.3)
+  przed głośnikiem bateria: [błyskawica przy ładowaniu] „73%” + kontur baterii 22×12 (zaokrąglenie 3,
+  linia 1,25) z kremowym wypełnieniem; ≤ 15 % przy rozładowywaniu wypełnienie `#D97757`.
 - **Dolny pasek** (unosi się 8 px nad krawędzią, zaokrąglenie 16, tło okien 94%, włoskowaty obrys,
   miękki cień rzucany 4 px w dół, tylko poza panelem — od 0.5.0 bez „podstawy” pod paskiem): Start (znak K1 „Warstwy”), separator, ikony aplikacji 24 px w polach 44 px. Uruchomiona —
   kropka pod ikoną, aktywna — kreska 16×3 w kolorze akcentu.

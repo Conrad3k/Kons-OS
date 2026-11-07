@@ -38,8 +38,11 @@
 #include "k1_log.h"
 #include "k1_uslugi.h"
 
+#include "bateria.h"
+
 #define TAG "K1-NADZORCA"
 #define DEV "/rdzen/jadro/dev"
+#define SYS "/rdzen/jadro/sys"
 #define TEST "/rdzen/system/test-systemu"
 #define K1_CGROUP "/rdzen/jadro/sys/fs/cgroup"
 #define MAKS_URZADZEN 16
@@ -126,6 +129,9 @@ static int zero = -1;        /* /dev/null for fds 0 and 1 of services */
 static int test_kanal = -1;  /* our end of the test channel (test image) */
 static int gui_kanal = -1;   /* our end of gui's request channel (gui's fd 4) */
 static int zasoby_kanal = -1; /* our end of the channel to Zasoby (its fd 4; we only write) */
+static int bateria_kanal = -1; /* our end of the battery channel to gui (its fd 5; we only write) */
+static struct k1_bateria bateria_wyslana;
+static int bateria_znana; /* bateria_wyslana is what gui got on this channel */
 static pid_t test_pid;
 
 static double teraz(void)
@@ -405,6 +411,20 @@ static void start(struct usluga *u)
             close(gui_kanal);
         gui_kanal = para[0]; /* we check the sender (SO_PASSCRED) */
         fds[n++] = para[1];
+        /* fd 5: battery state, one way (gui checks that we, UID 0, are the sender) */
+        if (k1_kanal_utworz(para) != 0) {
+            for (i = 0; i < n; i++)
+                close(fds[i]);
+            u->nastepny = teraz() + 1.0;
+            return;
+        }
+        if (bateria_kanal >= 0)
+            close(bateria_kanal);
+        bateria_kanal = para[1];
+        bateria_znana = 0;
+        if (shutdown(bateria_kanal, SHUT_RD) != 0)
+            k1_log(TAG, "shutdown kanału baterii: %s", strerror(errno));
+        fds[n++] = para[0];
     }
     if (u->profil == K1_PROFIL_ZASOBY) {
         int para[2];
@@ -452,6 +472,10 @@ static void zakonczona(struct usluga *u, int status)
     if (u->profil == K1_PROFIL_ZASOBY && zasoby_kanal >= 0) {
         close(zasoby_kanal);
         zasoby_kanal = -1;
+    }
+    if (u->profil == K1_PROFIL_GUI && bateria_kanal >= 0) {
+        close(bateria_kanal);
+        bateria_kanal = -1;
     }
     if (u->rodzaj == R_EKRAN) {
         if (sterowanie >= 0)
@@ -520,6 +544,26 @@ static void sprawdz_nowe_wejscia(void)
         u->bez_liczenia = 1;
         kill(u->pid, SIGTERM);
         return;
+    }
+}
+
+/* Battery state for gui's top bar (0.5.3): read from sysfs power_supply, sent when it changed
+ * (the first time after gui started: always). Reading an ACPI battery talks to the embedded
+ * controller, so it is done every 15 s only. */
+static void wyslij_baterie(void)
+{
+    struct k1_bateria b;
+    struct k1_komunikat k;
+    if (bateria_kanal < 0)
+        return;
+    k1_bateria_odczytaj(SYS "/class/power_supply", &b);
+    if (bateria_znana && memcmp(&b, &bateria_wyslana, sizeof b) == 0)
+        return;
+    k = k1_komunikat_nowy(K1_KOM_BATERIA, 0, b.obecna, b.obecna ? b.procent : -1, b.obecna ? b.stan : 0, b.zasilacz,
+                          0);
+    if (k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1) == 0) {
+        bateria_wyslana = b;
+        bateria_znana = 1;
     }
 }
 
@@ -759,7 +803,7 @@ int main(void)
     int sfd;
     size_t i;
     struct stat st;
-    double nastepny_raport = 0, nastepne_skanowanie = 0;
+    double nastepny_raport = 0, nastepne_skanowanie = 0, nastepna_bateria = 0;
 
     sigemptyset(&maska);
     sigaddset(&maska, SIGCHLD);
@@ -876,6 +920,10 @@ int main(void)
         if (t >= nastepne_skanowanie) {
             sprawdz_nowe_wejscia();
             nastepne_skanowanie = t + 2.0;
+        }
+        if (bateria_kanal >= 0 && (!bateria_znana || t >= nastepna_bateria)) {
+            wyslij_baterie();
+            nastepna_bateria = t + 15.0;
         }
         if (zasoby_kanal >= 0 && t >= nastepny_raport) {
             raport_zasobow();

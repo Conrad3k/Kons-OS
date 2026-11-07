@@ -1,10 +1,11 @@
 /* K1 gui — the desktop shell (M4, ADR 0008).
  *
  * Draws the panels of the desktop into its own surfaces and hands them to ekran: the top bar (name
- * of the active application, sound, clock), the bottom bar centred like Windows 11 (Start + the
+ * of the active application, battery on laptops, sound, clock), the bottom bar centred like Windows 11 (Start + the
  * native applications, with running/active indicators), the Start menu and the sound popover.
  * It asks the supervisor to start applications (fd 4, k1_komunikat URUCHOM / WYLACZ) and ekran to
- * activate or minimise windows (it is the only client ekran accepts that from).
+ * activate or minimise windows (it is the only client ekran accepts that from). The battery state
+ * comes from the supervisor on fd 5 (k1_komunikat BATERIA, one way, sender UID 0 checked).
  *
  * Trust boundary: gui never sees the content of application windows (ekran composes them) and has
  * no access to files or devices — taking it over gives neither data nor the system (tests).
@@ -15,6 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <linux/input-event-codes.h>
 
@@ -28,6 +30,7 @@
 
 #define TAG "K1-GUI"
 #define FD_NADZORCA 4
+#define FD_BATERIA 5
 
 #define P_GORA 1
 #define P_DOK 2
@@ -149,6 +152,91 @@ static int32_t glosnik_x(void)
     return k.szer_ekranu - 16 - k1_tekst_szer(K1_CZ_MALA_MOCNA, zegar_tekst) - 16 - 28;
 }
 
+/* ---- battery (0.5.3): state from the supervisor, shown only when the computer has one ---- */
+
+static struct {
+    int obecna, procent, stan, zasilacz;
+} bat = { 0, -1, K1_BAT_NIEZNANY, 0 };
+static int bat_kanal = 1, bat_odrzucone, bat_zalogowana;
+
+static void zaloguj_baterie(void)
+{
+    static const char *const stany[] = { "stan nieznany", "rozładowywanie", "ładowanie", "pełna", "nie ładuje" };
+    char proc[16] = "?";
+    if (!bat.obecna) {
+        k1_log(TAG, "brak baterii (zasilacz %s)", bat.zasilacz ? "podłączony" : "—");
+        return;
+    }
+    if (bat.procent >= 0)
+        snprintf(proc, sizeof proc, "%d%%", bat.procent);
+    k1_log(TAG, "bateria %s, %s, zasilacz %s", proc, stany[bat.stan], bat.zasilacz ? "podłączony" : "odłączony");
+}
+
+static void odbierz_baterie(void)
+{
+    int i;
+    for (i = 0; i < 16 && bat_kanal; i++) {
+        struct k1_odebrane o;
+        struct k1_komunikat m;
+        enum k1_kanal_wynik w = k1_kanal_odbierz(FD_BATERIA, &o);
+        int zmiana;
+        if (w == K1_KANAL_PUSTO)
+            return;
+        if (w != K1_KANAL_KOMUNIKAT) {
+            bat_kanal = 0; /* closed or missing: stop watching it */
+            return;
+        }
+        if (o.fd >= 0)
+            close(o.fd);
+        if (o.fd >= 0 || o.obciete || !o.ma_nadawce || o.uid != 0 ||
+            k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_NADZORCY, &m) != 0 || m.typ != K1_KOM_BATERIA) {
+            if (bat_odrzucone++ < 3)
+                k1_log(TAG, "kanał baterii: odrzucono komunikat (nadawca uid %d)", o.ma_nadawce ? (int)o.uid : -1);
+            continue;
+        }
+        /* log only what a person would notice: presence, state, mains, every 5 % */
+        zmiana = !bat_zalogowana || m.a != bat.obecna || m.c != bat.stan || m.d != bat.zasilacz ||
+                 (m.b / 5 != bat.procent / 5);
+        bat.obecna = m.a;
+        bat.procent = m.b;
+        bat.stan = m.c;
+        bat.zasilacz = m.d;
+        if (zmiana) {
+            zaloguj_baterie();
+            bat_zalogowana = 1;
+        }
+        gora.brudna = 1;
+    }
+}
+
+/* Draws [bolt] 73% [battery] ending just left of the sound icon. */
+static void rysuj_baterie(struct k1_obraz *o, uint32_t krem)
+{
+    const float x = (float)glosnik_x() - 4 - 26, y = 10; /* battery body 22×12 + 2 px terminal */
+    char proc[8];
+    int32_t tx;
+    k1_obrys(o, x, y, 22, 12, 3, 1.25f, krem);
+    k1_zaokraglony(o, x + 22.5f, y + 4, 2.5f, 4, 1, krem);
+    if (bat.procent >= 0) {
+        float w = 18.0f * (float)bat.procent / 100.0f;
+        int niska = bat.procent <= 15 && bat.stan == K1_BAT_ROZLADOWANIE;
+        if (w < 2.0f)
+            w = 2.0f;
+        k1_zaokraglony(o, x + 2, y + 2, w, 8, 1.5f, niska ? k1_kolor(0xd97757, 255) : krem);
+        snprintf(proc, sizeof proc, "%d%%", bat.procent);
+        tx = (int32_t)x - 6 - k1_tekst_szer(K1_CZ_MALA_MOCNA, proc);
+        k1_tekst(o, K1_CZ_MALA_MOCNA, tx, 21, proc, krem, 0);
+    } else {
+        tx = (int32_t)x - 2;
+    }
+    if (bat.stan == K1_BAT_LADOWANIE) { /* lightning bolt */
+        float bx = (float)tx - 11;
+        k1_kreska(o, bx + 5, 9, bx + 1.5f, 16.5f, 1.5f, krem);
+        k1_kreska(o, bx + 1.5f, 16.5f, bx + 6.5f, 15.5f, 1.5f, krem);
+        k1_kreska(o, bx + 6.5f, 15.5f, bx + 3, 23, 1.5f, krem);
+    }
+}
+
 static void rysuj_gora(void)
 {
     struct k1_obraz *o = k1_pow_rysuj(&gora);
@@ -165,6 +253,8 @@ static void rysuj_gora(void)
     if (hover_gora || dzwiek_otwarty)
         k1_zaokraglony(o, (float)gx, 4, 28, 24, 6, k1_kolor(0xf3ede2, 36));
     k1_ikona(o, K1_IK_GLOSNIK, (float)gx + 6, 8, 16, krem);
+    if (bat.obecna)
+        rysuj_baterie(o, krem);
     k1_pow_zatwierdz(&k, &gora);
 }
 
@@ -471,13 +561,15 @@ int main(void)
     uloz(1);
 
     for (;;) {
-        struct pollfd p = { k.fd, POLLIN, 0 };
+        struct pollfd p[2] = { { k.fd, POLLIN, 0 }, { bat_kanal ? FD_BATERIA : -1, POLLIN, 0 } };
         struct timespec t;
         int czekaj;
         clock_gettime(CLOCK_REALTIME, &t);
         czekaj = (int)(1000 - t.tv_nsec / 1000000) + 5;
-        if (poll(&p, 1, czekaj) < 0 && errno != EINTR)
+        if (poll(p, 2, czekaj) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
+        if (p[1].revents != 0)
+            odbierz_baterie();
         while (k1_odbierz(&k, wszystkie, 4, &m)) {
             switch (m.typ) {
             case K1_KOM_WSKAZNIK:
