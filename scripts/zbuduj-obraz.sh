@@ -1,7 +1,7 @@
 #!/bin/sh
 # Buduje programy K1 i składa z nich obrazy startowe:
 #   build/wynik/initramfs.cpio     — /init (k1-initramfs) + /dev/console, bez kompresji
-#   build/wynik/rdzen.squashfs     — obraz /rdzen: init, system/{nadzorca,wejscie,ekran,gui,skarbiec}, katalogi jadro/
+#   build/wynik/rdzen.squashfs     — obraz /rdzen: init, system/{nadzorca,wejscie,ekran,gui,skarbiec,logowanie,instalator}, katalogi jadro/
 #   build/wynik/rdzen-test.squashfs — to samo + program testowy jako /rdzen/system/test-systemu
 # Wymaga zbudowanego jądra (scripts/zbuduj-jadro.sh: nagłówki i gen_init_cpio).
 . "$(dirname "$0")/wspolne.sh"
@@ -27,9 +27,9 @@ LISTA
 przygotuj_rdzen() { # $1 = katalog docelowy
     rm -rf "$1"; mkdir -p "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje"
     install -m 0555 "$K1_BUDOWA/bin/init" "$1/init"
-    for p in nadzorca wejscie ekran gui skarbiec logowanie; do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/system/$p"; done
+    for p in nadzorca wejscie ekran gui skarbiec logowanie instalator; do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/system/$p"; done
     # Built-in native applications (M4); signed application images come with M10 (/aplikacje).
-    for p in zegar notatki ustawienia zasoby; do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/aplikacje/$p"; done
+    for p in zegar notatki ustawienia zasoby instalacja; do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/aplikacje/$p"; done
     chmod 0755 "$1" "$1/jadro" "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje"
 }
 squashfs() { # $1 = katalog, $2 = plik wynikowy

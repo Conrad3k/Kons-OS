@@ -363,6 +363,10 @@ static const struct prym ik_ekran[] = { { P_PROST, 3.5f, 4.5f, 17, 12, 2 }, { P_
 static const struct prym ik_bateria[] = { { P_PROST, 3.5f, 7.5f, 15, 9, 2 }, { P_KRESKA, 20.5f, 10.5f, 20.5f, 13.5f, 0 },
                                          { P_KRESKA, 6.5f, 12, 11.5f, 12, 0 } };
 
+/* disk: a drive body, its line and the activity light (M5f, Instalator) */
+static const struct prym ik_dysk[] = { { P_PROST, 3.5f, 5.5f, 17, 13, 2.5f }, { P_KRESKA, 3.5f, 13.5f, 20.5f, 13.5f, 0 },
+                                       { P_KOLO, 16.5f, 16, 1.2f, 0, 0 } };
+
 static float sd_prym(const struct prym *p, float x, float y, float g)
 {
     switch (p->typ) {
@@ -409,7 +413,7 @@ void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozm
         [K1_IK_KLODKA] = { ik_klodka, 4 },     [K1_IK_INFO] = { ik_info, 3 },
         [K1_IK_MYSZ] = { ik_mysz, 2 },         [K1_IK_WYGLAD] = { ik_wyglad, 6 },
         [K1_IK_ZASOBY] = { ik_zasoby, 6 },     [K1_IK_EKRAN] = { ik_ekran, 3 },
-        [K1_IK_BATERIA] = { ik_bateria, 3 },
+        [K1_IK_BATERIA] = { ik_bateria, 3 },   [K1_IK_DYSK] = { ik_dysk, 3 },
     };
     float s = rozmiar / 24.0f, g = 1.6f;
     int32_t x0, y0, x1, y1, i, j;

@@ -17,8 +17,13 @@ i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
 | M3 Trusted Core | nadzorca usług, każda usługa we własnej „klatce”, restart po awarii | PRZETESTOWANE |
 | M4 GUI | pulpit, okna, aplikacje Zegar, Notatki, Ustawienia; obraz ISO do maszyny wirtualnej | PRZETESTOWANE (QEMU: UEFI i BIOS) |
 | M4.1 Porządki i audyt | przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby | PRZETESTOWANE |
-| M5 Dane i sprzęt | trwałe, zaszyfrowane dane, hasło, dyski i USB, start z pendrive'a | W TOKU: dyski i USB, zaszyfrowany zapis danych — PRZETESTOWANE w QEMU; hasło — następne |
-| M5.1–M12 | próba przeglądarki, weryfikacja obrazu, sieć, przeglądarka w izolacji, bezpieczny start, audyt | PLANOWANE (kolejność: ADR 0011) |
+| M5 Dane i sprzęt | zaszyfrowane dane, hasło, dyski i USB, pendrive, **instalator na dysk** | PRZETESTOWANE w QEMU (0.5.9); czeka na test na X230 |
+| 0.6.0 Fundament | porządki w nadzorcy, zdarzenia jądra zamiast odpytywania, szybsze testy, historia baterii | NASTĘPNE |
+| M6 Bezpieczne aktualizacje | podpisane wydania, wykrywanie podmiany systemu, A/B, Secure Boot z własnym kluczem | PLANOWANE |
+| M7 Sieć | kabel, potem Wi-Fi | PLANOWANE |
+| M8 Strefy | każda obca aplikacja (przeglądarka, Discord…) w swojej mikro-maszynie; kolorowa ramka; stała/jednorazowa; pełna izolacja/szybka grafika | PLANOWANE (ADR 0020) |
+| M9 Pliki | aplikacja Pliki, przenoszenie plików ze stref przez okno K1, podgląd w izolacji | PLANOWANE |
+| M10–M12 | tryb ratunkowy i TPM, audyt końcowy | PLANOWANE (kolejność: ADR 0019, 0020) |
 
 Pełny plan i zasady: [`docs/SPEC.md`](docs/SPEC.md). Co zostało do zrobienia (i czego potrzeba od właściciela):
 [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
@@ -52,8 +57,8 @@ sterownik VMware nie działa z tą kartą QEMU); Hyper-V — jeszcze nie.
 
 ## Uruchom na laptopie (ThinkPad X230) — z pendrive'a, z zapisem danych
 Od 0.5.6 jest osobny obraz na pendrive: **`k1-X.Y.Z-usb.img.xz`** (Releases). Ma miejsce na Twoje dane
-(ustawienia, notatki) — **zaszyfrowane, na tym samym pendrivie**. K1 **niczego nie zapisuje na dysku
-laptopa** (nie otwiera innych dysków — pilnuje tego test). Pendrive zostanie w całości nadpisany.
+(ustawienia, notatki) — **zaszyfrowane, na tym samym pendrivie**. Bez Twojej decyzji K1 **niczego nie
+zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive zostanie w całości nadpisany.
 1. Nagraj `k1-X.Y.Z-usb.img.xz` na pendrive (≥ 128 MB): w Windowsie **Rufus** → wybierz plik
    (Rufus sam rozpakuje .xz; jeśli zapyta — tryb obrazu DD) → Start. Albo balenaEtcher.
    (Obraz `.iso` też zadziała z pendrive'a, ale bez zapisu danych — po wyłączeniu wszystko znika,
@@ -81,6 +86,13 @@ laptopa** (nie otwiera innych dysków — pilnuje tego test). Pendrive zostanie 
 6. Hasło (od 0.5.7): Ustawienia → Hasło → przełącznik „Wymagaj hasła przy włączaniu” → wpisz hasło
    dwa razy → Zapisz. Przy następnym włączeniu zobaczysz ekran hasła. **Zapomniane hasło = nowe
    konto** (dane zaszyfrowane starym hasłem przepadają — trzeba nagrać pendrive od nowa).
+7. **Instalacja na dysk laptopa** (od 0.5.9): znak K1 → **Instalator** → wybierz dysk → *Zainstaluj* →
+   wpisz **USUŃ** → *Usuń wszystko i zainstaluj*. **Wszystko na tym dysku zostanie usunięte** (Windows,
+   pliki). Po „Gotowe”: *Wyłącz komputer*, wyjmij pendrive, włącz laptop — K1 startuje z dysku (jeśli nie:
+   F12 → dysk), a Twoje zaszyfrowane dane mają cały dysk. Dane z pendrive'a nie są przenoszone (nowe
+   konto). **Ustaw hasło** (punkt 6) — bez niego złodziej laptopa może odczytać dane.
+   **Aktualizacja:** nagraj nowszy `k1-…-usb.img.xz` na pendrive, uruchom z niego (F12), Instalator →
+   *Zaktualizuj system* → *Zaktualizuj*. Wymienia tylko system — Twoje dane zostają.
 
 Napisz (Issues → „Feedback z testu” albo w czacie): czy pulpit się pojawił (jeśli ekran został czarny
 — po ilu sekundach i czy wcześniej było logo Lenovo/GRUB), czy obraz jest ostry (1366×768), co działa

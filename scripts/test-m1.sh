@@ -107,7 +107,8 @@ scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE
     "K1-PROBA: koniec próby „proba-gui”: 0 błędów" "K1-PROBA: koniec próby „proba-zegar”: 0 błędów" \
     "K1-PROBA: koniec próby „proba-notatki”: 0 błędów" "K1-PROBA: koniec próby „proba-ustawienia”: 0 błędów" \
     "K1-PROBA: koniec próby „proba-zasoby”: 0 błędów" "bez fokusu (ochrona klawiatury)" \
-    "K1-PROBA: koniec próby „proba-skarbiec”: 0 błędów" "K1-PROBA: koniec próby „proba-logowanie”: 0 błędów" "K1-SKARBIEC: utworzono nowy magazyn na pustej partycji" \
+    "K1-PROBA: koniec próby „proba-skarbiec”: 0 błędów" "K1-PROBA: koniec próby „proba-logowanie”: 0 błędów" \
+    "K1-PROBA: koniec próby „proba-instalator”: 0 błędów" "K1-PROBA: koniec próby „proba-instalacja”: 0 błędów" "K1-SKARBIEC: utworzono nowy magazyn na pustej partycji" \
     "K1-GUI: bateria 73%, rozładowywanie, zasilacz odłączony" \
     "przekroczony limit pamięci powierzchni" "K1-ZASOBY: dane od nadzorcy" \
     "deskryptor nie jest memfd" "memfd bez pieczęci" "zły rozmiar memfd" "panele tylko dla powłoki" \

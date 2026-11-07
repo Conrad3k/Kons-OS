@@ -1,6 +1,6 @@
 # 0016. Obraz na pendrive z partycją danych; usługa skarbiec w łańcuchu startu
 
-- Status: Przyjęty
+- Status: Przyjęty (pkt „dysk laptopa nietknięty” zmieniony przez ADR 0018 — instalator)
 - Data: 2026-11-07
 - Dotyczy: ADR 0010 (ISO), ADR 0013, ADR 0015, SPEC §5, etap M5d
 

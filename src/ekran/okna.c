@@ -48,7 +48,7 @@ static int panele(const struct klient *k)
 
 const char *nazwa_roli(const struct klient *k)
 {
-    static const char *const apl[K1_APL_MAKS + 1] = { "?", "zegar", "notatki", "ustawienia", "zasoby" };
+    static const char *const apl[K1_APL_MAKS + 1] = { "?", "zegar", "notatki", "ustawienia", "zasoby", "instalacja" };
     if (k->rola == K1_ROLA_WEJSCIE)
         return "wejście";
     if (k->rola == K1_ROLA_POWLOKA)
@@ -408,6 +408,8 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
         s.ciagniete = i;
         s.ciag_dx = s.x - s.p[i].x;
         s.ciag_dy = s.y - s.p[i].y;
+        s.ciag_klatki = s.klatki;
+        s.ciag_cpu = czas_procesora();
         return;
     case K1_KOM_MINIMALIZUJ:
         if (s.p[i].rodzaj != K1_POW_OKNO)

@@ -85,8 +85,9 @@ static void przycisk(int nr, int wcisniety)
             do_wskaznika(s.chwyt, K1_WSK_PUSZCZENIE, nr);
         if (s.przyciski == 0) {
             if (s.ciagniete >= 0)
-                k1_log(TAG, "okno %u przesunięte do %d,%d", s.p[s.ciagniete].okno, (int)s.p[s.ciagniete].x,
-                       (int)s.p[s.ciagniete].y);
+                k1_log(TAG, "okno %u przesunięte do %d,%d (klatek %lu, procesor %.0f ms)", s.p[s.ciagniete].okno,
+                       (int)s.p[s.ciagniete].x, (int)s.p[s.ciagniete].y, s.klatki - s.ciag_klatki,
+                       (czas_procesora() - s.ciag_cpu) * 1000.0);
             s.chwyt = -1;
             s.ciagniete = -1;
             ruch_wskaznika();

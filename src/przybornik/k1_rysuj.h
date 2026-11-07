@@ -55,6 +55,7 @@ enum k1_ikona {
     K1_IK_ZASOBY,
     K1_IK_EKRAN,
     K1_IK_BATERIA,
+    K1_IK_DYSK, /* M5f: Instalator */
 };
 void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozmiar, uint32_t kolor);
 

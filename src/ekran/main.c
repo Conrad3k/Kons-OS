@@ -159,6 +159,7 @@ int main(void)
     struct drm_get_cap cap;
     struct pollfd pfd[3 + MAKS_KLIENTOW];
     double t0, t_log = 0.0;
+    int czekaj;
     int32_t ost_x = -1, ost_y = -1;
     int ost_w = -1, i;
     uint32_t y;
@@ -221,7 +222,14 @@ int main(void)
         }
         pfd[2 + MAKS_KLIENTOW].fd = ustawienia_fd();
         pfd[2 + MAKS_KLIENTOW].events = POLLIN;
-        if (poll(pfd, 3 + MAKS_KLIENTOW, 250) < 0 && errno != EINTR)
+        /* Without page flip (simpledrm, ThinkPad X230) nothing paces us: at most 60 frames a second,
+         * otherwise every mouse event (125–1000 a second) would compose a frame. */
+        czekaj = 250;
+        if (s.zmiana && s.brak_flip) {
+            double zostalo = s.ost_klatka + 1.0 / 60.0 - teraz();
+            czekaj = zostalo > 0 ? (int)(zostalo * 1000.0) + 1 : 0;
+        }
+        if (poll(pfd, 3 + MAKS_KLIENTOW, czekaj) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
         if (pfd[2 + MAKS_KLIENTOW].fd >= 0 && pfd[2 + MAKS_KLIENTOW].revents)
             ustawienia_odbierz();
@@ -238,8 +246,9 @@ int main(void)
             }
         if (s.nowy_tryb && !s.flip_w_toku)
             przestaw_tryb();
-        if (s.zmiana && !s.flip_w_toku) {
+        if (s.zmiana && !s.flip_w_toku && (!s.brak_flip || teraz() - s.ost_klatka >= 1.0 / 60.0)) {
             s.zmiana = 0;
+            s.ost_klatka = teraz();
             pokaz();
         }
         /* Rate-limited status line (never key codes): used by the tests as evidence. */

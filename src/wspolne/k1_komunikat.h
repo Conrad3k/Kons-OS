@@ -33,6 +33,8 @@ enum k1_komunikat_typ {
     K1_KOM_KLIENT = 1, /* a=rola, b=aplikacja (rola APLIKACJA: 1..K1_APL_MAKS, else 0), c=uid; + 1 fd */
     /* nadzorca → skarbiec (same direction K1_KIER_STEROWANIE) */
     K1_KOM_SKARB_KLIENT = 2, /* a=owner (K1_WL_*), b=uid of the client; + 1 fd (skarbiec's end) */
+    /* nadzorca → instalator (M5f, ADR 0018; same direction K1_KIER_STEROWANIE): the job, once */
+    K1_KOM_INST_ZADANIE = 3, /* a=K1_INST_* mode, b=logical sector size (512/4096) of the target */
 
     /* client → ekran (obiekt = surface number 1..K1_POW_MAKS unless noted) */
     K1_KOM_POWIERZCHNIA = 10, /* a=width, b=height, c=kind (K1_POW_OKNO/PANEL), d,e = x,y (panel; window: 0); + 1 fd */
@@ -62,6 +64,12 @@ enum k1_komunikat_typ {
     K1_KOM_WYLACZ = 51,       /* gui: a=0 power off, 1 restart */
     K1_KOM_TEST_POLACZ = 52,  /* test image only: a=rola, b=aplikacja, c=expected uid → reply + 1 fd */
     K1_KOM_TEST_PROBA = 53,   /* test image only: a=sandbox profile → reply when the probe ends */
+    /* Instalator application → nadzorca (M5f, ADR 0018) */
+    K1_KOM_INST_DYSKI = 54,   /* obiekt=0: list the disks (reply: INST_DYSK…, INST_LISTA) */
+    K1_KOM_INST_START = 55,   /* obiekt=disk 1..K1_INST_DYSKI_MAKS from the last list, a=K1_INST_* mode */
+    /* instalator (the writing program) → nadzorca */
+    K1_KOM_INST_ETAP = 56,    /* obiekt=0, a=percent 0..100, b=K1_INST_ETAP_* */
+    K1_KOM_INST_GOTOWE = 57,  /* obiekt=0, a=result (0 or K1_INST_BLAD_* < 0) */
 
     /* nadzorca → test */
     K1_KOM_TEST_WYNIK = 60,   /* a=result (exit code, 128+signal, or -1 on error) */
@@ -86,6 +94,12 @@ enum k1_komunikat_typ {
                                * e=seconds until the next password attempt is accepted (0..K1_HASLO_PRZERWA) */
     /* skarbiec → nadzorca, on the control channel (direction K1_KIER_DO_NADZORCY) */
     K1_KOM_SKARB_STAN = 82,   /* a=K1_SKARB_* mode, b=1 password set */
+    /* nadzorca → Instalator application (M5f) */
+    K1_KOM_INST_DYSK = 66,    /* obiekt=1..K1_INST_DYSKI_MAKS, a=size MiB, b=K1_DYSK_* kind, c=1 Kons K1 on it,
+                               * d=logical sector size, e=1 in use (its data partition is open now) */
+    K1_KOM_INST_LISTA = 67,   /* obiekt=0, a=number of disks sent, b=1 the system to copy was found (a K1 stick) */
+    K1_KOM_INST_POSTEP = 68,  /* obiekt=0, a=percent 0..100, b=K1_INST_ETAP_* */
+    K1_KOM_INST_WYNIK = 69,   /* obiekt=0, a=result (0 or K1_INST_BLAD_* < 0), b=K1_INST_* mode */
     K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample
                                 * (0 = history starts again), a=seconds between samples, b..e = up to 16
                                 * samples, one byte each (b: samples 0-3 from the lowest byte, …):
@@ -145,6 +159,21 @@ enum k1_ustawienie {
 #define K1_HASLO_PRZERWA 300      /* longest wait between password attempts, seconds */
 #define K1_MAG_WYNIK_MIN (-8)     /* most negative K1_MAG_* result */
 #define K1_SKARB_ZLE_HASLO (-1)   /* WYNIK b: wrong password (= K1_MAG_HASLO, magazyn.h) */
+
+/* Installer (M5f, ADR 0018) */
+#define K1_INST_DYSKI_MAKS 8
+enum { K1_INST_INSTALUJ = 1, K1_INST_AKTUALIZUJ = 2 };
+enum { K1_DYSK_SATA = 1, K1_DYSK_NVME = 2, K1_DYSK_VIRTIO = 3, K1_DYSK_INNY = 4 };
+enum { K1_INST_ETAP_CZYSZCZENIE = 1, K1_INST_ETAP_KOPIA = 2, K1_INST_ETAP_SPRAWDZANIE = 3, K1_INST_ETAP_PARTYCJE = 4 };
+#define K1_INST_ETAP_MAKS 4
+#define K1_INST_BLAD_ARG (-1)      /* wrong request, disk gone or changed */
+#define K1_INST_BLAD_ZAJETY (-2)   /* the disk is in use */
+#define K1_INST_BLAD_MALY (-3)     /* the disk is too small */
+#define K1_INST_BLAD_ZAPIS (-4)    /* writing failed */
+#define K1_INST_BLAD_SPRAWDZ (-5)  /* what was written reads back differently */
+#define K1_INST_BLAD_ZRODLO (-6)   /* no system to copy (not started from a K1 stick) */
+#define K1_INST_BLAD_PRZERWANE (-7) /* the writing program ended without a result */
+#define K1_INST_BLAD_MIN (-7)
 
 /* Battery state (K1_KOM_BATERIA c), from the kernel's power_supply "status". */
 enum k1_bateria_stan {

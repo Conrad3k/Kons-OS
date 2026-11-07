@@ -45,6 +45,11 @@ obraz (MTRR/PAT, DIRTYFB z obszarami), Ustawienia → Bateria; 0.5.6 — **skarb
 własny format na partycji GPT „K1-DANE”, Monocypher), trwałe ustawienia i notatka, obraz
 `k1-<wersja>-usb.img.xz` (ADR 0016). 0.5.7 — **M5e**: hasło (Ustawienia → Hasło, `SKARB_HASLO`) i ekran hasła `src/logowanie/` (rola ekranu
 `LOGOWANIE`, nadzorca uruchamia go zamiast gui, gdy skarbiec zgłosi `SKARB_STAN` zablokowany; ADR 0017).
+0.5.8 — logo przy starcie (GRUB `background_image` z `narzedzia/ekran_startowy.c`), K1-DANE szukana też po
+starcie, wiele notatek. 0.5.9 — **M5f: instalator** (ADR 0018): okno `src/aplikacje/instalacja/` (UID 204) +
+program zapisujący `src/instalator/` (UID 105, tylko urządzenia od nadzorcy), GPT `K1-EFI` 512 MiB + `K1-DANE`
+do końca dysku; nadzorca woli K1-DANE z dysku wewnętrznego; GRUB bierze jądro z partycji `$cmdpath`;
+ekran: limit 60 kl./s bez page-flipa, cień z tablicy, łączenie obszarów (przesuwanie okien ~10× taniej).
 Pierwszy laptop właściciela: **ThinkPad X230** (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez
 simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
 
@@ -67,9 +72,11 @@ simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
 | `src/ekran/` + `src/grafika/` | `/rdzen/system/ekran` | `komponenty/ekran.md` | `main.c` (pętla, zmiana trybu), `scena.c` (składanie), `okna.c` (klienci, fokus, limity), `wskaznik.c` (wejście), `drm.c` (KMS, tryby); tapety i znak K1 |
 | `src/gui/` | `/rdzen/system/gui` | `komponenty/gui.md` | powłoka pulpitu |
 | `src/skarbiec/` | `/rdzen/system/skarbiec` | `komponenty/skarbiec.md` | Blob Vault: `magazyn.c` (format, Monocypher w `src/zewnetrzne/`), `main.c` (usługa); klient: `src/wspolne/k1_skarb_klient.c`, `k1_memfd.c` |
-| `src/aplikacje/*` | `/rdzen/aplikacje/*` | `komponenty/aplikacje.md` | Zegar, Notatki, Ustawienia, Zasoby |
+| `src/instalator/` | `/rdzen/system/instalator` | `komponenty/instalator.md` | zapis K1 na dysk (GPT `gpt.c`), uruchamiany na prośbę okna Instalatora; lista dysków: `src/nadzorca/dyski.c` |
+| `src/aplikacje/*` | `/rdzen/aplikacje/*` | `komponenty/aplikacje.md` | Zegar, Notatki, Ustawienia, Zasoby, Instalator (`instalacja`) |
 | `src/przybornik/` | (linkowane do gui i aplikacji) | ADR 0008, 0009 | rysowanie, tekst, okna, klient, czas PL, klawiatura PL |
 | `narzedzia/czcionki.c` | (host, przy budowie) | ADR 0009 | FreeType → bitmapy IBM Plex (`build/gen/`) |
+| `narzedzia/ekran_startowy.c` | (host) → `/boot/grub/start.png` | `WYGLAD.md` | logo startowe dla GRUB-a (zlib) |
 | `src/wspolne/` | (linkowane) | — | `k1_log` (log, `k1_awaria`, `k1_koniec`), `k1_cmdline`, `k1_zdarzenie`, `k1_komunikat` (32 B, wszystkie kanały), `k1_kanal` (SEQPACKET, SCM_RIGHTS, SO_PASSCRED), `k1_klatka` (sandbox), `k1_uslugi.h` (UID-y, role) |
 | `jadro/` | `bzImage` | `komponenty/jadro.md` | wersja, konfiguracja, linia poleceń, klucze |
 | `testy/system/` | `/rdzen/system/test-systemu` (tylko obraz testowy) | `TESTY.md` | sprawdzenia w systemie: `t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4+), `t_sprzet.c` (M5a), `proba.c`, `wspolne.c`, nagłówek `k1_test.h` |
@@ -180,8 +187,14 @@ monitor QEMU — `mouse_move`, `mouse_button`, `sendkey alt_r-a`); zrzuty pokazu
 `feedback`, `błąd`, `pomysł`); ostatni run „K1 — budowa i testy” na `main` (czerwony = napraw najpierw);
 środowisko: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh` (~6 min).
 
-**Kolejność etapów** po M4 (ADR 0011): M4.1 porządki i audyt → M5 dane i sprzęt (dyski, USB, szyfrowanie)
-→ M5.1 próba przeglądarki → M5.2 dm-verity → M6 … M12.
+**Kolejność etapów** (ADR 0019, 0020; zastępuje ADR 0011): M5 (do 0.5.9, z instalatorem) → **0.6.0 Fundament**
+(nadzorca w modułach < 600 wierszy w main.c, jawna maszyna stanów startu, uevent zamiast odpytywania = dawne M5b,
+wspólny odbiór komunikatów, wspólna biblioteka testów QEMU, testy równolegle, KVM w CI, historia baterii) →
+**M6 Bezpieczne aktualizacje** (podpisane wydania, dm-verity, A/B w K1-EFI, Secure Boot z kluczem MOK) →
+**M7 Sieć** (e1000e + DHCP, potem Wi-Fi) → **M8 Strefy** (mikro-VM na obcą aplikację, zaufana ramka w kolorze
+strefy, przełączniki: stała/jednorazowa i pełna izolacja/szybka grafika; pierwsza — przeglądarka) →
+**M9 Pliki** (Gatekeeper, dekodery w izolacji) → M10 reszta (recovery, TPM) → M12 audyt. X230 = maszyna
+testowa; szybka grafika i gry projektowane pod nowszy sprzęt (decyzja właściciela).
 
 **CI na PR-ze:** dodaj etykietę `testy` (`issue_write`, labels) — workflow buduje i testuje PR bez scalania
 (bez tagu i wydania). `workflow_dispatch` jest dla Claude niedostępny (403).
