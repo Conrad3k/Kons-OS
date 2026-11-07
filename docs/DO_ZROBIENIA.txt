@@ -43,6 +43,10 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
   - Test 0.5.1 w VirtualBoxie (2026-11-07): „Wszystko działa.” — VMSVGA (vmwgfx), Ustawienia →
     Ekran (lista i zmiana rozdzielczości), Zasoby, cień pod paskiem bez „podstawy”.
 [!] Dalsze uwagi do pulpitu, tapet i nowego znaku (Issues → „Feedback z testu” albo w czacie).
+  - Strefy (2026-11-07): każdy program spoza K1 we własnym „pod-jądrze”, oznaczony kolorem; przy
+    każdej aplikacji wybór: stała / jednorazowa oraz pełna izolacja / szybka grafika; pliki z
+    piaskownicy przez system; „X230 to tylko maszyna testowa, celujemy wyżej” → ADR 0020, M8.
+  - Instalator (2026-11-07): „instalator może usuwać inne dane na dysku” → ADR 0018, 0.5.9.
   - Laptop i konto (2026-11-07): „akceptuję jedno konto”; pierwszy laptop: ThinkPad X230, 8 GB RAM.
     → M5a dostosowane do X230 (SATA/AHCI, USB 2 i 3, klawiatura i touchpad PS/2; ADR 0013).
   - „Może w ramach tej wersji dodać wskaźnik baterii, jeśli system wykryje, że to laptop?”
@@ -172,21 +176,25 @@ M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku)
 M7  Sieć
     [ ] kabel (X230: Intel 82579LM, e1000e, bez firmware) + DHCP w osobnej klatce, czas z sieci
     [ ] Wi-Fi (iwlwifi + firmware — osobny ADR)
-    [ ] „równoległy Linux” (strefa zgodności) z prostą aplikacją testową
 
-M8  Przeglądarka (z dawnym M5.1)
-    [ ] próba Firefox / WPE w strefie, z siecią → wybór (ADR)
-    [ ] osobne sesje (Twoja decyzja z punktu 1)
+M8  Strefy — każda obca aplikacja w swojej mikro-maszynie (Twój pomysł, ADR 0020; dawne M5.1/M8/M11)
+    [ ] pierwsza mikro-maszyna (KVM; X230: włącz VT-x i VT-d w BIOS-ie) i okno z niej na ekranie K1
+    [ ] zaufana ramka w kolorze strefy rysowana przez ekran K1
+    [ ] przełącznik przy aplikacji: stała / jednorazowa
+    [ ] przełącznik przy aplikacji: pełna izolacja / szybka grafika (inny kolor ramki; pod nowszy sprzęt)
+    [ ] przeglądarka jako pierwsza aplikacja (Firefox czy WPE — ADR), sesje wg Twojej decyzji
+    [ ] szybki start (zamrożony stan, zapasowa czysta maszyna), wspólny obraz bazowy, oddawanie pamięci
 
 M9  Pliki (Gatekeeper + dawne M6)
     [ ] aplikacja Pliki w skarbcu; podgląd obrazów przez jednorazowy dekoder w izolacji
-    [ ] pobieranie przez Gatekeepera: zgoda, import, sprzątanie
+    [ ] pliki ze strefy („Do K1”) i do strefy („Wyślij do…”) tylko przez okno K1 z pytaniem; schowek
+        między strefami za każdym wklejeniem
 
 M5.3 Laptop (małe kroki między etapami, po Twoich zgłoszeniach)
     [ ] i915 (płynniejszy obraz, jasność), klawisze Fn, dźwięk, przewijanie touchpadem
 
 M10 Bezpieczny start — reszta: tryb ratunkowy (recovery), licznik wersji w TPM
-M11 Mikro-maszyna wirtualna dla przeglądarki (zaplecze B, wymaga KVM)
+(M11 — weszło do M8: mikro-maszyny są głównym modelem stref, ADR 0020)
 M12 Audyt: fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa
 
 

@@ -171,7 +171,7 @@ UEFI + Secure Boot → podpisany UKI (jądro + initramfs + cmdline) → jądro L
 
 ## 14. Milestones
 **[korekta: ADR 0011 — kolejność po M4: M4.1 porządki i audyt → M5 rozszerzony o dyski i USB → M5.1 próba przeglądarki (bez sieci) → M5.2 dm-verity (z M10) → M6 → M7 → M8 → M9 → M10 → M11 → M12]**
-**[korekta: ADR 0018 — M5f instalator na dysk; ADR 0019 — od 0.6.0: Fundament (porządki nadzorcy, uevent, szybsze testy) → M6 Bezpieczne aktualizacje (podpisy, dm-verity, A/B, Secure Boot z własnym kluczem — z M10) → M7 Sieć (najpierw kabel) → M8 Przeglądarka (z dawnym M5.1) → M9 Pliki (Gatekeeper + dekodery w izolacji z dawnego M6) → M10 reszta (recovery, TPM) → M11 → M12]**
+**[korekta: ADR 0018 — M5f instalator na dysk; ADR 0019 — od 0.6.0: Fundament (porządki nadzorcy, uevent, szybsze testy) → M6 Bezpieczne aktualizacje (podpisy, dm-verity, A/B, Secure Boot z własnym kluczem — z M10) → M7 Sieć (najpierw kabel) → M8 Przeglądarka (z dawnym M5.1) → M9 Pliki (Gatekeeper + dekodery w izolacji z dawnego M6) → M10 reszta (recovery, TPM) → M11 → M12; ADR 0020 — M8 „Strefy”: każda obca aplikacja w swojej mikro-maszynie (zaplecze B jako główny model, dawne M11 w M8), trwałość i grafika do wyboru, pliki przez Gatekeepera (M9)]**
 - M0 Porządki:
   - archiwum wersji debianowej (gałąź archiwum/debian-0.1.2), nowa struktura repo, dokumenty z §2.9,
   - toolchain musl ze statycznym linkowaniem,

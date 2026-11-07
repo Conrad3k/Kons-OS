@@ -65,7 +65,7 @@ spłacić jednym etapem porządków, zanim urośnie.
 3. **M7 „Sieć”**: najpierw **kabel** (X230: Intel 82579LM, sterownik `e1000e`, bez firmware) i
    DHCP w osobnej klatce, czas z sieci (potrzebny do TLS); potem Wi-Fi (`iwlwifi` + firmware —
    osobny ADR). Bez sieci przeglądarka nie ma sensu dla właściciela.
-4. **M8 „Przeglądarka”** = dawne M5.1 + M8: próba Firefox/WPE w strefie **z siecią**, wybór w ADR,
+4. **M8 „Przeglądarka”** (rozszerzone przez ADR 0020 do M8 „Strefy”: każda obca aplikacja w mikro-maszynie) = dawne M5.1 + M8: próba Firefox/WPE w strefie **z siecią**, wybór w ADR,
    sesje według decyzji właściciela.
 5. **M9 „Pliki”** = Gatekeeper + dawne M6 (dekodery w izolacji): aplikacja Pliki w skarbcu (dysk jest
    duży od 0.5.9), podgląd obrazów przez jednorazowy dekoder, pobieranie przez Gatekeepera.
