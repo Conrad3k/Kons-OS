@@ -85,6 +85,8 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
           rozszerzony — po teście), I2C-HID (nowsze laptopy — później),
       [x] dyski SATA (AHCI) i NVMe, pendrive'y, tablice GPT (M5a, QEMU),
       [ ] grafika X230: simpledrm (obraz z firmware); i915 tylko jeśli test pokaże potrzebę.
+[ ] Całe ISO powtarzalne (dziś tylko jądro/initramfs/rdzeń; GRUB i obraz EFI zmieniają się co budowę,
+    RYZYKA R37) — przy M10 (własny, podpisany obraz EFI). Defender oznaczył ISO 0.5.5 heurystyką „!ml”.
 [ ] Komunikat o błędzie startu widoczny na ekranie (dziś tylko na porcie szeregowym).
 [ ] Własny build biblioteki musl 1.2.5 z poprawkami bezpieczeństwa (dziś 1.2.4 z Ubuntu).
 [~] Ochrona _FORTIFY_SOURCE: decyzja z M3 — na razie nie (ADR 0007), wracamy przy własnym musl.

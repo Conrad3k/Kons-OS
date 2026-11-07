@@ -110,14 +110,22 @@ HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c,$(PRZYB)) src/wspolne/k
 $(OBJ)/test_przybornik: testy/host/test_przybornik.c $(PRZYB) $(NAGL_P) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przybornik.c $(HOST_PRZYB) -lm
 
+# Blob Vault (M5c, ADR 0015): format + Monocypher (src/zewnetrzne, docs/ZALEZNOSCI.md). Monocypher is
+# compiled as is; on the host (ASan build) -Wconversion warns about its code, so only there it is off.
+MONOCYPHER := src/zewnetrzne/monocypher/monocypher.c
+MAGAZYN := src/skarbiec/magazyn.c $(MONOCYPHER)
+$(OBJ)/test_magazyn: testy/host/test_magazyn.c $(MAGAZYN) src/skarbiec/magazyn.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_magazyn.c $(MAGAZYN)
+
 # Sketches of the boot password screen (M5e, for the owner; not in the image).
 $(OBJ)/szkice_logowania: testy/host/szkice_logowania.c $(PRZYB) $(NAGL_P) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/szkice_logowania.c $(HOST_PRZYB) -lm
 
-testy-host: $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki
+testy-host: $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki
 	$(OBJ)/test_cmdline
 	$(OBJ)/test_log
 	$(OBJ)/test_bateria
+	$(OBJ)/test_magazyn
 	$(OBJ)/test_zdarzenie
 	$(OBJ)/test_komunikat
 	$(OBJ)/test_przybornik
@@ -138,11 +146,17 @@ $(OBJ)/fuzz_komunikat: testy/host/fuzz_komunikat.c src/wspolne/k1_komunikat.c sr
 	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
 		-fno-sanitize-recover=all -Isrc/wspolne -o $@ testy/host/fuzz_komunikat.c src/wspolne/k1_komunikat.c
 
-fuzz: $(OBJ)/fuzz_cmdline $(OBJ)/fuzz_zdarzenie $(OBJ)/fuzz_komunikat
+$(OBJ)/fuzz_magazyn: testy/host/fuzz_magazyn.c $(MAGAZYN) src/skarbiec/magazyn.h | $(OBJ)
+	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
+		-fno-sanitize-recover=all -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/fuzz_magazyn.c $(MAGAZYN)
+
+fuzz: $(OBJ)/fuzz_cmdline $(OBJ)/fuzz_zdarzenie $(OBJ)/fuzz_komunikat $(OBJ)/fuzz_magazyn
 	mkdir -p $(BUDOWA)/fuzz-korpus $(BUDOWA)/fuzz-korpus-zdarzenie $(BUDOWA)/fuzz-korpus-komunikat
 	$(OBJ)/fuzz_cmdline -max_total_time=$(FUZZ_CZAS) -max_len=8192 $(BUDOWA)/fuzz-korpus testy/host/korpus
 	$(OBJ)/fuzz_zdarzenie -max_total_time=$(FUZZ_CZAS) -max_len=64 $(BUDOWA)/fuzz-korpus-zdarzenie
 	$(OBJ)/fuzz_komunikat -max_total_time=$(FUZZ_CZAS) -max_len=64 $(BUDOWA)/fuzz-korpus-komunikat
+	mkdir -p $(BUDOWA)/fuzz-korpus-magazyn
+	$(OBJ)/fuzz_magazyn -max_total_time=$(FUZZ_CZAS) -max_len=16384 $(BUDOWA)/fuzz-korpus-magazyn
 
 clean:
 	rm -rf $(BIN) $(OBJ)
