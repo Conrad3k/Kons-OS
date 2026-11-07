@@ -20,6 +20,7 @@
 #include "k1_klatka.h"
 #include "k1_komunikat.h"
 #include "k1_log.h"
+#include "k1_odbior.h"
 #include "k1_uslugi.h"
 
 #define TAG "K1-INSTALATOR"
@@ -85,14 +86,9 @@ static uint64_t rozmiar(int fd)
 static int zadanie(int *tryb, int *sektor)
 {
     struct pollfd p = { FD_KANAL, POLLIN, 0 };
-    struct k1_odebrane o;
     struct k1_komunikat k;
-    if (poll(&p, 1, 10000) <= 0 || k1_kanal_odbierz(FD_KANAL, &o) != K1_KANAL_KOMUNIKAT)
-        return -1;
-    if (o.fd >= 0)
-        close(o.fd);
-    if (o.fd >= 0 || o.obciete || !o.ma_nadawce || o.uid != 0 ||
-        k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &k) != 0 || k.typ != K1_KOM_INST_ZADANIE)
+    if (poll(&p, 1, 10000) <= 0 || k1_odbierz_komunikat(FD_KANAL, 0, K1_KIER_STEROWANIE, &k, NULL) != K1_ODB_JEST ||
+        k.typ != K1_KOM_INST_ZADANIE)
         return -1;
     *tryb = k.a;
     *sektor = k.b;

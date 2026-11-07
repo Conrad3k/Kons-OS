@@ -25,6 +25,7 @@
 #include "k1_klatka.h"
 #include "k1_klient.h"
 #include "k1_log.h"
+#include "k1_odbior.h"
 #include "k1_okno.h"
 #include "k1_uslugi.h"
 
@@ -178,22 +179,18 @@ static void odbierz_baterie(void)
 {
     int i;
     for (i = 0; i < 16 && bat_kanal; i++) {
-        struct k1_odebrane o;
         struct k1_komunikat m;
-        enum k1_kanal_wynik w = k1_kanal_odbierz(FD_BATERIA, &o);
+        enum k1_odbior_wynik w = k1_odbierz_komunikat(FD_BATERIA, 0, K1_KIER_OD_NADZORCY, &m, NULL);
         int zmiana;
-        if (w == K1_KANAL_PUSTO)
+        if (w == K1_ODB_PUSTO)
             return;
-        if (w != K1_KANAL_KOMUNIKAT) {
+        if (w == K1_ODB_KONIEC) {
             bat_kanal = 0; /* closed or missing: stop watching it */
             return;
         }
-        if (o.fd >= 0)
-            close(o.fd);
-        if (o.fd >= 0 || o.obciete || !o.ma_nadawce || o.uid != 0 ||
-            k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_NADZORCY, &m) != 0 || m.typ != K1_KOM_BATERIA) {
+        if (w != K1_ODB_JEST || m.typ != K1_KOM_BATERIA) {
             if (bat_odrzucone++ < 3)
-                k1_log(TAG, "kanał baterii: odrzucono komunikat (nadawca uid %d)", o.ma_nadawce ? (int)o.uid : -1);
+                k1_log(TAG, "kanał baterii: odrzucono komunikat");
             continue;
         }
         /* log only what a person would notice: presence, state, mains, every 5 % */

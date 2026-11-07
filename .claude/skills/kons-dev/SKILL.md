@@ -50,6 +50,12 @@ starcie, wiele notatek. 0.5.9 — **M5f: instalator** (ADR 0018): okno `src/apli
 program zapisujący `src/instalator/` (UID 105, tylko urządzenia od nadzorcy), GPT `K1-EFI` 512 MiB + `K1-DANE`
 do końca dysku; nadzorca woli K1-DANE z dysku wewnętrznego; GRUB bierze jądro z partycji `$cmdpath`;
 ekran: limit 60 kl./s bez page-flipa, cień z tablicy, łączenie obszarów (przesuwanie okien ~10× taniej).
+0.6.0 — **Fundament**: nadzorca w modułach (`nadzorca.h`; etapy startu `przejdz()`/`etap_startu()` w `skarb.c`;
+uevent w `urzadzenia.c`), wspólny odbiór `k1_odbierz_komunikat()` (`src/wspolne/k1_odbior.c` — używaj go w nowym
+kodzie zamiast ręcznego `k1_kanal_odbierz` + sprawdzeń), historia baterii (`k1_bat_arch`, nadzorca = klient skarbca
+`K1_WL_SYSTEM`), biblioteka testów `testy/qemu/k1qemu.py` (klasa `Maszyna`; nowe testy QEMU pisz na niej),
+`testy.sh` równolegle z KVM. **Nie edytuj `scripts/testy.sh` ani innych skryptów, gdy testy działają w tle**
+(powłoka czyta skrypt w trakcie — przebieg staje się niewiarygodny).
 Pierwszy laptop właściciela: **ThinkPad X230** (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez
 simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
 

@@ -9,27 +9,14 @@
 #include "k1_kanal.h"
 #include "k1_komunikat.h"
 #include "k1_memfd.h"
+#include "k1_odbior.h"
 #include "k1_uslugi.h"
 
 /* One message from skarbiec: 1 = valid (fd in *fd or -1), 0 = nothing, -1 = closed, -2 = dropped. */
 static int odbierz(int fd, struct k1_komunikat *k, int *fd_dane)
 {
-    struct k1_odebrane o;
-    enum k1_kanal_wynik w = k1_kanal_odbierz(fd, &o);
-    *fd_dane = -1;
-    if (w == K1_KANAL_PUSTO)
-        return 0;
-    if (w != K1_KANAL_KOMUNIKAT)
-        return -1;
-    if (o.obciete || !o.ma_nadawce || o.uid != K1_UID_SKARBIEC ||
-        k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_SKARBCA, k) != 0 ||
-        (o.fd >= 0) != k1_komunikat_z_deskryptorem(k->typ, K1_KIER_OD_SKARBCA)) {
-        if (o.fd >= 0)
-            close(o.fd);
-        return -2;
-    }
-    *fd_dane = o.fd;
-    return 1;
+    enum k1_odbior_wynik w = k1_odbierz_komunikat(fd, K1_UID_SKARBIEC, K1_KIER_OD_SKARBCA, k, fd_dane);
+    return w == K1_ODB_JEST ? 1 : w == K1_ODB_PUSTO ? 0 : w == K1_ODB_KONIEC ? -1 : -2;
 }
 
 static long ms_teraz(void)

@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "k1_bat_arch.h"
 #include "k1_uslugi.h"
 
 struct k1_komunikat k1_komunikat_nowy(enum k1_komunikat_typ typ, uint32_t obiekt, int32_t a, int32_t b, int32_t c,
@@ -216,6 +217,9 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         if (k->a == 0)
             return k->b == -1 && k->c == K1_BAT_NIEZNANY;
         return w(k->b, -1, 100) && w(k->c, K1_BAT_NIEZNANY, K1_BAT_STAN_MAKS);
+    case K1_KOM_BATERIA_ARCH:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 8, 8 + K1_BAT_ARCH_SESJE * 8 + K1_BAT_ARCH_PROBKI) &&
+               w(k->b, 0, K1_BAT_ARCH_SESJE) && zera(k, 2);
     case K1_KOM_BATERIA_HIST:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt < K1_BAT_HIST_MAKS && w(k->a, 1, 86400) && probki_baterii(k);
     default:
@@ -246,5 +250,6 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            (typ == K1_KOM_SKARB_ZAPISZ && kierunek == K1_KIER_DO_SKARBCA) ||
            (typ == K1_KOM_SKARB_ODBLOKUJ && kierunek == K1_KIER_DO_SKARBCA) ||
            (typ == K1_KOM_SKARB_HASLO && kierunek == K1_KIER_DO_SKARBCA) ||
-           (typ == K1_KOM_SKARB_DANE && kierunek == K1_KIER_OD_SKARBCA);
+           (typ == K1_KOM_SKARB_DANE && kierunek == K1_KIER_OD_SKARBCA) ||
+           (typ == K1_KOM_BATERIA_ARCH && kierunek == K1_KIER_OD_NADZORCY);
 }

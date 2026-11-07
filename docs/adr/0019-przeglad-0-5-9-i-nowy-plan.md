@@ -51,8 +51,8 @@ spłacić jednym etapem porządków, zanim urośnie.
    - **uevent (netlink) zamiast odpytywania**: wejście, dyski (K1-DANE), bateria/zasilacz — M5b
      wchodzi tutaj (także tablet USB w VM);
    - wspólny moduł odbioru komunikatów (`k1_kanal_odbierz_od`) i wspólna biblioteka testów QEMU
-     (`testy/qemu/k1qemu.py`); testy QEMU równolegle; **KVM w CI** (runnery GitHub mają `/dev/kvm`)
-     → zestaw kilka razy szybciej;
+     (`testy/qemu/k1qemu.py`); testy QEMU równolegle (KVM w CI był już od M4 — krok „Włącz KVM”;
+     lokalny kontener nie ma KVM, więc tam testy zostają po kolei);
    - historia baterii między uruchomieniami (skarbiec, `K1_OB_BATERIA`).
 2. **M6 „Bezpieczne aktualizacje”** — z M10 i M5.2 wyciągnięte **teraz**, bo K1 jest na dysku:
    - podpisane wydania (własny klucz Ed25519, klucz publiczny w systemie); Instalator **odmawia**

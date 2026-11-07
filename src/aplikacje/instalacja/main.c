@@ -16,6 +16,7 @@
 #include "k1_klawiatura.h"
 #include "k1_komunikat.h"
 #include "k1_log.h"
+#include "k1_odbior.h"
 #include "k1_uslugi.h"
 
 #define TAG "K1-INSTALACJA"
@@ -285,17 +286,13 @@ static void odbierz(void)
 {
     int i, j;
     for (j = 0; j < 32 && kanal >= 0; j++) {
-        struct k1_odebrane o;
         struct k1_komunikat k;
-        enum k1_kanal_wynik w = k1_kanal_odbierz(kanal, &o);
-        if (w == K1_KANAL_PUSTO)
+        enum k1_odbior_wynik w = k1_odbierz_komunikat(kanal, 0, K1_KIER_OD_NADZORCY, &k, NULL);
+        if (w == K1_ODB_PUSTO)
             return;
-        if (w != K1_KANAL_KOMUNIKAT)
+        if (w == K1_ODB_KONIEC)
             k1_koniec(TAG, "nadzorca zamknął kanał");
-        if (o.fd >= 0)
-            close(o.fd);
-        if (o.fd >= 0 || o.obciete || !o.ma_nadawce || o.uid != 0 ||
-            k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_NADZORCY, &k) != 0) {
+        if (w != K1_ODB_JEST) {
             k1_log(TAG, "odrzucono komunikat");
             continue;
         }

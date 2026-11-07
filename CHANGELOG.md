@@ -3,6 +3,33 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.6.0] — 2026-11-07
+
+Etap **„Fundament”** (ADR 0019) — zamyka M5. Mniej widać na ekranie, więcej pod spodem.
+
+### Dodane
+- **Historia baterii z poprzednich uruchomień** (Twoja prośba z 0.5.5): system zapisuje przebieg
+  naładowania w zaszyfrowanym magazynie (od razu po starcie, potem co 5 minut i przy wyłączaniu).
+  Ustawienia → Bateria pokazują pod wykresem ostatnie wcześniejsze uruchomienie: kiedy, jak długo,
+  od ilu do ilu procent, z małym wykresem. Trzymamy ostatni tydzień (do 16 uruchomień).
+- **System reaguje na urządzenia od razu:** podłączenie myszy, klawiatury, pendrive'a z danymi czy
+  zasilacza jądro zgłasza nadzorcy natychmiast (zdarzenia „uevent”), zamiast sprawdzania co 2 sekundy.
+
+### Zmienione
+- **Nadzorca podzielony na moduły** (najważniejszy program w systemie): zamiast jednego pliku z ponad
+  1500 wierszami — 8 części o jasnych zadaniach (usługi, klatki, urządzenia, skarbiec, instalator,
+  bateria i zasoby, kanał testowy, pętla główna). Start systemu to teraz **jawne etapy** (dane →
+  stan magazynu → hasło → pulpit), każdy zapisywany w logu.
+- Jedno miejsce sprawdzania wiadomości między programami (nadawca, poprawność, deskryptory) zamiast
+  kilkunastu kopii tego samego kodu.
+- Testy: wspólna biblioteka do testów w emulatorze; z KVM (w CI) testy pulpitu, sprzętu i instalatora
+  idą równolegle.
+
+### Testy
+- Na hoście: format historii baterii (zapis, odczyt, limity, uszkodzone dane), parser zdarzeń jądra,
+  wspólny odbiór wiadomości (prawdziwe gniazda); fuzzing obu nowych parserów.
+- QEMU: dwa starty z pendrive'a z baterią — pierwszy zapisuje historię, drugi ją odczytuje.
+
 ## [0.5.9] — 2026-11-07
 
 Etap **M5f — instalator** (ADR 0018) i szybsze przesuwanie okien.
