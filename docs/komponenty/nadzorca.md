@@ -54,6 +54,9 @@ usług, kanały (`socketpair`, strona odbiorcy z `SO_PASSCRED`), komunikaty `KLI
   ponownie z pełnym zestawem (bez liczenia jako awaria). Od 0.5.2 (M5a) zapomina urządzenia, których
   węzeł zniknął (odłączone USB) — ponownie podłączone pod tym samym numerem jest zauważane. Pełny
   hotplug bez restartu (zdarzenia jądra) — M5b.
+- Hasło (0.5.7, ADR 0017): skarbiec zgłasza na kanale sterującym `SKARB_STAN`; „zablokowany” →
+  uruchamia `logowanie` zamiast `gui` (fd 4 prośby — tylko `WYLACZ`, fd 5 bateria, fd 6 skarbiec);
+  „odblokowany” → zatrzymuje logowanie, restartuje ekran, potem pulpit. Ustawienia dostają fd 5 do skarbca.
 - Skarbiec (0.5.6, ADR 0015/0016): uruchamiany **przed** ekranem; partycja danych = dokładnie jedna
   partycja GPT o nazwie „K1-DANE” (sysfs `PARTNAME`), otwierana `O_RDWR|O_EXCL` i przekazywana jako
   fd 4; czeka na nią do 4 s po starcie (do 15 s, gdy usb-storage ma urządzenie). Kanały klientów

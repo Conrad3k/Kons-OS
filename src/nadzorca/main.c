@@ -144,6 +144,7 @@ static int sterowanie = -1;  /* our end of ekran's control channel */
 static int skarb_ster = -1;  /* our end of skarbiec's control channel (M5d) */
 static int skarb_czekal;     /* skarbiec already waited for the data partition at boot */
 static int stan_skarbca = -1; /* K1_SKARB_* reported by skarbiec (-1: not yet) — M5e */
+static int przelaczanie;      /* unlocked: waiting for the new ekran before the desktop starts */
 static int zero = -1;        /* /dev/null for fds 0 and 1 of services */
 static int test_kanal = -1;  /* our end of the test channel (test image) */
 static int gui_kanal = -1;   /* our end of gui's request channel (gui's fd 4) */
@@ -556,6 +557,7 @@ static void start(struct usluga *u)
             if (sterowanie >= 0)
                 close(sterowanie);
             sterowanie = para[1];
+            przelaczanie = 0;
             k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
         } else {
             close(para[1]);
@@ -570,7 +572,7 @@ static void start(struct usluga *u)
      * when it is. Without word from skarbiec for 20 s after boot: the desktop. */
     if (u->profil == K1_PROFIL_LOGOWANIE && stan_skarbca != K1_SKARB_ZABLOKOWANY)
         return; /* not scheduled: started when skarbiec reports a locked vault */
-    if (u->profil == K1_PROFIL_GUI && (stan_skarbca == K1_SKARB_ZABLOKOWANY ||
+    if (u->profil == K1_PROFIL_GUI && (stan_skarbca == K1_SKARB_ZABLOKOWANY || przelaczanie ||
                                        (stan_skarbca < 0 && skarbiec()->pid > 0 && od_startu_systemu() < 20.0))) {
         u->nastepny = teraz() + 0.25;
         return;
@@ -881,6 +883,13 @@ static void obsluz_skarbiec(void)
                     uslugi[j].nastepny = teraz();
         } else if (poprzedni == K1_SKARB_ZABLOKOWANY && k.a != K1_SKARB_ZABLOKOWANY) {
             k1_log(TAG, "magazyn odblokowany — uruchamiam pulpit z zapisanymi ustawieniami");
+            /* the password screen first (quietly), then ekran: the desktop starts with the new ekran */
+            for (size_t j = 0; j < N_USLUG; j++)
+                if (uslugi[j].profil == K1_PROFIL_LOGOWANIE && uslugi[j].pid > 0) {
+                    uslugi[j].bez_liczenia = 1;
+                    kill(uslugi[j].pid, SIGTERM);
+                }
+            przelaczanie = ekran()->pid > 0;
             if (ekran()->pid > 0) {
                 ekran()->bez_liczenia = 1;
                 kill(ekran()->pid, SIGTERM); /* its clients (the password screen) stop with it */

@@ -82,6 +82,12 @@ static void przygotuj_tlo(void)
     if (tlo.px == NULL)
         k1_koniec(TAG, "brak pamięci na tło");
     k1_rysuj_tlo(&tlo, 1); /* Zmierzch, as in the sketch the owner chose */
+    {
+        /* the panel covers the whole screen: opaque (premultiplied ARGB, ekran's wallpaper is below) */
+        size_t i, n = (size_t)tlo.szer * tlo.wys;
+        for (i = 0; i < n; i++)
+            tlo.px[i] |= 0xff000000u;
+    }
     k1_prostokat(&tlo, 0, 0, k.szer_ekranu, k.wys_ekranu, k1_kolor(CIEMNY, 70));
 }
 

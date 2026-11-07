@@ -341,7 +341,8 @@ void t_inventory(void)
     }
     check(strcmp(joined, "/rdzen/aplikacje/notatki /rdzen/aplikacje/ustawienia /rdzen/aplikacje/zasoby /rdzen/aplikacje/zegar "
                          "/rdzen/init "
-                         "/rdzen/system/ekran /rdzen/system/gui /rdzen/system/nadzorca /rdzen/system/skarbiec /rdzen/system/skrypt-testowy "
+                         "/rdzen/system/ekran /rdzen/system/gui /rdzen/system/logowanie /rdzen/system/nadzorca /rdzen/system/skarbiec "
+                         "/rdzen/system/skrypt-testowy "
                          "/rdzen/system/test-systemu /rdzen/system/wejscie ") == 0,
           "obraz rdzenia zawiera tylko programy K1 i pliki testowe (brak powłoki i innych programów)", "pliki: %s",
           joined);

@@ -87,19 +87,26 @@ int k1_skarb_zapisz(int fd, int id, const void *dane, size_t n)
     return r;
 }
 
-int k1_skarb_wynik(int fd, int *wynik, int *tryb)
+int k1_skarb_wynik_pelny(int fd, struct k1_komunikat *k)
 {
     for (;;) {
-        struct k1_komunikat k;
-        int fd_dane, r = odbierz(fd, &k, &fd_dane);
+        int fd_dane, r = odbierz(fd, k, &fd_dane);
         if (fd_dane >= 0)
             close(fd_dane);
         if (r <= 0 && r != -2)
             return r;
-        if (r == 1 && k.typ == K1_KOM_SKARB_WYNIK) {
-            *wynik = k.b;
-            *tryb = k.c;
+        if (r == 1 && k->typ == K1_KOM_SKARB_WYNIK)
             return 1;
-        }
     }
+}
+
+int k1_skarb_wynik(int fd, int *wynik, int *tryb)
+{
+    struct k1_komunikat k;
+    int r = k1_skarb_wynik_pelny(fd, &k);
+    if (r == 1) {
+        *wynik = k.b;
+        *tryb = k.c;
+    }
+    return r;
 }

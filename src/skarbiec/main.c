@@ -29,6 +29,8 @@
 #include "magazyn.h"
 #include "monocypher.h"
 
+_Static_assert(K1_MAG_HASLO == K1_SKARB_ZLE_HASLO, "K1_SKARB_ZLE_HASLO must match K1_MAG_HASLO");
+
 #define TAG "K1-SKARBIEC"
 #define FD_STEROWANIE 3
 #define FD_DYSK 4

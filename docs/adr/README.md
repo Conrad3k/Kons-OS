@@ -44,3 +44,4 @@ Krótko, dlaczego nie.
 | [0014](0014-wskaznik-baterii.md) | Wskaźnik baterii na górnym pasku | Przyjęty |
 | [0015](0015-blob-vault-format-i-szyfrowanie.md) | Blob Vault: własny format na surowej partycji, szyfrowanie w przestrzeni użytkownika | Przyjęty |
 | [0016](0016-obraz-usb-z-partycja-danych.md) | Obraz na pendrive z partycją danych; skarbiec w łańcuchu startu | Przyjęty |
+| [0017](0017-haslo-i-ekran-logowania.md) | Hasło i ekran logowania (M5e) | Przyjęty |

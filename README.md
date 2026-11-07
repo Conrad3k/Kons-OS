@@ -75,7 +75,10 @@ laptopa** (nie otwiera innych dysków — pilnuje tego test). Pendrive zostanie 
 4. Wyłączenie: znak K1 → **Wyłącz** (laptop powinien się sam wyłączyć), potem wyjmij pendrive.
 5. Zapis: zmień tapetę albo motyw (Ustawienia), napisz coś w Notatkach, wyłącz i uruchom ponownie —
    wszystko powinno wrócić. Bez hasła dane są zaszyfrowane, ale ktoś z Twoim pendrive'em może je
-   odczytać (hasło — w następnej wersji).
+   odczytać.
+6. Hasło (od 0.5.7): Ustawienia → Hasło → przełącznik „Wymagaj hasła przy włączaniu” → wpisz hasło
+   dwa razy → Zapisz. Przy następnym włączeniu zobaczysz ekran hasła. **Zapomniane hasło = nowe
+   konto** (dane zaszyfrowane starym hasłem przepadają — trzeba nagrać pendrive od nowa).
 
 Napisz (Issues → „Feedback z testu” albo w czacie): czy pulpit się pojawił (jeśli ekran został czarny
 — po ilu sekundach i czy wcześniej było logo Lenovo/GRUB), czy obraz jest ostry (1366×768), co działa

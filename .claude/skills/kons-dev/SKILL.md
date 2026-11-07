@@ -43,7 +43,8 @@ Stan: M5a (0.5.2) — dyski SATA/NVMe, GPT, USB (xHCI/EHCI/OHCI, HID, mass stora
 z tablicy ACPI `testy/acpi/bateria.asl`, `bateria_aml` w `scripts/wspolne.sh`); 0.5.4–0.5.5 — płynny
 obraz (MTRR/PAT, DIRTYFB z obszarami), Ustawienia → Bateria; 0.5.6 — **skarbiec** (Blob Vault, ADR 0015:
 własny format na partycji GPT „K1-DANE”, Monocypher), trwałe ustawienia i notatka, obraz
-`k1-<wersja>-usb.img.xz` (ADR 0016). Następne: M5e hasło + ekran logowania (szkic B „Zegar”).
+`k1-<wersja>-usb.img.xz` (ADR 0016). 0.5.7 — **M5e**: hasło (Ustawienia → Hasło, `SKARB_HASLO`) i ekran hasła `src/logowanie/` (rola ekranu
+`LOGOWANIE`, nadzorca uruchamia go zamiast gui, gdy skarbiec zgłosi `SKARB_STAN` zablokowany; ADR 0017).
 Pierwszy laptop właściciela: **ThinkPad X230** (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez
 simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
 

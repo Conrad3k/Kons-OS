@@ -144,6 +144,7 @@ enum k1_ustawienie {
 #define K1_HASLO_MAKS 256         /* bytes of a password */
 #define K1_HASLO_PRZERWA 300      /* longest wait between password attempts, seconds */
 #define K1_MAG_WYNIK_MIN (-8)     /* most negative K1_MAG_* result */
+#define K1_SKARB_ZLE_HASLO (-1)   /* WYNIK b: wrong password (= K1_MAG_HASLO, magazyn.h) */
 
 /* Battery state (K1_KOM_BATERIA c), from the kernel's power_supply "status". */
 enum k1_bateria_stan {
