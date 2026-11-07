@@ -35,9 +35,11 @@ int proba(const char *profil)
     char *const envp[] = { NULL };
     long r;
     void *m;
-    int e, pliki = strstr(profil, "notatki") != NULL;
-    int okna = pliki || strstr(profil, "gui") != NULL || strstr(profil, "zegar") != NULL ||
-               strstr(profil, "ustawienia") != NULL || strstr(profil, "zasoby") != NULL;
+    int e;
+    /* gui, applications, and since M5d ekran and skarbiec: memfd for surfaces / data */
+    int okna = strstr(profil, "notatki") != NULL || strstr(profil, "gui") != NULL || strstr(profil, "zegar") != NULL ||
+               strstr(profil, "ustawienia") != NULL || strstr(profil, "zasoby") != NULL ||
+               strstr(profil, "ekran") != NULL || strstr(profil, "skarbiec") != NULL;
 
     memset(&sa, 0, sizeof sa);
     sa.sa_sigaction = proba_sigsys;
@@ -55,32 +57,10 @@ int proba(const char *profil)
         proba_bledy++;
         k1_log("K1-PROBA", "[BŁĄD] uruchomienie innego programu: r=%ld errno=%d", r, e);
     }
-    if (pliki) {
-        /* Notatki: open is allowed, Landlock limits it to its own directory */
-        int f1 = open("/rdzen/init", O_RDONLY | O_CLOEXEC), e1 = errno;
-        int f2 = open("/dane_uzytkownika/obcy", O_WRONLY | O_CREAT | O_CLOEXEC, 0600), e2 = errno;
-        int f3 = open("/rdzen/jadro/proc/1/status", O_RDONLY | O_CLOEXEC), e3 = errno;
-        int f4 = open(K1_KATALOG_NOTATEK "/proba", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
-        int f5 = open("/rdzen/jadro/dev/vda", O_RDONLY | O_CLOEXEC), e5 = errno; /* a disk (M5a) */
-        /* /proc/1 is invisible to other users (hidepid): ENOENT is a denial as well */
-        if (f1 < 0 && e1 == EACCES && f2 < 0 && e2 == EACCES && f3 < 0 && (e3 == EACCES || e3 == ENOENT) && f4 >= 0 &&
-            f5 < 0 && e5 == EACCES) {
-            k1_log("K1-PROBA", "[OK] pliki: tylko własny katalog (Landlock: /rdzen, dysk i reszta danych → EACCES, cudze procesy niewidoczne)");
-        } else {
-            proba_bledy++;
-            k1_log("K1-PROBA", "[BŁĄD] pliki poza katalogiem notatek: %d/%d %d/%d %d/%d, dysk %d/%d, własny %d", f1, e1, f2,
-                   e2, f3, e3, f5, e5, f4);
-        }
-        if (f5 >= 0)
-            close(f5);
-        if (f4 >= 0) {
-            close(f4);
-            unlink(K1_KATALOG_NOTATEK "/proba");
-        }
-    } else {
-        zablokowane("otwarcie pliku (open)", SYS_open, (long)"/rdzen/init", O_RDONLY, 0, 0, 0);
-        zablokowane("otwarcie pliku (openat)", SYS_openat, AT_FDCWD, (long)"/rdzen/jadro/proc/1/status", O_RDONLY, 0, 0);
-    }
+    /* No profile opens files since M5d (Notatki keeps its note in skarbiec). */
+    zablokowane("otwarcie pliku (open)", SYS_open, (long)"/rdzen/init", O_RDONLY, 0, 0, 0);
+    zablokowane("otwarcie pliku (openat)", SYS_openat, AT_FDCWD, (long)"/rdzen/jadro/proc/1/status", O_RDONLY, 0, 0);
+    zablokowane("otwarcie dysku (openat)", SYS_openat, AT_FDCWD, (long)"/rdzen/jadro/dev/vda", O_RDWR, 0, 0);
     zablokowane("setuid(0)", SYS_setuid, 0, 0, 0, 0, 0);
     zablokowane("setresgid(0)", SYS_setresgid, 0, 0, 0, 0, 0);
     zablokowane("nowe gniazdo (socket)", SYS_socket, AF_UNIX, SOCK_STREAM, 0, 0, 0);

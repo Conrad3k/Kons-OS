@@ -1,8 +1,8 @@
 /* K1 Notatki — native application: one note, Polish keyboard layout, saved automatically
- * (M4, ADR 0008). The note is the only data this program can reach: Landlock allows reading and
- * writing in /dane_uzytkownika/notatki and nothing else. Until M5 that directory is in RAM
- * (lost at power-off; Blob Vault and encryption come in M5). Note contents never go to the log.
- * Sandbox: UID 201, seccomp (base + memfd_create, ftruncate, open/openat, fsync, rename).
+ * (M4, ADR 0008). Since M5d the note is an object in skarbiec (Blob Vault, encrypted on the K1-DANE
+ * partition; fd 4 from nadzorca): the program has no files at all — it can reach only its own note.
+ * Note contents never go to the log.
+ * Sandbox: UID 201, seccomp (base + memfd_create, ftruncate), Landlock without any path.
  * Documentation: docs/komponenty/aplikacje.md. */
 #include <errno.h>
 #include <fcntl.h>
@@ -15,12 +15,13 @@
 
 #include "k1_aplikacja.h"
 #include "k1_klawiatura.h"
+#include "k1_komunikat.h"
 #include "k1_log.h"
+#include "k1_skarb_klient.h"
 #include "k1_uslugi.h"
 
 #define TAG "K1-NOTATKI"
-#define PLIK K1_KATALOG_NOTATEK "/notatka.txt"
-#define TYMCZASOWY K1_KATALOG_NOTATEK "/notatka.tmp"
+#define FD_SKARBIEC 4
 #define MAKS_TEKST 16384
 #define MAKS_LINII 1024
 #define LEWO 24
@@ -36,7 +37,7 @@ static struct {
 } linie[MAKS_LINII];
 static uint32_t n_linii, pierwsza;
 static double zmiana; /* when the text last changed (0: saved) */
-static int zapis_blad;
+static int zapis_blad, skarb = -1, tryb = -1; /* tryb: K1_SKARB_TRWALY / K1_SKARB_RAM */
 
 static double teraz(void)
 {
@@ -156,42 +157,70 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     }
     k1_prostokat(o, 16, apl.wys - STOPKA, apl.szer - 32, 1, k1_kolor(m->tekst, 22));
     k1_tekst(o, K1_CZ_MALA, LEWO, apl.wys - 13,
-             zapis_blad ? "Nie udało się zapisać notatki"
-                        : (zmiana > 0 ? "Zapisywanie…" : "Zapisano w tym komputerze (do wyłączenia; trwały zapis od wersji z szyfrowaniem)"),
+             zapis_blad   ? "Nie udało się zapisać notatki"
+             : zmiana > 0 ? "Zapisywanie…"
+             : skarb < 0  ? "Bez zapisu — brak usługi danych"
+             : tryb == K1_SKARB_TRWALY ? "Zapisano na dysku (zaszyfrowane)"
+                          : "Zapisano tylko do wyłączenia komputera (brak partycji K1-DANE)",
              k1_kolor(zapis_blad ? m->akcent_tekst : m->tekst3, 255), apl.szer - 2 * LEWO);
 }
 
 static void wczytaj(void)
 {
-    int fd = open(PLIK, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
-    ssize_t n;
-    if (fd < 0)
+    int n;
+    if (fcntl(FD_SKARBIEC, F_GETFD) < 0 || fcntl(FD_SKARBIEC, F_SETFL, O_NONBLOCK) != 0) {
+        k1_log(TAG, "brak kanału do skarbca — notatka bez zapisu");
         return;
-    n = read(fd, tekst, MAKS_TEKST);
-    close(fd);
+    }
+    skarb = FD_SKARBIEC;
+    n = k1_skarb_czytaj(skarb, K1_OB_NOTATKA, tekst, MAKS_TEKST, 3000, &tryb);
     dl = n > 0 ? (uint32_t)n : 0;
     tekst[dl] = '\0';
     kursor = dl;
+    if (n >= 0)
+        k1_log(TAG, "notatka wczytana (%u B)", dl); /* the length only, never the content */
+    else
+        k1_log(TAG, "nowa notatka (%s)", n == -2 ? "skarbiec nie odpowiedział" : "brak zapisanej");
 }
 
 static void zapisz(void)
 {
-    int fd = open(TYMCZASOWY, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC | O_NOFOLLOW, 0600);
     uint32_t i, znaki = 0;
-    int ok = fd >= 0 && write(fd, tekst, dl) == (ssize_t)dl && fsync(fd) == 0;
-    if (fd >= 0)
-        close(fd);
-    ok = ok && rename(TYMCZASOWY, PLIK) == 0;
-    zapis_blad = !ok;
+    if (skarb < 0) { /* no skarbiec: the note lives only in this window */
+        zmiana = 0;
+        k1_apl_odswiez(&apl);
+        return;
+    }
+    zapis_blad = k1_skarb_zapisz(skarb, K1_OB_NOTATKA, tekst, dl) != 0;
     for (i = 0; i < dl; i++)
         if (((unsigned char)tekst[i] & 0xc0) != 0x80)
             znaki++;
-    if (ok)
+    if (!zapis_blad)
         k1_log(TAG, "zapisano notatkę (%u znaków)", znaki); /* the length only, never the content */
     else
-        k1_log(TAG, "błąd zapisu notatki: %s", strerror(errno));
+        k1_log(TAG, "błąd zapisu notatki");
     zmiana = 0;
     k1_apl_odswiez(&apl);
+}
+
+/* Results of the saves from skarbiec. */
+static void odbierz_wyniki(void)
+{
+    int wynik, t, r;
+    while (skarb >= 0 && (r = k1_skarb_wynik(skarb, &wynik, &t)) != 0) {
+        if (r < 0) {
+            close(skarb);
+            skarb = -1;
+            k1_apl_odswiez(&apl);
+            return;
+        }
+        tryb = t;
+        if (wynik != 0 && !zapis_blad) {
+            zapis_blad = 1;
+            k1_log(TAG, "skarbiec: zapis notatki nieudany (%d)", wynik);
+        }
+        k1_apl_odswiez(&apl);
+    }
 }
 
 static uint32_t poprzedni(uint32_t p)
@@ -301,7 +330,8 @@ static int zegar(void)
 {
     if (zmiana > 0 && teraz() - zmiana >= 0.8)
         zapisz();
-    return zmiana > 0 ? 200 : -1;
+    odbierz_wyniki();
+    return zmiana > 0 ? 200 : 500;
 }
 
 int main(void)

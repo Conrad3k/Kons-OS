@@ -108,6 +108,13 @@ int widac(const struct pow *p);
 int kolejnosc(int *idx); /* visible surfaces bottom to top; returns how many */
 void zapisz_klatke(struct bufor *b, struct drm_clip_rect *zmiany, unsigned *n_zmian);
 void sprawdz_sterownik(void);
+
+/* zapis.c — the settings saved in skarbiec (M5d) */
+void ustawienia_wczytaj(void);
+void ustawienia_po_starcie(void);
+void ustawienia_zapisz(void);
+int ustawienia_fd(void);
+void ustawienia_odbierz(void);
 void pokaz(void);
 void odbierz_drm(void);
 

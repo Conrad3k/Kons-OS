@@ -41,6 +41,7 @@ static const char *const nazwy[K1_PROFIL_MAKS + 1] = {
     [K1_PROFIL_NOTATKI] = "Notatki",
     [K1_PROFIL_USTAWIENIA] = "Ustawienia",
     [K1_PROFIL_ZASOBY] = "Zasoby",
+    [K1_PROFIL_SKARBIEC] = "Skarbiec (dane)",
 };
 
 /* "12,5" from tenths */

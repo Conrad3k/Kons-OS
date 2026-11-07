@@ -16,7 +16,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     enum k1_kanal_kierunek kier;
     if (size < 1)
         return 0;
-    kier = (enum k1_kanal_kierunek)(data[0] % 7); /* includes invalid 0 and 6 */
+    kier = (enum k1_kanal_kierunek)(data[0] % 9); /* includes invalid 0 and 8 */
     memset(&zero, 0, sizeof zero);
     if (k1_komunikat_sprawdz(data + 1, size - 1, kier, &k) != 0) {
         if (memcmp(&k, &zero, sizeof k) != 0)
@@ -25,7 +25,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
     if (size - 1 != sizeof k || k.wersja != K1_KOMUNIKAT_WERSJA || k.dlugosc != sizeof k || k.zarezerwowane != 0)
         abort();
-    if (kier < K1_KIER_STEROWANIE || kier > K1_KIER_OD_NADZORCY)
+    if (kier < K1_KIER_STEROWANIE || kier > K1_KIER_OD_SKARBCA)
         abort();
     if (memcmp(&k, data + 1, sizeof k) != 0)
         abort();

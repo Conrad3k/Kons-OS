@@ -10,15 +10,18 @@ co trafia **do obrazu** (działa na komputerze użytkownika), od tego, co służ
 | Jądro Linux | 6.18.60 (LTS) | GPL-2.0 | cdn.kernel.org; SHA-256 przypięta w `jadro/wersja.env`, podpis PGP wydania sprawdzany przy każdym pobraniu | fundament systemu (SPEC §4) |
 | musl libc (statycznie w każdym programie) | 1.2.4-2 (Ubuntu 24.04) | MIT | archiwum Ubuntu (podpisane repozytoria apt) | mała, czytelna libc ze wsparciem statycznego linkowania (SPEC §4); ADR 0002 |
 | IBM Plex Sans / Serif — **tylko bitmapy glifów** wbudowane w `gui` i aplikacje | 6.1.1 (`fonts-ibm-plex`) | SIL OFL 1.1 | archiwum Ubuntu | tekst z polskimi znakami bez parsera czcionek w systemie (ADR 0009) |
+| Monocypher (statycznie w usłudze `skarbiec`) | 4.0.3 (tag `4.0.3`, commit `ab2b16dd`) | BSD-2-Clause albo CC0 (do wyboru) | github.com/LoupVaillant/monocypher; pliki w `src/zewnetrzne/monocypher/` bez zmian, SHA-256 (pełne sumy: `src/zewnetrzne/monocypher/SHA256SUMS`) | XChaCha20-Poly1305, BLAKE2b, Argon2id dla Blob Vault — mała, audytowana biblioteka, jeden plik (ADR 0015); aktualizacja: nowy tag, porównanie zmian, nowe sumy |
 
-Nic więcej: brak bibliotek współdzielonych, interpreterów, powłoki. Grafika bez bibliotek:
+Nic więcej (poza Monocypherem w `skarbiec`): brak bibliotek współdzielonych, interpreterów, powłoki. Grafika bez bibliotek:
 API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybornik GUI własne
 (`src/grafika/`, `src/przybornik/`).
 
 ### Tylko w obrazie ISO (start w maszynie wirtualnej, do M10)
 | Zależność | Wersja | Licencja | Źródło | Uzasadnienie |
 |---|---|---|---|---|
-| GRUB (EFI x86_64 i BIOS i386-pc) | 2.12-1ubuntu7.3 | GPL-3.0 | archiwum Ubuntu (`grub-efi-amd64-bin`, `grub-pc-bin`) | start z płyty przez UEFI i BIOS w maszynach wirtualnych; tymczasowo do podpisanego UKI w M10 (ADR 0010, RYZYKA R25) |
+| shim (UEFI, podpis Microsoftu) | 15.8 (`shim-signed` 1.58+15.8-0ubuntu1) | BSD-2-Clause | archiwum Ubuntu — pakiet tylko rozpakowany (`scripts/wspolne.sh: efi_podpisane`), wersje w `build/pobrane/efi/wersje.txt` | pierwszy program startowy z pendrive'a/płyty przez UEFI; podpisane pliki z każdej płyty Ubuntu zamiast własnego, niepodpisanego GRUB-a (Defender oznaczał go heurystyką jako trojana, 0.5.5) |
+| GRUB dla nośników wymiennych (UEFI, `gcdx64.efi`, podpis Canonical) | 2.12 (`grub-efi-amd64-signed` 1.202.5+2.12-1ubuntu7.3) | GPL-3.0 | jw. | ładuje jądro K1 (Secure Boot musi być wyłączony do M10: jądro K1 nie jest podpisane) |
+| GRUB BIOS (i386-pc, obraz El Torito z wbudowanymi modułami) | 2.12-1ubuntu7.3 | GPL-3.0 | archiwum Ubuntu (`grub-pc-bin`), `grub-mkimage` | start z płyty przez BIOS w maszynach wirtualnych; tymczasowo do M10 (ADR 0010, RYZYKA R25) |
 
 ## Do budowy (wpływają na wynik)
 
@@ -30,7 +33,8 @@ API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybo
 | `gen_init_cpio` | z jądra 6.18.60 | źródła jądra | budowa initramfs bez uprawnień roota, deterministycznie (`-t`) |
 | squashfs-tools (`mksquashfs`) | 4.6.1 | Ubuntu 24.04 | budowa obrazu `/rdzen` (zstd, `SOURCE_DATE_EPOCH`) |
 | FreeType (`libfreetype-dev`) + `pkg-config` | 2.13.2 | Ubuntu 24.04 | `narzedzia/czcionki.c`: rasteryzacja czcionek do bitmap przy budowie (ADR 0009); nie trafia do obrazu |
-| `grub-mkrescue` (`grub-common`), `xorriso`, `mtools` | 2.12 / 1.5.6 / 4.0.43 | Ubuntu 24.04 | składanie obrazu ISO (ADR 0010) |
+| `grub-mkimage` (`grub-common`), `xorriso`, `mtools` | 2.12 / 1.5.6 / 4.0.43 | Ubuntu 24.04 | składanie obrazu ISO (ADR 0010; od 0.5.6 bez `grub-mkrescue` — powtarzalne) |
+| `mtools`, `sfdisk` (`fdisk`), `xz`, `apt-get download` + `dpkg-deb` | 4.0.43 / 2.39.3 / 5.4 | Ubuntu 24.04 | obraz na pendrive z partycją danych (ADR 0016); podpisane pliki EFI |
 
 Wersje użyte w danym buildzie zapisuje `build/wynik/srodowisko.txt`.
 

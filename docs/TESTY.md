@@ -121,6 +121,14 @@ sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
   `K1-GUI: bateria 73%, rozładowywanie, zasilacz odłączony`. Scenariusz `start` (bez baterii):
   `K1-GUI: brak baterii`.
 
+## M5c/M5d — kryteria zaliczenia (0.5.6)
+1. Format magazynu na hoście: `test_magazyn` (62 przypadki) i `fuzz_magazyn` bez błędów.
+2. Ustawienia (tapeta, motyw, rozdzielczość) i notatka wracają po wyłączeniu i ponownym starcie
+   z tym samym dyskiem danych (`test-m4.sh`, scenariusz `ponownie`); na dysku brak jawnego tekstu.
+3. Obraz USB startuje przez UEFI z pamięci USB; pierwszy start tworzy magazyn na pustej „K1-DANE”,
+   drugi go otwiera (`test-m5.sh`).
+4. Dysk trzyma tylko skarbiec (w systemie), próba klatki skarbca bez błędów, Notatki bez plików.
+
 ## M5a — kryteria zaliczenia
 1. Jądro widzi dyski SATA (AHCI), NVMe i pamięci USB; tablice GPT (tylko), nazwy partycji w sysfs.
 2. Kontrolery USB xHCI, EHCI, OHCI; klawiatura i mysz USB działają w pulpicie — także na maszynie bez

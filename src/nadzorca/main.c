@@ -15,6 +15,7 @@
  * Test image: /rdzen/system/test-systemu runs as root with fd 3 = a test channel (connect to ekran
  * with any role, run sandbox probes); nadzorca ends with its exit code.
  * Documentation: docs/komponenty/nadzorca.md. */
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -56,23 +57,31 @@
 #define N(t) (unsigned)(sizeof(t) / sizeof((t)[0]))
 static const long sc_wejscie[] = { 0 };
 static const struct k1_warunek wa_wejscie[] = { { SYS_ioctl, 1, 0xff00u, 'E' << 8 } }; /* evdev only */
-static const long sc_ekran[] = { 0 };
+/* ekran: + memfd for the settings it saves in skarbiec (M5d) */
+static const long sc_ekran[] = { SYS_memfd_create };
 static const struct k1_warunek wa_ekran[] = { { SYS_ioctl, 1, 0xff00u, 'd' << 8 } };   /* DRM only */
 
+/* skarbiec (M5d): reads/writes its partition (fd from us), randomness for keys, memfd for data,
+ * sysinfo for the Argon2 memory size. No open: Landlock without paths. */
+static const long sc_skarbiec[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, SYS_getrandom, SYS_memfd_create,
+                                    SYS_sysinfo };
 /* gui and applications: shared memory for their surfaces, nothing else. */
 static const long sc_okna[] = { SYS_memfd_create, SYS_ftruncate };
-/* Notatki: additionally its own directory (Landlock limits the paths). */
-static const long sc_notatki[] = { SYS_memfd_create, SYS_ftruncate, SYS_open, SYS_openat, SYS_fsync, SYS_rename };
 
 static const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
     [K1_PROFIL_WEJSCIE] = { "wejscie", K1_UID_WEJSCIE, sc_wejscie, 0, wa_wejscie, N(wa_wejscie), NULL,
                             8u << 20, 1, 32, 0 },
-    [K1_PROFIL_EKRAN] = { "ekran", K1_UID_EKRAN, sc_ekran, 0, wa_ekran, N(wa_ekran), NULL, 128u << 20, 1, 64, 0 },
+    [K1_PROFIL_EKRAN] = { "ekran", K1_UID_EKRAN, sc_ekran, N(sc_ekran), wa_ekran, N(wa_ekran), NULL, 128u << 20, 1, 64,
+                          64u << 10 },
+    /* skarbiec: Argon2id needs up to 256 MiB (ADR 0015); memfd up to 1 MiB (RLIMIT_FSIZE does not apply to
+     * the block device: block/fops.c blkdev_write_iter has no rlimit check). */
+    [K1_PROFIL_SKARBIEC] = { "skarbiec", K1_UID_SKARBIEC, sc_skarbiec, N(sc_skarbiec), NULL, 0, NULL, 320u << 20, 1, 32,
+                             2u << 20 },
     /* RLIMIT_FSIZE also limits memfd_create+ftruncate: 16 MiB is enough for the largest surface. */
     [K1_PROFIL_GUI] = { "gui", K1_UID_GUI, sc_okna, N(sc_okna), NULL, 0, NULL, 48u << 20, 1, 32, 16u << 20 },
     [K1_PROFIL_ZEGAR] = { "zegar", K1_UID_ZEGAR, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32, 16u << 20 },
-    [K1_PROFIL_NOTATKI] = { "notatki", K1_UID_NOTATKI, sc_notatki, N(sc_notatki), NULL, 0, K1_KATALOG_NOTATEK,
-                            32u << 20, 1, 32, 16u << 20 },
+    /* Notatki: since M5d no files at all — its note is an object in skarbiec (fd 4 from us). */
+    [K1_PROFIL_NOTATKI] = { "notatki", K1_UID_NOTATKI, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32, 16u << 20 },
     [K1_PROFIL_USTAWIENIA] = { "ustawienia", K1_UID_USTAWIENIA, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32,
                                16u << 20 },
     /* Zasoby: like the other apps; its numbers come from us on fd 4 (it reads no files). */
@@ -81,7 +90,7 @@ static const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
 
 /* ---- services ---- */
 
-enum rodzaj { R_EKRAN, R_KLIENT, R_PROBA };
+enum rodzaj { R_SKARBIEC, R_EKRAN, R_KLIENT, R_PROBA };
 
 struct usluga {
     const char *nazwa, *program, *tag;
@@ -106,6 +115,8 @@ struct usluga {
     { .nazwa = n, .program = prog, .tag = t, .profil = prof, .rodzaj = r, .rola = rol, .aplikacja = apl,          \
       .restartuj = rest, .log = -1 }
 static struct usluga uslugi[] = {
+    /* skarbiec first: ekran gets its channel to it at start (M5d) */
+    USLUGA("skarbiec", "/rdzen/system/skarbiec", "K1-SKARBIEC", K1_PROFIL_SKARBIEC, R_SKARBIEC, 0, 0, 1),
     USLUGA("ekran", "/rdzen/system/ekran", "K1-EKRAN", K1_PROFIL_EKRAN, R_EKRAN, 0, 0, 1),
     USLUGA("wejscie", "/rdzen/system/wejscie", "K1-WEJSCIE", K1_PROFIL_WEJSCIE, R_KLIENT, K1_ROLA_WEJSCIE, 0, 1),
     USLUGA("gui", "/rdzen/system/gui", "K1-GUI", K1_PROFIL_GUI, R_KLIENT, K1_ROLA_POWLOKA, 0, 1),
@@ -118,13 +129,15 @@ static struct usluga uslugi[] = {
     USLUGA("zasoby", "/rdzen/aplikacje/zasoby", "K1-ZASOBY", K1_PROFIL_ZASOBY, R_KLIENT, K1_ROLA_APLIKACJA,
            K1_APL_ZASOBY, 0),
 };
-#define PIERWSZA_APLIKACJA 3
+#define PIERWSZA_APLIKACJA 4
 #define N_USLUG N(uslugi)
 
 /* Test probes: one at a time. */
 static struct usluga proba = USLUGA("proba", TEST, "K1-PROBA", 0, R_PROBA, 0, 0, 0);
 
 static int sterowanie = -1;  /* our end of ekran's control channel */
+static int skarb_ster = -1;  /* our end of skarbiec's control channel (M5d) */
+static int skarb_czekal;     /* skarbiec already waited for the data partition at boot */
 static int zero = -1;        /* /dev/null for fds 0 and 1 of services */
 static int test_kanal = -1;  /* our end of the test channel (test image) */
 static int gui_kanal = -1;   /* our end of gui's request channel (gui's fd 4) */
@@ -149,9 +162,14 @@ static double teraz(void)
     return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
 }
 
-static struct usluga *ekran(void)
+static struct usluga *skarbiec(void)
 {
     return &uslugi[0];
+}
+
+static struct usluga *ekran(void)
+{
+    return &uslugi[1];
 }
 
 /* ---- logs ---- */
@@ -364,14 +382,151 @@ static int kanal_do_ekranu(int rola, int apl, int uid)
     return para[1];
 }
 
+/* A channel between a client and skarbiec (M5d): skarbiec gets one end with SKARB_KLIENT(owner, uid)
+ * and checks the sender of every packet; the client's end also has SO_PASSCRED (it checks that
+ * the replies come from skarbiec). Returns the client's end or -1 (no skarbiec: no persistence). */
+static int kanal_do_skarbca(int wlasciciel, int uid)
+{
+    int para[2], tak = 1;
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_SKARB_KLIENT, 0, wlasciciel, uid, 0, 0, 0);
+    if (skarb_ster < 0 || skarbiec()->pid <= 0)
+        return -1;
+    if (k1_kanal_utworz(para) != 0)
+        return -1;
+    if (setsockopt(para[1], SOL_SOCKET, SO_PASSCRED, &tak, sizeof tak) != 0 ||
+        k1_kanal_wyslij(skarb_ster, &k, sizeof k, para[0]) != 0) {
+        k1_log(TAG, "kanał do skarbca: %s", strerror(errno));
+        close(para[0]);
+        close(para[1]);
+        return -1;
+    }
+    close(para[0]);
+    return para[1];
+}
+
+/* The data partition: the one block device partition named "K1-DANE" (GPT, sysfs PARTNAME —
+ * block/partitions/core.c part_uevent). None or more than one → -1 (*ile = how many). */
+static int otworz_partycje_danych(int *ile)
+{
+    char dev[64] = "";
+    DIR *d = opendir(SYS "/class/block");
+    struct dirent *de;
+    *ile = 0;
+    while (d != NULL && (de = readdir(d)) != NULL) {
+        char sciezka[320], buf[512];
+        ssize_t n;
+        int fd;
+        const char *p;
+        if (de->d_name[0] == '.')
+            continue;
+        snprintf(sciezka, sizeof sciezka, SYS "/class/block/%s/uevent", de->d_name);
+        fd = open(sciezka, O_RDONLY | O_CLOEXEC);
+        if (fd < 0)
+            continue;
+        n = read(fd, buf, sizeof buf - 1);
+        close(fd);
+        if (n <= 0)
+            continue;
+        buf[n] = '\0';
+        if (strstr(buf, "\nPARTNAME=K1-DANE\n") == NULL)
+            continue;
+        p = strstr(buf, "DEVNAME=");
+        if (p == NULL)
+            continue;
+        p += strlen("DEVNAME=");
+        if (strcspn(p, "\n") >= 32 || strchr(p, '/') != NULL)
+            continue;
+        snprintf(dev, sizeof dev, "%.*s", (int)strcspn(p, "\n"), p);
+        (*ile)++;
+    }
+    if (d != NULL)
+        closedir(d);
+    if (*ile != 1)
+        return -1;
+    {
+        char sciezka[96];
+        snprintf(sciezka, sizeof sciezka, DEV "/%s", dev);
+        /* O_EXCL on a block device: nobody else (no mount) may hold it exclusively */
+        return open(sciezka, O_RDWR | O_CLOEXEC | O_NOFOLLOW | O_EXCL);
+    }
+}
+
+/* Is a USB mass storage device bound (sysfs: an interface "2-1:1.0" under the usb-storage driver)?
+ * Its disk shows up about a second later (usb-storage waits for the stick to settle). */
+static int pamiec_usb_obecna(void)
+{
+    DIR *d = opendir(SYS "/bus/usb/drivers/usb-storage");
+    struct dirent *de;
+    int jest = 0;
+    while (d != NULL && !jest && (de = readdir(d)) != NULL)
+        jest = strchr(de->d_name, ':') != NULL;
+    if (d != NULL)
+        closedir(d);
+    return jest;
+}
+
+/* Wait for the data partition after boot: until 4 s, and while a USB stick is still being set up,
+ * until 15 s (booting from the K1 stick: its K1-DANE partition appears ~1 s after the stick). */
+static int czekaj_na_dane(double od_startu)
+{
+    return od_startu < 4.0 || (od_startu < 15.0 && pamiec_usb_obecna());
+}
+
+static double od_startu_systemu(void)
+{
+    struct timespec t;
+    clock_gettime(CLOCK_BOOTTIME, &t);
+    return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
+}
+
 static void start(struct usluga *u)
 {
     const struct k1_profil *p = &profile[u->profil];
     int fds[MAKS_URZADZEN + 1], n = 0, i;
 
     u->nastepny = 0;
+    if (u->rodzaj == R_SKARBIEC) {
+        int para[2], ile, dysk = otworz_partycje_danych(&ile);
+        /* A USB stick shows up a moment after the kernel started: wait for it (czekaj_na_dane). */
+        if (dysk < 0 && ile == 0 && !skarb_czekal && czekaj_na_dane(od_startu_systemu())) {
+            u->nastepny = teraz() + 0.25;
+            return;
+        }
+        skarb_czekal = 1;
+        if (ile > 1)
+            k1_log(TAG, "znaleziono %d partycje K1-DANE — nie wiadomo, której użyć; dane tylko w pamięci", ile);
+        else if (ile == 1 && dysk < 0)
+            k1_log(TAG, "partycja K1-DANE zajęta albo niedostępna: %s", strerror(errno));
+        else if (dysk >= 0)
+            k1_log(TAG, "partycja danych K1-DANE otwarta dla skarbca");
+        if (k1_kanal_utworz(para) != 0) {
+            if (dysk >= 0)
+                close(dysk);
+            u->nastepny = teraz() + 1.0;
+            return;
+        }
+        fds[n++] = para[0]; /* fd 3: control channel (its end checks us) */
+        if (dysk >= 0)
+            fds[n++] = dysk; /* fd 4: the partition */
+        if (uruchom(u, p, fds, n) > 0) {
+            if (skarb_ster >= 0)
+                close(skarb_ster);
+            skarb_ster = para[1];
+            k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
+        } else {
+            close(para[1]);
+        }
+        for (i = 0; i < n; i++)
+            close(fds[i]);
+        return;
+    }
     if (u->rodzaj == R_EKRAN) {
-        int para[2], karta = otworz_karte();
+        int para[2], karta, skarb;
+        if (!skarb_czekal) { /* skarbiec first (it may still be waiting for the data partition) */
+            u->nastepny = teraz() + 0.25;
+            return;
+        }
+        karta = otworz_karte();
         if (karta < 0) {
             k1_log(TAG, "brak karty graficznej — ekran nie zostanie uruchomiony");
             u->nastepny = teraz() + 4.0;
@@ -384,6 +539,9 @@ static void start(struct usluga *u)
         fds[0] = para[0]; /* ekran: fd 3 = control channel (its end has SO_PASSCRED: it checks us) */
         fds[1] = karta;   /* fd 4 = card (we opened it first: this file is the DRM master) */
         n = 2;
+        skarb = kanal_do_skarbca(K1_PROFIL_EKRAN, (int)p->uid);
+        if (skarb >= 0)
+            fds[n++] = skarb; /* fd 5 = skarbiec: the saved settings (M5d) */
         if (uruchom(u, p, fds, n) > 0) {
             if (sterowanie >= 0)
                 close(sterowanie);
@@ -394,6 +552,8 @@ static void start(struct usluga *u)
         }
         close(para[0]);
         close(karta);
+        if (skarb >= 0)
+            close(skarb);
         return;
     }
     if (ekran()->pid <= 0) {
@@ -408,6 +568,11 @@ static void start(struct usluga *u)
     n++;
     if (u->profil == K1_PROFIL_WEJSCIE)
         n += otworz_wejscia(fds + n);
+    if (u->profil == K1_PROFIL_NOTATKI) {
+        int skarb = kanal_do_skarbca(K1_PROFIL_NOTATKI, (int)p->uid);
+        if (skarb >= 0)
+            fds[n++] = skarb; /* fd 4 = skarbiec: the note (M5d) */
+    }
     if (u->profil == K1_PROFIL_GUI) {
         int para[2];
         if (k1_kanal_utworz(para) != 0) {
@@ -505,13 +670,24 @@ static void zakonczona(struct usluga *u, int status)
         close(bateria_kanal);
         bateria_kanal = -1;
     }
+    if (u->rodzaj == R_SKARBIEC) {
+        if (skarb_ster >= 0)
+            close(skarb_ster);
+        skarb_ster = -1;
+        /* ekran and Notatki lost their channels to it: restart ekran (and with it its clients) once
+         * the new skarbiec runs. */
+        if (ekran()->pid > 0) {
+            ekran()->bez_liczenia = 1;
+            kill(ekran()->pid, SIGTERM);
+        }
+    }
     if (u->rodzaj == R_EKRAN) {
         if (sterowanie >= 0)
             close(sterowanie);
         sterowanie = -1;
         /* Clients lose their channels: stop them; they start again with the new ekran. */
-        for (i = 1; i < N_USLUG; i++) {
-            if (uslugi[i].pid > 0) {
+        for (i = 0; i < N_USLUG; i++) {
+            if (uslugi[i].rodzaj == R_KLIENT && uslugi[i].pid > 0) {
                 uslugi[i].bez_liczenia = 1;
                 kill(uslugi[i].pid, SIGKILL);
             }
@@ -545,7 +721,7 @@ static void zakonczona(struct usluga *u, int status)
  * M5b. */
 static void sprawdz_nowe_wejscia(void)
 {
-    struct usluga *u = &uslugi[1];
+    struct usluga *u = &uslugi[2]; /* wejscie */
     struct stat st;
     char sciezka[64];
     int i;
@@ -883,17 +1059,6 @@ int main(void)
     if (k1_klatka_cgroupy() != 0)
         k1_koniec(TAG, "cgroup: nie można włączyć kontrolerów memory i pids: %s", strerror(errno));
 
-    /* The notes directory belongs to Notatki (until M5: in RAM). Never follow a link: from M5 on
-     * this place survives a restart. */
-    {
-        int kat = -1;
-        if ((mkdir(K1_KATALOG_NOTATEK, 0700) != 0 && errno != EEXIST) ||
-            (kat = open(K1_KATALOG_NOTATEK, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)) < 0 ||
-            fchown(kat, K1_UID_NOTATKI, K1_UID_NOTATKI) != 0 || fchmod(kat, 0700) != 0)
-            k1_log(TAG, "katalog notatek: %s", strerror(errno));
-        if (kat >= 0)
-            close(kat);
-    }
     k1_bat_hist_init(&bat_hist, BATERIA_PROBKA);
     for (i = 0; i < PIERWSZA_APLIKACJA; i++)
         start(&uslugi[i]);

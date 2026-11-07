@@ -280,7 +280,8 @@ void t_sprzet(void)
               absent(DEV "/sr0"),
           "NEGATYWNY: brak surowego HID (hidraw, hiddev), SCSI generic (sg, bsg) i napędów CD", "%s", "");
     k = procesy_z_dyskiem(opis, sizeof opis);
-    check(k == 0, "NEGATYWNY: żaden proces nie ma otwartego dysku", "procesy: %s", opis);
+    check(k == 1 && strcmp(opis, "skarbiec ") == 0,
+          "NEGATYWNY: dysk ma otwarty tylko skarbiec (jedna partycja K1-DANE), nikt inny", "procesy: %s", opis);
 }
 
 /* 0.5.3: the battery and AC adapter from the test ACPI table (testy/acpi/bateria.asl) through the

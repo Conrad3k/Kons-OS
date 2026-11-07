@@ -112,6 +112,28 @@ k0 = czekaj(r"K1-EKRAN: kursor (\d+),(\d+) ")
 t = czekaj(r"K1-EKRAN: tryb (\d+)x(\d+)")
 if not sprawdz(f"{tryb}: pulpit gotowy (pasek, menu Start)", g and k0 and t): sys.exit(1)
 if tryb == "pulpit" and not sprawdz("wejście: mysz otwarta", czekaj(r"K1-WEJSCIE: urządzenie \d+: mysz")): sys.exit(1)
+if tryb == "ponownie":
+    # M5d: the same data disk after power off — the settings and the note come back from skarbiec
+    sprawdz("skarbiec: magazyn z dysku otwarty (obiekty z poprzedniego uruchomienia)",
+            czekaj(r"K1-SKARBIEC: magazyn otwarty: [1-9]\d* obiektów", czas=30))
+    u = czekaj(r"K1-EKRAN: ustawienia wczytane ze skarbca \(tapeta 1, motyw 1, mysz \d, rozdzielczość (\d+)x(\d+)\)", czas=30)
+    sprawdz("ustawienia wróciły: tapeta „Zmierzch”, ciemny motyw", u, u.group(0) if u else "brak")
+    t_start = re.search(r"K1-EKRAN: tryb (\d+)x(\d+)", tekst())  # the first mode, before the restore
+    if u and (u.group(1), u.group(2)) != (t_start.group(1), t_start.group(2)):
+        sprawdz(f"rozdzielczość {u.group(1)}x{u.group(2)} wróciła",
+                czekaj(rf"K1-EKRAN: tryb {u.group(1)}x{u.group(2)} @ \d+ Hz \(zmiana", czas=30))
+        g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", od=1, czas=30) or g
+    time.sleep(2)
+    k1 = list(re.finditer(r"K1-EKRAN: kursor (\d+),(\d+) ", tekst()))[-1]
+    kursor[:] = [int(k1.group(1)), int(k1.group(2))]
+    ax, ay, krok = int(g.group(3)), int(g.group(4)), int(g.group(5))
+    klik(ax + krok, ay)  # Notatki
+    sprawdz("notatka wróciła: „Zażółć K1” (13 B) wczytana ze skarbca", czekaj(r"K1-NOTATKI: notatka wczytana \(13 B\)", czas=40))
+    time.sleep(2)
+    zrzut("ponownie-notatki")
+    sprawdz("brak 'Kernel panic', błędów i zablokowanych wywołań", "Kernel panic" not in tekst() and "BŁĄD" not in tekst()
+            and "zabronione wywołanie" not in tekst())
+    sys.exit(0 if all(wyniki) else 1)
 W, H = int(t.group(1)), int(t.group(2))
 sx, sy, ax, ay, krok = (int(g.group(i)) for i in range(1, 6))
 kursor[:] = [int(k0.group(1)), int(k0.group(2))]
@@ -233,8 +255,26 @@ sys.exit(0 if all(wyniki) else 1)
 PY
 
 echo "[k1] test M4: pulpit i aplikacje (obraz produkcyjny)"
-uruchom pulpit
+# M5d: a data disk (GPT, empty partition „K1-DANE”) — the desktop run changes settings and writes a
+# note, powers off; the second run with the same disk must get them back.
+DANE=$TESTY/m4-dane.img
+dd if=/dev/zero of="$DANE" bs=1M count=16 status=none
+printf 'label: gpt\nstart=2048, size=30000, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
+DYSK_DANYCH="-drive if=none,id=dane,file=$DANE,format=raw -device ide-hd,drive=dane,bus=ide.0"
+uruchom pulpit --qemu "$DYSK_DANYCH"
 sprawdz pulpit
+python3 -I - "$DANE" <<'PY' || r=1
+import sys
+d = open(sys.argv[1], "rb").read()
+jawne = [t for t in ("Zażółć".encode(), b"K1U1") if t in d]
+ok = b"K1SKARB1" in d and not jawne
+print(f"  [{'OK' if ok else 'BŁĄD'}]    dysk danych: magazyn K1 zapisany, notatka i ustawienia zaszyfrowane (brak jawnego tekstu)"
+      + ("" if ok else f" — jawne: {jawne}, nagłówek: {b'K1SKARB1' in d}"))
+sys.exit(0 if ok else 1)
+PY
+echo "[k1] test M5d: ponowne uruchomienie z tym samym dyskiem danych"
+uruchom ponownie --qemu "$DYSK_DANYCH"
+sprawdz ponownie
 if [ -f "$ISO" ]; then
     echo "[k1] test M4: start z obrazu ISO — UEFI (OVMF), grafika z firmware (simpledrm)"
     uruchom iso-uefi --iso "$ISO" --uefi --vga virtio

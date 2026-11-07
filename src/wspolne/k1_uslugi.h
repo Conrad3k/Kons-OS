@@ -9,6 +9,7 @@
 #define K1_UID_WEJSCIE 100
 #define K1_UID_EKRAN 101
 #define K1_UID_GUI 102
+#define K1_UID_SKARBIEC 103
 #define K1_UID_ZEGAR 200
 #define K1_UID_NOTATKI 201
 #define K1_UID_USTAWIENIA 202
@@ -40,11 +41,10 @@ enum k1_profil_nr {
     K1_PROFIL_NOTATKI = 5,
     K1_PROFIL_USTAWIENIA = 6,
     K1_PROFIL_ZASOBY = 7,
+    K1_PROFIL_SKARBIEC = 8, /* M5d: Blob Vault */
 };
-#define K1_PROFIL_MAKS 7
+#define K1_PROFIL_MAKS 8
 
-/* The only place an application may write (M4; Blob Vault replaces it in M5). */
-#define K1_KATALOG_NOTATEK "/dane_uzytkownika/notatki"
 
 /* Exit code of a service that hit a forbidden system call (seccomp, k1_klatka_w_usludze). */
 #define K1_KOD_SECCOMP 159

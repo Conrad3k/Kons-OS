@@ -54,6 +54,11 @@ usług, kanały (`socketpair`, strona odbiorcy z `SO_PASSCRED`), komunikaty `KLI
   ponownie z pełnym zestawem (bez liczenia jako awaria). Od 0.5.2 (M5a) zapomina urządzenia, których
   węzeł zniknął (odłączone USB) — ponownie podłączone pod tym samym numerem jest zauważane. Pełny
   hotplug bez restartu (zdarzenia jądra) — M5b.
+- Skarbiec (0.5.6, ADR 0015/0016): uruchamiany **przed** ekranem; partycja danych = dokładnie jedna
+  partycja GPT o nazwie „K1-DANE” (sysfs `PARTNAME`), otwierana `O_RDWR|O_EXCL` i przekazywana jako
+  fd 4; czeka na nią do 4 s po starcie (do 15 s, gdy usb-storage ma urządzenie). Kanały klientów
+  (`kanal_do_skarbca`: ekran fd 5, Notatki fd 4) zgłasza skarbcowi przez `SKARB_KLIENT` z właścicielem;
+  oba końce mają `SO_PASSCRED`. Koniec skarbca → restart ekranu (klienci dostają nowe kanały).
 - Bateria (0.5.3, ADR 0014): co 15 s `src/nadzorca/bateria.c` czyta `sys/class/power_supply` (baterie
   systemowe: procent z energii/ładunku/`capacity`, stan, zasilacz) i przy zmianie wysyła `BATERIA` do
   gui kanałem fd 5 (jednokierunkowo, `SHUT_RD`); test na hoście `test_bateria` (także śmieciowe dane).

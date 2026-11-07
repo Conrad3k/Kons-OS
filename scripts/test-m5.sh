@@ -185,5 +185,35 @@ monitor("quit")
 sys.exit(0 if all(wyniki) else 1)
 PY
 kill $QPID 2>/dev/null || true; wait $QPID 2>/dev/null || true
-if [ $r -eq 0 ]; then info "M5a: wszystko zaliczone (zrzut: $TESTY/m5-usb.png)"; else echo "[k1] M5a: BŁĄD (log: $LOG)"; fi
+
+# M5d: the USB image (k1-<version>-usb.img) booted by UEFI firmware from a USB stick, twice: the first
+# boot creates the encrypted vault on the empty K1-DANE partition, the second one opens it.
+echo "[k1] test M5d: obraz na pendrive — start przez UEFI, magazyn na partycji K1-DANE, ponowny start"
+USBIMG=$K1_WYNIK/k1-$K1_WERSJA-usb.img
+if [ -f "$USBIMG" ]; then
+    cp "$USBIMG" "$TESTY/m5-pendrive.img"
+    for n in 1 2; do
+        PLOG=$TESTY/m5-pendrive$n.log PMON=$TESTY/m5-pendrive$n.sock
+        rm -f "$PLOG" "$PMON"
+        "$K1_REPO/scripts/uruchom-qemu.sh" --pendrive "$TESTY/m5-pendrive.img" --log "$PLOG" --monitor "$PMON" --czas "$CZAS" &
+        PPID_=$!
+        if [ $n -eq 1 ]; then OCZ="K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE"; else OCZ="K1-SKARBIEC: magazyn otwarty"; fi
+        t=0
+        while [ $t -lt "$CZAS" ] && ! { grep -qF "$OCZ" "$PLOG" 2>/dev/null && grep -qF "K1-GUI: pulpit gotowy" "$PLOG" 2>/dev/null; }; do
+            kill -0 $PPID_ 2>/dev/null || break; sleep 1; t=$((t + 1))
+        done
+        python3 -I -c 'import socket,sys; s=socket.socket(socket.AF_UNIX); s.settimeout(5); s.connect(sys.argv[1]); s.sendall(b"quit\n"); s.recv(64)' "$PMON" 2>/dev/null \
+            || kill $PPID_ 2>/dev/null || true
+        wait $PPID_ 2>/dev/null || true
+        if grep -qF "$OCZ" "$PLOG" && grep -qF "K1-GUI: pulpit gotowy" "$PLOG" && grep -qF "partycja danych K1-DANE otwarta" "$PLOG" \
+            && ! grep -q "Kernel panic" "$PLOG" && ! grep -qF "BŁĄD" "$PLOG"; then
+            echo "  [OK]    start $n z pendrive'a: pulpit, $( [ $n -eq 1 ] && echo 'nowy zaszyfrowany magazyn' || echo 'magazyn z poprzedniego startu otwarty') (${t} s)"
+        else
+            echo "  [BŁĄD]  start $n z pendrive'a (log: $PLOG)"; r=1
+        fi
+    done
+else
+    echo "  [BŁĄD]  brak obrazu USB $USBIMG (scripts/zbuduj-usb.sh)"; r=1
+fi
+if [ $r -eq 0 ]; then info "M5: wszystko zaliczone (zrzuty: $TESTY/m5-*.png)"; else echo "[k1] M5: BŁĄD (logi: $TESTY/m5-*.log)"; fi
 exit $r

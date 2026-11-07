@@ -3,6 +3,32 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.5.6] — 2026-11-07
+
+Etap **M5c + M5d — zaszyfrowany zapis danych** (ADR 0015, ADR 0016).
+
+### Dodane
+- **Dane przetrwają wyłączenie:** tapeta, motyw, prędkość myszy, sekundy na zegarze, rozdzielczość
+  i notatka wracają po ponownym uruchomieniu. Zapisuje je nowa usługa **skarbiec** — jedyna, która
+  ma dostęp do partycji z danymi „K1-DANE”; wszystko jest **zaszyfrowane** (XChaCha20-Poly1305,
+  biblioteka Monocypher), a zmieniony bajt na dysku jest wykrywany, nie przyjmowany po cichu.
+- **Obraz na pendrive** `k1-<wersja>-usb.img.xz` (UEFI): system + pusta partycja na dane; przy
+  pierwszym starcie K1 zakłada na niej zaszyfrowany magazyn. Dysk laptopa pozostaje nietknięty.
+- Bez partycji danych (ISO, maszyna wirtualna bez drugiego dysku) wszystko działa jak wcześniej —
+  dane tylko do wyłączenia.
+- **Alarm Windows Defendera** („Trojan:Win32/Sabsik!ml” na ISO 0.5.5 — zgadywanie modelu, nie znany
+  wirus): ISO i obraz USB startują teraz przez **podpisane** programy z Ubuntu (shim z podpisem
+  Microsoftu, GRUB z podpisem Canonical) zamiast naszego, samodzielnie zbudowanego GRUB-a.
+- ISO i obraz USB są **w pełni powtarzalne** — z tego samego kodu powstaje plik identyczny bit w bit
+  (można sprawdzić, że wydanie pochodzi z repozytorium). ISO jest mniejsze (14 MB).
+
+### Zmienione
+- Notatki nie mają już dostępu do żadnych plików — notatka jest obiektem w skarbcu (ciaśniejsza klatka).
+- K1 formatuje tylko pustą partycję „K1-DANE”; partycji z innymi danymi nie nadpisuje (test).
+- Testy: na hoście format magazynu (62 przypadki: przerwany zapis, zmieniony bajt, hasło, brak
+  miejsca…) i fuzzing; w QEMU wyłączenie i ponowny start z tym samym dyskiem, start z obrazu USB
+  przez UEFI (dwa razy), próba klatki skarbca.
+
 ## [0.5.5] — 2026-11-07
 
 ### Dodane

@@ -29,6 +29,10 @@ otwarcie jest DRM masterem) i przekazuje jako fd 4.
 
 ## Wejścia i wyjścia
 - fd 3: kanał sterujący od nadzorcy — `KLIENT(rola, aplikacja, uid)` + koniec kanału klienta.
+- fd 5 (0.5.6, opcjonalny): kanał do skarbca — przy starcie odczyt `K1_OB_USTAWIENIA` (≤ 1,5 s; tapeta,
+  motyw, mysz, sekundy, rozdzielczość jako szer.×wys.; każda wartość sprawdzana jak `USTAW`, zła →
+  domyślna), po każdej zmianie zapis nowej wersji (`src/ekran/zapis.c`). Rozdzielczość przywracana po
+  pierwszej klatce, jeśli karta ją ma.
 - Kanały klientów: wejście (`k1_zdarzenie` 16 B, do 4 źródeł), powłoka i aplikacje (`k1_komunikat`
   32 B, ADR 0008), razem do 12.
 - Karta: dwa bufory „dumb” XRGB8888 w trybie preferowanym (QEMU `bochs` 1280×800; simpledrm — tryb
@@ -57,7 +61,7 @@ musl (statycznie, w tym libm), jądro: DRM + `bochs` (QEMU) albo `simpledrm` (fi
 
 ## Wywołania systemowe
 `ioctl` (DRM: GET_CAP, MODE_GETRESOURCES/GETCONNECTOR/GETENCODER, CREATE_DUMB, ADDFB, MAP_DUMB,
-SETCRTC, PAGE_FLIP, DIRTYFB, RMFB, DESTROY_DUMB), `mmap` (bufory, powierzchnie — bez `PROT_EXEC`), `munmap`, `fcntl`
+SETCRTC, PAGE_FLIP, DIRTYFB, RMFB, DESTROY_DUMB, VERSION), `memfd_create` (zapis ustawień, 0.5.6), `mmap` (bufory, powierzchnie — bez `PROT_EXEC`), `munmap`, `fcntl`
 (`F_GET_SEALS`), `fstat`, `recvmsg`/`sendmsg`, `read`, `poll`, `close`, `clock_gettime`, `write` (log).
 
 ## Obsługa błędów
