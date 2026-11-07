@@ -77,14 +77,28 @@ def kursor_teraz():
     m = list(re.finditer(r"K1-EKRAN: kursor (\d+),(\d+) ", tekst()))
     return (int(m[-1].group(1)), int(m[-1].group(2))) if m else None
 
-def idz(x, y):
-    dx, dy = x - kursor[0], y - kursor[1]
+def przesun(dx, dy):
     cmds = []
     while dx or dy:
         sx, sy = max(-100, min(100, dx)), max(-100, min(100, dy))
         cmds.append(f"mouse_move {sx} {sy}"); dx -= sx; dy -= sy
-    monitor(*cmds)
-    kursor[0], kursor[1] = x, y
+    if cmds: monitor(*cmds)
+
+def idz(x, y):
+    # The harness does not trust its own idea of the cursor: right after boot (fast with KVM) the
+    # PS/2 mouse may still be resyncing and lose a move. ekran logs the real position (≤ 2×/s):
+    # wait for it and correct the rest of the way, at most 4 times.
+    for proba in range(4):
+        przesun(x - kursor[0], y - kursor[1])
+        kursor[0], kursor[1] = x, y
+        koniec = time.time() + 2.5
+        while time.time() < koniec and kursor_teraz() != (x, y):
+            time.sleep(0.15)
+        teraz = kursor_teraz()
+        if teraz == (x, y) or teraz is None:
+            return
+        print(f"  [uwaga] kursor w {teraz[0]},{teraz[1]} zamiast {x},{y} — poprawiam ({proba + 1})", flush=True)
+        kursor[0], kursor[1] = teraz
 
 def klik(x, y):
     idz(x, y); time.sleep(0.4)
