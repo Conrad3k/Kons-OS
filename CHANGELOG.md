@@ -3,6 +3,36 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.5.8] — 2026-11-07
+
+Poprawki po Twoim teście 0.5.7 na X230.
+
+### Dodane
+- **Logo przy starcie** (Twoja prośba): od ekranu ThinkPada do pulpitu widać tylko znak K1 i napis
+  „Kons K1” na czarnym tle — **bez żadnego tekstu** (wyciszone komunikaty jądra „EFI stub…”).
+- **Wiele notatek:** z lewej lista notatek (tytuł = pierwsza linia, pod nim druga), przycisk
+  **„Nowa notatka”**, kliknięcie otwiera notatkę, **„Usuń notatkę”** z potwierdzeniem. Ostatnio
+  zmieniona jest na górze; pusta notatka znika sama po przejściu do innej. Skróty: Ctrl+N (nowa),
+  Ctrl+↑/↓ (poprzednia / następna). Do 32 notatek, każda zaszyfrowana osobno. Twoja dotychczasowa
+  notatka zostaje jako pierwsza.
+- **Ustawienia → Informacje:** gdzie są Twoje dane — „zaszyfrowane na nośniku K1” albo „tylko
+  w pamięci”.
+
+### Naprawione
+- **„Wymaga nośnika K1” — nie dało się zapisać ani ustawić hasła:** system szuka partycji na dane
+  także **po starcie** (przez 2 minuty). Pendrive, który pojawi się później (wolny albo — jak w X230 —
+  przełączony przez kontroler USB 3 w trakcie startu), jest teraz używany: usługa danych i pulpit
+  uruchamiają się ponownie, już z zapisem.
+- **Długi start z pendrive'a bez partycji na dane** (np. gdy na pendrive zapisano plik `.iso`):
+  system czekał do 15 s na partycję, której nie było. Teraz czeka tylko, aż pendrive się zgłosi.
+- W Ustawieniach → Hasło jaśniejszy opis, gdy brak miejsca na dane: hasło i zapis działają z pendrive'a
+  z plikiem `k1-…-usb.img.xz` (nie z `.iso`).
+
+### Testy
+- QEMU: pendrive z pustą partycją K1-DANE podłączony po starcie → nowy zaszyfrowany magazyn i pulpit
+  od nowa; dwie notatki → wyłączenie → obie wracają (ostatnio zmieniona na górze) → otwarcie drugiej
+  → usunięcie z potwierdzeniem; logo widoczne od GRUB-a do pulpitu (sprawdzone na zrzutach).
+
 ## [0.5.7] — 2026-11-07
 
 Etap **M5e — hasło i ekran logowania** (ADR 0017).

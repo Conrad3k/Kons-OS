@@ -166,7 +166,12 @@ monitor QEMU — `mouse_move`, `mouse_button`, `sendkey alt_r-a`); zrzuty pokazu
   dał niebuforowaną pamięć obrazu i zacinający się pulpit (0.5.4). allnoconfig wyłącza też opcje
   „default y” za `if EXPERT` (MTRR, PAT, ACPI_EC) — przy sprzęcie sprawdzaj je świadomie.
   `/proc` ma `subset=pid` — **`/proc/cmdline` nie istnieje** dla usług i nadzorcy (informację o nośniku
-  bierz z sysfs). usb-storage czeka ~1 s, zanim pokaże dysk (pendrive w teście: `--pendrive`).
+  bierz z sysfs). usb-storage czeka ~1 s, zanim pokaże dysk (pendrive w teście: `--pendrive`); w X230
+  pendrive może zniknąć i wrócić (EHCI → xHCI) — K1-DANE szukamy też po starcie (0.5.8).
+  **Ekran startowy (GRUB):** `background_image` rysuje się dopiero po wypisaniu czegoś (`echo ""`);
+  `set color_normal=black/black` **po** `terminal_output gfxterm` (ono resetuje kolory) ukrywa kursor;
+  `quiet` w linii poleceń wycisza „EFI stub: …” (na ekranie, nie tylko na porcie szeregowym).
+  W QEMU fazy GRUB-a nie widać na zrzutach co sekundę — dodaj `sleep` do kopii grub.cfg (`mcopy -i obraz@@1M`).
 
 ## 5. Proces
 

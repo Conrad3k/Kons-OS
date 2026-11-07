@@ -27,6 +27,14 @@ Podgląd tapety bez QEMU: `make build/obj/podglad_grafiki && build/obj/podglad_g
   tła, włoskowate linie, jeden akcent.
 - **Znak rozpoznawczy:** znak „Warstwy” — przycisk Start i nagłówek menu.
 
+## Ekran startowy (od 0.5.8)
+Na prośbę właściciela („logo przy starcie, ale bez widocznych poleceń terminala”): od GRUB-a do
+pierwszej klatki pulpitu tylko znak K1 (88 px) i „Kons K1” (Plex Serif 24, kremowy `#EEEBE5`) na
+**czarnym** tle — czerń jak ekran firmware'u przed nim, więc przejście jest gładkie. Obraz PNG
+1320×780 rysuje przy budowie `narzedzia/ekran_startowy.c` tym samym kodem co K1; GRUB rozciąga go do
+trybu ekranu (najwyżej ~5 % zniekształcenia), jądro go zostawia (simpledrm, bez konsoli tekstowej),
+komunikaty „EFI stub” wyciszone (`quiet`). Kursor GRUB-a jest czarny, więc niewidoczny.
+
 ## Znak K1 (od 0.4.2): „Warstwy”
 Trzy arkusze papieru leżące jeden na drugim — ta sama myśl co tapeta: warstwy ochrony, każda
 osobno. Ćwiartki koła wychodzące z prawego dolnego rogu zaokrąglonego kwadratu, w trzech odcieniach

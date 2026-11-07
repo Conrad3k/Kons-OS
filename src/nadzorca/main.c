@@ -145,6 +145,7 @@ static int skarb_ster = -1;  /* our end of skarbiec's control channel (M5d) */
 static int skarb_czekal;     /* skarbiec already waited for the data partition at boot */
 static int stan_skarbca = -1; /* K1_SKARB_* reported by skarbiec (-1: not yet) — M5e */
 static int przelaczanie;      /* unlocked: waiting for the new ekran before the desktop starts */
+static int skarb_bez_dysku;   /* skarbiec runs without any K1-DANE: keep looking for a late one (0.5.8) */
 static int zero = -1;        /* /dev/null for fds 0 and 1 of services */
 static int test_kanal = -1;  /* our end of the test channel (test image) */
 static int gui_kanal = -1;   /* our end of gui's request channel (gui's fd 4) */
@@ -472,11 +473,51 @@ static int pamiec_usb_obecna(void)
     return jest;
 }
 
-/* Wait for the data partition after boot: until 4 s, and while a USB stick is still being set up,
- * until 15 s (booting from the K1 stick: its K1-DANE partition appears ~1 s after the stick). */
+/* Has every bound USB mass storage interface got its disk already? The disk's sysfs path goes
+ * through the interface: /sys/class/block/sda -> ../../devices/.../usb2/2-1/2-1:1.0/host6/.../block/sda
+ * (the partitions are read before the disk shows up there: block/genhd.c add_disk). */
+static int pamiec_usb_gotowa(void)
+{
+    DIR *d = opendir(SYS "/bus/usb/drivers/usb-storage");
+    struct dirent *de;
+    int gotowa = 1;
+    while (d != NULL && gotowa && (de = readdir(d)) != NULL) {
+        char wzor[300];
+        DIR *b;
+        struct dirent *be;
+        if (strchr(de->d_name, ':') == NULL)
+            continue;
+        snprintf(wzor, sizeof wzor, "/%s/host", de->d_name);
+        gotowa = 0;
+        b = opendir(SYS "/class/block");
+        while (b != NULL && !gotowa && (be = readdir(b)) != NULL) {
+            char sciezka[320], cel[512];
+            ssize_t n;
+            if (be->d_name[0] == '.')
+                continue;
+            snprintf(sciezka, sizeof sciezka, SYS "/class/block/%s", be->d_name);
+            n = readlink(sciezka, cel, sizeof cel - 1);
+            if (n <= 0)
+                continue;
+            cel[n] = '\0';
+            gotowa = strstr(cel, wzor) != NULL;
+        }
+        if (b != NULL)
+            closedir(b);
+    }
+    if (d != NULL)
+        closedir(d);
+    return gotowa;
+}
+
+/* Wait for the data partition after boot: until 3 s (USB devices are still being found), and while
+ * a USB stick is bound but its disk is not there yet, until 15 s (booting from the K1 stick: its
+ * K1-DANE partition appears ~1 s after the stick). A stick without K1-DANE (e.g. the ISO written to
+ * it) does not hold the boot up: its disk is there, so we stop. A K1-DANE found later is still
+ * picked up (szukaj_pozno). */
 static int czekaj_na_dane(double od_startu)
 {
-    return od_startu < 4.0 || (od_startu < 15.0 && pamiec_usb_obecna());
+    return od_startu < 3.0 || (od_startu < 15.0 && pamiec_usb_obecna() && !pamiec_usb_gotowa());
 }
 
 static double od_startu_systemu(void)
@@ -500,6 +541,7 @@ static void start(struct usluga *u)
             return;
         }
         skarb_czekal = 1;
+        skarb_bez_dysku = dysk < 0 && ile == 0;
         if (ile > 1)
             k1_log(TAG, "znaleziono %d partycje K1-DANE — nie wiadomo, której użyć; dane tylko w pamięci", ile);
         else if (ile == 1 && dysk < 0)
@@ -573,7 +615,7 @@ static void start(struct usluga *u)
     if (u->profil == K1_PROFIL_LOGOWANIE && stan_skarbca != K1_SKARB_ZABLOKOWANY)
         return; /* not scheduled: started when skarbiec reports a locked vault */
     if (u->profil == K1_PROFIL_GUI && (stan_skarbca == K1_SKARB_ZABLOKOWANY || przelaczanie ||
-                                       (stan_skarbca < 0 && skarbiec()->pid > 0 && od_startu_systemu() < 20.0))) {
+                                       (stan_skarbca < 0 && skarbiec()->pid > 0 && teraz() - skarbiec()->start < 20.0))) {
         u->nastepny = teraz() + 0.25;
         return;
     }
@@ -703,6 +745,7 @@ static void zakonczona(struct usluga *u, int status)
         if (skarb_ster >= 0)
             close(skarb_ster);
         skarb_ster = -1;
+        stan_skarbca = -1; /* the new skarbiec reports again (locked → the password screen) */
         /* ekran and Notatki lost their channels to it: restart ekran (and with it its clients) once
          * the new skarbiec runs. */
         if (ekran()->pid > 0) {
@@ -853,6 +896,30 @@ static void wylacz(int restart)
 {
     k1_log(TAG, "%s na prośbę pulpitu", restart ? "ponowne uruchamianie" : "wyłączanie");
     kill(1, restart ? SIGINT : SIGTERM); /* init: SIGTERM = power off, SIGINT = restart */
+}
+
+/* A K1-DANE that shows up after skarbiec started without one (0.5.8): a slow USB stick, or one
+ * re-connected by the USB 3 controller taking the port over (Intel 7 series, ThinkPad X230). In the
+ * first 2 minutes: restart skarbiec with it, and with skarbiec ekran (the saved settings, the password
+ * screen). What was kept only in memory until then is lost — a few seconds after boot. */
+static void szukaj_pozno(void)
+{
+    int ile, dysk;
+    if (!skarb_bez_dysku || skarbiec()->pid <= 0)
+        return;
+    if (od_startu_systemu() > 120.0) {
+        skarb_bez_dysku = 0;
+        return;
+    }
+    dysk = otworz_partycje_danych(&ile);
+    if (dysk >= 0)
+        close(dysk);
+    if (ile == 0)
+        return;
+    skarb_bez_dysku = 0;
+    k1_log(TAG, "partycja K1-DANE pojawiła się po starcie — uruchamiam skarbiec ponownie");
+    skarbiec()->bez_liczenia = 1;
+    kill(skarbiec()->pid, SIGTERM);
 }
 
 /* Requests from gui (fd 4 of gui): only URUCHOM and WYLACZ, only from gui's UID. */
@@ -1225,6 +1292,7 @@ int main(void)
             if (uslugi[i].pid == 0 && !uslugi[i].wylaczona && uslugi[i].nastepny > 0 && uslugi[i].nastepny <= t)
                 start(&uslugi[i]);
         if (t >= nastepne_skanowanie) {
+            szukaj_pozno();
             sprawdz_nowe_wejscia();
             nastepne_skanowanie = t + 2.0;
         }

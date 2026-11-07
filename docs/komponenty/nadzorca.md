@@ -59,7 +59,10 @@ usług, kanały (`socketpair`, strona odbiorcy z `SO_PASSCRED`), komunikaty `KLI
   „odblokowany” → zatrzymuje logowanie, restartuje ekran, potem pulpit. Ustawienia dostają fd 5 do skarbca.
 - Skarbiec (0.5.6, ADR 0015/0016): uruchamiany **przed** ekranem; partycja danych = dokładnie jedna
   partycja GPT o nazwie „K1-DANE” (sysfs `PARTNAME`), otwierana `O_RDWR|O_EXCL` i przekazywana jako
-  fd 4; czeka na nią do 4 s po starcie (do 15 s, gdy usb-storage ma urządzenie). Kanały klientów
+  fd 4; czeka na nią do 3 s po starcie, a gdy usb-storage ma urządzenie bez dysku — do 15 s (pendrive
+  bez K1-DANE, np. z plikiem .iso, nie wstrzymuje startu). Od 0.5.8 szuka jej też przez 2 min po starcie
+  (co 2 s, gdy skarbiec działa bez partycji): znaleziona → restart skarbca, z nim ekranu i pulpitu
+  (pendrive zgłoszony później — wolny albo przełączony z EHCI na xHCI w X230). Kanały klientów
   (`kanal_do_skarbca`: ekran fd 5, Notatki fd 4) zgłasza skarbcowi przez `SKARB_KLIENT` z właścicielem;
   oba końce mają `SO_PASSCRED`. Koniec skarbca → restart ekranu (klienci dostają nowe kanały).
 - Bateria (0.5.3, ADR 0014): co 15 s `src/nadzorca/bateria.c` czyta `sys/class/power_supply` (baterie

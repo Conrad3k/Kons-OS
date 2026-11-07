@@ -19,7 +19,9 @@ rm -rf "$ISO"; mkdir -p "$ISO/k1" "$ISO/boot/grub/i386-pc" "$ISO/.disk"
 cp "$K1_WYNIK/bzImage" "$K1_WYNIK/initramfs.cpio" "$ISO/k1/"
 printf 'file /rdzen.squashfs %s 0400 0 0\n' "$K1_WYNIK/rdzen.squashfs" > "$K1_BUDOWA/rdzen-iso.lista"
 "$GEN_CPIO" -t "$SOURCE_DATE_EPOCH" "$K1_BUDOWA/rdzen-iso.lista" > "$ISO/k1/rdzen.cpio"
-CMDLINE=$(sed 's/k1\.rdzen=[^ ]*/k1.rdzen=wbudowany/' "$K1_REPO/jadro/cmdline")
+# quiet: the kernel's EFI stub prints nothing over the boot screen ("EFI stub: Loaded initrd…");
+# loglevel=7 keeps the kernel's messages on the serial console as before (tests, diagnosis).
+CMDLINE="$(sed 's/k1\.rdzen=[^ ]*/k1.rdzen=wbudowany/' "$K1_REPO/jadro/cmdline") quiet loglevel=7"
 cat > "$ISO/boot/grub/grub.cfg" <<CFG
 # Kons K1 $K1_WERSJA — start bez menu. Tryb graficzny ustawia GRUB (UEFI GOP albo VESA),
 # jądro przejmuje go sterownikiem simpledrm. 1366x768 = ekran ThinkPada X230 (firmware laptopa
@@ -31,13 +33,21 @@ insmod all_video
 insmod gfxterm
 set gfxmode=1280x800,1366x768,1280x720,1024x768,auto
 set gfxpayload=keep
+insmod png
+# Boot screen (0.5.8): the K1 mark on black; the kernel keeps it until the desktop's first frame.
+# GRUB draws the picture only when something is written (echo); black text on black (set after
+# terminal_output, which resets the colours) hides its cursor.
 terminal_output gfxterm
+set color_normal=black/black
+background_image -m stretch /boot/grub/start.png
+echo ""
 menuentry "Kons K1 $K1_WERSJA" {
     linux /k1/bzImage $CMDLINE
     initrd /k1/initramfs.cpio /k1/rdzen.cpio
 }
 CFG
 printf 'Kons K1 %s\n' "$K1_WERSJA" > "$ISO/.disk/info"
+cp "$K1_BUDOWA/gen/start.png" "$ISO/boot/grub/start.png"
 
 # UEFI: shim + GRUB signed by Microsoft / Canonical (efi_podpisane, wspolne.sh) in a FAT image.
 efi_podpisane
@@ -52,7 +62,7 @@ configfile $prefix/grub.cfg
 CFG
 grub-mkimage -O i386-pc-eltorito -o "$ISO/boot/grub/i386-pc/eltorito.img" -c "$K1_BUDOWA/iso-bios.cfg" -p /boot/grub \
     biosdisk iso9660 part_msdos part_gpt search search_fs_file configfile normal linux echo test all_video gfxterm vbe \
-    video_bochs >"$K1_BUDOWA/iso.log" 2>&1 || { cat "$K1_BUDOWA/iso.log"; blad "grub-mkimage (BIOS)"; }
+    video_bochs png gfxterm_background >"$K1_BUDOWA/iso.log" 2>&1 || { cat "$K1_BUDOWA/iso.log"; blad "grub-mkimage (BIOS)"; }
 
 find "$ISO" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
 rm -f "$WYJSCIE"

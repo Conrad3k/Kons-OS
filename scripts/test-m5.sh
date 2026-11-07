@@ -5,7 +5,8 @@
 # 3. klawiatura USB (strzałki przesuwają kursor, gdy żadne okno nie ma fokusu),
 # 4. podłączenie drugiej myszy w trakcie pracy (device_add), odłączenie (device_del) i ponowne
 #    podłączenie — system zauważa zmiany, nic się nie zawiesza,
-# 5. (0.5.3) bateria laptopa (tablica ACPI z testy/acpi/bateria.asl: 73 %, ładowanie, zasilacz
+# 5. (0.5.8) pendrive z partycją K1-DANE podłączony po starcie → skarbiec i pulpit od nowa,
+# 6. (0.5.3) bateria laptopa (tablica ACPI z testy/acpi/bateria.asl: 73 %, ładowanie, zasilacz
 #    podłączony) — wskaźnik na górnym pasku (log powłoki + zrzut).
 # Dyski (SATA, NVMe, pendrive) i kontrolery EHCI/OHCI sprawdza test w systemie (scripts/test-m1.sh).
 # Zrzut: build/testy/m5-usb.png. Wymaga: scripts/zbuduj.sh.
@@ -17,6 +18,10 @@ mkdir -p "$TESTY"; rm -f "$LOG" "$MON" "$TESTY"/m5-*.png
 
 echo "[k1] test M5a: klawiatura i mysz USB (bez PS/2), podłączanie w trakcie pracy, bateria"
 bateria_aml 2 1 "$TESTY/bateria-ladowanie.aml"
+# 0.5.8: an empty stick with a K1-DANE partition, plugged in after boot (late detection)
+rm -f "$TESTY/m5-pozny.img"; truncate -s 64M "$TESTY/m5-pozny.img"
+printf 'label: gpt\nstart=2048, size=126976, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="K1-DANE"\n' \
+    | sfdisk -q "$TESTY/m5-pozny.img" >/dev/null || blad "sfdisk (m5-pozny.img)"
 "$K1_REPO/scripts/uruchom-qemu.sh" --log "$LOG" --monitor "$MON" --czas "$CZAS" --maszyna ",i8042=off" \
     --qemu "-device qemu-xhci,id=xhci -device usb-kbd,bus=xhci.0 -device usb-mouse,bus=xhci.0
             -acpitable file=$TESTY/bateria-ladowanie.aml" &
@@ -126,6 +131,18 @@ if glosnik:  # battery icon, percent and bolt: left of the sound icon on the top
     sprawdz(f"zrzut: wskaźnik baterii na górnym pasku ({jasne} jasnych pikseli)", jasne > 60, str(jasne))
 else:
     sprawdz("zrzut: wskaźnik baterii na górnym pasku", False, "brak położenia dźwięku w logu")
+
+# 0.5.8: a K1-DANE that shows up late (slow stick, X230 port hand-over): skarbiec started without
+# one — nadzorca notices the stick, restarts skarbiec with it and ekran with the desktop.
+sprawdz("start bez partycji K1-DANE: dane tylko w pamięci", "K1-SKARBIEC: brak partycji K1-DANE" in tekst())
+n_pulpit = ile(r"K1-GUI: pulpit gotowy")
+monitor(f"drive_add 0 if=none,id=pozny,file={out}/m5-pozny.img,format=raw", "device_add usb-storage,id=pozny,drive=pozny,bus=xhci.0")
+sprawdz("pendrive z K1-DANE podłączony po starcie → nadzorca uruchamia skarbiec ponownie",
+        czekaj(r"K1-NADZORCA: partycja K1-DANE pojawiła się po starcie", sekundy=30))
+sprawdz("skarbiec: nowy magazyn na tej partycji, pulpit od nowa",
+        czekaj(r"K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE", sekundy=60)
+        and czekaj(r"K1-GUI: pulpit gotowy", od=n_pulpit, sekundy=60))
+time.sleep(2)
 
 # 0.5.5: Ustawienia → Bateria — the charge chart since boot (samples every 30 s)
 poz = list(kursor() or (0, 0))

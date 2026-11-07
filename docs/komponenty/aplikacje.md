@@ -9,10 +9,14 @@
 ## Cel
 - **Zegar** — tarcza analogowa (sekundnik w kolorze akcentu), godzina, data po polsku, czas
   letni/zimowy.
-- **Notatki** — jedna notatka: pisanie z polskimi znakami (AltGr), strzałki, Home/End, Backspace,
+- **Notatki** — od 0.5.8 wiele notatek (do 32): z lewej lista (tytuł = pierwsza niepusta linia, pod
+  nim druga; ostatnio zmieniona na górze, strzałki przewijania gdy się nie mieszczą), „Nowa notatka”
+  (Ctrl+N), Ctrl+↑/↓ — poprzednia/następna, „Usuń notatkę” w stopce z potwierdzeniem; pusta notatka
+  znika po przejściu do innej. Pisanie z polskimi znakami (AltGr), strzałki, Home/End, Backspace,
   Delete, Enter, kliknięcie ustawia kursor, zawijanie wierszy, zapis automatyczny (0,8 s po zmianie;
-  od 0.5.6 obiekt w skarbcu — zaszyfrowany na partycji „K1-DANE”, bez niej tylko do wyłączenia;
-  napis w stopce mówi, gdzie zapisano).
+  od 0.5.6 obiekty w skarbcu — zaszyfrowane na partycji „K1-DANE”, bez niej tylko do wyłączenia;
+  napis w stopce mówi, gdzie zapisano). Obiekty: 1 = lista („K1N1”, liczba, numery w kolejności),
+  2…33 = notatki (2 = jedyna notatka z 0.5.6–0.5.7 — bez listy staje się pierwszą).
 - **Ustawienia** — Wygląd (motyw jasny/ciemny, tapeta: 4 warianty z miniaturami), Ekran
   (rozdzielczość z listy od ekranu — do 18 trybów w trzech kolumnach, „zalecana” = preferowana przez monitor/kartę;
   zmiana w locie, ADR 0012), Bateria (0.5.5: procent, stan, wykres naładowania od uruchomienia — linia
@@ -43,7 +47,7 @@ Katalog notatek tworzy nadzorca (właściciel 201, `0700`); `/dane_uzytkownika` 
 (można wejść do własnego podkatalogu, nie można wylistować).
 
 ## Wejścia i wyjścia
-fd 3: kanał do ekranu. Okno: memfd (ADR 0008). Notatki: fd 4 — kanał do skarbca (obiekt `K1_OB_NOTATKA`, ≤ 16 KiB, memfd z pieczęciami). Zasoby: fd 4 —
+fd 3: kanał do ekranu. Okno: memfd (ADR 0008). Notatki: fd 4 — kanał do skarbca (obiekty 1–33, notatka ≤ 16 KiB, memfd z pieczęciami; usuwanie `SKARB_USUN`). Zasoby: fd 4 —
 kanał od nadzorcy (`ZASOBY_SYSTEM`, `ZASOBY_USLUGA`), aplikacja nie może do niego pisać.
 Ustawienia: lista trybów ekranu (`K1_KOM_TRYB`) dostaje tylko ona; od 0.5.5 fd 4 — kanał od nadzorcy
 (`BATERIA`, `BATERIA_HIST`: do 16 próbek po 1 bajcie w komunikacie), jednokierunkowy, nadawca UID 0.
@@ -57,6 +61,7 @@ Błąd zapisu notatki → komunikat w oknie i w logu.
 | Test | Rodzaj |
 |---|---|
 | `test-m4.sh`: Notatki — „Zażółć K1” (AltGr), zapis 9 znaków, tekst na zrzucie, przeciąganie okna | funkcjonalny |
+| `test-m4.sh` (0.5.8): druga notatka, po ponownym starcie obie (ostatnio zmieniona na górze), otwarcie drugiej, usunięcie z potwierdzeniem | funkcjonalny |
 | `test-m4.sh`: Zegar — tarcza na zrzucie; Ustawienia — ciemny motyw i tapeta na zrzucie | funkcjonalny |
 | `test-m5.sh`: Ustawienia → Bateria — historia od nadzorcy (≥ 2 próbki), linia wykresu na całą szerokość na zrzucie `m5-bateria.png` | funkcjonalny |
 | `test-m4.sh`: Ustawienia → Ekran — zmiana rozdzielczości (zrzut w nowym rozmiarze, pulpit ułożony od nowa); Zasoby — dane od nadzorcy, wykres pamięci na zrzucie | funkcjonalny |

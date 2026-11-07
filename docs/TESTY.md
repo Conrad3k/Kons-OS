@@ -155,6 +155,7 @@ sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
 | ponowne podłączenie | znów 3 urządzenia (ten sam numer `eventN` rozpoznany jako nowy) |
 | zrzut `m5-usb.png` | kursor w miejscu z logu; brak błędów usług, odrzuconych i zgubionych zdarzeń |
 | bateria (0.5.3) | tablica ACPI: 73 %, ładowanie, zasilacz podłączony → log powłoki i jasne piksele wskaźnika na górnym pasku obok dźwięku |
+| pendrive po starcie (0.5.8) | start bez K1-DANE („dane tylko w pamięci”) → `drive_add` + `device_add usb-storage` z pustą partycją K1-DANE → nadzorca: „partycja K1-DANE pojawiła się po starcie”, skarbiec: nowy magazyn, nowy „pulpit gotowy” |
 | Ustawienia → Bateria (0.5.5) | otwarcie Ustawień z paska i sekcji Bateria (mysz USB); log: 73 %, ≥ 2 próbki co 30 s, położenie wykresu; zrzut `m5-bateria.png`: linia akcentu na całą szerokość |
 
 ## M4.1 — kryteria zaliczenia
@@ -208,6 +209,7 @@ sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
 | pulpit | rozmiar, ciemny górny pasek, jasny dolny, kolorowa tapeta | `m4-pulpit-1-pulpit.png` |
 | menu Start | otwiera się po kliknięciu znaku K1 | `m4-2-menu.png` |
 | Notatki | z menu; „Zażółć K1” przez AltGr; „zapisano notatkę (9 znaków)”; tekst na zrzucie; przeciągnięcie okna o (120, 60) | `m4-3-notatki.png` |
+| Notatki: wiele (0.5.8) | „Nowa notatka” → „Druga” (5 znaków); po ponownym starcie „notatki wczytane: 2 (pierwsza: 5 B)”, kliknięcie drugiej → 13 B, „Usuń notatkę” + potwierdzenie → zostaje 1 | `m4-3-notatki-dwie.png`, `m4-ponownie-notatki.png` |
 | Zegar | z dolnego paska; środek tarczy w kolorze akcentu | `m4-4-zegar.png` |
 | Ustawienia | ciemny motyw (`ustawienie 1=1`, ciemne okno), tapeta „Zmierzch” (fiolet w rogu), minimalizacja kliknięciem na pasku | `m4-5-ciemny.png`, `m4-6-tapeta.png` |
 | czystość logu | brak „Kernel panic”, „BŁĄD”, zablokowanych wywołań, odrzuconych komunikatów | `m4-pulpit.log` |
