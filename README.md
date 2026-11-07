@@ -62,7 +62,10 @@ pilnuje tego test). Pendrive zostanie w całości nadpisany.
    - Startup → **UEFI/Legacy Boot**: *Both* albo *UEFI Only*,
    - **F10** → *Yes* (zapisz i uruchom ponownie).
    Potem przy włączaniu wciskaj **F12** i wybierz pendrive (USB HDD). Secure Boot możesz po teście
-   włączyć z powrotem — Windows/Linux z dysku działa i z nim, i bez niego.
+   włączyć z powrotem. **Uwaga, BitLocker:** jeśli Windows na dysku jest zaszyfrowany BitLockerem,
+   zmiana Secure Boot może sprawić, że przy następnym starcie zapyta o *klucz odzyskiwania* — przed
+   zmianą miej go pod ręką (konto Microsoft → urządzenia) albo w Windowsie wstrzymaj ochronę
+   BitLocker („Wstrzymaj ochronę”).
 3. Po kilku sekundach powinien pojawić się pulpit. Klawiatura, TrackPoint, touchpad (ruch i kliknięcia,
    bez przewijania dwoma palcami) i mysz USB powinny działać. Na górnym pasku przy głośniku — bateria
    (procent; błyskawica, gdy podłączysz zasilacz — zmiana widoczna do 15 s). Jasność ekranu i klawisze
