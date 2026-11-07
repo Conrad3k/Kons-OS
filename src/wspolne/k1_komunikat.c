@@ -118,7 +118,7 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         return kier == K1_KIER_OD_NADZORCY && k->obiekt >= 1 && k->obiekt <= K1_INST_DYSKI_MAKS && k->a >= 0 &&
                w(k->b, K1_DYSK_SATA, K1_DYSK_INNY) && w(k->c, 0, 1) && (k->d == 512 || k->d == 4096) && w(k->e, 0, 1);
     case K1_KOM_INST_LISTA:
-        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_INST_DYSKI_MAKS) && w(k->b, 0, 1) &&
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_INST_DYSKI_MAKS) && w(k->b, 0, 2) &&
                zera(k, 2);
     case K1_KOM_SKARB_CZYTAJ:
     case K1_KOM_SKARB_USUN:

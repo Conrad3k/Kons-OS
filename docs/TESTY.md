@@ -139,6 +139,7 @@ sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
 
 | Krok | Sprawdzenie | Dowód |
 |---|---|---|
+| 0. obraz `.iso` (UEFI) + dysk SATA (0.6.1) | Instalator: „system do skopiowania: brak”, bez przycisku — kliknięcie w jego miejscu nic nie uruchamia | `m5f-0-z-iso.png` |
 | 1. pendrive + pusty dysk SATA 4 GiB | Instalator z menu Start: 1 dysk, system z pendrive'a; bez „USUŃ” nic; po „usuń” nadzorca uruchamia program zapisujący (UID 105, cel `sda`, źródło K1-EFI pendrive'a); „gotowe”; „Wyłącz komputer” wyłącza | `m5f-1-lista.png`, `m5f-1-potwierdzenie.png`, `m5f-1-gotowe.png` |
 | dysk po instalacji | `sfdisk -d`: K1-EFI i K1-DANE; `sfdisk --verify` bez błędów | log testu |
 | 2. start z samego dysku (UEFI) | pulpit; skarbiec: nowy magazyn na K1-DANE dysku | `m5f-2-z-dysku.png` |

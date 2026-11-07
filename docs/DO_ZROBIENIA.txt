@@ -1,7 +1,7 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.6.0 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.6.1 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 prawie gotowe (dyski, USB, zaszyfrowane dane, hasło, instalator); dalej plan z ADR 0019.
 Data: 2026-11-07. Plik aktualizujemy po każdym etapie.
@@ -156,8 +156,9 @@ M5  Dane i sprzęt (rozszerzony) — PRAWIE GOTOWE (0.5.2–0.5.9; rozpoznanie: 
     [x] 0.5.8: logo przy starcie, K1-DANE wykrywana też po starcie, wiele notatek
     [x] M5f (0.5.9, ADR 0018): Instalator — K1 na dysku laptopa (dane na całym dysku), aktualizacja
         z pendrive'a bez ruszania danych; przesuwanie okien ~10× taniej
-    [!] Test na X230 (0.5.9): instalacja na dysk, start bez pendrive'a, hasło, notatki po wyłączeniu,
-        płynność przeciągania okien
+    [x] Test na X230 (0.5.9, 2026-11-07): najpierw „Nie znaleziono systemu do skopiowania” (na pendrivie
+        było .iso → 0.6.1: Instalator mówi, co zrobić, bez przycisku); z k1-0.5.9-usb.img.xz instalacja
+        „zadziałała”; „wszystko śmiga, okna są płynne”.
 
 Nowa kolejność od 0.5.9 (ADR 0019 — przegląd i plan; zastępuje ADR 0011):
 

@@ -148,6 +148,7 @@ int k1_dyski_skanuj(const char *sys, struct k1_dyski *w)
                 snprintf(efi ? w->d[i].efi : w->d[i].dane, sizeof w->d[i].efi, "%.31s", de->d_name);
     }
     closedir(d);
+    w->zrodel = zrodel;
     if (zrodel != 1)
         w->zrodlo[0] = '\0'; /* two K1 sticks: we would not know which one to copy */
     qsort(w->d, (size_t)w->n, sizeof w->d[0], porownaj);
