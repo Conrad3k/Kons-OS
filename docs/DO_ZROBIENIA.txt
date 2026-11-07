@@ -156,8 +156,9 @@ M5  Dane i sprzęt (rozszerzony) — PRAWIE GOTOWE (0.5.2–0.5.9; rozpoznanie: 
     [x] 0.5.8: logo przy starcie, K1-DANE wykrywana też po starcie, wiele notatek
     [x] M5f (0.5.9, ADR 0018): Instalator — K1 na dysku laptopa (dane na całym dysku), aktualizacja
         z pendrive'a bez ruszania danych; przesuwanie okien ~10× taniej
-    [!] Test na X230 (0.5.9): instalacja na dysk, start bez pendrive'a, hasło, notatki po wyłączeniu,
-        płynność przeciągania okien
+    [x] Test na X230 (0.5.9, 2026-11-07): najpierw „Nie znaleziono systemu do skopiowania” (na pendrivie
+        było .iso → 0.6.1: Instalator mówi, co zrobić, bez przycisku); z k1-0.5.9-usb.img.xz instalacja
+        „zadziałała”; „wszystko śmiga, okna są płynne”.
 
 Nowa kolejność od 0.5.9 (ADR 0019 — przegląd i plan; zastępuje ADR 0011):
 
