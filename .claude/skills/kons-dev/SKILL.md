@@ -187,8 +187,14 @@ monitor QEMU — `mouse_move`, `mouse_button`, `sendkey alt_r-a`); zrzuty pokazu
 `feedback`, `błąd`, `pomysł`); ostatni run „K1 — budowa i testy” na `main` (czerwony = napraw najpierw);
 środowisko: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh` (~6 min).
 
-**Kolejność etapów** po M4 (ADR 0011): M4.1 porządki i audyt → M5 dane i sprzęt (dyski, USB, szyfrowanie)
-→ M5.1 próba przeglądarki → M5.2 dm-verity → M6 … M12.
+**Kolejność etapów** (ADR 0019, 0020; zastępuje ADR 0011): M5 (do 0.5.9, z instalatorem) → **0.6.0 Fundament**
+(nadzorca w modułach < 600 wierszy w main.c, jawna maszyna stanów startu, uevent zamiast odpytywania = dawne M5b,
+wspólny odbiór komunikatów, wspólna biblioteka testów QEMU, testy równolegle, KVM w CI, historia baterii) →
+**M6 Bezpieczne aktualizacje** (podpisane wydania, dm-verity, A/B w K1-EFI, Secure Boot z kluczem MOK) →
+**M7 Sieć** (e1000e + DHCP, potem Wi-Fi) → **M8 Strefy** (mikro-VM na obcą aplikację, zaufana ramka w kolorze
+strefy, przełączniki: stała/jednorazowa i pełna izolacja/szybka grafika; pierwsza — przeglądarka) →
+**M9 Pliki** (Gatekeeper, dekodery w izolacji) → M10 reszta (recovery, TPM) → M12 audyt. X230 = maszyna
+testowa; szybka grafika i gry projektowane pod nowszy sprzęt (decyzja właściciela).
 
 **CI na PR-ze:** dodaj etykietę `testy` (`issue_write`, labels) — workflow buduje i testuje PR bez scalania
 (bez tagu i wydania). `workflow_dispatch` jest dla Claude niedostępny (403).
