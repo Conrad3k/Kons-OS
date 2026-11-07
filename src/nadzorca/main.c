@@ -487,12 +487,25 @@ static void zakonczona(struct usluga *u, int status)
 }
 
 /* Input devices that appear after wejscie started (a fast boot can start us before the kernel has
- * registered the mouse; later: USB devices plugged in): restart wejscie with the full set. Not
- * counted as a failure. Full hotplug (kernel uevents, no restart) comes with M5. */
+ * registered the mouse; USB devices plugged in later): restart wejscie with the full set. Not
+ * counted as a failure. A device that was unplugged (its node is gone) is forgotten, so a device
+ * plugged in later under the same eventN is noticed. Full hotplug (kernel uevents, no restart):
+ * M5b. */
 static void sprawdz_nowe_wejscia(void)
 {
     struct usluga *u = &uslugi[1];
+    struct stat st;
+    char sciezka[64];
     int i;
+    for (i = 0; i < 32; i++) {
+        if (!(wejscia_maska & (1u << i)))
+            continue;
+        snprintf(sciezka, sizeof sciezka, DEV "/input/event%d", i);
+        if (lstat(sciezka, &st) < 0 && errno == ENOENT) {
+            wejscia_maska &= ~(1u << i);
+            k1_log(TAG, "urządzenie wejścia odłączone (event%d)", i);
+        }
+    }
     if (u->pid <= 0 || u->wylaczona || __builtin_popcount(wejscia_maska) >= MAKS_URZADZEN)
         return;
     for (i = 0; i < 32; i++) {

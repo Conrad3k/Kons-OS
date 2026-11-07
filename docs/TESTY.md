@@ -8,7 +8,7 @@ zrzut ekranu albo wynik testu. Każdy mechanizm bezpieczeństwa ma test negatywn
 ```bash
 scripts/przygotuj-srodowisko.sh   # raz w nowym kontenerze (pakiety Ubuntu)
 scripts/zbuduj.sh                 # jądro + programy + obrazy + ISO → build/wynik/
-scripts/testy.sh                  # wszystkie testy (~6 min w emulacji TCG): test-m1.sh, test-m2.sh, test-m4.sh
+scripts/testy.sh                  # wszystkie testy (~7 min w emulacji TCG): test-m1.sh, test-m2.sh, test-m4.sh, test-m5.sh
 ```
 
 Logi każdego scenariusza: `build/testy/<nazwa>.log`. Limit czasu na uruchomienie: `K1_TEST_CZAS`
@@ -56,7 +56,7 @@ przed upływem limitu.
 
 ### Sprawdzenia w systemie (`testy/system/*.c`, obraz `rdzen-test.squashfs`)
 Pliki (od M4.1): `k1_test_systemu.c` (kolejność), `wspolne.c` (pomocnicze, kanał testowy),
-`t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4–M4.1), `proba.c` (tryb `--proba`).
+`t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4–M4.1), `t_sprzet.c` (M5a), `proba.c` (tryb `--proba`).
 Program testowy jest w obrazie testowym jako `/rdzen/system/test-systemu` (uruchamia go nadzorca).
 NEGATYWNE = coś, co ma się nie udać.
 
@@ -108,6 +108,34 @@ sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
   okno innej aplikacji (harness: `bez fokusu (ochrona klawiatury)`); trzecie pełnoekranowe okno
   jednego klienta odrzucone (`przekroczony limit pamięci powierzchni`); próba w klatce `zasoby`;
   aplikacja Zasoby dostaje dane od nadzorcy (`K1-ZASOBY: dane od nadzorcy`).
+
+- M5a (ADR 0013, `t_sprzet.c`): scenariusz `testy-w-systemie` startuje z dodatkowym sprzętem — dysk SATA
+  (AHCI q35) z partycją GPT „K1-DANE”, dysk NVMe ze starą tablicą MBR, pendrive na EHCI, klawiatura USB
+  na xHCI, mysz USB na OHCI. Sprawdzenia: dyski widoczne (rozmiary), partycja „K1-DANE” po nazwie
+  z sysfs, kontrolery xHCI/EHCI/OHCI, 2 urządzenia wejścia USB, `wejscie` ma otwarte 4 urządzenia
+  (PS/2 + USB). NEGATYWNE: MBR nieczytany (NVMe bez partycji), węzły dysków, surowego USB i NVMe tylko
+  root 0600, brak `hidraw`/`hiddev`/`sg`/`bsg`/`sr0`, żaden proces nie trzyma otwartego dysku; w próbie
+  klatki Notatek otwarcie dysku `/rdzen/jadro/dev/vda` → `EACCES`.
+
+## M5a — kryteria zaliczenia
+1. Jądro widzi dyski SATA (AHCI), NVMe i pamięci USB; tablice GPT (tylko), nazwy partycji w sysfs.
+2. Kontrolery USB xHCI, EHCI, OHCI; klawiatura i mysz USB działają w pulpicie — także na maszynie bez
+   PS/2 (`scripts/test-m5.sh`).
+3. Mysz podłączona w trakcie pracy jest zauważana; odłączenie nie psuje wejścia; ponowne podłączenie
+   (ten sam numer urządzenia) znów działa.
+4. Klatki bez zmian (wszystkie próby), dostęp do dysków i surowego USB tylko dla roota, nikt nie trzyma dysku.
+5. Wszystkie testy M1–M4.1 nadal przechodzą.
+
+## M5a — `scripts/test-m5.sh` (obraz produkcyjny, maszyna bez PS/2: `-machine q35,i8042=off`)
+| Krok | Sprawdzenie |
+|---|---|
+| start | pierwsza klatka; w logu jądra `i8042: PNP: No PS/2 controller found`; `wejscie` z 2 urządzeniami (klawiatura i mysz USB na xHCI) |
+| mysz USB | `mouse_move` × 4 → kursor w miejscu z logu ekranu |
+| klawiatura USB | 3 × `sendkey right` → kursor 60 px w prawo (strzałki, gdy nic nie ma fokusu) |
+| podłączenie | `device_add usb-mouse` → nadzorca: „nowe urządzenie wejścia”, `wejscie` z 3 urządzeniami |
+| odłączenie | `device_del` → nadzorca: „urządzenie wejścia odłączone”, `wejscie`: „urządzenie odłączone” |
+| ponowne podłączenie | znów 3 urządzenia (ten sam numer `eventN` rozpoznany jako nowy) |
+| zrzut `m5-usb.png` | kursor w miejscu z logu; brak błędów usług, odrzuconych i zgubionych zdarzeń |
 
 ## M4.1 — kryteria zaliczenia
 1. Ustawienia → Ekran pokazuje listę rozdzielczości od karty, wybór przełącza tryb w locie,

@@ -61,14 +61,18 @@ int proba(const char *profil)
         int f2 = open("/dane_uzytkownika/obcy", O_WRONLY | O_CREAT | O_CLOEXEC, 0600), e2 = errno;
         int f3 = open("/rdzen/jadro/proc/1/status", O_RDONLY | O_CLOEXEC), e3 = errno;
         int f4 = open(K1_KATALOG_NOTATEK "/proba", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
+        int f5 = open("/rdzen/jadro/dev/vda", O_RDONLY | O_CLOEXEC), e5 = errno; /* a disk (M5a) */
         /* /proc/1 is invisible to other users (hidepid): ENOENT is a denial as well */
-        if (f1 < 0 && e1 == EACCES && f2 < 0 && e2 == EACCES && f3 < 0 && (e3 == EACCES || e3 == ENOENT) && f4 >= 0) {
-            k1_log("K1-PROBA", "[OK] pliki: tylko własny katalog (Landlock: /rdzen i reszta danych → EACCES, cudze procesy niewidoczne)");
+        if (f1 < 0 && e1 == EACCES && f2 < 0 && e2 == EACCES && f3 < 0 && (e3 == EACCES || e3 == ENOENT) && f4 >= 0 &&
+            f5 < 0 && e5 == EACCES) {
+            k1_log("K1-PROBA", "[OK] pliki: tylko własny katalog (Landlock: /rdzen, dysk i reszta danych → EACCES, cudze procesy niewidoczne)");
         } else {
             proba_bledy++;
-            k1_log("K1-PROBA", "[BŁĄD] pliki poza katalogiem notatek: %d/%d %d/%d %d/%d, własny %d", f1, e1, f2, e2, f3,
-                   e3, f4);
+            k1_log("K1-PROBA", "[BŁĄD] pliki poza katalogiem notatek: %d/%d %d/%d %d/%d, dysk %d/%d, własny %d", f1, e1, f2,
+                   e2, f3, e3, f5, e5, f4);
         }
+        if (f5 >= 0)
+            close(f5);
         if (f4 >= 0) {
             close(f4);
             unlink(K1_KATALOG_NOTATEK "/proba");

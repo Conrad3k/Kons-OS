@@ -3,7 +3,10 @@ K1 — WSTĘPNE ROZPOZNANIE ETAPU M5 (dane i sprzęt)
 
 Data: 2026-11-07, przed rozpoczęciem M5. Stan systemu: 0.5.0 (po M4.1).
 To są notatki do rozpoczęcia pracy, a nie decyzje. Decyzje zapadną w ADR (0013 i dalsze)
-po prototypach. Nazwy opcji jądra sprawdziłem w źródłach Linux 6.18.60 (build/zrodla); rzeczy
+po prototypach.
+AKTUALIZACJA 2026-11-07: M5a zrobione (0.5.2, ADR 0013). Właściciel: jedno konto; laptop ThinkPad
+X230, 8 GB RAM (SATA/AHCI, bez NVMe, PS/2, EHCI + xHCI, Intel HD 4000, TPM 1.2 — szczegóły w ADR 0013).
+Format Blob Vault i szyfrowanie — ADR 0014 (nie 0013). Nazwy opcji jądra sprawdziłem w źródłach Linux 6.18.60 (build/zrodla); rzeczy
 niesprawdzone mają dopisek „DO SPRAWDZENIA”.
 
 
@@ -208,10 +211,13 @@ z planem B: A, jeśli prototyp C okaże się za trudny. Pierwszy krok M5 = mały
   [x] Ekran hasła — odpowiedź właściciela (2026-11-07): „bardzo ładny, w stylu, jaki jest system —
       Claude'owy” (ciepły, minimalistyczny: tapeta, kremowy/terakotowy akcent, Plex, znak K1).
       Przed kodem: 2–3 szkice do wyboru (zrzuty), jak przy znaku K1.
-  [!] Czy jedno konto na komputer (już pytane w DO_ZROBIENIA)?
+  [x] Jedno konto na komputer — tak (2026-11-07).
   [!] Czy akceptujesz, że bez hasła dane na dysku nie są chronione przed kradzieżą (do czasu
       TPM po M10)?
-  [!] Model laptopa (touchpad, karta graficzna, NVMe/SATA) — do M5a/M5f.
+  [x] Model laptopa: ThinkPad X230, 8 GB (2026-11-07) — touchpad PS/2, SATA, Intel HD 4000.
+      Uwaga do kluczy: X230 ma TPM 1.2 (nie 2.0) — plan „TPM po M10” trzeba będzie przemyśleć;
+      hasło jest jedyną ochroną danych przed kradzieżą laptopa. Argon2id: 8 GB RAM pozwala na
+      duży koszt pamięci (np. 256 MiB–1 GiB) — do dobrania na X230 (~1 s).
   [!] VirtualBox: czy dodasz drugi dysk na dane (SATA), czy wolisz jeden obraz „wszystko
       w jednym” (wtedy instalator na dysk — większa praca)?
 

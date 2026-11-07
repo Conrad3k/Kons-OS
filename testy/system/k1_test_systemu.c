@@ -20,7 +20,7 @@ int main(int argc, char **argv)
     }
     if (argc > 2 && strcmp(argv[1], "--proba") == 0)
         return proba(argv[2]);
-    k1_log(TAG, "start testów M1–M4.1 (pid %d)", (int)getpid());
+    k1_log(TAG, "start testów M1–M5a (pid %d)", (int)getpid());
     t_parent();
     t_root_layout();
     t_readonly();
@@ -37,6 +37,7 @@ int main(int argc, char **argv)
     t_init_unkillable();
     t_inventory();
     t_screen_input();
+    t_sprzet();
     t_klatki();
     t_malicious_ipc();
     t_proby();

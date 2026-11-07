@@ -1,10 +1,10 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.5.1 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.5.2 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
-M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby).
-Data: 2026-11-06. Plik aktualizujemy po każdym etapie.
+M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 w toku — M5a (dyski i USB).
+Data: 2026-11-07. Plik aktualizujemy po każdym etapie.
 Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
 
 Oznaczenia:
@@ -43,11 +43,13 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
   - Test 0.5.1 w VirtualBoxie (2026-11-07): „Wszystko działa.” — VMSVGA (vmwgfx), Ustawienia →
     Ekran (lista i zmiana rozdzielczości), Zasoby, cień pod paskiem bez „podstawy”.
 [!] Dalsze uwagi do pulpitu, tapet i nowego znaku (Issues → „Feedback z testu” albo w czacie).
-[!] Kiedy pierwszy test na laptopie (pendrive)? Wymaga pracy z punktu 2 („prawdziwy sprzęt”).
-    Przyda się model laptopa.
+  - Laptop i konto (2026-11-07): „akceptuję jedno konto”; pierwszy laptop: ThinkPad X230, 8 GB RAM.
+    → M5a dostosowane do X230 (SATA/AHCI, USB 2 i 3, klawiatura i touchpad PS/2; ADR 0013).
+[!] Pierwszy test na X230 z pendrive'a (od 0.5.2 — instrukcja w README, „Uruchom na laptopie”):
+    czy pulpit się pojawia, ostrość obrazu, klawiatura, TrackPoint, touchpad, mysz USB, wyłączanie.
 [x] Ekran hasła przy starcie (2026-11-07): „bardzo ładny, w stylu, jaki jest system — Claude'owy”.
     → W M5 najpierw szkice do wyboru (zrzuty).
-[!] Czy zostawiamy jedno konto na komputer?
+[x] Jedno konto na komputer — tak (2026-11-07).
 [!] Przed M8 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)?
 
 
@@ -56,9 +58,12 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
 [~] Prawdziwy sprzęt (potrzebne do testów na laptopie):
       [x] start z płyty/obrazu przez UEFI i BIOS (ISO z GRUB-em; ADR 0010, tymczasowo do M10),
       [x] grafika z firmware (simpledrm) — działa w VM,
-      [ ] zapis ISO na pendrive i start z niego (obraz jest hybrydowy — do sprawdzenia na sprzęcie),
-      [ ] klawiatura i mysz USB, tablet USB w VM, touchpad (I2C-HID),
-      [ ] dyski NVMe / SATA (potrzebne dopiero z trwałymi danymi, M5).
+      [!] zapis ISO na pendrive i start z niego na X230 (obraz hybrydowy; instrukcja w README),
+      [x] klawiatura i mysz USB (M5a, QEMU), podłączanie w trakcie pracy (przez restart wejścia),
+      [ ] tablet USB w VM (pozycja bezwzględna — M5b), touchpad X230 z przewijaniem (tryb
+          rozszerzony — po teście), I2C-HID (nowsze laptopy — później),
+      [x] dyski SATA (AHCI) i NVMe, pendrive'y, tablice GPT (M5a, QEMU),
+      [ ] grafika X230: simpledrm (obraz z firmware); i915 tylko jeśli test pokaże potrzebę.
 [ ] Komunikat o błędzie startu widoczny na ekranie (dziś tylko na porcie szeregowym).
 [ ] Własny build biblioteki musl 1.2.5 z poprawkami bezpieczeństwa (dziś 1.2.4 z Ubuntu).
 [~] Ochrona _FORTIFY_SOURCE: decyzja z M3 — na razie nie (ADR 0007), wracamy przy własnym musl.
@@ -104,15 +109,18 @@ M4.1 Porządki i audyt — GOTOWE (0.5.0, ADR 0012)
     [x] aplikacja Zasoby (procesor, pamięć, usługi — wykresy z ostatniej minuty)
     [x] naprawa cienia pod dolnym paskiem i menu dźwięku
 
-M5  Dane i sprzęt (rozszerzony) — NASTĘPNY (rozpoznanie: docs/M5-ROZPOZNANIE.txt)
-    [ ] sterowniki dysków: virtio, SATA (AHCI), NVMe; partycja danych na dysku / pendrivie
+M5  Dane i sprzęt (rozszerzony) — W TOKU (rozpoznanie: docs/M5-ROZPOZNANIE.txt)
+    [x] M5a (0.5.2, ADR 0013): sterowniki dysków SATA (AHCI), NVMe, virtio; GPT; USB xHCI/EHCI/OHCI,
+        klawiatury i myszy USB, pendrive'y; testy w QEMU (także maszyna bez PS/2)
+    [ ] partycja danych „K1-DANE” na dysku / pendrivie (M5d)
     [ ] magazyn obiektów zamiast katalogów (identyfikator, metadane, hash, pochodzenie)
     [ ] szyfrowanie danych na dysku (dziś dane są tylko w RAM)
     [ ] dostęp aplikacji tylko do obiektów, na które się zgodzisz
     [ ] opcjonalne hasło przy starcie (włączane w Ustawieniach); zapomniane hasło = nowe konto
     [ ] trwały zapis notatek i ustawień
-    [ ] USB: klawiatura, mysz, tablet (mysz „USB” w VirtualBoxie), podłączanie w trakcie pracy
-    [!] pierwszy start z pendrive'a na Twoim laptopie
+    [~] USB: klawiatura, mysz (M5a), podłączanie w trakcie pracy (przez restart wejścia — M5a;
+        bez restartu — M5b), tablet (mysz „USB” w VirtualBoxie — M5b)
+    [!] pierwszy start z pendrive'a na Twoim ThinkPadzie X230
 
 M5.1 Próba przeglądarki (wycinek M7/M8, bez sieci)
     [ ] minimalna strefa zgodności; Firefox i WPE WebKit w izolacji
@@ -154,7 +162,8 @@ M12 Audyt
 M3   (podjęte, ADR 0007) fortify-headers — na razie nie; kanały: gniazda UNIX SEQPACKET + SO_PASSCRED
 M4   (podjęte) czcionki IBM Plex (OFL), własne rysowanie tekstu bez LVGL (ADR 0009); obraz ISO z GRUB (ADR 0010)
 M4.1 (podjęte, ADR 0012) przegląd, tryby ekranu, vmwgfx, Zasoby
-M5   fscrypt czy dm-crypt; skąd klucz (hasło, TPM); które sterowniki dysków i USB do jądra
+M5   (podjęte, ADR 0013) sterowniki dysków i USB; dalej: format Blob Vault i szyfrowanie (ADR 0014),
+     skąd klucz (hasło; X230 ma TPM 1.2, nie 2.0)
 M7   przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP
 M5.1 Firefox czy WPE WebKit (sprawdzenie sandboxa Firefoksa w strefie), USER_NS tak/nie
 M10  obraz produkcyjny bez logu na porcie szeregowym; RANDSTRUCT w jądrze; zarządzanie kluczami

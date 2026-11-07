@@ -30,7 +30,8 @@ scenariusz() {
     # niżej mogłaby go przeczytać, zanim uruchom-qemu.sh zdąży go usunąć.
     rm -f "$log" "$mon" "$TESTY/$nazwa.png"
     # shellcheck disable=SC2086
-    "$K1_REPO/scripts/uruchom-qemu.sh" $dysk --cmdline "$cmd" --log "$log" --monitor "$mon" --czas "$CZAS" &
+    "$K1_REPO/scripts/uruchom-qemu.sh" $dysk --cmdline "$cmd" --log "$log" --monitor "$mon" --czas "$CZAS" \
+        ${SPRZET:+--qemu "$SPRZET"} &
     qpid=$!
     sam=0; t=0
     while [ $t -lt "$CZAS" ]; do
@@ -79,10 +80,24 @@ echo "[k1] obrazy do testów negatywnych"
 dd if=/dev/zero of="$TESTY/zera.img" bs=1M count=4 status=none
 rm -rf "$TESTY/bez-init"; mkdir -p "$TESTY/bez-init/jadro/dev" "$TESTY/bez-init/jadro/proc" "$TESTY/bez-init/jadro/sys"
 mksquashfs "$TESTY/bez-init" "$TESTY/bez-init.squashfs" -quiet -no-progress -noappend -comp zstd -all-root -no-xattrs >/dev/null
+# M5a: extra hardware for the in-system test — SATA disk (q35's built-in AHCI) with a GPT partition
+# "K1-DANE", NVMe disk with an old MBR table, USB stick on EHCI, USB keyboard on xHCI, mouse on OHCI.
+for d in sata:16 nvme:8 usb:4; do
+    dd if=/dev/zero of="$TESTY/${d%:*}.img" bs=1M count="${d#*:}" status=none
+done
+printf 'label: gpt\nstart=2048, size=8192, name="K1-DANE"\n' | sfdisk -q "$TESTY/sata.img" >/dev/null
+printf 'label: dos\nstart=2048, size=4096, type=83\n' | sfdisk -q "$TESTY/nvme.img" >/dev/null
+SPRZET_TEST="-drive if=none,id=sata,file=$TESTY/sata.img,format=raw -device ide-hd,drive=sata,bus=ide.0
+ -drive if=none,id=nvme,file=$TESTY/nvme.img,format=raw -device nvme,drive=nvme,serial=k1test
+ -device qemu-xhci,id=xhci -device usb-kbd,bus=xhci.0
+ -device usb-ehci,id=ehci -drive if=none,id=usb,file=$TESTY/usb.img,format=raw -device usb-storage,drive=usb,bus=ehci.0
+ -device pci-ohci,id=ohci -device usb-mouse,bus=ohci.0"
+SPRZET=
 
 echo "[k1] uruchomienia w QEMU ($( [ -w /dev/kvm ] && echo KVM || echo 'emulacja TCG'))"
 scenariusz start czekaj "$K1_WYNIK/rdzen.squashfs" "$CMDLINE" \
     "K1-INITRAMFS: start" "K1: init OK" "uruchomiono nadzorcę" "K1-EKRAN: pierwsza klatka" "K1-GUI: pulpit gotowy"
+SPRZET=$SPRZET_TEST
 scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE" \
     "K1: init OK" "K1-TEST: WYNIK: OK" "odrzucone 5)" "komunikat od obcego nadawcy (uid 0, oczekiwano 100)" \
     "K1-PROBA: koniec próby „proba-wejscie”: 0 błędów" "K1-PROBA: koniec próby „proba-ekran”: 0 błędów" \
@@ -94,6 +109,7 @@ scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE
     "zmiana ustawień tylko dla aplikacji Ustawienia" "zarządzanie cudzymi oknami tylko dla powłoki" \
     "ekran zakończony sygnałem 11" "ponowne uruchomienie ekran" "wejscie wyłączony: 6 zakończeń" \
     "K1: wyłączanie zasilania" "reboot: Power down"
+SPRZET=
 scenariusz neg-brak-dysku wylaczenie - "$CMDLINE" \
     "nie znaleziono urządzenia z obrazem rdzenia: /dev/vda" "system zostanie wyłączony" "reboot: Power down"
 scenariusz neg-dysk-bez-obrazu wylaczenie "$TESTY/zera.img" "$CMDLINE" \

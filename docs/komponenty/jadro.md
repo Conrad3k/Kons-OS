@@ -52,7 +52,10 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
   od M2: DRM + `bochs` (karta QEMU stdvga, tylko KMS — bez fbdev/fbcon), evdev, i8042 + atkbd + psmouse
   (bez rozszerzeń producentów i bez mousedev); od M4: `simpledrm` (obraz z firmware), loop, CMOS RTC;
   od M4.1: `vmwgfx` (VirtualBox VMSVGA, VMware) z `HYPERVISOR_GUEST` — bez PARAVIRT, KVM_GUEST, Xen
-  (ADR 0012). Brak VT, sieci (protokołów), USB, dysków SATA/NVMe.
+  (ADR 0012); od M5a (ADR 0013): dyski SATA (AHCI) i NVMe, dyski SCSI (`sd`: SATA i pamięci USB),
+  tablice partycji tylko GPT, USB (xHCI, EHCI, OHCI), HID generic (klawiatury, myszy USB), mass
+  storage — bez napędów CD, `sg`/bsg, `hidraw`/`hiddev`, UAS i sterowników producentów.
+  Brak VT, sieci (protokołów), I2C-HID, `i915`.
 
 ## Wywołania systemowe usunięte z jądra (test: `t_syscalls`)
 `init_module`, `finit_module`, `kexec_load`, `kexec_file_load`, `io_uring_setup`, `bpf`,
@@ -64,7 +67,9 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
 
 ## Powierzchnia ataku (najważniejsze)
 Parser SquashFS (do M10 obraz niezweryfikowany), wywołania systemowe dostępne dla procesów
-(zawężane przez seccomp od M3), sterowniki virtio, ACPI (dane z firmware), `perf_event_open`.
+(zawężane przez seccomp od M3), sterowniki virtio, ACPI (dane z firmware), `perf_event_open`;
+od M5a: urządzenia USB podłączane z zewnątrz (deskryptory USB, raporty HID, komendy mass storage)
+i parser GPT obcych nośników (RYZYKA R33–R34).
 
 ## Testy
 `scripts/sprawdz-konfiguracje-jadra.sh` (każdy build), `scripts/sprawdz-kspp.sh` (przy zmianie
