@@ -47,7 +47,10 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
     → M5a dostosowane do X230 (SATA/AHCI, USB 2 i 3, klawiatura i touchpad PS/2; ADR 0013).
   - „Może w ramach tej wersji dodać wskaźnik baterii, jeśli system wykryje, że to laptop?”
     → 0.5.3: ikona z procentami na górnym pasku, błyskawica przy ładowaniu (ADR 0014).
-[!] Pierwszy test na X230 z pendrive'a (od 0.5.2 — instrukcja w README, „Uruchom na laptopie”):
+  - Pierwsza próba na X230 (0.5.3, 2026-11-07): komunikat o Secure Boot, po „OK” laptop uruchomił
+    system z dysku — Secure Boot był włączony (K1 niepodpisany do M10). README: wyraźny krok.
+[!] Pierwszy test na X230 z pendrive'a (od 0.5.2 — instrukcja w README, „Uruchom na laptopie”;
+    najpierw F1 → Security → Secure Boot → Disabled):
     czy pulpit się pojawia, ostrość obrazu, klawiatura, TrackPoint, touchpad, mysz USB, bateria
     (procent i błyskawica po podłączeniu zasilacza — zmiana do 15 s), wyłączanie.
 [x] Ekran hasła przy starcie (2026-11-07): „bardzo ładny, w stylu, jaki jest system — Claude'owy”.

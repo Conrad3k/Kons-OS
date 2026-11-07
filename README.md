@@ -55,10 +55,14 @@ K1 startuje z pendrive'a i **niczego nie zapisuje na dysku laptopa** (w tej wers
 pilnuje tego test). Pendrive zostanie w całości nadpisany.
 1. Nagraj `k1-X.Y.Z.iso` na pendrive (≥ 64 MB): w Windowsie **Rufus** → wybierz plik ISO → Start;
    na pytanie o obraz hybrydowy wybierz **„Zapisz w trybie obrazu DD”**. (Albo balenaEtcher.)
-2. W laptopie: włącz i od razu wciskaj **F1** (ustawienia BIOS-u):
+2. **Najpierw wyłącz Secure Boot** — K1 nie jest jeszcze podpisany (M10). Bez tego laptop pokaże
+   „Secure Boot Violation” / „Invalid signature”, a po „OK” uruchomi system z dysku (sprawdzone
+   na X230, 2026-11-07). Włącz laptop i od razu wciskaj **F1** (ustawienia BIOS-u):
+   - **Security → Secure Boot → Secure Boot: Disabled**,
    - Startup → **UEFI/Legacy Boot**: *Both* albo *UEFI Only*,
-   - Security → Secure Boot (jeśli jest) → **Disabled** (K1 nie jest jeszcze podpisany — M10).
-   Zapisz (F10). Potem przy włączaniu wciskaj **F12** i wybierz pendrive (USB HDD).
+   - **F10** → *Yes* (zapisz i uruchom ponownie).
+   Potem przy włączaniu wciskaj **F12** i wybierz pendrive (USB HDD). Secure Boot możesz po teście
+   włączyć z powrotem — Windows/Linux z dysku działa i z nim, i bez niego.
 3. Po kilku sekundach powinien pojawić się pulpit. Klawiatura, TrackPoint, touchpad (ruch i kliknięcia,
    bez przewijania dwoma palcami) i mysz USB powinny działać. Na górnym pasku przy głośniku — bateria
    (procent; błyskawica, gdy podłączysz zasilacz — zmiana widoczna do 15 s). Jasność ekranu i klawisze
