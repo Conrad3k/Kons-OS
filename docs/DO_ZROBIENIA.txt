@@ -1,7 +1,7 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.6.2 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.6.3 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 prawie gotowe (dyski, USB, zaszyfrowane dane, hasło, instalator); dalej plan z ADR 0019.
 Data: 2026-11-07. Plik aktualizujemy po każdym etapie.
@@ -156,6 +156,14 @@ M5  Dane i sprzęt (rozszerzony) — PRAWIE GOTOWE (0.5.2–0.5.9; rozpoznanie: 
     [x] 0.5.8: logo przy starcie, K1-DANE wykrywana też po starcie, wiele notatek
     [x] M5f (0.5.9, ADR 0018): Instalator — K1 na dysku laptopa (dane na całym dysku), aktualizacja
         z pendrive'a bez ruszania danych; przesuwanie okien ~10× taniej
+    [x] Uwagi do 0.6.2 (2026-11-07): „systemowi wydaje się, że jest na pendrive, gdy już jest na
+        komputerze — np. w notatkach”; „nie da się wylogować”; „przydałby się estymat czasu baterii
+        i aktualny pobór mocy w monitorze zasobów” → 0.6.3: napisy mówią „dysk komputera” / „pendrive K1”,
+        Start → Wyloguj, Zasoby → Bateria (pobór W, czas do rozładowania / naładowania).
+    [!] Test na X230 (0.6.3): Zasoby → Bateria — czy pobór i czas wyglądają rozsądnie (na baterii
+        i na zasilaczu)? Notatki — czy teraz piszą „Zapisano na dysku komputera”? Jeśli piszą „tylko do
+        wyłączenia komputera” — to znaczy, że K1 nie widzi swojej partycji na dysku: zrób zdjęcie
+        Ustawienia → Informacje.
     [x] Test na X230 (0.5.9, 2026-11-07): najpierw „Nie znaleziono systemu do skopiowania” (na pendrivie
         było .iso → 0.6.1: Instalator mówi, co zrobić, bez przycisku); z k1-0.5.9-usb.img.xz instalacja
         „zadziałała”; „wszystko śmiga, okna są płynne”.
@@ -176,7 +184,8 @@ M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku) — 
         (gdy K1 ma klucz) albo starszego systemu
     [!] Twój klucz podpisu: README → „Klucz podpisu” (jednorazowo, 2 minuty) — do tego czasu wydania
         są „deweloperskie”
-    [ ] dm-verity dla rdzenia (dawne M5.2)
+    [x] M6b (0.6.3): dm-verity dla rdzenia — cały obraz sprawdzany przy starcie, zmiana = zatrzymanie
+        (skrót główny w linii poleceń; podpisany będzie w M6d)
     [ ] A/B w partycji K1-EFI z powrotem do poprzedniej wersji
     [ ] Secure Boot włączony: własny klucz wpisany raz przez MokManager (krok dla Ciebie), podpisane jądro
 

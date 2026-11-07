@@ -1,5 +1,5 @@
 /* K1 Zasoby — native application: processor and memory use of the whole system over the last
- * minute and of every service (M4.1).
+ * minute and of every service (M4.1); the battery with the power draw and the time left (0.6.3).
  *
  * The numbers come from the supervisor once a second on fd 4 (k1_komunikat ZASOBY_SYSTEM and
  * ZASOBY_USLUGA, from the cgroup statistics and sysinfo): the application reads no files and
@@ -31,6 +31,9 @@ static int32_t pam_uzyta, pam_calk, procesory, czas_pracy;
 static struct {
     int32_t cpu, kib, dziala;
 } uslugi[K1_PROFIL_MAKS + 1];
+static struct {
+    int32_t znana, obecna, procent, stan, moc_mw, minuty;
+} bat;
 static unsigned long odrzucone;
 static int pierwsze = 1;
 
@@ -90,6 +93,46 @@ static void wykres(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int3
     }
 }
 
+/* "3 h 20 min", "45 min" */
+static void czas_tekst(char *buf, size_t n, int32_t min)
+{
+    if (min >= 60)
+        snprintf(buf, n, "%d h %d min", (int)(min / 60), (int)(min % 60));
+    else
+        snprintf(buf, n, "%d min", (int)min);
+}
+
+/* One line under the headline: what the battery does now. */
+static void bateria_opis(char *buf, size_t n)
+{
+    char w[24], c[32];
+    dziesietne(w, sizeof w, ((long)bat.moc_mw + 50) / 100);
+    czas_tekst(c, sizeof c, bat.minuty);
+    if (!bat.obecna) {
+        snprintf(buf, n, "brak baterii — zasilanie z sieci");
+    } else if (bat.stan == K1_BAT_ROZLADOWANIE) {
+        if (bat.moc_mw < 0)
+            snprintf(buf, n, "rozładowuje się");
+        else if (bat.minuty < 0)
+            snprintf(buf, n, "pobór %s W", w);
+        else
+            snprintf(buf, n, "pobór %s W · zostało ok. %s", w, c);
+    } else if (bat.stan == K1_BAT_LADOWANIE) {
+        if (bat.moc_mw < 0)
+            snprintf(buf, n, "ładuje się");
+        else if (bat.minuty < 0)
+            snprintf(buf, n, "ładowanie %s W", w);
+        else
+            snprintf(buf, n, "ładowanie %s W · do pełna ok. %s", w, c);
+    } else if (bat.stan == K1_BAT_PELNA) {
+        snprintf(buf, n, "naładowana, zasilanie z sieci");
+    } else if (bat.stan == K1_BAT_NIE_LADUJE) {
+        snprintf(buf, n, "zasilacz podłączony, nie ładuje się");
+    } else {
+        snprintf(buf, n, "stan nieznany");
+    }
+}
+
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char a[40], b[40], buf[96];
@@ -117,6 +160,19 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
                  k1_kolor(m->tekst, 255), 0);
     wykres(o, m, MARG, y + 26, w, WYKRES_H, pam);
     y += 26 + WYKRES_H + 20;
+
+    /* Battery (0.6.3): percent, power draw now, time left at that rate */
+    if (bat.znana) {
+        k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG, y + 16, "Bateria", k1_kolor(m->tekst, 255), 0);
+        bateria_opis(buf, sizeof buf);
+        k1_tekst(o, K1_CZ_MALA, MARG + 84, y + 16, buf, k1_kolor(m->tekst2, 255), w - 84 - 56);
+        if (bat.obecna && bat.procent >= 0) {
+            snprintf(a, sizeof a, "%d %%", (int)bat.procent);
+            k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG + w - k1_tekst_szer(K1_CZ_TEKST_MOCNA, a), y + 16, a,
+                     k1_kolor(m->tekst, 255), 0);
+        }
+        y += 36;
+    }
 
     /* Services: name, processor, memory */
     k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG, y + 16, "Usługi i aplikacje", k1_kolor(m->tekst, 255), 0);
@@ -157,7 +213,8 @@ static int odbierz(void)
             break;
         if (w == K1_ODB_KONIEC)
             k1_koniec(TAG, "nadzorca zamknął kanał");
-        if (w != K1_ODB_JEST || (k.typ != K1_KOM_ZASOBY_SYSTEM && k.typ != K1_KOM_ZASOBY_USLUGA)) {
+        if (w != K1_ODB_JEST ||
+            (k.typ != K1_KOM_ZASOBY_SYSTEM && k.typ != K1_KOM_ZASOBY_USLUGA && k.typ != K1_KOM_ZASOBY_BATERIA)) {
             if (odrzucone++ < 3)
                 k1_log(TAG, "odrzucono komunikat od nadzorcy");
             continue;
@@ -176,6 +233,18 @@ static int odbierz(void)
                 k1_log(TAG, "dane od nadzorcy: procesor %d‰, pamięć %d z %d MiB, %d CPU", (int)k.a, (int)k.b, (int)k.c,
                        (int)k.d);
             }
+        } else if (k.typ == K1_KOM_ZASOBY_BATERIA) {
+            char opis[96];
+            int nowa = !bat.znana || bat.obecna != k.a || bat.stan != k.c;
+            bat.znana = 1;
+            bat.obecna = k.a;
+            bat.procent = k.b;
+            bat.stan = k.c;
+            bat.moc_mw = k.d;
+            bat.minuty = k.e;
+            bateria_opis(opis, sizeof opis);
+            if (nowa) /* once per state, not every second */
+                k1_log(TAG, "bateria: %s", opis);
         } else {
             uslugi[k.obiekt].cpu = k.a;
             uslugi[k.obiekt].kib = k.b;
@@ -198,7 +267,7 @@ int main(void)
     apl.tag = TAG;
     apl.tytul = "Zasoby";
     apl.szer = 560;
-    apl.wys = 520;
+    apl.wys = 556;
     apl.rysuj = rysuj;
     apl.zegar = zegar;
     k1_apl_uruchom(&apl);

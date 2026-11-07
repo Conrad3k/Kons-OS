@@ -151,7 +151,7 @@ void obsluz_instalacje(void)
             return;
         }
         if (w != K1_ODB_JEST || (k.typ != K1_KOM_INST_DYSKI && k.typ != K1_KOM_INST_START && k.typ != K1_KOM_WYLACZ) ||
-            (k.typ == K1_KOM_WYLACZ && !inst_sukces)) {
+            (k.typ == K1_KOM_WYLACZ && (!inst_sukces || k.a > 1))) {
             k1_log(TAG, "odrzucono prośbę od Instalatora");
             continue;
         }

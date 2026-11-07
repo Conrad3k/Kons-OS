@@ -32,7 +32,8 @@ enum k1_komunikat_typ {
     /* nadzorca → ekran */
     K1_KOM_KLIENT = 1, /* a=rola, b=aplikacja (rola APLIKACJA: 1..K1_APL_MAKS, else 0), c=uid; + 1 fd */
     /* nadzorca → skarbiec (same direction K1_KIER_STEROWANIE) */
-    K1_KOM_SKARB_KLIENT = 2, /* a=owner (K1_WL_*), b=uid of the client; + 1 fd (skarbiec's end) */
+    K1_KOM_SKARB_KLIENT = 2, /* a=owner (K1_WL_*), b=uid of the client, c=1 K1-DANE is on a USB stick;
+                              * + 1 fd (skarbiec's end) */
     /* nadzorca → instalator (M5f, ADR 0018; same direction K1_KIER_STEROWANIE): the job, once */
     K1_KOM_INST_ZADANIE = 3, /* a=K1_INST_* mode, b=logical sector size (512/4096) of the target */
 
@@ -61,7 +62,7 @@ enum k1_komunikat_typ {
 
     /* gui / test → nadzorca */
     K1_KOM_URUCHOM = 50,      /* gui: a=aplikacja */
-    K1_KOM_WYLACZ = 51,       /* gui: a=0 power off, 1 restart */
+    K1_KOM_WYLACZ = 51,       /* gui: a=0 power off, 1 restart, 2 log out (gui only) */
     K1_KOM_TEST_POLACZ = 52,  /* test image only: a=rola, b=aplikacja, c=expected uid → reply + 1 fd */
     K1_KOM_TEST_PROBA = 53,   /* test image only: a=sandbox profile → reply when the probe ends */
     /* Instalator application → nadzorca (M5f, ADR 0018) */
@@ -79,6 +80,8 @@ enum k1_komunikat_typ {
 
     /* nadzorca → Zasoby (once a second; the application never writes to this channel) */
     K1_KOM_ZASOBY_SYSTEM = 62, /* obiekt=0, a=CPU ‰ (all CPUs), b,c = memory used,total MiB, d=CPUs, e=uptime s */
+    K1_KOM_ZASOBY_BATERIA = 59, /* obiekt=0, a=1 battery present, b=percent (-1 unknown), c=K1_BAT_*, d=power draw
+                                 * mW (-1 unknown, ≤ K1_MOC_MAKS_MW), e=minutes until empty/full (-1 unknown, ≤ 99 h) */
     K1_KOM_ZASOBY_USLUGA = 63, /* obiekt=K1_PROFIL_* of a service, a=CPU ‰ (of all CPUs), b=memory KiB, c=1 running */
     K1_KOM_BATERIA = 64,       /* to gui: obiekt=0, a=1 battery present, b=percent 0..100 (-1 unknown), c=K1_BAT_*,
                                 * d=1 on mains power; no battery: a=0, b=-1, c=0 (also to Ustawienia) */
@@ -92,7 +95,7 @@ enum k1_komunikat_typ {
     /* skarbiec → client */
     K1_KOM_SKARB_DANE = 80,   /* obiekt=object id, a=length; + 1 sealed memfd of that size */
     K1_KOM_SKARB_WYNIK = 81,  /* obiekt=object id, a=request type (70..75), b=result (0 or K1_MAG_* < 0),
-                               * c=K1_SKARB_TRWALY / _RAM / _ZABLOKOWANY, d=1 password set,
+                               * c=K1_SKARB_TRWALY / _RAM / _ZABLOKOWANY, d: bit 0 password set, bit 1 K1-DANE on USB,
                                * e=seconds until the next password attempt is accepted (0..K1_HASLO_PRZERWA) */
     /* skarbiec → nadzorca, on the control channel (direction K1_KIER_DO_NADZORCY) */
     K1_KOM_SKARB_STAN = 82,   /* a=K1_SKARB_* mode, b=1 password set */
@@ -192,6 +195,8 @@ enum k1_bateria_stan {
     K1_BAT_NIE_LADUJE = 4,   /* Not charging (on mains, e.g. charge threshold) */
 };
 #define K1_BAT_STAN_MAKS 4
+#define K1_MOC_MAKS_MW 1000000  /* 1 kW: anything above is a firmware error */
+#define K1_BAT_MINUT_MAKS (99 * 60)
 #define K1_BAT_HIST_MAKS 1440   /* samples of the battery history (nadzorca halves it when full) */
 #define K1_BAT_HIST_W_KOM 16    /* samples per K1_KOM_BATERIA_HIST */
 #define K1_BAT_ZASILACZ 0x80    /* sample bit: on mains */

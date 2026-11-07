@@ -96,7 +96,8 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         return kier == K1_KIER_STEROWANIE && klient(k);
     case K1_KOM_SKARB_KLIENT:
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 &&
-               (w(k->a, 1, K1_PROFIL_MAKS) || k->a == K1_WL_SYSTEM) && w(k->b, 0, 65535) && zera(k, 2);
+               (w(k->a, 1, K1_PROFIL_MAKS) || k->a == K1_WL_SYSTEM) && w(k->b, 0, 65535) && w(k->c, 0, 1) &&
+               zera(k, 3);
     case K1_KOM_INST_ZADANIE:
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && w(k->a, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ) &&
                (k->b == 512 || k->b == 4096) && zera(k, 2);
@@ -142,7 +143,7 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     case K1_KOM_SKARB_WYNIK:
         return kier == K1_KIER_OD_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS &&
                w(k->a, K1_KOM_SKARB_CZYTAJ, K1_KOM_SKARB_INFO) && w(k->b, K1_MAG_WYNIK_MIN, 0) &&
-               w(k->c, K1_SKARB_TRWALY, K1_SKARB_ZABLOKOWANY) && w(k->d, 0, 1) && w(k->e, 0, K1_HASLO_PRZERWA);
+               w(k->c, K1_SKARB_TRWALY, K1_SKARB_ZABLOKOWANY) && w(k->d, 0, 3) && w(k->e, 0, K1_HASLO_PRZERWA);
 
     case K1_KOM_POWIERZCHNIA:
         if (kier != K1_KIER_DO_EKRANU || !powierzchnia(k->obiekt) || !w(k->a, 1, K1_POW_MAKS_BOK) ||
@@ -196,7 +197,7 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     case K1_KOM_URUCHOM:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_APL_MAKS) && zera(k, 1);
     case K1_KOM_WYLACZ:
-        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 0, 1) && zera(k, 1);
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 0, 2) && zera(k, 1);
     case K1_KOM_TEST_POLACZ:
         return kier == K1_KIER_DO_NADZORCY && klient(k);
     case K1_KOM_TEST_PROBA:
@@ -212,6 +213,13 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     case K1_KOM_ZASOBY_USLUGA:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt >= 1 && k->obiekt <= K1_PROFIL_MAKS && w(k->a, 0, 1000) &&
                k->b >= 0 && w(k->c, 0, 1) && zera(k, 3);
+    case K1_KOM_ZASOBY_BATERIA:
+        if (kier != K1_KIER_OD_NADZORCY || k->obiekt != 0 || !w(k->a, 0, 1))
+            return 0;
+        if (k->a == 0)
+            return k->b == -1 && k->c == K1_BAT_NIEZNANY && k->d == -1 && k->e == -1;
+        return w(k->b, -1, 100) && w(k->c, 0, K1_BAT_STAN_MAKS) && w(k->d, -1, K1_MOC_MAKS_MW) &&
+               w(k->e, -1, K1_BAT_MINUT_MAKS);
     case K1_KOM_BATERIA:
         if (kier != K1_KIER_OD_NADZORCY || k->obiekt != 0 || !w(k->a, 0, 1) || !w(k->d, 0, 1) || k->e != 0)
             return 0;

@@ -3,6 +3,36 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.6.3] — 2026-11-07
+
+Etap **M6 — bezpieczne aktualizacje**, krok M6b (ADR 0021), oraz Twoje uwagi do 0.6.2.
+
+### Dodane
+- **System sprawdza sam siebie przy każdym starcie (dm-verity):** przed uruchomieniem pulpitu
+  odczytuje cały obraz systemu i porównuje go z odciskiem zapisanym przy budowie. Zmieniony choćby
+  jeden bajt (ktoś podmienił pliki na dysku albo nośnik się psuje) — system się nie uruchomi i powie
+  dlaczego, zamiast wykonać obcy kod. Sprawdzanie trwa ułamek sekundy (obraz ma ok. 30 MB).
+- **Wyloguj** w menu Start (obok „Uruchom ponownie” i „Wyłącz”): zamyka aplikacje i magazyn danych;
+  z hasłem wraca ekran hasła (dane znów zamknięte), bez hasła pulpit uruchamia się od nowa.
+- **Monitor zasobów → Bateria:** procent, aktualny pobór mocy (np. „pobór 9,4 W”) i szacowany czas:
+  „zostało ok. 3 h 20 min” na baterii albo „do pełna ok. 1 h 10 min” przy ładowaniu. Pobór jest
+  uśredniany z kilkunastu sekund (bez skakania przy każdym kliknięciu); przy otwartym Monitorze
+  odczyt co 5 s.
+
+### Naprawione
+- **„System myśli, że jest na pendrivie”:** Notatki, Ustawienia → Informacje i Ustawienia → Hasło
+  mówią teraz, gdzie naprawdę leżą dane — „na dysku komputera” albo „na pendrivie K1” (nadzorca wie,
+  czy partycja K1-DANE jest na USB). Napis bez magazynu danych wymienia obie możliwości (instalacja
+  na dysku albo pendrive z pliku `-usb.img.xz`).
+
+### Testy
+- QEMU: obraz bez odcisku, ze złym odciskiem i z jednym zmienionym bajtem → system się zatrzymuje
+  z komunikatem; poprawny obraz → „obraz rdzenia sprawdzony (dm-verity…)”. Start z hasłem → Wyloguj →
+  ekran hasła → hasło → pulpit. Zasoby: wiersz baterii (w QEMU: „brak baterii”).
+- Host: pobór mocy i energia z różnych sterowników (moc wprost, prąd × napięcie, ładunek × napięcie),
+  szacunek czasu, uśrednianie, bzdury z firmware'u; nowe komunikaty (`ZASOBY_BATERIA`, `WYLACZ` a=2,
+  „dane na USB”).
+
 ## [0.6.2] — 2026-11-07
 
 Etap **M6 — bezpieczne aktualizacje**, krok M6a (ADR 0021).

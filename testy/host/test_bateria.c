@@ -143,11 +143,60 @@ int main(void)
     fclose(fopen(p, "w"));
     EXPECT(jest(k, 0, -1, K1_BAT_NIEZNANY, 0));
 
+    /* 0.6.3: power draw and energy — power_now (µW), or current × voltage; charge × voltage → energy */
+    nowy(k, sizeof k);
+    zasilacz(k, "BAT0", "type", "Battery", "status", "Discharging", "energy_now", "32850000", "energy_full",
+             "45000000", "power_now", "9400000", NULL);
+    EXPECT(k1_bateria_odczytaj(k, &b) == 0 && b.moc_mw == 9400 && b.energia_mwh == 32850 && b.pelna_mwh == 45000);
+    EXPECT(k1_bateria_minuty(&b, 9400) == 210);  /* 32.85 Wh at 9.4 W: 3 h 30 min */
+    EXPECT(k1_bateria_minuty(&b, 50) == -1);     /* under 0.1 W: no estimate */
+    EXPECT(k1_bateria_minuty(&b, -1) == -1);
+    nowy(k, sizeof k);
+    zasilacz(k, "BAT1", "type", "Battery", "status", "Charging", "charge_now", "1000000", "charge_full", "4000000",
+             "current_now", "2000000", "voltage_now", "12000000", NULL);
+    EXPECT(k1_bateria_odczytaj(k, &b) == 0 && b.moc_mw == 24000 && b.energia_mwh == 12000 && b.pelna_mwh == 48000);
+    EXPECT(k1_bateria_minuty(&b, 24000) == 90);  /* 36 Wh missing at 24 W */
+    /* two batteries: the power adds up; one without any power reading → unknown */
+    nowy(k, sizeof k);
+    zasilacz(k, "BAT0", "type", "Battery", "status", "Discharging", "energy_now", "10000000", "energy_full", "20000000",
+             "power_now", "5000000", NULL);
+    zasilacz(k, "BAT1", "type", "Battery", "status", "Discharging", "energy_now", "10000000", "energy_full", "20000000",
+             "power_now", "3000000", NULL);
+    EXPECT(k1_bateria_odczytaj(k, &b) == 0 && b.moc_mw == 8000 && b.energia_mwh == 20000 && k1_bateria_minuty(&b, 8000) == 150);
+    nowy(k, sizeof k);
+    zasilacz(k, "BAT0", "type", "Battery", "status", "Discharging", "energy_now", "10000000", "energy_full", "20000000",
+             "power_now", "5000000", NULL);
+    zasilacz(k, "BAT1", "type", "Battery", "status", "Discharging", "capacity", "50", NULL);
+    EXPECT(k1_bateria_odczytaj(k, &b) == 0 && b.moc_mw == -1 && b.energia_mwh == -1 && k1_bateria_minuty(&b, 5000) == -1);
+    /* garbage and absurd voltages: unknown, never an overflow */
+    nowy(k, sizeof k);
+    zasilacz(k, "BAT0", "type", "Battery", "status", "Discharging", "charge_now", "1000000", "charge_full", "2000000",
+             "current_now", "999999999999", "voltage_now", "999999999999", NULL);
+    EXPECT(k1_bateria_odczytaj(k, &b) == 0 && b.moc_mw == -1 && b.energia_mwh == -1);
+    /* full, or a week at 0.1 W: no estimate */
+    {
+        struct k1_bateria t = { 1, 100, K1_BAT_PELNA, 1, 5000, 45000, 45000 };
+        EXPECT(k1_bateria_minuty(&t, 5000) == -1);
+        t.stan = K1_BAT_ROZLADOWANIE;
+        EXPECT(k1_bateria_minuty(&t, 100) == -1 && k1_bateria_minuty(&t, 45000) == 60);
+        t.obecna = 0;
+        EXPECT(k1_bateria_minuty(&t, 45000) == -1);
+    }
+    /* smoothing: the first reading as is, then 30 % of each new one; unknown keeps the old value */
+    EXPECT(k1_bateria_srednia(-1, 10000) == 10000 && k1_bateria_srednia(10000, 20000) == 13000);
+    EXPECT(k1_bateria_srednia(13000, -1) == 13000 && k1_bateria_srednia(-1, -1) == -1);
+    {
+        struct k1_bateria x = { 1, 50, K1_BAT_ROZLADOWANIE, 0, 1, 2, 3 }, y = { 1, 50, K1_BAT_ROZLADOWANIE, 0, 9, 8, 7 };
+        EXPECT(k1_bateria_ta_sama(&x, &y));
+        y.procent = 49;
+        EXPECT(!k1_bateria_ta_sama(&x, &y));
+    }
+
     /* history (0.5.5): samples, packing into messages, compaction when full */
     {
         static struct k1_bat_historia h;
-        struct k1_bateria s1 = { 1, 73, K1_BAT_ROZLADOWANIE, 0 }, s2 = { 1, 74, K1_BAT_LADOWANIE, 1 },
-                          brak = { 0, -1, 0, 0 }, nieznany = { 1, -1, 0, 1 };
+        struct k1_bateria s1 = { 1, 73, K1_BAT_ROZLADOWANIE, 0, -1, -1, -1 }, s2 = { 1, 74, K1_BAT_LADOWANIE, 1, -1, -1, -1 },
+                          brak = { 0, -1, 0, 0, -1, -1, -1 }, nieznany = { 1, -1, 0, 1, -1, -1, -1 };
         struct k1_komunikat km, sp;
         int i, ok = 1;
         k1_bat_hist_init(&h, 30);

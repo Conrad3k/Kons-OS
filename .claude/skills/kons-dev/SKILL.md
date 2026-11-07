@@ -60,6 +60,10 @@ kodzie zamiast ręcznego `k1_kanal_odbierz` + sprawdzeń), historia baterii (`k1
 narzędziem `narzedzia/podpisz.c` z sekretu CI `K1_KLUCZ_PODPISU` (właściciel dodaje sam — **nigdy nie proś o klucz w
 czacie**); bez sekretu = wersja deweloperska (`build/gen/k1_klucz.h`: `K1_KLUCZ_JEST 0`). Instalator: skrót, podpis
 (gdy klucz), zakaz starszej wersji. Kolejne kroki M6: b dm-verity, c A/B, d Secure Boot (MOK).
+0.6.3 — **M6b**: `rdzen.squashfs` = SquashFS + drzewo dm-verity (`verity()` w `wspolne.sh`, `veritysetup
+--no-superblock`, stała sól), skrót w `rdzen.squashfs.skrot` → `k1.rdzen_skrot=` w GRUB/QEMU (obowiązkowy; nowy
+obraz testowy w QEMU = też `verity` i skrót). Initramfs czyta całe `/dev/dm-N` przed montowaniem. Start → Wyloguj
+(`WYLACZ` a=2 → `zamknij_sesje()`), `SKARB_KLIENT` c / `SKARB_WYNIK` d bit 1 = K1-DANE na USB, `ZASOBY_BATERIA`.
 Pierwszy laptop właściciela: **ThinkPad X230** (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez
 simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
 

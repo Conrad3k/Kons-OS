@@ -125,6 +125,25 @@ if tryb == "haslo":
             czekaj(r"K1-GUI: pulpit gotowy", czas=90))
     time.sleep(3)
     zrzut("haslo-3-pulpit")
+    # 0.6.3: Start → Wyloguj: the apps close, the vault locks again, the password screen comes back
+    g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+)", czas=10)
+    kt = kursor_teraz()
+    if kt:
+        kursor[:] = list(kt)
+    if g:
+        klik(int(g.group(1)), int(g.group(2)))
+        m = czekaj(r"menu Start otwarte \(.*; Wyloguj (\d+),(\d+)\)", czas=20)
+        if m:
+            klik(int(m.group(1)), int(m.group(2)))
+    sprawdz("Start → Wyloguj: magazyn zamknięty, z powrotem ekran hasła",
+            czekaj(r"K1-NADZORCA: wylogowanie", czas=30) and
+            czekaj(r"K1-LOGOWANIE: ekran hasła gotowy", od=1, czas=90))
+    time.sleep(2)
+    zrzut("haslo-4-wylogowano")
+    pisz("t", "a", "j", "n", "e", "1", "ret")
+    sprawdz("po wylogowaniu hasło znów otwiera pulpit",
+            czekaj(r"K1-SKARBIEC: magazyn odblokowany", od=1, czas=120) and
+            czekaj(r"K1-GUI: pulpit gotowy", od=1, czas=90))
     t_ = tekst()
     sprawdz("hasło nie trafia do logu", "tajne1" not in t_ and "zle1" not in t_)
     sprawdz("brak 'Kernel panic', błędów i zablokowanych wywołań", "Kernel panic" not in t_ and "BŁĄD" not in t_
@@ -204,7 +223,7 @@ if tryb != "pulpit":
 
 # menu Start → Notatki
 klik(sx, sy)
-m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+)\)")
+m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);")
 sprawdz("menu Start otwiera się po kliknięciu", m)
 if not m: sys.exit(1)
 rx, ry, rk, wx, wy = (int(m.group(i)) for i in range(1, 6))
@@ -295,6 +314,8 @@ zs = czekaj(r"K1-EKRAN: okno (\d+) \(zasoby\) (\d+)x(\d+) w (\d+),(\d+)")
 dane = czekaj(r"K1-ZASOBY: dane od nadzorcy: procesor (\d+)‰, pamięć (\d+) z (\d+) MiB, (\d+) CPU")
 sprawdz("Zasoby: uruchomione z dolnego paska, dane od nadzorcy (procesor, pamięć)", zs and dane and int(dane.group(3)) > 100,
         dane.group(0) if dane else "brak danych")
+sprawdz("Zasoby: wiersz baterii (QEMU bez baterii: zasilanie z sieci)",
+        czekaj(r"K1-ZASOBY: bateria: brak baterii — zasilanie z sieci", czas=10))
 if zs:
     zx, zy = int(zs.group(4)), int(zs.group(5)); time.sleep(8)
     w, h, px = zrzut("8-zasoby")
@@ -308,7 +329,7 @@ sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych k
         "Kernel panic" not in tx_ and "BŁĄD" not in tx_ and "zabronione wywołanie" not in tx_ and "odrzucono" not in tx_)
 # Start → Wyłącz: kontrolowane wyłączenie
 klik(sx, sy)
-m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+)\)", od=1)
+m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);", od=1)
 if m: wx, wy = int(m.group(4)), int(m.group(5))
 klik(wx, wy)
 sprawdz("Start → Wyłącz: system się wyłącza", czekaj(r"K1: wyłączanie zasilania") and czekaj(r"reboot: Power down"))

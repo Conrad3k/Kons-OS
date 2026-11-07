@@ -66,6 +66,7 @@ static int pytanie;            /* "delete this note?" shown in the footer */
 static int nad_wierszem = -1;  /* hover: row of the list, -2 = the new note button */
 static int pelno;              /* the limit of notes was hit (message in the footer) */
 static double zmiana;          /* when the open note last changed (0: saved) */
+static int na_usb; /* the K1-DANE skarbiec uses is on a USB stick (WYNIK d bit 1) */
 static int zapis_blad, skarb = -1, tryb = -1; /* tryb: K1_SKARB_TRWALY / K1_SKARB_RAM */
 
 static double teraz(void)
@@ -318,7 +319,8 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
              : pelno      ? "Najwięcej 32 notatki — usuń którąś, żeby dodać nową"
              : zmiana > 0 ? "Zapisywanie…"
              : skarb < 0  ? "Bez zapisu — brak usługi danych"
-             : tryb == K1_SKARB_TRWALY ? "Zapisano na dysku (zaszyfrowane)"
+             : tryb == K1_SKARB_TRWALY ? (na_usb ? "Zapisano na pendrivie K1 (zaszyfrowane)"
+                                                 : "Zapisano na dysku komputera (zaszyfrowane)")
                           : "Zapisano tylko do wyłączenia komputera (brak partycji K1-DANE)",
              k1_kolor(zapis_blad ? m->akcent_tekst : m->tekst3, 255), x_usun() - LEWO - 16);
     k1_tekst(o, K1_CZ_MALA_MOCNA, x_usun(), apl.wys - 13, "Usuń notatkę", k1_kolor(m->tekst2, 255), 0);
@@ -459,6 +461,7 @@ static void odbierz_wyniki(void)
             return;
         }
         tryb = k.c;
+        na_usb = (k.d & 2) != 0;
         if (k.a == K1_KOM_SKARB_ZAPISZ && k.b != 0 && !zapis_blad) {
             zapis_blad = 1;
             k1_log(TAG, "skarbiec: zapis notatki nieudany (%d)", k.b);

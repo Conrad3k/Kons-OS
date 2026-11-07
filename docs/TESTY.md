@@ -50,6 +50,9 @@ Ręcznie: `scripts/uruchom-qemu.sh [--obraz build/wynik/rdzen-test.squashfs]` i 
 | qemu: neg-brak-parametru | `brak parametru k1.rdzen` | negatywny |
 | qemu: neg-zly-parametr | `k1.rdzen=/dev/../vda` odrzucony | negatywny |
 | qemu: neg-powtorzony-parametr | dwa `k1.rdzen=` odrzucone | negatywny |
+| qemu: neg-brak-skrotu | brak `k1.rdzen_skrot` → awaria (0.6.3, dm-verity) | negatywny |
+| qemu: neg-zly-skrot | skrót innego obrazu → odczyt się nie udaje, awaria | negatywny |
+| qemu: neg-zmieniony-obraz | jeden bajt obrazu zmieniony → „obraz rdzenia jest zmieniony…” | negatywny |
 
 We wszystkich scenariuszach QEMU: brak `Kernel panic`; w negatywnych maszyna musi sama się wyłączyć
 przed upływem limitu.

@@ -23,7 +23,7 @@ deskryptorze partycji — innych plików nie ma), `getrandom`, `memfd_create`, `
 `RLIMIT_FSIZE` 2 MiB (memfd; zapisu na urządzenie blokowe ten limit nie dotyczy — `block/fops.c`).
 
 ## Wejścia i wyjścia
-- fd 3: kanał sterujący od nadzorcy — `SKARB_KLIENT(właściciel, uid)` + koniec kanału klienta.
+- fd 3: kanał sterujący od nadzorcy — `SKARB_KLIENT(właściciel, uid, na_usb)` + koniec kanału klienta (0.6.3: `na_usb` wraca do klientów w `SKARB_WYNIK` d, bit 1).
 - fd 4: partycja GPT „K1-DANE” (otwarta przez nadzorcę `O_RDWR|O_EXCL`); brak → tryb „tylko w pamięci”.
 - Kanały klientów: `SKARB_CZYTAJ`, `SKARB_ZAPISZ` (+ zapieczętowany memfd o podanym rozmiarze),
   `SKARB_USUN` → `SKARB_DANE` (+ memfd) albo `SKARB_WYNIK` (wynik, tryb: dysk / pamięć).

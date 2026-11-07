@@ -1,6 +1,6 @@
 # 0021. Bezpieczne aktualizacje (M6): manifest, podpis, wersje, dm-verity, A/B, Secure Boot
 
-- Status: Przyjęty (M6a wdrożone w 0.6.2; M6b–M6d — kolejne kroki)
+- Status: Przyjęty (M6a wdrożone w 0.6.2, M6b w 0.6.3; M6c–M6d — kolejne kroki)
 - Data: 2026-11-07
 - Dotyczy: ADR 0018 (instalator), ADR 0019 (plan), SPEC §6, RYZYKA R38, R41
 
@@ -34,6 +34,17 @@ Secure Boot (M6d).
 
 **M6b — dm-verity dla rdzenia:** obraz rdzenia z drzewem skrótów, skrót główny w initramfs (podpisanym
 w M6d); podmiana bajtu = bezpieczne zatrzymanie (dawne M5.2).
+
+*Wdrożone (0.6.3):* `veritysetup format --no-superblock` (SHA-256, bloki 4 KiB, stała sól — obraz
+powtarzalny) dopisuje drzewo skrótów za SquashFS w tym samym pliku `rdzen.squashfs`; skrót główny
+(`rdzen.squashfs.skrot`, też w `SHA256SUMS`) trafia do linii poleceń jądra jako `k1.rdzen_skrot=`
+(GRUB z USB i ISO, QEMU). Initramfs: bez parametru albo z niepoprawnym (nie 64 znaki hex) — awaria;
+rozmiar danych z nagłówka SquashFS (`bytes_used`), urządzenie `k1-rdzen` tworzone przez ioctl
+device-mappera (bez libdevmapper), potem **odczyt całego urządzenia** (≈ 30 MB, każdy blok sprawdzony
+od razu, nie dopiero przy pierwszym użyciu) i dopiero montowanie `/dev/dm-N`. Błąd odczytu = obraz
+zmieniony → awaria z komunikatem. Jądro: `DM_VERITY` bez FEC i bez podpisu skrótu (podpis przyjdzie
+z UKI w M6d — do tego czasu skrót chroni przed uszkodzeniem i podmianą samego obrazu, nie przed
+podmianą całego pendrive'a razem z linią poleceń; ten przypadek zamyka Secure Boot).
 
 **M6c — A/B:** w partycji K1-EFI 512 MiB dwa miejsca na system; aktualizacja pisze do nieużywanego,
 GRUB próbuje nowego raz, po udanym starcie system go zatwierdza; nieudany = powrót do poprzedniego.
