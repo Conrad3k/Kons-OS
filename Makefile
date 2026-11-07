@@ -51,7 +51,19 @@ APLIKACJE := $(BIN)/zegar $(BIN)/notatki $(BIN)/ustawienia $(BIN)/zasoby $(BIN)/
 PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(BIN)/wejscie $(BIN)/ekran $(BIN)/gui $(BIN)/skarbiec $(BIN)/logowanie $(BIN)/instalator $(APLIKACJE) \
             $(BIN)/k1-test-systemu
 
-all: $(PROGRAMY) $(GEN)/start.png
+all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz
+
+# M6a (ADR 0021): manifests and signatures of system images. The key comes from the environment
+# (K1_KLUCZ_PODPISU, the CI secret); without it: a developer build (unsigned, no key in K1).
+MANIFEST := src/wspolne/k1_manifest.c src/wspolne/k1_manifest.h $(MONOCYPHER)
+$(OBJ)/podpisz: narzedzia/podpisz.c $(MANIFEST) | $(OBJ)
+	$(CC_HOST) -std=c11 -O2 -D_GNU_SOURCE -Wall -Wextra -Werror -Isrc/wspolne -Isrc/zewnetrzne/monocypher \
+		-o $@ narzedzia/podpisz.c src/wspolne/k1_manifest.c $(MONOCYPHER)
+
+# regenerated on every build, replaced only when it changed (the key may differ between builds)
+$(GEN)/k1_klucz.h: $(OBJ)/podpisz FORCE | $(GEN)
+	$(OBJ)/podpisz klucz-publiczny > $@.tmp && { cmp -s $@.tmp $@ && rm -f $@.tmp || mv $@.tmp $@; }
+FORCE:
 
 # Boot screen for GRUB (0.5.8): the K1 mark drawn on the host with the same code, as a PNG.
 $(OBJ)/ekran_startowy: narzedzia/ekran_startowy.c $(PRZYB) $(NAGL_P) | $(OBJ)
@@ -69,12 +81,14 @@ $(BIN)/init: src/init/main.c $(WSPOLNE) $(NAGL) | $(BIN)
 # nadzorca in modules (0.6.0, ADR 0019): main.c (loop), uslugi, profile, urzadzenia, skarb, instalacja, zasoby,
 # test; pure parts with host tests: bateria, dyski, uevent.
 NADZORCA := $(sort $(wildcard src/nadzorca/*.c))
-$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ $(NADZORCA) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(MANIFEST) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -o $@ $(NADZORCA) src/wspolne/k1_manifest.c $(MONOCYPHER) \
+		$(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
-$(BIN)/instalator: src/instalator/main.c src/instalator/gpt.c src/instalator/gpt.h $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ src/instalator/main.c src/instalator/gpt.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/instalator: src/instalator/main.c src/instalator/gpt.c src/instalator/gpt.h $(MANIFEST) $(GEN)/k1_klucz.h $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -I$(GEN) -o $@ src/instalator/main.c src/instalator/gpt.c \
+		src/wspolne/k1_manifest.c $(MONOCYPHER) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 SKARBIEC := src/skarbiec/main.c src/skarbiec/magazyn.c $(MONOCYPHER)
 $(BIN)/skarbiec: $(SKARBIEC) src/skarbiec/magazyn.h $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
@@ -156,7 +170,11 @@ $(OBJ)/test_odbior: testy/host/test_odbior.c src/wspolne/k1_odbior.c src/wspolne
 $(OBJ)/test_bat_arch: testy/host/test_bat_arch.c src/wspolne/k1_bat_arch.c src/wspolne/k1_bat_arch.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_bat_arch.c src/wspolne/k1_bat_arch.c
 
-testy-host: $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator
+$(OBJ)/test_manifest: testy/host/test_manifest.c $(MANIFEST) | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_manifest.c src/wspolne/k1_manifest.c $(MONOCYPHER)
+
+testy-host: $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator
+	$(OBJ)/test_manifest
 	$(OBJ)/test_bat_arch
 	$(OBJ)/test_odbior
 	$(OBJ)/test_uevent
@@ -202,7 +220,12 @@ $(OBJ)/fuzz_bat_arch: testy/host/fuzz_bat_arch.c src/wspolne/k1_bat_arch.c src/w
 	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
 		-fno-sanitize-recover=all -Isrc/wspolne -o $@ testy/host/fuzz_bat_arch.c src/wspolne/k1_bat_arch.c
 
-fuzz: $(OBJ)/fuzz_cmdline $(OBJ)/fuzz_zdarzenie $(OBJ)/fuzz_komunikat $(OBJ)/fuzz_magazyn $(OBJ)/fuzz_uevent $(OBJ)/fuzz_bat_arch
+$(OBJ)/fuzz_manifest: testy/host/fuzz_manifest.c $(MANIFEST) | $(OBJ)
+	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
+		-fno-sanitize-recover=all -Isrc/wspolne -Isrc/zewnetrzne/monocypher -o $@ testy/host/fuzz_manifest.c \
+		src/wspolne/k1_manifest.c $(MONOCYPHER)
+
+fuzz: $(OBJ)/fuzz_manifest $(OBJ)/fuzz_cmdline $(OBJ)/fuzz_zdarzenie $(OBJ)/fuzz_komunikat $(OBJ)/fuzz_magazyn $(OBJ)/fuzz_uevent $(OBJ)/fuzz_bat_arch
 	mkdir -p $(BUDOWA)/fuzz-korpus $(BUDOWA)/fuzz-korpus-zdarzenie $(BUDOWA)/fuzz-korpus-komunikat
 	$(OBJ)/fuzz_cmdline -max_total_time=$(FUZZ_CZAS) -max_len=8192 $(BUDOWA)/fuzz-korpus testy/host/korpus
 	$(OBJ)/fuzz_zdarzenie -max_total_time=$(FUZZ_CZAS) -max_len=64 $(BUDOWA)/fuzz-korpus-zdarzenie
@@ -211,10 +234,12 @@ fuzz: $(OBJ)/fuzz_cmdline $(OBJ)/fuzz_zdarzenie $(OBJ)/fuzz_komunikat $(OBJ)/fuz
 	$(OBJ)/fuzz_magazyn -max_total_time=$(FUZZ_CZAS) -max_len=16384 $(BUDOWA)/fuzz-korpus-magazyn
 	mkdir -p $(BUDOWA)/fuzz-korpus-uevent
 	$(OBJ)/fuzz_uevent -max_total_time=$(FUZZ_CZAS) -max_len=8192 $(BUDOWA)/fuzz-korpus-uevent
+	mkdir -p $(BUDOWA)/fuzz-korpus-manifest
+	$(OBJ)/fuzz_manifest -max_total_time=$(FUZZ_CZAS) -max_len=512 $(BUDOWA)/fuzz-korpus-manifest
 	mkdir -p $(BUDOWA)/fuzz-korpus-bat-arch
 	$(OBJ)/fuzz_bat_arch -max_total_time=$(FUZZ_CZAS) -max_len=9000 $(BUDOWA)/fuzz-korpus-bat-arch
 
 clean:
 	rm -rf $(BIN) $(OBJ)
 
-.PHONY: all testy-host fuzz clean
+.PHONY: all testy-host fuzz clean FORCE

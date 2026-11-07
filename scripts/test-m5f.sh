@@ -82,6 +82,24 @@ if tryb == "z-iso":
             "potwierdzono" not in tekst() and "instalator: odmowa" not in tekst())
     koniec()
 
+if tryb == "uszkodzony":  # M6a: one byte of the system on the stick changed
+    klik(px, py); time.sleep(1)
+    monitor("sendkey u", "sendkey s", "sendkey u", "sendkey n"); time.sleep(1)
+    klik(px, py)
+    sprawdz("uszkodzony system na pendrivie: instalator odmawia przed zapisem (skrót niezgodny z manifestem)",
+            czekaj(r"K1-INSTALATOR: źródło [0-9.]+: skrót systemu nie zgadza się z manifestem", czas=120)
+            and czekaj(r"K1-INSTALACJA: kod -8", czas=20))
+    zrzut("0-uszkodzony")
+    koniec()
+
+if tryb == "starsza":  # M6a: the disk says 99.0.0 — the stick is older
+    sprawdz("na dysku nowsza wersja (99.0.0) niż na pendrivie",
+            czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: tak \(dane otwarte\) \(wersja 6488064\)", czas=5))
+    klik(px, py); time.sleep(1); zrzut("5-starsza")
+    klik(px, py); time.sleep(2)
+    sprawdz("powrót do starszej wersji zablokowany (przycisk nieaktywny, nic się nie zaczyna)", "potwierdzono" not in tekst())
+    koniec()
+
 if tryb == "instaluj":
     sprawdz("dysk pusty: bez Kons K1", czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: nie", czas=5))
     zrzut("1-lista")
@@ -127,6 +145,14 @@ PY
 
 SATA="-drive if=none,id=dysk,file=$DYSK,format=raw -device ide-hd,bus=ide.0,drive=dysk"
 uruchom z-iso 0-z-iso --iso "$K1_WYNIK/k1-$K1_WERSJA.iso" --uefi --vga virtio --qemu "$SATA"
+# M6a: a stick whose system was changed (one byte in the FAT area) — refused before any write
+cp "$PEN" "$TESTY/m5f-uszkodzony.img"
+python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); f.seek((1+46)*1024*1024+12345); b=f.read(1); f.seek(-1,1); f.write(bytes([b[0]^0xff])); f.close()' \
+    "$TESTY/m5f-uszkodzony.img"
+uruchom uszkodzony 0-uszkodzony --pendrive "$TESTY/m5f-uszkodzony.img" --qemu "$SATA"
+if sfdisk -d "$DYSK" >/dev/null 2>&1; then echo "  [BŁĄD]  po odmowie na dysku jest tablica partycji"; r=1
+else echo "  [OK]    po odmowie dysk nietknięty (bez tablicy partycji)"; fi
+rm -f "$TESTY/m5f-uszkodzony.img"
 uruchom instaluj 1-instalacja --pendrive "$PEN" --qemu "$SATA"
 if sfdisk -d "$DYSK" 2>/dev/null | grep -q 'name="K1-EFI"' && sfdisk -d "$DYSK" | grep -q 'name="K1-DANE"' \
     && sfdisk --verify "$DYSK" >/dev/null 2>&1; then
@@ -138,6 +164,9 @@ uruchom z-dysku 2-z-dysku --dysk-uefi "$DYSK"
 PEN_USB="-device qemu-xhci,id=xhci -drive if=none,id=pendrive,file=$PEN,format=raw -device usb-storage,bus=xhci.0,drive=pendrive"
 uruchom aktualizuj 3-aktualizacja --pendrive "$PEN" --qemu "$SATA"
 uruchom po-aktualizacji 4-po-aktualizacji --dysk-uefi "$DYSK" --qemu "$PEN_USB"
+# M6a: pretend the disk has 99.0.0 (manifest at 1 MiB + 47 MiB: version number and text)
+python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); o=(1+47)*1024*1024; f.seek(o+8); f.write((99<<16).to_bytes(4,"little")); f.seek(o+24); f.write(b"99.0.0".ljust(24,b"\0")); f.close()' "$DYSK"
+uruchom starsza 5-starsza --pendrive "$PEN" --qemu "$SATA"
 rm -f "$DYSK" "$PEN"
 if [ $r -eq 0 ]; then info "M5f: wszystko zaliczone (zrzuty: $TESTY/m5f-*.png)"; else echo "[k1] M5f: BŁĄD (logi: $TESTY/m5f-*.log)"; fi
 exit $r

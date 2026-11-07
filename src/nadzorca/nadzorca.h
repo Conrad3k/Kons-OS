@@ -26,6 +26,7 @@
 #include "k1_log.h"
 #include "k1_odbior.h"
 #include "k1_bat_arch.h"
+#include "k1_manifest.h"
 #include "k1_memfd.h"
 #include "k1_skarb_klient.h"
 #include "k1_uslugi.h"

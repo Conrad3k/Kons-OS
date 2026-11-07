@@ -3,6 +3,32 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.6.2] — 2026-11-07
+
+Etap **M6 — bezpieczne aktualizacje**, krok M6a (ADR 0021).
+
+### Dodane
+- **Manifest systemu:** na pendrivie i na dysku przy systemie leży „metryczka” — wersja, odcisk
+  (skrót) całego systemu i podpis klucza K1.
+- **Instalator sprawdza, co instaluje:** zanim cokolwiek zapisze, liczy odcisk systemu z pendrive'a;
+  zmieniony albo uszkodzony system odrzuca. Gdy K1 jest zbudowany z kluczem — wymaga też ważnego
+  **podpisu** (podrobiony system nie przejdzie).
+- **Bez powrotu do starszej wersji:** aktualizacja ze starszego pendrive'a jest zablokowana (starsze
+  wersje mogą mieć poprawione już dziury). Ta sama wersja — wolno (naprawa).
+- Okno Instalatora pokazuje wersje: „Na dysku: 0.6.1 → z pendrive'a: 0.6.2 (podpisana)”.
+- Wydanie na GitHubie mówi, czy jest podpisane. **Do podpisów potrzebny jest jednorazowo Twój klucz**
+  (README → „Klucz podpisu”) — do tego czasu wydania są „deweloperskie”.
+
+### Zmienione
+- System plików systemu na pendrivie ma 47 MB (ostatni MB partycji to manifest).
+- Najbezpieczniej aktualizować **z zainstalowanego K1**: start z dysku, pendrive z nową wersją
+  podłączony, Instalator → Zaktualizuj (wtedy sprawdza Twój system, nie kod z pendrive'a).
+
+### Testy
+- Host: manifest (podpis tylko z właściwym kluczem i niezmienionymi bajtami, obcy klucz, złe dane),
+  fuzzing. QEMU: pendrive ze zmienionym jednym bajtem systemu → odmowa, dysk nietknięty; dysk z
+  nowszą wersją → aktualizacja zablokowana.
+
 ## [0.6.1] — 2026-11-07
 
 ### Naprawione

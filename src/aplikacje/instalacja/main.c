@@ -37,6 +37,27 @@ static struct {
     int32_t mib, rodzaj, k1, sektor, zajety;
 } dyski[K1_INST_DYSKI_MAKS];
 static int n_dyskow, zrodlo, wybrany = -1, tryb = K1_INST_INSTALUJ, procent, etap, wynik;
+static int32_t wersja_zrodla, zrodlo_podpisane; /* M6a: the stick's manifest (0: none) */
+
+/* "0.6.2" from major<<16|minor<<8|patch */
+static void tekst_wersji(int32_t w, char *buf, size_t n)
+{
+    snprintf(buf, n, "%d.%d.%d", (int)(w >> 16 & 0xff), (int)(w >> 8 & 0xff), (int)(w & 0xff));
+}
+
+/* The version on disk `i`: -1 = no K1, 0 = K1 without a manifest (0.5.9–0.6.1), else the version. */
+static int32_t wersja_dysku(int i)
+{
+    if (!dyski[i].k1)
+        return -1;
+    return dyski[i].k1 & K1_INST_WERSJA ? dyski[i].k1 & 0xffffff : 0;
+}
+
+/* An update would go back to an older version (the writing program refuses it too). */
+static int starsza(void)
+{
+    return wybrany >= 0 && wersja_dysku(wybrany) > 0 && wersja_zrodla > 0 && wersja_zrodla < wersja_dysku(wybrany);
+}
 static char pole[64];
 static size_t pole_dl;
 static int hover = -1; /* 0..7 disk, 10 primary button, 11 secondary button */
@@ -66,6 +87,10 @@ static const char *blad_tekst(int b)
         return "Dysk zwrócił inne dane niż zapisane. Dysk może być uszkodzony.";
     case K1_INST_BLAD_ZRODLO:
         return "Nie znaleziono systemu do skopiowania (uruchom K1 z pendrive'a).";
+    case K1_INST_BLAD_PODPIS:
+        return "System na pendrivie nie jest podpisaną kopią Kons K1 (albo jest uszkodzony) — nie zapisuję go.";
+    case K1_INST_BLAD_STARSZA:
+        return "Na pendrivie jest starsza wersja niż na dysku — powrót do starszej wersji jest zablokowany.";
     case K1_INST_BLAD_PRZERWANE:
         return "Program zapisujący zakończył się bez wyniku.";
     default:
@@ -204,11 +229,16 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
             k1_ikona(o, K1_IK_DYSK, LEWO + 16, (float)y + 18, 24, k1_kolor(m->tekst, 255));
             opis_dysku(i, buf, sizeof buf);
             k1_tekst(o, K1_CZ_TEKST_MOCNA, LEWO + 56, y + 26, buf, k1_kolor(m->tekst, 255), 0);
-            k1_tekst(o, K1_CZ_MALA, LEWO + 56, y + 45,
-                     dyski[i].k1 ? (dyski[i].zajety ? "Jest na nim Kons K1 z Twoimi danymi (używany teraz)"
-                                                    : "Jest na nim Kons K1")
-                                 : "Wszystko, co jest na tym dysku, zostanie usunięte",
-                     k1_kolor(m->tekst2, 255), apl.szer - 2 * LEWO - 72);
+            if (dyski[i].k1) {
+                char w[16] = "";
+                if (wersja_dysku(i) > 0)
+                    tekst_wersji(wersja_dysku(i), w, sizeof w);
+                snprintf(buf, sizeof buf, "Jest na nim Kons K1%s%s%s", w[0] ? " " : "", w,
+                         dyski[i].zajety ? " z Twoimi danymi (używany teraz)" : "");
+            } else {
+                snprintf(buf, sizeof buf, "Wszystko, co jest na tym dysku, zostanie usunięte");
+            }
+            k1_tekst(o, K1_CZ_MALA, LEWO + 56, y + 45, buf, k1_kolor(m->tekst2, 255), apl.szer - 2 * LEWO - 72);
         }
         break;
     case S_POTWIERDZ:
@@ -229,9 +259,24 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         } else {
             k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Aktualizacja", k1_kolor(m->tekst, 255), 0);
             k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 58, buf, k1_kolor(m->tekst, 255), 0);
-            snprintf(buf, sizeof buf, "System na dysku zostanie zastąpiony wersją %s z pendrive'a.", K1_WERSJA);
+            {
+                char stara[16] = "?", nowa[16] = "?";
+                if (wersja_dysku(wybrany) > 0)
+                    tekst_wersji(wersja_dysku(wybrany), stara, sizeof stara);
+                else
+                    snprintf(stara, sizeof stara, "0.5.9–0.6.1");
+                if (wersja_zrodla > 0)
+                    tekst_wersji(wersja_zrodla, nowa, sizeof nowa);
+                snprintf(buf, sizeof buf, "Na dysku: %s  →  z pendrive'a: %s%s", stara, nowa,
+                         wersja_zrodla > 0 ? (zrodlo_podpisane ? " (podpisana)" : " (wersja deweloperska)") : "");
+            }
             k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 84, buf, k1_kolor(m->tekst, 255), 0);
-            k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 104, "Twoje dane (ustawienia, notatki, hasło) zostają.", k1_kolor(m->tekst, 255), 0);
+            if (starsza())
+                k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 108, "Na pendrivie jest starsza wersja — aktualizacja zablokowana.",
+                         k1_kolor(m->akcent_tekst, 255), 0);
+            else
+                k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 108, "Twoje dane (ustawienia, notatki, hasło) zostają.",
+                         k1_kolor(m->tekst, 255), 0);
         }
         break;
     case S_POSTEP: {
@@ -281,7 +326,8 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     przyciski(&x1, &x2, &w1, &w2, &e1, &e2);
     if (e1 != NULL)
         przycisk(o, m, x1, w1, e1, 1,
-                 !(stan == S_LISTA && wybrany < 0) && !(stan == S_POTWIERDZ && tryb == K1_INST_INSTALUJ && !potwierdzone()),
+                 !(stan == S_LISTA && wybrany < 0) && !(stan == S_POTWIERDZ && tryb == K1_INST_INSTALUJ && !potwierdzone()) &&
+                     !(stan == S_POTWIERDZ && tryb == K1_INST_AKTUALIZUJ && starsza()),
                  hover == 10);
     if (e2 != NULL)
         przycisk(o, m, x2, w2, e2, 0, 1, hover == 11);
@@ -324,6 +370,8 @@ static void odbierz(void)
             if (stan != S_SZUKAM || k.a != n_dyskow)
                 break;
             zrodlo = k.b;
+            wersja_zrodla = k.c;
+            zrodlo_podpisane = k.d;
             stan = S_LISTA;
             wybrany = n_dyskow == 1 ? 0 : -1;
             /* the tests click by this line (the main button: its right end, whatever its label) */
@@ -331,8 +379,9 @@ static void odbierz(void)
                    zrodlo == 1 ? "jest" : zrodlo == 2 ? "dwa pendrive'y K1" : "brak", apl.szer / 2, DYSKI_Y + DYSK_H / 2, DYSK_H + 8, apl.szer - LEWO - 24,
                    przyciski_y() + PRZ_H / 2);
             for (i = 0; i < n_dyskow; i++)
-                k1_log(TAG, "dysk %d: %d MiB, rodzaj %d, Kons K1: %s%s", i + 1, (int)dyski[i].mib, (int)dyski[i].rodzaj,
-                       dyski[i].k1 ? "tak" : "nie", dyski[i].zajety ? " (dane otwarte)" : "");
+                k1_log(TAG, "dysk %d: %d MiB, rodzaj %d, Kons K1: %s%s (wersja %d)", i + 1, (int)dyski[i].mib,
+                       (int)dyski[i].rodzaj, dyski[i].k1 ? "tak" : "nie", dyski[i].zajety ? " (dane otwarte)" : "",
+                       (int)wersja_dysku(i));
             break;
         case K1_KOM_INST_POSTEP:
             if (stan == S_POSTEP) {
@@ -380,7 +429,7 @@ static void glowny(void)
         stan = S_POTWIERDZ;
         break;
     case S_POTWIERDZ:
-        if (tryb == K1_INST_INSTALUJ && !potwierdzone())
+        if ((tryb == K1_INST_INSTALUJ && !potwierdzone()) || (tryb == K1_INST_AKTUALIZUJ && starsza()))
             return;
         k1_log(TAG, "potwierdzono: %s na dysku %d", tryb == K1_INST_INSTALUJ ? "instalacja" : "aktualizacja", wybrany + 1);
         procent = 0;

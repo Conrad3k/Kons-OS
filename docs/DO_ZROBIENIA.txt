@@ -1,7 +1,7 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.6.1 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.6.2 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 prawie gotowe (dyski, USB, zaszyfrowane dane, hasło, instalator); dalej plan z ADR 0019.
 Data: 2026-11-07. Plik aktualizujemy po każdym etapie.
@@ -171,8 +171,11 @@ Nowa kolejność od 0.5.9 (ADR 0019 — przegląd i plan; zastępuje ADR 0011):
     [x] historia baterii między uruchomieniami (skarbiec, Ustawienia → Bateria)
     [ ] tablet USB w VM i przewijanie touchpadem — przy M5.3 „Laptop"
 
-M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku)
-    [ ] podpisane wydania (własny klucz); Instalator odmawia niepodpisanego albo starszego systemu
+M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku) — W TOKU (ADR 0021)
+    [x] M6a (0.6.2): manifest (wersja, odcisk, podpis); Instalator odmawia zmienionego, niepodpisanego
+        (gdy K1 ma klucz) albo starszego systemu
+    [!] Twój klucz podpisu: README → „Klucz podpisu” (jednorazowo, 2 minuty) — do tego czasu wydania
+        są „deweloperskie”
     [ ] dm-verity dla rdzenia (dawne M5.2)
     [ ] A/B w partycji K1-EFI z powrotem do poprzedniej wersji
     [ ] Secure Boot włączony: własny klucz wpisany raz przez MokManager (krok dla Ciebie), podpisane jądro

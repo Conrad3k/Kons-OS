@@ -48,7 +48,19 @@ jobs:
         run: scripts/przygotuj-srodowisko.sh
 
       - name: Zbuduj jądro, programy, obrazy i ISO
-        run: scripts/zbuduj.sh
+        # M6a (ADR 0021): the signing key (32 bytes, base64) — a secret the owner adds once in
+        # Settings → Secrets and variables → Actions. Without it: an unsigned developer build.
+        env:
+          K1_KLUCZ_PODPISU: ${{ secrets.K1_KLUCZ_PODPISU }}
+        run: |
+          set -o pipefail
+          mkdir -p build
+          scripts/zbuduj.sh 2>&1 | tee build/zbuduj.log
+          if grep -q "manifest.*podpisany" build/zbuduj.log && ! grep -q "BEZ podpisu" build/zbuduj.log; then
+            echo "K1_PODPIS=podpisane kluczem K1" >> "$GITHUB_ENV"
+          else
+            echo "K1_PODPIS=wersja deweloperska (bez podpisu — brak sekretu K1_KLUCZ_PODPISU)" >> "$GITHUB_ENV"
+          fi
 
       - name: Testy (host + QEMU, także negatywne; M1–M4, start z ISO)
         run: |
@@ -107,7 +119,7 @@ jobs:
             gh release create "$TAG" "build/wynik/k1-${K1_WERSJA}.iso" "build/wynik/k1-${K1_WERSJA}.iso.sha256" \
               "build/wynik/k1-${K1_WERSJA}-usb.img.xz" "build/wynik/k1-${K1_WERSJA}-usb.img.xz.sha256" \
               build/wynik/SHA256SUMS "build/k1-${K1_WERSJA}-logi.tar.gz" --title "Kons K1 ${K1_WERSJA}" \
-              --notes "k1-${K1_WERSJA}-usb.img.xz — na pendrive (laptop, UEFI): system i zaszyfrowane miejsce na dane (Rufus/balenaEtcher). k1-${K1_WERSJA}.iso — do maszyny wirtualnej (UEFI albo BIOS), bez zapisu danych. Instrukcja: README.md. Zmiany: CHANGELOG.md."
+              --notes "k1-${K1_WERSJA}-usb.img.xz — na pendrive (laptop, UEFI): system i zaszyfrowane miejsce na dane (Rufus/balenaEtcher). k1-${K1_WERSJA}.iso — do maszyny wirtualnej (UEFI albo BIOS), bez zapisu danych. Instrukcja: README.md. Zmiany: CHANGELOG.md. System: ${K1_PODPIS}."
           fi
 
       - name: Wyślij obrazy jako artefakt (tylko PR — na main obraz jest w wydaniu)

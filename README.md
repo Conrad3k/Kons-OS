@@ -91,8 +91,23 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    pliki). Po „Gotowe”: *Wyłącz komputer*, wyjmij pendrive, włącz laptop — K1 startuje z dysku (jeśli nie:
    F12 → dysk), a Twoje zaszyfrowane dane mają cały dysk. Dane z pendrive'a nie są przenoszone (nowe
    konto). **Ustaw hasło** (punkt 6) — bez niego złodziej laptopa może odczytać dane.
-   **Aktualizacja:** nagraj nowszy `k1-…-usb.img.xz` na pendrive, uruchom z niego (F12), Instalator →
-   *Zaktualizuj system* → *Zaktualizuj*. Wymienia tylko system — Twoje dane zostają.
+   **Aktualizacja:** nagraj nowszy `k1-…-usb.img.xz` na pendrive, **uruchom K1 z dysku** (bez F12),
+   podłącz pendrive, Instalator → *Zaktualizuj system* → *Zaktualizuj*. Wymienia tylko system — Twoje
+   dane zostają. Od 0.6.2 Instalator sprawdza odcisk i podpis systemu i nie pozwoli wrócić do starszej
+   wersji (dlatego lepiej startować z dysku: wtedy sprawdza Twój system, a nie kod z pendrive'a).
+
+## Klucz podpisu (jednorazowo, od 0.6.2)
+Wydania K1 podpisuje GitHub kluczem, który znasz tylko Ty (i GitHub). **Nie wklejaj go nigdzie
+indziej — także w czacie.**
+1. W Windowsie otwórz **PowerShell** i wklej (generuje 32 losowe bajty):
+   `$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)`
+2. Skopiuj wynik (44 znaki, kończy się `=`). Zapisz go też w bezpiecznym miejscu (menedżer haseł) —
+   bez niego nie da się wydać aktualizacji, którą przyjmie zainstalowany K1.
+3. GitHub → repozytorium **Kons-OS** → **Settings** → **Secrets and variables** → **Actions** →
+   **New repository secret**: Name `K1_KLUCZ_PODPISU`, Secret: wklejony wynik → **Add secret**.
+4. Następne wydanie będzie podpisane (opis wydania: „System: podpisane kluczem K1”). Zainstaluj je
+   **od nowa** albo zaktualizuj — od tej chwili Twój K1 przyjmie tylko wersje podpisane tym kluczem.
+
 
 Napisz (Issues → „Feedback z testu” albo w czacie): czy pulpit się pojawił (jeśli ekran został czarny
 — po ilu sekundach i czy wcześniej było logo Lenovo/GRUB), czy obraz jest ostry (1366×768), co działa

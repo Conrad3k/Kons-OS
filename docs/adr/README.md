@@ -48,3 +48,4 @@ Krótko, dlaczego nie.
 | [0018](0018-instalator-na-dysk.md) | Instalator: K1 na dysku komputera (M5f) | Przyjęty |
 | [0019](0019-przeglad-0-5-9-i-nowy-plan.md) | Przegląd po 0.5.9 i nowy plan etapów (Fundament → Bezpieczne aktualizacje → Sieć → Przeglądarka → Pliki) | Przyjęty |
 | [0020](0020-strefy-mikro-maszyny-na-aplikacje.md) | Strefy: każda obca aplikacja w swojej mikro-maszynie (trwałość i grafika do wyboru, zaufana ramka, pliki przez Gatekeepera) | Przyjęty |
+| [0021](0021-bezpieczne-aktualizacje-m6.md) | Bezpieczne aktualizacje (M6): manifest, podpis, wersje, dm-verity, A/B, Secure Boot | Przyjęty |

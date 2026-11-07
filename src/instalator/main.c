@@ -19,9 +19,12 @@
 #include "k1_kanal.h"
 #include "k1_klatka.h"
 #include "k1_komunikat.h"
+#include "k1_klucz.h"
 #include "k1_log.h"
+#include "k1_manifest.h"
 #include "k1_odbior.h"
 #include "k1_uslugi.h"
+#include "monocypher.h"
 
 #define TAG "K1-INSTALATOR"
 #define FD_KANAL 3
@@ -206,6 +209,60 @@ static int aktualizuj(uint64_t system)
     return r;
 }
 
+/* M6a (ADR 0021): what is on the stick must be a whole K1 system — its manifest, the BLAKE2b of the
+ * FAT area as the manifest says and, when this K1 was built with the release key, a valid signature
+ * of that key. Checked before anything is written. *wersja = its version. */
+static int sprawdz_zrodlo(uint64_t system, uint32_t *wersja)
+{
+    uint8_t man[K1_MANIFEST_BAJTY], skrot[32];
+    crypto_blake2b_ctx ctx;
+    struct k1_manifest m;
+    uint64_t off;
+    if (system < K1_MANIFEST_OFF + K1_MANIFEST_BAJTY || czytaj(FD_ZRODLO, man, sizeof man, K1_MANIFEST_OFF) != 0 ||
+        k1_manifest_czytaj(man, &m) != 0) {
+        k1_log(TAG, "źródło bez manifestu — to nie jest system K1 0.6.2 lub nowszy");
+        return K1_INST_BLAD_PODPIS;
+    }
+    if (K1_KLUCZ_JEST && k1_manifest_sprawdz_podpis(man, k1_klucz_publiczny) != 0) {
+        k1_log(TAG, "źródło %s: %s", m.tekst, m.flagi & K1_MANIFEST_PODPISANY ? "podpis niezgodny z kluczem K1"
+                                                                                : "brak podpisu (wersja deweloperska)");
+        return K1_INST_BLAD_PODPIS;
+    }
+    crypto_blake2b_init(&ctx, 32);
+    for (off = 0; off < m.fat_bajty; off += KAWALEK) {
+        size_t ile = m.fat_bajty - off < KAWALEK ? (size_t)(m.fat_bajty - off) : KAWALEK;
+        if (czytaj(FD_ZRODLO, bufor, ile, off) != 0)
+            return K1_INST_BLAD_ZAPIS;
+        crypto_blake2b_update(&ctx, bufor, ile);
+        etap((int)(2 * (off + ile) / m.fat_bajty), K1_INST_ETAP_SPRAWDZANIE);
+    }
+    crypto_blake2b_final(&ctx, skrot);
+    if (crypto_verify32(skrot, m.skrot) != 0) {
+        k1_log(TAG, "źródło %s: skrót systemu nie zgadza się z manifestem (uszkodzony albo zmieniony)", m.tekst);
+        return K1_INST_BLAD_PODPIS;
+    }
+    *wersja = m.wersja;
+    k1_log(TAG, "źródło: wersja %s, %s", m.tekst,
+           K1_KLUCZ_JEST ? "podpis K1 poprawny"
+                         : (m.flagi & K1_MANIFEST_PODPISANY ? "podpisana (ten system nie ma klucza — wersja deweloperska)"
+                                                            : "bez podpisu (wersja deweloperska)"));
+    return 0;
+}
+
+/* The version already on the disk (update): its manifest, 0 when there is none (0.5.9–0.6.1). */
+static uint32_t wersja_na_dysku(void)
+{
+    uint8_t man[K1_MANIFEST_BAJTY];
+    struct k1_manifest m;
+    if (rozmiar(FD_CEL) < K1_MANIFEST_OFF + K1_MANIFEST_BAJTY || czytaj(FD_CEL, man, sizeof man, K1_MANIFEST_OFF) != 0 ||
+        k1_manifest_czytaj(man, &m) != 0) {
+        k1_log(TAG, "na dysku: system bez manifestu (0.5.9–0.6.1)");
+        return 0;
+    }
+    k1_log(TAG, "na dysku: wersja %s", m.tekst);
+    return m.wersja;
+}
+
 int main(void)
 {
     int tryb, sektor;
@@ -217,5 +274,15 @@ int main(void)
         return 1;
     }
     system = rozmiar(FD_ZRODLO);
+    {
+        uint32_t nowa = 0, stara;
+        int r = sprawdz_zrodlo(system, &nowa);
+        if (r != 0)
+            koniec(r);
+        if (tryb == K1_INST_AKTUALIZUJ && (stara = wersja_na_dysku()) > nowa) {
+            k1_log(TAG, "odmowa: na pendrivie starsza wersja niż na dysku");
+            koniec(K1_INST_BLAD_STARSZA);
+        }
+    }
     koniec(tryb == K1_INST_INSTALUJ ? instaluj(sektor, system) : aktualizuj(system));
 }

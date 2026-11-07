@@ -35,6 +35,13 @@ widziało okno, a dysk musi mieć ten sam rozmiar.
    wpisy, nagłówek główny, ochronny MBR) → `fdatasync`. Aktualizacja: kopia + porównanie.
 5. Po instalacji: „Wyłącz komputer” (jedyna prośba o zasilanie, jaką nadzorca przyjmie od okna).
 
+## Manifest i podpis (0.6.2, ADR 0021)
+Przed zapisem program zapisujący czyta manifest źródła (47 MiB od początku K1-EFI, `k1_manifest.h`),
+liczy BLAKE2b-256 obszaru FAT i porównuje; gdy K1 ma wbudowany klucz (`build/gen/k1_klucz.h` z sekretu
+CI) — wymaga ważnego podpisu EdDSA; przy aktualizacji czyta manifest z dysku i odmawia starszej wersji
+(dysk bez manifestu = 0). Nadzorca czyta oba manifesty do listy (wersje w oknie: `INST_LISTA` c/d,
+`INST_DYSK` c = `K1_INST_WERSJA`|wersja). Okno blokuje przycisk aktualizacji do starszej wersji.
+
 ## Obsługa błędów
 Za mały dysk, zajęty dysk, brak pendrive'a K1 (start z ISO), błąd zapisu/odczytu, różnica przy
 porównaniu — kod `K1_INST_BLAD_*`, opis w oknie, wpis w logu. Przerwanie przed zapisem tablicy
