@@ -111,6 +111,7 @@ g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) 
 k0 = czekaj(r"K1-EKRAN: kursor (\d+),(\d+) ")
 t = czekaj(r"K1-EKRAN: tryb (\d+)x(\d+)")
 if not sprawdz(f"{tryb}: pulpit gotowy (pasek, menu Start)", g and k0 and t): sys.exit(1)
+if tryb == "pulpit" and not sprawdz("wejście: mysz otwarta", czekaj(r"K1-WEJSCIE: urządzenie \d+: mysz")): sys.exit(1)
 W, H = int(t.group(1)), int(t.group(2))
 sx, sy, ax, ay, krok = (int(g.group(i)) for i in range(1, 6))
 kursor[:] = [int(k0.group(1)), int(k0.group(2))]

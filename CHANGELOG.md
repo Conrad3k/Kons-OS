@@ -3,6 +3,22 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.5.1] — 2026-11-07
+
+### Naprawione
+- Mysz mogła nie działać po bardzo szybkim starcie (np. pod KVM): nadzorca szukał urządzeń wejścia,
+  zanim jądro zgłosiło mysz, i przestawał szukać, gdy znalazł klawiaturę. Teraz co 2 s sprawdza,
+  czy doszło nowe urządzenie, i uruchamia usługę wejścia ponownie z pełnym zestawem. To też pierwszy
+  krok do podłączania urządzeń w trakcie pracy (M5).
+
+### Zmienione
+- CI: logi testów zawsze dostępne, niezależnie od limitu miejsca na artefakty — w konsoli zadania,
+  w podsumowaniu (lista OK/BŁĄD) i w wydaniu (`k1-<wersja>-logi.tar.gz`); artefakty 7 dni, obraz jako
+  artefakt tylko z PR-ów.
+- Testy pulpitu i wejścia czekają, aż mysz zostanie otwarta; test pulpitu sprawdza położenie kursora
+  z logu ekranu po każdym ruchu; sprawdzanie wykresu Zasobów liczy każdą kolumnę.
+- Dokumentacja: wstępne rozpoznanie etapu M5 (`docs/M5-ROZPOZNANIE.txt`).
+
 ## [0.5.0] — 2026-11-06
 
 Etap **M4.1 — porządki i audyt** (ADR 0011, ADR 0012).
@@ -31,12 +47,7 @@ Etap **M4.1 — porządki i audyt** (ADR 0011, ADR 0012).
   testowy na pliki tematyczne (`testy/system/`).
 - Testy: zmiana rozdzielczości i Zasoby w `test-m4.sh`; w systemie — ochrona fokusu, limit pamięci
   okien, klatka i próba aplikacji Zasoby; na hoście — `test_log`, nowe komunikaty w `test_komunikat`.
-- CI: logi testów zawsze dostępne, niezależnie od limitu miejsca na artefakty — w konsoli zadania,
-  w podsumowaniu (lista OK/BŁĄD) i w wydaniu (`k1-<wersja>-logi.tar.gz`); artefakty 7 dni, obraz jako
-  artefakt tylko z PR-ów.
-- Test pulpitu: po każdym ruchu myszy sprawdza w logu ekranu prawdziwe położenie kursora i je
-  poprawia (pod KVM tuż po starcie mysz potrafiła zgubić ruch — pierwszy przebieg CI 0.5.0 nie trafił
-  w przycisk Start).
+
 
 ## [0.4.2] — 2026-11-06
 

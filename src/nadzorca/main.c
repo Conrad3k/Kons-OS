@@ -236,17 +236,27 @@ static int otworz_karte(void)
     return -1;
 }
 
+static uint32_t wejscia_maska; /* event0..31 handed to the running wejscie */
+
+static int otworz_wejscie(int nr)
+{
+    char sciezka[64];
+    snprintf(sciezka, sizeof sciezka, DEV "/input/event%d", nr);
+    return open(sciezka, O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW);
+}
+
 /* Opens up to MAKS_URZADZEN input devices; returns how many (fds in `fd`). */
 static int otworz_wejscia(int *fd)
 {
     int n = 0, i, proba_nr;
+    wejscia_maska = 0;
     for (proba_nr = 0; proba_nr < 20 && n == 0; proba_nr++) {
         for (i = 0; i < 32 && n < MAKS_URZADZEN; i++) {
-            char sciezka[64];
-            snprintf(sciezka, sizeof sciezka, DEV "/input/event%d", i);
-            fd[n] = open(sciezka, O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW);
-            if (fd[n] >= 0)
+            fd[n] = otworz_wejscie(i);
+            if (fd[n] >= 0) {
+                wejscia_maska |= 1u << i;
                 n++;
+            }
         }
         if (n == 0) {
             struct timespec t = { 0, 100 * 1000 * 1000 };
@@ -474,6 +484,30 @@ static void zakonczona(struct usluga *u, int status)
     u->nastepny = t + opoznienie(u->awarie);
     u->awarie++;
     k1_log(TAG, "ponowne uruchomienie %s za %.1f s (%u/%d)", u->nazwa, u->nastepny - t, u->awarie, K1_RESTARTY_MAKS);
+}
+
+/* Input devices that appear after wejscie started (a fast boot can start us before the kernel has
+ * registered the mouse; later: USB devices plugged in): restart wejscie with the full set. Not
+ * counted as a failure. Full hotplug (kernel uevents, no restart) comes with M5. */
+static void sprawdz_nowe_wejscia(void)
+{
+    struct usluga *u = &uslugi[1];
+    int i;
+    if (u->pid <= 0 || u->wylaczona || __builtin_popcount(wejscia_maska) >= MAKS_URZADZEN)
+        return;
+    for (i = 0; i < 32; i++) {
+        int fd;
+        if (wejscia_maska & (1u << i))
+            continue;
+        fd = otworz_wejscie(i);
+        if (fd < 0)
+            continue;
+        close(fd);
+        k1_log(TAG, "nowe urządzenie wejścia (event%d) — ponowne uruchomienie wejscie", i);
+        u->bez_liczenia = 1;
+        kill(u->pid, SIGTERM);
+        return;
+    }
 }
 
 /* Starts application `apl` unless it is already running. */
@@ -712,7 +746,7 @@ int main(void)
     int sfd;
     size_t i;
     struct stat st;
-    double nastepny_raport = 0;
+    double nastepny_raport = 0, nastepne_skanowanie = 0;
 
     sigemptyset(&maska);
     sigaddset(&maska, SIGCHLD);
@@ -826,6 +860,10 @@ int main(void)
         for (i = 0; i < N_USLUG; i++)
             if (uslugi[i].pid == 0 && !uslugi[i].wylaczona && uslugi[i].nastepny > 0 && uslugi[i].nastepny <= t)
                 start(&uslugi[i]);
+        if (t >= nastepne_skanowanie) {
+            sprawdz_nowe_wejscia();
+            nastepne_skanowanie = t + 2.0;
+        }
         if (zasoby_kanal >= 0 && t >= nastepny_raport) {
             raport_zasobow();
             nastepny_raport = t + 1.0;
