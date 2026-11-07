@@ -220,6 +220,10 @@ może wywołać `workflow_dispatch`).
 **Raport po etapie (SPEC §2.11):** zaktualizuj `docs/DO_ZROBIENIA.txt`; po polsku, prosto (skutki, nie
 mechanika): cel i kryteria, co zrobiono, dowody (log, testy, zrzuty), testy negatywne, ograniczenia,
 statusy, pytania do właściciela. Bez wklejania całych plików; linki pełnym URL-em.
+**Każdy raport o nowej wersji kończ bezpośrednim linkiem do ISO** (decyzja właściciela, 0.5.8: „zawsze
+dawaj link do iso”): `https://github.com/Conrad3k/Kons-OS/releases/download/k1-v<wersja>/k1-<wersja>.iso`
+(obok link do `k1-<wersja>-usb.img.xz`). Przed podaniem sprawdź, że wydanie istnieje (`get_release_by_tag`);
+jeśli CI jeszcze buduje — napisz to i podaj link po sprawdzeniu.
 
 **Właściciel** (nie programista, pisze po polsku, jedyny z prawdziwym sprzętem): decyzje produktowe
 (wygląd, zachowanie, aplikacje) — jego; techniczne — Twoje, z krótkim uzasadnieniem. Uwagi, których nie
