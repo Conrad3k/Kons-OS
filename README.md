@@ -17,7 +17,7 @@ i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
 | M3 Trusted Core | nadzorca usług, każda usługa we własnej „klatce”, restart po awarii | PRZETESTOWANE |
 | M4 GUI | pulpit, okna, aplikacje Zegar, Notatki, Ustawienia; obraz ISO do maszyny wirtualnej | PRZETESTOWANE (QEMU: UEFI i BIOS) |
 | M4.1 Porządki i audyt | przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby | PRZETESTOWANE |
-| M5 Dane i sprzęt | trwałe, zaszyfrowane dane, hasło, dyski i USB, start z pendrive'a | W TOKU: M5a (dyski i USB) PRZETESTOWANE w QEMU |
+| M5 Dane i sprzęt | trwałe, zaszyfrowane dane, hasło, dyski i USB, start z pendrive'a | W TOKU: dyski i USB, zaszyfrowany zapis danych — PRZETESTOWANE w QEMU; hasło — następne |
 | M5.1–M12 | próba przeglądarki, weryfikacja obrazu, sieć, przeglądarka w izolacji, bezpieczny start, audyt | PLANOWANE (kolejność: ADR 0011) |
 
 Pełny plan i zasady: [`docs/SPEC.md`](docs/SPEC.md). Co zostało do zrobienia (i czego potrzeba od właściciela):
@@ -50,11 +50,13 @@ Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
 Działa też w VMware (UEFI lub BIOS) i QEMU/virt-manager (karta `std` lub `virtio`; nie `vmware` —
 sterownik VMware nie działa z tą kartą QEMU); Hyper-V — jeszcze nie.
 
-## Uruchom na laptopie (ThinkPad X230) — pierwsza próba
-K1 startuje z pendrive'a i **niczego nie zapisuje na dysku laptopa** (w tej wersji nie otwiera dysków —
-pilnuje tego test). Pendrive zostanie w całości nadpisany.
-1. Nagraj `k1-X.Y.Z.iso` na pendrive (≥ 64 MB): w Windowsie **Rufus** → wybierz plik ISO → Start;
-   na pytanie o obraz hybrydowy wybierz **„Zapisz w trybie obrazu DD”**. (Albo balenaEtcher.)
+## Uruchom na laptopie (ThinkPad X230) — z pendrive'a, z zapisem danych
+Od 0.5.6 jest osobny obraz na pendrive: **`k1-X.Y.Z-usb.img.xz`** (Releases). Ma miejsce na Twoje dane
+(ustawienia, notatki) — **zaszyfrowane, na tym samym pendrivie**. K1 **niczego nie zapisuje na dysku
+laptopa** (nie otwiera innych dysków — pilnuje tego test). Pendrive zostanie w całości nadpisany.
+1. Nagraj `k1-X.Y.Z-usb.img.xz` na pendrive (≥ 128 MB): w Windowsie **Rufus** → wybierz plik
+   (Rufus sam rozpakuje .xz; jeśli zapyta — tryb obrazu DD) → Start. Albo balenaEtcher.
+   (Obraz `.iso` też zadziała z pendrive'a, ale bez zapisu danych — po wyłączeniu wszystko znika.)
 2. **Najpierw wyłącz Secure Boot** — K1 nie jest jeszcze podpisany (M10). Bez tego laptop pokaże
    „Secure Boot Violation” / „Invalid signature”, a po „OK” uruchomi system z dysku (sprawdzone
    na X230, 2026-11-07). Włącz laptop i od razu wciskaj **F1** (ustawienia BIOS-u):
@@ -71,6 +73,9 @@ pilnuje tego test). Pendrive zostanie w całości nadpisany.
    (procent; błyskawica, gdy podłączysz zasilacz — zmiana widoczna do 15 s). Jasność ekranu i klawisze
    Fn — jeszcze nie.
 4. Wyłączenie: znak K1 → **Wyłącz** (laptop powinien się sam wyłączyć), potem wyjmij pendrive.
+5. Zapis: zmień tapetę albo motyw (Ustawienia), napisz coś w Notatkach, wyłącz i uruchom ponownie —
+   wszystko powinno wrócić. Bez hasła dane są zaszyfrowane, ale ktoś z Twoim pendrive'em może je
+   odczytać (hasło — w następnej wersji).
 
 Napisz (Issues → „Feedback z testu” albo w czacie): czy pulpit się pojawił (jeśli ekran został czarny
 — po ilu sekundach i czy wcześniej było logo Lenovo/GRUB), czy obraz jest ostry (1366×768), co działa

@@ -19,7 +19,9 @@ API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybo
 ### Tylko w obrazie ISO (start w maszynie wirtualnej, do M10)
 | Zależność | Wersja | Licencja | Źródło | Uzasadnienie |
 |---|---|---|---|---|
-| GRUB (EFI x86_64 i BIOS i386-pc) | 2.12-1ubuntu7.3 | GPL-3.0 | archiwum Ubuntu (`grub-efi-amd64-bin`, `grub-pc-bin`) | start z płyty przez UEFI i BIOS w maszynach wirtualnych; tymczasowo do podpisanego UKI w M10 (ADR 0010, RYZYKA R25) |
+| shim (UEFI, podpis Microsoftu) | 15.8 (`shim-signed` 1.58+15.8-0ubuntu1) | BSD-2-Clause | archiwum Ubuntu — pakiet tylko rozpakowany (`scripts/wspolne.sh: efi_podpisane`), wersje w `build/pobrane/efi/wersje.txt` | pierwszy program startowy z pendrive'a/płyty przez UEFI; podpisane pliki z każdej płyty Ubuntu zamiast własnego, niepodpisanego GRUB-a (Defender oznaczał go heurystyką jako trojana, 0.5.5) |
+| GRUB dla nośników wymiennych (UEFI, `gcdx64.efi`, podpis Canonical) | 2.12 (`grub-efi-amd64-signed` 1.202.5+2.12-1ubuntu7.3) | GPL-3.0 | jw. | ładuje jądro K1 (Secure Boot musi być wyłączony do M10: jądro K1 nie jest podpisane) |
+| GRUB BIOS (i386-pc, obraz El Torito z wbudowanymi modułami) | 2.12-1ubuntu7.3 | GPL-3.0 | archiwum Ubuntu (`grub-pc-bin`), `grub-mkimage` | start z płyty przez BIOS w maszynach wirtualnych; tymczasowo do M10 (ADR 0010, RYZYKA R25) |
 
 ## Do budowy (wpływają na wynik)
 
@@ -31,7 +33,8 @@ API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybo
 | `gen_init_cpio` | z jądra 6.18.60 | źródła jądra | budowa initramfs bez uprawnień roota, deterministycznie (`-t`) |
 | squashfs-tools (`mksquashfs`) | 4.6.1 | Ubuntu 24.04 | budowa obrazu `/rdzen` (zstd, `SOURCE_DATE_EPOCH`) |
 | FreeType (`libfreetype-dev`) + `pkg-config` | 2.13.2 | Ubuntu 24.04 | `narzedzia/czcionki.c`: rasteryzacja czcionek do bitmap przy budowie (ADR 0009); nie trafia do obrazu |
-| `grub-mkrescue` (`grub-common`), `xorriso`, `mtools` | 2.12 / 1.5.6 / 4.0.43 | Ubuntu 24.04 | składanie obrazu ISO (ADR 0010) |
+| `grub-mkimage` (`grub-common`), `xorriso`, `mtools` | 2.12 / 1.5.6 / 4.0.43 | Ubuntu 24.04 | składanie obrazu ISO (ADR 0010; od 0.5.6 bez `grub-mkrescue` — powtarzalne) |
+| `mtools`, `sfdisk` (`fdisk`), `xz`, `apt-get download` + `dpkg-deb` | 4.0.43 / 2.39.3 / 5.4 | Ubuntu 24.04 | obraz na pendrive z partycją danych (ADR 0016); podpisane pliki EFI |
 
 Wersje użyte w danym buildzie zapisuje `build/wynik/srodowisko.txt`.
 

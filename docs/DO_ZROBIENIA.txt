@@ -1,7 +1,7 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.5.5 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.5.6 — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby); M5 w toku — M5a (dyski i USB).
 Data: 2026-11-07. Plik aktualizujemy po każdym etapie.
@@ -85,8 +85,10 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
           rozszerzony — po teście), I2C-HID (nowsze laptopy — później),
       [x] dyski SATA (AHCI) i NVMe, pendrive'y, tablice GPT (M5a, QEMU),
       [ ] grafika X230: simpledrm (obraz z firmware); i915 tylko jeśli test pokaże potrzebę.
-[ ] Całe ISO powtarzalne (dziś tylko jądro/initramfs/rdzeń; GRUB i obraz EFI zmieniają się co budowę,
-    RYZYKA R37) — przy M10 (własny, podpisany obraz EFI). Defender oznaczył ISO 0.5.5 heurystyką „!ml”.
+[x] Całe ISO i obraz USB powtarzalne (0.5.6, RYZYKA R37).
+[!] Defender oznaczył ISO 0.5.5 heurystyką „!ml” → od 0.5.6 start UEFI przez podpisane pliki z Ubuntu
+    (shim/Microsoft, GRUB/Canonical). Sprawdź, czy 0.5.6 pobiera się bez alarmu; jeśli nie — zgłoszenie
+    fałszywego alarmu: microsoft.com/wdsi/filesubmission (plik + „Incorrectly detected as malware”).
 [ ] Komunikat o błędzie startu widoczny na ekranie (dziś tylko na porcie szeregowym).
 [ ] Własny build biblioteki musl 1.2.5 z poprawkami bezpieczeństwa (dziś 1.2.4 z Ubuntu).
 [~] Ochrona _FORTIFY_SOURCE: decyzja z M3 — na razie nie (ADR 0007), wracamy przy własnym musl.
@@ -96,7 +98,9 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
 [x] Bateria na górnym pasku (0.5.3, ADR 0014) — tylko gdy komputer ma baterię; sprawdzone w QEMU
     ze sztuczną baterią ACPI; na X230 — w Twoim teście.
 [ ] Oznaczanie okien przez ekran (zaufana ramka), zanim pojawią się aplikacje spoza rdzenia (RYZYKA R26).
-[ ] Trwały zapis ustawień, notatek i historii baterii — z Blob Vault (M5).
+[~] Trwały zapis: ustawienia i notatka — zrobione (0.5.6); historia baterii — następna.
+[ ] Partycja „K1-DANE” powiększana do końca pendrive'a (dziś 64 MiB) i drugi dysk w VirtualBoxie
+    (pusty dysk bez tablicy partycji — dziś K1 go nie używa).
 
 
 3. ETAPY
@@ -136,7 +140,8 @@ M4.1 Porządki i audyt — GOTOWE (0.5.0, ADR 0012)
 M5  Dane i sprzęt (rozszerzony) — W TOKU (rozpoznanie: docs/M5-ROZPOZNANIE.txt)
     [x] M5a (0.5.2, ADR 0013): sterowniki dysków SATA (AHCI), NVMe, virtio; GPT; USB xHCI/EHCI/OHCI,
         klawiatury i myszy USB, pendrive'y; testy w QEMU (także maszyna bez PS/2)
-    [ ] partycja danych „K1-DANE” na dysku / pendrivie (M5d)
+    [x] M5c/M5d (0.5.6, ADR 0015/0016): skarbiec, zaszyfrowany magazyn na partycji „K1-DANE” (dysk
+        albo pendrive — obraz k1-<wersja>-usb.img.xz), trwałe ustawienia i notatka
     [ ] magazyn obiektów zamiast katalogów (identyfikator, metadane, hash, pochodzenie)
     [ ] szyfrowanie danych na dysku (dziś dane są tylko w RAM)
     [ ] dostęp aplikacji tylko do obiektów, na które się zgodzisz

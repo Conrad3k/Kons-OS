@@ -28,6 +28,8 @@ jądro 6.18 LTS (jadro/k1.config) ──► /init = k1-initramfs (src/initramfs)
  ──► /rdzen/system/nadzorca (src/nadzorca, root): usługi w klatkach (k1_klatka), kanały UNIX, logi, restarty
        ├─ wejscie (100): evdev (fd 4… od nadzorcy) → k1_zdarzenie → kanał do ekranu
        ├─ ekran   (101): DRM master (fd 4), kompozytor: tapeta + okna + panele (memfd) + cienie + kursor
+       ├─ skarbiec(103): jedyny z partycją „K1-DANE” (fd 4), kanały klientów od nadzorcy (SKARB_KLIENT);
+       │          start PRZED ekranem; ekran fd 5 (ustawienia), Notatki fd 4 (notatka)
        ├─ gui     (102): powłoka — górny pasek, dolny pasek, menu Start; fd 4 → nadzorca (URUCHOM, WYLACZ),
        │          fd 5 ← nadzorca (BATERIA, jednokierunkowo)
        └─ aplikacje na prośbę gui: zegar (200), notatki (201, tylko /dane_uzytkownika/notatki), ustawienia (202),
@@ -38,7 +40,10 @@ Gatekeeper (M9).
 
 Stan: M5a (0.5.2) — dyski SATA/NVMe, GPT, USB (xHCI/EHCI/OHCI, HID, mass storage) (ADR 0013);
 0.5.3 — wskaźnik baterii (nadzorca czyta sysfs `power_supply` → gui fd 5, ADR 0014; w QEMU bateria
-z tablicy ACPI `testy/acpi/bateria.asl`, `bateria_aml` w `scripts/wspolne.sh`).
+z tablicy ACPI `testy/acpi/bateria.asl`, `bateria_aml` w `scripts/wspolne.sh`); 0.5.4–0.5.5 — płynny
+obraz (MTRR/PAT, DIRTYFB z obszarami), Ustawienia → Bateria; 0.5.6 — **skarbiec** (Blob Vault, ADR 0015:
+własny format na partycji GPT „K1-DANE”, Monocypher), trwałe ustawienia i notatka, obraz
+`k1-<wersja>-usb.img.xz` (ADR 0016). Następne: M5e hasło + ekran logowania (szkic B „Zegar”).
 Pierwszy laptop właściciela: **ThinkPad X230** (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez
 simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
 
@@ -60,6 +65,7 @@ simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
 | `src/wejscie/` | `/rdzen/system/wejscie` | `komponenty/wejscie.md` | klawiatura, mysz |
 | `src/ekran/` + `src/grafika/` | `/rdzen/system/ekran` | `komponenty/ekran.md` | `main.c` (pętla, zmiana trybu), `scena.c` (składanie), `okna.c` (klienci, fokus, limity), `wskaznik.c` (wejście), `drm.c` (KMS, tryby); tapety i znak K1 |
 | `src/gui/` | `/rdzen/system/gui` | `komponenty/gui.md` | powłoka pulpitu |
+| `src/skarbiec/` | `/rdzen/system/skarbiec` | `komponenty/skarbiec.md` | Blob Vault: `magazyn.c` (format, Monocypher w `src/zewnetrzne/`), `main.c` (usługa); klient: `src/wspolne/k1_skarb_klient.c`, `k1_memfd.c` |
 | `src/aplikacje/*` | `/rdzen/aplikacje/*` | `komponenty/aplikacje.md` | Zegar, Notatki, Ustawienia, Zasoby |
 | `src/przybornik/` | (linkowane do gui i aplikacji) | ADR 0008, 0009 | rysowanie, tekst, okna, klient, czas PL, klawiatura PL |
 | `narzedzia/czcionki.c` | (host, przy budowie) | ADR 0009 | FreeType → bitmapy IBM Plex (`build/gen/`) |
@@ -158,6 +164,8 @@ monitor QEMU — `mouse_move`, `mouse_button`, `sendkey alt_r-a`); zrzuty pokazu
   **Wydajności nie widać w QEMU (TCG):** emulator ignoruje typy pamięci (MTRR/PAT) — na X230 brak PAT
   dał niebuforowaną pamięć obrazu i zacinający się pulpit (0.5.4). allnoconfig wyłącza też opcje
   „default y” za `if EXPERT` (MTRR, PAT, ACPI_EC) — przy sprzęcie sprawdzaj je świadomie.
+  `/proc` ma `subset=pid` — **`/proc/cmdline` nie istnieje** dla usług i nadzorcy (informację o nośniku
+  bierz z sysfs). usb-storage czeka ~1 s, zanim pokaże dysk (pendrive w teście: `--pendrive`).
 
 ## 5. Proces
 

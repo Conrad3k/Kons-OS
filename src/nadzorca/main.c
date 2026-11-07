@@ -451,6 +451,27 @@ static int otworz_partycje_danych(int *ile)
     }
 }
 
+/* Is a USB mass storage device bound (sysfs: an interface "2-1:1.0" under the usb-storage driver)?
+ * Its disk shows up about a second later (usb-storage waits for the stick to settle). */
+static int pamiec_usb_obecna(void)
+{
+    DIR *d = opendir(SYS "/bus/usb/drivers/usb-storage");
+    struct dirent *de;
+    int jest = 0;
+    while (d != NULL && !jest && (de = readdir(d)) != NULL)
+        jest = strchr(de->d_name, ':') != NULL;
+    if (d != NULL)
+        closedir(d);
+    return jest;
+}
+
+/* Wait for the data partition after boot: until 4 s, and while a USB stick is still being set up,
+ * until 15 s (booting from the K1 stick: its K1-DANE partition appears ~1 s after the stick). */
+static int czekaj_na_dane(double od_startu)
+{
+    return od_startu < 4.0 || (od_startu < 15.0 && pamiec_usb_obecna());
+}
+
 static double od_startu_systemu(void)
 {
     struct timespec t;
@@ -466,8 +487,8 @@ static void start(struct usluga *u)
     u->nastepny = 0;
     if (u->rodzaj == R_SKARBIEC) {
         int para[2], ile, dysk = otworz_partycje_danych(&ile);
-        /* A USB stick shows up a moment after the kernel started: wait for it until 4 s after boot. */
-        if (dysk < 0 && ile == 0 && !skarb_czekal && od_startu_systemu() < 4.0) {
+        /* A USB stick shows up a moment after the kernel started: wait for it (czekaj_na_dane). */
+        if (dysk < 0 && ile == 0 && !skarb_czekal && czekaj_na_dane(od_startu_systemu())) {
             u->nastepny = teraz() + 0.25;
             return;
         }

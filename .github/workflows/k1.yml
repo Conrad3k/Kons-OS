@@ -93,7 +93,7 @@ jobs:
             git push origin "${TAG}"
           fi
 
-      - name: Opublikuj obraz ISO jako wydanie (Releases → k1-vX.Y.Z)
+      - name: Opublikuj obrazy (ISO, USB) jako wydanie (Releases → k1-vX.Y.Z)
         # Wydanie nie zajmuje limitu artefaktów i ma stały adres do pobrania.
         if: github.ref == 'refs/heads/main'
         continue-on-error: true
@@ -105,8 +105,9 @@ jobs:
             echo "Wydanie $TAG już istnieje — pomijam"
           else
             gh release create "$TAG" "build/wynik/k1-${K1_WERSJA}.iso" "build/wynik/k1-${K1_WERSJA}.iso.sha256" \
+              "build/wynik/k1-${K1_WERSJA}-usb.img.xz" "build/wynik/k1-${K1_WERSJA}-usb.img.xz.sha256" \
               build/wynik/SHA256SUMS "build/k1-${K1_WERSJA}-logi.tar.gz" --title "Kons K1 ${K1_WERSJA}" \
-              --notes "Obraz ISO do uruchomienia w maszynie wirtualnej (UEFI albo BIOS). Instrukcja: README.md, sekcja „Uruchom w maszynie wirtualnej”. Zmiany: CHANGELOG.md."
+              --notes "k1-${K1_WERSJA}-usb.img.xz — na pendrive (laptop, UEFI): system i zaszyfrowane miejsce na dane (Rufus/balenaEtcher). k1-${K1_WERSJA}.iso — do maszyny wirtualnej (UEFI albo BIOS), bez zapisu danych. Instrukcja: README.md. Zmiany: CHANGELOG.md."
           fi
 
       - name: Wyślij obrazy jako artefakt (tylko PR — na main obraz jest w wydaniu)
@@ -118,6 +119,7 @@ jobs:
           name: k1-${{ env.K1_WERSJA }}-obraz
           path: |
             build/wynik/
+            !build/wynik/*-usb.img
           retention-days: 7
 
       - name: Wyślij logi testów jako artefakt (zawsze; dodatkowo do konsoli i wydania)
