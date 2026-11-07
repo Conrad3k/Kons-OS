@@ -12,6 +12,8 @@ Budowany skryptami w `scripts/`, testowany w QEMU, CI w GitHub Actions (tylko `m
 - Właściciel pisze po polsku i nie jest programistą. Dokumentacja, PR-y i komunikaty w systemie — po polsku;
   commity i komentarze w kodzie — po angielsku.
 - Repo jest prywatne: po zakończeniu pracy scalaj PR do `main` bez pytania (squash).
+- Po każdej nowej wersji **zawsze podawaj właścicielowi bezpośredni link do ISO** z wydania
+  (`…/releases/download/k1-v<wersja>/k1-<wersja>.iso`) — decyzja właściciela.
 - Kontener: brak KVM (QEMU w TCG), sieć tylko HTTPS przez proxy (apt Ubuntu, deb.debian.org, GitHub,
   cdn/www/git.kernel.org). Start pracy: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh`
   (~6 min). Przed scaleniem zmian w systemie: pełny `scripts/testy.sh` lokalnie.
