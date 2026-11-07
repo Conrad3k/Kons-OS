@@ -46,8 +46,9 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
 [!] Dalsze uwagi do pulpitu, tapet i nowego znaku (Issues → „Feedback z testu” albo w czacie).
 [!] Kiedy pierwszy test na laptopie (pendrive)? Wymaga pracy z punktu 2 („prawdziwy sprzęt”).
     Przyda się model laptopa.
-[!] Przed M5 — jak ma wyglądać ekran hasła przy starcie (gdy włączysz hasło w Ustawieniach)?
-    Czy zostawiamy jedno konto na komputer?
+[x] Ekran hasła przy starcie (2026-11-07): „bardzo ładny, w stylu, jaki jest system — Claude'owy”.
+    → W M5 najpierw szkice do wyboru (zrzuty).
+[!] Czy zostawiamy jedno konto na komputer?
 [!] Przed M8 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)?
 
 

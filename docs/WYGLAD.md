@@ -17,6 +17,9 @@ Podgląd tapety bez QEMU: `make build/obj/podglad_grafiki && build/obj/podglad_g
   z czterech kierunków (Pieczęć, Brama, Warstwy, Baszta) właściciel wybrał **C — Warstwy**.
   Rozmiary pulpitu: „bardzo fajne”.
 
+- 2026-11-07 (przed M5): ekran hasła przy starcie **„bardzo ładny, w stylu systemu — Claude'owy”**
+  (tapeta, ciepłe kolory, Plex, znak K1); szkice do wyboru przed implementacją.
+
 ## Kierunek (M4)
 - **Charakter:** spokojny, rzeczowy, lekko ciepły.
 - **Świat:** papier i glina — kremowy papier okien, terakota, ciemny brąz wieczoru.
