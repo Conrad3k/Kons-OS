@@ -918,6 +918,12 @@ static void szukaj_pozno(void)
         return;
     skarb_bez_dysku = 0;
     k1_log(TAG, "partycja K1-DANE pojawiła się po starcie — uruchamiam skarbiec ponownie");
+    /* the desktop and the apps first (quietly), so that they do not see ekran go away */
+    for (size_t i = 0; i < N_USLUG; i++)
+        if (uslugi[i].rodzaj == R_KLIENT && uslugi[i].pid > 0) {
+            uslugi[i].bez_liczenia = 1;
+            kill(uslugi[i].pid, SIGTERM);
+        }
     skarbiec()->bez_liczenia = 1;
     kill(skarbiec()->pid, SIGTERM);
 }
