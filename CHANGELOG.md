@@ -24,6 +24,11 @@ Etap **M6 — bezpieczne aktualizacje**, krok M6a (ADR 0021).
 - Najbezpieczniej aktualizować **z zainstalowanego K1**: start z dysku, pendrive z nową wersją
   podłączony, Instalator → Zaktualizuj (wtedy sprawdza Twój system, nie kod z pendrive'a).
 
+### Naprawione
+- Wydanie 0.6.1 się nie zbudowało: w CI test uznał za brakujący napis „K1: wyłączanie zasilania”, bo
+  komunikat jądra wpadł w jego środek na wspólnej konsoli (system działał poprawnie, 126/126 testów
+  w systemie). Sprawdzanie logów pomija teraz takie wtrącenia.
+
 ### Testy
 - Host: manifest (podpis tylko z właściwym kluczem i niezmienionymi bajtami, obcy klucz, złe dane),
   fuzzing. QEMU: pendrive ze zmienionym jednym bajtem systemu → odmowa, dysk nietknięty; dysk z

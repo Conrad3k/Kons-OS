@@ -4,6 +4,15 @@
 # Wymaga zbudowanych obrazów (scripts/zbuduj.sh). Logi: build/testy/<scenariusz>.log
 # Kod wyjścia 0 = wszystko zaliczone. Opis scenariuszy: docs/TESTY.md.
 . "$(dirname "$0")/wspolne.sh"
+# Whether log $1 contains $2. Kernel messages ("[   51.005212] …") may land in the middle of one of
+# our lines on the shared console ("K1: wyłączanie[   51.0…] sd … cache⏎ zasilania" — CI, 0.6.1):
+# they are removed first, together with the line break they end with.
+zawiera() {
+    python3 -I -c 'import re,sys
+try: t=open(sys.argv[1],encoding="utf-8",errors="replace").read()
+except OSError: sys.exit(1)
+sys.exit(0 if sys.argv[2] in t or sys.argv[2] in re.sub(r"\[ *\d+\.\d+\] [^\n]*\n","",t) else 1)' "$1" "$2"
+}
 
 TESTY=$K1_BUDOWA/testy
 CZAS=${K1_TEST_CZAS:-240}          # limit na jedno uruchomienie (emulacja TCG bywa wolna)
@@ -37,21 +46,21 @@ scenariusz() {
     while [ $t -lt "$CZAS" ]; do
         if ! kill -0 $qpid 2>/dev/null; then sam=1; break; fi
         if [ "$tryb" = czekaj ]; then
-            brak=0; for w in "$@"; do grep -qF -- "$w" "$log" 2>/dev/null || brak=1; done
+            brak=0; for w in "$@"; do zawiera "$log" "$w" || brak=1; done
             [ $brak -eq 0 ] && break
         fi
         sleep 1; t=$((t + 1))
     done
     if [ $sam -eq 0 ]; then
         # Maszyna nadal działa: przy niepowodzeniu zachowaj zrzut ekranu (diagnostyka), potem zamknij QEMU.
-        brak=0; for w in "$@"; do grep -qF -- "$w" "$log" 2>/dev/null || brak=1; done
+        brak=0; for w in "$@"; do zawiera "$log" "$w" || brak=1; done
         [ $brak -eq 0 ] || "$K1_REPO/scripts/zrzut-ekranu.sh" "$TESTY/$nazwa.png" "$mon" >/dev/null 2>&1 || true
         python3 -I -c 'import socket,sys; s=socket.socket(socket.AF_UNIX); s.settimeout(5); s.connect(sys.argv[1]); s.sendall(b"quit\n"); s.recv(64)' "$mon" 2>/dev/null \
             || kill $qpid 2>/dev/null || true
     fi
     kod=0; wait $qpid 2>/dev/null || kod=$?
     problem=""
-    for w in "$@"; do grep -qF -- "$w" "$log" || problem="$problem brak:'$w'"; done
+    for w in "$@"; do zawiera "$log" "$w" || problem="$problem brak:'$w'"; done
     grep -q 'Kernel panic' "$log" && problem="$problem kernel-panic"
     grep -qF 'K1-TEST: [BŁĄD]' "$log" && problem="$problem nieudany-test-w-systemie"
     grep -qF 'K1-PROBA: [BŁĄD]' "$log" && problem="$problem nieudana-próba-klatki"
