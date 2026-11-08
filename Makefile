@@ -89,14 +89,14 @@ $(BIN)/init: src/init/main.c $(WSPOLNE) $(NAGL) | $(BIN)
 # nadzorca in modules (0.6.0, ADR 0019): main.c (loop), uslugi, profile, urzadzenia, skarb, instalacja, zasoby,
 # test; pure parts with host tests: bateria, dyski, uevent.
 NADZORCA := $(sort $(wildcard src/nadzorca/*.c))
-$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(MANIFEST) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -o $@ $(NADZORCA) src/wspolne/k1_manifest.c $(MONOCYPHER) \
-		$(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(MANIFEST) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c src/wspolne/k1_sha256.h $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -I$(GEN)/sb -o $@ $(NADZORCA) src/wspolne/k1_manifest.c \
+		src/wspolne/k1_uklad.c src/wspolne/k1_sha256.c $(MONOCYPHER) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
 $(BIN)/instalator: src/instalator/main.c src/instalator/gpt.c src/instalator/gpt.h $(MANIFEST) $(GEN)/k1_klucz.h $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -I$(GEN) -o $@ src/instalator/main.c src/instalator/gpt.c \
-		src/wspolne/k1_manifest.c $(MONOCYPHER) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+		src/wspolne/k1_manifest.c src/wspolne/k1_uklad.c $(MONOCYPHER) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 SKARBIEC := src/skarbiec/main.c src/skarbiec/magazyn.c $(MONOCYPHER)
 $(BIN)/skarbiec: $(SKARBIEC) src/skarbiec/magazyn.h $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) | $(BIN)
@@ -184,11 +184,15 @@ $(OBJ)/test_manifest: testy/host/test_manifest.c $(MANIFEST) | $(OBJ)
 $(OBJ)/test_uklad: testy/host/test_uklad.c src/wspolne/k1_uklad.c src/wspolne/k1_uklad.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_uklad.c src/wspolne/k1_uklad.c $(MONOCYPHER)
 
-testy-host: $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator
+$(OBJ)/test_sha256: testy/host/test_sha256.c src/wspolne/k1_sha256.c src/wspolne/k1_sha256.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_sha256.c src/wspolne/k1_sha256.c
+
+testy-host: $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator
 	@if command -v grub-editenv >/dev/null; then rm -f $(OBJ)/grubenv.ref && grub-editenv $(OBJ)/grubenv.ref create && \
 		grub-editenv $(OBJ)/grubenv.ref set k1_slot=a k1_start=a k1_nowy= k1_proba= && $(OBJ)/test_uklad $(OBJ)/grubenv.ref; \
 	else $(OBJ)/test_uklad; fi
 	$(OBJ)/test_manifest
+	$(OBJ)/test_sha256
 	$(OBJ)/test_bat_arch
 	$(OBJ)/test_odbior
 	$(OBJ)/test_uevent

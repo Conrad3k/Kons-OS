@@ -5,7 +5,9 @@
 # 2. start z samego dysku (UEFI, bez pendrive'a): pulpit, nowy magazyn na K1-DANE dysku;
 # 3. znów pendrive + dysk: dane z dysku wewnętrznego (partycja pendrive'a pominięta), Instalator
 #    rozpoznaje K1 na dysku → aktualizacja (tylko K1-EFI), dane nietknięte (magazyn otwiera się dalej);
-# 4. start z dysku po aktualizacji: magazyn z kroku 2 otwarty (dane przetrwały).
+# 4. start z dysku po aktualizacji: nowe miejsce (B) wystartowało na próbę i K1 je potwierdził (0.7.0, A/B),
+#    magazyn z kroku 2 otwarty (dane przetrwały);
+# 5. wycofanie (A/B): „nowe” miejsce A jest uszkodzone — GRUB wraca do B, K1 zgłasza nieudaną aktualizację.
 # Zrzuty: build/testy/m5f-*.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -54,6 +56,13 @@ if tryb == "po-aktualizacji":
             czekaj(r"K1-SKARBIEC: magazyn otwarty", czas=10) and "utworzono nowy magazyn" not in tekst()
             and czekaj(r"K1-NADZORCA: K1-DANE na dysku wewnętrznym \(sda2\) — partycja na pendrivie pominięta|"
                        r"K1-NADZORCA: partycja danych K1-DANE otwarta dla skarbca \(sda2\)", czas=5))
+    sprawdz("A/B: GRUB uruchomił nowe miejsce B na próbę, K1 je potwierdził po udanym starcie",
+            czekaj(r"K1-NADZORCA: A/B: nowa wersja [0-9.]+ wystartowała — potwierdzona \(sda1, miejsce b\)", czas=60))
+    koniec()
+if tryb == "wycofanie":
+    sprawdz("A/B: uszkodzone nowe miejsce A — GRUB wrócił do B, K1 zgłasza nieudaną aktualizację",
+            czekaj(r"K1-NADZORCA: A/B: aktualizacja \(miejsce a\) nie wystartowała — działa poprzednia wersja \(sda1, miejsce b\)",
+                   czas=60))
     koniec()
 
 # Instalator from the Start menu (5th row)
@@ -87,7 +96,7 @@ if tryb == "uszkodzony":  # M6a: one byte of the system on the stick changed
     monitor("sendkey u", "sendkey s", "sendkey u", "sendkey n"); time.sleep(1)
     klik(px, py)
     sprawdz("uszkodzony system na pendrivie: instalator odmawia przed zapisem (skrót niezgodny z manifestem)",
-            czekaj(r"K1-INSTALATOR: źródło [0-9.]+: skrót systemu nie zgadza się z manifestem", czas=120)
+            czekaj(r"K1-INSTALATOR: źródło [0-9.]+: skrót nie zgadza się z manifestem", czas=120)
             and czekaj(r"K1-INSTALACJA: kod -8", czas=20))
     zrzut("0-uszkodzony")
     koniec()
@@ -134,8 +143,11 @@ if tryb == "aktualizuj":
     klik(px, py)  # Zaktualizuj
     sprawdz("aktualizacja: tylko partycja K1-EFI (sda1)",
             czekaj(r"K1-NADZORCA: instalator: aktualizacja — sda1", czas=10))
-    sprawdz("instalator: system zaktualizowany, dane nietknięte", czekaj(r"K1-INSTALATOR: gotowe: system zaktualizowany", czas=200)
-            and czekaj(r"K1-INSTALACJA: zaktualizowano", czas=20))
+    sprawdz("instalator (A/B): nowy system w wolnym miejscu B, działający i dane nietknięte",
+            czekaj(r"K1-INSTALATOR: aktualizacja A/B: system [0-9.]+ \(\d+ MiB\) do miejsca b", czas=60)
+            and czekaj(r"K1-INSTALATOR: gotowe: nowy system w miejscu b", czas=200)
+            and czekaj(r"K1-INSTALACJA: zaktualizowano \(nowe miejsce A/B\)", czas=20))
+    time.sleep(1); zrzut("3-gotowe")
     koniec()
 PY
     python3 -I -c 'import socket,sys; s=socket.socket(socket.AF_UNIX); s.settimeout(5); s.connect(sys.argv[1]); s.sendall(b"quit\n"); s.recv(64)' "$MON" 2>/dev/null \
@@ -145,10 +157,15 @@ PY
 
 SATA="-drive if=none,id=dysk,file=$DYSK,format=raw -device ide-hd,bus=ide.0,drive=dysk"
 uruchom z-iso 0-z-iso --iso "$K1_WYNIK/k1-$K1_WERSJA.iso" --uefi --vga virtio --qemu "$SATA"
-# M6a: a stick whose system was changed (one byte in the FAT area) — refused before any write
+# M6a: a stick whose system was changed (one byte of slot A that the checksum covers, in the free space of its
+# inner FAT after k1.efi — the stick itself still starts) — refused before any write.
+# The layout block (k1_uklad.h) at 1 KiB of K1-EFI (which starts at 1 MiB) says where the slots are.
+uklad() { # $1 = image, $2 = field offset in the block (32: slot A, 40: slot B, 16: grubenv) → bytes from the image start
+    python3 -I -c 'import sys; f=open(sys.argv[1],"rb"); f.seek(1048576+1024+int(sys.argv[2])); print(1048576+int.from_bytes(f.read(8),"little"))' "$1" "$2"
+}
 cp "$PEN" "$TESTY/m5f-uszkodzony.img"
-python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); f.seek((1+46)*1024*1024+12345); b=f.read(1); f.seek(-1,1); f.write(bytes([b[0]^0xff])); f.close()' \
-    "$TESTY/m5f-uszkodzony.img"
+python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); a=int(sys.argv[2]); f.seek(a+127*1048576+16); n=int.from_bytes(f.read(8),"little"); f.seek(a+n-100); b=f.read(1); f.seek(-1,1); f.write(bytes([b[0]^0xff])); f.close()' \
+    "$TESTY/m5f-uszkodzony.img" "$(uklad "$TESTY/m5f-uszkodzony.img" 32)"
 uruchom uszkodzony 0-uszkodzony --pendrive "$TESTY/m5f-uszkodzony.img" --qemu "$SATA"
 if sfdisk -d "$DYSK" >/dev/null 2>&1; then echo "  [BŁĄD]  po odmowie na dysku jest tablica partycji"; r=1
 else echo "  [OK]    po odmowie dysk nietknięty (bez tablicy partycji)"; fi
@@ -164,9 +181,24 @@ uruchom z-dysku 2-z-dysku --dysk-uefi "$DYSK"
 PEN_USB="-device qemu-xhci,id=xhci -drive if=none,id=pendrive,file=$PEN,format=raw -device usb-storage,bus=xhci.0,drive=pendrive"
 uruchom aktualizuj 3-aktualizacja --pendrive "$PEN" --qemu "$SATA"
 uruchom po-aktualizacji 4-po-aktualizacji --dysk-uefi "$DYSK" --qemu "$PEN_USB"
-# M6a: pretend the disk has 99.0.0 (manifest at 1 MiB + 47 MiB: version number and text)
-python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); o=(1+47)*1024*1024; f.seek(o+8); f.write((99<<16).to_bytes(4,"little")); f.seek(o+24); f.write(b"99.0.0".ljust(24,b"\0")); f.close()' "$DYSK"
-uruchom starsza 5-starsza --pendrive "$PEN" --qemu "$SATA"
+env_dysku() { python3 -I -c 'import sys; f=open(sys.argv[1],"rb"); f.seek(int(sys.argv[2])); print(" ".join(l.decode() for l in f.read(1024).split(b"\n") if l.startswith(b"k1_")))' "$DYSK" "$(uklad "$DYSK" 16)"; }
+if env_dysku | grep -q 'k1_slot=b k1_start=b k1_nowy= k1_proba=$'; then echo "  [OK]    grubenv dysku: potwierdzone miejsce B, nic do próby"
+else echo "  [BŁĄD]  grubenv dysku po potwierdzeniu: $(env_dysku)"; r=1; fi
+# A/B rollback: "a new system in A" that cannot even be opened (its inner FAT zeroed), tried once
+python3 -I - "$DYSK" "$(uklad "$DYSK" 16)" "$(uklad "$DYSK" 32)" <<'PY'
+import sys
+f = open(sys.argv[1], "r+b"); env, a = int(sys.argv[2]), int(sys.argv[3])
+f.seek(a); f.write(bytes(65536))
+blok = b"# GRUB Environment Block\n# WARNING: Do not edit this file by tools other than grub-editenv!!!\n" \
+       b"k1_slot=b\nk1_start=b\nk1_nowy=a\nk1_proba=\n"
+f.seek(env); f.write(blok + b"#" * (1024 - len(blok))); f.close()
+PY
+uruchom wycofanie 5-wycofanie --dysk-uefi "$DYSK"
+if env_dysku | grep -q 'k1_slot=b k1_start=b k1_nowy= k1_proba=$'; then echo "  [OK]    grubenv dysku po wycofaniu: działa B, próba wyczyszczona"
+else echo "  [BŁĄD]  grubenv dysku po wycofaniu: $(env_dysku)"; r=1; fi
+# M6a: pretend the disk runs 99.0.0 (the manifest of its confirmed slot B, 127 MiB into the slot)
+python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); o=int(sys.argv[2])+127*1048576; f.seek(o+8); f.write((99<<16).to_bytes(4,"little")); f.seek(o+24); f.write(b"99.0.0".ljust(24,b"\0")); f.close()' "$DYSK" "$(uklad "$DYSK" 40)"
+uruchom starsza 6-starsza --pendrive "$PEN" --qemu "$SATA"
 rm -f "$DYSK" "$PEN"
 if [ $r -eq 0 ]; then info "M5f: wszystko zaliczone (zrzuty: $TESTY/m5f-*.png)"; else echo "[k1] M5f: BŁĄD (logi: $TESTY/m5f-*.log)"; fi
 exit $r

@@ -41,6 +41,7 @@ int main(void)
         k1_koniec(TAG, "cgroup: nie można włączyć kontrolerów memory i pids: %s", strerror(errno));
 
     k1_bat_hist_init(&bat_hist, BATERIA_PROBKA);
+    rozruch_wydanie();
     for (i = 0; i < PIERWSZA_APLIKACJA; i++)
         start(&uslugi[i]);
     if (stat(TEST, &st) == 0) {
@@ -163,6 +164,7 @@ int main(void)
         wyslij_baterie();
         wyslij_ustawieniom();
         bateria_archiwum(t);
+        rozruch_po_starcie(t);
         if (zasoby_kanal >= 0 && t >= nastepny_raport) {
             raport_zasobow();
             nastepny_raport = t + 1.0;

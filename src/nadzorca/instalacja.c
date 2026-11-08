@@ -16,26 +16,43 @@ void inst_wyslij(struct k1_komunikat k)
         k1_log(TAG, "instalator: wysłanie do okna nieudane");
 }
 
-/* The manifest of a K1-EFI partition (M6a): its version, 0 when there is none; *podpis = signed. */
-static uint32_t wersja_partycji(const char *nazwa, int *podpis)
+/* What a K1-EFI partition runs: format 2 (0.7.0) — the manifest of its confirmed slot, with the other slot
+ * and the A/B flags in *ab (ab->c = 0: not format 2); older — the format-1 manifest at 47 MiB (0.6.2), 0
+ * when there is none. *podpis = signed. */
+static uint32_t wersja_partycji(const char *nazwa, int *podpis, struct k1_komunikat *ab)
 {
     uint8_t man[K1_MANIFEST_BAJTY];
     struct k1_manifest m;
+    struct k1_uklad u;
+    struct k1_grubenv e;
     char sciezka[96];
-    int fd, ok;
+    uint32_t w = 0;
+    int fd;
     *podpis = 0;
+    memset(ab, 0, sizeof *ab);
     if (nazwa[0] == '\0')
         return 0;
     snprintf(sciezka, sizeof sciezka, DEV "/%s", nazwa);
     fd = open(sciezka, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
     if (fd < 0)
         return 0;
-    ok = pread(fd, man, sizeof man, K1_MANIFEST_OFF) == (ssize_t)sizeof man && k1_manifest_czytaj(man, &m) == 0;
+    if (ab_stan(fd, &u, &e) == 0) {
+        int nr = e.slot == 'b' ? 1 : 0;
+        w = ab_wersja(fd, &u, nr, NULL);
+        if (w != 0 && pread(fd, man, sizeof man, (off_t)(u.slot_off[nr] + K1_SLOT_MANIFEST_OFF)) == (ssize_t)sizeof man &&
+            k1_manifest_czytaj(man, &m) == 0)
+            *podpis = (m.flagi & K1_MANIFEST_PODPISANY) != 0;
+        if (w != 0)
+            *ab = k1_komunikat_nowy(K1_KOM_INST_AB, 0, (int32_t)w, (int32_t)ab_wersja(fd, &u, 1 - nr, NULL), nr + 1,
+                                    (k1_slot_nr(e.nowy) >= 0 ? K1_AB_FL_NOWY : 0) |
+                                        (strcmp(nazwa, ab_nieudana) == 0 ? K1_AB_FL_NIEUDANA : 0),
+                                    0);
+    } else if (pread(fd, man, sizeof man, K1_MANIFEST_OFF) == (ssize_t)sizeof man && k1_manifest_czytaj(man, &m) == 0) {
+        *podpis = (m.flagi & K1_MANIFEST_PODPISANY) != 0;
+        w = m.wersja;
+    }
     close(fd);
-    if (!ok)
-        return 0;
-    *podpis = (m.flagi & K1_MANIFEST_PODPISANY) != 0;
-    return m.wersja;
+    return w;
 }
 
 void inst_lista_dyskow(void)
@@ -46,18 +63,26 @@ void inst_lista_dyskow(void)
     for (i = 0; i < inst_lista.n; i++) {
         const struct k1_dysk *d = &inst_lista.d[i];
         long long mib = (long long)(d->bajty >> 20);
+        struct k1_komunikat ab;
         int podpis, k1 = 0;
+        ab.c = 0;
         if (d->efi[0] && d->dane[0]) { /* K1 on it: 1 without a manifest (0.5.9–0.6.1), else its version */
-            uint32_t w = wersja_partycji(d->efi, &podpis);
+            uint32_t w = wersja_partycji(d->efi, &podpis, &ab);
             k1 = w ? (int)(K1_INST_WERSJA | w) : 1;
         }
         inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_DYSK, (uint32_t)i + 1, (int32_t)(mib > 0x7fffffff ? 0x7fffffff : mib),
                                       d->rodzaj, k1, d->sektor,
                                       d->dane[0] && strcmp(d->dane, skarb_dane) == 0));
+        if (ab.c != 0) { /* A/B: what runs, what is in the other slot (0.7.0) */
+            ab.obiekt = (uint32_t)i + 1;
+            inst_wyslij(ab);
+        }
     }
+    inst_wyslij(sb_komunikat());
     {
+        struct k1_komunikat ab;
         int podpis;
-        uint32_t w = inst_lista.zrodlo[0] ? wersja_partycji(inst_lista.zrodlo, &podpis) : 0;
+        uint32_t w = inst_lista.zrodlo[0] ? wersja_partycji(inst_lista.zrodlo, &podpis, &ab) : 0;
         inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_LISTA, 0, inst_lista.n,
                                       inst_lista.zrodlo[0] ? 1 : (inst_lista.zrodel > 1 ? 2 : 0), (int32_t)w,
                                       w ? podpis : 0, 0));
@@ -150,13 +175,18 @@ void obsluz_instalacje(void)
             inst_kanal = -1;
             return;
         }
-        if (w != K1_ODB_JEST || (k.typ != K1_KOM_INST_DYSKI && k.typ != K1_KOM_INST_START && k.typ != K1_KOM_WYLACZ) ||
-            (k.typ == K1_KOM_WYLACZ && (!inst_sukces || k.a > 1))) {
+        /* WYLACZ: only after a finished job, or (restart) when the K1 key waits for MokManager */
+        if (w != K1_ODB_JEST ||
+            (k.typ != K1_KOM_INST_DYSKI && k.typ != K1_KOM_INST_START && k.typ != K1_KOM_WYLACZ && k.typ != K1_KOM_SB_KLUCZ) ||
+            (k.typ == K1_KOM_WYLACZ && (k.a > 1 || !(inst_sukces || (sb_czeka && k.a == 1))))) {
             k1_log(TAG, "odrzucono prośbę od Instalatora");
             continue;
         }
         if (k.typ == K1_KOM_INST_DYSKI) {
             inst_lista_dyskow();
+        } else if (k.typ == K1_KOM_SB_KLUCZ) {
+            sb_przygotuj_klucz();
+            inst_wyslij(sb_komunikat());
         } else if (k.typ == K1_KOM_INST_START) {
             int r = inst_zapis((int)k.obiekt, k.a);
             if (r != 0) {
@@ -192,8 +222,9 @@ void obsluz_zapis(void)
         } else {
             inst_wynik_wyslany = 1;
             inst_sukces = k.a == 0;
-            inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, k.a, inst_tryb, 0, 0, 0));
-            k1_log(TAG, "instalator: %s", k.a == 0 ? "zakończono pomyślnie" : "błąd");
+            inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, k.a, inst_tryb, k.b, 0, 0));
+            k1_log(TAG, "instalator: %s", k.a == 0 ? (k.b ? "zakończono pomyślnie (nowe miejsce A/B)" : "zakończono pomyślnie")
+                                                   : "błąd");
         }
     }
 }
