@@ -8,7 +8,7 @@ static const struct k1_motyw jasny = {
 static const struct k1_motyw ciemny = {
     .tlo = 0x262523, .pole = 0x302f2c, .linia = 0x3c3a37, .najechanie = 0x32312e, .zaznaczenie = 0x3a3834,
     .tekst = 0xeeebe5, .tekst2 = 0xaba79f, .tekst3 = 0x7d7a73,
-    .akcent = 0xd97757, .na_akcencie = 0x1f1e1c, .akcent_tekst = 0xe08a6c, .panel_alfa = 240,
+    .akcent = K1_TERAKOTA, .na_akcencie = 0x1f1e1c, .akcent_tekst = 0xe08a6c, .panel_alfa = 240,
 };
 
 const struct k1_motyw *k1_motyw(int c)

@@ -441,3 +441,15 @@ void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozm
         }
     }
 }
+
+void k1_bateria(struct k1_obraz *o, float x, float y, int procent, int niska, uint32_t alfa)
+{
+    const uint32_t krem = k1_kolor(K1_KREM, alfa);
+    float w;
+    k1_obrys(o, x, y, 22, 12, 3, 1.25f, krem);
+    k1_zaokraglony(o, x + 22.5f, y + 4, 2.5f, 4, 1, krem);
+    if (procent < 0)
+        return;
+    w = 18.0f * (float)(procent > 100 ? 100 : procent) / 100.0f;
+    k1_zaokraglony(o, x + 2, y + 2, w < 2.0f ? 2.0f : w, 8, 1.5f, niska ? k1_kolor(K1_TERAKOTA, alfa) : krem);
+}

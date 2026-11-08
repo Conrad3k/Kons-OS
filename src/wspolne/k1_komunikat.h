@@ -207,6 +207,11 @@ enum k1_bateria_stan {
     K1_BAT_NIE_LADUJE = 4,   /* Not charging (on mains, e.g. charge threshold) */
 };
 #define K1_BAT_STAN_MAKS 4
+/* The battery is low (the top bar and the password screen fill its symbol with terracotta). */
+static inline int k1_bateria_niska(int32_t procent, int32_t stan)
+{
+    return procent >= 0 && procent <= 15 && stan == K1_BAT_ROZLADOWANIE;
+}
 #define K1_MOC_MAKS_MW 1000000  /* 1 kW: anything above is a firmware error */
 #define K1_BAT_MINUT_MAKS (99 * 60)
 #define K1_BAT_HIST_MAKS 1440   /* samples of the battery history (nadzorca halves it when full) */

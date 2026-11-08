@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "k1_aplikacja.h"
+#include "k1_liczba.h"
 #include "k1_kanal.h"
 #include "k1_log.h"
 #include "k1_odbior.h"
@@ -38,12 +39,6 @@ static unsigned long odrzucone;
 static int pierwsze = 1;
 
 
-/* "12,5" from tenths */
-static void dziesietne(char *buf, size_t n, long dziesiate)
-{
-    snprintf(buf, n, "%ld,%ld", dziesiate / 10, dziesiate % 10);
-}
-
 /* Memory in MiB as "850 MB" or "1,2 GB". */
 static void pamiec_tekst(char *buf, size_t n, int32_t mib)
 {
@@ -52,7 +47,7 @@ static void pamiec_tekst(char *buf, size_t n, int32_t mib)
         snprintf(buf, n, "%d MB", (int)mib);
         return;
     }
-    dziesietne(d, sizeof d, ((long)mib * 10 + 512) / 1024);
+    k1_dziesietne(d, sizeof d, ((long)mib * 10 + 512) / 1024);
     snprintf(buf, n, "%s GB", d);
 }
 
@@ -80,21 +75,12 @@ static void wykres(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int3
     }
 }
 
-/* "3 h 20 min", "45 min" */
-static void czas_tekst(char *buf, size_t n, int32_t min)
-{
-    if (min >= 60)
-        snprintf(buf, n, "%d h %d min", (int)(min / 60), (int)(min % 60));
-    else
-        snprintf(buf, n, "%d min", (int)min);
-}
-
 /* One line under the headline: what the battery does now. */
 static void bateria_opis(char *buf, size_t n)
 {
     char w[24], c[32];
-    dziesietne(w, sizeof w, ((long)bat.moc_mw + 50) / 100);
-    czas_tekst(c, sizeof c, bat.minuty);
+    k1_dziesietne(w, sizeof w, ((long)bat.moc_mw + 50) / 100);
+    k1_minuty(c, sizeof c, bat.minuty);
     if (!bat.obecna) {
         snprintf(buf, n, "brak baterii — zasilanie z sieci");
     } else if (bat.stan == K1_BAT_ROZLADOWANIE) {
@@ -128,7 +114,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 
     /* Processor: a headline number, then the last minute */
     k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG, y + 16, "Procesor", k1_kolor(m->tekst, 255), 0);
-    dziesietne(a, sizeof a, ostatni_cpu);
+    k1_dziesietne(a, sizeof a, ostatni_cpu);
     snprintf(buf, sizeof buf, "%s %%", a);
     k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG + w - k1_tekst_szer(K1_CZ_TEKST_MOCNA, buf), y + 16, buf, k1_kolor(m->tekst, 255), 0);
     snprintf(buf, sizeof buf, "%d %s, ostatnia minuta", (int)procesory,
@@ -171,10 +157,10 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         if (!uslugi[p].dziala)
             continue;
         k1_tekst(o, K1_CZ_MALA, MARG, y + 16, k1_profil_nazwa(p), k1_kolor(m->tekst, 255), 0);
-        dziesietne(a, sizeof a, uslugi[p].cpu);
+        k1_dziesietne(a, sizeof a, uslugi[p].cpu);
         snprintf(buf, sizeof buf, "%s %%", a);
         k1_tekst(o, K1_CZ_MALA, MARG + w - 136 - k1_tekst_szer(K1_CZ_MALA, buf), y + 16, buf, k1_kolor(m->tekst2, 255), 0);
-        dziesietne(a, sizeof a, ((long)uslugi[p].kib * 10 + 512) / 1024);
+        k1_dziesietne(a, sizeof a, ((long)uslugi[p].kib * 10 + 512) / 1024);
         snprintf(buf, sizeof buf, "%s MB", a);
         k1_tekst(o, K1_CZ_MALA, MARG + w - k1_tekst_szer(K1_CZ_MALA, buf), y + 16, buf, k1_kolor(m->tekst2, 255), 0);
         y += WIERSZ;

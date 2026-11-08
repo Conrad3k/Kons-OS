@@ -219,16 +219,10 @@ static void odbierz_baterie(void)
 static void rysuj_baterie(struct k1_obraz *o, uint32_t krem)
 {
     const float x = (float)glosnik_x() - 4 - 26, y = 10; /* battery body 22×12 + 2 px terminal */
-    char proc[8];
+    char proc[16];
     int32_t tx;
-    k1_obrys(o, x, y, 22, 12, 3, 1.25f, krem);
-    k1_zaokraglony(o, x + 22.5f, y + 4, 2.5f, 4, 1, krem);
+    k1_bateria(o, x, y, bat.procent, k1_bateria_niska(bat.procent, bat.stan), 255);
     if (bat.procent >= 0) {
-        float w = 18.0f * (float)bat.procent / 100.0f;
-        int niska = bat.procent <= 15 && bat.stan == K1_BAT_ROZLADOWANIE;
-        if (w < 2.0f)
-            w = 2.0f;
-        k1_zaokraglony(o, x + 2, y + 2, w, 8, 1.5f, niska ? k1_kolor(0xd97757, 255) : krem);
         snprintf(proc, sizeof proc, "%d%%", bat.procent);
         tx = (int32_t)x - 6 - k1_tekst_szer(K1_CZ_MALA_MOCNA, proc);
         k1_tekst(o, K1_CZ_MALA_MOCNA, tx, 21, proc, krem, 0);
@@ -246,18 +240,18 @@ static void rysuj_baterie(struct k1_obraz *o, uint32_t krem)
 static void rysuj_gora(void)
 {
     struct k1_obraz *o = k1_pow_rysuj(&gora);
-    const uint32_t krem = k1_kolor(0xf3ede2, 255);
+    const uint32_t krem = k1_kolor(K1_KREM, 255);
     int apl = aktywna_aplikacja();
     int32_t gx;
     if (o == NULL)
         return;
     tekst_zegara(zegar_tekst, sizeof zegar_tekst);
-    k1_wyczysc(o, k1_kolor(0x0e0c0b, 150));
+    k1_wyczysc(o, k1_kolor(K1_NOC, 150));
     k1_tekst(o, K1_CZ_MALA_MOCNA, 16, 21, apl ? aplikacje[apl].nazwa : "Kons K1", krem, 300);
     k1_tekst(o, K1_CZ_MALA_MOCNA, k.szer_ekranu - 16 - k1_tekst_szer(K1_CZ_MALA_MOCNA, zegar_tekst), 21, zegar_tekst, krem, 0);
     gx = glosnik_x();
     if (hover_gora || dzwiek_otwarty)
-        k1_zaokraglony(o, (float)gx, 4, 28, 24, 6, k1_kolor(0xf3ede2, 36));
+        k1_zaokraglony(o, (float)gx, 4, 28, 24, 6, k1_kolor(K1_KREM, 36));
     k1_ikona(o, K1_IK_GLOSNIK, (float)gx + 6, 8, 16, krem);
     if (bat.obecna)
         rysuj_baterie(o, krem);

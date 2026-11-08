@@ -6,9 +6,9 @@ WYJSCIE=${1:-$K1_BUDOWA/qemu/ekran.png}
 MONITOR=${2:-$K1_BUDOWA/qemu/monitor.sock}
 [ -S "$MONITOR" ] || blad "brak gniazda monitora QEMU: $MONITOR (czy maszyna działa?)"
 PPM=$(mktemp --suffix=.ppm)
-python3 -I - "$MONITOR" "$PPM" "$WYJSCIE" <<'PY'
-import os, re, socket, struct, sys, time, zlib
-sock_path, ppm, png = sys.argv[1:4]
+python3 -I - "$MONITOR" "$PPM" <<'PY'
+import os, socket, sys, time
+sock_path, ppm = sys.argv[1:3]
 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 s.connect(sock_path)
 s.settimeout(5)
@@ -31,17 +31,8 @@ for _ in range(50):
     if os.path.exists(ppm) and os.path.getsize(ppm) > 0:
         break
     time.sleep(0.1)
-raw = open(ppm, "rb").read()
-# PPM P6: "P6 <w> <h> <max>" + exactly one whitespace byte + pixel data
-m = re.match(rb"P6\s+(\d+)\s+(\d+)\s+255\s", raw)
-assert m, "nieobsługiwany format PPM"
-w, h, data = int(m.group(1)), int(m.group(2)), raw[m.end():]
-rows = b"".join(b"\x00" + data[y * w * 3:(y + 1) * w * 3] for y in range(h))
-def chunk(t, d):
-    return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
-with open(png, "wb") as f:
-    f.write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
-            + chunk(b"IDAT", zlib.compress(rows, 9)) + chunk(b"IEND", b""))
-print(f"[k1] zrzut ekranu: {png} ({w}x{h})")
 PY
+[ -s "$PPM" ] || blad "QEMU nie zapisał zrzutu ekranu"
+rozmiar=$(python3 -I "$K1_REPO/scripts/ppm-na-png.py" "$PPM" "$WYJSCIE") || { rm -f "$PPM"; exit 1; }
+echo "[k1] zrzut ekranu: $WYJSCIE $rozmiar"
 rm -f "$PPM"

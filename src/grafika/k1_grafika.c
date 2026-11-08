@@ -91,12 +91,6 @@ static uint32_t kwantyzuj(struct rgb c, uint32_t x, uint32_t y)
     return (r << 16) | (g << 8) | b;
 }
 
-/* ---- palette (docs/WYGLAD.md) ---- */
-#define KOLOR_AKCENT 0xd9774fu
-#define KOLOR_AKCENT_JASNY 0xe8956cu
-#define KOLOR_AKCENT_CIEMNY 0xa94f34u
-#define KOLOR_KREM 0xf3ede2u
-
 /* ---- wallpaper: layered ribbons of folded paper (owner's reference, docs/WYGLAD.md) ----
  *
  * Nested, rotated ellipses are "sheets" lying one on another; each inner one is a step higher.
@@ -281,7 +275,7 @@ void k1_rysuj_kursor(uint32_t *sprite, int wcisniety)
         { 11.5f, 22.4f }, { 8.1f, 14.5f }, { 14.4f, 14.5f },
     };
     struct v2 pts[sizeof strzalka / sizeof strzalka[0]];
-    struct rgb wypelnienie = hex(wcisniety ? KOLOR_AKCENT : KOLOR_KREM), obrys = hex(0x141110u);
+    struct rgb wypelnienie = hex(wcisniety ? K1_TERAKOTA : K1_KREM), obrys = hex(0x141110u);
     size_t i;
     uint32_t x, y;
 
@@ -358,28 +352,13 @@ void k1_naloz_sprite(struct k1_obraz *o, const uint32_t *sprite, uint32_t sw, ui
     }
 }
 
-void k1_kopiuj_prostokat(struct k1_obraz *dst, const struct k1_obraz *src, int32_t x, int32_t y, int32_t w,
-                         int32_t h)
-{
-    int32_t ox, oy, j;
-    if (dst->szer != src->szer || dst->wys != src->wys || !przytnij(dst, &x, &y, &w, &h, &ox, &oy))
-        return;
-    for (j = 0; j < h; j++) {
-        const uint32_t *s = src->px + (size_t)(y + j) * src->krok + (size_t)x;
-        uint32_t *d = dst->px + (size_t)(y + j) * dst->krok + (size_t)x;
-        int32_t i;
-        for (i = 0; i < w; i++)
-            d[i] = s[i];
-    }
-}
-
 /* The K1 mark (docs/WYGLAD.md, owner's choice „Warstwy”): three sheets of paper lying one on
  * another — the same idea as the wallpaper — as quarter circles from the lower right corner of a
  * rounded square, in three shades of terracotta. Flat, no outline or glow. Blended onto a
  * premultiplied ARGB image, centred at (cx, cy), `wys` px tall (and wide). */
 void k1_rysuj_znak(struct k1_obraz *o, float cx, float cy, float wys)
 {
-    static const uint32_t kolory[3] = { 0xb55c3eu, KOLOR_AKCENT, 0xe9a88bu };
+    static const uint32_t kolory[3] = { K1_TERAKOTA_CIEMNA, K1_TERAKOTA, K1_TERAKOTA_JASNA };
     static const float promienie[3] = { 1.75f, 1.25f, 0.75f };
     const float h = wys / 2.0f, px = 2.0f / wys; /* unit square [-1, 1]; one pixel in units */
     int32_t x0 = (int32_t)floorf(cx - h), x1 = (int32_t)ceilf(cx + h), y0 = (int32_t)floorf(cy - h),

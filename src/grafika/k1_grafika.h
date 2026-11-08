@@ -10,6 +10,15 @@
 
 #include <stdint.h>
 
+/* The K1 colours (docs/WYGLAD.md): the mark's three terracottas (the middle one is the accent of the dark
+ * theme and of everything drawn over the wallpaper), cream, and the evening brown of the top bar and the
+ * password screen. The window themes are in k1_okno.c. */
+#define K1_TERAKOTA_CIEMNA 0xb55c3eu
+#define K1_TERAKOTA 0xd97757u
+#define K1_TERAKOTA_JASNA 0xe9a88bu
+#define K1_KREM 0xf3ede2u
+#define K1_NOC 0x0e0c0bu
+
 /* An XRGB8888 image: `krok` = pixels per row (>= szer). */
 struct k1_obraz {
     uint32_t *px;
@@ -33,10 +42,6 @@ void k1_rysuj_kursor(uint32_t *sprite, int wcisniety);
 /* Blends a premultiplied ARGB sprite onto `o` with its top-left corner at (x, y); clipped. */
 void k1_naloz_sprite(struct k1_obraz *o, const uint32_t *sprite, uint32_t sw, uint32_t sh,
                      int32_t x, int32_t y);
-
-/* Copies rectangle (x, y, w, h) from `src` to the same place in `dst` (same size); clipped. */
-void k1_kopiuj_prostokat(struct k1_obraz *dst, const struct k1_obraz *src, int32_t x, int32_t y,
-                         int32_t w, int32_t h);
 
 /* The K1 mark („Warstwy”: three sheets of paper) over a premultiplied ARGB image, wys × wys px. */
 void k1_rysuj_znak(struct k1_obraz *o, float cx, float cy, float wys);

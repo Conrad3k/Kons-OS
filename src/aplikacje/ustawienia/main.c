@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "k1_aplikacja.h"
+#include "k1_liczba.h"
 #include <linux/input-event-codes.h>
 
 #include "k1_bat_arch.h"
@@ -566,14 +567,6 @@ static void wykres_prost(int32_t *x, int32_t *y, int32_t *w, int32_t *h)
     *h = WYKRES_H;
 }
 
-static void czas_tekst(char *buf, size_t n, long s)
-{
-    if (s >= 3600)
-        snprintf(buf, n, "%ld h %ld min", s / 3600, s / 60 % 60);
-    else
-        snprintf(buf, n, "%ld min", s / 60);
-}
-
 /* One series, one hue (like Zasoby): a soft area under a 2-px accent line, a hairline at 50 %;
  * under the chart a thin strip where the computer was on mains. Left edge = boot, right = now. */
 static void wykres_baterii(struct k1_obraz *o, const struct k1_motyw *m)
@@ -624,7 +617,7 @@ static void poprzednie(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, 
     }
     s = &arch.s[arch.n - 1];
     k1_czas_warszawa((int64_t)s->start_min * 60, &d);
-    czas_tekst(a, sizeof a, (long)(s->n - 1) * s->interwal);
+    k1_minuty(a, sizeof a, (long)(s->n - 1) * s->interwal / 60);
     snprintf(buf, sizeof buf, "Poprzednio: %s %d:%02d · %s · %d %% → %d %%%s", k1_dzien_skrot(d.dzien_tygodnia), d.godzina,
              d.minuta, a, arch.p[s->od] & 0x7f, arch.p[s->od + s->n - 1] & 0x7f, arch.n > 1 ? " · i starsze" : "");
     k1_tekst(o, K1_CZ_MALA, x, y, buf, k1_kolor(m->tekst2, 255), sx - x - 12);
@@ -675,7 +668,7 @@ static void rysuj_baterie(struct k1_obraz *o, const struct k1_motyw *m)
         for (i = 0; i < hist_n; i++)
             if ((int32_t)(hist[i] & 0x7f) < najnizej)
                 najnizej = hist[i] & 0x7f;
-        czas_tekst(a, sizeof a, trwa);
+        k1_minuty(a, sizeof a, (long)trwa / 60);
         snprintf(buf, sizeof buf, "Od uruchomienia: %s · najniżej %d %%", a, (int)najnizej);
         k1_tekst(o, K1_CZ_MALA, x, y + h + 50, buf, k1_kolor(m->tekst2, 255), 0);
     }

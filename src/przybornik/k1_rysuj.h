@@ -60,4 +60,8 @@ enum k1_ikona {
 };
 void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozmiar, uint32_t kolor);
 
+/* The battery symbol over the wallpaper (top bar, password screen): a 22×12 body at (x, y) with its
+ * terminal, filled to `procent` (no fill when < 0), the fill terracotta when `niska`. `alfa` 0..255. */
+void k1_bateria(struct k1_obraz *o, float x, float y, int procent, int niska, uint32_t alfa);
+
 #endif

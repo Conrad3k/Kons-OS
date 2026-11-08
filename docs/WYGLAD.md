@@ -68,8 +68,8 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   połowy ekranu zegar Plex Serif Light 64 i data (Serif 24), na dole pośrodku przezroczyste pole hasła
   w kształcie pigułki 340×48 (krem 18% + obrys krem 47%) z kropkami i okrągłym przyciskiem ze strzałką
   w kolorze akcentu, nad nim „Hasło”, pod nim „Enter — odblokuj · zapomniane hasło = nowe konto”;
-  w prawym dolnym rogu bateria i wyłączanie. Szkic:
-  `make build/obj/szkice_logowania` (`testy/host/szkice_logowania.c`).
+  w prawym dolnym rogu bateria i wyłączanie. Szkice wariantów (A, B, C) były w
+  `testy/host/szkice_logowania.c` do 0.7.0 (historia git).
 - **Ustawienia → Bateria** (0.5.5): „73 %” (Plex Serif 24) + stan; wykres jak w Zasobach (pole 8 px,
   linia akcentu 2 px, wypełnienie akcentu 14 %, linia 50 %), pod nim pasek 3 px (tekst2) = zasilacz,
   oś: godzina startu … „teraz”.
