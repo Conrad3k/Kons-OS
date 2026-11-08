@@ -225,6 +225,9 @@ M5.3 Laptop (małe kroki między etapami, po Twoich zgłoszeniach)
     [ ] i915 (płynniejszy obraz, jasność), klawisze Fn, dźwięk, przewijanie touchpadem
 
 M10 Bezpieczny start — reszta: tryb ratunkowy (recovery), licznik wersji w TPM
+    [ ] do rozważenia: ochrona jądra K1 „piętro niżej” (jak VBS/HVCI w Windows 11, pKVM w Androidzie) —
+        mała warstwa wirtualizacji pod jądrem pilnuje, że kodu jądra nie da się zmienić ani dopisać,
+        nawet po przejęciu jądra; koszt: kilka % wydajności (Twój pomysł z 2026-11-08)
 (M11 — weszło do M8: mikro-maszyny są głównym modelem stref, ADR 0020)
 M12 Audyt: fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa
 
@@ -238,5 +241,6 @@ M5   (podjęte, ADR 0013) sterowniki dysków i USB; dalej: format Blob Vault i s
      skąd klucz (hasło; X230 ma TPM 1.2, nie 2.0)
 M7   przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP
 M5.1 Firefox czy WPE WebKit (sprawdzenie sandboxa Firefoksa w strefie), USER_NS tak/nie
-M10  obraz produkcyjny bez logu na porcie szeregowym; RANDSTRUCT w jądrze; zarządzanie kluczami
+M10  obraz produkcyjny bez logu na porcie szeregowym; RANDSTRUCT w jądrze; zarządzanie kluczami;
+     ochrona jądra przez wirtualizację (pKVM / własna warstwa pod jądrem) — tak/nie, po działających strefach (M8)
 M11  wybór VMM (do porównania m.in. Cloud Hypervisor, Firecracker, crosvm); test KVM na Twoim sprzęcie
