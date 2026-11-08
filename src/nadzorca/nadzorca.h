@@ -26,8 +26,8 @@
 #include "k1_log.h"
 #include "k1_odbior.h"
 #include "k1_bat_arch.h"
-#include "k1_manifest.h"
-#include "k1_uklad.h"
+#include "k1_efi.h"
+#include "k1_io.h"
 #include "k1_memfd.h"
 #include "k1_skarb_klient.h"
 #include "k1_uslugi.h"
@@ -170,8 +170,6 @@ void obsluz_zapis(void);
 extern char ab_nieudana[32];
 void rozruch_wydanie(void);
 void rozruch_po_starcie(double t);
-int ab_stan(int fd, struct k1_uklad *u, struct k1_grubenv *e);
-uint32_t ab_wersja(int fd, const struct k1_uklad *u, int nr, uint8_t wyd[16]);
 
 /* efi.c — Secure Boot and the K1 key (0.7.0, ADR 0022) */
 extern int sb_czeka;

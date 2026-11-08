@@ -18,6 +18,7 @@
 #include "k1_klawiatura.h"
 #include "k1_komunikat.h"
 #include "k1_log.h"
+#include "k1_manifest.h"
 #include "k1_odbior.h"
 #include "k1_uslugi.h"
 
@@ -43,12 +44,6 @@ static int32_t sb = -1, sbk, sb_prawdziwy, sb_wynik; /* Secure Boot (SB_STAN); s
 static int nowe_miejsce;                              /* the update wrote the other slot (A/B) */
 static int n_dyskow, zrodlo, wybrany = -1, tryb = K1_INST_INSTALUJ, procent, etap, wynik;
 static int32_t wersja_zrodla, zrodlo_podpisane; /* M6a: the stick's manifest (0: none) */
-
-/* "0.6.2" from major<<16|minor<<8|patch */
-static void tekst_wersji(int32_t w, char *buf, size_t n)
-{
-    snprintf(buf, n, "%d.%d.%d", (int)(w >> 16 & 0xff), (int)(w >> 8 & 0xff), (int)(w & 0xff));
-}
 
 /* The version on disk `i`: -1 = no K1, 0 = K1 without a manifest (0.5.9–0.6.1), else the version. */
 static int32_t wersja_dysku(int i)
@@ -245,10 +240,10 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
             if (dyski[i].k1) {
                 char w[16] = "", z[40] = "";
                 if (wersja_dysku(i) > 0)
-                    tekst_wersji(wersja_dysku(i), w, sizeof w);
+                    k1_wersja_tekst((uint32_t)wersja_dysku(i), w, sizeof w);
                 if (dyski[i].ab_slot && dyski[i].ab_zapas > 0) {
                     char t[16];
-                    tekst_wersji(dyski[i].ab_zapas, t, sizeof t);
+                    k1_wersja_tekst((uint32_t)dyski[i].ab_zapas, t, sizeof t);
                     snprintf(z, sizeof z, " (zapasowa: %s)", t);
                 }
                 snprintf(buf, sizeof buf, "Jest na nim Kons K1%s%s%s%s", w[0] ? " " : "", w, z,
@@ -295,11 +290,11 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
             {
                 char stara[16] = "?", nowa[16] = "?";
                 if (wersja_dysku(wybrany) > 0)
-                    tekst_wersji(wersja_dysku(wybrany), stara, sizeof stara);
+                    k1_wersja_tekst((uint32_t)wersja_dysku(wybrany), stara, sizeof stara);
                 else
                     snprintf(stara, sizeof stara, "0.5.9–0.6.1");
                 if (wersja_zrodla > 0)
-                    tekst_wersji(wersja_zrodla, nowa, sizeof nowa);
+                    k1_wersja_tekst((uint32_t)wersja_zrodla, nowa, sizeof nowa);
                 snprintf(buf, sizeof buf, "Na dysku: %s  →  z pendrive'a: %s%s", stara, nowa,
                          wersja_zrodla > 0 ? (zrodlo_podpisane ? " (podpisana)" : " (wersja deweloperska)") : "");
             }

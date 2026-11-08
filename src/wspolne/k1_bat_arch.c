@@ -1,29 +1,8 @@
 /* K1 — battery history of earlier boots. See k1_bat_arch.h. */
 #include "k1_bat_arch.h"
+#include "k1_bajty.h"
 
 #include <string.h>
-
-static uint16_t c16(const uint8_t *p)
-{
-    return (uint16_t)(p[0] | p[1] << 8);
-}
-
-static uint32_t c32(const uint8_t *p)
-{
-    return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
-}
-
-static void z16(uint8_t *p, uint16_t v)
-{
-    p[0] = (uint8_t)v;
-    p[1] = (uint8_t)(v >> 8);
-}
-
-static void z32(uint8_t *p, uint32_t v)
-{
-    z16(p, (uint16_t)v);
-    z16(p + 2, (uint16_t)(v >> 16));
-}
 
 static int probka_ok(uint8_t v)
 {
@@ -38,7 +17,7 @@ int k1_bat_arch_czytaj(const void *buf, size_t n, struct k1_bat_arch *a)
     memset(a, 0, sizeof *a);
     if (b == NULL || n < 8 || memcmp(b, "K1B2", 4) != 0 || b[6] != 0 || b[7] != 0)
         return -1;
-    ile = c16(b + 4);
+    ile = k1_c16(b + 4);
     if (ile > K1_BAT_ARCH_SESJE)
         return -1;
     for (i = 0; i < ile; i++) {
@@ -46,9 +25,9 @@ int k1_bat_arch_czytaj(const void *buf, size_t n, struct k1_bat_arch *a)
         uint16_t j;
         if (n - off < 8)
             goto zle;
-        s->start_min = c32(b + off);
-        s->interwal = c16(b + off + 4);
-        s->n = c16(b + off + 6);
+        s->start_min = k1_c32(b + off);
+        s->interwal = k1_c16(b + off + 4);
+        s->n = k1_c16(b + off + 6);
         off += 8;
         if (s->interwal < 1 || s->n < 1 || n - off < s->n || a->probek + s->n > K1_BAT_ARCH_PROBKI ||
             (i > 0 && s->start_min < a->s[i - 1].start_min))
@@ -93,12 +72,12 @@ size_t k1_bat_arch_zapisz(const struct k1_bat_arch *a, const struct k1_bat_sesja
     if (maks < 8 + (size_t)(n - od) * 8 + (size_t)suma)
         return 0;
     memcpy(buf, "K1B2", 4);
-    z16(buf + 4, (uint16_t)(n - od));
+    k1_z16(buf + 4, (uint16_t)(n - od));
     buf[6] = buf[7] = 0;
     for (i = od; i < n; i++) {
-        z32(buf + off, lista[i]->start_min);
-        z16(buf + off + 4, lista[i]->interwal);
-        z16(buf + off + 6, lista[i]->n);
+        k1_z32(buf + off, lista[i]->start_min);
+        k1_z16(buf + off + 4, lista[i]->interwal);
+        k1_z16(buf + off + 6, lista[i]->n);
         memcpy(buf + off + 8, dane[i], lista[i]->n);
         off += 8 + lista[i]->n;
     }
