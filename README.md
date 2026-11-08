@@ -18,8 +18,8 @@ i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
 | M4 GUI | pulpit, okna, aplikacje Zegar, Notatki, Ustawienia; obraz ISO do maszyny wirtualnej | PRZETESTOWANE (QEMU: UEFI i BIOS) |
 | M4.1 Porządki i audyt | przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby | PRZETESTOWANE |
 | M5 Dane i sprzęt | zaszyfrowane dane, hasło, dyski i USB, pendrive, **instalator na dysk** | PRZETESTOWANE w QEMU (0.5.9); czeka na test na X230 |
-| 0.6.0 Fundament | porządki w nadzorcy, zdarzenia jądra zamiast odpytywania, szybsze testy, historia baterii | NASTĘPNE |
-| M6 Bezpieczne aktualizacje | podpisane wydania, wykrywanie podmiany systemu, A/B, Secure Boot z własnym kluczem | PLANOWANE |
+| 0.6.0 Fundament | porządki w nadzorcy, zdarzenia jądra zamiast odpytywania, szybsze testy, historia baterii | PRZETESTOWANE |
+| M6 Bezpieczne aktualizacje | podpisane wydania, wykrywanie podmiany systemu, A/B, Secure Boot z własnym kluczem | PRZETESTOWANE w QEMU (0.7.0); czeka na test na X230 |
 | M7 Sieć | kabel, potem Wi-Fi | PLANOWANE |
 | M8 Strefy | każda obca aplikacja (przeglądarka, Discord…) w swojej mikro-maszynie; kolorowa ramka; stała/jednorazowa; pełna izolacja/szybka grafika | PLANOWANE (ADR 0020) |
 | M9 Pliki | aplikacja Pliki, przenoszenie plików ze stref przez okno K1, podgląd w izolacji | PLANOWANE |
@@ -59,12 +59,13 @@ sterownik VMware nie działa z tą kartą QEMU); Hyper-V — jeszcze nie.
 Od 0.5.6 jest osobny obraz na pendrive: **`k1-X.Y.Z-usb.img.xz`** (Releases). Ma miejsce na Twoje dane
 (ustawienia, notatki) — **zaszyfrowane, na tym samym pendrivie**. Bez Twojej decyzji K1 **niczego nie
 zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive zostanie w całości nadpisany.
-1. Nagraj `k1-X.Y.Z-usb.img.xz` na pendrive (≥ 128 MB): w Windowsie **Rufus** → wybierz plik
+1. Nagraj `k1-X.Y.Z-usb.img.xz` na pendrive (≥ 512 MB): w Windowsie **Rufus** → wybierz plik
    (Rufus sam rozpakuje .xz; jeśli zapyta — tryb obrazu DD) → Start. Albo balenaEtcher.
    (Obraz `.iso` też zadziała z pendrive'a, ale bez zapisu danych — po wyłączeniu wszystko znika,
    a Ustawienia → Hasło piszą „Nie znaleziono miejsca na dane”. Sprawdzisz w Ustawieniach → Informacje:
    „Dane: zaszyfrowane na nośniku K1”.)
-2. **Najpierw wyłącz Secure Boot** — K1 nie jest jeszcze podpisany (M10). Bez tego laptop pokaże
+2. **Najpierw wyłącz Secure Boot** — dopóki klucz K1 nie jest wpisany (sekcja „Secure Boot z kluczem K1”
+   niżej; wersje deweloperskie zawsze wymagają wyłączonego Secure Boot). Bez tego laptop pokaże
    „Secure Boot Violation” / „Invalid signature”, a po „OK” uruchomi system z dysku (sprawdzone
    na X230, 2026-11-07). Włącz laptop i od razu wciskaj **F1** (ustawienia BIOS-u):
    - **Security → Secure Boot → Secure Boot: Disabled**,
@@ -95,6 +96,8 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    podłącz pendrive, Instalator → *Zaktualizuj system* → *Zaktualizuj*. Wymienia tylko system — Twoje
    dane zostają. Od 0.6.2 Instalator sprawdza odcisk i podpis systemu i nie pozwoli wrócić do starszej
    wersji (dlatego lepiej startować z dysku: wtedy sprawdza Twój system, a nie kod z pendrive'a).
+   Od 0.7.0 nowa wersja trafia **obok** obecnej (A/B): po restarcie startuje na próbę, a gdyby nie
+   wystartowała — wraca poprzednia, a Instalator o tym napisze.
 
 ## Klucz podpisu (jednorazowo, od 0.6.2)
 Wydania K1 podpisuje GitHub kluczem, który znasz tylko Ty (i GitHub). **Nie wklejaj go nigdzie
@@ -107,6 +110,21 @@ indziej — także w czacie.**
    **New repository secret**: Name `K1_KLUCZ_PODPISU`, Secret: wklejony wynik → **Add secret**.
 4. Następne wydanie będzie podpisane (opis wydania: „System: podpisane kluczem K1”). Zainstaluj je
    **od nowa** albo zaktualizuj — od tej chwili Twój K1 przyjmie tylko wersje podpisane tym kluczem.
+   Ten sam sekret daje też klucz do Secure Boot (od 0.7.0) — nic więcej nie trzeba.
+
+## Secure Boot z kluczem K1 (od 0.7.0, gdy wydanie jest podpisane)
+Z włączonym Secure Boot laptop uruchomi tylko K1 podpisany Twoim kluczem (podmieniony albo uszkodzony
+system się nie uruchomi). Klucz wpisuje się raz:
+1. Uruchom K1 z dysku (Secure Boot jeszcze wyłączony) → menu Start → **Instalator** → na dole
+   **Secure Boot…** → **Przygotuj klucz K1** → **Uruchom ponownie** (bez pendrive'a).
+2. Pojawi się niebieski ekran *Shim UEFI key management* — **w ciągu 10 sekund naciśnij dowolny klawisz**
+   (jeśli nie zdążysz, K1 wystartuje normalnie — wtedy powtórz punkt 1).
+3. Strzałkami: **Enroll MOK** → Enter → **Continue** → Enter → **Yes** → Enter → wpisz hasło
+   **kons** → Enter → **Reboot**.
+4. Przy starcie od razu **F1** → **Security → Secure Boot → Secure Boot: Enabled** → **F10** → *Yes*.
+5. K1 powinien wystartować normalnie. Instalator → Secure Boot… pokaże „włączony, klucz K1: wpisany”.
+Gdyby K1 nie wystartował, na ekranie będzie krótkie wyjaśnienie — wtedy F1 → Secure Boot: Disabled i
+napisz, co było na ekranie.
 
 
 Napisz (Issues → „Feedback z testu” albo w czacie): czy pulpit się pojawił (jeśli ekran został czarny

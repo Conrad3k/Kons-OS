@@ -8,7 +8,7 @@ zrzut ekranu albo wynik testu. Każdy mechanizm bezpieczeństwa ma test negatywn
 ```bash
 scripts/przygotuj-srodowisko.sh   # raz w nowym kontenerze (pakiety Ubuntu)
 scripts/zbuduj.sh                 # jądro + programy + obrazy + ISO → build/wynik/
-scripts/testy.sh                  # wszystkie testy: test-m1.sh, potem test-m2/m4/m5/m5f (z KVM równolegle; bez KVM po kolei, ~45 min TCG)
+scripts/testy.sh                  # wszystkie testy: test-m1.sh, potem test-m2/m4/m5/m5f/m6 (z KVM równolegle; bez KVM po kolei, ~60 min TCG)
 ```
 
 Logi każdego scenariusza: `build/testy/<nazwa>.log`. Limit czasu na uruchomienie: `K1_TEST_CZAS`
@@ -242,3 +242,17 @@ Wszędzie: brak „Kernel panic”, „BŁĄD” i zabronionych wywołań.
 | mysz | 4 × `mouse_move -60 -30` → kursor (−240, −120); na zrzucie kursor w nowym miejscu | `m2-2-mysz.png` |
 | klawiatura i przycisk | 3 × `sendkey right` (żadne okno nie ma fokusu) → +60 px; `mouse_button 1` → kursor w kolorze akcentu; w starym miejscu kursora na zrzutach 2 i 3 ta sama tapeta (brak śladu) | `m2-3-klawiatura-przycisk.png` |
 | koniec | brak „Kernel panic”, błędów usług, odrzuconych i zgubionych zdarzeń | `m2-ekran.log` |
+
+## M6c–M6d (0.7.0, ADR 0022) — A/B i Secure Boot
+
+| Test | Co sprawdza | Rodzaj |
+|---|---|---|
+| host `test_uklad` | blok układu K1-EFI (zbuduj/odczytaj, nakładanie, wyrównanie, przepełnienie, suma), grubenv — te same bajty co `grub-editenv` (w `make testy-host`), ścisłe parsowanie, decyzja A/B | jednostkowy + negatywny |
+| host `test_sha256` | SHA-256 (wektory FIPS 180-4, podział wejścia w każdym miejscu) — MokAuth | jednostkowy |
+| host `test_manifest` | manifest formatu 2 (identyfikator wydania podpisany, granice, pola zarezerwowane) | jednostkowy + negatywny |
+| host `test_komunikat` | `INST_AB`, `SB_STAN`, `SB_KLUCZ`, flaga nowego miejsca w `INST_GOTOWE`/`INST_WYNIK` | negatywny |
+| `fuzz_uklad` | blok układu i grubenv: dowolne bajty, zapis z powrotem czyta się tak samo | fuzzing |
+| `test-m5f.sh` | aktualizacja A/B do wolnego miejsca B; start z dysku: B na próbę i potwierdzone (grubenv: `k1_slot=b`); „nowe” miejsce A uszkodzone → GRUB wraca do B, K1 zgłasza, próba wyczyszczona; starsza wersja zablokowana; uszkodzony system na pendrivie → odmowa przed zapisem | funkcjonalny + negatywny |
+| `test-m6.sh` | OVMF z Secure Boot i kluczami MS: klucz K1 w MOK → pulpit i „włączony, klucz wpisany”; bez klucza → odmowa z wyjaśnieniem na ekranie; zmieniony bajt `k1.efi` → odmowa; klucz wydania: „Przygotuj klucz K1” → MokManager (Enroll MOK, hasło) → MokList → Secure Boot → K1 startuje; wersja deweloperska: wpisanie niedostępne | funkcjonalny + negatywny |
+| ręcznie (0.7.0) | GRUB z podsuniętym obcym initramfs i `rdinit=` → jądro uruchomiło tylko nasz initramfs; aktualizacja zainstalowanego 0.6.3 starym Instalatorem do 0.7.0 | negatywny |
+

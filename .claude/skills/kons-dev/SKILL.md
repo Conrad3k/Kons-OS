@@ -64,6 +64,17 @@ czacie**); bez sekretu = wersja deweloperska (`build/gen/k1_klucz.h`: `K1_KLUCZ_
 --no-superblock`, stała sól), skrót w `rdzen.squashfs.skrot` → `k1.rdzen_skrot=` w GRUB/QEMU (obowiązkowy; nowy
 obraz testowy w QEMU = też `verity` i skrót). Initramfs czyta całe `/dev/dm-N` przed montowaniem. Start → Wyloguj
 (`WYLACZ` a=2 → `zamknij_sesje()`), `SKARB_KLIENT` c / `SKARB_WYNIK` d bit 1 = K1-DANE na USB, `ZASOBY_BATERIA`.
+0.7.0 — **M6c+M6d** (ADR 0022): wydania startują `k1.efi` = jądro z wbudowaną linią poleceń (`noinitrd`) i initramfs
+z rdzeniem (`zbuduj-k1efi.sh`, `jadro/k1-zamkniete.config`, ten sam katalog jądra), podpisane `sbsign` (RSA z
+`narzedzia/klucz_sb.py` — z sekretu albo publiczny klucz deweloperski; `faketime`). `bzImage` + `initramfs.cpio` tylko
+dla `test-m1`. K1-EFI format 2 (`k1_uklad.h`): FAT32 280 MiB, blok układu (1 KiB), grubenv (`k1_slot/k1_nowy/k1_start/
+k1_proba`), `/k1/a.img` `/k1/b.img` (128 MiB: wewn. FAT z k1.efi + manifest formatu 2 z identyfikatorem wydania
+`/rdzen/system/wydanie` na 127 MiB); manifest formatu 1 na 47 MiB zostaje (aktualizacja z 0.6.2–0.6.3 starym
+Instalatorem). Instalator: aktualizacja = wolne miejsce + `k1_nowy`; nadzorca `rozruch.c` potwierdza po 15 s
+(to samo wydanie) albo zgłasza wycofanie; `efi.c`: efivarfs na chwilę, `MokNew`/`MokAuth` (SHA-256 `k1_sha256.c`),
+tylko klucz wydania. Testy: `test-m6.sh` (`uruchom-qemu.sh --zmienne-uefi`, OVMF secboot, `virt-fw-vars --add-mok`;
+MokManager: klawisz w 10 s, Enroll MOK, hasło „kons”). Zmiana zawartości obrazu na pendrivie w teście: nie psuj
+miejsca A (z niego startuje) — psuj wolne miejsce w wewnętrznym FAT (pokrywa je skrót).
 Pierwszy laptop właściciela: **ThinkPad X230** (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez
 simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
 
@@ -92,7 +103,7 @@ simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
 | `narzedzia/czcionki.c` | (host, przy budowie) | ADR 0009 | FreeType → bitmapy IBM Plex (`build/gen/`) |
 | `narzedzia/ekran_startowy.c` | (host) → `/boot/grub/start.png` | `WYGLAD.md` | logo startowe dla GRUB-a (zlib) |
 | `src/wspolne/` | (linkowane) | — | `k1_log` (log, `k1_awaria`, `k1_koniec`), `k1_cmdline`, `k1_zdarzenie`, `k1_komunikat` (32 B, wszystkie kanały), `k1_kanal` (SEQPACKET, SCM_RIGHTS, SO_PASSCRED), `k1_klatka` (sandbox), `k1_uslugi.h` (UID-y, role) |
-| `jadro/` | `bzImage` | `komponenty/jadro.md` | wersja, konfiguracja, linia poleceń, klucze |
+| `jadro/` | `bzImage` (testy), `k1.efi` (wydania) | `komponenty/jadro.md` | wersja, konfiguracja, linia poleceń, klucze, zamknięte jądro |
 | `testy/system/` | `/rdzen/system/test-systemu` (tylko obraz testowy) | `TESTY.md` | sprawdzenia w systemie: `t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4+), `t_sprzet.c` (M5a), `proba.c`, `wspolne.c`, nagłówek `k1_test.h` |
 
 ## 2. Niezmienniki — tego nie wolno złamać

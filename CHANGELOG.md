@@ -3,6 +3,48 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.7.0] — 2026-11-08
+
+Etap **M6 — bezpieczne aktualizacje** zakończony: kroki M6c (A/B) i M6d (Secure Boot), ADR 0022.
+
+### Dodane
+- **Dwa miejsca na system (A/B):** na dysku są teraz dwie kopie systemu. Aktualizacja zapisuje nową
+  wersję **obok** działającej i nic w działającej nie zmienia. Po ponownym uruchomieniu komputer
+  próbuje nowej wersji **raz**: gdy wystartuje, K1 sam ją zatwierdza; gdy nie (uszkodzona, przerwany
+  zapis, zawieszenie) — przy następnym starcie wraca poprzednia i Instalator mówi „Ostatnia
+  aktualizacja nie wystartowała”. Lista dysków w Instalatorze pokazuje też wersję zapasową.
+- **Secure Boot z kluczem K1:** cały system to teraz **jeden podpisany plik** (`k1.efi`). Z włączonym
+  Secure Boot laptop uruchomi tylko K1 podpisany Twoim kluczem — podmieniony albo uszkodzony system się
+  nie uruchomi, a na ekranie pojawi się wyjaśnienie, co zrobić.
+- **Instalator → „Secure Boot…”:** stan (włączony/wyłączony, klucz wpisany albo nie) i przycisk
+  „Przygotuj klucz K1”. Potem restart, niebieski ekran MokManagera (w ciągu 10 s dowolny klawisz) →
+  Enroll MOK → Continue → Yes → hasło **kons** → Reboot, a na koniec w BIOS-ie (F1) Secure Boot → Enabled.
+  Działa tylko w wersji podpisanej Twoim kluczem (README → „Klucz podpisu”): ten sam sekret podpisuje
+  teraz i system, i Secure Boot — nie trzeba niczego więcej.
+
+### Zmienione
+- Obraz na pendrive ma 345 MB (było 113) — mieści dwa miejsca na system; plik do pobrania (`.img.xz`)
+  dalej ok. 8 MB. Nagrywasz go jak dotąd (Rufus/balenaEtcher).
+- **Aktualizacja do 0.7.0 z zainstalowanego 0.6.x:** jak zawsze — start z dysku, pendrive 0.7.0
+  podłączony, Instalator → Zaktualizuj. Ten jeden raz zapisuje się cała partycja systemu (stary
+  Instalator nie zna A/B); od 0.7.0 aktualizacje są już A/B. Dane zostają.
+- Obraz ISO (do maszyn wirtualnych) też startuje z `k1.efi`.
+
+### Bezpieczeństwo
+- Podpisane jądro ma wbudowaną linię poleceń i nie przyjmuje initramfs od programu ładującego
+  (sprawdzone: GRUB z podsuniętym obcym initramfs — K1 go zignorował).
+- Wersja deweloperska (bez Twojego sekretu) jest podpisana publicznym kluczem testowym — K1 nigdy nie
+  proponuje jego wpisania (każdy mógłby nim podpisać fałszywy system).
+
+### Testy
+- QEMU `test-m6` (nowy): Secure Boot z kluczem K1 → pulpit; bez klucza i ze zmienionym jednym bajtem
+  `k1.efi` → odmowa z wyjaśnieniem; z kluczem wydania cała Twoja droga: „Przygotuj klucz K1” → MokManager
+  (Enroll MOK, hasło) → Secure Boot włączony → K1 startuje.
+- QEMU `test-m5f`: aktualizacja A/B do wolnego miejsca, potwierdzenie po starcie, wycofanie z
+  uszkodzonego nowego miejsca, blokada starszej wersji.
+- Host: układ partycji i grubenv (te same bajty co `grub-editenv`), SHA-256 (wektory FIPS), manifest
+  formatu 2, nowe komunikaty, fuzzing.
+
 ## [0.6.3] — 2026-11-07
 
 Etap **M6 — bezpieczne aktualizacje**, krok M6b (ADR 0021), oraz Twoje uwagi do 0.6.2.
@@ -11,7 +53,8 @@ Etap **M6 — bezpieczne aktualizacje**, krok M6b (ADR 0021), oraz Twoje uwagi d
 - **System sprawdza sam siebie przy każdym starcie (dm-verity):** przed uruchomieniem pulpitu
   odczytuje cały obraz systemu i porównuje go z odciskiem zapisanym przy budowie. Zmieniony choćby
   jeden bajt (ktoś podmienił pliki na dysku albo nośnik się psuje) — system się nie uruchomi i powie
-  dlaczego, zamiast wykonać obcy kod. Sprawdzanie trwa ułamek sekundy (obraz ma ok. 30 MB).
+  dlaczego, zamiast wykonać obcy kod. Sprawdzanie trwa ułamek sekundy (obraz ma ok. 1 MB; w pierwszej
+  wersji tej notatki pomyłkowo „30 MB”).
 - **Wyloguj** w menu Start (obok „Uruchom ponownie” i „Wyłącz”): zamyka aplikacje i magazyn danych;
   z hasłem wraca ekran hasła (dane znów zamknięte), bez hasła pulpit uruchamia się od nowa.
 - **Monitor zasobów → Bateria:** procent, aktualny pobór mocy (np. „pobór 9,4 W”) i szacowany czas:

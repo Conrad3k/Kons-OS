@@ -39,4 +39,5 @@ faketime "$(date -u -d "@$SOURCE_DATE_EPOCH" '+%Y-%m-%d %H:%M:%S')" \
 rm -f "$SB/k1-sb.key" # never left lying around (regenerated from the secret by the next build)
 sbverify --cert "$SB/k1-sb.crt" "$K1_WYNIK/k1.efi" >/dev/null 2>&1 || blad "podpis k1.efi nie przechodzi sprawdzenia"
 cp "$SB/k1-sb.cer" "$K1_WYNIK/k1-sb.cer"
+(cd "$K1_WYNIK" && sed -i '/  k1\.efi$\|  k1-sb\.cer$/d' SHA256SUMS && sha256sum k1.efi k1-sb.cer >> SHA256SUMS)
 info "gotowe: $K1_WYNIK/k1.efi ($(du -k "$K1_WYNIK/k1.efi" | cut -f1) KiB, $(grep -q 'K1_SB_PRAWDZIWY 1' "$SB/k1_sb_cert.h" && echo 'klucz wydania' || echo 'klucz deweloperski'))"

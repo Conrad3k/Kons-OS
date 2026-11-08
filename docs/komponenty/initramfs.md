@@ -24,6 +24,8 @@ do wyłączenia). Działa kilkadziesiąt milisekund, potem `execve` zastępuje g
 ## Wejścia i wyjścia
 - Wejście: `/proc/cmdline` (≤ 4095 bajtów), parametr `k1.rdzen=/dev/[a-z0-9]{1,31}` albo
   `k1.rdzen=wbudowany` (dokładnie raz, bez cudzysłowów), węzeł urządzenia w devtmpfs, obraz SquashFS.
+- Od 0.7.0 (ADR 0022) w wydaniach initramfs i `rdzen.squashfs` są **wbudowane w podpisane jądro `k1.efi`**
+  razem z linią poleceń (`k1.rdzen=wbudowany`, `noinitrd` — initrd od programu ładującego jest ignorowany).
 - `k1.rdzen_skrot=<64 znaki hex>` (0.6.3): skrót główny drzewa dm-verity; obowiązkowy. Obraz =
   SquashFS dopełniony do 4 KiB + drzewo SHA-256 (`--no-superblock`, stała sól); urządzenie `k1-rdzen`
   (ioctl `DM_DEV_CREATE`, `DM_TABLE_LOAD`, `DM_DEV_SUSPEND`), odczyt całości, montowanie `/dev/dm-N`.
