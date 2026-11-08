@@ -29,21 +29,16 @@ if [ ! -d "$K1_JADRO_ZRODLA" ]; then
     tar -C "$K1_BUDOWA/zrodla" -xf "$POBRANE/$PLIK"
 fi
 
-export KBUILD_BUILD_USER=k1 KBUILD_BUILD_HOST=k1-budowa KBUILD_BUILD_VERSION=1
-KBUILD_BUILD_TIMESTAMP=$(date -u -d "@$SOURCE_DATE_EPOCH" '+%Y-%m-%d %H:%M:%S UTC'); export KBUILD_BUILD_TIMESTAMP
-# Wtyczka latent_entropy bez -frandom-seed losuje stałe przy każdym buildzie
-# (scripts/gcc-plugins/latent_entropy_plugin.c: get_random_seed) — stałe ziarno = powtarzalny build.
-M="make -s -C $K1_JADRO_ZRODLA O=$K1_JADRO_OBJ ARCH=x86_64 KCFLAGS=-frandom-seed=k1-$K1_JADRO_WERSJA"
 
 info "konfiguracja: allnoconfig + jadro/k1.config"
 mkdir -p "$K1_JADRO_OBJ"
-$M KCONFIG_ALLCONFIG="$K1_REPO/jadro/k1.config" allnoconfig >/dev/null
+make_jadra KCONFIG_ALLCONFIG="$K1_REPO/jadro/k1.config" allnoconfig >/dev/null
 "$K1_REPO/scripts/sprawdz-konfiguracje-jadra.sh" "$K1_REPO/jadro/k1.config" "$K1_JADRO_OBJ/.config"
 
 info "kompilacja jądra ($K1_CPU wątków)"
-$M -j"$K1_CPU" bzImage
-$M headers_install INSTALL_HDR_PATH="$K1_NAGLOWKI" >/dev/null
-[ -x "$K1_JADRO_OBJ/usr/gen_init_cpio" ] || $M usr/gen_init_cpio >/dev/null
+make_jadra -j"$K1_CPU" bzImage
+make_jadra headers_install INSTALL_HDR_PATH="$K1_NAGLOWKI" >/dev/null
+[ -x "$K1_JADRO_OBJ/usr/gen_init_cpio" ] || make_jadra usr/gen_init_cpio >/dev/null
 
 cp "$K1_JADRO_OBJ/arch/x86/boot/bzImage" "$K1_WYNIK/bzImage"
 cp "$K1_JADRO_OBJ/.config" "$K1_WYNIK/jadro.config"

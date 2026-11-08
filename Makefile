@@ -2,7 +2,7 @@
 #
 #   make            programy K1 → build/bin/ (wymaga nagłówków jądra: scripts/zbuduj-jadro.sh)
 #   make testy-host testy jednostkowe na hoście (glibc + ASan/UBSan)
-#   make fuzz       fuzzing parsera linii poleceń (clang + libFuzzer), FUZZ_CZAS sekund
+#   make fuzz       fuzzing parserów (clang + libFuzzer, lista FUZZ), FUZZ_CZAS sekund każdy
 #
 # Flagi: SPEC §11, zweryfikowane w ADR 0002; scripts/sprawdz-binaria.sh sprawdza wynik.
 
@@ -44,6 +44,9 @@ GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_aplikacja.c \
            src/grafika/k1_grafika.c $(GEN)/k1_czcionki_dane.c
+# Host: without the sandbox and the app skeleton (they need our kernel's headers).
+HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c,$(PRZYB)) src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c \
+              src/wspolne/k1_log.c
 NAGL_P  := $(wildcard src/przybornik/*.h) src/grafika/k1_grafika.h src/grafika/k1_czcionka.h VERSION
 # Native applications: every directory src/aplikacje/<program> (its line in k1_uslugi.h K1_APLIKACJE names it).
 APLIKACJE := $(patsubst src/aplikacje/%/main.c,$(BIN)/%,$(wildcard src/aplikacje/*/main.c))
@@ -76,7 +79,7 @@ $(GEN)/sb/k1_sb_cert.h: narzedzia/klucz_sb.py FORCE | $(GEN)
 	{ cmp -s $(GEN)/sb.nowy/k1_sb_cert.h $@ || mv -f $(GEN)/sb.nowy/k1_sb_cert.h $@; } && rm -rf $(GEN)/sb.nowy
 
 # Boot screen for GRUB (0.5.8): the K1 mark drawn on the host with the same code, as a PNG.
-$(OBJ)/ekran_startowy: narzedzia/ekran_startowy.c $(PRZYB) $(NAGL_P) | $(OBJ)
+$(OBJ)/ekran_startowy: narzedzia/ekran_startowy.c $(HOST_PRZYB) $(NAGL_P) $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ narzedzia/ekran_startowy.c $(HOST_PRZYB) -lm -lz
 
 $(GEN)/start.png: $(OBJ)/ekran_startowy | $(GEN)
@@ -158,10 +161,7 @@ $(OBJ)/test_bateria: testy/host/test_bateria.c src/nadzorca/bateria.c src/nadzor
 $(OBJ)/podglad_grafiki: testy/host/podglad_grafiki.c $(GRAFIKA) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/podglad_grafiki.c src/grafika/k1_grafika.c -lm
 
-# Host: without the sandbox and the app skeleton (they need our kernel's headers).
-HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c,$(PRZYB)) src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c \
-              src/wspolne/k1_log.c
-$(OBJ)/test_przybornik: testy/host/test_przybornik.c $(PRZYB) $(NAGL_P) | $(OBJ)
+$(OBJ)/test_przybornik: testy/host/test_przybornik.c $(HOST_PRZYB) $(NAGL_P) $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przybornik.c $(HOST_PRZYB) -lm
 
 $(OBJ)/test_magazyn: testy/host/test_magazyn.c $(MAGAZYN) src/skarbiec/magazyn.h | $(OBJ)
@@ -225,54 +225,35 @@ testy-host: $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/tes
 	$(OBJ)/podglad_grafiki 1 1 0 0 0 > /dev/null
 	@echo "podglad_grafiki: OK (ASan/UBSan, rozmiary 1280x800, 13x7, 1x1)"
 
-$(OBJ)/fuzz_cmdline: testy/host/fuzz_cmdline.c src/wspolne/k1_cmdline.c src/wspolne/k1_cmdline.h | $(OBJ)
-	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
-		-fno-sanitize-recover=all -Isrc/wspolne -o $@ testy/host/fuzz_cmdline.c src/wspolne/k1_cmdline.c
+# Fuzzing (libFuzzer): one program per parser of untrusted bytes, testy/host/fuzz_<name>.c with the sources
+# in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
+# inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
+FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad
+FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
+FUZZ_DL_cmdline   := 8192
+FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
+FUZZ_DL_zdarzenie := 64
+FUZZ_ZR_komunikat := src/wspolne/k1_komunikat.c
+FUZZ_DL_komunikat := 64
+FUZZ_ZR_magazyn   := $(MAGAZYN)
+FUZZ_DL_magazyn   := 16384
+FUZZ_ZR_uevent    := src/nadzorca/uevent.c
+FUZZ_DL_uevent    := 8192
+FUZZ_ZR_bat_arch  := src/wspolne/k1_bat_arch.c
+FUZZ_DL_bat_arch  := 9000
+FUZZ_ZR_manifest  := src/wspolne/k1_manifest.c $(MONOCYPHER)
+FUZZ_DL_manifest  := 512
+FUZZ_ZR_uklad     := src/wspolne/k1_uklad.c $(MONOCYPHER)
+FUZZ_DL_uklad     := 1024
+FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
+              -Isrc/wspolne -Isrc/nadzorca -Isrc/skarbiec -Isrc/zewnetrzne/monocypher
 
-$(OBJ)/fuzz_zdarzenie: testy/host/fuzz_zdarzenie.c src/wspolne/k1_zdarzenie.c src/wspolne/k1_zdarzenie.h | $(OBJ)
-	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
-		-fno-sanitize-recover=all -Isrc/wspolne -o $@ testy/host/fuzz_zdarzenie.c src/wspolne/k1_zdarzenie.c
+$(OBJ)/fuzz_%: testy/host/fuzz_%.c $$(FUZZ_ZR_$$*) $(NAGL) $(wildcard src/nadzorca/*.h src/skarbiec/*.h) | $(OBJ)
+	$(CC_FUZZ) $(FUZZ_FLAGI) -o $@ $< $(FUZZ_ZR_$*)
 
-$(OBJ)/fuzz_komunikat: testy/host/fuzz_komunikat.c src/wspolne/k1_komunikat.c src/wspolne/k1_komunikat.h | $(OBJ)
-	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
-		-fno-sanitize-recover=all -Isrc/wspolne -o $@ testy/host/fuzz_komunikat.c src/wspolne/k1_komunikat.c
-
-$(OBJ)/fuzz_magazyn: testy/host/fuzz_magazyn.c $(MAGAZYN) src/skarbiec/magazyn.h | $(OBJ)
-	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
-		-fno-sanitize-recover=all -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/fuzz_magazyn.c $(MAGAZYN)
-
-$(OBJ)/fuzz_uevent: testy/host/fuzz_uevent.c src/nadzorca/uevent.c src/nadzorca/uevent.h | $(OBJ)
-	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
-		-fno-sanitize-recover=all -Isrc/nadzorca -o $@ testy/host/fuzz_uevent.c src/nadzorca/uevent.c
-
-$(OBJ)/fuzz_bat_arch: testy/host/fuzz_bat_arch.c src/wspolne/k1_bat_arch.c src/wspolne/k1_bat_arch.h | $(OBJ)
-	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
-		-fno-sanitize-recover=all -Isrc/wspolne -o $@ testy/host/fuzz_bat_arch.c src/wspolne/k1_bat_arch.c
-
-$(OBJ)/fuzz_manifest: testy/host/fuzz_manifest.c $(MANIFEST) | $(OBJ)
-	$(CC_FUZZ) -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined \
-		-fno-sanitize-recover=all -Isrc/wspolne -Isrc/zewnetrzne/monocypher -o $@ testy/host/fuzz_manifest.c \
-		src/wspolne/k1_manifest.c $(MONOCYPHER)
-
-$(OBJ)/fuzz_uklad: testy/host/fuzz_uklad.c src/wspolne/k1_uklad.c src/wspolne/k1_uklad.h | $(OBJ)
-	$(CC_FUZZ) -std=c11 -O1 -g -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all -Isrc/wspolne \
-		-Isrc/zewnetrzne/monocypher -o $@ testy/host/fuzz_uklad.c src/wspolne/k1_uklad.c $(MONOCYPHER)
-
-fuzz: $(OBJ)/fuzz_uklad $(OBJ)/fuzz_manifest $(OBJ)/fuzz_cmdline $(OBJ)/fuzz_zdarzenie $(OBJ)/fuzz_komunikat $(OBJ)/fuzz_magazyn $(OBJ)/fuzz_uevent $(OBJ)/fuzz_bat_arch
-	mkdir -p $(BUDOWA)/fuzz-korpus $(BUDOWA)/fuzz-korpus-zdarzenie $(BUDOWA)/fuzz-korpus-komunikat
-	$(OBJ)/fuzz_cmdline -max_total_time=$(FUZZ_CZAS) -max_len=8192 $(BUDOWA)/fuzz-korpus testy/host/korpus
-	$(OBJ)/fuzz_zdarzenie -max_total_time=$(FUZZ_CZAS) -max_len=64 $(BUDOWA)/fuzz-korpus-zdarzenie
-	$(OBJ)/fuzz_komunikat -max_total_time=$(FUZZ_CZAS) -max_len=64 $(BUDOWA)/fuzz-korpus-komunikat
-	mkdir -p $(BUDOWA)/fuzz-korpus-magazyn
-	$(OBJ)/fuzz_magazyn -max_total_time=$(FUZZ_CZAS) -max_len=16384 $(BUDOWA)/fuzz-korpus-magazyn
-	mkdir -p $(BUDOWA)/fuzz-korpus-uevent
-	$(OBJ)/fuzz_uevent -max_total_time=$(FUZZ_CZAS) -max_len=8192 $(BUDOWA)/fuzz-korpus-uevent
-	mkdir -p $(BUDOWA)/fuzz-korpus-manifest
-	$(OBJ)/fuzz_manifest -max_total_time=$(FUZZ_CZAS) -max_len=512 $(BUDOWA)/fuzz-korpus-manifest
-	mkdir -p $(BUDOWA)/fuzz-korpus-bat-arch
-	$(OBJ)/fuzz_bat_arch -max_total_time=$(FUZZ_CZAS) -max_len=9000 $(BUDOWA)/fuzz-korpus-bat-arch
-	mkdir -p $(BUDOWA)/fuzz-korpus-uklad
-	$(OBJ)/fuzz_uklad -max_total_time=$(FUZZ_CZAS) -max_len=1024 $(BUDOWA)/fuzz-korpus-uklad
+fuzz: $(FUZZ:%=$(OBJ)/fuzz_%)
+	$(foreach n,$(FUZZ),mkdir -p $(BUDOWA)/fuzz-korpus-$(n) && $(OBJ)/fuzz_$(n) -max_total_time=$(FUZZ_CZAS) \
+		-max_len=$(FUZZ_DL_$(n)) $(BUDOWA)/fuzz-korpus-$(n) $(wildcard testy/host/korpus-$(n)) &&) true
 
 clean:
 	rm -rf $(BIN) $(OBJ)
