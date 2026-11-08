@@ -40,17 +40,18 @@ bateria_aml() {
 # (gcdx64, signed by Canonical; finds its medium by /.disk/info, reads /boot/grub/grub.cfg). Our own
 # unsigned GRUB images were flagged by Windows Defender as "Trojan:Win32/Sabsik!ml". The packages
 # are only unpacked (apt checks their hashes against the signed archive), never installed.
-# Sets K1_EFI (directory with shimx64.efi.signed.latest, gcdx64.efi.signed and wersje.txt).
+# MokManager (mmx64.efi, signed by Canonical) enrols the K1 key for Secure Boot (0.7.0, ADR 0022).
+# Sets K1_EFI (directory with shimx64.efi.signed.latest, gcdx64.efi.signed, mmx64.efi and wersje.txt).
 efi_podpisane() {
     K1_EFI=$K1_BUDOWA/pobrane/efi
-    [ -f "$K1_EFI/gcdx64.efi.signed" ] && [ -f "$K1_EFI/shimx64.efi.signed.latest" ] && return 0
+    [ -f "$K1_EFI/gcdx64.efi.signed" ] && [ -f "$K1_EFI/shimx64.efi.signed.latest" ] && [ -f "$K1_EFI/mmx64.efi" ] && return 0
     mkdir -p "$K1_EFI"
     (cd "$K1_EFI" && rm -f ./*.deb && apt-get download shim-signed grub-efi-amd64-signed >/dev/null 2>&1) \
         || blad "nie udało się pobrać shim-signed / grub-efi-amd64-signed (apt)"
     rm -rf "$K1_EFI/x"; mkdir -p "$K1_EFI/x"
     for deb in "$K1_EFI"/*.deb; do dpkg-deb -x "$deb" "$K1_EFI/x"; done
     cp "$K1_EFI/x/usr/lib/shim/shimx64.efi.signed.latest" "$K1_EFI/x/usr/lib/grub/x86_64-efi-signed/gcdx64.efi.signed" \
-        "$K1_EFI/"
+        "$K1_EFI/x/usr/lib/shim/mmx64.efi" "$K1_EFI/"
     (cd "$K1_EFI" && ls ./*.deb > wersje.txt)
 }
 
@@ -60,7 +61,8 @@ efi_podpisane() {
 obraz_fat() {
     plik=$1 mib=$2 numer=$3; shift 3
     rm -f "$plik"; truncate -s "${mib}M" "$plik"
-    mformat -i "$plik" -T $((mib * 2048)) -N "$numer" -v K1-EFI :: || blad "mformat $plik"
+    # shellcheck disable=SC2086 # K1_FAT_OPCJE: extra mformat options (e.g. "-F -c 8": FAT32, 4 KiB clusters)
+    mformat -i "$plik" -T $((mib * 2048)) -N "$numer" -v K1-EFI ${K1_FAT_OPCJE:-} :: || blad "mformat $plik"
     for para in "$@"; do
         zrodlo=${para%%:*} cel=${para#*:}
         katalog=$(dirname "$cel")

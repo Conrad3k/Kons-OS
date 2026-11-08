@@ -1,28 +1,21 @@
 #!/bin/sh
-# Składa obraz ISO K1 do uruchomienia w maszynie wirtualnej albo z pendrive'a (ADR 0010, 0016):
-#   build/wynik/k1-<wersja>.iso — UEFI: shim + GRUB podpisane (Ubuntu); BIOS: GRUB El Torito
-#   → jądro + initramfs + rdzen.cpio. Powtarzalne: te same wejścia = ten sam plik.
-# rdzen.cpio zawiera rdzen.squashfs jako /rdzen.squashfs; k1-initramfs montuje go przez loop
-# (k1.rdzen=wbudowany), więc obraz nie potrzebuje sterowników dysków ani napędów CD.
-# Obraz z GRUB-em jest tymczasowy: w M10 zastąpi go podpisany UKI z Secure Boot.
-# Wymaga: scripts/zbuduj.sh (jądro, programy, obrazy).
+# Składa obraz ISO K1 do uruchomienia w maszynie wirtualnej (ADR 0010):
+#   build/wynik/k1-<wersja>.iso — UEFI: shim + GRUB podpisane (Ubuntu); BIOS: GRUB El Torito → k1.efi.
+# Od 0.7.0 (ADR 0022) cały system to jeden podpisany plik k1.efi: jądro z wbudowaną linią poleceń i initramfs
+# z obrazem rdzenia (k1.rdzen=wbudowany, sprawdzanym przez dm-verity), więc obraz nie potrzebuje sterowników
+# dysków ani napędów CD. Powtarzalne: te same wejścia = ten sam plik.
+# Wymaga: scripts/zbuduj.sh (jądro, programy, obrazy, k1.efi).
 . "$(dirname "$0")/wspolne.sh"
 
-GEN_CPIO=$K1_JADRO_OBJ/usr/gen_init_cpio
 ISO=$K1_BUDOWA/iso
 WYJSCIE=$K1_WYNIK/k1-$K1_WERSJA.iso
-[ -f "$K1_WYNIK/rdzen.squashfs" ] && [ -x "$GEN_CPIO" ] || blad "najpierw zbuduj system: scripts/zbuduj.sh"
+[ -f "$K1_WYNIK/k1.efi" ] || blad "najpierw zbuduj system: scripts/zbuduj.sh"
 for n in grub-mkimage xorriso mformat mcopy apt-get dpkg-deb; do command -v $n >/dev/null || blad "brak $n (scripts/przygotuj-srodowisko.sh)"; done
 
 info "obraz ISO $WYJSCIE"
 rm -rf "$ISO"; mkdir -p "$ISO/k1" "$ISO/boot/grub/i386-pc" "$ISO/.disk"
-cp "$K1_WYNIK/bzImage" "$K1_WYNIK/initramfs.cpio" "$ISO/k1/"
-printf 'file /rdzen.squashfs %s 0400 0 0\n' "$K1_WYNIK/rdzen.squashfs" > "$K1_BUDOWA/rdzen-iso.lista"
-"$GEN_CPIO" -t "$SOURCE_DATE_EPOCH" "$K1_BUDOWA/rdzen-iso.lista" > "$ISO/k1/rdzen.cpio"
-# quiet: the kernel's EFI stub prints nothing over the boot screen ("EFI stub: Loaded initrd…");
-# loglevel=7 keeps the kernel's messages on the serial console as before (tests, diagnosis).
-# M6b: k1.rdzen_skrot = the dm-verity root hash of rdzen.squashfs (initramfs refuses a changed image).
-CMDLINE="$(sed 's/k1\.rdzen=[^ ]*/k1.rdzen=wbudowany/' "$K1_REPO/jadro/cmdline") k1.rdzen_skrot=$(cat "$K1_WYNIK/rdzen.squashfs.skrot") quiet loglevel=7"
+# 0.7.0 (ADR 0022): the whole system is one signed file, k1.efi (command line and core inside)
+cp "$K1_WYNIK/k1.efi" "$ISO/k1/"
 cat > "$ISO/boot/grub/grub.cfg" <<CFG
 # Kons K1 $K1_WERSJA — start bez menu. Tryb graficzny ustawia GRUB (UEFI GOP albo VESA),
 # jądro przejmuje go sterownikiem simpledrm. 1366x768 = ekran ThinkPada X230 (firmware laptopa
@@ -43,8 +36,7 @@ set color_normal=black/black
 background_image -m stretch /boot/grub/start.png
 echo ""
 menuentry "Kons K1 $K1_WERSJA" {
-    linux /k1/bzImage $CMDLINE
-    initrd /k1/initramfs.cpio /k1/rdzen.cpio
+    linux /k1/k1.efi
 }
 CFG
 printf 'Kons K1 %s\n' "$K1_WERSJA" > "$ISO/.disk/info"
