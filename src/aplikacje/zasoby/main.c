@@ -248,7 +248,9 @@ int main(void)
     apl.tag = TAG;
     apl.numer = K1_APL_ZASOBY;
     apl.szer = 560;
-    apl.wys = 580;
+    /* charts and the battery (356 px), a row per service that can run at once (the password screen and
+     * the desktop never do), the footer */
+    apl.wys = 356 + (K1_PROFIL_MAKS - 1) * WIERSZ + 34;
     apl.rysuj = rysuj;
     apl.kanaly[0].fd = FD_NADZORCA;
     apl.kanaly[0].dane = odbierz;

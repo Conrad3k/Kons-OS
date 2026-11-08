@@ -16,6 +16,9 @@ import time
 import zlib
 
 KURSOR = re.compile(r"K1-EKRAN: kursor (\d+),(\d+) ")
+# A kernel message printed in the middle of one of our lines on the shared serial console
+# ("K1: wyłączanie[   12.3] reboot: …\nzasilania", the CI failure of 0.6.1): cut out, the line joined again.
+WTRACENIE = re.compile(r"(?<=[^\n])\[\s*\d+\.\d+\][^\n]*\n")
 
 
 def png(sciezka):
@@ -48,7 +51,7 @@ class Maszyna:
     # --- log ---
     def tekst(self):
         try:
-            return open(self.log, encoding="utf-8", errors="replace").read()
+            return WTRACENIE.sub("", open(self.log, encoding="utf-8", errors="replace").read())
         except OSError:
             return ""
 
@@ -140,12 +143,34 @@ class Maszyna:
         return False
 
     def klik(self, x, y):
-        self.idz(x, y)
+        """Click at (x, y); False when the pointer never got there (the click went elsewhere)."""
+        trafil = self.idz(x, y)
+        if not trafil:
+            print(f"  [uwaga] kursor nie dotarł do {x},{y}", flush=True)
         time.sleep(0.4)
         self.monitor("mouse_button 1")
         time.sleep(0.3)
         self.monitor("mouse_button 0")
         time.sleep(0.4)
+        return trafil
 
     def pisz(self, *klawisze):
         self.monitor(*[f"sendkey {k}" for k in klawisze])
+
+
+def zamknij(gniazdo):
+    """Quits a QEMU by its monitor socket (shell scripts: python3 -I testy/qemu/k1qemu.py zamknij GNIAZDO)."""
+    try:
+        s = socket.socket(socket.AF_UNIX)
+        s.settimeout(5)
+        s.connect(gniazdo)
+        s.sendall(b"quit\n")
+        s.recv(64)
+        return True
+    except OSError:
+        return False
+
+
+if __name__ == "__main__" and len(sys.argv) == 3 and sys.argv[1] == "zamknij":
+    sys.exit(0 if zamknij(sys.argv[2]) else 1)
+

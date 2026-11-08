@@ -55,7 +55,7 @@ scenariusz() {
         # Maszyna nadal działa: przy niepowodzeniu zachowaj zrzut ekranu (diagnostyka), potem zamknij QEMU.
         brak=0; for w in "$@"; do zawiera "$log" "$w" || brak=1; done
         [ $brak -eq 0 ] || "$K1_REPO/scripts/zrzut-ekranu.sh" "$TESTY/$nazwa.png" "$mon" >/dev/null 2>&1 || true
-        python3 -I -c 'import socket,sys; s=socket.socket(socket.AF_UNIX); s.settimeout(5); s.connect(sys.argv[1]); s.sendall(b"quit\n"); s.recv(64)' "$mon" 2>/dev/null \
+        python3 -I "$K1_REPO/testy/qemu/k1qemu.py" zamknij "$mon" \
             || kill $qpid 2>/dev/null || true
     fi
     kod=0; wait $qpid 2>/dev/null || kod=$?
