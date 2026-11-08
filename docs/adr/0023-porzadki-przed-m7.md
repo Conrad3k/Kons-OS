@@ -24,4 +24,4 @@ każdej zmianie wymagało pamiętania o wszystkich kopiach.
 ## Konsekwencje
 Typowa zmiana (nowa aplikacja, nowy kolor, format partycji) jest w jednym miejscu. Zachowanie systemu
 bez zmian, potwierdzone pełnym `scripts/testy.sh`. Dalsze przeglądy (pomocnicy szukający pozostałych
-powtórzeń) przerwane na prośbę właściciela — do wznowienia przy okazji.
+powtórzeń) przerwane na prośbę właściciela — lista do dokończenia przed M7: `docs/PRZED-M7.md`.
