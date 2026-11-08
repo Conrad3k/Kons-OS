@@ -38,7 +38,7 @@ gościa = tylko ta maszyna.
    wspólny, niezmienny obraz bazowy w pamięci tylko raz (tylko do odczytu); oddawanie nieużywanej
    pamięci (balon / free page reporting); start z zamrożonego stanu (snapshot) i — dla
    jednorazowych — gotowa czysta maszyna w zapasie. Opcjonalne **grupy** (kilka aplikacji w jednej
-   maszynie) tylko na wyraźne życzenie, domyślnie każda osobno.
+   maszynie) tylko na wyraźne życzenie, domyślnie każda osobno. [rozszerzone: ADR 0024 — wspólna strefa]
 5. **Pliki i schowek tylko przez Gatekeepera (M9)**: z maszyny — folder „Do K1” → okno K1 z
    pytaniem (nazwa, rozmiar, skąd) → zapis do Plików jako dane (nigdy uruchamiane), z zapisanym
    pochodzeniem; podgląd przez jednorazowy dekoder w izolacji; do maszyny — „Wyślij do…” w Plikach;

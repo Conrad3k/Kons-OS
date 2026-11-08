@@ -210,6 +210,8 @@ M8  Strefy — każda obca aplikacja w swojej mikro-maszynie (Twój pomysł, ADR
     [ ] przełącznik przy aplikacji: pełna izolacja / szybka grafika (inny kolor ramki; pod nowszy sprzęt)
     [ ] przeglądarka jako pierwsza aplikacja (Firefox czy WPE — ADR), sesje wg Twojej decyzji
     [ ] szybki start (zamrożony stan, zapasowa czysta maszyna), wspólny obraz bazowy, oddawanie pamięci
+    [ ] wspólna strefa na drobne, zaufane aplikacje (jedna maszyna, przegródki w środku; przełącznik
+        osobna / wspólna; przeglądarka zawsze osobna) — Twoja decyzja z 2026-11-08, ADR 0024
 
 M9  Pliki (Gatekeeper + dawne M6)
     [ ] aplikacja Pliki w skarbcu; podgląd obrazów przez jednorazowy dekoder w izolacji
