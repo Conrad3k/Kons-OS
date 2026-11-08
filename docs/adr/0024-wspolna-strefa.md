@@ -33,4 +33,4 @@ przeglądarki natywne i przeglądarka zdalna; właściciel wybrał **wspólną s
 - Kolejność w M8 bez zmian: najpierw osobna strefa z przeglądarką (fundament), wspólna strefa — po
   niej, z testem, że aplikacje w niej nie widzą swoich plików i okien nawzajem.
 - Do rozważenia przy M8 (osobno, nie przesądzone): tryb przeglądarki bez JIT jako dodatkowe
-  zabezpieczenie w jej strefie.
+  zabezpieczenie w jej strefie. Własne okno przeglądarki z silnikiem w strefie: ADR 0025.

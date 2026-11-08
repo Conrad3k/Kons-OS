@@ -84,7 +84,8 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
 [x] Ekran hasła przy starcie (2026-11-07): „bardzo ładny, w stylu, jaki jest system — Claude'owy”.
     → Szkice A/B/C; wybrany B „Zegar” (2026-11-07).
 [x] Jedno konto na komputer — tak (2026-11-07).
-[!] Przed M8 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)?
+[!] Przed M8 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)? W „Przeglądarce K1”
+    (ADR 0025) każda sesja to osobna strefa z własnym kolorem karty, „prywatna” = jednorazowa.
 
 
 2. ZALEGŁOŚCI I RZECZY PRZEKROJOWE
@@ -212,6 +213,8 @@ M8  Strefy — każda obca aplikacja w swojej mikro-maszynie (Twój pomysł, ADR
     [ ] szybki start (zamrożony stan, zapasowa czysta maszyna), wspólny obraz bazowy, oddawanie pamięci
     [ ] wspólna strefa na drobne, zaufane aplikacje (jedna maszyna, przegródki w środku; przełącznik
         osobna / wspólna; przeglądarka zawsze osobna) — Twoja decyzja z 2026-11-08, ADR 0024
+    [ ] Przeglądarka K1 (po pierwszej przeglądarce w strefie, ADR 0025): okno, karty i pasek adresu jako
+        aplikacja K1, silnik (kierunek: WPE WebKit) w strefie; pasek adresu rysuje K1; sesje = strefy
 
 M9  Pliki (Gatekeeper + dawne M6)
     [ ] aplikacja Pliki w skarbcu; podgląd obrazów przez jednorazowy dekoder w izolacji

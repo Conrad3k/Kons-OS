@@ -52,3 +52,4 @@ Krótko, dlaczego nie.
 | [0022](0022-ab-i-secure-boot-zamkniete-jadro.md) | A/B i Secure Boot (M6c, M6d): zamknięte jądro k1.efi, dwa miejsca na system, klucz K1 w MOK | Przyjęty |
 | [0023](0023-porzadki-przed-m7.md) | Porządki w kodzie przed M7 (0.7.1): jedna lista aplikacji, wspólne części, Kalkulator | Przyjęty |
 | [0024](0024-wspolna-strefa.md) | Wspólna strefa na drobne, zaufane aplikacje (obok osobnych stref, przeglądarka zawsze osobno) | Przyjęty (kierunek) |
+| [0025](0025-przegladarka-k1.md) | Przeglądarka K1: własne okno i pasek adresu, silnik (WPE) w strefie, sesje = strefy | Przyjęty (kierunek) |
