@@ -32,7 +32,15 @@ przygotuj_rdzen() { # $1 = katalog docelowy
     for p in zegar notatki ustawienia zasoby instalacja; do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/aplikacje/$p"; done
     chmod 0755 "$1" "$1/jadro" "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje"
 }
+# The build id (0.7.0, ADR 0022): 128 bits of SHA-256 over the names and contents of every file of the core.
+# The slot manifest carries the same id: nadzorca confirms a new slot only when it is the very build it runs.
+wydanie() { # $1 = katalog rdzenia
+    (cd "$1" && find . -type f ! -path ./system/wydanie | LC_ALL=C sort | while IFS= read -r f; do
+        printf '%s\n' "$f"; cat "$f"; done) | sha256sum | cut -c1-32 > "$1/system/wydanie"
+    chmod 0444 "$1/system/wydanie"
+}
 squashfs() { # $1 = katalog, $2 = plik wynikowy
+    wydanie "$1"
     rm -f "$2"
     mksquashfs "$1" "$2" -quiet -no-progress -noappend -comp zstd -all-root -no-xattrs >/dev/null
     verity "$2" # M6b: hash tree appended, root hash in $2.skrot
@@ -41,6 +49,7 @@ squashfs() { # $1 = katalog, $2 = plik wynikowy
 info "rdzen.squashfs"
 przygotuj_rdzen "$K1_BUDOWA/rdzen"
 squashfs "$K1_BUDOWA/rdzen" "$K1_WYNIK/rdzen.squashfs"
+cp "$K1_BUDOWA/rdzen/system/wydanie" "$K1_WYNIK/wydanie"
 
 info "rdzen-test.squashfs (z programem testowym)"
 przygotuj_rdzen "$K1_BUDOWA/rdzen-test"
@@ -51,7 +60,7 @@ chmod 0555 "$K1_BUDOWA/rdzen-test/system/skrypt-testowy"
 squashfs "$K1_BUDOWA/rdzen-test" "$K1_WYNIK/rdzen-test.squashfs"
 
 cp "$K1_REPO/jadro/cmdline" "$K1_WYNIK/cmdline"
-(cd "$K1_WYNIK" && sha256sum bzImage initramfs.cpio rdzen.squashfs rdzen-test.squashfs rdzen.squashfs.skrot cmdline > SHA256SUMS)
+(cd "$K1_WYNIK" && sha256sum bzImage initramfs.cpio rdzen.squashfs rdzen-test.squashfs rdzen.squashfs.skrot wydanie cmdline > SHA256SUMS)
 {
     echo "K1 $K1_WERSJA, jądro $K1_JADRO_WERSJA, SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
     dpkg-query -W -f '${Package} ${Version}\n' gcc-13 musl-tools squashfs-tools 2>/dev/null || true

@@ -111,10 +111,20 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         return kier == (k->typ == K1_KOM_INST_ETAP ? K1_KIER_DO_NADZORCY : K1_KIER_OD_NADZORCY) && k->obiekt == 0 &&
                w(k->a, 0, 100) && w(k->b, 1, K1_INST_ETAP_MAKS) && zera(k, 2);
     case K1_KOM_INST_GOTOWE:
-        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_INST_BLAD_MIN, 0) && zera(k, 1);
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_INST_BLAD_MIN, 0) && w(k->b, 0, 1) &&
+               (k->a == 0 || k->b == 0) && zera(k, 2);
     case K1_KOM_INST_WYNIK:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, K1_INST_BLAD_MIN, 0) &&
-               w(k->b, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ) && zera(k, 2);
+               w(k->b, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ) && w(k->c, 0, 1) && (k->a == 0 || k->c == 0) && zera(k, 3);
+    case K1_KOM_INST_AB:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt >= 1 && k->obiekt <= K1_INST_DYSKI_MAKS &&
+               w(k->a, 1, K1_INST_WERSJA - 1) && w(k->b, 0, K1_INST_WERSJA - 1) && w(k->c, 1, 2) &&
+               w(k->d, 0, K1_AB_FL_NOWY | K1_AB_FL_NIEUDANA) && k->e == 0;
+    case K1_KOM_SB_STAN:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, K1_SB_WYL, K1_SB_NIEZNANY) &&
+               w(k->b, K1_SBK_BRAK, K1_SBK_CZEKA) && w(k->c, 0, 1) && w(k->d, K1_SBP_NIC, K1_SBP_BLAD) && k->e == 0;
+    case K1_KOM_SB_KLUCZ:
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && zera(k, 0);
     case K1_KOM_INST_DYSK:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt >= 1 && k->obiekt <= K1_INST_DYSKI_MAKS && k->a >= 0 &&
                w(k->b, K1_DYSK_SATA, K1_DYSK_INNY) && (w(k->c, 0, 1) || w(k->c, K1_INST_WERSJA + 1, 2 * K1_INST_WERSJA - 1)) &&

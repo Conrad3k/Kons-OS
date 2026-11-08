@@ -42,8 +42,10 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 | Skrypt | Co robi |
 |---|---|
 | `przygotuj-srodowisko.sh` | instaluje pakiety Ubuntu potrzebne do budowy i testów |
-| `zbuduj.sh` | wszystko: `zbuduj-jadro.sh` + `zbuduj-obraz.sh` + `zbuduj-iso.sh` |
-| `zbuduj-iso.sh` | obraz ISO do maszyn wirtualnych (GRUB UEFI/BIOS, rdzeń wbudowany w initramfs; ADR 0010) |
+| `zbuduj.sh` | wszystko: `zbuduj-jadro.sh` + `zbuduj-obraz.sh` + `zbuduj-k1efi.sh` + `zbuduj-iso.sh` + `zbuduj-usb.sh` |
+| `zbuduj-k1efi.sh` | zamknięte jądro `k1.efi` (linia poleceń i rdzeń w środku), podpis Secure Boot (ADR 0022) |
+| `zbuduj-usb.sh` | obraz na pendrive: K1-EFI w formacie 2 (A/B, grubenv, blok układu) + K1-DANE (ADR 0016, 0022) |
+| `zbuduj-iso.sh` | obraz ISO do maszyn wirtualnych (GRUB UEFI/BIOS → `k1.efi`; ADR 0010) |
 | `zbuduj-jadro.sh` | pobiera jądro (suma + podpis PGP), konfiguruje, sprawdza fragment, kompiluje |
 | `zbuduj-obraz.sh` | kompiluje programy, sprawdza binaria, składa `initramfs.cpio` i obrazy SquashFS |
 | `uruchom-qemu.sh` | uruchamia K1 w QEMU (log szeregowy do pliku, monitor do gniazda); `--iso PLIK [--uefi] [--vga virtio]` — start z ISO |
@@ -52,6 +54,8 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 | `test-m4.sh` | pulpit i aplikacje (klikanie, pisanie, przeciąganie, motyw, tapeta, wyłączenie) + start z ISO przez UEFI i BIOS |
 | `test-m1.sh` | start, testy w systemie, błędy startu (M1–M2) |
 | `test-m2.sh` | ekran i wejście: mysz/klawiatura przez monitor QEMU, zrzuty ekranu sprawdzane automatycznie |
+| `test-m5f.sh` | instalator: instalacja, start z dysku, aktualizacja A/B, potwierdzenie, wycofanie, starsza wersja |
+| `test-m6.sh` | Secure Boot (OVMF secboot): klucz K1 w MOK, odmowy, wpisanie klucza przez MokManagera |
 | `sprawdz-binaria.sh`, `sprawdz-konfiguracje-jadra.sh`, `sprawdz-kspp.sh` | kontrole bezpieczeństwa |
 | `sprawdz-powtarzalnosc.sh` | drugi build w osobnym katalogu i porównanie sum (powtarzalność) |
 
@@ -67,7 +71,11 @@ src/ ──► musl-gcc (static-pie, flagi SPEC §11) ──► k1-initramfs, in
                      rdzen.squashfs  ◄── init, system/{nadzorca,wejscie,ekran,gui}, aplikacje/{zegar,notatki,ustawienia,zasoby},
                                          katalogi jadro/{dev,proc,sys}
                      rdzen-test.squashfs ◄── + system/test-systemu (+ plik ze „#!” do testu negatywnego)
-                     k1-<wersja>.iso ◄── GRUB (UEFI + BIOS) + bzImage + initramfs.cpio + rdzen.cpio (/rdzen.squashfs)
+                     k1.efi ◄── to samo jądro + wbudowana linia poleceń (noinitrd) + initramfs z rdzen.squashfs,
+                                podpis Secure Boot (klucz z K1_KLUCZ_PODPISU; bez niego — deweloperski)
+                     k1-<wersja>.iso ◄── GRUB (UEFI + BIOS) + k1.efi
+                     k1-<wersja>-usb.img ◄── GPT: K1-EFI (shim, GRUB, MokManager, grubenv, /k1/a.img = k1.efi, /k1/b.img)
+                                                  + K1-DANE
 ```
 Wynik w `build/wynik/` (+ `SHA256SUMS`, `srodowisko.txt`). Build jest powtarzalny: stały
 `SOURCE_DATE_EPOCH` (data ostatniego commita), stałe dane budowy jądra, `-frandom-seed`.
@@ -75,8 +83,10 @@ Wynik w `build/wynik/` (+ `SHA256SUMS`, `srodowisko.txt`). Build jest powtarzaln
 ## Jak startuje system (M4)
 
 ```
-QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs)
-  albo ISO: firmware (UEFI/BIOS) → GRUB (tryb graficzny) → jądro + initramfs.cpio + rdzen.cpio, k1.rdzen=wbudowany
+QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs) — testy
+  albo ISO: firmware (UEFI/BIOS) → GRUB (tryb graficzny) → k1.efi
+  albo pendrive/dysk (0.7.0): UEFI → shim (MS) → GRUB (Canonical) → grubenv (miejsce A/B, próba raz) →
+       loopback /k1/<miejsce>.img → k1.efi (z Secure Boot: podpis sprawdzony przez shim, klucz K1 w MOK)
  └─ jądro 6.18 ── otwiera /dev/console w initramfs, uruchamia /init
      └─ k1-initramfs (PID 1)
           /proc/cmdline → k1.rdzen=/dev/vda albo =wbudowany (/rdzen.squashfs przez loop) (walidacja)

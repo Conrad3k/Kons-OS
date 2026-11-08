@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "k1_manifest.h"
+#include "k1_uklad.h"
 #include "monocypher.h"
 
 static int failures, count;
@@ -63,6 +64,34 @@ int main(void)
     /* unsigned (developer build) */
     k1_manifest_zbuduj(&m, NULL, NULL, kopia);
     EXPECT(k1_manifest_czytaj(kopia, &r) == 0 && r.flagi == 0 && k1_manifest_sprawdz_podpis(kopia, pub) == -1);
+    /* format 2 (0.7.0): the slot manifest with the build id, bigger systems */
+    {
+        struct k1_manifest s;
+        memset(&s, 0, sizeof s);
+        s.format = 2;
+        s.wersja = 0x000700;
+        s.fat_bajty = 40u << 20;
+        snprintf(s.tekst, sizeof s.tekst, "0.7.0");
+        for (i = 0; i < 16; i++)
+            s.wydanie[i] = (uint8_t)(0xa0 + i);
+        k1_manifest_zbuduj(&s, tajny, pub, kopia);
+        EXPECT(k1_manifest_czytaj(kopia, &r) == 0 && r.format == 2 && r.fat_bajty == 40u << 20 && r.wydanie[0] == 0xa0 &&
+               r.wydanie[15] == 0xaf && k1_manifest_sprawdz_podpis(kopia, pub) == 0);
+        kopia[90] ^= 1; /* the build id is signed too */
+        EXPECT(k1_manifest_sprawdz_podpis(kopia, pub) == -1);
+        s.fat_bajty = K1_SLOT_MANIFEST_OFF + 1u;
+        k1_manifest_zbuduj(&s, NULL, NULL, kopia);
+        EXPECT(k1_manifest_czytaj(kopia, &r) == -1); /* beyond its own manifest */
+        s.fat_bajty = 1u << 20;
+        k1_manifest_zbuduj(&s, NULL, NULL, kopia);
+        kopia[104] = 1; /* reserved after the build id */
+        EXPECT(k1_manifest_czytaj(kopia, &r) == -1);
+        kopia[104] = 0;
+        kopia[4] = 3; /* unknown format */
+        EXPECT(k1_manifest_czytaj(kopia, &r) == -1);
+        /* format 1 has no build id: bytes 88.. must stay zero */
+        EXPECT(k1_manifest_czytaj(buf, &r) == 0 && r.format == 1 && r.wydanie[0] == 0);
+    }
     /* malformed */
     memcpy(kopia, buf, sizeof kopia);
     kopia[0] = 'X';

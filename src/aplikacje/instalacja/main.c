@@ -2,7 +2,9 @@
  * nadzorca for the list of disks (fd 4), shows it, takes the owner's confirmation (typing "USUŃ"
  * before a disk is wiped) and sends INST_START; nadzorca starts the writing program (instalator,
  * src/instalator/) and passes its progress back. After a finished install it may ask nadzorca to
- * power off or restart (nothing else).
+ * power off or restart (nothing else). 0.7.0 (ADR 0022): it shows what runs on a disk and what is in the
+ * other slot (A/B), and a Secure Boot screen: the state, and on request nadzorca prepares the K1 key
+ * for MokManager (the owner confirms it there with a password on the next start).
  * Sandbox: UID 204, like the other applications (memfd for the window, no paths). */
 #include <fcntl.h>
 #include <stdio.h>
@@ -29,13 +31,16 @@
 #define POLE_W 260
 #define POLE_H 38
 
-enum { S_SZUKAM, S_LISTA, S_POTWIERDZ, S_POSTEP, S_GOTOWE, S_BLAD };
+enum { S_SZUKAM, S_LISTA, S_POTWIERDZ, S_POSTEP, S_GOTOWE, S_BLAD, S_SB };
 
 static struct k1_apl apl;
 static int stan = S_SZUKAM, kanal = -1;
 static struct {
     int32_t mib, rodzaj, k1, sektor, zajety;
+    int32_t ab_zapas, ab_slot, ab_fl; /* A/B (0.7.0): the other slot's version, the running slot (0: no A/B), flags */
 } dyski[K1_INST_DYSKI_MAKS];
+static int32_t sb = -1, sbk, sb_prawdziwy, sb_wynik; /* Secure Boot (SB_STAN); sb = -1: not known yet */
+static int nowe_miejsce;                              /* the update wrote the other slot (A/B) */
 static int n_dyskow, zrodlo, wybrany = -1, tryb = K1_INST_INSTALUJ, procent, etap, wynik;
 static int32_t wersja_zrodla, zrodlo_podpisane; /* M6a: the stick's manifest (0: none) */
 
@@ -60,7 +65,8 @@ static int starsza(void)
 }
 static char pole[64];
 static size_t pole_dl;
-static int hover = -1; /* 0..7 disk, 10 primary button, 11 secondary button */
+static int hover = -1; /* 0..7 disk, 10 primary button, 11 secondary button, 12 the Secure Boot link */
+#define SB_LINK "Secure Boot…"
 
 /* ---- texts ---- */
 
@@ -142,6 +148,13 @@ static void przyciski(int32_t *x1, int32_t *x2, int32_t *w1, int32_t *w2, const 
         break;
     case S_GOTOWE:
         *e1 = tryb == K1_INST_INSTALUJ ? "Wyłącz komputer" : "Uruchom ponownie";
+        break;
+    case S_SB:
+        if (sbk == K1_SBK_BRAK && sb_prawdziwy && sb != K1_SB_NIEZNANY)
+            *e1 = "Przygotuj klucz K1";
+        else if (sbk == K1_SBK_CZEKA && sb_wynik == K1_SBP_GOTOWE)
+            *e1 = "Uruchom ponownie";
+        *e2 = "Wróć";
         break;
     case S_BLAD:
         *e1 = "Wróć";
@@ -230,16 +243,36 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
             opis_dysku(i, buf, sizeof buf);
             k1_tekst(o, K1_CZ_TEKST_MOCNA, LEWO + 56, y + 26, buf, k1_kolor(m->tekst, 255), 0);
             if (dyski[i].k1) {
-                char w[16] = "";
+                char w[16] = "", z[40] = "";
                 if (wersja_dysku(i) > 0)
                     tekst_wersji(wersja_dysku(i), w, sizeof w);
-                snprintf(buf, sizeof buf, "Jest na nim Kons K1%s%s%s", w[0] ? " " : "", w,
+                if (dyski[i].ab_slot && dyski[i].ab_zapas > 0) {
+                    char t[16];
+                    tekst_wersji(dyski[i].ab_zapas, t, sizeof t);
+                    snprintf(z, sizeof z, " (zapasowa: %s)", t);
+                }
+                snprintf(buf, sizeof buf, "Jest na nim Kons K1%s%s%s%s", w[0] ? " " : "", w, z,
                          dyski[i].zajety ? " z Twoimi danymi (używany teraz)" : "");
             } else {
                 snprintf(buf, sizeof buf, "Wszystko, co jest na tym dysku, zostanie usunięte");
             }
             k1_tekst(o, K1_CZ_MALA, LEWO + 56, y + 45, buf, k1_kolor(m->tekst2, 255), apl.szer - 2 * LEWO - 72);
         }
+        for (i = 0; i < n_dyskow; i++) { /* A/B news (0.7.0): one line above the buttons */
+            const char *t = dyski[i].ab_fl & K1_AB_FL_NIEUDANA
+                                ? "Ostatnia aktualizacja nie wystartowała — K1 wrócił do poprzedniej wersji."
+                            : dyski[i].ab_fl & K1_AB_FL_NOWY
+                                ? "Nowa wersja czeka na dysku: wystartuje na próbę po ponownym uruchomieniu."
+                                : NULL;
+            if (t != NULL) {
+                k1_tekst(o, K1_CZ_MALA_MOCNA, LEWO, przyciski_y() - 22, t,
+                         k1_kolor(dyski[i].ab_fl & K1_AB_FL_NIEUDANA ? m->akcent_tekst : m->tekst2, 255), apl.szer - 2 * LEWO);
+                break;
+            }
+        }
+        if (sb >= 0)
+            k1_tekst(o, K1_CZ_TEKST, LEWO, przyciski_y() + 23, SB_LINK, k1_kolor(hover == 12 ? m->akcent : m->akcent_tekst, 255),
+                     0);
         break;
     case S_POTWIERDZ:
         opis_dysku(wybrany, buf, sizeof buf);
@@ -306,12 +339,63 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
                      k1_kolor(m->tekst, 255), 0);
             k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 120, "Jeśli laptop uruchomi się z czymś innym: F12 przy starcie → wybierz dysk.",
                      k1_kolor(m->tekst3, 255), 0);
+        } else if (nowe_miejsce) {
+            k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 64, "Nowa wersja jest zapisana obok obecnej, dane zostały.",
+                     k1_kolor(m->tekst, 255), 0);
+            k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 88, "Uruchom komputer ponownie — bez pendrive'a.", k1_kolor(m->tekst, 255), 0);
+            k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 120, "Gdyby nowa wersja nie wystartowała, K1 sam wróci do obecnej.",
+                     k1_kolor(m->tekst3, 255), 0);
         } else {
             k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 64, "System na dysku jest zaktualizowany, dane zostały.",
                      k1_kolor(m->tekst, 255), 0);
             k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 88, "Uruchom komputer ponownie — bez pendrive'a.", k1_kolor(m->tekst, 255), 0);
         }
         break;
+    case S_SB: {
+        static const char *const kroki[] = {
+            "1. Kliknij „Przygotuj klucz K1” i uruchom komputer ponownie (bez pendrive'a).",
+            "2. Pojawi się niebieski ekran MokManagera — w ciągu 10 sekund naciśnij dowolny klawisz.",
+            "3. Wybierz Enroll MOK → Continue → Yes, wpisz hasło: kons → Reboot.",
+            "4. Przy starcie F1 (BIOS) → Security → Secure Boot → Enabled, zapisz (F10).",
+        };
+        const char *stan_sb = sb == K1_SB_WL ? "włączony" : sb == K1_SB_WYL ? "wyłączony" : "nieznany (start bez UEFI)";
+        const char *stan_k = sbk == K1_SBK_JEST    ? "wpisany"
+                             : sbk == K1_SBK_CZEKA ? "czeka na potwierdzenie przy następnym starcie"
+                                                   : "nie wpisany";
+        k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Secure Boot", k1_kolor(m->tekst, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "Komputer uruchomi tylko system podpisany kluczem, który zna — podmieniony",
+                 k1_kolor(m->tekst2, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 68, "albo uszkodzony K1 się nie uruchomi.", k1_kolor(m->tekst2, 255), 0);
+        snprintf(buf, sizeof buf, "Secure Boot: %s", stan_sb);
+        k1_tekst(o, K1_CZ_TEKST_MOCNA, LEWO, GORA + 104, buf, k1_kolor(m->tekst, 255), 0);
+        snprintf(buf, sizeof buf, "Klucz K1: %s", stan_k);
+        k1_tekst(o, K1_CZ_TEKST_MOCNA, LEWO, GORA + 128, buf, k1_kolor(m->tekst, 255), 0);
+        y = GORA + 164;
+        if (!sb_prawdziwy) {
+            k1_tekst(o, K1_CZ_TEKST, LEWO, y, "To wersja deweloperska (bez klucza wydania) — jej klucza nie wpisujemy.",
+                     k1_kolor(m->akcent_tekst, 255), apl.szer - 2 * LEWO);
+            k1_tekst(o, K1_CZ_MALA, LEWO, y + 24, "Dodaj sekret K1_KLUCZ_PODPISU (README → „Klucz podpisu”), potem",
+                     k1_kolor(m->tekst2, 255), 0);
+            k1_tekst(o, K1_CZ_MALA, LEWO, y + 42, "zainstaluj podpisaną wersję i wróć tutaj.", k1_kolor(m->tekst2, 255), 0);
+        } else if (sbk == K1_SBK_JEST && sb == K1_SB_WL) {
+            k1_tekst(o, K1_CZ_TEKST, LEWO, y, "Wszystko gotowe: Secure Boot chroni ten komputer.", k1_kolor(m->tekst, 255), 0);
+        } else if (sbk == K1_SBK_JEST) {
+            k1_tekst(o, K1_CZ_TEKST, LEWO, y, "Klucz jest wpisany. Zostało włączenie Secure Boot:", k1_kolor(m->tekst, 255), 0);
+            k1_tekst(o, K1_CZ_TEKST, LEWO, y + 24, kroki[3], k1_kolor(m->tekst, 255), apl.szer - 2 * LEWO);
+        } else if (sb == K1_SB_NIEZNANY) {
+            k1_tekst(o, K1_CZ_TEKST, LEWO, y, "Ten start nie ma zmiennych UEFI — uruchom K1 z dysku albo pendrive'a",
+                     k1_kolor(m->tekst, 255), apl.szer - 2 * LEWO);
+            k1_tekst(o, K1_CZ_TEKST, LEWO, y + 22, "w trybie UEFI.", k1_kolor(m->tekst, 255), 0);
+        } else {
+            for (i = 0; i < 4; i++)
+                k1_tekst(o, K1_CZ_MALA, LEWO, y + i * 22, kroki[i],
+                         k1_kolor(sbk == K1_SBK_CZEKA && i == 0 ? m->tekst3 : m->tekst, 255), apl.szer - 2 * LEWO);
+            if (sb_wynik == K1_SBP_BLAD)
+                k1_tekst(o, K1_CZ_MALA_MOCNA, LEWO, y + 96, "Nie udało się zapisać klucza w pamięci UEFI.",
+                         k1_kolor(m->akcent_tekst, 255), 0);
+        }
+        break;
+    }
     case S_BLAD:
         k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Nie udało się", k1_kolor(m->tekst, 255), 0);
         k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 64, blad_tekst(wynik), k1_kolor(m->tekst, 255), apl.szer - 2 * LEWO);
@@ -366,6 +450,26 @@ static void odbierz(void)
                 n_dyskow++;
             }
             break;
+        case K1_KOM_INST_AB:
+            if (stan == S_SZUKAM && (int)k.obiekt == n_dyskow && n_dyskow > 0) {
+                dyski[n_dyskow - 1].ab_zapas = k.b;
+                dyski[n_dyskow - 1].ab_slot = k.c;
+                dyski[n_dyskow - 1].ab_fl = k.d;
+                k1_log(TAG, "dysk %d: A/B — działa miejsce %c, zapasowa wersja %d%s%s", n_dyskow, k.c == 2 ? 'B' : 'A', (int)k.b,
+                       k.d & K1_AB_FL_NOWY ? ", nowa czeka na próbę" : "",
+                       k.d & K1_AB_FL_NIEUDANA ? ", ostatnia aktualizacja nie wystartowała" : "");
+            }
+            break;
+        case K1_KOM_SB_STAN:
+            sb = k.a;
+            sbk = k.b;
+            sb_prawdziwy = k.c;
+            sb_wynik = k.d;
+            /* the tests click by this line */
+            k1_log(TAG, "secure boot: %s, klucz K1: %s%s; link %d,%d", sb == K1_SB_WL ? "włączony" : sb == K1_SB_WYL ? "wyłączony" : "nieznany",
+                   sbk == K1_SBK_JEST ? "wpisany" : sbk == K1_SBK_CZEKA ? "czeka na MokManagera" : "brak",
+                   sb_prawdziwy ? "" : " (wersja deweloperska)", LEWO + 20, przyciski_y() + 18);
+            break;
         case K1_KOM_INST_LISTA:
             if (stan != S_SZUKAM || k.a != n_dyskow)
                 break;
@@ -395,8 +499,10 @@ static void odbierz(void)
             if (stan != S_POSTEP)
                 break;
             wynik = k.a;
+            nowe_miejsce = k.c;
             stan = k.a == 0 ? S_GOTOWE : S_BLAD;
-            k1_log(TAG, "%s", k.a == 0 ? (tryb == K1_INST_INSTALUJ ? "zainstalowano" : "zaktualizowano")
+            k1_log(TAG, "%s", k.a == 0 ? (tryb == K1_INST_INSTALUJ ? "zainstalowano"
+                                                                   : nowe_miejsce ? "zaktualizowano (nowe miejsce A/B)" : "zaktualizowano")
                                        : "błąd instalacji");
             if (k.a != 0)
                 k1_log(TAG, "kod %d", (int)k.a);
@@ -444,6 +550,15 @@ static void glowny(void)
     case S_BLAD:
         szukaj();
         break;
+    case S_SB:
+        if (sbk == K1_SBK_BRAK && sb_prawdziwy && sb != K1_SB_NIEZNANY) {
+            k1_log(TAG, "secure boot: proszę o przygotowanie klucza K1");
+            wyslij(k1_komunikat_nowy(K1_KOM_SB_KLUCZ, 0, 0, 0, 0, 0, 0));
+        } else if (sbk == K1_SBK_CZEKA && sb_wynik == K1_SBP_GOTOWE) {
+            k1_log(TAG, "ponowne uruchamianie (klucz K1 dla MokManagera)");
+            wyslij(k1_komunikat_nowy(K1_KOM_WYLACZ, 0, 1, 0, 0, 0, 0));
+        }
+        break;
     default:
         break;
     }
@@ -456,7 +571,7 @@ static void drugi(void)
         tryb = K1_INST_INSTALUJ; /* reinstall: wipe the old K1 with its data */
         pole_dl = 0;
         stan = S_POTWIERDZ;
-    } else if (stan == S_POTWIERDZ) {
+    } else if (stan == S_POTWIERDZ || stan == S_SB) {
         stan = S_LISTA;
     }
     k1_apl_odswiez(&apl);
@@ -471,7 +586,9 @@ static int pod(int32_t x, int32_t y)
         return 10;
     if (e2 && x >= x2 && x < x2 + w2 && y >= py && y < py + PRZ_H)
         return 11;
-    if (stan == S_LISTA && zrodlo == 1 && x >= LEWO && x < apl.szer - LEWO && y >= DYSKI_Y) {
+    if (stan == S_LISTA && sb >= 0 && x >= LEWO && x < LEWO + k1_tekst_szer(K1_CZ_TEKST, SB_LINK) && y >= py && y < py + PRZ_H)
+        return 12;
+    if (stan == S_LISTA && zrodlo == 1 && x >= LEWO && x < apl.szer - LEWO && y >= DYSKI_Y && y < py - 30) {
         int i = (y - DYSKI_Y) / (DYSK_H + 8);
         if (i < n_dyskow && (y - DYSKI_Y) % (DYSK_H + 8) < DYSK_H)
             return i;
@@ -492,6 +609,15 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk_nr)
         glowny();
     else if (p == 11)
         drugi();
+    else if (p == 12) {
+        int32_t x1, x2, w1, w2;
+        const char *e1, *e2;
+        stan = S_SB;
+        przyciski(&x1, &x2, &w1, &w2, &e1, &e2);
+        k1_log(TAG, "secure boot: ekran; przycisk %d,%d, wróć %d,%d", x1 + w1 / 2, przyciski_y() + PRZ_H / 2, x2 + w2 / 2,
+               przyciski_y() + PRZ_H / 2);
+        k1_apl_odswiez(&apl);
+    }
     else if (p >= 0 && p < n_dyskow && stan == S_LISTA) {
         wybrany = p;
         k1_apl_odswiez(&apl);
@@ -505,7 +631,7 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     int n;
     if (wartosc == 0)
         return;
-    if (kod == KEY_ESC && stan == S_POTWIERDZ) {
+    if (kod == KEY_ESC && (stan == S_POTWIERDZ || stan == S_SB)) {
         stan = S_LISTA;
     } else if (kod == KEY_ENTER) {
         glowny();

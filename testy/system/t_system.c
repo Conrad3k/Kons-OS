@@ -344,8 +344,9 @@ void t_inventory(void)
                          "/rdzen/system/ekran /rdzen/system/gui /rdzen/system/instalator /rdzen/system/logowanie "
                          "/rdzen/system/nadzorca /rdzen/system/skarbiec "
                          "/rdzen/system/skrypt-testowy "
-                         "/rdzen/system/test-systemu /rdzen/system/wejscie ") == 0,
-          "obraz rdzenia zawiera tylko programy K1 i pliki testowe (brak powłoki i innych programów)", "pliki: %s",
+                         "/rdzen/system/test-systemu /rdzen/system/wejscie /rdzen/system/wydanie ") == 0,
+          "obraz rdzenia zawiera tylko programy K1, identyfikator wydania i pliki testowe (brak powłoki i innych programów)",
+          "pliki: %s",
           joined);
     check(!setuid_found, "NEGATYWNY: brak plików setuid/setgid w /rdzen", "%s", "");
 }

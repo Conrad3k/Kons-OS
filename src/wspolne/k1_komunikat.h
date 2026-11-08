@@ -70,7 +70,7 @@ enum k1_komunikat_typ {
     K1_KOM_INST_START = 55,   /* obiekt=disk 1..K1_INST_DYSKI_MAKS from the last list, a=K1_INST_* mode */
     /* instalator (the writing program) → nadzorca */
     K1_KOM_INST_ETAP = 56,    /* obiekt=0, a=percent 0..100, b=K1_INST_ETAP_* */
-    K1_KOM_INST_GOTOWE = 57,  /* obiekt=0, a=result (0 or K1_INST_BLAD_* < 0) */
+    K1_KOM_INST_GOTOWE = 57,  /* obiekt=0, a=result (0 or K1_INST_BLAD_* < 0), b=1 a new slot to try (A/B, 0.7.0) */
     /* nadzorca → Ustawienia (0.6.0): battery history of earlier boots (k1_bat_arch.h) */
     K1_KOM_BATERIA_ARCH = 58, /* obiekt=0, a=length 8..K1_BAT_ARCH_BAJTY, b=sessions 0..K1_BAT_ARCH_SESJE; + 1 sealed memfd */
 
@@ -107,7 +107,14 @@ enum k1_komunikat_typ {
                                * 0 none (not started from a K1 stick — e.g. the .iso on it), 2 two K1 sticks;
                                * c=its version (M6a manifest; 0 = none), d=1 signed */
     K1_KOM_INST_POSTEP = 68,  /* obiekt=0, a=percent 0..100, b=K1_INST_ETAP_* */
-    K1_KOM_INST_WYNIK = 69,   /* obiekt=0, a=result (0 or K1_INST_BLAD_* < 0), b=K1_INST_* mode */
+    K1_KOM_INST_WYNIK = 69,   /* obiekt=0, a=result (0 or K1_INST_BLAD_* < 0), b=K1_INST_* mode, c=1 new slot (A/B) */
+    /* nadzorca → Instalator window (0.7.0, ADR 0022): A/B and Secure Boot */
+    K1_KOM_INST_AB = 76,      /* obiekt=disk 1..K1_INST_DYSKI_MAKS (after its INST_DYSK), a=version it runs, b=version in the
+                               * other slot (0: none), c=slot it runs (1=A, 2=B), d=K1_AB_FL_* flags */
+    K1_KOM_SB_STAN = 77,      /* obiekt=0, a=K1_SB_* Secure Boot, b=K1_SBK_* the K1 key, c=1 release key (0: developer
+                               * key — never enrolled), d=K1_SBP_* result of the last SB_KLUCZ */
+    /* Instalator window → nadzorca */
+    K1_KOM_SB_KLUCZ = 78,     /* obiekt=0: prepare the enrolment of the K1 key (MokNew + MokAuth for MokManager) */
     K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample
                                 * (0 = history starts again), a=seconds between samples, b..e = up to 16
                                 * samples, one byte each (b: samples 0-3 from the lowest byte, …):
@@ -185,6 +192,11 @@ enum { K1_INST_ETAP_CZYSZCZENIE = 1, K1_INST_ETAP_KOPIA = 2, K1_INST_ETAP_SPRAWD
 #define K1_INST_BLAD_PODPIS (-8)   /* M6a: no manifest, wrong checksum, or no valid K1 signature */
 #define K1_INST_BLAD_STARSZA (-9)  /* M6a: the stick has an older version than the disk */
 #define K1_INST_BLAD_MIN (-9)
+#define K1_AB_FL_NOWY 1        /* INST_AB d: a new slot waits to be tried on the next start */
+#define K1_AB_FL_NIEUDANA 2    /* INST_AB d: the last new slot did not start (GRUB went back) */
+enum { K1_SB_WYL = 0, K1_SB_WL = 1, K1_SB_NIEZNANY = 2 };            /* Secure Boot off / on / no UEFI variables */
+enum { K1_SBK_BRAK = 0, K1_SBK_JEST = 1, K1_SBK_CZEKA = 2 };         /* key: not enrolled / enrolled / waits for MokManager */
+enum { K1_SBP_NIC = 0, K1_SBP_GOTOWE = 1, K1_SBP_BLAD = 2 };          /* the last request: none / written / failed */
 
 /* Battery state (K1_KOM_BATERIA c), from the kernel's power_supply "status". */
 enum k1_bateria_stan {

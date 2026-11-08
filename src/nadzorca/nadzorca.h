@@ -27,6 +27,7 @@
 #include "k1_odbior.h"
 #include "k1_bat_arch.h"
 #include "k1_manifest.h"
+#include "k1_uklad.h"
 #include "k1_memfd.h"
 #include "k1_skarb_klient.h"
 #include "k1_uslugi.h"
@@ -147,6 +148,18 @@ int otworz_urzadzenie(const char *nazwa, int flagi);
 int inst_zapis(int nr, int tryb);
 void obsluz_instalacje(void);
 void obsluz_zapis(void);
+
+/* rozruch.c — A/B after a start (0.7.0, ADR 0022) */
+extern char ab_nieudana[32];
+void rozruch_wydanie(void);
+void rozruch_po_starcie(double t);
+int ab_stan(int fd, struct k1_uklad *u, struct k1_grubenv *e);
+uint32_t ab_wersja(int fd, const struct k1_uklad *u, int nr, uint8_t wyd[16]);
+
+/* efi.c — Secure Boot and the K1 key (0.7.0, ADR 0022) */
+extern int sb_czeka;
+struct k1_komunikat sb_komunikat(void);
+void sb_przygotuj_klucz(void);
 
 /* zasoby.c */
 extern int zasoby_kanal;

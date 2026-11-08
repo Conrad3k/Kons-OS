@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | PRZETESTOWANE (M1) — start w QEMU, testy `scripts/test-m1.sh` |
 | **Wersja** | 6.18.60 LTS (`jadro/wersja.env`), decyzje: ADR 0003 |
-| **Pliki** | `jadro/k1.config` (fragment Kconfig), `jadro/cmdline`, `jadro/klucze/`, `scripts/zbuduj-jadro.sh` |
+| **Pliki** | `jadro/k1.config` (fragment Kconfig), `jadro/cmdline`, `jadro/klucze/`, `scripts/zbuduj-jadro.sh`; zamknięte jądro: `jadro/k1-zamkniete.config`, `scripts/zbuduj-k1efi.sh`, klucz Secure Boot: `narzedzia/klucz_sb.py` (ADR 0022) |
 
 ## Cel
 Jedyny kod działający z pełnymi uprawnieniami sprzętowymi. Wspólna granica zaufania całego świata
@@ -78,3 +78,13 @@ i parser GPT obcych nośników (RYZYKA R33–R34).
 ## Testy
 `scripts/sprawdz-konfiguracje-jadra.sh` (każdy build), `scripts/sprawdz-kspp.sh` (przy zmianie
 wersji), w systemie: `testy/m1/k1_test_m1.c` (LSM, lockdown, Landlock, usunięte syscalle, sysctl).
+
+## Zamknięte jądro `k1.efi` (0.7.0, ADR 0022)
+Wydania (pendrive, dysk, ISO) uruchamiają `k1.efi`: to samo jądro z `k1.config` plus `jadro/k1-zamkniete.config`
+— `CMDLINE_BOOL` + `CMDLINE_OVERRIDE` (linia z `jadro/cmdline`, `k1.rdzen=wbudowany`, `k1.rdzen_skrot`, `noinitrd`,
+`quiet loglevel=7`) i `INITRAMFS_SOURCE` (initramfs + `rdzen.squashfs`, bez osobnej kompresji). Podpisane do Secure
+Boot (`sbsign`, RSA-2048 z `narzedzia/klucz_sb.py`, zegar zamrożony `faketime` — powtarzalne). Bez protokołu „EFI
+handover” (wyłączony) i z `noinitrd` program ładujący nie ma jak podać initrd — sprawdzone w QEMU z GRUB-em
+Ubuntu. Budowane w tym samym katalogu co jądro deweloperskie (`bzImage`, które zostaje dla testów `test-m1`).
+`CONFIG_EFIVAR_FS=y` (0.7.0): zmienne UEFI dla nadzorcy (stan Secure Boot, wpisanie klucza K1).
+

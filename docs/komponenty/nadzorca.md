@@ -131,3 +131,14 @@ Wiersze logu od usług (bufor 400 B, znaki sterujące zamieniane, limit 20/s), k
 | próby w klatkach ekran i wejscie: 22 zabronione działania (inny program, `open`, `setuid`, `socket`, `fork`, `clone`, `kill`, `ptrace`, `mount`, `unshare`, `chroot`, `perf_event_open`, `keyctl`, `memfd_create`, pamięć wykonywalna, obcy `ioctl`, `execve`) | negatywny |
 | awaria ekranu → nowy ekran i nowe wejscie | funkcjonalny |
 | 6 zabić wejscie → usługa wyłączona | negatywny |
+
+## A/B i Secure Boot (0.7.0, ADR 0022)
+- `rozruch.c`: przy starcie czyta `/rdzen/system/wydanie` (identyfikator wydania); 15 s po pulpicie albo
+  ekranie hasła sprawdza K1-EFI każdego dysku wewnętrznego (`O_EXCL`): próba, która wystartowała i ma to
+  samo wydanie → `k1_slot`; próba, z której GRUB wrócił → wyczyszczona i zgłoszona oknu Instalatora
+  (`INST_AB` d). Pisze tylko 1024 B grubenv. Pendrive'ów nie rusza.
+- `efi.c`: efivarfs montowany na chwilę pod `/rdzen/jadro/sys/firmware/efi/efivars`; stan Secure Boot
+  (`SecureBoot`), klucz K1 w `MokListRT*`, prośba czekająca (`MokNew`); na `SB_KLUCZ` (tylko klucz wydania,
+  `K1_SB_PRAWDZIWY`) zapisuje `MokNew` i `MokAuth` (SHA-256, `k1_sha256.c`). Po zapisie okno Instalatora może
+  poprosić o restart (`WYLACZ` a=1).
+

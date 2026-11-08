@@ -8,6 +8,8 @@
 #   scripts/uruchom-qemu.sh --iso PLIK [--uefi] [--vga std|virtio] ...   (start z obrazu ISO, ADR 0010)
 #   scripts/uruchom-qemu.sh --pendrive PLIK ...   (obraz USB jako pamięć USB, start przez UEFI — M5d)
 #   scripts/uruchom-qemu.sh --dysk-uefi PLIK ...  (dysk SATA, start z niego przez UEFI — zainstalowany K1, M5f)
+#   ... --zmienne-uefi PLIK                      (z --pendrive/--dysk-uefi: OVMF z obsługą Secure Boot i trwałymi
+#                                                 zmiennymi UEFI w PLIKU — klucze, MOK, stan SB; M6d, 0.7.0)
 #
 # Domyślnie: build/wynik/rdzen.squashfs, linia poleceń z jadro/cmdline, log build/qemu/serial.log.
 # Podgląd na żywo: tail -f build/qemu/serial.log
@@ -18,7 +20,7 @@ CMDLINE=$(cat "$K1_REPO/jadro/cmdline")
 LOG=$K1_BUDOWA/qemu/serial.log
 MONITOR=$K1_BUDOWA/qemu/monitor.sock
 CZAS=0
-ISO= UEFI= VGA=std MASZYNA= DODATKI= PENDRIVE= DYSK_UEFI=
+ISO= UEFI= VGA=std MASZYNA= DODATKI= PENDRIVE= DYSK_UEFI= ZMIENNE=
 while [ $# -gt 0 ]; do
     case $1 in
         --obraz) OBRAZ=$2; shift 2 ;;
@@ -31,6 +33,7 @@ while [ $# -gt 0 ]; do
         --pendrive) PENDRIVE=$2; shift 2 ;;
         --dysk-uefi) DYSK_UEFI=$2; shift 2 ;;
         --uefi) UEFI=1; shift ;;
+        --zmienne-uefi) ZMIENNE=$2; shift 2 ;;
         --vga) VGA=$2; shift 2 ;;
         --maszyna) MASZYNA=$2; shift 2 ;;
         --qemu) DODATKI=$2; shift 2 ;;
@@ -50,14 +53,23 @@ if [ -n "$OBRAZ" ] && [ -f "$OBRAZ.skrot" ] && ! echo "$CMDLINE" | grep -q 'k1\.
     CMDLINE="$CMDLINE k1.rdzen_skrot=$(cat "$OBRAZ.skrot")"
 fi
 
+# UEFI firmware: OVMF without stored variables, or (M6d) the Secure Boot build with a variable store in a
+# file (SMM protects it, as on a real computer): Secure Boot on or off depends on what that file holds.
+FW="-bios /usr/share/ovmf/OVMF.fd"
+if [ -n "$ZMIENNE" ]; then
+    MASZYNA="$MASZYNA,smm=on"
+    FW="-global driver=cfi.pflash01,property=secure,value=on
+        -drive if=pflash,format=raw,unit=0,file=/usr/share/OVMF/OVMF_CODE_4M.secboot.fd,readonly=on
+        -drive if=pflash,format=raw,unit=1,file=$ZMIENNE"
+fi
 if [ -n "$DYSK_UEFI" ]; then
     # An installed K1 (M5f): UEFI firmware boots the SATA disk (AHCI of q35, like the X230's disk).
-    set -- -machine "q35$MASZYNA" $AKCEL -m 512M -smp 2 -nodefaults -no-reboot -bios /usr/share/ovmf/OVMF.fd \
+    set -- -machine "q35$MASZYNA" $AKCEL -m 512M -smp 2 -nodefaults -no-reboot $FW \
         -vga virtio -display none -nic none -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" \
         -drive if=none,id=dysk,file="$DYSK_UEFI",format=raw -device ide-hd,bus=ide.0,drive=dysk,bootindex=1
 elif [ -n "$PENDRIVE" ]; then
     # Like the ThinkPad: UEFI firmware boots the stick (usb-storage on xHCI); picture from GOP → simpledrm.
-    set -- -machine "q35$MASZYNA" $AKCEL -m 512M -smp 2 -nodefaults -no-reboot -bios /usr/share/ovmf/OVMF.fd \
+    set -- -machine "q35$MASZYNA" $AKCEL -m 512M -smp 2 -nodefaults -no-reboot $FW \
         -vga virtio -display none -nic none -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" \
         -device qemu-xhci,id=xhci -drive if=none,id=pendrive,file="$PENDRIVE",format=raw \
         -device usb-storage,bus=xhci.0,drive=pendrive,bootindex=1
