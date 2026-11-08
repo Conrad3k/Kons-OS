@@ -7,6 +7,7 @@
 #ifndef K1_RYSUJ_H
 #define K1_RYSUJ_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "k1_czcionka.h"
@@ -37,6 +38,8 @@ int32_t k1_tekst_szer(enum k1_cz cz, const char *utf8);
 int k1_utf8(const char *s, uint32_t n, uint32_t *kod);
 /* Appends code point `kod` as UTF-8; returns the number of bytes (0 if it does not fit). */
 int k1_utf8_zapisz(uint32_t kod, char *dst, uint32_t miejsce);
+/* Characters (not bytes) in the first `n` bytes of UTF-8 `s`. */
+size_t k1_utf8_znaki(const char *s, size_t n);
 
 /* Line icons drawn on a 24×24 grid scaled to `rozmiar` px, stroke 1.5 (at 24 px). */
 enum k1_ikona {

@@ -118,9 +118,7 @@ static void rysuj(void)
     srodek(o, K1_CZ_MALA_MOCNA, cx, py - 14, "Hasło", k1_kolor(K1_KREM, 210));
     k1_zaokraglony(o, (float)px, (float)py, POLE_W, POLE_H, 24, k1_kolor(K1_KREM, 46));
     k1_obrys(o, (float)px, (float)py, POLE_W, POLE_H, 24, 1.25f, k1_kolor(pokaz_blad ? K1_TERAKOTA : K1_KREM, pokaz_blad ? 255 : 120));
-    for (i = 0; i < (int32_t)dl; i++)
-        if (((unsigned char)haslo[i] & 0xc0) != 0x80)
-            znaki++;
+    znaki = k1_utf8_znaki(haslo, dl);
     for (i = 0; i < (int32_t)znaki && i < 16; i++)
         k1_kolo(o, (float)(px + 26 + i * 16), (float)py + 24, 4.2f, k1_kolor(K1_KREM, 255));
     if (!czeka)
@@ -168,30 +166,16 @@ static void wyslij_haslo(void)
 
 static void klawisz(unsigned kod, int wartosc, unsigned mody)
 {
-    uint32_t z;
     if (wartosc == 0 || czeka || odblokowano)
         return;
     if (kod == KEY_ENTER || kod == KEY_KPENTER) {
         wyslij_haslo();
         return;
     }
-    if (kod == KEY_BACKSPACE) {
-        while (dl > 0 && ((unsigned char)haslo[dl - 1] & 0xc0) == 0x80)
-            haslo[--dl] = 0;
-        if (dl > 0)
-            haslo[--dl] = 0;
-    } else if (kod == KEY_ESC) {
+    if (kod == KEY_ESC)
         wyczysc_haslo();
-    } else if ((z = k1_znak_klawisza(kod, mody)) >= 0x20) {
-        char u[4];
-        int n = k1_utf8_zapisz(z, u, sizeof u);
-        if (n > 0 && dl + (size_t)n <= K1_HASLO_MAKS) {
-            memcpy(haslo + dl, u, (size_t)n);
-            dl += (size_t)n;
-        }
-    } else {
+    else if (!k1_pole_klawisz(haslo, &dl, K1_HASLO_MAKS, kod, mody))
         return;
-    }
     if (pokaz_blad && przerwa == 0) {
         pokaz_blad = 0;
         komunikat[0] = '\0';

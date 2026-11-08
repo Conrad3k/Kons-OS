@@ -224,6 +224,14 @@ int k1_utf8(const char *s, uint32_t n, uint32_t *kod)
     return (int)len;
 }
 
+size_t k1_utf8_znaki(const char *s, size_t n)
+{
+    size_t z = 0, i;
+    for (i = 0; i < n; i++)
+        z += ((unsigned char)s[i] & 0xc0) != 0x80;
+    return z;
+}
+
 int k1_utf8_zapisz(uint32_t kod, char *dst, uint32_t miejsce)
 {
     unsigned char *d = (unsigned char *)dst;

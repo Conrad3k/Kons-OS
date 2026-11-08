@@ -420,16 +420,14 @@ static void wczytaj(void)
 
 static void zapisz(void)
 {
-    uint32_t i, znaki = 0;
+    uint32_t znaki;
     zmiana = 0;
     if (skarb < 0) { /* no skarbiec: the notes live only in this window */
         k1_apl_odswiez(&apl);
         return;
     }
     zapis_blad = k1_skarb_zapisz(skarb, b->id, b->tekst, b->dl) != 0;
-    for (i = 0; i < b->dl; i++)
-        if (((unsigned char)b->tekst[i] & 0xc0) != 0x80)
-            znaki++;
+    znaki = (unsigned)k1_utf8_znaki(b->tekst, b->dl);
     if (!zapis_blad)
         k1_log(TAG, "zapisano notatkę (%u znaków)", znaki); /* the length only, never the content */
     else

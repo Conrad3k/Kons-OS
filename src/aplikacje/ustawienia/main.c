@@ -333,9 +333,7 @@ static void hs_wyslij(void)
     struct k1_komunikat m;
     int fd;
     hs.blad = 1;
-    for (i = 0; i < n2; i++)
-        if (((unsigned char)nowe[i] & 0xc0) != 0x80)
-            znaki++;
+    znaki = k1_utf8_znaki(nowe, n2);
     if (hs.formularz != F_WYLACZ && strcmp(nowe, powt) != 0) {
         snprintf(hs.komunikat, sizeof hs.komunikat, "Nowe hasła się różnią");
         return;
@@ -415,9 +413,7 @@ static void pole_hasla(struct k1_obraz *o, const struct k1_motyw *m, int i, cons
     k1_zaokraglony(o, POLE_X, (float)y, POLE_W, POLE_H, 8, k1_kolor(m->pole, 255));
     k1_obrys(o, POLE_X, (float)y, POLE_W, POLE_H, 8, i == hs.pole ? 1.5f : 1.0f,
              k1_kolor(i == hs.pole ? m->akcent : m->tekst, i == hs.pole ? 255 : 40));
-    for (j = 0; j < hs.dl[i]; j++)
-        if (((unsigned char)hs.tekst[i][j] & 0xc0) != 0x80)
-            z++;
+    z = k1_utf8_znaki(hs.tekst[i], hs.dl[i]);
     for (j = 0; j < z && j < 20; j++)
         k1_kolo(o, (float)(POLE_X + 18 + (int32_t)j * 13), (float)y + 18, 3.6f, k1_kolor(m->tekst, 255));
 }
@@ -515,7 +511,6 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
 {
     const char *n[3];
     int ile = pola(n);
-    uint32_t z;
     if (sekcja != S_HASLO || ile == 0 || wartosc == 0 || hs.czeka)
         return;
     if (kod == KEY_TAB) {
@@ -527,21 +522,7 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
             hs_wyslij();
     } else if (kod == KEY_ESC) {
         hs_formularz(F_BRAK);
-    } else if (kod == KEY_BACKSPACE) {
-        char *t = hs.tekst[hs.pole];
-        size_t *d = &hs.dl[hs.pole];
-        while (*d > 0 && ((unsigned char)t[*d - 1] & 0xc0) == 0x80)
-            t[--*d] = 0;
-        if (*d > 0)
-            t[--*d] = 0;
-    } else if ((z = k1_znak_klawisza(kod, mody)) >= 0x20) {
-        char u[4];
-        int nb = k1_utf8_zapisz(z, u, sizeof u);
-        if (nb > 0 && hs.dl[hs.pole] + (size_t)nb <= K1_HASLO_MAKS) {
-            memcpy(hs.tekst[hs.pole] + hs.dl[hs.pole], u, (size_t)nb);
-            hs.dl[hs.pole] += (size_t)nb;
-        }
-    } else {
+    } else if (!k1_pole_klawisz(hs.tekst[hs.pole], &hs.dl[hs.pole], K1_HASLO_MAKS, kod, mody)) {
         return;
     }
     k1_apl_odswiez(&apl);

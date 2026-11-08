@@ -621,9 +621,6 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk_nr)
 
 static void klawisz(unsigned kod, int wartosc, unsigned mody)
 {
-    char u[4];
-    uint32_t z;
-    int n;
     if (wartosc == 0)
         return;
     if (kod == KEY_ESC && (stan == S_POTWIERDZ || stan == S_SB)) {
@@ -632,21 +629,8 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
         glowny();
         return;
     } else if (stan == S_POTWIERDZ && tryb == K1_INST_INSTALUJ) {
-        if (kod == KEY_BACKSPACE) {
-            while (pole_dl > 0 && ((unsigned char)pole[pole_dl - 1] & 0xc0) == 0x80)
-                pole_dl--;
-            if (pole_dl > 0)
-                pole_dl--;
-        } else {
-            z = k1_znak_klawisza(kod, mody);
-            if (z == 0)
-                return;
-            n = k1_utf8_zapisz(z, u, sizeof u);
-            if (n <= 0 || pole_dl + (size_t)n >= sizeof pole)
-                return;
-            memcpy(pole + pole_dl, u, (size_t)n);
-            pole_dl += (size_t)n;
-        }
+        if (!k1_pole_klawisz(pole, &pole_dl, sizeof pole - 1, kod, mody))
+            return;
     } else {
         return;
     }

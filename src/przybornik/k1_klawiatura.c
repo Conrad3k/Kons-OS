@@ -2,7 +2,10 @@
 
 #include <linux/input-event-codes.h>
 
+#include <string.h>
+
 #include "k1_komunikat.h"
+#include "k1_rysuj.h"
 
 uint32_t k1_znak_klawisza(unsigned kod, unsigned mody)
 {
@@ -40,4 +43,27 @@ uint32_t k1_znak_klawisza(unsigned kod, unsigned mody)
     if (kod == KEY_KPSLASH)
         return '/';
     return 0;
+}
+
+int k1_pole_klawisz(char *t, size_t *dl, size_t maks, unsigned kod, unsigned mody)
+{
+    uint32_t z;
+    char u[4];
+    int n;
+    if (kod == KEY_BACKSPACE) {
+        while (*dl > 0 && ((unsigned char)t[*dl - 1] & 0xc0) == 0x80)
+            t[--*dl] = '\0';
+        if (*dl > 0)
+            t[--*dl] = '\0';
+        return 1;
+    }
+    if ((z = k1_znak_klawisza(kod, mody)) < 0x20)
+        return 0;
+    n = k1_utf8_zapisz(z, u, sizeof u);
+    if (n > 0 && *dl + (size_t)n <= maks) {
+        memcpy(t + *dl, u, (size_t)n);
+        *dl += (size_t)n;
+        t[*dl] = '\0';
+    }
+    return 1;
 }
