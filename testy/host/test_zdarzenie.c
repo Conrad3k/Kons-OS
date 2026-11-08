@@ -3,17 +3,7 @@
 #include <string.h>
 
 #include "k1_zdarzenie.h"
-
-static int failures, count;
-
-#define EXPECT(cond)                                                        \
-    do {                                                                    \
-        count++;                                                            \
-        if (!(cond)) {                                                      \
-            failures++;                                                     \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond); \
-        }                                                                   \
-    } while (0)
+#include "k1_test_host.h"
 
 static struct k1_zdarzenie baza(uint8_t typ)
 {
@@ -93,6 +83,5 @@ int main(void)
     memcpy(duzy + 1, &z, sizeof z);
     EXPECT(k1_zdarzenie_sprawdz(duzy + 1, sizeof z, &out) == 0 && out.dx == 1);
 
-    printf("test_zdarzenie: %d/%d OK\n", count - failures, count);
-    return failures == 0 ? 0 : 1;
+    return K1_TEST_KONIEC("test_zdarzenie");
 }

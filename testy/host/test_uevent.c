@@ -4,17 +4,7 @@
 #include <string.h>
 
 #include "uevent.h"
-
-static int failures, count;
-
-#define EXPECT(cond)                                                          \
-    do {                                                                      \
-        count++;                                                              \
-        if (!(cond)) {                                                        \
-            failures++;                                                       \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond);   \
-        }                                                                     \
-    } while (0)
+#include "k1_test_host.h"
 
 /* Builds a packet from NUL-separated parts given as one string with '|' separators. */
 static size_t pakiet(char *buf, size_t maks, const char *opis)
@@ -71,6 +61,5 @@ int main(void)
     EXPECT(k1_uevent_parsuj(b, n, &u) == 0 && u.devname[0] == 0 && u.partname[0] == 0); /* bad characters dropped */
     n = pakiet(b, sizeof b, "add@/x|ACTION=add|SUBSYSTEM=block|DEVNAME=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     EXPECT(k1_uevent_parsuj(b, n, &u) == 0 && u.devname[0] == 0); /* too long */
-    printf("test_uevent: %d sprawdzeń, %d błędów\n", count, failures);
-    return failures != 0;
+    return K1_TEST_KONIEC("test_uevent");
 }

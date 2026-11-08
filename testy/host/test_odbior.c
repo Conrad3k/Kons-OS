@@ -11,17 +11,7 @@
 #include "k1_kanal.h"
 #include "k1_komunikat.h"
 #include "k1_odbior.h"
-
-static int failures, count;
-
-#define EXPECT(cond)                                                          \
-    do {                                                                      \
-        count++;                                                              \
-        if (!(cond)) {                                                        \
-            failures++;                                                       \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond);   \
-        }                                                                     \
-    } while (0)
+#include "k1_test_host.h"
 
 static int otwarte(int fd)
 {
@@ -71,6 +61,5 @@ int main(void)
     close(p[1]);
     EXPECT(k1_odbierz_komunikat(p[0], ja, K1_KIER_OD_NADZORCY, &k, NULL) == K1_ODB_KONIEC);
     close(p[0]);
-    printf("test_odbior: %d sprawdzeń, %d błędów\n", count, failures);
-    return failures != 0;
+    return K1_TEST_KONIEC("test_odbior");
 }

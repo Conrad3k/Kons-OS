@@ -12,17 +12,7 @@
 #include "k1_komunikat.h"
 #include "k1_okno.h"
 #include "k1_rysuj.h"
-
-static int failures, count;
-
-#define EXPECT(cond)                                                        \
-    do {                                                                    \
-        count++;                                                            \
-        if (!(cond)) {                                                      \
-            failures++;                                                     \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond); \
-        }                                                                   \
-    } while (0)
+#include "k1_test_host.h"
 
 static int czas(int64_t utc, int r, int m, int d, int g, int mi, int s, int dt, int letni)
 {
@@ -153,10 +143,5 @@ int main(void)
     t_utf8();
     t_rysowanie();
     t_okno();
-    if (failures) {
-        fprintf(stderr, "test_przybornik: %d z %d BŁĘDNYCH\n", failures, count);
-        return 1;
-    }
-    printf("test_przybornik: OK (%d przypadków)\n", count);
-    return 0;
+    return K1_TEST_KONIEC("test_przybornik");
 }

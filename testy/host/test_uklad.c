@@ -6,17 +6,7 @@
 #include <string.h>
 
 #include "k1_uklad.h"
-
-static int failures, count;
-
-#define EXPECT(cond)                                                          \
-    do {                                                                      \
-        count++;                                                              \
-        if (!(cond)) {                                                        \
-            failures++;                                                       \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond);   \
-        }                                                                     \
-    } while (0)
+#include "k1_test_host.h"
 
 #define MIB (1ull << 20)
 
@@ -121,6 +111,5 @@ int main(int argc, char **argv)
     EXPECT(k1_ab_decyzja(&g, 1) == K1_AB_NIEUDANA && k1_ab_decyzja(&g, 0) == K1_AB_NIEUDANA);
     EXPECT(k1_slot_nr('a') == 0 && k1_slot_nr('b') == 1 && k1_slot_nr(0) == -1 && k1_slot_nr('c') == -1);
 
-    printf("test_uklad: %d sprawdzeń, %d błędów\n", count, failures);
-    return failures == 0 ? 0 : 1;
+    return K1_TEST_KONIEC("test_uklad");
 }
