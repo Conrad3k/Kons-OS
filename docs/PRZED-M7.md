@@ -11,19 +11,19 @@ wersji **0.7.2**; punkt, nad którym pracujesz, oznacz `[w toku: Claude|Codex, g
 
 ## 1. Testy (najważniejsze)
 Test ma się nie udać przy prawdziwym błędzie — i tylko wtedy.
-- [ ] `scripts/test-m1.sh` (ok. wiersza 83–86): ponowne uruchomienie `sprawdz-binaria.sh` /
+- [w toku: Codex, gałąź codex/przed-m7-testy] `scripts/test-m1.sh` (ok. wiersza 83–86): ponowne uruchomienie `sprawdz-binaria.sh` /
       `sprawdz-konfiguracje-jadra.sh` po budowaniu — budowanie już je wymusza, więc tu nie mogą się nie
       udać. Usunąć.
-- [ ] Testy w QEMU (`testy/qemu/k1qemu.py`, `scripts/test-m*.sh`): stałe `time.sleep(...)` (np. w
+- [w toku: Codex, gałąź codex/przed-m7-testy] Testy w QEMU (`testy/qemu/k1qemu.py`, `scripts/test-m*.sh`): stałe `time.sleep(...)` (np. w
       `klik`, `monitor`, `przesun`) zastąpić czekaniem na wiersz w logu albo stan (`czekaj(...)`) — dziś
       mogą czasem fałszywie zawieść na wolnej maszynie.
-- [ ] Testy na hoście (`testy/host/test_*.c`): przejrzeć sprawdzenia, które tylko powtarzają
+- [w toku: Codex, gałąź codex/przed-m7-testy] Testy na hoście (`testy/host/test_*.c`): przejrzeć sprawdzenia, które tylko powtarzają
       implementację (porównują kod z nim samym) — przepisać na zachowanie albo usunąć.
-- [ ] Sprawdzić, czy jakiś test „przechodzi”, gdy brakuje narzędzia (np. `grub-editenv` dla
+- [w toku: Codex, gałąź codex/przed-m7-testy] Sprawdzić, czy jakiś test „przechodzi”, gdy brakuje narzędzia (np. `grub-editenv` dla
       `test_uklad`, `sfdisk` dla `test_instalator`) — brak narzędzia ma być błędem, nie zaliczeniem.
-- [ ] `testy/host/k1_test_host.h` nie jest zależnością reguł testów w `Makefile` (zmiana nagłówka nie
+- [w toku: Codex, gałąź codex/przed-m7-testy] `testy/host/k1_test_host.h` nie jest zależnością reguł testów w `Makefile` (zmiana nagłówka nie
       przebudowuje testów).
-- [~] `test-m6`: wpisanie klucza przez MokManagera jest pomijane bez sekretu `K1_KLUCZ_PODPISU` (to
+- [w toku: Codex, gałąź codex/przed-m7-testy] `test-m6`: wpisanie klucza przez MokManagera jest pomijane bez sekretu `K1_KLUCZ_PODPISU` (to
       zamierzone — zostaje, ale opisać w `docs/TESTY.md`).
 
 ## 2. Ostatnie przejrzenie kodu
