@@ -11,10 +11,12 @@
 #include <unistd.h>
 
 #include "k1_aplikacja.h"
+#include "k1_liczba.h"
 #include <linux/input-event-codes.h>
 
 #include "k1_bat_arch.h"
 #include "k1_czas.h"
+#include "k1_uslugi.h"
 #include "k1_kanal.h"
 #include "k1_klawiatura.h"
 #include "k1_log.h"
@@ -219,6 +221,7 @@ static int odbierz(void)
             break;
         if (w == K1_ODB_KONIEC) {
             kanal_nadzorcy = 0; /* closed or missing: the rest of the settings work without it */
+            apl.kanaly[0].fd = -1;
             break;
         }
         if (w != K1_ODB_JEST ||
@@ -330,9 +333,7 @@ static void hs_wyslij(void)
     struct k1_komunikat m;
     int fd;
     hs.blad = 1;
-    for (i = 0; i < n2; i++)
-        if (((unsigned char)nowe[i] & 0xc0) != 0x80)
-            znaki++;
+    znaki = k1_utf8_znaki(nowe, n2);
     if (hs.formularz != F_WYLACZ && strcmp(nowe, powt) != 0) {
         snprintf(hs.komunikat, sizeof hs.komunikat, "Nowe hasła się różnią");
         return;
@@ -371,7 +372,7 @@ static void hs_odbierz(void)
 {
     struct k1_komunikat k;
     int r;
-    while (skarb >= 0 && (r = k1_skarb_wynik_pelny(skarb, &k)) != 0) {
+    while (skarb >= 0 && (r = k1_skarb_wynik(skarb, &k)) != 0) {
         if (r < 0) {
             close(skarb);
             skarb = -1;
@@ -412,9 +413,7 @@ static void pole_hasla(struct k1_obraz *o, const struct k1_motyw *m, int i, cons
     k1_zaokraglony(o, POLE_X, (float)y, POLE_W, POLE_H, 8, k1_kolor(m->pole, 255));
     k1_obrys(o, POLE_X, (float)y, POLE_W, POLE_H, 8, i == hs.pole ? 1.5f : 1.0f,
              k1_kolor(i == hs.pole ? m->akcent : m->tekst, i == hs.pole ? 255 : 40));
-    for (j = 0; j < hs.dl[i]; j++)
-        if (((unsigned char)hs.tekst[i][j] & 0xc0) != 0x80)
-            z++;
+    z = k1_utf8_znaki(hs.tekst[i], hs.dl[i]);
     for (j = 0; j < z && j < 20; j++)
         k1_kolo(o, (float)(POLE_X + 18 + (int32_t)j * 13), (float)y + 18, 3.6f, k1_kolor(m->tekst, 255));
 }
@@ -512,7 +511,6 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
 {
     const char *n[3];
     int ile = pola(n);
-    uint32_t z;
     if (sekcja != S_HASLO || ile == 0 || wartosc == 0 || hs.czeka)
         return;
     if (kod == KEY_TAB) {
@@ -524,34 +522,22 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
             hs_wyslij();
     } else if (kod == KEY_ESC) {
         hs_formularz(F_BRAK);
-    } else if (kod == KEY_BACKSPACE) {
-        char *t = hs.tekst[hs.pole];
-        size_t *d = &hs.dl[hs.pole];
-        while (*d > 0 && ((unsigned char)t[*d - 1] & 0xc0) == 0x80)
-            t[--*d] = 0;
-        if (*d > 0)
-            t[--*d] = 0;
-    } else if ((z = k1_znak_klawisza(kod, mody)) >= 0x20) {
-        char u[4];
-        int nb = k1_utf8_zapisz(z, u, sizeof u);
-        if (nb > 0 && hs.dl[hs.pole] + (size_t)nb <= K1_HASLO_MAKS) {
-            memcpy(hs.tekst[hs.pole] + hs.dl[hs.pole], u, (size_t)nb);
-            hs.dl[hs.pole] += (size_t)nb;
-        }
-    } else {
+    } else if (!k1_pole_klawisz(hs.tekst[hs.pole], &hs.dl[hs.pole], K1_HASLO_MAKS, kod, mody)) {
         return;
     }
     k1_apl_odswiez(&apl);
 }
 
-static int zegar(void)
+static void nadzorca_dane(void)
 {
     if (odbierz() && sekcja == S_BATERIA)
         k1_apl_odswiez(&apl);
+}
+
+static void skarbiec_dane(void)
+{
     hs_odbierz();
-    if (sekcja == S_HASLO || sekcja == S_INFO)
-        k1_apl_odswiez(&apl);
-    return 500;
+    k1_apl_odswiez(&apl); /* Hasło and Informacje show what skarbiec said */
 }
 
 static void wykres_prost(int32_t *x, int32_t *y, int32_t *w, int32_t *h)
@@ -560,14 +546,6 @@ static void wykres_prost(int32_t *x, int32_t *y, int32_t *w, int32_t *h)
     *y = seg_y() + WYKRES_Y_OD;
     *w = apl.szer - TRESC_X - 24;
     *h = WYKRES_H;
-}
-
-static void czas_tekst(char *buf, size_t n, long s)
-{
-    if (s >= 3600)
-        snprintf(buf, n, "%ld h %ld min", s / 3600, s / 60 % 60);
-    else
-        snprintf(buf, n, "%ld min", s / 60);
 }
 
 /* One series, one hue (like Zasoby): a soft area under a 2-px accent line, a hairline at 50 %;
@@ -620,7 +598,7 @@ static void poprzednie(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, 
     }
     s = &arch.s[arch.n - 1];
     k1_czas_warszawa((int64_t)s->start_min * 60, &d);
-    czas_tekst(a, sizeof a, (long)(s->n - 1) * s->interwal);
+    k1_minuty(a, sizeof a, (long)(s->n - 1) * s->interwal / 60);
     snprintf(buf, sizeof buf, "Poprzednio: %s %d:%02d · %s · %d %% → %d %%%s", k1_dzien_skrot(d.dzien_tygodnia), d.godzina,
              d.minuta, a, arch.p[s->od] & 0x7f, arch.p[s->od + s->n - 1] & 0x7f, arch.n > 1 ? " · i starsze" : "");
     k1_tekst(o, K1_CZ_MALA, x, y, buf, k1_kolor(m->tekst2, 255), sx - x - 12);
@@ -671,7 +649,7 @@ static void rysuj_baterie(struct k1_obraz *o, const struct k1_motyw *m)
         for (i = 0; i < hist_n; i++)
             if ((int32_t)(hist[i] & 0x7f) < najnizej)
                 najnizej = hist[i] & 0x7f;
-        czas_tekst(a, sizeof a, trwa);
+        k1_minuty(a, sizeof a, (long)trwa / 60);
         snprintf(buf, sizeof buf, "Od uruchomienia: %s · najniżej %d %%", a, (int)najnizej);
         k1_tekst(o, K1_CZ_MALA, x, y + h + 50, buf, k1_kolor(m->tekst2, 255), 0);
     }
@@ -819,15 +797,18 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
 int main(void)
 {
     apl.tag = TAG;
-    apl.tytul = "Ustawienia";
+    apl.numer = K1_APL_USTAWIENIA;
     apl.szer = 680;
     apl.wys = 440;
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
-    apl.zegar = zegar;
     apl.klawisz = klawisz;
     if (fcntl(FD_SKARBIEC, F_GETFD) == 0 && fcntl(FD_SKARBIEC, F_SETFL, O_NONBLOCK) == 0)
         skarb = FD_SKARBIEC;
+    apl.kanaly[0].fd = FD_NADZORCA; /* battery state and history */
+    apl.kanaly[0].dane = nadzorca_dane;
+    apl.kanaly[1].fd = skarb;       /* the password */
+    apl.kanaly[1].dane = skarbiec_dane;
     przygotuj_miniatury();
     k1_log(TAG, "układ: sekcje od 100,%d co %d; przyciski od %d,%d (szer. %d, wys. %d); tapety od %d,%d co %d", NAV_Y + 16,
            NAV_WIERSZ, TRESC_X, seg_y(), SEG_W, SEG_H, TRESC_X + KARTA_W / 2, karty_y() + KARTA_H / 2,

@@ -224,6 +224,14 @@ int k1_utf8(const char *s, uint32_t n, uint32_t *kod)
     return (int)len;
 }
 
+size_t k1_utf8_znaki(const char *s, size_t n)
+{
+    size_t z = 0, i;
+    for (i = 0; i < n; i++)
+        z += ((unsigned char)s[i] & 0xc0) != 0x80;
+    return z;
+}
+
 int k1_utf8_zapisz(uint32_t kod, char *dst, uint32_t miejsce)
 {
     unsigned char *d = (unsigned char *)dst;
@@ -367,6 +375,11 @@ static const struct prym ik_bateria[] = { { P_PROST, 3.5f, 7.5f, 15, 9, 2 }, { P
 static const struct prym ik_dysk[] = { { P_PROST, 3.5f, 5.5f, 17, 13, 2.5f }, { P_KRESKA, 3.5f, 13.5f, 20.5f, 13.5f, 0 },
                                        { P_KOLO, 16.5f, 16, 1.2f, 0, 0 } };
 
+static const struct prym ik_kalkulator[] = {
+    { P_PROST, 5.5f, 3, 13, 18, 2.5f }, { P_KRESKA, 8.5f, 7.5f, 15.5f, 7.5f, 0 }, { P_KOLO, 9, 12, 1.2f, 0, 0 },
+    { P_KOLO, 12, 12, 1.2f, 0, 0 },     { P_KOLO, 15, 12, 1.2f, 0, 0 },          { P_KOLO, 9, 15.5f, 1.2f, 0, 0 },
+    { P_KOLO, 12, 15.5f, 1.2f, 0, 0 },  { P_KOLO, 15, 15.5f, 1.2f, 0, 0 },       { P_KRESKA, 9, 18.5f, 15, 18.5f, 0 },
+};
 static float sd_prym(const struct prym *p, float x, float y, float g)
 {
     switch (p->typ) {
@@ -400,20 +413,22 @@ static float sd_prym(const struct prym *p, float x, float y, float g)
     }
 }
 
+#define IK(t) { t, sizeof t / sizeof t[0] }
 void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozmiar, uint32_t kolor)
 {
     static const struct {
         const struct prym *p;
         size_t n;
     } t[] = {
-        [K1_IK_ZEGAR] = { ik_zegar, 3 },       [K1_IK_NOTATKI] = { ik_notatki, 4 },
-        [K1_IK_USTAWIENIA] = { ik_ustawienia, 4 }, [K1_IK_GLOSNIK] = { ik_glosnik, 8 },
-        [K1_IK_ZASILANIE] = { ik_zasilanie, 2 }, [K1_IK_RESTART] = { ik_restart, 3 },
-        [K1_IK_ZAMKNIJ] = { ik_zamknij, 2 },   [K1_IK_MINIMALIZUJ] = { ik_minimalizuj, 1 },
-        [K1_IK_KLODKA] = { ik_klodka, 4 },     [K1_IK_INFO] = { ik_info, 3 },
-        [K1_IK_MYSZ] = { ik_mysz, 2 },         [K1_IK_WYGLAD] = { ik_wyglad, 6 },
-        [K1_IK_ZASOBY] = { ik_zasoby, 6 },     [K1_IK_EKRAN] = { ik_ekran, 3 },
-        [K1_IK_BATERIA] = { ik_bateria, 3 },   [K1_IK_DYSK] = { ik_dysk, 3 },
+        [K1_IK_ZEGAR] = IK(ik_zegar),       [K1_IK_NOTATKI] = IK(ik_notatki),
+        [K1_IK_USTAWIENIA] = IK(ik_ustawienia), [K1_IK_GLOSNIK] = IK(ik_glosnik),
+        [K1_IK_ZASILANIE] = IK(ik_zasilanie), [K1_IK_RESTART] = IK(ik_restart),
+        [K1_IK_ZAMKNIJ] = IK(ik_zamknij),   [K1_IK_MINIMALIZUJ] = IK(ik_minimalizuj),
+        [K1_IK_KLODKA] = IK(ik_klodka),     [K1_IK_INFO] = IK(ik_info),
+        [K1_IK_MYSZ] = IK(ik_mysz),         [K1_IK_WYGLAD] = IK(ik_wyglad),
+        [K1_IK_ZASOBY] = IK(ik_zasoby),     [K1_IK_EKRAN] = IK(ik_ekran),
+        [K1_IK_BATERIA] = IK(ik_bateria),   [K1_IK_DYSK] = IK(ik_dysk),
+        [K1_IK_KALKULATOR] = IK(ik_kalkulator),
     };
     float s = rozmiar / 24.0f, g = 1.6f;
     int32_t x0, y0, x1, y1, i, j;
@@ -433,4 +448,16 @@ void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozm
                 row[i] = mieszaj(row[i], kolor, c);
         }
     }
+}
+
+void k1_bateria(struct k1_obraz *o, float x, float y, int procent, int niska, uint32_t alfa)
+{
+    const uint32_t krem = k1_kolor(K1_KREM, alfa);
+    float w;
+    k1_obrys(o, x, y, 22, 12, 3, 1.25f, krem);
+    k1_zaokraglony(o, x + 22.5f, y + 4, 2.5f, 4, 1, krem);
+    if (procent < 0)
+        return;
+    w = 18.0f * (float)(procent > 100 ? 100 : procent) / 100.0f;
+    k1_zaokraglony(o, x + 2, y + 2, w < 2.0f ? 2.0f : w, 8, 1.5f, niska ? k1_kolor(K1_TERAKOTA, alfa) : krem);
 }

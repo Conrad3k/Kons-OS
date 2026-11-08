@@ -7,6 +7,7 @@
 
 #include "k1_aplikacja.h"
 #include "k1_czas.h"
+#include "k1_uslugi.h"
 
 #define TAG "K1-ZEGAR"
 
@@ -69,7 +70,7 @@ static int zegar(void)
 int main(void)
 {
     apl.tag = TAG;
-    apl.tytul = "Zegar";
+    apl.numer = K1_APL_ZEGAR;
     apl.szer = 540;
     apl.wys = 316;
     apl.rysuj = rysuj;

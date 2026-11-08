@@ -15,13 +15,10 @@ int k1_skarb_zapisz(int fd, int id, const void *dane, size_t n);
 /* Deletes object `id` (does not wait for the result). 0 or -1. */
 int k1_skarb_usun(int fd, int id);
 
-/* Takes one pending reply without waiting: 1 = a result (*wynik: 0 or K1_MAG_* < 0, *tryb),
- * 0 = nothing, -1 = the channel is closed (stop using it). Anything else is dropped. */
-int k1_skarb_wynik(int fd, int *wynik, int *tryb);
-
 struct k1_komunikat;
-/* Like k1_skarb_wynik, but returns the whole WYNIK (request type, result, mode, password set,
- * seconds until the next password attempt) — Ustawienia → Hasło (M5e). */
-int k1_skarb_wynik_pelny(int fd, struct k1_komunikat *k);
+/* Takes one pending reply without waiting: 1 = a result in *k (K1_KOM_SKARB_WYNIK: b = 0 or K1_MAG_* < 0,
+ * c = the mode, and for passwords whether one is set and the seconds until the next attempt), 0 = nothing,
+ * -1 = the channel is closed (stop using it). Anything else is dropped. */
+int k1_skarb_wynik(int fd, struct k1_komunikat *k);
 
 #endif

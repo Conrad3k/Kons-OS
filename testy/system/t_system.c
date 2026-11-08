@@ -327,10 +327,30 @@ int inventory_cb(const char *path, const struct stat *st, int type, struct FTW *
     return 0;
 }
 
+/* The files the core must hold: init, nadzorca, every service and application of k1_uslugi.h, the build
+ * id, and in the test image the test program and its "#!" file. */
+static size_t oczekiwane_pliki(char (*p)[64], size_t maks)
+{
+    static const char *const stale[] = { "/rdzen/init", "/rdzen/system/nadzorca", "/rdzen/system/wydanie",
+                                         "/rdzen/system/test-systemu", "/rdzen/system/skrypt-testowy" };
+    size_t n = 0, i;
+    for (i = 0; i < sizeof stale / sizeof stale[0] && n < maks; i++)
+        snprintf(p[n++], sizeof p[0], "%s", stale[i]);
+#define X_S(n_, profil_, uid_, program_, ...) if (n < maks) snprintf(p[n++], sizeof p[0], "/rdzen/system/%s", program_);
+#define X_A(n_, apl_, profil_, uid_, program_, ...) if (n < maks) snprintf(p[n++], sizeof p[0], "/rdzen/aplikacje/%s", program_);
+    K1_SYSTEM(X_S)
+    K1_APLIKACJE(X_A)
+#undef X_S
+#undef X_A
+    return n;
+}
+
 void t_inventory(void)
 {
-    char joined[1024] = "";
-    size_t i;
+    static char spis[64][64];
+    char joined[1536] = "", oczekiwane[1536] = "";
+    const char *o[64];
+    size_t i, n = oczekiwane_pliki(spis, 64);
     nftw("/rdzen", inventory_cb, 16, FTW_PHYS | FTW_MOUNT);
     qsort(inventory, inventory_n, sizeof inventory[0], cmp_str);
     for (i = 0; i < inventory_n; i++) {
@@ -339,14 +359,15 @@ void t_inventory(void)
         strncat(joined, inventory[i], sizeof joined - strlen(joined) - 1);
         strncat(joined, " ", sizeof joined - strlen(joined) - 1);
     }
-    check(strcmp(joined, "/rdzen/aplikacje/instalacja /rdzen/aplikacje/notatki /rdzen/aplikacje/ustawienia "
-                         "/rdzen/aplikacje/zasoby /rdzen/aplikacje/zegar /rdzen/init "
-                         "/rdzen/system/ekran /rdzen/system/gui /rdzen/system/instalator /rdzen/system/logowanie "
-                         "/rdzen/system/nadzorca /rdzen/system/skarbiec "
-                         "/rdzen/system/skrypt-testowy "
-                         "/rdzen/system/test-systemu /rdzen/system/wejscie /rdzen/system/wydanie ") == 0,
+    for (i = 0; i < n; i++)
+        o[i] = spis[i];
+    qsort(o, n, sizeof o[0], cmp_str);
+    for (i = 0; i < n; i++) {
+        strncat(oczekiwane, o[i], sizeof oczekiwane - strlen(oczekiwane) - 1);
+        strncat(oczekiwane, " ", sizeof oczekiwane - strlen(oczekiwane) - 1);
+    }
+    check(strcmp(joined, oczekiwane) == 0,
           "obraz rdzenia zawiera tylko programy K1, identyfikator wydania i pliki testowe (brak powłoki i innych programów)",
-          "pliki: %s",
-          joined);
+          "pliki: %s", joined);
     check(!setuid_found, "NEGATYWNY: brak plików setuid/setgid w /rdzen", "%s", "");
 }

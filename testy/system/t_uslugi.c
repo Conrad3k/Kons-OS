@@ -190,13 +190,9 @@ void t_klatki(void)
     /* skarbiec (M5d): the K1-DANE partition (sda1 in the test machine) and nothing else */
     static const char *const fd_skarbiec[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/memfd:",
                                                "/rdzen/jadro/dev/sd", NULL };
-    static const struct { int apl; const char *nazwa; int uid; } apl[] = {
-        { K1_APL_ZEGAR, "zegar", K1_UID_ZEGAR },
-        { K1_APL_NOTATKI, "notatki", K1_UID_NOTATKI },
-        { K1_APL_USTAWIENIA, "ustawienia", K1_UID_USTAWIENIA },
-        { K1_APL_ZASOBY, "zasoby", K1_UID_ZASOBY },
-        { K1_APL_INSTALACJA, "instalacja", K1_UID_INSTALACJA },
-    };
+#define X_APL(n, apl_, profil_, uid_, program_, ...) { apl_, program_, uid_ },
+    static const struct { int apl; const char *nazwa; int uid; } apl[] = { K1_APLIKACJE(X_APL) };
+#undef X_APL
     size_t i;
     int j;
     t_klatka("skarbiec", K1_UID_SKARBIEC, fd_skarbiec);
@@ -219,17 +215,11 @@ void t_klatki(void)
 /* Probes: this program in the sandbox of a service, trying forbidden things (see proba()). */
 void t_proby(void)
 {
-    static const struct { int profil; const char *nazwa; } p[] = {
-        { K1_PROFIL_WEJSCIE, "wejscie" },     { K1_PROFIL_EKRAN, "ekran" },     { K1_PROFIL_GUI, "gui" },
-        { K1_PROFIL_ZEGAR, "zegar" },         { K1_PROFIL_NOTATKI, "notatki" }, { K1_PROFIL_USTAWIENIA, "ustawienia" },
-        { K1_PROFIL_ZASOBY, "zasoby" },       { K1_PROFIL_SKARBIEC, "skarbiec" }, { K1_PROFIL_LOGOWANIE, "logowanie" },
-        { K1_PROFIL_INSTALATOR, "instalator" }, { K1_PROFIL_INSTALACJA, "instalacja" },
-    };
-    size_t i;
-    for (i = 0; i < sizeof p / sizeof p[0]; i++) {
-        int r = zapytaj(k1_komunikat_nowy(K1_KOM_TEST_PROBA, 0, p[i].profil, 0, 0, 0, 0), NULL, 60);
+    int p;
+    for (p = 1; p <= K1_PROFIL_MAKS; p++) { /* every profile of k1_uslugi.h */
+        int r = zapytaj(k1_komunikat_nowy(K1_KOM_TEST_PROBA, 0, p, 0, 0, 0, 0), NULL, 60);
         check(r == 0, "NEGATYWNY: w klatce usługi nie da się podnieść uprawnień, uciec ani wołać zabronionych funkcji jądra",
-              "klatka %s: wynik próby %d (0 = wszystko zablokowane)", p[i].nazwa, r);
+              "klatka %s: wynik próby %d (0 = wszystko zablokowane)", k1_profil_program(p), r);
     }
 }
 

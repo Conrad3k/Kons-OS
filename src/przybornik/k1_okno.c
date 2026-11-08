@@ -8,7 +8,7 @@ static const struct k1_motyw jasny = {
 static const struct k1_motyw ciemny = {
     .tlo = 0x262523, .pole = 0x302f2c, .linia = 0x3c3a37, .najechanie = 0x32312e, .zaznaczenie = 0x3a3834,
     .tekst = 0xeeebe5, .tekst2 = 0xaba79f, .tekst3 = 0x7d7a73,
-    .akcent = 0xd97757, .na_akcencie = 0x1f1e1c, .akcent_tekst = 0xe08a6c, .panel_alfa = 240,
+    .akcent = K1_TERAKOTA, .na_akcencie = 0x1f1e1c, .akcent_tekst = 0xe08a6c, .panel_alfa = 240,
 };
 
 const struct k1_motyw *k1_motyw(int c)
@@ -89,4 +89,39 @@ void k1_przelacznik(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int
     uint32_t tlo = niedostepny ? k1_kolor(m->linia, 255) : (wlaczony ? k1_kolor(m->akcent, 255) : k1_kolor(m->tekst3, 255));
     k1_zaokraglony(o, (float)x, (float)y, 36, 20, 10, tlo);
     k1_kolo(o, (float)x + (wlaczony ? 26.0f : 10.0f), (float)y + 10, 7, k1_kolor(niedostepny ? m->pole : 0xffffff, 255));
+}
+
+void k1_przycisk(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_przycisk *p, enum k1_cz cz, int najechany,
+                 int aktywny)
+{
+    float x = (float)p->x, y = (float)p->y, w = (float)p->w, h = (float)p->h, r = h < 40 ? 9 : 12;
+    int32_t tw = k1_tekst_szer(cz, p->etykieta);
+    int32_t ty = p->y + p->h / 2 + (cz == K1_CZ_TYTUL ? 9 : 5);
+    uint32_t tekst;
+    switch (p->styl) {
+    case K1_PRZ_GLOWNY:
+        k1_zaokraglony(o, x, y, w, h, r, k1_kolor(m->akcent, aktywny ? (najechany ? 230 : 255) : 90));
+        tekst = m->na_akcencie;
+        break;
+    case K1_PRZ_CICHY:
+        k1_zaokraglony(o, x, y, w, h, r, k1_kolor(najechany && aktywny ? m->najechanie : m->pole, 255));
+        tekst = aktywny ? m->tekst : m->tekst3;
+        break;
+    default:
+        if (najechany && aktywny)
+            k1_zaokraglony(o, x, y, w, h, r, k1_kolor(m->najechanie, 255));
+        k1_obrys(o, x, y, w, h, r, 1.0f, k1_kolor(m->tekst, 50));
+        tekst = aktywny ? m->tekst : m->tekst3;
+        break;
+    }
+    k1_tekst(o, cz, p->x + (p->w - tw) / 2, ty, p->etykieta, k1_kolor(tekst, 255), 0);
+}
+
+int k1_przycisk_pod(const struct k1_przycisk *p, int n, int32_t x, int32_t y)
+{
+    int i;
+    for (i = 0; i < n; i++)
+        if (x >= p[i].x && x < p[i].x + p[i].w && y >= p[i].y && y < p[i].y + p[i].h)
+            return i;
+    return -1;
 }

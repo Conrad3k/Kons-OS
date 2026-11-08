@@ -16,23 +16,7 @@ info "obraz ISO $WYJSCIE"
 rm -rf "$ISO"; mkdir -p "$ISO/k1" "$ISO/boot/grub/i386-pc" "$ISO/.disk"
 # 0.7.0 (ADR 0022): the whole system is one signed file, k1.efi (command line and core inside)
 cp "$K1_WYNIK/k1.efi" "$ISO/k1/"
-cat > "$ISO/boot/grub/grub.cfg" <<CFG
-# Kons K1 $K1_WERSJA — start bez menu. Tryb graficzny ustawia GRUB (UEFI GOP albo VESA),
-# jądro przejmuje go sterownikiem simpledrm. 1366x768 = ekran ThinkPada X230 (firmware laptopa
-# nie oferuje 1280x800 — za dużo linii); nie jako pierwszy: karty emulowane (QEMU) pokazują ten
-# tryb krzywo (szerokość zaokrąglona do 1360).
-set timeout=0
-set timeout_style=hidden
-insmod all_video
-insmod gfxterm
-set gfxmode=1280x800,1366x768,1280x720,1024x768,auto
-set gfxpayload=keep
-insmod png
-# Boot screen (0.5.8): the K1 mark on black; the kernel keeps it until the desktop's first frame.
-# GRUB draws the picture only when something is written (echo); black text on black (set after
-# terminal_output, which resets the colours) hides its cursor.
-terminal_output gfxterm
-set color_normal=black/black
+{ grub_poczatek; cat <<CFG; } > "$ISO/boot/grub/grub.cfg"
 background_image -m stretch /boot/grub/start.png
 echo ""
 menuentry "Kons K1 $K1_WERSJA" {

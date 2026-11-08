@@ -30,6 +30,12 @@
 - **Instalator** (0.5.9, ADR 0018, `src/aplikacje/instalacja/`, UID 204) — lista dysków od nadzorcy,
   instalacja po wpisaniu „USUŃ”, aktualizacja (dane zostają), postęp, „Wyłącz komputer”. Bez dostępu do
   dysków — szczegóły: `komponenty/instalator.md`.
+- **Kalkulator** (0.7.1, `src/aplikacje/kalkulator/`, UID 205) — cztery działania liczone od lewej do
+  prawej (jak w zwykłym kalkulatorze: 12 + 7 × 3 = 57), procent (200 + 10 % = 220), zmiana znaku, pamięć
+  (MC, MR, M+, M−), C / CE / cofnij; liczby po polsku (przecinek, odstęp co trzy cyfry, do 15 cyfr, potem
+  zapis „1,5e20”); dzielenie przez zero — „Nie można dzielić przez zero”. Klawiatura: cyfry, + − * /,
+  Enter albo =, Backspace, Esc, % i klawiatura numeryczna. Silnik bez rysowania (`liczydlo.c`, test na
+  hoście `test_kalkulator`), okno w `main.c`. Bez dostępu do plików i sieci, bez kanałów od nadzorcy.
 - **Zasoby** (M4.1, ADR 0012) — procesor (procent wszystkich rdzeni) i pamięć (użyta z całości)
   całego systemu: liczba + wykres z ostatniej minuty (jedna seria, kolor akcentu, linia 2 px);
   tabela usług i aplikacji: procesor i pamięć każdej (z ich cgroup); czas pracy systemu. Dane od

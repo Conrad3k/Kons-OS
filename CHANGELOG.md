@@ -3,6 +3,31 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.7.1] — 2026-11-08
+
+Porządki w kodzie przed etapem M7 (ADR 0023) i nowa aplikacja.
+
+### Dodane
+- **Kalkulator** — działania, procenty, zmiana znaku, pamięć (MC, MR, M+, M−); liczby po polsku
+  (przecinek, odstępy co trzy cyfry); obsługa myszą i klawiaturą (też numeryczną).
+
+### Zmienione
+- Kod uporządkowany: lista aplikacji i usług jest w jednym miejscu (nowa aplikacja = jeden wiersz +
+  katalog); odczyt partycji systemu (wersje A/B) — jeden wspólny dla nadzorcy i Instalatora; wspólne
+  kolory, ikona baterii, formatowanie liczb i czasu, przyciski i pola tekstowe; skrypty budowania bez
+  powtórzeń. Działanie systemu bez zmian.
+- Kolor akcentu na znaku K1 i strzałce myszy wyrównany do palety (#D97757 — był minimalnie inny).
+
+### Naprawione
+- Aplikacje odświeżały zegar dwa razy na obieg pętli; Zasoby nie mieściły listy po dodaniu aplikacji.
+
+### Usunięte
+- Stare szkice ekranu hasła i nieużywany kod.
+
+### Testy
+- Testy w QEMU na jednej wspólnej bibliotece (mniej przypadkowych błędów); testy na hoście z jednym
+  wspólnym mechanizmem; nowe: `test_kalkulator`, `test_efi`, scenariusz Kalkulatora w `test-m4`.
+
 ## [0.7.0] — 2026-11-08
 
 Etap **M6 — bezpieczne aktualizacje** zakończony: kroki M6c (A/B) i M6d (Secure Boot), ADR 0022.

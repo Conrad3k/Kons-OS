@@ -127,7 +127,7 @@ if tryb == "deweloperska":
             and "MokNew" not in tekst() and "klucz K1 czeka" not in tekst())
     koniec()
 PY
-    python3 -I -c 'import socket,sys; s=socket.socket(socket.AF_UNIX); s.settimeout(5); s.connect(sys.argv[1]); s.sendall(b"quit\n"); s.recv(64)' "$MON" 2>/dev/null \
+    python3 -I "$K1_REPO/testy/qemu/k1qemu.py" zamknij "$MON" \
         || kill $QPID 2>/dev/null || true
     wait $QPID 2>/dev/null || true
 }

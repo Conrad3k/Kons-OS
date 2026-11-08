@@ -9,19 +9,10 @@
 
 #include "bateria.h"
 #include "k1_komunikat.h"
+#include "k1_test_host.h"
 
-static int failures, count;
 static char baza[256];
 static int nr;
-
-#define EXPECT(cond)                                                          \
-    do {                                                                      \
-        count++;                                                              \
-        if (!(cond)) {                                                        \
-            failures++;                                                       \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond);   \
-        }                                                                     \
-    } while (0)
 
 /* A new, empty power_supply directory for one case. */
 static const char *nowy(char *kat, size_t n)
@@ -226,6 +217,5 @@ int main(void)
     snprintf(p, sizeof p, "rm -rf '%s'", baza);
     if (system(p) != 0)
         fprintf(stderr, "uwaga: nie usunięto %s\n", baza);
-    printf("test_bateria: %d/%d OK\n", count - failures, count);
-    return failures == 0 ? 0 : 1;
+    return K1_TEST_KONIEC("test_bateria");
 }

@@ -7,17 +7,7 @@
 #include "k1_manifest.h"
 #include "k1_uklad.h"
 #include "monocypher.h"
-
-static int failures, count;
-
-#define EXPECT(cond)                                                          \
-    do {                                                                      \
-        count++;                                                              \
-        if (!(cond)) {                                                        \
-            failures++;                                                       \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond);   \
-        }                                                                     \
-    } while (0)
+#include "k1_test_host.h"
 
 int main(void)
 {
@@ -110,6 +100,5 @@ int main(void)
     EXPECT(k1_manifest_czytaj(kopia, &r) == -1);
     memset(kopia, 0, sizeof kopia);
     EXPECT(k1_manifest_czytaj(kopia, &r) == -1 && k1_manifest_sprawdz_podpis(kopia, pub) == -1);
-    printf("test_manifest: %d sprawdzeń, %d błędów\n", count, failures);
-    return failures != 0;
+    return K1_TEST_KONIEC("test_manifest");
 }

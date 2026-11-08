@@ -7,7 +7,12 @@ int inst_tryb, inst_wynik_wyslany, inst_sukces;
 struct k1_dyski inst_lista; /* the list the window saw (INST_START refers to it) */
 struct usluga *instalator(void)
 {
-    return &uslugi[N_USLUG - 1];
+    return usluga_profilu(K1_PROFIL_INSTALATOR);
+}
+
+void inst_nowy_kanal(void)
+{
+    inst_sukces = 0; /* a new window: a restart needs a new finished job */
 }
 
 void inst_wyslij(struct k1_komunikat k)
@@ -16,43 +21,29 @@ void inst_wyslij(struct k1_komunikat k)
         k1_log(TAG, "instalator: wysłanie do okna nieudane");
 }
 
-/* What a K1-EFI partition runs: format 2 (0.7.0) — the manifest of its confirmed slot, with the other slot
- * and the A/B flags in *ab (ab->c = 0: not format 2); older — the format-1 manifest at 47 MiB (0.6.2), 0
- * when there is none. *podpis = signed. */
+/* The version a K1-EFI partition runs (k1_efi_dziala), 0 when none; *podpis = its manifest is signed. Format 2
+ * (0.7.0): the other slot and the A/B flags in *ab (ab->c = 0 otherwise). */
 static uint32_t wersja_partycji(const char *nazwa, int *podpis, struct k1_komunikat *ab)
 {
-    uint8_t man[K1_MANIFEST_BAJTY];
-    struct k1_manifest m;
-    struct k1_uklad u;
-    struct k1_grubenv e;
-    char sciezka[96];
-    uint32_t w = 0;
-    int fd;
+    struct k1_efi p;
+    const struct k1_manifest *m;
+    int fd = nazwa[0] ? otworz_urzadzenie(nazwa, O_RDONLY) : -1;
+    off_t rozm = fd < 0 ? -1 : lseek(fd, 0, SEEK_END);
+    int ok = rozm > 0 && k1_efi_czytaj(fd, (uint64_t)rozm, &p) == 0;
     *podpis = 0;
     memset(ab, 0, sizeof *ab);
-    if (nazwa[0] == '\0')
+    if (fd >= 0)
+        close(fd);
+    if (!ok)
         return 0;
-    snprintf(sciezka, sizeof sciezka, DEV "/%s", nazwa);
-    fd = open(sciezka, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
-    if (fd < 0)
-        return 0;
-    if (ab_stan(fd, &u, &e) == 0) {
-        int nr = e.slot == 'b' ? 1 : 0;
-        w = ab_wersja(fd, &u, nr, NULL);
-        if (w != 0 && pread(fd, man, sizeof man, (off_t)(u.slot_off[nr] + K1_SLOT_MANIFEST_OFF)) == (ssize_t)sizeof man &&
-            k1_manifest_czytaj(man, &m) == 0)
-            *podpis = (m.flagi & K1_MANIFEST_PODPISANY) != 0;
-        if (w != 0)
-            *ab = k1_komunikat_nowy(K1_KOM_INST_AB, 0, (int32_t)w, (int32_t)ab_wersja(fd, &u, 1 - nr, NULL), nr + 1,
-                                    (k1_slot_nr(e.nowy) >= 0 ? K1_AB_FL_NOWY : 0) |
-                                        (strcmp(nazwa, ab_nieudana) == 0 ? K1_AB_FL_NIEUDANA : 0),
-                                    0);
-    } else if (pread(fd, man, sizeof man, K1_MANIFEST_OFF) == (ssize_t)sizeof man && k1_manifest_czytaj(man, &m) == 0) {
-        *podpis = (m.flagi & K1_MANIFEST_PODPISANY) != 0;
-        w = m.wersja;
-    }
-    close(fd);
-    return w;
+    m = k1_efi_dziala(&p);
+    *podpis = m->wersja != 0 && (m->flagi & K1_MANIFEST_PODPISANY) != 0;
+    if (p.format == 2 && m->wersja != 0)
+        *ab = k1_komunikat_nowy(K1_KOM_INST_AB, 0, (int32_t)m->wersja, (int32_t)p.slot[1 - p.dziala].wersja, p.dziala + 1,
+                                (k1_slot_nr(p.env.nowy) >= 0 ? K1_AB_FL_NOWY : 0) |
+                                    (strcmp(nazwa, ab_nieudana) == 0 ? K1_AB_FL_NIEUDANA : 0),
+                                0);
+    return m->wersja;
 }
 
 void inst_lista_dyskow(void)

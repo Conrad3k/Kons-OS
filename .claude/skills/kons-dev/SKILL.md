@@ -145,14 +145,16 @@ Każdy z nich pilnuje test; jeśli zmiana go narusza, to jest zmiana architektur
 5. `docs/komponenty/<nazwa>.md` (cel, granica zaufania, uprawnienia, wejścia/wyjścia, zależności,
    syscalle, błędy, powierzchnia ataku, testy), ADR jeśli zmienia architekturę, `docs/RYZYKA.md`.
 
-**Nowa aplikacja natywna** (wzór: `src/aplikacje/zegar/main.c`): `struct k1_apl` + callbacki
-(`rysuj`, `wskaznik`, `klawisz`, `zegar`) i `k1_apl_uruchom()`; numer w `k1_uslugi.h` (`K1_APL_*`, UID,
-profil), wpis w `uslugi[]` i profil w `src/nadzorca/main.c`, nazwa/ikona/opis w `src/gui/main.c`,
-instalacja w `zbuduj-obraz.sh` (`/rdzen/aplikacje`), spis plików i próba klatki w teście, scenariusz
-w `test-m4.sh` (położenia elementów loguj — test klika według logu), opis w `docs/komponenty/aplikacje.md`,
-`t_klatki`/`t_proby` w `testy/system/t_uslugi.c`. Dane spoza okna (np. statystyki) daje nadzorca
-przez osobny, jednokierunkowy kanał (wzór: Zasoby, fd 4) — aplikacja nie dostaje ścieżek. Zmiana zakresów protokołu
-(np. `K1_APL_MAKS`, ustawienia) = testy `test_komunikat`.
+**Nowa aplikacja natywna** (0.7.1, wzór: `src/aplikacje/kalkulator/`): **jeden wiersz** `X(...)` w
+`K1_APLIKACJE` (`src/wspolne/k1_uslugi.h`: numer, profil, UID, program, tag, nazwa, opis, ikona, na pasku)
+i katalog `src/aplikacje/<program>/` (`main.c` z `struct k1_apl` + callbackami i `k1_apl_uruchom()`;
+każdy `.c` w katalogu jest kompilowany). Z tej listy biorą się: usługa i profil klatki w nadzorcy, pulpit
+(menu, pasek), nazwa okna w ekranie, Zasoby, instalacja w obrazie i spisy w testach w systemie. Dane spoza
+okna — kanał zadeklarowany w tabeli `kanaly[]` (`src/nadzorca/uslugi.c`; wzór: Zasoby, fd 4); aplikacja
+nie dostaje ścieżek. Do zrobienia ręcznie: ikona w `k1_rysuj.c` (`K1_IK_*`), scenariusz w `test-m4.sh`
+(położenia elementów loguj — test klika według logu), opis w `docs/komponenty/aplikacje.md`. Liczby:
+`k1_liczba.h`, przyciski: `k1_przycisk`, pole tekstowe: `k1_pole_klawisz`, kolory: `k1_motyw` / `K1_*` w
+`k1_grafika.h`.
 
 **Nowy protokół / komunikat:** nagłówek w `src/wspolne/` ze stałym układem (`_Static_assert` na rozmiar
 i przesunięcia), funkcja sprawdzająca bez założeń o wyrównaniu (`memcpy`), testy w `testy/host/test_*.c`

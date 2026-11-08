@@ -5,17 +5,7 @@
 #include <string.h>
 
 #include "k1_bat_arch.h"
-
-static int failures, count;
-
-#define EXPECT(cond)                                                          \
-    do {                                                                      \
-        count++;                                                              \
-        if (!(cond)) {                                                        \
-            failures++;                                                       \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond);   \
-        }                                                                     \
-    } while (0)
+#include "k1_test_host.h"
 
 int main(void)
 {
@@ -83,6 +73,5 @@ int main(void)
     buf[13] = 0;
     EXPECT(k1_bat_arch_czytaj(buf, n, &b) == -1);                 /* interval 0 */
     EXPECT(k1_bat_arch_czytaj(NULL, 0, &b) == -1 && k1_bat_arch_czytaj(buf, 4, &b) == -1);
-    printf("test_bat_arch: %d sprawdzeń, %d błędów\n", count, failures);
-    return failures != 0;
+    return K1_TEST_KONIEC("test_bat_arch");
 }

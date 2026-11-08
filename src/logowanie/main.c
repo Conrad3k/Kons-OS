@@ -37,9 +37,6 @@
 #define FD_NADZORCA 4
 #define FD_BATERIA 5
 #define FD_SKARBIEC 6
-#define KREM 0xf3ede2u
-#define CIEMNY 0x0e0c0bu
-#define AKCENT 0xd97757u
 #define POLE_W 340
 #define POLE_H 48
 #define P_EKRAN 1
@@ -89,7 +86,7 @@ static void przygotuj_tlo(void)
         for (i = 0; i < n; i++)
             tlo.px[i] |= 0xff000000u;
     }
-    k1_prostokat(&tlo, 0, 0, k.szer_ekranu, k.wys_ekranu, k1_kolor(CIEMNY, 70));
+    k1_prostokat(&tlo, 0, 0, k.szer_ekranu, k.wys_ekranu, k1_kolor(K1_NOC, 70));
 }
 
 static void srodek(struct k1_obraz *o, enum k1_cz cz, int32_t cx, int32_t y, const char *t, uint32_t kolor)
@@ -109,44 +106,39 @@ static void rysuj(void)
         return;
     memcpy(o->px, tlo.px, (size_t)W * (size_t)H * sizeof(uint32_t));
     k1_rysuj_znak(o, 40, 38, 22);
-    k1_tekst(o, K1_CZ_MALA_MOCNA, 60, 43, "Kons K1", k1_kolor(KREM, 230), 0);
+    k1_tekst(o, K1_CZ_MALA_MOCNA, 60, 43, "Kons K1", k1_kolor(K1_KREM, 230), 0);
     clock_gettime(CLOCK_REALTIME, &t);
     k1_czas_warszawa((int64_t)t.tv_sec, &d);
     snprintf(buf, sizeof buf, "%d:%02d", d.godzina, d.minuta);
-    k1_tekst(o, K1_CZ_ZEGAR, 64, H / 2 - 20, buf, k1_kolor(KREM, 255), 0);
+    k1_tekst(o, K1_CZ_ZEGAR, 64, H / 2 - 20, buf, k1_kolor(K1_KREM, 255), 0);
     snprintf(buf, sizeof buf, "%s, %d %s", k1_dzien_tygodnia(d.dzien_tygodnia), d.dzien, k1_miesiac_dopelniacz(d.miesiac));
-    k1_tekst(o, K1_CZ_TYTUL, 68, H / 2 + 22, buf, k1_kolor(KREM, 230), 0);
+    k1_tekst(o, K1_CZ_TYTUL, 68, H / 2 + 22, buf, k1_kolor(K1_KREM, 230), 0);
 
     /* the password field: a translucent pill, one dot per character */
-    srodek(o, K1_CZ_MALA_MOCNA, cx, py - 14, "Hasło", k1_kolor(KREM, 210));
-    k1_zaokraglony(o, (float)px, (float)py, POLE_W, POLE_H, 24, k1_kolor(KREM, 46));
-    k1_obrys(o, (float)px, (float)py, POLE_W, POLE_H, 24, 1.25f, k1_kolor(pokaz_blad ? AKCENT : KREM, pokaz_blad ? 255 : 120));
-    for (i = 0; i < (int32_t)dl; i++)
-        if (((unsigned char)haslo[i] & 0xc0) != 0x80)
-            znaki++;
+    srodek(o, K1_CZ_MALA_MOCNA, cx, py - 14, "Hasło", k1_kolor(K1_KREM, 210));
+    k1_zaokraglony(o, (float)px, (float)py, POLE_W, POLE_H, 24, k1_kolor(K1_KREM, 46));
+    k1_obrys(o, (float)px, (float)py, POLE_W, POLE_H, 24, 1.25f, k1_kolor(pokaz_blad ? K1_TERAKOTA : K1_KREM, pokaz_blad ? 255 : 120));
+    znaki = k1_utf8_znaki(haslo, dl);
     for (i = 0; i < (int32_t)znaki && i < 16; i++)
-        k1_kolo(o, (float)(px + 26 + i * 16), (float)py + 24, 4.2f, k1_kolor(KREM, 255));
+        k1_kolo(o, (float)(px + 26 + i * 16), (float)py + 24, 4.2f, k1_kolor(K1_KREM, 255));
     if (!czeka)
-        k1_prostokat(o, px + 20 + (int32_t)(znaki < 16 ? znaki : 16) * 16, py + 14, 2, 20, k1_kolor(KREM, 200));
-    k1_kolo(o, (float)(px + POLE_W - 26), (float)py + 24, 16, k1_kolor(AKCENT, czeka ? 140 : 255));
-    k1_kreska(o, (float)(px + POLE_W - 33), (float)py + 24, (float)(px + POLE_W - 20), (float)py + 24, 2.0f, k1_kolor(CIEMNY, 255));
-    k1_kreska(o, (float)(px + POLE_W - 25), (float)py + 19, (float)(px + POLE_W) - 19.5f, (float)py + 24, 2.0f, k1_kolor(CIEMNY, 255));
-    k1_kreska(o, (float)(px + POLE_W - 25), (float)py + 29, (float)(px + POLE_W) - 19.5f, (float)py + 24, 2.0f, k1_kolor(CIEMNY, 255));
+        k1_prostokat(o, px + 20 + (int32_t)(znaki < 16 ? znaki : 16) * 16, py + 14, 2, 20, k1_kolor(K1_KREM, 200));
+    k1_kolo(o, (float)(px + POLE_W - 26), (float)py + 24, 16, k1_kolor(K1_TERAKOTA, czeka ? 140 : 255));
+    k1_kreska(o, (float)(px + POLE_W - 33), (float)py + 24, (float)(px + POLE_W - 20), (float)py + 24, 2.0f, k1_kolor(K1_NOC, 255));
+    k1_kreska(o, (float)(px + POLE_W - 25), (float)py + 19, (float)(px + POLE_W) - 19.5f, (float)py + 24, 2.0f, k1_kolor(K1_NOC, 255));
+    k1_kreska(o, (float)(px + POLE_W - 25), (float)py + 29, (float)(px + POLE_W) - 19.5f, (float)py + 24, 2.0f, k1_kolor(K1_NOC, 255));
     if (komunikat[0])
-        srodek(o, K1_CZ_MALA_MOCNA, cx, py + 78, komunikat, k1_kolor(pokaz_blad ? AKCENT : KREM, 230));
+        srodek(o, K1_CZ_MALA_MOCNA, cx, py + 78, komunikat, k1_kolor(pokaz_blad ? K1_TERAKOTA : K1_KREM, 230));
     else
-        srodek(o, K1_CZ_MALA, cx, py + 78, "Enter — odblokuj   ·   zapomniane hasło = nowe konto", k1_kolor(KREM, 160));
+        srodek(o, K1_CZ_MALA, cx, py + 78, "Enter — odblokuj   ·   zapomniane hasło = nowe konto", k1_kolor(K1_KREM, 160));
 
     /* battery and power off */
     if (bat.obecna && bat.procent >= 0) {
         snprintf(buf, sizeof buf, "%d%%", bat.procent);
-        k1_tekst(o, K1_CZ_MALA_MOCNA, W - 120, H - 26, buf, k1_kolor(KREM, 230), 0);
-        k1_obrys(o, (float)W - 86, (float)H - 37, 22, 12, 3, 1.25f, k1_kolor(KREM, 230));
-        k1_zaokraglony(o, (float)W - 63.5f, (float)H - 33, 2.5f, 4, 1, k1_kolor(KREM, 230));
-        k1_zaokraglony(o, (float)W - 84, (float)H - 35, 18.0f * (float)bat.procent / 100.0f + 0.5f, 8, 1.5f,
-                       k1_kolor(bat.procent <= 15 && bat.stan == K1_BAT_ROZLADOWANIE ? AKCENT : KREM, 230));
+        k1_tekst(o, K1_CZ_MALA_MOCNA, W - 120, H - 26, buf, k1_kolor(K1_KREM, 230), 0);
+        k1_bateria(o, (float)W - 86, (float)H - 37, bat.procent, k1_bateria_niska(bat.procent, bat.stan), 230);
     }
-    k1_ikona(o, K1_IK_ZASILANIE, (float)W - 44, (float)H - 43, 20, k1_kolor(KREM, 230));
+    k1_ikona(o, K1_IK_ZASILANIE, (float)W - 44, (float)H - 43, 20, k1_kolor(K1_KREM, 230));
     k1_pow_zatwierdz(&k, &ekran_pow);
 }
 
@@ -174,30 +166,16 @@ static void wyslij_haslo(void)
 
 static void klawisz(unsigned kod, int wartosc, unsigned mody)
 {
-    uint32_t z;
     if (wartosc == 0 || czeka || odblokowano)
         return;
     if (kod == KEY_ENTER || kod == KEY_KPENTER) {
         wyslij_haslo();
         return;
     }
-    if (kod == KEY_BACKSPACE) {
-        while (dl > 0 && ((unsigned char)haslo[dl - 1] & 0xc0) == 0x80)
-            haslo[--dl] = 0;
-        if (dl > 0)
-            haslo[--dl] = 0;
-    } else if (kod == KEY_ESC) {
+    if (kod == KEY_ESC)
         wyczysc_haslo();
-    } else if ((z = k1_znak_klawisza(kod, mody)) >= 0x20) {
-        char u[4];
-        int n = k1_utf8_zapisz(z, u, sizeof u);
-        if (n > 0 && dl + (size_t)n <= K1_HASLO_MAKS) {
-            memcpy(haslo + dl, u, (size_t)n);
-            dl += (size_t)n;
-        }
-    } else {
+    else if (!k1_pole_klawisz(haslo, &dl, K1_HASLO_MAKS, kod, mody))
         return;
-    }
     if (pokaz_blad && przerwa == 0) {
         pokaz_blad = 0;
         komunikat[0] = '\0';
@@ -241,8 +219,9 @@ static void odbierz_baterie(void)
 
 static void odbierz_wynik(void)
 {
-    int wynik, tryb, r;
-    while (skarb >= 0 && (r = k1_skarb_wynik(skarb, &wynik, &tryb)) != 0) {
+    struct k1_komunikat w;
+    int r;
+    while (skarb >= 0 && (r = k1_skarb_wynik(skarb, &w)) != 0) {
         if (r < 0) {
             close(skarb);
             skarb = -1;
@@ -251,7 +230,7 @@ static void odbierz_wynik(void)
             break;
         }
         czeka = 0;
-        if (wynik == 0) {
+        if (w.b == 0) {
             odblokowano = 1;
             pokaz_blad = 0;
             snprintf(komunikat, sizeof komunikat, "Odblokowano — uruchamiam pulpit…");

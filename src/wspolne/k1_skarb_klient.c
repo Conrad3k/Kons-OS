@@ -80,7 +80,7 @@ int k1_skarb_usun(int fd, int id)
     return fd < 0 ? -1 : k1_kanal_wyslij(fd, &k, sizeof k, -1);
 }
 
-int k1_skarb_wynik_pelny(int fd, struct k1_komunikat *k)
+int k1_skarb_wynik(int fd, struct k1_komunikat *k)
 {
     for (;;) {
         int fd_dane, r = odbierz(fd, k, &fd_dane);
@@ -91,15 +91,4 @@ int k1_skarb_wynik_pelny(int fd, struct k1_komunikat *k)
         if (r == 1 && k->typ == K1_KOM_SKARB_WYNIK)
             return 1;
     }
-}
-
-int k1_skarb_wynik(int fd, int *wynik, int *tryb)
-{
-    struct k1_komunikat k;
-    int r = k1_skarb_wynik_pelny(fd, &k);
-    if (r == 1) {
-        *wynik = k.b;
-        *tryb = k.c;
-    }
-    return r;
 }

@@ -64,7 +64,7 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
     z trwałym zapisem (M5d).
   - Decyzje do M5 (2026-11-07): ekran hasła — szkic B „Zegar” (najpierw wybrany A, potem „jednak
     zrób B”: duży zegar i data z lewej na tapecie, przezroczyste pole hasła na dole; szkice:
-    testy/host/szkice_logowania.c);
+    testy/host/szkice_logowania.c, usunięte w 0.7.1);
     dane na X230 — na pendrivie (obraz z partycją na dane, dysk laptopa nietknięty); hasło
     opcjonalne — bez hasła dane zaszyfrowane, ale bez ochrony przed kradzieżą nośnika (akceptuję).
     Kolejność: M5c format magazynu → M5d skarbiec i trwałe dane → obraz USB z partycją na dane →

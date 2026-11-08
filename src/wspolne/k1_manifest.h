@@ -18,6 +18,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define K1_MANIFEST_OFF (47u * 1024u * 1024u)
 #define K1_MANIFEST_BAJTY 512u
@@ -37,6 +38,11 @@ struct k1_manifest {
 
 /* "0.6.2" → 0x000602; -1 if not three numbers 0..255. */
 int32_t k1_wersja_z_tekstu(const char *t);
+/* 0x000602 → "0.6.2" (inline: the Instalator window shows versions without linking the manifest code) */
+static inline void k1_wersja_tekst(uint32_t w, char *buf, size_t n)
+{
+    snprintf(buf, n, "%u.%u.%u", (unsigned)(w >> 16 & 0xff), (unsigned)(w >> 8 & 0xff), (unsigned)(w & 0xff));
+}
 
 /* Parses 512 bytes (format only, no signature check). 0 or -1. */
 int k1_manifest_czytaj(const uint8_t *buf, struct k1_manifest *m);

@@ -18,94 +18,23 @@ uruchom() {
     QPID=$!
 }
 sprawdz() { # NAZWA — scenariusz w Pythonie (niżej) na działającej maszynie
-    python3 -I "$K1_BUDOWA/m4.py" "$TESTY/m4-$1.log" "$TESTY/m4-$1.sock" "$TESTY" "$K1_REPO/scripts/zrzut-ekranu.sh" \
+    K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I "$K1_BUDOWA/m4.py" "$TESTY/m4-$1.log" "$TESTY/m4-$1.sock" "$TESTY" "$K1_REPO/scripts/zrzut-ekranu.sh" \
         "$CZAS" "$1" || r=1
     kill $QPID 2>/dev/null || true; wait $QPID 2>/dev/null || true
 }
 
 cat > "$K1_BUDOWA/m4.py" <<'PY'
-import re, socket, struct, subprocess, sys, time, zlib
+import os, re, sys, time
+sys.path.insert(0, os.environ["K1_TESTY_PY"])
+from k1qemu import Maszyna
 log, mon, out, zrzut_sh, limit, tryb = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], float(sys.argv[5]), sys.argv[6]
-start = time.time(); wyniki = []
-
-def tekst():
-    try: return open(log, encoding="utf-8", errors="replace").read()
-    except FileNotFoundError: return ""
-
-def czekaj(wzor, od=0, czas=None):
-    koniec = time.time() + (czas or limit)
-    while time.time() < koniec and time.time() - start < limit:
-        m = list(re.finditer(wzor, tekst()))
-        if len(m) > od: return m[-1]
-        if "Kernel panic" in tekst(): break
-        time.sleep(0.4)
-    return None
-
-def monitor(*cmds):
-    s = socket.socket(socket.AF_UNIX); s.connect(mon); s.settimeout(1)
-    for c in ("",) + cmds:
-        s.sendall(c.encode() + b"\n"); time.sleep(0.15)
-        try: s.recv(65536)
-        except socket.timeout: pass
-    s.close()
-
-def png(path):
-    raw = open(path, "rb").read(); pos = 8; idat = b""; w = h = 0
-    while pos < len(raw):
-        n, t = struct.unpack(">I4s", raw[pos:pos + 8]); d = raw[pos + 8:pos + 8 + n]; pos += 12 + n
-        if t == b"IHDR": w, h = struct.unpack(">II", d[:8])
-        elif t == b"IDAT": idat += d
-    data = zlib.decompress(idat)
-    return w, h, lambda x, y: tuple(data[y * (w * 3 + 1) + 1 + x * 3: y * (w * 3 + 1) + 4 + x * 3])
-
-def zrzut(nazwa):
-    p = f"{out}/m4-{nazwa}.png"
-    subprocess.run([zrzut_sh, p, mon], check=True, stdout=subprocess.DEVNULL)
-    return png(p)
-
-def sprawdz(nazwa, warunek, opis=""):
-    wyniki.append(bool(warunek))
-    print(f"  [{'OK' if warunek else 'BŁĄD'}]    {nazwa}" + ("" if warunek else f" — {opis}"), flush=True)
-    return warunek
+q = Maszyna(log, mon, out, zrzut_sh, limit, "m4")
+tekst, czekaj, monitor, zrzut, sprawdz = q.tekst, q.czekaj, q.monitor, q.zrzut, q.sprawdz
+kursor_teraz, idz, klik, pisz, kursor, wyniki = q.kursor_teraz, q.idz, q.klik, q.pisz, q.kursor, q.wyniki
 
 jasny = lambda c: min(c) > 200
 ciemny = lambda c: max(c) < 70
 akcent = lambda c: c[0] > 170 and c[1] < 150 and c[2] < 120 and c[0] > c[1] > c[2]
-kursor = [0, 0]
-
-def kursor_teraz():
-    m = list(re.finditer(r"K1-EKRAN: kursor (\d+),(\d+) ", tekst()))
-    return (int(m[-1].group(1)), int(m[-1].group(2))) if m else None
-
-def przesun(dx, dy):
-    cmds = []
-    while dx or dy:
-        sx, sy = max(-100, min(100, dx)), max(-100, min(100, dy))
-        cmds.append(f"mouse_move {sx} {sy}"); dx -= sx; dy -= sy
-    if cmds: monitor(*cmds)
-
-def idz(x, y):
-    # The harness does not trust its own idea of the cursor: right after boot (fast with KVM) the
-    # PS/2 mouse may still be resyncing and lose a move. ekran logs the real position (≤ 2×/s):
-    # wait for it and correct the rest of the way, at most 4 times.
-    for proba in range(4):
-        przesun(x - kursor[0], y - kursor[1])
-        kursor[0], kursor[1] = x, y
-        koniec = time.time() + 2.5
-        while time.time() < koniec and kursor_teraz() != (x, y):
-            time.sleep(0.15)
-        teraz = kursor_teraz()
-        if teraz == (x, y) or teraz is None:
-            return
-        print(f"  [uwaga] kursor w {teraz[0]},{teraz[1]} zamiast {x},{y} — poprawiam ({proba + 1})", flush=True)
-        kursor[0], kursor[1] = teraz
-
-def klik(x, y):
-    idz(x, y); time.sleep(0.4)
-    monitor("mouse_button 1"); time.sleep(0.3); monitor("mouse_button 0"); time.sleep(0.3)
-
-def pisz(*klawisze):
-    monitor(*[f"sendkey {k}" for k in klawisze])
 
 if tryb == "haslo":
     # M5e: the vault has a password now — the password screen instead of the desktop
@@ -162,7 +91,7 @@ if tryb == "ponownie":
     u = czekaj(r"K1-EKRAN: ustawienia wczytane ze skarbca \(tapeta 1, motyw 1, mysz \d, rozdzielczość (\d+)x(\d+)\)", czas=30)
     sprawdz("ustawienia wróciły: tapeta „Zmierzch”, ciemny motyw", u, u.group(0) if u else "brak")
     t_start = re.search(r"K1-EKRAN: tryb (\d+)x(\d+)", tekst())  # the first mode, before the restore
-    if u and (u.group(1), u.group(2)) != (t_start.group(1), t_start.group(2)):
+    if u and t_start and (u.group(1), u.group(2)) != (t_start.group(1), t_start.group(2)):
         sprawdz(f"rozdzielczość {u.group(1)}x{u.group(2)} wróciła",
                 czekaj(rf"K1-EKRAN: tryb {u.group(1)}x{u.group(2)} @ \d+ Hz \(zmiana", czas=30))
         g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", od=1, czas=30) or g
@@ -323,6 +252,31 @@ if zs:
     # szerokości przy prawej krawędzi) — liczymy każdą kolumnę, bo linia jest płaska i cienka
     linia = sum(1 for x in range(zx + 32, zx + 536) for y in range(zy + 200, zy + 276) if akcent(px(x, y)))
     sprawdz("zrzut: wykres pamięci w oknie Zasobów", linia >= 30, f"pikseli linii: {linia}")
+
+# 0.7.1: Kalkulator z dolnego paska (piąta ikona): klawiatura, mysz, dzielenie przez zero
+klik(ax + 4 * krok, ay)
+ko = czekaj(r"K1-EKRAN: okno (\d+) \(kalkulator\) (\d+)x(\d+) w (\d+),(\d+)", czas=30)
+ku = czekaj(r"K1-KALKULATOR: układ: 7 (\d+),(\d+) co (\d+) w poziomie, (\d+) w pionie", czas=30)
+sprawdz("Kalkulator: uruchomiony z dolnego paska", ko and ku)
+if ko and ku:
+    kx, ky = int(ko.group(4)) + int(ku.group(1)), int(ko.group(5)) + int(ku.group(2))
+    dx, dy = int(ku.group(3)), int(ku.group(4))
+    time.sleep(1)
+    pisz("1", "2", "kp_add", "7", "kp_multiply", "3", "ret")  # od lewej do prawej: (12 + 7) × 3
+    sprawdz("Kalkulator z klawiatury: 12 + 7 × 3 = 57", czekaj(r"K1-KALKULATOR: klawisz = → 57\n", czas=20))
+    klik(kx, ky - dy)                            # C
+    klik(kx, ky + 2 * dy)                        # 1
+    klik(kx + 3 * dx, ky + 2 * dy)               # +
+    klik(kx + dx, ky + 3 * dy)                   # 0 (zero: middle of the last row)
+    klik(kx + 2 * dx, ky + 3 * dy)               # ,
+    klik(kx + dx, ky + 2 * dy)                   # 2
+    klik(kx + 3 * dx, ky + 3 * dy)               # =
+    sprawdz("Kalkulator myszą: C, 1 + 0,2 = 1,2", czekaj(r"K1-KALKULATOR: klawisz = → 1,2\n", czas=20))
+    time.sleep(1)
+    zrzut("9-kalkulator")
+    pisz("5", "kp_divide", "0", "ret")
+    sprawdz("Kalkulator: dzielenie przez zero → komunikat, nie awaria",
+            czekaj(r"K1-KALKULATOR: klawisz = → Nie można dzielić przez zero", czas=20))
 
 tx_ = tekst()
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów",

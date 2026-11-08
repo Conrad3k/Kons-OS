@@ -6,17 +6,7 @@
 
 #include "magazyn.h"
 #include "monocypher.h"
-
-static int failures, count;
-
-#define EXPECT(cond)                                                          \
-    do {                                                                      \
-        count++;                                                              \
-        if (!(cond)) {                                                        \
-            failures++;                                                       \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond);   \
-        }                                                                     \
-    } while (0)
+#include "k1_test_host.h"
 
 /* ---- RAM disk ---- */
 static uint8_t *ram;
@@ -249,6 +239,5 @@ int main(void)
     k1_mag_zamknij(&m);
 
     free(ram);
-    printf("test_magazyn: %d/%d OK\n", count - failures, count);
-    return failures == 0 ? 0 : 1;
+    return K1_TEST_KONIEC("test_magazyn");
 }

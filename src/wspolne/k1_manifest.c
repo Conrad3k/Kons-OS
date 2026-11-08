@@ -1,5 +1,6 @@
 /* K1 — the manifest of a system image. See k1_manifest.h. */
 #include "k1_manifest.h"
+#include "k1_bajty.h"
 #include "k1_uklad.h"
 
 #include <string.h>
@@ -7,18 +8,6 @@
 #include "monocypher.h"
 
 #define PODPIS_OFF 448u
-
-static uint32_t c32(const uint8_t *p)
-{
-    return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
-}
-
-static void z32(uint8_t *p, uint32_t v)
-{
-    int i;
-    for (i = 0; i < 4; i++)
-        p[i] = (uint8_t)(v >> (8 * i));
-}
 
 int32_t k1_wersja_z_tekstu(const char *t)
 {
@@ -50,12 +39,12 @@ int k1_manifest_czytaj(const uint8_t *buf, struct k1_manifest *m)
 {
     size_t i;
     memset(m, 0, sizeof *m);
-    if (memcmp(buf, "K1M1", 4) != 0 || (c32(buf + 4) != 1 && c32(buf + 4) != 2))
+    if (memcmp(buf, "K1M1", 4) != 0 || (k1_c32(buf + 4) != 1 && k1_c32(buf + 4) != 2))
         goto zle;
-    m->format = c32(buf + 4);
-    m->wersja = c32(buf + 8);
-    m->flagi = c32(buf + 12);
-    m->fat_bajty = (uint64_t)c32(buf + 16) | (uint64_t)c32(buf + 20) << 32;
+    m->format = k1_c32(buf + 4);
+    m->wersja = k1_c32(buf + 8);
+    m->flagi = k1_c32(buf + 12);
+    m->fat_bajty = (uint64_t)k1_c32(buf + 16) | (uint64_t)k1_c32(buf + 20) << 32;
     if (m->wersja > 0xffffffu || (m->flagi & ~K1_MANIFEST_PODPISANY) != 0 || m->fat_bajty == 0 ||
         m->fat_bajty > (m->format == 1 ? K1_MANIFEST_OFF : K1_SLOT_MANIFEST_OFF))
         goto zle;
@@ -88,11 +77,11 @@ void k1_manifest_zbuduj(struct k1_manifest *m, const uint8_t *klucz_tajny, const
     if (m->format != 2)
         m->format = 1;
     memcpy(buf, "K1M1", 4);
-    z32(buf + 4, m->format);
-    z32(buf + 8, m->wersja);
-    z32(buf + 12, m->flagi);
-    z32(buf + 16, (uint32_t)m->fat_bajty);
-    z32(buf + 20, (uint32_t)(m->fat_bajty >> 32));
+    k1_z32(buf + 4, m->format);
+    k1_z32(buf + 8, m->wersja);
+    k1_z32(buf + 12, m->flagi);
+    k1_z32(buf + 16, (uint32_t)m->fat_bajty);
+    k1_z32(buf + 20, (uint32_t)(m->fat_bajty >> 32));
     memcpy(buf + 24, m->tekst, sizeof m->tekst);
     buf[24 + sizeof m->tekst - 1] = '\0';
     memcpy(buf + 48, m->skrot, 32);

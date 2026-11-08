@@ -121,17 +121,15 @@ void obsluz_skarbiec(void)
         if (k.a == K1_SKARB_ZABLOKOWANY && poprzedni != K1_SKARB_ZABLOKOWANY) {
             przejdz(E_HASLO, "magazyn z hasłem");
             k1_log(TAG, "magazyn danych chroniony hasłem — ekran logowania");
-            for (size_t j = 0; j < N_USLUG; j++)
-                if (uslugi[j].profil == K1_PROFIL_LOGOWANIE && uslugi[j].pid <= 0)
-                    uslugi[j].nastepny = teraz();
+            if (usluga_profilu(K1_PROFIL_LOGOWANIE)->pid <= 0)
+                usluga_profilu(K1_PROFIL_LOGOWANIE)->nastepny = teraz();
         } else if (poprzedni == K1_SKARB_ZABLOKOWANY && k.a != K1_SKARB_ZABLOKOWANY) {
             k1_log(TAG, "magazyn odblokowany — uruchamiam pulpit z zapisanymi ustawieniami");
             /* the password screen first (quietly), then ekran: the desktop starts with the new ekran */
-            for (size_t j = 0; j < N_USLUG; j++)
-                if (uslugi[j].profil == K1_PROFIL_LOGOWANIE && uslugi[j].pid > 0) {
-                    uslugi[j].bez_liczenia = 1;
-                    kill(uslugi[j].pid, SIGTERM);
-                }
+            if (usluga_profilu(K1_PROFIL_LOGOWANIE)->pid > 0) {
+                usluga_profilu(K1_PROFIL_LOGOWANIE)->bez_liczenia = 1;
+                kill(usluga_profilu(K1_PROFIL_LOGOWANIE)->pid, SIGTERM);
+            }
             przejdz(ekran()->pid > 0 ? E_PRZELACZANIE : E_PULPIT, "poprawne hasło");
             if (ekran()->pid > 0) {
                 ekran()->bez_liczenia = 1;

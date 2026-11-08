@@ -48,14 +48,14 @@ static int panele(const struct klient *k)
 
 const char *nazwa_roli(const struct klient *k)
 {
-    static const char *const apl[K1_APL_MAKS + 1] = { "?", "zegar", "notatki", "ustawienia", "zasoby", "instalacja" };
+    const char *apl = k1_profil_program(k1_apl_profil(k->apl));
     if (k->rola == K1_ROLA_WEJSCIE)
         return "wejście";
     if (k->rola == K1_ROLA_POWLOKA)
         return "powłoka";
     if (k->rola == K1_ROLA_LOGOWANIE)
         return "logowanie";
-    return k->apl >= 1 && k->apl <= K1_APL_MAKS ? apl[k->apl] : "?";
+    return apl != NULL ? apl : "?";
 }
 
 void odrzuc(int kl, const char *powod)

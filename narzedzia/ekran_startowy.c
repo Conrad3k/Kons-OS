@@ -12,12 +12,12 @@
 #include <zlib.h>
 
 #include "k1_grafika.h"
+#include "k1_okno.h"
 #include "k1_rysuj.h"
 
 #define SZER 1320u
 #define WYS 780u
 #define TLO 0x000000u
-#define NAPIS 0xeeebe5u /* cream text of the dark theme */
 
 static void be32(unsigned char *p, uint32_t v)
 {
@@ -64,7 +64,7 @@ int main(void)
     k1_wyczysc(&o, k1_kolor(TLO, 255));
     k1_rysuj_znak(&o, SZER / 2.0f, WYS / 2.0f - 28.0f, 88.0f);
     k1_tekst(&o, K1_CZ_TYTUL, (int32_t)(SZER / 2) - k1_tekst_szer(K1_CZ_TYTUL, napis) / 2, (int32_t)(WYS / 2) + 56, napis,
-             k1_kolor(NAPIS, 255), 0);
+             k1_kolor(k1_motyw(1)->tekst, 255), 0);
 
     for (y = 0; y < WYS; y++) {
         unsigned char *w = surowe + y * wiersz;

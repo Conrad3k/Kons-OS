@@ -3,17 +3,7 @@
 #include <string.h>
 
 #include "k1_log.h"
-
-static int failures, count;
-
-#define EXPECT(cond)                                                          \
-    do {                                                                      \
-        count++;                                                              \
-        if (!(cond)) {                                                        \
-            failures++;                                                       \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond);   \
-        }                                                                     \
-    } while (0)
+#include "k1_test_host.h"
 
 /* Sanitises `we` (n bytes); 1 if the result is `oczek` and `z` bytes were replaced. */
 static int sprawdz(const char *we, size_t n, const char *oczek, size_t z)
@@ -51,6 +41,5 @@ int main(void)
     for (i = 0; i < 256; i++)
         EXPECT((i >= 0x20 && i < 0x7f) ? wszystkie[i] == i : wszystkie[i] == '?');
 
-    printf("test_log: %d/%d OK\n", count - failures, count);
-    return failures ? 1 : 0;
+    return K1_TEST_KONIEC("test_log");
 }

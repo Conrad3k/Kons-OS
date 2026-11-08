@@ -5,8 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <fcntl.h>
+
 #include "k1_klatka.h"
 #include "k1_log.h"
+#include "k1_uslugi.h"
 
 void k1_apl_odswiez(struct k1_apl *a)
 {
@@ -58,17 +61,40 @@ static void wskaznik(struct k1_apl *a, const struct k1_komunikat *m)
 void k1_apl_uruchom(struct k1_apl *a)
 {
     struct k1_powierzchnia *pow[1] = { &a->okno };
+    int i;
+#define X_TYTUL(n, apl, profil, uid, program, tag, tytul, ...) [apl] = tytul,
+    static const char *const tytuly[K1_APL_MAKS + 1] = { K1_APLIKACJE(X_TYTUL) };
+    a->tytul = a->numer >= 1 && a->numer <= K1_APL_MAKS ? tytuly[a->numer] : "?";
     k1_klatka_w_usludze(a->tag);
+    for (i = 0; i < K1_APL_KANALY; i++)
+        if (a->kanaly[i].dane == NULL || fcntl(a->kanaly[i].fd, F_SETFL, O_NONBLOCK) != 0)
+            a->kanaly[i].fd = -1;
     k1_klient_start(&a->k, a->tag);
     k1_pow_utworz(&a->k, &a->okno, 1, a->szer, a->wys, K1_POW_OKNO, 0, 0);
     rysuj(a);
     k1_log(a->tag, "okno gotowe (%dx%d)", (int)a->szer, (int)a->wys);
     for (;;) {
-        struct pollfd p = { a->k.fd, POLLIN, 0 };
+        struct pollfd p[1 + K1_APL_KANALY];
         struct k1_komunikat m;
         int czas = a->zegar ? a->zegar() : -1;
-        if (poll(&p, 1, czas) < 0 && errno != EINTR)
+        if (a->okno.brudna)
+            rysuj(a);
+        p[0].fd = a->k.fd;
+        p[0].events = POLLIN;
+        for (i = 0; i < K1_APL_KANALY; i++) {
+            p[1 + i].fd = a->kanaly[i].fd; /* -1: poll skips it */
+            p[1 + i].events = POLLIN;
+        }
+        if (poll(p, 1 + K1_APL_KANALY, czas) < 0 && errno != EINTR)
             k1_koniec(a->tag, "poll: %s", strerror(errno));
+        for (i = 0; i < K1_APL_KANALY; i++) {
+            if (a->kanaly[i].fd < 0)
+                continue;
+            if (p[1 + i].revents & POLLNVAL) /* the application closed it */
+                a->kanaly[i].fd = -1;
+            else if (p[1 + i].revents & (POLLIN | POLLHUP | POLLERR))
+                a->kanaly[i].dane();
+        }
         while (k1_odbierz(&a->k, pow, 1, &m)) {
             switch (m.typ) {
             case K1_KOM_WSKAZNIK:
@@ -92,8 +118,6 @@ void k1_apl_uruchom(struct k1_apl *a)
                 break;
             }
         }
-        if (a->zegar)
-            a->zegar();
         if (a->okno.brudna)
             rysuj(a);
     }

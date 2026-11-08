@@ -43,7 +43,8 @@
 #define ODST 4
 #define DOK_PAD 8
 #define DOK_WYS (EL + 2 * DOK_PAD)
-#define DOK_APL 4  /* applications on the bottom bar (Instalator only in the menu) */
+#define X_PASEK(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek) +(pasek)
+enum { DOK_APL = 0 K1_APLIKACJE(X_PASEK) }; /* applications on the bottom bar (k1_uslugi.h; all in the menu) */
 #define DOK_SZER (DOK_PAD + EL + 13 + DOK_APL * EL + (DOK_APL - 1) * ODST + DOK_PAD)
 #define MARG 16    /* shadow margin inside panel surfaces */
 #define MENU_SZER 400
@@ -69,16 +70,22 @@ static double uruchamiane[K1_APL_MAKS + 1];
 static int32_t dok_x, dok_y, menu_x, menu_y, dzw_x, dzw_y;
 static char zegar_tekst[64];
 
+#define X_APL(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek) [apl] = { tytul, opis, K1_IK_##ikona, pasek },
 static const struct {
     const char *nazwa, *opis;
     enum k1_ikona ikona;
-} aplikacje[K1_APL_MAKS + 1] = {
-    [K1_APL_ZEGAR] = { "Zegar", "Godzina i data", K1_IK_ZEGAR },
-    [K1_APL_NOTATKI] = { "Notatki", "Zapisywane w tym komputerze", K1_IK_NOTATKI },
-    [K1_APL_USTAWIENIA] = { "Ustawienia", "Wygląd, ekran, mysz, data, informacje", K1_IK_USTAWIENIA },
-    [K1_APL_ZASOBY] = { "Zasoby", "Procesor, pamięć, bateria", K1_IK_ZASOBY },
-    [K1_APL_INSTALACJA] = { "Instalator", "Zainstaluj K1 na dysku tego komputera", K1_IK_DYSK },
-};
+    int pasek;
+} aplikacje[K1_APL_MAKS + 1] = { K1_APLIKACJE(X_APL) };
+
+/* The application of bottom-bar item `i` (1..DOK_APL): the `i`-th one marked for the bar. */
+static int na_pasku(int i)
+{
+    int a;
+    for (a = 1; a <= K1_APL_MAKS; a++)
+        if (aplikacje[a].pasek && --i == 0)
+            return a;
+    return 0;
+}
 
 static const struct k1_motyw *motyw(void)
 {
@@ -212,16 +219,10 @@ static void odbierz_baterie(void)
 static void rysuj_baterie(struct k1_obraz *o, uint32_t krem)
 {
     const float x = (float)glosnik_x() - 4 - 26, y = 10; /* battery body 22×12 + 2 px terminal */
-    char proc[8];
+    char proc[16];
     int32_t tx;
-    k1_obrys(o, x, y, 22, 12, 3, 1.25f, krem);
-    k1_zaokraglony(o, x + 22.5f, y + 4, 2.5f, 4, 1, krem);
+    k1_bateria(o, x, y, bat.procent, k1_bateria_niska(bat.procent, bat.stan), 255);
     if (bat.procent >= 0) {
-        float w = 18.0f * (float)bat.procent / 100.0f;
-        int niska = bat.procent <= 15 && bat.stan == K1_BAT_ROZLADOWANIE;
-        if (w < 2.0f)
-            w = 2.0f;
-        k1_zaokraglony(o, x + 2, y + 2, w, 8, 1.5f, niska ? k1_kolor(0xd97757, 255) : krem);
         snprintf(proc, sizeof proc, "%d%%", bat.procent);
         tx = (int32_t)x - 6 - k1_tekst_szer(K1_CZ_MALA_MOCNA, proc);
         k1_tekst(o, K1_CZ_MALA_MOCNA, tx, 21, proc, krem, 0);
@@ -239,18 +240,18 @@ static void rysuj_baterie(struct k1_obraz *o, uint32_t krem)
 static void rysuj_gora(void)
 {
     struct k1_obraz *o = k1_pow_rysuj(&gora);
-    const uint32_t krem = k1_kolor(0xf3ede2, 255);
+    const uint32_t krem = k1_kolor(K1_KREM, 255);
     int apl = aktywna_aplikacja();
     int32_t gx;
     if (o == NULL)
         return;
     tekst_zegara(zegar_tekst, sizeof zegar_tekst);
-    k1_wyczysc(o, k1_kolor(0x0e0c0b, 150));
+    k1_wyczysc(o, k1_kolor(K1_NOC, 150));
     k1_tekst(o, K1_CZ_MALA_MOCNA, 16, 21, apl ? aplikacje[apl].nazwa : "Kons K1", krem, 300);
     k1_tekst(o, K1_CZ_MALA_MOCNA, k.szer_ekranu - 16 - k1_tekst_szer(K1_CZ_MALA_MOCNA, zegar_tekst), 21, zegar_tekst, krem, 0);
     gx = glosnik_x();
     if (hover_gora || dzwiek_otwarty)
-        k1_zaokraglony(o, (float)gx, 4, 28, 24, 6, k1_kolor(0xf3ede2, 36));
+        k1_zaokraglony(o, (float)gx, 4, 28, 24, 6, k1_kolor(K1_KREM, 36));
     k1_ikona(o, K1_IK_GLOSNIK, (float)gx + 6, 8, 16, krem);
     if (bat.obecna)
         rysuj_baterie(o, krem);
@@ -286,8 +287,8 @@ static void rysuj_dok(void)
         if (i == 0) {
             k1_rysuj_znak(o, x + EL / 2.0f, y + EL / 2.0f, 26);
         } else {
-            struct okno *w = okno_aplikacji(i);
-            k1_ikona(o, aplikacje[i].ikona, x + 10, y + 9, 24, k1_kolor(m->tekst, 255));
+            struct okno *w = okno_aplikacji(na_pasku(i));
+            k1_ikona(o, aplikacje[na_pasku(i)].ikona, x + 10, y + 9, 24, k1_kolor(m->tekst, 255));
             if (w != NULL && w->stan == K1_OKNO_AKTYWNE)
                 k1_zaokraglony(o, x + EL / 2.0f - 8, y + EL - 5, 16, 3, 1.5f, k1_kolor(m->akcent, 255));
             else if (w != NULL)
@@ -494,7 +495,7 @@ static void wskaznik(const struct k1_komunikat *m)
         if (puszcz && nowy == 0)
             pokaz_menu(!menu_otwarte);
         else if (puszcz && nowy > 0)
-            aplikacja(nowy);
+            aplikacja(na_pasku(nowy));
         if (wcisk && nowy != 0)
             pokaz_dzwiek(0);
         break;

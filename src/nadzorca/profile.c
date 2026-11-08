@@ -17,31 +17,30 @@ static const long sc_okna[] = { SYS_memfd_create, SYS_ftruncate };
 static const long sc_instalator[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, SYS_getrandom };
 
 const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
-    [K1_PROFIL_WEJSCIE] = { "wejscie", K1_UID_WEJSCIE, sc_wejscie, 0, wa_wejscie, N(wa_wejscie), NULL,
-                            8u << 20, 1, 32, 0 },
-    [K1_PROFIL_EKRAN] = { "ekran", K1_UID_EKRAN, sc_ekran, N(sc_ekran), wa_ekran, N(wa_ekran), NULL, 128u << 20, 1, 64,
-                          64u << 10 },
+    [K1_PROFIL_WEJSCIE] = { .nazwa = "wejscie", .uid = K1_UID_WEJSCIE, .wywolania = sc_wejscie, .warunki = wa_wejscie,
+                            .n_warunkow = N(wa_wejscie), .pamiec = 8u << 20, .pliki = 32 },
+    [K1_PROFIL_EKRAN] = { .nazwa = "ekran", .uid = K1_UID_EKRAN, .wywolania = sc_ekran, .n_wywolan = N(sc_ekran),
+                          .warunki = wa_ekran, .n_warunkow = N(wa_ekran), .pamiec = 128u << 20, .pliki = 64,
+                          .rozmiar_pliku = 64u << 10 },
+    /* the boot password screen (M5e): like the shell, no files; password → skarbiec on fd 6 */
+    [K1_PROFIL_LOGOWANIE] = { .nazwa = "logowanie", .uid = K1_UID_LOGOWANIE, .wywolania = sc_okna, .n_wywolan = N(sc_okna),
+                              .pamiec = 48u << 20, .pliki = 32, .rozmiar_pliku = 16u << 20 },
     /* skarbiec: Argon2id needs up to 256 MiB (ADR 0015); memfd up to 1 MiB (RLIMIT_FSIZE does not apply to
      * the block device: block/fops.c blkdev_write_iter has no rlimit check). */
-    /* the boot password screen (M5e): like the shell, no files; password → skarbiec on fd 6 */
-    [K1_PROFIL_LOGOWANIE] = { "logowanie", K1_UID_LOGOWANIE, sc_okna, N(sc_okna), NULL, 0, NULL, 48u << 20, 1, 32,
-                              16u << 20 },
-    [K1_PROFIL_SKARBIEC] = { "skarbiec", K1_UID_SKARBIEC, sc_skarbiec, N(sc_skarbiec), NULL, 0, NULL, 320u << 20, 1, 32,
-                             2u << 20 },
+    [K1_PROFIL_SKARBIEC] = { .nazwa = "skarbiec", .uid = K1_UID_SKARBIEC, .wywolania = sc_skarbiec,
+                             .n_wywolan = N(sc_skarbiec), .pamiec = 320u << 20, .pliki = 32, .rozmiar_pliku = 2u << 20 },
     /* RLIMIT_FSIZE also limits memfd_create+ftruncate: 16 MiB is enough for the largest surface. */
-    [K1_PROFIL_GUI] = { "gui", K1_UID_GUI, sc_okna, N(sc_okna), NULL, 0, NULL, 48u << 20, 1, 32, 16u << 20 },
-    [K1_PROFIL_ZEGAR] = { "zegar", K1_UID_ZEGAR, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32, 16u << 20 },
-    /* Notatki: since M5d no files at all — its note is an object in skarbiec (fd 4 from us). */
-    [K1_PROFIL_NOTATKI] = { "notatki", K1_UID_NOTATKI, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32, 16u << 20 },
-    [K1_PROFIL_USTAWIENIA] = { "ustawienia", K1_UID_USTAWIENIA, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32,
-                               16u << 20 },
-    /* Zasoby: like the other apps; its numbers come from us on fd 4 (it reads no files). */
-    [K1_PROFIL_ZASOBY] = { "zasoby", K1_UID_ZASOBY, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32, 16u << 20 },
+    [K1_PROFIL_GUI] = { .nazwa = "gui", .uid = K1_UID_GUI, .wywolania = sc_okna, .n_wywolan = N(sc_okna),
+                        .pamiec = 48u << 20, .pliki = 32, .rozmiar_pliku = 16u << 20 },
     /* M5f (ADR 0018): the program that writes the disk — no window, no paths, only the source and the
      * target device we open for it; RLIMIT_FSIZE does not apply to block devices (see skarbiec). */
-    [K1_PROFIL_INSTALATOR] = { "instalator", K1_UID_INSTALATOR, sc_instalator, N(sc_instalator), NULL, 0, NULL,
-                               16u << 20, 1, 16, 0 },
-    /* the Instalator window: like the other applications; asks us on fd 4 */
-    [K1_PROFIL_INSTALACJA] = { "instalacja", K1_UID_INSTALACJA, sc_okna, N(sc_okna), NULL, 0, NULL, 32u << 20, 1, 32,
-                               16u << 20 },
+    [K1_PROFIL_INSTALATOR] = { .nazwa = "instalator", .uid = K1_UID_INSTALATOR, .wywolania = sc_instalator,
+                               .n_wywolan = N(sc_instalator), .pamiec = 16u << 20, .pliki = 16 },
+    /* applications (k1_uslugi.h): windows only — what else an application gets comes from us on its
+     * channels (uslugi.c) */
+#define X_APL(n, a_, p_, uid_, program_, ...)                                                                       \
+    [K1_PROFIL_##n] = { .nazwa = program_, .uid = uid_, .wywolania = sc_okna, .n_wywolan = N(sc_okna), .pamiec = 32u << 20, \
+                        .pliki = 32, .rozmiar_pliku = 16u << 20 },
+    K1_APLIKACJE(X_APL)
+#undef X_APL
 };

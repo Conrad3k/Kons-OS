@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "k1_aplikacja.h"
+#include "k1_liczba.h"
 #include "k1_kanal.h"
 #include "k1_log.h"
 #include "k1_odbior.h"
@@ -37,25 +38,6 @@ static struct {
 static unsigned long odrzucone;
 static int pierwsze = 1;
 
-static const char *const nazwy[K1_PROFIL_MAKS + 1] = {
-    [K1_PROFIL_WEJSCIE] = "Wejście (klawiatura, mysz)",
-    [K1_PROFIL_EKRAN] = "Ekran (kompozytor okien)",
-    [K1_PROFIL_GUI] = "Pulpit",
-    [K1_PROFIL_ZEGAR] = "Zegar",
-    [K1_PROFIL_NOTATKI] = "Notatki",
-    [K1_PROFIL_USTAWIENIA] = "Ustawienia",
-    [K1_PROFIL_ZASOBY] = "Zasoby",
-    [K1_PROFIL_SKARBIEC] = "Skarbiec (dane)",
-    [K1_PROFIL_LOGOWANIE] = "Ekran logowania",
-    [K1_PROFIL_INSTALATOR] = "Instalator (zapis dysku)",
-    [K1_PROFIL_INSTALACJA] = "Instalator",
-};
-
-/* "12,5" from tenths */
-static void dziesietne(char *buf, size_t n, long dziesiate)
-{
-    snprintf(buf, n, "%ld,%ld", dziesiate / 10, dziesiate % 10);
-}
 
 /* Memory in MiB as "850 MB" or "1,2 GB". */
 static void pamiec_tekst(char *buf, size_t n, int32_t mib)
@@ -65,7 +47,7 @@ static void pamiec_tekst(char *buf, size_t n, int32_t mib)
         snprintf(buf, n, "%d MB", (int)mib);
         return;
     }
-    dziesietne(d, sizeof d, ((long)mib * 10 + 512) / 1024);
+    k1_dziesietne(d, sizeof d, ((long)mib * 10 + 512) / 1024);
     snprintf(buf, n, "%s GB", d);
 }
 
@@ -93,21 +75,12 @@ static void wykres(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int3
     }
 }
 
-/* "3 h 20 min", "45 min" */
-static void czas_tekst(char *buf, size_t n, int32_t min)
-{
-    if (min >= 60)
-        snprintf(buf, n, "%d h %d min", (int)(min / 60), (int)(min % 60));
-    else
-        snprintf(buf, n, "%d min", (int)min);
-}
-
 /* One line under the headline: what the battery does now. */
 static void bateria_opis(char *buf, size_t n)
 {
     char w[24], c[32];
-    dziesietne(w, sizeof w, ((long)bat.moc_mw + 50) / 100);
-    czas_tekst(c, sizeof c, bat.minuty);
+    k1_dziesietne(w, sizeof w, ((long)bat.moc_mw + 50) / 100);
+    k1_minuty(c, sizeof c, bat.minuty);
     if (!bat.obecna) {
         snprintf(buf, n, "brak baterii — zasilanie z sieci");
     } else if (bat.stan == K1_BAT_ROZLADOWANIE) {
@@ -141,7 +114,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 
     /* Processor: a headline number, then the last minute */
     k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG, y + 16, "Procesor", k1_kolor(m->tekst, 255), 0);
-    dziesietne(a, sizeof a, ostatni_cpu);
+    k1_dziesietne(a, sizeof a, ostatni_cpu);
     snprintf(buf, sizeof buf, "%s %%", a);
     k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG + w - k1_tekst_szer(K1_CZ_TEKST_MOCNA, buf), y + 16, buf, k1_kolor(m->tekst, 255), 0);
     snprintf(buf, sizeof buf, "%d %s, ostatnia minuta", (int)procesory,
@@ -183,11 +156,11 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     for (p = 1; p <= K1_PROFIL_MAKS; p++) {
         if (!uslugi[p].dziala)
             continue;
-        k1_tekst(o, K1_CZ_MALA, MARG, y + 16, nazwy[p], k1_kolor(m->tekst, 255), 0);
-        dziesietne(a, sizeof a, uslugi[p].cpu);
+        k1_tekst(o, K1_CZ_MALA, MARG, y + 16, k1_profil_nazwa(p), k1_kolor(m->tekst, 255), 0);
+        k1_dziesietne(a, sizeof a, uslugi[p].cpu);
         snprintf(buf, sizeof buf, "%s %%", a);
         k1_tekst(o, K1_CZ_MALA, MARG + w - 136 - k1_tekst_szer(K1_CZ_MALA, buf), y + 16, buf, k1_kolor(m->tekst2, 255), 0);
-        dziesietne(a, sizeof a, ((long)uslugi[p].kib * 10 + 512) / 1024);
+        k1_dziesietne(a, sizeof a, ((long)uslugi[p].kib * 10 + 512) / 1024);
         snprintf(buf, sizeof buf, "%s MB", a);
         k1_tekst(o, K1_CZ_MALA, MARG + w - k1_tekst_szer(K1_CZ_MALA, buf), y + 16, buf, k1_kolor(m->tekst2, 255), 0);
         y += WIERSZ;
@@ -202,8 +175,8 @@ static void probka(int32_t *tab, int32_t v)
     tab[PROBKI - 1] = v;
 }
 
-/* Reads everything the supervisor sent; returns 1 if something changed. */
-static int odbierz(void)
+/* Everything the supervisor sent (its channel has data). */
+static void odbierz(void)
 {
     int zmiana = 0, i;
     for (i = 0; i < 64; i++) {
@@ -252,23 +225,20 @@ static int odbierz(void)
         }
         zmiana = 1;
     }
-    return zmiana;
-}
-
-static int zegar(void)
-{
-    if (odbierz())
+    if (zmiana)
         k1_apl_odswiez(&apl);
-    return 200;
 }
 
 int main(void)
 {
     apl.tag = TAG;
-    apl.tytul = "Zasoby";
+    apl.numer = K1_APL_ZASOBY;
     apl.szer = 560;
-    apl.wys = 580;
+    /* charts and the battery (356 px), a row per service that can run at once (the password screen and
+     * the desktop never do), the footer */
+    apl.wys = 356 + (K1_PROFIL_MAKS - 1) * WIERSZ + 34;
     apl.rysuj = rysuj;
-    apl.zegar = zegar;
+    apl.kanaly[0].fd = FD_NADZORCA;
+    apl.kanaly[0].dane = odbierz;
     k1_apl_uruchom(&apl);
 }

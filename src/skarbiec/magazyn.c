@@ -2,6 +2,8 @@
  * docs/komponenty/skarbiec.md. All integers on disk are little-endian; nothing read from the disk
  * is trusted before its checks (header: fields, then MAC with the master key; records: AEAD). */
 #include "magazyn.h"
+#include "k1_bajty.h"
+#include "k1_io.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -29,58 +31,14 @@
 
 static uint8_t bufor[MAKS_BLOKOW_REKORDU * K1_MAG_BLOK];
 
-/* ---- little-endian helpers ---- */
-static void z32(uint8_t *p, uint32_t v)
-{
-    for (int i = 0; i < 4; i++)
-        p[i] = (uint8_t)(v >> (8 * i));
-}
-static void z64(uint8_t *p, uint64_t v)
-{
-    for (int i = 0; i < 8; i++)
-        p[i] = (uint8_t)(v >> (8 * i));
-}
-static uint32_t c32(const uint8_t *p)
-{
-    uint32_t v = 0;
-    for (int i = 3; i >= 0; i--)
-        v = (v << 8) | p[i];
-    return v;
-}
-static uint64_t c64(const uint8_t *p)
-{
-    uint64_t v = 0;
-    for (int i = 7; i >= 0; i--)
-        v = (v << 8) | p[i];
-    return v;
-}
-
 /* ---- standard disk functions ---- */
 static int fd_czytaj(struct k1_mag_dysk *d, uint64_t blok, void *buf, uint32_t bloki)
 {
-    size_t n = (size_t)bloki * K1_MAG_BLOK, got = 0;
-    while (got < n) {
-        ssize_t r = pread(d->fd, (uint8_t *)buf + got, n - got, (off_t)(blok * K1_MAG_BLOK + got));
-        if (r < 0 && errno == EINTR)
-            continue;
-        if (r <= 0)
-            return -1;
-        got += (size_t)r;
-    }
-    return 0;
+    return k1_czytaj_calosc(d->fd, buf, (size_t)bloki * K1_MAG_BLOK, blok * K1_MAG_BLOK);
 }
 static int fd_zapisz(struct k1_mag_dysk *d, uint64_t blok, const void *buf, uint32_t bloki)
 {
-    size_t n = (size_t)bloki * K1_MAG_BLOK, done = 0;
-    while (done < n) {
-        ssize_t r = pwrite(d->fd, (const uint8_t *)buf + done, n - done, (off_t)(blok * K1_MAG_BLOK + done));
-        if (r < 0 && errno == EINTR)
-            continue;
-        if (r <= 0)
-            return -1;
-        done += (size_t)r;
-    }
-    return 0;
+    return k1_pisz_calosc(d->fd, buf, (size_t)bloki * K1_MAG_BLOK, blok * K1_MAG_BLOK);
 }
 static int fd_synchronizuj(struct k1_mag_dysk *d)
 {
@@ -126,20 +84,20 @@ struct naglowek {
 static int naglowek_czytaj(const uint8_t *b, uint64_t bloki_dysk, struct naglowek *n)
 {
     uint32_t i;
-    if (memcmp(b, MAGIA, 8) != 0 || c32(b + 8) != WERSJA)
+    if (memcmp(b, MAGIA, 8) != 0 || k1_c32(b + 8) != WERSJA)
         return -1;
-    n->flagi = c32(b + 12);
+    n->flagi = k1_c32(b + 12);
     memcpy(n->uuid, b + 16, 16);
-    n->generacja = c64(b + 32);
-    n->bloki = c64(b + 40);
-    n->aktywny = c32(b + 48);
-    n->argon_kib = c32(b + 52);
-    n->argon_przejscia = c32(b + 56);
-    n->epoka = c64(b + 64);
-    n->koniec = c64(b + 72);
+    n->generacja = k1_c64(b + 32);
+    n->bloki = k1_c64(b + 40);
+    n->aktywny = k1_c32(b + 48);
+    n->argon_kib = k1_c32(b + 52);
+    n->argon_przejscia = k1_c32(b + 56);
+    n->epoka = k1_c64(b + 64);
+    n->koniec = k1_c64(b + 72);
     memcpy(n->sol, b + 80, 16);
     memcpy(n->owiniety, b + OWINIETY, OWINIETY_DL);
-    if ((n->flagi & ~FLAGA_HASLO) != 0 || c32(b + 60) != 0 || n->aktywny > 1 || n->bloki < K1_MAG_MIN_BLOKOW ||
+    if ((n->flagi & ~FLAGA_HASLO) != 0 || k1_c32(b + 60) != 0 || n->aktywny > 1 || n->bloki < K1_MAG_MIN_BLOKOW ||
         n->bloki > bloki_dysk || n->argon_kib < ARGON_MIN_KIB || n->argon_kib > ARGON_MAKS_KIB ||
         n->argon_przejscia < 1 || n->argon_przejscia > 10 || n->generacja == 0 || n->epoka == 0 ||
         n->koniec > (n->bloki - 2) / 2)
@@ -161,16 +119,16 @@ static void naglowek_zbuduj(const struct k1_magazyn *m, uint8_t *b)
     uint8_t kn[32];
     memset(b, 0, K1_MAG_BLOK);
     memcpy(b, MAGIA, 8);
-    z32(b + 8, WERSJA);
-    z32(b + 12, m->haslo ? FLAGA_HASLO : 0);
+    k1_z32(b + 8, WERSJA);
+    k1_z32(b + 12, m->haslo ? FLAGA_HASLO : 0);
     memcpy(b + 16, m->uuid, 16);
-    z64(b + 32, m->generacja);
-    z64(b + 40, 2 + 2 * m->obszar_blokow);
-    z32(b + 48, m->aktywny);
-    z32(b + 52, m->argon_kib);
-    z32(b + 56, m->argon_przejscia);
-    z64(b + 64, m->epoka);
-    z64(b + 72, m->koniec);
+    k1_z64(b + 32, m->generacja);
+    k1_z64(b + 40, 2 + 2 * m->obszar_blokow);
+    k1_z32(b + 48, m->aktywny);
+    k1_z32(b + 52, m->argon_kib);
+    k1_z32(b + 56, m->argon_przejscia);
+    k1_z64(b + 64, m->epoka);
+    k1_z64(b + 72, m->koniec);
     memcpy(b + 80, m->sol, 16);
     memcpy(b + OWINIETY, m->owiniety, OWINIETY_DL);
     klucz_naglowka(m->klucz, kn);
@@ -219,9 +177,9 @@ static void ad_owiniecia(const uint8_t uuid[16], const uint8_t sol[16], uint32_t
 {
     memcpy(ad, uuid, 16);
     memcpy(ad + 16, sol, 16);
-    z32(ad + 32, flagi);
-    z32(ad + 36, kib);
-    z32(ad + 40, przejscia);
+    k1_z32(ad + 32, flagi);
+    k1_z32(ad + 36, kib);
+    k1_z32(ad + 40, przejscia);
 }
 
 static int owin(struct k1_magazyn *m, const char *haslo)
@@ -262,10 +220,10 @@ static void ad_rekordu(const struct k1_magazyn *m, uint64_t epoka, uint32_t obsz
                        uint8_t ad[40])
 {
     memcpy(ad, m->uuid, 16);
-    z64(ad + 16, epoka);
-    z32(ad + 24, obszar);
-    z64(ad + 28, blok);
-    z32(ad + 36, bloki);
+    k1_z64(ad + 16, epoka);
+    k1_z32(ad + 24, obszar);
+    k1_z64(ad + 28, blok);
+    k1_z32(ad + 36, bloki);
 }
 
 static uint32_t bloki_rekordu(uint32_t dlugosc)
@@ -278,8 +236,8 @@ static void zamknij_rekord(struct k1_magazyn *m, uint64_t epoka, uint32_t obszar
 {
     uint8_t ad[40];
     size_t dl = (size_t)bloki * K1_MAG_BLOK - REKORD_NAGL;
-    z32(bufor, bloki);
-    z32(bufor + 4, 0);
+    k1_z32(bufor, bloki);
+    k1_z32(bufor + 4, 0);
     m->d->losowe(bufor + 8, 24);
     ad_rekordu(m, epoka, obszar, blok, bloki, ad);
     crypto_aead_lock(bufor + REKORD_NAGL, bufor + 32, m->klucz, bufor + 8, ad, sizeof ad, bufor + REKORD_NAGL, dl);
@@ -294,8 +252,8 @@ static int czytaj_rekord(struct k1_magazyn *m, uint64_t blok, uint32_t *bloki_ou
     uint64_t start = poczatek_obszaru(m, m->aktywny);
     if (m->d->czytaj(m->d, start + blok, bufor, 1) != 0)
         return K1_MAG_IO;
-    bloki = c32(bufor);
-    if (bloki == 0 || bloki > MAKS_BLOKOW_REKORDU || c32(bufor + 4) != 0 || blok + bloki > m->koniec)
+    bloki = k1_c32(bufor);
+    if (bloki == 0 || bloki > MAKS_BLOKOW_REKORDU || k1_c32(bufor + 4) != 0 || blok + bloki > m->koniec)
         return K1_MAG_USZKODZONY;
     if (bloki > 1 && m->d->czytaj(m->d, start + blok + 1, bufor + K1_MAG_BLOK, bloki - 1) != 0)
         return K1_MAG_IO;
@@ -303,7 +261,7 @@ static int czytaj_rekord(struct k1_magazyn *m, uint64_t blok, uint32_t *bloki_ou
     if (crypto_aead_unlock(t, bufor + 32, m->klucz, bufor + 8, ad, sizeof ad, t,
                            (size_t)bloki * K1_MAG_BLOK - REKORD_NAGL) != 0)
         return K1_MAG_USZKODZONY;
-    dl = c32(t + 4);
+    dl = k1_c32(t + 4);
     if ((t[0] != TYP_OBIEKT && t[0] != TYP_USUNIECIE) || t[1] != 0 || dl > K1_MAG_MAKS_DANYCH ||
         bloki_rekordu(dl) != bloki || t[16 + K1_MAG_NAZWA - 1] != 0 || t[16] == 0 || (t[0] == TYP_USUNIECIE && dl != 0))
         return K1_MAG_USZKODZONY;
@@ -362,7 +320,7 @@ static int indeksuj_bufor(struct k1_magazyn *m, uint64_t blok, uint32_t bloki)
     const uint8_t *t = bufor + REKORD_NAGL;
     char nazwa[K1_MAG_NAZWA];
     memcpy(nazwa, t + 16, K1_MAG_NAZWA);
-    return indeksuj(m, t[0], (uint16_t)(t[2] | (t[3] << 8)), nazwa, blok, bloki, c32(t + 4));
+    return indeksuj(m, t[0], (uint16_t)(t[2] | (t[3] << 8)), nazwa, blok, bloki, k1_c32(t + 4));
 }
 
 /* ---- public functions ---- */
@@ -562,8 +520,8 @@ static int dopisz(struct k1_magazyn *m, uint8_t typ, uint16_t wl, const char *na
     t[0] = typ;
     t[2] = (uint8_t)wl;
     t[3] = (uint8_t)(wl >> 8);
-    z32(t + 4, dl);
-    z64(t + 8, (uint64_t)time(NULL));
+    k1_z32(t + 4, dl);
+    k1_z64(t + 8, (uint64_t)time(NULL));
     memcpy(t + 16, nazwa_pelna, K1_MAG_NAZWA);
     if (dl > 0)
         memcpy(t + TRESC_NAGL, dane, dl);

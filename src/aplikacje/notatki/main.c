@@ -420,16 +420,14 @@ static void wczytaj(void)
 
 static void zapisz(void)
 {
-    uint32_t i, znaki = 0;
+    uint32_t znaki;
     zmiana = 0;
     if (skarb < 0) { /* no skarbiec: the notes live only in this window */
         k1_apl_odswiez(&apl);
         return;
     }
     zapis_blad = k1_skarb_zapisz(skarb, b->id, b->tekst, b->dl) != 0;
-    for (i = 0; i < b->dl; i++)
-        if (((unsigned char)b->tekst[i] & 0xc0) != 0x80)
-            znaki++;
+    znaki = (unsigned)k1_utf8_znaki(b->tekst, b->dl);
     if (!zapis_blad)
         k1_log(TAG, "zapisano notatkę (%u znaków)", znaki); /* the length only, never the content */
     else
@@ -453,7 +451,7 @@ static void odbierz_wyniki(void)
 {
     struct k1_komunikat k;
     int r;
-    while (skarb >= 0 && (r = k1_skarb_wynik_pelny(skarb, &k)) != 0) {
+    while (skarb >= 0 && (r = k1_skarb_wynik(skarb, &k)) != 0) {
         if (r < 0) {
             close(skarb);
             skarb = -1;
@@ -738,18 +736,21 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     k1_apl_odswiez(&apl);
 }
 
+/* Saved 0.8 s after the last change (a burst of typing is one write). */
 static int zegar(void)
 {
-    if (zmiana > 0 && teraz() - zmiana >= 0.8)
+    double zostalo = zmiana > 0 ? 0.8 - (teraz() - zmiana) : -1;
+    if (zmiana > 0 && zostalo <= 0) {
         zapisz();
-    odbierz_wyniki();
-    return zmiana > 0 ? 200 : 500;
+        return -1;
+    }
+    return zmiana > 0 ? (int)(zostalo * 1000) + 1 : -1;
 }
 
 int main(void)
 {
     apl.tag = TAG;
-    apl.tytul = "Notatki";
+    apl.numer = K1_APL_NOTATKI;
     apl.szer = 800;
     apl.wys = 500;
     apl.rysuj = rysuj;
@@ -757,6 +758,8 @@ int main(void)
     apl.wskaznik = wskaznik;
     apl.zegar = zegar;
     wczytaj();
+    apl.kanaly[0].fd = skarb; /* the results of saving */
+    apl.kanaly[0].dane = odbierz_wyniki;
     { /* the tests click by this line */
         int32_t usun_x = x_usun() + 12, tak_x;
         pytanie = 1;

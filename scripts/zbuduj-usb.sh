@@ -28,23 +28,10 @@ cp "$USB/slot-a.fat" "$USB/a.img"; truncate -s 128M "$USB/a.img"
 truncate -s 128M "$USB/b.img" # slot B: empty until the first update
 "$PODPISZ" grubenv "$USB/grubenv" || blad "grubenv"
 
-cat > "$USB/grub.cfg" <<CFG
-# Kons K1 $K1_WERSJA — start bez menu. Obraz z firmware (GOP) przejmuje simpledrm.
+{ grub_poczatek; cat <<CFG; } > "$USB/grub.cfg"
 # A/B (0.7.0, ADR 0022): system jest w /k1/a.img albo /k1/b.img (w środku jeden plik: k1.efi — jądro z rdzeniem,
 # podpisane kluczem K1). grubenv: k1_slot = potwierdzone miejsce; k1_nowy = do wypróbowania raz (po aktualizacji);
 # k1_start = co uruchomiono teraz; k1_proba = ostatnia próba, dopóki K1 jej nie potwierdzi albo nie zgłosi.
-set timeout=0
-set timeout_style=hidden
-insmod all_video
-insmod gfxterm
-set gfxmode=1280x800,1366x768,1280x720,1024x768,auto
-set gfxpayload=keep
-insmod png
-# Boot screen (0.5.8): the K1 mark on black; the kernel keeps it until the desktop's first frame.
-# GRUB draws the picture only when something is written (echo); black text on black (set after
-# terminal_output, which resets the colours) hides its cursor.
-terminal_output gfxterm
-set color_normal=black/black
 # M5f: everything from the partition GRUB itself was loaded from — with K1 on the disk and a K1 stick
 # plugged in, its search by /.disk/info may find the other one first.
 regexp --set=1:k1_dysk '^\(([^)]+)\)' "\$cmdpath"

@@ -82,8 +82,7 @@ int k1_klatka_grupa(const struct k1_profil *p)
     if (zapisz_plik(sciezka, "1") != 0)
         return -1;
     snprintf(sciezka, sizeof sciezka, CGROUP "/%s/pids.max", p->nazwa);
-    snprintf(wartosc, sizeof wartosc, "%u", p->procesy);
-    return zapisz_plik(sciezka, wartosc);
+    return zapisz_plik(sciezka, "1");
 }
 
 /* ---- seccomp: a linear allow list (classic BPF) ---- */
@@ -164,10 +163,10 @@ static void seccomp_profil(const struct k1_profil *p)
 
 #define LL_FS_WSZYSTKO ((LANDLOCK_ACCESS_FS_IOCTL_DEV << 1) - 1) /* all 16 rights of ABI >= 5 */
 
-static void dodaj_regule(int zbior, const char *sciezka, uint64_t prawa, int katalog)
+static void dodaj_regule(int zbior, const char *sciezka, uint64_t prawa)
 {
     struct landlock_path_beneath_attr r;
-    int fd = open(sciezka, O_PATH | O_CLOEXEC | (katalog ? O_DIRECTORY : 0));
+    int fd = open(sciezka, O_PATH | O_CLOEXEC);
     if (fd < 0) {
         k1_log(TAG, "Landlock: %s: %s", sciezka, strerror(errno));
         _exit(126);
@@ -201,12 +200,7 @@ static void landlock_profil(const struct k1_profil *p, const char *program)
         k1_log(TAG, "Landlock: %s", strerror(errno));
         _exit(126);
     }
-    dodaj_regule(zbior, program, LANDLOCK_ACCESS_FS_EXECUTE | LANDLOCK_ACCESS_FS_READ_FILE, 0);
-    if (p->zapis != NULL)
-        dodaj_regule(zbior, p->zapis,
-                     LANDLOCK_ACCESS_FS_READ_FILE | LANDLOCK_ACCESS_FS_WRITE_FILE | LANDLOCK_ACCESS_FS_READ_DIR |
-                         LANDLOCK_ACCESS_FS_REMOVE_FILE | LANDLOCK_ACCESS_FS_MAKE_REG | LANDLOCK_ACCESS_FS_TRUNCATE,
-                     1);
+    dodaj_regule(zbior, program, LANDLOCK_ACCESS_FS_EXECUTE | LANDLOCK_ACCESS_FS_READ_FILE);
     if (syscall(SYS_landlock_restrict_self, zbior, 0) != 0) {
         k1_log(TAG, "Landlock restrict_self: %s", strerror(errno));
         _exit(126);

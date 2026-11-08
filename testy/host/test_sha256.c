@@ -3,16 +3,7 @@
 #include <string.h>
 
 #include "k1_sha256.h"
-
-static int failures, count;
-#define EXPECT(cond)                                                          \
-    do {                                                                      \
-        count++;                                                              \
-        if (!(cond)) {                                                        \
-            failures++;                                                       \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond);   \
-        }                                                                     \
-    } while (0)
+#include "k1_test_host.h"
 
 static int hex(const uint8_t *h, const char *oczekiwany)
 {
@@ -56,6 +47,5 @@ int main(void)
         k1_sha256_koniec(&c, h2);
         EXPECT(memcmp(h, h2, 32) == 0);
     }
-    printf("test_sha256: %d sprawdzeń, %d błędów\n", count, failures);
-    return failures == 0 ? 0 : 1;
+    return K1_TEST_KONIEC("test_sha256");
 }

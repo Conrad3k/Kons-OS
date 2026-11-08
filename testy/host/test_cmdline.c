@@ -3,17 +3,7 @@
 #include <string.h>
 
 #include "k1_cmdline.h"
-
-static int failures, count;
-
-#define EXPECT(cond)                                                          \
-    do {                                                                      \
-        count++;                                                              \
-        if (!(cond)) {                                                        \
-            failures++;                                                       \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond);   \
-        }                                                                     \
-    } while (0)
+#include "k1_test_host.h"
 
 static enum k1_cmdline_result get(const char *cl, const char *key, char *out, size_t outsz)
 {
@@ -83,6 +73,5 @@ int main(void)
     EXPECT(k1_valid_block_device("/dev/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") == 0); /* 32 */
     EXPECT(k1_valid_block_device(NULL) == 0);
 
-    printf("test_cmdline: %d/%d OK\n", count - failures, count);
-    return failures == 0 ? 0 : 1;
+    return K1_TEST_KONIEC("test_cmdline");
 }

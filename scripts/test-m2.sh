@@ -14,49 +14,15 @@ mkdir -p "$TESTY"; rm -f "$LOG" "$MON" "$TESTY"/m2-*.png
 "$K1_REPO/scripts/uruchom-qemu.sh" --log "$LOG" --monitor "$MON" --czas "$CZAS" &
 QPID=$!
 r=0
-python3 -I - "$LOG" "$MON" "$TESTY" "$K1_REPO/scripts/zrzut-ekranu.sh" "$CZAS" <<'PY' || r=$?
-import re, socket, struct, subprocess, sys, time, zlib
-log, mon, out, zrzut_sh, limit = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], float(sys.argv[5])
-start = time.time(); wyniki = []
-
-def czekaj(wzor, od=0):
-    while time.time() - start < limit:
-        try: tekst = open(log, encoding="utf-8", errors="replace").read()
-        except FileNotFoundError: tekst = ""
-        m = list(re.finditer(wzor, tekst))
-        if len(m) > od: return m[-1]
-        if "Kernel panic" in tekst: break
-        time.sleep(0.5)
-    return None
-
-def monitor(*cmds):
-    s = socket.socket(socket.AF_UNIX); s.connect(mon); s.settimeout(2)
-    for c in ("",) + cmds:
-        s.sendall(c.encode() + b"\n"); time.sleep(0.3)
-        try: s.recv(65536)
-        except socket.timeout: pass
-    s.close()
-
-def png(path):  # our own PNGs: RGB8, filter 0 on every row
-    raw = open(path, "rb").read(); pos = 8; idat = b""; w = h = 0
-    while pos < len(raw):
-        n, t = struct.unpack(">I4s", raw[pos:pos + 8]); d = raw[pos + 8:pos + 8 + n]; pos += 12 + n
-        if t == b"IHDR": w, h = struct.unpack(">II", d[:8])
-        elif t == b"IDAT": idat += d
-    data = zlib.decompress(idat)
-    return w, h, lambda x, y: tuple(data[y * (w * 3 + 1) + 1 + x * 3: y * (w * 3 + 1) + 4 + x * 3])
-
-def zrzut(nazwa):
-    p = f"{out}/m2-{nazwa}.png"
-    subprocess.run([zrzut_sh, p, mon], check=True, stdout=subprocess.DEVNULL)
-    return png(p)
-
-def sprawdz(nazwa, warunek, opis=""):
-    wyniki.append(warunek); print(f"  [{'OK' if warunek else 'BŁĄD'}]    {nazwa}" + ("" if warunek else f" — {opis}"))
+K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG" "$MON" "$TESTY" "$K1_REPO/scripts/zrzut-ekranu.sh" "$CZAS" <<'PY' || r=$?
+import os, re, sys, time
+sys.path.insert(0, os.environ["K1_TESTY_PY"])
+from k1qemu import Maszyna
+q = Maszyna(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], "m2")
+czekaj, monitor, zrzut, sprawdz = q.czekaj, q.monitor, q.zrzut, q.sprawdz
 
 krem = lambda c: c[0] > 200 and c[1] > 195 and c[2] > 180
 akcent = lambda c: c[0] > 170 and c[1] < 150 and c[2] < 120 and c[0] > c[1] > c[2]
-ciemny = lambda c: max(c) < 60
 WZOR = r"K1-EKRAN: kursor (\d+),(\d+) przycisk (\S+)"
 
 tryb = czekaj(r"K1-EKRAN: tryb (\d+)x(\d+)")
@@ -98,12 +64,11 @@ sprawdz("zrzut 2 i 3: w starym miejscu kursora znów tapeta (brak śladu)",
         px2(x0 + 3, y0 + 9) == px(x0 + 3, y0 + 9) != px1(x0 + 3, y0 + 9), f"{px1(x0 + 3, y0 + 9)} {px2(x0 + 3, y0 + 9)}")
 monitor("mouse_button 0")
 
-tekst = open(log, encoding="utf-8", errors="replace").read()
+tekst = q.tekst()
 sprawdz("brak 'Kernel panic' i błędów usług", "Kernel panic" not in tekst and "BŁĄD" not in tekst)
 sprawdz("brak odrzuconych i zgubionych zdarzeń przy poprawnym wejściu",
         re.findall(r"odrzucone (\d+)\)", tekst)[-1:] == ["0"] and "pominięto" not in tekst)
-monitor("quit")
-sys.exit(0 if all(wyniki) else 1)
+q.koniec()
 PY
 kill $QPID 2>/dev/null || true; wait $QPID 2>/dev/null || true
 if [ $r -eq 0 ]; then info "M2: wszystko zaliczone (zrzuty: $TESTY/m2-*.png)"; else echo "[k1] M2: BŁĄD (log: $LOG)"; fi

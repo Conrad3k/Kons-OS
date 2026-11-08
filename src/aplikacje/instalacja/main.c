@@ -18,6 +18,7 @@
 #include "k1_klawiatura.h"
 #include "k1_komunikat.h"
 #include "k1_log.h"
+#include "k1_manifest.h"
 #include "k1_odbior.h"
 #include "k1_uslugi.h"
 
@@ -43,12 +44,6 @@ static int32_t sb = -1, sbk, sb_prawdziwy, sb_wynik; /* Secure Boot (SB_STAN); s
 static int nowe_miejsce;                              /* the update wrote the other slot (A/B) */
 static int n_dyskow, zrodlo, wybrany = -1, tryb = K1_INST_INSTALUJ, procent, etap, wynik;
 static int32_t wersja_zrodla, zrodlo_podpisane; /* M6a: the stick's manifest (0: none) */
-
-/* "0.6.2" from major<<16|minor<<8|patch */
-static void tekst_wersji(int32_t w, char *buf, size_t n)
-{
-    snprintf(buf, n, "%d.%d.%d", (int)(w >> 16 & 0xff), (int)(w >> 8 & 0xff), (int)(w & 0xff));
-}
 
 /* The version on disk `i`: -1 = no K1, 0 = K1 without a manifest (0.5.9–0.6.1), else the version. */
 static int32_t wersja_dysku(int i)
@@ -245,10 +240,10 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
             if (dyski[i].k1) {
                 char w[16] = "", z[40] = "";
                 if (wersja_dysku(i) > 0)
-                    tekst_wersji(wersja_dysku(i), w, sizeof w);
+                    k1_wersja_tekst((uint32_t)wersja_dysku(i), w, sizeof w);
                 if (dyski[i].ab_slot && dyski[i].ab_zapas > 0) {
                     char t[16];
-                    tekst_wersji(dyski[i].ab_zapas, t, sizeof t);
+                    k1_wersja_tekst((uint32_t)dyski[i].ab_zapas, t, sizeof t);
                     snprintf(z, sizeof z, " (zapasowa: %s)", t);
                 }
                 snprintf(buf, sizeof buf, "Jest na nim Kons K1%s%s%s%s", w[0] ? " " : "", w, z,
@@ -295,11 +290,11 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
             {
                 char stara[16] = "?", nowa[16] = "?";
                 if (wersja_dysku(wybrany) > 0)
-                    tekst_wersji(wersja_dysku(wybrany), stara, sizeof stara);
+                    k1_wersja_tekst((uint32_t)wersja_dysku(wybrany), stara, sizeof stara);
                 else
                     snprintf(stara, sizeof stara, "0.5.9–0.6.1");
                 if (wersja_zrodla > 0)
-                    tekst_wersji(wersja_zrodla, nowa, sizeof nowa);
+                    k1_wersja_tekst((uint32_t)wersja_zrodla, nowa, sizeof nowa);
                 snprintf(buf, sizeof buf, "Na dysku: %s  →  z pendrive'a: %s%s", stara, nowa,
                          wersja_zrodla > 0 ? (zrodlo_podpisane ? " (podpisana)" : " (wersja deweloperska)") : "");
             }
@@ -626,9 +621,6 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk_nr)
 
 static void klawisz(unsigned kod, int wartosc, unsigned mody)
 {
-    char u[4];
-    uint32_t z;
-    int n;
     if (wartosc == 0)
         return;
     if (kod == KEY_ESC && (stan == S_POTWIERDZ || stan == S_SB)) {
@@ -637,47 +629,29 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
         glowny();
         return;
     } else if (stan == S_POTWIERDZ && tryb == K1_INST_INSTALUJ) {
-        if (kod == KEY_BACKSPACE) {
-            while (pole_dl > 0 && ((unsigned char)pole[pole_dl - 1] & 0xc0) == 0x80)
-                pole_dl--;
-            if (pole_dl > 0)
-                pole_dl--;
-        } else {
-            z = k1_znak_klawisza(kod, mody);
-            if (z == 0)
-                return;
-            n = k1_utf8_zapisz(z, u, sizeof u);
-            if (n <= 0 || pole_dl + (size_t)n >= sizeof pole)
-                return;
-            memcpy(pole + pole_dl, u, (size_t)n);
-            pole_dl += (size_t)n;
-        }
+        if (!k1_pole_klawisz(pole, &pole_dl, sizeof pole - 1, kod, mody))
+            return;
     } else {
         return;
     }
     k1_apl_odswiez(&apl);
 }
 
-static int zegar(void)
-{
-    odbierz();
-    return 200;
-}
-
 int main(void)
 {
     apl.tag = TAG;
-    apl.tytul = "Instalator";
+    apl.numer = K1_APL_INSTALACJA;
     apl.szer = 640;
     apl.wys = 460;
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
     apl.klawisz = klawisz;
-    apl.zegar = zegar;
     if (fcntl(FD_NADZORCA, F_GETFD) == 0 && fcntl(FD_NADZORCA, F_SETFL, O_NONBLOCK) == 0)
         kanal = FD_NADZORCA;
     else
         k1_log(TAG, "brak kanału do nadzorcy");
+    apl.kanaly[0].fd = kanal; /* disks, progress, Secure Boot */
+    apl.kanaly[0].dane = odbierz;
     szukaj();
     k1_apl_uruchom(&apl);
 }

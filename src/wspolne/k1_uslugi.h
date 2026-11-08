@@ -6,17 +6,35 @@
 #ifndef K1_USLUGI_H
 #define K1_USLUGI_H
 
-#define K1_UID_WEJSCIE 100
-#define K1_UID_EKRAN 101
-#define K1_UID_GUI 102
-#define K1_UID_SKARBIEC 103
-#define K1_UID_LOGOWANIE 104
-#define K1_UID_INSTALATOR 105 /* M5f: the program that writes the disk (no window) */
-#define K1_UID_ZEGAR 200
-#define K1_UID_NOTATKI 201
-#define K1_UID_USTAWIENIA 202
-#define K1_UID_ZASOBY 203
-#define K1_UID_INSTALACJA 204 /* M5f: the Instalator window (no disks) */
+/* The system services: one line each — X(NAME, profile, UID, program, name shown in Zasoby). The profile
+ * numbers never change: skarbiec stores data by owner = profile number (k1_komunikat.h, K1_WL_*). */
+#define K1_SYSTEM(X)                                                                                 \
+    X(WEJSCIE, 1, 100, "wejscie", "Wejście (klawiatura, mysz)")                                     \
+    X(EKRAN, 2, 101, "ekran", "Ekran (kompozytor okien)")                                           \
+    X(GUI, 3, 102, "gui", "Pulpit")                                                                 \
+    X(SKARBIEC, 8, 103, "skarbiec", "Skarbiec (dane)")              /* M5d: Blob Vault */           \
+    X(LOGOWANIE, 9, 104, "logowanie", "Ekran logowania")            /* M5e: boot password screen */ \
+    X(INSTALATOR, 10, 105, "instalator", "Instalator (zapis dysku)") /* M5f: writes the disk, no window */
+
+/* The native applications: one line each — everything else (UIDs, profiles, the Start menu, window names,
+ * Zasoby, the sandbox profile, the image contents, the tests) follows from it.
+ * X(NAME, application number, profile, UID, program (= directory src/aplikacje/<program>), log tag,
+ *   title, description in the Start menu, icon (K1_IK_<icon>), on the bottom bar). The numbers never change
+ *   (the profile is the owner of the application's data in skarbiec); a new application takes the next ones. */
+#define K1_APLIKACJE(X)                                                                                         \
+    X(ZEGAR, 1, 4, 200, "zegar", "K1-ZEGAR", "Zegar", "Godzina i data", ZEGAR, 1)                               \
+    X(NOTATKI, 2, 5, 201, "notatki", "K1-NOTATKI", "Notatki", "Twoje notatki, zaszyfrowane", NOTATKI, 1)        \
+    X(USTAWIENIA, 3, 6, 202, "ustawienia", "K1-USTAWIENIA", "Ustawienia", "Wygląd, ekran, mysz, bateria, hasło", \
+      USTAWIENIA, 1)                                                                                            \
+    X(ZASOBY, 4, 7, 203, "zasoby", "K1-ZASOBY", "Zasoby", "Procesor, pamięć, bateria", ZASOBY, 1)                \
+    X(INSTALACJA, 5, 11, 204, "instalacja", "K1-INSTALACJA", "Instalator", "Instalacja, aktualizacja, Secure Boot", \
+      DYSK, 0)                                                                                                  \
+    X(KALKULATOR, 6, 12, 205, "kalkulator", "K1-KALKULATOR", "Kalkulator", "Działania, procenty, pamięć",          \
+      KALKULATOR, 1)
+
+#define K1_X_UID_S(n, profil, uid, ...) K1_UID_##n = uid,
+#define K1_X_UID_A(n, apl, profil, uid, ...) K1_UID_##n = uid,
+enum k1_uid { K1_SYSTEM(K1_X_UID_S) K1_APLIKACJE(K1_X_UID_A) };
 
 /* Roles of clients of the screen process (who is on the other end of a channel). */
 enum k1_rola {
@@ -27,32 +45,23 @@ enum k1_rola {
 };
 #define K1_ROLA_MAKS 4
 
-/* Native applications (M4; Zasoby: M4.1). Names and icons are known to the shell; only the number travels. */
-enum k1_aplikacja {
-    K1_APL_ZEGAR = 1,
-    K1_APL_NOTATKI = 2,
-    K1_APL_USTAWIENIA = 3,
-    K1_APL_ZASOBY = 4,
-    K1_APL_INSTALACJA = 5, /* M5f: Instalator */
-};
-#define K1_APL_MAKS 5
+/* Native applications: only the number travels between gui, nadzorca and ekran. */
+#define K1_X_APL(n, apl, ...) K1_APL_##n = apl,
+#define K1_X_LICZ(...) +1
+enum k1_aplikacja { K1_APLIKACJE(K1_X_APL) };
+enum { K1_APL_MAKS = 0 K1_APLIKACJE(K1_X_LICZ) }; /* numbered 1..K1_APL_MAKS (checked in k1_uslugi.c) */
 
 /* Sandbox profiles the supervisor knows (also used for test probes in the test image). */
-enum k1_profil_nr {
-    K1_PROFIL_WEJSCIE = 1,
-    K1_PROFIL_EKRAN = 2,
-    K1_PROFIL_GUI = 3,
-    K1_PROFIL_ZEGAR = 4,
-    K1_PROFIL_NOTATKI = 5,
-    K1_PROFIL_USTAWIENIA = 6,
-    K1_PROFIL_ZASOBY = 7,
-    K1_PROFIL_SKARBIEC = 8, /* M5d: Blob Vault */
-    K1_PROFIL_LOGOWANIE = 9, /* M5e: boot password screen */
-    K1_PROFIL_INSTALATOR = 10, /* M5f: writes the target disk (fds from nadzorca), one job */
-    K1_PROFIL_INSTALACJA = 11, /* M5f: the Instalator window */
-};
-#define K1_PROFIL_MAKS 11
+#define K1_X_PROFIL_S(n, profil, ...) K1_PROFIL_##n = profil,
+#define K1_X_PROFIL_A(n, apl, profil, ...) K1_PROFIL_##n = profil,
+enum k1_profil_nr { K1_SYSTEM(K1_X_PROFIL_S) K1_APLIKACJE(K1_X_PROFIL_A) };
+enum { K1_PROFIL_MAKS = 0 K1_SYSTEM(K1_X_LICZ) K1_APLIKACJE(K1_X_LICZ) }; /* numbered 1..MAKS (checked) */
 
+/* A profile's program name ("zegar") and the name Zasoby shows for it; NULL outside 1..K1_PROFIL_MAKS. */
+const char *k1_profil_program(int profil);
+const char *k1_profil_nazwa(int profil);
+/* The application with that number: its profile, or 0. */
+int k1_apl_profil(int apl);
 
 /* Exit code of a service that hit a forbidden system call (seccomp, k1_klatka_w_usludze). */
 #define K1_KOD_SECCOMP 159

@@ -13,17 +13,7 @@
 #include "dyski.h"
 #include "gpt.h"
 #include "k1_komunikat.h"
-
-static int failures, count;
-
-#define EXPECT(cond)                                                          \
-    do {                                                                      \
-        count++;                                                              \
-        if (!(cond)) {                                                        \
-            failures++;                                                       \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond);   \
-        }                                                                     \
-    } while (0)
+#include "k1_test_host.h"
 
 static uint64_t c64(const uint8_t *p)
 {
@@ -193,6 +183,5 @@ int main(int argc, char **argv)
     if (argc > 1)
         obraz(argv[1]);
     dyski();
-    printf("test_instalator: %d sprawdzeń, %d błędów\n", count, failures);
-    return failures != 0;
+    return K1_TEST_KONIEC("test_instalator");
 }

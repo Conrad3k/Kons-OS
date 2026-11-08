@@ -26,6 +26,8 @@
 #include "k1_komunikat.h"
 #include "k1_klucz.h"
 #include "k1_log.h"
+#include "k1_efi.h"
+#include "k1_io.h"
 #include "k1_manifest.h"
 #include "k1_odbior.h"
 #include "k1_uklad.h"
@@ -59,34 +61,6 @@ static _Noreturn void koniec(int wynik)
     _exit(wynik == 0 ? 0 : 1);
 }
 
-static int czytaj(int fd, void *buf, size_t n, uint64_t off)
-{
-    size_t got = 0;
-    while (got < n) {
-        ssize_t r = pread(fd, (char *)buf + got, n - got, (off_t)(off + got));
-        if (r < 0 && errno == EINTR)
-            continue;
-        if (r <= 0)
-            return -1;
-        got += (size_t)r;
-    }
-    return 0;
-}
-
-static int pisz(int fd, const void *buf, size_t n, uint64_t off)
-{
-    size_t done = 0;
-    while (done < n) {
-        ssize_t r = pwrite(fd, (const char *)buf + done, n - done, (off_t)(off + done));
-        if (r < 0 && errno == EINTR)
-            continue;
-        if (r <= 0)
-            return -1;
-        done += (size_t)r;
-    }
-    return 0;
-}
-
 static uint64_t rozmiar(int fd)
 {
     off_t r = lseek(fd, 0, SEEK_END);
@@ -113,12 +87,12 @@ static int kopiuj(uint64_t zr_off, uint64_t n, uint64_t cel_off, int od, int sro
     uint64_t off;
     for (off = 0; off < n; off += KAWALEK) {
         size_t ile = n - off < KAWALEK ? (size_t)(n - off) : KAWALEK;
-        if (czytaj(FD_ZRODLO, bufor, ile, zr_off + off) != 0) {
+        if (k1_czytaj_calosc(FD_ZRODLO, bufor, ile, zr_off + off) != 0) {
             k1_log(TAG, "odczyt systemu z pendrive'a nieudany (%llu MiB): %s", (unsigned long long)(off >> 20),
                    strerror(errno));
             return K1_INST_BLAD_ZAPIS;
         }
-        if (pisz(FD_CEL, bufor, ile, cel_off + off) != 0) {
+        if (k1_pisz_calosc(FD_CEL, bufor, ile, cel_off + off) != 0) {
             k1_log(TAG, "zapis na dysk nieudany (%llu MiB): %s", (unsigned long long)(off >> 20), strerror(errno));
             return K1_INST_BLAD_ZAPIS;
         }
@@ -128,7 +102,7 @@ static int kopiuj(uint64_t zr_off, uint64_t n, uint64_t cel_off, int od, int sro
         return K1_INST_BLAD_ZAPIS;
     for (off = 0; off < n; off += KAWALEK) {
         size_t ile = n - off < KAWALEK ? (size_t)(n - off) : KAWALEK;
-        if (czytaj(FD_ZRODLO, bufor, ile, zr_off + off) != 0 || czytaj(FD_CEL, bufor2, ile, cel_off + off) != 0)
+        if (k1_czytaj_calosc(FD_ZRODLO, bufor, ile, zr_off + off) != 0 || k1_czytaj_calosc(FD_CEL, bufor2, ile, cel_off + off) != 0)
             return K1_INST_BLAD_ZAPIS;
         if (memcmp(bufor, bufor2, ile) != 0) {
             k1_log(TAG, "sprawdzenie: dysk zwraca inne dane niż zapisane (%llu MiB)", (unsigned long long)(off >> 20));
@@ -144,7 +118,7 @@ static int zeruj(uint64_t off, uint64_t n)
     uint64_t i;
     memset(bufor, 0, sizeof bufor);
     for (i = 0; i < n; i += KAWALEK)
-        if (pisz(FD_CEL, bufor, n - i < KAWALEK ? (size_t)(n - i) : KAWALEK, off + i) != 0)
+        if (k1_pisz_calosc(FD_CEL, bufor, n - i < KAWALEK ? (size_t)(n - i) : KAWALEK, off + i) != 0)
             return -1;
     return 0;
 }
@@ -186,10 +160,10 @@ static int instaluj(int sektor, uint64_t system)
     /* 4. the partition table, last */
     etap(96, K1_INST_ETAP_PARTYCJE);
     k1_gpt_zbuduj(&u, losowe, mbr, glowny, zapasowy, wpisy);
-    if (pisz(FD_CEL, wpisy, sizeof wpisy, (u.sektory - 1 - u.wpisy_sektory) * u.sektor) != 0 ||
-        pisz(FD_CEL, zapasowy, u.sektor, (u.sektory - 1) * u.sektor) != 0 ||
-        pisz(FD_CEL, wpisy, sizeof wpisy, 2ull * u.sektor) != 0 || pisz(FD_CEL, glowny, u.sektor, u.sektor) != 0 ||
-        pisz(FD_CEL, mbr, u.sektor, 0) != 0 || fdatasync(FD_CEL) != 0) {
+    if (k1_pisz_calosc(FD_CEL, wpisy, sizeof wpisy, (u.sektory - 1 - u.wpisy_sektory) * u.sektor) != 0 ||
+        k1_pisz_calosc(FD_CEL, zapasowy, u.sektor, (u.sektory - 1) * u.sektor) != 0 ||
+        k1_pisz_calosc(FD_CEL, wpisy, sizeof wpisy, 2ull * u.sektor) != 0 || k1_pisz_calosc(FD_CEL, glowny, u.sektor, u.sektor) != 0 ||
+        k1_pisz_calosc(FD_CEL, mbr, u.sektor, 0) != 0 || fdatasync(FD_CEL) != 0) {
         k1_log(TAG, "zapis tablicy partycji nieudany: %s", strerror(errno));
         return K1_INST_BLAD_ZAPIS;
     }
@@ -239,8 +213,8 @@ static int aktualizuj_slot(const struct k1_uklad *zr, const struct k1_manifest *
     if (nowe.slot != 'b')
         nowe.slot = 'a';
     k1_grubenv_zbuduj(&nowe, env);
-    if (pisz(FD_CEL, env, sizeof env, dysk->grubenv_off) != 0 || fdatasync(FD_CEL) != 0 ||
-        czytaj(FD_CEL, env2, sizeof env2, dysk->grubenv_off) != 0 || memcmp(env, env2, sizeof env) != 0) {
+    if (k1_pisz_calosc(FD_CEL, env, sizeof env, dysk->grubenv_off) != 0 || fdatasync(FD_CEL) != 0 ||
+        k1_czytaj_calosc(FD_CEL, env2, sizeof env2, dysk->grubenv_off) != 0 || memcmp(env, env2, sizeof env) != 0) {
         k1_log(TAG, "zapis grubenv nieudany: %s", strerror(errno));
         return K1_INST_BLAD_ZAPIS;
     }
@@ -258,7 +232,7 @@ static int skrot(int fd, uint64_t off, uint64_t n, uint8_t out[32], int od, int 
     crypto_blake2b_init(&ctx, 32);
     for (i = 0; i < n; i += KAWALEK) {
         size_t ile = n - i < KAWALEK ? (size_t)(n - i) : KAWALEK;
-        if (czytaj(fd, bufor, ile, off + i) != 0)
+        if (k1_czytaj_calosc(fd, bufor, ile, off + i) != 0)
             return -1;
         crypto_blake2b_update(&ctx, bufor, ile);
         etap(od + (int)((uint64_t)(do_ - od) * (i + ile) / n), K1_INST_ETAP_SPRAWDZANIE);
@@ -273,7 +247,7 @@ static int skrot(int fd, uint64_t off, uint64_t n, uint8_t out[32], int od, int 
 static int sprawdz_manifest(uint64_t man_off, uint64_t baza, uint32_t format, struct k1_manifest *m, int od, int do_)
 {
     uint8_t man[K1_MANIFEST_BAJTY], s[32];
-    if (czytaj(FD_ZRODLO, man, sizeof man, man_off) != 0 || k1_manifest_czytaj(man, m) != 0 || m->format != format) {
+    if (k1_czytaj_calosc(FD_ZRODLO, man, sizeof man, man_off) != 0 || k1_manifest_czytaj(man, m) != 0 || m->format != format) {
         k1_log(TAG, "źródło bez manifestu (format %u) — to nie jest system K1 0.7.0 lub nowszy", format);
         return K1_INST_BLAD_PODPIS;
     }
@@ -291,45 +265,12 @@ static int sprawdz_manifest(uint64_t man_off, uint64_t baza, uint32_t format, st
     return 0;
 }
 
-/* The layout block of `fd` (a K1-EFI of format 2): 0, or -1 when there is none (older K1). */
-static int uklad(int fd, struct k1_uklad *u)
-{
-    uint8_t b[K1_UKLAD_BAJTY];
-    uint64_t n = rozmiar(fd);
-    if (n < K1_UKLAD_OFF + K1_UKLAD_BAJTY || czytaj(fd, b, sizeof b, K1_UKLAD_OFF) != 0)
-        return -1;
-    return k1_uklad_czytaj(b, n, u);
-}
-
-/* The version of slot `nr` of the disk (its manifest), 0 when it holds none. */
-static uint32_t wersja_slotu(const struct k1_uklad *u, int nr)
-{
-    uint8_t man[K1_MANIFEST_BAJTY];
-    struct k1_manifest m;
-    if (czytaj(FD_CEL, man, sizeof man, u->slot_off[nr] + K1_SLOT_MANIFEST_OFF) != 0 || k1_manifest_czytaj(man, &m) != 0 ||
-        m.format != 2)
-        return 0;
-    return m.wersja;
-}
-
-/* The version of a disk from K1 0.5.9–0.6.3: its format-1 manifest, 0 when there is none (0.5.9–0.6.1). */
-static uint32_t wersja_starego_dysku(void)
-{
-    uint8_t man[K1_MANIFEST_BAJTY];
-    struct k1_manifest m;
-    if (rozmiar(FD_CEL) < K1_MANIFEST_OFF + K1_MANIFEST_BAJTY || czytaj(FD_CEL, man, sizeof man, K1_MANIFEST_OFF) != 0 ||
-        k1_manifest_czytaj(man, &m) != 0) {
-        k1_log(TAG, "na dysku: system bez manifestu (0.5.9–0.6.1)");
-        return 0;
-    }
-    k1_log(TAG, "na dysku: wersja %s (bez A/B)", m.tekst);
-    return m.wersja;
-}
-
 int main(void)
 {
-    struct k1_uklad zr, dysk;
+    struct k1_efi zr, dysk;
     struct k1_manifest ma, m1;
+    const struct k1_manifest *stara;
+    char w[16];
     int tryb, sektor, r;
 
     k1_klatka_w_usludze(TAG);
@@ -338,11 +279,11 @@ int main(void)
         return 1;
     }
     /* the source: a K1-EFI of format 2, its slot A (the system) checked */
-    if (uklad(FD_ZRODLO, &zr) != 0) {
+    if (k1_efi_czytaj(FD_ZRODLO, rozmiar(FD_ZRODLO), &zr) != 0 || zr.format != 2) {
         k1_log(TAG, "źródło bez bloku układu — pendrive z K1 starszym niż 0.7.0");
         koniec(K1_INST_BLAD_PODPIS);
     }
-    r = sprawdz_manifest(zr.slot_off[0] + K1_SLOT_MANIFEST_OFF, zr.slot_off[0], 2, &ma, 0, 2);
+    r = sprawdz_manifest(zr.uklad.slot_off[0] + K1_SLOT_MANIFEST_OFF, zr.uklad.slot_off[0], 2, &ma, 0, 2);
     if (r != 0)
         koniec(r);
     k1_log(TAG, "źródło: wersja %s, %s", ma.tekst,
@@ -354,31 +295,24 @@ int main(void)
         r = sprawdz_manifest(K1_MANIFEST_OFF, 0, 1, &m1, 2, 3);
         if (r == 0 && m1.wersja != ma.wersja)
             r = K1_INST_BLAD_PODPIS;
-        koniec(r != 0 ? r : instaluj(sektor, zr.fat_bajty));
+        koniec(r != 0 ? r : instaluj(sektor, zr.uklad.fat_bajty));
     }
-    if (uklad(FD_CEL, &dysk) == 0) {
-        uint8_t b[K1_GRUBENV_BAJTY];
-        struct k1_grubenv e;
-        int dziala, cel;
-        uint32_t stara;
-        if (czytaj(FD_CEL, b, sizeof b, dysk.grubenv_off) != 0 || k1_grubenv_czytaj(b, &e) != 0) {
-            k1_log(TAG, "grubenv na dysku nieczytelny — zapisuję całą partycję K1-EFI");
-            koniec(aktualizuj_calosc(zr.fat_bajty));
-        }
-        dziala = e.slot == 'b' ? 1 : 0;
-        cel = 1 - dziala;
-        stara = wersja_slotu(&dysk, dziala);
-        k1_log(TAG, "na dysku: działa miejsce %c (wersja %d.%d.%d), zapis do miejsca %c", "ab"[dziala], (int)(stara >> 16),
-               (int)(stara >> 8 & 0xff), (int)(stara & 0xff), "ab"[cel]);
-        if (stara > ma.wersja) {
-            k1_log(TAG, "odmowa: na pendrivie starsza wersja niż na dysku");
-            koniec(K1_INST_BLAD_STARSZA);
-        }
-        koniec(aktualizuj_slot(&zr, &ma, &dysk, &e, cel));
-    }
-    if (wersja_starego_dysku() > ma.wersja) {
+    if (k1_efi_czytaj(FD_CEL, rozmiar(FD_CEL), &dysk) != 0)
+        memset(&dysk, 0, sizeof dysk);
+    stara = k1_efi_dziala(&dysk);
+    k1_wersja_tekst(stara->wersja, w, sizeof w);
+    if (dysk.format == 2 && dysk.env_ok)
+        k1_log(TAG, "na dysku: działa miejsce %c (wersja %s), zapis do miejsca %c", "ab"[dysk.dziala], w, "ab"[1 - dysk.dziala]);
+    else if (dysk.format == 2)
+        k1_log(TAG, "grubenv na dysku nieczytelny — zapisuję całą partycję K1-EFI");
+    else if (dysk.format == 1)
+        k1_log(TAG, "na dysku: wersja %s (bez A/B)", w);
+    else
+        k1_log(TAG, "na dysku: system bez manifestu (0.5.9–0.6.1)");
+    if (stara->wersja > ma.wersja) {
         k1_log(TAG, "odmowa: na pendrivie starsza wersja niż na dysku");
         koniec(K1_INST_BLAD_STARSZA);
     }
-    koniec(aktualizuj_calosc(zr.fat_bajty));
+    koniec(dysk.format == 2 && dysk.env_ok ? aktualizuj_slot(&zr.uklad, &ma, &dysk.uklad, &dysk.env, 1 - dysk.dziala)
+                                           : aktualizuj_calosc(zr.uklad.fat_bajty));
 }

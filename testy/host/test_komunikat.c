@@ -10,17 +10,7 @@
 #include "k1_kanal.h"
 #include "k1_komunikat.h"
 #include "k1_uslugi.h"
-
-static int failures, count;
-
-#define EXPECT(cond)                                                        \
-    do {                                                                    \
-        count++;                                                            \
-        if (!(cond)) {                                                      \
-            failures++;                                                     \
-            fprintf(stderr, "BŁĄD %s:%d: %s\n", __FILE__, __LINE__, #cond); \
-        }                                                                   \
-    } while (0)
+#include "k1_test_host.h"
 
 static int ok(struct k1_komunikat k, enum k1_kanal_kierunek kier)
 {
@@ -400,10 +390,5 @@ int main(void)
     zasoby();
     skarbiec();
     kanal();
-    if (failures) {
-        fprintf(stderr, "test_komunikat: %d z %d BŁĘDNYCH\n", failures, count);
-        return 1;
-    }
-    printf("test_komunikat: OK (%d przypadków)\n", count);
-    return 0;
+    return K1_TEST_KONIEC("test_komunikat");
 }
