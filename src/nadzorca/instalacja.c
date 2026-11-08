@@ -7,7 +7,12 @@ int inst_tryb, inst_wynik_wyslany, inst_sukces;
 struct k1_dyski inst_lista; /* the list the window saw (INST_START refers to it) */
 struct usluga *instalator(void)
 {
-    return &uslugi[N_USLUG - 1];
+    return usluga_profilu(K1_PROFIL_INSTALATOR);
+}
+
+void inst_nowy_kanal(void)
+{
+    inst_sukces = 0; /* a new window: a restart needs a new finished job */
 }
 
 void inst_wyslij(struct k1_komunikat k)

@@ -188,7 +188,7 @@ double od_startu_systemu(void)
  * M5b. */
 void sprawdz_nowe_wejscia(void)
 {
-    struct usluga *u = &uslugi[2]; /* wejscie */
+    struct usluga *u = usluga_profilu(K1_PROFIL_WEJSCIE);
     struct stat st;
     char sciezka[64];
     int i;

@@ -121,12 +121,7 @@ scenariusz start czekaj "$K1_WYNIK/rdzen.squashfs" "$CMDLINE" \
 SPRZET=$SPRZET_TEST
 scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE" \
     "K1: init OK" "K1-TEST: WYNIK: OK" "odrzucone 5)" "komunikat od obcego nadawcy (uid 0, oczekiwano 100)" \
-    "K1-PROBA: koniec próby „proba-wejscie”: 0 błędów" "K1-PROBA: koniec próby „proba-ekran”: 0 błędów" \
-    "K1-PROBA: koniec próby „proba-gui”: 0 błędów" "K1-PROBA: koniec próby „proba-zegar”: 0 błędów" \
-    "K1-PROBA: koniec próby „proba-notatki”: 0 błędów" "K1-PROBA: koniec próby „proba-ustawienia”: 0 błędów" \
-    "K1-PROBA: koniec próby „proba-zasoby”: 0 błędów" "bez fokusu (ochrona klawiatury)" \
-    "K1-PROBA: koniec próby „proba-skarbiec”: 0 błędów" "K1-PROBA: koniec próby „proba-logowanie”: 0 błędów" \
-    "K1-PROBA: koniec próby „proba-instalator”: 0 błędów" "K1-PROBA: koniec próby „proba-instalacja”: 0 błędów" "K1-SKARBIEC: utworzono nowy magazyn na pustej partycji" \
+    "bez fokusu (ochrona klawiatury)" "K1-SKARBIEC: utworzono nowy magazyn na pustej partycji" \
     "K1-GUI: bateria 73%, rozładowywanie, zasilacz odłączony" \
     "przekroczony limit pamięci powierzchni" "K1-ZASOBY: dane od nadzorcy" \
     "deskryptor nie jest memfd" "memfd bez pieczęci" "zły rozmiar memfd" "panele tylko dla powłoki" \

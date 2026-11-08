@@ -42,8 +42,9 @@ int main(void)
 
     k1_bat_hist_init(&bat_hist, BATERIA_PROBKA);
     rozruch_wydanie();
-    for (i = 0; i < PIERWSZA_APLIKACJA; i++)
-        start(&uslugi[i]);
+    for (i = 0; i < N_USLUG; i++) /* the system services; applications start on request of gui */
+        if (uslugi[i].aplikacja == 0)
+            start(&uslugi[i]);
     if (stat(TEST, &st) == 0) {
         test_pid = uruchom_test();
         k1_log(TAG, "uruchomiono program testowy (pid %d)", (int)test_pid);

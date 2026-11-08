@@ -38,6 +38,19 @@ struct k1_komunikat komunikat_baterii(const struct k1_bateria *b)
                              b->zasilacz, 0);
 }
 
+/* A new channel to gui / the password screen, or to Ustawienia: they get everything again. */
+void bateria_nowy_kanal(void)
+{
+    bateria_znana = 0;
+}
+
+void ustawienia_nowy_kanal(void)
+{
+    ustaw_znana = 0;
+    ustaw_hist_wyslane = 0;
+    ustaw_arch_wyslane = 0;
+}
+
 /* gui's top bar: the state when it changed (the first time after gui started: always). */
 void wyslij_baterie(void)
 {

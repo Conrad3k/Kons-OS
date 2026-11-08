@@ -34,7 +34,19 @@ void k1_segment(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t
                 const char *const *etykiety, int n, int wybrany, int najechany);
 int k1_segment_trafienie(int32_t x, int32_t y, int32_t w, int32_t h, int n, int32_t px, int32_t py);
 
-/* Switch 36×20; `wylaczony_calkiem` = unavailable (muted). */
+/* A button: drawn and hit-tested from the same rectangle, so the two can never disagree. */
+enum k1_styl_przycisku { K1_PRZ_ZWYKLY, K1_PRZ_GLOWNY, K1_PRZ_CICHY }; /* outlined / accent fill / text on a field */
+struct k1_przycisk {
+    int32_t x, y, w, h;
+    const char *etykieta;
+    enum k1_styl_przycisku styl;
+};
+void k1_przycisk(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_przycisk *p, enum k1_cz cz, int najechany,
+                 int aktywny);
+/* Index of the button under (x, y) among `n`, or -1. */
+int k1_przycisk_pod(const struct k1_przycisk *p, int n, int32_t x, int32_t y);
+
+/* Switch 36×20; `niedostepny` = unavailable (muted). */
 void k1_przelacznik(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y, int wlaczony,
                     int niedostepny);
 

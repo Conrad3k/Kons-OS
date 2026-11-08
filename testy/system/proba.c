@@ -36,11 +36,8 @@ int proba(const char *profil)
     long r;
     void *m;
     int e;
-    /* gui, applications, and since M5d ekran and skarbiec: memfd for surfaces / data */
-    int okna = strstr(profil, "notatki") != NULL || strstr(profil, "gui") != NULL || strstr(profil, "zegar") != NULL ||
-               strstr(profil, "ustawienia") != NULL || strstr(profil, "zasoby") != NULL ||
-               strstr(profil, "ekran") != NULL || strstr(profil, "skarbiec") != NULL ||
-               strstr(profil, "logowanie") != NULL || strstr(profil, "instalacja") != NULL;
+    /* memfd (surfaces, data) for everyone but wejscie and the disk writer (nadzorca/profile.c) */
+    int okna = strstr(profil, "wejscie") == NULL && strstr(profil, "instalator") == NULL;
 
     memset(&sa, 0, sizeof sa);
     sa.sa_sigaction = proba_sigsys;

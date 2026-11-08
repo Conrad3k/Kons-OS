@@ -658,26 +658,21 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     k1_apl_odswiez(&apl);
 }
 
-static int zegar(void)
-{
-    odbierz();
-    return 200;
-}
-
 int main(void)
 {
     apl.tag = TAG;
-    apl.tytul = "Instalator";
+    apl.numer = K1_APL_INSTALACJA;
     apl.szer = 640;
     apl.wys = 460;
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
     apl.klawisz = klawisz;
-    apl.zegar = zegar;
     if (fcntl(FD_NADZORCA, F_GETFD) == 0 && fcntl(FD_NADZORCA, F_SETFL, O_NONBLOCK) == 0)
         kanal = FD_NADZORCA;
     else
         k1_log(TAG, "brak kanału do nadzorcy");
+    apl.kanaly[0].fd = kanal; /* disks, progress, Secure Boot */
+    apl.kanaly[0].dane = odbierz;
     szukaj();
     k1_apl_uruchom(&apl);
 }

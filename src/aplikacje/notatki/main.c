@@ -738,18 +738,21 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     k1_apl_odswiez(&apl);
 }
 
+/* Saved 0.8 s after the last change (a burst of typing is one write). */
 static int zegar(void)
 {
-    if (zmiana > 0 && teraz() - zmiana >= 0.8)
+    double zostalo = zmiana > 0 ? 0.8 - (teraz() - zmiana) : -1;
+    if (zmiana > 0 && zostalo <= 0) {
         zapisz();
-    odbierz_wyniki();
-    return zmiana > 0 ? 200 : 500;
+        return -1;
+    }
+    return zmiana > 0 ? (int)(zostalo * 1000) + 1 : -1;
 }
 
 int main(void)
 {
     apl.tag = TAG;
-    apl.tytul = "Notatki";
+    apl.numer = K1_APL_NOTATKI;
     apl.szer = 800;
     apl.wys = 500;
     apl.rysuj = rysuj;
@@ -757,6 +760,8 @@ int main(void)
     apl.wskaznik = wskaznik;
     apl.zegar = zegar;
     wczytaj();
+    apl.kanaly[0].fd = skarb; /* the results of saving */
+    apl.kanaly[0].dane = odbierz_wyniki;
     { /* the tests click by this line */
         int32_t usun_x = x_usun() + 12, tak_x;
         pytanie = 1;

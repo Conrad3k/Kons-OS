@@ -37,19 +37,6 @@ static struct {
 static unsigned long odrzucone;
 static int pierwsze = 1;
 
-static const char *const nazwy[K1_PROFIL_MAKS + 1] = {
-    [K1_PROFIL_WEJSCIE] = "Wejście (klawiatura, mysz)",
-    [K1_PROFIL_EKRAN] = "Ekran (kompozytor okien)",
-    [K1_PROFIL_GUI] = "Pulpit",
-    [K1_PROFIL_ZEGAR] = "Zegar",
-    [K1_PROFIL_NOTATKI] = "Notatki",
-    [K1_PROFIL_USTAWIENIA] = "Ustawienia",
-    [K1_PROFIL_ZASOBY] = "Zasoby",
-    [K1_PROFIL_SKARBIEC] = "Skarbiec (dane)",
-    [K1_PROFIL_LOGOWANIE] = "Ekran logowania",
-    [K1_PROFIL_INSTALATOR] = "Instalator (zapis dysku)",
-    [K1_PROFIL_INSTALACJA] = "Instalator",
-};
 
 /* "12,5" from tenths */
 static void dziesietne(char *buf, size_t n, long dziesiate)
@@ -183,7 +170,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     for (p = 1; p <= K1_PROFIL_MAKS; p++) {
         if (!uslugi[p].dziala)
             continue;
-        k1_tekst(o, K1_CZ_MALA, MARG, y + 16, nazwy[p], k1_kolor(m->tekst, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, MARG, y + 16, k1_profil_nazwa(p), k1_kolor(m->tekst, 255), 0);
         dziesietne(a, sizeof a, uslugi[p].cpu);
         snprintf(buf, sizeof buf, "%s %%", a);
         k1_tekst(o, K1_CZ_MALA, MARG + w - 136 - k1_tekst_szer(K1_CZ_MALA, buf), y + 16, buf, k1_kolor(m->tekst2, 255), 0);
@@ -202,8 +189,8 @@ static void probka(int32_t *tab, int32_t v)
     tab[PROBKI - 1] = v;
 }
 
-/* Reads everything the supervisor sent; returns 1 if something changed. */
-static int odbierz(void)
+/* Everything the supervisor sent (its channel has data). */
+static void odbierz(void)
 {
     int zmiana = 0, i;
     for (i = 0; i < 64; i++) {
@@ -252,23 +239,18 @@ static int odbierz(void)
         }
         zmiana = 1;
     }
-    return zmiana;
-}
-
-static int zegar(void)
-{
-    if (odbierz())
+    if (zmiana)
         k1_apl_odswiez(&apl);
-    return 200;
 }
 
 int main(void)
 {
     apl.tag = TAG;
-    apl.tytul = "Zasoby";
+    apl.numer = K1_APL_ZASOBY;
     apl.szer = 560;
     apl.wys = 580;
     apl.rysuj = rysuj;
-    apl.zegar = zegar;
+    apl.kanaly[0].fd = FD_NADZORCA;
+    apl.kanaly[0].dane = odbierz;
     k1_apl_uruchom(&apl);
 }

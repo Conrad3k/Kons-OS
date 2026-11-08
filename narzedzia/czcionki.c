@@ -22,7 +22,8 @@ static const struct styl style[] = {
 /* ASCII, Polish letters and a few typographic signs used by the interface. */
 static const unsigned dodatkowe[] = { 0x104, 0x105, 0x106, 0x107, 0x118, 0x119, 0x141, 0x142, 0x143, 0x144, 0xd3, 0xf3,
                                       0x15a, 0x15b, 0x179, 0x17a, 0x17b, 0x17c, 0xb0, 0xb7, 0xd7, 0x2013, 0x2014, 0x2026,
-                                      0x201e, 0x201d, 0x2022, 0x2190, 0x2192 };
+                                      0x201e, 0x201d, 0x2022, 0x2190, 0x2192,
+                                      0xf7, 0xb1, 0x2212 /* Kalkulator: ÷ ± − */ };
 
 static int por(const void *a, const void *b)
 {
@@ -54,6 +55,9 @@ int main(int argc, char **argv)
                 kody[n++] = i;
             kody[n++] = ':';
             kody[n++] = ' ';
+            kody[n++] = ','; /* Kalkulator: 1 234,5  -7  1,5e20 */
+            kody[n++] = '-';
+            kody[n++] = 'e';
         } else {
             for (i = 0x20; i < 0x7f; i++)
                 kody[n++] = i;

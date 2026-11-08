@@ -32,5 +32,12 @@ uint32_t k1_znak_klawisza(unsigned kod, unsigned mody)
         char c = (s ? shift : zwykle)[kod - KEY_1];
         return (unsigned char)c;
     }
+    /* the numeric keypad (NumLock on: digits) — KEY_KP7 (71) … KEY_KPDOT (83), KEY_KPSLASH (98) */
+    if (kod >= KEY_KP7 && kod <= KEY_KPDOT)
+        return (unsigned char)"789-456+1230."[kod - KEY_KP7];
+    if (kod == KEY_KPASTERISK)
+        return '*';
+    if (kod == KEY_KPSLASH)
+        return '/';
     return 0;
 }

@@ -32,9 +32,7 @@ struct k1_profil {
     unsigned n_wywolan;
     const struct k1_warunek *warunki; /* allowed only with argument conditions */
     unsigned n_warunkow;
-    const char *zapis;               /* directory the service may read/write (NULL: none) */
-    uint64_t pamiec;                 /* cgroup memory.max in bytes */
-    unsigned procesy;                /* cgroup pids.max (1 = cannot fork) */
+    uint64_t pamiec;                 /* cgroup memory.max in bytes (pids.max is always 1: no service forks) */
     unsigned pliki;                  /* RLIMIT_NOFILE */
     uint64_t rozmiar_pliku;          /* RLIMIT_FSIZE in bytes (0: may not grow any file) */
 };

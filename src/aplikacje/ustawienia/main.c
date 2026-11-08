@@ -15,6 +15,7 @@
 
 #include "k1_bat_arch.h"
 #include "k1_czas.h"
+#include "k1_uslugi.h"
 #include "k1_kanal.h"
 #include "k1_klawiatura.h"
 #include "k1_log.h"
@@ -219,6 +220,7 @@ static int odbierz(void)
             break;
         if (w == K1_ODB_KONIEC) {
             kanal_nadzorcy = 0; /* closed or missing: the rest of the settings work without it */
+            apl.kanaly[0].fd = -1;
             break;
         }
         if (w != K1_ODB_JEST ||
@@ -544,14 +546,16 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     k1_apl_odswiez(&apl);
 }
 
-static int zegar(void)
+static void nadzorca_dane(void)
 {
     if (odbierz() && sekcja == S_BATERIA)
         k1_apl_odswiez(&apl);
+}
+
+static void skarbiec_dane(void)
+{
     hs_odbierz();
-    if (sekcja == S_HASLO || sekcja == S_INFO)
-        k1_apl_odswiez(&apl);
-    return 500;
+    k1_apl_odswiez(&apl); /* Hasło and Informacje show what skarbiec said */
 }
 
 static void wykres_prost(int32_t *x, int32_t *y, int32_t *w, int32_t *h)
@@ -819,15 +823,18 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
 int main(void)
 {
     apl.tag = TAG;
-    apl.tytul = "Ustawienia";
+    apl.numer = K1_APL_USTAWIENIA;
     apl.szer = 680;
     apl.wys = 440;
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
-    apl.zegar = zegar;
     apl.klawisz = klawisz;
     if (fcntl(FD_SKARBIEC, F_GETFD) == 0 && fcntl(FD_SKARBIEC, F_SETFL, O_NONBLOCK) == 0)
         skarb = FD_SKARBIEC;
+    apl.kanaly[0].fd = FD_NADZORCA; /* battery state and history */
+    apl.kanaly[0].dane = nadzorca_dane;
+    apl.kanaly[1].fd = skarb;       /* the password */
+    apl.kanaly[1].dane = skarbiec_dane;
     przygotuj_miniatury();
     k1_log(TAG, "układ: sekcje od 100,%d co %d; przyciski od %d,%d (szer. %d, wys. %d); tapety od %d,%d co %d", NAV_Y + 16,
            NAV_WIERSZ, TRESC_X, seg_y(), SEG_W, SEG_H, TRESC_X + KARTA_W / 2, karty_y() + KARTA_H / 2,

@@ -32,7 +32,7 @@ CFLAGS_HOST := -std=c11 -O1 -g -D_GNU_SOURCE $(OSTRZEZENIA) -fsanitize=address,u
 WSPOLNE := src/wspolne/k1_log.c src/wspolne/k1_cmdline.c src/wspolne/k1_zdarzenie.c
 NAGL    := src/wspolne/k1_log.h src/wspolne/k1_cmdline.h src/wspolne/k1_zdarzenie.h src/wspolne/k1_uslugi.h
 # Services (M3): protocol, channels, sandbox.
-USLUGI  := src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
+USLUGI  := src/wspolne/k1_uslugi.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
            src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c
 NAGL_U  := src/wspolne/k1_komunikat.h src/wspolne/k1_kanal.h src/wspolne/k1_klatka.h src/wspolne/k1_memfd.h \
            src/wspolne/k1_skarb_klient.h src/wspolne/k1_odbior.h src/wspolne/k1_bat_arch.h
@@ -42,11 +42,12 @@ MONOCYPHER := src/zewnetrzne/monocypher/monocypher.c
 MAGAZYN := src/skarbiec/magazyn.c $(MONOCYPHER)
 GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 # GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
-PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
+PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_aplikacja.c \
            src/grafika/k1_grafika.c $(GEN)/k1_czcionki_dane.c
 NAGL_P  := $(wildcard src/przybornik/*.h) src/grafika/k1_grafika.h src/grafika/k1_czcionka.h VERSION
-APLIKACJE := $(BIN)/zegar $(BIN)/notatki $(BIN)/ustawienia $(BIN)/zasoby $(BIN)/instalacja
+# Native applications: every directory src/aplikacje/<program> (its line in k1_uslugi.h K1_APLIKACJE names it).
+APLIKACJE := $(patsubst src/aplikacje/%/main.c,$(BIN)/%,$(wildcard src/aplikacje/*/main.c))
 
 PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(BIN)/wejscie $(BIN)/ekran $(BIN)/gui $(BIN)/skarbiec $(BIN)/logowanie $(BIN)/instalator $(APLIKACJE) \
             $(BIN)/k1-test-systemu
@@ -115,8 +116,11 @@ $(BIN)/logowanie: src/logowanie/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(N
 $(BIN)/gui: src/gui/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/gui/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
-$(BIN)/%: src/aplikacje/%/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_U) $(NAGL_P) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ $< $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+# an application is every .c file of its directory (the Kalkulator: main.c + its engine liczydlo.c)
+.SECONDEXPANSION:
+$(BIN)/%: src/aplikacje/%/main.c $$(wildcard src/aplikacje/$$*/*.c src/aplikacje/$$*/*.h) $(PRZYB) $(WSPOLNE) $(USLUGI) \
+          $(NAGL) $(NAGL_U) $(NAGL_P) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(wildcard src/aplikacje/$*/*.c) $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # Fonts: rasterised on the host with FreeType (narzedzia/czcionki.c), compiled into the programs.
 FT_CFLAGS = $(shell pkg-config --cflags freetype2)
@@ -187,10 +191,16 @@ $(OBJ)/test_uklad: testy/host/test_uklad.c src/wspolne/k1_uklad.c src/wspolne/k1
 $(OBJ)/test_sha256: testy/host/test_sha256.c src/wspolne/k1_sha256.c src/wspolne/k1_sha256.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_sha256.c src/wspolne/k1_sha256.c
 
-testy-host: $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator
-	@if command -v grub-editenv >/dev/null; then rm -f $(OBJ)/grubenv.ref && grub-editenv $(OBJ)/grubenv.ref create && \
-		grub-editenv $(OBJ)/grubenv.ref set k1_slot=a k1_start=a k1_nowy= k1_proba= && $(OBJ)/test_uklad $(OBJ)/grubenv.ref; \
-	else $(OBJ)/test_uklad; fi
+$(OBJ)/test_kalkulator: testy/host/test_kalkulator.c src/aplikacje/kalkulator/liczydlo.c src/aplikacje/kalkulator/liczydlo.h \
+                       src/przybornik/k1_liczba.c src/przybornik/k1_liczba.h testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/aplikacje/kalkulator -o $@ testy/host/test_kalkulator.c \
+		src/aplikacje/kalkulator/liczydlo.c src/przybornik/k1_liczba.c -lm
+
+testy-host: $(OBJ)/test_kalkulator $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator
+	$(OBJ)/test_kalkulator
+	rm -f $(OBJ)/grubenv.ref && grub-editenv $(OBJ)/grubenv.ref create && \
+		grub-editenv $(OBJ)/grubenv.ref set k1_slot=a k1_start=a k1_nowy= k1_proba=
+	$(OBJ)/test_uklad $(OBJ)/grubenv.ref
 	$(OBJ)/test_manifest
 	$(OBJ)/test_sha256
 	$(OBJ)/test_bat_arch

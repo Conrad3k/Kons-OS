@@ -64,7 +64,7 @@ struct usluga {
     size_t dl;
     double zetony, ost_zeton;
     unsigned long pominiete;
-    double start, nastepny; /* start time; when to start again (0: not scheduled) */
+    double nastepny;      /* when to start again (0: not scheduled) */
     unsigned awarie;
     double okno;
     int wylaczona;
@@ -74,8 +74,24 @@ struct usluga {
 #define USLUGA(n, prog, t, prof, r, rol, apl, rest)                                                         \
     { .nazwa = n, .program = prog, .tag = t, .profil = prof, .rodzaj = r, .rola = rol, .aplikacja = apl,          \
       .restartuj = rest, .log = -1 }
-#define PIERWSZA_APLIKACJA 5
-#define N_USLUG 11 /* entries of uslugi[] (checked in uslugi.c) */
+#define N_USLUG (6 + K1_APL_MAKS) /* uslugi[]: 6 system services (k1_uslugi.h K1_SYSTEM) + the applications */
+
+/* The channels nadzorca gives a service besides the one to ekran (fd 3), as fd 4, 5, … in the order of
+ * kanaly_uslugi() (uslugi.c). The ends we keep live in the module that serves them. */
+enum kanal_rodzaj {
+    KN_BRAK = 0, /* (the end of a list) */
+    KN_WEJSCIA, /* the input devices (wejscie: as many fds as there are devices — always last) */
+    KN_SKARB,   /* to skarbiec, the service's profile as the owner (none without skarbiec — always last) */
+    KN_DO,      /* one way from us: we write, the service checks that we (UID 0) send */
+    KN_OD,      /* requests to us and our replies: both ends check the sender (SO_PASSCRED) */
+};
+struct kanal {
+    enum kanal_rodzaj rodzaj;
+    int *nasz;          /* KN_DO / KN_OD: our end (the previous one is closed when the service starts again) */
+    int *uid;           /* KN_OD: who is on the other end (one channel may serve two services), or NULL */
+    void (*nowy)(void); /* KN_DO / KN_OD: forget what was sent on the previous channel, or NULL */
+};
+struct usluga *usluga_profilu(int profil);
 
 #define BATERIA_CO 15.0     /* s between reads (ACPI: the embedded controller) */
 #define BATERIA_CO_ZASOBY 5.0 /* while Zasoby shows the power draw */
@@ -143,6 +159,7 @@ extern int inst_tryb, inst_wynik_wyslany, inst_sukces;
 extern struct k1_dyski inst_lista;
 struct usluga *instalator(void);
 void inst_wyslij(struct k1_komunikat k);
+void inst_nowy_kanal(void);
 void inst_lista_dyskow(void);
 int otworz_urzadzenie(const char *nazwa, int flagi);
 int inst_zapis(int nr, int tryb);
@@ -174,6 +191,8 @@ extern double nastepna_probka;
 void odczytaj_baterie(double t);
 struct k1_komunikat komunikat_baterii(const struct k1_bateria *b);
 void wyslij_baterie(void);
+void bateria_nowy_kanal(void);
+void ustawienia_nowy_kanal(void);
 void wyslij_ustawieniom(void);
 extern int ustaw_arch_wyslane;
 void bateria_archiwum(double t);
