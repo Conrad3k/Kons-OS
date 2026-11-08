@@ -105,17 +105,18 @@ int ustawienia_fd(void)
 void ustawienia_odbierz(void)
 {
     static int zalogowane;
-    int wynik, tryb, r;
-    while (skarb >= 0 && (r = k1_skarb_wynik(skarb, &wynik, &tryb)) != 0) {
+    struct k1_komunikat k;
+    int r;
+    while (skarb >= 0 && (r = k1_skarb_wynik(skarb, &k)) != 0) {
         if (r < 0) {
             k1_log(TAG, "skarbiec zamknął kanał — dalsze zmiany ustawień bez zapisu");
             close(skarb);
             skarb = -1;
             return;
         }
-        if (wynik != 0)
-            k1_log(TAG, "zapis ustawień: błąd %d", wynik);
+        if (k.b != 0)
+            k1_log(TAG, "zapis ustawień: błąd %d", k.b);
         else if (!zalogowane++)
-            k1_log(TAG, "ustawienia zapisane (%s)", tryb == K1_SKARB_TRWALY ? "na dysku" : "w pamięci");
+            k1_log(TAG, "ustawienia zapisane (%s)", k.c == K1_SKARB_TRWALY ? "na dysku" : "w pamięci");
     }
 }

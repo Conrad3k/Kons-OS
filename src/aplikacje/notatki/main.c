@@ -453,7 +453,7 @@ static void odbierz_wyniki(void)
 {
     struct k1_komunikat k;
     int r;
-    while (skarb >= 0 && (r = k1_skarb_wynik_pelny(skarb, &k)) != 0) {
+    while (skarb >= 0 && (r = k1_skarb_wynik(skarb, &k)) != 0) {
         if (r < 0) {
             close(skarb);
             skarb = -1;

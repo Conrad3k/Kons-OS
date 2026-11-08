@@ -235,8 +235,9 @@ static void odbierz_baterie(void)
 
 static void odbierz_wynik(void)
 {
-    int wynik, tryb, r;
-    while (skarb >= 0 && (r = k1_skarb_wynik(skarb, &wynik, &tryb)) != 0) {
+    struct k1_komunikat w;
+    int r;
+    while (skarb >= 0 && (r = k1_skarb_wynik(skarb, &w)) != 0) {
         if (r < 0) {
             close(skarb);
             skarb = -1;
@@ -245,7 +246,7 @@ static void odbierz_wynik(void)
             break;
         }
         czeka = 0;
-        if (wynik == 0) {
+        if (w.b == 0) {
             odblokowano = 1;
             pokaz_blad = 0;
             snprintf(komunikat, sizeof komunikat, "Odblokowano — uruchamiam pulpit…");
