@@ -354,7 +354,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     case S_SB: {
         static const char *const kroki[] = {
             "1. Kliknij „Przygotuj klucz K1” i uruchom komputer ponownie (bez pendrive'a).",
-            "2. Pojawi się niebieski ekran „Perform MOK management” — naciśnij dowolny klawisz.",
+            "2. Pojawi się niebieski ekran MokManagera — w ciągu 10 sekund naciśnij dowolny klawisz.",
             "3. Wybierz Enroll MOK → Continue → Yes, wpisz hasło: kons → Reboot.",
             "4. Przy starcie F1 (BIOS) → Security → Secure Boot → Enabled, zapisz (F10).",
         };
