@@ -2,22 +2,12 @@
 
 Stan: 2026-11-08, wersja **0.7.1** (wydana, wszystkie testy zaliczone). Porządki z ADR 0023 zostały
 przerwane na prośbę właściciela (limit). Ten plik mówi, co dokończyć **przed rozpoczęciem M7 (Sieć)**,
-jako jedna wersja porządkowa **0.7.2**. Pracują nad repo dwaj asystenci (Claude i Codex) — zasady są
-wspólne, a zrobione punkty odhaczamy tutaj (`[x]`), żeby nie robić niczego dwa razy.
+jako jedna wersja porządkowa **0.7.2**. Zrobione punkty odhaczamy tutaj (`[x]`).
 
-## Zasady (obowiązują każdego, kto pracuje w repo)
-- Najpierw przeczytaj: `CLAUDE.md` (krótkie zasady), `.claude/skills/kons-dev/SKILL.md` (architektura,
-  niezmienniki bezpieczeństwa, przepisy), `docs/SPEC.md` (zmiany tylko przez ADR), `docs/ARCHITEKTURA.md`,
-  `docs/TESTY.md`.
-- Właściciel pisze po polsku i nie jest programistą: dokumentacja, PR-y i komunikaty w systemie po
-  polsku; commity i komentarze w kodzie po angielsku.
-- **Nigdy** nie wpisuj do repo ani do rozmowy sekretu `K1_KLUCZ_PODPISU` ani prywatnego klucza Secure
-  Boot (`build/gen/sb/k1-sb.key` jest kasowany po podpisaniu). Klucza deweloperskiego nie proponujemy do
-  wpisania w MOK.
-- Zachowanie systemu ma zostać takie samo (to porządki, nie nowe funkcje). Przed scaleniem: pełny
-  `scripts/zbuduj.sh && scripts/testy.sh` lokalnie, wszystko `[OK]`.
-- Wydanie: podbij `VERSION` (0.7.2), wpis w `CHANGELOG.md`, PR → scalenie squash do `main`; CI tworzy
-  wydanie `k1-v0.7.2` — właściciel dostaje bezpośredni link do ISO i do `-usb.img.xz`.
+## Zasady
+Wspólne zasady pracy (bezpieczeństwo, język, jak dzielimy się zadaniami, testy, scalanie): `AGENTS.md`.
+Tutaj tylko: zachowanie systemu ma zostać takie samo (to porządki, nie nowe funkcje); wszystko trafia do
+wersji **0.7.2**; punkt, nad którym pracujesz, oznacz `[w toku: Claude|Codex, gałąź …]`.
 
 ## 1. Testy (najważniejsze)
 Test ma się nie udać przy prawdziwym błędzie — i tylko wtedy.
