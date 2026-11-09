@@ -2,6 +2,7 @@
  *
  *   podpisz klucz-publiczny          > k1_klucz.h     the public key for the programs of K1
  *   podpisz obraz PLIK WERSJA                         manifest (format 1) at 47 MiB of the K1-EFI image PLIK
+ *                                                     (k1: tymczasowe — usunąć w 0.8.0, with format 1)
  *   podpisz slot PLIK WERSJA WYDANIE FAT_BAJTY        slot manifest (format 2, ADR 0022) into the slot file PLIK
  *   podpisz grubenv PLIK                              GRUB's environment block for a fresh K1-EFI (slot a)
  *   podpisz uklad PLIK GRUBENV_OFF A_OFF B_OFF        the layout block into the K1-EFI image PLIK (checked)

@@ -76,6 +76,9 @@ krok() { # $1 = nazwa, $2 = plik logu, reszta = polecenie
     r=0; "$@" >"$l" 2>&1 || r=$?
     wynik "$n" "$r" "log: $l"
 }
+# 0.7.5 (AGENTS.md, „Czytelność”): file and function size limits, every service, app and message described
+krok "czytelność: pliki ≤ 600 wierszy, funkcje ≤ 80, opisy usług, aplikacji i komunikatów" "$TESTY/czytelnosc.log" \
+    python3 -I "$K1_REPO/scripts/sprawdz-czytelnosc.py" "$K1_REPO"
 krok "jednostkowe: linia poleceń, protokoły, kanały, przybornik GUI, renderer (ASan/UBSan)" "$TESTY/host.log" \
     make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" testy-host
 krok "fuzzing: linia poleceń, protokoły zdarzeń i usług (${K1_FUZZ_CZAS:-20} s każdy, libFuzzer)" "$TESTY/fuzz.log" \
@@ -122,6 +125,7 @@ scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE
     "K1-GUI: bateria 73%, rozładowywanie, zasilacz odłączony" \
     "przekroczony limit pamięci powierzchni" "K1-ZASOBY: dane od nadzorcy" \
     "deskryptor nie jest memfd" "memfd bez pieczęci" "zły rozmiar memfd" "panele tylko dla powłoki" \
+    "pulpit tylko dla powłoki" \
     "zmiana ustawień tylko dla aplikacji Ustawienia" "zarządzanie cudzymi oknami tylko dla powłoki" \
     "ekran zakończony sygnałem 11" "ponowne uruchomienie ekran" "wejscie wyłączony: 6 zakończeń" \
     "K1: wyłączanie zasilania" "reboot: Power down"

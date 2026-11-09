@@ -38,7 +38,7 @@ enum k1_komunikat_typ {
     K1_KOM_INST_ZADANIE = 3, /* a=K1_INST_* mode, b=logical sector size (512/4096) of the target */
 
     /* client → ekran (obiekt = surface number 1..K1_POW_MAKS unless noted) */
-    K1_KOM_POWIERZCHNIA = 10, /* a=width, b=height, c=kind (K1_POW_OKNO/PANEL), d,e = x,y (panel; window: 0); + 1 fd */
+    K1_KOM_POWIERZCHNIA = 10, /* a=width, b=height, c=kind (K1_POW_*), d,e = x,y (panel; window, desktop: 0); + 1 fd */
     K1_KOM_ZATWIERDZ = 11,    /* a=buffer half 0/1, b,c,d,e = damaged x,y,w,h in the surface (w=h=0: all) */
     K1_KOM_POKAZ = 12,        /* a=1 show / 0 hide (panels) */
     K1_KOM_PRZESUN = 13,      /* a,b = new x,y (panels) */
@@ -48,6 +48,7 @@ enum k1_komunikat_typ {
     K1_KOM_AKTYWUJ_OKNO = 17, /* shell only: obiekt = window id; show, raise and focus */
     K1_KOM_MINIMALIZUJ_OKNO = 18, /* shell only: obiekt = window id */
     K1_KOM_USTAW = 19,        /* settings application only: obiekt=0, a=key, b=value */
+    K1_KOM_ZAMKNIJ_OKNO = 20, /* shell only (0.7.5): obiekt = window id; ekran asks its application to close it */
 
     /* ekran → client */
     K1_KOM_WITAJ = 30,      /* obiekt=0, a,b = screen width,height, c=rola, d=aplikacja */
@@ -58,6 +59,7 @@ enum k1_komunikat_typ {
     K1_KOM_OKNO = 35,       /* shell only: obiekt=window id, a=aplikacja, b=K1_OKNO_* state */
     K1_KOM_USTAWIENIE = 36, /* obiekt=0, a=key, b=value (broadcast to all clients) */
     K1_KOM_TRYB = 37,       /* to Ustawienia: obiekt=mode 1..K1_TRYBY_MAKS, a,b = width,height, c=Hz, d=1 preferred */
+    K1_KOM_ZAMKNIJ = 38,    /* to an application (0.7.5): obiekt=window surface — close it (as with its × button) */
     /* WITAJ is sent again when the screen size changes (K1_UST_ROZDZIELCZOSC): clients lay out anew. */
 
     /* gui / test → nadzorca */
@@ -128,7 +130,10 @@ enum k1_komunikat_typ {
 #define K1_POW_MAKS_BOK 4096  /* max width/height of one surface */
 #define K1_POZ_MIN (-4096)    /* panel position range */
 #define K1_POZ_MAKS 8192
-enum { K1_POW_OKNO = 1, K1_POW_PANEL = 2 };
+/* OKNO: an application window; PANEL: a panel of the shell or the password screen, above the windows;
+ * PULPIT (0.7.5): the shell's desktop layer (icons) — one, at 0,0, right above the wallpaper and below the
+ * windows, catching the pointer in every pixel. */
+enum { K1_POW_OKNO = 1, K1_POW_PANEL = 2, K1_POW_PULPIT = 3 };
 
 /* Pointer events */
 enum { K1_WSK_RUCH = 1, K1_WSK_WCISNIECIE = 2, K1_WSK_PUSZCZENIE = 3, K1_WSK_WYJSCIE = 4 };
@@ -168,6 +173,7 @@ enum k1_ustawienie {
 #define K1_OB_USTAWIENIA 1        /* ekran: the settings */
 #define K1_OB_NOTATKA 2           /* Notatki: the first note (0.5.8: 1 = the list, 2..33 = notes) */
 #define K1_OB_BATERIA 3           /* nadzorca: battery history */
+#define K1_OB_ROZMIESZCZENIE 1    /* gui (0.7.5): the desktop arrangement — icons and the bottom bar */
 #define K1_SKARB_MAKS (1 << 20)   /* bytes in one object (Blob Vault limit) */
 #define K1_SKARB_TRWALY 0         /* saved on the K1-DANE partition */
 #define K1_SKARB_RAM 1            /* no (usable) partition: kept in memory until power off */

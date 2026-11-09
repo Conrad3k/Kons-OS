@@ -17,13 +17,16 @@
  * Documentation: docs/komponenty/nadzorca.md. */
 #include "nadzorca.h"
 
-int main(void)
+static double nastepny_raport; /* the next Zasoby report (each second while Zasoby runs) */
+
+/* Signals through a signalfd, /dev/null for the services, cgroups; then the system services, the test
+ * program (test image) and kernel events. Returns the signalfd. */
+static int przygotuj(void)
 {
     sigset_t maska;
     int sfd;
     size_t i;
     struct stat st;
-    double nastepny_raport = 0, nastepne_skanowanie = 0, nastepna_bateria = 0;
 
     sigemptyset(&maska);
     sigaddset(&maska, SIGCHLD);
@@ -49,8 +52,90 @@ int main(void)
         test_pid = uruchom_test();
         k1_log(TAG, "uruchomiono program testowy (pid %d)", (int)test_pid);
     }
-
     uevent_otworz();
+    return sfd;
+}
+
+/* SIGTERM / SIGINT from init (stop the services) and ended children. Returns -1 to go on, or the exit
+ * code of nadzorca. */
+static int sygnaly(int sfd)
+{
+    struct signalfd_siginfo si;
+    size_t i;
+    while (read(sfd, &si, sizeof si) == (ssize_t)sizeof si) {
+        if (si.ssi_signo == SIGTERM || si.ssi_signo == SIGINT) {
+            k1_log(TAG, "zatrzymywanie usług");
+            bateria_archiwum_koniec();
+            for (i = N_USLUG; i-- > 0;)
+                if (uslugi[i].pid > 0)
+                    kill(uslugi[i].pid, SIGTERM);
+            return 0;
+        }
+    }
+    for (;;) {
+        int status;
+        pid_t pid = waitpid(-1, &status, WNOHANG);
+        if (pid <= 0)
+            break;
+        if (test_pid != 0 && pid == test_pid) {
+            opisz("program testowy", status);
+            return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
+        }
+        if (pid == proba.pid) {
+            opisz(proba.nazwa, status);
+            zamknij_log(&proba);
+            proba.pid = 0;
+            if (test_kanal >= 0)
+                odpowiedz_testowi(WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status), -1);
+            continue;
+        }
+        for (i = 0; i < N_USLUG; i++)
+            if (uslugi[i].pid == pid)
+                zakonczona(&uslugi[i], status);
+    }
+    return -1;
+}
+
+/* After every wake-up: due restarts, device changes, battery, Zasoby, the A/B boot check. */
+static void okresowe(void)
+{
+    static double nastepne_skanowanie, nastepna_bateria;
+    double t = k1_teraz();
+    size_t i;
+    for (i = 0; i < N_USLUG; i++)
+        if (uslugi[i].pid == 0 && !uslugi[i].wylaczona && uslugi[i].nastepny > 0 && uslugi[i].nastepny <= t)
+            start(&uslugi[i]);
+    /* Device changes: at once on a kernel event, otherwise every 10 s (every 2 s without uevent). */
+    if (uevent_zalegle || t >= nastepne_skanowanie)
+        uevent_wejscie = uevent_dysk = uevent_zasilanie = 1;
+    if (uevent_wejscie)
+        sprawdz_nowe_wejscia();
+    if (uevent_dysk) {
+        szukaj_pozno();
+        if (etap_startu() == E_DANE && skarbiec()->pid == 0)
+            skarbiec()->nastepny = t; /* the data partition may be there now */
+    }
+    if (uevent_zasilanie || t >= nastepna_bateria) {
+        odczytaj_baterie(t);
+        nastepna_bateria = t + (zasoby_kanal >= 0 ? BATERIA_CO_ZASOBY : BATERIA_CO);
+    }
+    if (t >= nastepne_skanowanie)
+        nastepne_skanowanie = t + (uevent_fd >= 0 ? 10.0 : 2.0);
+    uevent_wejscie = uevent_dysk = uevent_zasilanie = uevent_zalegle = 0;
+    wyslij_baterie();
+    wyslij_ustawieniom();
+    bateria_archiwum(t);
+    rozruch_po_starcie(t);
+    if (zasoby_kanal >= 0 && t >= nastepny_raport) {
+        raport_zasobow();
+        nastepny_raport = t + 1.0;
+    }
+}
+
+int main(void)
+{
+    int sfd = przygotuj(), kod;
+    size_t i;
 
     for (;;) {
         /* The channels nadzorca reads: its fd number may change while it is handled (restarts). */
@@ -106,69 +191,8 @@ int main(void)
                 kanaly[i].obsluz();
         }
 
-        if (pfd[0].revents & POLLIN) {
-            struct signalfd_siginfo si;
-            while (read(sfd, &si, sizeof si) == (ssize_t)sizeof si) {
-                if (si.ssi_signo == SIGTERM || si.ssi_signo == SIGINT) {
-                    k1_log(TAG, "zatrzymywanie usług");
-                    bateria_archiwum_koniec();
-                    for (i = N_USLUG; i-- > 0;)
-                        if (uslugi[i].pid > 0)
-                            kill(uslugi[i].pid, SIGTERM);
-                    return 0;
-                }
-            }
-            for (;;) {
-                int status;
-                pid_t pid = waitpid(-1, &status, WNOHANG);
-                if (pid <= 0)
-                    break;
-                if (test_pid != 0 && pid == test_pid) {
-                    opisz("program testowy", status);
-                    return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
-                }
-                if (pid == proba.pid) {
-                    opisz(proba.nazwa, status);
-                    zamknij_log(&proba);
-                    proba.pid = 0;
-                    if (test_kanal >= 0)
-                        odpowiedz_testowi(WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status), -1);
-                    continue;
-                }
-                for (i = 0; i < N_USLUG; i++)
-                    if (uslugi[i].pid == pid)
-                        zakonczona(&uslugi[i], status);
-            }
-        }
-
-        t = k1_teraz();
-        for (i = 0; i < N_USLUG; i++)
-            if (uslugi[i].pid == 0 && !uslugi[i].wylaczona && uslugi[i].nastepny > 0 && uslugi[i].nastepny <= t)
-                start(&uslugi[i]);
-        /* Device changes: at once on a kernel event, otherwise every 10 s (every 2 s without uevent). */
-        if (uevent_zalegle || t >= nastepne_skanowanie)
-            uevent_wejscie = uevent_dysk = uevent_zasilanie = 1;
-        if (uevent_wejscie)
-            sprawdz_nowe_wejscia();
-        if (uevent_dysk) {
-            szukaj_pozno();
-            if (etap_startu() == E_DANE && skarbiec()->pid == 0)
-                skarbiec()->nastepny = t; /* the data partition may be there now */
-        }
-        if (uevent_zasilanie || t >= nastepna_bateria) {
-            odczytaj_baterie(t);
-            nastepna_bateria = t + (zasoby_kanal >= 0 ? BATERIA_CO_ZASOBY : BATERIA_CO);
-        }
-        if (t >= nastepne_skanowanie)
-            nastepne_skanowanie = t + (uevent_fd >= 0 ? 10.0 : 2.0);
-        uevent_wejscie = uevent_dysk = uevent_zasilanie = uevent_zalegle = 0;
-        wyslij_baterie();
-        wyslij_ustawieniom();
-        bateria_archiwum(t);
-        rozruch_po_starcie(t);
-        if (zasoby_kanal >= 0 && t >= nastepny_raport) {
-            raport_zasobow();
-            nastepny_raport = t + 1.0;
-        }
+        if ((pfd[0].revents & POLLIN) && (kod = sygnaly(sfd)) >= 0)
+            return kod;
+        okresowe();
     }
 }

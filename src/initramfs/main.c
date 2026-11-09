@@ -210,24 +210,15 @@ static void make_dir(const char *path)
         k1_awaria(TAG, "mkdir %s: %s", path, strerror(errno));
 }
 
-int main(void)
+/* k1.rdzen (the core image: a block device or the one built into k1.efi) and k1.rdzen_skrot (its dm-verity
+ * root hash) from the kernel command line; anything wrong stops the boot. Returns 1 for the built-in image. */
+static int parametry(char *device, size_t n_device, char *skrot, size_t n_skrot)
 {
     char cmdline[CMDLINE_MAX];
-    char device[K1_CMDLINE_VALUE_MAX], skrot[80], dm[32];
-    struct stat st;
-    char *const argv[] = { (char *)"/rdzen/init", NULL };
-    char *const envp[] = { NULL };
-    int builtin, loop = -1;
-
-    if (getpid() != 1) {
-        k1_log(TAG, "ten program działa tylko jako PID 1 (initramfs)");
-        return 1;
-    }
-    umask(0077);
-    k1_log(TAG, "start");
+    int builtin;
 
     read_cmdline(cmdline, sizeof cmdline);
-    switch (k1_cmdline_get(cmdline, strlen(cmdline), "k1.rdzen", device, sizeof device)) {
+    switch (k1_cmdline_get(cmdline, strlen(cmdline), "k1.rdzen", device, n_device)) {
     case K1_CMDLINE_FOUND:
         break;
     case K1_CMDLINE_ABSENT:
@@ -236,7 +227,7 @@ int main(void)
     default:
         k1_awaria(TAG, "niepoprawny parametr k1.rdzen (za długi, powtórzony albo z cudzysłowem)");
     }
-    switch (k1_cmdline_get(cmdline, strlen(cmdline), "k1.rdzen_skrot", skrot, sizeof skrot)) {
+    switch (k1_cmdline_get(cmdline, strlen(cmdline), "k1.rdzen_skrot", skrot, n_skrot)) {
     case K1_CMDLINE_FOUND:
         if (!k1_valid_hex64(skrot))
             k1_awaria(TAG, "niepoprawny parametr k1.rdzen_skrot: potrzebne 64 znaki szesnastkowe (a-f, 0-9)");
@@ -250,6 +241,40 @@ int main(void)
     builtin = strcmp(device, BUILTIN) == 0;
     if (!builtin && !k1_valid_block_device(device))
         k1_awaria(TAG, "niepoprawny parametr k1.rdzen: dozwolone tylko /dev/[a-z0-9]{1,31} albo " BUILTIN);
+    return builtin;
+}
+
+/* switch_root: free the initramfs, move the new root over "/" and enter it. Its contents
+ * are known: our cpio (scripts/zbuduj-obraz.sh) plus the kernel's built-in default list
+ * (usr/default_cpio_list: /dev, /dev/console, /root). fds 0-2 keep pointing at the console
+ * opened by the kernel before /init started. */
+static void przelacz_korzen(int builtin)
+{
+    if (unlink("/init") != 0 || unlink("/dev/console") != 0 || rmdir("/dev") != 0 ||
+        rmdir("/proc") != 0 || (rmdir("/root") != 0 && errno != ENOENT) ||
+        (builtin && unlink(BUILTIN_IMAGE) != 0)) /* the loop device keeps the file's data */
+        k1_awaria(TAG, "nie można usunąć plików initramfs: %s", strerror(errno));
+    if (chdir(NEW_ROOT) != 0 || mount(".", "/", NULL, MS_MOVE, NULL) != 0 || chroot(".") != 0 ||
+        chdir("/") != 0)
+        k1_awaria(TAG, "nie można przełączyć korzenia systemu: %s", strerror(errno));
+}
+
+int main(void)
+{
+    char device[K1_CMDLINE_VALUE_MAX], skrot[80], dm[32];
+    struct stat st;
+    char *const argv[] = { (char *)"/rdzen/init", NULL };
+    char *const envp[] = { NULL };
+    int builtin, loop = -1;
+
+    if (getpid() != 1) {
+        k1_log(TAG, "ten program działa tylko jako PID 1 (initramfs)");
+        return 1;
+    }
+    umask(0077);
+    k1_log(TAG, "start");
+
+    builtin = parametry(device, sizeof device, skrot, sizeof skrot);
 
     if (mount("devtmpfs", "/dev", "devtmpfs", MS_NOSUID | MS_NOEXEC, NULL) != 0)
         k1_awaria(TAG, "nie można zamontować /dev: %s", strerror(errno));
@@ -283,18 +308,7 @@ int main(void)
     if (umount2("/dev", 0) != 0)
         k1_awaria(TAG, "nie można odmontować /dev: %s", strerror(errno));
 
-    /* switch_root: free the initramfs, move the new root over "/" and enter it. Its contents
-     * are known: our cpio (scripts/zbuduj-obraz.sh) plus the kernel's built-in default list
-     * (usr/default_cpio_list: /dev, /dev/console, /root). fds 0-2 keep pointing at the console
-     * opened by the kernel before /init started. */
-    if (unlink("/init") != 0 || unlink("/dev/console") != 0 || rmdir("/dev") != 0 ||
-        rmdir("/proc") != 0 || (rmdir("/root") != 0 && errno != ENOENT) ||
-        (builtin && unlink(BUILTIN_IMAGE) != 0)) /* the loop device keeps the file's data */
-        k1_awaria(TAG, "nie można usunąć plików initramfs: %s", strerror(errno));
-    if (chdir(NEW_ROOT) != 0 || mount(".", "/", NULL, MS_MOVE, NULL) != 0 || chroot(".") != 0 ||
-        chdir("/") != 0)
-        k1_awaria(TAG, "nie można przełączyć korzenia systemu: %s", strerror(errno));
-
+    przelacz_korzen(builtin);
     k1_log(TAG, "obraz rdzenia zamontowany z %s, uruchamiam /rdzen/init", device);
     execve(argv[0], argv, envp);
     k1_awaria(TAG, "nie można uruchomić /rdzen/init: %s", strerror(errno));

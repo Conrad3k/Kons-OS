@@ -97,6 +97,14 @@ if tryb == "ponownie":
         g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", od=1, czas=30) or g
     kursor[:] = list(kursor_teraz())
     ax, ay, krok = int(g.group(3)), int(g.group(4)), int(g.group(5))
+    # 0.7.5: the desktop arrangement from skarbiec — the bar's order and Kalkulator in column 3
+    ik = re.findall(r"K1-GUI: ikony na pulpicie \(siatka \d+x\d+, co (\d+),\d+\): (.*)", tekst())
+    kal = re.search(r"Kalkulator (\d+),", ik[-1][1]) if ik else None
+    zeg = re.search(r"Zegar (\d+),", ik[-1][1]) if ik else None
+    sprawdz("rozmieszczenie pulpitu wróciło ze skarbca (pasek i Kalkulator w kolumnie 3)",
+            czekaj(r"K1-GUI: rozmieszczenie pulpitu wczytane \(na pasku: 5, na pulpicie: 5\)", czas=10) and
+            "(pasek: Zegar, Notatki, Ustawienia, Zasoby, Kalkulator)" in tekst() and kal and zeg and
+            int(kal.group(1)) == int(zeg.group(1)) + 2 * int(ik[-1][0]), ik[-1][1] if ik else "brak")
     klik(ax + krok, ay)  # Notatki
     sprawdz("notatki wróciły: 2, na górze ostatnio zmieniona „Druga” (5 B)",
             czekaj(r"K1-NOTATKI: notatki wczytane: 2 \(pierwsza: 5 B\)", czas=40))
@@ -142,9 +150,92 @@ if tryb != "pulpit":
             and "zabronione wywołanie" not in tekst())
     sys.exit(0 if all(wyniki) else 1)
 
+# 0.7.5: the desktop (owner's sketch A "Kafelki"): icons, double click, the right-click menus, pinning,
+# dragging on the bar and on the desktop. At the end the bar is as at the start (the steps below use it).
+IKONY = r"K1-GUI: ikony na pulpicie \(siatka (\d+)x(\d+), co (\d+),(\d+)\): (.*)"
+ik = czekaj(IKONY)
+ikony = {n: (int(x), int(y)) for n, x, y in re.findall(r"(\w+) (\d+),(\d+)", ik.group(5))} if ik else {}
+sprawdz("pulpit: ikony aplikacji przy pierwszym starcie (bez Instalatora)",
+        set(ikony) == {"Zegar", "Notatki", "Ustawienia", "Zasoby", "Kalkulator"}, ik.group(0) if ik else "brak")
+if not ikony: sys.exit(1)
+kafel = lambda px, n: jasny(px(ikony[n][0] - 20, ikony[n][1]))  # a light tile left of the line icon
+w, h, px = zrzut("1b-ikony", gdy=lambda w, h, px: kafel(px, "Zegar") and kafel(px, "Kalkulator"))
+sprawdz("zrzut: jasne kafelki ikon na tapecie (motyw jasny)", kafel(px, "Zegar") and kafel(px, "Kalkulator"),
+        str(px(ikony["Zegar"][0] - 20, ikony["Zegar"][1])))
+q.dwuklik(*ikony["Zegar"])
+zo = czekaj(r"K1-EKRAN: okno (\d+) \(zegar\)", czas=30)
+sprawdz("pulpit: podwójne kliknięcie ikony otwiera Zegar", czekaj(r"K1-GUI: pulpit: otwieram Zegar") and zo)
+
+
+PASEK = r"K1-GUI: (?:pulpit gotowy|pasek zmieniony): Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)"
+
+
+def pasek():
+    """The bar's latest positions (it is centred: Start moves when applications are pinned or unpinned)."""
+    m = list(re.finditer(PASEK, tekst()))
+    return tuple(int(m[-1].group(i)) for i in range(1, 6))
+
+
+def menu_k(prawy, wzor, wiersz, nazwa_zrzutu=None):
+    """Right click at `prawy`, wait for the menu `wzor`, click its row `wiersz` (its centre from the log)."""
+    wz = r"K1-GUI: menu kontekstowe \(" + wzor + r"\): (.*)"
+    n = q.ile(wz)
+    q.prawy_klik(*prawy)
+    mk = czekaj(wz, od=n, czas=20)
+    pozycje = {t.strip(): (int(x), int(y)) for t, x, y in re.findall(r"([^;:]+?) (\d+),(\d+)", mk.group(1))} if mk else {}
+    if nazwa_zrzutu and wiersz in pozycje:
+        zrzut(nazwa_zrzutu, gdy=lambda w, h, px: jasny(px(pozycje[wiersz][0] + 80, pozycje[wiersz][1])))
+    if wiersz in pozycje:
+        klik(*pozycje[wiersz])
+    return mk is not None and wiersz in pozycje
+
+
+if zo:
+    sprawdz("pasek: prawy przycisk → „Zamknij okno” zamyka Zegar (aplikacja zamyka się sama)",
+            menu_k((ax, ay), "pasek Zegar", "Zamknij okno", "1c-menu-paska") and
+            czekaj(r"K1-ZEGAR: okno zamknięte z dolnego paska") and czekaj(rf"K1-EKRAN: okno {zo.group(1)} zamknięte"))
+sprawdz("pulpit: prawy przycisk → „Ułóż ikony”", menu_k((W // 2, H // 3), "pulpit", "Ułóż ikony") and
+        czekaj(r"K1-GUI: ułożono ikony"))
+sprawdz("ikona: „Odepnij od paska” — Notatki znikają z paska",
+        menu_k(ikony["Notatki"], "ikona Notatki", "Odepnij od paska", "1d-menu-ikony") and
+        czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator\)"))
+sprawdz("ikona: „Usuń z pulpitu” — Zasoby", menu_k(ikony["Zasoby"], "ikona Zasoby", "Usuń z pulpitu") and
+        czekaj(r"K1-GUI: usunięto z pulpitu: Zasoby"))
+sx, sy, ax, ay, krok = pasek()
+klik(sx, sy)
+m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+);")
+if m:
+    rx, ry, rk = (int(m.group(i)) for i in range(1, 4))
+    sprawdz("menu Start: prawy przycisk → „Dodaj do pulpitu” — Zasoby wracają",
+            menu_k((rx, ry + 3 * rk), "menu Start Zasoby", "Dodaj do pulpitu") and czekaj(r"K1-GUI: dodano do pulpitu: Zasoby"))
+    sprawdz("menu Start: prawy przycisk → „Przypnij do paska” — Notatki na końcu paska",
+            menu_k((rx, ry + rk), "menu Start Notatki", "Przypnij do paska") and
+            czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Notatki\)"))
+klik(W // 2, H // 3)  # a click on the empty desktop closes the Start menu
+sx, sy, ax, ay, krok = pasek()
+# the bar: Notatki dragged from the end back to the second place
+idz(ax + 4 * krok, ay); przycisk(True); idz(ax + krok, ay); przycisk(False)
+sprawdz("pasek: przeciągnięcie zmienia kolejność (Notatki z powrotem na drugim miejscu)",
+        czekaj(r"K1-GUI: pasek: Notatki na miejscu 2") and
+        czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Notatki, Ustawienia, Zasoby, Kalkulator\)"))
+sx, sy, ax, ay, krok = pasek()
+# the desktop: Kalkulator dragged to column 3, row 1 (the next start must find it there)
+n_ik = q.ile(IKONY)
+ik = czekaj(IKONY, od=n_ik - 1)
+ikony = {n: (int(x), int(y)) for n, x, y in re.findall(r"(\w+) (\d+),(\d+)", ik.group(5))} if ik else ikony
+kk, kw = int(ik.group(3)), int(ik.group(4))
+cel = (ikony["Zegar"][0] + 2 * kk, ikony["Zegar"][1])
+n_zap = q.ile(r"K1-GUI: rozmieszczenie pulpitu zapisane")
+idz(*ikony["Kalkulator"]); przycisk(True); idz(cel[0], cel[1] - 30); idz(*cel); przycisk(False)
+sprawdz("pulpit: przeciągnięcie ikony do innej komórki (Kalkulator → kolumna 3, wiersz 1)",
+        czekaj(r"K1-GUI: ikona Kalkulator przeniesiona do kolumny 3, wiersza 1") and
+        czekaj(r"K1-GUI: rozmieszczenie pulpitu zapisane", od=n_zap))
+w, h, px = zrzut("1e-pulpit-po-zmianach", gdy=lambda w, h, px: jasny(px(cel[0] - 20, cel[1])))
+sprawdz("zrzut: kafelek Kalkulatora w nowej komórce", jasny(px(cel[0] - 20, cel[1])), str(px(cel[0] - 20, cel[1])))
+
 # menu Start → Notatki
 klik(sx, sy)
-m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);")
+m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);", od=1)
 sprawdz("menu Start otwiera się po kliknięciu", m)
 if not m: sys.exit(1)
 rx, ry, rk, wx, wy = (int(m.group(i)) for i in range(1, 6))
@@ -196,6 +287,9 @@ if u and l:
     sprawdz("ciemny motyw: ekran przyjmuje ustawienie tylko od Ustawień", czekaj(r"K1-EKRAN: ustawienie 1=1"))
     w, h, px = zrzut("5-ciemny", gdy=lambda w, h, px: ciemny(px(ux + 600, uy + 400)))
     sprawdz("zrzut: okno Ustawień w ciemnym motywie", ciemny(px(ux + 600, uy + 400)), str(px(ux + 600, uy + 400)))
+    zx_, zy_ = ikony["Zegar"]  # 0.7.5: the tiles follow the theme too (the owner's wish)
+    w, h, px = zrzut("5b-ciemne-ikony", gdy=lambda w, h, px: ciemny(px(zx_ - 20, zy_)))
+    sprawdz("zrzut: kafelki ikon w ciemnym motywie", ciemny(px(zx_ - 20, zy_)), str(px(zx_ - 20, zy_)))
     klik(ux + tx + tk, uy + ty)
     sprawdz("tapeta „Zmierzch” ustawiona", czekaj(r"K1-EKRAN: tapeta 1 "))
     w, h, px = zrzut("6-tapeta", gdy=lambda w, h, px: px(12, H - 12)[2] > px(12, H - 12)[0])
@@ -270,7 +364,7 @@ sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych k
         "Kernel panic" not in tx_ and "BŁĄD" not in tx_ and "zabronione wywołanie" not in tx_ and "odrzucono" not in tx_)
 # Start → Wyłącz: kontrolowane wyłączenie
 klik(sx, sy)
-m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);", od=1)
+m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);", od=2)
 if m: wx, wy = int(m.group(4)), int(m.group(5))
 klik(wx, wy)
 sprawdz("Start → Wyłącz: system się wyłącza", czekaj(r"K1: wyłączanie zasilania") and czekaj(r"reboot: Power down"))
@@ -284,8 +378,10 @@ DANE=$TESTY/m4-dane.img
 dd if=/dev/zero of="$DANE" bs=1M count=16 status=none
 printf 'label: gpt\nstart=2048, size=30000, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
 DYSK_DANYCH="-drive if=none,id=dane,file=$DANE,format=raw -device ide-hd,drive=dane,bus=ide.0"
+CZAS_ZW=$CZAS; CZAS=$((CZAS * 2))  # 0.7.5: the longest scenario (the desktop steps) — twice the time
 uruchom pulpit --qemu "$DYSK_DANYCH"
 sprawdz pulpit
+CZAS=$CZAS_ZW
 python3 -I - "$DANE" <<'PY' || r=1
 import sys
 d = open(sys.argv[1], "rb").read()

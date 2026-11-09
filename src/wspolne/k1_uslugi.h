@@ -19,7 +19,8 @@
 /* The native applications: one line each — everything else (UIDs, profiles, the Start menu, window names,
  * Zasoby, the sandbox profile, the image contents, the tests) follows from it.
  * X(NAME, application number, profile, UID, program (= directory src/aplikacje/<program>), log tag,
- *   title, description in the Start menu, icon (K1_IK_<icon>), on the bottom bar). The numbers never change
+ *   title, description in the Start menu, icon (K1_IK_<icon>), on the bottom bar and the desktop at the first start —
+ *   the owner moves them later, 0.7.5). The numbers never change
  *   (the profile is the owner of the application's data in skarbiec); a new application takes the next ones. */
 #define K1_APLIKACJE(X)                                                                                         \
     X(ZEGAR, 1, 4, 200, "zegar", "K1-ZEGAR", "Zegar", "Godzina i data", ZEGAR, 1)                               \

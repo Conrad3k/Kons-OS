@@ -1,11 +1,12 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.7.3 (porządki przed M7 skończone) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.7.5 (Pulpit) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby), M5 (dyski, USB, zaszyfrowane
 dane, hasło, instalator), 0.6.0 Fundament, M6 (bezpieczne aktualizacje: podpisy, dm-verity, A/B,
-Secure Boot); dalej 0.7.5 Pulpit, 0.8.0 Pliki, potem M7 Sieć (plan: ADR 0019, 0020, 0026).
+Secure Boot), 0.7.5 Pulpit (ikony, menu pod prawym przyciskiem, przypinanie); dalej 0.8.0 Pliki, potem M7 Sieć
+(plan: ADR 0019, 0020, 0026).
 Data: 2026-11-09. Plik aktualizujemy po każdym etapie.
 Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
 
@@ -87,7 +88,7 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
   - Plan (2026-11-09): „czy nie lepiej najpierw pliki i izolacja, zanim podłączymy internet?” → zgoda na
     nową kolejność: 0.7.5 Pulpit → 0.8.0 Pliki → M7 Sieć → M8 Strefy → M9 Pliki ze stref (ADR 0026).
     Pulpit „jak w Windowsie, ale estetycznie, zgodnie ze stylem K1”. Kosz: usuwa po 30 dniach albo ręcznie.
-[!] Na starcie 0.7.5: wybór szkicu pulpitu (ikony, menu pod prawym przyciskiem, pasek).
+[x] Na starcie 0.7.5: wybór szkicu pulpitu → A „Kafelki”, kafelki i menu w kolorach motywu (2026-11-09).
 [!] Na starcie 0.8.0: w Plikach foldery (jak w Windows) czy etykiety (jeden plik może mieć kilka)?
 [!] Przed M8 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)? W „Przeglądarce K1”
     (ADR 0025) każda sesja to osobna strefa z własnym kolorem karty, „prywatna” = jednorazowa.
@@ -214,20 +215,20 @@ M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku) — 
 
 Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
 
-0.7.5 Pulpit — NASTĘPNE
+0.7.5 Pulpit — GOTOWE (ADR 0028)
     Najpierw (zasady czytelności, AGENTS.md — Twoja decyzja z 2026-11-09):
-    [ ] skrypt sprawdzający limity (plik ≤ 600 wierszy, funkcja ≤ 80) w testach; dziś ponad limitem:
-        Ustawienia (815), Notatki (757), Instalator — okno (674), skarbiec/magazyn.c (631), gui (625)
-    [ ] test: każda usługa i aplikacja ma opis w docs/komponenty/, każdy komunikat jest opisany
-    [ ] pulpit (gui) podzielony na moduły przed rozbudową: paski, menu Start, ikony, menu kontekstowe
-    [ ] pozostałe pliki ponad limitem podzielone (albo wyjątek z uzasadnieniem)
-    Potem:
-    [ ] szkice pulpitu do wyboru (jak w Windows, w stylu K1)
-    [ ] ikony aplikacji na pulpicie w siatce: zaznaczanie, przeciąganie, podwójne kliknięcie otwiera
-    [ ] menu pod prawym przyciskiem myszy: pulpit, ikona, dolny pasek
-    [ ] przypinanie i odpinanie aplikacji na dolnym pasku, zmiana kolejności przeciąganiem;
-        uruchomiona aplikacja spoza paska widoczna na nim, dopóki działa
-    [ ] układ pulpitu i paska zapamiętany (skarbiec)
+    [x] skrypt sprawdzający limity (plik ≤ 600 wierszy, funkcja ≤ 80) w testach (scripts/sprawdz-czytelnosc.py)
+    [x] test: każda usługa i aplikacja ma opis w docs/komponenty/, każdy komunikat jest opisany
+    [x] pulpit (gui) podzielony na moduły przed rozbudową: paski, menu Start, ikony, menu kontekstowe
+    [x] pozostałe pliki ponad limitem podzielone (bez wyjątków)
+    [x] szkice pulpitu do wyboru — wybrany A „Kafelki”, kolory z motywu (Twoja decyzja z 2026-11-09)
+    [x] ikony aplikacji na pulpicie w siatce: zaznaczanie, przeciąganie, podwójne kliknięcie otwiera
+    [x] menu pod prawym przyciskiem myszy: pulpit, ikona, dolny pasek, menu Start
+    [x] przypinanie i odpinanie aplikacji na dolnym pasku, zmiana kolejności przeciąganiem;
+        uruchomiona aplikacja spoza paska widoczna na nim, dopóki działa; „Zamknij okno” z paska
+    [x] rozmieszczenie pulpitu i paska zapamiętane (skarbiec)
+    [!] Test na X230 (0.7.5): czy przeciąganie okien jest tak płynne jak w 0.7.3 (warstwa ikon pod
+        oknami — RYZYKA R46)? Czy kafelki i menu dobrze wyglądają w obu motywach?
 
 0.8.0 Pliki (natywna część dawnego M9 i dawne M6 „dekodery w izolacji”)
     [ ] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie (pokazywane w Plikach)
@@ -278,10 +279,14 @@ M12 Audyt: fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentac
 
 
 TYMCZASOWE (zasada czytelności 3 — każde z terminem; przegląd przy porządkach każdej wersji MINOR)
+    Każde miejsce w kodzie ma komentarz `k1: tymczasowe — usunąć w <termin>` i jest wymienione tutaj;
+    scripts/sprawdz-czytelnosc.py (testy) pilnuje, żeby żadne nie zostało bez wpisu.
     [ ] manifest formatu 1 na 47 MiB (aktualizacja z 0.6.2–0.6.3 starym Instalatorem) — do usunięcia,
-        gdy nikt nie aktualizuje z 0.6.x (propozycja: 0.8.0, po Twoim teście aktualizacji na X230)
-    [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10”) — termin: M10
-    [ ] resztę oznaczyć komentarzem `k1: tymczasowe` przy pierwszym przeglądzie (0.7.5)
+        gdy nikt nie aktualizuje z 0.6.x (propozycja: 0.8.0, po Twoim teście aktualizacji na X230).
+        Miejsca: src/wspolne/k1_efi.c, src/instalator/main.c, scripts/zbuduj-usb.sh, narzedzia/podpisz.c
+    [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10”) — termin: M10; od 0.7.0 GRUB jest też
+        częścią startu A/B (grubenv, ADR 0022), więc w M10 decyzja: zostaje czy zastępujemy (ADR)
+    [x] przegląd 0.7.5: innych rozwiązań tymczasowych w kodzie nie ma
 
 
 4. DECYZJE TECHNICZNE DO PODJĘCIA (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)

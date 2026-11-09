@@ -1,4 +1,4 @@
-# Komponent: aplikacje natywne (`/rdzen/aplikacje/{zegar,notatki,ustawienia,zasoby}`)
+# Komponent: aplikacje natywne (`/rdzen/aplikacje/<program>`)
 
 | | |
 |---|---|
@@ -7,43 +7,55 @@
 | **Decyzje** | ADR 0008; do M10 aplikacje leżą w obrazie rdzenia (`/rdzen/aplikacje`), potem podpisane obrazy w `/aplikacje` |
 
 ## Cel
-- **Zegar** — tarcza analogowa (sekundnik w kolorze akcentu), godzina, data po polsku, czas
-  letni/zimowy.
-- **Notatki** — od 0.5.8 wiele notatek (do 32): z lewej lista (tytuł = pierwsza niepusta linia, pod
-  nim druga; ostatnio zmieniona na górze, strzałki przewijania gdy się nie mieszczą), „Nowa notatka”
-  (Ctrl+N), Ctrl+↑/↓ — poprzednia/następna, „Usuń notatkę” w stopce z potwierdzeniem; pusta notatka
-  znika po przejściu do innej. Pisanie z polskimi znakami (AltGr), strzałki, Home/End, Backspace,
-  Delete, Enter, kliknięcie ustawia kursor, zawijanie wierszy, zapis automatyczny (0,8 s po zmianie;
-  od 0.5.6 obiekty w skarbcu — zaszyfrowane na partycji „K1-DANE”, bez niej tylko do wyłączenia;
-  napis w stopce mówi, gdzie zapisano). Obiekty: 1 = lista („K1N1”, liczba, numery w kolejności),
-  2…33 = notatki (2 = jedyna notatka z 0.5.6–0.5.7 — bez listy staje się pierwszą).
-- **Ustawienia** — Wygląd (motyw jasny/ciemny, tapeta: 4 warianty z miniaturami), Ekran
-  (rozdzielczość z listy od ekranu — do 18 trybów w trzech kolumnach, „zalecana” = preferowana przez monitor/kartę;
-  zmiana w locie, ADR 0012), Bateria (0.5.5: procent, stan, wykres naładowania od uruchomienia — linia
-  w kolorze akcentu z delikatnym wypełnieniem, pasek pod wykresem = zasilacz podłączony, godzina startu,
-  najniższy poziom; od 0.6.0 pod wykresem ostatnie wcześniejsze uruchomienie z małym wykresem — archiwum
-  od nadzorcy jako zapieczętowany memfd `BATERIA_ARCH`; bez baterii — napis), Hasło (0.5.7: włącz / zmień / wyłącz, pola z kropkami, Tab/Enter/Esc;
-  przez skarbiec — fd 5), Mysz (prędkość),
-  Data i czas (sekundy na pasku), Hasło (opis: przyjdzie z szyfrowaniem w M5; zapomniane hasło =
-  nowe konto), Informacje (wersja, ekran, jądro).
+Każda aplikacja to jeden wiersz w `K1_APLIKACJE` (`src/wspolne/k1_uslugi.h`) i katalog
+`src/aplikacje/<program>/`; każda ma tu swój rozdział (sprawdza `scripts/sprawdz-czytelnosc.py`).
 
-- **Instalator** (0.5.9, ADR 0018, `src/aplikacje/instalacja/`, UID 204) — lista dysków od nadzorcy,
-  instalacja po wpisaniu „USUŃ”, aktualizacja (dane zostają), postęp, „Wyłącz komputer”. Bez dostępu do
-  dysków — szczegóły: `komponenty/instalator.md`.
-- **Kalkulator** (0.7.1, `src/aplikacje/kalkulator/`, UID 205) — cztery działania liczone od lewej do
-  prawej (jak w zwykłym kalkulatorze: 12 + 7 × 3 = 57), procent (200 + 10 % = 220), zmiana znaku, pamięć
-  (MC, MR, M+, M−), C / CE / cofnij; liczby po polsku (przecinek, odstęp co trzy cyfry, do 15 cyfr, potem
-  zapis „1,5e20”); dzielenie przez zero — „Nie można dzielić przez zero”. Klawiatura: cyfry, + − * /,
-  Enter albo =, Backspace, Esc, % i klawiatura numeryczna. Silnik bez rysowania (`liczydlo.c`, test na
-  hoście `test_kalkulator`), okno w `main.c`. Bez dostępu do plików i sieci, bez kanałów od nadzorcy.
-- **Zasoby** (M4.1, ADR 0012) — procesor (procent wszystkich rdzeni) i pamięć (użyta z całości)
-  całego systemu: liczba + wykres z ostatniej minuty (jedna seria, kolor akcentu, linia 2 px);
-  tabela usług i aplikacji: procesor i pamięć każdej (z ich cgroup); czas pracy systemu. Dane od
-  nadzorcy co sekundę (fd 4), sprawdzane: nadawca UID 0, bez deskryptorów, każde pole.
-  0.6.3: wiersz **Bateria** (`ZASOBY_BATERIA`): procent, pobór mocy w W (`power_now` albo prąd ×
-  napięcie, uśredniony przez nadzorcę: 30 % nowego odczytu, od nowa przy zmianie ładowanie ↔
-  rozładowanie; odczyt co 5 s, gdy Zasoby działają) i czas do rozładowania / naładowania (energia ÷
-  pobór; brak szacunku poniżej 0,1 W i powyżej 99 h).
+### Zegar
+Tarcza analogowa (sekundnik w kolorze akcentu), godzina, data po polsku, czas
+letni/zimowy.
+
+### Notatki
+Od 0.5.8 wiele notatek (do 32): z lewej lista (tytuł = pierwsza niepusta linia, pod
+nim druga; ostatnio zmieniona na górze, strzałki przewijania gdy się nie mieszczą), „Nowa notatka”
+(Ctrl+N), Ctrl+↑/↓ — poprzednia/następna, „Usuń notatkę” w stopce z potwierdzeniem; pusta notatka
+znika po przejściu do innej. Pisanie z polskimi znakami (AltGr), strzałki, Home/End, Backspace,
+Delete, Enter, kliknięcie ustawia kursor, zawijanie wierszy, zapis automatyczny (0,8 s po zmianie;
+od 0.5.6 obiekty w skarbcu — zaszyfrowane na partycji „K1-DANE”, bez niej tylko do wyłączenia;
+napis w stopce mówi, gdzie zapisano). Obiekty: 1 = lista („K1N1”, liczba, numery w kolejności),
+2…33 = notatki (2 = jedyna notatka z 0.5.6–0.5.7 — bez listy staje się pierwszą).
+
+### Ustawienia
+Wygląd (motyw jasny/ciemny, tapeta: 4 warianty z miniaturami), Ekran
+(rozdzielczość z listy od ekranu — do 18 trybów w trzech kolumnach, „zalecana” = preferowana przez monitor/kartę;
+zmiana w locie, ADR 0012), Bateria (0.5.5: procent, stan, wykres naładowania od uruchomienia — linia
+w kolorze akcentu z delikatnym wypełnieniem, pasek pod wykresem = zasilacz podłączony, godzina startu,
+najniższy poziom; od 0.6.0 pod wykresem ostatnie wcześniejsze uruchomienie z małym wykresem — archiwum
+od nadzorcy jako zapieczętowany memfd `BATERIA_ARCH`; bez baterii — napis), Hasło (0.5.7: włącz / zmień / wyłącz, pola z kropkami, Tab/Enter/Esc;
+przez skarbiec — fd 5), Mysz (prędkość),
+Data i czas (sekundy na pasku), Informacje (wersja, ekran, jądro, gdzie są dane).
+
+### Instalator
+(0.5.9, ADR 0018, `src/aplikacje/instalacja/`, UID 204) — lista dysków od nadzorcy,
+instalacja po wpisaniu „USUŃ”, aktualizacja (dane zostają), postęp, „Wyłącz komputer”. Bez dostępu do
+dysków — szczegóły: `komponenty/instalator.md`.
+
+### Kalkulator
+(0.7.1, `src/aplikacje/kalkulator/`, UID 205) — cztery działania liczone od lewej do
+prawej (jak w zwykłym kalkulatorze: 12 + 7 × 3 = 57), procent (200 + 10 % = 220), zmiana znaku, pamięć
+(MC, MR, M+, M−), C / CE / cofnij; liczby po polsku (przecinek, odstęp co trzy cyfry, do 15 cyfr, potem
+zapis „1,5e20”); dzielenie przez zero — „Nie można dzielić przez zero”. Klawiatura: cyfry, + − * /,
+Enter albo =, Backspace, Esc, % i klawiatura numeryczna. Silnik bez rysowania (`liczydlo.c`, test na
+hoście `test_kalkulator`), okno w `main.c`. Bez dostępu do plików i sieci, bez kanałów od nadzorcy.
+
+### Zasoby
+(M4.1, ADR 0012) — procesor (procent wszystkich rdzeni) i pamięć (użyta z całości)
+całego systemu: liczba + wykres z ostatniej minuty (jedna seria, kolor akcentu, linia 2 px);
+tabela usług i aplikacji: procesor i pamięć każdej (z ich cgroup); czas pracy systemu. Dane od
+nadzorcy co sekundę (fd 4), sprawdzane: nadawca UID 0, bez deskryptorów, każde pole.
+0.6.3: wiersz **Bateria** (`ZASOBY_BATERIA`): procent, pobór mocy w W (`power_now` albo prąd ×
+napięcie, uśredniony przez nadzorcę: 30 % nowego odczytu, od nowa przy zmianie ładowanie ↔
+rozładowanie; odczyt co 5 s, gdy Zasoby działają) i czas do rozładowania / naładowania (energia ÷
+pobór; brak szacunku poniżej 0,1 W i powyżej 99 h).
 
 ## Granica zaufania
 Klienci ekranu w roli **aplikacja**: tylko własne okna. Ustawienia jako jedyna mogą zmieniać
@@ -56,9 +68,8 @@ ustawienia (ekran sprawdza rolę i UID). Treść notatki nigdy nie trafia do log
 | Notatki | 201 | `memfd_create`, `ftruncate` (od 0.5.6 bez plików) | brak ścieżek | 32 MiB, 1 proces |
 | Ustawienia | 202 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
 | Zasoby | 203 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
-
-Katalog notatek tworzy nadzorca (właściciel 201, `0700`); `/dane_uzytkownika` ma `0711`
-(można wejść do własnego podkatalogu, nie można wylistować).
+| Instalator | 204 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
+| Kalkulator | 205 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
 
 ## Wejścia i wyjścia
 fd 3: kanał do ekranu. Okno: memfd (ADR 0008). Notatki: fd 4 — kanał do skarbca (obiekty 1–33, notatka ≤ 16 KiB, memfd z pieczęciami; usuwanie `SKARB_USUN`). Zasoby: fd 4 —

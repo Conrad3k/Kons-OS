@@ -33,6 +33,14 @@ static void rysuj(struct k1_apl *a)
     k1_pow_zatwierdz(&a->k, &a->okno);
 }
 
+_Noreturn static void zamknij(struct k1_apl *a, const char *kto)
+{
+    k1_log(a->tag, "okno zamknięte %s", kto);
+    if (a->zamykanie)
+        a->zamykanie();
+    exit(0);
+}
+
 static void wskaznik(struct k1_apl *a, const struct k1_komunikat *m)
 {
     enum k1_trafienie t = m->c == K1_WSK_WYJSCIE ? K1_TR_BRAK : k1_trafienie_ramki((uint32_t)a->szer, (uint32_t)a->wys, m->a, m->b);
@@ -46,10 +54,8 @@ static void wskaznik(struct k1_apl *a, const struct k1_komunikat *m)
         if (t == K1_TR_TYTUL)
             k1_wyslij(&a->k, k1_komunikat_nowy(K1_KOM_PRZECIAGNIJ, a->okno.id, 0, 0, 0, 0, 0));
     } else if (m->c == K1_WSK_PUSZCZENIE && m->d == K1_PRZYCISK_LEWY) {
-        if (t == K1_TR_ZAMKNIJ && a->wcisniety == K1_TR_ZAMKNIJ) {
-            k1_log(a->tag, "okno zamknięte przez użytkownika");
-            exit(0);
-        }
+        if (t == K1_TR_ZAMKNIJ && a->wcisniety == K1_TR_ZAMKNIJ)
+            zamknij(a, "przez użytkownika");
         if (t == K1_TR_MINIMALIZUJ && a->wcisniety == K1_TR_MINIMALIZUJ)
             k1_wyslij(&a->k, k1_komunikat_nowy(K1_KOM_MINIMALIZUJ, a->okno.id, 0, 0, 0, 0, 0));
         a->wcisniety = 0;
@@ -104,6 +110,10 @@ void k1_apl_uruchom(struct k1_apl *a)
             case K1_KOM_KLAWISZ:
                 if (a->klawisz)
                     a->klawisz((unsigned)m.a, m.b, (unsigned)m.c);
+                break;
+            case K1_KOM_ZAMKNIJ:
+                if (m.obiekt == a->okno.id)
+                    zamknij(a, "z dolnego paska");
                 break;
             case K1_KOM_FOKUS:
                 a->aktywne = m.a;

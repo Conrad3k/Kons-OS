@@ -5,32 +5,16 @@
  *   objects 2..33 the notes (UTF-8 text, at most 16 KiB each); 2 = the single note of 0.5.6–0.5.7
  * Note contents never go to the log (only lengths and counts).
  * Sandbox: UID 201, seccomp (base + memfd_create, ftruncate), Landlock without any path.
- * Documentation: docs/komponenty/aplikacje.md. */
-#include <errno.h>
-#include <fcntl.h>
-#include <stdio.h>
+ * Modules: notatki.h. Documentation: docs/komponenty/aplikacje.md. */
 #include <string.h>
-#include <time.h>
-#include <unistd.h>
 
 #include <linux/input-event-codes.h>
 
-#include "k1_aplikacja.h"
 #include "k1_klawiatura.h"
-#include "k1_komunikat.h"
 #include "k1_log.h"
-#include "k1_skarb_klient.h"
-#include "k1_uslugi.h"
 #include "k1_teraz.h"
-
-#define TAG "K1-NOTATKI"
-#define FD_SKARBIEC 4
-#define MAKS_TEKST 16384
-#define MAKS_LINII 1024
-#define MAKS_NOTATEK 32
-#define OB_SPIS 1                  /* the list of notes */
-#define OB_PIERWSZA K1_OB_NOTATKA  /* ids OB_PIERWSZA .. OB_PIERWSZA + MAKS_NOTATEK - 1 */
-#define SPIS_ZNAK "K1N1"
+#include "k1_uslugi.h"
+#include "notatki.h"
 
 /* Layout (window coordinates): the list on the left, the text on the right. */
 #define BOK 232                        /* width of the list */
@@ -47,125 +31,19 @@
 #define RZAD 52
 #define PRZEWIJANIE 30                 /* the strip with the scroll arrows (only when needed) */
 
-struct notatka {
-    int id;
-    uint32_t dl;
-    char tekst[MAKS_TEKST + 1];
-};
-
-static struct k1_apl apl;
-static struct notatka nt[MAKS_NOTATEK]; /* in list order */
-static int n_nt, biez;                  /* number of notes, the open one */
-static struct notatka *b = &nt[0];      /* = &nt[biez] */
-static uint32_t kursor;
-static struct {
-    uint32_t od, do_;
-} linie[MAKS_LINII];
-static uint32_t n_linii, pierwsza;
-static int lista_od;           /* first visible row of the list */
-static int pytanie;            /* "delete this note?" shown in the footer */
-static int nad_wierszem = -1;  /* hover: row of the list, -2 = the new note button */
-static int pelno;              /* the limit of notes was hit (message in the footer) */
-static double zmiana;          /* when the open note last changed (0: saved) */
-static int zapis_blad, skarb = -1, tryb = -1; /* tryb: K1_SKARB_TRWALY / K1_SKARB_RAM */
+struct k1_apl apl;
+struct notatka nt[MAKS_NOTATEK];
+int n_nt, biez;
+struct notatka *b = &nt[0];
+uint32_t kursor, pierwsza;
+int lista_od, pytanie, pelno;
+static int nad_wierszem = -1; /* hover: row of the list, -2 = the new note button */
+double zmiana;
+int zapis_blad, skarb = -1, tryb = -1;
 
 static int32_t szer_tekstu(void)
 {
     return apl.szer - LEWO - PRAWO;
-}
-
-static void popraw_przewiniecie(int do_biezacej);
-
-static void wybierz_indeks(int i)
-{
-    biez = i;
-    b = &nt[i];
-    kursor = b->dl;
-    pierwsza = 0;
-    popraw_przewiniecie(1);
-}
-
-static int32_t krok(uint32_t kod)
-{
-    const struct k1_glif *g = k1_glif(&k1_czcionki[K1_CZ_TEKST], kod);
-    if (g == NULL)
-        g = k1_glif(&k1_czcionki[K1_CZ_TEKST], '?');
-    return g ? g->krok : 0;
-}
-
-/* Greedy word wrap of the open note into lines of at most `szer` px. */
-static void uloz(int32_t szer)
-{
-    uint32_t i = 0, start = 0, spacja = UINT32_MAX;
-    int32_t w = 0;
-    n_linii = 0;
-    while (i < b->dl && n_linii < MAKS_LINII - 1) {
-        uint32_t kod;
-        int l = k1_utf8(b->tekst + i, b->dl - i, &kod);
-        if (kod == '\n') {
-            linie[n_linii].od = start;
-            linie[n_linii++].do_ = i;
-            start = i + (uint32_t)l;
-            i = start;
-            w = 0;
-            spacja = UINT32_MAX;
-            continue;
-        }
-        w += krok(kod);
-        if (w > szer * 64 && i > start) {
-            uint32_t koniec = spacja != UINT32_MAX && spacja > start ? spacja : i;
-            linie[n_linii].od = start;
-            linie[n_linii++].do_ = koniec;
-            start = koniec == spacja ? spacja + 1 : koniec;
-            i = start;
-            w = 0;
-            spacja = UINT32_MAX;
-            continue;
-        }
-        if (kod == ' ')
-            spacja = i;
-        i += (uint32_t)l;
-    }
-    linie[n_linii].od = start;
-    linie[n_linii++].do_ = b->dl;
-}
-
-static uint32_t linia_kursora(void)
-{
-    uint32_t i;
-    for (i = 0; i + 1 < n_linii; i++)
-        if (kursor < linie[i + 1].od)
-            return i;
-    return n_linii - 1;
-}
-
-static int32_t x_w_linii(uint32_t ln, uint32_t pos)
-{
-    uint32_t i = linie[ln].od;
-    int32_t x = 0;
-    while (i < pos && i < linie[ln].do_) {
-        uint32_t kod;
-        int l = k1_utf8(b->tekst + i, b->dl - i, &kod);
-        x += krok(kod);
-        i += (uint32_t)l;
-    }
-    return (x + 32) / 64;
-}
-
-static uint32_t pozycja_w_linii(uint32_t ln, int32_t x)
-{
-    uint32_t i = linie[ln].od;
-    int32_t px = 0;
-    while (i < linie[ln].do_) {
-        uint32_t kod;
-        int l = k1_utf8(b->tekst + i, b->dl - i, &kod);
-        int32_t a = krok(kod);
-        if ((px + a / 2 + 32) / 64 > x)
-            break;
-        px += a;
-        i += (uint32_t)l;
-    }
-    return i;
 }
 
 static int32_t widoczne(void)
@@ -213,7 +91,7 @@ static int wierszy_widac(void)
 }
 
 /* Keeps the scroll position in range; with `do_biezacej` also scrolls to the open note. */
-static void popraw_przewiniecie(int do_biezacej)
+void popraw_przewiniecie(int do_biezacej)
 {
     int w = wierszy_widac();
     if (do_biezacej && biez < lista_od)
@@ -313,270 +191,6 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
                           : "Zapisano tylko do wyłączenia komputera (brak partycji K1-DANE)",
              k1_kolor(zapis_blad ? m->akcent_tekst : m->tekst3, 255), x_usun() - LEWO - 16);
     k1_tekst(o, K1_CZ_MALA_MOCNA, x_usun(), apl.wys - 13, "Usuń notatkę", k1_kolor(m->tekst2, 255), 0);
-}
-
-/* --- skarbiec --- */
-
-static void zapisz_spis(void)
-{
-    unsigned char buf[5 + MAKS_NOTATEK];
-    int i;
-    if (skarb < 0)
-        return;
-    memcpy(buf, SPIS_ZNAK, 4);
-    buf[4] = (unsigned char)n_nt;
-    for (i = 0; i < n_nt; i++)
-        buf[5 + i] = (unsigned char)nt[i].id;
-    if (k1_skarb_zapisz(skarb, OB_SPIS, buf, 5 + (size_t)n_nt) != 0)
-        zapis_blad = 1;
-}
-
-/* The list from skarbiec: ids in order, or -1 (none / damaged: the single note of 0.5.6–0.5.7). */
-static int wczytaj_spis(int *ids)
-{
-    unsigned char buf[5 + MAKS_NOTATEK + 1];
-    int n = k1_skarb_czytaj(skarb, OB_SPIS, buf, sizeof buf, 3000, &tryb), i, j;
-    if (n < 5 || memcmp(buf, SPIS_ZNAK, 4) != 0 || buf[4] > MAKS_NOTATEK || n != 5 + buf[4])
-        return -1;
-    for (i = 0; i < buf[4]; i++) {
-        ids[i] = buf[5 + i];
-        if (ids[i] < OB_PIERWSZA || ids[i] >= OB_PIERWSZA + MAKS_NOTATEK)
-            return -1;
-        for (j = 0; j < i; j++)
-            if (ids[j] == ids[i])
-                return -1;
-    }
-    return buf[4];
-}
-
-static int wolny_id(void)
-{
-    int id, i;
-    for (id = OB_PIERWSZA; id < OB_PIERWSZA + MAKS_NOTATEK; id++) {
-        for (i = 0; i < n_nt && nt[i].id != id; i++)
-            ;
-        if (i == n_nt)
-            return id;
-    }
-    return -1;
-}
-
-static void wczytaj(void)
-{
-    int ids[MAKS_NOTATEK], ile = 1, i, puste = 0;
-    ids[0] = OB_PIERWSZA;
-    n_nt = 0;
-    if (fcntl(FD_SKARBIEC, F_GETFD) < 0 || fcntl(FD_SKARBIEC, F_SETFL, O_NONBLOCK) != 0) {
-        k1_log(TAG, "brak kanału do skarbca — notatki bez zapisu");
-    } else {
-        int s;
-        skarb = FD_SKARBIEC;
-        s = wczytaj_spis(ids);
-        ile = s >= 0 ? s : 1;
-        if (s < 0)
-            ids[0] = OB_PIERWSZA;
-    }
-    for (i = 0; i < ile; i++) {
-        struct notatka *n = &nt[n_nt];
-        int r = skarb >= 0 ? k1_skarb_czytaj(skarb, ids[i], n->tekst, MAKS_TEKST, 3000, &tryb) : -1;
-        if (r == -2 && skarb >= 0) { /* no answer: change nothing in skarbiec this time */
-            k1_log(TAG, "skarbiec nie odpowiada — notatki bez zapisu");
-            skarb = -1;
-        }
-        n->id = ids[i];
-        n->dl = r > 0 ? (uint32_t)r : 0;
-        n->tekst[n->dl] = '\0';
-        if (n->dl == 0 && ile > 1 && skarb >= 0) { /* an empty note left in the list: drop it */
-            if (r == 0)
-                k1_skarb_usun(skarb, ids[i]);
-            puste++;
-            continue;
-        }
-        n_nt++;
-    }
-    if (n_nt == 0) {
-        nt[0].id = OB_PIERWSZA;
-        nt[0].dl = 0;
-        nt[0].tekst[0] = '\0';
-        n_nt = 1;
-    }
-    if (puste > 0)
-        zapisz_spis();
-    wybierz_indeks(0);
-    /* counts and lengths only, never the content */
-    k1_log(TAG, "notatki wczytane: %d (pierwsza: %u B)", n_nt, nt[0].dl);
-}
-
-static void zapisz(void)
-{
-    uint32_t znaki;
-    zmiana = 0;
-    if (skarb < 0) { /* no skarbiec: the notes live only in this window */
-        k1_apl_odswiez(&apl);
-        return;
-    }
-    zapis_blad = k1_skarb_zapisz(skarb, b->id, b->tekst, b->dl) != 0;
-    znaki = (unsigned)k1_utf8_znaki(b->tekst, b->dl);
-    if (!zapis_blad)
-        k1_log(TAG, "zapisano notatkę (%u znaków)", znaki); /* the length only, never the content */
-    else
-        k1_log(TAG, "błąd zapisu notatki");
-    if (biez > 0) { /* the most recently changed note goes to the top of the list */
-        struct notatka t = nt[biez];
-        uint32_t k = kursor, p = pierwsza;
-        memmove(&nt[1], &nt[0], (size_t)biez * sizeof nt[0]);
-        nt[0] = t;
-        wybierz_indeks(0);
-        kursor = k;
-        pierwsza = p;
-        zapisz_spis();
-    }
-    k1_apl_odswiez(&apl);
-}
-
-/* Results from skarbiec: only a failed save is shown (deleting a note that was never saved fails —
- * that is fine). */
-static void odbierz_wyniki(void)
-{
-    struct k1_komunikat k;
-    int r;
-    while (skarb >= 0 && (r = k1_skarb_wynik(skarb, &k)) != 0) {
-        if (r < 0) {
-            close(skarb);
-            skarb = -1;
-            k1_apl_odswiez(&apl);
-            return;
-        }
-        tryb = k.c;
-        if (k.a == K1_KOM_SKARB_ZAPISZ && k.b != 0 && !zapis_blad) {
-            zapis_blad = 1;
-            k1_log(TAG, "skarbiec: zapis notatki nieudany (%d)", k.b);
-        }
-        k1_apl_odswiez(&apl);
-    }
-}
-
-/* Removes note `i` from the list (and from skarbiec); an empty list gets a new empty note. */
-static void wyrzuc(int i)
-{
-    k1_skarb_usun(skarb, nt[i].id);
-    memmove(&nt[i], &nt[i + 1], (size_t)(n_nt - i - 1) * sizeof nt[0]);
-    n_nt--;
-    if (n_nt == 0) {
-        nt[0].id = OB_PIERWSZA;
-        nt[0].dl = 0;
-        nt[0].tekst[0] = '\0';
-        n_nt = 1;
-    }
-    if (biez > i || biez >= n_nt)
-        biez--;
-    if (biez < 0)
-        biez = 0;
-    b = &nt[biez];
-}
-
-static void otworz(int i)
-{
-    if (i == biez || i < 0 || i >= n_nt)
-        return;
-    if (zmiana > 0) {
-        int stary = biez;
-        zapisz(); /* moves the open note to the top: the notes above it shift down by one */
-        if (stary > 0 && i < stary)
-            i++;
-        if (i == biez)
-            return;
-    }
-    pytanie = 0;
-    pelno = 0;
-    if (b->dl == 0 && n_nt > 1) { /* leaving an empty note: it goes away */
-        int stary = biez;
-        wyrzuc(stary);
-        if (i > stary)
-            i--;
-        zapisz_spis();
-    }
-    wybierz_indeks(i);
-    k1_log(TAG, "otwarto notatkę (%u B)", b->dl);
-    k1_apl_odswiez(&apl);
-}
-
-static void nowa(void)
-{
-    int id;
-    if (zmiana > 0)
-        zapisz();
-    pytanie = 0;
-    if (b->dl == 0) { /* the open note is empty already: write there */
-        k1_apl_odswiez(&apl);
-        return;
-    }
-    id = wolny_id();
-    if (n_nt >= MAKS_NOTATEK || id < 0) {
-        pelno = 1;
-        k1_apl_odswiez(&apl);
-        return;
-    }
-    memmove(&nt[1], &nt[0], (size_t)n_nt * sizeof nt[0]);
-    n_nt++;
-    nt[0].id = id;
-    nt[0].dl = 0;
-    nt[0].tekst[0] = '\0';
-    wybierz_indeks(0);
-    lista_od = 0;
-    zapisz_spis();
-    k1_log(TAG, "nowa notatka (notatek: %d)", n_nt);
-    k1_apl_odswiez(&apl);
-}
-
-static void usun_biezaca(void)
-{
-    pytanie = 0;
-    pelno = 0;
-    zmiana = 0; /* what was not saved yet goes with it */
-    wyrzuc(biez);
-    wybierz_indeks(biez);
-    zapisz_spis();
-    k1_log(TAG, "usunięto notatkę (zostało: %d)", n_nt);
-    k1_apl_odswiez(&apl);
-}
-
-/* --- editing --- */
-
-static uint32_t poprzedni(uint32_t p)
-{
-    return (uint32_t)k1_utf8_poczatek(b->tekst, p - 1);
-}
-
-static uint32_t nastepny(uint32_t p)
-{
-    uint32_t kod;
-    return p + (uint32_t)k1_utf8(b->tekst + p, b->dl - p, &kod);
-}
-
-static void wstaw(const char *s, uint32_t n)
-{
-    if (b->dl + n > MAKS_TEKST)
-        return;
-    memmove(b->tekst + kursor + n, b->tekst + kursor, b->dl - kursor);
-    memcpy(b->tekst + kursor, s, n);
-    b->dl += n;
-    kursor += n;
-    b->tekst[b->dl] = '\0';
-    zmiana = k1_teraz();
-    pytanie = 0;
-    pelno = 0;
-}
-
-static void usun(uint32_t od, uint32_t do_)
-{
-    memmove(b->tekst + od, b->tekst + do_, b->dl - do_);
-    b->dl -= do_ - od;
-    b->tekst[b->dl] = '\0';
-    kursor = od;
-    zmiana = k1_teraz();
-    pytanie = 0;
-    pelno = 0;
 }
 
 static void klawisz(unsigned kod, int wartosc, unsigned mody)
@@ -721,6 +335,13 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     k1_apl_odswiez(&apl);
 }
 
+/* The window closes: what was typed in the last 0.8 s is saved first. */
+static void zamykanie(void)
+{
+    if (zmiana > 0)
+        zapisz();
+}
+
 /* Saved 0.8 s after the last change (a burst of typing is one write). */
 static int zegar(void)
 {
@@ -742,6 +363,7 @@ int main(void)
     apl.klawisz = klawisz;
     apl.wskaznik = wskaznik;
     apl.zegar = zegar;
+    apl.zamykanie = zamykanie;
     wczytaj();
     apl.kanaly[0].fd = skarb; /* the results of saving */
     apl.kanaly[0].dane = odbierz_wyniki;

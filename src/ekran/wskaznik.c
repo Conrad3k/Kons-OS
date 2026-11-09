@@ -17,6 +17,8 @@ static int trafia(const struct pow *p, int32_t x, int32_t y)
     int32_t lx = x - p->x, ly = y - p->y;
     if (!widac(p) || lx < 0 || ly < 0 || lx >= p->w || ly >= p->h)
         return 0;
+    if (p->rodzaj == K1_POW_PULPIT)
+        return 1; /* the desktop catches the pointer everywhere (clicks on the empty desktop, 0.7.5) */
     /* transparent pixels (rounded corners, shell panel margins) do not catch the pointer */
     return (p->mem[(size_t)p->polowa * (size_t)p->w * (size_t)p->h + (size_t)ly * (size_t)p->w + (size_t)lx] >> 24) > 8;
 }

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M5c na hoście, M5d w QEMU: dysk SATA i pendrive przez UEFI; 0.5.8: pendrive podłączony po starcie) — 0.5.8 |
-| **Pliki** | `src/skarbiec/main.c` (usługa), `src/skarbiec/magazyn.{c,h}` (format), `src/zewnetrzne/monocypher/` (kryptografia), `src/wspolne/k1_memfd.*`, `src/wspolne/k1_skarb_klient.*` (strona klienta) |
+| **Pliki** | `src/skarbiec/main.c` (usługa), `src/skarbiec/magazyn.{c,h}` (format: rekordy, indeks), `naglowek.c` (nagłówek i owinięty klucz; wspólne części: `magazyn_wew.h`), `src/zewnetrzne/monocypher/` (kryptografia), `src/wspolne/k1_memfd.*`, `src/wspolne/k1_skarb_klient.*` (strona klienta) |
 | **Decyzje** | ADR 0015 (format, szyfrowanie), ADR 0016 (obraz USB), ADR 0013 (partycja „K1-DANE”) |
 
 ## Cel
@@ -60,7 +60,7 @@ dane tylko w pamięci, partycja nietknięta, wpis w logu. Awaria skarbca → nad
 ponownie i restartuje ekran (klienci dostają nowe kanały).
 
 ## Powierzchnia ataku
-Parser nagłówka i rekordów (`magazyn.c`, testy + fuzzing także z poprawnym MAC — bez hasła napastnik
+Parser nagłówka i rekordów (`naglowek.c`, `magazyn.c`, testy + fuzzing także z poprawnym MAC — bez hasła napastnik
 zna klucz), komunikaty klientów (32 B), memfd od klientów (pieczęcie i rozmiar sprawdzane).
 
 ## Testy

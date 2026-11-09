@@ -2,19 +2,29 @@
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE (M4) — `scripts/test-m4.sh` (klikanie, zrzuty), testy w systemie (klatka, próba, restart) |
-| **Kod** | `src/gui/main.c`, przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
-| **Decyzje** | ADR 0008 (pulpit), ADR 0009 (czcionki), ADR 0007 (klatka); wygląd: `docs/WYGLAD.md` |
+| **Status** | PRZETESTOWANE (M4; pulpit z ikonami 0.7.5) — `scripts/test-m4.sh` (klikanie, zrzuty), testy w systemie (klatka, próba, restart), `test_rozmieszczenie` + fuzzing |
+| **Kod** | `src/gui/` (0.7.5: moduły opisane w `gui.h`): `main.c` (start, pętla, ułożenie paneli), `okna.c` (lista okien, uruchamianie i zamykanie aplikacji), `pasek_gorny.c` (górny pasek, bateria, okienko dźwięku), `pasek_dolny.c`, `menu_start.c`, `pulpit.c` (warstwa ikon), `kontekst.c` (menu pod prawym przyciskiem), `zapis.c` (rozmieszczenie w skarbcu), `rozmieszczenie.c` (reguły, bez rysowania); przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
+| **Decyzje** | ADR 0008 (pulpit), ADR 0009 (czcionki), ADR 0007 (klatka), ADR 0026 i 0028 (ikony, menu kontekstowe, rozmieszczenie); wygląd: `docs/WYGLAD.md` |
 
 ## Cel
-Rysuje panele pulpitu i obsługuje je myszą:
+Rysuje pulpit i jego panele i obsługuje je myszą:
+- **ikony na pulpicie** (0.7.5, szkic A „Kafelki”): warstwa pulpitu nad tapetą, pod oknami; siatka komórek
+  84×92 od lewego górnego rogu (kolumnami); kafelek 52 px w kolorze okien (jasny / ciemny motyw) z ikoną
+  liniową, pod nim nazwa (krem z cieniem). Kliknięcie zaznacza, podwójne kliknięcie otwiera, przeciągnięcie
+  przenosi do innej komórki (ikona, która tam leżała, zamienia się miejscami), prawy przycisk — menu.
+  Przy pierwszym starcie: wszystkie aplikacje oprócz Instalatora (kolumna `pasek` w `K1_APLIKACJE`),
+- **menu pod prawym przyciskiem** (menu kontekstowe): pulpit — „Ułóż ikony”, „Tapeta i wygląd…”; ikona —
+  „Otwórz”, „Przypnij do paska” / „Odepnij od paska”, „Usuń z pulpitu”; aplikacja na pasku — jej nazwa
+  (otwiera), przypnij / odepnij, „Zamknij okno” (gdy działa); aplikacja w menu Start — „Otwórz”, przypnij /
+  odepnij, „Dodaj do pulpitu” / „Usuń z pulpitu”. Kolory z motywu,
 - **górny pasek** (cała szerokość, 32 px): nazwa aktywnej aplikacji, bateria (tylko na laptopie,
   0.5.3: błyskawica przy ładowaniu, procent, ikona z wypełnieniem; ≤ 15 % — akcent), ikona dźwięku (okienko
   „Dźwięk — ta wersja nie obsługuje jeszcze karty dźwiękowej”), data i godzina (czas polski;
   z sekundami — w Ustawieniach),
-- **dolny pasek** wyśrodkowany (jak Windows 11): przycisk Start (znak K1) i aplikacje Zegar,
-  Notatki, Ustawienia, Zasoby; kropka = uruchomiona, kreska w kolorze akcentu = aktywna; kliknięcie:
-  uruchom / pokaż / zminimalizuj,
+- **dolny pasek** wyśrodkowany (jak Windows 11): przycisk Start (znak K1), przypięte aplikacje w kolejności
+  właściciela (przeciągnięcie zmienia kolejność), a za kreską uruchomione aplikacje spoza paska (dopóki
+  działają); kropka = uruchomiona, kreska w kolorze akcentu = aktywna; kliknięcie: uruchom / pokaż /
+  zminimalizuj; szerokość paska zależy od liczby aplikacji,
 - **menu Start**: aplikacje z opisami, „Wyloguj” (0.6.3; od 0.7.2 tylko w K1 zainstalowanym na dysku — `SESJA`), „Uruchom ponownie”, „Wyłącz”; klawisz Super otwiera/zamyka.
 
 ## Granica zaufania
@@ -29,21 +39,28 @@ UID/GID 102, klatka (ADR 0007): seccomp = baza + `memfd_create`, `ftruncate`; La
 ## Wejścia i wyjścia
 - fd 3: kanał do ekranu — powitanie, ustawienia, wskaźnik/klawisz Super, lista okien (`OKNO`).
 - fd 4: kanał do nadzorcy — `URUCHOM(aplikacja)`, `WYLACZ(0 = wyłącz, 1 = uruchom ponownie, 2 = wyloguj)`.
+- fd 6 (0.7.5, ADR 0028): kanał do skarbca — właściciel = profil gui; jeden obiekt `K1_OB_ROZMIESZCZENIE`
+  (`"K1R1"`, aplikacje na pasku, ikony: aplikacja, kolumna, wiersz), czytany przy starcie (≤ 1,5 s; błąd =
+  domyślne), zapisywany po każdej zmianie. Bez skarbca — rozmieszczenie tylko do końca działania gui.
 - fd 5 (0.5.3, ADR 0014): od nadzorcy, jednokierunkowo — `BATERIA` (jest, procent, stan, zasilacz) i `SESJA` (0.7.2: a=1 — K1-DANE w użyciu na dysku wewnętrznym, czyli K1 zainstalowany; nadzorca odrzuca też wylogowanie poza nim);
   nadawca musi mieć UID 0, każde pole sprawdzane; po zamknięciu kanału gui przestaje go czytać.
   Log przy zmianie obecności, stanu, zasilacza lub co 5 % („bateria 73%, rozładowywanie, …”).
-- Powierzchnie (panele): górny pasek, dolny pasek, menu, okienko dźwięku (memfd, ADR 0008).
+- Powierzchnie: warstwa pulpitu (`K1_POW_PULPIT`, cały ekran, zatwierdzane tylko zmienione prostokąty),
+  panele: górny pasek, dolny pasek, menu Start, okienko dźwięku, menu kontekstowe (memfd, ADR 0008).
+- Do ekranu (0.7.5): `ZAMKNIJ_OKNO` — „Zamknij okno” z paska; ekran prosi aplikację (`ZAMKNIJ`).
 - Zmiana rozdzielczości (M4.1): ekran wysyła ponownie `WITAJ` z nowym rozmiarem → gui zamyka menu,
   tworzy górny pasek na nową szerokość, przesuwa pozostałe panele i loguje nowe położenia.
-- Log: położenie przycisków (dla testów), uruchamiane aplikacje. Bez treści.
+- Log: położenie przycisków, ikon i wierszy menu kontekstowego (dla testów: „pulpit gotowy”, „pasek
+  zmieniony”, „ikony na pulpicie”, „menu kontekstowe”), uruchamiane aplikacje, zmiany rozmieszczenia. Bez treści.
 
 ## Obsługa błędów
 Zamknięty kanał do ekranu → koniec (nadzorca uruchomi ponownie). Awaria → restart; okna aplikacji
 zostają, nowa powłoka dostaje ich listę (test).
 
 ## Powierzchnia ataku
-Komunikaty 32 B od ekranu i od nadzorcy (bateria). Przejęta powłoka może: przestawiać i minimalizować okna, prosić
-o uruchomienie jednej z trzech aplikacji, wyłączyć komputer (RYZYKA R27).
+Komunikaty 32 B od ekranu, od nadzorcy (bateria) i od skarbca; rozmieszczenie ze skarbca (parser: test na hoście
+i fuzzing). Przejęta powłoka może: przestawiać, minimalizować i prosić o zamknięcie okien, prosić o uruchomienie
+aplikacji, wyłączyć komputer, zmienić swoje rozmieszczenie (RYZYKA R27).
 
 ## Testy
 | Test | Rodzaj |
@@ -54,3 +71,6 @@ o uruchomienie jednej z trzech aplikacji, wyłączyć komputer (RYZYKA R27).
 | w systemie: awaria gui → wraca, okna zostają | negatywny |
 | `test-m5.sh`: bateria ACPI w QEMU (73 %, ładowanie) → log i zrzut z ikoną; `test-m1.sh` start: „brak baterii” | funkcjonalny |
 | `test_komunikat`: `BATERIA` — zakresy, kierunek, brak baterii z procentem | negatywny |
+| `test_rozmieszczenie` (host, ASan/UBSan): pierwszy start, przypinanie i kolejność, komórki, „Ułóż ikony”, mniejszy ekran, zapisane bajty i uszkodzone; `fuzz_rozmieszczenie` | jednostkowy / fuzzing |
+| `test-m4.sh` (0.7.5): ikony na zrzucie, podwójne kliknięcie, przeciągnięcie ikony, menu kontekstowe (odepnij, zamknij okno, usuń i dodaj do pulpitu), rozmieszczenie po ponownym starcie | funkcjonalny |
+| w systemie (0.7.5): warstwa pulpitu i zamykanie cudzych okien od aplikacji — odrzucone | negatywny |

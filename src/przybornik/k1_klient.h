@@ -44,6 +44,10 @@ void k1_pow_utworz(struct k1_klient *k, struct k1_powierzchnia *p, uint32_t id, 
 /* Image to draw into, or NULL while a commit is still pending (then the surface stays `brudna`). */
 struct k1_obraz *k1_pow_rysuj(struct k1_powierzchnia *p);
 void k1_pow_zatwierdz(struct k1_klient *k, struct k1_powierzchnia *p);
+/* The same, telling ekran that only the rectangle (x, y, w, h) of the surface changed (0.7.5: the desktop
+ * layer — a full-screen surface where an icon changes). The other half must be brought up to date by the
+ * client before it is committed (k1_pow_rysuj gives it as it was two commits ago). */
+void k1_pow_zatwierdz_obszar(struct k1_klient *k, struct k1_powierzchnia *p, int32_t x, int32_t y, int32_t w, int32_t h);
 /* Destroys the surface (USUN) and unmaps its memory. */
 void k1_pow_usun(struct k1_klient *k, struct k1_powierzchnia *p);
 /* Sends one message; ends the program if ekran went away. */

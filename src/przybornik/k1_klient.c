@@ -142,8 +142,13 @@ struct k1_obraz *k1_pow_rysuj(struct k1_powierzchnia *p)
 
 void k1_pow_zatwierdz(struct k1_klient *k, struct k1_powierzchnia *p)
 {
+    k1_pow_zatwierdz_obszar(k, p, 0, 0, 0, 0);
+}
+
+void k1_pow_zatwierdz_obszar(struct k1_klient *k, struct k1_powierzchnia *p, int32_t x, int32_t y, int32_t w, int32_t h)
+{
     int pol = p->pokazywana == 0 ? 1 : 0;
-    k1_wyslij(k, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, p->id, pol, 0, 0, 0, 0));
+    k1_wyslij(k, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, p->id, pol, x, y, w, h));
     p->pokazywana = pol;
     p->czeka = 1;
     p->brudna = 0;
