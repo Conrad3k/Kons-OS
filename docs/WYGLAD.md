@@ -20,6 +20,11 @@ Podgląd tapety bez QEMU: `make build/obj/podglad_grafiki && build/obj/podglad_g
 - 2026-11-07 (przed M5): ekran hasła przy starcie **„bardzo ładny, w stylu systemu — Claude'owy”**
   (tapeta, ciepłe kolory, Plex, znak K1); szkice do wyboru przed implementacją.
 
+- 2026-11-09 (plan 0.7.5/0.8.0, ADR 0026): pulpit **„jak w Windowsie, ale estetycznie, zgodnie ze
+  stylem K1”** — ikony aplikacji (a od 0.8.0 plików i Kosza) na pulpicie, menu pod prawym przyciskiem,
+  przypinanie i odpinanie na pasku. Kosz usuwa po 30 dniach albo ręcznie. Szkice do wyboru przed
+  implementacją.
+
 ## Kierunek (M4)
 - **Charakter:** spokojny, rzeczowy, lekko ciepły.
 - **Świat:** papier i glina — kremowy papier okien, terakota, ciemny brąz wieczoru.

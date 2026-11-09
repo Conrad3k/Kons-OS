@@ -5,7 +5,7 @@ Stan: wersja 0.7.3 (porządki przed M7 skończone) — ukończone etapy M0 (porz
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby), M5 (dyski, USB, zaszyfrowane
 dane, hasło, instalator), 0.6.0 Fundament, M6 (bezpieczne aktualizacje: podpisy, dm-verity, A/B,
-Secure Boot); dalej M7 Sieć (plan z ADR 0019/0020).
+Secure Boot); dalej 0.7.5 Pulpit, 0.8.0 Pliki, potem M7 Sieć (plan: ADR 0019, 0020, 0026).
 Data: 2026-11-09. Plik aktualizujemy po każdym etapie.
 Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
 
@@ -84,6 +84,11 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
 [x] Ekran hasła przy starcie (2026-11-07): „bardzo ładny, w stylu, jaki jest system — Claude'owy”.
     → Szkice A/B/C; wybrany B „Zegar” (2026-11-07).
 [x] Jedno konto na komputer — tak (2026-11-07).
+  - Plan (2026-11-09): „czy nie lepiej najpierw pliki i izolacja, zanim podłączymy internet?” → zgoda na
+    nową kolejność: 0.7.5 Pulpit → 0.8.0 Pliki → M7 Sieć → M8 Strefy → M9 Pliki ze stref (ADR 0026).
+    Pulpit „jak w Windowsie, ale estetycznie, zgodnie ze stylem K1”. Kosz: usuwa po 30 dniach albo ręcznie.
+[!] Na starcie 0.7.5: wybór szkicu pulpitu (ikony, menu pod prawym przyciskiem, pasek).
+[!] Na starcie 0.8.0: w Plikach foldery (jak w Windows) czy etykiety (jeden plik może mieć kilka)?
 [!] Przed M8 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)? W „Przeglądarce K1”
     (ADR 0025) każda sesja to osobna strefa z własnym kolorem karty, „prywatna” = jednorazowa.
 
@@ -207,7 +212,28 @@ M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku) — 
     [!] Test na X230 (0.7.2): po aktualizacji start z dysku bez pendrive'a — Instalator ma pisać
         „Kons K1 jest zainstalowany”, a menu Start mieć „Wyloguj”; start z pendrive'a — bez „Wyloguj”.
 
+Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
+
+0.7.5 Pulpit — NASTĘPNE
+    [ ] szkice pulpitu do wyboru (jak w Windows, w stylu K1)
+    [ ] ikony aplikacji na pulpicie w siatce: zaznaczanie, przeciąganie, podwójne kliknięcie otwiera
+    [ ] menu pod prawym przyciskiem myszy: pulpit, ikona, dolny pasek
+    [ ] przypinanie i odpinanie aplikacji na dolnym pasku, zmiana kolejności przeciąganiem;
+        uruchomiona aplikacja spoza paska widoczna na nim, dopóki działa
+    [ ] układ pulpitu i paska zapamiętany (skarbiec)
+
+0.8.0 Pliki (natywna część dawnego M9 i dawne M6 „dekodery w izolacji”)
+    [ ] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie
+    [ ] aplikacja Pliki: lista, podgląd, zmiana nazwy; pliki na pulpicie
+    [ ] Kosz: przywracanie; usuwa na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”); ikona na pulpicie
+    [ ] okno wyboru pliku rysowane przez K1 — aplikacja dostaje tylko wybrany plik
+    [ ] Notatki na wspólnych dokumentach (istniejące notatki przeniesione)
+    [ ] zdjęcia z pendrive'a (czytnik FAT w klatce, bez FAT w jądrze), tylko po Twoim wyborze
+    [ ] podgląd obrazów PNG/JPEG przez jednorazowy dekoder w izolacji; tapeta z własnego zdjęcia
+    [ ] partycja K1-DANE na pendrivie do końca nośnika (dziś 64 MiB)
+
 M7  Sieć
+    [ ] test: nic w K1 nie odpowiada na połączenia z zewnątrz
     [ ] kabel (X230: Intel 82579LM, e1000e, bez firmware) + DHCP w osobnej klatce, czas z sieci
     [ ] Wi-Fi (iwlwifi + firmware — osobny ADR)
 
@@ -223,8 +249,7 @@ M8  Strefy — każda obca aplikacja w swojej mikro-maszynie (Twój pomysł, ADR
     [ ] Przeglądarka K1 (po pierwszej przeglądarce w strefie, ADR 0025): okno, karty i pasek adresu jako
         aplikacja K1, silnik (kierunek: WPE WebKit) w strefie; pasek adresu rysuje K1; sesje = strefy
 
-M9  Pliki (Gatekeeper + dawne M6)
-    [ ] aplikacja Pliki w skarbcu; podgląd obrazów przez jednorazowy dekoder w izolacji
+M9  Pliki ze stref (Gatekeeper dla stref; aplikacja Pliki i dekodery — w 0.8.0, ADR 0026)
     [ ] pliki ze strefy („Do K1”) i do strefy („Wyślij do…”) tylko przez okno K1 z pytaniem; schowek
         między strefami za każdym wklejeniem
 
@@ -246,6 +271,10 @@ M4   (podjęte) czcionki IBM Plex (OFL), własne rysowanie tekstu bez LVGL (ADR 
 M4.1 (podjęte, ADR 0012) przegląd, tryby ekranu, vmwgfx, Zasoby
 M5   (podjęte, ADR 0013) sterowniki dysków i USB; dalej: format Blob Vault i szyfrowanie (ADR 0015),
      skąd klucz (hasło; X230 ma TPM 1.2, nie 2.0)
+0.7.5 (ADR 0026) gui jako klient skarbca (układ pulpitu) — protokół
+0.8.0 (ADR 0026) model wspólnych dokumentów w skarbcu (dłuższe nazwy, metadane osobno), okno wyboru
+     pliku (deskryptory, pieczęcie memfd), czytnik FAT w klatce, dekodery PNG/JPEG (biblioteki czy własne
+     — wpis w ZALEZNOSCI.md), Kosz w skarbcu
 M7   przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP
 M5.1 Firefox czy WPE WebKit (sprawdzenie sandboxa Firefoksa w strefie), USER_NS tak/nie
 M10  obraz produkcyjny bez logu na porcie szeregowym; RANDSTRUCT w jądrze; zarządzanie kluczami;

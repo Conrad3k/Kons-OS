@@ -14,7 +14,8 @@ statycznie z musl. Budowany skryptami w `scripts/`, testowany w QEMU, CI w GitHu
 - Mapa repo, konwencje, wersje: `docs/ARCHITEKTURA.md`. Testy: `docs/TESTY.md`. Wygląd: `docs/WYGLAD.md`.
 - Historia zmian: `CHANGELOG.md`; wersja: `VERSION` (SemVer, tagi `k1-vX.Y.Z`).
 - Stara dystrybucja Kons-OS (Debian): gałąź `archiwum/debian-0.1.2` — nie rozwijamy.
-- **Teraz:** M7 (Sieć) — `docs/DO_ZROBIENIA.txt`. Porządki przed M7 skończone w 0.7.3 (ADR 0023).
+- **Teraz:** 0.7.5 Pulpit, potem 0.8.0 Pliki, dopiero potem M7 Sieć (ADR 0026) — `docs/DO_ZROBIENIA.txt`.
+  Porządki przed M7 skończone w 0.7.3 (ADR 0023).
 
 ## Właściciel
 - Pisze po polsku i nie jest programistą. Dokumentacja, PR-y, komunikaty w systemie i raporty — po
