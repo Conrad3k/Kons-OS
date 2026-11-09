@@ -3,15 +3,16 @@
 
 int zasoby_kanal = -1; /* our end of the channel to Zasoby (its fd 4; we only write) */
 int bateria_kanal = -1; /* our end of the battery channel to gui (its fd 5; we only write) */
-struct k1_bateria bateria_wyslana;
-int bateria_znana; /* bateria_wyslana is what gui got on this channel */
+static struct k1_bateria bateria_wyslana;
+static int bateria_znana; /* bateria_wyslana is what gui got on this channel */
 static int sesja_wyslana = -1; /* the K1_KOM_SESJA gui got on this channel (-1: none yet) */
 /* 0.5.5: battery state and charge history since boot for Ustawienia (its fd 4; we only write) */
 int ustaw_kanal = -1;
-struct k1_bateria bateria_teraz, ustaw_wyslana;
-int bateria_odczytana, ustaw_znana, ustaw_hist_wyslane;
+static struct k1_bateria bateria_teraz, ustaw_wyslana;
+static int bateria_odczytana, ustaw_znana, ustaw_hist_wyslane;
 struct k1_bat_historia bat_hist;
-double nastepna_probka;
+static double nastepna_probka;
+static int ustaw_arch_wyslane; /* Ustawienia has the archive (reset when it starts) */
 /* Battery (0.5.3, 0.5.5): read from sysfs power_supply every BATERIA_CO s (an ACPI battery talks to
  * the embedded controller), a history sample every bat_hist.interwal s. */
 static long long moc_srednia = -1; /* smoothed power draw, mW (0.6.3, Zasoby) */
@@ -33,7 +34,7 @@ void odczytaj_baterie(double t)
     }
 }
 
-struct k1_komunikat komunikat_baterii(const struct k1_bateria *b)
+static struct k1_komunikat komunikat_baterii(const struct k1_bateria *b)
 {
     return k1_komunikat_nowy(K1_KOM_BATERIA, 0, b->obecna, b->obecna ? b->procent : -1, b->obecna ? b->stan : 0,
                              b->zasilacz, 0);
@@ -98,20 +99,13 @@ void wyslij_ustawieniom(void)
 
 /* Value of `klucz` ("usage_usec", "file", ...) in a cgroup key-value file, or of the single number
  * in the file when klucz is NULL. -1 if missing. */
-long long liczba_z_pliku(const char *sciezka, const char *klucz)
+static long long liczba_z_pliku(const char *sciezka, const char *klucz)
 {
     char buf[4096];
-    ssize_t n;
-    int fd = open(sciezka, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
     const char *p = buf;
     size_t kl = klucz ? strlen(klucz) : 0;
-    if (fd < 0)
+    if (k1_czytaj_plik(AT_FDCWD, sciezka, buf, sizeof buf) < 0)
         return -1;
-    n = read(fd, buf, sizeof buf - 1);
-    close(fd);
-    if (n <= 0)
-        return -1;
-    buf[n] = '\0';
     while (klucz != NULL) {
         if (strncmp(p, klucz, kl) == 0 && p[kl] == ' ') {
             p += kl + 1;
@@ -127,14 +121,14 @@ long long liczba_z_pliku(const char *sciezka, const char *klucz)
     return strtoll(p, NULL, 10);
 }
 
-long long cpu_usec(const char *grupa)
+static long long cpu_usec(const char *grupa)
 {
     char sciezka[128];
     snprintf(sciezka, sizeof sciezka, K1_CGROUP "%s%s/cpu.stat", grupa[0] ? "/" : "", grupa);
     return liczba_z_pliku(sciezka, "usage_usec");
 }
 
-int32_t promile(long long delta_usec, double delta_s, long cpus)
+static int32_t promile(long long delta_usec, double delta_s, long cpus)
 {
     double v = (double)delta_usec / (delta_s * 1e6 * (double)cpus) * 1000.0;
     return v < 0 ? 0 : (v > 1000 ? 1000 : (int32_t)(v + 0.5));
@@ -145,7 +139,7 @@ void raport_zasobow(void)
 {
     static long long poprz_sys = -1, poprz[K1_PROFIL_MAKS + 1];
     static double poprz_t;
-    double t = teraz(), dt = t - poprz_t;
+    double t = k1_teraz(), dt = t - poprz_t;
     long cpus = sysconf(_SC_NPROCESSORS_ONLN);
     long long uz = cpu_usec(""), plik, shmem, uzyta;
     struct sysinfo si;
@@ -207,7 +201,6 @@ static int arch_zapisane;       /* a save of this boot already succeeded (logged
 static struct k1_bat_arch arch; /* earlier boots */
 static uint32_t arch_start_min; /* when this boot started, minutes since 1970 */
 static double arch_nastepny_zapis;
-int ustaw_arch_wyslane;         /* Ustawienia has the archive (reset when it starts) */
 
 static void arch_rozlacz(void)
 {
@@ -327,14 +320,14 @@ void bateria_archiwum(double t)
 void bateria_archiwum_koniec(void)
 {
     struct pollfd p;
-    double koniec = teraz() + 1.5;
+    double koniec = k1_teraz() + 1.5;
     if (arch_kanal < 0 || arch_stan != 2 || bat_hist.n == 0)
         return;
     arch_zapisane = 1; /* no log line: the console may be going away */
     arch_zapisz();
     p.fd = arch_kanal;
     p.events = POLLIN;
-    while (teraz() < koniec && poll(&p, 1, 200) >= 0) {
+    while (k1_teraz() < koniec && poll(&p, 1, 200) >= 0) {
         struct k1_komunikat k;
         int fd = -1;
         if (k1_odbierz_komunikat(arch_kanal, K1_UID_SKARBIEC, K1_KIER_OD_SKARBCA, &k, &fd) == K1_ODB_JEST) {

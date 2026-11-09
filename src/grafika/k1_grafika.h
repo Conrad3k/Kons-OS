@@ -31,6 +31,9 @@ struct k1_obraz {
 #define K1_KURSOR_HOT_X 2
 #define K1_KURSOR_HOT_Y 2
 
+/* The shell's top bar: gui draws it this tall, ekran keeps windows below it. */
+#define K1_PASEK_GORNY 32
+
 /* Wallpaper `wariant` (0..K1_TAPETY-1, docs/WYGLAD.md) for the whole image. Deterministic (same size
  * and variant → same pixels). */
 #define K1_TAPETY 4

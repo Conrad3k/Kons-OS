@@ -20,11 +20,7 @@ char ab_nieudana[32]; /* the K1-EFI whose last try did not start (this session; 
 void rozruch_wydanie(void)
 {
     char t[40];
-    int fd = open(WYDANIE, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
-    ssize_t n = fd < 0 ? -1 : read(fd, t, sizeof t);
-    if (fd >= 0)
-        close(fd);
-    if (n != 33 || t[32] != '\n' || k1_hex_bajty(t, wydanie, sizeof wydanie) != 0) {
+    if (k1_czytaj_plik(AT_FDCWD, WYDANIE, t, sizeof t) != 33 || t[32] != '\n' || k1_hex_bajty(t, wydanie, sizeof wydanie) != 0) {
         k1_log(TAG, "brak identyfikatora wydania — nowe miejsce A/B nie zostanie potwierdzone automatycznie");
         return;
     }

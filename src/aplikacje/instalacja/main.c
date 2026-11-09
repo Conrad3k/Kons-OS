@@ -134,48 +134,57 @@ static int potwierdzone(void)
 
 /* ---- layout ---- */
 
-static void przyciski(int32_t *x1, int32_t *x2, int32_t *w1, int32_t *w2, const char **e1, const char **e2)
+static int32_t przyciski_y(void)
 {
-    *e1 = *e2 = NULL;
+    return apl.wys - 20 - PRZ_H;
+}
+
+/* The buttons at the bottom right: [0] the main one (accent), [1] the second one to its left; an absent one
+ * has no label and no width (never hit). */
+static void przyciski(struct k1_przycisk p[2])
+{
+    const char *e1 = NULL, *e2 = NULL;
+    int i;
     switch (stan) {
     case S_LISTA:
         if (zrodlo != 1)
             break; /* nothing to install from: no button (0.6.1) */
         if (wybrany >= 0 && dyski[wybrany].k1) {
-            *e1 = "Zaktualizuj system";
-            *e2 = dyski[wybrany].zajety ? NULL : "Zainstaluj od nowa";
+            e1 = "Zaktualizuj system";
+            e2 = dyski[wybrany].zajety ? NULL : "Zainstaluj od nowa";
         } else
-            *e1 = "Zainstaluj";
+            e1 = "Zainstaluj";
         break;
     case S_POTWIERDZ:
-        *e1 = tryb == K1_INST_INSTALUJ ? "Usuń wszystko i zainstaluj" : "Zaktualizuj";
-        *e2 = "Anuluj";
+        e1 = tryb == K1_INST_INSTALUJ ? "Usuń wszystko i zainstaluj" : "Zaktualizuj";
+        e2 = "Anuluj";
         break;
     case S_GOTOWE:
-        *e1 = tryb == K1_INST_INSTALUJ ? "Wyłącz komputer" : "Uruchom ponownie";
+        e1 = tryb == K1_INST_INSTALUJ ? "Wyłącz komputer" : "Uruchom ponownie";
         break;
     case S_SB:
         if (sbk == K1_SBK_BRAK && sb_prawdziwy && sb != K1_SB_NIEZNANY)
-            *e1 = "Przygotuj klucz K1";
+            e1 = "Przygotuj klucz K1";
         else if (sbk == K1_SBK_CZEKA && sb_wynik == K1_SBP_GOTOWE)
-            *e1 = "Uruchom ponownie";
-        *e2 = "Wróć";
+            e1 = "Uruchom ponownie";
+        e2 = "Wróć";
         break;
     case S_BLAD:
-        *e1 = "Wróć";
+        e1 = "Wróć";
         break;
     default:
         break;
     }
-    *w1 = *e1 ? k1_tekst_szer(K1_CZ_TEKST_MOCNA, *e1) + 40 : 0;
-    *w2 = *e2 ? k1_tekst_szer(K1_CZ_TEKST_MOCNA, *e2) + 40 : 0;
-    *x1 = apl.szer - LEWO - *w1;
-    *x2 = *x1 - 12 - *w2;
-}
-
-static int32_t przyciski_y(void)
-{
-    return apl.wys - 20 - PRZ_H;
+    p[0].etykieta = e1;
+    p[1].etykieta = e2;
+    for (i = 0; i < 2; i++) {
+        p[i].w = p[i].etykieta ? k1_tekst_szer(K1_CZ_TEKST_MOCNA, p[i].etykieta) + 40 : 0;
+        p[i].y = przyciski_y();
+        p[i].h = PRZ_H;
+        p[i].styl = i == 0 ? K1_PRZ_GLOWNY : K1_PRZ_ZWYKLY;
+    }
+    p[0].x = apl.szer - LEWO - p[0].w;
+    p[1].x = p[0].x - 12 - p[1].w;
 }
 
 static int32_t pole_y(void)
@@ -185,26 +194,11 @@ static int32_t pole_y(void)
 
 /* ---- drawing ---- */
 
-static void przycisk(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t w, const char *e, int glowny,
-                     int aktywny, int najechany)
-{
-    int32_t y = przyciski_y();
-    if (glowny) {
-        k1_zaokraglony(o, (float)x, (float)y, (float)w, PRZ_H, 9, k1_kolor(m->akcent, aktywny ? (najechany ? 230 : 255) : 90));
-        k1_tekst(o, K1_CZ_TEKST_MOCNA, x + 20, y + 23, e, k1_kolor(m->na_akcencie, 255), 0);
-    } else {
-        if (najechany)
-            k1_zaokraglony(o, (float)x, (float)y, (float)w, PRZ_H, 9, k1_kolor(m->najechanie, 255));
-        k1_obrys(o, (float)x, (float)y, (float)w, PRZ_H, 9, 1.0f, k1_kolor(m->tekst, 50));
-        k1_tekst(o, K1_CZ_TEKST_MOCNA, x + 20, y + 23, e, k1_kolor(m->tekst, 255), 0);
-    }
-}
-
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char buf[200];
-    int32_t x1, x2, w1, w2, y;
-    const char *e1, *e2;
+    struct k1_przycisk p[2];
+    int32_t y;
     int i;
 
     switch (stan) {
@@ -427,14 +421,13 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     default:
         break;
     }
-    przyciski(&x1, &x2, &w1, &w2, &e1, &e2);
-    if (e1 != NULL)
-        przycisk(o, m, x1, w1, e1, 1,
-                 !(stan == S_LISTA && wybrany < 0) && !(stan == S_POTWIERDZ && tryb == K1_INST_INSTALUJ && !potwierdzone()) &&
-                     !(stan == S_POTWIERDZ && tryb == K1_INST_AKTUALIZUJ && starsza()),
-                 hover == 10);
-    if (e2 != NULL)
-        przycisk(o, m, x2, w2, e2, 0, 1, hover == 11);
+    przyciski(p);
+    if (p[0].etykieta != NULL)
+        k1_przycisk(o, m, &p[0], K1_CZ_TEKST_MOCNA, hover == 10,
+                    !(stan == S_LISTA && wybrany < 0) && !(stan == S_POTWIERDZ && tryb == K1_INST_INSTALUJ && !potwierdzone()) &&
+                        !(stan == S_POTWIERDZ && tryb == K1_INST_AKTUALIZUJ && starsza()));
+    if (p[1].etykieta != NULL)
+        k1_przycisk(o, m, &p[1], K1_CZ_TEKST_MOCNA, hover == 11, 1);
 }
 
 /* ---- nadzorca ---- */
@@ -600,13 +593,12 @@ static void drugi(void)
 
 static int pod(int32_t x, int32_t y)
 {
-    int32_t x1, x2, w1, w2, py = przyciski_y();
-    const char *e1, *e2;
-    przyciski(&x1, &x2, &w1, &w2, &e1, &e2);
-    if (e1 && x >= x1 && x < x1 + w1 && y >= py && y < py + PRZ_H)
-        return 10;
-    if (e2 && x >= x2 && x < x2 + w2 && y >= py && y < py + PRZ_H)
-        return 11;
+    struct k1_przycisk p[2];
+    int32_t py = przyciski_y();
+    int b;
+    przyciski(p);
+    if ((b = k1_przycisk_pod(p, 2, x, y)) >= 0)
+        return 10 + b;
     if (stan == S_LISTA && sb >= 0 && x >= LEWO && x < LEWO + k1_tekst_szer(K1_CZ_TEKST, SB_LINK) && y >= py && y < py + PRZ_H)
         return 12;
     if (stan == S_LISTA && zrodlo == 1 && x >= LEWO && x < apl.szer - LEWO && y >= DYSKI_Y && y < py - 30) {
@@ -631,12 +623,11 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk_nr)
     else if (p == 11)
         drugi();
     else if (p == 12) {
-        int32_t x1, x2, w1, w2;
-        const char *e1, *e2;
+        struct k1_przycisk b[2];
         stan = S_SB;
-        przyciski(&x1, &x2, &w1, &w2, &e1, &e2);
-        k1_log(TAG, "secure boot: ekran; przycisk %d,%d, wróć %d,%d", x1 + w1 / 2, przyciski_y() + PRZ_H / 2, x2 + w2 / 2,
-               przyciski_y() + PRZ_H / 2);
+        przyciski(b);
+        k1_log(TAG, "secure boot: ekran; przycisk %d,%d, wróć %d,%d", b[0].x + b[0].w / 2, b[0].y + PRZ_H / 2,
+               b[1].x + b[1].w / 2, b[1].y + PRZ_H / 2);
         k1_apl_odswiez(&apl);
     }
     else if (p >= 0 && p < n_dyskow && stan == S_LISTA) {

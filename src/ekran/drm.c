@@ -55,13 +55,6 @@ void sprawdz_sterownik(void)
     }
 }
 
-double teraz(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
-}
-
 double czas_procesora(void)
 {
     struct timespec t;
@@ -250,7 +243,7 @@ int utworz_bufor(struct bufor *b, uint32_t w, uint32_t h)
     return 0;
 }
 
-void usun_bufor(struct bufor *b)
+static void usun_bufor(struct bufor *b)
 {
     struct drm_mode_destroy_dumb dd;
     if (b->obraz.px != NULL)

@@ -68,7 +68,7 @@ int main(void)
         struct pollfd pfd[1 + N_KANALOW + N_USLUG + 1];
         struct usluga *zrodla[1 + N_KANALOW + N_USLUG + 1];
         nfds_t n = 0;
-        double t = teraz(), najblizszy = -1;
+        double t = k1_teraz(), najblizszy = -1;
         int czas;
 
         pfd[n].fd = sfd;
@@ -141,7 +141,7 @@ int main(void)
             }
         }
 
-        t = teraz();
+        t = k1_teraz();
         for (i = 0; i < N_USLUG; i++)
             if (uslugi[i].pid == 0 && !uslugi[i].wylaczona && uslugi[i].nastepny > 0 && uslugi[i].nastepny <= t)
                 start(&uslugi[i]);

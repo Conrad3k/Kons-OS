@@ -249,8 +249,8 @@ void t_sprzet(void)
     }
     check(otwarte == 4, "wejscie używa klawiatury i myszy PS/2 oraz USB (4 urządzenia)", "otwarte: %d", otwarte);
 
-    /* Negative: disks and raw USB only for root (0600), nobody holds a disk open (until M5d:
-     * nadzorca opens the data partition and hands it to one service). */
+    /* Negative: disks and raw USB only for root (0600) — services get a partition only as a descriptor
+     * from nadzorca (K1-DANE for skarbiec, M5d). */
     zle = obce_wezly(DEV, S_IFBLK, &wszystkie, opis, sizeof opis);
     check(zle == 0 && wszystkie >= 5, "NEGATYWNY: dyski i partycje tylko dla roota (0600)", "węzłów: %d, złe: %s", wszystkie,
           opis);

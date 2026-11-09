@@ -26,6 +26,7 @@
 #include "k1_log.h"
 #include "k1_memfd.h"
 #include "k1_uslugi.h"
+#include "k1_teraz.h"
 #include "magazyn.h"
 #include "monocypher.h"
 
@@ -137,16 +138,9 @@ static int haslo_ustawione(void)
     return zablokowany || (trwaly && mag.haslo);
 }
 
-static double teraz(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
-}
-
 static int sekund_do_proby(void)
 {
-    double d = nastepna_proba - teraz();
+    double d = nastepna_proba - k1_teraz();
     return d <= 0 ? 0 : (int)d + 1;
 }
 
@@ -157,7 +151,7 @@ static void zla_proba(void)
     double przerwa = n < 3 ? 0 : 5.0 * (double)(1u << (n - 3 < 6 ? n - 3 : 6));
     if (przerwa > K1_HASLO_PRZERWA)
         przerwa = K1_HASLO_PRZERWA;
-    nastepna_proba = teraz() + przerwa;
+    nastepna_proba = k1_teraz() + przerwa;
     k1_log(TAG, "złe hasło (%d. raz z rzędu)%s", n, przerwa > 0 ? " — następna próba za chwilę" : "");
 }
 

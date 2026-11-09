@@ -14,6 +14,11 @@ export SOURCE_DATE_EPOCH
 K1_CPU=$(nproc 2>/dev/null || echo 2)
 info() { printf '[k1] %s\n' "$*"; }
 blad() { printf '[k1] BŁĄD: %s\n' "$*" >&2; exit 1; }
+# zamknij_qemu GNIAZDO PID — maszyna testowa: „quit” przez monitor (albo kill, gdy nie odpowiada); czeka na koniec.
+zamknij_qemu() {
+    python3 -I "$K1_REPO/testy/qemu/k1qemu.py" zamknij "$1" || kill "$2" 2>/dev/null || true
+    wait "$2" 2>/dev/null || true
+}
 # M6b (ADR 0021): dm-verity hash tree appended to a SquashFS image (data padded to 4 KiB blocks, the
 # tree right after it, no superblock); the root hash goes to PLIK.skrot (k1.rdzen_skrot=… on the
 # kernel command line). Fixed salt: the same image gives the same bytes and the same root hash.

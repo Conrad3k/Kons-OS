@@ -27,11 +27,11 @@ printf 'label: gpt\nstart=2048, size=126976, type=0FC63DAF-8483-4772-8E79-3D69D8
             -acpitable file=$TESTY/bateria-ladowanie.aml" &
 QPID=$!
 r=0
-K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG" "$MON" "$TESTY" "$K1_REPO/scripts/zrzut-ekranu.sh" "$CZAS" <<'PY' || r=$?
+K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG" "$MON" "$TESTY" "$CZAS" <<'PY' || r=$?
 import os, re, sys, time
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
-q = Maszyna(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], "m5")
+q = Maszyna(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], "m5")
 tekst, czekaj, ile, monitor, sprawdz, kursor, idz, klik = q.tekst, q.czekaj, q.ile, q.monitor, q.sprawdz, q.kursor_teraz, q.idz, q.klik
 
 krem = lambda c: c[0] > 200 and c[1] > 195 and c[2] > 180
@@ -40,12 +40,10 @@ KURSOR = r"K1-EKRAN: kursor (\d+),(\d+) przycisk"
 
 def urzadzenia(n, od=0, czas=60):
     """Waits until wejscie (re)started with n devices, at least `od` times before."""
-    t_end = time.time() + czas
-    while time.time() < t_end:
+    def jest():
         m = re.findall(GOTOWE, tekst())
-        if m and int(m[-1]) == n and m.count(str(n)) > od: return True
-        time.sleep(0.5)
-    return False
+        return bool(m) and int(m[-1]) == n and m.count(str(n)) > od
+    return q.czekaj_na(jest, czas)
 
 
 tryb = czekaj(r"K1-EKRAN: tryb (\d+)x(\d+)")
@@ -54,7 +52,6 @@ if not tryb: sys.exit(1)
 sprawdz("brak kontrolera PS/2 (maszyna tylko z USB)", "i8042: PNP: No PS/2 controller found" in tekst())
 sprawdz("wejscie: klawiatura i mysz USB (2 urządzenia)", urzadzenia(2, czas=90),
         str(re.findall(GOTOWE, tekst())))
-time.sleep(1)
 x0, y0 = kursor()
 
 monitor(*["mouse_move -60 -30"] * 4)
@@ -77,12 +74,10 @@ sprawdz("odłączenie myszy: nadzorca i wejscie to zauważają",
 monitor("device_add usb-mouse,id=mysz3,bus=xhci.0")
 sprawdz("ponowne podłączenie (ten sam numer urządzenia) → znów 3 urządzenia",
         czekaj(r"nowe urządzenie wejścia", od=n_nowe + 1, czas=30) and urzadzenia(3, od=1, czas=30))
-time.sleep(1)
 monitor(*["mouse_move 40 20"] * 2)
 x3, y3 = x2 + 80, y1 + 40
 sprawdz(f"mysz działa dalej po podłączaniu → {x3},{y3}", czekaj(rf"K1-EKRAN: kursor {x3},{y3} ", czas=20), str(kursor()))
-time.sleep(1)
-w, h, px = q.zrzut("usb")
+w, h, px = q.zrzut("usb", gdy=lambda w, h, px: krem(px(x3 + 3, y3 + 9)))
 sprawdz("zrzut: kursor w miejscu z logu", krem(px(x3 + 3, y3 + 9)), str(px(x3 + 3, y3 + 9)))
 sprawdz("bateria: powłoka dostała stan od nadzorcy (73 %, ładowanie, zasilacz podłączony)",
         czekaj(r"K1-GUI: bateria 73%, ładowanie, zasilacz podłączony", czas=10))
@@ -104,7 +99,6 @@ sprawdz("pendrive z K1-DANE podłączony po starcie → nadzorca uruchamia skarb
 sprawdz("skarbiec: nowy magazyn na tej partycji, pulpit od nowa",
         czekaj(r"K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE", czas=60)
         and czekaj(r"K1-GUI: pulpit gotowy", od=n_pulpit, czas=60))
-time.sleep(2)
 
 # 0.5.5: Ustawienia → Bateria — the charge chart since boot (samples every 30 s)
 q.kursor[:] = list(kursor() or (0, 0))
@@ -116,24 +110,25 @@ if g:
     sek = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
     if u and sek:
         ux, uy = int(u.group(4)), int(u.group(5))
-        time.sleep(1)
         klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + 2 * int(sek.group(3)))
         WZB = r"K1-USTAWIENIA: bateria: jest, 73%, próbek (\d+) co 30 s; wykres (\d+),(\d+) (\d+)x(\d+)"
         b = czekaj(WZB, czas=20)
-        if b and int(b.group(1)) < 2:  # a sample every 30 s: wait for the second one, open the section again
-            time.sleep(35)
-            klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + 2 * int(sek.group(3)))
-            b = czekaj(WZB, od=1, czas=20)
-        sprawdz("Ustawienia → Bateria: stan i historia od nadzorcy (73 %, próbki co 30 s)", b and int(b.group(1)) >= 2,
-                b.group(0) if b else "brak")
+        sprawdz("Ustawienia → Bateria: stan od nadzorcy (73 %, próbki co 30 s)", b, "brak")
         if b:
             wx, wy, ww, wh = (int(b.group(i)) for i in range(2, 6))
-            time.sleep(1.5)
-            w, h, px = q.zrzut("bateria")
             akcent = lambda c: c[0] > 150 and c[1] < 140 and c[2] < 110 and c[0] > c[1] > c[2]
-            linia = sum(1 for x in range(ux + wx + 8, ux + wx + ww - 8) for y in range(uy + wy, uy + wy + wh) if akcent(px(x, y)))
+            linia_w = lambda px: sum(1 for x in range(ux + wx + 8, ux + wx + ww - 8) for y in range(uy + wy, uy + wy + wh)
+                                     if akcent(px(x, y)))
+            # a sample every 30 s: the chart spans the width once there are two (the window redraws by itself)
+            w, h, px = q.zrzut("bateria", gdy=lambda w, h, px: linia_w(px) >= (ww - 16) * 2 * 0.8, czas=90)
+            linia = linia_w(px)
             sprawdz(f"zrzut: wykres naładowania na całą szerokość ({linia} pikseli linii)", linia >= (ww - 16) * 2 * 0.8,
                     str(linia))
+            n_b = ile(WZB)
+            klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + 2 * int(sek.group(3)))
+            b = czekaj(WZB, od=n_b, czas=20)
+            sprawdz("Ustawienia → Bateria: historia od nadzorcy (co najmniej 2 próbki)", b and int(b.group(1)) >= 2,
+                    b.group(0) if b else "brak")
     else:
         sprawdz("Ustawienia otwarte z dolnego paska", False, f"okno: {bool(u)}, układ: {bool(sek)}")
 else:
@@ -144,7 +139,7 @@ sprawdz("brak 'Kernel panic' i błędów usług", "Kernel panic" not in t and "B
 sprawdz("brak odrzuconych i zgubionych zdarzeń", re.findall(r"odrzucone (\d+)\)", t)[-1:] == ["0"] and "pominięto" not in t)
 q.koniec()
 PY
-kill $QPID 2>/dev/null || true; wait $QPID 2>/dev/null || true
+zamknij_qemu "$MON" $QPID
 
 # M5d: the USB image (k1-<version>-usb.img) booted by UEFI firmware from a USB stick, twice: the first
 # boot creates the encrypted vault on the empty K1-DANE partition, the second one opens it.
@@ -166,9 +161,7 @@ if [ -f "$USBIMG" ]; then
             && grep -qF "$BAT" "$PLOG" 2>/dev/null; }; do
             kill -0 $PPID_ 2>/dev/null || break; sleep 1; t=$((t + 1))
         done
-        python3 -I "$K1_REPO/testy/qemu/k1qemu.py" zamknij "$PMON" \
-            || kill $PPID_ 2>/dev/null || true
-        wait $PPID_ 2>/dev/null || true
+        zamknij_qemu "$PMON" $PPID_
         if grep -qF "$OCZ" "$PLOG" && grep -qF "K1-GUI: pulpit gotowy" "$PLOG" && grep -qF "partycja danych K1-DANE otwarta" "$PLOG" \
             && grep -qF "$BAT" "$PLOG" \
             && ! grep -q "Kernel panic" "$PLOG" && ! grep -qF "BŁĄD" "$PLOG"; then

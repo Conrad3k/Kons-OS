@@ -53,10 +53,10 @@ static void gpt(uint64_t bajty, uint32_t sektor)
     for (i = 0; i < 48; i++)
         losowe[i] = (uint8_t)(i * 37 + 11);
     EXPECT(k1_gpt_uklad(bajty, sektor, &u) == 0);
-    EXPECT(u.efi_od == mib && u.efi_do - u.efi_od + 1 == (uint64_t)K1_GPT_EFI_MIB * mib);
+    EXPECT(u.efi_od == mib && u.efi_do - u.efi_od + 1 == 512 * mib); /* K1-EFI: 512 MiB from 1 MiB (ADR 0018) */
     EXPECT(u.dane_od == u.efi_do + 1 && u.dane_do <= u.ostatni && (u.dane_do + 1) % mib == 0);
     EXPECT(u.ostatni + 1 + u.wpisy_sektory + 1 == u.sektory);
-    EXPECT(u.pierwszy == 2 + K1_GPT_WPISY_BAJTY / sektor);
+    EXPECT(u.pierwszy == 2 + 16384 / sektor); /* MBR, header, 128 entries of 128 B (UEFI spec) */
     k1_gpt_zbuduj(&u, losowe, mbr, g, z, w);
     sprawdz_naglowek(g, 1, u.sektory - 1, 2, w, &u);
     sprawdz_naglowek(z, u.sektory - 1, 1, u.sektory - 1 - u.wpisy_sektory, w, &u);

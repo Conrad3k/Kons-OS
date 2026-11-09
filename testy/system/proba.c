@@ -6,7 +6,7 @@
 
 static volatile sig_atomic_t trafione_nr = -1;
 
-void proba_sigsys(int sig, siginfo_t *si, void *ctx)
+static void proba_sigsys(int sig, siginfo_t *si, void *ctx)
 {
     (void)sig;
     (void)ctx;

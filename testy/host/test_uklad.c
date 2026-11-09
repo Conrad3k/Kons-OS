@@ -10,6 +10,15 @@
 
 #define MIB (1ull << 20)
 
+static uint64_t le64(const uint8_t *p)
+{
+    uint64_t v = 0;
+    int i;
+    for (i = 7; i >= 0; i--)
+        v = v << 8 | p[i];
+    return v;
+}
+
 static int uklad_ok(const struct k1_uklad *u, uint64_t partycja)
 {
     uint8_t b[K1_UKLAD_BAJTY];
@@ -31,7 +40,16 @@ int main(int argc, char **argv)
     uint8_t b[K1_UKLAD_BAJTY], e[K1_GRUBENV_BAJTY];
     struct k1_grubenv g, h;
 
-    /* layout block */
+    /* layout block: the bytes as k1_uklad.h describes them (scripts/test-m5f.sh reads them by these offsets) */
+    k1_uklad_zbuduj(&u, b);
+    EXPECT(memcmp(b, "K1U1", 4) == 0 && b[4] == 1 && le64(b + 8) == 280 * MIB && le64(b + 16) == 1 * MIB &&
+           le64(b + 24) == 128 * MIB && le64(b + 32) == 132 * MIB && le64(b + 40) == 4 * MIB);
+    {
+        int i, zera = 1;
+        for (i = 48; i < 496; i++)
+            zera &= b[i] == 0;
+        EXPECT(zera);
+    }
     EXPECT(uklad_ok(&u, 280 * MIB) && uklad_ok(&u, 512 * MIB));
     EXPECT(!uklad_ok(&u, 279 * MIB)); /* FAT bigger than the partition */
     z = u; z.slot_off[0] = z.slot_off[1] + 64 * MIB; EXPECT(!uklad_ok(&z, 512 * MIB));           /* slots overlap */

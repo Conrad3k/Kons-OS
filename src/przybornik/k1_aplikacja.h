@@ -36,6 +36,5 @@ struct k1_apl {
 /* Starts the application: zero-initialised kanaly[] entries are ignored (fd 0 is never a channel). */
 _Noreturn void k1_apl_uruchom(struct k1_apl *a);
 void k1_apl_odswiez(struct k1_apl *a); /* redraw at the next opportunity */
-const struct k1_motyw *k1_apl_motyw(const struct k1_apl *a);
 
 #endif

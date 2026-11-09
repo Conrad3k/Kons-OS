@@ -14,11 +14,11 @@ mkdir -p "$TESTY"; rm -f "$LOG" "$MON" "$TESTY"/m2-*.png
 "$K1_REPO/scripts/uruchom-qemu.sh" --log "$LOG" --monitor "$MON" --czas "$CZAS" &
 QPID=$!
 r=0
-K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG" "$MON" "$TESTY" "$K1_REPO/scripts/zrzut-ekranu.sh" "$CZAS" <<'PY' || r=$?
-import os, re, sys, time
+K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG" "$MON" "$TESTY" "$CZAS" <<'PY' || r=$?
+import os, re, sys
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
-q = Maszyna(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], "m2")
+q = Maszyna(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], "m2")
 czekaj, monitor, zrzut, sprawdz = q.czekaj, q.monitor, q.zrzut, q.sprawdz
 
 krem = lambda c: c[0] > 200 and c[1] > 195 and c[2] > 180
@@ -31,8 +31,7 @@ k0 = czekaj(WZOR)
 sprawdz("ekran: tryb i pierwsza klatka w logu", bool(tryb and klatka and k0))
 if not (tryb and klatka and k0): sys.exit(1)
 W, H = int(tryb.group(1)), int(tryb.group(2)); x0, y0 = int(k0.group(1)), int(k0.group(2))
-time.sleep(1)
-w, h, px = zrzut("1-start")
+w, h, px = zrzut("1-start", gdy=lambda w, h, px: krem(px(x0 + 3, y0 + 9)))
 sprawdz(f"zrzut 1: rozmiar {w}x{h} = tryb {W}x{H}", (w, h) == (W, H))
 sprawdz("zrzut 1: tapeta (kolorowa, nie jednolita)", px(W // 4, H // 2) != px(W - 20, H // 3) and max(px(W // 3, H // 2)) > 80,
         str(px(W // 4, H // 2)))
@@ -47,8 +46,7 @@ monitor(*["mouse_move -60 -30"] * 4)
 x1, y1 = x0 - 240, y0 - 120
 m = czekaj(rf"K1-EKRAN: kursor {x1},{y1} ")
 sprawdz(f"mysz: kursor przesunięty o (-240,-120) → {x1},{y1}", m is not None)
-time.sleep(1)
-w, h, px = zrzut("2-mysz")
+w, h, px = zrzut("2-mysz", gdy=lambda w, h, px: krem(px(x1 + 3, y1 + 9)))
 sprawdz("zrzut 2: kursor w nowym miejscu", krem(px(x1 + 3, y1 + 9)), str(px(x1 + 3, y1 + 9)))
 px2 = px
 
@@ -56,8 +54,7 @@ monitor(*["sendkey right"] * 3 + ["mouse_button 1"])
 x2 = x1 + 60
 m = czekaj(rf"K1-EKRAN: kursor {x2},{y1} przycisk wciśnięty")
 sprawdz(f"klawiatura: 3 x strzałka w prawo → {x2},{y1}; przycisk myszy wciśnięty", m is not None)
-time.sleep(1)
-w, h, px = zrzut("3-klawiatura-przycisk")
+w, h, px = zrzut("3-klawiatura-przycisk", gdy=lambda w, h, px: akcent(px(x2 + 3, y1 + 9)))
 sprawdz("zrzut 3: kursor w kolorze akcentu (przycisk wciśnięty)", akcent(px(x2 + 3, y1 + 9)), str(px(x2 + 3, y1 + 9)))
 # Where the cursor was at the start, screenshots 2 and 3 show the same wallpaper again (no trace).
 sprawdz("zrzut 2 i 3: w starym miejscu kursora znów tapeta (brak śladu)",
@@ -70,6 +67,6 @@ sprawdz("brak odrzuconych i zgubionych zdarzeń przy poprawnym wejściu",
         re.findall(r"odrzucone (\d+)\)", tekst)[-1:] == ["0"] and "pominięto" not in tekst)
 q.koniec()
 PY
-kill $QPID 2>/dev/null || true; wait $QPID 2>/dev/null || true
+zamknij_qemu "$MON" $QPID
 if [ $r -eq 0 ]; then info "M2: wszystko zaliczone (zrzuty: $TESTY/m2-*.png)"; else echo "[k1] M2: BŁĄD (log: $LOG)"; fi
 exit $r

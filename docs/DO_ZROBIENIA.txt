@@ -1,7 +1,7 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.7.2 (przed M7 dokończyć resztę docs/PRZED-M7.md) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.7.3 (porządki przed M7 skończone) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby), M5 (dyski, USB, zaszyfrowane
 dane, hasło, instalator), 0.6.0 Fundament, M6 (bezpieczne aktualizacje: podpisy, dm-verity, A/B,
@@ -202,6 +202,8 @@ M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku) — 
     [x] 0.7.1: porządki w kodzie (ADR 0023), Kalkulator
     [x] 0.7.2: zainstalowany K1 wie, że działa z dysku (Instalator nie prosi o pendrive); „Wyloguj”
         tylko w zainstalowanym K1; część porządków z docs/PRZED-M7.md
+    [x] 0.7.3: koniec porządków przed M7 — testy w QEMU bez stałych pauz, testy na hoście sprawdzają
+        zachowanie, ostatnie przejrzenie kodu (ADR 0023)
     [!] Test na X230 (0.7.2): po aktualizacji start z dysku bez pendrive'a — Instalator ma pisać
         „Kons K1 jest zainstalowany”, a menu Start mieć „Wyloguj”; start z pendrive'a — bez „Wyloguj”.
 

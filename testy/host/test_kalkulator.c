@@ -98,8 +98,11 @@ int main(void)
     k1_minuty(t, sizeof t, 45);
     EXPECT(strcmp(t, "45 min") == 0);
     /* battery state words: every K1_BAT_* has its own, anything else is "unknown" (data from a channel) */
+    EXPECT(strcmp(k1_bateria_stan(K1_BAT_NIEZNANY), "Stan nieznany") == 0);
     EXPECT(strcmp(k1_bateria_stan(K1_BAT_ROZLADOWANIE), "Na baterii") == 0);
-    EXPECT(strcmp(k1_bateria_stan(K1_BAT_NIE_LADUJE), k1_bateria_stan(K1_BAT_NIEZNANY)) != 0);
+    EXPECT(strcmp(k1_bateria_stan(K1_BAT_LADOWANIE), "Ładowanie") == 0);
+    EXPECT(strcmp(k1_bateria_stan(K1_BAT_PELNA), "Naładowana") == 0);
+    EXPECT(strcmp(k1_bateria_stan(K1_BAT_NIE_LADUJE), "Zasilacz podłączony, nie ładuje") == 0);
     EXPECT(strcmp(k1_bateria_stan(K1_BAT_STAN_MAKS + 1), "Stan nieznany") == 0);
     EXPECT(strcmp(k1_bateria_stan(-1), "Stan nieznany") == 0);
 

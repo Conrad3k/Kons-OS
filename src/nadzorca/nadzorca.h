@@ -30,6 +30,7 @@
 #include "k1_io.h"
 #include "k1_memfd.h"
 #include "k1_skarb_klient.h"
+#include "k1_teraz.h"
 #include "k1_uslugi.h"
 
 #include "bateria.h"
@@ -106,31 +107,23 @@ extern int sterowanie;
 extern int zero;
 extern int gui_kanal;
 extern int gui_kanal_uid;
-double teraz(void);
 struct usluga *skarbiec(void);
 struct usluga *ekran(void);
-void wypisz_linie(struct usluga *u);
 void czytaj_log(struct usluga *u);
 void zamknij_log(struct usluga *u);
-void ustaw_fd(int fd, int cel);
 pid_t uruchom(struct usluga *u, const struct k1_profil *p, const int *fds, int n);
 int kanal_do_ekranu(int rola, int apl, int uid);
 void start(struct usluga *u);
 void opisz(const char *nazwa, int status);
-double opoznienie(unsigned awarie);
 void zakonczona(struct usluga *u, int status);
 void uruchom_aplikacje(int apl);
 void wylacz(int restart);
 void obsluz_gui(void);
 
 /* urzadzenia.c */
-extern uint32_t wejscia_maska;
 int otworz_karte(void);
-int otworz_wejscie(int nr);
 int otworz_wejscia(int *fd);
 int otworz_partycje_danych(int *ile);
-int pamiec_usb_obecna(void);
-int pamiec_usb_gotowa(void);
 int czekaj_na_dane(double od_startu);
 double od_startu_systemu(void);
 void sprawdz_nowe_wejscia(void);
@@ -155,12 +148,9 @@ void obsluz_skarbiec(void);
 /* instalacja.c */
 extern int inst_kanal;
 extern int inst_ster;
-extern int inst_tryb, inst_wynik_wyslany, inst_sukces;
-extern struct k1_dyski inst_lista;
+extern int inst_tryb, inst_wynik_wyslany;
 struct usluga *instalator(void);
-void inst_wyslij(struct k1_komunikat k);
 void inst_nowy_kanal(void);
-void inst_lista_dyskow(void);
 int otworz_urzadzenie(const char *nazwa, int flagi);
 int inst_zapis(int nr, int tryb);
 void obsluz_instalacje(void);
@@ -179,26 +169,16 @@ void sb_przygotuj_klucz(void);
 /* zasoby.c */
 extern int zasoby_kanal;
 extern int bateria_kanal;
-extern struct k1_bateria bateria_wyslana;
-extern int bateria_znana;
 extern int ustaw_kanal;
-extern struct k1_bateria bateria_teraz, ustaw_wyslana;
-extern int bateria_odczytana, ustaw_znana, ustaw_hist_wyslane;
 extern struct k1_bat_historia bat_hist;
-extern double nastepna_probka;
 void odczytaj_baterie(double t);
-struct k1_komunikat komunikat_baterii(const struct k1_bateria *b);
 void wyslij_baterie(void);
 int zainstalowany(void);
 void bateria_nowy_kanal(void);
 void ustawienia_nowy_kanal(void);
 void wyslij_ustawieniom(void);
-extern int ustaw_arch_wyslane;
 void bateria_archiwum(double t);
 void bateria_archiwum_koniec(void);
-long long liczba_z_pliku(const char *sciezka, const char *klucz);
-long long cpu_usec(const char *grupa);
-int32_t promile(long long delta_usec, double delta_s, long cpus);
 void raport_zasobow(void);
 
 /* test.c */

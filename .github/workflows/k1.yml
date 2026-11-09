@@ -62,7 +62,7 @@ jobs:
             echo "K1_PODPIS=wersja deweloperska (bez podpisu — brak sekretu K1_KLUCZ_PODPISU)" >> "$GITHUB_ENV"
           fi
 
-      - name: Testy (host + QEMU, także negatywne; M1–M4, start z ISO)
+      - name: Testy (host + QEMU, także negatywne; M1–M6, start z ISO)
         run: |
           set -o pipefail
           mkdir -p build/testy

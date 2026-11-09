@@ -58,7 +58,7 @@ const char *nazwa_roli(const struct klient *k)
     return apl != NULL ? apl : "?";
 }
 
-void odrzuc(int kl, const char *powod)
+static void odrzuc(int kl, const char *powod)
 {
     struct klient *k = &s.kl[kl];
     k->odrzucone++;
@@ -186,7 +186,7 @@ static int znajdz_pow(int kl, uint32_t id)
     return -1;
 }
 
-int znajdz_okno(uint32_t okno)
+static int znajdz_okno(uint32_t okno)
 {
     int i;
     for (i = 0; i < MAKS_POW; i++)
@@ -220,7 +220,7 @@ static void nowa_pow(int kl, const struct k1_komunikat *m, int fd)
         close(fd);
         { odrzuc(kl, m->c == K1_POW_PANEL ? "panele tylko dla powłoki" : "okna tylko dla aplikacji"); return; }
     }
-    if (m->a > s.W || m->b > s.H || (m->c == K1_POW_OKNO && m->b > s.H - PASEK_GORNY)) {
+    if (m->a > s.W || m->b > s.H || (m->c == K1_POW_OKNO && m->b > s.H - K1_PASEK_GORNY)) {
         close(fd);
         { odrzuc(kl, "powierzchnia większa niż ekran"); return; }
     }
@@ -280,11 +280,11 @@ static void nowa_pow(int kl, const struct k1_komunikat *m, int fd)
         int32_t nr = (int32_t)(s.nastepne_okno % 6);
         p->okno = ++s.nastepne_okno;
         p->x = (s.W - p->w) / 2 + nr * 28 - 70;
-        p->y = PASEK_GORNY + (s.H - PASEK_GORNY - 80 - p->h) / 2 + nr * 28 - 40;
+        p->y = K1_PASEK_GORNY + (s.H - K1_PASEK_GORNY - 80 - p->h) / 2 + nr * 28 - 40;
         if (p->x < 0)
             p->x = 0;
-        if (p->y < PASEK_GORNY + 8)
-            p->y = PASEK_GORNY + 8;
+        if (p->y < K1_PASEK_GORNY + 8)
+            p->y = K1_PASEK_GORNY + 8;
     }
 }
 
@@ -310,7 +310,7 @@ static void zatwierdz(int kl, const struct k1_komunikat *m)
              * it, the focused window is the client's own, or it is the first window of a client
              * that has just been started (by the user, through the shell). Otherwise it opens
              * just below the focused window, so what is on top is always what receives the keys. */
-            if (s.fokus < 0 || s.p[s.fokus].kl == kl || (!k->mial_okno && teraz() - k->od < CZAS_PIERWSZEGO_OKNA)) {
+            if (s.fokus < 0 || s.p[s.fokus].kl == kl || (!k->mial_okno && k1_teraz() - k->od < CZAS_PIERWSZEGO_OKNA)) {
                 ustaw_fokus(i);
             } else {
                 k1_log(TAG, "okno %u bez fokusu (ochrona klawiatury)", p->okno);
@@ -340,10 +340,10 @@ void ustawienie(int k, int32_t v)
         return;
     }
     if (k == K1_UST_TAPETA && v != s.ust[k]) {
-        double t0 = teraz();
+        double t0 = k1_teraz();
         k1_rysuj_tlo(&s.tlo, v);
         uszkodz(0, 0, s.W, s.H);
-        k1_log(TAG, "tapeta %d (%.1f s)", (int)v, teraz() - t0);
+        k1_log(TAG, "tapeta %d (%.1f s)", (int)v, k1_teraz() - t0);
     }
     s.ust[k] = v;
     for (i = 0; i < MAKS_KLIENTOW; i++)

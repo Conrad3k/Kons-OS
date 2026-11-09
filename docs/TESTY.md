@@ -15,8 +15,17 @@ Testy na hoście (`make testy-host`) dzielą pomocnicze makra `testy/host/k1_tes
 `K1_TEST_KONIEC`); zmiana nagłówka przebudowuje wszystkie. Brak narzędzia, którego test używa
 (`grub-editenv` dla `test_uklad`, `sfdisk` dla `test_instalator`), to błąd, nie pominięcie. Fuzzing
 (`make fuzz`): jedna reguła dla listy `FUZZ` w `Makefile` (plik `testy/host/fuzz_<nazwa>.c` + dwa wiersze);
-korpus startowy linii poleceń w `testy/host/korpus-cmdline`. Testy w QEMU piszemy na bibliotece
-`testy/qemu/k1qemu.py` (klasa `Maszyna`: `czekaj`, `klik`, `zrzut`, `sprawdz`).
+korpus startowy linii poleceń w `testy/host/korpus-cmdline`. Sprawdzenia na hoście opisują zachowanie
+(oczekiwane liczby, teksty, bajty formatu), a nie powtarzają wzorów z kodu (0.7.3). Testy w QEMU piszemy na
+bibliotece `testy/qemu/k1qemu.py` (klasa `Maszyna`: `czekaj`, `czekaj_na`, `cisza`, `klik`, `przycisk`,
+`zrzut`, `sprawdz`; maszynę zamyka `zamknij_qemu` z `scripts/wspolne.sh`).
+
+**Bez stałych pauz (0.7.3).** Krok testu czeka na dowód, że się stał, nie na upływ czasu — wolna maszyna
+czeka dłużej, ale nie zawodzi: polecenie monitora QEMU — na jego odpowiedź; kliknięcie — na wiersz ekranu
+„przycisk wciśnięty/puszczony”; zrzut — aż ekran pokaże sprawdzany stan (`zrzut(nazwa, gdy=…)`), a zrzut
+tylko na pamiątkę — aż obraz przestanie się zmieniać. To, że coś się *nie* dzieje, sprawdza `cisza(wzór,
+s)` (może najwyżej zaliczyć za wcześnie, nigdy fałszywie zawieść). Jedyny wyjątek: klawisze w MokManagerze
+(`test-m6`, tylko z sekretem) — oprogramowanie UEFI nie pisze logu, a hasło nie zmienia ekranu.
 
 Logi każdego scenariusza: `build/testy/<nazwa>.log`. Limit czasu na uruchomienie: `K1_TEST_CZAS`
 (domyślnie 240 s), czas fuzzingu: `K1_FUZZ_CZAS` (domyślnie 20 s).

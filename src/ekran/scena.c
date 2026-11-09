@@ -26,7 +26,7 @@ int przetnij(struct prost *a, const struct prost *b)
     return 1;
 }
 
-void dodaj(struct obszar *o, struct prost r)
+static void dodaj(struct obszar *o, struct prost r)
 {
     struct prost ekran = { 0, 0, s.W, s.H };
     int i;
