@@ -1,283 +1,261 @@
 ---
 name: kons-dev
-description: Budowa systemu Kons K1 Sovereign — własnego systemu operacyjnego na jądrze Linux (nie dystrybucji) z userspace w C (statycznie, musl). Architektura i niezmienniki bezpieczeństwa, przepisy (nowa usługa, opcja jądra, protokół IPC, testy w QEMU), etapy M0–M12, ADR, wersje, scalanie, CI, raport dla właściciela. Używaj przy każdej zmianie w repo (kod C, jądro, skrypty, testy, CI, dokumentacja) i gdy właściciel zgłasza uwagi.
+description: Praca nad Kons K1 Sovereign — własnym systemem operacyjnym na jądrze Linux (nie dystrybucją), z całą przestrzenią użytkownika w C (statycznie, musl). Zawiera architekturę, niezmienniki bezpieczeństwa, zasady czytelności, przepisy (nowa aplikacja, usługa, kanał, opcja jądra, wygląd), testy w QEMU i ich pułapki, plan etapów, wersje, scalanie, CI i raport dla właściciela. Używaj przy każdej pracy w repo Kons-OS (kod C, jądro, skrypty, testy, CI, dokumentacja, plan) i gdy właściciel zgłasza uwagi albo pyta o kierunek.
 ---
 
 # Praca nad K1
 
-Źródła prawdy: `docs/SPEC.md` (nadrzędna, zmiany tylko przez ADR w `docs/adr/`), `docs/ARCHITEKTURA.md`
-(mapa repo, przebieg startu, konwencje), `docs/TESTY.md`, `docs/RYZYKA.md`, `docs/DO_ZROBIENIA.txt`
-(co dalej), `docs/komponenty/*.md`, `docs/WYGLAD.md` (ustalenia właściciela co do wyglądu).
-Gdy ten skill i dokumenty się różnią — wygrywają dokumenty; popraw skill.
+Ten skill to **skrót i przewodnik**. Prawdą są dokumenty w repo — gdy skill i dokumenty się różnią,
+wygrywają dokumenty, a skill poprawiasz w tym samym PR-ze.
 
-## 1. Czym jest K1 (architektura)
+| Dokument | Co w nim jest |
+|---|---|
+| `AGENTS.md` | wspólne zasady Claude i Codexa: właściciel, bezpieczeństwo, praca we dwóch, **czytelność** |
+| `docs/SPEC.md` | specyfikacja nadrzędna; zmiany tylko przez ADR (`docs/adr/`, dopisek `[korekta: ADR NNNN]`) |
+| `docs/DO_ZROBIENIA.txt` | **co teraz i co dalej**, decyzje właściciela, rzeczy tymczasowe |
+| `docs/ARCHITEKTURA.md` | mapa repo, przebieg startu, konwencje, wersjonowanie |
+| `docs/SLOWNIK.md` | pojęcia K1 — jedno słowo, jedno znaczenie |
+| `docs/TESTY.md` | warstwy testów, `k1qemu.py`, jak uruchamiać |
+| `docs/komponenty/*.md` | każda usługa: cel, granica zaufania, uprawnienia, kanały, testy |
+| `docs/RYZYKA.md`, `docs/ZALEZNOSCI.md`, `docs/WYGLAD.md` | znane braki, obce biblioteki, ustalenia wyglądu |
 
-K1 **nie jest dystrybucją Linuksa**. Z Linuksa bierzemy tylko jądro (własna, minimalna konfiguracja).
-Cała przestrzeń użytkownika to nasz kod w C, linkowany statycznie z musl. Nie ma pakietów, powłoki,
-systemd, X11/Wayland, drzewa FHS (`/usr`, `/etc`, `/bin`…) ani bibliotek współdzielonych.
-Docelowo są dwa światy (SPEC §4): **natywny** (nasz kod) i **strefa zgodności** (izolowany „równoległy
-Linux” dla obcych programów, np. przeglądarki — od M7). Pliki przechodzą między nimi tylko przez
-Gatekeepera (M9).
+## 1. Na start sesji
 
-**Łańcuch startu** (stan: M4; od M10 — UEFI + Secure Boot + podpisany UKI + dm-verity):
+1. `git fetch origin main`; gałąź `claude/…` od `origin/main` (scalona wcześniej → `git checkout -B <gałąź>
+   origin/main`; wypychanie z nadpisaniem jest zablokowane → `git merge -s ours origin/<gałąź>` i zwykły push).
+2. Otwarte PR-y i zgłoszenia (`list_pull_requests`, `list_issues`: etykiety `feedback`, `błąd`, `pomysł`).
+   Punkt z `DO_ZROBIENIA.txt` oznacz `[w toku: Claude, gałąź …]` w pierwszym commicie; punktów Codexa nie ruszaj.
+3. Ostatni run „K1 — budowa i testy” na `main` — czerwony naprawiasz najpierw.
+4. Środowisko: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh`
+   (szybko: `make && make testy-host`). Kontener nie ma KVM — QEMU w emulacji, pełne testy trwają długo.
+
+## 2. Czym jest K1
+
+**Nie dystrybucja.** Z Linuksa bierzemy tylko jądro (własna, minimalna konfiguracja). Reszta to nasz kod
+w C, statycznie z musl: bez powłoki, pakietów, systemd, X11/Wayland, bibliotek współdzielonych i drzewa
+FHS (`/usr`, `/etc`, `/bin`…). Docelowo dwa światy (SPEC §4): **natywny** (nasz kod) i **strefy** —
+mikro-maszyny wirtualne dla obcych aplikacji (M8, ADR 0020). Pliki między nimi tylko przez Pliki K1
+i Gatekeepera (ADR 0027).
+
+**Start (wydania, od 0.7.0):**
 ```
-jądro 6.18 LTS (jadro/k1.config) ──► /init = k1-initramfs (src/initramfs)
-   k1.rdzen=/dev/XXX albo =wbudowany (ISO: /rdzen.squashfs z initramfs przez loop) → SquashFS jako /rdzen
-   (ro) w korzeniu-tmpfs (ro) → switch_root   [ISO: firmware UEFI/BIOS → GRUB → jądro; ADR 0010]
- ──► /rdzen/init = PID 1 (src/init): sysctl, montowania pod /rdzen/jadro, sieroty, sygnały, wyłączanie
- ──► /rdzen/system/nadzorca (src/nadzorca, root): usługi w klatkach (k1_klatka), kanały UNIX, logi, restarty
-       ├─ wejscie (100): evdev (fd 4… od nadzorcy) → k1_zdarzenie → kanał do ekranu
-       ├─ ekran   (101): DRM master (fd 4), kompozytor: tapeta + okna + panele (memfd) + cienie + kursor
-       ├─ skarbiec(103): jedyny z partycją „K1-DANE” (fd 4), kanały klientów od nadzorcy (SKARB_KLIENT);
-       │          start PRZED ekranem; ekran fd 5 (ustawienia), Notatki fd 4 (notatka)
-       ├─ gui     (102): powłoka — górny pasek, dolny pasek, menu Start; fd 4 → nadzorca (URUCHOM, WYLACZ),
-       │          fd 5 ← nadzorca (BATERIA, jednokierunkowo)
-       └─ aplikacje na prośbę gui: zegar (200), notatki (201, tylko /dane_uzytkownika/notatki), ustawienia (202),
-          zasoby (203; fd 4: statystyki cgroup od nadzorcy, jednokierunkowo)
+firmware UEFI → shim (Microsoft) → GRUB (Canonical) → k1.efi z miejsca A albo B w K1-EFI
+  k1.efi = jądro + wbudowana linia poleceń + initramfs z rdzeniem, podpisane kluczem K1 (MOK)
+→ /init = k1-initramfs: rdzeń (SquashFS + dm-verity, skrót z linii poleceń) → switch_root
+→ /rdzen/init (PID 1): sysctl, montowania, sieroty, sygnały, wyłączanie
+→ /rdzen/system/nadzorca (root): usługi i aplikacje w klatkach, kanały, logi, restarty
+     skarbiec (103) → ekran (101) → wejscie (100) → gui (102) albo logowanie (104, gdy jest hasło)
+     aplikacje (200+) na prośbę gui; instalator (105) na prośbę okna Instalatora
 ```
-Planowane (SPEC §7–§9, ADR 0026): pulpit z ikonami i przypinaniem (0.7.5), Pliki — wspólne dokumenty,
-Kosz, okno wyboru pliku, dekodery w jednorazowych procesach (0.8.0), `siec` (M7), strefy (M8),
-Gatekeeper dla stref (M9). Przepływ plików (ADR 0027): Pliki = jedyny węzeł, oryginał zawsze
-w Plikach, strefy dostają kopie; zgoda = gest w interfejsie rysowanym przez K1; pochodzenie przy pliku.
+Testy QEMU startują też `bzImage` + `initramfs.cpio` (tylko `test-m1`). ISO/USB mają GRUB-a do M10 (ADR 0010).
 
-Stan: M5a (0.5.2) — dyski SATA/NVMe, GPT, USB (xHCI/EHCI/OHCI, HID, mass storage) (ADR 0013);
-0.5.3 — wskaźnik baterii (nadzorca czyta sysfs `power_supply` → gui fd 5, ADR 0014; w QEMU bateria
-z tablicy ACPI `testy/acpi/bateria.asl`, `bateria_aml` w `scripts/wspolne.sh`); 0.5.4–0.5.5 — płynny
-obraz (MTRR/PAT, DIRTYFB z obszarami), Ustawienia → Bateria; 0.5.6 — **skarbiec** (Blob Vault, ADR 0015:
-własny format na partycji GPT „K1-DANE”, Monocypher), trwałe ustawienia i notatka, obraz
-`k1-<wersja>-usb.img.xz` (ADR 0016). 0.5.7 — **M5e**: hasło (Ustawienia → Hasło, `SKARB_HASLO`) i ekran hasła `src/logowanie/` (rola ekranu
-`LOGOWANIE`, nadzorca uruchamia go zamiast gui, gdy skarbiec zgłosi `SKARB_STAN` zablokowany; ADR 0017).
-0.5.8 — logo przy starcie (GRUB `background_image` z `narzedzia/ekran_startowy.c`), K1-DANE szukana też po
-starcie, wiele notatek. 0.5.9 — **M5f: instalator** (ADR 0018): okno `src/aplikacje/instalacja/` (UID 204) +
-program zapisujący `src/instalator/` (UID 105, tylko urządzenia od nadzorcy), GPT `K1-EFI` 512 MiB + `K1-DANE`
-do końca dysku; nadzorca woli K1-DANE z dysku wewnętrznego; GRUB bierze jądro z partycji `$cmdpath`;
-ekran: limit 60 kl./s bez page-flipa, cień z tablicy, łączenie obszarów (przesuwanie okien ~10× taniej).
-0.6.0 — **Fundament**: nadzorca w modułach (`nadzorca.h`; etapy startu `przejdz()`/`etap_startu()` w `skarb.c`;
-uevent w `urzadzenia.c`), wspólny odbiór `k1_odbierz_komunikat()` (`src/wspolne/k1_odbior.c` — używaj go w nowym
-kodzie zamiast ręcznego `k1_kanal_odbierz` + sprawdzeń), historia baterii (`k1_bat_arch`, nadzorca = klient skarbca
-`K1_WL_SYSTEM`), biblioteka testów `testy/qemu/k1qemu.py` (klasa `Maszyna`; nowe testy QEMU pisz na niej; od 0.7.3 **bez
-`time.sleep`** — czekaj na log, `klik` czeka na potwierdzenie ekranu, `zrzut(nazwa, gdy=…)` na stan ekranu,
-`cisza` dla „nic się nie dzieje”; `docs/TESTY.md`),
-`testy.sh` równolegle z KVM. **Nie edytuj `scripts/testy.sh` ani innych skryptów, gdy testy działają w tle**
-(powłoka czyta skrypt w trakcie — przebieg staje się niewiarygodny).
-0.6.2 — **M6a** (ADR 0021): manifest w K1-EFI na 47 MiB (`k1_manifest.c`, FAT 47 MiB), podpis EdDSA (Monocypher)
-narzędziem `narzedzia/podpisz.c` z sekretu CI `K1_KLUCZ_PODPISU` (właściciel dodaje sam — **nigdy nie proś o klucz w
-czacie**); bez sekretu = wersja deweloperska (`build/gen/k1_klucz.h`: `K1_KLUCZ_JEST 0`). Instalator: skrót, podpis
-(gdy klucz), zakaz starszej wersji. Kolejne kroki M6: b dm-verity, c A/B, d Secure Boot (MOK).
-0.6.3 — **M6b**: `rdzen.squashfs` = SquashFS + drzewo dm-verity (`verity()` w `wspolne.sh`, `veritysetup
---no-superblock`, stała sól), skrót w `rdzen.squashfs.skrot` → `k1.rdzen_skrot=` w GRUB/QEMU (obowiązkowy; nowy
-obraz testowy w QEMU = też `verity` i skrót). Initramfs czyta całe `/dev/dm-N` przed montowaniem. Start → Wyloguj
-(`WYLACZ` a=2 → `zamknij_sesje()`), `SKARB_KLIENT` c / `SKARB_WYNIK` d bit 1 = K1-DANE na USB, `ZASOBY_BATERIA`.
-0.7.0 — **M6c+M6d** (ADR 0022): wydania startują `k1.efi` = jądro z wbudowaną linią poleceń (`noinitrd`) i initramfs
-z rdzeniem (`zbuduj-k1efi.sh`, `jadro/k1-zamkniete.config`, ten sam katalog jądra), podpisane `sbsign` (RSA z
-`narzedzia/klucz_sb.py` — z sekretu albo publiczny klucz deweloperski; `faketime`). `bzImage` + `initramfs.cpio` tylko
-dla `test-m1`. K1-EFI format 2 (`k1_uklad.h`): FAT32 280 MiB, blok układu (1 KiB), grubenv (`k1_slot/k1_nowy/k1_start/
-k1_proba`), `/k1/a.img` `/k1/b.img` (128 MiB: wewn. FAT z k1.efi + manifest formatu 2 z identyfikatorem wydania
-`/rdzen/system/wydanie` na 127 MiB); manifest formatu 1 na 47 MiB zostaje (aktualizacja z 0.6.2–0.6.3 starym
-Instalatorem). Instalator: aktualizacja = wolne miejsce + `k1_nowy`; nadzorca `rozruch.c` potwierdza po 15 s
-(to samo wydanie) albo zgłasza wycofanie; `efi.c`: efivarfs na chwilę, `MokNew`/`MokAuth` (SHA-256 `k1_sha256.c`),
-tylko klucz wydania. Testy: `test-m6.sh` (`uruchom-qemu.sh --zmienne-uefi`, OVMF secboot, `virt-fw-vars --add-mok`;
-MokManager: klawisz w 10 s, Enroll MOK, hasło „kons”). Zmiana zawartości obrazu na pendrivie w teście: nie psuj
-miejsca A (z niego startuje) — psuj wolne miejsce w wewnętrznym FAT (pokrywa je skrót).
-Pierwszy laptop właściciela: **ThinkPad X230** (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez
-simpledrm, TPM 1.2); jedno konto na komputer (decyzja właściciela).
+**System plików po starcie** (ADR 0004): `/` — tmpfs tylko do odczytu z trzema katalogami: `rdzen`
+(SquashFS ro, nosuid, nodev; w nim `init`, `system/`, `aplikacje/`, `jadro/{dev,proc,sys}`), `aplikacje`
+(pusty do M10), `dane_uzytkownika` (tmpfs noexec — dane tymczasowe). Trwałe dane są w **skarbcu**
+(partycja GPT „K1-DANE”, własny format, Monocypher; ADR 0015), nie w systemie plików. `/proc` ma
+`hidepid=invisible,subset=pid`. Nie używaj ścieżek `/dev`, `/proc`, `/sys`, `/tmp`, `/etc`.
 
-**System plików po starcie** (ADR 0004):
-- `/` — tmpfs tylko do odczytu z dokładnie trzema katalogami: `rdzen`, `aplikacje`, `dane_uzytkownika`.
-- `/rdzen` — SquashFS ro,nosuid,nodev: `init`, `system/<usługa>`, `jadro/{dev,proc,sys}`.
-- `/rdzen/jadro/dev` devtmpfs (noexec), `/rdzen/jadro/proc` (`hidepid=invisible,subset=pid`),
-  `/rdzen/jadro/sys` (ro) + `sys/fs/cgroup` (cgroup2).
-- `/dane_uzytkownika` — jedyne miejsce zapisu, noexec,nosuid,nodev (do M5: tmpfs w RAM).
-- `/dev/console` istnieje tylko w initramfs. Nie używaj ścieżek `/dev`, `/proc`, `/sys`, `/tmp`, `/etc`.
+**Aktualizacje (M6, ADR 0021, 0022):** wydanie ma manifest z podpisem EdDSA (`narzedzia/podpisz.c`, sekret CI
+`K1_KLUCZ_PODPISU`; bez sekretu = wersja deweloperska, `K1_KLUCZ_JEST 0`). K1-EFI (format 2, `k1_uklad.h`):
+FAT32 280 MiB, blok układu, grubenv (`k1_slot/k1_nowy/k1_start/k1_proba`), `/k1/a.img` i `/k1/b.img`
+(128 MiB: k1.efi + manifest z identyfikatorem wydania). Aktualizacja idzie do wolnego miejsca, nowa wersja
+startuje raz na próbę, `rozruch.c` w nadzorcy zatwierdza ją po 15 s albo zgłasza wycofanie. Instalator
+odmawia niepodpisanych i starszych wersji. Klucz Secure Boot K1 wpisuje się przez MokManagera (`efi.c`:
+`MokNew`/`MokAuth`). Manifest formatu 1 (47 MiB) jest **tymczasowy** — dla aktualizacji z 0.6.x.
 
-**Mapa komponentów:**
+**Sprzęt właściciela:** ThinkPad X230 (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez simpledrm,
+TPM 1.2), jedno konto na komputer. X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt.
 
-| Kod | Plik w obrazie | Dokument | Rola |
-|---|---|---|---|
-| `src/initramfs/` | `/init` (initramfs) | `komponenty/initramfs.md` | montuje rdzeń, przełącza korzeń |
-| `src/init/` | `/rdzen/init` | `komponenty/init.md` | PID 1 |
-| `src/nadzorca/` | `/rdzen/system/nadzorca` | `komponenty/nadzorca.md` | usługi w klatkach, kanały, logi, restarty (ADR 0007) |
-| `src/wejscie/` | `/rdzen/system/wejscie` | `komponenty/wejscie.md` | klawiatura, mysz |
-| `src/ekran/` + `src/grafika/` | `/rdzen/system/ekran` | `komponenty/ekran.md` | `main.c` (pętla, zmiana trybu), `scena.c` (składanie), `okna.c` (klienci, fokus, limity), `wskaznik.c` (wejście), `drm.c` (KMS, tryby); tapety i znak K1 |
-| `src/gui/` | `/rdzen/system/gui` | `komponenty/gui.md` | powłoka pulpitu |
-| `src/skarbiec/` | `/rdzen/system/skarbiec` | `komponenty/skarbiec.md` | Blob Vault: `magazyn.c` (format, Monocypher w `src/zewnetrzne/`), `main.c` (usługa); klient: `src/wspolne/k1_skarb_klient.c`, `k1_memfd.c` |
-| `src/instalator/` | `/rdzen/system/instalator` | `komponenty/instalator.md` | zapis K1 na dysk (GPT `gpt.c`), uruchamiany na prośbę okna Instalatora; lista dysków: `src/nadzorca/dyski.c` |
-| `src/aplikacje/*` | `/rdzen/aplikacje/*` | `komponenty/aplikacje.md` | Zegar, Notatki, Ustawienia, Zasoby, Instalator (`instalacja`) |
-| `src/przybornik/` | (linkowane do gui i aplikacji) | ADR 0008, 0009 | rysowanie, tekst, okna, klient, czas PL, klawiatura PL |
-| `narzedzia/czcionki.c` | (host, przy budowie) | ADR 0009 | FreeType → bitmapy IBM Plex (`build/gen/`) |
-| `narzedzia/ekran_startowy.c` | (host) → `/boot/grub/start.png` | `WYGLAD.md` | logo startowe dla GRUB-a (zlib) |
-| `src/wspolne/` | (linkowane) | — | `k1_log` (log, `k1_awaria`, `k1_koniec`), `k1_cmdline`, `k1_zdarzenie`, `k1_komunikat` (32 B, wszystkie kanały), `k1_kanal` (SEQPACKET, SCM_RIGHTS, SO_PASSCRED), `k1_klatka` (sandbox), `k1_uslugi.h` (UID-y, role) |
-| `jadro/` | `bzImage` (testy), `k1.efi` (wydania) | `komponenty/jadro.md` | wersja, konfiguracja, linia poleceń, klucze, zamknięte jądro |
-| `testy/system/` | `/rdzen/system/test-systemu` (tylko obraz testowy) | `TESTY.md` | sprawdzenia w systemie: `t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4+), `t_sprzet.c` (M5a), `proba.c`, `wspolne.c`, nagłówek `k1_test.h` |
+## 3. Mapa kodu
 
-## 2. Niezmienniki — tego nie wolno złamać
-Każdy z nich pilnuje test; jeśli zmiana go narusza, to jest zmiana architektury → ADR i decyzja.
-1. **Nic nie jest jednocześnie zapisywalne i wykonywalne.** Korzeń i `/rdzen` ro; zapis tylko w noexec;
-   `vm.memfd_noexec=2`; brak `BINFMT_SCRIPT` (żadnych `#!`) i `binfmt_misc`.
+| Kod | W obrazie | Rola |
+|---|---|---|
+| `src/initramfs/` | `/init` | montuje rdzeń (dm-verity), przełącza korzeń |
+| `src/init/` | `/rdzen/init` | PID 1 |
+| `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` tablica usług i `kanaly[]`; `profile.c` klatki; `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c`, `rozruch.c`, `efi.c`, `test.c` |
+| `src/wejscie/` | `system/wejscie` | klawiatura, mysz (evdev, EVIOCGRAB) |
+| `src/ekran/`, `src/grafika/` | `system/ekran` | DRM/KMS, składanie okien, kursor, tapety, znak K1 |
+| `src/gui/` | `system/gui` | pulpit: paski, menu Start (od 0.7.5 ikony i menu kontekstowe) |
+| `src/logowanie/` | `system/logowanie` | ekran hasła przy starcie |
+| `src/skarbiec/` | `system/skarbiec` | `magazyn.c` format i szyfrowanie, `main.c` usługa |
+| `src/instalator/` | `system/instalator` | zapis K1 na dysk (GPT), tylko urządzenia od nadzorcy |
+| `src/aplikacje/<program>/` | `aplikacje/<program>` | Zegar, Notatki, Ustawienia, Zasoby, Instalator (`instalacja`), Kalkulator |
+| `src/przybornik/` | (linkowane) | okno aplikacji (`k1_aplikacja`), rysowanie, ikony `K1_IK_*`, tekst, liczby, czas i klawiatura PL |
+| `src/wspolne/` | (linkowane) | `k1_uslugi.h` **listy usług i aplikacji**, `k1_komunikat` (32 B), `k1_kanal`, `k1_odbior`, `k1_klatka`, `k1_log`, `k1_skarb_klient`, `k1_memfd`, `k1_efi`, `k1_uklad`, `k1_manifest`, `k1_bajty.h`, `k1_io.h`, `k1_teraz.h` |
+| `src/zewnetrzne/` | (linkowane) | Monocypher (jedyna obca biblioteka w systemie) |
+| `narzedzia/` | (host) | czcionki IBM Plex → bitmapy, ekran startowy GRUB-a, podpis, klucz Secure Boot |
+| `jadro/` | `k1.efi`, `bzImage` | `k1.config`, `k1-zamkniete.config`, `README.md` (zmiana wersji jądra) |
+| `testy/host/`, `testy/system/`, `testy/qemu/` | — | testy na hoście i fuzzing; program testowy w systemie; biblioteka `k1qemu.py` |
+| `scripts/` | — | budowa (`zbuduj*.sh`), testy (`testy.sh`, `test-m*.sh`), sprawdzenia (`sprawdz-*.sh`), `wspolne.sh` |
+
+## 4. Niezmienniki — nie wolno złamać
+
+Każdego pilnuje test. Zmiana któregokolwiek = zmiana architektury → ADR i decyzja.
+
+1. **Nic nie jest jednocześnie zapisywalne i wykonywalne.** Korzeń i `/rdzen` ro, zapis tylko w noexec,
+   `vm.memfd_noexec=2`, bez `BINFMT_SCRIPT` (`#!`) i `binfmt_misc`. Dlatego żadnego JIT w świecie natywnym.
 2. **Brak powłoki, terminali i interpreterów:** bez `/bin/sh`, getty, VT, pty/devpts, SysRq. Log tylko
-   jednokierunkowo na port szeregowy (w developmencie).
-3. **Jądro tylko przez fragment** `jadro/k1.config` na `allnoconfig`; każda linia sprawdzana. Bez modułów,
-   swapu, hibernacji, io_uring, BPF, userfaultfd, kexec, 32-bit; lockdown confidentiality, Landlock, Yama.
-4. **Programy: statyczne PIE z flagami SPEC §11** (`Makefile`, `-Werror`), sprawdzane przez
-   `scripts/sprawdz-binaria.sh`. Bez zewnętrznych bibliotek bez wpisu i uzasadnienia w `docs/ZALEZNOSCI.md`
-   (np. grafika bez libdrm — ioctl z nagłówków UAPI naszego jądra w `build/naglowki`).
-5. **PID 1 nigdy nie wychodzi** — błąd krytyczny przy starcie → `k1_awaria()` (komunikat, 5 s, wyłączenie).
-   **Usługi** przy błędzie → `k1_koniec()` (wyjście z kodem 1); awaria usługi nie może zatrzymać systemu.
-6. **Każdy komunikat IPC sprawdzany pole po polu** po stronie odbiorcy (wersja, typ, długość, zakresy,
-   pole zarezerwowane = 0), parser ma testy jednostkowe i fuzzing. Kanał od nadzorcy to zawsze fd 3.
-7. **Jeden właściciel zasobu:** tylko `ekran` dotyka karty graficznej (DRM master), tylko `wejscie`
-   urządzeń wejścia (EVIOCGRAB); urządzenia otwiera nadzorca i przekazuje deskryptory. Każda usługa
-   w klatce (ADR 0007): własny UID, 0 capabilities, NO_NEW_PRIVS, Landlock (tylko własny program),
-   seccomp (biała lista, kod 159 = zabronione wywołanie), cgroup; nowy syscall usługi = wpis w profilu
-   w `src/nadzorca/main.c` + uzasadnienie; odbiorca kanału sprawdza UID nadawcy (`SO_PASSCRED`).
-8. **Żadnych sekretów ani kodów klawiszy w logach** (najwyżej liczniki, ≤ 2 wpisy/s).
-9. **Powtarzalny build:** `SOURCE_DATE_EPOCH`, stałe dane budowy jądra, `-frandom-seed`; brak `__DATE__`
-   i losowości przy budowie (`scripts/sprawdz-powtarzalnosc.sh`).
-10. **Fail closed:** nieudane ustawienie bezpieczeństwa (sysctl, montowanie) zatrzymuje start.
+   jednokierunkowo na port szeregowy.
+3. **Jądro tylko przez fragment** `jadro/k1.config` na `allnoconfig`, każda linia z komentarzem. Bez modułów,
+   swapu, hibernacji, io_uring, BPF, userfaultfd, kexec, 32-bit, `INET` (do M7); lockdown confidentiality,
+   Landlock, Yama.
+4. **Programy: statyczne PIE z flagami SPEC §11** (`-Werror`), sprawdzane przez `scripts/sprawdz-binaria.sh`.
+   Obca biblioteka tylko z wpisem i uzasadnieniem w `docs/ZALEZNOSCI.md` (np. grafika bez libdrm — ioctl
+   z nagłówków UAPI w `build/naglowki`).
+5. **PID 1 nigdy nie wychodzi** — błąd krytyczny → `k1_awaria()` (komunikat, 5 s, wyłączenie). Usługa przy
+   błędzie → `k1_koniec()`; awaria usługi nie zatrzymuje systemu.
+6. **Każdy komunikat sprawdzany pole po polu przez odbiorcę** (wersja, typ, długość, zakresy, zarezerwowane = 0),
+   z testami i fuzzingiem. Odbiór przez `k1_odbierz_komunikat()`. Kanał od nadzorcy to zawsze fd 3.
+7. **Jeden właściciel zasobu i klatka dla każdego:** tylko `ekran` dotyka karty graficznej, tylko `wejscie`
+   urządzeń wejścia, tylko `skarbiec` partycji K1-DANE; urządzenia otwiera nadzorca i przekazuje deskryptory.
+   Klatka (ADR 0007): własny UID, 0 capabilities, NO_NEW_PRIVS, Landlock bez ścieżek, seccomp z białą listą
+   (kod wyjścia 159 = zabronione wywołanie), cgroup. Nowe wywołanie jądra = wpis w `src/nadzorca/profile.c`
+   z uzasadnieniem. Odbiorca sprawdza UID nadawcy (`SO_PASSCRED`). **Aplikacje nie dostają ścieżek** —
+   tylko kanały i deskryptory.
+8. **Żadnych sekretów, haseł, treści ani kodów klawiszy w logach** (najwyżej liczniki, ≤ 2 wpisy/s).
+9. **Powtarzalny build:** `SOURCE_DATE_EPOCH`, `-frandom-seed`, stałe dane budowy jądra, bez `__DATE__`
+   i losowości (`scripts/sprawdz-powtarzalnosc.sh`).
+10. **Fail closed:** nieudane ustawienie bezpieczeństwa (sysctl, montowanie, sprawdzenie rdzenia) zatrzymuje start.
 
-## 3. Przepisy
+Sekret `K1_KLUCZ_PODPISU` dodaje właściciel sam — **nigdy go nie proś i nie wpisuj**. Prywatny klucz Secure
+Boot (`build/gen/sb/k1-sb.key`) jest kasowany po podpisaniu. Klucza deweloperskiego nie proponujemy do MOK.
 
-**Nowa usługa** (np. `gui`, `siec`):
-1. `src/<nazwa>/main.c` — komentarz na górze: zadanie, granica zaufania, etap; `k1_log`/`k1_koniec`
-   z prefiksem `K1-<NAZWA>`; kanały od nadzorcy na fd 3 (kolejne — ustal w ADR).
-2. `Makefile` — cel `$(BIN)/<nazwa>` i dopisanie do `PROGRAMY`; `scripts/zbuduj-obraz.sh` — instalacja
-   do `/rdzen/system/` (pętla w `przygotuj_rdzen`).
-3. `src/nadzorca/main.c` — profil klatki (UID w `k1_uslugi.h`, syscalle, limity), wpis w tablicy usług
-   i kanały; pierwsza linia `main()` usługi: `k1_klatka_w_usludze(TAG)`; próba klatki w teście (`t_proby`).
-4. `testy/system/` — **zaktualizuj spis plików** (`t_inventory` w `t_system.c`), dodaj sprawdzenia
-   funkcjonalne i **negatywne**; scenariusz QEMU w `scripts/test-mN.sh` (+ dopisz do `scripts/testy.sh`).
-5. `docs/komponenty/<nazwa>.md` (cel, granica zaufania, uprawnienia, wejścia/wyjścia, zależności,
-   syscalle, błędy, powierzchnia ataku, testy), ADR jeśli zmienia architekturę, `docs/RYZYKA.md`.
+## 5. Czytelność (decyzja właściciela, `AGENTS.md`)
 
-**Nowa aplikacja natywna** (0.7.1, wzór: `src/aplikacje/kalkulator/`): **jeden wiersz** `X(...)` w
-`K1_APLIKACJE` (`src/wspolne/k1_uslugi.h`: numer, profil, UID, program, tag, nazwa, opis, ikona, na pasku)
-i katalog `src/aplikacje/<program>/` (`main.c` z `struct k1_apl` + callbackami i `k1_apl_uruchom()`;
-każdy `.c` w katalogu jest kompilowany). Z tej listy biorą się: usługa i profil klatki w nadzorcy, pulpit
-(menu, pasek), nazwa okna w ekranie, Zasoby, instalacja w obrazie i spisy w testach w systemie. Dane spoza
-okna — kanał zadeklarowany w tabeli `kanaly[]` (`src/nadzorca/uslugi.c`; wzór: Zasoby, fd 4); aplikacja
-nie dostaje ścieżek. Do zrobienia ręcznie: ikona w `k1_rysuj.c` (`K1_IK_*`), scenariusz w `test-m4.sh`
-(położenia elementów loguj — test klika według logu), opis w `docs/komponenty/aplikacje.md`. Liczby:
-`k1_liczba.h`, przyciski: `k1_przycisk`, pole tekstowe: `k1_pole_klawisz`, kolory: `k1_motyw` / `K1_*` w
-`k1_grafika.h`.
+System ma być czytelny od środka, także gdy rośnie: części może być dużo, ale każda mała, z jedną rolą
+i w tym samym kształcie co pozostałe.
+- plik `.c` ≤ 600 wierszy, funkcja ≤ 80 (bez `src/zewnetrzne/`); wyjątek tylko z `/* k1: limit — <powód> */`;
+- **dziel przed rozbudową** (osobny commit), nie po;
+- nowa rzecz = **wiersz w tabeli** (jak `K1_APLIKACJE`); gdy dodanie czegoś wymaga zmian w wielu miejscach,
+  najpierw zrób z tego jedną tabelę;
+- nowe pojęcie = wiersz w `docs/SLOWNIK.md`; bez synonimów w kodzie, dokumentach i komunikatach;
+- rozwiązanie tymczasowe: `/* k1: tymczasowe — usunąć w <wersja> */` + wpis w `DO_ZROBIENIA.txt` („Tymczasowe”);
+- **każdy MINOR kończy się porządkami** (co usunąć, scalić, uprościć) — wynik w CHANGELOG;
+- dokumentacja nadąża: każda usługa i aplikacja ma opis, każdy komunikat wpis (od 0.7.5 pilnuje tego test).
 
-**Nowy protokół / komunikat:** nagłówek w `src/wspolne/` ze stałym układem (`_Static_assert` na rozmiar
-i przesunięcia), funkcja sprawdzająca bez założeń o wyrównaniu (`memcpy`), testy w `testy/host/test_*.c`
-(ASan/UBSan) i harness `testy/host/fuzz_*.c` (cele w `Makefile`: `testy-host`, `fuzz`), test negatywny
-w systemie (wstrzyknięcie złych komunikatów, jak `t_malicious_ipc`).
+Komentarze i commity po angielsku; nazwy w kodzie po polsku, zgodnie ze słownikiem.
 
-**Opcja jądra:** znajdź ją w `build/zrodla/linux-*/**/Kconfig*` (zależności, `select`, `depends on`),
-dopisz do `jadro/k1.config` z komentarzem po co, `scripts/zbuduj-jadro.sh` (przerwie, jeśli nie weszła),
-przy wzmocnieniach `scripts/sprawdz-kspp.sh`, a odstępstwa opisz w `docs/komponenty/jadro.md`.
-Zmiana wersji jądra: procedura w `jadro/README.md`.
+## 6. Przepisy
 
-**Wygląd:** tapety na hoście (`make build/obj/podglad_grafiki`, `podglad_grafiki W H -1 -1 0 WARIANT`,
-PPM → `python3 -I scripts/ppm-na-png.py`), pulpit w QEMU + `scripts/zrzut-ekranu.sh` (mysz/klawisze:
-monitor QEMU — `mouse_move`, `mouse_button`, `sendkey alt_r-a`); zrzuty pokazuj właścicielowi
-(`SendUserFile`); ustalenia i paleta → `docs/WYGLAD.md`. Interfejs: neutralne tła, jeden akcent,
-4-px siatka, Plex Sans/Serif, ikony liniowe z `k1_ikona`.
+**Nowa aplikacja** (wzór: `src/aplikacje/kalkulator/`):
+1. Jeden wiersz `X(...)` w `K1_APLIKACJE` (`src/wspolne/k1_uslugi.h`): numer, profil, UID, program, tag,
+   tytuł, opis w menu Start, ikona, czy na pasku. Numery się nie zmieniają (profil = właściciel danych w skarbcu).
+2. Katalog `src/aplikacje/<program>/`: `main.c` ze `struct k1_apl` + funkcje zwrotne i `k1_apl_uruchom()`;
+   każdy `.c` w katalogu się kompiluje.
+3. Z listy wynika samo: usługa i klatka w nadzorcy, menu i pasek, nazwa okna, Zasoby, obraz, spis w testach.
+4. Ręcznie: ikona `K1_IK_*` w `k1_rysuj.c`, scenariusz w `test-m4.sh` (położenia elementów loguj — test klika
+   według logu), opis w `docs/komponenty/aplikacje.md`, pojęcia w słowniku.
+5. Dane spoza okna — kanał w `kanaly[]` (`src/nadzorca/uslugi.c`; wzór: Zasoby, fd 4). Nigdy ścieżki.
+Gotowe części przybornika: `k1_przycisk`, `k1_pole_klawisz`, `k1_liczba.h`, kolory `k1_motyw` / `K1_*` (`k1_grafika.h`).
 
-**Czytelność** (zasady w `AGENTS.md` → „Czytelność”; pojęcia w `docs/SLOWNIK.md`): plik ≤ 600 wierszy,
-funkcja ≤ 80; tymczasowe z terminem (`/* k1: tymczasowe — usunąć w … */`); nowe pojęcie → słownik; nowa
-rzecz → wiersz w tabeli; podział przed rozbudową; każdy MINOR kończy się porządkami.
+**Nowa usługa systemowa** (np. `siec`) — dziś to kilka miejsc (do ujednolicenia w porządkach):
+1. `src/<nazwa>/main.c`: komentarz na górze (zadanie, granica zaufania, etap); pierwsza linia `main()` —
+   `k1_klatka_w_usludze(TAG)`; log `K1-<NAZWA>`; kanał od nadzorcy na fd 3, kolejne ustalone w `kanaly[]`.
+2. Wiersz w `K1_SYSTEM` (`k1_uslugi.h`), wpis w `uslugi[]` i `kanaly[]` (`uslugi.c`), profil w `profile.c`.
+3. `Makefile` (`PROGRAMY`) i pętla instalacji w `scripts/zbuduj-obraz.sh`.
+4. Testy w systemie: klatka (`t_klatki`), próba w klatce (`t_proby`), sprawdzenia funkcjonalne i **negatywne**;
+   spis plików wynika z `K1_SYSTEM` (`t_inventory`). Scenariusz QEMU, jeśli potrzebny.
+5. `docs/komponenty/<nazwa>.md`, ADR jeśli zmienia architekturę, `docs/RYZYKA.md`, słownik.
 
-## 4. Testy — warstwy i pułapki
-- **Host:** `make testy-host` (glibc + ASan/UBSan + `_FORTIFY_SOURCE=3`), `make fuzz` (clang, libFuzzer).
-- **W systemie:** obraz testowy = produkcyjny + `/rdzen/system/test-systemu`; nadzorca uruchamia go po
-  usługach, kończy się jego kodem, init wyłącza maszynę. Wynik: `K1-TEST: WYNIK: OK (n/n)`.
-- **QEMU z zewnątrz:** `scripts/test-m1.sh` (start, testy w systemie, błędy startu — maszyna ma się sama
-  wyłączyć bez „Kernel panic”), `scripts/test-m2.sh` (kursor: `mouse_move`, `sendkey`, `mouse_button`),
-  `scripts/test-m4.sh` (pulpit i aplikacje — klikanie według położeń z logu, zrzuty sprawdzane po
-  kolorach pikseli; start z ISO przez UEFI/OVMF i BIOS z `virtio-vga` → simpledrm), `scripts/test-m5.sh`
-  (USB bez PS/2: `--maszyna ",i8042=off"`, `--qemu "-device …"`; `device_add`/`device_del`). Dyski i USB
-  w teście w systemie: `SPRZET_TEST` w `test-m1.sh` (obrazy `sfdisk`: GPT „K1-DANE”, MBR). Wszystko:
-  `scripts/testy.sh` (to uruchamia CI, ~6 min w TCG). Kanał testowy (fd 3 programu testowego):
-  `TEST_POLACZ` (kanał do ekranu z dowolną rolą/UID), `TEST_PROBA` (program testowy w klatce
-  usługi), `URUCHOM` (aplikacja).
-- **Pułapki, które już wystąpiły:** usuń stary log/gniazdo **przed** startem QEMU w tle (wyścig ze starym
-  logiem); pipe otwarty ponownie przez `/proc/<pid>/fd` nie jest pakietowy (a `O_DIRECT` przy open → EINVAL);
-  rodzicem procesów usług jest nadzorca, nie init; musl ma `ioctl(int, int, …)` — rzutuj numer żądania
-  na `int`; GCC `-Wformat-truncation` wymaga buforów na pełny `d_name`; niestabilny test = najpierw szukaj
-  błędu w harnessie, potem w systemie, ale nigdy nie ignoruj.
-  `SO_PASSCRED` ustawia się na końcu **odbiorcy** (`k1_kanal_utworz`: `pary[0]` dostaje ten, kto
-  sprawdza); `RLIMIT_FSIZE` ogranicza też `ftruncate` memfd (SIGXFSZ = sygnał 25); `LO_FLAGS_AUTOCLEAR`
-  odłącza loop przy zamknięciu ostatniego deskryptora — zamykaj po `mount`; filtr seccomp działa od
-  `execve`, więc obejmuje start musl; `hidepid` daje ENOENT zamiast EACCES dla cudzych procesów. `read_file` w testach zwraca 0 przy
-  sukcesie (nie liczbę bajtów); q35 ma wbudowany AHCI (`bus=ide.0`); HMP `mouse_move`/`sendkey` idą do
-  ostatnio aktywnego urządzenia QEMU (z USB w maszynie — do USB).
-  **Wydajności nie widać w QEMU (TCG):** emulator ignoruje typy pamięci (MTRR/PAT) — na X230 brak PAT
-  dał niebuforowaną pamięć obrazu i zacinający się pulpit (0.5.4). allnoconfig wyłącza też opcje
-  „default y” za `if EXPERT` (MTRR, PAT, ACPI_EC) — przy sprzęcie sprawdzaj je świadomie.
-  `/proc` ma `subset=pid` — **`/proc/cmdline` nie istnieje** dla usług i nadzorcy (informację o nośniku
-  bierz z sysfs). usb-storage czeka ~1 s, zanim pokaże dysk (pendrive w teście: `--pendrive`); w X230
-  pendrive może zniknąć i wrócić (EHCI → xHCI) — K1-DANE szukamy też po starcie (0.5.8).
-  **Ekran startowy (GRUB):** `background_image` rysuje się dopiero po wypisaniu czegoś (`echo ""`);
-  `set color_normal=black/black` **po** `terminal_output gfxterm` (ono resetuje kolory) ukrywa kursor;
-  `quiet` w linii poleceń wycisza „EFI stub: …” (na ekranie, nie tylko na porcie szeregowym).
-  W QEMU fazy GRUB-a nie widać na zrzutach co sekundę — dodaj `sleep` do kopii grub.cfg (`mcopy -i obraz@@1M`).
+**Nowy komunikat albo kanał:** typ w `k1_komunikat.h` z kierunkiem i zakresami pól; dla nowego formatu —
+nagłówek w `src/wspolne/` ze stałym układem (`_Static_assert` na rozmiar i przesunięcia), sprawdzanie bez
+założeń o wyrównaniu (`memcpy`), test `testy/host/test_*.c` (ASan/UBSan), fuzzing `testy/host/fuzz_*.c`
+(lista `FUZZ` w `Makefile`) i test negatywny w systemie (jak `t_malicious_ipc`). Opis w dokumencie komponentu.
 
-## 5. Proces
+**Opcja jądra:** znajdź w `build/zrodla/linux-*/**/Kconfig*` (`depends on`, `select`), dopisz do
+`jadro/k1.config` z komentarzem po co; `scripts/zbuduj-jadro.sh` przerwie, jeśli nie weszła; przy
+wzmocnieniach `scripts/sprawdz-kspp.sh`; odstępstwa w `docs/komponenty/jadro.md`. Nowa wersja jądra:
+`jadro/README.md`. Pamiętaj: `allnoconfig` wyłącza też opcje „default y” za `if EXPERT` (MTRR, PAT, ACPI_EC).
 
-**Start sesji:** `git fetch origin main`, gałąź od `origin/main` (gdy PR gałęzi jest scalony: `git checkout -B
-<gałąź> origin/main`); zgłoszenia (`list_issues`, etykiety
-`feedback`, `błąd`, `pomysł`); ostatni run „K1 — budowa i testy” na `main` (czerwony = napraw najpierw);
-środowisko: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh` (~6 min).
+**Wygląd:** decyduje właściciel — najpierw **szkice do wyboru**, potem implementacja. Tapety na hoście
+(`make build/obj/podglad_grafiki`, `podglad_grafiki W H -1 -1 0 WARIANT` → PPM → `python3 -I scripts/ppm-na-png.py`),
+pulpit w QEMU + `scripts/zrzut-ekranu.sh`; zrzuty pokazuj (`SendUserFile`), ustalenia zapisuj w `docs/WYGLAD.md`.
+Styl: minimalistyczno-ciepły (Claude/Anthropic), neutralne tła, jeden akcent (terakota), siatka 4 px, IBM Plex
+Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany), ale w stylu K1.
 
-**Kolejność etapów** (ADR 0019, 0020; zastępuje ADR 0011): M5 (do 0.5.9, z instalatorem) → **0.6.0 Fundament**
-(nadzorca w modułach < 600 wierszy w main.c, jawna maszyna stanów startu, uevent zamiast odpytywania = dawne M5b,
-wspólny odbiór komunikatów, wspólna biblioteka testów QEMU, testy równolegle, KVM w CI, historia baterii) →
-**M6 Bezpieczne aktualizacje** (podpisane wydania, dm-verity, A/B w K1-EFI, Secure Boot z kluczem MOK) →
-(ADR 0026, od 0.7.3) **0.7.5 Pulpit** (ikony na pulpicie jak w Windows w stylu K1, menu pod prawym przyciskiem,
-przypinanie/odpinanie na pasku, układ w skarbcu) → **0.8.0 Pliki** (wspólne dokumenty w skarbcu, aplikacja Pliki,
-Kosz: 30 dni albo ręcznie, okno wyboru pliku rysowane przez K1, import z pendrive'a czytnikiem FAT w klatce,
-dekoder PNG/JPEG w jednorazowym procesie, tapeta z własnego zdjęcia) → **M7 Sieć** (e1000e + DHCP, potem Wi-Fi;
-test: nic nie nasłuchuje) → **M8 Strefy** (mikro-VM na obcą aplikację, zaufana ramka w kolorze
-strefy, przełączniki: stała/jednorazowa i pełna izolacja/szybka grafika; pierwsza — przeglądarka) →
-**M9 Pliki ze stref** (Gatekeeper dla stref: „Do K1”, „Wyślij do…”, schowek) → M10 reszta (recovery, TPM) → M12 audyt. X230 = maszyna
-testowa; szybka grafika i gry projektowane pod nowszy sprzęt (decyzja właściciela).
+## 7. Testy
 
-**CI na PR-ze:** dodaj etykietę `testy` (`issue_write`, labels) — workflow buduje i testuje PR bez scalania
-(bez tagu i wydania). `workflow_dispatch` jest dla Claude niedostępny (403).
+| Warstwa | Jak | Co |
+|---|---|---|
+| host | `make testy-host`, `make fuzz` | parsery, formaty, logika (ASan/UBSan, libFuzzer); sprawdzaj zachowanie, nie powtarzaj wzorów z kodu |
+| w systemie | `testy/system/` → `/rdzen/system/test-systemu` | obraz testowy = produkcyjny + program testowy; wynik `K1-TEST: WYNIK: OK (n/n)`; klatki, próby, złośliwe komunikaty |
+| QEMU z zewnątrz | `scripts/test-m1/m2/m4/m5/m5f/m6.sh` na `testy/qemu/k1qemu.py` | start i błędy startu, kursor, pulpit i aplikacje (zrzuty po kolorach), USB, instalator, aktualizacje i Secure Boot |
+| wszystko | `scripts/testy.sh` | to samo uruchamia CI (z KVM równolegle) |
 
-**Zasady etapu (SPEC §2):** jeden etap naraz, następny dopiero z powtarzalnym testem; nie wymyślaj nazw
-syscalli, flag, opcji Kconfig ani zachowań jądra — sprawdzaj w źródłach (`build/zrodla/`), nagłówkach
-(`build/naglowki/`), man-pages, a niepewność oznaczaj wprost; statusy ZAIMPLEMENTOWANE / PRZETESTOWANE
-(tylko z dowodem) / PLANOWANE; konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek
-`[korekta: ADR NNNN]` w SPEC.
+- **Bez stałych pauz:** `Maszyna.czekaj`/`czekaj_na` na log, `klik` czeka na potwierdzenie ekranu,
+  `zrzut(nazwa, gdy=…)` na stan ekranu, `cisza(wzór, s)` na „nic się nie dzieje”. Żadnego `time.sleep`.
+- Kanał testowy (fd 3 programu testowego): `TEST_POLACZ` (kanał do ekranu z dowolną rolą), `TEST_PROBA`
+  (program testowy w klatce usługi), `URUCHOM` (aplikacja).
+- Dyski w teście w systemie: `SPRZET_TEST` w `test-m1.sh` (obrazy `sfdisk`). Nowy obraz rdzenia w teście —
+  zawsze z `verity` i skrótem (`scripts/wspolne.sh`). W `test-m6` psuj wolne miejsce w wewnętrznym FAT,
+  nie miejsce A (z niego startuje).
+- **Nie edytuj skryptów ani kodu, gdy testy działają w tle** — powłoka czyta skrypt w trakcie.
+- Niestabilny test: najpierw szukaj błędu w harnessie, potem w systemie — nigdy go nie ignoruj ani nie wyłączaj.
 
-**Przed scaleniem:** `make` bez ostrzeżeń, `sh -n` na skryptach, `scripts/testy.sh` lokalnie, przy zmianach
-w budowie `scripts/sprawdz-powtarzalnosc.sh` (nie commituj w trakcie — data commita wchodzi do buildu).
-**Wersja** (`VERSION`, raz na paczkę): etap → MINOR, poprawka/aktualizacja jądra → PATCH, docs/CI → bez
-zmiany; wpis w `CHANGELOG.md`. Łącz zmiany w paczki — CI to ~10 min, a właściciel ma ograniczony limit Claude.
+**Pułapki, które już wystąpiły:**
+- *Jądro i procesy:* `/proc/cmdline` nie istnieje dla usług (`subset=pid`) — o nośniku czytaj z sysfs;
+  `hidepid` daje ENOENT zamiast EACCES; rodzicem usług jest nadzorca, nie init; filtr seccomp działa od
+  `execve`, więc obejmuje start musl; `RLIMIT_FSIZE` ogranicza też `ftruncate` memfd (SIGXFSZ = 25).
+- *Kanały:* `SO_PASSCRED` ustawia się na końcu **odbiorcy** (`k1_kanal_utworz`: `pary[0]` dla sprawdzającego);
+  pipe otwarty ponownie przez `/proc/<pid>/fd` nie jest pakietowy, a `O_DIRECT` przy open → EINVAL.
+- *C i musl:* `ioctl(int, int, …)` — rzutuj numer żądania na `int`; `-Wformat-truncation` wymaga buforów na
+  pełny `d_name`; `read_file` w testach zwraca 0 przy sukcesie.
+- *Urządzenia:* `LO_FLAGS_AUTOCLEAR` odłącza loop przy zamknięciu ostatniego deskryptora — zamykaj po `mount`;
+  usb-storage pokazuje dysk po ~1 s; na X230 pendrive potrafi zniknąć i wrócić (EHCI → xHCI) — K1-DANE
+  szukamy też po starcie.
+- *QEMU:* usuń stary log i gniazdo **przed** startem QEMU w tle; q35 ma wbudowany AHCI (`bus=ide.0`);
+  `mouse_move`/`sendkey` idą do ostatnio aktywnego urządzenia (z USB — do USB); USB bez PS/2:
+  `--maszyna ",i8042=off"`. **Wydajności nie widać w TCG** — emulator ignoruje typy pamięci (brak PAT dał na
+  X230 zacinający się pulpit, 0.5.4).
+- *GRUB i ekran startowy:* `background_image` rysuje się po wypisaniu czegoś (`echo ""`); `set color_normal=
+  black/black` **po** `terminal_output gfxterm`; `quiet` wycisza „EFI stub”; w QEMU fazę GRUB-a widać na
+  zrzutach dopiero z `sleep` w kopii `grub.cfg` (`mcopy -i obraz@@1M`).
 
-**Scalanie** (repo prywatne, zgoda właściciela): commit po angielsku → `git push -u origin <gałąź>` →
-PR po polsku (najpierw co widzi użytkownik, potem technika, `Closes #N`) → squash. Tylko docs: `[skip ci]`
-w tytule commita scalenia (workflow i tak startuje tylko przy zmianach w `src/`, `jadro/`, `testy/`,
-`scripts/`, `Makefile`, `VERSION`, workflow).
+## 8. Plan i zasady etapu
 
-**Squash zawsze z własnym `commit_message`** (bez „[skip ci]”, gdy zmiana dotyczy systemu): domyślny opis
-sklejają wszystkie commity gałęzi — „[skip ci]” z wcześniejszego commita docs wyłączył CI dla 0.5.4 (brak
-wydania). Gałąź po scaleniu: `git checkout -B <gałąź> origin/main` (wypychanie z nadpisaniem jest
-zablokowane — wtedy `git merge -s ours origin/<gałąź>` i zwykły push).
+**Kolejność** (ADR 0019, 0020, 0026; szczegóły i stan w `DO_ZROBIENIA.txt`):
+**0.7.5 Pulpit** (najpierw porządki czytelności, potem ikony na pulpicie, menu kontekstowe, przypinanie na
+pasku) → **0.8.0 Pliki** (wspólne dokumenty w skarbcu, aplikacja Pliki, Kosz: 30 dni albo ręcznie, okno
+wyboru pliku rysowane przez K1, import z pendrive'a czytnikiem FAT w klatce, dekoder PNG/JPEG w jednorazowym
+procesie) → **M7 Sieć** (kabel e1000e + DHCP + czas, potem Wi-Fi; test: nic nie nasłuchuje) → **M8 Strefy**
+(mikro-VM na obcą aplikację, ramka w kolorze strefy, stała/jednorazowa, pełna izolacja/szybka grafika,
+wspólna strefa — ADR 0024; najpierw przeglądarka, potem Przeglądarka K1 — ADR 0025) → **M9 Pliki ze stref**
+(„Do K1”, „Wyślij do…”, schowek, zapis z powrotem — ADR 0027) → M10 (recovery, TPM) → M12 audyt.
 
-**CI:** sprawdzaj przez `send_later` (~15 min po scaleniu); padł → `get_job_logs` (`failed_only`), napraw
-(PATCH); udał się → CI zakłada tag `k1-v<wersja>` i wydanie (Releases) z `k1-<wersja>.iso` — to link
-do pobrania dla właściciela. **Logi testów są zawsze** (decyzja właściciela, 0.5.1), niezależnie od
-limitu artefaktów: w konsoli zadania (krok „Logi testów”, grupa na plik, bez wierszy kursora — czytaj
-`get_job_logs` z `job_id`), w podsumowaniu zadania (linie `[OK]`/`[BŁĄD]`), w wydaniu
-(`k1-<wersja>-logi.tar.gz`: logi, zrzuty, sumy) i jako artefakt (7 dni). Obraz jako artefakt tylko
-na PR-ach (na `main` jest w wydaniu). Artefakty mają wspólny limit miejsca konta; stare (spoza `k1-…`) usuwa
-workflow „Sprzątanie artefaktów” (uruchamia się przy zmianie jego pliku na `main` — Claude nie
-może wywołać `workflow_dispatch`).
+**Przepływ plików (ADR 0027):** Pliki K1 to jedyny węzeł; oryginał zawsze w Plikach, strefy dostają kopie;
+zgoda = gest użytkownika w interfejsie rysowanym przez K1; pochodzenie zapisane przy pliku.
 
-**Raport po etapie (SPEC §2.11):** zaktualizuj `docs/DO_ZROBIENIA.txt`; po polsku, prosto (skutki, nie
-mechanika): cel i kryteria, co zrobiono, dowody (log, testy, zrzuty), testy negatywne, ograniczenia,
-statusy, pytania do właściciela. Bez wklejania całych plików; linki pełnym URL-em.
-**Każdy raport o nowej wersji kończ bezpośrednim linkiem do ISO** (decyzja właściciela, 0.5.8: „zawsze
-dawaj link do iso”): `https://github.com/Conrad3k/Kons-OS/releases/download/k1-v<wersja>/k1-<wersja>.iso`
-(obok link do `k1-<wersja>-usb.img.xz`). Przed podaniem sprawdź, że wydanie istnieje (`get_release_by_tag`);
-jeśli CI jeszcze buduje — napisz to i podaj link po sprawdzeniu.
+**Zasady etapu (SPEC §2):** jeden etap naraz, następny dopiero z powtarzalnym testem. **Nie wymyślaj** nazw
+wywołań, flag, opcji Kconfig ani zachowań jądra — sprawdzaj w `build/zrodla/`, `build/naglowki/`, man-pages;
+niepewność oznaczaj wprost. Statusy: ZAIMPLEMENTOWANE / PRZETESTOWANE (tylko z dowodem) / PLANOWANE.
+Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC.
 
-**Właściciel** (nie programista, pisze po polsku, jedyny z prawdziwym sprzętem): decyzje produktowe
-(wygląd, zachowanie, aplikacje) — jego; techniczne — Twoje, z krótkim uzasadnieniem. Uwagi, których nie
-robisz od razu → zgłoszenie (`issue_write`). Przy błędach dopytaj: wersja, gdzie uruchomione, co widać,
-czego się spodziewał.
+## 9. Wersja, scalanie, CI
+
+- **Przed scaleniem zmian w systemie:** `make` bez ostrzeżeń, `sh -n` na skryptach, pełny `scripts/testy.sh`
+  lokalnie (wszystko `[OK]`), przy zmianach w budowie `scripts/sprawdz-powtarzalnosc.sh` (nie commituj w trakcie —
+  data commita wchodzi do buildu). Sama dokumentacja — bez testów.
+- **Wersja** (`VERSION`, raz na paczkę): etap → MINOR, poprawka i jądro → PATCH, docs/CI → bez zmiany; wpis
+  w `CHANGELOG.md`. `VERSION`, `CHANGELOG.md` i `DO_ZROBIENIA.txt` zmienia ten, kto robi wydanie. Łącz zmiany
+  w paczki — CI trwa ok. 10 min, a właściciel ma ograniczony limit.
+- **CI na PR-ze:** etykieta `testy` (`issue_write`) — build i testy bez wydania. `workflow_dispatch` daje 403.
+- **Scalanie** (repo prywatne — scalasz sam po zielonych testach): commit po angielsku → `git push -u origin
+  <gałąź>` → PR po polsku (najpierw co widzi użytkownik, potem technika, `Closes #N`) → **squash z własnym
+  `commit_message`**. Tylko docs: `[skip ci]` w tytule commita scalenia. Zmiana w systemie: **bez**
+  „[skip ci]” nigdzie w opisie (domyślny opis skleja commity gałęzi — tak przepadło wydanie 0.5.4).
+- **Po scaleniu:** `send_later` ok. 15 min; CI padło → `get_job_logs` (`failed_only`) i poprawka (PATCH);
+  przeszło → tag `k1-v<wersja>` i wydanie z ISO, obrazem USB i `k1-<wersja>-logi.tar.gz`. Logi testów są
+  zawsze: konsola zadania (krok „Logi testów”), podsumowanie, wydanie, artefakt (7 dni). Stare artefakty usuwa
+  workflow „Sprzątanie artefaktów”.
+
+## 10. Właściciel i raport
+
+- Nie jest programistą, pisze po polsku. **Decyzje produktowe** (wygląd, zachowanie, aplikacje) — jego;
+  **techniczne** — Twoje, z krótkim uzasadnieniem. Przy rekomendacji: jedna propozycja, nie przegląd wszystkiego.
+- Mów o skutkach, nie mechanice; pojęcia ze słownika. Uwagi, których nie robisz od razu → zgłoszenie
+  (`issue_write`). Przy błędzie dopytaj: wersja, gdzie uruchomione, co widać, czego się spodziewał.
+- **Raport po etapie (SPEC §2.11):** cel, co zrobiono, dowody (log, testy, zrzuty), testy negatywne,
+  ograniczenia, statusy, pytania do właściciela; `DO_ZROBIENIA.txt` zaktualizowany; linki pełnym URL-em.
+- **Każdy raport o nowej wersji kończ linkami** — dopiero gdy wydanie istnieje (`get_release_by_tag`):
+  `https://github.com/Conrad3k/Kons-OS/releases/download/k1-v<wersja>/k1-<wersja>.iso` i
+  `…/k1-<wersja>-usb.img.xz`. Gdy CI jeszcze buduje — napisz to i podaj linki po sprawdzeniu.
