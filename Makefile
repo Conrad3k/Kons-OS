@@ -117,8 +117,10 @@ $(BIN)/ekran: $(EKRAN) src/ekran/ekran.h $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL)
 $(BIN)/logowanie: src/logowanie/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/logowanie/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
-$(BIN)/gui: src/gui/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ src/gui/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+# the desktop shell in modules (0.7.5): main.c (loop), okna, pasek_gorny, pasek_dolny, menu_start — gui.h
+GUI := $(sort $(wildcard src/gui/*.c))
+$(BIN)/gui: $(GUI) src/gui/gui.h $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(GUI) $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # an application is every .c file of its directory (the Kalkulator: main.c + its engine liczydlo.c)
 .SECONDEXPANSION:

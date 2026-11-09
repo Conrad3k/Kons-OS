@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M4) — `scripts/test-m4.sh` (klikanie, zrzuty), testy w systemie (klatka, próba, restart) |
-| **Kod** | `src/gui/main.c`, przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
+| **Kod** | `src/gui/` (0.7.5: moduły opisane w `gui.h`): `main.c` (start, pętla, ułożenie paneli), `okna.c` (lista okien, uruchamianie aplikacji), `pasek_gorny.c` (górny pasek, bateria, okienko dźwięku), `pasek_dolny.c`, `menu_start.c`; przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
 | **Decyzje** | ADR 0008 (pulpit), ADR 0009 (czcionki), ADR 0007 (klatka); wygląd: `docs/WYGLAD.md` |
 
 ## Cel
