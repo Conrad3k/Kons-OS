@@ -11,10 +11,8 @@ wersji **0.7.2**; punkt, nad którym pracujesz, oznacz `[w toku: Claude|Codex, g
 
 ## 1. Testy (najważniejsze)
 Test ma się nie udać przy prawdziwym błędzie — i tylko wtedy.
-- [ ] `scripts/test-m1.sh` (ok. wiersza 83–86) — *0.7.2: wstrzymane — automatyczny strażnik uprawnień Claude zablokował
-      usunięcie tych sprawdzeń bezpieczeństwa; do decyzji właściciela (zostają nieszkodliwe, tylko powtarzają budowę)*: ponowne uruchomienie `sprawdz-binaria.sh` /
-      `sprawdz-konfiguracje-jadra.sh` po budowaniu — budowanie już je wymusza, więc tu nie mogą się nie
-      udać. Usunąć.
+- [x] (0.7.2, za zgodą właściciela) `scripts/test-m1.sh` (ok. wiersza 83–86): ponowne uruchomienie
+      `sprawdz-binaria.sh` / `sprawdz-konfiguracje-jadra.sh` po budowaniu — usunięte (budowanie je wymusza).
 - [ ] Testy w QEMU (`testy/qemu/k1qemu.py`, `scripts/test-m*.sh`): stałe `time.sleep(...)` (np. w
       `klik`, `monitor`, `przesun`) zastąpić czekaniem na wiersz w logu albo stan (`czekaj(...)`) — dziś
       mogą czasem fałszywie zawieść na wolnej maszynie.
