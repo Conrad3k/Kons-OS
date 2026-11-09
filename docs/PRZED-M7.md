@@ -13,10 +13,10 @@ wersji **0.7.2**; punkt, nad którym pracujesz, oznacz `[w toku: Claude|Codex, g
 Test ma się nie udać przy prawdziwym błędzie — i tylko wtedy.
 - [x] (0.7.2, za zgodą właściciela) `scripts/test-m1.sh` (ok. wiersza 83–86): ponowne uruchomienie
       `sprawdz-binaria.sh` / `sprawdz-konfiguracje-jadra.sh` po budowaniu — usunięte (budowanie je wymusza).
-- [ ] Testy w QEMU (`testy/qemu/k1qemu.py`, `scripts/test-m*.sh`): stałe `time.sleep(...)` (np. w
+- [ ] [w toku: Claude, gałąź claude/blissful-mayer-ts7rzb] Testy w QEMU (`testy/qemu/k1qemu.py`, `scripts/test-m*.sh`): stałe `time.sleep(...)` (np. w
       `klik`, `monitor`, `przesun`) zastąpić czekaniem na wiersz w logu albo stan (`czekaj(...)`) — dziś
       mogą czasem fałszywie zawieść na wolnej maszynie.
-- [ ] Testy na hoście (`testy/host/test_*.c`): przejrzeć sprawdzenia, które tylko powtarzają
+- [ ] [w toku: Claude, gałąź claude/blissful-mayer-ts7rzb] Testy na hoście (`testy/host/test_*.c`): przejrzeć sprawdzenia, które tylko powtarzają
       implementację (porównują kod z nim samym) — przepisać na zachowanie albo usunąć.
 - [x] (0.7.2) Sprawdzić, czy jakiś test „przechodzi”, gdy brakuje narzędzia (np. `grub-editenv` dla
       `test_uklad`, `sfdisk` dla `test_instalator`) — brak narzędzia ma być błędem, nie zaliczeniem.
@@ -29,9 +29,9 @@ Test ma się nie udać przy prawdziwym błędzie — i tylko wtedy.
 Jedno pytanie: *czy te kawałki zmieniają się razem?* Szukać: kopii tej samej logiki lub stałych,
 nieużywanego kodu (funkcje, pola, makra, ikony), opakowań bez treści, `if` dla jednego przypadku,
 połkniętych błędów, nieaktualnych komentarzy. Trzy obszary:
-- [ ] system: `src/nadzorca/`, `src/wspolne/`, `src/instalator/`, `src/skarbiec/`, `src/init*/`, `src/wejscie/`
-- [ ] interfejs: `src/przybornik/`, `src/grafika/`, `src/gui/`, `src/ekran/`, `src/logowanie/`, `src/aplikacje/`, `narzedzia/`
-- [ ] skrypty i testy: `scripts/`, `Makefile`, `testy/`, `.github/workflows/`, `jadro/`
+- [ ] [w toku: Claude, gałąź claude/blissful-mayer-ts7rzb] system: `src/nadzorca/`, `src/wspolne/`, `src/instalator/`, `src/skarbiec/`, `src/init*/`, `src/wejscie/`
+- [ ] [w toku: Claude, gałąź claude/blissful-mayer-ts7rzb] interfejs: `src/przybornik/`, `src/grafika/`, `src/gui/`, `src/ekran/`, `src/logowanie/`, `src/aplikacje/`, `narzedzia/`
+- [ ] [w toku: Claude, gałąź claude/blissful-mayer-ts7rzb] skrypty i testy: `scripts/`, `Makefile`, `testy/`, `.github/workflows/`, `jadro/`
 
 Znane, jeszcze niezrobione:
 - [x] (0.7.2, `k1_hex_bajty`) Parsowanie szesnastkowe w `src/nadzorca/rozruch.c` (`hex`, identyfikator wydania) — kopia logiki,
