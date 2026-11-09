@@ -83,6 +83,11 @@ g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) 
 k0 = czekaj(r"K1-EKRAN: kursor (\d+),(\d+) ")
 t = czekaj(r"K1-EKRAN: tryb (\d+)x(\d+)")
 if not sprawdz(f"{tryb}: pulpit gotowy (pasek, menu Start)", g and k0 and t): sys.exit(1)
+# 0.7.2: "Wyloguj" only in K1 installed on a disk (K1-DANE on an internal disk), not from the .iso
+zainst = tryb in ("pulpit", "ponownie")
+s_ = czekaj(r"K1-GUI: (K1 zainstalowany na tym komputerze|sesja z pendrive'a)", czas=10)
+sprawdz(f"{tryb}: Wyloguj w menu Start {'jest (K1-DANE na dysku)' if zainst else 'ukryte (K1 nie jest zainstalowany)'}",
+        s_ and s_.group(1).startswith("K1 zainst") == zainst, s_.group(0) if s_ else "brak")
 if tryb == "pulpit" and not sprawdz("wejście: mysz otwarta", czekaj(r"K1-WEJSCIE: urządzenie \d+: mysz")): sys.exit(1)
 if tryb == "ponownie":
     # M5d: the same data disk after power off — the settings and the note come back from skarbiec

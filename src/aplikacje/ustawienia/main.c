@@ -612,8 +612,6 @@ static void poprzednie(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, 
 
 static void rysuj_baterie(struct k1_obraz *o, const struct k1_motyw *m)
 {
-    static const char *const stany[] = { "Stan nieznany", "Na baterii", "Ładowanie", "Naładowana",
-                                          "Zasilacz podłączony, nie ładuje" };
     char buf[96], a[32];
     int32_t x, y, w, h, i, najnizej = 100;
     naglowek(o, m, "Bateria", "Poziom naładowania od uruchomienia systemu");
@@ -628,7 +626,7 @@ static void rysuj_baterie(struct k1_obraz *o, const struct k1_motyw *m)
     else
         snprintf(buf, sizeof buf, "— %%");
     k1_tekst(o, K1_CZ_TYTUL, TRESC_X, seg_y() + 18, buf, k1_kolor(m->tekst, 255), 0);
-    snprintf(a, sizeof a, "%s", stany[bat.stan]);
+    snprintf(a, sizeof a, "%s", k1_bateria_stan(bat.stan));
     snprintf(buf, sizeof buf, "%s%s", a,
              (bat.stan == K1_BAT_LADOWANIE || bat.stan == K1_BAT_PELNA) && bat.zasilacz ? " · zasilacz podłączony" : "");
     k1_tekst(o, K1_CZ_TEKST, TRESC_X + 88, seg_y() + 16, buf, k1_kolor(m->tekst2, 255), 0);

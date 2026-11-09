@@ -236,6 +236,8 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         if (k->a == 0)
             return k->b == -1 && k->c == K1_BAT_NIEZNANY;
         return w(k->b, -1, 100) && w(k->c, K1_BAT_NIEZNANY, K1_BAT_STAN_MAKS);
+    case K1_KOM_SESJA:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, 1) && zera(k, 1);
     case K1_KOM_BATERIA_ARCH:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 8, 8 + K1_BAT_ARCH_SESJE * 8 + K1_BAT_ARCH_PROBKI) &&
                w(k->b, 0, K1_BAT_ARCH_SESJE) && zera(k, 2);

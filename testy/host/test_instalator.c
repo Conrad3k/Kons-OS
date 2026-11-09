@@ -180,7 +180,8 @@ int main(int argc, char **argv)
     EXPECT(k1_gpt_uklad(700ull << 20, 512, &u) == -1); /* too small for 512 MiB + 256 MiB */
     EXPECT(k1_gpt_uklad(4ull << 30, 1024, &u) == -1);
     EXPECT(k1_crc32("123456789", 9) == 0xcbf43926u); /* the standard check value */
-    if (argc > 1)
+    EXPECT(argc == 2); /* the image for sfdisk to read back (make testy-host): without it, a failure */
+    if (argc == 2)
         obraz(argv[1]);
     dyski();
     return K1_TEST_KONIEC("test_instalator");

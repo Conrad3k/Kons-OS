@@ -11,6 +11,13 @@ scripts/zbuduj.sh                 # jądro + programy + obrazy + ISO → build/w
 scripts/testy.sh                  # wszystkie testy: test-m1.sh, potem test-m2/m4/m5/m5f/m6 (z KVM równolegle; bez KVM po kolei, ~60 min TCG)
 ```
 
+Testy na hoście (`make testy-host`) dzielą pomocnicze makra `testy/host/k1_test_host.h` (`EXPECT`,
+`K1_TEST_KONIEC`); zmiana nagłówka przebudowuje wszystkie. Brak narzędzia, którego test używa
+(`grub-editenv` dla `test_uklad`, `sfdisk` dla `test_instalator`), to błąd, nie pominięcie. Fuzzing
+(`make fuzz`): jedna reguła dla listy `FUZZ` w `Makefile` (plik `testy/host/fuzz_<nazwa>.c` + dwa wiersze);
+korpus startowy linii poleceń w `testy/host/korpus-cmdline`. Testy w QEMU piszemy na bibliotece
+`testy/qemu/k1qemu.py` (klasa `Maszyna`: `czekaj`, `klik`, `zrzut`, `sprawdz`).
+
 Logi każdego scenariusza: `build/testy/<nazwa>.log`. Limit czasu na uruchomienie: `K1_TEST_CZAS`
 (domyślnie 240 s), czas fuzzingu: `K1_FUZZ_CZAS` (domyślnie 20 s).
 
@@ -143,9 +150,9 @@ sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
 | Krok | Sprawdzenie | Dowód |
 |---|---|---|
 | 0. obraz `.iso` (UEFI) + dysk SATA (0.6.1) | Instalator: „system do skopiowania: brak”, bez przycisku — kliknięcie w jego miejscu nic nie uruchamia | `m5f-0-z-iso.png` |
-| 1. pendrive + pusty dysk SATA 4 GiB | Instalator z menu Start: 1 dysk, system z pendrive'a; bez „USUŃ” nic; po „usuń” nadzorca uruchamia program zapisujący (UID 105, cel `sda`, źródło K1-EFI pendrive'a); „gotowe”; „Wyłącz komputer” wyłącza | `m5f-1-lista.png`, `m5f-1-potwierdzenie.png`, `m5f-1-gotowe.png` |
+| 1. pendrive + pusty dysk SATA 4 GiB | sesja z pendrive'a: w menu Start nie ma „Wyloguj” (0.7.2); Instalator z menu Start: 1 dysk, system z pendrive'a; bez „USUŃ” nic; po „usuń” nadzorca uruchamia program zapisujący (UID 105, cel `sda`, źródło K1-EFI pendrive'a); „gotowe”; „Wyłącz komputer” wyłącza | `m5f-1-lista.png`, `m5f-1-potwierdzenie.png`, `m5f-1-gotowe.png` |
 | dysk po instalacji | `sfdisk -d`: K1-EFI i K1-DANE; `sfdisk --verify` bez błędów | log testu |
-| 2. start z samego dysku (UEFI) | pulpit; skarbiec: nowy magazyn na K1-DANE dysku | `m5f-2-z-dysku.png` |
+| 2. start z samego dysku (UEFI) | pulpit; skarbiec: nowy magazyn na K1-DANE dysku; pulpit wie, że K1 jest zainstalowany (Wyloguj); Instalator nie prosi o pendrive („K1 działa z dysku”, 0.7.2) | `m5f-2-z-dysku.png`, `m5f-2-instalator-z-dysku.png` |
 | 3. pendrive + dysk | skarbiec dostaje `sda2` (dysk), Instalator: „Kons K1: tak (dane otwarte)” → aktualizacja tylko `sda1` → „zaktualizowano” | `m5f-3-aktualizacja.png` |
 | 4. start z dysku (pendrive też podłączony) | magazyn z kroku 2 otwarty, żaden nowy — dane przetrwały aktualizację; GRUB bierze jądro z dysku (`$cmdpath`) | log |
 
@@ -229,6 +236,8 @@ Wszędzie: brak „Kernel panic”, „BŁĄD” i zabronionych wywołań.
 | Notatki: wiele (0.5.8) | „Nowa notatka” → „Druga” (5 znaków); po ponownym starcie „notatki wczytane: 2 (pierwsza: 5 B)”, kliknięcie drugiej → 13 B, „Usuń notatkę” + potwierdzenie → zostaje 1 | `m4-3-notatki-dwie.png`, `m4-ponownie-notatki.png` |
 | Zegar | z dolnego paska; środek tarczy w kolorze akcentu | `m4-4-zegar.png` |
 | Ustawienia | ciemny motyw (`ustawienie 1=1`, ciemne okno), tapeta „Zmierzch” (fiolet w rogu), minimalizacja kliknięciem na pasku | `m4-5-ciemny.png`, `m4-6-tapeta.png` |
+| Kalkulator (0.7.1) | myszą i klawiaturą: 12 + 7 × 3 = 57, wynik w logu i na zrzucie | `m4-pulpit.log` |
+| Wyloguj (0.7.2) | z dyskiem danych (pulpit, ponownie, hasło): „K1 zainstalowany… Wyloguj dostępne”; z ISO (bez K1-DANE): „sesja z pendrive'a: bez Wyloguj” | log |
 | czystość logu | brak „Kernel panic”, „BŁĄD”, zablokowanych wywołań, odrzuconych komunikatów | `m4-pulpit.log` |
 | wyłączenie | Start → Wyłącz → `K1: wyłączanie zasilania`, `reboot: Power down` | log |
 | ISO UEFI | OVMF + `virtio-vga` (bez sterownika K1): rdzeń przez loop, simpledrm, pulpit | `m4-iso-uefi-1-pulpit.png` |
@@ -254,5 +263,7 @@ Wszędzie: brak „Kernel panic”, „BŁĄD” i zabronionych wywołań.
 | `fuzz_uklad` | blok układu i grubenv: dowolne bajty, zapis z powrotem czyta się tak samo | fuzzing |
 | `test-m5f.sh` | aktualizacja A/B do wolnego miejsca B; start z dysku: B na próbę i potwierdzone (grubenv: `k1_slot=b`); „nowe” miejsce A uszkodzone → GRUB wraca do B, K1 zgłasza, próba wyczyszczona; starsza wersja zablokowana; uszkodzony system na pendrivie → odmowa przed zapisem | funkcjonalny + negatywny |
 | `test-m6.sh` | OVMF z Secure Boot i kluczami MS: klucz K1 w MOK → pulpit i „włączony, klucz wpisany”; bez klucza → odmowa z wyjaśnieniem na ekranie; zmieniony bajt `k1.efi` → odmowa; klucz wydania: „Przygotuj klucz K1” → MokManager (Enroll MOK, hasło) → MokList → Secure Boot → K1 startuje; wersja deweloperska: wpisanie niedostępne | funkcjonalny + negatywny |
+| host `test_efi` | wspólny czytnik K1-EFI: format 1 i 2, miejsce z grubenv, nieczytelny grubenv → miejsce A i jego wersja (to pokazuje lista dysków i z tym porównuje Instalator), miejsce bez manifestu | jednostkowy + negatywny |
+| `test-m6.sh` bez sekretu | wpisanie klucza wydania przez MokManagera wymaga podpisanego wydania (`K1_KLUCZ_PODPISU`); w wersji deweloperskiej ten krok jest pominięty celowo (sprawdzane jest tylko, że wpisanie jest niedostępne) | — |
 | ręcznie (0.7.0) | GRUB z podsuniętym obcym initramfs i `rdinit=` → jądro uruchomiło tylko nasz initramfs; aktualizacja zainstalowanego 0.6.3 starym Instalatorem do 0.7.0 | negatywny |
 

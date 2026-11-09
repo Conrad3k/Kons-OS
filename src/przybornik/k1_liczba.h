@@ -17,4 +17,8 @@ int k1_liczba(double v, int cyfr, int grupuj, char *buf, size_t n);
 /* "3 h 20 min", "45 min" — minutes as people read them. */
 void k1_minuty(char *buf, size_t n, long minuty);
 
+/* The battery state (K1_BAT_*) in words: "Na baterii", "Ładowanie"… — one text for every window
+ * (Ustawienia, Zasoby); an unknown value is "Stan nieznany". */
+const char *k1_bateria_stan(int stan);
+
 #endif

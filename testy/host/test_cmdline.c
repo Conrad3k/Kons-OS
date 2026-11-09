@@ -51,6 +51,13 @@ int main(void)
     /* device path validation */
     /* M6b: the dm-verity root hash */
     EXPECT(k1_valid_hex64("850753a64481635de535a2f708f32b1e3f9912f49d67a63122202b752a6178e3") == 1);
+    {
+        unsigned char b[3] = { 0 };
+        EXPECT(k1_hex_bajty("0aff7c", b, 3) == 0 && b[0] == 0x0a && b[1] == 0xff && b[2] == 0x7c);
+        EXPECT(k1_hex_bajty("0aF", b, 2) == -1); /* upper case */
+        EXPECT(k1_hex_bajty("0a", b, 2) == -1);  /* too short: stops at the end */
+        EXPECT(k1_hex_bajty("0g", b, 1) == -1);
+    }
     EXPECT(k1_valid_hex64("850753A64481635de535a2f708f32b1e3f9912f49d67a63122202b752a6178e3") == 0); /* upper case */
     EXPECT(k1_valid_hex64("850753a64481635de535a2f708f32b1e3f9912f49d67a63122202b752a6178e") == 0);  /* 63 */
     EXPECT(k1_valid_hex64("850753a64481635de535a2f708f32b1e3f9912f49d67a63122202b752a6178e30") == 0); /* 65 */

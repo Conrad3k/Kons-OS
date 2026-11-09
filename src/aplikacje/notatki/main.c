@@ -195,11 +195,8 @@ static int linia_notatki(const struct notatka *n, int nr, char *buf, size_t maks
             ;
         if (d < k && nr-- == 0) {
             size_t l = k - d;
-            if (l >= maks) {
-                l = maks - 1;
-                while (l > 0 && ((unsigned char)n->tekst[d + l] & 0xc0) == 0x80)
-                    l--;
-            }
+            if (l >= maks)
+                l = k1_utf8_poczatek(n->tekst + d, maks - 1); /* whole characters only */
             memcpy(buf, n->tekst + d, l);
             buf[l] = '\0';
             return 1;
@@ -557,10 +554,7 @@ static void usun_biezaca(void)
 
 static uint32_t poprzedni(uint32_t p)
 {
-    do
-        p--;
-    while (p > 0 && ((unsigned char)b->tekst[p] & 0xc0) == 0x80);
-    return p;
+    return (uint32_t)k1_utf8_poczatek(b->tekst, p - 1);
 }
 
 static uint32_t nastepny(uint32_t p)

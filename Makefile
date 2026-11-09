@@ -196,6 +196,11 @@ $(OBJ)/test_kalkulator: testy/host/test_kalkulator.c src/aplikacje/kalkulator/li
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/aplikacje/kalkulator -o $@ testy/host/test_kalkulator.c \
 		src/aplikacje/kalkulator/liczydlo.c src/przybornik/k1_liczba.c -lm
 
+# Every host test includes the shared helpers: a change there rebuilds them all.
+$(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instalator test_kalkulator test_komunikat \
+	test_log test_magazyn test_manifest test_odbior test_przybornik test_sha256 test_uevent test_uklad \
+	test_zdarzenie): testy/host/k1_test_host.h
+
 testy-host: $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator
 	$(OBJ)/test_kalkulator
 	rm -f $(OBJ)/grubenv.ref && grub-editenv $(OBJ)/grubenv.ref create && \

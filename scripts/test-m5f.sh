@@ -49,8 +49,9 @@ if tryb == "z-dysku":
             czekaj(r"K1-NADZORCA: partycja danych K1-DANE otwarta dla skarbca", czas=10))
     sprawdz("skarbiec: nowy zaszyfrowany magazyn na K1-DANE dysku",
             czekaj(r"K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE", czas=10))
+    sprawdz("start z dysku: pulpit wie, że K1 jest zainstalowany (Start → Wyloguj dostępne)",
+            czekaj(r"K1-GUI: K1 zainstalowany na tym komputerze: Wyloguj dostępne", czas=10))
     time.sleep(2); zrzut("2-z-dysku")
-    koniec()
 if tryb == "po-aktualizacji":
     sprawdz("start z dysku po aktualizacji (pendrive też podłączony): magazyn dysku otwarty — dane przetrwały",
             czekaj(r"K1-SKARBIEC: magazyn otwarty", czas=10) and "utworzono nowy magazyn" not in tekst()
@@ -73,10 +74,16 @@ sprawdz("menu Start otwarte", m)
 if not m: koniec()
 klik(int(m.group(1)), int(m.group(2)) + 4 * int(m.group(3)))
 o = czekaj(r"K1-EKRAN: okno (\d+) \(instalacja\) (\d+)x(\d+) w (\d+),(\d+)", czas=30)
-d = czekaj(r"K1-INSTALACJA: dyski: (\d+) \(system do skopiowania: ([\w' ]+)\); dysk 1 (\d+),(\d+) co (\d+); przycisk (\d+),(\d+)", czas=30)
-sprawdz("Instalator: okno z listą dysków (1 dysk" + (")" if tryb == "z-iso" else ", system do skopiowania z pendrive'a)"),
-        o and d and d.group(1) == "1" and (tryb == "z-iso" or d.group(2) == "jest"), d.group(0) if d else "brak listy")
+d = czekaj(r"K1-INSTALACJA: dyski: (\d+) \(system do skopiowania: ([\w' ]+)(?:; K1 działa z dysku)?\); dysk 1 (\d+),(\d+) co (\d+); przycisk (\d+),(\d+)", czas=30)
+bez_zrodla = tryb in ("z-iso", "z-dysku")
+sprawdz("Instalator: okno z listą dysków (1 dysk" + (")" if bez_zrodla else ", system do skopiowania z pendrive'a)"),
+        o and d and d.group(1) == "1" and (bez_zrodla or d.group(2) == "jest"), d.group(0) if d else "brak listy")
 if not (o and d): koniec()
+if tryb == "z-dysku":  # 0.7.2: not "run K1 from a stick" — K1 runs from this disk
+    sprawdz("start z dysku: Instalator wie, że K1 jest zainstalowany (nie prosi o pendrive)",
+            d.group(2) == "brak" and "K1 działa z dysku" in d.group(0), d.group(0))
+    time.sleep(1); zrzut("2-instalator-z-dysku")
+    koniec()
 ox, oy = int(o.group(4)), int(o.group(5))
 px, py = ox + int(d.group(6)), oy + int(d.group(7))
 time.sleep(1)
@@ -111,6 +118,7 @@ if tryb == "starsza":  # M6a: the disk says 99.0.0 — the stick is older
 
 if tryb == "instaluj":
     sprawdz("dysk pusty: bez Kons K1", czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: nie", czas=5))
+    sprawdz("sesja z pendrive'a: w menu Start nie ma „Wyloguj”", "K1-GUI: sesja z pendrive'a: bez Wyloguj" in tekst())
     zrzut("1-lista")
     klik(ox + int(d.group(3)), oy + int(d.group(4)))  # the disk
     klik(px, py)                                      # Zainstaluj

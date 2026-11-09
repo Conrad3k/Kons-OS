@@ -60,6 +60,15 @@ static void t_utf8(void)
     char b[4];
     EXPECT(k1_utf8("\xc5\xbc", 2, &k) == 2 && k == 0x17c);
     EXPECT(k1_utf8("\xe2\x80\xa6", 3, &k) == 3 && k == 0x2026);
+    EXPECT(k1_utf8_poczatek("a\xc5\xbc", 2) == 1 && k1_utf8_poczatek("a\xc5\xbc", 1) == 1);
+    EXPECT(k1_utf8_poczatek("\xe2\x80\xa6", 2) == 0 && k1_utf8_poczatek("\x80\x80", 1) == 0);
+    {
+        char t[8] = "z\xc3\xb3";
+        size_t dl = 3;
+        EXPECT(k1_pole_klawisz(t, &dl, 7, KEY_BACKSPACE, 0) == 1 && dl == 1 && strcmp(t, "z") == 0); /* ó: both bytes */
+        EXPECT(k1_pole_klawisz(t, &dl, 7, KEY_BACKSPACE, 0) == 1 && dl == 0 && t[0] == '\0');
+        EXPECT(k1_pole_klawisz(t, &dl, 7, KEY_BACKSPACE, 0) == 1 && dl == 0); /* empty: stays empty */
+    }
     EXPECT(k1_utf8("\xff", 1, &k) == 1 && k == 0xfffd);
     EXPECT(k1_utf8("\xc0\x80", 2, &k) == 1 && k == 0xfffd);     /* overlong */
     EXPECT(k1_utf8("\xed\xa0\x80", 3, &k) == 1 && k == 0xfffd); /* surrogate */

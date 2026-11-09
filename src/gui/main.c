@@ -5,7 +5,8 @@
  * native applications, with running/active indicators), the Start menu and the sound popover.
  * It asks the supervisor to start applications (fd 4, k1_komunikat URUCHOM / WYLACZ) and ekran to
  * activate or minimise windows (it is the only client ekran accepts that from). The battery state
- * comes from the supervisor on fd 5 (k1_komunikat BATERIA, one way, sender UID 0 checked).
+ * comes from the supervisor on fd 5 (k1_komunikat BATERIA, and SESJA: whether K1 is installed here — only
+ * then the Start menu offers "Wyloguj"; one way, sender UID 0 checked).
  *
  * Trust boundary: gui never sees the content of application windows (ekran composes them) and has
  * no access to files or devices — taking it over gives neither data nor the system (tests).
@@ -168,6 +169,7 @@ static struct {
     int obecna, procent, stan, zasilacz;
 } bat = { 0, -1, K1_BAT_NIEZNANY, 0 };
 static int bat_kanal = 1, bat_odrzucone, bat_zalogowana;
+static int wyloguj_mozna = -1; /* from nadzorca (K1_KOM_SESJA): 1 K1 is installed here; else no "Wyloguj" button */
 
 static void zaloguj_baterie(void)
 {
@@ -194,6 +196,13 @@ static void odbierz_baterie(void)
         if (w == K1_ODB_KONIEC) {
             bat_kanal = 0; /* closed or missing: stop watching it */
             return;
+        }
+        if (w == K1_ODB_JEST && m.typ == K1_KOM_SESJA) { /* 0.7.2: "Wyloguj" only when K1 is installed here */
+            if (m.a != wyloguj_mozna)
+                k1_log(TAG, "%s", m.a ? "K1 zainstalowany na tym komputerze: Wyloguj dostępne" : "sesja z pendrive'a: bez Wyloguj");
+            wyloguj_mozna = m.a;
+            menu.brudna = 1;
+            continue;
         }
         if (w != K1_ODB_JEST || m.typ != K1_KOM_BATERIA) {
             if (bat_odrzucone++ < 3)
@@ -301,6 +310,7 @@ static void rysuj_dok(void)
 
 /* Footer of the Start menu, right-aligned: 10 + index (10 = log out, 11 = restart, 12 = power off). */
 #define STOPKA_N 3
+#define STOPKA_OD (wyloguj_mozna > 0 ? 0 : 1)
 static const char *const stopka_etykiety[STOPKA_N] = { "Wyloguj", "Uruchom ponownie", "Wyłącz" };
 static const enum k1_ikona stopka_ikony[STOPKA_N] = { K1_IK_KLODKA, K1_IK_RESTART, K1_IK_ZASILANIE };
 
@@ -333,7 +343,7 @@ static void rysuj_menu(void)
     {
         int32_t x = MARG + MENU_SZER - 12;
         int b;
-        for (b = STOPKA_N - 1; b >= 0; b--) {
+        for (b = STOPKA_N - 1; b >= STOPKA_OD; b--) {
             int32_t tw = k1_tekst_szer(K1_CZ_TEKST, stopka_etykiety[b]), bw = tw + 44;
             x -= bw;
             if (hover_menu == 10 + b)
@@ -354,7 +364,7 @@ static int przycisk_stopki(int32_t x, int32_t y, int32_t *srodek)
     int b;
     if (srodek == NULL && (y < yb || y >= yb + 36))
         return -1;
-    for (b = STOPKA_N - 1; b >= 0; b--) {
+    for (b = STOPKA_N - 1; b >= STOPKA_OD; b--) {
         int32_t bw = k1_tekst_szer(K1_CZ_TEKST, stopka_etykiety[b]) + 44;
         px -= bw;
         if (srodek != NULL && *srodek == 10 + b) {
@@ -419,11 +429,12 @@ static void pokaz_menu(int tak)
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_DZWIEK, 0, 0, 0, 0, 0));
         int32_t wyl = 12, wyg = 10;
         przycisk_stopki(0, 0, &wyl);
-        przycisk_stopki(0, 0, &wyg);
+        if (przycisk_stopki(0, 0, &wyg) < 0)
+            wyg = -1; /* no "Wyloguj" (a session from a stick): the log says -1,-1 */
         k1_log(TAG, "menu Start otwarte (pierwszy wiersz %d,%d co %d; Wyłącz %d,%d; Wyloguj %d,%d)",
                menu_x + MARG + MENU_SZER / 2, menu_y + MARG + MENU_NAGL + MENU_WIERSZ / 2 - 2, MENU_WIERSZ,
-               menu_x + wyl, menu_y + MARG + MENU_NAGL + K1_APL_MAKS * MENU_WIERSZ + 36, menu_x + wyg,
-               menu_y + MARG + MENU_NAGL + K1_APL_MAKS * MENU_WIERSZ + 36);
+               menu_x + wyl, menu_y + MARG + MENU_NAGL + K1_APL_MAKS * MENU_WIERSZ + 36, wyg < 0 ? -1 : menu_x + wyg,
+               wyg < 0 ? -1 : menu_y + MARG + MENU_NAGL + K1_APL_MAKS * MENU_WIERSZ + 36);
     }
 }
 

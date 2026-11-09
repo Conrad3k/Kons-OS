@@ -3,6 +3,29 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.7.2] — 2026-11-09
+
+Poprawki zgłoszone przez właściciela i część porządków przed M7 (`docs/PRZED-M7.md`).
+
+### Naprawione
+- **Zainstalowany K1 nie „udaje” pendrive'a.** Instalator uruchomiony z dysku pisał „K1 działa teraz z
+  obrazu .iso… uruchom komputer z pendrive'a”. Teraz mówi „Kons K1 jest zainstalowany” i jak
+  zaktualizować system (pendrive z nowszą wersją → „Zaktualizuj system”).
+- **„Wyloguj” tylko w zainstalowanym K1.** Uruchomiony z pendrive'a albo z .iso K1 nie pokazuje
+  „Wyloguj” w menu Start (nadzorca też odrzuci taką prośbę). Zainstalowany = dane (K1-DANE) na dysku
+  komputera.
+
+### Zmienione
+- Ustawienia i Zasoby opisują stan baterii tymi samymi słowami („Na baterii”, „Ładowanie”…).
+- Kod: jedna funkcja do liczb szesnastkowych, jedna do cofania po znakach UTF-8 (pola tekstowe,
+  Notatki), jedno źródło tekstów baterii. Pulpit dostaje od nadzorcy nowy komunikat `SESJA`.
+
+### Testy
+- `test-m4`, `test-m5f`: „Wyloguj” jest przy dysku, nie ma przy ISO i pendrivie; Instalator na
+  zainstalowanym K1 nie prosi o pendrive. Testy na hoście: brak `grub-editenv`/`sfdisk` to błąd;
+  zmiana `k1_test_host.h` przebudowuje testy; `test_efi` potwierdza wersję miejsca A przy
+  nieczytelnym grubenv; nowe sprawdzenia `SESJA`, `k1_hex_bajty`, `k1_utf8_poczatek`, Backspace.
+
 ## [0.7.1] — 2026-11-08
 
 Porządki w kodzie przed etapem M7 (ADR 0023) i nowa aplikacja.

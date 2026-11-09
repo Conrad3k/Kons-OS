@@ -51,10 +51,10 @@ int k1_pole_klawisz(char *t, size_t *dl, size_t maks, unsigned kod, unsigned mod
     char u[4];
     int n;
     if (kod == KEY_BACKSPACE) {
-        while (*dl > 0 && ((unsigned char)t[*dl - 1] & 0xc0) == 0x80)
-            t[--*dl] = '\0';
-        if (*dl > 0)
-            t[--*dl] = '\0';
+        if (*dl > 0) {
+            *dl = k1_utf8_poczatek(t, *dl - 1);
+            t[*dl] = '\0';
+        }
         return 1;
     }
     if ((z = k1_znak_klawisza(kod, mody)) < 0x20)
