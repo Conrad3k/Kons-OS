@@ -37,7 +37,8 @@ jądro 6.18 LTS (jadro/k1.config) ──► /init = k1-initramfs (src/initramfs)
 ```
 Planowane (SPEC §7–§9, ADR 0026): pulpit z ikonami i przypinaniem (0.7.5), Pliki — wspólne dokumenty,
 Kosz, okno wyboru pliku, dekodery w jednorazowych procesach (0.8.0), `siec` (M7), strefy (M8),
-Gatekeeper dla stref (M9).
+Gatekeeper dla stref (M9). Przepływ plików (ADR 0027): Pliki = jedyny węzeł, oryginał zawsze
+w Plikach, strefy dostają kopie; zgoda = gest w interfejsie rysowanym przez K1; pochodzenie przy pliku.
 
 Stan: M5a (0.5.2) — dyski SATA/NVMe, GPT, USB (xHCI/EHCI/OHCI, HID, mass storage) (ADR 0013);
 0.5.3 — wskaźnik baterii (nadzorca czyta sysfs `power_supply` → gui fd 5, ADR 0014; w QEMU bateria

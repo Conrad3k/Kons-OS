@@ -223,10 +223,11 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
     [ ] układ pulpitu i paska zapamiętany (skarbiec)
 
 0.8.0 Pliki (natywna część dawnego M9 i dawne M6 „dekodery w izolacji”)
-    [ ] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie
+    [ ] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie (pokazywane w Plikach)
     [ ] aplikacja Pliki: lista, podgląd, zmiana nazwy; pliki na pulpicie
     [ ] Kosz: przywracanie; usuwa na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”); ikona na pulpicie
-    [ ] okno wyboru pliku rysowane przez K1 — aplikacja dostaje tylko wybrany plik
+    [ ] okno wyboru pliku rysowane przez K1 — aplikacja dostaje tylko wybrany plik (prośba przez kanał)
+    [ ] domyślna aplikacja dla typu pliku i „Otwórz w…” (Ustawienia → Aplikacje; ADR 0027)
     [ ] Notatki na wspólnych dokumentach (istniejące notatki przeniesione)
     [ ] zdjęcia z pendrive'a (czytnik FAT w klatce, bez FAT w jądrze), tylko po Twoim wyborze
     [ ] podgląd obrazów PNG/JPEG przez jednorazowy dekoder w izolacji; tapeta z własnego zdjęcia
@@ -250,8 +251,12 @@ M8  Strefy — każda obca aplikacja w swojej mikro-maszynie (Twój pomysł, ADR
         aplikacja K1, silnik (kierunek: WPE WebKit) w strefie; pasek adresu rysuje K1; sesje = strefy
 
 M9  Pliki ze stref (Gatekeeper dla stref; aplikacja Pliki i dekodery — w 0.8.0, ADR 0026)
-    [ ] pliki ze strefy („Do K1”) i do strefy („Wyślij do…”) tylko przez okno K1 z pytaniem; schowek
-        między strefami za każdym wklejeniem
+    [ ] pliki ze strefy („Do K1”) i do strefy („Wyślij do…”) przez Pliki (ADR 0027: zgoda = gest w K1,
+        pytanie tylko, gdy zaczyna sama strefa); schowek między strefami za każdym wklejeniem
+    [ ] „Otwórz w…” z zapisem z powrotem: K1 pyta „Zapisać zmiany w oryginale?”, stara wersja do Kosza
+    [ ] przeciąganie pliku z Plików na okno strefy; prośba strony o plik → okno wyboru pliku K1
+    [ ] przypomnienie przy wysyłaniu pliku z internetu do wspólnej strefy
+    [ ] Przeglądarka PDF K1 (może wcześniej, po 0.8.0): PDF czyta jednorazowy proces w klatce, silnik — ADR
 
 M5.3 Laptop (małe kroki między etapami, po Twoich zgłoszeniach)
     [ ] i915 (płynniejszy obraz, jasność), klawisze Fn, dźwięk, przewijanie touchpadem

@@ -54,3 +54,4 @@ Krótko, dlaczego nie.
 | [0024](0024-wspolna-strefa.md) | Wspólna strefa na drobne, zaufane aplikacje (obok osobnych stref, przeglądarka zawsze osobno) | Przyjęty (kierunek) |
 | [0025](0025-przegladarka-k1.md) | Przeglądarka K1: własne okno i pasek adresu, silnik (WPE) w strefie, sesje = strefy | Przyjęty (kierunek) |
 | [0026](0026-pulpit-i-pliki-przed-siecia.md) | Pulpit (0.7.5) i Pliki (0.8.0) przed Siecią: ikony na pulpicie, przypinanie, Kosz (30 dni), wspólne dokumenty, okno wyboru pliku, dekoder w izolacji | Przyjęty |
+| [0027](0027-przeplyw-plikow-miedzy-strefami.md) | Przepływ plików: Pliki jako jedyny węzeł, zgoda = gest w interfejsie K1, „Otwórz w…” z zapisem z powrotem, domyślne aplikacje | Przyjęty |
