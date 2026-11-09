@@ -295,7 +295,7 @@ static void obsluz_sterowanie(void)
         kl[i].fd = o.fd;
         kl[i].wlasciciel = m.a;
         kl[i].uid = m.b;
-        na_usb = m.c; /* where the K1-DANE is (nadzorca knows; shown in Ustawienia and Notatki) */
+        na_usb = m.c; /* where the K1-DANE is (nadzorca knows; shown in Ustawienia) */
         k1_log(TAG, "nowy klient: właściciel %d (uid %d)", m.a, m.b);
     }
 }
