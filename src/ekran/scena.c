@@ -90,10 +90,15 @@ int widac(const struct pow *p)
     return p->uzyta && p->widoczna && !p->zmin && p->polowa >= 0;
 }
 
-/* Order: windows by z, then panels by z. */
+/* Order: the desktop layer, windows by z, then panels by z. */
+static int warstwa(const struct pow *p)
+{
+    return p->rodzaj == K1_POW_PULPIT ? 0 : p->rodzaj == K1_POW_OKNO ? 1 : 2;
+}
+
 static int przed(const struct pow *a, const struct pow *b)
 {
-    int wa = a->rodzaj == K1_POW_PANEL, wb = b->rodzaj == K1_POW_PANEL;
+    int wa = warstwa(a), wb = warstwa(b);
     return wa != wb ? wa < wb : a->z < b->z;
 }
 

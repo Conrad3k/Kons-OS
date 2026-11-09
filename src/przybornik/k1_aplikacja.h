@@ -20,6 +20,8 @@ struct k1_apl {
     void (*klawisz)(unsigned kod, int wartosc, unsigned mody);
     /* called once every loop; returns the time in ms until it wants to be called again (-1: no timer) */
     int (*zegar)(void);
+    /* called right before the window closes (its × button, or "Zamknij okno" on the bottom bar — 0.7.5) */
+    void (*zamykanie)(void);
     /* channels from nadzorca (fd 4, 5 …): called when there is something to read; fd -1 = none. The skeleton
      * makes them non-blocking; a channel that does not exist (fcntl fails) is set to -1. */
     struct {

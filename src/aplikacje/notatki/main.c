@@ -335,6 +335,13 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     k1_apl_odswiez(&apl);
 }
 
+/* The window closes: what was typed in the last 0.8 s is saved first. */
+static void zamykanie(void)
+{
+    if (zmiana > 0)
+        zapisz();
+}
+
 /* Saved 0.8 s after the last change (a burst of typing is one write). */
 static int zegar(void)
 {
@@ -356,6 +363,7 @@ int main(void)
     apl.klawisz = klawisz;
     apl.wskaznik = wskaznik;
     apl.zegar = zegar;
+    apl.zamykanie = zamykanie;
     wczytaj();
     apl.kanaly[0].fd = skarb; /* the results of saving */
     apl.kanaly[0].dane = odbierz_wyniki;

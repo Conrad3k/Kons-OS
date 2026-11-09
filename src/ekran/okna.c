@@ -140,6 +140,13 @@ static void minimalizuj(int i)
     zglos_okno(p, K1_OKNO_ZMINIMALIZOWANE);
 }
 
+/* The shell's "Zamknij okno" (0.7.5): the application closes its window itself, as with its × button. */
+static void zamknij_okno(int i)
+{
+    k1_log(TAG, "okno %u: powłoka prosi aplikację o zamknięcie", s.p[i].okno);
+    wyslij(s.p[i].kl, k1_komunikat_nowy(K1_KOM_ZAMKNIJ, s.p[i].id, 0, 0, 0, 0, 0));
+}
+
 static void usun_pow(int i)
 {
     struct pow *p = &s.p[i];
@@ -195,10 +202,21 @@ static int znajdz_okno(uint32_t okno)
     return -1;
 }
 
+/* The password screen: one full screen; the shell (its desktop layer and the panels) and an application
+ * (two full-screen windows): two. */
 static size_t budzet_klienta(const struct klient *k)
 {
     size_t ekran = (size_t)s.W * (size_t)s.H * 4u * 2u;
-    return panele(k) ? ekran : 2u * ekran;
+    return k->rola == K1_ROLA_LOGOWANIE ? ekran : 2u * ekran;
+}
+
+static int ma_pulpit(int kl)
+{
+    int i;
+    for (i = 0; i < MAKS_POW; i++)
+        if (s.p[i].uzyta && s.p[i].kl == kl && s.p[i].rodzaj == K1_POW_PULPIT)
+            return 1;
+    return 0;
 }
 
 /* Why the client may not have one more surface of `rozmiar` bytes (NULL: it may); *wolny = a free slot. */
@@ -209,7 +227,9 @@ static const char *miejsce_na_pow(int kl, const struct k1_komunikat *m, size_t r
     int i, okien = 0;
     if (znajdz_pow(kl, m->obiekt) >= 0)
         return "powierzchnia o tym numerze już istnieje";
-    if ((m->c == K1_POW_PANEL) != panele(k))
+    if (m->c == K1_POW_PULPIT && (k->rola != K1_ROLA_POWLOKA || ma_pulpit(kl)))
+        return k->rola != K1_ROLA_POWLOKA ? "pulpit tylko dla powłoki" : "drugi pulpit";
+    if (m->c != K1_POW_PULPIT && (m->c == K1_POW_PANEL) != panele(k))
         return m->c == K1_POW_PANEL ? "panele tylko dla powłoki" : "okna tylko dla aplikacji";
     if (m->a > s.W || m->b > s.H || (m->c == K1_POW_OKNO && m->b > s.H - K1_PASEK_GORNY))
         return "powierzchnia większa niż ekran";
@@ -252,6 +272,8 @@ static void polozenie_nowej(struct pow *p, const struct k1_komunikat *m)
     if (p->rodzaj == K1_POW_PANEL) {
         p->x = m->d;
         p->y = m->e;
+    } else if (p->rodzaj == K1_POW_PULPIT) {
+        p->x = p->y = 0;
     } else {
         int32_t nr = (int32_t)(s.nastepne_okno % 6);
         p->okno = ++s.nastepne_okno;
@@ -382,7 +404,7 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
         { nowa_pow(kl, m, fd); return; }
     if (m->typ == K1_KOM_ZATWIERDZ)
         { zatwierdz(kl, m); return; }
-    if (m->typ == K1_KOM_AKTYWUJ_OKNO || m->typ == K1_KOM_MINIMALIZUJ_OKNO) {
+    if (m->typ == K1_KOM_AKTYWUJ_OKNO || m->typ == K1_KOM_MINIMALIZUJ_OKNO || m->typ == K1_KOM_ZAMKNIJ_OKNO) {
         if (k->rola != K1_ROLA_POWLOKA)
             { odrzuc(kl, "zarządzanie cudzymi oknami tylko dla powłoki"); return; }
         i = znajdz_okno(m->obiekt);
@@ -390,8 +412,10 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
             return;
         if (m->typ == K1_KOM_AKTYWUJ_OKNO)
             aktywuj(i);
-        else
+        else if (m->typ == K1_KOM_MINIMALIZUJ_OKNO)
             minimalizuj(i);
+        else
+            zamknij_okno(i);
         return;
     }
     if (m->typ == K1_KOM_USTAW) {

@@ -177,7 +177,7 @@ static int sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
         if (kier != K1_KIER_DO_EKRANU || !powierzchnia(k->obiekt) || !w(k->a, 1, K1_POW_MAKS_BOK) ||
             !w(k->b, 1, K1_POW_MAKS_BOK))
             return 0;
-        if (k->c == K1_POW_OKNO)
+        if (k->c == K1_POW_OKNO || k->c == K1_POW_PULPIT)
             return k->d == 0 && k->e == 0;
         return k->c == K1_POW_PANEL && w(k->d, K1_POZ_MIN, K1_POZ_MAKS) && w(k->e, K1_POZ_MIN, K1_POZ_MAKS);
     case K1_KOM_ZATWIERDZ:
@@ -194,6 +194,7 @@ static int sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
         return kier == K1_KIER_DO_EKRANU && powierzchnia(k->obiekt) && zera(k, 0);
     case K1_KOM_AKTYWUJ_OKNO:
     case K1_KOM_MINIMALIZUJ_OKNO:
+    case K1_KOM_ZAMKNIJ_OKNO:
         return kier == K1_KIER_DO_EKRANU && k->obiekt != 0 && zera(k, 0);
     case K1_KOM_USTAW:
         return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && k1_ustawienie_poprawne(k->a, k->b) && zera(k, 2);
@@ -211,6 +212,7 @@ static int sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
     case K1_KOM_FOKUS:
         return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && w(k->a, 0, 1) && zera(k, 1);
     case K1_KOM_RAMKA:
+    case K1_KOM_ZAMKNIJ:
         return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && zera(k, 0);
     case K1_KOM_OKNO:
         return kier == K1_KIER_OD_EKRANU && k->obiekt != 0 && w(k->a, 1, K1_APL_MAKS) &&

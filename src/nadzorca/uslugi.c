@@ -24,8 +24,9 @@ static const struct kanaly {
     struct kanal k[3];
 } kanaly[] = {
     { K1_PROFIL_WEJSCIE, { { KN_WEJSCIA, NULL, NULL, NULL } } },
-    /* gui: fd 4 requests (URUCHOM, WYLACZ), fd 5 battery state */
-    { K1_PROFIL_GUI, { { KN_OD, &gui_kanal, &gui_kanal_uid, NULL }, { KN_DO, &bateria_kanal, NULL, bateria_nowy_kanal } } },
+    /* gui: fd 4 requests (URUCHOM, WYLACZ), fd 5 battery state, fd 6 skarbiec (the desktop arrangement, 0.7.5) */
+    { K1_PROFIL_GUI,
+      { { KN_OD, &gui_kanal, &gui_kanal_uid, NULL }, { KN_DO, &bateria_kanal, NULL, bateria_nowy_kanal }, { KN_SKARB, NULL, NULL, NULL } } },
     /* the password screen: the same two, fd 6 skarbiec (the password) */
     { K1_PROFIL_LOGOWANIE,
       { { KN_OD, &gui_kanal, &gui_kanal_uid, NULL }, { KN_DO, &bateria_kanal, NULL, bateria_nowy_kanal }, { KN_SKARB, NULL, NULL, NULL } } },

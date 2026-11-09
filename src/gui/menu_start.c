@@ -1,5 +1,6 @@
 /* K1 gui — the Start menu: every application with its description, and the footer buttons "Wyloguj"
- * (only when K1 is installed here, 0.7.2), "Uruchom ponownie", "Wyłącz". The Super key opens it. */
+ * (only when K1 is installed here, 0.7.2), "Uruchom ponownie", "Wyłącz". The Super key opens it; the right
+ * button on an application opens its menu (0.7.5: pin to the bar, add to the desktop). */
 #include <stdio.h>
 
 #include "gui.h"
@@ -117,8 +118,10 @@ void wskaznik_menu(const struct k1_komunikat *m)
         hover_menu = nowy;
         menu.brudna = 1;
     }
-    if (puszcz && nowy >= 1 && nowy <= K1_APL_MAKS) {
-        aplikacja(nowy);
+    if (m->c == K1_WSK_WCISNIECIE && m->d == K1_PRZYCISK_PRAWY && nowy >= 1 && nowy <= K1_APL_MAKS) {
+        kontekst_otworz(K_MENU, nowy, menu_x + m->a, menu_y + m->b);
+    } else if (puszcz && nowy >= 1 && nowy <= K1_APL_MAKS) {
+        otworz_aplikacje(nowy);
     } else if (puszcz && nowy >= 10) {
         k1_log(TAG, "%s", co[nowy - 10]);
         pokaz_menu(0);

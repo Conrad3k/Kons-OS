@@ -59,20 +59,45 @@ void do_nadzorcy(struct k1_komunikat m)
         k1_log(TAG, "kanał do nadzorcy: %s", strerror(errno));
 }
 
+/* Starts `apl` unless it is already starting (0 = not: k1_teraz() counts from boot, a fast computer is under 5 s
+ * here); 1 if it was asked for. */
+static int uruchom(int apl)
+{
+    if (uruchamiane[apl] > 0 && k1_teraz() - uruchamiane[apl] < 5.0)
+        return 0;
+    uruchamiane[apl] = k1_teraz();
+    k1_log(TAG, "uruchamiam: %s", aplikacje[apl].nazwa);
+    do_nadzorcy(k1_komunikat_nowy(K1_KOM_URUCHOM, 0, apl, 0, 0, 0, 0));
+    return 1;
+}
+
 void aplikacja(int apl)
 {
     struct okno *w = okno_aplikacji(apl);
     pokaz_menu(0);
-    if (w == NULL) {
-        /* already starting (0 = not: k1_teraz() counts from boot, a fast computer is under 5 s here) */
-        if (uruchamiane[apl] > 0 && k1_teraz() - uruchamiane[apl] < 5.0)
-            return;
-        uruchamiane[apl] = k1_teraz();
-        k1_log(TAG, "uruchamiam: %s", aplikacje[apl].nazwa);
-        do_nadzorcy(k1_komunikat_nowy(K1_KOM_URUCHOM, 0, apl, 0, 0, 0, 0));
-    } else if (w->stan == K1_OKNO_AKTYWNE) {
+    if (w == NULL)
+        uruchom(apl);
+    else if (w->stan == K1_OKNO_AKTYWNE)
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_MINIMALIZUJ_OKNO, w->id, 0, 0, 0, 0, 0));
-    } else {
+    else
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_AKTYWUJ_OKNO, w->id, 0, 0, 0, 0, 0));
-    }
+}
+
+void otworz_aplikacje(int apl)
+{
+    struct okno *w = okno_aplikacji(apl);
+    pokaz_menu(0);
+    if (w == NULL)
+        uruchom(apl);
+    else if (w->stan != K1_OKNO_AKTYWNE)
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_AKTYWUJ_OKNO, w->id, 0, 0, 0, 0, 0));
+}
+
+void zamknij_aplikacje(int apl)
+{
+    struct okno *w = okno_aplikacji(apl);
+    if (w == NULL)
+        return;
+    k1_log(TAG, "zamykam okno: %s", aplikacje[apl].nazwa);
+    k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_ZAMKNIJ_OKNO, w->id, 0, 0, 0, 0, 0));
 }
