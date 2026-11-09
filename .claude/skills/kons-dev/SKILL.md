@@ -35,8 +35,9 @@ jądro 6.18 LTS (jadro/k1.config) ──► /init = k1-initramfs (src/initramfs)
        └─ aplikacje na prośbę gui: zegar (200), notatki (201, tylko /dane_uzytkownika/notatki), ustawienia (202),
           zasoby (203; fd 4: statystyki cgroup od nadzorcy, jednokierunkowo)
 ```
-Planowane (SPEC §7–§9): Blob Vault (M5), dekodery w jednorazowych procesach (M6), `siec` (M7),
-Gatekeeper (M9).
+Planowane (SPEC §7–§9, ADR 0026): pulpit z ikonami i przypinaniem (0.7.5), Pliki — wspólne dokumenty,
+Kosz, okno wyboru pliku, dekodery w jednorazowych procesach (0.8.0), `siec` (M7), strefy (M8),
+Gatekeeper dla stref (M9).
 
 Stan: M5a (0.5.2) — dyski SATA/NVMe, GPT, USB (xHCI/EHCI/OHCI, HID, mass storage) (ADR 0013);
 0.5.3 — wskaźnik baterii (nadzorca czyta sysfs `power_supply` → gui fd 5, ADR 0014; w QEMU bateria
@@ -220,9 +221,13 @@ monitor QEMU — `mouse_move`, `mouse_button`, `sendkey alt_r-a`); zrzuty pokazu
 (nadzorca w modułach < 600 wierszy w main.c, jawna maszyna stanów startu, uevent zamiast odpytywania = dawne M5b,
 wspólny odbiór komunikatów, wspólna biblioteka testów QEMU, testy równolegle, KVM w CI, historia baterii) →
 **M6 Bezpieczne aktualizacje** (podpisane wydania, dm-verity, A/B w K1-EFI, Secure Boot z kluczem MOK) →
-**M7 Sieć** (e1000e + DHCP, potem Wi-Fi) → **M8 Strefy** (mikro-VM na obcą aplikację, zaufana ramka w kolorze
+(ADR 0026, od 0.7.3) **0.7.5 Pulpit** (ikony na pulpicie jak w Windows w stylu K1, menu pod prawym przyciskiem,
+przypinanie/odpinanie na pasku, układ w skarbcu) → **0.8.0 Pliki** (wspólne dokumenty w skarbcu, aplikacja Pliki,
+Kosz: 30 dni albo ręcznie, okno wyboru pliku rysowane przez K1, import z pendrive'a czytnikiem FAT w klatce,
+dekoder PNG/JPEG w jednorazowym procesie, tapeta z własnego zdjęcia) → **M7 Sieć** (e1000e + DHCP, potem Wi-Fi;
+test: nic nie nasłuchuje) → **M8 Strefy** (mikro-VM na obcą aplikację, zaufana ramka w kolorze
 strefy, przełączniki: stała/jednorazowa i pełna izolacja/szybka grafika; pierwsza — przeglądarka) →
-**M9 Pliki** (Gatekeeper, dekodery w izolacji) → M10 reszta (recovery, TPM) → M12 audyt. X230 = maszyna
+**M9 Pliki ze stref** (Gatekeeper dla stref: „Do K1”, „Wyślij do…”, schowek) → M10 reszta (recovery, TPM) → M12 audyt. X230 = maszyna
 testowa; szybka grafika i gry projektowane pod nowszy sprzęt (decyzja właściciela).
 
 **CI na PR-ze:** dodaj etykietę `testy` (`issue_write`, labels) — workflow buduje i testuje PR bez scalania
