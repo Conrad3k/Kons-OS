@@ -156,10 +156,13 @@ enum k1_ustawienie {
     K1_UST_MOTYW = 1,   /* 0 light, 1 dark */
     K1_UST_SEKUNDY = 2, /* clock on the top bar with seconds: 0/1 */
     K1_UST_MYSZ = 3,    /* pointer speed 1..3 */
-    K1_UST_TAPETA = 4,  /* wallpaper variant 0..3 (k1_grafika.h: K1_TAPETY) */
+    K1_UST_TAPETA = 4,  /* wallpaper variant 0..K1_TAPETY-1 */
     K1_UST_ROZDZIELCZOSC = 5, /* screen mode number 1..K1_TRYBY_MAKS (list: K1_KOM_TRYB) */
 };
 #define K1_UST_MAKS 5
+
+/* Wallpaper variants: one palette each in k1_grafika.c, names in Ustawienia (docs/WYGLAD.md). */
+#define K1_TAPETY 5
 
 /* Screen modes offered in Ustawienia (distinct sizes, widest first). */
 #define K1_TRYBY_MAKS 18

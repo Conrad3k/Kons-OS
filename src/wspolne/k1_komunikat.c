@@ -52,7 +52,7 @@ int k1_ustawienie_poprawne(int32_t klucz, int32_t wartosc)
     case K1_UST_MYSZ:
         return w(wartosc, 1, 3);
     case K1_UST_TAPETA:
-        return w(wartosc, 0, 3);
+        return w(wartosc, 0, K1_TAPETY - 1);
     case K1_UST_ROZDZIELCZOSC:
         return w(wartosc, 1, K1_TRYBY_MAKS);
     default:

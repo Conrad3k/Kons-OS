@@ -1,7 +1,7 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.7.5 (Pulpit) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.7.6 (Pulpit, nowa tapeta „Las”) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby), M5 (dyski, USB, zaszyfrowane
 dane, hasło, instalator), 0.6.0 Fundament, M6 (bezpieczne aktualizacje: podpisy, dm-verity, A/B,
@@ -229,6 +229,10 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
     [x] rozmieszczenie pulpitu i paska zapamiętane (skarbiec)
     [!] Test na X230 (0.7.5): czy przeciąganie okien jest tak płynne jak w 0.7.3 (warstwa ikon pod
         oknami — RYZYKA R46)? Czy kafelki i menu dobrze wyglądają w obu motywach?
+
+0.7.6 — mała aktualizacja przed 0.8.0 — GOTOWE (Twoja prośba z 2026-11-09)
+    [x] Instalator na zainstalowanym K1: tylko „Aktualizacje są możliwe poprzez nośnik USB.”
+    [x] nowa tapeta „Las” (Ustawienia → Wygląd)
 
 0.8.0 Pliki (natywna część dawnego M9 i dawne M6 „dekodery w izolacji”)
     [ ] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie (pokazywane w Plikach)

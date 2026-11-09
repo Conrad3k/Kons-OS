@@ -20,12 +20,15 @@
 #define KARTA_W 100
 #define KARTA_H 64
 #define KARTA_ODST 12
+#define KARTY_W_RZEDZIE 4
+#define RZAD_H (KARTA_H + 40) /* card, its name and a gap */
 
 struct k1_apl apl;
 int sekcja;
 static int hover_nav = -1, hover_seg = -1, hover_karta = -1, hover_tryb = -1, tryby_zalogowane;
 static uint32_t miniatury[K1_TAPETY][KARTA_W * KARTA_H];
-static const char *const nazwy_tapet[K1_TAPETY] = { "Glina", "Zmierzch", "Noc", "Świt" };
+static const char *const nazwy_tapet[] = { "Glina", "Zmierzch", "Noc", "Świt", "Las" };
+_Static_assert(sizeof nazwy_tapet / sizeof nazwy_tapet[0] == K1_TAPETY, "one name per wallpaper");
 
 static const struct {
     const char *nazwa;
@@ -38,6 +41,17 @@ static const struct {
 static int32_t karty_y(void)
 {
     return seg_y() + SEG_H + 44;
+}
+
+/* Top-left corner of thumbnail i: KARTY_W_RZEDZIE in a row, then the next row. */
+static int32_t karta_x(int i)
+{
+    return TRESC_X + (i % KARTY_W_RZEDZIE) * (KARTA_W + KARTA_ODST);
+}
+
+static int32_t karta_y(int i)
+{
+    return karty_y() + (i / KARTY_W_RZEDZIE) * RZAD_H;
 }
 
 /* Wallpaper thumbnails: rendered once by the same code ekran uses. */
@@ -63,10 +77,9 @@ static void przygotuj_miniatury(void)
 static void karty(struct k1_obraz *o, const struct k1_motyw *m)
 {
     int i;
-    int32_t y = karty_y();
-    k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X, y - 14, "Tapeta", k1_kolor(m->tekst, 255), 0);
+    k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X, karty_y() - 14, "Tapeta", k1_kolor(m->tekst, 255), 0);
     for (i = 0; i < K1_TAPETY; i++) {
-        int32_t x = TRESC_X + i * (KARTA_W + KARTA_ODST), px, py;
+        int32_t x = karta_x(i), y = karta_y(i), px, py;
         int wybrana = apl.k.ustawienia[K1_UST_TAPETA] == i;
         for (py = 0; py < KARTA_H; py++)
             for (px = 0; px < KARTA_W; px++) {
@@ -91,8 +104,8 @@ static int karta_pod(int32_t x, int32_t y)
 {
     int i;
     for (i = 0; i < K1_TAPETY; i++) {
-        int32_t kx = TRESC_X + i * (KARTA_W + KARTA_ODST);
-        if (x >= kx && x < kx + KARTA_W && y >= karty_y() && y < karty_y() + KARTA_H)
+        int32_t kx = karta_x(i), ky = karta_y(i);
+        if (x >= kx && x < kx + KARTA_W && y >= ky && y < ky + KARTA_H)
             return i;
     }
     return -1;

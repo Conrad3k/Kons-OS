@@ -51,9 +51,9 @@ static void rysuj_naglowek_listy(struct k1_obraz *o, const struct k1_motyw *m)
         k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Kons K1 jest zainstalowany", k1_kolor(m->tekst, 255), 0);
         k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "System i Twoje zaszyfrowane dane są na dysku tego komputera.",
                  k1_kolor(m->tekst2, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 68,
-                 zrodlo == 1 ? "Z podłączonego pendrive'a możesz zaktualizować system." : "Pendrive nie jest potrzebny.",
-                 k1_kolor(m->tekst2, 255), 0);
+        if (zrodlo == 1)
+            k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 68, "Z podłączonego pendrive'a możesz zaktualizować system.",
+                     k1_kolor(m->tekst2, 255), 0);
     } else {
         k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Zainstaluj Kons K1", k1_kolor(m->tekst, 255), 0);
         k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "System i Twoje zaszyfrowane dane zamieszkają na dysku tego komputera —",
@@ -62,7 +62,7 @@ static void rysuj_naglowek_listy(struct k1_obraz *o, const struct k1_motyw *m)
     }
 }
 
-/* Nothing to copy: no button, only what to do. */
+/* Nothing to copy: no button, only what to do (each list ends with NULL). */
 static void rysuj_bez_zrodla(struct k1_obraz *o, const struct k1_motyw *m)
 {
     int i;
@@ -71,20 +71,19 @@ static void rysuj_bez_zrodla(struct k1_obraz *o, const struct k1_motyw *m)
         "1. Pobierz plik k1-…-usb.img.xz (Releases, obok .iso).",
         "2. Nagraj go na pendrive (Rufus albo balenaEtcher).",
         "3. Uruchom komputer z tego pendrive'a (F12) i otwórz Instalator.",
+        NULL,
     };
     static const char *const kroki_dwa[] = {
         "Podłączone są dwa pendrive'y z Kons K1 — nie wiadomo, który skopiować.",
         "Odłącz ten, z którego komputer nie startował, i otwórz Instalator jeszcze raz.",
+        NULL,
     };
-    static const char *const kroki_dysk[] = {
-        "K1 działa z dysku tego komputera. Aktualizacja — z pendrive'a z nowszą wersją:",
-        "1. Pobierz plik k1-…-usb.img.xz (Releases) i nagraj go na pendrive.",
-        "2. Podłącz pendrive (komputer może dalej działać z dysku).",
-        "3. Otwórz Instalator jeszcze raz i wybierz „Zaktualizuj system”.",
+    static const char *const kroki_dysk[] = { /* 0.7.6: the owner wants one sentence, no steps */
+        "Aktualizacje są możliwe poprzez nośnik USB.",
+        NULL,
     };
     const char *const *t = zrodlo == 2 ? kroki_dwa : zainstalowany() ? kroki_dysk : kroki_iso;
-    int ile = zrodlo == 2 ? 2 : 4;
-    for (i = 0; i < ile; i++)
+    for (i = 0; t[i]; i++)
         k1_tekst(o, i == 0 ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, LEWO, DYSKI_Y + 20 + i * 26 + (i > 0 ? 8 : 0), t[i],
                  k1_kolor(i == 0 ? m->tekst : m->tekst2, 255), apl.szer - 2 * LEWO);
 }

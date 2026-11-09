@@ -8,7 +8,7 @@
 
 ## Cel
 Jedyny proces z dostępem do karty graficznej (DRM/KMS) i kompozytor okien: ustawia tryb, rysuje
-tapetę (jeden z 4 wariantów), składa okna aplikacji i panele powłoki z ich pamięci współdzielonej,
+tapetę (jeden z 5 wariantów), składa okna aplikacji i panele powłoki z ich pamięci współdzielonej,
 dodaje cienie okien i kursor, robi page flip. Kieruje wejście (mysz do powierzchni pod kursorem,
 klawiatura do okna z fokusem, Super do powłoki), zarządza fokusem, kolejnością, przeciąganiem
 i minimalizacją okien, przechowuje ustawienia i rozsyła je klientom.

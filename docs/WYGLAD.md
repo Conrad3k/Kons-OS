@@ -66,6 +66,7 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
 | 1 | Zmierzch | jak zdjęcie właściciela: fiolet, błękit, róż, złoto |
 | 2 | Noc | indygo i morski |
 | 3 | Świt | jasna: brzoskwinia i lawenda |
+| 4 | Las (0.7.6) | mech i szałwia na ciemnej sośnie, złote krawędzie |
 
 ## Pulpit (M4)
 - **Górny pasek** (32 px, cała szerokość): przyciemnienie tapety (czarny 59%), kremowy tekst

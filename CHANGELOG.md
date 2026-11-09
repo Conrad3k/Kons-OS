@@ -3,6 +3,23 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.7.6] — 2026-11-09
+
+Mała aktualizacja przed 0.8.0 (prośba właściciela).
+
+### Dodane
+- **Nowa tapeta „Las”** — zieleń mchu i szałwii na ciemnej sośnie, ze złotymi krawędziami arkuszy.
+  Wybór: Ustawienia → Wygląd → Tapeta (miniatury w dwóch rzędach, po cztery).
+
+### Zmienione
+- **Instalator na zainstalowanym K1:** gdy system działa z dysku komputera i nie ma pendrive'a z nowszą
+  wersją, okno pisze tylko „Aktualizacje są możliwe poprzez nośnik USB.” — bez instrukcji krok po kroku.
+  Z podłączonym pendrive'em K1 wszystko jak dotąd („Zaktualizuj system”).
+
+### Porządki
+- Liczba tapet w jednym miejscu (`K1_TAPETY` w `k1_komunikat.h`): z niej wynika sprawdzanie ustawienia;
+  kompilator pilnuje, żeby każda tapeta miała paletę i nazwę.
+
 ## [0.7.5] — 2026-11-09
 
 Pulpit jak w Windows, w stylu K1 (ADR 0026, 0028; szkic A „Kafelki” wybrany przez właściciela).
