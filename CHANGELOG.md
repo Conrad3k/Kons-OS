@@ -3,6 +3,12 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [Niewydane] — do 0.7.3
+
+### Zmienione
+- Notatki: pod notatką tylko „Zapisano (zaszyfrowane)” — bez informacji, czy na pendrivie, czy na dysku
+  (prośba właściciela; miejsce danych pokazują Ustawienia → Informacje).
+
 ## [0.7.2] — 2026-11-09
 
 Poprawki zgłoszone przez właściciela i część porządków przed M7 (`docs/PRZED-M7.md`).
