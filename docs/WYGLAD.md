@@ -25,6 +25,11 @@ Podgląd tapety bez QEMU: `make build/obj/podglad_grafiki && build/obj/podglad_g
   przypinanie i odpinanie na pasku. Kosz usuwa po 30 dniach albo ręcznie. Szkice do wyboru przed
   implementacją.
 
+- 2026-11-09 (0.7.5): z trzech szkiców pulpitu (A „Kafelki”, B „Linie”, C „Szkło”) właściciel wybrał
+  **A „Kafelki”**; „kolory pod-okien i otoczka ikon też zmieniają się z trybem” — kafelki, zaznaczenie
+  i menu kontekstowe w kolorach motywu (jasny / ciemny). Na pulpicie przy pierwszym starcie: wszystkie
+  aplikacje oprócz Instalatora.
+
 ## Kierunek (M4)
 - **Charakter:** spokojny, rzeczowy, lekko ciepły.
 - **Świat:** papier i glina — kremowy papier okien, terakota, ciemny brąz wieczoru.
@@ -86,6 +91,20 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
 - **Okna:** zaokrąglenie 12, pasek tytułu 44 px w kolorze okna (tytuł Plex Sans Medium 15,
   przyciski minimalizuj i zamknij po prawej), włoskowaty obrys, miękki cień rzucany przez ekran
   (mocniejszy dla aktywnego okna).
+
+## Pulpit z ikonami (0.7.5, szkic A „Kafelki”)
+- **Siatka:** komórki 84×92 od (16, 48), kolumnami z góry na dół; dół ekranu (100 px) zostaje dla paska.
+- **Ikona:** kafelek 52×52 (zaokrąglenie 14) w kolorze tła okien (motyw: `#FAF9F6` / `#262523`, krycie
+  96%), włoskowaty obrys, miękki cień 3 px w dół; ikona liniowa 28 px w kolorze tekstu. Pod kafelkiem
+  nazwa — Plex Sans Medium 13, kremowa z ciemnym cieniem 1 px (leży na tapecie w obu motywach).
+- **Zaznaczenie i najechanie:** prostokąt komórki z zaokrągleniem 10 — jasny motyw: krem 18% (zaznaczona)
+  / 9% (najechana), ciemny motyw: noc 43% / 24%; zaznaczona ma kremowy obrys 1,25 px.
+- **Menu kontekstowe:** 232 px, zaokrąglenie 12, tło okien 98%, włoskowaty obrys, cień 6 px w dół;
+  wiersze 36 px, tekst Plex Sans 15 (pierwszy — „Otwórz” albo nazwa aplikacji — Medium), kreska między
+  grupami; najechanie jak w menu Start; „Zamknij okno” w kolorze akcentu. Na pulpicie i w menu Start
+  otwiera się przy wskaźniku, na pasku — nad paskiem.
+- **Dolny pasek:** szerokość według liczby aplikacji, wyśrodkowany; przypięte, kreska, uruchomione spoza
+  paska.
 
 ## Zasoby (M4.1)
 Okno 560×520: „Procesor” i „Pamięć” — nazwa, liczba po prawej (Plex Sans Medium 15), pod spodem

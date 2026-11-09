@@ -90,9 +90,15 @@ void kontekst_otworz(int nowy_cel, int nowa_apl, int32_t x, int32_t y)
     apl = nowa_apl;
     hover = -1;
     wiersze();
-    /* top left at the pointer; to the left / above it when it would leave the screen */
+    /* top left at the pointer; to the left / above it when it would leave the screen; for the bottom bar
+     * above the bar, centred on the pointer */
     kx = x + KONT_SZER + 8 > k.szer_ekranu ? x - KONT_SZER : x;
     ky = y + wysokosc() + 8 > k.wys_ekranu ? y - wysokosc() : y;
+    if (cel == K_PASEK) {
+        kx = x - KONT_SZER / 2;
+        kx = kx < 8 ? 8 : (kx + KONT_SZER + 8 > k.szer_ekranu ? k.szer_ekranu - KONT_SZER - 8 : kx);
+        ky = dok_y + MARG - 8 - wysokosc();
+    }
     kx -= MARG;
     ky -= MARG;
     k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_KONTEKST, kx, ky, 0, 0, 0));

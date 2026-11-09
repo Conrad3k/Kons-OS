@@ -263,6 +263,22 @@ class Maszyna:
             print(f"  [uwaga] ekran nie potwierdził kliknięcia w {x},{y}", flush=True)
         return trafil
 
+    def dwuklik(self, x, y):
+        """Double click at (x, y): both clicks in one batch of monitor commands (ekran confirms a button at
+        most twice a second, so two klik() calls would be too far apart for a double click)."""
+        trafil = self.idz(x, y)
+        n = self.ile(PRZYCISK + "puszczony")
+        self.monitor("mouse_button 1", "mouse_button 0", "mouse_button 1", "mouse_button 0")
+        self.czekaj(PRZYCISK + "puszczony", od=n, czas=10)
+        return trafil
+
+    def prawy_klik(self, x, y):
+        """Right click at (x, y) (QEMU: button mask 2). Ekran does not log the right button: the caller waits
+        for what the click opens."""
+        trafil = self.idz(x, y)
+        self.monitor("mouse_button 2", "mouse_button 0")
+        return trafil
+
     def pisz(self, *klawisze):
         self.monitor(*[f"sendkey {k}" for k in klawisze])
 

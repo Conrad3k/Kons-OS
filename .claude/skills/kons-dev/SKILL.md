@@ -75,7 +75,7 @@ TPM 1.2), jedno konto na komputer. X230 to maszyna testowa — szybka grafika i 
 | `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` tablica usług i `kanaly[]`; `profile.c` klatki; `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c`, `rozruch.c`, `efi.c`, `test.c` |
 | `src/wejscie/` | `system/wejscie` | klawiatura, mysz (evdev, EVIOCGRAB) |
 | `src/ekran/`, `src/grafika/` | `system/ekran` | DRM/KMS, składanie okien, kursor, tapety, znak K1 |
-| `src/gui/` | `system/gui` | pulpit: paski, menu Start (od 0.7.5 ikony i menu kontekstowe) |
+| `src/gui/` | `system/gui` | pulpit w modułach (`gui.h`): warstwa ikon, paski, menu Start, menu kontekstowe, rozmieszczenie w skarbcu (fd 6) |
 | `src/logowanie/` | `system/logowanie` | ekran hasła przy starcie |
 | `src/skarbiec/` | `system/skarbiec` | `magazyn.c` format i szyfrowanie, `main.c` usługa |
 | `src/instalator/` | `system/instalator` | zapis K1 na dysk (GPT), tylko urządzenia od nadzorcy |
@@ -131,7 +131,10 @@ i w tym samym kształcie co pozostałe.
 - nowe pojęcie = wiersz w `docs/SLOWNIK.md`; bez synonimów w kodzie, dokumentach i komunikatach;
 - rozwiązanie tymczasowe: `/* k1: tymczasowe — usunąć w <wersja> */` + wpis w `DO_ZROBIENIA.txt` („Tymczasowe”);
 - **każdy MINOR kończy się porządkami** (co usunąć, scalić, uprościć) — wynik w CHANGELOG;
-- dokumentacja nadąża: każda usługa i aplikacja ma opis, każdy komunikat wpis (od 0.7.5 pilnuje tego test).
+- dokumentacja nadąża: każda usługa i aplikacja ma opis, każdy komunikat wpis.
+
+Wszystko to (limity, opisy usług/aplikacji/komunikatów, wpisy „Tymczasowe”) sprawdza `scripts/sprawdz-czytelnosc.py`
+(test-m1, pierwszy krok testów) — uruchom go przed commitem: `python3 -I scripts/sprawdz-czytelnosc.py`.
 
 Komentarze i commity po angielsku; nazwy w kodzie po polsku, zgodnie ze słownikiem.
 
@@ -139,7 +142,7 @@ Komentarze i commity po angielsku; nazwy w kodzie po polsku, zgodnie ze słownik
 
 **Nowa aplikacja** (wzór: `src/aplikacje/kalkulator/`):
 1. Jeden wiersz `X(...)` w `K1_APLIKACJE` (`src/wspolne/k1_uslugi.h`): numer, profil, UID, program, tag,
-   tytuł, opis w menu Start, ikona, czy na pasku. Numery się nie zmieniają (profil = właściciel danych w skarbcu).
+   tytuł, opis w menu Start, ikona, czy na pasku i pulpicie przy pierwszym starcie. Numery się nie zmieniają (profil = właściciel danych w skarbcu).
 2. Katalog `src/aplikacje/<program>/`: `main.c` ze `struct k1_apl` + funkcje zwrotne i `k1_apl_uruchom()`;
    każdy `.c` w katalogu się kompiluje.
 3. Z listy wynika samo: usługa i klatka w nadzorcy, menu i pasek, nazwa okna, Zasoby, obraz, spis w testach.
@@ -184,6 +187,8 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 
 - **Bez stałych pauz:** `Maszyna.czekaj`/`czekaj_na` na log, `klik` czeka na potwierdzenie ekranu,
   `zrzut(nazwa, gdy=…)` na stan ekranu, `cisza(wzór, s)` na „nic się nie dzieje”. Żadnego `time.sleep`.
+- Ekran loguje kursor i lewy przycisk najwyżej 2×/s: podwójne kliknięcie — `Maszyna.dwuklik` (oba kliknięcia
+  jednym poleceniem monitora), prawy przycisk — `prawy_klik` (potem czekaj na „menu kontekstowe”).
 - Kanał testowy (fd 3 programu testowego): `TEST_POLACZ` (kanał do ekranu z dowolną rolą), `TEST_PROBA`
   (program testowy w klatce usługi), `URUCHOM` (aplikacja).
 - Dyski w teście w systemie: `SPRZET_TEST` w `test-m1.sh` (obrazy `sfdisk`). Nowy obraz rdzenia w teście —
@@ -214,8 +219,7 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 ## 8. Plan i zasady etapu
 
 **Kolejność** (ADR 0019, 0020, 0026; szczegóły i stan w `DO_ZROBIENIA.txt`):
-**0.7.5 Pulpit** (najpierw porządki czytelności, potem ikony na pulpicie, menu kontekstowe, przypinanie na
-pasku) → **0.8.0 Pliki** (wspólne dokumenty w skarbcu, aplikacja Pliki, Kosz: 30 dni albo ręcznie, okno
+~~0.7.5 Pulpit~~ (gotowe: ikony, menu kontekstowe, przypinanie; ADR 0028) → **0.8.0 Pliki** (wspólne dokumenty w skarbcu, aplikacja Pliki, Kosz: 30 dni albo ręcznie, okno
 wyboru pliku rysowane przez K1, import z pendrive'a czytnikiem FAT w klatce, dekoder PNG/JPEG w jednorazowym
 procesie) → **M7 Sieć** (kabel e1000e + DHCP + czas, potem Wi-Fi; test: nic nie nasłuchuje) → **M8 Strefy**
 (mikro-VM na obcą aplikację, ramka w kolorze strefy, stała/jednorazowa, pełna izolacja/szybka grafika,

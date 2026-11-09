@@ -56,6 +56,7 @@ void rozm_zmienione(const char *co)
     dok_zmiana();
     menu.brudna = 1;
     pulpit_wszystko();
+    pulpit_loguj();
 }
 
 static void rysuj_wszystko(void)

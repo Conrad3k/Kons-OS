@@ -3,6 +3,46 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.7.5] — 2026-11-09
+
+Pulpit jak w Windows, w stylu K1 (ADR 0026, 0028; szkic A „Kafelki” wybrany przez właściciela).
+Przed tym — porządki czytelności (decyzja właściciela z 2026-11-09, `AGENTS.md`).
+
+### Dodane
+- **Ikony aplikacji na pulpicie** — jasne kafelki w kolorze okien (w ciemnym motywie ciemne), pod nimi
+  nazwa. Kliknięcie zaznacza, podwójne kliknięcie otwiera, przeciągnięcie przenosi ikonę na inne miejsce
+  (jeśli tam leży inna, zamieniają się miejscami). Na start: wszystkie aplikacje oprócz Instalatora.
+- **Menu pod prawym przyciskiem myszy** (w kolorach motywu): na pulpicie — „Ułóż ikony”, „Tapeta i
+  wygląd…”; na ikonie — „Otwórz”, „Przypnij do paska” / „Odepnij od paska”, „Usuń z pulpitu”; na
+  aplikacji na pasku — jej nazwa, przypnij / odepnij, „Zamknij okno”; na aplikacji w menu Start —
+  „Otwórz”, przypnij / odepnij, „Dodaj do pulpitu” / „Usuń z pulpitu”.
+- **Przypinanie do dolnego paska** i zmiana kolejności przeciąganiem; uruchomiona aplikacja spoza paska
+  widoczna na nim (za kreską), dopóki działa. Pasek ma szerokość według liczby aplikacji.
+- **Pulpit pamięta ułożenie** — ikony i pasek wracają po wyłączeniu komputera (zaszyfrowane w skarbcu).
+- „Zamknij okno” z paska: aplikacja zamyka się sama, jak przyciskiem × — Notatki najpierw zapisują tekst.
+
+### Zmienione
+- Pulpit (gui) dostaje kanał do skarbca — widzi w nim tylko swoje rozmieszczenie (ADR 0028, RYZYKA R27).
+- Ekran zna trzeci rodzaj powierzchni: warstwę pulpitu (nad tapetą, pod oknami; tylko dla pulpitu).
+- Klatka gui i ekranu hasła: większe limity pamięci — duże ekrany (powyżej 1920×1080) mieściły się
+  z trudem albo wcale (ekran hasła na 1920×1200).
+
+### Porządki (zasada czytelności 2)
+- **Limity wielkości sprawdzane w testach** (`scripts/sprawdz-czytelnosc.py`): plik ≤ 600 wierszy,
+  funkcja ≤ 80; każda usługa i aplikacja ma opis, każdy komunikat — wpis w dokumencie swojego kanału;
+  każde rozwiązanie tymczasowe — wpis w planie.
+- Podzielone: pulpit (9 małych modułów), Ustawienia (Bateria, Hasło osobno), Notatki (zapis, edycja
+  tekstu), Instalator — okno (każdy ekran osobno), skarbiec (nagłówek magazynu osobno); 7 długich funkcji
+  (sprawdzanie komunikatów, nadzorca, ekran, bateria, initramfs) podzielonych na mniejsze.
+- Dokumentacja: tabela komunikatów ekranu, kanał testowy nadzorcy, rozdział każdej aplikacji;
+  nieaktualne opisy katalogu notatek usunięte. Kod formatu 1 manifestu oznaczony jako tymczasowy (0.8.0).
+
+### Testy
+- `test-m4`: ikony na zrzucie (jasne i ciemne kafelki), podwójne kliknięcie, menu kontekstowe (zamknij
+  okno, ułóż ikony, odepnij, usuń i dodaj do pulpitu, przypnij), przeciąganie na pasku i na pulpicie,
+  rozmieszczenie po ponownym starcie. Host: `test_rozmieszczenie`, fuzzing `fuzz_rozmieszczenie`.
+  W systemie: warstwa pulpitu i zamykanie cudzych okien od aplikacji — odrzucone.
+
 ## [0.7.3] — 2026-11-09
 
 Koniec porządków przed M7 (ADR 0023, `docs/PRZED-M7.md` — usunięty, historia w git). Dla użytkownika

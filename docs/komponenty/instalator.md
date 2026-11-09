@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M5f w QEMU: instalacja na dysk SATA, start z dysku przez UEFI, aktualizacja z zachowaniem danych — 0.5.9; A/B, potwierdzenie i wycofanie, Secure Boot — 0.7.0) |
-| **Pliki** | `src/aplikacje/instalacja/main.c` (okno), `src/instalator/main.c` (zapis), `src/instalator/gpt.{c,h}` (tablica partycji), `src/nadzorca/dyski.{c,h}` (lista dysków) |
+| **Pliki** | `src/aplikacje/instalacja/` (okno: `main.c` stan i komunikaty, `ekrany.c` rysowanie), `src/instalator/main.c` (zapis), `src/instalator/gpt.{c,h}` (tablica partycji), `src/nadzorca/dyski.{c,h}` (lista dysków) |
 | **Decyzje** | ADR 0018, 0021, 0022 |
 
 ## Cel

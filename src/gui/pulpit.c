@@ -173,7 +173,7 @@ void rysuj_pulpit(void)
 }
 
 /* The positions of the icons on the screen (centres of the tiles), for the tests. */
-static void loguj(void)
+void pulpit_loguj(void)
 {
     char buf[400];
     size_t n = 0;
@@ -197,7 +197,7 @@ void pulpit_utworz(int pierwszy)
     k1_pow_utworz(&k, &pulpit, P_PULPIT, k.szer_ekranu, k.wys_ekranu, K1_POW_PULPIT, 0, 0);
     brud_poprz.w = 0;
     pulpit_wszystko();
-    loguj();
+    pulpit_loguj();
 }
 
 /* The cell under (x, y) inside the grid: 1, or 0 outside it. */
@@ -264,7 +264,6 @@ static void puszczenie(void)
                      wcisk.kol + 1, wcisk.wiersz + 1);
             wcisk.ciagnie = 0;
             rozm_zmienione(co);
-            loguj();
         }
         pulpit_wszystko();
     }

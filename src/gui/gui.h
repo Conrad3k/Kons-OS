@@ -109,6 +109,7 @@ void pulpit_utworz(int pierwszy); /* the layer in the screen's size (again after
 void rysuj_pulpit(void);
 void wskaznik_pulpit(const struct k1_komunikat *m);
 void pulpit_wszystko(void); /* redraw every icon (theme, arrangement) */
+void pulpit_loguj(void);    /* "ikony na pulpicie": where each icon is (the tests click by it) */
 int pulpit_kolumn(void);
 int pulpit_wierszy(void);
 
