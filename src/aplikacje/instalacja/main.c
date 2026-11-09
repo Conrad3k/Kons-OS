@@ -53,6 +53,16 @@ static int32_t wersja_dysku(int i)
     return dyski[i].k1 & K1_INST_WERSJA ? dyski[i].k1 & 0xffffff : 0;
 }
 
+/* K1 runs from a disk of this computer (0.7.2): a disk with K1 whose K1-DANE is the one in use. */
+static int zainstalowany(void)
+{
+    int i;
+    for (i = 0; i < n_dyskow; i++)
+        if (dyski[i].k1 && dyski[i].zajety)
+            return 1;
+    return 0;
+}
+
 /* An update would go back to an older version (the writing program refuses it too). */
 static int starsza(void)
 {
@@ -202,10 +212,19 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 20, "Szukam dysków…", k1_kolor(m->tekst2, 255), 0);
         break;
     case S_LISTA:
-        k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Zainstaluj Kons K1", k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "System i Twoje zaszyfrowane dane zamieszkają na dysku tego komputera —",
-                 k1_kolor(m->tekst2, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 68, "pendrive nie będzie już potrzebny.", k1_kolor(m->tekst2, 255), 0);
+        if (zainstalowany()) { /* 0.7.2: K1 already runs from this computer's disk — not "install" */
+            k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Kons K1 jest zainstalowany", k1_kolor(m->tekst, 255), 0);
+            k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "System i Twoje zaszyfrowane dane są na dysku tego komputera.",
+                     k1_kolor(m->tekst2, 255), 0);
+            k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 68,
+                     zrodlo == 1 ? "Z podłączonego pendrive'a możesz zaktualizować system." : "Pendrive nie jest potrzebny.",
+                     k1_kolor(m->tekst2, 255), 0);
+        } else {
+            k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Zainstaluj Kons K1", k1_kolor(m->tekst, 255), 0);
+            k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "System i Twoje zaszyfrowane dane zamieszkają na dysku tego komputera —",
+                     k1_kolor(m->tekst2, 255), 0);
+            k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 68, "pendrive nie będzie już potrzebny.", k1_kolor(m->tekst2, 255), 0);
+        }
         if (zrodlo != 1) { /* nothing to copy: no button, only what to do */
             static const char *const kroki_iso[] = {
                 "K1 działa teraz z obrazu .iso — w nim nie ma kopii systemu do instalacji.",
@@ -217,7 +236,13 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
                 "Podłączone są dwa pendrive'y z Kons K1 — nie wiadomo, który skopiować.",
                 "Odłącz ten, z którego komputer nie startował, i otwórz Instalator jeszcze raz.",
             };
-            const char *const *t = zrodlo == 2 ? kroki_dwa : kroki_iso;
+            static const char *const kroki_dysk[] = {
+                "K1 działa z dysku tego komputera. Aktualizacja — z pendrive'a z nowszą wersją:",
+                "1. Pobierz plik k1-…-usb.img.xz (Releases) i nagraj go na pendrive.",
+                "2. Podłącz pendrive (komputer może dalej działać z dysku).",
+                "3. Otwórz Instalator jeszcze raz i wybierz „Zaktualizuj system”.",
+            };
+            const char *const *t = zrodlo == 2 ? kroki_dwa : zainstalowany() ? kroki_dysk : kroki_iso;
             int ile = zrodlo == 2 ? 2 : 4;
             for (i = 0; i < ile; i++)
                 k1_tekst(o, i == 0 ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, LEWO, DYSKI_Y + 20 + i * 26 + (i > 0 ? 8 : 0), t[i],
@@ -474,8 +499,9 @@ static void odbierz(void)
             stan = S_LISTA;
             wybrany = n_dyskow == 1 ? 0 : -1;
             /* the tests click by this line (the main button: its right end, whatever its label) */
-            k1_log(TAG, "dyski: %d (system do skopiowania: %s); dysk 1 %d,%d co %d; przycisk %d,%d", n_dyskow,
-                   zrodlo == 1 ? "jest" : zrodlo == 2 ? "dwa pendrive'y K1" : "brak", apl.szer / 2, DYSKI_Y + DYSK_H / 2, DYSK_H + 8, apl.szer - LEWO - 24,
+            k1_log(TAG, "dyski: %d (system do skopiowania: %s%s); dysk 1 %d,%d co %d; przycisk %d,%d", n_dyskow,
+                   zrodlo == 1 ? "jest" : zrodlo == 2 ? "dwa pendrive'y K1" : "brak",
+                   zainstalowany() ? "; K1 działa z dysku" : "", apl.szer / 2, DYSKI_Y + DYSK_H / 2, DYSK_H + 8, apl.szer - LEWO - 24,
                    przyciski_y() + PRZ_H / 2);
             for (i = 0; i < n_dyskow; i++)
                 k1_log(TAG, "dysk %d: %d MiB, rodzaj %d, Kons K1: %s%s (wersja %d)", i + 1, (int)dyski[i].mib,

@@ -79,30 +79,19 @@ static void wykres(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int3
 static void bateria_opis(char *buf, size_t n)
 {
     char w[24], c[32];
+    const char *s = k1_bateria_stan(bat.stan); /* the same words as Ustawienia → Bateria */
+    int laduje = bat.stan == K1_BAT_LADOWANIE;
     k1_dziesietne(w, sizeof w, ((long)bat.moc_mw + 50) / 100);
     k1_minuty(c, sizeof c, bat.minuty);
     if (!bat.obecna) {
-        snprintf(buf, n, "brak baterii — zasilanie z sieci");
-    } else if (bat.stan == K1_BAT_ROZLADOWANIE) {
-        if (bat.moc_mw < 0)
-            snprintf(buf, n, "rozładowuje się");
-        else if (bat.minuty < 0)
-            snprintf(buf, n, "pobór %s W", w);
+        snprintf(buf, n, "Brak baterii — zasilanie z sieci");
+    } else if ((laduje || bat.stan == K1_BAT_ROZLADOWANIE) && bat.moc_mw >= 0) {
+        if (bat.minuty < 0)
+            snprintf(buf, n, "%s · %s W", s, w);
         else
-            snprintf(buf, n, "pobór %s W · zostało ok. %s", w, c);
-    } else if (bat.stan == K1_BAT_LADOWANIE) {
-        if (bat.moc_mw < 0)
-            snprintf(buf, n, "ładuje się");
-        else if (bat.minuty < 0)
-            snprintf(buf, n, "ładowanie %s W", w);
-        else
-            snprintf(buf, n, "ładowanie %s W · do pełna ok. %s", w, c);
-    } else if (bat.stan == K1_BAT_PELNA) {
-        snprintf(buf, n, "naładowana, zasilanie z sieci");
-    } else if (bat.stan == K1_BAT_NIE_LADUJE) {
-        snprintf(buf, n, "zasilacz podłączony, nie ładuje się");
+            snprintf(buf, n, "%s · %s W · %s ok. %s", s, w, laduje ? "do pełna" : "zostało", c);
     } else {
-        snprintf(buf, n, "stan nieznany");
+        snprintf(buf, n, "%s", s);
     }
 }
 

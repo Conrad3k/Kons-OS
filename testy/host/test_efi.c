@@ -91,6 +91,9 @@ int main(void)
     /* grubenv damaged: still format 2, env_ok 0, slot a */
     grubenv(fd, u.grubenv_off, "zepsute\n");
     EXPECT(k1_efi_czytaj(fd, PARTYCJA, &e) == 0 && e.format == 2 && !e.env_ok && e.dziala == 0 && e.env.slot == 0);
+    /* ...and what runs there is slot A's version (0.7.1, confirmed in 0.7.2): the disk list in nadzorca shows
+     * it, and the installer compares the stick with it before writing the whole partition — no going back */
+    EXPECT(k1_efi_dziala(&e) == &e.slot[0] && k1_efi_dziala(&e)->wersja == 0x000700);
 
     /* a slot without a manifest (never written) reads as version 0 */
     {

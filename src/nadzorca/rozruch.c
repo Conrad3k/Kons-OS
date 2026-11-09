@@ -7,6 +7,7 @@
  * not k1_proba) is cleared and reported in the Instalator window. Only the 1024 bytes of grubenv are
  * written. A stick (USB) is never touched. */
 #include "nadzorca.h"
+#include "k1_cmdline.h"
 
 #define WYDANIE "/rdzen/system/wydanie"
 #define ROZRUCH_OK 15.0
@@ -16,27 +17,16 @@ static int wydanie_jest, ab_zrobione;
 static double ab_od;
 char ab_nieudana[32]; /* the K1-EFI whose last try did not start (this session; for the Instalator window) */
 
-static int hex(int c)
-{
-    return c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : -1;
-}
-
 void rozruch_wydanie(void)
 {
     char t[40];
-    int fd = open(WYDANIE, O_RDONLY | O_CLOEXEC | O_NOFOLLOW), i;
+    int fd = open(WYDANIE, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
     ssize_t n = fd < 0 ? -1 : read(fd, t, sizeof t);
     if (fd >= 0)
         close(fd);
-    if (n != 33 || t[32] != '\n') {
+    if (n != 33 || t[32] != '\n' || k1_hex_bajty(t, wydanie, sizeof wydanie) != 0) {
         k1_log(TAG, "brak identyfikatora wydania — nowe miejsce A/B nie zostanie potwierdzone automatycznie");
         return;
-    }
-    for (i = 0; i < 32; i++) {
-        int v = hex(t[i]);
-        if (v < 0)
-            return;
-        wydanie[i / 2] = (uint8_t)(i % 2 ? wydanie[i / 2] | v : v << 4);
     }
     wydanie_jest = 1;
 }

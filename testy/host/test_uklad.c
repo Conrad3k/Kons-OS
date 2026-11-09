@@ -89,7 +89,8 @@ int main(int argc, char **argv)
     EXPECT(k1_grubenv_czytaj(e, &h) == -1);
     env("# GRUB Environment Block\nx=a\\nb\n", e);
     EXPECT(k1_grubenv_czytaj(e, &h) == -1);
-    /* the same bytes as grub-editenv (when the build host has it: argv[1] = its output) */
+    /* the same bytes as grub-editenv (argv[1] = its output; without it the test fails — make testy-host) */
+    EXPECT(argc == 2);
     if (argc == 2) {
         FILE *f = fopen(argv[1], "rb");
         uint8_t ref[K1_GRUBENV_BAJTY];

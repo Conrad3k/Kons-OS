@@ -5,6 +5,7 @@ int zasoby_kanal = -1; /* our end of the channel to Zasoby (its fd 4; we only wr
 int bateria_kanal = -1; /* our end of the battery channel to gui (its fd 5; we only write) */
 struct k1_bateria bateria_wyslana;
 int bateria_znana; /* bateria_wyslana is what gui got on this channel */
+static int sesja_wyslana = -1; /* the K1_KOM_SESJA gui got on this channel (-1: none yet) */
 /* 0.5.5: battery state and charge history since boot for Ustawienia (its fd 4; we only write) */
 int ustaw_kanal = -1;
 struct k1_bateria bateria_teraz, ustaw_wyslana;
@@ -42,6 +43,7 @@ struct k1_komunikat komunikat_baterii(const struct k1_bateria *b)
 void bateria_nowy_kanal(void)
 {
     bateria_znana = 0;
+    sesja_wyslana = -1;
 }
 
 void ustawienia_nowy_kanal(void)
@@ -51,10 +53,17 @@ void ustawienia_nowy_kanal(void)
     ustaw_arch_wyslane = 0;
 }
 
-/* gui's top bar: the state when it changed (the first time after gui started: always). */
+/* gui's top bar: the state when it changed (the first time after gui started: always). Also on this
+ * channel (0.7.2): whether K1 is installed here — gui offers "Wyloguj" only then. */
 void wyslij_baterie(void)
 {
     struct k1_komunikat k;
+    int z = zainstalowany();
+    if (bateria_kanal >= 0 && gui_kanal_uid == K1_UID_GUI && z != sesja_wyslana) {
+        k = k1_komunikat_nowy(K1_KOM_SESJA, 0, z, 0, 0, 0, 0);
+        if (k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1) == 0)
+            sesja_wyslana = z;
+    }
     if (bateria_kanal < 0 || !bateria_odczytana ||
         (bateria_znana && k1_bateria_ta_sama(&bateria_teraz, &bateria_wyslana)))
         return;

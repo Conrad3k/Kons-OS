@@ -224,6 +224,13 @@ int k1_utf8(const char *s, uint32_t n, uint32_t *kod)
     return (int)len;
 }
 
+size_t k1_utf8_poczatek(const char *s, size_t p)
+{
+    while (p > 0 && ((unsigned char)s[p] & 0xc0) == 0x80)
+        p--;
+    return p;
+}
+
 size_t k1_utf8_znaki(const char *s, size_t n)
 {
     size_t z = 0, i;

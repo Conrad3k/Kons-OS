@@ -34,4 +34,8 @@ int k1_valid_block_device(const char *path);
  * hash k1.rdzen_skrot — M6b), 0 otherwise. */
 int k1_valid_hex64(const char *s);
 
+/* Decodes the first 2*n characters of `s` (lowercase hexadecimal digits only) into n bytes. Returns 0,
+ * or -1 at the first other character (also the end of the string; `out` is then partly written). */
+int k1_hex_bajty(const char *s, unsigned char *out, size_t n);
+
 #endif

@@ -38,6 +38,13 @@ enum etap_startu etap_startu(void)
 }
 int skarb_bez_dysku;   /* skarbiec runs without any K1-DANE: keep looking for a late one (0.5.8) */
 char skarb_dane[32];   /* the K1-DANE partition skarbiec has (M5f: "in use" for the installer) */
+/* K1 is installed on this computer: the K1-DANE skarbiec has is on an internal disk (0.7.2). A session
+ * from a K1 stick or from the .iso is not — no "Wyloguj" there (nothing on this computer to lock). */
+int zainstalowany(void)
+{
+    return skarb_dane[0] != '\0' && !k1_dysk_na_usb(SYS, skarb_dane);
+}
+
 /* A channel between a client and skarbiec (M5d): skarbiec gets one end with SKARB_KLIENT(owner, uid)
  * and checks the sender of every packet; the client's end also has SO_PASSCRED (it checks that
  * the replies come from skarbiec). Returns the client's end or -1 (no skarbiec: no persistence). */

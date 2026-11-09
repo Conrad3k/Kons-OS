@@ -90,13 +90,25 @@ int k1_valid_block_device(const char *path)
     return 1;
 }
 
-int k1_valid_hex64(const char *s)
+static int hex(char c)
+{
+    return c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : -1;
+}
+
+int k1_hex_bajty(const char *s, unsigned char *out, size_t n)
 {
     size_t i;
-    if (s == NULL)
-        return 0;
-    for (i = 0; i < 64; i++)
-        if (!((s[i] >= '0' && s[i] <= '9') || (s[i] >= 'a' && s[i] <= 'f')))
-            return 0;
-    return s[64] == '\0';
+    for (i = 0; i < n; i++) {
+        int h = hex(s[2 * i]), l = h < 0 ? -1 : hex(s[2 * i + 1]); /* never past a NUL */
+        if (l < 0)
+            return -1;
+        out[i] = (unsigned char)(h << 4 | l);
+    }
+    return 0;
+}
+
+int k1_valid_hex64(const char *s)
+{
+    unsigned char b[32];
+    return s != NULL && k1_hex_bajty(s, b, sizeof b) == 0 && s[64] == '\0';
 }

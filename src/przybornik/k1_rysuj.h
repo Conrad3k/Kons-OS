@@ -40,6 +40,9 @@ int k1_utf8(const char *s, uint32_t n, uint32_t *kod);
 int k1_utf8_zapisz(uint32_t kod, char *dst, uint32_t miejsce);
 /* Characters (not bytes) in the first `n` bytes of UTF-8 `s`. */
 size_t k1_utf8_znaki(const char *s, size_t n);
+/* Where the character holding byte `p` of UTF-8 `s` starts (p itself when it starts one; 0 at most):
+ * for Backspace (k1_utf8_poczatek(s, dl - 1)) and for cutting text without splitting a character. */
+size_t k1_utf8_poczatek(const char *s, size_t p);
 
 /* Line icons drawn on a 24×24 grid scaled to `rozmiar` px, stroke 1.5 (at 24 px). */
 enum k1_ikona {

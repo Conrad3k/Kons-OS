@@ -2,6 +2,7 @@
  * after a sequence of keys, as a desk calculator does it. */
 #include <string.h>
 
+#include "k1_komunikat.h"
 #include "k1_liczba.h"
 #include "k1_test_host.h"
 #include "liczydlo.h"
@@ -96,6 +97,11 @@ int main(void)
     EXPECT(strcmp(t, "3 h 20 min") == 0);
     k1_minuty(t, sizeof t, 45);
     EXPECT(strcmp(t, "45 min") == 0);
+    /* battery state words: every K1_BAT_* has its own, anything else is "unknown" (data from a channel) */
+    EXPECT(strcmp(k1_bateria_stan(K1_BAT_ROZLADOWANIE), "Na baterii") == 0);
+    EXPECT(strcmp(k1_bateria_stan(K1_BAT_NIE_LADUJE), k1_bateria_stan(K1_BAT_NIEZNANY)) != 0);
+    EXPECT(strcmp(k1_bateria_stan(K1_BAT_STAN_MAKS + 1), "Stan nieznany") == 0);
+    EXPECT(strcmp(k1_bateria_stan(-1), "Stan nieznany") == 0);
 
     return K1_TEST_KONIEC("test_kalkulator");
 }

@@ -556,6 +556,8 @@ void obsluz_gui(void)
         }
         if (k.typ == K1_KOM_URUCHOM) {
             uruchom_aplikacje(k.a);
+        } else if (k.a == 2 && !zainstalowany()) {
+            k1_log(TAG, "wylogowanie odrzucone: K1 nie jest zainstalowany na tym komputerze");
         } else if (k.a == 2) {
             k1_log(TAG, "wylogowanie na prośbę pulpitu: zamykam aplikacje i magazyn danych");
             zamknij_sesje();

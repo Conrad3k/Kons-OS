@@ -80,10 +80,7 @@ krok "jednostkowe: linia poleceń, protokoły, kanały, przybornik GUI, renderer
     make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" testy-host
 krok "fuzzing: linia poleceń, protokoły zdarzeń i usług (${K1_FUZZ_CZAS:-20} s każdy, libFuzzer)" "$TESTY/fuzz.log" \
     make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" fuzz FUZZ_CZAS="${K1_FUZZ_CZAS:-20}"
-krok "zabezpieczenia binariów (static-pie, RELRO, NX)" "$TESTY/binaria.log" \
-    "$K1_REPO/scripts/sprawdz-binaria.sh" "$K1_BUDOWA"/bin/*
-krok "konfiguracja jądra zgodna z jadro/k1.config" "$TESTY/jadro.log" \
-    "$K1_REPO/scripts/sprawdz-konfiguracje-jadra.sh" "$K1_REPO/jadro/k1.config" "$K1_WYNIK/jadro.config"
+# (binaries and the kernel config are checked by the build itself: zbuduj-obraz.sh, zbuduj-jadro.sh)
 
 echo "[k1] obrazy do testów negatywnych"
 dd if=/dev/zero of="$TESTY/zera.img" bs=1M count=4 status=none

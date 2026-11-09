@@ -1,12 +1,12 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.7.1 (przed M7 najpierw docs/PRZED-M7.md — porządki, wersja 0.7.2) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.7.2 (przed M7 dokończyć resztę docs/PRZED-M7.md) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby), M5 (dyski, USB, zaszyfrowane
 dane, hasło, instalator), 0.6.0 Fundament, M6 (bezpieczne aktualizacje: podpisy, dm-verity, A/B,
 Secure Boot); dalej M7 Sieć (plan z ADR 0019/0020).
-Data: 2026-11-08. Plik aktualizujemy po każdym etapie.
+Data: 2026-11-09. Plik aktualizujemy po każdym etapie.
 Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
 
 Oznaczenia:
@@ -199,6 +199,11 @@ M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku) — 
         po dodaniu sekretu: Instalator → Secure Boot… → Przygotuj klucz K1 → MokManager → F1 → Secure
         Boot → Enabled. Czy laptop startuje? Co widać na ekranie?
     [ ] pliki startowe (shim, GRUB) wymieniane przez Instalator bez reinstalacji (RYZYKA R45)
+    [x] 0.7.1: porządki w kodzie (ADR 0023), Kalkulator
+    [x] 0.7.2: zainstalowany K1 wie, że działa z dysku (Instalator nie prosi o pendrive); „Wyloguj”
+        tylko w zainstalowanym K1; część porządków z docs/PRZED-M7.md
+    [!] Test na X230 (0.7.2): po aktualizacji start z dysku bez pendrive'a — Instalator ma pisać
+        „Kons K1 jest zainstalowany”, a menu Start mieć „Wyloguj”; start z pendrive'a — bez „Wyloguj”.
 
 M7  Sieć
     [ ] kabel (X230: Intel 82579LM, e1000e, bez firmware) + DHCP w osobnej klatce, czas z sieci

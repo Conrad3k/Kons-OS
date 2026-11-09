@@ -189,6 +189,7 @@ extern double nastepna_probka;
 void odczytaj_baterie(double t);
 struct k1_komunikat komunikat_baterii(const struct k1_bateria *b);
 void wyslij_baterie(void);
+int zainstalowany(void);
 void bateria_nowy_kanal(void);
 void ustawienia_nowy_kanal(void);
 void wyslij_ustawieniom(void);

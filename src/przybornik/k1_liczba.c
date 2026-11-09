@@ -12,6 +12,13 @@ void k1_dziesietne(char *buf, size_t n, long dziesiate)
     snprintf(buf, n, "%s%ld,%ld", dziesiate < 0 ? "-" : "", a / 10, a % 10);
 }
 
+const char *k1_bateria_stan(int stan)
+{
+    static const char *const t[] = { "Stan nieznany", "Na baterii", "Ładowanie", "Naładowana",
+                                     "Zasilacz podłączony, nie ładuje" };
+    return stan > 0 && stan < (int)(sizeof t / sizeof t[0]) ? t[stan] : t[0];
+}
+
 void k1_minuty(char *buf, size_t n, long minuty)
 {
     if (minuty >= 60)

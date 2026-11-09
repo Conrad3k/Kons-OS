@@ -14,15 +14,15 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 |---|---|
 | `VERSION`, `CHANGELOG.md` | wersja K1 (SemVer) i historia zmian |
 | `Makefile` | kompilacja programów K1 (musl) i testów na hoście |
-| `src/wspolne/` | wspólne moduły: log i błędy (`k1_log`), parser linii poleceń jądra (`k1_cmdline`), protokół zdarzeń wejścia (`k1_zdarzenie`), protokół usług (`k1_komunikat`), kanały UNIX (`k1_kanal`), klatka usług (`k1_klatka`), tożsamości usług (`k1_uslugi.h`) |
-| `src/grafika/` | renderer programowy: tapety (4 warianty), znak K1, kursor, składanie warstw (`k1_grafika`); API czcionek (`k1_czcionka.h`) |
-| `src/przybornik/` | przybornik GUI (M4): rysowanie i tekst (`k1_rysuj`), motywy i części okien (`k1_okno`), klient protokołu okien (`k1_klient`), szkielet aplikacji (`k1_aplikacja`), czas polski (`k1_czas`), układ klawiatury PL (`k1_klawiatura`) |
+| `src/wspolne/` | wspólne moduły: log i błędy (`k1_log`), parser linii poleceń jądra i liczby szesnastkowe (`k1_cmdline`), protokół zdarzeń wejścia (`k1_zdarzenie`), protokół usług (`k1_komunikat`), kanały UNIX (`k1_kanal`) i wspólny odbiór komunikatów (`k1_odbior`), klatka usług (`k1_klatka`); **`k1_uslugi.h` — jedyne listy usług `K1_SYSTEM` i aplikacji `K1_APLIKACJE`** (UID, profil, program, nazwa, ikona; nowa aplikacja = jeden wiersz); odczyt partycji K1-EFI — wersje, A/B, grubenv (`k1_efi`, `k1_uklad`, `k1_manifest`); pełny zapis/odczyt pod przesunięciem (`k1_io.h`), liczby w bajtach little-endian (`k1_bajty.h`), SHA-256 (`k1_sha256`), klient skarbca (`k1_skarb_klient`, `k1_memfd`), archiwum baterii (`k1_bat_arch`) |
+| `src/grafika/` | renderer programowy: tapety (4 warianty), znak K1, kursor, składanie warstw (`k1_grafika`), wspólna paleta kolorów `K1_*` (`k1_grafika.h`); API czcionek (`k1_czcionka.h`) |
+| `src/przybornik/` | przybornik GUI (M4): rysowanie, tekst i UTF-8, ikony, ikona baterii `k1_bateria`, przyciski (`k1_rysuj`), motywy i części okien (`k1_okno`), klient protokołu okien (`k1_klient`), szkielet aplikacji (`k1_aplikacja`), czas polski (`k1_czas`), układ klawiatury PL i pole tekstowe `k1_pole_klawisz` (`k1_klawiatura`), liczby po polsku i opis stanu baterii (`k1_liczba`) |
 | `src/gui/` | `/rdzen/system/gui` — powłoka pulpitu: górny pasek, dolny pasek, menu Start (M4) |
-| `src/aplikacje/` | `/rdzen/aplikacje/{zegar,notatki,ustawienia,zasoby,instalacja}` — aplikacje natywne (M4; Zasoby M4.1, Instalator M5f) |
+| `src/aplikacje/` | `/rdzen/aplikacje/{zegar,notatki,ustawienia,zasoby,instalacja,kalkulator}` — aplikacje natywne (M4; Zasoby M4.1, Instalator M5f, Kalkulator 0.7.1); każdy `.c` w katalogu aplikacji jest kompilowany |
 | `narzedzia/` | narzędzia budowy na hoście: `czcionki.c` (FreeType → bitmapy czcionek), `ekran_startowy.c` (logo dla GRUB-a, PNG przez zlib — 0.5.8) |
 | `src/initramfs/` | `/init` w initramfs: montuje obraz rdzenia, przełącza korzeń |
 | `src/init/` | `/rdzen/init` — PID 1 |
-| `src/nadzorca/` | `/rdzen/system/nadzorca` — uruchamia usługi w klatkach, łączy je kanałami, restartuje (M3) |
+| `src/nadzorca/` | `/rdzen/system/nadzorca` — uruchamia usługi w klatkach, łączy je kanałami, restartuje (M3); kanały każdej usługi w jednej tabeli `kanaly[]` (`uslugi.c`) |
 | `src/wejscie/` | `/rdzen/system/wejscie` — klawiatura i mysz (evdev) → ekran |
 | `src/ekran/` | `/rdzen/system/ekran` — jedyny proces z DRM/KMS i kompozytor okien: tryb, składanie, kursor, kierowanie wejścia, ustawienia |
 | `src/skarbiec/` | `/rdzen/system/skarbiec` — Blob Vault: zaszyfrowane dane na partycji „K1-DANE” (M5c–M5e, ADR 0015–0017) |
@@ -58,6 +58,7 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 | `test-m6.sh` | Secure Boot (OVMF secboot): klucz K1 w MOK, odmowy, wpisanie klucza przez MokManagera |
 | `sprawdz-binaria.sh`, `sprawdz-konfiguracje-jadra.sh`, `sprawdz-kspp.sh` | kontrole bezpieczeństwa |
 | `sprawdz-powtarzalnosc.sh` | drugi build w osobnym katalogu i porównanie sum (powtarzalność) |
+| `wspolne.sh` | wspólne funkcje skryptów: `make_jadra` (make w katalogu jądra), `grub_poczatek` (początek każdego grub.cfg), `verity`, `obraz_fat`, `efi_podpisane`, `bateria_aml` |
 
 ## Jak powstaje obraz
 
