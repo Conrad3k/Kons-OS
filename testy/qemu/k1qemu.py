@@ -169,6 +169,9 @@ class Maszyna:
     def sprawdz(self, nazwa, warunek, opis=""):
         self.wyniki.append(bool(warunek))
         print(f"  [{'OK' if warunek else 'BŁĄD'}]    {nazwa}" + ("" if warunek else f" — {opis}"), flush=True)
+        if not warunek:  # what the system did last (cursor lines included): the CI console shows it
+            for w in [w for w in self.tekst().splitlines() if w.startswith("K1")][-12:]:
+                print(f"            | {w}", flush=True)
         return warunek
 
     def czysty_log(self):

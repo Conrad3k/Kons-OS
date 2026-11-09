@@ -8,6 +8,11 @@ Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wers
 Koniec porządków przed M7 (ADR 0023, `docs/PRZED-M7.md` — usunięty, historia w git). Dla użytkownika
 system działa tak samo; zmieniły się kod i testy.
 
+### Naprawione
+- **Kliknięcie aplikacji tuż po starcie.** Przez pierwsze 5 sekund od włączenia komputera pulpit
+  ignorował kliknięcie w aplikację (w menu Start i na pasku) — uznawał, że „już się uruchamia”.
+  Widać to było na szybkim komputerze; wykryły to nowe, szybsze testy w CI.
+
 ### Zmienione
 - Notatki: pod notatką tylko „Zapisano (zaszyfrowane)” — bez informacji, czy na pendrivie, czy na dysku
   (prośba właściciela; miejsce danych pokazują Ustawienia → Informacje).
