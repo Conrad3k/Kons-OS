@@ -214,7 +214,7 @@ M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku) — 
 
 Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
 
-0.7.5 Pulpit — NASTĘPNE
+0.7.5 Pulpit — W TOKU [w toku: Claude, gałąź claude/trusting-lamport-h9n7x9]
     Najpierw (zasady czytelności, AGENTS.md — Twoja decyzja z 2026-11-09):
     [ ] skrypt sprawdzający limity (plik ≤ 600 wierszy, funkcja ≤ 80) w testach; dziś ponad limitem:
         Ustawienia (815), Notatki (757), Instalator — okno (674), skarbiec/magazyn.c (631), gui (625)
