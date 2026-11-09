@@ -48,6 +48,33 @@ otwarcie jest DRM masterem) i przekazuje jako fd 4.
 - Log: tryb, pierwsza klatka, okna (powstanie, przesunięcie, minimalizacja, zamknięcie), ustawienia,
   odrzucone komunikaty (z powodem, ≤ 8 na klienta), stan kursora ≤ 2×/s. **Bez kodów klawiszy.**
 
+## Komunikaty (kanały klientów, `k1_komunikat` 32 B, ADR 0008)
+Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`…`e` jak w `k1_komunikat.h`.
+
+| Komunikat | Kierunek | Kto może | Znaczenie |
+|---|---|---|---|
+| `POWIERZCHNIA` | klient → ekran | każdy (panel: powłoka i logowanie) | nowe okno albo panel: szerokość, wysokość, rodzaj, położenie panelu; + memfd z pieczęciami |
+| `ZATWIERDZ` | klient → ekran | właściciel powierzchni | gotowa połowa bufora i zmieniony prostokąt |
+| `POKAZ` | klient → ekran | powłoka, logowanie | pokaż / ukryj panel |
+| `PRZESUN` | klient → ekran | powłoka, logowanie | nowe położenie panelu |
+| `PRZECIAGNIJ` | klient → ekran | właściciel okna | zacznij przesuwać okno wciśniętym przyciskiem myszy |
+| `MINIMALIZUJ` | klient → ekran | właściciel okna | schowaj okno (wraca przez powłokę) |
+| `USUN` | klient → ekran | właściciel powierzchni | usuń powierzchnię |
+| `AKTYWUJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: pokaż, na wierzch, fokus |
+| `MINIMALIZUJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: schowaj |
+| `USTAW` | Ustawienia → ekran | tylko Ustawienia | klucz `K1_UST_*` i wartość (sprawdzana) |
+| `WITAJ` | ekran → klient | — | rozmiar ekranu, rola, aplikacja; ponownie po zmianie rozdzielczości |
+| `WSKAZNIK` | ekran → klient | — | mysz nad powierzchnią klienta (0 = poza nią): x, y, ruch / przycisk, który przycisk |
+| `KLAWISZ` | ekran → klient | — | klawisz dla okna z fokusem (kod, w dół / w górę / powtórzenie, modyfikatory); nigdy w logu |
+| `FOKUS` | ekran → klient | — | okno dostało / straciło klawiaturę |
+| `RAMKA` | ekran → klient | — | ostatnie zatwierdzenie jest na ekranie, można rysować drugą połowę |
+| `OKNO` | ekran → powłoka | — | okno aplikacji powstało / zmieniło stan / zniknęło (dolny pasek) |
+| `USTAWIENIE` | ekran → wszyscy | — | nowa wartość ustawienia (motyw, tapeta, mysz, sekundy, rozdzielczość) |
+| `TRYB` | ekran → Ustawienia | — | jeden z trybów ekranu (rozmiar, Hz, czy zalecany) |
+
+Kanał sterujący (fd 3) od nadzorcy: `KLIENT`. Złe pole, zła rola albo obcy UID → komunikat odrzucony
+z wpisem w logu (≤ 8 na klienta), po 50 — klient rozłączony.
+
 ## Zachowanie
 - Scena składana tylko w uszkodzonych prostokątach (do 16, potem prostokąt obejmujący), osobno
   dla każdego z dwóch buforów; kursor programowy odtwarzany ze sceny.

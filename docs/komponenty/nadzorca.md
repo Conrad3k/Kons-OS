@@ -43,7 +43,7 @@ root, wszystkie capabilities (RYZYKA R23). Usługi — patrz tabela.
 | `wejscie` | 100 | 3: kanał do ekranu, 4…: urządzenia `event*` | `ioctl` typu `'E'` | tylko własny program | 8 MiB, pids 1 |
 | `gui` | 102 | 3: kanał do ekranu, 4: kanał do nadzorcy | `memfd_create`, `ftruncate` | tylko własny program | 48 MiB, pids 1 |
 | `zegar` (na żądanie) | 200 | 3: kanał do ekranu | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
-| `notatki` (na żądanie) | 201 | 3: kanał do ekranu | + `open`, `openat`, `fsync`, `rename` | + `/dane_uzytkownika/notatki` | 32 MiB, pids 1 |
+| `notatki` (na żądanie) | 201 | 3: kanał do ekranu, 4: kanał do skarbca | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
 | `ustawienia` (na żądanie) | 202 | 3: kanał do ekranu | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
 | `zasoby` (na żądanie, M4.1) | 203 | 3: kanał do ekranu, 4: dane od nadzorcy (tylko do odczytu) | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
 
@@ -61,8 +61,14 @@ recvfrom seccomp set_tid_address restart_syscall execve` + `mmap`/`mprotect` bez
 Wejście: statusy procesów (`signalfd`), logi usług, prośby od gui, kanał testowy (obraz testowy). Wyjście: procesy
 usług, kanały (`socketpair`, strona odbiorcy z `SO_PASSCRED`), komunikaty `KLIENT` do ekranu, log.
 
+## Kanał testowy (tylko obraz testowy)
+Program testowy dostaje od nadzorcy fd 3 (`K1_KIER_DO_NADZORCY` / `OD_NADZORCY`, nadawca sprawdzany):
+`TEST_POLACZ` (rola, aplikacja, oczekiwany UID) → `TEST_GNIAZDO` z końcem nowego kanału do ekranu;
+`TEST_PROBA` (profil) → program testowy uruchomiony w klatce tej usługi, po końcu `TEST_WYNIK` (kod
+wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego kanału nie ma.
+
 ## Zachowanie
-- Start: katalog notatek (`/dane_uzytkownika/notatki`, właściciel 201), ekran (karta `card0`…`card7`;
+- Start: skarbiec, ekran (karta `card0`…`card7`;
   gdy brak — ponowna próba za 4 s), potem jego klienci (wejscie, gui).
 - Prośby od `gui` (fd 4, nadawca UID 102): `URUCHOM` — aplikacja, jeśli jeszcze nie działa
   (aplikacje nie są restartowane); `WYLACZ` — `SIGTERM` (wyłączenie) albo `SIGINT` (restart) do init;
