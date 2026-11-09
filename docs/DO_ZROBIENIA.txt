@@ -278,10 +278,14 @@ M12 Audyt: fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentac
 
 
 TYMCZASOWE (zasada czytelności 3 — każde z terminem; przegląd przy porządkach każdej wersji MINOR)
+    Każde miejsce w kodzie ma komentarz `k1: tymczasowe — usunąć w <termin>` i jest wymienione tutaj;
+    scripts/sprawdz-czytelnosc.py (testy) pilnuje, żeby żadne nie zostało bez wpisu.
     [ ] manifest formatu 1 na 47 MiB (aktualizacja z 0.6.2–0.6.3 starym Instalatorem) — do usunięcia,
-        gdy nikt nie aktualizuje z 0.6.x (propozycja: 0.8.0, po Twoim teście aktualizacji na X230)
-    [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10”) — termin: M10
-    [ ] resztę oznaczyć komentarzem `k1: tymczasowe` przy pierwszym przeglądzie (0.7.5)
+        gdy nikt nie aktualizuje z 0.6.x (propozycja: 0.8.0, po Twoim teście aktualizacji na X230).
+        Miejsca: src/wspolne/k1_efi.c, src/instalator/main.c, scripts/zbuduj-usb.sh, narzedzia/podpisz.c
+    [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10”) — termin: M10; od 0.7.0 GRUB jest też
+        częścią startu A/B (grubenv, ADR 0022), więc w M10 decyzja: zostaje czy zastępujemy (ADR)
+    [x] przegląd 0.7.5: innych rozwiązań tymczasowych w kodzie nie ma
 
 
 4. DECYZJE TECHNICZNE DO PODJĘCIA (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)

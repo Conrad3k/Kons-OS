@@ -19,7 +19,7 @@ import sys
 PLIK_MAKS = 600
 FUNKCJA_MAKS = 80
 WYJATEK = re.compile(r"/\* k1: limit — \S")
-TYMCZASOWE = re.compile(r"k1: tymczasowe — usunąć w ([^*]+?)\s*\*/")
+TYMCZASOWE = re.compile(r"k1: tymczasowe — usunąć w ([^*()\n]+?)\s*(?:\(|\*/|$)")
 # a top-level function definition: starts in column 0, has "(" before any "=", not a declaration
 DEFINICJA = re.compile(r"^(?!typedef|extern|#|enum|struct\s+\w+\s*\{|union)[A-Za-z_][^=;]*\(")
 
@@ -30,6 +30,16 @@ def pliki_c(repo):
         for p in sorted(pliki):
             if p.endswith(".c"):
                 yield os.path.join(katalog, p)
+
+
+def pliki_tymczasowe(repo):
+    """Where temporary solutions may be marked: C sources and headers, build and test scripts, tools."""
+    for gora in ("src", "scripts", "narzedzia", "testy"):
+        for katalog, podkatalogi, pliki in os.walk(os.path.join(repo, gora)):
+            podkatalogi[:] = sorted(p for p in podkatalogi if p != "zewnetrzne")
+            for p in sorted(pliki):
+                if p.endswith((".c", ".h", ".sh", ".py")) and p != "sprawdz-czytelnosc.py":
+                    yield os.path.join(katalog, p)
 
 
 def funkcje(wiersze):
@@ -112,7 +122,7 @@ def sprawdz_tymczasowe(repo, bledy):
     with open(os.path.join(repo, "docs/DO_ZROBIENIA.txt"), encoding="utf-8") as f:
         plan = f.read()
     sekcja = plan.split("TYMCZASOWE", 1)[1] if "TYMCZASOWE" in plan else ""
-    for sciezka in pliki_c(repo):
+    for sciezka in pliki_tymczasowe(repo):
         with open(sciezka, encoding="utf-8") as f:
             for nr, w in enumerate(f, 1):
                 for termin in TYMCZASOWE.findall(w):

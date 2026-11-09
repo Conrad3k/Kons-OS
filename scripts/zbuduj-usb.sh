@@ -96,6 +96,7 @@ GENV=$(miejsce /boot/grub/grubenv 1024) A=$(miejsce /k1/a.img 134217728) B=$(mie
 [ "$B" -le $((47 * 1048576)) ] && [ $((B + 134217728)) -ge $((48 * 1048576)) ] || blad "slot B nie obejmuje 47 MiB"
 "$PODPISZ" uklad "$ESP" "$GENV" "$A" "$B" || blad "blok układu K1-EFI"
 # For K1 0.6.2–0.6.3 (they read a format-1 manifest at 47 MiB): the update to 0.7.0 copies this whole partition.
+# k1: tymczasowe — usunąć w 0.8.0 (this line, the 47 MiB check above and the format-1 manifest in narzedzia/podpisz.c)
 "$PODPISZ" obraz "$ESP" "$K1_WERSJA" || blad "manifest obrazu systemu (podpisz)"
 
 # The disk: GPT with fixed GUIDs, the EFI partition copied in, K1-DANE left as zeros.
