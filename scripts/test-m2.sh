@@ -31,7 +31,10 @@ k0 = czekaj(WZOR)
 sprawdz("ekran: tryb i pierwsza klatka w logu", bool(tryb and klatka and k0))
 if not (tryb and klatka and k0): sys.exit(1)
 W, H = int(tryb.group(1)), int(tryb.group(2)); x0, y0 = int(k0.group(1)), int(k0.group(2))
-w, h, px = zrzut("1-start", gdy=lambda w, h, px: krem(px(x0 + 3, y0 + 9)))
+# the top bar is gui's: its first frame may come a moment after ekran's (0.7.5: it reads the desktop
+# arrangement from skarbiec first) — wait for gui, then for the screen showing both
+sprawdz("pulpit gotowy (gui)", czekaj(r"K1-GUI: pulpit gotowy") is not None)
+w, h, px = zrzut("1-start", gdy=lambda w, h, px: krem(px(x0 + 3, y0 + 9)) and max(px(W // 2, 4)) < 120)
 sprawdz(f"zrzut 1: rozmiar {w}x{h} = tryb {W}x{H}", (w, h) == (W, H))
 sprawdz("zrzut 1: tapeta (kolorowa, nie jednolita)", px(W // 4, H // 2) != px(W - 20, H // 3) and max(px(W // 3, H // 2)) > 80,
         str(px(W // 4, H // 2)))
