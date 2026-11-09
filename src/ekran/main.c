@@ -154,17 +154,14 @@ static void przestaw_tryb(void)
     ustawienie(K1_UST_ROZDZIELCZOSC, s.tryb_nr);
 }
 
-int main(void)
+/* The card, the mode, the saved settings, the wallpaper and the first frame on screen. */
+static void start(void)
 {
     struct drm_get_cap cap;
-    struct pollfd pfd[3 + MAKS_KLIENTOW];
-    double t0, t_log = 0.0;
-    int czekaj;
-    int32_t ost_x = -1, ost_y = -1;
-    int ost_w = -1, i;
+    double t0;
+    int i;
     uint32_t y;
 
-    k1_klatka_w_usludze(TAG);
     for (i = 0; i < MAKS_KLIENTOW; i++)
         s.kl[i].fd = -1;
     s.pod = s.chwyt = s.ciagniete = s.fokus = -1;
@@ -209,9 +206,33 @@ int main(void)
     s.przedni = 0;
     k1_log(TAG, "pierwsza klatka: tapeta (%.1f s)", k1_teraz() - t0);
     ustawienia_po_starcie();
+}
 
+/* Rate-limited status line (never key codes): used by the tests as evidence. */
+static void loguj_kursor(void)
+{
+    static double t_log;
+    static int32_t ost_x = -1, ost_y = -1;
+    static int ost_w = -1;
+    double t = k1_teraz();
+    if (t - t_log >= 0.5 && (s.x != ost_x || s.y != ost_y || s.wcisniety != ost_w) && !s.flip_w_toku && !s.zmiana) {
+        k1_log(TAG, "kursor %d,%d przycisk %s (zdarzenia: klawiatura %lu, mysz %lu, odrzucone %lu)", (int)s.x, (int)s.y,
+               s.wcisniety ? "wciśnięty" : "puszczony", s.klawisze, s.ruchy, s.odrzucone);
+        ost_x = s.x;
+        ost_y = s.y;
+        ost_w = s.wcisniety;
+        t_log = t;
+    }
+}
+
+int main(void)
+{
+    struct pollfd pfd[3 + MAKS_KLIENTOW];
+    int czekaj, i;
+
+    k1_klatka_w_usludze(TAG);
+    start();
     for (;;) {
-        double t;
         pfd[0].fd = s.fd;
         pfd[0].events = POLLIN;
         pfd[1].fd = FD_STEROWANIE;
@@ -251,15 +272,6 @@ int main(void)
             s.ost_klatka = k1_teraz();
             pokaz();
         }
-        /* Rate-limited status line (never key codes): used by the tests as evidence. */
-        t = k1_teraz();
-        if (t - t_log >= 0.5 && (s.x != ost_x || s.y != ost_y || s.wcisniety != ost_w) && !s.flip_w_toku && !s.zmiana) {
-            k1_log(TAG, "kursor %d,%d przycisk %s (zdarzenia: klawiatura %lu, mysz %lu, odrzucone %lu)", (int)s.x,
-                   (int)s.y, s.wcisniety ? "wciśnięty" : "puszczony", s.klawisze, s.ruchy, s.odrzucone);
-            ost_x = s.x;
-            ost_y = s.y;
-            ost_w = s.wcisniety;
-            t_log = t;
-        }
+        loguj_kursor();
     }
 }

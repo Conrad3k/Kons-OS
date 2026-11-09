@@ -308,92 +308,94 @@ static void zamknij_kanaly(const struct usluga *u)
         }
 }
 
-void start(struct usluga *u)
+/* skarbiec: fd 3 = control channel, fd 4 = the K1-DANE partition (when there is one). */
+static void start_skarbiec(struct usluga *u, const struct k1_profil *p)
 {
-    const struct k1_profil *p = &profile[u->profil];
+    int fds[2], n = 0, i, para[2], ile, dysk = otworz_partycje_danych(&ile);
+    /* A USB stick shows up a moment after the kernel started: wait for it (czekaj_na_dane). */
+    if (dysk < 0 && ile == 0 && etap_startu() == E_DANE && czekaj_na_dane(od_startu_systemu())) {
+        u->nastepny = k1_teraz() + 0.25;
+        return;
+    }
+    przejdz(E_STAN, dysk >= 0 ? "partycja danych jest" : "bez partycji danych");
+    skarb_bez_dysku = dysk < 0 && ile == 0;
+    if (ile > 1 && dysk < 0 && errno != EBUSY)
+        k1_log(TAG, "znaleziono %d partycje K1-DANE — nie wiadomo, której użyć; dane tylko w pamięci", ile);
+    else if (ile >= 1 && dysk < 0)
+        k1_log(TAG, "partycja K1-DANE zajęta albo niedostępna: %s", strerror(errno));
+    else if (dysk >= 0)
+        k1_log(TAG, "partycja danych K1-DANE otwarta dla skarbca (%s)", skarb_dane);
+    if (k1_kanal_utworz(para) != 0) {
+        if (dysk >= 0)
+            close(dysk);
+        u->nastepny = k1_teraz() + 1.0;
+        return;
+    }
+    fds[n++] = para[0]; /* fd 3: control channel (its end checks us) */
+    if (dysk >= 0)
+        fds[n++] = dysk; /* fd 4: the partition */
+    {
+        int tak = 1; /* we check that the state comes from skarbiec (M5e) */
+        setsockopt(para[1], SOL_SOCKET, SO_PASSCRED, &tak, sizeof tak);
+    }
+    if (uruchom(u, p, fds, n) > 0) {
+        if (skarb_ster >= 0)
+            close(skarb_ster);
+        skarb_ster = para[1];
+        k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
+    } else {
+        close(para[1]);
+    }
+    for (i = 0; i < n; i++)
+        close(fds[i]);
+}
+
+/* ekran: fd 3 = control channel, fd 4 = the graphics card, fd 5 = skarbiec (its saved settings). */
+static void start_ekran(struct usluga *u, const struct k1_profil *p)
+{
+    int fds[3], n, para[2], karta, skarb;
+    if (etap_startu() == E_DANE) { /* skarbiec first (it may still be waiting for the data partition) */
+        u->nastepny = k1_teraz() + 0.25;
+        return;
+    }
+    karta = otworz_karte();
+    if (karta < 0) {
+        k1_log(TAG, "brak karty graficznej — ekran nie zostanie uruchomiony");
+        u->nastepny = k1_teraz() + 4.0;
+        return;
+    }
+    if (k1_kanal_utworz(para) != 0) {
+        close(karta);
+        return;
+    }
+    fds[0] = para[0]; /* ekran: fd 3 = control channel (its end has SO_PASSCRED: it checks us) */
+    fds[1] = karta;   /* fd 4 = card (we opened it first: this file is the DRM master) */
+    n = 2;
+    skarb = kanal_do_skarbca(K1_PROFIL_EKRAN, (int)p->uid);
+    if (skarb >= 0)
+        fds[n++] = skarb; /* fd 5 = skarbiec: the saved settings (M5d) */
+    if (uruchom(u, p, fds, n) > 0) {
+        if (sterowanie >= 0)
+            close(sterowanie);
+        sterowanie = para[1];
+        if (etap_startu() == E_PRZELACZANIE)
+            przejdz(E_PULPIT, "nowy ekran z zapisanymi ustawieniami");
+        k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
+    } else {
+        close(para[1]);
+    }
+    close(para[0]);
+    close(karta);
+    if (skarb >= 0)
+        close(skarb);
+}
+
+/* A client of ekran (wejscie, gui, logowanie, the applications): fd 3 = its channel to ekran, then the
+ * channels of its row in kanaly[]. */
+static void start_klienta(struct usluga *u, const struct k1_profil *p)
+{
     int fds[MAKS_URZADZEN + 1], n = 0, i;
 
-    u->nastepny = 0;
-    if (u->rodzaj == R_INSTALATOR)
-        return; /* only on request of the Instalator window (inst_zapis) */
-    if (u->rodzaj == R_SKARBIEC) {
-        int para[2], ile, dysk = otworz_partycje_danych(&ile);
-        /* A USB stick shows up a moment after the kernel started: wait for it (czekaj_na_dane). */
-        if (dysk < 0 && ile == 0 && etap_startu() == E_DANE && czekaj_na_dane(od_startu_systemu())) {
-            u->nastepny = k1_teraz() + 0.25;
-            return;
-        }
-        przejdz(E_STAN, dysk >= 0 ? "partycja danych jest" : "bez partycji danych");
-        skarb_bez_dysku = dysk < 0 && ile == 0;
-        if (ile > 1 && dysk < 0 && errno != EBUSY)
-            k1_log(TAG, "znaleziono %d partycje K1-DANE — nie wiadomo, której użyć; dane tylko w pamięci", ile);
-        else if (ile >= 1 && dysk < 0)
-            k1_log(TAG, "partycja K1-DANE zajęta albo niedostępna: %s", strerror(errno));
-        else if (dysk >= 0)
-            k1_log(TAG, "partycja danych K1-DANE otwarta dla skarbca (%s)", skarb_dane);
-        if (k1_kanal_utworz(para) != 0) {
-            if (dysk >= 0)
-                close(dysk);
-            u->nastepny = k1_teraz() + 1.0;
-            return;
-        }
-        fds[n++] = para[0]; /* fd 3: control channel (its end checks us) */
-        if (dysk >= 0)
-            fds[n++] = dysk; /* fd 4: the partition */
-        {
-            int tak = 1; /* we check that the state comes from skarbiec (M5e) */
-            setsockopt(para[1], SOL_SOCKET, SO_PASSCRED, &tak, sizeof tak);
-        }
-        if (uruchom(u, p, fds, n) > 0) {
-            if (skarb_ster >= 0)
-                close(skarb_ster);
-            skarb_ster = para[1];
-            k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
-        } else {
-            close(para[1]);
-        }
-        for (i = 0; i < n; i++)
-            close(fds[i]);
-        return;
-    }
-    if (u->rodzaj == R_EKRAN) {
-        int para[2], karta, skarb;
-        if (etap_startu() == E_DANE) { /* skarbiec first (it may still be waiting for the data partition) */
-            u->nastepny = k1_teraz() + 0.25;
-            return;
-        }
-        karta = otworz_karte();
-        if (karta < 0) {
-            k1_log(TAG, "brak karty graficznej — ekran nie zostanie uruchomiony");
-            u->nastepny = k1_teraz() + 4.0;
-            return;
-        }
-        if (k1_kanal_utworz(para) != 0) {
-            close(karta);
-            return;
-        }
-        fds[0] = para[0]; /* ekran: fd 3 = control channel (its end has SO_PASSCRED: it checks us) */
-        fds[1] = karta;   /* fd 4 = card (we opened it first: this file is the DRM master) */
-        n = 2;
-        skarb = kanal_do_skarbca(K1_PROFIL_EKRAN, (int)p->uid);
-        if (skarb >= 0)
-            fds[n++] = skarb; /* fd 5 = skarbiec: the saved settings (M5d) */
-        if (uruchom(u, p, fds, n) > 0) {
-            if (sterowanie >= 0)
-                close(sterowanie);
-            sterowanie = para[1];
-            if (etap_startu() == E_PRZELACZANIE)
-                przejdz(E_PULPIT, "nowy ekran z zapisanymi ustawieniami");
-            k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
-        } else {
-            close(para[1]);
-        }
-        close(para[0]);
-        close(karta);
-        if (skarb >= 0)
-            close(skarb);
-        return;
-    }
     /* M5e: the desktop only when the vault is not waiting for its password; the password screen only
      * when it is. Without word from skarbiec for 20 s after boot: the desktop. */
     if (u->profil == K1_PROFIL_LOGOWANIE && etap_startu() != E_HASLO)
@@ -432,6 +434,20 @@ void start(struct usluga *u)
         u->nastepny = k1_teraz() + 1.0;
     for (i = 0; i < n; i++)
         close(fds[i]);
+}
+
+void start(struct usluga *u)
+{
+    const struct k1_profil *p = &profile[u->profil];
+    u->nastepny = 0;
+    if (u->rodzaj == R_INSTALATOR)
+        return; /* only on request of the Instalator window (inst_zapis) */
+    if (u->rodzaj == R_SKARBIEC)
+        start_skarbiec(u, p);
+    else if (u->rodzaj == R_EKRAN)
+        start_ekran(u, p);
+    else
+        start_klienta(u, p);
 }
 
 void opisz(const char *nazwa, int status)

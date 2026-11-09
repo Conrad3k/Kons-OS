@@ -201,78 +201,54 @@ static size_t budzet_klienta(const struct klient *k)
     return panele(k) ? ekran : 2u * ekran;
 }
 
-static void nowa_pow(int kl, const struct k1_komunikat *m, int fd)
+/* Why the client may not have one more surface of `rozmiar` bytes (NULL: it may); *wolny = a free slot. */
+static const char *miejsce_na_pow(int kl, const struct k1_komunikat *m, size_t rozmiar, int *wolny)
 {
-    struct klient *k = &s.kl[kl];
-    struct stat st;
-    int i, wolny = -1, okien = 0, uszczelnienia;
-    size_t rozmiar = (size_t)m->a * (size_t)m->b * 4u * 2u, zajete = 0;
-    void *mem;
-    struct pow *p;
-
-    if (fd < 0)
-        { odrzuc(kl, "powierzchnia bez deskryptora"); return; }
-    if (znajdz_pow(kl, m->obiekt) >= 0) {
-        close(fd);
-        { odrzuc(kl, "powierzchnia o tym numerze już istnieje"); return; }
-    }
-    if ((m->c == K1_POW_PANEL) != panele(k)) {
-        close(fd);
-        { odrzuc(kl, m->c == K1_POW_PANEL ? "panele tylko dla powłoki" : "okna tylko dla aplikacji"); return; }
-    }
-    if (m->a > s.W || m->b > s.H || (m->c == K1_POW_OKNO && m->b > s.H - K1_PASEK_GORNY)) {
-        close(fd);
-        { odrzuc(kl, "powierzchnia większa niż ekran"); return; }
-    }
+    const struct klient *k = &s.kl[kl];
+    size_t zajete = 0;
+    int i, okien = 0;
+    if (znajdz_pow(kl, m->obiekt) >= 0)
+        return "powierzchnia o tym numerze już istnieje";
+    if ((m->c == K1_POW_PANEL) != panele(k))
+        return m->c == K1_POW_PANEL ? "panele tylko dla powłoki" : "okna tylko dla aplikacji";
+    if (m->a > s.W || m->b > s.H || (m->c == K1_POW_OKNO && m->b > s.H - K1_PASEK_GORNY))
+        return "powierzchnia większa niż ekran";
+    *wolny = -1;
     for (i = 0; i < MAKS_POW; i++) {
-        if (!s.p[i].uzyta && wolny < 0)
-            wolny = i;
+        if (!s.p[i].uzyta && *wolny < 0)
+            *wolny = i;
         if (s.p[i].uzyta && s.p[i].kl == kl) {
             okien++;
             zajete += s.p[i].rozmiar;
         }
     }
-    if (wolny < 0 || okien >= (panele(k) ? K1_POW_MAKS : MAKS_OKIEN_KLIENTA)) {
-        close(fd);
-        { odrzuc(kl, "za dużo powierzchni"); return; }
-    }
+    if (*wolny < 0 || okien >= (panele(k) ? K1_POW_MAKS : MAKS_OKIEN_KLIENTA))
+        return "za dużo powierzchni";
     /* Every mapped surface costs ekran memory when it is composed: at most what two full-screen
      * windows need per client (shell: one), so that clients cannot exhaust ekran's cgroup. */
-    if (zajete + rozmiar > budzet_klienta(k)) {
-        close(fd);
-        { odrzuc(kl, "przekroczony limit pamięci powierzchni"); return; }
-    }
-    /* Only a sealed memfd of exactly the right size: it can never shrink under our mapping. */
-    uszczelnienia = fcntl(fd, F_GET_SEALS);
-    if (uszczelnienia < 0) {
-        close(fd);
-        { odrzuc(kl, "deskryptor nie jest memfd"); return; }
-    }
-    if ((uszczelnienia & (F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_SEAL)) != (F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_SEAL)) {
-        close(fd);
-        { odrzuc(kl, "memfd bez pieczęci SHRINK/GROW/SEAL"); return; }
-    }
-    if (fstat(fd, &st) != 0 || !S_ISREG(st.st_mode) || st.st_size != (off_t)rozmiar) {
-        close(fd);
-        { odrzuc(kl, "zły rozmiar memfd"); return; }
-    }
-    mem = mmap(NULL, rozmiar, PROT_READ, MAP_SHARED, fd, 0);
-    close(fd);
-    if (mem == MAP_FAILED)
-        { odrzuc(kl, "mmap powierzchni nieudany"); return; }
-    p = &s.p[wolny];
-    memset(p, 0, sizeof *p);
-    p->uzyta = 1;
-    p->kl = kl;
-    p->id = m->obiekt;
-    p->rodzaj = m->c;
-    p->w = m->a;
-    p->h = m->b;
-    p->mem = mem;
-    p->rozmiar = rozmiar;
-    p->polowa = -1;
-    p->pokaz = 1;
-    p->z = ++s.z_licznik;
+    if (zajete + rozmiar > budzet_klienta(k))
+        return "przekroczony limit pamięci powierzchni";
+    return NULL;
+}
+
+/* Only a sealed memfd of exactly the right size: it can never shrink under our mapping. NULL = good. */
+static const char *sprawdz_memfd(int fd, size_t rozmiar)
+{
+    const int wszystkie = F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_SEAL;
+    struct stat st;
+    int uszczelnienia = fcntl(fd, F_GET_SEALS);
+    if (uszczelnienia < 0)
+        return "deskryptor nie jest memfd";
+    if ((uszczelnienia & wszystkie) != wszystkie)
+        return "memfd bez pieczęci SHRINK/GROW/SEAL";
+    if (fstat(fd, &st) != 0 || !S_ISREG(st.st_mode) || st.st_size != (off_t)rozmiar)
+        return "zły rozmiar memfd";
+    return NULL;
+}
+
+/* Where a new surface appears: a panel where the shell says, a window in the middle, cascaded. */
+static void polozenie_nowej(struct pow *p, const struct k1_komunikat *m)
+{
     if (p->rodzaj == K1_POW_PANEL) {
         p->x = m->d;
         p->y = m->e;
@@ -286,6 +262,48 @@ static void nowa_pow(int kl, const struct k1_komunikat *m, int fd)
         if (p->y < K1_PASEK_GORNY + 8)
             p->y = K1_PASEK_GORNY + 8;
     }
+}
+
+static void nowa_pow(int kl, const struct k1_komunikat *m, int fd)
+{
+    size_t rozmiar = (size_t)m->a * (size_t)m->b * 4u * 2u;
+    const char *powod;
+    int wolny = -1;
+    void *mem;
+    struct pow *p;
+
+    if (fd < 0) {
+        odrzuc(kl, "powierzchnia bez deskryptora");
+        return;
+    }
+    powod = miejsce_na_pow(kl, m, rozmiar, &wolny);
+    if (powod == NULL)
+        powod = sprawdz_memfd(fd, rozmiar);
+    if (powod != NULL) {
+        close(fd);
+        odrzuc(kl, powod);
+        return;
+    }
+    mem = mmap(NULL, rozmiar, PROT_READ, MAP_SHARED, fd, 0);
+    close(fd);
+    if (mem == MAP_FAILED) {
+        odrzuc(kl, "mmap powierzchni nieudany");
+        return;
+    }
+    p = &s.p[wolny];
+    memset(p, 0, sizeof *p);
+    p->uzyta = 1;
+    p->kl = kl;
+    p->id = m->obiekt;
+    p->rodzaj = m->c;
+    p->w = m->a;
+    p->h = m->b;
+    p->mem = mem;
+    p->rozmiar = rozmiar;
+    p->polowa = -1;
+    p->pokaz = 1;
+    p->z = ++s.z_licznik;
+    polozenie_nowej(p, m);
 }
 
 static void zatwierdz(int kl, const struct k1_komunikat *m)

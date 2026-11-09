@@ -89,7 +89,8 @@ static int klient(const struct k1_komunikat *k)
     return k->b == 0;
 }
 
-static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
+/* Messages of nadzorca's control channels and the installer (Instalator ↔ nadzorca ↔ instalator); 0 also for a type of another group. */
+static int sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
     switch (k->typ) {
     case K1_KOM_KLIENT:
@@ -132,6 +133,15 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     case K1_KOM_INST_LISTA:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_INST_DYSKI_MAKS) && w(k->b, 0, 2) &&
                w(k->c, 0, K1_INST_WERSJA - 1) && w(k->d, 0, 1) && (k->c != 0 || k->d == 0) && k->e == 0;
+    default:
+        return 0;
+    }
+}
+
+/* Messages of skarbiec and its clients; 0 also for a type of another group. */
+static int sprawdz_skarb(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
+{
+    switch (k->typ) {
     case K1_KOM_SKARB_CZYTAJ:
     case K1_KOM_SKARB_USUN:
         return kier == K1_KIER_DO_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS && zera(k, 0);
@@ -154,7 +164,15 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         return kier == K1_KIER_OD_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS &&
                w(k->a, K1_KOM_SKARB_CZYTAJ, K1_KOM_SKARB_INFO) && w(k->b, K1_MAG_WYNIK_MIN, 0) &&
                w(k->c, K1_SKARB_TRWALY, K1_SKARB_ZABLOKOWANY) && w(k->d, 0, 3) && w(k->e, 0, K1_HASLO_PRZERWA);
+    default:
+        return 0;
+    }
+}
 
+/* Messages of ekran and its clients (ADR 0008); 0 also for a type of another group. */
+static int sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
+{
+    switch (k->typ) {
     case K1_KOM_POWIERZCHNIA:
         if (kier != K1_KIER_DO_EKRANU || !powierzchnia(k->obiekt) || !w(k->a, 1, K1_POW_MAKS_BOK) ||
             !w(k->b, 1, K1_POW_MAKS_BOK))
@@ -203,7 +221,15 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         return kier == K1_KIER_OD_EKRANU && k->obiekt >= 1 && k->obiekt <= K1_TRYBY_MAKS &&
                w(k->a, K1_TRYB_MIN_SZER, K1_POW_MAKS_BOK) && w(k->b, K1_TRYB_MIN_WYS, K1_POW_MAKS_BOK) &&
                w(k->c, 0, 1000) && w(k->d, 0, 1) && k->e == 0;
+    default:
+        return 0;
+    }
+}
 
+/* Messages of gui, the test program, Zasoby, Ustawienia ↔ nadzorca; 0 also for a type of another group. */
+static int sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
+{
+    switch (k->typ) {
     case K1_KOM_URUCHOM:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_APL_MAKS) && zera(k, 1);
     case K1_KOM_WYLACZ:
@@ -246,6 +272,12 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     default:
         return 0;
     }
+}
+
+/* Every type belongs to exactly one group: the others answer 0. */
+static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
+{
+    return sprawdz_sterowanie(k, kier) || sprawdz_skarb(k, kier) || sprawdz_ekran(k, kier) || sprawdz_nadzorca(k, kier);
 }
 
 int k1_komunikat_sprawdz(const void *buf, size_t len, enum k1_kanal_kierunek kierunek, struct k1_komunikat *out)
