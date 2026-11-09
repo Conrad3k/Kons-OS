@@ -67,7 +67,7 @@ static struct k1_powierzchnia *wszystkie[] = { &gora, &dok, &menu, &dzwiek };
 static struct okno okna[32];
 static int menu_otwarte, dzwiek_otwarty;
 static int hover_dok = -1, hover_menu = -1, hover_gora = 0;
-static double uruchamiane[K1_APL_MAKS + 1];
+static double uruchamiane[K1_APL_MAKS + 1]; /* when it was started (k1_teraz); 0 = not starting */
 static int32_t dok_x, dok_y, menu_x, menu_y, dzw_x, dzw_y;
 static char zegar_tekst[64];
 
@@ -445,8 +445,9 @@ static void aplikacja(int apl)
     struct okno *w = okno_aplikacji(apl);
     pokaz_menu(0);
     if (w == NULL) {
-        if (k1_teraz() - uruchamiane[apl] < 5.0)
-            return; /* already starting */
+        /* already starting (0 = not: k1_teraz() counts from boot, a fast computer is under 5 s here) */
+        if (uruchamiane[apl] > 0 && k1_teraz() - uruchamiane[apl] < 5.0)
+            return;
         uruchamiane[apl] = k1_teraz();
         k1_log(TAG, "uruchamiam: %s", aplikacje[apl].nazwa);
         do_nadzorcy(k1_komunikat_nowy(K1_KOM_URUCHOM, 0, apl, 0, 0, 0, 0));
