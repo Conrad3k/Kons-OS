@@ -12,6 +12,7 @@ statycznie z musl. Budowany skryptami w `scripts/`, testowany w QEMU, CI w GitHu
   zwykły dokument).
 - Specyfikacja nadrzędna: `docs/SPEC.md` (zmiany tylko przez ADR w `docs/adr/`).
 - Mapa repo, konwencje, wersje: `docs/ARCHITEKTURA.md`. Testy: `docs/TESTY.md`. Wygląd: `docs/WYGLAD.md`.
+  Pojęcia (jedno słowo = jedno znaczenie): `docs/SLOWNIK.md`.
 - Historia zmian: `CHANGELOG.md`; wersja: `VERSION` (SemVer, tagi `k1-vX.Y.Z`).
 - Stara dystrybucja Kons-OS (Debian): gałąź `archiwum/debian-0.1.2` — nie rozwijamy.
 - **Teraz:** 0.7.5 Pulpit, potem 0.8.0 Pliki, dopiero potem M7 Sieć (ADR 0026) — `docs/DO_ZROBIENIA.txt`.
@@ -24,6 +25,25 @@ statycznie z musl. Budowany skryptami w `scripts/`, testowany w QEMU, CI w GitHu
   `https://github.com/Conrad3k/Kons-OS/releases/download/k1-v<wersja>/k1-<wersja>.iso` oraz
   `…/k1-<wersja>-usb.img.xz` — dopiero gdy wydanie naprawdę istnieje.
 - Testuje na ThinkPadzie X230 (UEFI, Secure Boot na razie wyłączony).
+
+## Czytelność (decyzja właściciela, 2026-11-09)
+System ma być czytelny i intuicyjny od środka, także gdy rośnie. Części może być dużo (izolacja tego
+wymaga), ale każda jest mała, robi jedną rzecz i wygląda jak pozostałe.
+1. **Limity wielkości:** plik `.c` ≤ 600 wierszy, funkcja ≤ 80 wierszy (bez `src/zewnetrzne/`). Większe —
+   podziel; wyjątek tylko z komentarzem `/* k1: limit — <powód> */` i wpisem w opisie PR-a. Od 0.7.5
+   sprawdza to skrypt w testach.
+2. **Każda wersja MINOR kończy się porządkami:** co usunąć, scalić, uprościć — wynik w CHANGELOG
+   („Porządki”). Małe dawki zamiast dużej akcji raz na kilka miesięcy.
+3. **Rozwiązania tymczasowe mają termin:** komentarz `/* k1: tymczasowe — usunąć w <wersja/etap> */`
+   i wpis w `docs/DO_ZROBIENIA.txt` (sekcja „Tymczasowe”); przy porządkach sprawdzamy terminy.
+4. **Słownik:** nowe pojęcie = wiersz w `docs/SLOWNIK.md`; kod, dokumenty i komunikaty w systemie używają
+   tych samych słów. Nie wprowadzaj synonimów.
+5. **Nowe rzeczy jako wiersz w tabeli:** jak aplikacje (`K1_APLIKACJE`) — typy plików, strefy, kanały.
+   Jeśli dodanie czegoś wymaga zmian w wielu miejscach, najpierw zrób z tego jedną tabelę.
+6. **Dokumenty nie mogą zostać w tyle:** każda usługa i aplikacja ma opis (`docs/komponenty/`), każdy
+   komunikat — wpis w dokumencie swojego kanału; od 0.7.5 sprawdza to test.
+7. **Dziel przed rozbudową:** zanim dodasz dużą funkcję do pliku blisko limitu, najpierw podziel go
+   (osobny commit), potem dodawaj.
 
 ## Bezpieczeństwo (bez wyjątków)
 - Sekretu `K1_KLUCZ_PODPISU` nie wpisuj nigdy do repo ani do rozmowy i nie proś o niego — właściciel

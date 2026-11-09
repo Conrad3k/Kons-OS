@@ -1,0 +1,57 @@
+# Słownik K1
+
+Każde pojęcie ma **jedno** znaczenie — tak samo w kodzie, dokumentach, komunikatach w systemie i rozmowie.
+Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa polskich nazw z tej listy
+(np. `klatka`, `kanal`, `skarb`); w nawiasie — angielski odpowiednik, gdy ktoś szuka w literaturze.
+
+## Start i system
+| Pojęcie | Znaczenie |
+|---|---|
+| **jądro** | Jądro Linux z naszą minimalną konfiguracją (`jadro/k1.config`). Jedyna rzecz, którą bierzemy z Linuksa. |
+| **rdzeń** | Cały system K1 poza jądrem: obraz tylko do odczytu `/rdzen` (SquashFS). Nie da się go zmienić w działającym systemie. |
+| **sprawdzanie rdzenia** (dm-verity) | Przy każdym odczycie jądro sprawdza, że rdzeń jest bajt w bajt taki, jak w wydaniu; zmiana = zatrzymanie. |
+| **wydanie** | Jedna wersja K1 (`k1-vX.Y.Z`): podpisany plik `k1.efi` z jądrem i rdzeniem, ISO i obraz na pendrive. |
+| **podpis** | Dowód, że wydanie pochodzi od właściciela projektu (klucz w sekrecie CI). Instalator odmawia niepodpisanych i starszych. |
+| **miejsce A / B** | Dwa miejsca na system w partycji K1-EFI: aktualizacja trafia do wolnego, stare zostaje na wypadek błędu. |
+| **K1-EFI** | Partycja startowa: pliki startowe i miejsca A/B. |
+| **K1-DANE** | Partycja z zaszyfrowanymi danymi użytkownika; czyta ją tylko skarbiec. |
+| **init** | Pierwszy program po starcie (PID 1): montuje, ustawia zabezpieczenia, uruchamia nadzorcę. Nigdy się nie kończy. |
+
+## Usługi i izolacja
+| Pojęcie | Znaczenie |
+|---|---|
+| **nadzorca** | Jedyny program z pełnymi uprawnieniami po starcie: uruchamia usługi i aplikacje w klatkach, otwiera urządzenia, tworzy kanały, restartuje po awarii. |
+| **usługa** | Program systemowy K1 bez okna albo z rolą systemową (wejście, ekran, pulpit, skarbiec, instalator…). Lista: `K1_SYSTEM`. |
+| **aplikacja** | Program K1 z oknem (Zegar, Notatki, Ustawienia…). Lista: `K1_APLIKACJE` — jedna aplikacja = jeden wiersz. |
+| **klatka** (sandbox) | Granice każdej usługi i aplikacji: własny użytkownik, zero uprawnień, lista dozwolonych wywołań jądra, brak dostępu do plików, limity pamięci. |
+| **kanał** | Jedyna droga rozmowy między dwoma programami (gniazdo UNIX). Tworzy go nadzorca; odbiorca zawsze wie, kto wysłał. |
+| **komunikat** | Wiadomość w kanale: zawsze 32 bajty, sprawdzana pole po polu przez odbiorcę. |
+| **wejście** | Usługa, która jako jedyna czyta klawiaturę i mysz. |
+| **ekran** | Usługa, która jako jedyna rysuje na karcie graficznej: składa okna, rysuje kursor, (od M8) ramki stref. |
+| **pulpit** (`gui`) | Usługa rysująca paski, menu Start i (od 0.7.5) ikony na pulpicie. Nie widzi treści okien. |
+| **przybornik** | Wspólna biblioteka do rysowania: tekst, przyciski, okna, ikony, kolory K1. |
+
+## Dane i pliki
+| Pojęcie | Znaczenie |
+|---|---|
+| **skarbiec** (Blob Vault) | Usługa, która jako jedyna czyta i zapisuje K1-DANE; szyfruje wszystko. |
+| **obiekt** | Jedna rzecz zapisana w skarbcu (ustawienia, notatka, od 0.8.0 plik). Nigdy nie jest programem do uruchomienia. |
+| **właściciel obiektu** | Kto może dany obiekt czytać; aplikacja widzi tylko swoje obiekty (i to, co użytkownik jej wybierze). |
+| **Pliki** | Aplikacja z dokumentami użytkownika (0.8.0) i **jedyne przejście** plików między K1 a strefami (ADR 0027). |
+| **oryginał / kopia** | Oryginał jest zawsze w Plikach; aplikacja albo strefa dostaje kopię jednego pliku. |
+| **pochodzenie** | Zapis przy pliku: skąd przyszedł (pendrive, strona, strefa) i kiedy. |
+| **Kosz** | Usunięte pliki; można je przywrócić; usuwane na zawsze po 30 dniach albo ręcznie. |
+| **okno wyboru pliku** | Okno rysowane przez K1, w którym użytkownik wskazuje plik dla aplikacji; aplikacja nie widzi niczego więcej. |
+| **gest zgody** | Działanie użytkownika w miejscu rysowanym przez K1 (Pobierz, wybór pliku, „Otwórz w…”, przeciągnięcie) — jest zgodą na przeniesienie pliku. |
+| **Gatekeeper** | Część K1, która przyjmuje pliki z zewnątrz (strefy, pendrive): czeka na zgodę, czyta z limitami, zapisuje do Plików z pochodzeniem. |
+| **dekoder** | Jednorazowy program w klatce, który czyta jeden ryzykowny plik (obraz, PDF) i oddaje tylko obraz; potem znika. |
+
+## Strefy (od M8)
+| Pojęcie | Znaczenie |
+|---|---|
+| **strefa** | Mikro-maszyna wirtualna z własnym jądrem dla obcej aplikacji (przeglądarka, Discord…). Błąd w niej nie sięga K1. |
+| **osobna / wspólna strefa** | Jedna aplikacja na maszynę albo kilka drobnych, zaufanych aplikacji w jednej (ADR 0024). Przeglądarka zawsze osobna. |
+| **stała / jednorazowa** | Strefa pamięta dane między uruchomieniami albo zaczyna zawsze od czysta i wszystko zapomina po zamknięciu. |
+| **pełna izolacja / szybka grafika** | Strefa rysuje procesorem albo dostaje kartę graficzną przez pośrednika (słabsza izolacja). |
+| **ramka** | Obwódka w kolorze strefy rysowana przez ekran K1 wokół jej okien; aplikacja nie może jej podrobić. |
+| **sesja przeglądarki** | Osobna strefa silnika stron (np. „bank”, „prywatna”), z własnym kolorem karty (ADR 0025). |
