@@ -35,6 +35,10 @@ widziało okno, a dysk musi mieć ten sam rozmiar.
    wpisy, nagłówek główny, ochronny MBR) → `fdatasync`. Aktualizacja: kopia + porównanie.
 5. Po instalacji: „Wyłącz komputer” (jedyna prośba o zasilanie, jaką nadzorca przyjmie od okna).
 
+Bez pendrive'a K1 okno nie ma przycisku, tylko tekst: start z ISO — jak przygotować pendrive; dwa
+pendrive'y K1 — który odłączyć; K1 zainstalowany na dysku (0.7.6) — jedno zdanie „Aktualizacje są
+możliwe poprzez nośnik USB.”
+
 ## Manifest i podpis (0.6.2, ADR 0021)
 Przed zapisem program zapisujący czyta manifest źródła (47 MiB od początku K1-EFI, `k1_manifest.h`),
 liczy BLAKE2b-256 obszaru FAT i porównuje; gdy K1 ma wbudowany klucz (`build/gen/k1_klucz.h` z sekretu

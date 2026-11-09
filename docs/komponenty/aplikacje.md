@@ -25,7 +25,7 @@ napis w stopce mówi, gdzie zapisano). Obiekty: 1 = lista („K1N1”, liczba, n
 2…33 = notatki (2 = jedyna notatka z 0.5.6–0.5.7 — bez listy staje się pierwszą).
 
 ### Ustawienia
-Wygląd (motyw jasny/ciemny, tapeta: 4 warianty z miniaturami), Ekran
+Wygląd (motyw jasny/ciemny, tapeta: 5 wariantów z miniaturami, po 4 w rzędzie), Ekran
 (rozdzielczość z listy od ekranu — do 18 trybów w trzech kolumnach, „zalecana” = preferowana przez monitor/kartę;
 zmiana w locie, ADR 0012), Bateria (0.5.5: procent, stan, wykres naładowania od uruchomienia — linia
 w kolorze akcentu z delikatnym wypełnieniem, pasek pod wykresem = zasilacz podłączony, godzina startu,

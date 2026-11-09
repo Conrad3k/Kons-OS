@@ -106,7 +106,7 @@ struct paleta {
     uint32_t krawedz;      /* rim highlight */
 };
 
-static const struct paleta palety[K1_TAPETY] = {
+static const struct paleta palety[] = {
     /* 0 Glina (default) — the system's own colours: terracotta and cream on dark warm brown */
     { { 0x3e302au, 0x271e1au, 0x15100eu }, { 0xe9b89du, 0xc96f50u, 0x8a4532u, 0x55322au }, { 0xf0c48au, 0x86452au }, 0xffeedcu },
     /* 1 Zmierzch — after the owner's reference picture: violet, blue, pink, gold */
@@ -115,7 +115,10 @@ static const struct paleta palety[K1_TAPETY] = {
     { { 0x2c3766u, 0x1b2244u, 0x0b0e1cu }, { 0xb6cdf2u, 0x6b80dcu, 0x34419au, 0x1a2257u }, { 0x8fe0dcu, 0x2b6688u }, 0xe6fbffu },
     /* 3 Świt — light: peach and lavender */
     { { 0xf0ebf8u, 0xd3cdeeu, 0xb9b4e2u }, { 0xfff1e6u, 0xf8c9d3u, 0xcdbaf0u, 0xa9b6eeu }, { 0xffdba3u, 0xde9466u }, 0xffffffu },
+    /* 4 Las — moss and sage on deep pine, gold walls (0.7.6) */
+    { { 0x34402fu, 0x212a1fu, 0x0f140fu }, { 0xdfe6bfu, 0x9db783u, 0x56805au, 0x2a4a37u }, { 0xf0cf7cu, 0x8c6a2eu }, 0xf6ffe4u },
 };
+_Static_assert(sizeof palety / sizeof palety[0] == K1_TAPETY, "one palette per wallpaper");
 
 static float hash2(int32_t x, int32_t y)
 {

@@ -10,6 +10,8 @@
 
 #include <stdint.h>
 
+#include "k1_komunikat.h" /* K1_TAPETY */
+
 /* The K1 colours (docs/WYGLAD.md): the mark's three terracottas (the middle one is the accent of the dark
  * theme and of everything drawn over the wallpaper), cream, and the evening brown of the top bar and the
  * password screen. The window themes are in k1_okno.c. */
@@ -36,7 +38,6 @@ struct k1_obraz {
 
 /* Wallpaper `wariant` (0..K1_TAPETY-1, docs/WYGLAD.md) for the whole image. Deterministic (same size
  * and variant → same pixels). */
-#define K1_TAPETY 4
 void k1_rysuj_tlo(struct k1_obraz *o, int wariant);
 
 /* Renders the cursor sprite (K1_KURSOR_SZER x K1_KURSOR_WYS). `wcisniety` = mouse button held. */
