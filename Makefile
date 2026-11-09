@@ -38,7 +38,7 @@ USLUGI  := src/wspolne/k1_uslugi.c src/wspolne/k1_komunikat.c src/wspolne/k1_kan
 # Blob Vault (M5c, ADR 0015): format + Monocypher (src/zewnetrzne, docs/ZALEZNOSCI.md). Monocypher is
 # compiled as is; on the host (ASan build) -Wconversion warns about its code, so only there it is off.
 MONOCYPHER := src/zewnetrzne/monocypher/monocypher.c
-MAGAZYN := src/skarbiec/magazyn.c $(MONOCYPHER)
+MAGAZYN := src/skarbiec/magazyn.c src/skarbiec/naglowek.c $(MONOCYPHER)
 GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 # GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
 PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
@@ -103,8 +103,8 @@ $(BIN)/instalator: src/instalator/main.c src/instalator/gpt.c src/instalator/gpt
 	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -I$(GEN) -o $@ src/instalator/main.c src/instalator/gpt.c \
 		$(EFI) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
-SKARBIEC := src/skarbiec/main.c src/skarbiec/magazyn.c $(MONOCYPHER)
-$(BIN)/skarbiec: $(SKARBIEC) src/skarbiec/magazyn.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+SKARBIEC := src/skarbiec/main.c $(MAGAZYN)
+$(BIN)/skarbiec: $(SKARBIEC) src/skarbiec/magazyn.h src/skarbiec/magazyn_wew.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ $(SKARBIEC) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 $(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
@@ -167,7 +167,7 @@ $(OBJ)/podglad_grafiki: testy/host/podglad_grafiki.c $(GRAFIKA) | $(OBJ)
 $(OBJ)/test_przybornik: testy/host/test_przybornik.c $(HOST_PRZYB) $(NAGL_P) $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przybornik.c $(HOST_PRZYB) -lm
 
-$(OBJ)/test_magazyn: testy/host/test_magazyn.c $(MAGAZYN) src/skarbiec/magazyn.h | $(OBJ)
+$(OBJ)/test_magazyn: testy/host/test_magazyn.c $(MAGAZYN) src/skarbiec/magazyn.h src/skarbiec/magazyn_wew.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_magazyn.c $(MAGAZYN)
 
 $(OBJ)/test_instalator: testy/host/test_instalator.c src/instalator/gpt.c src/instalator/gpt.h src/nadzorca/dyski.c src/nadzorca/dyski.h \
