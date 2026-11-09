@@ -176,6 +176,10 @@ monitor QEMU — `mouse_move`, `mouse_button`, `sendkey alt_r-a`); zrzuty pokazu
 (`SendUserFile`); ustalenia i paleta → `docs/WYGLAD.md`. Interfejs: neutralne tła, jeden akcent,
 4-px siatka, Plex Sans/Serif, ikony liniowe z `k1_ikona`.
 
+**Czytelność** (zasady w `AGENTS.md` → „Czytelność”; pojęcia w `docs/SLOWNIK.md`): plik ≤ 600 wierszy,
+funkcja ≤ 80; tymczasowe z terminem (`/* k1: tymczasowe — usunąć w … */`); nowe pojęcie → słownik; nowa
+rzecz → wiersz w tabeli; podział przed rozbudową; każdy MINOR kończy się porządkami.
+
 ## 4. Testy — warstwy i pułapki
 - **Host:** `make testy-host` (glibc + ASan/UBSan + `_FORTIFY_SOURCE=3`), `make fuzz` (clang, libFuzzer).
 - **W systemie:** obraz testowy = produkcyjny + `/rdzen/system/test-systemu`; nadzorca uruchamia go po

@@ -215,6 +215,13 @@ M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku) — 
 Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
 
 0.7.5 Pulpit — NASTĘPNE
+    Najpierw (zasady czytelności, AGENTS.md — Twoja decyzja z 2026-11-09):
+    [ ] skrypt sprawdzający limity (plik ≤ 600 wierszy, funkcja ≤ 80) w testach; dziś ponad limitem:
+        Ustawienia (815), Notatki (757), Instalator — okno (674), skarbiec/magazyn.c (631), gui (625)
+    [ ] test: każda usługa i aplikacja ma opis w docs/komponenty/, każdy komunikat jest opisany
+    [ ] pulpit (gui) podzielony na moduły przed rozbudową: paski, menu Start, ikony, menu kontekstowe
+    [ ] pozostałe pliki ponad limitem podzielone (albo wyjątek z uzasadnieniem)
+    Potem:
     [ ] szkice pulpitu do wyboru (jak w Windows, w stylu K1)
     [ ] ikony aplikacji na pulpicie w siatce: zaznaczanie, przeciąganie, podwójne kliknięcie otwiera
     [ ] menu pod prawym przyciskiem myszy: pulpit, ikona, dolny pasek
@@ -232,6 +239,7 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
     [ ] zdjęcia z pendrive'a (czytnik FAT w klatce, bez FAT w jądrze), tylko po Twoim wyborze
     [ ] podgląd obrazów PNG/JPEG przez jednorazowy dekoder w izolacji; tapeta z własnego zdjęcia
     [ ] partycja K1-DANE na pendrivie do końca nośnika (dziś 64 MiB)
+    [ ] porządki na koniec wersji (zasada czytelności 2) + przegląd „Tymczasowe” niżej
 
 M7  Sieć
     [ ] test: nic w K1 nie odpowiada na połączenia z zewnątrz
@@ -267,6 +275,13 @@ M10 Bezpieczny start — reszta: tryb ratunkowy (recovery), licznik wersji w TPM
         nawet po przejęciu jądra; koszt: kilka % wydajności (Twój pomysł z 2026-11-08)
 (M11 — weszło do M8: mikro-maszyny są głównym modelem stref, ADR 0020)
 M12 Audyt: fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa
+
+
+TYMCZASOWE (zasada czytelności 3 — każde z terminem; przegląd przy porządkach każdej wersji MINOR)
+    [ ] manifest formatu 1 na 47 MiB (aktualizacja z 0.6.2–0.6.3 starym Instalatorem) — do usunięcia,
+        gdy nikt nie aktualizuje z 0.6.x (propozycja: 0.8.0, po Twoim teście aktualizacji na X230)
+    [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10”) — termin: M10
+    [ ] resztę oznaczyć komentarzem `k1: tymczasowe` przy pierwszym przeglądzie (0.7.5)
 
 
 4. DECYZJE TECHNICZNE DO PODJĘCIA (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
