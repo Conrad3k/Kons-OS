@@ -77,7 +77,18 @@ static void powierzchnie(void)
     EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 1, 0, 480, K1_POW_OKNO, 0, 0), K1_KIER_DO_EKRANU));
     EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 1, 4097, 480, K1_POW_OKNO, 0, 0), K1_KIER_DO_EKRANU));
     EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 1, 640, -1, K1_POW_OKNO, 0, 0), K1_KIER_DO_EKRANU));
-    EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 1, 640, 480, 3, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 1, 640, 480, 4, 0, 0), K1_KIER_DO_EKRANU));
+    /* 0.7.5: the desktop layer — at 0,0 only (its position is not the client's choice) */
+    EXPECT(ok(K(K1_KOM_POWIERZCHNIA, 5, 1280, 800, K1_POW_PULPIT, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 5, 1280, 800, K1_POW_PULPIT, 0, 40), K1_KIER_DO_EKRANU));
+    /* 0.7.5: closing a window — the shell names a window, ekran names the application's surface */
+    EXPECT(ok(K(K1_KOM_ZAMKNIJ_OKNO, 7, 0, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_ZAMKNIJ_OKNO, 0, 0, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_ZAMKNIJ_OKNO, 7, 1, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_ZAMKNIJ_OKNO, 7, 0, 0, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(ok(K(K1_KOM_ZAMKNIJ, 1, 0, 0, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(zle(K(K1_KOM_ZAMKNIJ, 9, 0, 0, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(zle(K(K1_KOM_ZAMKNIJ, 1, 0, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
     EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 1, 640, 480, K1_POW_OKNO, 5, 0), K1_KIER_DO_EKRANU)); /* windows: no position */
     EXPECT(zle(K(K1_KOM_POWIERZCHNIA, 1, 640, 480, K1_POW_PANEL, 9000, 0), K1_KIER_DO_EKRANU));
     EXPECT(ok(K(K1_KOM_ZATWIERDZ, 2, 1, 0, 0, 0, 0), K1_KIER_DO_EKRANU));

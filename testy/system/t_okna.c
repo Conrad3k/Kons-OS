@@ -61,8 +61,10 @@ void t_okna_ipc(void)
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 5, w, h, K1_POW_PANEL, 0, 0), m3);  /* panel */
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_USTAW, 0, K1_UST_MOTYW, 1, 0, 0, 0), -1);         /* not Ustawienia */
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_MINIMALIZUJ_OKNO, 1, 0, 0, 0, 0, 0), -1);         /* not the shell */
-    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZAMKNIJ_OKNO, 1, 0, 0, 0, 0, 0), -1);             /* 0.7.5: neither */
+    /* 0.7.5 — ekran logs 8 rejections per client: the desktop layer is the 8th (its own reason); closing a
+     * window is the 9th, refused by the same check as minimising one above */
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 7, w, h, K1_POW_PULPIT, 0, 0), m5); /* desktop layer */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZAMKNIJ_OKNO, 1, 0, 0, 0, 0, 0), -1);
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 6, w, h, K1_POW_OKNO, 0, 0), m4);   /* valid */
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 6, 0, 0, 0, 0, 0), -1);
     ramka = czekaj_na(fd, K1_KOM_RAMKA, 6, 10000);
