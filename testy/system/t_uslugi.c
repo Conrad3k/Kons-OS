@@ -71,7 +71,7 @@ void t_malicious_ipc(void)
 /* ---- M3: service sandboxes seen from outside ---- */
 
 /* Value of a "Name:\tvalue" line in /proc/<pid>/status ("" if missing). */
-void status_pole(long pid, const char *pole, char *out, size_t size)
+static void status_pole(long pid, const char *pole, char *out, size_t size)
 {
     char path[64], buf[4096], *p, *e;
     size_t pl = strlen(pole);
@@ -92,7 +92,7 @@ void status_pole(long pid, const char *pole, char *out, size_t size)
 }
 
 /* Every descriptor of the service is one of the expected kinds (prefixes). */
-int deskryptory_ok(long pid, const char *const *dozwolone, char *zle, size_t zle_size)
+static int deskryptory_ok(long pid, const char *const *dozwolone, char *zle, size_t zle_size)
 {
     char dir[64], link[384], target[128];
     DIR *d;
@@ -127,7 +127,7 @@ int deskryptory_ok(long pid, const char *const *dozwolone, char *zle, size_t zle
     return ok;
 }
 
-void t_klatka(const char *nazwa, int uid, const char *const *fds)
+static void t_klatka(const char *nazwa, int uid, const char *const *fds)
 {
     long pid = find_process(nazwa);
     char v[128], oczekiwane[64], zle[256], grupa[64], path[96], pids[16];

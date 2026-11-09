@@ -155,7 +155,8 @@ $(OBJ)/test_komunikat: testy/host/test_komunikat.c src/wspolne/k1_komunikat.c sr
 $(OBJ)/test_log: testy/host/test_log.c src/wspolne/k1_log.c src/wspolne/k1_log.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_log.c src/wspolne/k1_log.c
 
-$(OBJ)/test_bateria: testy/host/test_bateria.c src/nadzorca/bateria.c src/nadzorca/bateria.h src/wspolne/k1_komunikat.c src/wspolne/k1_komunikat.h | $(OBJ)
+$(OBJ)/test_bateria: testy/host/test_bateria.c src/nadzorca/bateria.c src/nadzorca/bateria.h src/wspolne/k1_komunikat.c src/wspolne/k1_komunikat.h \
+		src/wspolne/k1_io.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_bateria.c src/nadzorca/bateria.c src/wspolne/k1_komunikat.c
 
 $(OBJ)/podglad_grafiki: testy/host/podglad_grafiki.c $(GRAFIKA) | $(OBJ)
@@ -167,7 +168,8 @@ $(OBJ)/test_przybornik: testy/host/test_przybornik.c $(HOST_PRZYB) $(NAGL_P) $(N
 $(OBJ)/test_magazyn: testy/host/test_magazyn.c $(MAGAZYN) src/skarbiec/magazyn.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_magazyn.c $(MAGAZYN)
 
-$(OBJ)/test_instalator: testy/host/test_instalator.c src/instalator/gpt.c src/instalator/gpt.h src/nadzorca/dyski.c src/nadzorca/dyski.h | $(OBJ)
+$(OBJ)/test_instalator: testy/host/test_instalator.c src/instalator/gpt.c src/instalator/gpt.h src/nadzorca/dyski.c src/nadzorca/dyski.h \
+		src/wspolne/k1_io.h src/wspolne/k1_bajty.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/instalator -Isrc/nadzorca -o $@ testy/host/test_instalator.c src/instalator/gpt.c src/nadzorca/dyski.c
 
 $(OBJ)/test_uevent: testy/host/test_uevent.c src/nadzorca/uevent.c src/nadzorca/uevent.h | $(OBJ)

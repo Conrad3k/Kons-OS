@@ -41,7 +41,7 @@ static const struct k1_mount mounts[] = {
     { "sysfs", "/rdzen/jadro/sys", "sysfs", MS_RDONLY | MS_NOSUID | MS_NODEV | MS_NOEXEC, NULL },
     { "cgroup2", "/rdzen/jadro/sys/fs/cgroup", "cgroup2", MS_NOSUID | MS_NODEV | MS_NOEXEC,
       "nsdelegate" },
-    /* Placeholder for Blob Vault until M5: RAM only, not encrypted, lost on power-off. */
+    /* RAM only, lost on power-off: what must last is kept by skarbiec on the K1-DANE partition (M5). */
     { "dane", "/dane_uzytkownika", "tmpfs", MS_NOSUID | MS_NODEV | MS_NOEXEC,
       "mode=0711,size=16m,nr_inodes=4096" }, /* 0711: services may enter their own subdirectory */
 };

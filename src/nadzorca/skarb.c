@@ -26,13 +26,13 @@ void przejdz(enum etap_startu nowy, const char *powod)
         return;
     k1_log(TAG, "start: %s → %s (%s)", nazwa_etapu(etap), nazwa_etapu(nowy), powod);
     etap = nowy;
-    etap_od = teraz();
+    etap_od = k1_teraz();
 }
 
 enum etap_startu etap_startu(void)
 {
     /* no word from skarbiec in 20 s: the desktop anyway (the vault answers in well under a second) */
-    if (etap == E_STAN && teraz() - etap_od >= 20.0)
+    if (etap == E_STAN && k1_teraz() - etap_od >= 20.0)
         przejdz(E_PULPIT, "skarbiec milczy 20 s");
     return etap;
 }
@@ -129,7 +129,7 @@ void obsluz_skarbiec(void)
             przejdz(E_HASLO, "magazyn z hasłem");
             k1_log(TAG, "magazyn danych chroniony hasłem — ekran logowania");
             if (usluga_profilu(K1_PROFIL_LOGOWANIE)->pid <= 0)
-                usluga_profilu(K1_PROFIL_LOGOWANIE)->nastepny = teraz();
+                usluga_profilu(K1_PROFIL_LOGOWANIE)->nastepny = k1_teraz();
         } else if (poprzedni == K1_SKARB_ZABLOKOWANY && k.a != K1_SKARB_ZABLOKOWANY) {
             k1_log(TAG, "magazyn odblokowany — uruchamiam pulpit z zapisanymi ustawieniami");
             /* the password screen first (quietly), then ekran: the desktop starts with the new ekran */

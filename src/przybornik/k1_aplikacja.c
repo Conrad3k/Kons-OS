@@ -16,7 +16,7 @@ void k1_apl_odswiez(struct k1_apl *a)
     a->okno.brudna = 1;
 }
 
-const struct k1_motyw *k1_apl_motyw(const struct k1_apl *a)
+static const struct k1_motyw *k1_apl_motyw(const struct k1_apl *a)
 {
     return k1_motyw(a->k.ustawienia[K1_UST_MOTYW]);
 }

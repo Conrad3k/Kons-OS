@@ -3,6 +3,8 @@
 
 #include <string.h>
 
+#include "k1_bajty.h"
+
 /* Partition type GUIDs as stored on disk (the first three fields little-endian). */
 static const uint8_t TYP_EFI[16] = { 0x28, 0x73, 0x2a, 0xc1, 0x1f, 0xf8, 0xd2, 0x11,
                                      0xba, 0x4b, 0x00, 0xa0, 0xc9, 0x3e, 0xc9, 0x3b }; /* C12A7328-F81F-11D2-BA4B-00A0C93EC93B */
@@ -21,26 +23,6 @@ uint32_t k1_crc32(const void *dane, size_t n)
             c = (c >> 1) ^ (0xedb88320u & (0u - (c & 1u)));
     }
     return ~c;
-}
-
-static void z16(uint8_t *p, uint16_t v)
-{
-    p[0] = (uint8_t)v;
-    p[1] = (uint8_t)(v >> 8);
-}
-
-static void z32(uint8_t *p, uint32_t v)
-{
-    int i;
-    for (i = 0; i < 4; i++)
-        p[i] = (uint8_t)(v >> (8 * i));
-}
-
-static void z64(uint8_t *p, uint64_t v)
-{
-    int i;
-    for (i = 0; i < 8; i++)
-        p[i] = (uint8_t)(v >> (8 * i));
 }
 
 int k1_gpt_uklad(uint64_t bajty, uint32_t sektor, struct k1_gpt_uklad *u)
@@ -81,10 +63,10 @@ static void wpis(uint8_t *w, const uint8_t *typ, const uint8_t *losowe, uint64_t
     memset(w, 0, K1_GPT_WPIS);
     memcpy(w, typ, 16);
     guid(w + 16, losowe);
-    z64(w + 32, od);
-    z64(w + 40, do_);
+    k1_z64(w + 32, od);
+    k1_z64(w + 40, do_);
     for (i = 0; nazwa[i] != '\0' && i < 36; i++)
-        z16(w + 56 + 2 * i, (uint16_t)(unsigned char)nazwa[i]);
+        k1_z16(w + 56 + 2 * i, (uint16_t)(unsigned char)nazwa[i]);
 }
 
 static void naglowek(uint8_t *n, const struct k1_gpt_uklad *u, const uint8_t *dysk, uint64_t moj, uint64_t drugi,
@@ -92,18 +74,18 @@ static void naglowek(uint8_t *n, const struct k1_gpt_uklad *u, const uint8_t *dy
 {
     memset(n, 0, u->sektor);
     memcpy(n, "EFI PART", 8);
-    z32(n + 8, 0x00010000u);
-    z32(n + 12, 92);
-    z64(n + 24, moj);
-    z64(n + 32, drugi);
-    z64(n + 40, u->pierwszy);
-    z64(n + 48, u->ostatni);
+    k1_z32(n + 8, 0x00010000u);
+    k1_z32(n + 12, 92);
+    k1_z64(n + 24, moj);
+    k1_z64(n + 32, drugi);
+    k1_z64(n + 40, u->pierwszy);
+    k1_z64(n + 48, u->ostatni);
     memcpy(n + 56, dysk, 16);
-    z64(n + 72, wpisy_lba);
-    z32(n + 80, K1_GPT_WPISY);
-    z32(n + 84, K1_GPT_WPIS);
-    z32(n + 88, crc_wpisow);
-    z32(n + 16, k1_crc32(n, 92));
+    k1_z64(n + 72, wpisy_lba);
+    k1_z32(n + 80, K1_GPT_WPISY);
+    k1_z32(n + 84, K1_GPT_WPIS);
+    k1_z32(n + 88, crc_wpisow);
+    k1_z32(n + 16, k1_crc32(n, 92));
 }
 
 void k1_gpt_zbuduj(const struct k1_gpt_uklad *u, const uint8_t losowe[48], uint8_t *mbr, uint8_t *glowny,
@@ -129,8 +111,8 @@ void k1_gpt_zbuduj(const struct k1_gpt_uklad *u, const uint8_t losowe[48], uint8
     mbr[446 + 5] = 0xff;
     mbr[446 + 6] = 0xff;
     mbr[446 + 7] = 0xff;
-    z32(mbr + 446 + 8, 1);
-    z32(mbr + 446 + 12, rozmiar > 0xffffffffu ? 0xffffffffu : (uint32_t)rozmiar);
+    k1_z32(mbr + 446 + 8, 1);
+    k1_z32(mbr + 446 + 12, rozmiar > 0xffffffffu ? 0xffffffffu : (uint32_t)rozmiar);
     mbr[510] = 0x55;
     mbr[511] = 0xaa;
 }

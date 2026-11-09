@@ -74,7 +74,7 @@ static int odbierz_sterowanie(void)
     s.kl[wolny].uid = (uid_t)k.c;
     s.kl[wolny].rola = k.a;
     s.kl[wolny].apl = k.b;
-    s.kl[wolny].od = teraz();
+    s.kl[wolny].od = k1_teraz();
     if (k.a == K1_ROLA_WEJSCIE) {
         k1_log(TAG, "nowe źródło wejścia (uid %d)", (int)k.c);
         return 1;
@@ -124,7 +124,7 @@ static int przygotuj_tlo(void)
 static void przestaw_tryb(void)
 {
     int nr = s.nowy_tryb, i, stary = s.tryb_nr;
-    double t0 = teraz();
+    double t0 = k1_teraz();
     s.nowy_tryb = 0;
     if (zmien_tryb(nr) != 0) {
         k1_log(TAG, "nie udało się przełączyć na tryb %d — zostaje poprzedni", nr);
@@ -142,12 +142,12 @@ static void przestaw_tryb(void)
         if (!p->uzyta || p->rodzaj != K1_POW_OKNO)
             continue;
         p->x = p->x > s.W - 80 ? (s.W - p->w > 0 ? s.W - p->w : 0) : p->x;
-        p->y = p->y > s.H - 48 ? (s.H - p->h > PASEK_GORNY ? s.H - p->h : PASEK_GORNY) : p->y;
+        p->y = p->y > s.H - 48 ? (s.H - p->h > K1_PASEK_GORNY ? s.H - p->h : K1_PASEK_GORNY) : p->y;
     }
     s.nowe.n = s.buf[0].brud.n = s.buf[1].brud.n = 0;
     s.buf[0].ma_kursor = s.buf[1].ma_kursor = 0;
     uszkodz(0, 0, s.W, s.H);
-    k1_log(TAG, "tryb %ux%u @ %u Hz (zmiana: %.1f s)", s.tryb.hdisplay, s.tryb.vdisplay, s.tryb.vrefresh, teraz() - t0);
+    k1_log(TAG, "tryb %ux%u @ %u Hz (zmiana: %.1f s)", s.tryb.hdisplay, s.tryb.vdisplay, s.tryb.vrefresh, k1_teraz() - t0);
     for (i = 0; i < MAKS_KLIENTOW; i++)
         if (s.kl[i].fd >= 0 && s.kl[i].rola != K1_ROLA_WEJSCIE)
             wyslij(i, k1_komunikat_nowy(K1_KOM_WITAJ, 0, s.W, s.H, s.kl[i].rola, s.kl[i].apl, 0));
@@ -188,7 +188,7 @@ int main(void)
     k1_log(TAG, "tryby do wyboru: %d", s.n_trybow);
 
     ustawienia_wczytaj(); /* M5d: saved wallpaper, theme, pointer speed (before the first frame) */
-    t0 = teraz();
+    t0 = k1_teraz();
     if (przygotuj_tlo() != 0)
         k1_koniec(TAG, "brak pamięci na tło");
     k1_rysuj_kursor(s.kursor[0], 0);
@@ -207,7 +207,7 @@ int main(void)
     if (ustaw_crtc(s.buf[0].fb, &s.tryb) < 0)
         k1_koniec(TAG, "SETCRTC: %s", strerror(errno));
     s.przedni = 0;
-    k1_log(TAG, "pierwsza klatka: tapeta (%.1f s)", teraz() - t0);
+    k1_log(TAG, "pierwsza klatka: tapeta (%.1f s)", k1_teraz() - t0);
     ustawienia_po_starcie();
 
     for (;;) {
@@ -226,7 +226,7 @@ int main(void)
          * otherwise every mouse event (125–1000 a second) would compose a frame. */
         czekaj = 250;
         if (s.zmiana && s.brak_flip) {
-            double zostalo = s.ost_klatka + 1.0 / 60.0 - teraz();
+            double zostalo = s.ost_klatka + 1.0 / 60.0 - k1_teraz();
             czekaj = zostalo > 0 ? (int)(zostalo * 1000.0) + 1 : 0;
         }
         if (poll(pfd, 3 + MAKS_KLIENTOW, czekaj) < 0 && errno != EINTR)
@@ -246,13 +246,13 @@ int main(void)
             }
         if (s.nowy_tryb && !s.flip_w_toku)
             przestaw_tryb();
-        if (s.zmiana && !s.flip_w_toku && (!s.brak_flip || teraz() - s.ost_klatka >= 1.0 / 60.0)) {
+        if (s.zmiana && !s.flip_w_toku && (!s.brak_flip || k1_teraz() - s.ost_klatka >= 1.0 / 60.0)) {
             s.zmiana = 0;
-            s.ost_klatka = teraz();
+            s.ost_klatka = k1_teraz();
             pokaz();
         }
         /* Rate-limited status line (never key codes): used by the tests as evidence. */
-        t = teraz();
+        t = k1_teraz();
         if (t - t_log >= 0.5 && (s.x != ost_x || s.y != ost_y || s.wcisniety != ost_w) && !s.flip_w_toku && !s.zmiana) {
             k1_log(TAG, "kursor %d,%d przycisk %s (zdarzenia: klawiatura %lu, mysz %lu, odrzucone %lu)", (int)s.x,
                    (int)s.y, s.wcisniety ? "wciśnięty" : "puszczony", s.klawisze, s.ruchy, s.odrzucone);

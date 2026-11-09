@@ -19,9 +19,9 @@ int otworz_karte(void)
     return -1;
 }
 
-uint32_t wejscia_maska; /* event0..31 handed to the running wejscie */
+static uint32_t wejscia_maska; /* event0..31 handed to the running wejscie */
 
-int otworz_wejscie(int nr)
+static int otworz_wejscie(int nr)
 {
     char sciezka[64];
     snprintf(sciezka, sizeof sciezka, DEV "/input/event%d", nr);
@@ -63,21 +63,11 @@ int otworz_partycje_danych(int *ile)
     skarb_dane[0] = '\0';
     while (d != NULL && (de = readdir(d)) != NULL) {
         char sciezka[320], buf[512];
-        ssize_t n;
-        int fd;
         const char *p;
         if (de->d_name[0] == '.')
             continue;
         snprintf(sciezka, sizeof sciezka, SYS "/class/block/%s/uevent", de->d_name);
-        fd = open(sciezka, O_RDONLY | O_CLOEXEC);
-        if (fd < 0)
-            continue;
-        n = read(fd, buf, sizeof buf - 1);
-        close(fd);
-        if (n <= 0)
-            continue;
-        buf[n] = '\0';
-        if (strstr(buf, "\nPARTNAME=K1-DANE\n") == NULL)
+        if (k1_czytaj_plik(AT_FDCWD, sciezka, buf, sizeof buf) < 0 || strstr(buf, "\nPARTNAME=K1-DANE\n") == NULL)
             continue;
         p = strstr(buf, "DEVNAME=");
         if (p == NULL)
@@ -115,7 +105,7 @@ int otworz_partycje_danych(int *ile)
 
 /* Is a USB mass storage device bound (sysfs: an interface "2-1:1.0" under the usb-storage driver)?
  * Its disk shows up about a second later (usb-storage waits for the stick to settle). */
-int pamiec_usb_obecna(void)
+static int pamiec_usb_obecna(void)
 {
     DIR *d = opendir(SYS "/bus/usb/drivers/usb-storage");
     struct dirent *de;
@@ -130,7 +120,7 @@ int pamiec_usb_obecna(void)
 /* Has every bound USB mass storage interface got its disk already? The disk's sysfs path goes
  * through the interface: /sys/class/block/sda -> ../../devices/.../usb2/2-1/2-1:1.0/host6/.../block/sda
  * (the partitions are read before the disk shows up there: block/genhd.c add_disk). */
-int pamiec_usb_gotowa(void)
+static int pamiec_usb_gotowa(void)
 {
     DIR *d = opendir(SYS "/bus/usb/drivers/usb-storage");
     struct dirent *de;

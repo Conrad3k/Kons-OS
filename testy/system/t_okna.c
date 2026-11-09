@@ -15,7 +15,7 @@ int memfd(size_t rozmiar, int pieczecie)
 }
 
 /* Waits up to `ms` for a message of type `typ` from ekran on `fd`. */
-int czekaj_na(int fd, int typ, uint32_t obiekt, int ms)
+static int czekaj_na(int fd, int typ, uint32_t obiekt, int ms)
 {
     int i;
     for (i = 0; i < ms / 20; i++) {
@@ -36,7 +36,7 @@ int czekaj_na(int fd, int typ, uint32_t obiekt, int ms)
     return 0;
 }
 
-int wyslij_k(int fd, struct k1_komunikat m, int przekaz)
+static int wyslij_k(int fd, struct k1_komunikat m, int przekaz)
 {
     return k1_kanal_wyslij(fd, &m, sizeof m, przekaz) == 0;
 }

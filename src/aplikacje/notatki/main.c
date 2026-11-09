@@ -21,6 +21,7 @@
 #include "k1_log.h"
 #include "k1_skarb_klient.h"
 #include "k1_uslugi.h"
+#include "k1_teraz.h"
 
 #define TAG "K1-NOTATKI"
 #define FD_SKARBIEC 4
@@ -67,13 +68,6 @@ static int nad_wierszem = -1;  /* hover: row of the list, -2 = the new note butt
 static int pelno;              /* the limit of notes was hit (message in the footer) */
 static double zmiana;          /* when the open note last changed (0: saved) */
 static int zapis_blad, skarb = -1, tryb = -1; /* tryb: K1_SKARB_TRWALY / K1_SKARB_RAM */
-
-static double teraz(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
-}
 
 static int32_t szer_tekstu(void)
 {
@@ -569,7 +563,7 @@ static void wstaw(const char *s, uint32_t n)
     b->dl += n;
     kursor += n;
     b->tekst[b->dl] = '\0';
-    zmiana = teraz();
+    zmiana = k1_teraz();
     pytanie = 0;
     pelno = 0;
 }
@@ -580,7 +574,7 @@ static void usun(uint32_t od, uint32_t do_)
     b->dl -= do_ - od;
     b->tekst[b->dl] = '\0';
     kursor = od;
-    zmiana = teraz();
+    zmiana = k1_teraz();
     pytanie = 0;
     pelno = 0;
 }
@@ -730,7 +724,7 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
 /* Saved 0.8 s after the last change (a burst of typing is one write). */
 static int zegar(void)
 {
-    double zostalo = zmiana > 0 ? 0.8 - (teraz() - zmiana) : -1;
+    double zostalo = zmiana > 0 ? 0.8 - (k1_teraz() - zmiana) : -1;
     if (zmiana > 0 && zostalo <= 0) {
         zapisz();
         return -1;

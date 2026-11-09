@@ -10,7 +10,7 @@ void t_parent(void)
           "rodzic=%ld (%s), jego rodzic=%ld", pp, comm, ppid_of(pp));
 }
 
-int cmp_str(const void *a, const void *b)
+static int cmp_str(const void *a, const void *b)
 {
     return strcmp(*(char *const *)a, *(char *const *)b);
 }
@@ -317,7 +317,7 @@ static char *inventory[32];
 static size_t inventory_n;
 static int setuid_found;
 
-int inventory_cb(const char *path, const struct stat *st, int type, struct FTW *ftw)
+static int inventory_cb(const char *path, const struct stat *st, int type, struct FTW *ftw)
 {
     (void)ftw;
     if (st->st_mode & (S_ISUID | S_ISGID))

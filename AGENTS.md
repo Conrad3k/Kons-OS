@@ -14,7 +14,7 @@ statycznie z musl. Budowany skryptami w `scripts/`, testowany w QEMU, CI w GitHu
 - Mapa repo, konwencje, wersje: `docs/ARCHITEKTURA.md`. Testy: `docs/TESTY.md`. Wygląd: `docs/WYGLAD.md`.
 - Historia zmian: `CHANGELOG.md`; wersja: `VERSION` (SemVer, tagi `k1-vX.Y.Z`).
 - Stara dystrybucja Kons-OS (Debian): gałąź `archiwum/debian-0.1.2` — nie rozwijamy.
-- **Teraz:** przed M7 najpierw `docs/PRZED-M7.md` (porządki po 0.7.1, wersja 0.7.2).
+- **Teraz:** M7 (Sieć) — `docs/DO_ZROBIENIA.txt`. Porządki przed M7 skończone w 0.7.3 (ADR 0023).
 
 ## Właściciel
 - Pisze po polsku i nie jest programistą. Dokumentacja, PR-y, komunikaty w systemie i raporty — po
@@ -32,9 +32,8 @@ statycznie z musl. Budowany skryptami w `scripts/`, testowany w QEMU, CI w GitHu
   się tylko przez ADR.
 
 ## Praca we dwóch (Claude i Codex)
-- **Jedno zadanie — jeden asystent.** Zanim zaczniesz punkt z `docs/PRZED-M7.md` (albo z
-  `docs/DO_ZROBIENIA.txt`), sprawdź otwarte PR-y i oznacz punkt `[w toku: Claude|Codex, gałąź …]` w tym
-  samym pierwszym commicie; po scaleniu zmień na `[x]`. Nie ruszaj punktu oznaczonego przez drugiego.
+- **Jedno zadanie — jeden asystent.** Zanim zaczniesz punkt z `docs/DO_ZROBIENIA.txt`, sprawdź otwarte
+  PR-y i oznacz punkt `[w toku: Claude|Codex, gałąź …]` w tym samym pierwszym commicie; po scaleniu zmień na `[x]`. Nie ruszaj punktu oznaczonego przez drugiego.
 - Własne gałęzie: Claude `claude/…`, Codex `codex/…`. Zawsze od świeżego `main`; przed PR-em zaktualizuj
   gałąź z `main` (merge, bez przepisywania historii cudzych gałęzi).
 - Małe PR-y, jeden temat każdy. Pliki, które zmieniają prawie wszyscy (`VERSION`, `CHANGELOG.md`,

@@ -8,26 +8,13 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "k1_io.h"
 #include "k1_komunikat.h"
-
-static int czytaj(const char *sciezka, char *buf, size_t n)
-{
-    ssize_t r;
-    int fd = open(sciezka, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
-    if (fd < 0)
-        return -1;
-    r = read(fd, buf, n - 1);
-    close(fd);
-    if (r <= 0)
-        return -1;
-    buf[r] = '\0';
-    return 0;
-}
 
 static int liczba(const char *sciezka, unsigned long long *v)
 {
     char buf[32], *e;
-    if (czytaj(sciezka, buf, sizeof buf) != 0 || buf[0] < '0' || buf[0] > '9')
+    if (k1_czytaj_plik(AT_FDCWD, sciezka, buf, sizeof buf) < 0 || buf[0] < '0' || buf[0] > '9')
         return -1;
     *v = strtoull(buf, &e, 10);
     return *e == '\0' || *e == '\n' ? 0 : -1;
@@ -130,7 +117,7 @@ int k1_dyski_skanuj(const char *sys, struct k1_dyski *w)
         if (!dobra_nazwa(de->d_name))
             continue;
         snprintf(sciezka, sizeof sciezka, "%s/%s/uevent", katalog, de->d_name);
-        if (czytaj(sciezka, buf, sizeof buf) != 0)
+        if (k1_czytaj_plik(AT_FDCWD, sciezka, buf, sizeof buf) < 0)
             continue;
         efi = strstr(buf, "\nPARTNAME=K1-EFI\n") != NULL;
         dane = strstr(buf, "\nPARTNAME=K1-DANE\n") != NULL;

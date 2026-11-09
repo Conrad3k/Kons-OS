@@ -18,19 +18,18 @@ uruchom() {
     QPID=$!
 }
 sprawdz() { # NAZWA — scenariusz w Pythonie (niżej) na działającej maszynie
-    K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I "$K1_BUDOWA/m4.py" "$TESTY/m4-$1.log" "$TESTY/m4-$1.sock" "$TESTY" "$K1_REPO/scripts/zrzut-ekranu.sh" \
-        "$CZAS" "$1" || r=1
-    kill $QPID 2>/dev/null || true; wait $QPID 2>/dev/null || true
+    K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I "$K1_BUDOWA/m4.py" "$TESTY/m4-$1.log" "$TESTY/m4-$1.sock" "$TESTY" "$CZAS" "$1" || r=1
+    zamknij_qemu "$TESTY/m4-$1.sock" $QPID
 }
 
 cat > "$K1_BUDOWA/m4.py" <<'PY'
-import os, re, sys, time
+import os, re, sys
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
-log, mon, out, zrzut_sh, limit, tryb = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], float(sys.argv[5]), sys.argv[6]
-q = Maszyna(log, mon, out, zrzut_sh, limit, "m4")
+log, mon, out, limit, tryb = sys.argv[1], sys.argv[2], sys.argv[3], float(sys.argv[4]), sys.argv[5]
+q = Maszyna(log, mon, out, limit, "m4")
 tekst, czekaj, monitor, zrzut, sprawdz = q.tekst, q.czekaj, q.monitor, q.zrzut, q.sprawdz
-kursor_teraz, idz, klik, pisz, kursor, wyniki = q.kursor_teraz, q.idz, q.klik, q.pisz, q.kursor, q.wyniki
+kursor_teraz, idz, klik, pisz, kursor, wyniki, przycisk = q.kursor_teraz, q.idz, q.klik, q.pisz, q.kursor, q.wyniki, q.przycisk
 
 jasny = lambda c: min(c) > 200
 ciemny = lambda c: max(c) < 70
@@ -40,19 +39,16 @@ if tryb == "haslo":
     # M5e: the vault has a password now — the password screen instead of the desktop
     e = czekaj(r"K1-LOGOWANIE: ekran hasła gotowy", czas=90)
     sprawdz("magazyn z hasłem: zamiast pulpitu ekran hasła (wariant B „Zegar”)", e and "K1-GUI: pulpit gotowy" not in tekst())
-    time.sleep(2)
     zrzut("haslo-1-ekran")
     pisz("z", "l", "e", "1", "ret")
     sprawdz("złe hasło odrzucone (skarbiec i ekran hasła)",
             czekaj(r"K1-SKARBIEC: złe hasło", czas=90) and czekaj(r"K1-LOGOWANIE: złe hasło", czas=30))
-    time.sleep(1)
     zrzut("haslo-2-zle")
     pisz("t", "a", "j", "n", "e", "1", "ret")
     sprawdz("dobre hasło: magazyn odblokowany", czekaj(r"K1-SKARBIEC: magazyn odblokowany", czas=120))
     sprawdz("po odblokowaniu pulpit z zapisanymi ustawieniami (tapeta Zmierzch, ciemny motyw)",
             czekaj(r"K1-EKRAN: ustawienia wczytane ze skarbca \(tapeta 1, motyw 1", czas=90) and
             czekaj(r"K1-GUI: pulpit gotowy", czas=90))
-    time.sleep(3)
     zrzut("haslo-3-pulpit")
     # 0.6.3: Start → Wyloguj: the apps close, the vault locks again, the password screen comes back
     g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+)", czas=10)
@@ -67,7 +63,6 @@ if tryb == "haslo":
     sprawdz("Start → Wyloguj: magazyn zamknięty, z powrotem ekran hasła",
             czekaj(r"K1-NADZORCA: wylogowanie", czas=30) and
             czekaj(r"K1-LOGOWANIE: ekran hasła gotowy", od=1, czas=90))
-    time.sleep(2)
     zrzut("haslo-4-wylogowano")
     pisz("t", "a", "j", "n", "e", "1", "ret")
     sprawdz("po wylogowaniu hasło znów otwiera pulpit",
@@ -100,16 +95,13 @@ if tryb == "ponownie":
         sprawdz(f"rozdzielczość {u.group(1)}x{u.group(2)} wróciła",
                 czekaj(rf"K1-EKRAN: tryb {u.group(1)}x{u.group(2)} @ \d+ Hz \(zmiana", czas=30))
         g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", od=1, czas=30) or g
-    time.sleep(2)
-    k1 = list(re.finditer(r"K1-EKRAN: kursor (\d+),(\d+) ", tekst()))[-1]
-    kursor[:] = [int(k1.group(1)), int(k1.group(2))]
+    kursor[:] = list(kursor_teraz())
     ax, ay, krok = int(g.group(3)), int(g.group(4)), int(g.group(5))
     klik(ax + krok, ay)  # Notatki
     sprawdz("notatki wróciły: 2, na górze ostatnio zmieniona „Druga” (5 B)",
             czekaj(r"K1-NOTATKI: notatki wczytane: 2 \(pierwsza: 5 B\)", czas=40))
     o = czekaj(r"K1-EKRAN: okno (\d+) \(notatki\) (\d+)x(\d+) w (\d+),(\d+)", czas=20)
     u_n = czekaj(r"K1-NOTATKI: układ: nowa (\d+),(\d+); lista od (\d+),(\d+) co (\d+); usuń (\d+),(\d+), potwierdź (\d+)")
-    time.sleep(2)
     zrzut("ponownie-notatki")
     if o and u_n:
         nx, ny = int(o.group(4)), int(o.group(5))
@@ -117,7 +109,6 @@ if tryb == "ponownie":
         klik(nx + lx, ny + ly + lk)  # the second row: „Zażółć K1”
         sprawdz("Notatki: druga na liście to „Zażółć K1” (13 B)", czekaj(r"K1-NOTATKI: otwarto notatkę \(13 B\)"))
         klik(nx + int(u_n.group(6)), ny + int(u_n.group(7)))   # Usuń notatkę
-        time.sleep(0.5)
         klik(nx + int(u_n.group(8)), ny + int(u_n.group(7)))   # Usuń (potwierdzenie)
         sprawdz("Notatki: usunięcie z potwierdzeniem (została 1)", czekaj(r"K1-NOTATKI: usunięto notatkę \(zostało: 1\)"))
     # M5e: Ustawienia → Hasło: set the password "tajne1" (the next boot asks for it)
@@ -126,16 +117,12 @@ if tryb == "ponownie":
     sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
     if uo and sk:
         ux, uy = int(uo.group(4)), int(uo.group(5))
-        time.sleep(1)
         klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + 5 * int(sk.group(3)))
         hp = czekaj(r"K1-USTAWIENIA: hasło: przełącznik (\d+),(\d+);", czas=20)
-        time.sleep(2)
         if hp:
             klik(ux + int(hp.group(1)), uy + int(hp.group(2)))
-            time.sleep(1)
             pisz("t", "a", "j", "n", "e", "1", "tab", "t", "a", "j", "n", "e", "1", "ret")
     sprawdz("Ustawienia → Hasło: hasło ustawione (skarbiec)", czekaj(r"K1-SKARBIEC: hasło ustawione", czas=90))
-    time.sleep(2)
     zrzut("ponownie-haslo")
     sprawdz("brak 'Kernel panic', błędów i zablokowanych wywołań", "Kernel panic" not in tekst() and "BŁĄD" not in tekst()
             and "zabronione wywołanie" not in tekst())
@@ -143,8 +130,8 @@ if tryb == "ponownie":
 W, H = int(t.group(1)), int(t.group(2))
 sx, sy, ax, ay, krok = (int(g.group(i)) for i in range(1, 6))
 kursor[:] = [int(k0.group(1)), int(k0.group(2))]
-time.sleep(1.5)
-w, h, px = zrzut(f"{tryb}-1-pulpit")
+w, h, px = zrzut(f"{tryb}-1-pulpit", gdy=lambda w, h, px: (w, h) == (W, H) and max(px(W // 2, 6)) < 120
+                 and jasny(px(W // 2, ay - 26)))
 sprawdz(f"zrzut: rozmiar {w}x{h} = tryb {W}x{H}", (w, h) == (W, H))
 sprawdz("zrzut: górny pasek ciemny, dolny pasek jasny (motyw jasny)", max(px(W // 2, 6)) < 120 and jasny(px(W // 2, ay - 26)),
         f"{px(W // 2, 6)} {px(W // 2, ay - 26)}")
@@ -168,12 +155,12 @@ o = czekaj(r"K1-EKRAN: okno (\d+) \(notatki\) (\d+)x(\d+) w (\d+),(\d+)")
 sprawdz("Notatki: nadzorca uruchamia aplikację, ekran pokazuje okno", o and czekaj(r"uruchomiono notatki \(pid \d+, uid 201\)"))
 if not o: sys.exit(1)
 nid, nw, nh, nx, ny = (int(o.group(i)) for i in range(1, 6))
-time.sleep(2)
 # "Zażółć K1" (AltGr = polski układ programisty)
 pisz("shift-z", "a", "alt_r-z", "alt_r-o", "alt_r-l", "alt_r-c", "spc", "shift-k", "1")
 sprawdz("Notatki: polskie znaki wpisane i zapisane automatycznie (9 znaków)", czekaj(r"K1-NOTATKI: zapisano notatkę \(9 znaków\)"))
-w, h, px = zrzut("3-notatki")
-ciemne = sum(1 for x in range(nx + 256, nx + 372) for y in range(ny + 58, ny + 76) if max(px(x, y)) < 110)
+ciemne_w = lambda px: sum(1 for x in range(nx + 256, nx + 372) for y in range(ny + 58, ny + 76) if max(px(x, y)) < 110)
+w, h, px = zrzut("3-notatki", gdy=lambda w, h, px: ciemne_w(px) > 40)
+ciemne = ciemne_w(px)
 sprawdz("zrzut: tekst w oknie Notatek", ciemne > 40, f"ciemnych pikseli: {ciemne}")
 # 0.5.8: a second note („Druga”) — the list keeps both, the last changed on top
 u_n = czekaj(r"K1-NOTATKI: układ: nowa (\d+),(\d+); lista od (\d+),(\d+) co (\d+)")
@@ -184,8 +171,8 @@ if u_n:
     sprawdz("Notatki: druga notatka zapisana (5 znaków)", czekaj(r"K1-NOTATKI: zapisano notatkę \(5 znaków\)"))
     zrzut("3-notatki-dwie")
 # przeciąganie okna za pasek tytułu
-idz(nx + 200, ny + 20); time.sleep(0.3); monitor("mouse_button 1"); time.sleep(0.3)
-idz(nx + 320, ny + 80); time.sleep(0.5); monitor("mouse_button 0")
+idz(nx + 200, ny + 20); przycisk(True)
+idz(nx + 320, ny + 80); przycisk(False)
 sprawdz("okno przeciągnięte za pasek tytułu", czekaj(rf"K1-EKRAN: okno {nid} przesunięte do {nx + 120},{ny + 60}"))
 
 # Zegar z dolnego paska
@@ -193,8 +180,8 @@ klik(ax, ay)
 z = czekaj(r"K1-EKRAN: okno (\d+) \(zegar\) (\d+)x(\d+) w (\d+),(\d+)")
 sprawdz("Zegar: uruchomiony z dolnego paska", z)
 if z:
-    zx, zy = int(z.group(4)), int(z.group(5)); time.sleep(2.5)
-    w, h, px = zrzut("4-zegar")
+    zx, zy = int(z.group(4)), int(z.group(5))
+    w, h, px = zrzut("4-zegar", gdy=lambda w, h, px: akcent(px(zx + 140, zy + 172)))
     sprawdz("zrzut: tarcza zegara (środek w kolorze akcentu)", akcent(px(zx + 140, zy + 172)), str(px(zx + 140, zy + 172)))
 
 # Ustawienia: ciemny motyw i inna tapeta
@@ -205,16 +192,13 @@ sprawdz("Ustawienia: uruchomione z dolnego paska", u and l)
 if u and l:
     uid_, ux, uy = int(u.group(1)), int(u.group(4)), int(u.group(5))
     bx, by, bw, bh, tx, ty, tk = (int(l.group(i)) for i in range(1, 8))
-    time.sleep(1.5)
     klik(ux + bx + bw * 3 // 4, uy + by + bh // 2)
     sprawdz("ciemny motyw: ekran przyjmuje ustawienie tylko od Ustawień", czekaj(r"K1-EKRAN: ustawienie 1=1"))
-    time.sleep(2.5)
-    w, h, px = zrzut("5-ciemny")
+    w, h, px = zrzut("5-ciemny", gdy=lambda w, h, px: ciemny(px(ux + 600, uy + 400)))
     sprawdz("zrzut: okno Ustawień w ciemnym motywie", ciemny(px(ux + 600, uy + 400)), str(px(ux + 600, uy + 400)))
     klik(ux + tx + tk, uy + ty)
     sprawdz("tapeta „Zmierzch” ustawiona", czekaj(r"K1-EKRAN: tapeta 1 "))
-    time.sleep(2.5)
-    w, h, px = zrzut("6-tapeta")
+    w, h, px = zrzut("6-tapeta", gdy=lambda w, h, px: px(12, H - 12)[2] > px(12, H - 12)[0])
     c = px(12, H - 12)
     sprawdz("zrzut: nowa tapeta (fiolet/niebieski w rogu)", c[2] > c[0], str(c))
     # Ustawienia → Ekran: inna rozdzielczość, pulpit układa się od nowa (karta bochs ma wiele trybów)
@@ -235,8 +219,7 @@ if u and l:
         if nowy and g2:
             W, H = cw, ch
             sx, sy, ax, ay, krok = (int(g2.group(i)) for i in range(1, 6))
-            time.sleep(2.5)
-            w, h, px = zrzut("7-rozdzielczosc")
+            w, h, px = zrzut("7-rozdzielczosc", gdy=lambda w, h, px: (w, h) == (W, H) and max(px(W - 8, 6)) < 120)
             sprawdz(f"zrzut: obraz {w}x{h} = {cel}, górny pasek na całą szerokość", (w, h) == (W, H)
                     and max(px(W - 8, 6)) < 120, f"{w}x{h} {px(W - 8, 6)}")
     klik(ax + 2 * krok, ay)
@@ -251,11 +234,12 @@ sprawdz("Zasoby: uruchomione z dolnego paska, dane od nadzorcy (procesor, pamię
 sprawdz("Zasoby: wiersz baterii (QEMU bez baterii: zasilanie z sieci)",
         czekaj(r"K1-ZASOBY: bateria: Brak baterii — zasilanie z sieci", czas=10))
 if zs:
-    zx, zy = int(zs.group(4)), int(zs.group(5)); time.sleep(8)
-    w, h, px = zrzut("8-zasoby")
-    # wykres pamięci: linia w kolorze akcentu (motyw ciemny); po 8 s ma ok. 7 próbek (≈ 50 px
-    # szerokości przy prawej krawędzi) — liczymy każdą kolumnę, bo linia jest płaska i cienka
-    linia = sum(1 for x in range(zx + 32, zx + 536) for y in range(zy + 200, zy + 276) if akcent(px(x, y)))
+    zx, zy = int(zs.group(4)), int(zs.group(5))
+    # wykres pamięci: linia w kolorze akcentu (motyw ciemny), próbka co sekundę; ok. 7 próbek to ≈ 50 px
+    # szerokości przy prawej krawędzi — liczymy każdą kolumnę, bo linia jest płaska i cienka
+    linia_w = lambda px: sum(1 for x in range(zx + 32, zx + 536) for y in range(zy + 200, zy + 276) if akcent(px(x, y)))
+    w, h, px = zrzut("8-zasoby", gdy=lambda w, h, px: linia_w(px) >= 30, czas=60)
+    linia = linia_w(px)
     sprawdz("zrzut: wykres pamięci w oknie Zasobów", linia >= 30, f"pikseli linii: {linia}")
 
 # 0.7.1: Kalkulator z dolnego paska (piąta ikona): klawiatura, mysz, dzielenie przez zero
@@ -266,7 +250,6 @@ sprawdz("Kalkulator: uruchomiony z dolnego paska", ko and ku)
 if ko and ku:
     kx, ky = int(ko.group(4)) + int(ku.group(1)), int(ko.group(5)) + int(ku.group(2))
     dx, dy = int(ku.group(3)), int(ku.group(4))
-    time.sleep(1)
     pisz("1", "2", "kp_add", "7", "kp_multiply", "3", "ret")  # od lewej do prawej: (12 + 7) × 3
     sprawdz("Kalkulator z klawiatury: 12 + 7 × 3 = 57", czekaj(r"K1-KALKULATOR: klawisz = → 57\n", czas=20))
     klik(kx, ky - dy)                            # C
@@ -277,7 +260,6 @@ if ko and ku:
     klik(kx + dx, ky + 2 * dy)                   # 2
     klik(kx + 3 * dx, ky + 3 * dy)               # =
     sprawdz("Kalkulator myszą: C, 1 + 0,2 = 1,2", czekaj(r"K1-KALKULATOR: klawisz = → 1,2\n", czas=20))
-    time.sleep(1)
     zrzut("9-kalkulator")
     pisz("5", "kp_divide", "0", "ret")
     sprawdz("Kalkulator: dzielenie przez zero → komunikat, nie awaria",

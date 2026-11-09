@@ -61,13 +61,6 @@ int sterowanie = -1;  /* our end of ekran's control channel */
 int zero = -1;        /* /dev/null for fds 0 and 1 of services */
 int gui_kanal = -1;     /* our end of gui's request channel (gui's fd 4) */
 int gui_kanal_uid = -1; /* who is on the other end of it: gui, or the password screen */
-double teraz(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
-}
-
 struct usluga *skarbiec(void)
 {
     return usluga_profilu(K1_PROFIL_SKARBIEC);
@@ -78,11 +71,11 @@ struct usluga *ekran(void)
     return usluga_profilu(K1_PROFIL_EKRAN);
 }
 
-void wypisz_linie(struct usluga *u)
+static void wypisz_linie(struct usluga *u)
 {
     char wyj[LOG_LINIA + 64];
     size_t tl = strlen(u->tag);
-    double t = teraz();
+    double t = k1_teraz();
     int ma_tag;
 
     u->zetony += (t - u->ost_zeton) * LOG_NA_SEKUNDE;
@@ -154,7 +147,7 @@ void zamknij_log(struct usluga *u)
 
 /* Places `fd` at number `cel` in the child (cel >= 3). Descriptors are first moved above 64 so
  * that dup2 never overwrites one that is still needed. */
-void ustaw_fd(int fd, int cel)
+static void ustaw_fd(int fd, int cel)
 {
     if (dup2(fd, cel) < 0)
         _exit(126);
@@ -206,7 +199,7 @@ pid_t uruchom(struct usluga *u, const struct k1_profil *p, const int *fds, int n
     u->log = potok[0];
     u->dl = 0;
     u->zetony = 2 * LOG_NA_SEKUNDE;
-    u->ost_zeton = teraz();
+    u->ost_zeton = k1_teraz();
     u->pid = pid;
     return pid;
 }
@@ -327,7 +320,7 @@ void start(struct usluga *u)
         int para[2], ile, dysk = otworz_partycje_danych(&ile);
         /* A USB stick shows up a moment after the kernel started: wait for it (czekaj_na_dane). */
         if (dysk < 0 && ile == 0 && etap_startu() == E_DANE && czekaj_na_dane(od_startu_systemu())) {
-            u->nastepny = teraz() + 0.25;
+            u->nastepny = k1_teraz() + 0.25;
             return;
         }
         przejdz(E_STAN, dysk >= 0 ? "partycja danych jest" : "bez partycji danych");
@@ -341,7 +334,7 @@ void start(struct usluga *u)
         if (k1_kanal_utworz(para) != 0) {
             if (dysk >= 0)
                 close(dysk);
-            u->nastepny = teraz() + 1.0;
+            u->nastepny = k1_teraz() + 1.0;
             return;
         }
         fds[n++] = para[0]; /* fd 3: control channel (its end checks us) */
@@ -366,13 +359,13 @@ void start(struct usluga *u)
     if (u->rodzaj == R_EKRAN) {
         int para[2], karta, skarb;
         if (etap_startu() == E_DANE) { /* skarbiec first (it may still be waiting for the data partition) */
-            u->nastepny = teraz() + 0.25;
+            u->nastepny = k1_teraz() + 0.25;
             return;
         }
         karta = otworz_karte();
         if (karta < 0) {
             k1_log(TAG, "brak karty graficznej — ekran nie zostanie uruchomiony");
-            u->nastepny = teraz() + 4.0;
+            u->nastepny = k1_teraz() + 4.0;
             return;
         }
         if (k1_kanal_utworz(para) != 0) {
@@ -406,16 +399,16 @@ void start(struct usluga *u)
     if (u->profil == K1_PROFIL_LOGOWANIE && etap_startu() != E_HASLO)
         return; /* not scheduled: started when skarbiec reports a locked vault */
     if (u->profil == K1_PROFIL_GUI && etap_startu() != E_PULPIT) {
-        u->nastepny = teraz() + 0.25;
+        u->nastepny = k1_teraz() + 0.25;
         return;
     }
     if (ekran()->pid <= 0) {
-        u->nastepny = teraz() + 0.5; /* wait for ekran */
+        u->nastepny = k1_teraz() + 0.5; /* wait for ekran */
         return;
     }
     fds[n] = kanal_do_ekranu(u->rola, u->aplikacja, (int)p->uid);
     if (fds[n] < 0) {
-        u->nastepny = teraz() + 1.0;
+        u->nastepny = k1_teraz() + 1.0;
         return;
     }
     n++;
@@ -427,7 +420,7 @@ void start(struct usluga *u)
             if (r < 0) {
                 for (i = 0; i < n; i++)
                     close(fds[i]);
-                u->nastepny = teraz() + 1.0;
+                u->nastepny = k1_teraz() + 1.0;
                 return;
             }
             n += r;
@@ -436,7 +429,7 @@ void start(struct usluga *u)
     if (uruchom(u, p, fds, n) > 0)
         k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
     else
-        u->nastepny = teraz() + 1.0;
+        u->nastepny = k1_teraz() + 1.0;
     for (i = 0; i < n; i++)
         close(fds[i]);
 }
@@ -450,7 +443,7 @@ void opisz(const char *nazwa, int status)
         k1_log(TAG, "%s zakończony sygnałem %d", nazwa, WTERMSIG(status));
 }
 
-double opoznienie(unsigned awarie)
+static double opoznienie(unsigned awarie)
 {
     static const double d[] = { 0.2, 1.0, 2.0, 4.0, 4.0 };
     return d[awarie < N(d) ? awarie : N(d) - 1];
@@ -458,7 +451,7 @@ double opoznienie(unsigned awarie)
 
 void zakonczona(struct usluga *u, int status)
 {
-    double t = teraz();
+    double t = k1_teraz();
     size_t i;
 
     opisz(u->nazwa, status);

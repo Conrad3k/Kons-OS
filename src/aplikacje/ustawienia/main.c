@@ -1,6 +1,6 @@
 /* K1 Ustawienia — native application: the first settings (M4, ADR 0008). The only client ekran
- * accepts settings changes from (role + UID checked by ekran). Settings live in ekran's memory
- * until M5 (Blob Vault); the screen mode list comes from ekran (K1_KOM_TRYB). The battery state and
+ * accepts settings changes from (role + UID checked by ekran), which keeps them in skarbiec (M5d);
+ * the screen mode list comes from ekran (K1_KOM_TRYB). The battery state and
  * its history since boot come from the supervisor on fd 4 (one way, sender UID 0 checked; 0.5.5).
  * Sandbox: UID 202, seccomp (base + memfd_create, ftruncate), no paths.
  * Documentation: docs/komponenty/aplikacje.md. */

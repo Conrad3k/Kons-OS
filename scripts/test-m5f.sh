@@ -28,13 +28,13 @@ uruchom() {
     LOG=$TESTY/m5f-$nazwa.log MON=$TESTY/m5f-$nazwa.sock
     "$K1_REPO/scripts/uruchom-qemu.sh" --log "$LOG" --monitor "$MON" --czas "$CZAS" "$@" &
     QPID=$!
-    K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$tryb" "$LOG" "$MON" "$TESTY" "$K1_REPO/scripts/zrzut-ekranu.sh" "$CZAS" <<'PY' || r=1
-import os, sys, time
+    K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$tryb" "$LOG" "$MON" "$TESTY" "$CZAS" <<'PY' || r=1
+import os, sys
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
 tryb = sys.argv[1]
-q = Maszyna(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], "m5f")
-czekaj, sprawdz, tekst, monitor, klik = q.czekaj, q.sprawdz, q.tekst, q.monitor, q.klik
+q = Maszyna(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], "m5f")
+czekaj, sprawdz, tekst, monitor, klik, cisza = q.czekaj, q.sprawdz, q.tekst, q.monitor, q.klik, q.cisza
 def zrzut(nazwa): q.zrzut(nazwa)
 def koniec():
     q.czysty_log()
@@ -51,7 +51,7 @@ if tryb == "z-dysku":
             czekaj(r"K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE", czas=10))
     sprawdz("start z dysku: pulpit wie, że K1 jest zainstalowany (Start → Wyloguj dostępne)",
             czekaj(r"K1-GUI: K1 zainstalowany na tym komputerze: Wyloguj dostępne", czas=10))
-    time.sleep(2); zrzut("2-z-dysku")
+    zrzut("2-z-dysku")
 if tryb == "po-aktualizacji":
     sprawdz("start z dysku po aktualizacji (pendrive też podłączony): magazyn dysku otwarty — dane przetrwały",
             czekaj(r"K1-SKARBIEC: magazyn otwarty", czas=10) and "utworzono nowy magazyn" not in tekst()
@@ -67,7 +67,6 @@ if tryb == "wycofanie":
     koniec()
 
 # Instalator from the Start menu (5th row)
-time.sleep(2)
 klik(int(g.group(1)), int(g.group(2)))
 m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+)", czas=20)
 sprawdz("menu Start otwarte", m)
@@ -82,25 +81,23 @@ if not (o and d): koniec()
 if tryb == "z-dysku":  # 0.7.2: not "run K1 from a stick" — K1 runs from this disk
     sprawdz("start z dysku: Instalator wie, że K1 jest zainstalowany (nie prosi o pendrive)",
             d.group(2) == "brak" and "K1 działa z dysku" in d.group(0), d.group(0))
-    time.sleep(1); zrzut("2-instalator-z-dysku")
+    zrzut("2-instalator-z-dysku")
     koniec()
 ox, oy = int(o.group(4)), int(o.group(5))
 px, py = ox + int(d.group(6)), oy + int(d.group(7))
-time.sleep(1)
 
 if tryb == "z-iso":
     sprawdz("start z obrazu .iso: Instalator mówi, że nie ma skąd kopiować (0.6.1)",
             d.group(2) == "brak", d.group(0))
-    time.sleep(1); zrzut("0-z-iso")
+    zrzut("0-z-iso")
     klik(px, py)  # where the button would be: nothing may start
-    time.sleep(2)
     sprawdz("bez kopii systemu nie ma przycisku „Zainstaluj” (nic się nie zaczyna)",
-            "potwierdzono" not in tekst() and "instalator: odmowa" not in tekst())
+            cisza(r"potwierdzono|instalator: odmowa", 3))
     koniec()
 
 if tryb == "uszkodzony":  # M6a: one byte of the system on the stick changed
-    klik(px, py); time.sleep(1)
-    monitor("sendkey u", "sendkey s", "sendkey u", "sendkey n"); time.sleep(1)
+    klik(px, py)
+    monitor("sendkey u", "sendkey s", "sendkey u", "sendkey n")
     klik(px, py)
     sprawdz("uszkodzony system na pendrivie: instalator odmawia przed zapisem (skrót niezgodny z manifestem)",
             czekaj(r"K1-INSTALATOR: źródło [0-9.]+: skrót nie zgadza się z manifestem", czas=120)
@@ -111,9 +108,9 @@ if tryb == "uszkodzony":  # M6a: one byte of the system on the stick changed
 if tryb == "starsza":  # M6a: the disk says 99.0.0 — the stick is older
     sprawdz("na dysku nowsza wersja (99.0.0) niż na pendrivie",
             czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: tak \(dane otwarte\) \(wersja 6488064\)", czas=5))
-    klik(px, py); time.sleep(1); zrzut("5-starsza")
-    klik(px, py); time.sleep(2)
-    sprawdz("powrót do starszej wersji zablokowany (przycisk nieaktywny, nic się nie zaczyna)", "potwierdzono" not in tekst())
+    klik(px, py); zrzut("5-starsza")
+    klik(px, py)
+    sprawdz("powrót do starszej wersji zablokowany (przycisk nieaktywny, nic się nie zaczyna)", cisza(r"potwierdzono", 3))
     koniec()
 
 if tryb == "instaluj":
@@ -122,19 +119,17 @@ if tryb == "instaluj":
     zrzut("1-lista")
     klik(ox + int(d.group(3)), oy + int(d.group(4)))  # the disk
     klik(px, py)                                      # Zainstaluj
-    time.sleep(1)
     klik(px, py)                                      # without „USUŃ”: nothing happens
-    time.sleep(1)
-    sprawdz("bez wpisania „USUŃ” instalacja się nie zaczyna", "potwierdzono" not in tekst())
+    sprawdz("bez wpisania „USUŃ” instalacja się nie zaczyna", cisza(r"potwierdzono", 3))
     monitor("sendkey u", "sendkey s", "sendkey u", "sendkey alt_r-n")  # usuń
-    time.sleep(1); zrzut("1-potwierdzenie")
+    zrzut("1-potwierdzenie")
     klik(px, py)
     sprawdz("potwierdzone po wpisaniu „usuń”", czekaj(r"K1-INSTALACJA: potwierdzono: instalacja na dysku 1", czas=10))
     sprawdz("nadzorca: program zapisujący w klatce (UID 105), źródło = K1-EFI pendrive'a",
             czekaj(r"K1-NADZORCA: instalator: instalacja na dysku — sda \(z sd\w+\), pid \d+, uid 105", czas=10))
     sprawdz("instalator: kopia, sprawdzenie, tablica partycji", czekaj(r"K1-INSTALATOR: gotowe: K1 zainstalowany", czas=200))
     sprawdz("okno: „Gotowe”", czekaj(r"K1-INSTALACJA: zainstalowano", czas=20))
-    time.sleep(1); zrzut("1-gotowe")
+    zrzut("1-gotowe")
     klik(px, py)  # Wyłącz komputer
     sprawdz("„Wyłącz komputer” wyłącza system", czekaj(r"K1: wyłączanie zasilania|reboot: Power down", czas=60))
     q.czysty_log()
@@ -147,7 +142,7 @@ if tryb == "aktualizuj":
     sprawdz("Instalator: na dysku jest Kons K1 (dane otwarte)",
             czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: tak \(dane otwarte\)", czas=5))
     klik(px, py)  # Zaktualizuj system
-    time.sleep(1); zrzut("3-aktualizacja")
+    zrzut("3-aktualizacja")
     klik(px, py)  # Zaktualizuj
     sprawdz("aktualizacja: tylko partycja K1-EFI (sda1)",
             czekaj(r"K1-NADZORCA: instalator: aktualizacja — sda1", czas=10))
@@ -155,12 +150,10 @@ if tryb == "aktualizuj":
             czekaj(r"K1-INSTALATOR: aktualizacja A/B: system [0-9.]+ \(\d+ MiB\) do miejsca b", czas=60)
             and czekaj(r"K1-INSTALATOR: gotowe: nowy system w miejscu b", czas=200)
             and czekaj(r"K1-INSTALACJA: zaktualizowano \(nowe miejsce A/B\)", czas=20))
-    time.sleep(1); zrzut("3-gotowe")
+    zrzut("3-gotowe")
     koniec()
 PY
-    python3 -I "$K1_REPO/testy/qemu/k1qemu.py" zamknij "$MON" \
-        || kill $QPID 2>/dev/null || true
-    wait $QPID 2>/dev/null || true
+    zamknij_qemu "$MON" $QPID
 }
 
 SATA="-drive if=none,id=dysk,file=$DYSK,format=raw -device ide-hd,bus=ide.0,drive=dysk"

@@ -36,14 +36,14 @@ static void do_wskaznika(int i, int rodzaj, int przycisk)
     wyslij(p->kl, k1_komunikat_nowy(K1_KOM_WSKAZNIK, p->id, s.x - p->x, s.y - p->y, rodzaj, przycisk, 0));
 }
 
-void ruch_wskaznika(void)
+static void ruch_wskaznika(void)
 {
     int cel;
     if (s.ciagniete >= 0) {
         struct pow *p = &s.p[s.ciagniete];
         int32_t nx = s.x - s.ciag_dx, ny = s.y - s.ciag_dy;
         nx = nx < 80 - p->w ? 80 - p->w : (nx > s.W - 80 ? s.W - 80 : nx);
-        ny = ny < PASEK_GORNY ? PASEK_GORNY : (ny > s.H - 48 ? s.H - 48 : ny);
+        ny = ny < K1_PASEK_GORNY ? K1_PASEK_GORNY : (ny > s.H - 48 ? s.H - 48 : ny);
         if (nx != p->x || ny != p->y) {
             uszkodz_pow(p);
             p->x = nx;

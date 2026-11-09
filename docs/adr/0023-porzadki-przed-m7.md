@@ -24,4 +24,7 @@ każdej zmianie wymagało pamiętania o wszystkich kopiach.
 ## Konsekwencje
 Typowa zmiana (nowa aplikacja, nowy kolor, format partycji) jest w jednym miejscu. Zachowanie systemu
 bez zmian, potwierdzone pełnym `scripts/testy.sh`. Dalsze przeglądy (pomocnicy szukający pozostałych
-powtórzeń) przerwane na prośbę właściciela — lista do dokończenia przed M7: `docs/PRZED-M7.md`.
+powtórzeń) przerwane na prośbę właściciela — lista do dokończenia przed M7 była w `docs/PRZED-M7.md`.
+
+**Dokończone w 0.7.3** (2026-11-09): testy w QEMU bez stałych pauz, testy na hoście sprawdzają zachowanie,
+ostatnie przejrzenie kodu (system, interfejs, skrypty i testy). Plik `docs/PRZED-M7.md` usunięty.

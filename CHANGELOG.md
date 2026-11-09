@@ -3,11 +3,26 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
-## [Niewydane] — do 0.7.3
+## [0.7.3] — 2026-11-09
+
+Koniec porządków przed M7 (ADR 0023, `docs/PRZED-M7.md` — usunięty, historia w git). Dla użytkownika
+system działa tak samo; zmieniły się kod i testy.
 
 ### Zmienione
 - Notatki: pod notatką tylko „Zapisano (zaszyfrowane)” — bez informacji, czy na pendrivie, czy na dysku
   (prośba właściciela; miejsce danych pokazują Ustawienia → Informacje).
+- Kod: jedna funkcja czasu od startu (`k1_teraz`, było 5 kopii), jedna do czytania małych plików z
+  sysfs (`k1_czytaj_plik`, było 5), wysokość górnego paska w jednym miejscu dla ekranu i pulpitu,
+  Instalator rysuje przyciski wspólnym `k1_przycisk`, GPT zapisuje liczby przez `k1_bajty.h`;
+  38 funkcji i zmiennych widocznych tylko tam, gdzie są używane (`static`); nieaktualne komentarze
+  sprzed M5 poprawione.
+
+### Testy
+- Testy w QEMU bez stałych pauz: czekają na odpowiedź monitora, potwierdzenie kliknięcia w logu ekranu
+  i na stan ekranu na zrzucie (`docs/TESTY.md`) — wolna maszyna nie daje fałszywych błędów, a testy
+  są szybsze. Zrzuty bez pośrednich plików i powłoki (`k1qemu.py`); `zamknij_qemu` w `wspolne.sh`.
+- Testy na hoście: bajty bloku układu K1-EFI zgodne z opisem formatu, wartości GPT i teksty baterii
+  wpisane wprost zamiast liczone tymi samymi wzorami co kod.
 
 ## [0.7.2] — 2026-11-09
 

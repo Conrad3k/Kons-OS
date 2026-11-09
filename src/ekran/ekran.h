@@ -12,13 +12,13 @@
 
 #include "k1_grafika.h"
 #include "k1_komunikat.h"
+#include "k1_teraz.h"
 
 #define TAG "K1-EKRAN"
 #define MAKS_KLIENTOW 12
 #define MAKS_POW 48
 #define MAKS_PROST 16
 #define KROK_STRZALEK 20
-#define PASEK_GORNY 32    /* windows never go above the top bar */
 #define CIEN 28           /* shadow margin around windows */
 #define MAKS_BLEDOW 50    /* invalid messages before a client is disconnected */
 #define MAKS_OKIEN_KLIENTA 4
@@ -104,7 +104,6 @@ extern struct stan s;
 
 /* scena.c */
 int przetnij(struct prost *a, const struct prost *b);
-void dodaj(struct obszar *o, struct prost r);
 void uszkodz(int32_t x, int32_t y, int32_t w, int32_t h);
 void uszkodz_pow(const struct pow *p);
 int widac(const struct pow *p);
@@ -126,26 +125,21 @@ void wyslij(int kl, struct k1_komunikat m);
 int powloka(void);
 int logowanie(void);
 const char *nazwa_roli(const struct klient *k);
-void odrzuc(int kl, const char *powod);
 void zglos_okno(const struct pow *p, int stan);
 void aktywuj(int i);
 void rozlacz(int kl);
-int znajdz_okno(uint32_t okno);
 int odbierz_klienta(int kl); /* 0 when the channel is closed */
 void ustawienie(int k, int32_t v);
 
 /* wskaznik.c */
-void ruch_wskaznika(void);
 struct k1_zdarzenie;
 void zastosuj(const struct k1_zdarzenie *z);
 
 /* drm.c */
 int drm(int fd, unsigned long req, void *arg);
-double teraz(void);
 double czas_procesora(void); /* CPU time of this process, s */
 void wybierz_wyjscie(void);
 int utworz_bufor(struct bufor *b, uint32_t w, uint32_t h);
-void usun_bufor(struct bufor *b);
 int ustaw_crtc(uint32_t fb, const struct drm_mode_modeinfo *tryb);
 int zmien_tryb(int nr);
 

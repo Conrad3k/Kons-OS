@@ -29,6 +29,7 @@
 #include "k1_odbior.h"
 #include "k1_okno.h"
 #include "k1_uslugi.h"
+#include "k1_teraz.h"
 
 #define TAG "K1-GUI"
 #define FD_NADZORCA 4
@@ -39,7 +40,6 @@
 #define P_MENU 3
 #define P_DZWIEK 4
 
-#define GORA_WYS 32
 #define EL 44      /* bottom bar item */
 #define ODST 4
 #define DOK_PAD 8
@@ -91,13 +91,6 @@ static int na_pasku(int i)
 static const struct k1_motyw *motyw(void)
 {
     return k1_motyw(k.ustawienia[K1_UST_MOTYW]);
-}
-
-static double teraz(void)
-{
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
 }
 
 /* ---- window list (from ekran) ---- */
@@ -452,9 +445,9 @@ static void aplikacja(int apl)
     struct okno *w = okno_aplikacji(apl);
     pokaz_menu(0);
     if (w == NULL) {
-        if (teraz() - uruchamiane[apl] < 5.0)
+        if (k1_teraz() - uruchamiane[apl] < 5.0)
             return; /* already starting */
-        uruchamiane[apl] = teraz();
+        uruchamiane[apl] = k1_teraz();
         k1_log(TAG, "uruchamiam: %s", aplikacje[apl].nazwa);
         do_nadzorcy(k1_komunikat_nowy(K1_KOM_URUCHOM, 0, apl, 0, 0, 0, 0));
     } else if (w->stan == K1_OKNO_AKTYWNE) {
@@ -552,9 +545,9 @@ static void uloz(int pierwszy)
     menu_x = (W - MENU_SZER) / 2 - MARG;
     menu_y = dok_y + MARG - 8 - MENU_WYS - MARG;
     dzw_x = W - 16 - DZW_SZER - MARG;
-    dzw_y = GORA_WYS + 4 - MARG;
+    dzw_y = K1_PASEK_GORNY + 4 - MARG;
     if (pierwszy) {
-        k1_pow_utworz(&k, &gora, P_GORA, W, GORA_WYS, K1_POW_PANEL, 0, 0);
+        k1_pow_utworz(&k, &gora, P_GORA, W, K1_PASEK_GORNY, K1_POW_PANEL, 0, 0);
         k1_pow_utworz(&k, &dok, P_DOK, DOK_SZER + 2 * MARG, DOK_WYS + 2 * MARG, K1_POW_PANEL, dok_x, dok_y);
         k1_pow_utworz(&k, &menu, P_MENU, MENU_SZER + 2 * MARG, MENU_WYS + 2 * MARG, K1_POW_PANEL, menu_x, menu_y);
         k1_pow_utworz(&k, &dzwiek, P_DZWIEK, DZW_SZER + 2 * MARG, DZW_WYS + 2 * MARG, K1_POW_PANEL, dzw_x, dzw_y);
@@ -564,7 +557,7 @@ static void uloz(int pierwszy)
         pokaz_menu(0);
         pokaz_dzwiek(0);
         k1_pow_usun(&k, &gora);
-        k1_pow_utworz(&k, &gora, P_GORA, W, GORA_WYS, K1_POW_PANEL, 0, 0);
+        k1_pow_utworz(&k, &gora, P_GORA, W, K1_PASEK_GORNY, K1_POW_PANEL, 0, 0);
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_DOK, dok_x, dok_y, 0, 0, 0));
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_MENU, menu_x, menu_y, 0, 0, 0));
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_DZWIEK, dzw_x, dzw_y, 0, 0, 0));

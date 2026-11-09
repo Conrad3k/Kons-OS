@@ -28,13 +28,13 @@ uruchom() {
     tryb=$1 nazwa=$2; LOG=$TESTY/m6-$nazwa.log MON=$TESTY/m6-$nazwa.sock
     "$K1_REPO/scripts/uruchom-qemu.sh" --pendrive "$4" --zmienne-uefi "$3" --log "$LOG" --monitor "$MON" --czas "$CZAS" &
     QPID=$!
-    K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$tryb" "$LOG" "$MON" "$TESTY" "$K1_REPO/scripts/zrzut-ekranu.sh" "$CZAS" <<'PY' || r=1
-import os, subprocess, sys, time
+    K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$tryb" "$LOG" "$MON" "$TESTY" "$CZAS" <<'PY' || r=1
+import os, sys, time
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
-from k1qemu import Maszyna, png
+from k1qemu import Maszyna
 tryb = sys.argv[1]
-q = Maszyna(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], "m6")
-czekaj, sprawdz, tekst, klik = q.czekaj, q.sprawdz, q.tekst, q.klik
+q = Maszyna(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], "m6")
+czekaj, sprawdz, tekst, klik, cisza = q.czekaj, q.sprawdz, q.tekst, q.klik, q.cisza
 def koniec(czysty=True):
     if czysty: q.czysty_log()
     q.koniec()
@@ -43,7 +43,7 @@ def instalator_sb():
     """Opens the Instalator from the Start menu; returns (window x, y, SB_STAN line)."""
     g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+)", czas=200)
     if not g: return None
-    time.sleep(2); klik(int(g.group(1)), int(g.group(2)))
+    klik(int(g.group(1)), int(g.group(2)))
     m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+)", czas=20)
     if not m: return None
     klik(int(m.group(1)), int(m.group(2)) + 4 * int(m.group(3)))
@@ -54,7 +54,7 @@ def instalator_sb():
 
 if tryb in ("sb-bez-klucza", "sb-zmieniony"):
     m = czekaj(r"Kons K1 [0-9.]+ nie moze wystartowac", czas=200)
-    time.sleep(2); q.zrzut(tryb)
+    q.zrzut(tryb)
     sprawdz("Secure Boot: " + ("klucza K1 nie ma" if tryb == "sb-bez-klucza" else "k1.efi zmieniony") +
             " — GRUB odmawia, na ekranie wyjaśnienie, K1 nie startuje", m and "K1-INITRAMFS" not in tekst())
     q.koniec()
@@ -66,7 +66,7 @@ if tryb == "sb-z-kluczem":
     sprawdz("Instalator: „Secure Boot: włączony, klucz K1: wpisany”",
             w and w[2].group(1).startswith("włączony, klucz K1: wpisany"), w[2].group(0) if w else "brak")
     if w:
-        klik(w[0] + int(w[2].group(2)), w[1] + int(w[2].group(3))); time.sleep(2); q.zrzut("1-wlaczony")
+        klik(w[0] + int(w[2].group(2)), w[1] + int(w[2].group(3))); q.zrzut("1-wlaczony")
     koniec()
 
 if tryb == "mok-1":  # release key: K1 prepares the key for MokManager
@@ -76,33 +76,26 @@ if tryb == "mok-1":  # release key: K1 prepares the key for MokManager
     if not w: koniec()
     klik(w[0] + int(w[2].group(2)), w[1] + int(w[2].group(3)))
     e = czekaj(r"K1-INSTALACJA: secure boot: ekran; przycisk (\d+),(\d+), wróć (\d+),(\d+)", czas=10)
-    time.sleep(1); q.zrzut("2-przed")
+    q.zrzut("2-przed")
     klik(w[0] + int(e.group(1)), w[1] + int(e.group(2)))
     sprawdz("„Przygotuj klucz K1”: nadzorca zapisuje MokNew + MokAuth", czekaj(r"K1-NADZORCA: Secure Boot: klucz K1 czeka", czas=20))
-    time.sleep(1); q.zrzut("2-czeka")
+    q.zrzut("2-czeka")
     klik(w[0] + int(e.group(1)), w[1] + int(e.group(2)))
     sprawdz("„Uruchom ponownie”", czekaj(r"reboot: Restarting", czas=60))
     q.czysty_log(); q.koniec(wylacz=False)
 
 if tryb == "mok-2":  # MokManager: the owner's steps
-    def niebieski():
-        p = sys.argv[4] + "/m6-mok.png"
-        subprocess.run([sys.argv[5], p, sys.argv[3]], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        try:
-            w_, h_, px = png(p); c = px(w_ // 2, h_ // 2)
-            return c[2] > 120 and c[0] < 60
-        except Exception:
-            return False
-    t0 = time.time()
-    while time.time() - t0 < 150 and not niebieski():
-        time.sleep(0.3)
-    sprawdz("po restarcie shim pokazuje MokManagera („Press any key to perform MOK management”)", niebieski())
+    niebieski = lambda w_, h_, px: w_ > 0 and px(w_ // 2, h_ // 2)[2] > 120 and px(w_ // 2, h_ // 2)[0] < 60
+    sprawdz("po restarcie shim pokazuje MokManagera („Press any key to perform MOK management”)",
+            niebieski(*q.zrzut("mok", gdy=niebieski, czas=150)))
+    # The only fixed pauses left in the QEMU tests: the firmware's MokManager logs nothing and some of
+    # these keys (the password) change nothing on screen, so there is no state to wait for.
     for k in ["ret", "down", "ret", "down", "ret", "down", "ret", "k", "o", "n", "s"]:
         q.monitor("sendkey " + k); time.sleep(1.2)
     q.zrzut("3-haslo")
-    q.monitor("sendkey ret"); time.sleep(2); q.zrzut("3-wpisany")
-    q.monitor("sendkey ret")  # Reboot
-    time.sleep(5)
+    q.monitor("sendkey ret"); q.zrzut("3-wpisany")
+    q.monitor("sendkey ret")  # Reboot: the key is in the UEFI variables once K1 starts again
+    czekaj(r"K1-INITRAMFS", czas=150)
     q.koniec(wylacz=False)
 
 if tryb == "mok-3":
@@ -119,17 +112,14 @@ if tryb == "deweloperska":
     if not w: koniec()
     klik(w[0] + int(w[2].group(2)), w[1] + int(w[2].group(3)))
     e = czekaj(r"K1-INSTALACJA: secure boot: ekran; przycisk (\d+),(\d+), wróć (\d+),(\d+)", czas=10)
-    time.sleep(1); q.zrzut("4-deweloperska")
+    q.zrzut("4-deweloperska")
     if e:
         klik(w[0] + int(e.group(1)) - 60, w[1] + int(e.group(2)))  # where „Przygotuj klucz K1” would be
-    time.sleep(2)
-    sprawdz("bez przycisku „Przygotuj klucz K1” — nic nie jest zapisywane", "proszę o przygotowanie" not in tekst()
-            and "MokNew" not in tekst() and "klucz K1 czeka" not in tekst())
+    sprawdz("bez przycisku „Przygotuj klucz K1” — nic nie jest zapisywane",
+            cisza(r"proszę o przygotowanie|MokNew|klucz K1 czeka", 3) and "MokNew" not in tekst())
     koniec()
 PY
-    python3 -I "$K1_REPO/testy/qemu/k1qemu.py" zamknij "$MON" \
-        || kill $QPID 2>/dev/null || true
-    wait $QPID 2>/dev/null || true
+    zamknij_qemu "$MON" $QPID
 }
 
 cp "$USBIMG" "$PEN"

@@ -53,7 +53,9 @@ ekran: limit 60 kl./s bez page-flipa, cień z tablicy, łączenie obszarów (prz
 0.6.0 — **Fundament**: nadzorca w modułach (`nadzorca.h`; etapy startu `przejdz()`/`etap_startu()` w `skarb.c`;
 uevent w `urzadzenia.c`), wspólny odbiór `k1_odbierz_komunikat()` (`src/wspolne/k1_odbior.c` — używaj go w nowym
 kodzie zamiast ręcznego `k1_kanal_odbierz` + sprawdzeń), historia baterii (`k1_bat_arch`, nadzorca = klient skarbca
-`K1_WL_SYSTEM`), biblioteka testów `testy/qemu/k1qemu.py` (klasa `Maszyna`; nowe testy QEMU pisz na niej),
+`K1_WL_SYSTEM`), biblioteka testów `testy/qemu/k1qemu.py` (klasa `Maszyna`; nowe testy QEMU pisz na niej; od 0.7.3 **bez
+`time.sleep`** — czekaj na log, `klik` czeka na potwierdzenie ekranu, `zrzut(nazwa, gdy=…)` na stan ekranu,
+`cisza` dla „nic się nie dzieje”; `docs/TESTY.md`),
 `testy.sh` równolegle z KVM. **Nie edytuj `scripts/testy.sh` ani innych skryptów, gdy testy działają w tle**
 (powłoka czyta skrypt w trakcie — przebieg staje się niewiarygodny).
 0.6.2 — **M6a** (ADR 0021): manifest w K1-EFI na 47 MiB (`k1_manifest.c`, FAT 47 MiB), podpis EdDSA (Monocypher)

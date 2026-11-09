@@ -3,8 +3,9 @@
 
 int inst_kanal = -1;   /* our end of the Instalator window's channel (its fd 4) — M5f */
 int inst_ster = -1;    /* our end of the writing program's channel (its fd 3) */
-int inst_tryb, inst_wynik_wyslany, inst_sukces;
-struct k1_dyski inst_lista; /* the list the window saw (INST_START refers to it) */
+int inst_tryb, inst_wynik_wyslany;
+static int inst_sukces;
+static struct k1_dyski inst_lista; /* the list the window saw (INST_START refers to it) */
 struct usluga *instalator(void)
 {
     return usluga_profilu(K1_PROFIL_INSTALATOR);
@@ -15,7 +16,7 @@ void inst_nowy_kanal(void)
     inst_sukces = 0; /* a new window: a restart needs a new finished job */
 }
 
-void inst_wyslij(struct k1_komunikat k)
+static void inst_wyslij(struct k1_komunikat k)
 {
     if (inst_kanal >= 0 && k1_kanal_wyslij(inst_kanal, &k, sizeof k, -1) != 0)
         k1_log(TAG, "instalator: wysłanie do okna nieudane");
@@ -46,7 +47,7 @@ static uint32_t wersja_partycji(const char *nazwa, int *podpis, struct k1_komuni
     return m->wersja;
 }
 
-void inst_lista_dyskow(void)
+static void inst_lista_dyskow(void)
 {
     int i;
     if (k1_dyski_skanuj(SYS, &inst_lista) != 0)

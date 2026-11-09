@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "k1_io.h"
 #include "k1_komunikat.h"
 
 #define MAKS_WARTOSC 1000000000000LL /* 1e12 µWh / µAh: range check only */
@@ -19,15 +20,9 @@
 /* Reads attribute `plik` of the supply directory `dir` (trailing newline removed). */
 static int czytaj(int dir, const char *plik, char *buf, size_t n)
 {
-    int fd = openat(dir, plik, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
-    ssize_t r;
-    if (fd < 0)
+    ssize_t r = k1_czytaj_plik(dir, plik, buf, n);
+    if (r < 0)
         return -1;
-    r = read(fd, buf, n - 1);
-    close(fd);
-    if (r <= 0)
-        return -1;
-    buf[r] = '\0';
     while (r > 0 && (buf[r - 1] == '\n' || buf[r - 1] == ' '))
         buf[--r] = '\0';
     return 0;
