@@ -131,6 +131,7 @@ UEFI + Secure Boot → podpisany UKI (jądro + initramfs + cmdline) → jądro L
   3. czyta surowe bajty z limitami rozmiaru,
   4. tworzy obiekt w Blob Vault z hashem,
   5. sprząta.
+  **[korekta: ADR 0027 — zgodą jest gest użytkownika w interfejsie rysowanym przez K1 (Pobierz, okno wyboru pliku, „Otwórz w…”/„Wyślij do…”, przeciągnięcie); osobne pytanie tylko, gdy przeniesienie zaczyna sama strefa. Pliki K1 to jedyny węzeł między strefami, oryginał zawsze w Plikach, pochodzenie zapisane przy pliku]**
   Nigdy nie otwiera ani nie dekoduje plików automatycznie. Nie ufa rozszerzeniom, nazwom ani typom MIME. Archiwa rozpakowuje tylko w izolowanym procesie.
 - noexec nie zatrzymuje interpreterów, dlatego potrzebna jest kontrola przepływu danych i uprawnień.
 
