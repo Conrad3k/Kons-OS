@@ -1,9 +1,13 @@
 name: Sprzątanie artefaktów
 
-# Uruchamiane ręcznie (Actions → „Sprzątanie artefaktów” → Run workflow) albo przy zmianie tego pliku na main.
-# Usuwa artefakty starego Kons-OS (Debian, obrazy ISO) — zajmują limit miejsca konta,
-# przez co obrazy K1 nie dają się wysłać. Artefakty K1 (nazwy „k1-…”) zostają.
+# Codziennie (i ręcznie: Actions → „Sprzątanie artefaktów” → Run workflow, i przy zmianie tego pliku na main) usuwa
+# artefakty, które zajmują limit miejsca konta — gdy go zabraknie, CI nie zapisuje logów testów:
+#   - wszystkie artefakty starego Kons-OS (nazwy bez „k1-”),
+#   - artefakty K1 (logi testów, obrazy z PR-ów) starsze niż 3 dni (i tak wygasają po 7).
+# Wydania (Releases: ISO, obraz USB, logi) to nie artefakty — zostają.
 on:
+  schedule:
+    - cron: "17 3 * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -16,15 +20,18 @@ jobs:
     permissions:
       actions: write
     steps:
-      - name: Usuń artefakty spoza K1
+      - name: Usuń artefakty spoza K1 i starsze niż 3 dni
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
+          granica=$(date -u -d '3 days ago' +%Y-%m-%dT%H:%M:%SZ)
           gh api --paginate "repos/$REPO/actions/artifacts?per_page=100" \
-            --jq '.artifacts[] | select(.name | startswith("k1-") | not) | "\(.id) \(.name) \(.size_in_bytes)"' \
+            --jq ".artifacts[] | select(.expired | not)
+                  | select((.name | startswith(\"k1-\") | not) or .created_at < \"$granica\")
+                  | \"\(.id) \(.name) \(.size_in_bytes)\"" \
             > stare.txt
-          echo "Do usunięcia: $(wc -l < stare.txt) artefaktów"
+          echo "Do usunięcia: $(wc -l < stare.txt) artefaktów (K1 sprzed $granica)"
           while read -r id nazwa rozmiar; do
             echo "usuwam $nazwa ($((rozmiar / 1048576)) MiB)"
             gh api -X DELETE "repos/$REPO/actions/artifacts/$id"
