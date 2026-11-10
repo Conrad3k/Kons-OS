@@ -252,6 +252,26 @@ Wszędzie: brak „Kernel panic”, „BŁĄD” i zabronionych wywołań.
 | ISO UEFI | OVMF + `virtio-vga` (bez sterownika K1): rdzeń przez loop, simpledrm, pulpit | `m4-iso-uefi-1-pulpit.png` |
 | ISO BIOS | SeaBIOS + `virtio-vga`: GRUB ustawia VESA, simpledrm, pulpit | `m4-iso-bios-1-pulpit.png` |
 
+## 0.8.0 Pliki — `scripts/test-pliki.sh` (ADR 0029)
+
+Obraz produkcyjny z dyskiem danych (pusta K1-DANE), dwa uruchomienia.
+
+| Krok | Sprawdzenie | Dowód |
+|---|---|---|
+| pulpit | Kosz i Pliki na pulpicie; podwójne kliknięcie otwiera Pliki, lista ze skarbca | `pliki-pierwszy.log` |
+| nowy folder | „Nowy folder” → pole nazwy od razu, „Projekt” z klawiatury zastępuje zaznaczoną nazwę; zapis w skarbcu | `pliki-1-projekt.png` |
+| zajęta nazwa | drugi folder → „projekt” (inna wielkość liter) — skarbiec odmawia (`-21`), komunikat w stopce | `pliki-2-zajeta-nazwa.png` |
+| foldery | podwójne kliknięcie otwiera „Projekt” (0 elementów), „w górę” — Dokumenty (2) | log `widok:` |
+| Kosz | Usuń → Kosz (1) → Przywróć (Kosz 0, Dokumenty 2) → Usuń → „Usuń na zawsze” → pytanie → „Tak, usuń” → Kosz 0 | `pliki-3-kosz.png`, `pliki-4-pytanie.png` |
+| pulpit | folder w Pulpicie = ikona na pulpicie (w logu numer, nie nazwa); podwójne kliknięcie → Pliki w tym folderze; menu pliku „Usuń” → ikona znika, Kosz pełny; menu Kosza „Opróżnij Kosz” → pusty | `pliki-5-pulpit-z-folderem.png`, `pliki-6-kosz-pelny.png` |
+| dysk | nagłówek magazynu jest, nazwy „Projekt” jawnie nie ma | skrypt |
+| ponownie | po wyłączeniu: Dokumenty z „Projekt”, Kosz pusty | `pliki-ponownie-dokumenty.png` |
+| czystość logu | bez nazw plików, paniki, błędów, zablokowanych wywołań i odrzuconych komunikatów | log |
+
+Na hoście: `test_dokumenty` (skarbiec: nazwy, typy, wpisy, kawałki treści, foldery, Kosz i 30 dni, prawa przez kanał),
+`test_komunikat` (`DOK_*`, `PLIKI_POKAZ`, `URUCHOM` z miejscem), `test_rozmieszczenie` (klucze ikon, K1R2 i K1R1),
+`fuzz_dokument`, `fuzz_rozmieszczenie`.
+
 ## M2 — `scripts/test-m2.sh` (obraz produkcyjny, sterowanie przez monitor QEMU)
 
 | Krok | Sprawdzenie | Dowód |

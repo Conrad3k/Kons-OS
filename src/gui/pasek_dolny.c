@@ -175,7 +175,7 @@ void wskaznik_dok(const struct k1_komunikat *m)
             pokaz_dzwiek(0);
     } else if (m->c == K1_WSK_WCISNIECIE && m->d == K1_PRZYCISK_PRAWY && nowy > 0) {
         pokaz_menu(0);
-        kontekst_otworz(K_PASEK, el[nowy], dok_x + m->a, dok_y + m->b);
+        kontekst_otworz(K_PASEK, (uint32_t)el[nowy], dok_x + m->a, dok_y + m->b);
     } else if (m->c == K1_WSK_RUCH && wcisk.el > 0 && wcisk.el <= n_przyp) {
         if (!wcisk.ciagnie && (m->a - wcisk.x > 6 || wcisk.x - m->a > 6))
             wcisk.ciagnie = 1;

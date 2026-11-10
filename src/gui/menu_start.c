@@ -119,7 +119,7 @@ void wskaznik_menu(const struct k1_komunikat *m)
         menu.brudna = 1;
     }
     if (m->c == K1_WSK_WCISNIECIE && m->d == K1_PRZYCISK_PRAWY && nowy >= 1 && nowy <= K1_APL_MAKS) {
-        kontekst_otworz(K_MENU, nowy, menu_x + m->a, menu_y + m->b);
+        kontekst_otworz(K_MENU, (uint32_t)nowy, menu_x + m->a, menu_y + m->b);
     } else if (puszcz && nowy >= 1 && nowy <= K1_APL_MAKS) {
         otworz_aplikacje(nowy);
     } else if (puszcz && nowy >= 10) {

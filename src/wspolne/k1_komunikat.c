@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "k1_bat_arch.h"
+#include "k1_dokument.h"
 #include "k1_uslugi.h"
 
 struct k1_komunikat k1_komunikat_nowy(enum k1_komunikat_typ typ, uint32_t obiekt, int32_t a, int32_t b, int32_t c,
@@ -169,6 +170,56 @@ static int sprawdz_skarb(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
     }
 }
 
+static int wpis(uint32_t obiekt)
+{
+    return (obiekt >= 1 && obiekt <= K1_FOLDERY_MAKS) || (obiekt >= K1_DOK_PIERWSZY && obiekt <= K1_DOK_ID_MAKS);
+}
+
+static int wpis_uzytkownika(uint32_t obiekt)
+{
+    return obiekt >= K1_DOK_PIERWSZY && obiekt <= K1_DOK_ID_MAKS;
+}
+
+/* Messages about the user's files (0.8.0, ADR 0029); 0 also for a type of another group. */
+static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
+{
+    const int32_t maks = (int32_t)K1_DOK_MAKS_BAJTY;
+    if (kier != (k->typ < K1_KOM_DOK_LISTA ? K1_KIER_DO_SKARBCA : K1_KIER_OD_SKARBCA))
+        return 0;
+    switch (k->typ) {
+    case K1_KOM_DOK_SPIS:
+    case K1_KOM_DOK_OPROZNIJ:
+    case K1_KOM_DOK_ZMIANA:
+        return k->obiekt == 0 && zera(k, 0);
+    case K1_KOM_DOK_CZYTAJ:
+        return wpis_uzytkownika(k->obiekt) && w(k->a, 1, maks) && zera(k, 1);
+    case K1_KOM_DOK_NOWY:
+        return wpis(k->obiekt) && w(k->a, K1_DOK_PLIK, K1_DOK_FOLDER) && w(k->b, 1, K1_DOK_NAZWA - 1) &&
+               w(k->c, 0, k->a == K1_DOK_FOLDER ? 0 : maks) && zera(k, 3);
+    case K1_KOM_DOK_ZAPISZ:
+        return wpis_uzytkownika(k->obiekt) && w(k->a, 0, maks) && zera(k, 1);
+    case K1_KOM_DOK_NAZWA:
+        return wpis_uzytkownika(k->obiekt) && w(k->a, 1, K1_DOK_NAZWA - 1) && zera(k, 1);
+    case K1_KOM_DOK_PRZENIES:
+        return wpis_uzytkownika(k->obiekt) && k->a >= 1 && wpis((uint32_t)k->a) && zera(k, 1);
+    case K1_KOM_DOK_KOSZ:
+    case K1_KOM_DOK_PRZYWROC:
+    case K1_KOM_DOK_USUN:
+        return wpis_uzytkownika(k->obiekt) && zera(k, 0);
+    case K1_KOM_DOK_LISTA:
+        return k->obiekt == 0 && w(k->a, K1_DOK_LISTA_NAGL, K1_DOK_LISTA_MAKS) && w(k->b, 0, K1_DOK_MAKS) &&
+               k->a == K1_DOK_LISTA_NAGL + k->b * K1_DOK_WPIS_BAJTY && zera(k, 2);
+    case K1_KOM_DOK_TRESC:
+        return wpis_uzytkownika(k->obiekt) && w(k->a, 0, maks) && w(k->b, k->a, maks) && zera(k, 2);
+    case K1_KOM_DOK_WYNIK:
+        return (k->obiekt == 0 || wpis(k->obiekt)) && w(k->a, K1_KOM_DOK_SPIS, K1_KOM_DOK_OPROZNIJ) &&
+               (w(k->b, K1_MAG_WYNIK_MIN, 0) || w(k->b, K1_DOK_BLAD_MIN, K1_DOK_BLAD_NAZWA)) &&
+               (k->c == 0 || (k->a == K1_KOM_DOK_NOWY && k->b == 0 && k->c >= K1_DOK_PIERWSZY)) && zera(k, 3);
+    default:
+        return 0;
+    }
+}
+
 /* Messages of ekran and its clients (ADR 0008); 0 also for a type of another group. */
 static int sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
@@ -232,8 +283,14 @@ static int sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
 static int sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
     switch (k->typ) {
-    case K1_KOM_URUCHOM:
-        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_APL_MAKS) && zera(k, 1);
+    case K1_KOM_URUCHOM: /* a place (b, c) only for Pliki */
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_APL_MAKS) &&
+               (k->a == K1_APL_PLIKI ? (k->b == 0 || wpis((uint32_t)k->b)) && w(k->c, 0, 1) && (k->b == 0 || k->c == 0)
+                                     : k->b == 0 && k->c == 0) &&
+               zera(k, 3);
+    case K1_KOM_PLIKI_POKAZ:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && (k->a == 0 || wpis((uint32_t)k->a)) && w(k->b, 0, 1) &&
+               (k->a == 0 || k->b == 0) && zera(k, 2);
     case K1_KOM_WYLACZ:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 0, 2) && zera(k, 1);
     case K1_KOM_TEST_POLACZ:
@@ -279,7 +336,8 @@ static int sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
 /* Every type belongs to exactly one group: the others answer 0. */
 static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
-    return sprawdz_sterowanie(k, kier) || sprawdz_skarb(k, kier) || sprawdz_ekran(k, kier) || sprawdz_nadzorca(k, kier);
+    return sprawdz_sterowanie(k, kier) || sprawdz_skarb(k, kier) || sprawdz_dok(k, kier) || sprawdz_ekran(k, kier) ||
+           sprawdz_nadzorca(k, kier);
 }
 
 int k1_komunikat_sprawdz(const void *buf, size_t len, enum k1_kanal_kierunek kierunek, struct k1_komunikat *out)
@@ -306,5 +364,7 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            (typ == K1_KOM_SKARB_ODBLOKUJ && kierunek == K1_KIER_DO_SKARBCA) ||
            (typ == K1_KOM_SKARB_HASLO && kierunek == K1_KIER_DO_SKARBCA) ||
            (typ == K1_KOM_SKARB_DANE && kierunek == K1_KIER_OD_SKARBCA) ||
-           (typ == K1_KOM_BATERIA_ARCH && kierunek == K1_KIER_OD_NADZORCY);
+           (typ == K1_KOM_BATERIA_ARCH && kierunek == K1_KIER_OD_NADZORCY) ||
+           ((typ == K1_KOM_DOK_NOWY || typ == K1_KOM_DOK_ZAPISZ || typ == K1_KOM_DOK_NAZWA) && kierunek == K1_KIER_DO_SKARBCA) ||
+           ((typ == K1_KOM_DOK_LISTA || typ == K1_KOM_DOK_TRESC) && kierunek == K1_KIER_OD_SKARBCA);
 }

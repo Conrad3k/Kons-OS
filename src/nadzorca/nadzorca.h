@@ -170,6 +170,7 @@ void sb_przygotuj_klucz(void);
 extern int zasoby_kanal;
 extern int bateria_kanal;
 extern int ustaw_kanal;
+extern int pliki_kanal; /* uslugi.c: Pliki's fd 5 (0.8.0) */
 extern struct k1_bat_historia bat_hist;
 void odczytaj_baterie(double t);
 void wyslij_baterie(void);

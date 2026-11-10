@@ -13,4 +13,12 @@ int k1_memfd_z_danymi(const char *nazwa, const void *dane, size_t n);
  * Returns 0, or -1 when the descriptor is not acceptable or reading failed. Does not close `fd`. */
 int k1_memfd_czytaj(int fd, void *buf, size_t n);
 
+/* For data written piece by piece (0.8.0: a file from skarbiec): a new empty memfd (-1 on error), and the seals
+ * that make it final (0, or -1 with the fd closed). */
+int k1_memfd_nowy(const char *nazwa);
+int k1_memfd_zapieczetuj(int fd);
+
+/* Only the check of k1_memfd_czytaj (fully sealed, exactly `n` bytes): then read it with pread. 0 or -1. */
+int k1_memfd_sprawdz(int fd, size_t n);
+
 #endif

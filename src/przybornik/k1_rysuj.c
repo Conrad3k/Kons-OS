@@ -387,6 +387,34 @@ static const struct prym ik_kalkulator[] = {
     { P_KOLO, 12, 12, 1.2f, 0, 0 },     { P_KOLO, 15, 12, 1.2f, 0, 0 },          { P_KOLO, 9, 15.5f, 1.2f, 0, 0 },
     { P_KOLO, 12, 15.5f, 1.2f, 0, 0 },  { P_KOLO, 15, 15.5f, 1.2f, 0, 0 },       { P_KRESKA, 9, 18.5f, 15, 18.5f, 0 },
 };
+/* 0.8.0 Pliki: a folder (body and tab), a page with a folded corner, a picture (as Wygląd), Kosz (empty: two
+ * ribs; full: a crumpled sheet inside), a note, a camera, a download into a tray, an arrow up */
+static const struct prym ik_folder[] = { { P_PROST, 3.5f, 7.5f, 17, 11.5f, 2 }, { P_KRESKA, 4.5f, 7.5f, 6.5f, 5, 0 },
+                                         { P_KRESKA, 6.5f, 5, 10, 5, 0 }, { P_KRESKA, 10, 5, 11.5f, 7.5f, 0 } };
+static const struct prym ik_plik[] = { { P_KRESKA, 6, 3.5f, 13.5f, 3.5f, 0 },  { P_KRESKA, 13.5f, 3.5f, 18.5f, 8.5f, 0 },
+                                       { P_KRESKA, 18.5f, 8.5f, 18.5f, 20.5f, 0 }, { P_KRESKA, 18.5f, 20.5f, 6, 20.5f, 0 },
+                                       { P_KRESKA, 6, 20.5f, 6, 3.5f, 0 },     { P_KRESKA, 13.5f, 3.5f, 13.5f, 8.5f, 0 },
+                                       { P_KRESKA, 13.5f, 8.5f, 18.5f, 8.5f, 0 } };
+static const struct prym ik_kosz[] = { { P_KRESKA, 4.5f, 6.5f, 19.5f, 6.5f, 0 }, { P_KRESKA, 9.5f, 6.5f, 10, 4, 0 },
+                                       { P_KRESKA, 10, 4, 14, 4, 0 },          { P_KRESKA, 14, 4, 14.5f, 6.5f, 0 },
+                                       { P_KRESKA, 6.5f, 6.5f, 7.5f, 19.5f, 0 }, { P_KRESKA, 7.5f, 19.5f, 16.5f, 19.5f, 0 },
+                                       { P_KRESKA, 16.5f, 19.5f, 17.5f, 6.5f, 0 }, { P_KRESKA, 10.5f, 10, 10.5f, 16, 0 },
+                                       { P_KRESKA, 13.5f, 10, 13.5f, 16, 0 } };
+static const struct prym ik_kosz_pelny[] = { { P_KRESKA, 4.5f, 6.5f, 19.5f, 6.5f, 0 }, { P_KRESKA, 9.5f, 6.5f, 10, 4, 0 },
+                                             { P_KRESKA, 10, 4, 14, 4, 0 },          { P_KRESKA, 14, 4, 14.5f, 6.5f, 0 },
+                                             { P_KRESKA, 6.5f, 6.5f, 7.5f, 19.5f, 0 }, { P_KRESKA, 7.5f, 19.5f, 16.5f, 19.5f, 0 },
+                                             { P_KRESKA, 16.5f, 19.5f, 17.5f, 6.5f, 0 }, { P_KOLO, 12, 13, 3.2f, 0, 0 } };
+static const struct prym ik_muzyka[] = { { P_KOLO, 8, 17, 2.4f, 0, 0 },          { P_KOLO, 15.5f, 15, 2.4f, 0, 0 },
+                                         { P_KRESKA, 10.2f, 17, 10.2f, 6, 0 },    { P_KRESKA, 17.7f, 15, 17.7f, 4, 0 },
+                                         { P_KRESKA, 10.2f, 6, 17.7f, 4, 0 } };
+static const struct prym ik_wideo[] = { { P_PROST, 3.5f, 6.5f, 12, 11, 2.5f }, { P_KRESKA, 15.5f, 10.5f, 20.5f, 7.5f, 0 },
+                                        { P_KRESKA, 20.5f, 7.5f, 20.5f, 16.5f, 0 }, { P_KRESKA, 20.5f, 16.5f, 15.5f, 13.5f, 0 } };
+static const struct prym ik_pobrane[] = { { P_KRESKA, 12, 4, 12, 14.5f, 0 },      { P_KRESKA, 7.5f, 10, 12, 14.5f, 0 },
+                                          { P_KRESKA, 12, 14.5f, 16.5f, 10, 0 },  { P_KRESKA, 4.5f, 15.5f, 4.5f, 19.5f, 0 },
+                                          { P_KRESKA, 4.5f, 19.5f, 19.5f, 19.5f, 0 }, { P_KRESKA, 19.5f, 19.5f, 19.5f, 15.5f, 0 } };
+static const struct prym ik_w_gore[] = { { P_KRESKA, 12, 19, 12, 5.5f, 0 }, { P_KRESKA, 6.5f, 11, 12, 5.5f, 0 },
+                                         { P_KRESKA, 12, 5.5f, 17.5f, 11, 0 } };
+
 static float sd_prym(const struct prym *p, float x, float y, float g)
 {
     switch (p->typ) {
@@ -436,6 +464,11 @@ void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozm
         [K1_IK_ZASOBY] = IK(ik_zasoby),     [K1_IK_EKRAN] = IK(ik_ekran),
         [K1_IK_BATERIA] = IK(ik_bateria),   [K1_IK_DYSK] = IK(ik_dysk),
         [K1_IK_KALKULATOR] = IK(ik_kalkulator),
+        [K1_IK_FOLDER] = IK(ik_folder),     [K1_IK_PLIK] = IK(ik_plik),
+        [K1_IK_OBRAZ] = IK(ik_wyglad),      [K1_IK_KOSZ] = IK(ik_kosz),
+        [K1_IK_KOSZ_PELNY] = IK(ik_kosz_pelny), [K1_IK_MUZYKA] = IK(ik_muzyka),
+        [K1_IK_WIDEO] = IK(ik_wideo),       [K1_IK_POBRANE] = IK(ik_pobrane),
+        [K1_IK_W_GORE] = IK(ik_w_gore),
     };
     float s = rozmiar / 24.0f, g = 1.6f;
     int32_t x0, y0, x1, y1, i, j;

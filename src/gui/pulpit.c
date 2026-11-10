@@ -1,5 +1,6 @@
 /* K1 gui — the desktop layer (0.7.5, ADR 0028; owner's sketch A "Kafelki"): one full-screen surface that
- * ekran puts right above the wallpaper and below the windows. Icons of applications lie in a grid of cells
+ * ekran puts right above the wallpaper and below the windows. Icons of applications, Kosz and the files of the
+ * Pulpit folder (0.8.0, pliki.c) lie in a grid of cells
  * (rozmieszczenie.h): a tile in the colour of the windows (light / dark theme) with the line icon, the name
  * under it in cream with a soft shadow (it lies on the wallpaper). Click selects, a double click opens,
  * dragging moves an icon to another cell (an icon already there swaps places), the right button opens the
@@ -27,15 +28,15 @@ struct prost {
 };
 
 static struct prost brud, brud_poprz; /* to draw now; drawn in the previous frame (w = 0: nothing) */
-static int zaznaczona, najechana;     /* applications, 0 = none */
+static uint32_t zaznaczona, najechana; /* icon keys (rozmieszczenie.h), 0 = none */
 static struct {
-    int apl;         /* icon pressed with the left button (0: none) */
+    uint32_t klucz;  /* icon pressed with the left button (0: none) */
     int32_t x, y;    /* where */
     int ciagnie;     /* moved far enough: dragging */
     int kol, wiersz; /* the cell under the pointer while dragging */
 } wcisk;
 static struct {
-    int apl;
+    uint32_t klucz;
     double t;
 } klik; /* the last click, for a double click */
 
@@ -84,9 +85,9 @@ static void uszkodz_komorke(int kol, int wiersz)
     dodaj_brud(r);
 }
 
-static void uszkodz_ikone(int apl)
+static void uszkodz_ikone(uint32_t klucz)
 {
-    int i = rozm_ikona(&rozm, apl);
+    int i = rozm_ikona(&rozm, klucz);
     if (i >= 0)
         uszkodz_komorke(rozm.ikony[i].kol, rozm.ikony[i].wiersz);
 }
@@ -104,25 +105,25 @@ static void miejsce(int i, int *kol, int *wiersz)
     *wiersz = ik->wiersz;
     if (!wcisk.ciagnie)
         return;
-    if (ik->apl == wcisk.apl) {
+    if (ik->klucz == wcisk.klucz) {
         *kol = wcisk.kol;
         *wiersz = wcisk.wiersz;
     } else if (ik->kol == wcisk.kol && ik->wiersz == wcisk.wiersz) {
-        int j = rozm_ikona(&rozm, wcisk.apl);
+        int j = rozm_ikona(&rozm, wcisk.klucz);
         *kol = rozm.ikony[j].kol;
         *wiersz = rozm.ikony[j].wiersz;
     }
 }
 
 /* One icon in `o` (a part of the layer whose top left is (ox, oy) on the screen). */
-static void ikona(struct k1_obraz *o, int32_t ox, int32_t oy, int apl, int kol, int wiersz)
+static void ikona(struct k1_obraz *o, int32_t ox, int32_t oy, uint32_t klucz, int kol, int wiersz)
 {
     const struct k1_motyw *m = motyw();
-    int ciemny = k.ustawienia[K1_UST_MOTYW] != 0, zazn = apl == zaznaczona, nad = apl == najechana;
+    int ciemny = k.ustawienia[K1_UST_MOTYW] != 0, zazn = klucz == zaznaczona, nad = klucz == najechana;
     struct prost c = komorka(kol, wiersz);
     float x = (float)(c.x - ox), y = (float)(c.y - oy), cx = x + KOM_W / 2.0f;
-    const char *nazwa = aplikacje[apl].nazwa;
-    int32_t tx = (int32_t)cx - k1_tekst_szer(K1_CZ_MALA_MOCNA, nazwa) / 2;
+    const char *nazwa = ikona_nazwa(klucz);
+    int32_t sz = k1_tekst_szer(K1_CZ_MALA_MOCNA, nazwa), tx = (int32_t)cx - (sz < KOM_W - 4 ? sz : KOM_W - 4) / 2;
     if (zazn || nad) { /* the selection follows the theme too: light — cream, dark — night */
         uint32_t tlo = ciemny ? k1_kolor(K1_NOC, zazn ? 110 : 60) : k1_kolor(K1_KREM, zazn ? 46 : 24);
         k1_zaokraglony(o, x, y, KOM_W, KOM_H - 4, 10, tlo);
@@ -132,7 +133,7 @@ static void ikona(struct k1_obraz *o, int32_t ox, int32_t oy, int apl, int kol, 
     k1_cien(o, cx - KAFEL / 2.0f, y + 8, KAFEL, KAFEL, 14, 3, 10, 70);
     k1_zaokraglony(o, cx - KAFEL / 2.0f, y + 8, KAFEL, KAFEL, 14, k1_kolor(m->tlo, 245));
     k1_obrys(o, cx - KAFEL / 2.0f, y + 8, KAFEL, KAFEL, 14, 1.0f, k1_kolor(m->tekst, 22));
-    k1_ikona(o, aplikacje[apl].ikona, cx - 14, y + 20, 28, k1_kolor(m->tekst, 255));
+    k1_ikona(o, ikona_rysunek(klucz), cx - 14, y + 20, 28, k1_kolor(m->tekst, 255));
     k1_tekst(o, K1_CZ_MALA_MOCNA, tx + 1, (int32_t)y + 79, nazwa, k1_kolor(K1_NOC, 150), KOM_W - 4);
     k1_tekst(o, K1_CZ_MALA_MOCNA, tx, (int32_t)y + 78, nazwa, k1_kolor(K1_KREM, 255), KOM_W - 4);
 }
@@ -164,23 +165,27 @@ void rysuj_pulpit(void)
         memset(cz.px + (size_t)y * cz.krok, 0, (size_t)r.w * sizeof(uint32_t));
     for (i = 0; i < rozm.n_ikon; i++) {
         miejsce(i, &kol, &wiersz);
-        if (!(wcisk.ciagnie && rozm.ikony[i].apl == wcisk.apl)) /* the dragged one on top of the rest */
-            ikona(&cz, r.x, r.y, rozm.ikony[i].apl, kol, wiersz);
+        if (!(wcisk.ciagnie && rozm.ikony[i].klucz == wcisk.klucz)) /* the dragged one on top of the rest */
+            ikona(&cz, r.x, r.y, rozm.ikony[i].klucz, kol, wiersz);
     }
     if (wcisk.ciagnie)
-        ikona(&cz, r.x, r.y, wcisk.apl, wcisk.kol, wcisk.wiersz);
+        ikona(&cz, r.x, r.y, wcisk.klucz, wcisk.kol, wcisk.wiersz);
     k1_pow_zatwierdz_obszar(&k, &pulpit, r.x, r.y, r.w, r.h);
 }
 
-/* The positions of the icons on the screen (centres of the tiles), for the tests. */
+/* The positions of the icons on the screen (centres of the tiles), for the tests: applications and Kosz by name,
+ * files by number ("plik 104") — a file's name never goes to the log. */
 void pulpit_loguj(void)
 {
-    char buf[400];
+    char buf[1200], nazwa[24];
     size_t n = 0;
     int i;
     for (i = 0; i < rozm.n_ikon && n < sizeof buf - 48; i++) {
         struct prost c = komorka(rozm.ikony[i].kol, rozm.ikony[i].wiersz);
-        n += (size_t)snprintf(buf + n, sizeof buf - n, "%s%s %d,%d", i ? "; " : "", aplikacje[rozm.ikony[i].apl].nazwa,
+        uint32_t kl = rozm.ikony[i].klucz;
+        if (rozm_plik(kl))
+            snprintf(nazwa, sizeof nazwa, "plik %d", rozm_plik(kl));
+        n += (size_t)snprintf(buf + n, sizeof buf - n, "%s%s %d,%d", i ? "; " : "", rozm_plik(kl) ? nazwa : ikona_nazwa(kl),
                               c.x + KOM_W / 2, c.y + 8 + KAFEL / 2);
     }
     k1_log(TAG, "ikony na pulpicie (siatka %dx%d, co %d,%d): %s", pulpit_kolumn(), pulpit_wierszy(), KOM_W, KOM_H,
@@ -210,33 +215,34 @@ static int komorka_pod(int32_t x, int32_t y, int *kol, int *wiersz)
     return *kol < pulpit_kolumn() && *wiersz < pulpit_wierszy();
 }
 
-static int ikona_pod(int32_t x, int32_t y)
+static uint32_t ikona_pod(int32_t x, int32_t y)
 {
     int kol, wiersz;
     return komorka_pod(x, y, &kol, &wiersz) ? rozm_w_komorce(&rozm, kol, wiersz) : 0;
 }
 
-static void zaznacz(int apl)
+static void zaznacz(uint32_t klucz)
 {
-    if (apl == zaznaczona)
+    if (klucz == zaznaczona)
         return;
     uszkodz_ikone(zaznaczona);
-    zaznaczona = apl;
-    uszkodz_ikone(apl);
+    zaznaczona = klucz;
+    uszkodz_ikone(klucz);
 }
 
 static void ruch(int32_t x, int32_t y)
 {
-    int kol, wiersz, nad = ikona_pod(x, y);
+    int kol, wiersz;
+    uint32_t nad = ikona_pod(x, y);
     if (nad != najechana && !wcisk.ciagnie) {
         uszkodz_ikone(najechana);
         najechana = nad;
         uszkodz_ikone(nad);
     }
-    if (wcisk.apl == 0)
+    if (wcisk.klucz == 0)
         return;
     if (!wcisk.ciagnie && (x - wcisk.x) * (x - wcisk.x) + (y - wcisk.y) * (y - wcisk.y) > 64) {
-        int i = rozm_ikona(&rozm, wcisk.apl);
+        int i = rozm_ikona(&rozm, wcisk.klucz);
         wcisk.ciagnie = 1;
         wcisk.kol = rozm.ikony[i].kol;
         wcisk.wiersz = rozm.ikony[i].wiersz;
@@ -248,7 +254,7 @@ static void ruch(int32_t x, int32_t y)
         wcisk.kol = kol;
         wcisk.wiersz = wiersz;
         uszkodz_komorke(kol, wiersz);
-        uszkodz_ikone(wcisk.apl);
+        uszkodz_ikone(wcisk.klucz);
         uszkodz_ikone(rozm_w_komorce(&rozm, kol, wiersz));
     }
 }
@@ -257,44 +263,44 @@ static void puszczenie(void)
 {
     char co[96];
     if (wcisk.ciagnie) {
-        int i = rozm_ikona(&rozm, wcisk.apl);
+        int i = rozm_ikona(&rozm, wcisk.klucz);
         if (rozm.ikony[i].kol != wcisk.kol || rozm.ikony[i].wiersz != wcisk.wiersz) {
-            rozm_przenies_ikone(&rozm, wcisk.apl, wcisk.kol, wcisk.wiersz);
-            snprintf(co, sizeof co, "ikona %s przeniesiona do kolumny %d, wiersza %d", aplikacje[wcisk.apl].nazwa,
-                     wcisk.kol + 1, wcisk.wiersz + 1);
+            rozm_przenies_ikone(&rozm, wcisk.klucz, wcisk.kol, wcisk.wiersz);
+            snprintf(co, sizeof co, "ikona %s przeniesiona do kolumny %d, wiersza %d",
+                     rozm_plik(wcisk.klucz) ? "pliku" : ikona_nazwa(wcisk.klucz), wcisk.kol + 1, wcisk.wiersz + 1);
             wcisk.ciagnie = 0;
             rozm_zmienione(co);
         }
         pulpit_wszystko();
     }
-    wcisk.apl = 0;
+    wcisk.klucz = 0;
     wcisk.ciagnie = 0;
 }
 
 void wskaznik_pulpit(const struct k1_komunikat *m)
 {
-    int apl = ikona_pod(m->a, m->b);
+    uint32_t kl = ikona_pod(m->a, m->b);
     if (m->c == K1_WSK_RUCH) {
         ruch(m->a, m->b);
     } else if (m->c == K1_WSK_WYJSCIE && !wcisk.ciagnie) {
         uszkodz_ikone(najechana);
         najechana = 0;
     } else if (m->c == K1_WSK_WCISNIECIE && m->d == K1_PRZYCISK_LEWY) {
-        zaznacz(apl);
-        if (apl != 0 && klik.apl == apl && k1_teraz() - klik.t < DWUKLIK) {
-            klik.apl = 0;
-            k1_log(TAG, "pulpit: otwieram %s", aplikacje[apl].nazwa);
-            otworz_aplikacje(apl);
+        zaznacz(kl);
+        if (kl != 0 && klik.klucz == kl && k1_teraz() - klik.t < DWUKLIK) {
+            klik.klucz = 0;
+            k1_log(TAG, "pulpit: otwieram %s", rozm_plik(kl) ? "plik" : ikona_nazwa(kl));
+            ikona_otworz(kl);
             return;
         }
-        klik.apl = apl;
+        klik.klucz = kl;
         klik.t = k1_teraz();
-        wcisk.apl = apl;
+        wcisk.klucz = kl;
         wcisk.x = m->a;
         wcisk.y = m->b;
     } else if (m->c == K1_WSK_WCISNIECIE && m->d == K1_PRZYCISK_PRAWY) {
-        zaznacz(apl);
-        kontekst_otworz(apl ? K_IKONA : K_PULPIT, apl, m->a, m->b);
+        zaznacz(kl);
+        kontekst_otworz(kl ? K_IKONA : K_PULPIT, kl, m->a, m->b);
     } else if (m->c == K1_WSK_PUSZCZENIE && m->d == K1_PRZYCISK_LEWY) {
         puszczenie();
     }

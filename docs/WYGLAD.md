@@ -107,6 +107,15 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
 - **Dolny pasek:** szerokość według liczby aplikacji, wyśrodkowany; przypięte, kreska, uruchomione spoza
   paska.
 
+## Pliki i Kosz (0.8.0, ADR 0029)
+- Okno Plików jak Eksplorator w Windows 11, w stylu K1 (do oceny właściciela na zrzutach): z lewej miejsca (stałe
+  foldery z ikonami liniowymi, kreska, Kosz), nad listą przycisk „w górę” i ścieżka „Dokumenty › Projekt”, pod nią
+  przyciski miejsca (zwykłe, z obrysem; „Tak, usuń” w kolorze akcentu), lista wierszami po 32 px (ikona folderu
+  w kolorze akcentu, plików — szara), z prawej podgląd na polu w kolorze `pole` motywu. Zmiana nazwy: pole z obrysem
+  w kolorze akcentu, zaznaczona nazwa podświetlona akcentem.
+- Kosz na pulpicie: kafelek jak aplikacje; pusty — kosz z dwoma żebrami, pełny — z kulką papieru w środku.
+- Pliki na pulpicie: kafelek z ikoną typu (folder, tekst, obraz, inny plik), nazwa ucięta „…”, gdy za długa.
+
 ## Zasoby (M4.1)
 Okno 560×520: „Procesor” i „Pamięć” — nazwa, liczba po prawej (Plex Sans Medium 15), pod spodem
 wykres z ostatniej minuty na karcie (`pole`, zaokrąglenie 8, włoskowaty obrys): jedna seria w kolorze

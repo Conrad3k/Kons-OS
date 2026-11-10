@@ -34,7 +34,8 @@ WSPOLNE := src/wspolne/k1_log.c src/wspolne/k1_cmdline.c src/wspolne/k1_zdarzeni
 NAGL    := $(wildcard src/wspolne/*.h)
 # Services (M3): protocol, channels, sandbox.
 USLUGI  := src/wspolne/k1_uslugi.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
-           src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c
+           src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c \
+           src/wspolne/k1_dokument.c
 # Blob Vault (M5c, ADR 0015): format + Monocypher (src/zewnetrzne, docs/ZALEZNOSCI.md). Monocypher is
 # compiled as is; on the host (ASan build) -Wconversion warns about its code, so only there it is off.
 MONOCYPHER := src/zewnetrzne/monocypher/monocypher.c
@@ -103,8 +104,9 @@ $(BIN)/instalator: src/instalator/main.c src/instalator/gpt.c src/instalator/gpt
 	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -I$(GEN) -o $@ src/instalator/main.c src/instalator/gpt.c \
 		$(EFI) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
-SKARBIEC := src/skarbiec/main.c $(MAGAZYN)
-$(BIN)/skarbiec: $(SKARBIEC) src/skarbiec/magazyn.h src/skarbiec/magazyn_wew.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+# skarbiec in modules (0.8.0): main.c (loop, channels), obiekty, haslo, dokumenty, dok_kanal + the format — skarbiec.h
+SKARBIEC := $(filter-out src/skarbiec/magazyn.c src/skarbiec/naglowek.c,$(sort $(wildcard src/skarbiec/*.c))) $(MAGAZYN)
+$(BIN)/skarbiec: $(SKARBIEC) $(wildcard src/skarbiec/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ $(SKARBIEC) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 $(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
@@ -204,12 +206,19 @@ $(OBJ)/test_kalkulator: testy/host/test_kalkulator.c src/aplikacje/kalkulator/li
 $(OBJ)/test_rozmieszczenie: testy/host/test_rozmieszczenie.c src/gui/rozmieszczenie.c src/gui/rozmieszczenie.h $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/gui -o $@ testy/host/test_rozmieszczenie.c src/gui/rozmieszczenie.c
 
+# 0.8.0: the user's files — names, types, the entry layout, folders, Kosz, the rights of the channel
+DOK_TEST := src/skarbiec/dokumenty.c src/skarbiec/dok_kanal.c src/skarbiec/obiekty.c $(MAGAZYN) src/wspolne/k1_dokument.c \
+            src/wspolne/k1_log.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_memfd.c src/wspolne/k1_uslugi.c
+$(OBJ)/test_dokumenty: testy/host/test_dokumenty.c $(DOK_TEST) $(wildcard src/skarbiec/*.h) $(NAGL) | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_dokumenty.c $(DOK_TEST)
+
 # Every host test includes the shared helpers: a change there rebuilds them all.
 $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instalator test_kalkulator test_komunikat \
-	test_log test_magazyn test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
+	test_dokumenty test_log test_magazyn test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
 	test_zdarzenie): testy/host/k1_test_host.h
 
-testy-host: $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator
+testy-host: $(OBJ)/test_dokumenty $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator
+	$(OBJ)/test_dokumenty
 	$(OBJ)/test_rozmieszczenie
 	$(OBJ)/test_kalkulator
 	rm -f $(OBJ)/grubenv.ref && grub-editenv $(OBJ)/grubenv.ref create && \
@@ -242,7 +251,7 @@ testy-host: $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_efi $(
 # Fuzzing (libFuzzer): one program per parser of untrusted bytes, testy/host/fuzz_<name>.c with the sources
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
-FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie
+FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -260,7 +269,9 @@ FUZZ_DL_manifest  := 512
 FUZZ_ZR_uklad     := src/wspolne/k1_uklad.c $(MONOCYPHER)
 FUZZ_DL_uklad     := 1024
 FUZZ_ZR_rozmieszczenie := src/gui/rozmieszczenie.c
-FUZZ_DL_rozmieszczenie := 64
+FUZZ_DL_rozmieszczenie := 700
+FUZZ_ZR_dokument  := src/wspolne/k1_dokument.c src/wspolne/k1_uslugi.c
+FUZZ_DL_dokument  := 1200
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
               -Isrc/wspolne -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/zewnetrzne/monocypher
 

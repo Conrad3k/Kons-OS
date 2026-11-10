@@ -7,6 +7,7 @@
 
 #include "gui.h"
 #include "k1_log.h"
+#include "k1_odbior.h"
 #include "k1_skarb_klient.h"
 
 int skarb_fd = -1;
@@ -51,18 +52,28 @@ void rozm_zapisz_teraz(void)
         k1_log(TAG, "rozmieszczenie pulpitu: zapis nieudany");
 }
 
-/* Results of the writes: only a failure is worth a line. */
+/* What skarbiec sends: results of the writes (only a failure is worth a line) and the files of the Pulpit
+ * folder (pliki.c). */
 void odbierz_skarbiec(void)
 {
-    struct k1_komunikat w;
-    int r;
-    while (skarb_fd >= 0 && (r = k1_skarb_wynik(skarb_fd, &w)) != 0) {
-        if (r < 0) {
+    for (int n = 0; n < 32 && skarb_fd >= 0; n++) {
+        struct k1_komunikat w;
+        int fd = -1;
+        enum k1_odbior_wynik r = k1_odbierz_komunikat(skarb_fd, K1_UID_SKARBIEC, K1_KIER_OD_SKARBCA, &w, &fd);
+        if (r == K1_ODB_PUSTO)
+            return;
+        if (r == K1_ODB_KONIEC) {
             close(skarb_fd);
             skarb_fd = -1;
             return;
         }
-        if (w.a == K1_KOM_SKARB_ZAPISZ && w.b != 0)
+        if (r != K1_ODB_JEST)
+            continue;
+        if (w.typ == K1_KOM_SKARB_WYNIK && w.a == K1_KOM_SKARB_ZAPISZ && w.b != 0)
             k1_log(TAG, "skarbiec: zapis rozmieszczenia nieudany (%d)", (int)w.b);
+        else if (w.typ >= K1_KOM_DOK_LISTA && w.typ <= K1_KOM_DOK_ZMIANA)
+            pliki_odbierz(&w, fd);
+        if (fd >= 0)
+            close(fd);
     }
 }

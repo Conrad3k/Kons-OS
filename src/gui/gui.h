@@ -6,6 +6,7 @@
  *   pasek_dolny.c     the bottom bar: Start, the pinned applications, the running ones that are not pinned
  *   menu_start.c      the Start menu
  *   pulpit.c          the desktop layer: icons in a grid (select, drag, double click)
+ *   pliki.c           the files of the Pulpit folder and Kosz on the desktop (skarbiec, fd 6; 0.8.0)
  *   kontekst.c        the menu under the right mouse button (desktop, icon, bottom bar, Start menu)
  *   zapis.c           the desktop arrangement in skarbiec (fd 6)
  *   rozmieszczenie.c  the rules of the arrangement (pure, host tests)
@@ -66,6 +67,7 @@ int aktywna_aplikacja(void);
 void zmiana_okna(const struct k1_komunikat *m); /* K1_KOM_OKNO from ekran */
 void aplikacja(int apl);                         /* the bottom bar: start it, or show / minimise its window */
 void otworz_aplikacje(int apl);                  /* the desktop and menus: start it, or show its window */
+void otworz_pliki(uint32_t wpis, int kosz);       /* Pliki at a file or folder (0: none) or at Kosz (0.8.0) */
 void zamknij_aplikacje(int apl);                 /* "Zamknij okno": ekran asks the application to close */
 void do_nadzorcy(struct k1_komunikat m);
 
@@ -113,12 +115,22 @@ void pulpit_loguj(void);    /* "ikony na pulpicie": where each icon is (the test
 int pulpit_kolumn(void);
 int pulpit_wierszy(void);
 
+/* pliki.c: what an icon shows and does, whatever it is (an application, Kosz, a file — rozmieszczenie.h keys) */
+void pliki_start(void);                                   /* asks skarbiec for the files of the Pulpit folder */
+void pliki_odbierz(const struct k1_komunikat *m, int fd); /* DOK_* from skarbiec on fd 6 */
+const char *ikona_nazwa(uint32_t klucz);
+enum k1_ikona ikona_rysunek(uint32_t klucz);
+void ikona_otworz(uint32_t klucz);
+void plik_do_kosza(uint32_t klucz);
+void kosz_oproznij(void);
+int kosz_pelny(void);
+
 /* kontekst.c */
 enum { K_PULPIT = 1, K_IKONA, K_PASEK, K_MENU };
 #define KONT_SZER 232
 #define KONT_WYS 168
 extern int kontekst_otwarte;
-void kontekst_otworz(int cel, int apl, int32_t x, int32_t y); /* x, y: the pointer on the screen */
+void kontekst_otworz(int cel, uint32_t klucz, int32_t x, int32_t y); /* x, y: the pointer on the screen */
 void kontekst_zamknij(void);
 void rysuj_kontekst(void);
 void wskaznik_kontekst(const struct k1_komunikat *m);

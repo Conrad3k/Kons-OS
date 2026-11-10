@@ -89,7 +89,8 @@ Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
     nową kolejność: 0.7.5 Pulpit → 0.8.0 Pliki → M7 Sieć → M8 Strefy → M9 Pliki ze stref (ADR 0026).
     Pulpit „jak w Windowsie, ale estetycznie, zgodnie ze stylem K1”. Kosz: usuwa po 30 dniach albo ręcznie.
 [x] Na starcie 0.7.5: wybór szkicu pulpitu → A „Kafelki”, kafelki i menu w kolorach motywu (2026-11-09).
-[!] Na starcie 0.8.0: w Plikach foldery (jak w Windows) czy etykiety (jeden plik może mieć kilka)?
+[x] Na starcie 0.8.0: foldery czy etykiety? → „co do folderów — niech będą takie, jak w Windowsie”
+    (2026-11-10): Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane + własne foldery w nich (ADR 0029).
 [!] Przed M8 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)? W „Przeglądarce K1”
     (ADR 0025) każda sesja to osobna strefa z własnym kolorem karty, „prywatna” = jednorazowa.
 
@@ -234,11 +235,12 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
     [x] Instalator na zainstalowanym K1: tylko „Aktualizacje są możliwe poprzez nośnik USB.”
     [x] nowa tapeta „Las” (Ustawienia → Wygląd)
 
-0.8.0 Pliki (natywna część dawnego M9 i dawne M6 „dekodery w izolacji”)
-    [ ] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie (pokazywane w Plikach)
-    [ ] aplikacja Pliki: lista, podgląd, zmiana nazwy; pliki na pulpicie
-    [ ] Kosz: przywracanie; usuwa na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”); ikona na pulpicie
-    [ ] okno wyboru pliku rysowane przez K1 — aplikacja dostaje tylko wybrany plik (prośba przez kanał)
+0.8.0 Pliki (natywna część dawnego M9 i dawne M6 „dekodery w izolacji”; kroki: ADR 0029 p. 8)
+    [x] krok 1 (ADR 0029): pliki i foldery w skarbcu, aplikacja Pliki, Kosz, pliki z folderu Pulpit na pulpicie
+    [x] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie (pokazywane w Plikach)
+    [x] aplikacja Pliki: foldery jak w Windows, lista, podgląd, zmiana nazwy; pliki na pulpicie
+    [x] Kosz: przywracanie; usuwa na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”); ikona na pulpicie
+    [ ] (krok 2) okno wyboru pliku rysowane przez K1 — aplikacja dostaje tylko wybrany plik (prośba przez kanał)
     [ ] domyślna aplikacja dla typu pliku i „Otwórz w…” (Ustawienia → Aplikacje; ADR 0027)
     [ ] Notatki na wspólnych dokumentach (istniejące notatki przeniesione)
     [ ] zdjęcia z pendrive'a (czytnik FAT w klatce, bez FAT w jądrze), tylko po Twoim wyborze
