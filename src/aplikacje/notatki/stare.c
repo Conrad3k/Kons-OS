@@ -39,23 +39,24 @@ static int stary_spis(int *ids)
 
 void stare_przenies(void)
 {
-    static char tekst[MAKS_TEKST + 1];
-    int ids[STARYCH_MAKS], ile = stary_spis(ids), wyslane = 0;
+    /* all read first: a synchronous read drops other answers of skarbiec, the ones for the files sent too */
+    static char tekst[STARYCH_MAKS][MAKS_TEKST + 1];
+    int ids[STARYCH_MAKS], dl[STARYCH_MAKS], ile = stary_spis(ids), wyslane = 0;
     if (ile < 0) {
         ids[0] = STARA_PIERWSZA;
         ile = 1;
     }
-    for (int i = ile - 1; i >= 0; i--) { /* the oldest first */
-        int r = k1_skarb_czytaj(skarb, ids[i], tekst, MAKS_TEKST, 3000, &tryb);
-        if (r == -2) {
+    for (int i = 0; i < ile; i++) {
+        dl[i] = k1_skarb_czytaj(skarb, ids[i], tekst[i], MAKS_TEKST, 3000, &tryb);
+        if (dl[i] == -2) {
             k1_log(TAG, "stare notatki: skarbiec nie odpowiada — przeniesienie przy następnym uruchomieniu");
             return;
         }
-        if (r == 0)
+    }
+    for (int i = ile - 1; i >= 0; i--) { /* the oldest first */
+        if (dl[i] == 0)
             k1_skarb_usun(skarb, ids[i]); /* an empty note: nothing to keep */
-        if (r <= 0)
-            continue;
-        if (nowy_plik(tekst, (uint32_t)r, 0, ids[i]) == 0) {
+        if (dl[i] > 0 && nowy_plik(tekst[i], (uint32_t)dl[i], 0, ids[i]) == 0) {
             pozostalo++;
             wyslane++;
         }
