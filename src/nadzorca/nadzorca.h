@@ -109,8 +109,6 @@ extern int gui_kanal;
 extern int gui_kanal_uid;
 struct usluga *skarbiec(void);
 struct usluga *ekran(void);
-void czytaj_log(struct usluga *u);
-void zamknij_log(struct usluga *u);
 pid_t uruchom(struct usluga *u, const struct k1_profil *p, const int *fds, int n);
 int kanal_do_ekranu(int rola, int apl, int uid);
 void start(struct usluga *u);
@@ -120,6 +118,10 @@ void uruchom_aplikacje(int apl);
 void uruchom_z_plikiem(int apl, uint32_t plik); /* skarb.c: SKARB_URUCHOM from skarbiec (0.8.0, ADR 0030) */
 void wylacz(int restart);
 void obsluz_gui(void);
+
+/* logi.c */
+void czytaj_log(struct usluga *u);
+void zamknij_log(struct usluga *u);
 
 /* urzadzenia.c */
 int otworz_karte(void);

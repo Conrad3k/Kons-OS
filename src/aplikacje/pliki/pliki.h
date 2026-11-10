@@ -1,5 +1,6 @@
 /* K1 Pliki — state shared by the modules (0.8.0, ADR 0029):
- *   main.c   the window: places on the left, the path and the buttons, the list, keys and the mouse
+ *   main.c   the window: places on the left, the path, the list, keys and the mouse
+ *   przyciski.c the buttons of the place and what they do
  *   rysuj.c  drawing the list, the preview on the right and the footer
  *   dane.c   the files from skarbiec (fd 4): the list, a preview, requests and their results; places from
  *            nadzorca (fd 5, when the desktop opens Pliki at a file or Kosz) */
@@ -65,7 +66,17 @@ extern int gotowe;             /* the first list has arrived */
 /* main.c */
 int wierszy_widac(void);
 int przewijanie_potrzebne(void);
+
+/* przyciski.c */
+enum { B_NOWY, B_NAZWA, B_USUN, B_PRZYWROC, B_NA_ZAWSZE, B_OPROZNIJ, B_TAK, B_ANULUJ, B_OTWORZ_W, B_APL };
+extern int rodzaje[PRZYCISKI_MAKS], apl_przycisku[PRZYCISKI_MAKS]; /* what the buttons of przyciski() do, in order */
+extern int wybor_aplikacji;           /* "Otwórz w…" pressed: the buttons are the applications that open the file */
 int przyciski(struct k1_przycisk *p); /* the buttons of this place: how many */
+int dostepny(int r);                  /* whether button kind `r` can do anything now */
+void wykonaj(int r, int a);           /* button kind `r` (B_APL: application `a`) */
+void otworz_w(int a);                 /* the selected file in application `a` (Pliki: its preview) */
+void zacznij_edycje(void);
+void skoncz_edycje(int zapisz);
 
 /* dane.c */
 int dane_start(void);              /* fd 4, or -1 without skarbiec */

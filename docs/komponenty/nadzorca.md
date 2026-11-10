@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M3, M4) — testy w systemie (`scripts/test-m1.sh`, scenariusz `testy-w-systemie`), `scripts/test-m4.sh` (uruchamianie aplikacji, wyłączanie) |
-| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (tablica usług, uruchamianie w klatkach, logi, restarty, prośby pulpitu), `profile.c` (klatki), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
+| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (tablica usług, uruchamianie w klatkach, restarty, prośby pulpitu), `logi.c` (logi usług), `profile.c` (klatki), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
 | **Decyzje** | ADR 0006 (wersja M2), ADR 0007 (M3), ADR 0008 (pulpit i aplikacje) |
 
 ## Etapy startu (0.6.0)

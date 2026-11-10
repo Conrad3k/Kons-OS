@@ -72,7 +72,7 @@ TPM 1.2), jedno konto na komputer. X230 to maszyna testowa — szybka grafika i 
 |---|---|---|
 | `src/initramfs/` | `/init` | montuje rdzeń (dm-verity), przełącza korzeń |
 | `src/init/` | `/rdzen/init` | PID 1 |
-| `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` tablica usług i `kanaly[]`; `profile.c` klatki; `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c`, `rozruch.c`, `efi.c`, `test.c` |
+| `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` tablica usług i `kanaly[]`; `logi.c` logi usług; `profile.c` klatki; `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c`, `rozruch.c`, `efi.c`, `test.c` |
 | `src/wejscie/` | `system/wejscie` | klawiatura, mysz (evdev, EVIOCGRAB) |
 | `src/ekran/`, `src/grafika/` | `system/ekran` | DRM/KMS, składanie okien, kursor, tapety, znak K1 |
 | `src/gui/` | `system/gui` | pulpit w modułach (`gui.h`): warstwa ikon, paski, menu Start, menu kontekstowe, rozmieszczenie w skarbcu (fd 6) |

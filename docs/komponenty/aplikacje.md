@@ -88,7 +88,7 @@ na aplikacje, które otwierają ten typ (`K1_OTWIERANIE`) — wybrana dostaje te
 nazwa, typ (rozpoznany z zawartości), rozmiar, daty, pochodzenie („utworzony w K1”), w Koszu — za ile dni
 zniknie; plik tekstowy — początek treści (do 64 KiB, `DOK_CZYTAJ`). Klawisze: Enter (otwórz folder),
 Backspace (w górę), F2 (zmień nazwę), Delete (do Kosza), strzałki, Esc. Złe nazwy (`\ / : * ? " < > |`,
-kropka na końcu) i zajęte — komunikat w stopce. Moduły: `main.c` (okno, mysz, klawisze), `rysuj.c`
+kropka na końcu) i zajęte — komunikat w stopce. Moduły: `main.c` (okno, mysz, klawisze), `przyciski.c` (przyciski miejsca), `rysuj.c`
 (lista, podgląd, stopka), `dane.c` (skarbiec i nadzorca).
 
 ## Granica zaufania

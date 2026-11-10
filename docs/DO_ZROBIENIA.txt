@@ -247,7 +247,7 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
         stare notatki przeniesione same przy pierwszym uruchomieniu (sprawdzone w QEMU na dysku z 0.7.6)
     [!] Test na X230 (krok 2, po wydaniu 0.8.0): czy Twoje notatki z pendrive'a są w Notatkach i w Plikach
         (Dokumenty › Notatki)?
-    [ ] (krok 3) zdjęcia z pendrive'a (czytnik FAT w klatce, bez FAT w jądrze), tylko po Twoim wyborze — test w QEMU
+    [ ] [w toku: Claude, gałąź claude/sweet-brahmagupta-s6wla1] (krok 3) zdjęcia z pendrive'a (czytnik FAT w klatce, bez FAT w jądrze), tylko po Twoim wyborze — test w QEMU
         na wirtualnym pendrivie FAT ze zdjęciami (Twoja prośba z 2026-11-10: bez Twojego udziału)
     [ ] podgląd obrazów PNG/JPEG przez jednorazowy dekoder w izolacji; tapeta z własnego zdjęcia
     [ ] partycja K1-DANE na pendrivie do końca nośnika (dziś 64 MiB)
