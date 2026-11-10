@@ -107,6 +107,23 @@ void zamknij_sesje(void)
     }
 }
 
+/* skarbiec gave application `apl` a file after a gesture of the user (0.8.0, ADR 0030), or asks for the file
+ * picker (plik = 0): start it, tell it the file (its fd 5) and ask the desktop to show its window. */
+void uruchom_z_plikiem(int apl, uint32_t plik)
+{
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_PLIK_OTWORZ, plik, 0, 0, 0, 0, 0);
+    if (apl == K1_APL_PLIKI)
+        return; /* Pliki is opened at a place by the desktop (URUCHOM) */
+    uruchom_aplikacje(apl);
+    if (plik != 0 && plik_kanal[apl] >= 0)
+        k1_kanal_wyslij(plik_kanal[apl], &k, sizeof k, -1);
+    if (bateria_kanal >= 0 && gui_kanal_uid == K1_UID_GUI) {
+        k = k1_komunikat_nowy(K1_KOM_POKAZ_APL, 0, apl, 0, 0, 0, 0);
+        k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1);
+    }
+    k1_log(TAG, "skarbiec: aplikacja %d uruchomiona %s", apl, plik != 0 ? "z plikiem" : "(okno wyboru pliku)");
+}
+
 /* State of the vault from skarbiec (M5e): locked → the password screen instead of the desktop;
  * unlocked → restart ekran (the settings are readable now) and with it the desktop. */
 void obsluz_skarbiec(void)
@@ -118,6 +135,10 @@ void obsluz_skarbiec(void)
         int poprzedni = stan_skarbca;
         if (w == K1_ODB_PUSTO || w == K1_ODB_KONIEC)
             return; /* empty, or skarbiec ended (handled when it exits) */
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_SKARB_URUCHOM) {
+            uruchom_z_plikiem(k.a, k.obiekt);
+            continue;
+        }
         if (w != K1_ODB_JEST || k.typ != K1_KOM_SKARB_STAN) {
             k1_log(TAG, "odrzucono komunikat od skarbca");
             continue;

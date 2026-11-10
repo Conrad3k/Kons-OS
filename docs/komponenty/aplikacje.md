@@ -15,14 +15,31 @@ Tarcza analogowa (sekundnik w kolorze akcentu), godzina, data po polsku, czas
 letni/zimowy.
 
 ### Notatki
-Od 0.5.8 wiele notatek (do 32): z lewej lista (tytuł = pierwsza niepusta linia, pod
-nim druga; ostatnio zmieniona na górze, strzałki przewijania gdy się nie mieszczą), „Nowa notatka”
-(Ctrl+N), Ctrl+↑/↓ — poprzednia/następna, „Usuń notatkę” w stopce z potwierdzeniem; pusta notatka
-znika po przejściu do innej. Pisanie z polskimi znakami (AltGr), strzałki, Home/End, Backspace,
-Delete, Enter, kliknięcie ustawia kursor, zawijanie wierszy, zapis automatyczny (0,8 s po zmianie;
-od 0.5.6 obiekty w skarbcu — zaszyfrowane na partycji „K1-DANE”, bez niej tylko do wyłączenia;
-napis w stopce mówi, gdzie zapisano). Obiekty: 1 = lista („K1N1”, liczba, numery w kolejności),
-2…33 = notatki (2 = jedyna notatka z 0.5.6–0.5.7 — bez listy staje się pierwszą).
+Od 0.5.8 wiele notatek: z lewej lista (tytuł = pierwsza niepusta linia, pod nim druga; ostatnio zmieniona na
+górze, strzałki przewijania gdy się nie mieszczą), „Nowa notatka” (Ctrl+N), obok przycisk z folderem —
+**„Otwórz…”** (Ctrl+O, 0.8.0): okno wyboru pliku K1, Ctrl+↑/↓ — poprzednia/następna, „Usuń notatkę” w stopce
+z potwierdzeniem. Pisanie z polskimi znakami (AltGr), strzałki, Home/End, Backspace, Delete, Enter, kliknięcie
+ustawia kursor, zawijanie wierszy, zapis automatyczny (0,8 s po zmianie; napis w stopce mówi, gdzie zapisano).
+
+**Od 0.8.0 każda notatka to plik** (ADR 0030) w **Dokumenty › Notatki** (do 64 notatek po 16 KB): nazwa pliku
+idzie za pierwszym wierszem („Lista: zakupy?” → „Lista zakupy”; bez znaków, których nazwa nie może mieć), dopóki
+użytkownik nie zmieni jej w Plikach; ta sama nazwa w folderze — „ (2)”. Nowa notatka staje się plikiem przy
+pierwszym zapisie; pusta znika po przejściu do innej (plik — do Kosza). „Usuń notatkę” przenosi plik do Kosza
+(przywrócisz go w Plikach). Plik tekstowy otwarty w Notatkach z Plików, z pulpitu („Otwórz w…”) albo przez
+„Otwórz…” dochodzi do listy; zamiast „Usuń notatkę” ma „Zamknij plik” (plik zostaje na swoim miejscu); większy
+niż 16 KB — komunikat w stopce. Przy pierwszym uruchomieniu 0.8.0 stare notatki (obiekty 1–33 z 0.5.6–0.7.6)
+stają się plikami; stary obiekt znika dopiero, gdy skarbiec potwierdzi plik (`stare.c`, tymczasowe — do 0.9.0).
+Moduły: `main.c` (okno), `spis.c` (lista, nazwy), `pliki.c` (skarbiec, nadzorca), `tekst.c`, `stare.c`.
+
+### Wybór pliku
+(0.8.0, ADR 0030, `src/aplikacje/wybor/`, UID 207) — **okno wyboru pliku K1**: gdy aplikacja prosi o plik
+(`DOK_WYBIERZ`), skarbiec prosi nadzorcę o to okno i mówi mu, kto prosi i o jaki typ (`DOK_PROSBA`). Na górze
+„Notatki prosi o plik (Dokument tekstowy). Dostanie tylko ten, który wybierzesz.”; z lewej stałe foldery, nad
+listą „w górę” i ścieżka; lista: foldery, potem pliki (innego typu — wyszarzone); „Anuluj” i „Otwórz”
+(też podwójne kliknięcie i Enter; Esc i × = „Anuluj”). Okno widzi tylko nazwy widocznych plików (bez treści,
+bez Kosza); wybór idzie do skarbca (`DOK_WYBRANO`), który daje aplikacji dostęp do tego jednego pliku. Nie ma
+go w menu Start ani na pulpicie (kolumna -1 w `K1_APLIKACJE`); otwarte ręcznie bez prośby — „Żadna aplikacja
+nie prosi teraz o plik.” Moduły: `main.c` (okno), `dane.c` (skarbiec).
 
 ### Ustawienia
 Wygląd (motyw jasny/ciemny, tapeta: 5 wariantów z miniaturami, po 4 w rzędzie), Ekran
@@ -32,7 +49,9 @@ w kolorze akcentu z delikatnym wypełnieniem, pasek pod wykresem = zasilacz pod�
 najniższy poziom; od 0.6.0 pod wykresem ostatnie wcześniejsze uruchomienie z małym wykresem — archiwum
 od nadzorcy jako zapieczętowany memfd `BATERIA_ARCH`; bez baterii — napis), Hasło (0.5.7: włącz / zmień / wyłącz, pola z kropkami, Tab/Enter/Esc;
 przez skarbiec — fd 5), Mysz (prędkość),
-Data i czas (sekundy na pasku), Informacje (wersja, ekran, jądro, gdzie są dane).
+Data i czas (sekundy na pasku), Aplikacje (0.8.0, `aplikacje.c`: domyślna aplikacja dla typu pliku, który otwiera
+więcej niż jedna — dziś „Dokument tekstowy”: Notatki albo Pliki (podgląd); ustawienie ekranu
+`K1_UST_OTWIERANIE` + typ, zapisane w skarbcu), Informacje (wersja, ekran, jądro, gdzie są dane).
 
 ### Instalator
 (0.5.9, ADR 0018, `src/aplikacje/instalacja/`, UID 204) — lista dysków od nadzorcy,
@@ -63,7 +82,9 @@ stałe foldery (Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane) i Kosz (pełn
 „w górę” i ścieżka („Dokumenty › Projekt”); przyciski miejsca: „Nowy folder” (od razu zmiana nazwy, jak
 w Windows), „Zmień nazwę”, „Usuń” (do Kosza); w Koszu: „Przywróć”, „Usuń na zawsze”, „Opróżnij Kosz” (oba
 ostatnie z pytaniem w stopce). Lista: najpierw foldery, potem pliki po nazwie; kolumny nazwa, data zmiany
-(w Koszu: usunięcia), rozmiar; podwójne kliknięcie otwiera folder. Z prawej podgląd zaznaczonego: ikona,
+(w Koszu: usunięcia), rozmiar; podwójne kliknięcie (i Enter) otwiera folder, a plik — w domyślnej aplikacji
+jego typu (Ustawienia → Aplikacje; Pliki — tylko podgląd); **„Otwórz w…”** (0.8.0, ADR 0030) zamienia przyciski
+na aplikacje, które otwierają ten typ (`K1_OTWIERANIE`) — wybrana dostaje ten jeden plik (`DOK_OTWORZ`). Z prawej podgląd zaznaczonego: ikona,
 nazwa, typ (rozpoznany z zawartości), rozmiar, daty, pochodzenie („utworzony w K1”), w Koszu — za ile dni
 zniknie; plik tekstowy — początek treści (do 64 KiB, `DOK_CZYTAJ`). Klawisze: Enter (otwórz folder),
 Backspace (w górę), F2 (zmień nazwę), Delete (do Kosza), strzałki, Esc. Złe nazwy (`\ / : * ? " < > |`,
@@ -84,9 +105,14 @@ ustawienia (ekran sprawdza rolę i UID). Treść notatki nigdy nie trafia do log
 | Instalator | 204 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
 | Kalkulator | 205 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
 | Pliki | 206 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
+| Wybór pliku | 207 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
 
 ## Wejścia i wyjścia
-fd 3: kanał do ekranu. Okno: memfd (ADR 0008). Notatki: fd 4 — kanał do skarbca (obiekty 1–33, notatka ≤ 16 KiB, memfd z pieczęciami; usuwanie `SKARB_USUN`). Zasoby: fd 4 —
+fd 3: kanał do ekranu. Okno: memfd (ADR 0008). Notatki: fd 4 — kanał do skarbca: od 0.8.0 `DOK_*` — tylko
+własne pliki i pliki dane przez użytkownika (tabela praw w skarbcu), `DOK_WYBIERZ` → `DOK_WYBRANY`; stare obiekty
+1–33 tylko do przeniesienia (`SKARB_CZYTAJ`, `SKARB_USUN`); fd 5 — od nadzorcy, jednokierunkowo: `PLIK_OTWORZ`
+(obiekt = plik otwarty w Notatkach z Plików albo z pulpitu). Wybór pliku: fd 4 — kanał do skarbca (lista nazw,
+`DOK_PROSBA`, `DOK_WYBRANO`). Zasoby: fd 4 —
 kanał od nadzorcy (`ZASOBY_SYSTEM`, `ZASOBY_USLUGA`, od 0.6.3 `ZASOBY_BATERIA`), aplikacja nie może do niego pisać.
 Ustawienia: lista trybów ekranu (`K1_KOM_TRYB`) dostaje tylko ona; od 0.5.5 fd 4 — kanał od nadzorcy
 (`BATERIA`, `BATERIA_HIST`: do 16 próbek po 1 bajcie w komunikacie), jednokierunkowy, nadawca UID 0.
@@ -115,4 +141,6 @@ Błąd zapisu notatki → komunikat w oknie i w logu.
 | w systemie: zabita aplikacja nie wraca sama | negatywny |
 | `test-m4.sh` (0.8.0): Pliki — nowy folder, zmiana nazwy na klawiaturze, zajęta nazwa, wejście do folderu i „w górę”, Kosz (usuń, przywróć, usuń na zawsze z pytaniem, opróżnij), pliki po ponownym starcie; zrzut `m4-pliki.png` | funkcjonalny |
 | host: `test_dokumenty` (skarbiec), `test_komunikat` (`DOK_*`, `PLIKI_POKAZ`), `fuzz_dokument` (lista) | jednostkowy / negatywny / fuzzing |
+| host (0.8.0, ADR 0030): `test_dokumenty` — prawa Notatek (tylko własne pliki, nowy plik tylko w swoim folderze, Kosz tylko dla własnych), „Otwórz w…” (pulpit: tylko folder Pulpit; zły typ — odmowa), okno wyboru (jedna prośba naraz, tylko nazwy, folder i zły typ odrzucone, zamknięte okno = anulowanie, dostęp znika z aplikacją); `test_komunikat` — `DOK_OTWORZ`, `DOK_WYBIERZ`, `DOK_WYBRANO`, `DOK_WYBRANY`, `DOK_PROSBA`, `SKARB_URUCHOM`, `PLIK_OTWORZ`, `POKAZ_APL`, domyślne aplikacje | jednostkowy / negatywny |
+| `test-pliki.sh` (0.8.0, krok 2): stare notatki przeniesione do plików, nazwa za pierwszym wierszem, „Otwórz w…” z Plików i z pulpitu, okno wyboru pliku (wybór i „Anuluj”), Ustawienia → Aplikacje | funkcjonalny |
 | host: `test_przybornik` — czas polski (zmiany czasu), układ PL, UTF-8, rysowanie na krawędziach | jednostkowy |

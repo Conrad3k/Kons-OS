@@ -6,13 +6,16 @@
 #include "rozmieszczenie.h"
 
 static int domyslne[K1_APL_MAKS + 1];
+static int NA; /* applications on the bar at the first start (not the Instalator, not the windows of K1 itself) */
 
-/* The first start: Kosz top left, then every application but the Instalator (the owner's choice), one column. */
+/* The first start: Kosz top left, then every application but the Instalator (the owner's choice) and the file picker,
+ * one column. */
 static void test_domyslne(void)
 {
     struct rozmieszczenie r;
     rozm_domyslne(&r, domyslne, 7);
-    EXPECT(r.n_pasek == K1_APL_MAKS - 1 && r.n_ikon == K1_APL_MAKS);
+    EXPECT(NA == K1_APL_MAKS - 2 && r.n_pasek == NA && r.n_ikon == NA + 1);
+    EXPECT(rozm_na_pasku(&r, K1_APL_WYBOR) < 0 && rozm_ikona(&r, K1_APL_WYBOR) < 0);
     EXPECT(r.pasek[0] == K1_APL_ZEGAR && r.pasek[1] == K1_APL_NOTATKI);
     EXPECT(rozm_na_pasku(&r, K1_APL_INSTALACJA) < 0 && rozm_ikona(&r, K1_APL_INSTALACJA) < 0);
     EXPECT(rozm_w_komorce(&r, 0, 0) == ROZM_KOSZ && rozm_w_komorce(&r, 0, 1) == K1_APL_ZEGAR);
@@ -33,21 +36,21 @@ static void test_pasek(void)
     struct rozmieszczenie r;
     rozm_domyslne(&r, domyslne, 7);
     rozm_odepnij(&r, K1_APL_NOTATKI);
-    EXPECT(rozm_na_pasku(&r, K1_APL_NOTATKI) < 0 && r.n_pasek == K1_APL_MAKS - 2 && r.pasek[1] == K1_APL_USTAWIENIA);
+    EXPECT(rozm_na_pasku(&r, K1_APL_NOTATKI) < 0 && r.n_pasek == NA - 1 && r.pasek[1] == K1_APL_USTAWIENIA);
     rozm_odepnij(&r, K1_APL_NOTATKI); /* twice: nothing happens */
-    EXPECT(r.n_pasek == K1_APL_MAKS - 2);
+    EXPECT(r.n_pasek == NA - 1);
     rozm_przypnij(&r, K1_APL_INSTALACJA);
     EXPECT(rozm_na_pasku(&r, K1_APL_INSTALACJA) == r.n_pasek - 1);
     rozm_przypnij(&r, K1_APL_INSTALACJA);
     rozm_przypnij(&r, 0);
     rozm_przypnij(&r, K1_APL_MAKS + 1);
-    EXPECT(r.n_pasek == K1_APL_MAKS - 1);
+    EXPECT(r.n_pasek == NA);
     rozm_przesun_na_pasku(&r, K1_APL_INSTALACJA, 0); /* dragged to the front */
     EXPECT(r.pasek[0] == K1_APL_INSTALACJA && r.pasek[1] == K1_APL_ZEGAR);
     rozm_przesun_na_pasku(&r, K1_APL_ZEGAR, 99); /* past the end: the last place */
     EXPECT(r.pasek[r.n_pasek - 1] == K1_APL_ZEGAR && r.pasek[0] == K1_APL_INSTALACJA);
     rozm_przesun_na_pasku(&r, K1_APL_NOTATKI, 0); /* not pinned: no change */
-    EXPECT(rozm_na_pasku(&r, K1_APL_NOTATKI) < 0 && r.n_pasek == K1_APL_MAKS - 1);
+    EXPECT(rozm_na_pasku(&r, K1_APL_NOTATKI) < 0 && r.n_pasek == NA);
 }
 
 static void test_ikony(void)
@@ -61,9 +64,9 @@ static void test_ikony(void)
     rozm_przenies_ikone(&r, K1_APL_ZEGAR, 64, 0); /* outside the stored range: ignored */
     EXPECT(rozm_w_komorce(&r, 0, 2) == K1_APL_ZEGAR);
     rozm_usun_ikone(&r, K1_APL_NOTATKI);
-    EXPECT(rozm_ikona(&r, K1_APL_NOTATKI) < 0 && r.n_ikon == K1_APL_MAKS - 1);
+    EXPECT(rozm_ikona(&r, K1_APL_NOTATKI) < 0 && r.n_ikon == NA);
     EXPECT(rozm_dodaj_ikone(&r, K1_APL_NOTATKI, 4, 7) == 0 && rozm_w_komorce(&r, 0, 1) == K1_APL_NOTATKI);
-    EXPECT(rozm_dodaj_ikone(&r, K1_APL_NOTATKI, 4, 7) == 0 && r.n_ikon == K1_APL_MAKS); /* already there */
+    EXPECT(rozm_dodaj_ikone(&r, K1_APL_NOTATKI, 4, 7) == 0 && r.n_ikon == NA + 1); /* already there */
     /* files: added where there is room, arranged after the applications, oldest first */
     EXPECT(rozm_dodaj_ikone(&r, ROZM_PLIK + 300, 4, 7) == 0 && rozm_dodaj_ikone(&r, ROZM_PLIK + 120, 4, 7) == 0);
     EXPECT(rozm_dodaj_ikone(&r, ROZM_PLIK + 5, 4, 7) == 0 && rozm_ikona(&r, ROZM_PLIK + 5) < 0); /* not a file key */
@@ -153,6 +156,8 @@ int main(void)
 {
 #define X_DOM(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek) domyslne[apl] = pasek;
     K1_APLIKACJE(X_DOM)
+    for (int a = 1; a <= K1_APL_MAKS; a++)
+        NA += domyslne[a] > 0;
     test_domyslne();
     test_klucze();
     test_pasek();

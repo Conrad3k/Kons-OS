@@ -293,6 +293,8 @@ TYMCZASOWE (zasada czytelności 3 — każde z terminem; przegląd przy porządk
         Miejsca: src/wspolne/k1_efi.c, src/instalator/main.c, scripts/zbuduj-usb.sh, narzedzia/podpisz.c
     [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10”) — termin: M10; od 0.7.0 GRUB jest też
         częścią startu A/B (grubenv, ADR 0022), więc w M10 decyzja: zostaje czy zastępujemy (ADR)
+    [ ] przeniesienie notatek z 0.5.6–0.7.6 do plików (0.8.0, ADR 0030) — do usunięcia w 0.9.0, gdy właściciel
+        uruchomi 0.8.0 ze swoim pendrive'em (notatki przeniesione). Miejsce: src/aplikacje/notatki/stare.c
     [x] przegląd 0.7.5: innych rozwiązań tymczasowych w kodzie nie ma
 
 

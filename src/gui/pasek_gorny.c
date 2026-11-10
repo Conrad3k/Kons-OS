@@ -81,6 +81,10 @@ void odbierz_baterie(void)
             sesja(m.a);
             continue;
         }
+        if (w == K1_ODB_JEST && m.typ == K1_KOM_POKAZ_APL) { /* an application got a file to open (ADR 0030) */
+            pokaz_aplikacje(m.a);
+            continue;
+        }
         if (w != K1_ODB_JEST || m.typ != K1_KOM_BATERIA) {
             if (bat_odrzucone++ < 3)
                 k1_log(TAG, "kanał baterii: odrzucono komunikat");

@@ -1,24 +1,37 @@
-/* K1 Notatki — state shared by the modules (0.7.5 split): main.c (window: list, text, footer, keys,
- * mouse), spis.c (the notes and the list in skarbiec, fd 4), tekst.c (line wrap and editing of the open note). */
+/* K1 Notatki — state shared by the modules (0.7.5 split; 0.8.0: notes are files, ADR 0030):
+ *   main.c   the window: the list, the text, the footer, keys and the mouse
+ *   spis.c   the notes in the window: order, opening, a new one, deleting
+ *   pliki.c  skarbiec (fd 4): the list of files, their content, saving (the name follows the first line), the file
+ *            picker; nadzorca (fd 5): a file to open
+ *   stare.c  the notes of 0.5.6–0.7.6 moved to files once (temporary)
+ *   tekst.c  line wrap and editing of the open note */
 #ifndef K1_NOTATKI_H
 #define K1_NOTATKI_H
 
 #include <stdint.h>
 
 #include "k1_aplikacja.h"
+#include "k1_dokument.h"
 
 #define TAG "K1-NOTATKI"
 #define FD_SKARBIEC 4
+#define FD_NADZORCA 5
 #define MAKS_TEKST 16384
 #define MAKS_LINII 1024
-#define MAKS_NOTATEK 32
-#define OB_SPIS 1                  /* the list of notes */
-#define OB_PIERWSZA K1_OB_NOTATKA  /* ids OB_PIERWSZA .. OB_PIERWSZA + MAKS_NOTATEK - 1 */
-#define SPIS_ZNAK "K1N1"
+#define MAKS_NOTATEK 64
 
 struct notatka {
-    int id;
+    uint32_t nr;           /* this window's own number (never changes, unlike the place in the list) */
+    uint32_t id;           /* the file in skarbiec; 0: not created yet (a new note) */
     uint32_t dl;
+    int64_t zmieniono;     /* from the entry: the list is newest first */
+    int wlasna;            /* made by Notatki (else: a text file the user opened in Notatki) */
+    int wczytana;          /* its content is here */
+    int tworzona;          /* NOWY sent, its number not here yet */
+    int do_zapisu;         /* changed while it was being created: save once it has a number */
+    char nazwa[K1_DOK_NAZWA];   /* the file's name */
+    char auto_n[K1_DOK_NAZWA];  /* the name its first line gave at the last save (the name follows it until
+                                 * the user renames the file in Pliki) */
     char tekst[MAKS_TEKST + 1];
 };
 
@@ -29,7 +42,7 @@ extern struct notatka *b;               /* = &nt[biez] */
 extern uint32_t kursor, pierwsza;       /* cursor (byte) in the open note, first visible line */
 extern int lista_od;                    /* first visible row of the list */
 extern int pytanie;                     /* "delete this note?" shown in the footer */
-extern int pelno;                       /* the limit of notes was hit (message in the footer) */
+extern const char *komunikat;           /* a message for the footer (NULL: none) */
 extern double zmiana;                   /* when the open note last changed (0: saved) */
 extern int zapis_blad, skarb, tryb;     /* tryb: K1_SKARB_TRWALY / K1_SKARB_RAM */
 
@@ -37,12 +50,21 @@ void popraw_przewiniecie(int do_biezacej); /* main.c: keeps the list's scroll in
 
 /* spis.c */
 void wybierz_indeks(int i);
-void wczytaj(void);       /* all notes from skarbiec at start */
-void zapisz(void);        /* the open note (and the list, when its order changed) */
-void odbierz_wyniki(void);
+struct notatka *dodaj_notatke(void);  /* an empty slot at the end, or NULL when full */
+void uloz_liste(void);                /* newest first (new notes on top); the open one stays open */
 void otworz(int i);
 void nowa(void);
 void usun_biezaca(void);
+void pokaz_plik(uint32_t id);         /* select the note of file `id` (opened through Pliki or the picker) */
+
+/* pliki.c */
+void wczytaj(void);       /* the channel to skarbiec; the old notes moved; the list asked for */
+void zapisz(void);        /* the open note (a new file, or new content; the name follows its first line) */
+void do_kosza(uint32_t id);
+void zamknij_dany(uint32_t id); /* a file given to Notatki, closed here: kept out of the list */
+void wybierz_plik(void);  /* "Otwórz…": the file picker of K1 */
+void skarb_odbierz(void);    /* fd 4 */
+void nadzorca_odbierz(void); /* fd 5 */
 
 /* tekst.c: the open note in lines of at most `szer` px */
 struct linia {

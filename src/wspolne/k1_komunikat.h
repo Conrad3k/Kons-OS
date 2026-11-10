@@ -15,6 +15,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "k1_dokument.h"
+
 #define K1_KOMUNIKAT_WERSJA 1
 
 /* Channel directions: a type is valid in exactly one of them. */
@@ -125,9 +127,11 @@ enum k1_komunikat_typ {
     K1_KOM_DOK_SPIS = 84,      /* obiekt=0: the entries this client may see (reply: DOK_LISTA) */
     K1_KOM_DOK_CZYTAJ = 85,    /* obiekt=file, a=at most this many bytes (1..K1_DOK_MAKS_BAJTY) (reply: DOK_TRESC) */
     K1_KOM_DOK_NOWY = 86,      /* obiekt=folder, a=K1_DOK_PLIK/FOLDER, b=name length 1..127, c=content length
-                                * (folder: 0); + 1 memfd of b + c bytes: the name, then the content */
+                                * (folder: 0); + 1 memfd of b + c bytes: the name, then the content. Notatki (0.8.0,
+                                * ADR 0030): obiekt=Dokumenty — the file goes to its folder Dokumenty › Notatki */
     K1_KOM_DOK_ZAPISZ = 87,    /* obiekt=file, a=length 0..K1_DOK_MAKS_BAJTY; + 1 memfd: the new content */
-    K1_KOM_DOK_NAZWA = 88,     /* obiekt=entry, a=name length 1..127; + 1 memfd: the new name */
+    K1_KOM_DOK_NAZWA = 88,     /* obiekt=entry, a=name length 1..127, b=1 a taken name gets " (2)"… (else 0: refused);
+                                * + 1 memfd: the new name */
     K1_KOM_DOK_PRZENIES = 89,  /* obiekt=entry, a=the folder it goes to */
     K1_KOM_DOK_KOSZ = 90,      /* obiekt=entry: into Kosz (a folder with everything inside) */
     K1_KOM_DOK_PRZYWROC = 91,  /* obiekt=entry in Kosz: back to its folder */
@@ -139,6 +143,20 @@ enum k1_komunikat_typ {
     K1_KOM_DOK_WYNIK = 96,     /* obiekt=entry (0: none), a=request type (84..93), b=result (0, K1_MAG_* or
                                 * K1_DOK_BLAD_* < 0), c=the new entry's number (NOWY; else 0) */
     K1_KOM_DOK_ZMIANA = 97,    /* obiekt=0: files changed — ask for the list again (to every client allowed to list) */
+    /* client → skarbiec (0.8.0 step 2, ADR 0030): a file for an application, always after a gesture of the user */
+    K1_KOM_DOK_OTWORZ = 98,    /* Pliki, gui: obiekt=file, a=application 1..K1_APL_MAKS that opens its type (not Pliki):
+                                * it gets this file and is started with it (reply: DOK_WYNIK) */
+    K1_KOM_DOK_WYBIERZ = 99,   /* an application: obiekt=0, a=type 0 (any) / 1..K1_TYPY_MAKS — open the file picker
+                                * (reply: DOK_WYBRANY when the user is done, DOK_WYNIK at once when it cannot) */
+    K1_KOM_DOK_WYBRANO = 100,  /* the file picker only: obiekt=the file picked (0: cancelled) (reply: DOK_WYNIK) */
+    /* skarbiec → client */
+    K1_KOM_DOK_WYBRANY = 101,  /* to the application that asked: obiekt=the file it may use now (0: the user cancelled) */
+    K1_KOM_DOK_PROSBA = 102,   /* to the file picker: obiekt=0, a=application asking 1..K1_APL_MAKS, b=type 0..K1_TYPY_MAKS */
+    /* skarbiec → nadzorca (control channel): start an application (with a file it was given: its fd 5 gets PLIK_OTWORZ) */
+    K1_KOM_SKARB_URUCHOM = 83, /* obiekt=file (0: none), a=application 1..K1_APL_MAKS */
+    /* nadzorca → an application (its fd 5) and → gui (its fd 5) */
+    K1_KOM_PLIK_OTWORZ = 22,   /* to an application: obiekt=file it was given (DOK_OTWORZ) — open it */
+    K1_KOM_POKAZ_APL = 23,     /* to gui: obiekt=0, a=application 1..K1_APL_MAKS — show its window (it was asked to open a file) */
     /* nadzorca → Pliki (0.8.0, its fd 5; after URUCHOM with a place): show it */
     K1_KOM_PLIKI_POKAZ = 21,   /* obiekt=0, a=entry (0: the last place), b=1 Kosz (then a=0) */
     K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample
@@ -180,8 +198,10 @@ enum k1_ustawienie {
     K1_UST_MYSZ = 3,    /* pointer speed 1..3 */
     K1_UST_TAPETA = 4,  /* wallpaper variant 0..K1_TAPETY-1 */
     K1_UST_ROZDZIELCZOSC = 5, /* screen mode number 1..K1_TRYBY_MAKS (list: K1_KOM_TRYB) */
+    K1_UST_OTWIERANIE = 6,    /* 6..5+K1_TYPY_MAKS: the default application of file type (key - 5) — one that opens it
+                               * (k1_dok_otwiera; 0.8.0, ADR 0030) */
 };
-#define K1_UST_MAKS 5
+#define K1_UST_MAKS (K1_UST_OTWIERANIE + K1_TYPY_MAKS - 1)
 
 /* Wallpaper variants: one palette each in k1_grafika.c, names in Ustawienia (docs/WYGLAD.md). */
 #define K1_TAPETY 5
@@ -290,5 +310,7 @@ int k1_komunikat_sprawdz(const void *buf, size_t len, enum k1_kanal_kierunek kie
 /* Whether a message type carries exactly one file descriptor (SCM_RIGHTS). Types not listed
  * carry none; receivers reject (and close) descriptors attached to any other message. */
 int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek);
+/* 1 for a request about files a client sends to skarbiec (K1_KOM_DOK_SPIS..OPROZNIJ, OTWORZ..WYBRANO). */
+int k1_kom_dok_prosba(int typ);
 
 #endif

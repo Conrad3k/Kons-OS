@@ -1,8 +1,9 @@
 /* K1 Pliki — native application (0.8.0, ADR 0029): the user's folders and files, as in Windows — the standard
  * folders on the left (Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane) and Kosz; the path with "up", the
- * buttons of the place (Nowy folder, Zmień nazwę, Usuń; in Kosz: Przywróć, Usuń na zawsze, Opróżnij Kosz), the
- * list (folders first, then by name) and the preview on the right. Keys: Enter opens a folder, Backspace goes
- * up, F2 renames, Delete moves to Kosz, arrows move the selection.
+ * buttons of the place (Nowy folder, Zmień nazwę, Usuń, Otwórz w…; in Kosz: Przywróć, Usuń na zawsze, Opróżnij
+ * Kosz), the list (folders first, then by name) and the preview on the right. A double click (or Enter) opens a
+ * folder, or a file in its default application (Ustawienia → Aplikacje; ADR 0030) — Pliki itself only shows it.
+ * Keys: Backspace goes up, F2 renames, Delete moves to Kosz, arrows move the selection.
  *
  * The program has no files at all: everything comes from skarbiec on fd 4 (the table of rights there lets
  * Pliki do everything with the user's files and nothing else); fd 5 brings a place to show from nadzorca.
@@ -30,6 +31,7 @@ struct edycja edycja;
 enum pytanie pytanie;
 const char *blad;
 static int nad_miejscem = -1, nad_przyciskiem = -1, nad_w_gore;
+static int wybor_aplikacji; /* "Otwórz w…" pressed: the buttons are the applications that open the file */
 static struct {
     uint32_t id;
     double t;
@@ -87,6 +89,7 @@ void przejdz(struct miejsce m)
     zaznaczony = 0;
     edycja.id = 0;
     pytanie = PYT_BRAK;
+    wybor_aplikacji = 0;
     blad = NULL;
     od_wiersza = 0;
     klik.id = 0;
@@ -129,17 +132,38 @@ static void zaznacz_wiersz(int i)
 
 /* ---- the buttons of the place ---- */
 
-enum { B_NOWY, B_NAZWA, B_USUN, B_PRZYWROC, B_NA_ZAWSZE, B_OPROZNIJ, B_TAK, B_ANULUJ };
-static int rodzaje[4]; /* what the buttons of przyciski() do, in order */
+enum { B_NOWY, B_NAZWA, B_USUN, B_PRZYWROC, B_NA_ZAWSZE, B_OPROZNIJ, B_TAK, B_ANULUJ, B_OTWORZ_W, B_APL };
+static int rodzaje[PRZYCISKI_MAKS], apl_przycisku[PRZYCISKI_MAKS]; /* what the buttons of przyciski() do, in order */
+
+/* The applications other than Pliki that open the selected file (its type). */
+static int aplikacje_pliku(int *a)
+{
+    const struct k1_dok_wpis *w = wpis(zaznaczony);
+    int n, j = 0;
+    if (w == NULL || w->rodzaj != K1_DOK_PLIK || tu.kosz)
+        return 0;
+    n = k1_dok_aplikacje(w->typ, a);
+    for (int i = 0; i < n; i++)
+        if (a[i] != K1_APL_PLIKI)
+            a[j++] = a[i];
+    return j;
+}
 
 int przyciski(struct k1_przycisk *p)
 {
     static const char *const etykiety[] = { "Nowy folder", "Zmień nazwę", "Usuń", "Przywróć", "Usuń na zawsze",
-                                            "Opróżnij Kosz", "Tak, usuń", "Anuluj" };
-    static const int32_t szer[] = { 116, 116, 76, 92, 132, 128, 96, 84 };
-    int n = 0, i;
+                                            "Opróżnij Kosz", "Tak, usuń", "Anuluj", "Otwórz w…" };
+    static const int32_t szer[] = { 116, 116, 76, 92, 132, 128, 96, 84, 104, 112 };
+    int n = 0, i, a[K1_APL_MAKS];
     int32_t x = LISTA_X;
-    if (pytanie != PYT_BRAK) {
+    if (wybor_aplikacji) {
+        int na = aplikacje_pliku(a);
+        for (i = 0; i < na && n < PRZYCISKI_MAKS - 1; i++) {
+            apl_przycisku[n] = a[i];
+            rodzaje[n++] = B_APL;
+        }
+        rodzaje[n++] = B_ANULUJ;
+    } else if (pytanie != PYT_BRAK) {
         rodzaje[n++] = B_TAK;
         rodzaje[n++] = B_ANULUJ;
     } else if (tu.kosz) {
@@ -150,10 +174,12 @@ int przyciski(struct k1_przycisk *p)
         rodzaje[n++] = B_NOWY;
         rodzaje[n++] = B_NAZWA;
         rodzaje[n++] = B_USUN;
+        rodzaje[n++] = B_OTWORZ_W;
     }
     for (i = 0; i < n; i++) {
-        p[i] = (struct k1_przycisk){ x, PRZYCISKI_Y, szer[rodzaje[i]], PRZYCISK_H, etykiety[rodzaje[i]],
-                                     rodzaje[i] == B_TAK ? K1_PRZ_GLOWNY : K1_PRZ_ZWYKLY };
+        p[i] = (struct k1_przycisk){ x, PRZYCISKI_Y, szer[rodzaje[i]], PRZYCISK_H,
+                                     rodzaje[i] == B_APL ? k1_profil_nazwa(k1_apl_profil(apl_przycisku[i])) : etykiety[rodzaje[i]],
+                                     rodzaje[i] == B_TAK || rodzaje[i] == B_APL ? K1_PRZ_GLOWNY : K1_PRZ_ZWYKLY };
         x += szer[rodzaje[i]] + 8;
     }
     return n;
@@ -170,9 +196,25 @@ static int dostepny(int r)
         return zaznaczony != 0 && edycja.id == 0;
     case B_OPROZNIJ:
         return w_koszu > 0;
+    case B_OTWORZ_W: {
+        int a[K1_APL_MAKS];
+        return edycja.id == 0 && aplikacje_pliku(a) > 0;
+    }
     default:
         return 1;
     }
+}
+
+/* The selected file in application `a` (skarbiec gives it this file, nadzorca starts it); Pliki: its preview. */
+static void otworz_w(int a)
+{
+    wybor_aplikacji = 0;
+    if (a == K1_APL_PLIKI && zaznaczony != 0)
+        k1_log(TAG, "plik pokazany w Plikach (domyślna aplikacja)");
+    if (a == K1_APL_PLIKI || zaznaczony == 0)
+        return;
+    k1_log(TAG, "plik otwierany w aplikacji %s", k1_profil_nazwa(k1_apl_profil(a)));
+    do_skarbca(K1_KOM_DOK_OTWORZ, zaznaczony, a);
 }
 
 static void zacznij_edycje(void)
@@ -194,12 +236,15 @@ static void skoncz_edycje(int zapisz)
     edycja.id = 0;
 }
 
-static void wykonaj(int r)
+/* Button kind `r` (B_APL: application `a`). */
+static void wykonaj(int r, int a)
 {
     if (!dostepny(r))
         return;
     blad = NULL;
     switch (r) {
+    case B_OTWORZ_W: wybor_aplikacji = 1; break;
+    case B_APL: otworz_w(a); break;
     case B_NOWY: nowy_folder(); break;
     case B_NAZWA: zacznij_edycje(); break;
     case B_USUN: do_skarbca(K1_KOM_DOK_KOSZ, zaznaczony, 0); zaznaczony = 0; break;
@@ -214,7 +259,7 @@ static void wykonaj(int r)
         zaznaczony = 0;
         pytanie = PYT_BRAK;
         break;
-    default: pytanie = PYT_BRAK; break;
+    default: pytanie = PYT_BRAK; wybor_aplikacji = 0; break;
     }
     k1_apl_odswiez(&apl);
 }
@@ -302,7 +347,7 @@ static void loguj_przyciski(const struct k1_przycisk *p, int n)
 
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
-    struct k1_przycisk p[4];
+    struct k1_przycisk p[PRZYCISKI_MAKS];
     int n = przyciski(p), i;
     loguj_przyciski(p, n);
     miejsca(o, m);
@@ -334,11 +379,19 @@ static int wiersz_pod(int32_t x, int32_t y)
     return (y - WIERSZE_Y) / WIERSZ < wierszy_widac() && i < n_widok ? i : -1;
 }
 
+/* A folder: go into it; a file: its default application (Pliki itself: the preview is shown already). */
 static void otworz(uint32_t id)
 {
     const struct k1_dok_wpis *w = wpis(id);
-    if (w != NULL && w->rodzaj == K1_DOK_FOLDER && !tu.kosz)
+    int a;
+    if (w == NULL || tu.kosz)
+        return;
+    if (w->rodzaj == K1_DOK_FOLDER) {
         przejdz((struct miejsce){ id, 0 });
+        return;
+    }
+    a = apl.k.ustawienia[K1_UST_OTWIERANIE + w->typ - 1];
+    otworz_w(k1_dok_otwiera(a, w->typ) ? a : k1_dok_domyslna(w->typ));
 }
 
 static void klik_w_liste(int i)
@@ -359,6 +412,7 @@ static void klik_w_liste(int i)
     klik.t = t;
     zaznaczony = id;
     pytanie = PYT_BRAK;
+    wybor_aplikacji = 0;
     podglad_zadaj(id);
 }
 
@@ -375,7 +429,7 @@ static void przewin(int32_t x)
 
 static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
 {
-    struct k1_przycisk p[4];
+    struct k1_przycisk p[PRZYCISKI_MAKS];
     int n = przyciski(p), mj = -1, pr = -1, wr = -1, wg = 0;
     if (rodzaj != K1_WSK_WYJSCIE) {
         mj = miejsce_pod(x, y);
@@ -397,7 +451,7 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     if (mj >= 0)
         przejdz(mj == K1_FOLDERY_MAKS ? (struct miejsce){ 0, 1 } : (struct miejsce){ (uint32_t)mj + 1, 0 });
     else if (pr >= 0)
-        wykonaj(rodzaje[pr]);
+        wykonaj(rodzaje[pr], apl_przycisku[pr]);
     else if (wg && rodzic_tu())
         przejdz((struct miejsce){ rodzic_tu(), 0 });
     else if (przewijanie_potrzebne() && x >= LISTA_X && x < LISTA_X + LISTA_W && y >= apl.wys - STOPKA - PRZEWIJANIE &&
@@ -443,9 +497,10 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     } else if (kod == KEY_F2) {
         zacznij_edycje();
     } else if (kod == KEY_DELETE) {
-        wykonaj(tu.kosz ? B_NA_ZAWSZE : B_USUN);
+        wykonaj(tu.kosz ? B_NA_ZAWSZE : B_USUN, 0);
     } else if (kod == KEY_ESC) {
         pytanie = PYT_BRAK;
+        wybor_aplikacji = 0;
     }
     k1_apl_odswiez(&apl);
 }

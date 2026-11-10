@@ -113,7 +113,7 @@ void wstaw(const char *s, uint32_t n)
     b->tekst[b->dl] = '\0';
     zmiana = k1_teraz();
     pytanie = 0;
-    pelno = 0;
+    komunikat = NULL;
 }
 
 void usun(uint32_t od, uint32_t do_)
@@ -124,5 +124,5 @@ void usun(uint32_t od, uint32_t do_)
     kursor = od;
     zmiana = k1_teraz();
     pytanie = 0;
-    pelno = 0;
+    komunikat = NULL;
 }

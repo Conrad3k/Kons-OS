@@ -35,7 +35,7 @@ static const struct {
     enum k1_ikona ikona;
 } sekcje[S_LICZBA] = {
     { "Wygląd", K1_IK_WYGLAD },  { "Ekran", K1_IK_EKRAN }, { "Bateria", K1_IK_BATERIA }, { "Mysz", K1_IK_MYSZ },
-    { "Data i czas", K1_IK_ZEGAR }, { "Hasło", K1_IK_KLODKA }, { "Informacje", K1_IK_INFO },
+    { "Data i czas", K1_IK_ZEGAR }, { "Hasło", K1_IK_KLODKA }, { "Aplikacje", K1_IK_FOLDER }, { "Informacje", K1_IK_INFO },
 };
 
 static int32_t karty_y(void)
@@ -228,6 +228,9 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     case S_HASLO:
         haslo_rysuj(o, m);
         break;
+    case S_APLIKACJE:
+        aplikacje_rysuj(o, m);
+        break;
     default:
         naglowek(o, m, "Informacje", "Kons K1 Sovereign");
         snprintf(buf, sizeof buf, "Wersja systemu    %s", K1_WERSJA);
@@ -271,6 +274,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     if (rodzaj != K1_WSK_WYJSCIE && x >= 8 && x < BOK - 8 && y >= NAV_Y && y < NAV_Y + S_LICZBA * NAV_WIERSZ)
         nav = (y - NAV_Y) / NAV_WIERSZ;
     seg = rodzaj == K1_WSK_WYJSCIE ? -1 : k1_segment_trafienie(TRESC_X, seg_y(), w, SEG_H, n, x, y);
+    if (sekcja == S_APLIKACJE && aplikacje_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
+        k1_apl_odswiez(&apl);
     if (nav != hover_nav || seg != hover_seg || karta != hover_karta || tryb != hover_tryb) {
         hover_nav = nav;
         hover_seg = seg;
@@ -281,6 +286,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     if (rodzaj != K1_WSK_PUSZCZENIE || przycisk != K1_PRZYCISK_LEWY)
         return;
     if (sekcja == S_HASLO && nav < 0 && haslo_klik(x, y))
+        return;
+    if (sekcja == S_APLIKACJE && nav < 0 && aplikacje_klik(x, y))
         return;
     if (nav >= 0) {
         if (nav != sekcja)
@@ -295,6 +302,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
             loguj_tryby();
         if (sekcja == S_BATERIA)
             bateria_loguj();
+        if (sekcja == S_APLIKACJE)
+            aplikacje_loguj();
     } else if (tryb >= 0) {
         k1_log(TAG, "zmiana ustawienia %d → %d", K1_UST_ROZDZIELCZOSC, tryb);
         k1_wyslij(&apl.k, k1_komunikat_nowy(K1_KOM_USTAW, 0, K1_UST_ROZDZIELCZOSC, tryb, 0, 0, 0));

@@ -15,13 +15,18 @@
 #include "k1_skarb_klient.h"
 
 #define FD_SKARBIEC 5
-#define MAGIA "K1U1"
+#define MAGIA "K1U2"       /* 0.8.0: + the default application of every file type */
+#define MAGIA_STARA "K1U1" /* 0.5.6–0.7.6: still read (the defaults stay) */
+#define TYPY_ZAPIS 8       /* room for file types in the saved settings */
 
 struct zapis {
     char magia[4];
     int32_t motyw, sekundy, mysz, tapeta, szer, wys;
+    int32_t otwieranie[TYPY_ZAPIS]; /* K1_UST_OTWIERANIE + i (K1U2 only) */
 };
-_Static_assert(sizeof(struct zapis) == 28, "zapis ustawień: unexpected size");
+#define ZAPIS_STARY 28
+_Static_assert(sizeof(struct zapis) == ZAPIS_STARY + 4 * TYPY_ZAPIS, "zapis ustawień: unexpected size");
+_Static_assert(K1_TYPY_MAKS <= TYPY_ZAPIS, "zapis ustawień: more file types than room");
 
 static int skarb = -1;
 static int32_t zapisana_szer, zapisana_wys;
@@ -44,10 +49,13 @@ void ustawienia_wczytaj(void)
         k1_log(TAG, "brak zapisanych ustawień — domyślne (%s)", tryb == K1_SKARB_RAM ? "zapis tylko w pamięci" : "na dysku");
         return;
     }
-    if (n != (int)sizeof z || memcmp(z.magia, MAGIA, 4) != 0) {
+    if (!(n == (int)sizeof z && memcmp(z.magia, MAGIA, 4) == 0) && !(n == ZAPIS_STARY && memcmp(z.magia, MAGIA_STARA, 4) == 0)) {
         k1_log(TAG, "zapisane ustawienia w nieznanym formacie — domyślne");
         return;
     }
+    for (int i = 0; n == (int)sizeof z && i < K1_TYPY_MAKS; i++)
+        if (k1_ustawienie_poprawne(K1_UST_OTWIERANIE + i, z.otwieranie[i]))
+            s.ust[K1_UST_OTWIERANIE + i] = z.otwieranie[i];
     if (k1_ustawienie_poprawne(K1_UST_MOTYW, z.motyw))
         s.ust[K1_UST_MOTYW] = z.motyw;
     if (k1_ustawienie_poprawne(K1_UST_SEKUNDY, z.sekundy))
@@ -92,6 +100,9 @@ void ustawienia_zapisz(void)
     z.tapeta = s.ust[K1_UST_TAPETA];
     z.szer = s.W;
     z.wys = s.H;
+    memset(z.otwieranie, 0, sizeof z.otwieranie);
+    for (int i = 0; i < K1_TYPY_MAKS; i++)
+        z.otwieranie[i] = s.ust[K1_UST_OTWIERANIE + i];
     if (k1_skarb_zapisz(skarb, K1_OB_USTAWIENIA, &z, sizeof z) != 0)
         k1_log(TAG, "zapis ustawień nieudany");
 }

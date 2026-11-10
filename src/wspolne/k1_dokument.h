@@ -11,6 +11,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "k1_uslugi.h"
+
 #define K1_WL_DOKUMENTY 101             /* skarbiec owner of the files (not an application) */
 #define K1_DOK_NAZWA 128                /* bytes with the NUL: names have 1..127 bytes */
 #define K1_DOK_MAKS 1024                /* entries: files and folders */
@@ -51,6 +53,10 @@ enum { K1_FOLDERY_MAKS = 0 K1_FOLDERY(K1_X_JEDEN) };
 enum { K1_TYPY(K1_X_TYP) };
 enum { K1_TYPY_MAKS = 0 K1_TYPY(K1_X_JEDEN) };
 
+/* Which applications open which file types (ADR 0030): X(APPLICATION, TYPE), the default one first. Pliki
+ * shows every file (its preview) and is the default for a type without a row. A new pair: one line. */
+#define K1_OTWIERANIE(X) X(NOTATKI, TEKST)
+
 /* Where a file came from (ADR 0027: shown in Pliki): X(NAME, number, text). */
 #define K1_POCHODZENIA(X)            \
     X(K1, 1, "utworzony w K1")       \
@@ -66,7 +72,8 @@ enum { K1_POCH_MAKS = 0 K1_POCHODZENIA(K1_X_JEDEN) };
 #define K1_DOK_BLAD_MIEJSCE (-23) /* wrong folder: missing, in Kosz, inside itself, too deep, a standard one */
 #define K1_DOK_BLAD_BRAK (-24)    /* no such entry (or not visible to this client) */
 #define K1_DOK_BLAD_PELNO (-25)   /* too many entries */
-#define K1_DOK_BLAD_MIN (-25)
+#define K1_DOK_BLAD_CZEKA (-26)   /* the file picker is open already (one request at a time) */
+#define K1_DOK_BLAD_MIN (-26)
 
 /* One entry. kosz: when it was put in Kosz (0: not in Kosz); an entry inside a folder in Kosz keeps 0 and is
  * hidden with its folder; rodzic stays the folder it came from (Przywróć puts it back there). */
@@ -91,6 +98,12 @@ _Static_assert(48 + K1_DOK_NAZWA == K1_DOK_WPIS_BAJTY, "k1_dok_wpis: layout");
 int k1_dok_nazwa_poprawna(const char *s, size_t n);
 /* Names compared as Windows does: letters A-Z equal to a-z (and Polish capitals to small ones). */
 int k1_dok_nazwy_rowne(const char *a, const char *b);
+/* The name a text gives a file (Notatki, ADR 0030): its first line with something in it, at most 48 bytes (whole
+ * letters), without the characters a name cannot have, one space at a time, no space or dot at the end; "Notatka"
+ * when nothing is left. Always a valid name. */
+void k1_dok_nazwa_z_tekstu(const char *t, size_t dl, char out[K1_DOK_NAZWA]);
+/* 1 when `nazwa` is `baza` or `baza` with " (2)", " (3)"… (the name skarbiec made free). */
+int k1_dok_nazwa_pasuje(const char *nazwa, const char *baza);
 /* The type of content whose first `n` bytes are `p` (`calosc` = its whole size; 0 = empty text). */
 int k1_dok_typ(const uint8_t *p, size_t n, uint64_t calosc);
 
@@ -102,6 +115,13 @@ int k1_dok_wpis_czytaj(const uint8_t b[K1_DOK_WPIS_BAJTY], struct k1_dok_wpis *w
 size_t k1_dok_lista_zapisz(const struct k1_dok_wpis *w, int n, uint32_t w_koszu, uint8_t *buf);
 /* Reads a list of `dl` bytes into `w` (room for `maks`): every entry checked, numbers unique. The count, or -1. */
 int k1_dok_lista_czytaj(const uint8_t *buf, size_t dl, struct k1_dok_wpis *w, int maks, uint32_t *w_koszu);
+
+/* 1 when application `apl` opens files of type `typ` (Pliki: every type). */
+int k1_dok_otwiera(int apl, int typ);
+/* The application that opens type `typ` when nothing else was chosen: its first row, else Pliki. */
+int k1_dok_domyslna(int typ);
+/* The applications that open `typ`, Pliki last, into `apl` (room for K1_APL_MAKS); how many. */
+int k1_dok_aplikacje(int typ, int *apl);
 
 /* Names for the system's texts: the standard folder `nr` (NULL when it is not one), the type, the origin. */
 const char *k1_folder_nazwa(uint32_t nr);

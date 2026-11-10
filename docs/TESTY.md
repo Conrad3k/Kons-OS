@@ -268,9 +268,24 @@ Obraz produkcyjny z dyskiem danych (pusta K1-DANE), dwa uruchomienia.
 | ponownie | po wyłączeniu: Dokumenty z „Projekt”, Kosz pusty | `pliki-ponownie-dokumenty.png` |
 | czystość logu | bez nazw plików, paniki, błędów, zablokowanych wywołań i odrzuconych komunikatów | log |
 
-Na hoście: `test_dokumenty` (skarbiec: nazwy, typy, wpisy, kawałki treści, foldery, Kosz i 30 dni, prawa przez kanał),
-`test_komunikat` (`DOK_*`, `PLIKI_POKAZ`, `URUCHOM` z miejscem), `test_rozmieszczenie` (klucze ikon, K1R2 i K1R1),
-`fuzz_dokument`, `fuzz_rozmieszczenie`.
+**Krok 2 (ADR 0030)** — osobny dysk: partycja K1-DANE z magazynem i trzema notatkami w formacie 0.5.8–0.7.6
+(`testy/host/stare_notatki.c` — kod formatu skarbca, ten sam co w systemie), dwa uruchomienia.
+
+| Krok | Sprawdzenie | Dowód |
+|---|---|---|
+| przeniesienie | Notatki z paska: „stare notatki: 3 do przeniesienia”, „przeniesione (błędów: 0)”, 3 notatki z plików, najnowsza na górze (9 B) | `pliki-notatki-1-notatki.png` |
+| okno wyboru | „Otwórz…” w Notatkach → skarbiec prosi nadzorcę, okno „Wybór pliku” dostaje prośbę od skarbca (aplikacja 2, typ tekst); Dokumenty (1 folder, 0 plików do wyboru) → folder Notatki (3) → „Zażółć K1” → Otwórz → Notatki otwierają ją (13 B) | `pliki-notatki-2-wybor.png`, `pliki-notatki-3-wybor-plik.png` |
+| Anuluj | drugie „Otwórz…” → „Anuluj” → Notatki: „anulowano” | log |
+| Pliki | Dokumenty › Notatki: 3 pliki | `pliki-notatki-4-pliki.png` |
+| Otwórz w… | przyciski: „Notatki”, „Anuluj” → skarbiec daje plik, nadzorca przekazuje go Notatkom (fd 5), Notatki otwierają go (20 B) | `pliki-notatki-5-otworz-w.png` |
+| domyślna aplikacja | podwójne kliknięcie pliku w Plikach → Notatki (9 B); Ustawienia → Aplikacje → „Pliki (podgląd)” (zapis w skarbcu) → podwójne kliknięcie zostaje w Plikach | `pliki-notatki-6-ustawienia.png` |
+| dysk | jawnie nie ma treści, nazw notatek, „Notatki” ani zapisu ustawień | skrypt |
+| ponownie | nic do przeniesienia, 3 notatki z plików, domyślnie Pliki (ustawienie zapamiętane) | `pliki-notatki-ponownie-*.png` |
+
+Na hoście: `test_dokumenty` (skarbiec: nazwy, typy, wpisy, kawałki treści, foldery, Kosz i 30 dni, prawa przez kanał;
+krok 2: prawa Notatek, „Otwórz w…”, okno wyboru, nazwa z pierwszego wiersza), `test_komunikat` (`DOK_*`,
+`PLIKI_POKAZ`, `URUCHOM` z miejscem; krok 2: nowe komunikaty i domyślne aplikacje), `test_rozmieszczenie` (klucze
+ikon, K1R2 i K1R1, „Wybór pliku” nigdy na pasku), `fuzz_dokument`, `fuzz_rozmieszczenie`.
 
 ## M2 — `scripts/test-m2.sh` (obraz produkcyjny, sterowanie przez monitor QEMU)
 

@@ -33,6 +33,7 @@
 #define WIERSZ 32
 #define STOPKA 40
 #define PRZEWIJANIE 26                 /* the strip with the scroll arrows (only when needed) */
+#define PRZYCISKI_MAKS 6               /* buttons of a place at most */
 
 /* the place shown: a folder, or Kosz */
 struct miejsce {

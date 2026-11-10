@@ -238,3 +238,84 @@ const char *k1_poch_nazwa(int poch)
     }
 #undef X_NAZWA
 }
+
+#define X_PARA(apl_, typ_) { K1_APL_##apl_, K1_TYP_##typ_ },
+static const struct {
+    int apl, typ;
+} otwieranie[] = { K1_OTWIERANIE(X_PARA) };
+#undef X_PARA
+
+int k1_dok_otwiera(int apl, int typ)
+{
+    if (typ < 1 || typ > K1_TYPY_MAKS)
+        return 0;
+    if (apl == K1_APL_PLIKI)
+        return 1;
+    for (size_t i = 0; i < sizeof otwieranie / sizeof otwieranie[0]; i++)
+        if (otwieranie[i].apl == apl && otwieranie[i].typ == typ)
+            return 1;
+    return 0;
+}
+
+int k1_dok_domyslna(int typ)
+{
+    for (size_t i = 0; i < sizeof otwieranie / sizeof otwieranie[0]; i++)
+        if (otwieranie[i].typ == typ)
+            return otwieranie[i].apl;
+    return K1_APL_PLIKI;
+}
+
+int k1_dok_aplikacje(int typ, int *apl)
+{
+    int n = 0;
+    for (size_t i = 0; i < sizeof otwieranie / sizeof otwieranie[0]; i++)
+        if (otwieranie[i].typ == typ)
+            apl[n++] = otwieranie[i].apl;
+    if (typ >= 1 && typ <= K1_TYPY_MAKS)
+        apl[n++] = K1_APL_PLIKI;
+    return n;
+}
+
+/* ---- a name from a text (Notatki) ---- */
+
+#define NAZWA_Z_TEKSTU 48
+
+static int zakazany(unsigned char c)
+{
+    return c < 0x20 || c == 0x7f || (c != 0 && strchr("\\/:*?\"<>|", c) != NULL);
+}
+
+void k1_dok_nazwa_z_tekstu(const char *t, size_t dl, char out[K1_DOK_NAZWA])
+{
+    size_t i = 0, n = 0;
+    while (i < dl && (t[i] == ' ' || t[i] == '\t' || t[i] == '\n' || t[i] == '\r'))
+        i++; /* the first line with something in it */
+    for (; i < dl && t[i] != '\n' && n < NAZWA_Z_TEKSTU; i++) {
+        unsigned char c = (unsigned char)t[i];
+        if (zakazany(c) || (c == ' ' && (n == 0 || out[n - 1] == ' ')))
+            continue; /* characters a name cannot have; one space at a time */
+        out[n++] = (char)c;
+    }
+    if (n > 0 && i < dl && ((unsigned char)t[i] & 0xc0) == 0x80) /* cut inside a letter: without it */
+        while (n > 0 && ((unsigned char)out[--n] & 0xc0) == 0x80)
+            ;
+    while (n > 0 && (out[n - 1] == ' ' || out[n - 1] == '.'))
+        n--;
+    out[n] = '\0';
+    if (n == 0 || !k1_dok_nazwa_poprawna(out, n))
+        memcpy(out, "Notatka", sizeof "Notatka");
+}
+
+int k1_dok_nazwa_pasuje(const char *nazwa, const char *baza)
+{
+    size_t n = strlen(baza), i;
+    if (strncmp(nazwa, baza, n) != 0)
+        return 0;
+    if (nazwa[n] == '\0')
+        return 1;
+    if (nazwa[n] != ' ' || nazwa[n + 1] != '(' || nazwa[n + 2] < '0' || nazwa[n + 2] > '9')
+        return 0;
+    for (i = n + 2; nazwa[i] >= '0' && nazwa[i] <= '9'; i++)
+        ;
+    return nazwa[i] == ')' && nazwa[i + 1] == '\0';
+}

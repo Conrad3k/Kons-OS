@@ -3,7 +3,7 @@
  *   desktop      Ułóż ikony · Tapeta i wygląd…
  *   icon         Otwórz · Przypnij do paska / Odepnij od paska · Usuń z pulpitu
  *   Kosz         Otwórz · Opróżnij Kosz (when something is in it)          (0.8.0)
- *   file         Otwórz · Usuń (into Kosz)                                  (0.8.0)
+ *   file         Otwórz · Otwórz w: <application>… · Usuń (into Kosz)       (0.8.0; "Otwórz w" ADR 0030)
  *   bottom bar   <application> · Przypnij / Odepnij · Zamknij okno (when it runs)
  *   Start menu   Otwórz · Przypnij / Odepnij · Dodaj do pulpitu / Usuń z pulpitu
  * A row acts when the left button is released on it; a press anywhere else closes the menu. */
@@ -14,13 +14,17 @@
 
 #define WIERSZ 36
 #define KRESKA 9
-#define MAKS_WIERSZY 5
+#define MAKS_WIERSZY 8
 
-enum akcja { A_KRESKA, A_OTWORZ, A_PRZYPNIJ, A_ODEPNIJ, A_DODAJ, A_USUN, A_ZAMKNIJ, A_ULOZ, A_WYGLAD, A_DO_KOSZA, A_OPROZNIJ };
+enum akcja {
+    A_KRESKA, A_OTWORZ, A_PRZYPNIJ, A_ODEPNIJ, A_DODAJ, A_USUN, A_ZAMKNIJ, A_ULOZ, A_WYGLAD, A_DO_KOSZA, A_OPROZNIJ, A_OTWORZ_W
+};
 
 static struct {
     const char *tekst;
     enum akcja akcja;
+    int apl; /* A_OTWORZ_W: in which application */
+    char bufor[48];
 } w[MAKS_WIERSZY];
 static int n_w, cel, apl, hover = -1; /* apl: the application of the menu (0: Kosz or a file — klucz) */
 static uint32_t klucz;
@@ -31,7 +35,19 @@ static void dodaj(const char *tekst, enum akcja a)
 {
     if (n_w < MAKS_WIERSZY) {
         w[n_w].tekst = tekst;
+        w[n_w].apl = 0;
         w[n_w++].akcja = a;
+    }
+}
+
+/* "Otwórz w: Notatki", … — every application that opens the file's type, Pliki last (k1_dok_aplikacje). */
+static void otworz_w(void)
+{
+    int a[K1_APL_MAKS], n = plik_aplikacje(klucz, a);
+    for (int i = 0; i < n && n_w < MAKS_WIERSZY - 2; i++) {
+        snprintf(w[n_w].bufor, sizeof w[n_w].bufor, "Otwórz w: %s", aplikacje[a[i]].nazwa);
+        dodaj(w[n_w].bufor, A_OTWORZ_W);
+        w[n_w - 1].apl = a[i];
     }
 }
 
@@ -46,6 +62,7 @@ static void wiersze(void)
     }
     if (apl == 0) { /* Kosz or a file */
         dodaj("Otwórz", A_OTWORZ);
+        otworz_w();
         dodaj("", A_KRESKA);
         if (klucz != ROZM_KOSZ)
             dodaj("Usuń", A_DO_KOSZA);
@@ -57,7 +74,8 @@ static void wiersze(void)
     }
     dodaj(cel == K_PASEK ? aplikacje[apl].nazwa : "Otwórz", A_OTWORZ);
     dodaj("", A_KRESKA);
-    dodaj(przypieta ? "Odepnij od paska" : "Przypnij do paska", przypieta ? A_ODEPNIJ : A_PRZYPNIJ);
+    if (aplikacje[apl].domyslna >= 0) /* a window of K1 itself (the file picker) is never pinned */
+        dodaj(przypieta ? "Odepnij od paska" : "Przypnij do paska", przypieta ? A_ODEPNIJ : A_PRZYPNIJ);
     if (cel == K_IKONA || (cel == K_MENU && na_pulpicie))
         dodaj("Usuń z pulpitu", A_USUN);
     else if (cel == K_MENU)
@@ -171,14 +189,18 @@ static int wiersz_pod(int32_t x, int32_t y)
     return -1;
 }
 
-static void wykonaj(enum akcja a)
+static void wykonaj(int wiersz)
 {
+    enum akcja a = w[wiersz].akcja;
     char co[96];
     const char *nazwa = aplikacje[apl].nazwa;
     kontekst_zamknij();
     switch (a) {
     case A_OTWORZ:
         ikona_otworz(klucz);
+        return;
+    case A_OTWORZ_W:
+        plik_otworz_w(klucz, w[wiersz].apl);
         return;
     case A_DO_KOSZA:
         k1_log(TAG, "pulpit: plik %d do Kosza", rozm_plik(klucz));
@@ -230,5 +252,5 @@ void wskaznik_kontekst(const struct k1_komunikat *m)
         kontekst.brudna = 1;
     }
     if (m->c == K1_WSK_PUSZCZENIE && m->d == K1_PRZYCISK_LEWY && nowy >= 0)
-        wykonaj(w[nowy].akcja);
+        wykonaj(nowy);
 }
