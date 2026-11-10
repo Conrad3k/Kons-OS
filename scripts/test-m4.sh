@@ -25,7 +25,7 @@ sprawdz() { # NAZWA — scenariusz w Pythonie (niżej) na działającej maszynie
 cat > "$K1_BUDOWA/m4.py" <<'PY'
 import os, re, sys
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
-from k1qemu import Maszyna
+from k1qemu import Maszyna, ekran, piksele
 log, mon, out, limit, tryb = sys.argv[1], sys.argv[2], sys.argv[3], float(sys.argv[4]), sys.argv[5]
 q = Maszyna(log, mon, out, limit, "m4")
 tekst, czekaj, monitor, zrzut, sprawdz = q.tekst, q.czekaj, q.monitor, q.zrzut, q.sprawdz
@@ -176,41 +176,67 @@ def pasek():
     return tuple(int(m[-1].group(i)) for i in range(1, 6))
 
 
+def ostatni(wzor):
+    """The newest log line matching `wzor` (for the failure description), or "brak"."""
+    m = list(re.finditer(wzor, tekst()))
+    return m[-1].group(0) if m else "brak"
+
+
+menu_opis = [""]  # what the last menu_k saw: the failure line of the check says it (CI keeps no artefacts then)
+
+
+def kadr():
+    """The screen now (not saved): px(x, y), or None."""
+    e = ekran(mon, f"{out}/.m4-kadr-{os.getpid()}.ppm")
+    return piksele(*e) if e else None
+
+
 def menu_k(prawy, wzor, wiersz, nazwa_zrzutu=None):
-    """Right click at `prawy`, wait for the menu `wzor`, click its row `wiersz` (its centre from the log)."""
+    """Right click at `prawy`, wait for the menu `wzor` in gui's log AND on the screen (its row light and the pixels
+    around it changed since before the click: with KVM a click can come before ekran shows the panel), click its
+    row `wiersz` (its centre from the log)."""
     wz = r"K1-GUI: menu kontekstowe \(" + wzor + r"\): (.*)"
     n = q.ile(wz)
+    przed = kadr()
     q.prawy_klik(*prawy)
     mk = czekaj(wz, od=n, czas=20)
     pozycje = {t.strip(): (int(x), int(y)) for t, x, y in re.findall(r"([^;:]+?) (\d+),(\d+)", mk.group(1))} if mk else {}
-    if nazwa_zrzutu and wiersz in pozycje:
-        zrzut(nazwa_zrzutu, gdy=lambda w, h, px: jasny(px(pozycje[wiersz][0] + 80, pozycje[wiersz][1])))
+    widac = False
     if wiersz in pozycje:
-        klik(*pozycje[wiersz])
+        x, y = pozycje[wiersz]
+        inne = lambda px: sum(1 for dx in range(-90, 91, 10) if przed is None or px(x + dx, y) != przed(x + dx, y))
+        widac = q.czekaj_na(lambda: (lambda px: px is not None and jasny(px(x + 80, y)) and inne(px) >= 12)(kadr()), czas=20)
+        if nazwa_zrzutu:
+            zrzut(nazwa_zrzutu, gdy=lambda w, h, px: jasny(px(x + 80, y)))
+        klik(x, y)
+    menu_opis[0] = f"menu: {mk.group(0) if mk else 'brak w logu'}; na ekranie: {'tak' if widac else 'nie'}"
     return mk is not None and wiersz in pozycje
 
 
 if zo:
     sprawdz("pasek: prawy przycisk → „Zamknij okno” zamyka Zegar (aplikacja zamyka się sama)",
             menu_k((ax, ay), "pasek Zegar", "Zamknij okno", "1c-menu-paska") and
-            czekaj(r"K1-ZEGAR: okno zamknięte z dolnego paska") and czekaj(rf"K1-EKRAN: okno {zo.group(1)} zamknięte"))
+            czekaj(r"K1-ZEGAR: okno zamknięte z dolnego paska") and czekaj(rf"K1-EKRAN: okno {zo.group(1)} zamknięte"), menu_opis[0])
 sprawdz("pulpit: prawy przycisk → „Ułóż ikony”", menu_k((W // 2, H // 3), "pulpit", "Ułóż ikony") and
-        czekaj(r"K1-GUI: ułożono ikony"))
+        czekaj(r"K1-GUI: ułożono ikony"), menu_opis[0])
 sprawdz("ikona: „Odepnij od paska” — Notatki znikają z paska",
         menu_k(ikony["Notatki"], "ikona Notatki", "Odepnij od paska", "1d-menu-ikony") and
-        czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki\)"))
+        czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki\)"),
+        menu_opis[0] + " | " + ostatni(r"K1-GUI: pasek zmieniony: .*"))
 sprawdz("ikona: „Usuń z pulpitu” — Zasoby", menu_k(ikony["Zasoby"], "ikona Zasoby", "Usuń z pulpitu") and
-        czekaj(r"K1-GUI: usunięto z pulpitu: Zasoby"))
+        czekaj(r"K1-GUI: usunięto z pulpitu: Zasoby"), menu_opis[0])
 sx, sy, ax, ay, krok = pasek()
 klik(sx, sy)
 m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+);")
 if m:
     rx, ry, rk = (int(m.group(i)) for i in range(1, 4))
     sprawdz("menu Start: prawy przycisk → „Dodaj do pulpitu” — Zasoby wracają",
-            menu_k((rx, ry + 3 * rk), "menu Start Zasoby", "Dodaj do pulpitu") and czekaj(r"K1-GUI: dodano do pulpitu: Zasoby"))
+            menu_k((rx, ry + 3 * rk), "menu Start Zasoby", "Dodaj do pulpitu") and czekaj(r"K1-GUI: dodano do pulpitu: Zasoby"),
+            menu_opis[0])
     sprawdz("menu Start: prawy przycisk → „Przypnij do paska” — Notatki na końcu paska",
             menu_k((rx, ry + rk), "menu Start Notatki", "Przypnij do paska") and
-            czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki, Notatki\)"))
+            czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki, Notatki\)"),
+            menu_opis[0] + " | " + ostatni(r"K1-GUI: pasek zmieniony: .*"))
 klik(W // 2, H // 3)  # a click on the empty desktop closes the Start menu
 sx, sy, ax, ay, krok = pasek()
 # the bar: Notatki dragged from the end back to the second place
