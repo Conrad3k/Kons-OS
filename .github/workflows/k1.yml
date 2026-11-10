@@ -85,6 +85,9 @@ jobs:
             grep -av "K1-EKRAN: kursor" "$f" | tail -n 300
             echo "::endgroup::"
           done
+          # once more at the very end: the end of a long log is what one reads first (and all the API returns)
+          echo "=== K1 ${K1_WERSJA}: podsumowanie testów (niezaliczone i wynik) ==="
+          grep -a -E '\[BŁĄD\]|^\[k1\]|Traceback|Error' build/testy/wynik.txt 2>/dev/null | tail -n 80 || echo "brak wyniku testów"
 
       - name: Spakuj logi testów (zawsze)
         if: always()

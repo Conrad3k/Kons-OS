@@ -101,6 +101,20 @@ void podglad_zadaj(uint32_t id)
         do_skarbca(K1_KOM_DOK_CZYTAJ, id, (int32_t)K1_DOK_PODGLAD);
 }
 
+/* A folder Pliki can show: a standard one, or a user folder neither in Kosz nor inside a folder in Kosz. */
+static int widoczny(uint32_t f)
+{
+    for (int krok = 0; krok <= K1_DOK_GLEBOKOSC + 1; krok++) {
+        const struct k1_dok_wpis *w = wpis(f);
+        if (f >= 1 && f <= K1_FOLDERY_MAKS)
+            return 1;
+        if (w == NULL || w->kosz != 0)
+            return 0;
+        f = w->rodzic;
+    }
+    return 0;
+}
+
 static void lista_przyszla(const struct k1_komunikat *k, int fd)
 {
     static struct k1_dok_wpis nowe[K1_DOK_MAKS];
@@ -114,8 +128,8 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
     memcpy(wpisy, nowe, (size_t)n * sizeof nowe[0]);
     n_wpisow = n;
     w_koszu = kosz;
-    if (!tu.kosz && tu.folder > K1_FOLDERY_MAKS && wpis(tu.folder) == NULL)
-        tu.folder = K1_FOLDER_DOKUMENTY; /* the folder shown is gone */
+    if (!tu.kosz && !widoczny(tu.folder))
+        tu.folder = K1_FOLDER_DOKUMENTY; /* the folder shown is gone, or went to Kosz */
     if (zaznaczony != 0 && wpis(zaznaczony) == NULL)
         zaznaczony = 0;
     if (edycja.id != 0 && wpis(edycja.id) == NULL)
