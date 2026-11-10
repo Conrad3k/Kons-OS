@@ -48,6 +48,10 @@ static void pole_nazwy(struct k1_obraz *o, const struct k1_motyw *m, int32_t y)
     int32_t x = LISTA_X + 40, w = KOL_DATA - x - 12, tw;
     k1_zaokraglony(o, (float)x - 6, (float)y + 3, (float)w, WIERSZ - 6, 6, k1_kolor(m->pole, 255));
     k1_obrys(o, (float)x - 6, (float)y + 3, (float)w, WIERSZ - 6, 6, 1.5f, k1_kolor(m->akcent, 255));
+    if (edycja.calosc) /* the whole name selected */
+        k1_zaokraglony(o, (float)x - 2, (float)y + 7,
+                       (float)(k1_tekst_szer(K1_CZ_TEKST, edycja.t) < w - 16 ? k1_tekst_szer(K1_CZ_TEKST, edycja.t) : w - 16) + 4,
+                       WIERSZ - 14, 3, k1_kolor(m->akcent, 70));
     tw = k1_tekst(o, K1_CZ_TEKST, x, y + 21, edycja.t, k1_kolor(m->tekst, 255), w - 16);
     k1_prostokat(o, x + tw + 1, y + 8, 1, WIERSZ - 16, k1_kolor(m->tekst, 255));
 }

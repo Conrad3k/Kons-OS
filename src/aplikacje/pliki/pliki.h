@@ -55,6 +55,7 @@ extern struct edycja {
     uint32_t id; /* entry being renamed (0: none) */
     char t[K1_DOK_NAZWA];
     size_t dl;
+    int calosc; /* the whole name is selected: the first key replaces it (as in Windows) */
 } edycja;
 extern enum pytanie pytanie;
 extern const char *blad;       /* a message for the footer (NULL: none) */
@@ -71,6 +72,7 @@ void dane_odbierz(void);           /* fd 4 */
 void nadzorca_odbierz(void);       /* fd 5 */
 const struct k1_dok_wpis *wpis(uint32_t id);
 void przejdz(struct miejsce m);    /* show a place (selection and scroll from the start) */
+void loguj_widok(void);
 void ulozy_widok(void);            /* what this place shows, sorted: folders first, then by name */
 void do_skarbca(int typ, uint32_t obiekt, int32_t a); /* a request without data */
 void nowy_folder(void);

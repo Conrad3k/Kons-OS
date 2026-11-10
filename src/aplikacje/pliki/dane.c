@@ -128,8 +128,10 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
         zaznaczony = do_edycji;
         edycja.id = do_edycji;
         edycja.dl = strlen(w->nazwa);
+        edycja.calosc = 1;
         memcpy(edycja.t, w->nazwa, edycja.dl + 1);
         do_edycji = 0;
+        k1_log(TAG, "zmiana nazwy: pole otwarte");
     }
     if (zaznaczony != 0)
         podglad_zadaj(zaznaczony);
@@ -137,8 +139,7 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
         k1_log(TAG, "pliki wczytane: %d (w Koszu %u)", n_wpisow, w_koszu);
     gotowe = 1;
     pokaz_oczekujace();
-    k1_log(TAG, "widok: %s, %d elementów", tu.kosz ? "Kosz" : tu.folder <= K1_FOLDERY_MAKS ? k1_folder_nazwa(tu.folder) : "folder",
-           n_widok);
+    loguj_widok();
 }
 
 static void tresc_przyszla(const struct k1_komunikat *k, int fd)
@@ -156,6 +157,7 @@ static void wynik(const struct k1_komunikat *k)
         if (k->a == K1_KOM_DOK_NOWY && k->c != 0)
             do_edycji = (uint32_t)k->c;
         blad = NULL;
+        k1_log(TAG, "skarbiec: zrobione (komunikat %d)", k->a);
         return;
     }
     switch (k->b) {

@@ -31,7 +31,7 @@ Pełny plan i zasady: [`docs/SPEC.md`](docs/SPEC.md). Co zostało do zrobienia (
 [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
 **Ważne:** K1 działa w maszynie wirtualnej: pulpit z paskiem na dole (Start, Zegar, Notatki,
-Ustawienia, Zasoby, Kalkulator, Instalator), paskiem na górze (dźwięk, data i godzina), oknami i polską klawiaturą. Od 0.5.2 zna
+Ustawienia, Zasoby, Kalkulator, Pliki, Instalator), paskiem na górze (dźwięk, data i godzina), oknami i polską klawiaturą. Od 0.5.2 zna
 dyski SATA/NVMe oraz klawiatury, myszy i pamięci USB — można spróbować startu z pendrive'a na laptopie
 ThinkPad X230 (niżej). Notatki, ustawienia i hasło są zaszyfrowane na partycji K1-DANE (pendrive albo dysk po instalacji).
 Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).

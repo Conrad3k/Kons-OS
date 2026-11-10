@@ -102,8 +102,8 @@ if tryb == "ponownie":
     kal = re.search(r"Kalkulator (\d+),", ik[-1][1]) if ik else None
     zeg = re.search(r"Zegar (\d+),", ik[-1][1]) if ik else None
     sprawdz("rozmieszczenie pulpitu wróciło ze skarbca (pasek i Kalkulator w kolumnie 3)",
-            czekaj(r"K1-GUI: rozmieszczenie pulpitu wczytane \(na pasku: 5, na pulpicie: 5\)", czas=10) and
-            "(pasek: Zegar, Notatki, Ustawienia, Zasoby, Kalkulator)" in tekst() and kal and zeg and
+            czekaj(r"K1-GUI: rozmieszczenie pulpitu wczytane \(na pasku: 6, na pulpicie: 7\)", czas=10) and
+            "(pasek: Zegar, Notatki, Ustawienia, Zasoby, Kalkulator, Pliki)" in tekst() and kal and zeg and
             int(kal.group(1)) == int(zeg.group(1)) + 2 * int(ik[-1][0]), ik[-1][1] if ik else "brak")
     klik(ax + krok, ay)  # Notatki
     sprawdz("notatki wróciły: 2, na górze ostatnio zmieniona „Druga” (5 B)",
@@ -155,8 +155,8 @@ if tryb != "pulpit":
 IKONY = r"K1-GUI: ikony na pulpicie \(siatka (\d+)x(\d+), co (\d+),(\d+)\): (.*)"
 ik = czekaj(IKONY)
 ikony = {n: (int(x), int(y)) for n, x, y in re.findall(r"(\w+) (\d+),(\d+)", ik.group(5))} if ik else {}
-sprawdz("pulpit: ikony aplikacji przy pierwszym starcie (bez Instalatora)",
-        set(ikony) == {"Zegar", "Notatki", "Ustawienia", "Zasoby", "Kalkulator"}, ik.group(0) if ik else "brak")
+sprawdz("pulpit: Kosz i ikony aplikacji przy pierwszym starcie (bez Instalatora)",
+        set(ikony) == {"Kosz", "Zegar", "Notatki", "Ustawienia", "Zasoby", "Kalkulator", "Pliki"}, ik.group(0) if ik else "brak")
 if not ikony: sys.exit(1)
 kafel = lambda px, n: jasny(px(ikony[n][0] - 20, ikony[n][1]))  # a light tile left of the line icon
 w, h, px = zrzut("1b-ikony", gdy=lambda w, h, px: kafel(px, "Zegar") and kafel(px, "Kalkulator"))
@@ -198,7 +198,7 @@ sprawdz("pulpit: prawy przycisk → „Ułóż ikony”", menu_k((W // 2, H // 3
         czekaj(r"K1-GUI: ułożono ikony"))
 sprawdz("ikona: „Odepnij od paska” — Notatki znikają z paska",
         menu_k(ikony["Notatki"], "ikona Notatki", "Odepnij od paska", "1d-menu-ikony") and
-        czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator\)"))
+        czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki\)"))
 sprawdz("ikona: „Usuń z pulpitu” — Zasoby", menu_k(ikony["Zasoby"], "ikona Zasoby", "Usuń z pulpitu") and
         czekaj(r"K1-GUI: usunięto z pulpitu: Zasoby"))
 sx, sy, ax, ay, krok = pasek()
@@ -210,16 +210,16 @@ if m:
             menu_k((rx, ry + 3 * rk), "menu Start Zasoby", "Dodaj do pulpitu") and czekaj(r"K1-GUI: dodano do pulpitu: Zasoby"))
     sprawdz("menu Start: prawy przycisk → „Przypnij do paska” — Notatki na końcu paska",
             menu_k((rx, ry + rk), "menu Start Notatki", "Przypnij do paska") and
-            czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Notatki\)"))
+            czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki, Notatki\)"))
 klik(W // 2, H // 3)  # a click on the empty desktop closes the Start menu
 sx, sy, ax, ay, krok = pasek()
 # the bar: Notatki dragged from the end back to the second place
-idz(ax + 4 * krok, ay); przycisk(True); idz(ax + krok, ay); przycisk(False)
+idz(ax + 5 * krok, ay); przycisk(True); idz(ax + krok, ay); przycisk(False)
 sprawdz("pasek: przeciągnięcie zmienia kolejność (Notatki z powrotem na drugim miejscu)",
         czekaj(r"K1-GUI: pasek: Notatki na miejscu 2") and
-        czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Notatki, Ustawienia, Zasoby, Kalkulator\)"))
+        czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Notatki, Ustawienia, Zasoby, Kalkulator, Pliki\)"))
 sx, sy, ax, ay, krok = pasek()
-# the desktop: Kalkulator dragged to column 3, row 1 (the next start must find it there)
+# the desktop: Kalkulator dragged to column 3, Zegar's row — row 2 under Kosz (the next start must find it there)
 n_ik = q.ile(IKONY)
 ik = czekaj(IKONY, od=n_ik - 1)
 ikony = {n: (int(x), int(y)) for n, x, y in re.findall(r"(\w+) (\d+),(\d+)", ik.group(5))} if ik else ikony
@@ -227,8 +227,8 @@ kk, kw = int(ik.group(3)), int(ik.group(4))
 cel = (ikony["Zegar"][0] + 2 * kk, ikony["Zegar"][1])
 n_zap = q.ile(r"K1-GUI: rozmieszczenie pulpitu zapisane")
 idz(*ikony["Kalkulator"]); przycisk(True); idz(cel[0], cel[1] - 30); idz(*cel); przycisk(False)
-sprawdz("pulpit: przeciągnięcie ikony do innej komórki (Kalkulator → kolumna 3, wiersz 1)",
-        czekaj(r"K1-GUI: ikona Kalkulator przeniesiona do kolumny 3, wiersza 1") and
+sprawdz("pulpit: przeciągnięcie ikony do innej komórki (Kalkulator → kolumna 3, wiersz 2)",
+        czekaj(r"K1-GUI: ikona Kalkulator przeniesiona do kolumny 3, wiersza 2") and
         czekaj(r"K1-GUI: rozmieszczenie pulpitu zapisane", od=n_zap))
 w, h, px = zrzut("1e-pulpit-po-zmianach", gdy=lambda w, h, px: jasny(px(cel[0] - 20, cel[1])))
 sprawdz("zrzut: kafelek Kalkulatora w nowej komórce", jasny(px(cel[0] - 20, cel[1])), str(px(cel[0] - 20, cel[1])))

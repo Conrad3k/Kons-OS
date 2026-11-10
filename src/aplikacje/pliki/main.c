@@ -8,6 +8,7 @@
  * Pliki do everything with the user's files and nothing else); fd 5 brings a place to show from nadzorca.
  * Sandbox: UID 206, seccomp (base + memfd_create, ftruncate), Landlock without any path. Names and content
  * never reach the log. Modules: pliki.h. Documentation: docs/komponenty/aplikacje.md. */
+#include <stdio.h>
 #include <string.h>
 
 #include <linux/input-event-codes.h>
@@ -73,6 +74,13 @@ void ulozy_widok(void)
         od_wiersza = 0;
 }
 
+/* The tests follow Pliki by this line: the place shown and how many entries it has (never their names). */
+void loguj_widok(void)
+{
+    k1_log(TAG, "widok: %s, %d elementów",
+           tu.kosz ? "Kosz" : tu.folder <= K1_FOLDERY_MAKS ? k1_folder_nazwa(tu.folder) : "folder", n_widok);
+}
+
 void przejdz(struct miejsce m)
 {
     tu = m;
@@ -81,7 +89,9 @@ void przejdz(struct miejsce m)
     pytanie = PYT_BRAK;
     blad = NULL;
     od_wiersza = 0;
+    klik.id = 0;
     ulozy_widok();
+    loguj_widok();
     k1_apl_odswiez(&apl);
 }
 
@@ -172,7 +182,9 @@ static void zacznij_edycje(void)
         return;
     edycja.id = w->id;
     edycja.dl = strlen(w->nazwa);
+    edycja.calosc = 1;
     memcpy(edycja.t, w->nazwa, edycja.dl + 1);
+    k1_log(TAG, "zmiana nazwy: pole otwarte");
 }
 
 static void skoncz_edycje(int zapisz)
@@ -272,10 +284,27 @@ static void miejsca(struct k1_obraz *o, const struct k1_motyw *m)
     k1_prostokat(o, BOK, K1_OKNO_TYTUL + 8, 1, apl.wys - K1_OKNO_TYTUL - 16, k1_kolor(m->tekst, 20));
 }
 
+/* The tests click by this line: the buttons of the place, logged when they change. */
+static void loguj_przyciski(const struct k1_przycisk *p, int n)
+{
+    static int ostatni = -1;
+    char buf[200];
+    size_t d = 0;
+    int i;
+    if (rodzaje[0] == ostatni)
+        return;
+    ostatni = rodzaje[0];
+    for (i = 0; i < n; i++)
+        d += (size_t)snprintf(buf + d, sizeof buf - d, "%s%s %d,%d", i ? "; " : "", p[i].etykieta, p[i].x + p[i].w / 2,
+                              p[i].y + p[i].h / 2);
+    k1_log(TAG, "przyciski: %s", buf);
+}
+
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     struct k1_przycisk p[4];
     int n = przyciski(p), i;
+    loguj_przyciski(p, n);
     miejsca(o, m);
     sciezka(o, m);
     for (i = 0; i < n; i++)
@@ -385,8 +414,17 @@ static void klawisz_edycji(unsigned kod, unsigned mody)
         skoncz_edycje(1);
     else if (kod == KEY_ESC)
         skoncz_edycje(0);
-    else
+    else if (edycja.calosc && (k1_znak_klawisza(kod, mody) != 0 || kod == KEY_BACKSPACE || kod == KEY_DELETE)) {
+        edycja.calosc = 0; /* typing over the selected name */
+        edycja.dl = 0;
+        edycja.t[0] = '\0';
+        if (kod != KEY_BACKSPACE && kod != KEY_DELETE)
+            k1_pole_klawisz(edycja.t, &edycja.dl, K1_DOK_NAZWA - 1, kod, mody);
+    } else {
+        if (kod == KEY_LEFT || kod == KEY_RIGHT || kod == KEY_END || kod == KEY_HOME)
+            edycja.calosc = 0; /* the caret stays at the end: keep the name, add to it */
         k1_pole_klawisz(edycja.t, &edycja.dl, K1_DOK_NAZWA - 1, kod, mody);
+    }
 }
 
 static void klawisz(unsigned kod, int wartosc, unsigned mody)
@@ -426,10 +464,8 @@ int main(void)
     apl.kanaly[1].fd = FD_NADZORCA;
     apl.kanaly[1].dane = nadzorca_odbierz;
     /* the tests click by this line */
-    k1_log(TAG, "układ: miejsca od %d,%d co %d, Kosz %d,%d; przyciski od %d,%d (Nowy folder %d, Zmień nazwę %d, Usuń %d); "
-                "wiersze od %d,%d co %d; w górę %d,%d",
-           BOK / 2, NAV_Y + NAV_WIERSZ / 2, NAV_WIERSZ, BOK / 2, KOSZ_Y + NAV_WIERSZ / 2, LISTA_X, PRZYCISKI_Y + PRZYCISK_H / 2,
-           LISTA_X + 58, LISTA_X + 124 + 58, LISTA_X + 248 + 38, LISTA_X + 120, WIERSZE_Y + WIERSZ / 2, WIERSZ, LISTA_X + 16,
-           SCIEZKA_Y + 16);
+    k1_log(TAG, "układ: miejsca od %d,%d co %d, Kosz %d,%d; wiersze od %d,%d co %d; w górę %d,%d", BOK / 2,
+           NAV_Y + NAV_WIERSZ / 2, NAV_WIERSZ, BOK / 2, KOSZ_Y + NAV_WIERSZ / 2, LISTA_X + 120, WIERSZE_Y + WIERSZ / 2, WIERSZ,
+           LISTA_X + 16, SCIEZKA_Y + 16);
     k1_apl_uruchom(&apl);
 }
