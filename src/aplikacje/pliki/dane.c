@@ -121,6 +121,26 @@ static int widoczny(uint32_t f)
     return 0;
 }
 
+/* The tests follow imports by this line (counts only): files from a stick, how many skarbiec found to be pictures, bytes. */
+static void loguj_z_pendrive(void)
+{
+    static int ost_n = -1, ost_obrazy;
+    static uint64_t ost_bajty;
+    int n = 0, obrazy = 0;
+    uint64_t bajty = 0;
+    for (int i = 0; i < n_wpisow; i++)
+        if (wpisy[i].pochodzenie == K1_POCH_PENDRIVE && wpisy[i].kosz == 0) {
+            n++;
+            obrazy += wpisy[i].typ == K1_TYP_PNG || wpisy[i].typ == K1_TYP_JPEG;
+            bajty += wpisy[i].rozmiar;
+        }
+    if (n != ost_n || obrazy != ost_obrazy || bajty != ost_bajty)
+        k1_log(TAG, "pliki z pendrive'a: %d (obrazy PNG/JPEG: %d), razem %llu B", n, obrazy, (unsigned long long)bajty);
+    ost_n = n;
+    ost_obrazy = obrazy;
+    ost_bajty = bajty;
+}
+
 static void lista_przyszla(const struct k1_komunikat *k, int fd)
 {
     static struct k1_dok_wpis nowe[K1_DOK_MAKS];
@@ -158,6 +178,7 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
     if (!gotowe)
         k1_log(TAG, "pliki wczytane: %d (w Koszu %u)", n_wpisow, w_koszu);
     gotowe = 1;
+    loguj_z_pendrive();
     pokaz_oczekujace();
     loguj_widok();
 }

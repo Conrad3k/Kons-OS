@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M3, M4) — testy w systemie (`scripts/test-m1.sh`, scenariusz `testy-w-systemie`), `scripts/test-m4.sh` (uruchamianie aplikacji, wyłączanie) |
-| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (tablica usług, uruchamianie w klatkach, restarty, prośby pulpitu), `logi.c` (logi usług), `profile.c` (klatki), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
+| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (tablica usług, uruchamianie w klatkach, restarty, prośby pulpitu), `logi.c` (logi usług), `pendrive.c` (pendrive dla Plików i czytnik, 0.8.0), `profile.c` (klatki), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
 | **Decyzje** | ADR 0006 (wersja M2), ADR 0007 (M3), ADR 0008 (pulpit i aplikacje) |
 
 ## Etapy startu (0.6.0)
@@ -79,6 +79,11 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   ma plik (obiekt ≠ 0; skarbiec dał jej dostęp po „Otwórz w…”) — wyślij go na jej fd 5 (`PLIK_OTWORZ`) i poproś
   pulpit (`POKAZ_APL`, fd 5 gui) o jej okno na wierzch; obiekt = 0 — okno wyboru pliku („Wybór pliku”).
   Kanał „plik do otwarcia” (fd 5) mają Notatki i Pliki (Pliki: `PLIKI_POKAZ`), tablica `plik_kanal[]`.
+- Pendrive (0.8.0 krok 3, ADR 0031, `pendrive.c`): Pliki dostają fd 6 (`PENDRIVE`, `PENDRIVE_KANAL`; prośba
+  `PENDRIVE_OTWORZ` tylko od UID 206). Pendrive = pierwszy cały dysk USB z nośnikiem bez partycji K1
+  (`k1_pendrive_znajdz`, sysfs — nadzorca nie czyta pendrive'a). Na prośbę: cały pendrive `O_RDONLY` → usługa `czytnik`
+  (fd 4), kanał czytnik ↔ Pliki (fd 3 czytnika). Wyjęty pendrive (zdarzenie dysku albo skan co 10 s) → `SIGKILL`
+  czytnika i `PENDRIVE` a = 0. Szczegóły: `komponenty/czytnik.md`.
 - Kanał do skarbca dla klienta (`SKARB_KLIENT` c, 0.6.3): 1 = partycja K1-DANE jest na USB; skarbiec
   oddaje to klientom w `SKARB_WYNIK` d (bit 1) — Notatki i Ustawienia piszą „dysk komputera” albo
   „pendrive K1”.

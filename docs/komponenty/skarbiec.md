@@ -73,7 +73,7 @@ Dostęp jest tylko w pamięci skarbca i znika, gdy zamknie się ostatni kanał t
 |---|---|---|
 | `DOK_SPIS` | klient → | lista wpisów, które klient widzi (odpowiedź `DOK_LISTA`) |
 | `DOK_CZYTAJ` | klient → | obiekt = plik, a = najwyżej tyle bajtów (podgląd: 64 KiB) → `DOK_TRESC` |
-| `DOK_NOWY` | klient → | obiekt = folder, a = plik / folder, b = długość nazwy, c = długość treści; memfd: nazwa + treść |
+| `DOK_NOWY` | klient → | obiekt = folder, a = plik / folder, b = długość nazwy, c = długość treści, d = pochodzenie (0: K1; inne — tylko z prawem `P_POCHODZENIE`: Pliki, import z pendrive'a, ADR 0031); memfd: nazwa + treść |
 | `DOK_ZAPISZ` | klient → | obiekt = plik, a = długość; memfd: nowa treść (nowa generacja) |
 | `DOK_NAZWA` | klient → | obiekt = wpis, a = długość, b = 1: zajęta nazwa dostaje „ (2)” (0: odmowa); memfd: nowa nazwa |
 | `DOK_PRZENIES` | klient → | obiekt = wpis, a = folder docelowy (nie do siebie, nie za głęboko) |

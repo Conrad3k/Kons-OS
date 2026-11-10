@@ -287,6 +287,29 @@ krok 2: prawa Notatek, „Otwórz w…”, okno wyboru, nazwa z pierwszego wiers
 `PLIKI_POKAZ`, `URUCHOM` z miejscem; krok 2: nowe komunikaty i domyślne aplikacje), `test_rozmieszczenie` (klucze
 ikon, K1R2 i K1R1, „Wybór pliku” nigdy na pasku), `fuzz_dokument`, `fuzz_rozmieszczenie`.
 
+## 0.8.0 krok 3 — zdjęcia z pendrive'a, `scripts/test-pendrive.sh` (ADR 0031)
+
+Bez prawdziwego sprzętu: obraz produkcyjny, dysk danych (pusta K1-DANE) i **wirtualny pendrive USB** (xHCI): FAT32 w
+partycji MBR zrobiony przez mtools (jak inny system), z prawdziwymi zdjęciami JPEG i PNG (Pillow), plikiem z polską długą
+nazwą, notatką, plikiem 17 MB, plikiem ukrytym i śmieciem macOS „._…”. Drugi pendrive (NTFS) wkładany w trakcie.
+
+| Krok | Sprawdzenie | Dowód |
+|---|---|---|
+| miejsce | nadzorca widzi pendrive → Pliki pokazują „Pendrive” | `pendrive-1-miejsce.png` |
+| czytnik | kliknięcie → nadzorca: czytnik dla `sdX` (tylko odczyt), UID 106; czytnik: FAT32; 4 elementy (bez ukrytego); przyciski tylko „Importuj”, „Importuj wszystkie” | `pendrive-2-pendrive.png` |
+| foldery | DCIM (1) → 100K1 (2, bez „._…”) | `pendrive-3-100k1.png` |
+| import | „Importuj wszystkie” → 2 zdjęcia w Obrazach, skarbiec rozpoznał oba z treści jako obrazy | `pendrive-4-zaimportowane.png` |
+| za duży | plik 17 MB → pominięty, nic nie zapisane, komunikat w stopce | `pendrive-5-za-duzy.png` |
+| pojedynczo | zdjęcie z polską nazwą → Obrazy, notatka → Dokumenty; w skarbcu 4 pliki z pendrive'a, razem tyle bajtów, ile na pendrivie | log `pliki z pendrive'a:` |
+| miejsca | Obrazy: 3 (podgląd: „Obraz JPEG”, „z pendrive'a”), Dokumenty: 1 | `pendrive-6-obrazy.png` |
+| wyjęcie | `device_del` → nadzorca zatrzymuje czytnik (sygnał 9), Pliki: „Pendrive odłączony.”, Dokumenty | `pendrive-7-wyjety.png` |
+| NTFS | `device_add` pendrive'a z NTFS → „Pendrive” wraca; czytnik: nie FAT; Pliki: K1 jeszcze go nie czyta | `pendrive-8-ntfs.png` |
+| czystość logu | bez nazw i treści plików, paniki, błędów, zablokowanych wywołań i odrzuconych komunikatów | `pendrive.log` |
+
+Na hoście: `test_fat` (czytnik na obrazach z mtools/sfdisk: FAT12 bez partycji, FAT16 w MBR, FAT32 w GPT, NTFS; obrazy
+celowo uszkodzone; nazwy; lista `k1_pendrive`), `test_komunikat` (`PENDRIVE*`, `PEN_*`), `test_dokumenty` (pochodzenie
+tylko od Plików), `test_instalator` (`k1_pendrive_znajdz`), `fuzz_fat`, `fuzz_pendrive`.
+
 ## M2 — `scripts/test-m2.sh` (obraz produkcyjny, sterowanie przez monitor QEMU)
 
 | Krok | Sprawdzenie | Dowód |

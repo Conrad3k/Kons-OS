@@ -88,8 +88,13 @@ na aplikacje, które otwierają ten typ (`K1_OTWIERANIE`) — wybrana dostaje te
 nazwa, typ (rozpoznany z zawartości), rozmiar, daty, pochodzenie („utworzony w K1”), w Koszu — za ile dni
 zniknie; plik tekstowy — początek treści (do 64 KiB, `DOK_CZYTAJ`). Klawisze: Enter (otwórz folder),
 Backspace (w górę), F2 (zmień nazwę), Delete (do Kosza), strzałki, Esc. Złe nazwy (`\ / : * ? " < > |`,
-kropka na końcu) i zajęte — komunikat w stopce. Moduły: `main.c` (okno, mysz, klawisze), `przyciski.c` (przyciski miejsca), `rysuj.c`
-(lista, podgląd, stopka), `dane.c` (skarbiec i nadzorca).
+kropka na końcu) i zajęte — komunikat w stopce. **Pendrive** (0.8.0 krok 3, ADR 0031): gdy włożony jest pendrive
+(nie pendrive K1), pod Koszem pojawia się miejsce „Pendrive” — jego foldery i pliki (tylko do odczytu: bez zmiany nazwy
+i usuwania) czyta usługa `czytnik` (`komponenty/czytnik.md`); przyciski „Importuj” (zaznaczony plik) i „Importuj
+wszystkie” (pliki folderu): zdjęcia PNG/JPEG do Obrazów, reszta do Dokumentów, pochodzenie „z pendrive'a”; pliki
+większe niż 16 MB pominięte, postęp i wynik w stopce; wyjęty pendrive — powrót do Dokumentów. Moduły: `main.c` (okno,
+mysz, klawisze), `przyciski.c` (przyciski miejsca), `rysuj.c` (lista, podgląd, stopka), `dane.c` (skarbiec i nadzorca),
+`pendrive.c` (pendrive i import).
 
 ## Granica zaufania
 Klienci ekranu w roli **aplikacja**: tylko własne okna. Ustawienia jako jedyna mogą zmieniać
@@ -121,7 +126,10 @@ Pliki (0.8.0): fd 4 — kanał do skarbca z prawami do wszystkich plików użytk
 innych aplikacji są dla Plików niewidoczne), komunikaty `DOK_*` (`komponenty/skarbiec.md`); fd 5 — od nadzorcy,
 jednokierunkowo: `PLIKI_POKAZ` (a = plik albo folder do pokazania, b = 1 Kosz), gdy pulpit otwiera Pliki przy
 pliku albo Koszu (`URUCHOM` z miejscem — tylko dla Plików). Lista ze skarbca sprawdzana wpis po wpisie
-(`k1_dok_lista_czytaj`); nazwy i treść nigdy nie trafiają do logu (tylko liczby).
+(`k1_dok_lista_czytaj`); nazwy i treść nigdy nie trafiają do logu (tylko liczby). Od 0.8.0 krok 3: fd 6 — od
+nadzorcy `PENDRIVE` (jest / nie ma), `PENDRIVE_KANAL` (kanał do czytnika); do nadzorcy `PENDRIVE_OTWORZ`. Kanał do
+czytnika: `PEN_*` (`komponenty/czytnik.md`); plik z pendrive'a idzie do skarbca w memfd od czytnika, bez czytania
+(`DOK_NOWY` z pochodzeniem — prawo tylko Plików).
 
 ## Obsługa błędów
 Zamknięcie okna (×) albo kanału → koniec procesu; aplikacje nie są restartowane (test).

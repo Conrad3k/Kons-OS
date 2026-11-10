@@ -142,6 +142,9 @@ static void import_koniec(void)
         d += snprintf(komunikat + d, sizeof komunikat - (size_t)d, " Pominięto %d: większe niż 16 MB.", imp.duze);
     if (imp.bledy > 0 && d > 0 && d < (int)sizeof komunikat)
         snprintf(komunikat + d, sizeof komunikat - (size_t)d, " Nie udało się: %d.", imp.bledy);
+    if (imp.zapisane == 0 && imp.bledy == 0 && imp.duze > 0) /* only too big ones */
+        snprintf(komunikat, sizeof komunikat, "Nie zaimportowano: %s większ%s niż 16 MB.", imp.duze == 1 ? "plik jest" : "pliki są",
+                 imp.duze == 1 ? "y" : "e");
     blad = komunikat;
     importuje = 0;
     k1_log(TAG, "import: koniec — zapisane %d (do Obrazów %d), za duże %d, błędy %d", imp.zapisane, imp.do_obrazow, imp.duze,
@@ -335,8 +338,8 @@ const char *pendrive_stopka(void)
     switch (pen_stan) {
     case PEN_GOTOWY: return pen_wiecej ? "Pokazano pierwsze 1024 elementy tego folderu." : NULL;
     case PEN_CZEKA: return "Czytanie pendrive'a…";
-    case K1_PEN_BLAD_FORMAT: return "Tego pendrive'a K1 jeszcze nie odczyta: ma inny system plików niż FAT (np. exFAT albo NTFS).";
-    case K1_PEN_BLAD_USZKODZONY: return "Pliki na pendrivie są uszkodzone — sprawdź go na innym komputerze.";
+    case K1_PEN_BLAD_FORMAT: return "K1 jeszcze nie czyta tego pendrive'a (np. exFAT, NTFS).";
+    case K1_PEN_BLAD_USZKODZONY: return "Pendrive jest uszkodzony — sprawdź go na innym komputerze.";
     case PEN_ZAMKNIETY: return NULL;
     default: return "Pendrive nie odpowiada — wyjmij go i włóż ponownie.";
     }

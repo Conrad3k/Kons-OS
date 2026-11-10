@@ -140,11 +140,13 @@ void rysuj_podglad(struct k1_obraz *o, const struct k1_motyw *m)
     int32_t y = SCIEZKA_Y + 112;
     k1_zaokraglony(o, PODGLAD_X, SCIEZKA_Y, PODGLAD_W, (float)(apl.wys - SCIEZKA_Y - 12), 10, k1_kolor(m->pole, 255));
     if (w == NULL) {
-        const char *t = tu.kosz       ? "Usunięte pliki leżą tu 30 dni"
-                        : tu.pendrive ? "Pendrive jest tylko do odczytu. Wybierz plik i kliknij „Importuj”: zdjęcia trafią "
-                                        "do folderu Obrazy, inne pliki do Dokumentów."
-                                      : "Wybierz plik, aby zobaczyć szczegóły";
-        k1_tekst(o, K1_CZ_MALA, PODGLAD_X + 16, SCIEZKA_Y + 40, t, k1_kolor(m->tekst3, 255), PODGLAD_W - 32);
+        static const char *const na_pendrivie[] = { "Pendrive jest tylko do odczytu.", "Wybierz plik i kliknij",
+                                                    "„Importuj”: zdjęcia trafią", "do Obrazów, inne pliki",
+                                                    "do Dokumentów." };
+        const char *t = tu.kosz ? "Usunięte pliki leżą tu 30 dni" : "Wybierz plik, aby zobaczyć szczegóły";
+        for (int i = 0; i < (tu.pendrive ? 5 : 1); i++)
+            k1_tekst(o, K1_CZ_MALA, PODGLAD_X + 16, SCIEZKA_Y + 40 + i * 18, tu.pendrive ? na_pendrivie[i] : t,
+                     k1_kolor(m->tekst3, 255), PODGLAD_W - 32);
         return;
     }
     k1_ikona(o, ikona_wpisu(w), PODGLAD_X + 16, SCIEZKA_Y + 18, 40, k1_kolor(m->tekst2, 255));
