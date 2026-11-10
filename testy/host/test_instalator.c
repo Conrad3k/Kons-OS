@@ -2,7 +2,9 @@
  *  - the GPT of an installed K1 (layout, CRCs, both copies, protective MBR) for 512- and 4096-byte
  *    sectors; with a path argument it also writes a 4 GiB sparse image there for sfdisk to read back;
  *  - the disk list of nadzorca (dyski.c) on a fake sysfs tree: internal disks, USB stick as the
- *    source, partitions named K1-EFI / K1-DANE, skipped devices. */
+ *    source, partitions named K1-EFI / K1-DANE, skipped devices;
+ *  - (0.8.0 step 5) K1-DANE grown to the end of a larger disk (k1_gpt_powieksz; sfdisk reads the image back) and the
+ *    partition as sysfs describes it (k1_czesc_opis). */
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,6 +76,59 @@ static void gpt(uint64_t bajty, uint32_t sektor)
     EXPECT(c32(mbr + 446 + 12) == (u.sektory - 1 > 0xffffffffu ? 0xffffffffu : (uint32_t)(u.sektory - 1)));
 }
 
+/* Header and entries CRCs again after a test changed something on purpose. */
+static void popraw_crc(uint8_t *g, const uint8_t *w)
+{
+    uint32_t c = k1_crc32(w, K1_GPT_WPISY_BAJTY);
+    for (int i = 0; i < 4; i++)
+        g[88 + i] = (uint8_t)(c >> (8 * i));
+    memset(g + 16, 0, 4);
+    c = k1_crc32(g, 92);
+    for (int i = 0; i < 4; i++)
+        g[16 + i] = (uint8_t)(c >> (8 * i));
+}
+
+/* 0.8.0 step 5 (ADR 0033): K1-DANE, the last partition of a table made for a small disk, to the end of a larger one;
+ * tables that are not what K1 writes are left alone. */
+static void powieksz(uint32_t sektor)
+{
+    static uint8_t mbr[4096], g[4096], z[4096], w[K1_GPT_WPISY_BAJTY];
+    uint8_t losowe[48] = { 7, 7, 7 };
+    struct k1_gpt_uklad u, v;
+    uint64_t koniec = 0, mib = K1_GPT_MIB / sektor, wieksze = (16ull << 30) / sektor;
+    EXPECT(k1_gpt_uklad(1ull << 30, sektor, &u) == 0);
+    k1_gpt_zbuduj(&u, losowe, mbr, g, z, w);
+    EXPECT(k1_gpt_powieksz(sektor, wieksze, u.dane_od, mbr, g, z, w, &koniec) == 0);
+    v = u;
+    v.sektory = wieksze;
+    v.ostatni = wieksze - 2 - u.wpisy_sektory;
+    sprawdz_naglowek(g, 1, wieksze - 1, 2, w, &v);
+    sprawdz_naglowek(z, wieksze - 1, 1, wieksze - 1 - u.wpisy_sektory, w, &v);
+    EXPECT(c64(w + 128 + 40) == koniec && (koniec + 1) % mib == 0 && koniec <= v.ostatni && koniec + mib > v.ostatni);
+    EXPECT(c64(w + 128 + 32) == u.dane_od && c64(w + 32) == u.efi_od && c64(w + 40) == u.efi_do); /* the rest unchanged */
+    EXPECT(c32(mbr + 446 + 12) == (uint32_t)(wieksze - 1));
+    EXPECT(k1_gpt_powieksz(sektor, wieksze, u.dane_od, mbr, g, z, w, &koniec) == 1);      /* done: nothing to gain */
+    EXPECT(k1_gpt_powieksz(sektor, wieksze + 8 * mib, u.dane_od, mbr, g, z, w, &koniec) == 1); /* < 16 MiB more */
+    /* NEGATIVE: K1-DANE not where the kernel says, damaged entries or header, a partition after K1-DANE, sector size */
+    k1_gpt_zbuduj(&u, losowe, mbr, g, z, w);
+    EXPECT(k1_gpt_powieksz(sektor, wieksze, u.dane_od + 1, mbr, g, z, w, &koniec) == -1);
+    w[300] ^= 1;
+    EXPECT(k1_gpt_powieksz(sektor, wieksze, u.dane_od, mbr, g, z, w, &koniec) == -1);
+    w[300] ^= 1;
+    g[30] ^= 1;
+    EXPECT(k1_gpt_powieksz(sektor, wieksze, u.dane_od, mbr, g, z, w, &koniec) == -1);
+    g[30] ^= 1;
+    memcpy(w + 256, w + 128, 128); /* a third partition after K1-DANE */
+    for (int i = 0; i < 8; i++)
+        w[256 + 32 + i] = (uint8_t)((u.dane_do + 1) >> (8 * i));
+    w[256 + 56] = 'X';
+    popraw_crc(g, w);
+    EXPECT(k1_gpt_powieksz(sektor, wieksze, u.dane_od, mbr, g, z, w, &koniec) == -1);
+    k1_gpt_zbuduj(&u, losowe, mbr, g, z, w);
+    EXPECT(k1_gpt_powieksz(1024, wieksze, u.dane_od, mbr, g, z, w, &koniec) == -1);
+    EXPECT(k1_gpt_powieksz(sektor, u.sektory / 2, u.dane_od, mbr, g, z, w, &koniec) == -1); /* a smaller disk: header beyond it */
+}
+
 /* The table written into a sparse image, as the instalator writes it (sfdisk reads it back). */
 static void obraz(const char *sciezka)
 {
@@ -88,6 +143,19 @@ static void obraz(const char *sciezka)
     EXPECT(pwrite(fd, w, sizeof w, (off_t)((u.sektory - 1 - u.wpisy_sektory) * 512)) == (ssize_t)sizeof w);
     EXPECT(pwrite(fd, z, 512, (off_t)((u.sektory - 1) * 512)) == 512);
     close(fd);
+    /* 0.8.0 step 5: the same table grown on a 16 GiB "stick" (`sciezka`-wiekszy) — sfdisk reads it back too */
+    {
+        char p[512];
+        uint64_t koniec, s16 = (16ull << 30) / 512;
+        snprintf(p, sizeof p, "%s-wiekszy", sciezka);
+        fd = open(p, O_RDWR | O_CREAT | O_TRUNC, 0600);
+        EXPECT(fd >= 0 && ftruncate(fd, 16ll << 30) == 0);
+        EXPECT(k1_gpt_powieksz(512, s16, u.dane_od, mbr, g, z, w, &koniec) == 0);
+        EXPECT(pwrite(fd, mbr, 512, 0) == 512 && pwrite(fd, g, 512, 512) == 512 && pwrite(fd, w, sizeof w, 1024) == (ssize_t)sizeof w);
+        EXPECT(pwrite(fd, w, sizeof w, (off_t)((s16 - 1 - u.wpisy_sektory) * 512)) == (ssize_t)sizeof w);
+        EXPECT(pwrite(fd, z, 512, (off_t)((s16 - 1) * 512)) == 512);
+        close(fd);
+    }
 }
 
 /* ---- fake sysfs ---- */
@@ -177,6 +245,16 @@ static void dyski(void)
         EXPECT(k1_pendrive_znajdz(sys, pen) && strcmp(pen, "sdd") == 0);
         EXPECT(!k1_pendrive_znajdz("/nie/ma/takiego", pen));
     }
+    /* 0.8.0 step 5: K1-DANE of the K1 stick as sysfs describes it (start, size, number, its disk) */
+    {
+        struct k1_czesc c;
+        plik("devices/pci0/usb2/2-1/2-1:1.0/host6/target6:0:0/6:0:0:0/block/sdb/sdb2/start", "575488\n");
+        EXPECT(k1_czesc_opis(sys, "sdb2", &c) == 0 && strcmp(c.dysk, "sdb") == 0 && c.numer == 1 && c.sektor == 512);
+        EXPECT(c.od_512 == 575488 && c.dl_512 == 131072 && c.dysk_512 == 30000000);
+        plik("devices/pci0/usb2/2-1/2-1:1.0/host6/target6:0:0/6:0:0:0/block/sdb/sdb2/start", "29900000\n");
+        EXPECT(k1_czesc_opis(sys, "sdb2", &c) == -1); /* NEGATIVE: beyond the end of its disk */
+        EXPECT(k1_czesc_opis(sys, "sda", &c) == -1 && k1_czesc_opis(sys, "../sdb2", &c) == -1); /* a disk; a bad name */
+    }
     {
         char cmd[400];
         snprintf(cmd, sizeof cmd, "rm -rf '%s'", baza);
@@ -191,6 +269,8 @@ int main(int argc, char **argv)
     gpt(320072933376ull, 512);   /* the X230's 320 GB disk */
     gpt(1000204886016ull, 4096); /* 1 TB, 4K sectors */
     gpt(3ull << 40, 512);        /* > 2 TiB: the protective MBR stops at 2^32-1 sectors */
+    powieksz(512);
+    powieksz(4096);
     EXPECT(k1_gpt_uklad(700ull << 20, 512, &u) == -1); /* too small for 512 MiB + 256 MiB */
     EXPECT(k1_gpt_uklad(4ull << 30, 1024, &u) == -1);
     EXPECT(k1_crc32("123456789", 9) == 0xcbf43926u); /* the standard check value */

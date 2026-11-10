@@ -10,9 +10,10 @@ co trafia **do obrazu** (działa na komputerze użytkownika), od tego, co służ
 | Jądro Linux | 6.18.60 (LTS) | GPL-2.0 | cdn.kernel.org; SHA-256 przypięta w `jadro/wersja.env`, podpis PGP wydania sprawdzany przy każdym pobraniu | fundament systemu (SPEC §4) |
 | musl libc (statycznie w każdym programie) | 1.2.4-2 (Ubuntu 24.04) | MIT | archiwum Ubuntu (podpisane repozytoria apt) | mała, czytelna libc ze wsparciem statycznego linkowania (SPEC §4); ADR 0002 |
 | IBM Plex Sans / Serif — **tylko bitmapy glifów** wbudowane w `gui` i aplikacje | 6.1.1 (`fonts-ibm-plex`) | SIL OFL 1.1 | archiwum Ubuntu | tekst z polskimi znakami bez parsera czcionek w systemie (ADR 0009) |
+| Wuffs (statycznie w usłudze `dekoder`, tylko moduły PNG, JPEG, zlib/deflate, sumy kontrolne) | 0.4.0-alpha.12 (tag `v0.4.0-alpha.12`, commit `7f70dda9`, 2026-10-20) | Apache-2.0 albo MIT (do wyboru) | github.com/google/wuffs; `release/c/wuffs-v0.4.c` w `src/zewnetrzne/wuffs/` bez zmian, SHA-256 w `src/zewnetrzne/wuffs/SHA256SUMS` | dekoder obrazów PNG i JPEG (0.8.0, ADR 0032): napisany w języku, który przy kompilacji dowodzi braku wyjścia poza tablice i przepełnień liczb, sprawdzany fuzzingiem przez Google (OSS-Fuzz); sam nic nie przydziela poza dekoderem; kompiluje się z naszymi flagami bez ostrzeżeń. Własny dekoder JPEG (progresywny, podpróbkowanie) to kilka tysięcy wierszy nowego, niesprawdzonego kodu. Wersja „alpha” to jedyna linia z JPEG-iem; aktualizacja: nowy tag, porównanie zmian, nowe sumy, `test_dekoder` i `fuzz_dekoder` |
 | Monocypher (statycznie w usłudze `skarbiec`) | 4.0.3 (tag `4.0.3`, commit `ab2b16dd`) | BSD-2-Clause albo CC0 (do wyboru) | github.com/LoupVaillant/monocypher; pliki w `src/zewnetrzne/monocypher/` bez zmian, SHA-256 (pełne sumy: `src/zewnetrzne/monocypher/SHA256SUMS`) | XChaCha20-Poly1305, BLAKE2b, Argon2id dla Blob Vault — mała, audytowana biblioteka, jeden plik (ADR 0015); aktualizacja: nowy tag, porównanie zmian, nowe sumy |
 
-Nic więcej (poza Monocypherem w `skarbiec`): brak bibliotek współdzielonych, interpreterów, powłoki. Grafika bez bibliotek:
+Nic więcej (poza Monocypherem w `skarbiec` i Wuffs w `dekoder`): brak bibliotek współdzielonych, interpreterów, powłoki. Grafika bez bibliotek:
 API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybornik GUI własne
 (`src/grafika/`, `src/przybornik/`).
 
@@ -31,7 +32,7 @@ API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybo
 | sbsigntool (`sbsign`, `sbverify`) | 0.9.4-3.1ubuntu7 | Ubuntu 24.04 | podpis `k1.efi` do Secure Boot (0.7.0) |
 | faketime | Ubuntu 24.04 | Ubuntu 24.04 | zamrożony zegar przy podpisie (czas podpisu = `SOURCE_DATE_EPOCH`, powtarzalność) |
 | python3-virt-firmware (`virt-fw-vars`) | 24.1.1 | Ubuntu 24.04 | tylko testy: zmienne OVMF z kluczami MS i MOK (`test-m6`) |
-| python3-pil (Pillow) | 10.2.0 | Ubuntu 24.04 | tylko testy: zdjęcia JPEG i PNG na wirtualnym pendrivie (`test-pendrive`, 0.8.0 krok 3); `mtools`, `sfdisk` — obrazy FAT do `test_fat` i `test-pendrive` |
+| python3-pil (Pillow) | 10.2.0 | Ubuntu 24.04 | tylko testy: zdjęcia JPEG i PNG na wirtualnym pendrivie (`test-pendrive`, 0.8.0 krok 3) i obrazy do `test_dekoder` / korpusu `fuzz_dekoder` (krok 4); `mtools`, `sfdisk` — obrazy FAT do `test_fat` i `test-pendrive` |
 | GCC (+ `gcc-13-plugin-dev`) | 13.3.0 | Ubuntu 24.04 | kompilacja jądra (z wtyczkami KSTACK_ERASE, LATENT_ENTROPY) i programów K1 |
 | `musl-tools` (`musl-gcc`) | 1.2.4-2 | Ubuntu 24.04 | wrapper kompilatora dla musl |
 | binutils, make, flex, bison, bc, libelf, libssl, rsync, cpio, xz | Ubuntu 24.04 | Ubuntu | wymagania budowy jądra |

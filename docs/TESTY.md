@@ -287,24 +287,28 @@ krok 2: prawa Notatek, „Otwórz w…”, okno wyboru, nazwa z pierwszego wiers
 `PLIKI_POKAZ`, `URUCHOM` z miejscem; krok 2: nowe komunikaty i domyślne aplikacje), `test_rozmieszczenie` (klucze
 ikon, K1R2 i K1R1, „Wybór pliku” nigdy na pasku), `fuzz_dokument`, `fuzz_rozmieszczenie`.
 
-## 0.8.0 krok 3 — zdjęcia z pendrive'a, `scripts/test-pendrive.sh` (ADR 0031)
+## 0.8.0 krok 3 i 4 — zdjęcia z pendrive'a, podgląd, tapeta, `scripts/test-pendrive.sh` (ADR 0031, 0032)
 
 Bez prawdziwego sprzętu: obraz produkcyjny, dysk danych (pusta K1-DANE) i **wirtualny pendrive USB** (xHCI): FAT32 w
 partycji MBR zrobiony przez mtools (jak inny system), z prawdziwymi zdjęciami JPEG i PNG (Pillow), plikiem z polską długą
-nazwą, notatką, plikiem 17 MB, plikiem ukrytym i śmieciem macOS „._…”. Drugi pendrive (NTFS) wkładany w trakcie.
+nazwą, uszkodzonym JPEG-iem, notatką, plikiem 17 MB, plikiem ukrytym i śmieciem macOS „._…”. Drugi pendrive (NTFS) wkładany w trakcie.
 
 | Krok | Sprawdzenie | Dowód |
 |---|---|---|
 | miejsce | nadzorca widzi pendrive → Pliki pokazują „Pendrive” | `pendrive-1-miejsce.png` |
 | czytnik | kliknięcie → nadzorca: czytnik dla `sdX` (tylko odczyt), UID 106; czytnik: FAT32; 4 elementy (bez ukrytego); przyciski tylko „Importuj”, „Importuj wszystkie” | `pendrive-2-pendrive.png` |
-| foldery | DCIM (1) → 100K1 (2, bez „._…”) | `pendrive-3-100k1.png` |
-| import | „Importuj wszystkie” → 2 zdjęcia w Obrazach, skarbiec rozpoznał oba z treści jako obrazy | `pendrive-4-zaimportowane.png` |
+| foldery | DCIM (1) → 100K1 (3, bez „._…”) | `pendrive-3-100k1.png` |
+| import | „Importuj wszystkie” → 3 pliki w Obrazach, skarbiec rozpoznał wszystkie z treści jako obrazy | `pendrive-4-zaimportowane.png` |
 | za duży | plik 17 MB → pominięty, nic nie zapisane, komunikat w stopce | `pendrive-5-za-duzy.png` |
-| pojedynczo | zdjęcie z polską nazwą → Obrazy, notatka → Dokumenty; w skarbcu 4 pliki z pendrive'a, razem tyle bajtów, ile na pendrivie | log `pliki z pendrive'a:` |
-| miejsca | Obrazy: 3 (podgląd: „Obraz JPEG”, „z pendrive'a”), Dokumenty: 1 | `pendrive-6-obrazy.png` |
+| pojedynczo | zdjęcie z polską nazwą → Obrazy, notatka → Dokumenty; w skarbcu 5 plików z pendrive'a, razem tyle bajtów, ile na pendrivie | log `pliki z pendrive'a:` |
+| miejsca | Obrazy: 4, Dokumenty: 1 | log `widok:` |
+| podgląd (krok 4) | zaznaczone zdjęcie JPEG → nadzorca: dekoder UID 107; dekoder: JPEG → 80×60; kolor zdjęcia w podglądzie; PNG → 32×32 | `pendrive-6-podglad-jpeg.png`, `-png.png` |
+| uszkodzony obraz | dekoder: błąd -42; Pliki: „Podgląd niedostępny” | `pendrive-6-podglad-uszkodzony.png` |
+| tapeta | „Ustaw jako tapetę” → ekran: zdjęcie od Plików 80×60, tapeta 31; kolor zdjęcia przy prawej krawędzi ekranu | `pendrive-6-tapeta.png` |
 | wyjęcie | `device_del` → nadzorca zatrzymuje czytnik (sygnał 9), Pliki: „Pendrive odłączony.”, Dokumenty | `pendrive-7-wyjety.png` |
 | NTFS | `device_add` pendrive'a z NTFS → „Pendrive” wraca; czytnik: nie FAT; Pliki: K1 jeszcze go nie czyta | `pendrive-8-ntfs.png` |
 | czystość logu | bez nazw i treści plików, paniki, błędów, zablokowanych wywołań i odrzuconych komunikatów | `pendrive.log` |
+| ponowny start | ten sam dysk danych bez pendrive'a: ekran wczytuje zdjęcie ze skarbca (80×60) i rysuje je jako tapetę | `pendrive-9-ponownie.png`, `pendrive-ponownie.log` |
 
 Na hoście: `test_fat` (czytnik na obrazach z mtools/sfdisk: FAT12 bez partycji, FAT16 w MBR, FAT32 w GPT, NTFS; obrazy
 celowo uszkodzone; nazwy; lista `k1_pendrive`), `test_komunikat` (`PENDRIVE*`, `PEN_*`), `test_dokumenty` (pochodzenie

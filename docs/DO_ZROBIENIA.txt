@@ -1,13 +1,13 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.7.6 (Pulpit, nowa tapeta „Las”) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.8.0 (Pliki) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby), M5 (dyski, USB, zaszyfrowane
 dane, hasło, instalator), 0.6.0 Fundament, M6 (bezpieczne aktualizacje: podpisy, dm-verity, A/B,
-Secure Boot), 0.7.5 Pulpit (ikony, menu pod prawym przyciskiem, przypinanie); dalej 0.8.0 Pliki, potem M7 Sieć
-(plan: ADR 0019, 0020, 0026).
-Data: 2026-11-09. Plik aktualizujemy po każdym etapie.
+Secure Boot), 0.7.5 Pulpit (ikony, menu pod prawym przyciskiem, przypinanie), 0.8.0 Pliki (foldery, Kosz, zdjęcia
+z pendrive'a, podgląd, tapeta ze zdjęcia); dalej M7 Sieć (plan: ADR 0019, 0020, 0026).
+Data: 2026-11-10. Plik aktualizujemy po każdym etapie.
 Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
 
 Oznaczenia:
@@ -235,7 +235,7 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
     [x] Instalator na zainstalowanym K1: tylko „Aktualizacje są możliwe poprzez nośnik USB.”
     [x] nowa tapeta „Las” (Ustawienia → Wygląd)
 
-0.8.0 Pliki (natywna część dawnego M9 i dawne M6 „dekodery w izolacji”; kroki: ADR 0029 p. 8)
+0.8.0 Pliki — GOTOWE (natywna część dawnego M9 i dawne M6 „dekodery w izolacji”; kroki: ADR 0029 p. 8)
     [x] krok 1 (ADR 0029): pliki i foldery w skarbcu, aplikacja Pliki, Kosz, pliki z folderu Pulpit na pulpicie
     [x] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie (pokazywane w Plikach)
     [x] aplikacja Pliki: foldery jak w Windows, lista, podgląd, zmiana nazwy; pliki na pulpicie
@@ -253,10 +253,15 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
         (test-pendrive.sh — Twoja prośba z 2026-11-10: bez Twojego udziału)
     [!] Test na X230 (krok 3, po wydaniu 0.8.0): drugi pendrive ze zdjęciami (np. z telefonu albo aparatu) obok
         pendrive'a K1 → Pliki → Pendrive → Importuj. Pendrive exFAT (zwykle > 32 GB) K1 jeszcze nie czyta.
+    [x] krok 4 (ADR 0032): podgląd zdjęć PNG/JPEG w Plikach przez usługę „dekoder” — jednorazowy proces w klatce na
+        każde zdjęcie (biblioteka Wuffs), obrót według aparatu; „Ustaw jako tapetę” — zdjęcie wypełnia ekran, zostaje
+        w skarbcu, w Ustawienia → Wygląd kafelek „Zdjęcie” (sprawdzone w QEMU, też po ponownym starcie)
+    [x] krok 5 (ADR 0033): pusta K1-DANE na pendrivie rośnie przy pierwszym starcie do końca nośnika (QEMU: 64 → 576 MiB)
+    [x] porządki na koniec wersji (CHANGELOG, „Porządki”) + przegląd „Tymczasowe” niżej
+    [!] Test na X230 (krok 4–5, 0.8.0): nowy pendrive z k1-0.8.0-usb.img.xz — Ustawienia → Informacje: ile miejsca
+        (powinno być prawie całe pendrive); zdjęcie z telefonu → Pliki → podgląd (obrócone dobrze?) → „Ustaw jako tapetę”.
     [ ] exFAT na pendrive'ach (duże pendrive'y i karty SD > 32 GB) — ten sam model co FAT, gdy będzie potrzebny
-    [ ] podgląd obrazów PNG/JPEG przez jednorazowy dekoder w izolacji; tapeta z własnego zdjęcia
-    [ ] partycja K1-DANE na pendrivie do końca nośnika (dziś 64 MiB)
-    [ ] porządki na koniec wersji (zasada czytelności 2) + przegląd „Tymczasowe” niżej
+    [ ] powiększenie K1-DANE z danymi (pendrive zapisany starszą wersją) — gdy będzie potrzebne
 
 M7  Sieć
     [ ] test: nic w K1 nie odpowiada na połączenia z zewnątrz
@@ -297,14 +302,16 @@ M12 Audyt: fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentac
 TYMCZASOWE (zasada czytelności 3 — każde z terminem; przegląd przy porządkach każdej wersji MINOR)
     Każde miejsce w kodzie ma komentarz `k1: tymczasowe — usunąć w <termin>` i jest wymienione tutaj;
     scripts/sprawdz-czytelnosc.py (testy) pilnuje, żeby żadne nie zostało bez wpisu.
-    [ ] manifest formatu 1 na 47 MiB (aktualizacja z 0.6.2–0.6.3 starym Instalatorem) — do usunięcia,
-        gdy nikt nie aktualizuje z 0.6.x (propozycja: 0.8.0, po Twoim teście aktualizacji na X230).
+    [ ] manifest formatu 1 na 47 MiB (aktualizacja z 0.6.2–0.6.3 starym Instalatorem) — termin przesunięty na 0.9.0
+        (przegląd 0.8.0): Instalator sprawdza nim też przy instalacji pliki startowe (shim, GRUB), więc najpierw nowe
+        sprawdzanie plików startowych (manifest slotu ich nie obejmuje), potem usunięcie.
         Miejsca: src/wspolne/k1_efi.c, src/instalator/main.c, scripts/zbuduj-usb.sh, narzedzia/podpisz.c
     [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10”) — termin: M10; od 0.7.0 GRUB jest też
         częścią startu A/B (grubenv, ADR 0022), więc w M10 decyzja: zostaje czy zastępujemy (ADR)
     [ ] przeniesienie notatek z 0.5.6–0.7.6 do plików (0.8.0, ADR 0030) — do usunięcia w 0.9.0, gdy właściciel
         uruchomi 0.8.0 ze swoim pendrive'em (notatki przeniesione). Miejsce: src/aplikacje/notatki/stare.c
     [x] przegląd 0.7.5: innych rozwiązań tymczasowych w kodzie nie ma
+    [x] przegląd 0.8.0: nowych rozwiązań tymczasowych nie ma (dekoder, tapeta, powiększanie K1-DANE są docelowe)
 
 
 4. DECYZJE TECHNICZNE DO PODJĘCIA (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
@@ -315,9 +322,8 @@ M4.1 (podjęte, ADR 0012) przegląd, tryby ekranu, vmwgfx, Zasoby
 M5   (podjęte, ADR 0013) sterowniki dysków i USB; dalej: format Blob Vault i szyfrowanie (ADR 0015),
      skąd klucz (hasło; X230 ma TPM 1.2, nie 2.0)
 0.7.5 (ADR 0026) gui jako klient skarbca (układ pulpitu) — protokół
-0.8.0 (ADR 0026) model wspólnych dokumentów w skarbcu (dłuższe nazwy, metadane osobno), okno wyboru
-     pliku (deskryptory, pieczęcie memfd), czytnik FAT w klatce, dekodery PNG/JPEG (biblioteki czy własne
-     — wpis w ZALEZNOSCI.md), Kosz w skarbcu
+0.8.0 (podjęte, ADR 0029–0033) model wspólnych dokumentów w skarbcu, okno wyboru pliku, czytnik FAT w klatce,
+     dekoder PNG/JPEG — biblioteka Wuffs (ZALEZNOSCI.md), Kosz w skarbcu, K1-DANE do końca pendrive'a
 M7   przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP
 M5.1 Firefox czy WPE WebKit (sprawdzenie sandboxa Firefoksa w strefie), USER_NS tak/nie
 M10  obraz produkcyjny bez logu na porcie szeregowym; RANDSTRUCT w jądrze; zarządzanie kluczami;

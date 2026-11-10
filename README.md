@@ -21,8 +21,8 @@ i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
 | 0.6.0 Fundament | porządki w nadzorcy, zdarzenia jądra zamiast odpytywania, szybsze testy, historia baterii | PRZETESTOWANE |
 | M6 Bezpieczne aktualizacje | podpisane wydania, wykrywanie podmiany systemu, A/B, Secure Boot z własnym kluczem | PRZETESTOWANE w QEMU (0.7.0); czeka na test na X230 |
 | 0.7.5 Pulpit | ikony na pulpicie jak w Windows (w stylu K1), menu pod prawym przyciskiem, przypinanie i odpinanie na pasku | PRZETESTOWANE w QEMU (ADR 0028); czeka na test na X230 |
-| 0.8.0 Pliki | aplikacja Pliki, Kosz (30 dni albo ręcznie), okno wyboru pliku, zdjęcia z pendrive'a, tapeta z własnego zdjęcia | PLANOWANE (ADR 0026) — następne |
-| M7 Sieć | kabel, potem Wi-Fi | PLANOWANE |
+| 0.8.0 Pliki | aplikacja Pliki, Kosz (30 dni albo ręcznie), okno wyboru pliku, zdjęcia z pendrive'a, podgląd zdjęć, tapeta z własnego zdjęcia, cały pendrive na dane | PRZETESTOWANE w QEMU (ADR 0029–0033); czeka na test na X230 |
+| M7 Sieć | kabel, potem Wi-Fi | PLANOWANE — następne |
 | M8 Strefy | każda obca aplikacja (przeglądarka, Discord…) w swojej mikro-maszynie; kolorowa ramka; stała/jednorazowa; pełna izolacja/szybka grafika | PLANOWANE (ADR 0020) |
 | M9 Pliki ze stref | przenoszenie plików ze stref i do stref przez okno K1, schowek między strefami | PLANOWANE |
 | M10–M12 | tryb ratunkowy i TPM, audyt końcowy | PLANOWANE (kolejność: ADR 0019, 0020, 0026) |

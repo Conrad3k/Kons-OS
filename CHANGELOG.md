@@ -3,6 +3,64 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.8.0] — 2026-11-10
+
+**Pliki** — wspólne pliki i foldery w zaszyfrowanym skarbcu, jak w Windows; zdjęcia z pendrive'a, ich podgląd i tapeta
+ze zdjęcia (ADR 0026, 0029–0033). Pięć kroków, jedno wydanie.
+
+### Dodane
+- **Aplikacja Pliki** (krok 1): z lewej Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane i Kosz; własne foldery
+  w środku, „w górę” i ścieżka, „Nowy folder”, „Zmień nazwę” (F2), „Usuń” (Delete, do Kosza); z prawej szczegóły
+  zaznaczonego pliku: typ rozpoznany z zawartości, rozmiar, daty, pochodzenie, początek tekstu.
+- **Kosz**: „Przywróć”, „Usuń na zawsze”, „Opróżnij Kosz”; pliki znikają same po 30 dniach. Kosz i pliki z folderu
+  Pulpit leżą na pulpicie jako ikony.
+- **Otwieranie plików** (krok 2): podwójne kliknięcie otwiera plik w jego domyślnej aplikacji, „Otwórz w…” — w wybranej
+  (Pliki i pulpit); domyślne aplikacje w Ustawienia → Aplikacje. Aplikacja dostaje dostęp tylko do tego jednego pliku.
+- **Okno „Wybór pliku”** rysowane przez K1: aplikacja, która prosi o plik (Notatki: „Otwórz…”, Ctrl+O), dostaje tylko
+  ten, który wskażesz — nigdy listę plików.
+- **Notatki na plikach**: każda notatka to plik w Dokumenty › Notatki (nazwa z pierwszego wiersza), usuwana do Kosza;
+  notatki z poprzednich wersji przenoszą się same przy pierwszym uruchomieniu.
+- **Zdjęcia z pendrive'a** (krok 3): włożony pendrive (FAT12/16/32, np. z telefonu albo aparatu) to miejsce „Pendrive”
+  w Plikach — tylko do odczytu; „Importuj” / „Importuj wszystkie”: zdjęcia do Obrazów, reszta do Dokumentów,
+  pochodzenie „z pendrive'a”. Pendrive czyta mała usługa `czytnik` w klatce — jądro dalej nie dotyka obcego systemu
+  plików. exFAT i NTFS — jeszcze nie (Pliki mówią to wprost).
+- **Podgląd zdjęć** (krok 4): zaznaczone zdjęcie PNG albo JPEG widać w Plikach po prawej (obrócone tak, jak trzymałeś
+  telefon). Zdjęcie odczytuje usługa `dekoder` — osobny, krótko żyjący proces w klatce dla każdego zdjęcia (biblioteka
+  Wuffs, ADR 0032); uszkodzony plik: „Podgląd niedostępny”.
+- **Tapeta ze zdjęcia**: pod podglądem przycisk „Ustaw jako tapetę” — zdjęcie wypełnia ekran przy każdej rozdzielczości,
+  zostaje po wyłączeniu komputera (zaszyfrowane w skarbcu), a w Ustawienia → Wygląd pojawia się kafelek „Zdjęcie”.
+- **Cały pendrive na dane** (krok 5, ADR 0033): K1 zapisany na pendrive większym niż obraz powiększa przy pierwszym
+  starcie swoją pustą partycję danych do końca pendrive'a (było 64 MB na zawsze). Pendrive z danymi nie jest ruszany.
+
+### Zmienione
+- Skarbiec przechowuje do 4096 obiektów; pliki do 16 MB (w kawałkach po 1 MiB), z nazwą, typem, czasami i pochodzeniem.
+- Pulpit zna pliki z folderu Pulpit i Kosz („Otwórz”, „Otwórz w: …”); ułożenie pulpitu w nowym formacie (stary dalej
+  czytany).
+- Ekran: miejsce na 16 klientów, zdjęcie na tapetę (do 2560×1600); klatka ekranu z większym limitem pamięci.
+- Klatka usługi może mieć limit czasu procesora i przestrzeni adresowej (SPEC §7 — dekodery).
+
+### Naprawione
+- Obrazek nakładany na okno aplikacji (dziś: miniatura w Plikach) był przezroczysty — prześwitywała przez niego tapeta.
+
+### Porządki (zasada czytelności 2)
+- Spis usług systemu w budowie i w obrazie wynika z jednej listy `K1_SYSTEM` (`scripts/uslugi-systemu.sh`) — nowa
+  usługa to o dwa miejsca mniej do zmiany.
+- Podzielone przed rozbudową: nadzorca (`logi.c`), Pliki (`przyciski.c`), skarbiec (`obiekty.c`, `haslo.c`).
+- Kanał Plików do nadzorcy (fd 6) obsługuje prośby o pendrive i o dekoder w jednym miejscu; wspólne skalowanie obrazów
+  (`k1_skaluj`) dla dekodera i ekranu.
+- Słownik: usunięty podwójny wpis „okno wyboru pliku”; nowe pojęcia: dekoder (usługa), podgląd, tapeta ze zdjęcia.
+- Przegląd „Tymczasowe”: manifest formatu 1 zostaje do 0.9.0 — oprócz aktualizacji z 0.6.x sprawdza on przy
+  instalacji pliki startowe (shim, GRUB), więc najpierw trzeba to sprawdzanie zastąpić. Przeniesienie starych notatek —
+  do 0.9.0 (bez zmian).
+
+### Testy
+- Host: `test_dokumenty`, `test_fat`, `test_dekoder` (obrazy z Pillow, uszkodzone, EXIF), `test_instalator`
+  (powiększanie GPT, sfdisk czyta wynik), `test_komunikat` (wszystkie nowe komunikaty); fuzzing `fuzz_dokument`,
+  `fuzz_fat`, `fuzz_pendrive`, `fuzz_dekoder`.
+- QEMU: `test-pliki.sh` (foldery, Kosz, Notatki na plikach, otwieranie, okno wyboru), `test-pendrive.sh` (wirtualny
+  pendrive USB ze zdjęciami: import, podgląd JPEG/PNG, uszkodzony JPEG, tapeta na zrzucie i po ponownym starcie, wyjęcie,
+  NTFS), `test-m5.sh` (obraz na większym pendrivie: K1-DANE 64 → 576 MiB przy pierwszym starcie, potem bez zmian).
+
 ## [0.7.6] — 2026-11-09
 
 Mała aktualizacja przed 0.8.0 (prośba właściciela).

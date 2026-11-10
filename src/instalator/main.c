@@ -292,7 +292,7 @@ int main(void)
                                                              : "bez podpisu (wersja deweloperska)"));
     if (tryb == K1_INST_INSTALUJ) {
         /* the whole partition goes to the disk: its boot files too (the format-1 manifest covers them) */
-        /* k1: tymczasowe — usunąć w 0.8.0 (with format 1: check the boot files another way) */
+        /* k1: tymczasowe — usunąć w 0.9.0 (with format 1: check the boot files another way) */
         r = sprawdz_manifest(K1_MANIFEST_OFF, 0, 1, &m1, 2, 3);
         if (r == 0 && m1.wersja != ma.wersja)
             r = K1_INST_BLAD_PODPIS;
@@ -306,7 +306,7 @@ int main(void)
         k1_log(TAG, "na dysku: działa miejsce %c (wersja %s), zapis do miejsca %c", "ab"[dysk.dziala], w, "ab"[1 - dysk.dziala]);
     else if (dysk.format == 2)
         k1_log(TAG, "grubenv na dysku nieczytelny — zapisuję całą partycję K1-EFI");
-    else if (dysk.format == 1) /* k1: tymczasowe — usunąć w 0.8.0 */
+    else if (dysk.format == 1) /* k1: tymczasowe — usunąć w 0.9.0 */
         k1_log(TAG, "na dysku: wersja %s (bez A/B)", w);
     else
         k1_log(TAG, "na dysku: system bez manifestu (0.5.9–0.6.1)");

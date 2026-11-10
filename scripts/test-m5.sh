@@ -6,6 +6,7 @@
 # 4. podłączenie drugiej myszy w trakcie pracy (device_add), odłączenie (device_del) i ponowne
 #    podłączenie — system zauważa zmiany, nic się nie zawiesza,
 # 5. (0.5.8) pendrive z partycją K1-DANE podłączony po starcie → skarbiec i pulpit od nowa,
+#    (0.8.0) obraz na pendrive większym od obrazu: pusta K1-DANE rośnie przy pierwszym starcie do końca pendrive'a,
 # 6. (0.5.3) bateria laptopa (tablica ACPI z testy/acpi/bateria.asl: 73 %, ładowanie, zasilacz
 #    podłączony) — wskaźnik na górnym pasku (log powłoki + zrzut).
 # Dyski (SATA, NVMe, pendrive) i kontrolery EHCI/OHCI sprawdza test w systemie (scripts/test-m1.sh).
@@ -147,6 +148,7 @@ echo "[k1] test M5d: obraz na pendrive — start przez UEFI, magazyn na partycji
 USBIMG=$K1_WYNIK/k1-$K1_WERSJA-usb.img
 if [ -f "$USBIMG" ]; then
     cp "$USBIMG" "$TESTY/m5-pendrive.img"
+    truncate -s +512M "$TESTY/m5-pendrive.img" # 0.8.0 step 5: a stick larger than the image
     for n in 1 2; do
         PLOG=$TESTY/m5-pendrive$n.log PMON=$TESTY/m5-pendrive$n.sock
         rm -f "$PLOG" "$PMON"
@@ -156,6 +158,8 @@ if [ -f "$USBIMG" ]; then
         # 0.6.0: the battery history of the first boot is kept in skarbiec and read by the second one
         if [ $n -eq 1 ]; then OCZ="K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE" BAT="historia baterii zapisana (poprzednich uruchomień: 0)"
         else OCZ="K1-SKARBIEC: magazyn otwarty" BAT="K1-NADZORCA: historia baterii: 1 poprzednich uruchomień"; fi
+        # 0.8.0 step 5: the first start grows the empty K1-DANE (64 MiB) by the 512 MiB the stick has more; never again
+        ROS="K1-NADZORCA: K1-DANE powiększona do końca pendrive'a: 64 → 576 MiB"
         t=0
         while [ $t -lt "$CZAS" ] && ! { grep -qF "$OCZ" "$PLOG" 2>/dev/null && grep -qF "K1-GUI: pulpit gotowy" "$PLOG" 2>/dev/null \
             && grep -qF "$BAT" "$PLOG" 2>/dev/null; }; do
@@ -164,12 +168,20 @@ if [ -f "$USBIMG" ]; then
         zamknij_qemu "$PMON" $PPID_
         if grep -qF "$OCZ" "$PLOG" && grep -qF "K1-GUI: pulpit gotowy" "$PLOG" && grep -qF "partycja danych K1-DANE otwarta" "$PLOG" \
             && grep -qF "$BAT" "$PLOG" \
+            && { [ $n -eq 1 ] && grep -qF "$ROS" "$PLOG" || { [ $n -eq 2 ] && ! grep -qF "powiększona" "$PLOG"; }; } \
             && ! grep -q "Kernel panic" "$PLOG" && ! grep -qF "BŁĄD" "$PLOG"; then
-            echo "  [OK]    start $n z pendrive'a: pulpit, $( [ $n -eq 1 ] && echo 'nowy zaszyfrowany magazyn, historia baterii zapisana' || echo 'magazyn z poprzedniego startu otwarty, historia baterii z poprzedniego startu') (${t} s)"
+            echo "  [OK]    start $n z pendrive'a: pulpit, $( [ $n -eq 1 ] && echo 'K1-DANE powiększona do końca pendrive'"'"'a (64 → 576 MiB), nowy zaszyfrowany magazyn, historia baterii zapisana' || echo 'magazyn z poprzedniego startu otwarty (K1-DANE już nie rośnie), historia baterii z poprzedniego startu') (${t} s)"
         else
             echo "  [BŁĄD]  start $n z pendrive'a (log: $PLOG)"; r=1
         fi
     done
+    # the table K1 wrote, read by another program: valid, K1-DANE up to the last MiB of the stick
+    if sfdisk --verify "$TESTY/m5-pendrive.img" >/dev/null 2>&1 &&
+        sfdisk -d "$TESTY/m5-pendrive.img" | grep -q 'start=      575488, size=     1179648, .*name="K1-DANE"'; then
+        echo "  [OK]    tablica partycji po powiększeniu poprawna (sfdisk): K1-DANE do ostatniego MiB pendrive'a"
+    else
+        echo "  [BŁĄD]  tablica partycji po powiększeniu:"; sfdisk -d "$TESTY/m5-pendrive.img" 2>&1 | sed 's/^/            | /'; r=1
+    fi
 else
     echo "  [BŁĄD]  brak obrazu USB $USBIMG (scripts/zbuduj-usb.sh)"; r=1
 fi

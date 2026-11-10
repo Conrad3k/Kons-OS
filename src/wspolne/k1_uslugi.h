@@ -15,7 +15,8 @@
     X(SKARBIEC, 8, 103, "skarbiec", "Skarbiec (dane)")              /* M5d: Blob Vault */           \
     X(LOGOWANIE, 9, 104, "logowanie", "Ekran logowania")            /* M5e: boot password screen */ \
     X(INSTALATOR, 10, 105, "instalator", "Instalator (zapis dysku)") /* M5f: writes the disk, no window */ \
-    X(CZYTNIK, 15, 106, "czytnik", "Czytnik pendrive'a")           /* 0.8.0: a USB stick, read only, for Pliki */
+    X(CZYTNIK, 15, 106, "czytnik", "Czytnik pendrive'a")           /* 0.8.0: a USB stick, read only, for Pliki */ \
+    X(DEKODER, 16, 107, "dekoder", "Dekoder obrazów")              /* 0.8.0: one picture for Pliki, then it ends */
 
 /* The native applications: one line each — everything else (UIDs, profiles, the Start menu, window names,
  * Zasoby, the sandbox profile, the image contents, the tests) follows from it.

@@ -350,7 +350,9 @@ void k1_naloz_sprite(struct k1_obraz *o, const uint32_t *sprite, uint32_t sw, ui
             uint32_t r = ((sp >> 16) & 0xffu) + (((dp >> 16) & 0xffu) * ia + 127u) / 255u;
             uint32_t g = ((sp >> 8) & 0xffu) + (((dp >> 8) & 0xffu) * ia + 127u) / 255u;
             uint32_t b = (sp & 0xffu) + ((dp & 0xffu) * ia + 127u) / 255u;
-            d[i] = ((r > 255u ? 255u : r) << 16) | ((g > 255u ? 255u : g) << 8) | (b > 255u ? 255u : b);
+            uint32_t al = a + ((dp >> 24) * ia + 127u) / 255u; /* "over": a window behind it stays opaque */
+            d[i] = (al > 255u ? 255u : al) << 24 | ((r > 255u ? 255u : r) << 16) | ((g > 255u ? 255u : g) << 8) |
+                   (b > 255u ? 255u : b);
         }
     }
 }
@@ -435,7 +437,9 @@ void k1_skladaj(struct k1_obraz *dst, const struct k1_obraz *src, int32_t x, int
                 uint32_t r = ((sp >> 16) & 0xffu) + (((dp >> 16) & 0xffu) * ia + 127u) / 255u;
                 uint32_t g = ((sp >> 8) & 0xffu) + (((dp >> 8) & 0xffu) * ia + 127u) / 255u;
                 uint32_t b = (sp & 0xffu) + ((dp & 0xffu) * ia + 127u) / 255u;
-                d[i] = ((r > 255u ? 255u : r) << 16) | ((g > 255u ? 255u : g) << 8) | (b > 255u ? 255u : b);
+                uint32_t al = a + ((dp >> 24) * ia + 127u) / 255u; /* "over": a window behind it stays opaque */
+            d[i] = (al > 255u ? 255u : al) << 24 | ((r > 255u ? 255u : r) << 16) | ((g > 255u ? 255u : g) << 8) |
+                   (b > 255u ? 255u : b);
             }
         }
     }

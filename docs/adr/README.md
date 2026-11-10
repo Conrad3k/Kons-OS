@@ -58,3 +58,6 @@ Krótko, dlaczego nie.
 | [0028](0028-pulpit-warstwa-ikon-i-rozmieszczenie.md) | Pulpit 0.7.5: warstwa ikon w ekranie, rozmieszczenie w skarbcu, menu kontekstowe, „Zamknij okno” z paska | Przyjęty |
 | [0029](0029-pliki-foldery-kosz.md) | Pliki 0.8.0: dokumenty w skarbcu, foldery jak w Windows, Kosz (30 dni), prawa w tabeli, protokół `DOK_*` | Przyjęty |
 | [0030](0030-otwieranie-plikow-i-okno-wyboru.md) | Pliki 0.8.0, krok 2: Notatki na plikach, „Otwórz w…”, domyślne aplikacje, okno wyboru pliku | Przyjęty |
+| [0031](0031-zdjecia-z-pendrive-czytnik-fat.md) | Pliki 0.8.0, krok 3: zdjęcia z pendrive'a — czytnik FAT w klatce, import z pochodzeniem | Przyjęty |
+| [0032](0032-dekoder-obrazow-i-tapeta-ze-zdjecia.md) | Pliki 0.8.0, krok 4: dekoder obrazów (Wuffs) w jednorazowym procesie, podgląd zdjęć, tapeta ze zdjęcia | Przyjęty |
+| [0033](0033-k1-dane-do-konca-pendrivea.md) | Pliki 0.8.0, krok 5: pusta K1-DANE rośnie przy pierwszym starcie do końca pendrive'a | Przyjęty |

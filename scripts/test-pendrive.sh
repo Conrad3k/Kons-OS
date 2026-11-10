@@ -1,15 +1,20 @@
 #!/bin/sh
-# Test 0.8.0 krok 3 (ADR 0031, powtarzalny): zdjęcia z pendrive'a w działającym K1 (obraz produkcyjny) — bez
+# Test 0.8.0 krok 3 i 4 (ADR 0031, 0032, powtarzalny): zdjęcia z pendrive'a w działającym K1 (obraz produkcyjny) — bez
 # prawdziwego sprzętu: wirtualny pendrive USB (xHCI) z FAT32 w partycji MBR, zrobiony jak przez inny system (mtools),
-# z prawdziwymi zdjęciami JPEG i PNG (Pillow), polską długą nazwą, plikiem ukrytym, śmieciem macOS i plikiem 17 MB.
+# z prawdziwymi zdjęciami JPEG i PNG (Pillow), uszkodzonym JPEG-iem, polską długą nazwą, plikiem ukrytym, śmieciem
+# macOS i plikiem 17 MB.
 #   1. Pliki pokazują miejsce „Pendrive”; po kliknięciu nadzorca uruchamia czytnik (UID 106, pendrive tylko do
 #      odczytu), czytnik rozpoznaje FAT32, Pliki pokazują foldery (bez ukrytych plików)
-#   2. DCIM › 100K1 → „Importuj wszystkie”: dwa zdjęcia trafiają do Obrazów, skarbiec rozpoznaje je jako obrazy
+#   2. DCIM › 100K1 → „Importuj wszystkie”: trzy pliki (dwa zdjęcia, uszkodzony JPEG) trafiają do Obrazów, skarbiec
+#      rozpoznaje je jako obrazy
 #   3. pojedynczo: plik 17 MB pominięty (za duży), zdjęcie z polską nazwą → Obrazy, notatka → Dokumenty
-#   4. Obrazy: 3 pliki „z pendrive'a”; Dokumenty: 1
+#   4. Obrazy: 4 pliki „z pendrive'a”; Dokumenty: 1
+#   4a. (krok 4) zaznaczone zdjęcie → dekoder w klatce (UID 107) → podgląd w Plikach (kolor na zrzucie); PNG też;
+#      uszkodzony JPEG → „Podgląd niedostępny”; „Ustaw jako tapetę” → ekran rysuje zdjęcie na całym ekranie
 #   5. wyjęcie pendrive'a (device_del): czytnik zatrzymany, miejsce znika; włożenie pendrive'a z NTFS: Pliki mówią,
 #      że K1 go jeszcze nie odczyta
 #   6. nazwy plików i ich treść nie trafiają do logu; brak zabronionych wywołań i odrzuconych komunikatów
+#   7. ponowny start z tym samym dyskiem danych: tapeta ze zdjęcia wraca ze skarbca
 # Dowody: build/testy/pendrive.log, zrzuty build/testy/pendrive-*.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -20,7 +25,7 @@ PEN=$TESTY/pendrive-fat32.img NTFS=$TESTY/pendrive-ntfs.img DANE=$TESTY/pendrive
 mkdir -p "$TESTY"; rm -f "$LOG" "$MON" "$TESTY"/pendrive-*.png
 export LC_ALL=C.UTF-8 MTOOLS_SKIP_CHECK=1
 
-echo "[k1] test pendrive (0.8.0 krok 3): zdjęcia z wirtualnego pendrive'a FAT32 → Pliki, wyjęcie, pendrive NTFS"
+echo "[k1] test pendrive (0.8.0 krok 3, 4): zdjęcia z wirtualnego pendrive'a FAT32 → Pliki, podgląd, tapeta, wyjęcie, NTFS"
 # the stick: FAT32 in an MBR partition from 1 MiB
 Z=$TESTY/pendrive-zrodla
 rm -rf "$Z" "$PEN" "$TESTY/pendrive-czesc.img"; mkdir -p "$Z"
@@ -31,6 +36,7 @@ z = sys.argv[1]
 for nazwa, kolor, rozm in (("IMG_0001.JPG", (196, 110, 80), (64, 48)), ("Wakacje nad morzem — Łódź.jpg", (60, 120, 180), (80, 60))):
     Image.new("RGB", rozm, kolor).save(f"{z}/{nazwa}", "JPEG", quality=90)
 Image.new("RGB", (32, 32), (90, 160, 90)).save(f"{z}/IMG_0002.PNG", "PNG")
+open(f"{z}/USZKODZONE.JPG", "wb").write(b"\xff\xd8\xff\xe0" + bytes(range(256)) * 4)  # a JPEG start, then rubbish
 open(f"{z}/notatka.txt", "w", encoding="utf-8").write("Zakupy: mleko, chleb\n")
 open(f"{z}/film.mp4", "wb").write(b"\0\0\0\x18ftypmp42" + bytes(17 * 1024 * 1024))
 open(f"{z}/ukryty.txt", "w").write("ukryty")
@@ -38,14 +44,14 @@ open(f"{z}/._IMG_0001.JPG", "wb").write(b"\0\5\26\7")
 PY
 mformat -C -i "$TESTY/pendrive-czesc.img" -F -c 1 -T 126976 :: || blad "mformat"
 mmd -i "$TESTY/pendrive-czesc.img" ::/DCIM ::/DCIM/100K1
-mcopy -i "$TESTY/pendrive-czesc.img" "$Z/IMG_0001.JPG" "$Z/IMG_0002.PNG" "$Z/._IMG_0001.JPG" ::/DCIM/100K1/
+mcopy -i "$TESTY/pendrive-czesc.img" "$Z/IMG_0001.JPG" "$Z/IMG_0002.PNG" "$Z/USZKODZONE.JPG" "$Z/._IMG_0001.JPG" ::/DCIM/100K1/
 mcopy -i "$TESTY/pendrive-czesc.img" "$Z/Wakacje nad morzem — Łódź.jpg" "$Z/notatka.txt" "$Z/film.mp4" "$Z/ukryty.txt" ::
 mattrib -i "$TESTY/pendrive-czesc.img" +h ::/ukryty.txt
 truncate -s 70M "$PEN"
 printf 'label: dos\nstart=2048, size=126976, type=c\n' | sfdisk -q "$PEN" >/dev/null || blad "sfdisk (pendrive)"
 dd if="$TESTY/pendrive-czesc.img" of="$PEN" bs=512 seek=2048 conv=notrunc status=none
 rm -f "$TESTY/pendrive-czesc.img"
-OCZEKIWANE=$(cat "$Z/IMG_0001.JPG" "$Z/IMG_0002.PNG" "$Z/Wakacje nad morzem — Łódź.jpg" "$Z/notatka.txt" | wc -c)
+OCZEKIWANE=$(cat "$Z/IMG_0001.JPG" "$Z/IMG_0002.PNG" "$Z/USZKODZONE.JPG" "$Z/Wakacje nad morzem — Łódź.jpg" "$Z/notatka.txt" | wc -c)
 rm -rf "$Z"
 # a stick with NTFS (only its signature): K1 cannot read it yet
 rm -f "$NTFS"; truncate -s 16M "$NTFS"
@@ -133,12 +139,12 @@ sprawdz("przyciski pendrive'a: Importuj, Importuj wszystkie (bez zmiany nazwy i 
         {"Importuj", "Importuj wszystkie"} == set(p), str(p))
 # 2. DCIM › 100K1 → "Importuj wszystkie"
 sprawdz("DCIM (1 folder)", widok(lambda: q.dwuklik(*wiersz(0)), "Pendrive", 1))
-sprawdz("DCIM › 100K1: 2 zdjęcia (bez śmieci macOS „._…”)", widok(lambda: q.dwuklik(*wiersz(0)), "Pendrive", 2))
+sprawdz("DCIM › 100K1: 3 pliki (bez śmieci macOS „._…”)", widok(lambda: q.dwuklik(*wiersz(0)), "Pendrive", 3))
 zrzut("3-100k1", gdy=lambda w, h, px: True)
-sprawdz("„Importuj wszystkie”: 2 zdjęcia → Obrazy",
-        "Importuj wszystkie" in p and importuj(lambda: klik(*p["Importuj wszystkie"]), 2, 2, 0))
-sprawdz("skarbiec: 2 pliki z pendrive'a, oba rozpoznane z treści jako obrazy",
-        czekaj(r"K1-PLIKI: pliki z pendrive'a: 2 \(obrazy PNG/JPEG: 2\)"))
+sprawdz("„Importuj wszystkie”: 3 pliki → Obrazy",
+        "Importuj wszystkie" in p and importuj(lambda: klik(*p["Importuj wszystkie"]), 3, 3, 0))
+sprawdz("skarbiec: 3 pliki z pendrive'a, wszystkie rozpoznane z treści jako obrazy",
+        czekaj(r"K1-PLIKI: pliki z pendrive'a: 3 \(obrazy PNG/JPEG: 3\)"))
 zrzut("4-zaimportowane", gdy=lambda w, h, px: True)
 # 3. one by one, from the main folder (rows: DCIM, film.mp4, notatka.txt, Wakacje…)
 sprawdz("„w górę” dwa razy: główny folder pendrive'a",
@@ -150,12 +156,45 @@ klik(*wiersz(3))
 sprawdz("zdjęcie z polską długą nazwą → Obrazy", importuj(lambda: klik(*p["Importuj"]), 1, 1, 0))
 klik(*wiersz(2))
 sprawdz("notatka → Dokumenty", importuj(lambda: klik(*p["Importuj"]), 1, 0, 0))
-sprawdz(f"skarbiec: 4 pliki z pendrive'a (3 obrazy), razem {oczekiwane} B — tyle, ile na pendrivie",
-        czekaj(rf"K1-PLIKI: pliki z pendrive'a: 4 \(obrazy PNG/JPEG: 3\), razem {oczekiwane} B"))
-# 4. where they went
-sprawdz("Obrazy: 3 pliki", widok(lambda: klik(*miejsce(2)), "Obrazy", 3))
-klik(*wiersz(0))
-zrzut("6-obrazy", gdy=lambda w, h, px: True)
+sprawdz(f"skarbiec: 5 plików z pendrive'a (4 obrazy), razem {oczekiwane} B — tyle, ile na pendrivie",
+        czekaj(rf"K1-PLIKI: pliki z pendrive'a: 5 \(obrazy PNG/JPEG: 4\), razem {oczekiwane} B"))
+# 4. where they went (Obrazy by name: IMG_0001.JPG, IMG_0002.PNG, USZKODZONE.JPG, Wakacje…)
+sprawdz("Obrazy: 4 pliki", widok(lambda: klik(*miejsce(2)), "Obrazy", 4))
+# 4a. pictures (step 4): the preview through a dekoder, the wallpaper
+NIEBIESKI, ZIELONY = (60, 120, 180), (90, 160, 90)
+blisko = lambda a, b, t=12: all(abs(x - y) <= t for x, y in zip(a, b))
+miniatura = (ox + 920 - 232 - 12 + 16 + 100, oy + 44 + 10 + 16 + 75)  # the middle of the picture in the preview
+
+
+def podglad(i, wzor, kolor, nazwa):
+    n = q.ile(wzor)
+    klik(*wiersz(i))
+    m = czekaj(wzor, od=n, czas=90)
+    w, h, px = zrzut(nazwa, gdy=lambda w, h, px: kolor is None or blisko(px(*miniatura), kolor))
+    return m and (kolor is None or blisko(px(*miniatura), kolor)), px(*miniatura)
+
+
+n_d = q.ile(r"K1-NADZORCA: dekoder dla Plików")
+ok, kol = podglad(3, r"K1-PLIKI: podgląd obrazu: 80x60", NIEBIESKI, "6-podglad-jpeg")
+sprawdz("zdjęcie JPEG: nadzorca uruchamia dekoder w klatce (UID 107), dekoder odsyła 80×60, Pliki pokazują je w podglądzie",
+        ok and czekaj(r"K1-NADZORCA: dekoder dla Plików: pid \d+, uid 107", od=n_d) and czekaj(r"K1-DEKODER: obraz JPEG → 80x60"),
+        f"kolor w podglądzie {kol}")
+ok, kol = podglad(1, r"K1-PLIKI: podgląd obrazu: 32x32", ZIELONY, "6-podglad-png")
+sprawdz("zdjęcie PNG: podgląd 32×32", ok and czekaj(r"K1-DEKODER: obraz PNG → 32x32"), f"kolor w podglądzie {kol}")
+ok, _ = podglad(2, r"K1-PLIKI: obraz: dekoder nie odczytał pliku \(-42\)", None, "6-podglad-uszkodzony")
+sprawdz("NEGATYWNY: uszkodzony JPEG — dekoder odpowiada błędem, Pliki: „Podgląd niedostępny”, nic więcej się nie dzieje",
+        ok and czekaj(r"K1-DEKODER: obraz JPEG: nie da się odczytać \(-42\)"))
+klik(*wiersz(3))
+t_ = czekaj(r"K1-PLIKI: przycisk tapety: (\d+),(\d+)")
+tlo = lambda px, w, h: px(w - 12, h // 2)
+n_t = q.ile(r"K1-EKRAN: zdjęcie na tapetę od Plików")
+if t_:
+    klik(ox + int(t_.group(1)), oy + int(t_.group(2)))
+ok = czekaj(r"K1-EKRAN: zdjęcie na tapetę od Plików: 80x60", od=n_t, czas=90)
+w, h, px = zrzut("6-tapeta", gdy=lambda w, h, px: blisko(tlo(px, w, h), NIEBIESKI))
+sprawdz("„Ustaw jako tapetę”: Pliki → dekoder → ekran (tylko od Plików); zdjęcie na całym ekranie, zapisane w skarbcu",
+        t_ and ok and czekaj(r"K1-EKRAN: tapeta 31") and czekaj(r"K1-PLIKI: tapeta ze zdjęcia: 80x60 wysłana do ekranu") and
+        blisko(tlo(px, w, h), NIEBIESKI), f"tło przy prawej krawędzi {tlo(px, w, h)}")
 sprawdz("Dokumenty: 1 plik", widok(lambda: klik(*miejsce(1)), "Dokumenty", 1))
 # 5. out and in
 n_b = q.ile(r"K1-PLIKI: pendrive: brak")
@@ -177,11 +216,36 @@ zrzut("8-ntfs", gdy=lambda w, h, px: True)
 # 6. the log
 t_ = tekst()
 sprawdz("nazwy i treść plików z pendrive'a nie trafiają do logu",
-        all(s not in t_ for s in ("IMG_0001", "IMG_0002", "Wakacje", "Łódź", "notatka", "film", "ukryty", "Zakupy", "DCIM", "100K1")))
+        all(s not in t_ for s in ("IMG_0001", "IMG_0002", "USZKODZONE", "Wakacje", "Łódź", "notatka", "film", "ukryty", "Zakupy",
+                                  "DCIM", "100K1")))
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów", "Kernel panic" not in t_ and
         "BŁĄD" not in t_ and "zabronione wywołanie" not in t_ and "odrzucono" not in t_)
 sys.exit(0 if all(q.wyniki) else 1)
 PY
 zamknij_qemu "$MON" $QPID
+
+# 7. the same data disk again (no stick): the wallpaper photo comes back from skarbiec
+LOG2=$TESTY/pendrive-ponownie.log MON2=$TESTY/pendrive-ponownie.sock
+rm -f "$LOG2" "$MON2"
+"$K1_REPO/scripts/uruchom-qemu.sh" --log "$LOG2" --monitor "$MON2" --czas "$CZAS" \
+    --qemu "-drive if=none,id=dane,file=$DANE,format=raw -device ide-hd,drive=dane,bus=ide.0" &
+QPID=$!
+K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG2" "$MON2" "$TESTY" "$CZAS" <<'PY' || r=1
+import os, sys
+sys.path.insert(0, os.environ["K1_TESTY_PY"])
+from k1qemu import Maszyna
+log, mon, out, limit = sys.argv[1:5]
+q = Maszyna(log, mon, out, limit, "pendrive")
+blisko = lambda a, b, t=12: all(abs(x - y) <= t for x, y in zip(a, b))
+ok = q.czekaj(r"K1-EKRAN: zdjęcie na tapetę wczytane ze skarbca \(80x60\)") and q.czekaj(r"K1-GUI: pulpit gotowy")
+w, h, px = q.zrzut("9-ponownie", gdy=lambda w, h, px: blisko(px(w - 12, h // 2), (60, 120, 180)))
+q.sprawdz("ponowny start: tapeta ze zdjęcia wczytana ze skarbca i narysowana", ok and blisko(px(w - 12, h // 2), (60, 120, 180)),
+          f"tło przy prawej krawędzi {px(w - 12, h // 2)}")
+t_ = q.tekst()
+q.sprawdz("ponowny start: brak błędów i zablokowanych wywołań", "Kernel panic" not in t_ and "BŁĄD" not in t_ and
+          "zabronione wywołanie" not in t_)
+sys.exit(0 if all(q.wyniki) else 1)
+PY
+zamknij_qemu "$MON2" $QPID
 if [ $r -eq 0 ]; then info "pendrive: wszystko zaliczone (zrzuty: $TESTY/pendrive-*.png)"; else echo "[k1] pendrive: BŁĄD (log: $LOG)"; fi
 exit $r

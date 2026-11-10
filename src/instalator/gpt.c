@@ -116,3 +116,69 @@ void k1_gpt_zbuduj(const struct k1_gpt_uklad *u, const uint8_t losowe[48], uint8
     mbr[510] = 0x55;
     mbr[511] = 0xaa;
 }
+
+/* ---- K1-DANE to the end of a USB stick (0.8.0 step 5, ADR 0033) ---- */
+
+static int naglowek_dobry(const uint8_t *n, uint32_t sektor, uint64_t sektory)
+{
+    uint8_t kopia[92];
+    if (memcmp(n, "EFI PART", 8) != 0 || k1_c32(n + 8) != 0x00010000u || k1_c32(n + 12) != 92 || k1_c64(n + 24) != 1 ||
+        k1_c64(n + 72) != 2 || k1_c32(n + 80) != K1_GPT_WPISY || k1_c32(n + 84) != K1_GPT_WPIS ||
+        k1_c64(n + 40) < 2 + K1_GPT_WPISY_BAJTY / sektor || k1_c64(n + 48) < k1_c64(n + 40) || k1_c64(n + 48) >= sektory)
+        return 0;
+    memcpy(kopia, n, sizeof kopia);
+    memset(kopia + 16, 0, 4);
+    return k1_crc32(kopia, sizeof kopia) == k1_c32(n + 16);
+}
+
+/* The entry of K1-DANE starting at `od` (UTF-16LE name, nothing after it), or -1. */
+static int wpis_danych(const uint8_t *wpisy, uint64_t od)
+{
+    static const char nazwa[] = "K1-DANE";
+    for (int i = 0; i < (int)K1_GPT_WPISY; i++) {
+        const uint8_t *w = wpisy + (size_t)i * K1_GPT_WPIS;
+        size_t k;
+        if (k1_c64(w + 32) != od)
+            continue;
+        for (k = 0; k < sizeof nazwa; k++) /* with the 0 after the name */
+            if (k1_c16(w + 56 + 2 * k) != (uint16_t)(unsigned char)nazwa[k])
+                break;
+        if (k == sizeof nazwa)
+            return i;
+    }
+    return -1;
+}
+
+int k1_gpt_powieksz(uint32_t sektor, uint64_t sektory, uint64_t dane_od, uint8_t *mbr, uint8_t *glowny, uint8_t *zapasowy,
+                    uint8_t *wpisy, uint64_t *nowy_koniec)
+{
+    struct k1_gpt_uklad u;
+    uint64_t mib, koniec, stary;
+    uint8_t dysk[16];
+    int d;
+    if ((sektor != 512 && sektor != 4096) || !naglowek_dobry(glowny, sektor, sektory) ||
+        k1_c32(glowny + 88) != k1_crc32(wpisy, K1_GPT_WPISY_BAJTY) || (d = wpis_danych(wpisy, dane_od)) < 0)
+        return -1;
+    stary = k1_c64(wpisy + (size_t)d * K1_GPT_WPIS + 40);
+    for (int i = 0; i < (int)K1_GPT_WPISY; i++) /* nothing after K1-DANE (it is the last partition) */
+        if (i != d && k1_c64(wpisy + (size_t)i * K1_GPT_WPIS + 32) > stary)
+            return -1;
+    memset(&u, 0, sizeof u);
+    mib = K1_GPT_MIB / sektor;
+    u.sektor = sektor;
+    u.sektory = sektory;
+    u.wpisy_sektory = K1_GPT_WPISY_BAJTY / sektor;
+    u.pierwszy = k1_c64(glowny + 40);
+    u.ostatni = sektory - 2 - u.wpisy_sektory;
+    koniec = (u.ostatni + 1) / mib * mib - 1; /* on a MiB boundary, as the installer does */
+    if (stary < dane_od || stary > k1_c64(glowny + 48) || koniec <= stary || koniec - stary < 16 * mib)
+        return 1;
+    k1_z64(wpisy + (size_t)d * K1_GPT_WPIS + 40, koniec);
+    memcpy(dysk, glowny + 56, 16);
+    naglowek(glowny, &u, dysk, 1, sektory - 1, 2, k1_crc32(wpisy, K1_GPT_WPISY_BAJTY));
+    naglowek(zapasowy, &u, dysk, sektory - 1, 1, sektory - 1 - u.wpisy_sektory, k1_crc32(wpisy, K1_GPT_WPISY_BAJTY));
+    if (mbr[446 + 4] == 0xee) /* the protective MBR covers the whole disk again (at most 2^32-1 sectors) */
+        k1_z32(mbr + 446 + 12, sektory - 1 > 0xffffffffu ? 0xffffffffu : (uint32_t)(sektory - 1));
+    *nowy_koniec = koniec;
+    return 0;
+}

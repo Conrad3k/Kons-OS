@@ -19,6 +19,8 @@ struct usluga uslugi[] = {
     USLUGA("instalator", "/rdzen/system/instalator", "K1-INSTALATOR", K1_PROFIL_INSTALATOR, R_INSTALATOR, 0, 0, 0),
     /* 0.8.0 step 3: started only when Pliki opens a USB stick (pendrive.c) */
     USLUGA("czytnik", "/rdzen/system/czytnik", "K1-CZYTNIK", K1_PROFIL_CZYTNIK, R_CZYTNIK, 0, 0, 0),
+    /* 0.8.0 step 4: started for one picture when Pliki ask (dekoder.c) */
+    USLUGA("dekoder", "/rdzen/system/dekoder", "K1-DEKODER", K1_PROFIL_DEKODER, R_DEKODER, 0, 0, 0),
 };
 
 /* What a service gets from us besides its channel to ekran: fd 4, 5, … in this order. */
@@ -40,7 +42,7 @@ static const struct kanaly {
     { K1_PROFIL_ZASOBY, { { KN_DO, &zasoby_kanal, NULL, NULL } } },              /* fd 4 statistics */
     { K1_PROFIL_INSTALACJA, { { KN_OD, &inst_kanal, NULL, inst_nowy_kanal } } }, /* fd 4 disks, progress */
     /* Pliki (0.8.0): fd 4 skarbiec (the user's files), fd 5 the place to show when the desktop opens it, fd 6 the USB
-     * stick (whether there is one, the channel to czytnik; step 3) */
+     * stick (whether there is one, the channel to czytnik; step 3) and a picture decoder (step 4) */
     { K1_PROFIL_PLIKI,
       { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &plik_kanal[K1_APL_PLIKI], NULL, NULL },
         { KN_OD, &pen_kanal, NULL, pendrive_nowy_kanal } } },
@@ -250,7 +252,7 @@ static void zamknij_kanaly(const struct usluga *u)
 /* skarbiec: fd 3 = control channel, fd 4 = the K1-DANE partition (when there is one). */
 static void start_skarbiec(struct usluga *u, const struct k1_profil *p)
 {
-    int fds[2], n = 0, i, para[2], ile, dysk = otworz_partycje_danych(&ile);
+    int fds[2], n = 0, i, para[2], ile, dysk = otworz_dane(&ile);
     /* A USB stick shows up a moment after the kernel started: wait for it (czekaj_na_dane). */
     if (dysk < 0 && ile == 0 && etap_startu() == E_DANE && czekaj_na_dane(od_startu_systemu())) {
         u->nastepny = k1_teraz() + 0.25;
@@ -379,8 +381,8 @@ void start(struct usluga *u)
 {
     const struct k1_profil *p = &profile[u->profil];
     u->nastepny = 0;
-    if (u->rodzaj == R_INSTALATOR || u->rodzaj == R_CZYTNIK)
-        return; /* only on request of the Instalator window (inst_zapis), of Pliki (pendrive.c) */
+    if (u->rodzaj == R_INSTALATOR || u->rodzaj == R_CZYTNIK || u->rodzaj == R_DEKODER)
+        return; /* only on request of the Instalator window (inst_zapis), of Pliki (pendrive.c, dekoder.c) */
     if (u->rodzaj == R_SKARBIEC)
         start_skarbiec(u, p);
     else if (u->rodzaj == R_EKRAN)
@@ -425,6 +427,8 @@ void zakonczona(struct usluga *u, int status)
     }
     if (u->rodzaj == R_CZYTNIK)
         pendrive_koniec();
+    if (u->rodzaj == R_DEKODER)
+        dekoder_koniec();
     if (u->rodzaj == R_SKARBIEC) {
         if (skarb_ster >= 0)
             close(skarb_ster);

@@ -1,7 +1,8 @@
-/* K1 nadzorca — the USB stick for Pliki (0.8.0 step 3, ADR 0031): tells Pliki (its fd 6) whether a stick is plugged
- * in, and on its request starts czytnik for it — the whole stick opened read only, a new channel between czytnik
- * (its fd 3) and Pliki (sent with PENDRIVE_KANAL). One czytnik at a time; it is stopped when the stick goes away.
- * We never read the stick ourselves (only sysfs: which disk it is). Part of nadzorca (see main.c). */
+/* K1 nadzorca — Pliki's requests (their fd 6) and the USB stick (0.8.0 step 3, ADR 0031): tells Pliki whether a
+ * stick is plugged in, and on its request starts czytnik for it — the whole stick opened read only, a new channel
+ * between czytnik (its fd 3) and Pliki (sent with PENDRIVE_KANAL). One czytnik at a time; it is stopped when the stick goes away.
+ * We never read the stick ourselves (only sysfs: which disk it is). The same channel asks for a picture decoder
+ * (DEKODER, step 4: dekoder.c). Part of nadzorca (see main.c). */
 #include "nadzorca.h"
 
 int pen_kanal = -1;         /* our end of Pliki's fd 6 */
@@ -14,7 +15,7 @@ struct usluga *czytnik(void)
     return usluga_profilu(K1_PROFIL_CZYTNIK);
 }
 
-static void do_plikow(struct k1_komunikat k, int fd)
+void pliki_wyslij(struct k1_komunikat k, int fd)
 {
     if (pen_kanal >= 0 && k1_kanal_wyslij(pen_kanal, &k, sizeof k, fd) != 0)
         k1_log(TAG, "pendrive: wysłanie do Plików nieudane");
@@ -37,7 +38,7 @@ void pendrive_sprawdz(void)
         kill(czytnik()->pid, SIGKILL);
     }
     if (pen_kanal >= 0 && jest != pen_wyslany) {
-        do_plikow(k1_komunikat_nowy(K1_KOM_PENDRIVE, 0, jest, 0, 0, 0, 0), -1);
+        pliki_wyslij(k1_komunikat_nowy(K1_KOM_PENDRIVE, 0, jest, 0, 0, 0, 0), -1);
         pen_wyslany = jest;
         k1_log(TAG, "pendrive: %s", jest ? "podłączony (Pliki pokazują go)" : "brak");
     }
@@ -55,14 +56,14 @@ static void otworz(void)
         return;
     }
     if (!k1_pendrive_znajdz(SYS, dysk)) {
-        do_plikow(k1_komunikat_nowy(K1_KOM_PENDRIVE, 0, 0, 0, 0, 0, 0), -1);
+        pliki_wyslij(k1_komunikat_nowy(K1_KOM_PENDRIVE, 0, 0, 0, 0, 0, 0), -1);
         pen_wyslany = 0;
         return;
     }
     fds[1] = otworz_urzadzenie(dysk, O_RDONLY);
     if (fds[1] < 0) {
         k1_log(TAG, "pendrive: nie można otworzyć %s: %s", dysk, strerror(errno));
-        do_plikow(k1_komunikat_nowy(K1_KOM_PENDRIVE, 0, 0, 0, 0, 0, 0), -1);
+        pliki_wyslij(k1_komunikat_nowy(K1_KOM_PENDRIVE, 0, 0, 0, 0, 0, 0), -1);
         pen_wyslany = 0;
         return;
     }
@@ -75,7 +76,7 @@ static void otworz(void)
         snprintf(pen_dysk, sizeof pen_dysk, "%s", dysk);
         k1_log(TAG, "pendrive: czytnik dla %s (tylko odczyt), pid %d, uid %d", dysk, (int)u->pid,
                (int)profile[K1_PROFIL_CZYTNIK].uid);
-        do_plikow(k1_komunikat_nowy(K1_KOM_PENDRIVE_KANAL, 0, 0, 0, 0, 0, 0), para[1]);
+        pliki_wyslij(k1_komunikat_nowy(K1_KOM_PENDRIVE_KANAL, 0, 0, 0, 0, 0, 0), para[1]);
     }
     close(para[0]);
     close(para[1]);
@@ -103,10 +104,11 @@ void obsluz_pendrive(void)
             pen_kanal = -1;
             return;
         }
-        if (w != K1_ODB_JEST || k.typ != K1_KOM_PENDRIVE_OTWORZ) {
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_DEKODER)
+            dekoder_otworz();
+        else if (w == K1_ODB_JEST && k.typ == K1_KOM_PENDRIVE_OTWORZ)
+            otworz();
+        else
             k1_log(TAG, "pendrive: odrzucono prośbę od Plików");
-            continue;
-        }
-        otworz();
     }
 }

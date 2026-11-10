@@ -3,7 +3,8 @@
 #   build/wynik/k1-<wersja>-usb.img (+ .img.xz do pobrania)
 # GPT:  1. „K1-EFI”  (FAT32, 280 MiB, format 2 — src/wspolne/k1_uklad.h): shim + GRUB (podpisane, z Ubuntu),
 #          MokManager, grub.cfg, grubenv, dwa miejsca na system: /k1/a.img (k1.efi tej wersji) i /k1/b.img
-#       2. „K1-DANE” (64 MiB, same zera): zaszyfrowany magazyn tworzy skarbiec przy pierwszym starcie.
+#       2. „K1-DANE” (64 MiB, same zera): zaszyfrowany magazyn tworzy skarbiec przy pierwszym starcie; wcześniej
+#          nadzorca powiększa pustą K1-DANE do końca pendrive'a (0.8.0, ADR 0033, src/nadzorca/powieksz.c).
 # Instalacja kopiuje całą K1-EFI na dysk; aktualizacja zapisuje tylko nieużywane miejsce (A/B).
 # Wymaga: scripts/zbuduj.sh (jądro, programy, obrazy, k1.efi).
 . "$(dirname "$0")/wspolne.sh"
@@ -96,7 +97,7 @@ GENV=$(miejsce /boot/grub/grubenv 1024) A=$(miejsce /k1/a.img 134217728) B=$(mie
 [ "$B" -le $((47 * 1048576)) ] && [ $((B + 134217728)) -ge $((48 * 1048576)) ] || blad "slot B nie obejmuje 47 MiB"
 "$PODPISZ" uklad "$ESP" "$GENV" "$A" "$B" || blad "blok układu K1-EFI"
 # For K1 0.6.2–0.6.3 (they read a format-1 manifest at 47 MiB): the update to 0.7.0 copies this whole partition.
-# k1: tymczasowe — usunąć w 0.8.0 (this line, the 47 MiB check above and the format-1 manifest in narzedzia/podpisz.c)
+# k1: tymczasowe — usunąć w 0.9.0 (this line, the 47 MiB check above and the format-1 manifest in narzedzia/podpisz.c)
 "$PODPISZ" obraz "$ESP" "$K1_WERSJA" || blad "manifest obrazu systemu (podpisz)"
 
 # The disk: GPT with fixed GUIDs, the EFI partition copied in, K1-DANE left as zeros.

@@ -381,7 +381,7 @@ void ustawienie(int k, int32_t v)
     }
     if (k == K1_UST_TAPETA && v != s.ust[k]) {
         double t0 = k1_teraz();
-        k1_rysuj_tlo(&s.tlo, v);
+        rysuj_tlo(v);
         uszkodz(0, 0, s.W, s.H);
         k1_log(TAG, "tapeta %d (%.1f s)", (int)v, k1_teraz() - t0);
     }
@@ -396,9 +396,15 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
 {
     struct klient *k = &s.kl[kl];
     int i = -1;
-    if (m->typ != K1_KOM_POWIERZCHNIA && fd >= 0) {
+    if (m->typ != K1_KOM_POWIERZCHNIA && m->typ != K1_KOM_TAPETA_ZDJECIE && fd >= 0) {
         close(fd);
         { odrzuc(kl, "niespodziewany deskryptor"); return; }
+    }
+    if (m->typ == K1_KOM_TAPETA_ZDJECIE) { /* 0.8.0 step 4: zdjecie.c */
+        const char *powod = zdjecie_przyjmij(kl, m, fd);
+        if (powod != NULL)
+            odrzuc(kl, powod);
+        return;
     }
     if (m->typ == K1_KOM_POWIERZCHNIA)
         { nowa_pow(kl, m, fd); return; }
@@ -423,6 +429,8 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
             { odrzuc(kl, "zmiana ustawień tylko dla aplikacji Ustawienia"); return; }
         if (m->a == K1_UST_ROZDZIELCZOSC && m->b > s.n_trybow)
             { odrzuc(kl, "nieznany tryb ekranu"); return; }
+        if (m->a == K1_UST_TAPETA && m->b == K1_TAPETA_ZDJECIE && !s.ust[K1_UST_ZDJECIE])
+            { odrzuc(kl, "brak zdjęcia na tapetę"); return; }
         k1_log(TAG, "ustawienie %d=%d", (int)m->a, (int)m->b);
         { ustawienie(m->a, m->b); return; }
     }

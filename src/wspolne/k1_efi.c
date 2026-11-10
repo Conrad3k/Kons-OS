@@ -28,7 +28,7 @@ int k1_efi_czytaj(int fd, uint64_t rozmiar, struct k1_efi *e)
             manifest(fd, e->uklad.slot_off[i] + K1_SLOT_MANIFEST_OFF, 2, &e->slot[i]);
         return 0;
     }
-    /* k1: tymczasowe — usunąć w 0.8.0 (format 1: K1 0.6.2–0.6.3, nobody updates from them after the owner's X230 test) */
+    /* k1: tymczasowe — usunąć w 0.9.0 (format 1: K1 0.6.2–0.6.3; also the check of the boot files at install — replace that first) */
     if (rozmiar >= K1_MANIFEST_OFF + K1_MANIFEST_BAJTY) {
         manifest(fd, K1_MANIFEST_OFF, 1, &e->stary);
         if (e->stary.wersja != 0) {

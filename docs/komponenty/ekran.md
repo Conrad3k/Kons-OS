@@ -24,7 +24,7 @@ tylko kopiowana i mieszana (bez interpretacji).
 
 ## Uprawnienia
 UID/GID 101, bez capabilities, `NO_NEW_PRIVS`, seccomp (baza + `ioctl` typu `'d'` = DRM),
-Landlock bez żadnej ścieżki, cgroup `ekran` (128 MiB, 1 proces). Kartę otwiera nadzorca (to
+Landlock bez żadnej ścieżki, cgroup `ekran` (176 MiB — z miejscem na zdjęcie na tapetę, 0.8.0; 1 proces). Kartę otwiera nadzorca (to
 otwarcie jest DRM masterem) i przekazuje jako fd 4.
 
 ## Wejścia i wyjścia
@@ -35,6 +35,12 @@ otwarcie jest DRM masterem) i przekazuje jako fd 4.
   motyw, mysz, sekundy, rozdzielczość jako szer.×wys.; każda wartość sprawdzana jak `USTAW`, zła →
   domyślna), po każdej zmianie zapis nowej wersji (`src/ekran/zapis.c`). Rozdzielczość przywracana po
   pierwszej klatce, jeśli karta ją ma.
+- Zdjęcie na tapetę (0.8.0, ADR 0032, `src/ekran/zdjecie.c`): przyjmuje je tylko od Plików (`TAPETA_ZDJECIE`:
+  piksele z dekodera, do 2560×1600, zapieczętowany memfd dokładnie tego rozmiaru — pliku zdjęcia ekran nie widzi).
+  Rysuje je „wypełniając” ekran (wyśrodkowane, przycięte po bokach albo u góry i dołu; `k1_skaluj`) przy każdej
+  rozdzielczości. W skarbcu jako własne obiekty: `K1_OB_ZDJECIE` („K1Z1”, szerokość, wysokość — zapisywany na końcu)
+  i do 12 kawałków po 1 MiB (3 bajty na piksel); przy starcie wczytane tylko w całości. `K1_UST_ZDJECIE` (0/1) mówi
+  klientom, czy zdjęcie jest — ustawia go tylko ekran; `USTAW` tapety = zdjęcie bez zdjęcia jest odrzucany.
 - Kanały klientów: wejście (`k1_zdarzenie` 16 B, do 4 źródeł), powłoka i aplikacje (`k1_komunikat`
   32 B, ADR 0008), razem do 12.
 - Karta: dwa bufory „dumb” XRGB8888 w trybie preferowanym (QEMU `bochs` 1280×800; simpledrm — tryb
@@ -63,7 +69,8 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `AKTYWUJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: pokaż, na wierzch, fokus |
 | `MINIMALIZUJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: schowaj |
 | `ZAMKNIJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: ekran prosi aplikację o zamknięcie (0.7.5, „Zamknij okno” na dolnym pasku) |
-| `USTAW` | Ustawienia → ekran | tylko Ustawienia | klucz `K1_UST_*` i wartość (sprawdzana) |
+| `USTAW` | Ustawienia → ekran | tylko Ustawienia | klucz `K1_UST_*` i wartość (sprawdzana); nie `K1_UST_ZDJECIE` |
+| `TAPETA_ZDJECIE` | Pliki → ekran | tylko Pliki | zdjęcie na tapetę (0.8.0): szerokość, wysokość; + memfd z pikselami od dekodera |
 | `WITAJ` | ekran → klient | — | rozmiar ekranu, rola, aplikacja; ponownie po zmianie rozdzielczości |
 | `WSKAZNIK` | ekran → klient | — | mysz nad powierzchnią klienta (0 = poza nią): x, y, ruch / przycisk, który przycisk |
 | `KLAWISZ` | ekran → klient | — | klawisz dla okna z fokusem (kod, w dół / w górę / powtórzenie, modyfikatory); nigdy w logu |
@@ -71,7 +78,7 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `RAMKA` | ekran → klient | — | ostatnie zatwierdzenie jest na ekranie, można rysować drugą połowę |
 | `ZAMKNIJ` | ekran → aplikacja | — | zamknij to okno — jak przycisk × (0.7.5; Notatki najpierw zapisują) |
 | `OKNO` | ekran → powłoka | — | okno aplikacji powstało / zmieniło stan / zniknęło (dolny pasek) |
-| `USTAWIENIE` | ekran → wszyscy | — | nowa wartość ustawienia (motyw, tapeta, mysz, sekundy, rozdzielczość) |
+| `USTAWIENIE` | ekran → wszyscy | — | nowa wartość ustawienia (motyw, tapeta, mysz, sekundy, rozdzielczość, czy jest zdjęcie na tapetę, domyślne aplikacje) |
 | `TRYB` | ekran → Ustawienia | — | jeden z trybów ekranu (rozmiar, Hz, czy zalecany) |
 
 Kanał sterujący (fd 3) od nadzorcy: `KLIENT`. Złe pole, zła rola albo obcy UID → komunikat odrzucony

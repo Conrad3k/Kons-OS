@@ -51,7 +51,7 @@
 #define LOG_NA_SEKUNDE 20.0
 
 #define N(t) (unsigned)(sizeof(t) / sizeof((t)[0]))
-enum rodzaj { R_SKARBIEC, R_EKRAN, R_KLIENT, R_PROBA, R_INSTALATOR, R_CZYTNIK };
+enum rodzaj { R_SKARBIEC, R_EKRAN, R_KLIENT, R_PROBA, R_INSTALATOR, R_CZYTNIK, R_DEKODER };
 
 struct usluga {
     const char *nazwa, *program, *tag;
@@ -127,6 +127,7 @@ void zamknij_log(struct usluga *u);
 int otworz_karte(void);
 int otworz_wejscia(int *fd);
 int otworz_partycje_danych(int *ile);
+int otworz_dane(int *ile); /* powieksz.c: the same, K1-DANE first grown to the end of a USB stick when still empty */
 int czekaj_na_dane(double od_startu);
 double od_startu_systemu(void);
 void sprawdz_nowe_wejscia(void);
@@ -159,13 +160,18 @@ int inst_zapis(int nr, int tryb);
 void obsluz_instalacje(void);
 void obsluz_zapis(void);
 
-/* pendrive.c — the USB stick for Pliki (0.8.0 step 3, ADR 0031) */
+/* pendrive.c — Pliki's requests and the USB stick (0.8.0 step 3, ADR 0031) */
 extern int pen_kanal;
 struct usluga *czytnik(void);
+void pliki_wyslij(struct k1_komunikat k, int fd); /* to Pliki's fd 6 */
 void pendrive_nowy_kanal(void);
 void pendrive_sprawdz(void);
 void pendrive_koniec(void);
 void obsluz_pendrive(void);
+
+/* dekoder.c — a picture decoder for Pliki (0.8.0 step 4, ADR 0032) */
+void dekoder_otworz(void);
+void dekoder_koniec(void);
 
 /* rozruch.c — A/B after a start (0.7.0, ADR 0022) */
 extern char ab_nieudana[32];

@@ -10,7 +10,6 @@
 
 #define KOL_DATA (LISTA_X + LISTA_W - 236) /* column x of the date */
 #define KOL_ROZM (LISTA_X + LISTA_W - 76)  /* column x of the size */
-#define PODGLAD_X (SZER - PODGLAD_W - 12)
 
 void data_tekst(int64_t t, char *buf, size_t n)
 {
@@ -149,8 +148,14 @@ void rysuj_podglad(struct k1_obraz *o, const struct k1_motyw *m)
                      k1_kolor(m->tekst3, 255), PODGLAD_W - 32);
         return;
     }
-    k1_ikona(o, ikona_wpisu(w), PODGLAD_X + 16, SCIEZKA_Y + 18, 40, k1_kolor(m->tekst2, 255));
-    k1_tekst(o, K1_CZ_TEKST_MOCNA, PODGLAD_X + 16, SCIEZKA_Y + 88, w->nazwa, k1_kolor(m->tekst, 255), PODGLAD_W - 32);
+    if (obraz_rysuj(o, m, w, PODGLAD_X + 16, SCIEZKA_Y + 16) > 0) { /* a picture: the name under it, then the button */
+        k1_tekst(o, K1_CZ_TEKST_MOCNA, PODGLAD_X + 16, SCIEZKA_Y + 16 + MIN_H + 26, w->nazwa, k1_kolor(m->tekst, 255),
+                 PODGLAD_W - 32);
+        y = tu.kosz ? SCIEZKA_Y + 16 + MIN_H + 50 : PODGLAD_TAPETA_Y + PRZYCISK_H + 26;
+    } else {
+        k1_ikona(o, ikona_wpisu(w), PODGLAD_X + 16, SCIEZKA_Y + 18, 40, k1_kolor(m->tekst2, 255));
+        k1_tekst(o, K1_CZ_TEKST_MOCNA, PODGLAD_X + 16, SCIEZKA_Y + 88, w->nazwa, k1_kolor(m->tekst, 255), PODGLAD_W - 32);
+    }
     cecha(o, m, &y, "Typ", w->rodzaj == K1_DOK_FOLDER ? "Folder" : k1_typ_nazwa(w->typ));
     if (w->rodzaj == K1_DOK_PLIK) {
         rozmiar_tekst(w->rozmiar, buf, sizeof buf);
@@ -175,7 +180,7 @@ void rysuj_podglad(struct k1_obraz *o, const struct k1_motyw *m)
 
 void rysuj_stopke(struct k1_obraz *o, const struct k1_motyw *m)
 {
-    const char *blad_pendrive = NULL;
+    const char *inny = NULL; /* the stick, the wallpaper */
     char buf[96];
     int32_t y = apl.wys - 16;
     if (pytanie != PYT_BRAK) {
@@ -185,9 +190,11 @@ void rysuj_stopke(struct k1_obraz *o, const struct k1_motyw *m)
         return;
     }
     if (blad == NULL && tu.pendrive)
-        blad_pendrive = pendrive_stopka();
-    if (blad != NULL || (tu.pendrive && blad_pendrive != NULL)) {
-        k1_tekst(o, K1_CZ_MALA_MOCNA, LISTA_X, y, blad != NULL ? blad : blad_pendrive, k1_kolor(m->akcent_tekst, 255), LISTA_W);
+        inny = pendrive_stopka();
+    else if (blad == NULL && tapeta_stan != NULL)
+        inny = tapeta_stan;
+    if (blad != NULL || inny != NULL) {
+        k1_tekst(o, K1_CZ_MALA_MOCNA, LISTA_X, y, blad != NULL ? blad : inny, k1_kolor(m->akcent_tekst, 255), LISTA_W);
         return;
     }
     if (!gotowe) {

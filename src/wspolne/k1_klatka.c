@@ -278,6 +278,10 @@ void k1_klatka_uruchom(const struct k1_profil *p, const char *program, char *con
     limit(RLIMIT_CORE, 0, p->nazwa);
     limit(RLIMIT_MEMLOCK, 0, p->nazwa);
     limit(RLIMIT_FSIZE, (rlim_t)p->rozmiar_pliku, p->nazwa);
+    if (p->czas_cpu > 0)
+        limit(RLIMIT_CPU, (rlim_t)p->czas_cpu, p->nazwa);
+    if (p->przestrzen > 0)
+        limit(RLIMIT_AS, (rlim_t)p->przestrzen, p->nazwa);
 
     porzuc_uprawnienia(p);
     if (prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0) != 0 || prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0) {

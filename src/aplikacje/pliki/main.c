@@ -30,7 +30,7 @@ uint32_t zaznaczony;
 struct edycja edycja;
 enum pytanie pytanie;
 const char *blad;
-static int nad_miejscem = -1, nad_przyciskiem = -1, nad_w_gore;
+static int nad_miejscem = -1, nad_przyciskiem = -1, nad_w_gore, nad_tapeta;
 static struct {
     uint32_t id;
     double t;
@@ -112,6 +112,7 @@ void przejdz(struct miejsce m)
     pytanie = PYT_BRAK;
     wybor_aplikacji = 0;
     blad = NULL;
+    tapeta_stan = NULL;
     od_wiersza = 0;
     klik.id = 0;
     ulozy_widok();
@@ -262,6 +263,8 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         k1_przycisk(o, m, &p[i], K1_CZ_MALA_MOCNA, i == nad_przyciskiem && dostepny(rodzaje[i]), dostepny(rodzaje[i]));
     rysuj_liste(o, m);
     rysuj_podglad(o, m);
+    if (obraz_przycisk(&p[0]))
+        k1_przycisk(o, m, &p[0], K1_CZ_MALA_MOCNA, nad_tapeta, 1);
     rysuj_stopke(o, m);
 }
 
@@ -342,19 +345,21 @@ static void przewin(int32_t x)
 
 static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
 {
-    struct k1_przycisk p[PRZYCISKI_MAKS];
-    int n = przyciski(p), mj = -1, pr = -1, wr = -1, wg = 0;
+    struct k1_przycisk p[PRZYCISKI_MAKS], tp;
+    int n = przyciski(p), mj = -1, pr = -1, wr = -1, wg = 0, nt = 0;
     if (rodzaj != K1_WSK_WYJSCIE) {
         mj = miejsce_pod(x, y);
         pr = k1_przycisk_pod(p, n, x, y);
         wr = wiersz_pod(x, y);
         wg = x >= LISTA_X && x < LISTA_X + 32 && y >= SCIEZKA_Y && y < SCIEZKA_Y + 32;
+        nt = obraz_przycisk(&tp) && k1_przycisk_pod(&tp, 1, x, y) == 0;
     }
-    if (mj != nad_miejscem || pr != nad_przyciskiem || wr != najechany || wg != nad_w_gore) {
+    if (mj != nad_miejscem || pr != nad_przyciskiem || wr != najechany || wg != nad_w_gore || nt != nad_tapeta) {
         nad_miejscem = mj;
         nad_przyciskiem = pr;
         najechany = wr;
         nad_w_gore = wg;
+        nad_tapeta = nt;
         k1_apl_odswiez(&apl);
     }
     if (rodzaj != K1_WSK_PUSZCZENIE || przycisk != K1_PRZYCISK_LEWY)
@@ -369,6 +374,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         wykonaj(rodzaje[pr], apl_przycisku[pr]);
     else if (wg)
         w_gore();
+    else if (nt)
+        obraz_tapeta(zaznaczony);
     else if (przewijanie_potrzebne() && x >= LISTA_X && x < LISTA_X + LISTA_W && y >= apl.wys - STOPKA - PRZEWIJANIE &&
              y < apl.wys - STOPKA)
         przewin(x);
@@ -435,6 +442,7 @@ int main(void)
     apl.kanaly[1].fd = FD_NADZORCA;
     apl.kanaly[1].dane = nadzorca_odbierz;
     pendrive_start();
+    obrazy_start();
     /* the tests click by this line */
     k1_log(TAG, "układ: miejsca od %d,%d co %d, Kosz %d,%d; wiersze od %d,%d co %d; w górę %d,%d; Pendrive %d,%d", BOK / 2,
            NAV_Y + NAV_WIERSZ / 2, NAV_WIERSZ, BOK / 2, KOSZ_Y + NAV_WIERSZ / 2, LISTA_X + 120, WIERSZE_Y + WIERSZ / 2, WIERSZ,

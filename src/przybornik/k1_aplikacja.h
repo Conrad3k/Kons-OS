@@ -7,7 +7,7 @@
 #include "k1_klient.h"
 #include "k1_okno.h"
 
-#define K1_APL_KANALY 4
+#define K1_APL_KANALY 5
 
 struct k1_apl {
     const char *tag;
