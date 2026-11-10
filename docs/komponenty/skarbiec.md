@@ -2,13 +2,13 @@
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE (M5c na hoście, M5d w QEMU: dysk SATA i pendrive przez UEFI; 0.5.8: pendrive podłączony po starcie) — 0.5.8 |
-| **Pliki** | `src/skarbiec/main.c` (usługa), `src/skarbiec/magazyn.{c,h}` (format: rekordy, indeks), `naglowek.c` (nagłówek i owinięty klucz; wspólne części: `magazyn_wew.h`), `src/zewnetrzne/monocypher/` (kryptografia), `src/wspolne/k1_memfd.*`, `src/wspolne/k1_skarb_klient.*` (strona klienta) |
-| **Decyzje** | ADR 0015 (format, szyfrowanie), ADR 0016 (obraz USB), ADR 0013 (partycja „K1-DANE”) |
+| **Status** | PRZETESTOWANE (M5c na hoście, M5d w QEMU: dysk SATA i pendrive przez UEFI; 0.5.8: pendrive podłączony po starcie; 0.8.0: pliki i foldery — host i QEMU) |
+| **Pliki** | `src/skarbiec/` w modułach (0.8.0, `skarbiec.h`): `main.c` (pętla, kanały, obiekty aplikacji), `obiekty.c` (obiekty według właściciela i nazwy: magazyn albo pamięć), `haslo.c` (odblokowanie, zmiana hasła, limit prób), `dokumenty.c` (pliki, foldery, Kosz), `dok_kanal.c` (komunikaty `DOK_*`, tabela praw); format: `magazyn.{c,h}` (rekordy, indeks), `naglowek.c` (nagłówek i owinięty klucz; `magazyn_wew.h`), `src/zewnetrzne/monocypher/`; wspólne: `src/wspolne/k1_memfd.*`, `k1_skarb_klient.*` (strona klienta), `k1_dokument.*` (wpis pliku, typy, foldery) |
+| **Decyzje** | ADR 0015 (format, szyfrowanie), ADR 0016 (obraz USB), ADR 0013 (partycja „K1-DANE”), ADR 0029 (pliki, foldery, Kosz) |
 
 ## Cel
-Trwałe, zaszyfrowane dane użytkownika: ustawienia (ekran), notatki (Notatki); później historia baterii,
-pliki (M9). Jedyny proces z dostępem do partycji danych.
+Trwałe, zaszyfrowane dane użytkownika: ustawienia (ekran), notatki (Notatki), historia baterii, rozmieszczenie
+pulpitu, od 0.8.0 **pliki i foldery użytkownika** (Pliki, pulpit). Jedyny proces z dostępem do partycji danych.
 
 ## Granica zaufania
 Wejście: zawartość partycji (mogła być zmieniona przez kogoś z nośnikiem w ręku) i komunikaty od
@@ -17,10 +17,11 @@ klient widzi tylko obiekty swojego właściciela (właściciela kanału podaje n
 każdy pakiet ma sprawdzany UID nadawcy (`SO_PASSCRED`, w obie strony).
 
 ## Uprawnienia
-UID/GID 103, klatka (ADR 0007): seccomp = baza + `pread64`, `pwrite64`, `fdatasync` (tylko na
-deskryptorze partycji — innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
+UID/GID 103, klatka (ADR 0007): seccomp = baza + `pread64`, `pwrite64`, `fdatasync` (partycja i memfd —
+innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
 żadnej ścieżki (nie otworzy niczego); cgroup 320 MiB (Argon2id do 256 MiB), 1 proces;
-`RLIMIT_FSIZE` 2 MiB (memfd; zapisu na urządzenie blokowe ten limit nie dotyczy — `block/fops.c`).
+`RLIMIT_FSIZE` 24 MiB (memfd z plikiem do 16 MiB, 0.8.0; zapisu na urządzenie blokowe ten limit nie dotyczy —
+`block/fops.c`). Bez partycji obiekty w pamięci: do 4096, razem do 128 MiB.
 
 ## Wejścia i wyjścia
 - fd 3: kanał sterujący od nadzorcy — `SKARB_KLIENT(właściciel, uid, na_usb)` + koniec kanału klienta (0.6.3: `na_usb` wraca do klientów w `SKARB_WYNIK` d, bit 1).
@@ -29,12 +30,51 @@ deskryptorze partycji — innych plików nie ma), `getrandom`, `memfd_create`, `
   `SKARB_USUN` → `SKARB_DANE` (+ memfd) albo `SKARB_WYNIK` (wynik, tryb: dysk / pamięć).
 - Klienci (0.5.6): ekran (fd 5, obiekt `K1_OB_USTAWIENIA`), Notatki (fd 4; od 0.5.8 obiekt 1 = lista,
   2…33 = notatki), Ustawienia (fd 5: `SKARB_INFO`, `SKARB_HASLO`), ekran hasła (`SKARB_ODBLOKUJ`),
-  nadzorca (0.6.0: właściciel `K1_WL_SYSTEM`, obiekt `K1_OB_BATERIA` — historia baterii, `k1_bat_arch.h`).
+  nadzorca (0.6.0: właściciel `K1_WL_SYSTEM`, obiekt `K1_OB_BATERIA` — historia baterii, `k1_bat_arch.h`),
+  gui (0.7.5: rozmieszczenie pulpitu; 0.8.0: pliki folderu Pulpit), Pliki (0.8.0: pliki — `DOK_*`, niżej).
 - Hasło (0.5.7, ADR 0017): stan „zablokowany” (magazyn z hasłem, nieotwarty) → `SKARB_STAN` do nadzorcy;
   `SKARB_ODBLOKUJ` tylko od ekranu hasła, `SKARB_HASLO` (obecne + nowe) tylko od Ustawień, `SKARB_INFO`
   od każdego; limit prób (od trzeciej złej: 5 s … 5 min) liczy skarbiec. Zablokowany: odczyt/zapis
   obiektów → błąd „złe hasło”.
 - Log: utworzenie/otwarcie magazynu, klienci, zapisy (numer obiektu i rozmiar — nigdy treść).
+
+## Pliki i foldery (0.8.0, ADR 0029)
+Wspólny właściciel `K1_WL_DOKUMENTY` (101) — nie aplikacja. Stałe foldery 1–6 (Pulpit, Dokumenty, Obrazy, Muzyka,
+Wideo, Pobrane) nie mają obiektów; wpisy użytkownika mają numery od 100:
+- `m<numer>` — **wpis** (176 B, `k1_dokument.h`): numer, folder nadrzędny, rodzaj (plik / folder), typ, pochodzenie,
+  kto utworzył, generacja treści, rozmiar, czasy utworzenia, zmiany i wrzucenia do Kosza, nazwa (≤ 127 B UTF-8);
+- `t<numer>g<generacja>k<kawałek>` — **treść** po 1 MiB (plik ≤ 16 MiB). Zapis: kawałki nowej generacji → wpis →
+  usunięcie starych kawałków; przy otwarciu skarbiec usuwa kawałki bez wpisu i wpisy nie do odczytania, a wpis bez
+  folderu (albo w pętli) przenosi do Dokumentów.
+- Typ pliku rozpoznaje skarbiec przy każdym zapisie z pierwszych bajtów (`K1_TYPY`: tekst, PNG, JPEG, PDF, ZIP,
+  inny) — nigdy z nazwy. Nazwy jak w Windows (bez `\ / : * ? " < > |`, znaków sterujących i odwracających
+  kierunek tekstu, bez spacji i kropki na końcu), unikalne w folderze bez względu na wielkość liter (także
+  polskich); nowy wpis o zajętej nazwie dostaje „ (2)” przed rozszerzeniem. Do 8 poziomów folderów, 1024 wpisy.
+- **Kosz**: „do Kosza” zapisuje czas we wpisie (folder idzie z zawartością); przywrócony wraca do swojego folderu
+  (gdy go nie ma — do Dokumentów); „usuń na zawsze” i „opróżnij” tylko w Koszu; po 30 dniach skarbiec usuwa sam —
+  przy otwarciu i co godzinę, według zegara; gdy zegar jest przed czasem wrzucenia (cofnięty) — nic.
+
+**Prawa** — tabela w `dok_kanal.c` (wiersz na klienta; właściciel kanału od nadzorcy): Pliki — wszystko; pulpit
+(gui) — tylko folder Pulpit (lista nazw i typów, „do Kosza”, „opróżnij Kosz”, bez treści); inni — nic
+(`K1_DOK_BLAD_PRAWA`). Wpis spoza zasięgu klienta = „nie ma” (`K1_DOK_BLAD_BRAK`).
+
+| Komunikat | Kierunek | Pola |
+|---|---|---|
+| `DOK_SPIS` | klient → | lista wpisów, które klient widzi (odpowiedź `DOK_LISTA`) |
+| `DOK_CZYTAJ` | klient → | obiekt = plik, a = najwyżej tyle bajtów (podgląd: 64 KiB) → `DOK_TRESC` |
+| `DOK_NOWY` | klient → | obiekt = folder, a = plik / folder, b = długość nazwy, c = długość treści; memfd: nazwa + treść |
+| `DOK_ZAPISZ` | klient → | obiekt = plik, a = długość; memfd: nowa treść (nowa generacja) |
+| `DOK_NAZWA` | klient → | obiekt = wpis, a = długość; memfd: nowa nazwa |
+| `DOK_PRZENIES` | klient → | obiekt = wpis, a = folder docelowy (nie do siebie, nie za głęboko) |
+| `DOK_KOSZ`, `DOK_PRZYWROC`, `DOK_USUN` | klient → | obiekt = wpis (usuń: tylko z Kosza) |
+| `DOK_OPROZNIJ` | klient → | wszystko z Kosza na zawsze |
+| `DOK_LISTA` | → klient | a = długość, b = liczba wpisów; memfd: „K1D1”, liczba, w Koszu, wpisy |
+| `DOK_TRESC` | → klient | obiekt = plik, a = wysłane bajty, b = cały rozmiar; memfd |
+| `DOK_WYNIK` | → klient | obiekt, a = rodzaj prośby, b = wynik (0, `K1_MAG_*`, `K1_DOK_BLAD_*`), c = numer nowego wpisu |
+| `DOK_ZMIANA` | → klient | pliki się zmieniły — do każdego klienta z prawem listy (odświeżają widok) |
+
+Zablokowany magazyn (hasło) — każda prośba `DOK_*` dostaje „złe hasło”. W logu tylko numery komunikatów, liczby
+wpisów i wyniki — nigdy nazwy ani treść.
 
 ## Format na dysku (bloki po 4096 B, liczby little-endian)
 | Miejsce | Zawartość |
@@ -61,7 +101,8 @@ ponownie i restartuje ekran (klienci dostają nowe kanały).
 
 ## Powierzchnia ataku
 Parser nagłówka i rekordów (`naglowek.c`, `magazyn.c`, testy + fuzzing także z poprawnym MAC — bez hasła napastnik
-zna klucz), komunikaty klientów (32 B), memfd od klientów (pieczęcie i rozmiar sprawdzane).
+zna klucz), komunikaty klientów (32 B), memfd od klientów (pieczęcie i rozmiar sprawdzane), od 0.8.0 nazwy plików
+od klientów i wpisy z dysku (`k1_dok_wpis_czytaj` — każde pole) oraz tabela praw.
 
 ## Testy
 | Test | Rodzaj |
@@ -71,5 +112,8 @@ zna klucz), komunikaty klientów (32 B), memfd od klientów (pieczęcie i rozmia
 | `test_komunikat`: komunikaty `SKARB_*` (zakresy, kierunki, deskryptory) | negatywny |
 | w systemie: klatka (UID, tylko partycja „K1-DANE”), próba w klatce `skarbiec`, dysk trzyma tylko skarbiec | funkcjonalny + negatywny |
 | `test-m4.sh`: tapeta, motyw, rozdzielczość i notatka wracają po wyłączeniu i ponownym starcie z tym samym dyskiem; na dysku brak jawnego tekstu | funkcjonalny |
+| `test_dokumenty` (host, 0.8.0): nazwy (złe znaki, UTF-8, odwrócony tekst), typy z zawartości, wpis i lista (każde pole poza zakresem), plik w trzech kawałkach, nowa treść bez starych kawałków, przerwany zapis, foldery (unikalne nazwy, „(2)”, do siebie, za głęboko), Kosz (przywracanie, 30 dni, cofnięty zegar, opróżnianie), uszkodzone wpisy i kawałki przy otwarciu; prawa przez prawdziwy kanał: Pliki, pulpit (tylko Pulpit, bez treści), inni — nic; zły memfd | funkcjonalny + negatywny |
+| `fuzz_dokument`: lista wpisów (Pliki i pulpit ją czytają), nazwy, typy | fuzzing |
+| `test-m4.sh` (0.8.0): foldery i Kosz w Plikach, plik na pulpicie, wszystko po ponownym starcie | funkcjonalny |
 | `test-m5.sh`: obraz USB przez UEFI — pierwszy start tworzy magazyn, drugi go otwiera | funkcjonalny |
 | `test-m5.sh` (0.5.8): pendrive z pustą K1-DANE podłączony po starcie → restart skarbca, nowy magazyn, pulpit od nowa | funkcjonalny |

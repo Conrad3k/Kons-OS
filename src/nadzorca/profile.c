@@ -26,10 +26,10 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
      * panel: RLIMIT_FSIZE (it limits memfd_create+ftruncate too) fits two halves of 4096×2160 (0.7.5). */
     [K1_PROFIL_LOGOWANIE] = { .nazwa = "logowanie", .uid = K1_UID_LOGOWANIE, .wywolania = sc_okna, .n_wywolan = N(sc_okna),
                               .pamiec = 96u << 20, .pliki = 32, .rozmiar_pliku = 72u << 20 },
-    /* skarbiec: Argon2id needs up to 256 MiB (ADR 0015); memfd up to 1 MiB (RLIMIT_FSIZE does not apply to
-     * the block device: block/fops.c blkdev_write_iter has no rlimit check). */
+    /* skarbiec: Argon2id needs up to 256 MiB (ADR 0015); memfd up to a whole file of 16 MiB (0.8.0, ADR 0029;
+     * RLIMIT_FSIZE does not apply to the block device: block/fops.c blkdev_write_iter has no rlimit check). */
     [K1_PROFIL_SKARBIEC] = { .nazwa = "skarbiec", .uid = K1_UID_SKARBIEC, .wywolania = sc_skarbiec,
-                             .n_wywolan = N(sc_skarbiec), .pamiec = 320u << 20, .pliki = 32, .rozmiar_pliku = 2u << 20 },
+                             .n_wywolan = N(sc_skarbiec), .pamiec = 320u << 20, .pliki = 32, .rozmiar_pliku = 24u << 20 },
     /* gui: the desktop layer (0.7.5) is one full-screen surface — RLIMIT_FSIZE for two halves of 4096×2160,
      * memory for it and the panels. Its arrangement in skarbiec on fd 6. */
     [K1_PROFIL_GUI] = { .nazwa = "gui", .uid = K1_UID_GUI, .wywolania = sc_okna, .n_wywolan = N(sc_okna),

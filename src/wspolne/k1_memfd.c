@@ -14,10 +14,35 @@
 
 #define PIECZECIE (F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE | F_SEAL_SEAL)
 
+int k1_memfd_nowy(const char *nazwa)
+{
+    return (int)syscall(SYS_memfd_create, nazwa, MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL);
+}
+
+int k1_memfd_zapieczetuj(int fd)
+{
+    if (fcntl(fd, F_ADD_SEALS, PIECZECIE) != 0) {
+        int e = errno;
+        close(fd);
+        errno = e;
+        return -1;
+    }
+    return 0;
+}
+
+int k1_memfd_sprawdz(int fd, size_t n)
+{
+    struct stat st;
+    int p = fcntl(fd, F_GET_SEALS);
+    if (p < 0 || (p & PIECZECIE) != PIECZECIE || fstat(fd, &st) != 0 || !S_ISREG(st.st_mode) || st.st_size != (off_t)n)
+        return -1;
+    return 0;
+}
+
 int k1_memfd_z_danymi(const char *nazwa, const void *dane, size_t n)
 {
     size_t zapisane = 0;
-    int fd = (int)syscall(SYS_memfd_create, nazwa, MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL);
+    int fd = k1_memfd_nowy(nazwa);
     if (fd < 0)
         return -1;
     while (zapisane < n) {
@@ -32,22 +57,13 @@ int k1_memfd_z_danymi(const char *nazwa, const void *dane, size_t n)
         }
         zapisane += (size_t)r;
     }
-    if (fcntl(fd, F_ADD_SEALS, PIECZECIE) != 0) {
-        int e = errno;
-        close(fd);
-        errno = e;
-        return -1;
-    }
-    return fd;
+    return k1_memfd_zapieczetuj(fd) == 0 ? fd : -1;
 }
 
 int k1_memfd_czytaj(int fd, void *buf, size_t n)
 {
-    struct stat st;
     size_t got = 0;
-    int p = fcntl(fd, F_GET_SEALS);
-    if (p < 0 || (p & PIECZECIE) != PIECZECIE || fstat(fd, &st) != 0 || !S_ISREG(st.st_mode) ||
-        st.st_size != (off_t)n || lseek(fd, 0, SEEK_SET) != 0)
+    if (k1_memfd_sprawdz(fd, n) != 0 || lseek(fd, 0, SEEK_SET) != 0)
         return -1;
     while (got < n) {
         ssize_t r = read(fd, (char *)buf + got, n - got);

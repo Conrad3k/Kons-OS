@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "k1_dokument.h"
 #include "k1_kanal.h"
 #include "k1_komunikat.h"
 #include "k1_uslugi.h"
@@ -400,6 +401,63 @@ static void kanal(void)
     close(fd);
 }
 
+/* 0.8.0: the user's files (ADR 0029) — ranges, directions, descriptors; Pliki's place from nadzorca */
+static void pliki(void)
+{
+    const enum k1_kanal_kierunek DO = K1_KIER_DO_SKARBCA, OD = K1_KIER_OD_SKARBCA;
+    const int32_t MB16 = (int32_t)K1_DOK_MAKS_BAJTY;
+    EXPECT(ok(K(K1_KOM_DOK_SPIS, 0, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_SPIS, 0, 0, 0, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_DOK_SPIS, 1, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_SPIS, 0, 1, 0, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_CZYTAJ, 100, 1, 0, 0, 0, 0), DO) && ok(K(K1_KOM_DOK_CZYTAJ, K1_DOK_ID_MAKS, MB16, 0, 0, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_DOK_CZYTAJ, K1_FOLDER_PULPIT, 10, 0, 0, 0, 0), DO)); /* a standard folder has no content */
+    EXPECT(zle(K(K1_KOM_DOK_CZYTAJ, 99, 10, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_CZYTAJ, 100, 0, 0, 0, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_DOK_CZYTAJ, 100, MB16 + 1, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_CZYTAJ, 0x80000000u, 1, 0, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, 11, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_NOWY, 150, K1_DOK_PLIK, 127, MB16, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, 11, 5, 0, 0), DO)); /* a folder with content */
+    EXPECT(zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, 0, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, 128, 0, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_DOK_NOWY, 0, K1_DOK_PLIK, 3, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_NOWY, 7, K1_DOK_PLIK, 3, 0, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_DOK_NOWY, 2, 3, 3, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_NOWY, 2, K1_DOK_PLIK, 3, -1, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_ZAPISZ, 100, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_ZAPISZ, 100, MB16 + 1, 0, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_NAZWA, 100, 1, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_NAZWA, 100, 0, 0, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_NAZWA, 3, 5, 0, 0, 0, 0), DO)); /* standard folders keep their names */
+    EXPECT(ok(K(K1_KOM_DOK_PRZENIES, 100, K1_FOLDER_PULPIT, 0, 0, 0, 0), DO) && ok(K(K1_KOM_DOK_PRZENIES, 100, 101, 0, 0, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_DOK_PRZENIES, 100, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_PRZENIES, 100, 50, 0, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_PRZENIES, K1_FOLDER_OBRAZY, 2, 0, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_KOSZ, 100, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_KOSZ, K1_FOLDER_PULPIT, 0, 0, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_PRZYWROC, 100, 0, 0, 0, 0, 0), DO) && ok(K(K1_KOM_DOK_USUN, 100, 0, 0, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_OPROZNIJ, 0, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_OPROZNIJ, 100, 0, 0, 0, 0, 0), DO));
+    /* skarbiec → client */
+    EXPECT(ok(K(K1_KOM_DOK_LISTA, 0, K1_DOK_LISTA_NAGL, 0, 0, 0, 0), OD) &&
+           ok(K(K1_KOM_DOK_LISTA, 0, K1_DOK_LISTA_MAKS, K1_DOK_MAKS, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_DOK_LISTA, 0, K1_DOK_LISTA_NAGL + 1, 0, 0, 0, 0), OD) && /* length and count must agree */
+           zle(K(K1_KOM_DOK_LISTA, 0, K1_DOK_LISTA_NAGL, 0, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_TRESC, 100, 5, 9, 0, 0, 0), OD) && zle(K(K1_KOM_DOK_TRESC, 100, 9, 5, 0, 0, 0), OD));
+    EXPECT(ok(K(K1_KOM_DOK_WYNIK, 2, K1_KOM_DOK_NOWY, 0, 150, 0, 0), OD) && ok(K(K1_KOM_DOK_WYNIK, 0, K1_KOM_DOK_SPIS, -22, 0, 0, 0), OD));
+    EXPECT(ok(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_KOSZ, -3, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_KOSZ, 0, 150, 0, 0), OD) && /* a new number only after NOWY */
+           zle(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_KOSZ, -9, 0, 0, 0), OD) &&
+           zle(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_KOSZ, -26, 0, 0, 0), OD) &&
+           zle(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_LISTA, 0, 0, 0, 0), OD));
+    EXPECT(ok(K(K1_KOM_DOK_ZMIANA, 0, 0, 0, 0, 0, 0), OD) && zle(K(K1_KOM_DOK_ZMIANA, 0, 0, 0, 0, 0, 0), DO));
+    /* descriptors: names and content in, the list and content out */
+    EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_DOK_NOWY, DO) && k1_komunikat_z_deskryptorem(K1_KOM_DOK_NAZWA, DO) &&
+           k1_komunikat_z_deskryptorem(K1_KOM_DOK_ZAPISZ, DO) && !k1_komunikat_z_deskryptorem(K1_KOM_DOK_KOSZ, DO));
+    EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_DOK_LISTA, OD) && k1_komunikat_z_deskryptorem(K1_KOM_DOK_TRESC, OD) &&
+           !k1_komunikat_z_deskryptorem(K1_KOM_DOK_WYNIK, OD) && !k1_komunikat_z_deskryptorem(K1_KOM_DOK_LISTA, DO));
+    /* starting Pliki at a place: only Pliki takes one */
+    EXPECT(ok(K(K1_KOM_URUCHOM, 0, K1_APL_PLIKI, 150, 0, 0, 0), K1_KIER_DO_NADZORCY) &&
+           ok(K(K1_KOM_URUCHOM, 0, K1_APL_PLIKI, 0, 1, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(zle(K(K1_KOM_URUCHOM, 0, K1_APL_PLIKI, 150, 1, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_URUCHOM, 0, K1_APL_ZEGAR, 150, 0, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_URUCHOM, 0, K1_APL_PLIKI, 50, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(ok(K(K1_KOM_PLIKI_POKAZ, 0, 150, 0, 0, 0, 0), K1_KIER_OD_NADZORCY) &&
+           ok(K(K1_KOM_PLIKI_POKAZ, 0, 0, 1, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_PLIKI_POKAZ, 0, 150, 1, 0, 0, 0), K1_KIER_OD_NADZORCY) &&
+           zle(K(K1_KOM_PLIKI_POKAZ, 0, 150, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+}
+
 int main(void)
 {
     naglowek();
@@ -409,6 +467,7 @@ int main(void)
     do_nadzorcy();
     zasoby();
     skarbiec();
+    pliki();
     kanal();
     return K1_TEST_KONIEC("test_komunikat");
 }

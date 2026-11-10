@@ -63,7 +63,7 @@ enum k1_komunikat_typ {
     /* WITAJ is sent again when the screen size changes (K1_UST_ROZDZIELCZOSC): clients lay out anew. */
 
     /* gui / test → nadzorca */
-    K1_KOM_URUCHOM = 50,      /* gui: a=aplikacja */
+    K1_KOM_URUCHOM = 50,      /* gui: a=aplikacja; Pliki only (0.8.0): b=entry to show (0: none), c=1 Kosz */
     K1_KOM_WYLACZ = 51,       /* gui: a=0 power off, 1 restart, 2 log out (gui only) */
     K1_KOM_TEST_POLACZ = 52,  /* test image only: a=rola, b=aplikacja, c=expected uid → reply + 1 fd */
     K1_KOM_TEST_PROBA = 53,   /* test image only: a=sandbox profile → reply when the probe ends */
@@ -119,6 +119,28 @@ enum k1_komunikat_typ {
                                * key — never enrolled), d=K1_SBP_* result of the last SB_KLUCZ */
     /* Instalator window → nadzorca */
     K1_KOM_SB_KLUCZ = 78,     /* obiekt=0: prepare the enrolment of the K1 key (MokNew + MokAuth for MokManager) */
+    /* client (Pliki, gui) → skarbiec (0.8.0, ADR 0029): files and folders; what a client may do comes from
+     * the table of rights in skarbiec (dokumenty.c). Entry numbers: 1..K1_FOLDERY_MAKS standard folders,
+     * K1_DOK_PIERWSZY..K1_DOK_ID_MAKS the user's. Names and content travel in a sealed memfd. */
+    K1_KOM_DOK_SPIS = 84,      /* obiekt=0: the entries this client may see (reply: DOK_LISTA) */
+    K1_KOM_DOK_CZYTAJ = 85,    /* obiekt=file, a=at most this many bytes (1..K1_DOK_MAKS_BAJTY) (reply: DOK_TRESC) */
+    K1_KOM_DOK_NOWY = 86,      /* obiekt=folder, a=K1_DOK_PLIK/FOLDER, b=name length 1..127, c=content length
+                                * (folder: 0); + 1 memfd of b + c bytes: the name, then the content */
+    K1_KOM_DOK_ZAPISZ = 87,    /* obiekt=file, a=length 0..K1_DOK_MAKS_BAJTY; + 1 memfd: the new content */
+    K1_KOM_DOK_NAZWA = 88,     /* obiekt=entry, a=name length 1..127; + 1 memfd: the new name */
+    K1_KOM_DOK_PRZENIES = 89,  /* obiekt=entry, a=the folder it goes to */
+    K1_KOM_DOK_KOSZ = 90,      /* obiekt=entry: into Kosz (a folder with everything inside) */
+    K1_KOM_DOK_PRZYWROC = 91,  /* obiekt=entry in Kosz: back to its folder */
+    K1_KOM_DOK_USUN = 92,      /* obiekt=entry in Kosz: deleted for good */
+    K1_KOM_DOK_OPROZNIJ = 93,  /* obiekt=0: everything in Kosz deleted for good */
+    /* skarbiec → client */
+    K1_KOM_DOK_LISTA = 94,     /* obiekt=0, a=length 16..K1_DOK_LISTA_MAKS, b=entries 0..K1_DOK_MAKS; + 1 memfd (k1_dokument.h) */
+    K1_KOM_DOK_TRESC = 95,     /* obiekt=file, a=bytes sent, b=its whole size (a <= b); + 1 memfd of a bytes */
+    K1_KOM_DOK_WYNIK = 96,     /* obiekt=entry (0: none), a=request type (84..93), b=result (0, K1_MAG_* or
+                                * K1_DOK_BLAD_* < 0), c=the new entry's number (NOWY; else 0) */
+    K1_KOM_DOK_ZMIANA = 97,    /* obiekt=0: files changed — ask for the list again (to every client allowed to list) */
+    /* nadzorca → Pliki (0.8.0, its fd 5; after URUCHOM with a place): show it */
+    K1_KOM_PLIKI_POKAZ = 21,   /* obiekt=0, a=entry (0: the last place), b=1 Kosz (then a=0) */
     K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample
                                 * (0 = history starts again), a=seconds between samples, b..e = up to 16
                                 * samples, one byte each (b: samples 0-3 from the lowest byte, …):
@@ -185,6 +207,7 @@ enum k1_ustawienie {
 #define K1_HASLO_PRZERWA 300      /* longest wait between password attempts, seconds */
 #define K1_MAG_WYNIK_MIN (-8)     /* most negative K1_MAG_* result */
 #define K1_SKARB_ZLE_HASLO (-1)   /* WYNIK b: wrong password (= K1_MAG_HASLO, magazyn.h) */
+#define K1_SKARB_PELNY (-3)       /* WYNIK b: no room left (= K1_MAG_PELNY) */
 
 /* Installer (M5f, ADR 0018) */
 #define K1_INST_DYSKI_MAKS 8
