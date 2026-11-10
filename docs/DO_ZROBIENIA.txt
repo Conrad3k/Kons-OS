@@ -261,7 +261,15 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
     [!] Test na X230 (krok 4–5, 0.8.0): nowy pendrive z k1-0.8.0-usb.img.xz — Ustawienia → Informacje: ile miejsca
         (powinno być prawie całe pendrive); zdjęcie z telefonu → Pliki → podgląd (obrócone dobrze?) → „Ustaw jako tapetę”.
     [ ] exFAT na pendrive'ach (duże pendrive'y i karty SD > 32 GB) — ten sam model co FAT, gdy będzie potrzebny
-    [ ] powiększenie K1-DANE z danymi (pendrive zapisany starszą wersją) — gdy będzie potrzebne
+    [ ] powiększenie K1-DANE z danymi (pendrive zapisany starszą wersją) — w 0.8.1 (krok 3)
+
+0.8.1 Pliki — dopracowanie (przed M7) — PLAN: docs/PLAN-0.8.1.txt
+    Przegląd 0.8.0 z jednorazowymi testami (luki L1–L24) i 10 kroków — każdy w nowym czacie, jeden PR. Stan kroków,
+    zależności i Twoje decyzje (D1–D9) są tylko w planie (punkty 4 i 6), żeby nie pilnować dwóch list. Kroki:
+    1 dane nie mogą zginąć · 2 skarbiec: więcej plików, szybki start · 3 miejsce, cały pendrive · 4 duże pliki ·
+    5 pendrive i nazwy · 6 duże zdjęcia, nowe formaty · 7 aplikacja Podgląd · 8 „Otwórz za pomocą” ·
+    9 przeciąganie · 10 porządki i wydanie.
+    [!] Decyzje D1–D9 (plan, punkt 6) — potrzebne przed krokami 3, 5, 7, 8, 9, 10.
 
 M7  Sieć
     [ ] test: nic w K1 nie odpowiada na połączenia z zewnątrz

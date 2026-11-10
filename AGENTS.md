@@ -15,7 +15,8 @@ statycznie z musl. Budowany skryptami w `scripts/`, testowany w QEMU, CI w GitHu
   Pojęcia (jedno słowo = jedno znaczenie): `docs/SLOWNIK.md`.
 - Historia zmian: `CHANGELOG.md`; wersja: `VERSION` (SemVer, tagi `k1-vX.Y.Z`).
 - Stara dystrybucja Kons-OS (Debian): gałąź `archiwum/debian-0.1.2` — nie rozwijamy.
-- **Teraz:** M7 Sieć (ADR 0026) — `docs/DO_ZROBIENIA.txt`. 0.8.0 Pliki gotowe (ADR 0029–0033); od 0.7.5 limity
+- **Teraz:** 0.8.1 „Pliki — dopracowanie” — 10 kroków w `docs/PLAN-0.8.1.txt` (jeden krok = jeden czat = jeden PR;
+  stan w punkcie 4 planu), potem M7 Sieć (ADR 0026). 0.8.0 Pliki gotowe (ADR 0029–0033); od 0.7.5 limity
   czytelności sprawdza `scripts/sprawdz-czytelnosc.py` w testach.
 
 ## Właściciel
