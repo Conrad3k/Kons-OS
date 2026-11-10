@@ -3,19 +3,37 @@
 
 #include <string.h>
 
+#include "k1_bajty.h"
+
 static int poprawna(int apl)
 {
     return apl >= 1 && apl <= K1_APL_MAKS;
+}
+
+int rozm_aplikacja(uint32_t klucz)
+{
+    return klucz >= 1 && klucz <= K1_APL_MAKS ? (int)klucz : 0;
+}
+
+int rozm_plik(uint32_t klucz)
+{
+    return klucz >= ROZM_PLIK + K1_DOK_PIERWSZY && klucz - ROZM_PLIK <= K1_DOK_ID_MAKS ? (int)(klucz - ROZM_PLIK) : 0;
+}
+
+static int klucz_dobry(uint32_t klucz)
+{
+    return rozm_aplikacja(klucz) || klucz == ROZM_KOSZ || rozm_plik(klucz);
 }
 
 void rozm_domyslne(struct rozmieszczenie *r, const int *domyslne, int wierszy)
 {
     int a;
     memset(r, 0, sizeof *r);
+    r->ikony[r->n_ikon++].klucz = ROZM_KOSZ;
     for (a = 1; a <= K1_APL_MAKS; a++)
         if (domyslne[a]) {
             r->pasek[r->n_pasek++] = (uint8_t)a;
-            r->ikony[r->n_ikon++].apl = (uint8_t)a;
+            r->ikony[r->n_ikon++].klucz = (uint32_t)a;
         }
     rozm_uloz(r, wierszy);
 }
@@ -56,21 +74,21 @@ void rozm_przesun_na_pasku(struct rozmieszczenie *r, int apl, int nowa)
     r->n_pasek++;
 }
 
-int rozm_ikona(const struct rozmieszczenie *r, int apl)
+int rozm_ikona(const struct rozmieszczenie *r, uint32_t klucz)
 {
     int i;
     for (i = 0; i < r->n_ikon; i++)
-        if (r->ikony[i].apl == apl)
+        if (r->ikony[i].klucz == klucz)
             return i;
     return -1;
 }
 
-int rozm_w_komorce(const struct rozmieszczenie *r, int kol, int wiersz)
+uint32_t rozm_w_komorce(const struct rozmieszczenie *r, int kol, int wiersz)
 {
     int i;
     for (i = 0; i < r->n_ikon; i++)
         if (r->ikony[i].kol == kol && r->ikony[i].wiersz == wiersz)
-            return r->ikony[i].apl;
+            return r->ikony[i].klucz;
     return 0;
 }
 
@@ -88,32 +106,33 @@ static int wolna(const struct rozmieszczenie *r, int kolumn, int wierszy, int *k
     return -1;
 }
 
-int rozm_dodaj_ikone(struct rozmieszczenie *r, int apl, int kolumn, int wierszy)
+int rozm_dodaj_ikone(struct rozmieszczenie *r, uint32_t klucz, int kolumn, int wierszy)
 {
     int k, w;
-    if (!poprawna(apl) || rozm_ikona(r, apl) >= 0)
+    if (!klucz_dobry(klucz) || rozm_ikona(r, klucz) >= 0)
         return 0;
-    if (r->n_ikon >= K1_APL_MAKS || wolna(r, kolumn, wierszy, &k, &w) != 0)
+    if (r->n_ikon >= ROZM_IKON_MAKS || wolna(r, kolumn, wierszy, &k, &w) != 0)
         return -1;
-    r->ikony[r->n_ikon++] = (struct rozm_ikona){ (uint8_t)apl, (uint8_t)k, (uint8_t)w };
+    r->ikony[r->n_ikon++] = (struct rozm_ikona){ klucz, (uint8_t)k, (uint8_t)w };
     return 0;
 }
 
-void rozm_usun_ikone(struct rozmieszczenie *r, int apl)
+void rozm_usun_ikone(struct rozmieszczenie *r, uint32_t klucz)
 {
-    int i = rozm_ikona(r, apl);
+    int i = rozm_ikona(r, klucz);
     if (i < 0)
         return;
     r->ikony[i] = r->ikony[--r->n_ikon];
 }
 
-void rozm_przenies_ikone(struct rozmieszczenie *r, int apl, int kol, int wiersz)
+void rozm_przenies_ikone(struct rozmieszczenie *r, uint32_t klucz, int kol, int wiersz)
 {
-    int i = rozm_ikona(r, apl), inna, j;
+    int i = rozm_ikona(r, klucz), j;
+    uint32_t inna;
     if (i < 0 || kol < 0 || wiersz < 0 || kol > ROZM_KOMORKA_MAKS || wiersz > ROZM_KOMORKA_MAKS)
         return;
     inna = rozm_w_komorce(r, kol, wiersz);
-    if (inna != 0 && inna != apl) {
+    if (inna != 0 && inna != klucz) {
         j = rozm_ikona(r, inna);
         r->ikony[j].kol = r->ikony[i].kol;
         r->ikony[j].wiersz = r->ikony[i].wiersz;
@@ -122,18 +141,25 @@ void rozm_przenies_ikone(struct rozmieszczenie *r, int apl, int kol, int wiersz)
     r->ikony[i].wiersz = (uint8_t)wiersz;
 }
 
+/* Order of "Ułóż ikony": Kosz, applications by number, files by number (the oldest first). */
+static uint64_t porzadek(uint32_t klucz)
+{
+    return klucz == ROZM_KOSZ ? 0 : rozm_aplikacja(klucz) ? klucz : (1ull << 32) + klucz;
+}
+
 void rozm_uloz(struct rozmieszczenie *r, int wierszy)
 {
-    int a, n = 0;
+    int i, j, poz[ROZM_IKON_MAKS];
     if (wierszy < 1)
         wierszy = 1;
-    for (a = 1; a <= K1_APL_MAKS; a++) {
-        int i = rozm_ikona(r, a);
-        if (i < 0)
-            continue;
-        r->ikony[i].kol = (uint8_t)(n / wierszy);
-        r->ikony[i].wiersz = (uint8_t)(n % wierszy);
-        n++;
+    for (i = 0; i < r->n_ikon; i++) { /* the place of each icon in the order */
+        poz[i] = 0;
+        for (j = 0; j < r->n_ikon; j++)
+            poz[i] += porzadek(r->ikony[j].klucz) < porzadek(r->ikony[i].klucz);
+    }
+    for (i = 0; i < r->n_ikon; i++) {
+        r->ikony[i].kol = (uint8_t)(poz[i] / wierszy > ROZM_KOMORKA_MAKS ? ROZM_KOMORKA_MAKS : poz[i] / wierszy);
+        r->ikony[i].wiersz = (uint8_t)(poz[i] % wierszy > ROZM_KOMORKA_MAKS ? ROZM_KOMORKA_MAKS : poz[i] % wierszy);
     }
 }
 
@@ -170,9 +196,10 @@ size_t rozm_zapisz(const struct rozmieszczenie *r, uint8_t *buf, size_t n)
         buf[p++] = r->pasek[i];
     buf[p++] = (uint8_t)r->n_ikon;
     for (i = 0; i < r->n_ikon; i++) {
-        buf[p++] = r->ikony[i].apl;
-        buf[p++] = r->ikony[i].kol;
-        buf[p++] = r->ikony[i].wiersz;
+        k1_z32(buf + p, r->ikony[i].klucz);
+        buf[p + 4] = r->ikony[i].kol;
+        buf[p + 5] = r->ikony[i].wiersz;
+        p += 6;
     }
     return p;
 }
@@ -180,24 +207,30 @@ size_t rozm_zapisz(const struct rozmieszczenie *r, uint8_t *buf, size_t n)
 int rozm_czytaj(const uint8_t *buf, size_t n, struct rozmieszczenie *r)
 {
     struct rozmieszczenie t;
-    size_t p = 5;
-    int i;
+    size_t p = 5, dl;
+    int i, stary;
     memset(&t, 0, sizeof t);
-    if (n < 6 || memcmp(buf, ROZM_ZNAK, 4) != 0 || buf[4] > K1_APL_MAKS || n < 6u + buf[4])
+    if (n < 6 || buf[4] > K1_APL_MAKS || n < 6u + buf[4])
         return -1;
+    stary = memcmp(buf, ROZM_ZNAK_STARY, 4) == 0; /* 0.7.5: one byte per key, applications only */
+    if (!stary && memcmp(buf, ROZM_ZNAK, 4) != 0)
+        return -1;
+    dl = stary ? 3 : 6;
     for (i = buf[4]; i > 0; i--, p++) {
         if (!poprawna(buf[p]) || rozm_na_pasku(&t, buf[p]) >= 0)
             return -1;
         t.pasek[t.n_pasek++] = buf[p];
     }
-    if (buf[p] > K1_APL_MAKS || n != p + 1 + 3u * buf[p])
+    if (buf[p] > (stary ? K1_APL_MAKS : ROZM_IKON_MAKS) || n != p + 1 + dl * buf[p])
         return -1;
-    for (i = buf[p++]; i > 0; i--, p += 3) {
-        struct rozm_ikona ik = { buf[p], buf[p + 1], buf[p + 2] };
-        if (!poprawna(ik.apl) || ik.kol > ROZM_KOMORKA_MAKS || ik.wiersz > ROZM_KOMORKA_MAKS || rozm_ikona(&t, ik.apl) >= 0 ||
-            rozm_w_komorce(&t, ik.kol, ik.wiersz) != 0)
+    for (i = buf[p++]; i > 0; i--, p += dl) {
+        struct rozm_ikona ik = { stary ? buf[p] : k1_c32(buf + p), buf[p + dl - 2], buf[p + dl - 1] };
+        if ((stary ? !poprawna((int)ik.klucz) : !klucz_dobry(ik.klucz)) || ik.kol > ROZM_KOMORKA_MAKS ||
+            ik.wiersz > ROZM_KOMORKA_MAKS || rozm_ikona(&t, ik.klucz) >= 0 || rozm_w_komorce(&t, ik.kol, ik.wiersz) != 0)
             return -1;
-        t.ikony[t.n_ikon++] = ik;
+        t.ikony[t.n_ikon].klucz = ik.klucz; /* field by field: the padding of `t` stays zero (compared in fuzzing) */
+        t.ikony[t.n_ikon].kol = ik.kol;
+        t.ikony[t.n_ikon++].wiersz = ik.wiersz;
     }
     *r = t;
     return 0;

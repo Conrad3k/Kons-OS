@@ -7,23 +7,31 @@
 
 static int domyslne[K1_APL_MAKS + 1];
 
+/* The first start: Kosz top left, then every application but the Instalator (the owner's choice), one column. */
 static void test_domyslne(void)
 {
     struct rozmieszczenie r;
-    rozm_domyslne(&r, domyslne, 6);
-    /* the owner's choice: every application but the Instalator, on the bar and the desktop */
-    EXPECT(r.n_pasek == K1_APL_MAKS - 1 && r.n_ikon == K1_APL_MAKS - 1);
+    rozm_domyslne(&r, domyslne, 7);
+    EXPECT(r.n_pasek == K1_APL_MAKS - 1 && r.n_ikon == K1_APL_MAKS);
     EXPECT(r.pasek[0] == K1_APL_ZEGAR && r.pasek[1] == K1_APL_NOTATKI);
     EXPECT(rozm_na_pasku(&r, K1_APL_INSTALACJA) < 0 && rozm_ikona(&r, K1_APL_INSTALACJA) < 0);
-    EXPECT(rozm_w_komorce(&r, 0, 0) == K1_APL_ZEGAR && rozm_w_komorce(&r, 0, 1) == K1_APL_NOTATKI);
+    EXPECT(rozm_w_komorce(&r, 0, 0) == ROZM_KOSZ && rozm_w_komorce(&r, 0, 1) == K1_APL_ZEGAR);
     rozm_domyslne(&r, domyslne, 2); /* two rows: the third icon starts the second column */
-    EXPECT(rozm_w_komorce(&r, 1, 0) == K1_APL_USTAWIENIA && rozm_w_komorce(&r, 2, 0) == K1_APL_KALKULATOR);
+    EXPECT(rozm_w_komorce(&r, 1, 0) == K1_APL_NOTATKI && rozm_w_komorce(&r, 1, 1) == K1_APL_USTAWIENIA);
+}
+
+static void test_klucze(void)
+{
+    EXPECT(rozm_aplikacja(K1_APL_PLIKI) == K1_APL_PLIKI && rozm_aplikacja(0) == 0 && rozm_aplikacja(K1_APL_MAKS + 1) == 0);
+    EXPECT(rozm_aplikacja(ROZM_KOSZ) == 0 && rozm_plik(ROZM_KOSZ) == 0);
+    EXPECT(rozm_plik(ROZM_PLIK + 150) == 150 && rozm_plik(ROZM_PLIK + 5) == 0 && rozm_plik(ROZM_PLIK) == 0 &&
+           rozm_aplikacja(ROZM_PLIK + 150) == 0);
 }
 
 static void test_pasek(void)
 {
     struct rozmieszczenie r;
-    rozm_domyslne(&r, domyslne, 6);
+    rozm_domyslne(&r, domyslne, 7);
     rozm_odepnij(&r, K1_APL_NOTATKI);
     EXPECT(rozm_na_pasku(&r, K1_APL_NOTATKI) < 0 && r.n_pasek == K1_APL_MAKS - 2 && r.pasek[1] == K1_APL_USTAWIENIA);
     rozm_odepnij(&r, K1_APL_NOTATKI); /* twice: nothing happens */
@@ -45,21 +53,30 @@ static void test_pasek(void)
 static void test_ikony(void)
 {
     struct rozmieszczenie r;
-    rozm_domyslne(&r, domyslne, 6);
+    rozm_domyslne(&r, domyslne, 7);
     rozm_przenies_ikone(&r, K1_APL_ZEGAR, 3, 2); /* to an empty cell */
-    EXPECT(rozm_w_komorce(&r, 3, 2) == K1_APL_ZEGAR && rozm_w_komorce(&r, 0, 0) == 0);
-    rozm_przenies_ikone(&r, K1_APL_ZEGAR, 0, 1); /* onto Notatki: they swap */
-    EXPECT(rozm_w_komorce(&r, 0, 1) == K1_APL_ZEGAR && rozm_w_komorce(&r, 3, 2) == K1_APL_NOTATKI);
+    EXPECT(rozm_w_komorce(&r, 3, 2) == K1_APL_ZEGAR && rozm_w_komorce(&r, 0, 1) == 0);
+    rozm_przenies_ikone(&r, K1_APL_ZEGAR, 0, 2); /* onto Notatki: they swap */
+    EXPECT(rozm_w_komorce(&r, 0, 2) == K1_APL_ZEGAR && rozm_w_komorce(&r, 3, 2) == K1_APL_NOTATKI);
     rozm_przenies_ikone(&r, K1_APL_ZEGAR, 64, 0); /* outside the stored range: ignored */
-    EXPECT(rozm_w_komorce(&r, 0, 1) == K1_APL_ZEGAR);
+    EXPECT(rozm_w_komorce(&r, 0, 2) == K1_APL_ZEGAR);
     rozm_usun_ikone(&r, K1_APL_NOTATKI);
-    EXPECT(rozm_ikona(&r, K1_APL_NOTATKI) < 0 && r.n_ikon == K1_APL_MAKS - 2);
-    EXPECT(rozm_dodaj_ikone(&r, K1_APL_NOTATKI, 4, 6) == 0 && rozm_w_komorce(&r, 0, 0) == K1_APL_NOTATKI);
-    EXPECT(rozm_dodaj_ikone(&r, K1_APL_NOTATKI, 4, 6) == 0 && r.n_ikon == K1_APL_MAKS - 1); /* already there */
-    rozm_uloz(&r, 6);
-    EXPECT(rozm_w_komorce(&r, 0, 0) == K1_APL_ZEGAR && rozm_w_komorce(&r, 0, 4) == K1_APL_KALKULATOR);
+    EXPECT(rozm_ikona(&r, K1_APL_NOTATKI) < 0 && r.n_ikon == K1_APL_MAKS - 1);
+    EXPECT(rozm_dodaj_ikone(&r, K1_APL_NOTATKI, 4, 7) == 0 && rozm_w_komorce(&r, 0, 1) == K1_APL_NOTATKI);
+    EXPECT(rozm_dodaj_ikone(&r, K1_APL_NOTATKI, 4, 7) == 0 && r.n_ikon == K1_APL_MAKS); /* already there */
+    /* files: added where there is room, arranged after the applications, oldest first */
+    EXPECT(rozm_dodaj_ikone(&r, ROZM_PLIK + 300, 4, 7) == 0 && rozm_dodaj_ikone(&r, ROZM_PLIK + 120, 4, 7) == 0);
+    EXPECT(rozm_dodaj_ikone(&r, ROZM_PLIK + 5, 4, 7) == 0 && rozm_ikona(&r, ROZM_PLIK + 5) < 0); /* not a file key */
+    rozm_uloz(&r, 7);
+    EXPECT(rozm_w_komorce(&r, 0, 0) == ROZM_KOSZ && rozm_w_komorce(&r, 0, 1) == K1_APL_ZEGAR);
+    EXPECT(rozm_w_komorce(&r, 0, 5) == K1_APL_KALKULATOR && rozm_w_komorce(&r, 0, 6) == K1_APL_PLIKI);
+    EXPECT(rozm_w_komorce(&r, 1, 0) == ROZM_PLIK + 120 && rozm_w_komorce(&r, 1, 1) == ROZM_PLIK + 300);
     /* a full 2 × 2 grid has no room for a fifth icon */
+    rozm_usun_ikone(&r, ROZM_PLIK + 120);
+    rozm_usun_ikone(&r, ROZM_PLIK + 300);
     rozm_usun_ikone(&r, K1_APL_KALKULATOR);
+    rozm_usun_ikone(&r, K1_APL_PLIKI);
+    rozm_usun_ikone(&r, ROZM_KOSZ);
     rozm_uloz(&r, 2);
     EXPECT(rozm_dodaj_ikone(&r, K1_APL_KALKULATOR, 2, 2) == -1);
 }
@@ -67,13 +84,13 @@ static void test_ikony(void)
 static void test_mniejszy_ekran(void)
 {
     struct rozmieszczenie r;
-    rozm_domyslne(&r, domyslne, 6);
+    rozm_domyslne(&r, domyslne, 7);
     rozm_przenies_ikone(&r, K1_APL_ZASOBY, 12, 5);
-    EXPECT(rozm_dopasuj(&r, 13, 6) == 0); /* it fits: nothing moves */
-    EXPECT(rozm_dopasuj(&r, 8, 4) == 2);  /* Zasoby (column 12) and Kalkulator (row 4) */
+    EXPECT(rozm_dopasuj(&r, 13, 7) == 0); /* it fits: nothing moves */
+    EXPECT(rozm_dopasuj(&r, 8, 5) == 3);  /* Zasoby (column 12), Kalkulator (row 5) and Pliki (row 6) */
     EXPECT(rozm_w_komorce(&r, 12, 5) == 0 && rozm_ikona(&r, K1_APL_ZASOBY) >= 0);
-    EXPECT(r.ikony[rozm_ikona(&r, K1_APL_ZASOBY)].kol < 8 && r.ikony[rozm_ikona(&r, K1_APL_KALKULATOR)].wiersz < 4);
-    EXPECT(rozm_w_komorce(&r, 0, 0) == K1_APL_ZEGAR); /* the ones inside stay */
+    EXPECT(r.ikony[rozm_ikona(&r, K1_APL_ZASOBY)].kol < 8 && r.ikony[rozm_ikona(&r, K1_APL_PLIKI)].wiersz < 5);
+    EXPECT(rozm_w_komorce(&r, 0, 0) == ROZM_KOSZ); /* the ones inside stay */
 }
 
 static void test_zapis(void)
@@ -81,15 +98,18 @@ static void test_zapis(void)
     struct rozmieszczenie r, w, przed;
     uint8_t b[ROZM_BAJTY_MAKS], z[ROZM_BAJTY_MAKS];
     size_t n, i;
-    rozm_domyslne(&r, domyslne, 6);
+    rozm_domyslne(&r, domyslne, 7);
     rozm_przypnij(&r, K1_APL_INSTALACJA);
     rozm_przenies_ikone(&r, K1_APL_NOTATKI, 7, 3);
+    rozm_dodaj_ikone(&r, ROZM_PLIK + 0x01020304, 9, 7);
     n = rozm_zapisz(&r, b, sizeof b);
-    /* the documented bytes: "K1R1", count, the applications, count, (application, column, row) */
-    EXPECT(n == 4 + 1 + 6 + 1 + 3 * 5 && memcmp(b, "K1R1", 4) == 0 && b[4] == 6 && b[5] == K1_APL_ZEGAR && b[11] == 5);
-    EXPECT(b[12] == K1_APL_ZEGAR && b[13] == 0 && b[14] == 0 && b[15] == K1_APL_NOTATKI && b[16] == 7 && b[17] == 3);
-    EXPECT(rozm_czytaj(b, n, &w) == 0 && w.n_pasek == 6 && w.n_ikon == 5);
-    EXPECT(memcmp(w.pasek, r.pasek, 6) == 0 && rozm_w_komorce(&w, 7, 3) == K1_APL_NOTATKI);
+    /* the documented bytes: "K1R2", count, the applications, count, (key u32, column, row) */
+    EXPECT(n == 4 + 1 + 7 + 1 + 6 * 8 && memcmp(b, "K1R2", 4) == 0 && b[4] == 7 && b[5] == K1_APL_ZEGAR && b[12] == 8);
+    EXPECT(b[13] == 0x00 && b[14] == 0x10 && b[15] == 0 && b[16] == 0 && b[17] == 0 && b[18] == 0); /* Kosz at 0,0 */
+    EXPECT(b[19] == K1_APL_ZEGAR && b[20] == 0 && b[23] == 0 && b[24] == 1);
+    EXPECT(b[55] == 0x04 && b[56] == 0x03 && b[57] == 0x02 && b[58] == 0x41); /* the file's key, little-endian */
+    EXPECT(rozm_czytaj(b, n, &w) == 0 && w.n_pasek == 7 && w.n_ikon == 8);
+    EXPECT(memcmp(w.pasek, r.pasek, 7) == 0 && rozm_w_komorce(&w, 7, 3) == K1_APL_NOTATKI);
     EXPECT(rozm_zapisz(&r, b, sizeof b - 1) == 0); /* too small a buffer: nothing written */
     przed = w;
     EXPECT(rozm_czytaj(b, n - 1, &w) == -1 && rozm_czytaj(b, n + 1, &w) == -1 && rozm_czytaj(b, 5, &w) == -1);
@@ -98,22 +118,35 @@ static void test_zapis(void)
         memcpy(z, b, n);
         z[i] ^= 0x41;
         if (rozm_czytaj(z, n, &w) == 0)
-            EXPECT(w.n_pasek <= K1_APL_MAKS && w.n_ikon <= K1_APL_MAKS);
+            EXPECT(w.n_pasek <= K1_APL_MAKS && w.n_ikon <= ROZM_IKON_MAKS);
     }
     memcpy(z, b, n);
     z[6] = z[5]; /* the same application twice on the bar */
     EXPECT(rozm_czytaj(z, n, &w) == -1);
     memcpy(z, b, n);
-    z[16] = 0, z[17] = 0; /* Notatki in Zegar's cell */
+    z[23] = 0, z[24] = 0; /* Zegar in Kosz's cell */
     EXPECT(rozm_czytaj(z, n, &w) == -1);
     memcpy(z, b, n);
-    z[14] = ROZM_KOMORKA_MAKS + 1; /* a row out of range */
+    z[24] = ROZM_KOMORKA_MAKS + 1; /* a row out of range */
     EXPECT(rozm_czytaj(z, n, &w) == -1);
     memcpy(z, b, n);
-    z[12] = K1_APL_MAKS + 1; /* an unknown application */
+    z[19] = K1_APL_MAKS + 1; /* an unknown application */
     EXPECT(rozm_czytaj(z, n, &w) == -1);
-    memcpy(z, "K1R2", 4);
+    memcpy(z, b, n);
+    z[19] = 0x80, z[20] = 0x80; /* a key that is nothing */
     EXPECT(rozm_czytaj(z, n, &w) == -1);
+    memcpy(z, "K1R3", 4);
+    EXPECT(rozm_czytaj(z, n, &w) == -1);
+}
+
+/* What 0.7.5 saved ("K1R1", one byte per key) still reads: the owner keeps the arrangement. */
+static void test_stary_zapis(void)
+{
+    static const uint8_t stary[] = { 'K', '1', 'R', '1', 2, K1_APL_ZEGAR, K1_APL_NOTATKI, 2, K1_APL_ZEGAR, 0, 0,
+                                     K1_APL_NOTATKI, 4, 2 };
+    struct rozmieszczenie w;
+    EXPECT(rozm_czytaj(stary, sizeof stary, &w) == 0 && w.n_pasek == 2 && w.n_ikon == 2);
+    EXPECT(rozm_w_komorce(&w, 4, 2) == K1_APL_NOTATKI && rozm_ikona(&w, ROZM_KOSZ) < 0);
 }
 
 int main(void)
@@ -121,9 +154,11 @@ int main(void)
 #define X_DOM(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek) domyslne[apl] = pasek;
     K1_APLIKACJE(X_DOM)
     test_domyslne();
+    test_klucze();
     test_pasek();
     test_ikony();
     test_mniejszy_ekran();
     test_zapis();
+    test_stary_zapis();
     return K1_TEST_KONIEC("test_rozmieszczenie");
 }

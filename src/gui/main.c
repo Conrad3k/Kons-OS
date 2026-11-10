@@ -194,6 +194,7 @@ int main(void)
     k1_klient_start(&k, TAG);
     rozm_wczytaj();
     uloz(1);
+    pliki_start(); /* the files of the Pulpit folder join the icons when skarbiec answers */
 
     for (;;) {
         struct pollfd p[3] = { { k.fd, POLLIN, 0 }, { bat_kanal ? FD_BATERIA : -1, POLLIN, 0 }, { skarb_fd, POLLIN, 0 } };

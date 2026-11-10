@@ -2,6 +2,8 @@
  * above everything else, in the colours of the theme (light / dark), rows without icons:
  *   desktop      Ułóż ikony · Tapeta i wygląd…
  *   icon         Otwórz · Przypnij do paska / Odepnij od paska · Usuń z pulpitu
+ *   Kosz         Otwórz · Opróżnij Kosz (when something is in it)          (0.8.0)
+ *   file         Otwórz · Usuń (into Kosz)                                  (0.8.0)
  *   bottom bar   <application> · Przypnij / Odepnij · Zamknij okno (when it runs)
  *   Start menu   Otwórz · Przypnij / Odepnij · Dodaj do pulpitu / Usuń z pulpitu
  * A row acts when the left button is released on it; a press anywhere else closes the menu. */
@@ -14,13 +16,14 @@
 #define KRESKA 9
 #define MAKS_WIERSZY 5
 
-enum akcja { A_KRESKA, A_OTWORZ, A_PRZYPNIJ, A_ODEPNIJ, A_DODAJ, A_USUN, A_ZAMKNIJ, A_ULOZ, A_WYGLAD };
+enum akcja { A_KRESKA, A_OTWORZ, A_PRZYPNIJ, A_ODEPNIJ, A_DODAJ, A_USUN, A_ZAMKNIJ, A_ULOZ, A_WYGLAD, A_DO_KOSZA, A_OPROZNIJ };
 
 static struct {
     const char *tekst;
     enum akcja akcja;
 } w[MAKS_WIERSZY];
-static int n_w, cel, apl, hover = -1;
+static int n_w, cel, apl, hover = -1; /* apl: the application of the menu (0: Kosz or a file — klucz) */
+static uint32_t klucz;
 static int32_t kx, ky; /* the panel's position on the screen */
 int kontekst_otwarte;
 
@@ -34,11 +37,22 @@ static void dodaj(const char *tekst, enum akcja a)
 
 static void wiersze(void)
 {
-    int przypieta = rozm_na_pasku(&rozm, apl) >= 0, na_pulpicie = rozm_ikona(&rozm, apl) >= 0;
+    int przypieta = rozm_na_pasku(&rozm, apl) >= 0, na_pulpicie = rozm_ikona(&rozm, (uint32_t)apl) >= 0;
     n_w = 0;
     if (cel == K_PULPIT) {
         dodaj("Ułóż ikony", A_ULOZ);
         dodaj("Tapeta i wygląd…", A_WYGLAD);
+        return;
+    }
+    if (apl == 0) { /* Kosz or a file */
+        dodaj("Otwórz", A_OTWORZ);
+        dodaj("", A_KRESKA);
+        if (klucz != ROZM_KOSZ)
+            dodaj("Usuń", A_DO_KOSZA);
+        else if (kosz_pelny())
+            dodaj("Opróżnij Kosz", A_OPROZNIJ);
+        else
+            n_w = 1;
         return;
     }
     dodaj(cel == K_PASEK ? aplikacje[apl].nazwa : "Otwórz", A_OTWORZ);
@@ -81,13 +95,15 @@ static void loguj(void)
         if (w[i].akcja != A_KRESKA)
             n += (size_t)snprintf(buf + n, sizeof buf - n, "%s%s %d,%d", n ? "; " : "", w[i].tekst,
                                   kx + MARG + KONT_SZER / 2, ky + MARG + wiersz_y(i) + WIERSZ / 2 - 2);
-    k1_log(TAG, "menu kontekstowe (%s%s%s): %s", cele[cel], apl ? " " : "", apl ? aplikacje[apl].nazwa : "", buf);
+    k1_log(TAG, "menu kontekstowe (%s%s%s): %s", cele[cel], klucz ? " " : "",
+           rozm_plik(klucz) ? "pliku" : klucz ? ikona_nazwa(klucz) : "", buf);
 }
 
-void kontekst_otworz(int nowy_cel, int nowa_apl, int32_t x, int32_t y)
+void kontekst_otworz(int nowy_cel, uint32_t nowy_klucz, int32_t x, int32_t y)
 {
     cel = nowy_cel;
-    apl = nowa_apl;
+    klucz = nowy_klucz;
+    apl = rozm_aplikacja(nowy_klucz);
     hover = -1;
     wiersze();
     /* top left at the pointer; to the left / above it when it would leave the screen; for the bottom bar
@@ -162,7 +178,15 @@ static void wykonaj(enum akcja a)
     kontekst_zamknij();
     switch (a) {
     case A_OTWORZ:
-        otworz_aplikacje(apl);
+        ikona_otworz(klucz);
+        return;
+    case A_DO_KOSZA:
+        k1_log(TAG, "pulpit: plik %d do Kosza", rozm_plik(klucz));
+        plik_do_kosza(klucz);
+        return;
+    case A_OPROZNIJ:
+        k1_log(TAG, "pulpit: opróżniam Kosz");
+        kosz_oproznij();
         return;
     case A_ZAMKNIJ:
         zamknij_aplikacje(apl);
@@ -179,13 +203,13 @@ static void wykonaj(enum akcja a)
         snprintf(co, sizeof co, "odpięto od paska: %s", nazwa);
         break;
     case A_DODAJ:
-        if (rozm_dodaj_ikone(&rozm, apl, pulpit_kolumn(), pulpit_wierszy()) != 0)
+        if (rozm_dodaj_ikone(&rozm, (uint32_t)apl, pulpit_kolumn(), pulpit_wierszy()) != 0)
             snprintf(co, sizeof co, "pulpit pełny — %s nie dodano", nazwa);
         else
             snprintf(co, sizeof co, "dodano do pulpitu: %s", nazwa);
         break;
     case A_USUN:
-        rozm_usun_ikone(&rozm, apl);
+        rozm_usun_ikone(&rozm, (uint32_t)apl);
         snprintf(co, sizeof co, "usunięto z pulpitu: %s", nazwa);
         break;
     case A_ULOZ:
