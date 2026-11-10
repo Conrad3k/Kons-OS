@@ -50,7 +50,13 @@ if tryb == "haslo":
             czekaj(r"K1-EKRAN: ustawienia wczytane ze skarbca \(tapeta 1, motyw 1", czas=90) and
             czekaj(r"K1-GUI: pulpit gotowy", czas=90))
     zrzut("haslo-3-pulpit")
-    # 0.6.3: Start → Wyloguj: the apps close, the vault locks again, the password screen comes back
+    # 0.6.3: Start → Wyloguj: the apps close, the vault locks again, the password screen comes back. The saved
+    # resolution comes back a moment after the first desktop (TCG: seconds later): the Start button moves — wait for
+    # the mode, then for a desktop laid out after it.
+    u = czekaj(r"K1-EKRAN: ustawienia wczytane ze skarbca \(.*rozdzielczość (\d+)x(\d+)\)", czas=10)
+    if u:
+        czekaj(rf"K1-EKRAN: tryb {u.group(1)}x{u.group(2)} ", czas=30)
+    q.czekaj_na(lambda: tekst().rfind("K1-GUI: pulpit gotowy") > tekst().rfind("K1-EKRAN: tryb "), czas=60)
     g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+)", czas=10)
     kt = kursor_teraz()
     if kt:
