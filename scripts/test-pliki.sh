@@ -310,8 +310,11 @@ if tryb == "notatki":
     klik(*otworz)
     sprawdz("Otwórz: plik trafia do Notatek (wybrany, okno się zamyka)", czekaj(r"K1-WYBOR: wybrano plik") and
             czekaj(r"K1-NOTATKI: okno wyboru pliku: plik wybrany") and czekaj(r"K1-NOTATKI: otwarto notatkę \(13 B\)", od=n_o))
-    # again, and "Anuluj"
+    # again (a new window: ekran puts it a bit lower and to the right), and "Anuluj"
+    n_w = q.ile(OKNO.format("wybor"))
     po(r"K1-WYBOR: prośba: aplikacja 2", lambda: klik(n0[0] + int(un.group(1)), n0[1] + int(un.group(2))))
+    m = czekaj(OKNO.format("wybor"), od=n_w)
+    anuluj = (int(m.group(4)) + int(uw.group(9)), int(m.group(5)) + int(uw.group(10))) if m else anuluj
     sprawdz("Anuluj: Notatki dowiadują się, że nic nie wybrano", po(r"K1-NOTATKI: okno wyboru pliku: anulowano", lambda: klik(*anuluj)))
 
 # Pliki: Dokumenty › Notatki — the notes are files there
