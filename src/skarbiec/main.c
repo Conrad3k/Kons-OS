@@ -32,7 +32,7 @@ _Static_assert(K1_MAG_PELNY == K1_SKARB_PELNY, "K1_SKARB_PELNY must match K1_MAG
 
 #define FD_STEROWANIE 3
 #define FD_DYSK 4
-#define MAKS_KLIENTOW 12
+#define MAKS_KLIENTOW 16
 #define GODZINA 3600.0
 
 struct klient {
