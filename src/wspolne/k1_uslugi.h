@@ -20,7 +20,7 @@
  * Zasoby, the sandbox profile, the image contents, the tests) follows from it.
  * X(NAME, application number, profile, UID, program (= directory src/aplikacje/<program>), log tag,
  *   title, description in the Start menu, icon (K1_IK_<icon>), on the bottom bar and the desktop at the first start —
- *   the owner moves them later, 0.7.5). The numbers never change
+ *   the owner moves them later, 0.7.5; -1: a window of K1 itself, never in the Start menu, ADR 0030). The numbers never change
  *   (the profile is the owner of the application's data in skarbiec); a new application takes the next ones. */
 #define K1_APLIKACJE(X)                                                                                         \
     X(ZEGAR, 1, 4, 200, "zegar", "K1-ZEGAR", "Zegar", "Godzina i data", ZEGAR, 1)                               \
@@ -32,7 +32,8 @@
       DYSK, 0)                                                                                                  \
     X(KALKULATOR, 6, 12, 205, "kalkulator", "K1-KALKULATOR", "Kalkulator", "Działania, procenty, pamięć",          \
       KALKULATOR, 1)                                                                                            \
-    X(PLIKI, 7, 13, 206, "pliki", "K1-PLIKI", "Pliki", "Foldery, pliki i Kosz", FOLDER, 1)
+    X(PLIKI, 7, 13, 206, "pliki", "K1-PLIKI", "Pliki", "Foldery, pliki i Kosz", FOLDER, 1)                       \
+    X(WYBOR, 8, 14, 207, "wybor", "K1-WYBOR", "Wybór pliku", "Okno, w którym wybierasz plik dla aplikacji", FOLDER, -1)
 
 #define K1_X_UID_S(n, profil, uid, ...) K1_UID_##n = uid,
 #define K1_X_UID_A(n, apl, profil, uid, ...) K1_UID_##n = uid,

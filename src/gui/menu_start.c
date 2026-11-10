@@ -7,7 +7,16 @@
 #include "k1_log.h"
 
 int menu_otwarte;
-static int hover_menu = -1;
+static int hover_menu = -1; /* an application (its number), 10.. a footer button, -1 none */
+
+/* The application in row `r` (1..MENU_APL) of the menu: the windows of K1 itself are skipped. */
+static int aplikacja_wiersza(int r)
+{
+    for (int a = 1; a <= K1_APL_MAKS; a++)
+        if (aplikacje[a].domyslna >= 0 && --r == 0)
+            return a;
+    return 0;
+}
 
 /* Footer, right-aligned: 10 + index (10 = log out, 11 = restart, 12 = power off). */
 #define STOPKA_N 3
@@ -45,15 +54,16 @@ void rysuj_menu(void)
     snprintf(wersja, sizeof wersja, "wersja %s", K1_WERSJA);
     k1_tekst(o, K1_CZ_MALA, MARG + MENU_SZER - 20 - k1_tekst_szer(K1_CZ_MALA, wersja), MARG + 42, wersja,
              k1_kolor(m->tekst3, 255), 0);
-    for (i = 1; i <= K1_APL_MAKS; i++) {
+    for (i = 1; i <= MENU_APL; i++) {
+        int a = aplikacja_wiersza(i);
         y = MARG + MENU_NAGL + (i - 1) * MENU_WIERSZ;
-        if (hover_menu == i)
+        if (hover_menu == a)
             k1_zaokraglony(o, MARG + 8, (float)y, MENU_SZER - 16, MENU_WIERSZ - 4, 10, k1_kolor(m->najechanie, 255));
-        k1_ikona(o, aplikacje[i].ikona, MARG + 20, (float)y + 14, 24, k1_kolor(m->tekst, 255));
-        k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG + 60, y + 22, aplikacje[i].nazwa, k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, MARG + 60, y + 41, aplikacje[i].opis, k1_kolor(m->tekst2, 255), MENU_SZER - 80);
+        k1_ikona(o, aplikacje[a].ikona, MARG + 20, (float)y + 14, 24, k1_kolor(m->tekst, 255));
+        k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG + 60, y + 22, aplikacje[a].nazwa, k1_kolor(m->tekst, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, MARG + 60, y + 41, aplikacje[a].opis, k1_kolor(m->tekst2, 255), MENU_SZER - 80);
     }
-    y = MARG + MENU_NAGL + K1_APL_MAKS * MENU_WIERSZ + 8;
+    y = MARG + MENU_NAGL + MENU_APL * MENU_WIERSZ + 8;
     k1_prostokat(o, MARG + 16, y, MENU_SZER - 32, 1, k1_kolor(m->tekst, 24));
     rysuj_stopke(o, m, y + 10);
     k1_pow_zatwierdz(&k, &menu);
@@ -63,7 +73,7 @@ void rysuj_menu(void)
  * it gives the centre x of button `*srodek - 10` instead (for the test log). */
 static int przycisk_stopki(int32_t x, int32_t y, int32_t *srodek)
 {
-    int32_t yb = MARG + MENU_NAGL + K1_APL_MAKS * MENU_WIERSZ + 18, px = MARG + MENU_SZER - 12;
+    int32_t yb = MARG + MENU_NAGL + MENU_APL * MENU_WIERSZ + 18, px = MARG + MENU_SZER - 12;
     int b;
     if (srodek == NULL && (y < yb || y >= yb + 36))
         return -1;
@@ -83,7 +93,7 @@ static int przycisk_stopki(int32_t x, int32_t y, int32_t *srodek)
 
 void pokaz_menu(int tak)
 {
-    int32_t wyl = 12, wyg = 10, stopka_y = menu_y + MARG + MENU_NAGL + K1_APL_MAKS * MENU_WIERSZ + 36;
+    int32_t wyl = 12, wyg = 10, stopka_y = menu_y + MARG + MENU_NAGL + MENU_APL * MENU_WIERSZ + 36;
     if (tak == menu_otwarte)
         return;
     menu_otwarte = tak;
@@ -106,7 +116,7 @@ static int wiersz_menu(int32_t x, int32_t y)
     if (x < MARG + 8 || x >= MARG + MENU_SZER - 8 || y < MARG + MENU_NAGL)
         return przycisk_stopki(x, y, NULL);
     r = (y - MARG - MENU_NAGL) / MENU_WIERSZ + 1;
-    return r <= K1_APL_MAKS ? (int)r : przycisk_stopki(x, y, NULL);
+    return r <= MENU_APL ? aplikacja_wiersza((int)r) : przycisk_stopki(x, y, NULL);
 }
 
 void wskaznik_menu(const struct k1_komunikat *m)

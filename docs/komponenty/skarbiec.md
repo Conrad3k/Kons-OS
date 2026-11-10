@@ -55,8 +55,19 @@ Wideo, Pobrane) nie mają obiektów; wpisy użytkownika mają numery od 100:
   przy otwarciu i co godzinę, według zegara; gdy zegar jest przed czasem wrzucenia (cofnięty) — nic.
 
 **Prawa** — tabela w `dok_kanal.c` (wiersz na klienta; właściciel kanału od nadzorcy): Pliki — wszystko; pulpit
-(gui) — tylko folder Pulpit (lista nazw i typów, „do Kosza”, „opróżnij Kosz”, bez treści); inni — nic
+(gui) — tylko folder Pulpit (lista nazw i typów, „do Kosza”, „opróżnij Kosz”, „Otwórz w…”, bez treści); Notatki
+(0.8.0, ADR 0030) — tylko pliki, które same utworzyły, i pliki dane im przez użytkownika: lista, treść, zapis,
+nazwa, nowy plik tylko w swoim folderze **Dokumenty › Notatki** (skarbiec tworzy go, gdy go nie ma), do Kosza
+tylko własne, okno wyboru pliku; Wybór pliku — lista widocznych (bez Kosza, bez treści) i odpowiedź; inni — nic
 (`K1_DOK_BLAD_PRAWA`). Wpis spoza zasięgu klienta = „nie ma” (`K1_DOK_BLAD_BRAK`).
+
+**Dostęp do pliku po geście** (0.8.0, ADR 0030, `dostep.c`): „Otwórz w…” w Plikach albo na pulpicie
+(`DOK_OTWORZ`) — skarbiec sprawdza, że aplikacja otwiera ten typ (`K1_OTWIERANIE`), zapamiętuje „aplikacja X może
+ten plik” i prosi nadzorcę (`SKARB_URUCHOM`) o uruchomienie jej z plikiem. Prośba aplikacji o plik
+(`DOK_WYBIERZ`) — jedna naraz (`K1_DOK_BLAD_CZEKA`); skarbiec prosi nadzorcę o okno wyboru (`SKARB_URUCHOM` z
+aplikacją „Wybór pliku”), oknu podaje prośbę (`DOK_PROSBA`), a gdy ono odpowie (`DOK_WYBRANO`: plik widoczny,
+pasujący typ) — daje dostęp i odpowiada aplikacji (`DOK_WYBRANY`; 0 = anulowano, także gdy okno się zamknie).
+Dostęp jest tylko w pamięci skarbca i znika, gdy zamknie się ostatni kanał tej aplikacji (do 64 naraz).
 
 | Komunikat | Kierunek | Pola |
 |---|---|---|
@@ -64,7 +75,7 @@ Wideo, Pobrane) nie mają obiektów; wpisy użytkownika mają numery od 100:
 | `DOK_CZYTAJ` | klient → | obiekt = plik, a = najwyżej tyle bajtów (podgląd: 64 KiB) → `DOK_TRESC` |
 | `DOK_NOWY` | klient → | obiekt = folder, a = plik / folder, b = długość nazwy, c = długość treści; memfd: nazwa + treść |
 | `DOK_ZAPISZ` | klient → | obiekt = plik, a = długość; memfd: nowa treść (nowa generacja) |
-| `DOK_NAZWA` | klient → | obiekt = wpis, a = długość; memfd: nowa nazwa |
+| `DOK_NAZWA` | klient → | obiekt = wpis, a = długość, b = 1: zajęta nazwa dostaje „ (2)” (0: odmowa); memfd: nowa nazwa |
 | `DOK_PRZENIES` | klient → | obiekt = wpis, a = folder docelowy (nie do siebie, nie za głęboko) |
 | `DOK_KOSZ`, `DOK_PRZYWROC`, `DOK_USUN` | klient → | obiekt = wpis (usuń: tylko z Kosza) |
 | `DOK_OPROZNIJ` | klient → | wszystko z Kosza na zawsze |
@@ -72,6 +83,12 @@ Wideo, Pobrane) nie mają obiektów; wpisy użytkownika mają numery od 100:
 | `DOK_TRESC` | → klient | obiekt = plik, a = wysłane bajty, b = cały rozmiar; memfd |
 | `DOK_WYNIK` | → klient | obiekt, a = rodzaj prośby, b = wynik (0, `K1_MAG_*`, `K1_DOK_BLAD_*`), c = numer nowego wpisu |
 | `DOK_ZMIANA` | → klient | pliki się zmieniły — do każdego klienta z prawem listy (odświeżają widok) |
+| `DOK_OTWORZ` | Pliki, pulpit → | obiekt = plik, a = aplikacja (nie Pliki), która otwiera jego typ → `DOK_WYNIK` |
+| `DOK_WYBIERZ` | aplikacja → | a = typ (0: każdy) — okno wyboru pliku; odpowiedź później: `DOK_WYBRANY` (błąd od razu: `DOK_WYNIK`) |
+| `DOK_WYBRANO` | Wybór pliku → | obiekt = wybrany plik (0: anulowano) → `DOK_WYNIK` |
+| `DOK_WYBRANY` | → aplikacja | obiekt = plik, którego może teraz używać (0: anulowano) |
+| `DOK_PROSBA` | → Wybór pliku | a = aplikacja, która prosi, b = typ (0: każdy) |
+| `SKARB_URUCHOM` | → nadzorca | kanał sterujący: obiekt = plik (0: bez), a = aplikacja do uruchomienia (z plikiem: jej fd 5) |
 
 Zablokowany magazyn (hasło) — każda prośba `DOK_*` dostaje „złe hasło”. W logu tylko numery komunikatów, liczby
 wpisów i wyniki — nigdy nazwy ani treść.

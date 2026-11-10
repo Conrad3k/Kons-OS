@@ -104,6 +104,13 @@ void otworz_pliki(uint32_t wpis, int kosz)
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_AKTYWUJ_OKNO, w->id, 0, 0, 0, 0, 0));
 }
 
+void pokaz_aplikacje(int apl)
+{
+    struct okno *w = okno_aplikacji(apl);
+    if (w != NULL && w->stan != K1_OKNO_AKTYWNE)
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_AKTYWUJ_OKNO, w->id, 0, 0, 0, 0, 0));
+}
+
 void zamknij_aplikacje(int apl)
 {
     struct okno *w = okno_aplikacji(apl);

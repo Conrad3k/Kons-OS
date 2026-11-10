@@ -117,6 +117,7 @@ void start(struct usluga *u);
 void opisz(const char *nazwa, int status);
 void zakonczona(struct usluga *u, int status);
 void uruchom_aplikacje(int apl);
+void uruchom_z_plikiem(int apl, uint32_t plik); /* skarb.c: SKARB_URUCHOM from skarbiec (0.8.0, ADR 0030) */
 void wylacz(int restart);
 void obsluz_gui(void);
 
@@ -170,7 +171,7 @@ void sb_przygotuj_klucz(void);
 extern int zasoby_kanal;
 extern int bateria_kanal;
 extern int ustaw_kanal;
-extern int pliki_kanal; /* uslugi.c: Pliki's fd 5 (0.8.0) */
+extern int plik_kanal[K1_APL_MAKS + 1]; /* uslugi.c: an application's fd 5 — a file to open (Pliki: a place; 0.8.0) */
 extern struct k1_bat_historia bat_hist;
 void odczytaj_baterie(double t);
 void wyslij_baterie(void);

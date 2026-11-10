@@ -31,7 +31,7 @@ void rozm_domyslne(struct rozmieszczenie *r, const int *domyslne, int wierszy)
     memset(r, 0, sizeof *r);
     r->ikony[r->n_ikon++].klucz = ROZM_KOSZ;
     for (a = 1; a <= K1_APL_MAKS; a++)
-        if (domyslne[a]) {
+        if (domyslne[a] > 0) { /* -1: a window of K1 itself (never on the bar or the desktop) */
             r->pasek[r->n_pasek++] = (uint8_t)a;
             r->ikony[r->n_ikon++].klucz = (uint32_t)a;
         }

@@ -56,8 +56,8 @@ int k1_ustawienie_poprawne(int32_t klucz, int32_t wartosc)
         return w(wartosc, 0, K1_TAPETY - 1);
     case K1_UST_ROZDZIELCZOSC:
         return w(wartosc, 1, K1_TRYBY_MAKS);
-    default:
-        return 0;
+    default: /* the default application of a file type: one that opens it */
+        return w(klucz, K1_UST_OTWIERANIE, K1_UST_MAKS) && k1_dok_otwiera(wartosc, klucz - K1_UST_OTWIERANIE + 1);
     }
 }
 
@@ -158,6 +158,9 @@ static int sprawdz_skarb(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
     case K1_KOM_SKARB_STAN:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_SKARB_TRWALY, K1_SKARB_ZABLOKOWANY) &&
                w(k->b, 0, 1) && zera(k, 2);
+    case K1_KOM_SKARB_URUCHOM:
+        return kier == K1_KIER_DO_NADZORCY && (k->obiekt == 0 || (k->obiekt >= K1_DOK_PIERWSZY && k->obiekt <= K1_DOK_ID_MAKS)) &&
+               w(k->a, 1, K1_APL_MAKS) && zera(k, 1);
     case K1_KOM_SKARB_DANE:
         return kier == K1_KIER_OD_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS && w(k->a, 0, K1_SKARB_MAKS) &&
                zera(k, 1);
@@ -180,10 +183,38 @@ static int wpis_uzytkownika(uint32_t obiekt)
     return obiekt >= K1_DOK_PIERWSZY && obiekt <= K1_DOK_ID_MAKS;
 }
 
+int k1_kom_dok_prosba(int typ)
+{
+    return (typ >= K1_KOM_DOK_SPIS && typ <= K1_KOM_DOK_OPROZNIJ) || (typ >= K1_KOM_DOK_OTWORZ && typ <= K1_KOM_DOK_WYBRANO);
+}
+
+/* Opening a file for an application, the file picker (0.8.0 step 2, ADR 0030); 0 also for another type. */
+static int sprawdz_wybor(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
+{
+    switch (k->typ) {
+    case K1_KOM_DOK_OTWORZ:
+        return kier == K1_KIER_DO_SKARBCA && wpis_uzytkownika(k->obiekt) && w(k->a, 1, K1_APL_MAKS) &&
+               k->a != K1_APL_PLIKI && zera(k, 1);
+    case K1_KOM_DOK_WYBIERZ:
+        return kier == K1_KIER_DO_SKARBCA && k->obiekt == 0 && w(k->a, 0, K1_TYPY_MAKS) && zera(k, 1);
+    case K1_KOM_DOK_WYBRANO:
+    case K1_KOM_DOK_WYBRANY:
+        return kier == (k->typ == K1_KOM_DOK_WYBRANO ? K1_KIER_DO_SKARBCA : K1_KIER_OD_SKARBCA) &&
+               (k->obiekt == 0 || wpis_uzytkownika(k->obiekt)) && zera(k, 0);
+    case K1_KOM_DOK_PROSBA:
+        return kier == K1_KIER_OD_SKARBCA && k->obiekt == 0 && w(k->a, 1, K1_APL_MAKS) && w(k->b, 0, K1_TYPY_MAKS) &&
+               zera(k, 2);
+    default:
+        return 0;
+    }
+}
+
 /* Messages about the user's files (0.8.0, ADR 0029); 0 also for a type of another group. */
 static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
     const int32_t maks = (int32_t)K1_DOK_MAKS_BAJTY;
+    if (k->typ < K1_KOM_DOK_SPIS || k->typ > K1_KOM_DOK_ZMIANA)
+        return sprawdz_wybor(k, kier);
     if (kier != (k->typ < K1_KOM_DOK_LISTA ? K1_KIER_DO_SKARBCA : K1_KIER_OD_SKARBCA))
         return 0;
     switch (k->typ) {
@@ -199,7 +230,7 @@ static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     case K1_KOM_DOK_ZAPISZ:
         return wpis_uzytkownika(k->obiekt) && w(k->a, 0, maks) && zera(k, 1);
     case K1_KOM_DOK_NAZWA:
-        return wpis_uzytkownika(k->obiekt) && w(k->a, 1, K1_DOK_NAZWA - 1) && zera(k, 1);
+        return wpis_uzytkownika(k->obiekt) && w(k->a, 1, K1_DOK_NAZWA - 1) && w(k->b, 0, 1) && zera(k, 2);
     case K1_KOM_DOK_PRZENIES:
         return wpis_uzytkownika(k->obiekt) && k->a >= 1 && wpis((uint32_t)k->a) && zera(k, 1);
     case K1_KOM_DOK_KOSZ:
@@ -212,7 +243,7 @@ static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     case K1_KOM_DOK_TRESC:
         return wpis_uzytkownika(k->obiekt) && w(k->a, 0, maks) && w(k->b, k->a, maks) && zera(k, 2);
     case K1_KOM_DOK_WYNIK:
-        return (k->obiekt == 0 || wpis(k->obiekt)) && w(k->a, K1_KOM_DOK_SPIS, K1_KOM_DOK_OPROZNIJ) &&
+        return (k->obiekt == 0 || wpis(k->obiekt)) && k1_kom_dok_prosba(k->a) &&
                (w(k->b, K1_MAG_WYNIK_MIN, 0) || w(k->b, K1_DOK_BLAD_MIN, K1_DOK_BLAD_NAZWA)) &&
                (k->c == 0 || (k->a == K1_KOM_DOK_NOWY && k->b == 0 && k->c >= K1_DOK_PIERWSZY)) && zera(k, 3);
     default:
@@ -288,6 +319,10 @@ static int sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
                (k->a == K1_APL_PLIKI ? (k->b == 0 || wpis((uint32_t)k->b)) && w(k->c, 0, 1) && (k->b == 0 || k->c == 0)
                                      : k->b == 0 && k->c == 0) &&
                zera(k, 3);
+    case K1_KOM_PLIK_OTWORZ:
+        return kier == K1_KIER_OD_NADZORCY && wpis_uzytkownika(k->obiekt) && zera(k, 0);
+    case K1_KOM_POKAZ_APL:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_APL_MAKS) && zera(k, 1);
     case K1_KOM_PLIKI_POKAZ:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && (k->a == 0 || wpis((uint32_t)k->a)) && w(k->b, 0, 1) &&
                (k->a == 0 || k->b == 0) && zera(k, 2);

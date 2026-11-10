@@ -34,7 +34,10 @@ int dok_nowy(uint32_t folder, int rodzaj, const char *nazwa, size_t nl, const st
 int dok_zapisz_tresc(uint32_t id, const struct dok_zrodlo *z, int64_t teraz);
 /* The first `maks` bytes (at most the whole file) to `c`; *ile = how many. */
 int dok_czytaj_tresc(uint32_t id, uint64_t maks, const struct dok_cel *c, uint64_t *ile);
-int dok_zmien_nazwe(uint32_t id, const char *nazwa, size_t nl, int64_t teraz);
+/* `wolna`: a name taken in the folder becomes "name (2)"… (else K1_DOK_BLAD_ZAJETA). */
+int dok_zmien_nazwe(uint32_t id, const char *nazwa, size_t nl, int wolna, int64_t teraz);
+/* The folder of an application in Dokumenty ("Notatki", ADR 0030): found by its name, created when missing. */
+int dok_folder_aplikacji(const char *nazwa, int tworca, int64_t teraz, uint32_t *id);
 int dok_przenies(uint32_t id, uint32_t folder, int64_t teraz);
 int dok_do_kosza(uint32_t id, int64_t teraz);
 int dok_przywroc(uint32_t id);

@@ -1,6 +1,8 @@
 /* K1 gui — the files of the Pulpit folder and Kosz on the desktop (0.8.0, ADR 0029). skarbiec's table of rights
  * lets the desktop see only the Pulpit folder (names and types, never content), move its files to Kosz and empty
- * Kosz; opening goes through Pliki (nadzorca starts it at the file, fd 5 of Pliki). Every list is checked entry
+ * Kosz; a folder opens in Pliki (nadzorca starts it at the place, fd 5 of Pliki), a file in its default application
+ * (Ustawienia → Aplikacje) or the one chosen in "Otwórz w…" — skarbiec gives it that file (DOK_OTWORZ, ADR 0030),
+ * Pliki only shows it (its preview). Every list is checked entry
  * by entry (k1_dok_lista_czytaj); names never reach the log — the tests find a file by its number.
  *
  * The icons follow the list: a new file gets the first free cell, a file gone from the folder loses its icon. */
@@ -25,16 +27,16 @@ static uint32_t w_koszu;
 static uint8_t lista[K1_DOK_LISTA_MAKS];
 static struct k1_dok_wpis wpisy[K1_DOK_MAKS];
 
-static void do_skarbca(int typ, uint32_t obiekt)
+static void do_skarbca(int typ, uint32_t obiekt, int32_t a)
 {
-    struct k1_komunikat m = k1_komunikat_nowy((enum k1_komunikat_typ)typ, obiekt, 0, 0, 0, 0, 0);
+    struct k1_komunikat m = k1_komunikat_nowy((enum k1_komunikat_typ)typ, obiekt, a, 0, 0, 0, 0);
     if (skarb_fd >= 0)
         k1_kanal_wyslij(skarb_fd, &m, sizeof m, -1);
 }
 
 void pliki_start(void)
 {
-    do_skarbca(K1_KOM_DOK_SPIS, 0);
+    do_skarbca(K1_KOM_DOK_SPIS, 0, 0);
 }
 
 static const struct plik_pulpitu *plik(uint32_t klucz)
@@ -77,25 +79,48 @@ enum k1_ikona ikona_rysunek(uint32_t klucz)
 #undef X_IKONA
 }
 
+int plik_aplikacje(uint32_t klucz, int *apl)
+{
+    const struct plik_pulpitu *p = plik(klucz);
+    return p == NULL || p->rodzaj != K1_DOK_PLIK ? 0 : k1_dok_aplikacje(p->typ, apl);
+}
+
+void plik_otworz_w(uint32_t klucz, int apl)
+{
+    const struct plik_pulpitu *p = plik(klucz);
+    if (p == NULL)
+        return;
+    if (apl == K1_APL_PLIKI || p->rodzaj != K1_DOK_PLIK) {
+        otworz_pliki(p->id, 0);
+        return;
+    }
+    k1_log(TAG, "pulpit: plik %u otwieram w aplikacji %s", p->id, aplikacje[apl].nazwa);
+    do_skarbca(K1_KOM_DOK_OTWORZ, p->id, apl);
+}
+
 void ikona_otworz(uint32_t klucz)
 {
+    const struct plik_pulpitu *p = plik(klucz);
     if (rozm_aplikacja(klucz))
         otworz_aplikacje((int)klucz);
     else if (klucz == ROZM_KOSZ)
         otworz_pliki(0, 1);
-    else if (plik(klucz) != NULL)
-        otworz_pliki((uint32_t)rozm_plik(klucz), 0);
+    else if (p != NULL && p->rodzaj == K1_DOK_PLIK) { /* the default application of its type (Ustawienia → Aplikacje) */
+        int a = k.ustawienia[K1_UST_OTWIERANIE + p->typ - 1];
+        plik_otworz_w(klucz, k1_dok_otwiera(a, p->typ) ? a : k1_dok_domyslna(p->typ));
+    } else if (p != NULL)
+        otworz_pliki(p->id, 0);
 }
 
 void plik_do_kosza(uint32_t klucz)
 {
     if (plik(klucz) != NULL)
-        do_skarbca(K1_KOM_DOK_KOSZ, (uint32_t)rozm_plik(klucz));
+        do_skarbca(K1_KOM_DOK_KOSZ, (uint32_t)rozm_plik(klucz), 0);
 }
 
 void kosz_oproznij(void)
 {
-    do_skarbca(K1_KOM_DOK_OPROZNIJ, 0);
+    do_skarbca(K1_KOM_DOK_OPROZNIJ, 0, 0);
 }
 
 /* The icons follow the folder: added for new files, removed for the ones gone. */

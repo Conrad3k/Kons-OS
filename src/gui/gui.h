@@ -67,6 +67,7 @@ int aktywna_aplikacja(void);
 void zmiana_okna(const struct k1_komunikat *m); /* K1_KOM_OKNO from ekran */
 void aplikacja(int apl);                         /* the bottom bar: start it, or show / minimise its window */
 void otworz_aplikacje(int apl);                  /* the desktop and menus: start it, or show its window */
+void pokaz_aplikacje(int apl);                    /* nadzorca (POKAZ_APL): its window to the front, if it has one */
 void otworz_pliki(uint32_t wpis, int kosz);       /* Pliki at a file or folder (0: none) or at Kosz (0.8.0) */
 void zamknij_aplikacje(int apl);                 /* "Zamknij okno": ekran asks the application to close */
 void do_nadzorcy(struct k1_komunikat m);
@@ -100,7 +101,11 @@ void dok_gotowy(void); /* "pulpit gotowy" with the positions of the bar (after l
 #define MENU_WIERSZ 56
 #define MENU_NAGL 72
 #define MENU_STOPKA 56
-#define MENU_WYS (MENU_NAGL + K1_APL_MAKS * MENU_WIERSZ + 8 + MENU_STOPKA)
+/* rows of the Start menu: every application but the windows of K1 itself (column -1 of K1_APLIKACJE, ADR 0030) */
+#define X_W_MENU(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek) +((pasek) >= 0)
+enum { MENU_APL = 0 K1_APLIKACJE(X_W_MENU) };
+#undef X_W_MENU
+#define MENU_WYS (MENU_NAGL + MENU_APL * MENU_WIERSZ + 8 + MENU_STOPKA)
 extern int menu_otwarte;
 void rysuj_menu(void);
 void wskaznik_menu(const struct k1_komunikat *m);
@@ -116,6 +121,8 @@ int pulpit_kolumn(void);
 int pulpit_wierszy(void);
 
 /* pliki.c: what an icon shows and does, whatever it is (an application, Kosz, a file — rozmieszczenie.h keys) */
+int plik_aplikacje(uint32_t klucz, int *apl);            /* the applications that open this file (room: K1_APL_MAKS) */
+void plik_otworz_w(uint32_t klucz, int apl);             /* "Otwórz w…": skarbiec gives it the file (ADR 0030) */
 void pliki_start(void);                                   /* asks skarbiec for the files of the Pulpit folder */
 void pliki_odbierz(const struct k1_komunikat *m, int fd); /* DOK_* from skarbiec on fd 6 */
 const char *ikona_nazwa(uint32_t klucz);

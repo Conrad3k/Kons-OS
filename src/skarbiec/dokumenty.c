@@ -320,22 +320,40 @@ static int zmienialny(uint32_t id)
     return dok_widoczny(id) ? i : -1;
 }
 
-int dok_zmien_nazwe(uint32_t id, const char *nazwa, size_t nl, int64_t teraz)
+int dok_zmien_nazwe(uint32_t id, const char *nazwa, size_t nl, int wolna, int64_t teraz)
 {
     int i = zmienialny(id), r;
     struct k1_dok_wpis w;
+    char n[K1_DOK_NAZWA];
     if (i < 0)
         return K1_DOK_BLAD_BRAK;
     w = wpisy[i];
-    if ((r = sprawdz_nazwe(nazwa, nl, w.nazwa)) != 0)
+    if ((r = sprawdz_nazwe(nazwa, nl, n)) != 0)
         return r;
-    if (nazwa_zajeta(w.rodzic, w.nazwa, id))
+    if (wolna) { /* "Lista (2)" when "Lista" is taken */
+        if ((r = wolna_nazwa(w.rodzic, n, id, w.nazwa)) != 0)
+            return r;
+    } else if (nazwa_zajeta(w.rodzic, n, id)) {
         return K1_DOK_BLAD_ZAJETA;
+    } else {
+        memcpy(w.nazwa, n, sizeof n);
+    }
     w.zmieniono = teraz;
     if ((r = zapisz_wpis(&w)) != 0)
         return r;
     wpisy[i] = w;
     return 0;
+}
+
+int dok_folder_aplikacji(const char *nazwa, int tworca, int64_t teraz, uint32_t *id)
+{
+    for (int i = 0; i < n_wpisow; i++)
+        if (wpisy[i].rodzic == K1_FOLDER_DOKUMENTY && wpisy[i].rodzaj == K1_DOK_FOLDER && wpisy[i].kosz == 0 &&
+            k1_dok_nazwy_rowne(wpisy[i].nazwa, nazwa)) {
+            *id = wpisy[i].id;
+            return 0;
+        }
+    return dok_nowy(K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, nazwa, strlen(nazwa), NULL, tworca, K1_POCH_K1, teraz, id);
 }
 
 int dok_przenies(uint32_t id, uint32_t folder, int64_t teraz)

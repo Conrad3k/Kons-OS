@@ -168,6 +168,8 @@ static void start(void)
     s.ust[K1_UST_MOTYW] = 0;
     s.ust[K1_UST_SEKUNDY] = 0;
     s.ust[K1_UST_MYSZ] = 2;
+    for (i = 1; i <= K1_TYPY_MAKS; i++) /* the default application of every file type (ADR 0030) */
+        s.ust[K1_UST_OTWIERANIE + i - 1] = k1_dok_domyslna(i);
     if (fcntl(FD_STEROWANIE, F_SETFL, O_NONBLOCK) < 0 || fcntl(FD_KARTA, F_GETFD) < 0)
         k1_koniec(TAG, "brak kanału sterującego (fd %d) albo karty graficznej (fd %d)", FD_STEROWANIE, FD_KARTA);
     s.fd = FD_KARTA;

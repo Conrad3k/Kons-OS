@@ -57,6 +57,12 @@ void zglos_stan(void)
         k1_log(TAG, "zgłoszenie stanu do nadzorcy: %s", strerror(errno));
 }
 
+void do_nadzorcy(struct k1_komunikat m)
+{
+    if (k1_kanal_wyslij(FD_STEROWANIE, &m, sizeof m, -1) != 0)
+        k1_log(TAG, "komunikat do nadzorcy: %s", strerror(errno));
+}
+
 static void odpowiedz(struct klient *k, int id, int typ, int wynik)
 {
     struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_SKARB_WYNIK, (uint32_t)id, typ, wynik, ob_tryb(),
@@ -66,6 +72,11 @@ static void odpowiedz(struct klient *k, int id, int typ, int wynik)
 
 static void zamknij_klienta(struct klient *k)
 {
+    int ostatni = 1;
+    for (int i = 0; i < MAKS_KLIENTOW; i++)
+        if (&kl[i] != k && kl[i].fd >= 0 && kl[i].wlasciciel == k->wlasciciel)
+            ostatni = 0;
+    dostep_koniec_klienta(k->fd, k->wlasciciel, ostatni);
     close(k->fd);
     k->fd = -1;
 }
@@ -114,6 +125,7 @@ static void obsluz_sterowanie(void)
         kl[i].uid = m.b;
         na_usb = m.c; /* where the K1-DANE is (nadzorca knows; shown in Ustawienia) */
         k1_log(TAG, "nowy klient: właściciel %d (uid %d)", m.a, m.b);
+        dostep_nowy_klient(kl[i].fd, kl[i].wlasciciel);
     }
 }
 
@@ -162,7 +174,7 @@ static void zapisz_obiekt(struct klient *k, const struct k1_komunikat *m, int fd
 static void wykonaj(struct klient *k, const struct k1_komunikat *m, int fd)
 {
     char n[K1_MAG_NAZWA];
-    if (m->typ >= K1_KOM_DOK_SPIS && m->typ <= K1_KOM_DOK_OPROZNIJ) {
+    if (k1_kom_dok_prosba(m->typ)) {
         if (dok_obsluz(k->fd, k->wlasciciel, m, fd))
             oglos_zmiane();
         return;

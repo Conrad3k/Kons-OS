@@ -30,13 +30,15 @@ static const struct kanaly {
     /* the password screen: the same two, fd 6 skarbiec (the password) */
     { K1_PROFIL_LOGOWANIE,
       { { KN_OD, &gui_kanal, &gui_kanal_uid, NULL }, { KN_DO, &bateria_kanal, NULL, bateria_nowy_kanal }, { KN_SKARB, NULL, NULL, NULL } } },
-    { K1_PROFIL_NOTATKI, { { KN_SKARB, NULL, NULL, NULL } } }, /* fd 4 the notes */
+    /* Notatki: fd 4 skarbiec (its notes, files it was given), fd 5 a file to open (0.8.0, ADR 0030) */
+    { K1_PROFIL_NOTATKI, { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &plik_kanal[K1_APL_NOTATKI], NULL, NULL } } },
     /* Ustawienia: fd 4 battery state and history, fd 5 skarbiec (the password) */
     { K1_PROFIL_USTAWIENIA, { { KN_DO, &ustaw_kanal, NULL, ustawienia_nowy_kanal }, { KN_SKARB, NULL, NULL, NULL } } },
     { K1_PROFIL_ZASOBY, { { KN_DO, &zasoby_kanal, NULL, NULL } } },              /* fd 4 statistics */
     { K1_PROFIL_INSTALACJA, { { KN_OD, &inst_kanal, NULL, inst_nowy_kanal } } }, /* fd 4 disks, progress */
     /* Pliki (0.8.0): fd 4 skarbiec (the user's files), fd 5 the place to show when the desktop opens it */
-    { K1_PROFIL_PLIKI, { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &pliki_kanal, NULL, NULL } } },
+    { K1_PROFIL_PLIKI, { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &plik_kanal[K1_APL_PLIKI], NULL, NULL } } },
+    { K1_PROFIL_WYBOR, { { KN_SKARB, NULL, NULL, NULL } } }, /* the file picker: fd 4 skarbiec (names, the choice) */
 };
 
 static const struct kanaly *kanaly_uslugi(int profil)
@@ -64,7 +66,8 @@ int sterowanie = -1;  /* our end of ekran's control channel */
 int zero = -1;        /* /dev/null for fds 0 and 1 of services */
 int gui_kanal = -1;     /* our end of gui's request channel (gui's fd 4) */
 int gui_kanal_uid = -1; /* who is on the other end of it: gui, or the password screen */
-int pliki_kanal = -1;   /* our end of Pliki's fd 5 (we only write: the place to show) */
+/* our end of an application's fd 5 (we only write: a file to open; Pliki: the place to show); -1 none */
+int plik_kanal[K1_APL_MAKS + 1] = { [0 ... K1_APL_MAKS] = -1 };
 struct usluga *skarbiec(void)
 {
     return usluga_profilu(K1_PROFIL_SKARBIEC);
@@ -569,9 +572,9 @@ void obsluz_gui(void)
         }
         if (k.typ == K1_KOM_URUCHOM) {
             uruchom_aplikacje(k.a);
-            if (k.a == K1_APL_PLIKI && (k.b != 0 || k.c != 0) && pliki_kanal >= 0) { /* a file, a folder or Kosz */
+            if (k.a == K1_APL_PLIKI && (k.b != 0 || k.c != 0) && plik_kanal[K1_APL_PLIKI] >= 0) { /* a file, a folder or Kosz */
                 struct k1_komunikat p = k1_komunikat_nowy(K1_KOM_PLIKI_POKAZ, 0, k.b, k.c, 0, 0, 0);
-                k1_kanal_wyslij(pliki_kanal, &p, sizeof p, -1);
+                k1_kanal_wyslij(plik_kanal[K1_APL_PLIKI], &p, sizeof p, -1);
             }
         } else if (k.a == 2 && !zainstalowany()) {
             k1_log(TAG, "wylogowanie odrzucone: K1 nie jest zainstalowany na tym komputerze");

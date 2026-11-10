@@ -16,17 +16,25 @@
 
 enum {
     P_LISTA = 1 << 0, P_CZYTAJ = 1 << 1, P_NOWY = 1 << 2, P_ZAPISZ = 1 << 3, P_NAZWA = 1 << 4, P_PRZENIES = 1 << 5,
-    P_KOSZ = 1 << 6, P_PRZYWROC = 1 << 7, P_USUN = 1 << 8, P_OPROZNIJ = 1 << 9, P_WSZYSTKO = (1 << 10) - 1,
+    P_KOSZ = 1 << 6, P_PRZYWROC = 1 << 7, P_USUN = 1 << 8, P_OPROZNIJ = 1 << 9, P_OTWORZ = 1 << 10,
+    P_WYBIERZ = 1 << 11, P_WYBRANO = 1 << 12, P_WSZYSTKO = (1 << 11) - 1, /* all but the file picker's */
 };
-enum { Z_WSZYSTKO = 1, Z_PULPIT = 2 }; /* which entries the client sees */
+/* Which entries the client sees: all (with Kosz), the Pulpit folder, the visible ones (no Kosz), or its own files
+ * (made by it) and the files it was given (ADR 0030). */
+enum { Z_WSZYSTKO = 1, Z_PULPIT, Z_WIDOCZNE, Z_WLASNE };
 
 /* The table of rights: a client not listed may do nothing with files. */
 static const struct prawa {
     int wlasciciel, prawa, zakres;
+    const char *folder; /* Z_WLASNE: its folder in Dokumenty, where its new files go */
 } prawa[] = {
-    { K1_PROFIL_PLIKI, P_WSZYSTKO, Z_WSZYSTKO },
+    { K1_PROFIL_PLIKI, P_WSZYSTKO, Z_WSZYSTKO, NULL },
     /* the desktop: the files of the Pulpit folder (names, to draw them) and Kosz — no content */
-    { K1_PROFIL_GUI, P_LISTA | P_KOSZ | P_OPROZNIJ, Z_PULPIT },
+    { K1_PROFIL_GUI, P_LISTA | P_KOSZ | P_OPROZNIJ | P_OTWORZ, Z_PULPIT, NULL },
+    /* Notatki: its notes and the text files the user opened in it; Kosz only for its own */
+    { K1_PROFIL_NOTATKI, P_LISTA | P_CZYTAJ | P_NOWY | P_ZAPISZ | P_NAZWA | P_KOSZ | P_WYBIERZ, Z_WLASNE, "Notatki" },
+    /* the file picker: names to choose from (no content), the user's choice */
+    { K1_PROFIL_WYBOR, P_LISTA | P_WYBRANO, Z_WIDOCZNE, NULL },
 };
 
 static uint8_t lista[K1_DOK_LISTA_MAKS];
@@ -75,10 +83,26 @@ static int dla_pulpitu(const struct k1_dok_wpis *w)
     return w->rodzic == K1_FOLDER_PULPIT && w->kosz == 0;
 }
 
+static int widoczny(const struct k1_dok_wpis *w)
+{
+    return dok_widoczny(w->id);
+}
+
+static int wl_filtra; /* the owner for dla_wlasnych (dok_wybierz takes a function of the entry only) */
+static int dla_wlasnych(const struct k1_dok_wpis *w)
+{
+    return w->rodzaj == K1_DOK_PLIK && dok_widoczny(w->id) && (w->tworca == wl_filtra || dostep_ma(wl_filtra, w->id));
+}
+
+static int (*const filtry[])(const struct k1_dok_wpis *) = {
+    [Z_WSZYSTKO] = dla_plikow, [Z_PULPIT] = dla_pulpitu, [Z_WIDOCZNE] = widoczny, [Z_WLASNE] = dla_wlasnych
+};
+
 static int w_zakresie(const struct prawa *p, uint32_t id)
 {
     const struct k1_dok_wpis *w = dok_wpis(id);
-    return w != NULL && (p->zakres == Z_WSZYSTKO || dla_pulpitu(w));
+    wl_filtra = p->wlasciciel;
+    return w != NULL && filtry[p->zakres](w);
 }
 
 static void wynik(int fd, uint32_t id, int typ, int r, uint32_t nowy)
@@ -89,7 +113,9 @@ static void wynik(int fd, uint32_t id, int typ, int r, uint32_t nowy)
 
 static void wyslij_liste(int fd, const struct prawa *p)
 {
-    int n = dok_wybierz(p->zakres == Z_WSZYSTKO ? dla_plikow : dla_pulpitu, wybrane);
+    int n;
+    wl_filtra = p->wlasciciel;
+    n = dok_wybierz(filtry[p->zakres], wybrane);
     size_t dl = k1_dok_lista_zapisz(wybrane, n, dok_w_koszu(), lista);
     int m_fd = k1_memfd_z_danymi("k1-lista", lista, dl);
     struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_DOK_LISTA, 0, (int32_t)dl, n, 0, 0, 0);
@@ -162,16 +188,20 @@ static int czytaj_nazwe(int fd, size_t calosc, size_t nl, char nazwa[K1_DOK_NAZW
     return 0;
 }
 
-/* NOWY: obiekt=folder, a=kind, b=name length, c=content length. */
-static int nowy(int wl, const struct k1_komunikat *m, int fd_in, uint32_t *id)
+/* NOWY: obiekt=folder, a=kind, b=name length, c=content length. A client with its own folder: files go there. */
+static int nowy(const struct prawa *p, const struct k1_komunikat *m, int fd_in, uint32_t *id)
 {
     char nazwa[K1_DOK_NAZWA];
     struct z_memfd z = { fd_in, (uint64_t)m->b };
     struct dok_zrodlo zr = { z_memfd, &z, (uint64_t)m->c };
+    uint32_t folder = m->obiekt;
     int r = czytaj_nazwe(fd_in, (size_t)m->b + (size_t)m->c, (size_t)m->b, nazwa);
+    if (r == 0 && p->folder != NULL)
+        r = dok_folder_aplikacji(p->folder, p->wlasciciel, teraz(), &folder);
     if (r != 0)
         return r;
-    return dok_nowy(m->obiekt, m->a, nazwa, (size_t)m->b, m->a == K1_DOK_PLIK ? &zr : NULL, wl, K1_POCH_K1, teraz(), id);
+    return dok_nowy(folder, m->a, nazwa, (size_t)m->b, m->a == K1_DOK_PLIK ? &zr : NULL, p->wlasciciel, K1_POCH_K1,
+                    teraz(), id);
 }
 
 static int zapisz(const struct k1_komunikat *m, int fd_in)
@@ -187,15 +217,15 @@ static int nazwa(const struct k1_komunikat *m, int fd_in)
 {
     char n[K1_DOK_NAZWA];
     int r = czytaj_nazwe(fd_in, (size_t)m->a, (size_t)m->a, n);
-    return r != 0 ? r : dok_zmien_nazwe(m->obiekt, n, (size_t)m->a, teraz());
+    return r != 0 ? r : dok_zmien_nazwe(m->obiekt, n, (size_t)m->a, m->b, teraz());
 }
 
 /* A change request already allowed: its result. */
-static int zmiana(int wl, const struct k1_komunikat *m, int fd_in, uint32_t *nowy_id)
+static int zmiana(const struct prawa *p, const struct k1_komunikat *m, int fd_in, uint32_t *nowy_id)
 {
     switch (m->typ) {
     case K1_KOM_DOK_NOWY:
-        return nowy(wl, m, fd_in, nowy_id);
+        return nowy(p, m, fd_in, nowy_id);
     case K1_KOM_DOK_ZAPISZ:
         return zapisz(m, fd_in);
     case K1_KOM_DOK_NAZWA:
@@ -215,22 +245,55 @@ static int zmiana(int wl, const struct k1_komunikat *m, int fd_in, uint32_t *now
 
 static int potrzebne_prawo(int typ)
 {
-    static const int p[] = { [K1_KOM_DOK_SPIS - K1_KOM_DOK_SPIS] = P_LISTA, [K1_KOM_DOK_CZYTAJ - K1_KOM_DOK_SPIS] = P_CZYTAJ,
-                             [K1_KOM_DOK_NOWY - K1_KOM_DOK_SPIS] = P_NOWY, [K1_KOM_DOK_ZAPISZ - K1_KOM_DOK_SPIS] = P_ZAPISZ,
-                             [K1_KOM_DOK_NAZWA - K1_KOM_DOK_SPIS] = P_NAZWA, [K1_KOM_DOK_PRZENIES - K1_KOM_DOK_SPIS] = P_PRZENIES,
-                             [K1_KOM_DOK_KOSZ - K1_KOM_DOK_SPIS] = P_KOSZ, [K1_KOM_DOK_PRZYWROC - K1_KOM_DOK_SPIS] = P_PRZYWROC,
-                             [K1_KOM_DOK_USUN - K1_KOM_DOK_SPIS] = P_USUN, [K1_KOM_DOK_OPROZNIJ - K1_KOM_DOK_SPIS] = P_OPROZNIJ };
-    return p[typ - K1_KOM_DOK_SPIS];
+    switch (typ) {
+    case K1_KOM_DOK_SPIS: return P_LISTA;
+    case K1_KOM_DOK_CZYTAJ: return P_CZYTAJ;
+    case K1_KOM_DOK_NOWY: return P_NOWY;
+    case K1_KOM_DOK_ZAPISZ: return P_ZAPISZ;
+    case K1_KOM_DOK_NAZWA: return P_NAZWA;
+    case K1_KOM_DOK_PRZENIES: return P_PRZENIES;
+    case K1_KOM_DOK_KOSZ: return P_KOSZ;
+    case K1_KOM_DOK_PRZYWROC: return P_PRZYWROC;
+    case K1_KOM_DOK_USUN: return P_USUN;
+    case K1_KOM_DOK_OPROZNIJ: return P_OPROZNIJ;
+    case K1_KOM_DOK_OTWORZ: return P_OTWORZ;
+    case K1_KOM_DOK_WYBIERZ: return P_WYBIERZ;
+    default: return P_WYBRANO;
+    }
 }
 
 /* Whether the entries a request names are within the client's sight. */
 static int widzi(const struct prawa *p, const struct k1_komunikat *m)
 {
-    if (p->zakres == Z_WSZYSTKO || m->typ == K1_KOM_DOK_SPIS || m->typ == K1_KOM_DOK_OPROZNIJ)
+    const struct k1_dok_wpis *w = dok_wpis(m->obiekt);
+    if (p->zakres == Z_WSZYSTKO)
         return 1;
-    if (m->typ == K1_KOM_DOK_NOWY)
-        return m->obiekt == K1_FOLDER_PULPIT;
-    return w_zakresie(p, m->obiekt) && (m->typ != K1_KOM_DOK_PRZENIES || m->a == K1_FOLDER_PULPIT);
+    switch (m->typ) {
+    case K1_KOM_DOK_SPIS:
+    case K1_KOM_DOK_OPROZNIJ:
+    case K1_KOM_DOK_WYBIERZ:
+    case K1_KOM_DOK_WYBRANO: /* the file itself is checked in dostep.c */
+        return 1;
+    case K1_KOM_DOK_NOWY: /* the desktop: into Pulpit; an application with its folder: a file "into Dokumenty" = there */
+        return p->zakres == Z_PULPIT ? m->obiekt == K1_FOLDER_PULPIT
+                                     : p->folder != NULL && m->obiekt == K1_FOLDER_DOKUMENTY && m->a == K1_DOK_PLIK;
+    case K1_KOM_DOK_KOSZ: /* an application: only what it made itself */
+        return w_zakresie(p, m->obiekt) && (p->zakres != Z_WLASNE || w->tworca == p->wlasciciel);
+    case K1_KOM_DOK_PRZENIES:
+        return w_zakresie(p, m->obiekt) && m->a == K1_FOLDER_PULPIT;
+    default:
+        return w_zakresie(p, m->obiekt);
+    }
+}
+
+/* DOK_OTWORZ, DOK_WYBIERZ, DOK_WYBRANO (allowed already): dostep.c. */
+static int wybor(int fd, const struct prawa *p, const struct k1_komunikat *m)
+{
+    if (m->typ == K1_KOM_DOK_OTWORZ)
+        return dostep_otworz(m->obiekt, m->a);
+    if (m->typ == K1_KOM_DOK_WYBIERZ)
+        return dostep_wybierz(fd, p->wlasciciel, m->a);
+    return dostep_wybrano(m->obiekt);
 }
 
 int dok_obsluz(int fd, int wl, const struct k1_komunikat *m, int fd_in)
@@ -251,8 +314,15 @@ int dok_obsluz(int fd, int wl, const struct k1_komunikat *m, int fd_in)
     } else if (m->typ == K1_KOM_DOK_CZYTAJ) {
         wyslij_tresc(fd, m->obiekt, (uint64_t)m->a);
         r = 1;
+    } else if (m->typ >= K1_KOM_DOK_OTWORZ) {
+        r = wybor(fd, p, m);
+        if (r != 0 || m->typ != K1_KOM_DOK_WYBIERZ) /* WYBIERZ: the answer is DOK_WYBRANY, later */
+            wynik(fd, m->obiekt, m->typ, r, 0);
+        if (r != 0)
+            k1_log(TAG, "pliki: komunikat %d (właściciel %d): odmowa (%d)", m->typ, wl, r);
+        r = 1; /* no file changed */
     } else {
-        r = zmiana(wl, m, fd_in, &nowy_id);
+        r = zmiana(p, m, fd_in, &nowy_id);
         wynik(fd, m->obiekt, m->typ, r, r == 0 ? nowy_id : 0);
         if (r != 0)
             k1_log(TAG, "pliki: komunikat %d (właściciel %d): %s", m->typ, wl, r <= K1_DOK_BLAD_NAZWA ? "odmowa" : k1_mag_opis(r));

@@ -1,9 +1,8 @@
 /* K1 Notatki — native application: many notes (0.5.8), Polish keyboard layout, saved automatically
- * (M4, ADR 0008). Since M5d the notes are objects in skarbiec (Blob Vault, encrypted on the K1-DANE
- * partition; fd 4 from nadzorca): the program has no files at all — it can reach only its own objects.
- *   object 1      the list: "K1N1", count, the note ids in order (most recently changed first)
- *   objects 2..33 the notes (UTF-8 text, at most 16 KiB each); 2 = the single note of 0.5.6–0.5.7
- * Note contents never go to the log (only lengths and counts).
+ * (M4, ADR 0008). Since 0.8.0 every note is a text file in Dokumenty › Notatki (ADR 0030): its name follows the
+ * first line, "Usuń notatkę" moves it to Kosz. "Otwórz…" (Ctrl+O) asks for the file picker of K1; a text file
+ * opened in Notatki from Pliki or the desktop comes on fd 5. The program has no paths at all: skarbiec (fd 4)
+ * lets it reach only its own files and the ones the user gave it. Contents never go to the log.
  * Sandbox: UID 201, seccomp (base + memfd_create, ftruncate), Landlock without any path.
  * Modules: notatki.h. Documentation: docs/komponenty/aplikacje.md. */
 #include <string.h>
@@ -25,7 +24,9 @@
 #define STOPKA 36
 #define NOWA_X 12                      /* "Nowa notatka" button */
 #define NOWA_Y (K1_OKNO_TYTUL + 8)
-#define NOWA_W (BOK - 24)
+#define NOWA_W (BOK - 24 - 44)
+#define OTWORZ_X (NOWA_X + NOWA_W + 8) /* "Otwórz…": a square button with a folder */
+#define OTWORZ_W 36
 #define NOWA_H 36
 #define LISTA_Y (NOWA_Y + NOWA_H + 10) /* first row of the list */
 #define RZAD 52
@@ -36,8 +37,9 @@ struct notatka nt[MAKS_NOTATEK];
 int n_nt, biez;
 struct notatka *b = &nt[0];
 uint32_t kursor, pierwsza;
-int lista_od, pytanie, pelno;
-static int nad_wierszem = -1; /* hover: row of the list, -2 = the new note button */
+int lista_od, pytanie;
+const char *komunikat;
+static int nad_wierszem = -1; /* hover: row of the list, -2 = the new note button, -5 = "Otwórz…" */
 double zmiana;
 int zapis_blad, skarb = -1, tryb = -1;
 
@@ -115,6 +117,9 @@ static void rysuj_liste(struct k1_obraz *o, const struct k1_motyw *m)
     k1_kreska(o, NOWA_X + 26, NOWA_Y + NOWA_H / 2.0f - 6, NOWA_X + 26, NOWA_Y + NOWA_H / 2.0f + 6, 1.6f,
               k1_kolor(m->akcent_tekst, 255));
     k1_tekst(o, K1_CZ_TEKST_MOCNA, NOWA_X + 44, NOWA_Y + 23, "Nowa notatka", k1_kolor(m->akcent_tekst, 255), 0);
+    k1_zaokraglony(o, OTWORZ_X, NOWA_Y, OTWORZ_W, NOWA_H, 8, k1_kolor(nad_wierszem == -5 ? m->najechanie : m->pole, 255));
+    k1_obrys(o, OTWORZ_X, NOWA_Y, OTWORZ_W, NOWA_H, 8, 1.0f, k1_kolor(m->tekst, 40));
+    k1_ikona(o, K1_IK_FOLDER, OTWORZ_X + 8, NOWA_Y + 8, 20, k1_kolor(m->tekst2, 255));
 
     for (i = lista_od; i < n_nt && i < lista_od + w; i++) {
         int32_t y = LISTA_Y + (i - lista_od) * RZAD;
@@ -140,10 +145,16 @@ static void rysuj_liste(struct k1_obraz *o, const struct k1_motyw *m)
     k1_prostokat(o, BOK, K1_OKNO_TYTUL + 8, 1, apl.wys - K1_OKNO_TYTUL - 16, k1_kolor(m->tekst, 22));
 }
 
-/* The footer's buttons on the right: "Usuń notatkę", or "Anuluj" + "Usuń" while asking. */
+/* The footer's button on the right: "Usuń notatkę" (into Kosz), "Zamknij plik" for a file the user gave
+ * Notatki, or "Anuluj" + "Usuń" while asking. */
+static const char *etykieta_usun(void)
+{
+    return pytanie ? "Usuń" : b->id != 0 && !b->wlasna ? "Zamknij plik" : "Usuń notatkę";
+}
+
 static int32_t x_usun(void)
 {
-    return apl.szer - PRAWO - k1_tekst_szer(K1_CZ_MALA_MOCNA, pytanie ? "Usuń" : "Usuń notatkę");
+    return apl.szer - PRAWO - k1_tekst_szer(K1_CZ_MALA_MOCNA, etykieta_usun());
 }
 
 static int32_t x_anuluj(void)
@@ -165,7 +176,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     if ((int32_t)(lk - pierwsza) >= widoczne())
         pierwsza = lk - (uint32_t)widoczne() + 1;
     if (b->dl == 0)
-        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 16, "Zacznij pisać…", k1_kolor(m->tekst3, 255), 0);
+        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 16, b->wczytana ? "Zacznij pisać…" : "Wczytywanie…", k1_kolor(m->tekst3, 255), 0);
     for (i = pierwsza, y = GORA; i < n_linii && (int32_t)(i - pierwsza) < widoczne(); i++, y += WIERSZ) {
         uint32_t n = linie[i].do_ - linie[i].od;
         memcpy(bufor, b->tekst + linie[i].od, n);
@@ -176,7 +187,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     }
     k1_prostokat(o, LEWO - 8, apl.wys - STOPKA, apl.szer - LEWO - 8, 1, k1_kolor(m->tekst, 22));
     if (pytanie) {
-        k1_tekst(o, K1_CZ_MALA, LEWO, apl.wys - 13, "Usunąć tę notatkę? Tego nie da się cofnąć.", k1_kolor(m->tekst, 255),
+        k1_tekst(o, K1_CZ_MALA, LEWO, apl.wys - 13, "Przenieść tę notatkę do Kosza?", k1_kolor(m->tekst, 255),
                  x_anuluj() - LEWO - 12);
         k1_tekst(o, K1_CZ_MALA_MOCNA, x_anuluj(), apl.wys - 13, "Anuluj", k1_kolor(m->tekst2, 255), 0);
         k1_tekst(o, K1_CZ_MALA_MOCNA, x_usun(), apl.wys - 13, "Usuń", k1_kolor(m->akcent_tekst, 255), 0);
@@ -184,13 +195,13 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     }
     k1_tekst(o, K1_CZ_MALA, LEWO, apl.wys - 13,
              zapis_blad   ? "Nie udało się zapisać notatki"
-             : pelno      ? "Najwięcej 32 notatki — usuń którąś, żeby dodać nową"
+             : komunikat  ? komunikat
              : zmiana > 0 ? "Zapisywanie…"
              : skarb < 0  ? "Bez zapisu — brak usługi danych"
              : tryb == K1_SKARB_TRWALY ? "Zapisano (zaszyfrowane)"
                           : "Zapisano tylko do wyłączenia komputera (brak partycji K1-DANE)",
              k1_kolor(zapis_blad ? m->akcent_tekst : m->tekst3, 255), x_usun() - LEWO - 16);
-    k1_tekst(o, K1_CZ_MALA_MOCNA, x_usun(), apl.wys - 13, "Usuń notatkę", k1_kolor(m->tekst2, 255), 0);
+    k1_tekst(o, K1_CZ_MALA_MOCNA, x_usun(), apl.wys - 13, etykieta_usun(), k1_kolor(m->tekst2, 255), 0);
 }
 
 static void klawisz(unsigned kod, int wartosc, unsigned mody)
@@ -200,9 +211,11 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     int n;
     if (wartosc == 0)
         return;
-    if (mody & K1_MOD_CTRL) { /* Ctrl+N: new note; Ctrl+↑/↓: the previous / next note of the list */
+    if (mody & K1_MOD_CTRL) { /* Ctrl+N: new note; Ctrl+O: a file; Ctrl+↑/↓: the previous / next note of the list */
         if (kod == KEY_N)
             nowa();
+        else if (kod == KEY_O)
+            wybierz_plik();
         else if (kod == KEY_UP && biez > 0)
             otworz(biez - 1);
         else if (kod == KEY_DOWN && biez + 1 < n_nt)
@@ -214,6 +227,8 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
         k1_apl_odswiez(&apl);
         return;
     }
+    if (!b->wczytana)
+        return; /* its content is not here yet */
     uloz(szer_tekstu());
     switch (kod) {
     case KEY_ENTER:
@@ -262,8 +277,8 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     k1_apl_odswiez(&apl);
 }
 
-/* What is under (x, y) in the list: a row (>= 0), -2 = the new note button, -3 / -4 = scroll up /
- * down, -1 = nothing. */
+/* What is under (x, y) in the list: a row (>= 0), -2 = the new note button, -5 = "Otwórz…", -3 / -4 = scroll
+ * up / down, -1 = nothing. */
 static int w_liscie(int32_t x, int32_t y)
 {
     int w = wierszy_widac(), r;
@@ -271,6 +286,8 @@ static int w_liscie(int32_t x, int32_t y)
         return -1;
     if (x >= NOWA_X && x < NOWA_X + NOWA_W && y >= NOWA_Y && y < NOWA_Y + NOWA_H)
         return -2;
+    if (x >= OTWORZ_X && x < OTWORZ_X + OTWORZ_W && y >= NOWA_Y && y < NOWA_Y + NOWA_H)
+        return -5;
     if (przewijanie_potrzebne() && y >= apl.wys - 12 - PRZEWIJANIE && y < apl.wys - 12)
         return x < BOK / 2 ? -3 : -4;
     if (y < LISTA_Y)
@@ -286,7 +303,7 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     uint32_t ln;
     int cel = rodzaj == K1_WSK_WYJSCIE ? -1 : w_liscie(x, y);
     if (rodzaj == K1_WSK_RUCH || rodzaj == K1_WSK_WYJSCIE) {
-        int nad = cel >= 0 || cel == -2 ? cel : -1;
+        int nad = cel >= 0 || cel == -2 || cel == -5 ? cel : -1;
         if (nad != nad_wierszem) {
             nad_wierszem = nad;
             k1_apl_odswiez(&apl);
@@ -298,6 +315,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     if (x < BOK) {
         if (cel == -2)
             nowa();
+        else if (cel == -5)
+            wybierz_plik();
         else if (cel == -3 || cel == -4) {
             lista_od += (cel == -3 ? -1 : 1) * wierszy_widac();
             if (lista_od > n_nt - wierszy_widac())
@@ -325,7 +344,7 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         }
         return;
     }
-    if (y < GORA)
+    if (y < GORA || !b->wczytana)
         return;
     uloz(szer_tekstu());
     ln = pierwsza + (uint32_t)((y - GORA) / WIERSZ);
@@ -365,15 +384,18 @@ int main(void)
     apl.zegar = zegar;
     apl.zamykanie = zamykanie;
     wczytaj();
-    apl.kanaly[0].fd = skarb; /* the results of saving */
-    apl.kanaly[0].dane = odbierz_wyniki;
+    apl.kanaly[0].fd = skarb; /* the files, their content, the results of saving */
+    apl.kanaly[0].dane = skarb_odbierz;
+    apl.kanaly[1].fd = FD_NADZORCA; /* a file opened in Notatki from Pliki or the desktop */
+    apl.kanaly[1].dane = nadzorca_odbierz;
     { /* the tests click by this line */
         int32_t usun_x = x_usun() + 12, tak_x;
         pytanie = 1;
         tak_x = x_usun() + 12;
         pytanie = 0;
-        k1_log(TAG, "układ: nowa %d,%d; lista od %d,%d co %d; usuń %d,%d, potwierdź %d", NOWA_X + NOWA_W / 2,
-               NOWA_Y + NOWA_H / 2, BOK / 2, LISTA_Y + RZAD / 2, RZAD, usun_x, apl.wys - 18, tak_x);
+        k1_log(TAG, "układ: nowa %d,%d; lista od %d,%d co %d; usuń %d,%d, potwierdź %d; otwórz %d,%d", NOWA_X + NOWA_W / 2,
+               NOWA_Y + NOWA_H / 2, BOK / 2, LISTA_Y + RZAD / 2, RZAD, usun_x, apl.wys - 18, tak_x, OTWORZ_X + OTWORZ_W / 2,
+               NOWA_Y + NOWA_H / 2);
     }
     k1_apl_uruchom(&apl);
 }

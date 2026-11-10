@@ -1,5 +1,6 @@
 /* K1 Ustawienia — state shared by the modules (0.7.5 split): main.c (sections, Wygląd, Ekran, Mysz,
- * Data i czas, Informacje), bateria.c (Bateria: from nadzorca, fd 4), haslo.c (Hasło: through skarbiec, fd 5). */
+ * Data i czas, Informacje), bateria.c (Bateria: from nadzorca, fd 4), haslo.c (Hasło: through skarbiec, fd 5),
+ * aplikacje.c (Aplikacje: the default application of a file type, 0.8.0). */
 #ifndef K1_USTAWIENIA_H
 #define K1_USTAWIENIA_H
 
@@ -15,7 +16,7 @@
 #define SEG_W 260
 #define SEG_H 36
 
-enum { S_WYGLAD, S_EKRAN, S_BATERIA, S_MYSZ, S_CZAS, S_HASLO, S_INFO, S_LICZBA };
+enum { S_WYGLAD, S_EKRAN, S_BATERIA, S_MYSZ, S_CZAS, S_HASLO, S_APLIKACJE, S_INFO, S_LICZBA };
 
 extern struct k1_apl apl;
 extern int sekcja;
@@ -43,5 +44,11 @@ void haslo_klawisz(unsigned kod, int wartosc, unsigned mody);
 void haslo_zamknij(void);   /* leaving the section: the form closes, typed text is wiped */
 void haslo_loguj(void);     /* the tests click by this line */
 const char *haslo_gdzie_dane(void); /* the Informacje line about the data */
+
+/* aplikacje.c */
+void aplikacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
+int aplikacje_najechanie(int32_t x, int32_t y); /* 1 = redraw */
+int aplikacje_klik(int32_t x, int32_t y);       /* 1 = handled */
+void aplikacje_loguj(void);                     /* the tests click by this line */
 
 #endif

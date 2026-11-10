@@ -111,6 +111,7 @@ static void powierzchnie(void)
     EXPECT(zle(K(K1_KOM_USTAW, 0, K1_UST_TAPETA, 5, 0, 0, 0), K1_KIER_DO_EKRANU));
     EXPECT(zle(K(K1_KOM_USTAW, 0, K1_UST_TAPETA, -1, 0, 0, 0), K1_KIER_DO_EKRANU));
     EXPECT(zle(K(K1_KOM_USTAW, 0, 9, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_USTAW, 0, K1_UST_MAKS + 1, K1_APL_PLIKI, 0, 0, 0), K1_KIER_DO_EKRANU));
 }
 
 static void od_ekranu(void)
@@ -438,7 +439,7 @@ static void pliki(void)
     EXPECT(ok(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_KOSZ, -3, 0, 0, 0), OD));
     EXPECT(zle(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_KOSZ, 0, 150, 0, 0), OD) && /* a new number only after NOWY */
            zle(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_KOSZ, -9, 0, 0, 0), OD) &&
-           zle(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_KOSZ, -26, 0, 0, 0), OD) &&
+           zle(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_KOSZ, K1_DOK_BLAD_MIN - 1, 0, 0, 0), OD) &&
            zle(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_LISTA, 0, 0, 0, 0), OD));
     EXPECT(ok(K(K1_KOM_DOK_ZMIANA, 0, 0, 0, 0, 0, 0), OD) && zle(K(K1_KOM_DOK_ZMIANA, 0, 0, 0, 0, 0, 0), DO));
     /* descriptors: names and content in, the list and content out */
@@ -458,6 +459,52 @@ static void pliki(void)
            zle(K(K1_KOM_PLIKI_POKAZ, 0, 150, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
 }
 
+/* 0.8.0 step 2 (ADR 0030): a file for an application, the file picker, default applications */
+static void otwieranie(void)
+{
+    const enum k1_kanal_kierunek DO = K1_KIER_DO_SKARBCA, OD = K1_KIER_OD_SKARBCA, NADZ = K1_KIER_DO_NADZORCY;
+    const int UST_TEKST = K1_UST_OTWIERANIE + K1_TYP_TEKST - 1, UST_PNG = K1_UST_OTWIERANIE + K1_TYP_PNG - 1;
+    EXPECT(ok(K(K1_KOM_DOK_OTWORZ, 100, K1_APL_NOTATKI, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_OTWORZ, 100, K1_APL_NOTATKI, 0, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_DOK_OTWORZ, 100, K1_APL_PLIKI, 0, 0, 0, 0), DO) && /* Pliki opens at a place (URUCHOM) */
+           zle(K(K1_KOM_DOK_OTWORZ, 100, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_OTWORZ, 100, K1_APL_MAKS + 1, 0, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_OTWORZ, K1_FOLDER_DOKUMENTY, K1_APL_NOTATKI, 0, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_OTWORZ, 100, K1_APL_NOTATKI, 1, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_WYBIERZ, 0, 0, 0, 0, 0, 0), DO) && ok(K(K1_KOM_DOK_WYBIERZ, 0, K1_TYPY_MAKS, 0, 0, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_DOK_WYBIERZ, 0, K1_TYPY_MAKS + 1, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_WYBIERZ, 0, -1, 0, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_WYBIERZ, 100, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_WYBIERZ, 0, 0, 0, 0, 0, 0), OD));
+    EXPECT(ok(K(K1_KOM_DOK_WYBRANO, 0, 0, 0, 0, 0, 0), DO) && ok(K(K1_KOM_DOK_WYBRANO, 100, 0, 0, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_WYBRANO, 5, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_WYBRANO, 100, 1, 0, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_WYBRANO, 100, 0, 0, 0, 0, 0), OD));
+    EXPECT(ok(K(K1_KOM_DOK_WYBRANY, 100, 0, 0, 0, 0, 0), OD) && ok(K(K1_KOM_DOK_WYBRANY, 0, 0, 0, 0, 0, 0), OD) &&
+           zle(K(K1_KOM_DOK_WYBRANY, 100, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_WYBRANY, 2, 0, 0, 0, 0, 0), OD));
+    EXPECT(ok(K(K1_KOM_DOK_PROSBA, 0, K1_APL_NOTATKI, K1_TYP_TEKST, 0, 0, 0), OD) && ok(K(K1_KOM_DOK_PROSBA, 0, 1, 0, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_DOK_PROSBA, 0, 0, 0, 0, 0, 0), OD) && zle(K(K1_KOM_DOK_PROSBA, 0, 1, K1_TYPY_MAKS + 1, 0, 0, 0), OD) &&
+           zle(K(K1_KOM_DOK_PROSBA, 1, 1, 0, 0, 0, 0), OD) && zle(K(K1_KOM_DOK_PROSBA, 0, 1, 0, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_OTWORZ, K1_DOK_BLAD_PRAWA, 0, 0, 0), OD) &&
+           ok(K(K1_KOM_DOK_WYNIK, 0, K1_KOM_DOK_WYBIERZ, K1_DOK_BLAD_CZEKA, 0, 0, 0), OD) &&
+           ok(K(K1_KOM_DOK_WYNIK, 0, K1_KOM_DOK_WYBRANO, 0, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_DOK_WYNIK, 0, K1_KOM_DOK_WYBRANY, 0, 0, 0, 0), OD) && zle(K(K1_KOM_DOK_WYNIK, 0, 101, 0, 0, 0, 0), OD));
+    EXPECT(ok(K(K1_KOM_DOK_NAZWA, 100, 5, 1, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_NAZWA, 100, 5, 2, 0, 0, 0), DO));
+    EXPECT(k1_kom_dok_prosba(K1_KOM_DOK_SPIS) && k1_kom_dok_prosba(K1_KOM_DOK_WYBRANO) && !k1_kom_dok_prosba(K1_KOM_DOK_LISTA) &&
+           !k1_kom_dok_prosba(K1_KOM_DOK_WYBRANY) && !k1_kom_dok_prosba(K1_KOM_SKARB_CZYTAJ));
+    /* skarbiec → nadzorca, nadzorca → an application / gui */
+    EXPECT(ok(K(K1_KOM_SKARB_URUCHOM, 100, K1_APL_NOTATKI, 0, 0, 0, 0), NADZ) && ok(K(K1_KOM_SKARB_URUCHOM, 0, K1_APL_WYBOR, 0, 0, 0, 0), NADZ));
+    EXPECT(zle(K(K1_KOM_SKARB_URUCHOM, 3, K1_APL_NOTATKI, 0, 0, 0, 0), NADZ) && zle(K(K1_KOM_SKARB_URUCHOM, 0, 0, 0, 0, 0, 0), NADZ) &&
+           zle(K(K1_KOM_SKARB_URUCHOM, 0, K1_APL_WYBOR, 1, 0, 0, 0), NADZ) && zle(K(K1_KOM_SKARB_URUCHOM, 0, 1, 0, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_PLIK_OTWORZ, 100, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY) && zle(K(K1_KOM_PLIK_OTWORZ, 0, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY) &&
+           zle(K(K1_KOM_PLIK_OTWORZ, 100, 1, 0, 0, 0, 0), K1_KIER_OD_NADZORCY) && zle(K(K1_KOM_PLIK_OTWORZ, 100, 0, 0, 0, 0, 0), NADZ));
+    EXPECT(ok(K(K1_KOM_POKAZ_APL, 0, K1_APL_NOTATKI, 0, 0, 0, 0), K1_KIER_OD_NADZORCY) &&
+           zle(K(K1_KOM_POKAZ_APL, 0, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY) &&
+           zle(K(K1_KOM_POKAZ_APL, 1, K1_APL_NOTATKI, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(!k1_komunikat_z_deskryptorem(K1_KOM_DOK_OTWORZ, DO) && !k1_komunikat_z_deskryptorem(K1_KOM_DOK_WYBRANY, OD));
+    /* the default application of a type: one that opens it */
+    EXPECT(k1_ustawienie_poprawne(UST_TEKST, K1_APL_NOTATKI) && k1_ustawienie_poprawne(UST_TEKST, K1_APL_PLIKI) &&
+           !k1_ustawienie_poprawne(UST_TEKST, K1_APL_ZEGAR) && !k1_ustawienie_poprawne(UST_TEKST, 0) &&
+           k1_ustawienie_poprawne(UST_PNG, K1_APL_PLIKI) && !k1_ustawienie_poprawne(UST_PNG, K1_APL_NOTATKI));
+    for (int t = 1; t <= K1_TYPY_MAKS; t++) /* ekran starts with these and sends them to every client */
+        EXPECT(k1_ustawienie_poprawne(K1_UST_OTWIERANIE + t - 1, k1_dok_domyslna(t)));
+}
+
 int main(void)
 {
     naglowek();
@@ -468,6 +515,7 @@ int main(void)
     zasoby();
     skarbiec();
     pliki();
+    otwieranie();
     kanal();
     return K1_TEST_KONIEC("test_komunikat");
 }

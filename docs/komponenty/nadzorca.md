@@ -75,6 +75,10 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   `WYLACZ` a=2 (0.6.3, tylko od UID 102) — wylogowanie `zamknij_sesje()`: aplikacje i pulpit cicho
   (`SIGTERM`), potem skarbiec (zapomina klucz); nowy skarbiec zgłasza magazyn zablokowany → ekran
   hasła, albo otwarty (bez hasła) → pulpit od nowa. Ekran logowania i Instalator a=2 nie wyślą.
+- Prośby skarbca (0.8.0, ADR 0030, kanał sterujący, nadawca UID 103): `SKARB_URUCHOM` — uruchom aplikację, a gdy
+  ma plik (obiekt ≠ 0; skarbiec dał jej dostęp po „Otwórz w…”) — wyślij go na jej fd 5 (`PLIK_OTWORZ`) i poproś
+  pulpit (`POKAZ_APL`, fd 5 gui) o jej okno na wierzch; obiekt = 0 — okno wyboru pliku („Wybór pliku”).
+  Kanał „plik do otwarcia” (fd 5) mają Notatki i Pliki (Pliki: `PLIKI_POKAZ`), tablica `plik_kanal[]`.
 - Kanał do skarbca dla klienta (`SKARB_KLIENT` c, 0.6.3): 1 = partycja K1-DANE jest na USB; skarbiec
   oddaje to klientom w `SKARB_WYNIK` d (bit 1) — Notatki i Ustawienia piszą „dysk komputera” albo
   „pendrive K1”.
