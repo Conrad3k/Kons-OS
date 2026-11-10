@@ -240,9 +240,10 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
     [x] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie (pokazywane w Plikach)
     [x] aplikacja Pliki: foldery jak w Windows, lista, podgląd, zmiana nazwy; pliki na pulpicie
     [x] Kosz: przywracanie; usuwa na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”); ikona na pulpicie
-    [ ] (krok 2) okno wyboru pliku rysowane przez K1 — aplikacja dostaje tylko wybrany plik (prośba przez kanał)
-    [ ] domyślna aplikacja dla typu pliku i „Otwórz w…” (Ustawienia → Aplikacje; ADR 0027)
-    [ ] Notatki na wspólnych dokumentach (istniejące notatki przeniesione)
+    [ ] (krok 2, ADR 0030) [w toku: Claude, gałąź claude/krok-2-wersji-0-8-0-js79u8]
+        okno wyboru pliku rysowane przez K1 — aplikacja dostaje tylko wybrany plik (prośba przez kanał)
+    [ ] domyślna aplikacja dla typu pliku i „Otwórz w…” (Ustawienia → Aplikacje; ADR 0027) [w toku: Claude, krok 2]
+    [ ] Notatki na wspólnych dokumentach (istniejące notatki przeniesione) [w toku: Claude, krok 2]
     [ ] zdjęcia z pendrive'a (czytnik FAT w klatce, bez FAT w jądrze), tylko po Twoim wyborze
     [ ] podgląd obrazów PNG/JPEG przez jednorazowy dekoder w izolacji; tapeta z własnego zdjęcia
     [ ] partycja K1-DANE na pendrivie do końca nośnika (dziś 64 MiB)

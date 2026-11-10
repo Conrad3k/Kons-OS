@@ -51,6 +51,10 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **wpis** | Metadane pliku albo folderu w skarbcu (bez treści); lista wpisów to to, co pokazują Pliki. |
 | **typ pliku** | Rodzaj treści rozpoznany przez skarbiec z pierwszych bajtów (tekst, PNG, JPEG, PDF…), nigdy z nazwy. Lista: `K1_TYPY`. |
 | **Kosz** | Usunięte pliki; można je przywrócić; usuwane na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”). To stan pliku, nie folder; ikona na pulpicie. |
+| **domyślna aplikacja** | Aplikacja, w której podwójne kliknięcie otwiera plik danego typu; wybór w Ustawieniach → Aplikacje. Które aplikacje otwierają który typ: tabela `K1_OTWIERANIE` (ADR 0030). |
+| **„Otwórz w…”** | Otwarcie pliku w wybranej aplikacji (Pliki, pulpit). Aplikacja dostaje dostęp tylko do tego pliku. |
+| **okno wyboru pliku** (program „Wybór pliku”) | Okno K1, w którym użytkownik wybiera plik dla aplikacji, która o niego prosi; aplikacja dostaje tylko wybrany plik, nigdy listę (ADR 0030). |
+| **dostęp do pliku** | Prawo aplikacji do jednego pliku, dane przez skarbiec po geście użytkownika („Otwórz w…”, okno wyboru pliku); trwa, dopóki aplikacja działa. |
 | **okno wyboru pliku** | Okno rysowane przez K1, w którym użytkownik wskazuje plik dla aplikacji; aplikacja nie widzi niczego więcej. |
 | **gest zgody** | Działanie użytkownika w miejscu rysowanym przez K1 (Pobierz, wybór pliku, „Otwórz w…”, przeciągnięcie) — jest zgodą na przeniesienie pliku. |
 | **Gatekeeper** | Część K1, która przyjmuje pliki z zewnątrz (strefy, pendrive): czeka na zgodę, czyta z limitami, zapisuje do Plików z pochodzeniem. |
