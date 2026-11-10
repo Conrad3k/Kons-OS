@@ -151,7 +151,7 @@ void rysuj_podglad(struct k1_obraz *o, const struct k1_motyw *m)
         cecha(o, m, &y, "Rozmiar", buf);
     }
     if (tu.kosz) {
-        int64_t zostalo = (w->kosz + (int64_t)K1_KOSZ_DNI * 86400 - (int64_t)time(NULL)) / 86400;
+        int64_t zostalo = (w->kosz + (int64_t)K1_KOSZ_DNI * 86400 - (int64_t)time(NULL) + 86399) / 86400; /* days begun */
         snprintf(buf, sizeof buf, "za %d dni", (int)(zostalo < 0 ? 0 : zostalo > K1_KOSZ_DNI ? K1_KOSZ_DNI : zostalo));
         cecha(o, m, &y, "Usunięcie na zawsze", buf);
     } else {

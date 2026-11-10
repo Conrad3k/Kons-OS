@@ -236,11 +236,11 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
     [x] nowa tapeta „Las” (Ustawienia → Wygląd)
 
 0.8.0 Pliki (natywna część dawnego M9 i dawne M6 „dekodery w izolacji”; kroki: ADR 0029 p. 8)
-    [w toku: Claude, gałąź claude/intelligent-pascal-6hlr2i] krok 1: dokumenty, foldery, Pliki, Kosz, pliki na pulpicie
-    [ ] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie (pokazywane w Plikach)
-    [ ] aplikacja Pliki: lista, podgląd, zmiana nazwy; pliki na pulpicie
-    [ ] Kosz: przywracanie; usuwa na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”); ikona na pulpicie
-    [ ] okno wyboru pliku rysowane przez K1 — aplikacja dostaje tylko wybrany plik (prośba przez kanał)
+    [x] krok 1 (ADR 0029): pliki i foldery w skarbcu, aplikacja Pliki, Kosz, pliki z folderu Pulpit na pulpicie
+    [x] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie (pokazywane w Plikach)
+    [x] aplikacja Pliki: foldery jak w Windows, lista, podgląd, zmiana nazwy; pliki na pulpicie
+    [x] Kosz: przywracanie; usuwa na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”); ikona na pulpicie
+    [ ] (krok 2) okno wyboru pliku rysowane przez K1 — aplikacja dostaje tylko wybrany plik (prośba przez kanał)
     [ ] domyślna aplikacja dla typu pliku i „Otwórz w…” (Ustawienia → Aplikacje; ADR 0027)
     [ ] Notatki na wspólnych dokumentach (istniejące notatki przeniesione)
     [ ] zdjęcia z pendrive'a (czytnik FAT w klatce, bez FAT w jądrze), tylko po Twoim wyborze
