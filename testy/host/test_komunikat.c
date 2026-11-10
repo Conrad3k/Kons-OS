@@ -549,6 +549,44 @@ static void pendrive(void)
            !k1_komunikat_z_deskryptorem(K1_KOM_PEN_PLIK, DO));
 }
 
+/* 0.8.0 step 4 (ADR 0032): the picture decoder — nadzorca ↔ Pliki, Pliki ↔ dekoder, Pliki → ekran (the wallpaper) */
+static void dekoder(void)
+{
+    const enum k1_kanal_kierunek DO = K1_KIER_DO_DEKODERA, OD = K1_KIER_OD_DEKODERA;
+    const int32_t MB16 = (int32_t)K1_DOK_MAKS_BAJTY, W = K1_DEK_MAKS_W, H = K1_DEK_MAKS_H;
+    EXPECT(ok(K(K1_KOM_DEKODER, 0, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY) && zle(K(K1_KOM_DEKODER, 0, 1, 0, 0, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_DEKODER, 0, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(ok(K(K1_KOM_DEKODER_KANAL, 0, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY) &&
+           k1_komunikat_z_deskryptorem(K1_KOM_DEKODER_KANAL, K1_KIER_OD_NADZORCY) &&
+           !k1_komunikat_z_deskryptorem(K1_KOM_DEKODER, K1_KIER_DO_NADZORCY));
+    /* Pliki → dekoder: a file of 1..16 MB, the largest size wanted within the wallpaper's */
+    EXPECT(ok(K(K1_KOM_DEK_OBRAZ, 7, 1, 1, 1, 0, 0), DO) && ok(K(K1_KOM_DEK_OBRAZ, 0xffffffffu, MB16, W, H, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_DEK_OBRAZ, 7, 0, 10, 10, 0, 0), DO) && zle(K(K1_KOM_DEK_OBRAZ, 7, MB16 + 1, 10, 10, 0, 0), DO) &&
+           zle(K(K1_KOM_DEK_OBRAZ, 7, 10, W + 1, 10, 0, 0), DO) && zle(K(K1_KOM_DEK_OBRAZ, 7, 10, 10, H + 1, 0, 0), DO) &&
+           zle(K(K1_KOM_DEK_OBRAZ, 7, 10, 0, 10, 0, 0), DO) && zle(K(K1_KOM_DEK_OBRAZ, 7, 10, 10, 10, 1, 0), DO) &&
+           zle(K(K1_KOM_DEK_OBRAZ, 7, 10, 10, 10, 0, 0), OD));
+    /* dekoder → Pliki */
+    EXPECT(ok(K(K1_KOM_DEK_PIKSELE, 7, W, H, 0, 0, 0), OD) && ok(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_DEK_PIKSELE, 7, W + 1, 1, 0, 0, 0), OD) && zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 0, 0, 0, 0), OD) &&
+           zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 1, 0, 0), OD) && zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_FORMAT, 0, 0, 0, 0), OD) && ok(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_MIN, 0, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_DEK_BLAD, 7, 0, 0, 0, 0, 0), OD) && zle(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_MIN - 1, 0, 0, 0, 0), OD) &&
+           zle(K(K1_KOM_DEK_BLAD, 7, K1_PEN_BLAD_FORMAT, 0, 0, 0, 0), OD) && zle(K(K1_KOM_DEK_BLAD, 7, -40, 1, 0, 0, 0), OD));
+    EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_DEK_OBRAZ, DO) && k1_komunikat_z_deskryptorem(K1_KOM_DEK_PIKSELE, OD) &&
+           !k1_komunikat_z_deskryptorem(K1_KOM_DEK_BLAD, OD));
+    /* Pliki → ekran: the wallpaper photo; nobody may set "ekran keeps a photo" */
+    EXPECT(ok(K(K1_KOM_TAPETA_ZDJECIE, 0, W, H, 0, 0, 0), K1_KIER_DO_EKRANU) &&
+           k1_komunikat_z_deskryptorem(K1_KOM_TAPETA_ZDJECIE, K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_TAPETA_ZDJECIE, 0, W + 1, H, 0, 0, 0), K1_KIER_DO_EKRANU) &&
+           zle(K(K1_KOM_TAPETA_ZDJECIE, 1, 10, 10, 0, 0, 0), K1_KIER_DO_EKRANU) &&
+           zle(K(K1_KOM_TAPETA_ZDJECIE, 0, 10, 10, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(ok(K(K1_KOM_USTAW, 0, K1_UST_TAPETA, K1_TAPETA_ZDJECIE, 0, 0, 0), K1_KIER_DO_EKRANU) &&
+           zle(K(K1_KOM_USTAW, 0, K1_UST_TAPETA, K1_TAPETY, 0, 0, 0), K1_KIER_DO_EKRANU) &&
+           zle(K(K1_KOM_USTAW, 0, K1_UST_ZDJECIE, 1, 0, 0, 0), K1_KIER_DO_EKRANU) &&
+           ok(K(K1_KOM_USTAWIENIE, 0, K1_UST_ZDJECIE, 1, 0, 0, 0), K1_KIER_OD_EKRANU) &&
+           zle(K(K1_KOM_USTAWIENIE, 0, K1_UST_ZDJECIE, 2, 0, 0, 0), K1_KIER_OD_EKRANU));
+}
+
 int main(void)
 {
     naglowek();
@@ -561,6 +599,7 @@ int main(void)
     pliki();
     otwieranie();
     pendrive();
+    dekoder();
     kanal();
     return K1_TEST_KONIEC("test_komunikat");
 }

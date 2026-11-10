@@ -120,6 +120,11 @@ void ustawienia_odbierz(void);
 void pokaz(void);
 void odbierz_drm(void);
 
+/* zdjecie.c — the wallpaper photo (0.8.0 step 4, ADR 0032) */
+void zdjecie_wczytaj(void);
+void rysuj_tlo(int wariant); /* s.tlo: the photo (K1_TAPETA_ZDJECIE) or a painted variant */
+const char *zdjecie_przyjmij(int kl, const struct k1_komunikat *m, int fd); /* closes fd; NULL or why rejected */
+
 /* okna.c */
 void wyslij(int kl, struct k1_komunikat m);
 int powloka(void);

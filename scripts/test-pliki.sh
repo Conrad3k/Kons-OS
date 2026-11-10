@@ -358,7 +358,8 @@ if tryb == "notatki":
         zrzut("notatki-6-ustawienia", gdy=lambda w, h, px: True)
         n_z = q.ile(r"K1-SKARBIEC: zapisano obiekt 1 właściciela 2 ")
         sprawdz("wybór „Pliki (podgląd)”: ustawienie ekranu zapisane w skarbcu",
-                po(r"K1-USTAWIENIA: zmiana ustawienia 7 → 7", lambda: klik(u0[0] + bx + 3 * bw // 4, u0[1] + by + bh // 2)) and
+                # key K1_UST_OTWIERANIE (7) + text (type 2) - 1 = 8, value Pliki (7)
+                po(r"K1-USTAWIENIA: zmiana ustawienia 8 → 7", lambda: klik(u0[0] + bx + 3 * bw // 4, u0[1] + by + bh // 2)) and
                 czekaj(r"K1-SKARBIEC: zapisano obiekt 1 właściciela 2 ", od=n_z))
     okno("pliki", lambda: klik(*pasek(5)))
 

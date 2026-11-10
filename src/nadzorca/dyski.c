@@ -192,3 +192,34 @@ int k1_pendrive_znajdz(const char *sys, char out[32])
     memcpy(out, najlepszy, sizeof najlepszy);
     return najlepszy[0] != '\0';
 }
+
+int k1_czesc_opis(const char *sys, const char *czesc, struct k1_czesc *c)
+{
+    char p[320];
+    unsigned long long numer, od, dl, dysk, sektor;
+    memset(c, 0, sizeof *c);
+    if (!dobra_nazwa(czesc) || rodzic(sys, czesc, c->dysk, sizeof c->dysk) != 0)
+        return -1;
+    snprintf(p, sizeof p, "%s/class/block/%s/partition", sys, czesc);
+    if (liczba(p, &numer) != 0)
+        return -1;
+    snprintf(p, sizeof p, "%s/class/block/%s/start", sys, czesc);
+    if (liczba(p, &od) != 0)
+        return -1;
+    snprintf(p, sizeof p, "%s/class/block/%s/size", sys, czesc);
+    if (liczba(p, &dl) != 0)
+        return -1;
+    snprintf(p, sizeof p, "%s/class/block/%s/size", sys, c->dysk);
+    if (liczba(p, &dysk) != 0)
+        return -1;
+    snprintf(p, sizeof p, "%s/class/block/%s/queue/logical_block_size", sys, c->dysk);
+    if (liczba(p, &sektor) != 0 || (sektor != 512 && sektor != 4096) || numer < 1 || numer > 128 || dl == 0 ||
+        od > dysk || dl > dysk - od || (od * 512) % sektor != 0 || (dl * 512) % sektor != 0 || (dysk * 512) % sektor != 0)
+        return -1;
+    c->numer = (int)numer;
+    c->sektor = (int)sektor;
+    c->od_512 = od;
+    c->dl_512 = dl;
+    c->dysk_512 = dysk;
+    return 0;
+}

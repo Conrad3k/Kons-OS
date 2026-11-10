@@ -35,6 +35,8 @@ struct k1_profil {
     uint64_t pamiec;                 /* cgroup memory.max in bytes (pids.max is always 1: no service forks) */
     unsigned pliki;                  /* RLIMIT_NOFILE */
     uint64_t rozmiar_pliku;          /* RLIMIT_FSIZE in bytes (0: may not grow any file) */
+    unsigned czas_cpu;               /* RLIMIT_CPU in seconds (0: no limit) — decoders (SPEC §7) */
+    uint64_t przestrzen;             /* RLIMIT_AS in bytes (0: no limit) — decoders (SPEC §7) */
 };
 
 /* Supervisor, once at start: enables the memory and pids controllers for child cgroups.

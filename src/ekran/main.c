@@ -114,7 +114,7 @@ static int przygotuj_tlo(void)
     s.scena.px = scena;
     s.tlo.szer = s.tlo.krok = s.scena.szer = s.scena.krok = (uint32_t)s.W;
     s.tlo.wys = s.scena.wys = (uint32_t)s.H;
-    k1_rysuj_tlo(&s.tlo, s.ust[K1_UST_TAPETA]);
+    rysuj_tlo(s.ust[K1_UST_TAPETA]);
     memcpy(s.scena.px, s.tlo.px, (size_t)s.W * (size_t)s.H * sizeof(uint32_t));
     return 0;
 }
@@ -187,6 +187,7 @@ static void start(void)
     k1_log(TAG, "tryby do wyboru: %d", s.n_trybow);
 
     ustawienia_wczytaj(); /* M5d: saved wallpaper, theme, pointer speed (before the first frame) */
+    zdjecie_wczytaj();    /* 0.8.0: the wallpaper photo, if there is one */
     t0 = k1_teraz();
     if (przygotuj_tlo() != 0)
         k1_koniec(TAG, "brak pamięci na tło");

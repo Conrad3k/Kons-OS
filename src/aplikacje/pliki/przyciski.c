@@ -131,6 +131,7 @@ void wykonaj(int r, int a)
     if (!dostepny(r))
         return;
     blad = NULL;
+    tapeta_stan = NULL;
     switch (r) {
     case B_OTWORZ_W: wybor_aplikacji = 1; break;
     case B_APL: otworz_w(a); break;

@@ -4,7 +4,8 @@
  *   rysuj.c  drawing the list, the preview on the right and the footer
  *   dane.c   the files from skarbiec (fd 4): the list, a preview, requests and their results; places from
  *            nadzorca (fd 5, when the desktop opens Pliki at a file or Kosz)
- *   pendrive.c the USB stick (fd 6 from nadzorca, the channel to czytnik) and the import (0.8.0 step 3) */
+ *   pendrive.c the USB stick (fd 6 from nadzorca, the channel to czytnik) and the import (0.8.0 step 3)
+ *   obrazy.c the preview of a picture and "Ustaw jako tapetę" — through a dekoder (0.8.0 step 4) */
 #ifndef K1_PLIKI_H
 #define K1_PLIKI_H
 
@@ -17,8 +18,9 @@
 #define FD_SKARBIEC 4
 #define FD_NADZORCA 5
 #define FD_PENDRIVE 6
-#define KANAL_PENDRIVE 2 /* apl.kanaly[]: 0 skarbiec, 1 nadzorca (fd 5), 2 nadzorca (fd 6), 3 czytnik */
+#define KANAL_PENDRIVE 2 /* apl.kanaly[]: 0 skarbiec, 1 nadzorca (fd 5), 2 nadzorca (fd 6), 3 czytnik, 4 dekoder */
 #define KANAL_CZYTNIK 3
+#define KANAL_DEKODER 4
 
 /* Layout (window coordinates) */
 #define SZER 920
@@ -29,6 +31,9 @@
 #define KOSZ_Y (NAV_Y + K1_FOLDERY_MAKS * NAV_WIERSZ + 14)
 #define LISTA_X (BOK + 16)
 #define PODGLAD_W 232                  /* the preview on the right */
+#define PODGLAD_X (SZER - PODGLAD_W - 12)
+#define MIN_W (PODGLAD_W - 32)         /* a picture in the preview (0.8.0 step 4) */
+#define MIN_H 150
 #define LISTA_W (SZER - LISTA_X - PODGLAD_W - 24)
 #define SCIEZKA_Y (K1_OKNO_TYTUL + 10) /* the "up" button and the path */
 #define PRZYCISKI_Y (K1_OKNO_TYTUL + 52)
@@ -39,6 +44,7 @@
 #define STOPKA 40
 #define PRZEWIJANIE 26                 /* the strip with the scroll arrows (only when needed) */
 #define PRZYCISKI_MAKS 6               /* buttons of a place at most */
+#define PODGLAD_TAPETA_Y (SCIEZKA_Y + 16 + MIN_H + 40) /* "Ustaw jako tapetę" under the picture and its name */
 
 /* the place shown: a folder, Kosz, or a folder on the USB stick */
 struct miejsce {
@@ -119,6 +125,17 @@ const struct k1_dok_wpis *pen_wpis(uint32_t id);
 uint32_t pen_folder(void);
 int pen_sciezka(const char **nazwy, int maks); /* "Pendrive", then the folders entered */
 const char *pendrive_stopka(void);
+
+/* obrazy.c */
+extern const char *tapeta_stan;    /* the wallpaper being set, or how it went (the footer; NULL: nothing) */
+void obrazy_start(void);
+int obraz_pliku(const struct k1_dok_wpis *w); /* a PNG or JPEG file of the user's (not on the stick) */
+void obraz_podglad(uint32_t id);   /* decode for the preview (if not done already) */
+void obraz_tapeta(uint32_t id);    /* decode and set as the wallpaper */
+int obraz_tresc(const struct k1_komunikat *k, int fd); /* DOK_TRESC: 1 when it was the picture's file */
+void obraz_kanal(int fd);          /* DEKODER_KANAL from nadzorca */
+int32_t obraz_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_dok_wpis *w, int32_t x, int32_t y);
+int obraz_przycisk(struct k1_przycisk *p); /* "Ustaw jako tapetę": 1 when shown */
 
 /* rysuj.c */
 void rysuj_liste(struct k1_obraz *o, const struct k1_motyw *m);

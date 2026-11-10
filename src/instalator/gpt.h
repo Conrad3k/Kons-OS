@@ -38,6 +38,16 @@ int k1_gpt_uklad(uint64_t bajty, uint32_t sektor, struct k1_gpt_uklad *u);
 void k1_gpt_zbuduj(const struct k1_gpt_uklad *u, const uint8_t losowe[48], uint8_t *mbr, uint8_t *glowny,
                    uint8_t *zapasowy, uint8_t *wpisy);
 
+/* K1-DANE to the end of a larger disk (0.8.0 step 5, ADR 0033): the table of a disk of `sektory` sectors of `sektor`
+ * bytes as read from it — `mbr` (LBA 0), `glowny` (LBA 1), `wpisy` (LBA 2…, K1_GPT_WPISY_BAJTY). Checked first: the
+ * header (signature, version, size, CRC, at LBA 1 with 128 entries of 128 B at LBA 2, usable range inside the disk),
+ * the entries' CRC, a partition named K1-DANE starting at LBA `dane_od` (where the kernel has it) and no partition
+ * after it. Then K1-DANE ends at the last MiB boundary of the disk: new `glowny`, `zapasowy` (for LBA sektory-1, its
+ * entries — the same `wpisy` — at sektory-1-entries), `wpisy` and the size in the protective MBR; *nowy_koniec = the
+ * new last LBA of K1-DANE. 0 done, 1 nothing to gain (less than 16 MiB), -1 not a table K1 wrote (nothing changed). */
+int k1_gpt_powieksz(uint32_t sektor, uint64_t sektory, uint64_t dane_od, uint8_t *mbr, uint8_t *glowny, uint8_t *zapasowy,
+                    uint8_t *wpisy, uint64_t *nowy_koniec);
+
 /* CRC-32 (IEEE 802.3, as in GPT). */
 uint32_t k1_crc32(const void *dane, size_t n);
 

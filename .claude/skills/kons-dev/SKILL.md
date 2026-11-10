@@ -45,7 +45,7 @@ firmware UEFI → shim (Microsoft) → GRUB (Canonical) → k1.efi z miejsca A a
 → /rdzen/init (PID 1): sysctl, montowania, sieroty, sygnały, wyłączanie
 → /rdzen/system/nadzorca (root): usługi i aplikacje w klatkach, kanały, logi, restarty
      skarbiec (103) → ekran (101) → wejscie (100) → gui (102) albo logowanie (104, gdy jest hasło)
-     aplikacje (200+) na prośbę gui; instalator (105) na prośbę okna Instalatora; czytnik (106) na prośbę Plików
+     aplikacje (200+) na prośbę gui; instalator (105) na prośbę okna Instalatora; czytnik (106) i dekoder (107) na prośbę Plików
 ```
 Testy QEMU startują też `bzImage` + `initramfs.cpio` (tylko `test-m1`). ISO/USB mają GRUB-a do M10 (ADR 0010).
 
@@ -80,10 +80,11 @@ TPM 1.2), jedno konto na komputer. X230 to maszyna testowa — szybka grafika i 
 | `src/skarbiec/` | `system/skarbiec` | `magazyn.c` format i szyfrowanie, `main.c` usługa, `obiekty.c`, `haslo.c`, `dokumenty.c` + `dok_kanal.c` pliki, foldery, Kosz i prawa (0.8.0) |
 | `src/instalator/` | `system/instalator` | zapis K1 na dysk (GPT), tylko urządzenia od nadzorcy |
 | `src/czytnik/` | `system/czytnik` | pendrive dla Plików: FAT w klatce, tylko odczyt (0.8.0, ADR 0031); nadzorca `pendrive.c` |
+| `src/dekoder/` | `system/dekoder` | jeden obraz PNG/JPEG → piksele, jednorazowy proces w klatce (Wuffs; 0.8.0, ADR 0032); nadzorca `dekoder.c`, Pliki `obrazy.c`, ekran `zdjecie.c` (tapeta) |
 | `src/aplikacje/<program>/` | `aplikacje/<program>` | Zegar, Notatki, Ustawienia, Zasoby, Instalator (`instalacja`), Kalkulator, Pliki (0.8.0) |
 | `src/przybornik/` | (linkowane) | okno aplikacji (`k1_aplikacja`), rysowanie, ikony `K1_IK_*`, tekst, liczby, czas i klawiatura PL |
 | `src/wspolne/` | (linkowane) | `k1_uslugi.h` **listy usług i aplikacji**, `k1_komunikat` (32 B), `k1_kanal`, `k1_odbior`, `k1_klatka`, `k1_log`, `k1_skarb_klient`, `k1_memfd`, `k1_efi`, `k1_uklad`, `k1_manifest`, `k1_bajty.h`, `k1_io.h`, `k1_teraz.h` |
-| `src/zewnetrzne/` | (linkowane) | Monocypher (jedyna obca biblioteka w systemie) |
+| `src/zewnetrzne/` | (linkowane) | Monocypher (skarbiec) i Wuffs (dekoder, 0.8.0) — jedyne obce biblioteki w systemie |
 | `narzedzia/` | (host) | czcionki IBM Plex → bitmapy, ekran startowy GRUB-a, podpis, klucz Secure Boot |
 | `jadro/` | `k1.efi`, `bzImage` | `k1.config`, `k1-zamkniete.config`, `README.md` (zmiana wersji jądra) |
 | `testy/host/`, `testy/system/`, `testy/qemu/` | — | testy na hoście i fuzzing; program testowy w systemie; biblioteka `k1qemu.py` |
@@ -156,7 +157,8 @@ Gotowe części przybornika: `k1_przycisk`, `k1_pole_klawisz`, `k1_liczba.h`, ko
 1. `src/<nazwa>/main.c`: komentarz na górze (zadanie, granica zaufania, etap); pierwsza linia `main()` —
    `k1_klatka_w_usludze(TAG)`; log `K1-<NAZWA>`; kanał od nadzorcy na fd 3, kolejne ustalone w `kanaly[]`.
 2. Wiersz w `K1_SYSTEM` (`k1_uslugi.h`), wpis w `uslugi[]` i `kanaly[]` (`uslugi.c`), profil w `profile.c`.
-3. `Makefile` (`PROGRAMY`) i pętla instalacji w `scripts/zbuduj-obraz.sh`.
+3. `Makefile` — tylko reguła budowy programu; spis programów i plików w obrazie wynika z `K1_SYSTEM`
+   (`scripts/uslugi-systemu.sh`, od 0.8.0).
 4. Testy w systemie: klatka (`t_klatki`), próba w klatce (`t_proby`), sprawdzenia funkcjonalne i **negatywne**;
    spis plików wynika z `K1_SYSTEM` (`t_inventory`). Scenariusz QEMU, jeśli potrzebny.
 5. `docs/komponenty/<nazwa>.md`, ADR jeśli zmienia architekturę, `docs/RYZYKA.md`, słownik.
@@ -220,9 +222,9 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 ## 8. Plan i zasady etapu
 
 **Kolejność** (ADR 0019, 0020, 0026; szczegóły i stan w `DO_ZROBIENIA.txt`):
-~~0.7.5 Pulpit~~ (gotowe: ikony, menu kontekstowe, przypinanie; ADR 0028) → **0.8.0 Pliki** (wspólne dokumenty w skarbcu, aplikacja Pliki, Kosz: 30 dni albo ręcznie, okno
-wyboru pliku rysowane przez K1, import z pendrive'a czytnikiem FAT w klatce, dekoder PNG/JPEG w jednorazowym
-procesie) → **M7 Sieć** (kabel e1000e + DHCP + czas, potem Wi-Fi; test: nic nie nasłuchuje) → **M8 Strefy**
+~~0.7.5 Pulpit~~ (ADR 0028) → ~~0.8.0 Pliki~~ (gotowe: dokumenty w skarbcu, Pliki, Kosz, okno wyboru pliku, import
+z pendrive'a czytnikiem FAT w klatce, dekoder PNG/JPEG w jednorazowym procesie, tapeta ze zdjęcia, K1-DANE do końca
+pendrive'a; ADR 0029–0033) → **M7 Sieć** (kabel e1000e + DHCP + czas, potem Wi-Fi; test: nic nie nasłuchuje) → **M8 Strefy**
 (mikro-VM na obcą aplikację, ramka w kolorze strefy, stała/jednorazowa, pełna izolacja/szybka grafika,
 wspólna strefa — ADR 0024; najpierw przeglądarka, potem Przeglądarka K1 — ADR 0025) → **M9 Pliki ze stref**
 („Do K1”, „Wyślij do…”, schowek, zapis z powrotem — ADR 0027) → M10 (recovery, TPM) → M12 audyt.

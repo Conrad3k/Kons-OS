@@ -317,6 +317,9 @@ static void nadzorca_pendrive(void)
             fd = -1;
             apl.kanaly[KANAL_CZYTNIK].fd = czytnik;
             k1_log(TAG, "pendrive: kanał do czytnika");
+        } else if (k.typ == K1_KOM_DEKODER_KANAL && fd >= 0) {
+            obraz_kanal(fd); /* obrazy.c takes it */
+            fd = -1;
         }
         if (fd >= 0)
             close(fd);

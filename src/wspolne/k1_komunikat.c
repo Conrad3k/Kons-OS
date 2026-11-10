@@ -53,7 +53,9 @@ int k1_ustawienie_poprawne(int32_t klucz, int32_t wartosc)
     case K1_UST_MYSZ:
         return w(wartosc, 1, 3);
     case K1_UST_TAPETA:
-        return w(wartosc, 0, K1_TAPETY - 1);
+        return w(wartosc, 0, K1_TAPETY - 1) || wartosc == K1_TAPETA_ZDJECIE;
+    case K1_UST_ZDJECIE:
+        return w(wartosc, 0, 1);
     case K1_UST_ROZDZIELCZOSC:
         return w(wartosc, 1, K1_TRYBY_MAKS);
     default: /* the default application of a file type: one that opens it */
@@ -286,6 +288,25 @@ static int sprawdz_pendrive(const struct k1_komunikat *k, enum k1_kanal_kierunek
     }
 }
 
+/* The picture decoder: nadzorca ↔ Pliki, Pliki ↔ dekoder (0.8.0 step 4, ADR 0032); 0 also for a type of another group. */
+static int sprawdz_dekoder(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
+{
+    switch (k->typ) {
+    case K1_KOM_DEKODER:
+    case K1_KOM_DEKODER_KANAL:
+        return kier == (k->typ == K1_KOM_DEKODER ? K1_KIER_DO_NADZORCY : K1_KIER_OD_NADZORCY) && k->obiekt == 0 && zera(k, 0);
+    case K1_KOM_DEK_OBRAZ:
+        return kier == K1_KIER_DO_DEKODERA && w(k->a, 1, (int32_t)K1_DOK_MAKS_BAJTY) && w(k->b, 1, K1_DEK_MAKS_W) &&
+               w(k->c, 1, K1_DEK_MAKS_H) && zera(k, 3);
+    case K1_KOM_DEK_PIKSELE:
+        return kier == K1_KIER_OD_DEKODERA && w(k->a, 1, K1_DEK_MAKS_W) && w(k->b, 1, K1_DEK_MAKS_H) && zera(k, 2);
+    case K1_KOM_DEK_BLAD:
+        return kier == K1_KIER_OD_DEKODERA && w(k->a, K1_DEK_BLAD_MIN, K1_DEK_BLAD_FORMAT) && zera(k, 1);
+    default:
+        return 0;
+    }
+}
+
 /* Messages of ekran and its clients (ADR 0008); 0 also for a type of another group. */
 static int sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
@@ -313,8 +334,12 @@ static int sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
     case K1_KOM_MINIMALIZUJ_OKNO:
     case K1_KOM_ZAMKNIJ_OKNO:
         return kier == K1_KIER_DO_EKRANU && k->obiekt != 0 && zera(k, 0);
-    case K1_KOM_USTAW:
-        return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && k1_ustawienie_poprawne(k->a, k->b) && zera(k, 2);
+    case K1_KOM_USTAW: /* whether ekran keeps a photo is not a setting anyone sets */
+        return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && k->a != K1_UST_ZDJECIE && k1_ustawienie_poprawne(k->a, k->b) &&
+               zera(k, 2);
+    case K1_KOM_TAPETA_ZDJECIE:
+        return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && w(k->a, 1, K1_DEK_MAKS_W) && w(k->b, 1, K1_DEK_MAKS_H) &&
+               zera(k, 2);
 
     case K1_KOM_WITAJ:
         return kier == K1_KIER_OD_EKRANU && k->obiekt == 0 && w(k->a, 1, K1_POZ_MAKS) && w(k->b, 1, K1_POZ_MAKS) &&
@@ -407,7 +432,7 @@ static int sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
 static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
     return sprawdz_sterowanie(k, kier) || sprawdz_skarb(k, kier) || sprawdz_dok(k, kier) || sprawdz_ekran(k, kier) ||
-           sprawdz_nadzorca(k, kier) || sprawdz_pendrive(k, kier);
+           sprawdz_nadzorca(k, kier) || sprawdz_pendrive(k, kier) || sprawdz_dekoder(k, kier);
 }
 
 int k1_komunikat_sprawdz(const void *buf, size_t len, enum k1_kanal_kierunek kierunek, struct k1_komunikat *out)
@@ -437,6 +462,9 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            (typ == K1_KOM_BATERIA_ARCH && kierunek == K1_KIER_OD_NADZORCY) ||
            ((typ == K1_KOM_DOK_NOWY || typ == K1_KOM_DOK_ZAPISZ || typ == K1_KOM_DOK_NAZWA) && kierunek == K1_KIER_DO_SKARBCA) ||
            ((typ == K1_KOM_DOK_LISTA || typ == K1_KOM_DOK_TRESC) && kierunek == K1_KIER_OD_SKARBCA) ||
-           (typ == K1_KOM_PENDRIVE_KANAL && kierunek == K1_KIER_OD_NADZORCY) ||
+           ((typ == K1_KOM_PENDRIVE_KANAL || typ == K1_KOM_DEKODER_KANAL) && kierunek == K1_KIER_OD_NADZORCY) ||
+           (typ == K1_KOM_TAPETA_ZDJECIE && kierunek == K1_KIER_DO_EKRANU) ||
+           (typ == K1_KOM_DEK_OBRAZ && kierunek == K1_KIER_DO_DEKODERA) ||
+           (typ == K1_KOM_DEK_PIKSELE && kierunek == K1_KIER_OD_DEKODERA) ||
            ((typ == K1_KOM_PEN_LISTA || typ == K1_KOM_PEN_PLIK) && kierunek == K1_KIER_OD_CZYTNIKA);
 }

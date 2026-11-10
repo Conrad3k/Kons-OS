@@ -74,14 +74,41 @@ static void przygotuj_miniatury(void)
     }
 }
 
+/* The cards: the painted wallpapers, then "Zdjęcie" when ekran keeps a photo (0.8.0, set from Pliki). */
+static int kart(void)
+{
+    return K1_TAPETY + (apl.k.ustawienia[K1_UST_ZDJECIE] ? 1 : 0);
+}
+
+static int tapeta_karty(int i)
+{
+    return i == K1_TAPETY ? K1_TAPETA_ZDJECIE : i;
+}
+
+/* The photo card (Ustawienia never sees the photo itself — only ekran and Pliki do): a picture icon; without a photo,
+ * how to set one. */
+static void karta_zdjecia(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    int32_t x = karta_x(K1_TAPETY), y = karta_y(K1_TAPETY);
+    if (!apl.k.ustawienia[K1_UST_ZDJECIE]) {
+        k1_tekst(o, K1_CZ_MALA, x, y + 22, "Własne zdjęcie: w Plikach", k1_kolor(m->tekst3, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, x, y + 40, "wybierz je i kliknij", k1_kolor(m->tekst3, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, x, y + 58, "„Ustaw jako tapetę”.", k1_kolor(m->tekst3, 255), 0);
+        return;
+    }
+    k1_zaokraglony(o, (float)x, (float)y, KARTA_W, KARTA_H, 8, k1_kolor(m->pole, 255));
+    k1_ikona(o, K1_IK_OBRAZ, (float)x + KARTA_W / 2 - 14, (float)y + KARTA_H / 2 - 14, 28, k1_kolor(m->tekst2, 255));
+}
+
 static void karty(struct k1_obraz *o, const struct k1_motyw *m)
 {
     int i;
     k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X, karty_y() - 14, "Tapeta", k1_kolor(m->tekst, 255), 0);
-    for (i = 0; i < K1_TAPETY; i++) {
+    karta_zdjecia(o, m);
+    for (i = 0; i < kart(); i++) {
         int32_t x = karta_x(i), y = karta_y(i), px, py;
-        int wybrana = apl.k.ustawienia[K1_UST_TAPETA] == i;
-        for (py = 0; py < KARTA_H; py++)
+        int wybrana = apl.k.ustawienia[K1_UST_TAPETA] == tapeta_karty(i);
+        for (py = 0; py < KARTA_H && i < K1_TAPETY; py++)
             for (px = 0; px < KARTA_W; px++) {
                 /* rounded corners (radius 8): skip the pixels outside */
                 int32_t dx = px < 8 ? 8 - px : (px >= KARTA_W - 8 ? px - (KARTA_W - 9) : 0);
@@ -95,7 +122,7 @@ static void karty(struct k1_obraz *o, const struct k1_motyw *m)
         else
             k1_obrys(o, (float)x, (float)y, KARTA_W, KARTA_H, 8, 1.0f,
                      k1_kolor(m->tekst, hover_karta == i ? 70 : 24));
-        k1_tekst(o, wybrana ? K1_CZ_MALA_MOCNA : K1_CZ_MALA, x, y + KARTA_H + 20, nazwy_tapet[i],
+        k1_tekst(o, wybrana ? K1_CZ_MALA_MOCNA : K1_CZ_MALA, x, y + KARTA_H + 20, i < K1_TAPETY ? nazwy_tapet[i] : "Zdjęcie",
                  k1_kolor(wybrana ? m->tekst : m->tekst2, 255), 0);
     }
 }
@@ -103,7 +130,7 @@ static void karty(struct k1_obraz *o, const struct k1_motyw *m)
 static int karta_pod(int32_t x, int32_t y)
 {
     int i;
-    for (i = 0; i < K1_TAPETY; i++) {
+    for (i = 0; i < kart(); i++) {
         int32_t kx = karta_x(i), ky = karta_y(i);
         if (x >= kx && x < kx + KARTA_W && y >= ky && y < ky + KARTA_H)
             return i;
@@ -308,8 +335,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         k1_log(TAG, "zmiana ustawienia %d → %d", K1_UST_ROZDZIELCZOSC, tryb);
         k1_wyslij(&apl.k, k1_komunikat_nowy(K1_KOM_USTAW, 0, K1_UST_ROZDZIELCZOSC, tryb, 0, 0, 0));
     } else if (karta >= 0) {
-        k1_log(TAG, "zmiana ustawienia %d → %d", K1_UST_TAPETA, karta);
-        k1_wyslij(&apl.k, k1_komunikat_nowy(K1_KOM_USTAW, 0, K1_UST_TAPETA, karta, 0, 0, 0));
+        k1_log(TAG, "zmiana ustawienia %d → %d", K1_UST_TAPETA, tapeta_karty(karta));
+        k1_wyslij(&apl.k, k1_komunikat_nowy(K1_KOM_USTAW, 0, K1_UST_TAPETA, tapeta_karty(karta), 0, 0, 0));
     } else if (seg >= 0) {
         int klucz = sekcja == S_WYGLAD ? K1_UST_MOTYW : (sekcja == S_MYSZ ? K1_UST_MYSZ : K1_UST_SEKUNDY);
         int wartosc = sekcja == S_MYSZ ? seg + 1 : seg;

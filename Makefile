@@ -52,7 +52,9 @@ NAGL_P  := $(wildcard src/przybornik/*.h) src/grafika/k1_grafika.h src/grafika/k
 # Native applications: every directory src/aplikacje/<program> (its line in k1_uslugi.h K1_APLIKACJE names it).
 APLIKACJE := $(patsubst src/aplikacje/%/main.c,$(BIN)/%,$(wildcard src/aplikacje/*/main.c))
 
-PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(BIN)/wejscie $(BIN)/ekran $(BIN)/gui $(BIN)/skarbiec $(BIN)/logowanie $(BIN)/instalator $(BIN)/czytnik $(APLIKACJE) \
+# System services: one line each in K1_SYSTEM (src/wspolne/k1_uslugi.h, the only list): scripts/uslugi-systemu.sh.
+USLUGI_SYSTEMU := $(shell sh scripts/uslugi-systemu.sh)
+PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(addprefix $(BIN)/,$(USLUGI_SYSTEMU)) $(APLIKACJE) \
             $(BIN)/k1-test-systemu
 
 all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(GEN)/sb/k1_sb_cert.h
@@ -95,8 +97,9 @@ $(BIN)/init: src/init/main.c $(WSPOLNE) $(NAGL) | $(BIN)
 # nadzorca in modules (0.6.0, ADR 0019): main.c (loop), uslugi, profile, urzadzenia, skarb, instalacja, zasoby,
 # test; pure parts with host tests: bateria, dyski, uevent.
 NADZORCA := $(sort $(wildcard src/nadzorca/*.c))
-$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -I$(GEN)/sb -o $@ $(NADZORCA) $(EFI) \
+# 0.8.0 step 5: nadzorca grows an empty K1-DANE to the end of the stick with the installer's GPT code (powieksz.c)
+$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -Isrc/instalator -I$(GEN)/sb -o $@ $(NADZORCA) src/instalator/gpt.c $(EFI) \
 		src/wspolne/k1_sha256.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
@@ -105,6 +108,13 @@ $(BIN)/instalator: src/instalator/main.c src/instalator/gpt.c src/instalator/gpt
 		$(EFI) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # 0.8.0 step 3 (ADR 0031): the USB stick reader — FAT in a sandbox (host test: test_fat, fuzzing: fuzz_fat)
+# 0.8.0 step 4 (ADR 0032): the picture decoder — Wuffs (src/zewnetrzne, docs/ZALEZNOSCI.md) compiled as is inside
+# src/dekoder/wuffs.c; obraz.c and wuffs.c are also built on the host (test_dekoder, fuzz_dekoder).
+WUFFS   := src/zewnetrzne/wuffs/wuffs-v0.4.c
+DEKODER_OBRAZ := src/dekoder/obraz.c src/dekoder/wuffs.c src/wspolne/k1_skaluj.c
+$(BIN)/dekoder: src/dekoder/main.c $(DEKODER_OBRAZ) src/dekoder/obraz.h $(WUFFS) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/wuffs -o $@ src/dekoder/main.c $(DEKODER_OBRAZ) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+
 CZYTNIK := $(sort $(wildcard src/czytnik/*.c))
 CZYTNIK_FAT := src/czytnik/fat.c src/czytnik/nazwy.c
 $(BIN)/czytnik: $(CZYTNIK) src/czytnik/fat.h src/przybornik/k1_czas.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
@@ -118,7 +128,8 @@ $(BIN)/skarbiec: $(SKARBIEC) $(wildcard src/skarbiec/*.h) $(WSPOLNE) $(USLUGI) $
 $(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
-EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/wskaznik.c src/ekran/drm.c src/ekran/zapis.c
+EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/wskaznik.c src/ekran/drm.c src/ekran/zapis.c \
+         src/ekran/zdjecie.c src/wspolne/k1_skaluj.c
 $(BIN)/ekran: $(EKRAN) src/ekran/ekran.h $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(EKRAN) src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
@@ -182,6 +193,11 @@ $(OBJ)/stare_notatki: testy/host/stare_notatki.c $(MAGAZYN) src/skarbiec/magazyn
 $(OBJ)/test_magazyn: testy/host/test_magazyn.c $(MAGAZYN) src/skarbiec/magazyn.h src/skarbiec/magazyn_wew.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_magazyn.c $(MAGAZYN)
 
+# 0.8.0 step 4: dekoder on pictures made by Pillow (testy/host/obrazy_dekoder.py).
+$(OBJ)/test_dekoder: testy/host/test_dekoder.c $(DEKODER_OBRAZ) src/dekoder/obraz.h $(WUFFS) testy/host/k1_test_host.h $(NAGL) | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/dekoder -Isrc/zewnetrzne/wuffs -o $@ testy/host/test_dekoder.c \
+		$(DEKODER_OBRAZ) -lm
+
 # 0.8.0 step 3: czytnik's FAT reader on images made by mtools/sfdisk (testy/host/obrazy_fat.sh), and the list format
 $(OBJ)/test_fat: testy/host/test_fat.c $(CZYTNIK_FAT) src/czytnik/fat.h src/wspolne/k1_pendrive.c src/wspolne/k1_dokument.c $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/czytnik -o $@ testy/host/test_fat.c $(CZYTNIK_FAT) src/wspolne/k1_pendrive.c \
@@ -232,7 +248,7 @@ $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instal
 	test_dokumenty test_log test_magazyn test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
 	test_zdarzenie): testy/host/k1_test_host.h
 
-testy-host: $(OBJ)/test_dokumenty $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/test_fat
+testy-host: $(OBJ)/test_dokumenty $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/test_fat $(OBJ)/test_dekoder
 	$(OBJ)/test_dokumenty
 	$(OBJ)/test_rozmieszczenie
 	$(OBJ)/test_kalkulator
@@ -249,9 +265,13 @@ testy-host: $(OBJ)/test_dokumenty $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkula
 	sfdisk -d $(OBJ)/gpt.img | grep -q 'start=        2048, size=     1048576, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B.*name="K1-EFI"'
 	sfdisk -d $(OBJ)/gpt.img | grep -q 'start=     1050624, size=     7335936, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4.*name="K1-DANE"'
 	sfdisk --verify $(OBJ)/gpt.img >/dev/null
-	rm -f $(OBJ)/gpt.img
-	@echo "test_instalator: tablica GPT odczytana przez sfdisk (K1-EFI, K1-DANE)"
+	sfdisk -d $(OBJ)/gpt.img-wiekszy | grep -q 'start=     1050624, size=    32501760, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4.*name="K1-DANE"'
+	sfdisk --verify $(OBJ)/gpt.img-wiekszy >/dev/null
+	rm -f $(OBJ)/gpt.img $(OBJ)/gpt.img-wiekszy
+	@echo "test_instalator: tablica GPT odczytana przez sfdisk (K1-EFI, K1-DANE; K1-DANE powiększona do 16 GiB)"
 	sh testy/host/obrazy_fat.sh $(OBJ)/fat && $(OBJ)/test_fat $(OBJ)/fat && rm -rf $(OBJ)/fat
+	rm -rf $(OBJ)/obrazy && mkdir -p $(OBJ)/obrazy && python3 -I testy/host/obrazy_dekoder.py $(OBJ)/obrazy && \
+		$(OBJ)/test_dekoder $(OBJ)/obrazy && rm -rf $(OBJ)/obrazy
 	$(OBJ)/test_cmdline
 	$(OBJ)/test_log
 	$(OBJ)/test_bateria
@@ -267,7 +287,7 @@ testy-host: $(OBJ)/test_dokumenty $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkula
 # Fuzzing (libFuzzer): one program per parser of untrusted bytes, testy/host/fuzz_<name>.c with the sources
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
-FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive
+FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -292,10 +312,13 @@ FUZZ_ZR_fat       := $(CZYTNIK_FAT) src/wspolne/k1_dokument.c src/wspolne/k1_usl
 FUZZ_DL_fat       := 65536
 FUZZ_ZR_pendrive  := src/wspolne/k1_pendrive.c src/wspolne/k1_dokument.c src/wspolne/k1_uslugi.c
 FUZZ_DL_pendrive  := 1000
+FUZZ_ZR_dekoder   := $(DEKODER_OBRAZ)
+FUZZ_DL_dekoder   := 20000
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
-              -Isrc/wspolne -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/zewnetrzne/monocypher
+              -Isrc/wspolne -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/zewnetrzne/monocypher \
+              -Isrc/zewnetrzne/wuffs
 
-$(OBJ)/fuzz_%: testy/host/fuzz_%.c $$(FUZZ_ZR_$$*) $(NAGL) $(wildcard src/nadzorca/*.h src/skarbiec/*.h src/gui/*.h src/czytnik/*.h) | $(OBJ)
+$(OBJ)/fuzz_%: testy/host/fuzz_%.c $$(FUZZ_ZR_$$*) $(NAGL) $(wildcard src/nadzorca/*.h src/skarbiec/*.h src/gui/*.h src/czytnik/*.h src/dekoder/*.h) | $(OBJ)
 	$(CC_FUZZ) $(FUZZ_FLAGI) -o $@ $< $(FUZZ_ZR_$*)
 
 fuzz: $(FUZZ:%=$(OBJ)/fuzz_%)

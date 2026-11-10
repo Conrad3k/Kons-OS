@@ -13,6 +13,8 @@ static const long sc_skarbiec[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, SY
                                     SYS_sysinfo };
 /* czytnik (0.8.0 step 3, ADR 0031): reads the stick we open for it (read only), hands files over in sealed memfd. */
 static const long sc_czytnik[] = { SYS_pread64, SYS_memfd_create };
+/* dekoder (0.8.0 step 4, ADR 0032): reads the file and hands the picture over in sealed memfd — nothing else. */
+static const long sc_dekoder[] = { SYS_memfd_create };
 /* gui and applications: shared memory for their surfaces, nothing else. */
 static const long sc_okna[] = { SYS_memfd_create, SYS_ftruncate };
 /* instalator (M5f): the two devices it gets from us, randomness for the GPT GUIDs. No open. */
@@ -21,9 +23,10 @@ static const long sc_instalator[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, 
 const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
     [K1_PROFIL_WEJSCIE] = { .nazwa = "wejscie", .uid = K1_UID_WEJSCIE, .wywolania = sc_wejscie, .warunki = wa_wejscie,
                             .n_warunkow = N(wa_wejscie), .pamiec = 8u << 20, .pliki = 32 },
+    /* ekran: + the wallpaper photo (0.8.0: up to 16 MiB, saved in skarbiec in memfd of 1 MiB) */
     [K1_PROFIL_EKRAN] = { .nazwa = "ekran", .uid = K1_UID_EKRAN, .wywolania = sc_ekran, .n_wywolan = N(sc_ekran),
-                          .warunki = wa_ekran, .n_warunkow = N(wa_ekran), .pamiec = 128u << 20, .pliki = 64,
-                          .rozmiar_pliku = 64u << 10 },
+                          .warunki = wa_ekran, .n_warunkow = N(wa_ekran), .pamiec = 176u << 20, .pliki = 64,
+                          .rozmiar_pliku = 2u << 20 },
     /* the boot password screen (M5e): like the shell, no files; password → skarbiec on fd 6. One full-screen
      * panel: RLIMIT_FSIZE (it limits memfd_create+ftruncate too) fits two halves of 4096×2160 (0.7.5). */
     [K1_PROFIL_LOGOWANIE] = { .nazwa = "logowanie", .uid = K1_UID_LOGOWANIE, .wywolania = sc_okna, .n_wywolan = N(sc_okna),
@@ -43,6 +46,12 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
     /* the USB stick reader: no window, no paths, the stick read only; RLIMIT_FSIZE: one file of 16 MiB + its name */
     [K1_PROFIL_CZYTNIK] = { .nazwa = "czytnik", .uid = K1_UID_CZYTNIK, .wywolania = sc_czytnik, .n_wywolan = N(sc_czytnik),
                             .pamiec = 32u << 20, .pliki = 16, .rozmiar_pliku = 17u << 20 },
+    /* the picture decoder (SPEC §7): a photo of 24 Mpx is 96 MiB of pixels, a progressive JPEG needs about as much
+     * again for its work area; RLIMIT_FSIZE: the largest picture it gives (2560 × 1600 × 4); 20 s of processor time
+     * (a photo of 24 Mpx: 0.7 s and 200 MiB on the build computer, ADR 0032) */
+    [K1_PROFIL_DEKODER] = { .nazwa = "dekoder", .uid = K1_UID_DEKODER, .wywolania = sc_dekoder, .n_wywolan = N(sc_dekoder),
+                            .pamiec = 384u << 20, .pliki = 8, .rozmiar_pliku = 17u << 20, .czas_cpu = 20,
+                            .przestrzen = 512u << 20 },
     /* applications (k1_uslugi.h): windows only — what else an application gets comes from us on its
      * channels (uslugi.c) */
 #define X_APL(n, a_, p_, uid_, program_, ...)                                                                       \

@@ -98,6 +98,8 @@ void zmien_nazwe(uint32_t id, const char *t, size_t dl)
 void podglad_zadaj(uint32_t id)
 {
     const struct k1_dok_wpis *w = wpis(id);
+    if (obraz_pliku(w))
+        obraz_podglad(id); /* a picture: through a dekoder (obrazy.c) */
     if (w == NULL || tu.pendrive || w->typ != K1_TYP_TEKST || id == podglad_id)
         return;
     podglad_id = id;
@@ -185,6 +187,8 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
 
 static void tresc_przyszla(const struct k1_komunikat *k, int fd)
 {
+    if (obraz_tresc(k, fd))
+        return;
     if (k->obiekt != podglad_id || k1_memfd_czytaj(fd, podglad, (size_t)k->a) != 0)
         return;
     podglad_dl = (uint32_t)k->a;

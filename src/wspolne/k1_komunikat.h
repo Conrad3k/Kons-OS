@@ -15,6 +15,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "k1_dekoder.h"
 #include "k1_dokument.h"
 #include "k1_pendrive.h"
 
@@ -31,8 +32,10 @@ enum k1_kanal_kierunek {
     K1_KIER_OD_SKARBCA = 7,  /* skarbiec → client */
     K1_KIER_DO_CZYTNIKA = 8, /* Pliki → czytnik (the USB stick reader, 0.8.0 step 3) */
     K1_KIER_OD_CZYTNIKA = 9, /* czytnik → Pliki */
+    K1_KIER_DO_DEKODERA = 10, /* Pliki → dekoder (one picture, 0.8.0 step 4) */
+    K1_KIER_OD_DEKODERA = 11, /* dekoder → Pliki */
 };
-#define K1_KIER_MAKS 9
+#define K1_KIER_MAKS 11
 
 enum k1_komunikat_typ {
     /* nadzorca → ekran */
@@ -55,6 +58,8 @@ enum k1_komunikat_typ {
     K1_KOM_MINIMALIZUJ_OKNO = 18, /* shell only: obiekt = window id */
     K1_KOM_USTAW = 19,        /* settings application only: obiekt=0, a=key, b=value */
     K1_KOM_ZAMKNIJ_OKNO = 20, /* shell only (0.7.5): obiekt = window id; ekran asks its application to close it */
+    K1_KOM_TAPETA_ZDJECIE = 39, /* Pliki only (0.8.0 step 4, ADR 0032): obiekt=0, a,b = width 1..K1_DEK_MAKS_W, height
+                                 * 1..K1_DEK_MAKS_H; + 1 sealed memfd of a × b pixels from dekoder — the wallpaper */
 
     /* ekran → client */
     K1_KOM_WITAJ = 30,      /* obiekt=0, a,b = screen width,height, c=rola, d=aplikacja */
@@ -167,6 +172,9 @@ enum k1_komunikat_typ {
     K1_KOM_PENDRIVE_OTWORZ = 25, /* from Pliki: obiekt=0 — start czytnik for the stick (reply: PENDRIVE_KANAL, or
                                   * PENDRIVE a=0) */
     K1_KOM_PENDRIVE_KANAL = 26,  /* to Pliki: obiekt=0; + 1 fd: the channel to the new czytnik */
+    /* nadzorca ↔ Pliki (0.8.0 step 4, ADR 0032; the same fd 6): a decoder for one picture */
+    K1_KOM_DEKODER = 27,         /* from Pliki: obiekt=0 — start dekoder (reply: DEKODER_KANAL) */
+    K1_KOM_DEKODER_KANAL = 28,   /* to Pliki: obiekt=0; + 1 fd: the channel to the new dekoder */
     /* Pliki → czytnik (the stick, read only; obiekt = an entry of a list it sent, 0: the main folder) */
     K1_KOM_PEN_SPIS = 103,       /* obiekt=folder: its entries (reply: PEN_LISTA) */
     K1_KOM_PEN_CZYTAJ = 104,     /* obiekt=file: its name and content, for DOK_NOWY (reply: PEN_PLIK) */
@@ -177,6 +185,13 @@ enum k1_komunikat_typ {
     K1_KOM_PEN_PLIK = 107,       /* obiekt=file, a=name length 1..127, b=content length 0..K1_DOK_MAKS_BAJTY; + 1 memfd
                                   * of a + b bytes: the name, then the content (as DOK_NOWY wants it) */
     K1_KOM_PEN_WYNIK = 108,      /* obiekt=entry, a=request type (PEN_SPIS, PEN_CZYTAJ), b=K1_PEN_BLAD_* (< 0) */
+    /* Pliki → dekoder (once: dekoder ends after the answer; obiekt = the caller's number, sent back) */
+    K1_KOM_DEK_OBRAZ = 109,      /* a=file length 1..K1_DOK_MAKS_BAJTY, b,c = the largest width 1..K1_DEK_MAKS_W and
+                                  * height 1..K1_DEK_MAKS_H wanted; + 1 sealed memfd: the PNG or JPEG file */
+    /* dekoder → Pliki */
+    K1_KOM_DEK_PIKSELE = 110,    /* a,b = width 1..K1_DEK_MAKS_W, height 1..K1_DEK_MAKS_H; + 1 sealed memfd of a × b
+                                  * pixels (k1_dekoder.h) */
+    K1_KOM_DEK_BLAD = 111,       /* a=K1_DEK_BLAD_* (< 0): no picture */
     /* nadzorca → Pliki (0.8.0, its fd 5; after URUCHOM with a place): show it */
     K1_KOM_PLIKI_POKAZ = 21,   /* obiekt=0, a=entry (0: the last place), b=1 Kosz (then a=0) */
     K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample
@@ -216,15 +231,18 @@ enum k1_ustawienie {
     K1_UST_MOTYW = 1,   /* 0 light, 1 dark */
     K1_UST_SEKUNDY = 2, /* clock on the top bar with seconds: 0/1 */
     K1_UST_MYSZ = 3,    /* pointer speed 1..3 */
-    K1_UST_TAPETA = 4,  /* wallpaper variant 0..K1_TAPETY-1 */
+    K1_UST_TAPETA = 4,  /* wallpaper variant 0..K1_TAPETY-1, or K1_TAPETA_ZDJECIE (only when ekran has a photo) */
     K1_UST_ROZDZIELCZOSC = 5, /* screen mode number 1..K1_TRYBY_MAKS (list: K1_KOM_TRYB) */
-    K1_UST_OTWIERANIE = 6,    /* 6..5+K1_TYPY_MAKS: the default application of file type (key - 5) — one that opens it
+    K1_UST_ZDJECIE = 6,       /* 0/1: ekran keeps a wallpaper photo (0.8.0 step 4) — sent by ekran, nobody sets it */
+    K1_UST_OTWIERANIE = 7,    /* 7..6+K1_TYPY_MAKS: the default application of file type (key - 6) — one that opens it
                                * (k1_dok_otwiera; 0.8.0, ADR 0030) */
 };
 #define K1_UST_MAKS (K1_UST_OTWIERANIE + K1_TYPY_MAKS - 1)
 
 /* Wallpaper variants: one palette each in k1_grafika.c, names in Ustawienia (docs/WYGLAD.md). */
 #define K1_TAPETY 5
+#define K1_TAPETA_ZDJECIE 31 /* the photo set from Pliki (0.8.0 step 4, ADR 0032); never a painted variant */
+_Static_assert(K1_TAPETY < K1_TAPETA_ZDJECIE, "k1_komunikat: the photo wallpaper number is taken");
 
 /* Screen modes offered in Ustawienia (distinct sizes, widest first). */
 #define K1_TRYBY_MAKS 18
@@ -239,6 +257,9 @@ enum k1_ustawienie {
 #define K1_OB_NOTATKA 2           /* Notatki: the first note (0.5.8: 1 = the list, 2..33 = notes) */
 #define K1_OB_BATERIA 3           /* nadzorca: battery history */
 #define K1_OB_ROZMIESZCZENIE 1    /* gui (0.7.5): the desktop arrangement — icons and the bottom bar */
+#define K1_OB_ZDJECIE 9           /* ekran (0.8.0 step 4): the wallpaper photo — its size (ekran/zdjecie.c) */
+#define K1_OB_ZDJECIE_KAWALEK 10  /* ekran: its pixels, 1 MiB per object: 10..10+K1_ZDJECIE_KAWALKI-1 */
+#define K1_ZDJECIE_KAWALKI 12     /* 2560 × 1600 × 3 bytes */
 #define K1_SKARB_MAKS (1 << 20)   /* bytes in one object (Blob Vault limit) */
 #define K1_SKARB_TRWALY 0         /* saved on the K1-DANE partition */
 #define K1_SKARB_RAM 1            /* no (usable) partition: kept in memory until power off */

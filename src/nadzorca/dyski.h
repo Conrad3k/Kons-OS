@@ -30,6 +30,16 @@ int k1_dyski_skanuj(const char *sys, struct k1_dyski *w);
  * (32 bytes); 1 found, 0 none. */
 int k1_pendrive_znajdz(const char *sys, char out[32]);
 
+/* A partition as sysfs describes it (0.8.0 step 5: K1-DANE to the end of the stick): its disk, the disk's logical
+ * sector size, the partition number, start and length and the disk's size — in 512-byte units, as sysfs gives them.
+ * Checked: the sizes fit the disk and the sector size. 0 or -1. */
+struct k1_czesc {
+    char dysk[32];
+    int sektor, numer;
+    uint64_t od_512, dl_512, dysk_512;
+};
+int k1_czesc_opis(const char *sys, const char *czesc, struct k1_czesc *c);
+
 /* Whether block device `nazwa` hangs off a USB bus (its sysfs path goes through ".../usbN/..."). */
 int k1_dysk_na_usb(const char *sys, const char *nazwa);
 

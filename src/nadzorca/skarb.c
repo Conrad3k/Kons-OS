@@ -81,7 +81,7 @@ void szukaj_pozno(void)
         skarb_bez_dysku = 0;
         return;
     }
-    dysk = otworz_partycje_danych(&ile);
+    dysk = otworz_dane(&ile);
     if (dysk >= 0)
         close(dysk);
     if (ile == 0)

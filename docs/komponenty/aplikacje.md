@@ -42,7 +42,8 @@ go w menu Start ani na pulpicie (kolumna -1 w `K1_APLIKACJE`); otwarte ręcznie 
 nie prosi teraz o plik.” Moduły: `main.c` (okno), `dane.c` (skarbiec).
 
 ### Ustawienia
-Wygląd (motyw jasny/ciemny, tapeta: 5 wariantów z miniaturami, po 4 w rzędzie), Ekran
+Wygląd (motyw jasny/ciemny, tapeta: 5 wariantów z miniaturami, po 4 w rzędzie; od 0.8.0 szósty kafelek „Zdjęcie”, gdy
+ekran ma zdjęcie ustawione w Plikach — bez niego podpowiedź, jak je ustawić; samego zdjęcia Ustawienia nie widzą), Ekran
 (rozdzielczość z listy od ekranu — do 18 trybów w trzech kolumnach, „zalecana” = preferowana przez monitor/kartę;
 zmiana w locie, ADR 0012), Bateria (0.5.5: procent, stan, wykres naładowania od uruchomienia — linia
 w kolorze akcentu z delikatnym wypełnieniem, pasek pod wykresem = zasilacz podłączony, godzina startu,
@@ -86,7 +87,10 @@ ostatnie z pytaniem w stopce). Lista: najpierw foldery, potem pliki po nazwie; k
 jego typu (Ustawienia → Aplikacje; Pliki — tylko podgląd); **„Otwórz w…”** (0.8.0, ADR 0030) zamienia przyciski
 na aplikacje, które otwierają ten typ (`K1_OTWIERANIE`) — wybrana dostaje ten jeden plik (`DOK_OTWORZ`). Z prawej podgląd zaznaczonego: ikona,
 nazwa, typ (rozpoznany z zawartości), rozmiar, daty, pochodzenie („utworzony w K1”), w Koszu — za ile dni
-zniknie; plik tekstowy — początek treści (do 64 KiB, `DOK_CZYTAJ`). Klawisze: Enter (otwórz folder),
+zniknie; plik tekstowy — początek treści (do 64 KiB, `DOK_CZYTAJ`); **zdjęcie PNG/JPEG** (0.8.0 krok 4, ADR 0032) —
+zmniejszone do 200×150 przez usługę `dekoder` (`komponenty/dekoder.md`; uszkodzone: „Podgląd niedostępny”), a pod nim
+przycisk **„Ustaw jako tapetę”** (poza Koszem): zdjęcie do 2560×1600 idzie od dekodera prosto do ekranu, postęp i wynik
+w stopce. Klawisze: Enter (otwórz folder),
 Backspace (w górę), F2 (zmień nazwę), Delete (do Kosza), strzałki, Esc. Złe nazwy (`\ / : * ? " < > |`,
 kropka na końcu) i zajęte — komunikat w stopce. **Pendrive** (0.8.0 krok 3, ADR 0031): gdy włożony jest pendrive
 (nie pendrive K1), pod Koszem pojawia się miejsce „Pendrive” — jego foldery i pliki (tylko do odczytu: bez zmiany nazwy
@@ -94,7 +98,8 @@ i usuwania) czyta usługa `czytnik` (`komponenty/czytnik.md`); przyciski „Impo
 wszystkie” (pliki folderu): zdjęcia PNG/JPEG do Obrazów, reszta do Dokumentów, pochodzenie „z pendrive'a”; pliki
 większe niż 16 MB pominięte, postęp i wynik w stopce; wyjęty pendrive — powrót do Dokumentów. Moduły: `main.c` (okno,
 mysz, klawisze), `przyciski.c` (przyciski miejsca), `rysuj.c` (lista, podgląd, stopka), `dane.c` (skarbiec i nadzorca),
-`pendrive.c` (pendrive i import).
+`pendrive.c` (pendrive i import), `obrazy.c` (podgląd zdjęcia i tapeta przez dekoder; kanał do dekodera = 5. kanał
+aplikacji, `K1_APL_KANALY`).
 
 ## Granica zaufania
 Klienci ekranu w roli **aplikacja**: tylko własne okna. Ustawienia jako jedyna mogą zmieniać
