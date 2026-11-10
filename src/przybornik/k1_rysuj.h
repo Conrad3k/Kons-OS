@@ -63,6 +63,16 @@ enum k1_ikona {
     K1_IK_BATERIA,
     K1_IK_DYSK, /* M5f: Instalator */
     K1_IK_KALKULATOR,
+    /* 0.8.0 Pliki (ADR 0029) */
+    K1_IK_FOLDER,
+    K1_IK_PLIK,
+    K1_IK_OBRAZ,
+    K1_IK_KOSZ,
+    K1_IK_KOSZ_PELNY,
+    K1_IK_MUZYKA,
+    K1_IK_WIDEO,
+    K1_IK_POBRANE,
+    K1_IK_W_GORE,
 };
 void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozmiar, uint32_t kolor);
 

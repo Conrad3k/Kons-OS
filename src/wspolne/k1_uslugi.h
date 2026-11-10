@@ -31,7 +31,8 @@
     X(INSTALACJA, 5, 11, 204, "instalacja", "K1-INSTALACJA", "Instalator", "Instalacja, aktualizacja, Secure Boot", \
       DYSK, 0)                                                                                                  \
     X(KALKULATOR, 6, 12, 205, "kalkulator", "K1-KALKULATOR", "Kalkulator", "Działania, procenty, pamięć",          \
-      KALKULATOR, 1)
+      KALKULATOR, 1)                                                                                            \
+    X(PLIKI, 7, 13, 206, "pliki", "K1-PLIKI", "Pliki", "Foldery, pliki i Kosz", FOLDER, 1)
 
 #define K1_X_UID_S(n, profil, uid, ...) K1_UID_##n = uid,
 #define K1_X_UID_A(n, apl, profil, uid, ...) K1_UID_##n = uid,

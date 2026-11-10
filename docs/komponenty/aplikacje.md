@@ -57,6 +57,19 @@ napięcie, uśredniony przez nadzorcę: 30 % nowego odczytu, od nowa przy zmiani
 rozładowanie; odczyt co 5 s, gdy Zasoby działają) i czas do rozładowania / naładowania (energia ÷
 pobór; brak szacunku poniżej 0,1 W i powyżej 99 h).
 
+### Pliki
+(0.8.0, ADR 0029, `src/aplikacje/pliki/`, UID 206) — pliki i foldery użytkownika, jak w Windows: z lewej
+stałe foldery (Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane) i Kosz (pełny — z kulką papieru); nad listą
+„w górę” i ścieżka („Dokumenty › Projekt”); przyciski miejsca: „Nowy folder” (od razu zmiana nazwy, jak
+w Windows), „Zmień nazwę”, „Usuń” (do Kosza); w Koszu: „Przywróć”, „Usuń na zawsze”, „Opróżnij Kosz” (oba
+ostatnie z pytaniem w stopce). Lista: najpierw foldery, potem pliki po nazwie; kolumny nazwa, data zmiany
+(w Koszu: usunięcia), rozmiar; podwójne kliknięcie otwiera folder. Z prawej podgląd zaznaczonego: ikona,
+nazwa, typ (rozpoznany z zawartości), rozmiar, daty, pochodzenie („utworzony w K1”), w Koszu — za ile dni
+zniknie; plik tekstowy — początek treści (do 64 KiB, `DOK_CZYTAJ`). Klawisze: Enter (otwórz folder),
+Backspace (w górę), F2 (zmień nazwę), Delete (do Kosza), strzałki, Esc. Złe nazwy (`\ / : * ? " < > |`,
+kropka na końcu) i zajęte — komunikat w stopce. Moduły: `main.c` (okno, mysz, klawisze), `rysuj.c`
+(lista, podgląd, stopka), `dane.c` (skarbiec i nadzorca).
+
 ## Granica zaufania
 Klienci ekranu w roli **aplikacja**: tylko własne okna. Ustawienia jako jedyna mogą zmieniać
 ustawienia (ekran sprawdza rolę i UID). Treść notatki nigdy nie trafia do logu (tylko długość).
@@ -70,6 +83,7 @@ ustawienia (ekran sprawdza rolę i UID). Treść notatki nigdy nie trafia do log
 | Zasoby | 203 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
 | Instalator | 204 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
 | Kalkulator | 205 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
+| Pliki | 206 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
 
 ## Wejścia i wyjścia
 fd 3: kanał do ekranu. Okno: memfd (ADR 0008). Notatki: fd 4 — kanał do skarbca (obiekty 1–33, notatka ≤ 16 KiB, memfd z pieczęciami; usuwanie `SKARB_USUN`). Zasoby: fd 4 —
@@ -77,6 +91,11 @@ kanał od nadzorcy (`ZASOBY_SYSTEM`, `ZASOBY_USLUGA`, od 0.6.3 `ZASOBY_BATERIA`)
 Ustawienia: lista trybów ekranu (`K1_KOM_TRYB`) dostaje tylko ona; od 0.5.5 fd 4 — kanał od nadzorcy
 (`BATERIA`, `BATERIA_HIST`: do 16 próbek po 1 bajcie w komunikacie), jednokierunkowy, nadawca UID 0.
 Bez kanału (zamknięty) reszta Ustawień działa.
+Pliki (0.8.0): fd 4 — kanał do skarbca z prawami do wszystkich plików użytkownika (i do niczego więcej: obiekty
+innych aplikacji są dla Plików niewidoczne), komunikaty `DOK_*` (`komponenty/skarbiec.md`); fd 5 — od nadzorcy,
+jednokierunkowo: `PLIKI_POKAZ` (a = plik albo folder do pokazania, b = 1 Kosz), gdy pulpit otwiera Pliki przy
+pliku albo Koszu (`URUCHOM` z miejscem — tylko dla Plików). Lista ze skarbca sprawdzana wpis po wpisie
+(`k1_dok_lista_czytaj`); nazwy i treść nigdy nie trafiają do logu (tylko liczby).
 
 ## Obsługa błędów
 Zamknięcie okna (×) albo kanału → koniec procesu; aplikacje nie są restartowane (test).
@@ -90,8 +109,10 @@ Błąd zapisu notatki → komunikat w oknie i w logu.
 | `test-m4.sh`: Zegar — tarcza na zrzucie; Ustawienia — ciemny motyw i tapeta na zrzucie | funkcjonalny |
 | `test-m5.sh`: Ustawienia → Bateria — historia od nadzorcy (≥ 2 próbki), linia wykresu na całą szerokość na zrzucie `m5-bateria.png` | funkcjonalny |
 | `test-m4.sh`: Ustawienia → Ekran — zmiana rozdzielczości (zrzut w nowym rozmiarze, pulpit ułożony od nowa); Zasoby — dane od nadzorcy, wykres pamięci na zrzucie | funkcjonalny |
-| w systemie: klatki czterech aplikacji | funkcjonalny |
+| w systemie: klatki aplikacji (od 0.8.0 także Pliki: UID, brak plików i urządzeń) | funkcjonalny |
 | w systemie: próby w klatkach (także Notatki: `open` zablokowane, dysk niedostępny) | negatywny |
 | `test-m4.sh`: notatka wraca po wyłączeniu i ponownym starcie z tym samym dyskiem danych | funkcjonalny |
 | w systemie: zabita aplikacja nie wraca sama | negatywny |
+| `test-m4.sh` (0.8.0): Pliki — nowy folder, zmiana nazwy na klawiaturze, zajęta nazwa, wejście do folderu i „w górę”, Kosz (usuń, przywróć, usuń na zawsze z pytaniem, opróżnij), pliki po ponownym starcie; zrzut `m4-pliki.png` | funkcjonalny |
+| host: `test_dokumenty` (skarbiec), `test_komunikat` (`DOK_*`, `PLIKI_POKAZ`), `fuzz_dokument` (lista) | jednostkowy / negatywny / fuzzing |
 | host: `test_przybornik` — czas polski (zmiany czasu), układ PL, UTF-8, rysowanie na krawędziach | jednostkowy |
