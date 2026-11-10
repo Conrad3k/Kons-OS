@@ -9,6 +9,7 @@
 #include "ustawienia.h"
 
 #define WIERSZ_H 76 /* a type: its name, then the choice */
+#define PIERWSZY_Y 32 /* the first type below the section's description */
 
 static int najechany_typ = -1, najechany_seg = -1;
 
@@ -24,13 +25,13 @@ static int typy_z_wyborem(int *typy)
 
 static int32_t wiersz_y(int i)
 {
-    return seg_y() + i * WIERSZ_H;
+    return seg_y() + PIERWSZY_Y + i * WIERSZ_H;
 }
 
 void aplikacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     int typy[K1_TYPY_MAKS], n = typy_z_wyborem(typy);
-    naglowek(o, m, "Aplikacje", "Czym otwierać pliki — podwójne kliknięcie w Plikach i na pulpicie");
+    naglowek(o, m, "Aplikacje", "Czym otwierać pliki (podwójne kliknięcie)");
     for (int i = 0; i < n; i++) {
         int a[K1_APL_MAKS], na = k1_dok_aplikacje(typy[i], a), wybrana = 0;
         const char *etykiety[K1_APL_MAKS];

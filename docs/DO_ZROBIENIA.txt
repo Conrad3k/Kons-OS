@@ -240,11 +240,15 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
     [x] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie (pokazywane w Plikach)
     [x] aplikacja Pliki: foldery jak w Windows, lista, podgląd, zmiana nazwy; pliki na pulpicie
     [x] Kosz: przywracanie; usuwa na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”); ikona na pulpicie
-    [ ] (krok 2, ADR 0030) [w toku: Claude, gałąź claude/krok-2-wersji-0-8-0-js79u8]
-        okno wyboru pliku rysowane przez K1 — aplikacja dostaje tylko wybrany plik (prośba przez kanał)
-    [ ] domyślna aplikacja dla typu pliku i „Otwórz w…” (Ustawienia → Aplikacje; ADR 0027) [w toku: Claude, krok 2]
-    [ ] Notatki na wspólnych dokumentach (istniejące notatki przeniesione) [w toku: Claude, krok 2]
-    [ ] zdjęcia z pendrive'a (czytnik FAT w klatce, bez FAT w jądrze), tylko po Twoim wyborze
+    [x] krok 2 (ADR 0030): okno wyboru pliku rysowane przez K1 („Wybór pliku”) — aplikacja dostaje tylko wybrany
+        plik (prośba przez skarbiec), Notatki „Otwórz…” (Ctrl+O)
+    [x] domyślna aplikacja dla typu pliku (Ustawienia → Aplikacje) i „Otwórz w…” (Pliki, pulpit; ADR 0027)
+    [x] Notatki na wspólnych dokumentach: Dokumenty › Notatki, nazwa z pierwszego wiersza, usuwanie do Kosza;
+        stare notatki przeniesione same przy pierwszym uruchomieniu (sprawdzone w QEMU na dysku z 0.7.6)
+    [!] Test na X230 (krok 2, po wydaniu 0.8.0): czy Twoje notatki z pendrive'a są w Notatkach i w Plikach
+        (Dokumenty › Notatki)?
+    [ ] (krok 3) zdjęcia z pendrive'a (czytnik FAT w klatce, bez FAT w jądrze), tylko po Twoim wyborze — test w QEMU
+        na wirtualnym pendrivie FAT ze zdjęciami (Twoja prośba z 2026-11-10: bez Twojego udziału)
     [ ] podgląd obrazów PNG/JPEG przez jednorazowy dekoder w izolacji; tapeta z własnego zdjęcia
     [ ] partycja K1-DANE na pendrivie do końca nośnika (dziś 64 MiB)
     [ ] porządki na koniec wersji (zasada czytelności 2) + przegląd „Tymczasowe” niżej
