@@ -3,7 +3,8 @@
  *   main.c        the loop, the control channel from nadzorca, client channels and their object requests
  *   obiekty.c     objects by (owner, name): the vault on the K1-DANE partition, or memory without one
  *   haslo.c       the password: unlocking (login screen), changing (Ustawienia), the limit of attempts
- *   dokumenty.c   the user's files and folders, Kosz (ADR 0029) — on top of obiekty.c, host tests
+ *   dokumenty.c   the user's files and folders, Kosz (ADR 0029) — on top of obiekty.c, host tests;
+ *                 split into dokumenty.c, dok_drzewo.c, dok_kosz.c, dok_wczytaj.c (dok_wew.h)
  *   dok_kanal.c   K1_KOM_DOK_* requests of clients: the table of rights, memfd in and out
  *   dostep.c      a file for an application after a gesture: "Otwórz w…", the file picker (ADR 0030)
  *

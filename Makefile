@@ -238,7 +238,7 @@ $(OBJ)/test_rozmieszczenie: testy/host/test_rozmieszczenie.c src/gui/rozmieszcze
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/gui -o $@ testy/host/test_rozmieszczenie.c src/gui/rozmieszczenie.c
 
 # 0.8.0: the user's files — names, types, the entry layout, folders, Kosz, the rights of the channel
-DOK_TEST := src/skarbiec/dokumenty.c src/skarbiec/dok_kanal.c src/skarbiec/dostep.c src/skarbiec/obiekty.c $(MAGAZYN) src/wspolne/k1_dokument.c \
+DOK_TEST := src/skarbiec/dokumenty.c $(wildcard src/skarbiec/dok_*.c) src/skarbiec/dostep.c src/skarbiec/obiekty.c $(MAGAZYN) src/wspolne/k1_dokument.c \
             src/wspolne/k1_log.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_memfd.c src/wspolne/k1_uslugi.c
 $(OBJ)/test_dokumenty: testy/host/test_dokumenty.c $(DOK_TEST) $(wildcard src/skarbiec/*.h) $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_dokumenty.c $(DOK_TEST)

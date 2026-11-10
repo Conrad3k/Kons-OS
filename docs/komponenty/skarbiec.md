@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M5c na hoście, M5d w QEMU: dysk SATA i pendrive przez UEFI; 0.5.8: pendrive podłączony po starcie; 0.8.0: pliki i foldery — host i QEMU) |
-| **Pliki** | `src/skarbiec/` w modułach (0.8.0, `skarbiec.h`): `main.c` (pętla, kanały, obiekty aplikacji), `obiekty.c` (obiekty według właściciela i nazwy: magazyn albo pamięć), `haslo.c` (odblokowanie, zmiana hasła, limit prób), `dokumenty.c` (pliki, foldery, Kosz), `dok_kanal.c` (komunikaty `DOK_*`, tabela praw); format: `magazyn.{c,h}` (rekordy, indeks), `naglowek.c` (nagłówek i owinięty klucz; `magazyn_wew.h`), `src/zewnetrzne/monocypher/`; wspólne: `src/wspolne/k1_memfd.*`, `k1_skarb_klient.*` (strona klienta), `k1_dokument.*` (wpis pliku, typy, foldery) |
+| **Pliki** | `src/skarbiec/` w modułach (0.8.0, `skarbiec.h`): `main.c` (pętla, kanały, obiekty aplikacji), `obiekty.c` (obiekty według właściciela i nazwy: magazyn albo pamięć), `haslo.c` (odblokowanie, zmiana hasła, limit prób), `dokumenty.c` + `dok_drzewo.c`, `dok_kosz.c`, `dok_wczytaj.c` (pliki, foldery, Kosz; wspólne: `dok_wew.h`), `dok_kanal.c` (komunikaty `DOK_*`, tabela praw); format: `magazyn.{c,h}` (rekordy, indeks), `naglowek.c` (nagłówek i owinięty klucz; `magazyn_wew.h`), `src/zewnetrzne/monocypher/`; wspólne: `src/wspolne/k1_memfd.*`, `k1_skarb_klient.*` (strona klienta), `k1_dokument.*` (wpis pliku, typy, foldery) |
 | **Decyzje** | ADR 0015 (format, szyfrowanie), ADR 0016 (obraz USB), ADR 0013 (partycja „K1-DANE”), ADR 0029 (pliki, foldery, Kosz) |
 
 ## Cel
