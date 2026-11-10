@@ -1,5 +1,5 @@
-/* K1 skarbiec — Kosz (0.8.0, ADR 0029): into it, back from it, deleted for good, by hand or after 30 days.
- * Part of skarbiec (dok_wew.h). */
+/* K1 skarbiec — Kosz (0.8.0, ADR 0029): into it, back from it, deleted for good, by hand or after 30 days (by the
+ * clock only when it is not behind the time bound, dok_czas.c). Part of skarbiec (dok_wew.h). */
 #include "dok_wew.h"
 #include "skarbiec.h"
 
@@ -7,7 +7,7 @@ uint32_t dok_w_koszu(void)
 {
     uint32_t n = 0;
     for (int i = 0; i < n_wpisow; i++)
-        n += wpisy[i].kosz != 0;
+        n += (uint32_t)k1_dok_w_koszu(&wpisy[i]);
     return n;
 }
 
@@ -97,13 +97,28 @@ int dok_oproznij_kosz(void)
     return 0;
 }
 
-int dok_przeterminowane(int64_t teraz)
+/* Times in Kosz from a wrong clock (0.8.0 wrote the clock as it was): before any K1 had Kosz, or more than a day ahead
+ * of a clock that is right now — counted from now, 30 days again. */
+static void popraw_kosz(int64_t zegar)
+{
+    for (int i = 0; i < n_wpisow; i++) {
+        int64_t k = wpisy[i].kosz;
+        if (k != 0 && (k < K1_KOSZ_OD || k > zegar + DZIEN)) {
+            wpisy[i].kosz = zegar;
+            zapisz_wpis(&wpisy[i]);
+        }
+    }
+}
+
+int dok_przeterminowane(int64_t zegar)
 {
     int n = 0;
+    dok_czas(zegar);
+    if (zegar < dok_granica())
+        return 0; /* the clock is behind this K1's build or a time seen before: it may be wrong — keep everything */
+    popraw_kosz(zegar);
     for (int i = 0; i < n_wpisow;) {
-        int64_t k = wpisy[i].kosz;
-        /* a clock earlier than the moment it went to Kosz (moved back): keep it */
-        if (k != 0 && teraz >= k && teraz - k >= (int64_t)K1_KOSZ_DNI * DZIEN) {
+        if (wpisy[i].kosz != 0 && zegar - wpisy[i].kosz >= (int64_t)K1_KOSZ_DNI * DZIEN) {
             if (usun_drzewo(wpisy[i].id) != 0)
                 break;
             n++;

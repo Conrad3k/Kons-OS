@@ -103,6 +103,7 @@ void ulozy_widok(void);            /* what this place shows, sorted: folders fir
 void do_skarbca(int typ, uint32_t obiekt, int32_t a); /* a request without data */
 void do_skarbca_z_fd(struct k1_komunikat m, int fd);  /* a request with a memfd (the import) */
 void nowy_folder(void);
+void przywroc(uint32_t id);        /* from Kosz (its folder in Kosz: Dokumenty, and the footer says so) */
 void zmien_nazwe(uint32_t id, const char *t, size_t dl);
 void podglad_zadaj(uint32_t id);   /* the start of a text file for the preview */
 extern char podglad[K1_DOK_PODGLAD + 1];

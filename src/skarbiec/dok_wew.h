@@ -2,6 +2,7 @@
  *   dokumenty.c     the entries in memory, their objects (entry, content pieces), new files and changes
  *   dok_drzewo.c    looking: entries by number, folders (visible, depth, inside), names taken in a folder
  *   dok_kosz.c      Kosz: in, out, for good, after 30 days
+ *   dok_czas.c      the time bound: never a time before this K1's build or before the latest clock seen
  *   dok_wczytaj.c   loading the entries at start, with repairs
  * The public functions: dokumenty.h. Part of skarbiec (skarbiec.h). */
 #ifndef K1_DOK_WEW_H
@@ -14,6 +15,7 @@
 
 #define WL K1_WL_DOKUMENTY
 #define DZIEN 86400
+#define K1_KOSZ_OD 1793491200LL /* 2026-11-01: no K1 had Kosz before 0.8.0 — an earlier time is a wrong clock */
 
 /* dokumenty.c: the entries (in no order), the number of the next new one */
 extern struct k1_dok_wpis wpisy[K1_DOK_MAKS];
@@ -38,5 +40,9 @@ int glebokosc(uint32_t id);    /* user folders above `id` */
 int wewnatrz(uint32_t id, uint32_t przodek);
 int wysokosc(uint32_t id);     /* levels of folders in `id` and below */
 int nazwa_zajeta(uint32_t folder, const char *nazwa, uint32_t oprocz);
+
+/* dok_czas.c */
+void dok_czas_wczytaj(void); /* the latest clock seen, from its object (at start) */
+int64_t dok_granica(void);   /* the build time or the latest clock seen, whichever is later */
 
 #endif

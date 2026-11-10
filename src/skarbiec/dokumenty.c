@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "dok_wew.h"
+#include "k1_bajty.h"
 #include "skarbiec.h"
 
 struct k1_dok_wpis wpisy[K1_DOK_MAKS];
@@ -230,15 +231,53 @@ int dok_zmien_nazwe(uint32_t id, const char *nazwa, size_t nl, int wolna, int64_
     return 0;
 }
 
+/* The folder of an application is remembered in object "a<profile>" (0.8.1, plan L1): found by its number even when
+ * the user renamed or moved it, or a file took its name. */
+static void nazwa_folderu_apl(int tworca, char out[K1_MAG_NAZWA])
+{
+    snprintf(out, K1_MAG_NAZWA, "a%d", tworca);
+}
+
+static void zapamietaj_folder(int tworca, uint32_t id)
+{
+    char n[K1_MAG_NAZWA];
+    uint8_t b[4];
+    nazwa_folderu_apl(tworca, n);
+    k1_z32(b, id);
+    ob_zapisz(WL, n, b, sizeof b); /* failing: found by its name next time, as before 0.8.1 */
+}
+
+static int folder_widoczny(uint32_t id)
+{
+    const struct k1_dok_wpis *w = dok_wpis(id);
+    return w != NULL && w->rodzaj == K1_DOK_FOLDER && dok_widoczny(id);
+}
+
 int dok_folder_aplikacji(const char *nazwa, int tworca, int64_t teraz, uint32_t *id)
 {
-    for (int i = 0; i < n_wpisow; i++)
-        if (wpisy[i].rodzic == K1_FOLDER_DOKUMENTY && wpisy[i].rodzaj == K1_DOK_FOLDER && wpisy[i].kosz == 0 &&
-            k1_dok_nazwy_rowne(wpisy[i].nazwa, nazwa)) {
-            *id = wpisy[i].id;
+    char n[K1_MAG_NAZWA];
+    uint8_t b[4];
+    uint32_t dl;
+    int r;
+    nazwa_folderu_apl(tworca, n);
+    if (ob_czytaj(WL, n, b, sizeof b, &dl) == K1_MAG_OK && dl == sizeof b) {
+        if (folder_widoczny(k1_c32(b))) {
+            *id = k1_c32(b);
             return 0;
         }
-    return dok_nowy(K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, nazwa, strlen(nazwa), NULL, tworca, K1_POCH_K1, teraz, id);
+    } else { /* nothing remembered (files of 0.8.0): its folder by name, once */
+        for (int i = 0; i < n_wpisow; i++)
+            if (wpisy[i].rodzic == K1_FOLDER_DOKUMENTY && folder_widoczny(wpisy[i].id) && k1_dok_nazwy_rowne(wpisy[i].nazwa, nazwa)) {
+                *id = wpisy[i].id;
+                zapamietaj_folder(tworca, *id);
+                return 0;
+            }
+    }
+    /* none, or the remembered one is in Kosz or gone: a new folder */
+    r = dok_nowy(K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, nazwa, strlen(nazwa), NULL, tworca, K1_POCH_K1, teraz, id);
+    if (r == 0)
+        zapamietaj_folder(tworca, *id);
+    return r;
 }
 
 int dok_przenies(uint32_t id, uint32_t folder, int64_t teraz)

@@ -2,6 +2,7 @@
  * folders, content in pieces, Kosz with its 30 days (skarbiec dokumenty.c, objects in memory) and the table of
  * rights of the channel (dok_kanal.c over a real socketpair: what Pliki, the desktop and others may do), the access
  * an application gets after a gesture and the file picker (dostep.c, 0.8.0 step 2, ADR 0030). */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -14,7 +15,7 @@
 #include "k1_uslugi.h"
 #include "skarbiec.h"
 
-#define T0 1800000000LL /* 2027 */
+#define T0 4000000000LL /* 2096: always after the real clock, which reaches skarbiec through dok_kanal.c */
 #define DZIEN 86400LL
 
 static struct k1_dok_wpis wybrane[K1_DOK_MAKS];
@@ -187,10 +188,11 @@ static uint32_t nowy(uint32_t folder, int rodzaj, const char *n, const uint8_t *
     return r == 0 ? id : 0;
 }
 
+/* Counts the objects of entries and content (m…, t…); skarbiec keeps a few more of its own (the time seen…). */
 static void licz(const char *n, void *ctx)
 {
-    (void)n;
-    (*(int *)ctx)++;
+    if (n[0] == 'm' || n[0] == 't')
+        (*(int *)ctx)++;
 }
 static int obiektow(void)
 {
@@ -596,6 +598,221 @@ static void test_dostep(void)
     close(kn[1]);
 }
 
+
+/* ---- 0.8.1 step 1: nothing is lost ---- */
+
+/* The bytes of entry `id` (its object m<id>) changed by `zmien`, written back. */
+static void zepsuj_wpis(uint32_t id, void (*zmien)(uint8_t *b))
+{
+    uint8_t b[K1_DOK_WPIS_BAJTY];
+    char n[32];
+    uint32_t dl = 0;
+    snprintf(n, sizeof n, "m%u", id);
+    EXPECT(ob_czytaj(K1_WL_DOKUMENTY, n, b, sizeof b, &dl) == K1_MAG_OK && dl == sizeof b);
+    zmien(b);
+    EXPECT(ob_zapisz(K1_WL_DOKUMENTY, n, b, sizeof b) == K1_MAG_OK);
+}
+static uint8_t kopia_wpisu[K1_DOK_WPIS_BAJTY];
+static void zly_bajt_nazwy(uint8_t *b) { memcpy(kopia_wpisu, b, sizeof kopia_wpisu); b[48 + 2] = 0xff; }
+static void zly_rodzaj(uint8_t *b) { memcpy(kopia_wpisu, b, sizeof kopia_wpisu); b[8] = 7; }
+static void przywroc_wpis(uint8_t *b) { memcpy(b, kopia_wpisu, sizeof kopia_wpisu); }
+static void zla_nazwa_i_pola(uint8_t *b)
+{
+    memset(b + 48, 0x01, 20); /* only control characters left */
+    b[11] = 200;             /* who made it: no such client */
+    b[4] = 50, b[5] = b[6] = b[7] = 0; /* its folder: a number no folder can have */
+    b[9] = 99;               /* the type */
+}
+static void zla_generacja(uint8_t *b) { memcpy(kopia_wpisu, b, sizeof kopia_wpisu); b[12] ^= 0x10; }
+
+/* The content of `id` equals `dane` (dl bytes). */
+static int tresc_rowna(uint32_t id, const uint8_t *dane, uint64_t dl)
+{
+    uint8_t *wy = malloc(dl + 1);
+    struct bufor b = { NULL, wy, 0 };
+    struct dok_cel c = { pisz_bufor, &b };
+    uint64_t ile = 0;
+    int ok = dok_czytaj_tresc(id, dl + 1, &c, &ile) == 0 && ile == dl && memcmp(wy, dane, dl) == 0;
+    free(wy);
+    return ok;
+}
+
+/* T2 of the plan: an entry that does not pass the check at start is repaired, never deleted with its content. */
+static void test_naprawa(void)
+{
+    uint64_t dl = 3 * K1_DOK_KAWALEK;
+    uint8_t *dane = malloc(dl);
+    uint32_t id, id2, inny;
+    int n0;
+    for (uint64_t i = 0; i < dl; i++)
+        dane[i] = (uint8_t)(i * 13 + 1);
+    dane[0] = 0xff, dane[1] = 0xd8, dane[2] = 0xff;
+    dok_wczytaj(T0);
+    inny = nowy(K1_FOLDER_OBRAZY, K1_DOK_PLIK, "wa_acje.jpg", (const uint8_t *)"x", 1, T0);
+    id = nowy(K1_FOLDER_OBRAZY, K1_DOK_PLIK, "wakacje.jpg", dane, dl, T0);
+    n0 = obiektow();
+    /* one bad byte of the name: the name repaired (taken: " (2)"), the folder and the content stay */
+    zepsuj_wpis(id, zly_bajt_nazwy);
+    dok_wczytaj(T0 + 1);
+    EXPECT(dok_wpis(id) != NULL && dok_wpis(id)->rodzic == K1_FOLDER_OBRAZY && dok_wpis(id)->rozmiar == dl &&
+           dok_wpis(id)->typ == K1_TYP_JPEG && strcmp(dok_wpis(id)->nazwa, "wa_acje (2).jpg") == 0);
+    EXPECT(obiektow() == n0 && tresc_rowna(id, dane, dl) && dok_wpis(inny) != NULL);
+    dok_wczytaj(T0 + 2); /* the repair was written: the next start finds a valid entry */
+    EXPECT(dok_wpis(id) != NULL && strcmp(dok_wpis(id)->nazwa, "wa_acje (2).jpg") == 0 && obiektow() == n0);
+    /* a kind no version knows: not loaded, but nothing deleted — a later fix (or version) finds it whole */
+    zepsuj_wpis(id, zly_rodzaj);
+    dok_wczytaj(T0 + 3);
+    EXPECT(dok_wpis(id) == NULL && obiektow() == n0);
+    EXPECT(nowy(K1_FOLDER_OBRAZY, K1_DOK_FOLDER, "nowszy", NULL, 0, T0) > id); /* never its number */
+    n0++;
+    zepsuj_wpis(id, przywroc_wpis);
+    dok_wczytaj(T0 + 4);
+    EXPECT(dok_wpis(id) != NULL && tresc_rowna(id, dane, dl));
+    /* a generation whose content is not there: no piece of that file is deleted (nothing is guessed) */
+    zepsuj_wpis(id, zla_generacja);
+    dok_wczytaj(T0 + 5);
+    EXPECT(obiektow() == n0);
+    zepsuj_wpis(id, przywroc_wpis);
+    dok_wczytaj(T0 + 5);
+    EXPECT(dok_wpis(id) != NULL && tresc_rowna(id, dane, dl));
+    /* nothing of the name left, no such creator, folder or type: "Odzyskany plik <n>" in Dokumenty, type "Plik" */
+    id2 = nowy(K1_FOLDER_POBRANE, K1_DOK_PLIK, "dokument", (const uint8_t *)"abc", 3, T0);
+    zepsuj_wpis(id2, zla_nazwa_i_pola);
+    dok_wczytaj(T0 + 6);
+    {
+        char oczek[64];
+        const struct k1_dok_wpis *w = dok_wpis(id2);
+        snprintf(oczek, sizeof oczek, "Odzyskany plik %u", id2);
+        EXPECT(w != NULL && strcmp(w->nazwa, oczek) == 0 && w->rodzic == K1_FOLDER_DOKUMENTY && w->tworca == K1_PROFIL_PLIKI &&
+               w->typ == K1_TYP_INNY && tresc_rowna(id2, (const uint8_t *)"abc", 3) && dok_wpis(id) != NULL);
+    }
+    free(dane);
+}
+
+
+#define ROK_2000 946684800LL
+
+/* T1/3 of the plan: a wrong clock never empties Kosz early, a time from a wrong clock is set right. */
+static void test_zegar(void)
+{
+    uint32_t a, b2, c;
+    ob_usun(K1_WL_DOKUMENTY, "czas"); /* the latest clock seen by the tests before: forgotten */
+    dok_wczytaj(T0);
+    dok_oproznij_kosz();
+    /* a clock at 2000 (a weak battery): the time written is the latest seen, Kosz deletes nothing */
+    EXPECT(dok_czas(ROK_2000) >= T0);
+    a = nowy(K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, "a.txt", (const uint8_t *)"x", 1, T0);
+    EXPECT(dok_do_kosza(a, ROK_2000) == 0); /* as 0.8.0 wrote it */
+    EXPECT(dok_przeterminowane(ROK_2000 + 40 * DZIEN) == 0 && dok_wpis(a) != NULL);
+    /* the right date again: 30 days from then, not "26 years in Kosz" */
+    EXPECT(dok_przeterminowane(T0 + DZIEN) == 0 && dok_wpis(a) != NULL && dok_wpis(a)->kosz == T0 + DZIEN);
+    EXPECT(dok_przeterminowane(T0 + 30 * DZIEN) == 0 && dok_przeterminowane(T0 + 31 * DZIEN) == 1 && dok_wpis(a) == NULL);
+    /* 5 years ahead when it went to Kosz: 30 days from the right date, not 5 years */
+    b2 = nowy(K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, "b.txt", (const uint8_t *)"x", 1, T0);
+    EXPECT(dok_do_kosza(b2, T0 + 5 * 365 * DZIEN) == 0);
+    EXPECT(dok_przeterminowane(T0 + 32 * DZIEN) == 0 && dok_wpis(b2) != NULL && dok_wpis(b2)->kosz == T0 + 32 * DZIEN);
+    EXPECT(dok_przeterminowane(T0 + 62 * DZIEN) == 1 && dok_wpis(b2) == NULL);
+    /* the clock moved back after a later time was seen: nothing goes until it is there again */
+    c = nowy(K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, "c.txt", (const uint8_t *)"x", 1, T0);
+    EXPECT(dok_do_kosza(c, T0 + 62 * DZIEN) == 0);
+    EXPECT(dok_czas(T0 + 100 * DZIEN) == T0 + 100 * DZIEN && dok_czas(T0 + 95 * DZIEN) == T0 + 100 * DZIEN);
+    EXPECT(dok_przeterminowane(T0 + 95 * DZIEN) == 0 && dok_wpis(c) != NULL);
+    /* the latest time survives a restart */
+    dok_wczytaj(ROK_2000);
+    EXPECT(dok_wpis(c) != NULL && dok_czas(ROK_2000) == T0 + 100 * DZIEN);
+    EXPECT(dok_przeterminowane(T0 + 100 * DZIEN) == 1 && dok_wpis(c) == NULL);
+    /* a computer that never had a right time: never before this K1's build */
+    EXPECT(ob_usun(K1_WL_DOKUMENTY, "czas") == K1_MAG_OK);
+    dok_wczytaj(ROK_2000);
+    EXPECT(dok_czas(ROK_2000) == K1_CZAS_BUDOWY);
+}
+
+static int popraw(const char *s, const char *oczekiwana)
+{
+    char n[K1_DOK_NAZWA];
+    memset(n, 'X', sizeof n);
+    k1_dok_nazwa_popraw(s, strlen(s), n);
+    return strcmp(n, oczekiwana) == 0 && (n[0] == '\0' || k1_dok_nazwa_poprawna(n, strlen(n)));
+}
+
+/* Names repaired (entries at start): "_" for what a name cannot have, whole letters. */
+static void test_nazwa_popraw(void)
+{
+    char dlugi[300], n[K1_DOK_NAZWA];
+    EXPECT(popraw("a\xff" "b", "a_b") && popraw("  x y  ", "x y") && popraw("ok.", "ok") && popraw("a/b:c", "a_b_c"));
+    EXPECT(popraw("\x01\x02", "__") && popraw("...", "") && popraw("", "") && popraw("Zażółć", "Zażółć"));
+    EXPECT(popraw("zdjecie\xe2\x80\xae" "gpj", "zdjecie_gpj") && popraw("\xc5", "_") && popraw("a\xed\xa0\x80" "b", "a___b"));
+    memset(dlugi, 0, sizeof dlugi);
+    for (int i = 0; i < 140; i++)
+        memcpy(dlugi + 2 * i, "\xc5\xbc", 2); /* ż × 140 = 280 bytes */
+    k1_dok_nazwa_popraw(dlugi, strlen(dlugi), n);
+    EXPECT(strlen(n) == 126 && k1_dok_nazwa_poprawna(n, strlen(n)));
+}
+
+/* T1/7 of the plan: the number of entries in Kosz is what Pliki shows there, a file and its folder each. */
+static int pokazany_w_koszu(const struct k1_dok_wpis *w)
+{
+    return k1_dok_w_koszu(w);
+}
+static void test_licznik_kosza(void)
+{
+    uint32_t f, p;
+    dok_wczytaj(T0);
+    dok_oproznij_kosz();
+    f = nowy(K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, "Wyjazd", NULL, 0, T0);
+    p = nowy(f, K1_DOK_PLIK, "bilet.pdf", (const uint8_t *)"%PDF-1", 6, T0);
+    EXPECT(dok_do_kosza(p, T0) == 0 && dok_do_kosza(f, T0) == 0);
+    EXPECT(dok_w_koszu() == 2 && dok_wybierz(pokazany_w_koszu, wybrane) == 2);
+    EXPECT(dok_przywroc(p) == 0 && dok_wpis(p)->rodzic == K1_FOLDER_DOKUMENTY && dok_w_koszu() == 1); /* its folder in Kosz */
+}
+
+/* L12 of the plan: an application is given at most 64 files; the 65th is refused with its own result, none taken
+ * back in silence (the earliest stays readable). */
+static void test_limit_dostepu(void)
+{
+    int kn[2], fd;
+    uint32_t ids[K1_DOK_DOSTEP_APL + 1];
+    struct k1_komunikat k;
+    char n[32];
+    EXPECT(k1_kanal_utworz(kn) == 0);
+    dostep_koniec_klienta(kn[1], K1_PROFIL_NOTATKI, 1); /* what earlier tests gave it: gone */
+    dok_wczytaj(T0);
+    for (int i = 0; i <= K1_DOK_DOSTEP_APL; i++) {
+        snprintf(n, sizeof n, "plik %d.txt", i);
+        ids[i] = nowy(K1_FOLDER_POBRANE, K1_DOK_PLIK, n, (const uint8_t *)"tekst", 5, T0);
+        k = na(kn, K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_OTWORZ, ids[i], K1_APL_NOTATKI, 0, 0, 0, 0), -1, &fd);
+        EXPECT(k.b == (i < K1_DOK_DOSTEP_APL ? 0 : K1_DOK_BLAD_OTWARTE));
+    }
+    EXPECT(dostep_ma(K1_PROFIL_NOTATKI, ids[0]) && !dostep_ma(K1_PROFIL_NOTATKI, ids[K1_DOK_DOSTEP_APL]));
+    EXPECT(dostep_daj(K1_PROFIL_ZEGAR, ids[K1_DOK_DOSTEP_APL]) == 0); /* another application has its own 64 */
+    dostep_koniec_klienta(kn[1], K1_PROFIL_NOTATKI, 1);
+    dostep_koniec_klienta(kn[1], K1_PROFIL_ZEGAR, 1);
+    EXPECT(dostep_daj(K1_PROFIL_NOTATKI, ids[K1_DOK_DOSTEP_APL]) == 0); /* closed: room again */
+    dostep_koniec_klienta(kn[1], K1_PROFIL_NOTATKI, 1);
+    close(kn[0]);
+    close(kn[1]);
+}
+
+/* T1/1 of the plan: the folder of an application is remembered, not looked up by its name. */
+static void test_folder_aplikacji(void)
+{
+    uint32_t f1 = 0, f2 = 0, f3 = 0, f4 = 0;
+    dok_wczytaj(T0);
+    nowy(K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, "Kalkulator", (const uint8_t *)"x", 1, T0); /* a file with that name */
+    EXPECT(dok_folder_aplikacji("Kalkulator", K1_PROFIL_KALKULATOR, T0, &f1) == 0 && dok_wpis(f1) != NULL &&
+           dok_wpis(f1)->rodzaj == K1_DOK_FOLDER && strcmp(dok_wpis(f1)->nazwa, "Kalkulator (2)") == 0);
+    EXPECT(dok_folder_aplikacji("Kalkulator", K1_PROFIL_KALKULATOR, T0, &f2) == 0 && f2 == f1); /* not "(3)" */
+    EXPECT(dok_zmien_nazwe(f1, "Rachunki", 8, 0, T0) == 0); /* renamed by the user: still its folder */
+    dok_wczytaj(T0 + 1);
+    EXPECT(dok_folder_aplikacji("Kalkulator", K1_PROFIL_KALKULATOR, T0, &f2) == 0 && f2 == f1);
+    EXPECT(dok_przenies(f1, K1_FOLDER_POBRANE, T0) == 0 && dok_folder_aplikacji("Kalkulator", K1_PROFIL_KALKULATOR, T0, &f2) == 0 &&
+           f2 == f1); /* moved, too */
+    EXPECT(dok_do_kosza(f1, T0) == 0); /* in Kosz: a new folder, which is remembered from then on */
+    EXPECT(dok_folder_aplikacji("Kalkulator", K1_PROFIL_KALKULATOR, T0, &f3) == 0 && f3 != f1 && dok_widoczny(f3));
+    EXPECT(dok_folder_aplikacji("Kalkulator", K1_PROFIL_KALKULATOR, T0, &f4) == 0 && f4 == f3);
+    EXPECT(dok_folder_aplikacji("Zegar", K1_PROFIL_ZEGAR, T0, &f4) == 0 && f4 != f3); /* each application its own */
+}
+
 int main(void)
 {
     test_nazwy();
@@ -608,5 +825,11 @@ int main(void)
     test_wczytanie();
     test_prawa();
     test_dostep();
+    test_naprawa();
+    test_folder_aplikacji();
+    test_nazwa_popraw();
+    test_licznik_kosza();
+    test_zegar();
+    test_limit_dostepu();
     return K1_TEST_KONIEC("test_dokumenty");
 }

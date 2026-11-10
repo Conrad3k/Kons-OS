@@ -52,7 +52,7 @@ void dok_po_otwarciu(void); /* the vault is readable (opened, unlocked, or memor
 int dok_co_godzine(void);    /* Kosz: delete what is older than 30 days; 1 when something went */
 
 /* dostep.c: what applications were given (owner `wl`, file `id`) and the file picker */
-void dostep_daj(int wl, uint32_t id);
+int dostep_daj(int wl, uint32_t id); /* 0, or K1_DOK_BLAD_OTWARTE: it has K1_DOK_DOSTEP_APL files already */
 int dostep_ma(int wl, uint32_t id);
 int dostep_otworz(uint32_t id, int apl);          /* DOK_OTWORZ (allowed already): results 0 / K1_DOK_BLAD_* */
 int dostep_wybierz(int fd, int wl, int typ);      /* DOK_WYBIERZ of the client on channel `fd` */

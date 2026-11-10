@@ -17,6 +17,8 @@ FUZZ_CZAS ?= 30
 GEN       := $(BUDOWA)/gen
 CZCIONKI  ?= /usr/share/fonts/truetype/ibm-plex
 WERSJA    := $(shell cat VERSION)
+# The build time (skarbiec's lower bound for the clock, 0.8.1): the time of the commit, as scripts/wspolne.sh sets it.
+CZAS_BUDOWY := $(or $(SOURCE_DATE_EPOCH),$(shell git log -1 --format=%ct 2>/dev/null),0)
 
 OSTRZEZENIA := -Wall -Wextra -Werror -Wformat=2 -Wformat-security -Wconversion -Wshadow \
                -Wstrict-prototypes -Wmissing-prototypes
@@ -123,7 +125,7 @@ $(BIN)/czytnik: $(CZYTNIK) src/czytnik/fat.h src/przybornik/k1_czas.c $(WSPOLNE)
 # skarbiec in modules (0.8.0): main.c (loop, channels), obiekty, haslo, dokumenty, dok_kanal + the format — skarbiec.h
 SKARBIEC := $(filter-out src/skarbiec/magazyn.c src/skarbiec/naglowek.c,$(sort $(wildcard src/skarbiec/*.c))) $(MAGAZYN)
 $(BIN)/skarbiec: $(SKARBIEC) $(wildcard src/skarbiec/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ $(SKARBIEC) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+	$(CC_K1) $(CFLAGS_K1) -DK1_CZAS_BUDOWY=$(CZAS_BUDOWY) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ $(SKARBIEC) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 $(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
@@ -237,19 +239,29 @@ $(OBJ)/test_kalkulator: testy/host/test_kalkulator.c src/aplikacje/kalkulator/li
 $(OBJ)/test_rozmieszczenie: testy/host/test_rozmieszczenie.c src/gui/rozmieszczenie.c src/gui/rozmieszczenie.h $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/gui -o $@ testy/host/test_rozmieszczenie.c src/gui/rozmieszczenie.c
 
-# 0.8.0: the user's files — names, types, the entry layout, folders, Kosz, the rights of the channel
+# 0.8.0: the user's files — names, types, the entry layout, folders, Kosz, the rights of the channel; a fixed build time
+# (2026-11-18) so that the tests' clock (2027) stays after it whenever they run
+CZAS_TESTU := 1795000000
 DOK_TEST := src/skarbiec/dokumenty.c $(wildcard src/skarbiec/dok_*.c) src/skarbiec/dostep.c src/skarbiec/obiekty.c $(MAGAZYN) src/wspolne/k1_dokument.c \
             src/wspolne/k1_log.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_memfd.c src/wspolne/k1_uslugi.c
 $(OBJ)/test_dokumenty: testy/host/test_dokumenty.c $(DOK_TEST) $(wildcard src/skarbiec/*.h) $(NAGL) | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_dokumenty.c $(DOK_TEST)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -DK1_CZAS_BUDOWY=$(CZAS_TESTU) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ \
+		testy/host/test_dokumenty.c $(DOK_TEST)
+
+# 0.8.1: Notatki's own code (pliki.c, spis.c) against skarbiec's over a socketpair
+NOTATKI_TEST := src/aplikacje/notatki/pliki.c src/aplikacje/notatki/spis.c $(DOK_TEST)
+$(OBJ)/test_notatki: testy/host/test_notatki.c $(NOTATKI_TEST) $(wildcard src/skarbiec/*.h src/aplikacje/notatki/*.h) $(NAGL) | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -DK1_CZAS_BUDOWY=$(CZAS_TESTU) -Isrc/skarbiec -Isrc/aplikacje/notatki \
+		-Isrc/zewnetrzne/monocypher -o $@ testy/host/test_notatki.c $(NOTATKI_TEST)
 
 # Every host test includes the shared helpers: a change there rebuilds them all.
 $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instalator test_kalkulator test_komunikat \
-	test_dokumenty test_log test_magazyn test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
+	test_dokumenty test_notatki test_log test_magazyn test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
 	test_zdarzenie): testy/host/k1_test_host.h
 
-testy-host: $(OBJ)/test_dokumenty $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/test_fat $(OBJ)/test_dekoder
+testy-host: $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/test_fat $(OBJ)/test_dekoder
 	$(OBJ)/test_dokumenty
+	$(OBJ)/test_notatki
 	$(OBJ)/test_rozmieszczenie
 	$(OBJ)/test_kalkulator
 	rm -f $(OBJ)/grubenv.ref && grub-editenv $(OBJ)/grubenv.ref create && \
