@@ -51,7 +51,7 @@
 #define LOG_NA_SEKUNDE 20.0
 
 #define N(t) (unsigned)(sizeof(t) / sizeof((t)[0]))
-enum rodzaj { R_SKARBIEC, R_EKRAN, R_KLIENT, R_PROBA, R_INSTALATOR };
+enum rodzaj { R_SKARBIEC, R_EKRAN, R_KLIENT, R_PROBA, R_INSTALATOR, R_CZYTNIK };
 
 struct usluga {
     const char *nazwa, *program, *tag;
@@ -75,7 +75,7 @@ struct usluga {
 #define USLUGA(n, prog, t, prof, r, rol, apl, rest)                                                         \
     { .nazwa = n, .program = prog, .tag = t, .profil = prof, .rodzaj = r, .rola = rol, .aplikacja = apl,          \
       .restartuj = rest, .log = -1 }
-#define N_USLUG (6 + K1_APL_MAKS) /* uslugi[]: 6 system services (k1_uslugi.h K1_SYSTEM) + the applications */
+#define N_USLUG (0 K1_SYSTEM(K1_X_LICZ) + K1_APL_MAKS) /* uslugi[]: the system services (K1_SYSTEM) + the applications */
 
 /* The channels nadzorca gives a service besides the one to ekran (fd 3), as fd 4, 5, … in the order of
  * kanaly_uslugi() (uslugi.c). The ends we keep live in the module that serves them. */
@@ -158,6 +158,14 @@ int otworz_urzadzenie(const char *nazwa, int flagi);
 int inst_zapis(int nr, int tryb);
 void obsluz_instalacje(void);
 void obsluz_zapis(void);
+
+/* pendrive.c — the USB stick for Pliki (0.8.0 step 3, ADR 0031) */
+extern int pen_kanal;
+struct usluga *czytnik(void);
+void pendrive_nowy_kanal(void);
+void pendrive_sprawdz(void);
+void pendrive_koniec(void);
+void obsluz_pendrive(void);
 
 /* rozruch.c — A/B after a start (0.7.0, ADR 0022) */
 extern char ab_nieudana[32];

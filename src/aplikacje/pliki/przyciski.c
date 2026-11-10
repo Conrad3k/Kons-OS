@@ -14,7 +14,7 @@ static int aplikacje_pliku(int *a)
 {
     const struct k1_dok_wpis *w = wpis(zaznaczony);
     int n, j = 0;
-    if (w == NULL || w->rodzaj != K1_DOK_PLIK || tu.kosz)
+    if (w == NULL || w->rodzaj != K1_DOK_PLIK || tu.kosz || tu.pendrive)
         return 0;
     n = k1_dok_aplikacje(w->typ, a);
     for (int i = 0; i < n; i++)
@@ -26,8 +26,9 @@ static int aplikacje_pliku(int *a)
 int przyciski(struct k1_przycisk *p)
 {
     static const char *const etykiety[] = { "Nowy folder", "Zmień nazwę", "Usuń", "Przywróć", "Usuń na zawsze",
-                                            "Opróżnij Kosz", "Tak, usuń", "Anuluj", "Otwórz w…" };
-    static const int32_t szer[] = { 116, 116, 76, 92, 132, 128, 96, 84, 104, 112 };
+                                            "Opróżnij Kosz", "Tak, usuń", "Anuluj", "Otwórz w…", "", "Importuj",
+                                            "Importuj wszystkie" };
+    static const int32_t szer[] = { 116, 116, 76, 92, 132, 128, 96, 84, 104, 112, 100, 160 };
     int n = 0, i, a[K1_APL_MAKS];
     int32_t x = LISTA_X;
     if (wybor_aplikacji) {
@@ -40,6 +41,9 @@ int przyciski(struct k1_przycisk *p)
     } else if (pytanie != PYT_BRAK) {
         rodzaje[n++] = B_TAK;
         rodzaje[n++] = B_ANULUJ;
+    } else if (tu.pendrive) { /* the stick: read only, files come over to K1 */
+        rodzaje[n++] = B_IMPORTUJ;
+        rodzaje[n++] = B_IMPORTUJ_WSZ;
     } else if (tu.kosz) {
         rodzaje[n++] = B_PRZYWROC;
         rodzaje[n++] = B_NA_ZAWSZE;
@@ -53,7 +57,7 @@ int przyciski(struct k1_przycisk *p)
     for (i = 0; i < n; i++) {
         p[i] = (struct k1_przycisk){ x, PRZYCISKI_Y, szer[rodzaje[i]], PRZYCISK_H,
                                      rodzaje[i] == B_APL ? k1_profil_nazwa(k1_apl_profil(apl_przycisku[i])) : etykiety[rodzaje[i]],
-                                     rodzaje[i] == B_TAK || rodzaje[i] == B_APL ? K1_PRZ_GLOWNY : K1_PRZ_ZWYKLY };
+                                     rodzaje[i] == B_TAK || rodzaje[i] == B_APL || rodzaje[i] == B_IMPORTUJ ? K1_PRZ_GLOWNY : K1_PRZ_ZWYKLY };
         x += szer[rodzaje[i]] + 8;
     }
     return n;
@@ -74,6 +78,17 @@ int dostepny(int r)
         int a[K1_APL_MAKS];
         return edycja.id == 0 && aplikacje_pliku(a) > 0;
     }
+    case B_IMPORTUJ: {
+        const struct k1_dok_wpis *w = pen_wpis(zaznaczony);
+        return !importuje && w != NULL && w->rodzaj == K1_DOK_PLIK;
+    }
+    case B_IMPORTUJ_WSZ:
+        for (int i = 0; i < n_widok && !importuje; i++)
+            if (wiersz_wpisu(i)->rodzaj == K1_DOK_PLIK)
+                return 1;
+        return 0;
+    case B_NOWY:
+        return !importuje; /* its result would mix with the import's (one DOK_NOWY at a time) */
     default:
         return 1;
     }
@@ -94,7 +109,7 @@ void otworz_w(int a)
 void zacznij_edycje(void)
 {
     const struct k1_dok_wpis *w = wpis(zaznaczony);
-    if (w == NULL || tu.kosz)
+    if (w == NULL || tu.kosz || tu.pendrive)
         return;
     edycja.id = w->id;
     edycja.dl = strlen(w->nazwa);
@@ -120,6 +135,8 @@ void wykonaj(int r, int a)
     case B_OTWORZ_W: wybor_aplikacji = 1; break;
     case B_APL: otworz_w(a); break;
     case B_NOWY: nowy_folder(); break;
+    case B_IMPORTUJ: pendrive_importuj(0); break;
+    case B_IMPORTUJ_WSZ: pendrive_importuj(1); break;
     case B_NAZWA: zacznij_edycje(); break;
     case B_USUN: do_skarbca(K1_KOM_DOK_KOSZ, zaznaczony, 0); zaznaczony = 0; break;
     case B_PRZYWROC: do_skarbca(K1_KOM_DOK_PRZYWROC, zaznaczony, 0); zaznaczony = 0; break;

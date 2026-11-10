@@ -3,7 +3,8 @@
  *   przyciski.c the buttons of the place and what they do
  *   rysuj.c  drawing the list, the preview on the right and the footer
  *   dane.c   the files from skarbiec (fd 4): the list, a preview, requests and their results; places from
- *            nadzorca (fd 5, when the desktop opens Pliki at a file or Kosz) */
+ *            nadzorca (fd 5, when the desktop opens Pliki at a file or Kosz)
+ *   pendrive.c the USB stick (fd 6 from nadzorca, the channel to czytnik) and the import (0.8.0 step 3) */
 #ifndef K1_PLIKI_H
 #define K1_PLIKI_H
 
@@ -15,6 +16,9 @@
 #define TAG "K1-PLIKI"
 #define FD_SKARBIEC 4
 #define FD_NADZORCA 5
+#define FD_PENDRIVE 6
+#define KANAL_PENDRIVE 2 /* apl.kanaly[]: 0 skarbiec, 1 nadzorca (fd 5), 2 nadzorca (fd 6), 3 czytnik */
+#define KANAL_CZYTNIK 3
 
 /* Layout (window coordinates) */
 #define SZER 920
@@ -36,10 +40,11 @@
 #define PRZEWIJANIE 26                 /* the strip with the scroll arrows (only when needed) */
 #define PRZYCISKI_MAKS 6               /* buttons of a place at most */
 
-/* the place shown: a folder, or Kosz */
+/* the place shown: a folder, Kosz, or a folder on the USB stick */
 struct miejsce {
-    uint32_t folder; /* standard 1..6 or a user folder; 0 with kosz */
+    uint32_t folder; /* standard 1..6 or a user folder; 0 with kosz; pendrive: its folder (0: the main one) */
     int kosz;
+    int pendrive;
 };
 
 enum pytanie { PYT_BRAK = 0, PYT_USUN, PYT_OPROZNIJ }; /* "for good?" in the footer */
@@ -66,9 +71,12 @@ extern int gotowe;             /* the first list has arrived */
 /* main.c */
 int wierszy_widac(void);
 int przewijanie_potrzebne(void);
+const struct k1_dok_wpis *wiersz_wpisu(int i); /* row `i` of the place shown */
+const struct k1_dok_wpis *wpis_tu(uint32_t id); /* an entry of the place shown (on the stick: from czytnik) */
 
 /* przyciski.c */
-enum { B_NOWY, B_NAZWA, B_USUN, B_PRZYWROC, B_NA_ZAWSZE, B_OPROZNIJ, B_TAK, B_ANULUJ, B_OTWORZ_W, B_APL };
+enum { B_NOWY, B_NAZWA, B_USUN, B_PRZYWROC, B_NA_ZAWSZE, B_OPROZNIJ, B_TAK, B_ANULUJ, B_OTWORZ_W, B_APL, B_IMPORTUJ,
+       B_IMPORTUJ_WSZ };
 extern int rodzaje[PRZYCISKI_MAKS], apl_przycisku[PRZYCISKI_MAKS]; /* what the buttons of przyciski() do, in order */
 extern int wybor_aplikacji;           /* "Otwórz w…" pressed: the buttons are the applications that open the file */
 int przyciski(struct k1_przycisk *p); /* the buttons of this place: how many */
@@ -87,11 +95,30 @@ void przejdz(struct miejsce m);    /* show a place (selection and scroll from th
 void loguj_widok(void);
 void ulozy_widok(void);            /* what this place shows, sorted: folders first, then by name */
 void do_skarbca(int typ, uint32_t obiekt, int32_t a); /* a request without data */
+void do_skarbca_z_fd(struct k1_komunikat m, int fd);  /* a request with a memfd (the import) */
 void nowy_folder(void);
 void zmien_nazwe(uint32_t id, const char *t, size_t dl);
 void podglad_zadaj(uint32_t id);   /* the start of a text file for the preview */
 extern char podglad[K1_DOK_PODGLAD + 1];
 extern uint32_t podglad_id, podglad_dl;
+
+/* pendrive.c */
+enum { PEN_ZAMKNIETY = 1, PEN_CZEKA = 2, PEN_GOTOWY = 3 }; /* pen_stan; < 0: K1_PEN_BLAD_* */
+extern int pen_jest;  /* nadzorca: a stick is plugged in (the place "Pendrive" is shown) */
+extern int pen_stan;
+extern struct k1_dok_wpis pen[];
+extern int n_pen, importuje;
+void pendrive_start(void);
+void pendrive_otworz(void);         /* the place "Pendrive" clicked */
+void pendrive_wejdz(uint32_t id);   /* a folder on the stick */
+int pendrive_w_gore_mozna(void);
+void pendrive_w_gore(void);
+void pendrive_importuj(int wszystkie); /* the selected file, or every file of the folder shown */
+int pendrive_wynik_skarbca(const struct k1_komunikat *k); /* 1: the result of an import's DOK_NOWY */
+const struct k1_dok_wpis *pen_wpis(uint32_t id);
+uint32_t pen_folder(void);
+int pen_sciezka(const char **nazwy, int maks); /* "Pendrive", then the folders entered */
+const char *pendrive_stopka(void);
 
 /* rysuj.c */
 void rysuj_liste(struct k1_obraz *o, const struct k1_motyw *m);

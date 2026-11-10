@@ -17,6 +17,8 @@ struct usluga uslugi[] = {
 #undef X_APL
     /* M5f: started only by an install/update request of the Instalator window (inst_zapis) */
     USLUGA("instalator", "/rdzen/system/instalator", "K1-INSTALATOR", K1_PROFIL_INSTALATOR, R_INSTALATOR, 0, 0, 0),
+    /* 0.8.0 step 3: started only when Pliki opens a USB stick (pendrive.c) */
+    USLUGA("czytnik", "/rdzen/system/czytnik", "K1-CZYTNIK", K1_PROFIL_CZYTNIK, R_CZYTNIK, 0, 0, 0),
 };
 
 /* What a service gets from us besides its channel to ekran: fd 4, 5, … in this order. */
@@ -37,8 +39,11 @@ static const struct kanaly {
     { K1_PROFIL_USTAWIENIA, { { KN_DO, &ustaw_kanal, NULL, ustawienia_nowy_kanal }, { KN_SKARB, NULL, NULL, NULL } } },
     { K1_PROFIL_ZASOBY, { { KN_DO, &zasoby_kanal, NULL, NULL } } },              /* fd 4 statistics */
     { K1_PROFIL_INSTALACJA, { { KN_OD, &inst_kanal, NULL, inst_nowy_kanal } } }, /* fd 4 disks, progress */
-    /* Pliki (0.8.0): fd 4 skarbiec (the user's files), fd 5 the place to show when the desktop opens it */
-    { K1_PROFIL_PLIKI, { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &plik_kanal[K1_APL_PLIKI], NULL, NULL } } },
+    /* Pliki (0.8.0): fd 4 skarbiec (the user's files), fd 5 the place to show when the desktop opens it, fd 6 the USB
+     * stick (whether there is one, the channel to czytnik; step 3) */
+    { K1_PROFIL_PLIKI,
+      { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &plik_kanal[K1_APL_PLIKI], NULL, NULL },
+        { KN_OD, &pen_kanal, NULL, pendrive_nowy_kanal } } },
     { K1_PROFIL_WYBOR, { { KN_SKARB, NULL, NULL, NULL } } }, /* the file picker: fd 4 skarbiec (names, the choice) */
 };
 
@@ -165,7 +170,7 @@ int kanal_do_ekranu(int rola, int apl, int uid)
 static struct {
     int *nasz;
     int profil;
-} wlasciciele[8];
+} wlasciciele[12];
 
 static void ustaw_wlasciciela(int *nasz, int profil)
 {
@@ -374,8 +379,8 @@ void start(struct usluga *u)
 {
     const struct k1_profil *p = &profile[u->profil];
     u->nastepny = 0;
-    if (u->rodzaj == R_INSTALATOR)
-        return; /* only on request of the Instalator window (inst_zapis) */
+    if (u->rodzaj == R_INSTALATOR || u->rodzaj == R_CZYTNIK)
+        return; /* only on request of the Instalator window (inst_zapis), of Pliki (pendrive.c) */
     if (u->rodzaj == R_SKARBIEC)
         start_skarbiec(u, p);
     else if (u->rodzaj == R_EKRAN)
@@ -418,6 +423,8 @@ void zakonczona(struct usluga *u, int status)
         }
         inst_wynik_wyslany = 1;
     }
+    if (u->rodzaj == R_CZYTNIK)
+        pendrive_koniec();
     if (u->rodzaj == R_SKARBIEC) {
         if (skarb_ster >= 0)
             close(skarb_ster);

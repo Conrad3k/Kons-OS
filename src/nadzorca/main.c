@@ -112,6 +112,7 @@ static void okresowe(void)
         sprawdz_nowe_wejscia();
     if (uevent_dysk) {
         szukaj_pozno();
+        pendrive_sprawdz();
         if (etap_startu() == E_DANE && skarbiec()->pid == 0)
             skarbiec()->nastepny = t; /* the data partition may be there now */
     }
@@ -147,7 +148,7 @@ int main(void)
             { &test_kanal, obsluz_test, POLLIN },     { &gui_kanal, obsluz_gui, POLLIN },
             { &skarb_ster, obsluz_skarbiec, POLLIN }, /* skarbiec ending is seen by waitpid */
             { &inst_kanal, obsluz_instalacje, POLLIN }, { &inst_ster, obsluz_zapis, POLLIN },
-            { &uevent_fd, obsluz_uevent, POLLIN },
+            { &uevent_fd, obsluz_uevent, POLLIN },    { &pen_kanal, obsluz_pendrive, POLLIN },
         };
 #define N_KANALOW (sizeof kanaly / sizeof kanaly[0])
         struct pollfd pfd[1 + N_KANALOW + N_USLUG + 1];

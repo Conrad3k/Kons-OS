@@ -35,7 +35,7 @@ NAGL    := $(wildcard src/wspolne/*.h)
 # Services (M3): protocol, channels, sandbox.
 USLUGI  := src/wspolne/k1_uslugi.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
            src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c \
-           src/wspolne/k1_dokument.c
+           src/wspolne/k1_dokument.c src/wspolne/k1_pendrive.c
 # Blob Vault (M5c, ADR 0015): format + Monocypher (src/zewnetrzne, docs/ZALEZNOSCI.md). Monocypher is
 # compiled as is; on the host (ASan build) -Wconversion warns about its code, so only there it is off.
 MONOCYPHER := src/zewnetrzne/monocypher/monocypher.c
@@ -52,7 +52,7 @@ NAGL_P  := $(wildcard src/przybornik/*.h) src/grafika/k1_grafika.h src/grafika/k
 # Native applications: every directory src/aplikacje/<program> (its line in k1_uslugi.h K1_APLIKACJE names it).
 APLIKACJE := $(patsubst src/aplikacje/%/main.c,$(BIN)/%,$(wildcard src/aplikacje/*/main.c))
 
-PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(BIN)/wejscie $(BIN)/ekran $(BIN)/gui $(BIN)/skarbiec $(BIN)/logowanie $(BIN)/instalator $(APLIKACJE) \
+PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(BIN)/wejscie $(BIN)/ekran $(BIN)/gui $(BIN)/skarbiec $(BIN)/logowanie $(BIN)/instalator $(BIN)/czytnik $(APLIKACJE) \
             $(BIN)/k1-test-systemu
 
 all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(GEN)/sb/k1_sb_cert.h
@@ -103,6 +103,11 @@ $(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(EFI) $(GEN)/sb/k1_sb
 $(BIN)/instalator: src/instalator/main.c src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/k1_klucz.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -I$(GEN) -o $@ src/instalator/main.c src/instalator/gpt.c \
 		$(EFI) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+
+# 0.8.0 step 3 (ADR 0031): the USB stick reader — FAT in a sandbox (host test: test_fat, fuzzing: fuzz_fat)
+CZYTNIK := $(sort $(wildcard src/czytnik/*.c))
+$(BIN)/czytnik: $(CZYTNIK) src/czytnik/fat.h src/przybornik/k1_czas.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(CZYTNIK) src/przybornik/k1_czas.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # skarbiec in modules (0.8.0): main.c (loop, channels), obiekty, haslo, dokumenty, dok_kanal + the format — skarbiec.h
 SKARBIEC := $(filter-out src/skarbiec/magazyn.c src/skarbiec/naglowek.c,$(sort $(wildcard src/skarbiec/*.c))) $(MAGAZYN)

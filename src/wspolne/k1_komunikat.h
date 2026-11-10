@@ -16,6 +16,7 @@
 #include <stdint.h>
 
 #include "k1_dokument.h"
+#include "k1_pendrive.h"
 
 #define K1_KOMUNIKAT_WERSJA 1
 
@@ -28,7 +29,10 @@ enum k1_kanal_kierunek {
     K1_KIER_OD_NADZORCY = 5, /* nadzorca → test program, → Zasoby, → gui (battery); one way */
     K1_KIER_DO_SKARBCA = 6,  /* client (ekran, Notatki, nadzorca) → skarbiec (M5d) */
     K1_KIER_OD_SKARBCA = 7,  /* skarbiec → client */
+    K1_KIER_DO_CZYTNIKA = 8, /* Pliki → czytnik (the USB stick reader, 0.8.0 step 3) */
+    K1_KIER_OD_CZYTNIKA = 9, /* czytnik → Pliki */
 };
+#define K1_KIER_MAKS 9
 
 enum k1_komunikat_typ {
     /* nadzorca → ekran */
@@ -127,8 +131,9 @@ enum k1_komunikat_typ {
     K1_KOM_DOK_SPIS = 84,      /* obiekt=0: the entries this client may see (reply: DOK_LISTA) */
     K1_KOM_DOK_CZYTAJ = 85,    /* obiekt=file, a=at most this many bytes (1..K1_DOK_MAKS_BAJTY) (reply: DOK_TRESC) */
     K1_KOM_DOK_NOWY = 86,      /* obiekt=folder, a=K1_DOK_PLIK/FOLDER, b=name length 1..127, c=content length
-                                * (folder: 0); + 1 memfd of b + c bytes: the name, then the content. Notatki (0.8.0,
-                                * ADR 0030): obiekt=Dokumenty — the file goes to its folder Dokumenty › Notatki */
+                                * (folder: 0), d=origin 0 (= K1) or K1_POCH_* (a file, Pliki only: an import, ADR 0031);
+                                * + 1 memfd of b + c bytes: the name, then the content. Notatki (0.8.0, ADR 0030):
+                                * obiekt=Dokumenty — the file goes to its folder Dokumenty › Notatki */
     K1_KOM_DOK_ZAPISZ = 87,    /* obiekt=file, a=length 0..K1_DOK_MAKS_BAJTY; + 1 memfd: the new content */
     K1_KOM_DOK_NAZWA = 88,     /* obiekt=entry, a=name length 1..127, b=1 a taken name gets " (2)"… (else 0: refused);
                                 * + 1 memfd: the new name */
@@ -157,6 +162,21 @@ enum k1_komunikat_typ {
     /* nadzorca → an application (its fd 5) and → gui (its fd 5) */
     K1_KOM_PLIK_OTWORZ = 22,   /* to an application: obiekt=file it was given (DOK_OTWORZ) — open it */
     K1_KOM_POKAZ_APL = 23,     /* to gui: obiekt=0, a=application 1..K1_APL_MAKS — show its window (it was asked to open a file) */
+    /* nadzorca ↔ Pliki (0.8.0 step 3, ADR 0031; Pliki's fd 6): the USB stick */
+    K1_KOM_PENDRIVE = 24,        /* to Pliki: obiekt=0, a=1 a stick (not a K1 one) is plugged in / 0 none */
+    K1_KOM_PENDRIVE_OTWORZ = 25, /* from Pliki: obiekt=0 — start czytnik for the stick (reply: PENDRIVE_KANAL, or
+                                  * PENDRIVE a=0) */
+    K1_KOM_PENDRIVE_KANAL = 26,  /* to Pliki: obiekt=0; + 1 fd: the channel to the new czytnik */
+    /* Pliki → czytnik (the stick, read only; obiekt = an entry of a list it sent, 0: the main folder) */
+    K1_KOM_PEN_SPIS = 103,       /* obiekt=folder: its entries (reply: PEN_LISTA) */
+    K1_KOM_PEN_CZYTAJ = 104,     /* obiekt=file: its name and content, for DOK_NOWY (reply: PEN_PLIK) */
+    /* czytnik → Pliki */
+    K1_KOM_PEN_STAN = 105,       /* once at start: obiekt=0, a=12/16/32 the FAT the stick has, or a=0 and b=K1_PEN_BLAD_* */
+    K1_KOM_PEN_LISTA = 106,      /* obiekt=folder, a=length 16..K1_PEN_LISTA_MAKS, b=entries 0..K1_PEN_WPISOW, c=1 the
+                                  * folder has more; + 1 memfd (k1_pendrive.h) */
+    K1_KOM_PEN_PLIK = 107,       /* obiekt=file, a=name length 1..127, b=content length 0..K1_DOK_MAKS_BAJTY; + 1 memfd
+                                  * of a + b bytes: the name, then the content (as DOK_NOWY wants it) */
+    K1_KOM_PEN_WYNIK = 108,      /* obiekt=entry, a=request type (PEN_SPIS, PEN_CZYTAJ), b=K1_PEN_BLAD_* (< 0) */
     /* nadzorca → Pliki (0.8.0, its fd 5; after URUCHOM with a place): show it */
     K1_KOM_PLIKI_POKAZ = 21,   /* obiekt=0, a=entry (0: the last place), b=1 Kosz (then a=0) */
     K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample
