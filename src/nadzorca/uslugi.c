@@ -1,4 +1,5 @@
-/* K1 nadzorca — the services: table, starting in sandboxes, logs, restarts, requests of the desktop. Part of nadzorca (see main.c). */
+/* K1 nadzorca — the services: table, starting in sandboxes, restarts, requests of the desktop (their logs: logi.c).
+ * Part of nadzorca (see main.c). */
 #include "nadzorca.h"
 
 struct usluga uslugi[] = {
@@ -16,6 +17,8 @@ struct usluga uslugi[] = {
 #undef X_APL
     /* M5f: started only by an install/update request of the Instalator window (inst_zapis) */
     USLUGA("instalator", "/rdzen/system/instalator", "K1-INSTALATOR", K1_PROFIL_INSTALATOR, R_INSTALATOR, 0, 0, 0),
+    /* 0.8.0 step 3: started only when Pliki opens a USB stick (pendrive.c) */
+    USLUGA("czytnik", "/rdzen/system/czytnik", "K1-CZYTNIK", K1_PROFIL_CZYTNIK, R_CZYTNIK, 0, 0, 0),
 };
 
 /* What a service gets from us besides its channel to ekran: fd 4, 5, … in this order. */
@@ -36,8 +39,11 @@ static const struct kanaly {
     { K1_PROFIL_USTAWIENIA, { { KN_DO, &ustaw_kanal, NULL, ustawienia_nowy_kanal }, { KN_SKARB, NULL, NULL, NULL } } },
     { K1_PROFIL_ZASOBY, { { KN_DO, &zasoby_kanal, NULL, NULL } } },              /* fd 4 statistics */
     { K1_PROFIL_INSTALACJA, { { KN_OD, &inst_kanal, NULL, inst_nowy_kanal } } }, /* fd 4 disks, progress */
-    /* Pliki (0.8.0): fd 4 skarbiec (the user's files), fd 5 the place to show when the desktop opens it */
-    { K1_PROFIL_PLIKI, { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &plik_kanal[K1_APL_PLIKI], NULL, NULL } } },
+    /* Pliki (0.8.0): fd 4 skarbiec (the user's files), fd 5 the place to show when the desktop opens it, fd 6 the USB
+     * stick (whether there is one, the channel to czytnik; step 3) */
+    { K1_PROFIL_PLIKI,
+      { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &plik_kanal[K1_APL_PLIKI], NULL, NULL },
+        { KN_OD, &pen_kanal, NULL, pendrive_nowy_kanal } } },
     { K1_PROFIL_WYBOR, { { KN_SKARB, NULL, NULL, NULL } } }, /* the file picker: fd 4 skarbiec (names, the choice) */
 };
 
@@ -76,80 +82,6 @@ struct usluga *skarbiec(void)
 struct usluga *ekran(void)
 {
     return usluga_profilu(K1_PROFIL_EKRAN);
-}
-
-static void wypisz_linie(struct usluga *u)
-{
-    char wyj[LOG_LINIA + 64];
-    size_t tl = strlen(u->tag);
-    double t = k1_teraz();
-    int ma_tag;
-
-    u->zetony += (t - u->ost_zeton) * LOG_NA_SEKUNDE;
-    if (u->zetony > 2 * LOG_NA_SEKUNDE)
-        u->zetony = 2 * LOG_NA_SEKUNDE;
-    u->ost_zeton = t;
-    if (u->zetony < 1.0) {
-        u->pominiete++;
-        return;
-    }
-    u->zetony -= 1.0;
-    /* No terminal control sequences on the console (C0, DEL, C1, broken UTF-8). A line cut at
-     * LOG_LINIA may end inside a Polish letter: that byte becomes '?'. */
-    k1_log_oczysc(u->linia, u->dl);
-    u->linia[u->dl] = '\0';
-    /* The tag must be the service's own one followed by ':' — otherwise mark the line. */
-    ma_tag = strncmp(u->linia, u->tag, tl) == 0 && u->linia[tl] == ':';
-    if (ma_tag)
-        snprintf(wyj, sizeof wyj, "%s\n", u->linia);
-    else
-        snprintf(wyj, sizeof wyj, "%s: (%s) %s\n", u->tag, u->nazwa, u->linia);
-    if (write(2, wyj, strlen(wyj)) < 0) {
-    }
-    if (u->pominiete != 0) {
-        k1_log(TAG, "pominięto %lu wierszy logu usługi %s (limit)", u->pominiete, u->nazwa);
-        u->pominiete = 0;
-    }
-}
-
-void czytaj_log(struct usluga *u)
-{
-    char buf[512];
-    ssize_t n, i;
-    if (u->log < 0)
-        return;
-    n = read(u->log, buf, sizeof buf);
-    if (n <= 0) {
-        if (n == 0 || (errno != EAGAIN && errno != EINTR)) {
-            if (u->dl > 0)
-                wypisz_linie(u);
-            u->dl = 0;
-            close(u->log);
-            u->log = -1;
-        }
-        return;
-    }
-    for (i = 0; i < n; i++) {
-        if (buf[i] == '\n' || u->dl >= LOG_LINIA - 1) {
-            wypisz_linie(u);
-            u->dl = 0;
-            if (buf[i] == '\n')
-                continue;
-        }
-        u->linia[u->dl++] = buf[i];
-    }
-}
-
-/* After the process ended: read what is left in its log pipe, then close it. */
-void zamknij_log(struct usluga *u)
-{
-    int i;
-    for (i = 0; i < 64 && u->log >= 0; i++)
-        czytaj_log(u);
-    if (u->log >= 0) {
-        close(u->log);
-        u->log = -1;
-    }
 }
 
 /* Places `fd` at number `cel` in the child (cel >= 3). Descriptors are first moved above 64 so
@@ -238,7 +170,7 @@ int kanal_do_ekranu(int rola, int apl, int uid)
 static struct {
     int *nasz;
     int profil;
-} wlasciciele[8];
+} wlasciciele[12];
 
 static void ustaw_wlasciciela(int *nasz, int profil)
 {
@@ -447,8 +379,8 @@ void start(struct usluga *u)
 {
     const struct k1_profil *p = &profile[u->profil];
     u->nastepny = 0;
-    if (u->rodzaj == R_INSTALATOR)
-        return; /* only on request of the Instalator window (inst_zapis) */
+    if (u->rodzaj == R_INSTALATOR || u->rodzaj == R_CZYTNIK)
+        return; /* only on request of the Instalator window (inst_zapis), of Pliki (pendrive.c) */
     if (u->rodzaj == R_SKARBIEC)
         start_skarbiec(u, p);
     else if (u->rodzaj == R_EKRAN)
@@ -491,6 +423,8 @@ void zakonczona(struct usluga *u, int status)
         }
         inst_wynik_wyslany = 1;
     }
+    if (u->rodzaj == R_CZYTNIK)
+        pendrive_koniec();
     if (u->rodzaj == R_SKARBIEC) {
         if (skarb_ster >= 0)
             close(skarb_ster);

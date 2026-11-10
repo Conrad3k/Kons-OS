@@ -141,3 +141,54 @@ int k1_dyski_skanuj(const char *sys, struct k1_dyski *w)
     qsort(w->d, (size_t)w->n, sizeof w->d[0], porownaj);
     return 0;
 }
+
+/* Whether a partition of disk `dysk` is named K1-EFI or K1-DANE. */
+static int ma_partycje_k1(const char *sys, const char *dysk)
+{
+    char katalog[256];
+    DIR *d;
+    struct dirent *de;
+    int jest = 0;
+    snprintf(katalog, sizeof katalog, "%s/class/block", sys);
+    d = opendir(katalog);
+    while (d != NULL && !jest && (de = readdir(d)) != NULL) {
+        char sciezka[600], buf[512], r[32];
+        if (!dobra_nazwa(de->d_name) || rodzic(sys, de->d_name, r, sizeof r) != 0 || strcmp(r, dysk) != 0)
+            continue;
+        snprintf(sciezka, sizeof sciezka, "%s/%s/uevent", katalog, de->d_name);
+        if (k1_czytaj_plik(AT_FDCWD, sciezka, buf, sizeof buf) > 0 &&
+            (strstr(buf, "\nPARTNAME=K1-EFI\n") != NULL || strstr(buf, "\nPARTNAME=K1-DANE\n") != NULL))
+            jest = 1;
+    }
+    if (d != NULL)
+        closedir(d);
+    return jest || d == NULL;
+}
+
+int k1_pendrive_znajdz(const char *sys, char out[32])
+{
+    char katalog[256], najlepszy[32] = "";
+    DIR *d;
+    struct dirent *de;
+    snprintf(katalog, sizeof katalog, "%s/class/block", sys);
+    d = opendir(katalog);
+    while (d != NULL && (de = readdir(d)) != NULL) {
+        char sciezka[600];
+        unsigned long long sektory;
+        const char *n = de->d_name;
+        if (!dobra_nazwa(n) || strncmp(n, "sd", 2) != 0 || !k1_dysk_na_usb(sys, n))
+            continue;
+        snprintf(sciezka, sizeof sciezka, "%s/%s/partition", katalog, n);
+        if (access(sciezka, F_OK) == 0)
+            continue; /* a partition: czytnik gets the whole stick and reads its table itself */
+        snprintf(sciezka, sizeof sciezka, "%s/%s/size", katalog, n);
+        if (liczba(sciezka, &sektory) != 0 || sektory == 0 || ma_partycje_k1(sys, n))
+            continue; /* a card reader without a card; a K1 stick */
+        if (najlepszy[0] == '\0' || strcmp(n, najlepszy) < 0)
+            snprintf(najlepszy, sizeof najlepszy, "%.31s", n);
+    }
+    if (d != NULL)
+        closedir(d);
+    memcpy(out, najlepszy, sizeof najlepszy);
+    return najlepszy[0] != '\0';
+}

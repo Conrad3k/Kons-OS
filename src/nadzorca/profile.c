@@ -11,6 +11,8 @@ static const struct k1_warunek wa_ekran[] = { { SYS_ioctl, 1, 0xff00u, 'd' << 8 
  * sysinfo for the Argon2 memory size. No open: Landlock without paths. */
 static const long sc_skarbiec[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, SYS_getrandom, SYS_memfd_create,
                                     SYS_sysinfo };
+/* czytnik (0.8.0 step 3, ADR 0031): reads the stick we open for it (read only), hands files over in sealed memfd. */
+static const long sc_czytnik[] = { SYS_pread64, SYS_memfd_create };
 /* gui and applications: shared memory for their surfaces, nothing else. */
 static const long sc_okna[] = { SYS_memfd_create, SYS_ftruncate };
 /* instalator (M5f): the two devices it gets from us, randomness for the GPT GUIDs. No open. */
@@ -38,6 +40,9 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
      * target device we open for it; RLIMIT_FSIZE does not apply to block devices (see skarbiec). */
     [K1_PROFIL_INSTALATOR] = { .nazwa = "instalator", .uid = K1_UID_INSTALATOR, .wywolania = sc_instalator,
                                .n_wywolan = N(sc_instalator), .pamiec = 16u << 20, .pliki = 16 },
+    /* the USB stick reader: no window, no paths, the stick read only; RLIMIT_FSIZE: one file of 16 MiB + its name */
+    [K1_PROFIL_CZYTNIK] = { .nazwa = "czytnik", .uid = K1_UID_CZYTNIK, .wywolania = sc_czytnik, .n_wywolan = N(sc_czytnik),
+                            .pamiec = 32u << 20, .pliki = 16, .rozmiar_pliku = 17u << 20 },
     /* applications (k1_uslugi.h): windows only — what else an application gets comes from us on its
      * channels (uslugi.c) */
 #define X_APL(n, a_, p_, uid_, program_, ...)                                                                       \

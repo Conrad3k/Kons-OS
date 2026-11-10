@@ -54,6 +54,12 @@ void do_skarbca(int typ, uint32_t obiekt, int32_t a)
         k1_kanal_wyslij(skarb, &m, sizeof m, -1);
 }
 
+void do_skarbca_z_fd(struct k1_komunikat m, int fd)
+{
+    if (skarb >= 0)
+        k1_kanal_wyslij(skarb, &m, sizeof m, fd);
+}
+
 static void wyslij_z_danymi(struct k1_komunikat m, const void *dane, size_t n)
 {
     int fd;
@@ -92,7 +98,7 @@ void zmien_nazwe(uint32_t id, const char *t, size_t dl)
 void podglad_zadaj(uint32_t id)
 {
     const struct k1_dok_wpis *w = wpis(id);
-    if (w == NULL || w->typ != K1_TYP_TEKST || id == podglad_id)
+    if (w == NULL || tu.pendrive || w->typ != K1_TYP_TEKST || id == podglad_id)
         return;
     podglad_id = id;
     podglad_gen = w->generacja;
@@ -115,6 +121,26 @@ static int widoczny(uint32_t f)
     return 0;
 }
 
+/* The tests follow imports by this line (counts only): files from a stick, how many skarbiec found to be pictures, bytes. */
+static void loguj_z_pendrive(void)
+{
+    static int ost_n = -1, ost_obrazy;
+    static uint64_t ost_bajty;
+    int n = 0, obrazy = 0;
+    uint64_t bajty = 0;
+    for (int i = 0; i < n_wpisow; i++)
+        if (wpisy[i].pochodzenie == K1_POCH_PENDRIVE && wpisy[i].kosz == 0) {
+            n++;
+            obrazy += wpisy[i].typ == K1_TYP_PNG || wpisy[i].typ == K1_TYP_JPEG;
+            bajty += wpisy[i].rozmiar;
+        }
+    if (n != ost_n || obrazy != ost_obrazy || bajty != ost_bajty)
+        k1_log(TAG, "pliki z pendrive'a: %d (obrazy PNG/JPEG: %d), razem %llu B", n, obrazy, (unsigned long long)bajty);
+    ost_n = n;
+    ost_obrazy = obrazy;
+    ost_bajty = bajty;
+}
+
 static void lista_przyszla(const struct k1_komunikat *k, int fd)
 {
     static struct k1_dok_wpis nowe[K1_DOK_MAKS];
@@ -128,9 +154,9 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
     memcpy(wpisy, nowe, (size_t)n * sizeof nowe[0]);
     n_wpisow = n;
     w_koszu = kosz;
-    if (!tu.kosz && !widoczny(tu.folder))
+    if (!tu.kosz && !tu.pendrive && !widoczny(tu.folder))
         tu.folder = K1_FOLDER_DOKUMENTY; /* the folder shown is gone, or went to Kosz */
-    if (zaznaczony != 0 && wpis(zaznaczony) == NULL)
+    if (zaznaczony != 0 && wpis_tu(zaznaczony) == NULL)
         zaznaczony = 0;
     if (edycja.id != 0 && wpis(edycja.id) == NULL)
         edycja.id = 0;
@@ -152,6 +178,7 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
     if (!gotowe)
         k1_log(TAG, "pliki wczytane: %d (w Koszu %u)", n_wpisow, w_koszu);
     gotowe = 1;
+    loguj_z_pendrive();
     pokaz_oczekujace();
     loguj_widok();
 }
@@ -167,6 +194,8 @@ static void tresc_przyszla(const struct k1_komunikat *k, int fd)
 /* The result of a request: a message for the footer when it failed. */
 static void wynik(const struct k1_komunikat *k)
 {
+    if (pendrive_wynik_skarbca(k))
+        return;
     if (k->b == 0) {
         if (k->a == K1_KOM_DOK_NOWY && k->c != 0)
             do_edycji = (uint32_t)k->c;
@@ -225,11 +254,11 @@ static void pokaz_oczekujace(void)
         return;
     do_pokazania.jest = 0;
     if (do_pokazania.kosz) {
-        przejdz((struct miejsce){ 0, 1 });
+        przejdz((struct miejsce){ 0, 1, 0 });
     } else if ((a >= 1 && a <= K1_FOLDERY_MAKS) || (e != NULL && e->rodzaj == K1_DOK_FOLDER)) {
-        przejdz((struct miejsce){ a, 0 });
+        przejdz((struct miejsce){ a, 0, 0 });
     } else if (e != NULL) {
-        przejdz((struct miejsce){ e->kosz ? 0 : e->rodzic, e->kosz != 0 });
+        przejdz((struct miejsce){ e->kosz ? 0 : e->rodzic, e->kosz != 0, 0 });
         zaznaczony = a;
         podglad_zadaj(a);
     }

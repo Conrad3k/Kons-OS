@@ -18,6 +18,7 @@ enum {
     P_LISTA = 1 << 0, P_CZYTAJ = 1 << 1, P_NOWY = 1 << 2, P_ZAPISZ = 1 << 3, P_NAZWA = 1 << 4, P_PRZENIES = 1 << 5,
     P_KOSZ = 1 << 6, P_PRZYWROC = 1 << 7, P_USUN = 1 << 8, P_OPROZNIJ = 1 << 9, P_OTWORZ = 1 << 10,
     P_WYBIERZ = 1 << 11, P_WYBRANO = 1 << 12, P_WSZYSTKO = (1 << 11) - 1, /* all but the file picker's */
+    P_POCHODZENIE = 1 << 13, /* a new file with an origin other than K1: an import from a USB stick (ADR 0031) */
 };
 /* Which entries the client sees: all (with Kosz), the Pulpit folder, the visible ones (no Kosz), or its own files
  * (made by it) and the files it was given (ADR 0030). */
@@ -28,7 +29,7 @@ static const struct prawa {
     int wlasciciel, prawa, zakres;
     const char *folder; /* Z_WLASNE: its folder in Dokumenty, where its new files go */
 } prawa[] = {
-    { K1_PROFIL_PLIKI, P_WSZYSTKO, Z_WSZYSTKO, NULL },
+    { K1_PROFIL_PLIKI, P_WSZYSTKO | P_POCHODZENIE, Z_WSZYSTKO, NULL },
     /* the desktop: the files of the Pulpit folder (names, to draw them) and Kosz — no content */
     { K1_PROFIL_GUI, P_LISTA | P_KOSZ | P_OPROZNIJ | P_OTWORZ, Z_PULPIT, NULL },
     /* Notatki: its notes and the text files the user opened in it; Kosz only for its own */
@@ -200,8 +201,8 @@ static int nowy(const struct prawa *p, const struct k1_komunikat *m, int fd_in, 
         r = dok_folder_aplikacji(p->folder, p->wlasciciel, teraz(), &folder);
     if (r != 0)
         return r;
-    return dok_nowy(folder, m->a, nazwa, (size_t)m->b, m->a == K1_DOK_PLIK ? &zr : NULL, p->wlasciciel, K1_POCH_K1,
-                    teraz(), id);
+    return dok_nowy(folder, m->a, nazwa, (size_t)m->b, m->a == K1_DOK_PLIK ? &zr : NULL, p->wlasciciel,
+                    m->d != 0 ? m->d : K1_POCH_K1, teraz(), id);
 }
 
 static int zapisz(const struct k1_komunikat *m, int fd_in)
@@ -243,12 +244,12 @@ static int zmiana(const struct prawa *p, const struct k1_komunikat *m, int fd_in
     }
 }
 
-static int potrzebne_prawo(int typ)
+static int potrzebne_prawo(const struct k1_komunikat *m)
 {
-    switch (typ) {
+    switch (m->typ) {
     case K1_KOM_DOK_SPIS: return P_LISTA;
     case K1_KOM_DOK_CZYTAJ: return P_CZYTAJ;
-    case K1_KOM_DOK_NOWY: return P_NOWY;
+    case K1_KOM_DOK_NOWY: return m->d != 0 ? P_NOWY | P_POCHODZENIE : P_NOWY;
     case K1_KOM_DOK_ZAPISZ: return P_ZAPISZ;
     case K1_KOM_DOK_NAZWA: return P_NAZWA;
     case K1_KOM_DOK_PRZENIES: return P_PRZENIES;
@@ -301,8 +302,9 @@ int dok_obsluz(int fd, int wl, const struct k1_komunikat *m, int fd_in)
     const struct prawa *p = prawa_klienta(wl);
     uint32_t nowy_id = 0;
     int r;
-    if (p == NULL || !(p->prawa & potrzebne_prawo(m->typ)) || !widzi(p, m)) {
-        r = p == NULL || !(p->prawa & potrzebne_prawo(m->typ)) ? K1_DOK_BLAD_PRAWA : K1_DOK_BLAD_BRAK;
+    int prawo = potrzebne_prawo(m), ma = p != NULL && (p->prawa & prawo) == prawo;
+    if (!ma || !widzi(p, m)) {
+        r = !ma ? K1_DOK_BLAD_PRAWA : K1_DOK_BLAD_BRAK;
         k1_log(TAG, "pliki: odmowa (właściciel %d, komunikat %d)", wl, m->typ);
         wynik(fd, m->obiekt, m->typ, r, 0);
     } else if (zablokowany) {

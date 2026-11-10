@@ -25,7 +25,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
     if (size - 1 != sizeof k || k.wersja != K1_KOMUNIKAT_WERSJA || k.dlugosc != sizeof k || k.zarezerwowane != 0)
         abort();
-    if (kier < K1_KIER_STEROWANIE || kier > K1_KIER_OD_SKARBCA)
+    if (kier < K1_KIER_STEROWANIE || kier > K1_KIER_MAKS)
         abort();
     if (memcmp(&k, data + 1, sizeof k) != 0)
         abort();

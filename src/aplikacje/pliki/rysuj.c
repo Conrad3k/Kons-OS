@@ -81,15 +81,16 @@ void rysuj_liste(struct k1_obraz *o, const struct k1_motyw *m)
 {
     int i, w = wierszy_widac();
     const char *pusto = tu.kosz ? "Kosz jest pusty" : "Ten folder jest pusty";
+    int gotowa = tu.pendrive ? pen_stan == PEN_GOTOWY : gotowe;
     k1_tekst(o, K1_CZ_MALA, LISTA_X + 40, NAGL_Y, "Nazwa", k1_kolor(m->tekst3, 255), 0);
     k1_tekst(o, K1_CZ_MALA, KOL_DATA, NAGL_Y, tu.kosz ? "Usunięto" : "Zmieniono", k1_kolor(m->tekst3, 255), 0);
     k1_tekst(o, K1_CZ_MALA, KOL_ROZM + 64 - k1_tekst_szer(K1_CZ_MALA, "Rozmiar"), NAGL_Y, "Rozmiar", k1_kolor(m->tekst3, 255), 0);
     k1_prostokat(o, LISTA_X, NAGL_Y + 6, LISTA_W, 1, k1_kolor(m->tekst, 20));
-    if (gotowe && n_widok == 0)
+    if (gotowa && n_widok == 0)
         k1_tekst(o, K1_CZ_TEKST, LISTA_X + (LISTA_W - k1_tekst_szer(K1_CZ_TEKST, pusto)) / 2, WIERSZE_Y + 60, pusto,
                  k1_kolor(m->tekst3, 255), 0);
     for (i = od_wiersza; i < n_widok && i < od_wiersza + w; i++)
-        wiersz(o, m, &wpisy[widok[i]], WIERSZE_Y + (i - od_wiersza) * WIERSZ, i);
+        wiersz(o, m, wiersz_wpisu(i), WIERSZE_Y + (i - od_wiersza) * WIERSZ, i);
     if (przewijanie_potrzebne()) { /* two chevrons: up (more above) and down (more below) */
         float cy = (float)(apl.wys - STOPKA - PRZEWIJANIE / 2), cx = LISTA_X + LISTA_W / 2.0f;
         uint32_t gora = k1_kolor(m->tekst2, od_wiersza > 0 ? 255 : 60);
@@ -134,13 +135,18 @@ static void poczatek_tekstu(struct k1_obraz *o, const struct k1_motyw *m, int32_
 
 void rysuj_podglad(struct k1_obraz *o, const struct k1_motyw *m)
 {
-    const struct k1_dok_wpis *w = zaznaczony ? wpis(zaznaczony) : NULL;
+    const struct k1_dok_wpis *w = zaznaczony ? wpis_tu(zaznaczony) : NULL;
     char buf[64];
     int32_t y = SCIEZKA_Y + 112;
     k1_zaokraglony(o, PODGLAD_X, SCIEZKA_Y, PODGLAD_W, (float)(apl.wys - SCIEZKA_Y - 12), 10, k1_kolor(m->pole, 255));
     if (w == NULL) {
+        static const char *const na_pendrivie[] = { "Pendrive jest tylko do odczytu.", "Wybierz plik i kliknij",
+                                                    "„Importuj”: zdjęcia trafią", "do Obrazów, inne pliki",
+                                                    "do Dokumentów." };
         const char *t = tu.kosz ? "Usunięte pliki leżą tu 30 dni" : "Wybierz plik, aby zobaczyć szczegóły";
-        k1_tekst(o, K1_CZ_MALA, PODGLAD_X + 16, SCIEZKA_Y + 40, t, k1_kolor(m->tekst3, 255), PODGLAD_W - 32);
+        for (int i = 0; i < (tu.pendrive ? 5 : 1); i++)
+            k1_tekst(o, K1_CZ_MALA, PODGLAD_X + 16, SCIEZKA_Y + 40 + i * 18, tu.pendrive ? na_pendrivie[i] : t,
+                     k1_kolor(m->tekst3, 255), PODGLAD_W - 32);
         return;
     }
     k1_ikona(o, ikona_wpisu(w), PODGLAD_X + 16, SCIEZKA_Y + 18, 40, k1_kolor(m->tekst2, 255));
@@ -156,10 +162,12 @@ void rysuj_podglad(struct k1_obraz *o, const struct k1_motyw *m)
         cecha(o, m, &y, "Usunięcie na zawsze", buf);
     } else {
         data_tekst(w->zmieniono, buf, sizeof buf);
-        cecha(o, m, &y, "Zmieniono", buf);
+        cecha(o, m, &y, "Zmieniono", w->zmieniono > 0 ? buf : "—");
     }
-    data_tekst(w->utworzono, buf, sizeof buf);
-    cecha(o, m, &y, "Utworzono", buf);
+    if (!tu.pendrive) { /* a stick has no reliable creation time */
+        data_tekst(w->utworzono, buf, sizeof buf);
+        cecha(o, m, &y, "Utworzono", buf);
+    }
     cecha(o, m, &y, "Pochodzenie", k1_poch_nazwa(w->pochodzenie));
     if (w->typ == K1_TYP_TEKST && podglad_id == w->id && podglad_dl > 0)
         poczatek_tekstu(o, m, y + 8);
@@ -167,6 +175,7 @@ void rysuj_podglad(struct k1_obraz *o, const struct k1_motyw *m)
 
 void rysuj_stopke(struct k1_obraz *o, const struct k1_motyw *m)
 {
+    const char *blad_pendrive = NULL;
     char buf[96];
     int32_t y = apl.wys - 16;
     if (pytanie != PYT_BRAK) {
@@ -175,8 +184,10 @@ void rysuj_stopke(struct k1_obraz *o, const struct k1_motyw *m)
                  k1_kolor(m->akcent_tekst, 255), 0);
         return;
     }
-    if (blad != NULL) {
-        k1_tekst(o, K1_CZ_MALA_MOCNA, LISTA_X, y, blad, k1_kolor(m->akcent_tekst, 255), LISTA_W);
+    if (blad == NULL && tu.pendrive)
+        blad_pendrive = pendrive_stopka();
+    if (blad != NULL || (tu.pendrive && blad_pendrive != NULL)) {
+        k1_tekst(o, K1_CZ_MALA_MOCNA, LISTA_X, y, blad != NULL ? blad : blad_pendrive, k1_kolor(m->akcent_tekst, 255), LISTA_W);
         return;
     }
     if (!gotowe) {

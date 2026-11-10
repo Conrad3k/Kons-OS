@@ -226,7 +226,8 @@ static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         return wpis_uzytkownika(k->obiekt) && w(k->a, 1, maks) && zera(k, 1);
     case K1_KOM_DOK_NOWY:
         return wpis(k->obiekt) && w(k->a, K1_DOK_PLIK, K1_DOK_FOLDER) && w(k->b, 1, K1_DOK_NAZWA - 1) &&
-               w(k->c, 0, k->a == K1_DOK_FOLDER ? 0 : maks) && zera(k, 3);
+               w(k->c, 0, k->a == K1_DOK_FOLDER ? 0 : maks) && w(k->d, 0, k->a == K1_DOK_FOLDER ? 0 : K1_POCH_MAKS) &&
+               zera(k, 4);
     case K1_KOM_DOK_ZAPISZ:
         return wpis_uzytkownika(k->obiekt) && w(k->a, 0, maks) && zera(k, 1);
     case K1_KOM_DOK_NAZWA:
@@ -246,6 +247,40 @@ static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         return (k->obiekt == 0 || wpis(k->obiekt)) && k1_kom_dok_prosba(k->a) &&
                (w(k->b, K1_MAG_WYNIK_MIN, 0) || w(k->b, K1_DOK_BLAD_MIN, K1_DOK_BLAD_NAZWA)) &&
                (k->c == 0 || (k->a == K1_KOM_DOK_NOWY && k->b == 0 && k->c >= K1_DOK_PIERWSZY)) && zera(k, 3);
+    default:
+        return 0;
+    }
+}
+
+/* The USB stick: nadzorca ↔ Pliki, Pliki ↔ czytnik (0.8.0 step 3, ADR 0031); 0 also for a type of another group. */
+static int sprawdz_pendrive(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
+{
+    const int32_t maks = (int32_t)K1_DOK_MAKS_BAJTY;
+    int pen_wpis = k->obiekt <= K1_PEN_ID_MAKS;
+    switch (k->typ) {
+    case K1_KOM_PENDRIVE:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, 1) && zera(k, 1);
+    case K1_KOM_PENDRIVE_OTWORZ:
+    case K1_KOM_PENDRIVE_KANAL:
+        return kier == (k->typ == K1_KOM_PENDRIVE_OTWORZ ? K1_KIER_DO_NADZORCY : K1_KIER_OD_NADZORCY) && k->obiekt == 0 &&
+               zera(k, 0);
+    case K1_KOM_PEN_SPIS:
+        return kier == K1_KIER_DO_CZYTNIKA && pen_wpis && zera(k, 0);
+    case K1_KOM_PEN_CZYTAJ:
+        return kier == K1_KIER_DO_CZYTNIKA && pen_wpis && k->obiekt != 0 && zera(k, 0);
+    case K1_KOM_PEN_STAN:
+        return kier == K1_KIER_OD_CZYTNIKA && k->obiekt == 0 &&
+               ((k->a == 12 || k->a == 16 || k->a == 32) ? k->b == 0 : k->a == 0 && w(k->b, K1_PEN_BLAD_MIN, -1)) &&
+               zera(k, 2);
+    case K1_KOM_PEN_LISTA:
+        return kier == K1_KIER_OD_CZYTNIKA && pen_wpis && w(k->b, 0, K1_PEN_WPISOW) &&
+               k->a == K1_PEN_LISTA_NAGL + k->b * K1_PEN_WPIS_BAJTY && w(k->c, 0, 1) && zera(k, 3);
+    case K1_KOM_PEN_PLIK:
+        return kier == K1_KIER_OD_CZYTNIKA && pen_wpis && k->obiekt != 0 && w(k->a, 1, K1_DOK_NAZWA - 1) &&
+               w(k->b, 0, maks) && zera(k, 2);
+    case K1_KOM_PEN_WYNIK:
+        return kier == K1_KIER_OD_CZYTNIKA && pen_wpis && (k->a == K1_KOM_PEN_SPIS || k->a == K1_KOM_PEN_CZYTAJ) &&
+               w(k->b, K1_PEN_BLAD_MIN, -1) && zera(k, 2);
     default:
         return 0;
     }
@@ -372,7 +407,7 @@ static int sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
 static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
     return sprawdz_sterowanie(k, kier) || sprawdz_skarb(k, kier) || sprawdz_dok(k, kier) || sprawdz_ekran(k, kier) ||
-           sprawdz_nadzorca(k, kier);
+           sprawdz_nadzorca(k, kier) || sprawdz_pendrive(k, kier);
 }
 
 int k1_komunikat_sprawdz(const void *buf, size_t len, enum k1_kanal_kierunek kierunek, struct k1_komunikat *out)
@@ -401,5 +436,7 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            (typ == K1_KOM_SKARB_DANE && kierunek == K1_KIER_OD_SKARBCA) ||
            (typ == K1_KOM_BATERIA_ARCH && kierunek == K1_KIER_OD_NADZORCY) ||
            ((typ == K1_KOM_DOK_NOWY || typ == K1_KOM_DOK_ZAPISZ || typ == K1_KOM_DOK_NAZWA) && kierunek == K1_KIER_DO_SKARBCA) ||
-           ((typ == K1_KOM_DOK_LISTA || typ == K1_KOM_DOK_TRESC) && kierunek == K1_KIER_OD_SKARBCA);
+           ((typ == K1_KOM_DOK_LISTA || typ == K1_KOM_DOK_TRESC) && kierunek == K1_KIER_OD_SKARBCA) ||
+           (typ == K1_KOM_PENDRIVE_KANAL && kierunek == K1_KIER_OD_NADZORCY) ||
+           ((typ == K1_KOM_PEN_LISTA || typ == K1_KOM_PEN_PLIK) && kierunek == K1_KIER_OD_CZYTNIKA);
 }

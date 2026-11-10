@@ -25,6 +25,11 @@ struct k1_dyski {
 /* Scans `sys`/class/block. 0, or -1 when it cannot be read. */
 int k1_dyski_skanuj(const char *sys, struct k1_dyski *w);
 
+/* A USB stick for czytnik (0.8.0 step 3, ADR 0031): the first whole USB disk (by name) with media in it and no K1
+ * partition (K1-EFI, K1-DANE: the stick K1 runs from or keeps its data on is never offered). Its name into `out`
+ * (32 bytes); 1 found, 0 none. */
+int k1_pendrive_znajdz(const char *sys, char out[32]);
+
 /* Whether block device `nazwa` hangs off a USB bus (its sysfs path goes through ".../usbN/..."). */
 int k1_dysk_na_usb(const char *sys, const char *nazwa);
 

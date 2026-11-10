@@ -420,6 +420,12 @@ static void pliki(void)
            zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, 128, 0, 0, 0), DO));
     EXPECT(zle(K(K1_KOM_DOK_NOWY, 0, K1_DOK_PLIK, 3, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_NOWY, 7, K1_DOK_PLIK, 3, 0, 0, 0), DO));
     EXPECT(zle(K(K1_KOM_DOK_NOWY, 2, 3, 3, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_NOWY, 2, K1_DOK_PLIK, 3, -1, 0, 0), DO));
+    /* the origin (0.8.0 step 3): a file only, a known one */
+    EXPECT(ok(K(K1_KOM_DOK_NOWY, K1_FOLDER_OBRAZY, K1_DOK_PLIK, 8, 100, K1_POCH_PENDRIVE, 0), DO));
+    EXPECT(zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_OBRAZY, K1_DOK_PLIK, 8, 100, K1_POCH_MAKS + 1, 0), DO) &&
+           zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_OBRAZY, K1_DOK_PLIK, 8, 100, -1, 0), DO) &&
+           zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_OBRAZY, K1_DOK_FOLDER, 8, 0, K1_POCH_PENDRIVE, 0), DO) &&
+           zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_OBRAZY, K1_DOK_PLIK, 8, 100, K1_POCH_PENDRIVE, 1), DO));
     EXPECT(ok(K(K1_KOM_DOK_ZAPISZ, 100, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_ZAPISZ, 100, MB16 + 1, 0, 0, 0, 0), DO));
     EXPECT(ok(K(K1_KOM_DOK_NAZWA, 100, 1, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_NAZWA, 100, 0, 0, 0, 0, 0), DO) &&
            zle(K(K1_KOM_DOK_NAZWA, 3, 5, 0, 0, 0, 0), DO)); /* standard folders keep their names */
@@ -505,6 +511,44 @@ static void otwieranie(void)
         EXPECT(k1_ustawienie_poprawne(K1_UST_OTWIERANIE + t - 1, k1_dok_domyslna(t)));
 }
 
+/* 0.8.0 step 3 (ADR 0031): the USB stick — nadzorca ↔ Pliki, Pliki ↔ czytnik */
+static void pendrive(void)
+{
+    const enum k1_kanal_kierunek DO = K1_KIER_DO_CZYTNIKA, OD = K1_KIER_OD_CZYTNIKA;
+    const int32_t MB16 = (int32_t)K1_DOK_MAKS_BAJTY, L1 = K1_PEN_LISTA_NAGL + K1_PEN_WPIS_BAJTY;
+    EXPECT(ok(K(K1_KOM_PENDRIVE, 0, 1, 0, 0, 0, 0), K1_KIER_OD_NADZORCY) && ok(K(K1_KOM_PENDRIVE, 0, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_PENDRIVE, 0, 2, 0, 0, 0, 0), K1_KIER_OD_NADZORCY) && zle(K(K1_KOM_PENDRIVE, 0, 1, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(ok(K(K1_KOM_PENDRIVE_OTWORZ, 0, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_PENDRIVE_OTWORZ, 1, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_PENDRIVE_OTWORZ, 0, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(ok(K(K1_KOM_PENDRIVE_KANAL, 0, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY) &&
+           k1_komunikat_z_deskryptorem(K1_KOM_PENDRIVE_KANAL, K1_KIER_OD_NADZORCY) &&
+           !k1_komunikat_z_deskryptorem(K1_KOM_PENDRIVE_OTWORZ, K1_KIER_DO_NADZORCY));
+    /* Pliki → czytnik */
+    EXPECT(ok(K(K1_KOM_PEN_SPIS, 0, 0, 0, 0, 0, 0), DO) && ok(K(K1_KOM_PEN_SPIS, K1_PEN_ID_MAKS, 0, 0, 0, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_PEN_SPIS, 0x80000000u, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_PEN_SPIS, 0, 1, 0, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_PEN_SPIS, 0, 0, 0, 0, 0, 0), OD) && zle(K(K1_KOM_PEN_SPIS, 0, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(ok(K(K1_KOM_PEN_CZYTAJ, 5, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_PEN_CZYTAJ, 0, 0, 0, 0, 0, 0), DO));
+    /* czytnik → Pliki */
+    EXPECT(ok(K(K1_KOM_PEN_STAN, 0, 32, 0, 0, 0, 0), OD) && ok(K(K1_KOM_PEN_STAN, 0, 12, 0, 0, 0, 0), OD) &&
+           ok(K(K1_KOM_PEN_STAN, 0, 0, K1_PEN_BLAD_FORMAT, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_PEN_STAN, 0, 24, 0, 0, 0, 0), OD) && zle(K(K1_KOM_PEN_STAN, 0, 0, 0, 0, 0, 0), OD) &&
+           zle(K(K1_KOM_PEN_STAN, 0, 32, -30, 0, 0, 0), OD) && zle(K(K1_KOM_PEN_STAN, 0, 0, K1_PEN_BLAD_MIN - 1, 0, 0, 0), OD));
+    EXPECT(ok(K(K1_KOM_PEN_LISTA, 0, K1_PEN_LISTA_NAGL, 0, 0, 0, 0), OD) && ok(K(K1_KOM_PEN_LISTA, 7, L1, 1, 1, 0, 0), OD) &&
+           ok(K(K1_KOM_PEN_LISTA, 7, K1_PEN_LISTA_MAKS, K1_PEN_WPISOW, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_PEN_LISTA, 7, L1 + 1, 1, 0, 0, 0), OD) && zle(K(K1_KOM_PEN_LISTA, 7, L1, 1, 2, 0, 0), OD) &&
+           zle(K(K1_KOM_PEN_LISTA, 7, K1_PEN_LISTA_MAKS + K1_PEN_WPIS_BAJTY, K1_PEN_WPISOW + 1, 0, 0, 0), OD));
+    EXPECT(ok(K(K1_KOM_PEN_PLIK, 9, 127, MB16, 0, 0, 0), OD) && ok(K(K1_KOM_PEN_PLIK, 9, 1, 0, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_PEN_PLIK, 9, 128, 5, 0, 0, 0), OD) && zle(K(K1_KOM_PEN_PLIK, 9, 0, 5, 0, 0, 0), OD) &&
+           zle(K(K1_KOM_PEN_PLIK, 9, 5, MB16 + 1, 0, 0, 0), OD) && zle(K(K1_KOM_PEN_PLIK, 0, 5, 5, 0, 0, 0), OD));
+    EXPECT(ok(K(K1_KOM_PEN_WYNIK, 9, K1_KOM_PEN_CZYTAJ, K1_PEN_BLAD_DUZY, 0, 0, 0), OD) &&
+           ok(K(K1_KOM_PEN_WYNIK, 0, K1_KOM_PEN_SPIS, K1_PEN_BLAD_BRAK, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_PEN_WYNIK, 9, K1_KOM_PEN_CZYTAJ, 0, 0, 0, 0), OD) && zle(K(K1_KOM_PEN_WYNIK, 9, K1_KOM_DOK_NOWY, -31, 0, 0, 0), OD));
+    EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_PEN_LISTA, OD) && k1_komunikat_z_deskryptorem(K1_KOM_PEN_PLIK, OD) &&
+           !k1_komunikat_z_deskryptorem(K1_KOM_PEN_WYNIK, OD) && !k1_komunikat_z_deskryptorem(K1_KOM_PEN_SPIS, DO) &&
+           !k1_komunikat_z_deskryptorem(K1_KOM_PEN_PLIK, DO));
+}
+
 int main(void)
 {
     naglowek();
@@ -516,6 +560,7 @@ int main(void)
     skarbiec();
     pliki();
     otwieranie();
+    pendrive();
     kanal();
     return K1_TEST_KONIEC("test_komunikat");
 }

@@ -23,7 +23,7 @@
 #define DWUKLIK 0.45
 
 struct k1_apl apl;
-struct miejsce tu = { K1_FOLDER_DOKUMENTY, 0 };
+struct miejsce tu = { K1_FOLDER_DOKUMENTY, 0, 0 };
 int widok[K1_DOK_MAKS];
 int n_widok, od_wiersza, najechany = -1, gotowe;
 uint32_t zaznaczony;
@@ -31,7 +31,6 @@ struct edycja edycja;
 enum pytanie pytanie;
 const char *blad;
 static int nad_miejscem = -1, nad_przyciskiem = -1, nad_w_gore;
-static int wybor_aplikacji; /* "Otwórz w…" pressed: the buttons are the applications that open the file */
 static struct {
     uint32_t id;
     double t;
@@ -41,7 +40,27 @@ static struct {
 
 static int w_tym_miejscu(const struct k1_dok_wpis *w)
 {
+    if (tu.pendrive) /* czytnik sends one folder at a time */
+        return 1;
     return tu.kosz ? w->kosz != 0 : w->kosz == 0 && w->rodzic == tu.folder;
+}
+
+/* The entries of the place shown: the user's files, or the folder on the stick. */
+static const struct k1_dok_wpis *zrodlo(int *n)
+{
+    *n = tu.pendrive ? n_pen : n_wpisow;
+    return tu.pendrive ? pen : wpisy;
+}
+
+const struct k1_dok_wpis *wiersz_wpisu(int i)
+{
+    int n;
+    return &zrodlo(&n)[widok[i]];
+}
+
+const struct k1_dok_wpis *wpis_tu(uint32_t id)
+{
+    return tu.pendrive ? pen_wpis(id) : wpis(id);
 }
 
 static int mniejszy(const struct k1_dok_wpis *a, const struct k1_dok_wpis *b)
@@ -61,11 +80,12 @@ static int mniejszy(const struct k1_dok_wpis *a, const struct k1_dok_wpis *b)
 
 void ulozy_widok(void)
 {
-    int i, j;
+    int i, j, n;
+    const struct k1_dok_wpis *z = zrodlo(&n);
     n_widok = 0;
-    for (i = 0; i < n_wpisow; i++)
-        if (w_tym_miejscu(&wpisy[i])) {
-            for (j = n_widok; j > 0 && mniejszy(&wpisy[i], &wpisy[widok[j - 1]]); j--)
+    for (i = 0; i < n; i++)
+        if (w_tym_miejscu(&z[i])) {
+            for (j = n_widok; j > 0 && mniejszy(&z[i], &z[widok[j - 1]]); j--)
                 widok[j] = widok[j - 1];
             widok[j] = i;
             n_widok++;
@@ -80,7 +100,8 @@ void ulozy_widok(void)
 void loguj_widok(void)
 {
     k1_log(TAG, "widok: %s, %d elementów",
-           tu.kosz ? "Kosz" : tu.folder <= K1_FOLDERY_MAKS ? k1_folder_nazwa(tu.folder) : "folder", n_widok);
+           tu.pendrive ? "Pendrive" : tu.kosz ? "Kosz" : tu.folder <= K1_FOLDERY_MAKS ? k1_folder_nazwa(tu.folder) : "folder",
+           n_widok);
 }
 
 void przejdz(struct miejsce m)
@@ -101,7 +122,7 @@ void przejdz(struct miejsce m)
 static int wiersz_zaznaczonego(void)
 {
     for (int i = 0; i < n_widok; i++)
-        if (wpisy[widok[i]].id == zaznaczony)
+        if (wiersz_wpisu(i)->id == zaznaczony)
             return i;
     return -1;
 }
@@ -122,7 +143,7 @@ static void zaznacz_wiersz(int i)
     int w = wierszy_widac();
     if (i < 0 || i >= n_widok)
         return;
-    zaznaczony = wpisy[widok[i]].id;
+    zaznaczony = wiersz_wpisu(i)->id;
     if (i < od_wiersza)
         od_wiersza = i;
     if (i >= od_wiersza + w)
@@ -130,146 +151,25 @@ static void zaznacz_wiersz(int i)
     podglad_zadaj(zaznaczony);
 }
 
-/* ---- the buttons of the place ---- */
-
-enum { B_NOWY, B_NAZWA, B_USUN, B_PRZYWROC, B_NA_ZAWSZE, B_OPROZNIJ, B_TAK, B_ANULUJ, B_OTWORZ_W, B_APL };
-static int rodzaje[PRZYCISKI_MAKS], apl_przycisku[PRZYCISKI_MAKS]; /* what the buttons of przyciski() do, in order */
-
-/* The applications other than Pliki that open the selected file (its type). */
-static int aplikacje_pliku(int *a)
-{
-    const struct k1_dok_wpis *w = wpis(zaznaczony);
-    int n, j = 0;
-    if (w == NULL || w->rodzaj != K1_DOK_PLIK || tu.kosz)
-        return 0;
-    n = k1_dok_aplikacje(w->typ, a);
-    for (int i = 0; i < n; i++)
-        if (a[i] != K1_APL_PLIKI)
-            a[j++] = a[i];
-    return j;
-}
-
-int przyciski(struct k1_przycisk *p)
-{
-    static const char *const etykiety[] = { "Nowy folder", "Zmień nazwę", "Usuń", "Przywróć", "Usuń na zawsze",
-                                            "Opróżnij Kosz", "Tak, usuń", "Anuluj", "Otwórz w…" };
-    static const int32_t szer[] = { 116, 116, 76, 92, 132, 128, 96, 84, 104, 112 };
-    int n = 0, i, a[K1_APL_MAKS];
-    int32_t x = LISTA_X;
-    if (wybor_aplikacji) {
-        int na = aplikacje_pliku(a);
-        for (i = 0; i < na && n < PRZYCISKI_MAKS - 1; i++) {
-            apl_przycisku[n] = a[i];
-            rodzaje[n++] = B_APL;
-        }
-        rodzaje[n++] = B_ANULUJ;
-    } else if (pytanie != PYT_BRAK) {
-        rodzaje[n++] = B_TAK;
-        rodzaje[n++] = B_ANULUJ;
-    } else if (tu.kosz) {
-        rodzaje[n++] = B_PRZYWROC;
-        rodzaje[n++] = B_NA_ZAWSZE;
-        rodzaje[n++] = B_OPROZNIJ;
-    } else {
-        rodzaje[n++] = B_NOWY;
-        rodzaje[n++] = B_NAZWA;
-        rodzaje[n++] = B_USUN;
-        rodzaje[n++] = B_OTWORZ_W;
-    }
-    for (i = 0; i < n; i++) {
-        p[i] = (struct k1_przycisk){ x, PRZYCISKI_Y, szer[rodzaje[i]], PRZYCISK_H,
-                                     rodzaje[i] == B_APL ? k1_profil_nazwa(k1_apl_profil(apl_przycisku[i])) : etykiety[rodzaje[i]],
-                                     rodzaje[i] == B_TAK || rodzaje[i] == B_APL ? K1_PRZ_GLOWNY : K1_PRZ_ZWYKLY };
-        x += szer[rodzaje[i]] + 8;
-    }
-    return n;
-}
-
-/* Whether button `r` can do anything now (else drawn muted, clicks ignored). */
-static int dostepny(int r)
-{
-    switch (r) {
-    case B_NAZWA:
-    case B_USUN:
-    case B_PRZYWROC:
-    case B_NA_ZAWSZE:
-        return zaznaczony != 0 && edycja.id == 0;
-    case B_OPROZNIJ:
-        return w_koszu > 0;
-    case B_OTWORZ_W: {
-        int a[K1_APL_MAKS];
-        return edycja.id == 0 && aplikacje_pliku(a) > 0;
-    }
-    default:
-        return 1;
-    }
-}
-
-/* The selected file in application `a` (skarbiec gives it this file, nadzorca starts it); Pliki: its preview. */
-static void otworz_w(int a)
-{
-    wybor_aplikacji = 0;
-    if (a == K1_APL_PLIKI && zaznaczony != 0)
-        k1_log(TAG, "plik pokazany w Plikach (domyślna aplikacja)");
-    if (a == K1_APL_PLIKI || zaznaczony == 0)
-        return;
-    k1_log(TAG, "plik otwierany w aplikacji %s", k1_profil_nazwa(k1_apl_profil(a)));
-    do_skarbca(K1_KOM_DOK_OTWORZ, zaznaczony, a);
-}
-
-static void zacznij_edycje(void)
-{
-    const struct k1_dok_wpis *w = wpis(zaznaczony);
-    if (w == NULL || tu.kosz)
-        return;
-    edycja.id = w->id;
-    edycja.dl = strlen(w->nazwa);
-    edycja.calosc = 1;
-    memcpy(edycja.t, w->nazwa, edycja.dl + 1);
-    k1_log(TAG, "zmiana nazwy: pole otwarte");
-}
-
-static void skoncz_edycje(int zapisz)
-{
-    if (edycja.id != 0 && zapisz)
-        zmien_nazwe(edycja.id, edycja.t, edycja.dl);
-    edycja.id = 0;
-}
-
-/* Button kind `r` (B_APL: application `a`). */
-static void wykonaj(int r, int a)
-{
-    if (!dostepny(r))
-        return;
-    blad = NULL;
-    switch (r) {
-    case B_OTWORZ_W: wybor_aplikacji = 1; break;
-    case B_APL: otworz_w(a); break;
-    case B_NOWY: nowy_folder(); break;
-    case B_NAZWA: zacznij_edycje(); break;
-    case B_USUN: do_skarbca(K1_KOM_DOK_KOSZ, zaznaczony, 0); zaznaczony = 0; break;
-    case B_PRZYWROC: do_skarbca(K1_KOM_DOK_PRZYWROC, zaznaczony, 0); zaznaczony = 0; break;
-    case B_NA_ZAWSZE: pytanie = PYT_USUN; break;
-    case B_OPROZNIJ: pytanie = PYT_OPROZNIJ; break;
-    case B_TAK:
-        if (pytanie == PYT_USUN)
-            do_skarbca(K1_KOM_DOK_USUN, zaznaczony, 0);
-        else
-            do_skarbca(K1_KOM_DOK_OPROZNIJ, 0, 0);
-        zaznaczony = 0;
-        pytanie = PYT_BRAK;
-        break;
-    default: pytanie = PYT_BRAK; wybor_aplikacji = 0; break;
-    }
-    k1_apl_odswiez(&apl);
-}
-
 /* ---- drawing ---- */
 
 static uint32_t rodzic_tu(void)
 {
-    const struct k1_dok_wpis *w = tu.kosz || tu.folder <= K1_FOLDERY_MAKS ? NULL : wpis(tu.folder);
+    const struct k1_dok_wpis *w = tu.kosz || tu.pendrive || tu.folder <= K1_FOLDERY_MAKS ? NULL : wpis(tu.folder);
     return w != NULL ? w->rodzic : 0;
+}
+
+static int w_gore_mozna(void)
+{
+    return tu.pendrive ? pendrive_w_gore_mozna() : rodzic_tu() != 0;
+}
+
+static void w_gore(void)
+{
+    if (tu.pendrive)
+        pendrive_w_gore();
+    else if (rodzic_tu())
+        przejdz((struct miejsce){ rodzic_tu(), 0, 0 });
 }
 
 /* "Dokumenty  ›  Projekt  ›  Zdjęcia": the names from the standard folder down. */
@@ -283,7 +183,13 @@ static void sciezka(struct k1_obraz *o, const struct k1_motyw *m)
     int32_t x = LISTA_X + 44;
     if (tu.kosz)
         nazwy[n++] = "Kosz";
-    while (!tu.kosz && f != 0 && n < K1_DOK_GLEBOKOSC + 2) {
+    if (tu.pendrive) { /* "Pendrive  ›  DCIM  ›  100K1" (pen_sciezka gives them from the top) */
+        const char *z[K1_PEN_GLEBOKOSC + 1];
+        int k = pen_sciezka(z, K1_DOK_GLEBOKOSC + 2);
+        while (k > 0)
+            nazwy[n++] = z[--k];
+    }
+    while (!tu.kosz && !tu.pendrive && f != 0 && n < K1_DOK_GLEBOKOSC + 2) {
         const struct k1_dok_wpis *w = f <= K1_FOLDERY_MAKS ? NULL : wpis(f);
         nazwy[n++] = f <= K1_FOLDERY_MAKS ? k1_folder_nazwa(f) : w != NULL ? w->nazwa : "?";
         f = w == NULL ? 0 : w->rodzic;
@@ -298,8 +204,8 @@ static void sciezka(struct k1_obraz *o, const struct k1_motyw *m)
         }
     }
     buf[dl] = '\0';
-    k1_zaokraglony(o, LISTA_X, SCIEZKA_Y, 32, 32, 8, k1_kolor(nad_w_gore && rodzic_tu() ? m->najechanie : m->pole, 255));
-    k1_ikona(o, K1_IK_W_GORE, LISTA_X + 6, SCIEZKA_Y + 6, 20, k1_kolor(m->tekst2, rodzic_tu() ? 255 : 70));
+    k1_zaokraglony(o, LISTA_X, SCIEZKA_Y, 32, 32, 8, k1_kolor(nad_w_gore && w_gore_mozna() ? m->najechanie : m->pole, 255));
+    k1_ikona(o, K1_IK_W_GORE, LISTA_X + 6, SCIEZKA_Y + 6, 20, k1_kolor(m->tekst2, w_gore_mozna() ? 255 : 70));
     k1_tekst(o, K1_CZ_TEKST_MOCNA, x, SCIEZKA_Y + 22, buf, k1_kolor(m->tekst, 255), LISTA_X + LISTA_W - x);
 }
 
@@ -311,18 +217,18 @@ static void miejsca(struct k1_obraz *o, const struct k1_motyw *m)
         enum k1_ikona ik;
     } t[] = { K1_FOLDERY(X_MIEJSCE) };
 #undef X_MIEJSCE
-    for (int i = 0; i <= K1_FOLDERY_MAKS; i++) {
-        int kosz = i == K1_FOLDERY_MAKS, wybrane;
-        int32_t y = kosz ? KOSZ_Y : NAV_Y + i * NAV_WIERSZ;
-        enum k1_ikona ik = kosz ? (w_koszu ? K1_IK_KOSZ_PELNY : K1_IK_KOSZ) : t[i].ik;
+    for (int i = 0; i <= K1_FOLDERY_MAKS + pen_jest; i++) { /* the standard folders, Kosz, the stick (when there is one) */
+        int kosz = i == K1_FOLDERY_MAKS, pendrive = i > K1_FOLDERY_MAKS, wybrane;
+        int32_t y = i >= K1_FOLDERY_MAKS ? KOSZ_Y + (i - K1_FOLDERY_MAKS) * NAV_WIERSZ : NAV_Y + i * NAV_WIERSZ;
+        enum k1_ikona ik = pendrive ? K1_IK_DYSK : kosz ? (w_koszu ? K1_IK_KOSZ_PELNY : K1_IK_KOSZ) : t[i].ik;
         uint32_t f = (uint32_t)i + 1, korzen = tu.folder;
-        while (!kosz && korzen > K1_FOLDERY_MAKS && wpis(korzen) != NULL) /* inside a user folder: its standard one */
+        while (!tu.pendrive && korzen > K1_FOLDERY_MAKS && wpis(korzen) != NULL) /* inside a user folder: its standard one */
             korzen = wpis(korzen)->rodzic;
-        wybrane = kosz ? tu.kosz : !tu.kosz && korzen == f;
+        wybrane = pendrive ? tu.pendrive : kosz ? tu.kosz : !tu.kosz && !tu.pendrive && korzen == f;
         if (wybrane || i == nad_miejscem)
             k1_zaokraglony(o, 8, (float)y, BOK - 16, NAV_WIERSZ - 4, 8, k1_kolor(wybrane ? m->zaznaczenie : m->najechanie, 255));
         k1_ikona(o, ik, 18, (float)y + 6, 18, k1_kolor(wybrane ? m->tekst : m->tekst2, 255));
-        k1_tekst(o, wybrane ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, 46, y + 20, kosz ? "Kosz" : t[i].nazwa,
+        k1_tekst(o, wybrane ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, 46, y + 20, pendrive ? "Pendrive" : kosz ? "Kosz" : t[i].nazwa,
                  k1_kolor(wybrane ? m->tekst : m->tekst2, 255), 0);
     }
     k1_prostokat(o, 18, KOSZ_Y - 8, BOK - 36, 1, k1_kolor(m->tekst, 20));
@@ -367,7 +273,9 @@ static int miejsce_pod(int32_t x, int32_t y)
         return -1;
     if (y >= NAV_Y && y < NAV_Y + K1_FOLDERY_MAKS * NAV_WIERSZ)
         return (y - NAV_Y) / NAV_WIERSZ;
-    return y >= KOSZ_Y && y < KOSZ_Y + NAV_WIERSZ ? K1_FOLDERY_MAKS : -1;
+    if (y >= KOSZ_Y && y < KOSZ_Y + NAV_WIERSZ)
+        return K1_FOLDERY_MAKS;
+    return pen_jest && y >= KOSZ_Y + NAV_WIERSZ && y < KOSZ_Y + 2 * NAV_WIERSZ ? K1_FOLDERY_MAKS + 1 : -1;
 }
 
 static int wiersz_pod(int32_t x, int32_t y)
@@ -382,12 +290,17 @@ static int wiersz_pod(int32_t x, int32_t y)
 /* A folder: go into it; a file: its default application (Pliki itself: the preview is shown already). */
 static void otworz(uint32_t id)
 {
-    const struct k1_dok_wpis *w = wpis(id);
+    const struct k1_dok_wpis *w = wpis_tu(id);
     int a;
     if (w == NULL || tu.kosz)
         return;
+    if (tu.pendrive) { /* a folder on the stick: in; a file: only "Importuj" takes it */
+        if (w->rodzaj == K1_DOK_FOLDER)
+            pendrive_wejdz(id);
+        return;
+    }
     if (w->rodzaj == K1_DOK_FOLDER) {
-        przejdz((struct miejsce){ id, 0 });
+        przejdz((struct miejsce){ id, 0, 0 });
         return;
     }
     a = apl.k.ustawienia[K1_UST_OTWIERANIE + w->typ - 1];
@@ -402,7 +315,7 @@ static void klik_w_liste(int i)
         zaznaczony = 0;
         return;
     }
-    id = wpisy[widok[i]].id;
+    id = wiersz_wpisu(i)->id;
     if (klik.id == id && t - klik.t < DWUKLIK) {
         klik.id = 0;
         otworz(id);
@@ -446,14 +359,16 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     }
     if (rodzaj != K1_WSK_PUSZCZENIE || przycisk != K1_PRZYCISK_LEWY)
         return;
-    if (edycja.id != 0 && !(wr >= 0 && wpisy[widok[wr]].id == edycja.id))
+    if (edycja.id != 0 && !(wr >= 0 && wiersz_wpisu(wr)->id == edycja.id))
         skoncz_edycje(1); /* a click elsewhere keeps the new name, as in Windows */
-    if (mj >= 0)
-        przejdz(mj == K1_FOLDERY_MAKS ? (struct miejsce){ 0, 1 } : (struct miejsce){ (uint32_t)mj + 1, 0 });
+    if (mj > K1_FOLDERY_MAKS)
+        pendrive_otworz();
+    else if (mj >= 0)
+        przejdz(mj == K1_FOLDERY_MAKS ? (struct miejsce){ 0, 1, 0 } : (struct miejsce){ (uint32_t)mj + 1, 0, 0 });
     else if (pr >= 0)
         wykonaj(rodzaje[pr], apl_przycisku[pr]);
-    else if (wg && rodzic_tu())
-        przejdz((struct miejsce){ rodzic_tu(), 0 });
+    else if (wg)
+        w_gore();
     else if (przewijanie_potrzebne() && x >= LISTA_X && x < LISTA_X + LISTA_W && y >= apl.wys - STOPKA - PRZEWIJANIE &&
              y < apl.wys - STOPKA)
         przewin(x);
@@ -492,8 +407,9 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
         zaznacz_wiersz(i < 0 ? 0 : i + (kod == KEY_DOWN ? 1 : -1));
     } else if (kod == KEY_ENTER || kod == KEY_KPENTER) {
         otworz(zaznaczony);
-    } else if (kod == KEY_BACKSPACE && rodzic_tu()) {
-        przejdz((struct miejsce){ rodzic_tu(), 0 });
+    } else if (kod == KEY_BACKSPACE) {
+        w_gore();
+    } else if (tu.pendrive) { /* the stick is read only: no renaming, no Kosz */
     } else if (kod == KEY_F2) {
         zacznij_edycje();
     } else if (kod == KEY_DELETE) {
@@ -518,9 +434,10 @@ int main(void)
     apl.kanaly[0].dane = dane_odbierz;
     apl.kanaly[1].fd = FD_NADZORCA;
     apl.kanaly[1].dane = nadzorca_odbierz;
+    pendrive_start();
     /* the tests click by this line */
-    k1_log(TAG, "układ: miejsca od %d,%d co %d, Kosz %d,%d; wiersze od %d,%d co %d; w górę %d,%d", BOK / 2,
+    k1_log(TAG, "układ: miejsca od %d,%d co %d, Kosz %d,%d; wiersze od %d,%d co %d; w górę %d,%d; Pendrive %d,%d", BOK / 2,
            NAV_Y + NAV_WIERSZ / 2, NAV_WIERSZ, BOK / 2, KOSZ_Y + NAV_WIERSZ / 2, LISTA_X + 120, WIERSZE_Y + WIERSZ / 2, WIERSZ,
-           LISTA_X + 16, SCIEZKA_Y + 16);
+           LISTA_X + 16, SCIEZKA_Y + 16, BOK / 2, KOSZ_Y + NAV_WIERSZ + NAV_WIERSZ / 2);
     k1_apl_uruchom(&apl);
 }

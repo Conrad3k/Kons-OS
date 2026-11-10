@@ -163,6 +163,20 @@ static void dyski(void)
     blok("pci0/usb3/3-1/3-1:1.0/host7/target7:0:0/7:0:0:0/block/sdc", "sdc1", "98304\n", "K1-EFI");
     EXPECT(k1_dyski_skanuj(sys, &w) == 0 && w.zrodlo[0] == 0 && w.zrodel == 2);
     EXPECT(k1_dyski_skanuj("/nie/ma/takiego", &w) == -1 && w.n == 0);
+    /* 0.8.0 step 3: a stick for czytnik — never the K1 stick (sdb) or an internal disk; an empty card reader (sde) and
+     * a partition (sdd1) are skipped; the first by name */
+    {
+        char pen[32];
+        EXPECT(!k1_pendrive_znajdz(sys, pen) && pen[0] == 0);
+        blok("pci0/usb3/3-2/3-2:1.0/host8/target8:0:0/8:0:0:0/block", "sde", "0\n", NULL);
+        EXPECT(!k1_pendrive_znajdz(sys, pen));
+        blok("pci0/usb3/3-3/3-3:1.0/host9/target9:0:0/9:0:0:0/block", "sdd", "15000000\n", NULL);
+        blok("pci0/usb3/3-3/3-3:1.0/host9/target9:0:0/9:0:0:0/block/sdd", "sdd1", "14000000\n", "Zdjecia");
+        EXPECT(k1_pendrive_znajdz(sys, pen) && strcmp(pen, "sdd") == 0);
+        blok("pci0/usb3/3-4/3-4:1.0/host10/target10:0:0/10:0:0:0/block", "sdf", "15000000\n", NULL);
+        EXPECT(k1_pendrive_znajdz(sys, pen) && strcmp(pen, "sdd") == 0);
+        EXPECT(!k1_pendrive_znajdz("/nie/ma/takiego", pen));
+    }
     {
         char cmd[400];
         snprintf(cmd, sizeof cmd, "rm -rf '%s'", baza);

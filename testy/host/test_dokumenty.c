@@ -362,6 +362,12 @@ static void test_prawa(void)
     mfd = k1_memfd_z_danymi("t", "Nowy folder", 11);
     k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_OBRAZY, K1_DOK_FOLDER, 11, 0, 0, 0), mfd, &zm, &fd);
     EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == 0 && k.c >= K1_DOK_PIERWSZY && zm);
+    /* an import (0.8.0 step 3): Pliki may give the origin "z pendrive'a"; a taken name gets " (2)" before the extension */
+    mfd = k1_memfd_z_danymi("t", "tajne.txtABC", 12);
+    k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, 9, 3, K1_POCH_PENDRIVE, 0),
+                mfd, &zm, &fd);
+    EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == 0 && zm && dok_wpis((uint32_t)k.c) != NULL &&
+           dok_wpis((uint32_t)k.c)->pochodzenie == K1_POCH_PENDRIVE && strcmp(dok_wpis((uint32_t)k.c)->nazwa, "tajne (2).txt") == 0);
     mfd = k1_memfd_z_danymi("t", "Nowy folder", 11); /* the size does not match the message */
     k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_OBRAZY, K1_DOK_FOLDER, 10, 0, 0, 0), mfd, &zm, &fd);
     EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == K1_MAG_ARG && !zm);
@@ -477,6 +483,11 @@ static void test_notatki(int *kn, uint32_t obcy, uint32_t *wlasny)
     mfd = k1_memfd_z_danymi("t", "Inne", 4);
     k = na(kn, K1_PROFIL_NOTATKI, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_OBRAZY, K1_DOK_PLIK, 4, 0, 0, 0), mfd, &fd);
     EXPECT(k.b == K1_DOK_BLAD_BRAK);
+    /* only Pliki gives an origin other than K1 (an import from a stick) */
+    mfd = k1_memfd_z_danymi("t", "Inne", 4);
+    k = na(kn, K1_PROFIL_NOTATKI, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, 4, 0, K1_POCH_PENDRIVE, 0),
+           mfd, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_PRAWA);
     k = na(kn, K1_PROFIL_NOTATKI, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, obcy, 100, 0, 0, 0, 0), -1, &fd);
     EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == K1_DOK_BLAD_BRAK && fd < 0);
     mfd = k1_memfd_z_danymi("t", "x", 1);
