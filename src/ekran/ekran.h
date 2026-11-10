@@ -15,7 +15,7 @@
 #include "k1_teraz.h"
 
 #define TAG "K1-EKRAN"
-#define MAKS_KLIENTOW 12
+#define MAKS_KLIENTOW 16 /* wejscie, gui, every application (8 in 0.8.0) and room for the tests */
 #define MAKS_POW 48
 #define MAKS_PROST 16
 #define KROK_STRZALEK 20
