@@ -46,11 +46,10 @@ static void sprawdz_dysk(const char *efi)
     nr = k1_slot_nr(e.start);
     m = nr >= 0 ? &p.slot[nr] : NULL;
     d = k1_ab_decyzja(&e, wydanie_jest && m != NULL && m->wersja != 0 && memcmp(m->wydanie, wydanie, sizeof wydanie) == 0);
-    if (d == K1_AB_POTWIERDZ) {
+    if (d == K1_AB_POTWIERDZ) { /* logged once it is on the disk (the tests read the disk right after the line) */
         e.slot = e.start;
         e.proba = 0;
         k1_wersja_tekst(m->wersja, w, sizeof w);
-        k1_log(TAG, "A/B: nowa wersja %s wystartowała — potwierdzona (%s, miejsce %c)", w, efi, e.slot);
     } else if (d == K1_AB_NIEUDANA) {
         k1_log(TAG, "A/B: aktualizacja (miejsce %c) nie wystartowała — działa poprzednia wersja (%s, miejsce %c)", e.proba,
                efi, e.start ? e.start : '?');
@@ -61,6 +60,8 @@ static void sprawdz_dysk(const char *efi)
         k1_grubenv_zbuduj(&e, g);
         if (k1_pisz_calosc(fd, g, sizeof g, p.uklad.grubenv_off) != 0 || fdatasync(fd) != 0)
             k1_log(TAG, "A/B: zapis grubenv nieudany (%s): %s", efi, strerror(errno));
+        else if (d == K1_AB_POTWIERDZ)
+            k1_log(TAG, "A/B: nowa wersja %s wystartowała — potwierdzona (%s, miejsce %c)", w, efi, e.slot);
     }
     close(fd);
 }
