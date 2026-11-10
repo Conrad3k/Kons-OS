@@ -117,7 +117,7 @@ UEFI + Secure Boot → podpisany UKI (jądro + initramfs + cmdline) → jądro L
 - Do sprawdzenia: Firefox ma własny sandbox oparty na user namespaces, trzeba zweryfikować jego działanie w strefie. Wybór Firefox czy WPE WebKit w ADR.
 
 ## 9. Blob Vault i Gatekeeper
-- Blob Vault: magazyn obiektów zamiast drzewa katalogów.
+- Blob Vault: magazyn obiektów zamiast drzewa katalogów. **[korekta: ADR 0029 — użytkownik widzi foldery jak w Windows (Pulpit, Dokumenty, Obrazy…); to metadane dokumentów w skarbcu, nie katalogi w jądrze, aplikacje dalej nie dostają ścieżek]**
   - Obiekt ma: identyfikator, metadane (oddzielone od zawartości), rozmiar, typ, hash, pochodzenie, uprawnienia.
   - Obiekty są niezmienne i nigdy nie stają się wykonywalne.
 - Dostęp przez capability:

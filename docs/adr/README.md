@@ -56,3 +56,4 @@ Krótko, dlaczego nie.
 | [0026](0026-pulpit-i-pliki-przed-siecia.md) | Pulpit (0.7.5) i Pliki (0.8.0) przed Siecią: ikony na pulpicie, przypinanie, Kosz (30 dni), wspólne dokumenty, okno wyboru pliku, dekoder w izolacji | Przyjęty |
 | [0027](0027-przeplyw-plikow-miedzy-strefami.md) | Przepływ plików: Pliki jako jedyny węzeł, zgoda = gest w interfejsie K1, „Otwórz w…” z zapisem z powrotem, domyślne aplikacje | Przyjęty |
 | [0028](0028-pulpit-warstwa-ikon-i-rozmieszczenie.md) | Pulpit 0.7.5: warstwa ikon w ekranie, rozmieszczenie w skarbcu, menu kontekstowe, „Zamknij okno” z paska | Przyjęty |
+| [0029](0029-pliki-foldery-kosz.md) | Pliki 0.8.0: dokumenty w skarbcu, foldery jak w Windows, Kosz (30 dni), prawa w tabeli, protokół `DOK_*` | Przyjęty |
