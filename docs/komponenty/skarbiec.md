@@ -44,15 +44,35 @@ Wideo, Pobrane) nie mają obiektów; wpisy użytkownika mają numery od 100:
 - `m<numer>` — **wpis** (176 B, `k1_dokument.h`): numer, folder nadrzędny, rodzaj (plik / folder), typ, pochodzenie,
   kto utworzył, generacja treści, rozmiar, czasy utworzenia, zmiany i wrzucenia do Kosza, nazwa (≤ 127 B UTF-8);
 - `t<numer>g<generacja>k<kawałek>` — **treść** po 1 MiB (plik ≤ 16 MiB). Zapis: kawałki nowej generacji → wpis →
-  usunięcie starych kawałków; przy otwarciu skarbiec usuwa kawałki bez wpisu i wpisy nie do odczytania, a wpis bez
-  folderu (albo w pętli) przenosi do Dokumentów.
+  usunięcie starych kawałków;
+- `a<profil>` — numer folderu aplikacji (np. Dokumenty › Notatki, 0.8.1): folder znajduje się po numerze, także po
+  zmianie nazwy albo przeniesieniu; gdy trafi do Kosza albo zniknie — nowy folder (i nowy numer);
+- `czas` — najpóźniejszy czas zegara, jaki skarbiec widział (0.8.1, zapis najwyżej raz na godzinę).
+
+**Przy otwarciu nic nie ginie** (0.8.1, plan L2, `dok_wczytaj.c`): wpis, który nie przechodzi sprawdzenia pole po polu,
+skarbiec **naprawia**, gdy da się odczytać numer, rodzaj, rozmiar i generację, a treść tej generacji jest na dysku —
+złe znaki nazwy zamienia na „_” (nic z nazwy nie zostało: „Odzyskany plik <numer>”), pole poza zakresem na
+bezpieczną wartość (folder → Dokumenty, twórca → Pliki, typ → „Plik”), wolną nazwę dostaje jak zawsze („ (2)”), i
+zapisuje wpis od nowa. Wpis, którego nie da się naprawić, zostaje na dysku **razem z treścią** (log: „nieczytelne
+wpisy n”) — późniejsza wersja może go odczytać; jego numeru nie dostaje żaden nowy wpis. Kawałki treści skarbiec
+usuwa tylko wtedy, gdy nie ma obiektu wpisu albo gdy są starszej generacji wpisu, który się wczytał — nigdy kawałków
+pliku, którego własnej treści brak (zła generacja: nic nie zgadujemy). Wpis bez folderu (albo w pętli) przenosi do
+Dokumentów.
 - Typ pliku rozpoznaje skarbiec przy każdym zapisie z pierwszych bajtów (`K1_TYPY`: tekst, PNG, JPEG, PDF, ZIP,
   inny) — nigdy z nazwy. Nazwy jak w Windows (bez `\ / : * ? " < > |`, znaków sterujących i odwracających
   kierunek tekstu, bez spacji i kropki na końcu), unikalne w folderze bez względu na wielkość liter (także
   polskich); nowy wpis o zajętej nazwie dostaje „ (2)” przed rozszerzeniem. Do 8 poziomów folderów, 1024 wpisy.
 - **Kosz**: „do Kosza” zapisuje czas we wpisie (folder idzie z zawartością); przywrócony wraca do swojego folderu
-  (gdy go nie ma — do Dokumentów); „usuń na zawsze” i „opróżnij” tylko w Koszu; po 30 dniach skarbiec usuwa sam —
-  przy otwarciu i co godzinę, według zegara; gdy zegar jest przed czasem wrzucenia (cofnięty) — nic.
+  (gdy go nie ma albo jest w Koszu — do Dokumentów, Pliki to mówią); „usuń na zawsze” i „opróżnij” tylko w Koszu; po
+  30 dniach skarbiec usuwa sam — przy otwarciu i co godzinę. W Koszu jest to, co wyrzucono samo (`k1_dok_w_koszu`:
+  plik i jego folder wyrzucone osobno to dwa elementy) — tak samo liczy skarbiec, lista i Pliki.
+- **Granica czasu** (0.8.1, plan L3, `dok_czas.c`): K1 nie ustawia zegara komputera (do M7), a słaba bateria cofa go
+  np. do 2000 r. Skarbiec zna dolną granicę: czas budowy tej wersji K1 (`K1_CZAS_BUDOWY` z `SOURCE_DATE_EPOCH` —
+  powtarzalny) i najpóźniejszy widziany czas (obiekt `czas`). Czasy we wpisach (utworzono, zmieniono, Kosz) nigdy
+  nie są wcześniejsze; gdy zegar jest za granicą, Kosz niczego nie usuwa na zawsze. Czas w Koszu z złego zegara
+  (sprzed 1.11.2026 — żadna wersja K1 nie miała wtedy Kosza — albo ponad dobę w przyszłości) skarbiec ustawia na
+  „teraz”, gdy zegar jest dobry: 30 dni liczy się od nowa. Zegar raz ustawiony za daleko w przód (np. 2035) blokuje
+  Kosz do tej daty — bezpiecznie (nic nie ginie), rozwiąże to czas z sieci (M7, RYZYKA R56).
 
 **Prawa** — tabela w `dok_kanal.c` (wiersz na klienta; właściciel kanału od nadzorcy): Pliki — wszystko; pulpit
 (gui) — tylko folder Pulpit (lista nazw i typów, „do Kosza”, „opróżnij Kosz”, „Otwórz w…”, bez treści); Notatki
@@ -67,7 +87,9 @@ ten plik” i prosi nadzorcę (`SKARB_URUCHOM`) o uruchomienie jej z plikiem. Pr
 (`DOK_WYBIERZ`) — jedna naraz (`K1_DOK_BLAD_CZEKA`); skarbiec prosi nadzorcę o okno wyboru (`SKARB_URUCHOM` z
 aplikacją „Wybór pliku”), oknu podaje prośbę (`DOK_PROSBA`), a gdy ono odpowie (`DOK_WYBRANO`: plik widoczny,
 pasujący typ) — daje dostęp i odpowiada aplikacji (`DOK_WYBRANY`; 0 = anulowano, także gdy okno się zamknie).
-Dostęp jest tylko w pamięci skarbca i znika, gdy zamknie się ostatni kanał tej aplikacji (do 64 naraz).
+Dostęp jest tylko w pamięci skarbca i znika, gdy zamknie się ostatni kanał tej aplikacji. Jedna aplikacja dostaje
+najwyżej 64 pliki (`K1_DOK_DOSTEP_APL`, 0.8.1): 65. — odmowa `K1_DOK_BLAD_OTWARTE` z komunikatem w Plikach i w oknie
+wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po cichu.
 
 | Komunikat | Kierunek | Pola |
 |---|---|---|
@@ -81,7 +103,7 @@ Dostęp jest tylko w pamięci skarbca i znika, gdy zamknie się ostatni kanał t
 | `DOK_OPROZNIJ` | klient → | wszystko z Kosza na zawsze |
 | `DOK_LISTA` | → klient | a = długość, b = liczba wpisów; memfd: „K1D1”, liczba, w Koszu, wpisy |
 | `DOK_TRESC` | → klient | obiekt = plik, a = wysłane bajty, b = cały rozmiar; memfd |
-| `DOK_WYNIK` | → klient | obiekt, a = rodzaj prośby, b = wynik (0, `K1_MAG_*`, `K1_DOK_BLAD_*`), c = numer nowego wpisu |
+| `DOK_WYNIK` | → klient | obiekt, a = rodzaj prośby, b = wynik (0, `K1_MAG_*`, `K1_DOK_BLAD_*` od −20 do −27), c = numer nowego wpisu |
 | `DOK_ZMIANA` | → klient | pliki się zmieniły — do każdego klienta z prawem listy (odświeżają widok) |
 | `DOK_OTWORZ` | Pliki, pulpit → | obiekt = plik, a = aplikacja (nie Pliki), która otwiera jego typ → `DOK_WYNIK` |
 | `DOK_WYBIERZ` | aplikacja → | a = typ (0: każdy) — okno wyboru pliku; odpowiedź później: `DOK_WYBRANY` (błąd od razu: `DOK_WYNIK`) |
@@ -130,7 +152,9 @@ od klientów i wpisy z dysku (`k1_dok_wpis_czytaj` — każde pole) oraz tabela 
 | w systemie: klatka (UID, tylko partycja „K1-DANE”), próba w klatce `skarbiec`, dysk trzyma tylko skarbiec | funkcjonalny + negatywny |
 | `test-m4.sh`: tapeta, motyw, rozdzielczość i notatka wracają po wyłączeniu i ponownym starcie z tym samym dyskiem; na dysku brak jawnego tekstu | funkcjonalny |
 | `test_dokumenty` (host, 0.8.0): nazwy (złe znaki, UTF-8, odwrócony tekst), typy z zawartości, wpis i lista (każde pole poza zakresem), plik w trzech kawałkach, nowa treść bez starych kawałków, przerwany zapis, foldery (unikalne nazwy, „(2)”, do siebie, za głęboko), Kosz (przywracanie, 30 dni, cofnięty zegar, opróżnianie), uszkodzone wpisy i kawałki przy otwarciu; prawa przez prawdziwy kanał: Pliki, pulpit (tylko Pulpit, bez treści), inni — nic; zły memfd | funkcjonalny + negatywny |
-| `fuzz_dokument`: lista wpisów (Pliki i pulpit ją czytają), nazwy, typy | fuzzing |
+| `test_dokumenty` (0.8.1 krok 1): wpis z jednym złym bajtem nazwy — naprawiony, treść 3 MiB cała (próba T2 planu); nieznany rodzaj i zła generacja — nic nie usunięte, po poprawce plik wraca; nic z nazwy — „Odzyskany plik”; nowy wpis nie bierze numeru nieczytelnego; folder aplikacji po numerze (plik „Kalkulator”, zmiana nazwy, przeniesienie, Kosz); zegar 2000 / 5 lat w przód / cofnięty / po ponownym starcie / bez dobrego czasu; licznik Kosza; 65. plik dla aplikacji | funkcjonalny + negatywny |
+| `test_notatki` (host, 0.8.1): prawdziwy kod Notatek (`pliki.c`, `spis.c`) z prawdziwym kodem skarbca przez gniazdo — notatka nie do odczytu (tylko do odczytu, plik nietknięty, ponowna próba), plik notatki do Kosza w trakcie pisania (kopia, w obu kolejnościach), 300 plików → 256 najnowszych z komunikatem | funkcjonalny + negatywny |
+| `fuzz_dokument`: lista wpisów (Pliki i pulpit ją czytają), nazwy, naprawa nazw (zawsze pusta albo poprawna), typy | fuzzing |
 | `test-m4.sh` (0.8.0): foldery i Kosz w Plikach, plik na pulpicie, wszystko po ponownym starcie | funkcjonalny |
 | `test-m5.sh`: obraz USB przez UEFI — pierwszy start tworzy magazyn, drugi go otwiera | funkcjonalny |
 | `test-m5.sh` (0.5.8): pendrive z pustą K1-DANE podłączony po starcie → restart skarbca, nowy magazyn, pulpit od nowa | funkcjonalny |
