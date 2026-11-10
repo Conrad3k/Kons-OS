@@ -127,10 +127,13 @@ class Maszyna:
 
     # --- log ---
     def tekst(self):
+        """The log up to its last complete line: QEMU may be writing a line just now, and a pattern must never match
+        half of it (CI with KVM: "menu kontekstowe …: Zegar 548,617" without the rest of the menu's rows)."""
         try:
-            return WTRACENIE.sub("", open(self.log, encoding="utf-8", errors="replace").read())
+            t = WTRACENIE.sub("", open(self.log, encoding="utf-8", errors="replace").read())
         except OSError:
             return ""
+        return t[: t.rfind("\n") + 1]
 
     def czekaj(self, wzor, od=0, czas=None):
         """Ostatnie dopasowanie, gdy jest ich więcej niż `od`; None po czasie albo gdy maszyna się
