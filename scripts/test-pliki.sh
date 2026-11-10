@@ -85,6 +85,21 @@ kosz = (ox + kx, oy + ky)
 wiersz = lambda i: (ox + wx, oy + wy + i * wk)
 
 
+def menu(cel, punkt, wiersz):
+    """Right click at `punkt`, waits for gui's menu `cel` and for it ON THE SCREEN (a light row: with KVM the click
+    could come before ekran shows the panel); the centre of row `wiersz`, or None."""
+    wz = r"K1-GUI: menu kontekstowe \(" + cel + r"\): (.*)"
+    n = q.ile(wz)
+    q.prawy_klik(*punkt)
+    m = czekaj(wz, od=n, czas=20)
+    poz = {t.strip(): (int(x), int(y)) for t, x, y in re.findall(r"([^;:]+?) (\d+),(\d+)", m.group(1))} if m else {}
+    if wiersz not in poz:
+        return None
+    x, y = poz[wiersz]
+    zrzut(f"menu-{wiersz.split()[0].lower()}", gdy=lambda w, h, px: min(px(x + 80, y)) > 200)
+    return poz[wiersz]
+
+
 def przyciski():
     m = list(re.finditer(r"K1-PLIKI: przyciski: (.*)", tekst()))
     return {t.strip(): (ox + int(x), oy + int(y)) for t, x, y in re.findall(r"([^;]+?) (\d+),(\d+)", m[-1].group(1))} if m else {}
@@ -162,23 +177,17 @@ if plik:
     sprawdz("podwójne kliknięcie folderu na pulpicie: Pliki pokazują jego wnętrze",
             po(r"K1-PLIKI: pokazane miejsce: folder, 0 elementów", lambda: q.dwuklik(*ikp[plik])))
     schowaj_pliki()
-    n_m = q.ile(r"K1-GUI: menu kontekstowe \(ikona pliku\): (.*)")
-    q.prawy_klik(*ikp[plik])
-    mk_ = czekaj(r"K1-GUI: menu kontekstowe \(ikona pliku\): (.*)", od=n_m, czas=20)
-    poz = {t.strip(): (int(x), int(y)) for t, x, y in re.findall(r"([^;:]+?) (\d+),(\d+)", mk_.group(1))} if mk_ else {}
+    poz = menu(r"ikona pliku", ikp[plik], "Usuń")
     n_k = q.ile(r"K1-GUI: pliki na pulpicie: dodane 0, usunięte 1")
-    if "Usuń" in poz:
-        klik(*poz["Usuń"])
+    if poz:
+        klik(*poz)
     sprawdz("menu pliku na pulpicie → „Usuń”: ikona znika, plik w Koszu",
             czekaj(r"K1-GUI: pliki na pulpicie: dodane 0, usunięte 1", od=n_k) and czekaj(r"K1-GUI: pliki na pulpicie: 0, w Koszu: 1"))
     w, h, px = zrzut("6-kosz-pelny")
     ik = ikony()
-    n_m = q.ile(r"K1-GUI: menu kontekstowe \(ikona Kosz\): (.*)")
-    q.prawy_klik(*ik["Kosz"])
-    mk_ = czekaj(r"K1-GUI: menu kontekstowe \(ikona Kosz\): (.*)", od=n_m, czas=20)
-    poz = {t.strip(): (int(x), int(y)) for t, x, y in re.findall(r"([^;:]+?) (\d+),(\d+)", mk_.group(1))} if mk_ else {}
-    if "Opróżnij Kosz" in poz:
-        klik(*poz["Opróżnij Kosz"])
+    poz = menu(r"ikona Kosz", ik["Kosz"], "Opróżnij Kosz")
+    if poz:
+        klik(*poz)
     sprawdz("menu Kosza → „Opróżnij Kosz”: pusty", czekaj(r"K1-GUI: pulpit: opróżniam Kosz") and
             czekaj(r"K1-GUI: pliki na pulpicie: 0, w Koszu: 0"))
 t_ = tekst()
