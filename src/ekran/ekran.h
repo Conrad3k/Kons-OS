@@ -117,6 +117,7 @@ void ustawienia_po_starcie(void);
 void ustawienia_zapisz(void);
 int ustawienia_fd(void);
 void ustawienia_odbierz(void);
+int ustawienia_czeka(void); /* the settings of the start have not come yet (0.8.1) */
 void pokaz(void);
 void odbierz_drm(void);
 

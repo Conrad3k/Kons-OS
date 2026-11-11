@@ -81,6 +81,7 @@ static void zamknij_klienta(struct klient *k)
         if (&kl[i] != k && kl[i].fd >= 0 && kl[i].wlasciciel == k->wlasciciel)
             ostatni = 0;
     dostep_koniec_klienta(k->fd, k->wlasciciel, ostatni);
+    dok_koniec_kanalu(k->fd);
     if (powieksza == k)
         powieksza = NULL;
     close(k->fd);

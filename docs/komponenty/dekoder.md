@@ -48,7 +48,7 @@ Zdjęcie 24 Mpx (progresywny JPEG): ok. 0,7 s i 200 MiB pamięci na komputerze b
 |---|---|---|
 | `DEKODER` | Pliki → nadzorca (fd 6) | — (uruchom dekoder) |
 | `DEKODER_KANAL` | nadzorca → Pliki | + 1 fd: kanał do nowego dekodera |
-| `DEK_OBRAZ` | Pliki → dekoder | obiekt = numer (odsyłany), a = długość pliku 1…16 MB, b, c = największa szerokość ≤ 2560 i wysokość ≤ 1600; + memfd |
+| `DEK_OBRAZ` | Pliki → dekoder | obiekt = numer (odsyłany), a = długość pliku 1…16 MB (`K1_DEK_MAKS_BAJTY`, od 0.8.1 osobny limit — pliki mogą mieć do 4 GB), b, c = największa szerokość ≤ 2560 i wysokość ≤ 1600; + memfd |
 | `DEK_PIKSELE` | dekoder → Pliki | obiekt, a × b = rozmiar obrazu; + memfd a × b × 4 bajtów |
 | `DEK_BLAD` | dekoder → Pliki | obiekt, a = `K1_DEK_BLAD_*` (nie PNG/JPEG, za duży, uszkodzony, brak pamięci) |
 | `TAPETA_ZDJECIE` | Pliki → ekran | a × b; + memfd z `DEK_PIKSELE` (opis: `ekran.md`) |

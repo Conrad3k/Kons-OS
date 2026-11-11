@@ -45,7 +45,12 @@ static int kazdy(void *ctx, const struct fat_wpis *w)
         (void)fat_folder(&f, w->klaster, kazdy, &pod);
         poziom--;
     } else if (!w->folder) {
+        struct fat_kursor k = { 0, 0, 0 };
         (void)fat_czytaj(&f, w->klaster, w->rozmiar, 1u << 16, nic, NULL);
+        /* 0.8.1 step 4: from an offset with the cursor, on, then back (a damaged chain, any size) */
+        (void)fat_czytaj_od(&f, &k, w->klaster, w->rozmiar, w->rozmiar / 3, 1u << 14, nic, NULL);
+        (void)fat_czytaj_od(&f, &k, w->klaster, w->rozmiar, w->rozmiar / 2, 1u << 14, nic, NULL);
+        (void)fat_czytaj_od(&f, &k, w->klaster, w->rozmiar, w->rozmiar / 5, 1u << 14, nic, NULL);
     }
     return 0;
 }

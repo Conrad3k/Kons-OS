@@ -4,6 +4,7 @@
  *   dok_kosz.c      Kosz: in, out, for good, after 30 days
  *   dok_czas.c      the time bound: never a time before this K1's build or before the latest clock seen
  *   dok_wczytaj.c   loading the entries at start, with repairs
+ *   dok_zapis.c     a write of content in progress, piece after piece (0.8.1 step 4)
  * The public functions: dokumenty.h. Part of skarbiec (skarbiec.h). */
 #ifndef K1_DOK_WEW_H
 #define K1_DOK_WEW_H
@@ -43,6 +44,9 @@ int glebokosc(uint32_t id);    /* user folders above `id` */
 int wewnatrz(uint32_t id, uint32_t przodek);
 int wysokosc(uint32_t id);     /* levels of folders in `id` and below */
 int nazwa_zajeta(uint32_t folder, const char *nazwa, uint32_t oprocz);
+
+/* dok_zapis.c: at a start nothing is in progress (pieces left by a power cut are deleted as pieces without an entry) */
+void dok_zapis_zapomnij(void);
 
 /* dok_czas.c */
 void dok_czas_wczytaj(void); /* the latest clock seen, from its object (at start) */

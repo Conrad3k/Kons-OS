@@ -197,7 +197,8 @@ static int wpis_uzytkownika(uint32_t obiekt)
 
 int k1_kom_dok_prosba(int typ)
 {
-    return (typ >= K1_KOM_DOK_SPIS && typ <= K1_KOM_DOK_OPROZNIJ) || (typ >= K1_KOM_DOK_OTWORZ && typ <= K1_KOM_DOK_WYBRANO);
+    return (typ >= K1_KOM_DOK_SPIS && typ <= K1_KOM_DOK_OPROZNIJ) || (typ >= K1_KOM_DOK_OTWORZ && typ <= K1_KOM_DOK_WYBRANO) ||
+           typ == K1_KOM_DOK_KAWALEK || typ == K1_KOM_DOK_KONIEC;
 }
 
 /* Opening a file for an application, the file picker (0.8.0 step 2, ADR 0030); 0 also for another type. */
@@ -221,10 +222,27 @@ static int sprawdz_wybor(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
     }
 }
 
+/* A size in two fields (k1_kom_u64) of a file that has at least `od` bytes: 1 when in range. */
+static int rozmiar_pliku(int32_t niskie, int32_t wysokie, uint64_t od)
+{
+    uint64_t r = k1_kom_u64(niskie, wysokie);
+    return r <= K1_DOK_MAKS_BAJTY && r >= od;
+}
+
+/* "More pieces follow" (0.8.1 step 4): 0, or 1 with a whole piece. */
+static int dalej(int32_t flaga, int32_t dlugosc)
+{
+    return flaga == 0 || (flaga == 1 && dlugosc == (int32_t)K1_DOK_KAWALEK);
+}
+
 /* Messages about the user's files (0.8.0, ADR 0029); 0 also for a type of another group. */
 static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
-    const int32_t maks = (int32_t)K1_DOK_MAKS_BAJTY;
+    const int32_t maks = (int32_t)K1_DOK_KAWALEK; /* content travels in pieces (0.8.1 step 4) */
+    if (k->typ == K1_KOM_DOK_KAWALEK)
+        return kier == K1_KIER_DO_SKARBCA && k->obiekt == 0 && w(k->a, 1, maks) && zera(k, 1);
+    if (k->typ == K1_KOM_DOK_KONIEC)
+        return kier == K1_KIER_DO_SKARBCA && k->obiekt == 0 && w(k->a, 0, 1) && zera(k, 1);
     if (k->typ < K1_KOM_DOK_SPIS || k->typ > K1_KOM_DOK_ZMIANA)
         return sprawdz_wybor(k, kier);
     if (kier != (k->typ < K1_KOM_DOK_LISTA ? K1_KIER_DO_SKARBCA : K1_KIER_OD_SKARBCA))
@@ -235,13 +253,14 @@ static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     case K1_KOM_DOK_ZMIANA:
         return k->obiekt == 0 && zera(k, 0);
     case K1_KOM_DOK_CZYTAJ:
-        return wpis_uzytkownika(k->obiekt) && w(k->a, 1, maks) && zera(k, 1);
+        return wpis_uzytkownika(k->obiekt) && w(k->a, 1, (int32_t)K1_DEK_MAKS_BAJTY) &&
+               w(k->b, 0, (int32_t)K1_DOK_KAWALKI_MAKS - 1) && zera(k, 2);
     case K1_KOM_DOK_NOWY:
         return wpis(k->obiekt) && w(k->a, K1_DOK_PLIK, K1_DOK_FOLDER) && w(k->b, 1, K1_DOK_NAZWA - 1) &&
                w(k->c, 0, k->a == K1_DOK_FOLDER ? 0 : maks) && w(k->d, 0, k->a == K1_DOK_FOLDER ? 0 : K1_POCH_MAKS) &&
-               zera(k, 4);
+               (k->a == K1_DOK_FOLDER ? k->e == 0 : dalej(k->e, k->c));
     case K1_KOM_DOK_ZAPISZ:
-        return wpis_uzytkownika(k->obiekt) && w(k->a, 0, maks) && zera(k, 1);
+        return wpis_uzytkownika(k->obiekt) && w(k->a, 0, maks) && dalej(k->b, k->a) && zera(k, 2);
     case K1_KOM_DOK_NAZWA:
         return wpis_uzytkownika(k->obiekt) && w(k->a, 1, K1_DOK_NAZWA - 1) && w(k->b, 0, 1) && zera(k, 2);
     case K1_KOM_DOK_PRZENIES:
@@ -254,11 +273,13 @@ static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         return k->obiekt == 0 && w(k->a, K1_DOK_LISTA_NAGL, K1_DOK_LISTA_MAKS) && w(k->b, 0, K1_DOK_MAKS) &&
                k->a == K1_DOK_LISTA_NAGL + k->b * K1_DOK_WPIS_BAJTY && zera(k, 2);
     case K1_KOM_DOK_TRESC:
-        return wpis_uzytkownika(k->obiekt) && w(k->a, 0, maks) && w(k->b, k->a, maks) && zera(k, 2);
+        return wpis_uzytkownika(k->obiekt) && w(k->a, 0, (int32_t)K1_DEK_MAKS_BAJTY) &&
+               w(k->b, 0, (int32_t)K1_DOK_KAWALKI_MAKS - 1) && rozmiar_pliku(k->c, k->d, (uint64_t)k->b * K1_DOK_KAWALEK + (uint64_t)k->a) && k->e == 0;
     case K1_KOM_DOK_WYNIK:
         return (k->obiekt == 0 || wpis(k->obiekt)) && k1_kom_dok_prosba(k->a) &&
                (w(k->b, K1_MAG_WYNIK_MIN, 0) || w(k->b, K1_DOK_BLAD_MIN, K1_DOK_BLAD_NAZWA)) &&
-               (k->c == 0 || (k->a == K1_KOM_DOK_NOWY && k->b == 0 && k->c >= K1_DOK_PIERWSZY)) && zera(k, 3);
+               (k->c == 0 || ((k->a == K1_KOM_DOK_NOWY || k->a == K1_KOM_DOK_KONIEC) && k->b == 0 && k->c >= K1_DOK_PIERWSZY)) &&
+               zera(k, 3);
     default:
         return 0;
     }
@@ -267,7 +288,7 @@ static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
 /* The USB stick: nadzorca ↔ Pliki, Pliki ↔ czytnik (0.8.0 step 3, ADR 0031); 0 also for a type of another group. */
 static int sprawdz_pendrive(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
-    const int32_t maks = (int32_t)K1_DOK_MAKS_BAJTY;
+    const int32_t maks = (int32_t)K1_DOK_KAWALEK;
     int pen_wpis = k->obiekt <= K1_PEN_ID_MAKS;
     switch (k->typ) {
     case K1_KOM_PENDRIVE:
@@ -279,7 +300,8 @@ static int sprawdz_pendrive(const struct k1_komunikat *k, enum k1_kanal_kierunek
     case K1_KOM_PEN_SPIS:
         return kier == K1_KIER_DO_CZYTNIKA && pen_wpis && zera(k, 0);
     case K1_KOM_PEN_CZYTAJ:
-        return kier == K1_KIER_DO_CZYTNIKA && pen_wpis && k->obiekt != 0 && zera(k, 0);
+        return kier == K1_KIER_DO_CZYTNIKA && pen_wpis && k->obiekt != 0 && w(k->a, 0, (int32_t)K1_DOK_KAWALKI_MAKS - 1) &&
+               zera(k, 1);
     case K1_KOM_PEN_STAN:
         return kier == K1_KIER_OD_CZYTNIKA && k->obiekt == 0 &&
                ((k->a == 12 || k->a == 16 || k->a == 32) ? k->b == 0 : k->a == 0 && w(k->b, K1_PEN_BLAD_MIN, -1)) &&
@@ -288,8 +310,10 @@ static int sprawdz_pendrive(const struct k1_komunikat *k, enum k1_kanal_kierunek
         return kier == K1_KIER_OD_CZYTNIKA && pen_wpis && w(k->b, 0, K1_PEN_WPISOW) &&
                k->a == K1_PEN_LISTA_NAGL + k->b * K1_PEN_WPIS_BAJTY && w(k->c, 0, 1) && zera(k, 3);
     case K1_KOM_PEN_PLIK:
-        return kier == K1_KIER_OD_CZYTNIKA && pen_wpis && k->obiekt != 0 && w(k->a, 1, K1_DOK_NAZWA - 1) &&
-               w(k->b, 0, maks) && zera(k, 2);
+        return kier == K1_KIER_OD_CZYTNIKA && pen_wpis && k->obiekt != 0 &&
+               (k->c == 0 ? w(k->a, 1, K1_DOK_NAZWA - 1) : k->a == 0) && w(k->b, 0, maks) &&
+               w(k->c, 0, (int32_t)K1_DOK_KAWALKI_MAKS - 1) &&
+               rozmiar_pliku(k->d, k->e, (uint64_t)k->c * K1_DOK_KAWALEK + (uint64_t)k->b);
     case K1_KOM_PEN_WYNIK:
         return kier == K1_KIER_OD_CZYTNIKA && pen_wpis && (k->a == K1_KOM_PEN_SPIS || k->a == K1_KOM_PEN_CZYTAJ) &&
                w(k->b, K1_PEN_BLAD_MIN, -1) && zera(k, 2);
@@ -306,7 +330,7 @@ static int sprawdz_dekoder(const struct k1_komunikat *k, enum k1_kanal_kierunek 
     case K1_KOM_DEKODER_KANAL:
         return kier == (k->typ == K1_KOM_DEKODER ? K1_KIER_DO_NADZORCY : K1_KIER_OD_NADZORCY) && k->obiekt == 0 && zera(k, 0);
     case K1_KOM_DEK_OBRAZ:
-        return kier == K1_KIER_DO_DEKODERA && w(k->a, 1, (int32_t)K1_DOK_MAKS_BAJTY) && w(k->b, 1, K1_DEK_MAKS_W) &&
+        return kier == K1_KIER_DO_DEKODERA && w(k->a, 1, (int32_t)K1_DEK_MAKS_BAJTY) && w(k->b, 1, K1_DEK_MAKS_W) &&
                w(k->c, 1, K1_DEK_MAKS_H) && zera(k, 3);
     case K1_KOM_DEK_PIKSELE:
         return kier == K1_KIER_OD_DEKODERA && w(k->a, 1, K1_DEK_MAKS_W) && w(k->b, 1, K1_DEK_MAKS_H) && zera(k, 2);
@@ -470,7 +494,8 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            (typ == K1_KOM_SKARB_HASLO && kierunek == K1_KIER_DO_SKARBCA) ||
            (typ == K1_KOM_SKARB_DANE && kierunek == K1_KIER_OD_SKARBCA) ||
            (typ == K1_KOM_BATERIA_ARCH && kierunek == K1_KIER_OD_NADZORCY) ||
-           ((typ == K1_KOM_DOK_NOWY || typ == K1_KOM_DOK_ZAPISZ || typ == K1_KOM_DOK_NAZWA) && kierunek == K1_KIER_DO_SKARBCA) ||
+           ((typ == K1_KOM_DOK_NOWY || typ == K1_KOM_DOK_ZAPISZ || typ == K1_KOM_DOK_NAZWA || typ == K1_KOM_DOK_KAWALEK) &&
+            kierunek == K1_KIER_DO_SKARBCA) ||
            ((typ == K1_KOM_DOK_LISTA || typ == K1_KOM_DOK_TRESC) && kierunek == K1_KIER_OD_SKARBCA) ||
            ((typ == K1_KOM_PENDRIVE_KANAL || typ == K1_KOM_DEKODER_KANAL) && kierunek == K1_KIER_OD_NADZORCY) ||
            (typ == K1_KOM_TAPETA_ZDJECIE && kierunek == K1_KIER_DO_EKRANU) ||

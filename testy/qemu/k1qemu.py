@@ -122,6 +122,7 @@ class Maszyna:
         self.log, self.mon, self.out = log, mon, out
         self.limit, self.przedrostek = float(limit), przedrostek
         self.start = time.time()
+        self.po_limicie = False
         self.wyniki = []
         self.kursor = [0, 0]
 
@@ -147,7 +148,13 @@ class Maszyna:
                 return m[-1]
             if len(re.findall(KONIEC_MASZYNY, t)) > stop or "Kernel panic" in t:
                 return None
-            if time.time() >= koniec or time.time() - self.start >= self.limit:
+            if time.time() - self.start >= self.limit:
+                if not self.po_limicie:  # QEMU is stopped at the same moment (uruchom-qemu.sh --czas): say so once
+                    print(f"  [uwaga] minął limit czasu maszyny ({self.limit:.0f} s) — dalsze sprawdzenia nie mają na co czekać",
+                          flush=True)
+                    self.po_limicie = True
+                return None
+            if time.time() >= koniec:
                 return None
             time.sleep(0.2)
 

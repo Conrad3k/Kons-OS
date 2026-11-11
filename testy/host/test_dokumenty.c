@@ -216,16 +216,16 @@ static void test_tresc(void)
     id = nowy(K1_FOLDER_OBRAZY, K1_DOK_PLIK, "zdjęcie.jpg", dane, dl, T0);
     EXPECT(id >= K1_DOK_PIERWSZY && dok_wpis(id)->typ == K1_TYP_JPEG && dok_wpis(id)->rozmiar == dl);
     EXPECT(obiektow() == 1 + 3); /* the entry and three pieces */
-    EXPECT(dok_czytaj_tresc(id, dl + 99, &c, &ile) == 0 && ile == dl && memcmp(wy, dane, dl) == 0);
+    EXPECT(dok_czytaj_tresc(id, 0, dl + 99, &c, &ile) == 0 && ile == dl && memcmp(wy, dane, dl) == 0);
     b.dl = 0;
-    EXPECT(dok_czytaj_tresc(id, 100, &c, &ile) == 0 && ile == 100 && b.dl == 100); /* a preview: the start only */
+    EXPECT(dok_czytaj_tresc(id, 0, 100, &c, &ile) == 0 && ile == 100 && b.dl == 100); /* a preview: the start only */
     {
         struct bufor nb = { (const uint8_t *)"krótko", NULL, 7 };
         struct dok_zrodlo z = { czytaj_bufor, &nb, 7 };
         EXPECT(dok_zapisz_tresc(id, &z, T0 + 5) == 0 && dok_wpis(id)->typ == K1_TYP_TEKST && dok_wpis(id)->generacja == 2);
         EXPECT(obiektow() == 2); /* the old pieces are gone */
         b.dl = 0;
-        EXPECT(dok_czytaj_tresc(id, 1000, &c, &ile) == 0 && ile == 7 && memcmp(wy, "krótko", 7) == 0);
+        EXPECT(dok_czytaj_tresc(id, 0, 1000, &c, &ile) == 0 && ile == 7 && memcmp(wy, "krótko", 7) == 0);
     }
     { /* a source that fails half way: nothing changes, no pieces left behind */
         struct bufor zb = { dane, NULL, dl - 1 };
@@ -366,7 +366,7 @@ static void test_prawa(void)
     EXPECT(k.typ == K1_KOM_DOK_LISTA && k.b >= 2 && fd >= 0 && !zm);
     close(fd);
     k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, plik, 100, 0, 0, 0, 0), -1, &zm, &fd);
-    EXPECT(k.typ == K1_KOM_DOK_TRESC && k.a == 6 && k.b == 6 && fd >= 0);
+    EXPECT(k.typ == K1_KOM_DOK_TRESC && k.a == 6 && k.b == 0 && k1_kom_u64(k.c, k.d) == 6 && fd >= 0);
     close(fd);
     mfd = k1_memfd_z_danymi("t", "Nowy folder", 11);
     k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_OBRAZY, K1_DOK_FOLDER, 11, 0, 0, 0), mfd, &zm, &fd);
@@ -645,7 +645,7 @@ static int tresc_rowna(uint32_t id, const uint8_t *dane, uint64_t dl)
     struct bufor b = { NULL, wy, 0 };
     struct dok_cel c = { pisz_bufor, &b };
     uint64_t ile = 0;
-    int ok = dok_czytaj_tresc(id, dl + 1, &c, &ile) == 0 && ile == dl && memcmp(wy, dane, dl) == 0;
+    int ok = dok_czytaj_tresc(id, 0, dl + 1, &c, &ile) == 0 && ile == dl && memcmp(wy, dane, dl) == 0;
     free(wy);
     return ok;
 }
@@ -904,6 +904,138 @@ static void test_folder_aplikacji(void)
     EXPECT(dok_folder_aplikacji("Zegar", K1_PROFIL_ZEGAR, T0, &f4) == 0 && f4 != f3); /* each application its own */
 }
 
+/* ---- a write in progress (0.8.1 step 4): pieces of 1 MiB through the channel, the entry after the last ---- */
+
+static struct k1_komunikat kawalek_do(int typ, uint32_t obiekt, const uint8_t *b, size_t n, int32_t c, int32_t e, int *zm)
+{
+    int fd = -1, mfd = k1_memfd_z_danymi("t", b, n);
+    struct k1_komunikat k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(typ, obiekt, (int32_t)n, c, 0, 0, e), mfd, zm, &fd);
+    if (fd >= 0)
+        close(fd);
+    return k;
+}
+
+/* NOWY with "more follow": the name and the first piece in one memfd. */
+static struct k1_komunikat nowy_w_toku(const char *nazwa, const uint8_t *b, size_t n, int dalej_, int *zm)
+{
+    static uint8_t buf[K1_DOK_NAZWA + K1_DOK_KAWALEK];
+    size_t nl = strlen(nazwa);
+    int fd = -1, mfd;
+    struct k1_komunikat k;
+    memcpy(buf, nazwa, nl);
+    memcpy(buf + nl, b, n);
+    mfd = k1_memfd_z_danymi("t", buf, nl + n);
+    k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_WIDEO, K1_DOK_PLIK, (int32_t)nl, (int32_t)n,
+                                                   K1_POCH_PENDRIVE, dalej_), mfd, zm, &fd);
+    if (fd >= 0)
+        close(fd);
+    return k;
+}
+
+/* Reads file `id` piece by piece through the channel into `wy`; the bytes, or -1. */
+static int64_t czytaj_kawalkami(uint32_t id, uint8_t *wy)
+{
+    uint64_t razem = 0;
+    for (int32_t k = 0;; k++) {
+        int zm, fd;
+        struct k1_komunikat t = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, id, (int32_t)K1_DOK_KAWALEK, k, 0, 0, 0),
+                                        -1, &zm, &fd);
+        if (t.typ != K1_KOM_DOK_TRESC || t.b != k || fd < 0 || k1_memfd_czytaj(fd, wy + razem, (size_t)t.a) != 0)
+            return -1;
+        close(fd);
+        razem += (uint64_t)t.a;
+        if (razem >= k1_kom_u64(t.c, t.d))
+            return (int64_t)razem;
+    }
+}
+
+static void test_zapis_w_toku(void)
+{
+    const uint64_t dl = 2 * K1_DOK_KAWALEK + 12345;
+    uint8_t *dane = malloc(dl), *wy = malloc(dl);
+    struct k1_komunikat k;
+    int zm, przed;
+    uint32_t id;
+    EXPECT(k1_kanal_utworz(kan) == 0);
+    dok_wczytaj(T0);
+    for (uint64_t i = 0; i < dl; i++)
+        dane[i] = (uint8_t)(i * 13 + (i >> 9));
+    dane[0] = 0, dane[1] = 0, dane[2] = 0, dane[3] = 0x18; /* not text, not a picture: "Plik" */
+    przed = obiektow();
+    k = nowy_w_toku("film.mp4", dane, K1_DOK_KAWALEK, 1, &zm);
+    EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.a == K1_KOM_DOK_NOWY && k.b == 0 && k.c == 0 && !zm); /* nothing to see yet */
+    EXPECT(obiektow() == przed + 1); /* its first piece only, no entry */
+    k = kawalek_do(K1_KOM_DOK_KAWALEK, 0, dane + K1_DOK_KAWALEK, K1_DOK_KAWALEK, 0, 0, &zm);
+    EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.a == K1_KOM_DOK_KAWALEK && k.b == 0 && !zm);
+    k = kawalek_do(K1_KOM_DOK_KAWALEK, 0, dane + 2 * K1_DOK_KAWALEK, 12345, 0, 0, &zm);
+    EXPECT(k.b == 0);
+    k = kawalek_do(K1_KOM_DOK_KAWALEK, 0, dane, 10, 0, 0, &zm); /* NEGATIVE: after a short piece no other may come */
+    EXPECT(k.b == K1_DOK_BLAD_ZAPIS && obiektow() == przed); /* …and the whole write is abandoned */
+    {   /* the same again, to the end */
+        int fd;
+        nowy_w_toku("film.mp4", dane, K1_DOK_KAWALEK, 1, &zm);
+        kawalek_do(K1_KOM_DOK_KAWALEK, 0, dane + K1_DOK_KAWALEK, K1_DOK_KAWALEK, 0, 0, &zm);
+        kawalek_do(K1_KOM_DOK_KAWALEK, 0, dane + 2 * K1_DOK_KAWALEK, 12345, 0, 0, &zm);
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_KONIEC, 0, 0, 0, 0, 0, 0), -1, &zm, &fd);
+        id = (uint32_t)k.c;
+        EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.a == K1_KOM_DOK_KONIEC && k.b == 0 && id >= K1_DOK_PIERWSZY && zm);
+        EXPECT(dok_wpis(id) != NULL && dok_wpis(id)->rozmiar == dl && dok_wpis(id)->rodzic == K1_FOLDER_WIDEO &&
+               dok_wpis(id)->typ == K1_TYP_INNY && dok_wpis(id)->pochodzenie == K1_POCH_PENDRIVE && obiektow() == przed + 4);
+        EXPECT(czytaj_kawalkami(id, wy) == (int64_t)dl && memcmp(wy, dane, dl) == 0);
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_KONIEC, 0, 0, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_ZAPIS && !zm); /* NEGATIVE: no write in progress to end */
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, id, 100, 5, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == K1_MAG_ARG && fd < 0); /* NEGATIVE: past the end */
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, id, 100, 2, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.typ == K1_KOM_DOK_TRESC && k.a == 100 && k.b == 2 && fd >= 0); /* the start of the last piece */
+        close(fd);
+    }
+    {   /* new content in pieces, the file goes to Kosz meanwhile: nothing changes, its pieces go */
+        int fd;
+        przed = obiektow();
+        k = kawalek_do(K1_KOM_DOK_ZAPISZ, id, dane, K1_DOK_KAWALEK, 1, 0, &zm);
+        EXPECT(k.b == 0 && obiektow() == przed + 1);
+        EXPECT(dok_zapisz_tresc(id, &(struct dok_zrodlo){ czytaj_bufor, &(struct bufor){ dane, NULL, 5 }, 5 }, T0) ==
+               K1_DOK_BLAD_ZAPIS); /* NEGATIVE: one new version at a time */
+        EXPECT(dok_do_kosza(id, T0) == 0);
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_KONIEC, 0, 0, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_MIEJSCE && obiektow() == przed && dok_wpis(id)->rozmiar == dl);
+        EXPECT(dok_przywroc(id) == 0);
+        /* abandoned by the client, and by a closed channel */
+        k = kawalek_do(K1_KOM_DOK_ZAPISZ, id, dane, K1_DOK_KAWALEK, 1, 0, &zm);
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_KONIEC, 0, 1, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == 0 && !zm && obiektow() == przed && dok_wpis(id)->generacja == 1);
+        k = kawalek_do(K1_KOM_DOK_ZAPISZ, id, dane, K1_DOK_KAWALEK, 1, 0, &zm);
+        k = nowy_w_toku("drugi.mp4", dane, K1_DOK_KAWALEK, 1, &zm);
+        EXPECT(k.b == K1_DOK_BLAD_ZAPIS); /* NEGATIVE: one write in progress per channel */
+        dok_koniec_kanalu(kan[1]);
+        EXPECT(obiektow() == przed && dok_wpis(id)->generacja == 1);
+    }
+    {   /* a power cut in the middle: the pieces of a new file and of new content go at the next start */
+        nowy_w_toku("przerwany.mp4", dane, K1_DOK_KAWALEK, 1, &zm);
+        kawalek_do(K1_KOM_DOK_ZAPISZ, id, dane, K1_DOK_KAWALEK, 1, 0, &zm); /* refused: the channel has one already */
+        EXPECT(obiektow() == przed + 1);
+        dok_koniec_kanalu(kan[1]); /* (only to forget it here: the start below is what is tested) */
+        nowy_w_toku("przerwany.mp4", dane, K1_DOK_KAWALEK, 1, &zm);
+        EXPECT(obiektow() == przed + 1);
+        dok_wczytaj(T0 + 1);
+        EXPECT(obiektow() == przed && dok_wpis(id) != NULL && czytaj_kawalkami(id, wy) == (int64_t)dl);
+    }
+    {   /* at most K1_DOK_KAWALKI_MAKS pieces: 4 GiB */
+        struct dok_zapis z;
+        EXPECT(dok_zapis_tresci(&z, id) == 0);
+        z.kawalkow = K1_DOK_KAWALKI_MAKS;
+        z.pelny = 1;
+        EXPECT(dok_zapis_kawalek(&z, dane, 1) == K1_DOK_BLAD_ZAPIS);
+        z.kawalkow = 0;
+        dok_zapis_porzuc(&z);
+    }
+    close(kan[0]);
+    close(kan[1]);
+    free(dane);
+    free(wy);
+}
+
 int main(void)
 {
     test_nazwy();
@@ -915,6 +1047,7 @@ int main(void)
     test_kosz();
     test_wczytanie();
     test_prawa();
+    test_zapis_w_toku();
     test_dostep();
     test_naprawa();
     test_folder_aplikacji();

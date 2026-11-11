@@ -20,7 +20,7 @@ każdy pakiet ma sprawdzany UID nadawcy (`SO_PASSCRED`, w obie strony).
 UID/GID 103, klatka (ADR 0007): seccomp = baza + `pread64`, `pwrite64`, `fdatasync` (partycja i memfd —
 innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
 żadnej ścieżki (nie otworzy niczego); cgroup 320 MiB (Argon2id do 256 MiB), 1 proces;
-`RLIMIT_FSIZE` 24 MiB (memfd z plikiem do 16 MiB, 0.8.0; zapisu na urządzenie blokowe ten limit nie dotyczy —
+`RLIMIT_FSIZE` 24 MiB (memfd z plikiem do 16 MiB, 0.8.0; od 0.8.1 kawałek 1 MiB, a w jednej odpowiedzi najwyżej całe zdjęcie dla dekodera — 16 MiB; zapisu na urządzenie blokowe ten limit nie dotyczy —
 `block/fops.c`). Bez partycji obiekty w pamięci: do 65 536, razem do 128 MiB.
 
 ## Wejścia i wyjścia
@@ -60,13 +60,29 @@ innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
   starcie)”); w trakcie kompaktowania albo zapisu nagłówka — stary albo nowy nagłówek, oba poprawne (test po każdym
   zapisie w `test_magazyn`). Format na dysku bez zmian.
 
+## Zapis w toku (0.8.1 krok 4, ADR 0034 — uzupełnienie)
+Treść podróżuje kawałkami po 1 MiB (`K1_DOK_KAWALEK`), więc pamięć usług nie rośnie z wielkością pliku (do 4 GiB).
+- **Zapis:** `DOK_NOWY` (e = 1) albo `DOK_ZAPISZ` (b = 1) z pierwszym pełnym kawałkiem otwiera **zapis w toku**
+  (`dok_zapis.c`): nowy plik dostaje numer od razu (nikt inny go nie weźmie), nowa treść — następną generację. Każdy
+  kawałek jest od razu obiektem skarbca; klient wysyła następny (`DOK_KAWALEK`) dopiero po `DOK_WYNIK` poprzedniego —
+  jeden kawałek w drodze. Wszystkie kawałki poza ostatnim mają dokładnie 1 MiB. `DOK_KONIEC` (a = 0) zapisuje wpis
+  (dla nowego pliku: wolna nazwa w chwili końca, numer w `DOK_WYNIK` c); a = 1 porzuca. Jeden zapis w toku na kanał
+  i na plik (drugi: `K1_DOK_BLAD_ZAPIS`, −29). Nieudany kawałek (np. brak miejsca), zamknięty kanał, plik w Koszu
+  przed końcem → zapis porzucony, jego kawałki usunięte, stara treść nietknięta. Przerwa prądu → kawałki bez wpisu
+  albo nowszej generacji usuwa start (`dok_wczytaj`, jak dotąd). Zapis całości w jednym komunikacie (e = 0) idzie
+  przez ten sam kod.
+- **Odczyt:** `DOK_CZYTAJ` (a = najwyżej tyle bajtów, b = od kawałka) → `DOK_TRESC` (a = wysłane, b = kawałek,
+  c, d = rozmiar pliku: niższe i wyższe 32 bity); za końcem pliku — `K1_MAG_ARG`. Jedna odpowiedź to najwyżej 16 MiB
+  (`K1_DEK_MAKS_BAJTY`): kawałek albo całe zdjęcie dla dekodera (memfd jak dotąd tworzy skarbiec — pamięć Plików
+  się nie zmienia).
+
 ## Pliki i foldery (0.8.0, ADR 0029)
 Wspólny właściciel `K1_WL_DOKUMENTY` (101) — nie aplikacja. Stałe foldery 1–6 (Pulpit, Dokumenty, Obrazy, Muzyka,
 Wideo, Pobrane) nie mają obiektów; wpisy użytkownika mają numery od 100:
 - `m<numer>` — **wpis** (176 B, `k1_dokument.h`): numer, folder nadrzędny, rodzaj (plik / folder), typ, pochodzenie,
   kto utworzył, generacja treści, rozmiar, czasy utworzenia, zmiany i wrzucenia do Kosza, nazwa (≤ 127 B UTF-8);
-- `t<numer>g<generacja>k<kawałek>` — **treść** po 1 MiB (plik ≤ 16 MiB). Zapis: kawałki nowej generacji → wpis →
-  usunięcie starych kawałków;
+- `t<numer>g<generacja>k<kawałek>` — **treść** po 1 MiB (plik ≤ 4 GiB = 4096 kawałków, od 0.8.1; do 0.8.0 16 MiB).
+  Zapis: kawałki nowej generacji → wpis → usunięcie starych kawałków;
 - `a<profil>` — numer folderu aplikacji (np. Dokumenty › Notatki, 0.8.1): folder znajduje się po numerze, także po
   zmianie nazwy albo przeniesieniu; gdy trafi do Kosza albo zniknie — nowy folder (i nowy numer);
 - `czas` — najpóźniejszy czas zegara, jaki skarbiec widział (0.8.1, zapis najwyżej raz na godzinę).
@@ -120,16 +136,18 @@ wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po 
 | Komunikat | Kierunek | Pola |
 |---|---|---|
 | `DOK_SPIS` | klient → | lista wpisów, które klient widzi (odpowiedź `DOK_LISTA`) |
-| `DOK_CZYTAJ` | klient → | obiekt = plik, a = najwyżej tyle bajtów (podgląd: 64 KiB) → `DOK_TRESC` |
-| `DOK_NOWY` | klient → | obiekt = folder, a = plik / folder, b = długość nazwy, c = długość treści, d = pochodzenie (0: K1; inne — tylko z prawem `P_POCHODZENIE`: Pliki, import z pendrive'a, ADR 0031); memfd: nazwa + treść |
-| `DOK_ZAPISZ` | klient → | obiekt = plik, a = długość; memfd: nowa treść (nowa generacja) |
+| `DOK_CZYTAJ` | klient → | obiekt = plik, a = najwyżej tyle bajtów (podgląd: 64 KiB; ≤ 16 MiB), b = od kawałka (0.8.1) → `DOK_TRESC` |
+| `DOK_NOWY` | klient → | obiekt = folder, a = plik / folder, b = długość nazwy, c = długość treści (≤ 1 MiB), d = pochodzenie (0: K1; inne — tylko z prawem `P_POCHODZENIE`: Pliki, import z pendrive'a, ADR 0031), e = 1 zapis w toku (0.8.1); memfd: nazwa + treść |
+| `DOK_ZAPISZ` | klient → | obiekt = plik, a = długość (≤ 1 MiB), b = 1 zapis w toku (0.8.1); memfd: nowa treść (nowa generacja) |
+| `DOK_KAWALEK` | klient → | następny kawałek zapisu w toku (0.8.1): a = długość 1…1 MiB; memfd → `DOK_WYNIK` |
+| `DOK_KONIEC` | klient → | a = 0 koniec zapisu w toku (wpis), 1 porzucenie → `DOK_WYNIK` (c = numer nowego pliku) |
 | `DOK_NAZWA` | klient → | obiekt = wpis, a = długość, b = 1: zajęta nazwa dostaje „ (2)” (0: odmowa); memfd: nowa nazwa |
 | `DOK_PRZENIES` | klient → | obiekt = wpis, a = folder docelowy (nie do siebie, nie za głęboko) |
 | `DOK_KOSZ`, `DOK_PRZYWROC`, `DOK_USUN` | klient → | obiekt = wpis (usuń: tylko z Kosza) |
 | `DOK_OPROZNIJ` | klient → | wszystko z Kosza na zawsze |
 | `DOK_LISTA` | → klient | a = długość, b = liczba wpisów; memfd: „K1D1”, liczba, w Koszu, wpisy |
-| `DOK_TRESC` | → klient | obiekt = plik, a = wysłane bajty, b = cały rozmiar; memfd |
-| `DOK_WYNIK` | → klient | obiekt, a = rodzaj prośby, b = wynik (0, `K1_MAG_*`, `K1_DOK_BLAD_*` od −20 do −28), c = numer nowego wpisu |
+| `DOK_TRESC` | → klient | obiekt = plik, a = wysłane bajty, b = kawałek, c, d = cały rozmiar (0.8.1: dwa pola, do 4 GiB); memfd |
+| `DOK_WYNIK` | → klient | obiekt, a = rodzaj prośby, b = wynik (0, `K1_MAG_*`, `K1_DOK_BLAD_*` od −20 do −29), c = numer nowego wpisu (`DOK_NOWY`, `DOK_KONIEC`) |
 | `DOK_ZMIANA` | → klient | pliki się zmieniły — do każdego klienta z prawem listy (odświeżają widok) |
 | `DOK_OTWORZ` | Pliki, pulpit → | obiekt = plik, a = aplikacja (nie Pliki), która otwiera jego typ → `DOK_WYNIK` |
 | `DOK_WYBIERZ` | aplikacja → | a = typ (0: każdy) — okno wyboru pliku; odpowiedź później: `DOK_WYBRANY` (błąd od razu: `DOK_WYNIK`) |
@@ -166,6 +184,12 @@ po 2 s bez próśb klientów; w logu czas i rozmiary („kompaktowanie (przy otw
 Do 65 536 obiektów; obiekty znajdowane przez indeks w pamięci (`k1_indeks`: właściciel i nazwa → miejsce), nie po
 kolei. Formatowanie: tylko gdy pierwszy MiB partycji to zera (inaczej „obce dane — nie nadpisuję”).
 
+## Czas otwarcia (0.8.1, RYZYKA R58)
+Otwarcie odczytuje i uwierzytelnia każdy żywy rekord (AEAD obejmuje nazwę i treść), więc trwa proporcjonalnie do
+ilości danych — po kompaktowaniu bez starych wersji (ADR 0034), ale z całą treścią plików. Klienci nie czekają:
+ekran po 1,5 s rusza z ustawieniami domyślnymi i stosuje zapisane, gdy przyjdzie odpowiedź. Indeks nazw (zmiana
+formatu) — `docs/PLAN-0.8.2.txt`, krok 1 (luka L25).
+
 ## Obsługa błędów
 Brak partycji, dwie partycje „K1-DANE”, obce dane, uszkodzony magazyn, magazyn z hasłem (do M5e) →
 dane tylko w pamięci, partycja nietknięta, wpis w logu. Awaria skarbca → nadzorca uruchamia go
@@ -184,7 +208,8 @@ od klientów i wpisy z dysku (`k1_dok_wpis_czytaj` — każde pole) oraz tabela 
 | `test_indeks` (host, 0.8.1): indeks 200 000 losowych operacji (dodaj, usuń, przenieś), także same kolizje | funkcjonalny |
 | `test-skarbiec.sh` (QEMU, 0.8.1): K1-DANE z dziennikiem 78 MiB — kompaktowanie przy otwarciu, drugi start bez; K1-DANE 64 MiB prawie pełna — „Nowy folder” odrzucony (−28), ustawienie się zapisuje, Pliki: „mało miejsca”; krok 3: ta sama pełna K1-DANE na pendrivie większym o 512 MiB → Informacje → „Użyj całego pendrive'a” → 64 → 576 MiB, obszar 31 → 287 MiB, import 16 zdjęć po 2,8 MB (16 z 16), ponowny start, tablica (sfdisk); tablica powiększona bez magazynu → dokończenie przy starcie | funkcjonalny + negatywny |
 | `fuzz_magazyn` (libFuzzer): surowy obraz, zmiany bajtów, nagłówki z poprawnym MAC | fuzzing |
-| `test_komunikat`: komunikaty `SKARB_*` (zakresy, kierunki, deskryptory; 0.8.1: `SKARB_MIEJSCE`, `SKARB_POWIEKSZ`, `POWIEKSZ_DANE`, `POWIEKSZONO`, zapas w `SKARB_KLIENT`) | negatywny |
+| `test_dokumenty` (0.8.1 krok 4): zapis w toku przez prawdziwy kanał — plik 2 MiB + 12 345 B w trzech kawałkach, odczyt kawałkami, kawałek po krótkim (zapis porzucony), koniec bez zapisu, odczyt za końcem, nowa treść kawałkami przerwana Koszem, porzucenie przez klienta i zamknięty kanał, dwa zapisy na kanale i na pliku, przerwa prądu (kawałki usunięte przy starcie), 4096 kawałków i ani jednego więcej | funkcjonalny + negatywny |
+| `test_komunikat`: komunikaty `SKARB_*` (zakresy, kierunki, deskryptory; 0.8.1 krok 4: `DOK_KAWALEK`, `DOK_KONIEC`, rozmiary do 4 GiB w dwóch polach, kawałki w `DOK_CZYTAJ`/`DOK_TRESC`/`PEN_*`; krok 3: `SKARB_MIEJSCE`, `SKARB_POWIEKSZ`, `POWIEKSZ_DANE`, `POWIEKSZONO`, zapas w `SKARB_KLIENT`) | negatywny |
 | w systemie: klatka (UID, tylko partycja „K1-DANE”), próba w klatce `skarbiec`, dysk trzyma tylko skarbiec | funkcjonalny + negatywny |
 | `test-m4.sh`: tapeta, motyw, rozdzielczość i notatka wracają po wyłączeniu i ponownym starcie z tym samym dyskiem; na dysku brak jawnego tekstu | funkcjonalny |
 | `test_dokumenty` (host, 0.8.0): nazwy (złe znaki, UTF-8, odwrócony tekst), typy z zawartości, wpis i lista (każde pole poza zakresem), plik w trzech kawałkach, nowa treść bez starych kawałków, przerwany zapis, foldery (unikalne nazwy, „(2)”, do siebie, za głęboko), Kosz (przywracanie, 30 dni, cofnięty zegar, opróżnianie), uszkodzone wpisy i kawałki przy otwarciu; prawa przez prawdziwy kanał: Pliki, pulpit (tylko Pulpit, bez treści), inni — nic; zły memfd | funkcjonalny + negatywny |

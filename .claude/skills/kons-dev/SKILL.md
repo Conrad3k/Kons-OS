@@ -77,7 +77,7 @@ TPM 1.2), jedno konto na komputer. X230 to maszyna testowa — szybka grafika i 
 | `src/ekran/`, `src/grafika/` | `system/ekran` | DRM/KMS, składanie okien, kursor, tapety, znak K1 |
 | `src/gui/` | `system/gui` | pulpit w modułach (`gui.h`): warstwa ikon, paski, menu Start, menu kontekstowe, rozmieszczenie w skarbcu (fd 6) |
 | `src/logowanie/` | `system/logowanie` | ekran hasła przy starcie |
-| `src/skarbiec/` | `system/skarbiec` | `magazyn.c` format i szyfrowanie, `main.c` usługa, `obiekty.c`, `haslo.c`, `dokumenty.c` + `dok_*.c` pliki, foldery, Kosz, naprawa przy starcie, granica czasu, prawa (0.8.0–0.8.1, `dok_wew.h`); limity, indeks, kompaktowanie, rezerwa — ADR 0034 |
+| `src/skarbiec/` | `system/skarbiec` | `magazyn.c` format i szyfrowanie, `main.c` usługa, `obiekty.c`, `haslo.c`, `dokumenty.c` + `dok_*.c` pliki, foldery, Kosz, naprawa przy starcie, granica czasu, prawa, zapis w toku kawałkami (0.8.0–0.8.1, `dok_wew.h`); limity, indeks, kompaktowanie, rezerwa, kawałki — ADR 0034; `miejsce.c` miejsce na pliki i powiększenie K1-DANE (ADR 0033) |
 | `src/instalator/` | `system/instalator` | zapis K1 na dysk (GPT), tylko urządzenia od nadzorcy |
 | `src/czytnik/` | `system/czytnik` | pendrive dla Plików: FAT w klatce, tylko odczyt (0.8.0, ADR 0031); nadzorca `pendrive.c` |
 | `src/dekoder/` | `system/dekoder` | jeden obraz PNG/JPEG → piksele, jednorazowy proces w klatce (Wuffs; 0.8.0, ADR 0032); nadzorca `dekoder.c`, Pliki `obrazy.c`, ekran `zdjecie.c` (tapeta) |
@@ -224,8 +224,9 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 **Kolejność** (ADR 0019, 0020, 0026; szczegóły i stan w `DO_ZROBIENIA.txt`):
 ~~0.7.5 Pulpit~~ (ADR 0028) → ~~0.8.0 Pliki~~ (gotowe: dokumenty w skarbcu, Pliki, Kosz, okno wyboru pliku, import
 z pendrive'a czytnikiem FAT w klatce, dekoder PNG/JPEG w jednorazowym procesie, tapeta ze zdjęcia, K1-DANE do końca
-pendrive'a; ADR 0029–0033) → **0.8.1 dopracowanie Plików** (10 kroków, jeden na czat: `docs/PLAN-0.8.1.txt` — luki,
-kroki, stan, decyzje właściciela) → **M7 Sieć** (kabel e1000e + DHCP + czas, potem Wi-Fi; test: nic nie nasłuchuje) → **M8 Strefy**
+pendrive'a; ADR 0029–0033) → ~~0.8.1 dopracowanie Plików~~ (`docs/PLAN-0.8.1.txt`: kroki 1–4, luki L1–L25) → **0.8.2**
+(7 kroków, jeden na czat: `docs/PLAN-0.8.2.txt` — stan, decyzje właściciela; krok 1: szybki start przy dużych
+danych, ADR 0035) → **M7 Sieć** (kabel e1000e + DHCP + czas, potem Wi-Fi; test: nic nie nasłuchuje) → **M8 Strefy**
 (mikro-VM na obcą aplikację, ramka w kolorze strefy, stała/jednorazowa, pełna izolacja/szybka grafika,
 wspólna strefa — ADR 0024; najpierw przeglądarka, potem Przeglądarka K1 — ADR 0025) → **M9 Pliki ze stref**
 („Do K1”, „Wyślij do…”, schowek, zapis z powrotem — ADR 0027) → M10 (recovery, TPM) → M12 audyt.

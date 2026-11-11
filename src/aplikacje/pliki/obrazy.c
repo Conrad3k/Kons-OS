@@ -38,7 +38,7 @@ const char *tapeta_stan; /* a message for the footer about the wallpaper (NULL: 
 
 int obraz_pliku(const struct k1_dok_wpis *w)
 {
-    return w != NULL && !tu.pendrive && w->rodzaj == K1_DOK_PLIK && w->rozmiar > 0 &&
+    return w != NULL && !tu.pendrive && w->rodzaj == K1_DOK_PLIK && w->rozmiar > 0 && w->rozmiar <= K1_DEK_MAKS_BAJTY &&
            (w->typ == K1_TYP_PNG || w->typ == K1_TYP_JPEG);
 }
 
@@ -52,7 +52,7 @@ static void zacznij(void)
     if (w == NULL || w->generacja != robi.gen)
         return;
     etap = E_TRESC;
-    do_skarbca(K1_KOM_DOK_CZYTAJ, robi.id, (int32_t)K1_DOK_MAKS_BAJTY);
+    do_skarbca(K1_KOM_DOK_CZYTAJ, robi.id, (int32_t)K1_DEK_MAKS_BAJTY); /* the whole picture in one answer (≤ 16 MiB) */
 }
 
 static void skoncz(void)
@@ -95,7 +95,7 @@ int obraz_tresc(const struct k1_komunikat *k, int fd)
     struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_DEKODER, 0, 0, 0, 0, 0, 0);
     if (etap != E_TRESC || k->obiekt != robi.id || fd < 0)
         return 0;
-    if (k->a != k->b || k->a <= 0 || (tresc = fcntl(fd, F_DUPFD_CLOEXEC, 0)) < 0) {
+    if (k->b != 0 || (uint64_t)k->a != k1_kom_u64(k->c, k->d) || k->a <= 0 || (tresc = fcntl(fd, F_DUPFD_CLOEXEC, 0)) < 0) {
         skoncz();
         return 1;
     }

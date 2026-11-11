@@ -8,6 +8,7 @@
 
 #define K1_DEK_MAKS_W 2560             /* the largest picture dekoder gives (the wallpaper photo) */
 #define K1_DEK_MAKS_H 1600
+#define K1_DEK_MAKS_BAJTY (16u << 20)  /* the file dekoder takes (whole, in one memfd; Pliki gather it piece by piece) */
 #define K1_DEK_MAKS_PIKSELI (24u << 20) /* a photo larger than this (in the file) is not decoded: 6000 × 4000 fits */
 
 /* Results of dekoder (K1_KOM_DEK_BLAD a) */
