@@ -3,6 +3,50 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.8.1] — 2026-11-11
+
+**Pliki — dopracowanie, część 1** (`docs/PLAN-0.8.1.txt`, kroki 1–4; decyzja właściciela D9: wydanie teraz, kroki 5–10
+jako 0.8.2). Najważniejsze dla danych: nic nie ginie, mieści się dużo więcej, widać, ile miejsca zostało, a stary
+pendrive można powiększyć bez utraty danych.
+
+### Dodane
+- **Ustawienia → Informacje: miejsce na pliki** (krok 3) — „zajęte X z Y” z paskiem i „Pliki i foldery: n z 16 384”;
+  bez K1-DANE: ile zostało w pamięci do wyłączenia.
+- **„Użyj całego pendrive'a na dane”** (krok 3, ADR 0033) — pendrive nagrany wersją 0.5.6–0.7.6 (ok. 30 MB na pliki)
+  powiększa się jednym kliknięciem w Informacjach; pliki, notatki i ustawienia zostają na miejscu, przerwa prądu w
+  trakcie niczego nie psuje (start dokańcza powiększenie).
+- **Pliki do 4 GB** (krok 4, ADR 0034) — np. filmy z pendrive'a; plik idzie kawałkami po 1 MB, więc K1 nie potrzebuje
+  na to więcej pamięci. Przy dużym pliku stopka pokazuje postęp („120 z 300 MB”); wyjęty w trakcie pendrive nie zostawia
+  śmieci.
+- Pliki mówią w stopce „Mało miejsca na pliki”, gdy zostało mniej niż 10 %.
+
+### Zmienione
+- **Dużo więcej plików** (krok 2, ADR 0034): do 16 384 plików i folderów (było 1024) i ok. 64 GB plików na dużym
+  dysku (było ok. 4 GB).
+- **Start nie zwalnia z czasem**: skarbiec porządkuje dziennik (kompaktowanie) przy starcie i w wolnej chwili, zanim
+  urośnie.
+- **Pełny dysk nie blokuje systemu**: pliki nie zajmą ostatnich 8 MB (albo 2 %) — ustawienia, pulpit, tapeta i historia
+  baterii zapisują się dalej („Brak miejsca na pliki”).
+- Notatki pokazują do 256 najnowszych notatek (było 64); aplikacja dostaje najwyżej 64 pliki naraz — 65. z komunikatem.
+- Plik większy niż 16 MB z pendrive'a nie jest już pomijany; podgląd zdjęcia — dalej do 16 MB.
+
+### Naprawione
+- **Uszkodzony wpis pliku kasował plik przy starcie** (krok 1) — teraz skarbiec go naprawia („Odzyskany plik 123”,
+  złe znaki nazwy → „_”), a treść zostaje cała; tak samo przy złej generacji treści.
+- **Zły zegar komputera opróżniał Kosz** (słaba bateria zegara: rok 2000) albo blokował go na lata — Kosz nic nie usuwa,
+  gdy zegar jest wcześniejszy niż czas zbudowania wersji albo najpóźniejszy widziany; daty plików się nie cofają.
+- **Notatki mogły zgubić tekst**: notatka nie do odczytu jest tylko do odczytu (nie nadpisze oryginału pustą), a gdy
+  jej plik trafi do Kosza w trakcie pisania, tekst zapisuje się jako kopia.
+- Folder „Notatki” mnożył się („Notatki (2)”, „(3)”) — K1 pamięta go po numerze.
+- Przywrócony plik, którego folder jest w Koszu, ląduje w Dokumentach — Pliki teraz to mówią.
+
+### Testy
+- Host: `test_dokumenty` (naprawa wpisów, zegar, 16 384 wpisy, rezerwa, zapis w toku i jego przerwania), nowe
+  `test_notatki`, `test_indeks`; `test_magazyn` (65 536 obiektów, długi dziennik, kompaktowanie, **powiększenie z przerwą
+  prądu po każdym zapisie**), `test_komunikat`, `test_fat` (odczyt od miejsca); fuzzing `fuzz_dokument`, `fuzz_fat`.
+- QEMU: nowy `test-skarbiec.sh` (długi dziennik, pełna K1-DANE, powiększenie pełnego pendrive'a przyciskiem i import
+  16 zdjęć 16/16, dokończenie przerwanego powiększenia); `test-pendrive.sh` (plik 17 MB i film 300 MB z pendrive'a).
+
 ## [0.8.0] — 2026-11-10
 
 **Pliki** — wspólne pliki i foldery w zaszyfrowanym skarbcu, jak w Windows; zdjęcia z pendrive'a, ich podgląd i tapeta

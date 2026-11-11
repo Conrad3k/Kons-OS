@@ -1,13 +1,14 @@
 K1 — CO ZOSTAŁO DO ZROBIENIA
 =============================
 
-Stan: wersja 0.8.0 (Pliki) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
+Stan: wersja 0.8.1 (Pliki — dopracowanie, kroki 1–4) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
 M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
 M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby), M5 (dyski, USB, zaszyfrowane
 dane, hasło, instalator), 0.6.0 Fundament, M6 (bezpieczne aktualizacje: podpisy, dm-verity, A/B,
 Secure Boot), 0.7.5 Pulpit (ikony, menu pod prawym przyciskiem, przypinanie), 0.8.0 Pliki (foldery, Kosz, zdjęcia
-z pendrive'a, podgląd, tapeta ze zdjęcia); dalej M7 Sieć (plan: ADR 0019, 0020, 0026).
-Data: 2026-11-10. Plik aktualizujemy po każdym etapie.
+z pendrive'a, podgląd, tapeta ze zdjęcia), 0.8.1 (dane nie giną, więcej plików, miejsce w Informacjach, cały
+pendrive na dane, pliki do 4 GB); dalej 0.8.2 (kroki 5–10 planu 0.8.1), potem M7 Sieć (plan: ADR 0019, 0020, 0026).
+Data: 2026-11-11. Plik aktualizujemy po każdym etapie.
 Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
 
 Oznaczenia:
@@ -265,7 +266,8 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
     [ ] exFAT na pendrive'ach (duże pendrive'y i karty SD > 32 GB) — ten sam model co FAT, gdy będzie potrzebny
     [x] powiększenie K1-DANE z danymi (pendrive zapisany starszą wersją) — 0.8.1 krok 3: przycisk w Informacjach
 
-0.8.1 Pliki — dopracowanie (przed M7) — PLAN: docs/PLAN-0.8.1.txt
+0.8.1 / 0.8.2 Pliki — dopracowanie (przed M7) — PLAN: docs/PLAN-0.8.1.txt
+    Decyzja D9 (2026-11-11): kroki 1–4 wydane jako 0.8.1, kroki 5–10 będą wydaniem 0.8.2.
     Przegląd 0.8.0 z jednorazowymi testami (luki L1–L24) i 10 kroków — każdy w nowym czacie, jeden PR. Stan kroków,
     zależności i Twoje decyzje (D1–D9) są tylko w planie (punkty 4 i 6), żeby nie pilnować dwóch list. Kroki:
     1 dane nie mogą zginąć · 2 skarbiec: więcej plików, szybki start · 3 miejsce, cały pendrive · 4 duże pliki ·
