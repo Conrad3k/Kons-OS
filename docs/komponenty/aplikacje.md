@@ -59,7 +59,11 @@ od nadzorcy jako zapieczętowany memfd `BATERIA_ARCH`; bez baterii — napis), H
 przez skarbiec — fd 5), Mysz (prędkość),
 Data i czas (sekundy na pasku), Aplikacje (0.8.0, `aplikacje.c`: domyślna aplikacja dla typu pliku, który otwiera
 więcej niż jedna — dziś „Dokument tekstowy”: Notatki albo Pliki (podgląd); ustawienie ekranu
-`K1_UST_OTWIERANIE` + typ, zapisane w skarbcu), Informacje (wersja, ekran, jądro, gdzie są dane).
+`K1_UST_OTWIERANIE` + typ, zapisane w skarbcu), Informacje (`informacje.c`: wersja, ekran, jądro, gdzie są dane; od
+0.8.1 — `SKARB_MIEJSCE` od skarbca — „Miejsce na pliki: zajęte X z Y” z paskiem, „Pliki i foldery: n z 16 384”, bez
+K1-DANE „w pamięci do wyłączenia: zostało X”; na pendrivie K1 z wolnym miejscem za K1-DANE przycisk **„Użyj całego
+pendrive'a na dane”** — kliknięcie = zgoda, `SKARB_POWIEKSZ`, w trakcie „Powiększam… Nie wyjmuj pendrive'a.”, potem
+„Gotowe — cały pendrive jest teraz na dane.”; ADR 0033, `komponenty/skarbiec.md`).
 
 ### Instalator
 (0.5.9, ADR 0018, `src/aplikacje/instalacja/`, UID 204) — lista dysków od nadzorcy,
@@ -90,7 +94,8 @@ stałe foldery (Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane) i Kosz (pełn
 „w górę” i ścieżka („Dokumenty › Projekt”); przyciski miejsca: „Nowy folder” (od razu zmiana nazwy, jak
 w Windows), „Zmień nazwę”, „Usuń” (do Kosza); w Koszu: „Przywróć”, „Usuń na zawsze”, „Opróżnij Kosz” (oba
 ostatnie z pytaniem w stopce). Przywrócony plik, którego folder jest w Koszu (albo już nie istnieje), trafia do
-Dokumentów — stopka to mówi („Folder „Projekt” jest w Koszu — przywrócono do Dokumentów.”, 0.8.1). Lista: najpierw foldery, potem pliki po nazwie; kolumny nazwa, data zmiany
+Dokumentów — stopka to mówi („Folder „Projekt” jest w Koszu — przywrócono do Dokumentów.”, 0.8.1). Gdy zostało mniej
+niż 10 % miejsca na pliki, stopka mówi „Mało miejsca na pliki: zostało X z Y” (`SKARB_MIEJSCE` po każdej liście, 0.8.1). Lista: najpierw foldery, potem pliki po nazwie; kolumny nazwa, data zmiany
 (w Koszu: usunięcia), rozmiar; podwójne kliknięcie (i Enter) otwiera folder, a plik — w domyślnej aplikacji
 jego typu (Ustawienia → Aplikacje; Pliki — tylko podgląd); **„Otwórz w…”** (0.8.0, ADR 0030) zamienia przyciski
 na aplikacje, które otwierają ten typ (`K1_OTWIERANIE`) — wybrana dostaje ten jeden plik (`DOK_OTWORZ`). Z prawej podgląd zaznaczonego: ikona,

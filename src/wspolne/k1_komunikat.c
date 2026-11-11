@@ -101,7 +101,10 @@ static int sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierun
     case K1_KOM_SKARB_KLIENT:
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 &&
                (w(k->a, 1, K1_PROFIL_MAKS) || k->a == K1_WL_SYSTEM) && w(k->b, 0, 65535) && w(k->c, 0, 1) &&
-               zera(k, 3);
+               w(k->d, 0, k->c ? K1_PAMIEC_MAKS_MIB : 0) && k->e == 0;
+    case K1_KOM_POWIEKSZONO:
+        return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && (k->a == 0 || k->a == K1_SKARB_ARG || k->a == K1_SKARB_IO) &&
+               zera(k, 1);
     case K1_KOM_INST_ZADANIE:
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && w(k->a, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ) &&
                (k->b == 512 || k->b == 4096) && zera(k, 2);
@@ -156,7 +159,13 @@ static int sprawdz_skarb(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
     case K1_KOM_SKARB_HASLO:
         return kier == K1_KIER_DO_SKARBCA && k->obiekt == 1 && w(k->a, 2, 2 * K1_HASLO_MAKS + 2) && zera(k, 1);
     case K1_KOM_SKARB_INFO:
+    case K1_KOM_SKARB_POWIEKSZ:
         return kier == K1_KIER_DO_SKARBCA && k->obiekt == 1 && zera(k, 0);
+    case K1_KOM_POWIEKSZ_DANE:
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && zera(k, 0);
+    case K1_KOM_SKARB_MIEJSCE:
+        return kier == K1_KIER_OD_SKARBCA && k->obiekt == 1 && w(k->b, 0, K1_PAMIEC_MAKS_MIB) && w(k->a, 0, k->b) &&
+               w(k->c, 0, K1_DOK_MAKS) && w(k->d, 0, K1_PAMIEC_MAKS_MIB) && k->e == 0;
     case K1_KOM_SKARB_STAN:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_SKARB_TRWALY, K1_SKARB_ZABLOKOWANY) &&
                w(k->b, 0, 1) && zera(k, 2);
@@ -168,7 +177,8 @@ static int sprawdz_skarb(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
                zera(k, 1);
     case K1_KOM_SKARB_WYNIK:
         return kier == K1_KIER_OD_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS &&
-               w(k->a, K1_KOM_SKARB_CZYTAJ, K1_KOM_SKARB_INFO) && w(k->b, K1_MAG_WYNIK_MIN, 0) &&
+               (w(k->a, K1_KOM_SKARB_CZYTAJ, K1_KOM_SKARB_INFO) || k->a == K1_KOM_SKARB_POWIEKSZ) &&
+               w(k->b, K1_MAG_WYNIK_MIN, 0) &&
                w(k->c, K1_SKARB_TRWALY, K1_SKARB_ZABLOKOWANY) && w(k->d, 0, 3) && w(k->e, 0, K1_HASLO_PRZERWA);
     default:
         return 0;

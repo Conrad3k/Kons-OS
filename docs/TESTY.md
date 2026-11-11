@@ -349,8 +349,13 @@ Obraz produkcyjny, dysk danych przygotowany na hoście kodem skarbca (`testy/hos
 |---|---|
 | dziennik | K1-DANE 190 MiB, jeden obiekt zapisany 20 000 razy (78 MiB starych wersji) → „kompaktowanie (przy otwarciu): dziennik 78 → 0 MiB”, pulpit startuje |
 | dziennik-ponownie | ten sam dysk: magazyn otwarty, bez kompaktowania (dziennik już krótki) |
-| pełny | K1-DANE 64 MiB (jak pendrive'y 0.5.6–0.7.6), 6 MiB wolne → Pliki: „Nowy folder” odrzucony (−28, brak miejsca na pliki); Ustawienia → Aplikacje: ustawienie zapisane (rezerwa dla systemu) |
+| pełny | K1-DANE 64 MiB (jak pendrive'y 0.5.6–0.7.6), 6 MiB wolne → Pliki: „Nowy folder” odrzucony (−28, brak miejsca na pliki), stopka „mało miejsca” (0.8.1 krok 3); Ustawienia → Aplikacje: ustawienie zapisane (rezerwa dla systemu) |
+| powiększenie (krok 3, ADR 0033) | ta sama pełna K1-DANE na wirtualnym pendrivie USB o 512 MiB większym (obraz „nagrany” na większy pendrive) + drugi pendrive FAT32 z 16 zdjęciami po ok. 2,8 MB (Pillow, szum) → Ustawienia → Informacje: zajęte 23 z 23 MiB, pendrive ma 512 MiB więcej, przycisk → klik: nowa tablica (64 → 576 MiB), magazyn: obszar 31 → 287 MiB, Informacje: 279 MiB, bez przycisku → Pliki → Pendrive → DCIM › 100K1 → „Importuj wszystkie”: 16 z 16 (próba T6 planu: przed — 11 z 16 na dysku 64 MiB) |
+| powiększenie-ponownie | ten sam pendrive: magazyn otwarty, nic już nie rośnie; potem `sfdisk -d`: K1-DANE od 1 MiB do ostatniego pełnego MiB |
+| dokończenie | tablica powiększona przez `sfdisk`, magazyn nie (przerwa prądu między tablicą a nagłówkiem) → skarbiec przy starcie: „magazyn powiększony do całej partycji K1-DANE (dokończenie po starcie)” |
 
-Na hoście: `test_indeks`, `test_magazyn` (65 536 obiektów, długi dziennik, kompaktowanie, awarie), `test_dokumenty`
-(16 384 wpisy, duże drzewo, rezerwa), `fuzz_magazyn`, `fuzz_dokument`.
+Na hoście: `test_indeks`, `test_magazyn` (65 536 obiektów, długi dziennik, kompaktowanie, awarie; krok 3: powiększenie
+z obszarem 0 i 1, przerwa prądu po każdym zapisie), `test_dokumenty` (16 384 wpisy, duże drzewo, rezerwa; krok 3:
+`SKARB_MIEJSCE` bez K1-DANE, odmowa powiększenia bez magazynu), `test_komunikat` (nowe komunikaty), `fuzz_magazyn`,
+`fuzz_dokument`.
 

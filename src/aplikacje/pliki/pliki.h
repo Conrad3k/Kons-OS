@@ -107,6 +107,8 @@ void przywroc(uint32_t id);        /* from Kosz (its folder in Kosz: Dokumenty, 
 void zmien_nazwe(uint32_t id, const char *t, size_t dl);
 void podglad_zadaj(uint32_t id);   /* the start of a text file for the preview */
 extern char podglad[K1_DOK_PODGLAD + 1];
+extern int32_t miejsce_zajete, miejsce_calosc; /* the room for files, MiB (0.8.1 step 3) */
+int malo_miejsca(void);            /* under a tenth of it left: the footer says so */
 extern uint32_t podglad_id, podglad_dl;
 
 /* pendrive.c */

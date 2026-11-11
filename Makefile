@@ -242,7 +242,7 @@ $(OBJ)/test_rozmieszczenie: testy/host/test_rozmieszczenie.c src/gui/rozmieszcze
 # 0.8.0: the user's files — names, types, the entry layout, folders, Kosz, the rights of the channel; a fixed build time
 # (2026-11-18) so that the tests' clock (2027) stays after it whenever they run
 CZAS_TESTU := 1795000000
-DOK_TEST := src/skarbiec/dokumenty.c $(wildcard src/skarbiec/dok_*.c) src/skarbiec/dostep.c src/skarbiec/obiekty.c $(MAGAZYN) src/wspolne/k1_dokument.c \
+DOK_TEST := src/skarbiec/dokumenty.c $(wildcard src/skarbiec/dok_*.c) src/skarbiec/dostep.c src/skarbiec/obiekty.c src/skarbiec/miejsce.c $(MAGAZYN) src/wspolne/k1_dokument.c \
             src/wspolne/k1_log.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_memfd.c src/wspolne/k1_uslugi.c
 $(OBJ)/test_dokumenty: testy/host/test_dokumenty.c $(DOK_TEST) $(wildcard src/skarbiec/*.h) $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -DK1_CZAS_BUDOWY=$(CZAS_TESTU) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ \

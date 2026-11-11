@@ -104,6 +104,11 @@ static int sprawdz_nazwe(const char *nazwa, size_t nl, char out[K1_DOK_NAZWA])
     return 0;
 }
 
+int dok_ile(void)
+{
+    return n_wpisow;
+}
+
 #define REZERWA_MIN (8u << 20)
 
 /* What files leave for the system (0.8.1, plan L6): 8 MiB, or 2 % of the vault when more — but at most a quarter of

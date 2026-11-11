@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M5c na hoście, M5d w QEMU: dysk SATA i pendrive przez UEFI; 0.5.8: pendrive podłączony po starcie; 0.8.0: pliki i foldery — host i QEMU) |
-| **Pliki** | `src/skarbiec/` w modułach (0.8.0, `skarbiec.h`): `main.c` (pętla, kanały, obiekty aplikacji), `obiekty.c` (obiekty według właściciela i nazwy: magazyn albo pamięć), `haslo.c` (odblokowanie, zmiana hasła, limit prób), `dokumenty.c` + `dok_drzewo.c`, `dok_kosz.c`, `dok_wczytaj.c` (pliki, foldery, Kosz; wspólne: `dok_wew.h`), `dok_kanal.c` (komunikaty `DOK_*`, tabela praw); format: `magazyn.{c,h}` (rekordy, indeks), `naglowek.c` (nagłówek i owinięty klucz; `magazyn_wew.h`), `src/zewnetrzne/monocypher/`; wspólne: `src/wspolne/k1_memfd.*`, `k1_skarb_klient.*` (strona klienta), `k1_dokument.*` (wpis pliku, typy, foldery) |
-| **Decyzje** | ADR 0015 (format, szyfrowanie), ADR 0016 (obraz USB), ADR 0013 (partycja „K1-DANE”), ADR 0029 (pliki, foldery, Kosz), ADR 0034 (duże dane: indeks, limity, kompaktowanie, rezerwa) |
+| **Pliki** | `src/skarbiec/` w modułach (0.8.0, `skarbiec.h`): `main.c` (pętla, kanały, obiekty aplikacji), `obiekty.c` (obiekty według właściciela i nazwy: magazyn albo pamięć), `haslo.c` (odblokowanie, zmiana hasła, limit prób), `dokumenty.c` + `dok_drzewo.c`, `dok_kosz.c`, `dok_wczytaj.c` (pliki, foldery, Kosz; wspólne: `dok_wew.h`), `dok_kanal.c` (komunikaty `DOK_*`, tabela praw), `miejsce.c` (miejsce na pliki, powiększenie K1-DANE — 0.8.1); format: `magazyn.{c,h}` (rekordy, indeks), `naglowek.c` (nagłówek i owinięty klucz; `magazyn_wew.h`), `src/zewnetrzne/monocypher/`; wspólne: `src/wspolne/k1_memfd.*`, `k1_skarb_klient.*` (strona klienta), `k1_dokument.*` (wpis pliku, typy, foldery) |
+| **Decyzje** | ADR 0015 (format, szyfrowanie), ADR 0016 (obraz USB), ADR 0013 (partycja „K1-DANE”), ADR 0029 (pliki, foldery, Kosz), ADR 0034 (duże dane: indeks, limity, kompaktowanie, rezerwa), ADR 0033 (K1-DANE do końca pendrive'a, od 0.8.1 także z danymi) |
 
 ## Cel
 Trwałe, zaszyfrowane dane użytkownika: ustawienia (ekran), notatki (Notatki), historia baterii, rozmieszczenie
@@ -24,7 +24,7 @@ innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
 `block/fops.c`). Bez partycji obiekty w pamięci: do 65 536, razem do 128 MiB.
 
 ## Wejścia i wyjścia
-- fd 3: kanał sterujący od nadzorcy — `SKARB_KLIENT(właściciel, uid, na_usb)` + koniec kanału klienta (0.6.3: `na_usb` wraca do klientów w `SKARB_WYNIK` d, bit 1).
+- fd 3: kanał sterujący od nadzorcy — `SKARB_KLIENT(właściciel, uid, na_usb, zapas)` + koniec kanału klienta (0.6.3: `na_usb` wraca do klientów w `SKARB_WYNIK` d, bit 1; 0.8.1: d = ile MiB pendrive ma jeszcze za K1-DANE) i `POWIEKSZONO` (wynik powiększenia, niżej).
 - fd 4: partycja GPT „K1-DANE” (otwarta przez nadzorcę `O_RDWR|O_EXCL`); brak → tryb „tylko w pamięci”.
 - Kanały klientów: `SKARB_CZYTAJ`, `SKARB_ZAPISZ` (+ zapieczętowany memfd o podanym rozmiarze),
   `SKARB_USUN` → `SKARB_DANE` (+ memfd) albo `SKARB_WYNIK` (wynik, tryb: dysk / pamięć).
@@ -37,6 +37,28 @@ innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
   od każdego; limit prób (od trzeciej złej: 5 s … 5 min) liczy skarbiec. Zablokowany: odczyt/zapis
   obiektów → błąd „złe hasło”.
 - Log: utworzenie/otwarcie magazynu, klienci, zapisy (numer obiektu i rozmiar — nigdy treść).
+
+## Miejsce na pliki i cały pendrive na dane (0.8.1 krok 3, ADR 0033)
+- `SKARB_MIEJSCE` (skarbiec → klient, obiekt 1; po `WYNIK` na `SKARB_INFO` i `SKARB_POWIEKSZ` oraz po każdej `DOK_LISTA`):
+  a = zajęte MiB (0…b), b = MiB na pliki, c = pliki i foldery razem z Koszem (0…16 384), d = ile MiB pendrive ma jeszcze
+  za K1-DANE (0, gdy nie pendrive albo < 16 MiB), e = 0. **Miejsce na pliki** = obszar magazynu (połowa partycji — druga
+  połowa jest na kompaktowanie, świadomie, ADR 0015) bez rezerwy dla systemu; bez K1-DANE — pamięć (128 MiB) bez rezerwy.
+  Zajęte = żywe obiekty (z ustawieniami); gdy system sięgnął do swojej rezerwy, zajęte = całość. Ustawienia → Informacje
+  pokazują „Miejsce na pliki: zajęte X z Y” z paskiem i „Pliki i foldery: n z 16 384” (bez K1-DANE: „w pamięci do
+  wyłączenia: zostało X”), Pliki — stopkę „Mało miejsca na pliki”, gdy zostało < 10 %.
+- **Powiększenie z danymi** (decyzja właściciela D4: przycisk, kliknięcie = zgoda, nigdy samo przy starcie): Ustawienia
+  → `SKARB_POWIEKSZ` (tylko właściciel Ustawienia, magazyn otwarty, d ≥ 16) → skarbiec do nadzorcy `POWIEKSZ_DANE`
+  (kanał sterujący) → nadzorca pisze nową tablicę GPT i `BLKPG_RESIZE_PARTITION` (jak dla pustej K1-DANE, `powieksz.c`)
+  → `POWIEKSZONO` (a = 0, `K1_SKARB_ARG`: nie da się, `K1_SKARB_IO`: błąd zapisu) → skarbiec czyta nowy rozmiar
+  partycji (`lseek` na swoim fd — jądro zmienia rozmiar otwartej partycji, `block/partitions/core.c`) i
+  `k1_mag_powieksz`: obszar 0 zostaje na miejscu i rośnie (AD rekordu ma numer obszaru i blok względny — nic się nie
+  przesuwa); gdy aktywny jest obszar 1, najpierw kompaktowanie do obszaru 0; potem nagłówek z nową liczbą bloków (oba
+  sloty). → `WYNIK` (a = `SKARB_POWIEKSZ`) i `MIEJSCE` do Ustawień, `DOK_ZMIANA` do klientów (Pliki odświeżają stopkę).
+- **Przerwa prądu w każdym miejscu zostawia działający magazyn:** przed nową tablicą — wszystko po staremu; po tablicy,
+  przed nagłówkiem — magazyn starego rozmiaru na większej partycji (poprawny); przy starcie skarbiec widzi partycję
+  większą od magazynu i **kończy powiększenie** („magazyn powiększony do całej partycji K1-DANE (dokończenie po
+  starcie)”); w trakcie kompaktowania albo zapisu nagłówka — stary albo nowy nagłówek, oba poprawne (test po każdym
+  zapisie w `test_magazyn`). Format na dysku bez zmian.
 
 ## Pliki i foldery (0.8.0, ADR 0029)
 Wspólny właściciel `K1_WL_DOKUMENTY` (101) — nie aplikacja. Stałe foldery 1–6 (Pulpit, Dokumenty, Obrazy, Muzyka,
@@ -115,6 +137,10 @@ wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po 
 | `DOK_WYBRANY` | → aplikacja | obiekt = plik, którego może teraz używać (0: anulowano) |
 | `DOK_PROSBA` | → Wybór pliku | a = aplikacja, która prosi, b = typ (0: każdy) |
 | `SKARB_URUCHOM` | → nadzorca | kanał sterujący: obiekt = plik (0: bez), a = aplikacja do uruchomienia (z plikiem: jej fd 5) |
+| `SKARB_MIEJSCE` | → klient | miejsce na pliki (0.8.1, wyżej): a = zajęte MiB, b = na pliki MiB, c = wpisy, d = MiB pendrive'a za K1-DANE |
+| `SKARB_POWIEKSZ` | Ustawienia → | „Użyj całego pendrive'a na dane” (gest użytkownika) → `SKARB_WYNIK` + `SKARB_MIEJSCE` |
+| `POWIEKSZ_DANE` | → nadzorca | kanał sterujący: powiększ K1-DANE do końca pendrive'a (magazyn otwarty, prośba z Ustawień) |
+| `POWIEKSZONO` | nadzorca → | kanał sterujący: a = 0 albo `K1_SKARB_ARG` / `K1_SKARB_IO` |
 
 Zablokowany magazyn (hasło) — każda prośba `DOK_*` dostaje „złe hasło”. W logu tylko numery komunikatów, liczby
 wpisów i wyniki — nigdy nazwy ani treść.
@@ -154,10 +180,11 @@ od klientów i wpisy z dysku (`k1_dok_wpis_czytaj` — każde pole) oraz tabela 
 | Test | Rodzaj |
 |---|---|
 | `test_magazyn` (host, ASan/UBSan): restart, zmieniony bajt, zamienione rekordy, uszkodzony nagłówek, przerwany zapis, hasło (złe, zmiana, usunięcie), kompaktowanie, brak miejsca, obce dane; 0.8.1: 65 536 obiektów (i ani jednego więcej), usuwanie ze środka, dziennik 20 000 wersji (otwarcie czyta wszystkie → kompaktowanie przy otwarciu → otwarcie czyta jeden rekord), kompaktowanie w pracy (próg 256 MiB), awaria w połowie kompaktowania i przy zapisie nagłówka | funkcjonalny + negatywny |
+| `test_magazyn` (0.8.1 krok 3): powiększenie z aktywnym obszarem 0 (tylko nagłówek, ta sama epoka) i 1 (kompaktowanie do obszaru 0), nowe miejsce używane ponad stary obszar 1, nigdy mniejsza partycja; przerwa prądu po każdym zapisie powiększenia (także rozdarty nagłówek) — magazyn otwiera się z każdym obiektem, ponowne powiększenie się udaje | funkcjonalny + negatywny |
 | `test_indeks` (host, 0.8.1): indeks 200 000 losowych operacji (dodaj, usuń, przenieś), także same kolizje | funkcjonalny |
-| `test-skarbiec.sh` (QEMU, 0.8.1): K1-DANE z dziennikiem 78 MiB — kompaktowanie przy otwarciu, drugi start bez; K1-DANE 64 MiB prawie pełna — „Nowy folder” odrzucony (−28), ustawienie się zapisuje | funkcjonalny + negatywny |
+| `test-skarbiec.sh` (QEMU, 0.8.1): K1-DANE z dziennikiem 78 MiB — kompaktowanie przy otwarciu, drugi start bez; K1-DANE 64 MiB prawie pełna — „Nowy folder” odrzucony (−28), ustawienie się zapisuje, Pliki: „mało miejsca”; krok 3: ta sama pełna K1-DANE na pendrivie większym o 512 MiB → Informacje → „Użyj całego pendrive'a” → 64 → 576 MiB, obszar 31 → 287 MiB, import 16 zdjęć po 2,8 MB (16 z 16), ponowny start, tablica (sfdisk); tablica powiększona bez magazynu → dokończenie przy starcie | funkcjonalny + negatywny |
 | `fuzz_magazyn` (libFuzzer): surowy obraz, zmiany bajtów, nagłówki z poprawnym MAC | fuzzing |
-| `test_komunikat`: komunikaty `SKARB_*` (zakresy, kierunki, deskryptory) | negatywny |
+| `test_komunikat`: komunikaty `SKARB_*` (zakresy, kierunki, deskryptory; 0.8.1: `SKARB_MIEJSCE`, `SKARB_POWIEKSZ`, `POWIEKSZ_DANE`, `POWIEKSZONO`, zapas w `SKARB_KLIENT`) | negatywny |
 | w systemie: klatka (UID, tylko partycja „K1-DANE”), próba w klatce `skarbiec`, dysk trzyma tylko skarbiec | funkcjonalny + negatywny |
 | `test-m4.sh`: tapeta, motyw, rozdzielczość i notatka wracają po wyłączeniu i ponownym starcie z tym samym dyskiem; na dysku brak jawnego tekstu | funkcjonalny |
 | `test_dokumenty` (host, 0.8.0): nazwy (złe znaki, UTF-8, odwrócony tekst), typy z zawartości, wpis i lista (każde pole poza zakresem), plik w trzech kawałkach, nowa treść bez starych kawałków, przerwany zapis, foldery (unikalne nazwy, „(2)”, do siebie, za głęboko), Kosz (przywracanie, 30 dni, cofnięty zegar, opróżnianie), uszkodzone wpisy i kawałki przy otwarciu; prawa przez prawdziwy kanał: Pliki, pulpit (tylko Pulpit, bez treści), inni — nic; zły memfd | funkcjonalny + negatywny |

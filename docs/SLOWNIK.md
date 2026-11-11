@@ -52,6 +52,8 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **typ pliku** | Rodzaj treści rozpoznany przez skarbiec z pierwszych bajtów (tekst, PNG, JPEG, PDF…), nigdy z nazwy. Lista: `K1_TYPY`. |
 | **Kosz** | Usunięte pliki; można je przywrócić; usuwane na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”). To stan pliku, nie folder; ikona na pulpicie. |
 | **kompaktowanie** | Skarbiec przepisuje żywe dane do drugiej połowy K1-DANE i zapomina stare wersje (ADR 0015, 0034): dysk dostaje miejsce z powrotem, start znowu jest szybki. |
+| **miejsce na pliki** | Ile plików zmieści skarbiec: połowa K1-DANE (druga połowa jest na kompaktowanie) bez rezerwy dla systemu; pokazują je Ustawienia → Informacje (0.8.1). |
+| **powiększenie K1-DANE** | K1-DANE rośnie do końca pendrive'a: pusta — sama przy pierwszym starcie (0.8.0), z danymi — po kliknięciu „Użyj całego pendrive'a na dane” w Ustawieniach (0.8.1, ADR 0033). Pliki zostają na miejscu. |
 | **rezerwa dla systemu** | Ostatnie 8 MiB (albo 2 %, najwyżej ćwierć) skarbca, których pliki nie zajmą — na ustawienia, pulpit, baterię, tapetę (0.8.1). |
 | **granica czasu** | Najwcześniejszy czas, jaki skarbiec przyjmuje od zegara (0.8.1): czas budowy wersji K1 albo najpóźniejszy widziany. Zegar za granicą = Kosz niczego nie usuwa. |
 | **odzyskany plik** | Plik, którego wpis skarbiec naprawił przy starcie (0.8.1): treść cała, nazwa poprawiona albo „Odzyskany plik <numer>”. |

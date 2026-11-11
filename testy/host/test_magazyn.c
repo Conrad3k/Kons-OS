@@ -176,6 +176,98 @@ static void test_wiele_obiektow(struct k1_mag_dysk *d)
     k1_mag_zamknij(&m);
 }
 
+/* ---- growing (0.8.1 step 3, ADR 0033): the partition grew under a vault with data ---- */
+
+#define MALE 2 + 2 * 100ull  /* blocks: the partition before (two regions of 100 blocks) */
+#define DUZE 2 + 2 * 700ull  /* after */
+static uint8_t *migawka;
+
+/* A vault of MALE blocks on a disk with room for DUZE; region 1 active when `drugi`. Objects o0..o(n-1). */
+static int przygotuj_maly(struct k1_mag_dysk *d, int drugi)
+{
+    char n[16];
+    int i = 0, r = K1_MAG_OK;
+    dysk(d, DUZE);
+    d->bajty = (MALE) * K1_MAG_BLOK;
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
+    for (i = 0; i < 20 && r == K1_MAG_OK; i++) {
+        snprintf(n, sizeof n, "o%d", i);
+        r = k1_mag_zapisz(&m, 3, n, &i, sizeof i);
+    }
+    while (r == K1_MAG_OK && (int)m.aktywny != drugi) /* new versions until compaction moves to region 1 */
+        r = k1_mag_zapisz(&m, 3, "o0", &r, sizeof r);
+    EXPECT(r == K1_MAG_OK && (int)m.aktywny == drugi);
+    return i;
+}
+
+/* After a grow (or a power cut in it): the vault opens on the grown partition with every object. */
+static int wszystko_jest(struct k1_mag_dysk *d, int n)
+{
+    char nz[16];
+    int i, zle = 0;
+    uint32_t dl, v;
+    d->bajty = (DUZE) * K1_MAG_BLOK;
+    k1_mag_zamknij(&m);
+    if (k1_mag_otworz(&m, d, NULL) != K1_MAG_OK)
+        return 0;
+    for (i = 1; i < n; i++) {
+        snprintf(nz, sizeof nz, "o%d", i);
+        zle += k1_mag_czytaj(&m, 3, nz, &v, sizeof v, &dl) != K1_MAG_OK || v != (uint32_t)i;
+    }
+    return zle == 0 && k1_mag_czytaj(&m, 3, "o0", &v, sizeof v, &dl) == K1_MAG_OK;
+}
+
+static void test_powiekszenie(struct k1_mag_dysk *d)
+{
+    static uint8_t duzy[200 * 1024];
+    int drugi, n, k, i, r;
+    for (drugi = 0; drugi <= 1; drugi++) {
+        uint64_t epoka;
+        n = przygotuj_maly(d, drugi);
+        epoka = m.epoka;
+        EXPECT(k1_mag_pojemnosc(&m) == 100 * K1_MAG_BLOK);
+        EXPECT(k1_mag_powieksz(&m, (MALE) * K1_MAG_BLOK) == K1_MAG_OK && k1_mag_pojemnosc(&m) == 100 * K1_MAG_BLOK);
+        EXPECT(k1_mag_powieksz(&m, (MALE - 1) * K1_MAG_BLOK) == K1_MAG_ARG); /* never smaller */
+        EXPECT(k1_mag_powieksz(&m, (DUZE) * K1_MAG_BLOK) == K1_MAG_OK && k1_mag_pojemnosc(&m) == 700 * K1_MAG_BLOK);
+        /* region 0 active: only the header (the same epoch); region 1: compacted into region 0 first */
+        EXPECT(m.aktywny == 0 && m.epoka == epoka + (uint64_t)drugi);
+        EXPECT(wszystko_jest(d, n) && k1_mag_pojemnosc(&m) == 700 * K1_MAG_BLOK);
+        /* the new room is used: more than the old region could ever hold, over the old region 1 */
+        for (i = 0, r = K1_MAG_OK; i < 2 && r == K1_MAG_OK; i++)
+            r = k1_mag_zapisz(&m, 4, i ? "duzy1" : "duzy0", duzy, sizeof duzy);
+        EXPECT(r == K1_MAG_OK && m.koniec > 100);
+        EXPECT(wszystko_jest(d, n) && m.n_wpisow == n + 2);
+    }
+    /* a power cut after each write of the grow (and a header torn): the vault opens on the grown partition with
+     * everything, with the old size or the new; the grow done again then succeeds */
+    for (drugi = 0; drugi <= 1; drugi++) {
+        size_t bajty = (DUZE) * K1_MAG_BLOK;
+        int udane = 0, zle = 0;
+        n = przygotuj_maly(d, drugi);
+        free(migawka);
+        migawka = malloc(bajty);
+        memcpy(migawka, ram, bajty);
+        for (k = 0; k < 64 && !udane; k++)
+            for (int nagl = 0; nagl <= 1; nagl++) {
+                memcpy(ram, migawka, bajty);
+                k1_mag_zamknij(&m);
+                d->bajty = (MALE) * K1_MAG_BLOK;
+                zle += k1_mag_otworz(&m, d, NULL) != K1_MAG_OK;
+                awaria_po = k;
+                tylko_naglowki_padaja = nagl;
+                r = k1_mag_powieksz(&m, (DUZE) * K1_MAG_BLOK);
+                udane = r == K1_MAG_OK;
+                awaria_po = -1;
+                tylko_naglowki_padaja = 0;
+                zle += !wszystko_jest(d, n);
+                zle += k1_mag_powieksz(&m, (DUZE) * K1_MAG_BLOK) != K1_MAG_OK || k1_mag_pojemnosc(&m) != 700 * K1_MAG_BLOK;
+                zle += !wszystko_jest(d, n) || k1_mag_pojemnosc(&m) != 700 * K1_MAG_BLOK;
+            }
+        EXPECT(udane && zle == 0 && k > (drugi ? 20 : 1)); /* region 1: the copy of every object, then two headers */
+    }
+    k1_mag_zamknij(&m);
+}
+
 int main(void)
 {
     struct k1_mag_dysk d;
@@ -335,6 +427,7 @@ int main(void)
 
     test_dlugi_dziennik(&d);
     test_wiele_obiektow(&d);
+    test_powiekszenie(&d);
     free(ram);
     return K1_TEST_KONIEC("test_magazyn");
 }

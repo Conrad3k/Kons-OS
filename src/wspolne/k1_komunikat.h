@@ -41,8 +41,11 @@ enum k1_komunikat_typ {
     /* nadzorca → ekran */
     K1_KOM_KLIENT = 1, /* a=rola, b=aplikacja (rola APLIKACJA: 1..K1_APL_MAKS, else 0), c=uid; + 1 fd */
     /* nadzorca → skarbiec (same direction K1_KIER_STEROWANIE) */
-    K1_KOM_SKARB_KLIENT = 2, /* a=owner (K1_WL_*), b=uid of the client, c=1 K1-DANE is on a USB stick;
-                              * + 1 fd (skarbiec's end) */
+    K1_KOM_SKARB_KLIENT = 2, /* a=owner (K1_WL_*), b=uid of the client, c=1 K1-DANE is on a USB stick, d=MiB the stick
+                              * has after K1-DANE (0..K1_PAMIEC_MAKS_MIB; 0.8.1); + 1 fd (skarbiec's end) */
+    K1_KOM_POWIEKSZONO = 115, /* nadzorca → skarbiec (0.8.1 step 3, ADR 0033): obiekt=0, a=0 K1-DANE grew to the end of
+                               * the stick, K1_SKARB_ARG it cannot (no room, a table K1 did not write), K1_SKARB_IO
+                               * writing failed (one valid table stays) */
     /* nadzorca → instalator (M5f, ADR 0018; same direction K1_KIER_STEROWANIE): the job, once */
     K1_KOM_INST_ZADANIE = 3, /* a=K1_INST_* mode, b=logical sector size (512/4096) of the target */
 
@@ -104,14 +107,23 @@ enum k1_komunikat_typ {
     K1_KOM_SKARB_USUN = 72,   /* obiekt=object id */
     K1_KOM_SKARB_ODBLOKUJ = 73, /* login screen only (M5e): obiekt=1, a=password length 1..K1_HASLO_MAKS; + 1 memfd */
     K1_KOM_SKARB_HASLO = 74,    /* Ustawienia only: obiekt=1, a=length; + 1 memfd "current\0new\0" (empty: none) */
-    K1_KOM_SKARB_INFO = 75,     /* obiekt=1: the state of the vault (reply: WYNIK with c, d) */
+    K1_KOM_SKARB_INFO = 75,     /* obiekt=1: the state of the vault (reply: WYNIK with c, d, then MIEJSCE) */
+    K1_KOM_SKARB_POWIEKSZ = 113, /* Ustawienia only (0.8.1 step 3, ADR 0033; the user clicked "Użyj całego pendrive'a"):
+                                  * obiekt=1 — K1-DANE to the end of its USB stick (reply: WYNIK when done, then MIEJSCE) */
     /* skarbiec → client */
     K1_KOM_SKARB_DANE = 80,   /* obiekt=object id, a=length; + 1 sealed memfd of that size */
-    K1_KOM_SKARB_WYNIK = 81,  /* obiekt=object id, a=request type (70..75), b=result (0 or K1_MAG_* < 0),
+    K1_KOM_SKARB_MIEJSCE = 112, /* obiekt=1 (0.8.1 step 3): the room for files, after WYNIK of INFO and POWIEKSZ and after
+                                 * DOK_LISTA. a=MiB taken (0..b), b=MiB for files (the vault's region without the
+                                 * reserve for the system, or memory without K1-DANE; 0..K1_PAMIEC_MAKS_MIB), c=entries
+                                 * (files and folders, Kosz too; 0..K1_DOK_MAKS), d=MiB the stick has after K1-DANE
+                                 * (0..K1_PAMIEC_MAKS_MIB: what "Użyj całego pendrive'a" adds), e=0 */
+    K1_KOM_SKARB_WYNIK = 81,  /* obiekt=object id, a=request type (70..75, POWIEKSZ), b=result (0 or K1_MAG_* < 0),
                                * c=K1_SKARB_TRWALY / _RAM / _ZABLOKOWANY, d: bit 0 password set, bit 1 K1-DANE on USB,
                                * e=seconds until the next password attempt is accepted (0..K1_HASLO_PRZERWA) */
     /* skarbiec → nadzorca, on the control channel (direction K1_KIER_DO_NADZORCY) */
     K1_KOM_SKARB_STAN = 82,   /* a=K1_SKARB_* mode, b=1 password set */
+    K1_KOM_POWIEKSZ_DANE = 114, /* (0.8.1 step 3, ADR 0033) obiekt=0: Ustawienia asked (a gesture) and the vault is open —
+                                 * grow K1-DANE to the end of its USB stick (reply: POWIEKSZONO) */
     /* nadzorca → Instalator application (M5f) */
     K1_KOM_INST_DYSK = 66,    /* obiekt=1..K1_INST_DYSKI_MAKS, a=size MiB, b=K1_DYSK_* kind, c=Kons K1 on it: 0 no,
                                * 1 yes without a manifest (0.5.9–0.6.1), K1_INST_WERSJA|version (M6a),
@@ -269,6 +281,8 @@ _Static_assert(K1_TAPETY < K1_TAPETA_ZDJECIE, "k1_komunikat: the photo wallpaper
 #define K1_MAG_WYNIK_MIN (-8)     /* most negative K1_MAG_* result */
 #define K1_SKARB_ZLE_HASLO (-1)   /* WYNIK b: wrong password (= K1_MAG_HASLO, magazyn.h) */
 #define K1_SKARB_PELNY (-3)       /* WYNIK b: no room left (= K1_MAG_PELNY) */
+#define K1_SKARB_IO (-4)          /* WYNIK b, POWIEKSZONO a: writing failed (= K1_MAG_IO) */
+#define K1_SKARB_ARG (-8)         /* WYNIK b, POWIEKSZONO a: not possible (= K1_MAG_ARG) */
 
 /* Installer (M5f, ADR 0018) */
 #define K1_INST_DYSKI_MAKS 8

@@ -215,7 +215,6 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     static const char *const motywy[] = { "Jasny", "Ciemny" };
     static const char *const predkosci[] = { "Wolno", "Średnio", "Szybko" };
     static const char *const tak_nie[] = { "Bez sekund", "Z sekundami" };
-    char buf[96];
     int i;
 
     k1_prostokat(o, BOK, K1_OKNO_TYTUL, 1, apl.wys - K1_OKNO_TYTUL - 12, k1_kolor(m->tekst, 20));
@@ -259,15 +258,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         aplikacje_rysuj(o, m);
         break;
     default:
-        naglowek(o, m, "Informacje", "Kons K1 Sovereign");
-        snprintf(buf, sizeof buf, "Wersja systemu    %s", K1_WERSJA);
-        k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, buf, k1_kolor(m->tekst, 255), 0);
-        snprintf(buf, sizeof buf, "Ekran    %d × %d", (int)apl.k.szer_ekranu, (int)apl.k.wys_ekranu);
-        k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 44, buf, k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 72, "Jądro    Linux 6.18 (własna konfiguracja)", k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 100, haslo_gdzie_dane(), k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 136, "Każda część systemu działa w osobnej, zamkniętej klatce.",
-                 k1_kolor(m->tekst3, 255), 0);
+        informacje_rysuj(o, m);
         break;
     }
 }
@@ -303,6 +294,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     seg = rodzaj == K1_WSK_WYJSCIE ? -1 : k1_segment_trafienie(TRESC_X, seg_y(), w, SEG_H, n, x, y);
     if (sekcja == S_APLIKACJE && aplikacje_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
         k1_apl_odswiez(&apl);
+    if (sekcja == S_INFO && informacje_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
+        k1_apl_odswiez(&apl);
     if (nav != hover_nav || seg != hover_seg || karta != hover_karta || tryb != hover_tryb) {
         hover_nav = nav;
         hover_seg = seg;
@@ -315,6 +308,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     if (sekcja == S_HASLO && nav < 0 && haslo_klik(x, y))
         return;
     if (sekcja == S_APLIKACJE && nav < 0 && aplikacje_klik(x, y))
+        return;
+    if (sekcja == S_INFO && nav < 0 && informacje_klik(x, y))
         return;
     if (nav >= 0) {
         if (nav != sekcja)

@@ -490,6 +490,27 @@ int k1_mag_kompaktuj(struct k1_magazyn *m)
     return kompaktuj(m);
 }
 
+int k1_mag_powieksz(struct k1_magazyn *m, uint64_t bajty)
+{
+    uint64_t stary = m->obszar_blokow, obszar;
+    int r;
+    if (bajty < m->d->bajty)
+        return K1_MAG_ARG;
+    m->d->bajty = bajty;
+    obszar = (bloki_dysku(m->d) - 2) / 2;
+    if (obszar <= stary)
+        return K1_MAG_OK;
+    /* region 0 keeps its place and grows; region 1 (old size) would start inside it: move the live objects first */
+    if (m->aktywny == 1 && (r = kompaktuj(m)) != K1_MAG_OK)
+        return r;
+    m->obszar_blokow = obszar;
+    if ((r = zapisz_naglowek(m)) != K1_MAG_OK) {
+        m->obszar_blokow = stary; /* nothing on the disk says the new size */
+        return r;
+    }
+    return zapisz_naglowek(m); /* the other slot too: no header of the old size stays */
+}
+
 uint64_t k1_mag_wolne(const struct k1_magazyn *m)
 {
     return (m->obszar_blokow - m->zywe) * K1_MAG_BLOK;
