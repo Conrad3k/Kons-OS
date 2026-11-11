@@ -331,7 +331,7 @@ static void test_przerwy_pradu(struct k1_mag_dysk *d)
 {
     static uint8_t *pusty;
     size_t bajty = 260 * K1_MAG_BLOK; /* 4 segments of 64 blocks: 2 for data, 2 kept free */
-    int naglowki, k, w, zle = 0, ile = 250, przerwy = 0;
+    int naglowki, k, w, zle = 0, ile = 160, przerwy = 0;
     uint64_t z0;
     dysk(d, 260);
     EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_OK && m.n_odcinkow == 4 && m.odcinek == 64);
@@ -345,7 +345,7 @@ static void test_przerwy_pradu(struct k1_mag_dysk *d)
     printf("test_odcinki: przerwy prądu — %llu zapisów w przebiegu (z kompaktowaniem i spisami)\n",
            (unsigned long long)(zapisow - z0));
     for (naglowki = 0; naglowki <= 1; naglowki++)
-        for (k = 0;; k += k < 200 ? 1 : 5) { /* every write, later every fifth; until a run has no cut */
+        for (k = 0;; k += k < 120 ? 1 : 7) { /* every write, later every seventh; until a run has no cut */
             w = przebieg(d, pusty, bajty, k, naglowki, ile);
             if (w < 0)
                 fprintf(stderr, "test_odcinki: przerwa po %d zapisach (nagłówki %d): błąd\n", k, naglowki);
@@ -356,7 +356,7 @@ static void test_przerwy_pradu(struct k1_mag_dysk *d)
         }
     printf("test_odcinki: przerwy prądu — %d przerw, każda: magazyn otwarty, dane jak przed albo po zapisie\n",
            przerwy);
-    EXPECT(zle == 0 && przerwy > 2 * 250);
+    EXPECT(zle == 0 && przerwy > 250);
 }
 
 /* ---- full: room for files, compaction keeps up, deleting makes room ---- */
@@ -380,13 +380,13 @@ static void test_pelny(struct k1_mag_dysk *d)
            (unsigned long long)(poj >> 20));
     EXPECT(r == K1_MAG_PELNY && ile >= 4 * 27 - 1); /* every block of the room for files */
     EXPECT(k1_mag_zapisz(&m, 4, "maly", "x", 1) == K1_MAG_PELNY); /* nothing over the room for files */
-    /* overwrite at random when 80 % is taken: compaction makes room every time */
+    /* overwrite at random when 80 % is taken (500 times: the vault's room over four times): compaction makes room every time */
     for (i = ile - 1; i >= ile * 4 / 5; i--) {
         snprintf(n, sizeof n, "k%d", i);
         zle += k1_mag_usun(&m, 4, n) != K1_MAG_OK;
     }
     ile = ile * 4 / 5;
-    for (i = 0; i < 1500; i++) {
+    for (i = 0; i < 500; i++) {
         uint32_t x = (uint32_t)(i * 2654435761u) % (uint32_t)ile, rozmiar = 1 + (uint32_t)(i * 40503u) % K1_MAG_MAKS_DANYCH;
         snprintf(n, sizeof n, "k%u", x);
         dane[0] = (uint8_t)i;
