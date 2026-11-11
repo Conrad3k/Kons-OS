@@ -241,8 +241,8 @@ Znalezione w trakcie (krok 4, 2026-11-11)
      [x] PR #66
 [x]  3  Miejsce: ile zostało, cały pendrive na dane   L7 L20 L4a L4b               2           D4       M
      [x] PR #67
-[ ]  4  Duże pliki (przesyłanie w kawałkach)          L23a L23c                    2           —        L
-     [w toku: Claude, gałąź claude/vibrant-meitner-qoszaq]
+[x]  4  Duże pliki (przesyłanie w kawałkach)          L23a L23c                    2           —        L
+     [x] PR #68
 [→]  5–10  przeniesione do docs/PLAN-0.8.2.txt (kroki 2–7) — tam też nowy krok 1: szybki start przy dużych
            danych (L25, znalezione w kroku 4)
 
@@ -366,13 +366,14 @@ KROK 4 — Duże pliki (przesyłanie w kawałkach)                              
   Dokumenty: ADR, skarbiec.md, czytnik.md, opisy komunikatów (test „każdy komunikat opisany”).
   Gotowe, gdy: import 300 MB działa w QEMU, a limity klatek się nie zmieniły.
   Nie w tym kroku: odtwarzanie wideo.
-  Ustalenia z wykonania (PR #PR4): uzupełnienie ADR 0034 (nie osobny ADR — numer 0035 zostaje dla Podglądu). Wszystkie
+  Ustalenia z wykonania (PR #68): uzupełnienie ADR 0034 (nie osobny ADR — numer 0035 zostaje dla Podglądu). Wszystkie
   kawałki poza ostatnim mają dokładnie 1 MiB (jeden kawałek wiadomości = jeden obiekt skarbca); jeden zapis w toku na
   kanał i na plik (nowy wynik K1_DOK_BLAD_ZAPIS, −29). Zdjęcie dla dekodera skarbiec wysyła dalej w jednej odpowiedzi do
   16 MiB (K1_DEK_MAKS_BAJTY) — memfd tworzy skarbiec, więc pamięć Plików się nie zmienia; składanie z kawałków w Plikach
   zjadłoby połowę ich limitu 32 MiB (krok 6 może to zmienić przy podnoszeniu limitu dekodera). Film 300 MB trafia do
   Dokumentów (typ „Plik”: K1 nie rozpoznaje jeszcze wideo — osobny wiersz w K1_TYPY, gdy będzie potrzebny). Czytnik
-  pamięta pozycję w łańcuchu klastrów (fat_czytaj_od). Pliki pokazują rozmiary w GB.
+  pamięta pozycję w łańcuchu klastrów (fat_czytaj_od). Pliki pokazują rozmiary w GB. Test znalazł L25 (start rośnie z danymi): ekran stosuje
+  teraz spóźnione ustawienia; przyczyna — krok 1 planu 0.8.2.
 
 KROKI 5–10 — przeniesione do docs/PLAN-0.8.2.txt (decyzja D9: wydanie 0.8.2), z nowymi numerami:
   5 → 2 (pendrive i nazwy), 6 → 3 (zdjęcia), 7 → 4 (Podgląd), 8 → 5 (otwieranie), 9 → 6 (przeciąganie),
