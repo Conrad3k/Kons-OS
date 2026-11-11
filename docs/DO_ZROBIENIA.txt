@@ -7,7 +7,7 @@ M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby), M5 (
 dane, hasło, instalator), 0.6.0 Fundament, M6 (bezpieczne aktualizacje: podpisy, dm-verity, A/B,
 Secure Boot), 0.7.5 Pulpit (ikony, menu pod prawym przyciskiem, przypinanie), 0.8.0 Pliki (foldery, Kosz, zdjęcia
 z pendrive'a, podgląd, tapeta ze zdjęcia), 0.8.1 (dane nie giną, więcej plików, miejsce w Informacjach, cały
-pendrive na dane, pliki do 4 GB); dalej 0.8.2 (kroki 5–10 planu 0.8.1), potem M7 Sieć (plan: ADR 0019, 0020, 0026).
+pendrive na dane, pliki do 4 GB); dalej 0.8.2 (docs/PLAN-0.8.2.txt), potem M7 Sieć (plan: ADR 0019, 0020, 0026).
 Data: 2026-11-11. Plik aktualizujemy po każdym etapie.
 Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
 
@@ -266,14 +266,13 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
     [ ] exFAT na pendrive'ach (duże pendrive'y i karty SD > 32 GB) — ten sam model co FAT, gdy będzie potrzebny
     [x] powiększenie K1-DANE z danymi (pendrive zapisany starszą wersją) — 0.8.1 krok 3: przycisk w Informacjach
 
-0.8.1 / 0.8.2 Pliki — dopracowanie (przed M7) — PLAN: docs/PLAN-0.8.1.txt
-    Decyzja D9 (2026-11-11): kroki 1–4 wydane jako 0.8.1, kroki 5–10 będą wydaniem 0.8.2.
-    Przegląd 0.8.0 z jednorazowymi testami (luki L1–L24) i 10 kroków — każdy w nowym czacie, jeden PR. Stan kroków,
-    zależności i Twoje decyzje (D1–D9) są tylko w planie (punkty 4 i 6), żeby nie pilnować dwóch list. Kroki:
-    1 dane nie mogą zginąć · 2 skarbiec: więcej plików, szybki start · 3 miejsce, cały pendrive · 4 duże pliki ·
-    5 pendrive i nazwy · 6 duże zdjęcia, nowe formaty · 7 aplikacja Podgląd · 8 „Otwórz za pomocą” ·
-    9 przeciąganie · 10 porządki i wydanie.
-    [!] Decyzje D1–D9 (plan, punkt 6) — potrzebne przed krokami 3, 5, 7, 8, 9, 10.
+0.8.1 Pliki — dopracowanie, część 1 — PLAN: docs/PLAN-0.8.1.txt (kroki 1–4, luki L1–L25)
+    [x] 1 dane nie mogą zginąć · 2 skarbiec: więcej plików, szybki start · 3 miejsce, cały pendrive · 4 duże pliki
+0.8.2 Pliki — dopracowanie, część 2 (przed M7) — PLAN: docs/PLAN-0.8.2.txt
+    Kroki (każdy w nowym czacie, jeden PR; stan i Twoje decyzje D1–D3, D5–D8 tylko w planie):
+    1 szybki start przy dużych danych (format skarbca) · 2 pendrive i nazwy · 3 duże zdjęcia, nowe formaty ·
+    4 aplikacja Podgląd · 5 „Otwórz za pomocą” · 6 przeciąganie · 7 porządki i wydanie 0.8.2.
+    [!] Decyzje D1–D3, D5–D8 (plan 0.8.2, punkt 4) — potrzebne przed krokami 2, 4, 5, 6.
 
 M7  Sieć
     [ ] test: nic w K1 nie odpowiada na połączenia z zewnątrz

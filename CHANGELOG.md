@@ -5,8 +5,8 @@ Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wers
 
 ## [0.8.1] — 2026-11-11
 
-**Pliki — dopracowanie, część 1** (`docs/PLAN-0.8.1.txt`, kroki 1–4; decyzja właściciela D9: wydanie teraz, kroki 5–10
-jako 0.8.2). Najważniejsze dla danych: nic nie ginie, mieści się dużo więcej, widać, ile miejsca zostało, a stary
+**Pliki — dopracowanie, część 1** (`docs/PLAN-0.8.1.txt`, kroki 1–4; decyzja właściciela D9: wydanie teraz, reszta —
+`docs/PLAN-0.8.2.txt`). Najważniejsze dla danych: nic nie ginie, mieści się dużo więcej, widać, ile miejsca zostało, a stary
 pendrive można powiększyć bez utraty danych.
 
 ### Dodane
@@ -23,7 +23,7 @@ pendrive można powiększyć bez utraty danych.
 ### Znane ograniczenie
 - Z dużą ilością danych start trwa dłużej (skarbiec sprawdza przy starcie wszystkie dane — ok. 30 s na 1 GB
   z pendrive'a USB 2.0). Pulpit nie czeka: ustawienia i tapeta ze zdjęcia pojawiają się, gdy skarbiec skończy.
-  Poprawka formatu — w 0.8.2 (RYZYKA R58).
+  Poprawka formatu skarbca — pierwszy krok 0.8.2 (`docs/PLAN-0.8.2.txt`, RYZYKA R58).
 
 ### Zmienione
 - **Dużo więcej plików** (krok 2, ADR 0034): do 16 384 plików i folderów (było 1024) i ok. 64 GB plików na dużym

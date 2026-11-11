@@ -1,0 +1,319 @@
+K1 — PLAN WERSJI 0.8.2 „PLIKI — DOPRACOWANIE, CZĘŚĆ 2” (przed 0.9.0 / M7 Sieć)
+=====================================================================================
+
+Data: 2026-11-11. Stan wyjściowy: 0.8.1 (kroki 1–4 planu docs/PLAN-0.8.1.txt). Decyzja właściciela D9 (2026-11-11):
+kroki 5–10 planu 0.8.1 są wydaniem 0.8.2 — przeniesione tutaj z nowymi numerami, a problem znaleziony w kroku 4
+(L25: start trwa tym dłużej, im więcej danych) to osobny krok 1. Luki L1–L25, próby T1–T6 i jak badałem —
+docs/PLAN-0.8.1.txt, punkty 2 i 3 (nie powtarzam ich tutaj). Plik jest planem, nie specyfikacją: zmiany architektury
+idą przez ADR (docs/adr/), jak zawsze.
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kroki idą w kolejności z punktu 2.
+
+Właściciel — co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.8.2.txt.”
+Jeśli krok ma decyzje [!] (punkt 4), czat zapyta o nie na początku — możesz też od razu dopisać odpowiedź.
+
+Nowy czat — przebieg każdego kroku (jak w 0.8.1):
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
+  2. Przeczytaj swój krok (punkt 3), luki, których dotyczy (PLAN-0.8.1.txt, punkt 3), i decyzje (punkt 4).
+     Brak decyzji [!] potrzebnej w kroku → zapytaj właściciela, zanim zaczniesz tę część.
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
+  5. Najpierw test, który pokazuje lukę, potem poprawka, potem ten sam test na zielono.
+  6. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, pełny scripts/testy.sh
+     lokalnie (wszystko [OK]); zmiany w budowie — także scripts/sprawdz-powtarzalnosc.sh.
+  7. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, ADR (gdy krok go wymaga), TESTY.md.
+     VERSION i CHANGELOG zmienia dopiero krok 7 (wydanie) — każdy krok zapisuje „co widzi użytkownik” w opisie PR-a.
+  8. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
+     ustalenia dopisz w swoim kroku. Raport dla właściciela: co widać, dowody, co zostało.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+  1. Szybki start przy dużych danych (nowy krok, techniczny, bez Twojej decyzji): dziś skarbiec przy każdym starcie
+     czyta i sprawdza wszystkie Twoje pliki — ok. 30 s na 1 GB z pendrive'a USB 2.0. Po tym kroku start trwa kilka
+     sekund niezależnie od tego, ile masz danych. Polecam go jako pierwszy, zanim na pendrivie przybędzie dużo GB.
+  2. Pendrive i nazwy plików: każdy pendrive FAT z telefonu działa, z dużych folderów importuje się wszystko,
+     ponowny import nie robi kopii (D3), nazwy plików nie mogą udawać innych.
+  3. Duże zdjęcia (48/100 Mpx z telefonów) i nowe formaty (GIF, BMP, może WebP).
+  4. Aplikacja Podgląd — zdjęcie w osobnym oknie, ← / → (D1, D2, D5 — szkice do wyboru).
+  5. „Otwórz za pomocą” w menu pod prawym przyciskiem, jak w Windows (D7).
+  6. Przeciąganie plików i zaznaczanie wielu (D6, D8).
+  7. Porządki i wydanie 0.8.2.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                             Luki                    Było (0.8.1)  Zależy od  Decyzje   Rozmiar
+[ ]  1  Szybki start przy dużych danych              L25 (L5)                nowy          —          —         L
+[ ]  2  Pendrive i nazwy plików                      L13 L14 L15 L16 L8 L9   krok 5        —          D3        M–L
+[ ]  3  Zdjęcia: duże i nowe formaty, wspólny dekoder L17 L23b               krok 6        —          —         M
+[ ]  4  Aplikacja Podgląd                            (prośba właściciela)    krok 7        3          D1 D2 D5  L
+[ ]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     krok 8        4          D7        M
+[ ]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        krok 9        5          D6 D8     L
+[ ]  7  Porządki i wydanie 0.8.2                     —                       krok 10       1–6        —         S
+
+Kolejność: 1 najpierw (dane właściciela rosną); 2 i 3 w dowolnej kolejności (nie dotykają tych samych plików co 1:
+krok 1 — magazyn skarbca, krok 2 — czytnik, nazwy, import, krok 3 — dekoder), potem 4 → 5 → 6 → 7.
+
+
+3. KROKI
+--------
+Każdy krok: Cel (co zobaczy właściciel) · Zadania · Testy i dowód · Dokumenty · Gotowe, gdy · Nie w tym kroku.
+
+KROK 1 — Szybki start przy dużych danych                                    L · bez decyzji · ADR 0035
+  Cel: start K1 (otwarcie skarbca) trwa kilka sekund także przy wielu GB plików; pulpit, ustawienia i tapeta są od
+  razu (dziś: ok. 30 s na 1 GB z pendrive'a USB 2.0 przy KAŻDYM starcie — RYZYKA R58).
+  Przyczyna (L25, POTWIERDZONE w test-pendrive po imporcie 300 MB): k1_mag_otworz() odczytuje i odszyfrowuje każdy
+  żywy rekord, bo nazwa obiektu jest w tym samym szyfrogramie (AEAD) co jego treść — inaczej nie zbuduje indeksu.
+  ADR 0035 „Indeks skarbca” (uzupełnia ADR 0015 i 0034; zmienia format — pierwszy raz od M5c):
+  [ ] Rekomendacja techniczna: nowy rodzaj rekordu „indeks” — lista żywych obiektów (właściciel, nazwa, blok,
+      bloki, długość) zaszyfrowana i uwierzytelniona jak każdy rekord (dane dodatkowe: uuid, epoka, obszar,
+      pozycja), zapisywany przy kompaktowaniu i co pewną ilość nowych danych (np. 256 MiB albo 4096 rekordów);
+      nagłówek wskazuje ostatni indeks (blok, generacja) i jest objęty swoim MAC jak dziś. Otwarcie: nagłówek →
+      indeks → tylko rekordy zapisane po nim (zwykle kilka). Treść dalej uwierzytelniana przy każdym odczycie
+      (czytaj_rekord) — podmiana albo przesunięcie rekordu wychodzi przy odczycie, jak dziś przy otwarciu.
+      Alternatywa do oceny w ADR: osobny, mały szyfrogram nagłówka rekordu (nazwa, długość) przed treścią —
+      otwarcie czyta wtedy wszystkie nagłówki (dużo mniej danych, ale tyle samo odczytów rozrzuconych po dysku).
+  [ ] Zgodność: magazyn z 0.5.6–0.8.1 (bez indeksu, WERSJA 1) otwiera się jak dziś i dostaje indeks przy pierwszym
+      otwarciu (albo kompaktowaniu); starsza wersja K1 nie otworzy magazynu z indeksem — sprawdzić, co wtedy robi
+      (aktualizacja A/B wraca do starszego miejsca przy nieudanym starcie: magazyn nie może zostać „obcy”). Jeśli
+      trzeba — WERSJA 2 dopiero po potwierdzeniu startu (jak zatwierdzenie aktualizacji w rozruch.c).
+  [ ] Przerwa prądu: w trakcie zapisu indeksu, po indeksie przed nagłówkiem — zawsze otwiera się poprzedni stan;
+      zły indeks (np. zmieniony bajt) → odmowa jak dziś przy złym rekordzie, nigdy ciche zgubienie danych.
+  [ ] Pomiar przed/po (wzór T3/C, D planu 0.8.1): magazyn 1 GB i 4 GB w pliku — czas otwarcia CPU i liczba
+      odczytanych bajtów; w QEMU czas od startu do „magazyn otwarty”.
+  Testy i dowód: test_magazyn (indeks i ogon dziennika; przerwa prądu po każdym zapisie; zmieniony indeks; magazyn
+  formatu 1 otwierany i uaktualniany), fuzz_magazyn (rekord indeksu); QEMU test-pendrive „ponownie” po imporcie
+  300 MB: ekran dostaje ustawienia od razu (bez „skarbiec jeszcze otwiera magazyn”), test-skarbiec (stary format
+  z magazyn_testowy).
+  Dokumenty: ADR 0035, skarbiec.md (format na dysku, czas otwarcia), RYZYKA R58 (zamknięte albo zmienione), R57
+  (kompaktowanie nadal przepisuje wszystkie żywe dane — czy kompaktować rzadziej przy dużych danych), TESTY.md.
+  Gotowe, gdy: magazyn 4 GB otwiera się w < 1 s CPU (host) i bez czekania ekranu w QEMU; stary magazyn działa.
+  Nie w tym kroku: kompaktowanie po kawałku (R57) — chyba że pomiar pokaże, że jest pilne.
+
+KROK 2 — Pendrive i nazwy plików                                                     M–L · decyzja D3 · bez ADR
+  Cel: każdy pendrive FAT z telefonu czy aparatu działa, z dowolnie dużego folderu można zaimportować wszystko,
+  ponowny import nie robi kopii, nazwy plików nie mogą udawać innych.
+  Zadania:
+  [ ] L13: FAT32 rozpoznany też z pól boot sectora (BPB_FATSz16 == 0 i BPB_RootEntCnt == 0), jak w Linuksie.
+  [ ] L14: stronicowanie listy (PEN_SPIS z numerem pierwszego elementu, PEN_LISTA mówi, czy jest dalej); Pliki
+      dociągają strony przy przewijaniu; „Importuj wszystkie” bierze wszystkie strony folderu.
+  [ ] L15 (wg D3): czas z pendrive'a zachowany jako „zmieniono” importowanego pliku (pole w DOK_NOWY, tylko
+      z P_POCHODZENIE); ponowny import pomija plik, gdy w folderze docelowym jest plik „z pendrive'a” z tą samą
+      nazwą (bez „ (n)”), rozmiarem i czasem → „Pominięto n — już zaimportowane”.
+  [ ] L16: limit plików (PELNO) i brak miejsca przerywają import z jasnym komunikatem; tryb bez K1-DANE —
+      „brak miejsca w pamięci”.
+  [ ] L8: wolna_nazwa() obcina też końcówkę, gdy podstawa by zniknęła; czytnik: pusta podstawa → „Plik.jpg”.
+  [ ] L9 (naprawa wpisów przy starcie jest od 0.8.1 — krok 1 planu 0.8.1, L2): tabela zakazanych zakresów (jeden
+      wiersz = zakres + opis): znaki
+      formatujące (200B–200F, 2060–2064, FEFF, 00AD, 061C, 180E, tagi E0000–E007F), niecharaktery (FDD0–FDEF,
+      xFFFE/xFFFF), obszar prywatny, wypełniacze Hangul (3164, FFA0, 115F/1160), odstępy inne niż spacja na
+      brzegach (00A0, 2000–200A, 202F, 205F, 3000), znak łączący na początku — ta sama tabela w czytniku
+      (zamiana na „_”); NFD → NFC dla liter polskich i częstych łacińskich (tabela); porównanie wielkości liter
+      także Latin-1 (Ä/ä…). Istniejące wpisy z nazwą zakazaną → przy wczytaniu zmiana nazwy (krok 1), nigdy
+      odrzucenie.
+  Testy i dowód: test_fat + testy/host/obrazy_fat.sh (FAT32 „mały”: mformat -F -c 8 na ok. 124 MB; folder 3000
+  plików), fuzz_fat, fuzz_pendrive; test_dokumenty (próby T1/2, T1/6, T4 jako stałe); QEMU test-pendrive:
+  FAT32 „mały”, folder > 1024, ponowny import pomija.
+  Dokumenty: czytnik.md, skarbiec.md, SLOWNIK (zasady nazw), RYZYKA R52 + nowy wiersz (nazwy-podróbki); „CON”,
+  „NUL”… — jedno zdanie w RYZYKA na czas zapisu na pendrive (M9).
+  Gotowe, gdy: próba T6 w wersji -c 8 importuje; folder 3000 plików importuje się w całości; T1/6 odrzuca
+  wszystkie nazwy z listy.
+  Nie w tym kroku: exFAT, NTFS (dodatek A).
+
+KROK 3 — Zdjęcia: duże i nowe formaty, wspólny dekoder                                M · bez decyzji · bez ADR
+  Cel: podgląd działa dla zdjęć do 100 Mpx (tryb 48/50 Mpx w telefonach) i dla GIF/BMP (WebP, jeśli Wuffs umie);
+  dekoder jest gotowy, by korzystał z niego także Podgląd.
+  Zadania:
+  [ ] L23b/L17: limit 24 → 100 Mpx (zmierzone w T5: 100 Mpx progresywny = 1,53 s i 812 MiB); cgroup dekodera
+      384 MiB → 1 GiB, RLIMIT_AS ok. 1,25 GiB, RLIMIT_CPU 20 s zostaje; limit wejścia dekodera osobno (np.
+      128 MiB; od 0.8.1 to K1_DEK_MAKS_BAJTY = 16 MiB, a zdjęcie przychodzi od skarbca w jednym memfd — powyżej
+      24 MiB trzeba podnieść RLIMIT_FSIZE skarbca albo składać plik z kawałków w Plikach: PLAN-0.8.1, krok 4,
+      „Ustalenia”); przy małej pamięci RAM limit z RAM (np. RAM/8) — jedna tabela limitów dekodera (profile.c,
+      k1_dekoder.h). Opcjonalnie mniej pamięci: obraz_przygotuj() zmniejsza pasami zamiast trzymać oba obrazy.
+  [ ] GIF (pierwsza klatka), BMP, WebP przez Wuffs: wiersze w K1_TYPY, rozpoznanie w k1_dok_typ(), moduły
+      WUFFS_CONFIG__MODULE__* w src/dekoder/wuffs.c. Niepewne: czy Wuffs 0.4 dekoduje WebP stratny (VP8) — sprawdzić
+      w źródle; tylko bezstratny → WebP na później. HEIC — nie (jedno zdanie w ZALEZNOSCI.md).
+  [ ] dekoder dla wielu klientów: nadzorca/dekoder.c — tabela „kto może prosić o dekoder” (dziś tylko Pliki,
+      pliki_wyslij); nowa prośba zabija trwający dekoder tylko tego samego klienta, inny czeka w kolejce
+      (najwyżej jedna prośba na klienta). Na razie w tabeli tylko Pliki — Podgląd dopisze krok 4 jednym wierszem.
+  [ ] komunikat przy za dużym zdjęciu mówi ile („Zdjęcie ma 150 Mpx — K1 pokazuje do 100 Mpx”).
+  Testy i dowód: test_dekoder + testy/host/obrazy_dekoder.py (48 i 100 Mpx zwykły i progresywny, GIF, BMP,
+  ewentualnie WebP), fuzz_dekoder (korpus nowych formatów); test w systemie: próba dekodera w klatce z nowym
+  limitem; QEMU test-pendrive: podgląd zdjęcia 48 Mpx.
+  Dokumenty: ADR 0032 (dopisek o limitach), dekoder.md, ZALEZNOSCI.md (moduły Wuffs), RYZYKA R53.
+  Gotowe, gdy: T5 z punktu 2 daje obraz dla 48 i 100 Mpx w klatce w QEMU.
+
+KROK 4 — Aplikacja Podgląd                                                   L · decyzje D1 D2 D5 · ADR 0036
+  Cel: podwójne kliknięcie zdjęcia (Pliki, pulpit) otwiera je w osobnym oknie „Podgląd”; strzałki pokazują
+  poprzednie/następne zdjęcie z folderu.
+  Najpierw: D1 (nazwa i słownik), D2 (Delete → Kosz), D5 — 2–3 szkice wyglądu do wyboru (host: podglad_grafiki /
+  zrzuty), wybór zapisany w WYGLAD.md.
+  Co widzi użytkownik (0.8.2): zdjęcie dopasowane do okna (bez powiększania > 100 %), neutralne ciemne tło;
+  ← / → i przyciski: poprzednie/następne w kolejności jak w Plikach, „3 z 27”; R — obrót widoku (pliku nie
+  zmienia); pasek: nazwa, wymiary, rozmiar, data, pochodzenie; „Ustaw jako tapetę”; Delete → Kosz (wg D2);
+  z menu Start: „Otwórz…” (Ctrl+O) → okno „Wybór pliku” z samymi zdjęciami.
+  Zadania (przepis „Nowa aplikacja” w SKILL.md, wzór src/aplikacje/kalkulator/):
+  [ ] wiersz w K1_APLIKACJE: PODGLAD — następny wolny numer aplikacji, profil i UID (dziś: 9, 17, 208 — sprawdzić),
+      program „podglad”, tag K1-PODGLAD, tytuł „Podgląd”, opis „Zdjęcia i obrazy”, ikona OBRAZ, bez przypięcia.
+  [ ] K1_OTWIERANIE: X(PODGLAD, PNG), X(PODGLAD, JPEG) (+ typy z kroku 3) jako pierwsze → domyślna dla zdjęć.
+  [ ] prawa w skarbcu (dok_kanal.c, tabela prawa): wiersz PODGLAD: P_LISTA | P_CZYTAJ (| P_KOSZ wg D2), nowy
+      zakres Z_OBRAZY_FOLDERU — zdjęcia z folderów, z których użytkownik otworzył zdjęcie w Podglądzie (gest daje
+      folder, tylko do odczytu, do zamknięcia aplikacji). Rozszerza ADR 0030 → ADR 0036 + RYZYKA (przejęty
+      Podgląd widzi zdjęcia jednego folderu, nic więcej).
+  [ ] okno wyboru pliku: „rodzina” typów (obrazy) jako kolumna w K1_TYPY — DOK_WYBIERZ przyjmuje rodzinę.
+  [ ] dekoder: wiersz Podglądu w tabeli z kroku 3, kanał od nadzorcy w kanaly[] (uslugi.c).
+  [ ] ekran: „Ustaw jako tapetę” przyjmuje zdjęcie dziś tylko od Plików (ekran/zdjecie.c) → tabela dozwolonych
+      nadawców (Pliki, Podgląd).
+  [ ] klatka: pamięć ok. 96 MiB, RLIMIT_FSIZE jak gui (okno na cały ekran 4096×2160 ≈ 35 MiB) — profile.c
+      z uzasadnieniem.
+  Testy i dowód: host — kolejność ←/→ i „n z m” (czysta funkcja), prawa (test_dokumenty: Podgląd nie widzi tekstu,
+  innego folderu, Kosza; bez gestu nic); w systemie — t_klatki, t_proby, t_inventory (same z listy); QEMU —
+  test-podglad.sh (albo w test-pendrive): import → dwuklik zdjęcia → okno „podglad” → kolor na zrzucie → → inne
+  zdjęcie (inny kolor) → R → Delete (wg D2); położenia przycisków w logu.
+  Dokumenty: ADR 0036, aplikacje.md, SLOWNIK, WYGLAD, RYZYKA.
+  Gotowe, gdy: scenariusz QEMU zielony, zrzuty pokazane właścicielowi.
+  Nie w tym kroku: powiększanie fragmentu w pełnej rozdzielczości, pełny ekran (ekran K1 nie ma trybu
+  pełnoekranowego okna — osobna decyzja), pokaz slajdów.
+
+KROK 5 — Otwieranie: „Otwórz za pomocą”, jedno menu                                    M · decyzja D7 · bez ADR
+  Cel: otwieranie plików działa jak w innych systemach: prawy przycisk → menu, podwójne kliknięcie zawsze coś
+  robi, wybór domyślnej aplikacji w chwili otwierania.
+  Najpierw: D7 (nazwa) i szkic menu w Plikach (ten sam wygląd co na pulpicie).
+  Zadania (L22):
+  [ ] jedno menu pod prawym przyciskiem dla pliku, wspólny kod (lista pozycji liczona w jednym miejscu, np.
+      przybornik) dla pulpitu (gui/kontekst.c) i Plików (dziś nie mają menu):
+        Otwórz · Otwórz za pomocą ▸ (aplikacje typu + „Zawsze otwieraj tą aplikacją”) · Pokaż w Plikach (pulpit)
+        · Zmień nazwę · Usuń · Szczegóły
+      Przycisk „Otwórz w…” w Plikach znika (podmiana rzędu przycisków — przyciski.c, wybor_aplikacji); zostaje
+      ewentualnie „Otwórz”. Na pulpicie „Otwórz w: Pliki” → „Pokaż w Plikach”.
+  [ ] podwójne kliknięcie zawsze coś widocznego: zdjęcie → Podgląd, tekst → Notatki; typ bez aplikacji (PDF, ZIP,
+      „Plik”) → komunikat „K1 nie ma jeszcze aplikacji do tego typu pliku — możesz go przechowywać, przenosić
+      i usuwać”; wyszarzona pozycja menu z podpowiedzią dlaczego.
+  [ ] Ustawienia → Aplikacje: wszystkie typy z domyślną aplikacją (także gdy jedna albo żadna — wtedy opis),
+      bez etykiety „Pliki (podgląd)”.
+  [ ] słownik: „otworzyć za pomocą” (wg D7), „domyślna aplikacja”.
+  Testy i dowód: host — lista pozycji menu dla każdego typu; QEMU (test-pliki, test-m4): prawy przycisk na pliku
+  w Plikach → menu na ekranie → „Otwórz za pomocą” → Notatki; dwuklik zdjęcia → Podgląd; dwuklik ZIP → komunikat.
+  Dokumenty: aplikacje.md (Pliki, Ustawienia), gui (pulpit), SLOWNIK, WYGLAD.
+  Gotowe, gdy: pulpit i Pliki mają to samo menu; żaden dwuklik nie kończy się ciszą.
+
+KROK 6 — Przeciąganie i zaznaczanie wielu                                         L · decyzje D6 D8 · bez ADR*
+  Cel: pliki i foldery przeciąga się myszą jak w innych systemach, a K1 jasno mówi „Czy na pewno…?”, „Możesz
+  tylko…” albo „Nie możesz, bo…”.  (*faza B — między oknami — wg D6: osobny ADR, domyślnie po 0.8.2)
+  Najpierw: szkice (wygląd przeciąganej ikony, podświetlenie celu, okienko pytania) i D8.
+  Zadania (L24, faza A — w obrębie Plików i pulpitu):
+  [ ] zaznaczanie wielu: Ctrl+klik, Shift+klik, Ctrl+A w Plikach (dziś jeden „zaznaczony”); Pliki wysyłają
+      DOK_PRZENIES/DOK_KOSZ po kolei, wynik zbiorczy jak przy imporcie.
+  [ ] Pliki: przeciągnięcie na folder na liście, na miejsce z lewej (Pulpit, Dokumenty…), na Kosz; z Pendrive'a
+      na folder K1 = import (kopia); z Kosza na folder = przywróć tam.
+  [ ] pulpit: ikona pliku na Kosz → do Kosza, na ikonę folderu → przeniesienie (dziś tylko przestawianie w siatce).
+  [ ] w trakcie: półprzezroczysta ikona z nazwą (i liczbą) przy kursorze, podświetlony cel, znak przy kursorze:
+      przenieś / kopiuj / nie można.
+  [ ] JEDNA TABELA reguł (źródło, cel) → działanie / pytanie / odmowa z tekstem; sprawdzana przed upuszczeniem
+      (podpowiedź) i po wyniku skarbca (K1_DOK_BLAD_*). Teksty (do akceptacji w szkicach):
+        „Czy na pewno…”   – Kosz, folder z zawartością albo > 1 element (wg D8): „Przenieść 12 elementów do Kosza?”
+                          – plik, który otworzyła aplikacja (Notatki): „Notatki przestaną widzieć ten plik w swojej
+                            liście. Przenieść?”
+        „Możesz tylko…”   – „Z pendrive'a możesz tylko skopiować pliki do K1 (import).”
+                          – „Z Kosza możesz tylko przywrócić — upuść na folder albo kliknij „Przywróć”.”
+        „Nie możesz, bo…” – „…folder nie może trafić do samego siebie.” · „…najwyżej 8 folderów w folderach.”
+                          · „…foldery Pulpit, Dokumenty, Obrazy, Muzyka, Wideo i Pobrane są stałe.”
+                          · „…pendrive jest w K1 tylko do odczytu.” · „…brak miejsca na pliki (zostało X MB).”
+        nazwa zajęta     – „W „Obrazy” jest już „IMG_0001.JPG”.” [Zachowaj oba] [Pomiń] [Anuluj]
+                            („Zastąp” — nie w 0.8.2: wymaga „stara wersja do Kosza”, jak w M9)
+  [ ] L19: pulpit — więcej plików niż miejsc w siatce (limit 96): ostatnia ikona „Więcej w Plikach…” albo
+      komunikat; limit jako wiersz w tabeli.
+  [ ] k1qemu.py: Maszyna.przeciagnij(x1, y1, x2, y2) — wciśnięcie, kilka ruchów, puszczenie (bez stałych pauz).
+  Testy i dowód: host — tabela reguł (każda para źródło/cel), zaznaczanie wielu; QEMU (test-pliki): plik do
+  folderu, na Kosz (pytanie wg D8), folder w siebie (komunikat), z pendrive'a (import), ikona na Kosz na pulpicie.
+  Dokumenty: aplikacje.md (Pliki), gui, SLOWNIK („przeciągnąć”, „upuścić”, „zaznaczenie”), WYGLAD, TESTY.md.
+  Gotowe, gdy: scenariusz QEMU zielony; każdy wiersz tabeli reguł ma test.
+  Faza B (wg D6, domyślnie po 0.8.2): ekran prowadzi przeciąganie między oknami (tylko on widzi wszystkie okna),
+  okno źródłowe: „przeciągam plik X”, ekran do celu: „upuszczono X w punkcie”, cel prosi skarbiec (gest = zgoda,
+  ADR 0027) — nowe komunikaty i ADR, ten sam mechanizm co w M9 dla stref. W tym kroku najwyżej szkic ADR.
+
+KROK 7 — Porządki i wydanie 0.8.2                                                       S · bez decyzji
+  Cel: wydanie 0.8.2 z obrazem ISO i USB, porządki (AGENTS.md, zasada 2: każda wersja MINOR — tu 0.8.x kończy
+  „Pliki”, więc porządki za całe 0.8).
+  [ ] Porządki: co usunąć/scalić/uprościć po krokach 1–6 i 0.8.1; przegląd „Tymczasowe” (terminy 0.9.0 — punkt 5).
+  [ ] VERSION 0.8.2; CHANGELOG (Dodane / Zmienione / Naprawione / Porządki) z opisów PR-ów kroków 1–6;
+      DO_ZROBIENIA.txt (0.8.2 gotowe, testy X230 do zrobienia przez właściciela); README, jeśli zmieniła się
+      instrukcja; AGENTS.md „Teraz:” → M7.
+  [ ] Po scaleniu: CI, tag k1-v0.8.2, wydanie; raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
+
+
+4. DECYZJE WŁAŚCICIELA (z rekomendacją; który krok ich potrzebuje)
+-----------------------------------------------------------------
+[!] D1 (krok 4) Nazwa „Podgląd”: w słowniku „podgląd” to dziś panel po prawej w Plikach. Jedno słowo = jedno
+       znaczenie. Rekomendacja: aplikacja „Podgląd”, a panel w Plikach — „szczegóły”.
+[!] D2 (krok 4) Delete w Podglądzie wyrzuca zdjęcie do Kosza (jak w Zdjęciach Windows)? Rekomendacja: tak.
+[!] D3 (krok 2) Ponowny import tych samych plików. Rekomendacja: pomijać już zaimportowane i napisać ile.
+[!] D5 (krok 4) Szkice wyglądu Podglądu (2–3 do wyboru) — na początku kroku 4.
+[!] D6 (krok 6) Przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) w 0.8.2 czy razem z M9?
+       Rekomendacja: w 0.8.2 przeciąganie w obrębie Plików i pulpitu; między oknami zaraz po 0.8.2, jednym ADR-em
+       z planem M9 (strefy potrzebują tego samego).
+[!] D7 (krok 5) „Otwórz w…” → „Otwórz za pomocą” (jak w Windows), tylko w menu pod prawym przyciskiem, z „Zawsze
+       otwieraj tą aplikacją”? Rekomendacja: tak.
+[!] D8 (krok 6) Kiedy pytać „Czy na pewno?” przy przeciąganiu do Kosza? Rekomendacja: folder z zawartością albo
+       więcej niż jeden element; pojedynczy plik bez pytania (Kosz da się cofnąć).
+(D4 i D9 — rozstrzygnięte w 0.8.1, PLAN-0.8.1.txt punkt 6.)
+[!] Nadal otwarte: testy na X230 (0.8.0: notatki po migracji, import z telefonu, podgląd i obrót; 0.8.1: Informacje
+       i „Użyj całego pendrive'a na dane” na starym pendrivie, import dużego pliku).
+
+
+5. PO 0.8.2, PRZED 0.9.0 (M7 Sieć) — co jeszcze musi być gotowe
+---------------------------------------------------------------
+  - „Tymczasowe” z terminem 0.9.0 (DO_ZROBIENIA.txt):
+      * manifest formatu 1 (47 MiB) — najpierw nowe sprawdzanie plików startowych shim/GRUB (RYZYKA R45),
+        potem usunięcie z k1_efi.c, instalator/main.c, zbuduj-usb.sh, podpisz.c;
+      * przenoszenie starych notatek (notatki/stare.c) — usunąć, gdy właściciel potwierdzi start 0.8.x ze swoim
+        pendrive'em (test X230).
+  - Przeciąganie między oknami (krok 6, faza B) — jeśli D6 = „po 0.8.2”.
+  - M7 zgodnie z planem: test „nic w K1 nie nasłuchuje”, e1000e + DHCP w osobnej klatce, czas z sieci (z regułą
+    z kroku 1 planu 0.8.1: skok w przód nie opróżnia Kosza).
+
+
+6. ŚWIADOMIE POZA 0.8.2
+-----------------------
+  - exFAT i NTFS na pendrive'ach (dodatek A); HEIC; odtwarzanie wideo (od 0.8.1 pliki wideo do 4 GB da się
+    przechowywać, ale nie oglądać; K1 nie rozpoznaje jeszcze typu „wideo”); zapis plików na pendrive (M9);
+  - kompaktowanie po kawałku (R57) — chyba że krok 1 pokaże inaczej;
+  - pełne NFC i pełne porównanie wielkości liter Unicode;
+  - w Podglądzie: powiększanie fragmentu w pełnej rozdzielczości, pełny ekran, pokaz slajdów.
+
+
+DODATEK A — Jak trudny byłby odczyt pendrive'ów NTFS
+---------------------------------------------------
+Krótko: wykonalne, w tym samym bezpiecznym modelu co FAT, ale to osobny krok wielkości 2–3× FAT, nie dodatek do
+0.8.2. Najpierw polecam exFAT.
+
+  - Model bez zmian: osobny plik src/czytnik/ntfs.c w tej samej klatce „czytnik” (UID 106, tylko pread64
+    i memfd_create, pendrive tylko do odczytu). Sterownika NTFS w jądrze (ntfs3) NIE włączamy — jądro dalej nie
+    parsuje obcych systemów plików (RYZYKA R34). Biblioteka ntfs-3g odpada (duża, GPL, kod pisany pod zapis).
+  - Co trzeba napisać (tylko odczyt): boot sector NTFS; rekordy MFT z „fixups” (sprawdzanie sektorów);
+    atrybuty: nazwy ($FILE_NAME — przestrzenie Win32/DOS/POSIX, pomijać same nazwy DOS), dane ($DATA w rekordzie
+    albo w „runach” — dekodowanie list przebiegów, pliki rzadkie), foldery jako B-drzewa ($INDEX_ROOT,
+    $INDEX_ALLOCATION z własnymi fixups), $ATTRIBUTE_LIST (pliki bardzo pofragmentowane, częste przy dużych
+    zdjęciach i filmach), pofragmentowany sam MFT. Do pominięcia z komunikatem: pliki skompresowane NTFS (LZNT1 —
+    ewentualnie później, ok. 150 wierszy), zaszyfrowane (EFS), dowiązania i punkty ponownej analizy,
+    strumienie alternatywne.
+  - Wielkość: FAT to ok. 480 wierszy (fat.c + nazwy.c). NTFS — szacuję 1200–1800 wierszy + testy i fuzzing
+    (fuzz_ntfs) + obrazy testowe robione narzędziami z pakietu ntfs-3g (mkntfs, ntfscp — bez montowania).
+    2–3 PR-y: (1) boot, MFT, przebiegi, fixups; (2) foldery i nazwy; (3) listy atrybutów, pliki rzadkie, testy
+    na uszkodzonych obrazach.
+  - Pułapki: Windows z „szybkim uruchamianiem” zostawia NTFS „brudny” (do odczytu zwykle wystarcza, ale trzeba
+    to wykrywać i mówić o tym); dużo więcej pól do sprawdzania niż w FAT = większa powierzchnia ataku — dlatego
+    klatka i fuzzing są obowiązkowe (wpis w RYZYKA R52).
+  - Co jest częstsze: pendrive'y do 32 GB to zwykle FAT32, większe pendrive'y i karty SD z telefonów i aparatów —
+    exFAT; NTFS to głównie dyski zewnętrzne sformatowane w Windows. exFAT jest prostszy (ok. 1,5× FAT, specyfikacja
+    Microsoftu jest publiczna od 2019 r.) i pokrywa więcej Twoich przypadków.
+  Ocena: exFAT — średnio łatwy (jeden krok, ok. 600–800 wierszy); NTFS — średnio trudny (dwa–trzy kroki).
+  Proponowana kolejność: exFAT w 0.9.x albo przy M9, NTFS po nim, gdy będzie potrzebny. Każdy z nich
+  to osobny krok tej samej wielkości co kroki z punktu 5 (NTFS: dwa–trzy).
