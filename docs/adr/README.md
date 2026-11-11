@@ -38,7 +38,7 @@ Krótko, dlaczego nie.
 | [0008](0008-pulpit-okna-i-aplikacje-m4.md) | Pulpit, okna i pierwsze aplikacje (M4) | Przyjęty |
 | [0009](0009-czcionki-i-tekst.md) | Czcionki i rysowanie tekstu | Przyjęty |
 | [0010](0010-obraz-iso-do-maszyn-wirtualnych.md) | Obraz ISO do maszyn wirtualnych i grafika z firmware | Przyjęty (tymczasowy do M10) |
-| [0011](0011-kolejnosc-etapow-po-m4.md) | Kolejność etapów po M4 | Przyjęty |
+| [0011](0011-kolejnosc-etapow-po-m4.md) | Kolejność etapów po M4 | Zastąpiony przez 0019 (kolejność), 0035 (mapa drogi) |
 | [0012](0012-przeglad-m4-1-tryby-ekranu-zasoby.md) | M4.1: przegląd bezpieczeństwa, tryby ekranu, aplikacja Zasoby | Przyjęty |
 | [0013](0013-dyski-i-usb-m5a.md) | M5a: sterowniki dysków i USB; pierwszy laptop — ThinkPad X230 | Przyjęty |
 | [0014](0014-wskaznik-baterii.md) | Wskaźnik baterii na górnym pasku | Przyjęty |
@@ -46,14 +46,14 @@ Krótko, dlaczego nie.
 | [0016](0016-obraz-usb-z-partycja-danych.md) | Obraz na pendrive z partycją danych; skarbiec w łańcuchu startu | Przyjęty |
 | [0017](0017-haslo-i-ekran-logowania.md) | Hasło i ekran logowania (M5e) | Przyjęty |
 | [0018](0018-instalator-na-dysk.md) | Instalator: K1 na dysku komputera (M5f) | Przyjęty |
-| [0019](0019-przeglad-0-5-9-i-nowy-plan.md) | Przegląd po 0.5.9 i nowy plan etapów (Fundament → Bezpieczne aktualizacje → Sieć → Przeglądarka → Pliki) | Przyjęty |
+| [0019](0019-przeglad-0-5-9-i-nowy-plan.md) | Przegląd po 0.5.9 i nowy plan etapów (Fundament → Bezpieczne aktualizacje → Sieć → Przeglądarka → Pliki) | Przyjęty; kolejność zmieniona przez 0026, mapa drogi — 0035 |
 | [0020](0020-strefy-mikro-maszyny-na-aplikacje.md) | Strefy: każda obca aplikacja w swojej mikro-maszynie (trwałość i grafika do wyboru, zaufana ramka, pliki przez Gatekeepera) | Przyjęty |
 | [0021](0021-bezpieczne-aktualizacje-m6.md) | Bezpieczne aktualizacje (M6): manifest, podpis, wersje, dm-verity, A/B, Secure Boot | Przyjęty |
 | [0022](0022-ab-i-secure-boot-zamkniete-jadro.md) | A/B i Secure Boot (M6c, M6d): zamknięte jądro k1.efi, dwa miejsca na system, klucz K1 w MOK | Przyjęty |
 | [0023](0023-porzadki-przed-m7.md) | Porządki w kodzie przed M7 (0.7.1): jedna lista aplikacji, wspólne części, Kalkulator | Przyjęty |
 | [0024](0024-wspolna-strefa.md) | Wspólna strefa na drobne, zaufane aplikacje (obok osobnych stref, przeglądarka zawsze osobno) | Przyjęty (kierunek) |
 | [0025](0025-przegladarka-k1.md) | Przeglądarka K1: własne okno i pasek adresu, silnik (WPE) w strefie, sesje = strefy | Przyjęty (kierunek) |
-| [0026](0026-pulpit-i-pliki-przed-siecia.md) | Pulpit (0.7.5) i Pliki (0.8.0) przed Siecią: ikony na pulpicie, przypinanie, Kosz (30 dni), wspólne dokumenty, okno wyboru pliku, dekoder w izolacji | Przyjęty |
+| [0026](0026-pulpit-i-pliki-przed-siecia.md) | Pulpit (0.7.5) i Pliki (0.8.0) przed Siecią: ikony na pulpicie, przypinanie, Kosz (30 dni), wspólne dokumenty, okno wyboru pliku, dekoder w izolacji | Przyjęty; mapa drogi — 0035 |
 | [0027](0027-przeplyw-plikow-miedzy-strefami.md) | Przepływ plików: Pliki jako jedyny węzeł, zgoda = gest w interfejsie K1, „Otwórz w…” z zapisem z powrotem, domyślne aplikacje | Przyjęty |
 | [0028](0028-pulpit-warstwa-ikon-i-rozmieszczenie.md) | Pulpit 0.7.5: warstwa ikon w ekranie, rozmieszczenie w skarbcu, menu kontekstowe, „Zamknij okno” z paska | Przyjęty |
 | [0029](0029-pliki-foldery-kosz.md) | Pliki 0.8.0: dokumenty w skarbcu, foldery jak w Windows, Kosz (30 dni), prawa w tabeli, protokół `DOK_*` | Przyjęty |
@@ -61,3 +61,5 @@ Krótko, dlaczego nie.
 | [0031](0031-zdjecia-z-pendrive-czytnik-fat.md) | Pliki 0.8.0, krok 3: zdjęcia z pendrive'a — czytnik FAT w klatce, import z pochodzeniem | Przyjęty |
 | [0032](0032-dekoder-obrazow-i-tapeta-ze-zdjecia.md) | Pliki 0.8.0, krok 4: dekoder obrazów (Wuffs) w jednorazowym procesie, podgląd zdjęć, tapeta ze zdjęcia | Przyjęty |
 | [0033](0033-k1-dane-do-konca-pendrivea.md) | Pliki 0.8.0, krok 5: pusta K1-DANE rośnie przy pierwszym starcie do końca pendrive'a | Przyjęty |
+| [0034](0034-skarbiec-na-duze-dane.md) | Skarbiec na duże dane (0.8.1): indeks, limity, kompaktowanie wcześniej, rezerwa, pliki w kawałkach | Przyjęty |
+| [0035](0035-mapa-drogi-wedlug-wersji.md) | Mapa drogi według wersji (0.9 Sieć, 0.10 Strefy…) zamiast etapów M; jedno miejsce na plan | Przyjęty |

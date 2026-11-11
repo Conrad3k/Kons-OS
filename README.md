@@ -17,19 +17,21 @@ i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
 | M3 Trusted Core | nadzorca usług, każda usługa we własnej „klatce”, restart po awarii | PRZETESTOWANE |
 | M4 GUI | pulpit, okna, aplikacje Zegar, Notatki, Ustawienia; obraz ISO do maszyny wirtualnej | PRZETESTOWANE (QEMU: UEFI i BIOS) |
 | M4.1 Porządki i audyt | przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby | PRZETESTOWANE |
-| M5 Dane i sprzęt | zaszyfrowane dane, hasło, dyski i USB, pendrive, **instalator na dysk** | PRZETESTOWANE w QEMU (0.5.9); czeka na test na X230 |
+| M5 Dane i sprzęt | zaszyfrowane dane, hasło, dyski i USB, pendrive, **instalator na dysk** | PRZETESTOWANE w QEMU (0.5.9) |
 | 0.6.0 Fundament | porządki w nadzorcy, zdarzenia jądra zamiast odpytywania, szybsze testy, historia baterii | PRZETESTOWANE |
-| M6 Bezpieczne aktualizacje | podpisane wydania, wykrywanie podmiany systemu, A/B, Secure Boot z własnym kluczem | PRZETESTOWANE w QEMU (0.7.0); czeka na test na X230 |
-| 0.7.5 Pulpit | ikony na pulpicie jak w Windows (w stylu K1), menu pod prawym przyciskiem, przypinanie i odpinanie na pasku | PRZETESTOWANE w QEMU (ADR 0028); czeka na test na X230 |
-| 0.8.0 Pliki | aplikacja Pliki, Kosz (30 dni albo ręcznie), okno wyboru pliku, zdjęcia z pendrive'a, podgląd zdjęć, tapeta z własnego zdjęcia, cały pendrive na dane | PRZETESTOWANE w QEMU (ADR 0029–0033); czeka na test na X230 |
-| 0.8.1 Pliki — dopracowanie | dane nie giną (naprawa przy starcie, zły zegar), 16 384 pliki, szybki start, miejsce w Informacjach, stary pendrive powiększany przyciskiem, pliki do 4 GB | PRZETESTOWANE w QEMU (ADR 0033, 0034); czeka na test na X230 |
-| M7 Sieć | kabel, potem Wi-Fi | PLANOWANE — następne |
-| M8 Strefy | każda obca aplikacja (przeglądarka, Discord…) w swojej mikro-maszynie; kolorowa ramka; stała/jednorazowa; pełna izolacja/szybka grafika | PLANOWANE (ADR 0020) |
-| M9 Pliki ze stref | przenoszenie plików ze stref i do stref przez okno K1, schowek między strefami | PLANOWANE |
-| M10–M12 | tryb ratunkowy i TPM, audyt końcowy | PLANOWANE (kolejność: ADR 0019, 0020, 0026) |
+| M6 Bezpieczne aktualizacje | podpisane wydania, wykrywanie podmiany systemu, A/B, Secure Boot z własnym kluczem | PRZETESTOWANE w QEMU (0.7.0) |
+| 0.7.5 Pulpit | ikony na pulpicie jak w Windows (w stylu K1), menu pod prawym przyciskiem, przypinanie i odpinanie na pasku | PRZETESTOWANE w QEMU (ADR 0028) |
+| 0.8.0 Pliki | aplikacja Pliki, Kosz (30 dni albo ręcznie), okno wyboru pliku, zdjęcia z pendrive'a, podgląd zdjęć, tapeta z własnego zdjęcia, cały pendrive na dane | PRZETESTOWANE w QEMU (ADR 0029–0033) |
+| 0.8.1 Pliki — dopracowanie | dane nie giną (naprawa przy starcie, zły zegar), 16 384 pliki, szybki start, miejsce w Informacjach, stary pendrive powiększany przyciskiem, pliki do 4 GB | PRZETESTOWANE w QEMU (ADR 0033, 0034) |
+| 0.8.2 Pliki — dopracowanie, część 2 | skarbiec na duże dane (szybki start, prawie cały pendrive na pliki), pendrive z telefonu, duże zdjęcia, aplikacja Podgląd, „Otwórz za pomocą”, przeciąganie | W TOKU (`docs/PLAN-0.8.2.txt`) |
+| 0.9 Sieć | kabel, potem Wi-Fi; nic w K1 nie nasłuchuje | PLANOWANE — następne |
+| 0.10 Strefy | każda obca aplikacja (przeglądarka, Discord…) w swojej mikro-maszynie; kolorowa ramka; stała/jednorazowa; pełna izolacja/szybka grafika | PLANOWANE (ADR 0020) |
+| 0.11 Pliki ze stref | przenoszenie plików ze stref i do stref przez okno K1, schowek między strefami | PLANOWANE |
+| 0.12–0.13 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |
 
-Pełny plan i zasady: [`docs/SPEC.md`](docs/SPEC.md). Co zostało do zrobienia (i czego potrzeba od właściciela):
-[`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
+Od 0.9 etapy to numery wersji (ADR 0035); wcześniejsze etapy M0–M6 zostały w tabeli jako historia.
+Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
+[`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
 **Ważne:** K1 działa w maszynie wirtualnej: pulpit z paskiem na dole (Start, Zegar, Notatki,
 Ustawienia, Zasoby, Kalkulator, Pliki, Instalator), paskiem na górze (dźwięk, data i godzina), oknami i polską klawiaturą. Od 0.5.2 zna

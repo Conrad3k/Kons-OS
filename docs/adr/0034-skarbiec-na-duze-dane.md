@@ -2,7 +2,7 @@
 
 - Status: Przyjęty
 - Data: 2026-11-11
-- Dotyczy: ADR 0015 (format skarbca — **bez zmian na dysku**), ADR 0029 (pliki), `docs/PLAN-0.8.1.txt` (luki L4c, L4d,
+- Dotyczy: ADR 0015 (format skarbca — **bez zmian na dysku**), ADR 0029 (pliki), `docs/archiwum/PLAN-0.8.1.txt` (luki L4c, L4d,
   L5, L6, L21), RYZYKA R57
 
 ## Kontekst

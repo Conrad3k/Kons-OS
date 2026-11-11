@@ -108,13 +108,13 @@ Dokumentów.
   (gdy go nie ma albo jest w Koszu — do Dokumentów, Pliki to mówią); „usuń na zawsze” i „opróżnij” tylko w Koszu; po
   30 dniach skarbiec usuwa sam — przy otwarciu i co godzinę. W Koszu jest to, co wyrzucono samo (`k1_dok_w_koszu`:
   plik i jego folder wyrzucone osobno to dwa elementy) — tak samo liczy skarbiec, lista i Pliki.
-- **Granica czasu** (0.8.1, plan L3, `dok_czas.c`): K1 nie ustawia zegara komputera (do M7), a słaba bateria cofa go
+- **Granica czasu** (0.8.1, plan L3, `dok_czas.c`): K1 nie ustawia zegara komputera (do 0.9), a słaba bateria cofa go
   np. do 2000 r. Skarbiec zna dolną granicę: czas budowy tej wersji K1 (`K1_CZAS_BUDOWY` z `SOURCE_DATE_EPOCH` —
   powtarzalny) i najpóźniejszy widziany czas (obiekt `czas`). Czasy we wpisach (utworzono, zmieniono, Kosz) nigdy
   nie są wcześniejsze; gdy zegar jest za granicą, Kosz niczego nie usuwa na zawsze. Czas w Koszu z złego zegara
   (sprzed 1.11.2026 — żadna wersja K1 nie miała wtedy Kosza — albo ponad dobę w przyszłości) skarbiec ustawia na
   „teraz”, gdy zegar jest dobry: 30 dni liczy się od nowa. Zegar raz ustawiony za daleko w przód (np. 2035) blokuje
-  Kosz do tej daty — bezpiecznie (nic nie ginie), rozwiąże to czas z sieci (M7, RYZYKA R56).
+  Kosz do tej daty — bezpiecznie (nic nie ginie), rozwiąże to czas z sieci (0.9, RYZYKA R56).
 
 **Prawa** — tabela w `dok_kanal.c` (wiersz na klienta; właściciel kanału od nadzorcy): Pliki — wszystko; pulpit
 (gui) — tylko folder Pulpit (lista nazw i typów, „do Kosza”, „opróżnij Kosz”, „Otwórz w…”, bez treści); Notatki
@@ -187,8 +187,8 @@ kolei. Formatowanie: tylko gdy pierwszy MiB partycji to zera (inaczej „obce da
 ## Czas otwarcia (0.8.1, RYZYKA R58)
 Otwarcie odczytuje i uwierzytelnia każdy żywy rekord (AEAD obejmuje nazwę i treść), więc trwa proporcjonalnie do
 ilości danych — po kompaktowaniu bez starych wersji (ADR 0034), ale z całą treścią plików. Klienci nie czekają:
-ekran po 1,5 s rusza z ustawieniami domyślnymi i stosuje zapisane, gdy przyjdzie odpowiedź. Indeks nazw (zmiana
-formatu) — `docs/PLAN-0.8.2.txt`, krok 1 (luka L25).
+ekran po 1,5 s rusza z ustawieniami domyślnymi i stosuje zapisane, gdy przyjdzie odpowiedź. Nowy format (dziennik w
+odcinkach, zapisany spis, kompaktowanie po odcinku) — `docs/PLAN-0.8.2.txt`, krok 1, ADR 0036 (luki L25–L28).
 
 ## Obsługa błędów
 Brak partycji, dwie partycje „K1-DANE”, obce dane, uszkodzony magazyn, magazyn z hasłem (do M5e) →

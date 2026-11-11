@@ -1,5 +1,5 @@
 K1 — PLAN WERSJI 0.8.1 „PLIKI — DOPRACOWANIE” (przed 0.9.0 / M7 Sieć)
-[Kroki 1–4 = wydanie 0.8.1. Kroki 5–10 i nowy krok — docs/PLAN-0.8.2.txt. Tu zostają luki L1–L25 i próby T1–T6.]
+[ZAMKNIĘTY. Kroki 1–4 = wydanie 0.8.1. Kroki 5–10, luki i próby potrzebne dalej — docs/PLAN-0.8.2.txt (ADR 0035).]
 =====================================================================
 
 Data: 2026-11-10 (podział na kroki: 2026-11-11). Stan wyjściowy: 0.8.0 na main (b4c65b5), CI zielone.

@@ -1,6 +1,6 @@
 # 0019. Przegląd po 0.5.9 i nowy plan etapów
 
-- Status: Przyjęty (kolejność po 0.7.3 zmieniona: ADR 0026)
+- Status: Przyjęty (kolejność po 0.7.3 zmieniona: ADR 0026; mapa drogi według wersji: ADR 0035)
 - Data: 2026-11-07
 - Dotyczy: ADR 0011 (kolejność etapów — **zastępuje ją od M5.2**), SPEC §14, ADR 0018
 

@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | PRZETESTOWANE (M4, Zasoby i Ekran: M4.1) — `scripts/test-m4.sh`, testy w systemie (klatki, próby) |
 | **Kod** | `src/aplikacje/*/main.c`, szkielet `src/przybornik/k1_aplikacja.c` |
-| **Decyzje** | ADR 0008; do M10 aplikacje leżą w obrazie rdzenia (`/rdzen/aplikacje`), potem podpisane obrazy w `/aplikacje` |
+| **Decyzje** | ADR 0008; do 0.12 aplikacje leżą w obrazie rdzenia (`/rdzen/aplikacje`), potem podpisane obrazy w `/aplikacje` |
 
 ## Cel
 Każda aplikacja to jeden wiersz w `K1_APLIKACJE` (`src/wspolne/k1_uslugi.h`) i katalog

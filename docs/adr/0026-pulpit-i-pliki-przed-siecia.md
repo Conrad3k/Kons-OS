@@ -1,6 +1,6 @@
 # 0026. Pulpit (0.7.5) i Pliki (0.8.0) przed Siecią
 
-- Status: Przyjęty (kolejność i zakres; szczegóły techniczne — przy implementacji, w tym ADR albo nowym)
+- Status: Przyjęty (kolejność i zakres; szczegóły techniczne — przy implementacji, w tym ADR albo nowym; mapa drogi według wersji: ADR 0035)
 - Data: 2026-11-09
 - Dotyczy: ADR 0019 (kolejność etapów — **zmienia ją po 0.7.3**), ADR 0020 (pliki ze stref), SPEC §7
   (dekodery), §9 (Blob Vault, Gatekeeper), §14

@@ -27,7 +27,7 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **kanał** | Jedyna droga rozmowy między dwoma programami (gniazdo UNIX). Tworzy go nadzorca; odbiorca zawsze wie, kto wysłał. |
 | **komunikat** | Wiadomość w kanale: zawsze 32 bajty, sprawdzana pole po polu przez odbiorcę. |
 | **wejście** | Usługa, która jako jedyna czyta klawiaturę i mysz. |
-| **ekran** | Usługa, która jako jedyna rysuje na karcie graficznej: składa okna, rysuje kursor, (od M8) ramki stref. |
+| **ekran** | Usługa, która jako jedyna rysuje na karcie graficznej: składa okna, rysuje kursor, (od 0.10) ramki stref. |
 | **pulpit** (`gui`) | Usługa rysująca paski, menu Start i (od 0.7.5) ikony na pulpicie. Nie widzi treści okien. |
 | **przybornik** | Wspólna biblioteka do rysowania: tekst, przyciski, okna, ikony, kolory K1. |
 | **ikona na pulpicie** | Kafelek aplikacji (od 0.8.0 też pliku) w siatce na pulpicie: zaznacz, przeciągnij, otwórz podwójnym kliknięciem. |
@@ -71,7 +71,7 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **podgląd** | Panel po prawej w Plikach: szczegóły zaznaczonego pliku, początek tekstu albo zmniejszone zdjęcie (od dekodera). |
 | **tapeta ze zdjęcia** (tapeta „Zdjęcie”) | Własne zdjęcie użytkownika jako tapeta: w Plikach „Ustaw jako tapetę”; ekran przechowuje je w skarbcu i rysuje „wypełniając” ekran (ADR 0032). |
 
-## Strefy (od M8)
+## Strefy (od 0.10)
 | Pojęcie | Znaczenie |
 |---|---|
 | **strefa** | Mikro-maszyna wirtualna z własnym jądrem dla obcej aplikacji (przeglądarka, Discord…). Błąd w niej nie sięga K1. |
@@ -80,3 +80,9 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **pełna izolacja / szybka grafika** | Strefa rysuje procesorem albo dostaje kartę graficzną przez pośrednika (słabsza izolacja). |
 | **ramka** | Obwódka w kolorze strefy rysowana przez ekran K1 wokół jej okien; aplikacja nie może jej podrobić. |
 | **sesja przeglądarki** | Osobna strefa silnika stron (np. „bank”, „prywatna”), z własnym kolorem karty (ADR 0025). |
+
+## Plan i wersje
+| Pojęcie | Znaczenie |
+|---|---|
+| **mapa drogi** | Kolejność wersji MINOR z tematami: 0.9 Sieć, 0.10 Strefy, 0.11 Pliki ze stref… (ADR 0035, `docs/DO_ZROBIENIA.txt`). Zastępuje dawne „etapy M” (M7 = 0.9 itd.). |
+| **plan wersji** | `docs/PLAN-<wersja>.txt`: kroki jednej wersji, luki, decyzje; jeden krok = jeden czat = jeden PR; zakres zamrożony. Zamknięty plan — `docs/archiwum/`. |
