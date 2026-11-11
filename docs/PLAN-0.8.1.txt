@@ -228,8 +228,8 @@ Otwieranie, limity, przeciąganie (uwagi właściciela z 2026-11-10)
      [x] PR #65
 [x]  2  Skarbiec: więcej plików, szybki start         L21 L4c L4d L5 L6            1           —        M–L
      [x] PR #66
-[ ]  3  Miejsce: ile zostało, cały pendrive na dane   L7 L20 L4a L4b               2           D4       M
-     [w toku: Claude, gałąź claude/vibrant-meitner-qoszaq]
+[x]  3  Miejsce: ile zostało, cały pendrive na dane   L7 L20 L4a L4b               2           D4       M
+     [x] PR #67
 [ ]  4  Duże pliki (przesyłanie w kawałkach)          L23a L23c                    2           —        L
      [w toku: Claude, gałąź claude/vibrant-meitner-qoszaq]
 [ ]  5  Pendrive i nazwy plików                       L13 L14 L15 L16 L8 L9        1, 4        D3       M–L
@@ -237,8 +237,9 @@ Otwieranie, limity, przeciąganie (uwagi właściciela z 2026-11-10)
 [ ]  7  Aplikacja Podgląd                             (prośba właściciela)         6           D1 D2 D5 L
 [ ]  8  Otwieranie: „Otwórz za pomocą”, jedno menu    L22                          7           D7       M
 [ ]  9  Przeciąganie i zaznaczanie wielu              L24 (faza A) L19             8           D6 D8    L
-[ ] 10  Porządki i wydanie 0.8.1                      —                            1–9         D9       S
+[ ] 10  Porządki i wydanie 0.8.2                      —                            1–9         D9       S
 
+Wydania (D9): kroki 1–4 = 0.8.1, kroki 5–10 = 0.8.2 (krok 10 robi porządki i wydanie 0.8.2).
 Kolejność: 1 → 2 → (3 i 4 w dowolnej kolejności) → 5; krok 6 może iść w każdej chwili (nie dotyka skarbca),
 potem 7 → 8 → 9 → 10. Najważniejsze dla danych są kroki 1–3; jeśli trzeba wydać coś wcześniej — D9.
 
@@ -334,6 +335,12 @@ KROK 3 — Miejsce: ile zostało, cały pendrive na dane                        
   pojęcie.
   Gotowe, gdy: próba T6 importuje 16/16 po powiększeniu; Informacje pokazują liczby zgodne z testem.
   Nie w tym kroku: pliki > 16 MB.
+  Ustalenia z wykonania (PR #67): jądro pozwala zmienić rozmiar otwartej partycji (bdev_resize_partition nie patrzy
+  na otwarcia), a lseek skarbca od razu widzi nowy rozmiar — powiększenie działa bez restartu. Partycja większa od
+  magazynu przy starcie = powiększenie przerwane po tablicy: skarbiec je kończy sam (zwykły start, bez pytania — tablica
+  urosła wcześniej z gestu). Liczby z testu: pełna K1-DANE 64 MiB → Informacje „zajęte 23 z 23 MB”; po kliknięciu
+  K1-DANE 576 MiB, obszar 31 → 287 MiB, na pliki 279 MB; import 16 zdjęć po 2,7 MB: 16 z 16. Stopka „Mało miejsca”
+  w Plikach przy < 10 %. Komunikaty: SKARB_MIEJSCE, SKARB_POWIEKSZ, POWIEKSZ_DANE, POWIEKSZONO.
 
 KROK 4 — Duże pliki (przesyłanie w kawałkach)                                       L · bez decyzji · ADR 0034
   Cel: pliki do ok. 4 GB (np. wideo, duże zdjęcia) da się zaimportować i przechowywać; pamięć usług nie rośnie
@@ -354,6 +361,13 @@ KROK 4 — Duże pliki (przesyłanie w kawałkach)                              
   Dokumenty: ADR, skarbiec.md, czytnik.md, opisy komunikatów (test „każdy komunikat opisany”).
   Gotowe, gdy: import 300 MB działa w QEMU, a limity klatek się nie zmieniły.
   Nie w tym kroku: odtwarzanie wideo.
+  Ustalenia z wykonania (PR #PR4): uzupełnienie ADR 0034 (nie osobny ADR — numer 0035 zostaje dla Podglądu). Wszystkie
+  kawałki poza ostatnim mają dokładnie 1 MiB (jeden kawałek wiadomości = jeden obiekt skarbca); jeden zapis w toku na
+  kanał i na plik (nowy wynik K1_DOK_BLAD_ZAPIS, −29). Zdjęcie dla dekodera skarbiec wysyła dalej w jednej odpowiedzi do
+  16 MiB (K1_DEK_MAKS_BAJTY) — memfd tworzy skarbiec, więc pamięć Plików się nie zmienia; składanie z kawałków w Plikach
+  zjadłoby połowę ich limitu 32 MiB (krok 6 może to zmienić przy podnoszeniu limitu dekodera). Film 300 MB trafia do
+  Dokumentów (typ „Plik”: K1 nie rozpoznaje jeszcze wideo — osobny wiersz w K1_TYPY, gdy będzie potrzebny). Czytnik
+  pamięta pozycję w łańcuchu klastrów (fat_czytaj_od). Pliki pokazują rozmiary w GB.
 
 KROK 5 — Pendrive i nazwy plików                                                     M–L · decyzja D3 · bez ADR
   Cel: każdy pendrive FAT z telefonu czy aparatu działa, z dowolnie dużego folderu można zaimportować wszystko,
