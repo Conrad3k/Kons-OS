@@ -226,8 +226,8 @@ Otwieranie, limity, przeciąganie (uwagi właściciela z 2026-11-10)
      Krok                                             Luki                         Zależy od   Decyzje  Rozmiar
 [x]  1  Dane nie mogą zginąć                          L2 L10 L11 L3 L1 L12 L18     —           —        M
      [x] PR #65
-[ ]  2  Skarbiec: więcej plików, szybki start         L21 L4c L4d L5 L6            1           —        M–L
-     [w toku: Claude, gałąź claude/keen-meitner-4nnf8x]
+[x]  2  Skarbiec: więcej plików, szybki start         L21 L4c L4d L5 L6            1           —        M–L
+     [x] PR #66
 [ ]  3  Miejsce: ile zostało, cały pendrive na dane   L7 L20 L4a L4b               2           D4       M
 [ ]  4  Duże pliki (przesyłanie w kawałkach)          L23a L23c                    2           —        L
 [ ]  5  Pendrive i nazwy plików                       L13 L14 L15 L16 L8 L9        1, 4        D3       M–L
@@ -304,6 +304,11 @@ KROK 2 — Skarbiec: więcej plików, szybki start                              
   Gotowe, gdy: 16 384 pliki i 65 536 obiektów w teście; dziennik nigdy > ~3 × żywe + 64 MiB; ustawienia
   zapisują się przy „pełnych” plikach.
   Nie w tym kroku: UI miejsca i powiększanie partycji (krok 3), pliki > 16 MB (krok 4).
+  Ustalenia z wykonania (PR #66): rezerwa = 8 MiB albo 2 %, ale najwyżej ćwierć obszaru (bardzo mała K1-DANE w
+  test-m4 nie przyjmowała żadnego pliku). Dziennik w pracy: najwyżej ok. 2 × żywe + 256 MiB (nie „3 × żywe + 64 MiB”
+  z celu kroku — próg pracy jest większy, żeby kompaktowanie było rzadkie). Pomiary: dziennik 867 MiB — 2,2 s CPU
+  raz, potem 0,0006 s; 65 536 obiektów — otwarcie 0,72 s CPU. Indeks wspólny: src/wspolne/k1_indeks.c (także czytnik).
+  Dla kroku 3: k1_mag_wolne(), k1_mag_pojemnosc(), ob_wolne(), ob_pojemnosc(), dok_rezerwa() są gotowe do pokazania.
 
 KROK 3 — Miejsce: ile zostało, cały pendrive na dane                            M · decyzja D4 · ADR 0033
   Cel: w Ustawieniach widać, ile miejsca na pliki jest i ile zostało; pendrive z danymi (np. właściciela sprzed
