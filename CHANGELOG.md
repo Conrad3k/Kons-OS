@@ -53,8 +53,10 @@ pendrive można powiększyć bez utraty danych.
   16 zdjęć 16/16, dokończenie przerwanego powiększenia); `test-pendrive.sh` (plik 17 MB i film 300 MB z pendrive'a).
 - Ekran wypisuje linię stanu także po zmianie samej liczby odrzuconych zdarzeń — test złośliwych wiadomości
   (M1) nie zależy już od ruchu kursora.
-- CI: instalacja narzędzi pomija lustro pakietów, którego nazwa się nie rozwiązuje, i ponawia pobranie spisu
-  pakietów (11.11 lustro Ubuntu w chmurze GitHuba nie odpowiadało i krok kończył się po 10 minutach).
+- CI: instalacja narzędzi nie zależy od jednego serwera z pakietami (11.11 serwery Ubuntu w chmurze GitHuba nie
+  odpowiadały i budowa 0.8.1 dwa razy kończyła się po 10 minutach): pomija serwer, który nie odpowiada; gdy nie
+  odpowiada żaden serwer Ubuntu — bierze pakiety z ich kopii na kernel.org; gdy i ta zawiedzie — instaluje z kopii
+  pakietów zapisanej przez poprzednią udaną budowę (pamięć podręczna GitHuba, nie limit artefaktów).
 
 ## [0.8.0] — 2026-11-10
 

@@ -43,9 +43,35 @@ jobs:
           fi
           ls -l /dev/kvm || echo "brak /dev/kvm"
 
+      # A copy of the downloaded packages in the Actions cache (not the artifact quota): when Ubuntu's
+      # mirrors do not answer, the tools install from it (scripts/przygotuj-srodowisko.sh, K1_APT_ZAPAS).
+      # The key follows the runner image and the package list, so a copy fits the system it goes on.
+      - name: Klucz kopii pakietów
+        id: klucz-apt
+        run: echo "klucz=k1-apt-${ImageOS:-ubuntu}-${ImageVersion:-0}-${{ hashFiles('scripts/przygotuj-srodowisko.sh') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Przywróć kopię pakietów (pamięć podręczna)
+        id: zapas-apt
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/k1-apt-zapas
+          key: ${{ steps.klucz-apt.outputs.klucz }}
+          restore-keys: k1-apt-
+
       - name: Zainstaluj narzędzia
         timeout-minutes: 10
+        env:
+          K1_APT_ZAPAS: ${{ runner.temp }}/k1-apt-zapas
         run: scripts/przygotuj-srodowisko.sh
+
+      - name: Zapisz kopię pakietów (pamięć podręczna)
+        if: steps.zapas-apt.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/k1-apt-zapas
+          key: ${{ steps.klucz-apt.outputs.klucz }}
 
       - name: Zbuduj jądro, programy, obrazy i ISO
         # M6a (ADR 0021): the signing key (32 bytes, base64) — a secret the owner adds once in
