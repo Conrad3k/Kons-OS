@@ -258,10 +258,12 @@ Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
         w skarbcu, w Ustawienia → Wygląd kafelek „Zdjęcie” (sprawdzone w QEMU, też po ponownym starcie)
     [x] krok 5 (ADR 0033): pusta K1-DANE na pendrivie rośnie przy pierwszym starcie do końca nośnika (QEMU: 64 → 576 MiB)
     [x] porządki na koniec wersji (CHANGELOG, „Porządki”) + przegląd „Tymczasowe” niżej
-    [!] Test na X230 (krok 4–5, 0.8.0): nowy pendrive z k1-0.8.0-usb.img.xz — Ustawienia → Informacje: ile miejsca
-        (powinno być prawie całe pendrive); zdjęcie z telefonu → Pliki → podgląd (obrócone dobrze?) → „Ustaw jako tapetę”.
+    [!] Test na X230 (krok 4–5, 0.8.0; od 0.8.1 Informacje pokazują miejsce): nowy pendrive z k1-0.8.1-usb.img.xz —
+        Ustawienia → Informacje: „Miejsce na pliki: zajęte X z Y” (Y ≈ połowa pendrive'a — druga połowa jest na
+        porządkowanie danych); stary pendrive (0.5.6–0.7.6): Informacje → „Użyj całego pendrive'a na dane” — notatki
+        i ustawienia zostają; zdjęcie z telefonu → Pliki → podgląd (obrócone dobrze?) → „Ustaw jako tapetę”.
     [ ] exFAT na pendrive'ach (duże pendrive'y i karty SD > 32 GB) — ten sam model co FAT, gdy będzie potrzebny
-    [ ] powiększenie K1-DANE z danymi (pendrive zapisany starszą wersją) — w 0.8.1 (krok 3)
+    [x] powiększenie K1-DANE z danymi (pendrive zapisany starszą wersją) — 0.8.1 krok 3: przycisk w Informacjach
 
 0.8.1 Pliki — dopracowanie (przed M7) — PLAN: docs/PLAN-0.8.1.txt
     Przegląd 0.8.0 z jednorazowymi testami (luki L1–L24) i 10 kroków — każdy w nowym czacie, jeden PR. Stan kroków,

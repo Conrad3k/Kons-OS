@@ -66,6 +66,10 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    (Obraz `.iso` też zadziała z pendrive'a, ale bez zapisu danych — po wyłączeniu wszystko znika,
    a Ustawienia → Hasło piszą „Nie znaleziono miejsca na dane”. Sprawdzisz w Ustawieniach → Informacje:
    „Dane: zaszyfrowane na nośniku K1”.)
+   Nowy pendrive od pierwszego startu ma na dane całą swoją pojemność. **Pendrive nagrany starszą wersją
+   (0.5.6–0.7.6) ma tylko ok. 30 MB na pliki** — od 0.8.1: Ustawienia → Informacje → **„Użyj całego
+   pendrive'a na dane”** (Twoje pliki zostają na miejscu; nie wyjmuj pendrive'a, dopóki nie zobaczysz „Gotowe”).
+   W Informacjach widać też, ile miejsca na pliki jest zajęte i ile zostało.
 2. **Najpierw wyłącz Secure Boot** — dopóki klucz K1 nie jest wpisany (sekcja „Secure Boot z kluczem K1”
    niżej; wersje deweloperskie zawsze wymagają wyłączonego Secure Boot). Bez tego laptop pokaże
    „Secure Boot Violation” / „Invalid signature”, a po „OK” uruchomi system z dysku (sprawdzone

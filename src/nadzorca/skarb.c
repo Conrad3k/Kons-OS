@@ -51,8 +51,9 @@ int zainstalowany(void)
 int kanal_do_skarbca(int wlasciciel, int uid)
 {
     int para[2], tak = 1;
-    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_SKARB_KLIENT, 0, wlasciciel, uid,
-                                              skarb_dane[0] != '\0' && k1_dysk_na_usb(SYS, skarb_dane), 0, 0);
+    int usb = skarb_dane[0] != '\0' && k1_dysk_na_usb(SYS, skarb_dane);
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_SKARB_KLIENT, 0, wlasciciel, uid, usb, usb ? zapas_danych_mib() : 0,
+                                              0);
     if (skarb_ster < 0 || skarbiec()->pid <= 0)
         return -1;
     if (k1_kanal_utworz(para) != 0)
@@ -137,6 +138,10 @@ void obsluz_skarbiec(void)
             return; /* empty, or skarbiec ended (handled when it exits) */
         if (w == K1_ODB_JEST && k.typ == K1_KOM_SKARB_URUCHOM) {
             uruchom_z_plikiem(k.a, k.obiekt);
+            continue;
+        }
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_POWIEKSZ_DANE) { /* a gesture in Ustawienia (ADR 0033) */
+            powieksz_na_prosbe();
             continue;
         }
         if (w != K1_ODB_JEST || k.typ != K1_KOM_SKARB_STAN) {

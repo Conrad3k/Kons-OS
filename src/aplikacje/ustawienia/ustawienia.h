@@ -1,6 +1,7 @@
 /* K1 Ustawienia — state shared by the modules (0.7.5 split): main.c (sections, Wygląd, Ekran, Mysz,
- * Data i czas, Informacje), bateria.c (Bateria: from nadzorca, fd 4), haslo.c (Hasło: through skarbiec, fd 5),
- * aplikacje.c (Aplikacje: the default application of a file type, 0.8.0). */
+ * Data i czas), bateria.c (Bateria: from nadzorca, fd 4), haslo.c (Hasło: through skarbiec, fd 5),
+ * aplikacje.c (Aplikacje: the default application of a file type, 0.8.0), informacje.c (Informacje: the system, the
+ * room for files, K1-DANE to the end of the stick — 0.8.1). */
 #ifndef K1_USTAWIENIA_H
 #define K1_USTAWIENIA_H
 
@@ -44,6 +45,15 @@ void haslo_klawisz(unsigned kod, int wartosc, unsigned mody);
 void haslo_zamknij(void);   /* leaving the section: the form closes, typed text is wiped */
 void haslo_loguj(void);     /* the tests click by this line */
 const char *haslo_gdzie_dane(void); /* the Informacje line about the data */
+int skarbiec_kanal(void);   /* fd 5 while it is open, else -1 */
+int haslo_tylko_pamiec(void); /* no K1-DANE: the data only in memory */
+
+/* informacje.c */
+void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
+void informacje_miejsce(const struct k1_komunikat *k); /* SKARB_MIEJSCE */
+void informacje_wynik(const struct k1_komunikat *k);   /* WYNIK of SKARB_POWIEKSZ */
+int informacje_najechanie(int32_t x, int32_t y);       /* 1 = redraw */
+int informacje_klik(int32_t x, int32_t y);             /* 1 = handled */
 
 /* aplikacje.c */
 void aplikacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);

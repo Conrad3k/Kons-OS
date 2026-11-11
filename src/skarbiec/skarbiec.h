@@ -7,6 +7,7 @@
  *                 split into dokumenty.c, dok_drzewo.c, dok_kosz.c, dok_wczytaj.c (dok_wew.h)
  *   dok_kanal.c   K1_KOM_DOK_* requests of clients: the table of rights, memfd in and out
  *   dostep.c      a file for an application after a gesture: "Otwórz w…", the file picker (ADR 0030)
+ *   miejsce.c     the room for files, K1-DANE to the end of its USB stick (0.8.1 step 3, ADR 0033)
  *
  * Documentation: docs/komponenty/skarbiec.md. */
 #ifndef K1_SKARBIEC_H
@@ -37,6 +38,8 @@ void ob_kazdy(int wl, void (*f)(const char *nazwa, void *ctx), void *ctx);
 /* Room (0.8.1, ADR 0034): free bytes and the whole (the vault's region, or the memory for objects without one). */
 uint64_t ob_wolne(void);
 uint64_t ob_pojemnosc(void);
+/* The vault takes all of a partition now `bajty` long (k1_mag_powieksz; logged with `kiedy`). */
+int ob_powieksz(uint64_t bajty, const char *kiedy);
 /* Compaction: right after the vault opened (a long log), and when the loop has a quiet moment (main.c). */
 void ob_po_otwarciu(void);
 int ob_kompaktowanie_czeka(void);
@@ -57,6 +60,13 @@ int dok_obsluz(int fd, int wl, const struct k1_komunikat *m, int fd_in);
 int dok_moze_listowac(int wl);
 void dok_po_otwarciu(void); /* the vault is readable (opened, unlocked, or memory): load the entries */
 int dok_co_godzine(void);    /* Kosz: delete what is older than 30 days; 1 when something went */
+
+/* miejsce.c: the room for files (SKARB_MIEJSCE) and growing K1-DANE (nadzorca does the partition table) */
+void miejsce_zapas(int mib);              /* MiB the stick has after K1-DANE (SKARB_KLIENT d) */
+struct k1_komunikat miejsce_komunikat(void);
+void miejsce_wyslij(int fd);
+int miejsce_powieksz(void);               /* Ustawienia asked: 0 = nadzorca asked (POWIEKSZ_DANE), else K1_MAG_ARG */
+int miejsce_powiekszono(int wynik);       /* nadzorca's POWIEKSZONO: the vault takes the partition; the result */
 
 /* dostep.c: what applications were given (owner `wl`, file `id`) and the file picker */
 int dostep_daj(int wl, uint32_t id); /* 0, or K1_DOK_BLAD_OTWARTE: it has K1_DOK_DOSTEP_APL files already */

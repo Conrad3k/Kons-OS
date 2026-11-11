@@ -1,5 +1,6 @@
 /* K1 skarbiec — the header of the Blob Vault (two copies, generation % 2) and the wrapped master key
- * (M5c, ADR 0015). Little-endian; checked field by field, then by its MAC with the master key. */
+ * (M5c, ADR 0015): reading, building, wrapping; checking and changing the password of an open vault.
+ * Little-endian; checked field by field, then by its MAC with the master key. */
 #include <stdlib.h>
 #include <string.h>
 
@@ -124,3 +125,32 @@ int owin(struct k1_magazyn *m, const char *haslo)
     return K1_MAG_OK;
 }
 
+/* ---- the password of an open vault ---- */
+
+int k1_mag_sprawdz_haslo(struct k1_magazyn *m, const char *haslo)
+{
+    uint8_t kek[32], ad[44], klucz[32];
+    int r, ok;
+    if ((haslo != NULL) != (m->haslo != 0))
+        return K1_MAG_HASLO;
+    r = klucz_owijajacy(haslo, m->uuid, m->sol, m->argon_kib, m->argon_przejscia, kek);
+    if (r != K1_MAG_OK)
+        return r;
+    ad_owiniecia(m->uuid, m->sol, m->haslo ? FLAGA_HASLO : 0, m->argon_kib, m->argon_przejscia, ad);
+    ok = crypto_aead_unlock(klucz, m->owiniety + 24, kek, m->owiniety, ad, sizeof ad, m->owiniety + 40, 32) == 0 &&
+         crypto_verify32(klucz, m->klucz) == 0;
+    crypto_wipe(kek, sizeof kek);
+    crypto_wipe(klucz, sizeof klucz);
+    return ok ? K1_MAG_OK : K1_MAG_HASLO;
+}
+
+int k1_mag_zmien_haslo(struct k1_magazyn *m, const char *nowe)
+{
+    int r = owin(m, nowe);
+    if (r != K1_MAG_OK)
+        return r;
+    /* both slots, so the old wrapped key (old password) does not stay on the disk */
+    if ((r = zapisz_naglowek(m)) != K1_MAG_OK)
+        return r;
+    return zapisz_naglowek(m);
+}

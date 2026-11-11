@@ -343,6 +343,12 @@ static struct k1_komunikat zapytaj(int wl, struct k1_komunikat m, int fd, int *z
         *fd_odp = o.fd;
     else if (o.fd >= 0)
         close(o.fd);
+    if (k.typ == K1_KOM_DOK_LISTA) { /* 0.8.1 step 3: the room for files right after every list */
+        struct k1_komunikat mk;
+        EXPECT(k1_kanal_odbierz(kan[0], &o) == K1_KANAL_KOMUNIKAT && o.fd < 0 &&
+               k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_SKARBCA, &mk) == 0 && mk.typ == K1_KOM_SKARB_MIEJSCE &&
+               mk.c == dok_ile());
+    }
     return k;
 }
 
@@ -422,6 +428,12 @@ static struct k1_komunikat na(int *kanal, int wl, struct k1_komunikat m, int fd,
         *fd_odp = o.fd;
     else if (o.fd >= 0)
         close(o.fd);
+    if (k.typ == K1_KOM_DOK_LISTA) { /* 0.8.1 step 3: the room for files right after every list */
+        struct k1_komunikat mk;
+        EXPECT(k1_kanal_odbierz(kan[0], &o) == K1_KANAL_KOMUNIKAT && o.fd < 0 &&
+               k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_SKARBCA, &mk) == 0 && mk.typ == K1_KOM_SKARB_MIEJSCE &&
+               mk.c == dok_ile());
+    }
     return k;
 }
 
@@ -850,10 +862,26 @@ static void test_rezerwa(void)
         EXPECT(dok_nowy(f, K1_DOK_PLIK, "ostatni", 7, &z, K1_PROFIL_PLIKI, K1_POCH_K1, T0, &id) == K1_DOK_BLAD_BRAK_MIEJSCA);
     }
     EXPECT(n > 50 && ob_wolne() >= (8u << 20) && ob_wolne() < (8u << 20) + 2 * K1_DOK_KAWALEK);
+    {   /* 0.8.1 step 3: what Ustawienia and Pliki are told — without K1-DANE 128 MiB of memory, 8 MiB kept */
+        struct k1_komunikat k = miejsce_komunikat(), spr;
+        EXPECT(k.typ == K1_KOM_SKARB_MIEJSCE && k.b == 120 && k.a >= 118 && k.a <= 120 && k.c == dok_ile() &&
+               k.c > n && k.d == 0); /* entries: these files, their folder and those of earlier tests */
+        EXPECT(k1_komunikat_sprawdz(&k, sizeof k, K1_KIER_OD_SKARBCA, &spr) == 0);
+    }
     EXPECT(ob_zapisz(K1_PROFIL_EKRAN, "o1", mib, 100000) == K1_MAG_OK); /* settings still save */
     EXPECT(dok_do_kosza(f, T0) == 0 && dok_oproznij_kosz() == 0 && ob_wolne() > 64u << 20); /* deleting frees it */
     ob_usun(K1_PROFIL_EKRAN, "o1");
     EXPECT(dok_rezerwa() == (8u << 20)); /* 128 MiB in memory: 8 MiB (2 % would be less) */
+    {   /* growing K1-DANE: never without the vault on a partition, nor for little room on the stick */
+        struct k1_komunikat k;
+        miejsce_zapas(4000);
+        do_nadz.typ = 0;
+        EXPECT(miejsce_powieksz() == K1_MAG_ARG && do_nadz.typ == 0); /* data in memory: nothing to grow */
+        k = miejsce_komunikat();
+        EXPECT(k.d == 0 && k.a < 8 && k.b == 120);                     /* and no button in Ustawienia */
+        EXPECT(miejsce_powiekszono(0) == K1_MAG_ARG);                  /* an answer nobody asked for */
+        miejsce_zapas(0);
+    }
 }
 
 /* T1/1 of the plan: the folder of an application is remembered, not looked up by its name. */

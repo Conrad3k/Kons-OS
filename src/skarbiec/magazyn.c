@@ -65,7 +65,7 @@ static uint64_t bloki_dysku(const struct k1_mag_dysk *d)
 }
 
 /* Writes the next header generation (slot = generation % 2) and syncs. */
-static int zapisz_naglowek(struct k1_magazyn *m)
+int zapisz_naglowek(struct k1_magazyn *m)
 {
     uint8_t *b = bufor;
     m->generacja++;
@@ -476,34 +476,6 @@ int k1_mag_czytaj(struct k1_magazyn *m, uint16_t wlasciciel, const char *nazwa, 
     return K1_MAG_OK;
 }
 
-int k1_mag_sprawdz_haslo(struct k1_magazyn *m, const char *haslo)
-{
-    uint8_t kek[32], ad[44], klucz[32];
-    int r, ok;
-    if ((haslo != NULL) != (m->haslo != 0))
-        return K1_MAG_HASLO;
-    r = klucz_owijajacy(haslo, m->uuid, m->sol, m->argon_kib, m->argon_przejscia, kek);
-    if (r != K1_MAG_OK)
-        return r;
-    ad_owiniecia(m->uuid, m->sol, m->haslo ? FLAGA_HASLO : 0, m->argon_kib, m->argon_przejscia, ad);
-    ok = crypto_aead_unlock(klucz, m->owiniety + 24, kek, m->owiniety, ad, sizeof ad, m->owiniety + 40, 32) == 0 &&
-         crypto_verify32(klucz, m->klucz) == 0;
-    crypto_wipe(kek, sizeof kek);
-    crypto_wipe(klucz, sizeof klucz);
-    return ok ? K1_MAG_OK : K1_MAG_HASLO;
-}
-
-int k1_mag_zmien_haslo(struct k1_magazyn *m, const char *nowe)
-{
-    int r = owin(m, nowe);
-    if (r != K1_MAG_OK)
-        return r;
-    /* both slots, so the old wrapped key (old password) does not stay on the disk */
-    if ((r = zapisz_naglowek(m)) != K1_MAG_OK)
-        return r;
-    return zapisz_naglowek(m);
-}
-
 #define BLOKI_MIB (1048576u / K1_MAG_BLOK)
 
 int k1_mag_kompaktowac(const struct k1_magazyn *m, int przy_otwarciu)
@@ -516,6 +488,27 @@ int k1_mag_kompaktowac(const struct k1_magazyn *m, int przy_otwarciu)
 int k1_mag_kompaktuj(struct k1_magazyn *m)
 {
     return kompaktuj(m);
+}
+
+int k1_mag_powieksz(struct k1_magazyn *m, uint64_t bajty)
+{
+    uint64_t stary = m->obszar_blokow, obszar;
+    int r;
+    if (bajty < m->d->bajty)
+        return K1_MAG_ARG;
+    m->d->bajty = bajty;
+    obszar = (bloki_dysku(m->d) - 2) / 2;
+    if (obszar <= stary)
+        return K1_MAG_OK;
+    /* region 0 keeps its place and grows; region 1 (old size) would start inside it: move the live objects first */
+    if (m->aktywny == 1 && (r = kompaktuj(m)) != K1_MAG_OK)
+        return r;
+    m->obszar_blokow = obszar;
+    if ((r = zapisz_naglowek(m)) != K1_MAG_OK) {
+        m->obszar_blokow = stary; /* nothing on the disk says the new size */
+        return r;
+    }
+    return zapisz_naglowek(m); /* the other slot too: no header of the old size stays */
 }
 
 uint64_t k1_mag_wolne(const struct k1_magazyn *m)

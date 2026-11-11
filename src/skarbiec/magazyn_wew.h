@@ -34,6 +34,8 @@ int klucz_owijajacy(const char *haslo, const uint8_t uuid[16], const uint8_t sol
 /* Associated data of the wrapped key. */
 void ad_owiniecia(const uint8_t uuid[16], const uint8_t sol[16], uint32_t flagi, uint32_t kib, uint32_t przejscia,
                   uint8_t ad[44]);
+/* Writes the next header generation (slot = generation % 2) and syncs (magazyn.c). */
+int zapisz_naglowek(struct k1_magazyn *m);
 /* Wraps the master key with a new salt for `haslo` (NULL: none) into m->owiniety. */
 int owin(struct k1_magazyn *m, const char *haslo);
 

@@ -127,6 +127,7 @@ static void wyslij_liste(int fd, const struct prawa *p)
     }
     k1_kanal_wyslij(fd, &m, sizeof m, m_fd);
     close(m_fd);
+    miejsce_wyslij(fd); /* Pliki say when little room is left (0.8.1) */
 }
 
 /* Content into a new memfd, piece after piece. */

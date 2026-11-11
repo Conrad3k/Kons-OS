@@ -33,3 +33,26 @@ formatowaniu — powiększenie już używanego magazynu wymagałoby przenoszenia
   pierwszy start — 64 → 576 MiB, drugi — bez zmian; sfdisk sprawdza tablicę).
 - Pendrive zapisany starszą wersją K1, który ma już dane, zostaje przy 64 MiB (powiększenie z danymi — osobny krok,
   jeśli będzie potrzebne).
+
+## Uzupełnienie (0.8.1 krok 3, 2026-11-11): powiększenie z danymi
+Pendrive'y zapisane wersjami 0.5.6–0.7.6 mają K1-DANE 64 MiB z danymi (ok. 30 MB na pliki), a p. 1 ich nie rusza.
+Decyzja właściciela (D4): **przycisk „Użyj całego pendrive'a na dane” w Ustawienia → Informacje** — kliknięcie jest
+zgodą; nigdy samoczynnie przy starcie (to jedyna zmiana, która zapisuje tablicę partycji nośnika z danymi).
+1. **Kto prosi:** tylko Ustawienia (`SKARB_POWIEKSZ`, właściciel kanału sprawdzany przez skarbiec), tylko przy otwartym
+   magazynie (nie zablokowanym, nie „tylko w pamięci”) i gdy nadzorca podał, że za K1-DANE jest ≥ 16 MiB
+   (`SKARB_KLIENT` d). Skarbiec prosi nadzorcę (`POWIEKSZ_DANE`) — tablica partycji należy do nadzorcy.
+2. **Tablica:** te same warunki i zapisy co w p. 2–3 (bez warunku „pusta”); skarbiec nie zamyka partycji —
+   `bdev_resize_partition` nie sprawdza otwarć, a rozmiar widziany przez otwarty deskryptor zmienia się od razu
+   (`bdev_set_nr_sectors`, `blkdev_llseek`).
+3. **Magazyn** (`k1_mag_powieksz`, format bez zmian): rekordy obszaru 0 mają w danych dodatkowych numer obszaru i blok
+   względny — przy aktywnym obszarze 0 zmienia się tylko nagłówek (liczba bloków, oba sloty); przy aktywnym obszarze 1
+   najpierw kompaktowanie do obszaru 0 (żywe dane zawsze się w nim mieszczą), potem nagłówek.
+4. **Kolejność i przerwa prądu:** tablica → `BLKPG` → nagłówek magazynu. Magazyn starego rozmiaru na większej
+   partycji jest poprawny; nagłówek większy od partycji nie może powstać. Partycja większa od magazynu przy starcie =
+   powiększenie przerwane po tablicy → skarbiec je kończy (ta partycja urosła tylko z gestu albo pusta).
+5. **Widać miejsce:** `SKARB_MIEJSCE` (zajęte, miejsce na pliki = obszar bez rezerwy dla systemu, liczba wpisów, zapas
+   pendrive'a) dla Ustawień i Plików. Połowa partycji na kompaktowanie zostaje świadomie (ADR 0015, 0034).
+
+Testy: `test_magazyn` (obszar 0 i 1, przerwa prądu po każdym zapisie powiększenia, rozdarty nagłówek),
+`test_komunikat`, `test_dokumenty` (miejsce bez K1-DANE, odmowa bez magazynu), `test-skarbiec.sh` (pełna K1-DANE 64 MiB
+na pendrivie → przycisk → 576 MiB, import 16 zdjęć po 2,8 MB; ponowny start; dokończenie po przerwanym powiększeniu).

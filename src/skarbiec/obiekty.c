@@ -105,8 +105,22 @@ static void kompaktuj(const char *kiedy)
            r == K1_MAG_OK ? "" : k1_mag_opis(r));
 }
 
+int ob_powieksz(uint64_t bajty, const char *kiedy)
+{
+    uint64_t przed = k1_mag_pojemnosc(&mag);
+    int r = k1_mag_powieksz(&mag, bajty);
+    if (r != K1_MAG_OK || k1_mag_pojemnosc(&mag) != przed)
+        k1_log(TAG, "magazyn powiększony do całej partycji K1-DANE (%s): obszar %llu → %llu MiB%s%s", kiedy,
+               (unsigned long long)(przed >> 20), (unsigned long long)(k1_mag_pojemnosc(&mag) >> 20),
+               r == K1_MAG_OK ? "" : " — ", r == K1_MAG_OK ? "" : k1_mag_opis(r));
+    return r;
+}
+
 void ob_po_otwarciu(void)
 {
+    /* a partition larger than the vault: a grow cut off after the new table (ADR 0033) — finish it */
+    if (trwaly)
+        ob_powieksz(dysk.bajty, "dokończenie po starcie");
     if (trwaly && k1_mag_kompaktowac(&mag, 1))
         kompaktuj("przy otwarciu");
 }

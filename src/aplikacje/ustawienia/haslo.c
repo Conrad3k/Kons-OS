@@ -11,7 +11,9 @@
 #include "k1_klawiatura.h"
 #include "k1_log.h"
 #include "k1_memfd.h"
+#include "k1_odbior.h"
 #include "k1_skarb_klient.h"
+#include "k1_uslugi.h"
 #include "ustawienia.h"
 
 enum { F_BRAK, F_USTAW, F_ZMIEN, F_WYLACZ };
@@ -128,21 +130,39 @@ static void hs_wyslij(void)
     hs_wyczysc();
 }
 
+int skarbiec_kanal(void)
+{
+    return skarb;
+}
+
 void haslo_odbierz(void)
 {
-    struct k1_komunikat k;
-    int r;
-    while (skarb >= 0 && (r = k1_skarb_wynik(skarb, &k)) != 0) {
-        if (r < 0) {
+    for (int n = 0; n < 16 && skarb >= 0; n++) {
+        struct k1_komunikat k;
+        int fd = -1;
+        enum k1_odbior_wynik w = k1_odbierz_komunikat(skarb, K1_UID_SKARBIEC, K1_KIER_OD_SKARBCA, &k, &fd);
+        if (fd >= 0)
+            close(fd);
+        if (w == K1_ODB_PUSTO)
+            break;
+        if (w == K1_ODB_KONIEC) {
             close(skarb);
             skarb = -1;
             break;
         }
+        if (w != K1_ODB_JEST)
+            continue;
+        if (k.typ == K1_KOM_SKARB_MIEJSCE) /* the room for files: Informacje (0.8.1) */
+            informacje_miejsce(&k);
+        if (k.typ != K1_KOM_SKARB_WYNIK)
+            continue;
         hs.znane = 1;
         hs.tryb = k.c;
         hs.wlaczone = k.d & 1;
         hs.usb = (k.d & 2) != 0;
         hs.przerwa = k.e;
+        if (k.a == K1_KOM_SKARB_POWIEKSZ)
+            informacje_wynik(&k);
         if (k.a != K1_KOM_SKARB_HASLO)
             continue;
         hs.czeka = 0;
@@ -298,6 +318,11 @@ void haslo_loguj(void)
 {
     k1_log(TAG, "hasło: przełącznik %d,%d; zmień %d,%d; pola od %d,%d co %d; Zapisz %d,+%d", TRESC_X + 18, seg_y() + 18,
            TRESC_X + 340, seg_y() + 18, POLE_X + 40, POLA_Y + 18, POLA_KROK, POLE_X + 60, 26);
+}
+
+int haslo_tylko_pamiec(void)
+{
+    return skarb < 0 || (hs.znane && hs.tryb == K1_SKARB_RAM);
 }
 
 const char *haslo_gdzie_dane(void)

@@ -206,4 +206,12 @@ void rysuj_stopke(struct k1_obraz *o, const struct k1_motyw *m)
                                                                              ? "elementy"
                                                                              : "elementów");
     k1_tekst(o, K1_CZ_MALA, LISTA_X, y, buf, k1_kolor(m->tekst3, 255), 0);
+    if (malo_miejsca() && !tu.pendrive) { /* 0.8.1 step 3: Ustawienia → Informacje has the details */
+        int32_t zostalo = miejsce_calosc - miejsce_zajete;
+        snprintf(buf, sizeof buf, "Mało miejsca na pliki: zostało %d MB z %d MB", (int)zostalo, (int)miejsce_calosc);
+        if (miejsce_calosc >= 1024)
+            snprintf(buf, sizeof buf, "Mało miejsca na pliki: zostało %d MB z %d,%d GB", (int)zostalo,
+                     (int)(miejsce_calosc / 1024), (int)(miejsce_calosc % 1024 * 10 / 1024));
+        k1_tekst(o, K1_CZ_MALA_MOCNA, LISTA_X + 120, y, buf, k1_kolor(m->akcent_tekst, 255), LISTA_W - 120);
+    }
 }

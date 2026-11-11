@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M3, M4) — testy w systemie (`scripts/test-m1.sh`, scenariusz `testy-w-systemie`), `scripts/test-m4.sh` (uruchamianie aplikacji, wyłączanie) |
-| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (tablica usług, uruchamianie w klatkach, restarty, prośby pulpitu), `logi.c` (logi usług), `pendrive.c` (prośby Plików, pendrive i czytnik, 0.8.0), `dekoder.c` (dekoder obrazów dla Plików, 0.8.0), `powieksz.c` (pusta K1-DANE do końca pendrive'a, 0.8.0), `profile.c` (klatki), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
+| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (tablica usług, uruchamianie w klatkach, restarty, prośby pulpitu), `logi.c` (logi usług), `pendrive.c` (prośby Plików, pendrive i czytnik, 0.8.0), `dekoder.c` (dekoder obrazów dla Plików, 0.8.0), `powieksz.c` (K1-DANE do końca pendrive'a: pusta przy starcie, 0.8.0; z danymi na prośbę z Ustawień, 0.8.1), `profile.c` (klatki), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
 | **Decyzje** | ADR 0006 (wersja M2), ADR 0007 (M3), ADR 0008 (pulpit i aplikacje) |
 
 ## Etapy startu (0.6.0)
@@ -86,7 +86,11 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   czytnika i `PENDRIVE` a = 0. Szczegóły: `komponenty/czytnik.md`.
 - K1-DANE do końca pendrive'a (0.8.0 krok 5, ADR 0033, `powieksz.c`): przed oddaniem partycji skarbcowi — gdy jest
   na pendrivie, pusta (pierwszy MiB zer) i za nią jest ≥ 16 MiB — nowa tablica GPT (`k1_gpt_powieksz`, sprawdza starą)
-  i `BLKPG_RESIZE_PARTITION`; log „K1-DANE powiększona do końca pendrive'a: 64 → N MiB”.
+  i `BLKPG_RESIZE_PARTITION`; log „K1-DANE powiększona do końca pendrive'a: 64 → N MiB”. Od 0.8.1 (krok 3) także
+  z danymi — tylko na `POWIEKSZ_DANE` od skarbca (kanał sterujący, nadawca UID 103), który wysyła je po kliknięciu
+  „Użyj całego pendrive'a na dane” w Ustawieniach (gest użytkownika, decyzja D4) i przy otwartym magazynie; te same
+  zapisy tablicy, skarbiec zostaje przy otwartej partycji, odpowiedź `POWIEKSZONO` (a = 0 / `K1_SKARB_ARG` /
+  `K1_SKARB_IO`). `SKARB_KLIENT` d = ile MiB pendrive ma jeszcze za K1-DANE (0: nie pendrive albo < 16 MiB).
 - Dekoder (0.8.0 krok 4, ADR 0032, `dekoder.c`): na `DEKODER` od Plików (ten sam fd 6) — nowy proces `dekoder` w klatce
   (fd 3: kanał do Plików, obie strony z `SO_PASSCRED`), drugi koniec Plikom w `DEKODER_KANAL`. Jeden obraz na proces,
   jeden proces naraz (prośba w trakcie: `SIGKILL` starego, nowy po jego końcu). Szczegóły: `komponenty/dekoder.md`.

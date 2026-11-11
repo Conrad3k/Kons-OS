@@ -229,7 +229,9 @@ Otwieranie, limity, przeciąganie (uwagi właściciela z 2026-11-10)
 [x]  2  Skarbiec: więcej plików, szybki start         L21 L4c L4d L5 L6            1           —        M–L
      [x] PR #66
 [ ]  3  Miejsce: ile zostało, cały pendrive na dane   L7 L20 L4a L4b               2           D4       M
+     [w toku: Claude, gałąź claude/vibrant-meitner-qoszaq]
 [ ]  4  Duże pliki (przesyłanie w kawałkach)          L23a L23c                    2           —        L
+     [w toku: Claude, gałąź claude/vibrant-meitner-qoszaq]
 [ ]  5  Pendrive i nazwy plików                       L13 L14 L15 L16 L8 L9        1, 4        D3       M–L
 [ ]  6  Zdjęcia: duże i nowe formaty, wspólny dekoder L17 L23b                     —           —        M
 [ ]  7  Aplikacja Podgląd                             (prośba właściciela)         6           D1 D2 D5 L
@@ -508,7 +510,7 @@ KROK 10 — Porządki i wydanie 0.8.1                                           
        znaczenie. Rekomendacja: aplikacja „Podgląd”, a panel w Plikach — „szczegóły”.
 [!] D2 (krok 7) Delete w Podglądzie wyrzuca zdjęcie do Kosza (jak w Zdjęciach Windows)? Rekomendacja: tak.
 [!] D3 (krok 5) Ponowny import tych samych plików. Rekomendacja: pomijać już zaimportowane i napisać ile.
-[!] D4 (krok 3) Powiększenie K1-DANE na pendrivie z danymi. Rekomendacja: przycisk w Ustawienia → Informacje
+[x] D4 (krok 3) — decyzja 2026-11-11: przycisk w Ustawienia → Informacje (rekomendacja). Powiększenie K1-DANE na pendrivie z danymi. Rekomendacja: przycisk w Ustawienia → Informacje
        „Użyj całego pendrive'a na dane” (kliknięcie = zgoda), nie samoczynnie przy starcie — to jedyna zmiana
        w 0.8.1, która zapisuje tablicę partycji nośnika z Twoimi danymi.
 [!] D5 (krok 7) Szkice wyglądu Podglądu (2–3 do wyboru) — na początku kroku 7.
@@ -519,7 +521,7 @@ KROK 10 — Porządki i wydanie 0.8.1                                           
        otwieraj tą aplikacją”? Rekomendacja: tak.
 [!] D8 (krok 9) Kiedy pytać „Czy na pewno?” przy przeciąganiu do Kosza? Rekomendacja: folder z zawartością albo
        więcej niż jeden element; pojedynczy plik bez pytania (Kosz da się cofnąć).
-[!] D9 (kroki 3/10) Jedno wydanie 0.8.1 na końcu czy wcześniejsze z poprawkami danych? Rekomendacja: jedno 0.8.1
+[x] D9 (kroki 3/10) — decyzja 2026-11-11: wydanie 0.8.1 po krokach 3 i 4, kroki 5–10 jako 0.8.2. Jedno wydanie 0.8.1 na końcu czy wcześniejsze z poprawkami danych? Rekomendacja: jedno 0.8.1
        na końcu (mniej CI i mniej testów na X230); jeśli chcesz szybciej bezpieczne dane i miejsce na swoim
        pendrivie — wydanie 0.8.1 po kroku 3, a reszta jako 0.8.2.
 [!] Nadal otwarte z 0.8.0: testy na X230 (notatki po migracji, import z telefonu, podgląd i obrót).

@@ -106,6 +106,12 @@ int k1_mag_sprawdz_haslo(struct k1_magazyn *m, const char *haslo);
  * and over twice the live data; at work: old versions take over 256 MiB more than the live data. */
 int k1_mag_kompaktowac(const struct k1_magazyn *m, int przy_otwarciu);
 int k1_mag_kompaktuj(struct k1_magazyn *m);
+/* Growing (0.8.1 step 3, ADR 0033): the partition under the vault is now `bajty` long (nadzorca grew it after the
+ * user's gesture) and the vault takes all of it. The records of region 0 keep their place (their associated data has
+ * the region and the block in it), so with region 0 active only the header changes (both slots); with region 1 active
+ * the live objects are compacted into region 0 first. A power cut at any point leaves a vault that opens — with the
+ * old size or the new one. K1_MAG_OK also when the partition is not larger. */
+int k1_mag_powieksz(struct k1_magazyn *m, uint64_t bajty);
 /* Room for new data: bytes of the region not taken by live objects (a new record also needs its header: ~128 B), and
  * the size of the region (half the partition: the other half is for compaction). */
 uint64_t k1_mag_wolne(const struct k1_magazyn *m);

@@ -18,6 +18,7 @@ int n_wpisow;
 uint32_t w_koszu;
 char podglad[K1_DOK_PODGLAD + 1];
 uint32_t podglad_id, podglad_dl;
+int32_t miejsce_zajete, miejsce_calosc; /* MiB (SKARB_MIEJSCE, 0.8.1) */
 static int skarb = -1;
 static uint8_t lista[K1_DOK_LISTA_MAKS];
 static uint32_t do_edycji; /* the folder just created: rename it when the list shows it */
@@ -30,6 +31,11 @@ static struct {
 } do_pokazania; /* a place from nadzorca, shown once the list is here */
 
 static void pokaz_oczekujace(void);
+
+int malo_miejsca(void)
+{
+    return miejsce_calosc > 0 && (int64_t)(miejsce_calosc - miejsce_zajete) * 10 < miejsce_calosc;
+}
 
 int dane_start(void)
 {
@@ -240,6 +246,16 @@ static void wynik(const struct k1_komunikat *k)
     k1_log(TAG, "skarbiec odmówił (komunikat %d, wynik %d)", k->a, k->b);
 }
 
+/* The room for files, after every list (0.8.1 step 3): the footer says when under a tenth of it is left. */
+static void miejsce_przyszlo(const struct k1_komunikat *k)
+{
+    int pierwsze = miejsce_calosc == 0, bylo = malo_miejsca();
+    miejsce_zajete = k->a;
+    miejsce_calosc = k->b;
+    if (pierwsze || malo_miejsca() != bylo)
+        k1_log(TAG, "miejsce na pliki: %s (zajęte %d z %d MiB)", malo_miejsca() ? "mało" : "wystarczy", (int)k->a, (int)k->b);
+}
+
 void dane_odbierz(void)
 {
     for (int n = 0; n < 32; n++) {
@@ -264,6 +280,8 @@ void dane_odbierz(void)
             wynik(&k);
         else if (k.typ == K1_KOM_DOK_ZMIANA)
             do_skarbca(K1_KOM_DOK_SPIS, 0, 0);
+        else if (k.typ == K1_KOM_SKARB_MIEJSCE)
+            miejsce_przyszlo(&k);
         if (fd >= 0)
             close(fd);
     }

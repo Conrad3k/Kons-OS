@@ -128,6 +128,8 @@ int otworz_karte(void);
 int otworz_wejscia(int *fd);
 int otworz_partycje_danych(int *ile);
 int otworz_dane(int *ile); /* powieksz.c: the same, K1-DANE first grown to the end of a USB stick when still empty */
+int zapas_danych_mib(void);    /* powieksz.c: MiB the stick has after K1-DANE (0: not a stick, under 16 MiB) */
+void powieksz_na_prosbe(void); /* powieksz.c: skarbiec's POWIEKSZ_DANE (a gesture in Ustawienia, ADR 0033) */
 int czekaj_na_dane(double od_startu);
 double od_startu_systemu(void);
 void sprawdz_nowe_wejscia(void);

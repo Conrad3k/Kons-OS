@@ -9,7 +9,8 @@
  * Trust boundary: everything from the disk (magazyn.c checks it) and from clients (k1_komunikat,
  * UID of every packet). Sandbox: UID 103, seccomp (base + pread/pwrite/fdatasync on the partition,
  * getrandom, memfd_create, sysinfo), Landlock without any path, no other devices.
- * Since 0.8.0 also the user's files and folders (owner K1_WL_DOKUMENTY, ADR 0029: dokumenty.c, dok_kanal.c).
+ * Since 0.8.0 also the user's files and folders (owner K1_WL_DOKUMENTY, ADR 0029: dokumenty.c, dok_kanal.c); since
+ * 0.8.1 the room for files and K1-DANE to the end of its stick (miejsce.c, ADR 0033).
  * Modules: skarbiec.h. Documentation: docs/komponenty/skarbiec.md. */
 #include <errno.h>
 #include <fcntl.h>
@@ -29,6 +30,7 @@
 
 _Static_assert(K1_MAG_HASLO == K1_SKARB_ZLE_HASLO, "K1_SKARB_ZLE_HASLO must match K1_MAG_HASLO");
 _Static_assert(K1_MAG_PELNY == K1_SKARB_PELNY, "K1_SKARB_PELNY must match K1_MAG_PELNY");
+_Static_assert(K1_MAG_IO == K1_SKARB_IO && K1_MAG_ARG == K1_SKARB_ARG, "K1_SKARB_IO/ARG must match K1_MAG_IO/ARG");
 
 #define FD_STEROWANIE 3
 #define FD_DYSK 4
@@ -43,6 +45,7 @@ struct klient {
 static struct klient kl[MAKS_KLIENTOW];
 static uint8_t bufor[K1_SKARB_MAKS];
 static int na_usb; /* K1-DANE is on a USB stick (from nadzorca's SKARB_KLIENT) */
+static struct klient *powieksza; /* the client (Ustawienia) waiting for K1-DANE to grow (0.8.1) */
 
 /* Objects of applications: numbers 1..K1_OB_MAKS, kept under the name "o<number>". */
 static void nazwa(int id, char out[K1_MAG_NAZWA])
@@ -78,6 +81,8 @@ static void zamknij_klienta(struct klient *k)
         if (&kl[i] != k && kl[i].fd >= 0 && kl[i].wlasciciel == k->wlasciciel)
             ostatni = 0;
     dostep_koniec_klienta(k->fd, k->wlasciciel, ostatni);
+    if (powieksza == k)
+        powieksza = NULL;
     close(k->fd);
     k->fd = -1;
 }
@@ -91,42 +96,63 @@ static void oglos_zmiane(void)
             k1_kanal_wyslij(kl[i].fd, &m, sizeof m, -1);
 }
 
+/* nadzorca's answer to POWIEKSZ_DANE: the vault takes the grown partition, the client that asked is told. */
+static void oglos_zmiane(void);
+
+static void powiekszono(int wynik)
+{
+    int r = miejsce_powiekszono(wynik);
+    if (r == K1_MAG_OK)
+        oglos_zmiane(); /* Pliki ask for the list again: the room comes with it */
+    if (powieksza != NULL) {
+        odpowiedz(powieksza, 1, K1_KOM_SKARB_POWIEKSZ, r);
+        miejsce_wyslij(powieksza->fd);
+        powieksza = NULL;
+    }
+}
+
+static void nowy_klient(const struct k1_komunikat *m, int fd)
+{
+    int i;
+    for (i = 0; i < MAKS_KLIENTOW && kl[i].fd >= 0; i++)
+        ;
+    if (i == MAKS_KLIENTOW || fcntl(fd, F_SETFL, O_NONBLOCK) != 0) {
+        close(fd);
+        k1_log(TAG, "za dużo klientów");
+        return;
+    }
+    kl[i].fd = fd;
+    kl[i].wlasciciel = m->a;
+    kl[i].uid = m->b;
+    na_usb = m->c;      /* where the K1-DANE is (nadzorca knows; shown in Ustawienia) */
+    miejsce_zapas(m->d); /* and how much more the stick has (0.8.1) */
+    k1_log(TAG, "nowy klient: właściciel %d (uid %d)", m->a, m->b);
+    dostep_nowy_klient(kl[i].fd, kl[i].wlasciciel);
+}
+
 static void obsluz_sterowanie(void)
 {
     for (int n = 0; n < 16; n++) {
         struct k1_odebrane o;
         struct k1_komunikat m;
         enum k1_kanal_wynik w = k1_kanal_odbierz(FD_STEROWANIE, &o);
-        int i;
         if (w == K1_KANAL_PUSTO)
             return;
         if (w != K1_KANAL_KOMUNIKAT)
             k1_koniec(TAG, "nadzorca zamknął kanał sterujący");
         if (o.obciete || !o.ma_nadawce || o.uid != 0 ||
-            k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &m) != 0 || m.typ != K1_KOM_SKARB_KLIENT ||
-            o.fd < 0) {
+            k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &m) != 0 ||
+            (m.typ != K1_KOM_SKARB_KLIENT && m.typ != K1_KOM_POWIEKSZONO) ||
+            (o.fd >= 0) != k1_komunikat_z_deskryptorem(m.typ, K1_KIER_STEROWANIE)) {
             if (o.fd >= 0)
                 close(o.fd);
             k1_log(TAG, "kanał sterujący: odrzucono komunikat (nadawca uid %d)", o.ma_nadawce ? (int)o.uid : -1);
             continue;
         }
-        for (i = 0; i < MAKS_KLIENTOW && kl[i].fd >= 0; i++)
-            ;
-        if (i == MAKS_KLIENTOW) {
-            close(o.fd);
-            k1_log(TAG, "za dużo klientów");
-            continue;
-        }
-        if (fcntl(o.fd, F_SETFL, O_NONBLOCK) != 0) {
-            close(o.fd);
-            continue;
-        }
-        kl[i].fd = o.fd;
-        kl[i].wlasciciel = m.a;
-        kl[i].uid = m.b;
-        na_usb = m.c; /* where the K1-DANE is (nadzorca knows; shown in Ustawienia) */
-        k1_log(TAG, "nowy klient: właściciel %d (uid %d)", m.a, m.b);
-        dostep_nowy_klient(kl[i].fd, kl[i].wlasciciel);
+        if (m.typ == K1_KOM_POWIEKSZONO)
+            powiekszono(m.a);
+        else
+            nowy_klient(&m, o.fd);
     }
 }
 
@@ -199,6 +225,15 @@ static void wykonaj(struct klient *k, const struct k1_komunikat *m, int fd)
         break;
     case K1_KOM_SKARB_INFO:
         odpowiedz(k, 1, m->typ, K1_MAG_OK);
+        miejsce_wyslij(k->fd);
+        break;
+    case K1_KOM_SKARB_POWIEKSZ: /* only Ustawienia: the user clicked "Użyj całego pendrive'a" (ADR 0033) */
+        if (k->wlasciciel == K1_PROFIL_USTAWIENIA && powieksza == NULL && miejsce_powieksz() == K1_MAG_OK) {
+            powieksza = k;
+            break;
+        }
+        odpowiedz(k, 1, m->typ, K1_MAG_ARG);
+        miejsce_wyslij(k->fd);
         break;
     default:
         break;
