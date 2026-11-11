@@ -178,7 +178,7 @@ import random, sys
 from PIL import Image
 for i in range(16):  # noise compresses badly: about 2.8 MB each, as a phone's photo
     g = random.Random(i)
-    Image.frombytes("RGB", (1400, 1050), g.randbytes(1400 * 1050 * 3)).save(f"{sys.argv[1]}/IMG_{i:04d}.JPG", "JPEG", quality=85)
+    Image.frombytes("RGB", (2000, 1500), g.randbytes(2000 * 1500 * 3)).save(f"{sys.argv[1]}/IMG_{i:04d}.JPG", "JPEG", quality=90)
 ZDJ
 export MTOOLS_SKIP_CHECK=1
 mformat -C -i "$FOT.czesc" -F -c 1 -T 196608 :: >/dev/null && mmd -i "$FOT.czesc" ::/DCIM ::/DCIM/100K1 &&

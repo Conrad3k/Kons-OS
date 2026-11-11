@@ -108,7 +108,7 @@ void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         if (in.czeka)
             snprintf(buf, sizeof buf, "Powiększam… Nie wyjmuj pendrive'a.");
         else
-            snprintf(buf, sizeof buf, "Pendrive ma jeszcze %s nieużywanego miejsca. Pliki zostają na swoim miejscu.", r);
+            snprintf(buf, sizeof buf, "Pendrive ma jeszcze %s wolnego miejsca. Pliki zostają na miejscu.", r);
         k1_tekst(o, K1_CZ_MALA, TRESC_X, p.y + p.h + 22, buf, k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 24);
     } else if (in.komunikat[0] != '\0') {
         k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 214, in.komunikat, k1_kolor(in.blad ? m->akcent_tekst : m->tekst2, 255),
