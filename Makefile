@@ -41,7 +41,7 @@ USLUGI  := src/wspolne/k1_uslugi.c src/wspolne/k1_komunikat.c src/wspolne/k1_kan
 # Blob Vault (M5c, ADR 0015): format + Monocypher (src/zewnetrzne, docs/ZALEZNOSCI.md). Monocypher is
 # compiled as is; on the host (ASan build) -Wconversion warns about its code, so only there it is off.
 MONOCYPHER := src/zewnetrzne/monocypher/monocypher.c
-MAGAZYN := src/skarbiec/magazyn.c src/skarbiec/naglowek.c src/wspolne/k1_indeks.c $(MONOCYPHER)
+MAGAZYN := src/skarbiec/magazyn.c src/skarbiec/naglowek.c src/skarbiec/obszary.c src/wspolne/k1_indeks.c $(MONOCYPHER)
 GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 # GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
 PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
@@ -123,7 +123,7 @@ $(BIN)/czytnik: $(CZYTNIK) src/czytnik/fat.h src/przybornik/k1_czas.c src/wspoln
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(CZYTNIK) src/przybornik/k1_czas.c src/wspolne/k1_indeks.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # skarbiec in modules (0.8.0): main.c (loop, channels), obiekty, haslo, dokumenty, dok_kanal + the format — skarbiec.h
-SKARBIEC := $(filter-out src/skarbiec/magazyn.c src/skarbiec/naglowek.c,$(sort $(wildcard src/skarbiec/*.c))) $(MAGAZYN)
+SKARBIEC := $(filter-out src/skarbiec/magazyn.c src/skarbiec/naglowek.c src/skarbiec/obszary.c,$(sort $(wildcard src/skarbiec/*.c))) $(MAGAZYN)
 $(BIN)/skarbiec: $(SKARBIEC) $(wildcard src/skarbiec/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -DK1_CZAS_BUDOWY=$(CZAS_BUDOWY) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ $(SKARBIEC) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 

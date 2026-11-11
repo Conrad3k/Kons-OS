@@ -22,6 +22,7 @@
 #define K1_MAG_BLOK 4096u
 #define K1_MAG_MIN_BLOKOW 64u          /* 256 KiB: the smallest vault */
 #define K1_MAG_MAKS_OBIEKTOW 65536     /* live objects (0.8.1, ADR 0034: about 64 GiB of files in pieces of 1 MiB) */
+#define K1_MAG_MAKS_OBIEKTOW_F1 65536  /* format 1 (two regions): what 0.8.1 opens */
 #define K1_MAG_MAKS_DANYCH (1u << 20)  /* one object: 1 MiB */
 #define K1_MAG_NAZWA 32                /* bytes, UTF-8, zero padded */
 #define K1_MAG_MAKS_HASLA 256          /* bytes */
