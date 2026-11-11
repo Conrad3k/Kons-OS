@@ -140,7 +140,7 @@ void wykonaj(int r, int a)
     case B_IMPORTUJ_WSZ: pendrive_importuj(1); break;
     case B_NAZWA: zacznij_edycje(); break;
     case B_USUN: do_skarbca(K1_KOM_DOK_KOSZ, zaznaczony, 0); zaznaczony = 0; break;
-    case B_PRZYWROC: do_skarbca(K1_KOM_DOK_PRZYWROC, zaznaczony, 0); zaznaczony = 0; break;
+    case B_PRZYWROC: przywroc(zaznaczony); zaznaczony = 0; break;
     case B_NA_ZAWSZE: pytanie = PYT_USUN; break;
     case B_OPROZNIJ: pytanie = PYT_OPROZNIJ; break;
     case B_TAK:

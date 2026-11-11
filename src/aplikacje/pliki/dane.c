@@ -2,6 +2,7 @@
  * Everything skarbiec sends is checked here (k1_odbierz_komunikat, k1_dok_lista_czytaj); names and content
  * never reach the log — only counts. Part of Pliki (pliki.h). */
 #include <fcntl.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -21,6 +22,8 @@ static int skarb = -1;
 static uint8_t lista[K1_DOK_LISTA_MAKS];
 static uint32_t do_edycji; /* the folder just created: rename it when the list shows it */
 static uint32_t podglad_gen; /* the content generation of the preview */
+static char przywrocony[256];  /* the footer after Przywróć, when the folder it came from is in Kosz or gone */
+static uint32_t przywracany;
 static struct {
     int jest, kosz;
     uint32_t id;
@@ -93,6 +96,22 @@ void zmien_nazwe(uint32_t id, const char *t, size_t dl)
         return;
     }
     wyslij_z_danymi(k1_komunikat_nowy(K1_KOM_DOK_NAZWA, id, (int32_t)dl, 0, 0, 0, 0), t, dl);
+}
+
+static int widoczny(uint32_t f);
+
+void przywroc(uint32_t id)
+{
+    const struct k1_dok_wpis *w = wpis(id), *f = w != NULL ? wpis(w->rodzic) : NULL;
+    przywracany = 0;
+    if (w != NULL && !widoczny(w->rodzic)) { /* skarbiec puts it in Dokumenty (0.8.1, plan L18) */
+        przywracany = id;
+        if (f != NULL && f->kosz != 0)
+            snprintf(przywrocony, sizeof przywrocony, "Folder „%s” jest w Koszu — przywrócono do Dokumentów.", f->nazwa);
+        else
+            snprintf(przywrocony, sizeof przywrocony, "Folderu, z którego pochodzi, już nie ma — przywrócono do Dokumentów.");
+    }
+    do_skarbca(K1_KOM_DOK_PRZYWROC, id, 0);
 }
 
 void podglad_zadaj(uint32_t id)
@@ -203,7 +222,7 @@ static void wynik(const struct k1_komunikat *k)
     if (k->b == 0) {
         if (k->a == K1_KOM_DOK_NOWY && k->c != 0)
             do_edycji = (uint32_t)k->c;
-        blad = NULL;
+        blad = k->a == K1_KOM_DOK_PRZYWROC && k->obiekt == przywracany && przywracany != 0 ? przywrocony : NULL;
         k1_log(TAG, "skarbiec: zrobione (komunikat %d)", k->a);
         return;
     }
@@ -212,6 +231,7 @@ static void wynik(const struct k1_komunikat *k)
     case K1_DOK_BLAD_NAZWA: blad = "Tej nazwy nie można użyć."; break;
     case K1_DOK_BLAD_MIEJSCE: blad = "Tu nie można tego zrobić (za dużo folderów w folderach?)."; break;
     case K1_DOK_BLAD_PELNO: blad = "Za dużo plików i folderów."; break;
+    case K1_DOK_BLAD_OTWARTE: blad = "Ta aplikacja ma już otwartych 64 plików — zamknij ją i otwórz ponownie."; break;
     case K1_SKARB_PELNY: blad = "Brak miejsca na nośniku."; break;
     case K1_SKARB_ZLE_HASLO: blad = "Dane są zablokowane hasłem."; break;
     default: blad = "Nie udało się."; break;

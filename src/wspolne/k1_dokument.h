@@ -23,6 +23,7 @@
 #define K1_DOK_ID_MAKS 0x7fffffff
 #define K1_KOSZ_DNI 30                  /* Kosz: deleted for good after this many days */
 #define K1_DOK_PODGLAD (64u << 10)      /* Pliki reads at most this much for a preview */
+#define K1_DOK_DOSTEP_APL 64            /* files one application may be given after a gesture (until it closes) */
 
 enum { K1_DOK_PLIK = 1, K1_DOK_FOLDER = 2 };
 
@@ -73,7 +74,8 @@ enum { K1_POCH_MAKS = 0 K1_POCHODZENIA(K1_X_JEDEN) };
 #define K1_DOK_BLAD_BRAK (-24)    /* no such entry (or not visible to this client) */
 #define K1_DOK_BLAD_PELNO (-25)   /* too many entries */
 #define K1_DOK_BLAD_CZEKA (-26)   /* the file picker is open already (one request at a time) */
-#define K1_DOK_BLAD_MIN (-26)
+#define K1_DOK_BLAD_OTWARTE (-27) /* the application has K1_DOK_DOSTEP_APL files given already (0.8.1) */
+#define K1_DOK_BLAD_MIN (-27)
 
 /* One entry. kosz: when it was put in Kosz (0: not in Kosz); an entry inside a folder in Kosz keeps 0 and is
  * hidden with its folder; rodzic stays the folder it came from (Przywróć puts it back there). */
@@ -85,17 +87,28 @@ struct k1_dok_wpis {
     char nazwa[K1_DOK_NAZWA];           /* UTF-8, NUL-padded */
 };
 
+/* In Kosz (0.8.1: one rule for skarbiec's count, the list and Pliki): put there itself — not an entry that only lies
+ * inside a folder in Kosz (it goes and comes back with its folder). */
+static inline int k1_dok_w_koszu(const struct k1_dok_wpis *w)
+{
+    return w->kosz != 0;
+}
+
 /* Bytes of an entry (little-endian): id 0, rodzic 4, rodzaj 8, typ 9, pochodzenie 10, tworca 11, generacja 12,
  * rozmiar 16, utworzono 24, zmieniono 32, kosz 40, nazwa 48..175. The same bytes are the entry's object
- * in skarbiec. The list: "K1D1", count (u32), entries in Kosz (u32, only the top ones), 0 (u32), entries. */
+ * in skarbiec. The list: "K1D1", count (u32), entries in Kosz (u32, k1_dok_w_koszu), 0 (u32), entries. */
 #define K1_DOK_WPIS_BAJTY 176
 #define K1_DOK_LISTA_NAGL 16
 #define K1_DOK_LISTA_MAKS (K1_DOK_LISTA_NAGL + K1_DOK_MAKS * K1_DOK_WPIS_BAJTY)
 _Static_assert(48 + K1_DOK_NAZWA == K1_DOK_WPIS_BAJTY, "k1_dok_wpis: layout");
+_Static_assert(K1_DOK_DOSTEP_APL == 64, "the texts of Pliki and Wybór pliku say 64");
 
 /* 1 when `s` (n bytes, no NUL needed) may be the name of a file or folder: 1..127 bytes of valid UTF-8, no
  * control characters, none of \ / : * ? " < > |, no space at the start, no space or dot at the end. */
 int k1_dok_nazwa_poprawna(const char *s, size_t n);
+/* `s` (n bytes) made a valid name (0.8.1, entries repaired at start): every bad byte or character becomes "_", no
+ * space at the start, no space or dot at the end, whole letters up to 127 bytes. Empty ("") when nothing is left. */
+void k1_dok_nazwa_popraw(const char *s, size_t n, char out[K1_DOK_NAZWA]);
 /* Names compared as Windows does: letters A-Z equal to a-z (and Polish capitals to small ones). */
 int k1_dok_nazwy_rowne(const char *a, const char *b);
 /* The name a text gives a file (Notatki, ADR 0030): its first line with something in it, at most 48 bytes (whole

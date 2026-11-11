@@ -1,150 +1,38 @@
-/* K1 skarbiec — the user's files and folders, Kosz (0.8.0, ADR 0029). Format and rules: dokumenty.h.
- * Names and content never reach the log — only numbers and sizes. Part of skarbiec (skarbiec.h). */
+/* K1 skarbiec — the user's files and folders (0.8.0, ADR 0029): the entries in memory, their objects, new files and
+ * changes. Format and rules: dokumenty.h; the modules: dok_wew.h. Names and content never reach the log — only
+ * numbers and sizes. Part of skarbiec (skarbiec.h). */
 #include "dokumenty.h"
 
 #include <stdio.h>
 #include <string.h>
 
-#include "k1_log.h"
+#include "dok_wew.h"
+#include "k1_bajty.h"
 #include "skarbiec.h"
 
-#define WL K1_WL_DOKUMENTY
-#define DZIEN 86400
-
-static struct k1_dok_wpis wpisy[K1_DOK_MAKS];
-static int n_wpisow;
-static uint32_t nastepny = K1_DOK_PIERWSZY;
+struct k1_dok_wpis wpisy[K1_DOK_MAKS];
+int n_wpisow;
+uint32_t nastepny = K1_DOK_PIERWSZY;
 static uint8_t kawalek[K1_DOK_KAWALEK];
-
-/* ---- looking ---- */
-
-static int indeks(uint32_t id)
-{
-    for (int i = 0; i < n_wpisow; i++)
-        if (wpisy[i].id == id)
-            return i;
-    return -1;
-}
-
-const struct k1_dok_wpis *dok_wpis(uint32_t id)
-{
-    int i = indeks(id);
-    return i < 0 ? NULL : &wpisy[i];
-}
-
-static int staly(uint32_t id)
-{
-    return id >= 1 && id <= K1_FOLDERY_MAKS;
-}
-
-int dok_widoczny(uint32_t id)
-{
-    for (int krok = 0; krok <= K1_DOK_GLEBOKOSC + 1 && !staly(id); krok++) {
-        const struct k1_dok_wpis *w = dok_wpis(id);
-        if (w == NULL || w->kosz != 0)
-            return 0;
-        id = w->rodzic;
-    }
-    return staly(id);
-}
-
-/* A folder that can take entries: a standard one, or a visible user folder. */
-static int folder_otwarty(uint32_t id)
-{
-    const struct k1_dok_wpis *w = dok_wpis(id);
-    return staly(id) || (w != NULL && w->rodzaj == K1_DOK_FOLDER && dok_widoczny(id));
-}
-
-/* User folders above `id` (a standard folder: 0). */
-static int glebokosc(uint32_t id)
-{
-    int g = 0;
-    while (!staly(id) && g <= K1_DOK_GLEBOKOSC) {
-        const struct k1_dok_wpis *w = dok_wpis(id);
-        if (w == NULL)
-            break;
-        g++;
-        id = w->rodzic;
-    }
-    return g;
-}
-
-/* Whether `id` is `przodek` or lies inside it. */
-static int wewnatrz(uint32_t id, uint32_t przodek)
-{
-    for (int krok = 0; krok <= K1_DOK_GLEBOKOSC + 1; krok++) {
-        const struct k1_dok_wpis *w;
-        if (id == przodek)
-            return 1;
-        w = dok_wpis(id);
-        if (w == NULL)
-            return 0;
-        id = w->rodzic;
-    }
-    return 0;
-}
-
-/* Levels of folders in `id` itself and below it (a file: 0, an empty folder: 1). */
-static int wysokosc(uint32_t id)
-{
-    int h = 0;
-    const struct k1_dok_wpis *w = dok_wpis(id);
-    if (w == NULL || w->rodzaj != K1_DOK_FOLDER)
-        return 0;
-    for (int i = 0; i < n_wpisow; i++)
-        if (wpisy[i].rodzic == id && wpisy[i].rodzaj == K1_DOK_FOLDER) {
-            int d = wysokosc(wpisy[i].id);
-            if (d > h)
-                h = d;
-        }
-    return h + 1;
-}
-
-/* A visible entry other than `oprocz` named `nazwa` in `folder`. */
-static int nazwa_zajeta(uint32_t folder, const char *nazwa, uint32_t oprocz)
-{
-    for (int i = 0; i < n_wpisow; i++)
-        if (wpisy[i].rodzic == folder && wpisy[i].kosz == 0 && wpisy[i].id != oprocz &&
-            k1_dok_nazwy_rowne(wpisy[i].nazwa, nazwa))
-            return 1;
-    return 0;
-}
-
-uint32_t dok_w_koszu(void)
-{
-    uint32_t n = 0;
-    for (int i = 0; i < n_wpisow; i++)
-        n += wpisy[i].kosz != 0;
-    return n;
-}
-
-int dok_wybierz(int (*wybierz)(const struct k1_dok_wpis *w), struct k1_dok_wpis *out)
-{
-    int n = 0;
-    for (int i = 0; i < n_wpisow; i++)
-        if (wybierz(&wpisy[i]))
-            out[n++] = wpisy[i];
-    return n;
-}
 
 /* ---- objects ---- */
 
-static void nazwa_wpisu(uint32_t id, char out[K1_MAG_NAZWA])
+void nazwa_wpisu(uint32_t id, char out[K1_MAG_NAZWA])
 {
     snprintf(out, K1_MAG_NAZWA, "m%u", id);
 }
 
-static void nazwa_kawalka(uint32_t id, uint32_t gen, uint32_t k, char out[K1_MAG_NAZWA])
+void nazwa_kawalka(uint32_t id, uint32_t gen, uint32_t k, char out[K1_MAG_NAZWA])
 {
     snprintf(out, K1_MAG_NAZWA, "t%ug%uk%u", id, gen, k);
 }
 
-static uint32_t kawalkow(uint64_t rozmiar)
+uint32_t kawalkow(uint64_t rozmiar)
 {
     return (uint32_t)((rozmiar + K1_DOK_KAWALEK - 1) / K1_DOK_KAWALEK);
 }
 
-static int zapisz_wpis(const struct k1_dok_wpis *w)
+int zapisz_wpis(const struct k1_dok_wpis *w)
 {
     uint8_t b[K1_DOK_WPIS_BAJTY];
     char n[K1_MAG_NAZWA];
@@ -153,7 +41,7 @@ static int zapisz_wpis(const struct k1_dok_wpis *w)
     return ob_zapisz(WL, n, b, sizeof b);
 }
 
-static void usun_kawalki(uint32_t id, uint32_t gen, uint32_t ile)
+void usun_kawalki(uint32_t id, uint32_t gen, uint32_t ile)
 {
     char n[K1_MAG_NAZWA];
     for (uint32_t k = 0; k < ile; k++) {
@@ -186,10 +74,8 @@ static int zapisz_kawalki(uint32_t id, uint32_t gen, const struct dok_zrodlo *z,
     return K1_MAG_OK;
 }
 
-/* ---- changes ---- */
-
 /* `nazwa` made free in `folder`: "nazwa (2)", "nazwa (3)"… before the extension, as Windows does. */
-static int wolna_nazwa(uint32_t folder, const char *nazwa, uint32_t oprocz, char out[K1_DOK_NAZWA])
+int wolna_nazwa(uint32_t folder, const char *nazwa, uint32_t oprocz, char out[K1_DOK_NAZWA])
 {
     const char *kropka = strrchr(nazwa, '.');
     size_t baza = kropka != NULL && kropka != nazwa ? (size_t)(kropka - nazwa) : strlen(nazwa);
@@ -312,7 +198,7 @@ int dok_czytaj_tresc(uint32_t id, uint64_t maks, const struct dok_cel *c, uint64
 }
 
 /* Common checks of a change to a user entry: it exists and is visible. */
-static int zmienialny(uint32_t id)
+int zmienialny(uint32_t id)
 {
     int i = indeks(id);
     if (i < 0)
@@ -345,15 +231,53 @@ int dok_zmien_nazwe(uint32_t id, const char *nazwa, size_t nl, int wolna, int64_
     return 0;
 }
 
+/* The folder of an application is remembered in object "a<profile>" (0.8.1, plan L1): found by its number even when
+ * the user renamed or moved it, or a file took its name. */
+static void nazwa_folderu_apl(int tworca, char out[K1_MAG_NAZWA])
+{
+    snprintf(out, K1_MAG_NAZWA, "a%d", tworca);
+}
+
+static void zapamietaj_folder(int tworca, uint32_t id)
+{
+    char n[K1_MAG_NAZWA];
+    uint8_t b[4];
+    nazwa_folderu_apl(tworca, n);
+    k1_z32(b, id);
+    ob_zapisz(WL, n, b, sizeof b); /* failing: found by its name next time, as before 0.8.1 */
+}
+
+static int folder_widoczny(uint32_t id)
+{
+    const struct k1_dok_wpis *w = dok_wpis(id);
+    return w != NULL && w->rodzaj == K1_DOK_FOLDER && dok_widoczny(id);
+}
+
 int dok_folder_aplikacji(const char *nazwa, int tworca, int64_t teraz, uint32_t *id)
 {
-    for (int i = 0; i < n_wpisow; i++)
-        if (wpisy[i].rodzic == K1_FOLDER_DOKUMENTY && wpisy[i].rodzaj == K1_DOK_FOLDER && wpisy[i].kosz == 0 &&
-            k1_dok_nazwy_rowne(wpisy[i].nazwa, nazwa)) {
-            *id = wpisy[i].id;
+    char n[K1_MAG_NAZWA];
+    uint8_t b[4];
+    uint32_t dl;
+    int r;
+    nazwa_folderu_apl(tworca, n);
+    if (ob_czytaj(WL, n, b, sizeof b, &dl) == K1_MAG_OK && dl == sizeof b) {
+        if (folder_widoczny(k1_c32(b))) {
+            *id = k1_c32(b);
             return 0;
         }
-    return dok_nowy(K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, nazwa, strlen(nazwa), NULL, tworca, K1_POCH_K1, teraz, id);
+    } else { /* nothing remembered (files of 0.8.0): its folder by name, once */
+        for (int i = 0; i < n_wpisow; i++)
+            if (wpisy[i].rodzic == K1_FOLDER_DOKUMENTY && folder_widoczny(wpisy[i].id) && k1_dok_nazwy_rowne(wpisy[i].nazwa, nazwa)) {
+                *id = wpisy[i].id;
+                zapamietaj_folder(tworca, *id);
+                return 0;
+            }
+    }
+    /* none, or the remembered one is in Kosz or gone: a new folder */
+    r = dok_nowy(K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, nazwa, strlen(nazwa), NULL, tworca, K1_POCH_K1, teraz, id);
+    if (r == 0)
+        zapamietaj_folder(tworca, *id);
+    return r;
 }
 
 int dok_przenies(uint32_t id, uint32_t folder, int64_t teraz)
@@ -375,178 +299,4 @@ int dok_przenies(uint32_t id, uint32_t folder, int64_t teraz)
         return r;
     wpisy[i] = w;
     return 0;
-}
-
-int dok_do_kosza(uint32_t id, int64_t teraz)
-{
-    int i = zmienialny(id), r;
-    struct k1_dok_wpis w;
-    if (i < 0)
-        return K1_DOK_BLAD_BRAK;
-    w = wpisy[i];
-    w.kosz = teraz > 0 ? teraz : 1;
-    if ((r = zapisz_wpis(&w)) != 0)
-        return r;
-    wpisy[i] = w;
-    return 0;
-}
-
-int dok_przywroc(uint32_t id)
-{
-    int i = indeks(id), r;
-    struct k1_dok_wpis w;
-    if (i < 0 || wpisy[i].kosz == 0)
-        return K1_DOK_BLAD_BRAK;
-    w = wpisy[i];
-    w.kosz = 0;
-    if (!folder_otwarty(w.rodzic) || glebokosc(w.rodzic) + wysokosc(id) > K1_DOK_GLEBOKOSC)
-        w.rodzic = K1_FOLDER_DOKUMENTY; /* its folder is gone (or in Kosz itself) */
-    if ((r = wolna_nazwa(w.rodzic, wpisy[i].nazwa, id, w.nazwa)) != 0)
-        return r;
-    if ((r = zapisz_wpis(&w)) != 0)
-        return r;
-    wpisy[i] = w;
-    return 0;
-}
-
-/* Deletes entry `i` for good: its content, then the entry. */
-static int usun_wpis(int i)
-{
-    char n[K1_MAG_NAZWA];
-    int r;
-    nazwa_wpisu(wpisy[i].id, n);
-    if ((r = ob_usun(WL, n)) != K1_MAG_OK && r != K1_MAG_BRAK)
-        return r;
-    if (wpisy[i].rodzaj == K1_DOK_PLIK)
-        usun_kawalki(wpisy[i].id, wpisy[i].generacja, kawalkow(wpisy[i].rozmiar));
-    wpisy[i] = wpisy[--n_wpisow];
-    return 0;
-}
-
-/* `id` and everything inside it, the deepest first (a power loss in between leaves its folder intact). */
-static int usun_drzewo(uint32_t id)
-{
-    int i, r;
-    for (i = 0; i < n_wpisow;) {
-        if (wpisy[i].rodzic == id) {
-            if ((r = usun_drzewo(wpisy[i].id)) != 0)
-                return r;
-            i = 0; /* the table changed */
-            continue;
-        }
-        i++;
-    }
-    i = indeks(id);
-    return i < 0 ? 0 : usun_wpis(i);
-}
-
-int dok_usun_na_zawsze(uint32_t id)
-{
-    int i = indeks(id);
-    if (i < 0 || wpisy[i].kosz == 0)
-        return K1_DOK_BLAD_BRAK;
-    return usun_drzewo(id);
-}
-
-int dok_oproznij_kosz(void)
-{
-    for (int i = 0; i < n_wpisow;) {
-        if (wpisy[i].kosz != 0) {
-            int r = usun_drzewo(wpisy[i].id);
-            if (r != 0)
-                return r;
-            i = 0;
-            continue;
-        }
-        i++;
-    }
-    return 0;
-}
-
-int dok_przeterminowane(int64_t teraz)
-{
-    int n = 0;
-    for (int i = 0; i < n_wpisow;) {
-        int64_t k = wpisy[i].kosz;
-        /* a clock earlier than the moment it went to Kosz (moved back): keep it */
-        if (k != 0 && teraz >= k && teraz - k >= (int64_t)K1_KOSZ_DNI * DZIEN) {
-            if (usun_drzewo(wpisy[i].id) != 0)
-                break;
-            n++;
-            i = 0;
-            continue;
-        }
-        i++;
-    }
-    return n;
-}
-
-/* ---- loading ---- */
-
-static void wczytaj_wpis(const char *nazwa, void *ctx)
-{
-    uint8_t b[K1_DOK_WPIS_BAJTY + 1];
-    char oczekiwana[K1_MAG_NAZWA];
-    struct k1_dok_wpis w;
-    uint32_t dl;
-    int *zle = ctx;
-    if (nazwa[0] != 'm')
-        return;
-    if (n_wpisow == K1_DOK_MAKS || ob_czytaj(WL, nazwa, b, sizeof b, &dl) != K1_MAG_OK || dl != K1_DOK_WPIS_BAJTY ||
-        k1_dok_wpis_czytaj(b, &w) != 0 || (nazwa_wpisu(w.id, oczekiwana), strcmp(oczekiwana, nazwa) != 0) ||
-        indeks(w.id) >= 0) {
-        (*zle)++;
-        return;
-    }
-    wpisy[n_wpisow++] = w;
-    if (w.id >= nastepny)
-        nastepny = w.id + 1;
-}
-
-/* Pieces of content no entry points to (a write cut off): deleted. */
-static void sprzataj_kawalek(const char *nazwa, void *ctx)
-{
-    unsigned id, gen, k;
-    char koniec;
-    const struct k1_dok_wpis *w;
-    int *ile = ctx;
-    if (nazwa[0] != 't')
-        return;
-    w = sscanf(nazwa, "t%ug%uk%u%c", &id, &gen, &k, &koniec) == 3 ? dok_wpis(id) : NULL;
-    if (w == NULL || w->rodzaj != K1_DOK_PLIK || w->generacja != gen || k >= kawalkow(w->rozmiar)) {
-        ob_usun(WL, nazwa);
-        (*ile)++;
-    }
-}
-
-/* An entry whose folder is missing, is a file, or makes a loop (changed data): it goes to Dokumenty. */
-static int napraw_drzewo(void)
-{
-    int n = 0;
-    for (int i = 0; i < n_wpisow; i++) {
-        const struct k1_dok_wpis *r = dok_wpis(wpisy[i].rodzic);
-        if (staly(wpisy[i].rodzic) || (r != NULL && r->rodzaj == K1_DOK_FOLDER && !wewnatrz(wpisy[i].rodzic, wpisy[i].id) &&
-                                       glebokosc(wpisy[i].rodzic) + (wpisy[i].rodzaj == K1_DOK_FOLDER) <= K1_DOK_GLEBOKOSC))
-            continue;
-        wpisy[i].rodzic = K1_FOLDER_DOKUMENTY;
-        zapisz_wpis(&wpisy[i]);
-        n++;
-    }
-    return n;
-}
-
-void dok_wczytaj(int64_t teraz)
-{
-    int zle = 0, sieroty = 0, kawalki = 0, stare;
-    n_wpisow = 0;
-    nastepny = K1_DOK_PIERWSZY;
-    ob_kazdy(WL, wczytaj_wpis, &zle);
-    sieroty = napraw_drzewo();
-    ob_kazdy(WL, sprzataj_kawalek, &kawalki);
-    stare = dok_przeterminowane(teraz);
-    k1_log(TAG, "pliki: %d wpisów (%u w Koszu)%s", n_wpisow, dok_w_koszu(),
-           zle || sieroty || kawalki || stare ? " — sprzątanie przy otwarciu" : "");
-    if (zle || sieroty || kawalki || stare)
-        k1_log(TAG, "pliki: odrzucone wpisy %d, przeniesione do Dokumentów %d, kawałki bez wpisu %d, z Kosza po %d dniach %d",
-               zle, sieroty, kawalki, K1_KOSZ_DNI, stare);
 }

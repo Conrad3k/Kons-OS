@@ -55,19 +55,20 @@ int dok_moze_listowac(int wl)
     return p != NULL && (p->prawa & P_LISTA);
 }
 
+/* The time for entries: the clock, never before the bound (dok_czas.c). */
 static int64_t teraz(void)
 {
-    return (int64_t)time(NULL);
+    return dok_czas((int64_t)time(NULL));
 }
 
 void dok_po_otwarciu(void)
 {
-    dok_wczytaj(teraz());
+    dok_wczytaj((int64_t)time(NULL));
 }
 
 int dok_co_godzine(void)
 {
-    int n = dok_przeterminowane(teraz());
+    int n = dok_przeterminowane((int64_t)time(NULL));
     if (n > 0)
         k1_log(TAG, "Kosz: %d usuniętych na zawsze (po %d dniach)", n, K1_KOSZ_DNI);
     return n > 0;
@@ -76,7 +77,7 @@ int dok_co_godzine(void)
 /* What Pliki shows: visible entries and those in Kosz (not what lies inside a folder in Kosz). */
 static int dla_plikow(const struct k1_dok_wpis *w)
 {
-    return w->kosz != 0 || dok_widoczny(w->id);
+    return k1_dok_w_koszu(w) || dok_widoczny(w->id);
 }
 
 static int dla_pulpitu(const struct k1_dok_wpis *w)

@@ -224,7 +224,8 @@ Otwieranie, limity, przeciąganie (uwagi właściciela z 2026-11-10)
 4. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                             Luki                         Zależy od   Decyzje  Rozmiar
-[ ]  1  Dane nie mogą zginąć                          L2 L10 L11 L3 L1 L12 L18     —           —        M
+[x]  1  Dane nie mogą zginąć                          L2 L10 L11 L3 L1 L12 L18     —           —        M
+     [x] PR #65
 [ ]  2  Skarbiec: więcej plików, szybki start         L21 L4c L4d L5 L6            1           —        M–L
 [ ]  3  Miejsce: ile zostało, cały pendrive na dane   L7 L20 L4a L4b               2           D4       M
 [ ]  4  Duże pliki (przesyłanie w kawałkach)          L23a L23c                    2           —        L
@@ -274,6 +275,11 @@ KROK 1 — Dane nie mogą zginąć                                              
   Dokumenty: docs/komponenty/skarbiec.md (naprawa wpisów, granica czasu), aplikacje.md (Notatki), RYZYKA (zegar).
   Gotowe, gdy: T1/T2 z punktu 2 dają poprawne wyniki jako stałe testy; testy.sh zielone.
   Nie w tym kroku: zaostrzenie reguł nazw (krok 5), limity (krok 2).
+  Ustalenia z wykonania (PR #65): test znalazł drugą drogę utraty danych — wpis ze złą generacją przechodził
+  sprawdzenie, a start kasował prawdziwe kawałki; teraz plik bez własnej treści zostawia wszystkie swoje kawałki.
+  Kosz: „czas z złego zegara” = sprzed 1.11.2026 (żaden K1 nie miał wtedy Kosza) albo ponad dobę w przyszłości —
+  nie „sprzed czasu budowy” (każda nowa wersja przedłużałaby wtedy Kosz). Notatki: test na hoście test_notatki
+  (prawdziwy kod Notatek i skarbca przez gniazdo) zamiast scenariusza QEMU.
 
 KROK 2 — Skarbiec: więcej plików, szybki start                               M–L · bez decyzji · ADR 0034
   Cel: K1 mieści dziesiątki tysięcy plików, a start nie zwalnia z czasem; pełny dysk nie blokuje ustawień.

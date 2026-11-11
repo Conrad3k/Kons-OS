@@ -9,6 +9,8 @@
 #include "k1_teraz.h"
 #include "notatki.h"
 
+_Static_assert(MAKS_NOTATEK == 256, "the texts say 256");
+
 static uint32_t ostatni_nr;
 
 void wybierz_indeks(int i)
@@ -136,7 +138,7 @@ void nowa(void)
     }
     n = dodaj_notatke();
     if (n == NULL) {
-        komunikat = "Najwięcej 64 notatki — usuń którąś, żeby dodać nową";
+        komunikat = "Najwięcej 256 notatek — usuń którąś, żeby dodać nową";
         k1_apl_odswiez(&apl);
         return;
     }

@@ -21,7 +21,8 @@ górze, strzałki przewijania gdy się nie mieszczą), „Nowa notatka” (Ctrl+
 z potwierdzeniem. Pisanie z polskimi znakami (AltGr), strzałki, Home/End, Backspace, Delete, Enter, kliknięcie
 ustawia kursor, zawijanie wierszy, zapis automatyczny (0,8 s po zmianie; napis w stopce mówi, gdzie zapisano).
 
-**Od 0.8.0 każda notatka to plik** (ADR 0030) w **Dokumenty › Notatki** (do 64 notatek po 16 KB): nazwa pliku
+**Od 0.8.0 każda notatka to plik** (ADR 0030) w **Dokumenty › Notatki** (do 256 najnowszych notatek po 16 KB — przy
+większej liczbie komunikat „Pokazano 256 najnowszych notatek”, starsze są w Plikach; 0.8.1): nazwa pliku
 idzie za pierwszym wierszem („Lista: zakupy?” → „Lista zakupy”; bez znaków, których nazwa nie może mieć), dopóki
 użytkownik nie zmieni jej w Plikach; ta sama nazwa w folderze — „ (2)”. Nowa notatka staje się plikiem przy
 pierwszym zapisie; pusta znika po przejściu do innej (plik — do Kosza). „Usuń notatkę” przenosi plik do Kosza
@@ -29,6 +30,12 @@ pierwszym zapisie; pusta znika po przejściu do innej (plik — do Kosza). „Us
 „Otwórz…” dochodzi do listy; zamiast „Usuń notatkę” ma „Zamknij plik” (plik zostaje na swoim miejscu); większy
 niż 16 KB — komunikat w stopce. Przy pierwszym uruchomieniu 0.8.0 stare notatki (obiekty 1–33 z 0.5.6–0.7.6)
 stają się plikami; stary obiekt znika dopiero, gdy skarbiec potwierdzi plik (`stare.c`, tymczasowe — do 0.9.0).
+**Notatki nie gubią tekstu** (0.8.1): notatka, której treści skarbiec nie oddał, jest tylko do odczytu („Nie udało
+się wczytać tej notatki — spróbuję ponownie.”) — klawisz nie zapisze pustej notatki na plik; Notatki próbują znowu
+przy następnej zmianie plików. Gdy plik notatki trafi do Kosza (w Plikach), a w notatce jest niezapisany tekst,
+Notatki zapisują go jako nowy plik w Dokumenty › Notatki („Plik tej notatki trafił do Kosza — zapisano jej kopię.”);
+notatka bez nowego tekstu po prostu znika z listy (jej plik jest w Koszu). Folder Notatek skarbiec pamięta po
+numerze — zmiana jego nazwy, przeniesienie albo plik o nazwie „Notatki” nie tworzą „Notatki (2)”.
 Moduły: `main.c` (okno), `spis.c` (lista, nazwy), `pliki.c` (skarbiec, nadzorca), `tekst.c`, `stare.c`.
 
 ### Wybór pliku
@@ -82,7 +89,8 @@ pobór; brak szacunku poniżej 0,1 W i powyżej 99 h).
 stałe foldery (Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane) i Kosz (pełny — z kulką papieru); nad listą
 „w górę” i ścieżka („Dokumenty › Projekt”); przyciski miejsca: „Nowy folder” (od razu zmiana nazwy, jak
 w Windows), „Zmień nazwę”, „Usuń” (do Kosza); w Koszu: „Przywróć”, „Usuń na zawsze”, „Opróżnij Kosz” (oba
-ostatnie z pytaniem w stopce). Lista: najpierw foldery, potem pliki po nazwie; kolumny nazwa, data zmiany
+ostatnie z pytaniem w stopce). Przywrócony plik, którego folder jest w Koszu (albo już nie istnieje), trafia do
+Dokumentów — stopka to mówi („Folder „Projekt” jest w Koszu — przywrócono do Dokumentów.”, 0.8.1). Lista: najpierw foldery, potem pliki po nazwie; kolumny nazwa, data zmiany
 (w Koszu: usunięcia), rozmiar; podwójne kliknięcie (i Enter) otwiera folder, a plik — w domyślnej aplikacji
 jego typu (Ustawienia → Aplikacje; Pliki — tylko podgląd); **„Otwórz w…”** (0.8.0, ADR 0030) zamienia przyciski
 na aplikacje, które otwierają ten typ (`K1_OTWIERANIE`) — wybrana dostaje ten jeden plik (`DOK_OTWORZ`). Z prawej podgląd zaznaczonego: ikona,

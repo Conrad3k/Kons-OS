@@ -42,7 +42,7 @@ static int w_tym_miejscu(const struct k1_dok_wpis *w)
 {
     if (tu.pendrive) /* czytnik sends one folder at a time */
         return 1;
-    return tu.kosz ? w->kosz != 0 : w->kosz == 0 && w->rodzic == tu.folder;
+    return tu.kosz ? k1_dok_w_koszu(w) : !k1_dok_w_koszu(w) && w->rodzic == tu.folder;
 }
 
 /* The entries of the place shown: the user's files, or the folder on the stick. */

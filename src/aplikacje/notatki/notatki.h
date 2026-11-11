@@ -18,7 +18,7 @@
 #define FD_NADZORCA 5
 #define MAKS_TEKST 16384
 #define MAKS_LINII 1024
-#define MAKS_NOTATEK 64
+#define MAKS_NOTATEK 256 /* the newest; more files: "Pokazano 256 najnowszych notatek" (0.8.1) */
 
 struct notatka {
     uint32_t nr;           /* this window's own number (never changes, unlike the place in the list) */
@@ -26,7 +26,9 @@ struct notatka {
     uint32_t dl;
     int64_t zmieniono;     /* from the entry: the list is newest first */
     int wlasna;            /* made by Notatki (else: a text file the user opened in Notatki) */
-    int wczytana;          /* its content is here */
+    int wczytana;          /* its content is here (until then nothing is saved over the file) */
+    int blad_odczytu;      /* skarbiec could not give its content: read only, asked again at the next change */
+    int zapisywana;        /* ZAPISZ sent, its result not here yet (how many) */
     int tworzona;          /* NOWY sent, its number not here yet */
     int do_zapisu;         /* changed while it was being created: save once it has a number */
     char nazwa[K1_DOK_NAZWA];   /* the file's name */

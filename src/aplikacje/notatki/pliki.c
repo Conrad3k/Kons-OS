@@ -4,6 +4,7 @@
  * is checked here (k1_odbierz_komunikat, k1_dok_lista_czytaj); contents and names never reach the log. Part of
  * Notatki (notatki.h). */
 #include <fcntl.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -94,12 +95,27 @@ static void zapisz_notatke(struct notatka *n)
         return;
     }
     do_skarbca(K1_KOM_DOK_ZAPISZ, n->id, (int32_t)n->dl, 0, 0, n->tekst, n->dl);
+    n->zapisywana++;
     k1_dok_nazwa_z_tekstu(n->tekst, n->dl, nowa_n);
     if (n->wlasna && strcmp(nowa_n, n->auto_n) != 0 && k1_dok_nazwa_pasuje(n->nazwa, n->auto_n)) { /* the name follows */
         do_skarbca(K1_KOM_DOK_NAZWA, n->id, (int32_t)strlen(nowa_n), 1, 0, nowa_n, strlen(nowa_n));
         memcpy(n->nazwa, nowa_n, sizeof n->nazwa);
     }
     memcpy(n->auto_n, nowa_n, sizeof n->auto_n);
+}
+
+/* The file of note `n` is in Kosz (or gone) while the note has text not saved there (0.8.1, plan L11): the text is
+ * never lost — it becomes a new note, saved as a new file in Dokumenty › Notatki. */
+static void zapisz_kopie(struct notatka *n)
+{
+    n->id = 0;
+    n->wlasna = 1;
+    n->zapisywana = 0;
+    n->tworzona = 0;
+    zapis_blad = 0;
+    komunikat = "Plik tej notatki trafił do Kosza — zapisano jej kopię.";
+    k1_log(TAG, "plik notatki w Koszu albo usunięty — zapisuję kopię (%u B)", n->dl);
+    zapisz_notatke(n);
 }
 
 void zapisz(void)
@@ -166,7 +182,15 @@ static int ukryty(uint32_t id)
 }
 
 /* A file in the list we do not have yet: its note, its content asked for. */
-static void nowa_z_listy(const struct k1_dok_wpis *w)
+static void czytaj_tresc(struct notatka *n)
+{
+    n->blad_odczytu = 0;
+    czeka_tresci++;
+    do_skarbca(K1_KOM_DOK_CZYTAJ, n->id, MAKS_TEKST, 0, 0, NULL, 0);
+}
+
+/* 0, or -1 when there is no room for one more note. */
+static int nowa_z_listy(const struct k1_dok_wpis *w)
 {
     struct notatka *n;
     if (w->rozmiar > MAKS_TEKST) {
@@ -174,45 +198,71 @@ static void nowa_z_listy(const struct k1_dok_wpis *w)
             komunikat = "Ten plik jest za duży dla Notatek (ponad 16 KB).";
             do_pokazania = 0;
         }
-        return;
+        return 0;
     }
     if ((n = dodaj_notatke()) == NULL)
-        return;
+        return -1;
     n->id = w->id;
     n->wlasna = w->tworca == K1_PROFIL_NOTATKI;
     n->wczytana = w->rozmiar == 0;
-    if (!n->wczytana) {
-        czeka_tresci++;
-        do_skarbca(K1_KOM_DOK_CZYTAJ, w->id, MAKS_TEKST, 0, 0, NULL, 0);
+    if (!n->wczytana)
+        czeka_tresci++, do_skarbca(K1_KOM_DOK_CZYTAJ, w->id, MAKS_TEKST, 0, 0, NULL, 0);
+    return 0;
+}
+
+/* A note whose file is not in the list any more (Kosz, deleted in Pliki): 1 when it stays in the window. */
+static int zostaje_bez_pliku(struct notatka *n)
+{
+    if (n->id == 0 || n->zapisywana > 0) /* not a file yet; or its save's result (and a copy) still to come */
+        return 1;
+    if (n == b && zmiana > 0 && n->wczytana) { /* typed in while it went to Kosz: a copy */
+        zmiana = 0;
+        zapisz_kopie(n);
+        return 1;
     }
+    return 0;
 }
 
 /* The notes follow the list: new files added, gone ones (Kosz, deleted in Pliki) removed. */
 static void dopasuj(int n)
 {
+    int brak_miejsca = 0;
     for (int i = 0; i < n_nt;) {
-        int jest = nt[i].id == 0;
+        int jest = 0;
         for (int j = 0; j < n && !jest; j++)
             jest = wpisy[j].id == nt[i].id;
-        if (!jest && n_nt > 1) {
+        if (!jest && n_nt > 1 && !zostaje_bez_pliku(&nt[i])) {
             memmove(&nt[i], &nt[i + 1], (size_t)(n_nt - i - 1) * sizeof nt[0]);
             n_nt--;
             biez = biez > i ? biez - 1 : biez == i ? 0 : biez;
+            b = &nt[biez];
             continue;
         }
         i++;
     }
-    for (int j = 0; j < n; j++) {
+    for (int j = 0; j < n; j++) { /* the list comes newest first: with too many files, the newest are shown */
         struct notatka *e = notatka_pliku(wpisy[j].id);
         if (wpisy[j].rodzaj != K1_DOK_PLIK || wpisy[j].typ != K1_TYP_TEKST || ukryty(wpisy[j].id))
             continue;
-        if (e == NULL)
-            nowa_z_listy(&wpisy[j]);
+        if (e == NULL && nowa_z_listy(&wpisy[j]) != 0)
+            brak_miejsca = 1;
         if ((e = notatka_pliku(wpisy[j].id)) != NULL) {
             memcpy(e->nazwa, wpisy[j].nazwa, sizeof e->nazwa);
             e->zmieniono = wpisy[j].zmieniono;
+            if (e->blad_odczytu) /* it could not be read: once more, at every change */
+                czytaj_tresc(e);
         }
     }
+    if (brak_miejsca && komunikat == NULL)
+        komunikat = "Pokazano 256 najnowszych notatek — starsze są w Plikach (Dokumenty › Notatki).";
+}
+
+/* Newest first (the order of the window): the files with the latest change. */
+static int nowszy(const void *x, const void *y)
+{
+    const struct k1_dok_wpis *p = x, *q = y;
+    return p->zmieniono != q->zmieniono ? (p->zmieniono < q->zmieniono) - (p->zmieniono > q->zmieniono)
+                                        : (p->id < q->id) - (p->id > q->id);
 }
 
 static void zaloguj_wczytane(void)
@@ -233,6 +283,7 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
         return;
     }
     b = &nt[biez];
+    qsort(wpisy, (size_t)n, sizeof wpisy[0], nowszy);
     dopasuj(n);
     b = &nt[biez];
     /* the first list: the empty note of the start goes when there are notes, and the newest one opens */
@@ -308,17 +359,28 @@ static void wynik(const struct k1_komunikat *k)
         nowy_wynik(k);
         break;
     case K1_KOM_DOK_ZAPISZ:
+        if (n != NULL && n->zapisywana > 0)
+            n->zapisywana--;
+        if (n != NULL && n->wczytana && (k->b == K1_DOK_BLAD_BRAK || k->b == K1_DOK_BLAD_MIEJSCE)) {
+            zapisz_kopie(n); /* its file went to Kosz before this text reached it */
+            break;
+        }
         zapis_blad = k->b != 0;
         if (k->b == 0 && n != NULL)
             k1_log(TAG, "zapisano notatkę (%u znaków)", (unsigned)k1_utf8_znaki(n->tekst, n->dl));
         else if (k->b != 0)
             k1_log(TAG, "skarbiec: zapis notatki nieudany (%d)", k->b);
         break;
-    case K1_KOM_DOK_CZYTAJ: /* its content cannot be read: an empty note */
-        if (n != NULL && !n->wczytana) {
-            n->wczytana = 1;
+    case K1_KOM_DOK_CZYTAJ: /* its content cannot be read: never shown empty (a key would save that over the file) */
+        if (n != NULL && !n->wczytana && !n->blad_odczytu) {
+            n->blad_odczytu = 1;
             czeka_tresci--;
+            k1_log(TAG, "nie udało się wczytać notatki (wynik %d) — tylko do odczytu, ponowna próba przy zmianie", k->b);
             zaloguj_wczytane();
+            if (k->obiekt == do_pokazania) {
+                do_pokazania = 0;
+                pokaz_plik(k->obiekt);
+            }
         }
         break;
     case K1_KOM_DOK_WYBIERZ:

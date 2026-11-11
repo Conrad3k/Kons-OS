@@ -43,6 +43,15 @@ static size_t utf8(const unsigned char *s, size_t n, uint32_t *kod)
     return dl;
 }
 
+/* A character a name may have: no control characters, none of \ / : * ? " < > |, no text-direction tricks. */
+static int znak_dozwolony(uint32_t k)
+{
+    if (k < 0x20 || (k >= 0x7f && k <= 0x9f) || k == 0x2028 || k == 0x2029 || k == 0xfeff ||
+        (k >= 0x202a && k <= 0x202e) || (k >= 0x2066 && k <= 0x2069))
+        return 0;
+    return k >= 0x80 || strchr("\\/:*?\"<>|", (int)k) == NULL;
+}
+
 int k1_dok_nazwa_poprawna(const char *s, size_t n)
 {
     const unsigned char *u = (const unsigned char *)s;
@@ -52,14 +61,38 @@ int k1_dok_nazwa_poprawna(const char *s, size_t n)
     while (i < n) {
         uint32_t k;
         size_t d = utf8(u + i, n - i, &k);
-        if (d == 0 || k < 0x20 || (k >= 0x7f && k <= 0x9f) || k == 0x2028 || k == 0x2029 || k == 0xfeff ||
-            (k >= 0x202a && k <= 0x202e) || (k >= 0x2066 && k <= 0x2069)) /* also no text-direction tricks */
-            return 0;
-        if (k < 0x80 && strchr("\\/:*?\"<>|", (int)k) != NULL)
+        if (d == 0 || !znak_dozwolony(k))
             return 0;
         i += d;
     }
     return 1;
+}
+
+void k1_dok_nazwa_popraw(const char *s, size_t n, char out[K1_DOK_NAZWA])
+{
+    const unsigned char *u = (const unsigned char *)s;
+    size_t i = 0, o = 0;
+    while (i < n) {
+        uint32_t k;
+        size_t d = utf8(u + i, n - i, &k), dz = d;
+        const unsigned char *z = u + i; /* what goes out: the letter, or "_" for a bad one */
+        if (d == 0 || !znak_dozwolony(k)) {
+            z = (const unsigned char *)"_";
+            dz = 1;
+            d = d == 0 ? 1 : d;
+        } else if (k == ' ' && o == 0) { /* no space at the start */
+            i += d;
+            continue;
+        }
+        if (o + dz > K1_DOK_NAZWA - 1)
+            break; /* whole letters only */
+        memcpy(out + o, z, dz);
+        o += dz;
+        i += d;
+    }
+    while (o > 0 && (out[o - 1] == ' ' || out[o - 1] == '.'))
+        o--;
+    out[o] = '\0';
 }
 
 /* Small letter for a capital: A-Z and the Polish ones. */

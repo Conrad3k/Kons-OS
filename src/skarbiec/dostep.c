@@ -13,7 +13,7 @@
 #include "k1_uslugi.h"
 #include "skarbiec.h"
 
-#define DOSTEP_MAKS 64
+#define DOSTEP_MAKS (4 * K1_DOK_DOSTEP_APL) /* all applications together */
 
 static struct {
     int wl;
@@ -27,16 +27,20 @@ static struct {
 } prosba;
 static int wybor_fd = -1; /* the file picker's channel while it runs */
 
-void dostep_daj(int wl, uint32_t id)
+int dostep_daj(int wl, uint32_t id)
 {
+    int ile = 0;
     if (dostep_ma(wl, id))
-        return;
-    if (n_dostepow == DOSTEP_MAKS) { /* the oldest goes */
-        memmove(&dostepy[0], &dostepy[1], (DOSTEP_MAKS - 1) * sizeof dostepy[0]);
-        n_dostepow--;
+        return 0;
+    for (int i = 0; i < n_dostepow; i++)
+        ile += dostepy[i].wl == wl;
+    if (ile == K1_DOK_DOSTEP_APL || n_dostepow == DOSTEP_MAKS) { /* never one taken away in silence (0.8.1) */
+        k1_log(TAG, "pliki: aplikacja (właściciel %d) ma już %d plików — odmowa", wl, ile);
+        return K1_DOK_BLAD_OTWARTE;
     }
     dostepy[n_dostepow].wl = wl;
     dostepy[n_dostepow++].id = id;
+    return 0;
 }
 
 int dostep_ma(int wl, uint32_t id)
@@ -81,11 +85,13 @@ static int aplikacja(int wl)
 int dostep_otworz(uint32_t id, int apl)
 {
     const struct k1_dok_wpis *w = plik(id);
+    int r;
     if (w == NULL)
         return K1_DOK_BLAD_BRAK;
     if (apl == K1_APL_PLIKI || !k1_dok_otwiera(apl, w->typ))
         return K1_DOK_BLAD_PRAWA; /* this application does not open this type */
-    dostep_daj(k1_apl_profil(apl), id);
+    if ((r = dostep_daj(k1_apl_profil(apl), id)) != 0)
+        return r;
     do_nadzorcy(k1_komunikat_nowy(K1_KOM_SKARB_URUCHOM, id, apl, 0, 0, 0, 0));
     k1_log(TAG, "pliki: plik %u otwarty w aplikacji %d (dostęp po geście)", id, apl);
     return 0;
@@ -124,8 +130,8 @@ int dostep_wybrano(uint32_t id)
         return K1_DOK_BLAD_BRAK;
     if (id != 0 && (w == NULL || (prosba.typ != 0 && w->typ != prosba.typ)))
         return K1_DOK_BLAD_BRAK; /* the request stays: the picker may try again */
-    if (id != 0)
-        dostep_daj(prosba.wl, id);
+    if (id != 0 && dostep_daj(prosba.wl, id) != 0)
+        return K1_DOK_BLAD_OTWARTE; /* the picker says so; the request stays (another file is no better) */
     wyslij(prosba.fd, k1_komunikat_nowy(K1_KOM_DOK_WYBRANY, id, 0, 0, 0, 0, 0));
     k1_log(TAG, "pliki: okno wyboru pliku — %s (aplikacja %d)", id != 0 ? "plik wybrany" : "anulowano", prosba.apl);
     prosba.jest = 0;

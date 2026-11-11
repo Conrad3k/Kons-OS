@@ -286,6 +286,9 @@ Na hoście: `test_dokumenty` (skarbiec: nazwy, typy, wpisy, kawałki treści, fo
 krok 2: prawa Notatek, „Otwórz w…”, okno wyboru, nazwa z pierwszego wiersza), `test_komunikat` (`DOK_*`,
 `PLIKI_POKAZ`, `URUCHOM` z miejscem; krok 2: nowe komunikaty i domyślne aplikacje), `test_rozmieszczenie` (klucze
 ikon, K1R2 i K1R1, „Wybór pliku” nigdy na pasku), `fuzz_dokument`, `fuzz_rozmieszczenie`.
+0.8.1 krok 1: `test_dokumenty` (naprawa wpisów, granica czasu, folder aplikacji, licznik Kosza, 64 pliki na
+aplikację) i `test_notatki` — prawdziwy kod Notatek i skarbca przez gniazdo (bez sprawdzania UID nadawcy):
+notatka nie do odczytu, plik do Kosza w trakcie pisania, 300 plików.
 
 ## 0.8.0 krok 3 i 4 — zdjęcia z pendrive'a, podgląd, tapeta, `scripts/test-pendrive.sh` (ADR 0031, 0032)
 
