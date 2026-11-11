@@ -17,9 +17,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "k1_indeks.h"
+
 #define K1_MAG_BLOK 4096u
 #define K1_MAG_MIN_BLOKOW 64u          /* 256 KiB: the smallest vault */
-#define K1_MAG_MAKS_OBIEKTOW 4096      /* live objects (0.8.0: files, ADR 0029) */
+#define K1_MAG_MAKS_OBIEKTOW 65536     /* live objects (0.8.1, ADR 0034: about 64 GiB of files in pieces of 1 MiB) */
 #define K1_MAG_MAKS_DANYCH (1u << 20)  /* one object: 1 MiB */
 #define K1_MAG_NAZWA 32                /* bytes, UTF-8, zero padded */
 #define K1_MAG_MAKS_HASLA 256          /* bytes */
@@ -66,6 +68,9 @@ struct k1_magazyn {
     uint8_t sol[16], owiniety[32 + 24 + 16]; /* wrapped key as in the header */
     struct k1_mag_wpis wpisy[K1_MAG_MAKS_OBIEKTOW];
     int n_wpisow;
+    uint64_t zywe;              /* blocks of the live records (the rest of `koniec` is old versions) */
+    struct k1_idx idx;          /* (owner, name) → place in wpisy (0.8.1) */
+    struct k1_idx_slot sloty[2 * K1_MAG_MAKS_OBIEKTOW];
 };
 
 /* Standard disk functions (pread/pwrite/fdatasync, getrandom) for `fd` of `bajty` bytes. */
@@ -94,6 +99,17 @@ int k1_mag_usun(struct k1_magazyn *m, uint16_t wlasciciel, const char *nazwa);
 int k1_mag_zmien_haslo(struct k1_magazyn *m, const char *nowe);
 /* Checks `haslo` (NULL = no password) against the open vault without changing anything (Argon2id). */
 int k1_mag_sprawdz_haslo(struct k1_magazyn *m, const char *haslo);
+
+/* Compaction (0.8.1, ADR 0034): copies the live objects into the other region, so that the log has no old
+ * versions (a vault with a long log opens slowly: every record is read and authenticated). It happens anyway when the
+ * region is full; k1_mag_kompaktowac says when it is worth doing earlier — `przy_otwarciu`: the log is over 64 MiB
+ * and over twice the live data; at work: old versions take over 256 MiB more than the live data. */
+int k1_mag_kompaktowac(const struct k1_magazyn *m, int przy_otwarciu);
+int k1_mag_kompaktuj(struct k1_magazyn *m);
+/* Room for new data: bytes of the region not taken by live objects (a new record also needs its header: ~128 B), and
+ * the size of the region (half the partition: the other half is for compaction). */
+uint64_t k1_mag_wolne(const struct k1_magazyn *m);
+uint64_t k1_mag_pojemnosc(const struct k1_magazyn *m);
 
 /* Forgets the key (memory wiped). */
 void k1_mag_zamknij(struct k1_magazyn *m);

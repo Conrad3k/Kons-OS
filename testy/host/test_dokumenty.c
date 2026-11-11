@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "dokumenty.h"
@@ -793,6 +794,67 @@ static void test_limit_dostepu(void)
     close(kn[1]);
 }
 
+/* L4d/L21 of the plan (ADR 0034): 16 384 entries; a tree of thousands deleted at once; loading them again. */
+static void test_duzo_wpisow(void)
+{
+    uint32_t f, g[K1_DOK_GLEBOKOSC], ostatni = 0;
+    int n0, n, i, d;
+    char nazwa[32];
+    double t0;
+    dok_wczytaj(T0);
+    dok_oproznij_kosz();
+    n0 = dok_wybierz(dok_kazdy, wybrane);
+    f = nowy(K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, "Archiwum", NULL, 0, T0);
+    g[0] = f;
+    for (d = 1; d < K1_DOK_GLEBOKOSC; d++)
+        g[d] = nowy(g[d - 1], K1_DOK_FOLDER, "poziom", NULL, 0, T0);
+    for (i = 0, n = n0 + K1_DOK_GLEBOKOSC; n < K1_DOK_MAKS; i++, n++) {
+        snprintf(nazwa, sizeof nazwa, "zdjecie %d.jpg", i);
+        ostatni = nowy(g[i % K1_DOK_GLEBOKOSC], K1_DOK_PLIK, nazwa, NULL, 0, T0);
+        if (ostatni == 0)
+            break;
+    }
+    EXPECT(n == K1_DOK_MAKS && dok_wybierz(dok_kazdy, wybrane) == K1_DOK_MAKS);
+    EXPECT(nowy(K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, "jeszcze jeden", NULL, 0, T0) == 0); /* PELNO */
+    t0 = (double)clock() / CLOCKS_PER_SEC;
+    dok_wczytaj(T0 + 1);
+    EXPECT(dok_wybierz(dok_kazdy, wybrane) == K1_DOK_MAKS && dok_wpis(ostatni) != NULL && dok_widoczny(ostatni));
+    EXPECT(dok_do_kosza(f, T0) == 0 && dok_w_koszu() == 1 && !dok_widoczny(ostatni));
+    EXPECT(dok_oproznij_kosz() == 0 && dok_wybierz(dok_kazdy, wybrane) == n0 && dok_wpis(ostatni) == NULL);
+    fprintf(stderr, "test_dokumenty: 16 384 wpisy — wczytanie i usunięcie drzewa: %.2f s (ASan)\n",
+            (double)clock() / CLOCKS_PER_SEC - t0);
+    EXPECT((double)clock() / CLOCKS_PER_SEC - t0 < 20);
+}
+
+/* L6 of the plan: files never take the last 8 MiB — the system's own objects still save when files are "full". */
+static void test_rezerwa(void)
+{
+    static uint8_t mib[K1_DOK_KAWALEK];
+    uint32_t f, id = 1;
+    int n = 0;
+    dok_wczytaj(T0);
+    f = nowy(K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, "Duże", NULL, 0, T0);
+    while (id != 0 && n < 200) {
+        struct bufor b = { mib, NULL, sizeof mib };
+        struct dok_zrodlo z = { czytaj_bufor, &b, sizeof mib };
+        char nazwa[32];
+        snprintf(nazwa, sizeof nazwa, "plik %d", n);
+        if (dok_nowy(f, K1_DOK_PLIK, nazwa, strlen(nazwa), &z, K1_PROFIL_PLIKI, K1_POCH_K1, T0, &id) == 0)
+            n++;
+        else
+            id = 0;
+    }
+    {
+        struct bufor b = { mib, NULL, sizeof mib };
+        struct dok_zrodlo z = { czytaj_bufor, &b, sizeof mib };
+        EXPECT(dok_nowy(f, K1_DOK_PLIK, "ostatni", 7, &z, K1_PROFIL_PLIKI, K1_POCH_K1, T0, &id) == K1_DOK_BLAD_BRAK_MIEJSCA);
+    }
+    EXPECT(n > 50 && ob_wolne() >= (8u << 20) && ob_wolne() < (8u << 20) + 2 * K1_DOK_KAWALEK);
+    EXPECT(ob_zapisz(K1_PROFIL_EKRAN, "o1", mib, 100000) == K1_MAG_OK); /* settings still save */
+    EXPECT(dok_do_kosza(f, T0) == 0 && dok_oproznij_kosz() == 0 && ob_wolne() > 64u << 20); /* deleting frees it */
+    ob_usun(K1_PROFIL_EKRAN, "o1");
+}
+
 /* T1/1 of the plan: the folder of an application is remembered, not looked up by its name. */
 static void test_folder_aplikacji(void)
 {
@@ -831,5 +893,7 @@ int main(void)
     test_licznik_kosza();
     test_zegar();
     test_limit_dostepu();
+    test_duzo_wpisow();
+    test_rezerwa();
     return K1_TEST_KONIEC("test_dokumenty");
 }

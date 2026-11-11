@@ -17,6 +17,7 @@
 
 #include "fat.h"
 #include "k1_czas.h"
+#include "k1_indeks.h"
 #include "k1_io.h"
 #include "k1_kanal.h"
 #include "k1_klatka.h"
@@ -42,6 +43,8 @@ static struct znany {
 } znane[ZNANYCH];
 static int n_znanych;
 static uint32_t przesuniecie; /* ids of forgotten entries are never given again */
+static struct k1_idx po_polozeniu; /* where on the stick → its place in znane[] (0.8.1, ADR 0034) */
+static struct k1_idx_slot sloty[2 * ZNANYCH];
 static struct fat fat;
 static int fat_jest;
 static uint8_t lista[K1_PEN_LISTA_MAKS];
@@ -71,14 +74,28 @@ static const struct znany *znany(uint32_t id)
     return &znane[id - przesuniecie - 1];
 }
 
+static uint32_t skrot(uint64_t polozenie)
+{
+    return k1_idx_skrot(K1_IDX_START, &polozenie, sizeof polozenie);
+}
+
+static int pasuje(const void *ctx, int32_t i)
+{
+    return znane[i].polozenie == *(const uint64_t *)ctx;
+}
+
 /* The id of an entry (the same entry keeps its id while it is remembered). 0 when there is no room. */
 static uint32_t zapamietaj(const struct fat_wpis *w)
 {
-    for (int i = 0; i < n_znanych; i++)
-        if (znane[i].polozenie == w->polozenie)
-            return przesuniecie + (uint32_t)i + 1;
+    int32_t i;
+    if (po_polozeniu.s == NULL)
+        k1_idx_init(&po_polozeniu, sloty, 2 * ZNANYCH);
+    i = k1_idx_znajdz(&po_polozeniu, skrot(w->polozenie), pasuje, &w->polozenie);
+    if (i >= 0)
+        return przesuniecie + (uint32_t)i + 1;
     if (n_znanych == ZNANYCH || przesuniecie + (uint32_t)n_znanych + 1 > K1_PEN_ID_MAKS)
         return 0;
+    k1_idx_wstaw(&po_polozeniu, skrot(w->polozenie), n_znanych);
     znane[n_znanych] = (struct znany){ w->polozenie, w->klaster, w->rozmiar, w->folder, "" };
     memcpy(znane[n_znanych].nazwa, w->nazwa, sizeof w->nazwa);
     return przesuniecie + (uint32_t)++n_znanych;
@@ -157,6 +174,7 @@ static void spis(uint32_t id)
     if (s.bez_miejsca) { /* forget everything: the ids sent so far will not be known */
         przesuniecie += (uint32_t)n_znanych;
         n_znanych = 0;
+        k1_idx_czysc(&po_polozeniu);
         wynik(id, K1_KOM_PEN_SPIS, K1_PEN_BLAD_BRAK);
         return;
     }

@@ -104,6 +104,17 @@ static int sprawdz_nazwe(const char *nazwa, size_t nl, char out[K1_DOK_NAZWA])
     return 0;
 }
 
+#define REZERWA_MIN (8u << 20)
+
+/* Room for `bajty` of new content (0.8.1, plan L6): files never take the last 8 MiB (or 2 % of the vault, when more)
+ * — kept for the system (settings, the desktop's layout, the battery's history), which would stop saving otherwise. */
+static int miejsce_na(uint64_t bajty)
+{
+    uint64_t calosc = ob_pojemnosc(), rezerwa = calosc / 50 > REZERWA_MIN ? calosc / 50 : REZERWA_MIN;
+    uint64_t potrzeba = bajty + (kawalkow(bajty) + 1) * K1_MAG_BLOK; /* the records' headers, the entry */
+    return ob_wolne() >= potrzeba + rezerwa;
+}
+
 int dok_nowy(uint32_t folder, int rodzaj, const char *nazwa, size_t nl, const struct dok_zrodlo *z, int tworca,
              int pochodzenie, int64_t teraz, uint32_t *id)
 {
@@ -117,6 +128,8 @@ int dok_nowy(uint32_t folder, int rodzaj, const char *nazwa, size_t nl, const st
         return K1_DOK_BLAD_MIEJSCE;
     if (n_wpisow == K1_DOK_MAKS || nastepny > K1_DOK_ID_MAKS)
         return K1_DOK_BLAD_PELNO;
+    if (!miejsce_na(z != NULL && rodzaj == K1_DOK_PLIK ? z->dl : 0))
+        return K1_DOK_BLAD_BRAK_MIEJSCA;
     memset(&w, 0, sizeof w);
     w.id = nastepny;
     w.rodzic = folder;
@@ -137,7 +150,7 @@ int dok_nowy(uint32_t folder, int rodzaj, const char *nazwa, size_t nl, const st
         usun_kawalki(w.id, w.generacja, kawalkow(w.rozmiar));
         return r;
     }
-    wpisy[n_wpisow++] = w;
+    dok_dodaj(&w);
     nastepny++;
     *id = w.id;
     return 0;
@@ -151,6 +164,8 @@ int dok_zapisz_tresc(uint32_t id, const struct dok_zrodlo *z, int64_t teraz)
         return K1_DOK_BLAD_BRAK;
     if (wpisy[i].rodzaj != K1_DOK_PLIK || !dok_widoczny(id))
         return K1_DOK_BLAD_MIEJSCE;
+    if (!miejsce_na(z->dl))
+        return K1_DOK_BLAD_BRAK_MIEJSCA;
     w = wpisy[i];
     w.generacja++;
     w.rozmiar = z->dl;

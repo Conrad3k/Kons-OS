@@ -41,7 +41,7 @@ USLUGI  := src/wspolne/k1_uslugi.c src/wspolne/k1_komunikat.c src/wspolne/k1_kan
 # Blob Vault (M5c, ADR 0015): format + Monocypher (src/zewnetrzne, docs/ZALEZNOSCI.md). Monocypher is
 # compiled as is; on the host (ASan build) -Wconversion warns about its code, so only there it is off.
 MONOCYPHER := src/zewnetrzne/monocypher/monocypher.c
-MAGAZYN := src/skarbiec/magazyn.c src/skarbiec/naglowek.c $(MONOCYPHER)
+MAGAZYN := src/skarbiec/magazyn.c src/skarbiec/naglowek.c src/wspolne/k1_indeks.c $(MONOCYPHER)
 GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 # GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
 PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
@@ -119,8 +119,8 @@ $(BIN)/dekoder: src/dekoder/main.c $(DEKODER_OBRAZ) src/dekoder/obraz.h $(WUFFS)
 
 CZYTNIK := $(sort $(wildcard src/czytnik/*.c))
 CZYTNIK_FAT := src/czytnik/fat.c src/czytnik/nazwy.c
-$(BIN)/czytnik: $(CZYTNIK) src/czytnik/fat.h src/przybornik/k1_czas.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ $(CZYTNIK) src/przybornik/k1_czas.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/czytnik: $(CZYTNIK) src/czytnik/fat.h src/przybornik/k1_czas.c src/wspolne/k1_indeks.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(CZYTNIK) src/przybornik/k1_czas.c src/wspolne/k1_indeks.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # skarbiec in modules (0.8.0): main.c (loop, channels), obiekty, haslo, dokumenty, dok_kanal + the format — skarbiec.h
 SKARBIEC := $(filter-out src/skarbiec/magazyn.c src/skarbiec/naglowek.c,$(sort $(wildcard src/skarbiec/*.c))) $(MAGAZYN)
@@ -254,12 +254,21 @@ $(OBJ)/test_notatki: testy/host/test_notatki.c $(NOTATKI_TEST) $(wildcard src/sk
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -DK1_CZAS_BUDOWY=$(CZAS_TESTU) -Isrc/skarbiec -Isrc/aplikacje/notatki \
 		-Isrc/zewnetrzne/monocypher -o $@ testy/host/test_notatki.c $(NOTATKI_TEST)
 
+# 0.8.1 (ADR 0034): a vault with a long log, or almost full (scripts/test-skarbiec.sh)
+$(OBJ)/magazyn_testowy: testy/host/magazyn_testowy.c $(MAGAZYN) src/skarbiec/magazyn.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/magazyn_testowy.c $(MAGAZYN)
+
+# 0.8.1 (ADR 0034): the index by key
+$(OBJ)/test_indeks: testy/host/test_indeks.c src/wspolne/k1_indeks.c src/wspolne/k1_indeks.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_indeks.c src/wspolne/k1_indeks.c
+
 # Every host test includes the shared helpers: a change there rebuilds them all.
 $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instalator test_kalkulator test_komunikat \
-	test_dokumenty test_notatki test_log test_magazyn test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
+	test_dokumenty test_notatki test_indeks test_log test_magazyn test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
 	test_zdarzenie): testy/host/k1_test_host.h
 
-testy-host: $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/test_fat $(OBJ)/test_dekoder
+testy-host: $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder
+	$(OBJ)/test_indeks
 	$(OBJ)/test_dokumenty
 	$(OBJ)/test_notatki
 	$(OBJ)/test_rozmieszczenie
