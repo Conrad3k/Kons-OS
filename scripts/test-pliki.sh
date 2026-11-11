@@ -382,10 +382,9 @@ dd if=/dev/zero of="$STARE" bs=1M count=16 status=none
 printf 'label: gpt\nstart=2048, size=30000, name="K1-DANE"\n' | sfdisk -q "$STARE" >/dev/null
 dd if="$STARE.czesc" of="$STARE" bs=512 seek=2048 conv=notrunc status=none; rm -f "$STARE.czesc"
 DYSK_STARY="-drive if=none,id=dane,file=$STARE,format=raw -device ide-hd,drive=dane,bus=ide.0"
-CZAS_ZW=$CZAS; CZAS=$((CZAS * 2))
-uruchom notatki --qemu "$DYSK_STARY"
+CZAS_ZW=$CZAS; CZAS=$((CZAS * 2)) # both runs are long (Notatki, the file picker, Pliki, Ustawienia); with 8 tests at once
+uruchom notatki --qemu "$DYSK_STARY"  # on CI the second one ran out of 240 s once (0.8.1 step 3, run 43)
 sprawdz notatki
-CZAS=$CZAS_ZW
 python3 -I - "$STARE" <<'PY' || r=1
 import sys
 d = open(sys.argv[1], "rb").read()
@@ -396,5 +395,6 @@ PY
 echo "[k1] test Pliki, krok 2: ponowne uruchomienie z tym samym dyskiem"
 uruchom notatki-ponownie --qemu "$DYSK_STARY"
 sprawdz notatki-ponownie
+CZAS=$CZAS_ZW
 if [ $r -eq 0 ]; then info "Pliki: wszystko zaliczone (zrzuty: $TESTY/pliki-*.png)"; else echo "[k1] Pliki: BŁĄD (logi: $TESTY/pliki-*.log)"; fi
 exit $r
