@@ -77,6 +77,8 @@ void zdjecie_wczytaj(void)
     uint8_t nagl[12];
     uint32_t wh[2], *px;
     int fd = ustawienia_fd(), tryb;
+    if (ustawienia_czeka()) /* skarbiec still opens the vault: the photo comes with the late settings (zapis.c) */
+        return;
     if (fd >= 0 && k1_skarb_czytaj(fd, K1_OB_ZDJECIE, nagl, sizeof nagl, 1500, &tryb) == (int)sizeof nagl &&
         memcmp(nagl, MAGIA, 4) == 0) {
         memcpy(wh, nagl + 4, sizeof wh);

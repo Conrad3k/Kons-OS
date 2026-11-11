@@ -20,6 +20,11 @@ pendrive można powiększyć bez utraty danych.
   śmieci.
 - Pliki mówią w stopce „Mało miejsca na pliki”, gdy zostało mniej niż 10 %.
 
+### Znane ograniczenie
+- Z dużą ilością danych start trwa dłużej (skarbiec sprawdza przy starcie wszystkie dane — ok. 30 s na 1 GB
+  z pendrive'a USB 2.0). Pulpit nie czeka: ustawienia i tapeta ze zdjęcia pojawiają się, gdy skarbiec skończy.
+  Poprawka formatu — w 0.8.2 (RYZYKA R58).
+
 ### Zmienione
 - **Dużo więcej plików** (krok 2, ADR 0034): do 16 384 plików i folderów (było 1024) i ok. 64 GB plików na dużym
   dysku (było ok. 4 GB).

@@ -15,7 +15,8 @@
 #   5. wyjęcie pendrive'a (device_del): czytnik zatrzymany, miejsce znika; włożenie pendrive'a z NTFS: Pliki mówią,
 #      że K1 go jeszcze nie odczyta
 #   6. nazwy plików i ich treść nie trafiają do logu; brak zabronionych wywołań i odrzuconych komunikatów
-#   7. ponowny start z tym samym dyskiem danych: tapeta ze zdjęcia wraca ze skarbca
+#   7. ponowny start z tym samym dyskiem danych: tapeta ze zdjęcia wraca ze skarbca (0.8.1: magazyn z filmem 300 MB
+#      otwiera się dłużej niż 1,5 s — ekran rusza z domyślnymi i stosuje zapisane ustawienia, gdy skarbiec odpowie, R58)
 # Dowody: build/testy/pendrive.log, zrzuty build/testy/pendrive-*.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy

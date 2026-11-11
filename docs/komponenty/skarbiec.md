@@ -184,6 +184,12 @@ po 2 s bez próśb klientów; w logu czas i rozmiary („kompaktowanie (przy otw
 Do 65 536 obiektów; obiekty znajdowane przez indeks w pamięci (`k1_indeks`: właściciel i nazwa → miejsce), nie po
 kolei. Formatowanie: tylko gdy pierwszy MiB partycji to zera (inaczej „obce dane — nie nadpisuję”).
 
+## Czas otwarcia (0.8.1, RYZYKA R58)
+Otwarcie odczytuje i uwierzytelnia każdy żywy rekord (AEAD obejmuje nazwę i treść), więc trwa proporcjonalnie do
+ilości danych — po kompaktowaniu bez starych wersji (ADR 0034), ale z całą treścią plików. Klienci nie czekają:
+ekran po 1,5 s rusza z ustawieniami domyślnymi i stosuje zapisane, gdy przyjdzie odpowiedź. Indeks nazw (zmiana
+formatu) — plan, luka L25.
+
 ## Obsługa błędów
 Brak partycji, dwie partycje „K1-DANE”, obce dane, uszkodzony magazyn, magazyn z hasłem (do M5e) →
 dane tylko w pamięci, partycja nietknięta, wpis w logu. Awaria skarbca → nadzorca uruchamia go

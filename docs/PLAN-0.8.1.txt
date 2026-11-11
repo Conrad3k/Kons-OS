@@ -220,6 +220,16 @@ Otwieranie, limity, przeciąganie (uwagi właściciela z 2026-11-10)
       wymaga ekranu — tylko on widzi wszystkie okna; ten sam mechanizm jest potrzebny w M9 („przeciąganie pliku
       z Plików na okno strefy”, DO_ZROBIENIA.txt).
 
+Znalezione w trakcie (krok 4, 2026-11-11)
+  L25 POTWIERDZONE (test-pendrive w QEMU), WYSOKA przed dużymi danymi. Start trwa tym dłużej, im więcej danych:
+      k1_mag_otworz() odczytuje i odszyfrowuje KAŻDY żywy rekord (także treść plików), bo tylko tak zna ich nazwy
+      (AEAD obejmuje cały rekord). Po imporcie filmu 300 MB skarbiec odpowiadał ekranowi później niż po 1,5 s
+      i ekran startował z domyślnymi ustawieniami (bez tapety ze zdjęcia). Szacunek (T3/D): ok. 30 s na 1 GB danych
+      z pendrive'a USB 2.0 przy każdym starcie. Krok 4 poprawia tylko skutek (ekran stosuje ustawienia, gdy
+      skarbiec odpowie później). Przyczyna wymaga zmiany formatu skarbca (np. mały indeks nazw zapisywany przy
+      kompaktowaniu i nagłówki rekordów uwierzytelniane osobno od treści) — osobny ADR i krok w 0.8.2, test na
+      danych z 0.8.1 (stary format musi się dalej otwierać).
+
 
 4. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
@@ -544,6 +554,8 @@ KROK 10 — Porządki i wydanie 0.8.1                                           
 7. PO 0.8.1, PRZED 0.9.0 (M7 Sieć) — co jeszcze musi być gotowe
 ---------------------------------------------------------------
   - Zegar (L3) — krok 1 to warunek: M7 przyniesie czas z sieci i skok zegara.
+  - Szybki start przy dużych danych (L25) — nowy krok 0.8.2 (zmiana formatu skarbca, ADR), zanim właściciel trzyma
+    na pendrivie wiele GB.
   - „Tymczasowe” z terminem 0.9.0 (DO_ZROBIENIA.txt):
       * manifest formatu 1 (47 MiB) — najpierw nowe sprawdzanie plików startowych shim/GRUB (RYZYKA R45),
         potem usunięcie z k1_efi.c, instalator/main.c, zbuduj-usb.sh, podpisz.c;
