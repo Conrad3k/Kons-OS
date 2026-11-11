@@ -83,7 +83,7 @@ TPM 1.2), jedno konto na komputer. X230 to maszyna testowa — szybka grafika i 
 | `src/dekoder/` | `system/dekoder` | jeden obraz PNG/JPEG → piksele, jednorazowy proces w klatce (Wuffs; 0.8.0, ADR 0032); nadzorca `dekoder.c`, Pliki `obrazy.c`, ekran `zdjecie.c` (tapeta) |
 | `src/aplikacje/<program>/` | `aplikacje/<program>` | Zegar, Notatki, Ustawienia, Zasoby, Instalator (`instalacja`), Kalkulator, Pliki (0.8.0) |
 | `src/przybornik/` | (linkowane) | okno aplikacji (`k1_aplikacja`), rysowanie, ikony `K1_IK_*`, tekst, liczby, czas i klawiatura PL |
-| `src/wspolne/` | (linkowane) | `k1_uslugi.h` **listy usług i aplikacji**, `k1_komunikat` (32 B), `k1_kanal`, `k1_odbior`, `k1_klatka`, `k1_log`, `k1_skarb_klient`, `k1_memfd`, `k1_efi`, `k1_uklad`, `k1_manifest`, `k1_bajty.h`, `k1_io.h`, `k1_teraz.h` |
+| `src/wspolne/` | (linkowane) | `k1_uslugi.h` **listy usług i aplikacji**, `k1_komunikat` (32 B), `k1_kanal`, `k1_odbior`, `k1_klatka`, `k1_log`, `k1_skarb_klient`, `k1_memfd`, `k1_indeks` (indeks po kluczu, 0.8.1), `k1_efi`, `k1_uklad`, `k1_manifest`, `k1_bajty.h`, `k1_io.h`, `k1_teraz.h` |
 | `src/zewnetrzne/` | (linkowane) | Monocypher (skarbiec) i Wuffs (dekoder, 0.8.0) — jedyne obce biblioteki w systemie |
 | `narzedzia/` | (host) | czcionki IBM Plex → bitmapy, ekran startowy GRUB-a, podpis, klucz Secure Boot |
 | `jadro/` | `k1.efi`, `bzImage` | `k1.config`, `k1-zamkniete.config`, `README.md` (zmiana wersji jądra) |
