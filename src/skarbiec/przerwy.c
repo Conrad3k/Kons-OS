@@ -101,7 +101,7 @@ static int po_przejsciu(int r, uint64_t przed)
     przejscie = r == K1_MAG_PELNY ? PR_ODLOZONE : PR_KONIEC;
     if (r == K1_MAG_OK)
         k1_log(TAG, "przejście na format 2: gotowe — %d obiektów, %u kroków w %.1f s, najdłuższy krok %.2f s, "
-               "najdłuższa przerwa w odpowiedziach %.2f s; miejsce na pliki %llu → %llu MiB", mag.n_wpisow,
+               "najdłuższa przerwa w odpowiedziach %.2f s; miejsce na dane %llu → %llu MiB", mag.n_wpisow,
                praca.krokow, k1_teraz() - praca.od, praca.najdluzszy, najdluzsza, (unsigned long long)(przed >> 20),
                (unsigned long long)(k1_mag_pojemnosc(&mag) >> 20));
     else if (r == K1_MAG_PELNY)

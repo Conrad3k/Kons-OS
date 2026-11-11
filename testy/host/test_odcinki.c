@@ -492,7 +492,7 @@ static void test_w_przerwach(struct k1_mag_dysk *d)
 static void test_powiekszenie(struct k1_mag_dysk *d)
 {
     char n[16];
-    int i, k, zle = 0;
+    int i, k, zle = 0, s_ile;
     uint32_t dl;
     static uint8_t *migawka;
     size_t bajty = 4096 * K1_MAG_BLOK;
@@ -503,6 +503,11 @@ static void test_powiekszenie(struct k1_mag_dysk *d)
         snprintf(n, sizeof n, "g%d", i);
         EXPECT(k1_mag_zapisz(&m, 2, n, &i, sizeof i) == K1_MAG_OK);
     }
+    for (s_ile = 0; s_ile < 20 && m.spis_bloki == 0; s_ile++) { /* a spis written before the grow (0.8.2 1c: QEMU) */
+        snprintf(n, sizeof n, "s%d", s_ile);
+        EXPECT(k1_mag_zapisz(&m, 2, n, dane, 60000) == K1_MAG_OK);
+    }
+    EXPECT(m.spis_bloki > 0);
     free(migawka);
     migawka = malloc(bajty);
     memcpy(migawka, ram, bajty);
@@ -534,7 +539,7 @@ static void test_powiekszenie(struct k1_mag_dysk *d)
         EXPECT(k1_mag_zapisz(&m, 2, n, dane, 200000) == K1_MAG_OK);
     }
     k1_mag_zamknij(&m);
-    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == 32);
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == 32 + s_ile);
     k1_mag_zamknij(&m);
 }
 

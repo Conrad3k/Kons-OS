@@ -84,7 +84,7 @@ pasek = lambda i: (ax + i * krok, ay)  # 0 Zegar, 1 Notatki, 2 Ustawienia, 3 Zas
 
 MIEJSCE = r"K1-USTAWIENIA: miejsce: zajęte (\d+) z (\d+) MiB, pliki i foldery (\d+) z 16384, pendrive ma więcej (\d+) MiB; przycisk (-?\d+),(-?\d+)"
 PRZEJSCIE = (r"K1-SKARBIEC: przejście na format 2: gotowe — (\d+) obiektów, (\d+) kroków w [\d.]+ s, najdłuższy krok ([\d.]+) s, "
-             r"najdłuższa przerwa w odpowiedziach ([\d.]+) s; miejsce na pliki (\d+) → (\d+) MiB")
+             r"najdłuższa przerwa w odpowiedziach ([\d.]+) s; miejsce na dane (\d+) → (\d+) MiB")
 
 
 def przejscie(opis, przed, po):

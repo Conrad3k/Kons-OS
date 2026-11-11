@@ -207,8 +207,9 @@ Rekord (wielokrotność bloku): liczba bloków (u32), 0 (u32), nonce (24) i MAC 
 treści, **treść** (szyfrogram), zera do końca bloku. Dane dodatkowe metryczki: uuid, odcinek, jego generacja,
 pozycja, liczba bloków; treści: MAC metryczki. Rekord z kawałkiem 1 MiB ma 257 bloków.
 
-Spis: rekordy typu „spis” (kawałki do 1 MiB) — numer kawałka, liczba wpisów, N, 0; w kawałku 0 generacja każdego
-odcinka (0 — bez żywych obiektów); wpis: właściciel (u16), długość nazwy (u8), 0, odcinek, pozycja, długość, nazwa.
+Spis: rekordy typu „spis” (kawałki do 1 MiB) — numer kawałka, liczba wpisów, N spisu (odcinki w chwili zapisu; po
+powiększeniu nagłówek ma więcej — dopisane odcinki są wolne), 0; w kawałku 0 generacja każdego z N odcinków
+(0 — bez żywych obiektów); wpis: właściciel (u16), długość nazwy (u8), 0, odcinek, pozycja, długość, nazwa.
 Otwarcie: nagłówek → spis (każdy wpis sprawdzony: odcinek w użyciu, nie odcinek spisu, rekord mieści się w odcinku,
 nazwa bez zer, bez powtórzeń) → metryczki rekordów ogona po kolei (odcinek ogona, który po spisie został głową,
 nie może już mieć obiektów ze spisu). Treść — dopiero przy odczycie obiektu.
@@ -246,7 +247,7 @@ Magazyn z hasłem — po odblokowaniu.
 - **Za mało miejsca** w wolnej połowie (dane prawie na całym obszarze): „przejście na format 2 odłożone”, magazyn działa
   w formacie 1; spróbuje znowu, gdy zwolni się 8 MiB albo K1-DANE urośnie.
 - Log: „start tej wersji potwierdzony”, „przejście na format 2 (ADR 0036): kopiuję n obiektów (X MiB)…”, „przejście na
-  format 2: gotowe — n obiektów, k kroków w t s, najdłuższy krok …, najdłuższa przerwa …; miejsce na pliki A → B MiB”.
+  format 2: gotowe — n obiektów, k kroków w t s, najdłuższy krok …, najdłuższa przerwa …; miejsce na dane A → B MiB”.
   Pliki i Ustawienia dostają `DOK_ZMIANA` (nowe miejsce).
 - 0.8.1 widzi magazyn formatu 2 jako obce dane i go nie nadpisuje (ADR 0036, pkt 8).
 
