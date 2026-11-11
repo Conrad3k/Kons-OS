@@ -51,6 +51,10 @@ pendrive można powiększyć bez utraty danych.
   prądu po każdym zapisie**), `test_komunikat`, `test_fat` (odczyt od miejsca); fuzzing `fuzz_dokument`, `fuzz_fat`.
 - QEMU: nowy `test-skarbiec.sh` (długi dziennik, pełna K1-DANE, powiększenie pełnego pendrive'a przyciskiem i import
   16 zdjęć 16/16, dokończenie przerwanego powiększenia); `test-pendrive.sh` (plik 17 MB i film 300 MB z pendrive'a).
+- Ekran wypisuje linię stanu także po zmianie samej liczby odrzuconych zdarzeń — test złośliwych wiadomości
+  (M1) nie zależy już od ruchu kursora.
+- CI: instalacja narzędzi pomija lustro pakietów, którego nazwa się nie rozwiązuje, i ponawia pobranie spisu
+  pakietów (11.11 lustro Ubuntu w chmurze GitHuba nie odpowiadało i krok kończył się po 10 minutach).
 
 ## [0.8.0] — 2026-11-10
 
