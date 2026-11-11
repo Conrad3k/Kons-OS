@@ -1,5 +1,6 @@
 /* K1 skarbiec — Blob Vault on a raw partition (M5c, ADR 0015): the public functions, the disk and the index of
- * objects; the records of format 1 are in obszary.c, the header in naglowek.c. Format and reasoning: magazyn.h,
+ * objects; the records of format 1 are in obszary.c, of format 2 in odcinki.c and spis.c (ADR 0036), the header in
+ * naglowek.c. Format and reasoning: magazyn.h,
  * docs/komponenty/skarbiec.md. All integers on disk are little-endian; nothing read from the disk is trusted before
  * its checks (header: fields, then MAC with the master key; records: AEAD). */
 #include "magazyn_wew.h"
@@ -7,6 +8,7 @@
 #include "k1_io.h"
 
 #include <errno.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/random.h>
@@ -97,16 +99,56 @@ int mag_znajdz(const struct k1_magazyn *m, uint16_t wl, const char *nazwa)
     return k1_idx_znajdz(&m->idx, skrot(wl, nazwa), pasuje, &k);
 }
 
-/* A fresh index for `m` (its slots live in the structure: set again after every memset). */
+/* A fresh index for as many objects as the partition can hold (each takes a block; at most K1_MAG_MAKS_OBIEKTOW):
+ * opening a small vault (tests, fuzzing) clears a small table. */
 static void nowy_indeks(struct k1_magazyn *m)
 {
-    k1_idx_init(&m->idx, m->sloty, 2 * K1_MAG_MAKS_OBIEKTOW);
+    uint64_t dane = mag_bloki_dysku(m->d) > 2 ? mag_bloki_dysku(m->d) - 2 : 1;
+    uint32_t sloty = 2;
+    m->maks_wpisow = dane < K1_MAG_MAKS_OBIEKTOW ? (int)dane : K1_MAG_MAKS_OBIEKTOW;
+    while (sloty < 2u * (uint32_t)m->maks_wpisow)
+        sloty *= 2;
+    k1_idx_init(&m->idx, m->sloty, sloty);
+}
+
+/* An empty `m` on disk `d`: fields and the segments the partition can have cleared (not the large tables — n_wpisow
+ * says what is in them), a fresh index. */
+static void nowy(struct k1_magazyn *m, struct k1_mag_dysk *d)
+{
+    uint64_t odc = mag_bloki_dysku(d) / 64 + 1;
+    size_t n = odc < K1_MAG_MAKS_ODCINKOW ? (size_t)odc : K1_MAG_MAKS_ODCINKOW;
+    memset(m, 0, offsetof(struct k1_magazyn, zywe_odc));
+    memset(m->zywe_odc, 0, n * sizeof m->zywe_odc[0]);
+    memset(m->gen_odc, 0, n * sizeof m->gen_odc[0]);
+    memset(m->w_ogonie, 0, n);
+    m->d = d;
+    m->ofiara = -1;
+    nowy_indeks(m);
+}
+
+/* Format 2: live blocks of each segment, as entries come and go. */
+static void zywe_w_odcinku(struct k1_magazyn *m, uint64_t blok, uint32_t bloki, int dodaj)
+{
+    if (m->format != 2)
+        return;
+    if (dodaj)
+        m->zywe_odc[f2_odcinek(m, blok)] += bloki;
+    else
+        m->zywe_odc[f2_odcinek(m, blok)] -= bloki;
+}
+
+void mag_przenies(struct k1_magazyn *m, int i, uint64_t blok)
+{
+    zywe_w_odcinku(m, m->wpisy[i].blok, m->wpisy[i].bloki, 0);
+    m->wpisy[i].blok = blok;
+    zywe_w_odcinku(m, blok, m->wpisy[i].bloki, 1);
 }
 
 static void usun_wpis(struct k1_magazyn *m, int i)
 {
     struct k1_mag_wpis *w = &m->wpisy[i];
     m->zywe -= w->bloki;
+    zywe_w_odcinku(m, w->blok, w->bloki, 0);
     k1_idx_usun(&m->idx, skrot(w->wlasciciel, w->nazwa), i);
     if (i != --m->n_wpisow) { /* the last entry takes its place */
         m->wpisy[i] = m->wpisy[m->n_wpisow];
@@ -124,12 +166,16 @@ int mag_indeksuj(struct k1_magazyn *m, uint8_t typ, uint16_t wl, const char nazw
         return K1_MAG_OK;
     }
     if (i < 0) {
-        if (m->n_wpisow == K1_MAG_MAKS_OBIEKTOW)
+        if (m->n_wpisow == (m->format == 1 ? K1_MAG_MAKS_OBIEKTOW_F1 : K1_MAG_MAKS_OBIEKTOW) ||
+            m->n_wpisow == m->maks_wpisow)
             return K1_MAG_PELNY;
         i = m->n_wpisow++;
         m->wpisy[i].bloki = 0;
         k1_idx_wstaw(&m->idx, skrot(wl, nazwa), i);
+    } else {
+        zywe_w_odcinku(m, m->wpisy[i].blok, m->wpisy[i].bloki, 0);
     }
+    zywe_w_odcinku(m, blok, bloki, 1);
     m->zywe = m->zywe - m->wpisy[i].bloki + bloki;
     m->wpisy[i].wlasciciel = wl;
     memcpy(m->wpisy[i].nazwa, nazwa, K1_MAG_NAZWA);
@@ -182,18 +228,27 @@ int k1_mag_sprawdz(struct k1_mag_dysk *d, int *haslo)
 
 int k1_mag_utworz(struct k1_magazyn *m, struct k1_mag_dysk *d, const char *haslo, uint32_t argon_kib)
 {
+    return k1_mag_utworz_w_formacie(m, d, haslo, argon_kib, K1_MAG_FORMAT);
+}
+
+int k1_mag_utworz_w_formacie(struct k1_magazyn *m, struct k1_mag_dysk *d, const char *haslo, uint32_t argon_kib,
+                             uint32_t format)
+{
     int h, r = k1_mag_sprawdz(d, &h);
     if (r != K1_MAG_PUSTY)
         return r < 0 ? r : K1_MAG_OBCY; /* never format anything that is not empty */
-    if (argon_kib < ARGON_MIN_KIB || argon_kib > ARGON_MAKS_KIB)
+    if (argon_kib < ARGON_MIN_KIB || argon_kib > ARGON_MAKS_KIB || format < 1 || format > 2)
         return K1_MAG_ARG;
-    memset(m, 0, sizeof *m);
-    nowy_indeks(m);
-    m->d = d;
-    m->obszar_blokow = (mag_bloki_dysku(d) - 2) / 2;
+    nowy(m, d);
+    m->format = format;
     m->argon_kib = argon_kib;
     m->argon_przejscia = 3;
-    m->epoka = 1;
+    if (format == 1) {
+        m->obszar_blokow = (mag_bloki_dysku(d) - 2) / 2;
+        m->epoka = 1;
+    } else if ((r = f2_utworz(m)) != K1_MAG_OK) {
+        return r;
+    }
     d->losowe(m->klucz, 32);
     d->losowe(m->uuid, 16);
     r = owin(m, haslo);
@@ -209,14 +264,39 @@ int k1_mag_utworz(struct k1_magazyn *m, struct k1_mag_dysk *d, const char *haslo
     return K1_MAG_OK;
 }
 
+/* The fields of the header `h` (authenticated) into `m`. */
+static void przyjmij_naglowek(struct k1_magazyn *m, const struct naglowek *h)
+{
+    memcpy(m->uuid, h->uuid, 16);
+    memcpy(m->sol, h->sol, 16);
+    memcpy(m->owiniety, h->owiniety, OWINIETY_DL);
+    m->format = h->wersja;
+    m->generacja = h->generacja;
+    m->haslo = (h->flagi & FLAGA_HASLO) != 0;
+    m->argon_kib = h->argon_kib;
+    m->argon_przejscia = h->argon_przejscia;
+    if (m->format == 1) {
+        m->epoka = h->epoka;
+        m->koniec = h->koniec;
+        m->aktywny = h->aktywny;
+        m->obszar_blokow = (h->bloki - 2) / 2;
+        return;
+    }
+    m->odcinek = h->odcinek;
+    m->n_odcinkow = h->n_odcinkow;
+    m->licznik_gen = h->licznik_gen;
+    m->spis_bloki = h->spis_bloki;
+    m->spis_wpisow = h->spis_wpisow;
+    m->n_ogona = h->n_ogona;
+    memcpy(m->ogon, h->ogon, sizeof m->ogon);
+}
+
 int k1_mag_otworz(struct k1_magazyn *m, struct k1_mag_dysk *d, const char *haslo)
 {
     struct naglowek n[2];
     uint8_t surowe[2][K1_MAG_BLOK], kek[32], ad[44], kn[32], mac[16];
     int ok[2], kolejnosc[2], i, wynik = K1_MAG_HASLO;
-    memset(m, 0, sizeof *m);
-    nowy_indeks(m);
-    m->d = d;
+    nowy(m, d);
     if (mag_bloki_dysku(d) < K1_MAG_MIN_BLOKOW)
         return K1_MAG_ARG;
     for (i = 0; i < 2; i++) {
@@ -252,17 +332,7 @@ int k1_mag_otworz(struct k1_magazyn *m, struct k1_mag_dysk *d, const char *haslo
             wynik = K1_MAG_USZKODZONY;
             continue;
         }
-        memcpy(m->uuid, h->uuid, 16);
-        memcpy(m->sol, h->sol, 16);
-        memcpy(m->owiniety, h->owiniety, OWINIETY_DL);
-        m->generacja = h->generacja;
-        m->epoka = h->epoka;
-        m->koniec = h->koniec;
-        m->aktywny = h->aktywny;
-        m->haslo = (h->flagi & FLAGA_HASLO) != 0;
-        m->argon_kib = h->argon_kib;
-        m->argon_przejscia = h->argon_przejscia;
-        m->obszar_blokow = (h->bloki - 2) / 2;
+        przyjmij_naglowek(m, h);
         wynik = K1_MAG_OK;
         break;
     }
@@ -270,8 +340,8 @@ int k1_mag_otworz(struct k1_magazyn *m, struct k1_mag_dysk *d, const char *haslo
         k1_mag_zamknij(m);
         return wynik;
     }
-    /* rebuild the index: every record up to `koniec` must authenticate */
-    wynik = f1_wczytaj(m);
+    /* rebuild the index: format 1 — every record up to `koniec` must authenticate; format 2 — the spis and the tail */
+    wynik = m->format == 1 ? f1_wczytaj(m) : f2_wczytaj(m);
     if (wynik != K1_MAG_OK)
         k1_mag_zamknij(m);
     return wynik;
@@ -283,7 +353,7 @@ static int dopisz(struct k1_magazyn *m, uint8_t typ, uint16_t wl, const char *na
     char nazwa_pelna[K1_MAG_NAZWA];
     memset(nazwa_pelna, 0, sizeof nazwa_pelna);
     memcpy(nazwa_pelna, nazwa, strnlen(nazwa, K1_MAG_NAZWA - 1));
-    return f1_dopisz(m, typ, wl, nazwa_pelna, dane, dl);
+    return m->format == 1 ? f1_dopisz(m, typ, wl, nazwa_pelna, dane, dl) : f2_dopisz(m, typ, wl, nazwa_pelna, dane, dl);
 }
 
 int k1_mag_zapisz(struct k1_magazyn *m, uint16_t wlasciciel, const char *nazwa, const void *dane, uint32_t dlugosc)
@@ -316,7 +386,7 @@ int k1_mag_czytaj(struct k1_magazyn *m, uint16_t wlasciciel, const char *nazwa, 
         return K1_MAG_BRAK;
     if (m->wpisy[i].dlugosc > maks)
         return K1_MAG_ZA_DUZY;
-    r = f1_czytaj(m, i, buf);
+    r = m->format == 1 ? f1_czytaj(m, i, buf) : f2_czytaj_obiekt(m, i, buf);
     if (r != K1_MAG_OK)
         return r;
     *dlugosc = m->wpisy[i].dlugosc;
@@ -327,31 +397,52 @@ int k1_mag_czytaj(struct k1_magazyn *m, uint16_t wlasciciel, const char *nazwa, 
 
 int k1_mag_kompaktowac(const struct k1_magazyn *m, int przy_otwarciu)
 {
+    if (m->format == 2)
+        return !przy_otwarciu && f2_kompaktowac(m);
     if (przy_otwarciu)
         return m->koniec > 64 * BLOKI_MIB && m->koniec > 2 * m->zywe;
     return m->koniec - m->zywe > m->zywe + 256 * BLOKI_MIB;
 }
 
+int k1_mag_kompaktuj_krok(struct k1_magazyn *m, uint32_t maks_blokow)
+{
+    int r;
+    if (m->format == 1)
+        return f1_kompaktuj(m);
+    r = f2_krok(m, maks_blokow, m->odcinek / 4);
+    return r == K1_MAG_BRAK ? 0 : r;
+}
+
 int k1_mag_kompaktuj(struct k1_magazyn *m)
 {
-    return f1_kompaktuj(m);
+    int r;
+    do
+        r = k1_mag_kompaktuj_krok(m, UINT32_MAX);
+    while (r == 1);
+    return r;
 }
 
 int k1_mag_powieksz(struct k1_magazyn *m, uint64_t bajty)
 {
+    int r, i;
     if (bajty < m->d->bajty)
         return K1_MAG_ARG;
-    return f1_powieksz(m, bajty);
-}
-
-uint64_t k1_mag_wolne(const struct k1_magazyn *m)
-{
-    return (m->obszar_blokow - m->zywe) * K1_MAG_BLOK;
+    r = m->format == 1 ? f1_powieksz(m, bajty) : f2_powieksz(m, bajty);
+    nowy_indeks(m); /* room for more objects: the index again, larger */
+    for (i = 0; i < m->n_wpisow; i++)
+        k1_idx_wstaw(&m->idx, skrot(m->wpisy[i].wlasciciel, m->wpisy[i].nazwa), i);
+    return r;
 }
 
 uint64_t k1_mag_pojemnosc(const struct k1_magazyn *m)
 {
-    return m->obszar_blokow * K1_MAG_BLOK;
+    return (m->format == 1 ? m->obszar_blokow : f2_pojemnosc_blokow(m)) * K1_MAG_BLOK;
+}
+
+uint64_t k1_mag_wolne(const struct k1_magazyn *m)
+{
+    uint64_t p = k1_mag_pojemnosc(m), z = m->zywe * K1_MAG_BLOK;
+    return p > z ? p - z : 0;
 }
 
 void k1_mag_zamknij(struct k1_magazyn *m)
