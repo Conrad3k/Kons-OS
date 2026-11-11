@@ -135,7 +135,7 @@ i w tym samym kształcie co pozostałe.
 - **każdy MINOR kończy się porządkami** (co usunąć, scalić, uprościć) — wynik w CHANGELOG;
 - dokumentacja nadąża: każda usługa i aplikacja ma opis, każdy komunikat wpis.
 
-Wszystko to (limity, opisy usług/aplikacji/komunikatów, wpisy „Tymczasowe”) sprawdza `scripts/sprawdz-czytelnosc.py`
+Wszystko to (limity, opisy usług/aplikacji/komunikatów, wpisy „Tymczasowe”, spis ADR, istniejące ścieżki `docs/…`) sprawdza `scripts/sprawdz-czytelnosc.py`
 (test-m1, pierwszy krok testów) — uruchom go przed commitem: `python3 -I scripts/sprawdz-czytelnosc.py`.
 
 Komentarze i commity po angielsku; nazwy w kodzie po polsku, zgodnie ze słownikiem.
