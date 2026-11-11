@@ -175,6 +175,9 @@ void obsluz_pendrive(void);
 void dekoder_otworz(void);
 void dekoder_koniec(void);
 
+/* skarb.c: the start is confirmed — skarbiec may move its vault to format 2 (0.8.2, ADR 0036) */
+void skarb_start_potwierdzony(void);
+
 /* rozruch.c — A/B after a start (0.7.0, ADR 0022) */
 extern char ab_nieudana[32];
 void rozruch_wydanie(void);

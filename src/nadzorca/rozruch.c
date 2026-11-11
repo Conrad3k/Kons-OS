@@ -5,7 +5,8 @@
  * internal disk: a try that started — and holds the very build that runs now (the build id of the slot
  * manifest = /rdzen/system/wydanie) — becomes the confirmed slot; a try GRUB went back from (k1_start is
  * not k1_proba) is cleared and reported in the Instalator window. Only the 1024 bytes of grubenv are
- * written. A stick (USB) is never touched. */
+ * written. A stick (USB) is never touched. Then — unless a try of another build still waits — the start is confirmed
+ * for skarbiec (START_POTWIERDZONY, 0.8.2): it may move a vault of 0.5.6–0.8.1 to format 2 (ADR 0036). */
 #include "nadzorca.h"
 #include "k1_cmdline.h"
 
@@ -27,7 +28,8 @@ void rozruch_wydanie(void)
     wydanie_jest = 1;
 }
 
-static void sprawdz_dysk(const char *efi)
+/* 1: a try A/B waits on this disk and it is not this build (the next start may still go back). */
+static int sprawdz_dysk(const char *efi)
 {
     struct k1_efi p;
     struct k1_grubenv e;
@@ -40,7 +42,7 @@ static void sprawdz_dysk(const char *efi)
     if (rozm <= 0 || k1_efi_czytaj(fd, (uint64_t)rozm, &p) != 0 || p.format != 2 || !p.env_ok) {
         if (fd >= 0)
             close(fd);
-        return;
+        return 0;
     }
     e = p.env;
     nr = k1_slot_nr(e.start);
@@ -64,13 +66,14 @@ static void sprawdz_dysk(const char *efi)
             k1_log(TAG, "A/B: nowa wersja %s wystartowała — potwierdzona (%s, miejsce %c)", w, efi, e.slot);
     }
     close(fd);
+    return d == K1_AB_NIC && k1_slot_nr(e.proba) >= 0;
 }
 
 void rozruch_po_starcie(double t)
 {
     struct k1_dyski l;
     enum etap_startu e = etap_startu();
-    int i;
+    int i, czeka = 0;
     if (ab_zrobione || (e != E_PULPIT && e != E_HASLO))
         return;
     if (ab_od == 0) {
@@ -80,9 +83,12 @@ void rozruch_po_starcie(double t)
     if (t - ab_od < ROZRUCH_OK || instalator()->pid > 0)
         return;
     ab_zrobione = 1;
-    if (k1_dyski_skanuj(SYS, &l) != 0)
-        return;
-    for (i = 0; i < l.n; i++)
-        if (l.d[i].efi[0] && l.d[i].dane[0])
-            sprawdz_dysk(l.d[i].efi);
+    if (k1_dyski_skanuj(SYS, &l) == 0)
+        for (i = 0; i < l.n; i++)
+            if (l.d[i].efi[0] && l.d[i].dane[0])
+                czeka |= sprawdz_dysk(l.d[i].efi);
+    if (czeka)
+        k1_log(TAG, "A/B: próba innej wersji czeka — skarbiec zostaje przy swoim formacie do następnego startu");
+    else
+        skarb_start_potwierdzony();
 }

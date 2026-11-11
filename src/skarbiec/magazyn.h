@@ -30,7 +30,7 @@
 #define K1_MAG_MAKS_OBIEKTOW_F1 65536  /* format 1 (two regions): what 0.8.1 opens (ADR 0034) */
 #define K1_MAG_MAKS_ODCINKOW 32768     /* format 2: segments (of 64 MiB: 2 TiB; a larger partition — only that much) */
 #define K1_MAG_OGON 128                /* format 2: segments of the tail (from the spis on), at most */
-#define K1_MAG_FORMAT 1                /* what k1_mag_utworz writes (format 2 in the system from step 1c of the plan) */
+#define K1_MAG_FORMAT 2                /* what k1_mag_utworz writes (format 1: only tests and test images, 0.8.2) */
 #define K1_MAG_MAKS_DANYCH (1u << 20)  /* one object: 1 MiB */
 #define K1_MAG_NAZWA 32                /* bytes, UTF-8, zero padded */
 #define K1_MAG_MAKS_HASLA 256          /* bytes */
@@ -92,6 +92,9 @@ struct k1_magazyn {
     struct k1_mag_ogniwo ogon[K1_MAG_OGON]; /* ogon[0]: the segment of the spis; ogon[n_ogona - 1]: the head */
     uint64_t od_spisu;          /* blocks written after the spis */
     int32_t ofiara;             /* the segment being compacted, or -1 */
+    /* format 1 → 2 (0.8.2 step 1c, przejscie.c): copying in steps; the format changes only at the end */
+    uint32_t pr_trwa, pr_i;     /* copying started; the next entry to copy */
+    uint32_t pr_odc, pr_poz, pr_par; /* the segment being written, its end; pairs in `pary` */
     /* the tables below are cleared on open only for the segments the partition can have */
     uint32_t zywe_odc[K1_MAG_MAKS_ODCINKOW]; /* blocks of live objects in each segment */
     uint64_t gen_odc[K1_MAG_MAKS_ODCINKOW];  /* generation of each segment's records (0: none in use) */
@@ -100,6 +103,10 @@ struct k1_magazyn {
     /* large and filled as needed: cleared on open only as far as the partition needs */
     struct k1_mag_wpis wpisy[K1_MAG_MAKS_OBIEKTOW];
     struct k1_idx_slot sloty[2 * K1_MAG_MAKS_OBIEKTOW];
+    /* format 1 → 2: the record of an entry copied (its block in format 1) and where its copy is (format 2) */
+    struct k1_mag_para {
+        uint64_t z, na;
+    } pary[2 * K1_MAG_MAKS_OBIEKTOW_F1];
 };
 
 /* Standard disk functions (pread/pwrite/fdatasync, getrandom) for `fd` of `bajty` bytes. */
@@ -139,7 +146,9 @@ int k1_mag_sprawdz_haslo(struct k1_magazyn *m, const char *haslo);
  * and over twice the live data; at work: old versions take over 256 MiB more than the live data.
  * Format 2 (ADR 0036): the live objects of the segment with the least of them move to the head, and the segment is
  * free again; worth doing at work when fewer than `rezerwa` + 2 segments are free and one would give a quarter of a
- * segment; never needed at open. k1_mag_kompaktuj empties one segment; k1_mag_kompaktuj_krok moves at most
+ * segment (k1_mag_kompaktowac: 1), urgent when at most `rezerwa` + 1 are free (2: a write would soon have to compact a
+ * whole segment itself — skarbiec then takes a step between requests, not only in a quiet moment); never needed at
+ * open. k1_mag_kompaktuj empties one segment; k1_mag_kompaktuj_krok moves at most
  * `maks_blokow` blocks (between requests of clients) — 1: more to do, 0: done (format 1: everything at once). */
 int k1_mag_kompaktowac(const struct k1_magazyn *m, int przy_otwarciu);
 int k1_mag_kompaktuj(struct k1_magazyn *m);
@@ -156,6 +165,16 @@ int k1_mag_powieksz(struct k1_magazyn *m, uint64_t bajty);
  * the free ones kept for compaction and the spis (3 %, at least 2). */
 uint64_t k1_mag_wolne(const struct k1_magazyn *m);
 uint64_t k1_mag_pojemnosc(const struct k1_magazyn *m);
+
+/* Format 1 → 2 (0.8.2 step 1c, ADR 0036), in steps between requests: the live objects are copied into format 2
+ * records in the segments outside the active region of format 1 (the half that is free), at most `maks_blokow`
+ * blocks a step; meanwhile format 1 works as before (objects written or deleted after their copy are copied again at
+ * the end). The last step writes the spis and the header of format 2 (both slots). A power cut before it: format 1,
+ * as it was (the copies are outside everything it reads); after it: format 2. Compaction or growing of format 1
+ * starts the copying again. Results: 1 more to do, 0 done (format 2; also when it was already), K1_MAG_PELNY no room
+ * in the free half now (format 1 stays and works), another error < 0 — nothing changed, except when writing the spis
+ * or the header failed: then the vault is closed (`format` 0) and the next start opens the old or the new one. */
+int k1_mag_przejscie_krok(struct k1_magazyn *m, uint32_t maks_blokow);
 
 /* Forgets the key (memory wiped). */
 void k1_mag_zamknij(struct k1_magazyn *m);

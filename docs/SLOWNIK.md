@@ -51,10 +51,12 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **wpis** | Metadane pliku albo folderu w skarbcu (bez treści); lista wpisów to to, co pokazują Pliki. |
 | **typ pliku** | Rodzaj treści rozpoznany przez skarbiec z pierwszych bajtów (tekst, PNG, JPEG, PDF…), nigdy z nazwy. Lista: `K1_TYPY`. |
 | **Kosz** | Usunięte pliki; można je przywrócić; usuwane na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”). To stan pliku, nie folder; ikona na pulpicie. |
-| **kompaktowanie** | Skarbiec przepisuje żywe dane i zapomina stare wersje: dysk dostaje miejsce z powrotem. Format 1: wszystko naraz do drugiej połowy K1-DANE (ADR 0015, 0034); format 2: jeden odcinek, po kilka MiB między prośbami (ADR 0036). |
+| **kompaktowanie** | Skarbiec przepisuje żywe dane i zapomina stare wersje: dysk dostaje miejsce z powrotem. Format 1: wszystko naraz do drugiej połowy K1-DANE (ADR 0015, 0034); format 2: jeden odcinek, krokami po 4 MiB w przerwach między prośbami (ADR 0036). |
 | **miejsce na pliki** | Ile plików zmieści skarbiec bez rezerwy dla systemu; pokazują je Ustawienia → Informacje (0.8.1). Format 1: połowa K1-DANE (druga połowa na kompaktowanie); format 2: 91–96 % (zapas wolnych odcinków, ADR 0036). |
 | **format skarbca** | Układ danych na K1-DANE. Format 1 (0.5.6–0.8.1): dwie połowy; format 2 (0.8.2, ADR 0036): odcinki i spis skarbca. |
 | **odcinek** (segment) | Część K1-DANE w formacie 2 skarbca (do 64 kawałków po 1 MiB); zapisy idą do kolejnych odcinków, kompaktowanie zwalnia po jednym (ADR 0036). |
+| **przejście na format 2** | Jednorazowe przeniesienie magazynu z 0.5.6–0.8.1 (format 1) na format 2: w przerwach, do wolnej połowy K1-DANE, dopiero po potwierdzonym starcie; przerwa prądu zostawia stary albo nowy magazyn (0.8.2, ADR 0036). |
+| **potwierdzony start** | Nowa wersja działa 15 s (pulpit albo ekran hasła) i nie czeka próba A/B innej wersji: nadzorca zatwierdza miejsce A/B i mówi skarbcowi `START_POTWIERDZONY` (ADR 0022, 0036). |
 | **spis skarbca** (checkpoint) | Zapisana co jakiś czas lista żywych obiektów i ich miejsc w formacie 2; start czyta spis i to, co dopisano po nim (**ogon**), nie treść plików (ADR 0036). |
 | **powiększenie K1-DANE** | K1-DANE rośnie do końca pendrive'a: pusta — sama przy pierwszym starcie (0.8.0), z danymi — po kliknięciu „Użyj całego pendrive'a na dane” w Ustawieniach (0.8.1, ADR 0033). Pliki zostają na miejscu. |
 | **kawałek** | 1 MiB treści pliku: tak skarbiec trzyma pliki i tak je przesyłają czytnik, Pliki i skarbiec (od 0.8.1 plik do 4 GB = 4096 kawałków). |

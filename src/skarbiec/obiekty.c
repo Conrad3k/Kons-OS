@@ -79,10 +79,11 @@ void ob_otworz_magazyn(int fd_dysk)
         zablokowany = 1;
         k1_log(TAG, "magazyn chroniony hasłem — czekam na hasło z ekranu logowania");
     } else if (w == K1_MAG_JEST) {
+        double t0 = k1_teraz();
         w = k1_mag_otworz(&mag, &dysk, NULL);
         if (w == K1_MAG_OK) {
             trwaly = 1;
-            k1_log(TAG, "magazyn otwarty: %d obiektów", mag.n_wpisow);
+            k1_log(TAG, "magazyn otwarty: %d obiektów (format %u, %.2f s)", mag.n_wpisow, mag.format, k1_teraz() - t0);
             ob_po_otwarciu();
         } else {
             k1_log(TAG, "magazyn nie otwarty: %s — partycja zostaje nietknięta, dane tylko w pamięci", k1_mag_opis(w));
@@ -94,24 +95,12 @@ void ob_otworz_magazyn(int fd_dysk)
     }
 }
 
-/* Compaction (ADR 0034) with its time and sizes in the log. */
-static void kompaktuj(const char *kiedy)
-{
-    double t0 = k1_teraz();
-    uint64_t przed = mag.koniec;
-    int r = k1_mag_kompaktuj(&mag);
-    k1_log(TAG, "kompaktowanie (%s): dziennik %llu → %llu MiB, żywe dane %llu MiB, %.1f s%s%s", kiedy,
-           (unsigned long long)(przed * K1_MAG_BLOK >> 20), (unsigned long long)(mag.koniec * K1_MAG_BLOK >> 20),
-           (unsigned long long)(mag.zywe * K1_MAG_BLOK >> 20), k1_teraz() - t0, r == K1_MAG_OK ? "" : " — ",
-           r == K1_MAG_OK ? "" : k1_mag_opis(r));
-}
-
 int ob_powieksz(uint64_t bajty, const char *kiedy)
 {
     uint64_t przed = k1_mag_pojemnosc(&mag);
     int r = k1_mag_powieksz(&mag, bajty);
     if (r != K1_MAG_OK || k1_mag_pojemnosc(&mag) != przed)
-        k1_log(TAG, "magazyn powiększony do całej partycji K1-DANE (%s): obszar %llu → %llu MiB%s%s", kiedy,
+        k1_log(TAG, "magazyn powiększony do całej partycji K1-DANE (%s): miejsce na dane %llu → %llu MiB%s%s", kiedy,
                (unsigned long long)(przed >> 20), (unsigned long long)(k1_mag_pojemnosc(&mag) >> 20),
                r == K1_MAG_OK ? "" : " — ", r == K1_MAG_OK ? "" : k1_mag_opis(r));
     return r;
@@ -123,18 +112,7 @@ void ob_po_otwarciu(void)
     if (trwaly)
         ob_powieksz(dysk.bajty, "dokończenie po starcie");
     if (trwaly && k1_mag_kompaktowac(&mag, 1))
-        kompaktuj("przy otwarciu");
-}
-
-int ob_kompaktowanie_czeka(void)
-{
-    return trwaly && k1_mag_kompaktowac(&mag, 0);
-}
-
-void ob_kompaktuj_w_przerwie(void)
-{
-    if (ob_kompaktowanie_czeka())
-        kompaktuj("w przerwie");
+        przerwa_kompaktuj_calosc("przy otwarciu");
 }
 
 uint64_t ob_wolne(void)

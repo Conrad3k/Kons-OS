@@ -41,7 +41,8 @@ USLUGI  := src/wspolne/k1_uslugi.c src/wspolne/k1_komunikat.c src/wspolne/k1_kan
 # Blob Vault (M5c, ADR 0015): format + Monocypher (src/zewnetrzne, docs/ZALEZNOSCI.md). Monocypher is
 # compiled as is; on the host (ASan build) -Wconversion warns about its code, so only there it is off.
 MONOCYPHER := src/zewnetrzne/monocypher/monocypher.c
-MAGAZYN := src/skarbiec/magazyn.c src/skarbiec/naglowek.c src/skarbiec/obszary.c src/skarbiec/odcinki.c src/skarbiec/spis.c src/wspolne/k1_indeks.c $(MONOCYPHER)
+MAGAZYN_C := src/skarbiec/magazyn.c src/skarbiec/naglowek.c src/skarbiec/obszary.c src/skarbiec/odcinki.c src/skarbiec/spis.c src/skarbiec/przejscie.c
+MAGAZYN := $(MAGAZYN_C) src/wspolne/k1_indeks.c $(MONOCYPHER)
 GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 # GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
 PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
@@ -123,7 +124,7 @@ $(BIN)/czytnik: $(CZYTNIK) src/czytnik/fat.h src/przybornik/k1_czas.c src/wspoln
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(CZYTNIK) src/przybornik/k1_czas.c src/wspolne/k1_indeks.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # skarbiec in modules (0.8.0): main.c (loop, channels), obiekty, haslo, dokumenty, dok_kanal + the format — skarbiec.h
-SKARBIEC := $(filter-out src/skarbiec/magazyn.c src/skarbiec/naglowek.c src/skarbiec/obszary.c src/skarbiec/odcinki.c src/skarbiec/spis.c,$(sort $(wildcard src/skarbiec/*.c))) $(MAGAZYN)
+SKARBIEC := $(filter-out $(MAGAZYN_C),$(sort $(wildcard src/skarbiec/*.c))) $(MAGAZYN)
 $(BIN)/skarbiec: $(SKARBIEC) $(wildcard src/skarbiec/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -DK1_CZAS_BUDOWY=$(CZAS_BUDOWY) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ $(SKARBIEC) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
@@ -199,6 +200,8 @@ $(OBJ)/test_magazyn: testy/host/test_magazyn.c testy/host/k1_ram_dysk.h $(MAGAZY
 # the measurement of the plan's step 1 (not in testy-host: it writes gigabytes): optimised, without ASan
 $(OBJ)/pomiar_magazynu: testy/host/pomiar_magazynu.c $(MAGAZYN) src/skarbiec/magazyn.h | $(OBJ)
 	gcc -std=c11 -O2 -D_GNU_SOURCE -Wall -Wextra -Werror -Isrc/wspolne -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/pomiar_magazynu.c $(MAGAZYN)
+$(OBJ)/test_przejscie: testy/host/test_przejscie.c testy/host/k1_ram_dysk.h $(MAGAZYN) src/skarbiec/magazyn.h src/skarbiec/magazyn_wew.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_przejscie.c $(MAGAZYN)
 $(OBJ)/test_odcinki: testy/host/test_odcinki.c testy/host/k1_ram_dysk.h $(MAGAZYN) src/skarbiec/magazyn.h src/skarbiec/magazyn_wew.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_odcinki.c $(MAGAZYN)
 
@@ -249,7 +252,7 @@ $(OBJ)/test_rozmieszczenie: testy/host/test_rozmieszczenie.c src/gui/rozmieszcze
 # 0.8.0: the user's files — names, types, the entry layout, folders, Kosz, the rights of the channel; a fixed build time
 # (2026-11-18) so that the tests' clock (2027) stays after it whenever they run
 CZAS_TESTU := 1795000000
-DOK_TEST := src/skarbiec/dokumenty.c $(wildcard src/skarbiec/dok_*.c) src/skarbiec/dostep.c src/skarbiec/obiekty.c src/skarbiec/miejsce.c $(MAGAZYN) src/wspolne/k1_dokument.c \
+DOK_TEST := src/skarbiec/dokumenty.c $(wildcard src/skarbiec/dok_*.c) src/skarbiec/dostep.c src/skarbiec/obiekty.c src/skarbiec/przerwy.c src/skarbiec/miejsce.c $(MAGAZYN) src/wspolne/k1_dokument.c \
             src/wspolne/k1_log.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_memfd.c src/wspolne/k1_uslugi.c
 $(OBJ)/test_dokumenty: testy/host/test_dokumenty.c $(DOK_TEST) $(wildcard src/skarbiec/*.h) $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -DK1_CZAS_BUDOWY=$(CZAS_TESTU) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ \
@@ -271,10 +274,10 @@ $(OBJ)/test_indeks: testy/host/test_indeks.c src/wspolne/k1_indeks.c src/wspolne
 
 # Every host test includes the shared helpers: a change there rebuilds them all.
 $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instalator test_kalkulator test_komunikat \
-	test_dokumenty test_notatki test_indeks test_log test_magazyn test_odcinki test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
+	test_dokumenty test_notatki test_indeks test_log test_magazyn test_odcinki test_przejscie test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
 	test_zdarzenie): testy/host/k1_test_host.h
 
-testy-host: $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder
+testy-host: $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder
 	$(OBJ)/test_indeks
 	$(OBJ)/test_dokumenty
 	$(OBJ)/test_notatki
@@ -305,6 +308,7 @@ testy-host: $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/
 	$(OBJ)/test_bateria
 	$(OBJ)/test_magazyn
 	$(OBJ)/test_odcinki
+	$(OBJ)/test_przejscie
 	$(OBJ)/test_zdarzenie
 	$(OBJ)/test_komunikat
 	$(OBJ)/test_przybornik

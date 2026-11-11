@@ -260,7 +260,10 @@ int f2_krok(struct k1_magazyn *m, uint32_t maks, uint32_t min_zysk)
 
 int f2_kompaktowac(const struct k1_magazyn *m)
 {
-    return m->ofiara >= 0 || (wolne_odcinki(m) < m->rezerwa + 2 && wybierz_ofiare(m, m->odcinek / 4) >= 0);
+    uint32_t w = wolne_odcinki(m);
+    if (m->ofiara < 0 && (w >= m->rezerwa + 2 || wybierz_ofiare(m, m->odcinek / 4) < 0))
+        return 0;
+    return w <= m->rezerwa + 1 ? 2 : 1; /* 2: soon a write would have to compact a segment itself */
 }
 
 /* Compaction when space is short: a segment that gives at least one largest record (or half a small segment). */
@@ -299,7 +302,7 @@ static int miejsce(struct k1_magazyn *m, uint32_t bloki, uint32_t zostaw)
 /* ---- writing ---- */
 
 /* Bytes of the spis with `n` entries (names up to 31 bytes), as an upper bound in blocks. */
-static uint64_t spis_szacunek(const struct k1_magazyn *m, uint64_t n)
+uint64_t f2_spis_szacunek(const struct k1_magazyn *m, uint64_t n)
 {
     uint64_t bajty = 8ull * m->n_odcinkow + (SPIS_WPIS + K1_MAG_NAZWA - 1) * n;
     uint64_t kawalki = bajty / (K1_MAG_MAKS_DANYCH - SPIS_NAGL) + 1;
@@ -311,7 +314,7 @@ static int jest_miejsce(const struct k1_magazyn *m, int i, uint32_t bloki)
 {
     uint64_t stare = i >= 0 ? m->wpisy[i].bloki : 0;
     if (i < 0 && (m->n_wpisow == K1_MAG_MAKS_OBIEKTOW ||
-                  spis_szacunek(m, (uint64_t)m->n_wpisow + 1) > m->odcinek / 2))
+                  f2_spis_szacunek(m, (uint64_t)m->n_wpisow + 1) > m->odcinek / 2))
         return 0;
     return bloki <= m->odcinek && m->zywe - stare + bloki <= f2_pojemnosc_blokow(m);
 }
@@ -371,14 +374,20 @@ static uint32_t ile_odcinkow(uint64_t bloki, uint32_t odcinek)
     return n > K1_MAG_MAKS_ODCINKOW ? K1_MAG_MAKS_ODCINKOW : (uint32_t)n;
 }
 
-int f2_utworz(struct k1_magazyn *m)
+int f2_uklad(struct k1_magazyn *m)
 {
     uint64_t bloki = mag_bloki_dysku(m->d);
     m->odcinek = wielkosc_odcinka(bloki - 2);
     m->n_odcinkow = ile_odcinkow(bloki, m->odcinek);
-    if (m->n_odcinkow < 4)
-        return K1_MAG_ARG;
     m->rezerwa = f2_rezerwa(m->n_odcinkow);
+    return m->n_odcinkow < 4 ? K1_MAG_ARG : K1_MAG_OK;
+}
+
+int f2_utworz(struct k1_magazyn *m)
+{
+    int r = f2_uklad(m);
+    if (r != K1_MAG_OK)
+        return r;
     m->licznik_gen = 1;
     m->gen_odc[0] = 1;
     m->w_ogonie[0] = 1;

@@ -36,7 +36,6 @@ _Static_assert(K1_MAG_IO == K1_SKARB_IO && K1_MAG_ARG == K1_SKARB_ARG, "K1_SKARB
 #define FD_DYSK 4
 #define MAKS_KLIENTOW 16
 #define GODZINA 3600.0
-#define PRZERWA 2.0
 
 struct klient {
     int fd, wlasciciel, uid;
@@ -143,7 +142,7 @@ static void obsluz_sterowanie(void)
             k1_koniec(TAG, "nadzorca zamknął kanał sterujący");
         if (o.obciete || !o.ma_nadawce || o.uid != 0 ||
             k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &m) != 0 ||
-            (m.typ != K1_KOM_SKARB_KLIENT && m.typ != K1_KOM_POWIEKSZONO) ||
+            (m.typ != K1_KOM_SKARB_KLIENT && m.typ != K1_KOM_POWIEKSZONO && m.typ != K1_KOM_START_POTWIERDZONY) ||
             (o.fd >= 0) != k1_komunikat_z_deskryptorem(m.typ, K1_KIER_STEROWANIE)) {
             if (o.fd >= 0)
                 close(o.fd);
@@ -152,6 +151,8 @@ static void obsluz_sterowanie(void)
         }
         if (m.typ == K1_KOM_POWIEKSZONO)
             powiekszono(m.a);
+        else if (m.typ == K1_KOM_START_POTWIERDZONY)
+            przejscie_wolno();
         else
             nowy_klient(&m, o.fd);
     }
@@ -264,15 +265,17 @@ static void obsluz_klienta(struct klient *k)
                    o.ma_nadawce ? (int)o.uid : -1);
             continue;
         }
+        double t0 = k1_teraz();
         wykonaj(k, &m, o.fd);
+        przerwa_trwala(k1_teraz() - t0);
     }
 }
 
 int main(void)
 {
     struct pollfd pfd[1 + MAKS_KLIENTOW];
-    double kosz_kontrola;
-    int i, n, przerwa;
+    double kosz_kontrola, cisza;
+    int i, n;
 
     k1_klatka_w_usludze(TAG);
     if (fcntl(FD_STEROWANIE, F_SETFL, O_NONBLOCK) != 0)
@@ -294,17 +297,17 @@ int main(void)
             pfd[1 + i].events = POLLIN;
         }
         t = kosz_kontrola - k1_teraz();
-        przerwa = ob_kompaktowanie_czeka(); /* compaction waits for 2 s without any request (ADR 0034) */
-        if (przerwa && t > PRZERWA)
-            t = PRZERWA;
+        cisza = przerwa_czeka(); /* compaction and the transition wait for a quiet moment (przerwy.c) */
+        if (cisza >= 0 && t > cisza)
+            t = cisza;
         n = poll(pfd, 1 + MAKS_KLIENTOW, t <= 0 ? 0 : (int)(t * 1000) + 1);
         if (n < 0) {
             if (errno == EINTR)
                 continue;
             k1_koniec(TAG, "poll: %s", strerror(errno));
         }
-        if (n == 0 && przerwa)
-            ob_kompaktuj_w_przerwie();
+        if (cisza >= 0 && (n == 0 || cisza == 0) && przerwa_praca())
+            oglos_zmiane(); /* format 2 now: Pliki ask for the list again, the room comes with it */
         if (pfd[0].revents)
             obsluz_sterowanie();
         for (i = 0; i < MAKS_KLIENTOW; i++)

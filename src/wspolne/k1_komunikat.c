@@ -105,6 +105,8 @@ static int sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierun
     case K1_KOM_POWIEKSZONO:
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && (k->a == 0 || k->a == K1_SKARB_ARG || k->a == K1_SKARB_IO) &&
                zera(k, 1);
+    case K1_KOM_START_POTWIERDZONY:
+        return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && zera(k, 0);
     case K1_KOM_INST_ZADANIE:
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && w(k->a, K1_INST_INSTALUJ, K1_INST_AKTUALIZUJ) &&
                (k->b == 512 || k->b == 4096) && zera(k, 2);

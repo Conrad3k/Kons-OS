@@ -361,7 +361,7 @@ z obszarem 0 i 1, przerwa prądu po każdym zapisie), `test_dokumenty` (16 384 w
 
 ## 0.8.2 krok 1a — format 2 skarbca (ADR 0036), na hoście
 
-System dalej tworzy format 1 (do kroku 1c), więc format 2 sprawdzają testy na hoście:
+Format 2 sprawdzają testy na hoście (w systemie od kroku 1c — niżej):
 
 | Test | Co sprawdza |
 |---|---|
@@ -369,3 +369,18 @@ System dalej tworzy format 1 (do kroku 1c), więc format 2 sprawdzają testy na 
 | `fuzz_magazyn` tryby 3–5 | zmienione bajty magazynu formatu 2 (nagłówki, spis, ogon); pola nagłówka formatu 2 z poprawnym MAC; losowe ciągi zapisów, usunięć i kroków kompaktowania — po każdym ponowne otwarcie musi oddać każdy obiekt |
 | `pomiar_magazynu` (ręcznie, bez ASan) | pomiar z planu (wzór próby T3): `make build/obj/pomiar_magazynu && build/obj/pomiar_magazynu PLIK MIB_K1_DANE MIB_PLIKÓW FORMAT` — miejsce na pliki, czas otwarcia (procesor) i odczytane MiB, najdłuższy zapis i krok kompaktowania; wyniki w ADR 0036 |
 
+## 0.8.2 kroki 1b i 1c — kompaktowanie w przerwach, przejście na format 2 (ADR 0036)
+
+Od 1c system tworzy format 2, a stary magazyn (format 1) przechodzi na format 2 po potwierdzonym starcie.
+
+| Test | Co sprawdza |
+|---|---|
+| `test_przejscie` (host, ASan/UBSan) | format 1 (64 MiB, 120 operacji: nowe wersje, usunięcia, kawałki 1 MiB) → format 2: każdy obiekt jak był, także po ponownym otwarciu; kopie zaszyfrowane; oba sloty nagłówka w formacie 2; miejsce ok. 1,8 × większe; potem praca i kompaktowanie formatu 2. Kroki po 64 bloki z zapisem albo usunięciem po każdym (zmienione po kopii — kopiowane jeszcze raz); kompaktowanie formatu 1 w trakcie — kopiowanie od nowa. **Przerwa prądu po każdym zapisie** (pierwsze 30, potem co czwarty; i z rozdartym nagłówkiem) — za każdym razem magazyn się otwiera (stary albo nowy), każdy obiekt jak przed albo po przerwanej operacji, przejście i praca idą dalej. Pełny obszar formatu 1 → „za mało miejsca”, format 1 działa dalej; po powiększeniu partycji — przejście. Magazyn z hasłem |
+| `fuzz_magazyn` tryb 6 | format 1 i losowy ciąg zapisów, usunięć, kroków kompaktowania i kroków przejścia — po każdym ciągu ponowne otwarcie oddaje każdy obiekt |
+| `test_komunikat` | `START_POTWIERDZONY`: tylko zera, tylko kanał sterujący, bez deskryptora |
+| `test-skarbiec.sh` dziennik | K1-DANE 190 MiB, format 1, dziennik 78 MiB → kompaktowanie przy otwarciu, potem (po „start tej wersji potwierdzony”) przejście na format 2: miejsce na dane 94 → 168 MiB, najdłuższy krok < 1 s |
+| `test-skarbiec.sh` dziennik-ponownie | magazyn otwarty w formacie 2, bez kompaktowania i bez ponownego przejścia; na hoście (`magazyn_testowy --sprawdz`): format 2, ostatnia z 20 000 wersji |
+| `test-skarbiec.sh` przejście | K1-DANE 64 MiB z 0.8.1 prawie pełna (format 1, 25 obiektów po 1 MiB) → przejście dopiero po potwierdzonym starcie, w krokach → miejsce na dane 31 → 58 MiB; Ustawienia → Informacje: na pliki 50 MiB (w 0.8.1: 23); na hoście: format 2, każdy obiekt bajt w bajt |
+| `test-skarbiec.sh` pełny, powiększenie, dokończenie | jak w 0.8.1, ale na formacie 2: na pliki 50 MiB, po powiększeniu do 576 MiB — miejsce na dane 58 → 556 MiB, na pliki 545 MiB |
+| `test-pendrive.sh` ponownie | magazyn z filmem 300 MB: „magazyn otwarty … (format 2, t s)” z t < 1 s i bez „skarbiec jeszcze otwiera magazyn” — ekran dostaje ustawienia od razu (R58) |
+| `test-pliki.sh` | notatki z 0.5.8–0.7.6 w magazynie formatu 1 (`stare_notatki`) — Notatki przenoszą je do plików, a skarbiec w tym czasie przechodzi na format 2 |

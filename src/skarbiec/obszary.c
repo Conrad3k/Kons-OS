@@ -113,6 +113,7 @@ int f1_kompaktuj(struct k1_magazyn *m)
     uint32_t cel = 1 - m->aktywny;
     uint64_t epoka = m->epoka + 1, p = 0;
     int i, r;
+    przejscie_przerwij(m); /* the other region may hold copies of the transition to format 2 */
     for (i = 0; i < m->n_wpisow; i++) {
         uint32_t bloki;
         r = czytaj_rekord(m, m->wpisy[i].blok, &bloki);
@@ -188,6 +189,8 @@ int f1_powieksz(struct k1_magazyn *m, uint64_t bajty)
 {
     uint64_t stary = m->obszar_blokow, obszar;
     int r;
+    if (bajty != m->d->bajty)
+        przejscie_przerwij(m);
     m->d->bajty = bajty;
     obszar = (mag_bloki_dysku(m->d) - 2) / 2;
     if (obszar <= stary)
