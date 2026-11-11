@@ -37,7 +37,8 @@ Od 0.8.0 skarbiec trzyma pliki użytkownika, a K1-DANE na pendrivie sięga do ko
    W logu czas i rozmiary. Skutek: dziennik nigdy nie przekracza ok. 2 × żywe dane + 256 MiB (+ to, co dopisano przed
    chwilą przerwy).
 4. **Rezerwa dla systemu:** nowy plik i nowa treść pliku (`DOK_NOWY`, `DOK_ZAPISZ`) są odrzucane, gdy zostałoby mniej
-   niż 8 MiB albo 2 % obszaru (większe z nich) — nowy wynik `K1_DOK_BLAD_BRAK_MIEJSCA` (−28), w Plikach „Brak miejsca na
+   niż 8 MiB albo 2 % obszaru (większe z nich; najwyżej ćwierć obszaru — bardzo mała K1-DANE, np. w maszynie
+   wirtualnej, dalej przyjmuje pliki) — nowy wynik `K1_DOK_BLAD_BRAK_MIEJSCA` (−28), w Plikach „Brak miejsca na
    pliki”. Obiekty systemu (ustawienia, pulpit, bateria, tapeta) zapisują się dalej. Zmiana nazwy, przeniesienie,
    Kosz i usuwanie nie potrzebują miejsca — użytkownik zawsze może zrobić miejsce.
 5. **Format na dysku bez zmian** — magazyn z 0.8.0 otwiera się tak samo (najwyżej raz kompaktuje). Powrót do 0.8.0 to

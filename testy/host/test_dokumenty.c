@@ -853,6 +853,7 @@ static void test_rezerwa(void)
     EXPECT(ob_zapisz(K1_PROFIL_EKRAN, "o1", mib, 100000) == K1_MAG_OK); /* settings still save */
     EXPECT(dok_do_kosza(f, T0) == 0 && dok_oproznij_kosz() == 0 && ob_wolne() > 64u << 20); /* deleting frees it */
     ob_usun(K1_PROFIL_EKRAN, "o1");
+    EXPECT(dok_rezerwa() == (8u << 20)); /* 128 MiB in memory: 8 MiB (2 % would be less) */
 }
 
 /* T1/1 of the plan: the folder of an application is remembered, not looked up by its name. */

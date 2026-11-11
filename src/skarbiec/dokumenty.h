@@ -49,6 +49,8 @@ int dok_oproznij_kosz(void);
 /* Kosz: what lies there over 30 days goes for good — only when the clock `zegar` is not behind dok_czas's bound
  * (then a time in Kosz from a wrong clock is set to `zegar` first); how many went. */
 int dok_przeterminowane(int64_t zegar);
+/* Bytes of the vault new files never take (the reserve for the system, 0.8.1): 8 MiB or 2 %, at most a quarter. */
+uint64_t dok_rezerwa(void);
 /* The time to write into entries for clock `zegar` (0.8.1): never before this K1's build or the latest clock seen. */
 int64_t dok_czas(int64_t zegar);
 

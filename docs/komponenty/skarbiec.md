@@ -64,7 +64,7 @@ Dokumentów.
   polskich); nowy wpis o zajętej nazwie dostaje „ (2)” przed rozszerzeniem. Do 8 poziomów folderów, 16 384 wpisy
   (0.8.1, ADR 0034; razem z Koszem), wpisy znajdowane po numerze przez indeks (`k1_indeks`).
 - **Rezerwa dla systemu** (0.8.1, ADR 0034): nowy plik albo nowa treść pliku nie zajmie ostatnich 8 MiB (albo 2 %
-  obszaru) — wynik `K1_DOK_BLAD_BRAK_MIEJSCA` (−28), w Plikach „Brak miejsca na pliki”; ustawienia, pulpit, bateria i
+  obszaru; najwyżej ćwierć obszaru — mała K1-DANE dalej przyjmuje pliki) — wynik `K1_DOK_BLAD_BRAK_MIEJSCA` (−28), w Plikach „Brak miejsca na pliki”; ustawienia, pulpit, bateria i
   tapeta zapisują się dalej. Zmiana nazwy, przeniesienie, Kosz i usuwanie działają zawsze.
 - **Kosz**: „do Kosza” zapisuje czas we wpisie (folder idzie z zawartością); przywrócony wraca do swojego folderu
   (gdy go nie ma albo jest w Koszu — do Dokumentów, Pliki to mówią); „usuń na zawsze” i „opróżnij” tylko w Koszu; po

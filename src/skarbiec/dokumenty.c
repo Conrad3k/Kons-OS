@@ -106,11 +106,19 @@ static int sprawdz_nazwe(const char *nazwa, size_t nl, char out[K1_DOK_NAZWA])
 
 #define REZERWA_MIN (8u << 20)
 
-/* Room for `bajty` of new content (0.8.1, plan L6): files never take the last 8 MiB (or 2 % of the vault, when more)
- * — kept for the system (settings, the desktop's layout, the battery's history), which would stop saving otherwise. */
+/* What files leave for the system (0.8.1, plan L6): 8 MiB, or 2 % of the vault when more — but at most a quarter of
+ * it (a very small K1-DANE, e.g. in a virtual machine, still takes files). */
+uint64_t dok_rezerwa(void)
+{
+    uint64_t calosc = ob_pojemnosc(), r = calosc / 50 > REZERWA_MIN ? calosc / 50 : REZERWA_MIN;
+    return r > calosc / 4 ? calosc / 4 : r;
+}
+
+/* Room for `bajty` of new content: files never take the reserve — kept for the system (settings, the desktop's
+ * layout, the wallpaper, the battery's history), which would stop saving otherwise. */
 static int miejsce_na(uint64_t bajty)
 {
-    uint64_t calosc = ob_pojemnosc(), rezerwa = calosc / 50 > REZERWA_MIN ? calosc / 50 : REZERWA_MIN;
+    uint64_t rezerwa = dok_rezerwa();
     uint64_t potrzeba = bajty + (kawalkow(bajty) + 1) * K1_MAG_BLOK; /* the records' headers, the entry */
     return ob_wolne() >= potrzeba + rezerwa;
 }
