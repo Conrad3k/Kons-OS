@@ -227,6 +227,7 @@ Otwieranie, limity, przeciąganie (uwagi właściciela z 2026-11-10)
 [x]  1  Dane nie mogą zginąć                          L2 L10 L11 L3 L1 L12 L18     —           —        M
      [x] PR #65
 [ ]  2  Skarbiec: więcej plików, szybki start         L21 L4c L4d L5 L6            1           —        M–L
+     [w toku: Claude, gałąź claude/keen-meitner-4nnf8x]
 [ ]  3  Miejsce: ile zostało, cały pendrive na dane   L7 L20 L4a L4b               2           D4       M
 [ ]  4  Duże pliki (przesyłanie w kawałkach)          L23a L23c                    2           —        L
 [ ]  5  Pendrive i nazwy plików                       L13 L14 L15 L16 L8 L9        1, 4        D3       M–L
