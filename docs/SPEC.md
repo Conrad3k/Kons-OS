@@ -171,25 +171,21 @@ UEFI + Secure Boot → podpisany UKI (jądro + initramfs + cmdline) → jądro L
 - Każda luka: opis, klasyfikacja, naprawa. To, że komponent się uruchamia, nie znaczy, że jest bezpieczny.
 
 ## 14. Milestones
-**[korekta: ADR 0011 — kolejność po M4: M4.1 porządki i audyt → M5 rozszerzony o dyski i USB → M5.1 próba przeglądarki (bez sieci) → M5.2 dm-verity (z M10) → M6 → M7 → M8 → M9 → M10 → M11 → M12]**
-**[korekta: ADR 0018 — M5f instalator na dysk; ADR 0019 — od 0.6.0: Fundament (porządki nadzorcy, uevent, szybsze testy) → M6 Bezpieczne aktualizacje (podpisy, dm-verity, A/B, Secure Boot z własnym kluczem — z M10) → M7 Sieć (najpierw kabel) → M8 Przeglądarka (z dawnym M5.1) → M9 Pliki (Gatekeeper + dekodery w izolacji z dawnego M6) → M10 reszta (recovery, TPM) → M11 → M12; ADR 0020 — M8 „Strefy”: każda obca aplikacja w swojej mikro-maszynie (zaplecze B jako główny model, dawne M11 w M8), trwałość i grafika do wyboru, pliki przez Gatekeepera (M9); ADR 0024 — wspólna strefa na drobne, zaufane aplikacje (przeglądarka zawsze osobno); ADR 0025 — Przeglądarka K1: własne okno i pasek adresu, silnik w strefie, sesje = strefy (po pierwszej przeglądarce w strefie); ADR 0026 — po 0.7.3: 0.7.5 Pulpit (ikony na pulpicie, menu pod prawym przyciskiem, przypinanie na pasku) → 0.8.0 Pliki (natywna część M9: wspólne dokumenty w Blob Vault, Kosz, okno wyboru pliku, import z pendrive'a, dekoder obrazów w izolacji — dawne M6) → M7 Sieć → M8 Strefy → M9 Pliki ze stref (Gatekeeper dla stref)]**
-- M0 Porządki:
-  - archiwum wersji debianowej (gałąź archiwum/debian-0.1.2), nowa struktura repo, dokumenty z §2.9,
-  - toolchain musl ze statycznym linkowaniem,
-  - skrypty: build obrazu, QEMU z logiem szeregowym, zrzut ekranu,
-  - CI na main.
-- M1 Start: konfiguracja jądra, initramfs, SquashFS (na razie bez dm-verity), PID 1, montowania. W QEMU log „K1: init OK” bez kernel panic. Testy negatywne (np. brak obrazu → kontrolowany komunikat).
-- M2 Ekran: proces ekran (DRM/KMS), pierwsza klatka (tapeta i logo K1), klawiatura i mysz z kursorem. Dowód: zrzut ekranu.
-- M3 Trusted Core: nadzorca, osobne UID, capabilities, seccomp, Landlock, cgroups, restart GUI po awarii.
-- M4 GUI: pulpit, okna, pasek, pierwsze aplikacje natywne (zegar, notatki).
-- M5 Blob Vault i szyfrowanie danych.
-- M6 Dekodery w izolacji (np. tapeta PNG wczytywana przez sandboxowany dekoder).
-- M7 Sieć (Ethernet/DHCP) i Strefa zgodności z zapleczem A, z prostą aplikacją testową wyświetlaną w K1.
-- M8 Przeglądarka w strefie (Firefox albo WPE, decyzja w ADR) z oddzielnymi sesjami.
-- M9 Gatekeeper: pobieranie, zgoda, import do Blob Vault, sprzątanie.
-- M10 Verified boot: dm-verity, Secure Boot, podpisy, A/B, rollback, recovery.
-- M11 Zaplecze B (mikro-VM) dla przeglądarki.
-- M12 Audyt: fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa.
+**[korekta: ADR 0035 — etapy nazywamy numerem wersji MINOR z tematem, nie numerem M. Ta lista zastępuje dawną listę
+M0–M12 i dopiski z ADR 0011, 0019, 0020, 0024, 0025, 0026 (historia: git i tabela w ADR 0035). Stan i kroki:
+`docs/DO_ZROBIENIA.txt` i plan bieżącej wersji `docs/PLAN-<wersja>.txt`.]**
+- 0.1–0.4 (dawne M0–M4): porządki i toolchain, start (initramfs, SquashFS, PID 1), ekran i wejście, klatki usług
+  (nadzorca, UID, seccomp, Landlock, cgroups), pulpit, okna i pierwsze aplikacje natywne.
+- 0.5 (M4.1, M5): przegląd bezpieczeństwa, dyski i USB, Blob Vault (skarbiec) z szyfrowaniem, hasło, instalator na dysk.
+- 0.6–0.7 (Fundament, M6): podpisy wydań, dm-verity, A/B, Secure Boot z kluczem K1; porządki; Pulpit (ikony, menu).
+- 0.8 Pliki (natywna część dawnego M9 i dawne M6 „dekodery”): dokumenty w Blob Vault, aplikacja Pliki, Kosz, okno
+  wyboru pliku, czytnik pendrive'a i dekoder obrazów w izolacji; 0.8.1–0.8.2 dopracowanie.
+- 0.9 Sieć (dawne M7): nic nie nasłuchuje, kabel (Ethernet/DHCP) w osobnej klatce, czas z sieci; potem Wi-Fi.
+- 0.10 Strefy (dawne M8 z M11): każda obca aplikacja w swojej mikro-maszynie (ADR 0020), zaufana ramka, przeglądarka
+  w strefie z oddzielnymi sesjami (Firefox albo WPE — ADR), wspólna strefa (ADR 0024), Przeglądarka K1 (ADR 0025).
+- 0.11 Pliki ze stref (dawne M9): Gatekeeper dla stref — pobieranie, zgoda, import do Blob Vault, sprzątanie (ADR 0027).
+- 0.12 Bezpieczny start — reszta (dawne M10): recovery, licznik wersji (TPM), odwoływanie starych wersji, los GRUB-a.
+- 0.13 Audyt (dawne M12): fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa → 1.0.
 
 ## 15. Pierwsze zadanie
 1. Zapisz tę specyfikację jako docs/SPEC.md.

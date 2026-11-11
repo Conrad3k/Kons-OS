@@ -13,7 +13,7 @@ sprawdzany przez dm-verity.
 
 ## Granica zaufania
 Działa jako PID 1 z pełnymi uprawnieniami roota, zanim cokolwiek innego wystartuje. Ufa jądru
-i własnemu kodowi (wbudowanemu w initramfs, od M10 podpisanemu w UKI). **Nie ufa**: linii poleceń
+i własnemu kodowi (wbudowanemu w initramfs, od 0.7.0 podpisanemu w `k1.efi`). **Nie ufa**: linii poleceń
 (walidacja), urządzeniu blokowemu i jego zawartości (dm-verity ze skrótem z linii poleceń; skrót
 niepodpisany do M6d — RYZYKA R1).
 

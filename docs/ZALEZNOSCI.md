@@ -23,7 +23,7 @@ API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybo
 | shim (UEFI, podpis Microsoftu) | 15.8 (`shim-signed` 1.58+15.8-0ubuntu1) | BSD-2-Clause | archiwum Ubuntu — pakiet tylko rozpakowany (`scripts/wspolne.sh: efi_podpisane`), wersje w `build/pobrane/efi/wersje.txt` | pierwszy program startowy z pendrive'a/płyty przez UEFI; podpisane pliki z każdej płyty Ubuntu zamiast własnego, niepodpisanego GRUB-a (Defender oznaczał go heurystyką jako trojana, 0.5.5) |
 | GRUB dla nośników wymiennych (UEFI, `gcdx64.efi`, podpis Canonical) | 2.12 (`grub-efi-amd64-signed` 1.202.5+2.12-1ubuntu7.3) | GPL-3.0 | jw. | ładuje `k1.efi` z miejsca A/B (`loopback`, `load_env`/`save_env`); z Secure Boot sprawdza jego podpis przez shim (klucz K1 w MOK, ADR 0022) |
 | MokManager (`mmx64.efi`, podpis Canonical) | 15.8 (`shim-signed`) | BSD-2-Clause | jw. | wpisanie klucza K1 do MOK przy pierwszym włączeniu Secure Boot (0.7.0, ADR 0022) |
-| GRUB BIOS (i386-pc, obraz El Torito z wbudowanymi modułami) | 2.12-1ubuntu7.3 | GPL-3.0 | archiwum Ubuntu (`grub-pc-bin`), `grub-mkimage` | start z płyty przez BIOS w maszynach wirtualnych; tymczasowo do M10 (ADR 0010, RYZYKA R25) |
+| GRUB BIOS (i386-pc, obraz El Torito z wbudowanymi modułami) | 2.12-1ubuntu7.3 | GPL-3.0 | archiwum Ubuntu (`grub-pc-bin`), `grub-mkimage` | start z płyty przez BIOS w maszynach wirtualnych; tymczasowo do 0.12 (ADR 0010, RYZYKA R25) |
 
 ## Do budowy (wpływają na wynik)
 
@@ -50,7 +50,7 @@ Wersje użyte w danym buildzie zapisuje `build/wynik/srodowisko.txt`.
 | Narzędzie | Wersja | Źródło | Po co |
 |---|---|---|---|
 | QEMU (`qemu-system-x86`) | 8.2.2 | Ubuntu 24.04 | uruchamianie K1 w testach |
-| OVMF | 2024.02 | Ubuntu 24.04 | firmware UEFI (M10: Secure Boot) |
+| OVMF | 2024.02 | Ubuntu 24.04 | firmware UEFI (testy Secure Boot, od 0.7.0) |
 | clang + `libclang-rt-18-dev` | 18 | Ubuntu 24.04 | libFuzzer + sanitizery (fuzzing parserów) |
 | glibc + ASan/UBSan (gcc) | systemowe | Ubuntu 24.04 | testy jednostkowe na hoście |
 | `sfdisk` (`fdisk`, util-linux) | 2.39.3 | Ubuntu 24.04 | tablice partycji (GPT, MBR) na dyskach testowych w QEMU (M5a) |

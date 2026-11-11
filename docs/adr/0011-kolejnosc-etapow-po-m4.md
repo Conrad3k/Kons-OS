@@ -1,6 +1,6 @@
 # 0011. Kolejność etapów po M4
 
-- Status: Przyjęty
+- Status: Zastąpiony przez 0019 (kolejność etapów) i 0035 (mapa drogi według wersji)
 - Data: 2026-11-06
 - Dotyczy: SPEC §14 (kamienie milowe), RYZYKA R1, R6, R15; właściciel poprosił o zmianę planu
   według oceny Claude

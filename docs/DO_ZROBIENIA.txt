@@ -1,342 +1,146 @@
-K1 — CO ZOSTAŁO DO ZROBIENIA
-=============================
+K1 — PLAN I CO DO ZROBIENIA
+===========================
 
-Stan: wersja 0.8.1 (Pliki — dopracowanie, kroki 1–4) — ukończone etapy M0 (porządki), M1 (start), M2 (ekran, mysz, klawiatura),
-M3 (klatki usług, restarty), M4 (pulpit, okna, aplikacje, obraz ISO do maszyny wirtualnej),
-M4.1 (przegląd bezpieczeństwa, wybór rozdzielczości, aplikacja Zasoby), M5 (dyski, USB, zaszyfrowane
-dane, hasło, instalator), 0.6.0 Fundament, M6 (bezpieczne aktualizacje: podpisy, dm-verity, A/B,
-Secure Boot), 0.7.5 Pulpit (ikony, menu pod prawym przyciskiem, przypinanie), 0.8.0 Pliki (foldery, Kosz, zdjęcia
-z pendrive'a, podgląd, tapeta ze zdjęcia), 0.8.1 (dane nie giną, więcej plików, miejsce w Informacjach, cały
-pendrive na dane, pliki do 4 GB); dalej 0.8.2 (docs/PLAN-0.8.2.txt), potem M7 Sieć (plan: ADR 0019, 0020, 0026).
-Data: 2026-11-11. Plik aktualizujemy po każdym etapie.
-Szczegóły: docs/SPEC.md (plan), docs/RYZYKA.md (znane braki), docs/adr/ (decyzje).
+Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
+rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
+Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
+Stan: 0.8.1 gotowa (w QEMU; na X230 uznana za przetestowaną — Twoja decyzja z 2026-11-11). Data: 2026-11-11.
 
-Oznaczenia:
-  [!]  wymaga Twojej decyzji albo działania
-  [ ]  do zrobienia
-  [~]  zrobione częściowo
+Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
+Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TWOJE DECYZJE I DZIAŁANIA
-----------------------------
-Twoje odpowiedzi z 2026-11-06 (zapisane, żeby nie zginęły):
-  - Stare artefakty Kons-OS: „usuń je”. → Zrobione: workflow „Sprzątanie artefaktów” usunął je
-    przy scaleniu (Claude nie może sam klikać w Actions).
-  - Wygląd z M2 (tapeta, logo, kursor): „na razie jest okej”.
-  - Pulpit: główny pasek na dole, wyśrodkowany jak w Windows 11; na górze dźwięk, (w przyszłości)
-    bateria i zegar. Cały interfejs w minimalistyczno-ciepłym stylu Claude Code / Anthropic.
-  - Pierwsze aplikacje: zegar, notatki + Ustawienia z początkowymi ustawieniami.
-  - Hasło (M5): opcjonalne, włączane w Ustawieniach. Zapomniane hasło = trzeba założyć nowe konto
-    (dane zaszyfrowane starym hasłem przepadają).
-  - Przeglądarka (M8): osobne sesje — jeszcze do przemyślenia.
-  - Po pierwszych zrzutach M4: „fenomenalna robota”; tapeta na wzór Twojego zdjęcia (warstwy
-    wygiętych wstęg), może być w stylu systemu, kilka wariantów; logo prostsze i eleganckie.
-    → Zrobione: 4 tapety (Glina — domyślna, Zmierzch — jak zdjęcie, Noc, Świt) do wyboru
-    w Ustawieniach → Wygląd; płaski znak K1 (docs/WYGLAD.md).
-  - Plan rozwoju: Claude zmienia kolejność według własnej oceny → ADR 0011 (punkt 3).
-  - KVM (szybsze testy, potrzebne w M11): komputer z Windowsem — na razie zostajemy przy emulacji
-    w chmurze; wracamy do tematu przed M11 (runner na Twoim komputerze albo WSL2).
-
-  - Pierwszy test (VirtualBox z EFI, 0.4.1): „działa!”; mysz i klawiatura bez zmiany na PS/2;
-    rozmiary „bardzo fajne”; rozdzielczość dziwna (1024×768 z firmware); logo „okropne” →
-    wybrany nowy znak C „Warstwy” (0.4.2).
-
-  - Po M4: „pod paskiem zadań i pod menu dźwięku wyjeżdża szklana podstawa” → naprawione (0.5.0);
-    prośba o aplikację „Zużycie zasobów” z wykresem → Zasoby (0.5.0).
-
-  - Test 0.5.1 w VirtualBoxie (2026-11-07): „Wszystko działa.” — VMSVGA (vmwgfx), Ustawienia →
-    Ekran (lista i zmiana rozdzielczości), Zasoby, cień pod paskiem bez „podstawy”.
-[!] Dalsze uwagi do pulpitu, tapet i nowego znaku (Issues → „Feedback z testu” albo w czacie).
-  - Strefy (2026-11-07): każdy program spoza K1 we własnym „pod-jądrze”, oznaczony kolorem; przy
-    każdej aplikacji wybór: stała / jednorazowa oraz pełna izolacja / szybka grafika; pliki z
-    piaskownicy przez system; „X230 to tylko maszyna testowa, celujemy wyżej” → ADR 0020, M8.
-  - Instalator (2026-11-07): „instalator może usuwać inne dane na dysku” → ADR 0018, 0.5.9.
-  - Laptop i konto (2026-11-07): „akceptuję jedno konto”; pierwszy laptop: ThinkPad X230, 8 GB RAM.
-    → M5a dostosowane do X230 (SATA/AHCI, USB 2 i 3, klawiatura i touchpad PS/2; ADR 0013).
-  - „Może w ramach tej wersji dodać wskaźnik baterii, jeśli system wykryje, że to laptop?”
-    → 0.5.3: ikona z procentami na górnym pasku, błyskawica przy ładowaniu (ADR 0014).
-  - Pierwsza próba na X230 (0.5.3, 2026-11-07): komunikat o Secure Boot, po „OK” laptop uruchomił
-    system z dysku — Secure Boot był włączony (K1 niepodpisany do M10). README: wyraźny krok.
-  - Test 0.5.3 na X230 po wyłączeniu Secure Boot (2026-11-07): „DZIAŁA!!! NAWET BATERIA JEST GIT!”;
-    widzi 4 rdzenie i 8 GB; rozdzielczość ustawiła się sama (jedyna w Ustawieniach — natywna);
-    mysz i cały system „strasznie lagują”, zmiana tapety zacina system.
-    → 0.5.4: obsługa typów pamięci w jądrze (MTRR/PAT) + przy obrazie z firmware do karty tylko zmiany.
-  - Prośba: bateria w Ustawieniach z ładnym, minimalistycznym wykresem naładowania od uruchomienia
-    i historii → 0.5.5: Ustawienia → Bateria (od uruchomienia); historia między uruchomieniami —
-    z trwałym zapisem (M5d).
-  - Decyzje do M5 (2026-11-07): ekran hasła — szkic B „Zegar” (najpierw wybrany A, potem „jednak
-    zrób B”: duży zegar i data z lewej na tapecie, przezroczyste pole hasła na dole; szkice:
-    testy/host/szkice_logowania.c, usunięte w 0.7.1);
-    dane na X230 — na pendrivie (obraz z partycją na dane, dysk laptopa nietknięty); hasło
-    opcjonalne — bez hasła dane zaszyfrowane, ale bez ochrony przed kradzieżą nośnika (akceptuję).
-    Kolejność: M5c format magazynu → M5d skarbiec i trwałe dane → obraz USB z partycją na dane →
-    M5e hasło i ekran logowania. Potem M5b (hotplug, tablet).
-  - Test 0.5.7 na X230 (2026-11-07): brak logo przy starcie („nie rób widocznych poleceń terminala —
-    system długo się odpala”); zapis i hasło niedostępne („Wymaga nośnika K1”); notatki „bare-bones”
-    — „można dodać wiele”.
-    → 0.5.8: logo bez tekstu od GRUB-a do pulpitu; partycja K1-DANE wykrywana też po starcie
-      i krótsze czekanie na pendrive; wiele notatek (lista, nowa, usuń).
-[!] Test na X230 (0.5.8): który plik jest na pendrivie? Do zapisu i hasła potrzebny
-    k1-0.5.8-usb.img.xz (rozpakowany przez Rufusa/Etchera), nie .iso. Sprawdź: logo przy starcie,
-    Ustawienia → Informacje → „Dane: zaszyfrowane na nośniku K1”, notatki po wyłączeniu, hasło.
-[x] Pierwszy test na X230 z pendrive'a (od 0.5.2 — instrukcja w README, „Uruchom na laptopie”;
-    najpierw F1 → Security → Secure Boot → Disabled):
-    czy pulpit się pojawia, ostrość obrazu, klawiatura, TrackPoint, touchpad, mysz USB, bateria
-    (procent i błyskawica po podłączeniu zasilacza — zmiana do 15 s), wyłączanie.
-[x] Ekran hasła przy starcie (2026-11-07): „bardzo ładny, w stylu, jaki jest system — Claude'owy”.
-    → Szkice A/B/C; wybrany B „Zegar” (2026-11-07).
-[x] Jedno konto na komputer — tak (2026-11-07).
-  - Plan (2026-11-09): „czy nie lepiej najpierw pliki i izolacja, zanim podłączymy internet?” → zgoda na
-    nową kolejność: 0.7.5 Pulpit → 0.8.0 Pliki → M7 Sieć → M8 Strefy → M9 Pliki ze stref (ADR 0026).
-    Pulpit „jak w Windowsie, ale estetycznie, zgodnie ze stylem K1”. Kosz: usuwa po 30 dniach albo ręcznie.
-[x] Na starcie 0.7.5: wybór szkicu pulpitu → A „Kafelki”, kafelki i menu w kolorach motywu (2026-11-09).
-[x] Na starcie 0.8.0: foldery czy etykiety? → „co do folderów — niech będą takie, jak w Windowsie”
-    (2026-11-10): Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane + własne foldery w nich (ADR 0029).
-[!] Przed M8 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)? W „Przeglądarce K1”
-    (ADR 0025) każda sesja to osobna strefa z własnym kolorem karty, „prywatna” = jednorazowa.
+1. TERAZ — 0.8.2 „Pliki — dopracowanie, część 2” (ostatnia wersja 0.8)
+-----------------------------------------------------------------------
+Plan, kroki, ich stan, luki i decyzje D1–D8: docs/PLAN-0.8.2.txt. Zakres zamrożony (7 kroków).
+    1 skarbiec na lata (format na duże dane) · 2 pendrive i nazwy · 3 duże zdjęcia, nowe formaty · 4 aplikacja
+    Podgląd · 5 „Otwórz za pomocą” · 6 przeciąganie · 7 porządki i wydanie 0.8.2
+[!] Decyzje D1–D3, D5–D8 (plan 0.8.2, punkt 4) — potrzebne przed krokami 2, 4, 5, 6.
+[ ] Wydanie 0.8.1: budowanie w CI nie przeszło (2026-11-11: runner GitHuba nie znajdował serwerów pakietów Ubuntu) —
+    osobny czat.
 
 
-2. ZALEGŁOŚCI I RZECZY PRZEKROJOWE
-----------------------------------
-[~] Prawdziwy sprzęt (potrzebne do testów na laptopie):
-      [x] start z płyty/obrazu przez UEFI i BIOS (ISO z GRUB-em; ADR 0010, tymczasowo do M10),
-      [x] grafika z firmware (simpledrm) — działa w VM,
-      [!] zapis ISO na pendrive i start z niego na X230 (obraz hybrydowy; instrukcja w README),
-      [x] klawiatura i mysz USB (M5a, QEMU), podłączanie w trakcie pracy (przez restart wejścia),
-      [ ] tablet USB w VM (pozycja bezwzględna — M5b), touchpad X230 z przewijaniem (tryb
-          rozszerzony — po teście), I2C-HID (nowsze laptopy — później),
-      [x] dyski SATA (AHCI) i NVMe, pendrive'y, tablice GPT (M5a, QEMU),
-      [ ] grafika X230: simpledrm (obraz z firmware); i915 tylko jeśli test pokaże potrzebę.
-[x] Całe ISO i obraz USB powtarzalne (0.5.6, RYZYKA R37).
-[!] Defender oznaczył ISO 0.5.5 heurystyką „!ml” → od 0.5.6 start UEFI przez podpisane pliki z Ubuntu
-    (shim/Microsoft, GRUB/Canonical). Sprawdź, czy 0.5.6 pobiera się bez alarmu; jeśli nie — zgłoszenie
-    fałszywego alarmu: microsoft.com/wdsi/filesubmission (plik + „Incorrectly detected as malware”).
-[ ] Komunikat o błędzie startu widoczny na ekranie (dziś tylko na porcie szeregowym).
-[ ] Własny build biblioteki musl 1.2.5 z poprawkami bezpieczeństwa (dziś 1.2.4 z Ubuntu).
-[~] Ochrona _FORTIFY_SOURCE: decyzja z M3 — na razie nie (ADR 0007), wracamy przy własnym musl.
-[~] Polski układ klawiatury (programisty, prawy Alt) — gotowy (M4). Podłączanie klawiatury/myszy
-    w trakcie pracy (hotplug) — do zrobienia (razem z USB).
-[ ] Dźwięk (ikona na górnym pasku jest, sterownika i usługi dźwięku jeszcze nie ma).
-[x] Bateria na górnym pasku (0.5.3, ADR 0014) — tylko gdy komputer ma baterię; sprawdzone w QEMU
-    ze sztuczną baterią ACPI; na X230 — w Twoim teście.
-[ ] Oznaczanie okien przez ekran (zaufana ramka), zanim pojawią się aplikacje spoza rdzenia (RYZYKA R26).
-[~] Trwały zapis: ustawienia i notatki (od 0.5.8 wiele) — zrobione (0.5.6); historia baterii — następna.
-[ ] Partycja „K1-DANE” powiększana do końca pendrive'a (dziś 64 MiB) i drugi dysk w VirtualBoxie
-    (pusty dysk bez tablicy partycji — dziś K1 go nie używa).
+2. MAPA DROGI (ADR 0035; dawne numery etapów M w nawiasach)
+------------------------------------------------------------
+    0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
+    0.8      Pliki — teraz 0.8.2                                                   (natywna część M9, dawne M6)
+    0.9      Sieć                                                                  (M7)
+    0.10     Strefy: obce aplikacje w mikro-maszynach, przeglądarka                (M8, z dawnym M11)
+    0.11     Pliki ze stref                                                        (M9)
+    0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
+    0.13     Audyt → 1.0                                                           (M12)
+    Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
+Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kroki i poprawki w temacie.
 
 
-3. ETAPY
---------
-M3  Trusted Core — GOTOWE (0.3.0)
-    [x] prawdziwy nadzorca: każda usługa z osobnym użytkownikiem (UID/GID) i minimum uprawnień
-    [x] blokada podnoszenia uprawnień (PR_SET_NO_NEW_PRIVS)
-    [x] seccomp: każda usługa może wołać tylko potrzebne funkcje jądra (biała lista)
-    [x] Landlock: każda usługa widzi tylko swój program (urządzenia przekazuje nadzorca)
-    [x] cgroups v2: limity pamięci i liczby procesów
-    [x] restart ekranu po awarii, reguły restartów (limit 5 na minutę)
-    [x] kanały między usługami z kontrolą nadawcy (gniazda UNIX, SO_PASSCRED)
-    [x] testy negatywne: próby podniesienia uprawnień, ucieczki z „klatki”, zabronione wywołania
-
-M4  GUI — GOTOWE (0.4.0)
-    [x] proces gui: górny pasek (aplikacja, dźwięk, zegar), dolny pasek jak w Windows 11, menu Start
-    [x] tekst: IBM Plex Sans/Serif z polskimi znakami (bitmapy liczone przy budowie)
-    [x] okna rysowane w pamięci współdzielonej, składane przez ekran (cienie, przeciąganie, minimalizacja)
-    [x] aplikacje natywne: Zegar, Notatki, Ustawienia (motyw, tapeta, mysz, sekundy)
-    [x] przejęcie gui nie daje dostępu do danych ani systemu (klatki, próby, złośliwe okna — testy)
-    [x] obraz ISO do maszyny wirtualnej (UEFI i BIOS), tapety, znak K1
-
-Nowa kolejność od 2026-11-06 (ADR 0011): M4.1 → M5 → M5.1 → M5.2 → M6 → M7 → … Numery etapów zostają.
-
-M4.1 Porządki i audyt — GOTOWE (0.5.0, ADR 0012)
-    [x] wybór rozdzielczości w Ustawieniach → Ekran (zmiana w locie); sterownik VMSVGA (vmwgfx)
-        [x] działa w VirtualBoxie (VMSVGA) — test właściciela 0.5.1; VMware jeszcze nie sprawdzony
-        [ ] dopasowanie do rozmiaru okna VirtualBoxa „samo z siebie” — wymaga dodatków gościa (później)
-    [x] celowany przegląd bezpieczeństwa: nadzorca, ekran, kanały, klatka — 6 poprawek (ochrona
-        klawiatury przed nowymi oknami, limit pamięci okien, obszar odświeżania, czyszczenie logu,
-        zamykanie deskryptorów, katalog notatek) + testy
-    [x] podział największych plików (ekran: 5 plików; program testowy: 6 plików)
-    [x] CI uruchamiane przez Claude etykietą „testy” na PR-ze
-    [x] aplikacja Zasoby (procesor, pamięć, usługi — wykresy z ostatniej minuty)
-    [x] naprawa cienia pod dolnym paskiem i menu dźwięku
-
-M5  Dane i sprzęt (rozszerzony) — PRAWIE GOTOWE (0.5.2–0.5.9; rozpoznanie: docs/M5-ROZPOZNANIE.txt)
-    [x] M5a (0.5.2, ADR 0013): dyski SATA/NVMe/virtio, GPT, USB (xHCI/EHCI/OHCI), klawiatury, myszy, pendrive'y
-    [x] M5c/M5d (0.5.6, ADR 0015/0016): skarbiec — zaszyfrowany magazyn na partycji „K1-DANE”, trwałe
-        ustawienia i notatki, obraz na pendrive k1-<wersja>-usb.img.xz
-    [x] M5e (0.5.7, ADR 0017): opcjonalne hasło, ekran hasła „Zegar”, limit prób w skarbcu
-    [x] 0.5.8: logo przy starcie, K1-DANE wykrywana też po starcie, wiele notatek
-    [x] M5f (0.5.9, ADR 0018): Instalator — K1 na dysku laptopa (dane na całym dysku), aktualizacja
-        z pendrive'a bez ruszania danych; przesuwanie okien ~10× taniej
-    [x] Uwagi do 0.6.2 (2026-11-07): „systemowi wydaje się, że jest na pendrive, gdy już jest na
-        komputerze — np. w notatkach”; „nie da się wylogować”; „przydałby się estymat czasu baterii
-        i aktualny pobór mocy w monitorze zasobów” → 0.6.3: napisy mówią „dysk komputera” / „pendrive K1”,
-        Start → Wyloguj, Zasoby → Bateria (pobór W, czas do rozładowania / naładowania).
-    [!] Test na X230 (0.6.3): Zasoby → Bateria — czy pobór i czas wyglądają rozsądnie (na baterii
-        i na zasilaczu)? Notatki — czy teraz piszą „Zapisano na dysku komputera”? Jeśli piszą „tylko do
-        wyłączenia komputera” — to znaczy, że K1 nie widzi swojej partycji na dysku: zrób zdjęcie
-        Ustawienia → Informacje.
-    [x] Test na X230 (0.5.9, 2026-11-07): najpierw „Nie znaleziono systemu do skopiowania” (na pendrivie
-        było .iso → 0.6.1: Instalator mówi, co zrobić, bez przycisku); z k1-0.5.9-usb.img.xz instalacja
-        „zadziałała”; „wszystko śmiga, okna są płynne”.
-
-Nowa kolejność od 0.5.9 (ADR 0019 — przegląd i plan; zastępuje ADR 0011):
-
-0.6.0 Fundament (zamyka M5) — GOTOWE
-    [x] nadzorca w 8 modułach (main.c: ~180 wierszy), jawne etapy startu w logu
-    [x] zdarzenia jądra (uevent) zamiast odpytywania: wejście, dyski, bateria (kontrola co 10 s zostaje
-        jako zapas)
-    [x] wspólny odbiór komunikatów (12 miejsc); wspólna biblioteka testów QEMU (testy/qemu/k1qemu.py —
-        na razie test instalatora, reszta przy kolejnych zmianach); testy równolegle z KVM (CI)
-    [x] historia baterii między uruchomieniami (skarbiec, Ustawienia → Bateria)
-    [ ] tablet USB w VM i przewijanie touchpadem — przy M5.3 „Laptop"
-
-M6  Bezpieczne aktualizacje (wyciągnięte z M10, bo K1 jest już na dysku) — GOTOWE (ADR 0021, 0022)
-    [x] M6a (0.6.2): manifest (wersja, odcisk, podpis); Instalator odmawia zmienionego, niepodpisanego
-        (gdy K1 ma klucz) albo starszego systemu
-    [!] Twój klucz podpisu: README → „Klucz podpisu” (jednorazowo, 2 minuty) — do tego czasu wydania
-        są „deweloperskie” i Secure Boot jest niedostępny (ten sam sekret podpisuje teraz i system,
-        i Secure Boot)
-    [x] M6b (0.6.3): dm-verity dla rdzenia — cały obraz sprawdzany przy starcie, zmiana = zatrzymanie
-        (skrót główny w linii poleceń; podpisany będzie w M6d)
-    [x] M6c (0.7.0): A/B — dwa miejsca na system w K1-EFI; aktualizacja do wolnego, nowa wersja startuje
-        raz na próbę, K1 ją zatwierdza; nieudana = powrót do poprzedniej i informacja w Instalatorze
-    [x] M6d (0.7.0): Secure Boot — cały system to jeden podpisany plik k1.efi (linia poleceń i rdzeń w
-        środku, obcy initramfs ignorowany); klucz K1 wpisywany z Instalatora przez MokManagera (QEMU:
-        pełna droga przetestowana)
-    [!] Test na X230 (0.7.0): aktualizacja z zainstalowanego 0.6.x (Instalator → Zaktualizuj), potem
-        po dodaniu sekretu: Instalator → Secure Boot… → Przygotuj klucz K1 → MokManager → F1 → Secure
-        Boot → Enabled. Czy laptop startuje? Co widać na ekranie?
-    [ ] pliki startowe (shim, GRUB) wymieniane przez Instalator bez reinstalacji (RYZYKA R45)
-    [x] 0.7.1: porządki w kodzie (ADR 0023), Kalkulator
-    [x] 0.7.2: zainstalowany K1 wie, że działa z dysku (Instalator nie prosi o pendrive); „Wyloguj”
-        tylko w zainstalowanym K1; część porządków z docs/PRZED-M7.md
-    [x] 0.7.3: koniec porządków przed M7 — testy w QEMU bez stałych pauz, testy na hoście sprawdzają
-        zachowanie, ostatnie przejrzenie kodu (ADR 0023)
-    [!] Test na X230 (0.7.2): po aktualizacji start z dysku bez pendrive'a — Instalator ma pisać
-        „Kons K1 jest zainstalowany”, a menu Start mieć „Wyloguj”; start z pendrive'a — bez „Wyloguj”.
-
-Nowa kolejność od 0.7.3 (ADR 0026 — część plikowa przed siecią):
-
-0.7.5 Pulpit — GOTOWE (ADR 0028)
-    Najpierw (zasady czytelności, AGENTS.md — Twoja decyzja z 2026-11-09):
-    [x] skrypt sprawdzający limity (plik ≤ 600 wierszy, funkcja ≤ 80) w testach (scripts/sprawdz-czytelnosc.py)
-    [x] test: każda usługa i aplikacja ma opis w docs/komponenty/, każdy komunikat jest opisany
-    [x] pulpit (gui) podzielony na moduły przed rozbudową: paski, menu Start, ikony, menu kontekstowe
-    [x] pozostałe pliki ponad limitem podzielone (bez wyjątków)
-    [x] szkice pulpitu do wyboru — wybrany A „Kafelki”, kolory z motywu (Twoja decyzja z 2026-11-09)
-    [x] ikony aplikacji na pulpicie w siatce: zaznaczanie, przeciąganie, podwójne kliknięcie otwiera
-    [x] menu pod prawym przyciskiem myszy: pulpit, ikona, dolny pasek, menu Start
-    [x] przypinanie i odpinanie aplikacji na dolnym pasku, zmiana kolejności przeciąganiem;
-        uruchomiona aplikacja spoza paska widoczna na nim, dopóki działa; „Zamknij okno” z paska
-    [x] rozmieszczenie pulpitu i paska zapamiętane (skarbiec)
-    [!] Test na X230 (0.7.5): czy przeciąganie okien jest tak płynne jak w 0.7.3 (warstwa ikon pod
-        oknami — RYZYKA R46)? Czy kafelki i menu dobrze wyglądają w obu motywach?
-
-0.7.6 — mała aktualizacja przed 0.8.0 — GOTOWE (Twoja prośba z 2026-11-09)
-    [x] Instalator na zainstalowanym K1: tylko „Aktualizacje są możliwe poprzez nośnik USB.”
-    [x] nowa tapeta „Las” (Ustawienia → Wygląd)
-
-0.8.0 Pliki — GOTOWE (natywna część dawnego M9 i dawne M6 „dekodery w izolacji”; kroki: ADR 0029 p. 8)
-    [x] krok 1 (ADR 0029): pliki i foldery w skarbcu, aplikacja Pliki, Kosz, pliki z folderu Pulpit na pulpicie
-    [x] wspólne dokumenty w skarbcu: nazwa, typ z zawartości, rozmiar, czas, pochodzenie (pokazywane w Plikach)
-    [x] aplikacja Pliki: foldery jak w Windows, lista, podgląd, zmiana nazwy; pliki na pulpicie
-    [x] Kosz: przywracanie; usuwa na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”); ikona na pulpicie
-    [x] krok 2 (ADR 0030): okno wyboru pliku rysowane przez K1 („Wybór pliku”) — aplikacja dostaje tylko wybrany
-        plik (prośba przez skarbiec), Notatki „Otwórz…” (Ctrl+O)
-    [x] domyślna aplikacja dla typu pliku (Ustawienia → Aplikacje) i „Otwórz w…” (Pliki, pulpit; ADR 0027)
-    [x] Notatki na wspólnych dokumentach: Dokumenty › Notatki, nazwa z pierwszego wiersza, usuwanie do Kosza;
-        stare notatki przeniesione same przy pierwszym uruchomieniu (sprawdzone w QEMU na dysku z 0.7.6)
-    [!] Test na X230 (krok 2, po wydaniu 0.8.0): czy Twoje notatki z pendrive'a są w Notatkach i w Plikach
-        (Dokumenty › Notatki)?
-    [x] krok 3 (ADR 0031): zdjęcia z pendrive'a — usługa „czytnik” (FAT12/16/32 w klatce, tylko odczyt, bez FAT
-        w jądrze), w Plikach miejsce „Pendrive”, „Importuj” / „Importuj wszystkie” (zdjęcia → Obrazy, reszta →
-        Dokumenty, pochodzenie „z pendrive'a”); sprawdzone w QEMU na wirtualnym pendrivie USB ze zdjęciami
-        (test-pendrive.sh — Twoja prośba z 2026-11-10: bez Twojego udziału)
-    [!] Test na X230 (krok 3, po wydaniu 0.8.0): drugi pendrive ze zdjęciami (np. z telefonu albo aparatu) obok
-        pendrive'a K1 → Pliki → Pendrive → Importuj. Pendrive exFAT (zwykle > 32 GB) K1 jeszcze nie czyta.
-    [x] krok 4 (ADR 0032): podgląd zdjęć PNG/JPEG w Plikach przez usługę „dekoder” — jednorazowy proces w klatce na
-        każde zdjęcie (biblioteka Wuffs), obrót według aparatu; „Ustaw jako tapetę” — zdjęcie wypełnia ekran, zostaje
-        w skarbcu, w Ustawienia → Wygląd kafelek „Zdjęcie” (sprawdzone w QEMU, też po ponownym starcie)
-    [x] krok 5 (ADR 0033): pusta K1-DANE na pendrivie rośnie przy pierwszym starcie do końca nośnika (QEMU: 64 → 576 MiB)
-    [x] porządki na koniec wersji (CHANGELOG, „Porządki”) + przegląd „Tymczasowe” niżej
-    [!] Test na X230 (krok 4–5, 0.8.0; od 0.8.1 Informacje pokazują miejsce): nowy pendrive z k1-0.8.1-usb.img.xz —
-        Ustawienia → Informacje: „Miejsce na pliki: zajęte X z Y” (Y ≈ połowa pendrive'a — druga połowa jest na
-        porządkowanie danych); stary pendrive (0.5.6–0.7.6): Informacje → „Użyj całego pendrive'a na dane” — notatki
-        i ustawienia zostają; zdjęcie z telefonu → Pliki → podgląd (obrócone dobrze?) → „Ustaw jako tapetę”.
-    [ ] exFAT na pendrive'ach (duże pendrive'y i karty SD > 32 GB) — ten sam model co FAT, gdy będzie potrzebny
-    [x] powiększenie K1-DANE z danymi (pendrive zapisany starszą wersją) — 0.8.1 krok 3: przycisk w Informacjach
-
-0.8.1 Pliki — dopracowanie, część 1 — PLAN: docs/PLAN-0.8.1.txt (kroki 1–4, luki L1–L25)
-    [x] 1 dane nie mogą zginąć · 2 skarbiec: więcej plików, szybki start · 3 miejsce, cały pendrive · 4 duże pliki
-0.8.2 Pliki — dopracowanie, część 2 (przed M7) — PLAN: docs/PLAN-0.8.2.txt
-    Kroki (każdy w nowym czacie, jeden PR; stan i Twoje decyzje D1–D3, D5–D8 tylko w planie):
-    1 szybki start przy dużych danych (format skarbca) · 2 pendrive i nazwy · 3 duże zdjęcia, nowe formaty ·
-    4 aplikacja Podgląd · 5 „Otwórz za pomocą” · 6 przeciąganie · 7 porządki i wydanie 0.8.2.
-    [!] Decyzje D1–D3, D5–D8 (plan 0.8.2, punkt 4) — potrzebne przed krokami 2, 4, 5, 6.
-
-M7  Sieć
+3. NASTĘPNE WERSJE (zakres wstępny — dokładny plan pisze pierwszy czat danej wersji: docs/PLAN-<wersja>.txt)
+---------------------------------------------------------------------------------------------------------
+0.9 Sieć (ADR 0019, 0026)
     [ ] test: nic w K1 nie odpowiada na połączenia z zewnątrz
-    [ ] kabel (X230: Intel 82579LM, e1000e, bez firmware) + DHCP w osobnej klatce, czas z sieci
+    [ ] kabel (X230: Intel 82579LM, e1000e, bez firmware) + DHCP w osobnej klatce
+    [ ] czas z sieci (reguła z 0.8.1: skok zegara w przód nie opróżnia Kosza — RYZYKA R56)
     [ ] Wi-Fi (iwlwifi + firmware — osobny ADR)
+    [ ] przed siecią: „Tymczasowe” z terminem 0.9.0 (punkt 6), w tym pliki startowe (shim, GRUB) wymieniane przez
+        Instalator bez reinstalacji (RYZYKA R45)
+    [ ] przed siecią: własny build musl 1.2.5 z poprawkami (dziś 1.2.4 z Ubuntu, RYZYKA R8); razem z nim wraca
+        _FORTIFY_SOURCE (ADR 0007, RYZYKA R7)
 
-M8  Strefy — każda obca aplikacja w swojej mikro-maszynie (Twój pomysł, ADR 0020; dawne M5.1/M8/M11)
+0.10 Strefy (ADR 0020, 0024, 0025)
     [ ] pierwsza mikro-maszyna (KVM; X230: włącz VT-x i VT-d w BIOS-ie) i okno z niej na ekranie K1
-    [ ] zaufana ramka w kolorze strefy rysowana przez ekran K1
-    [ ] przełącznik przy aplikacji: stała / jednorazowa
-    [ ] przełącznik przy aplikacji: pełna izolacja / szybka grafika (inny kolor ramki; pod nowszy sprzęt)
-    [ ] przeglądarka jako pierwsza aplikacja (Firefox czy WPE — ADR), sesje wg Twojej decyzji
+    [ ] zaufana ramka w kolorze strefy rysowana przez ekran K1 (też RYZYKA R26: dziś aplikacje rysują własne ramki)
+    [ ] przełączniki przy aplikacji: stała / jednorazowa; pełna izolacja / szybka grafika (inny kolor ramki)
+    [ ] przeglądarka jako pierwsza aplikacja (Firefox czy WPE — ADR), sesje wg Twojej decyzji (punkt 5)
     [ ] szybki start (zamrożony stan, zapasowa czysta maszyna), wspólny obraz bazowy, oddawanie pamięci
-    [ ] wspólna strefa na drobne, zaufane aplikacje (jedna maszyna, przegródki w środku; przełącznik
-        osobna / wspólna; przeglądarka zawsze osobna) — Twoja decyzja z 2026-11-08, ADR 0024
-    [ ] Przeglądarka K1 (po pierwszej przeglądarce w strefie, ADR 0025): okno, karty i pasek adresu jako
-        aplikacja K1, silnik (kierunek: WPE WebKit) w strefie; pasek adresu rysuje K1; sesje = strefy
+    [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna)
+    [ ] Przeglądarka K1 (po pierwszej przeglądarce w strefie): okno, karty i pasek adresu jako aplikacja K1, silnik
+        (kierunek: WPE WebKit) w strefie; sesje = strefy
 
-M9  Pliki ze stref (Gatekeeper dla stref; aplikacja Pliki i dekodery — w 0.8.0, ADR 0026)
-    [ ] pliki ze strefy („Do K1”) i do strefy („Wyślij do…”) przez Pliki (ADR 0027: zgoda = gest w K1,
-        pytanie tylko, gdy zaczyna sama strefa); schowek między strefami za każdym wklejeniem
+0.11 Pliki ze stref (ADR 0027)
+    [ ] pliki ze strefy („Do K1”) i do strefy („Wyślij do…”) przez Pliki (zgoda = gest w K1, pytanie tylko, gdy
+        zaczyna sama strefa); schowek między strefami za każdym wklejeniem
     [ ] „Otwórz w…” z zapisem z powrotem: K1 pyta „Zapisać zmiany w oryginale?”, stara wersja do Kosza
-    [ ] przeciąganie pliku z Plików na okno strefy; prośba strony o plik → okno wyboru pliku K1
+    [ ] przeciąganie pliku z Plików na okno strefy (ten sam mechanizm co przeciąganie między oknami — plan 0.8.2, D6);
+        prośba strony o plik → okno wyboru pliku K1
     [ ] przypomnienie przy wysyłaniu pliku z internetu do wspólnej strefy
-    [ ] Przeglądarka PDF K1 (może wcześniej, po 0.8.0): PDF czyta jednorazowy proces w klatce, silnik — ADR
+    [ ] Przeglądarka PDF K1: PDF czyta jednorazowy proces w klatce, silnik — ADR (może wcześniej)
 
-M5.3 Laptop (małe kroki między etapami, po Twoich zgłoszeniach)
-    [ ] i915 (płynniejszy obraz, jasność), klawisze Fn, dźwięk, przewijanie touchpadem
+0.12 Bezpieczny start — reszta
+    [ ] tryb ratunkowy (recovery); licznik wersji w TPM (X230: TPM 1.2), odwoływanie starszych podpisanych wersji
+        (RYZYKA R44)
+    [ ] GRUB w ISO i na pendrive'ie (ADR 0010, 0022): zostaje czy zastępujemy — ADR
+    [ ] obraz produkcyjny bez logu na porcie szeregowym (RYZYKA R10, R21); komunikat o błędzie startu na ekranie
+        (dziś tylko port szeregowy, RYZYKA R17)
+    [ ] do rozważenia: ochrona jądra „piętro niżej” (jak VBS/HVCI w Windows 11, pKVM w Androidzie) — Twój pomysł
+        z 2026-11-08; po działających strefach
 
-M10 Bezpieczny start — reszta: tryb ratunkowy (recovery), licznik wersji w TPM
-    [ ] do rozważenia: ochrona jądra K1 „piętro niżej” (jak VBS/HVCI w Windows 11, pKVM w Androidzie) —
-        mała warstwa wirtualizacji pod jądrem pilnuje, że kodu jądra nie da się zmienić ani dopisać,
-        nawet po przejęciu jądra; koszt: kilka % wydajności (Twój pomysł z 2026-11-08)
-(M11 — weszło do M8: mikro-maszyny są głównym modelem stref, ADR 0020)
-M12 Audyt: fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa
+0.13 Audyt → 1.0
+    [ ] fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa
+
+Laptop (PATCH w dowolnej wersji, po Twoich zgłoszeniach)
+    [ ] i915 (płynniejszy obraz, jasność) — tylko jeśli simpledrm nie wystarczy; klawisze Fn; dźwięk (ikona na
+        pasku jest, sterownika i usługi nie ma); przewijanie touchpadem (tryb rozszerzony); tablet USB w maszynie
+        wirtualnej (pozycja bezwzględna); I2C-HID (nowsze laptopy)
+
+Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne)
+    [ ] exFAT na pendrive'ach (karty SD i pendrive'y > 32 GB), potem NTFS — ocena: docs/PLAN-0.8.2.txt, dodatek A
+    [ ] HEIC (zdjęcia z iPhone'a); odtwarzanie wideo (pliki wideo da się już przechowywać); zapis plików na pendrive
+    [ ] pełne NFC i pełne porównanie wielkości liter Unicode w nazwach plików
+    [ ] Podgląd: powiększanie fragmentu, pełny ekran, pokaz slajdów
+    [ ] dopasowanie rozdzielczości do okna VirtualBoxa (wymaga dodatków gościa); VMware — nie sprawdzony
+    [ ] drugi, pusty dysk (bez tablicy partycji) w maszynie wirtualnej jako miejsce na dane
 
 
-TYMCZASOWE (zasada czytelności 3 — każde z terminem; przegląd przy porządkach każdej wersji MINOR)
+4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230)
+-----------------------------------------------
+Jedna lista — dla ostatniego wydania. Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+z 2026-11-11). Lista dla 0.8.2 — przy jej wydaniu (plan 0.8.2, krok 7).
+Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „pomysł”) albo w czacie.
+
+
+5. TWOJE OTWARTE DECYZJE I DZIAŁANIA (poza planem 0.8.2)
+--------------------------------------------------------
+[!] Klucz podpisu (README → „Klucz podpisu”, jednorazowo, 2 minuty): do tego czasu wydania są „deweloperskie”
+    (0.8.0: „bez podpisu”) i Secure Boot jest niedostępny. Sekret dodajesz sam — nikt go od Ciebie nie prosi.
+[!] Przed 0.10 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)? W Przeglądarce K1 każda sesja
+    to osobna strefa z własnym kolorem karty, „prywatna” = jednorazowa.
+[!] Przed 0.10 — testy stref potrzebują KVM: runner na Twoim komputerze (Windows: WSL2) albo inny sposób; wrócimy
+    do tego na początku 0.10.
+
+Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
+  - styl: minimalistyczno-ciepły (Claude/Anthropic); pulpit jak w Windows 11, pasek na dole, wyśrodkowany; na górze
+    dźwięk, bateria, zegar; ekran hasła „Zegar”; pulpit „Kafelki” w kolorach motywu; znak K1 „Warstwy”;
+  - jedno konto na komputer; hasło opcjonalne (zapomniane = nowe konto, dane przepadają); bez hasła dane zaszyfrowane,
+    ale bez ochrony przed kradzieżą nośnika;
+  - X230 (8 GB) to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt; dane na pendrivie albo, po
+    instalacji, na całym dysku (instalator może usuwać inne dane, ADR 0018);
+  - foldery jak w Windows (Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane); Kosz: 30 dni albo ręcznie;
+  - najpierw pliki i izolacja, potem internet (ADR 0026); strefy: każda obca aplikacja w swojej mikro-maszynie,
+    stała/jednorazowa, pełna izolacja/szybka grafika (ADR 0020); wspólna strefa na drobne aplikacje (ADR 0024);
+  - kolejność techniczną planu ustala Claude (ADR 0011, 0035); decyzje produktowe (wygląd, zachowanie) — Ty.
+
+
+6. TYMCZASOWE (zasada czytelności 3 — każde z terminem; przegląd przy porządkach każdej wersji MINOR)
+---------------------------------------------------------------------------------------------------
     Każde miejsce w kodzie ma komentarz `k1: tymczasowe — usunąć w <termin>` i jest wymienione tutaj;
     scripts/sprawdz-czytelnosc.py (testy) pilnuje, żeby żadne nie zostało bez wpisu.
-    [ ] manifest formatu 1 na 47 MiB (aktualizacja z 0.6.2–0.6.3 starym Instalatorem) — termin przesunięty na 0.9.0
-        (przegląd 0.8.0): Instalator sprawdza nim też przy instalacji pliki startowe (shim, GRUB), więc najpierw nowe
-        sprawdzanie plików startowych (manifest slotu ich nie obejmuje), potem usunięcie.
+    [ ] manifest formatu 1 na 47 MiB (aktualizacja z 0.6.2–0.6.3 starym Instalatorem) — termin 0.9.0 (przesunięty
+        w przeglądzie 0.8.0): Instalator sprawdza nim też przy instalacji pliki startowe (shim, GRUB), więc najpierw
+        nowe sprawdzanie plików startowych (manifest slotu ich nie obejmuje; RYZYKA R45), potem usunięcie.
         Miejsca: src/wspolne/k1_efi.c, src/instalator/main.c, scripts/zbuduj-usb.sh, narzedzia/podpisz.c
-    [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10”) — termin: M10; od 0.7.0 GRUB jest też
-        częścią startu A/B (grubenv, ADR 0022), więc w M10 decyzja: zostaje czy zastępujemy (ADR)
-    [ ] przeniesienie notatek z 0.5.6–0.7.6 do plików (0.8.0, ADR 0030) — do usunięcia w 0.9.0, gdy właściciel
-        uruchomi 0.8.0 ze swoim pendrive'em (notatki przeniesione). Miejsce: src/aplikacje/notatki/stare.c
-    [x] przegląd 0.7.5: innych rozwiązań tymczasowych w kodzie nie ma
-    [x] przegląd 0.8.0: nowych rozwiązań tymczasowych nie ma (dekoder, tapeta, powiększanie K1-DANE są docelowe)
+    [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10” = 0.12); od 0.7.0 GRUB jest też częścią startu A/B
+        (grubenv, ADR 0022), więc w 0.12 decyzja: zostaje czy zastępujemy (ADR)
+    [ ] przeniesienie notatek z 0.5.6–0.7.6 do plików (0.8.0, ADR 0030) — termin 0.9.0. Warunek usunięcia
+        („właściciel uruchomił 0.8.x ze swoim pendrive'em”) jest w zasadzie spełniony (0.8.1 uznana za przetestowaną),
+        ale przed usunięciem jedno pytanie do Ciebie: bez tego kodu notatki z pendrive'a zapisanego 0.5.6–0.7.6 nie
+        przejdą już do Plików. Miejsce: src/aplikacje/notatki/stare.c
+    [x] przegląd 0.7.5 i 0.8.0: innych rozwiązań tymczasowych nie ma
 
 
-4. DECYZJE TECHNICZNE DO PODJĘCIA (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
-----------------------------------------------------------------------------------------------
-M3   (podjęte, ADR 0007) fortify-headers — na razie nie; kanały: gniazda UNIX SEQPACKET + SO_PASSCRED
-M4   (podjęte) czcionki IBM Plex (OFL), własne rysowanie tekstu bez LVGL (ADR 0009); obraz ISO z GRUB (ADR 0010)
-M4.1 (podjęte, ADR 0012) przegląd, tryby ekranu, vmwgfx, Zasoby
-M5   (podjęte, ADR 0013) sterowniki dysków i USB; dalej: format Blob Vault i szyfrowanie (ADR 0015),
-     skąd klucz (hasło; X230 ma TPM 1.2, nie 2.0)
-0.7.5 (ADR 0026) gui jako klient skarbca (układ pulpitu) — protokół
-0.8.0 (podjęte, ADR 0029–0033) model wspólnych dokumentów w skarbcu, okno wyboru pliku, czytnik FAT w klatce,
-     dekoder PNG/JPEG — biblioteka Wuffs (ZALEZNOSCI.md), Kosz w skarbcu, K1-DANE do końca pendrive'a
-M7   przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP
-M5.1 Firefox czy WPE WebKit (sprawdzenie sandboxa Firefoksa w strefie), USER_NS tak/nie
-M10  obraz produkcyjny bez logu na porcie szeregowym; RANDSTRUCT w jądrze; zarządzanie kluczami;
-     ochrona jądra przez wirtualizację (pKVM / własna warstwa pod jądrem) — tak/nie, po działających strefach (M8)
-M11  wybór VMM (do porównania m.in. Cloud Hypervisor, Firecracker, crosvm); test KVM na Twoim sprzęcie
+7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
+---------------------------------------------------------------------------------------
+    0.8.2  format skarbca na duże dane (ADR 0036, krok 1); aplikacja Podgląd i jej prawa (ADR 0037, krok 4)
+    0.9    przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP
+    0.10   Firefox czy WPE WebKit (sandbox Firefoksa w strefie); wybór VMM (m.in. Cloud Hypervisor, Firecracker,
+           crosvm); test KVM na Twoim sprzęcie
+    0.12   RANDSTRUCT w jądrze; zarządzanie kluczami; ochrona jądra przez wirtualizację — tak/nie
+    Podjęte wcześniej: docs/adr/README.md (spis wszystkich decyzji).

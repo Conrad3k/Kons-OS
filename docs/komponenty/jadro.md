@@ -14,7 +14,7 @@ natywnego (SPEC §3) — dlatego ma tylko to, czego K1 potrzebuje.
 Wszystko w przestrzeni użytkownika (także root) jest „po drugiej stronie”. Lockdown w trybie
 confidentiality odcina roota od pamięci jądra (`/dev/mem`, kcore, modyfikacje jądra w locie).
 Luka w jądrze = przejęcie całego świata natywnego; stąd minimalna konfiguracja i w przyszłości
-osobne jądro dla przeglądarki (M11).
+osobne jądro dla przeglądarki (0.10, strefy).
 
 ## Wejścia i wyjścia
 - Wejście: linia poleceń (`jadro/cmdline`: `console=ttyS0 panic=-1 oops=panic k1.rdzen=/dev/vda`),
@@ -30,12 +30,12 @@ Lista KSPP: `scripts/sprawdz-kspp.sh` (dane z kernel-hardening-checker v0.6.17.1
 | Opcja wg KSPP | Dlaczego u nas inaczej |
 |---|---|
 | `STRICT_DEVMEM`, `IO_STRICT_DEVMEM` | nie dotyczy — `/dev/mem` w ogóle nie istnieje (`DEVMEM=n`) |
-| `SYN_COOKIES` | brak TCP/IP do M7 |
+| `SYN_COOKIES` | brak TCP/IP do 0.9 |
 | `DEFAULT_MMAP_MIN_ADDR=32768` | mamy 65536 (silniej) |
 | `MODULE_SIG*` | nie dotyczy — brak modułów (`MODULES=n`) |
 | `CFI_CLANG`, `UBSAN_LOCAL_BOUNDS` | wymagają Clanga do budowy jądra (budujemy GCC; ADR 0002/0003) |
-| `RANDSTRUCT_FULL`, `GCC_PLUGIN_RANDSTRUCT` | losowe ziarno przy każdym buildzie kłóci się z powtarzalnym buildem; decyzja przy M10 |
-| `HW_RANDOM_TPM` | TPM — M10 |
+| `RANDSTRUCT_FULL`, `GCC_PLUGIN_RANDSTRUCT` | losowe ziarno przy każdym buildzie kłóci się z powtarzalnym buildem; decyzja przy 0.12 |
+| `HW_RANDOM_TPM` | TPM — 0.12 |
 | `INTEL_IOMMU_SVM` | wymaga dodatkowych podsystemów (SVA/PASID), niepotrzebnych w M1 |
 | `AMD_IOMMU_V2`, `DEBUG_CREDENTIALS`, `GCC_PLUGIN_STRUCTLEAK*`, `PAGE_POISONING_ZERO`, `PAGE_TABLE_ISOLATION`, `SLS`, `UBSAN_SANITIZE_ALL` | nazwy ze starszych wersji jądra; w 6.18 zastąpione (`MITIGATION_PAGE_TABLE_ISOLATION`, `MITIGATION_SLS`, `INIT_STACK_ALL_ZERO`, … — wszystkie włączone) albo usunięte |
 | `ARM64_*`, `ARM_*`, `SHADOW_CALL_STACK`, `KASAN_HW_TAGS`, `HIGHMEM*`, `X86_PAE` | inne architektury / 32-bit |
@@ -70,7 +70,7 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
 `panic=-1 oops=panic` — błąd jądra kończy się restartem, nie pracą w niepewnym stanie.
 
 ## Powierzchnia ataku (najważniejsze)
-Parser SquashFS (do M10 obraz niezweryfikowany), wywołania systemowe dostępne dla procesów
+Parser SquashFS (od 0.6.3 obraz sprawdzany przez dm-verity), wywołania systemowe dostępne dla procesów
 (zawężane przez seccomp od M3), sterowniki virtio, ACPI (dane z firmware), `perf_event_open`;
 od M5a: urządzenia USB podłączane z zewnątrz (deskryptory USB, raporty HID, komendy mass storage)
 i parser GPT obcych nośników (RYZYKA R33–R34).

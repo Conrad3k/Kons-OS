@@ -34,7 +34,7 @@ wygrywają dokumenty, a skill poprawiasz w tym samym PR-ze.
 **Nie dystrybucja.** Z Linuksa bierzemy tylko jądro (własna, minimalna konfiguracja). Reszta to nasz kod
 w C, statycznie z musl: bez powłoki, pakietów, systemd, X11/Wayland, bibliotek współdzielonych i drzewa
 FHS (`/usr`, `/etc`, `/bin`…). Docelowo dwa światy (SPEC §4): **natywny** (nasz kod) i **strefy** —
-mikro-maszyny wirtualne dla obcych aplikacji (M8, ADR 0020). Pliki między nimi tylko przez Pliki K1
+mikro-maszyny wirtualne dla obcych aplikacji (0.10, ADR 0020). Pliki między nimi tylko przez Pliki K1
 i Gatekeepera (ADR 0027).
 
 **Start (wydania, od 0.7.0):**
@@ -47,11 +47,11 @@ firmware UEFI → shim (Microsoft) → GRUB (Canonical) → k1.efi z miejsca A a
      skarbiec (103) → ekran (101) → wejscie (100) → gui (102) albo logowanie (104, gdy jest hasło)
      aplikacje (200+) na prośbę gui; instalator (105) na prośbę okna Instalatora; czytnik (106) i dekoder (107) na prośbę Plików
 ```
-Testy QEMU startują też `bzImage` + `initramfs.cpio` (tylko `test-m1`). ISO/USB mają GRUB-a do M10 (ADR 0010).
+Testy QEMU startują też `bzImage` + `initramfs.cpio` (tylko `test-m1`). ISO/USB mają GRUB-a do 0.12 (ADR 0010; dawne M10).
 
 **System plików po starcie** (ADR 0004): `/` — tmpfs tylko do odczytu z trzema katalogami: `rdzen`
 (SquashFS ro, nosuid, nodev; w nim `init`, `system/`, `aplikacje/`, `jadro/{dev,proc,sys}`), `aplikacje`
-(pusty do M10), `dane_uzytkownika` (tmpfs noexec — dane tymczasowe). Trwałe dane są w **skarbcu**
+(pusty do 0.12), `dane_uzytkownika` (tmpfs noexec — dane tymczasowe). Trwałe dane są w **skarbcu**
 (partycja GPT „K1-DANE”, własny format, Monocypher; ADR 0015), nie w systemie plików. `/proc` ma
 `hidepid=invisible,subset=pid`. Nie używaj ścieżek `/dev`, `/proc`, `/sys`, `/tmp`, `/etc`.
 
@@ -99,7 +99,7 @@ Każdego pilnuje test. Zmiana któregokolwiek = zmiana architektury → ADR i de
 2. **Brak powłoki, terminali i interpreterów:** bez `/bin/sh`, getty, VT, pty/devpts, SysRq. Log tylko
    jednokierunkowo na port szeregowy.
 3. **Jądro tylko przez fragment** `jadro/k1.config` na `allnoconfig`, każda linia z komentarzem. Bez modułów,
-   swapu, hibernacji, io_uring, BPF, userfaultfd, kexec, 32-bit, `INET` (do M7); lockdown confidentiality,
+   swapu, hibernacji, io_uring, BPF, userfaultfd, kexec, 32-bit, `INET` (do 0.9); lockdown confidentiality,
    Landlock, Yama.
 4. **Programy: statyczne PIE z flagami SPEC §11** (`-Werror`), sprawdzane przez `scripts/sprawdz-binaria.sh`.
    Obca biblioteka tylko z wpisem i uzasadnieniem w `docs/ZALEZNOSCI.md` (np. grafika bez libdrm — ioctl
@@ -221,15 +221,13 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 
 ## 8. Plan i zasady etapu
 
-**Kolejność** (ADR 0019, 0020, 0026; szczegóły i stan w `DO_ZROBIENIA.txt`):
-~~0.7.5 Pulpit~~ (ADR 0028) → ~~0.8.0 Pliki~~ (gotowe: dokumenty w skarbcu, Pliki, Kosz, okno wyboru pliku, import
-z pendrive'a czytnikiem FAT w klatce, dekoder PNG/JPEG w jednorazowym procesie, tapeta ze zdjęcia, K1-DANE do końca
-pendrive'a; ADR 0029–0033) → ~~0.8.1 dopracowanie Plików~~ (`docs/PLAN-0.8.1.txt`: kroki 1–4, luki L1–L25) → **0.8.2**
-(7 kroków, jeden na czat: `docs/PLAN-0.8.2.txt` — stan, decyzje właściciela; krok 1: szybki start przy dużych
-danych, ADR 0035) → **M7 Sieć** (kabel e1000e + DHCP + czas, potem Wi-Fi; test: nic nie nasłuchuje) → **M8 Strefy**
-(mikro-VM na obcą aplikację, ramka w kolorze strefy, stała/jednorazowa, pełna izolacja/szybka grafika,
-wspólna strefa — ADR 0024; najpierw przeglądarka, potem Przeglądarka K1 — ADR 0025) → **M9 Pliki ze stref**
-(„Do K1”, „Wyślij do…”, schowek, zapis z powrotem — ADR 0027) → M10 (recovery, TPM) → M12 audyt.
+**Plan — jedno miejsce (ADR 0035):** stan, mapa drogi i otwarte decyzje — `docs/DO_ZROBIENIA.txt`; kroki bieżącej
+wersji — `docs/PLAN-<wersja>.txt` (samodzielny: luki, kroki, decyzje; zakres zamrożony, nowe pomysły → „Później”;
+numery kroków się nie zmieniają; zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
+Etapy to wersje MINOR z tematem: **0.8 Pliki** (teraz 0.8.2) → **0.9 Sieć** → **0.10 Strefy** (mikro-maszyny, ramka,
+przeglądarka; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery, TPM)
+→ **0.13 Audyt** → 1.0. Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11,
+M10 = 0.12, M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).
 
 **Przepływ plików (ADR 0027):** Pliki K1 to jedyny węzeł; oryginał zawsze w Plikach, strefy dostają kopie;
 zgoda = gest użytkownika w interfejsie rysowanym przez K1; pochodzenie zapisane przy pliku.
@@ -244,7 +242,8 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
 - **Przed scaleniem zmian w systemie:** `make` bez ostrzeżeń, `sh -n` na skryptach, pełny `scripts/testy.sh`
   lokalnie (wszystko `[OK]`), przy zmianach w budowie `scripts/sprawdz-powtarzalnosc.sh` (nie commituj w trakcie —
   data commita wchodzi do buildu). Sama dokumentacja — bez testów.
-- **Wersja** (`VERSION`, raz na paczkę): etap → MINOR, poprawka i jądro → PATCH, docs/CI → bez zmiany; wpis
+- **Wersja** (`VERSION`, raz na paczkę; ADR 0035): nowy temat z mapy drogi → MINOR (0.9, 0.10…), kroki planu
+  wersji, poprawki i jądro → PATCH, docs/CI → bez zmiany; wpis
   w `CHANGELOG.md`. `VERSION`, `CHANGELOG.md` i `DO_ZROBIENIA.txt` zmienia ten, kto robi wydanie. Łącz zmiany
   w paczki — CI trwa ok. 10 min, a właściciel ma ograniczony limit.
 - **CI na PR-ze:** etykieta `testy` (`issue_write`) — build i testy bez wydania. `workflow_dispatch` daje 403.
