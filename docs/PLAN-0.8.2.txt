@@ -57,7 +57,7 @@ Nowy czat — przebieg każdego kroku:
 --------------------------------------------------------------------------------------------------
      Krok                                             Luki (punkt 5)          Zależy od  Decyzje   Rozmiar  ADR
 [ ]  1  Skarbiec na lata: format na duże dane        L25 L26 L27 L28         —          —         XL       0036
-         [w toku: Claude, gałąź claude/implementacja-0-8-2-krok-1-scjd6v — PR 1a: format 2 w magazynie]
+         [w toku: Claude — 1a (format 2 w magazynie, gałąź claude/implementacja-0-8-2-krok-1-scjd6v); 1b, 1c do zrobienia]
 [ ]  2  Pendrive i nazwy plików                      L13 L14 L15 L16 L8 L9   —          D3        M–L      —
 [ ]  3  Zdjęcia: duże i nowe formaty, wspólny dekoder L17 L23b               —          —         M        (0032)
 [ ]  4  Aplikacja Podgląd                            (prośba właściciela)    3          D1 D2 D5  L        0037
@@ -84,10 +84,10 @@ KROK 1 — Skarbiec na lata: format na duże dane                    XL (2–3 P
   Przyczyny (z kodu i prób, punkt 5): k1_mag_otworz() odszyfrowuje każdy żywy rekord, bo nazwa jest w tym samym
   szyfrogramie (AEAD) co treść (L25); obszar = (N−2)/2 bloków (L26); ob_kompaktuj_*() kopiuje wszystkie żywe obiekty
   jednym blokującym przebiegiem (L27, RYZYKA R57); K1_MAG_MAKS_OBIEKTOW 65 536 × kawałek 1 MiB (L28).
-  [ ] Na początek (osobny commit, mały): scripts/sprawdz-czytelnosc.py — każdy plik docs/adr/NNNN-*.md jest w spisie
+  [x] Na początek (osobny commit, mały): scripts/sprawdz-czytelnosc.py — każdy plik docs/adr/NNNN-*.md jest w spisie
       docs/adr/README.md; każda ścieżka „docs/…” wymieniona w żywych dokumentach (AGENTS.md, README.md, docs/*.md,
       docs/*.txt, docs/komponenty/, skill) istnieje (ADR 0035; bez docs/adr/, docs/archiwum/ i CHANGELOG — historia).
-  [ ] ADR 0036 „Skarbiec na duże dane — format 2” (uzupełnia ADR 0015 i 0034). Rekomendacja techniczna do sprawdzenia
+  [x] ADR 0036 „Skarbiec na duże dane — format 2” (uzupełnia ADR 0015 i 0034). Rekomendacja techniczna do sprawdzenia
       pomiarem i opisania w ADR-ze:
       - dziennik w ODCINKACH stałej wielkości (np. 64 MiB; wartość z pomiaru) zamiast dwóch połówek; tablica odcinków
         (wolny / w użyciu, żywe bajty, generacja odcinka) jako zwykły rekord;
@@ -108,7 +108,7 @@ KROK 1 — Skarbiec na lata: format na duże dane                    XL (2–3 P
       nagłówek formatu 2. Przerwa prądu w każdym miejscu = stary albo nowy magazyn, oba pełne.
   [ ] Przerwa prądu i uszkodzenia: po każdym zapisie (rekord, spis, tablica odcinków, nagłówek, kompaktowanie,
       przejście); zły spis albo zmieniony bajt → odmowa jak dziś przy złym rekordzie, nigdy ciche zgubienie danych.
-  [ ] Pomiar przed/po (wzór próby T3, punkt 5): magazyn 1 GB, 4 GB i 32 GB w pliku (rzadkim) — czas otwarcia (CPU)
+  [x] Pomiar przed/po (wzór próby T3, punkt 5; host — wyniki w ADR 0036, QEMU — w 1c): magazyn 1 GB, 4 GB i 32 GB w pliku (rzadkim) — czas otwarcia (CPU)
       i odczytane bajty, najdłuższa przerwa przy kompaktowaniu, miejsce na pliki; w QEMU czas od startu do „magazyn
       otwarty”.
   Podział na PR-y (propozycja): 1a — format 2 w magazyn.c z testami na hoście (system dalej na formacie 1);
@@ -124,6 +124,19 @@ KROK 1 — Skarbiec na lata: format na duże dane                    XL (2–3 P
   przy kompaktowaniu < 1 s (host); miejsce na pliki ≥ 90 % K1-DANE; magazyn z 0.8.1 przechodzi na format 2 po
   potwierdzeniu startu, bez utraty danych.
   Nie w tym kroku: zmiany w Plikach poza opisem miejsca.
+  Ustalenia z wykonania (1a, 2026-11-11):
+  - 1a: format 2 w magazynie (src/skarbiec/odcinki.c, spis.c; format 1 przeniesiony do obszary.c), testy na hoście
+    (test_odcinki, fuzz_magazyn tryby 3–5), pomiar (testy/host/pomiar_magazynu.c). System dalej TWORZY format 1
+    (K1_MAG_FORMAT 1) — 1c zmienia tę stałą, dodaje przejście i usuwa zapis formatu 1 (zostaje odczyt do przejścia).
+  - Pomiar (host): 4 GiB K1-DANE, 3,6 GiB plików — otwarcie 0,001 s procesora, odczyt 0,4 MiB (format 1 z 1,9 GiB:
+    6,1 s, 1,9 GiB); miejsce na pliki 95,7 % (1 GiB: 91 %, 64 MiB: 91 %); najdłuższy krok kompaktowania (4 MiB) 0,02 s;
+    zapis, który przy prawie pełnym magazynie sam kompaktuje odcinek, 0,17 s procesora — na USB 2.0 kilka sekund,
+    dlatego 1b musi kompaktować w przerwach, zanim zabraknie wolnych odcinków.
+  - Odcinek = wielokrotność 257 bloków (rekord z kawałkiem 1 MiB), nie potęga dwójki: przy 8 MiB mieściło się 7 kawałków
+    i dane zjadały zapas wolnych odcinków (test pełnego magazynu to pokazał).
+  - 1b: obiekty.c — kompaktowanie formatu 2 krokami (k1_mag_kompaktuj_krok, np. 4 MiB) w przerwach main.c, log
+    z najdłuższą przerwą; 1c: przejście po potwierdzeniu startu (rozruch.c), magazyn_testowy w formacie 1 do
+    test-skarbiec, opis miejsca w Ustawieniach → Informacje.
 
 KROK 2 — Pendrive i nazwy plików                                                     M–L · decyzja D3 · bez ADR
   Cel: każdy pendrive FAT z telefonu czy aparatu działa, z dowolnie dużego folderu można zaimportować wszystko,

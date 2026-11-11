@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M5c na hoście, M5d w QEMU: dysk SATA i pendrive przez UEFI; 0.5.8: pendrive podłączony po starcie; 0.8.0: pliki i foldery — host i QEMU) |
-| **Pliki** | `src/skarbiec/` w modułach (0.8.0, `skarbiec.h`): `main.c` (pętla, kanały, obiekty aplikacji), `obiekty.c` (obiekty według właściciela i nazwy: magazyn albo pamięć), `haslo.c` (odblokowanie, zmiana hasła, limit prób), `dokumenty.c` + `dok_drzewo.c`, `dok_kosz.c`, `dok_wczytaj.c` (pliki, foldery, Kosz; wspólne: `dok_wew.h`), `dok_kanal.c` (komunikaty `DOK_*`, tabela praw), `miejsce.c` (miejsce na pliki, powiększenie K1-DANE — 0.8.1); format: `magazyn.{c,h}` (rekordy, indeks), `naglowek.c` (nagłówek i owinięty klucz; `magazyn_wew.h`), `src/zewnetrzne/monocypher/`; wspólne: `src/wspolne/k1_memfd.*`, `k1_skarb_klient.*` (strona klienta), `k1_dokument.*` (wpis pliku, typy, foldery) |
-| **Decyzje** | ADR 0015 (format, szyfrowanie), ADR 0016 (obraz USB), ADR 0013 (partycja „K1-DANE”), ADR 0029 (pliki, foldery, Kosz), ADR 0034 (duże dane: indeks, limity, kompaktowanie, rezerwa), ADR 0033 (K1-DANE do końca pendrive'a, od 0.8.1 także z danymi) |
+| **Pliki** | `src/skarbiec/` w modułach (0.8.0, `skarbiec.h`): `main.c` (pętla, kanały, obiekty aplikacji), `obiekty.c` (obiekty według właściciela i nazwy: magazyn albo pamięć), `haslo.c` (odblokowanie, zmiana hasła, limit prób), `dokumenty.c` + `dok_drzewo.c`, `dok_kosz.c`, `dok_wczytaj.c` (pliki, foldery, Kosz; wspólne: `dok_wew.h`), `dok_kanal.c` (komunikaty `DOK_*`, tabela praw), `miejsce.c` (miejsce na pliki, powiększenie K1-DANE — 0.8.1); format: `magazyn.{c,h}` (funkcje publiczne, indeks), `obszary.c` (format 1: dwa obszary), `odcinki.c` i `spis.c` (format 2: odcinki, spis skarbca — 0.8.2, ADR 0036), `naglowek.c` (nagłówek obu formatów i owinięty klucz; `magazyn_wew.h`), `src/zewnetrzne/monocypher/`; wspólne: `src/wspolne/k1_memfd.*`, `k1_skarb_klient.*` (strona klienta), `k1_dokument.*` (wpis pliku, typy, foldery) |
+| **Decyzje** | ADR 0015 (format, szyfrowanie), ADR 0016 (obraz USB), ADR 0013 (partycja „K1-DANE”), ADR 0029 (pliki, foldery, Kosz), ADR 0034 (duże dane: indeks, limity, kompaktowanie, rezerwa), ADR 0033 (K1-DANE do końca pendrive'a, od 0.8.1 także z danymi), ADR 0036 (format 2: odcinki, spis, kompaktowanie po odcinku — 0.8.2) |
 
 ## Cel
 Trwałe, zaszyfrowane dane użytkownika: ustawienia (ekran), notatki (Notatki), historia baterii, rozmieszczenie
@@ -164,6 +164,10 @@ Zablokowany magazyn (hasło) — każda prośba `DOK_*` dostaje „złe hasło�
 wpisów i wyniki — nigdy nazwy ani treść.
 
 ## Format na dysku (bloki po 4096 B, liczby little-endian)
+Dwa formaty (ADR 0036): **format 1** (0.5.6–0.8.1, opis niżej) i **format 2** (0.8.2, następny rozdział). Skarbiec
+otwiera oba; do kroku 1c planu 0.8.2 tworzy format 1 (`K1_MAG_FORMAT`), potem przenosi stare magazyny na format 2.
+
+### Format 1: dwa obszary
 | Miejsce | Zawartość |
 |---|---|
 | blok 0 i 1 | nagłówek (kopia z generacją parzystą / nieparzystą; nowsza poprawna wygrywa) |
@@ -184,11 +188,39 @@ po 2 s bez próśb klientów; w logu czas i rozmiary („kompaktowanie (przy otw
 Do 65 536 obiektów; obiekty znajdowane przez indeks w pamięci (`k1_indeks`: właściciel i nazwa → miejsce), nie po
 kolei. Formatowanie: tylko gdy pierwszy MiB partycji to zera (inaczej „obce dane — nie nadpisuję”).
 
-## Czas otwarcia (0.8.1, RYZYKA R58)
-Otwarcie odczytuje i uwierzytelnia każdy żywy rekord (AEAD obejmuje nazwę i treść), więc trwa proporcjonalnie do
-ilości danych — po kompaktowaniu bez starych wersji (ADR 0034), ale z całą treścią plików. Klienci nie czekają:
-ekran po 1,5 s rusza z ustawieniami domyślnymi i stosuje zapisane, gdy przyjdzie odpowiedź. Nowy format (dziennik w
-odcinkach, zapisany spis, kompaktowanie po odcinku) — `docs/PLAN-0.8.2.txt`, krok 1, ADR 0036 (luki L25–L28).
+### Format 2: odcinki i spis skarbca (0.8.2, ADR 0036)
+| Miejsce | Zawartość |
+|---|---|
+| blok 0 i 1 | nagłówek, wersja 2 (jak w formacie 1: kopia z generacją parzystą / nieparzystą) |
+| bloki 2… | N odcinków po S bloków: S = 257 × 2, 4 … 64 (miejsce na tyle kawałków 1 MiB), co najmniej 16 odcinków, gdy partycja pozwala (bardzo mała partycja — S 64–256); reszta partycji za ostatnim odcinkiem nieużywana |
+
+Nagłówek: `K1SKARB1`, wersja 2, flagi, uuid, generacja, liczba bloków (2 + N·S), S, Argon2id (KiB, przejścia), N,
+licznik generacji odcinków, bloki i wpisy spisu, sól, owinięty klucz główny, długość ogona (1–128), zero, ogon (po
+16 B: odcinek, ile bloków zapisano, generacja; generacje rosną), zera do bajtu 4080, MAC. Pierwszy odcinek ogona
+zaczyna się spisem; ostatni to **głowa** — tam idą nowe rekordy.
+
+Rekord (wielokrotność bloku): liczba bloków (u32), 0 (u32), nonce (24) i MAC (16) metryczki, **metryczka**
+(48 B szyfrogramu: typ — obiekt / usunięcie / spis, 0, właściciel, długość, czas, nazwa 32), nonce (24) i MAC (16)
+treści, **treść** (szyfrogram), zera do końca bloku. Dane dodatkowe metryczki: uuid, odcinek, jego generacja,
+pozycja, liczba bloków; treści: MAC metryczki. Rekord z kawałkiem 1 MiB ma 257 bloków.
+
+Spis: rekordy typu „spis” (kawałki do 1 MiB) — numer kawałka, liczba wpisów, N, 0; w kawałku 0 generacja każdego
+odcinka (0 — bez żywych obiektów); wpis: właściciel (u16), długość nazwy (u8), 0, odcinek, pozycja, długość, nazwa.
+Otwarcie: nagłówek → spis (każdy wpis sprawdzony: odcinek w użyciu, nie odcinek spisu, rekord mieści się w odcinku,
+nazwa bez zer, bez powtórzeń) → metryczki rekordów ogona po kolei (odcinek ogona, który po spisie został głową,
+nie może już mieć obiektów ze spisu). Treść — dopiero przy odczycie obiektu.
+
+Zapis: rekord do głowy → `fdatasync` → nagłówek → `fdatasync`; pełna głowa → wolny odcinek (bez żywych obiektów, spoza
+ogona) dostaje nową generację i zostaje głową (czasem z nowym spisem — wtedy ogon zaczyna się od niego). Zapas: 3 %
+odcinków, co najmniej 2; zapis danych zawsze zostawia jeden wolny. Kompaktowanie: odcinek spoza ogona z najmniejszą
+ilością żywych danych — jego obiekty do głowy, po kilka MiB na krok (`k1_mag_kompaktuj_krok`). Do 262 144 obiektów.
+
+## Czas otwarcia (0.8.1, RYZYKA R58; format 2 — ADR 0036)
+Format 1: otwarcie odczytuje i uwierzytelnia każdy żywy rekord (AEAD obejmuje nazwę i treść), więc trwa
+proporcjonalnie do ilości danych — po kompaktowaniu bez starych wersji (ADR 0034), ale z całą treścią plików. Klienci
+nie czekają: ekran po 1,5 s rusza z ustawieniami domyślnymi i stosuje zapisane, gdy przyjdzie odpowiedź.
+Format 2: otwarcie czyta spis i metryczki ogona, nie treść — 4 GiB plików: 0,001 s procesora i 0,4 MiB odczytu
+(format 1: 6,1 s i 1,9 GiB; pomiar `testy/host/pomiar_magazynu.c`, ADR 0036). W systemie od kroku 1c planu 0.8.2.
 
 ## Obsługa błędów
 Brak partycji, dwie partycje „K1-DANE”, obce dane, uszkodzony magazyn, magazyn z hasłem (do M5e) →
@@ -196,7 +228,7 @@ dane tylko w pamięci, partycja nietknięta, wpis w logu. Awaria skarbca → nad
 ponownie i restartuje ekran (klienci dostają nowe kanały).
 
 ## Powierzchnia ataku
-Parser nagłówka i rekordów (`naglowek.c`, `magazyn.c`, testy + fuzzing także z poprawnym MAC — bez hasła napastnik
+Parser nagłówka i rekordów (`naglowek.c`, `magazyn.c`, `obszary.c`; format 2: `odcinki.c`, `spis.c` — spis i ogon, testy + fuzzing także z poprawnym MAC — bez hasła napastnik
 zna klucz), komunikaty klientów (32 B), memfd od klientów (pieczęcie i rozmiar sprawdzane), od 0.8.0 nazwy plików
 od klientów i wpisy z dysku (`k1_dok_wpis_czytaj` — każde pole) oraz tabela praw.
 
@@ -205,9 +237,10 @@ od klientów i wpisy z dysku (`k1_dok_wpis_czytaj` — każde pole) oraz tabela 
 |---|---|
 | `test_magazyn` (host, ASan/UBSan): restart, zmieniony bajt, zamienione rekordy, uszkodzony nagłówek, przerwany zapis, hasło (złe, zmiana, usunięcie), kompaktowanie, brak miejsca, obce dane; 0.8.1: 65 536 obiektów (i ani jednego więcej), usuwanie ze środka, dziennik 20 000 wersji (otwarcie czyta wszystkie → kompaktowanie przy otwarciu → otwarcie czyta jeden rekord), kompaktowanie w pracy (próg 256 MiB), awaria w połowie kompaktowania i przy zapisie nagłówka | funkcjonalny + negatywny |
 | `test_magazyn` (0.8.1 krok 3): powiększenie z aktywnym obszarem 0 (tylko nagłówek, ta sama epoka) i 1 (kompaktowanie do obszaru 0), nowe miejsce używane ponad stary obszar 1, nigdy mniejsza partycja; przerwa prądu po każdym zapisie powiększenia (także rozdarty nagłówek) — magazyn otwiera się z każdym obiektem, ponowne powiększenie się udaje | funkcjonalny + negatywny |
+| `test_odcinki` (host, 0.8.2 krok 1a, ADR 0036): format 2 — przerwa prądu po każdym zapisie (i rozdarty nagłówek) z kompaktowaniem i spisami, zmienione i zamienione bajty, nagłówki z poprawnym MAC, które kłamią, stary odcinek podłożony po ponownym użyciu, pełny magazyn, kroki kompaktowania, powiększenie, 70 000 obiektów; otwarcie czyta < 1/16 danych | funkcjonalny + negatywny |
 | `test_indeks` (host, 0.8.1): indeks 200 000 losowych operacji (dodaj, usuń, przenieś), także same kolizje | funkcjonalny |
 | `test-skarbiec.sh` (QEMU, 0.8.1): K1-DANE z dziennikiem 78 MiB — kompaktowanie przy otwarciu, drugi start bez; K1-DANE 64 MiB prawie pełna — „Nowy folder” odrzucony (−28), ustawienie się zapisuje, Pliki: „mało miejsca”; krok 3: ta sama pełna K1-DANE na pendrivie większym o 512 MiB → Informacje → „Użyj całego pendrive'a” → 64 → 576 MiB, obszar 31 → 287 MiB, import 16 zdjęć po 2,8 MB (16 z 16), ponowny start, tablica (sfdisk); tablica powiększona bez magazynu → dokończenie przy starcie | funkcjonalny + negatywny |
-| `fuzz_magazyn` (libFuzzer): surowy obraz, zmiany bajtów, nagłówki z poprawnym MAC | fuzzing |
+| `fuzz_magazyn` (libFuzzer): surowy obraz, zmiany bajtów, nagłówki z poprawnym MAC; od 0.8.2 to samo dla formatu 2 i losowe ciągi operacji z ponownym otwarciem | fuzzing |
 | `test_dokumenty` (0.8.1 krok 4): zapis w toku przez prawdziwy kanał — plik 2 MiB + 12 345 B w trzech kawałkach, odczyt kawałkami, kawałek po krótkim (zapis porzucony), koniec bez zapisu, odczyt za końcem, nowa treść kawałkami przerwana Koszem, porzucenie przez klienta i zamknięty kanał, dwa zapisy na kanale i na pliku, przerwa prądu (kawałki usunięte przy starcie), 4096 kawałków i ani jednego więcej | funkcjonalny + negatywny |
 | `test_komunikat`: komunikaty `SKARB_*` (zakresy, kierunki, deskryptory; 0.8.1 krok 4: `DOK_KAWALEK`, `DOK_KONIEC`, rozmiary do 4 GiB w dwóch polach, kawałki w `DOK_CZYTAJ`/`DOK_TRESC`/`PEN_*`; krok 3: `SKARB_MIEJSCE`, `SKARB_POWIEKSZ`, `POWIEKSZ_DANE`, `POWIEKSZONO`, zapas w `SKARB_KLIENT`) | negatywny |
 | w systemie: klatka (UID, tylko partycja „K1-DANE”), próba w klatce `skarbiec`, dysk trzyma tylko skarbiec | funkcjonalny + negatywny |
