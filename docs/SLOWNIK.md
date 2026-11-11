@@ -54,6 +54,8 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **kompaktowanie** | Skarbiec przepisuje żywe dane do drugiej połowy K1-DANE i zapomina stare wersje (ADR 0015, 0034): dysk dostaje miejsce z powrotem, start znowu jest szybki. |
 | **miejsce na pliki** | Ile plików zmieści skarbiec: połowa K1-DANE (druga połowa jest na kompaktowanie) bez rezerwy dla systemu; pokazują je Ustawienia → Informacje (0.8.1). |
 | **powiększenie K1-DANE** | K1-DANE rośnie do końca pendrive'a: pusta — sama przy pierwszym starcie (0.8.0), z danymi — po kliknięciu „Użyj całego pendrive'a na dane” w Ustawieniach (0.8.1, ADR 0033). Pliki zostają na miejscu. |
+| **kawałek** | 1 MiB treści pliku: tak skarbiec trzyma pliki i tak je przesyłają czytnik, Pliki i skarbiec (od 0.8.1 plik do 4 GB = 4096 kawałków). |
+| **zapis w toku** | Plik zapisywany kawałek po kawałku (0.8.1): widać go w Plikach dopiero po ostatnim kawałku; przerwany — znika bez śladu, stara treść zostaje. |
 | **rezerwa dla systemu** | Ostatnie 8 MiB (albo 2 %, najwyżej ćwierć) skarbca, których pliki nie zajmą — na ustawienia, pulpit, baterię, tapetę (0.8.1). |
 | **granica czasu** | Najwcześniejszy czas, jaki skarbiec przyjmuje od zegara (0.8.1): czas budowy wersji K1 albo najpóźniejszy widziany. Zegar za granicą = Kosz niczego nie usuwa. |
 | **odzyskany plik** | Plik, którego wpis skarbiec naprawił przy starcie (0.8.1): treść cała, nazwa poprawiona albo „Odzyskany plik <numer>”. |

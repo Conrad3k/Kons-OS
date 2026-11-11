@@ -211,20 +211,20 @@ static int do_memfd(void *ctx, const void *buf, uint32_t n)
     return 0;
 }
 
-static void plik(uint32_t id)
+/* Piece `kawalek` of file `id` (0.8.1 step 4): the name first in piece 0, then at most K1_DOK_KAWALEK bytes. The
+ * position in the file's chain of clusters is kept for the next piece (Pliki ask for them in order). */
+static void plik(uint32_t id, uint32_t kawalek)
 {
+    static struct fat_kursor kursor;
     const struct znany *z = znany(id);
+    uint64_t od = (uint64_t)kawalek * K1_DOK_KAWALEK;
     size_t nl;
     int fd, r;
-    if (z == NULL || z->folder) {
+    if (z == NULL || z->folder || od > z->rozmiar) {
         wynik(id, K1_KOM_PEN_CZYTAJ, K1_PEN_BLAD_BRAK);
         return;
     }
-    if (z->rozmiar > K1_DOK_MAKS_BAJTY) {
-        wynik(id, K1_KOM_PEN_CZYTAJ, K1_PEN_BLAD_DUZY);
-        return;
-    }
-    nl = strlen(z->nazwa);
+    nl = kawalek == 0 ? strlen(z->nazwa) : 0;
     fd = k1_memfd_nowy("k1-pendrive-plik");
     if (fd < 0 || do_memfd(&fd, z->nazwa, (uint32_t)nl) != 0) {
         if (fd >= 0)
@@ -232,7 +232,7 @@ static void plik(uint32_t id)
         wynik(id, K1_KOM_PEN_CZYTAJ, K1_PEN_BLAD_PAMIEC);
         return;
     }
-    r = fat_czytaj(&fat, z->klaster, z->rozmiar, z->rozmiar, do_memfd, &fd);
+    r = fat_czytaj_od(&fat, &kursor, z->klaster, z->rozmiar, (uint32_t)od, K1_DOK_KAWALEK, do_memfd, &fd);
     if (r == 0 && k1_memfd_zapieczetuj(fd) != 0) {
         wynik(id, K1_KOM_PEN_CZYTAJ, K1_PEN_BLAD_PAMIEC); /* the fd is closed */
         return;
@@ -243,9 +243,14 @@ static void plik(uint32_t id)
         wynik(id, K1_KOM_PEN_CZYTAJ, r);
         return;
     }
-    wyslij(k1_komunikat_nowy(K1_KOM_PEN_PLIK, id, (int32_t)nl, (int32_t)z->rozmiar, 0, 0, 0), fd);
+    {
+        uint32_t ile = z->rozmiar - od < K1_DOK_KAWALEK ? (uint32_t)(z->rozmiar - od) : K1_DOK_KAWALEK;
+        wyslij(k1_komunikat_nowy(K1_KOM_PEN_PLIK, id, (int32_t)nl, (int32_t)ile, (int32_t)kawalek, k1_kom_niskie(z->rozmiar),
+                                 k1_kom_wysokie(z->rozmiar)), fd);
+        if (od + ile >= z->rozmiar) /* the last piece: once per file, not per piece (at most 2 lines a second) */
+            k1_log(TAG, "plik przeczytany (%u B, kawałków %u)", (unsigned)z->rozmiar, kawalek + 1);
+    }
     close(fd);
-    k1_log(TAG, "plik przeczytany (%u B)", (unsigned)z->rozmiar);
 }
 
 /* ---- start ---- */
@@ -289,7 +294,7 @@ int main(void)
         else if (k.typ == K1_KOM_PEN_SPIS)
             spis(k.obiekt);
         else if (k.typ == K1_KOM_PEN_CZYTAJ)
-            plik(k.obiekt);
+            plik(k.obiekt, (uint32_t)k.a);
     }
 }
 

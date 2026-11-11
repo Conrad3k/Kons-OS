@@ -58,6 +58,7 @@ void do_nadzorcy(struct k1_komunikat m); /* main.c: a message on the control cha
  * Returns 1 when files changed (the caller tells every client allowed to list them). */
 int dok_obsluz(int fd, int wl, const struct k1_komunikat *m, int fd_in);
 int dok_moze_listowac(int wl);
+void dok_koniec_kanalu(int fd); /* main.c: a client channel closes — its write in progress is abandoned (0.8.1) */
 void dok_po_otwarciu(void); /* the vault is readable (opened, unlocked, or memory): load the entries */
 int dok_co_godzine(void);    /* Kosz: delete what is older than 30 days; 1 when something went */
 

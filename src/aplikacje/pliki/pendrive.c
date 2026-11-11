@@ -3,7 +3,9 @@
  * the import — only what the user picks ("Importuj") or a whole folder ("Importuj wszystkie"): pictures (PNG, JPEG)
  * go to Obrazy, other files to Dokumenty, each with the origin "z pendrive'a". The content goes from czytnik to
  * skarbiec in the memfd czytnik made (name + content, sealed): Pliki never reads it, skarbiec checks it and finds
- * the type again from the content. Everything czytnik sends is checked (k1_odbierz_komunikat, k1_pen_lista_czytaj).
+ * the type again from the content. Since 0.8.1 (step 4) piece by piece (1 MiB): PEN_CZYTAJ(piece) → PEN_PLIK →
+ * DOK_NOWY (the first, "more follow") or DOK_KAWALEK → DOK_WYNIK → the next piece …, DOK_KONIEC — one piece in
+ * flight, so a file of 4 GB takes as little memory as one of 1 MB. Everything czytnik sends is checked (k1_odbierz_komunikat, k1_pen_lista_czytaj).
  * Names and content never reach the log — only counts. Part of Pliki (pliki.h). */
 #include <fcntl.h>
 #include <stdio.h>
@@ -34,6 +36,7 @@ static struct {
     uint32_t pliki[K1_PEN_WPISOW];
     uint8_t obraz[K1_PEN_WPISOW];
     int n, i, czeka_skarbiec;
+    uint32_t kawalek, kawalkow; /* the piece of the file being imported (0.8.1), of how many */
     int zapisane, do_obrazow, duze, bledy;
 } imp;
 int importuje;
@@ -60,15 +63,24 @@ int pen_sciezka(const char **nazwy, int maks)
     return n;
 }
 
-static void do_czytnika(int typ, uint32_t obiekt)
+static void do_czytnika(int typ, uint32_t obiekt, int32_t a)
 {
-    struct k1_komunikat m = k1_komunikat_nowy((enum k1_komunikat_typ)typ, obiekt, 0, 0, 0, 0, 0);
+    struct k1_komunikat m = k1_komunikat_nowy((enum k1_komunikat_typ)typ, obiekt, a, 0, 0, 0, 0);
     if (czytnik >= 0)
         k1_kanal_wyslij(czytnik, &m, sizeof m, -1);
 }
 
+/* A file cut off half way (the stick went, czytnik failed): skarbiec deletes its pieces. */
+static void porzuc_plik(void)
+{
+    if (importuje && imp.kawalek > 0)
+        do_skarbca(K1_KOM_DOK_KONIEC, 0, 1);
+    imp.kawalek = 0;
+}
+
 static void zamknij_czytnik(void)
 {
+    porzuc_plik();
     if (czytnik >= 0)
         close(czytnik);
     czytnik = -1;
@@ -93,7 +105,7 @@ void pendrive_otworz(void)
 {
     przejdz((struct miejsce){ 0, 0, 1 });
     if (czytnik >= 0) {
-        do_czytnika(K1_KOM_PEN_SPIS, pen_folder());
+        do_czytnika(K1_KOM_PEN_SPIS, pen_folder(), 0);
         return;
     }
     struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_PENDRIVE_OTWORZ, 0, 0, 0, 0, 0, 0);
@@ -112,7 +124,7 @@ void pendrive_wejdz(uint32_t id)
     droga[poziom].id = id;
     memcpy(droga[poziom].nazwa, w->nazwa, sizeof w->nazwa);
     poziom++;
-    do_czytnika(K1_KOM_PEN_SPIS, id);
+    do_czytnika(K1_KOM_PEN_SPIS, id, 0);
 }
 
 int pendrive_w_gore_mozna(void)
@@ -125,7 +137,7 @@ void pendrive_w_gore(void)
     if (poziom == 0)
         return;
     poziom--;
-    do_czytnika(K1_KOM_PEN_SPIS, pen_folder());
+    do_czytnika(K1_KOM_PEN_SPIS, pen_folder(), 0);
 }
 
 /* ---- import ---- */
@@ -139,11 +151,11 @@ static void import_koniec(void)
                                        n == 1 ? "plik" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "pliki" : "plików",
                                        n > 0 ? gdzie : "");
     if (imp.duze > 0 && d > 0 && d < (int)sizeof komunikat)
-        d += snprintf(komunikat + d, sizeof komunikat - (size_t)d, " Pominięto %d: większe niż 16 MB.", imp.duze);
+        d += snprintf(komunikat + d, sizeof komunikat - (size_t)d, " Pominięto %d: większe niż 4 GB.", imp.duze);
     if (imp.bledy > 0 && d > 0 && d < (int)sizeof komunikat)
         snprintf(komunikat + d, sizeof komunikat - (size_t)d, " Nie udało się: %d.", imp.bledy);
     if (imp.zapisane == 0 && imp.bledy == 0 && imp.duze > 0) /* only too big ones */
-        snprintf(komunikat, sizeof komunikat, "Nie zaimportowano: %s większ%s niż 16 MB.", imp.duze == 1 ? "plik jest" : "pliki są",
+        snprintf(komunikat, sizeof komunikat, "Nie zaimportowano: %s większ%s niż 4 GB.", imp.duze == 1 ? "plik jest" : "pliki są",
                  imp.duze == 1 ? "y" : "e");
     blad = komunikat;
     importuje = 0;
@@ -159,7 +171,8 @@ static void import_dalej(void)
     }
     snprintf(komunikat, sizeof komunikat, "Importowanie: %d z %d…", imp.i + 1, imp.n);
     blad = komunikat;
-    do_czytnika(K1_KOM_PEN_CZYTAJ, imp.pliki[imp.i]);
+    imp.kawalek = 0;
+    do_czytnika(K1_KOM_PEN_CZYTAJ, imp.pliki[imp.i], 0);
 }
 
 void pendrive_importuj(int wszystkie)
@@ -181,29 +194,52 @@ void pendrive_importuj(int wszystkie)
     import_dalej();
 }
 
-/* czytnik gave the file: on to skarbiec as a new file with the origin "z pendrive'a". */
+/* czytnik gave a piece of the file: on to skarbiec — the first as a new file with the origin "z pendrive'a" ("more
+ * follow" when it is not all), the others as the next pieces of that write. */
 static void plik_przyszedl(const struct k1_komunikat *k, int fd)
 {
     struct k1_komunikat m;
-    if (!importuje || imp.czeka_skarbiec || k->obiekt != imp.pliki[imp.i])
+    uint64_t rozmiar = k1_kom_u64(k->d, k->e);
+    if (!importuje || imp.czeka_skarbiec || k->obiekt != imp.pliki[imp.i] || (uint32_t)k->c != imp.kawalek)
         return;
-    m = k1_komunikat_nowy(K1_KOM_DOK_NOWY, imp.obraz[imp.i] ? K1_FOLDER_OBRAZY : K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, k->a, k->b,
-                          K1_POCH_PENDRIVE, 0);
+    if (imp.kawalek == 0) {
+        imp.kawalkow = (uint32_t)((rozmiar + K1_DOK_KAWALEK - 1) / K1_DOK_KAWALEK);
+        m = k1_komunikat_nowy(K1_KOM_DOK_NOWY, imp.obraz[imp.i] ? K1_FOLDER_OBRAZY : K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, k->a,
+                              k->b, K1_POCH_PENDRIVE, imp.kawalkow > 1);
+    } else {
+        m = k1_komunikat_nowy(K1_KOM_DOK_KAWALEK, 0, k->b, 0, 0, 0, 0);
+    }
+    if (imp.kawalkow > 1) { /* a large file: how far it is */
+        snprintf(komunikat, sizeof komunikat, "Importowanie: %d z %d… %u z %u MB", imp.i + 1, imp.n, imp.kawalek + 1,
+                 imp.kawalkow);
+        blad = komunikat;
+    }
     imp.czeka_skarbiec = 1;
     do_skarbca_z_fd(m, fd);
 }
 
-int pendrive_wynik_skarbca(const struct k1_komunikat *k)
+/* The file is in skarbiec (or not): the next one. */
+static void nastepny_plik(int zapisany)
 {
-    if (!importuje || !imp.czeka_skarbiec || k->a != K1_KOM_DOK_NOWY)
-        return 0;
-    imp.czeka_skarbiec = 0;
-    if (k->b == 0) {
+    imp.kawalek = 0;
+    if (zapisany) {
         imp.zapisane++;
         imp.do_obrazow += imp.obraz[imp.i];
         k1_log(TAG, "import: plik %d z %d zapisany w skarbcu", imp.i + 1, imp.n);
-    } else {
+    }
+    imp.i++;
+    import_dalej();
+}
+
+int pendrive_wynik_skarbca(const struct k1_komunikat *k)
+{
+    if (!importuje || !imp.czeka_skarbiec ||
+        (k->a != K1_KOM_DOK_NOWY && k->a != K1_KOM_DOK_KAWALEK && k->a != K1_KOM_DOK_KONIEC))
+        return 0;
+    imp.czeka_skarbiec = 0;
+    if (k->b != 0) { /* skarbiec dropped the write: its pieces are gone already */
         imp.bledy++;
+        imp.kawalek = 0;
         k1_log(TAG, "import: skarbiec odmówił (wynik %d)", k->b);
         if (k->b == K1_SKARB_PELNY || k->b == K1_DOK_BLAD_BRAK_MIEJSCA) { /* no room: the rest would fail too */
             imp.bledy += imp.n - imp.i - 1;
@@ -212,9 +248,19 @@ int pendrive_wynik_skarbca(const struct k1_komunikat *k)
             snprintf(komunikat, sizeof komunikat, "Brak miejsca na nośniku K1 — zaimportowano %d z %d.", imp.zapisane, imp.n);
             return 1;
         }
+        nastepny_plik(0);
+        return 1;
     }
-    imp.i++;
-    import_dalej();
+    if (k->a == K1_KOM_DOK_KONIEC || imp.kawalkow <= 1) {
+        nastepny_plik(1);
+        return 1;
+    }
+    if (++imp.kawalek < imp.kawalkow) {
+        do_czytnika(K1_KOM_PEN_CZYTAJ, imp.pliki[imp.i], (int32_t)imp.kawalek);
+    } else {
+        imp.czeka_skarbiec = 1;
+        do_skarbca(K1_KOM_DOK_KONIEC, 0, 0);
+    }
     return 1;
 }
 
@@ -245,13 +291,14 @@ static void wynik_czytnika(const struct k1_komunikat *k)
         else
             imp.bledy++;
         k1_log(TAG, "import: czytnik nie dał pliku (wynik %d)", k->b);
+        porzuc_plik();
         imp.i++;
         import_dalej();
     } else if (k->a == K1_KOM_PEN_SPIS) { /* an old folder: back to the main one */
         k1_log(TAG, "pendrive: folder niedostępny (wynik %d)", k->b);
         if (poziom > 0) {
             poziom = 0;
-            do_czytnika(K1_KOM_PEN_SPIS, 0);
+            do_czytnika(K1_KOM_PEN_SPIS, 0, 0);
         } else {
             pen_stan = k->b;
         }
@@ -277,7 +324,7 @@ static void czytnik_odbierz(void)
             pen_stan = k.a != 0 ? PEN_GOTOWY : k.b;
             k1_log(TAG, "pendrive: %s", k.a != 0 ? "czytnik gotowy" : "nie do odczytu");
             if (k.a != 0)
-                do_czytnika(K1_KOM_PEN_SPIS, 0);
+                do_czytnika(K1_KOM_PEN_SPIS, 0, 0);
         } else if (k.typ == K1_KOM_PEN_LISTA) {
             lista_przyszla(&k, fd);
         } else if (k.typ == K1_KOM_PEN_PLIK) {

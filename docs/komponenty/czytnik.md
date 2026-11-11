@@ -20,7 +20,7 @@ Plików (UID 206, `SO_PASSCRED`), pole po polu (`k1_odbierz_komunikat`). Pliki s
 ## Uprawnienia
 | UID | seccomp (poza bazą) | Landlock | cgroup | deskryptory |
 |---|---|---|---|---|
-| 106 | `pread64`, `memfd_create` | brak ścieżek | 32 MiB, 1 proces; `RLIMIT_FSIZE` 17 MiB (plik 16 MB + nazwa) | fd 3: kanał do Plików, fd 4: cały pendrive tylko do odczytu (otwiera nadzorca) |
+| 106 | `pread64`, `memfd_create` | brak ścieżek | 32 MiB, 1 proces; `RLIMIT_FSIZE` 17 MiB (do 0.8.0 cały plik 16 MB + nazwa; od 0.8.1 memfd to najwyżej kawałek 1 MiB + nazwa — limit zostaje) | fd 3: kanał do Plików, fd 4: cały pendrive tylko do odczytu (otwiera nadzorca) |
 
 ## Przebieg
 1. Nadzorca (`pendrive.c`) po każdym zdarzeniu dysku (i co 10 s) szuka pendrive'a: pierwszy cały dysk USB z nośnikiem
@@ -33,8 +33,12 @@ Plików (UID 206, `SO_PASSCRED`), pole po polu (`k1_odbierz_komunikat`). Pliki s
 4. `PEN_SPIS(folder)` → `PEN_LISTA` (numery elementów pamiętane w indeksie po położeniu na nośniku — `k1_indeks`, 0.8.1): do 1024 elementów (c = 1: folder ma więcej), bez ukrytych, systemowych i nazw od
    kropki; typ pliku z jego pierwszych 64 bajtów (`k1_dok_typ`), czas zmiany jak na pendrivie. Numery wpisów nadaje
    czytnik (ten sam wpis — ten sam numer); Pliki mogą pytać tylko o numery z list, które dostały.
-5. `PEN_CZYTAJ(plik)` → `PEN_PLIK`: zapieczętowany memfd: nazwa, potem treść (do 16 MB; większy → `PEN_WYNIK`
-   `K1_PEN_BLAD_DUZY`). Pliki wysyłają go skarbcowi w `DOK_NOWY` z d = `K1_POCH_PENDRIVE` (do Obrazów albo Dokumentów).
+5. `PEN_CZYTAJ(plik, kawałek)` → `PEN_PLIK` (0.8.1 krok 4: kawałkami po 1 MiB, plik do 4 GB — tyle ma FAT32):
+   zapieczętowany memfd: w kawałku 0 nazwa, potem najwyżej 1 MiB treści; c = kawałek, d, e = rozmiar pliku (niższe
+   i wyższe 32 bity). Czytnik pamięta, gdzie w łańcuchu klastrów skończył (`fat_czytaj_od`, kursor): następny
+   kawałek tego samego pliku nie czyta łańcucha od początku (plik 4 GB to milion klastrów). Pliki przekazują memfd
+   skarbcowi nieczytany: kawałek 0 w `DOK_NOWY` z d = `K1_POCH_PENDRIVE` (do Obrazów albo Dokumentów; większy plik —
+   e = 1, „dalej są kawałki”), następne w `DOK_KAWALEK`, na koniec `DOK_KONIEC`; zawsze jeden kawałek w drodze.
 6. Koniec: Pliki zamknęły kanał (czytnik kończy pracę) albo pendrive wyjęty (nadzorca zatrzymuje czytnik `SIGKILL`).
 
 ## Komunikaty
@@ -44,10 +48,10 @@ Plików (UID 206, `SO_PASSCRED`), pole po polu (`k1_odbierz_komunikat`). Pliki s
 | `PENDRIVE_OTWORZ` | Pliki → nadzorca | — (uruchom czytnik) |
 | `PENDRIVE_KANAL` | nadzorca → Pliki | + 1 fd: kanał do nowego czytnika |
 | `PEN_SPIS` | Pliki → czytnik | obiekt = folder (0: główny) |
-| `PEN_CZYTAJ` | Pliki → czytnik | obiekt = plik |
+| `PEN_CZYTAJ` | Pliki → czytnik | obiekt = plik, a = kawałek 0…4095 (0.8.1) |
 | `PEN_STAN` | czytnik → Pliki | a = 12/16/32 (FAT) albo 0 i b = `K1_PEN_BLAD_*` |
 | `PEN_LISTA` | czytnik → Pliki | obiekt = folder, a = długość, b = elementów, c = 1 jest więcej; + memfd (`k1_pendrive.h`) |
-| `PEN_PLIK` | czytnik → Pliki | obiekt = plik, a = długość nazwy, b = długość treści; + memfd: nazwa i treść |
+| `PEN_PLIK` | czytnik → Pliki | obiekt = plik, a = długość nazwy (tylko kawałek 0), b = bajty kawałka (≤ 1 MiB), c = kawałek, d, e = rozmiar pliku (≤ 4 GiB, ≥ c × 1 MiB + b); + memfd: nazwa i kawałek |
 | `PEN_WYNIK` | czytnik → Pliki | obiekt, a = typ prośby, b = `K1_PEN_BLAD_*` |
 
 ## Obsługa błędów

@@ -31,8 +31,8 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
      * panel: RLIMIT_FSIZE (it limits memfd_create+ftruncate too) fits two halves of 4096×2160 (0.7.5). */
     [K1_PROFIL_LOGOWANIE] = { .nazwa = "logowanie", .uid = K1_UID_LOGOWANIE, .wywolania = sc_okna, .n_wywolan = N(sc_okna),
                               .pamiec = 96u << 20, .pliki = 32, .rozmiar_pliku = 72u << 20 },
-    /* skarbiec: Argon2id needs up to 256 MiB (ADR 0015); memfd up to a whole file of 16 MiB (0.8.0, ADR 0029;
-     * RLIMIT_FSIZE does not apply to the block device: block/fops.c blkdev_write_iter has no rlimit check). */
+    /* skarbiec: Argon2id needs up to 256 MiB (ADR 0015); memfd up to a whole file of 16 MiB (0.8.0, ADR 0029; since 0.8.1
+     * a piece of 1 MiB, or a whole picture for dekoder of up to 16 MiB; RLIMIT_FSIZE does not apply to the block device: block/fops.c blkdev_write_iter has no rlimit check). */
     [K1_PROFIL_SKARBIEC] = { .nazwa = "skarbiec", .uid = K1_UID_SKARBIEC, .wywolania = sc_skarbiec,
                              .n_wywolan = N(sc_skarbiec), .pamiec = 320u << 20, .pliki = 32, .rozmiar_pliku = 24u << 20 },
     /* gui: the desktop layer (0.7.5) is one full-screen surface — RLIMIT_FSIZE for two halves of 4096×2160,
@@ -43,7 +43,8 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
      * target device we open for it; RLIMIT_FSIZE does not apply to block devices (see skarbiec). */
     [K1_PROFIL_INSTALATOR] = { .nazwa = "instalator", .uid = K1_UID_INSTALATOR, .wywolania = sc_instalator,
                                .n_wywolan = N(sc_instalator), .pamiec = 16u << 20, .pliki = 16 },
-    /* the USB stick reader: no window, no paths, the stick read only; RLIMIT_FSIZE: one file of 16 MiB + its name */
+    /* the USB stick reader: no window, no paths, the stick read only; RLIMIT_FSIZE: since 0.8.1 one piece of 1 MiB + its
+     * name (the limit of 0.8.0, one file of 16 MiB, kept: ADR 0034 supplement) */
     [K1_PROFIL_CZYTNIK] = { .nazwa = "czytnik", .uid = K1_UID_CZYTNIK, .wywolania = sc_czytnik, .n_wywolan = N(sc_czytnik),
                             .pamiec = 32u << 20, .pliki = 16, .rozmiar_pliku = 17u << 20 },
     /* the picture decoder (SPEC §7): a photo of 24 Mpx is 96 MiB of pixels, a progressive JPEG needs about as much

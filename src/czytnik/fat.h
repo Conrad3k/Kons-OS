@@ -64,6 +64,15 @@ int fat_folder(struct fat *f, uint32_t klaster, int (*kazdy)(void *ctx, const st
  * (at most 64 KiB each) to `pisz`, which returns 0 or -1. 0, or FAT_BLAD_* (-1 from `pisz`: FAT_BLAD_ODCZYT). */
 int fat_czytaj(struct fat *f, uint32_t klaster, uint32_t rozmiar, uint32_t ile,
                int (*pisz)(void *ctx, const void *buf, uint32_t n), void *ctx);
+/* The same from byte `od` of the file (0.8.1 step 4: a file in pieces of 1 MiB). `k` remembers where in the chain of
+ * clusters the reading stopped: the next piece of the same file goes on from there, not from the first cluster
+ * (a 4 GB file has a million clusters). `k` may be NULL; a `k` of another file is not used. `od` past the end:
+ * nothing is read. */
+struct fat_kursor {
+    uint32_t pierwszy, nr, klaster; /* the file (its first cluster), the cluster's place in the chain, the cluster */
+};
+int fat_czytaj_od(struct fat *f, struct fat_kursor *k, uint32_t klaster, uint32_t rozmiar, uint32_t od, uint32_t ile,
+                  int (*pisz)(void *ctx, const void *buf, uint32_t n), void *ctx);
 
 /* Names (exposed for the host test): a short name 8.3 (11 bytes, flags of entry byte 12) and a long name (UTF-16,
  * up to 0 or the end) into a valid K1 name; "Plik" when nothing usable is left. */

@@ -15,6 +15,20 @@ int n_wpisow;
 uint32_t nastepny = K1_DOK_PIERWSZY;
 static uint8_t kawalek[K1_DOK_KAWALEK];
 
+/* A whole content from `z` through a write in progress (dok_zapis.c); *id = the file. */
+static int caly(struct dok_zapis *zp, const struct dok_zrodlo *z, int64_t teraz, uint32_t *id)
+{
+    for (uint64_t od = 0; od < z->dl; od += K1_DOK_KAWALEK) {
+        uint32_t dl = (uint32_t)(z->dl - od < K1_DOK_KAWALEK ? z->dl - od : K1_DOK_KAWALEK);
+        int r = z->czytaj(z->ctx, od, kawalek, dl) == 0 ? dok_zapis_kawalek(zp, kawalek, dl) : K1_MAG_ARG;
+        if (r != 0) {
+            dok_zapis_porzuc(zp);
+            return r;
+        }
+    }
+    return dok_zapis_koniec(zp, teraz, id);
+}
+
 /* ---- objects ---- */
 
 void nazwa_wpisu(uint32_t id, char out[K1_MAG_NAZWA])
@@ -48,30 +62,6 @@ void usun_kawalki(uint32_t id, uint32_t gen, uint32_t ile)
         nazwa_kawalka(id, gen, k, n);
         ob_usun(WL, n);
     }
-}
-
-/* Writes the content of `z` as pieces of generation `gen` of entry `id`; *typ = its type. On failure the
- * pieces already written are deleted. */
-static int zapisz_kawalki(uint32_t id, uint32_t gen, const struct dok_zrodlo *z, uint8_t *typ)
-{
-    uint32_t ile = kawalkow(z->dl), k;
-    char n[K1_MAG_NAZWA];
-    *typ = K1_TYP_TEKST;
-    for (k = 0; k < ile; k++) {
-        uint64_t od = (uint64_t)k * K1_DOK_KAWALEK;
-        uint32_t dl = (uint32_t)(z->dl - od < K1_DOK_KAWALEK ? z->dl - od : K1_DOK_KAWALEK);
-        int r = z->czytaj(z->ctx, od, kawalek, dl) == 0 ? K1_MAG_OK : K1_MAG_ARG;
-        if (r == K1_MAG_OK && k == 0)
-            *typ = (uint8_t)k1_dok_typ(kawalek, dl, z->dl);
-        nazwa_kawalka(id, gen, k, n);
-        if (r == K1_MAG_OK)
-            r = ob_zapisz(WL, n, kawalek, dl);
-        if (r != K1_MAG_OK) {
-            usun_kawalki(id, gen, k);
-            return r;
-        }
-    }
-    return K1_MAG_OK;
 }
 
 /* `nazwa` made free in `folder`: "nazwa (2)", "nazwa (3)"… before the extension, as Windows does. */
@@ -121,7 +111,7 @@ uint64_t dok_rezerwa(void)
 
 /* Room for `bajty` of new content: files never take the reserve — kept for the system (settings, the desktop's
  * layout, the wallpaper, the battery's history), which would stop saving otherwise. */
-static int miejsce_na(uint64_t bajty)
+int dok_miejsce_na(uint64_t bajty)
 {
     uint64_t rezerwa = dok_rezerwa();
     uint64_t potrzeba = bajty + (kawalkow(bajty) + 1) * K1_MAG_BLOK; /* the records' headers, the entry */
@@ -132,16 +122,25 @@ int dok_nowy(uint32_t folder, int rodzaj, const char *nazwa, size_t nl, const st
              int pochodzenie, int64_t teraz, uint32_t *id)
 {
     struct k1_dok_wpis w;
+    struct dok_zapis zp;
     char n[K1_DOK_NAZWA];
     int r;
     *id = 0;
     if ((r = sprawdz_nazwe(nazwa, nl, n)) != 0)
         return r;
-    if (!folder_otwarty(folder) || (rodzaj == K1_DOK_FOLDER && glebokosc(folder) >= K1_DOK_GLEBOKOSC))
+    if (rodzaj == K1_DOK_PLIK) { /* the content through a write in progress (dok_zapis.c), also when empty */
+        static const struct dok_zrodlo pusty = { NULL, NULL, 0 };
+        if (!dok_miejsce_na(z != NULL ? z->dl : 0))
+            return K1_DOK_BLAD_BRAK_MIEJSCA;
+        if ((r = dok_zapis_nowy(&zp, folder, n, nl, tworca, pochodzenie)) != 0)
+            return r;
+        return caly(&zp, z != NULL ? z : &pusty, teraz, id);
+    }
+    if (!folder_otwarty(folder) || glebokosc(folder) >= K1_DOK_GLEBOKOSC)
         return K1_DOK_BLAD_MIEJSCE;
     if (n_wpisow == K1_DOK_MAKS || nastepny > K1_DOK_ID_MAKS)
         return K1_DOK_BLAD_PELNO;
-    if (!miejsce_na(z != NULL && rodzaj == K1_DOK_PLIK ? z->dl : 0))
+    if (!dok_miejsce_na(0))
         return K1_DOK_BLAD_BRAK_MIEJSCA;
     memset(&w, 0, sizeof w);
     w.id = nastepny;
@@ -150,19 +149,8 @@ int dok_nowy(uint32_t folder, int rodzaj, const char *nazwa, size_t nl, const st
     w.pochodzenie = (uint8_t)pochodzenie;
     w.tworca = (uint8_t)tworca;
     w.utworzono = w.zmieniono = teraz;
-    if ((r = wolna_nazwa(folder, n, 0, w.nazwa)) != 0)
+    if ((r = wolna_nazwa(folder, n, 0, w.nazwa)) != 0 || (r = zapisz_wpis(&w)) != 0)
         return r;
-    if (rodzaj == K1_DOK_PLIK) {
-        w.generacja = 1;
-        w.rozmiar = z != NULL ? z->dl : 0;
-        w.typ = K1_TYP_TEKST;
-        if (z != NULL && (r = zapisz_kawalki(w.id, 1, z, &w.typ)) != 0)
-            return r;
-    }
-    if ((r = zapisz_wpis(&w)) != 0) {
-        usun_kawalki(w.id, w.generacja, kawalkow(w.rozmiar));
-        return r;
-    }
     dok_dodaj(&w);
     nastepny++;
     *id = w.id;
@@ -171,42 +159,32 @@ int dok_nowy(uint32_t folder, int rodzaj, const char *nazwa, size_t nl, const st
 
 int dok_zapisz_tresc(uint32_t id, const struct dok_zrodlo *z, int64_t teraz)
 {
-    int i = indeks(id), r;
-    struct k1_dok_wpis w;
-    if (i < 0)
-        return K1_DOK_BLAD_BRAK;
-    if (wpisy[i].rodzaj != K1_DOK_PLIK || !dok_widoczny(id))
-        return K1_DOK_BLAD_MIEJSCE;
-    if (!miejsce_na(z->dl))
+    struct dok_zapis zp;
+    uint32_t ten;
+    int r;
+    if ((r = dok_zapis_tresci(&zp, id)) != 0)
+        return r;
+    if (!dok_miejsce_na(z->dl)) {
+        dok_zapis_porzuc(&zp);
         return K1_DOK_BLAD_BRAK_MIEJSCA;
-    w = wpisy[i];
-    w.generacja++;
-    w.rozmiar = z->dl;
-    w.zmieniono = teraz;
-    if ((r = zapisz_kawalki(id, w.generacja, z, &w.typ)) != 0)
-        return r;
-    if ((r = zapisz_wpis(&w)) != 0) {
-        usun_kawalki(id, w.generacja, kawalkow(w.rozmiar));
-        return r;
     }
-    usun_kawalki(id, wpisy[i].generacja, kawalkow(wpisy[i].rozmiar));
-    wpisy[i] = w;
-    return 0;
+    return caly(&zp, z, teraz, &ten);
 }
 
-int dok_czytaj_tresc(uint32_t id, uint64_t maks, const struct dok_cel *c, uint64_t *ile)
+int dok_czytaj_tresc(uint32_t id, uint32_t od_kawalka, uint64_t maks, const struct dok_cel *c, uint64_t *ile)
 {
     const struct k1_dok_wpis *w = dok_wpis(id);
     char n[K1_MAG_NAZWA];
-    uint64_t od = 0, do_ = maks;
+    uint64_t od = (uint64_t)od_kawalka * K1_DOK_KAWALEK, do_;
     *ile = 0;
     if (w == NULL)
         return K1_DOK_BLAD_BRAK;
     if (w->rodzaj != K1_DOK_PLIK)
         return K1_DOK_BLAD_MIEJSCE;
-    if (do_ > w->rozmiar)
-        do_ = w->rozmiar;
-    for (uint32_t k = 0; od < do_; k++) {
+    if (od > w->rozmiar) /* past the end (the end itself: nothing, e.g. an empty file) */
+        return K1_MAG_ARG;
+    do_ = w->rozmiar - od < maks ? w->rozmiar : od + maks;
+    for (uint32_t k = od_kawalka; od < do_; k++) {
         uint32_t dl;
         int r;
         nazwa_kawalka(id, w->generacja, k, n);
@@ -220,8 +198,8 @@ int dok_czytaj_tresc(uint32_t id, uint64_t maks, const struct dok_cel *c, uint64
         if (c->pisz(c->ctx, kawalek, dl) != 0)
             return K1_MAG_IO;
         od += dl;
+        *ile += dl;
     }
-    *ile = od;
     return 0;
 }
 

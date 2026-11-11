@@ -57,3 +57,23 @@ Od 0.8.0 skarbiec trzyma pliki użytkownika, a K1-DANE na pendrivie sięga do ko
 - Testy: `test_indeks`, `test_magazyn` (65 536 obiektów, długi dziennik, kompaktowanie przy otwarciu i w pracy, awaria
   w połowie kompaktowania i przy zapisie nagłówka), `test_dokumenty` (16 384 wpisy, drzewo tysięcy wpisów, rezerwa),
   `fuzz_magazyn`, `fuzz_dokument`; QEMU `test-skarbiec.sh` (długi dziennik, prawie pełna K1-DANE 64 MiB).
+
+## Uzupełnienie (0.8.1 krok 4, 2026-11-11): przesyłanie w kawałkach
+Plik do 0.8.0 podróżował w całości w jednym memfd (czytnik → Pliki → skarbiec; skarbiec → Pliki, Notatki, dekoder).
+Strony memfd liczą się do cgroup twórcy, a `RLIMIT_FSIZE` ogranicza memfd — limit 16 MiB na plik chronił pamięć,
+nie bezpieczeństwo (plan L23). Format na dysku już trzymał treść w kawałkach po 1 MiB.
+1. **Komunikaty przenoszą najwyżej kawałek** (1 MiB): `DOK_NOWY`/`DOK_ZAPISZ` z „dalej są kawałki” otwierają zapis
+   w toku, `DOK_KAWALEK` po każdej odpowiedzi, `DOK_KONIEC` zapisuje wpis albo porzuca; `DOK_CZYTAJ` od kawałka,
+   `PEN_CZYTAJ`/`PEN_PLIK` kawałkami. Rozmiar pliku w komunikatach w dwóch polach (niższe, wyższe 32 bity).
+2. **Wpis po wszystkich kawałkach** — przerwa prądu zostawia starą wersję, kawałki bez wpisu sprząta start (jak
+   dotąd); porzucony zapis (błąd, zamknięty kanał, `DOK_KONIEC` a = 1, plik w Koszu przed końcem) usuwa swoje
+   kawałki od razu. Jeden zapis w toku na kanał i na plik.
+3. **`K1_DOK_MAKS_BAJTY` 16 MiB → 4 GiB** (4096 kawałków; tyle ma największy plik FAT32). Limit wolno tylko podnosić
+   (wpis z większym rozmiarem przy starcie byłby naprawiany). Limity klatek (`RLIMIT_FSIZE`, cgroup) bez zmian.
+4. **Wyjątek: zdjęcie dla dekodera** — dekoder musi mieć cały plik; skarbiec wysyła go w jednej odpowiedzi do
+   `K1_DEK_MAKS_BAJTY` (16 MiB, osobny limit wejścia dekodera — krok 6 planu ustala jego nową wartość). Memfd tworzy
+   skarbiec, jak dotąd, więc pamięć Plików się nie zmienia.
+
+Testy: `test_dokumenty` (zapis w toku przez kanał, przerwy i porzucenia), `test_komunikat`, `test_fat` (odczyt od
+miejsca z kursorem), `fuzz_komunikat`, `fuzz_fat`; QEMU `test-pendrive.sh` (plik 300 MB z pendrive'a, plik 17 MB już
+nie „za duży”).

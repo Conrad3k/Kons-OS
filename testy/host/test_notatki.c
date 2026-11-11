@@ -150,7 +150,7 @@ static const char *tresc(uint32_t id)
     struct dok_cel c = { pisz_tekst, &w };
     uint64_t ile = 0;
     w.n = 0;
-    if (dok_czytaj_tresc(id, MAKS_TEKST, &c, &ile) != 0)
+    if (dok_czytaj_tresc(id, 0, MAKS_TEKST, &c, &ile) != 0)
         return "";
     w.t[w.n] = '\0';
     return w.t;

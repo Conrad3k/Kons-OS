@@ -204,6 +204,7 @@ void dok_wczytaj(int64_t teraz)
     int zle = 0, sieroty = 0, kawalki = 0, stare;
     memset(&st, 0, sizeof st);
     dok_wyczysc();
+    dok_zapis_zapomnij();
     nastepny = K1_DOK_PIERWSZY;
     dok_czas_wczytaj();
     ob_kazdy(WL, wczytaj_wpis, &zle);

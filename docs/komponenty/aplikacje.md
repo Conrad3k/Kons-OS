@@ -108,8 +108,10 @@ Backspace (w górę), F2 (zmień nazwę), Delete (do Kosza), strzałki, Esc. Zł
 kropka na końcu) i zajęte — komunikat w stopce. **Pendrive** (0.8.0 krok 3, ADR 0031): gdy włożony jest pendrive
 (nie pendrive K1), pod Koszem pojawia się miejsce „Pendrive” — jego foldery i pliki (tylko do odczytu: bez zmiany nazwy
 i usuwania) czyta usługa `czytnik` (`komponenty/czytnik.md`); przyciski „Importuj” (zaznaczony plik) i „Importuj
-wszystkie” (pliki folderu): zdjęcia PNG/JPEG do Obrazów, reszta do Dokumentów, pochodzenie „z pendrive'a”; pliki
-większe niż 16 MB pominięte, postęp i wynik w stopce; wyjęty pendrive — powrót do Dokumentów. Moduły: `main.c` (okno,
+wszystkie” (pliki folderu): zdjęcia PNG/JPEG do Obrazów, reszta do Dokumentów, pochodzenie „z pendrive'a”; od 0.8.1
+(krok 4) pliki do 4 GB, kawałkami po 1 MiB prosto z czytnika do skarbca (Pliki nie czytają treści; przy dużym pliku
+stopka: „Importowanie: 1 z 3… 120 z 300 MB”), wyjęty pendrive w trakcie — skarbiec usuwa już zapisane kawałki;
+podgląd zdjęcia tylko do 16 MB (limit dekodera); postęp i wynik w stopce; wyjęty pendrive — powrót do Dokumentów. Moduły: `main.c` (okno,
 mysz, klawisze), `przyciski.c` (przyciski miejsca), `rysuj.c` (lista, podgląd, stopka), `dane.c` (skarbiec i nadzorca),
 `pendrive.c` (pendrive i import), `obrazy.c` (podgląd zdjęcia i tapeta przez dekoder; kanał do dekodera = 5. kanał
 aplikacji, `K1_APL_KANALY`).

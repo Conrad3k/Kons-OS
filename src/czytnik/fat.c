@@ -331,32 +331,64 @@ int fat_folder(struct fat *f, uint32_t klaster, int (*kazdy)(void *ctx, const st
 
 /* ---- files ---- */
 
-int fat_czytaj(struct fat *f, uint32_t klaster, uint32_t rozmiar, uint32_t ile,
-               int (*pisz)(void *ctx, const void *buf, uint32_t n), void *ctx)
+/* The cluster number `nr` of the chain that starts at `pierwszy`, from the cursor when it is on the way. */
+static int do_klastra(struct fat *f, const struct fat_kursor *c, uint32_t pierwszy, uint32_t nr, uint32_t *klaster)
 {
-    uint32_t zostalo = ile < rozmiar ? ile : rozmiar, krokow = 0;
+    uint32_t k = pierwszy, i = 0;
+    int r;
+    if (c != NULL && c->pierwszy == pierwszy && c->nr <= nr && c->klaster != 0)
+        k = c->klaster, i = c->nr;
+    for (; i < nr; i++) {
+        if (i > f->klastrow)
+            return FAT_BLAD_USZKODZONY; /* a loop in the chain */
+        if ((r = nastepny(f, k, &k)) != 0)
+            return r;
+        if (k == 0)
+            return FAT_BLAD_USZKODZONY; /* the chain ends before the file does */
+    }
+    *klaster = k;
+    return 0;
+}
+
+int fat_czytaj_od(struct fat *f, struct fat_kursor *c, uint32_t klaster, uint32_t rozmiar, uint32_t od, uint32_t ile,
+                  int (*pisz)(void *ctx, const void *buf, uint32_t n), void *ctx)
+{
+    uint32_t zostalo = od >= rozmiar ? 0 : (ile < rozmiar - od ? ile : rozmiar - od), nr = od / f->klaster;
+    uint32_t w = od % f->klaster, k, krokow = 0, pierwszy = klaster;
     int r;
     if (zostalo == 0)
         return 0;
     if (!poprawny(f, klaster))
         return FAT_BLAD_USZKODZONY;
+    if ((r = do_klastra(f, c, pierwszy, nr, &k)) != 0)
+        return r;
     for (;;) {
-        uint32_t w_klastrze = zostalo < f->klaster ? zostalo : f->klaster;
-        for (uint32_t od = 0; od < w_klastrze; od += KAWALEK) {
-            uint32_t n = w_klastrze - od < KAWALEK ? w_klastrze - od : KAWALEK;
-            if ((r = czytaj(f, gdzie(f, klaster) + od, kawalek, n)) != 0)
+        uint32_t w_klastrze = zostalo < f->klaster - w ? zostalo : f->klaster - w;
+        for (uint32_t o = 0; o < w_klastrze; o += KAWALEK) {
+            uint32_t n = w_klastrze - o < KAWALEK ? w_klastrze - o : KAWALEK;
+            if ((r = czytaj(f, gdzie(f, k) + w + o, kawalek, n)) != 0)
                 return r;
             if (pisz(ctx, kawalek, n) != 0)
                 return FAT_BLAD_ODCZYT;
         }
         zostalo -= w_klastrze;
+        if (c != NULL)
+            *c = (struct fat_kursor){ pierwszy, nr, k };
         if (zostalo == 0)
             return 0;
+        w = 0;
         if (++krokow > f->klastrow)
             return FAT_BLAD_USZKODZONY;
-        if ((r = nastepny(f, klaster, &klaster)) != 0)
+        if ((r = nastepny(f, k, &k)) != 0)
             return r;
-        if (klaster == 0)
+        if (k == 0)
             return FAT_BLAD_USZKODZONY; /* the chain ends before the file does */
+        nr++;
     }
+}
+
+int fat_czytaj(struct fat *f, uint32_t klaster, uint32_t rozmiar, uint32_t ile,
+               int (*pisz)(void *ctx, const void *buf, uint32_t n), void *ctx)
+{
+    return fat_czytaj_od(f, NULL, klaster, rozmiar, 0, ile, pisz, ctx);
 }

@@ -40,6 +40,38 @@ static const struct prawa {
 
 static uint8_t lista[K1_DOK_LISTA_MAKS];
 static struct k1_dok_wpis wybrane[K1_DOK_MAKS];
+static uint8_t kawalek[K1_DOK_KAWALEK];
+
+/* A write in progress of each client channel (0.8.1 step 4): at most one; a closed channel abandons it. */
+#define KANALOW 16
+static struct {
+    int fd;
+    struct dok_zapis z;
+} zapisy[KANALOW];
+
+static struct dok_zapis *zapis_kanalu(int fd, int nowy)
+{
+    int wolny = -1;
+    for (int i = 0; i < KANALOW; i++) {
+        if (zapisy[i].z.jest && zapisy[i].fd == fd)
+            return &zapisy[i].z;
+        if (!zapisy[i].z.jest && wolny < 0)
+            wolny = i;
+    }
+    if (!nowy || wolny < 0)
+        return NULL;
+    zapisy[wolny].fd = fd;
+    return &zapisy[wolny].z;
+}
+
+void dok_koniec_kanalu(int fd)
+{
+    struct dok_zapis *z = zapis_kanalu(fd, 0);
+    if (z != NULL) {
+        k1_log(TAG, "pliki: kanał zamknięty w trakcie zapisu — porzucony (%u kawałków)", z->kawalkow);
+        dok_zapis_porzuc(z);
+    }
+}
 
 static const struct prawa *prawa_klienta(int wl)
 {
@@ -144,7 +176,7 @@ static int do_memfd(void *ctx, const void *buf, uint32_t n)
     return 0;
 }
 
-static void wyslij_tresc(int fd, uint32_t id, uint64_t maks)
+static void wyslij_tresc(int fd, uint32_t id, uint32_t od_kawalka, uint64_t maks)
 {
     int m_fd = k1_memfd_nowy("k1-plik"), r;
     struct do_memfd d = { m_fd, 0 };
@@ -156,7 +188,7 @@ static void wyslij_tresc(int fd, uint32_t id, uint64_t maks)
         wynik(fd, id, K1_KOM_DOK_CZYTAJ, K1_MAG_PAMIEC, 0);
         return;
     }
-    r = dok_czytaj_tresc(id, maks, &c, &ile);
+    r = dok_czytaj_tresc(id, od_kawalka, maks, &c, &ile);
     if (r == 0 && k1_memfd_zapieczetuj(m_fd) != 0) {
         wynik(fd, id, K1_KOM_DOK_CZYTAJ, K1_MAG_PAMIEC, 0);
         return;
@@ -166,20 +198,10 @@ static void wyslij_tresc(int fd, uint32_t id, uint64_t maks)
         wynik(fd, id, K1_KOM_DOK_CZYTAJ, r, 0);
         return;
     }
-    m = k1_komunikat_nowy(K1_KOM_DOK_TRESC, id, (int32_t)ile, (int32_t)w->rozmiar, 0, 0, 0);
+    m = k1_komunikat_nowy(K1_KOM_DOK_TRESC, id, (int32_t)ile, (int32_t)od_kawalka, k1_kom_niskie(w->rozmiar),
+                          k1_kom_wysokie(w->rozmiar), 0);
     k1_kanal_wyslij(fd, &m, sizeof m, m_fd);
     close(m_fd);
-}
-
-/* Content from a client's memfd, from byte `od`. */
-struct z_memfd {
-    int fd;
-    uint64_t od;
-};
-static int z_memfd(void *ctx, uint64_t od, void *buf, uint32_t n)
-{
-    const struct z_memfd *z = ctx;
-    return k1_czytaj_calosc(z->fd, buf, n, z->od + od);
 }
 
 /* The name at the start of a client's memfd of `calosc` bytes (checked: sealed, exactly that size). */
@@ -191,29 +213,78 @@ static int czytaj_nazwe(int fd, size_t calosc, size_t nl, char nazwa[K1_DOK_NAZW
     return 0;
 }
 
-/* NOWY: obiekt=folder, a=kind, b=name length, c=content length. A client with its own folder: files go there. */
-static int nowy(const struct prawa *p, const struct k1_komunikat *m, int fd_in, uint32_t *id)
+/* The first piece of a write in progress from a client's memfd (from byte `od`, `dl` bytes). */
+static int pierwszy(struct dok_zapis *z, int fd_in, size_t od, size_t dl)
+{
+    int r = dl == 0 ? 0 : k1_czytaj_calosc(fd_in, kawalek, dl, (uint64_t)od) == 0 ? dok_zapis_kawalek(z, kawalek, (uint32_t)dl)
+                                                                              : K1_MAG_ARG;
+    if (r != 0)
+        dok_zapis_porzuc(z);
+    return r;
+}
+
+/* NOWY: obiekt=folder, a=kind, b=name length, c=content length, e=1 more pieces follow (a write in progress). A client
+ * with its own folder: files go there. */
+static int nowy(int fd, const struct prawa *p, const struct k1_komunikat *m, int fd_in, uint32_t *id)
 {
     char nazwa[K1_DOK_NAZWA];
-    struct z_memfd z = { fd_in, (uint64_t)m->b };
-    struct dok_zrodlo zr = { z_memfd, &z, (uint64_t)m->c };
+    struct dok_zapis *z;
     uint32_t folder = m->obiekt;
     int r = czytaj_nazwe(fd_in, (size_t)m->b + (size_t)m->c, (size_t)m->b, nazwa);
     if (r == 0 && p->folder != NULL)
         r = dok_folder_aplikacji(p->folder, p->wlasciciel, teraz(), &folder);
     if (r != 0)
         return r;
-    return dok_nowy(folder, m->a, nazwa, (size_t)m->b, m->a == K1_DOK_PLIK ? &zr : NULL, p->wlasciciel,
-                    m->d != 0 ? m->d : K1_POCH_K1, teraz(), id);
+    if (m->a == K1_DOK_FOLDER)
+        return dok_nowy(folder, m->a, nazwa, (size_t)m->b, NULL, p->wlasciciel, K1_POCH_K1, teraz(), id);
+    if ((z = zapis_kanalu(fd, 1)) == NULL || z->jest)
+        return K1_DOK_BLAD_ZAPIS; /* this channel has a write in progress already */
+    if (!dok_miejsce_na((uint64_t)m->c))
+        return K1_DOK_BLAD_BRAK_MIEJSCA;
+    if ((r = dok_zapis_nowy(z, folder, nazwa, (size_t)m->b, p->wlasciciel, m->d != 0 ? m->d : K1_POCH_K1)) != 0 ||
+        (r = pierwszy(z, fd_in, (size_t)m->b, (size_t)m->c)) != 0)
+        return r;
+    return m->e ? 0 : dok_zapis_koniec(z, teraz(), id);
 }
 
-static int zapisz(const struct k1_komunikat *m, int fd_in)
+static int zapisz(int fd, const struct k1_komunikat *m, int fd_in)
 {
-    struct z_memfd z = { fd_in, 0 };
-    struct dok_zrodlo zr = { z_memfd, &z, (uint64_t)m->a };
+    struct dok_zapis *z;
+    uint32_t id;
+    int r;
     if (k1_memfd_sprawdz(fd_in, (size_t)m->a) != 0)
         return K1_MAG_ARG;
-    return dok_zapisz_tresc(m->obiekt, &zr, teraz());
+    if ((z = zapis_kanalu(fd, 1)) == NULL || z->jest)
+        return K1_DOK_BLAD_ZAPIS;
+    if ((r = dok_zapis_tresci(z, m->obiekt)) != 0)
+        return r;
+    if (!dok_miejsce_na((uint64_t)m->a)) {
+        dok_zapis_porzuc(z);
+        return K1_DOK_BLAD_BRAK_MIEJSCA;
+    }
+    if ((r = pierwszy(z, fd_in, 0, (size_t)m->a)) != 0)
+        return r;
+    return m->b ? 0 : dok_zapis_koniec(z, teraz(), &id);
+}
+
+/* DOK_KAWALEK, DOK_KONIEC: the client's write in progress goes on, ends or is abandoned. */
+static int dalej(int fd, const struct k1_komunikat *m, int fd_in, uint32_t *id)
+{
+    struct dok_zapis *z = zapis_kanalu(fd, 0);
+    if (z == NULL)
+        return K1_DOK_BLAD_ZAPIS;
+    if (m->typ == K1_KOM_DOK_KAWALEK) {
+        if (k1_memfd_sprawdz(fd_in, (size_t)m->a) != 0) {
+            dok_zapis_porzuc(z);
+            return K1_MAG_ARG;
+        }
+        return pierwszy(z, fd_in, 0, (size_t)m->a);
+    }
+    if (m->a == 1) {
+        dok_zapis_porzuc(z);
+        return 0;
+    }
+    return dok_zapis_koniec(z, teraz(), id);
 }
 
 static int nazwa(const struct k1_komunikat *m, int fd_in)
@@ -224,13 +295,16 @@ static int nazwa(const struct k1_komunikat *m, int fd_in)
 }
 
 /* A change request already allowed: its result. */
-static int zmiana(const struct prawa *p, const struct k1_komunikat *m, int fd_in, uint32_t *nowy_id)
+static int zmiana(int fd, const struct prawa *p, const struct k1_komunikat *m, int fd_in, uint32_t *nowy_id)
 {
     switch (m->typ) {
     case K1_KOM_DOK_NOWY:
-        return nowy(p, m, fd_in, nowy_id);
+        return nowy(fd, p, m, fd_in, nowy_id);
     case K1_KOM_DOK_ZAPISZ:
-        return zapisz(m, fd_in);
+        return zapisz(fd, m, fd_in);
+    case K1_KOM_DOK_KAWALEK:
+    case K1_KOM_DOK_KONIEC:
+        return dalej(fd, m, fd_in, nowy_id);
     case K1_KOM_DOK_NAZWA:
         return nazwa(m, fd_in);
     case K1_KOM_DOK_PRZENIES:
@@ -261,6 +335,8 @@ static int potrzebne_prawo(const struct k1_komunikat *m)
     case K1_KOM_DOK_OPROZNIJ: return P_OPROZNIJ;
     case K1_KOM_DOK_OTWORZ: return P_OTWORZ;
     case K1_KOM_DOK_WYBIERZ: return P_WYBIERZ;
+    case K1_KOM_DOK_KAWALEK:
+    case K1_KOM_DOK_KONIEC: return 0; /* the rights were checked when the write started (NOWY, ZAPISZ) */
     default: return P_WYBRANO;
     }
 }
@@ -276,6 +352,8 @@ static int widzi(const struct prawa *p, const struct k1_komunikat *m)
     case K1_KOM_DOK_OPROZNIJ:
     case K1_KOM_DOK_WYBIERZ:
     case K1_KOM_DOK_WYBRANO: /* the file itself is checked in dostep.c */
+    case K1_KOM_DOK_KAWALEK:
+    case K1_KOM_DOK_KONIEC: /* the client's own write in progress */
         return 1;
     case K1_KOM_DOK_NOWY: /* the desktop: into Pulpit; an application with its folder: a file "into Dokumenty" = there */
         return p->zakres == Z_PULPIT ? m->obiekt == K1_FOLDER_PULPIT
@@ -316,9 +394,9 @@ int dok_obsluz(int fd, int wl, const struct k1_komunikat *m, int fd_in)
         wyslij_liste(fd, p);
         r = 1; /* not a change */
     } else if (m->typ == K1_KOM_DOK_CZYTAJ) {
-        wyslij_tresc(fd, m->obiekt, (uint64_t)m->a);
+        wyslij_tresc(fd, m->obiekt, (uint32_t)m->b, (uint64_t)m->a);
         r = 1;
-    } else if (m->typ >= K1_KOM_DOK_OTWORZ) {
+    } else if (m->typ >= K1_KOM_DOK_OTWORZ && m->typ <= K1_KOM_DOK_WYBRANO) {
         r = wybor(fd, p, m);
         if (r != 0 || m->typ != K1_KOM_DOK_WYBIERZ) /* WYBIERZ: the answer is DOK_WYBRANY, later */
             wynik(fd, m->obiekt, m->typ, r, 0);
@@ -326,10 +404,13 @@ int dok_obsluz(int fd, int wl, const struct k1_komunikat *m, int fd_in)
             k1_log(TAG, "pliki: komunikat %d (właściciel %d): odmowa (%d)", m->typ, wl, r);
         r = 1; /* no file changed */
     } else {
-        r = zmiana(p, m, fd_in, &nowy_id);
+        r = zmiana(fd, p, m, fd_in, &nowy_id);
         wynik(fd, m->obiekt, m->typ, r, r == 0 ? nowy_id : 0);
         if (r != 0)
             k1_log(TAG, "pliki: komunikat %d (właściciel %d): %s", m->typ, wl, r <= K1_DOK_BLAD_NAZWA ? "odmowa" : k1_mag_opis(r));
+        if (r == 0 && (m->typ == K1_KOM_DOK_KAWALEK || (m->typ == K1_KOM_DOK_KONIEC && m->a == 1) ||
+                       (m->typ == K1_KOM_DOK_NOWY && m->e) || (m->typ == K1_KOM_DOK_ZAPISZ && m->b)))
+            r = 1; /* a write in progress: nothing to see until it is done */
     }
     if (fd_in >= 0)
         close(fd_in);

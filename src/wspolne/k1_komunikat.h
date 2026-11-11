@@ -144,14 +144,24 @@ enum k1_komunikat_typ {
     K1_KOM_SB_KLUCZ = 78,     /* obiekt=0: prepare the enrolment of the K1 key (MokNew + MokAuth for MokManager) */
     /* client (Pliki, gui) → skarbiec (0.8.0, ADR 0029): files and folders; what a client may do comes from
      * the table of rights in skarbiec (dokumenty.c). Entry numbers: 1..K1_FOLDERY_MAKS standard folders,
-     * K1_DOK_PIERWSZY..K1_DOK_ID_MAKS the user's. Names and content travel in a sealed memfd. */
+     * K1_DOK_PIERWSZY..K1_DOK_ID_MAKS the user's. Names and content travel in a sealed memfd. Since 0.8.1 (step 4,
+     * ADR 0034) content travels in pieces of at most K1_DOK_KAWALEK: a larger file is written as a write in progress
+     * (NOWY/ZAPISZ with "more follow", DOK_KAWALEK after each answer, DOK_KONIEC) and read piece by piece. */
     K1_KOM_DOK_SPIS = 84,      /* obiekt=0: the entries this client may see (reply: DOK_LISTA) */
-    K1_KOM_DOK_CZYTAJ = 85,    /* obiekt=file, a=at most this many bytes (1..K1_DOK_MAKS_BAJTY) (reply: DOK_TRESC) */
-    K1_KOM_DOK_NOWY = 86,      /* obiekt=folder, a=K1_DOK_PLIK/FOLDER, b=name length 1..127, c=content length
-                                * (folder: 0), d=origin 0 (= K1) or K1_POCH_* (a file, Pliki only: an import, ADR 0031);
-                                * + 1 memfd of b + c bytes: the name, then the content. Notatki (0.8.0, ADR 0030):
-                                * obiekt=Dokumenty — the file goes to its folder Dokumenty › Notatki */
-    K1_KOM_DOK_ZAPISZ = 87,    /* obiekt=file, a=length 0..K1_DOK_MAKS_BAJTY; + 1 memfd: the new content */
+    K1_KOM_DOK_CZYTAJ = 85,    /* obiekt=file, a=at most this many bytes (1..K1_DEK_MAKS_BAJTY: a piece, or a whole
+                                * picture for dekoder), b=from piece b (0..K1_DOK_KAWALKI_MAKS-1: byte b × K1_DOK_KAWALEK
+                                * on) (reply: DOK_TRESC) */
+    K1_KOM_DOK_NOWY = 86,      /* obiekt=folder, a=K1_DOK_PLIK/FOLDER, b=name length 1..127, c=content length in this
+                                * memfd 0..K1_DOK_KAWALEK (folder: 0), d=origin 0 (= K1) or K1_POCH_* (a file, Pliki only:
+                                * an import, ADR 0031), e=1 a write in progress: more pieces follow (a file only; then
+                                * c=K1_DOK_KAWALEK), else 0; + 1 memfd of b + c bytes: the name, then the content.
+                                * Notatki (0.8.0, ADR 0030): obiekt=Dokumenty — the file goes to its folder Dokumenty › Notatki */
+    K1_KOM_DOK_ZAPISZ = 87,    /* obiekt=file, a=length 0..K1_DOK_KAWALEK, b=1 a write in progress (then a=K1_DOK_KAWALEK)
+                                * else 0; + 1 memfd: the new content (its first piece) */
+    K1_KOM_DOK_KAWALEK = 116,  /* (0.8.1 step 4) the next piece of the client's write in progress: obiekt=0,
+                                * a=length 1..K1_DOK_KAWALEK (every piece but the last: K1_DOK_KAWALEK); + 1 memfd */
+    K1_KOM_DOK_KONIEC = 117,   /* (0.8.1 step 4) obiekt=0, a=0 the write in progress is done (the entry is written now),
+                                * a=1 abandoned (its pieces deleted) (reply: DOK_WYNIK; c = the new file's number) */
     K1_KOM_DOK_NAZWA = 88,     /* obiekt=entry, a=name length 1..127, b=1 a taken name gets " (2)"… (else 0: refused);
                                 * + 1 memfd: the new name */
     K1_KOM_DOK_PRZENIES = 89,  /* obiekt=entry, a=the folder it goes to */
@@ -161,9 +171,11 @@ enum k1_komunikat_typ {
     K1_KOM_DOK_OPROZNIJ = 93,  /* obiekt=0: everything in Kosz deleted for good */
     /* skarbiec → client */
     K1_KOM_DOK_LISTA = 94,     /* obiekt=0, a=length 16..K1_DOK_LISTA_MAKS, b=entries 0..K1_DOK_MAKS; + 1 memfd (k1_dokument.h) */
-    K1_KOM_DOK_TRESC = 95,     /* obiekt=file, a=bytes sent, b=its whole size (a <= b); + 1 memfd of a bytes */
-    K1_KOM_DOK_WYNIK = 96,     /* obiekt=entry (0: none), a=request type (84..93), b=result (0, K1_MAG_* or
-                                * K1_DOK_BLAD_* < 0), c=the new entry's number (NOWY; else 0) */
+    K1_KOM_DOK_TRESC = 95,     /* obiekt=file, a=bytes sent 0..K1_DEK_MAKS_BAJTY, b=from piece b (as asked), c,d=its whole
+                                * size (k1_kom_u64: low, high 32 bits; ≤ K1_DOK_MAKS_BAJTY, ≥ b × K1_DOK_KAWALEK + a);
+                                * + 1 memfd of a bytes */
+    K1_KOM_DOK_WYNIK = 96,     /* obiekt=entry (0: none), a=request type (84..93, KAWALEK, KONIEC), b=result (0,
+                                * K1_MAG_* or K1_DOK_BLAD_* < 0), c=the new entry's number (NOWY, KONIEC; else 0) */
     K1_KOM_DOK_ZMIANA = 97,    /* obiekt=0: files changed — ask for the list again (to every client allowed to list) */
     /* client → skarbiec (0.8.0 step 2, ADR 0030): a file for an application, always after a gesture of the user */
     K1_KOM_DOK_OTWORZ = 98,    /* Pliki, gui: obiekt=file, a=application 1..K1_APL_MAKS that opens its type (not Pliki):
@@ -189,16 +201,19 @@ enum k1_komunikat_typ {
     K1_KOM_DEKODER_KANAL = 28,   /* to Pliki: obiekt=0; + 1 fd: the channel to the new dekoder */
     /* Pliki → czytnik (the stick, read only; obiekt = an entry of a list it sent, 0: the main folder) */
     K1_KOM_PEN_SPIS = 103,       /* obiekt=folder: its entries (reply: PEN_LISTA) */
-    K1_KOM_PEN_CZYTAJ = 104,     /* obiekt=file: its name and content, for DOK_NOWY (reply: PEN_PLIK) */
+    K1_KOM_PEN_CZYTAJ = 104,     /* obiekt=file, a=piece 0..K1_DOK_KAWALKI_MAKS-1 (0.8.1 step 4): its name (piece 0) and
+                                  * that piece of the content, for DOK_NOWY / DOK_KAWALEK (reply: PEN_PLIK) */
     /* czytnik → Pliki */
     K1_KOM_PEN_STAN = 105,       /* once at start: obiekt=0, a=12/16/32 the FAT the stick has, or a=0 and b=K1_PEN_BLAD_* */
     K1_KOM_PEN_LISTA = 106,      /* obiekt=folder, a=length 16..K1_PEN_LISTA_MAKS, b=entries 0..K1_PEN_WPISOW, c=1 the
                                   * folder has more; + 1 memfd (k1_pendrive.h) */
-    K1_KOM_PEN_PLIK = 107,       /* obiekt=file, a=name length 1..127, b=content length 0..K1_DOK_MAKS_BAJTY; + 1 memfd
-                                  * of a + b bytes: the name, then the content (as DOK_NOWY wants it) */
+    K1_KOM_PEN_PLIK = 107,       /* obiekt=file, a=name length (piece 0: 1..127, others: 0), b=bytes of the piece
+                                  * 0..K1_DOK_KAWALEK, c=the piece, d,e=the file's size (k1_kom_u64, ≤ K1_DOK_MAKS_BAJTY,
+                                  * ≥ c × K1_DOK_KAWALEK + b); + 1 memfd of a + b bytes: the name, then the piece (as
+                                  * DOK_NOWY or DOK_KAWALEK want it) */
     K1_KOM_PEN_WYNIK = 108,      /* obiekt=entry, a=request type (PEN_SPIS, PEN_CZYTAJ), b=K1_PEN_BLAD_* (< 0) */
     /* Pliki → dekoder (once: dekoder ends after the answer; obiekt = the caller's number, sent back) */
-    K1_KOM_DEK_OBRAZ = 109,      /* a=file length 1..K1_DOK_MAKS_BAJTY, b,c = the largest width 1..K1_DEK_MAKS_W and
+    K1_KOM_DEK_OBRAZ = 109,      /* a=file length 1..K1_DEK_MAKS_BAJTY, b,c = the largest width 1..K1_DEK_MAKS_W and
                                   * height 1..K1_DEK_MAKS_H wanted; + 1 sealed memfd: the PNG or JPEG file */
     /* dekoder → Pliki */
     K1_KOM_DEK_PIKSELE = 110,    /* a,b = width 1..K1_DEK_MAKS_W, height 1..K1_DEK_MAKS_H; + 1 sealed memfd of a × b
@@ -342,6 +357,20 @@ _Static_assert(offsetof(struct k1_komunikat, obiekt) == 4, "k1_komunikat: unexpe
 _Static_assert(offsetof(struct k1_komunikat, a) == 8, "k1_komunikat: unexpected layout");
 _Static_assert(offsetof(struct k1_komunikat, zarezerwowane) == 28, "k1_komunikat: unexpected layout");
 
+/* A size of up to 64 bits in two fields (0.8.1 step 4: files up to K1_DOK_MAKS_BAJTY): low and high 32 bits. */
+static inline uint64_t k1_kom_u64(int32_t niskie, int32_t wysokie)
+{
+    return (uint64_t)(uint32_t)niskie | (uint64_t)(uint32_t)wysokie << 32;
+}
+static inline int32_t k1_kom_niskie(uint64_t v)
+{
+    return (int32_t)(uint32_t)v;
+}
+static inline int32_t k1_kom_wysokie(uint64_t v)
+{
+    return (int32_t)(uint32_t)(v >> 32);
+}
+
 /* Sample `i` (0..15) of a K1_KOM_BATERIA_HIST message. */
 static inline unsigned k1_bat_probka(const struct k1_komunikat *k, int i)
 {
@@ -365,7 +394,7 @@ int k1_komunikat_sprawdz(const void *buf, size_t len, enum k1_kanal_kierunek kie
 /* Whether a message type carries exactly one file descriptor (SCM_RIGHTS). Types not listed
  * carry none; receivers reject (and close) descriptors attached to any other message. */
 int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek);
-/* 1 for a request about files a client sends to skarbiec (K1_KOM_DOK_SPIS..OPROZNIJ, OTWORZ..WYBRANO). */
+/* 1 for a request about files a client sends to skarbiec (K1_KOM_DOK_SPIS..OPROZNIJ, OTWORZ..WYBRANO, KAWALEK, KONIEC). */
 int k1_kom_dok_prosba(int typ);
 
 #endif

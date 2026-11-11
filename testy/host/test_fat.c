@@ -109,6 +109,37 @@ static int licz(void *ctx, const void *buf, uint32_t n)
     return 0;
 }
 
+/* 0.8.1 step 4: the same file read in pieces from an offset (an odd size: across clusters), the cursor going on
+ * through the chain; then backwards (the cursor is behind: from the first cluster again) and another file's cursor. */
+static int kawalkami(const struct fat_wpis *w, struct fat *f)
+{
+    static uint8_t calosc[sizeof tresc];
+    struct fat_kursor k = { 0, 0, 0 }, obcy = { w->klaster + 1, 5, w->klaster + 7 };
+    uint32_t od;
+    memcpy(calosc, tresc, n_tresc);
+    n_tresc = 0;
+    for (od = 0; od < w->rozmiar; od += 7777)
+        if (fat_czytaj_od(f, &k, w->klaster, w->rozmiar, od, 7777, do_tresci, NULL) != 0)
+            return 0;
+    if (n_tresc != w->rozmiar || memcmp(tresc, calosc, n_tresc) != 0)
+        return 0;
+    n_tresc = 0;
+    if (fat_czytaj_od(f, &k, w->klaster, w->rozmiar, w->rozmiar / 3, 1000, do_tresci, NULL) != 0 ||
+        n_tresc != (w->rozmiar - w->rozmiar / 3 < 1000 ? w->rozmiar - w->rozmiar / 3 : 1000) ||
+        memcmp(tresc, calosc + w->rozmiar / 3, n_tresc) != 0)
+        return 0;
+    n_tresc = 0;
+    if (fat_czytaj_od(f, &obcy, w->klaster, w->rozmiar, w->rozmiar / 2, 1000, do_tresci, NULL) != 0 ||
+        memcmp(tresc, calosc + w->rozmiar / 2, n_tresc) != 0)
+        return 0;
+    n_tresc = 0; /* past the end: nothing */
+    if (fat_czytaj_od(f, &k, w->klaster, w->rozmiar, w->rozmiar + 1, 10, do_tresci, NULL) != 0 || n_tresc != 0)
+        return 0;
+    memcpy(tresc, calosc, w->rozmiar); /* as the whole read left it (callers look at it) */
+    n_tresc = w->rozmiar;
+    return 1;
+}
+
 /* The file is the pattern of obrazy_fat.sh (after `naglowek` bytes of its own start). */
 static int wzor(const struct fat_wpis *w, struct fat *f, uint32_t naglowek)
 {
@@ -118,7 +149,7 @@ static int wzor(const struct fat_wpis *w, struct fat *f, uint32_t naglowek)
     for (uint32_t i = naglowek; i < n_tresc; i++)
         if (tresc[i] != (uint8_t)((i * 31 + 7) % 251))
             return 0;
-    return 1;
+    return kawalkami(w, f);
 }
 
 static int czas_bliski(int64_t t)

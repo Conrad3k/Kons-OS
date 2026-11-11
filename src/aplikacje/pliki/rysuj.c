@@ -24,8 +24,10 @@ void rozmiar_tekst(uint64_t b, char *buf, size_t n)
         snprintf(buf, n, "%u B", (unsigned)b);
     else if (b < 1024 * 1024)
         snprintf(buf, n, "%u KB", (unsigned)((b + 1023) / 1024));
-    else
+    else if (b < 1024ull * 1024 * 1024)
         snprintf(buf, n, "%u,%u MB", (unsigned)(b >> 20), (unsigned)((b & 0xfffffu) * 10 >> 20));
+    else /* files of up to 4 GB since 0.8.1 */
+        snprintf(buf, n, "%u,%u GB", (unsigned)(b >> 30), (unsigned)((b & 0x3fffffffu) * 10 >> 30));
 }
 
 enum k1_ikona ikona_wpisu(const struct k1_dok_wpis *w)
