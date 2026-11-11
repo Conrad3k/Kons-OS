@@ -8,7 +8,11 @@
      ma rozdział w docs/komponenty/aplikacje.md;
   3. każdy komunikat (K1_KOM_*) jest opisany w dokumencie swojego kanału w docs/komponenty/
      (nazwa w `…`, z przedrostkiem K1_KOM_ albo bez);
-  4. każde rozwiązanie tymczasowe (`k1: tymczasowe — usunąć w …`) ma wpis w docs/DO_ZROBIENIA.txt.
+  4. każde rozwiązanie tymczasowe (`k1: tymczasowe — usunąć w …`) ma wpis w docs/DO_ZROBIENIA.txt;
+  5. każdy ADR (docs/adr/NNNN-*.md) jest w spisie docs/adr/README.md (ADR 0035);
+  6. każda ścieżka docs/… wymieniona w żywych dokumentach (AGENTS.md, CLAUDE.md, README.md, docs/*.md,
+     docs/*.txt, docs/komponenty/, skill kons-dev) istnieje — bez docs/adr/, docs/archiwum/ i CHANGELOG.md
+     (historia) i bez wzorów (`<wersja>`, `*`, `NNNN`).
 
 Użycie: python3 -I scripts/sprawdz-czytelnosc.py [KATALOG_REPO]. Kod wyjścia 0 = wszystko w porządku.
 """
@@ -131,6 +135,44 @@ def sprawdz_tymczasowe(repo, bledy):
                         bledy.append(f"{wzgl}:{nr}: tymczasowe (do {termin}) bez wpisu w DO_ZROBIENIA.txt (Tymczasowe)")
 
 
+def sprawdz_adr(repo, bledy):
+    kat = os.path.join(repo, "docs", "adr")
+    with open(os.path.join(kat, "README.md"), encoding="utf-8") as f:
+        spis = f.read()
+    for p in sorted(os.listdir(kat)):
+        if re.match(r"\d{4}-.*\.md$", p) and "(" + p + ")" not in spis:
+            bledy.append(f"docs/adr/{p}: brak w spisie docs/adr/README.md")
+
+
+# a path under docs/ that names a file (with an extension) or a directory (ends with "/")
+SCIEZKA_DOCS = re.compile(r"(?<![\w/.-])docs/[\w./<>*{}…-]*?(?:\.(?:md|txt)\b|/(?![\w<*{]))")
+
+
+def sciezki_docs(tekst):
+    """Paths docs/… in a text, without patterns (<wersja>, *, NNNN)."""
+    for m in SCIEZKA_DOCS.findall(tekst):
+        if not re.search(r"[<>*{}…]|NNNN", m):
+            yield m
+
+
+def zywe_dokumenty(repo):
+    for p in ("AGENTS.md", "CLAUDE.md", "README.md", ".claude/skills/kons-dev/SKILL.md"):
+        yield p
+    for kat in ("docs", "docs/komponenty"):
+        for p in sorted(os.listdir(os.path.join(repo, kat))):
+            if p.endswith((".md", ".txt")):
+                yield kat + "/" + p
+
+
+def sprawdz_sciezki(repo, bledy):
+    for wzgl in zywe_dokumenty(repo):
+        with open(os.path.join(repo, wzgl), encoding="utf-8") as f:
+            tekst = f.read()
+        for s in sorted(set(sciezki_docs(tekst))):
+            if not os.path.exists(os.path.join(repo, s)):
+                bledy.append(f"{wzgl}: ścieżka {s} nie istnieje")
+
+
 def samotest():
     """The checker itself: a too-long file and function, an exception, a test that catches nothing fails."""
     tekst = "/* top */\n" + "int a(void)\n{\n" + "    x();\n" * 90 + "}\n" + \
@@ -140,6 +182,9 @@ def samotest():
     f = {n: d for n, _, d in funkcje(wiersze)}
     assert f.get("a") == 93 and f.get("b") == 94 and "t" not in f, f
     assert len(wiersze) > PLIK_MAKS
+    assert list(sciezki_docs("`docs/SPEC.md`, docs/komponenty/, docs/PLAN-<wersja>.txt, docs/CI, docs/adr/NNNN-*.md "
+                             "(docs/archiwum/PLAN-0.8.1.txt).")) == ["docs/SPEC.md", "docs/komponenty/",
+                                                                     "docs/archiwum/PLAN-0.8.1.txt"]
     assert lista_x("#define L(X) \\\n    X(A, 1, \"a\") \\\n    X(B, 2, \"b\")\n\n", "L") == [["A", "1", "a"], ["B", "2", "b"]]
 
 
@@ -150,12 +195,15 @@ def main():
     sprawdz_limity(repo, bledy)
     sprawdz_dokumenty(repo, bledy)
     sprawdz_tymczasowe(repo, bledy)
+    sprawdz_adr(repo, bledy)
+    sprawdz_sciezki(repo, bledy)
     for b in bledy:
         print("  " + b)
     if bledy:
         print(f"[k1] BŁĄD: zasady czytelności — {len(bledy)} do poprawy (AGENTS.md, „Czytelność”)")
         return 1
-    print("[k1] czytelność: pliki ≤ 600 wierszy, funkcje ≤ 80, opisy usług, aplikacji i komunikatów — OK")
+    print("[k1] czytelność: pliki ≤ 600 wierszy, funkcje ≤ 80, opisy usług, aplikacji i komunikatów, "
+          "spis ADR, ścieżki docs/ — OK")
     return 0
 
 

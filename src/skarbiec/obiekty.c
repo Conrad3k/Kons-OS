@@ -13,6 +13,7 @@
 #include "skarbiec.h"
 
 #define RAM_BAJTY (128u << 20) /* all objects in memory together */
+#define RAM_OBIEKTOW 65536     /* objects in memory (as in format 1 of the vault) */
 
 struct obiekt_ram {
     int wlasciciel;
@@ -24,11 +25,11 @@ struct obiekt_ram {
 struct k1_magazyn mag;
 struct k1_mag_dysk dysk;
 int trwaly, zablokowany;
-static struct obiekt_ram ram[K1_MAG_MAKS_OBIEKTOW]; /* the first n_ram are used */
+static struct obiekt_ram ram[RAM_OBIEKTOW]; /* the first n_ram are used */
 static int n_ram;
 static uint64_t ram_bajty;
 static struct k1_idx ram_idx;
-static struct k1_idx_slot ram_sloty[2 * K1_MAG_MAKS_OBIEKTOW];
+static struct k1_idx_slot ram_sloty[2 * RAM_OBIEKTOW];
 
 /* Argon2id memory: RAM/16, 16..256 MiB (ThinkPad X230 with 8 GB → 256 MiB). */
 static uint32_t argon_kib(void)
@@ -175,7 +176,7 @@ static struct obiekt_ram *ram_znajdz(int wl, const char *nazwa)
     struct klucz k = { wl, nazwa };
     int32_t i;
     if (ram_idx.s == NULL)
-        k1_idx_init(&ram_idx, ram_sloty, 2 * K1_MAG_MAKS_OBIEKTOW);
+        k1_idx_init(&ram_idx, ram_sloty, 2 * RAM_OBIEKTOW);
     i = k1_idx_znajdz(&ram_idx, ram_skrot(wl, nazwa), ram_pasuje, &k);
     return i < 0 ? NULL : &ram[i];
 }
@@ -219,7 +220,7 @@ int ob_zapisz(int wl, const char *nazwa, const void *dane, uint32_t dl)
     if (dl > K1_MAG_MAKS_DANYCH)
         return K1_MAG_ZA_DUZY;
     o = ram_znajdz(wl, nazwa);
-    if (o == NULL && n_ram == K1_MAG_MAKS_OBIEKTOW)
+    if (o == NULL && n_ram == RAM_OBIEKTOW)
         return K1_MAG_PELNY;
     if (ram_bajty - (o != NULL ? o->dl : 0) + dl > RAM_BAJTY)
         return K1_MAG_PELNY;

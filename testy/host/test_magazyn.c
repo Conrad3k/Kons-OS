@@ -1,75 +1,11 @@
-/* Host unit tests for the Blob Vault format (src/skarbiec/magazyn.c, M5c): a RAM disk, reopening
- * as a "restart", passwords, tampering, interrupted writes, compaction, a full vault. */
+/* Host unit tests for format 1 of the Blob Vault (src/skarbiec/magazyn.c, obszary.c; M5c): a RAM disk, reopening
+ * as a "restart", passwords, tampering, interrupted writes, compaction, a full vault. Format 2: test_odcinki.c. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "magazyn.h"
-#include "monocypher.h"
+#include "k1_ram_dysk.h"
 #include "k1_test_host.h"
-
-/* ---- RAM disk ---- */
-static uint8_t *ram;
-static int awaria_po = -1; /* writes left before the "power cut" (-1: never) */
-static int tylko_naglowki_padaja;
-static uint64_t licznik_losowych;
-
-static int ram_czytaj(struct k1_mag_dysk *d, uint64_t blok, void *buf, uint32_t bloki)
-{
-    if ((blok + bloki) * K1_MAG_BLOK > d->bajty)
-        return -1;
-    memcpy(buf, ram + blok * K1_MAG_BLOK, (size_t)bloki * K1_MAG_BLOK);
-    return 0;
-}
-static int ram_zapisz(struct k1_mag_dysk *d, uint64_t blok, const void *buf, uint32_t bloki)
-{
-    if ((blok + bloki) * K1_MAG_BLOK > d->bajty)
-        return -1;
-    if (awaria_po == 0 && (!tylko_naglowki_padaja || blok < 2))
-        return -1;
-    if (awaria_po > 0)
-        awaria_po--;
-    memcpy(ram + blok * K1_MAG_BLOK, buf, (size_t)bloki * K1_MAG_BLOK);
-    return 0;
-}
-static int ram_sync(struct k1_mag_dysk *d)
-{
-    (void)d;
-    return 0;
-}
-static void ram_losowe(void *buf, size_t n) /* deterministic for the tests */
-{
-    uint8_t we[16];
-    memset(we, 0, sizeof we);
-    memcpy(we, &licznik_losowych, sizeof licznik_losowych);
-    licznik_losowych++;
-    crypto_blake2b(buf, n <= 64 ? n : 64, we, sizeof we);
-    if (n > 64)
-        ram_losowe((uint8_t *)buf + 64, n - 64);
-}
-
-static void dysk(struct k1_mag_dysk *d, uint64_t bloki)
-{
-    free(ram);
-    ram = calloc(bloki, K1_MAG_BLOK);
-    d->fd = -1;
-    d->bajty = bloki * K1_MAG_BLOK;
-    d->czytaj = ram_czytaj;
-    d->zapisz = ram_zapisz;
-    d->synchronizuj = ram_sync;
-    d->losowe = ram_losowe;
-    awaria_po = -1;
-    tylko_naglowki_padaja = 0;
-}
-
-static int zawiera(const uint8_t *hay, size_t n, const char *igla)
-{
-    size_t k = strlen(igla);
-    for (size_t i = 0; i + k <= n; i++)
-        if (memcmp(hay + i, igla, k) == 0)
-            return 1;
-    return 0;
-}
 
 static int odczyt(struct k1_magazyn *m, uint16_t wl, const char *nazwa, const char *oczek)
 {
@@ -83,20 +19,12 @@ static struct k1_magazyn m, m2;
 
 /* ---- 0.8.1 (ADR 0034): many objects, a long log, compaction before the region is full ---- */
 
-static uint64_t odczytow; /* blocks read since the last reset (how long opening takes) */
-static int licz_czytaj(struct k1_mag_dysk *d, uint64_t blok, void *buf, uint32_t bloki)
-{
-    odczytow += bloki;
-    return ram_czytaj(d, blok, buf, bloki);
-}
-
 /* A long log (T3/C of the plan): one object written over and over — opening reads every old version, until the
  * vault compacts at open; at work it compacts once old versions take 256 MiB over the live data. */
 static void test_dlugi_dziennik(struct k1_mag_dysk *d)
 {
     int i, r = K1_MAG_OK;
     dysk(d, 2 + 2 * 70000ull); /* two regions of 273 MiB */
-    d->czytaj = licz_czytaj;
     EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
     EXPECT(k1_mag_pojemnosc(&m) == 70000ull * K1_MAG_BLOK && k1_mag_wolne(&m) == k1_mag_pojemnosc(&m));
     for (i = 0; i < 20000 && r == K1_MAG_OK; i++)
@@ -123,7 +51,7 @@ static void test_dlugi_dziennik(struct k1_mag_dysk *d)
     k1_mag_zamknij(&m);
 }
 
-/* 65 536 objects (L4c of the plan): all of them, then no more; opening finds every one. */
+/* Format 1: 65 536 objects (L4c of the 0.8.1 plan): all of them, then no more; opening finds every one. */
 static void test_wiele_obiektow(struct k1_mag_dysk *d)
 {
     char n[16];
@@ -131,16 +59,16 @@ static void test_wiele_obiektow(struct k1_mag_dysk *d)
     uint32_t dl, v;
     dysk(d, 2 + 2 * 70000ull);
     EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
-    for (i = 0; i < K1_MAG_MAKS_OBIEKTOW && r == K1_MAG_OK; i++) {
+    for (i = 0; i < K1_MAG_MAKS_OBIEKTOW_F1 && r == K1_MAG_OK; i++) {
         snprintf(n, sizeof n, "o%d", i);
         r = k1_mag_zapisz(&m, (uint16_t)(1 + i % 3), n, &i, sizeof i);
     }
-    EXPECT(r == K1_MAG_OK && m.n_wpisow == K1_MAG_MAKS_OBIEKTOW);
+    EXPECT(r == K1_MAG_OK && m.n_wpisow == K1_MAG_MAKS_OBIEKTOW_F1);
     EXPECT(k1_mag_zapisz(&m, 9, "jeszcze", "x", 1) == K1_MAG_PELNY);
     EXPECT(k1_mag_zapisz(&m, 1, "o0", "x", 1) == K1_MAG_OK); /* a new version of one that is there: yes */
     k1_mag_zamknij(&m);
-    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == K1_MAG_MAKS_OBIEKTOW);
-    for (i = 1; i < K1_MAG_MAKS_OBIEKTOW; i += 7) {
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == K1_MAG_MAKS_OBIEKTOW_F1);
+    for (i = 1; i < K1_MAG_MAKS_OBIEKTOW_F1; i += 7) {
         snprintf(n, sizeof n, "o%d", i);
         zle += k1_mag_czytaj(&m, (uint16_t)(1 + i % 3), n, &v, sizeof v, &dl) != K1_MAG_OK || v != (uint32_t)i;
         zle += k1_mag_czytaj(&m, (uint16_t)(2 + i % 3), n, &v, sizeof v, &dl) != K1_MAG_BRAK; /* another owner */
@@ -158,16 +86,16 @@ static void test_wiele_obiektow(struct k1_mag_dysk *d)
     awaria_po = -1;
     tylko_naglowki_padaja = 0;
     k1_mag_zamknij(&m);
-    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == K1_MAG_MAKS_OBIEKTOW &&
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == K1_MAG_MAKS_OBIEKTOW_F1 &&
            k1_mag_czytaj(&m, 1, "o0", &v, sizeof v, &dl) == K1_MAG_OK && dl == 1);
     EXPECT(k1_mag_kompaktuj(&m) == K1_MAG_OK && m.koniec == m.zywe);
     k1_mag_zamknij(&m);
-    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == K1_MAG_MAKS_OBIEKTOW);
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == K1_MAG_MAKS_OBIEKTOW_F1);
     for (i = 0; i < 1000; i++) { /* deleting from the middle keeps the index right (the last entry moves) */
         snprintf(n, sizeof n, "o%d", i * 61);
         zle += k1_mag_usun(&m, (uint16_t)(1 + (i * 61) % 3), n) != K1_MAG_OK;
     }
-    for (i = 0; i < K1_MAG_MAKS_OBIEKTOW; i += 5) {
+    for (i = 0; i < K1_MAG_MAKS_OBIEKTOW_F1; i += 5) {
         snprintf(n, sizeof n, "o%d", i);
         r = k1_mag_czytaj(&m, (uint16_t)(1 + i % 3), n, &v, sizeof v, &dl);
         zle += i % 61 == 0 && i / 61 < 1000 ? r != K1_MAG_BRAK : r != K1_MAG_OK;
