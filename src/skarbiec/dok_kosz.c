@@ -1,5 +1,7 @@
 /* K1 skarbiec — Kosz (0.8.0, ADR 0029): into it, back from it, deleted for good, by hand or after 30 days (by the
  * clock only when it is not behind the time bound, dok_czas.c). Part of skarbiec (dok_wew.h). */
+#include <stdlib.h>
+
 #include "dok_wew.h"
 #include "skarbiec.h"
 
@@ -53,48 +55,74 @@ static int usun_wpis(int i)
         return r;
     if (wpisy[i].rodzaj == K1_DOK_PLIK)
         usun_kawalki(wpisy[i].id, wpisy[i].generacja, kawalkow(wpisy[i].rozmiar));
-    wpisy[i] = wpisy[--n_wpisow];
+    dok_wyrzuc(i);
     return 0;
 }
 
-/* `id` and everything inside it, the deepest first (a power loss in between leaves its folder intact). */
-static int usun_drzewo(uint32_t id)
+struct cel {
+    uint32_t id;
+    int glebokosc;
+};
+
+static int glebiej(const void *a, const void *b)
 {
-    int i, r;
-    for (i = 0; i < n_wpisow;) {
-        if (wpisy[i].rodzic == id) {
-            if ((r = usun_drzewo(wpisy[i].id)) != 0)
-                return r;
-            i = 0; /* the table changed */
-            continue;
-        }
-        i++;
+    return ((const struct cel *)b)->glebokosc - ((const struct cel *)a)->glebokosc;
+}
+
+/* Deletes for good every entry for which `korzen` says 1, with everything inside it — the deepest first (a power loss
+ * in between leaves its folder intact). One pass over the table (0.8.1, ADR 0034: no restart after each deletion).
+ * The number of entries `korzen` chose, or a K1_MAG_* error. */
+static int usun_gdzie(int (*korzen)(const struct k1_dok_wpis *w, const void *ctx), const void *ctx)
+{
+    static struct cel c[K1_DOK_MAKS];
+    int n = 0, korzeni = 0, r;
+    for (int i = 0; i < n_wpisow; i++) {
+        const struct k1_dok_wpis *w = &wpisy[i];
+        korzeni += korzen(w, ctx);
+        for (int krok = 0; w != NULL && krok <= K1_DOK_GLEBOKOSC + 1; krok++, w = dok_wpis(w->rodzic))
+            if (korzen(w, ctx)) {
+                c[n++] = (struct cel){ wpisy[i].id, glebokosc(wpisy[i].id) };
+                break;
+            }
     }
-    i = indeks(id);
-    return i < 0 ? 0 : usun_wpis(i);
+    qsort(c, (size_t)n, sizeof c[0], glebiej);
+    for (int k = 0; k < n; k++) {
+        int i = indeks(c[k].id);
+        if (i >= 0 && (r = usun_wpis(i)) != 0)
+            return r;
+    }
+    return korzeni;
+}
+
+static int ten(const struct k1_dok_wpis *w, const void *ctx)
+{
+    return w->id == *(const uint32_t *)ctx;
+}
+
+static int w_koszu(const struct k1_dok_wpis *w, const void *ctx)
+{
+    (void)ctx;
+    return k1_dok_w_koszu(w);
+}
+
+static int przeterminowany(const struct k1_dok_wpis *w, const void *ctx)
+{
+    return w->kosz != 0 && *(const int64_t *)ctx - w->kosz >= (int64_t)K1_KOSZ_DNI * DZIEN;
 }
 
 int dok_usun_na_zawsze(uint32_t id)
 {
-    int i = indeks(id);
+    int i = indeks(id), r;
     if (i < 0 || wpisy[i].kosz == 0)
         return K1_DOK_BLAD_BRAK;
-    return usun_drzewo(id);
+    r = usun_gdzie(ten, &id);
+    return r < 0 ? r : 0;
 }
 
 int dok_oproznij_kosz(void)
 {
-    for (int i = 0; i < n_wpisow;) {
-        if (wpisy[i].kosz != 0) {
-            int r = usun_drzewo(wpisy[i].id);
-            if (r != 0)
-                return r;
-            i = 0;
-            continue;
-        }
-        i++;
-    }
-    return 0;
+    int r = usun_gdzie(w_koszu, NULL);
+    return r < 0 ? r : 0;
 }
 
 /* Times in Kosz from a wrong clock (0.8.0 wrote the clock as it was): before any K1 had Kosz, or more than a day ahead
@@ -112,20 +140,11 @@ static void popraw_kosz(int64_t zegar)
 
 int dok_przeterminowane(int64_t zegar)
 {
-    int n = 0;
+    int r;
     dok_czas(zegar);
     if (zegar < dok_granica())
         return 0; /* the clock is behind this K1's build or a time seen before: it may be wrong — keep everything */
     popraw_kosz(zegar);
-    for (int i = 0; i < n_wpisow;) {
-        if (wpisy[i].kosz != 0 && zegar - wpisy[i].kosz >= (int64_t)K1_KOSZ_DNI * DZIEN) {
-            if (usun_drzewo(wpisy[i].id) != 0)
-                break;
-            n++;
-            i = 0;
-            continue;
-        }
-        i++;
-    }
-    return n;
+    r = usun_gdzie(przeterminowany, &zegar);
+    return r < 0 ? 0 : r;
 }

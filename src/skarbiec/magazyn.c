@@ -144,17 +144,47 @@ static int czytaj_rekord(struct k1_magazyn *m, uint64_t blok, uint32_t *bloki_ou
     return K1_MAG_OK;
 }
 
+/* ---- the index (0.8.1): (owner, name) → place, k1_indeks ---- */
+
+struct klucz {
+    const struct k1_magazyn *m;
+    uint16_t wl;
+    const char *nazwa;
+};
+
+static uint32_t skrot(uint16_t wl, const char *nazwa)
+{
+    uint8_t w[2] = { (uint8_t)wl, (uint8_t)(wl >> 8) };
+    return k1_idx_skrot(k1_idx_skrot(K1_IDX_START, w, 2), nazwa, strnlen(nazwa, K1_MAG_NAZWA));
+}
+
+static int pasuje(const void *ctx, int32_t i)
+{
+    const struct klucz *k = ctx;
+    return k->m->wpisy[i].wlasciciel == k->wl && strncmp(k->m->wpisy[i].nazwa, k->nazwa, K1_MAG_NAZWA) == 0;
+}
+
 static int znajdz(const struct k1_magazyn *m, uint16_t wl, const char *nazwa)
 {
-    for (int i = 0; i < m->n_wpisow; i++)
-        if (m->wpisy[i].wlasciciel == wl && strncmp(m->wpisy[i].nazwa, nazwa, K1_MAG_NAZWA) == 0)
-            return i;
-    return -1;
+    struct klucz k = { m, wl, nazwa };
+    return k1_idx_znajdz(&m->idx, skrot(wl, nazwa), pasuje, &k);
+}
+
+/* A fresh index for `m` (its slots live in the structure: set again after every memset). */
+static void nowy_indeks(struct k1_magazyn *m)
+{
+    k1_idx_init(&m->idx, m->sloty, 2 * K1_MAG_MAKS_OBIEKTOW);
 }
 
 static void usun_wpis(struct k1_magazyn *m, int i)
 {
-    m->wpisy[i] = m->wpisy[--m->n_wpisow];
+    struct k1_mag_wpis *w = &m->wpisy[i];
+    m->zywe -= w->bloki;
+    k1_idx_usun(&m->idx, skrot(w->wlasciciel, w->nazwa), i);
+    if (i != --m->n_wpisow) { /* the last entry takes its place */
+        m->wpisy[i] = m->wpisy[m->n_wpisow];
+        k1_idx_przenies(&m->idx, skrot(w->wlasciciel, w->nazwa), m->n_wpisow, i);
+    }
 }
 
 /* Index update for a record (type, owner, name) at `blok`. */
@@ -171,7 +201,10 @@ static int indeksuj(struct k1_magazyn *m, uint8_t typ, uint16_t wl, const char n
         if (m->n_wpisow == K1_MAG_MAKS_OBIEKTOW)
             return K1_MAG_PELNY;
         i = m->n_wpisow++;
+        m->wpisy[i].bloki = 0;
+        k1_idx_wstaw(&m->idx, skrot(wl, nazwa), i);
     }
+    m->zywe = m->zywe - m->wpisy[i].bloki + bloki;
     m->wpisy[i].wlasciciel = wl;
     memcpy(m->wpisy[i].nazwa, nazwa, K1_MAG_NAZWA);
     m->wpisy[i].blok = blok;
@@ -238,6 +271,7 @@ int k1_mag_utworz(struct k1_magazyn *m, struct k1_mag_dysk *d, const char *haslo
     if (argon_kib < ARGON_MIN_KIB || argon_kib > ARGON_MAKS_KIB)
         return K1_MAG_ARG;
     memset(m, 0, sizeof *m);
+    nowy_indeks(m);
     m->d = d;
     m->obszar_blokow = (bloki_dysku(d) - 2) / 2;
     m->argon_kib = argon_kib;
@@ -264,6 +298,7 @@ int k1_mag_otworz(struct k1_magazyn *m, struct k1_mag_dysk *d, const char *haslo
     uint8_t surowe[2][K1_MAG_BLOK], kek[32], ad[44], kn[32], mac[16];
     int ok[2], kolejnosc[2], i, wynik = K1_MAG_HASLO;
     memset(m, 0, sizeof *m);
+    nowy_indeks(m);
     m->d = d;
     if (bloki_dysku(d) < K1_MAG_MIN_BLOKOW)
         return K1_MAG_ARG;
@@ -346,7 +381,7 @@ static int kompaktuj(struct k1_magazyn *m)
             return r;
         zamknij_rekord(m, epoka, cel, p, bloki);
         if (m->d->zapisz(m->d, poczatek_obszaru(m, cel) + p, bufor, bloki) != 0)
-            return K1_MAG_IO;
+            return K1_MAG_IO; /* nothing switched: the active region and the header are as they were */
         p += bloki;
     }
     if (m->d->synchronizuj(m->d) != 0)
@@ -374,10 +409,8 @@ static int dopisz(struct k1_magazyn *m, uint8_t typ, uint16_t wl, const char *na
     if (typ == TYP_OBIEKT && znajdz(m, wl, nazwa_pelna) < 0 && m->n_wpisow == K1_MAG_MAKS_OBIEKTOW)
         return K1_MAG_PELNY;
     if (m->koniec + bloki > m->obszar_blokow) {
-        uint64_t zywe = 0; /* compaction copies every live object, the new record goes after them */
-        for (int k = 0; k < m->n_wpisow; k++)
-            zywe += m->wpisy[k].bloki;
-        if (zywe + bloki > m->obszar_blokow)
+        /* compaction copies every live object, the new record goes after them */
+        if (m->zywe + bloki > m->obszar_blokow)
             return K1_MAG_PELNY;
         if ((r = kompaktuj(m)) != K1_MAG_OK)
             return r;
@@ -471,11 +504,38 @@ int k1_mag_zmien_haslo(struct k1_magazyn *m, const char *nowe)
     return zapisz_naglowek(m);
 }
 
+#define BLOKI_MIB (1048576u / K1_MAG_BLOK)
+
+int k1_mag_kompaktowac(const struct k1_magazyn *m, int przy_otwarciu)
+{
+    if (przy_otwarciu)
+        return m->koniec > 64 * BLOKI_MIB && m->koniec > 2 * m->zywe;
+    return m->koniec - m->zywe > m->zywe + 256 * BLOKI_MIB;
+}
+
+int k1_mag_kompaktuj(struct k1_magazyn *m)
+{
+    return kompaktuj(m);
+}
+
+uint64_t k1_mag_wolne(const struct k1_magazyn *m)
+{
+    return (m->obszar_blokow - m->zywe) * K1_MAG_BLOK;
+}
+
+uint64_t k1_mag_pojemnosc(const struct k1_magazyn *m)
+{
+    return m->obszar_blokow * K1_MAG_BLOK;
+}
+
 void k1_mag_zamknij(struct k1_magazyn *m)
 {
     crypto_wipe(m->klucz, sizeof m->klucz);
     crypto_wipe(bufor, sizeof bufor);
     m->n_wpisow = 0;
+    m->zywe = 0;
+    if (m->idx.s != NULL)
+        k1_idx_czysc(&m->idx);
 }
 
 const char *k1_mag_opis(int w)

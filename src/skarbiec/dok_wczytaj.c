@@ -123,7 +123,7 @@ static void wczytaj_wpis(const char *nazwa, void *ctx)
             st.za_duzo = 1; /* a number we cannot read back: keep every piece */
         return;
     }
-    wpisy[n_wpisow++] = w;
+    dok_dodaj(&w);
 }
 
 static int zostawiony(uint32_t id)
@@ -203,7 +203,7 @@ void dok_wczytaj(int64_t teraz)
 {
     int zle = 0, sieroty = 0, kawalki = 0, stare;
     memset(&st, 0, sizeof st);
-    n_wpisow = 0;
+    dok_wyczysc();
     nastepny = K1_DOK_PIERWSZY;
     dok_czas_wczytaj();
     ob_kazdy(WL, wczytaj_wpis, &zle);

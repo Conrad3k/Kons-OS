@@ -1,6 +1,7 @@
 /* K1 — files of the user: names, types, the entry layout (0.8.0, ADR 0029). See k1_dokument.h. */
 #include "k1_dokument.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "k1_bajty.h"
@@ -218,10 +219,17 @@ size_t k1_dok_lista_zapisz(const struct k1_dok_wpis *w, int n, uint32_t w_koszu,
     return K1_DOK_LISTA_NAGL + (size_t)n * K1_DOK_WPIS_BAJTY;
 }
 
+static int mniejszy(const void *a, const void *b)
+{
+    uint32_t x = *(const uint32_t *)a, y = *(const uint32_t *)b;
+    return (x > y) - (x < y);
+}
+
 int k1_dok_lista_czytaj(const uint8_t *buf, size_t dl, struct k1_dok_wpis *w, int maks, uint32_t *w_koszu)
 {
+    static uint32_t numery[K1_DOK_MAKS];
     uint32_t n;
-    int i, j;
+    int i;
     if (dl < K1_DOK_LISTA_NAGL || memcmp(buf, "K1D1", 4) != 0 || k1_c32(buf + 12) != 0)
         return -1;
     n = k1_c32(buf + 4);
@@ -231,10 +239,12 @@ int k1_dok_lista_czytaj(const uint8_t *buf, size_t dl, struct k1_dok_wpis *w, in
     for (i = 0; i < (int)n; i++) {
         if (k1_dok_wpis_czytaj(buf + K1_DOK_LISTA_NAGL + (size_t)i * K1_DOK_WPIS_BAJTY, &w[i]) != 0)
             return -1;
-        for (j = 0; j < i; j++)
-            if (w[j].id == w[i].id)
-                return -1;
+        numery[i] = w[i].id;
     }
+    qsort(numery, n, sizeof numery[0], mniejszy); /* numbers unique: sorted, no two neighbours equal (16 384 entries) */
+    for (i = 1; i < (int)n; i++)
+        if (numery[i] == numery[i - 1])
+            return -1;
     *w_koszu = k1_c32(buf + 8);
     return (int)n;
 }

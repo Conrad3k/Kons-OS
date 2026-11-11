@@ -61,6 +61,7 @@ int haslo_odblokuj(int fd, size_t dl)
         trwaly = 1;
         zle_proby = 0;
         k1_log(TAG, "magazyn odblokowany: %d obiektów", mag.n_wpisow);
+        ob_po_otwarciu();
         dok_po_otwarciu();
         zglos_stan();
     } else if (r == K1_MAG_HASLO) {

@@ -34,6 +34,13 @@ int ob_zapisz(int wl, const char *nazwa, const void *dane, uint32_t dl);
 int ob_usun(int wl, const char *nazwa);
 /* Calls `f` for the name of every object of owner `wl` (the names are copied first: `f` may delete). */
 void ob_kazdy(int wl, void (*f)(const char *nazwa, void *ctx), void *ctx);
+/* Room (0.8.1, ADR 0034): free bytes and the whole (the vault's region, or the memory for objects without one). */
+uint64_t ob_wolne(void);
+uint64_t ob_pojemnosc(void);
+/* Compaction: right after the vault opened (a long log), and when the loop has a quiet moment (main.c). */
+void ob_po_otwarciu(void);
+int ob_kompaktowanie_czeka(void);
+void ob_kompaktuj_w_przerwie(void);
 
 /* haslo.c */
 int haslo_ustawione(void);

@@ -81,6 +81,101 @@ static int odczyt(struct k1_magazyn *m, uint16_t wl, const char *nazwa, const ch
 
 static struct k1_magazyn m, m2;
 
+/* ---- 0.8.1 (ADR 0034): many objects, a long log, compaction before the region is full ---- */
+
+static uint64_t odczytow; /* blocks read since the last reset (how long opening takes) */
+static int licz_czytaj(struct k1_mag_dysk *d, uint64_t blok, void *buf, uint32_t bloki)
+{
+    odczytow += bloki;
+    return ram_czytaj(d, blok, buf, bloki);
+}
+
+/* A long log (T3/C of the plan): one object written over and over — opening reads every old version, until the
+ * vault compacts at open; at work it compacts once old versions take 256 MiB over the live data. */
+static void test_dlugi_dziennik(struct k1_mag_dysk *d)
+{
+    int i, r = K1_MAG_OK;
+    dysk(d, 2 + 2 * 70000ull); /* two regions of 273 MiB */
+    d->czytaj = licz_czytaj;
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
+    EXPECT(k1_mag_pojemnosc(&m) == 70000ull * K1_MAG_BLOK && k1_mag_wolne(&m) == k1_mag_pojemnosc(&m));
+    for (i = 0; i < 20000 && r == K1_MAG_OK; i++)
+        r = k1_mag_zapisz(&m, 6, "ustawienia", &i, sizeof i);
+    EXPECT(r == K1_MAG_OK && m.koniec == 20000 && m.zywe == 1 && !k1_mag_kompaktowac(&m, 0));
+    k1_mag_zamknij(&m);
+    odczytow = 0;
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && odczytow >= 20000 && k1_mag_kompaktowac(&m, 1));
+    EXPECT(k1_mag_kompaktuj(&m) == K1_MAG_OK && m.koniec == 1 && !k1_mag_kompaktowac(&m, 1));
+    k1_mag_zamknij(&m);
+    odczytow = 0;
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && odczytow < 10); /* fast again */
+    i = 19999;
+    {
+        int v = 0;
+        uint32_t dl;
+        EXPECT(k1_mag_czytaj(&m, 6, "ustawienia", &v, sizeof v, &dl) == K1_MAG_OK && v == i);
+    }
+    /* at work: once the old versions are 256 MiB more than the live data */
+    for (i = 0, r = K1_MAG_OK; !k1_mag_kompaktowac(&m, 0) && r == K1_MAG_OK && i < 70000; i++)
+        r = k1_mag_zapisz(&m, 6, "ustawienia", &i, sizeof i);
+    EXPECT(r == K1_MAG_OK && m.koniec - m.zywe == m.zywe + 256 * 256 + 1);
+    EXPECT(k1_mag_kompaktuj(&m) == K1_MAG_OK && m.koniec == 1);
+    k1_mag_zamknij(&m);
+}
+
+/* 65 536 objects (L4c of the plan): all of them, then no more; opening finds every one. */
+static void test_wiele_obiektow(struct k1_mag_dysk *d)
+{
+    char n[16];
+    int i, r = K1_MAG_OK, zle = 0;
+    uint32_t dl, v;
+    dysk(d, 2 + 2 * 70000ull);
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
+    for (i = 0; i < K1_MAG_MAKS_OBIEKTOW && r == K1_MAG_OK; i++) {
+        snprintf(n, sizeof n, "o%d", i);
+        r = k1_mag_zapisz(&m, (uint16_t)(1 + i % 3), n, &i, sizeof i);
+    }
+    EXPECT(r == K1_MAG_OK && m.n_wpisow == K1_MAG_MAKS_OBIEKTOW);
+    EXPECT(k1_mag_zapisz(&m, 9, "jeszcze", "x", 1) == K1_MAG_PELNY);
+    EXPECT(k1_mag_zapisz(&m, 1, "o0", "x", 1) == K1_MAG_OK); /* a new version of one that is there: yes */
+    k1_mag_zamknij(&m);
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == K1_MAG_MAKS_OBIEKTOW);
+    for (i = 1; i < K1_MAG_MAKS_OBIEKTOW; i += 7) {
+        snprintf(n, sizeof n, "o%d", i);
+        zle += k1_mag_czytaj(&m, (uint16_t)(1 + i % 3), n, &v, sizeof v, &dl) != K1_MAG_OK || v != (uint32_t)i;
+        zle += k1_mag_czytaj(&m, (uint16_t)(2 + i % 3), n, &v, sizeof v, &dl) != K1_MAG_BRAK; /* another owner */
+    }
+    EXPECT(zle == 0);
+    /* a power cut during compaction (half the records copied; then all copied, the header not): the old region
+     * and header stay — every object there */
+    awaria_po = 30000;
+    EXPECT(k1_mag_kompaktuj(&m) == K1_MAG_IO);
+    awaria_po = 0;
+    tylko_naglowki_padaja = 1;
+    k1_mag_zamknij(&m);
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK);
+    EXPECT(k1_mag_kompaktuj(&m) == K1_MAG_IO);
+    awaria_po = -1;
+    tylko_naglowki_padaja = 0;
+    k1_mag_zamknij(&m);
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == K1_MAG_MAKS_OBIEKTOW &&
+           k1_mag_czytaj(&m, 1, "o0", &v, sizeof v, &dl) == K1_MAG_OK && dl == 1);
+    EXPECT(k1_mag_kompaktuj(&m) == K1_MAG_OK && m.koniec == m.zywe);
+    k1_mag_zamknij(&m);
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == K1_MAG_MAKS_OBIEKTOW);
+    for (i = 0; i < 1000; i++) { /* deleting from the middle keeps the index right (the last entry moves) */
+        snprintf(n, sizeof n, "o%d", i * 61);
+        zle += k1_mag_usun(&m, (uint16_t)(1 + (i * 61) % 3), n) != K1_MAG_OK;
+    }
+    for (i = 0; i < K1_MAG_MAKS_OBIEKTOW; i += 5) {
+        snprintf(n, sizeof n, "o%d", i);
+        r = k1_mag_czytaj(&m, (uint16_t)(1 + i % 3), n, &v, sizeof v, &dl);
+        zle += i % 61 == 0 && i / 61 < 1000 ? r != K1_MAG_BRAK : r != K1_MAG_OK;
+    }
+    EXPECT(zle == 0 && k1_mag_zapisz(&m, 9, "jeszcze", "x", 1) == K1_MAG_OK);
+    k1_mag_zamknij(&m);
+}
+
 int main(void)
 {
     struct k1_mag_dysk d;
@@ -238,6 +333,8 @@ int main(void)
     EXPECT(k1_mag_zapisz(&m, 7, "nowy", duzy, sizeof duzy) == K1_MAG_OK);
     k1_mag_zamknij(&m);
 
+    test_dlugi_dziennik(&d);
+    test_wiele_obiektow(&d);
     free(ram);
     return K1_TEST_KONIEC("test_magazyn");
 }

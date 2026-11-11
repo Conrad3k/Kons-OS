@@ -15,7 +15,7 @@
 
 #define K1_WL_DOKUMENTY 101             /* skarbiec owner of the files (not an application) */
 #define K1_DOK_NAZWA 128                /* bytes with the NUL: names have 1..127 bytes */
-#define K1_DOK_MAKS 1024                /* entries: files and folders */
+#define K1_DOK_MAKS 16384               /* entries: files and folders (0.8.1, ADR 0034; Kosz included) */
 #define K1_DOK_MAKS_BAJTY (16u << 20)   /* one file */
 #define K1_DOK_KAWALEK (1u << 20)       /* content is kept in pieces of this size (a Blob Vault object) */
 #define K1_DOK_GLEBOKOSC 8              /* folders inside a standard folder, at most */
@@ -75,7 +75,8 @@ enum { K1_POCH_MAKS = 0 K1_POCHODZENIA(K1_X_JEDEN) };
 #define K1_DOK_BLAD_PELNO (-25)   /* too many entries */
 #define K1_DOK_BLAD_CZEKA (-26)   /* the file picker is open already (one request at a time) */
 #define K1_DOK_BLAD_OTWARTE (-27) /* the application has K1_DOK_DOSTEP_APL files given already (0.8.1) */
-#define K1_DOK_BLAD_MIN (-27)
+#define K1_DOK_BLAD_BRAK_MIEJSCA (-28) /* no room for files: the rest is kept for the system (0.8.1, ADR 0034) */
+#define K1_DOK_BLAD_MIN (-28)
 
 /* One entry. kosz: when it was put in Kosz (0: not in Kosz); an entry inside a folder in Kosz keeps 0 and is
  * hidden with its folder; rodzic stays the folder it came from (Przywróć puts it back there). */

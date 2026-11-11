@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | PRZETESTOWANE (M5c na hoście, M5d w QEMU: dysk SATA i pendrive przez UEFI; 0.5.8: pendrive podłączony po starcie; 0.8.0: pliki i foldery — host i QEMU) |
 | **Pliki** | `src/skarbiec/` w modułach (0.8.0, `skarbiec.h`): `main.c` (pętla, kanały, obiekty aplikacji), `obiekty.c` (obiekty według właściciela i nazwy: magazyn albo pamięć), `haslo.c` (odblokowanie, zmiana hasła, limit prób), `dokumenty.c` + `dok_drzewo.c`, `dok_kosz.c`, `dok_wczytaj.c` (pliki, foldery, Kosz; wspólne: `dok_wew.h`), `dok_kanal.c` (komunikaty `DOK_*`, tabela praw); format: `magazyn.{c,h}` (rekordy, indeks), `naglowek.c` (nagłówek i owinięty klucz; `magazyn_wew.h`), `src/zewnetrzne/monocypher/`; wspólne: `src/wspolne/k1_memfd.*`, `k1_skarb_klient.*` (strona klienta), `k1_dokument.*` (wpis pliku, typy, foldery) |
-| **Decyzje** | ADR 0015 (format, szyfrowanie), ADR 0016 (obraz USB), ADR 0013 (partycja „K1-DANE”), ADR 0029 (pliki, foldery, Kosz) |
+| **Decyzje** | ADR 0015 (format, szyfrowanie), ADR 0016 (obraz USB), ADR 0013 (partycja „K1-DANE”), ADR 0029 (pliki, foldery, Kosz), ADR 0034 (duże dane: indeks, limity, kompaktowanie, rezerwa) |
 
 ## Cel
 Trwałe, zaszyfrowane dane użytkownika: ustawienia (ekran), notatki (Notatki), historia baterii, rozmieszczenie
@@ -21,7 +21,7 @@ UID/GID 103, klatka (ADR 0007): seccomp = baza + `pread64`, `pwrite64`, `fdatasy
 innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
 żadnej ścieżki (nie otworzy niczego); cgroup 320 MiB (Argon2id do 256 MiB), 1 proces;
 `RLIMIT_FSIZE` 24 MiB (memfd z plikiem do 16 MiB, 0.8.0; zapisu na urządzenie blokowe ten limit nie dotyczy —
-`block/fops.c`). Bez partycji obiekty w pamięci: do 4096, razem do 128 MiB.
+`block/fops.c`). Bez partycji obiekty w pamięci: do 65 536, razem do 128 MiB.
 
 ## Wejścia i wyjścia
 - fd 3: kanał sterujący od nadzorcy — `SKARB_KLIENT(właściciel, uid, na_usb)` + koniec kanału klienta (0.6.3: `na_usb` wraca do klientów w `SKARB_WYNIK` d, bit 1).
@@ -61,7 +61,11 @@ Dokumentów.
 - Typ pliku rozpoznaje skarbiec przy każdym zapisie z pierwszych bajtów (`K1_TYPY`: tekst, PNG, JPEG, PDF, ZIP,
   inny) — nigdy z nazwy. Nazwy jak w Windows (bez `\ / : * ? " < > |`, znaków sterujących i odwracających
   kierunek tekstu, bez spacji i kropki na końcu), unikalne w folderze bez względu na wielkość liter (także
-  polskich); nowy wpis o zajętej nazwie dostaje „ (2)” przed rozszerzeniem. Do 8 poziomów folderów, 1024 wpisy.
+  polskich); nowy wpis o zajętej nazwie dostaje „ (2)” przed rozszerzeniem. Do 8 poziomów folderów, 16 384 wpisy
+  (0.8.1, ADR 0034; razem z Koszem), wpisy znajdowane po numerze przez indeks (`k1_indeks`).
+- **Rezerwa dla systemu** (0.8.1, ADR 0034): nowy plik albo nowa treść pliku nie zajmie ostatnich 8 MiB (albo 2 %
+  obszaru; najwyżej ćwierć obszaru — mała K1-DANE dalej przyjmuje pliki) — wynik `K1_DOK_BLAD_BRAK_MIEJSCA` (−28), w Plikach „Brak miejsca na pliki”; ustawienia, pulpit, bateria i
+  tapeta zapisują się dalej. Zmiana nazwy, przeniesienie, Kosz i usuwanie działają zawsze.
 - **Kosz**: „do Kosza” zapisuje czas we wpisie (folder idzie z zawartością); przywrócony wraca do swojego folderu
   (gdy go nie ma albo jest w Koszu — do Dokumentów, Pliki to mówią); „usuń na zawsze” i „opróżnij” tylko w Koszu; po
   30 dniach skarbiec usuwa sam — przy otwarciu i co godzinę. W Koszu jest to, co wyrzucono samo (`k1_dok_w_koszu`:
@@ -103,7 +107,7 @@ wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po 
 | `DOK_OPROZNIJ` | klient → | wszystko z Kosza na zawsze |
 | `DOK_LISTA` | → klient | a = długość, b = liczba wpisów; memfd: „K1D1”, liczba, w Koszu, wpisy |
 | `DOK_TRESC` | → klient | obiekt = plik, a = wysłane bajty, b = cały rozmiar; memfd |
-| `DOK_WYNIK` | → klient | obiekt, a = rodzaj prośby, b = wynik (0, `K1_MAG_*`, `K1_DOK_BLAD_*` od −20 do −27), c = numer nowego wpisu |
+| `DOK_WYNIK` | → klient | obiekt, a = rodzaj prośby, b = wynik (0, `K1_MAG_*`, `K1_DOK_BLAD_*` od −20 do −28), c = numer nowego wpisu |
 | `DOK_ZMIANA` | → klient | pliki się zmieniły — do każdego klienta z prawem listy (odświeżają widok) |
 | `DOK_OTWORZ` | Pliki, pulpit → | obiekt = plik, a = aplikacja (nie Pliki), która otwiera jego typ → `DOK_WYNIK` |
 | `DOK_WYBIERZ` | aplikacja → | a = typ (0: każdy) — okno wyboru pliku; odpowiedź później: `DOK_WYBRANY` (błąd od razu: `DOK_WYNIK`) |
@@ -130,8 +134,11 @@ typ (obiekt / usunięcie), właściciel, długość, czas, nazwa (32), BLAKE2b t
 Dane dodatkowe AEAD: uuid, epoka, obszar, pozycja, liczba bloków.
 
 Zapis: rekord → `fdatasync` → nagłówek (następna generacja, drugi slot) → `fdatasync`.
-Pełny obszar → kompaktowanie do drugiego obszaru (nowa epoka). Formatowanie: tylko gdy pierwszy MiB
-partycji to zera (inaczej „obce dane — nie nadpisuję”).
+Pełny obszar → kompaktowanie do drugiego obszaru (nowa epoka). Od 0.8.1 (ADR 0034) także wcześniej: **przy otwarciu**,
+gdy dziennik > 64 MiB i > 2 × żywe dane, i **w pracy**, gdy stare wersje zajmują o 256 MiB więcej niż żywe dane —
+po 2 s bez próśb klientów; w logu czas i rozmiary („kompaktowanie (przy otwarciu): dziennik 78 → 0 MiB…”).
+Do 65 536 obiektów; obiekty znajdowane przez indeks w pamięci (`k1_indeks`: właściciel i nazwa → miejsce), nie po
+kolei. Formatowanie: tylko gdy pierwszy MiB partycji to zera (inaczej „obce dane — nie nadpisuję”).
 
 ## Obsługa błędów
 Brak partycji, dwie partycje „K1-DANE”, obce dane, uszkodzony magazyn, magazyn z hasłem (do M5e) →
@@ -146,12 +153,15 @@ od klientów i wpisy z dysku (`k1_dok_wpis_czytaj` — każde pole) oraz tabela 
 ## Testy
 | Test | Rodzaj |
 |---|---|
-| `test_magazyn` (host, ASan/UBSan): restart, zmieniony bajt, zamienione rekordy, uszkodzony nagłówek, przerwany zapis, hasło (złe, zmiana, usunięcie), kompaktowanie, brak miejsca, obce dane | funkcjonalny + negatywny |
+| `test_magazyn` (host, ASan/UBSan): restart, zmieniony bajt, zamienione rekordy, uszkodzony nagłówek, przerwany zapis, hasło (złe, zmiana, usunięcie), kompaktowanie, brak miejsca, obce dane; 0.8.1: 65 536 obiektów (i ani jednego więcej), usuwanie ze środka, dziennik 20 000 wersji (otwarcie czyta wszystkie → kompaktowanie przy otwarciu → otwarcie czyta jeden rekord), kompaktowanie w pracy (próg 256 MiB), awaria w połowie kompaktowania i przy zapisie nagłówka | funkcjonalny + negatywny |
+| `test_indeks` (host, 0.8.1): indeks 200 000 losowych operacji (dodaj, usuń, przenieś), także same kolizje | funkcjonalny |
+| `test-skarbiec.sh` (QEMU, 0.8.1): K1-DANE z dziennikiem 78 MiB — kompaktowanie przy otwarciu, drugi start bez; K1-DANE 64 MiB prawie pełna — „Nowy folder” odrzucony (−28), ustawienie się zapisuje | funkcjonalny + negatywny |
 | `fuzz_magazyn` (libFuzzer): surowy obraz, zmiany bajtów, nagłówki z poprawnym MAC | fuzzing |
 | `test_komunikat`: komunikaty `SKARB_*` (zakresy, kierunki, deskryptory) | negatywny |
 | w systemie: klatka (UID, tylko partycja „K1-DANE”), próba w klatce `skarbiec`, dysk trzyma tylko skarbiec | funkcjonalny + negatywny |
 | `test-m4.sh`: tapeta, motyw, rozdzielczość i notatka wracają po wyłączeniu i ponownym starcie z tym samym dyskiem; na dysku brak jawnego tekstu | funkcjonalny |
 | `test_dokumenty` (host, 0.8.0): nazwy (złe znaki, UTF-8, odwrócony tekst), typy z zawartości, wpis i lista (każde pole poza zakresem), plik w trzech kawałkach, nowa treść bez starych kawałków, przerwany zapis, foldery (unikalne nazwy, „(2)”, do siebie, za głęboko), Kosz (przywracanie, 30 dni, cofnięty zegar, opróżnianie), uszkodzone wpisy i kawałki przy otwarciu; prawa przez prawdziwy kanał: Pliki, pulpit (tylko Pulpit, bez treści), inni — nic; zły memfd | funkcjonalny + negatywny |
+| `test_dokumenty` (0.8.1 krok 2): 16 384 wpisy i ani jednego więcej, wczytanie i usunięcie drzewa tysięcy wpisów (< 0,1 s), rezerwa 8 MiB przy pełnych plikach | funkcjonalny + negatywny |
 | `test_dokumenty` (0.8.1 krok 1): wpis z jednym złym bajtem nazwy — naprawiony, treść 3 MiB cała (próba T2 planu); nieznany rodzaj i zła generacja — nic nie usunięte, po poprawce plik wraca; nic z nazwy — „Odzyskany plik”; nowy wpis nie bierze numeru nieczytelnego; folder aplikacji po numerze (plik „Kalkulator”, zmiana nazwy, przeniesienie, Kosz); zegar 2000 / 5 lat w przód / cofnięty / po ponownym starcie / bez dobrego czasu; licznik Kosza; 65. plik dla aplikacji | funkcjonalny + negatywny |
 | `test_notatki` (host, 0.8.1): prawdziwy kod Notatek (`pliki.c`, `spis.c`) z prawdziwym kodem skarbca przez gniazdo — notatka nie do odczytu (tylko do odczytu, plik nietknięty, ponowna próba), plik notatki do Kosza w trakcie pisania (kopia, w obu kolejnościach), 300 plików → 256 najnowszych z komunikatem | funkcjonalny + negatywny |
 | `fuzz_dokument`: lista wpisów (Pliki i pulpit ją czytają), nazwy, naprawa nazw (zawsze pusta albo poprawna), typy | fuzzing |

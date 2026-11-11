@@ -30,7 +30,7 @@ Plików (UID 206, `SO_PASSCRED`), pole po polu (`k1_odbierz_komunikat`). Pliki s
    Gdy poprzedni czytnik jeszcze działa — zatrzymuje go i uruchamia nowy po jego końcu.
 3. Czytnik szuka FAT: na początku pendrive'a, potem w partycjach MBR (4 główne) albo GPT (do 128); wysyła `PEN_STAN`
    (a = 12/16/32, albo a = 0, b = `K1_PEN_BLAD_FORMAT` — np. exFAT, NTFS).
-4. `PEN_SPIS(folder)` → `PEN_LISTA`: do 1024 elementów (c = 1: folder ma więcej), bez ukrytych, systemowych i nazw od
+4. `PEN_SPIS(folder)` → `PEN_LISTA` (numery elementów pamiętane w indeksie po położeniu na nośniku — `k1_indeks`, 0.8.1): do 1024 elementów (c = 1: folder ma więcej), bez ukrytych, systemowych i nazw od
    kropki; typ pliku z jego pierwszych 64 bajtów (`k1_dok_typ`), czas zmiany jak na pendrivie. Numery wpisów nadaje
    czytnik (ten sam wpis — ten sam numer); Pliki mogą pytać tylko o numery z list, które dostały.
 5. `PEN_CZYTAJ(plik)` → `PEN_PLIK`: zapieczętowany memfd: nazwa, potem treść (do 16 MB; większy → `PEN_WYNIK`

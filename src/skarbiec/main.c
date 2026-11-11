@@ -34,6 +34,7 @@ _Static_assert(K1_MAG_PELNY == K1_SKARB_PELNY, "K1_SKARB_PELNY must match K1_MAG
 #define FD_DYSK 4
 #define MAKS_KLIENTOW 16
 #define GODZINA 3600.0
+#define PRZERWA 2.0
 
 struct klient {
     int fd, wlasciciel, uid;
@@ -235,7 +236,7 @@ int main(void)
 {
     struct pollfd pfd[1 + MAKS_KLIENTOW];
     double kosz_kontrola;
-    int i;
+    int i, n, przerwa;
 
     k1_klatka_w_usludze(TAG);
     if (fcntl(FD_STEROWANIE, F_SETFL, O_NONBLOCK) != 0)
@@ -257,11 +258,17 @@ int main(void)
             pfd[1 + i].events = POLLIN;
         }
         t = kosz_kontrola - k1_teraz();
-        if (poll(pfd, 1 + MAKS_KLIENTOW, t <= 0 ? 0 : (int)(t * 1000) + 1) < 0) {
+        przerwa = ob_kompaktowanie_czeka(); /* compaction waits for 2 s without any request (ADR 0034) */
+        if (przerwa && t > PRZERWA)
+            t = PRZERWA;
+        n = poll(pfd, 1 + MAKS_KLIENTOW, t <= 0 ? 0 : (int)(t * 1000) + 1);
+        if (n < 0) {
             if (errno == EINTR)
                 continue;
             k1_koniec(TAG, "poll: %s", strerror(errno));
         }
+        if (n == 0 && przerwa)
+            ob_kompaktuj_w_przerwie();
         if (pfd[0].revents)
             obsluz_sterowanie();
         for (i = 0; i < MAKS_KLIENTOW; i++)

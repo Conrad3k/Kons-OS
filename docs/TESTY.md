@@ -341,3 +341,16 @@ tylko od Plików), `test_instalator` (`k1_pendrive_znajdz`), `fuzz_fat`, `fuzz_p
 | `test-m6.sh` bez sekretu | wpisanie klucza wydania przez MokManagera wymaga podpisanego wydania (`K1_KLUCZ_PODPISU`); w wersji deweloperskiej ten krok jest pominięty celowo (sprawdzane jest tylko, że wpisanie jest niedostępne) | — |
 | ręcznie (0.7.0) | GRUB z podsuniętym obcym initramfs i `rdinit=` → jądro uruchomiło tylko nasz initramfs; aktualizacja zainstalowanego 0.6.3 starym Instalatorem do 0.7.0 | negatywny |
 
+## 0.8.1 krok 2 — skarbiec na duże dane, `scripts/test-skarbiec.sh` (ADR 0034)
+
+Obraz produkcyjny, dysk danych przygotowany na hoście kodem skarbca (`testy/host/magazyn_testowy.c`):
+
+| Uruchomienie | Co sprawdza |
+|---|---|
+| dziennik | K1-DANE 190 MiB, jeden obiekt zapisany 20 000 razy (78 MiB starych wersji) → „kompaktowanie (przy otwarciu): dziennik 78 → 0 MiB”, pulpit startuje |
+| dziennik-ponownie | ten sam dysk: magazyn otwarty, bez kompaktowania (dziennik już krótki) |
+| pełny | K1-DANE 64 MiB (jak pendrive'y 0.5.6–0.7.6), 6 MiB wolne → Pliki: „Nowy folder” odrzucony (−28, brak miejsca na pliki); Ustawienia → Aplikacje: ustawienie zapisane (rezerwa dla systemu) |
+
+Na hoście: `test_indeks`, `test_magazyn` (65 536 obiektów, długi dziennik, kompaktowanie, awarie), `test_dokumenty`
+(16 384 wpisy, duże drzewo, rezerwa), `fuzz_magazyn`, `fuzz_dokument`.
+

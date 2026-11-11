@@ -32,7 +32,10 @@ void usun_kawalki(uint32_t id, uint32_t gen, uint32_t ile);
 int wolna_nazwa(uint32_t folder, const char *nazwa, uint32_t oprocz, char out[K1_DOK_NAZWA]);
 int zmienialny(uint32_t id); /* the index of a visible user entry, else -1 */
 
-/* dok_drzewo.c */
+/* dok_drzewo.c: the table wpisy[] changes only here, with its index by number (0.8.1, ADR 0034) */
+void dok_wyczysc(void);                    /* no entries */
+void dok_dodaj(const struct k1_dok_wpis *w); /* at the end (room checked by the caller) */
+void dok_wyrzuc(int i);                    /* entry `i` leaves the table (the last one takes its place) */
 int indeks(uint32_t id);       /* the place in wpisy[], -1: none */
 int staly(uint32_t id);        /* a standard folder (Pulpit, Dokumenty…) */
 int folder_otwarty(uint32_t id); /* a folder that can take entries */

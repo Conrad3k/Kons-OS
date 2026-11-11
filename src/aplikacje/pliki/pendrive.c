@@ -205,7 +205,7 @@ int pendrive_wynik_skarbca(const struct k1_komunikat *k)
     } else {
         imp.bledy++;
         k1_log(TAG, "import: skarbiec odmówił (wynik %d)", k->b);
-        if (k->b == K1_SKARB_PELNY) { /* no room: the rest would fail too */
+        if (k->b == K1_SKARB_PELNY || k->b == K1_DOK_BLAD_BRAK_MIEJSCA) { /* no room: the rest would fail too */
             imp.bledy += imp.n - imp.i - 1;
             imp.i = imp.n;
             import_koniec();

@@ -233,6 +233,7 @@ static void wynik(const struct k1_komunikat *k)
     case K1_DOK_BLAD_PELNO: blad = "Za dużo plików i folderów."; break;
     case K1_DOK_BLAD_OTWARTE: blad = "Ta aplikacja ma już otwartych 64 plików — zamknij ją i otwórz ponownie."; break;
     case K1_SKARB_PELNY: blad = "Brak miejsca na nośniku."; break;
+    case K1_DOK_BLAD_BRAK_MIEJSCA: blad = "Brak miejsca na pliki (resztę K1 zostawia na ustawienia systemu)."; break;
     case K1_SKARB_ZLE_HASLO: blad = "Dane są zablokowane hasłem."; break;
     default: blad = "Nie udało się."; break;
     }

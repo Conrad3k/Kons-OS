@@ -3,13 +3,45 @@
 #include <string.h>
 
 #include "dok_wew.h"
+#include "k1_indeks.h"
+
+static struct k1_idx idx;
+static struct k1_idx_slot sloty[2 * K1_DOK_MAKS];
+
+static uint32_t skrot(uint32_t id)
+{
+    return k1_idx_skrot(K1_IDX_START, &id, sizeof id);
+}
+
+static int pasuje(const void *ctx, int32_t i)
+{
+    return wpisy[i].id == *(const uint32_t *)ctx;
+}
+
+void dok_wyczysc(void)
+{
+    n_wpisow = 0;
+    k1_idx_init(&idx, sloty, 2 * K1_DOK_MAKS);
+}
+
+void dok_dodaj(const struct k1_dok_wpis *w)
+{
+    wpisy[n_wpisow] = *w;
+    k1_idx_wstaw(&idx, skrot(w->id), n_wpisow++);
+}
+
+void dok_wyrzuc(int i)
+{
+    k1_idx_usun(&idx, skrot(wpisy[i].id), i);
+    if (i != --n_wpisow) {
+        wpisy[i] = wpisy[n_wpisow];
+        k1_idx_przenies(&idx, skrot(wpisy[i].id), n_wpisow, i);
+    }
+}
 
 int indeks(uint32_t id)
 {
-    for (int i = 0; i < n_wpisow; i++)
-        if (wpisy[i].id == id)
-            return i;
-    return -1;
+    return idx.s == NULL ? -1 : k1_idx_znajdz(&idx, skrot(id), pasuje, &id);
 }
 
 const struct k1_dok_wpis *dok_wpis(uint32_t id)
