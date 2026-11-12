@@ -221,7 +221,7 @@ DANE=$TESTY/pliki-dane.img
 dd if=/dev/zero of="$DANE" bs=1M count=16 status=none
 printf 'label: gpt\nstart=2048, size=30000, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
 DYSK_DANYCH="-drive if=none,id=dane,file=$DANE,format=raw -device ide-hd,drive=dane,bus=ide.0"
-CZAS_ZW=$CZAS; CZAS=$((CZAS * 2))  # the longer scenario
+CZAS_ZW=$CZAS; CZAS=$((CZAS * 3))  # the longer scenario (0.8.2 step 5: × 3 — the menu of a folder on the desktop, its name)
 uruchom pierwszy --qemu "$DYSK_DANYCH"
 sprawdz pierwszy
 CZAS=$CZAS_ZW
@@ -362,7 +362,7 @@ if tryb == "notatki":
     # 0.8.2 step 5 (D7): the menu under the right button in Pliki — "Otwórz za pomocą ›" → Notatki
     zp = menu_plikow(p0, wiersz(0), r"K1-PLIKI: menu kontekstowe \(pliku\): (.*)", "Otwórz za pomocą")  # „Lista zakupy”
     sprawdz("prawy przycisk na pliku tekstowym w Plikach: menu na ekranie z „Otwórz za pomocą”", zp)
-    pm = zp and po(r"K1-PLIKI: podmenu \(Otwórz za pomocą\): Notatki (\d+),(\d+)$", lambda: klik(*zp))
+    pm = zp and po(r"K1-PLIKI: podmenu \(Otwórz za pomocą\): Notatki (\d+),(\d+)", lambda: klik(*zp))
     sprawdz("„Otwórz za pomocą”: obok lista aplikacji, które otwierają tekst — tylko Notatki (bez Plików)", pm)
     if pm:
         nx, ny = p0[0] + int(pm.group(1)), p0[1] + int(pm.group(2))

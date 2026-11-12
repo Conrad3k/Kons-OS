@@ -111,6 +111,31 @@ static void t_bez_aplikacji(void)
     EXPECT(k1_menu_wys(&m) <= K1_MENU_WYS_MAKS);
 }
 
+/* The centre of every row to click hits that row, in every menu (the rows below a hairline, too). */
+static void t_trafienie(void)
+{
+    struct k1_menu m;
+    int a[2] = { K1_APL_PODGLAD, K1_APL_NOTATKI };
+    for (int gdzie = K1_MM_PLIKI; gdzie <= K1_MM_PENDRIVE; gdzie++)
+        for (int folder = 0; folder <= 1; folder++)
+            for (int typ = folder ? 0 : 1; typ <= (folder ? 0 : K1_TYPY_MAKS); typ++) {
+                int czynnych = 0;
+                k1_menu_pliku(&m, (enum k1_menu_miejsce)gdzie, folder, typ);
+                for (int i = 0; i < m.n; i++) {
+                    int czynny = m.p[i].styl == K1_MS_WIERSZ && !m.p[i].wyszarzona;
+                    int32_t y = k1_menu_y(&m, i) + (m.p[i].styl == K1_MS_WIERSZ ? K1_MENU_WIERSZ / 2 - 2 : 4); /* as k1_menu_opis */
+                    czynnych += czynny;
+                    EXPECT(k1_menu_pod(&m, m.szer / 2, y) == (czynny ? i : -1));
+                }
+                EXPECT(czynnych >= 1);
+            }
+    k1_menu_aplikacji(&m, a, 2, K1_APL_PODGLAD, 0); /* "Zawsze otwieraj" below its hairline */
+    EXPECT(k1_menu_pod(&m, 40, k1_menu_y(&m, 3) + K1_MENU_WIERSZ / 2 - 2) == 3);
+    k1_menu_bez_aplikacji(&m, K1_TYP_ZIP, 1); /* "Pokaż w Plikach" below the text and its hairline */
+    EXPECT(k1_menu_pod(&m, 40, k1_menu_y(&m, 3) + K1_MENU_WIERSZ / 2 - 2) == 3);
+    EXPECT(k1_menu_pod(&m, 40, k1_menu_y(&m, 1) + 30) == -1);
+}
+
 static void t_uklad(void)
 {
     struct k1_menu m, p;
@@ -175,6 +200,7 @@ int main(void)
     t_miejsca();
     t_za_pomoca();
     t_bez_aplikacji();
+    t_trafienie();
     t_uklad();
     t_rysowanie();
     return K1_TEST_KONIEC("test_menu");

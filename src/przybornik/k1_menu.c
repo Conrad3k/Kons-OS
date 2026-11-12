@@ -187,11 +187,9 @@ int k1_menu_pod(const struct k1_menu *m, int32_t x, int32_t y)
 {
     if (x < 6 || x >= m->szer - 6)
         return -1;
-    for (int i = 0; i < m->n; i++) {
-        int32_t wy = k1_menu_y(m, i);
-        if (y >= wy && y < wy + K1_MENU_WIERSZ - 4)
-            return m->p[i].styl == K1_MS_WIERSZ && !m->p[i].wyszarzona ? i : -1;
-    }
+    for (int i = 0, wy = 6; i < m->n; wy += wys_poz(m, &m->p[i]), i++)
+        if (y >= wy && y < wy + wys_poz(m, &m->p[i])) /* each row its own height (a hairline: 9 px) */
+            return m->p[i].styl == K1_MS_WIERSZ && !m->p[i].wyszarzona && y < wy + K1_MENU_WIERSZ - 4 ? i : -1;
     return -1;
 }
 
