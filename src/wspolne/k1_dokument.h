@@ -19,6 +19,7 @@
 #define K1_DOK_KAWALEK (1u << 20)       /* content is kept and sent in pieces of this size (a Blob Vault object) */
 #define K1_DOK_KAWALKI_MAKS 4096u       /* pieces of one file (0.8.1 step 4, ADR 0034) */
 #define K1_DOK_MAKS_BAJTY ((uint64_t)K1_DOK_KAWALKI_MAKS * K1_DOK_KAWALEK) /* one file: 4 GiB (only ever raised) */
+#define K1_DOK_KONCOWKA 16              /* bytes of an extension (with its dot) kept when a name is cut (0.8.2) */
 #define K1_DOK_GLEBOKOSC 8              /* folders inside a standard folder, at most */
 #define K1_DOK_PIERWSZY 100             /* first number of a user entry (1..99: standard folders) */
 #define K1_DOK_ID_MAKS 0x7fffffff
@@ -110,13 +111,25 @@ _Static_assert(K1_DOK_DOSTEP_APL == 64, "the texts of Pliki and Wybór pliku say
 /* Names (k1_nazwy.c). One code point of UTF-8 at s[0..n): its length, 0 for anything invalid (overlong, surrogate,
  * > U+10FFFF, cut off). */
 size_t k1_dok_utf8(const unsigned char *s, size_t n, uint32_t *kod);
-/* 1 when `s` (n bytes, no NUL needed) may be the name of a file or folder: 1..127 bytes of valid UTF-8, no
- * control characters, none of \ / : * ? " < > |, no space at the start, no space or dot at the end. */
+/* Where a character may be in a name (k1_dok_znak; the table in k1_nazwy.c, 0.8.2 step 2): anywhere, never (control
+ * characters, invisible and direction-changing ones, private use, noncharacters, \ / : * ? " < > |), not at the start
+ * or the end (spaces of every width), not at the start (a combining mark on nothing). */
+enum { K1_ZNAK_WSZEDZIE = 0, K1_ZNAK_NIGDZIE, K1_ZNAK_NA_BRZEGU, K1_ZNAK_NA_POCZATKU };
+int k1_dok_znak(uint32_t k);
+/* The one letter `litera` + combining `znak` is in K1 (NFC: "a" + U+0328 = "ą"; Polish and common Latin letters), or 0. */
+uint32_t k1_dok_jedna_litera(uint32_t litera, uint32_t znak);
+/* 1 when `s` (n bytes, no NUL needed) may be the name of a file or folder: 1..127 bytes of valid UTF-8, every
+ * character where k1_dok_znak allows it, no dot at the end, no letter + mark that is one letter (written as one). */
 int k1_dok_nazwa_poprawna(const char *s, size_t n);
-/* `s` (n bytes) made a valid name (0.8.1, entries repaired at start): every bad byte or character becomes "_", no
- * space at the start, no space or dot at the end, whole letters up to 127 bytes. Empty ("") when nothing is left. */
+/* `s` (n bytes) made a valid name of at most `maks` - 1 bytes in `out` (`maks` bytes, at most K1_DOK_TEKST_MAKS
+ * letters): every bad byte or character becomes "_", a letter + mark becomes one letter, no space at the start, no
+ * space or dot at the end, whole letters only. Its length; 0 ("") when nothing is left. czytnik keeps a long name
+ * whole this way before cutting it before its extension. */
+#define K1_DOK_TEKST_MAKS 1024
+size_t k1_dok_tekst_nazwy(const char *s, size_t n, char *out, size_t maks);
+/* The same into a name (K1_DOK_NAZWA; entries repaired at start, 0.8.1). */
 void k1_dok_nazwa_popraw(const char *s, size_t n, char out[K1_DOK_NAZWA]);
-/* Names compared as Windows does: letters A-Z equal to a-z (and Polish capitals to small ones). */
+/* Names compared as Windows does: capitals equal to small letters (A-Z, Latin-1, Latin Extended-A: Ä/ä, Ł/ł…). */
 int k1_dok_nazwy_rowne(const char *a, const char *b);
 /* The name a text gives a file (Notatki, ADR 0030): its first line with something in it, at most 48 bytes (whole
  * letters), without the characters a name cannot have, one space at a time, no space or dot at the end; "Notatka"

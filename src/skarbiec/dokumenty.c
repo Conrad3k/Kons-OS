@@ -64,11 +64,15 @@ void usun_kawalki(uint32_t id, uint32_t gen, uint32_t ile)
     }
 }
 
-/* `nazwa` made free in `folder`: "nazwa (2)", "nazwa (3)"… before the extension, as Windows does. */
+/* `nazwa` made free in `folder`: "nazwa (2)", "nazwa (3)"… before the extension, as Windows does. A long name is cut
+ * before " (n)": its base, or all of it when the "extension" is longer than K1_DOK_KONCOWKA (0.8.2 step 2, L8: a base
+ * never shrinks to nothing — "a.<125 × x>" got no free name before). */
 int wolna_nazwa(uint32_t folder, const char *nazwa, uint32_t oprocz, char out[K1_DOK_NAZWA])
 {
     const char *kropka = strrchr(nazwa, '.');
-    size_t baza = kropka != NULL && kropka != nazwa ? (size_t)(kropka - nazwa) : strlen(nazwa);
+    size_t n = strlen(nazwa), baza = n;
+    if (kropka != NULL && kropka != nazwa && n - (size_t)(kropka - nazwa) <= K1_DOK_KONCOWKA)
+        baza = (size_t)(kropka - nazwa);
     snprintf(out, K1_DOK_NAZWA, "%s", nazwa);
     for (int i = 2; nazwa_zajeta(folder, out, oprocz); i++) {
         char dop[16];
@@ -76,9 +80,9 @@ int wolna_nazwa(uint32_t folder, const char *nazwa, uint32_t oprocz, char out[K1
         if (i > K1_DOK_MAKS + 1)
             return K1_DOK_BLAD_ZAJETA;
         d = (size_t)snprintf(dop, sizeof dop, " (%d)", i);
-        while (b > 0 && b + d + strlen(nazwa + baza) >= K1_DOK_NAZWA)
+        while (b > 1 && b + d + (n - baza) >= K1_DOK_NAZWA)
             b--;
-        while (b > 0 && ((unsigned char)nazwa[b] & 0xc0) == 0x80) /* never cut a letter in half */
+        while (b > 1 && ((unsigned char)nazwa[b] & 0xc0) == 0x80) /* never cut a letter in half */
             b--;
         snprintf(out, K1_DOK_NAZWA, "%.*s%s%s", (int)b, nazwa, dop, nazwa + baza);
     }

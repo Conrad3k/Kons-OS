@@ -4,6 +4,8 @@
 #   fat12.img      bez tablicy partycji (jak dyskietka), polskie długie nazwy, plik ukryty, folder DCIM/100K1
 #   fat16-mbr.img  tablica MBR, FAT16, duży plik, plik w kawałkach (pofragmentowany)
 #   fat32-gpt.img  tablica GPT, FAT32, zdjęcie JPEG, folder z 1100 plikami
+#   fat32-maly.img FAT32 z mniej niż 65 525 klastrami (mformat -F -c 8, jak próba T6 planu 0.8.2), bez partycji,
+#                  folder z 3000 plików (plan 0.8.2, krok 2: L13, L14)
 #   ntfs-mbr.img   tablica MBR z partycją NTFS (śmieci) — czytnik ma odmówić
 # Treść plików: bajt i = (i*31 + 7) mod 251 (test liczy to samo). Użycie: obrazy_fat.sh KATALOG
 set -eu
@@ -56,6 +58,17 @@ truncate -s 64M "$OUT/fat32-gpt.img"
 printf 'label: gpt\nstart=2048, size=98304, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\n' | sfdisk -q "$OUT/fat32-gpt.img" >/dev/null
 dd if="$OUT/czesc.img" of="$OUT/fat32-gpt.img" bs=512 seek=2048 conv=notrunc status=none
 rm -f "$OUT/czesc.img"
+
+# FAT32 „mały”: 64 MiB, klaster 4 KiB → ok. 16 000 klastrów (z samej liczby wyszedłby FAT16)
+rm -f "$OUT/fat32-maly.img"
+mformat -C -i "$OUT/fat32-maly.img" -F -c 8 -T 131072 ::
+mmd -i "$OUT/fat32-maly.img" ::/Telefon
+rm -rf "$Z/telefon"; mkdir -p "$Z/telefon"
+python3 -I -c 'import sys
+for i in range(3000): open(f"{sys.argv[1]}/IMG_2026{i:04d}_zdjecie.jpg", "w").write(str(i))' "$Z/telefon"
+mcopy -i "$OUT/fat32-maly.img" "$Z"/telefon/* ::/Telefon/
+wzor "$Z/zdjecie.jpg" 20000 ffd8ffe0
+mcopy -i "$OUT/fat32-maly.img" "$Z/zdjecie.jpg" ::
 
 # NTFS (tylko typ w MBR i śmieci w partycji): nie FAT
 rm -f "$OUT/ntfs-mbr.img"
