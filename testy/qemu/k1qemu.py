@@ -289,6 +289,25 @@ class Maszyna:
         self.monitor("mouse_button 2", "mouse_button 0")
         return trafil
 
+    def przeciagnij(self, x1, y1, x2, y2, krokow=4):
+        """Dragging (0.8.2 step 6): press at (x1, y1), move in a few steps to (x2, y2) (each one confirmed by ekran's
+        cursor line), release. False when the pointer never got to the start."""
+        trafil = self.idz(x1, y1)
+        self.przycisk(True)
+        for i in range(1, krokow + 1):
+            self.idz(x1 + (x2 - x1) * i // krokow, y1 + (y2 - y1) * i // krokow)
+        self.przycisk(False)
+        return trafil
+
+    def klik_z(self, klawisz, x, y):
+        """A click with a key held (\"ctrl\", \"shift\"): QEMU's sendkey with a hold time presses the key now and
+        lets it go 1.5 s later — the click in between, in one batch of monitor commands."""
+        trafil = self.idz(x, y)
+        n = self.ile(PRZYCISK + "puszczony")
+        self.monitor(f"sendkey {klawisz} 1500", "mouse_button 1", "mouse_button 0")
+        self.czekaj(PRZYCISK + "puszczony", od=n, czas=10)
+        return trafil
+
     def pisz(self, *klawisze):
         self.monitor(*[f"sendkey {k}" for k in klawisze])
 

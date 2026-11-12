@@ -142,14 +142,18 @@ static void szczegoly_wielu(struct k1_obraz *o, const struct k1_motyw *m)
     snprintf(buf, sizeof buf, "Zaznaczone: %d", zazn.n);
     k1_tekst(o, K1_CZ_TEKST_MOCNA, SZCZEGOLY_X + 16, SCIEZKA_Y + 88, buf, k1_kolor(m->tekst, 255), SZCZEGOLY_W - 32);
     y += 24;
-    snprintf(t, sizeof t, "%d", zazn.n - folderow);
-    cecha(o, m, &y, "Pliki", t);
+    if (zazn.n > folderow) {
+        snprintf(t, sizeof t, "%d", zazn.n - folderow);
+        cecha(o, m, &y, "Pliki", t);
+    }
     if (folderow > 0) {
         snprintf(t, sizeof t, "%d", folderow);
         cecha(o, m, &y, "Foldery", t);
     }
-    k1_rozmiar_tekst(bajty, buf, sizeof buf);
-    cecha(o, m, &y, folderow > 0 ? "Rozmiar plików" : "Rozmiar razem", buf);
+    if (zazn.n > folderow) {
+        k1_rozmiar_tekst(bajty, buf, sizeof buf);
+        cecha(o, m, &y, folderow > 0 ? "Rozmiar plików" : "Rozmiar razem", buf);
+    }
 }
 
 void rysuj_szczegoly(struct k1_obraz *o, const struct k1_motyw *m)
