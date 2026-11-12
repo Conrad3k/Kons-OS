@@ -49,7 +49,8 @@ GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 # GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
 PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_aplikacja.c \
-           src/przybornik/k1_dekodowanie.c src/przybornik/k1_menu.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
+           src/przybornik/k1_dekodowanie.c src/przybornik/k1_menu.c src/przybornik/k1_przeciaganie.c \
+           src/przybornik/k1_zaznaczenie.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
            $(GEN)/k1_czcionki_dane.c
 # Host: without the sandbox, the app skeleton and what uses it (they need our kernel's headers).
 HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c src/przybornik/k1_dekodowanie.c,$(PRZYB)) src/wspolne/k1_komunikat.c $(DOK_C) src/wspolne/k1_kanal.c \
@@ -196,6 +197,10 @@ $(OBJ)/test_przybornik: testy/host/test_przybornik.c $(HOST_PRZYB) $(NAGL_P) $(N
 $(OBJ)/test_menu: testy/host/test_menu.c $(HOST_PRZYB) $(NAGL_P) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_menu.c $(HOST_PRZYB) -lm
 
+# 0.8.2 step 6: dragging — the table of rules (every source and target), the windows of a question, the selection of many
+$(OBJ)/test_przeciaganie: testy/host/test_przeciaganie.c $(HOST_PRZYB) $(NAGL_P) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przeciaganie.c $(HOST_PRZYB) -lm
+
 # 0.8.0 (ADR 0030): a K1-DANE partition with notes in the format of 0.5.8–0.7.6 (scripts/test-pliki.sh)
 $(OBJ)/stare_notatki: testy/host/stare_notatki.c $(MAGAZYN) src/skarbiec/magazyn.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/stare_notatki.c $(MAGAZYN)
@@ -289,7 +294,7 @@ $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instal
 	test_dokumenty test_notatki test_indeks test_log test_magazyn test_odcinki test_przejscie test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
 	test_zdarzenie): testy/host/k1_test_host.h
 
-testy-host: $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_podglad $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/test_menu $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder
+testy-host: $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_podglad $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/test_menu $(OBJ)/test_przeciaganie $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder
 	$(OBJ)/test_indeks
 	$(OBJ)/test_dokumenty
 	$(OBJ)/test_notatki
@@ -326,6 +331,7 @@ testy-host: $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/
 	$(OBJ)/test_komunikat
 	$(OBJ)/test_przybornik
 	$(OBJ)/test_menu
+	$(OBJ)/test_przeciaganie
 	$(OBJ)/podglad_grafiki 1280 800 900 400 0 > $(OBJ)/podglad.ppm
 	$(OBJ)/podglad_grafiki 13 7 -50 3 1 > /dev/null
 	$(OBJ)/podglad_grafiki 1 1 0 0 0 > /dev/null

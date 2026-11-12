@@ -16,6 +16,7 @@
 
 #define K1_MENU_SZER 232     /* the width of a menu */
 #define K1_MENU_SZER_POD 280 /* "Otwórz za pomocą": "Zawsze otwieraj tą aplikacją" needs more */
+#define K1_MENU_SZER_PYTANIE 300 /* the window of a question when dragging (0.8.2 step 6, k1_przeciaganie) */
 #define K1_MENU_WIERSZ 36
 #define K1_MENU_KRESKA 9
 #define K1_MENU_LINIA 18     /* a line of small text (a hint under a muted row, a message) */
@@ -28,10 +29,11 @@
 #define K1_MENU_BEZ_APLIKACJI_KROTKO "K1 nie ma jeszcze aplikacji do tego typu pliku"
 #define K1_MENU_BEZ_APLIKACJI K1_MENU_BEZ_APLIKACJI_KROTKO " — możesz go przechowywać, przenosić i usuwać."
 
-enum k1_menu_styl { K1_MS_WIERSZ = 0, K1_MS_KRESKA, K1_MS_TEKST }; /* a row to click / a hairline / text only */
+/* a row to click / a hairline / text only (small, wrapped; `mocna`: the title — Medium 15, wrapped too) */
+enum k1_menu_styl { K1_MS_WIERSZ = 0, K1_MS_KRESKA, K1_MS_TEKST };
 
 struct k1_menu_poz {
-    char tekst[160];
+    char tekst[256]; /* a question names a folder and a file (0.8.2 step 6) */
     const char *podpowiedz; /* under a muted row: why it is muted (small text, wrapped) */
     int akcja, arg;         /* what the caller does (K1_MA_* for a file), e.g. arg = an application */
     uint8_t styl, wyszarzona, mocna, akcent, podmenu, zaznaczona;

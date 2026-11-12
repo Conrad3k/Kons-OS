@@ -8,6 +8,7 @@
 #include "k1_uslugi.h"
 
 #define TEKST_X 18 /* text from the body's left edge */
+#define TYTUL_LINIA 21 /* a line of the title (text `mocna`) */
 
 void k1_menu_zacznij(struct k1_menu *m, int32_t szer)
 {
@@ -82,7 +83,8 @@ static int32_t wys_poz(const struct k1_menu *m, const struct k1_menu_poz *p)
     case K1_MS_KRESKA:
         return K1_MENU_KRESKA;
     case K1_MS_TEKST:
-        return p->mocna ? K1_MENU_WIERSZ - 6 : zawin(p->tekst, szer, K1_CZ_MALA, NULL, NULL) * K1_MENU_LINIA + 8;
+        return p->mocna ? K1_MENU_WIERSZ - 6 + (zawin(p->tekst, szer, K1_CZ_TEKST_MOCNA, NULL, NULL) - 1) * TYTUL_LINIA
+                        : zawin(p->tekst, szer, K1_CZ_MALA, NULL, NULL) * K1_MENU_LINIA + 8;
     default:
         return K1_MENU_WIERSZ +
                (p->wyszarzona && p->podpowiedz ? zawin(p->podpowiedz, szer, K1_CZ_MALA, NULL, NULL) * K1_MENU_LINIA - 6 : 0);
@@ -106,12 +108,14 @@ struct rysowanie {
     struct k1_obraz *o;
     int32_t x, y, szer;
     uint32_t kolor;
+    enum k1_cz cz;
+    int32_t linia;
 };
 
 static void linia_rysuj(const char *t, int nr, void *k)
 {
     struct rysowanie *r = k;
-    k1_tekst(r->o, K1_CZ_MALA, r->x, r->y + nr * K1_MENU_LINIA, t, r->kolor, r->szer);
+    k1_tekst(r->o, r->cz, r->x, r->y + nr * r->linia, t, r->kolor, r->szer);
 }
 
 /* The tick of the application that opens the type now, and the box of "Zawsze otwieraj". */
@@ -137,16 +141,18 @@ static void rysuj_poz(struct k1_obraz *o, const struct k1_motyw *mt, const struc
 {
     int32_t szer = m->szer - 2 * TEKST_X, tx = x + TEKST_X;
     uint32_t kolor = k1_kolor(p->wyszarzona ? mt->tekst3 : p->akcent ? mt->akcent_tekst : mt->tekst, 255);
-    struct rysowanie r = { o, tx, y + 22, szer, k1_kolor(mt->tekst2, 255) };
+    struct rysowanie r = { o, tx, y + 22, szer, k1_kolor(mt->tekst2, 255), K1_CZ_MALA, K1_MENU_LINIA };
     if (p->styl == K1_MS_KRESKA) {
         k1_prostokat(o, x + 12, y + 4, m->szer - 24, 1, k1_kolor(mt->tekst, 22));
         return;
     }
     if (p->styl == K1_MS_TEKST) {
         if (p->mocna)
-            k1_tekst(o, K1_CZ_TEKST_MOCNA, tx, y + 20, p->tekst, k1_kolor(mt->tekst, 255), szer);
+            zawin(p->tekst, szer, K1_CZ_TEKST_MOCNA, linia_rysuj,
+                  &(struct rysowanie){ o, tx, y + 20, szer, k1_kolor(mt->tekst, 255), K1_CZ_TEKST_MOCNA, TYTUL_LINIA });
         else
-            zawin(p->tekst, szer, K1_CZ_MALA, linia_rysuj, &(struct rysowanie){ o, tx, y + 14, szer, k1_kolor(mt->tekst2, 255) });
+            zawin(p->tekst, szer, K1_CZ_MALA, linia_rysuj,
+                  &(struct rysowanie){ o, tx, y + 14, szer, k1_kolor(mt->tekst2, 255), K1_CZ_MALA, K1_MENU_LINIA });
         return;
     }
     if (najechana)

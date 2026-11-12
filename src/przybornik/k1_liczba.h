@@ -20,6 +20,10 @@ void k1_minuty(char *buf, size_t n, long minuty);
 /* The size of a file: "512 B", "12 KB", "1,4 MB", "2,1 GB" (Pliki, Podgląd). */
 void k1_rozmiar_tekst(uint64_t bajty, char *buf, size_t n);
 
+/* The Polish form of a noun after the number `n`: "1 plik", "3 pliki", "5 plików", "22 pliki", "12 plików"
+ * (0.8.2 step 6: one rule for Pliki, the import and the questions of dragging). */
+const char *k1_odmiana(long n, const char *jeden, const char *kilka, const char *wiele);
+
 /* The battery state (K1_BAT_*) in words: "Na baterii", "Ładowanie"… — one text for every window
  * (Ustawienia, Zasoby); an unknown value is "Stan nieznany". */
 const char *k1_bateria_stan(int stan);
