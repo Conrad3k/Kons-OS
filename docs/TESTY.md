@@ -9,14 +9,16 @@ zrzut ekranu albo wynik testu. Każdy mechanizm bezpieczeństwa ma test negatywn
 scripts/przygotuj-srodowisko.sh   # raz w nowym kontenerze (pakiety Ubuntu)
 scripts/zbuduj.sh                 # jądro + programy + obrazy + ISO → build/wynik/
 scripts/testy.sh                  # wszystkie testy: test-m1.sh, potem test-m2, m4, pliki, pendrive, skarbiec, m5, m5f, m6
-                                  # (z KVM równolegle; bez KVM po kolei — CZAS_TCG)
+                                  # (z KVM równolegle; bez KVM po kolei — ok. 50 min,
+                                  # 0.8.2/0.8.3, 4 rdzenie; budowa od zera ok. 5 min)
 ```
 
 Testy na hoście (`make testy-host`) dzielą pomocnicze makra `testy/host/k1_test_host.h` (`EXPECT`,
 `K1_TEST_KONIEC`); zmiana nagłówka przebudowuje wszystkie. Brak narzędzia, którego test używa
 (`grub-editenv` dla `test_uklad`, `sfdisk` dla `test_instalator`), to błąd, nie pominięcie. Fuzzing
 (`make fuzz`): jedna reguła dla listy `FUZZ` w `Makefile` (plik `testy/host/fuzz_<nazwa>.c` + dwa wiersze);
-korpus startowy linii poleceń w `testy/host/korpus-cmdline`. Sprawdzenia na hoście opisują zachowanie
+korpusy startowe w `testy/host/korpus-<nazwa>`; przypadki, które libFuzzer zapisuje (błąd, „wolny” przypadek), trafiają do
+`build/fuzz-wyniki/<nazwa>-…` (0.8.3). Sprawdzenia na hoście opisują zachowanie
 (oczekiwane liczby, teksty, bajty formatu), a nie powtarzają wzorów z kodu (0.7.3). Testy w QEMU piszemy na
 bibliotece `testy/qemu/k1qemu.py` (klasa `Maszyna`: `czekaj`, `czekaj_na`, `cisza`, `klik`, `przycisk`, `przeciagnij`, `klik_z`,
 `zrzut`, `sprawdz`; maszynę zamyka `zamknij_qemu` z `scripts/wspolne.sh`).

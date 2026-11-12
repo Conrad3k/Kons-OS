@@ -153,7 +153,7 @@ SemVer od 0.1.0 w `VERSION`; tagi `k1-vX.Y.Z` zakłada CI po udanym buildzie i t
 
 ## Ograniczenia środowiska pracy
 - Kontener deweloperski bez `/dev/kvm` → QEMU w emulacji TCG (start K1 ~1–2 s, pierwsza klatka ~2 s,
-  wszystkie testy ~6 min). QEMU: karta `-vga std` (sterownik `bochs`) albo przy ISO `virtio-vga` (simpledrm), PS/2.
+  budowa od zera ok. 5 min, wszystkie testy ok. 50 min — 0.8.2, 4 rdzenie). QEMU: karta `-vga std` (sterownik `bochs`) albo przy ISO `virtio-vga` (simpledrm), PS/2.
 - Sieć kontenera: tylko HTTPS przez proxy; dozwolone m.in. apt Ubuntu, deb.debian.org, GitHub,
   cdn/www/git.kernel.org.
 - CI (GitHub Actions) buduje tylko `main` — minuty prywatnego repo są ograniczone.
