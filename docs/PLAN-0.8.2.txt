@@ -243,6 +243,9 @@ KROK 3 — Zdjęcia: duże i nowe formaty, wspólny dekoder                     
     i przyjmuje komunikaty tylko od jej UID; log nadzorcy: „dekoder dla aplikacji Pliki: …, pamięć 1152 MiB”.
   - Pomiar (komputer budujący, do 2560×1600): 48 Mpx 0,72 s / 254 MiB, progresywny 0,95 s / 391 MiB; 100 Mpx 1,37 s /
     528 MiB, progresywny 2,28 s / 813 MiB (zgodnie z T5).
+  - QEMU (test-pendrive, maszyna 8 GB): 48 Mpx i 100 Mpx dają obraz w klatce (pliki 1,9 i 3 MB: 2 i 3 kawałki), GIF, BMP,
+    WebP też, nagłówek 101 Mpx — odmowa z liczbą. W TCG 48 Mpx = 10,5 s, 100 Mpx = 19,8 s — tuż pod RLIMIT_CPU 20 s,
+    dlatego 100 Mpx w tym teście tylko z KVM (CI); lokalnie w TCG — 48 Mpx. Limit maszyny testu × 3 (było × 2).
 
 KROK 4 — Aplikacja Podgląd                                                   L · decyzje D1 D2 D5 · ADR 0037
   Cel: podwójne kliknięcie zdjęcia (Pliki, pulpit) otwiera je w osobnym oknie „Podgląd”; strzałki pokazują

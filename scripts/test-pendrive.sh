@@ -28,7 +28,9 @@
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
 CZAS=${K1_TEST_CZAS:-240}
-CZAS=$((CZAS * 2))
+CZAS=$((CZAS * 3))  # 0.8.2 step 3: + photos of 48 and 100 Mpx (in TCG 10 and 20 s each)
+# 100 Mpx only with KVM (CI, a real computer: ~1.5 s): in TCG it takes ~20 s of processor, as much as dekoder's limit
+KVM=0; [ -w /dev/kvm ] && KVM=1
 LOG=$TESTY/pendrive.log MON=$TESTY/pendrive.sock
 PEN=$TESTY/pendrive-fat32.img NTFS=$TESTY/pendrive-ntfs.img DANE=$TESTY/pendrive-dane.img MALY=$TESTY/pendrive-maly.img
 mkdir -p "$TESTY"; rm -f "$LOG" "$MON" "$TESTY"/pendrive-*.png
@@ -117,11 +119,11 @@ printf 'label: gpt\nstart=2048, size=1568768, name="K1-DANE"\n' | sfdisk -q "$DA
             -device usb-storage,id=pen,bus=xhci.0,drive=pendrive" &
 QPID=$!
 r=0
-K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG" "$MON" "$TESTY" "$CZAS" "$NTFS" "$OCZEKIWANE" "$MALY" <<'PY' || r=1
+K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG" "$MON" "$TESTY" "$CZAS" "$NTFS" "$OCZEKIWANE" "$MALY" "$KVM" <<'PY' || r=1
 import os, re, sys
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
-log, mon, out, limit, ntfs, oczekiwane, maly = sys.argv[1:8]
+log, mon, out, limit, ntfs, oczekiwane, maly, kvm = sys.argv[1:9]
 q = Maszyna(log, mon, out, limit, "pendrive")
 tekst, czekaj, zrzut, sprawdz, klik = q.tekst, q.czekaj, q.zrzut, q.sprawdz, q.klik
 IKONY = r"K1-GUI: ikony na pulpicie \(siatka \d+x\d+, co \d+,\d+\): (.*)"
@@ -245,10 +247,14 @@ sprawdz("zdjęcie PNG: podgląd 32×32", ok and czekaj(r"K1-DEKODER: Obraz PNG �
 ok, _ = podglad(2, r"K1-PLIKI: obraz: dekoder nie odczytał pliku \(-42\)", None, "6-podglad-uszkodzony")
 sprawdz("NEGATYWNY: uszkodzony JPEG — dekoder odpowiada błędem, Pliki: „Podgląd niedostępny”, nic więcej się nie dzieje",
         ok and czekaj(r"K1-DEKODER: Obraz JPEG: nie da się odczytać \(-42;"))
-# 4b. (0.8.2 step 3) large photos and new formats
+# 4b. (0.8.2 step 3) large photos and new formats (100 Mpx: with KVM only — see KVM above)
+if kvm != "1":
+    print("  [uwaga] bez KVM: zdjęcie 100 Mpx nie jest dekodowane w tym teście (TCG: ok. 20 s procesora, tyle co limit "
+          "dekodera); sprawdzają je test_dekoder na hoście i ten test w CI")
 for i, nazwa, wzor, kolor, opis in (
         (6, "48mpx", r"K1-DEKODER: Obraz JPEG → 200x150 \(([\d.]+) s\)", (220, 140, 40), "zdjęcie 48 Mpx (8000×6000)"),
-        (4, "100mpx", r"K1-DEKODER: Obraz JPEG → 150x150 \(([\d.]+) s\)", (30, 140, 120), "zdjęcie 100 Mpx (10000×10000)"),
+        *([(4, "100mpx", r"K1-DEKODER: Obraz JPEG → 150x150 \(([\d.]+) s\)", (30, 140, 120), "zdjęcie 100 Mpx (10000×10000)")]
+          if kvm == "1" else []),
         (8, "gif", r"K1-DEKODER: Obraz GIF → 64x48", (150, 60, 170), "GIF"),
         (7, "bmp", r"K1-DEKODER: Obraz BMP → 64x48", (200, 200, 60), "BMP"),
         (9, "webp", r"K1-DEKODER: Obraz WebP → 64x48", (230, 90, 90), "WebP (stratny, VP8)")):

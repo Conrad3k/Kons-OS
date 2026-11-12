@@ -307,7 +307,7 @@ nazwą, uszkodzonym JPEG-iem, notatką, plikiem 17 MB, plikiem ukrytym i śmieci
 | miejsca | Obrazy: 4, Dokumenty: 1 | log `widok:` |
 | podgląd (krok 4) | zaznaczone zdjęcie JPEG → nadzorca: dekoder UID 107; dekoder: JPEG → 80×60; kolor zdjęcia w podglądzie; PNG → 32×32 | `pendrive-6-podglad-jpeg.png`, `-png.png` |
 | uszkodzony obraz | dekoder: błąd -42; Pliki: „Podgląd niedostępny” | `pendrive-6-podglad-uszkodzony.png` |
-| duże zdjęcia (0.8.2 krok 3) | maszyna 8 GB (jak X230): nadzorca daje dekoderowi 1152 MiB; zdjęcie 48 Mpx → 200×150 i 100 Mpx → 150×150 (pliki po kilka MB: kawałkami po 1 MiB), kolor w podglądzie; czas dekodowania w logu | `pendrive-6-podglad-48mpx.png`, `-100mpx.png` |
+| duże zdjęcia (0.8.2 krok 3) | maszyna 8 GB (jak X230): nadzorca daje dekoderowi 1152 MiB; zdjęcie 48 Mpx → 200×150 i 100 Mpx (tylko z KVM) → 150×150 (pliki po kilka MB: kawałkami po 1 MiB), kolor w podglądzie; czas dekodowania w logu | `pendrive-6-podglad-48mpx.png`, `-100mpx.png` |
 | nowe formaty (0.8.2 krok 3) | GIF, BMP, WebP stratny → 64×48, kolor w podglądzie | `pendrive-6-podglad-gif.png`, `-bmp.png`, `-webp.png` |
 | za duże zdjęcie | nagłówek 10050×10000: dekoder odmawia przed przydziałem (-41, 101 Mpx); Pliki: „Zdjęcie ma 101 Mpx — K1 pokazuje do 100 Mpx” | `pendrive-6-podglad-101mpx.png` |
 | tapeta | „Ustaw jako tapetę” → ekran: zdjęcie od Plików 80×60, tapeta 31; kolor zdjęcia przy prawej krawędzi ekranu | `pendrive-6-tapeta.png` |
@@ -405,5 +405,5 @@ Od 1c system tworzy format 2, a stary magazyn (format 1) przechodzi na format 2 
 | `test_komunikat` (host) | `DEK_OBRAZ` bez deskryptora, plik do 128 MiB; `DEK_KAWALEK` (numer 0…127, 1 B…1 MiB, memfd); `DEK_BLAD` b = Mpx tylko przy „za duży”; `DOK_CZYTAJ`/`DOK_TRESC` najwyżej 1 MiB |
 | `fuzz_dekoder` | korpus z GIF, BMP, WebP (stratny, bezstratny, z alfą) |
 | w systemie (`t_proby`) | klatka dekodera: 1 GiB przestrzeni adresowej się mieści, 1,2 GiB — błąd przydziału (`RLIMIT_AS` 1152 MiB), nie zabicie procesu |
-| `test-pendrive.sh` | maszyna 8 GB: nadzorca daje dekoderowi 1152 MiB; zdjęcia 48 i 100 Mpx (kilka MB — kilka kawałków) → podgląd, kolor na zrzucie; GIF, BMP, WebP → podgląd; nagłówek 101 Mpx → odmowa, „Zdjęcie ma 101 Mpx”; zrzuty `pendrive-6-podglad-{48mpx,100mpx,gif,bmp,webp,101mpx}.png` |
+| `test-pendrive.sh` | maszyna 8 GB: nadzorca daje dekoderowi 1152 MiB; zdjęcia 48 i 100 Mpx (kilka MB — kilka kawałków) → podgląd, kolor na zrzucie (100 Mpx tylko z KVM: w TCG dekodowanie trwa ok. 20 s procesora — tyle, co limit dekodera; 48 Mpx w TCG: ok. 10 s); GIF, BMP, WebP → podgląd; nagłówek 101 Mpx → odmowa, „Zdjęcie ma 101 Mpx”; zrzuty `pendrive-6-podglad-{48mpx,100mpx,gif,bmp,webp,101mpx}.png` |
 | `test-m4.sh`, `test-pliki.sh` | ustawienia zapisane w nowym formacie `K1U3` (miejsce na 32 typy plików) — w magazynie nie widać go jawnym tekstem |

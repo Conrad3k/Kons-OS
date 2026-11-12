@@ -108,4 +108,4 @@ w pliku i wyniku, czas — nigdy treść ani nazwa.
 | host `test_komunikat` (`DEKODER*`, `DEK_*` z `DEK_KAWALEK`, `TAPETA_ZDJECIE`, `USTAW` zdjęcia) | jednostkowy / negatywny |
 | w systemie: próba w klatce dekodera (`t_proby`), spis plików rdzenia | negatywny |
 | `test-pliki.sh` (QEMU): zdjęcie w Obrazach → podgląd w Plikach, „Ustaw jako tapetę” (kolor na zrzucie), Ustawienia → kafelek „Zdjęcie”, tapeta po ponownym starcie | funkcjonalny |
-| `test-pendrive.sh` (QEMU, maszyna 8 GB): zdjęcia 48 i 100 Mpx (kilka MB, kilka kawałków), GIF, BMP, WebP → podgląd (kolor na zrzucie); nagłówek 101 Mpx → odmowa z liczbą Mpx; limit pamięci klatki w logu nadzorcy | funkcjonalny / negatywny |
+| `test-pendrive.sh` (QEMU, maszyna 8 GB): zdjęcia 48 i 100 Mpx (kilka MB, kilka kawałków; 100 Mpx tylko z KVM — w emulacji TCG trwa ok. 20 s procesora, tyle co limit), GIF, BMP, WebP → podgląd (kolor na zrzucie); nagłówek 101 Mpx → odmowa z liczbą Mpx; limit pamięci klatki w logu nadzorcy | funkcjonalny / negatywny |
