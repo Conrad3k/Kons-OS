@@ -315,11 +315,13 @@ ok = czekaj(r"K1-PODGLAD: obraz: 32x32 \(zdjęcie 32x32\)", od=n_o, czas=60)
 w, h, px = zrzut("6b-podglad-png", gdy=lambda w, h, px: blisko(px(sz, sy), ZIELONY))
 sprawdz("przycisk ‹: zdjęcie 2 z 10 (PNG, zielone)", m and m.group(1) == "2" and ok and blisko(px(sz, sy), ZIELONY),
         f"kolor {px(sz, sy)}")
-n_z, n_w = q.ile(ZDJ), q.ile(WIDOK)
+KOSZ, PO, O9 = (r"K1-PODGLAD: do Kosza: zdjęcie 2 z 10", r"K1-PODGLAD: zdjęcie 2 z 9",
+                r"K1-PLIKI: widok: Obrazy, 9 elementów")
+n_k, n_p9, n_o9 = q.ile(KOSZ), q.ile(PO), q.ile(O9)  # "od" counts lines of the same pattern
 q.pisz("delete")
-ok = czekaj(r"K1-PODGLAD: do Kosza: zdjęcie 2 z 10", od=0, czas=30) and czekaj(r"K1-PODGLAD: zdjęcie 2 z 9", od=n_z, czas=30)
+ok = czekaj(KOSZ, od=n_k, czas=30) and czekaj(PO, od=n_p9, czas=30)
 sprawdz("Delete (D2): zdjęcie do Kosza bez pytania, Podgląd pokazuje następne (2 z 9); Pliki: Obrazy — 9",
-        ok and czekaj(r"K1-PLIKI: widok: Obrazy, 9 elementów", od=n_w, czas=30))
+        ok and czekaj(O9, od=n_o9, czas=30))
 n_p = q.ile(r"K1-WYBOR: prośba: aplikacja 9")
 q.pisz("ctrl-o")
 ok = czekaj(r"K1-WYBOR: prośba: aplikacja 9, typ 0, rodzina 1", od=n_p, czas=60)
