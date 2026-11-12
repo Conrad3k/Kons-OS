@@ -270,9 +270,10 @@ static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     case K1_KOM_DOK_NAZWA:
         return wpis_uzytkownika(k->obiekt) && w(k->a, 1, K1_DOK_NAZWA - 1) && w(k->b, 0, 1) && zera(k, 2);
     case K1_KOM_DOK_PRZENIES:
-        return wpis_uzytkownika(k->obiekt) && k->a >= 1 && wpis((uint32_t)k->a) && zera(k, 1);
-    case K1_KOM_DOK_KOSZ:
+        return wpis_uzytkownika(k->obiekt) && k->a >= 1 && wpis((uint32_t)k->a) && w(k->b, 0, 1) && zera(k, 2);
     case K1_KOM_DOK_PRZYWROC:
+        return wpis_uzytkownika(k->obiekt) && (k->a == 0 || wpis((uint32_t)k->a)) && zera(k, 1);
+    case K1_KOM_DOK_KOSZ:
     case K1_KOM_DOK_USUN:
         return wpis_uzytkownika(k->obiekt) && zera(k, 0);
     case K1_KOM_DOK_LISTA:
@@ -394,7 +395,7 @@ static int sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
     case K1_KOM_WSKAZNIK:
         return kier == K1_KIER_OD_EKRANU && k->obiekt <= K1_POW_MAKS && w(k->a, -K1_POZ_MAKS, K1_POZ_MAKS) &&
                w(k->b, -K1_POZ_MAKS, K1_POZ_MAKS) && w(k->c, K1_WSK_RUCH, K1_WSK_WYJSCIE) &&
-               w(k->d, K1_PRZYCISK_BRAK, K1_PRZYCISK_SRODKOWY) && k->e == 0;
+               w(k->d, K1_PRZYCISK_BRAK, K1_PRZYCISK_SRODKOWY) && w(k->e, 0, K1_MOD_MASKA);
     case K1_KOM_KLAWISZ:
         return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && w(k->a, 1, K1_KLAWISZ_MAKS) && w(k->b, 0, 2) &&
                w(k->c, 0, K1_MOD_MASKA) && zera(k, 3);

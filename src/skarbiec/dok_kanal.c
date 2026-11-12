@@ -32,8 +32,9 @@ static const struct prawa {
     const char *folder; /* Z_WLASNE: its folder in Dokumenty, where its new files go */
 } prawa[] = {
     { K1_PROFIL_PLIKI, P_WSZYSTKO | P_POCHODZENIE, Z_WSZYSTKO, NULL },
-    /* the desktop: the files of the Pulpit folder (names, to draw them) and Kosz — no content */
-    { K1_PROFIL_GUI, P_LISTA | P_KOSZ | P_OPROZNIJ | P_OTWORZ, Z_PULPIT, NULL },
+    /* the desktop: the files of the Pulpit folder (names, to draw them), into its folders (dropped on one, 0.8.2 step 6)
+     * and Kosz — no content */
+    { K1_PROFIL_GUI, P_LISTA | P_PRZENIES | P_KOSZ | P_OPROZNIJ | P_OTWORZ, Z_PULPIT, NULL },
     /* Notatki: its notes and the text files the user opened in it; Kosz only for its own */
     { K1_PROFIL_NOTATKI, P_LISTA | P_CZYTAJ | P_NOWY | P_ZAPISZ | P_NAZWA | P_KOSZ | P_WYBIERZ, Z_WLASNE, "Notatki" },
     /* the file picker: names to choose from (no content), the user's choice */
@@ -321,11 +322,11 @@ static int zmiana(int fd, const struct prawa *p, const struct k1_komunikat *m, i
     case K1_KOM_DOK_CZAS:
         return dok_ustaw_czas(m->obiekt, (int64_t)k1_kom_u64(m->a, m->b));
     case K1_KOM_DOK_PRZENIES:
-        return dok_przenies(m->obiekt, (uint32_t)m->a, teraz());
+        return dok_przenies(m->obiekt, (uint32_t)m->a, m->b, teraz());
     case K1_KOM_DOK_KOSZ:
         return dok_do_kosza(m->obiekt, teraz());
     case K1_KOM_DOK_PRZYWROC:
-        return dok_przywroc(m->obiekt);
+        return dok_przywroc(m->obiekt, (uint32_t)m->a);
     case K1_KOM_DOK_USUN:
         return dok_usun_na_zawsze(m->obiekt);
     default:
@@ -374,8 +375,9 @@ static int widzi(const struct prawa *p, const struct k1_komunikat *m)
                                      : p->folder != NULL && m->obiekt == K1_FOLDER_DOKUMENTY && m->a == K1_DOK_PLIK;
     case K1_KOM_DOK_KOSZ: /* an application: only what it made itself */
         return w_zakresie(p, m->obiekt) && (p->zakres != Z_WLASNE || w->tworca == p->wlasciciel);
-    case K1_KOM_DOK_PRZENIES:
-        return w_zakresie(p, m->obiekt) && m->a == K1_FOLDER_PULPIT;
+    case K1_KOM_DOK_PRZENIES: /* within its sight: to Pulpit, or into a folder it sees (the desktop: of Pulpit) */
+        return w_zakresie(p, m->obiekt) && (m->a == K1_FOLDER_PULPIT || (w_zakresie(p, (uint32_t)m->a) &&
+                                                                         dok_wpis((uint32_t)m->a)->rodzaj == K1_DOK_FOLDER));
     default:
         return w_zakresie(p, m->obiekt);
     }

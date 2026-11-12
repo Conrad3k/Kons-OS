@@ -62,9 +62,12 @@ int dok_zmien_nazwe(uint32_t id, const char *nazwa, size_t nl, int wolna, int64_
 /* The folder of an application in Dokumenty ("Notatki", ADR 0030): the one remembered for `tworca` while it is
  * visible (renamed or moved, too); else found by its name (once, files of 0.8.0) or created — and remembered. */
 int dok_folder_aplikacji(const char *nazwa, int tworca, int64_t teraz, uint32_t *id);
-int dok_przenies(uint32_t id, uint32_t folder, int64_t teraz);
+/* `wolna`: a name taken in `folder` becomes "name (2)"… ("Zachowaj oba", 0.8.2 step 6), else K1_DOK_BLAD_ZAJETA. */
+int dok_przenies(uint32_t id, uint32_t folder, int wolna, int64_t teraz);
 int dok_do_kosza(uint32_t id, int64_t teraz);
-int dok_przywroc(uint32_t id);
+/* Back from Kosz: to its folder (`folder` 0; Dokumenty when that is gone), or to `folder` (dropped on it, 0.8.2 step 6:
+ * K1_DOK_BLAD_MIEJSCE when it cannot go there); a taken name becomes "name (2)"…. */
+int dok_przywroc(uint32_t id, uint32_t folder);
 int dok_usun_na_zawsze(uint32_t id); /* only from Kosz */
 int dok_oproznij_kosz(void);
 /* Kosz: what lies there over 30 days goes for good — only when the clock `zegar` is not behind dok_czas's bound

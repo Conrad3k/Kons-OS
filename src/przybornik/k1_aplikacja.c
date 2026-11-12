@@ -60,6 +60,7 @@ static void wskaznik(struct k1_apl *a, const struct k1_komunikat *m)
             k1_wyslij(&a->k, k1_komunikat_nowy(K1_KOM_MINIMALIZUJ, a->okno.id, 0, 0, 0, 0, 0));
         a->wcisniety = 0;
     }
+    a->mody = (unsigned)m->e;
     if (a->wskaznik && (t == K1_TR_TRESC || m->c == K1_WSK_PUSZCZENIE || m->c == K1_WSK_WYJSCIE))
         a->wskaznik(m->c, m->a, m->b, m->d);
 }

@@ -27,15 +27,20 @@ int dok_do_kosza(uint32_t id, int64_t teraz)
     return 0;
 }
 
-int dok_przywroc(uint32_t id)
+int dok_przywroc(uint32_t id, uint32_t folder)
 {
     int i = indeks(id), r;
     struct k1_dok_wpis w;
     if (i < 0 || wpisy[i].kosz == 0)
         return K1_DOK_BLAD_BRAK;
+    if (folder != 0 && (!folder_otwarty(folder) || wewnatrz(folder, id) ||
+                        glebokosc(folder) + wysokosc(id) > K1_DOK_GLEBOKOSC))
+        return K1_DOK_BLAD_MIEJSCE;
     w = wpisy[i];
     w.kosz = 0;
-    if (!folder_otwarty(w.rodzic) || glebokosc(w.rodzic) + wysokosc(id) > K1_DOK_GLEBOKOSC)
+    if (folder != 0)
+        w.rodzic = folder;
+    else if (!folder_otwarty(w.rodzic) || glebokosc(w.rodzic) + wysokosc(id) > K1_DOK_GLEBOKOSC)
         w.rodzic = K1_FOLDER_DOKUMENTY; /* its folder is gone (or in Kosz itself) */
     if ((r = wolna_nazwa(w.rodzic, wpisy[i].nazwa, id, w.nazwa)) != 0)
         return r;
