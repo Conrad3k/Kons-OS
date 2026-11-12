@@ -64,8 +64,8 @@ Nowy czat — przebieg każdego kroku:
          [PR #75]
 [x]  4  Aplikacja Podgląd                            (prośba właściciela)    3          D1 D2 D5  L        0037
          [PR #76]
-[ ]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
-         [w toku: Claude, gałąź claude/plan-0-8-2-krok-5-i702se]
+[x]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
+         [PR #77]
 [ ]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        5          D6 D8     L        —
 [ ]  7  Porządki i wydanie 0.8.2                     —                       1–6        —         S        —
 
@@ -331,6 +331,9 @@ KROK 5 — Otwieranie: „Otwórz za pomocą”, jedno menu                     
   Dokumenty: aplikacje.md (Pliki, Ustawienia), gui (pulpit), SLOWNIK, WYGLAD.
   Gotowe, gdy: pulpit i Pliki mają to samo menu; żaden dwuklik nie kończy się ciszą.
   Ustalenia z wykonania (2026-11-12, jeden PR):
+  - Błąd znaleziony w QEMU: trafienie w wiersz menu liczyło kreskę jako 36 px — wiersze pod kreską („Zmień nazwę”,
+    „Usuń”) nie działały; test_menu sprawdza środek każdego wiersza każdego menu. test-skarbiec zapisuje na pełnym
+    dysku ciemny motyw zamiast wyboru w Aplikacjach (już go nie ma).
   - Decyzje (D7 i trzy pytania na szkicu): „Otwórz za pomocą ›” z podmenu obok; bez „Szczegółów” (w Plikach są zawsze,
     na pulpicie „Pokaż w Plikach”); „Zawsze otwieraj tą aplikacją” gotowe, widoczne dopiero przy dwóch aplikacjach typu;
     „Zmień nazwę” na pulpicie otwiera Pliki z polem nazwy (URUCHOM c / PLIKI_POKAZ b = K1_PLIKI_NAZWA).
