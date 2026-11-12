@@ -16,10 +16,14 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   w `K1_APLIKACJE`),
 - **Kosz i pliki na pulpicie** (0.8.0, ADR 0029, `pliki.c`): ikona Kosza (pusty / z kulką papieru), pliki
   i foldery z folderu Pulpit (nowe dostają pierwszą wolną komórkę, znikają razem z plikiem); podwójne kliknięcie
-  otwiera Pliki przy pliku albo w Koszu (`URUCHOM` z miejscem),
-- **menu pod prawym przyciskiem** (menu kontekstowe): pulpit — „Ułóż ikony”, „Tapeta i wygląd…”; ikona —
+  otwiera folder albo Kosz w Plikach (`URUCHOM` z miejscem), plik — w jego domyślnej aplikacji, a typ bez aplikacji
+  (PDF, ZIP, „Plik”) — komunikat przy ikonie: typ, „K1 nie ma jeszcze aplikacji do tego typu pliku — możesz go
+  przechowywać, przenosić i usuwać.”, „Pokaż w Plikach” (0.8.2 krok 5),
+- **menu pod prawym przyciskiem** (menu kontekstowe; od 0.8.2 rysuje je i układa wiersze pliku przybornik — `k1_menu`,
+  to samo menu co w Plikach): pulpit — „Ułóż ikony”, „Tapeta i wygląd…”; ikona —
   „Otwórz”, „Przypnij do paska” / „Odepnij od paska”, „Usuń z pulpitu”; Kosz — „Otwórz”, „Opróżnij Kosz”;
-  plik — „Otwórz”, „Usuń” (do Kosza); aplikacja na pasku — jej nazwa
+  plik — „Otwórz”, „Otwórz za pomocą ›” (obok lista aplikacji typu), „Pokaż w Plikach”, „Zmień nazwę” (Pliki otwierają
+  się przy pliku z polem nazwy), „Usuń” (do Kosza); folder — bez „Otwórz za pomocą”; aplikacja na pasku — jej nazwa
   (otwiera), przypnij / odepnij, „Zamknij okno” (gdy działa); aplikacja w menu Start — „Otwórz”, przypnij /
   odepnij, „Dodaj do pulpitu” / „Usuń z pulpitu”. Kolory z motywu,
 - **górny pasek** (cała szerokość, 32 px): nazwa aktywnej aplikacji, bateria (tylko na laptopie,
@@ -50,8 +54,9 @@ UID/GID 102, klatka (ADR 0007): seccomp = baza + `memfd_create`, `ftruncate`; La
   Bez skarbca — rozmieszczenie tylko do końca działania gui. Od 0.8.0 ten sam kanał: `DOK_SPIS` → `DOK_LISTA`
   (tylko folder Pulpit — tak mówi tabela praw w skarbcu), `DOK_KOSZ`, `DOK_OPROZNIJ`, `DOK_ZMIANA`; od 0.8.0
   (ADR 0030) `DOK_OTWORZ` — plik z pulpitu w domyślnej aplikacji (podwójne kliknięcie; ustawienie
-  `K1_UST_OTWIERANIE` + typ od ekranu) albo w wybranej (menu pod prawym przyciskiem: „Otwórz w: Notatki”, …).
-  Folder i plik do otwarcia w Plikach — jak dotąd przez `URUCHOM` z miejscem.
+  `K1_UST_OTWIERANIE` + typ od ekranu) albo w wybranej (menu pod prawym przyciskiem: „Otwórz za pomocą ›”).
+  Folder i plik do otwarcia w Plikach — jak dotąd przez `URUCHOM` z miejscem (c = `K1_PLIKI_*`: 1 Kosz, 2 pole nazwy).
+  „Zawsze otwieraj tą aplikacją” (gdy typ ma co najmniej dwie) — `USTAW` do ekranu (tylko klucze `K1_UST_OTWIERANIE`).
 - fd 5 (0.5.3, ADR 0014): od nadzorcy, jednokierunkowo — `BATERIA` (jest, procent, stan, zasilacz), `SESJA` (0.7.2: a=1 — K1-DANE w użyciu na dysku wewnętrznym, czyli K1 zainstalowany; nadzorca odrzuca też wylogowanie poza nim)
   i `POKAZ_APL` (0.8.0: aplikacja dostała plik do otwarcia — jej okno na wierzch, jeśli już jest);
   nadawca musi mieć UID 0, każde pole sprawdzane; po zamknięciu kanału gui przestaje go czytać.

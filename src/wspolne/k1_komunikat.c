@@ -417,13 +417,19 @@ static int sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
     }
 }
 
+/* What Pliki are to show (URUCHOM b, c; PLIKI_POKAZ a, b): Kosz without an entry, a name to change only with one. */
+static int miejsce_plikow(int32_t wpis_, int32_t co)
+{
+    return co == K1_PLIKI_MIEJSCE || (co == K1_PLIKI_KOSZ && wpis_ == 0) || (co == K1_PLIKI_NAZWA && wpis_ != 0);
+}
+
 /* Messages of gui, the test program, Zasoby, Ustawienia ↔ nadzorca; 0 also for a type of another group. */
 static int sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
     switch (k->typ) {
     case K1_KOM_URUCHOM: /* a place (b, c) only for Pliki */
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_APL_MAKS) &&
-               (k->a == K1_APL_PLIKI ? (k->b == 0 || wpis((uint32_t)k->b)) && w(k->c, 0, 1) && (k->b == 0 || k->c == 0)
+               (k->a == K1_APL_PLIKI ? (k->b == 0 || wpis((uint32_t)k->b)) && miejsce_plikow(k->b, k->c)
                                      : k->b == 0 && k->c == 0) &&
                zera(k, 3);
     case K1_KOM_PLIK_OTWORZ:
@@ -431,8 +437,8 @@ static int sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
     case K1_KOM_POKAZ_APL:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_APL_MAKS) && zera(k, 1);
     case K1_KOM_PLIKI_POKAZ:
-        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && (k->a == 0 || wpis((uint32_t)k->a)) && w(k->b, 0, 1) &&
-               (k->a == 0 || k->b == 0) && zera(k, 2);
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && (k->a == 0 || wpis((uint32_t)k->a)) &&
+               miejsce_plikow(k->a, k->b) && zera(k, 2);
     case K1_KOM_WYLACZ:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 0, 2) && zera(k, 1);
     case K1_KOM_TEST_POLACZ:

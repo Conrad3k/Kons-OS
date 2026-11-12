@@ -69,6 +69,16 @@ static void odrzuc(int kl, const char *powod)
     }
 }
 
+/* Who changes which settings: Ustawienia every one; the default application of a file type also Pliki and the desktop
+ * ("Zawsze otwieraj tą aplikacją" in "Otwórz za pomocą", 0.8.2 step 5). */
+static int ustawia(const struct klient *k, int32_t klucz)
+{
+    int otwieranie = klucz >= K1_UST_OTWIERANIE && klucz <= K1_UST_MAKS;
+    if (k->rola == K1_ROLA_APLIKACJA && k->apl == K1_APL_USTAWIENIA)
+        return 1;
+    return otwieranie && (k->rola == K1_ROLA_POWLOKA || (k->rola == K1_ROLA_APLIKACJA && k->apl == K1_APL_PLIKI));
+}
+
 void zglos_okno(const struct pow *p, int stan)
 {
     int sh = powloka();
@@ -425,8 +435,8 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
         return;
     }
     if (m->typ == K1_KOM_USTAW) {
-        if (k->rola != K1_ROLA_APLIKACJA || k->apl != K1_APL_USTAWIENIA)
-            { odrzuc(kl, "zmiana ustawień tylko dla aplikacji Ustawienia"); return; }
+        if (!ustawia(k, m->a))
+            { odrzuc(kl, "tego ustawienia ten klient nie zmienia"); return; }
         if (m->a == K1_UST_ROZDZIELCZOSC && m->b > s.n_trybow)
             { odrzuc(kl, "nieznany tryb ekranu"); return; }
         if (m->a == K1_UST_TAPETA && m->b == K1_TAPETA_ZDJECIE && !s.ust[K1_UST_ZDJECIE])

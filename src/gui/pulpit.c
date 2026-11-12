@@ -294,7 +294,7 @@ void wskaznik_pulpit(const struct k1_komunikat *m)
         if (kl != 0 && klik.klucz == kl && k1_teraz() - klik.t < DWUKLIK) {
             klik.klucz = 0;
             k1_log(TAG, "pulpit: otwieram %s", rozm_plik(kl) ? "plik" : ikona_nazwa(kl));
-            ikona_otworz(kl);
+            ikona_otworz(kl, m->a, m->b);
             return;
         }
         klik.klucz = kl;

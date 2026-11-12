@@ -127,7 +127,7 @@ Dokumentów.
   Kosz do tej daty — bezpiecznie (nic nie ginie), rozwiąże to czas z sieci (0.9, RYZYKA R56).
 
 **Prawa** — tabela w `dok_kanal.c` (wiersz na klienta; właściciel kanału od nadzorcy): Pliki — wszystko; pulpit
-(gui) — tylko folder Pulpit (lista nazw i typów, „do Kosza”, „opróżnij Kosz”, „Otwórz w…”, bez treści); Notatki
+(gui) — tylko folder Pulpit (lista nazw i typów, „do Kosza”, „opróżnij Kosz”, „Otwórz za pomocą” (do 0.8.1 „Otwórz w…”), bez treści); Notatki
 (0.8.0, ADR 0030) — tylko pliki, które same utworzyły, i pliki dane im przez użytkownika: lista, treść, zapis,
 nazwa, nowy plik tylko w swoim folderze **Dokumenty › Notatki** (skarbiec tworzy go, gdy go nie ma), do Kosza
 tylko własne, okno wyboru pliku; Wybór pliku — lista widocznych (bez Kosza, bez treści) i odpowiedź; Podgląd (0.8.2
@@ -136,7 +136,7 @@ mu przez użytkownika (`dostep.c` zapisuje folder przy dostępie): lista, treś�
 pliku z rodziną „obrazy” (`DOK_WYBIERZ` b; `DOK_PROSBA` c; skarbiec odrzuca wybór pliku innej rodziny); inni — nic
 (`K1_DOK_BLAD_PRAWA`). Wpis spoza zasięgu klienta = „nie ma” (`K1_DOK_BLAD_BRAK`).
 
-**Dostęp do pliku po geście** (0.8.0, ADR 0030, `dostep.c`): „Otwórz w…” w Plikach albo na pulpicie
+**Dostęp do pliku po geście** (0.8.0, ADR 0030, `dostep.c`): „Otwórz za pomocą” albo podwójne kliknięcie w Plikach albo na pulpicie
 (`DOK_OTWORZ`) — skarbiec sprawdza, że aplikacja otwiera ten typ (`K1_OTWIERANIE`), zapamiętuje „aplikacja X może
 ten plik” i prosi nadzorcę (`SKARB_URUCHOM`) o uruchomienie jej z plikiem. Prośba aplikacji o plik
 (`DOK_WYBIERZ`) — jedna naraz (`K1_DOK_BLAD_CZEKA`); skarbiec prosi nadzorcę o okno wyboru (`SKARB_URUCHOM` z

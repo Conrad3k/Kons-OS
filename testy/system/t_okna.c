@@ -59,7 +59,8 @@ void t_okna_ipc(void)
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 3, w, h, K1_POW_OKNO, 0, 0), m1);   /* no seals */
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 4, w, h, K1_POW_OKNO, 0, 0), m2);   /* too small */
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 5, w, h, K1_POW_PANEL, 0, 0), m3);  /* panel */
-    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_USTAW, 0, K1_UST_MOTYW, 1, 0, 0, 0), -1);         /* not Ustawienia */
+    /* the default application of a type: Ustawienia, Pliki and the shell only (0.8.2 step 5) — not Zegar */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_USTAW, 0, K1_UST_OTWIERANIE + K1_TYP_TEKST - 1, K1_APL_NOTATKI, 0, 0, 0), -1);
     ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_MINIMALIZUJ_OKNO, 1, 0, 0, 0, 0, 0), -1);         /* not the shell */
     /* 0.7.5 — ekran logs 8 rejections per client: the desktop layer is the 8th (its own reason); closing a
      * window is the 9th, refused by the same check as minimising one above */

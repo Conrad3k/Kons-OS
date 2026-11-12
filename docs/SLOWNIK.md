@@ -32,7 +32,7 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **przybornik** | Wspólna biblioteka do rysowania: tekst, przyciski, okna, ikony, kolory K1. |
 | **ikona na pulpicie** | Kafelek aplikacji (od 0.8.0 też pliku) w siatce na pulpicie: zaznacz, przeciągnij, otwórz podwójnym kliknięciem. |
 | **przypięta aplikacja** | Aplikacja stale widoczna na dolnym pasku (kolejność ustala właściciel); nieprzypięta pokazuje się na pasku tylko, gdy działa. |
-| **menu kontekstowe** | Menu pod prawym przyciskiem myszy (pulpit, ikona, dolny pasek, menu Start). |
+| **menu kontekstowe** | Menu pod prawym przyciskiem myszy (pulpit, ikona, dolny pasek, menu Start; od 0.8.2 plik i folder w Plikach — to samo menu co na pulpicie, `k1_menu` w przyborniku). |
 | **rozmieszczenie pulpitu** | Które aplikacje są przypięte i w jakiej kolejności oraz gdzie leżą ikony; zapisane w skarbcu jako obiekt pulpitu. (Nie mylić z blokiem układu K1-EFI.) |
 | **warstwa pulpitu** | Powierzchnia pulpitu z ikonami: nad tapetą, pod oknami (ADR 0028). |
 
@@ -65,11 +65,12 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **rezerwa dla systemu** | Ostatnie 8 MiB (albo 2 %, najwyżej ćwierć) skarbca, których pliki nie zajmą — na ustawienia, pulpit, baterię, tapetę (0.8.1). |
 | **granica czasu** | Najwcześniejszy czas, jaki skarbiec przyjmuje od zegara (0.8.1): czas budowy wersji K1 albo najpóźniejszy widziany. Zegar za granicą = Kosz niczego nie usuwa. |
 | **odzyskany plik** | Plik, którego wpis skarbiec naprawił przy starcie (0.8.1): treść cała, nazwa poprawiona albo „Odzyskany plik <numer>”. |
-| **domyślna aplikacja** | Aplikacja, w której podwójne kliknięcie otwiera plik danego typu; wybór w Ustawieniach → Aplikacje. Które aplikacje otwierają który typ: tabela `K1_OTWIERANIE` (ADR 0030). |
-| **„Otwórz w…”** | Otwarcie pliku w wybranej aplikacji (Pliki, pulpit). Aplikacja dostaje dostęp tylko do tego pliku. |
+| **domyślna aplikacja** | Aplikacja, w której podwójne kliknięcie („Otwórz”) otwiera plik danego typu; wybór w Ustawieniach → Aplikacje albo „Zawsze otwieraj tą aplikacją” (gdy typ ma co najmniej dwie). Które aplikacje otwierają który typ: tabela `K1_OTWIERANIE` (ADR 0030). Pliki nie są aplikacją do otwierania (od 0.8.2) — pokazują każdy plik; typ bez aplikacji: „K1 nie ma jeszcze aplikacji do tego typu pliku”. |
+| **„Otwórz za pomocą”** | Otwarcie pliku w wybranej aplikacji: pozycja menu pod prawym przyciskiem (Pliki, pulpit), obok rozwija się lista aplikacji typu (0.8.2, decyzja D7; do 0.8.1 przycisk „Otwórz w…”). Aplikacja dostaje dostęp tylko do tego pliku. |
+| **„Pokaż w Plikach”** | Pozycja menu pliku na pulpicie: Pliki otwierają się przy pliku (zaznaczony, szczegóły z prawej). |
 | **okno wyboru pliku** (program „Wybór pliku”) | Okno K1, w którym użytkownik wybiera plik dla aplikacji, która o niego prosi; aplikacja dostaje tylko wybrany plik, nigdy listę (ADR 0030). |
-| **dostęp do pliku** | Prawo aplikacji do jednego pliku, dane przez skarbiec po geście użytkownika („Otwórz w…”, okno wyboru pliku); trwa, dopóki aplikacja działa. |
-| **gest zgody** | Działanie użytkownika w miejscu rysowanym przez K1 (Pobierz, wybór pliku, „Otwórz w…”, przeciągnięcie) — jest zgodą na przeniesienie pliku. |
+| **dostęp do pliku** | Prawo aplikacji do jednego pliku, dane przez skarbiec po geście użytkownika („Otwórz za pomocą”, podwójne kliknięcie, okno wyboru pliku); trwa, dopóki aplikacja działa. |
+| **gest zgody** | Działanie użytkownika w miejscu rysowanym przez K1 (Pobierz, wybór pliku, „Otwórz za pomocą”, przeciągnięcie) — jest zgodą na przeniesienie pliku. |
 | **czytnik** | Usługa K1, która czyta pendrive z innego komputera (FAT) dla Plików — w klatce, tylko do odczytu; jedyna część K1, która czyta obcy system plików (ADR 0031). |
 | **import** | Przeniesienie pliku z pendrive'a do Plików na wyraźny wybór użytkownika („Importuj”); oryginał zostaje na pendrivie, kopia dostaje pochodzenie „z pendrive'a”. |
 | **ponowny import** | „Importuj” pliku, który już jest w Obrazach / Dokumentach z pendrive'a z tą samą nazwą, rozmiarem i czasem — K1 go pomija i mówi „Pominięto n — już zaimportowane” (0.8.2, decyzja D3). |

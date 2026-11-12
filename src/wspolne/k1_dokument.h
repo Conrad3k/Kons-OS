@@ -66,8 +66,8 @@ enum { K1_RODZINY_MAKS = 0 K1_RODZINY(K1_X_JEDEN) };
 enum { K1_TYPY(K1_X_TYP) };
 enum { K1_TYPY_MAKS = 0 K1_TYPY(K1_X_JEDEN) };
 
-/* Which applications open which file types (ADR 0030): X(APPLICATION, TYPE), the default one first. Pliki
- * shows every file (its details) and is the default for a type without a row. A new pair: one line.
+/* Which applications open which file types (ADR 0030): X(APPLICATION, TYPE), the default one first. A type without a
+ * row has no application (0.8.2 step 5: K1_MENU_BEZ_APLIKACJI; Pliki only shows its details). A new pair: one line.
  * Podgląd (0.8.2 step 4, ADR 0037): every type of family "obrazy". */
 #define K1_OTWIERANIE(X)                                                                                         \
     X(NOTATKI, TEKST) X(PODGLAD, PNG) X(PODGLAD, JPEG) X(PODGLAD, GIF) X(PODGLAD, BMP) X(PODGLAD, WEBP)
@@ -165,12 +165,17 @@ size_t k1_dok_lista_zapisz(const struct k1_dok_wpis *w, int n, uint32_t w_koszu,
 /* Reads a list of `dl` bytes into `w` (room for `maks`): every entry checked, numbers unique. The count, or -1. */
 int k1_dok_lista_czytaj(const uint8_t *buf, size_t dl, struct k1_dok_wpis *w, int maks, uint32_t *w_koszu);
 
-/* 1 when application `apl` opens files of type `typ` (Pliki: every type). */
+/* 1 when `apl` may be the K1_UST_OTWIERANIE setting of type `typ`: an application of K1_OTWIERANIE for it, or Pliki
+ * (every type: "none chosen" — the value of a type no application opens, and of settings saved by 0.8.0–0.8.1). */
 int k1_dok_otwiera(int apl, int typ);
-/* The application that opens type `typ` when nothing else was chosen: its first row, else Pliki. */
+/* The setting's value for type `typ` when nothing else was chosen: its first row, else Pliki ("none"). */
 int k1_dok_domyslna(int typ);
-/* The applications that open `typ`, Pliki last, into `apl` (room for K1_APL_MAKS); how many. */
+/* The applications that open `typ` (K1_OTWIERANIE, the default first) into `apl` (room for K1_APL_MAKS); how many.
+ * Pliki is not one of them (0.8.2 step 5): it shows every file — "Pokaż w Plikach", not "Otwórz". */
 int k1_dok_aplikacje(int typ, int *apl);
+/* The application a double click or "Otwórz" opens `typ` with: the one chosen (`ustawienie`, the K1_UST_OTWIERANIE
+ * setting of the type) when it opens the type, else the default; 0 when no application opens it (K1_MENU_BEZ_APLIKACJI). */
+int k1_dok_czym_otworzyc(int typ, int ustawienie);
 
 /* Names for the system's texts: the standard folder `nr` (NULL when it is not one), the type, the origin. */
 const char *k1_folder_nazwa(uint32_t nr);

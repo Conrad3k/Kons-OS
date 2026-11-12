@@ -58,10 +58,12 @@ w kolorze akcentu z delikatnym wypełnieniem, pasek pod wykresem = zasilacz pod�
 najniższy poziom; od 0.6.0 pod wykresem ostatnie wcześniejsze uruchomienie z małym wykresem — archiwum
 od nadzorcy jako zapieczętowany memfd `BATERIA_ARCH`; bez baterii — napis), Hasło (0.5.7: włącz / zmień / wyłącz, pola z kropkami, Tab/Enter/Esc;
 przez skarbiec — fd 5), Mysz (prędkość),
-Data i czas (sekundy na pasku), Aplikacje (0.8.0, `aplikacje.c`: domyślna aplikacja dla typu pliku, który otwiera
-więcej niż jedna — dziś „Dokument tekstowy”: Notatki albo Pliki (szczegóły), i od 0.8.2 „Obrazy (PNG, JPEG, GIF, BMP,
-WebP)”: Podgląd albo Pliki — typy jednej rodziny w jednym wierszu, wybór ustawia je wszystkie; ustawienie ekranu
-`K1_UST_OTWIERANIE` + typ, zapisane w skarbcu), Informacje (`informacje.c`: wersja, ekran, jądro, gdzie są dane; od
+Data i czas (sekundy na pasku), Aplikacje (0.8.0, `aplikacje.c`; od 0.8.2 krok 5 — **każdy** typ pliku i jego
+domyślna aplikacja: „Dokument tekstowy — Notatki”, „Obrazy (PNG, JPEG, GIF, BMP, WebP) — Podgląd” (typy jednej rodziny
+w jednym wierszu), „Plik”, „Dokument PDF”, „Archiwum ZIP” — „K1 nie ma jeszcze aplikacji do tego typu pliku”; typ, który
+otwierają co najmniej dwie aplikacje, ma przyciski wyboru (dziś żaden), wybór ustawia całą rodzinę; Pliki nie są już
+aplikacją do otwierania — pokazują każdy plik; ustawienie ekranu `K1_UST_OTWIERANIE` + typ, zapisane w skarbcu; dopisek
+odsyła do „Otwórz za pomocą”), Informacje (`informacje.c`: wersja, ekran, jądro, gdzie są dane; od
 0.8.1 — `SKARB_MIEJSCE` od skarbca — „Miejsce na pliki: zajęte X z Y” z paskiem (Y od 0.8.2 to ok. 90 % K1-DANE —
 format 2 skarbca, ADR 0036; w 0.8.1 połowa, bo druga była na kompaktowanie), „Pliki i foldery: n z 16 384”, bez
 K1-DANE „w pamięci do wyłączenia: zostało X”; na pendrivie K1 z wolnym miejscem za K1-DANE przycisk **„Użyj całego
@@ -100,9 +102,15 @@ w Windows), „Zmień nazwę”, „Usuń” (do Kosza); w Koszu: „Przywróć�
 ostatnie z pytaniem w stopce). Przywrócony plik, którego folder jest w Koszu (albo już nie istnieje), trafia do
 Dokumentów — stopka to mówi („Folder „Projekt” jest w Koszu — przywrócono do Dokumentów.”, 0.8.1). Gdy zostało mniej
 niż 10 % miejsca na pliki, stopka mówi „Mało miejsca na pliki: zostało X z Y” (`SKARB_MIEJSCE` po każdej liście, 0.8.1). Lista: najpierw foldery, potem pliki po nazwie; kolumny nazwa, data zmiany
-(w Koszu: usunięcia), rozmiar; podwójne kliknięcie (i Enter) otwiera folder, a plik — w domyślnej aplikacji
-jego typu (Ustawienia → Aplikacje; Pliki — tylko szczegóły; zdjęcie — od 0.8.2 w **Podglądzie**); **„Otwórz w…”** (0.8.0, ADR 0030) zamienia przyciski
-na aplikacje, które otwierają ten typ (`K1_OTWIERANIE`) — wybrana dostaje ten jeden plik (`DOK_OTWORZ`). Z prawej **szczegóły** zaznaczonego (do 0.8.2 „podgląd” — decyzja D1): ikona,
+(w Koszu: usunięcia), rozmiar; podwójne kliknięcie (Enter, przycisk „Otwórz”) otwiera folder, a plik — w domyślnej
+aplikacji jego typu (Ustawienia → Aplikacje; tekst — Notatki, zdjęcie — od 0.8.2 **Podgląd**); typ bez aplikacji (PDF,
+ZIP, „Plik”) — stopka „K1 nie ma jeszcze aplikacji do tego typu pliku.” (0.8.2 krok 5: nigdy cisza). **Menu pod prawym
+przyciskiem** (0.8.2 krok 5, `menu.c`; to samo co na pulpicie — `k1_menu` w przyborniku): plik — „Otwórz”, „Otwórz za
+pomocą ›” (obok rozwija się lista aplikacji, które otwierają ten typ — `K1_OTWIERANIE`, ta, która otwiera go teraz,
+z ✓; przy co najmniej dwóch także „Zawsze otwieraj tą aplikacją”), „Zmień nazwę”, „Usuń”; folder — „Otwórz”, „Zmień
+nazwę”, „Usuń”; w Koszu — „Przywróć”, „Usuń na zawsze”; na pendrivie — „Importuj” (folder: „Otwórz”). Typ bez aplikacji:
+„Otwórz” i „Otwórz za pomocą” wyszarzone, pod nimi powód. Wybrana aplikacja dostaje ten jeden plik (`DOK_OTWORZ`, ADR
+0030). Do 0.8.1 był przycisk „Otwórz w…”, który podmieniał rząd przycisków. Z prawej **szczegóły** zaznaczonego (do 0.8.2 „podgląd” — decyzja D1): ikona,
 nazwa, typ (rozpoznany z zawartości), rozmiar, daty, pochodzenie („utworzony w K1”), w Koszu — za ile dni
 zniknie; plik tekstowy — początek treści (do 64 KiB, `DOK_CZYTAJ`); **zdjęcie** (0.8.0 krok 4, ADR 0032; PNG i JPEG,
 od 0.8.2 także GIF, BMP, WebP — rodzina „obrazy”) — zmniejszone do 200×150 przez usługę `dekoder`
@@ -153,7 +161,8 @@ czyste funkcje, test na hoście).
 
 ## Granica zaufania
 Klienci ekranu w roli **aplikacja**: tylko własne okna. Ustawienia jako jedyna mogą zmieniać
-ustawienia (ekran sprawdza rolę i UID). Treść notatki nigdy nie trafia do logu (tylko długość).
+ustawienia (ekran sprawdza rolę i UID) — poza domyślną aplikacją typu pliku, którą od 0.8.2 zmieniają też Pliki
+(„Zawsze otwieraj tą aplikacją”). Treść notatki nigdy nie trafia do logu (tylko długość).
 
 ## Uprawnienia
 | Aplikacja | UID | seccomp (poza bazą) | Landlock | cgroup |
@@ -180,8 +189,9 @@ Ustawienia: lista trybów ekranu (`K1_KOM_TRYB`) dostaje tylko ona; od 0.5.5 fd 
 Bez kanału (zamknięty) reszta Ustawień działa.
 Pliki (0.8.0): fd 4 — kanał do skarbca z prawami do wszystkich plików użytkownika (i do niczego więcej: obiekty
 innych aplikacji są dla Plików niewidoczne), komunikaty `DOK_*` (`komponenty/skarbiec.md`); fd 5 — od nadzorcy,
-jednokierunkowo: `PLIKI_POKAZ` (a = plik albo folder do pokazania, b = 1 Kosz), gdy pulpit otwiera Pliki przy
-pliku albo Koszu (`URUCHOM` z miejscem — tylko dla Plików). Lista ze skarbca sprawdzana wpis po wpisie
+jednokierunkowo: `PLIKI_POKAZ` (a = plik albo folder do pokazania, b = `K1_PLIKI_*`: 1 Kosz, 2 — od 0.8.2 — pole nowej
+nazwy pliku a, „Zmień nazwę” w menu pulpitu), gdy pulpit otwiera Pliki przy pliku albo Koszu (`URUCHOM` z miejscem —
+tylko dla Plików). Lista ze skarbca sprawdzana wpis po wpisie
 (`k1_dok_lista_czytaj`); nazwy i treść nigdy nie trafiają do logu (tylko liczby). Od 0.8.0 krok 3: fd 6 — od
 nadzorcy `PENDRIVE` (jest / nie ma), `PENDRIVE_KANAL` (kanał do czytnika); do nadzorcy `PENDRIVE_OTWORZ`. Kanał do
 czytnika: `PEN_*` (`komponenty/czytnik.md`); plik z pendrive'a idzie do skarbca w memfd od czytnika, bez czytania
@@ -210,7 +220,9 @@ Błąd zapisu notatki → komunikat w oknie i w logu.
 | `test-m4.sh` (0.8.0): Pliki — nowy folder, zmiana nazwy na klawiaturze, zajęta nazwa, wejście do folderu i „w górę”, Kosz (usuń, przywróć, usuń na zawsze z pytaniem, opróżnij), pliki po ponownym starcie; zrzut `m4-pliki.png` | funkcjonalny |
 | host: `test_dokumenty` (skarbiec), `test_komunikat` (`DOK_*`, `PLIKI_POKAZ`), `fuzz_dokument` (lista) | jednostkowy / negatywny / fuzzing |
 | host (0.8.0, ADR 0030): `test_dokumenty` — prawa Notatek (tylko własne pliki, nowy plik tylko w swoim folderze, Kosz tylko dla własnych), „Otwórz w…” (pulpit: tylko folder Pulpit; zły typ — odmowa), okno wyboru (jedna prośba naraz, tylko nazwy, folder i zły typ odrzucone, zamknięte okno = anulowanie, dostęp znika z aplikacją); `test_komunikat` — `DOK_OTWORZ`, `DOK_WYBIERZ`, `DOK_WYBRANO`, `DOK_WYBRANY`, `DOK_PROSBA`, `SKARB_URUCHOM`, `PLIK_OTWORZ`, `POKAZ_APL`, domyślne aplikacje | jednostkowy / negatywny |
-| `test-pliki.sh` (0.8.0, krok 2): stare notatki przeniesione do plików, nazwa za pierwszym wierszem, „Otwórz w…” z Plików i z pulpitu, okno wyboru pliku (wybór i „Anuluj”), Ustawienia → Aplikacje | funkcjonalny |
+| `test-pliki.sh` (0.8.0, krok 2): stare notatki przeniesione do plików, nazwa za pierwszym wierszem, okno wyboru pliku (wybór i „Anuluj”), Ustawienia → Aplikacje; od 0.8.2 krok 5: menu pod prawym przyciskiem w Plikach → „Otwórz za pomocą” → Notatki, „Zmień nazwę” z menu pulpitu (Pliki z polem nazwy) | funkcjonalny |
+| host (0.8.2 krok 5): `test_menu` — wiersze menu pliku dla każdego typu i miejsca (Pliki, pulpit, Kosz, pendrive), „Otwórz za pomocą” (bez Plików, ✓ przy tej, która otwiera, „Zawsze otwieraj” od dwóch aplikacji), komunikat bez aplikacji, położenie i trafienie, rysowanie na brzegach obrazu | jednostkowy |
+| `test-pendrive.sh` (0.8.2 krok 5): podwójne kliknięcie pliku bez aplikacji (film) → stopka; menu pliku bez „Otwórz” | funkcjonalny / negatywny |
 | host: `test_przybornik` — czas polski (zmiany czasu), układ PL, UTF-8, rysowanie na krawędziach | jednostkowy |
 | host (0.8.2 krok 4, ADR 0037): `test_podglad` — kolejność zdjęć, ← / →, zdjęcie po Koszu, „3 z 27”; `test_dokumenty` — prawa Podglądu (bez gestu nic, tylko zdjęcia folderu, tylko odczyt i Kosz, okno wyboru z rodziną „obrazy”, po zamknięciu nic) | jednostkowy / negatywny |
 | `test-pendrive.sh` (0.8.2 krok 4): Podgląd — dwuklik zdjęcia w Plikach, „zdjęcie 4 z 10” w klatce UID 208, kolor na zrzucie, R (widok 60×80), ← uszkodzone (komunikat), ‹ PNG, Delete → Kosz i następne zdjęcie, Ctrl+O → okno wyboru (obrazy), „Ustaw jako tapetę”, × ; + i − (150 % → 100 %, kolor na zrzucie) | funkcjonalny / negatywny |

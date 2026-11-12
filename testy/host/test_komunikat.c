@@ -562,6 +562,15 @@ static void pliki(void)
            ok(K(K1_KOM_PLIKI_POKAZ, 0, 0, 1, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(zle(K(K1_KOM_PLIKI_POKAZ, 0, 150, 1, 0, 0, 0), K1_KIER_OD_NADZORCY) &&
            zle(K(K1_KOM_PLIKI_POKAZ, 0, 150, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    /* 0.8.2 step 5: "Zmień nazwę" on the desktop — Pliki at an entry with its name field (K1_PLIKI_NAZWA), never without one */
+    EXPECT(ok(K(K1_KOM_URUCHOM, 0, K1_APL_PLIKI, 150, K1_PLIKI_NAZWA, 0, 0), K1_KIER_DO_NADZORCY) &&
+           ok(K(K1_KOM_PLIKI_POKAZ, 0, 150, K1_PLIKI_NAZWA, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_URUCHOM, 0, K1_APL_PLIKI, 0, K1_PLIKI_NAZWA, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_URUCHOM, 0, K1_APL_PLIKI, 150, 3, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_URUCHOM, 0, K1_APL_PLIKI, 150, -1, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_URUCHOM, 0, K1_APL_NOTATKI, 150, K1_PLIKI_NAZWA, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_PLIKI_POKAZ, 0, 0, K1_PLIKI_NAZWA, 0, 0, 0), K1_KIER_OD_NADZORCY) &&
+           zle(K(K1_KOM_PLIKI_POKAZ, 0, 150, 3, 0, 0, 0), K1_KIER_OD_NADZORCY));
 }
 
 /* 0.8.0 step 2 (ADR 0030): a file for an application, the file picker, default applications */

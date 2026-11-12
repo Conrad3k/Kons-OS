@@ -263,7 +263,7 @@ Obraz produkcyjny z dyskiem danych (pusta K1-DANE), dwa uruchomienia.
 | zajęta nazwa | drugi folder → „projekt” (inna wielkość liter) — skarbiec odmawia (`-21`), komunikat w stopce | `pliki-2-zajeta-nazwa.png` |
 | foldery | podwójne kliknięcie otwiera „Projekt” (0 elementów), „w górę” — Dokumenty (2) | log `widok:` |
 | Kosz | Usuń → Kosz (1) → Przywróć (Kosz 0, Dokumenty 2) → Usuń → „Usuń na zawsze” → pytanie → „Tak, usuń” → Kosz 0 | `pliki-3-kosz.png`, `pliki-4-pytanie.png` |
-| pulpit | folder w Pulpicie = ikona na pulpicie (w logu numer, nie nazwa); podwójne kliknięcie → Pliki w tym folderze; menu pliku „Usuń” → ikona znika, Kosz pełny; menu Kosza „Opróżnij Kosz” → pusty | `pliki-5-pulpit-z-folderem.png`, `pliki-6-kosz-pelny.png` |
+| pulpit | folder w Pulpicie = ikona na pulpicie (w logu numer, nie nazwa); podwójne kliknięcie → Pliki w tym folderze; menu folderu (0.8.2 krok 5): „Otwórz”, „Pokaż w Plikach”, „Zmień nazwę”, „Usuń” → „Zmień nazwę” otwiera Pliki z polem nazwy, nowa nazwa z klawiatury w skarbcu; menu „Usuń” → ikona znika, Kosz pełny; menu Kosza „Opróżnij Kosz” → pusty | `pliki-5-pulpit-z-folderem.png`, `pliki-menu-zmień.png`, `pliki-5a-zmiana-nazwy.png`, `pliki-6-kosz-pelny.png` |
 | dysk | nagłówek magazynu jest, nazwy „Projekt” jawnie nie ma | skrypt |
 | ponownie | po wyłączeniu: Dokumenty z „Projekt”, Kosz pusty | `pliki-ponownie-dokumenty.png` |
 | czystość logu | bez nazw plików, paniki, błędów, zablokowanych wywołań i odrzuconych komunikatów | log |
@@ -277,15 +277,19 @@ Obraz produkcyjny z dyskiem danych (pusta K1-DANE), dwa uruchomienia.
 | okno wyboru | „Otwórz…” w Notatkach → skarbiec prosi nadzorcę, okno „Wybór pliku” dostaje prośbę od skarbca (aplikacja 2, typ tekst); Dokumenty (1 folder, 0 plików do wyboru) → folder Notatki (3) → „Zażółć K1” → Otwórz → Notatki otwierają ją (13 B) | `pliki-notatki-2-wybor.png`, `pliki-notatki-3-wybor-plik.png` |
 | Anuluj | drugie „Otwórz…” → „Anuluj” → Notatki: „anulowano” | log |
 | Pliki | Dokumenty › Notatki: 3 pliki | `pliki-notatki-4-pliki.png` |
-| Otwórz w… | przyciski: „Notatki”, „Anuluj” → skarbiec daje plik, nadzorca przekazuje go Notatkom (fd 5), Notatki otwierają go (20 B) | `pliki-notatki-5-otworz-w.png` |
-| domyślna aplikacja | podwójne kliknięcie pliku w Plikach → Notatki (9 B); Ustawienia → Aplikacje → „Pliki (szczegóły)” (zapis w skarbcu) → podwójne kliknięcie zostaje w Plikach | `pliki-notatki-6-ustawienia.png` |
+| Otwórz za pomocą (0.8.2 krok 5) | prawy przycisk na pliku w Plikach → menu na ekranie (jasny wiersz) → „Otwórz za pomocą” → podmenu „Notatki” → skarbiec daje plik, nadzorca przekazuje go Notatkom (fd 5), Notatki otwierają go (20 B) | `pliki-notatki-5-menu.png`, `pliki-notatki-5-podmenu.png` |
+| domyślna aplikacja | podwójne kliknięcie pliku w Plikach → Notatki (9 B); Ustawienia → Aplikacje: każdy typ i jego aplikacja („Dokument tekstowy — Notatki”, „Obrazy … — Podgląd”, PDF, ZIP, „Plik” — brak); po ponownym starcie podwójne kliknięcie dalej otwiera Notatki | `pliki-notatki-6-ustawienia.png` |
 | dysk | jawnie nie ma treści, nazw notatek, „Notatki” ani zapisu ustawień | skrypt |
-| ponownie | nic do przeniesienia, 3 notatki z plików, domyślnie Pliki (ustawienie zapamiętane) | `pliki-notatki-ponownie-*.png` |
+| ponownie | nic do przeniesienia, 3 notatki z plików, podwójne kliknięcie — Notatki | `pliki-notatki-ponownie-*.png` |
 
 Na hoście: `test_dokumenty` (skarbiec: nazwy, typy, wpisy, kawałki treści, foldery, Kosz i 30 dni, prawa przez kanał;
-krok 2: prawa Notatek, „Otwórz w…”, okno wyboru, nazwa z pierwszego wiersza), `test_komunikat` (`DOK_*`,
+krok 2: prawa Notatek, „Otwórz w…” (od 0.8.2 „Otwórz za pomocą”), okno wyboru, nazwa z pierwszego wiersza), `test_komunikat` (`DOK_*`,
 `PLIKI_POKAZ`, `URUCHOM` z miejscem; krok 2: nowe komunikaty i domyślne aplikacje), `test_rozmieszczenie` (klucze
 ikon, K1R2 i K1R1, „Wybór pliku” nigdy na pasku), `fuzz_dokument`, `fuzz_rozmieszczenie`.
+0.8.2 krok 5: `test_menu` — menu pod prawym przyciskiem (przybornik `k1_menu`): wiersze dla każdego typu pliku i miejsca
+(Pliki, pulpit, Kosz, pendrive), „Otwórz za pomocą” (bez Plików, ✓, „Zawsze otwieraj” od dwóch aplikacji), komunikat
+bez aplikacji w całości, położenie przy brzegach, trafienie, rysowanie poza obrazem (ASan/UBSan); `test_komunikat` —
+`URUCHOM` i `PLIKI_POKAZ` z polem nazwy (`K1_PLIKI_NAZWA` tylko z plikiem, Kosz tylko bez).
 0.8.1 krok 1: `test_dokumenty` (naprawa wpisów, granica czasu, folder aplikacji, licznik Kosza, 64 pliki na
 aplikację) i `test_notatki` — prawdziwy kod Notatek i skarbca przez gniazdo (bez sprawdzania UID nadawcy):
 notatka nie do odczytu, plik do Kosza w trakcie pisania, 300 plików.
@@ -311,6 +315,7 @@ nazwą, uszkodzonym JPEG-iem, notatką, plikiem 17 MB, plikiem ukrytym i śmieci
 | nowe formaty (0.8.2 krok 3) | GIF, BMP, WebP stratny → 64×48, kolor w podglądzie | `pendrive-6-podglad-gif.png`, `-bmp.png`, `-webp.png` |
 | za duże zdjęcie | nagłówek 10050×10000: dekoder odmawia przed przydziałem (-41, 101 Mpx); Pliki: „Zdjęcie ma 101 Mpx — K1 pokazuje do 100 Mpx” | `pendrive-6-podglad-101mpx.png` |
 | tapeta | „Ustaw jako tapetę” → ekran: zdjęcie od Plików 80×60, tapeta 31; kolor zdjęcia przy prawej krawędzi ekranu | `pendrive-6-tapeta.png` |
+| bez aplikacji (0.8.2 krok 5) | Dokumenty: podwójne kliknięcie filmu (typ „Plik”) → stopka „K1 nie ma jeszcze aplikacji do tego typu pliku.”, żadna aplikacja nie dostaje pliku; prawy przycisk → menu tylko „Zmień nazwę”, „Usuń” („Otwórz” wyszarzone); Esc zamyka | `pendrive-6c-bez-aplikacji.png`, `pendrive-6c-menu-bez-aplikacji.png` |
 | wyjęcie | `device_del` → nadzorca zatrzymuje czytnik (sygnał 9), Pliki: „Pendrive odłączony.”, Dokumenty | `pendrive-7-wyjety.png` |
 | NTFS | `device_add` pendrive'a z NTFS → „Pendrive” wraca; czytnik: nie FAT; Pliki: K1 jeszcze go nie czyta | `pendrive-8-ntfs.png` |
 | czystość logu | bez nazw i treści plików, paniki, błędów, zablokowanych wywołań i odrzuconych komunikatów | `pendrive.log` |
@@ -352,7 +357,7 @@ Obraz produkcyjny, dysk danych przygotowany na hoście kodem skarbca (`testy/hos
 |---|---|
 | dziennik | K1-DANE 190 MiB, jeden obiekt zapisany 20 000 razy (78 MiB starych wersji) → „kompaktowanie (przy otwarciu): dziennik 78 → 0 MiB”, pulpit startuje |
 | dziennik-ponownie | ten sam dysk: magazyn otwarty, bez kompaktowania (dziennik już krótki) |
-| pełny | K1-DANE 64 MiB (jak pendrive'y 0.5.6–0.7.6), 6 MiB wolne → Pliki: „Nowy folder” odrzucony (−28, brak miejsca na pliki), stopka „mało miejsca” (0.8.1 krok 3); Ustawienia → Aplikacje: ustawienie zapisane (rezerwa dla systemu) |
+| pełny | K1-DANE 64 MiB (jak pendrive'y 0.5.6–0.7.6), 6 MiB wolne → Pliki: „Nowy folder” odrzucony (−28, brak miejsca na pliki), stopka „mało miejsca” (0.8.1 krok 3); Ustawienia → Wygląd: ciemny motyw zapisany (rezerwa dla systemu; do 0.8.2 krok 5 — Ustawienia → Aplikacje) |
 | powiększenie (krok 3, ADR 0033) | ta sama pełna K1-DANE na wirtualnym pendrivie USB o 512 MiB większym (obraz „nagrany” na większy pendrive) + drugi pendrive FAT32 z 16 zdjęciami po ok. 2,8 MB (Pillow, szum) → Ustawienia → Informacje: zajęte 23 z 23 MiB, pendrive ma 512 MiB więcej, przycisk → klik: nowa tablica (64 → 576 MiB), magazyn: obszar 31 → 287 MiB, Informacje: 279 MiB, bez przycisku → Pliki → Pendrive → DCIM › 100K1 → „Importuj wszystkie”: 16 z 16 (próba T6 planu: przed — 11 z 16 na dysku 64 MiB) |
 | powiększenie-ponownie | ten sam pendrive: magazyn otwarty, nic już nie rośnie; potem `sfdisk -d`: K1-DANE od 1 MiB do ostatniego pełnego MiB |
 | dokończenie | tablica powiększona przez `sfdisk`, magazyn nie (przerwa prądu między tablicą a nagłówkiem) → skarbiec przy starcie: „magazyn powiększony do całej partycji K1-DANE (dokończenie po starcie)” |

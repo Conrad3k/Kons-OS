@@ -80,7 +80,7 @@ enum k1_komunikat_typ {
     /* WITAJ is sent again when the screen size changes (K1_UST_ROZDZIELCZOSC): clients lay out anew. */
 
     /* gui / test → nadzorca */
-    K1_KOM_URUCHOM = 50,      /* gui: a=aplikacja; Pliki only (0.8.0): b=entry to show (0: none), c=1 Kosz */
+    K1_KOM_URUCHOM = 50,      /* gui: a=aplikacja; Pliki only (0.8.0): b=entry to show (0: none), c=K1_PLIKI_* */
     K1_KOM_WYLACZ = 51,       /* gui: a=0 power off, 1 restart, 2 log out (gui only) */
     K1_KOM_TEST_POLACZ = 52,  /* test image only: a=rola, b=aplikacja, c=expected uid → reply + 1 fd */
     K1_KOM_TEST_PROBA = 53,   /* test image only: a=sandbox profile → reply when the probe ends */
@@ -236,7 +236,8 @@ enum k1_komunikat_typ {
     K1_KOM_DEK_BLAD = 111,       /* a=K1_DEK_BLAD_* (< 0): no picture; b=the photo's Mpx 1..K1_DEK_MPX_MAKS after
                                   * K1_DEK_BLAD_DUZY (0.8.2 step 3), else 0 */
     /* nadzorca → Pliki (0.8.0, its fd 5; after URUCHOM with a place): show it */
-    K1_KOM_PLIKI_POKAZ = 21,   /* obiekt=0, a=entry (0: the last place), b=1 Kosz (then a=0) */
+    K1_KOM_PLIKI_POKAZ = 21,   /* obiekt=0, a=entry (0: the last place), b=K1_PLIKI_*: 1 Kosz (then a=0), 2 the entry's
+                                * name to change (a≠0; 0.8.2 step 5: "Zmień nazwę" on the desktop) */
     K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample
                                 * (0 = history starts again), a=seconds between samples, b..e = up to 16
                                 * samples, one byte each (b: samples 0-3 from the lowest byte, …):
@@ -254,6 +255,9 @@ enum k1_komunikat_typ {
 enum { K1_POW_OKNO = 1, K1_POW_PANEL = 2, K1_POW_PULPIT = 3 };
 
 /* Pointer events */
+/* What Pliki show when the desktop opens them (URUCHOM c, PLIKI_POKAZ b): the entry's place, Kosz, the entry with its
+ * name field open. */
+enum { K1_PLIKI_MIEJSCE = 0, K1_PLIKI_KOSZ = 1, K1_PLIKI_NAZWA = 2 };
 enum { K1_WSK_RUCH = 1, K1_WSK_WCISNIECIE = 2, K1_WSK_PUSZCZENIE = 3, K1_WSK_WYJSCIE = 4 };
 enum { K1_PRZYCISK_BRAK = 0, K1_PRZYCISK_LEWY = 1, K1_PRZYCISK_PRAWY = 2, K1_PRZYCISK_SRODKOWY = 3 };
 

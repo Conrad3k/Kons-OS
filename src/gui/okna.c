@@ -93,13 +93,13 @@ void otworz_aplikacje(int apl)
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_AKTYWUJ_OKNO, w->id, 0, 0, 0, 0, 0));
 }
 
-void otworz_pliki(uint32_t wpis, int kosz)
+void otworz_pliki(uint32_t wpis, int co)
 {
     struct okno *w = okno_aplikacji(K1_APL_PLIKI);
     pokaz_menu(0);
     /* always asked: nadzorca starts Pliki if needed and tells it the place either way */
     uruchamiane[K1_APL_PLIKI] = k1_teraz();
-    do_nadzorcy(k1_komunikat_nowy(K1_KOM_URUCHOM, 0, K1_APL_PLIKI, (int32_t)wpis, kosz, 0, 0));
+    do_nadzorcy(k1_komunikat_nowy(K1_KOM_URUCHOM, 0, K1_APL_PLIKI, (int32_t)wpis, co, 0, 0));
     if (w != NULL && w->stan != K1_OKNO_AKTYWNE)
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_AKTYWUJ_OKNO, w->id, 0, 0, 0, 0, 0));
 }

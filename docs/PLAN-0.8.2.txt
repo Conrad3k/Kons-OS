@@ -64,7 +64,8 @@ Nowy czat — przebieg każdego kroku:
          [PR #75]
 [x]  4  Aplikacja Podgląd                            (prośba właściciela)    3          D1 D2 D5  L        0037
          [PR #76]
-[ ]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
+[x]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
+         [PR #77]
 [ ]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        5          D6 D8     L        —
 [ ]  7  Porządki i wydanie 0.8.2                     —                       1–6        —         S        —
 
@@ -329,6 +330,26 @@ KROK 5 — Otwieranie: „Otwórz za pomocą”, jedno menu                     
   w Plikach → menu na ekranie → „Otwórz za pomocą” → Notatki; dwuklik zdjęcia → Podgląd; dwuklik ZIP → komunikat.
   Dokumenty: aplikacje.md (Pliki, Ustawienia), gui (pulpit), SLOWNIK, WYGLAD.
   Gotowe, gdy: pulpit i Pliki mają to samo menu; żaden dwuklik nie kończy się ciszą.
+  Ustalenia z wykonania (2026-11-12, jeden PR):
+  - Błąd znaleziony w QEMU: trafienie w wiersz menu liczyło kreskę jako 36 px — wiersze pod kreską („Zmień nazwę”,
+    „Usuń”) nie działały; test_menu sprawdza środek każdego wiersza każdego menu. test-skarbiec zapisuje na pełnym
+    dysku ciemny motyw zamiast wyboru w Aplikacjach (już go nie ma).
+  - Decyzje (D7 i trzy pytania na szkicu): „Otwórz za pomocą ›” z podmenu obok; bez „Szczegółów” (w Plikach są zawsze,
+    na pulpicie „Pokaż w Plikach”); „Zawsze otwieraj tą aplikacją” gotowe, widoczne dopiero przy dwóch aplikacjach typu;
+    „Zmień nazwę” na pulpicie otwiera Pliki z polem nazwy (URUCHOM c / PLIKI_POKAZ b = K1_PLIKI_NAZWA).
+  - Jedno menu: przybornik k1_menu.c — wygląd (przeniesiony z gui/kontekst.c), wiersze menu pliku dla miejsca (Pliki,
+    pulpit, Kosz, pendrive), podmenu, komunikat bez aplikacji, położenie przy brzegach; test_menu na hoście. Pulpit
+    rysuje je na swoim panelu (menu i podmenu na jednej powierzchni, która się przesuwa), Pliki — w oknie (menu.c).
+  - Pliki nie są już „aplikacją do otwierania” (k1_dok_aplikacje bez Plików, nowe k1_dok_czym_otworzyc): podwójne
+    kliknięcie zawsze coś robi — aplikacja albo stopka / komunikat „K1 nie ma jeszcze aplikacji do tego typu pliku”.
+    Wartość „Pliki” w ustawieniu K1_UST_OTWIERANIE zostaje dozwolona (= „nic nie wybrano”: typy bez aplikacji
+    i zapisy z 0.8.0–0.8.2) — bez zmiany formatu K1U4; stary wybór „Pliki” dla tekstu otwiera teraz Notatki.
+  - „Zawsze otwieraj” zmienia ustawienie u ekranu: USTAW kluczy K1_UST_OTWIERANIE przyjmowany też od Plików i powłoki
+    (ekran/okna.c, ustawia()); wybór ustawia całą rodzinę typów, jak wiersz Ustawień (k1_menu_zawsze — jedna funkcja).
+  - Ustawienia → Aplikacje: wszystkie typy (5 wierszy: Plik, tekst, Obrazy, PDF, ZIP), przyciski wyboru tylko przy
+    co najmniej dwóch aplikacjach (dziś żaden).
+  - W Plikach przycisk „Otwórz” zamiast „Otwórz w…”; stopka Plików ma krótką wersję komunikatu (pełna nie mieści się
+    obok szczegółów).
 
 KROK 6 — Przeciąganie i zaznaczanie wielu                                         L · decyzje D6 D8 · bez ADR*
   Cel: pliki i foldery przeciąga się myszą jak w innych systemach, a K1 jasno mówi „Czy na pewno…?”, „Możesz
@@ -391,8 +412,12 @@ KROK 7 — Porządki i wydanie 0.8.2                                            
 [!] D6 (krok 6) Przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) w 0.8.2 czy razem z 0.11?
        Rekomendacja: w 0.8.2 przeciąganie w obrębie Plików i pulpitu; między oknami — po 0.8.2, jednym ADR-em
        z planem 0.11 (strefy potrzebują tego samego).
-[!] D7 (krok 5) „Otwórz w…” → „Otwórz za pomocą” (jak w Windows), tylko w menu pod prawym przyciskiem, z „Zawsze
+[x] D7 (krok 5) „Otwórz w…” → „Otwórz za pomocą” (jak w Windows), tylko w menu pod prawym przyciskiem, z „Zawsze
        otwieraj tą aplikacją”? Rekomendacja: tak.
+       DECYZJA właściciela (2026-11-12, na szkicu): tak — „Otwórz za pomocą ›” z podmenu; w Plikach przycisk „Otwórz”
+       zamiast „Otwórz w…”. Bez osobnych „Szczegółów” (w Plikach są zawsze, na pulpicie „Pokaż w Plikach”). „Zawsze
+       otwieraj tą aplikacją” gotowe teraz, widoczne, gdy typ ma co najmniej dwie aplikacje (dziś żaden). „Zmień
+       nazwę” na pulpicie otwiera Pliki z polem nazwy.
 [!] D8 (krok 6) Kiedy pytać „Czy na pewno?” przy przeciąganiu do Kosza? Rekomendacja: folder z zawartością albo
        więcej niż jeden element; pojedynczy plik bez pytania (Kosz da się cofnąć).
 (D4 i D9 — rozstrzygnięte w 0.8.1: docs/archiwum/PLAN-0.8.1.txt, punkt 6. A, B, C, D z 2026-11-11 — ADR 0035.)

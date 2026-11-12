@@ -19,6 +19,7 @@
 #include <stdint.h>
 
 #include "k1_klient.h"
+#include "k1_menu.h"
 #include "k1_okno.h"
 #include "k1_uslugi.h"
 #include "rozmieszczenie.h"
@@ -68,7 +69,8 @@ void zmiana_okna(const struct k1_komunikat *m); /* K1_KOM_OKNO from ekran */
 void aplikacja(int apl);                         /* the bottom bar: start it, or show / minimise its window */
 void otworz_aplikacje(int apl);                  /* the desktop and menus: start it, or show its window */
 void pokaz_aplikacje(int apl);                    /* nadzorca (POKAZ_APL): its window to the front, if it has one */
-void otworz_pliki(uint32_t wpis, int kosz);       /* Pliki at a file or folder (0: none) or at Kosz (0.8.0) */
+void otworz_pliki(uint32_t wpis, int co);         /* Pliki at a file or folder (0: none), at Kosz, a name to change:
+                                                    * co = K1_PLIKI_* (0.8.0; K1_PLIKI_NAZWA 0.8.2) */
 void zamknij_aplikacje(int apl);                 /* "Zamknij okno": ekran asks the application to close */
 void do_nadzorcy(struct k1_komunikat m);
 
@@ -121,21 +123,22 @@ int pulpit_kolumn(void);
 int pulpit_wierszy(void);
 
 /* pliki.c: what an icon shows and does, whatever it is (an application, Kosz, a file — rozmieszczenie.h keys) */
-int plik_aplikacje(uint32_t klucz, int *apl);            /* the applications that open this file (room: K1_APL_MAKS) */
-void plik_otworz_w(uint32_t klucz, int apl);             /* "Otwórz w…": skarbiec gives it the file (ADR 0030) */
+int plik_typ(uint32_t klucz, int *folder);               /* a file's type (0: not a file; *folder: 1 for a folder) */
+void plik_otworz_w(uint32_t klucz, int apl);             /* "Otwórz za pomocą": skarbiec gives it the file (ADR 0030) */
+void plik_pokaz(uint32_t klucz, int co);                 /* Pliki at this file (K1_PLIKI_MIEJSCE) or its name (_NAZWA) */
 void pliki_start(void);                                   /* asks skarbiec for the files of the Pulpit folder */
 void pliki_odbierz(const struct k1_komunikat *m, int fd); /* DOK_* from skarbiec on fd 6 */
 const char *ikona_nazwa(uint32_t klucz);
 enum k1_ikona ikona_rysunek(uint32_t klucz);
-void ikona_otworz(uint32_t klucz);
+void ikona_otworz(uint32_t klucz, int32_t x, int32_t y); /* x, y: where a message goes (no application for the file) */
 void plik_do_kosza(uint32_t klucz);
 void kosz_oproznij(void);
 int kosz_pelny(void);
 
 /* kontekst.c */
-enum { K_PULPIT = 1, K_IKONA, K_PASEK, K_MENU };
-#define KONT_SZER 232
-#define KONT_WYS 168
+enum { K_PULPIT = 1, K_IKONA, K_PASEK, K_MENU, K_KOMUNIKAT };
+#define KONT_SZER (K1_MENU_SZER + K1_MENU_SZER_POD) /* the panel: the menu and its submenu side by side */
+#define KONT_WYS K1_MENU_WYS_MAKS
 extern int kontekst_otwarte;
 void kontekst_otworz(int cel, uint32_t klucz, int32_t x, int32_t y); /* x, y: the pointer on the screen */
 void kontekst_zamknij(void);
