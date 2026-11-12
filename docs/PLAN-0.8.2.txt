@@ -62,8 +62,8 @@ Nowy czat — przebieg każdego kroku:
          [PR #74]
 [x]  3  Zdjęcia: duże i nowe formaty, wspólny dekoder L17 L23b               —          —         M        (0032)
          [PR #75]
-[ ]  4  Aplikacja Podgląd                            (prośba właściciela)    3          D1 D2 D5  L        0037
-         [w toku: Claude, gałąź claude/plan-0-8-2-krok-4-ha2z3a]
+[x]  4  Aplikacja Podgląd                            (prośba właściciela)    3          D1 D2 D5  L        0037
+         [PR #76]
 [ ]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
 [ ]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        5          D6 D8     L        —
 [ ]  7  Porządki i wydanie 0.8.2                     —                       1–6        —         S        —
