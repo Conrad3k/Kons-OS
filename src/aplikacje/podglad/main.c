@@ -111,6 +111,7 @@ static void wykonaj(int b)
 
 #define BIALY 0xffffffu
 #define PIGULKA 0x1f1e1cu /* the bar and the labels over the picture: dark, a little see-through */
+#define TLO 0x1c1b19u     /* the dark area under the picture */
 
 static void szewron(struct k1_obraz *o, float cx, float cy, int w_lewo, uint32_t kolor)
 {
@@ -183,14 +184,32 @@ static void pasek(struct k1_obraz *o, const struct k1_motyw *m)
     (void)m;
 }
 
+/* The dark area under the title, with the window's rounded corners at the bottom; under an opaque picture it would be
+ * covered anyway, so only around it (0.8.5 step 2: less work in every frame of zooming and dragging). */
+static void tlo(struct k1_obraz *o, const struct k1_dok_wpis *w)
+{
+    const uint32_t c = k1_kolor(TLO, 255);
+    const int32_t dol = WYS - 2 * K1_OKNO_PROMIEN; /* from here down: the rounded bottom, never under the picture */
+    int32_t x, y, pw, ph;
+    if (w == NULL || !obraz_gotowy(w) || !widok_prostokat(&x, &y, &pw, &ph)) {
+        x = y = pw = ph = 0;
+        k1_prostokat(o, 1, K1_OKNO_TYTUL, SZER - 2, dol - K1_OKNO_TYTUL, c);
+    } else {
+        k1_prostokat(o, 1, K1_OKNO_TYTUL, SZER - 2, y - K1_OKNO_TYTUL, c);
+        k1_prostokat(o, 1, y, x - 1, ph, c);
+        k1_prostokat(o, x + pw, y, SZER - 1 - x - pw, ph, c);
+        k1_prostokat(o, 1, y + ph, SZER - 2, dol - y - ph, c);
+    }
+    k1_zaokraglony(o, 1, (float)dol - K1_OKNO_PROMIEN, SZER - 2, WYS - 1 - dol + K1_OKNO_PROMIEN, K1_OKNO_PROMIEN - 1, c);
+    k1_prostokat(o, 1, dol - K1_OKNO_PROMIEN, SZER - 2, K1_OKNO_PROMIEN, c);
+}
+
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     const struct k1_dok_wpis *w = biezace();
     char t[K1_DOK_NAZWA + 160];
     int32_t zw, zh, sx = OBSZAR_X + OBSZAR_W / 2, sy = OBSZAR_Y + OBSZAR_H / 2;
-    /* the dark area under the title, with the window's rounded corners at the bottom */
-    k1_zaokraglony(o, 1, K1_OKNO_TYTUL, SZER - 2, WYS - K1_OKNO_TYTUL - 1, K1_OKNO_PROMIEN - 1, k1_kolor(0x1c1b19, 255));
-    k1_prostokat(o, 1, K1_OKNO_TYTUL, SZER - 2, K1_OKNO_PROMIEN, k1_kolor(0x1c1b19, 255));
+    tlo(o, w);
     obraz_rysuj(o, m, w, &zw, &zh);
     if (w == NULL) { /* started from the Start menu, or everything went to Kosz */
         static const char e[] = "Otwórz zdjęcie z Plików albo przyciskiem „Otwórz…” (Ctrl+O).";

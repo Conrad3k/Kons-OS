@@ -259,8 +259,17 @@ $(OBJ)/test_kalkulator: testy/host/test_kalkulator.c src/aplikacje/kalkulator/li
 
 # 0.8.2 step 4: Podgląd — the order of the pictures (pure functions)
 $(OBJ)/test_podglad: testy/host/test_podglad.c src/aplikacje/podglad/kolejnosc.c src/aplikacje/podglad/kolejnosc.h $(DOK_C) \
+                     src/aplikacje/podglad/skala.c src/aplikacje/podglad/skala.h \
                      $(NAGL) testy/host/k1_test_host.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -Isrc/aplikacje/podglad -o $@ testy/host/test_podglad.c src/aplikacje/podglad/kolejnosc.c $(DOK_C)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/aplikacje/podglad -o $@ testy/host/test_podglad.c src/aplikacje/podglad/kolejnosc.c \
+		src/aplikacje/podglad/skala.c $(DOK_C)
+
+# 0.8.5 step 2: the measurement of Podgląd's view (not in testy-host: a measurement, optimised like the image, no ASan)
+$(OBJ)/pomiar_podgladu: testy/host/pomiar_podgladu.c src/aplikacje/podglad/skala.c src/aplikacje/podglad/skala.h \
+                        src/wspolne/k1_skaluj.c src/przybornik/k1_rysuj.c $(GRAFIKA) $(GEN)/k1_czcionki_dane.c | $(OBJ)
+	gcc -std=gnu11 -O2 -D_GNU_SOURCE -Wall -Wextra -Werror -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/aplikacje/podglad \
+		'-DK1_WERSJA="$(WERSJA)"' -o $@ testy/host/pomiar_podgladu.c src/aplikacje/podglad/skala.c src/wspolne/k1_skaluj.c \
+		src/grafika/k1_grafika.c src/przybornik/k1_rysuj.c $(GEN)/k1_czcionki_dane.c -lm
 
 # 0.8.5 step 1: ekran's queue of what a client has not taken yet (pure functions)
 $(OBJ)/test_zalegle: testy/host/test_zalegle.c src/ekran/zalegle.c src/ekran/zalegle.h $(NAGL) testy/host/k1_test_host.h | $(OBJ)

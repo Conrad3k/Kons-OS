@@ -454,3 +454,11 @@ celem) — tę regułę sprawdza host i skarbiec (`dok_przenies`).
 |---|---|
 | `test_zalegle` (host) | kolejka zaległych ekranu (`src/ekran/zalegle.c`): RAMKA raz na powierzchnię, ruch zastępuje ruch tuż przed nim, `USTAWIENIE` po kluczu, kolejność wciśnięć, puszczeń, klawiszy, `FOKUS`, `ZAMKNIJ`; pierścień dookoła; przepełnienie — najpierw ruchy i powtórzenia, potem wciśnięcia, `RAMKA` nigdy |
 | w systemie (`t_okna_zalegle`) | NEGATYWNY: klient z oknem na prawie cały ekran przestaje odbierać; 1500 ruchów myszy (więcej, niż mieści jego kanał), zatwierdzenie, kliknięcie → po wznowieniu odbioru dostaje `RAMKA` i `PUSZCZENIE`; drugi klient w tym czasie dostaje swoją `RAMKA` (nie jest blokowany), ekran działa. Na ekranie z 0.8.3 test jest czerwony (RAMKA i PUSZCZENIE przepadają) |
+
+## 0.8.5 krok 2 — Podgląd płynny
+| Test | Co sprawdza |
+|---|---|
+| `test_podglad` (host) | szybka droga widoku (`skala.c`): wybór kopii (zdjęcie / połowa / ćwiartka) według skali, połowa = średnia 2 × 2, próbkowanie 1:1 daje te same piksele, 2× — rogi te same, środek między sąsiadami; wycinek za brzegiem zdjęcia (ASan); przezroczystość |
+| `test_przybornik` (host) | `k1_zaokraglony`, `k1_obrys`, `k1_kolo` bez liczenia odległości we wnętrzu — 400 losowych prostokątów (przy brzegach obrazu, przezroczyste i nie) bit w bit jak sposób z 0.8.3 |
+| `pomiar_podgladu` (host, `make build/obj/pomiar_podgladu`; nie w `testy-host` — to pomiar) | czas klatki widoku 1600 × 1600 na każdym poziomie przybliżenia: dokładnie (jak do 0.8.3 w każdej klatce) i szybko (0.8.5); koszt tła okna i nakładania zdjęcia. Próg planu: klatka ≤ 1/3 dawnej — zmierzone ok. 12 % |
+| `test-pendrive.sh` | Podgląd: 20 × „+” i 20 × „−” bez czekania, przeciąganie 20 ruchami → „powiększenie 400%” i „100%”, log „ruch: klatek…” (szybkie klatki, potem ostra), zrzut `pendrive-6b-podglad-szybko.png`; okno dalej odpowiada (obrót, ←, ‹, Delete, Ctrl+O, ›) |

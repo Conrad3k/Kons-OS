@@ -11,6 +11,8 @@
 #   3. pojedynczo: plik 17 MB (do 0.8.0 „za duży”) i film 300 MB → Dokumenty kawałkami po 1 MiB (0.8.1 krok 4: czytnik
 #      ma cgroup 32 MiB, a Pliki i skarbiec dostają najwyżej kawałek), zdjęcie z polską nazwą → Obrazy, notatka → Dokumenty
 #   4. Obrazy: 10 plików „z pendrive'a”; Dokumenty: 3
+#   4c. (0.8.5 krok 2) Podgląd: 20 × „+” i 20 × „−” bez czekania, przeciąganie wieloma ruchami — okno nadąża i dalej
+#      odpowiada (← / ‹ potem), w ruchu szybka droga, po zatrzymaniu raz dokładna (log „ruch: klatek…”)
 #   4a. (krok 4) zaznaczone zdjęcie → dekoder w klatce (UID 107) → podgląd w Plikach (kolor na zrzucie); PNG też;
 #      uszkodzony JPEG → „Podgląd niedostępny”; „Ustaw jako tapetę” → ekran rysuje zdjęcie na całym ekranie
 #   4b. (0.8.2 krok 3; maszyna ma 8 GB jak X230) zdjęcia 48 i 100 Mpx (kilka MB: plik idzie do dekodera kawałkami po
@@ -317,6 +319,20 @@ m = po(PL, lambda: klik(*pp["mniej"]))
 w, h, px = zrzut("6b-podglad-minus", gdy=lambda w, h, px: not blisko(px(sz + 50, sy), NIEBIESKI))
 sprawdz("przycisk −: z powrotem dopasowane — 100 %, 80×60", m and m.group(1, 2, 3) == ("100", "80", "60") and
         not blisko(px(sz + 50, sy), NIEBIESKI), f"{m and m.group(0)}")
+# 0.8.5 step 2: quick zooming and dragging — the window keeps up and answers (a frozen window in 0.8.3: L1, L3)
+n_pl, n_r = q.ile(r"K1-PODGLAD: powiększenie 400%: widok 320x240"), q.ile(r"K1-PODGLAD: ruch: klatek")
+q.pisz(*["kp_add"] * 20)
+ok = czekaj(r"K1-PODGLAD: powiększenie 400%: widok 320x240", od=n_pl, czas=60)
+q.przeciagnij(sz, sy, sz + 120, sy + 70, krokow=20)
+n_pl = q.ile(r"K1-PODGLAD: powiększenie 100%: widok 80x60")
+q.pisz(*["kp_subtract"] * 20)
+ok2 = czekaj(r"K1-PODGLAD: powiększenie 100%: widok 80x60", od=n_pl, czas=60)
+r_ = czekaj(r"K1-PODGLAD: ruch: klatek (\d+) w (\d+) ms, najdłuższa ([\d.]+) ms, ostra ([\d.]+) ms", od=n_r, czas=30)
+w, h, px = zrzut("6b-podglad-szybko", gdy=lambda w, h, px: blisko(px(sz, sy), NIEBIESKI) and not blisko(px(sz + 50, sy), NIEBIESKI))
+sprawdz("(0.8.5) 20 × „+” bez czekania → 400 % (320×240), przeciąganie (20 ruchów), 20 × „−” → 100 %: okno nadąża, "
+        "w ruchu szybko, potem raz ostro (log „ruch: klatek…”), zrzut: zdjęcie dopasowane",
+        ok and ok2 and r_ and int(r_.group(1)) >= 1 and blisko(px(sz, sy), NIEBIESKI) and not blisko(px(sz + 50, sy), NIEBIESKI),
+        r_.group(0) if r_ else "brak")
 ok = po(r"K1-PODGLAD: obrót 90°: widok 60x80", lambda: q.pisz("r"))
 w, h, px = zrzut("6b-podglad-obrot", gdy=lambda w, h, px: not blisko(px(sz + 36, sy), NIEBIESKI))
 sprawdz("R: widok obrócony o 90° (60×80; plik bez zmian)", ok and blisko(px(sz, sy + 36), NIEBIESKI) and

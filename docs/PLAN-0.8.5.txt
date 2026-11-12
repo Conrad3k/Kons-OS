@@ -140,6 +140,16 @@ KROK 2 — Podgląd płynny                                                     
   Gotowe, gdy: pomiar spełnia próg, scenariusz QEMU zielony.
   Nie w tym kroku: przybliżanie kółkiem myszy / touchpadem (wejście nie obsługuje kółka — „Później”), przybliżanie
   w pełnej rozdzielczości pliku, pełny ekran.
+  Ustalenia z wykonania (2026-11-12):
+  - Próg „gotowe”: klatka w ruchu ≤ 1/3 dawnej. Zmierzone (host, -O2, `pomiar_podgladu`, zdjęcie 1600 × 1600): dawniej
+    każda klatka 14–27 ms (k1_skaluj), teraz w ruchu 1,6–2,6 ms (12 %), po zatrzymaniu raz dokładnie; kopie 800²
+    i 400² — 2,9 ms raz na zdjęcie i obrót. X230 jest ok. 2–3 × wolniejszy na rdzeń — w ruchu ok. 5–8 ms na klatkę.
+  - Największym kosztem rysowania okna (każdego, nie tylko Podglądu) okazało się tło z zaokrągleniem: k1_zaokraglony
+    liczył odległość dla każdego piksela — 4,8 ms dla tła 958 × 595. Teraz wnętrze bez liczenia: 0,6 ms, obraz bit
+    w bit ten sam (test_przybornik, 400 losowych prostokątów). Ciemne tło Podglądu tylko wokół zdjęcia, zdjęcie
+    nieprzezroczyste kopiowane wierszami (2,4 → 0,2 ms).
+  - k1_skaluj bez zmian: przydział pamięci na wagi to mikrosekundy przy 14–27 ms filtra, a dokładny filtr działa teraz
+    raz po zatrzymaniu. Zatwierdzanie samego obszaru zdjęcia (k1_pow_zatwierdz_obszar) — niepotrzebne po pomiarze.
 
 KROK 3 — Ustawienia → Miejsce                                                  L · decyzje D1 D2 D3 · bez ADR
   Cel: nowa sekcja „Miejsce” w Ustawieniach z graficznym przedstawieniem miejsca na pliki: ile jest w ogóle, ile

@@ -179,7 +179,19 @@ folderów, z których użytkownik w nim coś otworzył** (prawa w skarbcu: `Z_OB
 Kosza; nie dekoduje zdjęć sam — robi to `dekoder` w osobnej klatce (`k1_dekodowanie`, jak w Plikach; obraz najwyżej
 1600 × 1600, obrót, dopasowanie i przybliżenie u siebie: `k1_skaluj`). Moduły: `main.c` (okno, pływający pasek, etykieta, klawisze, mysz), `dane.c`
 (skarbiec, plik do otwarcia, Kosz, okno wyboru), `obraz.c` (dekoder, tapeta), `widok.c` (obrót, dopasowanie, przybliżenie z animacją, przeciąganie), `kolejnosc.c` (kolejność zdjęć —
-czyste funkcje, test na hoście).
+czyste funkcje, test na hoście), `skala.c` (0.8.5: szybka droga — kopie zdjęcia 800 i 400 px, próbkowanie
+dwuliniowe w liczbach stałoprzecinkowych; czyste funkcje, test na hoście).
+
+**Płynność (0.8.5 krok 2).** Przybliżanie i przesuwanie tylko zmieniają stan widoku; piksele liczą się raz na klatkę,
+przy rysowaniu okna. W ruchu (animacja, przeciąganie) widok powstaje z najmniejszej kopii zdjęcia, która ma jeszcze co
+najmniej piksel na piksel ekranu (zdjęcie, połowa, ćwiartka — liczone raz po dekodowaniu i po obrocie), szybkim
+próbkowaniem; 0,12 s po ostatnim ruchu — raz dokładnym filtrem `k1_skaluj` (ostro jak w 0.8.2). Animacja idzie za
+zegarem, nie za klatkami: przy wolnej klatce przeskakuje. Kolejne „+” w trakcie animacji idą od poziomu docelowego.
+Nieprzezroczyste zdjęcie kopiuje się wierszami (bez mieszania), ciemne tło rysuje się tylko wokół niego. Pomiar na
+hoście (`make build/obj/pomiar_podgladu`, zdjęcie 1600 × 1600, -O2): klatka dokładnie 14–26 ms, szybko 1,6–2,6 ms
+(ok. 12 %); tło okna z zaokrągleniem 4,8 → 0,6 ms (`k1_zaokraglony` nie liczy odległości we wnętrzu — obraz ten sam co
+do bitu, `test_przybornik`; zyskuje każde okno). Log po każdym ruchu (najwyżej raz na ruch): „ruch: klatek n w t ms,
+najdłuższa x ms, ostra y ms”.
 
 ## Granica zaufania
 Klienci ekranu w roli **aplikacja**: tylko własne okna. Ustawienia jako jedyna mogą zmieniać
@@ -249,4 +261,6 @@ Błąd zapisu notatki → komunikat w oknie i w logu.
 | `test-pendrive.sh` (0.8.2 krok 5): podwójne kliknięcie pliku bez aplikacji (film) → stopka; menu pliku bez „Otwórz” | funkcjonalny / negatywny |
 | host: `test_przybornik` — czas polski (zmiany czasu), układ PL, UTF-8, rysowanie na krawędziach | jednostkowy |
 | host (0.8.2 krok 4, ADR 0037): `test_podglad` — kolejność zdjęć, ← / →, zdjęcie po Koszu, „3 z 27”; `test_dokumenty` — prawa Podglądu (bez gestu nic, tylko zdjęcia folderu, tylko odczyt i Kosz, okno wyboru z rodziną „obrazy”, po zamknięciu nic) | jednostkowy / negatywny |
+| host (0.8.5 krok 2): `test_podglad` — wybór kopii, połowa zdjęcia (średnia 2 × 2), próbkowanie 1:1 i 2×, wycinek za brzegiem (ASan), przezroczystość; `test_przybornik` — zaokrąglone prostokąty i obrysy bit w bit jak w 0.8.3 (400 losowych); `pomiar_podgladu` — czasy klatek (nie w testach) | jednostkowy / pomiar |
+| `test-pendrive.sh` (0.8.5 krok 2): 20 × „+” i 20 × „−” bez czekania, przeciąganie 20 ruchami — 400 % i z powrotem 100 %, log „ruch: klatek…”, zrzut; okno odpowiada dalej (←, ‹, Delete…) | funkcjonalny |
 | `test-pendrive.sh` (0.8.2 krok 4): Podgląd — dwuklik zdjęcia w Plikach, „zdjęcie 4 z 10” w klatce UID 208, kolor na zrzucie, R (widok 60×80), ← uszkodzone (komunikat), ‹ PNG, Delete → Kosz i następne zdjęcie, Ctrl+O → okno wyboru (obrazy), „Ustaw jako tapetę”, × ; + i − (150 % → 100 %, kolor na zrzucie) | funkcjonalny / negatywny |

@@ -3,7 +3,8 @@
  *               details, keys and the mouse
  *   dane.c      skarbiec (fd 4): the pictures Podgląd may see, Kosz, the file picker; the file to open (fd 5)
  *   obraz.c     the picture shown and the wallpaper — through a dekoder (k1_dekodowanie, fd 6 to nadzorca)
- *   widok.c     the view: turning, fitting, zooming (− +) with a short animation, dragging
+ *   widok.c     the view: turning, fitting, zooming (− +) with a short animation, dragging; fast while it moves
+ *   skala.c     the fast way: smaller copies of the picture, bilinear sampling (pure functions, host test, 0.8.5)
  *   kolejnosc.c the order of the pictures (pure functions, host test) */
 #ifndef K1_PODGLAD_H
 #define K1_PODGLAD_H
@@ -72,5 +73,6 @@ void widok_przesun(int32_t dx, int32_t dy);   /* dragged by dx, dy screen pixels
 int widok_zegar(void);                        /* the animation: ms to its next frame, -1 none */
 int widok_rysuj(struct k1_obraz *o);          /* 1 when drawn */
 void widok_rozmiar(int32_t *w, int32_t *h);
+int widok_prostokat(int32_t *x, int32_t *y, int32_t *w, int32_t *h); /* where it is drawn; 1 when it covers it (opaque) */
 
 #endif

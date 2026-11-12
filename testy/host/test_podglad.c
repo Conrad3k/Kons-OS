@@ -4,6 +4,7 @@
 
 #include "k1_test_host.h"
 #include "kolejnosc.h"
+#include "skala.h"
 
 static struct k1_dok_wpis w[10];
 static int n;
@@ -56,9 +57,39 @@ static void t_kroki(void)
     EXPECT(strlen(t) == 3);
 }
 
+/* 0.8.5 step 2: the fast way of the view — which copy, the copies, bilinear sampling */
+static void t_skala(void)
+{
+    static uint32_t z[7 * 5], p[3 * 2], c[16 * 16];
+    struct sk_obraz o = { z, 7, 5 };
+    int32_t pw, ph;
+    EXPECT(sk_kopia(1.0) == 0 && sk_kopia(4.0) == 0 && sk_kopia(0.6) == 0); /* zoomed in or near 1:1: the picture */
+    EXPECT(sk_kopia(0.5) == 1 && sk_kopia(0.3) == 1 && sk_kopia(0.25) == 2 && sk_kopia(0.01) == 2);
+    for (int i = 0; i < 7 * 5; i++)
+        z[i] = 0xff000000u | (uint32_t)(i * 7) << 16 | (uint32_t)(i % 7 * 30) << 8 | (uint32_t)(i / 7 * 50);
+    sk_polowa(o, p, &pw, &ph);
+    EXPECT(pw == 3 && ph == 2);
+    EXPECT(p[0] == (0xff000000u | (((0 + 7 + 49 + 56 + 2) / 4) << 16) | (((0 + 30 + 0 + 30 + 2) / 4) << 8) | ((0 + 0 + 50 + 50 + 2) / 4)));
+    EXPECT(sk_nieprzezroczysty(o) && sk_nieprzezroczysty((struct sk_obraz){ p, 3, 2 }));
+    /* 1:1 at whole pixels: the same pixels */
+    sk_szybko(o, 0, 0, 7, 5, c, 7, 5, 16);
+    EXPECT(memcmp(c, z, 7 * 4) == 0 && memcmp(c + 4 * 16, z + 4 * 7, 7 * 4) == 0);
+    /* enlarged 2×: the corners stay, a middle pixel lies between its neighbours */
+    sk_szybko(o, 0, 0, 7, 5, c, 14, 10, 16);
+    EXPECT(c[0] == z[0] && c[9 * 16 + 13] == z[34]);
+    EXPECT(((c[16 + 3] >> 8) & 0xff) >= 30 && ((c[16 + 3] >> 8) & 0xff) <= 60);
+    /* a part past the edge: clamped, never outside the picture (ASan) */
+    sk_szybko(o, -1, -1, 9, 7, c, 16, 16, 16);
+    sk_szybko(o, 6.5, 4.5, 1, 1, c, 3, 3, 16);
+    EXPECT(c[0] == z[34]);
+    z[3] &= 0x80ffffffu;
+    EXPECT(!sk_nieprzezroczysty(o));
+}
+
 int main(void)
 {
     t_kolejnosc();
     t_kroki();
+    t_skala();
     return K1_TEST_KONIEC("test_podglad");
 }

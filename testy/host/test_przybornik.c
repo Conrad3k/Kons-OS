@@ -1,6 +1,7 @@
 /* Host unit tests for the GUI toolkit (src/przybornik) and the renderer: Polish local time with the
  * DST switches, keyboard layout, UTF-8, text and shapes at the image borders, wallpaper variants
  * (determinism, tiny sizes), window frame hit testing, composition clipping. ASan/UBSan build. */
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -122,6 +123,66 @@ static void t_rysowanie(void)
     }
 }
 
+/* 0.8.5 step 2: rounded boxes skip the distance inside (k1_rysuj.c, wnetrze) — the picture must stay the same to the bit.
+ * The reference: the per-pixel way of 0.8.3, copied here. */
+static uint32_t ref_mieszaj(uint32_t dst, uint32_t src, uint32_t cov)
+{
+    uint32_t sa = ((src >> 24) * cov) >> 8, ia = 255 - sa;
+    uint32_t a = sa + (((dst >> 24) * ia + 127) / 255);
+    uint32_t r = ((((src >> 16) & 0xff) * cov) >> 8) + ((((dst >> 16) & 0xff) * ia + 127) / 255);
+    uint32_t g = ((((src >> 8) & 0xff) * cov) >> 8) + ((((dst >> 8) & 0xff) * ia + 127) / 255);
+    uint32_t b = (((src & 0xff) * cov) >> 8) + (((dst & 0xff) * ia + 127) / 255);
+    return ((a > 255 ? 255 : a) << 24) | ((r > 255 ? 255 : r) << 16) | ((g > 255 ? 255 : g) << 8) | (b > 255 ? 255 : b);
+}
+
+static void ref_box(uint32_t *px, int32_t W, int32_t H, float x, float y, float w, float h, float r, float g, uint32_t kolor)
+{
+    float cx = x + w / 2, cy = y + h / 2;
+    r = r < 0 ? 0 : (r > fminf(w, h) / 2 ? fminf(w, h) / 2 : r);
+    for (int32_t j = 0; j < H; j++)
+        for (int32_t i = 0; i < W; i++) {
+            float qx = fabsf((float)i + 0.5f - cx) - w / 2 + r, qy = fabsf((float)j + 0.5f - cy) - h / 2 + r;
+            float ox = qx > 0 ? qx : 0, oy = qy > 0 ? qy : 0, d = sqrtf(ox * ox + oy * oy) + fminf(fmaxf(qx, qy), 0.0f) - r, v;
+            if (i < (int32_t)floorf(x - 1) || j < (int32_t)floorf(y - 1) || i >= (int32_t)ceilf(x + w + 1) ||
+                j >= (int32_t)ceilf(y + h + 1))
+                continue;
+            if (g > 0)
+                d = fabsf(d + g / 2) - g / 2;
+            v = 0.5f - d;
+            v = v < 0 ? 0 : (v > 1 ? 1 : v);
+            if ((uint32_t)(v * 256.0f))
+                px[j * W + i] = ref_mieszaj(px[j * W + i], kolor, (uint32_t)(v * 256.0f));
+        }
+}
+
+static void t_zaokraglone(void)
+{
+    static uint32_t a[97 * 61], b[97 * 61];
+    struct k1_obraz o = { a, 97, 61, 97 };
+    int zle = 0;
+    srand(7);
+    for (int n = 0; n < 400; n++) {
+        float x = (float)(rand() % 1200) / 10.0f - 20, y = (float)(rand() % 800) / 10.0f - 10;
+        float w = (float)(rand() % 1100) / 10.0f, h = (float)(rand() % 700) / 10.0f, r = (float)(rand() % 300) / 10.0f;
+        float g = n % 3 == 0 ? (float)(rand() % 30) / 10.0f + 0.5f : 0;
+        uint32_t kolor = k1_kolor((uint32_t)rand() & 0xffffffu, n % 2 ? 255u : (uint32_t)(rand() % 256));
+        for (int i = 0; i < 97 * 61; i++)
+            a[i] = b[i] = 0xff000000u | ((uint32_t)i * 2654435761u >> 8);
+        if (g > 0)
+            k1_obrys(&o, x, y, w, h, r, g, kolor);
+        else
+            k1_zaokraglony(&o, x, y, w, h, r, kolor);
+        ref_box(b, 97, 61, x, y, w, h, r, g, kolor);
+        zle += memcmp(a, b, sizeof a) != 0;
+    }
+    EXPECT(zle == 0);
+    memset(a, 0, sizeof a);
+    memset(b, 0, sizeof b);
+    k1_kolo(&o, 48, 30, 20, 0xff102030u); /* a circle: a box with r = half the side */
+    ref_box(b, 97, 61, 28, 10, 40, 40, 20, 0, 0xff102030u);
+    EXPECT(memcmp(a, b, sizeof a) == 0);
+}
+
 static void t_okno(void)
 {
     const char *const et[] = { "A", "B", "C" };
@@ -151,6 +212,7 @@ int main(void)
     t_klawiatura();
     t_utf8();
     t_rysowanie();
+    t_zaokraglone();
     t_okno();
     return K1_TEST_KONIEC("test_przybornik");
 }
