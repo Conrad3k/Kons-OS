@@ -94,6 +94,14 @@ int k1_liczba(double v, int cyfr, int grupuj, char *buf, size_t n)
     return 0;
 }
 
+const char *k1_odmiana(long n, const char *jeden, const char *kilka, const char *wiele)
+{
+    long d = n < 0 ? -n : n;
+    if (d == 1)
+        return jeden;
+    return d % 10 >= 2 && d % 10 <= 4 && (d % 100 < 12 || d % 100 > 14) ? kilka : wiele;
+}
+
 void k1_rozmiar_tekst(uint64_t b, char *buf, size_t n)
 {
     if (b < 1024)

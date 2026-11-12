@@ -35,7 +35,7 @@ static int pod_kursorem(void)
 static void do_wskaznika(int i, int rodzaj, int przycisk)
 {
     struct pow *p = &s.p[i];
-    wyslij(p->kl, k1_komunikat_nowy(K1_KOM_WSKAZNIK, p->id, s.x - p->x, s.y - p->y, rodzaj, przycisk, 0));
+    wyslij(p->kl, k1_komunikat_nowy(K1_KOM_WSKAZNIK, p->id, s.x - p->x, s.y - p->y, rodzaj, przycisk, (int32_t)s.mody));
 }
 
 static void ruch_wskaznika(void)
@@ -78,7 +78,7 @@ static void przycisk(int nr, int wcisniety)
         }
         /* The shell closes its menus when the user clicks anywhere else. */
         if (sh >= 0 && (cel < 0 || s.p[cel].kl != sh))
-            wyslij(sh, k1_komunikat_nowy(K1_KOM_WSKAZNIK, 0, s.x, s.y, K1_WSK_WCISNIECIE, nr, 0));
+            wyslij(sh, k1_komunikat_nowy(K1_KOM_WSKAZNIK, 0, s.x, s.y, K1_WSK_WCISNIECIE, nr, (int32_t)s.mody));
         if (s.chwyt >= 0)
             do_wskaznika(s.chwyt, K1_WSK_WCISNIECIE, nr);
     } else {

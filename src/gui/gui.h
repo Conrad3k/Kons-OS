@@ -122,7 +122,14 @@ void pulpit_loguj(void);    /* "ikony na pulpicie": where each icon is (the test
 int pulpit_kolumn(void);
 int pulpit_wierszy(void);
 
-/* pliki.c: what an icon shows and does, whatever it is (an application, Kosz, a file — rozmieszczenie.h keys) */
+/* pliki.c: what an icon shows and does, whatever it is (an application, Kosz, a file — rozmieszczenie.h keys; and
+ * "Jeszcze n" — the files of Pulpit that did not fit, never saved, 0.8.2 step 6) */
+#define KLUCZ_WIECEJ 0x2000u
+int pliki_ukryte(void);  /* files of Pulpit without an icon (L19) */
+void pliki_dopasuj(void); /* the icons follow the files (again after "Ułóż ikony") */
+/* A file dropped on Kosz or a folder of Pulpit (0.8.2 step 6): DOK_KOSZ / DOK_PRZENIES; skarbiec's refusal: the window
+ * of a question or a refusal at (x, y) on the screen. */
+void plik_przenies(uint32_t klucz, uint32_t folder_klucz, int32_t x, int32_t y);
 int plik_typ(uint32_t klucz, int *folder);               /* a file's type (0: not a file; *folder: 1 for a folder) */
 void plik_otworz_w(uint32_t klucz, int apl);             /* "Otwórz za pomocą": skarbiec gives it the file (ADR 0030) */
 void plik_pokaz(uint32_t klucz, int co);                 /* Pliki at this file (K1_PLIKI_MIEJSCE) or its name (_NAZWA) */
@@ -132,16 +139,20 @@ const char *ikona_nazwa(uint32_t klucz);
 enum k1_ikona ikona_rysunek(uint32_t klucz);
 void ikona_otworz(uint32_t klucz, int32_t x, int32_t y); /* x, y: where a message goes (no application for the file) */
 void plik_do_kosza(uint32_t klucz);
+const char *plik_nazwa_folderu(uint32_t klucz); /* a folder of Pulpit: its name (NULL: not one) */
 void kosz_oproznij(void);
 int kosz_pelny(void);
 
 /* kontekst.c */
-enum { K_PULPIT = 1, K_IKONA, K_PASEK, K_MENU, K_KOMUNIKAT };
+enum { K_PULPIT = 1, K_IKONA, K_PASEK, K_MENU, K_KOMUNIKAT, K_OKIENKO };
 #define KONT_SZER (K1_MENU_SZER + K1_MENU_SZER_POD) /* the panel: the menu and its submenu side by side */
 #define KONT_WYS K1_MENU_WYS_MAKS
 extern int kontekst_otwarte;
 void kontekst_otworz(int cel, uint32_t klucz, int32_t x, int32_t y); /* x, y: the pointer on the screen */
 void kontekst_zamknij(void);
+/* The window of a question or a refusal after dragging (k1_przeciaganie, 0.8.2 step 6) at (x, y) on the screen: the
+ * answer (K1_PO_*) goes to `wybrano`, K1_PO_ANULUJ when it closes otherwise; `rodzaj` names it in the log. */
+void kontekst_okienko(const struct k1_menu *m, const char *rodzaj, int32_t x, int32_t y, void (*wybrano)(int));
 void rysuj_kontekst(void);
 void wskaznik_kontekst(const struct k1_komunikat *m);
 

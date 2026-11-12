@@ -7,17 +7,21 @@
  *   bottom bar   <application> · Przypnij / Odepnij · Zamknij okno (when it runs)
  *   Start menu   Otwórz · Przypnij / Odepnij · Dodaj do pulpitu / Usuń z pulpitu
  *   message      a double click on a file no application opens: why, "Pokaż w Plikach"   (k1_menu_bez_aplikacji)
+ *   window       a question or a refusal after a file is dropped (k1_przeciaganie)            (0.8.2 step 6)
  * "Otwórz za pomocą" opens its submenu beside it (pointing at it or clicking it), on the same panel — it moves so that
  * both fit. A row acts when the left button is released on it; a press anywhere else closes the menu. */
 #include <stdio.h>
 
 #include "gui.h"
 #include "k1_log.h"
+#include "k1_przeciaganie.h"
 
 /* The desktop's own rows (a file's rows act by K1_MA_*, k1_menu.h). */
 enum { A_PRZYPNIJ = 20, A_ODEPNIJ, A_DODAJ, A_USUN_IKONE, A_ZAMKNIJ, A_ULOZ, A_WYGLAD, A_OPROZNIJ };
 
-static struct k1_menu glowne, pod;
+static struct k1_menu glowne, pod, okienko;
+static void (*odpowiedz)(int); /* the window of a question is open: who gets the answer */
+static const char *okienko_rodzaj = "";
 static int cel, apl, hover = -1, hover_pod = -1, pod_wiersz = -1, zawsze; /* pod_wiersz: the row of the open submenu */
 static uint32_t klucz;
 static int32_t gx, gy, px, py, ox, oy; /* on the screen: the menu's body, the submenu's body, the panel's origin */
@@ -47,7 +51,9 @@ static void wiersze(void)
 {
     int folder = 0, typ = plik_typ(klucz, &folder);
     k1_menu_zacznij(&glowne, K1_MENU_SZER);
-    if (cel == K_PULPIT) {
+    if (cel == K_OKIENKO) {
+        glowne = okienko;
+    } else if (cel == K_PULPIT) {
         dodaj("Ułóż ikony", A_ULOZ);
         dodaj("Tapeta i wygląd…", A_WYGLAD);
     } else if (cel == K_KOMUNIKAT) {
@@ -81,6 +87,10 @@ static void loguj(void)
     static const char *const cele[] = { "", "pulpit", "ikona", "pasek", "menu Start", "komunikat" };
     char buf[400];
     k1_menu_opis(&glowne, gx, gy, buf, sizeof buf);
+    if (cel == K_OKIENKO) {
+        k1_log(TAG, "okienko (%s): %s", okienko_rodzaj, buf);
+        return;
+    }
     k1_log(TAG, "menu kontekstowe (%s%s%s): %s", cele[cel], klucz ? " " : "",
            rozm_plik(klucz) ? "pliku" : klucz ? ikona_nazwa(klucz) : "", buf);
 }
@@ -111,6 +121,11 @@ static void zamknij_pod(void)
 
 void kontekst_otworz(int nowy_cel, uint32_t nowy_klucz, int32_t x, int32_t y)
 {
+    if (nowy_cel != K_OKIENKO && odpowiedz != NULL) { /* another menu instead of the window: "Anuluj" */
+        void (*o)(int) = odpowiedz;
+        odpowiedz = NULL;
+        o(K1_PO_ANULUJ);
+    }
     cel = nowy_cel;
     klucz = nowy_klucz;
     apl = rozm_aplikacja(nowy_klucz);
@@ -131,11 +146,24 @@ void kontekst_otworz(int nowy_cel, uint32_t nowy_klucz, int32_t x, int32_t y)
 
 void kontekst_zamknij(void)
 {
+    void (*o)(int) = odpowiedz;
+    odpowiedz = NULL;
     if (!kontekst_otwarte)
         return;
     kontekst_otwarte = 0;
     pod_wiersz = -1;
     k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_KONTEKST, 0, 0, 0, 0, 0));
+    if (o != NULL) /* the window closed without a row: "Anuluj" */
+        o(K1_PO_ANULUJ);
+}
+
+void kontekst_okienko(const struct k1_menu *m, const char *rodzaj, int32_t x, int32_t y, void (*wybrano)(int))
+{
+    kontekst_zamknij();
+    okienko = *m;
+    okienko_rodzaj = rodzaj;
+    kontekst_otworz(K_OKIENKO, 0, x, y);
+    odpowiedz = wybrano;
 }
 
 void rysuj_kontekst(void)
@@ -169,7 +197,11 @@ static void wykonaj_pulpit(int akcja)
             snprintf(co, sizeof co, "dodano do pulpitu: %s", nazwa);
         break;
     case A_USUN_IKONE: rozm_usun_ikone(&rozm, (uint32_t)apl); snprintf(co, sizeof co, "usunięto z pulpitu: %s", nazwa); break;
-    case A_ULOZ: rozm_uloz(&rozm, pulpit_wierszy()); snprintf(co, sizeof co, "ułożono ikony"); break;
+    case A_ULOZ: /* the files that do not fit keep the last free cell for "Jeszcze n" (L19) */
+        rozm_uloz(&rozm, pulpit_wierszy());
+        pliki_dopasuj();
+        snprintf(co, sizeof co, "ułożono ikony");
+        break;
     default: return;
     }
     rozm_zmienione(co);
@@ -179,6 +211,14 @@ static void wykonaj(const struct k1_menu_poz *p)
 {
     struct k1_komunikat ust[K1_TYPY_MAKS];
     int folder, typ = plik_typ(klucz, &folder), akcja = p->akcja, arg = p->arg;
+    if (cel == K_OKIENKO) { /* the window of a question: its answer */
+        void (*o)(int) = odpowiedz;
+        odpowiedz = NULL;
+        kontekst_zamknij();
+        if (o != NULL)
+            o(akcja);
+        return;
+    }
     if (akcja == K1_MA_ZAWSZE && typ >= 1) { /* ticked or not: the menu stays */
         zawsze = !zawsze;
         k1_menu_za_pomoca(&pod, typ, k.ustawienia[K1_UST_OTWIERANIE + typ - 1], zawsze);

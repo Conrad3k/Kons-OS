@@ -19,6 +19,17 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   otwiera folder albo Kosz w Plikach (`URUCHOM` z miejscem), plik — w jego domyślnej aplikacji, a typ bez aplikacji
   (PDF, ZIP, „Plik”) — komunikat przy ikonie: typ, „K1 nie ma jeszcze aplikacji do tego typu pliku — możesz go
   przechowywać, przenosić i usuwać.”, „Pokaż w Plikach” (0.8.2 krok 5),
+- **przeciąganie plików** (0.8.2 krok 6, L24 faza A, decyzje D6 i D8): plik albo folder przeciągnięty nad Kosz albo
+  folder z Pulpitu — komórka celu z jasnym obrysem, przy kursorze półprzezroczysty kafelek i znak („Do Kosza”,
+  „Przenieś do „Zdjęcia””); decyduje tabela reguł z przybornika (`k1_przeciaganie`, ta sama co w Plikach). Upuszczony
+  idzie tam (`DOK_KOSZ`, `DOK_PRZENIES`); folder na Kosz — najpierw **okienko** z pytaniem (D8: pulpit nie widzi wnętrza
+  folderów, więc pyta przy każdym folderze), zajęta nazwa w folderze — „Zachowaj oba” (`DOK_PRZENIES` b = 1) / „Pomiń” /
+  „Anuluj”, inna odmowa skarbca — okienko z powodem i „OK” (`kontekst_okienko`: ten sam panel co menu). Nad pustą
+  komórką albo ikoną aplikacji — jak dotąd: ikona zmienia miejsce. Między oknami (Pliki ↔ pulpit) — po 0.8.2 (D6),
+- **„Jeszcze n”** (0.8.2 krok 6, L19): gdy plików w folderze Pulpit jest więcej niż miejsc w siatce (albo ponad
+  `ROZM_IKON_MAKS` = 96 ikon), ostatnia wolna komórka (kolumnami) pokazuje kafelek „+n” z napisem „Jeszcze n” —
+  podwójne kliknięcie otwiera Pliki w folderze Pulpit; gdy żadnej komórki nie ma, ikona ostatniego pliku ją zwalnia
+  (`rozm_pliki`, `rozm_ostatnia_wolna`; kafelek nie jest zapisywany w rozmieszczeniu),
 - **menu pod prawym przyciskiem** (menu kontekstowe; od 0.8.2 rysuje je i układa wiersze pliku przybornik — `k1_menu`,
   to samo menu co w Plikach): pulpit — „Ułóż ikony”, „Tapeta i wygląd…”; ikona —
   „Otwórz”, „Przypnij do paska” / „Odepnij od paska”, „Usuń z pulpitu”; Kosz — „Otwórz”, „Opróżnij Kosz”;
@@ -52,7 +63,8 @@ UID/GID 102, klatka (ADR 0007): seccomp = baza + `memfd_create`, `ftruncate`; La
   (0.8.0: `"K1R2"`, aplikacje na pasku, ikony: klucz u32 — aplikacja, Kosz albo plik — kolumna, wiersz; zapis
   0.7.5 `"K1R1"` dalej czytany), czytany przy starcie (≤ 1,5 s; błąd = domyślne), zapisywany po każdej zmianie.
   Bez skarbca — rozmieszczenie tylko do końca działania gui. Od 0.8.0 ten sam kanał: `DOK_SPIS` → `DOK_LISTA`
-  (tylko folder Pulpit — tak mówi tabela praw w skarbcu), `DOK_KOSZ`, `DOK_OPROZNIJ`, `DOK_ZMIANA`; od 0.8.0
+  (tylko folder Pulpit — tak mówi tabela praw w skarbcu), `DOK_KOSZ`, `DOK_OPROZNIJ`, `DOK_ZMIANA`, od 0.8.2 (krok 6)
+  `DOK_PRZENIES` pliku Pulpitu do folderu Pulpitu (plik upuszczony na folder); od 0.8.0
   (ADR 0030) `DOK_OTWORZ` — plik z pulpitu w domyślnej aplikacji (podwójne kliknięcie; ustawienie
   `K1_UST_OTWIERANIE` + typ od ekranu) albo w wybranej (menu pod prawym przyciskiem: „Otwórz za pomocą ›”).
   Folder i plik do otwarcia w Plikach — jak dotąd przez `URUCHOM` z miejscem (c = `K1_PLIKI_*`: 1 Kosz, 2 pole nazwy).
@@ -77,7 +89,8 @@ zostają, nowa powłoka dostaje ich listę (test).
 Komunikaty 32 B od ekranu, od nadzorcy (bateria) i od skarbca; rozmieszczenie ze skarbca (parser: test na hoście
 i fuzzing), od 0.8.0 lista plików folderu Pulpit (`k1_dok_lista_czytaj`, fuzzing). Przejęta powłoka może:
 przestawiać, minimalizować i prosić o zamknięcie okien, prosić o uruchomienie aplikacji, wyłączyć komputer, zmienić
-swoje rozmieszczenie, poznać nazwy plików z folderu Pulpit i przenieść je do Kosza albo opróżnić Kosz (nie czyta
+swoje rozmieszczenie, poznać nazwy plików z folderu Pulpit i przenieść je do Kosza albo do folderu Pulpitu (0.8.2)
+albo opróżnić Kosz (nie czyta
 treści ani innych folderów; RYZYKA R27, R48).
 
 ## Testy
@@ -93,3 +106,6 @@ treści ani innych folderów; RYZYKA R27, R48).
 | `test-m4.sh` (0.8.0): Kosz na pulpicie, plik z folderu Pulpit jako ikona, podwójne kliknięcie otwiera Pliki, „Usuń” z menu pliku, Kosz pełny / pusty | funkcjonalny |
 | `test-m4.sh` (0.7.5): ikony na zrzucie, podwójne kliknięcie, przeciągnięcie ikony, menu kontekstowe (odepnij, zamknij okno, usuń i dodaj do pulpitu), rozmieszczenie po ponownym starcie | funkcjonalny |
 | w systemie (0.7.5): warstwa pulpitu i zamykanie cudzych okien od aplikacji — odrzucone | negatywny |
+| `test-pliki.sh` (0.8.2 krok 6): folder przeciągnięty na folder na pulpicie (przeniesiony), folder na Kosz — okienko z pytaniem, „Przenieś do Kosza”; zrzuty `pliki-11-pulpit-na-folder.png`, `pliki-12-pulpit-pytanie.png` | funkcjonalny |
+| `test_rozmieszczenie` (0.8.2 krok 6, L19): więcej plików niż komórek — ostatnia wolna komórka dla „Jeszcze n”, stabilna przy kolejnych listach, przy pełnej siatce zwalnia ją ikona pliku, limit 96 ikon | jednostkowy |
+| `test_dokumenty` (0.8.2 krok 6): pulpit przenosi plik Pulpitu tylko do folderu Pulpitu (inny folder, plik zamiast folderu, cudzy plik — odmowa) | negatywny |

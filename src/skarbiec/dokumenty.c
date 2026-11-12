@@ -306,7 +306,7 @@ int dok_folder_aplikacji(const char *nazwa, int tworca, int64_t teraz, uint32_t 
     return r;
 }
 
-int dok_przenies(uint32_t id, uint32_t folder, int64_t teraz)
+int dok_przenies(uint32_t id, uint32_t folder, int wolna, int64_t teraz)
 {
     int i = zmienialny(id), r;
     struct k1_dok_wpis w;
@@ -316,9 +316,11 @@ int dok_przenies(uint32_t id, uint32_t folder, int64_t teraz)
         return K1_DOK_BLAD_MIEJSCE;
     if (wpisy[i].rodzic == folder)
         return 0;
-    if (nazwa_zajeta(folder, wpisy[i].nazwa, id))
+    if (!wolna && nazwa_zajeta(folder, wpisy[i].nazwa, id))
         return K1_DOK_BLAD_ZAJETA;
     w = wpisy[i];
+    if (wolna && (r = wolna_nazwa(folder, wpisy[i].nazwa, id, w.nazwa)) != 0) /* "Zachowaj oba" (0.8.2 step 6) */
+        return r;
     w.rodzic = folder;
     w.zmieniono = teraz;
     if ((r = zapisz_wpis(&w)) != 0)

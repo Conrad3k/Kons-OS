@@ -33,6 +33,7 @@ struct k1_apl {
     struct k1_klient k;
     struct k1_powierzchnia okno;
     int aktywne, najechany, wcisniety;
+    unsigned mody; /* K1_MOD_* held at the latest pointer event (0.8.2 step 6: Ctrl+click, Shift+click) */
 };
 
 /* Starts the application: zero-initialised kanaly[] entries are ignored (fd 0 is never a channel). */

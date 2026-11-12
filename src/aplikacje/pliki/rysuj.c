@@ -39,24 +39,34 @@ static void pole_nazwy(struct k1_obraz *o, const struct k1_motyw *m, int32_t y)
     k1_prostokat(o, x + tw + 1, y + 8, 1, WIERSZ - 16, k1_kolor(m->tekst, 255));
 }
 
+void rysuj_cel(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y, int32_t w, int32_t h)
+{
+    k1_zaokraglony(o, (float)x, (float)y, (float)w, (float)h, 8, k1_kolor(m->akcent, 34));
+    k1_obrys(o, (float)x, (float)y, (float)w, (float)h, 8, 1.5f, k1_kolor(m->akcent, 255));
+}
+
 static void wiersz(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_dok_wpis *w, int32_t y, int nr)
 {
     char buf[40];
-    uint32_t kolor = k1_kolor(m->tekst, 255);
-    if (w->id == zaznaczony || nr == najechany)
-        k1_zaokraglony(o, LISTA_X, (float)y + 1, LISTA_W, WIERSZ - 2, 6,
-                       k1_kolor(w->id == zaznaczony ? m->zaznaczenie : m->najechanie, 255));
+    int zazn_tu = k1_zazn_jest(&zazn, w->id), alfa = zazn_tu && przec_trwa() ? 110 : 255; /* dragged: dimmed */
+    uint32_t kolor = k1_kolor(m->tekst, (uint32_t)alfa);
+    if (przec_cel_wiersz(nr))
+        rysuj_cel(o, m, LISTA_X, y + 1, LISTA_W, WIERSZ - 2);
+    else if (zazn_tu || nr == najechany)
+        k1_zaokraglony(o, LISTA_X, (float)y + 1, LISTA_W, WIERSZ - 2, 6, k1_kolor(zazn_tu ? m->zaznaczenie : m->najechanie, 255));
+    if (zazn_tu && zazn.n > 1) /* many selected: a bar in the accent colour (the sketch) */
+        k1_zaokraglony(o, LISTA_X, (float)y + 8, 3, WIERSZ - 16, 1.5f, k1_kolor(m->akcent, 255));
     k1_ikona(o, ikona_wpisu(w), LISTA_X + 10, (float)y + 6, 20,
-             w->rodzaj == K1_DOK_FOLDER ? k1_kolor(m->akcent_tekst, 255) : k1_kolor(m->tekst2, 255));
+             w->rodzaj == K1_DOK_FOLDER ? k1_kolor(m->akcent_tekst, (uint32_t)alfa) : k1_kolor(m->tekst2, (uint32_t)alfa));
     if (w->id == edycja.id)
         pole_nazwy(o, m, y);
     else
         k1_tekst(o, K1_CZ_TEKST, LISTA_X + 40, y + 21, w->nazwa, kolor, KOL_DATA - LISTA_X - 52);
     k1_data_tekst(tu.kosz ? w->kosz : w->zmieniono, buf, sizeof buf);
-    k1_tekst(o, K1_CZ_MALA, KOL_DATA, y + 20, buf, k1_kolor(m->tekst2, 255), 0);
+    k1_tekst(o, K1_CZ_MALA, KOL_DATA, y + 20, buf, k1_kolor(m->tekst2, (uint32_t)alfa), 0);
     if (w->rodzaj == K1_DOK_PLIK) {
         k1_rozmiar_tekst(w->rozmiar, buf, sizeof buf);
-        k1_tekst(o, K1_CZ_MALA, KOL_ROZM + 64 - k1_tekst_szer(K1_CZ_MALA, buf), y + 20, buf, k1_kolor(m->tekst2, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, KOL_ROZM + 64 - k1_tekst_szer(K1_CZ_MALA, buf), y + 20, buf, k1_kolor(m->tekst2, (uint32_t)alfa), 0);
     }
 }
 
@@ -116,12 +126,46 @@ static void poczatek_tekstu(struct k1_obraz *o, const struct k1_motyw *m, int32_
     }
 }
 
+/* Many selected (0.8.2 step 6): how many, of which kind, how large together. */
+static void szczegoly_wielu(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    char buf[64], t[32];
+    int folderow = 0;
+    uint64_t bajty = 0;
+    int32_t y = SCIEZKA_Y + 90;
+    for (int i = 0; i < zazn.n; i++) {
+        const struct k1_dok_wpis *w = wpis_tu(zazn.id[i]);
+        folderow += w != NULL && w->rodzaj == K1_DOK_FOLDER;
+        bajty += w != NULL && w->rodzaj == K1_DOK_PLIK ? w->rozmiar : 0;
+    }
+    k1_ikona(o, K1_IK_PLIK, SZCZEGOLY_X + 16, SCIEZKA_Y + 18, 40, k1_kolor(m->tekst2, 255));
+    snprintf(buf, sizeof buf, "Zaznaczone: %d", zazn.n);
+    k1_tekst(o, K1_CZ_TEKST_MOCNA, SZCZEGOLY_X + 16, SCIEZKA_Y + 88, buf, k1_kolor(m->tekst, 255), SZCZEGOLY_W - 32);
+    y += 24;
+    if (zazn.n > folderow) {
+        snprintf(t, sizeof t, "%d", zazn.n - folderow);
+        cecha(o, m, &y, "Pliki", t);
+    }
+    if (folderow > 0) {
+        snprintf(t, sizeof t, "%d", folderow);
+        cecha(o, m, &y, "Foldery", t);
+    }
+    if (zazn.n > folderow) {
+        k1_rozmiar_tekst(bajty, buf, sizeof buf);
+        cecha(o, m, &y, folderow > 0 ? "Rozmiar plików" : "Rozmiar razem", buf);
+    }
+}
+
 void rysuj_szczegoly(struct k1_obraz *o, const struct k1_motyw *m)
 {
     const struct k1_dok_wpis *w = zaznaczony ? wpis_tu(zaznaczony) : NULL;
     char buf[64];
     int32_t y = SCIEZKA_Y + 112;
     k1_zaokraglony(o, SZCZEGOLY_X, SCIEZKA_Y, SZCZEGOLY_W, (float)(apl.wys - SCIEZKA_Y - 12), 10, k1_kolor(m->pole, 255));
+    if (zazn.n > 1) {
+        szczegoly_wielu(o, m);
+        return;
+    }
     if (w == NULL) {
         static const char *const na_pendrivie[] = { "Pendrive jest tylko do odczytu.", "Wybierz plik i kliknij",
                                                     "„Importuj”: zdjęcia trafią", "do Obrazów, inne pliki",
@@ -168,9 +212,13 @@ void rysuj_stopke(struct k1_obraz *o, const struct k1_motyw *m)
     char buf[96];
     int32_t y = apl.wys - 16;
     if (pytanie != PYT_BRAK) {
-        k1_tekst(o, K1_CZ_TEKST_MOCNA, LISTA_X, y,
-                 pytanie == PYT_USUN ? "Usunąć na zawsze? Tego nie da się cofnąć." : "Opróżnić Kosz? Tego nie da się cofnąć.",
-                 k1_kolor(m->akcent_tekst, 255), 0);
+        if (pytanie == PYT_USUN && zazn.n > 1)
+            snprintf(buf, sizeof buf, "Usunąć na zawsze %d %s? Tego nie da się cofnąć.", zazn.n,
+                     k1_odmiana(zazn.n, "element", "elementy", "elementów"));
+        else
+            snprintf(buf, sizeof buf, "%s", pytanie == PYT_USUN ? "Usunąć na zawsze? Tego nie da się cofnąć."
+                                                                 : "Opróżnić Kosz? Tego nie da się cofnąć.");
+        k1_tekst(o, K1_CZ_TEKST_MOCNA, LISTA_X, y, buf, k1_kolor(m->akcent_tekst, 255), 0);
         return;
     }
     if (blad == NULL && tu.pendrive)
@@ -185,17 +233,18 @@ void rysuj_stopke(struct k1_obraz *o, const struct k1_motyw *m)
         k1_tekst(o, K1_CZ_MALA, LISTA_X, y, "Wczytywanie…", k1_kolor(m->tekst3, 255), 0);
         return;
     }
-    snprintf(buf, sizeof buf, "%d %s", n_widok, n_widok == 1 ? "element" : (n_widok % 10 >= 2 && n_widok % 10 <= 4 &&
-                                                                          (n_widok % 100 < 12 || n_widok % 100 > 14))
-                                                                             ? "elementy"
-                                                                             : "elementów");
-    k1_tekst(o, K1_CZ_MALA, LISTA_X, y, buf, k1_kolor(m->tekst3, 255), 0);
+    if (zazn.n > 1)
+        snprintf(buf, sizeof buf, "%d %s · zaznaczone %d", n_widok, k1_odmiana(n_widok, "element", "elementy", "elementów"), zazn.n);
+    else
+        snprintf(buf, sizeof buf, "%d %s", n_widok, k1_odmiana(n_widok, "element", "elementy", "elementów"));
+    int32_t x = LISTA_X + k1_tekst(o, K1_CZ_MALA, LISTA_X, y, buf, k1_kolor(m->tekst3, 255), 0) + 24;
     if (malo_miejsca() && !tu.pendrive) { /* 0.8.1 step 3: Ustawienia → Informacje has the details */
         int32_t zostalo = miejsce_calosc - miejsce_zajete;
         snprintf(buf, sizeof buf, "Mało miejsca na pliki: zostało %d MB z %d MB", (int)zostalo, (int)miejsce_calosc);
         if (miejsce_calosc >= 1024)
             snprintf(buf, sizeof buf, "Mało miejsca na pliki: zostało %d MB z %d,%d GB", (int)zostalo,
                      (int)(miejsce_calosc / 1024), (int)(miejsce_calosc % 1024 * 10 / 1024));
-        k1_tekst(o, K1_CZ_MALA_MOCNA, LISTA_X + 120, y, buf, k1_kolor(m->akcent_tekst, 255), LISTA_W - 120);
+        k1_tekst(o, K1_CZ_MALA_MOCNA, x < LISTA_X + 120 ? LISTA_X + 120 : x, y, buf, k1_kolor(m->akcent_tekst, 255),
+                 LISTA_X + LISTA_W - (x < LISTA_X + 120 ? LISTA_X + 120 : x));
     }
 }

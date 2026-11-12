@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include "k1_kanal.h"
+#include "k1_liczba.h"
 #include "k1_log.h"
 #include "k1_memfd.h"
 #include "k1_odbior.h"
@@ -43,6 +44,7 @@ static struct {
     int n, i, czeka_skarbiec;
     uint32_t kawalek, kawalkow; /* the piece of the file being imported (0.8.1), of how many */
     int zapisane, do_obrazow, duze, bledy, pominiete;
+    uint32_t cel; /* the folder dropped on (0.8.2 step 6); 0: pictures to Obrazy, other files to Dokumenty */
 } imp;
 int importuje;
 
@@ -159,7 +161,7 @@ void pendrive_w_gore(void)
 
 static const char *plikow(int n)
 {
-    return n == 1 ? "plik" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "pliki" : "plików";
+    return k1_odmiana(n, "plik", "pliki", "plików");
 }
 
 /* The end of the footer's message: where more goes, *zostalo = the room left (at least 1). */
@@ -175,8 +177,12 @@ static void import_koniec(void)
     const char *gdzie = imp.do_obrazow == imp.zapisane       ? " do folderu Obrazy"
                         : imp.do_obrazow == 0                ? " do folderu Dokumenty"
                                                              : " (zdjęcia do Obrazów, reszta do Dokumentów)";
+    const struct k1_dok_wpis *f = wpis(imp.cel);
     int n = imp.zapisane;
-    snprintf(komunikat, sizeof komunikat, "Zaimportowano %d %s%s.", n, plikow(n), n > 0 ? gdzie : "");
+    snprintf(komunikat, sizeof komunikat, "Zaimportowano %d %s%s.", n, plikow(n), n > 0 && imp.cel == 0 ? gdzie : "");
+    if (n > 0 && imp.cel != 0) /* dropped on a folder */
+        snprintf(komunikat, sizeof komunikat, "Zaimportowano %d %s do „%s”.", n, plikow(n),
+                 imp.cel <= K1_FOLDERY_MAKS ? k1_folder_nazwa(imp.cel) : f != NULL ? f->nazwa : "");
     if (n == 0 && imp.bledy == 0 && imp.duze == 0 && imp.pominiete > 0) /* D3: nothing new */
         komunikat[0] = '\0';
     size_t z;
@@ -227,17 +233,18 @@ static int juz_jest(const struct k1_dok_wpis *p, uint32_t folder)
     return 0;
 }
 
-void pendrive_importuj(int wszystkie)
+void pendrive_importuj(int wszystkie, uint32_t folder)
 {
     if (importuje || czytnik < 0 || (wszystkie && pen_laduje))
         return;
     memset(&imp, 0, sizeof imp);
+    imp.cel = folder;
     for (int i = 0; i < n_widok; i++) {
         const struct k1_dok_wpis *w = wiersz_wpisu(i);
         int obraz = k1_typ_rodzina(w->typ) == K1_RODZINA_OBRAZY;
-        if (w->rodzaj != K1_DOK_PLIK || !(wszystkie || w->id == zaznaczony))
+        if (w->rodzaj != K1_DOK_PLIK || !(wszystkie || k1_zazn_jest(&zazn, w->id)))
             continue;
-        if (juz_jest(w, obraz ? K1_FOLDER_OBRAZY : K1_FOLDER_DOKUMENTY)) {
+        if (juz_jest(w, folder != 0 ? folder : obraz ? K1_FOLDER_OBRAZY : K1_FOLDER_DOKUMENTY)) {
             imp.pominiete++;
             continue;
         }
@@ -265,7 +272,7 @@ static void plik_przyszedl(const struct k1_komunikat *k, int fd)
         return;
     if (imp.kawalek == 0) {
         imp.kawalkow = (uint32_t)((rozmiar + K1_DOK_KAWALEK - 1) / K1_DOK_KAWALEK);
-        m = k1_komunikat_nowy(K1_KOM_DOK_NOWY, imp.obraz[imp.i] ? K1_FOLDER_OBRAZY : K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, k->a,
+        m = k1_komunikat_nowy(K1_KOM_DOK_NOWY, imp.cel != 0 ? imp.cel : imp.obraz[imp.i] ? K1_FOLDER_OBRAZY : K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, k->a,
                               k->b, K1_POCH_PENDRIVE, imp.kawalkow > 1);
     } else {
         m = k1_komunikat_nowy(K1_KOM_DOK_KAWALEK, 0, k->b, 0, 0, 0, 0);
@@ -369,7 +376,7 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
     if (od == 0) {
         uint32_t z = zaznaczony;
         przejdz((struct miejsce){ pen_folder(), 0, 1 });
-        zaznaczony = pen_wpis(z) != NULL ? z : 0;
+        zaznacz_jeden(pen_wpis(z) != NULL ? z : 0);
     } else { /* the rows shown stay where they are */
         ulozy_widok();
         if (!pen_laduje)

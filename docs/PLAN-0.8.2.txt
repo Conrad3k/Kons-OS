@@ -66,7 +66,8 @@ Nowy czat — przebieg każdego kroku:
          [PR #76]
 [x]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
          [PR #77]
-[ ]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        5          D6 D8     L        —
+[x]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        5          D6 D8     L        —
+         [PR #78]
 [ ]  7  Porządki i wydanie 0.8.2                     —                       1–6        —         S        —
 
 Kolejność: 1 najpierw (dane właściciela rosną — format zmieniamy, póki danych jest mało); 2 i 3 w dowolnej
@@ -385,6 +386,23 @@ KROK 6 — Przeciąganie i zaznaczanie wielu                                    
   Faza B (wg D6, domyślnie po 0.8.2): ekran prowadzi przeciąganie między oknami (tylko on widzi wszystkie okna),
   okno źródłowe: „przeciągam plik X”, ekran do celu: „upuszczono X w punkcie”, cel prosi skarbiec (gest = zgoda,
   ADR 0027) — nowe komunikaty i ADR, ten sam mechanizm co w 0.11 dla stref. W tym kroku najwyżej szkic ADR.
+  Ustalenia z wykonania (2026-11-12, jeden PR):
+  - Decyzje: D6 — w 0.8.2 wewnątrz Plików i wewnątrz pulpitu; D8 — pytanie przy więcej niż jednym elemencie albo
+    folderze z zawartością (pulpit nie widzi wnętrza folderów — pyta przy każdym folderze); szkice 1–3 przyjęte bez zmian.
+  - Pytania „Notatki przestaną widzieć ten plik” NIE ma: skarbiec pamięta, że aplikacja dostała plik, bez względu na
+    folder (zakres Z_WLASNE) — przeniesienie nic aplikacji nie zabiera (tylko Kosz). Podgląd (Z_OBRAZY_FOLDERU) widzi
+    folder, który zapamiętał przy otwarciu — przeniesione zdjęcie znika z jego ← / →, i tak ma być.
+  - Folderu w samym sobie nie da się upuścić w Plikach (lista ma jeden poziom, przeciągany folder nie jest celem):
+    reguła jest w tabeli i w skarbcu, test na hoście; w QEMU zamiast niej — „folder stały na Kosz”.
+  - Protokół (bez ADR — rozszerzenia pól): WSKAZNIK e = Ctrl/Shift/Alt (ekran znał je tylko dla klawiszy; Ctrl+klik
+    w nieaktywnym oknie), DOK_PRZENIES b = „Zachowaj oba”, DOK_PRZYWROC a = folder upuszczenia; pulpit dostał prawo
+    „przenieś” w obrębie Pulpitu (tabela praw skarbca).
+  - Moduły: przybornik k1_przeciaganie (tabela, okienka, karteczka i znak), k1_zaznaczenie; Pliki: wskaznik.c
+    (wydzielony z main.c przed rozbudową), przeciaganie.c, zbiorczo.c (prośby po jednej, podsumowanie w stopce);
+    pulpit: okienko na panelu menu (kontekst_okienko), L19 w rozmieszczenie.c (rozm_pliki, rozm_ostatnia_wolna).
+  - „Usuń”, Delete i menu wielu zaznaczonych pytają tą samą tabelą co przeciąganie (D8) — jeden plik dalej bez pytania.
+  - L19: „Jeszcze n” w ostatniej wolnej komórce (nie zapisywany w rozmieszczeniu); gdy siatka pełna, ikona ostatniego
+    pliku ją zwalnia. Limit (96 ikon, ROZM_IKON_MAKS) bez zmian.
 
 KROK 7 — Porządki i wydanie 0.8.2                                                       S · bez decyzji
   Cel: wydanie 0.8.2 z obrazem ISO i USB, porządki za całe 0.8 (AGENTS.md, zasada 2: koniec tematu „Pliki”).
@@ -409,17 +427,21 @@ KROK 7 — Porządki i wydanie 0.8.2                                            
        DECYZJA właściciela (2026-11-12): najpierw A, w trakcie kroku zmieniona na **C** — zdjęcie na całe okno, na
        dole pływający, zaokrąglony pasek „nie do samych końców” (‹ „3 z 27” › | Otwórz…, Obróć, Ustaw jako tapetę,
        Do Kosza), nazwa i szczegóły w etykiecie w lewym górnym rogu. B (panel po prawej) odrzucony.
-[!] D6 (krok 6) Przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) w 0.8.2 czy razem z 0.11?
+[x] D6 (krok 6) Przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) w 0.8.2 czy razem z 0.11?
        Rekomendacja: w 0.8.2 przeciąganie w obrębie Plików i pulpitu; między oknami — po 0.8.2, jednym ADR-em
        z planem 0.11 (strefy potrzebują tego samego).
+       DECYZJA właściciela (2026-11-12): tak — w 0.8.2 wewnątrz Plików i wewnątrz pulpitu; między oknami po 0.8.2.
 [x] D7 (krok 5) „Otwórz w…” → „Otwórz za pomocą” (jak w Windows), tylko w menu pod prawym przyciskiem, z „Zawsze
        otwieraj tą aplikacją”? Rekomendacja: tak.
        DECYZJA właściciela (2026-11-12, na szkicu): tak — „Otwórz za pomocą ›” z podmenu; w Plikach przycisk „Otwórz”
        zamiast „Otwórz w…”. Bez osobnych „Szczegółów” (w Plikach są zawsze, na pulpicie „Pokaż w Plikach”). „Zawsze
        otwieraj tą aplikacją” gotowe teraz, widoczne, gdy typ ma co najmniej dwie aplikacje (dziś żaden). „Zmień
        nazwę” na pulpicie otwiera Pliki z polem nazwy.
-[!] D8 (krok 6) Kiedy pytać „Czy na pewno?” przy przeciąganiu do Kosza? Rekomendacja: folder z zawartością albo
+[x] D8 (krok 6) Kiedy pytać „Czy na pewno?” przy przeciąganiu do Kosza? Rekomendacja: folder z zawartością albo
        więcej niż jeden element; pojedynczy plik bez pytania (Kosz da się cofnąć).
+       DECYZJA właściciela (2026-11-12): tak (pulpit nie widzi wnętrza folderów — pyta przy każdym folderze).
+       Szkice kroku 6 (karteczka z liczbą, znak „Przenieś / Kopiuj / Nie można”, obrys celu, okienko pytania w wyglądzie
+       menu, „Jeszcze n” na pulpicie) — zaakceptowane 2026-11-12.
 (D4 i D9 — rozstrzygnięte w 0.8.1: docs/archiwum/PLAN-0.8.1.txt, punkt 6. A, B, C, D z 2026-11-11 — ADR 0035.)
 
 

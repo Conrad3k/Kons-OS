@@ -16,6 +16,7 @@
 
 #define K1_MENU_SZER 232     /* the width of a menu */
 #define K1_MENU_SZER_POD 280 /* "Otwórz za pomocą": "Zawsze otwieraj tą aplikacją" needs more */
+#define K1_MENU_SZER_PYTANIE 300 /* the window of a question when dragging (0.8.2 step 6, k1_przeciaganie) */
 #define K1_MENU_WIERSZ 36
 #define K1_MENU_KRESKA 9
 #define K1_MENU_LINIA 18     /* a line of small text (a hint under a muted row, a message) */
@@ -28,10 +29,11 @@
 #define K1_MENU_BEZ_APLIKACJI_KROTKO "K1 nie ma jeszcze aplikacji do tego typu pliku"
 #define K1_MENU_BEZ_APLIKACJI K1_MENU_BEZ_APLIKACJI_KROTKO " — możesz go przechowywać, przenosić i usuwać."
 
-enum k1_menu_styl { K1_MS_WIERSZ = 0, K1_MS_KRESKA, K1_MS_TEKST }; /* a row to click / a hairline / text only */
+/* a row to click / a hairline / text only (small, wrapped; `mocna`: the title — Medium 15, wrapped too) */
+enum k1_menu_styl { K1_MS_WIERSZ = 0, K1_MS_KRESKA, K1_MS_TEKST };
 
 struct k1_menu_poz {
-    char tekst[160];
+    char tekst[256]; /* a question names a folder and a file (0.8.2 step 6) */
     const char *podpowiedz; /* under a muted row: why it is muted (small text, wrapped) */
     int akcja, arg;         /* what the caller does (K1_MA_* for a file), e.g. arg = an application */
     uint8_t styl, wyszarzona, mocna, akcent, podmenu, zaznaczona;
@@ -82,6 +84,9 @@ enum k1_menu_miejsce { K1_MM_PLIKI = 1, K1_MM_PULPIT, K1_MM_KOSZ, K1_MM_PENDRIVE
 
 /* The rows for an entry (`folder` 1: a folder; `typ`: the file's type) shown in `gdzie`. */
 void k1_menu_pliku(struct k1_menu *m, enum k1_menu_miejsce gdzie, int folder, int typ);
+/* The menu of many entries selected (0.8.2 step 6, Pliki): "Zaznaczone: 12", then what can be done to all of them —
+ * Usuń; in Kosz Przywróć, Usuń na zawsze; on the stick Importuj. */
+void k1_menu_wielu(struct k1_menu *m, enum k1_menu_miejsce gdzie, int ile);
 /* "Otwórz za pomocą": the applications that open `typ` (K1_OTWIERANIE), the one that opens it now (`ustawienie`:
  * K1_UST_OTWIERANIE of the type) marked; with two or more, "Zawsze otwieraj tą aplikacją" (`zawsze`: ticked). */
 void k1_menu_za_pomoca(struct k1_menu *m, int typ, int ustawienie, int zawsze);

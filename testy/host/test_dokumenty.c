@@ -255,16 +255,23 @@ static void test_foldery(void)
     EXPECT(nowy(77, K1_DOK_PLIK, "nigdzie", NULL, 0, T0) == 0);
     /* moving: never into itself or deeper inside itself */
     g[0] = nowy(a, K1_DOK_FOLDER, "g0", NULL, 0, T0);
-    EXPECT(dok_przenies(a, a, T0) == K1_DOK_BLAD_MIEJSCE && dok_przenies(a, g[0], T0) == K1_DOK_BLAD_MIEJSCE);
-    EXPECT(dok_przenies(p1, K1_FOLDER_PULPIT, T0) == 0 && dok_wpis(p1)->rodzic == K1_FOLDER_PULPIT);
-    EXPECT(dok_przenies(p2, K1_FOLDER_PULPIT, T0) == 0);
+    EXPECT(dok_przenies(a, a, 0, T0) == K1_DOK_BLAD_MIEJSCE && dok_przenies(a, g[0], 0, T0) == K1_DOK_BLAD_MIEJSCE);
+    EXPECT(dok_przenies(p1, K1_FOLDER_PULPIT, 0, T0) == 0 && dok_wpis(p1)->rodzic == K1_FOLDER_PULPIT);
+    EXPECT(dok_przenies(p2, K1_FOLDER_PULPIT, 0, T0) == 0);
     /* depth: a (1) / g0 (2) / … up to 8 levels */
     for (i = 1; i < K1_DOK_GLEBOKOSC - 1; i++)
         g[i] = nowy(g[i - 1], K1_DOK_FOLDER, "g", NULL, 0, T0);
     EXPECT(g[K1_DOK_GLEBOKOSC - 2] != 0);
     EXPECT(nowy(g[K1_DOK_GLEBOKOSC - 2], K1_DOK_FOLDER, "za głęboko", NULL, 0, T0) == 0);
     EXPECT(nowy(g[K1_DOK_GLEBOKOSC - 2], K1_DOK_PLIK, "plik może", NULL, 0, T0) != 0);
-    EXPECT(dok_przenies(a2, g[K1_DOK_GLEBOKOSC - 2], T0) == K1_DOK_BLAD_MIEJSCE);
+    EXPECT(dok_przenies(a2, g[K1_DOK_GLEBOKOSC - 2], 0, T0) == K1_DOK_BLAD_MIEJSCE);
+    /* a taken name (0.8.2 step 6): refused, or "Zachowaj oba" — " (2)" */
+    EXPECT(nowy(K1_FOLDER_MUZYKA, K1_DOK_PLIK, "Utwór.txt", NULL, 0, T0) != 0);
+    i = (int)nowy(K1_FOLDER_WIDEO, K1_DOK_PLIK, "utwór.TXT", NULL, 0, T0);
+    EXPECT(i != 0 && dok_przenies((uint32_t)i, K1_FOLDER_WIDEO, 0, T0) == 0); /* already there: nothing to do */
+    EXPECT(dok_przenies((uint32_t)i, K1_FOLDER_MUZYKA, 0, T0) == K1_DOK_BLAD_ZAJETA && dok_wpis((uint32_t)i)->rodzic == K1_FOLDER_WIDEO);
+    EXPECT(dok_przenies((uint32_t)i, K1_FOLDER_MUZYKA, 1, T0) == 0 && strcmp(dok_wpis((uint32_t)i)->nazwa, "utwór (2).TXT") == 0 &&
+           dok_wpis((uint32_t)i)->rodzic == K1_FOLDER_MUZYKA);
 }
 
 static void test_kosz(void)
@@ -281,10 +288,14 @@ static void test_kosz(void)
     EXPECT(dok_usun_na_zawsze(p) == K1_DOK_BLAD_BRAK); /* only from Kosz */
     inny = nowy(K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, "Projekt", NULL, 0, T0); /* the name is free again */
     EXPECT(inny && strcmp(dok_wpis(inny)->nazwa, "Projekt") == 0);
-    EXPECT(dok_przywroc(f) == 0 && dok_widoczny(w) && strcmp(dok_wpis(f)->nazwa, "Projekt (2)") == 0);
+    EXPECT(dok_przywroc(f, 0) == 0 && dok_widoczny(w) && strcmp(dok_wpis(f)->nazwa, "Projekt (2)") == 0);
     /* restored when its folder is in Kosz: to Dokumenty */
-    EXPECT(dok_do_kosza(w, T0) == 0 && dok_do_kosza(f, T0) == 0 && dok_przywroc(w) == 0 &&
+    EXPECT(dok_do_kosza(w, T0) == 0 && dok_do_kosza(f, T0) == 0 && dok_przywroc(w, 0) == 0 &&
            dok_wpis(w)->rodzic == K1_FOLDER_DOKUMENTY && dok_widoczny(w));
+    /* restored where it was dropped (0.8.2 step 6): a visible folder, never one in Kosz, nor inside itself */
+    EXPECT(dok_do_kosza(w, T0) == 0 && dok_przywroc(w, f) == K1_DOK_BLAD_MIEJSCE && dok_przywroc(w, 77) == K1_DOK_BLAD_MIEJSCE);
+    EXPECT(dok_przywroc(w, K1_FOLDER_WIDEO) == 0 && dok_wpis(w)->rodzic == K1_FOLDER_WIDEO && dok_widoczny(w));
+    EXPECT(dok_przywroc(f, f) == K1_DOK_BLAD_MIEJSCE && dok_wpis(f)->kosz != 0);
     /* 30 days, by the clock; a clock moved back deletes nothing */
     EXPECT(dok_przeterminowane(T0 + 29 * DZIEN) == 0 && dok_wpis(f) != NULL);
     EXPECT(dok_przeterminowane(T0 - 5 * DZIEN) == 0 && dok_wpis(f) != NULL);
@@ -411,6 +422,26 @@ static void test_prawa(void)
     }
     k = zapytaj(K1_PROFIL_GUI, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, pulpit, 100, 0, 0, 0, 0), -1, &zm, &fd);
     EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == K1_DOK_BLAD_PRAWA && fd < 0);
+    { /* 0.8.2 step 6: the desktop moves a file of Pulpit into a folder of Pulpit (dropped on it) — nowhere else */
+        uint32_t fp = nowy(K1_FOLDER_PULPIT, K1_DOK_FOLDER, "Na pulpicie", NULL, 0, T0);
+        uint32_t fd2 = nowy(K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, "W dokumentach", NULL, 0, T0);
+        uint32_t pp = nowy(K1_FOLDER_PULPIT, K1_DOK_PLIK, "do folderu.txt", NULL, 0, T0);
+        EXPECT(fp != 0 && fd2 != 0 && pp != 0);
+        k = zapytaj(K1_PROFIL_GUI, k1_komunikat_nowy(K1_KOM_DOK_PRZENIES, pp, (int32_t)fd2, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_BRAK && !zm && dok_wpis(pp)->rodzic == K1_FOLDER_PULPIT);
+        k = zapytaj(K1_PROFIL_GUI, k1_komunikat_nowy(K1_KOM_DOK_PRZENIES, pp, pp, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_BRAK && !zm); /* a file is no folder */
+        k = zapytaj(K1_PROFIL_GUI, k1_komunikat_nowy(K1_KOM_DOK_PRZENIES, plik, (int32_t)fp, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_BRAK && !zm); /* a file it does not see */
+        k = zapytaj(K1_PROFIL_GUI, k1_komunikat_nowy(K1_KOM_DOK_PRZENIES, pp, (int32_t)fp, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == 0 && zm && dok_wpis(pp)->rodzic == fp);
+        EXPECT(dok_usun_na_zawsze(pp) == K1_DOK_BLAD_BRAK && dok_do_kosza(pp, T0) == 0 && dok_do_kosza(fp, T0) == 0 &&
+               dok_do_kosza(fd2, T0) == 0);
+        /* Pliki: back from Kosz into the folder it was dropped on (DOK_PRZYWROC a) */
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_PRZYWROC, pp, K1_FOLDER_MUZYKA, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == 0 && zm && dok_wpis(pp)->rodzic == K1_FOLDER_MUZYKA && dok_widoczny(pp));
+        EXPECT(dok_usun_na_zawsze(fp) == 0 && dok_usun_na_zawsze(fd2) == 0);
+    }
     k = zapytaj(K1_PROFIL_GUI, k1_komunikat_nowy(K1_KOM_DOK_KOSZ, plik, 0, 0, 0, 0, 0), -1, &zm, &fd);
     EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == K1_DOK_BLAD_BRAK && !zm && dok_widoczny(plik));
     k = zapytaj(K1_PROFIL_GUI, k1_komunikat_nowy(K1_KOM_DOK_KOSZ, pulpit, 0, 0, 0, 0, 0), -1, &zm, &fd);
@@ -956,7 +987,7 @@ static void test_licznik_kosza(void)
     p = nowy(f, K1_DOK_PLIK, "bilet.pdf", (const uint8_t *)"%PDF-1", 6, T0);
     EXPECT(dok_do_kosza(p, T0) == 0 && dok_do_kosza(f, T0) == 0);
     EXPECT(dok_w_koszu() == 2 && dok_wybierz(pokazany_w_koszu, wybrane) == 2);
-    EXPECT(dok_przywroc(p) == 0 && dok_wpis(p)->rodzic == K1_FOLDER_DOKUMENTY && dok_w_koszu() == 1); /* its folder in Kosz */
+    EXPECT(dok_przywroc(p, 0) == 0 && dok_wpis(p)->rodzic == K1_FOLDER_DOKUMENTY && dok_w_koszu() == 1); /* its folder in Kosz */
 }
 
 /* L12 of the plan: an application is given at most 64 files; the 65th is refused with its own result, none taken
@@ -1076,7 +1107,7 @@ static void test_folder_aplikacji(void)
     EXPECT(dok_zmien_nazwe(f1, "Rachunki", 8, 0, T0) == 0); /* renamed by the user: still its folder */
     dok_wczytaj(T0 + 1);
     EXPECT(dok_folder_aplikacji("Kalkulator", K1_PROFIL_KALKULATOR, T0, &f2) == 0 && f2 == f1);
-    EXPECT(dok_przenies(f1, K1_FOLDER_POBRANE, T0) == 0 && dok_folder_aplikacji("Kalkulator", K1_PROFIL_KALKULATOR, T0, &f2) == 0 &&
+    EXPECT(dok_przenies(f1, K1_FOLDER_POBRANE, 0, T0) == 0 && dok_folder_aplikacji("Kalkulator", K1_PROFIL_KALKULATOR, T0, &f2) == 0 &&
            f2 == f1); /* moved, too */
     EXPECT(dok_do_kosza(f1, T0) == 0); /* in Kosz: a new folder, which is remembered from then on */
     EXPECT(dok_folder_aplikacji("Kalkulator", K1_PROFIL_KALKULATOR, T0, &f3) == 0 && f3 != f1 && dok_widoczny(f3));
@@ -1180,7 +1211,7 @@ static void test_zapis_w_toku(void)
         EXPECT(dok_do_kosza(id, T0) == 0);
         k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_KONIEC, 0, 0, 0, 0, 0, 0), -1, &zm, &fd);
         EXPECT(k.b == K1_DOK_BLAD_MIEJSCE && obiektow() == przed && dok_wpis(id)->rozmiar == dl);
-        EXPECT(dok_przywroc(id) == 0);
+        EXPECT(dok_przywroc(id, 0) == 0);
         /* abandoned by the client, and by a closed channel */
         k = kawalek_do(K1_KOM_DOK_ZAPISZ, id, dane, K1_DOK_KAWALEK, 1, 0, &zm);
         k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_KONIEC, 0, 1, 0, 0, 0, 0), -1, &zm, &fd);

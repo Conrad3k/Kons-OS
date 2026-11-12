@@ -213,8 +213,17 @@ sprawdz("film 300 MB → Dokumenty kawałkami po 1 MiB (czytnik: cgroup 32 MiB, 
         po(r"K1-PLIKI: import: koniec — zapisane 1 \(do Obrazów 0\), za duże 0, błędy 0", lambda: klik(*p["Importuj"]),
            czas=float(limit) * 0.5) and czekaj(r"K1-CZYTNIK: plik przeczytany \(314572812 B, kawałków 301\)"))
 zrzut("5-duzy", gdy=lambda w, h, px: True)
-klik(*wiersz(3))
-sprawdz("zdjęcie z polską długą nazwą → Obrazy", importuj(lambda: klik(*p["Importuj"]), 1, 1, 0))
+p = przyciski()
+# 0.8.2 step 6: dragging from the stick — onto Kosz: "Możesz tylko…"; onto a folder of K1: an import into it
+m = po(r"K1-PLIKI: okienko \(odmowa\): (.*)", lambda: q.przeciagnij(*wiersz(3), ox + kx, oy + ky))
+ok_ = dict((t.strip(), (ox + int(x), oy + int(y))) for t, x, y in re.findall(r"([^;:]+?) (\d+),(\d+)", m.group(1))) if m else {}
+sprawdz("NEGATYWNY (krok 6): plik z pendrive'a na Kosz — okienko „Z pendrive'a możesz tylko skopiować…” i „OK”",
+        list(ok_) == ["OK"] and czekaj(r"cel Kosz, działanie: odmowa"), str(ok_))
+zrzut("5a-tylko-import", gdy=lambda w, h, px: True)
+if "OK" in ok_:
+    klik(*ok_["OK"])
+sprawdz("(krok 6) zdjęcie z polską długą nazwą przeciągnięte na „Obrazy” → kopia tam (import)",
+        importuj(lambda: q.przeciagnij(*wiersz(3), *miejsce(2)), 1, 1, 0) and czekaj(r"cel folder, działanie: import"))
 klik(*wiersz(2))
 sprawdz("notatka → Dokumenty", importuj(lambda: klik(*p["Importuj"]), 1, 0, 0))
 sprawdz(f"skarbiec: 13 plików z pendrive'a (10 obrazów), razem {oczekiwane} B — tyle, ile na pendrivie",

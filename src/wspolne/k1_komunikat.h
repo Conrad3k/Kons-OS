@@ -69,7 +69,8 @@ enum k1_komunikat_typ {
 
     /* ekran → client */
     K1_KOM_WITAJ = 30,      /* obiekt=0, a,b = screen width,height, c=rola, d=aplikacja */
-    K1_KOM_WSKAZNIK = 31,   /* obiekt=surface (0: outside the client's surfaces), a,b = x,y, c=K1_WSK_*, d=button */
+    K1_KOM_WSKAZNIK = 31,   /* obiekt=surface (0: outside the client's surfaces), a,b = x,y, c=K1_WSK_*, d=button,
+                             * e=K1_MOD_* bits held (0.8.2 step 6: Ctrl+click, Shift+click) */
     K1_KOM_KLAWISZ = 32,    /* obiekt=surface, a=Linux key code, b=0 up/1 down/2 repeat, c=K1_MOD_* bits */
     K1_KOM_FOKUS = 33,      /* obiekt=surface, a=1 gained / 0 lost keyboard focus */
     K1_KOM_RAMKA = 34,      /* obiekt=surface: the last commit is on screen, the other half may be drawn */
@@ -171,9 +172,11 @@ enum k1_komunikat_typ {
                                 * 1970), c..e=0 (reply: DOK_WYNIK) — a second import of the same file is skipped */
     K1_KOM_DOK_NAZWA = 88,     /* obiekt=entry, a=name length 1..127, b=1 a taken name gets " (2)"… (else 0: refused);
                                 * + 1 memfd: the new name */
-    K1_KOM_DOK_PRZENIES = 89,  /* obiekt=entry, a=the folder it goes to */
+    K1_KOM_DOK_PRZENIES = 89,  /* obiekt=entry, a=the folder it goes to, b=1 a taken name gets " (2)"… (else 0: refused;
+                                * 0.8.2 step 6) */
     K1_KOM_DOK_KOSZ = 90,      /* obiekt=entry: into Kosz (a folder with everything inside) */
-    K1_KOM_DOK_PRZYWROC = 91,  /* obiekt=entry in Kosz: back to its folder */
+    K1_KOM_DOK_PRZYWROC = 91,  /* obiekt=entry in Kosz: back to its folder (a=0), or to folder a (0.8.2 step 6: dropped
+                                * on it); a taken name gets " (2)"… */
     K1_KOM_DOK_USUN = 92,      /* obiekt=entry in Kosz: deleted for good */
     K1_KOM_DOK_OPROZNIJ = 93,  /* obiekt=0: everything in Kosz deleted for good */
     /* skarbiec → client */

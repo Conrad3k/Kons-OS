@@ -17,7 +17,7 @@ Testy na hoście (`make testy-host`) dzielą pomocnicze makra `testy/host/k1_tes
 (`make fuzz`): jedna reguła dla listy `FUZZ` w `Makefile` (plik `testy/host/fuzz_<nazwa>.c` + dwa wiersze);
 korpus startowy linii poleceń w `testy/host/korpus-cmdline`. Sprawdzenia na hoście opisują zachowanie
 (oczekiwane liczby, teksty, bajty formatu), a nie powtarzają wzorów z kodu (0.7.3). Testy w QEMU piszemy na
-bibliotece `testy/qemu/k1qemu.py` (klasa `Maszyna`: `czekaj`, `czekaj_na`, `cisza`, `klik`, `przycisk`,
+bibliotece `testy/qemu/k1qemu.py` (klasa `Maszyna`: `czekaj`, `czekaj_na`, `cisza`, `klik`, `przycisk`, `przeciagnij`, `klik_z`,
 `zrzut`, `sprawdz`; maszynę zamyka `zamknij_qemu` z `scripts/wspolne.sh`).
 
 **Bez stałych pauz (0.7.3).** Krok testu czeka na dowód, że się stał, nie na upływ czasu — wolna maszyna
@@ -425,3 +425,17 @@ Od 1c system tworzy format 2, a stary magazyn (format 1) przechodzi na format 2 
 | w systemie | klatka Podglądu (UID 208), próba w klatce, spis plików obrazu — z listy aplikacji |
 | `test-pendrive.sh` | dwuklik zdjęcia w Obrazach → okno Podglądu (UID 208): „zdjęcie 4 z 10”, 80×60 (nie powiększone), dekoder dla Podglądu w klatce, kolor na zrzucie; R → widok 60×80 (zrzut: kolor nad i pod środkiem, nie z boku); ← → zdjęcie uszkodzone (NEGATYWNY: „nie da się odczytać”); ‹ → PNG (zielony na zrzucie); + → 150 % (120×90, animacja), − → 100 %; Delete → do Kosza bez pytania, „2 z 9”, Pliki: Obrazy — 9; Ctrl+O → okno wyboru z rodziną „obrazy”, Esc — anulowano; › i „Ustaw jako tapetę” → ekran przyjmuje zdjęcie od Podglądu; × zamyka. Później Obrazy: 1109 (jedno w Koszu). Zrzuty `pendrive-6b-podglad*.png` |
 | `test-m4.sh`, `test-pliki.sh` | ustawienia zapisane jako `K1U4` — w magazynie nie widać go jawnym tekstem |
+
+## 0.8.2 krok 6 — przeciąganie i zaznaczanie wielu
+| Test | Co sprawdza |
+|---|---|
+| `test_przeciaganie` (host) | tabela reguł przeciągania — każda para źródło (folder, pulpit, Kosz, pendrive, folder stały) / cel (folder, Kosz, pendrive): działanie, znak i tekst; warunki: ten sam folder (nic), folder w samym sobie, ponad 8 poziomów, brak miejsca na import (odmowa); pytanie przed Koszem wg D8 (jeden plik — bez, kilka, folder z zawartością, folder na pulpicie — z pytaniem); okienka (pytanie, nazwa zajęta z „Pomiń te n”, odmowa z „OK”; długie nazwy ucięte); wyniki skarbca słowami tabeli; zaznaczanie (klik, Ctrl, Shift, Ctrl+Shift, Ctrl+A, lista po zmianie, 16 384 elementy); rysowanie na brzegach obrazu |
+| `test_menu` (host) | menu wielu zaznaczonych: w folderze „Usuń”, w Koszu „Przywróć” i „Usuń na zawsze”, na pendrivie „Importuj” |
+| `test_rozmieszczenie` (host) | L19: więcej plików niż komórek — ostatnia wolna komórka zostaje dla „Jeszcze n” i nie wędruje; pełna siatka — zwalnia ją ikona pliku; limit 96 ikon |
+| `test_dokumenty` (host) | `DOK_PRZENIES` b = 1 („Zachowaj oba”: „ (2)”), bez b — odmowa; `DOK_PRZYWROC` a = folder (widoczny; nie w Koszu, nie w samym sobie); pulpit przenosi plik Pulpitu tylko do folderu Pulpitu (NEGATYWNE: inny folder, plik zamiast folderu, cudzy plik) |
+| `test_komunikat` (host) | `WSKAZNIK` e = `K1_MOD_*` (poza maską — odrzucony), `DOK_PRZENIES` b ∈ {0, 1}, `DOK_PRZYWROC` a = 0 albo wpis |
+| `test-pliki.sh` | folder przeciągnięty na folder na liście (przeniesiony, zrzut karteczki i znaku `pliki-7-przeciaganie.png`); Ctrl+klik — dwa zaznaczone (`k1qemu.klik_z`: `sendkey ctrl 1500` i klik); dwa na Kosz — okienko z pytaniem (D8), „Przenieś do Kosza”, dwa `DOK_KOSZ` po kolei; z Kosza na Dokumenty z lewej — przywrócony tam; NEGATYWNY: folder stały na Kosz — okienko „Nie możesz…” z „OK”; na pulpicie folder na folder (przeniesiony) i folder na Kosz (okienko z pytaniem). `k1qemu.przeciagnij`: wciśnięcie, cztery ruchy potwierdzone wierszem kursora ekranu, puszczenie |
+| `test-pendrive.sh` | NEGATYWNY: plik z pendrive'a na Kosz — „Z pendrive'a możesz tylko skopiować…”; ten sam plik na „Obrazy” z lewej — import tam |
+
+Folderu w samym sobie nie da się upuścić w Plikach (lista pokazuje tylko jeden poziom, a przeciągany folder nie jest
+celem) — tę regułę sprawdza host i skarbiec (`dok_przenies`).

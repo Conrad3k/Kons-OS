@@ -2,7 +2,9 @@
 # Test 0.8.0 Pliki (ADR 0029, powtarzalny): aplikacja Pliki i Kosz w działającym K1 (obraz produkcyjny) z dyskiem
 # danych. Pierwsze uruchomienie: nowy folder i zmiana nazwy z klawiatury, zajęta nazwa, wejście do folderu i „w górę”,
 # Kosz (usuń, przywróć, usuń na zawsze z pytaniem), folder na pulpicie (ikona, podwójne kliknięcie, menu: „Zmień nazwę”
-# — 0.8.2 krok 5, „Usuń”, „Opróżnij Kosz”); drugie — to samo po wyłączeniu.
+# — 0.8.2 krok 5, „Usuń”, „Opróżnij Kosz”); przeciąganie (0.8.2 krok 6): folder na folder, Ctrl+klik, dwa elementy na
+# Kosz z pytaniem, z Kosza na folder, folder stały na Kosz (odmowa), na pulpicie folder na folder i na Kosz z pytaniem;
+# drugie — to samo po wyłączeniu.
 # Krok 2 (ADR 0030), osobny dysk z notatkami w formacie 0.5.8–0.7.6 (testy/host/stare_notatki.c): Notatki przenoszą je
 # do plików, okno wyboru pliku (wybór, „Anuluj”), menu pod prawym przyciskiem w Plikach → „Otwórz za pomocą” → Notatki
 # (0.8.2 krok 5) i podwójne kliknięcie w Plikach, Ustawienia → Aplikacje; po ponownym starcie pliki zostają. Dowody: log + zrzuty build/testy/pliki-*.png.
@@ -108,6 +110,39 @@ def przyciski():
     return {t.strip(): (ox + int(x), oy + int(y)) for t, x, y in re.findall(r"([^;]+?) (\d+),(\d+)", m[-1].group(1))} if m else {}
 
 
+def ciagnij(od, do, nazwa=None, gdy=None):
+    """0.8.2 step 6: drags from `od` to `do`; `nazwa`: a screenshot just before the drop (the card and the sign)."""
+    if nazwa is None:
+        return q.przeciagnij(*od, *do)
+    q.idz(*od)
+    q.przycisk(True)
+    for i in range(1, 5):
+        q.idz(od[0] + (do[0] - od[0]) * i // 4, od[1] + (do[1] - od[1]) * i // 4)
+    zrzut(nazwa, gdy=gdy)
+    q.przycisk(False)
+
+
+def okienko(skad, rodzaj, akcja):
+    """`akcja`, then the window of a question (`skad`: PLIKI or GUI): its rows → centres on the screen."""
+    wz = r"K1-" + skad + r": okienko \(" + rodzaj + r"\): (.*)"
+    m = po(wz, akcja)
+    dx, dy = (ox, oy) if skad == "PLIKI" else (0, 0)
+    return {t.strip(): (dx + int(x), dy + int(y)) for t, x, y in re.findall(r"([^;:]+?) (\d+),(\d+)", m.group(1))} if m else {}
+
+
+def jest_widok(miejsce, ile, czas=30):
+    """The newest line of Pliki shows `miejsce` with `ile` entries (it may have come already)."""
+    def ok():
+        m = list(re.finditer(WIDOK, tekst()))
+        return bool(m) and m[-1].group(1) == miejsce and int(m[-1].group(2)) == ile
+    return q.czekaj_na(ok, czas)
+
+
+def nowy_folder():
+    po(r"K1-PLIKI: zmiana nazwy: pole otwarte", lambda: klik(*przyciski()["Nowy folder"]))
+    pisz("ret")
+
+
 if tryb == "ponownie":
     sprawdz("po ponownym starcie: Dokumenty z folderem „Projekt” (1 element)", widok(lambda: klik(*miejsce(1)), "Dokumenty", 1))
     w, h, px = zrzut("ponownie-dokumenty")
@@ -156,6 +191,44 @@ po(r"K1-PLIKI: przyciski: Tak, usuń", lambda: klik(*pk["Usuń na zawsze"]))
 pt = przyciski()
 zrzut("4-pytanie")
 sprawdz("Usuń na zawsze: pytanie, „Tak, usuń” — Kosz pusty", "Tak, usuń" in pt and widok(lambda: klik(*pt["Tak, usuń"]), "Kosz", 0))
+# 0.8.2 step 6: dragging and selecting many. Dokumenty: „Nowy folder”, „Nowy folder (2)”, „Projekt”
+widok(lambda: klik(*miejsce(1)), "Dokumenty", 1)
+nowy_folder()
+widok(nowy_folder, "Dokumenty", 3)
+n_z = q.ile(r"K1-PLIKI: zbiorczo: koniec \(komunikat 89\) — zrobione 1, błędy 0")
+ciagnij(wiersz(0), wiersz(2), "7-przeciaganie", gdy=lambda w, h, px: True)
+sprawdz("przeciągnięcie folderu na folder na liście: przeniesiony (DOK_PRZENIES)",
+        czekaj(r"K1-PLIKI: przeciąganie: upuszczono — 1 elementów, cel folder, działanie: przenieś") and
+        czekaj(r"K1-PLIKI: zbiorczo: koniec \(komunikat 89\) — zrobione 1, błędy 0", od=n_z) and
+        jest_widok("Dokumenty", 2))
+klik(*wiersz(0))
+sprawdz("Ctrl+klik: dwa zaznaczone", po(r"K1-PLIKI: zaznaczone: 2", lambda: q.klik_z("ctrl", *wiersz(1))))
+zrzut("8-zaznaczone", gdy=lambda w, h, px: True)
+ok_ = okienko("PLIKI", "pytanie", lambda: ciagnij(wiersz(0), kosz))
+sprawdz("dwa elementy na Kosz: pytanie „Czy na pewno” (D8): Przenieś do Kosza, Anuluj",
+        set(ok_) == {"Przenieś do Kosza", "Anuluj"} and czekaj(r"działanie: do Kosza \(pytanie\)"), str(ok_))
+zrzut("9-pytanie", gdy=lambda w, h, px: True)
+n_z = q.ile(r"K1-PLIKI: zbiorczo: koniec \(komunikat 90\) — zrobione 2, błędy 0")
+if "Przenieś do Kosza" in ok_:
+    klik(*ok_["Przenieś do Kosza"])
+sprawdz("„Przenieś do Kosza”: oba w Koszu (dwa DOK_KOSZ po kolei)",
+        czekaj(r"K1-PLIKI: zbiorczo: koniec \(komunikat 90\) — zrobione 2, błędy 0", od=n_z) and jest_widok("Dokumenty", 0))
+widok(lambda: klik(*kosz), "Kosz", 2)
+n_z = q.ile(r"K1-PLIKI: zbiorczo: koniec \(komunikat 91\) — zrobione 1, błędy 0")
+ciagnij(wiersz(1), miejsce(1))  # „Projekt” onto Dokumenty
+sprawdz("z Kosza na folder z lewej: przywrócony tam (DOK_PRZYWROC a)",
+        czekaj(r"działanie: przywróć") and czekaj(r"K1-PLIKI: zbiorczo: koniec \(komunikat 91\) — zrobione 1, błędy 0", od=n_z) and
+        jest_widok("Kosz", 1))
+ok_ = okienko("PLIKI", "odmowa", lambda: ciagnij(miejsce(2), kosz))
+sprawdz("NEGATYWNY: folder stały (Obrazy) na Kosz — okienko „Nie możesz…” z „OK”", list(ok_) == ["OK"], str(ok_))
+zrzut("10-odmowa", gdy=lambda w, h, px: True)
+if "OK" in ok_:
+    klik(*ok_["OK"])
+klik(*wiersz(0))
+po(r"K1-PLIKI: przyciski: Tak, usuń", lambda: klik(*pk["Usuń na zawsze"]))
+widok(lambda: klik(*przyciski()["Tak, usuń"]), "Kosz", 0)
+sprawdz("Dokumenty: „Projekt” wrócił (z folderem w środku)", widok(lambda: klik(*miejsce(1)), "Dokumenty", 1) and
+        widok(lambda: q.dwuklik(*wiersz(0)), "folder", 1))
 # a folder on the desktop: the Pulpit folder in Pliki = icons on the desktop
 widok(lambda: klik(*miejsce(0)), "Pulpit", 0)
 n_ik = q.ile(r"K1-GUI: pliki na pulpicie: 1, ")
@@ -209,6 +282,37 @@ if plik:
         klik(*poz)
     sprawdz("menu Kosza → „Opróżnij Kosz”: pusty", czekaj(r"K1-GUI: pulpit: opróżniam Kosz") and
             czekaj(r"K1-GUI: pliki na pulpicie: 0, w Koszu: 0"))
+    # 0.8.2 step 6: on the desktop a folder onto a folder, then a folder onto Kosz (the desktop asks for every folder)
+    klik(*pliki_na_pasku)
+    widok(lambda: klik(*miejsce(0)), "Pulpit", 0)
+    n_ik = q.ile(r"K1-GUI: pliki na pulpicie: 2, ")
+    nowy_folder()
+    nowy_folder()
+    czekaj(r"K1-GUI: pliki na pulpicie: 2, ", od=n_ik)
+    schowaj_pliki()
+    ik = ikony()
+    pl = [n for n in ik if n.startswith("plik ")]
+    sprawdz("pulpit: dwa foldery", len(pl) == 2, str(ik))
+    if len(pl) == 2:
+        n_ik = q.ile(r"K1-GUI: pliki na pulpicie: 1, ")
+        ciagnij(ik[pl[0]], ik[pl[1]], "11-pulpit-na-folder", gdy=lambda w, h, px: True)
+        sprawdz("pulpit: folder upuszczony na folder — przeniesiony do niego (DOK_PRZENIES od pulpitu)",
+                czekaj(r"K1-GUI: pulpit: upuszczono plik \d+ na folder — przenieś") and
+                czekaj(r"K1-GUI: pliki na pulpicie: 1, ", od=n_ik))
+        ik = ikony()
+        c = next((n for n in ik if n.startswith("plik ")), None)
+        ok_ = okienko("GUI", "pytanie", lambda: ciagnij(ik[c], ik["Kosz"])) if c else {}
+        sprawdz("pulpit: folder na Kosz — pytanie (D8): Przenieś do Kosza, Anuluj", set(ok_) == {"Przenieś do Kosza", "Anuluj"},
+                str(ok_))
+        zrzut("12-pulpit-pytanie", gdy=lambda w, h, px: True)
+        if "Przenieś do Kosza" in ok_:
+            klik(*ok_["Przenieś do Kosza"])
+        sprawdz("„Przenieś do Kosza”: ikona znika, folder w Koszu", czekaj(r"K1-GUI: pliki na pulpicie: 0, w Koszu: 1"))
+        ik = ikony()
+        poz = menu(r"ikona Kosz", ik["Kosz"], "Opróżnij Kosz")
+        if poz:
+            klik(*poz)
+        czekaj(r"K1-GUI: pliki na pulpicie: 0, w Koszu: 0")
 t_ = tekst()
 sprawdz("nazwy plików nie trafiają do logu", "Projekt" not in t_ and "Album" not in t_)
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów", "Kernel panic" not in t_ and
@@ -221,7 +325,7 @@ DANE=$TESTY/pliki-dane.img
 dd if=/dev/zero of="$DANE" bs=1M count=16 status=none
 printf 'label: gpt\nstart=2048, size=30000, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
 DYSK_DANYCH="-drive if=none,id=dane,file=$DANE,format=raw -device ide-hd,drive=dane,bus=ide.0"
-CZAS_ZW=$CZAS; CZAS=$((CZAS * 3))  # the longer scenario (0.8.2 step 5: × 3 — the menu of a folder on the desktop, its name)
+CZAS_ZW=$CZAS; CZAS=$((CZAS * 5))  # the longer scenario (0.8.2 step 5: × 3 — the menu on the desktop; step 6: × 5 — dragging)
 uruchom pierwszy --qemu "$DYSK_DANYCH"
 sprawdz pierwszy
 CZAS=$CZAS_ZW
