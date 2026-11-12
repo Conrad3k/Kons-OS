@@ -281,17 +281,18 @@ KROK 4 — Aplikacja Podgląd                                                   
   pełnoekranowego okna — osobna decyzja), pokaz slajdów.
   Ustalenia z wykonania (2026-11-12, jeden PR):
   - Decyzje: D1 — aplikacja „Podgląd”, panel w Plikach „szczegóły”, zdjęcie w nim „miniatura” (kod, teksty, log
-    „miniatura: …”); D2 — Delete do Kosza bez pytania; D5 — szkic A (szkice rysowane częściami K1 na hoście).
+    „miniatura: …”); D2 — Delete do Kosza bez pytania; D5 — szkic C (najpierw wybrany A, właściciel zmienił na C
+    w trakcie; szkice rysowane częściami K1 na hoście).
   - Numery: aplikacja 9, profil 17, UID 208 (wolne — sprawdzone). Bez przypięcia (kolumna 0): w menu Start, nie na
     pasku i pulpicie przy pierwszym starcie.
   - Zakres praw: Z_OBRAZY_FOLDERU — skarbiec przy dostępie po geście zapisuje folder, w którym plik wtedy leżał;
     Podgląd widzi zdjęcia (rodzina „obrazy”) tych folderów (bez podfolderów), P_LISTA | P_CZYTAJ | P_KOSZ | P_WYBIERZ.
   - Okno wyboru: DOK_WYBIERZ b = rodzina (nie razem z typem), DOK_PROSBA c; tabela K1_RODZINY (nazwa „obrazy”).
   - Dekoder: strona klienta wydzielona z Plików do przybornika (k1_dekodowanie) — Pliki i Podgląd mają ten sam kod;
-    DEK_PIKSELE c, d = wymiary zdjęcia (po obrocie z EXIF) dla paska Podglądu. Podgląd prosi o 928 × 928 (bok
-    większego wymiaru okna), sam obraca (R) i dopasowuje (k1_skaluj) — obrót bez ponownego dekodowania.
+    DEK_PIKSELE c, d = wymiary zdjęcia (po obrocie z EXIF) dla etykiety Podglądu. Podgląd prosi o 958 × 958 (bok
+    większego wymiaru obszaru zdjęcia), sam obraca (R) i dopasowuje (k1_skaluj) — obrót bez ponownego dekodowania.
   - Klatka: zwykła klatka aplikacji (32 MiB, RLIMIT_FSIZE 16 MiB), nie 96 MiB z planu — okno ma stały rozmiar
-    960 × 640 (K1 nie ma okien na pełny ekran), obraz od dekodera ≤ 3,3 MiB. Wraca przy oknach zmieniających rozmiar.
+    960 × 640 (K1 nie ma okien na pełny ekran), obraz od dekodera ≤ 3,6 MiB. Wraca przy oknach zmieniających rozmiar.
   - Kolejność ←/→: jak w Plikach (k1_dok_przed — jedna funkcja dla Plików, Wyboru pliku i Podglądu); po ostatnim
     pierwsze (dookoła); po Koszu — następne, na końcu poprzednie.
   - Ekran: tabela nadawców tapety (Pliki, Podgląd). Zapis ustawień K1U4: w K1U1–K1U3 dla zdjęć zapisane były Pliki
@@ -378,8 +379,9 @@ KROK 7 — Porządki i wydanie 0.8.2                                            
 [x] D3 (krok 2) Ponowny import tych samych plików. Rekomendacja: pomijać już zaimportowane i napisać ile.
        DECYZJA właściciela (2026-11-12): pomijać — „Pominięto n — już zaimportowane”.
 [x] D5 (krok 4) Szkice wyglądu Podglądu (2–3 do wyboru) — na początku kroku 4.
-       DECYZJA właściciela (2026-11-12): wariant A — ramka w kolorach motywu, zdjęcie na ciemnym tle, pasek na dole
-       (‹ › „3 z 27”, nazwa i szczegóły, przyciski). Warianty B (panel po prawej) i C (pływający pasek) odrzucone.
+       DECYZJA właściciela (2026-11-12): najpierw A, w trakcie kroku zmieniona na **C** — zdjęcie na całe okno, na
+       dole pływający, zaokrąglony pasek „nie do samych końców” (‹ „3 z 27” › | Otwórz…, Obróć, Ustaw jako tapetę,
+       Do Kosza), nazwa i szczegóły w etykiecie w lewym górnym rogu. B (panel po prawej) odrzucony.
 [!] D6 (krok 6) Przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) w 0.8.2 czy razem z 0.11?
        Rekomendacja: w 0.8.2 przeciąganie w obrębie Plików i pulpitu; między oknami — po 0.8.2, jednym ADR-em
        z planem 0.11 (strefy potrzebują tego samego).

@@ -26,20 +26,31 @@ enum { B_POPRZEDNIE, B_NASTEPNE, B_OTWORZ, B_OBROC, B_TAPETA, B_KOSZ, N_PRZYCISK
 static struct k1_przycisk przyciski[N_PRZYCISKOW];
 static int nad = -1, wcisniety = -1;
 
-/* The buttons: ← → on the left, the rest on the right, from the right edge (drawn and clicked from the same rectangles). */
+/* The floating bar (sketch C): ‹ "3 z 27" › | Otwórz… Obróć Ustaw jako tapetę Do Kosza, centred at the bottom.
+ * Its items are drawn and clicked from the same rectangles (k1_przycisk_pod). */
+#define STRZALKA_W 36 /* a round arrow in the bar */
+#define LICZNIK_W 72  /* "3 z 27" */
+#define ODSTEP 16     /* the gap with the line between the arrows and the buttons */
+static int32_t pasek_x, pasek_w;
+
 static void uklad(void)
 {
-    static const struct {
-        const char *etykieta;
-        int32_t w;
-    } prawe[] = { { "Do Kosza", 100 }, { "Ustaw jako tapetę", 150 }, { "Obróć", 76 }, { "Otwórz…", 84 } };
-    int32_t x = SZER - 16;
-    przyciski[B_POPRZEDNIE] = (struct k1_przycisk){ 16, PRZYCISK_Y, 36, PRZYCISK_H, "", K1_PRZ_ZWYKLY };
-    przyciski[B_NASTEPNE] = (struct k1_przycisk){ 56, PRZYCISK_Y, 36, PRZYCISK_H, "", K1_PRZ_ZWYKLY };
+    static const char *const etykiety[] = { "Otwórz…", "Obróć", "Ustaw jako tapetę", "Do Kosza" };
+    int32_t w[4], suma = 8 + STRZALKA_W + LICZNIK_W + STRZALKA_W + ODSTEP + 8, x;
     for (int i = 0; i < 4; i++) {
-        x -= prawe[i].w;
-        przyciski[B_KOSZ - i] = (struct k1_przycisk){ x, PRZYCISK_Y, prawe[i].w, PRZYCISK_H, prawe[i].etykieta, K1_PRZ_ZWYKLY };
-        x -= 8;
+        w[i] = k1_tekst_szer(K1_CZ_MALA_MOCNA, etykiety[i]) + 28;
+        suma += w[i];
+    }
+    pasek_w = suma;
+    pasek_x = (SZER - suma) / 2;
+    x = pasek_x + 8;
+    przyciski[B_POPRZEDNIE] = (struct k1_przycisk){ x, PASEK_Y, STRZALKA_W, PASEK_H, "", K1_PRZ_CICHY };
+    x += STRZALKA_W + LICZNIK_W;
+    przyciski[B_NASTEPNE] = (struct k1_przycisk){ x, PASEK_Y, STRZALKA_W, PASEK_H, "", K1_PRZ_CICHY };
+    x += STRZALKA_W + ODSTEP;
+    for (int i = 0; i < 4; i++) {
+        przyciski[B_OTWORZ + i] = (struct k1_przycisk){ x, PASEK_Y, w[i], PASEK_H, etykiety[i], K1_PRZ_CICHY };
+        x += w[i];
     }
 }
 
@@ -83,63 +94,88 @@ static void wykonaj(int b)
 
 /* ---- drawing ---- */
 
-static void szewron(struct k1_obraz *o, const struct k1_przycisk *p, int w_lewo, uint32_t kolor)
+#define BIALY 0xffffffu
+#define PIGULKA 0x1f1e1cu /* the bar and the labels over the picture: dark, a little see-through */
+
+static void szewron(struct k1_obraz *o, float cx, float cy, int w_lewo, uint32_t kolor)
 {
-    float cx = (float)p->x + (float)p->w / 2, cy = (float)p->y + (float)p->h / 2, d = w_lewo ? 3.0f : -3.0f;
+    float d = w_lewo ? 3.0f : -3.0f;
     k1_kreska(o, cx + d, cy - 6, cx - d, cy, 2.0f, kolor);
     k1_kreska(o, cx - d, cy, cx + d, cy + 6, 2.0f, kolor);
 }
 
-/* "4000 × 2667 · 2,4 MB · 10.11.2026 18:42 · z pendrive'a" (the size of the photo once dekoder told it). */
+/* "Zachód.jpg · 4000 × 2667 · 2,4 MB · 10.11.2026 18:42 · z pendrive'a" (the size of the photo once dekoder told it). */
 static void szczegoly(const struct k1_dok_wpis *w, int32_t zw, int32_t zh, char *t, size_t n)
 {
-    char rozmiar[32], data[32];
+    char rozmiar[32], data[32], wymiary[32] = "";
     k1_rozmiar_tekst(w->rozmiar, rozmiar, sizeof rozmiar);
     k1_data_tekst(w->zmieniono, data, sizeof data);
     if (zw > 0)
-        snprintf(t, n, "%d × %d · %s · %s · %s", (int)zw, (int)zh, rozmiar, data, k1_poch_nazwa(w->pochodzenie));
-    else
-        snprintf(t, n, "%s · %s · %s", rozmiar, data, k1_poch_nazwa(w->pochodzenie));
+        snprintf(wymiary, sizeof wymiary, "%d × %d  ·  ", (int)zw, (int)zh);
+    snprintf(t, n, "%s  ·  %s%s  ·  %s  ·  %s", w->nazwa, wymiary, rozmiar, data, k1_poch_nazwa(w->pochodzenie));
 }
 
-static void pasek(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_dok_wpis *w, int32_t zw, int32_t zh)
+/* A label over the picture: white text on a dark rounded strip, left at x (centred when x < 0), baseline y + 18. */
+static void etykieta(struct k1_obraz *o, int32_t x, int32_t y, const char *t, uint32_t kolor)
 {
-    char t[160];
-    int32_t szer = przyciski[B_OTWORZ].x - NAZWA_X - 16;
-    k1_prostokat(o, 1, WYS - PASEK, SZER - 2, 1, k1_kolor(m->linia, 255));
-    for (int i = 0; i < N_PRZYCISKOW; i++)
-        k1_przycisk(o, m, &przyciski[i], K1_CZ_MALA_MOCNA, nad == i, dostepny(i));
-    for (int i = B_POPRZEDNIE; i <= B_NASTEPNE; i++)
-        szewron(o, &przyciski[i], i == B_POPRZEDNIE, k1_kolor(dostepny(i) ? m->tekst : m->tekst3, 255));
+    int32_t w = k1_tekst_szer(K1_CZ_MALA, t) + 24;
+    if (w > SZER - 32)
+        w = SZER - 32;
+    if (x < 0)
+        x = (SZER - w) / 2;
+    k1_zaokraglony(o, (float)x, (float)y, (float)w, 26, 13, k1_kolor(PIGULKA, 200));
+    k1_tekst(o, K1_CZ_MALA, x + 12, y + 18, t, k1_kolor(kolor, 235), w - 24);
+}
+
+static void pasek(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    char t[24];
+    const struct k1_przycisk *l = &przyciski[B_POPRZEDNIE], *p = &przyciski[B_NASTEPNE];
+    k1_zaokraglony(o, (float)pasek_x, PASEK_Y, (float)pasek_w, PASEK_H, PASEK_H / 2.0f, k1_kolor(PIGULKA, 215));
+    for (int i = 0; i < N_PRZYCISKOW; i++) {
+        const struct k1_przycisk *b = &przyciski[i];
+        int strzalka = i <= B_NASTEPNE, jest = dostepny(i);
+        uint32_t a = jest ? 235 : 90;
+        if (strzalka) {
+            float cx = (float)b->x + (float)b->w / 2, cy = PASEK_Y + PASEK_H / 2.0f;
+            k1_kolo(o, cx, cy, 15, k1_kolor(BIALY, nad == i && jest ? 50 : 28));
+            szewron(o, cx, cy, i == B_POPRZEDNIE, k1_kolor(BIALY, a));
+            continue;
+        }
+        if (nad == i && jest)
+            k1_zaokraglony(o, (float)b->x + 2, PASEK_Y + 6, (float)b->w - 4, PASEK_H - 12, 16, k1_kolor(BIALY, 28));
+        k1_tekst(o, K1_CZ_MALA_MOCNA, b->x + 14, PASEK_Y + 27, b->etykieta,
+                 k1_kolor(i == B_KOSZ ? K1_TERAKOTA_JASNA : BIALY, a), 0);
+    }
     kol_tekst(pozycja, n_zdjec, t, sizeof t);
-    k1_tekst(o, K1_CZ_MALA, 104, PRZYCISK_Y + 21, t, k1_kolor(m->tekst2, 255), NAZWA_X - 108);
-    if (w == NULL) {
-        k1_tekst(o, K1_CZ_MALA, NAZWA_X, PRZYCISK_Y + 21, komunikat != NULL ? komunikat : "",
-                 k1_kolor(m->akcent_tekst, 255), szer);
-        return;
-    }
-    k1_tekst(o, K1_CZ_TEKST_MOCNA, NAZWA_X, PRZYCISK_Y + 10, w->nazwa, k1_kolor(m->tekst, 255), szer);
-    if (komunikat != NULL || tapeta_stan != NULL) {
-        k1_tekst(o, K1_CZ_MALA, NAZWA_X, PRZYCISK_Y + 30, komunikat != NULL ? komunikat : tapeta_stan,
-                 k1_kolor(m->akcent_tekst, 255), szer);
-        return;
-    }
-    szczegoly(w, zw, zh, t, sizeof t);
-    k1_tekst(o, K1_CZ_MALA, NAZWA_X, PRZYCISK_Y + 30, t, k1_kolor(m->tekst3, 255), szer);
+    if (t[0] == '\0')
+        snprintf(t, sizeof t, "–");
+    k1_tekst(o, K1_CZ_MALA_MOCNA, l->x + l->w + (p->x - l->x - l->w - k1_tekst_szer(K1_CZ_MALA_MOCNA, t)) / 2, PASEK_Y + 27,
+             t, k1_kolor(BIALY, 235), LICZNIK_W);
+    k1_prostokat(o, p->x + p->w + ODSTEP / 2, PASEK_Y + 10, 1, PASEK_H - 20, k1_kolor(BIALY, 60));
+    (void)m;
 }
 
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     const struct k1_dok_wpis *w = biezace();
+    char t[K1_DOK_NAZWA + 160];
     int32_t zw, zh, sx = OBSZAR_X + OBSZAR_W / 2, sy = OBSZAR_Y + OBSZAR_H / 2;
-    k1_prostokat(o, 1, K1_OKNO_TYTUL, SZER - 2, WYS - K1_OKNO_TYTUL - PASEK, k1_kolor(0x1c1b19, 255));
+    /* the dark area under the title, with the window's rounded corners at the bottom */
+    k1_zaokraglony(o, 1, K1_OKNO_TYTUL, SZER - 2, WYS - K1_OKNO_TYTUL - 1, K1_OKNO_PROMIEN - 1, k1_kolor(0x1c1b19, 255));
+    k1_prostokat(o, 1, K1_OKNO_TYTUL, SZER - 2, K1_OKNO_PROMIEN, k1_kolor(0x1c1b19, 255));
     obraz_rysuj(o, m, w, &zw, &zh);
     if (w == NULL) { /* started from the Start menu, or everything went to Kosz */
-        static const char t[] = "Otwórz zdjęcie z Plików albo przyciskiem „Otwórz…” (Ctrl+O).";
+        static const char e[] = "Otwórz zdjęcie z Plików albo przyciskiem „Otwórz…” (Ctrl+O).";
         k1_ikona(o, K1_IK_OBRAZ, (float)sx - 24, (float)sy - 56, 48, k1_kolor(0xaba79f, 255));
-        k1_tekst(o, K1_CZ_TEKST, sx - k1_tekst_szer(K1_CZ_TEKST, t) / 2, sy + 24, t, k1_kolor(0xeeebe5, 255), OBSZAR_W - 32);
+        k1_tekst(o, K1_CZ_TEKST, sx - k1_tekst_szer(K1_CZ_TEKST, e) / 2, sy + 24, e, k1_kolor(0xeeebe5, 255), OBSZAR_W - 32);
+    } else {
+        szczegoly(w, zw, zh, t, sizeof t);
+        etykieta(o, 16, K1_OKNO_TYTUL + 14, t, BIALY);
     }
-    pasek(o, m, w, zw, zh);
+    if (komunikat != NULL || tapeta_stan != NULL)
+        etykieta(o, -1, PASEK_Y - 38, komunikat != NULL ? komunikat : tapeta_stan, komunikat != NULL ? K1_TERAKOTA_JASNA : BIALY);
+    pasek(o, m);
 }
 
 /* ---- the mouse and the keys ---- */

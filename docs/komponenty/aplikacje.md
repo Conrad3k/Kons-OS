@@ -132,11 +132,12 @@ mysz, klawisze), `przyciski.c` (przyciski miejsca), `rysuj.c` (lista, szczegół
 ### Podgląd
 (0.8.2 krok 4, ADR 0037, `src/aplikacje/podglad/`, UID 208) — **zdjęcie w osobnym oknie**, jak w Zdjęciach Windows.
 Podwójne kliknięcie zdjęcia (rodzina „obrazy”: PNG, JPEG, GIF, BMP, WebP) w Plikach albo na pulpicie otwiera je tu —
-Podgląd jest domyślną aplikacją zdjęć (`K1_OTWIERANIE`; inną można wybrać w Ustawienia → Aplikacje). Wygląd: szkic A
-(decyzja właściciela D5, `docs/WYGLAD.md`) — okno 960 × 640 w kolorach motywu, zdjęcie na ciemnym tle dopasowane do
-okna (nigdy powiększone ponad 100 %), na dole pasek: **‹ ›** i „3 z 27” (kolejność jak w Plikach — po nazwie; po
-ostatnim pierwsze), nazwa, pod nią wymiary zdjęcia, rozmiar, data zmiany i pochodzenie („4000 × 2667 · 2,4 MB ·
-10.11.2026 18:42 · z pendrive'a”), przyciski **„Otwórz…”**, **„Obróć”**, **„Ustaw jako tapetę”**, **„Do Kosza”**.
+Podgląd jest domyślną aplikacją zdjęć (`K1_OTWIERANIE`; inną można wybrać w Ustawienia → Aplikacje). Wygląd: szkic C
+(decyzja właściciela D5, `docs/WYGLAD.md`) — okno 960 × 640, zdjęcie na całym ciemnym obszarze, dopasowane do okna
+(nigdy powiększone ponad 100 %); w lewym górnym rogu etykieta: nazwa, wymiary zdjęcia, rozmiar, data zmiany
+i pochodzenie („Zachód.jpg · 4000 × 2667 · 2,4 MB · 10.11.2026 18:42 · z pendrive'a”); na dole pływający pasek:
+**‹** „3 z 27” **›** (kolejność jak w Plikach — po nazwie; po ostatnim pierwsze), **„Otwórz…”**, **„Obróć”**,
+**„Ustaw jako tapetę”**, **„Do Kosza”**.
 Klawisze: ← / → (poprzednie / następne), Home / End, **R** (obrót widoku o 90° w prawo — pliku nie zmienia), **Delete**
 (do Kosza bez pytania — decyzja D2; potem następne zdjęcie), **Ctrl+O** („Otwórz…”: okno wyboru pliku z samymi
 zdjęciami). Uruchomiony z menu Start pokazuje „Otwórz zdjęcie z Plików albo przyciskiem „Otwórz…” (Ctrl+O).”
@@ -144,7 +145,7 @@ Zdjęcia nie da się odczytać: „Tego zdjęcia nie da się odczytać.”, pona
 100 Mpx.”, plik ponad 128 MB: „Plik jest za duży — K1 pokazuje zdjęcia do 128 MB.” Podgląd **widzi tylko zdjęcia
 folderów, z których użytkownik w nim coś otworzył** (prawa w skarbcu: `Z_OBRAZY_FOLDERU`), tylko do odczytu i do
 Kosza; nie dekoduje zdjęć sam — robi to `dekoder` w osobnej klatce (`k1_dekodowanie`, jak w Plikach; obraz najwyżej
-928 × 928, obrót i dopasowanie u siebie: `k1_skaluj`). Moduły: `main.c` (okno, pasek, klawisze, mysz), `dane.c`
+958 × 958, obrót i dopasowanie u siebie: `k1_skaluj`). Moduły: `main.c` (okno, pływający pasek, etykieta, klawisze, mysz), `dane.c`
 (skarbiec, plik do otwarcia, Kosz, okno wyboru), `obraz.c` (dekoder, obrót, tapeta), `kolejnosc.c` (kolejność zdjęć —
 czyste funkcje, test na hoście).
 

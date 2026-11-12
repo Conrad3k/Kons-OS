@@ -1,6 +1,6 @@
 /* K1 Podgląd — state shared by the modules (0.8.2 step 4, ADR 0037):
- *   main.c      the window: the picture, the bar at the bottom (← →, "3 z 27", the name and details, the buttons),
- *               keys and the mouse
+ *   main.c      the window: the picture, the floating bar (‹ "3 z 27" ›, the buttons), the label with the name and
+ *               details, keys and the mouse
  *   dane.c      skarbiec (fd 4): the pictures Podgląd may see, Kosz, the file picker; the file to open (fd 5)
  *   obraz.c     the picture shown and the wallpaper — through a dekoder (k1_dekodowanie, fd 6 to nadzorca); turning
  *   kolejnosc.c the order of the pictures (pure functions, host test) */
@@ -21,18 +21,17 @@
 #define KANAL_NADZORCA 2
 #define KANAL_DEKODER 3
 
-/* Layout (window coordinates; sketch A chosen by the owner, docs/WYGLAD.md) */
+/* Layout (window coordinates; sketch C chosen by the owner, docs/WYGLAD.md): the picture on the whole window, a floating
+ * bar at the bottom, the name and details on a label at the top left */
 #define SZER 960
 #define WYS 640
-#define PASEK 76                              /* the bar at the bottom */
-#define OBSZAR_X 16                           /* where the picture may be: never enlarged above 100 % */
-#define OBSZAR_Y (K1_OKNO_TYTUL + 12)
-#define OBSZAR_W (SZER - 2 * OBSZAR_X)
-#define OBSZAR_H (WYS - K1_OKNO_TYTUL - PASEK - 24)
+#define OBSZAR_X 1                            /* where the picture may be: never enlarged above 100 % */
+#define OBSZAR_Y K1_OKNO_TYTUL
+#define OBSZAR_W (SZER - 2)
+#define OBSZAR_H (WYS - K1_OKNO_TYTUL - K1_OKNO_PROMIEN) /* above the rounded corners */
 #define BOK (OBSZAR_W > OBSZAR_H ? OBSZAR_W : OBSZAR_H) /* dekoder gives at most BOK × BOK: any turn fits */
-#define PRZYCISK_Y (WYS - PASEK + 22)
-#define PRZYCISK_H 32
-#define NAZWA_X 168                           /* the name and the details, right of "3 z 27" */
+#define PASEK_H 44                            /* the floating bar */
+#define PASEK_Y (WYS - 16 - PASEK_H)
 
 extern struct k1_apl apl;
 extern struct k1_dok_wpis wpisy[K1_DOK_MAKS]; /* what skarbiec lets Podgląd see: pictures of the folders it was given */

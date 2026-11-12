@@ -37,7 +37,7 @@ zakres, z jasną granicą.
    nadzorcy (`dekoder.c`), prośby na kanale fd 6 Podglądu. Kod po stronie aplikacji (prośba, kawałki od skarbca
    przekazywane bez czytania, odpowiedź) jest **jeden dla Plików i Podglądu**: `k1_dekodowanie` w przyborniku.
    Dekoder podaje teraz także wymiary samego zdjęcia (`DEK_PIKSELE` c, d — po obrocie z EXIF), które Podgląd
-   pokazuje w pasku. Podgląd prosi o obraz najwyżej 928 × 928 i sam obraca widok (R) i dopasowuje go do okna
+   pokazuje w pasku. Podgląd prosi o obraz najwyżej 958 × 958 i sam obraca widok (R) i dopasowuje go do okna
    (`k1_skaluj`, nigdy powiększenie > 100 %); pliku nie zmienia.
 
 6. **„Ustaw jako tapetę” z Podglądu** — ekran przyjmuje zdjęcie na tapetę od aplikacji z **tabeli nadawców**
@@ -48,7 +48,7 @@ zakres, z jasną granicą.
    (zdjęcia dostają Podgląd); nowy zapis to K1U4.
 
 8. **Klatka** — taka sama jak każdej aplikacji (32 MiB pamięci, `RLIMIT_FSIZE` 16 MiB): okno ma stały rozmiar
-   (960 × 640; K1 nie ma okien na pełny ekran), obraz od dekodera ≤ 3,3 MiB. Plan zakładał 96 MiB dla okna na cały
+   (960 × 640; K1 nie ma okien na pełny ekran), obraz od dekodera ≤ 3,6 MiB. Plan zakładał 96 MiB dla okna na cały
    ekran 4096 × 2160 — niepotrzebne, dopóki okna nie zmieniają rozmiaru.
 
 ## Konsekwencje

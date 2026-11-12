@@ -116,15 +116,17 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
 - Kosz na pulpicie: kafelek jak aplikacje; pusty — kosz z dwoma żebrami, pełny — z kulką papieru w środku.
 - Pliki na pulpicie: kafelek z ikoną typu (folder, tekst, obraz, inny plik), nazwa ucięta „…”, gdy za długa.
 
-## Podgląd (0.8.2, ADR 0037, szkic A)
+## Podgląd (0.8.2, ADR 0037, szkic C)
 Decyzja właściciela D5 (2026-11-12) z trzech szkiców (A — ramka motywu i pasek na dole, B — ciemne okno ze
-szczegółami po prawej, C — zdjęcie na całe okno z pływającym paskiem): **A**.
-- Okno 960 × 640, ramka i pasek w kolorach motywu (jasny / ciemny jak inne okna); obszar zdjęcia zawsze ciemny
-  (`#1c1b19`), zdjęcie wyśrodkowane, dopasowane do okna z marginesem 12–16 px, nigdy powiększone ponad 100 %.
-- Pasek na dole 76 px, nad nim kreska w kolorze `linia`: z lewej przyciski ‹ › (36 × 32, szewrony kreską 2 px)
-  i „3 z 27” (`tekst2`), potem nazwa (Plex Sans Medium 15) i pod nią szczegóły „4000 × 2667 · 2,4 MB · data ·
-  pochodzenie” (Plex Sans 13, `tekst3`) albo komunikat (kolor akcentu); z prawej przyciski z obrysem: „Otwórz…”,
-  „Obróć”, „Ustaw jako tapetę”, „Do Kosza”. Niedostępne — wyszarzone.
+szczegółami po prawej, C — zdjęcie na całe okno z pływającym paskiem): najpierw A, w trakcie zmieniona na **C**
+(„ładny, estetyczny pasek, nie idący do samych końców”).
+- Okno 960 × 640, ramka (pasek tytułu) w kolorach motywu; pod nią całe okno to ciemny obszar zdjęcia (`#1c1b19`,
+  dolne rogi zaokrąglone jak okno), zdjęcie wyśrodkowane, dopasowane do okna, nigdy powiększone ponad 100 %.
+- Pływający pasek na dole, wyśrodkowany, 16 px nad krawędzią: „pigułka” 44 px (promień 22, `#1f1e1c`, krycie 215):
+  ‹ w kółku, „3 z 27”, › w kółku, cienka kreska, potem przyciski-napisy „Otwórz…”, „Obróć”, „Ustaw jako tapetę”
+  (białe, Plex Sans Medium 13) i „Do Kosza” (jasna terakota). Najechany — jaśniejsze tło; niedostępny — przygaszony.
+- Etykieta w lewym górnym rogu zdjęcia (pigułka 26 px, krycie 200): „nazwa · 4000 × 2667 · 2,4 MB · data ·
+  pochodzenie”, ucięta „…”, gdy za długa. Komunikat (np. „Tapeta ustawiona.”) — taka sama etykieta nad paskiem.
 - Bez zdjęcia / błąd / wczytywanie: ikona obrazu 48 px i jedno zdanie na środku ciemnego obszaru.
 
 ## Zasoby (M4.1)
