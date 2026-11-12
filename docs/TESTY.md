@@ -83,7 +83,7 @@ przed upływem limitu.
 
 ### Sprawdzenia w systemie (`testy/system/*.c`, obraz `rdzen-test.squashfs`)
 Pliki (od M4.1): `k1_test_systemu.c` (kolejność), `wspolne.c` (pomocnicze, kanał testowy),
-`t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4–M4.1), `t_sprzet.c` (M5a), `proba.c` (tryb `--proba`).
+`t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4–M4.1, zaległe komunikaty 0.8.5), `t_sprzet.c` (M5a), `proba.c` (tryb `--proba`).
 Program testowy jest w obrazie testowym jako `/rdzen/system/test-systemu` (uruchamia go nadzorca).
 NEGATYWNE = coś, co ma się nie udać.
 
@@ -448,3 +448,9 @@ Od 1c system tworzy format 2, a stary magazyn (format 1) przechodzi na format 2 
 
 Folderu w samym sobie nie da się upuścić w Plikach (lista pokazuje tylko jeden poziom, a przeciągany folder nie jest
 celem) — tę regułę sprawdza host i skarbiec (`dok_przenies`).
+
+## 0.8.5 krok 1 — okna nie zamarzają (ekran nie gubi zdarzeń)
+| Test | Co sprawdza |
+|---|---|
+| `test_zalegle` (host) | kolejka zaległych ekranu (`src/ekran/zalegle.c`): RAMKA raz na powierzchnię, ruch zastępuje ruch tuż przed nim, `USTAWIENIE` po kluczu, kolejność wciśnięć, puszczeń, klawiszy, `FOKUS`, `ZAMKNIJ`; pierścień dookoła; przepełnienie — najpierw ruchy i powtórzenia, potem wciśnięcia, `RAMKA` nigdy |
+| w systemie (`t_okna_zalegle`) | NEGATYWNY: klient z oknem na prawie cały ekran przestaje odbierać; 1500 ruchów myszy (więcej, niż mieści jego kanał), zatwierdzenie, kliknięcie → po wznowieniu odbioru dostaje `RAMKA` i `PUSZCZENIE`; drugi klient w tym czasie dostaje swoją `RAMKA` (nie jest blokowany), ekran działa. Na ekranie z 0.8.3 test jest czerwony (RAMKA i PUSZCZENIE przepadają) |

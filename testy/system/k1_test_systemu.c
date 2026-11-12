@@ -44,6 +44,7 @@ int main(int argc, char **argv)
     t_proby();
     t_okna_ipc();
     t_okna_ochrona();
+    t_okna_zalegle();
     t_gui_crash();
     t_aplikacja_bez_restartu();
     t_screen_crash();

@@ -16,10 +16,46 @@
 
 /* ---- clients ---- */
 
+/* A client busy drawing may not read for a while: when its channel is full, the message waits in zal (merged and,
+ * for a client that does not read at all, dropped by the rules of zalegle.h) and goes on POLLOUT, in order. */
 void wyslij(int kl, struct k1_komunikat m)
 {
-    if (kl >= 0 && s.kl[kl].fd >= 0)
-        k1_kanal_wyslij(s.kl[kl].fd, &m, sizeof m, -1); /* a client that does not read loses messages */
+    struct klient *k;
+    if (kl < 0 || s.kl[kl].fd < 0)
+        return;
+    k = &s.kl[kl];
+    if (k->zal.n == 0 && k1_kanal_wyslij(k->fd, &m, sizeof m, -1) == 0)
+        return;
+    if (k->zal.n == 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+        return; /* the channel is broken: POLLHUP disconnects the client */
+    zal_dodaj(&k->zal, &m);
+}
+
+void wyslij_zalegle(int kl)
+{
+    struct klient *k = &s.kl[kl];
+    const struct k1_komunikat *m;
+    while (k->fd >= 0 && (m = zal_pierwszy(&k->zal)) != NULL && k1_kanal_wyslij(k->fd, m, sizeof *m, -1) == 0)
+        zal_zdejmij(&k->zal);
+}
+
+void loguj_zalegle(void)
+{
+    static double t_log;
+    double t = k1_teraz();
+    int i;
+    if (t - t_log < 0.5)
+        return;
+    for (i = 0; i < MAKS_KLIENTOW; i++) {
+        struct klient *k = &s.kl[i];
+        if (k->fd >= 0 && k->zal.porzucone + k->zal.wazne != k->zal_log) {
+            k1_log(TAG, "klient %s nie odbiera: porzucono %lu ruchów i klawiszy, %lu innych (czeka %d)", nazwa_roli(k),
+                   k->zal.porzucone, k->zal.wazne, k->zal.n);
+            k->zal_log = k->zal.porzucone + k->zal.wazne;
+            t_log = t;
+            return;
+        }
+    }
 }
 
 int powloka(void)
