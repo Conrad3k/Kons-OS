@@ -35,7 +35,7 @@ struct k1_komunikat miejsce_komunikat(void)
     if (zajete > na_pliki) /* the system took some of its reserve */
         zajete = na_pliki;
     return k1_komunikat_nowy(K1_KOM_SKARB_MIEJSCE, 1, mib(zajete), mib(na_pliki), dok_ile(), trwaly && !czeka ? zapas : 0,
-                             0);
+                             !trwaly); /* in memory: Pliki say so when it is full (0.8.2 step 2) */
 }
 
 void miejsce_wyslij(int fd)

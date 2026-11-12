@@ -99,9 +99,18 @@ pliku, którego własnej treści brak (zła generacja: nic nie zgadujemy). Wpis 
 Dokumentów.
 - Typ pliku rozpoznaje skarbiec przy każdym zapisie z pierwszych bajtów (`K1_TYPY`: tekst, PNG, JPEG, PDF, ZIP,
   inny) — nigdy z nazwy. Nazwy jak w Windows (bez `\ / : * ? " < > |`, znaków sterujących i odwracających
-  kierunek tekstu, bez spacji i kropki na końcu), unikalne w folderze bez względu na wielkość liter (także
-  polskich); nowy wpis o zajętej nazwie dostaje „ (2)” przed rozszerzeniem. Do 8 poziomów folderów, 16 384 wpisy
-  (0.8.1, ADR 0034; razem z Koszem), wpisy znajdowane po numerze przez indeks (`k1_indeks`).
+  kierunek tekstu, bez spacji i kropki na końcu), unikalne w folderze bez względu na wielkość liter (A–Z, Latin-1
+  i Latin Extended-A — polskie, Ä/ä, Č/č…; 0.8.2); nowy wpis o zajętej nazwie dostaje „ (2)” przed rozszerzeniem
+  (rozszerzenie do 16 bajtów; dłuższe „rozszerzenie” jest ucinane razem z nazwą — 0.8.2, L8). Do 8 poziomów
+  folderów, 16 384 wpisy (0.8.1, ADR 0034; razem z Koszem), wpisy znajdowane po numerze przez indeks (`k1_indeks`).
+- **Zasady nazw** (0.8.2 krok 2, L9; `src/wspolne/k1_nazwy.c`, te same w czytniku): jedna tabela znaków, których nazwa
+  nie może mieć — nigdzie (sterujące, niewidoczne: U+200B…U+200F, U+00AD, U+2060…U+2064, U+FEFF, U+180E; zmieniające
+  kierunek; wypełniacze Hangul; znaki tagów; obszar prywatny; niecharaktery), na brzegach (spacje każdej szerokości:
+  U+0020, U+00A0, U+2000…U+200A, U+202F, U+205F, U+3000 — w środku wolno) i na początku (znak diakrytyczny bez
+  litery); druga tabela: litera + znak diakrytyczny, które są jedną literą (polskie i częste łacińskie, NFC) — nazwa
+  musi mieć jedną literę („ą”), nie dwie („a” + U+0328), więc dwie wyglądające tak samo nazwy to ta sama nazwa.
+  Wpis z wcześniejszej wersji, którego nazwy dziś nie wolno, przy wczytaniu dostaje poprawioną nazwę (zakazany znak →
+  „_”, litera + znak → jedna litera, zajęta → „ (2)”) — nigdy nie jest odrzucany.
 - **Rezerwa dla systemu** (0.8.1, ADR 0034): nowy plik albo nowa treść pliku nie zajmie ostatnich 8 MiB (albo 2 %
   obszaru; najwyżej ćwierć obszaru — mała K1-DANE dalej przyjmuje pliki) — wynik `K1_DOK_BLAD_BRAK_MIEJSCA` (−28), w Plikach „Brak miejsca na pliki”; ustawienia, pulpit, bateria i
   tapeta zapisują się dalej. Zmiana nazwy, przeniesienie, Kosz i usuwanie działają zawsze.
@@ -142,6 +151,7 @@ wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po 
 | `DOK_ZAPISZ` | klient → | obiekt = plik, a = długość (≤ 1 MiB), b = 1 zapis w toku (0.8.1); memfd: nowa treść (nowa generacja) |
 | `DOK_KAWALEK` | klient → | następny kawałek zapisu w toku (0.8.1): a = długość 1…1 MiB; memfd → `DOK_WYNIK` |
 | `DOK_KONIEC` | klient → | a = 0 koniec zapisu w toku (wpis), 1 porzucenie → `DOK_WYNIK` (c = numer nowego pliku) |
+| `DOK_CZAS` | Pliki → | (0.8.2 krok 2) obiekt = plik z pochodzeniem innym niż K1 (import), a, b = czas „zmieniono” z pendrive'a (dwa pola, 1 s … koniec 2107 r.); tylko z prawem `P_POCHODZENIE` → `DOK_WYNIK`. Ponowny import tego samego pliku Pliki pomijają |
 | `DOK_NAZWA` | klient → | obiekt = wpis, a = długość, b = 1: zajęta nazwa dostaje „ (2)” (0: odmowa); memfd: nowa nazwa |
 | `DOK_PRZENIES` | klient → | obiekt = wpis, a = folder docelowy (nie do siebie, nie za głęboko) |
 | `DOK_KOSZ`, `DOK_PRZYWROC`, `DOK_USUN` | klient → | obiekt = wpis (usuń: tylko z Kosza) |
@@ -156,7 +166,7 @@ wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po 
 | `DOK_WYBRANY` | → aplikacja | obiekt = plik, którego może teraz używać (0: anulowano) |
 | `DOK_PROSBA` | → Wybór pliku | a = aplikacja, która prosi, b = typ (0: każdy) |
 | `SKARB_URUCHOM` | → nadzorca | kanał sterujący: obiekt = plik (0: bez), a = aplikacja do uruchomienia (z plikiem: jej fd 5) |
-| `SKARB_MIEJSCE` | → klient | miejsce na pliki (0.8.1, wyżej): a = zajęte MiB, b = na pliki MiB, c = wpisy, d = MiB pendrive'a za K1-DANE |
+| `SKARB_MIEJSCE` | → klient | miejsce na pliki (0.8.1, wyżej): a = zajęte MiB, b = na pliki MiB, c = wpisy, d = MiB pendrive'a za K1-DANE, e = 1 pliki są w pamięci — bez K1-DANE (0.8.2) |
 | `SKARB_POWIEKSZ` | Ustawienia → | „Użyj całego pendrive'a na dane” (gest użytkownika) → `SKARB_WYNIK` + `SKARB_MIEJSCE` |
 | `POWIEKSZ_DANE` | → nadzorca | kanał sterujący: powiększ K1-DANE do końca pendrive'a (magazyn otwarty, prośba z Ustawień) |
 | `POWIEKSZONO` | nadzorca → | kanał sterujący: a = 0 albo `K1_SKARB_ARG` / `K1_SKARB_IO` |
@@ -285,6 +295,7 @@ od klientów i wpisy z dysku (`k1_dok_wpis_czytaj` — każde pole) oraz tabela 
 | w systemie: klatka (UID, tylko partycja „K1-DANE”), próba w klatce `skarbiec`, dysk trzyma tylko skarbiec | funkcjonalny + negatywny |
 | `test-m4.sh`: tapeta, motyw, rozdzielczość i notatka wracają po wyłączeniu i ponownym starcie z tym samym dyskiem; na dysku brak jawnego tekstu | funkcjonalny |
 | `test_dokumenty` (host, 0.8.0): nazwy (złe znaki, UTF-8, odwrócony tekst), typy z zawartości, wpis i lista (każde pole poza zakresem), plik w trzech kawałkach, nowa treść bez starych kawałków, przerwany zapis, foldery (unikalne nazwy, „(2)”, do siebie, za głęboko), Kosz (przywracanie, 30 dni, cofnięty zegar, opróżnianie), uszkodzone wpisy i kawałki przy otwarciu; prawa przez prawdziwy kanał: Pliki, pulpit (tylko Pulpit, bez treści), inni — nic; zły memfd | funkcjonalny + negatywny |
+| `test_dokumenty` (0.8.2 krok 2): zasady nazw (próba T1/6: znaki niewidoczne, kierunku, spacje na brzegach, znak diakrytyczny bez litery, NFD → NFC, porównanie Ä/ä, Č/č), wolna nazwa dla nazwy z długim „rozszerzeniem” (próba T1/2), wpisy z 0.8.1 z zakazaną nazwą poprawione przy wczytaniu (treść cała), `DOK_CZAS` (tylko Pliki, tylko plik z pendrive'a) | funkcjonalny + negatywny |
 | `test_dokumenty` (0.8.1 krok 2): 16 384 wpisy i ani jednego więcej, wczytanie i usunięcie drzewa tysięcy wpisów (< 0,1 s), rezerwa 8 MiB przy pełnych plikach | funkcjonalny + negatywny |
 | `test_dokumenty` (0.8.1 krok 1): wpis z jednym złym bajtem nazwy — naprawiony, treść 3 MiB cała (próba T2 planu); nieznany rodzaj i zła generacja — nic nie usunięte, po poprawce plik wraca; nic z nazwy — „Odzyskany plik”; nowy wpis nie bierze numeru nieczytelnego; folder aplikacji po numerze (plik „Kalkulator”, zmiana nazwy, przeniesienie, Kosz); zegar 2000 / 5 lat w przód / cofnięty / po ponownym starcie / bez dobrego czasu; licznik Kosza; 65. plik dla aplikacji | funkcjonalny + negatywny |
 | `test_notatki` (host, 0.8.1): prawdziwy kod Notatek (`pliki.c`, `spis.c`) z prawdziwym kodem skarbca przez gniazdo — notatka nie do odczytu (tylko do odczytu, plik nietknięty, ponowna próba), plik notatki do Kosza w trakcie pisania (kopia, w obu kolejnościach), 300 plików → 256 najnowszych z komunikatem | funkcjonalny + negatywny |

@@ -6,7 +6,7 @@
 #   1. Pliki pokazują miejsce „Pendrive”; po kliknięciu nadzorca uruchamia czytnik (UID 106, pendrive tylko do
 #      odczytu), czytnik rozpoznaje FAT32, Pliki pokazują foldery (bez ukrytych plików)
 #   2. DCIM › 100K1 → „Importuj wszystkie”: trzy pliki (dwa zdjęcia, uszkodzony JPEG) trafiają do Obrazów, skarbiec
-#      rozpoznaje je jako obrazy
+#      rozpoznaje je jako obrazy; drugi raz: nic nie przybywa, „Pominięto 3 — już zaimportowane” (0.8.2 krok 2, D3)
 #   3. pojedynczo: plik 17 MB (do 0.8.0 „za duży”) i film 300 MB → Dokumenty kawałkami po 1 MiB (0.8.1 krok 4: czytnik
 #      ma cgroup 32 MiB, a Pliki i skarbiec dostają najwyżej kawałek), zdjęcie z polską nazwą → Obrazy, notatka → Dokumenty
 #   4. Obrazy: 4 pliki „z pendrive'a”; Dokumenty: 3
@@ -14,6 +14,9 @@
 #      uszkodzony JPEG → „Podgląd niedostępny”; „Ustaw jako tapetę” → ekran rysuje zdjęcie na całym ekranie
 #   5. wyjęcie pendrive'a (device_del): czytnik zatrzymany, miejsce znika; włożenie pendrive'a z NTFS: Pliki mówią,
 #      że K1 go jeszcze nie odczyta
+#   5a. (0.8.2 krok 2) pendrive z „małym” FAT32 (mformat -F -c 8, mniej niż 65 525 klastrów — do 0.8.1 „nie FAT”)
+#      i folderem 1100 zdjęć (więcej niż jedna lista czytnika): widać wszystkie, „Importuj wszystkie” bierze wszystkie,
+#      czas z pendrive'a zostaje przy pliku, drugi import pomija wszystkie
 #   6. nazwy plików i ich treść nie trafiają do logu; brak zabronionych wywołań i odrzuconych komunikatów
 #   7. ponowny start z tym samym dyskiem danych: tapeta ze zdjęcia wraca ze skarbca; magazyn z filmem 300 MB otwiera się
 #      od razu (0.8.2 krok 1c, format 2: spis zamiast czytania wszystkiego) — ekran dostaje zapisane ustawienia przy
@@ -24,7 +27,7 @@ TESTY=$K1_BUDOWA/testy
 CZAS=${K1_TEST_CZAS:-240}
 CZAS=$((CZAS * 2))
 LOG=$TESTY/pendrive.log MON=$TESTY/pendrive.sock
-PEN=$TESTY/pendrive-fat32.img NTFS=$TESTY/pendrive-ntfs.img DANE=$TESTY/pendrive-dane.img
+PEN=$TESTY/pendrive-fat32.img NTFS=$TESTY/pendrive-ntfs.img DANE=$TESTY/pendrive-dane.img MALY=$TESTY/pendrive-maly.img
 mkdir -p "$TESTY"; rm -f "$LOG" "$MON" "$TESTY"/pendrive-*.png
 export LC_ALL=C.UTF-8 MTOOLS_SKIP_CHECK=1
 
@@ -67,6 +70,18 @@ rm -rf "$Z"
 rm -f "$NTFS"; truncate -s 16M "$NTFS"
 printf 'label: dos\nstart=2048, type=7\n' | sfdisk -q "$NTFS" >/dev/null
 printf '\353R\220NTFS    ' | dd of="$NTFS" bs=512 seek=2048 conv=notrunc status=none
+# a "small" FAT32 (0.8.2 step 2, L13 and L14): fewer than 65 525 clusters, in an MBR partition; a folder of 1100 pictures
+# (a JPEG start each — the type comes from the content), more than one list of czytnik (1024)
+rm -rf "$Z" "$MALY" "$TESTY/pendrive-czesc.img"; mkdir -p "$Z"
+python3 -I -c 'import sys
+for i in range(1100): open(f"{sys.argv[1]}/telefon_{i:04d}.jpg", "wb").write(b"\xff\xd8\xff\xe0" + str(i).encode())' "$Z"
+mformat -C -i "$TESTY/pendrive-czesc.img" -F -c 8 -T 253952 :: || blad "mformat (mały FAT32)"
+mmd -i "$TESTY/pendrive-czesc.img" ::/Telefon
+mcopy -i "$TESTY/pendrive-czesc.img" "$Z"/* ::/Telefon/
+truncate -s 128M "$MALY"
+printf 'label: dos\nstart=2048, size=253952, type=c\n' | sfdisk -q "$MALY" >/dev/null || blad "sfdisk (mały FAT32)"
+dd if="$TESTY/pendrive-czesc.img" of="$MALY" bs=512 seek=2048 conv=notrunc status=none
+rm -rf "$Z" "$TESTY/pendrive-czesc.img"
 # the data partition (K1-DANE) on a SATA disk: 768 MiB, sparse (format 2 of the vault since 0.8.2: about 90 % for files)
 rm -f "$DANE"; truncate -s 768M "$DANE"
 printf 'label: gpt\nstart=2048, size=1568768, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
@@ -77,11 +92,11 @@ printf 'label: gpt\nstart=2048, size=1568768, name="K1-DANE"\n' | sfdisk -q "$DA
             -device usb-storage,id=pen,bus=xhci.0,drive=pendrive" &
 QPID=$!
 r=0
-K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG" "$MON" "$TESTY" "$CZAS" "$NTFS" "$OCZEKIWANE" <<'PY' || r=1
+K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG" "$MON" "$TESTY" "$CZAS" "$NTFS" "$OCZEKIWANE" "$MALY" <<'PY' || r=1
 import os, re, sys
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
-log, mon, out, limit, ntfs, oczekiwane = sys.argv[1:7]
+log, mon, out, limit, ntfs, oczekiwane, maly = sys.argv[1:8]
 q = Maszyna(log, mon, out, limit, "pendrive")
 tekst, czekaj, zrzut, sprawdz, klik = q.tekst, q.czekaj, q.zrzut, q.sprawdz, q.klik
 IKONY = r"K1-GUI: ikony na pulpicie \(siatka \d+x\d+, co \d+,\d+\): (.*)"
@@ -130,9 +145,10 @@ def przyciski():
     return {t.strip(): (ox + int(x), oy + int(y)) for t, x, y in re.findall(r"([^;]+?) (\d+),(\d+)", m[-1].group(1))} if m else {}
 
 
-def importuj(akcja, zapisane, obrazy, duze, bledy=0):
-    wz = (rf"K1-PLIKI: import: koniec — zapisane {zapisane} \(do Obrazów {obrazy}\), za duże {duze}, błędy {bledy}")
-    return po(wz, akcja, czas=90)
+def importuj(akcja, zapisane, obrazy, duze, bledy=0, pominiete=0, czas=90):
+    wz = (rf"K1-PLIKI: import: koniec — zapisane {zapisane} \(do Obrazów {obrazy}\), za duże {duze}, błędy {bledy}, "
+          rf"pominięte {pominiete}")
+    return po(wz, akcja, czas=czas)
 
 
 # 1. the place, czytnik, the main folder
@@ -156,6 +172,9 @@ sprawdz("„Importuj wszystkie”: 3 pliki → Obrazy",
 sprawdz("skarbiec: 3 pliki z pendrive'a, wszystkie rozpoznane z treści jako obrazy",
         czekaj(r"K1-PLIKI: pliki z pendrive'a: 3 \(obrazy PNG/JPEG: 3\)"))
 zrzut("4-zaimportowane", gdy=lambda w, h, px: True)
+sprawdz("(0.8.2, D3) „Importuj wszystkie” drugi raz: nic nowego — „Pominięto 3 — już zaimportowane” (ta sama nazwa, "
+        "rozmiar i czas z pendrive'a)", importuj(lambda: klik(*p["Importuj wszystkie"]), 0, 0, 0, pominiete=3))
+zrzut("4-pominiete", gdy=lambda w, h, px: True)
 # 3. one by one, from the main folder (rows: DCIM, film.mp4, notatka.txt, Wakacje…, wideo.mp4)
 sprawdz("„w górę” dwa razy: główny folder pendrive'a",
         widok(lambda: klik(*w_gore), "Pendrive", 1) and widok(lambda: klik(*w_gore), "Pendrive", 5))
@@ -228,11 +247,30 @@ sprawdz("NEGATYWNY: NTFS — czytnik odmawia, Pliki mówią, że K1 go jeszcze n
         czekaj(r"K1-NADZORCA: pendrive: czytnik dla", od=n_c, czas=60) and czekaj(r"K1-CZYTNIK: pendrive: nie FAT") and
         czekaj(r"K1-PLIKI: pendrive: nie do odczytu"))
 zrzut("8-ntfs", gdy=lambda w, h, px: True)
+# 5a. (0.8.2 step 2) a small FAT32, a folder of 1100 pictures
+n_b = q.ile(r"K1-PLIKI: pendrive: brak")
+q.monitor("device_del pen2")
+czekaj(r"K1-PLIKI: pendrive: brak", od=n_b, czas=60)
+n_j = q.ile(r"K1-PLIKI: pendrive: jest")
+q.monitor(f"drive_add 0 if=none,id=maly,file={maly},format=raw", "device_add usb-storage,id=pen3,drive=maly,bus=xhci.0")
+sprawdz("pendrive z małym FAT32 (mniej niż 65 525 klastrów; do 0.8.1: „nie FAT”) czytany jako FAT32",
+        czekaj(r"K1-PLIKI: pendrive: jest", od=n_j, czas=60) and widok(lambda: klik(*pendrive), "Pendrive", 1, czas=60) and
+        czekaj(r"K1-CZYTNIK: pendrive: FAT32, klaster 4096 B, 128 MiB"))
+sprawdz("folder 1100 zdjęć: czytnik wysyła dwie listy, Pliki pokazują wszystkie 1100 (do 0.8.1: pierwsze 1024)",
+        widok(lambda: q.dwuklik(*wiersz(0)), "Pendrive", 1100, czas=120) and czekaj(r"K1-CZYTNIK: folder: 1100 elementów \(list: 2\)"))
+zrzut("9-folder-1100", gdy=lambda w, h, px: True)
+p = przyciski()
+sprawdz("„Importuj wszystkie”: 1100 plików → Obrazy (każdy z czasem z pendrive'a)",
+        "Importuj wszystkie" in p and importuj(lambda: klik(*p["Importuj wszystkie"]), 1100, 1100, 0, czas=float(limit) * 0.4))
+zrzut("9-zaimportowane-1100", gdy=lambda w, h, px: True)
+sprawdz("drugi raz: „Pominięto 1100 — już zaimportowane”, nic nie przybywa",
+        importuj(lambda: klik(*p["Importuj wszystkie"]), 0, 0, 0, pominiete=1100, czas=120) and
+        widok(lambda: klik(*miejsce(2)), "Obrazy", 1104))
 # 6. the log
 t_ = tekst()
 sprawdz("nazwy i treść plików z pendrive'a nie trafiają do logu",
         all(s not in t_ for s in ("IMG_0001", "IMG_0002", "USZKODZONE", "Wakacje", "Łódź", "notatka", "film", "wideo", "ukryty", "Zakupy",
-                                  "DCIM", "100K1")))
+                                  "DCIM", "100K1", "telefon", "Telefon")))
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów", "Kernel panic" not in t_ and
         "BŁĄD" not in t_ and "zabronione wywołanie" not in t_ and "odrzucono" not in t_)
 sys.exit(0 if all(q.wyniki) else 1)

@@ -1,7 +1,8 @@
 /* K1 czytnik — the FAT file system of a USB stick, read only (0.8.0 step 3, ADR 0031). See fat.h.
  * Sources of the rules: Microsoft "FAT32 File System Specification" (1.03): the boot sector fields, the FAT type from
  * the number of clusters (< 4085 FAT12, < 65525 FAT16), the end-of-chain values, the long name entries and their
- * checksum. Part of czytnik. */
+ * checksum; Linux (fs/fat/inode.c): FAT32 is what has BPB_FATSz16 == 0 (here also BPB_RootEntCnt == 0), whatever
+ * the number of clusters. Part of czytnik. */
 #include <string.h>
 
 #include "fat.h"
@@ -58,9 +59,11 @@ static int bpb(struct fat *f, uint64_t start)
     if (meta >= razem)
         return FAT_BLAD_FORMAT;
     klastrow = (uint32_t)((razem - meta) / spc);
-    typ = klastrow < 4085 ? 12 : klastrow < 65525 ? 16 : 32;
-    if (klastrow == 0 || klastrow > 0x0ffffff5u ||
-        (typ == 32 ? k1_c16(b + 22) != 0 || korzen != 0 || korzen_k < 2 || korzen_k > klastrow + 1 : korzen == 0))
+    /* FAT32 when its boot sector says so (no 16-bit FAT size, no fixed root folder), as Linux reads it — also with
+     * fewer than 65 525 clusters (mformat -F, some cameras, small cards; L13 of plan 0.8.2); else by the count */
+    typ = k1_c16(b + 22) == 0 && korzen == 0 ? 32 : klastrow < 4085 ? 12 : klastrow < 65525 ? 16 : 0;
+    if (klastrow == 0 || klastrow > 0x0ffffff5u || typ == 0 ||
+        (typ == 32 ? korzen_k < 2 || korzen_k > klastrow + 1 : korzen == 0))
         return FAT_BLAD_FORMAT;
     potrzeba = typ == 12 ? ((uint64_t)klastrow + 2) * 3 / 2 + 1 : ((uint64_t)klastrow + 2) * (uint64_t)(typ / 8);
     if (potrzeba > (uint64_t)fatsz * bps || start + meta * bps > f->n.rozmiar)

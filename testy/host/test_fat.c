@@ -61,7 +61,7 @@ static int otworz(struct fat *f, struct obraz *o)
 
 /* ---- a folder into an array ---- */
 
-#define MAKS 1200
+#define MAKS 3100
 static struct fat_wpis spis[MAKS];
 static int n_spis;
 static int do_spisu(void *ctx, const struct fat_wpis *w)
@@ -291,6 +291,24 @@ static void fat32(const char *kat)
     free(o.d);
 }
 
+/* L13 of plan 0.8.2 (trial T6): FAT32 with fewer than 65 525 clusters — from the count alone it would be FAT16 and the
+ * stick "not FAT"; its folder of 3000 files (a phone's camera) is read whole. */
+static void fat32_maly(const char *kat)
+{
+    struct obraz o = wczytaj(kat, "fat32-maly.img");
+    struct fat f;
+    const struct fat_wpis *w;
+    EXPECT(otworz(&f, &o) == 0 && f.typ == 32 && f.start == 0 && f.klaster == 4096 && f.klastrow < 65525);
+    EXPECT(folder(&f, 0) == 0 && n_spis == 2 && wzor(znajdz("zdjecie.jpg"), &f, 4));
+    w = znajdz("Telefon");
+    EXPECT(w != NULL && w->folder && folder(&f, w->klaster) == 0 && n_spis == 3000);
+    EXPECT(znajdz("IMG_20260000_zdjecie.jpg") != NULL && znajdz("IMG_20262999_zdjecie.jpg") != NULL);
+    /* the same boot sector with a 16-bit FAT size: by the count FAT16, but no fixed root folder — not FAT */
+    k1_z16(o.d + 22, 1);
+    EXPECT(otworz(&f, &o) == FAT_BLAD_FORMAT);
+    free(o.d);
+}
+
 static void inne(const char *kat)
 {
     struct obraz o = wczytaj(kat, "ntfs-mbr.img");
@@ -336,6 +354,32 @@ static void nazwy(void)
     fat_nazwa_dluga(z, 204, n);
     EXPECT(strlen(n) <= 127 && strcmp(n + strlen(n) - 4, ".jpg") == 0 && k1_dok_nazwa_poprawna(n, strlen(n)));
     EXPECT(strlen(n) == 4 + 122);
+    /* 0.8.2 step 2 (L8, L9, trial T4): nothing before the extension → "Plik.jpg", not a hidden ".jpg"; a dot file stays
+     * one (hidden); K1's table of names: invisible characters "_", other spaces off the edges, one letter for a + mark */
+    { const uint16_t t[] = { ' ', ' ', ' ', ' ', '.', 'j', 'p', 'g' }; fat_nazwa_dluga(t, 8, n); }
+    EXPECT(strcmp(n, "Plik.jpg") == 0);
+    { const uint16_t t[] = { '.', 'T', 'r', 'a', 's', 'h', 'e', 's' }; fat_nazwa_dluga(t, 8, n); }
+    EXPECT(strcmp(n, ".Trashes") == 0);
+    { const uint16_t t[] = { 0x200b, '.', 'j', 'p', 'g' }; fat_nazwa_dluga(t, 5, n); }
+    EXPECT(strcmp(n, "_.jpg") == 0);
+    { const uint16_t t[] = { 0xa0, 'a', 0x200b, 'b', 0x3000, '.', 't', 'x', 't', 0x2007 }; fat_nazwa_dluga(t, 10, n); }
+    EXPECT(strcmp(n, "a_b\xe3\x80\x80.txt") == 0);
+    { const uint16_t t[] = { 'z', 0x307, 'o', 0x301, 0x142, 'w', 0x328 }; fat_nazwa_dluga(t, 7, n); }
+    EXPECT(strcmp(n, "\xc5\xbc\xc3\xb3\xc5\x82w\xcc\xa8") == 0); /* ż, ó, ł; w + ogonek stays two */
+    { const uint16_t t[] = { 0x301, 'a', 0xdb40, 0xdc41, 0xe000, 0xfffe }; fat_nazwa_dluga(t, 6, n); }
+    EXPECT(strcmp(n, "_a___") == 0);
+    { const uint16_t t[] = { 0xad, 0x61c, 0x2060, 0xfeff, 0x3164 }; fat_nazwa_dluga(t, 5, n); }
+    EXPECT(strcmp(n, "_____") == 0 && k1_dok_nazwa_poprawna(n, strlen(n)));
+    /* two names of 200 letters, different from the 150th: cut to the same name (skarbiec adds " (2)") */
+    for (int i = 0; i < 200; i++)
+        z[i] = 'a';
+    fat_nazwa_dluga(z, 200, n);
+    z[150] = 'b';
+    {
+        char n2[K1_DOK_NAZWA];
+        fat_nazwa_dluga(z, 200, n2);
+        EXPECT(strcmp(n, n2) == 0 && strlen(n) == 127);
+    }
 }
 
 /* The list czytnik sends (k1_pendrive.h): written, read back, every damage refused. */
@@ -392,6 +436,7 @@ int main(int argc, char **argv)
     fat12(argv[1]);
     fat16(argv[1]);
     fat32(argv[1]);
+    fat32_maly(argv[1]);
     inne(argv[1]);
     nazwy();
     lista();

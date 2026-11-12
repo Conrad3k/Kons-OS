@@ -167,7 +167,7 @@ static int sprawdz_skarb(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && zera(k, 0);
     case K1_KOM_SKARB_MIEJSCE:
         return kier == K1_KIER_OD_SKARBCA && k->obiekt == 1 && w(k->b, 0, K1_PAMIEC_MAKS_MIB) && w(k->a, 0, k->b) &&
-               w(k->c, 0, K1_DOK_MAKS) && w(k->d, 0, K1_PAMIEC_MAKS_MIB) && k->e == 0;
+               w(k->c, 0, K1_DOK_MAKS) && w(k->d, 0, K1_PAMIEC_MAKS_MIB) && w(k->e, 0, 1);
     case K1_KOM_SKARB_STAN:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_SKARB_TRWALY, K1_SKARB_ZABLOKOWANY) &&
                w(k->b, 0, 1) && zera(k, 2);
@@ -200,7 +200,7 @@ static int wpis_uzytkownika(uint32_t obiekt)
 int k1_kom_dok_prosba(int typ)
 {
     return (typ >= K1_KOM_DOK_SPIS && typ <= K1_KOM_DOK_OPROZNIJ) || (typ >= K1_KOM_DOK_OTWORZ && typ <= K1_KOM_DOK_WYBRANO) ||
-           typ == K1_KOM_DOK_KAWALEK || typ == K1_KOM_DOK_KONIEC;
+           typ == K1_KOM_DOK_KAWALEK || typ == K1_KOM_DOK_KONIEC || typ == K1_KOM_DOK_CZAS;
 }
 
 /* Opening a file for an application, the file picker (0.8.0 step 2, ADR 0030); 0 also for another type. */
@@ -245,6 +245,9 @@ static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         return kier == K1_KIER_DO_SKARBCA && k->obiekt == 0 && w(k->a, 1, maks) && zera(k, 1);
     if (k->typ == K1_KOM_DOK_KONIEC)
         return kier == K1_KIER_DO_SKARBCA && k->obiekt == 0 && w(k->a, 0, 1) && zera(k, 1);
+    if (k->typ == K1_KOM_DOK_CZAS)
+        return kier == K1_KIER_DO_SKARBCA && wpis_uzytkownika(k->obiekt) && k1_kom_u64(k->a, k->b) >= 1 &&
+               k1_kom_u64(k->a, k->b) <= K1_DOK_CZAS_MAKS && zera(k, 2);
     if (k->typ < K1_KOM_DOK_SPIS || k->typ > K1_KOM_DOK_ZMIANA)
         return sprawdz_wybor(k, kier);
     if (kier != (k->typ < K1_KOM_DOK_LISTA ? K1_KIER_DO_SKARBCA : K1_KIER_OD_SKARBCA))
@@ -300,7 +303,7 @@ static int sprawdz_pendrive(const struct k1_komunikat *k, enum k1_kanal_kierunek
         return kier == (k->typ == K1_KOM_PENDRIVE_OTWORZ ? K1_KIER_DO_NADZORCY : K1_KIER_OD_NADZORCY) && k->obiekt == 0 &&
                zera(k, 0);
     case K1_KOM_PEN_SPIS:
-        return kier == K1_KIER_DO_CZYTNIKA && pen_wpis && zera(k, 0);
+        return kier == K1_KIER_DO_CZYTNIKA && pen_wpis && w(k->a, 0, K1_PEN_FOLDER_MAKS - 1) && zera(k, 1);
     case K1_KOM_PEN_CZYTAJ:
         return kier == K1_KIER_DO_CZYTNIKA && pen_wpis && k->obiekt != 0 && w(k->a, 0, (int32_t)K1_DOK_KAWALKI_MAKS - 1) &&
                zera(k, 1);
@@ -310,7 +313,8 @@ static int sprawdz_pendrive(const struct k1_komunikat *k, enum k1_kanal_kierunek
                zera(k, 2);
     case K1_KOM_PEN_LISTA:
         return kier == K1_KIER_OD_CZYTNIKA && pen_wpis && w(k->b, 0, K1_PEN_WPISOW) &&
-               k->a == K1_PEN_LISTA_NAGL + k->b * K1_PEN_WPIS_BAJTY && w(k->c, 0, 1) && zera(k, 3);
+               k->a == K1_PEN_LISTA_NAGL + k->b * K1_PEN_WPIS_BAJTY && w(k->c, 0, 1) &&
+               w(k->d, 0, K1_PEN_FOLDER_MAKS - 1) && k->e == 0;
     case K1_KOM_PEN_PLIK:
         return kier == K1_KIER_OD_CZYTNIKA && pen_wpis && k->obiekt != 0 &&
                (k->c == 0 ? w(k->a, 1, K1_DOK_NAZWA - 1) : k->a == 0) && w(k->b, 0, maks) &&

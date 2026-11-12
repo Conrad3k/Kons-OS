@@ -18,7 +18,8 @@ enum {
     P_LISTA = 1 << 0, P_CZYTAJ = 1 << 1, P_NOWY = 1 << 2, P_ZAPISZ = 1 << 3, P_NAZWA = 1 << 4, P_PRZENIES = 1 << 5,
     P_KOSZ = 1 << 6, P_PRZYWROC = 1 << 7, P_USUN = 1 << 8, P_OPROZNIJ = 1 << 9, P_OTWORZ = 1 << 10,
     P_WYBIERZ = 1 << 11, P_WYBRANO = 1 << 12, P_WSZYSTKO = (1 << 11) - 1, /* all but the file picker's */
-    P_POCHODZENIE = 1 << 13, /* a new file with an origin other than K1: an import from a USB stick (ADR 0031) */
+    P_POCHODZENIE = 1 << 13, /* a new file with an origin other than K1: an import from a USB stick (ADR 0031), and
+                              * the time it came with (DOK_CZAS, 0.8.2) */
 };
 /* Which entries the client sees: all (with Kosz), the Pulpit folder, the visible ones (no Kosz), or its own files
  * (made by it) and the files it was given (ADR 0030). */
@@ -307,6 +308,8 @@ static int zmiana(int fd, const struct prawa *p, const struct k1_komunikat *m, i
         return dalej(fd, m, fd_in, nowy_id);
     case K1_KOM_DOK_NAZWA:
         return nazwa(m, fd_in);
+    case K1_KOM_DOK_CZAS:
+        return dok_ustaw_czas(m->obiekt, (int64_t)k1_kom_u64(m->a, m->b));
     case K1_KOM_DOK_PRZENIES:
         return dok_przenies(m->obiekt, (uint32_t)m->a, teraz());
     case K1_KOM_DOK_KOSZ:
@@ -337,6 +340,7 @@ static int potrzebne_prawo(const struct k1_komunikat *m)
     case K1_KOM_DOK_WYBIERZ: return P_WYBIERZ;
     case K1_KOM_DOK_KAWALEK:
     case K1_KOM_DOK_KONIEC: return 0; /* the rights were checked when the write started (NOWY, ZAPISZ) */
+    case K1_KOM_DOK_CZAS: return P_POCHODZENIE;
     default: return P_WYBRANO;
     }
 }

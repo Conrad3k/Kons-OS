@@ -112,7 +112,14 @@ i usuwania) czyta usługa `czytnik` (`komponenty/czytnik.md`); przyciski „Impo
 wszystkie” (pliki folderu): zdjęcia PNG/JPEG do Obrazów, reszta do Dokumentów, pochodzenie „z pendrive'a”; od 0.8.1
 (krok 4) pliki do 4 GB, kawałkami po 1 MiB prosto z czytnika do skarbca (Pliki nie czytają treści; przy dużym pliku
 stopka: „Importowanie: 1 z 3… 120 z 300 MB”), wyjęty pendrive w trakcie — skarbiec usuwa już zapisane kawałki;
-podgląd zdjęcia tylko do 16 MB (limit dekodera); postęp i wynik w stopce; wyjęty pendrive — powrót do Dokumentów. Moduły: `main.c` (okno,
+podgląd zdjęcia tylko do 16 MB (limit dekodera); postęp i wynik w stopce; wyjęty pendrive — powrót do Dokumentów.
+Od 0.8.2 (krok 2): folder z pendrive'a przychodzi w kolejnych listach (po 1024; stopka „Czytanie folderu… n
+elementów”), widać i można zaimportować do 16 384 elementów jednego folderu („Importuj wszystkie” — gdy cały folder
+jest już wczytany); plik dostaje czas „zmieniono” z pendrive'a (`DOK_CZAS`), a ponowny import pomija plik, który już
+jest w Obrazach / Dokumentach z pendrive'a z tą samą nazwą, rozmiarem i czasem — stopka „Pominięto n — już
+zaimportowane” (decyzja D3); brak miejsca i limit wpisów przerywają import z powodem: „Brak miejsca na pliki —
+zaimportowano n z m.”, „Brak miejsca w pamięci (K1 działa bez nośnika danych) — …”, „Za dużo plików i folderów (K1
+mieści 16 384) — …”. Lista sortowana `qsort` (16 384 elementy). Moduły: `main.c` (okno,
 mysz, klawisze), `przyciski.c` (przyciski miejsca), `rysuj.c` (lista, podgląd, stopka), `dane.c` (skarbiec i nadzorca),
 `pendrive.c` (pendrive i import), `obrazy.c` (podgląd zdjęcia i tapeta przez dekoder; kanał do dekodera = 5. kanał
 aplikacji, `K1_APL_KANALY`).

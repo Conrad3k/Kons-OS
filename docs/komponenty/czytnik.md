@@ -29,10 +29,17 @@ Plików (UID 206, `SO_PASSCRED`), pole po polu (`k1_odbierz_komunikat`). Pliki s
    z `SO_PASSCRED`), uruchamia czytnik (fd 3 kanał, fd 4 pendrive) i daje Plikom drugi koniec w `PENDRIVE_KANAL`.
    Gdy poprzedni czytnik jeszcze działa — zatrzymuje go i uruchamia nowy po jego końcu.
 3. Czytnik szuka FAT: na początku pendrive'a, potem w partycjach MBR (4 główne) albo GPT (do 128); wysyła `PEN_STAN`
-   (a = 12/16/32, albo a = 0, b = `K1_PEN_BLAD_FORMAT` — np. exFAT, NTFS).
-4. `PEN_SPIS(folder)` → `PEN_LISTA` (numery elementów pamiętane w indeksie po położeniu na nośniku — `k1_indeks`, 0.8.1): do 1024 elementów (c = 1: folder ma więcej), bez ukrytych, systemowych i nazw od
-   kropki; typ pliku z jego pierwszych 64 bajtów (`k1_dok_typ`), czas zmiany jak na pendrivie. Numery wpisów nadaje
-   czytnik (ten sam wpis — ten sam numer); Pliki mogą pytać tylko o numery z list, które dostały.
+   (a = 12/16/32, albo a = 0, b = `K1_PEN_BLAD_FORMAT` — np. exFAT, NTFS). Rodzaj FAT: FAT32, gdy sektor rozruchowy
+   nie ma 16-bitowego rozmiaru FAT i stałego folderu głównego (`BPB_FATSz16` = 0 i `BPB_RootEntCnt` = 0) — jak czyta
+   to Linux, także przy mniej niż 65 525 klastrach (`mformat -F`, niektóre aparaty, małe karty; 0.8.2 krok 2, L13);
+   inaczej z liczby klastrów (FAT12 / FAT16).
+4. `PEN_SPIS(folder, od)` → `PEN_LISTA` (numery elementów pamiętane w indeksie po położeniu na nośniku — `k1_indeks`,
+   0.8.1): do 1024 elementów od elementu `od` folderu (c = 1: folder ma więcej, d = `od`), bez ukrytych, systemowych
+   i nazw od kropki; typ pliku z jego pierwszych 64 bajtów (`k1_dok_typ`), czas zmiany jak na pendrivie. Duży folder
+   (od 0.8.2, L14) przychodzi w kolejnych listach: Pliki proszą o następną, gdy poprzednia mówi „jest więcej” — do
+   16 384 elementów (`K1_PEN_FOLDER_MAKS`, tyle wpisów ma skarbiec); czytnik pomija elementy wcześniejszych list bez
+   czytania ich typu. Numery wpisów nadaje czytnik (ten sam wpis — ten sam numer); Pliki mogą pytać tylko o numery
+   z list, które dostały. W logu jeden wiersz na folder: „folder: n elementów (list: k)”.
 5. `PEN_CZYTAJ(plik, kawałek)` → `PEN_PLIK` (0.8.1 krok 4: kawałkami po 1 MiB, plik do 4 GB — tyle ma FAT32):
    zapieczętowany memfd: w kawałku 0 nazwa, potem najwyżej 1 MiB treści; c = kawałek, d, e = rozmiar pliku (niższe
    i wyższe 32 bity). Czytnik pamięta, gdzie w łańcuchu klastrów skończył (`fat_czytaj_od`, kursor): następny
@@ -47,12 +54,24 @@ Plików (UID 206, `SO_PASSCRED`), pole po polu (`k1_odbierz_komunikat`). Pliki s
 | `PENDRIVE` | nadzorca → Pliki (fd 6) | a = 1 jest pendrive (nie K1), 0 brak |
 | `PENDRIVE_OTWORZ` | Pliki → nadzorca | — (uruchom czytnik) |
 | `PENDRIVE_KANAL` | nadzorca → Pliki | + 1 fd: kanał do nowego czytnika |
-| `PEN_SPIS` | Pliki → czytnik | obiekt = folder (0: główny) |
+| `PEN_SPIS` | Pliki → czytnik | obiekt = folder (0: główny), a = pierwszy element listy 0…16 383 (0.8.2) |
 | `PEN_CZYTAJ` | Pliki → czytnik | obiekt = plik, a = kawałek 0…4095 (0.8.1) |
 | `PEN_STAN` | czytnik → Pliki | a = 12/16/32 (FAT) albo 0 i b = `K1_PEN_BLAD_*` |
-| `PEN_LISTA` | czytnik → Pliki | obiekt = folder, a = długość, b = elementów, c = 1 jest więcej; + memfd (`k1_pendrive.h`) |
+| `PEN_LISTA` | czytnik → Pliki | obiekt = folder, a = długość, b = elementów, c = 1 jest więcej, d = pierwszy element (jak w prośbie); + memfd (`k1_pendrive.h`) |
 | `PEN_PLIK` | czytnik → Pliki | obiekt = plik, a = długość nazwy (tylko kawałek 0), b = bajty kawałka (≤ 1 MiB), c = kawałek, d, e = rozmiar pliku (≤ 4 GiB, ≥ c × 1 MiB + b); + memfd: nazwa i kawałek |
 | `PEN_WYNIK` | czytnik → Pliki | obiekt, a = typ prośby, b = `K1_PEN_BLAD_*` |
+
+## Nazwy z pendrive'a
+Zasady nazw są te same co w skarbcu — jedna tabela w `src/wspolne/k1_nazwy.c` (0.8.2 krok 2, L9; słownik: „zasady
+nazw”). Czytnik składa nazwę z UTF-16 (długa) albo 8.3 (krótka), a `k1_dok_tekst_nazwy` zamienia na „_” znaki,
+których nazwa K1 nie może mieć (sterujące, niewidoczne, zmieniające kierunek tekstu, obszar prywatny, niecharaktery,
+`\ / : * ? " < > |`, połówki par UTF-16), składa literę + znak diakrytyczny w jedną literę (NFD z macOS → NFC: „a” +
+U+0328 → „ą”), zdejmuje spacje (każdej szerokości) z brzegów i kropki z końca. Nazwa dłuższa niż 127 bajtów traci
+koniec podstawy, rozszerzenie (do 16 bajtów) zostaje. Nazwa bez niczego przed rozszerzeniem („    .jpg”) staje się
+„Plik.jpg” — nie ukrytym „.jpg”; nazwa, która na pendrivie zaczyna się od kropki („.Trashes”, „._zdjęcie.jpg”), jest
+ukryta jak w innych systemach. Dwie długie nazwy różne dopiero po 127. bajcie wyglądają w K1 tak samo — skarbiec
+nadaje drugiej „ (2)”. Nazwy zarezerwowane w Windows („CON”, „NUL”…) przechodzą: ważne dopiero przy zapisie na
+pendrive (0.11, RYZYKA R52).
 
 ## Obsługa błędów
 Nie FAT → `PEN_STAN` a = 0 (Pliki: „K1 jeszcze nie czyta tego pendrive'a (np. exFAT, NTFS).”). Uszkodzony system
@@ -62,9 +81,9 @@ reszty systemu: Pliki wracają do Dokumentów z komunikatem. W logu tylko liczby
 ## Testy
 | Test | Rodzaj |
 |---|---|
-| host `test_fat`: obrazy z mtools/sfdisk (`testy/host/obrazy_fat.sh`) — FAT12 bez partycji, FAT16 w MBR (plik w kawałkach), FAT32 w GPT (1100 plików), NTFS; nazwy 8.3 i długie (polskie litery, pary UTF-16, zakazane znaki, znaki kierunku, ucięcie z rozszerzeniem); lista `k1_pendrive` | jednostkowy |
+| host `test_fat`: obrazy z mtools/sfdisk (`testy/host/obrazy_fat.sh`) — FAT12 bez partycji, FAT16 w MBR (plik w kawałkach), FAT32 w GPT (1100 plików), „mały” FAT32 (`mformat -F -c 8`, mniej niż 65 525 klastrów, folder 3000 plików; 0.8.2), NTFS; nazwy 8.3 i długie (polskie litery, pary UTF-16, zakazane znaki, znaki kierunku, ucięcie z rozszerzeniem; 0.8.2: znaki niewidoczne, NFD → NFC, „    .jpg” → „Plik.jpg”, próba T4); lista `k1_pendrive` | jednostkowy |
 | host `test_fat`: obrazy uszkodzone — pętla w łańcuchu, łańcuch urwany, klaster wolny / zły / poza woluminem, wpis poza woluminem, zły sektor rozruchowy, nagłówek GPT poza nośnikiem; każda zmiana pola listy odrzucona | negatywny |
 | `fuzz_fat` (cały „pendrive”: otwarcie, dwa poziomy folderów, pliki; odczyt poza nośnikiem = błąd), `fuzz_pendrive` (lista) | fuzzing |
-| host `test_komunikat` (`PENDRIVE*`, `PEN_*`, `DOK_NOWY` d), `test_dokumenty` (pochodzenie tylko od Plików), `test_instalator` (`k1_pendrive_znajdz`: nie pendrive K1, nie czytnik kart bez karty) | jednostkowy / negatywny |
+| host `test_komunikat` (`PENDRIVE*`, `PEN_*` — także pierwszy element listy, `DOK_NOWY` d, `DOK_CZAS`), `test_dokumenty` (pochodzenie tylko od Plików), `test_instalator` (`k1_pendrive_znajdz`: nie pendrive K1, nie czytnik kart bez karty) | jednostkowy / negatywny |
 | w systemie: próba w klatce czytnika (`t_proby`), spis plików rdzenia | negatywny |
-| `test-pendrive.sh` (QEMU): wirtualny pendrive USB FAT32/MBR ze zdjęciami JPEG/PNG → „Importuj wszystkie”, pojedynczo, plik 17 MB pominięty, Obrazy/Dokumenty, wyjęcie pendrive'a, pendrive NTFS; zrzuty `pendrive-*.png` | funkcjonalny / negatywny |
+| `test-pendrive.sh` (QEMU): wirtualny pendrive USB FAT32/MBR ze zdjęciami JPEG/PNG → „Importuj wszystkie”, pojedynczo, plik 17 MB pominięty, Obrazy/Dokumenty, wyjęcie pendrive'a, pendrive NTFS; 0.8.2: ponowny import pomija („Pominięto 3”), „mały” FAT32 z folderem 1100 zdjęć — dwie listy, import wszystkich, drugi import pomija wszystkie; zrzuty `pendrive-*.png` | funkcjonalny / negatywny |

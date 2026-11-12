@@ -115,6 +115,7 @@ static int64_t na_utc(int64_t lokalny)
 
 struct spis {
     int n, wiecej, bez_miejsca;
+    uint32_t od, pominiete; /* the list starts at entry `od` of the folder (0.8.2 step 2): entries before it skipped */
 };
 
 struct poczatek {
@@ -134,6 +135,10 @@ static int do_spisu(void *ctx, const struct fat_wpis *w)
 {
     struct spis *s = ctx;
     struct k1_pen_wpis *p = &wpisy[s->n];
+    if (s->pominiete < s->od) { /* in an earlier list: neither remembered again nor its type read */
+        s->pominiete++;
+        return 0;
+    }
     if (s->n == K1_PEN_WPISOW) {
         s->wiecej = 1;
         return 1;
@@ -160,10 +165,11 @@ static int do_spisu(void *ctx, const struct fat_wpis *w)
     return 0;
 }
 
-static void spis(uint32_t id)
+/* The entries of folder `id` from its entry `od` on: at most K1_PEN_WPISOW, the rest in the next list Pliki ask for. */
+static void spis(uint32_t id, uint32_t od)
 {
     const struct znany *z = id == 0 ? NULL : znany(id);
-    struct spis s = { 0, 0, 0 };
+    struct spis s = { 0, 0, 0, od, 0 };
     size_t dl;
     int fd, r;
     if (id != 0 && (z == NULL || !z->folder)) {
@@ -189,9 +195,10 @@ static void spis(uint32_t id)
         wynik(id, K1_KOM_PEN_SPIS, K1_PEN_BLAD_PAMIEC);
         return;
     }
-    wyslij(k1_komunikat_nowy(K1_KOM_PEN_LISTA, id, (int32_t)dl, s.n, s.wiecej, 0, 0), fd);
+    wyslij(k1_komunikat_nowy(K1_KOM_PEN_LISTA, id, (int32_t)dl, s.n, s.wiecej, (int32_t)od, 0), fd);
     close(fd);
-    k1_log(TAG, "folder: %d elementów%s", s.n, s.wiecej ? " (pokazane pierwsze)" : "");
+    if (!s.wiecej) /* once per folder, not per list (at most 2 lines a second) */
+        k1_log(TAG, "folder: %u elementów (list: %u)", (unsigned)(od + (uint32_t)s.n), (unsigned)(od / K1_PEN_WPISOW + 1));
 }
 
 /* ---- a file ---- */
@@ -247,7 +254,7 @@ static void plik(uint32_t id, uint32_t kawalek)
         uint32_t ile = z->rozmiar - od < K1_DOK_KAWALEK ? (uint32_t)(z->rozmiar - od) : K1_DOK_KAWALEK;
         wyslij(k1_komunikat_nowy(K1_KOM_PEN_PLIK, id, (int32_t)nl, (int32_t)ile, (int32_t)kawalek, k1_kom_niskie(z->rozmiar),
                                  k1_kom_wysokie(z->rozmiar)), fd);
-        if (od + ile >= z->rozmiar) /* the last piece: once per file, not per piece (at most 2 lines a second) */
+        if (kawalek > 0 && od + ile >= z->rozmiar) /* a file of pieces, once (thousands of small ones: Pliki count them) */
             k1_log(TAG, "plik przeczytany (%u B, kawałków %u)", (unsigned)z->rozmiar, kawalek + 1);
     }
     close(fd);
@@ -292,7 +299,7 @@ int main(void)
         if (!fat_jest)
             wynik(k.obiekt, k.typ, K1_PEN_BLAD_FORMAT);
         else if (k.typ == K1_KOM_PEN_SPIS)
-            spis(k.obiekt);
+            spis(k.obiekt, (uint32_t)k.a);
         else if (k.typ == K1_KOM_PEN_CZYTAJ)
             plik(k.obiekt, (uint32_t)k.a);
     }

@@ -17,10 +17,12 @@
 #define K1_PEN_WPIS_BAJTY 152
 #define K1_PEN_LISTA_NAGL 16
 #define K1_PEN_WPISOW 1024 /* entries in one list at most */
+#define K1_PEN_FOLDER_MAKS 16384 /* entries of one folder Pliki take, list after list (0.8.2 step 2; = K1_DOK_MAKS) */
 #define K1_PEN_LISTA_MAKS (K1_PEN_LISTA_NAGL + K1_PEN_WPISOW * K1_PEN_WPIS_BAJTY)
 #define K1_PEN_ID_MAKS 0x7fffffff
 #define K1_PEN_GLEBOKOSC 16 /* folders inside folders Pliki follows on a stick */
 _Static_assert(24 + K1_DOK_NAZWA == K1_PEN_WPIS_BAJTY, "k1_pendrive: layout");
+_Static_assert(K1_PEN_FOLDER_MAKS == K1_DOK_MAKS && K1_PEN_FOLDER_MAKS % K1_PEN_WPISOW == 0, "k1_pendrive: whole lists");
 
 /* Results of czytnik (K1_KOM_PEN_STAN b, K1_KOM_PEN_WYNIK b) */
 #define K1_PEN_BLAD_FORMAT (-30)     /* not FAT (exFAT, NTFS, …): K1 cannot read it yet */

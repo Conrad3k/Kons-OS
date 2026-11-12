@@ -58,7 +58,8 @@ Nowy czat — przebieg każdego kroku:
      Krok                                             Luki (punkt 5)          Zależy od  Decyzje   Rozmiar  ADR
 [x]  1  Skarbiec na lata: format na duże dane        L25 L26 L27 L28         —          —         XL       0036
          [1a PR #72 (format 2 w magazynie); 1b i 1c PR #73 (kompaktowanie w przerwach, przejście, format 2 w systemie)]
-[ ]  2  Pendrive i nazwy plików                      L13 L14 L15 L16 L8 L9   —          D3        M–L      —
+[x]  2  Pendrive i nazwy plików                      L13 L14 L15 L16 L8 L9   —          D3        M–L      —
+         [PR #74]
 [ ]  3  Zdjęcia: duże i nowe formaty, wspólny dekoder L17 L23b               —          —         M        (0032)
 [ ]  4  Aplikacja Podgląd                            (prośba właściciela)    3          D1 D2 D5  L        0037
 [ ]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
@@ -155,16 +156,16 @@ KROK 2 — Pendrive i nazwy plików                                             
   Cel: każdy pendrive FAT z telefonu czy aparatu działa, z dowolnie dużego folderu można zaimportować wszystko,
   ponowny import nie robi kopii, nazwy plików nie mogą udawać innych.
   Zadania:
-  [ ] L13: FAT32 rozpoznany też z pól boot sectora (BPB_FATSz16 == 0 i BPB_RootEntCnt == 0), jak w Linuksie.
-  [ ] L14: stronicowanie listy (PEN_SPIS z numerem pierwszego elementu, PEN_LISTA mówi, czy jest dalej); Pliki
+  [x] L13: FAT32 rozpoznany też z pól boot sectora (BPB_FATSz16 == 0 i BPB_RootEntCnt == 0), jak w Linuksie.
+  [x] L14: stronicowanie listy (PEN_SPIS z numerem pierwszego elementu, PEN_LISTA mówi, czy jest dalej); Pliki
       dociągają strony przy przewijaniu; „Importuj wszystkie” bierze wszystkie strony folderu.
-  [ ] L15 (wg D3): czas z pendrive'a zachowany jako „zmieniono” importowanego pliku (pole w DOK_NOWY, tylko
+  [x] L15 (wg D3): czas z pendrive'a zachowany jako „zmieniono” importowanego pliku (pole w DOK_NOWY, tylko
       z P_POCHODZENIE); ponowny import pomija plik, gdy w folderze docelowym jest plik „z pendrive'a” z tą samą
       nazwą (bez „ (n)”), rozmiarem i czasem → „Pominięto n — już zaimportowane”.
-  [ ] L16: limit plików (PELNO) i brak miejsca przerywają import z jasnym komunikatem; tryb bez K1-DANE —
+  [x] L16: limit plików (PELNO) i brak miejsca przerywają import z jasnym komunikatem; tryb bez K1-DANE —
       „brak miejsca w pamięci”.
-  [ ] L8: wolna_nazwa() obcina też końcówkę, gdy podstawa by zniknęła; czytnik: pusta podstawa → „Plik.jpg”.
-  [ ] L9 (naprawa wpisów przy starcie jest od 0.8.1, luka L2): tabela zakazanych zakresów (jeden
+  [x] L8: wolna_nazwa() obcina też końcówkę, gdy podstawa by zniknęła; czytnik: pusta podstawa → „Plik.jpg”.
+  [x] L9 (naprawa wpisów przy starcie jest od 0.8.1, luka L2): tabela zakazanych zakresów (jeden
       wiersz = zakres + opis): znaki
       formatujące (200B–200F, 2060–2064, FEFF, 00AD, 061C, 180E, tagi E0000–E007F), niecharaktery (FDD0–FDEF,
       xFFFE/xFFFF), obszar prywatny, wypełniacze Hangul (3164, FFA0, 115F/1160), odstępy inne niż spacja na
@@ -180,6 +181,26 @@ KROK 2 — Pendrive i nazwy plików                                             
   Gotowe, gdy: próba T6 w wersji -c 8 importuje; folder 3000 plików importuje się w całości; T1/6 odrzuca
   wszystkie nazwy z listy.
   Nie w tym kroku: exFAT, NTFS (dodatek A).
+  Ustalenia z wykonania (2026-11-12, jeden PR):
+  - Podział przed rozbudową: nazwy z k1_dokument.c do src/wspolne/k1_nazwy.c (zmienna DOK_C w Makefile).
+  - L9: jedna tabela znaków (zakres + gdzie nie wolno: nigdzie / na brzegu / na początku) i tabela „litera + znak =
+    jedna litera” (13 znaków diakrytycznych, 161 liter Latin-1 i Latin Extended-A, sprawdzone z Unicode w Pythonie);
+    porównanie wielkości liter: Latin-1 i Latin Extended-A (İ/ı zostają, jak w Windows bez języka). Czytnik używa
+    tej samej funkcji (k1_dok_tekst_nazwy). Notatki: nazwa z pierwszego wiersza bez zmian (zła → „Notatka”).
+  - L14: Pliki proszą o kolejne listy same (nie przy przewijaniu) — prościej, a „Importuj wszystkie” i tak potrzebuje
+    całego folderu (przycisk nieaktywny, dopóki listy przychodzą). Do 16 384 elementów (= wpisów skarbca). Lista
+    w Plikach sortowana qsort (sortowanie przez wstawianie przy 16 384 elementach — ok. 10⁸ porównań).
+  - L15: czas idzie osobnym komunikatem DOK_CZAS po zapisaniu pliku (DOK_NOWY ma zajęte wszystkie pola); skarbiec
+    przyjmuje go tylko od Plików (P_POCHODZENIE) i tylko dla pliku z pochodzeniem innym niż K1. Ponowny import:
+    tę samą nazwę porównuje jak skarbiec (bez wielkości liter), plik bez czasu na pendrivie (0) nigdy nie jest
+    pomijany. Pliki proszą o listę skarbca najwyżej raz naraz (DOK_ZMIANA w trakcie → jedna następna).
+  - L16: SKARB_MIEJSCE e = 1 — pliki w pamięci (bez K1-DANE); PELNO, brak miejsca i brak miejsca w pamięci
+    przerywają import z powodem w stopce.
+  - Log przy imporcie tysięcy plików: pojedynczy mały plik nie daje już wierszy (Pliki, czytnik — tylko pliki
+    kawałkowe i liczby na końcu), pulpit nie powtarza tego samego „ikony na pulpicie”, Pliki nie logują widoku
+    pendrive'a po każdej liście skarbca (w QEMU: 398 × „pominięto … (limit)” przed poprawką, 0 po niej).
+  - QEMU (TCG): folder 1100 zdjęć — dwie listy czytnika, import 1100 plików i ponowny import (wszystkie pominięte);
+    cały test-pendrive 7,3 min.
 
 KROK 3 — Zdjęcia: duże i nowe formaty, wspólny dekoder                                M · bez decyzji · bez ADR
   Cel: podgląd działa dla zdjęć do 100 Mpx (tryb 48/50 Mpx w telefonach) i dla GIF/BMP (WebP, jeśli Wuffs umie);
@@ -308,7 +329,8 @@ KROK 7 — Porządki i wydanie 0.8.2                                            
 [!] D1 (krok 4) Nazwa „Podgląd”: w słowniku „podgląd” to dziś panel po prawej w Plikach. Jedno słowo = jedno
        znaczenie. Rekomendacja: aplikacja „Podgląd”, a panel w Plikach — „szczegóły”.
 [!] D2 (krok 4) Delete w Podglądzie wyrzuca zdjęcie do Kosza (jak w Zdjęciach Windows)? Rekomendacja: tak.
-[!] D3 (krok 2) Ponowny import tych samych plików. Rekomendacja: pomijać już zaimportowane i napisać ile.
+[x] D3 (krok 2) Ponowny import tych samych plików. Rekomendacja: pomijać już zaimportowane i napisać ile.
+       DECYZJA właściciela (2026-11-12): pomijać — „Pominięto n — już zaimportowane”.
 [!] D5 (krok 4) Szkice wyglądu Podglądu (2–3 do wyboru) — na początku kroku 4.
 [!] D6 (krok 6) Przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) w 0.8.2 czy razem z 0.11?
        Rekomendacja: w 0.8.2 przeciąganie w obrębie Plików i pulpitu; między oknami — po 0.8.2, jednym ADR-em

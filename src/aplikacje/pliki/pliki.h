@@ -108,6 +108,7 @@ void zmien_nazwe(uint32_t id, const char *t, size_t dl);
 void podglad_zadaj(uint32_t id);   /* the start of a text file for the preview */
 extern char podglad[K1_DOK_PODGLAD + 1];
 extern int32_t miejsce_zajete, miejsce_calosc; /* the room for files, MiB (0.8.1 step 3) */
+extern int miejsce_w_pamieci;      /* no K1-DANE: files are kept in memory (0.8.2 step 2) */
 int malo_miejsca(void);            /* under a tenth of it left: the footer says so */
 extern uint32_t podglad_id, podglad_dl;
 
@@ -116,7 +117,7 @@ enum { PEN_ZAMKNIETY = 1, PEN_CZEKA = 2, PEN_GOTOWY = 3 }; /* pen_stan; < 0: K1_
 extern int pen_jest;  /* nadzorca: a stick is plugged in (the place "Pendrive" is shown) */
 extern int pen_stan;
 extern struct k1_dok_wpis pen[];
-extern int n_pen, importuje;
+extern int n_pen, importuje, pen_laduje; /* pen_laduje: the next list of the folder is on the way (0.8.2) */
 void pendrive_start(void);
 void pendrive_otworz(void);         /* the place "Pendrive" clicked */
 void pendrive_wejdz(uint32_t id);   /* a folder on the stick */

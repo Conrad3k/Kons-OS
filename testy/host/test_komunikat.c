@@ -350,6 +350,17 @@ static void kawalki(void)
            zle(K(K1_KOM_DOK_KONIEC, 0, 0, 1, 0, 0, 0), DO));
     EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_DOK_KAWALEK, DO) && !k1_komunikat_z_deskryptorem(K1_KOM_DOK_KONIEC, DO));
     EXPECT(k1_kom_dok_prosba(K1_KOM_DOK_KAWALEK) && k1_kom_dok_prosba(K1_KOM_DOK_KONIEC));
+    /* 0.8.2 step 2: the time a file had on the stick — 1 s .. the end of 2107, as two halves */
+    EXPECT(ok(K(K1_KOM_DOK_CZAS, 100, 1, 0, 0, 0, 0), DO) && ok(K(K1_KOM_DOK_CZAS, 100, 1700000000, 0, 0, 0, 0), DO) &&
+           ok(K(K1_KOM_DOK_CZAS, 100, k1_kom_niskie(K1_DOK_CZAS_MAKS), k1_kom_wysokie(K1_DOK_CZAS_MAKS), 0, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_DOK_CZAS, 100, 0, 0, 0, 0, 0), DO) &&                                     /* no time */
+           zle(K(K1_KOM_DOK_CZAS, 100, k1_kom_niskie(K1_DOK_CZAS_MAKS + 1), 1, 0, 0, 0), DO) &&   /* after 2107 */
+           zle(K(K1_KOM_DOK_CZAS, 100, 5, -1, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_CZAS, 0, 5, 0, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_CZAS, K1_FOLDER_OBRAZY, 5, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_CZAS, 100, 5, 0, 1, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_CZAS, 100, 5, 0, 0, 0, 0), OD));
+    EXPECT(k1_kom_dok_prosba(K1_KOM_DOK_CZAS) && !k1_komunikat_z_deskryptorem(K1_KOM_DOK_CZAS, DO) &&
+           ok(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_CZAS, K1_DOK_BLAD_MIEJSCE, 0, 0, 0), OD) &&
+           zle(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_CZAS, 0, 150, 0, 0), OD));
     /* the answers: the new number after KONIEC too; the new error */
     EXPECT(ok(K(K1_KOM_DOK_WYNIK, 0, K1_KOM_DOK_KONIEC, 0, 150, 0, 0), OD) && ok(K(K1_KOM_DOK_WYNIK, 0, K1_KOM_DOK_KAWALEK, 0, 0, 0, 0), OD) &&
            ok(K(K1_KOM_DOK_WYNIK, 0, K1_KOM_DOK_KAWALEK, K1_DOK_BLAD_ZAPIS, 0, 0, 0), OD));
@@ -383,7 +394,8 @@ static void miejsce(void)
     EXPECT(zle(K(K1_KOM_SKARB_MIEJSCE, 1, 0, K1_PAMIEC_MAKS_MIB + 1, 0, 0, 0), K1_KIER_OD_SKARBCA));
     EXPECT(zle(K(K1_KOM_SKARB_MIEJSCE, 1, 0, 24, K1_DOK_MAKS + 1, 0, 0), K1_KIER_OD_SKARBCA));
     EXPECT(zle(K(K1_KOM_SKARB_MIEJSCE, 1, 0, 24, 0, -1, 0), K1_KIER_OD_SKARBCA));
-    EXPECT(zle(K(K1_KOM_SKARB_MIEJSCE, 1, 0, 24, 0, 0, 1), K1_KIER_OD_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_MIEJSCE, 1, 0, 24, 0, 0, 1), K1_KIER_OD_SKARBCA)); /* in memory (0.8.2) */
+    EXPECT(zle(K(K1_KOM_SKARB_MIEJSCE, 1, 0, 24, 0, 0, 2), K1_KIER_OD_SKARBCA) && zle(K(K1_KOM_SKARB_MIEJSCE, 1, 0, 24, 0, 0, -1), K1_KIER_OD_SKARBCA));
     EXPECT(zle(K(K1_KOM_SKARB_MIEJSCE, 0, 0, 24, 0, 0, 0), K1_KIER_OD_SKARBCA));
     EXPECT(zle(K(K1_KOM_SKARB_MIEJSCE, 1, 0, 24, 0, 0, 0), K1_KIER_DO_SKARBCA));
     EXPECT(ok(K(K1_KOM_SKARB_POWIEKSZ, 1, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
@@ -613,7 +625,10 @@ static void pendrive(void)
            !k1_komunikat_z_deskryptorem(K1_KOM_PENDRIVE_OTWORZ, K1_KIER_DO_NADZORCY));
     /* Pliki → czytnik */
     EXPECT(ok(K(K1_KOM_PEN_SPIS, 0, 0, 0, 0, 0, 0), DO) && ok(K(K1_KOM_PEN_SPIS, K1_PEN_ID_MAKS, 0, 0, 0, 0, 0), DO));
-    EXPECT(zle(K(K1_KOM_PEN_SPIS, 0x80000000u, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_PEN_SPIS, 0, 1, 0, 0, 0, 0), DO) &&
+    EXPECT(ok(K(K1_KOM_PEN_SPIS, 7, 1024, 0, 0, 0, 0), DO) && ok(K(K1_KOM_PEN_SPIS, 7, K1_PEN_FOLDER_MAKS - 1, 0, 0, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_PEN_SPIS, 7, K1_PEN_FOLDER_MAKS, 0, 0, 0, 0), DO) && zle(K(K1_KOM_PEN_SPIS, 7, -1, 0, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_PEN_SPIS, 7, 0, 1, 0, 0, 0), DO)); /* 0.8.2: from entry a of the folder */
+    EXPECT(zle(K(K1_KOM_PEN_SPIS, 0x80000000u, 0, 0, 0, 0, 0), DO) &&
            zle(K(K1_KOM_PEN_SPIS, 0, 0, 0, 0, 0, 0), OD) && zle(K(K1_KOM_PEN_SPIS, 0, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
     EXPECT(ok(K(K1_KOM_PEN_CZYTAJ, 5, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_PEN_CZYTAJ, 0, 0, 0, 0, 0, 0), DO));
     /* czytnik → Pliki */
@@ -622,7 +637,10 @@ static void pendrive(void)
     EXPECT(zle(K(K1_KOM_PEN_STAN, 0, 24, 0, 0, 0, 0), OD) && zle(K(K1_KOM_PEN_STAN, 0, 0, 0, 0, 0, 0), OD) &&
            zle(K(K1_KOM_PEN_STAN, 0, 32, -30, 0, 0, 0), OD) && zle(K(K1_KOM_PEN_STAN, 0, 0, K1_PEN_BLAD_MIN - 1, 0, 0, 0), OD));
     EXPECT(ok(K(K1_KOM_PEN_LISTA, 0, K1_PEN_LISTA_NAGL, 0, 0, 0, 0), OD) && ok(K(K1_KOM_PEN_LISTA, 7, L1, 1, 1, 0, 0), OD) &&
-           ok(K(K1_KOM_PEN_LISTA, 7, K1_PEN_LISTA_MAKS, K1_PEN_WPISOW, 0, 0, 0), OD));
+           ok(K(K1_KOM_PEN_LISTA, 7, K1_PEN_LISTA_MAKS, K1_PEN_WPISOW, 0, 0, 0), OD) &&
+           ok(K(K1_KOM_PEN_LISTA, 7, L1, 1, 0, 15 * K1_PEN_WPISOW, 0), OD));
+    EXPECT(zle(K(K1_KOM_PEN_LISTA, 7, L1, 1, 0, K1_PEN_FOLDER_MAKS, 0), OD) && zle(K(K1_KOM_PEN_LISTA, 7, L1, 1, 0, -1, 0), OD) &&
+           zle(K(K1_KOM_PEN_LISTA, 7, L1, 1, 0, 0, 1), OD));
     EXPECT(zle(K(K1_KOM_PEN_LISTA, 7, L1 + 1, 1, 0, 0, 0), OD) && zle(K(K1_KOM_PEN_LISTA, 7, L1, 1, 2, 0, 0), OD) &&
            zle(K(K1_KOM_PEN_LISTA, 7, K1_PEN_LISTA_MAKS + K1_PEN_WPIS_BAJTY, K1_PEN_WPISOW + 1, 0, 0, 0), OD));
     EXPECT(ok(K(K1_KOM_PEN_PLIK, 9, 127, MB1, 0, MB1, 0), OD) && ok(K(K1_KOM_PEN_PLIK, 9, 1, 0, 0, 0, 0), OD));

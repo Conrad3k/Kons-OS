@@ -377,6 +377,19 @@ static void test_prawa(void)
                 mfd, &zm, &fd);
     EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == 0 && zm && dok_wpis((uint32_t)k.c) != NULL &&
            dok_wpis((uint32_t)k.c)->pochodzenie == K1_POCH_PENDRIVE && strcmp(dok_wpis((uint32_t)k.c)->nazwa, "tajne (2).txt") == 0);
+    { /* 0.8.2 step 2: the time it had on the stick — only for a file with another origin, only Pliki */
+        uint32_t z = (uint32_t)k.c;
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_CZAS, z, 1700000000, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.a == K1_KOM_DOK_CZAS && k.b == 0 && zm && dok_wpis(z)->zmieniono == 1700000000);
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_CZAS, plik, 1700000000, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_MIEJSCE && !zm && dok_wpis(plik)->zmieniono == T0); /* made in K1: its own time */
+        k = zapytaj(K1_PROFIL_NOTATKI, k1_komunikat_nowy(K1_KOM_DOK_CZAS, z, 1600000000, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_PRAWA && !zm && dok_wpis(z)->zmieniono == 1700000000);
+        k = zapytaj(K1_PROFIL_GUI, k1_komunikat_nowy(K1_KOM_DOK_CZAS, z, 1600000000, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_PRAWA && !zm);
+        EXPECT(dok_ustaw_czas(z, 0) == K1_DOK_BLAD_MIEJSCE && dok_ustaw_czas(z, K1_DOK_CZAS_MAKS + 1) == K1_DOK_BLAD_MIEJSCE &&
+               dok_ustaw_czas(999999, 5) == K1_DOK_BLAD_BRAK);
+    }
     mfd = k1_memfd_z_danymi("t", "Nowy folder", 11); /* the size does not match the message */
     k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_OBRAZY, K1_DOK_FOLDER, 10, 0, 0, 0), mfd, &zm, &fd);
     EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == K1_MAG_ARG && !zm);
@@ -762,6 +775,94 @@ static void test_nazwa_popraw(void)
     EXPECT(strlen(n) == 126 && k1_dok_nazwa_poprawna(n, strlen(n)));
 }
 
+/* 0.8.2 step 2 (L9, trial T1/6 of plan 0.8.1): names that look like other names or like nothing are refused —
+ * invisible characters, direction marks, spaces of other widths at the edges, a mark on nothing, a letter written as
+ * a letter + a mark (one name per look); in the middle a no-break space is a letter like any other. */
+static void test_nazwy_podrobki(void)
+{
+    static const char *const zle[] = {
+        "a\xe2\x80\x8b" "b",      /* U+200B zero-width space */
+        "a\xc2\xad" "b",          /* U+00AD soft hyphen */
+        "a\xe2\x81\xa0" "b",      /* U+2060 word joiner */
+        "a\xe2\x80\x8e" "b",      /* U+200E left-to-right mark */
+        "a\xe2\x80\x8f" "b",      /* U+200F right-to-left mark */
+        "a\xd8\x9c" "b",          /* U+061C Arabic letter mark */
+        "\xc2\xa0" "a",           /* U+00A0 at the start */
+        "a\xc2\xa0",              /* …at the end */
+        "\xe3\x80\x80" "a",       /* U+3000 at the start */
+        "a\xe2\x80\xaf",          /* U+202F at the end */
+        "\xe3\x85\xa4",           /* U+3164 Hangul filler */
+        "a\xf3\xa0\x81\x81",      /* U+E0041 tag */
+        "a\xef\xbf\xbe",          /* U+FFFE */
+        "a\xf0\x9f\xbf\xbf",      /* U+1FFFF */
+        "a\xef\xb7\x90",          /* U+FDD0 */
+        "a\xee\x80\x80",          /* U+E000 private use */
+        "\xcc\x81" "a",           /* a mark on nothing */
+        "a\xcc\xa8.txt",          /* "a" + ogonek: written as "ą" */
+        "Zaz\xcc\x87o\xcc\x81\xc5\x82\xc4\x87", /* "Zażółć" from macOS (NFD) */
+        "a\xe1\xa0\x8e" "b",      /* U+180E */
+    };
+    for (size_t i = 0; i < sizeof zle / sizeof zle[0]; i++)
+        EXPECT(!nazwa(zle[i]));
+    EXPECT(nazwa("a\xc2\xa0" "b") && nazwa("a\xe3\x80\x80" "b")); /* other spaces inside: allowed */
+    EXPECT(nazwa("\xc4\x85.txt") && nazwa("q\xcc\xa8") && nazwa("\xc5\x82\xcc\x81")); /* ą; q + ogonek and ł + acute: no one letter */
+    EXPECT(nazwa("a\xcc\x81\xcc\x81") == 0 && nazwa("\xc3\xa1\xcc\x81")); /* á + acute: kept as written */
+    EXPECT(nazwa("\xf0\x9f\x98\x80") && nazwa("\xe5\x86\x99\xe7\x9c\x9f")); /* an emoji, CJK */
+    EXPECT(popraw("a\xcc\xa8.txt", "\xc4\x85.txt") && popraw("Zaz\xcc\x87o\xcc\x81\xc5\x82\xc4\x87", "Za\xc5\xbc\xc3\xb3\xc5\x82\xc4\x87"));
+    EXPECT(popraw("\xc2\xa0 x\xe3\x80\x80", "x") && popraw("\xcc\x81" "a", "_a") && popraw("a\xe2\x80\x8b" "b", "a_b"));
+    EXPECT(popraw("a\xf3\xa0\x81\x81", "a_") && popraw("\xe2\x80\x8b", "_") && popraw("x.\xc2\xa0", "x"));
+    /* comparing: Latin-1 and Latin Extended-A capitals */
+    EXPECT(k1_dok_nazwy_rowne("\xc3\x84pfel", "\xc3\xa4pfel") && k1_dok_nazwy_rowne("\xc3\x96L", "\xc3\xb6l") &&
+           k1_dok_nazwy_rowne("\xc4\x8c\xc5\xa0\xc5\xbd", "\xc4\x8d\xc5\xa1\xc5\xbe") && k1_dok_nazwy_rowne("\xc5\xb8", "\xc3\xbf"));
+    EXPECT(!k1_dok_nazwy_rowne("\xc3\x97", "\xc3\xb7") && !k1_dok_nazwy_rowne("\xc4\xb0", "i")); /* × ≠ ÷; İ stays */
+    for (uint32_t k = 0x300; k <= 0x328; k++) /* every letter + mark of the table: one letter, valid and different */
+        for (uint32_t l = 'A'; l <= 'z'; l++) {
+            uint32_t j = k1_dok_jedna_litera(l, k);
+            EXPECT(j == 0 || (j >= 0xc0 && j < 0x180 && k1_dok_znak(j) == K1_ZNAK_WSZEDZIE));
+        }
+    EXPECT(k1_dok_jedna_litera('z', 0x307) == 0x17c && k1_dok_jedna_litera('A', 0x328) == 0x104 &&
+           k1_dok_jedna_litera('o', 0x301) == 0xf3 && k1_dok_jedna_litera('x', 0x301) == 0);
+}
+
+static const char *nowa_nazwa_wpisu;
+static void podmien_nazwe(uint8_t *b)
+{
+    memset(b + 48, 0, K1_DOK_NAZWA);
+    memcpy(b + 48, nowa_nazwa_wpisu, strlen(nowa_nazwa_wpisu));
+}
+
+/* L8 (trial T1/2): a free name for a long name with a long "extension" (before: refused as taken); L9: an entry of
+ * 0.8.1 whose name is not allowed any more is renamed when the files are read — never refused, nothing lost. */
+static void test_nazwy_wolne(void)
+{
+    char dluga[K1_DOK_NAZWA];
+    uint32_t a, b, c, d, e;
+    dok_wczytaj(T0);
+    memset(dluga, 0, sizeof dluga);
+    dluga[0] = 'a', dluga[1] = '.';
+    memset(dluga + 2, 'x', 125);
+    a = nowy(K1_FOLDER_POBRANE, K1_DOK_PLIK, dluga, (const uint8_t *)"1", 1, T0);
+    b = nowy(K1_FOLDER_POBRANE, K1_DOK_PLIK, dluga, (const uint8_t *)"2", 1, T0);
+    EXPECT(a != 0 && b != 0 && strlen(dok_wpis(b)->nazwa) <= 127 && strncmp(dok_wpis(b)->nazwa, "a.xxx", 5) == 0 &&
+           strcmp(dok_wpis(b)->nazwa + strlen(dok_wpis(b)->nazwa) - 4, " (2)") == 0);
+    memcpy(dluga + 110, ".jpg", 5); /* a long base, a short extension: the base is cut, ".jpg" stays */
+    a = nowy(K1_FOLDER_POBRANE, K1_DOK_PLIK, dluga, (const uint8_t *)"1", 1, T0);
+    b = nowy(K1_FOLDER_POBRANE, K1_DOK_PLIK, dluga, (const uint8_t *)"2", 1, T0);
+    EXPECT(a != 0 && b != 0 && strcmp(dok_wpis(b)->nazwa + strlen(dok_wpis(b)->nazwa) - 8, " (2).jpg") == 0);
+    /* names written by 0.8.1 that are not allowed now */
+    c = nowy(K1_FOLDER_OBRAZY, K1_DOK_PLIK, "zdjecie.jpg", (const uint8_t *)"z", 1, T0);
+    d = nowy(K1_FOLDER_OBRAZY, K1_DOK_PLIK, "\xc4\x85.txt", (const uint8_t *)"q", 1, T0);
+    e = nowy(K1_FOLDER_OBRAZY, K1_DOK_PLIK, "inny.txt", (const uint8_t *)"r", 1, T0);
+    nowa_nazwa_wpisu = "zdj\xe2\x80\x8b" "ecie.jpg";
+    zepsuj_wpis(c, podmien_nazwe);
+    nowa_nazwa_wpisu = "a\xcc\xa8.txt"; /* "ą.txt" from macOS: "ą.txt" is there already */
+    zepsuj_wpis(e, podmien_nazwe);
+    dok_wczytaj(T0 + 1);
+    EXPECT(dok_wpis(c) != NULL && strcmp(dok_wpis(c)->nazwa, "zdj_ecie.jpg") == 0 && tresc_rowna(c, (const uint8_t *)"z", 1));
+    EXPECT(dok_wpis(e) != NULL && strcmp(dok_wpis(e)->nazwa, "\xc4\x85 (2).txt") == 0 && dok_wpis(d) != NULL &&
+           strcmp(dok_wpis(d)->nazwa, "\xc4\x85.txt") == 0 && tresc_rowna(e, (const uint8_t *)"r", 1));
+}
+
 /* T1/7 of the plan: the number of entries in Kosz is what Pliki shows there, a file and its folder each. */
 static int pokazany_w_koszu(const struct k1_dok_wpis *w)
 {
@@ -1052,6 +1153,8 @@ int main(void)
     test_naprawa();
     test_folder_aplikacji();
     test_nazwa_popraw();
+    test_nazwy_podrobki();
+    test_nazwy_wolne();
     test_licznik_kosza();
     test_zegar();
     test_limit_dostepu();
