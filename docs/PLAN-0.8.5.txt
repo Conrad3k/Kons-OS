@@ -1,0 +1,230 @@
+K1 — PLAN WERSJI 0.8.5 „PODGLĄD I MIEJSCE” (poprawki tematu 0.8 Pliki, przed 0.9 Sieć)
+=====================================================================================
+
+Data: 2026-11-12 (porządek w planie: ADR 0035). Stan wyjściowy: 0.8.3. Ten plik jest SAMODZIELNY: kroki, ich stan,
+luki (punkt 5) i decyzje do tej wersji. Zamknięty plan 0.8.2: docs/archiwum/PLAN-0.8.2.txt (tylko historia). Mapa drogi
+i rzeczy na później: docs/DO_ZROBIENIA.txt. Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR.
+
+Numer 0.8.5 wybrał właściciel (2026-11-12); wersji 0.8.4 nie będzie. Wydanie jedno, na końcu (krok 4) — CI ma limit.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 4 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają (krok, który się
+dzieli, dostaje litery: 2a, 2b…).
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kroki idą w kolejności z punktu 2.
+
+Właściciel — co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.8.5.txt.”
+Jeśli krok ma decyzje [!] (punkt 4), czat zapyta o nie na początku — możesz też od razu dopisać odpowiedź.
+
+Nowy czat — przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
+  2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4).
+     Brak decyzji [!] potrzebnej w kroku → zapytaj właściciela, zanim zaczniesz tę część.
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
+  5. Najpierw test, który pokazuje lukę, potem poprawka, potem ten sam test na zielono.
+  6. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, pełny scripts/testy.sh
+     lokalnie (wszystko [OK]).
+  7. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, WYGLAD, TESTY.md.
+     VERSION i CHANGELOG zmienia dopiero krok 4 (wydanie) — każdy krok zapisuje „co widzi użytkownik” w opisie PR-a.
+  8. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
+     ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+  1. Okna już nie zamarzają. Przyczyna zawieszania Podglądu jest ogólna: gdy aplikacja liczy dłużej, a myszka
+     i klawisze wysyłają dużo zdarzeń, ekran K1 po cichu wyrzuca to, czego aplikacja nie zdążyła odebrać. Jeśli
+     wyrzuci akurat „klatka pokazana, możesz rysować dalej”, okno już nigdy się nie odświeży; jeśli „puszczono
+     przycisk” — zdjęcie dalej jedzie za myszką. To może się zdarzyć każdej aplikacji, Podgląd po prostu liczy
+     najwięcej. Po tym kroku ważne zdarzenia nigdy nie giną, a ruchy myszy łączą się w jeden.
+  2. Podgląd płynny. Dziś każda klatka przybliżania (co 15 ms) i każdy ruch myszy przy przesuwaniu przelicza całe
+     zdjęcie najdokładniejszą, ale najwolniejszą metodą. Po tym kroku: w ruchu szybka metoda, a gdy zdjęcie stanie —
+     raz dokładna (ostra). Do tego mniej pracy przy każdym rysowaniu okna.
+  3. Ustawienia → nowa sekcja „Miejsce”: ładny wykres — ile miejsca jest w ogóle, ile zajęte (z podziałem, np.
+     Obrazy, Dokumenty, Kosz), ile wolne; przycisk „Użyj całego pendrive'a na dane” przenosi się tutaj
+     z Informacji. Najpierw szkice do wyboru (D1), podział według D2.
+  4. Porządki i wydanie 0.8.5.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                             Luki (punkt 5)     Zależy od  Decyzje    Rozmiar  ADR
+[ ]  1  Okna nie zamarzają: ekran nie gubi zdarzeń   L1 L2              —          —          M        —
+[ ]  2  Podgląd płynny                                L3 L4 L5 L6        1          —          M–L      —
+[ ]  3  Ustawienia → Miejsce                          L7 L8              —          D1 D2 D3   L        —
+[ ]  4  Porządki i wydanie 0.8.5                      —                  1–3        —          S        —
+
+Kolejność: 1 przed 2 (najpierw zawieszanie, potem płynność — pomiar płynności nie ma sensu, gdy okno potrafi
+stanąć). 3 nie dotyka tych samych plików co 1 i 2 (Ustawienia, skarbiec) — może iść równolegle albo zaraz po 1.
+
+
+3. KROKI
+--------
+
+KROK 1 — Okna nie zamarzają: ekran nie gubi zdarzeń                                     M · bez decyzji · bez ADR
+  Cel: żadna aplikacja nie staje na zawsze dlatego, że przez chwilę nie nadążała z odbieraniem zdarzeń.
+  Co widzi użytkownik: szybkie klikanie „+”, trzymanie klawisza, gwałtowne przesuwanie myszą — okno najwyżej
+  chwilę się spóźnia, ale zawsze dochodzi do końca i dalej odpowiada; puszczenie przycisku zawsze kończy
+  przeciąganie (Podgląd, Pliki, pulpit, przesuwanie okien).
+  Zadania:
+  [ ] Najpierw test, który pokazuje lukę (w systemie, kanał testowy TEST_POLACZ): klient z powierzchnią przestaje
+      czytać, ekran dostaje dużo ruchów wskaźnika i zatwierdzenie → klient znów czyta → musi dostać RAMKA
+      i PUSZCZENIE. Dziś (wg L1) nie dostaje — test czerwony.
+  [ ] Ekran (src/ekran/okna.c wyslij, scena.c RAMKA, wskaznik.c): zamiast „klient, który nie czyta, traci
+      komunikaty” — zaległe sprawy klienta czekają w ekranie i idą, gdy jego kanał znów przyjmuje (POLLOUT tylko
+      dla klientów z zaległymi):
+        - RAMKA: flaga przy powierzchni (najwyżej jedna zaległa na powierzchnię — kolejnej nie trzeba);
+        - ruch wskaźnika: tylko ostatnie położenie (nowszy ruch zastępuje starszy);
+        - wciśnięcia i puszczenia przycisków, klawisze, FOKUS, ZAMKNIJ, USTAWIENIE: krótka kolejka o stałej długości
+          w kolejności nadania. Co, gdy i ona się zapełni (klient naprawdę zawieszony) — ustalić w kroku; kierunek:
+          log (liczniki, bez kodów klawiszy) i porzucenie najstarszych ruchów/klawiszy, nigdy RAMKA i PUSZCZENIE.
+      Logika kolejki jako czyste funkcje (osobny plik, test na hoście z ASan/UBSan).
+  [ ] Sprawdzić w źródłach jądra (build/zrodla/linux-*/net/unix/af_unix.c), ile komunikatów mieści kolejka gniazda
+      SOCK_SEQPACKET z socketpair (przypuszczenie: net.unix.max_dgram_qlen, domyślnie 10 — NIEPEWNE, do potwierdzenia)
+      i zapisać w ekran.md. Podnoszenie limitu sysctl samo nie wystarczy (opóźnia problem, nie usuwa go).
+  [ ] Przybornik (k1_aplikacja.c): przed rysowaniem odebrać wszystko, co czeka (już tak jest) — sprawdzić, czy
+      po zmianie ekranu nic nie zakłada, że ruchy przychodzą każdy osobno (gui: przeciąganie ikon, k1_przeciaganie).
+  Testy i dowód: host — kolejka zaległych (scalanie ruchów, RAMKA raz, kolejność ważnych, przepełnienie); w systemie —
+  test z pierwszego zadania (negatywny: klient, który długo nie czyta, nie blokuje ekranu ani innych klientów);
+  QEMU — test-m4 bez zmian zielony.
+  Dokumenty: docs/komponenty/ekran.md (zasada doręczania: co może przepaść, co nigdy), RYZYKA (nowy wpis: klient
+  zalewany zdarzeniami — stan po poprawce), TESTY.md.
+  Gotowe, gdy: test w systemie zielony, pełny scripts/testy.sh [OK].
+
+KROK 2 — Podgląd płynny                                                            M–L · bez decyzji · bez ADR
+  Cel: przybliżanie (− +, także szybko i z przytrzymanym klawiszem) i przesuwanie przybliżonego zdjęcia płynne na
+  X230; po zatrzymaniu zdjęcie ostre jak dziś.
+  Co widzi użytkownik: animacja przybliżania bez szarpania; przy szybkim klikaniu „+” zdjęcie od razu zmierza do
+  ostatniego wybranego poziomu; przesuwanie myszą nadąża za kursorem; po zatrzymaniu w ułamku sekundy obraz się
+  „wyostrza”.
+  Zadania:
+  [ ] Najpierw pomiar (wydajności nie widać w QEMU bez KVM — SKILL, pułapki): program na hoście (testy/host/,
+      ten sam widok.c co Podgląd, -O2 jak w obrazie) — czas jednej klatki animacji, jednego przesunięcia
+      i jednego rysowania okna dla zdjęcia 1600 × 1600 na każdym poziomie przybliżenia. Liczby do opisu PR-a
+      (przed / po). W Podglądzie licznik klatek i najdłuższa klatka w logu po zakończeniu animacji (najwyżej
+      2 wpisy/s — niezmiennik 8).
+  [ ] Przeliczanie widoku raz na klatkę, nie przy każdym zdarzeniu (L4): widok_przesun i widok_zegar tylko zmieniają
+      stan i flagę, przelicz() woła rysowanie.
+  [ ] W ruchu szybko, po zatrzymaniu dokładnie (L3): podczas animacji i przeciągania — skalowanie stałoprzecinkowe
+      (dwuliniowe albo najbliższy piksel) z gotowej, zmniejszonej kopii zdjęcia (1600 → 800 → 400, liczonej raz po
+      dekodowaniu i po obrocie — wybór kopii najbliższej docelowej skali); dokładne k1_skaluj raz, gdy przez ok.
+      100–150 ms nic się nie zmienia. Pamięć klatki Podglądu (96 MiB, profile.c) — sprawdzić, czy kopie się mieszczą
+      ((800² + 400²) × 4 B ≈ 3,2 MiB obok dzisiejszych 2 × 1600² × 4 B ≈ 20 MiB).
+  [ ] k1_skaluj (src/wspolne/): wagi bez malloc przy każdym wywołaniu tam, gdzie to proste; wynik bez zmian (testy
+      k1_skaluj w testy/host/test_dekoder.c zostają zielone — dekoder i tapeta używają tej samej funkcji).
+  [ ] Mniej pracy przy rysowaniu okna (L5): zdjęcie jest nieprzezroczyste — kopiowanie wierszami zamiast mieszania
+      (k1_naloz_sprite); ciemne tło tylko poza zdjęciem; przy samym przesuwaniu/przybliżaniu zatwierdzać tylko obszar
+      zdjęcia z paskiem i etykietą (k1_pow_zatwierdz_obszar, jak pulpit) — jeśli pomiar pokaże, że to ma znaczenie.
+  [ ] Szybkie przybliżanie (L6): kolejne „+” w trakcie animacji idzie od poziomu docelowego (już tak jest — sprawdzić
+      testem), animacja liczy czas, nie klatki — przy wolnej klatce przeskakuje, zamiast się wydłużać.
+  Testy i dowód: host — pomiar (próg „gotowe” ustalony po pierwszym pomiarze i zapisany w „Ustaleniach”; kierunek:
+  klatka ≤ 1/3 dzisiejszej), widok jako czyste funkcje tam, gdzie się da (poziomy, granice przesuwania, wybór
+  kopii); QEMU — scenariusz Podglądu w test-pendrive: 20 × „+” i 20 × „−” bez czekania, przeciąganie z wieloma
+  ruchami, potem → i kolor następnego zdjęcia na zrzucie (okno żyje), log „powiększenie …” po zakończeniu.
+  Właściciel na X230 (punkt 4 DO_ZROBIENIA po wydaniu): czy płynnie.
+  Dokumenty: aplikacje.md (Podgląd), TESTY.md.
+  Gotowe, gdy: pomiar spełnia próg, scenariusz QEMU zielony.
+  Nie w tym kroku: przybliżanie kółkiem myszy / touchpadem (wejście nie obsługuje kółka — „Później”), przybliżanie
+  w pełnej rozdzielczości pliku, pełny ekran.
+
+KROK 3 — Ustawienia → Miejsce                                                  L · decyzje D1 D2 D3 · bez ADR
+  Cel: nowa sekcja „Miejsce” w Ustawieniach z graficznym przedstawieniem miejsca na pliki: ile jest w ogóle, ile
+  zajęte (i czym — wg D2), ile wolne.
+  Najpierw: D3 (co znaczy „miejsce”), D2 (podział), D1 — 2–3 szkice do wyboru rysowane częściami K1 na hoście,
+  wybór zapisany w WYGLAD.md.
+  Co widzi użytkownik (wg szkicu): na górze duża liczba „Wolne: 41,2 GB z 57,6 GB”; wykres (pierścień albo szeroki
+  pasek wg D1) w kolorach motywu, jeden akcent (terakota) dla największej części; pod nim legenda — każda część:
+  kolor, nazwa, rozmiar; osobno „Zapas systemu” (rezerwa skarbca, nie do użycia na pliki) i — na pendrive'ie z wolnym
+  miejscem za K1-DANE — „Pendrive ma jeszcze 64 GB nieużywanego miejsca” z przyciskiem „Użyj całego pendrive'a na
+  dane” (przeniesiony z Informacji). Bez K1-DANE: „Pliki są tylko w pamięci do wyłączenia” i ile zostało.
+  Zadania:
+  [ ] Sekcja: wiersz S_MIEJSCE w tabeli sekcji (src/aplikacje/ustawienia/main.c, sekcje[]) zaraz przed
+      „Informacje”, ikona (nowa K1_IK_* w k1_rysuj.c, liniowa jak inne — w szkicu); nowy moduł
+      src/aplikacje/ustawienia/miejsce.c; okno 440 px mieści 9 sekcji (sprawdzić na zrzucie).
+  [ ] Informacje: pasek „Miejsce na pliki” i przycisk powiększania przenoszą się do Miejsca (jedno miejsce na jedną
+      rzecz); w Informacjach zostaje wersja, ekran, jądro, gdzie są dane.
+  [ ] Podział (wg D2): skarbiec sumuje rozmiary wpisów (żywe pliki, bez starych wersji) według wierszy jednej tabeli
+      (zasada czytelności 5 — np. foldery startowe + Kosz + „Inne”); nowy komunikat ze skarbca (typ w k1_komunikat.h:
+      kierunek, zakresy, jeden komunikat na wiersz tabeli albo kilka liczb w jednym — ustalić w kroku), sprawdzany
+      pole po polu, fuzzing; odpowiedź na prośbę Ustawień (tylko liczby, żadnych nazw plików — Ustawienia nie mają
+      praw do listy plików i nie dostaną ich). Prawo w tabeli praw skarbca dla Ustawień: tylko te liczby.
+  [ ] Odświeżanie: przy wejściu do sekcji i po SKARB_MIEJSCE (skarbiec wysyła je już po zmianach).
+  [ ] Liczby jak w Plikach i Informacjach (k1_rozmiar_tekst: „820 MB”, „7,4 GB”), suma części = zajęte
+      (zaokrąglenia — ostatnia część dostaje resztę); mała część nadal widoczna (najmniejszy łuk/odcinek).
+  Testy i dowód: host — sumowanie podziału (test_dokumenty: pliki w folderach, w Kosz, w podfolderach), komunikat
+  (test_komunikat + fuzz); w systemie — Ustawienia nie dostają podziału bez prośby, obcy UID odrzucony; QEMU — test-m4
+  albo test-pliki: sekcja Miejsce → liczby w logu → import zdjęć z pendrive'a → część „Obrazy” rośnie; zrzuty
+  w obu motywach.
+  Dokumenty: aplikacje.md (Ustawienia), skarbiec.md (nowy komunikat, prawo), SLOWNIK („Miejsce” — sekcja Ustawień;
+  „miejsce na pliki” już jest), WYGLAD (wybrany szkic), TESTY.md.
+  Gotowe, gdy: scenariusz QEMU zielony, zrzuty pokazane właścicielowi.
+
+KROK 4 — Porządki i wydanie 0.8.5                                                          S · bez decyzji
+  Cel: wydanie 0.8.5 z obrazem ISO i USB.
+  [ ] Porządki: co usunąć/scalić/uprościć po krokach 1–3 (np. czy Pliki i Informacje nie liczą miejsca po swojemu).
+      Przegląd „Tymczasowe” (terminy 0.9.0 bez zmian, chyba że coś wyszło).
+  [ ] VERSION 0.8.5; CHANGELOG (Dodane / Zmienione / Naprawione / Porządki) z opisów PR-ów kroków 1–3.
+  [ ] DO_ZROBIENIA.txt: „Teraz” → 0.9 Sieć; lista testów na X230 dla 0.8.5 (szybkie przybliżanie i przesuwanie
+      w Podglądzie, sekcja Miejsce na pendrive'ie i po instalacji na dysk); ten plik → docs/archiwum/.
+  [ ] Po scaleniu: CI, tag k1-v0.8.5, wydanie; raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
+
+
+4. DECYZJE WŁAŚCICIELA (z rekomendacją; który krok ich potrzebuje)
+-----------------------------------------------------------------
+[!] D1 (krok 3) Wygląd sekcji Miejsce — 2–3 szkice do wyboru na początku kroku 3 (np. A: pierścień z liczbą wolnego
+       miejsca w środku i legenda obok; B: jeden szeroki pasek podzielony na kolory i legenda pod nim, jak w Windows 11;
+       C: pierścień + kafelki części z rozmiarami).
+[!] D2 (krok 3) Z jakim podziałem zajętego miejsca?
+       Rekomendacja: według folderów, jak je widzisz w Plikach — Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane,
+       Kosz, „Inne” (foldery dodane przez Ciebie liczą się do folderu, w którym leżą; ustawienia i notatki systemu —
+       „System”). Inne możliwości: według rodzaju pliku (zdjęcia / inne — dziś K1 rozróżnia tylko rodzinę „obrazy”)
+       albo bez podziału (tylko zajęte / wolne).
+[!] D3 (krok 3) Co pokazuje „Miejsce”? Rekomendacja: miejsce na Twoje pliki na pendrive'ie albo dysku (partycja
+       danych K1-DANE i nieużywana reszta pendrive'a). Nie pamięć RAM — ta jest w Zasobach (w słowniku K1 „pamięć”
+       znaczy RAM; Windows nazywa tę sekcję „Pamięć”, my — „Miejsce”). Części samego systemu (K1-EFI z miejscami
+       A/B) nie pokazujemy — nie da się ich użyć na pliki; ewentualnie jeden wiersz „System K1: 280 MB”.
+
+
+5. LUKI (z czytania kodu 0.8.3, 2026-11-12)
+-----------------------------------------
+Z KODU = wynika z czytania kodu, POTWIERDZONE = sprawdzone próbą. Waga: WYSOKA (blokuje normalne używanie),
+ŚREDNIA, NISKA.
+
+Ekran i zdarzenia (krok 1)
+  L1  Z KODU, WYSOKA. Ekran wysyła komunikaty do aplikacji bez czekania i bez ponawiania: gdy kolejka kanału
+      aplikacji jest pełna, komunikat przepada (src/ekran/okna.c, wyslij: „a client that does not read loses
+      messages”; src/ekran/scena.c: RAMKA tak samo). Zgubiona RAMKA → przybornik czeka na nią w nieskończoność
+      (k1_klient.c, k1_pow_rysuj zwraca NULL przy p->czeka) → okno nigdy więcej się nie odświeża = „zawieszony
+      Podgląd”. Zgubione PUSZCZENIE → przeciąganie zdjęcia (albo pliku, okna) się „przykleja”.
+  L2  Z KODU, ŚREDNIA. Każdy ruch myszy to osobny komunikat do aplikacji (src/ekran/wskaznik.c), więc wolna
+      aplikacja szybko zapełnia kolejkę — a wtedy przepadają też komunikaty ważne (L1). Długość kolejki gniazda —
+      do sprawdzenia w źródłach jądra (krok 1).
+
+Podgląd (krok 2)
+  L3  Z KODU, WYSOKA (na X230). Każda klatka animacji przybliżania (co 15 ms przez 0,18 s) i każdy ruch myszy przy
+      przesuwaniu przelicza widok przez k1_skaluj: filtr „area” na liczbach zmiennoprzecinkowych, cztery kanały,
+      z przydzielaniem pamięci na wagi przy każdym wywołaniu, ze zdjęcia do 1600 × 1600 na okno do 958 × 584.
+      Przy dopasowaniu każdy piksel okna to średnia z ok. 3 × 3 – 4 × 4 pikseli zdjęcia. Na X230 przypuszczalnie
+      dłużej niż 15 ms → klatki się spiętrzają (do zmierzenia w kroku 2).
+  L4  Z KODU, ŚREDNIA. widok_przesun() przelicza widok przy KAŻDYM komunikacie ruchu, a widok_zegar() przy każdym
+      obiegu pętli w trakcie animacji (także obudzonym przez zdarzenie) — przy wielu zdarzeniach praca się mnoży,
+      a obraz i tak pokazuje się raz na klatkę.
+  L5  Z KODU, NISKA–ŚREDNIA. Każda zmiana rysuje całe okno od nowa (ciemne tło z zaokrągleniem, zdjęcie przez
+      mieszanie z przezroczystością, choć jest nieprzezroczyste, pasek, etykieta) i zatwierdza całe okno 960 × 640,
+      które ekran składa z cieniem.
+  L6  Z KODU, NISKA. Szybkie „+” w trakcie animacji: nowa animacja zaczyna się od bieżącej skali do kolejnego poziomu
+      po poprzednim celu — poprawnie, ale nie ma testu; po poprawkach L3–L4 sprawdzić, że nic się nie spiętrza.
+
+Ustawienia (krok 3)
+  L7  Z KODU, NISKA. Miejsce na pliki jest dziś w Informacjach tylko jako cienki pasek i zdanie (informacje.c); brak
+      podziału — skarbiec zna rozmiar każdego wpisu, ale nie wysyła sum (SKARB_MIEJSCE: zajęte, na pliki, wpisy,
+      zapas pendrive'a, „w pamięci”).
+  L8  Z KODU, NISKA. Rezerwa skarbca („zapas systemu”) nie jest pokazana — użytkownik widzi „na pliki” mniejsze niż
+      partycja i nie wie dlaczego.

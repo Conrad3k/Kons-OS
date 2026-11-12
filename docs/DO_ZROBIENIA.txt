@@ -4,15 +4,20 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.8.3 — pierwsze podpisane wydanie (system jak w 0.8.2, temat 0.8 „Pliki” zamknięty); teraz 0.9 Sieć. Data: 2026-11-12.
+Stan: 0.8.3 — pierwsze podpisane wydanie (system jak w 0.8.2); teraz 0.8.5 (Podgląd i Miejsce), potem 0.9 Sieć.
+Data: 2026-11-12.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — 0.9 Sieć (ADR 0019, 0026)
--------------------------------------
-Plan wersji (kroki, luki, decyzje) pisze pierwszy czat 0.9: docs/PLAN-<wersja>.txt (ADR 0035). Zakres wstępny:
+1. TERAZ — 0.8.5 Podgląd i Miejsce, potem 0.9 Sieć
+---------------------------------------------------
+0.8.5 (prośba właściciela z 2026-11-12, przed 0.9): plan wersji — docs/PLAN-0.8.5.txt (4 kroki: okna nie zamarzają,
+Podgląd płynny, Ustawienia → Miejsce, wydanie). Wersji 0.8.4 nie będzie.
+
+0.9 Sieć (ADR 0019, 0026) — plan wersji (kroki, luki, decyzje) pisze pierwszy czat 0.9: docs/PLAN-<wersja>.txt
+(ADR 0035). Zakres wstępny:
     [ ] na początek (porządki z 0.8.2, „dziel przed rozbudową”): jedna tabela usług systemowych — dziś nowa usługa
         to wiersz w K1_SYSTEM i osobne wpisy w uslugi[], kanaly[] (src/nadzorca/uslugi.c) i profile.c; sieć będzie
         pierwszą nową usługą od 0.8.0
@@ -24,14 +29,14 @@ Plan wersji (kroki, luki, decyzje) pisze pierwszy czat 0.9: docs/PLAN-<wersja>.t
     [ ] kabel (X230: Intel 82579LM, e1000e, bez firmware) + DHCP w osobnej klatce
     [ ] czas z sieci (reguła z 0.8.1: skok zegara w przód nie opróżnia Kosza — RYZYKA R56)
     [ ] Wi-Fi (iwlwifi + firmware — osobny ADR)
-Zamknięte: 0.8.2 — plan i jego ustalenia w docs/archiwum/PLAN-0.8.2.txt, zmiany w CHANGELOG.md.
+Zamknięte: 0.8.2 — plan i jego ustalenia w docs/archiwum/PLAN-0.8.2.txt (historia), zmiany w CHANGELOG.md.
 
 
 2. MAPA DROGI (ADR 0035; dawne numery etapów M w nawiasach)
 ------------------------------------------------------------
     0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
-    0.8      Pliki — gotowe (0.8.0–0.8.2)                                          (natywna część M9, dawne M6)
-    0.9      Sieć — teraz                                                          (M7)
+    0.8      Pliki — gotowe (0.8.0–0.8.3); teraz 0.8.5: Podgląd i Miejsce          (natywna część M9, dawne M6)
+    0.9      Sieć — następna                                                       (M7)
     0.10     Strefy: obce aplikacje w mikro-maszynach, przeglądarka                (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
@@ -84,7 +89,8 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
     [ ] przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) — jeden ADR z planem 0.11 (D6 z 0.8.2)
     [ ] HEIC (zdjęcia z iPhone'a); odtwarzanie wideo (pliki wideo da się już przechowywać); zapis plików na pendrive
     [ ] pełne NFC i pełne porównanie wielkości liter Unicode w nazwach plików
-    [ ] Podgląd: powiększanie fragmentu, pełny ekran, pokaz slajdów
+    [ ] Podgląd: powiększanie fragmentu w pełnej rozdzielczości pliku, pełny ekran, pokaz slajdów; przybliżanie kółkiem
+        myszy i touchpadem (wejście dziś nie obsługuje kółka; poza zakresem 0.8.5)
     [ ] dopasowanie rozdzielczości do okna VirtualBoxa (wymaga dodatków gościa); VMware — nie sprawdzony
     [ ] drugi, pusty dysk (bez tablicy partycji) w maszynie wirtualnej jako miejsce na dane
 
@@ -113,7 +119,7 @@ już masz dane z 0.8.1 — aktualizacja przez Instalator albo nagranie obrazu US
 Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „pomysł”) albo w czacie.
 
 
-5. TWOJE OTWARTE DECYZJE I DZIAŁANIA (poza planem 0.8.2)
+5. TWOJE OTWARTE DECYZJE I DZIAŁANIA (poza planem bieżącej wersji — decyzje 0.8.5: docs/PLAN-0.8.5.txt, punkt 4)
 --------------------------------------------------------
 [x] Klucz podpisu — sekret dodany 2026-11-12; od 0.8.3 wydania są podpisane, Secure Boot z kluczem K1 dostępny
     (włączenie — punkt 4).
