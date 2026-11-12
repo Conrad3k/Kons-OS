@@ -9,7 +9,7 @@
 #      format 2 dopiero po potwierdzeniu startu, w przerwach → Ustawienia → Informacje: miejsce na pliki 23 → 50 MiB;
 #      na hoście: format 2 i każdy obiekt (25 × 1 MiB) bez zmian
 #   3. „pełny”: K1-DANE 64 MiB w formacie 2, zajęta prawie do końca (6 MiB wolne) → Pliki: „Nowy folder” odrzucony (brak
-#      miejsca na pliki, wynik −28), a ustawienie systemu (Ustawienia → Aplikacje) się zapisuje
+#      miejsca na pliki, wynik −28), a ustawienie systemu (Ustawienia → Wygląd: ciemny motyw) się zapisuje
 #   4. (0.8.1 krok 3, ADR 0033) „powiększenie”: ta sama pełna K1-DANE na pendrivie USB o 512 MiB większym → Ustawienia →
 #      Informacje: zajęte, pliki i foldery, przycisk „Użyj całego pendrive'a na dane” → nadzorca pisze nową tablicę,
 #      skarbiec bierze całą partycję (dane na miejscu) → z drugiego pendrive'a (FAT32) import 16 zdjęć po 2,8 MB
@@ -185,15 +185,14 @@ else:  # pelny
             str(p))
     zrzut("pelny-1-brak-miejsca", gdy=lambda w, h, px: True)
     u0 = okno("ustawienia", lambda: klik(*pasek(2)))
-    sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
-    ap = u0 and sk and po(r"K1-USTAWIENIA: aplikacje: Dokument tekstowy — 2 do wyboru, przyciski od (\d+),(\d+) \(szer\. (\d+), wys\. (\d+)\)",
-                          lambda: klik(u0[0] + int(sk.group(1)), u0[1] + int(sk.group(2)) + 6 * int(sk.group(3))))
-    if ap:
-        bx, by, bw, bh = (int(ap.group(i)) for i in range(1, 5))
-        sprawdz("…a ustawienie systemu się zapisuje (rezerwa na system)",
+    # a setting of the system (0.8.2 step 5: Aplikacje have no choice any more — the dark theme of Wygląd, the same object)
+    sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od \d+,\d+ co \d+; przyciski od (\d+),(\d+) \(szer\. (\d+), wys\. (\d+)\)", czas=30)
+    if u0 and sk:
+        bx, by, bw, bh = (int(sk.group(i)) for i in range(1, 5))
+        sprawdz("…a ustawienie systemu (ciemny motyw) się zapisuje (rezerwa na system)",
                 po(r"K1-SKARBIEC: zapisano obiekt 1 właściciela 2 ", lambda: klik(u0[0] + bx + 3 * bw // 4, u0[1] + by + bh // 2)))
     else:
-        sprawdz("Ustawienia → Aplikacje", False)
+        sprawdz("Ustawienia: układ", False)
 t_ = tekst()
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów", "Kernel panic" not in t_ and
         "BŁĄD" not in t_ and "zabronione wywołanie" not in t_ and "odrzucono" not in t_)
