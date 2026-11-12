@@ -67,6 +67,7 @@ Nowy czat — przebieg każdego kroku:
 [x]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
          [PR #77]
 [ ]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        5          D6 D8     L        —
+         [w toku: Claude, gałąź claude/ecstatic-brown-7wnfgt]
 [ ]  7  Porządki i wydanie 0.8.2                     —                       1–6        —         S        —
 
 Kolejność: 1 najpierw (dane właściciela rosną — format zmieniamy, póki danych jest mało); 2 i 3 w dowolnej
@@ -409,17 +410,21 @@ KROK 7 — Porządki i wydanie 0.8.2                                            
        DECYZJA właściciela (2026-11-12): najpierw A, w trakcie kroku zmieniona na **C** — zdjęcie na całe okno, na
        dole pływający, zaokrąglony pasek „nie do samych końców” (‹ „3 z 27” › | Otwórz…, Obróć, Ustaw jako tapetę,
        Do Kosza), nazwa i szczegóły w etykiecie w lewym górnym rogu. B (panel po prawej) odrzucony.
-[!] D6 (krok 6) Przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) w 0.8.2 czy razem z 0.11?
+[x] D6 (krok 6) Przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) w 0.8.2 czy razem z 0.11?
        Rekomendacja: w 0.8.2 przeciąganie w obrębie Plików i pulpitu; między oknami — po 0.8.2, jednym ADR-em
        z planem 0.11 (strefy potrzebują tego samego).
+       DECYZJA właściciela (2026-11-12): tak — w 0.8.2 wewnątrz Plików i wewnątrz pulpitu; między oknami po 0.8.2.
 [x] D7 (krok 5) „Otwórz w…” → „Otwórz za pomocą” (jak w Windows), tylko w menu pod prawym przyciskiem, z „Zawsze
        otwieraj tą aplikacją”? Rekomendacja: tak.
        DECYZJA właściciela (2026-11-12, na szkicu): tak — „Otwórz za pomocą ›” z podmenu; w Plikach przycisk „Otwórz”
        zamiast „Otwórz w…”. Bez osobnych „Szczegółów” (w Plikach są zawsze, na pulpicie „Pokaż w Plikach”). „Zawsze
        otwieraj tą aplikacją” gotowe teraz, widoczne, gdy typ ma co najmniej dwie aplikacje (dziś żaden). „Zmień
        nazwę” na pulpicie otwiera Pliki z polem nazwy.
-[!] D8 (krok 6) Kiedy pytać „Czy na pewno?” przy przeciąganiu do Kosza? Rekomendacja: folder z zawartością albo
+[x] D8 (krok 6) Kiedy pytać „Czy na pewno?” przy przeciąganiu do Kosza? Rekomendacja: folder z zawartością albo
        więcej niż jeden element; pojedynczy plik bez pytania (Kosz da się cofnąć).
+       DECYZJA właściciela (2026-11-12): tak (pulpit nie widzi wnętrza folderów — pyta przy każdym folderze).
+       Szkice kroku 6 (karteczka z liczbą, znak „Przenieś / Kopiuj / Nie można”, obrys celu, okienko pytania w wyglądzie
+       menu, „Jeszcze n” na pulpicie) — zaakceptowane 2026-11-12.
 (D4 i D9 — rozstrzygnięte w 0.8.1: docs/archiwum/PLAN-0.8.1.txt, punkt 6. A, B, C, D z 2026-11-11 — ADR 0035.)
 
 
