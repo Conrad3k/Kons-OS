@@ -136,17 +136,18 @@ Podgląd jest domyślną aplikacją zdjęć (`K1_OTWIERANIE`; inną można wybra
 (decyzja właściciela D5, `docs/WYGLAD.md`) — okno 960 × 640, zdjęcie na całym ciemnym obszarze, dopasowane do okna
 (nigdy powiększone ponad 100 %); w lewym górnym rogu etykieta: nazwa, wymiary zdjęcia, rozmiar, data zmiany
 i pochodzenie („Zachód.jpg · 4000 × 2667 · 2,4 MB · 10.11.2026 18:42 · z pendrive'a”); na dole pływający pasek:
-**‹** „3 z 27” **›** (kolejność jak w Plikach — po nazwie; po ostatnim pierwsze), **„Otwórz…”**, **„Obróć”**,
-**„Ustaw jako tapetę”**, **„Do Kosza”**.
-Klawisze: ← / → (poprzednie / następne), Home / End, **R** (obrót widoku o 90° w prawo — pliku nie zmienia), **Delete**
+**‹** „3 z 27” **›** (kolejność jak w Plikach — po nazwie; po ostatnim pierwsze), **−** **+** (przybliżenie: 1,5×, 2×,
+3×, 4×… dopasowanego zdjęcia, z krótką animacją, najwyżej do 4 pikseli ekranu na piksel obrazu; przybliżone zdjęcie
+przesuwa się przeciągnięciem myszą), **„Otwórz…”**, **„Obróć”**, **„Ustaw jako tapetę”**, **„Do Kosza”**.
+Klawisze: ← / → (poprzednie / następne), Home / End, **+** / **−** (przybliż / oddal), **0** (dopasuj), **R** (obrót widoku o 90° w prawo — pliku nie zmienia), **Delete**
 (do Kosza bez pytania — decyzja D2; potem następne zdjęcie), **Ctrl+O** („Otwórz…”: okno wyboru pliku z samymi
 zdjęciami). Uruchomiony z menu Start pokazuje „Otwórz zdjęcie z Plików albo przyciskiem „Otwórz…” (Ctrl+O).”
 Zdjęcia nie da się odczytać: „Tego zdjęcia nie da się odczytać.”, ponad 100 Mpx: „Zdjęcie ma 150 Mpx — K1 pokazuje do
 100 Mpx.”, plik ponad 128 MB: „Plik jest za duży — K1 pokazuje zdjęcia do 128 MB.” Podgląd **widzi tylko zdjęcia
 folderów, z których użytkownik w nim coś otworzył** (prawa w skarbcu: `Z_OBRAZY_FOLDERU`), tylko do odczytu i do
 Kosza; nie dekoduje zdjęć sam — robi to `dekoder` w osobnej klatce (`k1_dekodowanie`, jak w Plikach; obraz najwyżej
-958 × 958, obrót i dopasowanie u siebie: `k1_skaluj`). Moduły: `main.c` (okno, pływający pasek, etykieta, klawisze, mysz), `dane.c`
-(skarbiec, plik do otwarcia, Kosz, okno wyboru), `obraz.c` (dekoder, obrót, tapeta), `kolejnosc.c` (kolejność zdjęć —
+1600 × 1600, obrót, dopasowanie i przybliżenie u siebie: `k1_skaluj`). Moduły: `main.c` (okno, pływający pasek, etykieta, klawisze, mysz), `dane.c`
+(skarbiec, plik do otwarcia, Kosz, okno wyboru), `obraz.c` (dekoder, tapeta), `widok.c` (obrót, dopasowanie, przybliżenie z animacją, przeciąganie), `kolejnosc.c` (kolejność zdjęć —
 czyste funkcje, test na hoście).
 
 ## Granica zaufania
@@ -164,7 +165,7 @@ ustawienia (ekran sprawdza rolę i UID). Treść notatki nigdy nie trafia do log
 | Kalkulator | 205 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
 | Pliki | 206 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
 | Wybór pliku | 207 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
-| Podgląd | 208 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
+| Podgląd | 208 | `memfd_create`, `ftruncate` | brak ścieżek | 96 MiB (obraz do przybliżania: 1600 × 1600 i jego obrót), 1 proces |
 
 ## Wejścia i wyjścia
 fd 3: kanał do ekranu. Okno: memfd (ADR 0008). Notatki: fd 4 — kanał do skarbca: od 0.8.0 `DOK_*` — tylko
@@ -211,4 +212,4 @@ Błąd zapisu notatki → komunikat w oknie i w logu.
 | `test-pliki.sh` (0.8.0, krok 2): stare notatki przeniesione do plików, nazwa za pierwszym wierszem, „Otwórz w…” z Plików i z pulpitu, okno wyboru pliku (wybór i „Anuluj”), Ustawienia → Aplikacje | funkcjonalny |
 | host: `test_przybornik` — czas polski (zmiany czasu), układ PL, UTF-8, rysowanie na krawędziach | jednostkowy |
 | host (0.8.2 krok 4, ADR 0037): `test_podglad` — kolejność zdjęć, ← / →, zdjęcie po Koszu, „3 z 27”; `test_dokumenty` — prawa Podglądu (bez gestu nic, tylko zdjęcia folderu, tylko odczyt i Kosz, okno wyboru z rodziną „obrazy”, po zamknięciu nic) | jednostkowy / negatywny |
-| `test-pendrive.sh` (0.8.2 krok 4): Podgląd — dwuklik zdjęcia w Plikach, „zdjęcie 4 z 10” w klatce UID 208, kolor na zrzucie, R (widok 60×80), ← uszkodzone (komunikat), ‹ PNG, Delete → Kosz i następne zdjęcie, Ctrl+O → okno wyboru (obrazy), „Ustaw jako tapetę”, × | funkcjonalny / negatywny |
+| `test-pendrive.sh` (0.8.2 krok 4): Podgląd — dwuklik zdjęcia w Plikach, „zdjęcie 4 z 10” w klatce UID 208, kolor na zrzucie, R (widok 60×80), ← uszkodzone (komunikat), ‹ PNG, Delete → Kosz i następne zdjęcie, Ctrl+O → okno wyboru (obrazy), „Ustaw jako tapetę”, × ; + i − (150 % → 100 %, kolor na zrzucie) | funkcjonalny / negatywny |

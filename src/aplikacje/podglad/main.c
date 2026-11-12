@@ -22,21 +22,25 @@
 
 struct k1_apl apl;
 
-enum { B_POPRZEDNIE, B_NASTEPNE, B_OTWORZ, B_OBROC, B_TAPETA, B_KOSZ, N_PRZYCISKOW };
+enum { B_POPRZEDNIE, B_NASTEPNE, B_MNIEJ, B_WIECEJ, B_OTWORZ, B_OBROC, B_TAPETA, B_KOSZ, N_PRZYCISKOW };
 static struct k1_przycisk przyciski[N_PRZYCISKOW];
 static int nad = -1, wcisniety = -1;
+static struct {
+    int jest;
+    int32_t x, y;
+} ciagniecie; /* the zoomed-in picture is being dragged: where the pointer was */
 
-/* The floating bar (sketch C): ‹ "3 z 27" › | Otwórz… Obróć Ustaw jako tapetę Do Kosza, centred at the bottom.
+/* The floating bar (sketch C): ‹ "3 z 27" › | − + | Otwórz… Obróć Ustaw jako tapetę Do Kosza, centred at the bottom.
  * Its items are drawn and clicked from the same rectangles (k1_przycisk_pod). */
-#define STRZALKA_W 36 /* a round arrow in the bar */
+#define STRZALKA_W 36 /* a round button in the bar (‹ › − +) */
 #define LICZNIK_W 72  /* "3 z 27" */
-#define ODSTEP 16     /* the gap with the line between the arrows and the buttons */
+#define ODSTEP 16     /* the gap with a line between the groups */
 static int32_t pasek_x, pasek_w;
 
 static void uklad(void)
 {
     static const char *const etykiety[] = { "Otwórz…", "Obróć", "Ustaw jako tapetę", "Do Kosza" };
-    int32_t w[4], suma = 8 + STRZALKA_W + LICZNIK_W + STRZALKA_W + ODSTEP + 8, x;
+    int32_t w[4], suma = 8 + STRZALKA_W + LICZNIK_W + STRZALKA_W + ODSTEP + 2 * STRZALKA_W + ODSTEP + 8, x;
     for (int i = 0; i < 4; i++) {
         w[i] = k1_tekst_szer(K1_CZ_MALA_MOCNA, etykiety[i]) + 28;
         suma += w[i];
@@ -48,6 +52,9 @@ static void uklad(void)
     x += STRZALKA_W + LICZNIK_W;
     przyciski[B_NASTEPNE] = (struct k1_przycisk){ x, PASEK_Y, STRZALKA_W, PASEK_H, "", K1_PRZ_CICHY };
     x += STRZALKA_W + ODSTEP;
+    przyciski[B_MNIEJ] = (struct k1_przycisk){ x, PASEK_Y, STRZALKA_W, PASEK_H, "", K1_PRZ_CICHY };
+    przyciski[B_WIECEJ] = (struct k1_przycisk){ x + STRZALKA_W, PASEK_Y, STRZALKA_W, PASEK_H, "", K1_PRZ_CICHY };
+    x += 2 * STRZALKA_W + ODSTEP;
     for (int i = 0; i < 4; i++) {
         przyciski[B_OTWORZ + i] = (struct k1_przycisk){ x, PASEK_Y, w[i], PASEK_H, etykiety[i], K1_PRZ_CICHY };
         x += w[i];
@@ -60,6 +67,9 @@ static int dostepny(int b)
     case B_POPRZEDNIE:
     case B_NASTEPNE:
         return n_zdjec > 1 && pozycja >= 0;
+    case B_MNIEJ:
+    case B_WIECEJ:
+        return obraz_gotowy(biezace()) && widok_mozna(b == B_WIECEJ ? 1 : -1);
     case B_OTWORZ:
         return apl.kanaly[KANAL_SKARBIEC].fd >= 0;
     default:
@@ -76,11 +86,16 @@ static void wykonaj(int b)
     case B_NASTEPNE:
         pokaz(kol_krok(pozycja, n_zdjec, b == B_NASTEPNE ? 1 : -1));
         break;
+    case B_MNIEJ:
+    case B_WIECEJ:
+        widok_powieksz(b == B_WIECEJ ? 1 : -1);
+        break;
     case B_OTWORZ:
         wybierz();
         break;
     case B_OBROC:
-        obraz_obroc();
+        if (obraz_gotowy(biezace()))
+            widok_obroc();
         break;
     case B_TAPETA:
         obraz_tapeta(biezace());
@@ -102,6 +117,13 @@ static void szewron(struct k1_obraz *o, float cx, float cy, int w_lewo, uint32_t
     float d = w_lewo ? 3.0f : -3.0f;
     k1_kreska(o, cx + d, cy - 6, cx - d, cy, 2.0f, kolor);
     k1_kreska(o, cx - d, cy, cx + d, cy + 6, 2.0f, kolor);
+}
+
+static void plus_minus(struct k1_obraz *o, float cx, float cy, int plus, uint32_t kolor)
+{
+    k1_kreska(o, cx - 6, cy, cx + 6, cy, 2.0f, kolor);
+    if (plus)
+        k1_kreska(o, cx, cy - 6, cx, cy + 6, 2.0f, kolor);
 }
 
 /* "Zachód.jpg · 4000 × 2667 · 2,4 MB · 10.11.2026 18:42 · z pendrive'a" (the size of the photo once dekoder told it). */
@@ -134,12 +156,15 @@ static void pasek(struct k1_obraz *o, const struct k1_motyw *m)
     k1_zaokraglony(o, (float)pasek_x, PASEK_Y, (float)pasek_w, PASEK_H, PASEK_H / 2.0f, k1_kolor(PIGULKA, 215));
     for (int i = 0; i < N_PRZYCISKOW; i++) {
         const struct k1_przycisk *b = &przyciski[i];
-        int strzalka = i <= B_NASTEPNE, jest = dostepny(i);
+        int okragly = i <= B_WIECEJ, jest = dostepny(i);
         uint32_t a = jest ? 235 : 90;
-        if (strzalka) {
+        if (okragly) {
             float cx = (float)b->x + (float)b->w / 2, cy = PASEK_Y + PASEK_H / 2.0f;
             k1_kolo(o, cx, cy, 15, k1_kolor(BIALY, nad == i && jest ? 50 : 28));
-            szewron(o, cx, cy, i == B_POPRZEDNIE, k1_kolor(BIALY, a));
+            if (i <= B_NASTEPNE)
+                szewron(o, cx, cy, i == B_POPRZEDNIE, k1_kolor(BIALY, a));
+            else
+                plus_minus(o, cx, cy, i == B_WIECEJ, k1_kolor(BIALY, a));
             continue;
         }
         if (nad == i && jest)
@@ -152,6 +177,8 @@ static void pasek(struct k1_obraz *o, const struct k1_motyw *m)
         snprintf(t, sizeof t, "–");
     k1_tekst(o, K1_CZ_MALA_MOCNA, l->x + l->w + (p->x - l->x - l->w - k1_tekst_szer(K1_CZ_MALA_MOCNA, t)) / 2, PASEK_Y + 27,
              t, k1_kolor(BIALY, 235), LICZNIK_W);
+    k1_prostokat(o, p->x + p->w + ODSTEP / 2, PASEK_Y + 10, 1, PASEK_H - 20, k1_kolor(BIALY, 60));
+    p = &przyciski[B_WIECEJ];
     k1_prostokat(o, p->x + p->w + ODSTEP / 2, PASEK_Y + 10, 1, PASEK_H - 20, k1_kolor(BIALY, 60));
     (void)m;
 }
@@ -187,11 +214,22 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         nad = p;
         k1_apl_odswiez(&apl);
     }
+    if (rodzaj == K1_WSK_RUCH && ciagniecie.jest) { /* the zoomed-in picture follows the pointer */
+        widok_przesun(x - ciagniecie.x, y - ciagniecie.y);
+        ciagniecie.x = x;
+        ciagniecie.y = y;
+        k1_apl_odswiez(&apl);
+    }
+    if (rodzaj == K1_WSK_WYJSCIE || (rodzaj == K1_WSK_PUSZCZENIE && przycisk == K1_PRZYCISK_LEWY))
+        ciagniecie.jest = 0;
     if (przycisk != K1_PRZYCISK_LEWY)
         return;
-    if (rodzaj == K1_WSK_WCISNIECIE)
+    if (rodzaj == K1_WSK_WCISNIECIE) {
         wcisniety = p;
-    else if (rodzaj == K1_WSK_PUSZCZENIE) {
+        ciagniecie.jest = p < 0 && widok_powiekszony(); /* on the picture, not on the bar */
+        ciagniecie.x = x;
+        ciagniecie.y = y;
+    } else if (rodzaj == K1_WSK_PUSZCZENIE) {
         if (p >= 0 && p == wcisniety)
             wykonaj(p);
         wcisniety = -1;
@@ -215,6 +253,12 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     case KEY_END: if (n_zdjec > 0) pokaz(n_zdjec - 1); break;
     case KEY_R: wykonaj(B_OBROC); break;
     case KEY_DELETE: wykonaj(B_KOSZ); break;
+    case KEY_EQUAL: /* "+" without Shift too, as in other systems */
+    case KEY_KPPLUS: wykonaj(B_WIECEJ); break;
+    case KEY_MINUS:
+    case KEY_KPMINUS: wykonaj(B_MNIEJ); break;
+    case KEY_0:
+    case KEY_KP0: if (obraz_gotowy(biezace())) widok_powieksz(0); break;
     default: return;
     }
     k1_apl_odswiez(&apl);
@@ -229,16 +273,18 @@ int main(void)
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
     apl.klawisz = klawisz;
+    apl.zegar = widok_zegar;
     uklad();
     dane_start();
     obraz_start();
     apl.kanaly[KANAL_NADZORCA].fd = FD_NADZORCA;
     apl.kanaly[KANAL_NADZORCA].dane = obraz_nadzorca;
     /* the tests click by this line: the centres of the buttons and of the picture */
-    k1_log(TAG, "układ: poprzednie %d,%d następne %d,%d otwórz %d,%d obróć %d,%d tapeta %d,%d kosz %d,%d zdjęcie %d,%d",
+    k1_log(TAG, "układ: poprzednie %d,%d następne %d,%d otwórz %d,%d obróć %d,%d tapeta %d,%d kosz %d,%d zdjęcie %d,%d "
+                "mniej %d,%d więcej %d,%d",
 #define SRODEK(b) przyciski[b].x + przyciski[b].w / 2, przyciski[b].y + przyciski[b].h / 2
            SRODEK(B_POPRZEDNIE), SRODEK(B_NASTEPNE), SRODEK(B_OTWORZ), SRODEK(B_OBROC), SRODEK(B_TAPETA), SRODEK(B_KOSZ),
+           OBSZAR_X + OBSZAR_W / 2, OBSZAR_Y + OBSZAR_H / 2, SRODEK(B_MNIEJ), SRODEK(B_WIECEJ));
 #undef SRODEK
-           OBSZAR_X + OBSZAR_W / 2, OBSZAR_Y + OBSZAR_H / 2);
     k1_apl_uruchom(&apl);
 }

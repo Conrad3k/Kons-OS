@@ -2,7 +2,8 @@
  *   main.c      the window: the picture, the floating bar (‹ "3 z 27" ›, the buttons), the label with the name and
  *               details, keys and the mouse
  *   dane.c      skarbiec (fd 4): the pictures Podgląd may see, Kosz, the file picker; the file to open (fd 5)
- *   obraz.c     the picture shown and the wallpaper — through a dekoder (k1_dekodowanie, fd 6 to nadzorca); turning
+ *   obraz.c     the picture shown and the wallpaper — through a dekoder (k1_dekodowanie, fd 6 to nadzorca)
+ *   widok.c     the view: turning, fitting, zooming (− +) with a short animation, dragging
  *   kolejnosc.c the order of the pictures (pure functions, host test) */
 #ifndef K1_PODGLAD_H
 #define K1_PODGLAD_H
@@ -29,7 +30,7 @@
 #define OBSZAR_Y K1_OKNO_TYTUL
 #define OBSZAR_W (SZER - 2)
 #define OBSZAR_H (WYS - K1_OKNO_TYTUL - K1_OKNO_PROMIEN) /* above the rounded corners */
-#define BOK (OBSZAR_W > OBSZAR_H ? OBSZAR_W : OBSZAR_H) /* dekoder gives at most BOK × BOK: any turn fits */
+#define BOK 1600 /* dekoder gives at most BOK × BOK (K1_DEK_MAKS_H): any turn fits, and zooming in has pixels to show */
 #define PASEK_H 44                            /* the floating bar */
 #define PASEK_Y (WYS - 16 - PASEK_H)
 
@@ -52,7 +53,7 @@ void wybierz(void);                           /* "Otwórz…": the file picker w
 void obraz_start(void);
 void obraz_zadaj(const struct k1_dok_wpis *w); /* decode it for the window (if not done already) */
 void obraz_tapeta(const struct k1_dok_wpis *w);
-void obraz_obroc(void);                       /* R: the view a quarter turn to the right (the file stays as it is) */
+int obraz_gotowy(const struct k1_dok_wpis *w); /* its picture is decoded and shown */
 int obraz_tresc(const struct k1_komunikat *k, int fd); /* DOK_TRESC: 1 when it was a piece of a picture */
 int obraz_wynik(const struct k1_komunikat *k);         /* DOK_WYNIK: 1 when a piece could not be read */
 void obraz_nadzorca(void);                    /* fd 6 can be read: DEKODER_KANAL */
@@ -60,5 +61,16 @@ void obraz_nadzorca(void);                    /* fd 6 can be read: DEKODER_KANAL
  * (0 while unknown). */
 void obraz_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_dok_wpis *w, int32_t *zw, int32_t *zh);
 extern const char *tapeta_stan;               /* how setting the wallpaper goes (NULL: nothing) */
+
+/* widok.c — the view: turned, fitted, zoomed (with a short animation), moved by dragging */
+void widok_nowy(const uint32_t *px, int32_t w, int32_t h); /* the picture from dekoder (NULL: none), fitted, not turned */
+void widok_obroc(void);                       /* R: a quarter turn to the right (the file stays as it is) */
+int widok_mozna(int krok);                    /* whether widok_powieksz(krok) would change anything */
+void widok_powieksz(int krok);                /* +1 / -1 a level in or out, 0 fitted again */
+int widok_powiekszony(void);                  /* larger than fitted: dragging moves it */
+void widok_przesun(int32_t dx, int32_t dy);   /* dragged by dx, dy screen pixels */
+int widok_zegar(void);                        /* the animation: ms to its next frame, -1 none */
+int widok_rysuj(struct k1_obraz *o);          /* 1 when drawn */
+void widok_rozmiar(int32_t *w, int32_t *h);
 
 #endif

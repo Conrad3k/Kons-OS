@@ -1,7 +1,7 @@
 /* K1 Podgląd — the picture shown and the wallpaper (0.8.2 step 4, ADR 0037). Podgląd never decodes a picture itself:
  * a dekoder does, through k1_dekodowanie (the dekoder from nadzorca on fd 6, the file piece by piece from skarbiec,
- * passed on unread). dekoder gives at most BOK × BOK pixels, so the picture fits the window in every turn; R turns the
- * view here and fits it again (k1_skaluj: never enlarged) — the file stays as it is. The wallpaper (at most
+ * passed on unread). dekoder gives at most BOK × BOK pixels, so the picture fits the window in every turn and can be
+ * zoomed in; turning, fitting and zooming are widok.c's. The wallpaper (at most
  * K1_DEK_MAKS_W × K1_DEK_MAKS_H) goes on to ekran unread (TAPETA_ZDJECIE), as from Pliki. Part of Podgląd (podglad.h). */
 #include <stdio.h>
 #include <string.h>
@@ -13,7 +13,6 @@
 #include "k1_log.h"
 #include "k1_memfd.h"
 #include "k1_odbior.h"
-#include "k1_skaluj.h"
 #include "kolejnosc.h"
 #include "podglad.h"
 
@@ -21,15 +20,13 @@ enum cel { CEL_WIDOK = 1, CEL_TAPETA = 2 };
 #define BLAD_PLIK (-1) /* larger than dekoder takes (K1_DEK_MAKS_BAJTY): not even asked */
 
 static struct k1_dekodowanie dek;
-static uint32_t zrodlo[BOK * BOK], obrocony[BOK * BOK], widok[OBSZAR_W * OBSZAR_H];
+static uint32_t zrodlo[BOK * BOK];
 static struct stan {
     uint32_t id, gen;
     int blad, mpx;     /* K1_DEK_BLAD_* or BLAD_PLIK when there is no picture (mpx: how large the photo is) */
     int32_t w, h;      /* in zrodlo */
     int32_t zw, zh;    /* the photo itself, turned as seen */
 } jest;                /* what zrodlo holds (id 0: nothing) */
-static int obrot;      /* quarter turns to the right, 0..3 */
-static int32_t ww, wh; /* the view: widok, ww × wh */
 static char tapeta_tekst[96];
 const char *tapeta_stan;
 
@@ -48,39 +45,6 @@ static int aktualna(struct k1_dek_praca *p)
     return 1;
 }
 
-/* zrodlo turned `obrot` quarters into obrocony (w × h of it into *ow × *oh). */
-static void obroc(int32_t *ow, int32_t *oh)
-{
-    int32_t w = jest.w, h = jest.h, x, y;
-    *ow = obrot % 2 ? h : w;
-    *oh = obrot % 2 ? w : h;
-    for (y = 0; y < *oh; y++)
-        for (x = 0; x < *ow; x++) {
-            int32_t sx = obrot == 0 ? x : obrot == 1 ? y : obrot == 2 ? w - 1 - x : w - 1 - y;
-            int32_t sy = obrot == 0 ? y : obrot == 1 ? h - 1 - x : obrot == 2 ? h - 1 - y : x;
-            obrocony[y * *ow + x] = zrodlo[sy * w + sx];
-        }
-}
-
-/* The view: the picture turned and fitted into the area (never enlarged). */
-static void przelicz(void)
-{
-    int32_t ow, oh;
-    uint32_t tw, th;
-    ww = wh = 0;
-    if (jest.id == 0 || jest.blad != 0)
-        return;
-    obroc(&ow, &oh);
-    k1_skaluj_zmiesc((uint32_t)ow, (uint32_t)oh, OBSZAR_W, OBSZAR_H, &tw, &th);
-    if (k1_skaluj(obrocony, (uint32_t)ow, (uint32_t)oh, (uint32_t)ow, (struct k1_wycinek){ 0, 0, ow, oh }, widok, tw, th,
-                  tw) != 0) {
-        jest.blad = K1_DEK_BLAD_PAMIEC;
-        return;
-    }
-    ww = (int32_t)tw;
-    wh = (int32_t)th;
-}
-
 static void zadaj(const struct k1_dok_wpis *w, enum cel cel)
 {
     struct k1_dek_praca p = { w->id, w->generacja, w->rozmiar, cel == CEL_TAPETA ? K1_DEK_MAKS_W : BOK,
@@ -94,10 +58,9 @@ void obraz_zadaj(const struct k1_dok_wpis *w)
     if (w == NULL || (jest.id == w->id && jest.gen == w->generacja) ||
         (robi != NULL && robi->id == w->id && robi->gen == w->generacja && robi->cel == CEL_WIDOK))
         return;
-    obrot = 0;
     if (!do_dekodera(w)) { /* too large for dekoder, or empty: no need to ask */
         jest = (struct stan){ w->id, w->generacja, w->rozmiar > 0 ? BLAD_PLIK : K1_DEK_BLAD_USZKODZONY, 0, 0, 0, 0, 0 };
-        przelicz();
+        widok_nowy(NULL, 0, 0);
         return;
     }
     if (czeka == NULL || czeka->cel == CEL_WIDOK) /* a wallpaper asked for is not dropped for the next picture */
@@ -113,13 +76,9 @@ void obraz_tapeta(const struct k1_dok_wpis *w)
     zadaj(w, CEL_TAPETA);
 }
 
-void obraz_obroc(void)
+int obraz_gotowy(const struct k1_dok_wpis *w)
 {
-    if (jest.id == 0 || jest.blad != 0)
-        return;
-    obrot = (obrot + 1) % 4;
-    przelicz();
-    k1_log(TAG, "obrót %d°: widok %dx%d", obrot * 90, (int)ww, (int)wh);
+    return w != NULL && jest.id == w->id && jest.gen == w->generacja && jest.blad == 0;
 }
 
 int obraz_tresc(const struct k1_komunikat *k, int fd)
@@ -174,9 +133,12 @@ static void zdekodowane(const struct k1_dek_praca *p, const struct k1_dek_wynik 
         jest.w = w->w;
         jest.h = w->h;
     }
-    przelicz();
-    if (jest.blad == 0)
+    widok_nowy(jest.blad == 0 ? zrodlo : NULL, jest.w, jest.h);
+    if (jest.blad == 0) {
+        int32_t ww, wh;
+        widok_rozmiar(&ww, &wh);
         k1_log(TAG, "obraz: %dx%d (zdjęcie %dx%d)", (int)ww, (int)wh, (int)jest.zw, (int)jest.zh);
+    }
 }
 
 static void dekoder_odbierz(void)
@@ -237,10 +199,8 @@ void obraz_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_d
     *zh = ten && jest.blad == 0 ? jest.zh : 0;
     if (w == NULL)
         return;
-    if (ten && jest.blad == 0 && ww > 0) {
-        k1_naloz_sprite(o, widok, (uint32_t)ww, (uint32_t)wh, sx - ww / 2, sy - wh / 2);
+    if (ten && jest.blad == 0 && widok_rysuj(o))
         return;
-    }
     if (ten)
         tekst_bledu(t, sizeof t);
     else

@@ -123,7 +123,8 @@ szczegółami po prawej, C — zdjęcie na całe okno z pływającym paskiem): n
 - Okno 960 × 640, ramka (pasek tytułu) w kolorach motywu; pod nią całe okno to ciemny obszar zdjęcia (`#1c1b19`,
   dolne rogi zaokrąglone jak okno), zdjęcie wyśrodkowane, dopasowane do okna, nigdy powiększone ponad 100 %.
 - Pływający pasek na dole, wyśrodkowany, 16 px nad krawędzią: „pigułka” 44 px (promień 22, `#1f1e1c`, krycie 215):
-  ‹ w kółku, „3 z 27”, › w kółku, cienka kreska, potem przyciski-napisy „Otwórz…”, „Obróć”, „Ustaw jako tapetę”
+  ‹ w kółku, „3 z 27”, › w kółku, cienka kreska, − i + w kółkach (przybliżenie, animacja 0,18 s: najpierw szybko,
+  potem wolniej), cienka kreska, potem przyciski-napisy „Otwórz…”, „Obróć”, „Ustaw jako tapetę”
   (białe, Plex Sans Medium 13) i „Do Kosza” (jasna terakota). Najechany — jaśniejsze tło; niedostępny — przygaszony.
 - Etykieta w lewym górnym rogu zdjęcia (pigułka 26 px, krycie 200): „nazwa · 4000 × 2667 · 2,4 MB · data ·
   pochodzenie”, ucięta „…”, gdy za długa. Komunikat (np. „Tapeta ustawiona.”) — taka sama etykieta nad paskiem.

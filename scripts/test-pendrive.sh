@@ -280,7 +280,7 @@ sprawdz("„Ustaw jako tapetę”: Pliki → dekoder → ekran (tylko od Plików
 # 4c. (0.8.2 step 4, ADR 0037) Podgląd: a double click on a picture opens it in its own window (Obrazy by name: row 1
 # IMG_0002.PNG green, row 2 USZKODZONE.JPG, row 3 Wakacje… blue 80×60)
 PUKLAD = (r"K1-PODGLAD: układ: poprzednie (\d+),(\d+) następne (\d+),(\d+) otwórz (\d+),(\d+) obróć (\d+),(\d+) "
-          r"tapeta (\d+),(\d+) kosz (\d+),(\d+) zdjęcie (\d+),(\d+)")
+          r"tapeta (\d+),(\d+) kosz (\d+),(\d+) zdjęcie (\d+),(\d+) mniej (\d+),(\d+) więcej (\d+),(\d+)")
 ZDJ = r"K1-PODGLAD: zdjęcie (\d+) z (\d+)"
 n_d, n_z, n_u = q.ile(r"K1-NADZORCA: dekoder dla aplikacji Podgląd"), q.ile(ZDJ), q.ile(PUKLAD)
 op = po(r"K1-EKRAN: okno (\d+) \(podglad\) (\d+)x(\d+) w (\d+),(\d+)", lambda: q.dwuklik(*wiersz(3)), czas=60)
@@ -290,7 +290,7 @@ pw = czekaj(r"K1-PODGLAD: obraz: 80x60 \(zdjęcie 80x60\)", czas=90)
 if not sprawdz("Podgląd otwarty", op and up and pz): sys.exit(1)
 pox, poy = int(op.group(4)), int(op.group(5))
 pp = {k: (pox + int(up.group(2 * i + 1)), poy + int(up.group(2 * i + 2)))
-      for i, k in enumerate(("poprzednie", "nastepne", "otworz", "obroc", "tapeta", "kosz", "zdjecie"))}
+      for i, k in enumerate(("poprzednie", "nastepne", "otworz", "obroc", "tapeta", "kosz", "zdjecie", "mniej", "wiecej"))}
 sz, sy = pp["zdjecie"]
 w, h, px = zrzut("6b-podglad", gdy=lambda w, h, px: blisko(px(sz, sy), NIEBIESKI))
 sprawdz("Podgląd (UID 208): dwuklik zdjęcia w Plikach — zdjęcie 4 z 10 w osobnym oknie, 80×60 (nie powiększone ponad "
@@ -298,6 +298,16 @@ sprawdz("Podgląd (UID 208): dwuklik zdjęcia w Plikach — zdjęcie 4 z 10 w os
         pw and pz.group(1, 2) == ("4", "10") and czekaj(r"K1-NADZORCA: uruchomiono podglad \(pid \d+, uid 208\)") and
         czekaj(r"K1-NADZORCA: dekoder dla aplikacji Podgląd: pid \d+, uid 107", od=n_d) and blisko(px(sz, sy), NIEBIESKI),
         f"kolor w środku {px(sz, sy)}")
+# the owner's wish: − + zoom the picture, with a short animation (its end is logged)
+PL = r"K1-PODGLAD: powiększenie (\d+)%: widok (\d+)x(\d+)"
+m = po(PL, lambda: q.pisz("kp_add"))
+w, h, px = zrzut("6b-podglad-plus", gdy=lambda w, h, px: blisko(px(sz + 50, sy), NIEBIESKI))
+sprawdz("+ (klawisz): przybliżenie z animacją — 150 %, widok 120×90 (zrzut: niebieski dalej od środka)",
+        m and m.group(1, 2, 3) == ("150", "120", "90") and blisko(px(sz + 50, sy), NIEBIESKI), f"{m and m.group(0)} {px(sz + 50, sy)}")
+m = po(PL, lambda: klik(*pp["mniej"]))
+w, h, px = zrzut("6b-podglad-minus", gdy=lambda w, h, px: not blisko(px(sz + 50, sy), NIEBIESKI))
+sprawdz("przycisk −: z powrotem dopasowane — 100 %, 80×60", m and m.group(1, 2, 3) == ("100", "80", "60") and
+        not blisko(px(sz + 50, sy), NIEBIESKI), f"{m and m.group(0)}")
 ok = po(r"K1-PODGLAD: obrót 90°: widok 60x80", lambda: q.pisz("r"))
 w, h, px = zrzut("6b-podglad-obrot", gdy=lambda w, h, px: not blisko(px(sz + 36, sy), NIEBIESKI))
 sprawdz("R: widok obrócony o 90° (60×80; plik bez zmian)", ok and blisko(px(sz, sy + 36), NIEBIESKI) and

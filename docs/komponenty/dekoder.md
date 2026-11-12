@@ -67,7 +67,7 @@ prośba innego klienta czeka na koniec trwającego; po końcu obsługiwany jest 
 2. Nadzorca tworzy kanał (obie strony z `SO_PASSCRED`), uruchamia dekoder w klatce (fd 3, argument: numer aplikacji
    klienta, limity pamięci z RAM) i daje klientowi drugi koniec w `DEKODER_KANAL`.
 3. Klient → dekoder: `DEK_OBRAZ` (obiekt = numer pliku, a = długość, b × c = największy rozmiar: miniatura 200×150,
-   Podgląd 958×958 — obraca i dopasowuje u siebie, tapeta 2560×1600). Potem plik kawałek po kawałku: Pliki proszą skarbiec o kawałek (`DOK_CZYTAJ`, najwyżej 1 MiB →
+   Podgląd 1600×1600 — obraca, dopasowuje i przybliża u siebie, tapeta 2560×1600). Potem plik kawałek po kawałku: Pliki proszą skarbiec o kawałek (`DOK_CZYTAJ`, najwyżej 1 MiB →
    `DOK_TRESC`, zapieczętowany memfd) i przekazują go dekoderowi bez czytania (`DEK_KAWALEK`). Zdjęcie 100 MB nie
    kosztuje Plików ani skarbca więcej pamięci niż jeden kawałek (do 0.8.1 skarbiec wysyłał całe zdjęcie ≤ 16 MiB w
    jednym memfd).
