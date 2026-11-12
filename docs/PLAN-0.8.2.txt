@@ -66,8 +66,8 @@ Nowy czat — przebieg każdego kroku:
          [PR #76]
 [x]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
          [PR #77]
-[ ]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        5          D6 D8     L        —
-         [w toku: Claude, gałąź claude/ecstatic-brown-7wnfgt]
+[x]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        5          D6 D8     L        —
+         [PR #78]
 [ ]  7  Porządki i wydanie 0.8.2                     —                       1–6        —         S        —
 
 Kolejność: 1 najpierw (dane właściciela rosną — format zmieniamy, póki danych jest mało); 2 i 3 w dowolnej
