@@ -125,6 +125,18 @@ void uruchom_z_plikiem(int apl, uint32_t plik)
     k1_log(TAG, "skarbiec: aplikacja %d uruchomiona %s", apl, plik != 0 ? "z plikiem" : "(okno wyboru pliku)");
 }
 
+/* The start of this version is confirmed (rozruch.c, 0.8.2 step 1c): skarbiec may move a vault of format 1 to format 2
+ * (ADR 0036) — a rollback A/B to 0.8.1 no longer can happen. Sent again to a skarbiec that restarted. */
+static int start_potwierdzony;
+
+void skarb_start_potwierdzony(void)
+{
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_START_POTWIERDZONY, 0, 0, 0, 0, 0, 0);
+    start_potwierdzony = 1;
+    if (skarb_ster >= 0 && k1_kanal_wyslij(skarb_ster, &k, sizeof k, -1) != 0)
+        k1_log(TAG, "start potwierdzony — wiadomość do skarbca: %s", strerror(errno));
+}
+
 /* State of the vault from skarbiec (M5e): locked → the password screen instead of the desktop;
  * unlocked → restart ekran (the settings are readable now) and with it the desktop. */
 void obsluz_skarbiec(void)
@@ -149,6 +161,8 @@ void obsluz_skarbiec(void)
             continue;
         }
         stan_skarbca = k.a;
+        if (start_potwierdzony && poprzedni < 0)
+            skarb_start_potwierdzony(); /* a skarbiec started again */
         if (k.a != K1_SKARB_ZABLOKOWANY && etap == E_STAN)
             przejdz(E_PULPIT, k.a == K1_SKARB_TRWALY ? "magazyn otwarty" : "dane tylko w pamięci");
         if (k.a == K1_SKARB_ZABLOKOWANY && poprzedni != K1_SKARB_ZABLOKOWANY) {

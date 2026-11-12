@@ -82,19 +82,20 @@ int f2_zapisz_spis(struct k1_magazyn *m, uint32_t odc)
 
 /* ---- opening ---- */
 
-/* The generations of piece 0 (not in the future; the segment of the spis has its own). */
-static int czytaj_tabele(struct k1_magazyn *m, const uint8_t *p, uint32_t dl, uint32_t *off)
+/* The generations of piece 0 for the `n` segments the spis knows (not in the future; the segment of the spis has its
+ * own). A vault grown after the spis has more: those are free (generation 0, cleared on open). */
+static int czytaj_tabele(struct k1_magazyn *m, const uint8_t *p, uint32_t dl, uint32_t n, uint32_t *off)
 {
     uint32_t odc0 = m->ogon[0].odcinek;
-    if (dl < SPIS_NAGL + 8ull * m->n_odcinkow)
+    if (n < 4 || n > m->n_odcinkow || odc0 >= n || dl < SPIS_NAGL + 8ull * n)
         return K1_MAG_USZKODZONY;
-    for (uint32_t i = 0; i < m->n_odcinkow; i++) {
+    for (uint32_t i = 0; i < n; i++) {
         uint64_t g = k1_c64(p + SPIS_NAGL + 8 * i);
         if (g > m->licznik_gen || (i == odc0 && g != m->ogon[0].gen))
             return K1_MAG_USZKODZONY;
         m->gen_odc[i] = g;
     }
-    *off = SPIS_NAGL + 8 * m->n_odcinkow;
+    *off = SPIS_NAGL + 8 * n;
     return K1_MAG_OK;
 }
 
@@ -127,7 +128,7 @@ static int czytaj_wpis_spisu(struct k1_magazyn *m, const uint8_t *p, uint32_t dl
 
 static int czytaj_spis(struct k1_magazyn *m)
 {
-    uint32_t poz = 0, k = 0, wpisow = 0;
+    uint32_t poz = 0, k = 0, wpisow = 0, n_spisu = 0;
     struct f2_meta t;
     while (poz < m->spis_bloki) {
         const uint8_t *p = bufor + R2_NAGL;
@@ -135,11 +136,13 @@ static int czytaj_spis(struct k1_magazyn *m)
         int r = f2_czytaj(m, m->ogon[0].odcinek, poz, m->spis_bloki, &t);
         if (r != K1_MAG_OK)
             return r;
-        if (t.typ != TYP_SPIS || t.dl < SPIS_NAGL || k1_c32(p) != k || k1_c32(p + 8) != m->n_odcinkow ||
+        if (k == 0)
+            n_spisu = t.dl >= SPIS_NAGL ? k1_c32(p + 8) : 0; /* segments when the spis was written (k1_mag_powieksz) */
+        if (t.typ != TYP_SPIS || t.dl < SPIS_NAGL || k1_c32(p) != k || k1_c32(p + 8) != n_spisu ||
             k1_c32(p + 12) != 0)
             return K1_MAG_USZKODZONY;
         n = k1_c32(p + 4);
-        if (k == 0 && (r = czytaj_tabele(m, p, t.dl, &off)) != K1_MAG_OK)
+        if (k == 0 && (r = czytaj_tabele(m, p, t.dl, n_spisu, &off)) != K1_MAG_OK)
             return r;
         for (uint32_t e = 0; e < n; e++)
             if ((r = czytaj_wpis_spisu(m, p, t.dl, &off)) != K1_MAG_OK)

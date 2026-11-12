@@ -15,8 +15,9 @@
 #   5. wyjęcie pendrive'a (device_del): czytnik zatrzymany, miejsce znika; włożenie pendrive'a z NTFS: Pliki mówią,
 #      że K1 go jeszcze nie odczyta
 #   6. nazwy plików i ich treść nie trafiają do logu; brak zabronionych wywołań i odrzuconych komunikatów
-#   7. ponowny start z tym samym dyskiem danych: tapeta ze zdjęcia wraca ze skarbca (0.8.1: magazyn z filmem 300 MB
-#      otwiera się dłużej niż 1,5 s — ekran rusza z domyślnymi i stosuje zapisane ustawienia, gdy skarbiec odpowie, R58)
+#   7. ponowny start z tym samym dyskiem danych: tapeta ze zdjęcia wraca ze skarbca; magazyn z filmem 300 MB otwiera się
+#      od razu (0.8.2 krok 1c, format 2: spis zamiast czytania wszystkiego) — ekran dostaje zapisane ustawienia przy
+#      starcie, nie później (w 0.8.1: „skarbiec jeszcze otwiera magazyn”, R58)
 # Dowody: build/testy/pendrive.log, zrzuty build/testy/pendrive-*.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -66,8 +67,7 @@ rm -rf "$Z"
 rm -f "$NTFS"; truncate -s 16M "$NTFS"
 printf 'label: dos\nstart=2048, type=7\n' | sfdisk -q "$NTFS" >/dev/null
 printf '\353R\220NTFS    ' | dd of="$NTFS" bs=512 seek=2048 conv=notrunc status=none
-# the data partition (K1-DANE) on a SATA disk: 768 MiB (the film of 300 MiB in half of it — the other half is for
-# compaction), sparse
+# the data partition (K1-DANE) on a SATA disk: 768 MiB, sparse (format 2 of the vault since 0.8.2: about 90 % for files)
 rm -f "$DANE"; truncate -s 768M "$DANE"
 printf 'label: gpt\nstart=2048, size=1568768, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
 
@@ -253,6 +253,9 @@ log, mon, out, limit = sys.argv[1:5]
 q = Maszyna(log, mon, out, limit, "pendrive")
 blisko = lambda a, b, t=12: all(abs(x - y) <= t for x, y in zip(a, b))
 ok = q.czekaj(r"K1-EKRAN: zdjęcie na tapetę wczytane ze skarbca \(80x60\)") and q.czekaj(r"K1-GUI: pulpit gotowy")
+m = q.czekaj(r"K1-SKARBIEC: magazyn otwarty: (\d+) obiektów \(format 2, ([\d.]+) s\)")
+q.sprawdz("ponowny start: magazyn z filmem 300 MB otwarty od razu (format 2: spis, nie cała treść; 0.8.2 krok 1c)",
+          m and float(m.group(2)) < 1.0 and "skarbiec jeszcze otwiera magazyn" not in q.tekst(), m.group(0) if m else "brak")
 w, h, px = q.zrzut("9-ponownie", gdy=lambda w, h, px: blisko(px(w - 12, h // 2), (60, 120, 180)))
 q.sprawdz("ponowny start: tapeta ze zdjęcia wczytana ze skarbca i narysowana", ok and blisko(px(w - 12, h // 2), (60, 120, 180)),
           f"tło przy prawej krawędzi {px(w - 12, h // 2)}")

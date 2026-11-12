@@ -25,7 +25,7 @@ int main(int argc, char **argv)
         return 2;
     }
     k1_mag_dysk_fd(&d, fd, (uint64_t)st.st_size);
-    if (k1_mag_utworz(&mag, &d, NULL, 64) != K1_MAG_OK) {
+    if (k1_mag_utworz_w_formacie(&mag, &d, NULL, 64, 1) != K1_MAG_OK) { /* as 0.5.8–0.7.6 wrote it */
         fprintf(stderr, "stare_notatki: nie udało się utworzyć magazynu\n");
         return 1;
     }

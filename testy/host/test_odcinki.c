@@ -448,12 +448,51 @@ static void test_kroki(struct k1_mag_dysk *d)
     k1_mag_zamknij(&m);
 }
 
+/* ---- skarbiec's loop (0.8.2 step 1b): steps between writes, so that no write compacts a whole segment itself ---- */
+
+/* 600 writes of 1 MiB over `obiektow` objects in random order; `kroki`: a step of 4 MiB after a write when compaction
+ * is urgent, and every 4th write (a quiet moment) when it is worth it. How many writes moved records themselves (wrote
+ * more than their record and headers). */
+static uint64_t obciazenie(struct k1_mag_dysk *d, int obiektow, int kroki)
+{
+    char n[16];
+    uint64_t z, najwiecej = 0;
+    uint32_t los = 12345;
+    dysk(d, 2 + 15 * 2048); /* 120 MiB: 29 segments of 4 MiB */
+    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_OK);
+    for (int j = 0; j < 600; j++) {
+        int k = kroki ? k1_mag_kompaktowac(&m, 0) : 0;
+        los = los * 1103515245u + 12345u; /* objects in random order: segments keep some live data */
+        snprintf(n, sizeof n, "p%u", j < obiektow ? (uint32_t)j : (los >> 8) % (uint32_t)obiektow);
+        dane[0] = (uint8_t)j;
+        z = zapisanych_blokow;
+        EXPECT(k1_mag_zapisz(&m, 4, n, dane, K1_MAG_MAKS_DANYCH) == K1_MAG_OK);
+        najwiecej += zapisanych_blokow - z > 257 + 8;
+        if (k == 2 || (k == 1 && j % 4 == 0))
+            EXPECT(k1_mag_kompaktuj_krok(&m, 1024) >= 0);
+    }
+    k1_mag_zamknij(&m);
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == obiektow);
+    k1_mag_zamknij(&m);
+    return najwiecej;
+}
+
+static void test_w_przerwach(struct k1_mag_dysk *d)
+{
+    for (int ob = 40; ob <= 80; ob += 40) { /* the vault 40 % and 75 % live */
+        uint64_t z_krokami = obciazenie(d, ob, 1), bez = obciazenie(d, ob, 0);
+        printf("test_odcinki: 600 zapisów po 1 MiB na %d obiektach — zapisy, które same kompaktowały: z krokami %llu, "
+               "bez kroków %llu\n", ob, (unsigned long long)z_krokami, (unsigned long long)bez);
+        EXPECT(z_krokami == 0 && (ob == 40 || bez > 50)); /* without the steps (75 % live) writes compact often */
+    }
+}
+
 /* ---- growing: new free segments, only the header changes ---- */
 
 static void test_powiekszenie(struct k1_mag_dysk *d)
 {
     char n[16];
-    int i, k, zle = 0;
+    int i, k, zle = 0, s_ile;
     uint32_t dl;
     static uint8_t *migawka;
     size_t bajty = 4096 * K1_MAG_BLOK;
@@ -464,6 +503,11 @@ static void test_powiekszenie(struct k1_mag_dysk *d)
         snprintf(n, sizeof n, "g%d", i);
         EXPECT(k1_mag_zapisz(&m, 2, n, &i, sizeof i) == K1_MAG_OK);
     }
+    for (s_ile = 0; s_ile < 20 && m.spis_bloki == 0; s_ile++) { /* a spis written before the grow (0.8.2 1c: QEMU) */
+        snprintf(n, sizeof n, "s%d", s_ile);
+        EXPECT(k1_mag_zapisz(&m, 2, n, dane, 60000) == K1_MAG_OK);
+    }
+    EXPECT(m.spis_bloki > 0);
     free(migawka);
     migawka = malloc(bajty);
     memcpy(migawka, ram, bajty);
@@ -495,7 +539,7 @@ static void test_powiekszenie(struct k1_mag_dysk *d)
         EXPECT(k1_mag_zapisz(&m, 2, n, dane, 200000) == K1_MAG_OK);
     }
     k1_mag_zamknij(&m);
-    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == 32);
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_OK && m.n_wpisow == 32 + s_ile);
     k1_mag_zamknij(&m);
 }
 
@@ -541,6 +585,7 @@ int main(void)
     test_przerwy_pradu(&d);
     test_pelny(&d);
     test_kroki(&d);
+    test_w_przerwach(&d);
     test_powiekszenie(&d);
     test_wiele_obiektow(&d);
     free(ram);

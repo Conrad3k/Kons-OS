@@ -14,7 +14,7 @@
 static uint8_t *ram;
 static int awaria_po = -1; /* writes left before the "power cut" (-1: never) */
 static int tylko_naglowki_padaja;
-static uint64_t licznik_losowych, odczytow, zapisow;
+static uint64_t licznik_losowych, odczytow, zapisow, zapisanych_blokow;
 
 static int ram_czytaj(struct k1_mag_dysk *d, uint64_t blok, void *buf, uint32_t bloki)
 {
@@ -34,6 +34,7 @@ static int ram_zapisz(struct k1_mag_dysk *d, uint64_t blok, const void *buf, uin
         awaria_po--;
     memcpy(ram + blok * K1_MAG_BLOK, buf, (size_t)bloki * K1_MAG_BLOK);
     zapisow++;
+    zapisanych_blokow += bloki;
     return 0;
 }
 static int ram_sync(struct k1_mag_dysk *d)

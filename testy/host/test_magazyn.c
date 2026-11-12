@@ -25,7 +25,7 @@ static void test_dlugi_dziennik(struct k1_mag_dysk *d)
 {
     int i, r = K1_MAG_OK;
     dysk(d, 2 + 2 * 70000ull); /* two regions of 273 MiB */
-    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 1) == K1_MAG_OK);
     EXPECT(k1_mag_pojemnosc(&m) == 70000ull * K1_MAG_BLOK && k1_mag_wolne(&m) == k1_mag_pojemnosc(&m));
     for (i = 0; i < 20000 && r == K1_MAG_OK; i++)
         r = k1_mag_zapisz(&m, 6, "ustawienia", &i, sizeof i);
@@ -58,7 +58,7 @@ static void test_wiele_obiektow(struct k1_mag_dysk *d)
     int i, r = K1_MAG_OK, zle = 0;
     uint32_t dl, v;
     dysk(d, 2 + 2 * 70000ull);
-    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 1) == K1_MAG_OK);
     for (i = 0; i < K1_MAG_MAKS_OBIEKTOW_F1 && r == K1_MAG_OK; i++) {
         snprintf(n, sizeof n, "o%d", i);
         r = k1_mag_zapisz(&m, (uint16_t)(1 + i % 3), n, &i, sizeof i);
@@ -117,7 +117,7 @@ static int przygotuj_maly(struct k1_mag_dysk *d, int drugi)
     int i = 0, r = K1_MAG_OK;
     dysk(d, DUZE);
     d->bajty = (MALE) * K1_MAG_BLOK;
-    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 1) == K1_MAG_OK);
     for (i = 0; i < 20 && r == K1_MAG_OK; i++) {
         snprintf(n, sizeof n, "o%d", i);
         r = k1_mag_zapisz(&m, 3, n, &i, sizeof i);
@@ -215,7 +215,7 @@ int main(void)
 
     /* no password: write, read, overwrite, "restart", delete */
     dysk(&d, 512);
-    EXPECT(k1_mag_utworz(&m, &d, NULL, 64) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz_w_formacie(&m, &d, NULL, 64, 1) == K1_MAG_OK);
     EXPECT(k1_mag_sprawdz(&d, &h) == K1_MAG_JEST && h == 0);
     EXPECT(k1_mag_zapisz(&m, 6, "ustawienia", "motyw=1", 7) == K1_MAG_OK);
     EXPECT(k1_mag_zapisz(&m, 5, "notatka", "TAJNE-NOTATKI pierwsza", 22) == K1_MAG_OK);
@@ -302,7 +302,7 @@ int main(void)
 
     /* password: required, wrong, changed (the old one stops working), removed */
     dysk(&d, 256);
-    EXPECT(k1_mag_utworz(&m, &d, "Kocham-K1", 64) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz_w_formacie(&m, &d, "Kocham-K1", 64, 1) == K1_MAG_OK);
     EXPECT(k1_mag_zapisz(&m, 5, "notatka", "z haslem", 8) == K1_MAG_OK);
     k1_mag_zamknij(&m);
     EXPECT(k1_mag_sprawdz(&d, &h) == K1_MAG_JEST && h == 1);
@@ -327,7 +327,7 @@ int main(void)
 
     /* compaction: a small vault (2 regions of 31 blocks) written over and over */
     dysk(&d, 64);
-    EXPECT(k1_mag_utworz(&m, &d, NULL, 64) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz_w_formacie(&m, &d, NULL, 64, 1) == K1_MAG_OK);
     EXPECT(k1_mag_zapisz(&m, 6, "ustawienia", "stale", 5) == K1_MAG_OK);
     for (i = 0, r = K1_MAG_OK; i < 200 && r == K1_MAG_OK; i++) {
         char t[32];

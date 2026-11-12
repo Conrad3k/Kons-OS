@@ -56,8 +56,8 @@ Nowy czat — przebieg każdego kroku:
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                             Luki (punkt 5)          Zależy od  Decyzje   Rozmiar  ADR
-[ ]  1  Skarbiec na lata: format na duże dane        L25 L26 L27 L28         —          —         XL       0036
-         [w toku: Claude — 1a [x] PR #72 (format 2 w magazynie); 1b i 1c (jeden PR) do zrobienia]
+[x]  1  Skarbiec na lata: format na duże dane        L25 L26 L27 L28         —          —         XL       0036
+         [1a PR #72 (format 2 w magazynie); 1b i 1c PR #73 (kompaktowanie w przerwach, przejście, format 2 w systemie)]
 [ ]  2  Pendrive i nazwy plików                      L13 L14 L15 L16 L8 L9   —          D3        M–L      —
 [ ]  3  Zdjęcia: duże i nowe formaty, wspólny dekoder L17 L23b               —          —         M        (0032)
 [ ]  4  Aplikacja Podgląd                            (prośba właściciela)    3          D1 D2 D5  L        0037
@@ -102,11 +102,11 @@ KROK 1 — Skarbiec na lata: format na duże dane                    XL (2–3 P
       - sufit plików: większe kawałki dla dużych plików albo wyższy limit obiektów (pamięć skarbca) — cel: co najmniej
         256 GB plików; wybór w ADR-ze po pomiarze;
       - alternatywa do oceny w ADR-ze: tylko indeks na starym układzie (naprawia L25, zostawia L26–L28).
-  [ ] Przejście ze starego formatu (0.5.6–0.8.1): stary magazyn otwiera się jak dziś; przejście na format 2 dopiero
+  [x] Przejście ze starego formatu (0.5.6–0.8.1): stary magazyn otwiera się jak dziś; przejście na format 2 dopiero
       PO potwierdzeniu startu nowej wersji (rozruch.c zatwierdza po 15 s) — wycofanie aktualizacji A/B musi dalej
       czytać dane. Przejście naturalnie korzysta z pustej dziś połowy: żywe dane → nowy układ w wolnym obszarze →
       nagłówek formatu 2. Przerwa prądu w każdym miejscu = stary albo nowy magazyn, oba pełne.
-  [ ] Przerwa prądu i uszkodzenia: po każdym zapisie (rekord, spis, tablica odcinków, nagłówek, kompaktowanie,
+  [x] Przerwa prądu i uszkodzenia: po każdym zapisie (rekord, spis, tablica odcinków, nagłówek, kompaktowanie,
       przejście); zły spis albo zmieniony bajt → odmowa jak dziś przy złym rekordzie, nigdy ciche zgubienie danych.
   [x] Pomiar przed/po (wzór próby T3, punkt 5; host — wyniki w ADR 0036, QEMU — w 1c): magazyn 1 GB, 4 GB i 32 GB w pliku (rzadkim) — czas otwarcia (CPU)
       i odczytane bajty, najdłuższa przerwa przy kompaktowaniu, miejsce na pliki; w QEMU czas od startu do „magazyn
@@ -137,6 +137,19 @@ KROK 1 — Skarbiec na lata: format na duże dane                    XL (2–3 P
   - 1b: obiekty.c — kompaktowanie formatu 2 krokami (k1_mag_kompaktuj_krok, np. 4 MiB) w przerwach main.c, log
     z najdłuższą przerwą; 1c: przejście po potwierdzeniu startu (rozruch.c), magazyn_testowy w formacie 1 do
     test-skarbiec, opis miejsca w Ustawieniach → Informacje.
+  Ustalenia z wykonania (1b i 1c, 2026-11-12, jeden PR):
+  - 1b w osobnym module src/skarbiec/przerwy.c (nie obiekty.c): krok 4 MiB po 0,5 s ciszy; „pilne” (zapas + 1 wolnych
+    odcinków albo mniej) — krok także między prośbami. Błąd: k1_mag_kompaktowac zamieniał „pilne” (2) na 1 przez &&;
+    po poprawce 600 zapisów po 1 MiB przy 75 % zajętości — żaden nie kompaktuje sam (bez kroków: 196; test_odcinki).
+  - 1c: przejście w krokach do odcinków poza CAŁYM aktywnym obszarem formatu 1 (format 1 działa w tym czasie);
+    potwierdzenie startu = nowy komunikat START_POTWIERDZONY (nadzorca → skarbiec po sprawdzeniu A/B; nie, gdy czeka
+    próba innej wersji). „Usunięcie zapisu formatu 1” w praktyce: k1_mag_utworz tworzy format 2, format 1 tworzą tylko
+    testy; zapis do ISTNIEJĄCEGO magazynu formatu 1 zostaje (do przejścia, a gdy dane nie mieszczą się w wolnej
+    połowie — dłużej: przejście odłożone do zwolnienia 8 MiB albo powiększenia).
+  - QEMU: przejście 64 MiB z 0.8.1 (25 MiB danych) w 7 krokach, najdłuższy 0,22 s (TCG); na pliki 23 → 50 MiB; treść
+    sprawdzona na hoście (magazyn_testowy --sprawdz). Magazyn z filmem 300 MB otwiera się przy starcie od razu.
+  - Błąd z 1a znaleziony w QEMU (test-skarbiec, powiększenie-ponownie): po „Użyj całego pendrive'a” spis miał starą
+    liczbę odcinków i otwarcie odmawiało („dane uszkodzone”, dane całe) — naprawione w spis.c, test w test_odcinki.
 
 KROK 2 — Pendrive i nazwy plików                                                     M–L · decyzja D3 · bez ADR
   Cel: każdy pendrive FAT z telefonu czy aparatu działa, z dowolnie dużego folderu można zaimportować wszystko,

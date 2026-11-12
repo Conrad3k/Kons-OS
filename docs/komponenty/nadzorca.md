@@ -91,6 +91,10 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   „Użyj całego pendrive'a na dane” w Ustawieniach (gest użytkownika, decyzja D4) i przy otwartym magazynie; te same
   zapisy tablicy, skarbiec zostaje przy otwartej partycji, odpowiedź `POWIEKSZONO` (a = 0 / `K1_SKARB_ARG` /
   `K1_SKARB_IO`). `SKARB_KLIENT` d = ile MiB pendrive ma jeszcze za K1-DANE (0: nie pendrive albo < 16 MiB).
+- Potwierdzony start (0.8.2 krok 1c, ADR 0036, `rozruch.c`, `skarb.c`): po sprawdzeniu A/B (15 s pulpitu albo ekranu
+  hasła) nadzorca wysyła skarbcowi `START_POTWIERDZONY` — stary magazyn (format 1) może przejść na format 2, bo
+  wycofanie do 0.8.1 już nie nastąpi. Gdy na którymś dysku czeka próba A/B innej wersji — nie wysyła („skarbiec zostaje
+  przy swoim formacie do następnego startu”). Skarbiec uruchomiony ponownie dostaje go jeszcze raz.
 - Dekoder (0.8.0 krok 4, ADR 0032, `dekoder.c`): na `DEKODER` od Plików (ten sam fd 6) — nowy proces `dekoder` w klatce
   (fd 3: kanał do Plików, obie strony z `SO_PASSCRED`), drugi koniec Plikom w `DEKODER_KANAL`. Jeden obraz na proces,
   jeden proces naraz (prośba w trakcie: `SIGKILL` starego, nowy po jego końcu). Szczegóły: `komponenty/dekoder.md`.

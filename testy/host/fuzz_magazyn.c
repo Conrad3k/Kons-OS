@@ -1,6 +1,6 @@
 /* libFuzzer harness for the Blob Vault (src/skarbiec/magazyn.c, M5c; format 2: ADR 0036). What is on the partition
  * may come from anyone who had the medium in hand — and without a password such a person even knows the key, so
- * authenticated garbage is possible too. Modes (first input byte % 6):
+ * authenticated garbage is possible too. Modes (first input byte % 7):
  *   0: the input is the raw partition (headers and records) — check + open must never misbehave;
  *   1: a valid vault (format 1), then the input XORs bytes of its first blocks — open/read must fail cleanly;
  *   2: a valid vault whose header fields (end, region, epoch, size) are set from the input and
@@ -8,7 +8,8 @@
  *   3: as 1, format 2 (512 blocks: 4 segments of 64 + headers): the spis, the tail, the headers;
  *   4: as 2, format 2: segment size and count, the spis, the tail (segments, ends, generations) from the input;
  *   5: format 2, the input is a sequence of writes, deletions and compaction steps — after every one that succeeded,
- *      closing and opening must give back every object (abort otherwise). */
+ *      closing and opening must give back every object (abort otherwise);
+ *   6: as 5 on format 1, with steps of the transition to format 2 among the operations (0.8.2 step 1c). */
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -103,8 +104,8 @@ static void naglowek2_z_wejscia(const uint8_t *data, size_t size)
     }
 }
 
-/* Mode 5: operations from the input; whatever succeeded must open again. */
-static void operacje(struct k1_mag_dysk *d, const uint8_t *data, size_t size)
+/* Mode 5: operations from the input; whatever succeeded must open again. Mode 6: format 1 and the transition. */
+static void operacje(struct k1_mag_dysk *d, const uint8_t *data, size_t size, uint32_t format)
 {
     static uint8_t buf[60000], wynik[60000];
     static uint32_t dl_obiektu[8];
@@ -113,7 +114,7 @@ static void operacje(struct k1_mag_dysk *d, const uint8_t *data, size_t size)
     memset(jest, 0, sizeof jest);
     memset(ram, 0, sizeof ram);
     los = 0;
-    if (k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) != K1_MAG_OK)
+    if (k1_mag_utworz_w_formacie(&m, d, NULL, 64, format) != K1_MAG_OK)
         abort();
     for (size_t i = 1; i + 1 < size; i += 2) {
         uint32_t o = data[i] & 7, rodzaj = data[i] >> 3;
@@ -134,8 +135,11 @@ static void operacje(struct k1_mag_dysk *d, const uint8_t *data, size_t size)
                 jest[o] = 0;
             else if (r != K1_MAG_BRAK && r != K1_MAG_PELNY)
                 abort();
-        } else if (k1_mag_kompaktuj_krok(&m, data[i + 1]) < 0) {
-            abort();
+        } else if (rodzaj < 30 || format == 2) {
+            if (k1_mag_kompaktuj_krok(&m, data[i + 1]) < 0)
+                abort();
+        } else if ((r = k1_mag_przejscie_krok(&m, data[i + 1])) < 0 && r != K1_MAG_PELNY) {
+            abort(); /* a RAM disk never fails: only "no room" may stop the transition */
         }
     }
     k1_mag_zamknij(&m);
@@ -156,11 +160,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     int h, tryb;
     if (size < 1)
         return 0;
-    tryb = data[0] % 6;
+    tryb = data[0] % 7;
     if (tryb >= 3)
         d.bajty = BLOKI2 * K1_MAG_BLOK;
-    if (tryb == 5) {
-        operacje(&d, data, size);
+    if (tryb >= 5) {
+        operacje(&d, data, size, tryb == 5 ? 2 : 1);
         return 0;
     }
     if (tryb == 0) {

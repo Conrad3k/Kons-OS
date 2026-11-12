@@ -46,6 +46,9 @@ enum k1_komunikat_typ {
     K1_KOM_POWIEKSZONO = 115, /* nadzorca → skarbiec (0.8.1 step 3, ADR 0033): obiekt=0, a=0 K1-DANE grew to the end of
                                * the stick, K1_SKARB_ARG it cannot (no room, a table K1 did not write), K1_SKARB_IO
                                * writing failed (one valid table stays) */
+    K1_KOM_START_POTWIERDZONY = 118, /* nadzorca → skarbiec (0.8.2 step 1c, ADR 0036): all fields 0; the start of this
+                                      * version is confirmed (15 s of desktop or password screen, not an A/B try that
+                                      * waits) — a vault of format 1 may move to format 2 (a rollback no longer can) */
     /* nadzorca → instalator (M5f, ADR 0018; same direction K1_KIER_STEROWANIE): the job, once */
     K1_KOM_INST_ZADANIE = 3, /* a=K1_INST_* mode, b=logical sector size (512/4096) of the target */
 

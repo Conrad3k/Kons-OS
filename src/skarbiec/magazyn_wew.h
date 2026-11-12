@@ -104,8 +104,12 @@ int f2_czytaj_meta(struct k1_magazyn *m, uint32_t odc, uint32_t poz, uint32_t ko
 int f2_czytaj(struct k1_magazyn *m, uint32_t odc, uint32_t poz, uint32_t koniec, struct f2_meta *t);
 /* Sync of the records written, then the header. */
 int f2_zatwierdz(struct k1_magazyn *m);
+/* The segments for the partition (odcinek, n_odcinkow, rezerwa); K1_MAG_ARG below 4 segments. */
+int f2_uklad(struct k1_magazyn *m);
 /* A new vault: segments for `bloki` blocks of the partition, the first one the head, no spis yet. */
 int f2_utworz(struct k1_magazyn *m);
+/* Blocks of a spis with `n` entries, at most (it must fit in half a segment). */
+uint64_t f2_spis_szacunek(const struct k1_magazyn *m, uint64_t n);
 int f2_dopisz(struct k1_magazyn *m, uint8_t typ, uint16_t wl, const char nazwa[K1_MAG_NAZWA], const void *dane,
               uint32_t dl);
 int f2_czytaj_obiekt(struct k1_magazyn *m, int i, void *buf);
@@ -119,5 +123,9 @@ uint64_t f2_pojemnosc_blokow(const struct k1_magazyn *m);
 int f2_zapisz_spis(struct k1_magazyn *m, uint32_t odc);
 /* Opening after the header: the spis, then the records of the tail. */
 int f2_wczytaj(struct k1_magazyn *m);
+
+/* ---- format 1 → 2 (przejscie.c) ---- */
+/* Forgets the copies made so far (compaction or growing of format 1 changes where its records are). */
+void przejscie_przerwij(struct k1_magazyn *m);
 
 #endif

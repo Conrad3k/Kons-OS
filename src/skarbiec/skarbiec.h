@@ -8,6 +8,7 @@
  *   dok_kanal.c   K1_KOM_DOK_* requests of clients: the table of rights, memfd in and out
  *   dostep.c      a file for an application after a gesture: "Otwórz w…", the file picker (ADR 0030)
  *   miejsce.c     the room for files, K1-DANE to the end of its USB stick (0.8.1 step 3, ADR 0033)
+ *   przerwy.c     work between requests: compaction in steps, the transition to format 2 (0.8.2, ADR 0036)
  *
  * Documentation: docs/komponenty/skarbiec.md. */
 #ifndef K1_SKARBIEC_H
@@ -40,10 +41,16 @@ uint64_t ob_wolne(void);
 uint64_t ob_pojemnosc(void);
 /* The vault takes all of a partition now `bajty` long (k1_mag_powieksz; logged with `kiedy`). */
 int ob_powieksz(uint64_t bajty, const char *kiedy);
-/* Compaction: right after the vault opened (a long log), and when the loop has a quiet moment (main.c). */
+/* Right after the vault opened or was unlocked: a grow cut off is finished, a long log of format 1 compacted. */
 void ob_po_otwarciu(void);
-int ob_kompaktowanie_czeka(void);
-void ob_kompaktuj_w_przerwie(void);
+
+/* przerwy.c: work in the quiet moments of the loop (0.8.2, ADR 0036) — compaction (format 2 in steps of 4 MiB) and
+ * the transition to format 2 once the start of this version is confirmed */
+double przerwa_czeka(void);    /* seconds without a request before the next piece of work; < 0: none (0: now) */
+int przerwa_praca(void);       /* one piece of it; 1 when the room for files changed (clients ask again) */
+void przerwa_trwala(double s); /* a request kept the loop busy `s` seconds (the longest goes to the log) */
+void przerwa_kompaktuj_calosc(const char *kiedy); /* format 1: everything at once, logged with `kiedy` */
+void przejscie_wolno(void);    /* nadzorca's START_POTWIERDZONY */
 
 /* haslo.c */
 int haslo_ustawione(void);

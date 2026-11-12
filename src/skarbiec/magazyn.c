@@ -398,7 +398,7 @@ int k1_mag_czytaj(struct k1_magazyn *m, uint16_t wlasciciel, const char *nazwa, 
 int k1_mag_kompaktowac(const struct k1_magazyn *m, int przy_otwarciu)
 {
     if (m->format == 2)
-        return !przy_otwarciu && f2_kompaktowac(m);
+        return przy_otwarciu ? 0 : f2_kompaktowac(m); /* 1, or 2: urgent */
     if (przy_otwarciu)
         return m->koniec > 64 * BLOKI_MIB && m->koniec > 2 * m->zywe;
     return m->koniec - m->zywe > m->zywe + 256 * BLOKI_MIB;

@@ -60,7 +60,8 @@ przez skarbiec — fd 5), Mysz (prędkość),
 Data i czas (sekundy na pasku), Aplikacje (0.8.0, `aplikacje.c`: domyślna aplikacja dla typu pliku, który otwiera
 więcej niż jedna — dziś „Dokument tekstowy”: Notatki albo Pliki (podgląd); ustawienie ekranu
 `K1_UST_OTWIERANIE` + typ, zapisane w skarbcu), Informacje (`informacje.c`: wersja, ekran, jądro, gdzie są dane; od
-0.8.1 — `SKARB_MIEJSCE` od skarbca — „Miejsce na pliki: zajęte X z Y” z paskiem, „Pliki i foldery: n z 16 384”, bez
+0.8.1 — `SKARB_MIEJSCE` od skarbca — „Miejsce na pliki: zajęte X z Y” z paskiem (Y od 0.8.2 to ok. 90 % K1-DANE —
+format 2 skarbca, ADR 0036; w 0.8.1 połowa, bo druga była na kompaktowanie), „Pliki i foldery: n z 16 384”, bez
 K1-DANE „w pamięci do wyłączenia: zostało X”; na pendrivie K1 z wolnym miejscem za K1-DANE przycisk **„Użyj całego
 pendrive'a na dane”** — kliknięcie = zgoda, `SKARB_POWIEKSZ`, w trakcie „Powiększam… Nie wyjmuj pendrive'a.”, potem
 „Gotowe — cały pendrive jest teraz na dane.”; ADR 0033, `komponenty/skarbiec.md`).
