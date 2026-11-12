@@ -24,6 +24,7 @@
 #define MARG 24
 #define WYKRES_H 76
 #define WIERSZ 22
+#define WIERSZE_MAKS 14 /* rows of services at most (0.8.2: with Podgląd a row for each would not fit 1024 × 768) */
 
 static struct k1_apl apl;
 static int32_t cpu[PROBKI], pam[PROBKI]; /* ‰ of all CPUs, ‰ of the memory */
@@ -98,7 +99,7 @@ static void bateria_opis(char *buf, size_t n)
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char a[40], b[40], buf[96];
-    int32_t y = K1_OKNO_TYTUL + 12, w = apl.szer - 2 * MARG, p;
+    int32_t y = K1_OKNO_TYTUL + 12, w = apl.szer - 2 * MARG, p, dzialaja, wiersz;
     int32_t ostatni_cpu = probek ? cpu[PROBKI - 1] : 0;
 
     /* Processor: a headline number, then the last minute */
@@ -142,9 +143,16 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     k1_tekst(o, K1_CZ_MALA, MARG + w - 72, y + 16, "pamięć", k1_kolor(m->tekst3, 255), 0);
     y += 24;
     k1_prostokat(o, MARG, y, w, 1, k1_kolor(m->tekst, 20));
-    for (p = 1; p <= K1_PROFIL_MAKS; p++) {
+    for (p = 1, dzialaja = 0; p <= K1_PROFIL_MAKS; p++)
+        dzialaja += uslugi[p].dziala != 0;
+    for (p = 1, wiersz = 0; p <= K1_PROFIL_MAKS; p++) {
         if (!uslugi[p].dziala)
             continue;
+        if (++wiersz == WIERSZE_MAKS && dzialaja > WIERSZE_MAKS) { /* the last row says how many more */
+            snprintf(buf, sizeof buf, "… i jeszcze %d", dzialaja - WIERSZE_MAKS + 1);
+            k1_tekst(o, K1_CZ_MALA, MARG, y + 16, buf, k1_kolor(m->tekst3, 255), 0);
+            break;
+        }
         k1_tekst(o, K1_CZ_MALA, MARG, y + 16, k1_profil_nazwa(p), k1_kolor(m->tekst, 255), 0);
         k1_dziesietne(a, sizeof a, uslugi[p].cpu);
         snprintf(buf, sizeof buf, "%s %%", a);
@@ -223,9 +231,9 @@ int main(void)
     apl.tag = TAG;
     apl.numer = K1_APL_ZASOBY;
     apl.szer = 560;
-    /* charts and the battery (356 px), a row per service that can run at once (the password screen and
-     * the desktop never do), the footer */
-    apl.wys = 356 + (K1_PROFIL_MAKS - 1) * WIERSZ + 34;
+    /* charts and the battery (356 px), a row per service running (at most WIERSZE_MAKS: the window fits a screen of
+     * 1024 × 768 below the top bar), the footer */
+    apl.wys = 356 + WIERSZE_MAKS * WIERSZ + 34;
     apl.rysuj = rysuj;
     apl.kanaly[0].fd = FD_NADZORCA;
     apl.kanaly[0].dane = odbierz;

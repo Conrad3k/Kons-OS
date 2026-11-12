@@ -84,7 +84,8 @@ hoście `test_kalkulator`), okno w `main.c`. Bez dostępu do plików i sieci, be
 ### Zasoby
 (M4.1, ADR 0012) — procesor (procent wszystkich rdzeni) i pamięć (użyta z całości)
 całego systemu: liczba + wykres z ostatniej minuty (jedna seria, kolor akcentu, linia 2 px);
-tabela usług i aplikacji: procesor i pamięć każdej (z ich cgroup); czas pracy systemu. Dane od
+tabela działających usług i aplikacji: procesor i pamięć każdej (z ich cgroup; od 0.8.2 najwyżej 14 wierszy,
+ostatni „… i jeszcze n” — okno mieści się na ekranie 1024 × 768); czas pracy systemu. Dane od
 nadzorcy co sekundę (fd 4), sprawdzane: nadawca UID 0, bez deskryptorów, każde pole.
 0.6.3: wiersz **Bateria** (`ZASOBY_BATERIA`): procent, pobór mocy w W (`power_now` albo prąd ×
 napięcie, uśredniony przez nadzorcę: 30 % nowego odczytu, od nowa przy zmianie ładowanie ↔

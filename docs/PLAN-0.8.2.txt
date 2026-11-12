@@ -300,6 +300,8 @@ KROK 4 — Aplikacja Podgląd                                                   
     dwuklik zdjęcia dalej otwierałby Pliki.
   - Ustawienia → Aplikacje: typy jednej rodziny w jednym wierszu („Obrazy (PNG, JPEG, GIF, BMP, WebP)”: Podgląd albo
     Pliki) — 6 wierszy nie mieściło się w oknie; etykieta „Pliki (szczegóły)” (krok 5 i tak ją zmienia).
+  - Zasoby: okno rosło o wiersz z każdą usługą i aplikacją — z Podglądem 742 px, za wysokie dla 1024 × 768 (test-m4:
+    ekran odrzucał okno). Teraz najwyżej 14 wierszy działających (ostatni „… i jeszcze n”), okno 698 px.
   - Helpers wspólne: k1_data_tekst (k1_czas), k1_rozmiar_tekst (k1_liczba) — z Plików do przybornika.
   - ZMIANA ZAKRESU na prośbę właściciela (2026-11-12, w trakcie kroku): przybliżanie „−” i „+” z lekką animacją
     (z „Nie w tym kroku” — bez pełnej rozdzielczości: przybliża obraz od dekodera, do 1600 px, najwyżej 4 piksele
