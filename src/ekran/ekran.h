@@ -13,6 +13,7 @@
 #include "k1_grafika.h"
 #include "k1_komunikat.h"
 #include "k1_teraz.h"
+#include "zalegle.h"
 
 #define TAG "K1-EKRAN"
 #define MAKS_KLIENTOW 16 /* wejscie, gui, every application (8 in 0.8.0) and room for the tests */
@@ -52,6 +53,8 @@ struct klient {
     int zalogowane;       /* rejection log lines written (rate limit) */
     double od;            /* when it connected */
     int mial_okno;        /* it has shown a window before (focus stealing protection) */
+    struct zalegle zal;   /* what its full channel did not take yet (0.8.5 step 1, zalegle.h) */
+    unsigned long zal_log; /* zal.porzucone + zal.wazne when last logged */
 };
 
 struct pow {
@@ -127,7 +130,9 @@ void rysuj_tlo(int wariant); /* s.tlo: the photo (K1_TAPETA_ZDJECIE) or a painte
 const char *zdjecie_przyjmij(int kl, const struct k1_komunikat *m, int fd); /* closes fd; NULL or why rejected */
 
 /* okna.c */
-void wyslij(int kl, struct k1_komunikat m);
+void wyslij(int kl, struct k1_komunikat m); /* never lost: waits in kl.zal while the channel is full */
+void wyslij_zalegle(int kl);                 /* the channel takes again (POLLOUT) */
+void loguj_zalegle(void);                    /* clients that do not keep up: counts, at most 2 lines a second */
 int powloka(void);
 int logowanie(void);
 const char *nazwa_roli(const struct klient *k);

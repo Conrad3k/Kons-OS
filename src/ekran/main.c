@@ -247,7 +247,7 @@ int main(void)
         pfd[1].events = POLLIN;
         for (i = 0; i < MAKS_KLIENTOW; i++) {
             pfd[2 + i].fd = s.kl[i].fd;
-            pfd[2 + i].events = POLLIN;
+            pfd[2 + i].events = POLLIN | (s.kl[i].zal.n > 0 ? POLLOUT : 0);
         }
         pfd[2 + MAKS_KLIENTOW].fd = ustawienia_fd();
         pfd[2 + MAKS_KLIENTOW].events = POLLIN;
@@ -267,6 +267,9 @@ int main(void)
         if ((pfd[1].revents & (POLLIN | POLLHUP | POLLERR)) && !odbierz_sterowanie())
             k1_koniec(TAG, "nadzorca zamknął kanał sterujący");
         for (i = 0; i < MAKS_KLIENTOW; i++)
+            if (s.kl[i].fd >= 0 && pfd[2 + i].fd == s.kl[i].fd && (pfd[2 + i].revents & POLLOUT))
+                wyslij_zalegle(i);
+        for (i = 0; i < MAKS_KLIENTOW; i++)
             if (s.kl[i].fd >= 0 && pfd[2 + i].fd == s.kl[i].fd && (pfd[2 + i].revents & (POLLIN | POLLHUP | POLLERR)) &&
                 !odbierz_klienta(i)) {
                 if (s.kl[i].rola == K1_ROLA_WEJSCIE)
@@ -281,5 +284,6 @@ int main(void)
             pokaz();
         }
         loguj_kursor();
+        loguj_zalegle();
     }
 }

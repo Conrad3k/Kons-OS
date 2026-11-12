@@ -90,6 +90,27 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 Kanał sterujący (fd 3) od nadzorcy: `KLIENT`. Złe pole, zła rola albo obcy UID → komunikat odrzucony
 z wpisem w logu (≤ 8 na klienta), po 50 — klient rozłączony.
 
+## Doręczanie (0.8.5 krok 1)
+Ekran nigdy nie czeka na klienta. Gdy kanał aplikacji jest pełny (aplikacja akurat długo liczy), to, co ekran
+do niej wysyła, czeka w ekranie (`zalegle.c`, do 64 komunikatów na klienta) i idzie, gdy kanał znów przyjmuje
+(`poll` z `POLLOUT` tylko dla klientów z zaległymi), w tej samej kolejności. Zasady:
+- `RAMKA` czeka najwyżej raz na powierzchnię (druga mówiłaby to samo) i **nigdy nie przepada** — bez niej okno
+  już nigdy by się nie odświeżyło;
+- ruch wskaźnika zastępuje ruch tuż przed nim (liczy się ostatnie położenie), `USTAWIENIE` — wcześniejsze o tym
+  samym kluczu;
+- wciśnięcia i puszczenia przycisków, klawisze, `FOKUS`, `ZAMKNIJ` — w kolejności nadania;
+- klient, który w ogóle nie odbiera (kolejka pełna): najpierw przepadają najstarsze ruchy i powtórzenia klawisza,
+  potem wciśnięcia; `PUSZCZENIE` i puszczony klawisz — dopiero gdy nic innego nie zostało. Log: „klient … nie
+  odbiera: porzucono n ruchów i klawiszy, m innych” (liczby, bez kodów klawiszy, ≤ 2 wiersze/s).
+
+Ile mieści sam kanał: kanały to pary gniazd `SOCK_SEQPACKET` (`socketpair`). Limit
+`net.unix.max_dgram_qlen` (domyślnie 10) **nie dotyczy** pary połączonych gniazd — `unix_dgram_sendmsg`
+w `net/unix/af_unix.c` (jądro 6.18) sprawdza pełną kolejkę odbiorcy tylko wtedy, gdy odbiorca nie jest połączony
+z nadawcą (`unix_peer(other) != sk`). Granicą jest bufor nadawcy (`SO_SNDBUF`, domyślnie `net.core.wmem_default`
+= 212 992 B): komunikat 32 B zajmuje w nim ok. 760 B, więc kanał mieści ok. 278 komunikatów (zmierzone:
+`socketpair` + `send(MSG_DONTWAIT)` do `EAGAIN`). Przy myszy 125–1000 zdarzeń/s to 0,3–2 s ruchów — dopiero
+potem działa kolejka w ekranie.
+
 ## Zachowanie
 - Scena składana tylko w uszkodzonych prostokątach (do 16, potem prostokąt obejmujący), osobno
   dla każdego z dwóch buforów; kursor programowy odtwarzany ze sceny.
@@ -127,5 +148,7 @@ w jądrze (ioctl).
 | w systemie: powierzchnia bez memfd / bez pieczęci / zły rozmiar, panel od aplikacji, ustawienia od aplikacji, sterowanie cudzym oknem, okno od obcego UID — odrzucone; poprawne przyjęte (RAMKA) | negatywny (IPC) |
 | w systemie: klatka, próba w klatce; awaria ekranu → wraca z klientami | negatywny |
 | w systemie (M4.1): późniejsze okno innej aplikacji nie dostaje fokusu; trzecie pełnoekranowe okno klienta odrzucone (limit pamięci) | negatywny |
+| host `test_zalegle`: RAMKA raz na powierzchnię, scalanie ruchów i ustawień, kolejność ważnych, przepełnienie (ruchy i powtórzenia najpierw, RAMKA nigdy) | jednostkowy (ASan/UBSan) |
+| w systemie (0.8.5): klient, który nie odbiera, gdy mysz wysyła 1500 ruchów, dostaje potem RAMKA i PUSZCZENIE; inny klient w tym czasie rysuje normalnie | negatywny |
 | `test-m4.sh` (M4.1): zmiana rozdzielczości z Ustawień — nowy tryb, zrzut w nowym rozmiarze, panele na nowych miejscach | funkcjonalny |
 | host: `test_komunikat`, `fuzz_komunikat`, `test_zdarzenie`, `fuzz_zdarzenie`, renderer z ASan/UBSan | jednostkowy / fuzzing |

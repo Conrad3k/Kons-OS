@@ -216,9 +216,8 @@ static void skomponuj(void)
     for (i = 0; i < MAKS_POW; i++) {
         struct pow *p = &s.p[i];
         if (p->uzyta && p->czeka_ramka) {
-            struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_RAMKA, p->id, 0, 0, 0, 0, 0);
             p->czeka_ramka = 0;
-            k1_kanal_wyslij(s.kl[p->kl].fd, &m, sizeof m, -1);
+            wyslij(p->kl, k1_komunikat_nowy(K1_KOM_RAMKA, p->id, 0, 0, 0, 0, 0)); /* never lost (0.8.5 step 1) */
         }
     }
 }

@@ -155,6 +155,117 @@ void t_okna_ochrona(void)
     close(b);
 }
 
+/* An opaque window of w×h as surface `id` of `fd` (transparent pixels do not catch the pointer). */
+static int okno_pelne(int fd, uint32_t id, int32_t w, int32_t h)
+{
+    size_t rozmiar = (size_t)w * (size_t)h * 8u, i;
+    int m = memfd(rozmiar, 1), ok = 0;
+    uint32_t *px = m >= 0 ? mmap(NULL, rozmiar, PROT_READ | PROT_WRITE, MAP_SHARED, m, 0) : MAP_FAILED;
+    if (px != MAP_FAILED) {
+        for (i = 0; i < rozmiar / 4; i++)
+            px[i] = 0xff406080u;
+        munmap(px, rozmiar);
+        ok = wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, id, w, h, K1_POW_OKNO, 0, 0), m) &&
+             wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, id, 0, 0, 0, 0, 0), -1);
+    }
+    if (m >= 0)
+        close(m);
+    return ok;
+}
+
+/* One input event on the test's input channel; waits while ekran's side is full. */
+static int zdarzenie(int fd, int typ, int kod, int wartosc, int dx, int dy)
+{
+    struct k1_zdarzenie z;
+    int i;
+    memset(&z, 0, sizeof z);
+    z.wersja = K1_ZDARZENIE_WERSJA;
+    z.typ = (uint8_t)typ;
+    z.dlugosc = sizeof z;
+    z.kod = (uint16_t)kod;
+    z.wartosc = (int16_t)wartosc;
+    z.dx = (int16_t)dx;
+    z.dy = (int16_t)dy;
+    for (i = 0; i < 2000; i++) {
+        if (k1_kanal_wyslij(fd, &z, sizeof z, -1) == 0)
+            return 1;
+        msleep(1);
+    }
+    return 0;
+}
+
+/* Reads `fd` for up to `ms`: did RAMKA of surface `id` and PUSZCZENIE come? Returns how many messages came. */
+static int odbierz_zalegle(int fd, uint32_t id, int ms, int *ramka, int *puszczenie)
+{
+    int i, ile = 0;
+    *ramka = *puszczenie = 0;
+    for (i = 0; i < ms / 20 && !(*ramka && *puszczenie); i++) {
+        struct k1_odebrane o;
+        struct k1_komunikat m;
+        enum k1_kanal_wynik w;
+        while ((w = k1_kanal_odbierz(fd, &o)) == K1_KANAL_KOMUNIKAT) {
+            if (o.fd >= 0)
+                close(o.fd);
+            ile++;
+            if (k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_EKRANU, &m) != 0)
+                continue;
+            *ramka |= m.typ == K1_KOM_RAMKA && m.obiekt == id;
+            *puszczenie |= m.typ == K1_KOM_WSKAZNIK && m.obiekt == id && m.c == K1_WSK_PUSZCZENIE;
+        }
+        if (w != K1_KANAL_PUSTO)
+            break;
+        msleep(20);
+    }
+    return ile;
+}
+
+/* 0.8.5 step 1 (L1, L2): a client that is busy for a while (does not read) while the mouse moves a lot must still get
+ * RAMKA of its commit and the release of the button when it reads again — otherwise its window never draws again and
+ * a drag sticks. Negative: a client that does not read blocks neither ekran nor another client. */
+void t_okna_zalegle(void)
+{
+    struct k1_komunikat m;
+    int a = polacz(K1_ROLA_APLIKACJA, K1_APL_ZEGAR, 0), b = polacz(K1_ROLA_APLIKACJA, K1_APL_NOTATKI, 0),
+        we = polacz(K1_ROLA_WEJSCIE, 0, 0), ok, nad = 0, ramka = 0, puszczenie = 0, ramka_b = 0, ile = 0, i, W, H;
+    if (a < 0 || b < 0 || we < 0 || !odbierz_typ(a, K1_KOM_WITAJ, 5000, &m) || !czekaj_na(b, K1_KOM_WITAJ, 0, 5000)) {
+        check(0, "NEGATYWNY 0.8.5: ekran nie gubi RAMKA ani PUSZCZENIE klienta, który nie nadąża", "kanały: %d %d %d", a,
+              b, we);
+        return;
+    }
+    W = m.a;
+    H = m.b;
+    /* b: a small window; a: almost the whole screen, on top (a new client's first window takes the focus) */
+    ok = okno_pelne(b, 1, 120, 80) && czekaj_na(b, K1_KOM_RAMKA, 1, 10000);
+    ok &= okno_pelne(a, 1, W, H - 120) && czekaj_na(a, K1_KOM_RAMKA, 1, 10000);
+    /* the pointer into the middle of a's window: to the corner, then in steps until a sees it */
+    for (i = 0; i < 4; i++)
+        ok &= zdarzenie(we, K1_ZD_RUCH, 0, 0, -1000, -1000);
+    for (i = 0; i < 6 && ok && !nad; i++) {
+        ok &= zdarzenie(we, K1_ZD_RUCH, 0, 0, W / 8, H / 8);
+        nad = odbierz_typ(a, K1_KOM_WSKAZNIK, 1000, &m) && m.obiekt == 1 && m.c == K1_WSK_RUCH;
+    }
+    msleep(300);
+    odbierz_zalegle(a, 99, 200, &ramka, &puszczenie); /* empty a's channel */
+    /* a is "busy": it does not read. Many motions (more than its channel holds), a commit, a click. */
+    for (i = 0; i < 1500 && ok; i++)
+        ok &= zdarzenie(we, K1_ZD_RUCH, 0, 0, i % 2 ? 1 : -1, 0);
+    ok &= wyslij_k(a, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 1, 0, 0, 0, 0, 0), -1);
+    msleep(500);
+    ok &= zdarzenie(we, K1_ZD_PRZYCISK, 0x110 /* BTN_LEFT */, 1, 0, 0) && zdarzenie(we, K1_ZD_PRZYCISK, 0x110, 0, 0, 0);
+    /* meanwhile b draws as usual */
+    ramka_b = wyslij_k(b, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 1, 0, 0, 0, 0, 0), -1) && czekaj_na(b, K1_KOM_RAMKA, 1, 3000);
+    msleep(500);
+    ile = odbierz_zalegle(a, 1, 5000, &ramka, &puszczenie);
+    check(ok && nad && ramka && puszczenie && ramka_b && find_process("ekran") > 0,
+          "NEGATYWNY 0.8.5: klient, który przez chwilę nie odbiera (dużo ruchów myszy), dostaje potem RAMKA i PUSZCZENIE; "
+          "nie blokuje ekranu ani innego klienta",
+          "wysłanie=%d kursor_nad_oknem=%d RAMKA=%d PUSZCZENIE=%d (odebrane %d) RAMKA_innego=%d", ok, nad, ramka,
+          puszczenie, ile, ramka_b);
+    close(a);
+    close(b);
+    close(we);
+}
+
 /* The shell crashes: it comes back, the application windows stay. */
 void t_gui_crash(void)
 {
