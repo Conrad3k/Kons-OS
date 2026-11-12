@@ -13,8 +13,8 @@ Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Cl
 
 1. TERAZ — 0.8.5 Podgląd i Miejsce, potem 0.9 Sieć
 ---------------------------------------------------
-0.8.5 (prośba właściciela z 2026-11-12, przed 0.9): plan wersji — docs/PLAN-0.8.5.txt (4 kroki: okna nie zamarzają,
-Podgląd płynny, Ustawienia → Miejsce, wydanie). Wersji 0.8.4 nie będzie.
+0.8.5 (prośba właściciela z 2026-11-12, przed 0.9): plan wersji — docs/PLAN-0.8.5.txt (5 kroków: okna nie zamarzają,
+Podgląd płynny, Ustawienia → Miejsce, Secure Boot — „Przygotuj klucz K1” nie działa, wydanie). Wersji 0.8.4 nie będzie.
 
 0.9 Sieć (ADR 0019, 0026) — plan wersji (kroki, luki, decyzje) pisze pierwszy czat 0.9: docs/PLAN-<wersja>.txt
 (ADR 0035). Zakres wstępny:
@@ -100,7 +100,8 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 Jedna lista — dla ostatniego wydania. Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
 z 2026-11-11). Lista dla 0.8.3 (system jak w 0.8.2 + pierwsze podpisane wydanie; najlepiej na pendrive'ie, na którym
 już masz dane z 0.8.1 — aktualizacja przez Instalator albo nagranie obrazu USB od nowa, jeśli dane nie są ważne):
-    [ ] Secure Boot (README → „Secure Boot z kluczem K1”): 0.8.3 na dysku X230 (instalacja albo aktualizacja przez
+    [~] NIE DZIAŁA (Twoje zgłoszenie z 2026-11-12: nie da się „Przygotować klucza K1”) — naprawa: krok 4 planu 0.8.5.
+        Secure Boot (README → „Secure Boot z kluczem K1”): 0.8.3 na dysku X230 (instalacja albo aktualizacja przez
         Instalator) → Instalator → „Secure Boot…” → „Przygotuj klucz K1” → MokManager (Enroll MOK, hasło kons) → BIOS:
         Secure Boot Enabled → K1 startuje, „Secure Boot…” pisze „Wszystko gotowe: Secure Boot chroni ten komputer.”
     [ ] start z danymi z 0.8.1: pulpit, tapeta i ustawienia od razu; po ok. minucie Ustawienia → Informacje

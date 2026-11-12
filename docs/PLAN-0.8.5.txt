@@ -5,11 +5,12 @@ Data: 2026-11-12 (porządek w planie: ADR 0035). Stan wyjściowy: 0.8.3. Ten pli
 luki (punkt 5) i decyzje do tej wersji. Zamknięty plan 0.8.2: docs/archiwum/PLAN-0.8.2.txt (tylko historia). Mapa drogi
 i rzeczy na później: docs/DO_ZROBIENIA.txt. Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR.
 
-Numer 0.8.5 wybrał właściciel (2026-11-12); wersji 0.8.4 nie będzie. Wydanie jedno, na końcu (krok 4) — CI ma limit.
+Numer 0.8.5 wybrał właściciel (2026-11-12); wersji 0.8.4 nie będzie. Wydanie jedno, na końcu (krok 5) — CI ma limit.
 
-ZAKRES ZAMROŻONY (ADR 0035): poniższe 4 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 5 kroków i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają (krok, który się
-dzieli, dostaje litery: 2a, 2b…).
+dzieli, dostaje litery: 2a, 2b…). Krok 4 (Secure Boot) dopisany 2026-11-12 na prośbę właściciela,
+zanim ruszył krok 1 — wydanie przesunęło się z 4 na 5.
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
 
@@ -32,7 +33,7 @@ Nowy czat — przebieg każdego kroku:
   6. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, pełny scripts/testy.sh
      lokalnie (wszystko [OK]).
   7. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, WYGLAD, TESTY.md.
-     VERSION i CHANGELOG zmienia dopiero krok 4 (wydanie) — każdy krok zapisuje „co widzi użytkownik” w opisie PR-a.
+     VERSION i CHANGELOG zmienia dopiero krok 5 (wydanie) — każdy krok zapisuje „co widzi użytkownik” w opisie PR-a.
   8. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
      ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
 
@@ -50,7 +51,10 @@ Nowy czat — przebieg każdego kroku:
   3. Ustawienia → nowa sekcja „Miejsce”: ładny wykres — ile miejsca jest w ogóle, ile zajęte (z podziałem, np.
      Obrazy, Dokumenty, Kosz), ile wolne; przycisk „Użyj całego pendrive'a na dane” przenosi się tutaj
      z Informacji. Najpierw szkice do wyboru (D1), podział według D2.
-  4. Porządki i wydanie 0.8.5.
+  4. Secure Boot: dziś w Instalatorze nie da się „Przygotować klucza K1” (zgłoszenie właściciela z 2026-11-12,
+     X230). Najpierw ustalamy, w którym miejscu się psuje (D4 — co dokładnie widzisz), potem poprawka i test, który
+     przechodzi całą drogę do włączonego Secure Boot.
+  5. Porządki i wydanie 0.8.5.
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
@@ -59,10 +63,13 @@ Nowy czat — przebieg każdego kroku:
 [ ]  1  Okna nie zamarzają: ekran nie gubi zdarzeń   L1 L2              —          —          M        —
 [ ]  2  Podgląd płynny                                L3 L4 L5 L6        1          —          M–L      —
 [ ]  3  Ustawienia → Miejsce                          L7 L8              —          D1 D2 D3   L        —
-[ ]  4  Porządki i wydanie 0.8.5                      —                  1–3        —          S        —
+[ ]  4  Secure Boot: „Przygotuj klucz K1”            L9                 —          D4         S–M      —
+[ ]  5  Porządki i wydanie 0.8.5                      —                  1–4        —          S        —
 
 Kolejność: 1 przed 2 (najpierw zawieszanie, potem płynność — pomiar płynności nie ma sensu, gdy okno potrafi
 stanąć). 3 nie dotyka tych samych plików co 1 i 2 (Ustawienia, skarbiec) — może iść równolegle albo zaraz po 1.
+4 (Instalator, nadzorca efi.c) też niezależny — może iść pierwszy, jeśli Secure Boot jest pilniejszy (D4 potrzebna
+na start).
 
 
 3. KROKI
@@ -166,13 +173,49 @@ KROK 3 — Ustawienia → Miejsce                                               
   „miejsce na pliki” już jest), WYGLAD (wybrany szkic), TESTY.md.
   Gotowe, gdy: scenariusz QEMU zielony, zrzuty pokazane właścicielowi.
 
-KROK 4 — Porządki i wydanie 0.8.5                                                          S · bez decyzji
+KROK 4 — Secure Boot: „Przygotuj klucz K1” w Instalatorze                          S–M · decyzja D4 · bez ADR
+  Cel: na X230 z zainstalowanym, podpisanym K1 (od 0.8.3) da się przejść całą drogę z README („Secure Boot z kluczem
+  K1”): Instalator → „Secure Boot…” → „Przygotuj klucz K1” → ponowny start → MokManager (Enroll MOK, hasło kons) →
+  BIOS: Secure Boot Enabled → K1 startuje, a okno pisze „Wszystko gotowe: Secure Boot chroni ten komputer.”
+  Zgłoszenie (2026-11-12): „nie da się Przygotować klucza K1”. Najpierw D4: na którym etapie i co widać.
+  Jak to dziś działa (z kodu): okno Instalatora (src/aplikacje/instalacja/main.c, ekrany.c) pokazuje przycisk tylko,
+  gdy nadzorca w SB_STAN powie: wersja wydania (klucz prawdziwy, nie deweloperski), Secure Boot znany (zmienne UEFI
+  widoczne) i klucz K1 jeszcze nie wpisany. Klik → SB_KLUCZ → nadzorca (src/nadzorca/efi.c) montuje na chwilę
+  efivarfs i zapisuje MokNew + MokAuth jak mokutil --import; przy następnym starcie shim ma pokazać MokManagera.
+  Możliwe miejsca błędu (do sprawdzenia po kolei, z dowodem):
+    a) przycisku nie ma: Instalator z dysku to wersja z dysku — przed 0.8.3 wersja deweloperska (przycisku nie ma
+       celowo); albo „Secure Boot: nieznany” — jądro nie widzi zmiennych UEFI (efivarfs, katalog w sysfs);
+    b) przycisk jest, po kliknięciu błąd: zapis zmiennej odrzucony (firmware X230: miejsce w NVRAM, atrybuty,
+       zachowanie efivarfs w jądrze 6.18 przy tworzeniu nowej zmiennej — sprawdzić w źródłach jądra), komunikat
+       w oknie i log nadzorcy „Secure Boot: zapis zmiennych dla MokManagera nieudany: …”;
+    c) zapis się udaje, ale po ponownym starcie nie ma MokManagera: komputer startuje z dysku z pominięciem shima
+       (wpis startowy UEFI wskazuje GRUB-a albo inny plik), brak mmx64.efi obok shima w K1-EFI na dysku, albo
+       start z pendrive'a zamiast z dysku;
+    d) MokManager jest, klucz wpisany, ale po włączeniu Secure Boot K1 nie startuje (podpis k1.efi albo GRUB-a
+       z ISO/USB a z dysku — różne drogi);
+    e) okno po starcie dalej mówi „nie wpisany” mimo wpisania (odczyt MokListRT, porównanie certyfikatu).
+  Zadania:
+  [ ] D4 od właściciela; logi z X230 nie są dostępne (port szeregowy) — opis i zdjęcie ekranu wystarczą.
+  [ ] Sprawdzić w logach wydania 0.8.3 (k1-0.8.3-logi.tar.gz), czy test-m6 w CI przeszedł drogę z kluczem wydania
+      (dziś ta droga była sprawdzona lokalnie tylko z jednorazowym kluczem testowym — CHANGELOG 0.8.3).
+  [ ] Najpierw test, który pokazuje lukę (test-m6 albo test w systemie — zależnie od miejsca błędu), potem poprawka.
+  [ ] Gdy przyczyną jest coś, czego K1 nie może sam naprawić (ustawienie BIOS-u, wpis startowy), okno Instalatora
+      mówi wprost, co zrobić — nie znika przycisk bez słowa. Każdy stan „nie da się” ma zdanie w oknie.
+  Testy i dowód: test-m6 (OVMF z Secure Boot, MokManager) zielony z kluczem wydania i z testowym; test negatywny bez
+  zmiennych UEFI (start BIOS) — okno mówi dlaczego; właściciel na X230 — cała droga do „Wszystko gotowe”.
+  Dokumenty: instalator.md, nadzorca.md (efi.c), README („Secure Boot z kluczem K1”, jeśli kroki się zmieniają),
+  RYZYKA, TESTY.md.
+  Gotowe, gdy: znana przyczyna (zapisana w „Ustaleniach”), test zielony, właściciel potwierdził na X230 (po wydaniu
+  — punkt 4 DO_ZROBIENIA).
+
+KROK 5 — Porządki i wydanie 0.8.5                                                          S · bez decyzji
   Cel: wydanie 0.8.5 z obrazem ISO i USB.
-  [ ] Porządki: co usunąć/scalić/uprościć po krokach 1–3 (np. czy Pliki i Informacje nie liczą miejsca po swojemu).
+  [ ] Porządki: co usunąć/scalić/uprościć po krokach 1–4 (np. czy Pliki i Informacje nie liczą miejsca po swojemu).
       Przegląd „Tymczasowe” (terminy 0.9.0 bez zmian, chyba że coś wyszło).
-  [ ] VERSION 0.8.5; CHANGELOG (Dodane / Zmienione / Naprawione / Porządki) z opisów PR-ów kroków 1–3.
+  [ ] VERSION 0.8.5; CHANGELOG (Dodane / Zmienione / Naprawione / Porządki) z opisów PR-ów kroków 1–4.
   [ ] DO_ZROBIENIA.txt: „Teraz” → 0.9 Sieć; lista testów na X230 dla 0.8.5 (szybkie przybliżanie i przesuwanie
-      w Podglądzie, sekcja Miejsce na pendrive'ie i po instalacji na dysk); ten plik → docs/archiwum/.
+      w Podglądzie, sekcja Miejsce na pendrive'ie i po instalacji na dysk, Secure Boot od „Przygotuj klucz K1” do
+      „Wszystko gotowe”); ten plik → docs/archiwum/.
   [ ] Po scaleniu: CI, tag k1-v0.8.5, wydanie; raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
 
 
@@ -190,6 +233,13 @@ KROK 4 — Porządki i wydanie 0.8.5                                            
        danych K1-DANE i nieużywana reszta pendrive'a). Nie pamięć RAM — ta jest w Zasobach (w słowniku K1 „pamięć”
        znaczy RAM; Windows nazywa tę sekcję „Pamięć”, my — „Miejsce”). Części samego systemu (K1-EFI z miejscami
        A/B) nie pokazujemy — nie da się ich użyć na pliki; ewentualnie jeden wiersz „System K1: 280 MB”.
+[!] D4 (krok 4) Secure Boot — co dokładnie się dzieje? Potrzebne na start kroku 4:
+       - skąd uruchamiasz K1 (z dysku po instalacji czy z pendrive'a) i jaka wersja jest na dysku (Ustawienia →
+         Informacje);
+       - co pokazuje okno „Secure Boot…” w Instalatorze: „Secure Boot: …” i „Klucz K1: …”;
+       - czy przycisk „Przygotuj klucz K1” w ogóle jest; jeśli jest — co się dzieje po kliknięciu (komunikat?);
+       - jeśli po kliknięciu i ponownym starcie: czy pojawia się niebieski ekran MokManagera.
+       Zdjęcie ekranu telefonem wystarczy.
 
 
 5. LUKI (z czytania kodu 0.8.3, 2026-11-12)
@@ -228,3 +278,8 @@ Ustawienia (krok 3)
       zapas pendrive'a, „w pamięci”).
   L8  Z KODU, NISKA. Rezerwa skarbca („zapas systemu”) nie jest pokazana — użytkownik widzi „na pliki” mniejsze niż
       partycja i nie wie dlaczego.
+
+Secure Boot (krok 4)
+  L9  ZGŁOSZONE przez właściciela (2026-11-12, X230), WYSOKA (blokuje włączenie Secure Boot). W Instalatorze nie da
+      się „Przygotować klucza K1”. Miejsce błędu nieznane — możliwe a)–e) w kroku 4. Droga z kluczem wydania nie była
+      sprawdzona na prawdziwym sprzęcie (test-m6 w QEMU z OVMF; lokalnie z jednorazowym kluczem testowym).
