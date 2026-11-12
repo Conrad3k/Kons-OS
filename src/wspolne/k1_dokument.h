@@ -107,6 +107,9 @@ static inline int k1_dok_w_koszu(const struct k1_dok_wpis *w)
 _Static_assert(48 + K1_DOK_NAZWA == K1_DOK_WPIS_BAJTY, "k1_dok_wpis: layout");
 _Static_assert(K1_DOK_DOSTEP_APL == 64, "the texts of Pliki and Wybór pliku say 64");
 
+/* Names (k1_nazwy.c). One code point of UTF-8 at s[0..n): its length, 0 for anything invalid (overlong, surrogate,
+ * > U+10FFFF, cut off). */
+size_t k1_dok_utf8(const unsigned char *s, size_t n, uint32_t *kod);
 /* 1 when `s` (n bytes, no NUL needed) may be the name of a file or folder: 1..127 bytes of valid UTF-8, no
  * control characters, none of \ / : * ? " < > |, no space at the start, no space or dot at the end. */
 int k1_dok_nazwa_poprawna(const char *s, size_t n);
