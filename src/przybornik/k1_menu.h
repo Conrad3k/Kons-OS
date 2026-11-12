@@ -84,6 +84,9 @@ enum k1_menu_miejsce { K1_MM_PLIKI = 1, K1_MM_PULPIT, K1_MM_KOSZ, K1_MM_PENDRIVE
 
 /* The rows for an entry (`folder` 1: a folder; `typ`: the file's type) shown in `gdzie`. */
 void k1_menu_pliku(struct k1_menu *m, enum k1_menu_miejsce gdzie, int folder, int typ);
+/* The menu of many entries selected (0.8.2 step 6, Pliki): "Zaznaczone: 12", then what can be done to all of them —
+ * Usuń; in Kosz Przywróć, Usuń na zawsze; on the stick Importuj. */
+void k1_menu_wielu(struct k1_menu *m, enum k1_menu_miejsce gdzie, int ile);
 /* "Otwórz za pomocą": the applications that open `typ` (K1_OTWIERANIE), the one that opens it now (`ustawienie`:
  * K1_UST_OTWIERANIE of the type) marked; with two or more, "Zawsze otwieraj tą aplikacją" (`zawsze`: ticked). */
 void k1_menu_za_pomoca(struct k1_menu *m, int typ, int ustawienie, int zawsze);

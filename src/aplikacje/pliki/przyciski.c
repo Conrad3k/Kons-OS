@@ -45,17 +45,19 @@ int dostepny(int r)
 {
     switch (r) {
     case B_OTWORZ:
-    case B_NAZWA:
+    case B_NAZWA: /* one entry */
+        return zaznaczony != 0 && zazn.n == 1 && edycja.id == 0;
     case B_USUN:
     case B_PRZYWROC:
-    case B_NA_ZAWSZE:
-        return zaznaczony != 0 && edycja.id == 0;
+    case B_NA_ZAWSZE: /* every entry selected (0.8.2 step 6), one action at a time */
+        return zazn.n > 0 && edycja.id == 0 && !zbiorczo_trwa();
     case B_OPROZNIJ:
-        return w_koszu > 0;
-    case B_IMPORTUJ: {
-        const struct k1_dok_wpis *w = pen_wpis(zaznaczony);
-        return !importuje && w != NULL && w->rodzaj == K1_DOK_PLIK;
-    }
+        return w_koszu > 0 && !zbiorczo_trwa();
+    case B_IMPORTUJ:
+        for (int i = 0; i < zazn.n && !importuje; i++)
+            if (pen_wpis(zazn.id[i]) != NULL && pen_wpis(zazn.id[i])->rodzaj == K1_DOK_PLIK)
+                return 1;
+        return 0;
     case B_IMPORTUJ_WSZ: /* the whole folder: once all its lists are here (0.8.2) */
         for (int i = 0; i < n_widok && !importuje && !pen_laduje; i++)
             if (wiersz_wpisu(i)->rodzaj == K1_DOK_PLIK)
@@ -106,19 +108,25 @@ void wykonaj(int r)
     switch (r) {
     case B_OTWORZ: otworz(zaznaczony); break;
     case B_NOWY: nowy_folder(); break;
-    case B_IMPORTUJ: pendrive_importuj(0); break;
-    case B_IMPORTUJ_WSZ: pendrive_importuj(1); break;
+    case B_IMPORTUJ: pendrive_importuj(0, 0); break;
+    case B_IMPORTUJ_WSZ: pendrive_importuj(1, 0); break;
     case B_NAZWA: zacznij_edycje(); break;
-    case B_USUN: do_skarbca(K1_KOM_DOK_KOSZ, zaznaczony, 0); zaznaczony = 0; break;
-    case B_PRZYWROC: przywroc(zaznaczony); zaznaczony = 0; break;
+    case B_USUN: usun_zaznaczone(LISTA_X + LISTA_W / 2 - K1_MENU_SZER_PYTANIE / 2, WIERSZE_Y + 2 * WIERSZ); break;
+    case B_PRZYWROC: /* one: back where it was, and the footer says when that is gone (przywroc) */
+        if (zazn.n == 1)
+            przywroc(zaznaczony);
+        else
+            zbiorczo(K1_KOM_DOK_PRZYWROC, zazn.id, zazn.n, 0, 0);
+        zaznacz_jeden(0);
+        break;
     case B_NA_ZAWSZE: pytanie = PYT_USUN; break;
     case B_OPROZNIJ: pytanie = PYT_OPROZNIJ; break;
     case B_TAK:
         if (pytanie == PYT_USUN)
-            do_skarbca(K1_KOM_DOK_USUN, zaznaczony, 0);
+            zbiorczo(K1_KOM_DOK_USUN, zazn.id, zazn.n, 0, 0);
         else
             do_skarbca(K1_KOM_DOK_OPROZNIJ, 0, 0);
-        zaznaczony = 0;
+        zaznacz_jeden(0);
         pytanie = PYT_BRAK;
         break;
     default: pytanie = PYT_BRAK; break;

@@ -215,7 +215,7 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
     ulozy_widok();
     if (do_edycji != 0 && wpis(do_edycji) != NULL) { /* a new folder: its name is ready to be typed over, as in Windows */
         const struct k1_dok_wpis *w = wpis(do_edycji);
-        zaznaczony = do_edycji;
+        zaznacz_jeden(do_edycji);
         edycja.id = do_edycji;
         edycja.dl = strlen(w->nazwa);
         edycja.calosc = 1;
@@ -250,7 +250,7 @@ static void wynik(const struct k1_komunikat *k)
 {
     if (k->a == K1_KOM_DOK_SPIS) /* no list (the vault locked…): the next change asks again */
         spis_przyszedl();
-    if (pendrive_wynik_skarbca(k) || obraz_wynik(k))
+    if (pendrive_wynik_skarbca(k) || obraz_wynik(k) || zbiorczo_wynik(k))
         return;
     if (k->b == 0) {
         if (k->a == K1_KOM_DOK_NOWY && k->c != 0)
@@ -328,14 +328,14 @@ static void pokaz_oczekujace(void)
         przejdz((struct miejsce){ 0, 1, 0 });
     } else if (do_pokazania.co == K1_PLIKI_NAZWA && e != NULL && !e->kosz) { /* "Zmień nazwę" on the desktop (0.8.2) */
         przejdz((struct miejsce){ e->rodzic, 0, 0 });
-        zaznaczony = a;
+        zaznacz_jeden(a);
         szczegoly_zadaj(a);
         zacznij_edycje();
     } else if ((a >= 1 && a <= K1_FOLDERY_MAKS) || (e != NULL && e->rodzaj == K1_DOK_FOLDER)) {
         przejdz((struct miejsce){ a, 0, 0 });
     } else if (e != NULL) {
         przejdz((struct miejsce){ e->kosz ? 0 : e->rodzic, e->kosz != 0, 0 });
-        zaznaczony = a;
+        zaznacz_jeden(a);
         szczegoly_zadaj(a);
     }
     k1_log(TAG, "pokazane miejsce: %s, %d elementów", tu.kosz ? "Kosz" : "folder", n_widok);

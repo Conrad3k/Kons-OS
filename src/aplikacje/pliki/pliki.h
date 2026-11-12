@@ -7,7 +7,9 @@
  *   dane.c   the files from skarbiec (fd 4): the list, the start of a text, requests and their results; places from
  *            nadzorca (fd 5, when the desktop opens Pliki at a file or Kosz)
  *   pendrive.c the USB stick (fd 6 from nadzorca, the channel to czytnik) and the import (0.8.0 step 3)
- *   obrazy.c the thumbnail of a picture and "Ustaw jako tapetę" — through a dekoder (0.8.0 step 4) */
+ *   obrazy.c the thumbnail of a picture and "Ustaw jako tapetę" — through a dekoder (0.8.0 step 4)
+ *   przeciaganie.c dragging onto folders, Kosz and the stick, and its windows (0.8.2 step 6)
+ *   zbiorczo.c one action on many selected entries (0.8.2 step 6) */
 #ifndef K1_PLIKI_H
 #define K1_PLIKI_H
 
@@ -15,6 +17,8 @@
 
 #include "k1_aplikacja.h"
 #include "k1_dokument.h"
+#include "k1_menu.h"
+#include "k1_zaznaczenie.h"
 
 #define TAG "K1-PLIKI"
 #define FD_SKARBIEC 4
@@ -64,7 +68,8 @@ extern int n_wpisow;
 extern uint32_t w_koszu;
 extern int widok[K1_DOK_MAKS]; /* indexes into wpisy of what this place shows, sorted */
 extern int n_widok, od_wiersza;
-extern uint32_t zaznaczony;    /* entry, 0 = none */
+extern uint32_t zaznaczony;    /* the entry clicked last (its details, the menu, renaming), 0 = none */
+extern struct k1_zaznaczenie zazn; /* every entry selected (0.8.2 step 6: Ctrl+click, Shift+click, Ctrl+A) */
 extern int najechany;          /* row under the pointer, -1 */
 extern struct edycja {
     uint32_t id; /* entry being renamed (0: none) */
@@ -81,6 +86,8 @@ extern int nad_miejscem, nad_przyciskiem, nad_w_gore, nad_tapeta; /* under the p
 int wierszy_widac(void);
 int wiersz_zaznaczonego(void);
 void zaznacz_wiersz(int i);
+void zaznacz_jeden(uint32_t id);       /* only this entry selected (0: none) */
+const uint32_t *kolejnosc_widoku(void); /* the ids of the rows shown, in their order (n_widok of them) */
 int w_gore_mozna(void);
 void w_gore(void);
 int przewijanie_potrzebne(void);
@@ -111,6 +118,25 @@ int menu_otwarte(void);
 void menu_zamknij(void);
 void menu_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 int menu_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk); /* 1: the menu took it */
+
+/* menu.c: the window of a question or a refusal after dragging (k1_prz_okienko…, its look is the menu's): the answer
+ * (K1_PO_*) goes to `wybrano` — K1_PO_ANULUJ when it is closed otherwise; `rodzaj` names it in the log */
+void okienko_otworz(const struct k1_menu *m, const char *rodzaj, int32_t x, int32_t y, void (*wybrano)(int));
+
+/* przeciaganie.c — dragging with the left button (0.8.2 step 6) */
+void przec_wcisniecie(int32_t x, int32_t y, int wr, int mj); /* pressed over row `wr` or place `mj` */
+int przec_ruch(int32_t x, int32_t y);       /* 1 while dragging (the pointer is the drag's) */
+int przec_puszczenie(int32_t x, int32_t y); /* 1: it was dragged and dropped (not a click) */
+int przec_trwa(void);
+int przec_cel_wiersz(int i);   /* row i / place mj is where a drop goes now (drawn as the target) */
+int przec_cel_miejsca(int mj);
+void przec_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
+void usun_zaznaczone(int32_t x, int32_t y); /* Delete, "Usuń": into Kosz, the window at (x, y) asks first (D8) */
+
+/* zbiorczo.c — one request per entry, one after another; the footer says how it went */
+void zbiorczo(int typ, const uint32_t *id, int n, uint32_t folder, int b); /* DOK_PRZENIES (b: keep both names) … */
+int zbiorczo_trwa(void);
+int zbiorczo_wynik(const struct k1_komunikat *k); /* DOK_WYNIK: 1 when it was the answer to one of them */
 
 /* dane.c */
 int dane_start(void);              /* fd 4, or -1 without skarbiec */
@@ -143,7 +169,9 @@ void pendrive_otworz(void);         /* the place "Pendrive" clicked */
 void pendrive_wejdz(uint32_t id);   /* a folder on the stick */
 int pendrive_w_gore_mozna(void);
 void pendrive_w_gore(void);
-void pendrive_importuj(int wszystkie); /* the selected file, or every file of the folder shown */
+/* the files selected, or every file of the folder shown; into `folder` (dropped on it), 0: pictures to Obrazy, others
+ * to Dokumenty */
+void pendrive_importuj(int wszystkie, uint32_t folder);
 int pendrive_wynik_skarbca(const struct k1_komunikat *k); /* 1: the result of an import's DOK_NOWY */
 const struct k1_dok_wpis *pen_wpis(uint32_t id);
 uint32_t pen_folder(void);
@@ -166,6 +194,7 @@ int obraz_przycisk(struct k1_przycisk *p); /* "Ustaw jako tapetę": 1 when shown
 void rysuj_liste(struct k1_obraz *o, const struct k1_motyw *m);
 void rysuj_szczegoly(struct k1_obraz *o, const struct k1_motyw *m);
 void rysuj_stopke(struct k1_obraz *o, const struct k1_motyw *m);
+void rysuj_cel(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y, int32_t w, int32_t h); /* a drop goes here */
 enum k1_ikona ikona_wpisu(const struct k1_dok_wpis *w);
 
 #endif

@@ -62,7 +62,7 @@ void otworz(uint32_t id)
         return;
     }
     a = k1_dok_czym_otworzyc(w->typ, apl.k.ustawienia[K1_UST_OTWIERANIE + w->typ - 1]);
-    zaznaczony = id;
+    zaznacz_jeden(id);
     if (a != 0) {
         otworz_w(a);
         return;
@@ -71,15 +71,36 @@ void otworz(uint32_t id)
     k1_log(TAG, "plik bez aplikacji (typ %d): komunikat w stopce", w->typ);
 }
 
+/* Ctrl+click: one more or one less; Shift+click: from the last one clicked to this one (0.8.2 step 6). */
+static int klik_z_klawiszem(uint32_t id)
+{
+    if (apl.mody & K1_MOD_SHIFT)
+        k1_zazn_zakres(&zazn, kolejnosc_widoku(), n_widok, id, (apl.mody & K1_MOD_CTRL) != 0);
+    else if (apl.mody & K1_MOD_CTRL)
+        k1_zazn_przelacz(&zazn, id);
+    else
+        return 0;
+    zaznaczony = k1_zazn_jest(&zazn, id) ? id : zazn.n > 0 ? zazn.id[zazn.n - 1] : 0;
+    klik.id = 0;
+    pytanie = PYT_BRAK;
+    if (zaznaczony != 0)
+        szczegoly_zadaj(zaznaczony);
+    k1_log(TAG, "zaznaczone: %d", zazn.n);
+    return 1;
+}
+
 static void klik_w_liste(int i)
 {
     uint32_t id;
     double t = k1_teraz();
     if (i < 0) { /* the empty part of the list */
-        zaznaczony = 0;
+        if (!(apl.mody & (K1_MOD_CTRL | K1_MOD_SHIFT)))
+            zaznacz_jeden(0);
         return;
     }
     id = wiersz_wpisu(i)->id;
+    if (klik_z_klawiszem(id))
+        return;
     if (klik.id == id && t - klik.t < DWUKLIK) {
         klik.id = 0;
         otworz(id);
@@ -87,7 +108,7 @@ static void klik_w_liste(int i)
     }
     klik.id = id;
     klik.t = t;
-    zaznaczony = id;
+    zaznacz_jeden(id);
     pytanie = PYT_BRAK;
     szczegoly_zadaj(id);
 }
@@ -109,6 +130,10 @@ void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     int n = przyciski(p), mj = -1, pr = -1, wr = -1, wg = 0, nt = 0;
     if (menu_wskaznik(rodzaj, x, y, przycisk))
         return;
+    if (rodzaj == K1_WSK_RUCH && przec_ruch(x, y))
+        return; /* dragging: the pointer is the drag's */
+    if (rodzaj == K1_WSK_PUSZCZENIE && przycisk == K1_PRZYCISK_LEWY && przec_puszczenie(x, y))
+        return;
     if (rodzaj != K1_WSK_WYJSCIE) {
         mj = miejsce_pod(x, y);
         pr = k1_przycisk_pod(p, n, x, y);
@@ -124,13 +149,18 @@ void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         nad_tapeta = nt;
         k1_apl_odswiez(&apl);
     }
+    if (rodzaj == K1_WSK_WCISNIECIE && przycisk == K1_PRZYCISK_LEWY)
+        przec_wcisniecie(x, y, wr, mj); /* maybe the start of dragging (przeciaganie.c) */
     if (rodzaj == K1_WSK_WCISNIECIE && przycisk == K1_PRZYCISK_PRAWY && wr >= 0 && edycja.id == 0) {
-        zaznaczony = wiersz_wpisu(wr)->id; /* the row is selected (its details), then its menu (0.8.2 step 5) */
-        klik.id = 0;                       /* never a part of a double click */
+        uint32_t id = wiersz_wpisu(wr)->id;
+        if (!k1_zazn_jest(&zazn, id)) /* the row is selected (its details), then its menu (0.8.2 step 5); */
+            zaznacz_jeden(id);        /* one of many selected: the menu of all of them (step 6) */
+        zaznaczony = id;
+        klik.id = 0; /* never a part of a double click */
         pytanie = PYT_BRAK;
         blad = NULL;
-        szczegoly_zadaj(zaznaczony);
-        menu_otworz(zaznaczony, x, y);
+        szczegoly_zadaj(id);
+        menu_otworz(id, x, y);
         k1_apl_odswiez(&apl);
         return;
     }
@@ -195,6 +225,10 @@ void klawisz(unsigned kod, int wartosc, unsigned mody)
         otworz(zaznaczony);
     } else if (kod == KEY_BACKSPACE) {
         w_gore();
+    } else if (kod == KEY_A && (mody & K1_MOD_CTRL)) { /* Ctrl+A: everything shown (on the stick too: to import) */
+        k1_zazn_wszystko(&zazn, kolejnosc_widoku(), n_widok);
+        zaznaczony = zazn.n == 0 ? 0 : k1_zazn_jest(&zazn, zaznaczony) ? zaznaczony : zazn.id[0];
+        k1_log(TAG, "zaznaczone: %d", zazn.n);
     } else if (tu.pendrive) { /* the stick is read only: no renaming, no Kosz */
     } else if (kod == KEY_F2) {
         zacznij_edycje();

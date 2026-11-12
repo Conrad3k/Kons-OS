@@ -24,6 +24,8 @@ struct miejsce tu = { K1_FOLDER_DOKUMENTY, 0, 0 };
 int widok[K1_DOK_MAKS];
 int n_widok, od_wiersza, najechany = -1, gotowe;
 uint32_t zaznaczony;
+struct k1_zaznaczenie zazn;
+static uint32_t kolejnosc[K1_DOK_MAKS], posortowane[K1_DOK_MAKS]; /* the ids shown: in their order, and sorted */
 struct edycja edycja;
 enum pytanie pytanie;
 const char *blad;
@@ -69,6 +71,42 @@ static int porownaj(const void *a, const void *b)
     return (x > y) - (x < y);
 }
 
+static int porownaj_id(const void *a, const void *b)
+{
+    uint32_t x = *(const uint32_t *)a, y = *(const uint32_t *)b;
+    return (x > y) - (x < y);
+}
+
+static int pokazany(uint32_t id)
+{
+    return bsearch(&id, posortowane, (size_t)n_widok, sizeof id, porownaj_id) != NULL;
+}
+
+/* The selection keeps only what this place shows; the entry with the details is one of them. */
+static void przytnij_zaznaczenie(void)
+{
+    for (int i = 0; i < n_widok; i++)
+        posortowane[i] = wiersz_wpisu(i)->id;
+    qsort(posortowane, (size_t)n_widok, sizeof posortowane[0], porownaj_id);
+    if (k1_zazn_przytnij(&zazn, pokazany) == 0)
+        zaznaczony = 0;
+    else if (!k1_zazn_jest(&zazn, zaznaczony))
+        zaznaczony = zazn.id[zazn.n - 1];
+}
+
+const uint32_t *kolejnosc_widoku(void)
+{
+    for (int i = 0; i < n_widok; i++)
+        kolejnosc[i] = wiersz_wpisu(i)->id;
+    return kolejnosc;
+}
+
+void zaznacz_jeden(uint32_t id)
+{
+    k1_zazn_jeden(&zazn, id);
+    zaznaczony = id;
+}
+
 void ulozy_widok(void)
 {
     int i, n;
@@ -83,6 +121,7 @@ void ulozy_widok(void)
         od_wiersza = n_widok - wierszy_widac();
     if (od_wiersza < 0)
         od_wiersza = 0;
+    przytnij_zaznaczenie();
 }
 
 /* The tests follow Pliki by this line: the place shown and how many entries it has (never their names). */
@@ -96,7 +135,7 @@ void loguj_widok(void)
 void przejdz(struct miejsce m)
 {
     tu = m;
-    zaznaczony = 0;
+    zaznacz_jeden(0);
     edycja.id = 0;
     pytanie = PYT_BRAK;
     menu_zamknij();
@@ -133,7 +172,7 @@ void zaznacz_wiersz(int i)
     int w = wierszy_widac();
     if (i < 0 || i >= n_widok)
         return;
-    zaznaczony = wiersz_wpisu(i)->id;
+    zaznacz_jeden(wiersz_wpisu(i)->id);
     if (i < od_wiersza)
         od_wiersza = i;
     if (i >= od_wiersza + w)
@@ -215,7 +254,9 @@ static void miejsca(struct k1_obraz *o, const struct k1_motyw *m)
         while (!tu.pendrive && korzen > K1_FOLDERY_MAKS && wpis(korzen) != NULL) /* inside a user folder: its standard one */
             korzen = wpis(korzen)->rodzic;
         wybrane = pendrive ? tu.pendrive : kosz ? tu.kosz : !tu.kosz && !tu.pendrive && korzen == f;
-        if (wybrane || i == nad_miejscem)
+        if (przec_cel_miejsca(i)) /* where a drop goes (0.8.2 step 6) */
+            rysuj_cel(o, m, 8, y, BOK - 16, NAV_WIERSZ - 4);
+        else if (wybrane || i == nad_miejscem)
             k1_zaokraglony(o, 8, (float)y, BOK - 16, NAV_WIERSZ - 4, 8, k1_kolor(wybrane ? m->zaznaczenie : m->najechanie, 255));
         k1_ikona(o, ik, 18, (float)y + 6, 18, k1_kolor(wybrane ? m->tekst : m->tekst2, 255));
         k1_tekst(o, wybrane ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, 46, y + 20, pendrive ? "Pendrive" : kosz ? "Kosz" : t[i].nazwa,
@@ -255,7 +296,8 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     if (obraz_przycisk(&p[0]))
         k1_przycisk(o, m, &p[0], K1_CZ_MALA_MOCNA, nad_tapeta, 1);
     rysuj_stopke(o, m);
-    menu_rysuj(o, m); /* above everything */
+    przec_rysuj(o, m); /* what is dragged */
+    menu_rysuj(o, m);  /* above everything */
 }
 
 int main(void)

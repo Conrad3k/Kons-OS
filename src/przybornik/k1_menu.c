@@ -275,6 +275,24 @@ void k1_menu_pliku(struct k1_menu *m, enum k1_menu_miejsce gdzie, int folder, in
     k1_menu_dodaj(m, "Usuń", K1_MA_USUN, 0);
 }
 
+void k1_menu_wielu(struct k1_menu *m, enum k1_menu_miejsce gdzie, int ile)
+{
+    char t[32];
+    k1_menu_zacznij(m, K1_MENU_SZER);
+    snprintf(t, sizeof t, "Zaznaczone: %d", ile);
+    k1_menu_tekst(m, t)->mocna = 1;
+    k1_menu_kreska(m);
+    if (gdzie == K1_MM_KOSZ) {
+        k1_menu_dodaj(m, "Przywróć", K1_MA_PRZYWROC, 0)->mocna = 1;
+        k1_menu_kreska(m);
+        k1_menu_dodaj(m, "Usuń na zawsze", K1_MA_NA_ZAWSZE, 0)->akcent = 1;
+    } else if (gdzie == K1_MM_PENDRIVE) {
+        k1_menu_dodaj(m, "Importuj", K1_MA_IMPORTUJ, 0)->mocna = 1;
+    } else {
+        k1_menu_dodaj(m, "Usuń", K1_MA_USUN, 0);
+    }
+}
+
 void k1_menu_za_pomoca(struct k1_menu *m, int typ, int ustawienie, int zawsze)
 {
     int a[K1_APL_MAKS], n = k1_dok_aplikacje(typ, a);
