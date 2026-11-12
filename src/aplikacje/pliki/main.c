@@ -10,6 +10,7 @@
  * Sandbox: UID 206, seccomp (base + memfd_create, ftruncate), Landlock without any path. Names and content
  * never reach the log. Modules: pliki.h. Documentation: docs/komponenty/aplikacje.md. */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <linux/input-event-codes.h>
@@ -78,18 +79,29 @@ static int mniejszy(const struct k1_dok_wpis *a, const struct k1_dok_wpis *b)
     return a->nazwa[i] == 0 && b->nazwa[i] != 0;
 }
 
+static const struct k1_dok_wpis *sortowane; /* the entries porownaj compares (qsort takes no context) */
+
+/* Folders first, then by name; the same names in the order of the list (as before 0.8.2: insertion sort). */
+static int porownaj(const void *a, const void *b)
+{
+    int x = *(const int *)a, y = *(const int *)b;
+    if (mniejszy(&sortowane[x], &sortowane[y]))
+        return -1;
+    if (mniejszy(&sortowane[y], &sortowane[x]))
+        return 1;
+    return (x > y) - (x < y);
+}
+
 void ulozy_widok(void)
 {
-    int i, j, n;
+    int i, n;
     const struct k1_dok_wpis *z = zrodlo(&n);
     n_widok = 0;
     for (i = 0; i < n; i++)
-        if (w_tym_miejscu(&z[i])) {
-            for (j = n_widok; j > 0 && mniejszy(&z[i], &z[widok[j - 1]]); j--)
-                widok[j] = widok[j - 1];
-            widok[j] = i;
-            n_widok++;
-        }
+        if (w_tym_miejscu(&z[i]))
+            widok[n_widok++] = i;
+    sortowane = z; /* 16 384 entries of a folder on a stick (0.8.2): n log n, not n² */
+    qsort(widok, (size_t)n_widok, sizeof widok[0], porownaj);
     if (od_wiersza > n_widok - wierszy_widac())
         od_wiersza = n_widok - wierszy_widac();
     if (od_wiersza < 0)

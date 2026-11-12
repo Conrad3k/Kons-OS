@@ -19,6 +19,9 @@ uint32_t w_koszu;
 char podglad[K1_DOK_PODGLAD + 1];
 uint32_t podglad_id, podglad_dl;
 int32_t miejsce_zajete, miejsce_calosc; /* MiB (SKARB_MIEJSCE, 0.8.1) */
+int miejsce_w_pamieci;                  /* no K1-DANE: the files are kept in memory (SKARB_MIEJSCE e, 0.8.2) */
+static int spis_czeka, spis_znowu; /* a list asked for, not here yet; files changed meanwhile (0.8.2 step 2: an import of
+                                    * thousands of files asks for one list at a time, not for one per change) */
 static int skarb = -1;
 static uint8_t lista[K1_DOK_LISTA_MAKS];
 static uint32_t do_edycji; /* the folder just created: rename it when the list shows it */
@@ -32,6 +35,25 @@ static struct {
 
 static void pokaz_oczekujace(void);
 
+static void spis_zadaj(void)
+{
+    if (spis_czeka) {
+        spis_znowu = 1;
+        return;
+    }
+    spis_czeka = 1;
+    do_skarbca(K1_KOM_DOK_SPIS, 0, 0);
+}
+
+static void spis_przyszedl(void)
+{
+    spis_czeka = 0;
+    if (spis_znowu) {
+        spis_znowu = 0;
+        spis_zadaj();
+    }
+}
+
 int malo_miejsca(void)
 {
     return miejsce_calosc > 0 && (int64_t)(miejsce_calosc - miejsce_zajete) * 10 < miejsce_calosc;
@@ -44,7 +66,7 @@ int dane_start(void)
         return -1;
     }
     skarb = FD_SKARBIEC;
-    do_skarbca(K1_KOM_DOK_SPIS, 0, 0);
+    spis_zadaj();
     return skarb;
 }
 
@@ -173,6 +195,7 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
     static struct k1_dok_wpis nowe[K1_DOK_MAKS];
     uint32_t kosz;
     int n;
+    spis_przyszedl();
     if (k1_memfd_czytaj(fd, lista, (size_t)k->a) != 0 ||
         (n = k1_dok_lista_czytaj(lista, (size_t)k->a, nowe, K1_DOK_MAKS, &kosz)) < 0) {
         k1_log(TAG, "odrzucono listę plików ze skarbca");
@@ -205,9 +228,11 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
     if (!gotowe)
         k1_log(TAG, "pliki wczytane: %d (w Koszu %u)", n_wpisow, w_koszu);
     gotowe = 1;
-    loguj_z_pendrive();
+    if (!importuje) /* an import of thousands of files: its end says how many (at most 2 log lines a second) */
+        loguj_z_pendrive();
     pokaz_oczekujace();
-    loguj_widok();
+    if (!tu.pendrive) /* the stick's folder does not come from skarbiec */
+        loguj_widok();
 }
 
 static void tresc_przyszla(const struct k1_komunikat *k, int fd)
@@ -223,6 +248,8 @@ static void tresc_przyszla(const struct k1_komunikat *k, int fd)
 /* The result of a request: a message for the footer when it failed. */
 static void wynik(const struct k1_komunikat *k)
 {
+    if (k->a == K1_KOM_DOK_SPIS) /* no list (the vault locked…): the next change asks again */
+        spis_przyszedl();
     if (pendrive_wynik_skarbca(k))
         return;
     if (k->b == 0) {
@@ -252,6 +279,7 @@ static void miejsce_przyszlo(const struct k1_komunikat *k)
     int pierwsze = miejsce_calosc == 0, bylo = malo_miejsca();
     miejsce_zajete = k->a;
     miejsce_calosc = k->b;
+    miejsce_w_pamieci = k->e;
     if (pierwsze || malo_miejsca() != bylo)
         k1_log(TAG, "miejsce na pliki: %s (zajęte %d z %d MiB)", malo_miejsca() ? "mało" : "wystarczy", (int)k->a, (int)k->b);
 }
@@ -279,7 +307,7 @@ void dane_odbierz(void)
         else if (k.typ == K1_KOM_DOK_WYNIK)
             wynik(&k);
         else if (k.typ == K1_KOM_DOK_ZMIANA)
-            do_skarbca(K1_KOM_DOK_SPIS, 0, 0);
+            spis_zadaj();
         else if (k.typ == K1_KOM_SKARB_MIEJSCE)
             miejsce_przyszlo(&k);
         if (fd >= 0)

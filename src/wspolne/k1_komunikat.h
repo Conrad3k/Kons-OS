@@ -119,7 +119,8 @@ enum k1_komunikat_typ {
                                  * DOK_LISTA. a=MiB taken (0..b), b=MiB for files (the vault's region without the
                                  * reserve for the system, or memory without K1-DANE; 0..K1_PAMIEC_MAKS_MIB), c=entries
                                  * (files and folders, Kosz too; 0..K1_DOK_MAKS), d=MiB the stick has after K1-DANE
-                                 * (0..K1_PAMIEC_MAKS_MIB: what "Użyj całego pendrive'a" adds), e=0 */
+                                 * (0..K1_PAMIEC_MAKS_MIB: what "Użyj całego pendrive'a" adds), e=1 the files are
+                                 * kept in memory — no K1-DANE (0.8.2 step 2: Pliki say "no room in memory"), else 0 */
     K1_KOM_SKARB_WYNIK = 81,  /* obiekt=object id, a=request type (70..75, POWIEKSZ), b=result (0 or K1_MAG_* < 0),
                                * c=K1_SKARB_TRWALY / _RAM / _ZABLOKOWANY, d: bit 0 password set, bit 1 K1-DANE on USB,
                                * e=seconds until the next password attempt is accepted (0..K1_HASLO_PRZERWA) */
@@ -165,6 +166,9 @@ enum k1_komunikat_typ {
                                 * a=length 1..K1_DOK_KAWALEK (every piece but the last: K1_DOK_KAWALEK); + 1 memfd */
     K1_KOM_DOK_KONIEC = 117,   /* (0.8.1 step 4) obiekt=0, a=0 the write in progress is done (the entry is written now),
                                 * a=1 abandoned (its pieces deleted) (reply: DOK_WYNIK; c = the new file's number) */
+    K1_KOM_DOK_CZAS = 119,     /* (0.8.2 step 2) Pliki only, after an import: obiekt=a file with an origin other than K1,
+                                * a,b=its "changed" time as on the stick (k1_kom_u64: 1..K1_DOK_CZAS_MAKS seconds since
+                                * 1970), c..e=0 (reply: DOK_WYNIK) — a second import of the same file is skipped */
     K1_KOM_DOK_NAZWA = 88,     /* obiekt=entry, a=name length 1..127, b=1 a taken name gets " (2)"… (else 0: refused);
                                 * + 1 memfd: the new name */
     K1_KOM_DOK_PRZENIES = 89,  /* obiekt=entry, a=the folder it goes to */
@@ -177,7 +181,7 @@ enum k1_komunikat_typ {
     K1_KOM_DOK_TRESC = 95,     /* obiekt=file, a=bytes sent 0..K1_DEK_MAKS_BAJTY, b=from piece b (as asked), c,d=its whole
                                 * size (k1_kom_u64: low, high 32 bits; ≤ K1_DOK_MAKS_BAJTY, ≥ b × K1_DOK_KAWALEK + a);
                                 * + 1 memfd of a bytes */
-    K1_KOM_DOK_WYNIK = 96,     /* obiekt=entry (0: none), a=request type (84..93, KAWALEK, KONIEC), b=result (0,
+    K1_KOM_DOK_WYNIK = 96,     /* obiekt=entry (0: none), a=request type (84..93, KAWALEK, KONIEC, CZAS), b=result (0,
                                 * K1_MAG_* or K1_DOK_BLAD_* < 0), c=the new entry's number (NOWY, KONIEC; else 0) */
     K1_KOM_DOK_ZMIANA = 97,    /* obiekt=0: files changed — ask for the list again (to every client allowed to list) */
     /* client → skarbiec (0.8.0 step 2, ADR 0030): a file for an application, always after a gesture of the user */
@@ -203,13 +207,14 @@ enum k1_komunikat_typ {
     K1_KOM_DEKODER = 27,         /* from Pliki: obiekt=0 — start dekoder (reply: DEKODER_KANAL) */
     K1_KOM_DEKODER_KANAL = 28,   /* to Pliki: obiekt=0; + 1 fd: the channel to the new dekoder */
     /* Pliki → czytnik (the stick, read only; obiekt = an entry of a list it sent, 0: the main folder) */
-    K1_KOM_PEN_SPIS = 103,       /* obiekt=folder: its entries (reply: PEN_LISTA) */
+    K1_KOM_PEN_SPIS = 103,       /* obiekt=folder, a=its first entry wanted 0..K1_PEN_FOLDER_MAKS-1 (0.8.2 step 2: a large
+                                  * folder comes in lists of K1_PEN_WPISOW) (reply: PEN_LISTA) */
     K1_KOM_PEN_CZYTAJ = 104,     /* obiekt=file, a=piece 0..K1_DOK_KAWALKI_MAKS-1 (0.8.1 step 4): its name (piece 0) and
                                   * that piece of the content, for DOK_NOWY / DOK_KAWALEK (reply: PEN_PLIK) */
     /* czytnik → Pliki */
     K1_KOM_PEN_STAN = 105,       /* once at start: obiekt=0, a=12/16/32 the FAT the stick has, or a=0 and b=K1_PEN_BLAD_* */
     K1_KOM_PEN_LISTA = 106,      /* obiekt=folder, a=length 16..K1_PEN_LISTA_MAKS, b=entries 0..K1_PEN_WPISOW, c=1 the
-                                  * folder has more; + 1 memfd (k1_pendrive.h) */
+                                  * folder has more, d=its first entry in this list (as asked); + 1 memfd (k1_pendrive.h) */
     K1_KOM_PEN_PLIK = 107,       /* obiekt=file, a=name length (piece 0: 1..127, others: 0), b=bytes of the piece
                                   * 0..K1_DOK_KAWALEK, c=the piece, d,e=the file's size (k1_kom_u64, ≤ K1_DOK_MAKS_BAJTY,
                                   * ≥ c × K1_DOK_KAWALEK + b); + 1 memfd of a + b bytes: the name, then the piece (as

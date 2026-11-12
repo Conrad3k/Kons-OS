@@ -216,6 +216,22 @@ int zmienialny(uint32_t id)
     return dok_widoczny(id) ? i : -1;
 }
 
+int dok_ustaw_czas(uint32_t id, int64_t czas)
+{
+    int i = zmienialny(id), r;
+    struct k1_dok_wpis w;
+    if (i < 0)
+        return K1_DOK_BLAD_BRAK;
+    w = wpisy[i];
+    if (w.rodzaj != K1_DOK_PLIK || w.pochodzenie == K1_POCH_K1 || czas < 1 || czas > K1_DOK_CZAS_MAKS)
+        return K1_DOK_BLAD_MIEJSCE; /* only the time a file brought with it, never of one made in K1 */
+    w.zmieniono = czas;
+    if ((r = zapisz_wpis(&w)) != 0)
+        return r;
+    wpisy[i] = w;
+    return 0;
+}
+
 int dok_zmien_nazwe(uint32_t id, const char *nazwa, size_t nl, int wolna, int64_t teraz)
 {
     int i = zmienialny(id), r;

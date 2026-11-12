@@ -5,7 +5,11 @@
  * skarbiec in the memfd czytnik made (name + content, sealed): Pliki never reads it, skarbiec checks it and finds
  * the type again from the content. Since 0.8.1 (step 4) piece by piece (1 MiB): PEN_CZYTAJ(piece) → PEN_PLIK →
  * DOK_NOWY (the first, "more follow") or DOK_KAWALEK → DOK_WYNIK → the next piece …, DOK_KONIEC — one piece in
- * flight, so a file of 4 GB takes as little memory as one of 1 MB. Everything czytnik sends is checked (k1_odbierz_komunikat, k1_pen_lista_czytaj).
+ * flight, so a file of 4 GB takes as little memory as one of 1 MB. Since 0.8.2 (step 2): a folder comes in lists of
+ * K1_PEN_WPISOW, asked for one after another (up to K1_PEN_FOLDER_MAKS entries), so "Importuj wszystkie" takes all of
+ * a phone's camera folder; a file already imported (in its folder, "z pendrive'a", the same name, size and time) is
+ * skipped, and the time from the stick goes with the file (DOK_CZAS); no room, or no more entries, stops the import
+ * with a message that says why. Everything czytnik sends is checked (k1_odbierz_komunikat, k1_pen_lista_czytaj).
  * Names and content never reach the log — only counts. Part of Pliki (pliki.h). */
 #include <fcntl.h>
 #include <stdio.h>
@@ -22,8 +26,8 @@
 
 int pen_jest;
 int pen_stan = PEN_ZAMKNIETY;
-struct k1_dok_wpis pen[K1_PEN_WPISOW];
-int n_pen, pen_wiecej;
+struct k1_dok_wpis pen[K1_PEN_FOLDER_MAKS];
+int n_pen, pen_wiecej, pen_laduje; /* the folder has more than Pliki take; its next list is on the way */
 static int czytnik = -1;
 static uint8_t lista[K1_PEN_LISTA_MAKS];
 static struct {
@@ -31,13 +35,14 @@ static struct {
     char nazwa[K1_DOK_NAZWA];
 } droga[K1_PEN_GLEBOKOSC]; /* the folders entered, from the main one down */
 static int poziom;
-static char komunikat[160];
+static char komunikat[256];
 static struct {
-    uint32_t pliki[K1_PEN_WPISOW];
-    uint8_t obraz[K1_PEN_WPISOW];
+    uint32_t pliki[K1_PEN_FOLDER_MAKS];
+    uint8_t obraz[K1_PEN_FOLDER_MAKS];
+    int64_t czas[K1_PEN_FOLDER_MAKS]; /* "changed" on the stick (0: none), kept with the file (0.8.2) */
     int n, i, czeka_skarbiec;
     uint32_t kawalek, kawalkow; /* the piece of the file being imported (0.8.1), of how many */
-    int zapisane, do_obrazow, duze, bledy;
+    int zapisane, do_obrazow, duze, bledy, pominiete;
 } imp;
 int importuje;
 
@@ -61,6 +66,15 @@ int pen_sciezka(const char **nazwy, int maks)
     for (int i = 0; i < poziom && n < maks; i++)
         nazwy[n++] = droga[i].nazwa;
     return n;
+}
+
+static void do_czytnika(int typ, uint32_t obiekt, int32_t a);
+
+/* The list of the folder entered, from its start (the next lists follow by themselves, lista_przyszla). */
+static void spis_folderu(void)
+{
+    pen_laduje = 1;
+    do_czytnika(K1_KOM_PEN_SPIS, pen_folder(), 0);
 }
 
 static void do_czytnika(int typ, uint32_t obiekt, int32_t a)
@@ -88,6 +102,7 @@ static void zamknij_czytnik(void)
     n_pen = 0;
     poziom = 0;
     importuje = 0;
+    pen_laduje = 0;
     pen_stan = PEN_ZAMKNIETY;
 }
 
@@ -105,7 +120,7 @@ void pendrive_otworz(void)
 {
     przejdz((struct miejsce){ 0, 0, 1 });
     if (czytnik >= 0) {
-        do_czytnika(K1_KOM_PEN_SPIS, pen_folder(), 0);
+        spis_folderu();
         return;
     }
     struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_PENDRIVE_OTWORZ, 0, 0, 0, 0, 0, 0);
@@ -124,7 +139,7 @@ void pendrive_wejdz(uint32_t id)
     droga[poziom].id = id;
     memcpy(droga[poziom].nazwa, w->nazwa, sizeof w->nazwa);
     poziom++;
-    do_czytnika(K1_KOM_PEN_SPIS, id, 0);
+    spis_folderu();
 }
 
 int pendrive_w_gore_mozna(void)
@@ -137,30 +152,52 @@ void pendrive_w_gore(void)
     if (poziom == 0)
         return;
     poziom--;
-    do_czytnika(K1_KOM_PEN_SPIS, pen_folder(), 0);
+    spis_folderu();
 }
 
 /* ---- import ---- */
+
+static const char *plikow(int n)
+{
+    return n == 1 ? "plik" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "pliki" : "plików";
+}
+
+/* The end of the footer's message: where more goes, *zostalo = the room left (at least 1). */
+static char *dalej_komunikat(size_t *zostalo)
+{
+    size_t d = strlen(komunikat);
+    *zostalo = sizeof komunikat - d;
+    return komunikat + d;
+}
 
 static void import_koniec(void)
 {
     const char *gdzie = imp.do_obrazow == imp.zapisane       ? " do folderu Obrazy"
                         : imp.do_obrazow == 0                ? " do folderu Dokumenty"
                                                              : " (zdjęcia do Obrazów, reszta do Dokumentów)";
-    int n = imp.zapisane, d = snprintf(komunikat, sizeof komunikat, "Zaimportowano %d %s%s.", n,
-                                       n == 1 ? "plik" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "pliki" : "plików",
-                                       n > 0 ? gdzie : "");
-    if (imp.duze > 0 && d > 0 && d < (int)sizeof komunikat)
-        d += snprintf(komunikat + d, sizeof komunikat - (size_t)d, " Pominięto %d: większe niż 4 GB.", imp.duze);
-    if (imp.bledy > 0 && d > 0 && d < (int)sizeof komunikat)
-        snprintf(komunikat + d, sizeof komunikat - (size_t)d, " Nie udało się: %d.", imp.bledy);
-    if (imp.zapisane == 0 && imp.bledy == 0 && imp.duze > 0) /* only too big ones */
+    int n = imp.zapisane;
+    snprintf(komunikat, sizeof komunikat, "Zaimportowano %d %s%s.", n, plikow(n), n > 0 ? gdzie : "");
+    if (n == 0 && imp.bledy == 0 && imp.duze == 0 && imp.pominiete > 0) /* D3: nothing new */
+        komunikat[0] = '\0';
+    size_t z;
+    char *e = dalej_komunikat(&z);
+    if (imp.pominiete > 0) {
+        snprintf(e, z, "%sPominięto %d — już zaimportowane.", komunikat[0] ? " " : "", imp.pominiete);
+        e = dalej_komunikat(&z);
+    }
+    if (imp.duze > 0) {
+        snprintf(e, z, " Pominięto %d: większe niż 4 GB.", imp.duze);
+        e = dalej_komunikat(&z);
+    }
+    if (imp.bledy > 0)
+        snprintf(e, z, " Nie udało się: %d.", imp.bledy);
+    if (imp.zapisane == 0 && imp.bledy == 0 && imp.pominiete == 0 && imp.duze > 0) /* only too big ones */
         snprintf(komunikat, sizeof komunikat, "Nie zaimportowano: %s większ%s niż 4 GB.", imp.duze == 1 ? "plik jest" : "pliki są",
                  imp.duze == 1 ? "y" : "e");
     blad = komunikat;
     importuje = 0;
-    k1_log(TAG, "import: koniec — zapisane %d (do Obrazów %d), za duże %d, błędy %d", imp.zapisane, imp.do_obrazow, imp.duze,
-           imp.bledy);
+    k1_log(TAG, "import: koniec — zapisane %d (do Obrazów %d), za duże %d, błędy %d, pominięte %d", imp.zapisane, imp.do_obrazow,
+           imp.duze, imp.bledy, imp.pominiete);
 }
 
 static void import_dalej(void)
@@ -175,22 +212,46 @@ static void import_dalej(void)
     do_czytnika(K1_KOM_PEN_CZYTAJ, imp.pliki[imp.i], 0);
 }
 
+/* D3 (0.8.2 step 2): the file is in `folder` already from an import — "z pendrive'a", the same name, size and time
+ * on the stick (a file renamed, changed or put in Kosz since is imported again). */
+static int juz_jest(const struct k1_dok_wpis *p, uint32_t folder)
+{
+    if (p->zmieniono <= 0)
+        return 0; /* no time on the stick: nothing to tell the same file by */
+    for (int i = 0; i < n_wpisow; i++) {
+        const struct k1_dok_wpis *w = &wpisy[i];
+        if (w->rozmiar == p->rozmiar && w->zmieniono == p->zmieniono && w->rodzic == folder && w->rodzaj == K1_DOK_PLIK &&
+            !k1_dok_w_koszu(w) && w->pochodzenie == K1_POCH_PENDRIVE && k1_dok_nazwy_rowne(w->nazwa, p->nazwa))
+            return 1;
+    }
+    return 0;
+}
+
 void pendrive_importuj(int wszystkie)
 {
-    if (importuje || czytnik < 0)
+    if (importuje || czytnik < 0 || (wszystkie && pen_laduje))
         return;
     memset(&imp, 0, sizeof imp);
     for (int i = 0; i < n_widok; i++) {
         const struct k1_dok_wpis *w = wiersz_wpisu(i);
-        if (w->rodzaj == K1_DOK_PLIK && (wszystkie || w->id == zaznaczony)) {
-            imp.obraz[imp.n] = w->typ == K1_TYP_PNG || w->typ == K1_TYP_JPEG;
-            imp.pliki[imp.n++] = w->id;
+        int obraz = w->typ == K1_TYP_PNG || w->typ == K1_TYP_JPEG;
+        if (w->rodzaj != K1_DOK_PLIK || !(wszystkie || w->id == zaznaczony))
+            continue;
+        if (juz_jest(w, obraz ? K1_FOLDER_OBRAZY : K1_FOLDER_DOKUMENTY)) {
+            imp.pominiete++;
+            continue;
         }
+        imp.obraz[imp.n] = (uint8_t)obraz;
+        imp.czas[imp.n] = w->zmieniono;
+        imp.pliki[imp.n++] = w->id;
     }
-    if (imp.n == 0)
+    k1_log(TAG, "import: start, %d plików (pominięte: %d — już zaimportowane)", imp.n, imp.pominiete);
+    if (imp.n == 0) {
+        if (imp.pominiete > 0)
+            import_koniec();
         return;
+    }
     importuje = 1;
-    k1_log(TAG, "import: start, %d plików", imp.n);
     import_dalej();
 }
 
@@ -218,21 +279,44 @@ static void plik_przyszedl(const struct k1_komunikat *k, int fd)
     do_skarbca_z_fd(m, fd);
 }
 
-/* The file is in skarbiec (or not): the next one. */
-static void nastepny_plik(int zapisany)
+/* The file is in skarbiec (or not): the next one. A new file `id` keeps the time it had on the stick (DOK_CZAS, 0.8.2:
+ * the next import knows it); its answer comes before the next file's and is only logged when it fails. */
+static void nastepny_plik(int zapisany, uint32_t id)
 {
+    int64_t t = imp.czas[imp.i];
+    if (zapisany && id >= K1_DOK_PIERWSZY && t >= 1 && t <= K1_DOK_CZAS_MAKS)
+        do_skarbca_z_fd(k1_komunikat_nowy(K1_KOM_DOK_CZAS, id, k1_kom_niskie((uint64_t)t), k1_kom_wysokie((uint64_t)t), 0, 0, 0),
+                        -1);
     imp.kawalek = 0;
     if (zapisany) {
         imp.zapisane++;
         imp.do_obrazow += imp.obraz[imp.i];
-        k1_log(TAG, "import: plik %d z %d zapisany w skarbcu", imp.i + 1, imp.n);
+        if (imp.kawalkow > 1) /* a large file; small ones only in the count at the end (thousands of them, 0.8.2) */
+            k1_log(TAG, "import: plik %d z %d zapisany w skarbcu", imp.i + 1, imp.n);
     }
     imp.i++;
     import_dalej();
 }
 
+/* No room or no more entries: the rest of the import would fail too — stop, and say why (L16 of plan 0.8.2). */
+static void import_przerwany(int wynik)
+{
+    const char *dlaczego = wynik == K1_DOK_BLAD_PELNO ? "Za dużo plików i folderów (K1 mieści 16 384)"
+                           : miejsce_w_pamieci       ? "Brak miejsca w pamięci (K1 działa bez nośnika danych)"
+                                                     : "Brak miejsca na pliki";
+    imp.bledy += imp.n - imp.i - 1;
+    imp.i = imp.n;
+    import_koniec();
+    snprintf(komunikat, sizeof komunikat, "%s — zaimportowano %d z %d.", dlaczego, imp.zapisane, imp.n);
+}
+
 int pendrive_wynik_skarbca(const struct k1_komunikat *k)
 {
+    if (k->a == K1_KOM_DOK_CZAS) { /* the time of an imported file (nastepny_plik) */
+        if (k->b != 0)
+            k1_log(TAG, "import: czas pliku nie zapisany (wynik %d)", k->b);
+        return 1;
+    }
     if (!importuje || !imp.czeka_skarbiec ||
         (k->a != K1_KOM_DOK_NOWY && k->a != K1_KOM_DOK_KAWALEK && k->a != K1_KOM_DOK_KONIEC))
         return 0;
@@ -241,18 +325,15 @@ int pendrive_wynik_skarbca(const struct k1_komunikat *k)
         imp.bledy++;
         imp.kawalek = 0;
         k1_log(TAG, "import: skarbiec odmówił (wynik %d)", k->b);
-        if (k->b == K1_SKARB_PELNY || k->b == K1_DOK_BLAD_BRAK_MIEJSCA) { /* no room: the rest would fail too */
-            imp.bledy += imp.n - imp.i - 1;
-            imp.i = imp.n;
-            import_koniec();
-            snprintf(komunikat, sizeof komunikat, "Brak miejsca na nośniku K1 — zaimportowano %d z %d.", imp.zapisane, imp.n);
+        if (k->b == K1_SKARB_PELNY || k->b == K1_DOK_BLAD_BRAK_MIEJSCA || k->b == K1_DOK_BLAD_PELNO) {
+            import_przerwany(k->b);
             return 1;
         }
-        nastepny_plik(0);
+        nastepny_plik(0, 0);
         return 1;
     }
     if (k->a == K1_KOM_DOK_KONIEC || imp.kawalkow <= 1) {
-        nastepny_plik(1);
+        nastepny_plik(1, (uint32_t)k->c);
         return 1;
     }
     if (++imp.kawalek < imp.kawalkow) {
@@ -266,20 +347,33 @@ int pendrive_wynik_skarbca(const struct k1_komunikat *k)
 
 /* ---- what czytnik sends ---- */
 
+/* A list of the folder entered: the first one (d = 0) shows it, the next ones (0.8.2 step 2, L14) are added to it and
+ * ask for the one after them, until the folder is all here or Pliki hold K1_PEN_FOLDER_MAKS of its entries. */
 static void lista_przyszla(const struct k1_komunikat *k, int fd)
 {
-    int n;
-    if (k->obiekt != pen_folder() || k1_memfd_czytaj(fd, lista, (size_t)k->a) != 0 ||
-        (n = k1_pen_lista_czytaj(lista, (size_t)k->a, k->obiekt, pen, K1_PEN_WPISOW, &pen_wiecej)) < 0) {
+    int n, wiecej = 0, od = k->d;
+    if (k->obiekt != pen_folder() || (od != 0 && (!pen_laduje || od != n_pen)) ||
+        k1_memfd_czytaj(fd, lista, (size_t)k->a) != 0 ||
+        (n = k1_pen_lista_czytaj(lista, (size_t)k->a, k->obiekt, pen + od, K1_PEN_FOLDER_MAKS - od, &wiecej)) < 0) {
         k1_log(TAG, "pendrive: odrzucono listę od czytnika");
         return;
     }
-    n_pen = n;
+    n_pen = od + n;
     pen_stan = PEN_GOTOWY;
-    if (tu.pendrive) {
+    pen_laduje = wiecej && n_pen < K1_PEN_FOLDER_MAKS;
+    pen_wiecej = wiecej && !pen_laduje;
+    if (pen_laduje)
+        do_czytnika(K1_KOM_PEN_SPIS, k->obiekt, n_pen);
+    if (!tu.pendrive)
+        return;
+    if (od == 0) {
         uint32_t z = zaznaczony;
         przejdz((struct miejsce){ pen_folder(), 0, 1 });
         zaznaczony = pen_wpis(z) != NULL ? z : 0;
+    } else { /* the rows shown stay where they are */
+        ulozy_widok();
+        if (!pen_laduje)
+            loguj_widok();
     }
 }
 
@@ -385,8 +479,14 @@ void pendrive_start(void)
 /* The footer of the place: what is going on with the stick (NULL: the usual count). */
 const char *pendrive_stopka(void)
 {
+    static char stopka[64];
     switch (pen_stan) {
-    case PEN_GOTOWY: return pen_wiecej ? "Pokazano pierwsze 1024 elementy tego folderu." : NULL;
+    case PEN_GOTOWY:
+        if (pen_laduje) {
+            snprintf(stopka, sizeof stopka, "Czytanie folderu… %d elementów.", n_pen);
+            return stopka;
+        }
+        return pen_wiecej ? "Pokazano pierwsze 16 384 elementy tego folderu." : NULL;
     case PEN_CZEKA: return "Czytanie pendrive'a…";
     case K1_PEN_BLAD_FORMAT: return "K1 jeszcze nie czyta tego pendrive'a (np. exFAT, NTFS).";
     case K1_PEN_BLAD_USZKODZONY: return "Pendrive jest uszkodzony — sprawdź go na innym komputerze.";

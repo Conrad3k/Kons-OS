@@ -82,8 +82,8 @@ int dostepny(int r)
         const struct k1_dok_wpis *w = pen_wpis(zaznaczony);
         return !importuje && w != NULL && w->rodzaj == K1_DOK_PLIK;
     }
-    case B_IMPORTUJ_WSZ:
-        for (int i = 0; i < n_widok && !importuje; i++)
+    case B_IMPORTUJ_WSZ: /* the whole folder: once all its lists are here (0.8.2) */
+        for (int i = 0; i < n_widok && !importuje && !pen_laduje; i++)
             if (wiersz_wpisu(i)->rodzaj == K1_DOK_PLIK)
                 return 1;
         return 0;

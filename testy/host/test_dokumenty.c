@@ -377,6 +377,19 @@ static void test_prawa(void)
                 mfd, &zm, &fd);
     EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == 0 && zm && dok_wpis((uint32_t)k.c) != NULL &&
            dok_wpis((uint32_t)k.c)->pochodzenie == K1_POCH_PENDRIVE && strcmp(dok_wpis((uint32_t)k.c)->nazwa, "tajne (2).txt") == 0);
+    { /* 0.8.2 step 2: the time it had on the stick — only for a file with another origin, only Pliki */
+        uint32_t z = (uint32_t)k.c;
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_CZAS, z, 1700000000, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.a == K1_KOM_DOK_CZAS && k.b == 0 && zm && dok_wpis(z)->zmieniono == 1700000000);
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_CZAS, plik, 1700000000, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_MIEJSCE && !zm && dok_wpis(plik)->zmieniono == T0); /* made in K1: its own time */
+        k = zapytaj(K1_PROFIL_NOTATKI, k1_komunikat_nowy(K1_KOM_DOK_CZAS, z, 1600000000, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_PRAWA && !zm && dok_wpis(z)->zmieniono == 1700000000);
+        k = zapytaj(K1_PROFIL_GUI, k1_komunikat_nowy(K1_KOM_DOK_CZAS, z, 1600000000, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_PRAWA && !zm);
+        EXPECT(dok_ustaw_czas(z, 0) == K1_DOK_BLAD_MIEJSCE && dok_ustaw_czas(z, K1_DOK_CZAS_MAKS + 1) == K1_DOK_BLAD_MIEJSCE &&
+               dok_ustaw_czas(999999, 5) == K1_DOK_BLAD_BRAK);
+    }
     mfd = k1_memfd_z_danymi("t", "Nowy folder", 11); /* the size does not match the message */
     k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_OBRAZY, K1_DOK_FOLDER, 10, 0, 0, 0), mfd, &zm, &fd);
     EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == K1_MAG_ARG && !zm);

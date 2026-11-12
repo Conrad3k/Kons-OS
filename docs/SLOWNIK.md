@@ -71,6 +71,8 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **gest zgody** | Działanie użytkownika w miejscu rysowanym przez K1 (Pobierz, wybór pliku, „Otwórz w…”, przeciągnięcie) — jest zgodą na przeniesienie pliku. |
 | **czytnik** | Usługa K1, która czyta pendrive z innego komputera (FAT) dla Plików — w klatce, tylko do odczytu; jedyna część K1, która czyta obcy system plików (ADR 0031). |
 | **import** | Przeniesienie pliku z pendrive'a do Plików na wyraźny wybór użytkownika („Importuj”); oryginał zostaje na pendrivie, kopia dostaje pochodzenie „z pendrive'a”. |
+| **ponowny import** | „Importuj” pliku, który już jest w Obrazach / Dokumentach z pendrive'a z tą samą nazwą, rozmiarem i czasem — K1 go pomija i mówi „Pominięto n — już zaimportowane” (0.8.2, decyzja D3). |
+| **zasady nazw** | Co może być nazwą pliku lub folderu w K1 (`k1_nazwy.c`, 0.8.2): 1–127 bajtów, bez `\ / : * ? " < > |`, znaków niewidocznych i zmieniających kierunek, bez spacji (każdej szerokości) na brzegach i kropki na końcu, litera ze znakiem diakrytycznym jako jedna litera. Te same w skarbcu i czytniku. |
 | **Gatekeeper** | Część K1, która przyjmuje pliki z zewnątrz (strefy, pendrive): czeka na zgodę, czyta z limitami, zapisuje do Plików z pochodzeniem. |
 | **dekoder** | Jednorazowy program w klatce, który czyta jeden ryzykowny plik (obraz, PDF) i oddaje tylko obraz; potem znika. Od 0.8.0 usługa `dekoder` (PNG, JPEG; ADR 0032). |
 | **podgląd** | Panel po prawej w Plikach: szczegóły zaznaczonego pliku, początek tekstu albo zmniejszone zdjęcie (od dekodera). |

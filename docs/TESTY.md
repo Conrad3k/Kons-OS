@@ -384,3 +384,12 @@ Od 1c system tworzy format 2, a stary magazyn (format 1) przechodzi na format 2 
 | `test-skarbiec.sh` pełny, powiększenie, dokończenie | jak w 0.8.1, ale na formacie 2: na pliki 50 MiB, po powiększeniu do 576 MiB — miejsce na dane 58 → 556 MiB, na pliki 545 MiB |
 | `test-pendrive.sh` ponownie | magazyn z filmem 300 MB: „magazyn otwarty … (format 2, t s)” z t < 1 s i bez „skarbiec jeszcze otwiera magazyn” — ekran dostaje ustawienia od razu (R58) |
 | `test-pliki.sh` | notatki z 0.5.8–0.7.6 w magazynie formatu 1 (`stare_notatki`) — Notatki przenoszą je do plików, a skarbiec w tym czasie przechodzi na format 2 |
+
+## 0.8.2 krok 2 — pendrive i nazwy plików
+
+| Test | Co sprawdza |
+|---|---|
+| `test_fat` (host) | „mały” FAT32 z `mformat -F -c 8` (64 MiB, ok. 16 000 klastrów — z samej liczby wyszedłby FAT16; próba T6) czytany jako FAT32, folder 3000 plików cały; ten sam sektor z 16-bitowym rozmiarem FAT — nie FAT. Nazwy: „    .jpg” → „Plik.jpg”, „.Trashes” zostaje ukryty, znaki niewidoczne → „_”, spacje innej szerokości z brzegów, NFD → NFC (ż, ó), dwie nazwy po 200 liter różne od 150. → ta sama nazwa (próba T4) |
+| `test_dokumenty` (host) | zasady nazw (próba T1/6: 20 nazw-podróbek odrzuconych, NBSP i U+3000 w środku dozwolone, „ą” jako jedna litera), poprawianie (NFD → NFC, spacje z brzegów, „_”), porównanie Ä/ä, Č/č, Ÿ/ÿ (× ≠ ÷); wolna nazwa dla „a.<125 × x>” i dla długiej nazwy z „.jpg” (próba T1/2); wpisy z 0.8.1 z zakazaną nazwą poprawione przy wczytaniu, zajęta → „ (2)”, treść cała; `DOK_CZAS` — Pliki tak, plik z K1, Notatki, pulpit nie |
+| `test_komunikat` | `PEN_SPIS` a (pierwszy element 0…16 383), `PEN_LISTA` d, `DOK_CZAS` (1 s … 2107, dwa pola, tylko plik użytkownika), `SKARB_MIEJSCE` e (0/1) |
+| `test-pendrive.sh` | drugi „Importuj wszystkie” w DCIM › 100K1 → „zapisane 0 … pominięte 3”; pendrive z „małym” FAT32 (`mformat -F -c 8`, 124 MB w MBR) → czytnik: FAT32; folder 1100 zdjęć → dwie listy czytnika, Pliki: 1100 elementów; „Importuj wszystkie” → 1100 do Obrazów; drugi raz → „pominięte 1100”, Obrazy: 1104; zrzuty `pendrive-4-pominiete.png`, `pendrive-9-folder-1100.png`, `pendrive-9-zaimportowane-1100.png` |

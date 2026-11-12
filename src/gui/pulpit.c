@@ -177,7 +177,8 @@ void rysuj_pulpit(void)
  * files by number ("plik 104") — a file's name never goes to the log. */
 void pulpit_loguj(void)
 {
-    char buf[1200], nazwa[24];
+    static char ostatni[1200 + 96]; /* "(siatka …, co …): " and the icons */
+    char buf[1200], nazwa[24], linia[sizeof ostatni];
     size_t n = 0;
     int i;
     for (i = 0; i < rozm.n_ikon && n < sizeof buf - 48; i++) {
@@ -188,8 +189,11 @@ void pulpit_loguj(void)
         n += (size_t)snprintf(buf + n, sizeof buf - n, "%s%s %d,%d", i ? "; " : "", rozm_plik(kl) ? nazwa : ikona_nazwa(kl),
                               c.x + KOM_W / 2, c.y + 8 + KAFEL / 2);
     }
-    k1_log(TAG, "ikony na pulpicie (siatka %dx%d, co %d,%d): %s", pulpit_kolumn(), pulpit_wierszy(), KOM_W, KOM_H,
-           n ? buf : "brak");
+    snprintf(linia, sizeof linia, "(siatka %dx%d, co %d,%d): %s", pulpit_kolumn(), pulpit_wierszy(), KOM_W, KOM_H, n ? buf : "brak");
+    if (strcmp(linia, ostatni) == 0)
+        return; /* the same as last time (every change of the files sends a list: an import of 1000 files, 0.8.2) */
+    memcpy(ostatni, linia, sizeof linia);
+    k1_log(TAG, "ikony na pulpicie %s", linia);
 }
 
 void pulpit_utworz(int pierwszy)

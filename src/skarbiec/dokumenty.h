@@ -54,6 +54,9 @@ int dok_nowy(uint32_t folder, int rodzaj, const char *nazwa, size_t nl, const st
 int dok_zapisz_tresc(uint32_t id, const struct dok_zrodlo *z, int64_t teraz);
 /* At most `maks` bytes from piece `od_kawalka` on (at most to the end of the file) to `c`; *ile = how many. */
 int dok_czytaj_tresc(uint32_t id, uint32_t od_kawalka, uint64_t maks, const struct dok_cel *c, uint64_t *ile);
+/* DOK_CZAS (0.8.2 step 2): the "changed" time of a file with an origin other than K1 (an import) as it came with it
+ * (1..K1_DOK_CZAS_MAKS) — a second import of the same file is skipped by Pliki. */
+int dok_ustaw_czas(uint32_t id, int64_t czas);
 /* `wolna`: a name taken in the folder becomes "name (2)"… (else K1_DOK_BLAD_ZAJETA). */
 int dok_zmien_nazwe(uint32_t id, const char *nazwa, size_t nl, int wolna, int64_t teraz);
 /* The folder of an application in Dokumenty ("Notatki", ADR 0030): the one remembered for `tworca` while it is

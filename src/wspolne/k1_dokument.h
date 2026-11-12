@@ -23,6 +23,7 @@
 #define K1_DOK_GLEBOKOSC 8              /* folders inside a standard folder, at most */
 #define K1_DOK_PIERWSZY 100             /* first number of a user entry (1..99: standard folders) */
 #define K1_DOK_ID_MAKS 0x7fffffff
+#define K1_DOK_CZAS_MAKS 4354819199LL   /* 2107-12-31 23:59:59 UTC: the last time FAT can write (DOK_CZAS, 0.8.2) */
 #define K1_KOSZ_DNI 30                  /* Kosz: deleted for good after this many days */
 #define K1_DOK_PODGLAD (64u << 10)      /* Pliki reads at most this much for a preview */
 #define K1_DOK_DOSTEP_APL 64            /* files one application may be given after a gesture (until it closes) */
