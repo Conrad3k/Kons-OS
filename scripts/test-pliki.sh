@@ -352,18 +352,18 @@ if tryb == "notatki":
     sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
     ap = u0 and sk and po(r"K1-USTAWIENIA: aplikacje: Dokument tekstowy — 2 do wyboru, przyciski od (\d+),(\d+) \(szer\. (\d+), wys\. (\d+)\)",
                           lambda: klik(u0[0] + int(sk.group(1)), u0[1] + int(sk.group(2)) + 6 * int(sk.group(3))))
-    sprawdz("Ustawienia → Aplikacje: Dokument tekstowy — Notatki albo Pliki (podgląd)", ap)
+    sprawdz("Ustawienia → Aplikacje: Dokument tekstowy — Notatki albo Pliki (szczegóły)", ap)
     if ap:
         bx, by, bw, bh = (int(ap.group(i)) for i in range(1, 5))
         zrzut("notatki-6-ustawienia", gdy=lambda w, h, px: True)
         n_z = q.ile(r"K1-SKARBIEC: zapisano obiekt 1 właściciela 2 ")
-        sprawdz("wybór „Pliki (podgląd)”: ustawienie ekranu zapisane w skarbcu",
+        sprawdz("wybór „Pliki (szczegóły)”: ustawienie ekranu zapisane w skarbcu",
                 # key K1_UST_OTWIERANIE (7) + text (type 2) - 1 = 8, value Pliki (7)
                 po(r"K1-USTAWIENIA: zmiana ustawienia 8 → 7", lambda: klik(u0[0] + bx + 3 * bw // 4, u0[1] + by + bh // 2)) and
                 czekaj(r"K1-SKARBIEC: zapisano obiekt 1 właściciela 2 ", od=n_z))
     okno("pliki", lambda: klik(*pasek(5)))
 
-sprawdz("podwójne kliknięcie pliku tekstowego: teraz domyślnie Pliki (podgląd)" + (" — zapamiętane po ponownym starcie" if tryb != "notatki" else ""),
+sprawdz("podwójne kliknięcie pliku tekstowego: teraz domyślnie Pliki (szczegóły)" + (" — zapamiętane po ponownym starcie" if tryb != "notatki" else ""),
         po(r"K1-PLIKI: plik pokazany w Plikach \(domyślna aplikacja\)", lambda: q.dwuklik(*wiersz(2))))
 t_ = tekst()
 sprawdz("nazwy i treść notatek nie trafiają do logu", "Zażółć" not in t_ and "Lista" not in t_ and "Najnowsza" not in t_)
@@ -388,7 +388,7 @@ sprawdz notatki
 python3 -I - "$STARE" <<'PY' || r=1
 import sys
 d = open(sys.argv[1], "rb").read()
-jawne = [t for t in ("Zażółć".encode(), b"Najnowsza", b"Lista", b"Notatki", b"K1U2", b"K1U3") if t in d]
+jawne = [t for t in ("Zażółć".encode(), b"Najnowsza", b"Lista", b"Notatki", b"K1U2", b"K1U3", b"K1U4") if t in d]
 print(f"  [{'OK' if not jawne else 'BŁĄD'}]    dysk danych: notatki jako pliki i ustawienia zaszyfrowane" + (f" — jawne: {jawne}" if jawne else ""))
 sys.exit(1 if jawne else 0)
 PY

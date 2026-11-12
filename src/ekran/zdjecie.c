@@ -120,14 +120,26 @@ void rysuj_tlo(int wariant)
     k1_rysuj_tlo(&s.tlo, wariant == K1_TAPETA_ZDJECIE ? 0 : wariant);
 }
 
+/* The applications that may set a photo as the wallpaper (the user's gesture there: "Ustaw jako tapetę"); a new one:
+ * one line. The name is for the log. */
+static const struct {
+    int apl;
+    const char *od;
+} nadawcy[] = {
+    { K1_APL_PLIKI, "Plików" },     
+    { K1_APL_PODGLAD, "Podglądu" }, /* 0.8.2 step 4, ADR 0037 */
+};
+
 /* TAPETA_ZDJECIE from client `kl` (k1_komunikat checked the sizes; fd is closed here): NULL when taken, else why not. */
 const char *zdjecie_przyjmij(int kl, const struct k1_komunikat *m, int fd)
 {
-    size_t n = (size_t)m->a * (size_t)m->b;
+    size_t n = (size_t)m->a * (size_t)m->b, i = 0;
     uint32_t *px = NULL;
     const char *powod = NULL;
-    if (s.kl[kl].rola != K1_ROLA_APLIKACJA || s.kl[kl].apl != K1_APL_PLIKI)
-        powod = "tapeta ze zdjęcia tylko od Plików";
+    while (i < sizeof nadawcy / sizeof nadawcy[0] && (s.kl[kl].rola != K1_ROLA_APLIKACJA || s.kl[kl].apl != nadawcy[i].apl))
+        i++;
+    if (i == sizeof nadawcy / sizeof nadawcy[0])
+        powod = "tapeta ze zdjęcia tylko od Plików i Podglądu";
     else if (fd < 0 || (px = malloc(n * 4)) == NULL || k1_memfd_czytaj(fd, px, n * 4) != 0)
         powod = "zdjęcie: deskryptor nie jest zapieczętowanym memfd o podanym rozmiarze";
     if (fd >= 0)
@@ -136,13 +148,13 @@ const char *zdjecie_przyjmij(int kl, const struct k1_komunikat *m, int fd)
         free(px);
         return powod;
     }
-    for (size_t i = 0; i < n; i++)
-        px[i] |= 0xff000000u; /* drawn over black: premultiplied colours stay as they are */
+    for (size_t j = 0; j < n; j++)
+        px[j] |= 0xff000000u; /* drawn over black: premultiplied colours stay as they are */
     free(zdj);
     zdj = px;
     zw = (uint32_t)m->a;
     zh = (uint32_t)m->b;
-    k1_log(TAG, "zdjęcie na tapetę od Plików: %ux%u", zw, zh);
+    k1_log(TAG, "zdjęcie na tapetę od %s: %ux%u", nadawcy[i].od, zw, zh);
     zapisz();
     ustawienie(K1_UST_ZDJECIE, 1);
     s.ust[K1_UST_TAPETA] = -1; /* drawn again even when the photo was the wallpaper already */

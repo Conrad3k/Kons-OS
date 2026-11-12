@@ -98,7 +98,7 @@ static size_t skad(int o, uint32_t x, uint32_t y, uint32_t w, uint32_t h)
 
 int obraz_przygotuj(const uint8_t *dane, size_t n, uint32_t mw, uint32_t mh, struct obraz *wynik)
 {
-    struct obraz o, m;
+    struct obraz o = { 0 }, m = { 0 };
     int orient = obraz_orientacja(dane, n), r = obraz_dekoduj(dane, n, &o), boki = orient >= 5;
     uint32_t tw, th; /* the target, turned as it will be seen */
     memset(wynik, 0, sizeof *wynik);
@@ -127,5 +127,7 @@ int obraz_przygotuj(const uint8_t *dane, size_t n, uint32_t mw, uint32_t mh, str
     free(m.px);
     wynik->w = tw;
     wynik->h = th;
+    wynik->zw = boki ? o.h : o.w;
+    wynik->zh = boki ? o.w : o.h;
     return 0;
 }

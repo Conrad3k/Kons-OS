@@ -1,17 +1,26 @@
-/* K1 nadzorca — the picture decoder (0.8.0 step 4, ADR 0032; more clients: 0.8.2 step 3): on request of a client in
- * the table below, a new dekoder process with fd 3 = a new channel, whose other end goes to the client
+/* K1 nadzorca — the picture decoder (0.8.0 step 4, ADR 0032; more clients: 0.8.2 step 3, Podgląd: step 4): on request of
+ * a client in the table below, a new dekoder process with fd 3 = a new channel, whose other end goes to the client
  * (DEKODER_KANAL), and the client's application number as its argument (it accepts that application's UID only).
  * One picture per process, one process at a time, at most one request waiting per client: a new request of the same
  * client stops its running dekoder (that picture is no longer wanted), another client's waits for its end. We never
  * touch the file or the picture — they go between the client and dekoder. Part of nadzorca (see main.c). */
 #include "nadzorca.h"
 
-/* Who may ask for a dekoder, and how the channel reaches them. A new client (step 4: Podgląd): one line. */
+int podglad_kanal = -1; /* our end of Podgląd's fd 6: DEKODER in, DEKODER_KANAL out (ADR 0037) */
+
+static void podglad_wyslij(struct k1_komunikat k, int fd)
+{
+    if (podglad_kanal >= 0 && k1_kanal_wyslij(podglad_kanal, &k, sizeof k, fd) != 0)
+        k1_log(TAG, "dekoder: wysłanie do Podglądu nieudane");
+}
+
+/* Who may ask for a dekoder, and how the channel reaches them. A new client: one line (and its channel in kanaly[]). */
 static const struct klient {
     int apl;
     void (*wyslij)(struct k1_komunikat k, int fd);
 } klienci[] = {
-    { K1_APL_PLIKI, pliki_wyslij }, /* their fd 6 (pendrive.c) */
+    { K1_APL_PLIKI, pliki_wyslij },     /* their fd 6 (pendrive.c) */
+    { K1_APL_PODGLAD, podglad_wyslij }, /* its fd 6 (obsluz_podglad) */
 };
 
 static int czeka[N(klienci)]; /* a request that waits for the running dekoder to end */
@@ -86,4 +95,24 @@ void dekoder_koniec(void)
         }
     }
     dla = -1;
+}
+
+/* Podgląd's fd 6: it may only ask for a dekoder. */
+void obsluz_podglad(void)
+{
+    for (int i = 0; i < 8 && podglad_kanal >= 0; i++) {
+        struct k1_komunikat k;
+        enum k1_odbior_wynik w = k1_odbierz_komunikat(podglad_kanal, K1_UID_PODGLAD, K1_KIER_DO_NADZORCY, &k, NULL);
+        if (w == K1_ODB_PUSTO)
+            return;
+        if (w == K1_ODB_KONIEC) {
+            close(podglad_kanal);
+            podglad_kanal = -1;
+            return;
+        }
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_DEKODER)
+            dekoder_otworz(K1_APL_PODGLAD);
+        else
+            k1_log(TAG, "dekoder: odrzucono prośbę od Podglądu");
+    }
 }

@@ -2,13 +2,13 @@
 
 | | |
 |---|---|
-| **Status** | ZAIMPLEMENTOWANE (0.8.0 krok 4; 0.8.2 krok 3: duże zdjęcia, GIF, BMP, WebP, plik kawałkami, wielu klientów); PRZETESTOWANE na hoście (`test_dekoder`, `fuzz_dekoder`) i w QEMU (`test-pliki.sh`: podgląd i tapeta; `test-pendrive.sh`: zdjęcia 48 i 100 Mpx, nagłówek 101 Mpx, GIF, BMP, WebP) |
-| **Pliki** | `src/dekoder/main.c` (usługa: jedna prośba, plik kawałkami, jedna odpowiedź), `obraz.{c,h}` (rodzaj pliku, orientacja EXIF, zmniejszanie i obracanie), `wuffs.c` (tabela dekoderów Wuffs); `src/wspolne/k1_dekoder.h` (tabela limitów), `k1_skaluj.{c,h}`, `k1_dokument.{c,h}` (typy plików i ich rodzina — `K1_TYPY`, rozpoznanie `k1_dok_typ`); `src/nadzorca/dekoder.c` (tabela klientów, uruchamianie, pamięć z RAM), `profile.c` (klatka); `src/aplikacje/pliki/obrazy.c` (Pliki); `src/ekran/zdjecie.c` (tapeta) |
+| **Status** | ZAIMPLEMENTOWANE (0.8.0 krok 4; 0.8.2 krok 3: duże zdjęcia, GIF, BMP, WebP, plik kawałkami, wielu klientów; krok 4: Podgląd, wymiary zdjęcia w odpowiedzi); PRZETESTOWANE na hoście (`test_dekoder`, `fuzz_dekoder`) i w QEMU (`test-pliki.sh`: miniatura i tapeta; `test-pendrive.sh`: zdjęcia 48 i 100 Mpx, nagłówek 101 Mpx, GIF, BMP, WebP) |
+| **Pliki** | `src/dekoder/main.c` (usługa: jedna prośba, plik kawałkami, jedna odpowiedź), `obraz.{c,h}` (rodzaj pliku, orientacja EXIF, zmniejszanie i obracanie), `wuffs.c` (tabela dekoderów Wuffs); `src/wspolne/k1_dekoder.h` (tabela limitów), `k1_skaluj.{c,h}`, `k1_dokument.{c,h}` (typy plików i ich rodzina — `K1_TYPY`, rozpoznanie `k1_dok_typ`); `src/nadzorca/dekoder.c` (tabela klientów, uruchamianie, pamięć z RAM), `profile.c` (klatka); `src/przybornik/k1_dekodowanie.{c,h}` (strona klienta: prośba, kawałki od skarbca, odpowiedź — jedna dla Plików i Podglądu, 0.8.2 krok 4); `src/aplikacje/pliki/obrazy.c` (Pliki), `src/aplikacje/podglad/obraz.c` (Podgląd); `src/ekran/zdjecie.c` (tapeta) |
 | **Decyzje** | ADR 0032 (z uzupełnieniem 0.8.2), też 0026 p. 3, SPEC §7 „dekodery” |
 
 ## Cel
-Zamienić plik obrazu na piksele — dla podglądu w Plikach i tapety ze zdjęcia (od 0.8.2 gotowy też dla aplikacji
-Podgląd, krok 4) — tak, żeby obcy plik nie dotknął niczego poza jednym, krótko żyjącym procesem bez żadnych uprawnień.
+Zamienić plik obrazu na piksele — dla miniatury w Plikach, aplikacji Podgląd (0.8.2 krok 4, ADR 0037) i tapety ze
+zdjęcia — tak, żeby obcy plik nie dotknął niczego poza jednym, krótko żyjącym procesem bez żadnych uprawnień.
 
 Formaty (rodzina „obrazy” w `K1_TYPY`, dekoder — wiersz w `K1_DEKODERY` w `wuffs.c`): PNG, JPEG (zwykły i progresywny,
 orientacja EXIF), GIF (pierwsza klatka animacji), BMP, WebP (stratny VP8 i bezstratny VP8L, z przezroczystością).
@@ -56,45 +56,47 @@ w CMYK (4 kanały) 100 Mpx już nie: dekoder odpowiada „za mało pamięci”, 
 | 107 | `memfd_create` | brak ścieżek | 1216 MiB, 1 proces; `RLIMIT_AS` 1152 MiB (= `K1_DEK_PAMIEC` + `K1_DEK_ZAPAS`; za duży obraz kończy się błędem przydziału, nie zabiciem procesu), `RLIMIT_CPU` 20 s, `RLIMIT_FSIZE` 17 MiB (największy wynik 2560×1600×4); na komputerze z mniej niż 8 GB oba limity pamięci niższe (tabela wyżej) | fd 3: kanał do klienta |
 
 ## Klienci (`src/nadzorca/dekoder.c`)
-Tabela „kto może prosić o dekoder”: aplikacja i droga, którą dostaje kanał. Dziś jeden wiersz — Pliki (prośba
-`DEKODER` na ich fd 6); krok 4 dopisze Podgląd. Naraz działa jeden dekoder; każdy klient ma najwyżej jedną prośbę
+Tabela „kto może prosić o dekoder”: aplikacja i droga, którą dostaje kanał. Dwa wiersze — Pliki (prośba `DEKODER` na
+ich fd 6, razem z pendrive'em) i Podgląd (0.8.2 krok 4: jego fd 6, tylko `DEKODER`). Naraz działa jeden dekoder; każdy klient ma najwyżej jedną prośbę
 w kolejce. Nowa prośba tego samego klienta zatrzymuje jego trwający dekoder (tamten obraz nie jest już potrzebny),
 prośba innego klienta czeka na koniec trwającego; po końcu obsługiwany jest następny klient po kolei.
 
 ## Przebieg
-1. Pliki chcą obrazu (zaznaczony plik z rodziny „obrazy” → podgląd; przycisk „Ustaw jako tapetę”): `DEKODER` do
-   nadzorcy (fd 6 Plików).
+1. Klient chce obrazu (Pliki: zaznaczony plik z rodziny „obrazy” → miniatura; Podgląd: zdjęcie w oknie; przycisk
+   „Ustaw jako tapetę”): `DEKODER` do nadzorcy (fd 6 klienta). Stronę klienta (kroki 1, 3, 5) robi `k1_dekodowanie`.
 2. Nadzorca tworzy kanał (obie strony z `SO_PASSCRED`), uruchamia dekoder w klatce (fd 3, argument: numer aplikacji
    klienta, limity pamięci z RAM) i daje klientowi drugi koniec w `DEKODER_KANAL`.
-3. Pliki → dekoder: `DEK_OBRAZ` (obiekt = numer pliku, a = długość, b × c = największy rozmiar: podgląd 200×150, tapeta
-   2560×1600). Potem plik kawałek po kawałku: Pliki proszą skarbiec o kawałek (`DOK_CZYTAJ`, najwyżej 1 MiB →
+3. Klient → dekoder: `DEK_OBRAZ` (obiekt = numer pliku, a = długość, b × c = największy rozmiar: miniatura 200×150,
+   Podgląd 1600×1600 — obraca, dopasowuje i przybliża u siebie, tapeta 2560×1600). Potem plik kawałek po kawałku: Pliki proszą skarbiec o kawałek (`DOK_CZYTAJ`, najwyżej 1 MiB →
    `DOK_TRESC`, zapieczętowany memfd) i przekazują go dekoderowi bez czytania (`DEK_KAWALEK`). Zdjęcie 100 MB nie
    kosztuje Plików ani skarbca więcej pamięci niż jeden kawałek (do 0.8.1 skarbiec wysyłał całe zdjęcie ≤ 16 MiB w
    jednym memfd).
 4. Dekoder: składa plik (kolejne kawałki, każdy dokładnie zapowiedzianej wielkości), rozpoznaje format, sprawdza rozmiar
    i pamięć, dekoduje do pełnego rozmiaru (32 bity, kolory przemnożone przez przezroczystość), zmniejsza z zachowaniem
    proporcji (nigdy nie powiększa; średnia z pola każdego piksela — `k1_skaluj`), obraca według EXIF (zdjęcia
-   z telefonu trzymanego pionowo) i odsyła `DEK_PIKSELE` (a × b + memfd) albo `DEK_BLAD`. Koniec. Bez kolejnego
+   z telefonu trzymanego pionowo) i odsyła `DEK_PIKSELE` (a × b + memfd; c × d — wymiary samego zdjęcia po obrocie,
+   od 0.8.2 krok 4: Podgląd je pokazuje) albo `DEK_BLAD`. Koniec. Bez kolejnego
    komunikatu przez 10 s — koniec.
-5. Podgląd: Pliki kopiują piksele i rysują je w panelu po prawej. Tapeta: Pliki przekazują memfd ekranowi
+5. Miniatura: Pliki kopiują piksele i rysują je w szczegółach; Podgląd — w oknie. Tapeta: klient przekazuje memfd ekranowi
    (`TAPETA_ZDJECIE`) bez czytania; ekran zapisuje zdjęcie w skarbcu i ustawia tapetę „Zdjęcie”.
 
 ## Komunikaty
 | Typ | Kierunek | Pola |
 |---|---|---|
-| `DEKODER` | Pliki → nadzorca (fd 6) | — (uruchom dekoder) |
+| `DEKODER` | Pliki, Podgląd → nadzorca (fd 6) | — (uruchom dekoder) |
 | `DEKODER_KANAL` | nadzorca → klient | + 1 fd: kanał do nowego dekodera |
 | `DEK_OBRAZ` | klient → dekoder | obiekt = numer (odsyłany), a = długość pliku 1 B…128 MiB (`K1_DEK_MAKS_BAJTY`), b, c = największa szerokość ≤ 2560 i wysokość ≤ 1600; bez deskryptora (od 0.8.2; wcześniej + memfd z całym plikiem) |
 | `DEK_KAWALEK` | klient → dekoder | obiekt jak w `DEK_OBRAZ`, a = numer kawałka 0…127 (po kolei), b = jego bajty 1 B…1 MiB (każdy poza ostatnim: 1 MiB); + zapieczętowany memfd b bajtów (0.8.2) |
-| `DEK_PIKSELE` | dekoder → klient | obiekt, a × b = rozmiar obrazu; + memfd a × b × 4 bajtów |
+| `DEK_PIKSELE` | dekoder → klient | obiekt, a × b = rozmiar obrazu; c × d = wymiary zdjęcia po obrocie (c ≥ a, d ≥ b, c × d ≤ 100 Mpx; 0.8.2 krok 4); + memfd a × b × 4 bajtów |
 | `DEK_BLAD` | dekoder → klient | obiekt, a = `K1_DEK_BLAD_*` (nie obraz, za duży, uszkodzony, brak pamięci), b = liczba Mpx zdjęcia (zaokrąglona w górę, najwyżej 100 000) tylko przy „za duży”, inaczej 0 |
-| `TAPETA_ZDJECIE` | Pliki → ekran | a × b; + memfd z `DEK_PIKSELE` (opis: `ekran.md`) |
+| `TAPETA_ZDJECIE` | Pliki, Podgląd → ekran | a × b; + memfd z `DEK_PIKSELE` (opis: `ekran.md`) |
 
 ## Obsługa błędów
 Nie obraz, uszkodzony albo ucięty plik, zła suma kontrolna PNG, kawałek innej wielkości niż zapowiedziany albo nie po
-kolei → `DEK_BLAD`; Pliki pokazują „Podgląd niedostępny” albo „Tego zdjęcia nie da się odczytać.”. Więcej niż 100 Mpx —
-w podglądzie „Zdjęcie ma 150 Mpx — / K1 pokazuje do 100 Mpx”, przy tapecie to samo w stopce. Za mało pamięci (CMYK,
-mały komputer) — „Za mało pamięci na podgląd” / „Za mało pamięci, żeby pokazać to zdjęcie.”. Dekoder, który przekroczy
+kolei → `DEK_BLAD`; Pliki pokazują „Miniatura niedostępna” albo „Tego zdjęcia nie da się odczytać.” (Podgląd — to
+drugie). Więcej niż 100 Mpx — w szczegółach „Zdjęcie ma 150 Mpx — / K1 pokazuje do 100 Mpx”, w Podglądzie i przy tapecie
+to samo jednym zdaniem. Za mało pamięci (CMYK, mały komputer) — „Za mało pamięci na miniaturę” / „Za mało pamięci, żeby
+pokazać to zdjęcie.”. Dekoder, który przekroczy
 czas, jest zabijany przez jądro — klient traktuje zamknięty kanał jak błąd. Skarbiec, który nie da kawałka, kończy
 pracę nad tym obrazem (bez komunikatu „Nie udało się.” w stopce). W logu tylko rodzaj (np. „Obraz JPEG”), rozmiar
 w pliku i wyniku, czas — nigdy treść ani nazwa.

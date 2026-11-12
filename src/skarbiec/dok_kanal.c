@@ -21,9 +21,10 @@ enum {
     P_POCHODZENIE = 1 << 13, /* a new file with an origin other than K1: an import from a USB stick (ADR 0031), and
                               * the time it came with (DOK_CZAS, 0.8.2) */
 };
-/* Which entries the client sees: all (with Kosz), the Pulpit folder, the visible ones (no Kosz), or its own files
- * (made by it) and the files it was given (ADR 0030). */
-enum { Z_WSZYSTKO = 1, Z_PULPIT, Z_WIDOCZNE, Z_WLASNE };
+/* Which entries the client sees: all (with Kosz), the Pulpit folder, the visible ones (no Kosz), its own files
+ * (made by it) and the files it was given (ADR 0030), or the pictures of the folders of the files it was given
+ * (0.8.2 step 4, Podgląd: ← / → through a folder; ADR 0037). */
+enum { Z_WSZYSTKO = 1, Z_PULPIT, Z_WIDOCZNE, Z_WLASNE, Z_OBRAZY_FOLDERU };
 
 /* The table of rights: a client not listed may do nothing with files. */
 static const struct prawa {
@@ -37,6 +38,8 @@ static const struct prawa {
     { K1_PROFIL_NOTATKI, P_LISTA | P_CZYTAJ | P_NOWY | P_ZAPISZ | P_NAZWA | P_KOSZ | P_WYBIERZ, Z_WLASNE, "Notatki" },
     /* the file picker: names to choose from (no content), the user's choice */
     { K1_PROFIL_WYBOR, P_LISTA | P_WYBRANO, Z_WIDOCZNE, NULL },
+    /* Podgląd: the pictures of the folders the user opened a picture of in it — read, and into Kosz (D2) — nothing else */
+    { K1_PROFIL_PODGLAD, P_LISTA | P_CZYTAJ | P_KOSZ | P_WYBIERZ, Z_OBRAZY_FOLDERU, NULL },
 };
 
 static uint8_t lista[K1_DOK_LISTA_MAKS];
@@ -129,8 +132,15 @@ static int dla_wlasnych(const struct k1_dok_wpis *w)
     return w->rodzaj == K1_DOK_PLIK && dok_widoczny(w->id) && (w->tworca == wl_filtra || dostep_ma(wl_filtra, w->id));
 }
 
+static int obrazy_folderu(const struct k1_dok_wpis *w)
+{
+    return w->rodzaj == K1_DOK_PLIK && k1_typ_rodzina(w->typ) == K1_RODZINA_OBRAZY && dok_widoczny(w->id) &&
+           dostep_folder(wl_filtra, w->rodzic);
+}
+
 static int (*const filtry[])(const struct k1_dok_wpis *) = {
-    [Z_WSZYSTKO] = dla_plikow, [Z_PULPIT] = dla_pulpitu, [Z_WIDOCZNE] = widoczny, [Z_WLASNE] = dla_wlasnych
+    [Z_WSZYSTKO] = dla_plikow, [Z_PULPIT] = dla_pulpitu, [Z_WIDOCZNE] = widoczny, [Z_WLASNE] = dla_wlasnych,
+    [Z_OBRAZY_FOLDERU] = obrazy_folderu
 };
 
 static int w_zakresie(const struct prawa *p, uint32_t id)
@@ -377,7 +387,7 @@ static int wybor(int fd, const struct prawa *p, const struct k1_komunikat *m)
     if (m->typ == K1_KOM_DOK_OTWORZ)
         return dostep_otworz(m->obiekt, m->a);
     if (m->typ == K1_KOM_DOK_WYBIERZ)
-        return dostep_wybierz(fd, p->wlasciciel, m->a);
+        return dostep_wybierz(fd, p->wlasciciel, m->a, m->b);
     return dostep_wybrano(m->obiekt);
 }
 

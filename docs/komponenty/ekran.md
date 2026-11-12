@@ -36,8 +36,11 @@ otwarcie jest DRM masterem) i przekazuje jako fd 4.
   domyślna), po każdej zmianie zapis nowej wersji (`src/ekran/zapis.c`). Rozdzielczość przywracana po
   pierwszej klatce, jeśli karta ją ma. Format zapisu: `K1U3` (0.8.2: miejsce na domyślne aplikacje 32 typów plików —
   GIF, BMP i WebP dały 9 typów, a `K1U2` mieścił 8); ekran czyta też `K1U2` (0.8.0–0.8.1) i `K1U1` (0.5.6–0.7.6) —
-  typy, których stary zapis nie ma, zostają domyślne.
-- Zdjęcie na tapetę (0.8.0, ADR 0032, `src/ekran/zdjecie.c`): przyjmuje je tylko od Plików (`TAPETA_ZDJECIE`:
+  typy, których stary zapis nie ma, zostają domyślne. Od 0.8.2 krok 4 zapis `K1U4`: w `K1U1`–`K1U3` aplikacją zdjęć
+  mogły być tylko Pliki (nie wybór użytkownika), więc dla typów rodziny „obrazy” ekran bierze wtedy domyślną —
+  Podgląd (ADR 0037).
+- Zdjęcie na tapetę (0.8.0, ADR 0032, `src/ekran/zdjecie.c`): przyjmuje je tylko od aplikacji z tabeli nadawców —
+  Plików i (od 0.8.2, ADR 0037) Podglądu (`TAPETA_ZDJECIE`:
   piksele z dekodera, do 2560×1600, zapieczętowany memfd dokładnie tego rozmiaru — pliku zdjęcia ekran nie widzi).
   Rysuje je „wypełniając” ekran (wyśrodkowane, przycięte po bokach albo u góry i dołu; `k1_skaluj`) przy każdej
   rozdzielczości. W skarbcu jako własne obiekty: `K1_OB_ZDJECIE` („K1Z1”, szerokość, wysokość — zapisywany na końcu)
@@ -72,7 +75,7 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `MINIMALIZUJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: schowaj |
 | `ZAMKNIJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: ekran prosi aplikację o zamknięcie (0.7.5, „Zamknij okno” na dolnym pasku) |
 | `USTAW` | Ustawienia → ekran | tylko Ustawienia | klucz `K1_UST_*` i wartość (sprawdzana); nie `K1_UST_ZDJECIE` |
-| `TAPETA_ZDJECIE` | Pliki → ekran | tylko Pliki | zdjęcie na tapetę (0.8.0): szerokość, wysokość; + memfd z pikselami od dekodera |
+| `TAPETA_ZDJECIE` | Pliki, Podgląd → ekran | tabela nadawców (`zdjecie.c`) | zdjęcie na tapetę (0.8.0): szerokość, wysokość; + memfd z pikselami od dekodera |
 | `WITAJ` | ekran → klient | — | rozmiar ekranu, rola, aplikacja; ponownie po zmianie rozdzielczości |
 | `WSKAZNIK` | ekran → klient | — | mysz nad powierzchnią klienta (0 = poza nią): x, y, ruch / przycisk, który przycisk |
 | `KLAWISZ` | ekran → klient | — | klawisz dla okna z fokusem (kod, w dół / w górę / powtórzenie, modyfikatory); nigdy w logu |

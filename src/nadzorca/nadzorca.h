@@ -172,8 +172,10 @@ void pendrive_sprawdz(void);
 void pendrive_koniec(void);
 void obsluz_pendrive(void);
 
-/* dekoder.c — a picture decoder for Pliki (0.8.0 step 4, ADR 0032), for more clients (0.8.2 step 3) */
+/* dekoder.c — a picture decoder for Pliki (0.8.0 step 4, ADR 0032), for more clients (0.8.2 step 3: Podgląd, step 4) */
+extern int podglad_kanal;     /* our end of Podgląd's fd 6 (its requests for a dekoder) */
 void dekoder_otworz(int apl); /* a request of application `apl` (its row in the table of clients) */
+void obsluz_podglad(void);
 void dekoder_koniec(void);
 uint64_t dekoder_pamiec(uint64_t ram, uint64_t profil); /* the sandbox's memory on a computer with `ram` bytes */
 

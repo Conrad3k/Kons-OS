@@ -8,14 +8,15 @@
 static int domyslne[K1_APL_MAKS + 1];
 static int NA; /* applications on the bar at the first start (not the Instalator, not the windows of K1 itself) */
 
-/* The first start: Kosz top left, then every application but the Instalator (the owner's choice) and the file picker,
- * one column. */
+/* The first start: Kosz top left, then every application but the Instalator (the owner's choice), the file picker and
+ * Podgląd (0.8.2: it opens pictures), one column. */
 static void test_domyslne(void)
 {
     struct rozmieszczenie r;
     rozm_domyslne(&r, domyslne, 7);
-    EXPECT(NA == K1_APL_MAKS - 2 && r.n_pasek == NA && r.n_ikon == NA + 1);
+    EXPECT(NA == K1_APL_MAKS - 3 && r.n_pasek == NA && r.n_ikon == NA + 1);
     EXPECT(rozm_na_pasku(&r, K1_APL_WYBOR) < 0 && rozm_ikona(&r, K1_APL_WYBOR) < 0);
+    EXPECT(rozm_na_pasku(&r, K1_APL_PODGLAD) < 0 && rozm_ikona(&r, K1_APL_PODGLAD) < 0);
     EXPECT(r.pasek[0] == K1_APL_ZEGAR && r.pasek[1] == K1_APL_NOTATKI);
     EXPECT(rozm_na_pasku(&r, K1_APL_INSTALACJA) < 0 && rozm_ikona(&r, K1_APL_INSTALACJA) < 0);
     EXPECT(rozm_w_komorce(&r, 0, 0) == ROZM_KOSZ && rozm_w_komorce(&r, 0, 1) == K1_APL_ZEGAR);

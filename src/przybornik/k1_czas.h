@@ -4,6 +4,7 @@
 #ifndef K1_CZAS_H
 #define K1_CZAS_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 struct k1_data {
@@ -18,5 +19,7 @@ const char *k1_dzien_tygodnia(int dt);   /* "poniedziałek" */
 const char *k1_dzien_skrot(int dt);      /* "pon." */
 const char *k1_miesiac_dopelniacz(int m); /* "listopada" */
 const char *k1_miesiac_skrot(int m);     /* "lis" */
+/* "10.11.2026 14:03" (local time) — the date of a file (Pliki, Podgląd). */
+void k1_data_tekst(int64_t utc, char *buf, size_t n);
 
 #endif

@@ -66,6 +66,7 @@ static void t_polowy(const char *nazwa)
     free(o.px);
     EXPECT(przygotuj(nazwa, 16, 16, &o) == 0); /* the proportions stay: 16 × 12 */
     EXPECT(o.w == 16 && o.h == 12 && blisko(&o, 2, 6, 255, 0, 0, 255) && blisko(&o, 13, 6, 0, 0, 255, 255));
+    EXPECT(o.zw == 64 && o.zh == 48); /* the photo's own size (0.8.2 step 4: Podgląd shows it) */
     free(o.px);
 }
 
@@ -101,6 +102,7 @@ static void t_obrot(void)
     EXPECT(blisko(&o, 55, 35, 255, 0, 0, 255) && blisko(&o, 5, 5, 255, 255, 255, 255));
     free(o.px);
     EXPECT(przygotuj("obrot6.jpg", 20, 20, &o) == 0 && o.w == 13 && o.h == 20); /* shrunk after turning */
+    EXPECT(o.zw == 40 && o.zh == 60); /* the photo's size as seen: turned too */
     free(o.px);
     d = wczytaj("kolory.jpg", &n);
     EXPECT(obraz_orientacja(d, n) == 1);

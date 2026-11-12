@@ -94,7 +94,7 @@ int dostepny(int r)
     }
 }
 
-/* The selected file in application `a` (skarbiec gives it this file, nadzorca starts it); Pliki: its preview. */
+/* The selected file in application `a` (skarbiec gives it this file, nadzorca starts it); Pliki: its details. */
 void otworz_w(int a)
 {
     wybor_aplikacji = 0;

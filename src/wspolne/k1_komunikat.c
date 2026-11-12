@@ -211,14 +211,15 @@ static int sprawdz_wybor(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
         return kier == K1_KIER_DO_SKARBCA && wpis_uzytkownika(k->obiekt) && w(k->a, 1, K1_APL_MAKS) &&
                k->a != K1_APL_PLIKI && zera(k, 1);
     case K1_KOM_DOK_WYBIERZ:
-        return kier == K1_KIER_DO_SKARBCA && k->obiekt == 0 && w(k->a, 0, K1_TYPY_MAKS) && zera(k, 1);
+        return kier == K1_KIER_DO_SKARBCA && k->obiekt == 0 && w(k->a, 0, K1_TYPY_MAKS) && w(k->b, 0, K1_RODZINY_MAKS) &&
+               (k->a == 0 || k->b == 0) && zera(k, 2);
     case K1_KOM_DOK_WYBRANO:
     case K1_KOM_DOK_WYBRANY:
         return kier == (k->typ == K1_KOM_DOK_WYBRANO ? K1_KIER_DO_SKARBCA : K1_KIER_OD_SKARBCA) &&
                (k->obiekt == 0 || wpis_uzytkownika(k->obiekt)) && zera(k, 0);
     case K1_KOM_DOK_PROSBA:
         return kier == K1_KIER_OD_SKARBCA && k->obiekt == 0 && w(k->a, 1, K1_APL_MAKS) && w(k->b, 0, K1_TYPY_MAKS) &&
-               zera(k, 2);
+               w(k->c, 0, K1_RODZINY_MAKS) && (k->b == 0 || k->c == 0) && zera(k, 3);
     default:
         return 0;
     }
@@ -342,7 +343,9 @@ static int sprawdz_dekoder(const struct k1_komunikat *k, enum k1_kanal_kierunek 
         return kier == K1_KIER_DO_DEKODERA && w(k->a, 0, (int32_t)(K1_DEK_MAKS_BAJTY / K1_DOK_KAWALEK) - 1) &&
                w(k->b, 1, (int32_t)K1_DOK_KAWALEK) && zera(k, 2);
     case K1_KOM_DEK_PIKSELE:
-        return kier == K1_KIER_OD_DEKODERA && w(k->a, 1, K1_DEK_MAKS_W) && w(k->b, 1, K1_DEK_MAKS_H) && zera(k, 2);
+        return kier == K1_KIER_OD_DEKODERA && w(k->a, 1, K1_DEK_MAKS_W) && w(k->b, 1, K1_DEK_MAKS_H) &&
+               w(k->c, k->a, (int32_t)K1_DEK_MAKS_PIKSELI) && w(k->d, k->b, (int32_t)K1_DEK_MAKS_PIKSELI) &&
+               (uint64_t)k->c * (uint64_t)k->d <= K1_DEK_MAKS_PIKSELI && zera(k, 4);
     case K1_KOM_DEK_BLAD:
         return kier == K1_KIER_OD_DEKODERA && w(k->a, K1_DEK_BLAD_MIN, K1_DEK_BLAD_FORMAT) &&
                (k->a == K1_DEK_BLAD_DUZY ? w(k->b, 1, K1_DEK_MPX_MAKS) : k->b == 0) && zera(k, 2);

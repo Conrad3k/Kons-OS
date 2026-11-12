@@ -149,6 +149,7 @@ int main(void)
             { &skarb_ster, obsluz_skarbiec, POLLIN }, /* skarbiec ending is seen by waitpid */
             { &inst_kanal, obsluz_instalacje, POLLIN }, { &inst_ster, obsluz_zapis, POLLIN },
             { &uevent_fd, obsluz_uevent, POLLIN },    { &pen_kanal, obsluz_pendrive, POLLIN },
+            { &podglad_kanal, obsluz_podglad, POLLIN },
         };
 #define N_KANALOW (sizeof kanaly / sizeof kanaly[0])
         struct pollfd pfd[1 + N_KANALOW + N_USLUG + 1];

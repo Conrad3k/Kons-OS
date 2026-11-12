@@ -35,7 +35,8 @@
     X(KALKULATOR, 6, 12, 205, "kalkulator", "K1-KALKULATOR", "Kalkulator", "Działania, procenty, pamięć",          \
       KALKULATOR, 1)                                                                                            \
     X(PLIKI, 7, 13, 206, "pliki", "K1-PLIKI", "Pliki", "Foldery, pliki i Kosz", FOLDER, 1)                       \
-    X(WYBOR, 8, 14, 207, "wybor", "K1-WYBOR", "Wybór pliku", "Okno, w którym wybierasz plik dla aplikacji", FOLDER, -1)
+    X(WYBOR, 8, 14, 207, "wybor", "K1-WYBOR", "Wybór pliku", "Okno, w którym wybierasz plik dla aplikacji", FOLDER, -1) \
+    X(PODGLAD, 9, 17, 208, "podglad", "K1-PODGLAD", "Podgląd", "Zdjęcia i obrazy", OBRAZ, 0)
 
 #define K1_X_UID_S(n, profil, uid, ...) K1_UID_##n = uid,
 #define K1_X_UID_A(n, apl, profil, uid, ...) K1_UID_##n = uid,

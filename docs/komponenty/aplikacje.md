@@ -40,7 +40,8 @@ Moduły: `main.c` (okno), `spis.c` (lista, nazwy), `pliki.c` (skarbiec, nadzorca
 
 ### Wybór pliku
 (0.8.0, ADR 0030, `src/aplikacje/wybor/`, UID 207) — **okno wyboru pliku K1**: gdy aplikacja prosi o plik
-(`DOK_WYBIERZ`), skarbiec prosi nadzorcę o to okno i mówi mu, kto prosi i o jaki typ (`DOK_PROSBA`). Na górze
+(`DOK_WYBIERZ`), skarbiec prosi nadzorcę o to okno i mówi mu, kto prosi i o jaki typ albo rodzinę typów
+(`DOK_PROSBA`; rodzina od 0.8.2 — Podgląd prosi o „obrazy”, ADR 0037). Na górze
 „Notatki prosi o plik (Dokument tekstowy). Dostanie tylko ten, który wybierzesz.”; z lewej stałe foldery, nad
 listą „w górę” i ścieżka; lista: foldery, potem pliki (innego typu — wyszarzone); „Anuluj” i „Otwórz”
 (też podwójne kliknięcie i Enter; Esc i × = „Anuluj”). Okno widzi tylko nazwy widocznych plików (bez treści,
@@ -58,7 +59,8 @@ najniższy poziom; od 0.6.0 pod wykresem ostatnie wcześniejsze uruchomienie z m
 od nadzorcy jako zapieczętowany memfd `BATERIA_ARCH`; bez baterii — napis), Hasło (0.5.7: włącz / zmień / wyłącz, pola z kropkami, Tab/Enter/Esc;
 przez skarbiec — fd 5), Mysz (prędkość),
 Data i czas (sekundy na pasku), Aplikacje (0.8.0, `aplikacje.c`: domyślna aplikacja dla typu pliku, który otwiera
-więcej niż jedna — dziś „Dokument tekstowy”: Notatki albo Pliki (podgląd); ustawienie ekranu
+więcej niż jedna — dziś „Dokument tekstowy”: Notatki albo Pliki (szczegóły), i od 0.8.2 „Obrazy (PNG, JPEG, GIF, BMP,
+WebP)”: Podgląd albo Pliki — typy jednej rodziny w jednym wierszu, wybór ustawia je wszystkie; ustawienie ekranu
 `K1_UST_OTWIERANIE` + typ, zapisane w skarbcu), Informacje (`informacje.c`: wersja, ekran, jądro, gdzie są dane; od
 0.8.1 — `SKARB_MIEJSCE` od skarbca — „Miejsce na pliki: zajęte X z Y” z paskiem (Y od 0.8.2 to ok. 90 % K1-DANE —
 format 2 skarbca, ADR 0036; w 0.8.1 połowa, bo druga była na kompaktowanie), „Pliki i foldery: n z 16 384”, bez
@@ -82,7 +84,8 @@ hoście `test_kalkulator`), okno w `main.c`. Bez dostępu do plików i sieci, be
 ### Zasoby
 (M4.1, ADR 0012) — procesor (procent wszystkich rdzeni) i pamięć (użyta z całości)
 całego systemu: liczba + wykres z ostatniej minuty (jedna seria, kolor akcentu, linia 2 px);
-tabela usług i aplikacji: procesor i pamięć każdej (z ich cgroup); czas pracy systemu. Dane od
+tabela działających usług i aplikacji: procesor i pamięć każdej (z ich cgroup; od 0.8.2 najwyżej 14 wierszy,
+ostatni „… i jeszcze n” — okno mieści się na ekranie 1024 × 768); czas pracy systemu. Dane od
 nadzorcy co sekundę (fd 4), sprawdzane: nadawca UID 0, bez deskryptorów, każde pole.
 0.6.3: wiersz **Bateria** (`ZASOBY_BATERIA`): procent, pobór mocy w W (`power_now` albo prąd ×
 napięcie, uśredniony przez nadzorcę: 30 % nowego odczytu, od nowa przy zmianie ładowanie ↔
@@ -98,13 +101,14 @@ ostatnie z pytaniem w stopce). Przywrócony plik, którego folder jest w Koszu (
 Dokumentów — stopka to mówi („Folder „Projekt” jest w Koszu — przywrócono do Dokumentów.”, 0.8.1). Gdy zostało mniej
 niż 10 % miejsca na pliki, stopka mówi „Mało miejsca na pliki: zostało X z Y” (`SKARB_MIEJSCE` po każdej liście, 0.8.1). Lista: najpierw foldery, potem pliki po nazwie; kolumny nazwa, data zmiany
 (w Koszu: usunięcia), rozmiar; podwójne kliknięcie (i Enter) otwiera folder, a plik — w domyślnej aplikacji
-jego typu (Ustawienia → Aplikacje; Pliki — tylko podgląd); **„Otwórz w…”** (0.8.0, ADR 0030) zamienia przyciski
-na aplikacje, które otwierają ten typ (`K1_OTWIERANIE`) — wybrana dostaje ten jeden plik (`DOK_OTWORZ`). Z prawej podgląd zaznaczonego: ikona,
+jego typu (Ustawienia → Aplikacje; Pliki — tylko szczegóły; zdjęcie — od 0.8.2 w **Podglądzie**); **„Otwórz w…”** (0.8.0, ADR 0030) zamienia przyciski
+na aplikacje, które otwierają ten typ (`K1_OTWIERANIE`) — wybrana dostaje ten jeden plik (`DOK_OTWORZ`). Z prawej **szczegóły** zaznaczonego (do 0.8.2 „podgląd” — decyzja D1): ikona,
 nazwa, typ (rozpoznany z zawartości), rozmiar, daty, pochodzenie („utworzony w K1”), w Koszu — za ile dni
 zniknie; plik tekstowy — początek treści (do 64 KiB, `DOK_CZYTAJ`); **zdjęcie** (0.8.0 krok 4, ADR 0032; PNG i JPEG,
 od 0.8.2 także GIF, BMP, WebP — rodzina „obrazy”) — zmniejszone do 200×150 przez usługę `dekoder`
-(`komponenty/dekoder.md`; plik idzie do niego kawałkami prosto od skarbca; uszkodzone: „Podgląd niedostępny”, ponad
-100 Mpx: „Zdjęcie ma 150 Mpx — / K1 pokazuje do 100 Mpx”, za mało pamięci: „Za mało pamięci na podgląd”), a pod nim
+(`komponenty/dekoder.md`; plik idzie do niego kawałkami prosto od skarbca — **miniatura**; uszkodzone: „Miniatura
+niedostępna”, ponad 100 Mpx: „Zdjęcie ma 150 Mpx — / K1 pokazuje do 100 Mpx”, za mało pamięci: „Za mało pamięci na
+miniaturę”), a pod nim
 przycisk **„Ustaw jako tapetę”** (poza Koszem): zdjęcie do 2560×1600 idzie od dekodera prosto do ekranu, postęp i wynik
 w stopce. Klawisze: Enter (otwórz folder),
 Backspace (w górę), F2 (zmień nazwę), Delete (do Kosza), strzałki, Esc. Złe nazwy (`\ / : * ? " < > |`,
@@ -114,7 +118,7 @@ i usuwania) czyta usługa `czytnik` (`komponenty/czytnik.md`); przyciski „Impo
 wszystkie” (pliki folderu): zdjęcia (rodzina „obrazy”) do Obrazów, reszta do Dokumentów, pochodzenie „z pendrive'a”; od 0.8.1
 (krok 4) pliki do 4 GB, kawałkami po 1 MiB prosto z czytnika do skarbca (Pliki nie czytają treści; przy dużym pliku
 stopka: „Importowanie: 1 z 3… 120 z 300 MB”), wyjęty pendrive w trakcie — skarbiec usuwa już zapisane kawałki;
-podgląd zdjęcia do 128 MB i 100 Mpx (limity dekodera, od 0.8.2; wcześniej 16 MB i 24 Mpx); postęp i wynik w stopce; wyjęty pendrive — powrót do Dokumentów.
+miniatura zdjęcia do 128 MB i 100 Mpx (limity dekodera, od 0.8.2; wcześniej 16 MB i 24 Mpx); postęp i wynik w stopce; wyjęty pendrive — powrót do Dokumentów.
 Od 0.8.2 (krok 2): folder z pendrive'a przychodzi w kolejnych listach (po 1024; stopka „Czytanie folderu… n
 elementów”), widać i można zaimportować do 16 384 elementów jednego folderu („Importuj wszystkie” — gdy cały folder
 jest już wczytany); plik dostaje czas „zmieniono” z pendrive'a (`DOK_CZAS`), a ponowny import pomija plik, który już
@@ -122,9 +126,30 @@ jest w Obrazach / Dokumentach z pendrive'a z tą samą nazwą, rozmiarem i czase
 zaimportowane” (decyzja D3); brak miejsca i limit wpisów przerywają import z powodem: „Brak miejsca na pliki —
 zaimportowano n z m.”, „Brak miejsca w pamięci (K1 działa bez nośnika danych) — …”, „Za dużo plików i folderów (K1
 mieści 16 384) — …”. Lista sortowana `qsort` (16 384 elementy). Moduły: `main.c` (okno,
-mysz, klawisze), `przyciski.c` (przyciski miejsca), `rysuj.c` (lista, podgląd, stopka), `dane.c` (skarbiec i nadzorca),
-`pendrive.c` (pendrive i import), `obrazy.c` (podgląd zdjęcia i tapeta przez dekoder; kanał do dekodera = 5. kanał
-aplikacji, `K1_APL_KANALY`).
+mysz, klawisze), `przyciski.c` (przyciski miejsca), `rysuj.c` (lista, szczegóły, stopka), `dane.c` (skarbiec i nadzorca),
+`pendrive.c` (pendrive i import), `obrazy.c` (miniatura i tapeta przez dekoder — od 0.8.2 przez wspólny
+`k1_dekodowanie` z przybornika; kanał do dekodera = 5. kanał aplikacji, `K1_APL_KANALY`).
+
+### Podgląd
+(0.8.2 krok 4, ADR 0037, `src/aplikacje/podglad/`, UID 208) — **zdjęcie w osobnym oknie**, jak w Zdjęciach Windows.
+Podwójne kliknięcie zdjęcia (rodzina „obrazy”: PNG, JPEG, GIF, BMP, WebP) w Plikach albo na pulpicie otwiera je tu —
+Podgląd jest domyślną aplikacją zdjęć (`K1_OTWIERANIE`; inną można wybrać w Ustawienia → Aplikacje). Wygląd: szkic C
+(decyzja właściciela D5, `docs/WYGLAD.md`) — okno 960 × 640, zdjęcie na całym ciemnym obszarze, dopasowane do okna
+(nigdy powiększone ponad 100 %); w lewym górnym rogu etykieta: nazwa, wymiary zdjęcia, rozmiar, data zmiany
+i pochodzenie („Zachód.jpg · 4000 × 2667 · 2,4 MB · 10.11.2026 18:42 · z pendrive'a”); na dole pływający pasek:
+**‹** „3 z 27” **›** (kolejność jak w Plikach — po nazwie; po ostatnim pierwsze), **−** **+** (przybliżenie: 1,5×, 2×,
+3×, 4×… dopasowanego zdjęcia, z krótką animacją, najwyżej do 4 pikseli ekranu na piksel obrazu; przybliżone zdjęcie
+przesuwa się przeciągnięciem myszą), **„Otwórz…”**, **„Obróć”**, **„Ustaw jako tapetę”**, **„Do Kosza”**.
+Klawisze: ← / → (poprzednie / następne), Home / End, **+** / **−** (przybliż / oddal), **0** (dopasuj), **R** (obrót widoku o 90° w prawo — pliku nie zmienia), **Delete**
+(do Kosza bez pytania — decyzja D2; potem następne zdjęcie), **Ctrl+O** („Otwórz…”: okno wyboru pliku z samymi
+zdjęciami). Uruchomiony z menu Start pokazuje „Otwórz zdjęcie z Plików albo przyciskiem „Otwórz…” (Ctrl+O).”
+Zdjęcia nie da się odczytać: „Tego zdjęcia nie da się odczytać.”, ponad 100 Mpx: „Zdjęcie ma 150 Mpx — K1 pokazuje do
+100 Mpx.”, plik ponad 128 MB: „Plik jest za duży — K1 pokazuje zdjęcia do 128 MB.” Podgląd **widzi tylko zdjęcia
+folderów, z których użytkownik w nim coś otworzył** (prawa w skarbcu: `Z_OBRAZY_FOLDERU`), tylko do odczytu i do
+Kosza; nie dekoduje zdjęć sam — robi to `dekoder` w osobnej klatce (`k1_dekodowanie`, jak w Plikach; obraz najwyżej
+1600 × 1600, obrót, dopasowanie i przybliżenie u siebie: `k1_skaluj`). Moduły: `main.c` (okno, pływający pasek, etykieta, klawisze, mysz), `dane.c`
+(skarbiec, plik do otwarcia, Kosz, okno wyboru), `obraz.c` (dekoder, tapeta), `widok.c` (obrót, dopasowanie, przybliżenie z animacją, przeciąganie), `kolejnosc.c` (kolejność zdjęć —
+czyste funkcje, test na hoście).
 
 ## Granica zaufania
 Klienci ekranu w roli **aplikacja**: tylko własne okna. Ustawienia jako jedyna mogą zmieniać
@@ -141,6 +166,7 @@ ustawienia (ekran sprawdza rolę i UID). Treść notatki nigdy nie trafia do log
 | Kalkulator | 205 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
 | Pliki | 206 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
 | Wybór pliku | 207 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces |
+| Podgląd | 208 | `memfd_create`, `ftruncate` | brak ścieżek | 96 MiB (obraz do przybliżania: 1600 × 1600 i jego obrót), 1 proces |
 
 ## Wejścia i wyjścia
 fd 3: kanał do ekranu. Okno: memfd (ADR 0008). Notatki: fd 4 — kanał do skarbca: od 0.8.0 `DOK_*` — tylko
@@ -160,6 +186,10 @@ pliku albo Koszu (`URUCHOM` z miejscem — tylko dla Plików). Lista ze skarbca 
 nadzorcy `PENDRIVE` (jest / nie ma), `PENDRIVE_KANAL` (kanał do czytnika); do nadzorcy `PENDRIVE_OTWORZ`. Kanał do
 czytnika: `PEN_*` (`komponenty/czytnik.md`); plik z pendrive'a idzie do skarbca w memfd od czytnika, bez czytania
 (`DOK_NOWY` z pochodzeniem — prawo tylko Plików).
+Podgląd (0.8.2): fd 4 — kanał do skarbca (`DOK_SPIS`, `DOK_CZYTAJ` kawałkami dla dekodera, `DOK_KOSZ`, `DOK_WYBIERZ` z
+rodziną „obrazy”; tylko zdjęcia folderów otwartych w nim); fd 5 — od nadzorcy, jednokierunkowo: `PLIK_OTWORZ`; fd 6 —
+do nadzorcy `DEKODER`, od nadzorcy `DEKODER_KANAL` (kanał do nowego dekodera: `DEK_*`, `komponenty/dekoder.md`).
+Zdjęcie na tapetę: `TAPETA_ZDJECIE` do ekranu (memfd od dekodera, bez czytania), jak z Plików.
 
 ## Obsługa błędów
 Zamknięcie okna (×) albo kanału → koniec procesu; aplikacje nie są restartowane (test).
@@ -182,3 +212,5 @@ Błąd zapisu notatki → komunikat w oknie i w logu.
 | host (0.8.0, ADR 0030): `test_dokumenty` — prawa Notatek (tylko własne pliki, nowy plik tylko w swoim folderze, Kosz tylko dla własnych), „Otwórz w…” (pulpit: tylko folder Pulpit; zły typ — odmowa), okno wyboru (jedna prośba naraz, tylko nazwy, folder i zły typ odrzucone, zamknięte okno = anulowanie, dostęp znika z aplikacją); `test_komunikat` — `DOK_OTWORZ`, `DOK_WYBIERZ`, `DOK_WYBRANO`, `DOK_WYBRANY`, `DOK_PROSBA`, `SKARB_URUCHOM`, `PLIK_OTWORZ`, `POKAZ_APL`, domyślne aplikacje | jednostkowy / negatywny |
 | `test-pliki.sh` (0.8.0, krok 2): stare notatki przeniesione do plików, nazwa za pierwszym wierszem, „Otwórz w…” z Plików i z pulpitu, okno wyboru pliku (wybór i „Anuluj”), Ustawienia → Aplikacje | funkcjonalny |
 | host: `test_przybornik` — czas polski (zmiany czasu), układ PL, UTF-8, rysowanie na krawędziach | jednostkowy |
+| host (0.8.2 krok 4, ADR 0037): `test_podglad` — kolejność zdjęć, ← / →, zdjęcie po Koszu, „3 z 27”; `test_dokumenty` — prawa Podglądu (bez gestu nic, tylko zdjęcia folderu, tylko odczyt i Kosz, okno wyboru z rodziną „obrazy”, po zamknięciu nic) | jednostkowy / negatywny |
+| `test-pendrive.sh` (0.8.2 krok 4): Podgląd — dwuklik zdjęcia w Plikach, „zdjęcie 4 z 10” w klatce UID 208, kolor na zrzucie, R (widok 60×80), ← uszkodzone (komunikat), ‹ PNG, Delete → Kosz i następne zdjęcie, Ctrl+O → okno wyboru (obrazy), „Ustaw jako tapetę”, × ; + i − (150 % → 100 %, kolor na zrzucie) | funkcjonalny / negatywny |

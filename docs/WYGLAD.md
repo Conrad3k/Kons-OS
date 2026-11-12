@@ -111,10 +111,24 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
 - Okno Plików jak Eksplorator w Windows 11, w stylu K1 (do oceny właściciela na zrzutach): z lewej miejsca (stałe
   foldery z ikonami liniowymi, kreska, Kosz), nad listą przycisk „w górę” i ścieżka „Dokumenty › Projekt”, pod nią
   przyciski miejsca (zwykłe, z obrysem; „Tak, usuń” w kolorze akcentu), lista wierszami po 32 px (ikona folderu
-  w kolorze akcentu, plików — szara), z prawej podgląd na polu w kolorze `pole` motywu. Zmiana nazwy: pole z obrysem
+  w kolorze akcentu, plików — szara), z prawej szczegóły (do 0.8.2 „podgląd”) na polu w kolorze `pole` motywu. Zmiana nazwy: pole z obrysem
   w kolorze akcentu, zaznaczona nazwa podświetlona akcentem.
 - Kosz na pulpicie: kafelek jak aplikacje; pusty — kosz z dwoma żebrami, pełny — z kulką papieru w środku.
 - Pliki na pulpicie: kafelek z ikoną typu (folder, tekst, obraz, inny plik), nazwa ucięta „…”, gdy za długa.
+
+## Podgląd (0.8.2, ADR 0037, szkic C)
+Decyzja właściciela D5 (2026-11-12) z trzech szkiców (A — ramka motywu i pasek na dole, B — ciemne okno ze
+szczegółami po prawej, C — zdjęcie na całe okno z pływającym paskiem): najpierw A, w trakcie zmieniona na **C**
+(„ładny, estetyczny pasek, nie idący do samych końców”).
+- Okno 960 × 640, ramka (pasek tytułu) w kolorach motywu; pod nią całe okno to ciemny obszar zdjęcia (`#1c1b19`,
+  dolne rogi zaokrąglone jak okno), zdjęcie wyśrodkowane, dopasowane do okna, nigdy powiększone ponad 100 %.
+- Pływający pasek na dole, wyśrodkowany, 16 px nad krawędzią: „pigułka” 44 px (promień 22, `#1f1e1c`, krycie 215):
+  ‹ w kółku, „3 z 27”, › w kółku, cienka kreska, − i + w kółkach (przybliżenie, animacja 0,18 s: najpierw szybko,
+  potem wolniej), cienka kreska, potem przyciski-napisy „Otwórz…”, „Obróć”, „Ustaw jako tapetę”
+  (białe, Plex Sans Medium 13) i „Do Kosza” (jasna terakota). Najechany — jaśniejsze tło; niedostępny — przygaszony.
+- Etykieta w lewym górnym rogu zdjęcia (pigułka 26 px, krycie 200): „nazwa · 4000 × 2667 · 2,4 MB · data ·
+  pochodzenie”, ucięta „…”, gdy za długa. Komunikat (np. „Tapeta ustawiona.”) — taka sama etykieta nad paskiem.
+- Bez zdjęcia / błąd / wczytywanie: ikona obrazu 48 px i jedno zdanie na środku ciemnego obszaru.
 
 ## Zasoby (M4.1)
 Okno 560×520: „Procesor” i „Pamięć” — nazwa, liczba po prawej (Plex Sans Medium 15), pod spodem

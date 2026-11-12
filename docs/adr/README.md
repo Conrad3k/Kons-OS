@@ -64,3 +64,4 @@ Krótko, dlaczego nie.
 | [0034](0034-skarbiec-na-duze-dane.md) | Skarbiec na duże dane (0.8.1): indeks, limity, kompaktowanie wcześniej, rezerwa, pliki w kawałkach | Przyjęty |
 | [0035](0035-mapa-drogi-wedlug-wersji.md) | Mapa drogi według wersji (0.9 Sieć, 0.10 Strefy…) zamiast etapów M; jedno miejsce na plan | Przyjęty |
 | [0036](0036-skarbiec-format-2-odcinki-i-spis.md) | Skarbiec na lata (0.8.2): format 2 — dziennik w odcinkach, spis skarbca, kompaktowanie po odcinku, 262 144 obiekty | Przyjęty (krok 1a; 1b, 1c w toku) |
+| [0037](0037-podglad-zdjec.md) | Aplikacja Podgląd (0.8.2): zdjęcie w osobnym oknie, zdjęcia jednego folderu (zakres w prawach skarbca), dekoder dla Podglądu | Przyjęty |

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M3, M4) — testy w systemie (`scripts/test-m1.sh`, scenariusz `testy-w-systemie`), `scripts/test-m4.sh` (uruchamianie aplikacji, wyłączanie) |
-| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (tablica usług, uruchamianie w klatkach, restarty, prośby pulpitu), `logi.c` (logi usług), `pendrive.c` (prośby Plików, pendrive i czytnik, 0.8.0), `dekoder.c` (dekoder obrazów dla Plików, 0.8.0), `powieksz.c` (K1-DANE do końca pendrive'a: pusta przy starcie, 0.8.0; z danymi na prośbę z Ustawień, 0.8.1), `profile.c` (klatki), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
+| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (tablica usług, uruchamianie w klatkach, restarty, prośby pulpitu), `logi.c` (logi usług), `pendrive.c` (prośby Plików, pendrive i czytnik, 0.8.0), `dekoder.c` (dekoder obrazów dla Plików, 0.8.0, i Podglądu, 0.8.2), `powieksz.c` (K1-DANE do końca pendrive'a: pusta przy starcie, 0.8.0; z danymi na prośbę z Ustawień, 0.8.1), `profile.c` (klatki), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
 | **Decyzje** | ADR 0006 (wersja M2), ADR 0007 (M3), ADR 0008 (pulpit i aplikacje) |
 
 ## Etapy startu (0.6.0)
@@ -95,8 +95,8 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   hasła) nadzorca wysyła skarbcowi `START_POTWIERDZONY` — stary magazyn (format 1) może przejść na format 2, bo
   wycofanie do 0.8.1 już nie nastąpi. Gdy na którymś dysku czeka próba A/B innej wersji — nie wysyła („skarbiec zostaje
   przy swoim formacie do następnego startu”). Skarbiec uruchomiony ponownie dostaje go jeszcze raz.
-- Dekoder (0.8.0 krok 4, ADR 0032, `dekoder.c`): na `DEKODER` od klienta z tabeli klientów (0.8.2: Pliki, ten sam
-  fd 6) — nowy proces `dekoder` w klatce (fd 3: kanał do klienta, obie strony z `SO_PASSCRED`; argument: numer
+- Dekoder (0.8.0 krok 4, ADR 0032, `dekoder.c`): na `DEKODER` od klienta z tabeli klientów (0.8.2: Pliki — ten sam
+  fd 6 co pendrive; Podgląd — jego fd 6, `podglad_kanal`, tylko `DEKODER`, nadawca UID 208; ADR 0037) — nowy proces `dekoder` w klatce (fd 3: kanał do klienta, obie strony z `SO_PASSCRED`; argument: numer
   aplikacji klienta), drugi koniec klientowi w `DEKODER_KANAL`. Jeden obraz na proces, jeden proces naraz, najwyżej
   jedna prośba w kolejce na klienta (prośba tego samego klienta w trakcie: `SIGKILL` starego, nowy po jego końcu;
   innego — czeka). Limity pamięci klatki z RAM: najwyżej 1/6 pamięci komputera, nie mniej niż 384 MiB (0.8.2).

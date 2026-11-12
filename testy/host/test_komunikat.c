@@ -577,6 +577,11 @@ static void otwieranie(void)
     EXPECT(ok(K(K1_KOM_DOK_WYBIERZ, 0, 0, 0, 0, 0, 0), DO) && ok(K(K1_KOM_DOK_WYBIERZ, 0, K1_TYPY_MAKS, 0, 0, 0, 0), DO));
     EXPECT(zle(K(K1_KOM_DOK_WYBIERZ, 0, K1_TYPY_MAKS + 1, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_WYBIERZ, 0, -1, 0, 0, 0, 0), DO) &&
            zle(K(K1_KOM_DOK_WYBIERZ, 100, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_WYBIERZ, 0, 0, 0, 0, 0, 0), OD));
+    /* 0.8.2 step 4: a family (Podgląd asks for "obrazy"), never with a type */
+    EXPECT(ok(K(K1_KOM_DOK_WYBIERZ, 0, 0, K1_RODZINA_OBRAZY, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_WYBIERZ, 0, 0, K1_RODZINY_MAKS + 1, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_WYBIERZ, 0, K1_TYP_PNG, K1_RODZINA_OBRAZY, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DOK_WYBIERZ, 0, 0, -1, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_WYBIERZ, 0, 0, 0, 1, 0, 0), DO));
     EXPECT(ok(K(K1_KOM_DOK_WYBRANO, 0, 0, 0, 0, 0, 0), DO) && ok(K(K1_KOM_DOK_WYBRANO, 100, 0, 0, 0, 0, 0), DO) &&
            zle(K(K1_KOM_DOK_WYBRANO, 5, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_WYBRANO, 100, 1, 0, 0, 0, 0), DO) &&
            zle(K(K1_KOM_DOK_WYBRANO, 100, 0, 0, 0, 0, 0), OD));
@@ -585,6 +590,10 @@ static void otwieranie(void)
     EXPECT(ok(K(K1_KOM_DOK_PROSBA, 0, K1_APL_NOTATKI, K1_TYP_TEKST, 0, 0, 0), OD) && ok(K(K1_KOM_DOK_PROSBA, 0, 1, 0, 0, 0, 0), OD));
     EXPECT(zle(K(K1_KOM_DOK_PROSBA, 0, 0, 0, 0, 0, 0), OD) && zle(K(K1_KOM_DOK_PROSBA, 0, 1, K1_TYPY_MAKS + 1, 0, 0, 0), OD) &&
            zle(K(K1_KOM_DOK_PROSBA, 1, 1, 0, 0, 0, 0), OD) && zle(K(K1_KOM_DOK_PROSBA, 0, 1, 0, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_PROSBA, 0, K1_APL_PODGLAD, 0, K1_RODZINA_OBRAZY, 0, 0), OD) &&
+           zle(K(K1_KOM_DOK_PROSBA, 0, K1_APL_PODGLAD, K1_TYP_PNG, K1_RODZINA_OBRAZY, 0, 0), OD) &&
+           zle(K(K1_KOM_DOK_PROSBA, 0, K1_APL_PODGLAD, 0, K1_RODZINY_MAKS + 1, 0, 0), OD) &&
+           zle(K(K1_KOM_DOK_PROSBA, 0, K1_APL_PODGLAD, 0, 0, 1, 0), OD));
     EXPECT(ok(K(K1_KOM_DOK_WYNIK, 100, K1_KOM_DOK_OTWORZ, K1_DOK_BLAD_PRAWA, 0, 0, 0), OD) &&
            ok(K(K1_KOM_DOK_WYNIK, 0, K1_KOM_DOK_WYBIERZ, K1_DOK_BLAD_CZEKA, 0, 0, 0), OD) &&
            ok(K(K1_KOM_DOK_WYNIK, 0, K1_KOM_DOK_WYBRANO, 0, 0, 0, 0), OD));
@@ -686,9 +695,14 @@ static void dekoder(void)
            zle(K(K1_KOM_DEK_KAWALEK, 7, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DEK_KAWALEK, 7, 0, MB1 + 1, 0, 0, 0), DO) &&
            zle(K(K1_KOM_DEK_KAWALEK, 7, 0, 10, 1, 0, 0), DO) && zle(K(K1_KOM_DEK_KAWALEK, 7, 0, 10, 0, 0, 0), OD));
     /* dekoder → Pliki */
-    EXPECT(ok(K(K1_KOM_DEK_PIKSELE, 7, W, H, 0, 0, 0), OD) && ok(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 0, 0, 0), OD));
-    EXPECT(zle(K(K1_KOM_DEK_PIKSELE, 7, W + 1, 1, 0, 0, 0), OD) && zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 0, 0, 0, 0), OD) &&
-           zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 1, 0, 0), OD) && zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 0, 0, 0), DO));
+    /* c, d (0.8.2 step 4): the photo's own size, never smaller than the picture given, at most K1_DEK_MAKS_PIKSELI */
+    EXPECT(ok(K(K1_KOM_DEK_PIKSELE, 7, W, H, W, H, 0), OD) && ok(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 1, 1, 0), OD) &&
+           ok(K(K1_KOM_DEK_PIKSELE, 7, 200, 150, 8000, 6000, 0), OD) &&
+           ok(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, (int32_t)K1_DEK_MAKS_PIKSELI, 1, 0), OD));
+    EXPECT(zle(K(K1_KOM_DEK_PIKSELE, 7, W + 1, 1, W + 1, 1, 0), OD) && zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 0, 1, 1, 0), OD) &&
+           zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 0, 0, 0), OD) && zle(K(K1_KOM_DEK_PIKSELE, 7, 10, 10, 9, 10, 0), OD) &&
+           zle(K(K1_KOM_DEK_PIKSELE, 7, 10, 10, 10, 9, 0), OD) && zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 10001, 10000, 0), OD) &&
+           zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 1, 1, 1), OD) && zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 1, 1, 0), DO));
     EXPECT(ok(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_FORMAT, 0, 0, 0, 0), OD) && ok(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_MIN, 0, 0, 0, 0), OD));
     /* too large: how many Mpx (0.8.2 step 3), only then */
     EXPECT(ok(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_DUZY, 101, 0, 0, 0), OD) && ok(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_DUZY, MPX, 0, 0, 0), OD));

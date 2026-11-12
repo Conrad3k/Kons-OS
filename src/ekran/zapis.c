@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "ekran.h"
+#include "k1_dokument.h"
 #include "k1_komunikat.h"
 #include "k1_log.h"
 #include "k1_memfd.h"
@@ -19,7 +20,7 @@
 #include "k1_uslugi.h"
 
 #define FD_SKARBIEC 5
-#define MAGIA "K1U3"   /* 0.8.2: room for 32 file types (GIF, BMP, WebP made it 9) */
+#define MAGIA "K1U4"   /* 0.8.2: room for 32 file types (K1U3: GIF, BMP, WebP made it 9; K1U4: Podgląd, below) */
 #define TYPY_ZAPIS 32  /* room for file types in the saved settings */
 #define ZAPIS_STARY 28 /* the settings without file types */
 
@@ -31,14 +32,17 @@ struct zapis {
 _Static_assert(sizeof(struct zapis) == ZAPIS_STARY + 4 * TYPY_ZAPIS, "zapis ustawień: unexpected size");
 _Static_assert(K1_TYPY_MAKS <= TYPY_ZAPIS, "zapis ustawień: more file types than room");
 
-/* The formats still read: the same fields, room for fewer file types (the rest keep their defaults). */
+/* The formats still read: the same fields, room for fewer file types (the rest keep their defaults). Before K1U4
+ * (0.8.2 step 4) Pliki was the only application for pictures: what was saved for them was no choice of the user, so
+ * they get the default now (Podgląd, ADR 0037). */
 static const struct {
     char magia[5];
-    int typy;
+    int typy, przed_podgladem;
 } formaty[] = {
-    { MAGIA, TYPY_ZAPIS },
-    { "K1U2", 8 }, /* 0.8.0–0.8.1 */
-    { "K1U1", 0 }, /* 0.5.6–0.7.6 */
+    { MAGIA, TYPY_ZAPIS, 0 },
+    { "K1U3", TYPY_ZAPIS, 1 }, /* 0.8.2 step 3 */
+    { "K1U2", 8, 1 },          /* 0.8.0–0.8.1 */
+    { "K1U1", 0, 1 },          /* 0.5.6–0.7.6 */
 };
 
 static int skarb = -1;
@@ -48,16 +52,19 @@ static int czeka; /* 0.8.1: skarbiec was still opening a large vault at start �
 /* The saved settings `z` (n bytes) into `ust` (a copy of s.ust), each value checked; 0, or -1 for an unknown format. */
 static int odczytaj(const struct zapis *z, int n, int ust[K1_UST_MAKS + 1])
 {
-    int typy = -1;
+    int typy = -1, przed = 0;
     for (size_t f = 0; f < sizeof formaty / sizeof formaty[0]; f++)
-        if (n == ZAPIS_STARY + 4 * formaty[f].typy && memcmp(z->magia, formaty[f].magia, 4) == 0)
+        if (n == ZAPIS_STARY + 4 * formaty[f].typy && memcmp(z->magia, formaty[f].magia, 4) == 0) {
             typy = formaty[f].typy;
+            przed = formaty[f].przed_podgladem;
+        }
     if (typy < 0) {
         k1_log(TAG, "zapisane ustawienia w nieznanym formacie — domyślne");
         return -1;
     }
     for (int i = 0; i < typy && i < K1_TYPY_MAKS; i++)
-        if (k1_ustawienie_poprawne(K1_UST_OTWIERANIE + i, z->otwieranie[i]))
+        if (k1_ustawienie_poprawne(K1_UST_OTWIERANIE + i, z->otwieranie[i]) &&
+            !(przed && k1_typ_rodzina(i + 1) == K1_RODZINA_OBRAZY))
             ust[K1_UST_OTWIERANIE + i] = z->otwieranie[i];
     if (k1_ustawienie_poprawne(K1_UST_MOTYW, z->motyw))
         ust[K1_UST_MOTYW] = z->motyw;

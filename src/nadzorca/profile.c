@@ -57,10 +57,13 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
                             .pamiec = (uint64_t)K1_DEK_PAMIEC + K1_DEK_ZAPAS + (64u << 20), .pliki = 8,
                             .rozmiar_pliku = 17u << 20, .czas_cpu = 20, .przestrzen = (uint64_t)K1_DEK_PAMIEC + K1_DEK_ZAPAS },
     /* applications (k1_uslugi.h): windows only — what else an application gets comes from us on its
-     * channels (uslugi.c) */
+     * channels (uslugi.c). 32 MiB each; Podgląd 96 MiB (0.8.2, ADR 0037): the picture from dekoder (up to 1600 × 1600,
+     * 10 MiB) and the same turned, so that zooming in has pixels to show — two times what fits in 32 MiB with the list
+     * of files and the window. */
 #define X_APL(n, a_, p_, uid_, program_, ...)                                                                       \
-    [K1_PROFIL_##n] = { .nazwa = program_, .uid = uid_, .wywolania = sc_okna, .n_wywolan = N(sc_okna), .pamiec = 32u << 20, \
-                        .pliki = 32, .rozmiar_pliku = 16u << 20 },
+    [K1_PROFIL_##n] = { .nazwa = program_, .uid = uid_, .wywolania = sc_okna, .n_wywolan = N(sc_okna),                \
+                        .pamiec = (K1_APL_##n == K1_APL_PODGLAD ? 96u : 32u) << 20, .pliki = 32,                     \
+                        .rozmiar_pliku = 16u << 20 },
     K1_APLIKACJE(X_APL)
 #undef X_APL
 };

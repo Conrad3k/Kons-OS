@@ -50,7 +50,7 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **stały folder** | Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane — są zawsze, nie da się ich usunąć ani zmienić im nazwy. |
 | **wpis** | Metadane pliku albo folderu w skarbcu (bez treści); lista wpisów to to, co pokazują Pliki. |
 | **typ pliku** | Rodzaj treści rozpoznany przez skarbiec z pierwszych bajtów (tekst, PNG, JPEG, PDF…), nigdy z nazwy. Lista: `K1_TYPY`. |
-| **rodzina typów** | Grupa typów plików, które K1 traktuje tak samo; dziś jedna: **obrazy** (PNG, JPEG, GIF, BMP, WebP — czyta je dekoder: podgląd, tapeta). Kolumna w `K1_TYPY` (0.8.2). |
+| **rodzina typów** | Grupa typów plików, które K1 traktuje tak samo; dziś jedna: **obrazy** (PNG, JPEG, GIF, BMP, WebP — czyta je dekoder: miniatura, Podgląd, tapeta). Kolumna w `K1_TYPY`, nazwy w `K1_RODZINY` (0.8.2); okno wyboru pliku może pokazać jedną rodzinę. |
 | **Kosz** | Usunięte pliki; można je przywrócić; usuwane na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”). To stan pliku, nie folder; ikona na pulpicie. |
 | **kompaktowanie** | Skarbiec przepisuje żywe dane i zapomina stare wersje: dysk dostaje miejsce z powrotem. Format 1: wszystko naraz do drugiej połowy K1-DANE (ADR 0015, 0034); format 2: jeden odcinek, krokami po 4 MiB w przerwach między prośbami (ADR 0036). |
 | **miejsce na pliki** | Ile plików zmieści skarbiec bez rezerwy dla systemu; pokazują je Ustawienia → Informacje (0.8.1). Format 1: połowa K1-DANE (druga połowa na kompaktowanie); format 2: 91–96 % (zapas wolnych odcinków, ADR 0036). |
@@ -76,8 +76,11 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **zasady nazw** | Co może być nazwą pliku lub folderu w K1 (`k1_nazwy.c`, 0.8.2): 1–127 bajtów, bez `\ / : * ? " < > |`, znaków niewidocznych i zmieniających kierunek, bez spacji (każdej szerokości) na brzegach i kropki na końcu, litera ze znakiem diakrytycznym jako jedna litera. Te same w skarbcu i czytniku. |
 | **Gatekeeper** | Część K1, która przyjmuje pliki z zewnątrz (strefy, pendrive): czeka na zgodę, czyta z limitami, zapisuje do Plików z pochodzeniem. |
 | **dekoder** | Jednorazowy program w klatce, który czyta jeden ryzykowny plik (obraz, PDF) i oddaje tylko obraz; potem znika. Od 0.8.0 usługa `dekoder` (PNG, JPEG; ADR 0032). |
-| **podgląd** | Panel po prawej w Plikach: szczegóły zaznaczonego pliku, początek tekstu albo zmniejszone zdjęcie (od dekodera). |
-| **tapeta ze zdjęcia** (tapeta „Zdjęcie”) | Własne zdjęcie użytkownika jako tapeta: w Plikach „Ustaw jako tapetę”; ekran przechowuje je w skarbcu i rysuje „wypełniając” ekran (ADR 0032). |
+| **Podgląd** | Aplikacja, która pokazuje zdjęcie w osobnym oknie: ← / →, obrót widoku, do Kosza, tapeta (0.8.2, ADR 0037). Do 0.8.2 „podgląd” znaczył panel po prawej w Plikach — dziś to **szczegóły** (decyzja D1). |
+| **szczegóły** | Panel po prawej w Plikach: ikona, nazwa, typ, rozmiar, daty, pochodzenie zaznaczonego pliku, początek tekstu albo miniatura zdjęcia. |
+| **miniatura** | Zdjęcie zmniejszone do 200 × 150 w szczegółach w Plikach (od dekodera). |
+| **zdjęcia folderu** (w Podglądzie) | Zdjęcia (rodzina „obrazy”) folderu, z którego użytkownik otworzył zdjęcie w Podglądzie — tylko je Podgląd widzi (do odczytu i do Kosza), do zamknięcia okna (ADR 0037). |
+| **tapeta ze zdjęcia** (tapeta „Zdjęcie”) | Własne zdjęcie użytkownika jako tapeta: w Plikach i (od 0.8.2) w Podglądzie „Ustaw jako tapetę”; ekran przechowuje je w skarbcu i rysuje „wypełniając” ekran (ADR 0032, 0037). |
 
 ## Strefy (od 0.10)
 | Pojęcie | Znaczenie |
