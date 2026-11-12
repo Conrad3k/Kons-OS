@@ -101,18 +101,20 @@ niż 10 % miejsca na pliki, stopka mówi „Mało miejsca na pliki: zostało X z
 jego typu (Ustawienia → Aplikacje; Pliki — tylko podgląd); **„Otwórz w…”** (0.8.0, ADR 0030) zamienia przyciski
 na aplikacje, które otwierają ten typ (`K1_OTWIERANIE`) — wybrana dostaje ten jeden plik (`DOK_OTWORZ`). Z prawej podgląd zaznaczonego: ikona,
 nazwa, typ (rozpoznany z zawartości), rozmiar, daty, pochodzenie („utworzony w K1”), w Koszu — za ile dni
-zniknie; plik tekstowy — początek treści (do 64 KiB, `DOK_CZYTAJ`); **zdjęcie PNG/JPEG** (0.8.0 krok 4, ADR 0032) —
-zmniejszone do 200×150 przez usługę `dekoder` (`komponenty/dekoder.md`; uszkodzone: „Podgląd niedostępny”), a pod nim
+zniknie; plik tekstowy — początek treści (do 64 KiB, `DOK_CZYTAJ`); **zdjęcie** (0.8.0 krok 4, ADR 0032; PNG i JPEG,
+od 0.8.2 także GIF, BMP, WebP — rodzina „obrazy”) — zmniejszone do 200×150 przez usługę `dekoder`
+(`komponenty/dekoder.md`; plik idzie do niego kawałkami prosto od skarbca; uszkodzone: „Podgląd niedostępny”, ponad
+100 Mpx: „Zdjęcie ma 150 Mpx — / K1 pokazuje do 100 Mpx”, za mało pamięci: „Za mało pamięci na podgląd”), a pod nim
 przycisk **„Ustaw jako tapetę”** (poza Koszem): zdjęcie do 2560×1600 idzie od dekodera prosto do ekranu, postęp i wynik
 w stopce. Klawisze: Enter (otwórz folder),
 Backspace (w górę), F2 (zmień nazwę), Delete (do Kosza), strzałki, Esc. Złe nazwy (`\ / : * ? " < > |`,
 kropka na końcu) i zajęte — komunikat w stopce. **Pendrive** (0.8.0 krok 3, ADR 0031): gdy włożony jest pendrive
 (nie pendrive K1), pod Koszem pojawia się miejsce „Pendrive” — jego foldery i pliki (tylko do odczytu: bez zmiany nazwy
 i usuwania) czyta usługa `czytnik` (`komponenty/czytnik.md`); przyciski „Importuj” (zaznaczony plik) i „Importuj
-wszystkie” (pliki folderu): zdjęcia PNG/JPEG do Obrazów, reszta do Dokumentów, pochodzenie „z pendrive'a”; od 0.8.1
+wszystkie” (pliki folderu): zdjęcia (rodzina „obrazy”) do Obrazów, reszta do Dokumentów, pochodzenie „z pendrive'a”; od 0.8.1
 (krok 4) pliki do 4 GB, kawałkami po 1 MiB prosto z czytnika do skarbca (Pliki nie czytają treści; przy dużym pliku
 stopka: „Importowanie: 1 z 3… 120 z 300 MB”), wyjęty pendrive w trakcie — skarbiec usuwa już zapisane kawałki;
-podgląd zdjęcia tylko do 16 MB (limit dekodera); postęp i wynik w stopce; wyjęty pendrive — powrót do Dokumentów.
+podgląd zdjęcia do 128 MB i 100 Mpx (limity dekodera, od 0.8.2; wcześniej 16 MB i 24 Mpx); postęp i wynik w stopce; wyjęty pendrive — powrót do Dokumentów.
 Od 0.8.2 (krok 2): folder z pendrive'a przychodzi w kolejnych listach (po 1024; stopka „Czytanie folderu… n
 elementów”), widać i można zaimportować do 16 384 elementów jednego folderu („Importuj wszystkie” — gdy cały folder
 jest już wczytany); plik dostaje czas „zmieniono” z pendrive'a (`DOK_CZAS`), a ponowny import pomija plik, który już

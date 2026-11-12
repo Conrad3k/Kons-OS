@@ -63,7 +63,7 @@ const char *ikona_nazwa(uint32_t klucz)
 
 enum k1_ikona ikona_rysunek(uint32_t klucz)
 {
-#define X_IKONA(n, nr, opis, ik) case nr: return K1_IK_##ik;
+#define X_IKONA(n, nr, opis, ik, ...) case nr: return K1_IK_##ik;
     const struct plik_pulpitu *p = plik(klucz);
     if (rozm_aplikacja(klucz))
         return aplikacje[klucz].ikona;

@@ -133,10 +133,11 @@ const char *pendrive_stopka(void);
 /* obrazy.c */
 extern const char *tapeta_stan;    /* the wallpaper being set, or how it went (the footer; NULL: nothing) */
 void obrazy_start(void);
-int obraz_pliku(const struct k1_dok_wpis *w); /* a PNG or JPEG file of the user's (not on the stick) */
+int obraz_pliku(const struct k1_dok_wpis *w); /* a picture file of the user's (family "obrazy", not on the stick) */
 void obraz_podglad(uint32_t id);   /* decode for the preview (if not done already) */
 void obraz_tapeta(uint32_t id);    /* decode and set as the wallpaper */
-int obraz_tresc(const struct k1_komunikat *k, int fd); /* DOK_TRESC: 1 when it was the picture's file */
+int obraz_tresc(const struct k1_komunikat *k, int fd); /* DOK_TRESC: 1 when it was a piece of a picture */
+int obraz_wynik(const struct k1_komunikat *k);         /* DOK_WYNIK: 1 when a piece of a picture could not be read */
 void obraz_kanal(int fd);          /* DEKODER_KANAL from nadzorca */
 int32_t obraz_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_dok_wpis *w, int32_t x, int32_t y);
 int obraz_przycisk(struct k1_przycisk *p); /* "Ustaw jako tapetę": 1 when shown */

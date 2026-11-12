@@ -105,7 +105,7 @@ void obsluz_pendrive(void)
             return;
         }
         if (w == K1_ODB_JEST && k.typ == K1_KOM_DEKODER)
-            dekoder_otworz();
+            dekoder_otworz(K1_APL_PLIKI);
         else if (w == K1_ODB_JEST && k.typ == K1_KOM_PENDRIVE_OTWORZ)
             otworz();
         else

@@ -1,11 +1,14 @@
 /* K1 — host test of dekoder (0.8.0 step 4, ADR 0032): pictures made by Pillow (testy/host/obrazy_dekoder.py) —
  * PNG and JPEG, progressive, palette, 16-bit, transparency, EXIF orientation — decoded, shrunk and turned; damaged
  * files, too large ones and non-pictures give an error, never a crash (ASan/UBSan). Also k1_skaluj on its own.
+ * 0.8.2 step 3: GIF (the first frame), BMP, WebP lossy and lossless; photos of 48 and 100 Mpx decode, larger ones
+ * and ones that do not fit in dekoder's memory are refused before any of it is taken, saying how large they are.
  * Usage: test_dekoder KATALOG */
 #include <stdlib.h>
 #include <string.h>
 
 #include "k1_dekoder.h"
+#include "k1_dokument.h"
 #include "k1_skaluj.h"
 #include "k1_test_host.h"
 #include "obraz.h"
@@ -104,10 +107,57 @@ static void t_obrot(void)
     free(d);
 }
 
+/* 0.8.2 step 3: the formats Wuffs reads besides PNG and JPEG — each recognised as skarbiec does (k1_dok_typ). */
+static void t_formaty(void)
+{
+    static const struct {
+        const char *nazwa;
+        int typ;
+    } pliki[] = { { "kolory.gif", K1_TYP_GIF },  { "kolory.bmp", K1_TYP_BMP },           { "paleta.bmp", K1_TYP_BMP },
+                  { "kolory.webp", K1_TYP_WEBP }, { "kolory-stratny.webp", K1_TYP_WEBP } };
+    struct obraz o;
+    for (size_t i = 0; i < sizeof pliki / sizeof pliki[0]; i++) {
+        size_t n;
+        uint8_t *d = wczytaj(pliki[i].nazwa, &n);
+        EXPECT(k1_dok_typ(d, n, n) == pliki[i].typ && obraz_rodzaj(d, n) == pliki[i].typ);
+        EXPECT(k1_typ_rodzina(pliki[i].typ) == K1_RODZINA_OBRAZY && obraz_czytelny(pliki[i].typ));
+        free(d);
+        t_polowy(pliki[i].nazwa);
+    }
+    EXPECT(przygotuj("animacja.gif", 100, 100, &o) == 0 && o.w == 64 && blisko(&o, 50, 40, 255, 0, 0, 255)); /* frame 1 */
+    free(o.px);
+    EXPECT(przygotuj("alfa-stratny.webp", 100, 100, &o) == 0 && o.w == 32);
+    EXPECT(blisko(&o, 4, 16, 0, 0, 0, 0) && blisko(&o, 28, 16, 0, 255, 0, 255));
+    free(o.px);
+    /* every type of family "obrazy" has a decoder, and no other one does */
+    for (int t = 1; t <= K1_TYPY_MAKS; t++)
+        EXPECT(obraz_czytelny(t) == (k1_typ_rodzina(t) == K1_RODZINA_OBRAZY));
+    EXPECT(k1_dok_typ((const uint8_t *)"BM to tylko tekst", 17, 17) == K1_TYP_TEKST);
+    EXPECT(k1_dok_typ((const uint8_t *)"RIFF\0\0\0\0WAVE", 12, 12) == K1_TYP_INNY);
+}
+
+/* Photos of 48 Mpx (8000 × 6000) and 100 Mpx (10000 × 10000): plain and progressive, shrunk to the wallpaper. */
+static void t_duze(void)
+{
+    static const char *const pliki[] = { "48mpx.jpg", "48mpx-prog.jpg", "100mpx.jpg", "100mpx-prog.jpg" };
+    struct obraz o;
+    for (size_t i = 0; i < sizeof pliki / sizeof pliki[0]; i++) {
+        int r = przygotuj(pliki[i], K1_DEK_MAKS_W, K1_DEK_MAKS_H, &o);
+        EXPECT(r == 0 && o.h == K1_DEK_MAKS_H && (o.w == K1_DEK_MAKS_H || o.w == 2133));
+        if (r == 0) /* red on the left, blue on the right, the gradient at the bottom */
+            EXPECT(blisko(&o, 100, 100, 255, 0, 0, 255) && blisko(&o, o.w - 100, 100, 0, 0, 255, 255));
+        free(o.px);
+    }
+}
+
 static void t_zle(void)
 {
     struct obraz o;
     EXPECT(przygotuj("duzy.png", 100, 100, &o) == K1_DEK_BLAD_DUZY && o.px == NULL);
+    EXPECT(o.w == 30000 && o.h == 30000); /* dekoder says how large */
+    EXPECT(przygotuj("101mpx.jpg", 100, 100, &o) == K1_DEK_BLAD_DUZY && o.px == NULL && o.w == 10050 && o.h == 10000);
+    /* 100 Mpx is allowed, but 4 progressive channels (CMYK) need 0.8 GB of work area besides 0.4 GB of pixels */
+    EXPECT(przygotuj("cmyk-prog.jpg", 100, 100, &o) == K1_DEK_BLAD_PAMIEC && o.px == NULL && o.w == 10000);
     EXPECT(przygotuj("uciety.jpg", 100, 100, &o) == K1_DEK_BLAD_USZKODZONY && o.px == NULL);
     EXPECT(przygotuj("zla-suma.png", 100, 100, &o) == K1_DEK_BLAD_USZKODZONY && o.px == NULL);
     EXPECT(przygotuj("tekst.txt", 100, 100, &o) == K1_DEK_BLAD_FORMAT && o.px == NULL);
@@ -156,6 +206,9 @@ int main(int argc, char **argv)
     t_polowy("progresywny.jpg");
     t_rodzaje();
     t_obrot();
+    t_formaty();
+    if (getenv("K1_DUZE_ZDJECIA") == NULL || strcmp(getenv("K1_DUZE_ZDJECIA"), "1") == 0)
+        t_duze();
     t_zle();
     t_skaluj();
     return K1_TEST_KONIEC("test_dekoder");

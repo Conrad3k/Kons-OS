@@ -207,24 +207,42 @@ KROK 3 — Zdjęcia: duże i nowe formaty, wspólny dekoder                     
   Cel: podgląd działa dla zdjęć do 100 Mpx (tryb 48/50 Mpx w telefonach) i dla GIF/BMP (WebP, jeśli Wuffs umie);
   dekoder jest gotowy, by korzystał z niego także Podgląd.
   Zadania:
-  [ ] L23b/L17: limit 24 → 100 Mpx (zmierzone w T5: 100 Mpx progresywny = 1,53 s i 812 MiB); cgroup dekodera
+  [x] L23b/L17: limit 24 → 100 Mpx (zmierzone w T5: 100 Mpx progresywny = 1,53 s i 812 MiB); cgroup dekodera
       384 MiB → 1 GiB, RLIMIT_AS ok. 1,25 GiB, RLIMIT_CPU 20 s zostaje; limit wejścia dekodera osobno (np.
       128 MiB; od 0.8.1 to K1_DEK_MAKS_BAJTY = 16 MiB, a zdjęcie przychodzi od skarbca w jednym memfd — powyżej
       24 MiB trzeba podnieść RLIMIT_FSIZE skarbca albo składać plik z kawałków w Plikach: docs/archiwum/PLAN-0.8.1.txt, krok 4,
       „Ustalenia”); przy małej pamięci RAM limit z RAM (np. RAM/8) — jedna tabela limitów dekodera (profile.c,
       k1_dekoder.h). Opcjonalnie mniej pamięci: obraz_przygotuj() zmniejsza pasami zamiast trzymać oba obrazy.
-  [ ] GIF (pierwsza klatka), BMP, WebP przez Wuffs: wiersze w K1_TYPY, rozpoznanie w k1_dok_typ(), moduły
+  [x] GIF (pierwsza klatka), BMP, WebP przez Wuffs: wiersze w K1_TYPY, rozpoznanie w k1_dok_typ(), moduły
       WUFFS_CONFIG__MODULE__* w src/dekoder/wuffs.c. Niepewne: czy Wuffs 0.4 dekoduje WebP stratny (VP8) — sprawdzić
       w źródle; tylko bezstratny → WebP na później. HEIC — nie (jedno zdanie w ZALEZNOSCI.md).
-  [ ] dekoder dla wielu klientów: nadzorca/dekoder.c — tabela „kto może prosić o dekoder” (dziś tylko Pliki,
+  [x] dekoder dla wielu klientów: nadzorca/dekoder.c — tabela „kto może prosić o dekoder” (dziś tylko Pliki,
       pliki_wyslij); nowa prośba zabija trwający dekoder tylko tego samego klienta, inny czeka w kolejce
       (najwyżej jedna prośba na klienta). Na razie w tabeli tylko Pliki — Podgląd dopisze krok 4 jednym wierszem.
-  [ ] komunikat przy za dużym zdjęciu mówi ile („Zdjęcie ma 150 Mpx — K1 pokazuje do 100 Mpx”).
+  [x] komunikat przy za dużym zdjęciu mówi ile („Zdjęcie ma 150 Mpx — K1 pokazuje do 100 Mpx”).
   Testy i dowód: test_dekoder + testy/host/obrazy_dekoder.py (48 i 100 Mpx zwykły i progresywny, GIF, BMP,
   ewentualnie WebP), fuzz_dekoder (korpus nowych formatów); test w systemie: próba dekodera w klatce z nowym
   limitem; QEMU test-pendrive: podgląd zdjęcia 48 Mpx.
   Dokumenty: ADR 0032 (dopisek o limitach), dekoder.md, ZALEZNOSCI.md (moduły Wuffs), RYZYKA R53.
   Gotowe, gdy: T5 z punktu 5 daje obraz dla 48 i 100 Mpx w klatce w QEMU.
+  Ustalenia z wykonania (2026-11-12, jeden PR):
+  - Plik do dekodera KAWAŁKAMI (nie „Pliki składają go u siebie” ani większy RLIMIT_FSIZE skarbca): DEK_OBRAZ zapowiada
+    długość, nowy DEK_KAWALEK niesie kawałek od skarbca (DOK_CZYTAJ najwyżej 1 MiB także dla obrazów) — Pliki przekazują
+    memfd bez czytania. Pamięć skarbca i Plików bez zmian przy zdjęciu 128 MB. Pliki odróżniają spóźniony kawałek
+    poprzedniego obrazu (czytany kawałek) i przerywają, gdy skarbiec kawałka nie da (do 0.8.1 obraz zawisał).
+  - Limity w jednej tabeli k1_dekoder.h: 128 MiB pliku, 100 Mpx, plik + piksele + obszar roboczy ≤ 1 GiB (sprawdzane przed
+    przydziałem; CMYK progresywny 100 Mpx — „za mało pamięci”). Klatka: RLIMIT_AS 1152 MiB (błąd przydziału zamiast
+    zabicia), cgroup 1216 MiB. Pamięć z RAM: 1/6 (nie 1/8 z planu — X230 widzi ok. 7,7 GB, przy 1/8 nie dostałby pełnego
+    limitu), nie mniej niż 384 MiB (limit z 0.8.0–0.8.1; maszyny testowe QEMU mają 256 MiB). RLIMIT_CPU 20 s bez zmian.
+  - Zmniejszanie pasami (opcja z planu) — nie: 100 Mpx progresywny mieści się (813 MiB), a pasy wymagałyby zmian w Wuffs.
+  - Wuffs 0.4 dekoduje WebP stratny (VP8) — sprawdzone w źródle i testem (też z przezroczystością). Formaty: tabela
+    K1_DEKODERY w wuffs.c; typy: kolumna „rodzina” w K1_TYPY (K1_RODZINA_OBRAZY — krok 4 użyje jej w oknie wyboru pliku).
+    Rozpoznanie w dekoderze = k1_dok_typ skarbca (jedno miejsce). Import z pendrive'a kieruje GIF/BMP/WebP do Obrazów.
+  - 9 typów plików nie mieściło się w zapisie ustawień ekranu (K1U2: 8) → K1U3 z miejscem na 32; K1U2 i K1U1 dalej czytane.
+  - Dekoder dostaje numer aplikacji klienta jako argument (nadzorca: tabela klientów w dekoder.c, pole „argument” usługi)
+    i przyjmuje komunikaty tylko od jej UID; log nadzorcy: „dekoder dla aplikacji Pliki: …, pamięć 1152 MiB”.
+  - Pomiar (komputer budujący, do 2560×1600): 48 Mpx 0,72 s / 254 MiB, progresywny 0,95 s / 391 MiB; 100 Mpx 1,37 s /
+    528 MiB, progresywny 2,28 s / 813 MiB (zgodnie z T5).
 
 KROK 4 — Aplikacja Podgląd                                                   L · decyzje D1 D2 D5 · ADR 0037
   Cel: podwójne kliknięcie zdjęcia (Pliki, pulpit) otwiera je w osobnym oknie „Podgląd”; strzałki pokazują

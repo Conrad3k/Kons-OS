@@ -20,7 +20,7 @@ każdy pakiet ma sprawdzany UID nadawcy (`SO_PASSCRED`, w obie strony).
 UID/GID 103, klatka (ADR 0007): seccomp = baza + `pread64`, `pwrite64`, `fdatasync` (partycja i memfd —
 innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
 żadnej ścieżki (nie otworzy niczego); cgroup 320 MiB (Argon2id do 256 MiB), 1 proces;
-`RLIMIT_FSIZE` 24 MiB (memfd z plikiem do 16 MiB, 0.8.0; od 0.8.1 kawałek 1 MiB, a w jednej odpowiedzi najwyżej całe zdjęcie dla dekodera — 16 MiB; zapisu na urządzenie blokowe ten limit nie dotyczy —
+`RLIMIT_FSIZE` 24 MiB (memfd z plikiem do 16 MiB, 0.8.0; od 0.8.1 kawałek 1 MiB, w 0.8.1 w jednej odpowiedzi najwyżej całe zdjęcie dla dekodera — 16 MiB, od 0.8.2 też tylko kawałek; zapisu na urządzenie blokowe ten limit nie dotyczy —
 `block/fops.c`). Bez partycji obiekty w pamięci: do 65 536, razem do 128 MiB.
 
 ## Wejścia i wyjścia
@@ -73,9 +73,9 @@ Treść podróżuje kawałkami po 1 MiB (`K1_DOK_KAWALEK`), więc pamięć usłu
   albo nowszej generacji usuwa start (`dok_wczytaj`, jak dotąd). Zapis całości w jednym komunikacie (e = 0) idzie
   przez ten sam kod.
 - **Odczyt:** `DOK_CZYTAJ` (a = najwyżej tyle bajtów, b = od kawałka) → `DOK_TRESC` (a = wysłane, b = kawałek,
-  c, d = rozmiar pliku: niższe i wyższe 32 bity); za końcem pliku — `K1_MAG_ARG`. Jedna odpowiedź to najwyżej 16 MiB
-  (`K1_DEK_MAKS_BAJTY`): kawałek albo całe zdjęcie dla dekodera (memfd jak dotąd tworzy skarbiec — pamięć Plików
-  się nie zmienia).
+  c, d = rozmiar pliku: niższe i wyższe 32 bity); za końcem pliku — `K1_MAG_ARG`. Jedna odpowiedź to najwyżej kawałek
+  (1 MiB) — od 0.8.2 także dla dekodera: zdjęcie idzie do niego kawałek po kawałku przez Pliki (`komponenty/dekoder.md`;
+  w 0.8.1 całe zdjęcie do 16 MiB w jednym memfd).
 
 ## Pliki i foldery (0.8.0, ADR 0029)
 Wspólny właściciel `K1_WL_DOKUMENTY` (101) — nie aplikacja. Stałe foldery 1–6 (Pulpit, Dokumenty, Obrazy, Muzyka,
@@ -146,7 +146,7 @@ wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po 
 | Komunikat | Kierunek | Pola |
 |---|---|---|
 | `DOK_SPIS` | klient → | lista wpisów, które klient widzi (odpowiedź `DOK_LISTA`) |
-| `DOK_CZYTAJ` | klient → | obiekt = plik, a = najwyżej tyle bajtów (podgląd: 64 KiB; ≤ 16 MiB), b = od kawałka (0.8.1) → `DOK_TRESC` |
+| `DOK_CZYTAJ` | klient → | obiekt = plik, a = najwyżej tyle bajtów (podgląd: 64 KiB; ≤ 1 MiB — do 0.8.1 ≤ 16 MiB), b = od kawałka (0.8.1) → `DOK_TRESC` |
 | `DOK_NOWY` | klient → | obiekt = folder, a = plik / folder, b = długość nazwy, c = długość treści (≤ 1 MiB), d = pochodzenie (0: K1; inne — tylko z prawem `P_POCHODZENIE`: Pliki, import z pendrive'a, ADR 0031), e = 1 zapis w toku (0.8.1); memfd: nazwa + treść |
 | `DOK_ZAPISZ` | klient → | obiekt = plik, a = długość (≤ 1 MiB), b = 1 zapis w toku (0.8.1); memfd: nowa treść (nowa generacja) |
 | `DOK_KAWALEK` | klient → | następny kawałek zapisu w toku (0.8.1): a = długość 1…1 MiB; memfd → `DOK_WYNIK` |

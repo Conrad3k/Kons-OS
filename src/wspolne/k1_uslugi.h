@@ -65,8 +65,9 @@ enum { K1_PROFIL_MAKS = 0 K1_SYSTEM(K1_X_LICZ) K1_APLIKACJE(K1_X_LICZ) }; /* num
 /* A profile's program name ("zegar") and the name Zasoby shows for it; NULL outside 1..K1_PROFIL_MAKS. */
 const char *k1_profil_program(int profil);
 const char *k1_profil_nazwa(int profil);
-/* The application with that number: its profile, or 0. */
+/* The application with that number: its profile, or 0; its UID, or 0. */
 int k1_apl_profil(int apl);
+int k1_apl_uid(int apl);
 
 /* Exit code of a service that hit a forbidden system call (seccomp, k1_klatka_w_usludze). */
 #define K1_KOD_SECCOMP 159

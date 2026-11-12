@@ -47,12 +47,15 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
      * name (the limit of 0.8.0, one file of 16 MiB, kept: ADR 0034 supplement) */
     [K1_PROFIL_CZYTNIK] = { .nazwa = "czytnik", .uid = K1_UID_CZYTNIK, .wywolania = sc_czytnik, .n_wywolan = N(sc_czytnik),
                             .pamiec = 32u << 20, .pliki = 16, .rozmiar_pliku = 17u << 20 },
-    /* the picture decoder (SPEC §7): a photo of 24 Mpx is 96 MiB of pixels, a progressive JPEG needs about as much
-     * again for its work area; RLIMIT_FSIZE: the largest picture it gives (2560 × 1600 × 4); 20 s of processor time
-     * (a photo of 24 Mpx: 0.7 s and 200 MiB on the build computer, ADR 0032) */
+    /* the picture decoder (SPEC §7; limits: k1_dekoder.h, 0.8.2 step 3): the file, the pixels of a photo of up to 100 Mpx
+     * and the work area of a progressive JPEG (100 Mpx: 0.8 GiB measured) fit in K1_DEK_PAMIEC; RLIMIT_AS above it, so
+     * that a picture too large for it fails as "no memory" (malloc) and not as a killed process; cgroup a little more
+     * (page tables, the memfd it gives). dekoder.c lowers both on a computer with less than 8 GB. RLIMIT_FSIZE: the
+     * largest picture it gives (2560 × 1600 × 4); 20 s of processor time (100 Mpx progressive: 2.3 s on the build
+     * computer) */
     [K1_PROFIL_DEKODER] = { .nazwa = "dekoder", .uid = K1_UID_DEKODER, .wywolania = sc_dekoder, .n_wywolan = N(sc_dekoder),
-                            .pamiec = 384u << 20, .pliki = 8, .rozmiar_pliku = 17u << 20, .czas_cpu = 20,
-                            .przestrzen = 512u << 20 },
+                            .pamiec = (uint64_t)K1_DEK_PAMIEC + K1_DEK_ZAPAS + (64u << 20), .pliki = 8,
+                            .rozmiar_pliku = 17u << 20, .czas_cpu = 20, .przestrzen = (uint64_t)K1_DEK_PAMIEC + K1_DEK_ZAPAS },
     /* applications (k1_uslugi.h): windows only — what else an application gets comes from us on its
      * channels (uslugi.c) */
 #define X_APL(n, a_, p_, uid_, program_, ...)                                                                       \

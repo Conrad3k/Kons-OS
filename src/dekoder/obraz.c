@@ -1,5 +1,5 @@
 /* K1 dekoder — what the file is, how the camera held it (EXIF) and the picture at the size asked for (0.8.0 step 4,
- * ADR 0032). Decoding itself: wuffs.c. Everything read from the file is checked before use: the EXIF reader looks only
+ * ADR 0032; formats of 0.8.2 step 3). Decoding itself: wuffs.c. Everything read from the file is checked before use: the EXIF reader looks only
  * at the markers before the image data and at the first list of tags, every offset within the bytes it has. */
 #include "obraz.h"
 
@@ -7,16 +7,13 @@
 #include <string.h>
 
 #include "k1_dekoder.h"
+#include "k1_dokument.h"
 #include "k1_skaluj.h"
 
 int obraz_rodzaj(const uint8_t *d, size_t n)
 {
-    static const uint8_t png[8] = { 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n' };
-    if (n >= sizeof png && memcmp(d, png, sizeof png) == 0)
-        return OBRAZ_PNG;
-    if (n >= 3 && d[0] == 0xff && d[1] == 0xd8 && d[2] == 0xff)
-        return OBRAZ_JPEG;
-    return 0;
+    int typ = k1_dok_typ(d, n, n); /* the same test as skarbiec's: what Pliki show is what dekoder reads */
+    return k1_typ_rodzina(typ) == K1_RODZINA_OBRAZY && obraz_czytelny(typ) ? typ : 0;
 }
 
 /* ---- EXIF orientation ---- */
@@ -59,7 +56,7 @@ static int exif(const uint8_t *t, size_t n)
 int obraz_orientacja(const uint8_t *d, size_t n)
 {
     size_t i = 2;
-    if (obraz_rodzaj(d, n) != OBRAZ_JPEG)
+    if (obraz_rodzaj(d, n) != K1_TYP_JPEG)
         return 1;
     while (i + 4 <= n) {
         uint8_t m = d[i + 1];
@@ -105,8 +102,11 @@ int obraz_przygotuj(const uint8_t *dane, size_t n, uint32_t mw, uint32_t mh, str
     int orient = obraz_orientacja(dane, n), r = obraz_dekoduj(dane, n, &o), boki = orient >= 5;
     uint32_t tw, th; /* the target, turned as it will be seen */
     memset(wynik, 0, sizeof *wynik);
-    if (r != 0)
+    if (r != 0) {
+        wynik->w = o.w; /* how large it is, when that was the trouble */
+        wynik->h = o.h;
         return r;
+    }
     k1_skaluj_zmiesc(boki ? o.h : o.w, boki ? o.w : o.h, mw, mh, &tw, &th);
     m.w = boki ? th : tw; /* the shrunk picture, still as stored */
     m.h = boki ? tw : th;

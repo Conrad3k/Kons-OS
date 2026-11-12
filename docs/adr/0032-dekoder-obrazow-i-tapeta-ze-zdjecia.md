@@ -43,3 +43,23 @@ z wejściem jako deskryptor i wyjściem jako memfd z pieczęciami. Właściciel 
 - Przejęte Pliki mogą ustawić dowolną tapetę (R54) — nic ponad to, co i tak może narysować aplikacja.
 - Zdjęcie na tapecie zajmuje w skarbcu do 12 MB; na pendrivie miejsca przybywa w kroku 5 (K1-DANE do końca nośnika).
 - Ten sam model posłuży kolejnym formatom (PDF — M9) i tapecie/ikonom z innych źródeł.
+
+## Uzupełnienie (0.8.2 krok 3, 2026-11-12): duże zdjęcia, nowe formaty, plik kawałkami, wielu klientów
+Bez zmiany modelu (jeden obraz na proces, ta sama klatka i te same wywołania jądra); zmieniają się granice i droga pliku.
+- **Limity z pomiaru, w jednej tabeli** (`k1_dekoder.h`): 24 Mpx → **100 Mpx** (tryb 48/50 Mpx w telefonach; 100 Mpx
+  progresywny: 2,3 s, 813 MiB), plik do **128 MiB**, a plik + piksele + obszar roboczy dekodera muszą zmieścić się
+  w **1 GiB** — sprawdzane przed przydziałem. Klatka z tych samych liczb: `RLIMIT_AS` 1152 MiB (za duży obraz kończy się
+  błędem przydziału, nie zabiciem procesu), cgroup 1216 MiB, `RLIMIT_CPU` 20 s bez zmian. Na komputerze z mniej niż
+  8 GB nadzorca obniża oba limity do 1/6 RAM (nie niżej niż 384 MiB — limit z 0.8.0–0.8.1). Za duże zdjęcie: odpowiedź
+  mówi, ile ma Mpx („Zdjęcie ma 150 Mpx — K1 pokazuje do 100 Mpx”).
+- **Formaty:** GIF (pierwsza klatka), BMP i WebP (stratny VP8 — sprawdzone w źródle Wuffs 0.4 i testem — i bezstratny)
+  przez moduły Wuffs (`LZW`, `GIF`, `BMP`, `VP8`, `WEBP`); rodzaj rozpoznaje ta sama funkcja co w skarbcu (`k1_dok_typ`),
+  a typy obrazów to wiersze z rodziną „obrazy” w `K1_TYPY`. Dekodery — wiersze tabeli `K1_DEKODERY` w `wuffs.c`.
+  HEIC — nie (brak w Wuffs).
+- **Plik kawałkami:** `DEK_OBRAZ` zapowiada długość, plik przychodzi w `DEK_KAWALEK` po 1 MiB — kawałki od skarbca
+  (`DOK_CZYTAJ` najwyżej 1 MiB, także dla obrazów), przekazane przez klienta bez czytania. Skarbiec nie tworzy już
+  memfd z całym zdjęciem (do 0.8.1: do 16 MiB), a Pliki nie składają go u siebie — ich pamięć się nie zmienia.
+- **Wielu klientów** (przygotowanie pod aplikację Podgląd, krok 4): tabela „kto może prosić o dekoder” w nadzorcy
+  (dziś: Pliki); numer aplikacji klienta dostaje dekoder jako argument i przyjmuje komunikaty tylko od jej UID.
+  Naraz jeden dekoder; nowa prośba tego samego klienta zatrzymuje jego trwający dekoder, innego — czeka w kolejce
+  (najwyżej jedna na klienta).
