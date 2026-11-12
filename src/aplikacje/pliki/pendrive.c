@@ -234,7 +234,7 @@ void pendrive_importuj(int wszystkie)
     memset(&imp, 0, sizeof imp);
     for (int i = 0; i < n_widok; i++) {
         const struct k1_dok_wpis *w = wiersz_wpisu(i);
-        int obraz = w->typ == K1_TYP_PNG || w->typ == K1_TYP_JPEG;
+        int obraz = k1_typ_rodzina(w->typ) == K1_RODZINA_OBRAZY;
         if (w->rodzaj != K1_DOK_PLIK || !(wszystkie || w->id == zaznaczony))
             continue;
         if (juz_jest(w, obraz ? K1_FOLDER_OBRAZY : K1_FOLDER_DOKUMENTY)) {

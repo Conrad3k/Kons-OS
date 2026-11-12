@@ -34,7 +34,9 @@ otwarcie jest DRM masterem) i przekazuje jako fd 4.
 - fd 5 (0.5.6, opcjonalny): kanał do skarbca — przy starcie odczyt `K1_OB_USTAWIENIA` (≤ 1,5 s; tapeta,
   motyw, mysz, sekundy, rozdzielczość jako szer.×wys.; każda wartość sprawdzana jak `USTAW`, zła →
   domyślna), po każdej zmianie zapis nowej wersji (`src/ekran/zapis.c`). Rozdzielczość przywracana po
-  pierwszej klatce, jeśli karta ją ma.
+  pierwszej klatce, jeśli karta ją ma. Format zapisu: `K1U3` (0.8.2: miejsce na domyślne aplikacje 32 typów plików —
+  GIF, BMP i WebP dały 9 typów, a `K1U2` mieścił 8); ekran czyta też `K1U2` (0.8.0–0.8.1) i `K1U1` (0.5.6–0.7.6) —
+  typy, których stary zapis nie ma, zostają domyślne.
 - Zdjęcie na tapetę (0.8.0, ADR 0032, `src/ekran/zdjecie.c`): przyjmuje je tylko od Plików (`TAPETA_ZDJECIE`:
   piksele z dekodera, do 2560×1600, zapieczętowany memfd dokładnie tego rozmiaru — pliku zdjęcia ekran nie widzi).
   Rysuje je „wypełniając” ekran (wyśrodkowane, przycięte po bokach albo u góry i dołu; `k1_skaluj`) przy każdej

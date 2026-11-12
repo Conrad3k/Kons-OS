@@ -258,7 +258,7 @@ static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
     case K1_KOM_DOK_ZMIANA:
         return k->obiekt == 0 && zera(k, 0);
     case K1_KOM_DOK_CZYTAJ:
-        return wpis_uzytkownika(k->obiekt) && w(k->a, 1, (int32_t)K1_DEK_MAKS_BAJTY) &&
+        return wpis_uzytkownika(k->obiekt) && w(k->a, 1, (int32_t)K1_DOK_KAWALEK) &&
                w(k->b, 0, (int32_t)K1_DOK_KAWALKI_MAKS - 1) && zera(k, 2);
     case K1_KOM_DOK_NOWY:
         return wpis(k->obiekt) && w(k->a, K1_DOK_PLIK, K1_DOK_FOLDER) && w(k->b, 1, K1_DOK_NAZWA - 1) &&
@@ -278,7 +278,7 @@ static int sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
         return k->obiekt == 0 && w(k->a, K1_DOK_LISTA_NAGL, K1_DOK_LISTA_MAKS) && w(k->b, 0, K1_DOK_MAKS) &&
                k->a == K1_DOK_LISTA_NAGL + k->b * K1_DOK_WPIS_BAJTY && zera(k, 2);
     case K1_KOM_DOK_TRESC:
-        return wpis_uzytkownika(k->obiekt) && w(k->a, 0, (int32_t)K1_DEK_MAKS_BAJTY) &&
+        return wpis_uzytkownika(k->obiekt) && w(k->a, 0, (int32_t)K1_DOK_KAWALEK) &&
                w(k->b, 0, (int32_t)K1_DOK_KAWALKI_MAKS - 1) && rozmiar_pliku(k->c, k->d, (uint64_t)k->b * K1_DOK_KAWALEK + (uint64_t)k->a) && k->e == 0;
     case K1_KOM_DOK_WYNIK:
         return (k->obiekt == 0 || wpis(k->obiekt)) && k1_kom_dok_prosba(k->a) &&
@@ -338,10 +338,14 @@ static int sprawdz_dekoder(const struct k1_komunikat *k, enum k1_kanal_kierunek 
     case K1_KOM_DEK_OBRAZ:
         return kier == K1_KIER_DO_DEKODERA && w(k->a, 1, (int32_t)K1_DEK_MAKS_BAJTY) && w(k->b, 1, K1_DEK_MAKS_W) &&
                w(k->c, 1, K1_DEK_MAKS_H) && zera(k, 3);
+    case K1_KOM_DEK_KAWALEK:
+        return kier == K1_KIER_DO_DEKODERA && w(k->a, 0, (int32_t)(K1_DEK_MAKS_BAJTY / K1_DOK_KAWALEK) - 1) &&
+               w(k->b, 1, (int32_t)K1_DOK_KAWALEK) && zera(k, 2);
     case K1_KOM_DEK_PIKSELE:
         return kier == K1_KIER_OD_DEKODERA && w(k->a, 1, K1_DEK_MAKS_W) && w(k->b, 1, K1_DEK_MAKS_H) && zera(k, 2);
     case K1_KOM_DEK_BLAD:
-        return kier == K1_KIER_OD_DEKODERA && w(k->a, K1_DEK_BLAD_MIN, K1_DEK_BLAD_FORMAT) && zera(k, 1);
+        return kier == K1_KIER_OD_DEKODERA && w(k->a, K1_DEK_BLAD_MIN, K1_DEK_BLAD_FORMAT) &&
+               (k->a == K1_DEK_BLAD_DUZY ? w(k->b, 1, K1_DEK_MPX_MAKS) : k->b == 0) && zera(k, 2);
     default:
         return 0;
     }
@@ -505,7 +509,7 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            ((typ == K1_KOM_DOK_LISTA || typ == K1_KOM_DOK_TRESC) && kierunek == K1_KIER_OD_SKARBCA) ||
            ((typ == K1_KOM_PENDRIVE_KANAL || typ == K1_KOM_DEKODER_KANAL) && kierunek == K1_KIER_OD_NADZORCY) ||
            (typ == K1_KOM_TAPETA_ZDJECIE && kierunek == K1_KIER_DO_EKRANU) ||
-           (typ == K1_KOM_DEK_OBRAZ && kierunek == K1_KIER_DO_DEKODERA) ||
+           (typ == K1_KOM_DEK_KAWALEK && kierunek == K1_KIER_DO_DEKODERA) ||
            (typ == K1_KOM_DEK_PIKSELE && kierunek == K1_KIER_OD_DEKODERA) ||
            ((typ == K1_KOM_PEN_LISTA || typ == K1_KOM_PEN_PLIK) && kierunek == K1_KIER_OD_CZYTNIKA);
 }

@@ -95,9 +95,12 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   hasła) nadzorca wysyła skarbcowi `START_POTWIERDZONY` — stary magazyn (format 1) może przejść na format 2, bo
   wycofanie do 0.8.1 już nie nastąpi. Gdy na którymś dysku czeka próba A/B innej wersji — nie wysyła („skarbiec zostaje
   przy swoim formacie do następnego startu”). Skarbiec uruchomiony ponownie dostaje go jeszcze raz.
-- Dekoder (0.8.0 krok 4, ADR 0032, `dekoder.c`): na `DEKODER` od Plików (ten sam fd 6) — nowy proces `dekoder` w klatce
-  (fd 3: kanał do Plików, obie strony z `SO_PASSCRED`), drugi koniec Plikom w `DEKODER_KANAL`. Jeden obraz na proces,
-  jeden proces naraz (prośba w trakcie: `SIGKILL` starego, nowy po jego końcu). Szczegóły: `komponenty/dekoder.md`.
+- Dekoder (0.8.0 krok 4, ADR 0032, `dekoder.c`): na `DEKODER` od klienta z tabeli klientów (0.8.2: Pliki, ten sam
+  fd 6) — nowy proces `dekoder` w klatce (fd 3: kanał do klienta, obie strony z `SO_PASSCRED`; argument: numer
+  aplikacji klienta), drugi koniec klientowi w `DEKODER_KANAL`. Jeden obraz na proces, jeden proces naraz, najwyżej
+  jedna prośba w kolejce na klienta (prośba tego samego klienta w trakcie: `SIGKILL` starego, nowy po jego końcu;
+  innego — czeka). Limity pamięci klatki z RAM: najwyżej 1/6 pamięci komputera, nie mniej niż 384 MiB (0.8.2).
+  Szczegóły: `komponenty/dekoder.md`.
 - Kanał do skarbca dla klienta (`SKARB_KLIENT` c, 0.6.3): 1 = partycja K1-DANE jest na USB; skarbiec
   oddaje to klientom w `SKARB_WYNIK` d (bit 1) — Notatki i Ustawienia piszą „dysk komputera” albo
   „pendrive K1”.

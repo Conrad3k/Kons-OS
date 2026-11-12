@@ -388,7 +388,7 @@ sprawdz notatki
 python3 -I - "$STARE" <<'PY' || r=1
 import sys
 d = open(sys.argv[1], "rb").read()
-jawne = [t for t in ("Zażółć".encode(), b"Najnowsza", b"Lista", b"Notatki", b"K1U2") if t in d]
+jawne = [t for t in ("Zażółć".encode(), b"Najnowsza", b"Lista", b"Notatki", b"K1U2", b"K1U3") if t in d]
 print(f"  [{'OK' if not jawne else 'BŁĄD'}]    dysk danych: notatki jako pliki i ustawienia zaszyfrowane" + (f" — jawne: {jawne}" if jawne else ""))
 sys.exit(1 if jawne else 0)
 PY

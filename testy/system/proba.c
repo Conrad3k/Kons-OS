@@ -28,6 +28,25 @@ void zablokowane(const char *opis, long nr, long a0, long a1, long a2, long a3, 
     }
 }
 
+/* dekoder (0.8.2 step 3, k1_dekoder.h): its budget of 1 GiB fits in RLIMIT_AS, anything over the limit fails as an
+ * error (ENOMEM), not as a killed process. Address space only (MAP_NORESERVE, never touched): a test machine of 256 MiB
+ * runs it too. 0 or 1 (a failure, logged). */
+static int proba_pamieci_dekodera(void)
+{
+    size_t limit = (size_t)K1_DEK_PAMIEC + K1_DEK_ZAPAS, za_duzo = limit + (64u << 20);
+    void *z = mmap(NULL, za_duzo, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+    int e = errno;
+    void *b = mmap(NULL, K1_DEK_PAMIEC, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+    int ok = z == MAP_FAILED && e == ENOMEM && b != MAP_FAILED;
+    k1_log("K1-PROBA", "[%s] dekoder: %zu MiB pamięci się mieszczą, %zu MiB — błąd przydziału (RLIMIT_AS %zu MiB)",
+           ok ? "OK" : "BŁĄD", (size_t)K1_DEK_PAMIEC >> 20, za_duzo >> 20, limit >> 20);
+    if (z != MAP_FAILED)
+        munmap(z, za_duzo);
+    if (b != MAP_FAILED)
+        munmap(b, K1_DEK_PAMIEC);
+    return !ok;
+}
+
 int proba(const char *profil)
 {
     struct sigaction sa;
@@ -98,6 +117,8 @@ int proba(const char *profil)
                     PROT_READ | PROT_EXEC, 0, 0);
     }
     zablokowane("ioctl innego typu (TIOCSTI na konsoli)", SYS_ioctl, 2, 0x5412 /* TIOCSTI */, (long)"x", 0, 0);
+    if (strstr(profil, "dekoder") != NULL)
+        proba_bledy += proba_pamieci_dekodera();
     k1_klatka_w_usludze("K1-PROBA");
     sigaction(SIGSYS, &sa, NULL); /* keep counting instead of exiting */
     zablokowane("execve po starcie usługi", SYS_execve, (long)argv[0], (long)argv, (long)envp, 0, 0);

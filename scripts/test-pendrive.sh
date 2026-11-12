@@ -5,13 +5,16 @@
 # macOS, plikiem 17 MB i (0.8.1 krok 4) filmem 300 MB.
 #   1. Pliki pokazują miejsce „Pendrive”; po kliknięciu nadzorca uruchamia czytnik (UID 106, pendrive tylko do
 #      odczytu), czytnik rozpoznaje FAT32, Pliki pokazują foldery (bez ukrytych plików)
-#   2. DCIM › 100K1 → „Importuj wszystkie”: trzy pliki (dwa zdjęcia, uszkodzony JPEG) trafiają do Obrazów, skarbiec
-#      rozpoznaje je jako obrazy; drugi raz: nic nie przybywa, „Pominięto 3 — już zaimportowane” (0.8.2 krok 2, D3)
+#   2. DCIM › 100K1 → „Importuj wszystkie”: dziewięć plików (zdjęcia, uszkodzony JPEG, od 0.8.2 duże zdjęcia, GIF, BMP,
+#      WebP) trafia do Obrazów, skarbiec rozpoznaje je jako obrazy; drugi raz: nic nie przybywa, „Pominięto 9 — już
+#      zaimportowane” (0.8.2 krok 2, D3)
 #   3. pojedynczo: plik 17 MB (do 0.8.0 „za duży”) i film 300 MB → Dokumenty kawałkami po 1 MiB (0.8.1 krok 4: czytnik
 #      ma cgroup 32 MiB, a Pliki i skarbiec dostają najwyżej kawałek), zdjęcie z polską nazwą → Obrazy, notatka → Dokumenty
-#   4. Obrazy: 4 pliki „z pendrive'a”; Dokumenty: 3
+#   4. Obrazy: 10 plików „z pendrive'a”; Dokumenty: 3
 #   4a. (krok 4) zaznaczone zdjęcie → dekoder w klatce (UID 107) → podgląd w Plikach (kolor na zrzucie); PNG też;
 #      uszkodzony JPEG → „Podgląd niedostępny”; „Ustaw jako tapetę” → ekran rysuje zdjęcie na całym ekranie
+#   4b. (0.8.2 krok 3; maszyna ma 8 GB jak X230) zdjęcia 48 i 100 Mpx (kilka MB: plik idzie do dekodera kawałkami po
+#      1 MiB) → podgląd; nagłówek 101 Mpx → „Zdjęcie ma 101 Mpx — K1 pokazuje do 100 Mpx”; GIF, BMP, WebP → podgląd
 #   5. wyjęcie pendrive'a (device_del): czytnik zatrzymany, miejsce znika; włożenie pendrive'a z NTFS: Pliki mówią,
 #      że K1 go jeszcze nie odczyta
 #   5a. (0.8.2 krok 2) pendrive z „małym” FAT32 (mformat -F -c 8, mniej niż 65 525 klastrów — do 0.8.1 „nie FAT”)
@@ -25,7 +28,9 @@
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
 CZAS=${K1_TEST_CZAS:-240}
-CZAS=$((CZAS * 2))
+CZAS=$((CZAS * 3))  # 0.8.2 step 3: + photos of 48 and 100 Mpx (in TCG 10 and 20 s each)
+# 100 Mpx only with KVM (CI, a real computer: ~1.5 s): in TCG it takes ~20 s of processor, as much as dekoder's limit
+KVM=0; [ -w /dev/kvm ] && KVM=1
 LOG=$TESTY/pendrive.log MON=$TESTY/pendrive.sock
 PEN=$TESTY/pendrive-fat32.img NTFS=$TESTY/pendrive-ntfs.img DANE=$TESTY/pendrive-dane.img MALY=$TESTY/pendrive-maly.img
 mkdir -p "$TESTY"; rm -f "$LOG" "$MON" "$TESTY"/pendrive-*.png
@@ -52,10 +57,30 @@ with open(f"{z}/wideo.mp4", "wb") as f:  # 300 MiB (0.8.1 step 4): a piece of 1 
         f.write(blok)
 open(f"{z}/ukryty.txt", "w").write("ukryty")
 open(f"{z}/._IMG_0001.JPG", "wb").write(b"\0\5\26\7")
+# 0.8.2 step 3: photos of 48 and 100 Mpx — one colour with a band of noise at the bottom (a few MB: more than one piece)
+szum = random.Random(3)
+for nazwa, kolor, rozm in (("ZDJ_48MPX.JPG", (220, 140, 40), (8000, 6000)), ("ZDJ_100MPX.JPG", (30, 140, 120), (10000, 10000))):
+    im = Image.new("RGB", rozm, kolor)
+    pas = Image.frombytes("RGB", (rozm[0], 160), szum.randbytes(rozm[0] * 160 * 3))
+    im.paste(pas, (0, rozm[1] - 160))
+    im.save(f"{z}/{nazwa}", "JPEG", quality=90)
+    del im
+d = bytearray(open(f"{z}/IMG_0001.JPG", "rb").read())  # 101 Mpx in the header (SOF0), the data of 64 × 48
+i = 2
+while d[i + 1] != 0xC0:
+    i += 2 + (d[i + 2] << 8 | d[i + 3])
+d[i + 5:i + 9] = (10000).to_bytes(2, "big") + (10050).to_bytes(2, "big")
+open(f"{z}/ZDJ_101MPX.JPG", "wb").write(bytes(d))
+Image.new("RGB", (64, 48), (150, 60, 170)).save(f"{z}/ZDJ_GIF.GIF")
+Image.new("RGB", (64, 48), (200, 200, 60)).save(f"{z}/ZDJ_BMP.BMP")
+Image.new("RGB", (64, 48), (230, 90, 90)).save(f"{z}/ZDJ_WEBP.WEBP", quality=95)
 PY
 mformat -C -i "$TESTY/pendrive-czesc.img" -F -c 8 -T 720896 :: || blad "mformat"
 mmd -i "$TESTY/pendrive-czesc.img" ::/DCIM ::/DCIM/100K1
-mcopy -i "$TESTY/pendrive-czesc.img" "$Z/IMG_0001.JPG" "$Z/IMG_0002.PNG" "$Z/USZKODZONE.JPG" "$Z/._IMG_0001.JPG" ::/DCIM/100K1/
+ZDJ="$Z/ZDJ_48MPX.JPG $Z/ZDJ_100MPX.JPG $Z/ZDJ_101MPX.JPG $Z/ZDJ_GIF.GIF $Z/ZDJ_BMP.BMP $Z/ZDJ_WEBP.WEBP"
+# shellcheck disable=SC2086
+mcopy -i "$TESTY/pendrive-czesc.img" "$Z/IMG_0001.JPG" "$Z/IMG_0002.PNG" "$Z/USZKODZONE.JPG" "$Z/._IMG_0001.JPG" $ZDJ \
+    ::/DCIM/100K1/
 mcopy -i "$TESTY/pendrive-czesc.img" "$Z/Wakacje nad morzem — Łódź.jpg" "$Z/notatka.txt" "$Z/film.mp4" "$Z/wideo.mp4" \
     "$Z/ukryty.txt" ::
 mattrib -i "$TESTY/pendrive-czesc.img" +h ::/ukryty.txt
@@ -63,8 +88,10 @@ truncate -s 360M "$PEN"
 printf 'label: dos\nstart=2048, size=720896, type=c\n' | sfdisk -q "$PEN" >/dev/null || blad "sfdisk (pendrive)"
 dd if="$TESTY/pendrive-czesc.img" of="$PEN" bs=512 seek=2048 conv=notrunc status=none
 rm -f "$TESTY/pendrive-czesc.img"
+# shellcheck disable=SC2086
 OCZEKIWANE=$(cat "$Z/IMG_0001.JPG" "$Z/IMG_0002.PNG" "$Z/USZKODZONE.JPG" "$Z/Wakacje nad morzem — Łódź.jpg" "$Z/notatka.txt" \
-    "$Z/film.mp4" "$Z/wideo.mp4" | wc -c)
+    "$Z/film.mp4" "$Z/wideo.mp4" $ZDJ | wc -c)
+ls -l $ZDJ
 rm -rf "$Z"
 # a stick with NTFS (only its signature): K1 cannot read it yet
 rm -f "$NTFS"; truncate -s 16M "$NTFS"
@@ -87,16 +114,16 @@ rm -f "$DANE"; truncate -s 768M "$DANE"
 printf 'label: gpt\nstart=2048, size=1568768, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
 
 "$K1_REPO/scripts/uruchom-qemu.sh" --log "$LOG" --monitor "$MON" --czas "$CZAS" \
-    --qemu "-drive if=none,id=dane,file=$DANE,format=raw -device ide-hd,drive=dane,bus=ide.0
+    --qemu "-m 8G -drive if=none,id=dane,file=$DANE,format=raw -device ide-hd,drive=dane,bus=ide.0
             -device qemu-xhci,id=xhci -drive if=none,id=pendrive,file=$PEN,format=raw
             -device usb-storage,id=pen,bus=xhci.0,drive=pendrive" &
 QPID=$!
 r=0
-K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG" "$MON" "$TESTY" "$CZAS" "$NTFS" "$OCZEKIWANE" "$MALY" <<'PY' || r=1
+K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$LOG" "$MON" "$TESTY" "$CZAS" "$NTFS" "$OCZEKIWANE" "$MALY" "$KVM" <<'PY' || r=1
 import os, re, sys
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
-log, mon, out, limit, ntfs, oczekiwane, maly = sys.argv[1:8]
+log, mon, out, limit, ntfs, oczekiwane, maly, kvm = sys.argv[1:9]
 q = Maszyna(log, mon, out, limit, "pendrive")
 tekst, czekaj, zrzut, sprawdz, klik = q.tekst, q.czekaj, q.zrzut, q.sprawdz, q.klik
 IKONY = r"K1-GUI: ikony na pulpicie \(siatka \d+x\d+, co \d+,\d+\): (.*)"
@@ -165,15 +192,15 @@ sprawdz("przyciski pendrive'a: Importuj, Importuj wszystkie (bez zmiany nazwy i 
         {"Importuj", "Importuj wszystkie"} == set(p), str(p))
 # 2. DCIM › 100K1 → "Importuj wszystkie"
 sprawdz("DCIM (1 folder)", widok(lambda: q.dwuklik(*wiersz(0)), "Pendrive", 1))
-sprawdz("DCIM › 100K1: 3 pliki (bez śmieci macOS „._…”)", widok(lambda: q.dwuklik(*wiersz(0)), "Pendrive", 3))
+sprawdz("DCIM › 100K1: 9 plików (bez śmieci macOS „._…”)", widok(lambda: q.dwuklik(*wiersz(0)), "Pendrive", 9))
 zrzut("3-100k1", gdy=lambda w, h, px: True)
-sprawdz("„Importuj wszystkie”: 3 pliki → Obrazy",
-        "Importuj wszystkie" in p and importuj(lambda: klik(*p["Importuj wszystkie"]), 3, 3, 0))
-sprawdz("skarbiec: 3 pliki z pendrive'a, wszystkie rozpoznane z treści jako obrazy",
-        czekaj(r"K1-PLIKI: pliki z pendrive'a: 3 \(obrazy PNG/JPEG: 3\)"))
+sprawdz("„Importuj wszystkie”: 9 plików → Obrazy (GIF, BMP i WebP też — 0.8.2)",
+        "Importuj wszystkie" in p and importuj(lambda: klik(*p["Importuj wszystkie"]), 9, 9, 0))
+sprawdz("skarbiec: 9 plików z pendrive'a, wszystkie rozpoznane z treści jako obrazy",
+        czekaj(r"K1-PLIKI: pliki z pendrive'a: 9 \(obrazy: 9\)"))
 zrzut("4-zaimportowane", gdy=lambda w, h, px: True)
-sprawdz("(0.8.2, D3) „Importuj wszystkie” drugi raz: nic nowego — „Pominięto 3 — już zaimportowane” (ta sama nazwa, "
-        "rozmiar i czas z pendrive'a)", importuj(lambda: klik(*p["Importuj wszystkie"]), 0, 0, 0, pominiete=3))
+sprawdz("(0.8.2, D3) „Importuj wszystkie” drugi raz: nic nowego — „Pominięto 9 — już zaimportowane” (ta sama nazwa, "
+        "rozmiar i czas z pendrive'a)", importuj(lambda: klik(*p["Importuj wszystkie"]), 0, 0, 0, pominiete=9))
 zrzut("4-pominiete", gdy=lambda w, h, px: True)
 # 3. one by one, from the main folder (rows: DCIM, film.mp4, notatka.txt, Wakacje…, wideo.mp4)
 sprawdz("„w górę” dwa razy: główny folder pendrive'a",
@@ -190,10 +217,11 @@ klik(*wiersz(3))
 sprawdz("zdjęcie z polską długą nazwą → Obrazy", importuj(lambda: klik(*p["Importuj"]), 1, 1, 0))
 klik(*wiersz(2))
 sprawdz("notatka → Dokumenty", importuj(lambda: klik(*p["Importuj"]), 1, 0, 0))
-sprawdz(f"skarbiec: 7 plików z pendrive'a (4 obrazy), razem {oczekiwane} B — tyle, ile na pendrivie",
-        czekaj(rf"K1-PLIKI: pliki z pendrive'a: 7 \(obrazy PNG/JPEG: 4\), razem {oczekiwane} B"))
-# 4. where they went (Obrazy by name: IMG_0001.JPG, IMG_0002.PNG, USZKODZONE.JPG, Wakacje…)
-sprawdz("Obrazy: 4 pliki", widok(lambda: klik(*miejsce(2)), "Obrazy", 4))
+sprawdz(f"skarbiec: 13 plików z pendrive'a (10 obrazów), razem {oczekiwane} B — tyle, ile na pendrivie",
+        czekaj(rf"K1-PLIKI: pliki z pendrive'a: 13 \(obrazy: 10\), razem {oczekiwane} B"))
+# 4. where they went (Obrazy by name: IMG_0001.JPG, IMG_0002.PNG, USZKODZONE.JPG, Wakacje…, ZDJ_100MPX.JPG,
+# ZDJ_101MPX.JPG, ZDJ_48MPX.JPG, ZDJ_BMP.BMP, ZDJ_GIF.GIF, ZDJ_WEBP.WEBP)
+sprawdz("Obrazy: 10 plików", widok(lambda: klik(*miejsce(2)), "Obrazy", 10))
 # 4a. pictures (step 4): the preview through a dekoder, the wallpaper
 NIEBIESKI, ZIELONY = (60, 120, 180), (90, 160, 90)
 blisko = lambda a, b, t=12: all(abs(x - y) <= t for x, y in zip(a, b))
@@ -208,16 +236,36 @@ def podglad(i, wzor, kolor, nazwa):
     return m and (kolor is None or blisko(px(*miniatura), kolor)), px(*miniatura)
 
 
-n_d = q.ile(r"K1-NADZORCA: dekoder dla Plików")
+n_d = q.ile(r"K1-NADZORCA: dekoder dla aplikacji Pliki")
 ok, kol = podglad(3, r"K1-PLIKI: podgląd obrazu: 80x60", NIEBIESKI, "6-podglad-jpeg")
 sprawdz("zdjęcie JPEG: nadzorca uruchamia dekoder w klatce (UID 107), dekoder odsyła 80×60, Pliki pokazują je w podglądzie",
-        ok and czekaj(r"K1-NADZORCA: dekoder dla Plików: pid \d+, uid 107", od=n_d) and czekaj(r"K1-DEKODER: obraz JPEG → 80x60"),
+        ok and czekaj(r"K1-NADZORCA: dekoder dla aplikacji Pliki: pid \d+, uid 107, pamięć 1152 MiB", od=n_d) and
+        czekaj(r"K1-DEKODER: Obraz JPEG → 80x60"),
         f"kolor w podglądzie {kol}")
 ok, kol = podglad(1, r"K1-PLIKI: podgląd obrazu: 32x32", ZIELONY, "6-podglad-png")
-sprawdz("zdjęcie PNG: podgląd 32×32", ok and czekaj(r"K1-DEKODER: obraz PNG → 32x32"), f"kolor w podglądzie {kol}")
+sprawdz("zdjęcie PNG: podgląd 32×32", ok and czekaj(r"K1-DEKODER: Obraz PNG → 32x32"), f"kolor w podglądzie {kol}")
 ok, _ = podglad(2, r"K1-PLIKI: obraz: dekoder nie odczytał pliku \(-42\)", None, "6-podglad-uszkodzony")
 sprawdz("NEGATYWNY: uszkodzony JPEG — dekoder odpowiada błędem, Pliki: „Podgląd niedostępny”, nic więcej się nie dzieje",
-        ok and czekaj(r"K1-DEKODER: obraz JPEG: nie da się odczytać \(-42\)"))
+        ok and czekaj(r"K1-DEKODER: Obraz JPEG: nie da się odczytać \(-42;"))
+# 4b. (0.8.2 step 3) large photos and new formats (100 Mpx: with KVM only — see KVM above)
+if kvm != "1":
+    print("  [uwaga] bez KVM: zdjęcie 100 Mpx nie jest dekodowane w tym teście (TCG: ok. 20 s procesora, tyle co limit "
+          "dekodera); sprawdzają je test_dekoder na hoście i ten test w CI")
+for i, nazwa, wzor, kolor, opis in (
+        (6, "48mpx", r"K1-DEKODER: Obraz JPEG → 200x150 \(([\d.]+) s\)", (220, 140, 40), "zdjęcie 48 Mpx (8000×6000)"),
+        *([(4, "100mpx", r"K1-DEKODER: Obraz JPEG → 150x150 \(([\d.]+) s\)", (30, 140, 120), "zdjęcie 100 Mpx (10000×10000)")]
+          if kvm == "1" else []),
+        (8, "gif", r"K1-DEKODER: Obraz GIF → 64x48", (150, 60, 170), "GIF"),
+        (7, "bmp", r"K1-DEKODER: Obraz BMP → 64x48", (200, 200, 60), "BMP"),
+        (9, "webp", r"K1-DEKODER: Obraz WebP → 64x48", (230, 90, 90), "WebP (stratny, VP8)")):
+    n_k = q.ile(wzor)
+    ok, kol = podglad(i, r"K1-PLIKI: podgląd obrazu: \d+x\d+", kolor, f"6-podglad-{nazwa}")
+    m = czekaj(wzor, od=n_k, czas=120)
+    sprawdz(f"{opis}: podgląd w Plikach" + (" — plik do dekodera kawałkami po 1 MiB" if "Mpx" in opis else ""),
+            ok and m, f"kolor {kol}, {m.group(0) if m else 'brak odpowiedzi dekodera'}")
+ok, kol = podglad(5, r"K1-PLIKI: obraz: dekoder nie odczytał pliku \(-41\): 101 Mpx", None, "6-podglad-101mpx")
+sprawdz("NEGATYWNY: nagłówek 101 Mpx — dekoder odmawia, zanim weźmie pamięć; Pliki: „Zdjęcie ma 101 Mpx — K1 pokazuje "
+        "do 100 Mpx”", ok and czekaj(r"K1-DEKODER: Obraz JPEG: nie da się odczytać \(-41; w pliku 10050x10000\)"))
 klik(*wiersz(3))
 t_ = czekaj(r"K1-PLIKI: przycisk tapety: (\d+),(\d+)")
 tlo = lambda px, w, h: px(w - 12, h // 2)
@@ -265,12 +313,12 @@ sprawdz("„Importuj wszystkie”: 1100 plików → Obrazy (każdy z czasem z pe
 zrzut("9-zaimportowane-1100", gdy=lambda w, h, px: True)
 sprawdz("drugi raz: „Pominięto 1100 — już zaimportowane”, nic nie przybywa",
         importuj(lambda: klik(*p["Importuj wszystkie"]), 0, 0, 0, pominiete=1100, czas=120) and
-        widok(lambda: klik(*miejsce(2)), "Obrazy", 1104))
+        widok(lambda: klik(*miejsce(2)), "Obrazy", 1110))
 # 6. the log
 t_ = tekst()
 sprawdz("nazwy i treść plików z pendrive'a nie trafiają do logu",
         all(s not in t_ for s in ("IMG_0001", "IMG_0002", "USZKODZONE", "Wakacje", "Łódź", "notatka", "film", "wideo", "ukryty", "Zakupy",
-                                  "DCIM", "100K1", "telefon", "Telefon")))
+                                  "DCIM", "100K1", "telefon", "Telefon", "ZDJ_")))
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów", "Kernel panic" not in t_ and
         "BŁĄD" not in t_ and "zabronione wywołanie" not in t_ and "odrzucono" not in t_)
 sys.exit(0 if all(q.wyniki) else 1)

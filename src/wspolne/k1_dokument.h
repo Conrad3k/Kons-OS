@@ -45,14 +45,19 @@ enum { K1_FOLDERY(K1_X_FOLDER) };
 enum { K1_FOLDERY_MAKS = 0 K1_FOLDERY(K1_X_JEDEN) };
 
 /* File types, recognised by skarbiec from the first bytes of the content, never from the name:
- * X(NAME, number, description in Pliki, icon K1_IK_<icon>). A new type: one line (and its test in k1_dok_typ). */
-#define K1_TYPY(X)                                \
-    X(INNY, 1, "Plik", PLIK)                      \
-    X(TEKST, 2, "Dokument tekstowy", NOTATKI)     \
-    X(PNG, 3, "Obraz PNG", OBRAZ)                 \
-    X(JPEG, 4, "Obraz JPEG", OBRAZ)               \
-    X(PDF, 5, "Dokument PDF", PLIK)               \
-    X(ZIP, 6, "Archiwum ZIP", PLIK)
+ * X(NAME, number, description in Pliki, icon K1_IK_<icon>, family). A new type: one line (and its test in k1_dok_typ).
+ * Family (0.8.2 step 3): K1_RODZINA_OBRAZY — dekoder reads it (a preview, the wallpaper); 0 — none. */
+#define K1_TYPY(X)                                       \
+    X(INNY, 1, "Plik", PLIK, 0)                          \
+    X(TEKST, 2, "Dokument tekstowy", NOTATKI, 0)         \
+    X(PNG, 3, "Obraz PNG", OBRAZ, K1_RODZINA_OBRAZY)     \
+    X(JPEG, 4, "Obraz JPEG", OBRAZ, K1_RODZINA_OBRAZY)   \
+    X(PDF, 5, "Dokument PDF", PLIK, 0)                   \
+    X(ZIP, 6, "Archiwum ZIP", PLIK, 0)                   \
+    X(GIF, 7, "Obraz GIF", OBRAZ, K1_RODZINA_OBRAZY)     \
+    X(BMP, 8, "Obraz BMP", OBRAZ, K1_RODZINA_OBRAZY)     \
+    X(WEBP, 9, "Obraz WebP", OBRAZ, K1_RODZINA_OBRAZY)
+enum { K1_RODZINA_OBRAZY = 1 };
 #define K1_X_TYP(n, nr, ...) K1_TYP_##n = nr,
 enum { K1_TYPY(K1_X_TYP) };
 enum { K1_TYPY_MAKS = 0 K1_TYPY(K1_X_JEDEN) };
@@ -140,6 +145,8 @@ void k1_dok_nazwa_z_tekstu(const char *t, size_t dl, char out[K1_DOK_NAZWA]);
 int k1_dok_nazwa_pasuje(const char *nazwa, const char *baza);
 /* The type of content whose first `n` bytes are `p` (`calosc` = its whole size; 0 = empty text). */
 int k1_dok_typ(const uint8_t *p, size_t n, uint64_t calosc);
+/* The family of file type `typ` (K1_RODZINA_*), 0 for none or an unknown type. */
+int k1_typ_rodzina(int typ);
 
 void k1_dok_wpis_zapisz(const struct k1_dok_wpis *w, uint8_t b[K1_DOK_WPIS_BAJTY]);
 /* Checks every field (ranges, name, padding) — 0, or -1 with `w` zeroed. */

@@ -331,7 +331,7 @@ static void skarbiec(void)
 static void kawalki(void)
 {
     const enum k1_kanal_kierunek DO = K1_KIER_DO_SKARBCA, OD = K1_KIER_OD_SKARBCA;
-    const int32_t MB1 = (int32_t)K1_DOK_KAWALEK, MB16 = (int32_t)K1_DEK_MAKS_BAJTY, OST = (int32_t)K1_DOK_KAWALKI_MAKS - 1;
+    const int32_t MB1 = (int32_t)K1_DOK_KAWALEK, MB16 = 16 << 20, OST = (int32_t)K1_DOK_KAWALKI_MAKS - 1;
     EXPECT(k1_kom_u64(k1_kom_niskie(K1_DOK_MAKS_BAJTY), k1_kom_wysokie(K1_DOK_MAKS_BAJTY)) == K1_DOK_MAKS_BAJTY &&
            k1_kom_u64(-1, 0) == 0xffffffffu && K1_DOK_MAKS_BAJTY == 4ull << 30);
     /* a write in progress starts with a whole first piece */
@@ -366,16 +366,16 @@ static void kawalki(void)
            ok(K(K1_KOM_DOK_WYNIK, 0, K1_KOM_DOK_KAWALEK, K1_DOK_BLAD_ZAPIS, 0, 0, 0), OD));
     EXPECT(zle(K(K1_KOM_DOK_WYNIK, 0, K1_KOM_DOK_KAWALEK, 0, 150, 0, 0), OD) &&
            zle(K(K1_KOM_DOK_WYNIK, 0, K1_KOM_DOK_KAWALEK, K1_DOK_BLAD_ZAPIS - 1, 0, 0, 0), OD));
-    /* reading from a piece; a whole picture (16 MiB) in one answer at most */
-    EXPECT(ok(K(K1_KOM_DOK_CZYTAJ, 100, MB1, OST, 0, 0, 0), DO) && ok(K(K1_KOM_DOK_CZYTAJ, 100, MB16, 0, 0, 0, 0), DO));
+    /* reading from a piece, a piece at most (0.8.2 step 3: a picture for dekoder too — 0.8.0–0.8.1 up to 16 MiB) */
+    EXPECT(ok(K(K1_KOM_DOK_CZYTAJ, 100, MB1, OST, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_CZYTAJ, 100, MB16, 0, 0, 0, 0), DO));
     EXPECT(zle(K(K1_KOM_DOK_CZYTAJ, 100, MB1, OST + 1, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_CZYTAJ, 100, MB1, -1, 0, 0, 0), DO) &&
-           zle(K(K1_KOM_DOK_CZYTAJ, 100, MB16 + 1, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_CZYTAJ, 100, MB1, 0, 1, 0, 0), DO));
+           zle(K(K1_KOM_DOK_CZYTAJ, 100, MB1 + 1, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_CZYTAJ, 100, MB1, 0, 1, 0, 0), DO));
     EXPECT(ok(K(K1_KOM_DOK_TRESC, 100, MB1, OST, 0, 1, 0), OD) &&                 /* the last piece of a 4 GiB file */
            ok(K(K1_KOM_DOK_TRESC, 100, 0, 3, 3 * MB1, 0, 0), OD));                /* the end of a file: nothing */
     EXPECT(zle(K(K1_KOM_DOK_TRESC, 100, 1, 3, 3 * MB1, 0, 0), OD) &&              /* past the size */
            zle(K(K1_KOM_DOK_TRESC, 100, 1, 0, 1, 1, 0), OD) &&                    /* over 4 GiB */
            zle(K(K1_KOM_DOK_TRESC, 100, 1, 0, 1, 2, 0), OD) && zle(K(K1_KOM_DOK_TRESC, 100, 1, 0, 1, 0, 1), OD) &&
-           zle(K(K1_KOM_DOK_TRESC, 100, MB16 + 1, 0, 0, 1, 0), OD));
+           zle(K(K1_KOM_DOK_TRESC, 100, MB1 + 1, 0, 0, 1, 0), OD) && zle(K(K1_KOM_DOK_TRESC, 100, MB16, 0, 0, 1, 0), OD));
 }
 
 /* 0.8.1 step 3 (ADR 0033): the room for files, K1-DANE to the end of the stick */
@@ -505,13 +505,13 @@ static void kanal(void)
 static void pliki(void)
 {
     const enum k1_kanal_kierunek DO = K1_KIER_DO_SKARBCA, OD = K1_KIER_OD_SKARBCA;
-    const int32_t MB16 = (int32_t)K1_DEK_MAKS_BAJTY, MB1 = (int32_t)K1_DOK_KAWALEK;
+    const int32_t MB16 = 16 << 20, MB1 = (int32_t)K1_DOK_KAWALEK;
     EXPECT(ok(K(K1_KOM_DOK_SPIS, 0, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_SPIS, 0, 0, 0, 0, 0, 0), OD));
     EXPECT(zle(K(K1_KOM_DOK_SPIS, 1, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_SPIS, 0, 1, 0, 0, 0, 0), DO));
-    EXPECT(ok(K(K1_KOM_DOK_CZYTAJ, 100, 1, 0, 0, 0, 0), DO) && ok(K(K1_KOM_DOK_CZYTAJ, K1_DOK_ID_MAKS, MB16, 0, 0, 0, 0), DO));
+    EXPECT(ok(K(K1_KOM_DOK_CZYTAJ, 100, 1, 0, 0, 0, 0), DO) && ok(K(K1_KOM_DOK_CZYTAJ, K1_DOK_ID_MAKS, MB1, 0, 0, 0, 0), DO));
     EXPECT(zle(K(K1_KOM_DOK_CZYTAJ, K1_FOLDER_PULPIT, 10, 0, 0, 0, 0), DO)); /* a standard folder has no content */
     EXPECT(zle(K(K1_KOM_DOK_CZYTAJ, 99, 10, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_CZYTAJ, 100, 0, 0, 0, 0, 0), DO));
-    EXPECT(zle(K(K1_KOM_DOK_CZYTAJ, 100, MB16 + 1, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_CZYTAJ, 0x80000000u, 1, 0, 0, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_DOK_CZYTAJ, 100, MB1 + 1, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DOK_CZYTAJ, 0x80000000u, 1, 0, 0, 0, 0), DO));
     EXPECT(ok(K(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, 11, 0, 0, 0), DO));
     EXPECT(ok(K(K1_KOM_DOK_NOWY, 150, K1_DOK_PLIK, 127, MB1, 0, 0), DO) && zle(K(K1_KOM_DOK_NOWY, 150, K1_DOK_PLIK, 127, MB1 + 1, 0, 0), DO));
     EXPECT(zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, 11, 5, 0, 0), DO)); /* a folder with content */
@@ -667,26 +667,37 @@ static void pendrive(void)
 static void dekoder(void)
 {
     const enum k1_kanal_kierunek DO = K1_KIER_DO_DEKODERA, OD = K1_KIER_OD_DEKODERA;
-    const int32_t MB16 = (int32_t)K1_DEK_MAKS_BAJTY, W = K1_DEK_MAKS_W, H = K1_DEK_MAKS_H;
+    const int32_t MB128 = (int32_t)K1_DEK_MAKS_BAJTY, MB1 = (int32_t)K1_DOK_KAWALEK, W = K1_DEK_MAKS_W, H = K1_DEK_MAKS_H;
+    const int32_t OST = MB128 / MB1 - 1, MPX = K1_DEK_MPX_MAKS;
     EXPECT(ok(K(K1_KOM_DEKODER, 0, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY) && zle(K(K1_KOM_DEKODER, 0, 1, 0, 0, 0, 0), K1_KIER_DO_NADZORCY) &&
            zle(K(K1_KOM_DEKODER, 0, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(ok(K(K1_KOM_DEKODER_KANAL, 0, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY) &&
            k1_komunikat_z_deskryptorem(K1_KOM_DEKODER_KANAL, K1_KIER_OD_NADZORCY) &&
            !k1_komunikat_z_deskryptorem(K1_KOM_DEKODER, K1_KIER_DO_NADZORCY));
-    /* Pliki → dekoder: a file of 1..16 MB, the largest size wanted within the wallpaper's */
-    EXPECT(ok(K(K1_KOM_DEK_OBRAZ, 7, 1, 1, 1, 0, 0), DO) && ok(K(K1_KOM_DEK_OBRAZ, 0xffffffffu, MB16, W, H, 0, 0), DO));
-    EXPECT(zle(K(K1_KOM_DEK_OBRAZ, 7, 0, 10, 10, 0, 0), DO) && zle(K(K1_KOM_DEK_OBRAZ, 7, MB16 + 1, 10, 10, 0, 0), DO) &&
+    /* a client → dekoder: a file of 1 B..128 MiB, the largest size wanted within the wallpaper's; no fd (0.8.2) */
+    EXPECT(ok(K(K1_KOM_DEK_OBRAZ, 7, 1, 1, 1, 0, 0), DO) && ok(K(K1_KOM_DEK_OBRAZ, 0xffffffffu, MB128, W, H, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_DEK_OBRAZ, 7, 0, 10, 10, 0, 0), DO) && zle(K(K1_KOM_DEK_OBRAZ, 7, MB128 + 1, 10, 10, 0, 0), DO) &&
            zle(K(K1_KOM_DEK_OBRAZ, 7, 10, W + 1, 10, 0, 0), DO) && zle(K(K1_KOM_DEK_OBRAZ, 7, 10, 10, H + 1, 0, 0), DO) &&
            zle(K(K1_KOM_DEK_OBRAZ, 7, 10, 0, 10, 0, 0), DO) && zle(K(K1_KOM_DEK_OBRAZ, 7, 10, 10, 10, 1, 0), DO) &&
            zle(K(K1_KOM_DEK_OBRAZ, 7, 10, 10, 10, 0, 0), OD));
+    /* then its pieces: 1 B..1 MiB each, numbered within 128 MiB, with a memfd */
+    EXPECT(ok(K(K1_KOM_DEK_KAWALEK, 7, 0, 1, 0, 0, 0), DO) && ok(K(K1_KOM_DEK_KAWALEK, 7, OST, MB1, 0, 0, 0), DO));
+    EXPECT(zle(K(K1_KOM_DEK_KAWALEK, 7, OST + 1, MB1, 0, 0, 0), DO) && zle(K(K1_KOM_DEK_KAWALEK, 7, -1, 10, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DEK_KAWALEK, 7, 0, 0, 0, 0, 0), DO) && zle(K(K1_KOM_DEK_KAWALEK, 7, 0, MB1 + 1, 0, 0, 0), DO) &&
+           zle(K(K1_KOM_DEK_KAWALEK, 7, 0, 10, 1, 0, 0), DO) && zle(K(K1_KOM_DEK_KAWALEK, 7, 0, 10, 0, 0, 0), OD));
     /* dekoder → Pliki */
     EXPECT(ok(K(K1_KOM_DEK_PIKSELE, 7, W, H, 0, 0, 0), OD) && ok(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 0, 0, 0), OD));
     EXPECT(zle(K(K1_KOM_DEK_PIKSELE, 7, W + 1, 1, 0, 0, 0), OD) && zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 0, 0, 0, 0), OD) &&
            zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 1, 0, 0), OD) && zle(K(K1_KOM_DEK_PIKSELE, 7, 1, 1, 0, 0, 0), DO));
     EXPECT(ok(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_FORMAT, 0, 0, 0, 0), OD) && ok(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_MIN, 0, 0, 0, 0), OD));
+    /* too large: how many Mpx (0.8.2 step 3), only then */
+    EXPECT(ok(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_DUZY, 101, 0, 0, 0), OD) && ok(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_DUZY, MPX, 0, 0, 0), OD));
+    EXPECT(zle(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_DUZY, 0, 0, 0, 0), OD) && zle(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_DUZY, MPX + 1, 0, 0, 0), OD) &&
+           zle(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_PAMIEC, 5, 0, 0, 0), OD) && zle(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_DUZY, 101, 1, 0, 0), OD));
     EXPECT(zle(K(K1_KOM_DEK_BLAD, 7, 0, 0, 0, 0, 0), OD) && zle(K(K1_KOM_DEK_BLAD, 7, K1_DEK_BLAD_MIN - 1, 0, 0, 0, 0), OD) &&
            zle(K(K1_KOM_DEK_BLAD, 7, K1_PEN_BLAD_FORMAT, 0, 0, 0, 0), OD) && zle(K(K1_KOM_DEK_BLAD, 7, -40, 1, 0, 0, 0), OD));
-    EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_DEK_OBRAZ, DO) && k1_komunikat_z_deskryptorem(K1_KOM_DEK_PIKSELE, OD) &&
+    EXPECT(!k1_komunikat_z_deskryptorem(K1_KOM_DEK_OBRAZ, DO) && k1_komunikat_z_deskryptorem(K1_KOM_DEK_KAWALEK, DO) &&
+           k1_komunikat_z_deskryptorem(K1_KOM_DEK_PIKSELE, OD) &&
            !k1_komunikat_z_deskryptorem(K1_KOM_DEK_BLAD, OD));
     /* Pliki → ekran: the wallpaper photo; nobody may set "ekran keeps a photo" */
     EXPECT(ok(K(K1_KOM_TAPETA_ZDJECIE, 0, W, H, 0, 0, 0), K1_KIER_DO_EKRANU) &&

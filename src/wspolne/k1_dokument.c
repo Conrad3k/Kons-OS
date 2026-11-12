@@ -24,6 +24,16 @@ static int tekst(const uint8_t *p, size_t n, uint64_t calosc)
     return 1;
 }
 
+/* BMP: "BM" is too short to tell by, so also the size of the header that follows (one of the versions Windows and
+ * OS/2 wrote: 12, 40, 52, 56, 64, 108, 124 bytes). */
+static int bmp(const uint8_t *p, size_t n)
+{
+    static const uint8_t naglowki[] = { 12, 40, 52, 56, 64, 108, 124 };
+    if (n < 18 || p[0] != 'B' || p[1] != 'M' || p[15] != 0 || p[16] != 0 || p[17] != 0)
+        return 0;
+    return memchr(naglowki, p[14], sizeof naglowki) != NULL;
+}
+
 int k1_dok_typ(const uint8_t *p, size_t n, uint64_t calosc)
 {
     static const uint8_t png[8] = { 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n' };
@@ -33,6 +43,12 @@ int k1_dok_typ(const uint8_t *p, size_t n, uint64_t calosc)
         return K1_TYP_PNG;
     if (n >= 3 && p[0] == 0xff && p[1] == 0xd8 && p[2] == 0xff)
         return K1_TYP_JPEG;
+    if (n >= 6 && (memcmp(p, "GIF87a", 6) == 0 || memcmp(p, "GIF89a", 6) == 0))
+        return K1_TYP_GIF;
+    if (n >= 12 && memcmp(p, "RIFF", 4) == 0 && memcmp(p + 8, "WEBP", 4) == 0)
+        return K1_TYP_WEBP;
+    if (bmp(p, n))
+        return K1_TYP_BMP;
     if (n >= 5 && memcmp(p, "%PDF-", 5) == 0)
         return K1_TYP_PDF;
     if (n >= 4 && memcmp(p, "PK\x03\x04", 4) == 0)
@@ -140,6 +156,17 @@ const char *k1_folder_nazwa(uint32_t nr)
         return NULL;
     }
 #undef X_NAZWA
+}
+
+int k1_typ_rodzina(int typ)
+{
+#define X_RODZ(n, nr_, nazwa, ik, rodzina) case nr_: return rodzina;
+    switch (typ) {
+        K1_TYPY(X_RODZ)
+    default:
+        return 0;
+    }
+#undef X_RODZ
 }
 
 const char *k1_typ_nazwa(int typ)

@@ -183,7 +183,7 @@ static void sciezka(struct k1_obraz *o, const struct k1_motyw *m)
 
 static enum k1_ikona ikona(const struct k1_dok_wpis *w)
 {
-#define X_IKONA(n, nr, opis, ik) case nr: return K1_IK_##ik;
+#define X_IKONA(n, nr, opis, ik, ...) case nr: return K1_IK_##ik;
     if (w->rodzaj == K1_DOK_FOLDER)
         return K1_IK_FOLDER;
     switch (w->typ) {

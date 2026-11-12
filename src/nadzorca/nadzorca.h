@@ -70,6 +70,7 @@ struct usluga {
     double okno;
     int wylaczona;
     int bez_liczenia;     /* stopped because ekran ended: not counted as a failure */
+    char argument[12];    /* its one argument, if any (dekoder: the application it decodes for; 0.8.2) */
 };
 
 #define USLUGA(n, prog, t, prof, r, rol, apl, rest)                                                         \
@@ -171,9 +172,10 @@ void pendrive_sprawdz(void);
 void pendrive_koniec(void);
 void obsluz_pendrive(void);
 
-/* dekoder.c — a picture decoder for Pliki (0.8.0 step 4, ADR 0032) */
-void dekoder_otworz(void);
+/* dekoder.c — a picture decoder for Pliki (0.8.0 step 4, ADR 0032), for more clients (0.8.2 step 3) */
+void dekoder_otworz(int apl); /* a request of application `apl` (its row in the table of clients) */
 void dekoder_koniec(void);
+uint64_t dekoder_pamiec(uint64_t ram, uint64_t profil); /* the sandbox's memory on a computer with `ram` bytes */
 
 /* skarb.c: the start is confirmed — skarbiec may move its vault to format 2 (0.8.2, ADR 0036) */
 void skarb_start_potwierdzony(void);

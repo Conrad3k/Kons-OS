@@ -14,6 +14,8 @@ static const struct {
 
 #define X_APL(n, apl, profil, ...) [apl] = profil,
 static const int profil_apl[K1_APL_MAKS + 1] = { K1_APLIKACJE(X_APL) };
+#define X_UID(n, apl, profil, uid, ...) [apl] = uid,
+static const int uid_apl[K1_APL_MAKS + 1] = { K1_APLIKACJE(X_UID) };
 
 /* every number used once and inside 1..MAKS: a gap or a repeat leaves a NULL / 0 entry */
 #define X_SPR_S(n, profil, ...) _Static_assert(profil >= 1 && profil <= K1_PROFIL_MAKS, #n ": profil poza 1..MAKS");
@@ -37,4 +39,9 @@ const char *k1_profil_nazwa(int profil)
 int k1_apl_profil(int apl)
 {
     return apl >= 1 && apl <= K1_APL_MAKS ? profil_apl[apl] : 0;
+}
+
+int k1_apl_uid(int apl)
+{
+    return apl >= 1 && apl <= K1_APL_MAKS ? uid_apl[apl] : 0;
 }

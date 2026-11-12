@@ -152,9 +152,9 @@ enum k1_komunikat_typ {
      * ADR 0034) content travels in pieces of at most K1_DOK_KAWALEK: a larger file is written as a write in progress
      * (NOWY/ZAPISZ with "more follow", DOK_KAWALEK after each answer, DOK_KONIEC) and read piece by piece. */
     K1_KOM_DOK_SPIS = 84,      /* obiekt=0: the entries this client may see (reply: DOK_LISTA) */
-    K1_KOM_DOK_CZYTAJ = 85,    /* obiekt=file, a=at most this many bytes (1..K1_DEK_MAKS_BAJTY: a piece, or a whole
-                                * picture for dekoder), b=from piece b (0..K1_DOK_KAWALKI_MAKS-1: byte b × K1_DOK_KAWALEK
-                                * on) (reply: DOK_TRESC) */
+    K1_KOM_DOK_CZYTAJ = 85,    /* obiekt=file, a=at most this many bytes (1..K1_DOK_KAWALEK: a piece; 0.8.0–0.8.1 also a
+                                * whole picture for dekoder), b=from piece b (0..K1_DOK_KAWALKI_MAKS-1: byte b ×
+                                * K1_DOK_KAWALEK on) (reply: DOK_TRESC) */
     K1_KOM_DOK_NOWY = 86,      /* obiekt=folder, a=K1_DOK_PLIK/FOLDER, b=name length 1..127, c=content length in this
                                 * memfd 0..K1_DOK_KAWALEK (folder: 0), d=origin 0 (= K1) or K1_POCH_* (a file, Pliki only:
                                 * an import, ADR 0031), e=1 a write in progress: more pieces follow (a file only; then
@@ -178,7 +178,7 @@ enum k1_komunikat_typ {
     K1_KOM_DOK_OPROZNIJ = 93,  /* obiekt=0: everything in Kosz deleted for good */
     /* skarbiec → client */
     K1_KOM_DOK_LISTA = 94,     /* obiekt=0, a=length 16..K1_DOK_LISTA_MAKS, b=entries 0..K1_DOK_MAKS; + 1 memfd (k1_dokument.h) */
-    K1_KOM_DOK_TRESC = 95,     /* obiekt=file, a=bytes sent 0..K1_DEK_MAKS_BAJTY, b=from piece b (as asked), c,d=its whole
+    K1_KOM_DOK_TRESC = 95,     /* obiekt=file, a=bytes sent 0..K1_DOK_KAWALEK, b=from piece b (as asked), c,d=its whole
                                 * size (k1_kom_u64: low, high 32 bits; ≤ K1_DOK_MAKS_BAJTY, ≥ b × K1_DOK_KAWALEK + a);
                                 * + 1 memfd of a bytes */
     K1_KOM_DOK_WYNIK = 96,     /* obiekt=entry (0: none), a=request type (84..93, KAWALEK, KONIEC, CZAS), b=result (0,
@@ -220,13 +220,18 @@ enum k1_komunikat_typ {
                                   * ≥ c × K1_DOK_KAWALEK + b); + 1 memfd of a + b bytes: the name, then the piece (as
                                   * DOK_NOWY or DOK_KAWALEK want it) */
     K1_KOM_PEN_WYNIK = 108,      /* obiekt=entry, a=request type (PEN_SPIS, PEN_CZYTAJ), b=K1_PEN_BLAD_* (< 0) */
-    /* Pliki → dekoder (once: dekoder ends after the answer; obiekt = the caller's number, sent back) */
+    /* a client (nadzorca/dekoder.c: Pliki) → dekoder (once: dekoder ends after the answer; obiekt = the caller's number,
+     * sent back). Since 0.8.2 step 3 the file follows in pieces, as skarbiec gives them. */
     K1_KOM_DEK_OBRAZ = 109,      /* a=file length 1..K1_DEK_MAKS_BAJTY, b,c = the largest width 1..K1_DEK_MAKS_W and
-                                  * height 1..K1_DEK_MAKS_H wanted; + 1 sealed memfd: the PNG or JPEG file */
+                                  * height 1..K1_DEK_MAKS_H wanted; then DEK_KAWALEK 0, 1, … until a bytes came */
+    K1_KOM_DEK_KAWALEK = 120,    /* obiekt as in DEK_OBRAZ, a=piece 0..K1_DEK_MAKS_BAJTY/K1_DOK_KAWALEK-1 (in order),
+                                  * b=its bytes 1..K1_DOK_KAWALEK (all but the last: K1_DOK_KAWALEK); + 1 sealed memfd of b
+                                  * bytes */
     /* dekoder → Pliki */
     K1_KOM_DEK_PIKSELE = 110,    /* a,b = width 1..K1_DEK_MAKS_W, height 1..K1_DEK_MAKS_H; + 1 sealed memfd of a × b
                                   * pixels (k1_dekoder.h) */
-    K1_KOM_DEK_BLAD = 111,       /* a=K1_DEK_BLAD_* (< 0): no picture */
+    K1_KOM_DEK_BLAD = 111,       /* a=K1_DEK_BLAD_* (< 0): no picture; b=the photo's Mpx 1..K1_DEK_MPX_MAKS after
+                                  * K1_DEK_BLAD_DUZY (0.8.2 step 3), else 0 */
     /* nadzorca → Pliki (0.8.0, its fd 5; after URUCHOM with a place): show it */
     K1_KOM_PLIKI_POKAZ = 21,   /* obiekt=0, a=entry (0: the last place), b=1 Kosz (then a=0) */
     K1_KOM_BATERIA_HIST = 65,  /* to Ustawienia: battery history since boot. obiekt=index of the first sample

@@ -180,11 +180,11 @@ static void loguj_z_pendrive(void)
     for (int i = 0; i < n_wpisow; i++)
         if (wpisy[i].pochodzenie == K1_POCH_PENDRIVE && wpisy[i].kosz == 0) {
             n++;
-            obrazy += wpisy[i].typ == K1_TYP_PNG || wpisy[i].typ == K1_TYP_JPEG;
+            obrazy += k1_typ_rodzina(wpisy[i].typ) == K1_RODZINA_OBRAZY;
             bajty += wpisy[i].rozmiar;
         }
     if (n != ost_n || obrazy != ost_obrazy || bajty != ost_bajty)
-        k1_log(TAG, "pliki z pendrive'a: %d (obrazy PNG/JPEG: %d), razem %llu B", n, obrazy, (unsigned long long)bajty);
+        k1_log(TAG, "pliki z pendrive'a: %d (obrazy: %d), razem %llu B", n, obrazy, (unsigned long long)bajty);
     ost_n = n;
     ost_obrazy = obrazy;
     ost_bajty = bajty;
@@ -239,7 +239,7 @@ static void tresc_przyszla(const struct k1_komunikat *k, int fd)
 {
     if (obraz_tresc(k, fd))
         return;
-    if (k->obiekt != podglad_id || k1_memfd_czytaj(fd, podglad, (size_t)k->a) != 0)
+    if (k->obiekt != podglad_id || k->a > (int32_t)K1_DOK_PODGLAD || k1_memfd_czytaj(fd, podglad, (size_t)k->a) != 0)
         return;
     podglad_dl = (uint32_t)k->a;
     podglad[podglad_dl] = '\0';
@@ -250,7 +250,7 @@ static void wynik(const struct k1_komunikat *k)
 {
     if (k->a == K1_KOM_DOK_SPIS) /* no list (the vault locked…): the next change asks again */
         spis_przyszedl();
-    if (pendrive_wynik_skarbca(k))
+    if (pendrive_wynik_skarbca(k) || obraz_wynik(k))
         return;
     if (k->b == 0) {
         if (k->a == K1_KOM_DOK_NOWY && k->c != 0)

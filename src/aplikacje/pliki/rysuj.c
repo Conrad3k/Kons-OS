@@ -32,7 +32,7 @@ void rozmiar_tekst(uint64_t b, char *buf, size_t n)
 
 enum k1_ikona ikona_wpisu(const struct k1_dok_wpis *w)
 {
-#define X_IKONA(n, nr, opis, ik) case nr: return K1_IK_##ik;
+#define X_IKONA(n, nr, opis, ik, ...) case nr: return K1_IK_##ik;
     if (w->rodzaj == K1_DOK_FOLDER)
         return K1_IK_FOLDER;
     switch (w->typ) {

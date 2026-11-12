@@ -210,7 +210,7 @@ $(OBJ)/test_odcinki: testy/host/test_odcinki.c testy/host/k1_ram_dysk.h $(MAGAZY
 # 0.8.0 step 4: dekoder on pictures made by Pillow (testy/host/obrazy_dekoder.py).
 $(OBJ)/test_dekoder: testy/host/test_dekoder.c $(DEKODER_OBRAZ) src/dekoder/obraz.h $(WUFFS) testy/host/k1_test_host.h $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/dekoder -Isrc/zewnetrzne/wuffs -o $@ testy/host/test_dekoder.c \
-		$(DEKODER_OBRAZ) -lm
+		$(DEKODER_OBRAZ) $(DOK_C) src/wspolne/k1_uslugi.c -lm
 
 # 0.8.0 step 3: czytnik's FAT reader on images made by mtools/sfdisk (testy/host/obrazy_fat.sh), and the list format
 $(OBJ)/test_fat: testy/host/test_fat.c $(CZYTNIK_FAT) src/czytnik/fat.h src/wspolne/k1_pendrive.c $(DOK_C) $(NAGL) | $(OBJ)
@@ -347,7 +347,7 @@ FUZZ_ZR_fat       := $(CZYTNIK_FAT) $(DOK_C) src/wspolne/k1_uslugi.c
 FUZZ_DL_fat       := 65536
 FUZZ_ZR_pendrive  := src/wspolne/k1_pendrive.c $(DOK_C) src/wspolne/k1_uslugi.c
 FUZZ_DL_pendrive  := 1000
-FUZZ_ZR_dekoder   := $(DEKODER_OBRAZ)
+FUZZ_ZR_dekoder   := $(DEKODER_OBRAZ) $(DOK_C) src/wspolne/k1_uslugi.c
 FUZZ_DL_dekoder   := 20000
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
               -Isrc/wspolne -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/zewnetrzne/monocypher \
