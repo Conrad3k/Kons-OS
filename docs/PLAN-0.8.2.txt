@@ -59,6 +59,7 @@ Nowy czat — przebieg każdego kroku:
 [x]  1  Skarbiec na lata: format na duże dane        L25 L26 L27 L28         —          —         XL       0036
          [1a PR #72 (format 2 w magazynie); 1b i 1c PR #73 (kompaktowanie w przerwach, przejście, format 2 w systemie)]
 [ ]  2  Pendrive i nazwy plików                      L13 L14 L15 L16 L8 L9   —          D3        M–L      —
+         [w toku: Claude, gałąź claude/inspiring-lamport-2w8zhb]
 [ ]  3  Zdjęcia: duże i nowe formaty, wspólny dekoder L17 L23b               —          —         M        (0032)
 [ ]  4  Aplikacja Podgląd                            (prośba właściciela)    3          D1 D2 D5  L        0037
 [ ]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
@@ -308,7 +309,8 @@ KROK 7 — Porządki i wydanie 0.8.2                                            
 [!] D1 (krok 4) Nazwa „Podgląd”: w słowniku „podgląd” to dziś panel po prawej w Plikach. Jedno słowo = jedno
        znaczenie. Rekomendacja: aplikacja „Podgląd”, a panel w Plikach — „szczegóły”.
 [!] D2 (krok 4) Delete w Podglądzie wyrzuca zdjęcie do Kosza (jak w Zdjęciach Windows)? Rekomendacja: tak.
-[!] D3 (krok 2) Ponowny import tych samych plików. Rekomendacja: pomijać już zaimportowane i napisać ile.
+[x] D3 (krok 2) Ponowny import tych samych plików. Rekomendacja: pomijać już zaimportowane i napisać ile.
+       DECYZJA właściciela (2026-11-12): pomijać — „Pominięto n — już zaimportowane”.
 [!] D5 (krok 4) Szkice wyglądu Podglądu (2–3 do wyboru) — na początku kroku 4.
 [!] D6 (krok 6) Przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) w 0.8.2 czy razem z 0.11?
        Rekomendacja: w 0.8.2 przeciąganie w obrębie Plików i pulpitu; między oknami — po 0.8.2, jednym ADR-em
