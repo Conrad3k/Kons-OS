@@ -59,12 +59,14 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
   Od 0.5.4: `MTRR` + `X86_PAT` — bez nich `ioremap_wc` (pamięć obrazu simpledrm) daje mapowanie bez
   buforowania zapisu i pulpit na X230 się zacinał. Skutek uboczny: `/proc/mtrr` (tylko root; usługi
   nie widzą `/proc` poza własnymi procesami i nie mają do niego dostępu w klatce).
-  Brak VT, sieci (protokołów), I2C-HID, `i915`.
+  Od 0.6.3 (M6b, ADR 0021): device-mapper z `DM_VERITY` (SHA-256) — obraz rdzenia sprawdzany przy starcie; od 0.7.0
+  (ADR 0022): `EFIVAR_FS` (zmienne UEFI dla nadzorcy).
+  Brak VT, sieci IP (do 0.9 — tylko gniazda UNIX), I2C-HID, `i915`.
 
 ## Wywołania systemowe usunięte z jądra (test: `t_syscalls`)
 `init_module`, `finit_module`, `kexec_load`, `kexec_file_load`, `io_uring_setup`, `bpf`,
-`userfaultfd`, `modify_ldt`, `iopl`, `ioperm` → `ENOSYS`. Gniazda `AF_INET` i `AF_UNIX` →
-`EAFNOSUPPORT` (M1).
+`userfaultfd`, `modify_ldt`, `iopl`, `ioperm` → `ENOSYS`. Gniazda `AF_INET` i `AF_INET6` → `EAFNOSUPPORT`;
+gniazda UNIX są (od M3 — kanały między usługami, ADR 0007), a `socket` i tak blokuje seccomp usług.
 
 ## Obsługa błędów
 `panic=-1 oops=panic` — błąd jądra kończy się restartem, nie pracą w niepewnym stanie.
@@ -77,7 +79,7 @@ i parser GPT obcych nośników (RYZYKA R33–R34).
 
 ## Testy
 `scripts/sprawdz-konfiguracje-jadra.sh` (każdy build), `scripts/sprawdz-kspp.sh` (przy zmianie
-wersji), w systemie: `testy/m1/k1_test_m1.c` (LSM, lockdown, Landlock, usunięte syscalle, sysctl).
+wersji), w systemie: `testy/system/t_system.c` (LSM, lockdown, Landlock, usunięte syscalle, sysctl).
 
 ## Zamknięte jądro `k1.efi` (0.7.0, ADR 0022)
 Wydania (pendrive, dysk, ISO) uruchamiają `k1.efi`: to samo jądro z `k1.config` plus `jadro/k1-zamkniete.config`

@@ -8,7 +8,8 @@ zrzut ekranu albo wynik testu. Każdy mechanizm bezpieczeństwa ma test negatywn
 ```bash
 scripts/przygotuj-srodowisko.sh   # raz w nowym kontenerze (pakiety Ubuntu)
 scripts/zbuduj.sh                 # jądro + programy + obrazy + ISO → build/wynik/
-scripts/testy.sh                  # wszystkie testy: test-m1.sh, potem test-m2/m4/m5/m5f/m6 (z KVM równolegle; bez KVM po kolei, ~60 min TCG)
+scripts/testy.sh                  # wszystkie testy: test-m1.sh, potem test-m2, m4, pliki, pendrive, skarbiec, m5, m5f, m6
+                                  # (z KVM równolegle; bez KVM po kolei — CZAS_TCG)
 ```
 
 Testy na hoście (`make testy-host`) dzielą pomocnicze makra `testy/host/k1_test_host.h` (`EXPECT`,
@@ -54,10 +55,15 @@ Ręcznie: `scripts/uruchom-qemu.sh [--obraz build/wynik/rdzen-test.squashfs]` i 
 
 | Scenariusz | Oczekiwane | Rodzaj |
 |---|---|---|
-| jednostkowe | parser linii poleceń (32), stan i historia baterii (26, także śmieciowe dane i zapełnienie historii), protokół zdarzeń (32), protokół usług i kanały na prawdziwych gniazdach (85), przybornik GUI (55: czas polski ze zmianami czasu, układ PL, UTF-8, rysowanie na krawędziach, tapety), renderer — ASan/UBSan | funkcjonalny + negatywny |
-| fuzzing | linia poleceń, protokół zdarzeń, protokół usług (32 B, wszystkie kierunki), libFuzzer po 20 s | fuzzing |
-| zabezpieczenia binariów | static-pie, RELRO, BIND_NOW, NX, brak RWX | konfiguracja |
-| konfiguracja jądra | każda linia `jadro/k1.config` w `.config` | konfiguracja |
+| czytelność | `scripts/sprawdz-czytelnosc.py`: plik `.c` ≤ 600 wierszy, funkcja ≤ 80, opis każdej usługi, aplikacji i komunikatu, wpisy „Tymczasowe”, spis ADR, istniejące ścieżki `docs/…` | konfiguracja |
+| jednostkowe | `make testy-host` — wszystkie programy `testy/host/test_*.c` z listy `testy-host` w `Makefile` (parsery, protokoły i kanały na prawdziwych gniazdach, skarbiec i jego formaty, pliki, przybornik GUI, renderer, instalator, czytnik FAT, dekoder…), ASan/UBSan; opisy przy etapach niżej | funkcjonalny + negatywny |
+| fuzzing | `make fuzz` — każdy cel z listy `FUZZ` w `Makefile` (linia poleceń, zdarzenia, komunikaty, magazyn, uevent, archiwum baterii, manifest, układ K1-EFI, rozmieszczenie, wpisy plików, FAT, lista pendrive'a, dekoder), libFuzzer po 20 s | fuzzing |
+
+Zabezpieczenia binariów (static-pie, RELRO, BIND_NOW, NX, brak RWX — `scripts/sprawdz-binaria.sh`) i konfigurację
+jądra (każda linia `jadro/k1.config` w `.config`) sprawdza sama budowa (`zbuduj-obraz.sh`, `zbuduj-jadro.sh`), przed testami.
+
+| Scenariusz | Oczekiwane | Rodzaj |
+|---|---|---|
 | qemu: start | `K1: init OK`, nadzorca uruchomiony, pierwsza klatka ekranu | funkcjonalny |
 | qemu: testy-w-systemie | `K1-TEST: WYNIK: OK`, `odrzucone 5)`, obcy nadawca odrzucony, próby klatek bez błędów, restart ekranu, wyłączenie padającej usługi, brak „zabronione wywołanie systemowe”, kontrolowane wyłączenie | funkcjonalny + negatywne |
 | qemu: neg-brak-dysku | `nie znaleziono urządzenia…`, wyłączenie | negatywny |
@@ -91,13 +97,14 @@ NEGATYWNE = coś, co ma się nie udać.
 - NEGATYWNE: brak `ptmx`, `pts`, `tty0`, `tty1`, `mem`, `kmem`, `port`
 - 13 sysctl ma wartości ustawione przez init; brak sysctl modułów, kexec, BPF, io_uring, SysRq,
   userfaultfd; brak `/proc/modules`, `/proc/kcore`
-- LSM: landlock, lockdown, yama; lockdown `[confidentiality]`; Landlock ABI ≥ 1 (jest 7)
+- LSM: landlock, lockdown, yama; lockdown `[confidentiality]`; Landlock dostępny (klatki wymagają ABI ≥ 6)
 - NEGATYWNE: `init_module`, `finit_module`, `kexec_load`, `kexec_file_load`, `io_uring_setup`, `bpf`,
-  `userfaultfd`, `modify_ldt`, `iopl`, `ioperm` → ENOSYS; gniazda AF_INET/AF_UNIX → EAFNOSUPPORT
+  `userfaultfd`, `modify_ldt`, `iopl`, `ioperm` → ENOSYS; gniazda AF_INET/AF_INET6 → EAFNOSUPPORT (gniazda UNIX
+  są — kanały usług)
 - init zbiera osierocone procesy (wnuk po zakończeniu nie zostaje zombie)
 - NEGATYWNE: SIGKILL wysłany do init nie zabija go
-- w `/rdzen` są tylko programy K1 (`init`, `nadzorca`, `wejscie`, `ekran`) i pliki testowe;
-  NEGATYWNE: brak plików setuid/setgid
+- w `/rdzen` są dokładnie: `init`, `nadzorca`, identyfikator wydania, usługi z `K1_SYSTEM`, aplikacje z `K1_APLIKACJE`
+  i pliki testowe (`t_inventory`); NEGATYWNE: brak plików setuid/setgid
 
 - M2: uruchomiony przez nadzorcę (a nadzorca przez init); karta `/rdzen/jadro/dev/dri/card0` i co
   najmniej 2 urządzenia `event*`; NEGATYWNE: brak `/dev/fb0` i `/dev/input/mice`; procesy `ekran`
@@ -112,8 +119,8 @@ NEGATYWNE = coś, co ma się nie udać.
   karta / `event*`); brak sieci IP, gniazda UNIX są (kanały).
 - M3 NEGATYWNE, złośliwe IPC przez kanał testowy od nadzorcy: 4 złe komunikaty odrzucone, poprawny
   przyjęty, poprawny od obcego UID odrzucony (harness: `odrzucone 5)` i wpis o obcym nadawcy).
-- M3 NEGATYWNE, **próby w klatkach**: nadzorca uruchamia program testowy w klatce `wejscie` i `ekran`
-  (`--proba`), a ten próbuje: uruchomić inny program (Landlock → EACCES), `open`, `openat`, `setuid`,
+- M3 NEGATYWNE, **próby w klatkach**: nadzorca uruchamia program testowy w klatce każdej usługi i aplikacji
+  z `k1_uslugi.h` (`t_proby`, `--proba`; w M3 — `wejscie` i `ekran`), a ten próbuje: uruchomić inny program (Landlock → EACCES), `open`, `openat`, `setuid`,
   `setresgid`, `socket`, `fork`, `clone`, `kill(1)`, `ptrace`, `mount`, `unshare`, `chroot`,
   `perf_event_open`, `keyctl`, `memfd_create`, `mmap`/`mprotect` z `PROT_EXEC`, obcy typ `ioctl`,
   `execve` po starcie usługi — każde musi zostać zablokowane (log `K1-PROBA: … 0 błędów`).
@@ -306,7 +313,7 @@ nazwą, uszkodzonym JPEG-iem, notatką, plikiem 17 MB, plikiem ukrytym i śmieci
 | czytnik | kliknięcie → nadzorca: czytnik dla `sdX` (tylko odczyt), UID 106; czytnik: FAT32; 4 elementy (bez ukrytego); przyciski tylko „Importuj”, „Importuj wszystkie” | `pendrive-2-pendrive.png` |
 | foldery | DCIM (1) → 100K1 (9, bez „._…”) | `pendrive-3-100k1.png` |
 | import | „Importuj wszystkie” → 9 plików w Obrazach (od 0.8.2 też GIF, BMP, WebP i zdjęcia 48/100 Mpx), skarbiec rozpoznał wszystkie z treści jako obrazy | `pendrive-4-zaimportowane.png` |
-| za duży | plik 17 MB → pominięty, nic nie zapisane, komunikat w stopce | `pendrive-5-za-duzy.png` |
+| duże pliki | plik 17 MB (do 0.8.0 „za duży”, od 0.8.1 — 18 kawałków po 1 MiB) i film 300 MB → Dokumenty | log `plik przeczytany` |
 | pojedynczo | zdjęcie z polską nazwą → Obrazy, notatka → Dokumenty; w skarbcu 5 plików z pendrive'a, razem tyle bajtów, ile na pendrivie | log `pliki z pendrive'a:` |
 | miejsca | Obrazy: 4, Dokumenty: 1 | log `widok:` |
 | miniatura (krok 4) | zaznaczone zdjęcie JPEG → nadzorca: dekoder UID 107; dekoder: JPEG → 80×60; kolor zdjęcia w miniaturze; PNG → 32×32 | `pendrive-6-podglad-jpeg.png`, `-png.png` |

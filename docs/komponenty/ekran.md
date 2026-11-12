@@ -18,12 +18,13 @@ Ufa jądru (DRM) i nadzorcy (kanał sterujący, UID 0 sprawdzany). **Nie ufa** k
 komunikat sprawdzany pole po polu, UID nadawcy każdego pakietu porównywany z tożsamością od
 nadzorcy, role egzekwowane (panele i cudze okna — tylko powłoka; ustawienia — tylko Ustawienia),
 powierzchnia przyjmowana tylko jako memfd z pieczęciami SHRINK/GROW/SEAL i dokładnym rozmiarem,
-mapowana tylko do odczytu, łącznie najwyżej 2 pełne ekrany na klienta (powłoka: 1); obszar
+mapowana tylko do odczytu, łącznie najwyżej 2 pełne ekrany na klienta (aplikacja i powłoka — od 0.7.5 z warstwą pulpitu; ekran hasła: 1); obszar
 zatwierdzenia przycinany do własnej powierzchni; po 50 błędach klient jest rozłączany. Treść pikseli klientów jest
 tylko kopiowana i mieszana (bez interpretacji).
 
 ## Uprawnienia
-UID/GID 101, bez capabilities, `NO_NEW_PRIVS`, seccomp (baza + `ioctl` typu `'d'` = DRM),
+UID/GID 101, bez capabilities, `NO_NEW_PRIVS`, seccomp (baza + `ioctl` typu `'d'` = DRM + `memfd_create` —
+ustawienia i zdjęcie tapety dla skarbca),
 Landlock bez żadnej ścieżki, cgroup `ekran` (176 MiB — z miejscem na zdjęcie na tapetę, 0.8.0; 1 proces). Kartę otwiera nadzorca (to
 otwarcie jest DRM masterem) i przekazuje jako fd 4.
 
