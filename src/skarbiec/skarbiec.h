@@ -6,7 +6,7 @@
  *   dokumenty.c   the user's files and folders, Kosz (ADR 0029) — on top of obiekty.c, host tests;
  *                 split into dokumenty.c, dok_drzewo.c, dok_kosz.c, dok_wczytaj.c (dok_wew.h)
  *   dok_kanal.c   K1_KOM_DOK_* requests of clients: the table of rights, memfd in and out
- *   dostep.c      a file for an application after a gesture: "Otwórz w…", the file picker (ADR 0030)
+ *   dostep.c      a file for an application after a gesture: "Otwórz za pomocą", the file picker (ADR 0030)
  *   miejsce.c     the room for files, K1-DANE to the end of its USB stick (0.8.1 step 3, ADR 0033)
  *   przerwy.c     work between requests: compaction in steps, the transition to format 2 (0.8.2, ADR 0036)
  *

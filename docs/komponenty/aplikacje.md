@@ -26,7 +26,7 @@ większej liczbie komunikat „Pokazano 256 najnowszych notatek”, starsze są 
 idzie za pierwszym wierszem („Lista: zakupy?” → „Lista zakupy”; bez znaków, których nazwa nie może mieć), dopóki
 użytkownik nie zmieni jej w Plikach; ta sama nazwa w folderze — „ (2)”. Nowa notatka staje się plikiem przy
 pierwszym zapisie; pusta znika po przejściu do innej (plik — do Kosza). „Usuń notatkę” przenosi plik do Kosza
-(przywrócisz go w Plikach). Plik tekstowy otwarty w Notatkach z Plików, z pulpitu („Otwórz w…”) albo przez
+(przywrócisz go w Plikach). Plik tekstowy otwarty w Notatkach z Plików, z pulpitu („Otwórz za pomocą”) albo przez
 „Otwórz…” dochodzi do listy; zamiast „Usuń notatkę” ma „Zamknij plik” (plik zostaje na swoim miejscu); większy
 niż 16 KB — komunikat w stopce. Przy pierwszym uruchomieniu 0.8.0 stare notatki (obiekty 1–33 z 0.5.6–0.7.6)
 stają się plikami; stary obiekt znika dopiero, gdy skarbiec potwierdzi plik (`stare.c`, tymczasowe — do 0.9.0).

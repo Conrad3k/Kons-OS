@@ -1,4 +1,4 @@
-/* K1 — the measurement of step 1 of docs/PLAN-0.8.2.txt (ADR 0036; the way of trial T3): a vault in a sparse file,
+/* K1 — the measurement of step 1 of docs/archiwum/PLAN-0.8.2.txt (ADR 0036; the way of trial T3): a vault in a sparse file,
  * filled with files in pieces of 1 MiB (and a small object for every 16 pieces), in format 1 or 2. Prints the room for
  * files, how long opening takes (processor time) and how much it reads, and the longest pause of compaction: format 1
  * — the one compaction of everything; format 2 — the longest step of 4 MiB and the longest write while half the files

@@ -29,7 +29,7 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 | `src/logowanie/` | `/rdzen/system/logowanie` — ekran hasła przy starcie (M5e, ADR 0017) |
 | `src/instalator/` | `/rdzen/system/instalator` — zapis K1 na dysk komputera, tablica GPT (M5f, ADR 0018) |
 | `src/czytnik/` | `/rdzen/system/czytnik` — pendrive dla Plików: MBR/GPT i FAT12/16/32 w klatce, tylko odczyt (0.8.0 krok 3, ADR 0031) |
-| `src/dekoder/` | `/rdzen/system/dekoder` — jeden obraz (PNG, JPEG, od 0.8.2 GIF, BMP, WebP; do 100 Mpx) → piksele, jednorazowy proces w klatce na prośbę klienta z tabeli (Pliki; 0.8.0 krok 4, ADR 0032) |
+| `src/dekoder/` | `/rdzen/system/dekoder` — jeden obraz (PNG, JPEG, od 0.8.2 GIF, BMP, WebP; do 100 Mpx) → piksele, jednorazowy proces w klatce na prośbę klienta z tabeli (Pliki, Podgląd; 0.8.0 krok 4, ADR 0032, 0037) |
 | `src/zewnetrzne/` | kod zewnętrzny w repozytorium: Monocypher (kryptografia skarbca) i Wuffs (dekoder obrazów) — jedyne obce biblioteki, wersje i uzasadnienie w `docs/ZALEZNOSCI.md` |
 | `jadro/` | wersja, konfiguracja i linia poleceń jądra, klucze PGP |
 | `testy/system/` | program testowy uruchamiany wewnątrz K1 (obraz testowy) |

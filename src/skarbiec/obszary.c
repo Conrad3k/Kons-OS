@@ -1,7 +1,8 @@
 /* K1 skarbiec — format 1 of the Blob Vault (M5c, ADR 0015): a log in two regions of half the partition each.
  * Records are appended to the active region; when it is full (or earlier, ADR 0034) the live objects are copied into
  * the other region with a new epoch and the header switches to it. Every record is authenticated with its region,
- * epoch and position as associated data. magazyn.c holds the index and the public functions. */
+ * epoch and position as associated data. magazyn.c holds the index and the public functions.
+ * k1: tymczasowe — usunąć w 0.10.0 (with przejscie.c: when no vault of 0.5.6–0.8.1 is left; ADR 0036) */
 #include "magazyn_wew.h"
 #include "k1_bajty.h"
 
