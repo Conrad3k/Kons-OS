@@ -117,6 +117,61 @@ int rozm_dodaj_ikone(struct rozmieszczenie *r, uint32_t klucz, int kolumn, int w
     return 0;
 }
 
+int rozm_ostatnia_wolna(const struct rozmieszczenie *r, int kolumn, int wierszy, int *kol, int *wiersz)
+{
+    for (int k = (kolumn <= ROZM_KOMORKA_MAKS ? kolumn : ROZM_KOMORKA_MAKS + 1) - 1; k >= 0; k--)
+        for (int w = (wierszy <= ROZM_KOMORKA_MAKS ? wierszy : ROZM_KOMORKA_MAKS + 1) - 1; w >= 0; w--)
+            if (rozm_w_komorce(r, k, w) == 0) {
+                *kol = k;
+                *wiersz = w;
+                return 0;
+            }
+    return -1;
+}
+
+/* Cells an icon can still take: free cells of the grid, at most ROZM_IKON_MAKS icons in all. */
+static int miejsc(const struct rozmieszczenie *r, int kolumn, int wierszy)
+{
+    int wolnych = 0;
+    for (int k = 0; k < kolumn && k <= ROZM_KOMORKA_MAKS; k++)
+        for (int w = 0; w < wierszy && w <= ROZM_KOMORKA_MAKS; w++)
+            wolnych += rozm_w_komorce(r, k, w) == 0;
+    return wolnych < ROZM_IKON_MAKS - r->n_ikon ? wolnych : ROZM_IKON_MAKS - r->n_ikon;
+}
+
+/* No room at all: the file icon in the last cell (column by column) leaves it; 1 when one did. */
+static int zwolnij(struct rozmieszczenie *r, int kolumn, int wierszy)
+{
+    for (int k = (kolumn <= ROZM_KOMORKA_MAKS ? kolumn : ROZM_KOMORKA_MAKS + 1) - 1; k >= 0; k--)
+        for (int w = (wierszy <= ROZM_KOMORKA_MAKS ? wierszy : ROZM_KOMORKA_MAKS + 1) - 1; w >= 0; w--) {
+            uint32_t kl = rozm_w_komorce(r, k, w);
+            if (rozm_plik(kl)) {
+                rozm_usun_ikone(r, kl);
+                return 1;
+            }
+        }
+    return 0;
+}
+
+int rozm_pliki(struct rozmieszczenie *r, const uint32_t *klucze, int n, int kolumn, int wierszy)
+{
+    int bez = 0, wolne = miejsc(r, kolumn, wierszy), i;
+    for (i = 0; i < n; i++)
+        bez += rozm_ikona(r, klucze[i]) < 0;
+    if (bez > wolne && wolne == 0 && zwolnij(r, kolumn, wierszy)) { /* the kept cell must be somewhere */
+        bez++;
+        wolne = miejsc(r, kolumn, wierszy);
+    }
+    if (bez > wolne) /* one cell stays for "Jeszcze n" */
+        wolne--;
+    for (i = 0; i < n && wolne > 0; i++)
+        if (rozm_ikona(r, klucze[i]) < 0 && rozm_dodaj_ikone(r, klucze[i], kolumn, wierszy) == 0) {
+            bez--;
+            wolne--;
+        }
+    return bez;
+}
+
 void rozm_usun_ikone(struct rozmieszczenie *r, uint32_t klucz)
 {
     int i = rozm_ikona(r, klucz);

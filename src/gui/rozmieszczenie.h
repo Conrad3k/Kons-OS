@@ -60,6 +60,13 @@ int rozm_dodaj_ikone(struct rozmieszczenie *r, uint32_t klucz, int kolumn, int w
 void rozm_usun_ikone(struct rozmieszczenie *r, uint32_t klucz);
 /* Moves the icon of `klucz` to a cell; an icon already there takes the cell it left. */
 void rozm_przenies_ikone(struct rozmieszczenie *r, uint32_t klucz, int kol, int wiersz);
+/* The files of Pulpit (0.8.2 step 6, L19): the `n` keys (ROZM_PLIK + entry, in the order of the list) without an
+ * icon get the first free cells. When not all fit, the last free cell (column by column) stays free for "Jeszcze n"
+ * — with no free cell at all, the icon of the file in the last such cell leaves it. How many files have no icon (0:
+ * all fit). Icons of files no longer listed are the caller's to remove first. */
+int rozm_pliki(struct rozmieszczenie *r, const uint32_t *klucze, int n, int kolumn, int wierszy);
+/* The cell of "Jeszcze n": the last free cell column by column; 0, or -1 when every cell is taken. */
+int rozm_ostatnia_wolna(const struct rozmieszczenie *r, int kolumn, int wierszy, int *kol, int *wiersz);
 /* "Ułóż ikony": Kosz, the applications in number order, then the files (oldest first), column by column. */
 void rozm_uloz(struct rozmieszczenie *r, int wierszy);
 /* Icons outside a `kolumn` × `wierszy` grid (a smaller screen) go to the first free cells; how many moved. */

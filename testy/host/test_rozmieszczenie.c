@@ -153,6 +153,41 @@ static void test_stary_zapis(void)
     EXPECT(rozm_w_komorce(&w, 4, 2) == K1_APL_NOTATKI && rozm_ikona(&w, ROZM_KOSZ) < 0);
 }
 
+/* L19 (0.8.2 step 6): more files on Pulpit than cells — the last free cell stays for "Jeszcze n", and it stays put. */
+static void test_za_duzo(void)
+{
+    struct rozmieszczenie r;
+    uint32_t pliki[120];
+    int k, w, bez;
+    for (int i = 0; i < 120; i++)
+        pliki[i] = ROZM_PLIK + K1_DOK_PIERWSZY + (uint32_t)i;
+    rozm_domyslne(&r, domyslne, 3); /* Kosz and the applications: NA + 1 icons in 3 rows */
+    EXPECT(rozm_pliki(&r, pliki, 2, 6, 3) == 0 && rozm_ikona(&r, pliki[1]) >= 0); /* they fit */
+    bez = rozm_pliki(&r, pliki, 30, 6, 3);                                     /* 18 cells */
+    EXPECT(bez == 30 - (18 - (NA + 1) - 1) && r.n_ikon == 17);
+    EXPECT(rozm_ostatnia_wolna(&r, 6, 3, &k, &w) == 0 && k == 5 && w == 2);
+    EXPECT(rozm_pliki(&r, pliki, 30, 6, 3) == bez && r.n_ikon == 17); /* again: nothing moves */
+    EXPECT(rozm_pliki(&r, pliki, 31, 6, 3) == bez + 1 && r.n_ikon == 17);
+    /* an icon dragged into the kept cell: the next file icon in the last cell leaves (no free cell otherwise) */
+    rozm_przenies_ikone(&r, pliki[0], 5, 2);
+    rozm_przenies_ikone(&r, pliki[1], 4, 2); /* swap with … */
+    EXPECT(rozm_ostatnia_wolna(&r, 6, 3, &k, &w) == 0); /* its old cell is free now */
+    rozm_usun_ikone(&r, pliki[2]);
+    rozm_pliki(&r, pliki, 30, 6, 3);
+    EXPECT(rozm_ostatnia_wolna(&r, 6, 3, &k, &w) == 0 && r.n_ikon == 17);
+    /* the grid full of applications only: no cell for it */
+    rozm_domyslne(&r, domyslne, 3);
+    EXPECT(rozm_pliki(&r, pliki, 3, 1, 3) == 3 && rozm_ostatnia_wolna(&r, 1, 3, &k, &w) == -1);
+    /* a big screen: at most ROZM_IKON_MAKS icons — the kept cell is the last one of the grid */
+    rozm_domyslne(&r, domyslne, 10);
+    bez = rozm_pliki(&r, pliki, 120, 22, 10);
+    EXPECT(r.n_ikon == ROZM_IKON_MAKS - 1 && bez == 120 - (ROZM_IKON_MAKS - 1 - (NA + 1)));
+    EXPECT(rozm_ostatnia_wolna(&r, 22, 10, &k, &w) == 0 && k == 21 && w == 9);
+    EXPECT(rozm_pliki(&r, pliki, 120, 22, 10) == bez && r.n_ikon == ROZM_IKON_MAKS - 1);
+    /* files gone: all fit again, the kept cell taken */
+    EXPECT(rozm_pliki(&r, pliki, 0, 22, 10) == 0);
+}
+
 int main(void)
 {
 #define X_DOM(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek) domyslne[apl] = pasek;
@@ -166,5 +201,6 @@ int main(void)
     test_mniejszy_ekran();
     test_zapis();
     test_stary_zapis();
+    test_za_duzo();
     return K1_TEST_KONIEC("test_rozmieszczenie");
 }

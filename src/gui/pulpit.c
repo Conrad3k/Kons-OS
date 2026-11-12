@@ -4,7 +4,10 @@
  * (rozmieszczenie.h): a tile in the colour of the windows (light / dark theme) with the line icon, the name
  * under it in cream with a soft shadow (it lies on the wallpaper). Click selects, a double click opens,
  * dragging moves an icon to another cell (an icon already there swaps places), the right button opens the
- * menu of the icon or of the desktop.
+ * menu of the icon or of the desktop. A file dragged over Kosz or a folder of Pulpit (0.8.2 step 6): that cell is
+ * outlined, a see-through tile and the sign of what a drop does follow the pointer (the table of dragging, przybornik
+ * k1_przeciaganie) — dropped, it goes there (pliki.c), or the window asks first (a folder into Kosz, D8). More files
+ * than cells (L19): the last free cell shows "Jeszcze n".
  *
  * Only what changed is drawn and committed (k1_pow_zatwierdz_obszar): the half being drawn is two commits
  * old, so a change is drawn twice — now and in the next frame (brud_poprz). */
@@ -13,6 +16,7 @@
 
 #include "gui.h"
 #include "k1_log.h"
+#include "k1_przeciaganie.h"
 #include "k1_teraz.h"
 
 #define KOM_W 84
@@ -39,6 +43,14 @@ static struct {
     uint32_t klucz;
     double t;
 } klik; /* the last click, for a double click */
+static struct {
+    int cel;            /* K1_PC_* under a file dragged (0: none — the icon only moves) */
+    uint32_t cel_klucz; /* Kosz, or the folder's icon */
+    int32_t px, py;     /* the pointer */
+    struct k1_prz_ocena oc;
+} upusc;
+#define DUCH_W 340 /* the see-through tile and the sign at the pointer: the rectangle redrawn as it moves */
+#define DUCH_H (KAFEL + 8 + K1_PRZ_ZNAK_WYS + 32)
 
 int pulpit_kolumn(void)
 {
@@ -85,11 +97,29 @@ static void uszkodz_komorke(int kol, int wiersz)
     dodaj_brud(r);
 }
 
-static void uszkodz_ikone(uint32_t klucz)
+/* The cell of an icon ("Jeszcze n": the last free cell while some files do not fit); 0, or -1. */
+static int komorka_klucza(uint32_t klucz, int *kol, int *wiersz)
 {
     int i = rozm_ikona(&rozm, klucz);
-    if (i >= 0)
-        uszkodz_komorke(rozm.ikony[i].kol, rozm.ikony[i].wiersz);
+    if (klucz == KLUCZ_WIECEJ)
+        return pliki_ukryte() > 0 ? rozm_ostatnia_wolna(&rozm, pulpit_kolumn(), pulpit_wierszy(), kol, wiersz) : -1;
+    if (i < 0)
+        return -1;
+    *kol = rozm.ikony[i].kol;
+    *wiersz = rozm.ikony[i].wiersz;
+    return 0;
+}
+
+static void uszkodz_ikone(uint32_t klucz)
+{
+    int kol, wiersz;
+    if (klucz != 0 && komorka_klucza(klucz, &kol, &wiersz) == 0)
+        uszkodz_komorke(kol, wiersz);
+}
+
+static void uszkodz_ducha(void)
+{
+    dodaj_brud((struct prost){ upusc.px - 8, upusc.py, DUCH_W, DUCH_H });
 }
 
 void pulpit_wszystko(void)
@@ -130,12 +160,33 @@ static void ikona(struct k1_obraz *o, int32_t ox, int32_t oy, uint32_t klucz, in
         if (zazn)
             k1_obrys(o, x, y, KOM_W, KOM_H - 4, 10, 1.25f, k1_kolor(K1_KREM, ciemny ? 90 : 150));
     }
+    if (wcisk.ciagnie && upusc.cel != 0 && klucz == upusc.cel_klucz) { /* a drop goes here (0.8.2 step 6) */
+        k1_zaokraglony(o, x, y, KOM_W, KOM_H - 4, 10, k1_kolor(K1_KREM, 70));
+        k1_obrys(o, x, y, KOM_W, KOM_H - 4, 10, 2.0f, k1_kolor(K1_KREM, 255));
+    }
     k1_cien(o, cx - KAFEL / 2.0f, y + 8, KAFEL, KAFEL, 14, 3, 10, 70);
-    k1_zaokraglony(o, cx - KAFEL / 2.0f, y + 8, KAFEL, KAFEL, 14, k1_kolor(m->tlo, 245));
+    k1_zaokraglony(o, cx - KAFEL / 2.0f, y + 8, KAFEL, KAFEL, 14, k1_kolor(m->tlo, klucz == KLUCZ_WIECEJ ? 140 : 245));
     k1_obrys(o, cx - KAFEL / 2.0f, y + 8, KAFEL, KAFEL, 14, 1.0f, k1_kolor(m->tekst, 22));
-    k1_ikona(o, ikona_rysunek(klucz), cx - 14, y + 20, 28, k1_kolor(m->tekst, 255));
+    if (klucz == KLUCZ_WIECEJ) { /* L19: "+12" in the tile */
+        char t[16];
+        snprintf(t, sizeof t, "+%d", pliki_ukryte());
+        k1_tekst(o, K1_CZ_TEKST_MOCNA, (int32_t)cx - k1_tekst_szer(K1_CZ_TEKST_MOCNA, t) / 2, (int32_t)y + 40, t,
+                 k1_kolor(m->tekst, 255), KAFEL - 4);
+    } else {
+        k1_ikona(o, ikona_rysunek(klucz), cx - 14, y + 20, 28, k1_kolor(m->tekst, 255));
+    }
     k1_tekst(o, K1_CZ_MALA_MOCNA, tx + 1, (int32_t)y + 79, nazwa, k1_kolor(K1_NOC, 150), KOM_W - 4);
     k1_tekst(o, K1_CZ_MALA_MOCNA, tx, (int32_t)y + 78, nazwa, k1_kolor(K1_KREM, 255), KOM_W - 4);
+}
+
+static void duch(struct k1_obraz *o, int32_t ox, int32_t oy)
+{
+    const struct k1_motyw *m = motyw();
+    float x = (float)(upusc.px + 6 - ox), y = (float)(upusc.py + 10 - oy);
+    k1_cien(o, x, y, KAFEL, KAFEL, 14, 3, 10, 50);
+    k1_zaokraglony(o, x, y, KAFEL, KAFEL, 14, k1_kolor(m->tlo, 180));
+    k1_ikona(o, ikona_rysunek(wcisk.klucz), x + 12, y + 12, 28, k1_kolor(m->tekst, 190));
+    k1_prz_znak_rysuj(o, (int32_t)x, (int32_t)y + KAFEL + 8, &upusc.oc);
 }
 
 void rysuj_pulpit(void)
@@ -168,8 +219,12 @@ void rysuj_pulpit(void)
         if (!(wcisk.ciagnie && rozm.ikony[i].klucz == wcisk.klucz)) /* the dragged one on top of the rest */
             ikona(&cz, r.x, r.y, rozm.ikony[i].klucz, kol, wiersz);
     }
+    if (komorka_klucza(KLUCZ_WIECEJ, &kol, &wiersz) == 0)
+        ikona(&cz, r.x, r.y, KLUCZ_WIECEJ, kol, wiersz);
     if (wcisk.ciagnie)
         ikona(&cz, r.x, r.y, wcisk.klucz, wcisk.kol, wcisk.wiersz);
+    if (wcisk.ciagnie && upusc.cel != 0) /* a see-through tile and the sign at the pointer */
+        duch(&cz, r.x, r.y);
     k1_pow_zatwierdz_obszar(&k, &pulpit, r.x, r.y, r.w, r.h);
 }
 
@@ -180,7 +235,7 @@ void pulpit_loguj(void)
     static char ostatni[1200 + 96]; /* "(siatka …, co …): " and the icons */
     char buf[1200], nazwa[24], linia[sizeof ostatni];
     size_t n = 0;
-    int i;
+    int i, kol, wiersz;
     for (i = 0; i < rozm.n_ikon && n < sizeof buf - 48; i++) {
         struct prost c = komorka(rozm.ikony[i].kol, rozm.ikony[i].wiersz);
         uint32_t kl = rozm.ikony[i].klucz;
@@ -188,6 +243,11 @@ void pulpit_loguj(void)
             snprintf(nazwa, sizeof nazwa, "plik %d", rozm_plik(kl));
         n += (size_t)snprintf(buf + n, sizeof buf - n, "%s%s %d,%d", i ? "; " : "", rozm_plik(kl) ? nazwa : ikona_nazwa(kl),
                               c.x + KOM_W / 2, c.y + 8 + KAFEL / 2);
+    }
+    if (komorka_klucza(KLUCZ_WIECEJ, &kol, &wiersz) == 0 && n < sizeof buf - 48) { /* "Jeszcze 12" (L19) */
+        struct prost c = komorka(kol, wiersz);
+        n += (size_t)snprintf(buf + n, sizeof buf - n, "%s%s %d,%d", n ? "; " : "", ikona_nazwa(KLUCZ_WIECEJ), c.x + KOM_W / 2,
+                              c.y + 8 + KAFEL / 2);
     }
     snprintf(linia, sizeof linia, "(siatka %dx%d, co %d,%d): %s", pulpit_kolumn(), pulpit_wierszy(), KOM_W, KOM_H, n ? buf : "brak");
     if (strcmp(linia, ostatni) == 0)
@@ -221,8 +281,47 @@ static int komorka_pod(int32_t x, int32_t y, int *kol, int *wiersz)
 
 static uint32_t ikona_pod(int32_t x, int32_t y)
 {
-    int kol, wiersz;
-    return komorka_pod(x, y, &kol, &wiersz) ? rozm_w_komorce(&rozm, kol, wiersz) : 0;
+    int kol, wiersz, wk, ww;
+    if (!komorka_pod(x, y, &kol, &wiersz))
+        return 0;
+    if (rozm_w_komorce(&rozm, kol, wiersz) == 0 && komorka_klucza(KLUCZ_WIECEJ, &wk, &ww) == 0 && wk == kol && ww == wiersz)
+        return KLUCZ_WIECEJ;
+    return rozm_w_komorce(&rozm, kol, wiersz);
+}
+
+/* A file dragged over Kosz or a folder of Pulpit: what a drop does there (the table of dragging). */
+static void cel_upuszczenia(int32_t x, int32_t y)
+{
+    uint32_t kl = ikona_pod(x, y);
+    int cel = !rozm_plik(wcisk.klucz) ? 0
+              : kl == ROZM_KOSZ      ? K1_PC_KOSZ
+              : kl != wcisk.klucz && plik_nazwa_folderu(kl) != NULL ? K1_PC_FOLDER
+                                                                     : 0;
+    int folder = 0;
+    struct k1_prz_co c;
+    if (wcisk.ciagnie && upusc.cel != 0)
+        uszkodz_ducha(); /* where it was drawn */
+    upusc.px = x;
+    upusc.py = y;
+    if (cel != upusc.cel || kl != upusc.cel_klucz) {
+        uszkodz_ikone(upusc.cel_klucz);
+        upusc.cel = cel;
+        upusc.cel_klucz = cel != 0 ? kl : 0;
+        uszkodz_ikone(upusc.cel_klucz);
+        memset(&c, 0, sizeof c);
+        plik_typ(wcisk.klucz, &folder);
+        c.zrodlo = K1_PZ_PULPIT;
+        c.cel = cel;
+        c.ile = 1;
+        c.folderow = folder;
+        c.w_srodku = -1; /* the desktop does not see inside folders: it asks for every folder (D8) */
+        c.wolne_mb = -1;
+        c.cel_nazwa = cel == K1_PC_FOLDER ? plik_nazwa_folderu(kl) : NULL;
+        c.nazwa = ikona_nazwa(wcisk.klucz);
+        k1_prz_ocen(&c, &upusc.oc);
+    }
+    if (cel != 0)
+        uszkodz_ducha();
 }
 
 static void zaznacz(uint32_t klucz)
@@ -253,7 +352,16 @@ static void ruch(int32_t x, int32_t y)
         uszkodz_ikone(najechana);
         najechana = 0;
     }
-    if (wcisk.ciagnie && komorka_pod(x, y, &kol, &wiersz) && (kol != wcisk.kol || wiersz != wcisk.wiersz)) {
+    if (wcisk.ciagnie)
+        cel_upuszczenia(x, y);
+    if (wcisk.ciagnie && upusc.cel != 0) { /* over Kosz or a folder: the icon stays in its cell */
+        int i = rozm_ikona(&rozm, wcisk.klucz);
+        kol = rozm.ikony[i].kol;
+        wiersz = rozm.ikony[i].wiersz;
+    } else if (!wcisk.ciagnie || !komorka_pod(x, y, &kol, &wiersz)) {
+        return;
+    }
+    if (kol != wcisk.kol || wiersz != wcisk.wiersz) {
         uszkodz_komorke(wcisk.kol, wcisk.wiersz); /* the old target and the one leaving it */
         wcisk.kol = kol;
         wcisk.wiersz = wiersz;
@@ -263,10 +371,51 @@ static void ruch(int32_t x, int32_t y)
     }
 }
 
+static uint32_t do_kosza_klucz; /* a folder waiting for the answer "Przenieść do Kosza?" */
+
+static void do_kosza(int odpowiedz)
+{
+    if (odpowiedz == K1_PO_TAK) {
+        k1_log(TAG, "pulpit: folder %d do Kosza", rozm_plik(do_kosza_klucz));
+        plik_do_kosza(do_kosza_klucz);
+    }
+}
+
+static void nic(int odpowiedz)
+{
+    (void)odpowiedz;
+}
+
+/* A file dropped on Kosz or on a folder (0.8.2 step 6): what the table said. */
+static void upusc_plik(void)
+{
+    static const char *const dzialania[] = { "nic", "przenieś", "do Kosza", "przywróć", "import", "odmowa" };
+    struct k1_menu okno;
+    k1_log(TAG, "pulpit: upuszczono plik %d na %s — %s%s", rozm_plik(wcisk.klucz), upusc.cel == K1_PC_KOSZ ? "Kosz" : "folder",
+           dzialania[upusc.oc.dzialanie], upusc.oc.pytaj ? " (pytanie)" : "");
+    if (upusc.oc.dzialanie == K1_PD_KOSZ && !upusc.oc.pytaj) {
+        plik_do_kosza(wcisk.klucz);
+    } else if (upusc.oc.dzialanie == K1_PD_KOSZ) {
+        do_kosza_klucz = wcisk.klucz;
+        k1_prz_okienko(&okno, &upusc.oc);
+        kontekst_okienko(&okno, "pytanie", upusc.px, upusc.py, do_kosza);
+    } else if (upusc.oc.dzialanie == K1_PD_PRZENIES) {
+        plik_przenies(wcisk.klucz, upusc.cel_klucz, upusc.px, upusc.py);
+    } else if (upusc.oc.dzialanie == K1_PD_ODMOWA) {
+        k1_prz_okienko(&okno, &upusc.oc);
+        kontekst_okienko(&okno, "odmowa", upusc.px, upusc.py, nic);
+    }
+}
+
 static void puszczenie(void)
 {
     char co[96];
-    if (wcisk.ciagnie) {
+    if (wcisk.ciagnie && upusc.cel != 0) {
+        upusc_plik();
+        upusc.cel = 0;
+        upusc.cel_klucz = 0;
+        pulpit_wszystko();
+    } else if (wcisk.ciagnie) {
         int i = rozm_ikona(&rozm, wcisk.klucz);
         if (rozm.ikony[i].kol != wcisk.kol || rozm.ikony[i].wiersz != wcisk.wiersz) {
             rozm_przenies_ikone(&rozm, wcisk.klucz, wcisk.kol, wcisk.wiersz);
@@ -299,12 +448,12 @@ void wskaznik_pulpit(const struct k1_komunikat *m)
         }
         klik.klucz = kl;
         klik.t = k1_teraz();
-        wcisk.klucz = kl;
+        wcisk.klucz = kl == KLUCZ_WIECEJ ? 0 : kl; /* "Jeszcze n" never moves */
         wcisk.x = m->a;
         wcisk.y = m->b;
     } else if (m->c == K1_WSK_WCISNIECIE && m->d == K1_PRZYCISK_PRAWY) {
         zaznacz(kl);
-        kontekst_otworz(kl ? K_IKONA : K_PULPIT, kl, m->a, m->b);
+        kontekst_otworz(kl && kl != KLUCZ_WIECEJ ? K_IKONA : K_PULPIT, kl == KLUCZ_WIECEJ ? 0 : kl, m->a, m->b);
     } else if (m->c == K1_WSK_PUSZCZENIE && m->d == K1_PRZYCISK_LEWY) {
         puszczenie();
     }

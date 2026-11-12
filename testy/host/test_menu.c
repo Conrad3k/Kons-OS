@@ -53,6 +53,14 @@ static void t_typy(void)
 static void t_miejsca(void)
 {
     struct k1_menu m;
+    /* many selected (0.8.2 step 6): only what can be done to all of them */
+    k1_menu_wielu(&m, K1_MM_PLIKI, 12);
+    EXPECT(strcmp(m.p[0].tekst, "Zaznaczone: 12") == 0 && m.p[0].styl == K1_MS_TEKST && czynne(&m, K1_MA_USUN) &&
+           wiersz(&m, K1_MA_OTWORZ) < 0 && wiersz(&m, K1_MA_NAZWA) < 0);
+    k1_menu_wielu(&m, K1_MM_KOSZ, 2);
+    EXPECT(czynne(&m, K1_MA_PRZYWROC) && czynne(&m, K1_MA_NA_ZAWSZE) && wiersz(&m, K1_MA_USUN) < 0);
+    k1_menu_wielu(&m, K1_MM_PENDRIVE, 3);
+    EXPECT(czynne(&m, K1_MA_IMPORTUJ) && m.n == 3);
     k1_menu_pliku(&m, K1_MM_PLIKI, 1, 0); /* a folder: into it, no applications */
     EXPECT(czynne(&m, K1_MA_OTWORZ) && wiersz(&m, K1_MA_ZA_POMOCA) < 0 && czynne(&m, K1_MA_NAZWA) && czynne(&m, K1_MA_USUN));
     k1_menu_pliku(&m, K1_MM_PULPIT, 1, 0);
