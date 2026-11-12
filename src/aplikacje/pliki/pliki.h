@@ -1,5 +1,6 @@
 /* K1 Pliki — state shared by the modules (0.8.0, ADR 0029):
- *   main.c   the window: places on the left, the path, the list, keys and the mouse
+ *   main.c   the window: places on the left, the path, the list
+ *   wskaznik.c the mouse and keys
  *   przyciski.c the buttons of the place and what they do
  *   menu.c   the menu under the right mouse button (0.8.2 step 5: the desktop's, from przybornik k1_menu)
  *   rysuj.c  drawing the list, the details on the right and the footer
@@ -76,11 +77,23 @@ extern const char *blad;       /* a message for the footer (NULL: none) */
 extern int gotowe;             /* the first list has arrived */
 
 /* main.c */
-void otworz(uint32_t id); /* a folder: into it; a file: its default application, or why there is none (the footer) */
+extern int nad_miejscem, nad_przyciskiem, nad_w_gore, nad_tapeta; /* under the pointer (drawn highlighted) */
 int wierszy_widac(void);
+int wiersz_zaznaczonego(void);
+void zaznacz_wiersz(int i);
+int w_gore_mozna(void);
+void w_gore(void);
 int przewijanie_potrzebne(void);
 const struct k1_dok_wpis *wiersz_wpisu(int i); /* row `i` of the place shown */
 const struct k1_dok_wpis *wpis_tu(uint32_t id); /* an entry of the place shown (on the stick: from czytnik) */
+
+/* wskaznik.c — the mouse and keys */
+void otworz(uint32_t id); /* a folder: into it; a file: its default application, or why there is none (the footer) */
+void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk);
+void klawisz(unsigned kod, int wartosc, unsigned mody);
+void klik_zapomnij(void); /* the next click is never the second of a double click */
+int miejsce_pod(int32_t x, int32_t y); /* a place on the left: 0..K1_FOLDERY_MAKS-1 a folder, then Kosz, the stick; -1 */
+int wiersz_pod(int32_t x, int32_t y);  /* a row of the list shown, or -1 */
 
 /* przyciski.c */
 enum { B_NOWY, B_NAZWA, B_USUN, B_PRZYWROC, B_NA_ZAWSZE, B_OPROZNIJ, B_TAK, B_ANULUJ, B_OTWORZ, B_IMPORTUJ, B_IMPORTUJ_WSZ };
