@@ -61,6 +61,7 @@ Nowy czat — przebieg każdego kroku:
 [x]  2  Pendrive i nazwy plików                      L13 L14 L15 L16 L8 L9   —          D3        M–L      —
          [PR #74]
 [ ]  3  Zdjęcia: duże i nowe formaty, wspólny dekoder L17 L23b               —          —         M        (0032)
+         [w toku: Claude, gałąź claude/charming-rubin-uxns33]
 [ ]  4  Aplikacja Podgląd                            (prośba właściciela)    3          D1 D2 D5  L        0037
 [ ]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
 [ ]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        5          D6 D8     L        —
