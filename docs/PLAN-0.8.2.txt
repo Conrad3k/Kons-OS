@@ -58,8 +58,8 @@ Nowy czat — przebieg każdego kroku:
      Krok                                             Luki (punkt 5)          Zależy od  Decyzje   Rozmiar  ADR
 [x]  1  Skarbiec na lata: format na duże dane        L25 L26 L27 L28         —          —         XL       0036
          [1a PR #72 (format 2 w magazynie); 1b i 1c PR #73 (kompaktowanie w przerwach, przejście, format 2 w systemie)]
-[ ]  2  Pendrive i nazwy plików                      L13 L14 L15 L16 L8 L9   —          D3        M–L      —
-         [w toku: Claude, gałąź claude/inspiring-lamport-2w8zhb]
+[x]  2  Pendrive i nazwy plików                      L13 L14 L15 L16 L8 L9   —          D3        M–L      —
+         [PR #74]
 [ ]  3  Zdjęcia: duże i nowe formaty, wspólny dekoder L17 L23b               —          —         M        (0032)
 [ ]  4  Aplikacja Podgląd                            (prośba właściciela)    3          D1 D2 D5  L        0037
 [ ]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
@@ -198,7 +198,7 @@ KROK 2 — Pendrive i nazwy plików                                             
     przerywają import z powodem w stopce.
   - Log przy imporcie tysięcy plików: pojedynczy mały plik nie daje już wierszy (Pliki, czytnik — tylko pliki
     kawałkowe i liczby na końcu), pulpit nie powtarza tego samego „ikony na pulpicie”, Pliki nie logują widoku
-    pendrive'a po każdej liście skarbca (w QEMU przed poprawką: 398 × „pominięto … (limit)”).
+    pendrive'a po każdej liście skarbca (w QEMU: 398 × „pominięto … (limit)” przed poprawką, 0 po niej).
   - QEMU (TCG): folder 1100 zdjęć — dwie listy czytnika, import 1100 plików i ponowny import (wszystkie pominięte);
     cały test-pendrive 7,3 min.
 
