@@ -1,27 +1,28 @@
-/* K1 Ustawienia — Aplikacje (0.8.0, ADR 0030): the default application of every file type that more than one
- * application opens (k1_dok_aplikacje: the table K1_OTWIERANIE, Pliki last); the types of one family in one row
- * (0.8.2). The choice is a setting of ekran (K1_UST_OTWIERANIE + type), like the theme: saved in skarbiec, sent to every
- * client (Pliki and the desktop open a file with it). Part of Ustawienia (ustawienia.h). */
+/* K1 Ustawienia — Aplikacje (0.8.0, ADR 0030; 0.8.2 step 5): every file type with the application a double click opens
+ * it with — the types of one family in one row ("Obrazy (PNG, JPEG, GIF, BMP, WebP)"). A type two or more applications
+ * open has a choice (k1_dok_aplikacje, the table K1_OTWIERANIE); one with a single application names it; one with none
+ * says K1 has none yet. Pliki is not an application to open with (it shows every file). The choice is a setting of
+ * ekran (K1_UST_OTWIERANIE + type), like the theme: saved in skarbiec, sent to every client. Part of Ustawienia
+ * (ustawienia.h). */
 #include <stdio.h>
 #include <string.h>
 
 #include "k1_log.h"
+#include "k1_menu.h"
 #include "k1_uslugi.h"
 #include "ustawienia.h"
 
-#define WIERSZ_H 76 /* a row: its name, then the choice */
-#define PIERWSZY_Y 32 /* the first row below the section's description */
+#define WIERSZ_H 44   /* a row: its name, under it the application */
+#define WYBOR_H 76    /* a row with a choice: its name, under it the buttons */
+#define PIERWSZY_Y 18 /* the first row's name below the section's description */
 
 static int najechany_typ = -1, najechany_seg = -1;
 
-/* The rows: the types with a choice (more than one application opens them), in table order — the types of one family
- * share a row (0.8.2: the five of "obrazy" — Podgląd or Pliki); a row is its first type. How many. */
-static int typy_z_wyborem(int *typy)
+/* The rows: every type in table order, the types of one family share a row (its first type). How many. */
+static int wiersze(int *typy)
 {
-    int n = 0, a[K1_APL_MAKS], i;
+    int n = 0, i;
     for (int t = 1; t <= K1_TYPY_MAKS; t++) {
-        if (k1_dok_aplikacje(t, a) <= 1)
-            continue;
         for (i = 0; i < n && (k1_typ_rodzina(t) == 0 || k1_typ_rodzina(typy[i]) != k1_typ_rodzina(t)); i++)
             ;
         if (i == n)
@@ -49,41 +50,63 @@ static const char *nazwa_wiersza(int typ, char *buf, size_t n)
     return buf;
 }
 
-static int32_t wiersz_y(int i)
+/* The top of row i (the rows with a choice are higher). */
+static int32_t wiersz_y(const int *typy, int i)
 {
-    return seg_y() + PIERWSZY_Y + i * WIERSZ_H;
+    int32_t y = seg_y() + PIERWSZY_Y;
+    int a[K1_APL_MAKS];
+    for (int j = 0; j < i; j++)
+        y += k1_dok_aplikacje(typy[j], a) >= 2 ? WYBOR_H : WIERSZ_H;
+    return y;
 }
 
 void aplikacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
-    int typy[K1_TYPY_MAKS], n = typy_z_wyborem(typy);
+    int typy[K1_TYPY_MAKS], n = wiersze(typy);
     char nazwa[96];
     naglowek(o, m, "Aplikacje", "Czym otwierać pliki (podwójne kliknięcie)");
     for (int i = 0; i < n; i++) {
         int a[K1_APL_MAKS], na = k1_dok_aplikacje(typy[i], a), wybrana = 0;
+        int teraz = k1_dok_czym_otworzyc(typy[i], apl.k.ustawienia[K1_UST_OTWIERANIE + typy[i] - 1]);
         const char *etykiety[K1_APL_MAKS];
+        int32_t y = wiersz_y(typy, i);
+        k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X, y, nazwa_wiersza(typy[i], nazwa, sizeof nazwa), k1_kolor(m->tekst, 255),
+                 apl.szer - TRESC_X - 24);
+        if (na == 0) {
+            k1_tekst(o, K1_CZ_MALA, TRESC_X, y + 20, K1_MENU_BEZ_APLIKACJI_KROTKO, k1_kolor(m->tekst3, 255), 0);
+            continue;
+        }
+        if (na == 1) {
+            k1_tekst(o, K1_CZ_MALA, TRESC_X, y + 20, k1_profil_nazwa(k1_apl_profil(a[0])), k1_kolor(m->tekst2, 255), 0);
+            continue;
+        }
         for (int j = 0; j < na; j++) {
-            etykiety[j] = a[j] == K1_APL_PLIKI ? "Pliki (szczegóły)" : k1_profil_nazwa(k1_apl_profil(a[j]));
-            if (a[j] == apl.k.ustawienia[K1_UST_OTWIERANIE + typy[i] - 1])
+            etykiety[j] = k1_profil_nazwa(k1_apl_profil(a[j]));
+            if (a[j] == teraz)
                 wybrana = j;
         }
-        k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X, wiersz_y(i) - 10, nazwa_wiersza(typy[i], nazwa, sizeof nazwa),
-                 k1_kolor(m->tekst, 255), apl.szer - TRESC_X - 24);
-        k1_segment(o, m, TRESC_X, wiersz_y(i), SEG_W + 60, SEG_H, etykiety, na, wybrana,
-                   najechany_typ == i ? najechany_seg : -1);
+        k1_segment(o, m, TRESC_X, y + 10, SEG_W + 60, SEG_H, etykiety, na, wybrana, najechany_typ == i ? najechany_seg : -1);
     }
-    k1_tekst(o, K1_CZ_MALA, TRESC_X, apl.wys - 24, "Inną aplikację wybierzesz w Plikach: „Otwórz w…”.", k1_kolor(m->tekst3, 255), 0);
+    k1_tekst(o, K1_CZ_MALA, TRESC_X, apl.wys - 24, "Inną aplikację: prawy przycisk na pliku → „Otwórz za pomocą”.",
+             k1_kolor(m->tekst3, 255), apl.szer - TRESC_X - 24);
+}
+
+/* The row with a choice and its button under (x, y): the row (or -1), *seg the button. */
+static int wybor_pod(const int *typy, int n, int32_t x, int32_t y, int *seg)
+{
+    *seg = -1;
+    for (int i = 0; i < n; i++) {
+        int a[K1_APL_MAKS], na = k1_dok_aplikacje(typy[i], a);
+        if (na >= 2 && (*seg = k1_segment_trafienie(TRESC_X, wiersz_y(typy, i) + 10, SEG_W + 60, SEG_H, na, x, y)) >= 0)
+            return i;
+    }
+    return -1;
 }
 
 /* Hover; 1 when it changed. */
 int aplikacje_najechanie(int32_t x, int32_t y)
 {
-    int typy[K1_TYPY_MAKS], n = typy_z_wyborem(typy), t = -1, s = -1;
-    for (int i = 0; i < n && s < 0; i++) {
-        int a[K1_APL_MAKS], na = k1_dok_aplikacje(typy[i], a);
-        s = k1_segment_trafienie(TRESC_X, wiersz_y(i), SEG_W + 60, SEG_H, na, x, y);
-        t = s >= 0 ? i : -1;
-    }
+    int typy[K1_TYPY_MAKS], n = wiersze(typy), s, t = wybor_pod(typy, n, x, y, &s);
     if (t == najechany_typ && s == najechany_seg)
         return 0;
     najechany_typ = t;
@@ -91,32 +114,37 @@ int aplikacje_najechanie(int32_t x, int32_t y)
     return 1;
 }
 
-/* The choice for a row: for its type, or every type of its family. */
+/* The choice for a row: for its type and every type of its family (k1_menu_zawsze — as "Zawsze otwieraj"). */
 int aplikacje_klik(int32_t x, int32_t y)
 {
-    int typy[K1_TYPY_MAKS], n = typy_z_wyborem(typy);
-    for (int i = 0; i < n; i++) {
-        int a[K1_APL_MAKS], na = k1_dok_aplikacje(typy[i], a);
-        int s = k1_segment_trafienie(TRESC_X, wiersz_y(i), SEG_W + 60, SEG_H, na, x, y);
-        if (s < 0)
-            continue;
-        for (int t = 1; t <= K1_TYPY_MAKS; t++)
-            if (t == typy[i] || (k1_typ_rodzina(t) != 0 && k1_typ_rodzina(t) == k1_typ_rodzina(typy[i]))) {
-                int klucz = K1_UST_OTWIERANIE + t - 1;
-                k1_log(TAG, "zmiana ustawienia %d → %d", klucz, a[s]);
-                k1_wyslij(&apl.k, k1_komunikat_nowy(K1_KOM_USTAW, 0, klucz, a[s], 0, 0, 0));
-            }
-        return 1;
+    int typy[K1_TYPY_MAKS], n = wiersze(typy), s, i = wybor_pod(typy, n, x, y, &s), a[K1_APL_MAKS];
+    struct k1_komunikat ust[K1_TYPY_MAKS];
+    if (i < 0)
+        return 0;
+    k1_dok_aplikacje(typy[i], a);
+    for (int j = k1_menu_zawsze(typy[i], a[s], ust); j > 0; j--) {
+        k1_log(TAG, "zmiana ustawienia %d → %d", ust[j - 1].a, ust[j - 1].b);
+        k1_wyslij(&apl.k, ust[j - 1]);
     }
-    return 0;
+    return 1;
 }
 
-/* The tests click by this line: the first type with a choice, its buttons. */
+/* The tests check by this line: every row and what opens it ("brak": no application; a choice: its buttons). */
 void aplikacje_loguj(void)
 {
-    int typy[K1_TYPY_MAKS], n = typy_z_wyborem(typy), a[K1_APL_MAKS];
-    if (n == 0)
-        return;
-    k1_log(TAG, "aplikacje: %s — %d do wyboru, przyciski od %d,%d (szer. %d, wys. %d)", k1_typ_nazwa(typy[0]),
-           k1_dok_aplikacje(typy[0], a), TRESC_X, wiersz_y(0), SEG_W + 60, SEG_H);
+    int typy[K1_TYPY_MAKS], n = wiersze(typy), a[K1_APL_MAKS];
+    char buf[400], nazwa[96];
+    size_t d = 0;
+    for (int i = 0; i < n && d < sizeof buf - 1; i++) {
+        int na = k1_dok_aplikacje(typy[i], a), w;
+        w = na >= 2 ? snprintf(buf + d, sizeof buf - d, "%s%s — %d do wyboru, przyciski od %d,%d (szer. %d, wys. %d)",
+                               d ? "; " : "", nazwa_wiersza(typy[i], nazwa, sizeof nazwa), na, TRESC_X,
+                               (int)wiersz_y(typy, i) + 10, SEG_W + 60, SEG_H)
+                    : snprintf(buf + d, sizeof buf - d, "%s%s — %s", d ? "; " : "", nazwa_wiersza(typy[i], nazwa, sizeof nazwa),
+                               na == 1 ? k1_profil_nazwa(k1_apl_profil(a[0])) : "brak");
+        if (w < 0 || (size_t)w >= sizeof buf - d)
+            break;
+        d += (size_t)w;
+    }
+    k1_log(TAG, "aplikacje: %s", buf);
 }

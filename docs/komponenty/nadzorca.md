@@ -76,7 +76,7 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   (`SIGTERM`), potem skarbiec (zapomina klucz); nowy skarbiec zgłasza magazyn zablokowany → ekran
   hasła, albo otwarty (bez hasła) → pulpit od nowa. Ekran logowania i Instalator a=2 nie wyślą.
 - Prośby skarbca (0.8.0, ADR 0030, kanał sterujący, nadawca UID 103): `SKARB_URUCHOM` — uruchom aplikację, a gdy
-  ma plik (obiekt ≠ 0; skarbiec dał jej dostęp po „Otwórz w…”) — wyślij go na jej fd 5 (`PLIK_OTWORZ`) i poproś
+  ma plik (obiekt ≠ 0; skarbiec dał jej dostęp po „Otwórz za pomocą” albo podwójnym kliknięciu) — wyślij go na jej fd 5 (`PLIK_OTWORZ`) i poproś
   pulpit (`POKAZ_APL`, fd 5 gui) o jej okno na wierzch; obiekt = 0 — okno wyboru pliku („Wybór pliku”).
   Kanał „plik do otwarcia” (fd 5) mają Notatki i Pliki (Pliki: `PLIKI_POKAZ`), tablica `plik_kanal[]`.
 - Pendrive (0.8.0 krok 3, ADR 0031, `pendrive.c`): Pliki dostają fd 6 (`PENDRIVE`, `PENDRIVE_KANAL`; prośba

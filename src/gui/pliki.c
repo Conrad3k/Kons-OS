@@ -1,8 +1,8 @@
 /* K1 gui — the files of the Pulpit folder and Kosz on the desktop (0.8.0, ADR 0029). skarbiec's table of rights
  * lets the desktop see only the Pulpit folder (names and types, never content), move its files to Kosz and empty
  * Kosz; a folder opens in Pliki (nadzorca starts it at the place, fd 5 of Pliki), a file in its default application
- * (Ustawienia → Aplikacje) or the one chosen in "Otwórz w…" — skarbiec gives it that file (DOK_OTWORZ, ADR 0030),
- * Pliki only shows it (its preview). Every list is checked entry
+ * (Ustawienia → Aplikacje) or the one chosen in "Otwórz za pomocą" — skarbiec gives it that file (DOK_OTWORZ,
+ * ADR 0030); a file no application opens gets a message at its icon (0.8.2 step 5). Every list is checked entry
  * by entry (k1_dok_lista_czytaj); names never reach the log — the tests find a file by its number.
  *
  * The icons follow the list: a new file gets the first free cell, a file gone from the folder loses its icon. */
@@ -79,37 +79,48 @@ enum k1_ikona ikona_rysunek(uint32_t klucz)
 #undef X_IKONA
 }
 
-int plik_aplikacje(uint32_t klucz, int *apl)
+int plik_typ(uint32_t klucz, int *folder)
 {
     const struct plik_pulpitu *p = plik(klucz);
-    return p == NULL || p->rodzaj != K1_DOK_PLIK ? 0 : k1_dok_aplikacje(p->typ, apl);
+    *folder = p != NULL && p->rodzaj == K1_DOK_FOLDER;
+    return p == NULL || p->rodzaj != K1_DOK_PLIK ? 0 : p->typ;
 }
 
 void plik_otworz_w(uint32_t klucz, int apl)
 {
     const struct plik_pulpitu *p = plik(klucz);
-    if (p == NULL)
+    if (p == NULL || p->rodzaj != K1_DOK_PLIK || apl == K1_APL_PLIKI)
         return;
-    if (apl == K1_APL_PLIKI || p->rodzaj != K1_DOK_PLIK) {
-        otworz_pliki(p->id, 0);
-        return;
-    }
     k1_log(TAG, "pulpit: plik %u otwieram w aplikacji %s", p->id, aplikacje[apl].nazwa);
     do_skarbca(K1_KOM_DOK_OTWORZ, p->id, apl);
 }
 
-void ikona_otworz(uint32_t klucz)
+void plik_pokaz(uint32_t klucz, int co)
 {
     const struct plik_pulpitu *p = plik(klucz);
-    if (rozm_aplikacja(klucz))
+    if (p != NULL)
+        otworz_pliki(p->id, co);
+}
+
+void ikona_otworz(uint32_t klucz, int32_t x, int32_t y)
+{
+    const struct plik_pulpitu *p = plik(klucz);
+    int a;
+    if (rozm_aplikacja(klucz)) {
         otworz_aplikacje((int)klucz);
-    else if (klucz == ROZM_KOSZ)
-        otworz_pliki(0, 1);
-    else if (p != NULL && p->rodzaj == K1_DOK_PLIK) { /* the default application of its type (Ustawienia → Aplikacje) */
-        int a = k.ustawienia[K1_UST_OTWIERANIE + p->typ - 1];
-        plik_otworz_w(klucz, k1_dok_otwiera(a, p->typ) ? a : k1_dok_domyslna(p->typ));
-    } else if (p != NULL)
-        otworz_pliki(p->id, 0);
+    } else if (klucz == ROZM_KOSZ) {
+        otworz_pliki(0, K1_PLIKI_KOSZ);
+    } else if (p != NULL && p->rodzaj == K1_DOK_PLIK) { /* the default application of its type (Ustawienia → Aplikacje) */
+        a = k1_dok_czym_otworzyc(p->typ, k.ustawienia[K1_UST_OTWIERANIE + p->typ - 1]);
+        if (a != 0) {
+            plik_otworz_w(klucz, a);
+            return;
+        }
+        k1_log(TAG, "pulpit: plik %u — K1 nie ma aplikacji do typu %d (komunikat)", p->id, p->typ);
+        kontekst_otworz(K_KOMUNIKAT, klucz, x, y); /* never silence (0.8.2 step 5) */
+    } else if (p != NULL) {
+        otworz_pliki(p->id, K1_PLIKI_MIEJSCE);
+    }
 }
 
 void plik_do_kosza(uint32_t klucz)

@@ -1,11 +1,11 @@
 #!/bin/sh
 # Test 0.8.0 Pliki (ADR 0029, powtarzalny): aplikacja Pliki i Kosz w działającym K1 (obraz produkcyjny) z dyskiem
 # danych. Pierwsze uruchomienie: nowy folder i zmiana nazwy z klawiatury, zajęta nazwa, wejście do folderu i „w górę”,
-# Kosz (usuń, przywróć, usuń na zawsze z pytaniem), folder na pulpicie (ikona, podwójne kliknięcie, „Usuń” z menu,
-# „Opróżnij Kosz”); drugie — to samo po wyłączeniu.
+# Kosz (usuń, przywróć, usuń na zawsze z pytaniem), folder na pulpicie (ikona, podwójne kliknięcie, menu: „Zmień nazwę”
+# — 0.8.2 krok 5, „Usuń”, „Opróżnij Kosz”); drugie — to samo po wyłączeniu.
 # Krok 2 (ADR 0030), osobny dysk z notatkami w formacie 0.5.8–0.7.6 (testy/host/stare_notatki.c): Notatki przenoszą je
-# do plików, okno wyboru pliku (wybór, „Anuluj”), „Otwórz w…” i podwójne kliknięcie w Plikach, Ustawienia →
-# Aplikacje; po ponownym starcie pliki i domyślna aplikacja zostają. Dowody: log + zrzuty build/testy/pliki-*.png.
+# do plików, okno wyboru pliku (wybór, „Anuluj”), menu pod prawym przyciskiem w Plikach → „Otwórz za pomocą” → Notatki
+# (0.8.2 krok 5) i podwójne kliknięcie w Plikach, Ustawienia → Aplikacje; po ponownym starcie pliki zostają. Dowody: log + zrzuty build/testy/pliki-*.png.
 # Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -180,6 +180,22 @@ if plik:
     sprawdz("podwójne kliknięcie folderu na pulpicie: Pliki pokazują jego wnętrze",
             po(r"K1-PLIKI: pokazane miejsce: folder, 0 elementów", lambda: q.dwuklik(*ikp[plik])))
     schowaj_pliki()
+    # 0.8.2 step 5: the menu of a folder on the desktop (the same rows as in Pliki): "Zmień nazwę" opens Pliki at it
+    poz = menu(r"ikona pliku", ikp[plik], "Zmień nazwę")
+    m_ = list(re.finditer(r"K1-GUI: menu kontekstowe \(ikona pliku\): (.*)", tekst()))
+    wiersze_ = [t.strip() for t in re.findall(r"([^;:]+?) \d+,\d+", m_[-1].group(1))] if m_ else []
+    sprawdz("menu folderu na pulpicie: Otwórz, Pokaż w Plikach, Zmień nazwę, Usuń (bez „Otwórz za pomocą”)",
+            wiersze_ == ["Otwórz", "Pokaż w Plikach", "Zmień nazwę", "Usuń"], str(wiersze_))
+    n_e = q.ile(r"K1-PLIKI: zmiana nazwy: pole otwarte")
+    if poz:
+        klik(*poz)
+    sprawdz("„Zmień nazwę” na pulpicie: Pliki przy folderze, z polem nazwy (URUCHOM c = 2, PLIKI_POKAZ b = 2)",
+            czekaj(r"K1-PLIKI: zmiana nazwy: pole otwarte", od=n_e) and czekaj(r"K1-PLIKI: pokazane miejsce: folder"))
+    n_ok = q.ile(r"K1-PLIKI: skarbiec: zrobione \(komunikat 88\)")
+    pisz("shift-a", "l", "b", "u", "m", "ret")
+    sprawdz("nowa nazwa z klawiatury zapisana w skarbcu", czekaj(r"K1-PLIKI: skarbiec: zrobione \(komunikat 88\)", od=n_ok))
+    zrzut("5a-zmiana-nazwy", gdy=lambda w, h, px: True)
+    schowaj_pliki()
     poz = menu(r"ikona pliku", ikp[plik], "Usuń")
     n_k = q.ile(r"K1-GUI: pliki na pulpicie: dodane 0, usunięte 1")
     if poz:
@@ -194,7 +210,7 @@ if plik:
     sprawdz("menu Kosza → „Opróżnij Kosz”: pusty", czekaj(r"K1-GUI: pulpit: opróżniam Kosz") and
             czekaj(r"K1-GUI: pliki na pulpicie: 0, w Koszu: 0"))
 t_ = tekst()
-sprawdz("nazwy plików nie trafiają do logu", "Projekt" not in t_)
+sprawdz("nazwy plików nie trafiają do logu", "Projekt" not in t_ and "Album" not in t_)
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów", "Kernel panic" not in t_ and
         "BŁĄD" not in t_ and "zabronione wywołanie" not in t_ and "odrzucono" not in t_)
 sys.exit(0 if all(q.wyniki) else 1)
@@ -328,43 +344,56 @@ sprawdz("Dokumenty: folder Notatki", widok(lambda: klik(p0[0] + mx, p0[1] + my +
 sprawdz("Dokumenty › Notatki: 3 pliki", widok(lambda: q.dwuklik(*wiersz(0)), "folder", 3))
 zrzut(f"{tryb}-4-pliki", gdy=lambda w, h, px: True)
 
+
+
+def menu_plikow(o, punkt, wzor, wiersz_):
+    """Right click in Pliki at `punkt`, waits for the menu line `wzor` and for it ON THE SCREEN (a light row); the centre
+    of row `wiersz_` on the screen (window coordinates in the log + the window's corner), or None."""
+    n = q.ile(wzor)
+    q.prawy_klik(*punkt)
+    m = czekaj(wzor, od=n, czas=20)
+    poz = {t.strip(): (o[0] + int(x), o[1] + int(y)) for t, x, y in re.findall(r"([^;:]+?) (\d+),(\d+)", m.group(1))} if m else {}
+    if wiersz_ in poz:
+        zrzut("notatki-5-menu", gdy=lambda w, h, px: min(px(poz[wiersz_][0] + 80, poz[wiersz_][1])) > 200)
+    return poz.get(wiersz_)
+
+
 if tryb == "notatki":
-    klik(*wiersz(0))  # „Lista zakupy”
-    p = przyciski(p0)
-    wa = "Otwórz w…" in p and po(r"K1-PLIKI: przyciski: Notatki (\d+),(\d+); Anuluj", lambda: klik(*p["Otwórz w…"]))
-    sprawdz("Otwórz w…: przyciski aplikacji, które otwierają tekst (Notatki)", wa, str(p))
-    if wa:
+    # 0.8.2 step 5 (D7): the menu under the right button in Pliki — "Otwórz za pomocą ›" → Notatki
+    zp = menu_plikow(p0, wiersz(0), r"K1-PLIKI: menu kontekstowe \(pliku\): (.*)", "Otwórz za pomocą")  # „Lista zakupy”
+    sprawdz("prawy przycisk na pliku tekstowym w Plikach: menu na ekranie z „Otwórz za pomocą”", zp)
+    pm = zp and po(r"K1-PLIKI: podmenu \(Otwórz za pomocą\): Notatki (\d+),(\d+)$", lambda: klik(*zp))
+    sprawdz("„Otwórz za pomocą”: obok lista aplikacji, które otwierają tekst — tylko Notatki (bez Plików)", pm)
+    if pm:
+        nx, ny = p0[0] + int(pm.group(1)), p0[1] + int(pm.group(2))
+        zrzut("notatki-5-podmenu", gdy=lambda w, h, px: min(px(nx + 60, ny)) > 200)
         n_o = q.ile(r"K1-NOTATKI: otwarto notatkę \(20 B\)")
-        klik(p0[0] + int(wa.group(1)), p0[1] + int(wa.group(2)))
-        sprawdz("Otwórz w → Notatki: skarbiec daje plik, nadzorca przekazuje go Notatkom, okno na wierzch",
+        klik(nx, ny)
+        sprawdz("Otwórz za pomocą → Notatki: skarbiec daje plik, nadzorca przekazuje go Notatkom, okno na wierzch",
                 czekaj(r"K1-SKARBIEC: pliki: plik \d+ otwarty w aplikacji 2") and
                 czekaj(r"K1-NADZORCA: skarbiec: aplikacja 2 uruchomiona z plikiem") and
                 czekaj(r"K1-NOTATKI: plik otwarty z Plików albo z pulpitu") and
                 czekaj(r"K1-NOTATKI: otwarto notatkę \(20 B\)", od=n_o))
-        zrzut("notatki-5-otworz-w", gdy=lambda w, h, px: True)
     okno("pliki", lambda: klik(*pasek(5)))
     n_o = q.ile(r"K1-NOTATKI: otwarto notatkę \(9 B\)")
     sprawdz("podwójne kliknięcie pliku: domyślna aplikacja (Notatki)",
             po(r"K1-PLIKI: plik otwierany w aplikacji Notatki", lambda: q.dwuklik(*wiersz(1))) and
             czekaj(r"K1-NOTATKI: otwarto notatkę \(9 B\)", od=n_o))
-    # Ustawienia → Aplikacje: text files open in Pliki now
+    # Ustawienia → Aplikacje (0.8.2 step 5): every type and what opens it; no choice today (one application at most)
     u0 = okno("ustawienia", lambda: klik(*pasek(2)))
     sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
-    ap = u0 and sk and po(r"K1-USTAWIENIA: aplikacje: Dokument tekstowy — 2 do wyboru, przyciski od (\d+),(\d+) \(szer\. (\d+), wys\. (\d+)\)",
+    ap = u0 and sk and po(r"K1-USTAWIENIA: aplikacje: (.*)",
                           lambda: klik(u0[0] + int(sk.group(1)), u0[1] + int(sk.group(2)) + 6 * int(sk.group(3))))
-    sprawdz("Ustawienia → Aplikacje: Dokument tekstowy — Notatki albo Pliki (szczegóły)", ap)
-    if ap:
-        bx, by, bw, bh = (int(ap.group(i)) for i in range(1, 5))
-        zrzut("notatki-6-ustawienia", gdy=lambda w, h, px: True)
-        n_z = q.ile(r"K1-SKARBIEC: zapisano obiekt 1 właściciela 2 ")
-        sprawdz("wybór „Pliki (szczegóły)”: ustawienie ekranu zapisane w skarbcu",
-                # key K1_UST_OTWIERANIE (7) + text (type 2) - 1 = 8, value Pliki (7)
-                po(r"K1-USTAWIENIA: zmiana ustawienia 8 → 7", lambda: klik(u0[0] + bx + 3 * bw // 4, u0[1] + by + bh // 2)) and
-                czekaj(r"K1-SKARBIEC: zapisano obiekt 1 właściciela 2 ", od=n_z))
+    sprawdz("Ustawienia → Aplikacje: każdy typ i jego aplikacja (tekst — Notatki, obrazy — Podgląd, PDF, ZIP, „Plik” — brak)",
+            ap and ap.group(1) == "Plik — brak; Dokument tekstowy — Notatki; Obrazy (PNG, JPEG, GIF, BMP, WebP) — Podgląd; "
+                                  "Dokument PDF — brak; Archiwum ZIP — brak", ap.group(1) if ap else "")
+    zrzut("notatki-6-ustawienia", gdy=lambda w, h, px: True)
     okno("pliki", lambda: klik(*pasek(5)))
 
-sprawdz("podwójne kliknięcie pliku tekstowego: teraz domyślnie Pliki (szczegóły)" + (" — zapamiętane po ponownym starcie" if tryb != "notatki" else ""),
-        po(r"K1-PLIKI: plik pokazany w Plikach \(domyślna aplikacja\)", lambda: q.dwuklik(*wiersz(2))))
+n_o = q.ile(r"K1-NOTATKI: otwarto notatkę \(13 B\)")
+sprawdz("podwójne kliknięcie pliku tekstowego: Notatki" + (" — także po ponownym starcie" if tryb != "notatki" else ""),
+        po(r"K1-PLIKI: plik otwierany w aplikacji Notatki", lambda: q.dwuklik(*wiersz(2))) and
+        czekaj(r"K1-NOTATKI: otwarto notatkę \(13 B\)", od=n_o))
 t_ = tekst()
 sprawdz("nazwy i treść notatek nie trafiają do logu", "Zażółć" not in t_ and "Lista" not in t_ and "Najnowsza" not in t_)
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów", "Kernel panic" not in t_ and
@@ -372,7 +401,7 @@ sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych k
 sys.exit(0 if all(q.wyniki) else 1)
 PY
 
-echo "[k1] test Pliki, krok 2 (ADR 0030): stare notatki → pliki, okno wyboru pliku, „Otwórz w…”, domyślna aplikacja"
+echo "[k1] test Pliki, krok 2 (ADR 0030): stare notatki → pliki, okno wyboru pliku, „Otwórz za pomocą”, domyślna aplikacja"
 STARE=$TESTY/pliki-stare.img
 [ -x "$K1_BUDOWA/obj/stare_notatki" ] || make -C "$K1_REPO" -s "$K1_BUDOWA/obj/stare_notatki" >/dev/null
 rm -f "$STARE.czesc"; truncate -s $((30000 * 512)) "$STARE.czesc"

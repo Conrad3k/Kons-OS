@@ -104,6 +104,13 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   wiersze 36 px, tekst Plex Sans 15 (pierwszy — „Otwórz” albo nazwa aplikacji — Medium), kreska między
   grupami; najechanie jak w menu Start; „Zamknij okno” w kolorze akcentu. Na pulpicie i w menu Start
   otwiera się przy wskaźniku, na pasku — nad paskiem.
+- **Menu pliku (0.8.2 krok 5, decyzja D7, szkic zaakceptowany 2026-11-12):** ten sam wygląd na pulpicie i w Plikach
+  (w Plikach rysowane w oknie) — `k1_menu` w przyborniku. „Otwórz” Medium; „Otwórz za pomocą” z „›” (dwie kreski
+  1,5 px) przy prawej krawędzi — podmenu 280 px obok (po prawej, bez miejsca — po lewej, nachodzi 4 px), rozwija się
+  po najechaniu albo kliknięciu, wiersz-rodzic zostaje podświetlony; aplikacja, która otwiera typ teraz — ✓ w kolorze
+  akcentu przed nazwą; „Zawsze otwieraj tą aplikacją” z polem 16 px (zaznaczone: wypełnione akcentem z ✓). Wiersz
+  wyszarzony (`tekst3`) z powodem pod spodem (Plex Sans 13, zawijany). Komunikat przy ikonie (typ bez aplikacji):
+  panel 280 px — typ (Medium 15), zdanie (Plex Sans 13, `tekst2`, zawijane), kreska, „Pokaż w Plikach”.
 - **Dolny pasek:** szerokość według liczby aplikacji, wyśrodkowany; przypięte, kreska, uruchomione spoza
   paska.
 

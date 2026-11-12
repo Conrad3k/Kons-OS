@@ -351,6 +351,20 @@ sprawdz("› (3 z 9) i „Ustaw jako tapetę” w Podglądzie: dekoder → ekran
 klik(pox + 960 - 8 - 14, poy + 22)  # × of the window (k1_okno.c: 28 px buttons, 8 px from the edge)
 sprawdz("Podgląd zamknięty (×)", czekaj(r"K1-PODGLAD: okno zamknięte przez użytkownika", czas=30))
 sprawdz("Dokumenty: 3 pliki (notatka, plik 17 MB, film 300 MB)", widok(lambda: klik(*miejsce(1)), "Dokumenty", 3))
+# 4d. (0.8.2 step 5) a file no application opens (film.mp4 — "Plik"; Dokumenty by name: film.mp4, notatka.txt, wideo.mp4)
+n_a = q.ile(r"otwarty w aplikacji")
+sprawdz("NEGATYWNY (krok 5): podwójne kliknięcie pliku bez aplikacji (film) — stopka „K1 nie ma jeszcze aplikacji…”, "
+        "żadna aplikacja nie dostaje pliku", po(r"K1-PLIKI: plik bez aplikacji \(typ 1\): komunikat w stopce",
+                                               lambda: q.dwuklik(*wiersz(0))) and q.ile(r"otwarty w aplikacji") == n_a)
+zrzut("6c-bez-aplikacji", gdy=lambda w, h, px: True)
+n_m = q.ile(r"K1-PLIKI: menu kontekstowe \(pliku\): (.*)")
+q.prawy_klik(*wiersz(0))
+mm = czekaj(r"K1-PLIKI: menu kontekstowe \(pliku\): (.*)", od=n_m, czas=20)
+wm = [t.strip() for t in re.findall(r"([^;:]+?) \d+,\d+", mm.group(1))] if mm else []
+w, h, px = zrzut("6c-menu-bez-aplikacji", gdy=lambda w, h, px: True)
+sprawdz("menu pliku bez aplikacji: „Otwórz” i „Otwórz za pomocą” wyszarzone (nie do kliknięcia), zostają „Zmień nazwę” "
+        "i „Usuń”", wm == ["Zmień nazwę", "Usuń"], str(wm))
+q.pisz("esc")  # closes the menu (a click elsewhere would only close it, too)
 # 5. out and in
 n_b = q.ile(r"K1-PLIKI: pendrive: brak")
 widok(lambda: klik(*pendrive), "Pendrive", 5)

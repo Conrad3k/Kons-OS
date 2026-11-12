@@ -330,6 +330,23 @@ KROK 5 — Otwieranie: „Otwórz za pomocą”, jedno menu                     
   w Plikach → menu na ekranie → „Otwórz za pomocą” → Notatki; dwuklik zdjęcia → Podgląd; dwuklik ZIP → komunikat.
   Dokumenty: aplikacje.md (Pliki, Ustawienia), gui (pulpit), SLOWNIK, WYGLAD.
   Gotowe, gdy: pulpit i Pliki mają to samo menu; żaden dwuklik nie kończy się ciszą.
+  Ustalenia z wykonania (2026-11-12, jeden PR):
+  - Decyzje (D7 i trzy pytania na szkicu): „Otwórz za pomocą ›” z podmenu obok; bez „Szczegółów” (w Plikach są zawsze,
+    na pulpicie „Pokaż w Plikach”); „Zawsze otwieraj tą aplikacją” gotowe, widoczne dopiero przy dwóch aplikacjach typu;
+    „Zmień nazwę” na pulpicie otwiera Pliki z polem nazwy (URUCHOM c / PLIKI_POKAZ b = K1_PLIKI_NAZWA).
+  - Jedno menu: przybornik k1_menu.c — wygląd (przeniesiony z gui/kontekst.c), wiersze menu pliku dla miejsca (Pliki,
+    pulpit, Kosz, pendrive), podmenu, komunikat bez aplikacji, położenie przy brzegach; test_menu na hoście. Pulpit
+    rysuje je na swoim panelu (menu i podmenu na jednej powierzchni, która się przesuwa), Pliki — w oknie (menu.c).
+  - Pliki nie są już „aplikacją do otwierania” (k1_dok_aplikacje bez Plików, nowe k1_dok_czym_otworzyc): podwójne
+    kliknięcie zawsze coś robi — aplikacja albo stopka / komunikat „K1 nie ma jeszcze aplikacji do tego typu pliku”.
+    Wartość „Pliki” w ustawieniu K1_UST_OTWIERANIE zostaje dozwolona (= „nic nie wybrano”: typy bez aplikacji
+    i zapisy z 0.8.0–0.8.2) — bez zmiany formatu K1U4; stary wybór „Pliki” dla tekstu otwiera teraz Notatki.
+  - „Zawsze otwieraj” zmienia ustawienie u ekranu: USTAW kluczy K1_UST_OTWIERANIE przyjmowany też od Plików i powłoki
+    (ekran/okna.c, ustawia()); wybór ustawia całą rodzinę typów, jak wiersz Ustawień (k1_menu_zawsze — jedna funkcja).
+  - Ustawienia → Aplikacje: wszystkie typy (5 wierszy: Plik, tekst, Obrazy, PDF, ZIP), przyciski wyboru tylko przy
+    co najmniej dwóch aplikacjach (dziś żaden).
+  - W Plikach przycisk „Otwórz” zamiast „Otwórz w…”; stopka Plików ma krótką wersję komunikatu (pełna nie mieści się
+    obok szczegółów).
 
 KROK 6 — Przeciąganie i zaznaczanie wielu                                         L · decyzje D6 D8 · bez ADR*
   Cel: pliki i foldery przeciąga się myszą jak w innych systemach, a K1 jasno mówi „Czy na pewno…?”, „Możesz

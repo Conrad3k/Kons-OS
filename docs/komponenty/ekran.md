@@ -74,7 +74,7 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `AKTYWUJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: pokaż, na wierzch, fokus |
 | `MINIMALIZUJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: schowaj |
 | `ZAMKNIJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: ekran prosi aplikację o zamknięcie (0.7.5, „Zamknij okno” na dolnym pasku) |
-| `USTAW` | Ustawienia → ekran | tylko Ustawienia | klucz `K1_UST_*` i wartość (sprawdzana); nie `K1_UST_ZDJECIE` |
+| `USTAW` | Ustawienia → ekran | Ustawienia; klucze `K1_UST_OTWIERANIE` + typ także Pliki i powłoka (0.8.2, „Zawsze otwieraj tą aplikacją”; `ustawia()` w `okna.c`) | klucz `K1_UST_*` i wartość (sprawdzana); nie `K1_UST_ZDJECIE` |
 | `TAPETA_ZDJECIE` | Pliki, Podgląd → ekran | tabela nadawców (`zdjecie.c`) | zdjęcie na tapetę (0.8.0): szerokość, wysokość; + memfd z pikselami od dekodera |
 | `WITAJ` | ekran → klient | — | rozmiar ekranu, rola, aplikacja; ponownie po zmianie rozdzielczości |
 | `WSKAZNIK` | ekran → klient | — | mysz nad powierzchnią klienta (0 = poza nią): x, y, ruch / przycisk, który przycisk |

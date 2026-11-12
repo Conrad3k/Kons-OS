@@ -249,7 +249,14 @@ int k1_dok_aplikacje(int typ, int *apl)
     for (size_t i = 0; i < sizeof otwieranie / sizeof otwieranie[0]; i++)
         if (otwieranie[i].typ == typ)
             apl[n++] = otwieranie[i].apl;
-    if (typ >= 1 && typ <= K1_TYPY_MAKS)
-        apl[n++] = K1_APL_PLIKI;
     return n;
+}
+
+int k1_dok_czym_otworzyc(int typ, int ustawienie)
+{
+    int d;
+    if (ustawienie != K1_APL_PLIKI && k1_dok_otwiera(ustawienie, typ))
+        return ustawienie;
+    d = k1_dok_domyslna(typ);
+    return d == K1_APL_PLIKI ? 0 : d;
 }

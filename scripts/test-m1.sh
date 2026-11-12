@@ -126,7 +126,7 @@ scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE
     "przekroczony limit pamięci powierzchni" "K1-ZASOBY: dane od nadzorcy" \
     "deskryptor nie jest memfd" "memfd bez pieczęci" "zły rozmiar memfd" "panele tylko dla powłoki" \
     "pulpit tylko dla powłoki" \
-    "zmiana ustawień tylko dla aplikacji Ustawienia" "zarządzanie cudzymi oknami tylko dla powłoki" \
+    "tego ustawienia ten klient nie zmienia" "zarządzanie cudzymi oknami tylko dla powłoki" \
     "ekran zakończony sygnałem 11" "ponowne uruchomienie ekran" "wejscie wyłączony: 6 zakończeń" \
     "K1: wyłączanie zasilania" "reboot: Power down"
 SPRZET=

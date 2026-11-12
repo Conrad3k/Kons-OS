@@ -1,6 +1,7 @@
 /* K1 Pliki — state shared by the modules (0.8.0, ADR 0029):
  *   main.c   the window: places on the left, the path, the list, keys and the mouse
  *   przyciski.c the buttons of the place and what they do
+ *   menu.c   the menu under the right mouse button (0.8.2 step 5: the desktop's, from przybornik k1_menu)
  *   rysuj.c  drawing the list, the details on the right and the footer
  *   dane.c   the files from skarbiec (fd 4): the list, the start of a text, requests and their results; places from
  *            nadzorca (fd 5, when the desktop opens Pliki at a file or Kosz)
@@ -75,22 +76,28 @@ extern const char *blad;       /* a message for the footer (NULL: none) */
 extern int gotowe;             /* the first list has arrived */
 
 /* main.c */
+void otworz(uint32_t id); /* a folder: into it; a file: its default application, or why there is none (the footer) */
 int wierszy_widac(void);
 int przewijanie_potrzebne(void);
 const struct k1_dok_wpis *wiersz_wpisu(int i); /* row `i` of the place shown */
 const struct k1_dok_wpis *wpis_tu(uint32_t id); /* an entry of the place shown (on the stick: from czytnik) */
 
 /* przyciski.c */
-enum { B_NOWY, B_NAZWA, B_USUN, B_PRZYWROC, B_NA_ZAWSZE, B_OPROZNIJ, B_TAK, B_ANULUJ, B_OTWORZ_W, B_APL, B_IMPORTUJ,
-       B_IMPORTUJ_WSZ };
-extern int rodzaje[PRZYCISKI_MAKS], apl_przycisku[PRZYCISKI_MAKS]; /* what the buttons of przyciski() do, in order */
-extern int wybor_aplikacji;           /* "Otwórz w…" pressed: the buttons are the applications that open the file */
+enum { B_NOWY, B_NAZWA, B_USUN, B_PRZYWROC, B_NA_ZAWSZE, B_OPROZNIJ, B_TAK, B_ANULUJ, B_OTWORZ, B_IMPORTUJ, B_IMPORTUJ_WSZ };
+extern int rodzaje[PRZYCISKI_MAKS];   /* what the buttons of przyciski() do, in order */
 int przyciski(struct k1_przycisk *p); /* the buttons of this place: how many */
 int dostepny(int r);                  /* whether button kind `r` can do anything now */
-void wykonaj(int r, int a);           /* button kind `r` (B_APL: application `a`) */
-void otworz_w(int a);                 /* the selected file in application `a` (Pliki: its details) */
+void wykonaj(int r);                  /* button kind `r` */
+void otworz_w(int a);                 /* the selected file in application `a` ("Otwórz za pomocą") */
 void zacznij_edycje(void);
 void skoncz_edycje(int zapisz);
+
+/* menu.c — the menu under the right mouse button (0.8.2 step 5) */
+void menu_otworz(uint32_t id, int32_t x, int32_t y); /* entry `id` of the place shown, at the pointer */
+int menu_otwarte(void);
+void menu_zamknij(void);
+void menu_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
+int menu_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk); /* 1: the menu took it */
 
 /* dane.c */
 int dane_start(void);              /* fd 4, or -1 without skarbiec */

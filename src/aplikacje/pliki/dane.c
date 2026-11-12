@@ -29,7 +29,7 @@ static uint32_t poczatek_gen; /* the content generation of the text's start in t
 static char przywrocony[256];  /* the footer after Przywróć, when the folder it came from is in Kosz or gone */
 static uint32_t przywracany;
 static struct {
-    int jest, kosz;
+    int jest, co; /* co: K1_PLIKI_* (Kosz, an entry's name to change) */
     uint32_t id;
 } do_pokazania; /* a place from nadzorca, shown once the list is here */
 
@@ -324,8 +324,13 @@ static void pokaz_oczekujace(void)
     if (!do_pokazania.jest || !gotowe)
         return;
     do_pokazania.jest = 0;
-    if (do_pokazania.kosz) {
+    if (do_pokazania.co == K1_PLIKI_KOSZ) {
         przejdz((struct miejsce){ 0, 1, 0 });
+    } else if (do_pokazania.co == K1_PLIKI_NAZWA && e != NULL && !e->kosz) { /* "Zmień nazwę" on the desktop (0.8.2) */
+        przejdz((struct miejsce){ e->rodzic, 0, 0 });
+        zaznaczony = a;
+        szczegoly_zadaj(a);
+        zacznij_edycje();
     } else if ((a >= 1 && a <= K1_FOLDERY_MAKS) || (e != NULL && e->rodzaj == K1_DOK_FOLDER)) {
         przejdz((struct miejsce){ a, 0, 0 });
     } else if (e != NULL) {
@@ -350,7 +355,7 @@ void nadzorca_odbierz(void)
         if (w != K1_ODB_JEST || k.typ != K1_KOM_PLIKI_POKAZ || (k.a == 0 && k.b == 0))
             continue;
         do_pokazania.jest = 1;
-        do_pokazania.kosz = k.b;
+        do_pokazania.co = k.b;
         do_pokazania.id = (uint32_t)k.a;
         pokaz_oczekujace();
     }

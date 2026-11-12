@@ -277,15 +277,19 @@ Obraz produkcyjny z dyskiem danych (pusta K1-DANE), dwa uruchomienia.
 | okno wyboru | „Otwórz…” w Notatkach → skarbiec prosi nadzorcę, okno „Wybór pliku” dostaje prośbę od skarbca (aplikacja 2, typ tekst); Dokumenty (1 folder, 0 plików do wyboru) → folder Notatki (3) → „Zażółć K1” → Otwórz → Notatki otwierają ją (13 B) | `pliki-notatki-2-wybor.png`, `pliki-notatki-3-wybor-plik.png` |
 | Anuluj | drugie „Otwórz…” → „Anuluj” → Notatki: „anulowano” | log |
 | Pliki | Dokumenty › Notatki: 3 pliki | `pliki-notatki-4-pliki.png` |
-| Otwórz w… | przyciski: „Notatki”, „Anuluj” → skarbiec daje plik, nadzorca przekazuje go Notatkom (fd 5), Notatki otwierają go (20 B) | `pliki-notatki-5-otworz-w.png` |
-| domyślna aplikacja | podwójne kliknięcie pliku w Plikach → Notatki (9 B); Ustawienia → Aplikacje → „Pliki (szczegóły)” (zapis w skarbcu) → podwójne kliknięcie zostaje w Plikach | `pliki-notatki-6-ustawienia.png` |
+| Otwórz za pomocą (0.8.2 krok 5) | prawy przycisk na pliku w Plikach → menu na ekranie (jasny wiersz) → „Otwórz za pomocą” → podmenu „Notatki” → skarbiec daje plik, nadzorca przekazuje go Notatkom (fd 5), Notatki otwierają go (20 B) | `pliki-notatki-5-menu.png`, `pliki-notatki-5-podmenu.png` |
+| domyślna aplikacja | podwójne kliknięcie pliku w Plikach → Notatki (9 B); Ustawienia → Aplikacje: każdy typ i jego aplikacja („Dokument tekstowy — Notatki”, „Obrazy … — Podgląd”, PDF, ZIP, „Plik” — brak); po ponownym starcie podwójne kliknięcie dalej otwiera Notatki | `pliki-notatki-6-ustawienia.png` |
 | dysk | jawnie nie ma treści, nazw notatek, „Notatki” ani zapisu ustawień | skrypt |
-| ponownie | nic do przeniesienia, 3 notatki z plików, domyślnie Pliki (ustawienie zapamiętane) | `pliki-notatki-ponownie-*.png` |
+| ponownie | nic do przeniesienia, 3 notatki z plików, podwójne kliknięcie — Notatki | `pliki-notatki-ponownie-*.png` |
 
 Na hoście: `test_dokumenty` (skarbiec: nazwy, typy, wpisy, kawałki treści, foldery, Kosz i 30 dni, prawa przez kanał;
-krok 2: prawa Notatek, „Otwórz w…”, okno wyboru, nazwa z pierwszego wiersza), `test_komunikat` (`DOK_*`,
+krok 2: prawa Notatek, „Otwórz w…” (od 0.8.2 „Otwórz za pomocą”), okno wyboru, nazwa z pierwszego wiersza), `test_komunikat` (`DOK_*`,
 `PLIKI_POKAZ`, `URUCHOM` z miejscem; krok 2: nowe komunikaty i domyślne aplikacje), `test_rozmieszczenie` (klucze
 ikon, K1R2 i K1R1, „Wybór pliku” nigdy na pasku), `fuzz_dokument`, `fuzz_rozmieszczenie`.
+0.8.2 krok 5: `test_menu` — menu pod prawym przyciskiem (przybornik `k1_menu`): wiersze dla każdego typu pliku i miejsca
+(Pliki, pulpit, Kosz, pendrive), „Otwórz za pomocą” (bez Plików, ✓, „Zawsze otwieraj” od dwóch aplikacji), komunikat
+bez aplikacji w całości, położenie przy brzegach, trafienie, rysowanie poza obrazem (ASan/UBSan); `test_komunikat` —
+`URUCHOM` i `PLIKI_POKAZ` z polem nazwy (`K1_PLIKI_NAZWA` tylko z plikiem, Kosz tylko bez).
 0.8.1 krok 1: `test_dokumenty` (naprawa wpisów, granica czasu, folder aplikacji, licznik Kosza, 64 pliki na
 aplikację) i `test_notatki` — prawdziwy kod Notatek i skarbca przez gniazdo (bez sprawdzania UID nadawcy):
 notatka nie do odczytu, plik do Kosza w trakcie pisania, 300 plików.

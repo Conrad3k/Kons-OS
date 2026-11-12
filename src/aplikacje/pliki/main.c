@@ -1,8 +1,9 @@
 /* K1 Pliki — native application (0.8.0, ADR 0029): the user's folders and files, as in Windows — the standard
  * folders on the left (Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane) and Kosz; the path with "up", the
- * buttons of the place (Nowy folder, Zmień nazwę, Usuń, Otwórz w…; in Kosz: Przywróć, Usuń na zawsze, Opróżnij
- * Kosz), the list (folders first, then by name) and the details on the right. A double click (or Enter) opens a
- * folder, or a file in its default application (Ustawienia → Aplikacje; ADR 0030) — Pliki itself only shows it.
+ * buttons of the place (Otwórz, Nowy folder, Zmień nazwę, Usuń; in Kosz: Przywróć, Usuń na zawsze, Opróżnij Kosz),
+ * the list (folders first, then by name) and the details on the right; the right button opens the menu of an entry
+ * (menu.c: "Otwórz za pomocą", 0.8.2 step 5). A double click (or Enter) opens a folder, or a file in its default
+ * application (Ustawienia → Aplikacje; ADR 0030) — or the footer says K1 has none for its type yet.
  * Keys: Backspace goes up, F2 renames, Delete moves to Kosz, arrows move the selection.
  *
  * The program has no files at all: everything comes from skarbiec on fd 4 (the table of rights there lets
@@ -17,6 +18,7 @@
 
 #include "k1_klawiatura.h"
 #include "k1_log.h"
+#include "k1_menu.h"
 #include "k1_teraz.h"
 #include "k1_uslugi.h"
 #include "pliki.h"
@@ -107,7 +109,7 @@ void przejdz(struct miejsce m)
     zaznaczony = 0;
     edycja.id = 0;
     pytanie = PYT_BRAK;
-    wybor_aplikacji = 0;
+    menu_zamknij();
     blad = NULL;
     tapeta_stan = NULL;
     od_wiersza = 0;
@@ -263,6 +265,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     if (obraz_przycisk(&p[0]))
         k1_przycisk(o, m, &p[0], K1_CZ_MALA_MOCNA, nad_tapeta, 1);
     rysuj_stopke(o, m);
+    menu_rysuj(o, m); /* above everything */
 }
 
 /* ---- the mouse and keys ---- */
@@ -287,8 +290,9 @@ static int wiersz_pod(int32_t x, int32_t y)
     return (y - WIERSZE_Y) / WIERSZ < wierszy_widac() && i < n_widok ? i : -1;
 }
 
-/* A folder: go into it; a file: its default application (Pliki itself: its details are shown already). */
-static void otworz(uint32_t id)
+/* A folder: go into it; a file: its default application (Ustawienia → Aplikacje), or the footer says there is none
+ * (0.8.2 step 5: never nothing at all). */
+void otworz(uint32_t id)
 {
     const struct k1_dok_wpis *w = wpis_tu(id);
     int a;
@@ -303,8 +307,14 @@ static void otworz(uint32_t id)
         przejdz((struct miejsce){ id, 0, 0 });
         return;
     }
-    a = apl.k.ustawienia[K1_UST_OTWIERANIE + w->typ - 1];
-    otworz_w(k1_dok_otwiera(a, w->typ) ? a : k1_dok_domyslna(w->typ));
+    a = k1_dok_czym_otworzyc(w->typ, apl.k.ustawienia[K1_UST_OTWIERANIE + w->typ - 1]);
+    zaznaczony = id;
+    if (a != 0) {
+        otworz_w(a);
+        return;
+    }
+    blad = K1_MENU_BEZ_APLIKACJI_KROTKO ".";
+    k1_log(TAG, "plik bez aplikacji (typ %d): komunikat w stopce", w->typ);
 }
 
 static void klik_w_liste(int i)
@@ -325,7 +335,6 @@ static void klik_w_liste(int i)
     klik.t = t;
     zaznaczony = id;
     pytanie = PYT_BRAK;
-    wybor_aplikacji = 0;
     szczegoly_zadaj(id);
 }
 
@@ -344,6 +353,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
 {
     struct k1_przycisk p[PRZYCISKI_MAKS], tp;
     int n = przyciski(p), mj = -1, pr = -1, wr = -1, wg = 0, nt = 0;
+    if (menu_wskaznik(rodzaj, x, y, przycisk))
+        return;
     if (rodzaj != K1_WSK_WYJSCIE) {
         mj = miejsce_pod(x, y);
         pr = k1_przycisk_pod(p, n, x, y);
@@ -359,6 +370,16 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         nad_tapeta = nt;
         k1_apl_odswiez(&apl);
     }
+    if (rodzaj == K1_WSK_WCISNIECIE && przycisk == K1_PRZYCISK_PRAWY && wr >= 0 && edycja.id == 0) {
+        zaznaczony = wiersz_wpisu(wr)->id; /* the row is selected (its details), then its menu (0.8.2 step 5) */
+        klik.id = 0;                       /* never a part of a double click */
+        pytanie = PYT_BRAK;
+        blad = NULL;
+        szczegoly_zadaj(zaznaczony);
+        menu_otworz(zaznaczony, x, y);
+        k1_apl_odswiez(&apl);
+        return;
+    }
     if (rodzaj != K1_WSK_PUSZCZENIE || przycisk != K1_PRZYCISK_LEWY)
         return;
     if (edycja.id != 0 && !(wr >= 0 && wiersz_wpisu(wr)->id == edycja.id))
@@ -368,7 +389,7 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     else if (mj >= 0)
         przejdz(mj == K1_FOLDERY_MAKS ? (struct miejsce){ 0, 1, 0 } : (struct miejsce){ (uint32_t)mj + 1, 0, 0 });
     else if (pr >= 0)
-        wykonaj(rodzaje[pr], apl_przycisku[pr]);
+        wykonaj(rodzaje[pr]);
     else if (wg)
         w_gore();
     else if (nt)
@@ -405,6 +426,13 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     int i = wiersz_zaznaczonego();
     if (wartosc == 0)
         return;
+    if (menu_otwarte()) { /* a key closes the menu (Esc: only that) */
+        menu_zamknij();
+        if (kod == KEY_ESC) {
+            k1_apl_odswiez(&apl);
+            return;
+        }
+    }
     if (edycja.id != 0) {
         klawisz_edycji(kod, mody);
     } else if (kod == KEY_DOWN || kod == KEY_UP) {
@@ -417,10 +445,9 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     } else if (kod == KEY_F2) {
         zacznij_edycje();
     } else if (kod == KEY_DELETE) {
-        wykonaj(tu.kosz ? B_NA_ZAWSZE : B_USUN, 0);
+        wykonaj(tu.kosz ? B_NA_ZAWSZE : B_USUN);
     } else if (kod == KEY_ESC) {
         pytanie = PYT_BRAK;
-        wybor_aplikacji = 0;
     }
     k1_apl_odswiez(&apl);
 }
