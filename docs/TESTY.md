@@ -263,7 +263,7 @@ Obraz produkcyjny z dyskiem danych (pusta K1-DANE), dwa uruchomienia.
 | zajęta nazwa | drugi folder → „projekt” (inna wielkość liter) — skarbiec odmawia (`-21`), komunikat w stopce | `pliki-2-zajeta-nazwa.png` |
 | foldery | podwójne kliknięcie otwiera „Projekt” (0 elementów), „w górę” — Dokumenty (2) | log `widok:` |
 | Kosz | Usuń → Kosz (1) → Przywróć (Kosz 0, Dokumenty 2) → Usuń → „Usuń na zawsze” → pytanie → „Tak, usuń” → Kosz 0 | `pliki-3-kosz.png`, `pliki-4-pytanie.png` |
-| pulpit | folder w Pulpicie = ikona na pulpicie (w logu numer, nie nazwa); podwójne kliknięcie → Pliki w tym folderze; menu pliku „Usuń” → ikona znika, Kosz pełny; menu Kosza „Opróżnij Kosz” → pusty | `pliki-5-pulpit-z-folderem.png`, `pliki-6-kosz-pelny.png` |
+| pulpit | folder w Pulpicie = ikona na pulpicie (w logu numer, nie nazwa); podwójne kliknięcie → Pliki w tym folderze; menu folderu (0.8.2 krok 5): „Otwórz”, „Pokaż w Plikach”, „Zmień nazwę”, „Usuń” → „Zmień nazwę” otwiera Pliki z polem nazwy, nowa nazwa z klawiatury w skarbcu; menu „Usuń” → ikona znika, Kosz pełny; menu Kosza „Opróżnij Kosz” → pusty | `pliki-5-pulpit-z-folderem.png`, `pliki-menu-zmień.png`, `pliki-5a-zmiana-nazwy.png`, `pliki-6-kosz-pelny.png` |
 | dysk | nagłówek magazynu jest, nazwy „Projekt” jawnie nie ma | skrypt |
 | ponownie | po wyłączeniu: Dokumenty z „Projekt”, Kosz pusty | `pliki-ponownie-dokumenty.png` |
 | czystość logu | bez nazw plików, paniki, błędów, zablokowanych wywołań i odrzuconych komunikatów | log |
@@ -315,6 +315,7 @@ nazwą, uszkodzonym JPEG-iem, notatką, plikiem 17 MB, plikiem ukrytym i śmieci
 | nowe formaty (0.8.2 krok 3) | GIF, BMP, WebP stratny → 64×48, kolor w podglądzie | `pendrive-6-podglad-gif.png`, `-bmp.png`, `-webp.png` |
 | za duże zdjęcie | nagłówek 10050×10000: dekoder odmawia przed przydziałem (-41, 101 Mpx); Pliki: „Zdjęcie ma 101 Mpx — K1 pokazuje do 100 Mpx” | `pendrive-6-podglad-101mpx.png` |
 | tapeta | „Ustaw jako tapetę” → ekran: zdjęcie od Plików 80×60, tapeta 31; kolor zdjęcia przy prawej krawędzi ekranu | `pendrive-6-tapeta.png` |
+| bez aplikacji (0.8.2 krok 5) | Dokumenty: podwójne kliknięcie filmu (typ „Plik”) → stopka „K1 nie ma jeszcze aplikacji do tego typu pliku.”, żadna aplikacja nie dostaje pliku; prawy przycisk → menu tylko „Zmień nazwę”, „Usuń” („Otwórz” wyszarzone); Esc zamyka | `pendrive-6c-bez-aplikacji.png`, `pendrive-6c-menu-bez-aplikacji.png` |
 | wyjęcie | `device_del` → nadzorca zatrzymuje czytnik (sygnał 9), Pliki: „Pendrive odłączony.”, Dokumenty | `pendrive-7-wyjety.png` |
 | NTFS | `device_add` pendrive'a z NTFS → „Pendrive” wraca; czytnik: nie FAT; Pliki: K1 jeszcze go nie czyta | `pendrive-8-ntfs.png` |
 | czystość logu | bez nazw i treści plików, paniki, błędów, zablokowanych wywołań i odrzuconych komunikatów | `pendrive.log` |
