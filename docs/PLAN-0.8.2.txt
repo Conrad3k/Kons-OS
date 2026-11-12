@@ -63,6 +63,7 @@ Nowy czat — przebieg każdego kroku:
 [x]  3  Zdjęcia: duże i nowe formaty, wspólny dekoder L17 L23b               —          —         M        (0032)
          [PR #75]
 [ ]  4  Aplikacja Podgląd                            (prośba właściciela)    3          D1 D2 D5  L        0037
+         [w toku: Claude, gałąź claude/plan-0-8-2-krok-4-ha2z3a]
 [ ]  5  Otwieranie: „Otwórz za pomocą”, jedno menu   L22                     4          D7        M        —
 [ ]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        5          D6 D8     L        —
 [ ]  7  Porządki i wydanie 0.8.2                     —                       1–6        —         S        —
@@ -348,12 +349,16 @@ KROK 7 — Porządki i wydanie 0.8.2                                            
 
 4. DECYZJE WŁAŚCICIELA (z rekomendacją; który krok ich potrzebuje)
 -----------------------------------------------------------------
-[!] D1 (krok 4) Nazwa „Podgląd”: w słowniku „podgląd” to dziś panel po prawej w Plikach. Jedno słowo = jedno
+[x] D1 (krok 4) Nazwa „Podgląd”: w słowniku „podgląd” to dziś panel po prawej w Plikach. Jedno słowo = jedno
        znaczenie. Rekomendacja: aplikacja „Podgląd”, a panel w Plikach — „szczegóły”.
-[!] D2 (krok 4) Delete w Podglądzie wyrzuca zdjęcie do Kosza (jak w Zdjęciach Windows)? Rekomendacja: tak.
+       DECYZJA właściciela (2026-11-12): tak — aplikacja „Podgląd”, panel w Plikach „szczegóły”.
+[x] D2 (krok 4) Delete w Podglądzie wyrzuca zdjęcie do Kosza (jak w Zdjęciach Windows)? Rekomendacja: tak.
+       DECYZJA właściciela (2026-11-12): tak, bez pytania (Kosz da się cofnąć przez 30 dni).
 [x] D3 (krok 2) Ponowny import tych samych plików. Rekomendacja: pomijać już zaimportowane i napisać ile.
        DECYZJA właściciela (2026-11-12): pomijać — „Pominięto n — już zaimportowane”.
-[!] D5 (krok 4) Szkice wyglądu Podglądu (2–3 do wyboru) — na początku kroku 4.
+[x] D5 (krok 4) Szkice wyglądu Podglądu (2–3 do wyboru) — na początku kroku 4.
+       DECYZJA właściciela (2026-11-12): wariant A — ramka w kolorach motywu, zdjęcie na ciemnym tle, pasek na dole
+       (‹ › „3 z 27”, nazwa i szczegóły, przyciski). Warianty B (panel po prawej) i C (pływający pasek) odrzucone.
 [!] D6 (krok 6) Przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) w 0.8.2 czy razem z 0.11?
        Rekomendacja: w 0.8.2 przeciąganie w obrębie Plików i pulpitu; między oknami — po 0.8.2, jednym ADR-em
        z planem 0.11 (strefy potrzebują tego samego).
