@@ -82,7 +82,7 @@ TPM 1.2), jedno konto na komputer. X230 to maszyna testowa — szybka grafika i 
 | `src/czytnik/` | `system/czytnik` | pendrive dla Plików: FAT w klatce, tylko odczyt (0.8.0, ADR 0031); nadzorca `pendrive.c` |
 | `src/dekoder/` | `system/dekoder` | jeden obraz (PNG, JPEG, GIF, BMP, WebP) → piksele, jednorazowy proces w klatce (Wuffs; 0.8.0, ADR 0032); plik kawałkami, limity w jednej tabeli `k1_dekoder.h`, dekodery w `K1_DEKODERY` (0.8.2); nadzorca `dekoder.c` (tabela klientów: Pliki, Podgląd), Pliki `obrazy.c`, Podgląd `obraz.c`, ekran `zdjecie.c` (tabela nadawców tapety) |
 | `src/aplikacje/<program>/` | `aplikacje/<program>` | Zegar, Notatki, Ustawienia, Zasoby, Instalator (`instalacja`), Kalkulator, Pliki (0.8.0), Wybór pliku (`wybor`), Podgląd (`podglad`, 0.8.2: zdjęcie w oknie, zdjęcia jednego folderu — ADR 0037) |
-| `src/przybornik/` | (linkowane) | okno aplikacji (`k1_aplikacja`), rysowanie, ikony `K1_IK_*`, tekst, liczby, czas i klawiatura PL, zdjęcie przez dekoder (`k1_dekodowanie`: prośba, kawałki od skarbca, odpowiedź — Pliki i Podgląd), menu pod prawym przyciskiem (`k1_menu`: wygląd i wiersze menu pliku — jedno dla pulpitu i Plików, 0.8.2) |
+| `src/przybornik/` | (linkowane) | okno aplikacji (`k1_aplikacja`), rysowanie, ikony `K1_IK_*`, tekst, liczby, czas i klawiatura PL, zdjęcie przez dekoder (`k1_dekodowanie`: prośba, kawałki od skarbca, odpowiedź — Pliki i Podgląd), menu pod prawym przyciskiem (`k1_menu`: wygląd i wiersze menu pliku — jedno dla pulpitu i Plików, 0.8.2), przeciąganie (`k1_przeciaganie`: jedna tabela reguł źródło/cel dla Plików i pulpitu, okienko pytania) i zaznaczanie wielu (`k1_zaznaczenie`, 0.8.2 krok 6) |
 | `src/wspolne/` | (linkowane) | `k1_uslugi.h` **listy usług i aplikacji**, `k1_komunikat` (32 B), `k1_kanal`, `k1_odbior`, `k1_klatka`, `k1_log`, `k1_skarb_klient`, `k1_memfd`, `k1_indeks` (indeks po kluczu, 0.8.1), `k1_efi`, `k1_uklad`, `k1_manifest`, `k1_bajty.h`, `k1_io.h`, `k1_teraz.h` |
 | `src/zewnetrzne/` | (linkowane) | Monocypher (skarbiec) i Wuffs (dekoder, 0.8.0) — jedyne obce biblioteki w systemie |
 | `narzedzia/` | (host) | czcionki IBM Plex → bitmapy, ekran startowy GRUB-a, podpis, klucz Secure Boot |
@@ -151,7 +151,10 @@ Komentarze i commity po angielsku; nazwy w kodzie po polsku, zgodnie ze słownik
 4. Ręcznie: ikona `K1_IK_*` w `k1_rysuj.c`, scenariusz w `test-m4.sh` (położenia elementów loguj — test klika
    według logu), opis w `docs/komponenty/aplikacje.md`, pojęcia w słowniku.
 5. Dane spoza okna — kanał w `kanaly[]` (`src/nadzorca/uslugi.c`; wzór: Zasoby, fd 4). Nigdy ścieżki.
-Gotowe części przybornika: `k1_przycisk`, `k1_pole_klawisz`, `k1_menu` (menu pod prawym przyciskiem), `k1_liczba.h`, kolory `k1_motyw` / `K1_*` (`k1_grafika.h`).
+Gotowe części przybornika: `k1_przycisk`, `k1_pole_klawisz`, `k1_menu` (menu pod prawym przyciskiem), `k1_przeciaganie`
+(tabela reguł przeciągania, okienko pytania, karteczka i znak przy kursorze), `k1_zaznaczenie` (wiele zaznaczonych),
+`k1_liczba.h` (też `k1_odmiana`: „1 plik / 3 pliki / 5 plików”), kolory `k1_motyw` / `K1_*` (`k1_grafika.h`).
+Ctrl/Shift przy kliknięciu: `apl.mody` (ekran podaje je w `WSKAZNIK` e, 0.8.2).
 
 **Nowa usługa systemowa** (np. `siec`) — dziś to kilka miejsc (do ujednolicenia w porządkach):
 1. `src/<nazwa>/main.c`: komentarz na górze (zadanie, granica zaufania, etap); pierwsza linia `main()` —
@@ -188,7 +191,8 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 | QEMU z zewnątrz | `scripts/test-m1/m2/m4/m5/m5f/m6.sh`, `test-pliki.sh`, `test-pendrive.sh`, `test-skarbiec.sh` na `testy/qemu/k1qemu.py` | start i błędy startu, kursor, pulpit i aplikacje (zrzuty po kolorach), USB, instalator, aktualizacje i Secure Boot, Pliki, wirtualny pendrive ze zdjęciami (mtools + Pillow, `device_add`/`device_del`) |
 | wszystko | `scripts/testy.sh` | to samo uruchamia CI (z KVM równolegle) |
 
-- **Bez stałych pauz:** `Maszyna.czekaj`/`czekaj_na` na log, `klik` czeka na potwierdzenie ekranu,
+- **Bez stałych pauz:** `Maszyna.czekaj`/`czekaj_na` na log, `klik` czeka na potwierdzenie ekranu, `przeciagnij`
+  (wciśnięcie, kilka ruchów, puszczenie), `klik_z("ctrl", x, y)` (QEMU `sendkey ctrl 1500` + klik),
   `zrzut(nazwa, gdy=…)` na stan ekranu, `cisza(wzór, s)` na „nic się nie dzieje”. Żadnego `time.sleep`.
 - Ekran loguje kursor i lewy przycisk najwyżej 2×/s: podwójne kliknięcie — `Maszyna.dwuklik` (oba kliknięcia
   jednym poleceniem monitora), prawy przycisk — `prawy_klik` (potem czekaj na „menu kontekstowe”).

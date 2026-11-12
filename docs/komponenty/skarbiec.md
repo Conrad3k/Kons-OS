@@ -127,7 +127,8 @@ Dokumentów.
   Kosz do tej daty — bezpiecznie (nic nie ginie), rozwiąże to czas z sieci (0.9, RYZYKA R56).
 
 **Prawa** — tabela w `dok_kanal.c` (wiersz na klienta; właściciel kanału od nadzorcy): Pliki — wszystko; pulpit
-(gui) — tylko folder Pulpit (lista nazw i typów, „do Kosza”, „opróżnij Kosz”, „Otwórz za pomocą” (do 0.8.1 „Otwórz w…”), bez treści); Notatki
+(gui) — tylko folder Pulpit (lista nazw i typów, „do Kosza”, „opróżnij Kosz”, „Otwórz za pomocą” (do 0.8.1 „Otwórz w…”),
+od 0.8.2 krok 6 „przenieś” pliku Pulpitu do folderu Pulpitu — plik upuszczony na folder, bez treści); Notatki
 (0.8.0, ADR 0030) — tylko pliki, które same utworzyły, i pliki dane im przez użytkownika: lista, treść, zapis,
 nazwa, nowy plik tylko w swoim folderze **Dokumenty › Notatki** (skarbiec tworzy go, gdy go nie ma), do Kosza
 tylko własne, okno wyboru pliku; Wybór pliku — lista widocznych (bez Kosza, bez treści) i odpowiedź; Podgląd (0.8.2
@@ -156,8 +157,9 @@ wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po 
 | `DOK_KONIEC` | klient → | a = 0 koniec zapisu w toku (wpis), 1 porzucenie → `DOK_WYNIK` (c = numer nowego pliku) |
 | `DOK_CZAS` | Pliki → | (0.8.2 krok 2) obiekt = plik z pochodzeniem innym niż K1 (import), a, b = czas „zmieniono” z pendrive'a (dwa pola, 1 s … koniec 2107 r.); tylko z prawem `P_POCHODZENIE` → `DOK_WYNIK`. Ponowny import tego samego pliku Pliki pomijają |
 | `DOK_NAZWA` | klient → | obiekt = wpis, a = długość, b = 1: zajęta nazwa dostaje „ (2)” (0: odmowa); memfd: nowa nazwa |
-| `DOK_PRZENIES` | klient → | obiekt = wpis, a = folder docelowy (nie do siebie, nie za głęboko) |
-| `DOK_KOSZ`, `DOK_PRZYWROC`, `DOK_USUN` | klient → | obiekt = wpis (usuń: tylko z Kosza) |
+| `DOK_PRZENIES` | klient → | obiekt = wpis, a = folder docelowy (nie do siebie, nie za głęboko), b = 1: zajęta nazwa dostaje „ (2)” — „Zachowaj oba” (0.8.2 krok 6; 0: odmowa `K1_DOK_BLAD_ZAJETA`) |
+| `DOK_PRZYWROC` | klient → | obiekt = wpis w Koszu, a = 0: do swojego folderu (gdy go nie ma — do Dokumentów), a = folder: tam, gdzie go upuszczono (0.8.2 krok 6; folder widoczny, nie w samym sobie, nie za głęboko — inaczej `K1_DOK_BLAD_MIEJSCE`); zajęta nazwa dostaje „ (2)” |
+| `DOK_KOSZ`, `DOK_USUN` | klient → | obiekt = wpis (usuń: tylko z Kosza) |
 | `DOK_OPROZNIJ` | klient → | wszystko z Kosza na zawsze |
 | `DOK_LISTA` | → klient | a = długość, b = liczba wpisów; memfd: „K1D1”, liczba, w Koszu, wpisy |
 | `DOK_TRESC` | → klient | obiekt = plik, a = wysłane bajty, b = kawałek, c, d = cały rozmiar (0.8.1: dwa pola, do 4 GiB); memfd |

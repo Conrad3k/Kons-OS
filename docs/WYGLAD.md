@@ -111,6 +111,19 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   akcentu przed nazwą; „Zawsze otwieraj tą aplikacją” z polem 16 px (zaznaczone: wypełnione akcentem z ✓). Wiersz
   wyszarzony (`tekst3`) z powodem pod spodem (Plex Sans 13, zawijany). Komunikat przy ikonie (typ bez aplikacji):
   panel 280 px — typ (Medium 15), zdanie (Plex Sans 13, `tekst2`, zawijane), kreska, „Pokaż w Plikach”.
+- **Przeciąganie (0.8.2 krok 6, szkic zaakceptowany 2026-11-12):** w Plikach przy kursorze **karteczka** — tło `pole`
+  z kryciem 84 %, zaokrąglenie 10, włoskowaty obrys, cień 4 px w dół; ikona 18 px na kwadracie 26 px (`najechanie`),
+  nazwa Plex Sans Medium 13 (najwyżej 240 px), przy więcej niż jednym elemencie **liczba** w kółku 22 px w kolorze
+  akcentu na prawym górnym rogu. Pod nią **znak** — pigułka 24 px: białe kółko z symbolem i tekst Medium 13 na tle
+  ciemnym `#1F1E1C` (przenieś: →), zielonym `#2F6B4F` (kopiuj — import: +) albo ciemnoczerwonym `#7A2E1C` (nie można: ⦸) —
+  te trzy kolory poza motywem, te same w obu motywach (znak leży na liście albo na tapecie). Cel: obrys 1,5 px i tło
+  w kolorze akcentu (krycie 13 %) na wierszu albo miejscu z lewej; przeciągane wiersze przygaszone (krycie 43 %).
+  Zaznaczenie wielu: tło `zaznaczenie` i pionowa kreska 3 px w kolorze akcentu. Na pulpicie: komórka celu z kremowym
+  obrysem 2 px i kremowym tłem 27 %, przy kursorze kafelek pliku z kryciem 70 % i ten sam znak.
+- **Okienko pytania (0.8.2 krok 6):** panel menu (`k1_menu`) 300 px przy miejscu upuszczenia: pytanie Plex Sans Medium 15
+  (zawijane, wiersz 21 px), pod nim zdanie Plex Sans 13 (`tekst2`), kreska, wiersze odpowiedzi — pierwszy Medium
+  („Przenieś do Kosza”, „Zachowaj oba”, „OK”), „Anuluj” zwykły.
+- **„Jeszcze n” (0.8.2 krok 6, L19):** kafelek jak ikona, ale z kryciem 55 %, w środku „+12” Plex Sans Medium 15.
 - **Dolny pasek:** szerokość według liczby aplikacji, wyśrodkowany; przypięte, kreska, uruchomione spoza
   paska.
 

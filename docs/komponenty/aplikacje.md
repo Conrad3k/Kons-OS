@@ -133,10 +133,32 @@ jest już wczytany); plik dostaje czas „zmieniono” z pendrive'a (`DOK_CZAS`)
 jest w Obrazach / Dokumentach z pendrive'a z tą samą nazwą, rozmiarem i czasem — stopka „Pominięto n — już
 zaimportowane” (decyzja D3); brak miejsca i limit wpisów przerywają import z powodem: „Brak miejsca na pliki —
 zaimportowano n z m.”, „Brak miejsca w pamięci (K1 działa bez nośnika danych) — …”, „Za dużo plików i folderów (K1
-mieści 16 384) — …”. Lista sortowana `qsort` (16 384 elementy). Moduły: `main.c` (okno,
-mysz, klawisze), `przyciski.c` (przyciski miejsca), `rysuj.c` (lista, szczegóły, stopka), `dane.c` (skarbiec i nadzorca),
-`pendrive.c` (pendrive i import), `obrazy.c` (miniatura i tapeta przez dekoder — od 0.8.2 przez wspólny
-`k1_dekodowanie` z przybornika; kanał do dekodera = 5. kanał aplikacji, `K1_APL_KANALY`).
+mieści 16 384) — …”. Lista sortowana `qsort` (16 384 elementy).
+**Zaznaczanie wielu i przeciąganie** (0.8.2 krok 6, L24 faza A, decyzje D6 i D8, szkic z 2026-11-12): Ctrl+klik dokłada
+albo odejmuje element, Shift+klik zaznacza od ostatnio klikniętego do tego (Ctrl+Shift — dokłada zakres), Ctrl+A —
+wszystko w miejscu (także na pendrivie); zaznaczone wiersze mają kreskę w kolorze akcentu, szczegóły i stopka mówią
+„Zaznaczone: n” (`k1_zaznaczenie` w przyborniku). Przyciski „Usuń”, „Przywróć”, „Usuń na zawsze”, „Importuj” i menu
+pod prawym przyciskiem na jednym z zaznaczonych („Zaznaczone: n” — `k1_menu_wielu`) działają na wszystkie; „Otwórz”
+i „Zmień nazwę” — na jeden. Zaznaczone (albo wiersz, który się chwyciło) **przeciąga się** lewym przyciskiem na folder
+na liście albo na miejsce z lewej (stały folder, Kosz, Pendrive): przy kursorze półprzezroczysta karteczka z nazwą
+i liczbą, pod nią znak, co się stanie („Przenieś do „Obrazy””, „Do Kosza”, „Przywróć do…”, zielony „Kopiuj do… (import)”,
+ciemnoczerwony „Nie można — …”), cel obrysowany akcentem. Decyduje **jedna tabela reguł** (źródło, cel) w przyborniku
+(`k1_przeciaganie`, ta sama na pulpicie): z folderu — przeniesienie albo Kosz, z Kosza — przywrócenie do folderu,
+z pendrive'a — import (kopia) do folderu, na Kosz — „Z pendrive'a możesz tylko skopiować pliki do K1 (import).”,
+na pendrive — „Nie możesz — pendrive jest w K1 tylko do odczytu.”, stały folder z lewej — „Nie możesz — foldery
+Pulpit, … są stałe.”, folder w samym sobie, ponad 8 poziomów, brak miejsca na import — odmowa z powodem. Przed Koszem
+pytanie (D8), gdy elementów jest więcej niż jeden albo folder ma coś w środku: **okienko** w wyglądzie menu przy
+miejscu upuszczenia („Przenieść 12 elementów do Kosza?” — „Przenieś do Kosza” / „Anuluj”); zajęta nazwa w folderze
+docelowym: „W „Obrazy” jest już „IMG_0001.JPG”.” — „Zachowaj oba” (przenoszony dostaje „ (2)”, `DOK_PRZENIES` b = 1),
+„Pomiń”, „Anuluj”; odmowa — okienko z „OK”. Delete i „Usuń” pytają tak samo. Prośby idą do skarbca po jednej
+(`zbiorczo.c`), a stopka mówi na końcu, jak poszło („Przeniesiono 12 elementów do „Obrazy”.”, a gdy coś się nie udało —
+powód słowami tabeli, `k1_prz_powod`). Przeciąganie między oknami (Pliki ↔ pulpit) — po 0.8.2 (D6). Moduły: `main.c`
+(okno, miejsce, lista, zaznaczenie), `wskaznik.c` (mysz i klawisze; 0.8.2 krok 6 — wydzielone z `main.c`),
+`przeciaganie.c` (przeciąganie i jego okienka), `zbiorczo.c` (jedno działanie na wielu), `przyciski.c` (przyciski
+miejsca), `menu.c` (menu pod prawym przyciskiem i okienko), `rysuj.c` (lista, szczegóły, stopka), `dane.c` (skarbiec
+i nadzorca), `pendrive.c` (pendrive i import — od 0.8.2 krok 6 także do folderu, na który upuszczono), `obrazy.c`
+(miniatura i tapeta przez dekoder — od 0.8.2 przez wspólny `k1_dekodowanie` z przybornika; kanał do dekodera = 5. kanał
+aplikacji, `K1_APL_KANALY`).
 
 ### Podgląd
 (0.8.2 krok 4, ADR 0037, `src/aplikacje/podglad/`, UID 208) — **zdjęcie w osobnym oknie**, jak w Zdjęciach Windows.
@@ -221,6 +243,8 @@ Błąd zapisu notatki → komunikat w oknie i w logu.
 | host: `test_dokumenty` (skarbiec), `test_komunikat` (`DOK_*`, `PLIKI_POKAZ`), `fuzz_dokument` (lista) | jednostkowy / negatywny / fuzzing |
 | host (0.8.0, ADR 0030): `test_dokumenty` — prawa Notatek (tylko własne pliki, nowy plik tylko w swoim folderze, Kosz tylko dla własnych), „Otwórz w…” (pulpit: tylko folder Pulpit; zły typ — odmowa), okno wyboru (jedna prośba naraz, tylko nazwy, folder i zły typ odrzucone, zamknięte okno = anulowanie, dostęp znika z aplikacją); `test_komunikat` — `DOK_OTWORZ`, `DOK_WYBIERZ`, `DOK_WYBRANO`, `DOK_WYBRANY`, `DOK_PROSBA`, `SKARB_URUCHOM`, `PLIK_OTWORZ`, `POKAZ_APL`, domyślne aplikacje | jednostkowy / negatywny |
 | `test-pliki.sh` (0.8.0, krok 2): stare notatki przeniesione do plików, nazwa za pierwszym wierszem, okno wyboru pliku (wybór i „Anuluj”), Ustawienia → Aplikacje; od 0.8.2 krok 5: menu pod prawym przyciskiem w Plikach → „Otwórz za pomocą” → Notatki, „Zmień nazwę” z menu pulpitu (Pliki z polem nazwy) | funkcjonalny |
+| host (0.8.2 krok 6): `test_przeciaganie` — każda para źródło/cel tabeli reguł, warunki (ten sam folder, w samym sobie, za głęboko, brak miejsca), pytanie przed Koszem (D8), okienka (pytanie, nazwa zajęta, odmowa), powody wyników skarbca, zaznaczanie (klik, Ctrl, Shift, Ctrl+A, 16 384 elementy), rysowanie na brzegach obrazu; `test_menu` — menu wielu zaznaczonych | jednostkowy |
+| `test-pliki.sh` (0.8.2 krok 6): folder przeciągnięty na folder, Ctrl+klik, dwa na Kosz z pytaniem i „Przenieś do Kosza”, z Kosza na folder z lewej, stały folder na Kosz (odmowa); na pulpicie folder na folder i na Kosz z pytaniem; `test-pendrive.sh`: plik z pendrive'a na Kosz (odmowa), na „Obrazy” (import tam); zrzuty `pliki-7…12-*.png`, `pendrive-5a-tylko-import.png` | funkcjonalny |
 | host (0.8.2 krok 5): `test_menu` — wiersze menu pliku dla każdego typu i miejsca (Pliki, pulpit, Kosz, pendrive), „Otwórz za pomocą” (bez Plików, ✓ przy tej, która otwiera, „Zawsze otwieraj” od dwóch aplikacji), komunikat bez aplikacji, położenie i trafienie, rysowanie na brzegach obrazu | jednostkowy |
 | `test-pendrive.sh` (0.8.2 krok 5): podwójne kliknięcie pliku bez aplikacji (film) → stopka; menu pliku bez „Otwórz” | funkcjonalny / negatywny |
 | host: `test_przybornik` — czas polski (zmiany czasu), układ PL, UTF-8, rysowanie na krawędziach | jednostkowy |
