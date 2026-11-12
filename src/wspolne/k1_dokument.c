@@ -169,6 +169,32 @@ int k1_typ_rodzina(int typ)
 #undef X_RODZ
 }
 
+int k1_dok_przed(const struct k1_dok_wpis *w, const struct k1_dok_wpis *v)
+{
+    size_t i;
+    if (w->rodzaj != v->rodzaj)
+        return w->rodzaj == K1_DOK_FOLDER;
+    for (i = 0; w->nazwa[i] && v->nazwa[i]; i++) {
+        unsigned a = (unsigned char)w->nazwa[i], b = (unsigned char)v->nazwa[i];
+        a = a >= 'A' && a <= 'Z' ? a + 32 : a;
+        b = b >= 'A' && b <= 'Z' ? b + 32 : b;
+        if (a != b)
+            return a < b;
+    }
+    return w->nazwa[i] == 0 && v->nazwa[i] != 0;
+}
+
+const char *k1_rodzina_nazwa(int rodzina)
+{
+#define X_NAZWA(n, nr_, nazwa) case nr_: return nazwa;
+    switch (rodzina) {
+        K1_RODZINY(X_NAZWA)
+    default:
+        return NULL;
+    }
+#undef X_NAZWA
+}
+
 const char *k1_typ_nazwa(int typ)
 {
 #define X_NAZWA(n, nr_, nazwa, ...) case nr_: return nazwa;

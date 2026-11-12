@@ -604,6 +604,84 @@ static void test_wybor(int *kn, uint32_t obcy, uint32_t folder)
     close(kn2[1]);
 }
 
+/* 0.8.2 step 4 (ADR 0037): Podgląd sees the pictures of the folders of the files the user opened in it — read only, and
+ * Kosz (D2) — nothing else: no text beside them, no other folder, nothing without a gesture, nothing after it closes. */
+static void test_podglad(int *kn, uint32_t tekst, uint32_t folder)
+{
+    static const uint8_t png[16] = { 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n' };
+    int kw[2], fd, jest;
+    struct k1_komunikat k;
+    uint32_t a = nowy(K1_FOLDER_OBRAZY, K1_DOK_PLIK, "a.png", png, sizeof png, T0);
+    uint32_t b = nowy(K1_FOLDER_OBRAZY, K1_DOK_PLIK, "b.png", png, sizeof png, T0);
+    uint32_t t = nowy(K1_FOLDER_OBRAZY, K1_DOK_PLIK, "opis.txt", (const uint8_t *)"Morze", 5, T0);
+    uint32_t c = nowy(folder, K1_DOK_PLIK, "c.png", png, sizeof png, T0);
+    uint32_t d = nowy(K1_FOLDER_OBRAZY, K1_DOK_PLIK, "d.png", png, sizeof png, T0);
+    EXPECT(a && b && t && c && d && dok_do_kosza(d, T0) == 0 && dok_wpis(a)->typ == K1_TYP_PNG);
+    EXPECT(k1_dok_domyslna(K1_TYP_PNG) == K1_APL_PODGLAD && k1_dok_domyslna(K1_TYP_WEBP) == K1_APL_PODGLAD &&
+           k1_dok_otwiera(K1_APL_PODGLAD, K1_TYP_GIF) && !k1_dok_otwiera(K1_APL_PODGLAD, K1_TYP_TEKST) &&
+           !k1_dok_otwiera(K1_APL_PODGLAD, K1_TYP_PDF));
+    /* no gesture yet: nothing */
+    EXPECT(widzi(kn, K1_PROFIL_PODGLAD, a, &jest) == 0 && !jest);
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, a, 100, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_BRAK && fd < 0);
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_KOSZ, a, 0, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_BRAK && dok_wpis(a)->kosz == 0);
+    /* a double click on a.png in Pliki: Podgląd gets it, and the pictures of Obrazy around it */
+    memset(&do_nadz, 0, sizeof do_nadz);
+    k = na(kn, K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_OTWORZ, t, K1_APL_PODGLAD, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_PRAWA && do_nadz.typ == 0); /* Podgląd does not open text */
+    k = na(kn, K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_OTWORZ, a, K1_APL_NOTATKI, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_PRAWA && do_nadz.typ == 0); /* Notatki do not open pictures */
+    k = na(kn, K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_OTWORZ, a, K1_APL_PODGLAD, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == 0 && do_nadz.typ == K1_KOM_SKARB_URUCHOM && do_nadz.obiekt == a && do_nadz.a == K1_APL_PODGLAD);
+    EXPECT(widzi(kn, K1_PROFIL_PODGLAD, b, &jest) == 2 && jest); /* a and b: not the text, not d in Kosz, not c */
+    EXPECT(widzi(kn, K1_PROFIL_PODGLAD, t, &jest) == 2 && !jest);
+    EXPECT(widzi(kn, K1_PROFIL_PODGLAD, c, &jest) == 2 && !jest);
+    EXPECT(widzi(kn, K1_PROFIL_PODGLAD, d, &jest) == 2 && !jest);
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, b, 100, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.typ == K1_KOM_DOK_TRESC && k.a == (int32_t)sizeof png && fd >= 0);
+    if (fd >= 0)
+        close(fd);
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, t, 100, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_BRAK && fd < 0); /* the text beside them */
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, c, 100, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_BRAK && fd < 0); /* another folder */
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, d, 100, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_BRAK && fd < 0); /* Kosz */
+    /* read only: no change but Kosz */
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_PRZENIES, b, K1_FOLDER_PULPIT, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_PRAWA);
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_OPROZNIJ, 0, 0, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_PRAWA && dok_wpis(d) != NULL);
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_USUN, d, 0, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_PRAWA && dok_wpis(d) != NULL);
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_OTWORZ, b, K1_APL_PODGLAD, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_PRAWA);
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_KOSZ, t, 0, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_BRAK && dok_wpis(t)->kosz == 0);
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_KOSZ, b, 0, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == 0 && dok_wpis(b)->kosz != 0); /* D2: Delete puts the picture shown in Kosz */
+    EXPECT(widzi(kn, K1_PROFIL_PODGLAD, b, &jest) == 1 && !jest);
+    /* "Otwórz…": the file picker with pictures only — a text is refused, c.png given with its folder */
+    EXPECT(k1_kanal_utworz(kw) == 0);
+    k = na(kn, K1_PROFIL_PODGLAD, k1_komunikat_nowy(K1_KOM_DOK_WYBIERZ, 0, 0, K1_RODZINA_OBRAZY, 0, 0, 0), -1, &fd);
+    EXPECT(k.typ == 0 && do_nadz.typ == K1_KOM_SKARB_URUCHOM && do_nadz.a == K1_APL_WYBOR);
+    dostep_nowy_klient(kw[1], K1_PROFIL_WYBOR);
+    k = odbierz(kw);
+    EXPECT(k.typ == K1_KOM_DOK_PROSBA && k.a == K1_APL_PODGLAD && k.b == 0 && k.c == K1_RODZINA_OBRAZY);
+    k = na(kw, K1_PROFIL_WYBOR, k1_komunikat_nowy(K1_KOM_DOK_WYBRANO, tekst, 0, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == K1_DOK_BLAD_BRAK && odbierz(kn).typ == 0); /* not a picture */
+    k = na(kw, K1_PROFIL_WYBOR, k1_komunikat_nowy(K1_KOM_DOK_WYBRANO, c, 0, 0, 0, 0, 0), -1, &fd);
+    EXPECT(k.b == 0 && odbierz(kn).typ == K1_KOM_DOK_WYBRANY);
+    EXPECT(widzi(kn, K1_PROFIL_PODGLAD, c, &jest) == 2 && jest); /* a (Obrazy) and c (its folder) */
+    dostep_koniec_klienta(kw[1], K1_PROFIL_WYBOR, 1);
+    close(kw[0]);
+    close(kw[1]);
+    /* Podgląd closed: nothing left */
+    dostep_koniec_klienta(kn[1], K1_PROFIL_PODGLAD, 1);
+    EXPECT(widzi(kn, K1_PROFIL_PODGLAD, a, &jest) == 0 && !jest);
+}
+
 static void test_dostep(void)
 {
     int kn[2];
@@ -616,10 +694,11 @@ static void test_dostep(void)
     test_notatki(kn, obcy, &wlasny);
     test_otworz(kn, obcy, pulpit);
     test_wybor(kn, obcy, folder);
+    test_podglad(kn, obcy, folder);
     EXPECT(k1_dok_otwiera(K1_APL_NOTATKI, K1_TYP_TEKST) && !k1_dok_otwiera(K1_APL_NOTATKI, K1_TYP_PNG) &&
            k1_dok_otwiera(K1_APL_PLIKI, K1_TYP_PDF) && !k1_dok_otwiera(K1_APL_WYBOR, K1_TYP_TEKST) &&
            !k1_dok_otwiera(K1_APL_PLIKI, 0) && !k1_dok_otwiera(K1_APL_PLIKI, K1_TYPY_MAKS + 1));
-    EXPECT(k1_dok_domyslna(K1_TYP_TEKST) == K1_APL_NOTATKI && k1_dok_domyslna(K1_TYP_JPEG) == K1_APL_PLIKI);
+    EXPECT(k1_dok_domyslna(K1_TYP_TEKST) == K1_APL_NOTATKI && k1_dok_domyslna(K1_TYP_PDF) == K1_APL_PLIKI);
     close(kn[0]);
     close(kn[1]);
 }

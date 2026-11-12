@@ -32,22 +32,8 @@ static struct {
 
 static int pasuje(const struct k1_dok_wpis *w)
 {
-    return w->rodzaj == K1_DOK_FOLDER || prosba.typ == 0 || w->typ == prosba.typ;
-}
-
-static int mniejszy(const struct k1_dok_wpis *a, const struct k1_dok_wpis *b)
-{
-    size_t i;
-    if (a->rodzaj != b->rodzaj)
-        return a->rodzaj == K1_DOK_FOLDER;
-    for (i = 0; a->nazwa[i] && b->nazwa[i]; i++) {
-        unsigned ca = (unsigned char)a->nazwa[i], cb = (unsigned char)b->nazwa[i];
-        ca = ca >= 'A' && ca <= 'Z' ? ca + 32 : ca;
-        cb = cb >= 'A' && cb <= 'Z' ? cb + 32 : cb;
-        if (ca != cb)
-            return ca < cb;
-    }
-    return a->nazwa[i] == 0 && b->nazwa[i] != 0;
+    return w->rodzaj == K1_DOK_FOLDER || (prosba.typ == 0 && prosba.rodzina == 0) || w->typ == prosba.typ ||
+           (prosba.rodzina != 0 && k1_typ_rodzina(w->typ) == prosba.rodzina);
 }
 
 static int wierszy_widac(void)
@@ -61,7 +47,7 @@ static void uloz(void)
     for (int i = 0; i < n_wpisow; i++)
         if (wpisy[i].rodzic == folder && wpisy[i].kosz == 0) {
             int j;
-            for (j = n_widok; j > 0 && mniejszy(&wpisy[i], &wpisy[widok[j - 1]]); j--)
+            for (j = n_widok; j > 0 && k1_dok_przed(&wpisy[i], &wpisy[widok[j - 1]]); j--)
                 widok[j] = widok[j - 1];
             widok[j] = i;
             n_widok++;
@@ -119,7 +105,7 @@ static int mozna_otworzyc(void)
 static void naglowek(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char buf[200];
-    const char *typ = prosba.typ ? k1_typ_nazwa(prosba.typ) : NULL;
+    const char *typ = prosba.typ ? k1_typ_nazwa(prosba.typ) : prosba.rodzina ? k1_rodzina_nazwa(prosba.rodzina) : NULL;
     if (!prosba.jest)
         snprintf(buf, sizeof buf, "Żadna aplikacja nie prosi teraz o plik.");
     else if (typ != NULL)

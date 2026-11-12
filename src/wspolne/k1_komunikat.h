@@ -187,12 +187,14 @@ enum k1_komunikat_typ {
     /* client → skarbiec (0.8.0 step 2, ADR 0030): a file for an application, always after a gesture of the user */
     K1_KOM_DOK_OTWORZ = 98,    /* Pliki, gui: obiekt=file, a=application 1..K1_APL_MAKS that opens its type (not Pliki):
                                 * it gets this file and is started with it (reply: DOK_WYNIK) */
-    K1_KOM_DOK_WYBIERZ = 99,   /* an application: obiekt=0, a=type 0 (any) / 1..K1_TYPY_MAKS — open the file picker
-                                * (reply: DOK_WYBRANY when the user is done, DOK_WYNIK at once when it cannot) */
+    K1_KOM_DOK_WYBIERZ = 99,   /* an application: obiekt=0, a=type 0 (any) / 1..K1_TYPY_MAKS, b=family 0 (any) /
+                                * 1..K1_RODZINY_MAKS (0.8.2 step 4: Podgląd asks for "obrazy"; not both) — open the file
+                                * picker (reply: DOK_WYBRANY when the user is done, DOK_WYNIK at once when it cannot) */
     K1_KOM_DOK_WYBRANO = 100,  /* the file picker only: obiekt=the file picked (0: cancelled) (reply: DOK_WYNIK) */
     /* skarbiec → client */
     K1_KOM_DOK_WYBRANY = 101,  /* to the application that asked: obiekt=the file it may use now (0: the user cancelled) */
-    K1_KOM_DOK_PROSBA = 102,   /* to the file picker: obiekt=0, a=application asking 1..K1_APL_MAKS, b=type 0..K1_TYPY_MAKS */
+    K1_KOM_DOK_PROSBA = 102,   /* to the file picker: obiekt=0, a=application asking 1..K1_APL_MAKS, b=type 0..K1_TYPY_MAKS,
+                                * c=family 0..K1_RODZINY_MAKS (not both) */
     /* skarbiec → nadzorca (control channel): start an application (with a file it was given: its fd 5 gets PLIK_OTWORZ) */
     K1_KOM_SKARB_URUCHOM = 83, /* obiekt=file (0: none), a=application 1..K1_APL_MAKS */
     /* nadzorca → an application (its fd 5) and → gui (its fd 5) */
@@ -228,8 +230,9 @@ enum k1_komunikat_typ {
                                   * b=its bytes 1..K1_DOK_KAWALEK (all but the last: K1_DOK_KAWALEK); + 1 sealed memfd of b
                                   * bytes */
     /* dekoder → Pliki */
-    K1_KOM_DEK_PIKSELE = 110,    /* a,b = width 1..K1_DEK_MAKS_W, height 1..K1_DEK_MAKS_H; + 1 sealed memfd of a × b
-                                  * pixels (k1_dekoder.h) */
+    K1_KOM_DEK_PIKSELE = 110,    /* a,b = width 1..K1_DEK_MAKS_W, height 1..K1_DEK_MAKS_H; c,d = the photo's own width ≥ a
+                                  * and height ≥ b, turned as seen (0.8.2 step 4: Podgląd shows them; c × d ≤
+                                  * K1_DEK_MAKS_PIKSELI); + 1 sealed memfd of a × b pixels (k1_dekoder.h) */
     K1_KOM_DEK_BLAD = 111,       /* a=K1_DEK_BLAD_* (< 0): no picture; b=the photo's Mpx 1..K1_DEK_MPX_MAKS after
                                   * K1_DEK_BLAD_DUZY (0.8.2 step 3), else 0 */
     /* nadzorca → Pliki (0.8.0, its fd 5; after URUCHOM with a place): show it */

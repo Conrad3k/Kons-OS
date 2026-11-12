@@ -25,7 +25,7 @@
 #define K1_DOK_ID_MAKS 0x7fffffff
 #define K1_DOK_CZAS_MAKS 4354819199LL   /* 2107-12-31 23:59:59 UTC: the last time FAT can write (DOK_CZAS, 0.8.2) */
 #define K1_KOSZ_DNI 30                  /* Kosz: deleted for good after this many days */
-#define K1_DOK_PODGLAD (64u << 10)      /* Pliki reads at most this much for a preview */
+#define K1_DOK_POCZATEK (64u << 10)     /* Pliki read at most this much of a text for its details */
 #define K1_DOK_DOSTEP_APL 64            /* files one application may be given after a gesture (until it closes) */
 
 enum { K1_DOK_PLIK = 1, K1_DOK_FOLDER = 2 };
@@ -46,7 +46,7 @@ enum { K1_FOLDERY_MAKS = 0 K1_FOLDERY(K1_X_JEDEN) };
 
 /* File types, recognised by skarbiec from the first bytes of the content, never from the name:
  * X(NAME, number, description in Pliki, icon K1_IK_<icon>, family). A new type: one line (and its test in k1_dok_typ).
- * Family (0.8.2 step 3): K1_RODZINA_OBRAZY — dekoder reads it (a preview, the wallpaper); 0 — none. */
+ * Family (0.8.2 step 3): K1_RODZINA_OBRAZY — dekoder reads it (a thumbnail, Podgląd, the wallpaper); 0 — none. */
 #define K1_TYPY(X)                                       \
     X(INNY, 1, "Plik", PLIK, 0)                          \
     X(TEKST, 2, "Dokument tekstowy", NOTATKI, 0)         \
@@ -57,14 +57,20 @@ enum { K1_FOLDERY_MAKS = 0 K1_FOLDERY(K1_X_JEDEN) };
     X(GIF, 7, "Obraz GIF", OBRAZ, K1_RODZINA_OBRAZY)     \
     X(BMP, 8, "Obraz BMP", OBRAZ, K1_RODZINA_OBRAZY)     \
     X(WEBP, 9, "Obraz WebP", OBRAZ, K1_RODZINA_OBRAZY)
-enum { K1_RODZINA_OBRAZY = 1 };
+/* Families of file types (0.8.2): X(NAME, number, the name in the system's texts). */
+#define K1_RODZINY(X) X(OBRAZY, 1, "obrazy")
+#define K1_X_RODZ(n, nr, ...) K1_RODZINA_##n = nr,
+enum { K1_RODZINY(K1_X_RODZ) };
+enum { K1_RODZINY_MAKS = 0 K1_RODZINY(K1_X_JEDEN) };
 #define K1_X_TYP(n, nr, ...) K1_TYP_##n = nr,
 enum { K1_TYPY(K1_X_TYP) };
 enum { K1_TYPY_MAKS = 0 K1_TYPY(K1_X_JEDEN) };
 
 /* Which applications open which file types (ADR 0030): X(APPLICATION, TYPE), the default one first. Pliki
- * shows every file (its preview) and is the default for a type without a row. A new pair: one line. */
-#define K1_OTWIERANIE(X) X(NOTATKI, TEKST)
+ * shows every file (its details) and is the default for a type without a row. A new pair: one line.
+ * Podgląd (0.8.2 step 4, ADR 0037): every type of family "obrazy". */
+#define K1_OTWIERANIE(X)                                                                                         \
+    X(NOTATKI, TEKST) X(PODGLAD, PNG) X(PODGLAD, JPEG) X(PODGLAD, GIF) X(PODGLAD, BMP) X(PODGLAD, WEBP)
 
 /* Where a file came from (ADR 0027: shown in Pliki): X(NAME, number, text). */
 #define K1_POCHODZENIA(X)            \
@@ -147,6 +153,8 @@ int k1_dok_nazwa_pasuje(const char *nazwa, const char *baza);
 int k1_dok_typ(const uint8_t *p, size_t n, uint64_t calosc);
 /* The family of file type `typ` (K1_RODZINA_*), 0 for none or an unknown type. */
 int k1_typ_rodzina(int typ);
+/* 1 when `w` comes before `v` in Pliki (and Wybór pliku, Podgląd): folders first, then by name (A-Z as a-z). */
+int k1_dok_przed(const struct k1_dok_wpis *w, const struct k1_dok_wpis *v);
 
 void k1_dok_wpis_zapisz(const struct k1_dok_wpis *w, uint8_t b[K1_DOK_WPIS_BAJTY]);
 /* Checks every field (ranges, name, padding) — 0, or -1 with `w` zeroed. */
@@ -167,6 +175,7 @@ int k1_dok_aplikacje(int typ, int *apl);
 /* Names for the system's texts: the standard folder `nr` (NULL when it is not one), the type, the origin. */
 const char *k1_folder_nazwa(uint32_t nr);
 const char *k1_typ_nazwa(int typ);
+const char *k1_rodzina_nazwa(int rodzina); /* "obrazy"; NULL for none */
 const char *k1_poch_nazwa(int poch);
 
 #endif

@@ -79,8 +79,9 @@ int miejsce_powiekszono(int wynik);       /* nadzorca's POWIEKSZONO: the vault t
 /* dostep.c: what applications were given (owner `wl`, file `id`) and the file picker */
 int dostep_daj(int wl, uint32_t id); /* 0, or K1_DOK_BLAD_OTWARTE: it has K1_DOK_DOSTEP_APL files already */
 int dostep_ma(int wl, uint32_t id);
+int dostep_folder(int wl, uint32_t folder); /* a file of that folder was given to it (0.8.2 step 4: Podgląd, ADR 0037) */
 int dostep_otworz(uint32_t id, int apl);          /* DOK_OTWORZ (allowed already): results 0 / K1_DOK_BLAD_* */
-int dostep_wybierz(int fd, int wl, int typ);      /* DOK_WYBIERZ of the client on channel `fd` */
+int dostep_wybierz(int fd, int wl, int typ, int rodzina); /* DOK_WYBIERZ of the client on channel `fd` */
 int dostep_wybrano(uint32_t id);                  /* DOK_WYBRANO of the file picker */
 void dostep_nowy_klient(int fd, int wl);          /* main.c: a new channel */
 void dostep_koniec_klienta(int fd, int wl, int ostatni); /* main.c: a channel closes (`ostatni`: of that owner) */

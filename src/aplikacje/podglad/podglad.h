@@ -1,0 +1,65 @@
+/* K1 Podgląd — state shared by the modules (0.8.2 step 4, ADR 0037):
+ *   main.c      the window: the picture, the bar at the bottom (← →, "3 z 27", the name and details, the buttons),
+ *               keys and the mouse
+ *   dane.c      skarbiec (fd 4): the pictures Podgląd may see, Kosz, the file picker; the file to open (fd 5)
+ *   obraz.c     the picture shown and the wallpaper — through a dekoder (k1_dekodowanie, fd 6 to nadzorca); turning
+ *   kolejnosc.c the order of the pictures (pure functions, host test) */
+#ifndef K1_PODGLAD_H
+#define K1_PODGLAD_H
+
+#include <stdint.h>
+
+#include "k1_aplikacja.h"
+#include "k1_dokument.h"
+
+#define TAG "K1-PODGLAD"
+#define FD_SKARBIEC 4
+#define FD_PLIK 5      /* nadzorca: the file to open (PLIK_OTWORZ) */
+#define FD_NADZORCA 6  /* nadzorca: a dekoder for one picture (DEKODER → DEKODER_KANAL) */
+#define KANAL_SKARBIEC 0 /* apl.kanaly[] */
+#define KANAL_PLIK 1
+#define KANAL_NADZORCA 2
+#define KANAL_DEKODER 3
+
+/* Layout (window coordinates; sketch A chosen by the owner, docs/WYGLAD.md) */
+#define SZER 960
+#define WYS 640
+#define PASEK 76                              /* the bar at the bottom */
+#define OBSZAR_X 16                           /* where the picture may be: never enlarged above 100 % */
+#define OBSZAR_Y (K1_OKNO_TYTUL + 12)
+#define OBSZAR_W (SZER - 2 * OBSZAR_X)
+#define OBSZAR_H (WYS - K1_OKNO_TYTUL - PASEK - 24)
+#define BOK (OBSZAR_W > OBSZAR_H ? OBSZAR_W : OBSZAR_H) /* dekoder gives at most BOK × BOK: any turn fits */
+#define PRZYCISK_Y (WYS - PASEK + 22)
+#define PRZYCISK_H 32
+#define NAZWA_X 168                           /* the name and the details, right of "3 z 27" */
+
+extern struct k1_apl apl;
+extern struct k1_dok_wpis wpisy[K1_DOK_MAKS]; /* what skarbiec lets Podgląd see: pictures of the folders it was given */
+extern int n_wpisow;
+extern int zdjecia[K1_DOK_MAKS], n_zdjec;     /* the pictures of the folder of the one shown, in order (indexes into wpisy) */
+extern int pozycja;                           /* of the one shown among them (-1: none) */
+extern const char *komunikat;                 /* a message in the bar (NULL: none) */
+
+/* dane.c */
+void dane_start(void);
+const struct k1_dok_wpis *wpis(uint32_t id);
+const struct k1_dok_wpis *biezace(void);      /* the picture shown, or NULL */
+void pokaz(int poz);                          /* show the picture at position `poz` of zdjecia */
+void do_kosza(void);                          /* the picture shown into Kosz (D2: no question; Kosz keeps it 30 days) */
+void wybierz(void);                           /* "Otwórz…": the file picker with pictures only */
+
+/* obraz.c */
+void obraz_start(void);
+void obraz_zadaj(const struct k1_dok_wpis *w); /* decode it for the window (if not done already) */
+void obraz_tapeta(const struct k1_dok_wpis *w);
+void obraz_obroc(void);                       /* R: the view a quarter turn to the right (the file stays as it is) */
+int obraz_tresc(const struct k1_komunikat *k, int fd); /* DOK_TRESC: 1 when it was a piece of a picture */
+int obraz_wynik(const struct k1_komunikat *k);         /* DOK_WYNIK: 1 when a piece could not be read */
+void obraz_nadzorca(void);                    /* fd 6 can be read: DEKODER_KANAL */
+/* Draws the picture of `w` (or why there is none) centred in the area; the size of the photo into *zw × *zh
+ * (0 while unknown). */
+void obraz_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_dok_wpis *w, int32_t *zw, int32_t *zh);
+extern const char *tapeta_stan;               /* how setting the wallpaper goes (NULL: nothing) */
+
+#endif

@@ -104,7 +104,7 @@ static int klient_z(int argc, char **argv)
 int main(int argc, char **argv)
 {
     struct k1_komunikat k;
-    struct obraz o = { NULL, 0, 0 };
+    struct obraz o = { NULL, 0, 0, 0, 0 };
     uint8_t *dane = NULL;
     double t0;
     int fd, r, typ = 0;
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
         blad(k.obiekt, K1_DEK_BLAD_PAMIEC, 0);
         return 1;
     }
-    wyslij(k1_komunikat_nowy(K1_KOM_DEK_PIKSELE, k.obiekt, (int32_t)o.w, (int32_t)o.h, 0, 0, 0), fd);
+    wyslij(k1_komunikat_nowy(K1_KOM_DEK_PIKSELE, k.obiekt, (int32_t)o.w, (int32_t)o.h, (int32_t)o.zw, (int32_t)o.zh, 0), fd);
     k1_log(TAG, "%s → %ux%u (%.1f s)", k1_typ_nazwa(typ), o.w, o.h, k1_teraz() - t0);
     close(fd);
     free(o.px);

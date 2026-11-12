@@ -47,6 +47,11 @@ static const struct kanaly {
       { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &plik_kanal[K1_APL_PLIKI], NULL, NULL },
         { KN_OD, &pen_kanal, NULL, pendrive_nowy_kanal } } },
     { K1_PROFIL_WYBOR, { { KN_SKARB, NULL, NULL, NULL } } }, /* the file picker: fd 4 skarbiec (names, the choice) */
+    /* Podgląd (0.8.2 step 4, ADR 0037): fd 4 skarbiec (the pictures it may see), fd 5 a file to open, fd 6 a picture
+     * decoder (dekoder.c) */
+    { K1_PROFIL_PODGLAD,
+      { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &plik_kanal[K1_APL_PODGLAD], NULL, NULL },
+        { KN_OD, &podglad_kanal, NULL, NULL } } },
 };
 
 static const struct kanaly *kanaly_uslugi(int profil)

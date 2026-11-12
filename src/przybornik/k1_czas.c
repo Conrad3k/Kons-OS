@@ -1,5 +1,7 @@
 #include "k1_czas.h"
 
+#include <stdio.h>
+
 /* Days since 1970-01-01 → civil date (H. Hinnant, "chrono-Compatible Low-Level Date Algorithms"). */
 static void z_dni(int64_t z, int *r, int *m, int *d)
 {
@@ -79,4 +81,11 @@ const char *k1_miesiac_skrot(int m)
 {
     static const char *const n[] = { "sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru" };
     return m >= 1 && m <= 12 ? n[m - 1] : "?";
+}
+
+void k1_data_tekst(int64_t utc, char *buf, size_t n)
+{
+    struct k1_data d;
+    k1_czas_warszawa(utc, &d);
+    snprintf(buf, n, "%02d.%02d.%04d %02d:%02d", d.dzien, d.miesiac, d.rok, d.godzina, d.minuta);
 }

@@ -279,6 +279,27 @@ KROK 4 — Aplikacja Podgląd                                                   
   Gotowe, gdy: scenariusz QEMU zielony, zrzuty pokazane właścicielowi.
   Nie w tym kroku: powiększanie fragmentu w pełnej rozdzielczości, pełny ekran (ekran K1 nie ma trybu
   pełnoekranowego okna — osobna decyzja), pokaz slajdów.
+  Ustalenia z wykonania (2026-11-12, jeden PR):
+  - Decyzje: D1 — aplikacja „Podgląd”, panel w Plikach „szczegóły”, zdjęcie w nim „miniatura” (kod, teksty, log
+    „miniatura: …”); D2 — Delete do Kosza bez pytania; D5 — szkic A (szkice rysowane częściami K1 na hoście).
+  - Numery: aplikacja 9, profil 17, UID 208 (wolne — sprawdzone). Bez przypięcia (kolumna 0): w menu Start, nie na
+    pasku i pulpicie przy pierwszym starcie.
+  - Zakres praw: Z_OBRAZY_FOLDERU — skarbiec przy dostępie po geście zapisuje folder, w którym plik wtedy leżał;
+    Podgląd widzi zdjęcia (rodzina „obrazy”) tych folderów (bez podfolderów), P_LISTA | P_CZYTAJ | P_KOSZ | P_WYBIERZ.
+  - Okno wyboru: DOK_WYBIERZ b = rodzina (nie razem z typem), DOK_PROSBA c; tabela K1_RODZINY (nazwa „obrazy”).
+  - Dekoder: strona klienta wydzielona z Plików do przybornika (k1_dekodowanie) — Pliki i Podgląd mają ten sam kod;
+    DEK_PIKSELE c, d = wymiary zdjęcia (po obrocie z EXIF) dla paska Podglądu. Podgląd prosi o 928 × 928 (bok
+    większego wymiaru okna), sam obraca (R) i dopasowuje (k1_skaluj) — obrót bez ponownego dekodowania.
+  - Klatka: zwykła klatka aplikacji (32 MiB, RLIMIT_FSIZE 16 MiB), nie 96 MiB z planu — okno ma stały rozmiar
+    960 × 640 (K1 nie ma okien na pełny ekran), obraz od dekodera ≤ 3,3 MiB. Wraca przy oknach zmieniających rozmiar.
+  - Kolejność ←/→: jak w Plikach (k1_dok_przed — jedna funkcja dla Plików, Wyboru pliku i Podglądu); po ostatnim
+    pierwsze (dookoła); po Koszu — następne, na końcu poprzednie.
+  - Ekran: tabela nadawców tapety (Pliki, Podgląd). Zapis ustawień K1U4: w K1U1–K1U3 dla zdjęć zapisane były Pliki
+    (jedyna możliwość) — przy odczycie zdjęcia dostają domyślną aplikację (Podgląd), inaczej po aktualizacji
+    dwuklik zdjęcia dalej otwierałby Pliki.
+  - Ustawienia → Aplikacje: typy jednej rodziny w jednym wierszu („Obrazy (PNG, JPEG, GIF, BMP, WebP)”: Podgląd albo
+    Pliki) — 6 wierszy nie mieściło się w oknie; etykieta „Pliki (szczegóły)” (krok 5 i tak ją zmienia).
+  - Helpers wspólne: k1_data_tekst (k1_czas), k1_rozmiar_tekst (k1_liczba) — z Plików do przybornika.
 
 KROK 5 — Otwieranie: „Otwórz za pomocą”, jedno menu                                    M · decyzja D7 · bez ADR
   Cel: otwieranie plików działa jak w innych systemach: prawy przycisk → menu, podwójne kliknięcie zawsze coś

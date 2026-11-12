@@ -45,7 +45,7 @@ firmware UEFI → shim (Microsoft) → GRUB (Canonical) → k1.efi z miejsca A a
 → /rdzen/init (PID 1): sysctl, montowania, sieroty, sygnały, wyłączanie
 → /rdzen/system/nadzorca (root): usługi i aplikacje w klatkach, kanały, logi, restarty
      skarbiec (103) → ekran (101) → wejscie (100) → gui (102) albo logowanie (104, gdy jest hasło)
-     aplikacje (200+) na prośbę gui; instalator (105) na prośbę okna Instalatora; czytnik (106) i dekoder (107) na prośbę Plików
+     aplikacje (200+) na prośbę gui; instalator (105) na prośbę okna Instalatora; czytnik (106) na prośbę Plików, dekoder (107) na prośbę Plików i Podglądu
 ```
 Testy QEMU startują też `bzImage` + `initramfs.cpio` (tylko `test-m1`). ISO/USB mają GRUB-a do 0.12 (ADR 0010; dawne M10).
 
@@ -80,9 +80,9 @@ TPM 1.2), jedno konto na komputer. X230 to maszyna testowa — szybka grafika i 
 | `src/skarbiec/` | `system/skarbiec` | `magazyn.c` format i szyfrowanie, `main.c` usługa, `obiekty.c`, `haslo.c`, `dokumenty.c` + `dok_*.c` pliki, foldery, Kosz, naprawa przy starcie, granica czasu, prawa, zapis w toku kawałkami (0.8.0–0.8.1, `dok_wew.h`); limity, indeks, kompaktowanie, rezerwa, kawałki — ADR 0034; `miejsce.c` miejsce na pliki i powiększenie K1-DANE (ADR 0033); format 2 (0.8.2, ADR 0036): `odcinki.c`, `spis.c`, `przejscie.c` (format 1 → 2 po potwierdzonym starcie), `przerwy.c` (kompaktowanie krokami między prośbami) |
 | `src/instalator/` | `system/instalator` | zapis K1 na dysk (GPT), tylko urządzenia od nadzorcy |
 | `src/czytnik/` | `system/czytnik` | pendrive dla Plików: FAT w klatce, tylko odczyt (0.8.0, ADR 0031); nadzorca `pendrive.c` |
-| `src/dekoder/` | `system/dekoder` | jeden obraz (PNG, JPEG, GIF, BMP, WebP) → piksele, jednorazowy proces w klatce (Wuffs; 0.8.0, ADR 0032); plik kawałkami, limity w jednej tabeli `k1_dekoder.h`, dekodery w `K1_DEKODERY` (0.8.2); nadzorca `dekoder.c` (tabela klientów), Pliki `obrazy.c`, ekran `zdjecie.c` (tapeta) |
-| `src/aplikacje/<program>/` | `aplikacje/<program>` | Zegar, Notatki, Ustawienia, Zasoby, Instalator (`instalacja`), Kalkulator, Pliki (0.8.0) |
-| `src/przybornik/` | (linkowane) | okno aplikacji (`k1_aplikacja`), rysowanie, ikony `K1_IK_*`, tekst, liczby, czas i klawiatura PL |
+| `src/dekoder/` | `system/dekoder` | jeden obraz (PNG, JPEG, GIF, BMP, WebP) → piksele, jednorazowy proces w klatce (Wuffs; 0.8.0, ADR 0032); plik kawałkami, limity w jednej tabeli `k1_dekoder.h`, dekodery w `K1_DEKODERY` (0.8.2); nadzorca `dekoder.c` (tabela klientów: Pliki, Podgląd), Pliki `obrazy.c`, Podgląd `obraz.c`, ekran `zdjecie.c` (tabela nadawców tapety) |
+| `src/aplikacje/<program>/` | `aplikacje/<program>` | Zegar, Notatki, Ustawienia, Zasoby, Instalator (`instalacja`), Kalkulator, Pliki (0.8.0), Wybór pliku (`wybor`), Podgląd (`podglad`, 0.8.2: zdjęcie w oknie, zdjęcia jednego folderu — ADR 0037) |
+| `src/przybornik/` | (linkowane) | okno aplikacji (`k1_aplikacja`), rysowanie, ikony `K1_IK_*`, tekst, liczby, czas i klawiatura PL, zdjęcie przez dekoder (`k1_dekodowanie`: prośba, kawałki od skarbca, odpowiedź — Pliki i Podgląd) |
 | `src/wspolne/` | (linkowane) | `k1_uslugi.h` **listy usług i aplikacji**, `k1_komunikat` (32 B), `k1_kanal`, `k1_odbior`, `k1_klatka`, `k1_log`, `k1_skarb_klient`, `k1_memfd`, `k1_indeks` (indeks po kluczu, 0.8.1), `k1_efi`, `k1_uklad`, `k1_manifest`, `k1_bajty.h`, `k1_io.h`, `k1_teraz.h` |
 | `src/zewnetrzne/` | (linkowane) | Monocypher (skarbiec) i Wuffs (dekoder, 0.8.0) — jedyne obce biblioteki w systemie |
 | `narzedzia/` | (host) | czcionki IBM Plex → bitmapy, ekran startowy GRUB-a, podpis, klucz Secure Boot |

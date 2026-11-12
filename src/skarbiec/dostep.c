@@ -17,13 +17,13 @@
 
 static struct {
     int wl;
-    uint32_t id;
+    uint32_t id, folder; /* folder: where the file was when it was given (Podgląd sees the pictures there, ADR 0037) */
 } dostepy[DOSTEP_MAKS];
 static int n_dostepow;
 
 /* The request waiting for the file picker (one at a time). */
 static struct {
-    int jest, fd, wl, apl, typ;
+    int jest, fd, wl, apl, typ, rodzina;
 } prosba;
 static int wybor_fd = -1; /* the file picker's channel while it runs */
 
@@ -39,7 +39,16 @@ int dostep_daj(int wl, uint32_t id)
         return K1_DOK_BLAD_OTWARTE;
     }
     dostepy[n_dostepow].wl = wl;
+    dostepy[n_dostepow].folder = dok_wpis(id) != NULL ? dok_wpis(id)->rodzic : 0;
     dostepy[n_dostepow++].id = id;
+    return 0;
+}
+
+int dostep_folder(int wl, uint32_t folder)
+{
+    for (int i = 0; i < n_dostepow; i++)
+        if (dostepy[i].wl == wl && dostepy[i].folder == folder)
+            return 1;
     return 0;
 }
 
@@ -100,10 +109,10 @@ int dostep_otworz(uint32_t id, int apl)
 static void pokaz_prosbe(void)
 {
     if (prosba.jest && wybor_fd >= 0)
-        wyslij(wybor_fd, k1_komunikat_nowy(K1_KOM_DOK_PROSBA, 0, prosba.apl, prosba.typ, 0, 0, 0));
+        wyslij(wybor_fd, k1_komunikat_nowy(K1_KOM_DOK_PROSBA, 0, prosba.apl, prosba.typ, prosba.rodzina, 0, 0));
 }
 
-int dostep_wybierz(int fd, int wl, int typ)
+int dostep_wybierz(int fd, int wl, int typ, int rodzina)
 {
     int apl = aplikacja(wl);
     if (apl == 0)
@@ -115,6 +124,7 @@ int dostep_wybierz(int fd, int wl, int typ)
     prosba.wl = wl;
     prosba.apl = apl;
     prosba.typ = typ;
+    prosba.rodzina = rodzina;
     k1_log(TAG, "pliki: aplikacja %d prosi o plik — okno wyboru pliku", apl);
     if (wybor_fd >= 0)
         pokaz_prosbe(); /* the picker is open already (started by hand): it gets the request now */
@@ -128,7 +138,8 @@ int dostep_wybrano(uint32_t id)
     const struct k1_dok_wpis *w = id != 0 ? plik(id) : NULL;
     if (!prosba.jest)
         return K1_DOK_BLAD_BRAK;
-    if (id != 0 && (w == NULL || (prosba.typ != 0 && w->typ != prosba.typ)))
+    if (id != 0 && (w == NULL || (prosba.typ != 0 && w->typ != prosba.typ) ||
+                    (prosba.rodzina != 0 && k1_typ_rodzina(w->typ) != prosba.rodzina)))
         return K1_DOK_BLAD_BRAK; /* the request stays: the picker may try again */
     if (id != 0 && dostep_daj(prosba.wl, id) != 0)
         return K1_DOK_BLAD_OTWARTE; /* the picker says so; the request stays (another file is no better) */

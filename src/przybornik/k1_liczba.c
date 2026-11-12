@@ -93,3 +93,15 @@ int k1_liczba(double v, int cyfr, int grupuj, char *buf, size_t n)
     snprintf(buf, n, "%s", t);
     return 0;
 }
+
+void k1_rozmiar_tekst(uint64_t b, char *buf, size_t n)
+{
+    if (b < 1024)
+        snprintf(buf, n, "%u B", (unsigned)b);
+    else if (b < 1024 * 1024)
+        snprintf(buf, n, "%u KB", (unsigned)((b + 1023) / 1024));
+    else if (b < 1024ull * 1024 * 1024)
+        snprintf(buf, n, "%u,%u MB", (unsigned)(b >> 20), (unsigned)((b & 0xfffffu) * 10 >> 20));
+    else /* files of up to 4 GB since 0.8.1 */
+        snprintf(buf, n, "%u,%u GB", (unsigned)(b >> 30), (unsigned)((b & 0x3fffffffu) * 10 >> 30));
+}

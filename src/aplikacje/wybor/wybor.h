@@ -32,7 +32,7 @@ extern struct k1_apl apl;
 extern struct k1_dok_wpis wpisy[K1_DOK_MAKS];
 extern int n_wpisow, gotowe;
 extern struct prosba {
-    int jest, apl, typ; /* who asks (K1_APL_*), for which type (0: any) */
+    int jest, apl, typ, rodzina; /* who asks (K1_APL_*), for which type or family (0, 0: any) */
 } prosba;
 extern const char *blad; /* a message above the buttons (NULL: none) */
 

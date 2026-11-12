@@ -108,7 +108,8 @@ void dane_odbierz(void)
             prosba.jest = 1;
             prosba.apl = k.a;
             prosba.typ = k.b;
-            k1_log(TAG, "prośba: aplikacja %d, typ %d", k.a, k.b);
+            prosba.rodzina = k.c;
+            k1_log(TAG, "prośba: aplikacja %d, typ %d, rodzina %d", k.a, k.b, k.c);
             po_liscie();
         } else if (k.typ == K1_KOM_DOK_WYNIK)
             wynik(&k);

@@ -49,9 +49,9 @@ GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 # GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
 PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_aplikacja.c \
-           src/grafika/k1_grafika.c $(GEN)/k1_czcionki_dane.c
-# Host: without the sandbox and the app skeleton (they need our kernel's headers).
-HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c,$(PRZYB)) src/wspolne/k1_komunikat.c $(DOK_C) src/wspolne/k1_kanal.c \
+           src/przybornik/k1_dekodowanie.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c $(GEN)/k1_czcionki_dane.c
+# Host: without the sandbox, the app skeleton and what uses it (they need our kernel's headers).
+HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c src/przybornik/k1_dekodowanie.c,$(PRZYB)) src/wspolne/k1_komunikat.c $(DOK_C) src/wspolne/k1_kanal.c \
               src/wspolne/k1_log.c
 NAGL_P  := $(wildcard src/przybornik/*.h) src/grafika/k1_grafika.h src/grafika/k1_czcionka.h VERSION
 # Native applications: every directory src/aplikacje/<program> (its line in k1_uslugi.h K1_APLIKACJE names it).
@@ -247,6 +247,11 @@ $(OBJ)/test_kalkulator: testy/host/test_kalkulator.c src/aplikacje/kalkulator/li
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/aplikacje/kalkulator -o $@ testy/host/test_kalkulator.c \
 		src/aplikacje/kalkulator/liczydlo.c src/przybornik/k1_liczba.c -lm
 
+# 0.8.2 step 4: Podgląd — the order of the pictures (pure functions)
+$(OBJ)/test_podglad: testy/host/test_podglad.c src/aplikacje/podglad/kolejnosc.c src/aplikacje/podglad/kolejnosc.h $(DOK_C) \
+                     $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/aplikacje/podglad -o $@ testy/host/test_podglad.c src/aplikacje/podglad/kolejnosc.c $(DOK_C)
+
 # 0.7.5: the desktop arrangement of gui (pure rules and the saved bytes)
 $(OBJ)/test_rozmieszczenie: testy/host/test_rozmieszczenie.c src/gui/rozmieszczenie.c src/gui/rozmieszczenie.h $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/gui -o $@ testy/host/test_rozmieszczenie.c src/gui/rozmieszczenie.c
@@ -279,12 +284,13 @@ $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instal
 	test_dokumenty test_notatki test_indeks test_log test_magazyn test_odcinki test_przejscie test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
 	test_zdarzenie): testy/host/k1_test_host.h
 
-testy-host: $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder
+testy-host: $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_podglad $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder
 	$(OBJ)/test_indeks
 	$(OBJ)/test_dokumenty
 	$(OBJ)/test_notatki
 	$(OBJ)/test_rozmieszczenie
 	$(OBJ)/test_kalkulator
+	$(OBJ)/test_podglad
 	rm -f $(OBJ)/grubenv.ref && grub-editenv $(OBJ)/grubenv.ref create && \
 		grub-editenv $(OBJ)/grubenv.ref set k1_slot=a k1_start=a k1_nowy= k1_proba=
 	$(OBJ)/test_uklad $(OBJ)/grubenv.ref

@@ -9,6 +9,7 @@
 struct obraz {
     uint32_t *px; /* premultiplied 0xAARRGGBB, w per row; free() it */
     uint32_t w, h;
+    uint32_t zw, zh; /* obraz_przygotuj: the photo's own size, turned as seen (0.8.2 step 4: Podgląd shows it) */
 };
 
 /* What the file is by its first bytes (k1_dok_typ): a type of family "obrazy" dekoder reads (K1_TYP_*), or 0. */

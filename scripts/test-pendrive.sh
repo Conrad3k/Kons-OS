@@ -237,12 +237,12 @@ def podglad(i, wzor, kolor, nazwa):
 
 
 n_d = q.ile(r"K1-NADZORCA: dekoder dla aplikacji Pliki")
-ok, kol = podglad(3, r"K1-PLIKI: podgląd obrazu: 80x60", NIEBIESKI, "6-podglad-jpeg")
+ok, kol = podglad(3, r"K1-PLIKI: miniatura: 80x60", NIEBIESKI, "6-podglad-jpeg")
 sprawdz("zdjęcie JPEG: nadzorca uruchamia dekoder w klatce (UID 107), dekoder odsyła 80×60, Pliki pokazują je w podglądzie",
         ok and czekaj(r"K1-NADZORCA: dekoder dla aplikacji Pliki: pid \d+, uid 107, pamięć 1152 MiB", od=n_d) and
         czekaj(r"K1-DEKODER: Obraz JPEG → 80x60"),
         f"kolor w podglądzie {kol}")
-ok, kol = podglad(1, r"K1-PLIKI: podgląd obrazu: 32x32", ZIELONY, "6-podglad-png")
+ok, kol = podglad(1, r"K1-PLIKI: miniatura: 32x32", ZIELONY, "6-podglad-png")
 sprawdz("zdjęcie PNG: podgląd 32×32", ok and czekaj(r"K1-DEKODER: Obraz PNG → 32x32"), f"kolor w podglądzie {kol}")
 ok, _ = podglad(2, r"K1-PLIKI: obraz: dekoder nie odczytał pliku \(-42\)", None, "6-podglad-uszkodzony")
 sprawdz("NEGATYWNY: uszkodzony JPEG — dekoder odpowiada błędem, Pliki: „Podgląd niedostępny”, nic więcej się nie dzieje",
@@ -259,7 +259,7 @@ for i, nazwa, wzor, kolor, opis in (
         (7, "bmp", r"K1-DEKODER: Obraz BMP → 64x48", (200, 200, 60), "BMP"),
         (9, "webp", r"K1-DEKODER: Obraz WebP → 64x48", (230, 90, 90), "WebP (stratny, VP8)")):
     n_k = q.ile(wzor)
-    ok, kol = podglad(i, r"K1-PLIKI: podgląd obrazu: \d+x\d+", kolor, f"6-podglad-{nazwa}")
+    ok, kol = podglad(i, r"K1-PLIKI: miniatura: \d+x\d+", kolor, f"6-podglad-{nazwa}")
     m = czekaj(wzor, od=n_k, czas=120)
     sprawdz(f"{opis}: podgląd w Plikach" + (" — plik do dekodera kawałkami po 1 MiB" if "Mpx" in opis else ""),
             ok and m, f"kolor {kol}, {m.group(0) if m else 'brak odpowiedzi dekodera'}")
@@ -277,6 +277,67 @@ w, h, px = zrzut("6-tapeta", gdy=lambda w, h, px: blisko(tlo(px, w, h), NIEBIESK
 sprawdz("„Ustaw jako tapetę”: Pliki → dekoder → ekran (tylko od Plików); zdjęcie na całym ekranie, zapisane w skarbcu",
         t_ and ok and czekaj(r"K1-EKRAN: tapeta 31") and czekaj(r"K1-PLIKI: tapeta ze zdjęcia: 80x60 wysłana do ekranu") and
         blisko(tlo(px, w, h), NIEBIESKI), f"tło przy prawej krawędzi {tlo(px, w, h)}")
+# 4c. (0.8.2 step 4, ADR 0037) Podgląd: a double click on a picture opens it in its own window (Obrazy by name: row 1
+# IMG_0002.PNG green, row 2 USZKODZONE.JPG, row 3 Wakacje… blue 80×60)
+PUKLAD = (r"K1-PODGLAD: układ: poprzednie (\d+),(\d+) następne (\d+),(\d+) otwórz (\d+),(\d+) obróć (\d+),(\d+) "
+          r"tapeta (\d+),(\d+) kosz (\d+),(\d+) zdjęcie (\d+),(\d+)")
+ZDJ = r"K1-PODGLAD: zdjęcie (\d+) z (\d+)"
+n_d, n_z, n_u = q.ile(r"K1-NADZORCA: dekoder dla aplikacji Podgląd"), q.ile(ZDJ), q.ile(PUKLAD)
+op = po(r"K1-EKRAN: okno (\d+) \(podglad\) (\d+)x(\d+) w (\d+),(\d+)", lambda: q.dwuklik(*wiersz(3)), czas=60)
+up = czekaj(PUKLAD, od=n_u)
+pz = czekaj(ZDJ, od=n_z, czas=60)
+pw = czekaj(r"K1-PODGLAD: obraz: 80x60 \(zdjęcie 80x60\)", czas=90)
+if not sprawdz("Podgląd otwarty", op and up and pz): sys.exit(1)
+pox, poy = int(op.group(4)), int(op.group(5))
+pp = {k: (pox + int(up.group(2 * i + 1)), poy + int(up.group(2 * i + 2)))
+      for i, k in enumerate(("poprzednie", "nastepne", "otworz", "obroc", "tapeta", "kosz", "zdjecie"))}
+sz, sy = pp["zdjecie"]
+w, h, px = zrzut("6b-podglad", gdy=lambda w, h, px: blisko(px(sz, sy), NIEBIESKI))
+sprawdz("Podgląd (UID 208): dwuklik zdjęcia w Plikach — zdjęcie 4 z 10 w osobnym oknie, 80×60 (nie powiększone ponad "
+        "100 %), z dekodera w klatce uruchomionego dla Podglądu",
+        pw and pz.group(1, 2) == ("4", "10") and czekaj(r"K1-NADZORCA: uruchomiono podglad \(pid \d+, uid 208\)") and
+        czekaj(r"K1-NADZORCA: dekoder dla aplikacji Podgląd: pid \d+, uid 107", od=n_d) and blisko(px(sz, sy), NIEBIESKI),
+        f"kolor w środku {px(sz, sy)}")
+ok = po(r"K1-PODGLAD: obrót 90°: widok 60x80", lambda: q.pisz("r"))
+w, h, px = zrzut("6b-podglad-obrot", gdy=lambda w, h, px: not blisko(px(sz + 36, sy), NIEBIESKI))
+sprawdz("R: widok obrócony o 90° (60×80; plik bez zmian)", ok and blisko(px(sz, sy + 36), NIEBIESKI) and
+        not blisko(px(sz + 36, sy), NIEBIESKI), f"{px(sz, sy + 36)} {px(sz + 36, sy)}")
+n_z = q.ile(ZDJ)
+q.pisz("left")
+m = czekaj(ZDJ, od=n_z)
+sprawdz("NEGATYWNY: ← — zdjęcie 3 z 10, uszkodzone: dekoder odmawia, Podgląd mówi „Tego zdjęcia nie da się odczytać.”",
+        m and m.group(1) == "3" and czekaj(r"K1-PODGLAD: obraz: dekoder nie odczytał pliku \(-42\)", czas=60))
+zrzut("6b-podglad-uszkodzone", gdy=lambda w, h, px: True)
+n_z, n_o = q.ile(ZDJ), q.ile(r"K1-PODGLAD: obraz: 32x32")
+klik(*pp["poprzednie"])
+m = czekaj(ZDJ, od=n_z)
+ok = czekaj(r"K1-PODGLAD: obraz: 32x32 \(zdjęcie 32x32\)", od=n_o, czas=60)
+w, h, px = zrzut("6b-podglad-png", gdy=lambda w, h, px: blisko(px(sz, sy), ZIELONY))
+sprawdz("przycisk ‹: zdjęcie 2 z 10 (PNG, zielone)", m and m.group(1) == "2" and ok and blisko(px(sz, sy), ZIELONY),
+        f"kolor {px(sz, sy)}")
+n_z, n_w = q.ile(ZDJ), q.ile(WIDOK)
+q.pisz("delete")
+ok = czekaj(r"K1-PODGLAD: do Kosza: zdjęcie 2 z 10", od=0, czas=30) and czekaj(r"K1-PODGLAD: zdjęcie 2 z 9", od=n_z, czas=30)
+sprawdz("Delete (D2): zdjęcie do Kosza bez pytania, Podgląd pokazuje następne (2 z 9); Pliki: Obrazy — 9",
+        ok and czekaj(r"K1-PLIKI: widok: Obrazy, 9 elementów", od=n_w, czas=30))
+n_p = q.ile(r"K1-WYBOR: prośba: aplikacja 9")
+q.pisz("ctrl-o")
+ok = czekaj(r"K1-WYBOR: prośba: aplikacja 9, typ 0, rodzina 1", od=n_p, czas=60)
+zrzut("6b-podglad-otworz", gdy=lambda w, h, px: True)
+q.pisz("esc")
+sprawdz("Ctrl+O: okno wyboru pliku z samymi zdjęciami (rodzina „obrazy”); Esc — anulowano",
+        ok and czekaj(r"K1-PODGLAD: okno wyboru pliku: anulowano", czas=30))
+n_z, n_t, n_o = q.ile(ZDJ), q.ile(r"K1-EKRAN: zdjęcie na tapetę od Podglądu"), q.ile(r"K1-PODGLAD: obraz: 80x60")
+klik(*pp["nastepne"])
+m = czekaj(ZDJ, od=n_z)
+ok = czekaj(r"K1-PODGLAD: obraz: 80x60", od=n_o, czas=60)
+klik(*pp["tapeta"])
+sprawdz("› (3 z 9) i „Ustaw jako tapetę” w Podglądzie: dekoder → ekran (tabela nadawców: Pliki, Podgląd)",
+        m and m.group(1, 2) == ("3", "9") and ok and
+        czekaj(r"K1-EKRAN: zdjęcie na tapetę od Podglądu: 80x60", od=n_t, czas=90) and
+        czekaj(r"K1-PODGLAD: tapeta ze zdjęcia: 80x60 wysłana do ekranu"))
+klik(pox + 960 - 8 - 14, poy + 22)  # × of the window (k1_okno.c: 28 px buttons, 8 px from the edge)
+sprawdz("Podgląd zamknięty (×)", czekaj(r"K1-PODGLAD: okno zamknięte przez użytkownika", czas=30))
 sprawdz("Dokumenty: 3 pliki (notatka, plik 17 MB, film 300 MB)", widok(lambda: klik(*miejsce(1)), "Dokumenty", 3))
 # 5. out and in
 n_b = q.ile(r"K1-PLIKI: pendrive: brak")
@@ -313,7 +374,7 @@ sprawdz("„Importuj wszystkie”: 1100 plików → Obrazy (każdy z czasem z pe
 zrzut("9-zaimportowane-1100", gdy=lambda w, h, px: True)
 sprawdz("drugi raz: „Pominięto 1100 — już zaimportowane”, nic nie przybywa",
         importuj(lambda: klik(*p["Importuj wszystkie"]), 0, 0, 0, pominiete=1100, czas=120) and
-        widok(lambda: klik(*miejsce(2)), "Obrazy", 1110))
+        widok(lambda: klik(*miejsce(2)), "Obrazy", 1109))  # 10 + 1100, one in Kosz (Podgląd, 4c)
 # 6. the log
 t_ = tekst()
 sprawdz("nazwy i treść plików z pendrive'a nie trafiają do logu",

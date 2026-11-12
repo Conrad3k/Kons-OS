@@ -16,8 +16,8 @@
 struct k1_dok_wpis wpisy[K1_DOK_MAKS];
 int n_wpisow;
 uint32_t w_koszu;
-char podglad[K1_DOK_PODGLAD + 1];
-uint32_t podglad_id, podglad_dl;
+char poczatek[K1_DOK_POCZATEK + 1];
+uint32_t poczatek_id, poczatek_dl;
 int32_t miejsce_zajete, miejsce_calosc; /* MiB (SKARB_MIEJSCE, 0.8.1) */
 int miejsce_w_pamieci;                  /* no K1-DANE: the files are kept in memory (SKARB_MIEJSCE e, 0.8.2) */
 static int spis_czeka, spis_znowu; /* a list asked for, not here yet; files changed meanwhile (0.8.2 step 2: an import of
@@ -25,7 +25,7 @@ static int spis_czeka, spis_znowu; /* a list asked for, not here yet; files chan
 static int skarb = -1;
 static uint8_t lista[K1_DOK_LISTA_MAKS];
 static uint32_t do_edycji; /* the folder just created: rename it when the list shows it */
-static uint32_t podglad_gen; /* the content generation of the preview */
+static uint32_t poczatek_gen; /* the content generation of the text's start in the details */
 static char przywrocony[256];  /* the footer after Przywróć, when the folder it came from is in Kosz or gone */
 static uint32_t przywracany;
 static struct {
@@ -142,18 +142,18 @@ void przywroc(uint32_t id)
     do_skarbca(K1_KOM_DOK_PRZYWROC, id, 0);
 }
 
-void podglad_zadaj(uint32_t id)
+void szczegoly_zadaj(uint32_t id)
 {
     const struct k1_dok_wpis *w = wpis(id);
     if (obraz_pliku(w))
-        obraz_podglad(id); /* a picture: through a dekoder (obrazy.c) */
-    if (w == NULL || tu.pendrive || w->typ != K1_TYP_TEKST || id == podglad_id)
+        obraz_miniatura(id); /* a picture: through a dekoder (obrazy.c) */
+    if (w == NULL || tu.pendrive || w->typ != K1_TYP_TEKST || id == poczatek_id)
         return;
-    podglad_id = id;
-    podglad_gen = w->generacja;
-    podglad_dl = 0;
+    poczatek_id = id;
+    poczatek_gen = w->generacja;
+    poczatek_dl = 0;
     if (w->rozmiar > 0)
-        do_skarbca(K1_KOM_DOK_CZYTAJ, id, (int32_t)K1_DOK_PODGLAD);
+        do_skarbca(K1_KOM_DOK_CZYTAJ, id, (int32_t)K1_DOK_POCZATEK);
 }
 
 /* A folder Pliki can show: a standard one, or a user folder neither in Kosz nor inside a folder in Kosz. */
@@ -210,8 +210,8 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
         zaznaczony = 0;
     if (edycja.id != 0 && wpis(edycja.id) == NULL)
         edycja.id = 0;
-    if (podglad_id != 0 && (wpis(podglad_id) == NULL || wpis(podglad_id)->generacja != podglad_gen))
-        podglad_id = 0; /* the content changed */
+    if (poczatek_id != 0 && (wpis(poczatek_id) == NULL || wpis(poczatek_id)->generacja != poczatek_gen))
+        poczatek_id = 0; /* the content changed */
     ulozy_widok();
     if (do_edycji != 0 && wpis(do_edycji) != NULL) { /* a new folder: its name is ready to be typed over, as in Windows */
         const struct k1_dok_wpis *w = wpis(do_edycji);
@@ -224,7 +224,7 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
         k1_log(TAG, "zmiana nazwy: pole otwarte");
     }
     if (zaznaczony != 0)
-        podglad_zadaj(zaznaczony);
+        szczegoly_zadaj(zaznaczony);
     if (!gotowe)
         k1_log(TAG, "pliki wczytane: %d (w Koszu %u)", n_wpisow, w_koszu);
     gotowe = 1;
@@ -239,10 +239,10 @@ static void tresc_przyszla(const struct k1_komunikat *k, int fd)
 {
     if (obraz_tresc(k, fd))
         return;
-    if (k->obiekt != podglad_id || k->a > (int32_t)K1_DOK_PODGLAD || k1_memfd_czytaj(fd, podglad, (size_t)k->a) != 0)
+    if (k->obiekt != poczatek_id || k->a > (int32_t)K1_DOK_POCZATEK || k1_memfd_czytaj(fd, poczatek, (size_t)k->a) != 0)
         return;
-    podglad_dl = (uint32_t)k->a;
-    podglad[podglad_dl] = '\0';
+    poczatek_dl = (uint32_t)k->a;
+    poczatek[poczatek_dl] = '\0';
 }
 
 /* The result of a request: a message for the footer when it failed. */
@@ -331,7 +331,7 @@ static void pokaz_oczekujace(void)
     } else if (e != NULL) {
         przejdz((struct miejsce){ e->kosz ? 0 : e->rodzic, e->kosz != 0, 0 });
         zaznaczony = a;
-        podglad_zadaj(a);
+        szczegoly_zadaj(a);
     }
     k1_log(TAG, "pokazane miejsce: %s, %d elementów", tu.kosz ? "Kosz" : "folder", n_widok);
 }

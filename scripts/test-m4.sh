@@ -417,7 +417,7 @@ CZAS=$CZAS_ZW
 python3 -I - "$DANE" <<'PY' || r=1
 import sys
 d = open(sys.argv[1], "rb").read()
-jawne = [t for t in ("Zażółć".encode(), b"K1U1", b"K1U2", b"K1U3") if t in d]
+jawne = [t for t in ("Zażółć".encode(), b"K1U1", b"K1U2", b"K1U3", b"K1U4") if t in d]
 ok = b"K1SKARB1" in d and not jawne
 print(f"  [{'OK' if ok else 'BŁĄD'}]    dysk danych: magazyn K1 zapisany, notatka i ustawienia zaszyfrowane (brak jawnego tekstu)"
       + ("" if ok else f" — jawne: {jawne}, nagłówek: {b'K1SKARB1' in d}"))

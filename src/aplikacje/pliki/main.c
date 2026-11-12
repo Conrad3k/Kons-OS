@@ -1,7 +1,7 @@
 /* K1 Pliki — native application (0.8.0, ADR 0029): the user's folders and files, as in Windows — the standard
  * folders on the left (Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane) and Kosz; the path with "up", the
  * buttons of the place (Nowy folder, Zmień nazwę, Usuń, Otwórz w…; in Kosz: Przywróć, Usuń na zawsze, Opróżnij
- * Kosz), the list (folders first, then by name) and the preview on the right. A double click (or Enter) opens a
+ * Kosz), the list (folders first, then by name) and the details on the right. A double click (or Enter) opens a
  * folder, or a file in its default application (Ustawienia → Aplikacje; ADR 0030) — Pliki itself only shows it.
  * Keys: Backspace goes up, F2 renames, Delete moves to Kosz, arrows move the selection.
  *
@@ -64,30 +64,15 @@ const struct k1_dok_wpis *wpis_tu(uint32_t id)
     return tu.pendrive ? pen_wpis(id) : wpis(id);
 }
 
-static int mniejszy(const struct k1_dok_wpis *a, const struct k1_dok_wpis *b)
-{
-    size_t i;
-    if (a->rodzaj != b->rodzaj)
-        return a->rodzaj == K1_DOK_FOLDER;
-    for (i = 0; a->nazwa[i] && b->nazwa[i]; i++) {
-        unsigned ca = (unsigned char)a->nazwa[i], cb = (unsigned char)b->nazwa[i];
-        ca = ca >= 'A' && ca <= 'Z' ? ca + 32 : ca;
-        cb = cb >= 'A' && cb <= 'Z' ? cb + 32 : cb;
-        if (ca != cb)
-            return ca < cb;
-    }
-    return a->nazwa[i] == 0 && b->nazwa[i] != 0;
-}
-
 static const struct k1_dok_wpis *sortowane; /* the entries porownaj compares (qsort takes no context) */
 
 /* Folders first, then by name; the same names in the order of the list (as before 0.8.2: insertion sort). */
 static int porownaj(const void *a, const void *b)
 {
     int x = *(const int *)a, y = *(const int *)b;
-    if (mniejszy(&sortowane[x], &sortowane[y]))
+    if (k1_dok_przed(&sortowane[x], &sortowane[y]))
         return -1;
-    if (mniejszy(&sortowane[y], &sortowane[x]))
+    if (k1_dok_przed(&sortowane[y], &sortowane[x]))
         return 1;
     return (x > y) - (x < y);
 }
@@ -161,7 +146,7 @@ static void zaznacz_wiersz(int i)
         od_wiersza = i;
     if (i >= od_wiersza + w)
         od_wiersza = i - w + 1;
-    podglad_zadaj(zaznaczony);
+    szczegoly_zadaj(zaznaczony);
 }
 
 /* ---- drawing ---- */
@@ -274,7 +259,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     for (i = 0; i < n; i++)
         k1_przycisk(o, m, &p[i], K1_CZ_MALA_MOCNA, i == nad_przyciskiem && dostepny(rodzaje[i]), dostepny(rodzaje[i]));
     rysuj_liste(o, m);
-    rysuj_podglad(o, m);
+    rysuj_szczegoly(o, m);
     if (obraz_przycisk(&p[0]))
         k1_przycisk(o, m, &p[0], K1_CZ_MALA_MOCNA, nad_tapeta, 1);
     rysuj_stopke(o, m);
@@ -302,7 +287,7 @@ static int wiersz_pod(int32_t x, int32_t y)
     return (y - WIERSZE_Y) / WIERSZ < wierszy_widac() && i < n_widok ? i : -1;
 }
 
-/* A folder: go into it; a file: its default application (Pliki itself: the preview is shown already). */
+/* A folder: go into it; a file: its default application (Pliki itself: its details are shown already). */
 static void otworz(uint32_t id)
 {
     const struct k1_dok_wpis *w = wpis_tu(id);
@@ -341,7 +326,7 @@ static void klik_w_liste(int i)
     zaznaczony = id;
     pytanie = PYT_BRAK;
     wybor_aplikacji = 0;
-    podglad_zadaj(id);
+    szczegoly_zadaj(id);
 }
 
 /* The scroll arrows under the list: a page up (left one) or down (right one). */
@@ -454,7 +439,7 @@ int main(void)
     apl.kanaly[1].fd = FD_NADZORCA;
     apl.kanaly[1].dane = nadzorca_odbierz;
     pendrive_start();
-    obrazy_start();
+    obrazy_start(apl.kanaly[0].fd);
     /* the tests click by this line */
     k1_log(TAG, "układ: miejsca od %d,%d co %d, Kosz %d,%d; wiersze od %d,%d co %d; w górę %d,%d; Pendrive %d,%d", BOK / 2,
            NAV_Y + NAV_WIERSZ / 2, NAV_WIERSZ, BOK / 2, KOSZ_Y + NAV_WIERSZ / 2, LISTA_X + 120, WIERSZE_Y + WIERSZ / 2, WIERSZ,

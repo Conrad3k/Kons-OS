@@ -278,7 +278,7 @@ Obraz produkcyjny z dyskiem danych (pusta K1-DANE), dwa uruchomienia.
 | Anuluj | drugie „Otwórz…” → „Anuluj” → Notatki: „anulowano” | log |
 | Pliki | Dokumenty › Notatki: 3 pliki | `pliki-notatki-4-pliki.png` |
 | Otwórz w… | przyciski: „Notatki”, „Anuluj” → skarbiec daje plik, nadzorca przekazuje go Notatkom (fd 5), Notatki otwierają go (20 B) | `pliki-notatki-5-otworz-w.png` |
-| domyślna aplikacja | podwójne kliknięcie pliku w Plikach → Notatki (9 B); Ustawienia → Aplikacje → „Pliki (podgląd)” (zapis w skarbcu) → podwójne kliknięcie zostaje w Plikach | `pliki-notatki-6-ustawienia.png` |
+| domyślna aplikacja | podwójne kliknięcie pliku w Plikach → Notatki (9 B); Ustawienia → Aplikacje → „Pliki (szczegóły)” (zapis w skarbcu) → podwójne kliknięcie zostaje w Plikach | `pliki-notatki-6-ustawienia.png` |
 | dysk | jawnie nie ma treści, nazw notatek, „Notatki” ani zapisu ustawień | skrypt |
 | ponownie | nic do przeniesienia, 3 notatki z plików, domyślnie Pliki (ustawienie zapamiętane) | `pliki-notatki-ponownie-*.png` |
 
@@ -407,3 +407,16 @@ Od 1c system tworzy format 2, a stary magazyn (format 1) przechodzi na format 2 
 | w systemie (`t_proby`) | klatka dekodera: 1 GiB przestrzeni adresowej się mieści, 1,2 GiB — błąd przydziału (`RLIMIT_AS` 1152 MiB), nie zabicie procesu |
 | `test-pendrive.sh` | maszyna 8 GB: nadzorca daje dekoderowi 1152 MiB; zdjęcia 48 i 100 Mpx (kilka MB — kilka kawałków) → podgląd, kolor na zrzucie (100 Mpx tylko z KVM: w TCG dekodowanie trwa ok. 20 s procesora — tyle, co limit dekodera; 48 Mpx w TCG: ok. 10 s); GIF, BMP, WebP → podgląd; nagłówek 101 Mpx → odmowa, „Zdjęcie ma 101 Mpx”; zrzuty `pendrive-6-podglad-{48mpx,100mpx,gif,bmp,webp,101mpx}.png` |
 | `test-m4.sh`, `test-pliki.sh` | ustawienia zapisane w nowym formacie `K1U3` (miejsce na 32 typy plików) — w magazynie nie widać go jawnym tekstem |
+
+## 0.8.2 krok 4 — aplikacja Podgląd (ADR 0037)
+
+| Test | Co sprawdza |
+|---|---|
+| `test_podglad` (host) | kolejność zdjęć jak w Plikach (po nazwie, A–Z jak a–z; bez tekstu, PDF, folderów, Kosza i innych folderów), pozycja, ← / → dookoła, zdjęcie po wyrzuceniu do Kosza (następne, na końcu poprzednie, żadne), „3 z 27” (ucięte, nigdy poza bufor) |
+| `test_dokumenty` (host) | prawa Podglądu przez prawdziwy kanał: bez gestu — nic; po `DOK_OTWORZ` z Plików — zdjęcia tego folderu (nie tekst obok, nie inny folder, nie Kosz); czyta, do Kosza (D2); przenoszenie, opróżnianie Kosza, usuwanie na zawsze, otwieranie w innej aplikacji — odmowa; Podgląd nie otwiera tekstu, Notatki zdjęć; „Otwórz…”: okno wyboru z rodziną „obrazy” — tekst odrzucony, zdjęcie z innego folderu daje i jego folder; po zamknięciu — nic; domyślna aplikacja PNG/WebP — Podgląd |
+| `test_komunikat` (host) | `DOK_WYBIERZ` b = rodzina (nie razem z typem), `DOK_PROSBA` c; `DEK_PIKSELE` c, d — wymiary zdjęcia (≥ obraz, ≤ 100 Mpx) |
+| `test_dekoder` (host) | wymiary zdjęcia po obrocie z EXIF (`zw` × `zh`) |
+| `test_rozmieszczenie` (host) | Podgląd nie jest przypięty przy pierwszym starcie |
+| w systemie | klatka Podglądu (UID 208), próba w klatce, spis plików obrazu — z listy aplikacji |
+| `test-pendrive.sh` | dwuklik zdjęcia w Obrazach → okno Podglądu (UID 208): „zdjęcie 4 z 10”, 80×60 (nie powiększone), dekoder dla Podglądu w klatce, kolor na zrzucie; R → widok 60×80 (zrzut: kolor nad i pod środkiem, nie z boku); ← → zdjęcie uszkodzone (NEGATYWNY: „nie da się odczytać”); ‹ → PNG (zielony na zrzucie); Delete → do Kosza bez pytania, „2 z 9”, Pliki: Obrazy — 9; Ctrl+O → okno wyboru z rodziną „obrazy”, Esc — anulowano; › i „Ustaw jako tapetę” → ekran przyjmuje zdjęcie od Podglądu; × zamyka. Później Obrazy: 1109 (jedno w Koszu). Zrzuty `pendrive-6b-podglad*.png` |
+| `test-m4.sh`, `test-pliki.sh` | ustawienia zapisane jako `K1U4` — w magazynie nie widać go jawnym tekstem |
