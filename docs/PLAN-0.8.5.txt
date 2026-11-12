@@ -60,7 +60,7 @@ Nowy czat — przebieg każdego kroku:
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                             Luki (punkt 5)     Zależy od  Decyzje    Rozmiar  ADR
-[ ]  1  Okna nie zamarzają: ekran nie gubi zdarzeń   L1 L2              —          —          M        —
+[ ]  1  Okna nie zamarzają: ekran nie gubi zdarzeń   L1 L2              —          —          M        —   [w toku: Claude, gałąź claude/zen-bohr-6od7n8]
 [ ]  2  Podgląd płynny                                L3 L4 L5 L6        1          —          M–L      —
 [ ]  3  Ustawienia → Miejsce                          L7 L8              —          D1 D2 D3   L        —
 [ ]  4  Secure Boot: „Przygotuj klucz K1”            L9                 —          D4         S–M      —
