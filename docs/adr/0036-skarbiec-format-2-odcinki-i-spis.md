@@ -1,7 +1,7 @@
 # 0036. Skarbiec na lata — format 2: dziennik w odcinkach, spis skarbca, kompaktowanie po odcinku
 
-- Status: Przyjęty (format na dysku i testy — 0.8.2 krok 1a; kompaktowanie w przerwach — 1b; przejście starych
-  magazynów i format 2 w systemie — 1c)
+- Status: Przyjęty, wykonany (format na dysku i testy — 0.8.2 krok 1a; kompaktowanie w przerwach — 1b; przejście
+  starych magazynów i format 2 w systemie — 1c)
 - Data: 2026-11-11
 - Dotyczy: ADR 0015 (format skarbca — **uzupełnia go nowym formatem; format 1 zostaje do odczytu i przejścia**),
   ADR 0033 (powiększanie), ADR 0034 (limity, kompaktowanie wcześniej), `docs/PLAN-0.8.2.txt` (krok 1, luki L25–L28),
@@ -89,6 +89,25 @@ bajcie: `docs/komponenty/skarbiec.md`). Kryptografia, klucz główny, hasło i n
   nagłówki z poprawnym MAC, które kłamią, stary odcinek podłożony po ponownym użyciu, pełny magazyn, kroki
   kompaktowania, powiększenie, 70 000 obiektów), `fuzz_magazyn` (tryby 3–5: zmiany bajtów, pola nagłówka, losowe
   ciągi operacji z ponownym otwarciem), `test_magazyn` (format 1 bez zmian).
+
+## Wykonanie kroków 1b i 1c (2026-11-12)
+- **Kompaktowanie w przerwach** (`src/skarbiec/przerwy.c`): krok 4 MiB po 0,5 s bez próśb, gdy wolnych odcinków jest
+  mniej niż zapas + 2; **pilne** (zapas + 1 albo mniej) — krok także między prośbami. Na hoście 600 zapisów po 1 MiB
+  w losowej kolejności przy 75 % zajętości: z krokami żaden zapis nie kompaktuje sam, bez kroków — 196 (`test_odcinki`).
+  Każda prośba i każdy krok są mierzone; najdłuższa przerwa w odpowiedziach trafia do logu z końcem pracy.
+- **Przejście** (`src/skarbiec/przejscie.c`, pkt 8): po `START_POTWIERDZONY` od nadzorcy (A/B sprawdzone po 15 s, nie
+  czeka próba innej wersji) żywe obiekty są kopiowane krokami do odcinków **poza całym aktywnym obszarem** formatu 1
+  (do wolnej połowy), format 1 działa w tym czasie; obiekty zmienione po kopii (rozpoznane po bloku rekordu) — w ostatnim
+  kroku jeszcze raz; potem spis i nagłówek formatu 2 w obu slotach. Kompaktowanie i powiększenie formatu 1 zaczynają
+  kopiowanie od nowa. Gdy dane nie mieszczą się w wolnej połowie — przejście odłożone (format 1 działa), ponownie po
+  zwolnieniu 8 MiB albo powiększeniu. Format 1 zapisuje już tylko magazyn sprzed przejścia; nowe magazyny mają format 2.
+- **QEMU** (`test-skarbiec.sh`): K1-DANE 64 MiB z 0.8.1 prawie pełna (25 MiB) — przejście w 7 krokach, najdłuższy krok
+  0,22 s (TCG, razem 4,2 s), miejsce na dane 31 → 58 MiB, na pliki 23 → 50 MiB, każdy obiekt bajt w bajt (sprawdzone na hoście);
+  magazyn z filmem 300 MB otwiera się przy ponownym starcie od razu i ekran dostaje ustawienia przy starcie.
+- **Błąd z kroku 1a znaleziony w QEMU:** spis zapisuje liczbę odcinków z chwili zapisu; po powiększeniu partycji
+  otwarcie wymagało liczby z nagłówka i odmawiało („dane uszkodzone”, dane całe) aż do następnego spisu. Teraz spis może
+  znać mniej odcinków niż nagłówek — dopisane są wolne (generacja 0); test powiększenia ze spisem i przerwą prądu po
+  każdym zapisie w `test_odcinki`. Format 2 nie był jeszcze w żadnym wydaniu.
 
 ## Rozważane alternatywy
 - **Tylko indeks na starym układzie** (nazwy i położenia zapisywane osobno): naprawia L25, zostawia połowę partycji
