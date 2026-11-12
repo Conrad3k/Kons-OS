@@ -71,7 +71,7 @@ Nowy czat — przebieg każdego kroku:
 [x]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        5          D6 D8     L        —
          [PR #78]
 [x]  7  Porządki i wydanie 0.8.2                     —                       1–6        —         S        —
-         [w toku: Claude, gałąź claude/dreamy-babbage-gel8m4]
+         [PR #79]
 
 Kolejność: 1 najpierw (dane właściciela rosną — format zmieniamy, póki danych jest mało); 2 i 3 w dowolnej
 kolejności (nie dotykają tych samych plików co 1: krok 1 — magazyn skarbca, krok 2 — czytnik, nazwy, import, krok 3 —
