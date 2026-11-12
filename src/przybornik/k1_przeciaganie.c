@@ -180,13 +180,6 @@ static int32_t znak_szer(const struct k1_prz_ocena *oc)
     return oc->znak == K1_ZN_BRAK ? 0 : 36 + k1_tekst_szer(K1_CZ_MALA_MOCNA, oc->znak_tekst);
 }
 
-void k1_prz_rozmiar(const char *nazwa, const struct k1_prz_ocena *oc, int32_t *w, int32_t *h)
-{
-    int32_t z = znak_szer(oc), k = karta_szer(nazwa) + 24; /* the count sticks out on the right */
-    *w = 12 + (z > k ? z : k) + 16;                          /* from the pointer; + the shadow */
-    *h = 16 + KARTA_H + 8 + K1_PRZ_ZNAK_WYS + 16;
-}
-
 int32_t k1_prz_znak_rysuj(struct k1_obraz *o, int32_t x, int32_t y, const struct k1_prz_ocena *oc)
 {
     uint32_t tlo = oc->znak == K1_ZN_KOPIUJ ? ZN_KOPIUJ : oc->znak == K1_ZN_NIE ? ZN_NIE : ZN_PRZENIES;

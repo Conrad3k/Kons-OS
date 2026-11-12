@@ -1,6 +1,8 @@
 K1 — PLAN WERSJI 0.8.2 „PLIKI — DOPRACOWANIE, CZĘŚĆ 2” (ostatnia wersja 0.8, potem 0.9 Sieć)
 =====================================================================================
 
+ZAMKNIĘTY 2026-11-12 (wydanie 0.8.2) — tylko historia; co dalej: docs/DO_ZROBIENIA.txt.
+
 Data: 2026-11-11 (porządek w planie: ADR 0035). Stan wyjściowy: 0.8.1. Ten plik jest SAMODZIELNY: kroki, ich stan,
 luki i próby (punkt 5) oraz decyzje do tej wersji. Zamknięty plan 0.8.1: docs/archiwum/PLAN-0.8.1.txt (tylko
 historia). Mapa drogi i rzeczy na później: docs/DO_ZROBIENIA.txt. Plik jest planem, nie specyfikacją: zmiany
@@ -68,7 +70,7 @@ Nowy czat — przebieg każdego kroku:
          [PR #77]
 [x]  6  Przeciąganie i zaznaczanie wielu             L24 (faza A) L19        5          D6 D8     L        —
          [PR #78]
-[ ]  7  Porządki i wydanie 0.8.2                     —                       1–6        —         S        —
+[x]  7  Porządki i wydanie 0.8.2                     —                       1–6        —         S        —
          [w toku: Claude, gałąź claude/dreamy-babbage-gel8m4]
 
 Kolejność: 1 najpierw (dane właściciela rosną — format zmieniamy, póki danych jest mało); 2 i 3 w dowolnej
@@ -407,12 +409,21 @@ KROK 6 — Przeciąganie i zaznaczanie wielu                                    
 
 KROK 7 — Porządki i wydanie 0.8.2                                                       S · bez decyzji
   Cel: wydanie 0.8.2 z obrazem ISO i USB, porządki za całe 0.8 (AGENTS.md, zasada 2: koniec tematu „Pliki”).
-  [ ] Porządki: co usunąć/scalić/uprościć po krokach 1–6 i 0.8.0–0.8.1; przegląd „Tymczasowe” w DO_ZROBIENIA.txt
+  [x] Porządki: co usunąć/scalić/uprościć po krokach 1–6 i 0.8.0–0.8.1; przegląd „Tymczasowe” w DO_ZROBIENIA.txt
       (terminy 0.9.0).
-  [ ] VERSION 0.8.2; CHANGELOG (Dodane / Zmienione / Naprawione / Porządki) z opisów PR-ów kroków 1–6.
-  [ ] DO_ZROBIENIA.txt: „Teraz” → 0.9 Sieć (jej plan docs/PLAN-<wersja>.txt pisze pierwszy czat 0.9), lista testów
+  [x] VERSION 0.8.2; CHANGELOG (Dodane / Zmienione / Naprawione / Porządki) z opisów PR-ów kroków 1–6.
+  [x] DO_ZROBIENIA.txt: „Teraz” → 0.9 Sieć (jej plan docs/PLAN-<wersja>.txt pisze pierwszy czat 0.9), lista testów
       na X230 dla 0.8.2; ten plik → docs/archiwum/; README (tabela wersji, instrukcja, jeśli się zmieniła).
   [ ] Po scaleniu: CI, tag k1-v0.8.2, wydanie; raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
+  Ustalenia z wykonania (2026-11-12, jeden PR):
+  - Większość porządków zrobiły same kroki 1–6 („dziel przed rozbudową”, wspólne części w przyborniku) — CHANGELOG
+    zbiera je w „Porządkach”. W kroku 7: usunięta nieużywana k1_prz_rozmiar (tylko test ją wołał); stare nazwy po D1
+    i D7 („podgląd” jako panel Plików, „Otwórz w…”) w komentarzach, TESTY.md, dekoder.md, skarbiec.md, aplikacje.md;
+    README bez „(wkrótce) własny magazyn danych”; nieaktualny wpis „wydanie 0.8.1 nie przeszło” (wydanie jest).
+  - Tymczasowe: format 1 skarbca i przejście (obszary.c, przejscie.c) nie miały terminu — oznaczone do 0.10.0
+    (warunek: żaden magazyn formatu 1 nie został). Terminy 0.9.0 (manifest formatu 1, stare notatki) bez zmian.
+  - Jedna tabela usług systemowych (K1_SYSTEM → uslugi[], kanaly[], profile) — nie teraz (zmiana w nadzorcy, nie
+    w temacie „Pliki”); pierwszy krok 0.9, przed usługą sieci (DO_ZROBIENIA.txt, punkt 1).
 
 
 4. DECYZJE WŁAŚCICIELA (z rekomendacją; który krok ich potrzebuje)

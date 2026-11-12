@@ -4,27 +4,34 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.8.1 gotowa (w QEMU; na X230 uznana za przetestowaną — Twoja decyzja z 2026-11-11). Data: 2026-11-11.
+Stan: 0.8.2 gotowa (w QEMU) — temat 0.8 „Pliki” zamknięty; teraz 0.9 Sieć. Data: 2026-11-12.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — 0.8.2 „Pliki — dopracowanie, część 2” (ostatnia wersja 0.8)
------------------------------------------------------------------------
-Plan, kroki, ich stan, luki i decyzje D1–D8: docs/PLAN-0.8.2.txt. Zakres zamrożony (7 kroków).
-    1 skarbiec na lata (format na duże dane) · 2 pendrive i nazwy · 3 duże zdjęcia, nowe formaty · 4 aplikacja
-    Podgląd · 5 „Otwórz za pomocą” · 6 przeciąganie · 7 porządki i wydanie 0.8.2
-[!] Decyzje D1–D3, D5–D8 (plan 0.8.2, punkt 4) — potrzebne przed krokami 2, 4, 5, 6.
-[ ] Wydanie 0.8.1: budowanie w CI nie przeszło (2026-11-11: runner GitHuba nie znajdował serwerów pakietów Ubuntu) —
-    osobny czat.
+1. TERAZ — 0.9 Sieć (ADR 0019, 0026)
+-------------------------------------
+Plan wersji (kroki, luki, decyzje) pisze pierwszy czat 0.9: docs/PLAN-<wersja>.txt (ADR 0035). Zakres wstępny:
+    [ ] na początek (porządki z 0.8.2, „dziel przed rozbudową”): jedna tabela usług systemowych — dziś nowa usługa
+        to wiersz w K1_SYSTEM i osobne wpisy w uslugi[], kanaly[] (src/nadzorca/uslugi.c) i profile.c; sieć będzie
+        pierwszą nową usługą od 0.8.0
+    [ ] przed siecią: „Tymczasowe” z terminem 0.9.0 (punkt 6), w tym pliki startowe (shim, GRUB) wymieniane przez
+        Instalator bez reinstalacji (RYZYKA R45)
+    [ ] przed siecią: własny build musl 1.2.5 z poprawkami (dziś 1.2.4 z Ubuntu, RYZYKA R8); razem z nim wraca
+        _FORTIFY_SOURCE (ADR 0007, RYZYKA R7)
+    [ ] test: nic w K1 nie odpowiada na połączenia z zewnątrz
+    [ ] kabel (X230: Intel 82579LM, e1000e, bez firmware) + DHCP w osobnej klatce
+    [ ] czas z sieci (reguła z 0.8.1: skok zegara w przód nie opróżnia Kosza — RYZYKA R56)
+    [ ] Wi-Fi (iwlwifi + firmware — osobny ADR)
+Zamknięte: 0.8.2 — plan i jego ustalenia w docs/archiwum/PLAN-0.8.2.txt, zmiany w CHANGELOG.md.
 
 
 2. MAPA DROGI (ADR 0035; dawne numery etapów M w nawiasach)
 ------------------------------------------------------------
     0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
-    0.8      Pliki — teraz 0.8.2                                                   (natywna część M9, dawne M6)
-    0.9      Sieć                                                                  (M7)
+    0.8      Pliki — gotowe (0.8.0–0.8.2)                                          (natywna część M9, dawne M6)
+    0.9      Sieć — teraz                                                          (M7)
     0.10     Strefy: obce aplikacje w mikro-maszynach, przeglądarka                (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
@@ -35,16 +42,6 @@ Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kro
 
 3. NASTĘPNE WERSJE (zakres wstępny — dokładny plan pisze pierwszy czat danej wersji: docs/PLAN-<wersja>.txt)
 ---------------------------------------------------------------------------------------------------------
-0.9 Sieć (ADR 0019, 0026)
-    [ ] test: nic w K1 nie odpowiada na połączenia z zewnątrz
-    [ ] kabel (X230: Intel 82579LM, e1000e, bez firmware) + DHCP w osobnej klatce
-    [ ] czas z sieci (reguła z 0.8.1: skok zegara w przód nie opróżnia Kosza — RYZYKA R56)
-    [ ] Wi-Fi (iwlwifi + firmware — osobny ADR)
-    [ ] przed siecią: „Tymczasowe” z terminem 0.9.0 (punkt 6), w tym pliki startowe (shim, GRUB) wymieniane przez
-        Instalator bez reinstalacji (RYZYKA R45)
-    [ ] przed siecią: własny build musl 1.2.5 z poprawkami (dziś 1.2.4 z Ubuntu, RYZYKA R8); razem z nim wraca
-        _FORTIFY_SOURCE (ADR 0007, RYZYKA R7)
-
 0.10 Strefy (ADR 0020, 0024, 0025)
     [ ] pierwsza mikro-maszyna (KVM; X230: włącz VT-x i VT-d w BIOS-ie) i okno z niej na ekranie K1
     [ ] zaufana ramka w kolorze strefy rysowana przez ekran K1 (też RYZYKA R26: dziś aplikacje rysują własne ramki)
@@ -59,7 +56,8 @@ Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kro
     [ ] pliki ze strefy („Do K1”) i do strefy („Wyślij do…”) przez Pliki (zgoda = gest w K1, pytanie tylko, gdy
         zaczyna sama strefa); schowek między strefami za każdym wklejeniem
     [ ] „Otwórz w…” z zapisem z powrotem: K1 pyta „Zapisać zmiany w oryginale?”, stara wersja do Kosza
-    [ ] przeciąganie pliku z Plików na okno strefy (ten sam mechanizm co przeciąganie między oknami — plan 0.8.2, D6);
+    [ ] przeciąganie pliku z Plików na okno strefy (ten sam mechanizm co przeciąganie między oknami — D6 w
+        docs/archiwum/PLAN-0.8.2.txt);
         prośba strony o plik → okno wyboru pliku K1
     [ ] przypomnienie przy wysyłaniu pliku z internetu do wspólnej strefy
     [ ] Przeglądarka PDF K1: PDF czyta jednorazowy proces w klatce, silnik — ADR (może wcześniej)
@@ -82,7 +80,8 @@ Laptop (PATCH w dowolnej wersji, po Twoich zgłoszeniach)
         wirtualnej (pozycja bezwzględna); I2C-HID (nowsze laptopy)
 
 Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne)
-    [ ] exFAT na pendrive'ach (karty SD i pendrive'y > 32 GB), potem NTFS — ocena: docs/PLAN-0.8.2.txt, dodatek A
+    [ ] exFAT na pendrive'ach (karty SD i pendrive'y > 32 GB), potem NTFS — ocena: docs/archiwum/PLAN-0.8.2.txt, dodatek A
+    [ ] przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) — jeden ADR z planem 0.11 (D6 z 0.8.2)
     [ ] HEIC (zdjęcia z iPhone'a); odtwarzanie wideo (pliki wideo da się już przechowywać); zapis plików na pendrive
     [ ] pełne NFC i pełne porównanie wielkości liter Unicode w nazwach plików
     [ ] Podgląd: powiększanie fragmentu, pełny ekran, pokaz slajdów
@@ -93,7 +92,21 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230)
 -----------------------------------------------
 Jedna lista — dla ostatniego wydania. Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
-z 2026-11-11). Lista dla 0.8.2 — przy jej wydaniu (plan 0.8.2, krok 7).
+z 2026-11-11). Lista dla 0.8.2 (najlepiej na pendrive'ie, na którym już masz dane z 0.8.1 — aktualizacja przez
+Instalator albo nagranie obrazu USB od nowa, jeśli dane nie są ważne):
+    [ ] start z danymi z 0.8.1: pulpit, tapeta i ustawienia od razu; po ok. minucie Ustawienia → Informacje
+        pokazują więcej miejsca na pliki (dane przeszły na nowy format) — notatki, pliki i ustawienia są na miejscu,
+        także po ponownym starcie
+    [ ] pendrive albo karta z telefonu/aparatu: folder ze zdjęciami widać cały, „Importuj wszystkie”; drugi import —
+        „Pominięto n — już zaimportowane”; daty zdjęć z pendrive'a
+    [ ] duże zdjęcie z telefonu (tryb 48/50 Mpx) i GIF/WebP: miniatura w Plikach, Podgląd, „Ustaw jako tapetę”
+    [ ] Podgląd: podwójne kliknięcie zdjęcia (Pliki i pulpit), ← / →, − / + i przesuwanie myszą (czy płynne na
+        X230), R, Delete → Kosz
+    [ ] prawy przycisk na pliku w Plikach i na pulpicie: „Otwórz za pomocą”, „Pokaż w Plikach”, „Zmień nazwę”;
+        podwójne kliknięcie PDF albo ZIP → komunikat
+    [ ] zaznaczanie wielu (Ctrl+klik, Shift+klik, Ctrl+A) i przeciąganie na folder, na Kosz (pytanie przy kilku),
+        z Kosza na folder, z pendrive'a na folder (import); na pulpicie plik na Kosz i na folder; TrackPoint
+        i touchpad przy przeciąganiu
 Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „pomysł”) albo w czacie.
 
 
@@ -133,12 +146,16 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         („właściciel uruchomił 0.8.x ze swoim pendrive'em”) jest w zasadzie spełniony (0.8.1 uznana za przetestowaną),
         ale przed usunięciem jedno pytanie do Ciebie: bez tego kodu notatki z pendrive'a zapisanego 0.5.6–0.7.6 nie
         przejdą już do Plików. Miejsce: src/aplikacje/notatki/stare.c
-    [x] przegląd 0.7.5 i 0.8.0: innych rozwiązań tymczasowych nie ma
+    [ ] format 1 skarbca (dwie połowy, 0.5.6–0.8.1) — odczyt, zapis do istniejącego magazynu i przejście na format 2
+        (0.8.2, ADR 0036) — termin 0.10.0. Warunek usunięcia: żaden magazyn formatu 1 nie został (Twój pendrive
+        przeszedł — log skarbca „format 2”; magazyn, który nie mieścił się w wolnej połowie, też). Bez tego kodu
+        pendrive nagrany 0.5.6–0.8.1 i nieuruchomiony z 0.8.2+ nie otworzy się. Testy formatu 1 (magazyn_testowy,
+        test_magazyn, test_przejscie) odchodzą razem z nim. Miejsca: src/skarbiec/obszary.c, src/skarbiec/przejscie.c
+    [x] przegląd 0.7.5, 0.8.0 i 0.8.2: innych rozwiązań tymczasowych nie ma; terminy 0.9.0 bez zmian
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
 ---------------------------------------------------------------------------------------
-    0.8.2  format skarbca na duże dane (ADR 0036, krok 1); aplikacja Podgląd i jej prawa (ADR 0037, krok 4)
     0.9    przestrzenie nazw użytkownika (USER_NS) — tak/nie; klient DHCP
     0.10   Firefox czy WPE WebKit (sandbox Firefoksa w strefie); wybór VMM (m.in. Cloud Hypervisor, Firecracker,
            crosvm); test KVM na Twoim sprzęcie

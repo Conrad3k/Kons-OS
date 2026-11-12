@@ -1,8 +1,8 @@
 # Kons K1 Sovereign
 
 Własny, minimalistyczny i bezpieczny system operacyjny na jądrze Linux. Nie jest dystrybucją
-Linuksa: ma własny program startowy, własny ekran i pulpit, (wkrótce) własny magazyn danych
-i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
+Linuksa: ma własny program startowy, własny ekran i pulpit, własny zaszyfrowany magazyn danych
+(skarbiec) i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
 
 > Wcześniej w tym repozytorium był **Kons-OS** — dystrybucja na bazie Debiana (wersje 0.1.0–0.1.2).
 > Jest zachowany w gałęzi [`archiwum/debian-0.1.2`](../../tree/archiwum/debian-0.1.2) i tagach `v0.1.x`.
@@ -23,7 +23,7 @@ i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
 | 0.7.5 Pulpit | ikony na pulpicie jak w Windows (w stylu K1), menu pod prawym przyciskiem, przypinanie i odpinanie na pasku | PRZETESTOWANE w QEMU (ADR 0028) |
 | 0.8.0 Pliki | aplikacja Pliki, Kosz (30 dni albo ręcznie), okno wyboru pliku, zdjęcia z pendrive'a, podgląd zdjęć, tapeta z własnego zdjęcia, cały pendrive na dane | PRZETESTOWANE w QEMU (ADR 0029–0033) |
 | 0.8.1 Pliki — dopracowanie | dane nie giną (naprawa przy starcie, zły zegar), 16 384 pliki, szybki start, miejsce w Informacjach, stary pendrive powiększany przyciskiem, pliki do 4 GB | PRZETESTOWANE w QEMU (ADR 0033, 0034) |
-| 0.8.2 Pliki — dopracowanie, część 2 | skarbiec na duże dane (szybki start, prawie cały pendrive na pliki), pendrive z telefonu, duże zdjęcia, aplikacja Podgląd, „Otwórz za pomocą”, przeciąganie | W TOKU (`docs/PLAN-0.8.2.txt`) |
+| 0.8.2 Pliki — dopracowanie, część 2 | skarbiec na duże dane (szybki start, prawie cały pendrive na pliki), pendrive z telefonu, duże zdjęcia, aplikacja Podgląd, „Otwórz za pomocą”, przeciąganie | PRZETESTOWANE w QEMU (ADR 0036, 0037) |
 | 0.9 Sieć | kabel, potem Wi-Fi; nic w K1 nie nasłuchuje | PLANOWANE — następne |
 | 0.10 Strefy | każda obca aplikacja (przeglądarka, Discord…) w swojej mikro-maszynie; kolorowa ramka; stała/jednorazowa; pełna izolacja/szybka grafika | PLANOWANE (ADR 0020) |
 | 0.11 Pliki ze stref | przenoszenie plików ze stref i do stref przez okno K1, schowek między strefami | PLANOWANE |

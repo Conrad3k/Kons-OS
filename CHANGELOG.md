@@ -3,6 +3,95 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.8.2] — 2026-11-12
+
+**Pliki — dopracowanie, część 2** (`docs/archiwum/PLAN-0.8.2.txt`, kroki 1–7; ADR 0036, 0037) — ostatnia wersja 0.8.
+Skarbiec na lata (prawie cały pendrive na pliki, szybki start przy dużych danych), pendrive z telefonu w całości,
+duże zdjęcia, aplikacja Podgląd, menu pod prawym przyciskiem w Plikach i przeciąganie plików. Następna: 0.9 Sieć.
+
+### Ważne przy aktualizacji
+- Dane z 0.5.6–0.8.1 **przechodzą same na nowy format skarbca** — w tle, gdy nowa wersja przepracuje 15 s (pulpit albo
+  ekran hasła). Przerwa prądu w dowolnej chwili zostawia stary albo nowy magazyn, oba pełne. Jeśli danych jest więcej,
+  niż mieści wolna połowa pendrive'a, przejście czeka (magazyn działa jak dotąd), aż zwolnisz miejsce albo użyjesz
+  „Użyj całego pendrive'a na dane”. Po przejściu wersja 0.8.1 tych danych już nie odczyta.
+
+### Dodane
+- **Aplikacja Podgląd** (krok 4, ADR 0037; wygląd C — Twój wybór): podwójne kliknięcie zdjęcia w Plikach albo na
+  pulpicie otwiera je w osobnym oknie — zdjęcie na całe okno, na dole pływający pasek ‹ „3 z 27” › | − + | Otwórz…,
+  Obróć, Ustaw jako tapetę, Do Kosza; w lewym górnym rogu nazwa, wymiary, rozmiar, data i pochodzenie.
+  ← / → — poprzednie i następne zdjęcie z folderu (w kolejności Plików); − / + — przybliżanie z lekką animacją,
+  przybliżone zdjęcie przesuwa się myszą; R — obrót widoku (pliku nie zmienia); Delete — do Kosza bez pytania (D2);
+  Ctrl+O — okno wyboru pliku z samymi zdjęciami. Podgląd jest domyślną aplikacją zdjęć, także po aktualizacji.
+  Widzi tylko zdjęcia folderów, z których coś w nim otworzysz — i nic po zamknięciu.
+- **Menu pod prawym przyciskiem w Plikach** (krok 5, D7) — to samo co na pulpicie: „Otwórz”, „Otwórz za pomocą ›”
+  (obok lista aplikacji), „Zmień nazwę”, „Usuń”; w Koszu „Przywróć”, „Usuń na zawsze”; na pendrivie „Importuj”.
+  Na pulpicie dodatkowo „Pokaż w Plikach”, a „Zmień nazwę” otwiera Pliki z gotowym polem nazwy.
+- **Zaznaczanie wielu** w Plikach (krok 6): Ctrl+klik, Shift+klik, Ctrl+A; „Usuń”, „Przywróć”, „Usuń na zawsze”,
+  „Importuj” i menu działają na wszystkie zaznaczone.
+- **Przeciąganie plików** (krok 6, D6, D8) w Plikach — na folder, na miejsce z lewej, na Kosz; z Kosza na folder =
+  przywróć tam; z pendrive'a na folder = import tam — i na pulpicie (plik na Kosz albo na folder). Przy kursorze
+  karteczka z nazwą i liczbą oraz znak, co się stanie („Przenieś do…”, „Kopiuj do… (import)”, „Nie można…”).
+  Przed Koszem pytanie, gdy elementów jest więcej niż jeden albo folder ma coś w środku; zajęta nazwa — „Zachowaj
+  oba” / „Pomiń” / „Anuluj”. Przeciąganie między oknami — po 0.8.2, razem ze strefami.
+- **Nowe formaty zdjęć** (krok 3): GIF (pierwsza klatka), BMP, WebP (stratny i bezstratny) — miniatura, Podgląd,
+  tapeta; import z pendrive'a kładzie je do Obrazów.
+- Pulpit: gdy plików na Pulpicie jest więcej niż miejsc, ostatnia wolna komórka pokazuje „Jeszcze n” (podwójne
+  kliknięcie otwiera Pliki).
+
+### Zmienione
+- **Skarbiec w nowym formacie** (krok 1, ADR 0036): na pliki ok. 90 % K1-DANE zamiast połowy (pendrive 64 MiB
+  z 0.8.1: 23 → 50 MiB); start nie zależy od ilości danych (magazyn z filmem 300 MB otwiera się od razu — ekran
+  dostaje ustawienia od początku); porządkowanie danych (kompaktowanie) małymi porcjami w przerwach, skarbiec nie
+  zastyga; sufit plików 256 GB (było ok. 64 GB).
+- **Pendrive z telefonu w całości** (krok 2): działa też „mały” FAT32 (niektóre aparaty i karty); folder z tysiącami
+  zdjęć widać cały (do 16 384 elementów), a „Importuj wszystkie” bierze wszystkie (było: pierwsze 1024).
+- **Ponowny import nie robi kopii** (D3): już zaimportowane pliki są pomijane — „Pominięto n — już zaimportowane”;
+  zaimportowany plik ma datę z pendrive'a, nie datę importu. Import przerywa się z jasnym powodem (brak miejsca, za
+  dużo plików).
+- **Nazwy plików nie mogą udawać innych**: znaki niewidoczne, zmieniające kierunek tekstu, nietypowe spacje na brzegach
+  są zakazane albo poprawiane; „ą” zapisane jako „a” + ogonek (macOS) to to samo co „ą”; „Ä” i „ä” to ta sama nazwa.
+  Pliki z takimi nazwami z wcześniejszych wersji dostają poprawioną nazwę przy starcie — nic nie ginie.
+- **Duże zdjęcia** (krok 3): miniatura, Podgląd i tapeta do 100 Mpx (tryb 48/50 Mpx w telefonach; było 24) i plików
+  do 128 MB (było 16); za duże zdjęcie mówi, ile ma („Zdjęcie ma 150 Mpx — K1 pokazuje do 100 Mpx”).
+- **Podwójne kliknięcie zawsze coś robi** (krok 5): tekst → Notatki, zdjęcie → Podgląd, plik bez aplikacji (PDF,
+  ZIP) → „K1 nie ma jeszcze aplikacji do tego typu pliku”. W Plikach przycisk „Otwórz” zamiast „Otwórz w…”.
+- Ustawienia → Aplikacje pokazują wszystkie typy plików i ich aplikację.
+- Panel po prawej w Plikach nazywa się „szczegóły”, zdjęcie w nim — „miniatura” (D1; „Podgląd” to teraz aplikacja).
+- Zasoby: najwyżej 14 wierszy usług („… i jeszcze n”) — okno mieści się na ekranie 1024×768.
+
+### Naprawione
+- Plik z pendrive'a o nazwie „    .jpg” stawał się ukrytym „.jpg” — teraz „Plik.jpg”; bardzo długa nazwa z długą
+  końcówką dostaje „ (2)” zamiast odmowy.
+- Pliki zawisały przy zdjęciu, którego treści skarbiec nie oddał.
+
+### Porządki (zasada czytelności 2; koniec tematu 0.8 „Pliki”)
+- Wspólne części zamiast kopii: menu pod prawym przyciskiem (`k1_menu` — pulpit i Pliki), strona klienta dekodera
+  (`k1_dekodowanie` — Pliki i Podgląd), przeciąganie (`k1_przeciaganie` — jedna tabela reguł), zaznaczanie
+  (`k1_zaznaczenie`), nazwy plików (`k1_nazwy.c` — skarbiec i czytnik), kolejność plików (`k1_dok_przed` — Pliki,
+  Wybór pliku, Podgląd), limity dekodera w jednej tabeli (`k1_dekoder.h`); tabele klientów dekodera i nadawców
+  tapety zamiast warunków w kodzie.
+- Podzielone przed rozbudową: skarbiec (`obszary.c`, `odcinki.c`, `spis.c`, `przerwy.c`, `przejscie.c`), Pliki
+  (`wskaznik.c`, `menu.c`, `przeciaganie.c`, `zbiorczo.c`), nazwy (`k1_nazwy.c`).
+- Usunięte: przycisk „Otwórz w…” z podmianą rzędu przycisków (Pliki), „Otwórz w: Pliki” na pulpicie, Pliki jako
+  „aplikacja do otwierania”, nieużywana funkcja przeciągania (`k1_prz_rozmiar`); stare nazwy („podgląd” jako panel
+  Plików, „Otwórz w…”) w komentarzach i dokumentach.
+- Przegląd „Tymczasowe”: manifest formatu 1 i przeniesienie starych notatek — termin 0.9.0 bez zmian (przed siecią);
+  nowy wpis: odczyt i przejście formatu 1 skarbca (`obszary.c`, `przejscie.c`) — do 0.10.0, gdy żaden magazyn
+  z 0.5.6–0.8.1 nie zostanie.
+- Plan: zamknięty plan 0.8.2 → `docs/archiwum/`; przed usługą sieci w 0.9 — jedna tabela usług systemowych
+  (`DO_ZROBIENIA.txt`).
+
+### Testy
+- Host: nowe `test_odcinki`, `test_przejscie`, `test_podglad`, `test_menu`, `test_przeciaganie` (każda para
+  źródło/cel); `test_dokumenty` (próby T1/2, T1/6, prawa Podglądu i pulpitu), `test_fat` („mały” FAT32, folder 3000
+  plików), `test_dekoder` (GIF, BMP, WebP, 48/100 Mpx, odmowy), `test_komunikat`, `test_rozmieszczenie`; przerwa prądu
+  po każdym zapisie formatu 2 i przejścia; fuzzing `fuzz_magazyn` (tryby 3–6), `fuzz_dekoder` (nowe formaty);
+  `pomiar_magazynu` (ręcznie, wyniki w ADR 0036).
+- QEMU: `test-skarbiec` (przejście 64 MiB z 0.8.1 i 190 MiB, treść sprawdzona bajt w bajt), `test-pendrive`
+  (mały FAT32 z folderem 1100 zdjęć, ponowny import, 48/100 Mpx, GIF/BMP/WebP, Podgląd, przeciąganie z pendrive'a),
+  `test-pliki` (menu, „Otwórz za pomocą”, zaznaczanie wielu, przeciąganie, pytanie przed Koszem, pulpit);
+  `k1qemu`: `przeciagnij`, `klik_z`.
+
 ## [0.8.1] — 2026-11-11
 
 **Pliki — dopracowanie, część 1** (`docs/PLAN-0.8.1.txt`, kroki 1–4; decyzja właściciela D9: wydanie teraz, reszta —

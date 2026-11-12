@@ -77,7 +77,7 @@ TPM 1.2), jedno konto na komputer. X230 to maszyna testowa — szybka grafika i 
 | `src/ekran/`, `src/grafika/` | `system/ekran` | DRM/KMS, składanie okien, kursor, tapety, znak K1 |
 | `src/gui/` | `system/gui` | pulpit w modułach (`gui.h`): warstwa ikon, paski, menu Start, menu kontekstowe, rozmieszczenie w skarbcu (fd 6) |
 | `src/logowanie/` | `system/logowanie` | ekran hasła przy starcie |
-| `src/skarbiec/` | `system/skarbiec` | `magazyn.c` format i szyfrowanie, `main.c` usługa, `obiekty.c`, `haslo.c`, `dokumenty.c` + `dok_*.c` pliki, foldery, Kosz, naprawa przy starcie, granica czasu, prawa, zapis w toku kawałkami (0.8.0–0.8.1, `dok_wew.h`); limity, indeks, kompaktowanie, rezerwa, kawałki — ADR 0034; `miejsce.c` miejsce na pliki i powiększenie K1-DANE (ADR 0033); format 2 (0.8.2, ADR 0036): `odcinki.c`, `spis.c`, `przejscie.c` (format 1 → 2 po potwierdzonym starcie), `przerwy.c` (kompaktowanie krokami między prośbami) |
+| `src/skarbiec/` | `system/skarbiec` | `magazyn.c` format i szyfrowanie, `main.c` usługa, `obiekty.c`, `haslo.c`, `dokumenty.c` + `dok_*.c` pliki, foldery, Kosz, naprawa przy starcie, granica czasu, prawa, zapis w toku kawałkami (0.8.0–0.8.1, `dok_wew.h`); limity, indeks, kompaktowanie, rezerwa, kawałki — ADR 0034; `miejsce.c` miejsce na pliki i powiększenie K1-DANE (ADR 0033); format 2 (0.8.2, ADR 0036): `odcinki.c`, `spis.c`, `przejscie.c` (format 1 → 2 po potwierdzonym starcie), `przerwy.c` (kompaktowanie krokami między prośbami); format 1 (`obszary.c`) i przejście — tymczasowe do 0.10.0 |
 | `src/instalator/` | `system/instalator` | zapis K1 na dysk (GPT), tylko urządzenia od nadzorcy |
 | `src/czytnik/` | `system/czytnik` | pendrive dla Plików: FAT w klatce, tylko odczyt (0.8.0, ADR 0031); nadzorca `pendrive.c` |
 | `src/dekoder/` | `system/dekoder` | jeden obraz (PNG, JPEG, GIF, BMP, WebP) → piksele, jednorazowy proces w klatce (Wuffs; 0.8.0, ADR 0032); plik kawałkami, limity w jednej tabeli `k1_dekoder.h`, dekodery w `K1_DEKODERY` (0.8.2); nadzorca `dekoder.c` (tabela klientów: Pliki, Podgląd), Pliki `obrazy.c`, Podgląd `obraz.c`, ekran `zdjecie.c` (tabela nadawców tapety) |
@@ -156,7 +156,7 @@ Gotowe części przybornika: `k1_przycisk`, `k1_pole_klawisz`, `k1_menu` (menu p
 `k1_liczba.h` (też `k1_odmiana`: „1 plik / 3 pliki / 5 plików”), kolory `k1_motyw` / `K1_*` (`k1_grafika.h`).
 Ctrl/Shift przy kliknięciu: `apl.mody` (ekran podaje je w `WSKAZNIK` e, 0.8.2).
 
-**Nowa usługa systemowa** (np. `siec`) — dziś to kilka miejsc (do ujednolicenia w porządkach):
+**Nowa usługa systemowa** (np. `siec`) — dziś to kilka miejsc (jedna tabela — pierwszy krok 0.9, przed usługą sieci; `DO_ZROBIENIA.txt`):
 1. `src/<nazwa>/main.c`: komentarz na górze (zadanie, granica zaufania, etap); pierwsza linia `main()` —
    `k1_klatka_w_usludze(TAG)`; log `K1-<NAZWA>`; kanał od nadzorcy na fd 3, kolejne ustalone w `kanaly[]`.
 2. Wiersz w `K1_SYSTEM` (`k1_uslugi.h`), wpis w `uslugi[]` i `kanaly[]` (`uslugi.c`), profil w `profile.c`.
@@ -228,7 +228,7 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 **Plan — jedno miejsce (ADR 0035):** stan, mapa drogi i otwarte decyzje — `docs/DO_ZROBIENIA.txt`; kroki bieżącej
 wersji — `docs/PLAN-<wersja>.txt` (samodzielny: luki, kroki, decyzje; zakres zamrożony, nowe pomysły → „Później”;
 numery kroków się nie zmieniają; zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
-Etapy to wersje MINOR z tematem: **0.8 Pliki** (teraz 0.8.2) → **0.9 Sieć** → **0.10 Strefy** (mikro-maszyny, ramka,
+Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.2) → **0.9 Sieć** (teraz) → **0.10 Strefy** (mikro-maszyny, ramka,
 przeglądarka; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery, TPM)
 → **0.13 Audyt** → 1.0. Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11,
 M10 = 0.12, M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).

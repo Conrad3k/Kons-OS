@@ -4,7 +4,8 @@
  * the half that format 1 keeps free for its compaction; format 1 goes on working meanwhile (its new records go to the
  * active region). The last step copies what was written or rewritten since, writes the spis at the start of one more
  * free segment and the header of format 2. Until that header format 1 opens as it was (it never reads outside its
- * active region); after it — format 2. */
+ * active region); after it — format 2.
+ * k1: tymczasowe — usunąć w 0.10.0 (with obszary.c: when no vault of 0.5.6–0.8.1 is left; ADR 0036) */
 #include "magazyn_wew.h"
 #include "k1_bajty.h"
 

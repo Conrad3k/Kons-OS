@@ -67,10 +67,9 @@ void k1_prz_okienko_nazwa(struct k1_menu *m, const char *cel, const char *nazwa,
 const char *k1_prz_powod(int wynik);
 
 /* Drawing: the card at the pointer (x, y) — the icon, the name, the count when more than one — and the sign under it
- * (none for K1_ZN_BRAK). The rectangle it takes from (x, y): *w, *h (to redraw what it covered). */
+ * (none for K1_ZN_BRAK). */
 void k1_prz_rysuj(struct k1_obraz *o, const struct k1_motyw *mt, int32_t x, int32_t y, enum k1_ikona ik, const char *nazwa,
                   int ile, const struct k1_prz_ocena *oc);
-void k1_prz_rozmiar(const char *nazwa, const struct k1_prz_ocena *oc, int32_t *w, int32_t *h);
 /* Only the sign (the desktop draws its own tile), its top left at (x, y); its width. */
 int32_t k1_prz_znak_rysuj(struct k1_obraz *o, int32_t x, int32_t y, const struct k1_prz_ocena *oc);
 #define K1_PRZ_ZNAK_WYS 24

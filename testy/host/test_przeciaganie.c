@@ -237,7 +237,6 @@ static void t_rysowanie(void)
     struct k1_obraz o = { calloc(300 * 200, 4), 300, 200, 300 };
     struct k1_prz_ocena oc[3];
     int rysowane = 0;
-    int32_t w, h;
     EXPECT(o.px != NULL);
     if (o.px == NULL)
         return;
@@ -250,8 +249,6 @@ static void t_rysowanie(void)
                          &oc[i]);
             EXPECT(k1_prz_znak_rysuj(&o, 280, 190, &oc[i]) > 0);
         }
-    k1_prz_rozmiar("Wakacje 01.jpg", &oc[0], &w, &h);
-    EXPECT(w > 100 && w < 400 && h > 80 && h < 140);
     oc[0].znak = K1_ZN_BRAK;
     EXPECT(k1_prz_znak_rysuj(&o, 0, 0, &oc[0]) == 0);
     for (int i = 0; i < 300 * 200; i++)

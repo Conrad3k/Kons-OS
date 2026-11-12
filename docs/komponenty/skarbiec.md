@@ -150,7 +150,7 @@ wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po 
 | Komunikat | Kierunek | Pola |
 |---|---|---|
 | `DOK_SPIS` | klient → | lista wpisów, które klient widzi (odpowiedź `DOK_LISTA`) |
-| `DOK_CZYTAJ` | klient → | obiekt = plik, a = najwyżej tyle bajtów (podgląd: 64 KiB; ≤ 1 MiB — do 0.8.1 ≤ 16 MiB), b = od kawałka (0.8.1) → `DOK_TRESC` |
+| `DOK_CZYTAJ` | klient → | obiekt = plik, a = najwyżej tyle bajtów (początek tekstu w szczegółach: 64 KiB; ≤ 1 MiB — do 0.8.1 ≤ 16 MiB), b = od kawałka (0.8.1) → `DOK_TRESC` |
 | `DOK_NOWY` | klient → | obiekt = folder, a = plik / folder, b = długość nazwy, c = długość treści (≤ 1 MiB), d = pochodzenie (0: K1; inne — tylko z prawem `P_POCHODZENIE`: Pliki, import z pendrive'a, ADR 0031), e = 1 zapis w toku (0.8.1); memfd: nazwa + treść |
 | `DOK_ZAPISZ` | klient → | obiekt = plik, a = długość (≤ 1 MiB), b = 1 zapis w toku (0.8.1); memfd: nowa treść (nowa generacja) |
 | `DOK_KAWALEK` | klient → | następny kawałek zapisu w toku (0.8.1): a = długość 1…1 MiB; memfd → `DOK_WYNIK` |

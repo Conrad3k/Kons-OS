@@ -1,6 +1,6 @@
 /* K1 Notatki — the notes as files in skarbiec (fd 4, 0.8.0, ADR 0030). skarbiec's table of rights lets Notatki see
- * only the files it made (in Dokumenty › Notatki) and the text files the user opened in it ("Otwórz w…" in Pliki
- * or on the desktop — nadzorca tells us on fd 5 — or the file picker of K1, "Otwórz…"). Everything skarbiec sends
+ * only the files it made (in Dokumenty › Notatki) and the text files the user opened in it ("Otwórz za pomocą" in
+ * Pliki or on the desktop — nadzorca tells us on fd 5 — or the file picker of K1, "Otwórz…"). Everything skarbiec sends
  * is checked here (k1_odbierz_komunikat, k1_dok_lista_czytaj); contents and names never reach the log. Part of
  * Notatki (notatki.h). */
 #include <fcntl.h>
