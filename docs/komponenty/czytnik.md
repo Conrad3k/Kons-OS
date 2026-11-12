@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE w QEMU (0.8.0 krok 3: wirtualny pendrive USB z FAT32 w MBR, import zdjęć, wyjęcie, pendrive NTFS — `test-pendrive.sh`); na prawdziwym pendrivie — w teście właściciela po wydaniu 0.8.0 |
+| **Status** | PRZETESTOWANE w QEMU (0.8.0 krok 3: wirtualny pendrive USB z FAT32 w MBR, import zdjęć, wyjęcie, pendrive NTFS — `test-pendrive.sh`; 0.8.1–0.8.2: pliki kawałkami, „mały” FAT32, foldery do 16 384 elementów, nazwy); na prawdziwym pendrivie z aparatu i telefonu — test właściciela (0.8.1 uznane za przetestowane, lista dla 0.8.2 w `docs/DO_ZROBIENIA.txt`) |
 | **Pliki** | `src/czytnik/main.c` (usługa: kanał do Plików, lista folderu, plik w memfd), `fat.{c,h}` (MBR, GPT, FAT12/16/32), `nazwy.c` (nazwy 8.3 i długie → nazwy K1); `src/wspolne/k1_pendrive.{c,h}` (lista folderu); `src/nadzorca/pendrive.c` (start, wyjęcie), `src/nadzorca/dyski.c` (`k1_pendrive_znajdz`) |
 | **Decyzje** | ADR 0031 (też 0026 p. 3, 0027) |
 

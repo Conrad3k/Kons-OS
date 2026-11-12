@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | ZAIMPLEMENTOWANE (0.8.0 krok 4; 0.8.2 krok 3: duże zdjęcia, GIF, BMP, WebP, plik kawałkami, wielu klientów; krok 4: Podgląd, wymiary zdjęcia w odpowiedzi); PRZETESTOWANE na hoście (`test_dekoder`, `fuzz_dekoder`) i w QEMU (`test-pliki.sh`: miniatura i tapeta; `test-pendrive.sh`: zdjęcia 48 i 100 Mpx, nagłówek 101 Mpx, GIF, BMP, WebP) |
+| **Status** | ZAIMPLEMENTOWANE (0.8.0 krok 4; 0.8.2 krok 3: duże zdjęcia, GIF, BMP, WebP, plik kawałkami, wielu klientów; krok 4: Podgląd, wymiary zdjęcia w odpowiedzi); PRZETESTOWANE na hoście (`test_dekoder`, `fuzz_dekoder`) i w QEMU (`test-pendrive.sh`: miniatura w Plikach, tapeta, Podgląd, zdjęcia 48 i 100 Mpx — 100 Mpx tylko z KVM, nagłówek 101 Mpx, GIF, BMP, WebP) |
 | **Pliki** | `src/dekoder/main.c` (usługa: jedna prośba, plik kawałkami, jedna odpowiedź), `obraz.{c,h}` (rodzaj pliku, orientacja EXIF, zmniejszanie i obracanie), `wuffs.c` (tabela dekoderów Wuffs); `src/wspolne/k1_dekoder.h` (tabela limitów), `k1_skaluj.{c,h}`, `k1_dokument.{c,h}` (typy plików i ich rodzina — `K1_TYPY`, rozpoznanie `k1_dok_typ`); `src/nadzorca/dekoder.c` (tabela klientów, uruchamianie, pamięć z RAM), `profile.c` (klatka); `src/przybornik/k1_dekodowanie.{c,h}` (strona klienta: prośba, kawałki od skarbca, odpowiedź — jedna dla Plików i Podglądu, 0.8.2 krok 4); `src/aplikacje/pliki/obrazy.c` (Pliki), `src/aplikacje/podglad/obraz.c` (Podgląd); `src/ekran/zdjecie.c` (tapeta) |
 | **Decyzje** | ADR 0032 (z uzupełnieniem 0.8.2), też 0026 p. 3, SPEC §7 „dekodery” |
 

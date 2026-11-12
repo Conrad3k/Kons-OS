@@ -4,7 +4,7 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.8.2 gotowa (w QEMU) — temat 0.8 „Pliki” zamknięty; teraz 0.9 Sieć. Data: 2026-11-12.
+Stan: 0.8.3 — pierwsze podpisane wydanie (system jak w 0.8.2, temat 0.8 „Pliki” zamknięty); teraz 0.9 Sieć. Data: 2026-11-12.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
@@ -92,8 +92,11 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230)
 -----------------------------------------------
 Jedna lista — dla ostatniego wydania. Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
-z 2026-11-11). Lista dla 0.8.2 (najlepiej na pendrive'ie, na którym już masz dane z 0.8.1 — aktualizacja przez
-Instalator albo nagranie obrazu USB od nowa, jeśli dane nie są ważne):
+z 2026-11-11). Lista dla 0.8.3 (system jak w 0.8.2 + pierwsze podpisane wydanie; najlepiej na pendrive'ie, na którym
+już masz dane z 0.8.1 — aktualizacja przez Instalator albo nagranie obrazu USB od nowa, jeśli dane nie są ważne):
+    [ ] Secure Boot (README → „Secure Boot z kluczem K1”): 0.8.3 na dysku X230 (instalacja albo aktualizacja przez
+        Instalator) → Instalator → „Secure Boot…” → „Przygotuj klucz K1” → MokManager (Enroll MOK, hasło kons) → BIOS:
+        Secure Boot Enabled → K1 startuje, „Secure Boot…” pisze „Wszystko gotowe: Secure Boot chroni ten komputer.”
     [ ] start z danymi z 0.8.1: pulpit, tapeta i ustawienia od razu; po ok. minucie Ustawienia → Informacje
         pokazują więcej miejsca na pliki (dane przeszły na nowy format) — notatki, pliki i ustawienia są na miejscu,
         także po ponownym starcie
@@ -112,8 +115,8 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 
 5. TWOJE OTWARTE DECYZJE I DZIAŁANIA (poza planem 0.8.2)
 --------------------------------------------------------
-[!] Klucz podpisu (README → „Klucz podpisu”, jednorazowo, 2 minuty): do tego czasu wydania są „deweloperskie”
-    (0.8.0: „bez podpisu”) i Secure Boot jest niedostępny. Sekret dodajesz sam — nikt go od Ciebie nie prosi.
+[x] Klucz podpisu — sekret dodany 2026-11-12; od 0.8.3 wydania są podpisane, Secure Boot z kluczem K1 dostępny
+    (włączenie — punkt 4).
 [!] Przed 0.10 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)? W Przeglądarce K1 każda sesja
     to osobna strefa z własnym kolorem karty, „prywatna” = jednorazowa.
 [!] Przed 0.10 — testy stref potrzebują KVM: runner na Twoim komputerze (Windows: WSL2) albo inny sposób; wrócimy

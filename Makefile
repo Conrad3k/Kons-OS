@@ -375,7 +375,8 @@ $(OBJ)/fuzz_%: testy/host/fuzz_%.c $$(FUZZ_ZR_$$*) $(NAGL) $(wildcard src/nadzor
 	$(CC_FUZZ) $(FUZZ_FLAGI) -o $@ $< $(FUZZ_ZR_$*)
 
 fuzz: $(FUZZ:%=$(OBJ)/fuzz_%)
-	$(foreach n,$(FUZZ),mkdir -p $(BUDOWA)/fuzz-korpus-$(n) && $(OBJ)/fuzz_$(n) -max_total_time=$(FUZZ_CZAS) \
+	$(foreach n,$(FUZZ),mkdir -p $(BUDOWA)/fuzz-korpus-$(n) $(BUDOWA)/fuzz-wyniki && $(OBJ)/fuzz_$(n) -max_total_time=$(FUZZ_CZAS) \
+		-artifact_prefix=$(BUDOWA)/fuzz-wyniki/$(n)- \
 		-max_len=$(FUZZ_DL_$(n)) $(BUDOWA)/fuzz-korpus-$(n) $(wildcard testy/host/korpus-$(n)) &&) true
 
 clean:

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE (M1) — `scripts/test-m1.sh`, scenariusze `start` i `testy-w-systemie` (33 sprawdzenia w systemie) |
+| **Status** | PRZETESTOWANE (M1) — `scripts/test-m1.sh`, scenariusze `start` i `testy-w-systemie` (sprawdzenia w systemie: `testy/system/t_system.c`) |
 | **Kod** | `src/init/main.c` (+ `src/wspolne/k1_log.c`) |
 | **Decyzje** | ADR 0004, ADR 0005; M4: `/dane_uzytkownika` z `mode=0711` (aplikacje wchodzą do własnego podkatalogu, ADR 0008) |
 
@@ -17,8 +17,8 @@ działa — test). Nie przyjmuje żadnych danych wejściowych poza sygnałami i 
 Awaria init = kernel panic, więc kod jest mały i nie przetwarza niezaufanych danych.
 
 ## Uprawnienia
-UID 0, wszystkie capabilities. Nadzorca (od M2 w obrazie) też startuje jako root — podział
-uprawnień to M3.
+UID 0, wszystkie capabilities. Nadzorca też działa jako root, bez klatki (RYZYKA R23); usługi i aplikacje
+uruchamia już w klatkach (od M3, ADR 0007).
 
 ## Wejścia i wyjścia
 - Wejście: sygnały (SIGCHLD, SIGTERM, SIGINT), statusy zakończenia procesów potomnych.
@@ -54,9 +54,9 @@ Montowanie/sysctl/`fork` nieudane → `k1_awaria()` (ADR 0005). Zakończenie nad
 kontrolowane wyłączenie. SIGTERM → wyłączenie, SIGINT → restart, inne sygnały → wpis w logu.
 
 ## Powierzchnia ataku
-Sygnały od roota (w M1 każdy proces to root — M3). Status zakończenia dzieci (liczby, bez parsowania).
+Sygnały od roota (init, nadzorca; usługi w klatkach nie widzą PID 1 i nie mogą wysłać mu sygnału). Status zakończenia dzieci (liczby, bez parsowania).
 Brak plików konfiguracyjnych i IPC.
 
-## Testy (w systemie, `testy/m1/k1_test_m1.c`)
+## Testy (w systemie, `testy/system/t_system.c`)
 Układ korzenia, flagi montowań, ograniczony `/proc` (`subset=pid`, `hidepid=invisible`), sysctl,
 zbieranie sierot, odporność na SIGKILL, zwykły użytkownik nie może zabić init — pełna lista w `docs/TESTY.md`.

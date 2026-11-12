@@ -48,13 +48,14 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
 - **menu Start**: aplikacje z opisami (bez okien samego K1 — „Wybór pliku”, kolumna -1 listy aplikacji), „Wyloguj” (0.6.3; od 0.7.2 tylko w K1 zainstalowanym na dysku — `SESJA`), „Uruchom ponownie”, „Wyłącz”; klawisz Super otwiera/zamyka.
 
 ## Granica zaufania
-Klient `ekran` w roli **powłoki** i jedyny klient nadzorcy (kanał fd 4). Nie widzi treści okien
+Klient `ekran` w roli **powłoki**; prośby do nadzorcy wysyła kanałem fd 4. Nie widzi treści okien
 aplikacji (składa je ekran), nie ma plików ani urządzeń. Ufa tylko komunikatom, które sprawdza
 (`k1_komunikat_sprawdz`).
 
 ## Uprawnienia
 UID/GID 102, klatka (ADR 0007): seccomp = baza + `memfd_create`, `ftruncate`; Landlock bez żadnej
-ścieżki; cgroup `gui` (48 MiB, 1 proces); `RLIMIT_FSIZE` 16 MiB (powierzchnie memfd).
+ścieżki; cgroup `gui` (128 MiB, 1 proces); `RLIMIT_FSIZE` 72 MiB (powierzchnie memfd: warstwa pulpitu na cały
+ekran do 4096×2160 w dwóch połowach, 0.7.5).
 
 ## Wejścia i wyjścia
 - fd 3: kanał do ekranu — powitanie, ustawienia, wskaźnik/klawisz Super, lista okien (`OKNO`).

@@ -65,7 +65,7 @@ wymaga), ale każda jest mała, robi jedną rzecz i wygląda jak pozostałe.
 
 ## Środowisko i testy
 - Start pracy: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh` (bez KVM ok.
-  6–15 min). Szybko: `make && make testy-host`.
+  5 min budowy i 50 min testów). Szybko: `make && make testy-host`.
 - Przed scaleniem zmian w systemie (kod, skrypty, jądro): pełny `scripts/testy.sh` lokalnie, wszystko
   `[OK]`. Sama dokumentacja — bez testów.
 - Nie edytuj skryptów ani kodu, gdy budowanie albo testy działają w tle.

@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | PRZETESTOWANE (M3, M4) — testy w systemie (`scripts/test-m1.sh`, scenariusz `testy-w-systemie`), `scripts/test-m4.sh` (uruchamianie aplikacji, wyłączanie) |
 | **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (tablica usług, uruchamianie w klatkach, restarty, prośby pulpitu), `logi.c` (logi usług), `pendrive.c` (prośby Plików, pendrive i czytnik, 0.8.0), `dekoder.c` (dekoder obrazów dla Plików, 0.8.0, i Podglądu, 0.8.2), `powieksz.c` (K1-DANE do końca pendrive'a: pusta przy starcie, 0.8.0; z danymi na prośbę z Ustawień, 0.8.1), `profile.c` (klatki), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
-| **Decyzje** | ADR 0006 (wersja M2), ADR 0007 (M3), ADR 0008 (pulpit i aplikacje) |
+| **Decyzje** | ADR 0006 (wersja M2), ADR 0007 (M3, klatki), ADR 0008 (pulpit i aplikacje), ADR 0013 (dyski i USB), ADR 0019 (moduły, zdarzenia jądra), ADR 0022 (A/B, Secure Boot), ADR 0030–0033 (pliki, pendrive, dekoder, K1-DANE do końca pendrive'a), ADR 0036 (potwierdzony start), ADR 0037 (Podgląd) |
 
 ## Etapy startu (0.6.0)
 `dane` (czeka na partycję K1-DANE: do 3 s, z pendrive'em bez dysku do 15 s) → `stan magazynu` (skarbiec
@@ -31,23 +31,41 @@ kodem wyjścia (init wyłącza wtedy maszynę).
 ## Granica zaufania
 Uruchamiany przez init jako root, **bez klatki** (musi zmieniać UID, tworzyć cgroups, otwierać
 urządzenia) — część bazy zaufania. Od usług przyjmuje tylko: wiersze logu (oczyszczane, z limitem),
-statusy zakończenia, a od M4 — komunikaty 32 B od `gui` (`URUCHOM`, `WYLACZ`; nadawca sprawdzany
-`SO_PASSCRED`). Lista usług i profili jest stała, w kodzie.
+statusy zakończenia i komunikaty 32 B na kanałach z tabeli niżej — od `gui` (`URUCHOM`, `WYLACZ`), skarbca
+(`SKARB_*`, `POWIEKSZ_DANE`), okna Instalatora (`INST_*`, `SB_KLUCZ`), Plików (`PENDRIVE_OTWORZ`, `DEKODER`), Podglądu
+(`DEKODER`) i programu zapisującego; nadawca każdego sprawdzany `SO_PASSCRED`. Lista usług i profili jest stała,
+w kodzie (`K1_SYSTEM`, `K1_APLIKACJE`).
 
 ## Uprawnienia
 root, wszystkie capabilities (RYZYKA R23). Usługi — patrz tabela.
 
-| Usługa | UID | Przekazane deskryptory | seccomp (poza bazą) | Landlock | cgroup |
-|---|---|---|---|---|---|
-| `ekran` | 101 | 3: kanał sterujący, 4: karta graficzna (DRM master) | `ioctl` typu `'d'` | tylko własny program | 128 MiB, pids 1 |
-| `wejscie` | 100 | 3: kanał do ekranu, 4…: urządzenia `event*` | `ioctl` typu `'E'` | tylko własny program | 8 MiB, pids 1 |
-| `gui` | 102 | 3: kanał do ekranu, 4: kanał do nadzorcy | `memfd_create`, `ftruncate` | tylko własny program | 48 MiB, pids 1 |
-| `zegar` (na żądanie) | 200 | 3: kanał do ekranu | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
-| `notatki` (na żądanie) | 201 | 3: kanał do ekranu, 4: kanał do skarbca | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
-| `ustawienia` (na żądanie) | 202 | 3: kanał do ekranu | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
-| `zasoby` (na żądanie, M4.1) | 203 | 3: kanał do ekranu, 4: dane od nadzorcy (tylko do odczytu) | `memfd_create`, `ftruncate` | tylko własny program | 32 MiB, pids 1 |
+Tabela poniżej to stan z `src/nadzorca/profile.c` (klatki) i `kanaly[]` w `src/nadzorca/uslugi.c` (deskryptory);
+źródłem prawdy jest kod. Każda usługa ma 1 proces w swojej cgroup (`pids.max = 1`).
 
-`RLIMIT_FSIZE`: 0 dla ekranu i wejścia, 16 MiB dla gui i aplikacji (ogranicza też memfd powierzchni).
+| Usługa | UID | Przekazane deskryptory | seccomp (poza bazą) | cgroup | `RLIMIT_FSIZE` |
+|---|---|---|---|---|---|
+| `skarbiec` | 103 | 3: kanał sterujący, 4: partycja K1-DANE | `pread64`, `pwrite64`, `fdatasync`, `getrandom`, `memfd_create`, `sysinfo` | 320 MiB | 24 MiB |
+| `ekran` | 101 | 3: kanał sterujący, 4: karta graficzna (DRM master), 5: skarbiec | `memfd_create`, `ioctl` typu `'d'` | 176 MiB | 2 MiB |
+| `wejscie` | 100 | 3: kanał do ekranu, 4…: urządzenia `event*` | `ioctl` typu `'E'` | 8 MiB | 0 |
+| `gui` | 102 | 3: ekran, 4: prośby do nadzorcy, 5: bateria (od nadzorcy), 6: skarbiec | `memfd_create`, `ftruncate` | 128 MiB | 72 MiB |
+| `logowanie` (zamiast gui, gdy jest hasło) | 104 | 3: ekran, 4: prośby do nadzorcy (tylko `WYLACZ`), 5: bateria, 6: skarbiec | `memfd_create`, `ftruncate` | 96 MiB | 72 MiB |
+| `zegar`, `kalkulator` | 200, 205 | 3: ekran | `memfd_create`, `ftruncate` | 32 MiB | 16 MiB |
+| `notatki` | 201 | 3: ekran, 4: skarbiec, 5: plik do otwarcia (od nadzorcy) | jw. | 32 MiB | 16 MiB |
+| `ustawienia` | 202 | 3: ekran, 4: bateria i jej historia (od nadzorcy), 5: skarbiec | jw. | 32 MiB | 16 MiB |
+| `zasoby` | 203 | 3: ekran, 4: dane od nadzorcy (tylko do odczytu) | jw. | 32 MiB | 16 MiB |
+| `instalacja` (okno Instalatora) | 204 | 3: ekran, 4: dyski i postęp (z nadzorcą w obie strony) | jw. | 32 MiB | 16 MiB |
+| `pliki` | 206 | 3: ekran, 4: skarbiec, 5: miejsce do pokazania (od nadzorcy), 6: pendrive i dekoder | jw. | 32 MiB | 16 MiB |
+| `wybor` (Wybór pliku) | 207 | 3: ekran, 4: skarbiec | jw. | 32 MiB | 16 MiB |
+| `podglad` | 208 | 3: ekran, 4: skarbiec, 5: plik do otwarcia, 6: dekoder | jw. | 96 MiB | 16 MiB |
+| `instalator` (na prośbę okna Instalatora) | 105 | 3: kanał sterujący, 4: źródło (K1-EFI pendrive'a), 5: cel (dysk albo jego K1-EFI) | `pread64`, `pwrite64`, `fdatasync`, `getrandom` | 16 MiB | 0 |
+| `czytnik` (na prośbę Plików) | 106 | 3: kanał do Plików, 4: pendrive (tylko odczyt) | `pread64`, `memfd_create` | 32 MiB | 17 MiB |
+| `dekoder` (na prośbę Plików albo Podglądu) | 107 | 3: kanał do klienta | `memfd_create` | 1216 MiB (mniej przy < 8 GB RAM) | 17 MiB; `RLIMIT_AS` 1152 MiB, `RLIMIT_CPU` 20 s |
+
+Landlock (ABI ≥ 6, inaczej usługa nie startuje): jedyna reguła to własny program (uruchomienie i odczyt — tylko
+do `execve` przy starcie), poza tym żadnej ścieżki; zablokowane też TCP oraz sygnały i abstrakcyjne gniazda UNIX
+poza własną klatką. Aplikacje dostają kanał do skarbca (`KN_SKARB`) tylko,
+gdy skarbiec działa. `RLIMIT_FSIZE` ogranicza też memfd (powierzchnie okien, dane dla skarbca); na urządzenie
+blokowe (skarbiec, instalator) nie działa.
 
 Wspólne dla usług: fd 0 i 1 = `/dev/null`, fd 2 = pipe logu do nadzorcy; brak capabilities (także
 zbiór graniczny), `NO_NEW_PRIVS`, securebits zablokowane, `RLIMIT_CORE=0`, niezrzucalne
@@ -58,7 +76,8 @@ recvfrom seccomp set_tid_address restart_syscall execve` + `mmap`/`mprotect` bez
 `arch_prctl(ARCH_SET_FS)`, `prctl(PR_SET_DUMPABLE)`.
 
 ## Wejścia i wyjścia
-Wejście: statusy procesów (`signalfd`), logi usług, prośby od gui, kanał testowy (obraz testowy). Wyjście: procesy
+Wejście: statusy procesów (`signalfd`), logi usług, prośby usług (wyżej), zdarzenia jądra (uevent), sysfs (dyski,
+bateria), kanał testowy (obraz testowy). Wyjście: procesy
 usług, kanały (`socketpair`, strona odbiorcy z `SO_PASSCRED`), komunikaty `KLIENT` do ekranu, log.
 
 ## Kanał testowy (tylko obraz testowy)
@@ -104,11 +123,11 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
 - Kanał do skarbca dla klienta (`SKARB_KLIENT` c, 0.6.3): 1 = partycja K1-DANE jest na USB; skarbiec
   oddaje to klientom w `SKARB_WYNIK` d (bit 1) — Notatki i Ustawienia piszą „dysk komputera” albo
   „pendrive K1”.
-- Urządzenia wejścia (0.5.1): co 2 s sprawdza, czy pojawiło się nowe `event*` (szybki start może
+- Urządzenia wejścia (0.5.1): sprawdza (co 10 s, bez gniazda zdarzeń jądra co 2 s), czy pojawiło się nowe `event*` (szybki start może
   wyprzedzić rejestrację myszy przez jądro; później — urządzenia USB); jeśli tak, uruchamia `wejscie`
   ponownie z pełnym zestawem (bez liczenia jako awaria). Od 0.5.2 (M5a) zapomina urządzenia, których
-  węzeł zniknął (odłączone USB) — ponownie podłączone pod tym samym numerem jest zauważane. Pełny
-  hotplug bez restartu (zdarzenia jądra) — M5b.
+  węzeł zniknął (odłączone USB) — ponownie podłączone pod tym samym numerem jest zauważane. Od 0.6.0 nowe
+  i odłączone urządzenia zgłasza jądro od razu (sekcja „Zdarzenia jądra”); okresowe sprawdzanie zostało jako zapas.
 - Hasło (0.5.7, ADR 0017): skarbiec zgłasza na kanale sterującym `SKARB_STAN`; „zablokowany” →
   uruchamia `logowanie` zamiast `gui` (fd 4 prośby — tylko `WYLACZ`, fd 5 bateria, fd 6 skarbiec);
   „odblokowany” → zatrzymuje logowanie, restartuje ekran, potem pulpit. Ustawienia dostają fd 5 do skarbca.
@@ -159,8 +178,8 @@ Wiersze logu od usług (bufor 400 B, znaki sterujące zamieniane, limit 20/s), k
 ## Testy
 | Test | Rodzaj |
 |---|---|
-| ekran i wejscie: własny UID/GID, brak grup i capabilities, `NoNewPrivs`, 2 filtry seccomp, własna cgroup z limitami, tylko przekazane deskryptory (`/proc/<pid>/status`, `fd`, `cgroup`) | funkcjonalny |
-| próby w klatkach ekran i wejscie: 22 zabronione działania (inny program, `open`, `setuid`, `socket`, `fork`, `clone`, `kill`, `ptrace`, `mount`, `unshare`, `chroot`, `perf_event_open`, `keyctl`, `memfd_create`, pamięć wykonywalna, obcy `ioctl`, `execve`) | negatywny |
+| klatki skarbca, ekranu, wejścia, gui i każdej aplikacji z `K1_APLIKACJE` (`t_klatki`): własny UID/GID, brak grup i capabilities, `NoNewPrivs`, 2 filtry seccomp, własna cgroup z limitami, tylko przekazane deskryptory (`/proc/<pid>/status`, `fd`, `cgroup`) | funkcjonalny |
+| próby w klatce **każdego** profilu z `k1_uslugi.h` (`t_proby`, program testowy uruchomiony w cudzej klatce): 21 zabronionych działań (inny program, `open`, `setuid`, `socket`, `fork`, `clone`, `kill`, `ptrace`, `mount`, `unshare`, `chroot`, `perf_event_open`, `keyctl`, `memfd_create` z `MFD_EXEC`, pamięć wykonywalna, obcy `ioctl`, `execve`…) | negatywny |
 | awaria ekranu → nowy ekran i nowe wejscie | funkcjonalny |
 | 6 zabić wejscie → usługa wyłączona | negatywny |
 

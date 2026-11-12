@@ -15,8 +15,8 @@ Dostaje klawisze (od ekranu), stan baterii (od nadzorcy) i wynik od skarbca. Has
 sprawdza je i ogranicza próby skarbiec. Nie ma plików ani urządzeń.
 
 ## Uprawnienia
-UID/GID 104, klatka: seccomp = baza + `memfd_create`, `ftruncate`; Landlock bez ścieżek; cgroup 48 MiB,
-1 proces. W ekranie rola `LOGOWANIE` (panele, wszystkie klawisze).
+UID/GID 104, klatka: seccomp = baza + `memfd_create`, `ftruncate`; Landlock bez ścieżek; cgroup 96 MiB,
+1 proces; `RLIMIT_FSIZE` 72 MiB (jeden panel na cały ekran do 4096×2160). W ekranie rola `LOGOWANIE` (panele, wszystkie klawisze).
 
 ## Wejścia i wyjścia
 fd 3: ekran (rola LOGOWANIE); fd 4: prośby do nadzorcy (tylko `WYLACZ`); fd 5: bateria (od nadzorcy,

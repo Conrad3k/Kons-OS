@@ -2,7 +2,9 @@
 
 Własny, minimalistyczny i bezpieczny system operacyjny na jądrze Linux. Nie jest dystrybucją
 Linuksa: ma własny program startowy, własny ekran i pulpit, własny zaszyfrowany magazyn danych
-(skarbiec) i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C.
+(skarbiec) i ścisłą izolację aplikacji. Wszystko, co nasze, jest napisane w C. Z Linuksa bierzemy tylko
+jądro — nie ma powłoki, terminala, pakietów ani bibliotek współdzielonych; każda usługa i aplikacja działa
+w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmienił.
 
 > Wcześniej w tym repozytorium był **Kons-OS** — dystrybucja na bazie Debiana (wersje 0.1.0–0.1.2).
 > Jest zachowany w gałęzi [`archiwum/debian-0.1.2`](../../tree/archiwum/debian-0.1.2) i tagach `v0.1.x`.
@@ -21,7 +23,7 @@ Linuksa: ma własny program startowy, własny ekran i pulpit, własny zaszyfrowa
 | 0.6.0 Fundament | porządki w nadzorcy, zdarzenia jądra zamiast odpytywania, szybsze testy, historia baterii | PRZETESTOWANE |
 | M6 Bezpieczne aktualizacje | podpisane wydania, wykrywanie podmiany systemu, A/B, Secure Boot z własnym kluczem | PRZETESTOWANE w QEMU (0.7.0) |
 | 0.7.5 Pulpit | ikony na pulpicie jak w Windows (w stylu K1), menu pod prawym przyciskiem, przypinanie i odpinanie na pasku | PRZETESTOWANE w QEMU (ADR 0028) |
-| 0.8.0 Pliki | aplikacja Pliki, Kosz (30 dni albo ręcznie), okno wyboru pliku, zdjęcia z pendrive'a, podgląd zdjęć, tapeta z własnego zdjęcia, cały pendrive na dane | PRZETESTOWANE w QEMU (ADR 0029–0033) |
+| 0.8.0 Pliki | aplikacja Pliki, Kosz (30 dni albo ręcznie), okno wyboru pliku, zdjęcia z pendrive'a, miniatury zdjęć, tapeta z własnego zdjęcia, cały pendrive na dane | PRZETESTOWANE w QEMU (ADR 0029–0033) |
 | 0.8.1 Pliki — dopracowanie | dane nie giną (naprawa przy starcie, zły zegar), 16 384 pliki, szybki start, miejsce w Informacjach, stary pendrive powiększany przyciskiem, pliki do 4 GB | PRZETESTOWANE w QEMU (ADR 0033, 0034) |
 | 0.8.2 Pliki — dopracowanie, część 2 | skarbiec na duże dane (szybki start, prawie cały pendrive na pliki), pendrive z telefonu, duże zdjęcia, aplikacja Podgląd, „Otwórz za pomocą”, przeciąganie | PRZETESTOWANE w QEMU (ADR 0036, 0037) |
 | 0.9 Sieć | kabel, potem Wi-Fi; nic w K1 nie nasłuchuje | PLANOWANE — następne |
@@ -33,11 +35,16 @@ Od 0.9 etapy to numery wersji (ADR 0035); wcześniejsze etapy M0–M6 zostały w
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-**Ważne:** K1 działa w maszynie wirtualnej: pulpit z paskiem na dole (Start, Zegar, Notatki,
-Ustawienia, Zasoby, Kalkulator, Pliki, Instalator), paskiem na górze (dźwięk, data i godzina), oknami i polską klawiaturą. Od 0.5.2 zna
-dyski SATA/NVMe oraz klawiatury, myszy i pamięci USB — można spróbować startu z pendrive'a na laptopie
-ThinkPad X230 (niżej). Notatki, ustawienia i hasło są zaszyfrowane na partycji K1-DANE (pendrive albo dysk po instalacji).
-Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
+**Co już jest (0.8.2):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopie ThinkPad X230 (niżej), a
+Instalator zapisuje go na dysk. Pulpit jak w Windows 11, w stylu K1: ikony na pulpicie (aplikacje, Kosz, Twoje
+pliki i foldery z folderu Pulpit), pasek na dole z menu Start i przypiętymi aplikacjami (Zegar, Notatki, Ustawienia, Zasoby,
+Kalkulator, Pliki; w menu Start też Instalator i Podgląd), pasek na górze (dźwięk, bateria, data i godzina), okna,
+menu pod prawym przyciskiem i polska klawiatura. **Pliki**: foldery jak w Windows (Pulpit, Dokumenty, Obrazy…),
+Kosz, przeciąganie i zaznaczanie wielu, „Otwórz za pomocą”, zdjęcia z pendrive'a z aparatu albo telefonu (FAT;
+tylko odczyt i import), **Podgląd** zdjęć (PNG, JPEG, GIF, BMP, WebP, do 100 Mpx), tapeta z własnego zdjęcia.
+Zna dyski SATA/NVMe oraz klawiatury, myszy i pamięci USB. Notatki, pliki, ustawienia i hasło są zaszyfrowane na
+partycji K1-DANE (pendrive albo dysk po instalacji). Czego jeszcze nie ma: internetu (0.9), obcych aplikacji
+i przeglądarki (0.10), dźwięku, jasności ekranu i klawiszy Fn. Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
 
 ## Uruchom w maszynie wirtualnej
 1. Pobierz obraz: **Releases** → najnowsze `k1-vX.Y.Z` → plik `k1-X.Y.Z.iso` (ok. 16 MB).
@@ -70,7 +77,7 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    a Ustawienia → Hasło piszą „Nie znaleziono miejsca na dane”. Sprawdzisz w Ustawieniach → Informacje:
    „Dane: zaszyfrowane na nośniku K1”.)
    Nowy pendrive od pierwszego startu ma na dane całą swoją pojemność. **Pendrive nagrany starszą wersją
-   (0.5.6–0.7.6) ma tylko ok. 30 MB na pliki** — od 0.8.1: Ustawienia → Informacje → **„Użyj całego
+   (0.5.6–0.7.6) ma tylko ok. 50 MB na pliki** (do 0.8.1: ok. 25 MB) — od 0.8.1: Ustawienia → Informacje → **„Użyj całego
    pendrive'a na dane”** (Twoje pliki zostają na miejscu; nie wyjmuj pendrive'a, dopóki nie zobaczysz „Gotowe”).
    W Informacjach widać też, ile miejsca na pliki jest zajęte i ile zostało.
 2. **Najpierw wyłącz Secure Boot** — dopóki klucz K1 nie jest wpisany (sekcja „Secure Boot z kluczem K1”
@@ -160,11 +167,15 @@ scripts/uruchom-qemu.sh --iso build/wynik/k1-$(cat VERSION).iso --uefi --vga vir
 Szczegóły: [`docs/ARCHITEKTURA.md`](docs/ARCHITEKTURA.md), [`docs/TESTY.md`](docs/TESTY.md).
 
 ## Dokumentacja
+- [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt) — plan: co teraz, co dalej, Twoje decyzje i testy na laptopie
 - [`docs/SPEC.md`](docs/SPEC.md) — specyfikacja (nadrzędna), [`docs/adr/`](docs/adr/README.md) — decyzje
 - [`docs/ARCHITEKTURA.md`](docs/ARCHITEKTURA.md) — jak to jest zbudowane, mapa repo
 - [`docs/komponenty/`](docs/komponenty/) — opis każdego elementu systemu
+- [`docs/SLOWNIK.md`](docs/SLOWNIK.md) — pojęcia K1 (jedno słowo = jedno znaczenie)
+- [`docs/WYGLAD.md`](docs/WYGLAD.md) — ustalenia wyglądu, [`docs/TESTY.md`](docs/TESTY.md) — testy
 - [`docs/RYZYKA.md`](docs/RYZYKA.md) — czego system jeszcze nie chroni
 - [`docs/ZALEZNOSCI.md`](docs/ZALEZNOSCI.md) — z czego korzystamy i dlaczego
+- [`CHANGELOG.md`](CHANGELOG.md) — co się zmieniło w każdej wersji
 
 ## Feedback
 Napisz w czacie z Claude albo załóż zgłoszenie: **Issues → New issue** (szablony: *Feedback z testu*,

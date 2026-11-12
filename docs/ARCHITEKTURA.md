@@ -14,29 +14,33 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 |---|---|
 | `VERSION`, `CHANGELOG.md` | wersja K1 (SemVer) i historia zmian |
 | `Makefile` | kompilacja programów K1 (musl) i testów na hoście |
-| `src/wspolne/` | wspólne moduły: log i błędy (`k1_log`), parser linii poleceń jądra i liczby szesnastkowe (`k1_cmdline`), protokół zdarzeń wejścia (`k1_zdarzenie`), protokół usług (`k1_komunikat`), kanały UNIX (`k1_kanal`) i wspólny odbiór komunikatów (`k1_odbior`), klatka usług (`k1_klatka`); **`k1_uslugi.h` — jedyne listy usług `K1_SYSTEM` i aplikacji `K1_APLIKACJE`** (UID, profil, program, nazwa, ikona; nowa aplikacja = jeden wiersz); odczyt partycji K1-EFI — wersje, A/B, grubenv (`k1_efi`, `k1_uklad`, `k1_manifest`); pełny zapis/odczyt pod przesunięciem i mały plik z sysfs (`k1_io.h`: `k1_czytaj_plik`), czas od startu (`k1_teraz.h`), liczby w bajtach little-endian (`k1_bajty.h`), SHA-256 (`k1_sha256`), klient skarbca (`k1_skarb_klient`, `k1_memfd`), archiwum baterii (`k1_bat_arch`) |
-| `src/grafika/` | renderer programowy: tapety (4 warianty), znak K1, kursor, składanie warstw (`k1_grafika`), wspólna paleta kolorów `K1_*` (`k1_grafika.h`); API czcionek (`k1_czcionka.h`) |
-| `src/przybornik/` | przybornik GUI (M4): rysowanie, tekst i UTF-8, ikony, ikona baterii `k1_bateria`, przyciski (`k1_rysuj`), motywy i części okien (`k1_okno`), klient protokołu okien (`k1_klient`), szkielet aplikacji (`k1_aplikacja`), czas polski (`k1_czas`), układ klawiatury PL i pole tekstowe `k1_pole_klawisz` (`k1_klawiatura`), liczby po polsku, rozmiar pliku i opis stanu baterii (`k1_liczba`), zdjęcie przez dekoder — strona klienta (`k1_dekodowanie`, 0.8.2: Pliki i Podgląd) |
-| `src/gui/` | `/rdzen/system/gui` — powłoka pulpitu: górny pasek, dolny pasek, menu Start (M4); ikony na pulpicie i menu pod prawym przyciskiem (0.7.5), pliki z folderu Pulpit (0.8.0) |
+| `src/wspolne/` | wspólne moduły: log i błędy (`k1_log`), parser linii poleceń jądra i liczby szesnastkowe (`k1_cmdline`), protokół zdarzeń wejścia (`k1_zdarzenie`), protokół usług (`k1_komunikat`), kanały UNIX (`k1_kanal`) i wspólny odbiór komunikatów (`k1_odbior`), klatka usług (`k1_klatka`); **`k1_uslugi.h` — jedyne listy usług `K1_SYSTEM` i aplikacji `K1_APLIKACJE`** (UID, profil, program, nazwa, ikona; nowa aplikacja = jeden wiersz); odczyt partycji K1-EFI — wersje, A/B, grubenv (`k1_efi`, `k1_uklad`, `k1_manifest`); pełny zapis/odczyt pod przesunięciem i mały plik z sysfs (`k1_io.h`: `k1_czytaj_plik`), czas od startu (`k1_teraz.h`), liczby w bajtach little-endian (`k1_bajty.h`), SHA-256 (`k1_sha256`), klient skarbca (`k1_skarb_klient`, `k1_memfd`), archiwum baterii (`k1_bat_arch`); pliki użytkownika (0.8.0): foldery, typy i ich rodziny `K1_TYPY`, wpis pliku (`k1_dokument`), zasady nazw (`k1_nazwy.c`), lista folderu z pendrive'a (`k1_pendrive`), limity dekodera w jednej tabeli (`k1_dekoder.h`), zmniejszanie zdjęć (`k1_skaluj`), indeks po kluczu (`k1_indeks`, 0.8.1) |
+| `src/grafika/` | renderer programowy: tapety (5 wariantów; szósta możliwość — zdjęcie z Plików), znak K1, kursor, składanie warstw (`k1_grafika`), wspólna paleta kolorów `K1_*` (`k1_grafika.h`); API czcionek (`k1_czcionka.h`) |
+| `src/przybornik/` | przybornik GUI (M4): rysowanie, tekst i UTF-8, ikony, ikona baterii `k1_bateria`, przyciski (`k1_rysuj`), motywy i części okien (`k1_okno`), klient protokołu okien (`k1_klient`), szkielet aplikacji (`k1_aplikacja`), czas polski (`k1_czas`), układ klawiatury PL i pole tekstowe `k1_pole_klawisz` (`k1_klawiatura`), liczby po polsku, odmiana, rozmiar pliku i opis stanu baterii (`k1_liczba`), zdjęcie przez dekoder — strona klienta (`k1_dekodowanie`, 0.8.2: Pliki i Podgląd), menu pod prawym przyciskiem (`k1_menu`), przeciąganie — tabela reguł źródło/cel (`k1_przeciaganie`) i zaznaczanie wielu (`k1_zaznaczenie`, 0.8.2) |
+| `src/gui/` | `/rdzen/system/gui` — powłoka pulpitu w modułach (`gui.h`): górny pasek, dolny pasek, menu Start (M4); ikony na pulpicie, menu pod prawym przyciskiem i rozmieszczenie w skarbcu (0.7.5), pliki z folderu Pulpit i Kosz (0.8.0), przeciąganie plików na Kosz i foldery (0.8.2) |
 | `src/aplikacje/` | `/rdzen/aplikacje/<program>` — aplikacje natywne z listy `K1_APLIKACJE`: Zegar, Notatki, Ustawienia, Zasoby, Instalator (`instalacja`), Kalkulator, Pliki, Wybór pliku (`wybor`), Podgląd (`podglad`, 0.8.2); każdy `.c` w katalogu aplikacji jest kompilowany |
-| `narzedzia/` | narzędzia budowy na hoście: `czcionki.c` (FreeType → bitmapy czcionek), `ekran_startowy.c` (logo dla GRUB-a, PNG przez zlib — 0.5.8) |
+| `narzedzia/` | narzędzia budowy na hoście: `czcionki.c` (FreeType → bitmapy czcionek), `ekran_startowy.c` (logo dla GRUB-a, PNG przez zlib — 0.5.8), `podpisz.c` (podpis EdDSA wydania i manifesty — 0.6.2, ADR 0021), `klucz_sb.py` (klucz Secure Boot z sekretu wydania — 0.7.0, ADR 0022) |
 | `src/initramfs/` | `/init` w initramfs: montuje obraz rdzenia, przełącza korzeń |
 | `src/init/` | `/rdzen/init` — PID 1 |
-| `src/nadzorca/` | `/rdzen/system/nadzorca` — uruchamia usługi w klatkach, łączy je kanałami, restartuje (M3); kanały każdej usługi w jednej tabeli `kanaly[]` (`uslugi.c`) |
+| `src/nadzorca/` | `/rdzen/system/nadzorca` — uruchamia usługi w klatkach, łączy je kanałami, restartuje (M3); kanały każdej usługi w jednej tabeli `kanaly[]` (`uslugi.c`), klatki w `profile.c`; moduły opisane w `docs/komponenty/nadzorca.md` |
 | `src/wejscie/` | `/rdzen/system/wejscie` — klawiatura i mysz (evdev) → ekran |
 | `src/ekran/` | `/rdzen/system/ekran` — jedyny proces z DRM/KMS i kompozytor okien: tryb, składanie, kursor, kierowanie wejścia, ustawienia |
-| `src/skarbiec/` | `/rdzen/system/skarbiec` — Blob Vault: zaszyfrowane dane na partycji „K1-DANE” (M5c–M5e, ADR 0015–0017), od 0.8.0 pliki i foldery użytkownika (ADR 0029) |
+| `src/skarbiec/` | `/rdzen/system/skarbiec` — Blob Vault: zaszyfrowane dane na partycji „K1-DANE” (M5c–M5e, ADR 0015–0017), od 0.8.0 pliki i foldery użytkownika (ADR 0029), od 0.8.2 format 2 — odcinki i spis (ADR 0036) |
 | `src/logowanie/` | `/rdzen/system/logowanie` — ekran hasła przy starcie (M5e, ADR 0017) |
 | `src/instalator/` | `/rdzen/system/instalator` — zapis K1 na dysk komputera, tablica GPT (M5f, ADR 0018) |
 | `src/czytnik/` | `/rdzen/system/czytnik` — pendrive dla Plików: MBR/GPT i FAT12/16/32 w klatce, tylko odczyt (0.8.0 krok 3, ADR 0031) |
 | `src/dekoder/` | `/rdzen/system/dekoder` — jeden obraz (PNG, JPEG, od 0.8.2 GIF, BMP, WebP; do 100 Mpx) → piksele, jednorazowy proces w klatce na prośbę klienta z tabeli (Pliki, Podgląd; 0.8.0 krok 4, ADR 0032, 0037) |
 | `src/zewnetrzne/` | kod zewnętrzny w repozytorium: Monocypher (kryptografia skarbca) i Wuffs (dekoder obrazów) — jedyne obce biblioteki, wersje i uzasadnienie w `docs/ZALEZNOSCI.md` |
-| `jadro/` | wersja, konfiguracja i linia poleceń jądra, klucze PGP |
+| `jadro/` | wersja (`wersja.env`), konfiguracja (`k1.config`, `k1-zamkniete.config` dla `k1.efi`) i linia poleceń jądra, klucze PGP, `README.md` (zmiana wersji jądra) |
 | `testy/system/` | program testowy uruchamiany wewnątrz K1 (obraz testowy) |
-| `testy/host/` | testy jednostkowe (ASan/UBSan), fuzzing i podgląd grafiki na hoście |
+| `testy/host/` | testy jednostkowe (ASan/UBSan), fuzzing (`fuzz_*.c` + korpusy), podgląd grafiki i narzędzia testowe na hoście (`magazyn_testowy`, `stare_notatki`, `pomiar_magazynu`) |
+| `testy/qemu/` | `k1qemu.py` — biblioteka testów w QEMU (klasa `Maszyna`: log, monitor, klik, przeciąganie, zrzuty) |
+| `testy/acpi/` | sztuczna bateria laptopa dla QEMU (`bateria.asl`) |
 | `scripts/` | budowa, QEMU, zrzuty ekranu, testy, kontrole (opis niżej) |
-| `docs/` | SPEC, ADR, ten plik, TESTY, ZALEZNOSCI, RYZYKA, `komponenty/` (opis każdego komponentu) |
-| `.github/workflows/k1.yml` | CI: budowa + testy na `main` (i PR z etykietą `testy`), tag wersji, wydanie z ISO; logi testów zawsze: konsola, podsumowanie, wydanie (`k1-<wersja>-logi.tar.gz`) |
+| `docs/` | SPEC, ADR, ten plik, `DO_ZROBIENIA.txt` (plan), TESTY, SLOWNIK, WYGLAD, ZALEZNOSCI, RYZYKA, `komponenty/` (opis każdego komponentu), `archiwum/` (zamknięte plany wersji) |
+| `AGENTS.md`, `CLAUDE.md`, `.claude/skills/kons-dev/` | zasady dla asystentów (Claude, Codex) i przewodnik po pracy w repo |
+| `.github/workflows/k1.yml` | CI: budowa + testy na `main` (i PR z etykietą `testy`), tag wersji, wydanie z ISO i obrazem USB; logi testów zawsze: konsola, podsumowanie, wydanie (`k1-<wersja>-logi.tar.gz`) |
+| `.github/workflows/sprzatanie-artefaktow.yml`, `.github/ISSUE_TEMPLATE/` | codzienne usuwanie starych artefaktów CI; szablony zgłoszeń (Feedback z testu, Błąd, Pomysł) |
 | `build/` | wszystko, co powstaje przy budowie (ignorowane przez git) |
 
 ### Skrypty
@@ -54,18 +58,19 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 | `zrzut-ekranu.sh` | zrzut ekranu działającej maszyny (PNG) |
 | `testy.sh` | wszystkie testy (to uruchamia CI) |
 | `test-m4.sh` | pulpit i aplikacje (klikanie, pisanie, przeciąganie, motyw, tapeta, wyłączenie) + start z ISO przez UEFI i BIOS |
-| `test-m1.sh` | start, testy w systemie, błędy startu (M1–M2) |
+| `test-m1.sh` | czytelność, testy na hoście i fuzzing, start, testy w systemie, błędy startu |
 | `test-m2.sh` | ekran i wejście: mysz/klawiatura przez monitor QEMU, zrzuty ekranu sprawdzane automatycznie |
 | `test-m5f.sh` | instalator: instalacja, start z dysku, aktualizacja A/B, potwierdzenie, wycofanie, starsza wersja |
 | `test-m6.sh` | Secure Boot (OVMF secboot): klucz K1 w MOK, odmowy, wpisanie klucza przez MokManagera |
 | `test-m5.sh` | sprzęt: klawiatura i mysz USB bez PS/2, dyski i pendrive (M5a) |
-| `test-pliki.sh` | Pliki i Kosz: foldery, nazwy, Kosz, pliki na pulpicie, okno wyboru pliku, Notatki na plikach |
-| `test-pendrive.sh` | wirtualny pendrive USB ze zdjęciami (mtools, Pillow): import, podgląd, tapeta ze zdjęcia, duże pliki, wyjęcie |
-| `test-skarbiec.sh` | skarbiec na trudnym dysku danych: długi dziennik, prawie pełna K1-DANE, „Użyj całego pendrive'a” |
+| `test-pliki.sh` | Pliki i Kosz: foldery, nazwy, Kosz, pliki na pulpicie, menu pod prawym przyciskiem, przeciąganie i zaznaczanie wielu, okno wyboru pliku, Notatki na plikach |
+| `test-pendrive.sh` | wirtualny pendrive USB ze zdjęciami (mtools, Pillow): import, miniatury, Podgląd, tapeta ze zdjęcia, duże pliki i zdjęcia, przeciąganie z pendrive'a, wyjęcie |
+| `test-skarbiec.sh` | skarbiec na trudnym dysku danych: długi dziennik, prawie pełna K1-DANE, przejście z formatu 1 na 2, „Użyj całego pendrive'a” |
 | `uslugi-systemu.sh` | nazwy usług systemu z `K1_SYSTEM` (dla `Makefile` i `zbuduj-obraz.sh` — jedna lista) |
 | `ppm-na-png.py` | podgląd grafiki na hoście: PPM → PNG |
 | `sprawdz-binaria.sh`, `sprawdz-konfiguracje-jadra.sh`, `sprawdz-kspp.sh` | kontrole bezpieczeństwa |
 | `sprawdz-powtarzalnosc.sh` | drugi build w osobnym katalogu i porównanie sum (powtarzalność) |
+| `sprawdz-czytelnosc.py` | zasady czytelności (`AGENTS.md`): limity wielkości plików i funkcji, opis każdej usługi, aplikacji i komunikatu, wpisy „Tymczasowe”, spis ADR, istniejące ścieżki `docs/…` — pierwszy krok `test-m1.sh` |
 | `wspolne.sh` | wspólne funkcje skryptów: `make_jadra` (make w katalogu jądra), `grub_poczatek` (początek każdego grub.cfg), `verity`, `obraz_fat`, `efi_podpisane`, `bateria_aml`, `zamknij_qemu` (koniec maszyny testowej) |
 
 ## Jak powstaje obraz
@@ -109,12 +114,13 @@ QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs) — 
      └─ nadzorca (root; ADR 0007) — każda usługa w klatce: UID, 0 capabilities, NO_NEW_PRIVS,
         │  Landlock bez ścieżek, seccomp, cgroup; fd 0/1 = /dev/null, fd 2 = pipe logu → nadzorca → konsola;
         │  fd 3 = kanał od nadzorcy, kolejne kanały według tabeli kanaly[] (src/nadzorca/uslugi.c)
-          ├─ skarbiec (uid 103) — partycja K1-DANE (dane zaszyfrowane), potem
+          ├─ skarbiec (uid 103) — partycja K1-DANE (dane zaszyfrowane; nadzorca czeka na nią do 3 s, z pendrive'em do 15 s), potem
           ├─ ekran (101; karta graficzna, składanie okien) → wejscie (100; klawiatura, mysz)
           ├─ gui (102; pulpit) albo logowanie (104), gdy jest hasło
           ├─ na prośbę gui: aplikacje z K1_APLIKACJE (UID 200+); instalator (105) na prośbę okna Instalatora;
-          │  czytnik (106, pendrive) i dekoder (107, jeden obraz) na prośbę Plików
-          restart po awarii (0,2/1/2/4/4 s, maks. 5 na minutę); koniec ekranu → restart klientów
+          │  czytnik (106, pendrive) na prośbę Plików; dekoder (107, jeden obraz) na prośbę Plików albo Podglądu
+          restart po awarii (0,2/1/2/4/4 s, maks. 5 na minutę); koniec ekranu → restart klientów;
+          15 s po pulpicie: potwierdzenie startu A/B (rozruch.c), potem skarbiec może przejść na format 2
           szczegóły (kanały, deskryptory, etapy startu): docs/komponenty/nadzorca.md
           [obraz testowy: test-systemu (root, fd 3: kanał testowy) → po jego końcu nadzorca kończy się]
 ```
@@ -125,7 +131,8 @@ Szczegóły i tabela montowań: ADR 0004. Błędy: ADR 0005.
   w kodzie oraz commity — po angielsku.
 - **Kod C:** małe moduły, jawne limity długości, sprawdzanie każdego błędu, bez `strcpy/strcat/sprintf`
   (tylko `snprintf`/`strncat` z limitem). Flagi w `Makefile` — zmiana tylko przez ADR.
-- **Prefiksy logów:** `K1-INITRAMFS:`, `K1:` (init), `K1-NADZORCA:`, `K1-WEJSCIE:`, `K1-EKRAN:`, `K1-TEST:`;
+- **Prefiksy logów:** `K1-INITRAMFS:`, `K1:` (init), `K1-NADZORCA:`, `K1-KLATKA:`, a dalej `K1-<NAZWA>:` każdej usługi
+  (`K1-SKARBIEC:`, `K1-EKRAN:`, `K1-GUI:`…) i aplikacji (tag z `K1_APLIKACJE`, np. `K1-PLIKI:`), `K1-TEST:`, `K1-PROBA:`;
   błędy krytyczne PID 1 `BŁĄD KRYTYCZNY:` (`k1_awaria` — wyłączenie), błędy usług `BŁĄD:` (`k1_koniec` — wyjście z kodem 1).
 - **Kanały usług:** kanał od nadzorcy to zawsze fd 3. Komunikaty: stały rozmiar, wersja, typ, długość,
   pole zarezerwowane = 0, odbiorca sprawdza każde pole (SPEC §12).
@@ -146,7 +153,7 @@ SemVer od 0.1.0 w `VERSION`; tagi `k1-vX.Y.Z` zakłada CI po udanym buildzie i t
 
 ## Ograniczenia środowiska pracy
 - Kontener deweloperski bez `/dev/kvm` → QEMU w emulacji TCG (start K1 ~1–2 s, pierwsza klatka ~2 s,
-  wszystkie testy ~6 min). QEMU: karta `-vga std` (sterownik `bochs`) albo przy ISO `virtio-vga` (simpledrm), PS/2.
+  budowa od zera ok. 5 min, wszystkie testy ok. 50 min — 0.8.2, 4 rdzenie). QEMU: karta `-vga std` (sterownik `bochs`) albo przy ISO `virtio-vga` (simpledrm), PS/2.
 - Sieć kontenera: tylko HTTPS przez proxy; dozwolone m.in. apt Ubuntu, deb.debian.org, GitHub,
   cdn/www/git.kernel.org.
 - CI (GitHub Actions) buduje tylko `main` — minuty prywatnego repo są ograniczone.

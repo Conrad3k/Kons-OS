@@ -3,6 +3,31 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.8.3] — 2026-11-12
+
+**Pierwsze podpisane wydanie** — bez zmian w działaniu systemu. Od tej wersji wydania są podpisane Twoim kluczem
+(sekret `K1_KLUCZ_PODPISU`, dodany 2026-11-12), więc działa Secure Boot z kluczem K1 (README → „Secure Boot z kluczem
+K1”), a zainstalowany K1 przyjmuje już tylko wersje podpisane tym kluczem i nie starsze.
+
+### Ważne przy aktualizacji
+- Zainstaluj 0.8.3 na dysk albo zaktualizuj nią system przez Instalator (dane zostają). Od tej chwili Twój K1
+  przyjmie tylko wydania podpisane Twoim kluczem — sekret trzymaj w menedżerze haseł.
+- Secure Boot włączasz sam, raz: Instalator → „Secure Boot…” → „Przygotuj klucz K1” → MokManager → BIOS (README).
+  Pendrive'y z wersjami deweloperskimi (do 0.8.2) zawsze wymagają wyłączonego Secure Boot.
+
+### Zmienione
+- **Dokumentacja dogoniła stan 0.8.2:** README (co K1 już ma, czego jeszcze nie, pasek, miejsce na starym pendrivie,
+  spis dokumentów), pełna tabela klatek wszystkich 17 usług i aplikacji w opisie nadzorcy (limity, deskryptory,
+  seccomp — z `profile.c` i `kanaly[]`), mapa repo w `ARCHITEKTURA.md` (brakujące moduły, narzędzia, skrypty,
+  workflowy), `TESTY.md` (kroki `test-m1`, spis plików i próby klatek dla każdej usługi, plik 17 MB już nie „za duży”,
+  czas testów), opisy komponentów (stare ścieżki testów, limity, nazwy dawnych etapów; gniazda UNIX są — to kanały
+  usług), `RYZYKA.md` (stan 0.8.2), spis ADR (0036 wykonany), przewodnik `kons-dev`.
+
+### Testy
+- Fuzzing zapisuje „wolne” i błędne przypadki libFuzzera w `build/`, nie w katalogu repozytorium.
+- Droga z podpisem sprawdzona przed wydaniem lokalnie z jednorazowym kluczem testowym (`test-m6`: Instalator →
+  Secure Boot → MokManager → Secure Boot włączony; `test-m5f`: aktualizacja podpisanej wersji).
+
 ## [0.8.2] — 2026-11-12
 
 **Pliki — dopracowanie, część 2** (`docs/archiwum/PLAN-0.8.2.txt`, kroki 1–7; ADR 0036, 0037) — ostatnia wersja 0.8.
