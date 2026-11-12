@@ -56,8 +56,8 @@ Nowy czat — przebieg każdego kroku:
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                             Luki (punkt 5)          Zależy od  Decyzje   Rozmiar  ADR
-[ ]  1  Skarbiec na lata: format na duże dane        L25 L26 L27 L28         —          —         XL       0036
-         [w toku: Claude — 1a [x] PR #72 (format 2 w magazynie); 1b i 1c: gałąź claude/implementacja-0-8-2-kroki-1b-1c-snjgmt]
+[x]  1  Skarbiec na lata: format na duże dane        L25 L26 L27 L28         —          —         XL       0036
+         [1a PR #72 (format 2 w magazynie); 1b i 1c PR #73 (kompaktowanie w przerwach, przejście, format 2 w systemie)]
 [ ]  2  Pendrive i nazwy plików                      L13 L14 L15 L16 L8 L9   —          D3        M–L      —
 [ ]  3  Zdjęcia: duże i nowe formaty, wspólny dekoder L17 L23b               —          —         M        (0032)
 [ ]  4  Aplikacja Podgląd                            (prośba właściciela)    3          D1 D2 D5  L        0037
