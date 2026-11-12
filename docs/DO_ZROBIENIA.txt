@@ -142,10 +142,9 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         Miejsca: src/wspolne/k1_efi.c, src/instalator/main.c, scripts/zbuduj-usb.sh, narzedzia/podpisz.c
     [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10” = 0.12); od 0.7.0 GRUB jest też częścią startu A/B
         (grubenv, ADR 0022), więc w 0.12 decyzja: zostaje czy zastępujemy (ADR)
-    [ ] przeniesienie notatek z 0.5.6–0.7.6 do plików (0.8.0, ADR 0030) — termin 0.9.0. Warunek usunięcia
-        („właściciel uruchomił 0.8.x ze swoim pendrive'em”) jest w zasadzie spełniony (0.8.1 uznana za przetestowaną),
-        ale przed usunięciem jedno pytanie do Ciebie: bez tego kodu notatki z pendrive'a zapisanego 0.5.6–0.7.6 nie
-        przejdą już do Plików. Miejsce: src/aplikacje/notatki/stare.c
+    [ ] przeniesienie notatek z 0.5.6–0.7.6 do plików (0.8.0, ADR 0030) — termin 0.9.0. Twoja decyzja
+        (2026-11-12): usunąć — notatki z pendrive'a zapisanego 0.5.6–0.7.6 nie przejdą już do Plików. Usunięcie
+        w 0.9 razem z innymi „Tymczasowe” 0.9.0 (punkt 1). Miejsce: src/aplikacje/notatki/stare.c
     [ ] format 1 skarbca (dwie połowy, 0.5.6–0.8.1) — odczyt, zapis do istniejącego magazynu i przejście na format 2
         (0.8.2, ADR 0036) — termin 0.10.0. Warunek usunięcia: żaden magazyn formatu 1 nie został (Twój pendrive
         przeszedł — log skarbca „format 2”; magazyn, który nie mieścił się w wolnej połowie, też). Bez tego kodu
