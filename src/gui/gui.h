@@ -104,7 +104,7 @@ void dok_gotowy(void); /* "pulpit gotowy" with the positions of the bar (after l
 #define MENU_NAGL 72
 #define MENU_STOPKA 56
 /* rows of the Start menu: every application but the windows of K1 itself (column -1 of K1_APLIKACJE, ADR 0030) */
-#define X_W_MENU(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek) +((pasek) >= 0)
+#define X_W_MENU(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek, ...) +((pasek) >= 0)
 enum { MENU_APL = 0 K1_APLIKACJE(X_W_MENU) };
 #undef X_W_MENU
 #define MENU_WYS (MENU_NAGL + MENU_APL * MENU_WIERSZ + 8 + MENU_STOPKA)

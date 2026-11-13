@@ -6,7 +6,7 @@
 
 #include "k1_komunikat.h"
 
-#define X_S(n, profil, uid, program, nazwa) [profil] = { program, nazwa },
+#define X_S(n, profil, uid, program, nazwa, ...) [profil] = { program, nazwa },
 #define X_A(n, apl, profil, uid, program, tag, tytul, ...) [profil] = { program, tytul },
 static const struct {
     const char *program, *nazwa;

@@ -190,7 +190,7 @@ static void test_za_duzo(void)
 
 int main(void)
 {
-#define X_DOM(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek) domyslne[apl] = pasek;
+#define X_DOM(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek, ...) domyslne[apl] = pasek;
     K1_APLIKACJE(X_DOM)
     for (int a = 1; a <= K1_APL_MAKS; a++)
         NA += domyslne[a] > 0;

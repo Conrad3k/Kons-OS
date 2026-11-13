@@ -98,7 +98,7 @@ void szukaj_pozno(void)
 void zamknij_sesje(void)
 {
     for (size_t i = 0; i < N_USLUG; i++)
-        if (uslugi[i].rodzaj == R_KLIENT && uslugi[i].pid > 0) {
+        if (uslugi[i].rola != K1_ROLA_BRAK && uslugi[i].pid > 0) {
             uslugi[i].bez_liczenia = 1;
             kill(uslugi[i].pid, SIGTERM);
         }

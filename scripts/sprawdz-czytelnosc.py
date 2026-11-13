@@ -85,11 +85,30 @@ def sprawdz_limity(repo, bledy):
 
 
 def lista_x(tekst, makro):
-    """Wiersze X(...) makra listy (k1_uslugi.h) jako listy pól (bez cudzysłowów)."""
+    """Wiersze X(...) makra listy (k1_uslugi.h) jako listy pól (bez cudzysłowów). Pole może mieć nawiasy i przecinki
+    w środku: napis "Wejście (klawiatura, mysz)" albo lista kanałów (KANAL_A, KANAL_B) — liczą się tylko przecinki
+    na wierzchu wiersza."""
     m = re.search(r"#define " + makro + r"\(X\)(.*?)\n\n", tekst, re.S)
+    cialo = re.sub(r"/\*.*?\*/", " ", m.group(1) if m else "", flags=re.S)
     wynik = []
-    for x in re.findall(r"X\(([^)]*)\)", m.group(1) if m else ""):
-        wynik.append([p.strip().strip('"') for p in x.split(",")])
+    for start in re.finditer(r"\bX\(", cialo):
+        pola, pole, glebokosc, napis, i = [], "", 1, False, start.end()
+        while i < len(cialo) and glebokosc > 0:
+            z = cialo[i]
+            if z == '"':
+                napis = not napis
+            elif not napis and z == "(":
+                glebokosc += 1
+            elif not napis and z == ")":
+                glebokosc -= 1
+            if glebokosc == 1 and not napis and z == ",":
+                pola.append(pole)
+                pole = ""
+            elif glebokosc > 0:
+                pole += z
+            i += 1
+        pola.append(pole)
+        wynik.append([p.replace("\\\n", " ").strip().strip('"') for p in pola])
     return wynik
 
 

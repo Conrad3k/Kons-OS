@@ -74,7 +74,7 @@ X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt. Stero
 |---|---|---|
 | `src/initramfs/` | `/init` | montuje rdzeń (dm-verity), przełącza korzeń |
 | `src/init/` | `/rdzen/init` | PID 1 |
-| `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` tablica usług i `kanaly[]`; `logi.c` logi usług; `profile.c` klatki; `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c`, `rozruch.c`, `efi.c`, `pendrive.c`, `dekoder.c`, `powieksz.c` (K1-DANE do końca pendrive'a), `test.c` |
+| `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` usługi z tabel `K1_SYSTEM`/`K1_APLIKACJE` (start, kanały, restarty); `kanaly.h` nazwy kanałów `KANAL_*`; `logi.c` logi usług; `profile.c` klatki (`KLATKA_<NAZWA>`); `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c`, `rozruch.c`, `efi.c`, `pendrive.c`, `dekoder.c`, `powieksz.c` (K1-DANE do końca pendrive'a), `test.c` |
 | `src/wejscie/` | `system/wejscie` | klawiatura, mysz (evdev, EVIOCGRAB) |
 | `src/ekran/`, `src/grafika/` | `system/ekran` | DRM/KMS, składanie okien, kursor, tapety, znak K1; `zalegle.c` — to, czego pełny kanał klienta nie przyjął, czeka w ekranie (RAMKA nigdy nie przepada, ruchy się scalają; 0.8.5) |
 | `src/gui/` | `system/gui` | pulpit w modułach (`gui.h`): warstwa ikon, paski, menu Start, menu kontekstowe, rozmieszczenie w skarbcu (fd 6) |
@@ -146,27 +146,34 @@ Komentarze i commity po angielsku; nazwy w kodzie po polsku, zgodnie ze słownik
 
 **Nowa aplikacja** (wzór: `src/aplikacje/kalkulator/`):
 1. Jeden wiersz `X(...)` w `K1_APLIKACJE` (`src/wspolne/k1_uslugi.h`): numer, profil, UID, program, tag,
-   tytuł, opis w menu Start, ikona, czy na pasku i pulpicie przy pierwszym starcie. Numery się nie zmieniają (profil = właściciel danych w skarbcu).
+   tytuł, opis w menu Start, ikona, czy na pasku i pulpicie przy pierwszym starcie, kanały od nadzorcy (`()` — żadnych). Numery się nie zmieniają (profil = właściciel danych w skarbcu).
 2. Katalog `src/aplikacje/<program>/`: `main.c` ze `struct k1_apl` + funkcje zwrotne i `k1_apl_uruchom()`;
    każdy `.c` w katalogu się kompiluje.
 3. Z listy wynika samo: usługa i klatka w nadzorcy, menu i pasek, nazwa okna, Zasoby, obraz, spis w testach.
 4. Ręcznie: ikona `K1_IK_*` w `k1_rysuj.c`, scenariusz w `test-m4.sh` (położenia elementów loguj — test klika
    według logu), opis w `docs/komponenty/aplikacje.md`, pojęcia w słowniku.
-5. Dane spoza okna — kanał w `kanaly[]` (`src/nadzorca/uslugi.c`; wzór: Zasoby, fd 4). Nigdy ścieżki.
+5. Dane spoza okna — kanał w ostatniej kolumnie wiersza (`(KANAL_ZASOBOW)`; nazwy w `src/nadzorca/kanaly.h`, nowy
+   kanał = linia tam + moduł nadzorcy, który go obsługuje; wzór: Zasoby, fd 4). Nigdy ścieżki.
 Gotowe części przybornika: `k1_przycisk`, `k1_pole_klawisz`, `k1_menu` (menu pod prawym przyciskiem), `k1_przeciaganie`
 (tabela reguł przeciągania, okienko pytania, karteczka i znak przy kursorze), `k1_zaznaczenie` (wiele zaznaczonych),
 `k1_liczba.h` (też `k1_odmiana`: „1 plik / 3 pliki / 5 plików”), kolory `k1_motyw` / `K1_*` (`k1_grafika.h`).
 Ctrl/Shift przy kliknięciu: `apl.mody` (ekran podaje je w `WSKAZNIK` e, 0.8.2).
 
-**Nowa usługa systemowa** (np. `siec`) — dziś to kilka miejsc (jedna tabela — pierwszy krok 0.9, przed usługą sieci; `DO_ZROBIENIA.txt`):
-1. `src/<nazwa>/main.c`: komentarz na górze (zadanie, granica zaufania, etap); pierwsza linia `main()` —
-   `k1_klatka_w_usludze(TAG)`; log `K1-<NAZWA>`; kanał od nadzorcy na fd 3, kolejne ustalone w `kanaly[]`.
-2. Wiersz w `K1_SYSTEM` (`k1_uslugi.h`), wpis w `uslugi[]` i `kanaly[]` (`uslugi.c`), profil w `profile.c`.
-3. `Makefile` — tylko reguła budowy programu; spis programów i plików w obrazie wynika z `K1_SYSTEM`
-   (`scripts/uslugi-systemu.sh`, od 0.8.0).
-4. Testy w systemie: klatka (`t_klatki`), próba w klatce (`t_proby`), sprawdzenia funkcjonalne i **negatywne**;
-   spis plików wynika z `K1_SYSTEM` (`t_inventory`). Scenariusz QEMU, jeśli potrzebny.
-5. `docs/komponenty/<nazwa>.md`, ADR jeśli zmienia architekturę, `docs/RYZYKA.md`, słownik.
+**Nowa usługa systemowa** (np. `siec`) — jeden wiersz w tabeli (0.9.0 krok 1):
+1. Wiersz w `K1_SYSTEM` (`src/wspolne/k1_uslugi.h`): nazwa, profil, UID, program, nazwa w Zasobach, kiedy startuje
+   (`PRZY_STARCIE` — i ponownie po awarii — albo `NA_PROSBE` przez swój moduł), rola przy ekranie (`BRAK`, gdy nie ma
+   okna) i kanały od nadzorcy po kolei od fd 3 (u klienta ekranu od fd 4), np. `(KANAL_SIECI)`. Z wiersza wynika:
+   `uslugi[]` (start, restart, kanały), nazwa i UID klatki, Zasoby, spis programów i plików obrazu
+   (`scripts/uslugi-systemu.sh`), `t_inventory`.
+2. Klatka `KLATKA_<NAZWA>` w `src/nadzorca/profile.c` — wywołania poza bazą i limity, każde z uzasadnieniem
+   (bez niej nadzorca się nie zbuduje). Nowy kanał: linia `KANAL_*` w `src/nadzorca/kanaly.h` + moduł nadzorcy, który
+   go obsługuje (jego koniec, wpis w pętli `main.c`). Szczególne sprzątanie po końcu usługi — `po_koncu()` w `uslugi.c`.
+3. `src/<nazwa>/main.c`: komentarz na górze (zadanie, granica zaufania, etap); pierwsza linia `main()` —
+   `k1_klatka_w_usludze(TAG)`; log `K1-<NAZWA>`; kanały na fd jak w wierszu. `Makefile` — tylko reguła budowy programu.
+4. Testy w systemie: klatka (`t_klatki`), próba w klatce (`t_proby`), sprawdzenia funkcjonalne i **negatywne**.
+   Scenariusz QEMU, jeśli potrzebny.
+5. `docs/komponenty/<nazwa>.md` (sprawdza `sprawdz-czytelnosc.py`), wiersz w tabeli `docs/komponenty/nadzorca.md`, ADR
+   jeśli zmienia architekturę, `docs/RYZYKA.md`, słownik.
 
 **Nowy komunikat albo kanał:** typ w `k1_komunikat.h` z kierunkiem i zakresami pól; dla nowego formatu —
 nagłówek w `src/wspolne/` ze stałym układem (`_Static_assert` na rozmiar i przesunięcia), sprawdzanie bez
