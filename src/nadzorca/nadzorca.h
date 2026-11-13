@@ -185,6 +185,10 @@ void siec_sprawdz(double t);
 void siec_nowy_kanal(void);
 void obsluz_siec(void);
 void obsluz_rt(void);
+/* siec_jadro.c — the kernel's network settings (rtnetlink): 0, or -errno */
+int siec_wlacz_karte(int nr);                                /* switch card `nr` (ifindex) on */
+int siec_adres_karty(int nr, uint32_t a, int pre, int dodaj); /* add / take away address a (host order) of /pre */
+int siec_trasa(int nr, uint32_t router);                     /* the default route through `router` on card nr */
 
 /* skarb.c: the start is confirmed — skarbiec may move its vault to format 2 (0.8.2, ADR 0036) */
 void skarb_start_potwierdzony(void);
