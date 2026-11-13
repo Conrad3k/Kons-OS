@@ -1,6 +1,7 @@
 # 0002. Toolchain (musl, statyczne PIE) i flagi kompilacji
 
-- Status: Przyjęty
+- Status: Przyjęty; od 0.9.0 musl 1.2.5 z naszego buildu i `_FORTIFY_SOURCE=3` z fortify-headers
+  [korekta: ADR 0007, dopisek 0.9.0]
 - Data: 2026-11-06
 - Dotyczy: SPEC §4 (statyczne linkowanie, musl), §11 (higiena kodu C), M0
 

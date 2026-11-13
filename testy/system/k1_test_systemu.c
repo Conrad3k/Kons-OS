@@ -26,6 +26,7 @@ int main(int argc, char **argv)
     t_readonly();
     t_user_data();
     t_memfd();
+    t_fortify();
     t_script();
     t_proc();
     t_sys_dev();

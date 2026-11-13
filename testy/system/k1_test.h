@@ -77,6 +77,7 @@ void t_root_layout(void);
 void t_readonly(void);
 void t_user_data(void);
 void t_memfd(void);
+void t_fortify(void);
 void t_script(void);
 void t_proc(void);
 void t_sys_dev(void);

@@ -110,6 +110,30 @@ void t_memfd(void)
     close(fd);
 }
 
+/* 0.9.0 step 4 (fortify-headers, _FORTIFY_SOURCE=3): a copy past a buffer whose size the compiler knows stops the
+ * process at once (a trap: SIGILL) instead of writing on; the same copy within the buffer works. This program is built
+ * with the flags of every K1 program. */
+void t_fortify(void)
+{
+    static const char zrodlo[64] = "K1 fortify: dane do skopiowania, dluzsze niz bufor";
+    int status[2] = { -1, -1 };
+    for (int i = 0; i < 2; i++) {
+        pid_t p = fork();
+        if (p == 0) {
+            char buf[16];
+            volatile size_t n = i == 0 ? sizeof buf : sizeof buf + 24; /* unknown to the compiler: checked when it runs */
+            memcpy(buf, zrodlo, n);
+            _exit(buf[0] == 'K' ? 0 : 1);
+        }
+        if (p > 0)
+            waitpid(p, &status[i], 0);
+    }
+    check(WIFEXITED(status[0]) && WEXITSTATUS(status[0]) == 0, "fortify: memcpy w granicach bufora działa", "status %#x",
+          status[0]);
+    check(WIFSIGNALED(status[1]) && WTERMSIG(status[1]) == SIGILL,
+          "NEGATYWNY: fortify — memcpy poza bufor zatrzymuje proces (SIGILL), nic nie jest nadpisane", "status %#x", status[1]);
+}
+
 void t_script(void)
 {
     int rc = in_child(child_exec_path, SCRIPT);

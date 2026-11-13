@@ -147,7 +147,7 @@ UEFI + Secure Boot → podpisany UKI (jądro + initramfs + cmdline) → jądro L
 - Flagi:
   -Wall -Wextra -Werror -Wformat=2 -Wformat-security -Wconversion -Wshadow -Wstrict-prototypes -Wmissing-prototypes -fstack-protector-strong -fPIE -pie -ftrivial-auto-var-init=zero
   plus pełne RELRO i NX. Każdą flagę zweryfikuj z użytym kompilatorem i libc. **[korekta: ADR 0002 — `-pie` zastąpione przez `-static-pie` (statyczne linkowanie), dodane `-fstack-clash-protection`]**
-- _FORTIFY_SOURCE z musl wymaga dodatkowych nagłówków (np. fortify-headers). Sprawdź, nie zakładaj. **[korekta: ADR 0002 — sprawdzone: z musl nie działa, fortify-headers nie ma w Ubuntu/Debianie; PLANOWANE]**
+- _FORTIFY_SOURCE z musl wymaga dodatkowych nagłówków (np. fortify-headers). Sprawdź, nie zakładaj. **[korekta: ADR 0002 — sprawdzone: z musl nie działa, fortify-headers nie ma w Ubuntu/Debianie; PLANOWANE]** **[korekta: ADR 0007, dopisek 0.9.0 — ZAIMPLEMENTOWANE: fortify-headers 3.0.1 w `src/zewnetrzne/`, `_FORTIFY_SOURCE=3` we wszystkich programach, musl 1.2.5 z naszego buildu]**
 - Sanitizery (ASan, UBSan, bounds, object-size, overflow) i fuzzing (libFuzzer/AFL++) uruchamiaj w testach na hoście (build z glibc). W obrazie ze statycznym musl nie działają.
 - Żadnego niekontrolowanego strcpy/strcat/sprintf. Jawne limity długości, kontrola arytmetyki rozmiarów, brak niezainicjalizowanych struktur, jawna obsługa każdego błędu.
 

@@ -3,7 +3,8 @@
 #   build/wynik/initramfs.cpio     — /init (k1-initramfs) + /dev/console, bez kompresji
 #   build/wynik/rdzen.squashfs     — obraz /rdzen: init, system/ (nadzorca i usługi z K1_SYSTEM), katalogi jadro/
 #   build/wynik/rdzen-test.squashfs — to samo + program testowy jako /rdzen/system/test-systemu
-# Wymaga zbudowanego jądra (scripts/zbuduj-jadro.sh: nagłówki i gen_init_cpio).
+# Wymaga zbudowanego jądra (scripts/zbuduj-jadro.sh: nagłówki i gen_init_cpio) i biblioteki C (scripts/zbuduj-musl.sh;
+# make zbuduje ją sam, gdy jej brak).
 . "$(dirname "$0")/wspolne.sh"
 
 GEN_CPIO=$K1_JADRO_OBJ/usr/gen_init_cpio
@@ -11,7 +12,7 @@ GEN_CPIO=$K1_JADRO_OBJ/usr/gen_init_cpio
 
 info "programy K1 (musl, statycznie)"
 make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" NAGLOWKI="$K1_NAGLOWKI/include"
-"$K1_REPO/scripts/sprawdz-binaria.sh" "$K1_BUDOWA"/bin/*
+"$K1_REPO/scripts/sprawdz-binaria.sh" --fortify "$K1_BUDOWA/obj/proba_fortify" "$K1_BUDOWA"/bin/*
 
 info "initramfs.cpio"
 cat > "$K1_BUDOWA/initramfs.lista" <<LISTA
@@ -62,7 +63,8 @@ squashfs "$K1_BUDOWA/rdzen-test" "$K1_WYNIK/rdzen-test.squashfs"
 cp "$K1_REPO/jadro/cmdline" "$K1_WYNIK/cmdline"
 (cd "$K1_WYNIK" && sha256sum bzImage initramfs.cpio rdzen.squashfs rdzen-test.squashfs rdzen.squashfs.skrot wydanie cmdline > SHA256SUMS)
 {
-    echo "K1 $K1_WERSJA, jądro $K1_JADRO_WERSJA, SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
-    dpkg-query -W -f '${Package} ${Version}\n' gcc-13 musl-tools squashfs-tools 2>/dev/null || true
+    . "$K1_REPO/musl/wersja.env"
+    echo "K1 $K1_WERSJA, jądro $K1_JADRO_WERSJA, musl $K1_MUSL_WERSJA + $(ls "$K1_REPO"/musl/latki | wc -l) łatki, fortify-headers 3.0.1, SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
+    dpkg-query -W -f '${Package} ${Version}\n' gcc-13 squashfs-tools 2>/dev/null || true
 } > "$K1_WYNIK/srodowisko.txt"
 info "gotowe:"; sed 's/^/    /' "$K1_WYNIK/SHA256SUMS"

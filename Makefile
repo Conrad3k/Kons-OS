@@ -5,12 +5,15 @@
 #   make fuzz       fuzzing parserów (clang + libFuzzer, lista FUZZ), FUZZ_CZAS sekund każdy; równolegle: make -j4 -O fuzz
 #
 # Flagi: SPEC §11, zweryfikowane w ADR 0002; scripts/sprawdz-binaria.sh sprawdza wynik.
+# Biblioteka C: nasz musl (0.9.0 krok 4: musl/, scripts/zbuduj-musl.sh → build/musl), kontrola przepełnień w funkcjach
+# biblioteki: fortify-headers (src/zewnetrzne/fortify-headers, _FORTIFY_SOURCE=3; korekta ADR 0007).
 
 BUDOWA    ?= build
 BIN       := $(BUDOWA)/bin
 OBJ       := $(BUDOWA)/obj
 NAGLOWKI  ?= $(BUDOWA)/naglowki/include
-CC_K1     ?= musl-gcc
+MUSL      := $(BUDOWA)/musl/bin/musl-gcc
+CC_K1     ?= $(MUSL)
 CC_HOST   ?= gcc
 CC_FUZZ   ?= clang
 FUZZ_CZAS ?= 30
@@ -22,9 +25,10 @@ CZAS_BUDOWY := $(or $(SOURCE_DATE_EPOCH),$(shell git log -1 --format=%ct 2>/dev/
 
 OSTRZEZENIA := -Wall -Wextra -Werror -Wformat=2 -Wformat-security -Wconversion -Wshadow \
                -Wstrict-prototypes -Wmissing-prototypes
-CFLAGS_K1   := -std=c11 -O2 -D_GNU_SOURCE $(OSTRZEZENIA) -fstack-protector-strong \
-               -fstack-clash-protection -fPIE -ftrivial-auto-var-init=zero \
-               -ffile-prefix-map=$(CURDIR)=. -isystem $(NAGLOWKI) -Isrc/wspolne -Isrc/grafika -Isrc/przybornik \
+# fortify-headers first (they overlay musl's headers with #include_next), as system headers (no warnings from them)
+CFLAGS_K1   := -std=c11 -O2 -D_GNU_SOURCE -D_FORTIFY_SOURCE=3 $(OSTRZEZENIA) -fstack-protector-strong \
+               -fstack-clash-protection -fPIE -ftrivial-auto-var-init=zero -ffile-prefix-map=$(CURDIR)=. \
+               -isystem src/zewnetrzne/fortify-headers/include -isystem $(NAGLOWKI) -Isrc/wspolne -Isrc/grafika -Isrc/przybornik \
                '-DK1_WERSJA="$(WERSJA)"'
 LDFLAGS_K1  := -static-pie -Wl,-z,relro,-z,now,-z,noexecstack -Wl,--build-id=none -s
 CFLAGS_HOST := -std=c11 -O1 -g -D_GNU_SOURCE $(OSTRZEZENIA) -fsanitize=address,undefined \
@@ -67,7 +71,15 @@ USLUGI_SYSTEMU := $(shell sh scripts/uslugi-systemu.sh)
 PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(addprefix $(BIN)/,$(USLUGI_SYSTEMU)) $(APLIKACJE) \
             $(BIN)/k1-test-systemu
 
-all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(GEN)/sb/k1_sb_cert.h
+all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(GEN)/sb/k1_sb_cert.h $(OBJ)/proba_fortify
+
+# Our musl (0.9.0 step 4): built when musl/ changes; every program is built again with a new one.
+$(MUSL): musl/wersja.env $(wildcard musl/latki/*.patch) scripts/zbuduj-musl.sh
+	K1_BUDOWA=$(abspath $(BUDOWA)) sh scripts/zbuduj-musl.sh
+$(PROGRAMY) $(OBJ)/proba_fortify: $(MUSL) $(wildcard src/zewnetrzne/fortify-headers/include/*.h src/zewnetrzne/fortify-headers/include/*/*.h)
+# the probe of _FORTIFY_SOURCE with the flags of the K1 programs (scripts/sprawdz-binaria.sh runs it)
+$(OBJ)/proba_fortify: testy/host/proba_fortify.c | $(OBJ)
+	$(CC_K1) $(CFLAGS_K1) -o $@ testy/host/proba_fortify.c $(LDFLAGS_K1)
 
 # M6a (ADR 0021): manifests and signatures of system images. The key comes from the environment
 # (K1_KLUCZ_PODPISU, the CI secret); without it: a developer build (unsigned, no key in K1).
