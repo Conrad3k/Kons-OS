@@ -1,6 +1,7 @@
 K1 — PLAN WERSJI 0.8.5 „PODGLĄD I MIEJSCE” (poprawki tematu 0.8 Pliki, przed 0.9 Sieć)
 =====================================================================================
 
+ZAMKNIĘTY 2026-11-13 (wydanie 0.8.5, PR-y #83–#86 i wydanie) — tylko historia; plan i stan: docs/DO_ZROBIENIA.txt.
 Data: 2026-11-12 (porządek w planie: ADR 0035). Stan wyjściowy: 0.8.3. Ten plik jest SAMODZIELNY: kroki, ich stan,
 luki (punkt 5) i decyzje do tej wersji. Zamknięty plan 0.8.2: docs/archiwum/PLAN-0.8.2.txt (tylko historia). Mapa drogi
 i rzeczy na później: docs/DO_ZROBIENIA.txt. Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR.
@@ -20,7 +21,7 @@ Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
 Jeden krok = jeden nowy czat = jeden PR scalony do main. Kroki idą w kolejności z punktu 2.
 
 Właściciel — co wpisać w nowym czacie (podmień N):
-    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.8.5.txt.”
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.8.5.txt.” (dziś: docs/archiwum/)
 Jeśli krok ma decyzje [!] (punkt 4), czat zapyta o nie na początku — możesz też od razu dopisać odpowiedź.
 
 Nowy czat — przebieg każdego kroku:
@@ -63,8 +64,8 @@ Nowy czat — przebieg każdego kroku:
 [x]  1  Okna nie zamarzają: ekran nie gubi zdarzeń   L1 L2              —          —          M        —   PR #83
 [x]  2  Podgląd płynny                                L3 L4 L5 L6        1          —          M–L      —   PR #84
 [x]  3  Ustawienia → Miejsce                          L7 L8              —          D1 D2 D3   L        —   PR #85
-[ ]  4  Secure Boot: „Przygotuj klucz K1”            L9                 —          D4         S–M      —   [w toku: Claude, gałąź claude/zen-bohr-6od7n8]
-[ ]  5  Porządki i wydanie 0.8.5                      —                  1–4        —          S        —
+[x]  4  Secure Boot: „Przygotuj klucz K1”            L9                 —          D4         S–M      —   PR #86
+[x]  5  Porządki i wydanie 0.8.5                      —                  1–4        —          S        —   ten PR (wydanie)
 
 Kolejność: 1 przed 2 (najpierw zawieszanie, potem płynność — pomiar płynności nie ma sensu, gdy okno potrafi
 stanąć). 3 nie dotyka tych samych plików co 1 i 2 (Ustawienia, skarbiec) — może iść równolegle albo zaraz po 1.
@@ -229,6 +230,9 @@ KROK 4 — Secure Boot: „Przygotuj klucz K1” w Instalatorze                 
 
 KROK 5 — Porządki i wydanie 0.8.5                                                          S · bez decyzji
   Cel: wydanie 0.8.5 z obrazem ISO i USB.
+  Ustalenia z wykonania (2026-11-13): Pliki liczą miejsce ze `SKARB_MIEJSCE` (stopka), Ustawienia — w jednym module
+  (miejsce.c); Informacje nie mają już własnego paska ani zapisu rozmiarów. „Tymczasowe” bez zmian terminów, nic
+  nowego tymczasowego. Wszystkie kroki tej wersji zrobione w jednej sesji, każdy osobnym PR-em (#83–#86).
   [ ] Porządki: co usunąć/scalić/uprościć po krokach 1–4 (np. czy Pliki i Informacje nie liczą miejsca po swojemu).
       Przegląd „Tymczasowe” (terminy 0.9.0 bez zmian, chyba że coś wyszło).
   [ ] VERSION 0.8.5; CHANGELOG (Dodane / Zmienione / Naprawione / Porządki) z opisów PR-ów kroków 1–4.
