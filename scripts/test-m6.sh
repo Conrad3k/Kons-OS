@@ -7,6 +7,8 @@
 # 4. klucz wydania (sekret K1_KLUCZ_PODPISU): pełna droga właściciela — Instalator → Secure Boot → „Przygotuj
 #    klucz K1” → restart → MokManager (Enroll MOK → Continue → Yes → hasło „kons” → Reboot) → Secure Boot
 #    włączony → K1 startuje; wersja deweloperska: klucza nie da się wpisać (jest publiczny).
+# 5. (0.8.5 krok 4, zgłoszenie z X230) K1 uruchomiony z dysku (bez pendrive'a — nie ma systemu do skopiowania):
+#    Instalator i tak pokazuje link „Secure Boot…” (do 0.8.3 go nie rysował) i przez niego da się przygotować klucz.
 # Zrzuty: build/testy/m6-*.png. Wymaga: scripts/zbuduj.sh, python3-virt-firmware (virt-fw-vars).
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -23,10 +25,11 @@ r=0
 
 echo "[k1] test M6: Secure Boot — klucz K1 w MOK, odmowa bez klucza i dla zmienionego systemu, wpisanie klucza"
 
-# $1 = scenario, $2 = log name, $3 = UEFI variables file, $4 = stick image
+# $1 = scenario, $2 = log name, $3 = UEFI variables file, $4 = stick image (or, with $5 = dysk, the SATA disk)
 uruchom() {
-    tryb=$1 nazwa=$2; LOG=$TESTY/m6-$nazwa.log MON=$TESTY/m6-$nazwa.sock
-    "$K1_REPO/scripts/uruchom-qemu.sh" --pendrive "$4" --zmienne-uefi "$3" --log "$LOG" --monitor "$MON" --czas "$CZAS" &
+    tryb=$1 nazwa=$2 nosnik=--pendrive; LOG=$TESTY/m6-$nazwa.log MON=$TESTY/m6-$nazwa.sock
+    [ "${5:-}" = dysk ] && nosnik=--dysk-uefi
+    "$K1_REPO/scripts/uruchom-qemu.sh" $nosnik "$4" --zmienne-uefi "$3" --log "$LOG" --monitor "$MON" --czas "$CZAS" &
     QPID=$!
     K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$tryb" "$LOG" "$MON" "$TESTY" "$CZAS" <<'PY' || r=1
 import os, sys, time
@@ -105,6 +108,26 @@ if tryb == "mok-3":
             w[2].group(0) if w else "brak")
     koniec()
 
+if tryb == "z-dysku":  # 0.8.5 step 4: started from the disk — no system to copy, the link is there all the same
+    w = instalator_sb()
+    sprawdz("z dysku: Instalator — nie ma systemu do skopiowania (start nie z pendrive'a)",
+            w and czekaj(r"K1-INSTALACJA: dyski: \d+ \(system do skopiowania: brak"), w[2].group(0) if w else "brak")
+    if not w: koniec()
+    lx, ly = w[0] + int(w[2].group(2)), w[1] + int(w[2].group(3))
+    akcent = lambda px, x, y: any(px(x + dx, y + dy)[0] > px(x + dx, y + dy)[2] + 60 for dx in range(-20, 60, 2)
+                                  for dy in range(-8, 4))
+    _, _, px = q.zrzut("5-z-dysku", gdy=lambda w_, h_, px: akcent(px, lx, ly))
+    sprawdz("z dysku: link „Secure Boot…” widać (kolor akcentu w jego miejscu)", akcent(px, lx, ly))
+    klik(lx, ly)
+    e = czekaj(r"K1-INSTALACJA: secure boot: ekran; przycisk (\d+),(\d+), wróć (\d+),(\d+)", czas=10)
+    sprawdz("z dysku: link otwiera ekran Secure Boot", e)
+    if e and "(wersja deweloperska)" not in w[2].group(1):
+        klik(w[0] + int(e.group(1)), w[1] + int(e.group(2)))
+        sprawdz("z dysku: „Przygotuj klucz K1” — nadzorca zapisuje MokNew + MokAuth",
+                czekaj(r"K1-NADZORCA: Secure Boot: klucz K1 czeka", czas=20))
+    q.zrzut("5-z-dysku-sb", gdy=lambda w_, h_, px_: True)
+    koniec()
+
 if tryb == "deweloperska":
     w = instalator_sb()
     sprawdz("wersja deweloperska: Instalator mówi, że jej klucza się nie wpisuje",
@@ -149,6 +172,10 @@ else
     echo "  [--]    wpisanie klucza przez MokManagera: pominięte (wersja deweloperska — bez sekretu K1_KLUCZ_PODPISU)"
     uruchom deweloperska 4-deweloperska "$TESTY/m6-zmienne.fd" "$PEN"
 fi
-rm -f "$PEN" "$TESTY"/m6-zmienne*.fd
+# 0.8.5 step 4: the same image as an installed disk (SATA, 2 GiB — a disk the Instalator lists), no stick
+cp "$USBIMG" "$TESTY/m6-dysk.img" && truncate -s 2G "$TESTY/m6-dysk.img"
+virt-fw-vars --input "$MS" --output "$TESTY/m6-zmienne-dysk.fd" --set-false SecureBootEnable >/dev/null 2>&1
+uruchom z-dysku 7-z-dysku "$TESTY/m6-zmienne-dysk.fd" "$TESTY/m6-dysk.img" dysk
+rm -f "$PEN" "$TESTY/m6-dysk.img" "$TESTY"/m6-zmienne*.fd
 if [ $r -eq 0 ]; then info "M6: wszystko zaliczone (zrzuty: $TESTY/m6-*.png)"; else echo "[k1] M6: BŁĄD (logi: $TESTY/m6-*.log)"; fi
 exit $r
