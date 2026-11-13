@@ -62,8 +62,9 @@ static const long sc_siec[] = { SYS_getrandom };
                        .pamiec = (uint64_t)K1_DEK_PAMIEC + K1_DEK_ZAPAS + (64u << 20), .pliki = 8,                 \
                        .rozmiar_pliku = 17u << 20, .czas_cpu = 20, .przestrzen = (uint64_t)K1_DEK_PAMIEC + K1_DEK_ZAPAS
 
-/* siec: two descriptors (the channel, the packet socket) and a few kilobytes of state; 8 MiB like wejscie. */
-#define KLATKA_SIEC .wywolania = sc_siec, .n_wywolan = N(sc_siec), .pamiec = 8u << 20, .pliki = 8
+/* siec: the channel, the packet socket and (0.9.0 step 8) up to K1_SIEC_ZRODLA_MAKS UDP sockets to time servers from
+ * nadzorca — 16 descriptors; a few kilobytes of state; 8 MiB like wejscie. */
+#define KLATKA_SIEC .wywolania = sc_siec, .n_wywolan = N(sc_siec), .pamiec = 8u << 20, .pliki = 16
 
 const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
 #define X_S(n, profil_, uid_, program_, ...) [K1_PROFIL_##n] = { .nazwa = program_, .uid = uid_, KLATKA_##n },

@@ -2,13 +2,15 @@
  *
  * Job: when nadzorca says a cable is in (SIEC_KABEL with a packet socket on that card), ask the router for an address
  * (DHCP: DISCOVER, OFFER, REQUEST, ACK), ask nadzorca to set it (SIEC_ADRES), renew the lease in time, and start again
- * when the router says no or the lease ends. When the cable is out (SIEC_ROZLACZONO), forget everything.
+ * when the router says no or the lease ends. When the cable is out (SIEC_ROZLACZONO), forget everything. With the
+ * address: the clock from the internet (0.9.0 step 8, zegar.c — several time servers that must agree).
  *
  * Trust boundary: everything that comes from the network is untrusted — every packet is checked field by field
  * (dhcp.c: k1_dhcp_czytaj; host test and fuzzing) before anything uses it. The service has no privileges: no socket of
  * its own (seccomp), only the packet socket nadzorca opened, with a filter nadzorca set and locked (IPv4, UDP to port
  * 68). It cannot set an address: nadzorca does, after checking it (k1_siec_adres_dobry). It never logs an address.
- * Channels: fd 3 = nadzorca (KANAL_SIECI; we check that UID 0 sends), fd of the packet socket from SIEC_KABEL.
+ * Channels: fd 3 = nadzorca (KANAL_SIECI; we check that UID 0 sends), fd of the packet socket from SIEC_KABEL, up to
+ * K1_SIEC_ZRODLA_MAKS UDP sockets to time servers from SIEC_GNIAZDO (one round at a time).
  * Documentation: docs/komponenty/siec.md. */
 #include <arpa/inet.h>
 #include <errno.h>
@@ -30,11 +32,11 @@
 #include "k1_siec.h"
 #include "k1_teraz.h"
 #include "klient.h"
+#include "usluga.h"
 
-#define TAG "K1-SIEC"
 #define NADZORCA 3
 
-static struct k1_dhcp_klient klient;
+struct k1_dhcp_klient klient;
 static int pakiety = -1;       /* the packet socket on the card (from SIEC_KABEL), -1 */
 static uint32_t karta;         /* its kernel number */
 static unsigned odrzucone;     /* packets rejected since the last log line */
@@ -42,7 +44,7 @@ static int ostatni_powod;
 static double nastepny_wpis;   /* the log of rejected packets at most every 5 s */
 static int brak_odpowiedzi_zapisany;
 
-static void do_nadzorcy(enum k1_komunikat_typ typ, int32_t a, int32_t b, int32_t c, int32_t d)
+void do_nadzorcy(enum k1_komunikat_typ typ, int32_t a, int32_t b, int32_t c, int32_t d)
 {
     struct k1_komunikat k = k1_komunikat_nowy(typ, karta, a, b, c, d, 0);
     if (k1_kanal_wyslij(NADZORCA, &k, sizeof k, -1) != 0)
@@ -75,6 +77,7 @@ static void wykonaj(int akcje, int przed)
     if (akcje & K1_DHCP_A_ZWOLNIJ) {
         k1_log(TAG, "dzierżawa adresu skończona albo router odmówił — oddaję adres, pytam od nowa");
         do_nadzorcy(K1_KOM_SIEC_ZWOLNIJ, 0, 0, 0, 0);
+        zegar_stop();
     }
     if (akcje & K1_DHCP_A_USTAW)
         do_nadzorcy(K1_KOM_SIEC_ADRES, (int32_t)klient.adres, klient.prefiks, (int32_t)klient.router,
@@ -127,6 +130,7 @@ static void z_nadzorcy(void)
         } else if (k.typ == K1_KOM_SIEC_ROZLACZONO && k.obiekt == karta) {
             k1_log(TAG, "%s — bez adresu", k.a == K1_SIEC_KABEL_WYJETY ? "kabel odłączony" : "karta zniknęła");
             k1_dhcp_stop(&klient);
+            zegar_stop();
             if (pakiety >= 0)
                 close(pakiety);
             pakiety = -1;
@@ -135,7 +139,18 @@ static void z_nadzorcy(void)
                 k1_log(TAG, "połączono: adres od routera ustawiony (dzierżawa %u s)", (unsigned)klient.dzierzawa);
             else
                 k1_log(TAG, "nadzorca nie ustawił adresu (wynik %d)", k.b);
+            if (k.b == 0)
+                zegar_polaczono();
+        } else if (k.typ == K1_KOM_SIEC_WYNIK && k.obiekt == karta && k.a == K1_KOM_SIEC_ZEGAR) {
+            k1_log(TAG, "czas: %s", k.b == 0 ? "nadzorca ustawił zegar" : "nadzorca nie ustawił zegara");
+            if (k.b != 0)
+                zegar_odrzucony();
+        } else if (k.typ == K1_KOM_SIEC_GNIAZDO && k.obiekt == karta) {
+            zegar_gniazdo(&k, fd);
+            fd = -1;
         }
+        if (fd >= 0 && k.typ != K1_KOM_SIEC_KABEL)
+            close(fd);
     }
 }
 
@@ -171,19 +186,22 @@ int main(void)
     k1_klatka_w_usludze(TAG);
     k1_log(TAG, "usługa sieci gotowa — czekam na kartę z kablem");
     for (;;) {
-        struct pollfd p[2] = { { NADZORCA, POLLIN, 0 }, { pakiety, POLLIN, 0 } };
-        double t = k1_teraz();
-        int czas = -1;
+        struct pollfd p[2 + K1_SIEC_ZRODLA_MAKS] = { { NADZORCA, POLLIN, 0 }, { pakiety, POLLIN, 0 } };
+        double t = k1_teraz(), zegar = zegar_czas(t);
+        int czas = -1, n_zegar = zegar_poll(p + 2, K1_SIEC_ZRODLA_MAKS);
         if (klient.nastepny > 0)
             czas = klient.nastepny <= t ? 0 : (int)((klient.nastepny - t) * 1000.0) + 1;
+        if (zegar > 0 && (czas < 0 || (zegar - t) * 1000.0 < czas))
+            czas = zegar <= t ? 0 : (int)((zegar - t) * 1000.0) + 1;
         if (odrzucone > 0 && (czas < 0 || czas > 5000))
             czas = 5000;
-        if (poll(p, 2, czas) < 0 && errno != EINTR)
+        if (poll(p, (nfds_t)(2 + n_zegar), czas) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
         if (p[0].revents)
             z_nadzorcy();
         if (pakiety >= 0 && p[1].revents)
             z_sieci();
+        zegar_odbierz(p + 2, n_zegar);
         t = k1_teraz();
         if (klient.stan != K1_DHCP_BEZ_KABLA) {
             int przed = klient.stan;

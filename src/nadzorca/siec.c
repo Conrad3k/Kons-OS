@@ -27,12 +27,19 @@ static struct karta {
     char nazwa[IFNAMSIZ];
     uint8_t mac[6];
     int kabel;
+    uint32_t id;  /* PCI vendor:device, or USB idVendor:idProduct (usb); 0 unknown */
+    int usb;
+    char slot[32]; /* the device's name in sysfs (PCI: 0000:00:19.0) — siec_stan.c skips it in its PCI list */
+    int predkosc, dupleks;                      /* the link: Mb/s (0: none), K1_SIEC_DUPLEKS_* */
+    char sterownik[K1_SIEC_STEROWNIK_MAKS + 1]; /* the kernel driver */
 } karty[KART_MAKS];
 static int n_kart;
 static int aktywna;         /* the card siec has now (SIEC_KABEL sent), 0: none */
 static char aktywna_nazwa[IFNAMSIZ];
 static int z_adresem;       /* an address is set on it */
-static uint32_t adres;      /* (to take it away) */
+static double polaczono_od; /* since (k1_teraz) — the same address renewed keeps it */
+static uint32_t adres;      /* (to take it away; and for Ustawienia → Sieć) */
+static uint32_t router;
 static int prefiks;
 static int zmiana = 1;      /* look at the cards at the next pass */
 static double nastepne;
@@ -99,6 +106,8 @@ static void zabierz_adres(void)
     if (r != 0 && r != -EADDRNOTAVAIL && r != -ENODEV)
         k1_log(TAG, "sieć: zabranie adresu: %s", strerror(-r));
     z_adresem = 0;
+    zmiana = 1; /* Ustawienia → Sieć: the list again */
+    polaczono_od = 0;
 }
 
 /* The card siec had is gone or has no cable any more: no address, siec forgets it. */
@@ -108,6 +117,90 @@ static void rozlacz(int powod)
     zabierz_adres();
     do_sieci(k1_komunikat_nowy(K1_KOM_SIEC_ROZLACZONO, (uint32_t)aktywna, powod, 0, 0, 0, 0), -1);
     aktywna = 0;
+}
+
+/* Hexadecimal number in sysfs file `p` (under `kat`), or -1. */
+static long liczba16(int kat, const char *p)
+{
+    char v[32], *koniec;
+    long x;
+    if (k1_czytaj_plik(kat, p, v, sizeof v) < 0)
+        return -1;
+    x = strtol(v, &koniec, 16);
+    return koniec != v && x >= 0 && x <= 0xffff ? x : -1;
+}
+
+/* Which device the card is: PCI vendor:device (and its name in sysfs), or USB idVendor:idProduct of an adapter. */
+static void identyfikuj(int kat, const char *nazwa, struct karta *k)
+{
+    char p[96], cel[160];
+    long a, b;
+    ssize_t n;
+    k->id = 0;
+    k->usb = 0;
+    k->slot[0] = '\0';
+    snprintf(p, sizeof p, "%s/device/vendor", nazwa);
+    if ((a = liczba16(kat, p)) >= 0) {
+        snprintf(p, sizeof p, "%s/device/device", nazwa);
+        b = liczba16(kat, p);
+        snprintf(p, sizeof p, "%s/device", nazwa);
+        if ((n = readlinkat(kat, p, cel, sizeof cel - 1)) > 0) {
+            const char *s;
+            cel[n] = '\0';
+            s = strrchr(cel, '/');
+            snprintf(k->slot, sizeof k->slot, "%s", s != NULL ? s + 1 : cel);
+        }
+    } else {
+        snprintf(p, sizeof p, "%s/device/../idVendor", nazwa); /* device: the USB interface; its parent: the device */
+        a = liczba16(kat, p);
+        snprintf(p, sizeof p, "%s/device/../idProduct", nazwa);
+        b = liczba16(kat, p);
+        k->usb = a >= 0;
+    }
+    if (a >= 0 && b >= 0)
+        k->id = (uint32_t)a << 16 | (uint32_t)b;
+}
+
+/* The driver of a card: the name of the link device/driver, or "" (the log shows "?"). */
+static void sterownik(int kat, const char *nazwa, char *buf, size_t n)
+{
+    char p[96], cel[128];
+    ssize_t r;
+    const char *s;
+    buf[0] = '\0';
+    snprintf(p, sizeof p, "%s/device/driver", nazwa);
+    r = readlinkat(kat, p, cel, sizeof cel - 1);
+    if (r <= 0)
+        return;
+    cel[r] = '\0';
+    s = strrchr(cel, '/');
+    snprintf(buf, n, "%s", s != NULL ? s + 1 : cel);
+    if (!k1_siec_sterownik_dobry(buf)) {
+        int32_t pola[5];
+        k1_siec_sterownik_do_pol(buf, pola); /* cut at 20 bytes; still not a plain name: unknown */
+        k1_siec_sterownik_z_pol(pola, buf);
+        if (!k1_siec_sterownik_dobry(buf))
+            buf[0] = '\0';
+    }
+}
+
+/* The link of a card with a cable: speed (Mb/s) and duplex — sysfs gives them only while the link is up. */
+static void lacze(int kat, const char *nazwa, struct karta *k)
+{
+    char p[64], v[32];
+    long x;
+    k->predkosc = 0;
+    k->dupleks = K1_SIEC_DUPLEKS_NIEZNANY;
+    if (!k->kabel)
+        return;
+    snprintf(p, sizeof p, "%s/speed", nazwa);
+    if (k1_czytaj_plik(kat, p, v, sizeof v) > 0 && (x = strtol(v, NULL, 10)) > 0 && x <= K1_SIEC_PREDKOSC_MAKS)
+        k->predkosc = (int)x;
+    snprintf(p, sizeof p, "%s/duplex", nazwa);
+    if (k1_czytaj_plik(kat, p, v, sizeof v) > 0)
+        k->dupleks = strcmp(v, "full\n") == 0 ? K1_SIEC_DUPLEKS_PELNY
+                     : strcmp(v, "half\n") == 0 ? K1_SIEC_DUPLEKS_POL
+                                                 : K1_SIEC_DUPLEKS_NIEZNANY;
 }
 
 /* One entry of class/net: a wired card (Ethernet, not Wi-Fi — later, not loopback) → *k; 0, or -1 to skip it. */
@@ -137,23 +230,10 @@ static int czytaj_karte(int kat, const char *nazwa, struct karta *k)
     snprintf(k->nazwa, sizeof k->nazwa, "%s", nazwa);
     snprintf(p, sizeof p, "%s/carrier", nazwa); /* readable only when the card is on (EINVAL when off) */
     k->kabel = k1_czytaj_plik(kat, p, v, sizeof v) > 0 && strcmp(v, "1\n") == 0;
+    identyfikuj(kat, nazwa, k);
+    lacze(kat, nazwa, k);
+    sterownik(kat, nazwa, k->sterownik, sizeof k->sterownik);
     return 0;
-}
-
-/* The driver of a card (for the log only): the name of the link device/driver, or "?". */
-static const char *sterownik(const char *nazwa, char *buf, size_t n)
-{
-    char p[96], cel[128];
-    ssize_t r;
-    const char *s;
-    snprintf(p, sizeof p, KLASA "/%s/device/driver", nazwa);
-    r = readlink(p, cel, sizeof cel - 1);
-    if (r <= 0)
-        return "?";
-    cel[r] = '\0';
-    s = strrchr(cel, '/');
-    snprintf(buf, n, "%s", s != NULL ? s + 1 : cel);
-    return buf;
 }
 
 /* All the wired cards now: new ones switched on, gone ones forgotten. */
@@ -167,10 +247,10 @@ static void przejrzyj(void)
         if (e->d_name[0] == '.' || czytaj_karte(kat, e->d_name, &nowe[n]) != 0)
             continue;
         if (karta_nr(nowe[n].nr) == NULL) {
-            char s[32];
             int r = siec_wlacz_karte(nowe[n].nr);
-            k1_log(TAG, "sieć: karta przewodowa %s (sterownik %s)%s", nowe[n].nazwa,
-                   sterownik(nowe[n].nazwa, s, sizeof s), r == 0 ? " włączona" : " — nie udało się jej włączyć");
+            k1_log(TAG, "sieć: karta przewodowa %s (sterownik %s, %s %04x:%04x)%s", nowe[n].nazwa,
+                   nowe[n].sterownik[0] ? nowe[n].sterownik : "?", nowe[n].usb ? "USB" : "PCI", nowe[n].id >> 16,
+                   nowe[n].id & 0xffff, r == 0 ? " włączona" : " — nie udało się jej włączyć");
         }
         n++;
     }
@@ -189,14 +269,43 @@ static void przejrzyj(void)
     n_kart = n;
 }
 
-void siec_sprawdz(double t)
+/* The wired cards for the list in Ustawienia → Sieć (siec_stan.c). */
+int siec_przewodowe(struct siec_karta *t, int maks)
+{
+    int i;
+    for (i = 0; i < n_kart && i < maks; i++) {
+        t[i].id = karty[i].id;
+        t[i].rodzaj = K1_SIEC_PRZEWODOWA;
+        t[i].flagi = K1_SIEC_KF_STEROWNIK | (karty[i].usb ? K1_SIEC_KF_USB : 0) | (karty[i].kabel ? K1_SIEC_KF_KABEL : 0) |
+                     (karty[i].kabel && karty[i].nr == aktywna ? K1_SIEC_KF_AKTYWNA : 0);
+        snprintf(t[i].slot, sizeof t[i].slot, "%s", karty[i].slot);
+        t[i].predkosc = karty[i].predkosc;
+        t[i].dupleks = karty[i].dupleks;
+        memcpy(t[i].mac, karty[i].mac, 6);
+        snprintf(t[i].sterownik, sizeof t[i].sterownik, "%s", karty[i].sterownik);
+        t[i].adres = karty[i].nr == aktywna && z_adresem ? adres : 0;
+        t[i].router = t[i].adres != 0 ? router : 0;
+        t[i].prefiks = t[i].adres != 0 ? prefiks : 0;
+    }
+    return i;
+}
+
+/* The state on the top bar; *od = connected since (k1_teraz), 0 when not connected. */
+int siec_stan(double *od)
+{
+    int i, kabel = 0;
+    *od = aktywna != 0 && z_adresem ? polaczono_od : 0;
+    if (*od > 0)
+        return K1_SIEC_POLACZONO;
+    for (i = 0; i < n_kart; i++)
+        kabel |= karty[i].kabel;
+    return kabel ? K1_SIEC_LACZENIE : n_kart > 0 ? K1_SIEC_BEZ_KABLA : K1_SIEC_BRAK_KARTY;
+}
+
+static void sprawdz_karty(void)
 {
     struct karta *k;
     int i;
-    if (!zmiana && t < nastepne)
-        return;
-    zmiana = 0;
-    nastepne = t + SPRAWDZ_CO;
     przejrzyj();
     k = karta_nr(aktywna);
     if (aktywna != 0 && (k == NULL || !k->kabel))
@@ -216,6 +325,16 @@ void siec_sprawdz(double t)
         close(fd);
         return;
     }
+}
+
+void siec_sprawdz(double t)
+{
+    if (!zmiana && t < nastepne)
+        return;
+    zmiana = 0;
+    nastepne = t + SPRAWDZ_CO;
+    sprawdz_karty();
+    siec_stan_karty(); /* after the card siec has may have changed */
 }
 
 /* The channel to siec is new (siec starts, or starts again): what the previous one had is forgotten. */
@@ -241,9 +360,13 @@ static void prosba_sieci(const struct k1_komunikat *k)
             zabierz_adres(); /* another address from the router: the old one goes (and the routes through it) */
         r = siec_adres_karty(aktywna, (uint32_t)k->a, k->b, 1);
         if (r == 0) {
+            if (!z_adresem)
+                polaczono_od = k1_teraz();
             z_adresem = 1;
             adres = (uint32_t)k->a;
             prefiks = k->b;
+            router = (uint32_t)k->c;
+            zmiana = 1;
             if (k->c != 0 && (r = siec_trasa(aktywna, (uint32_t)k->c)) != 0)
                 k1_log(TAG, "sieć: trasa przez router: %s", strerror(-r));
         }
@@ -254,6 +377,21 @@ static void prosba_sieci(const struct k1_komunikat *k)
             k1_log(TAG, "sieć: ustawienie adresu: %s", strerror(-r));
     }
     do_sieci(k1_komunikat_nowy(K1_KOM_SIEC_WYNIK, k->obiekt, k->typ, wynik, 0, 0, 0), -1);
+}
+
+/* The clock from the internet (siec_zegar.c): only for the card siec has, with its address. */
+static void prosba_czasu(const struct k1_komunikat *k)
+{
+    int moze = aktywna != 0 && k->obiekt == (uint32_t)aktywna && z_adresem, fd = -1, w;
+    if (k->typ == K1_KOM_SIEC_CZAS_GNIAZDO) {
+        w = moze ? siec_gniazdo_czasu((uint32_t)k->a, &fd) : K1_SIEC_BLAD_KARTA;
+        do_sieci(k1_komunikat_nowy(K1_KOM_SIEC_GNIAZDO, k->obiekt, k->a, k->b, w, 0, 0), fd);
+        if (fd >= 0)
+            close(fd);
+        return;
+    }
+    w = moze ? siec_ustaw_zegar(k) : K1_SIEC_BLAD_KARTA;
+    do_sieci(k1_komunikat_nowy(K1_KOM_SIEC_WYNIK, k->obiekt, k->typ, w, 0, 0, 0), -1);
 }
 
 void obsluz_siec(void)
@@ -269,6 +407,10 @@ void obsluz_siec(void)
             siec_kanal = -1;
             siec_nowy_kanal();
             return;
+        }
+        if (w == K1_ODB_JEST && (k.typ == K1_KOM_SIEC_CZAS_GNIAZDO || k.typ == K1_KOM_SIEC_ZEGAR)) {
+            prosba_czasu(&k);
+            continue;
         }
         if (w != K1_ODB_JEST || (k.typ != K1_KOM_SIEC_ADRES && k.typ != K1_KOM_SIEC_ZWOLNIJ)) {
             k1_log(TAG, "sieć: odrzucono prośbę usługi sieci");

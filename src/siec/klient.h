@@ -45,6 +45,8 @@ struct k1_dhcp_klient {
     uint32_t dzierzawa;
     double t1, t2, koniec;     /* renew, rebind, the end of the lease (absolute times) */
     uint8_t serwer_mac[6];     /* where the ACK came from (renewing goes there) */
+    uint32_t czas[2];          /* the time servers the router named (0.9.0 step 8) */
+    int n_czas;
     int do_serwera;            /* the last zapytanie goes to serwer_mac, not to everyone */
     struct k1_dhcp_zapytanie zapytanie;
 };

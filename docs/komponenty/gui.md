@@ -71,7 +71,8 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   Folder i plik do otwarcia w Plikach — jak dotąd przez `URUCHOM` z miejscem (c = `K1_PLIKI_*`: 1 Kosz, 2 pole nazwy).
   „Zawsze otwieraj tą aplikacją” (gdy typ ma co najmniej dwie) — `USTAW` do ekranu (tylko klucze `K1_UST_OTWIERANIE`).
 - fd 5 (0.5.3, ADR 0014): od nadzorcy, jednokierunkowo — `BATERIA` (jest, procent, stan, zasilacz), `SESJA` (0.7.2: a=1 — K1-DANE w użyciu na dysku wewnętrznym, czyli K1 zainstalowany; nadzorca odrzuca też wylogowanie poza nim)
-  i `POKAZ_APL` (0.8.0: aplikacja dostała plik do otwarcia — jej okno na wierzch, jeśli już jest);
+  i `POKAZ_APL` (0.8.0: aplikacja dostała plik do otwarcia — jej okno na wierzch, jeśli już jest), `SIEC_STAN`
+  (0.9.0: ikona sieci na górnym pasku — log „sieć: połączono (ikona w x,y)” przy zmianie; `komponenty/siec.md`);
   nadawca musi mieć UID 0, każde pole sprawdzane; po zamknięciu kanału gui przestaje go czytać.
   Log przy zmianie obecności, stanu, zasilacza lub co 5 % („bateria 73%, rozładowywanie, …”).
 - Powierzchnie: warstwa pulpitu (`K1_POW_PULPIT`, cały ekran, zatwierdzane tylko zmienione prostokąty),

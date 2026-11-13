@@ -51,5 +51,6 @@ void dok_zapis_zapomnij(void);
 /* dok_czas.c */
 void dok_czas_wczytaj(void); /* the latest clock seen, from its object (at start) */
 int64_t dok_granica(void);   /* the build time or the latest clock seen, whichever is later */
+void dok_czas_ustaw(int64_t zegar); /* the clock is right (from the internet): the latest clock seen is this one */
 
 #endif

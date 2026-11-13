@@ -123,7 +123,7 @@ $(BIN)/init: src/init/main.c $(WSPOLNE) $(NAGL) | $(BIN)
 NADZORCA := $(sort $(wildcard src/nadzorca/*.c))
 # 0.8.0 step 5: nadzorca grows an empty K1-DANE to the end of the stick with the installer's GPT code (powieksz.c)
 $(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -Isrc/instalator -I$(GEN)/sb -o $@ $(NADZORCA) src/instalator/gpt.c $(EFI) \
+	$(CC_K1) $(CFLAGS_K1) -DK1_CZAS_BUDOWY=$(CZAS_BUDOWY) -Isrc/zewnetrzne/monocypher -Isrc/instalator -I$(GEN)/sb -o $@ $(NADZORCA) src/instalator/gpt.c $(EFI) \
 		src/wspolne/k1_sha256.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
@@ -256,6 +256,10 @@ $(OBJ)/test_instalator: testy/host/test_instalator.c src/instalator/gpt.c src/in
 		src/wspolne/k1_io.h src/wspolne/k1_bajty.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/instalator -Isrc/nadzorca -o $@ testy/host/test_instalator.c src/instalator/gpt.c src/nadzorca/dyski.c
 
+# 0.9.0 step 8: the clock from the internet — SNTP packets, a round of several sources, the messages of the clock
+$(OBJ)/test_czas: testy/host/test_czas.c $(SIEC) $(wildcard src/siec/*.h) $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_czas.c src/siec/sntp.c src/siec/czas.c $(KOMUNIKAT) $(DOK_C)
+
 # 0.9.0 step 6 (ADR 0039): addresses, the messages of siec, DHCP packets and the client
 $(OBJ)/test_siec: testy/host/test_siec.c $(SIEC) $(wildcard src/siec/*.h) $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_siec.c $(filter-out src/siec/main.c,$(SIEC)) $(KOMUNIKAT) $(DOK_C)
@@ -345,8 +349,9 @@ $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instal
 	test_dokumenty test_notatki test_indeks test_log test_magazyn test_odcinki test_przejscie test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
 	test_zdarzenie): testy/host/k1_test_host.h
 
-testy-host: $(OBJ)/test_siec $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_podglad $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/test_menu $(OBJ)/test_przeciaganie $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/notatki_w_plikach $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder $(OBJ)/test_start
+testy-host: $(OBJ)/test_siec $(OBJ)/test_czas $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_podglad $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/test_menu $(OBJ)/test_przeciaganie $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/notatki_w_plikach $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder $(OBJ)/test_start
 	$(OBJ)/test_siec
+	$(OBJ)/test_czas
 	$(OBJ)/test_zalegle
 	$(OBJ)/test_skarb_zalegle
 	$(OBJ)/test_indeks
@@ -396,7 +401,7 @@ testy-host: $(OBJ)/test_siec $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ
 # Fuzzing (libFuzzer): one program per parser of untrusted bytes, testy/host/fuzz_<name>.c with the sources
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
-FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp
+FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -427,6 +432,8 @@ FUZZ_ZR_fat32     := $(FAT32) src/instalator/start.c src/wspolne/k1_log.c $(MONO
 FUZZ_DL_fat32     := 65536
 FUZZ_ZR_dhcp      := src/siec/dhcp.c src/siec/klient.c src/wspolne/k1_siec.c
 FUZZ_DL_dhcp      := 4096
+FUZZ_ZR_sntp      := src/siec/sntp.c src/siec/czas.c src/wspolne/k1_siec.c
+FUZZ_DL_sntp      := 4096
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
               -Isrc/wspolne -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/zewnetrzne/monocypher \
               -Isrc/zewnetrzne/wuffs

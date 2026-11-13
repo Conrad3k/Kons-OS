@@ -185,6 +185,30 @@ void siec_sprawdz(double t);
 void siec_nowy_kanal(void);
 void obsluz_siec(void);
 void obsluz_rt(void);
+/* One network card in the list of Ustawienia → Sieć (K1_KOM_SIEC_KARTA). */
+struct siec_karta {
+    uint32_t id;     /* vendor << 16 | device (PCI, or USB with K1_SIEC_KF_USB) */
+    int rodzaj;      /* K1_SIEC_PRZEWODOWA, WIFI, INNA */
+    int flagi;       /* K1_SIEC_KF_* */
+    char slot[32];   /* its name in sysfs bus/pci/devices ("" for USB) */
+    /* wired with a driver only (SIEC_SZCZEGOLY, SIEC_STEROWNIK, SIEC_ADRESY) */
+    int predkosc, dupleks;                        /* Mb/s (0: no link), K1_SIEC_DUPLEKS_* */
+    uint8_t mac[6];
+    char sterownik[K1_SIEC_STEROWNIK_MAKS + 1];   /* "" unknown */
+    uint32_t adres, router;                       /* the address set on it (0: none), host order */
+    int prefiks;
+};
+int siec_przewodowe(struct siec_karta *t, int maks); /* the wired cards nadzorca uses */
+int siec_stan(double *od);                           /* K1_SIEC_*; *od: connected since (k1_teraz) or 0 */
+/* siec_stan.c — the network for gui (the top bar) and Ustawienia → Sieć (0.9.0 step 7) */
+void siec_stan_karty(void);          /* the cards changed (or a look at them): the PCI list again */
+void siec_stan_wyslij(void);         /* what gui and Ustawienia have not got yet */
+void siec_stan_nowy_kanal_gui(void); /* a new channel: everything again */
+void siec_stan_nowy_kanal_ustawien(void);
+/* siec_zegar.c — the clock from the internet (0.9.0 step 8): 0, or K1_SIEC_BLAD_* */
+extern double siec_zegar_od;                       /* the clock set (or found right) at (k1_teraz), 0: not yet */
+int siec_gniazdo_czasu(uint32_t serwer, int *fd);  /* a UDP socket connected to serwer:123 */
+int siec_ustaw_zegar(const struct k1_komunikat *k); /* SIEC_ZEGAR, checked by k1_kom_siec.c */
 /* siec_jadro.c — the kernel's network settings (rtnetlink): 0, or -errno */
 int siec_wlacz_karte(int nr);                                /* switch card `nr` (ifindex) on */
 int siec_adres_karty(int nr, uint32_t a, int pre, int dodaj); /* add / take away address a (host order) of /pre */

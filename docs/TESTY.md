@@ -526,3 +526,16 @@ odbiera — karty wyłączonej nic nie „zalewa”. Dotychczasowe testy QEMU zo
 
 Sieć testowa: monitor QEMU `set_link karta off|on` to wyjęcie i włożenie kabla (karta ma `id=karta`). Router testowy
 odpowiada na ARP o swój adres (K1 pyta o niego przed odpowiedzią przez trasę) i — gdy `wlaczony` — na DHCP.
+
+## 0.9.0 kroki 7 i 8 — ikona sieci, Ustawienia → Sieć, zegar z internetu
+| Test | Co sprawdza | Rodzaj |
+|---|---|---|
+| host `test_siec` (`t_stan`) | `SIEC_STAN`, `SIEC_KARTA`, `SIEC_SZCZEGOLY`, `SIEC_STEROWNIK`, `SIEC_ADRESY`: dobre i każde złe pole (kierunek, „od” bez połączenia, Wi-Fi z kablem, używana bez kabla, nazwa sterownika pusta / z wielkimi literami / z bajtem za końcem, ucięcie do 20 bajtów) | jednostkowy + negatywny |
+| host `test_czas` | pytanie SNTP bajt po bajcie; odpowiedzi: dobra, z rozszerzeniami, **każda skrócona**, za długa, inny znacznik, tryb klienta, wersja 2 i 3, alarm, warstwa 0 i 16, bez czasu wysłania, niepewny serwer (rozrzut 1 s, ujemne opóźnienie), 2020, 2103, era 1 (po 2036); runda: kolejność źródeł (router, potem stałe; zły adres od routera pominięty), mediana zgodnych, nikt się nie zgadza, 3 z 5, 2 i 2, jedna odpowiedź, dwie; odstępy 15 s … 1 h, odmowa nadzorcy; odpowiedź niezapytana, podwójna, spóźniona, cudzym znacznikiem; komunikaty `SIEC_CZAS_GNIAZDO`, `SIEC_GNIAZDO`, `SIEC_ZEGAR`, `ZEGAR_PRZESUNIETY` | jednostkowy + negatywny |
+| host `test_dokumenty` (`test_zegar_z_internetu`) | zegar z 2000 r. przestawiony na dziś: plik w Koszu od 2 dni ma dalej 28 dni; zegar wcześniej za daleko w przód cofnięty: granica wraca, Kosz zachowuje wiek; granica po restarcie; czas sprzed wydania nie jest granicą | jednostkowy + negatywny |
+| `fuzz_sntp` (korpus `testy/host/korpus-sntp`) | dowolne odpowiedzi po kolei do rundy: odpowiedź albo odrzucona, albo z czasem 2026–2100; wynik rundy tylko przy ≥ 2 zgodnych i więcej niż połowie | fuzzing |
+| `scripts/test-siec.sh` (cd.) | ikona na górnym pasku: „łączę” (kropka w kolorze terakoty), „połączono” (jasna wtyczka), „kabel odłączony” (krzyżyk) — zrzuty `siec-1…3-*.png`; Ustawienia → Sieć: kafelek „Intel 82574L — Połączono”, szczegóły (sterownik, łącze), jasny i ciemny motyw, „Brak kabla”; adres tylko w oknie, nie w logu. Zegar (maszyna z zegarem z 2001 r., `-rtc base`): K1 pyta 5 serwerów (router z opcji 42 + stałe) z losowego portu, różne znaczniki; serwery milczą / odpowiadają źle (inny znacznik, 2020, warstwa 0, alarm) / nie zgadzają się / zgodnie podają czas sprzed wydania (nadzorca odmawia) → zegar bez zmian; dobry czas → „zegar ustawiony z internetu (przesunięcie +N s)”, bez błędu zegara sprzętowego, skarbiec przesuwa Kosz, Ustawienia „zegar z internetu”; zrzut `siec-4-zegar-z-internetu.png` | z zewnątrz + negatywny |
+| w systemie `t_proby` | każda klatka: `clock_settime`, `settimeofday`, `adjtimex` zablokowane (zegar ustawia tylko nadzorca) | negatywny |
+
+Router testowy (krok 8) odpowiada na każde pytanie o czas (UDP na port 123, na każdy adres) według `Router.czas`:
+milczy, „dobry”, „zle”, „niezgodne” albo podany czas.

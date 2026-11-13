@@ -405,6 +405,16 @@ static const struct prym ik_bateria[] = { { P_PROST, 3.5f, 7.5f, 15, 9, 2 }, { P
 static const struct prym ik_dysk[] = { { P_PROST, 3.5f, 5.5f, 17, 13, 2.5f }, { P_KRESKA, 3.5f, 13.5f, 20.5f, 13.5f, 0 },
                                        { P_KOLO, 16.5f, 16, 1.2f, 0, 0 } };
 
+/* 0.9.0 step 7 (D1: sketch C): a network plug (RJ45) — its body, four contacts, the latch, the cable (not without one);
+ * Wi-Fi: three arcs over a dot (the list of cards in Ustawienia → Sieć) */
+#define WTYCZKA                                                                                                     \
+    { P_PROST, 5, 6, 14, 11, 2 }, { P_KRESKA, 8.5f, 9.5f, 8.5f, 11.5f, 0 }, { P_KRESKA, 11, 9.5f, 11, 11.5f, 0 },  \
+        { P_KRESKA, 13.5f, 9.5f, 13.5f, 11.5f, 0 }, { P_KRESKA, 16, 9.5f, 16, 11.5f, 0 }, { P_PROST, 9.5f, 17, 5, 2.5f, 0.6f }
+static const struct prym ik_siec[] = { WTYCZKA, { P_KRESKA, 12, 19.5f, 12, 22.5f, 0 } };
+static const struct prym ik_siec_bez[] = { WTYCZKA };
+static const struct prym ik_wifi[] = { { P_LUK, 12, 19, 4.5f, -45, 45 }, { P_LUK, 12, 19, 9, -45, 45 },
+                                       { P_LUK, 12, 19, 13.5f, -45, 45 }, { P_KOLO, 12, 19, 1.3f, 0, 0 } };
+
 static const struct prym ik_kalkulator[] = {
     { P_PROST, 5.5f, 3, 13, 18, 2.5f }, { P_KRESKA, 8.5f, 7.5f, 15.5f, 7.5f, 0 }, { P_KOLO, 9, 12, 1.2f, 0, 0 },
     { P_KOLO, 12, 12, 1.2f, 0, 0 },     { P_KOLO, 15, 12, 1.2f, 0, 0 },          { P_KOLO, 9, 15.5f, 1.2f, 0, 0 },
@@ -491,7 +501,8 @@ void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozm
         [K1_IK_OBRAZ] = IK(ik_wyglad),      [K1_IK_KOSZ] = IK(ik_kosz),
         [K1_IK_KOSZ_PELNY] = IK(ik_kosz_pelny), [K1_IK_MUZYKA] = IK(ik_muzyka),
         [K1_IK_WIDEO] = IK(ik_wideo),       [K1_IK_POBRANE] = IK(ik_pobrane),
-        [K1_IK_W_GORE] = IK(ik_w_gore),
+        [K1_IK_W_GORE] = IK(ik_w_gore),     [K1_IK_SIEC] = IK(ik_siec),
+        [K1_IK_SIEC_BEZ_KABLA] = IK(ik_siec_bez), [K1_IK_WIFI] = IK(ik_wifi),
     };
     float s = rozmiar / 24.0f, g = 1.6f;
     int32_t x0, y0, x1, y1, i, j;

@@ -1,6 +1,6 @@
-/* K1 gui — the top bar: name of the active application, battery on laptops (0.5.3, ADR 0014), sound,
- * date and time; and the sound popover under the sound icon. The battery and session state come from
- * nadzorca on fd 5 (one way, sender UID 0 checked by k1_odbierz_komunikat). */
+/* K1 gui — the top bar: name of the active application, the network (0.9.0 step 7), battery on laptops (0.5.3,
+ * ADR 0014), sound, date and time; and the sound popover under the sound icon. The network, battery and session state
+ * come from nadzorca on fd 5 (one way, sender UID 0 checked by k1_odbierz_komunikat). */
 #include <stdio.h>
 #include <time.h>
 
@@ -41,6 +41,9 @@ static struct {
 static int bat_odrzucone, bat_zalogowana;
 int bat_kanal = 1;
 int wyloguj_mozna = -1;
+static int siec = -1;             /* K1_SIEC_* from nadzorca; -1: not known yet (no icon) */
+static int32_t siec_x_zalogowane; /* the tests find the icon by the log line */
+static int siec_zalogowana = -1;
 
 static void zaloguj_baterie(void)
 {
@@ -81,6 +84,11 @@ void odbierz_baterie(void)
             sesja(m.a);
             continue;
         }
+        if (w == K1_ODB_JEST && m.typ == K1_KOM_SIEC_STAN) {
+            siec = m.a;
+            gora.brudna = 1;
+            continue;
+        }
         if (w == K1_ODB_JEST && m.typ == K1_KOM_POKAZ_APL) { /* an application got a file to open (ADR 0030) */
             pokaz_aplikacje(m.a);
             continue;
@@ -105,8 +113,8 @@ void odbierz_baterie(void)
     }
 }
 
-/* Draws [bolt] 73% [battery] ending just left of the sound icon. */
-static void rysuj_baterie(struct k1_obraz *o, uint32_t krem)
+/* Draws [bolt] 73% [battery] ending just left of the sound icon; returns where it begins. */
+static int32_t rysuj_baterie(struct k1_obraz *o, uint32_t krem)
 {
     const float x = (float)glosnik_x() - 4 - 26, y = 10; /* battery body 22×12 + 2 px terminal */
     char proc[16];
@@ -124,6 +132,43 @@ static void rysuj_baterie(struct k1_obraz *o, uint32_t krem)
         k1_kreska(o, bx + 5, 9, bx + 1.5f, 16.5f, 1.5f, krem);
         k1_kreska(o, bx + 1.5f, 16.5f, bx + 6.5f, 15.5f, 1.5f, krem);
         k1_kreska(o, bx + 6.5f, 15.5f, bx + 3, 23, 1.5f, krem);
+        tx = (int32_t)bx;
+    }
+    return tx;
+}
+
+/* The network icon (D1: sketch C, the plug), 16 px at x: connected — the plug with its cable; connecting — dimmed with
+ * a terracotta dot; no cable — the plug alone, dimmed, with a small ×; no card — faint and crossed out. */
+static void rysuj_siec(struct k1_obraz *o, float x, uint32_t krem)
+{
+    static const char *const stany[] = { "brak obsługiwanej karty", "kabel odłączony", "łączę (czekam na adres od routera)",
+                                         "połączono" };
+    const float y = 8;
+    const uint32_t slaby = k1_kolor(K1_KREM, 110), tlo = k1_kolor(K1_NOC, 255);
+    switch (siec) {
+    case K1_SIEC_POLACZONO:
+        k1_ikona(o, K1_IK_SIEC, x, y, 16, krem);
+        break;
+    case K1_SIEC_LACZENIE:
+        k1_ikona(o, K1_IK_SIEC, x, y, 16, slaby);
+        k1_kolo(o, x + 13, y + 14, 2.6f, tlo);
+        k1_kolo(o, x + 13, y + 14, 1.8f, k1_kolor(K1_TERAKOTA_JASNA, 255));
+        break;
+    case K1_SIEC_BEZ_KABLA:
+        k1_ikona(o, K1_IK_SIEC_BEZ_KABLA, x, y, 16, slaby);
+        k1_kolo(o, x + 13, y + 13, 4.2f, tlo);
+        k1_kreska(o, x + 11, y + 11, x + 15, y + 15, 1.3f, krem);
+        k1_kreska(o, x + 15, y + 11, x + 11, y + 15, 1.3f, krem);
+        break;
+    default:
+        k1_ikona(o, K1_IK_SIEC_BEZ_KABLA, x, y, 16, k1_kolor(K1_KREM, 70));
+        k1_kreska(o, x + 2, y + 2, x + 14, y + 14, 1.4f, k1_kolor(K1_KREM, 160));
+        break;
+    }
+    if (siec != siec_zalogowana || (int32_t)x != siec_x_zalogowane) {
+        k1_log(TAG, "sieć: %s (ikona w %d,%d)", stany[siec], (int)x, (int)y);
+        siec_zalogowana = siec;
+        siec_x_zalogowane = (int32_t)x;
     }
 }
 
@@ -145,8 +190,9 @@ void rysuj_gora(void)
     if (hover_gora || dzwiek_otwarty)
         k1_zaokraglony(o, (float)gx, 4, 28, 24, 6, k1_kolor(K1_KREM, 36));
     k1_ikona(o, K1_IK_GLOSNIK, (float)gx + 6, 8, 16, krem);
-    if (bat.obecna)
-        rysuj_baterie(o, krem);
+    gx = bat.obecna ? rysuj_baterie(o, krem) : gx;
+    if (siec >= K1_SIEC_BRAK_KARTY && siec <= K1_SIEC_STAN_MAKS)
+        rysuj_siec(o, (float)gx - 10 - 16, krem);
     k1_pow_zatwierdz(&k, &gora);
 }
 

@@ -45,6 +45,7 @@ void bateria_nowy_kanal(void)
 {
     bateria_znana = 0;
     sesja_wyslana = -1;
+    siec_stan_nowy_kanal_gui();
 }
 
 void ustawienia_nowy_kanal(void)
@@ -52,6 +53,7 @@ void ustawienia_nowy_kanal(void)
     ustaw_znana = 0;
     ustaw_hist_wyslane = 0;
     ustaw_arch_wyslane = 0;
+    siec_stan_nowy_kanal_ustawien();
 }
 
 /* gui's top bar: the state when it changed (the first time after gui started: always). Also on this

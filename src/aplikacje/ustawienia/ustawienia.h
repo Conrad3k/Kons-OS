@@ -1,7 +1,8 @@
 /* K1 Ustawienia — state shared by the modules (0.7.5 split): main.c (sections, Wygląd, Ekran, Mysz,
  * Data i czas), bateria.c (Bateria: from nadzorca, fd 4), haslo.c (Hasło: through skarbiec, fd 5),
  * aplikacje.c (Aplikacje: the default application of a file type, 0.8.0), miejsce.c (Miejsce: the room for files and
- * what takes it, K1-DANE to the end of the stick — 0.8.5), informacje.c (Informacje: the system). */
+ * what takes it, K1-DANE to the end of the stick — 0.8.5), siec.c (Sieć: the network cards — 0.9.0),
+ * informacje.c (Informacje: the system). */
 #ifndef K1_USTAWIENIA_H
 #define K1_USTAWIENIA_H
 
@@ -17,7 +18,7 @@
 #define SEG_W 260
 #define SEG_H 36
 
-enum { S_WYGLAD, S_EKRAN, S_BATERIA, S_MYSZ, S_CZAS, S_HASLO, S_APLIKACJE, S_MIEJSCE, S_INFO, S_LICZBA };
+enum { S_WYGLAD, S_EKRAN, S_BATERIA, S_MYSZ, S_CZAS, S_HASLO, S_APLIKACJE, S_MIEJSCE, S_SIEC, S_INFO, S_LICZBA };
 
 extern struct k1_apl apl;
 extern int sekcja;
@@ -31,7 +32,7 @@ static inline int seg_y(void)
 void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul, const char *opis);
 
 /* bateria.c */
-int bateria_odbierz(void); /* what nadzorca sent; 1 = the Bateria section must be redrawn */
+int bateria_odbierz(void); /* what nadzorca sent (Sieć's messages too: siec_odbierz); 1 = redraw */
 void bateria_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 void bateria_loguj(void); /* the tests check the chart by this line */
 
@@ -48,6 +49,11 @@ const char *haslo_gdzie_dane(void); /* the Informacje line about the data */
 int skarbiec_kanal(void);   /* fd 5 while it is open, else -1 */
 int haslo_tylko_pamiec(void); /* no K1-DANE: the data only in memory */
 int haslo_na_pendrive(void);  /* K1-DANE on a USB stick */
+
+/* siec.c */
+void siec_odbierz(const struct k1_komunikat *k); /* SIEC_* from nadzorca (bateria_odbierz) */
+void siec_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
+void siec_zegar_tekst(char *buf, size_t n); /* Data i czas: whether the clock came from the internet, when */
 
 /* informacje.c */
 void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);

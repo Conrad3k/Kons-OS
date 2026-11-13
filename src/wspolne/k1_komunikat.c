@@ -64,5 +64,5 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            (typ == K1_KOM_DEK_KAWALEK && kierunek == K1_KIER_DO_DEKODERA) ||
            (typ == K1_KOM_DEK_PIKSELE && kierunek == K1_KIER_OD_DEKODERA) ||
            ((typ == K1_KOM_PEN_LISTA || typ == K1_KOM_PEN_PLIK) && kierunek == K1_KIER_OD_CZYTNIKA) ||
-           (typ == K1_KOM_SIEC_KABEL && kierunek == K1_KIER_OD_NADZORCY);
+           ((typ == K1_KOM_SIEC_KABEL || typ == K1_KOM_SIEC_GNIAZDO) && kierunek == K1_KIER_OD_NADZORCY);
 }

@@ -203,6 +203,56 @@ static void t_komunikaty(void)
 }
 
 /* What we send: headers and checksums right (checked by the code of this file), the options of each kind. */
+/* 0.9.0 step 7: the network for gui and Ustawienia — the state, the list of cards, the details of a card. */
+static void t_stan(void)
+{
+    enum k1_kanal_kierunek OD = K1_KIER_OD_NADZORCY;
+    const int P = K1_SIEC_PRZEWODOWA, ST = K1_SIEC_KF_STEROWNIK, KA = K1_SIEC_KF_KABEL, AK = K1_SIEC_KF_AKTYWNA;
+    int32_t a, b, p[5];
+    char t[K1_SIEC_STEROWNIK_MAKS + 1];
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_POLACZONO, 2, 120, 130, 0), OD));
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_BRAK_KARTY, 0, 0, 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_POLACZONO, 2, 120, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_LACZENIE, 2, 120, 0, 0), OD)); /* "since" only connected */
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, 4, 2, 0, 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_BEZ_KABLA, K1_SIEC_LISTA_MAKS + 1, 0, 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 1, K1_SIEC_BEZ_KABLA, 1, 0, 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_BEZ_KABLA, 1, 0, -1, 0), OD));
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, (int32_t)0x808610d3, P, ST | KA | AK, 0, 0), OD));
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 7, 0x168c0042, K1_SIEC_WIFI, 0, 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, K1_SIEC_LISTA_MAKS, 0x168c0042, K1_SIEC_WIFI, 0, 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0x168c0042, K1_SIEC_WIFI, KA, 0, 0), OD)); /* Wi-Fi with a cable */
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0x10ec8136, P, KA, 0, 0), OD));         /* no driver */
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0x10ec8136, P, ST | AK, 0, 0), OD));    /* active, no cable */
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0x10ec8136, 4, 0, 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0x10ec8136, P, 16, 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0x10ec8136, P, ST, 1, 0), OD));
+    k1_siec_mac_do_pol(MAC, &a, &b);
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_SZCZEGOLY, 0, 1000, K1_SIEC_DUPLEKS_PELNY, a, b, 0), OD));
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_SZCZEGOLY, 0, 0, K1_SIEC_DUPLEKS_NIEZNANY, a, b, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_SZCZEGOLY, 0, K1_SIEC_PREDKOSC_MAKS + 1, 0, a, b, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_SZCZEGOLY, 0, 100, 3, a, b, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_SZCZEGOLY, 0, 100, 2, 0, 0, 0), OD)); /* no MAC */
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_SZCZEGOLY, 0, -1, 2, a, b, 0), OD));
+    k1_siec_sterownik_do_pol("e1000e", p);
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_STEROWNIK, 0, p[0], p[1], p[2], p[3], p[4]), OD));
+    k1_siec_sterownik_z_pol(p, t);
+    EXPECT(strcmp(t, "e1000e") == 0);
+    k1_siec_sterownik_do_pol("virtio_net-12345678901", p); /* cut at 20 bytes */
+    k1_siec_sterownik_z_pol(p, t);
+    EXPECT(strcmp(t, "virtio_net-123456789") == 0 && k1_siec_sterownik_dobry(t));
+    k1_siec_sterownik_do_pol("", p);
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STEROWNIK, 0, p[0], p[1], p[2], p[3], p[4]), OD)); /* empty */
+    k1_siec_sterownik_do_pol("R8169", p);
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STEROWNIK, 0, p[0], p[1], p[2], p[3], p[4]), OD)); /* not a-z */
+    k1_siec_sterownik_do_pol("r8169", p);
+    p[4] = 0x41; /* a byte after the name's end */
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STEROWNIK, 0, p[0], p[1], p[2], p[3], p[4]), OD));
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_ADRESY, 0, (int32_t)IP(10, 0, 2, 15), 24, (int32_t)IP(10, 0, 2, 2), 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_ADRESY, 0, (int32_t)IP(127, 0, 0, 1), 8, 0, 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_ADRESY, 0, (int32_t)IP(10, 0, 2, 15), 24, 0, 1, 0), OD));
+}
+
 static void t_wysylane(void)
 {
     uint8_t b[K1_DHCP_PAKIET_MAKS];
@@ -426,6 +476,7 @@ int main(void)
 {
     t_adresy();
     t_komunikaty();
+    t_stan();
     t_wysylane();
     t_odbierane();
     t_klient();

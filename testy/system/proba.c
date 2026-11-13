@@ -89,6 +89,10 @@ int proba(const char *profil)
     /* 0.9.0 step 6: setting an address is nadzorca's (CAP_NET_ADMIN, on siec's request) — no cage, siec included */
     zablokowane("ustawienie adresu karty (ioctl SIOCSIFADDR)", SYS_ioctl, 3, 0x8916, 0, 0, 0);
     zablokowane("zmiana filtra gniazda (setsockopt)", SYS_setsockopt, 3, 1 /* SOL_SOCKET */, 27 /* SO_DETACH_FILTER */, 0, 0);
+    /* 0.9.0 step 8: setting the clock is nadzorca's (CAP_SYS_TIME, on siec's request, in its bounds) — no cage */
+    zablokowane("ustawienie zegara (clock_settime)", SYS_clock_settime, 0 /* CLOCK_REALTIME */, 0, 0, 0, 0);
+    zablokowane("ustawienie zegara (settimeofday)", SYS_settimeofday, 0, 0, 0, 0, 0);
+    zablokowane("korekta zegara (adjtimex)", SYS_adjtimex, 0, 0, 0, 0, 0);
     zablokowane("nowy proces (fork)", SYS_fork, 0, 0, 0, 0, 0);
     zablokowane("nowy proces (clone)", SYS_clone, SIGCHLD, 0, 0, 0, 0);
     zablokowane("sygnał do init (kill)", SYS_kill, 1, SIGTERM, 0, 0, 0);

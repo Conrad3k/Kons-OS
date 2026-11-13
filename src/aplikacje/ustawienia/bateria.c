@@ -50,6 +50,12 @@ int bateria_odbierz(void)
             apl.kanaly[0].fd = -1;
             break;
         }
+        if (w == K1_ODB_JEST && (k.typ == K1_KOM_SIEC_STAN || k.typ == K1_KOM_SIEC_KARTA ||
+                                k.typ == K1_KOM_SIEC_SZCZEGOLY || k.typ == K1_KOM_SIEC_STEROWNIK || k.typ == K1_KOM_SIEC_ADRESY)) {
+            siec_odbierz(&k); /* the same channel (0.9.0 step 7) */
+            zmiana = 1;
+            continue;
+        }
         if (w != K1_ODB_JEST ||
             (k.typ != K1_KOM_BATERIA && k.typ != K1_KOM_BATERIA_HIST && k.typ != K1_KOM_BATERIA_ARCH)) {
             if (fd >= 0)

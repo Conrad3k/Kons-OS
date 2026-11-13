@@ -834,6 +834,43 @@ static void test_naprawa(void)
 
 #define ROK_2000 946684800LL
 
+/* 0.9.0 step 8 (L18): the clock set from the internet — what lies in Kosz keeps its age, forwards and backwards. */
+static void test_zegar_z_internetu(void)
+{
+    uint32_t a, b;
+    int64_t g;
+    ob_usun(K1_WL_DOKUMENTY, "czas");
+    dok_wczytaj(ROK_2000);
+    dok_oproznij_kosz();
+    /* a weak clock battery: 2000; a file goes to Kosz with the bound (this K1's build) */
+    g = dok_czas(ROK_2000 + DZIEN);
+    EXPECT(g == K1_CZAS_BUDOWY);
+    a = nowy(K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, "a.txt", (const uint8_t *)"x", 1, g);
+    EXPECT(dok_do_kosza(a, g) == 0);
+    /* two days later the internet says: it is the build + 400 days — "a" lay in Kosz for 2 days, not for 400 */
+    EXPECT(dok_zegar_przesuniety(K1_CZAS_BUDOWY + 400 * DZIEN, K1_CZAS_BUDOWY + 400 * DZIEN - (ROK_2000 + 3 * DZIEN)) == 1);
+    EXPECT(dok_wpis(a) != NULL && dok_wpis(a)->kosz == K1_CZAS_BUDOWY + 400 * DZIEN);
+    EXPECT(dok_przeterminowane(K1_CZAS_BUDOWY + 400 * DZIEN) == 0 && dok_wpis(a) != NULL);
+    EXPECT(dok_przeterminowane(K1_CZAS_BUDOWY + 429 * DZIEN) == 0 && dok_wpis(a) != NULL);
+    EXPECT(dok_przeterminowane(K1_CZAS_BUDOWY + 430 * DZIEN) == 1 && dok_wpis(a) == NULL);
+    /* a clock that was ahead (T0 seen) set back by the internet: the bound goes back with it, Kosz keeps the age */
+    EXPECT(dok_czas(T0) == T0);
+    b = nowy(K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, "b.txt", (const uint8_t *)"x", 1, T0);
+    EXPECT(dok_do_kosza(b, T0) == 0);
+    EXPECT(dok_zegar_przesuniety(K1_CZAS_BUDOWY + 500 * DZIEN, K1_CZAS_BUDOWY + 500 * DZIEN - T0) == 1);
+    EXPECT(dok_wpis(b) != NULL && dok_wpis(b)->kosz == K1_CZAS_BUDOWY + 500 * DZIEN);
+    EXPECT(dok_czas(K1_CZAS_BUDOWY + 501 * DZIEN) == K1_CZAS_BUDOWY + 501 * DZIEN); /* not T0 any more */
+    EXPECT(dok_przeterminowane(K1_CZAS_BUDOWY + 529 * DZIEN) == 0 && dok_wpis(b) != NULL);
+    EXPECT(dok_przeterminowane(K1_CZAS_BUDOWY + 530 * DZIEN) == 1 && dok_wpis(b) == NULL);
+    /* the latest clock seen is saved: after a restart the bound is the internet's time since, not T0 */
+    dok_wczytaj(ROK_2000);
+    EXPECT(dok_czas(ROK_2000) == K1_CZAS_BUDOWY + 530 * DZIEN);
+    /* a time before this K1's build is never taken as the bound */
+    EXPECT(dok_zegar_przesuniety(ROK_2000, ROK_2000 - (K1_CZAS_BUDOWY + 530 * DZIEN)) == 0);
+    EXPECT(dok_czas(ROK_2000) == K1_CZAS_BUDOWY + 530 * DZIEN);
+    ob_usun(K1_WL_DOKUMENTY, "czas");
+}
+
 /* T1/3 of the plan: a wrong clock never empties Kosz early, a time from a wrong clock is set right. */
 static void test_zegar(void)
 {
@@ -1324,6 +1361,7 @@ int main(void)
     test_nazwy_wolne();
     test_licznik_kosza();
     test_zegar();
+    test_zegar_z_internetu();
     test_limit_dostepu();
     test_duzo_wpisow();
     test_rezerwa();

@@ -93,3 +93,37 @@ int k1_siec_mac_z_tekstu(const char *t, uint8_t mac[6])
     }
     return t[17] == '\0' || (t[17] == '\n' && t[18] == '\0') ? 0 : -1;
 }
+
+int k1_siec_sterownik_dobry(const char t[K1_SIEC_STEROWNIK_MAKS])
+{
+    int i, n = 0;
+    while (n < K1_SIEC_STEROWNIK_MAKS && t[n] != '\0') {
+        char c = t[n++];
+        if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-'))
+            return 0;
+    }
+    for (i = n; i < K1_SIEC_STEROWNIK_MAKS; i++)
+        if (t[i] != '\0')
+            return 0;
+    return n > 0;
+}
+
+void k1_siec_sterownik_do_pol(const char *nazwa, int32_t p[5])
+{
+    char t[K1_SIEC_STEROWNIK_MAKS] = { 0 };
+    size_t n = strlen(nazwa);
+    memcpy(t, nazwa, n < sizeof t ? n : sizeof t);
+    memcpy(p, t, sizeof t);
+}
+
+void k1_siec_sterownik_z_pol(const int32_t p[5], char nazwa[K1_SIEC_STEROWNIK_MAKS + 1])
+{
+    memcpy(nazwa, p, K1_SIEC_STEROWNIK_MAKS);
+    nazwa[K1_SIEC_STEROWNIK_MAKS] = '\0';
+}
+
+int k1_siec_serwer_dobry(uint32_t a)
+{
+    uint32_t pierwszy = a >> 24;
+    return pierwszy != 0 && pierwszy != 127 && pierwszy < 224;
+}

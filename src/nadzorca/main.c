@@ -125,6 +125,7 @@ static void okresowe(void)
         nastepne_skanowanie = t + (uevent_fd >= 0 ? 10.0 : 2.0);
     uevent_wejscie = uevent_dysk = uevent_zasilanie = uevent_zalegle = 0;
     siec_sprawdz(t);
+    siec_stan_wyslij();
     wyslij_baterie();
     wyslij_ustawieniom();
     bateria_archiwum(t);

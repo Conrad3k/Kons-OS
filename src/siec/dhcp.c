@@ -101,10 +101,11 @@ size_t k1_dhcp_buduj(const struct k1_dhcp_zapytanie *z, uint8_t *bufor, size_t m
         o = opcja32(o, 50, z->zadany);
     if (z->serwer != 0)
         o = opcja32(o, 54, z->serwer);
-    *o++ = 55; /* what we want to know: the mask, the router, the lease, T1, T2 */
-    *o++ = 5;
+    *o++ = 55; /* what we want to know: the mask, the router, the lease, T1, T2, the time servers */
+    *o++ = 6;
     *o++ = 1;
     *o++ = 3;
+    *o++ = 42;
     *o++ = 51;
     *o++ = 58;
     *o++ = 59;
@@ -161,6 +162,16 @@ static int naglowki(const uint8_t *ip, size_t n, const uint8_t **d, size_t *n_d)
     return 0;
 }
 
+/* Option 42: up to two time servers that can be one (the rest, and bad ones, skipped — not a reason to reject). */
+static void czas_z_opcji(const uint8_t *p, uint8_t dl, struct k1_dhcp_odpowiedz *o)
+{
+    unsigned i;
+    o->n_czas = 0;
+    for (i = 0; i + 4 <= dl && o->n_czas < 2; i += 4)
+        if (k1_siec_serwer_dobry(c32(p + i)))
+            o->czas[o->n_czas++] = c32(p + i);
+}
+
 /* The options we use; the rest is skipped. Every length is checked against the end of the message. */
 static int opcje(const uint8_t *p, size_t n, struct k1_dhcp_odpowiedz *o, uint32_t *maska)
 {
@@ -178,7 +189,7 @@ static int opcje(const uint8_t *p, size_t n, struct k1_dhcp_odpowiedz *o, uint32
             return K1_DHCP_ZLE_OPCJE;
         dl = p[i + 1];
         if ((kod == 53 && dl != 1) || ((kod == 54 || kod == 1 || kod == 51 || kod == 58 || kod == 59) && dl != 4) ||
-            (kod == 3 && (dl < 4 || dl % 4 != 0)))
+            ((kod == 3 || kod == 42) && (dl < 4 || dl % 4 != 0)))
             return K1_DHCP_ZLE_OPCJE;
         if (kod == 53)
             typ = p[i + 2];
@@ -190,6 +201,8 @@ static int opcje(const uint8_t *p, size_t n, struct k1_dhcp_odpowiedz *o, uint32
             o->router = c32(p + i + 2);
         else if (kod == 51)
             o->dzierzawa = c32(p + i + 2);
+        else if (kod == 42)
+            czas_z_opcji(p + i + 2, dl, o);
         else if (kod == 58)
             o->t1 = c32(p + i + 2);
         else if (kod == 59)

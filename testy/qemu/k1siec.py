@@ -112,12 +112,15 @@ def dhcp_z_ramki(r):
 
 
 def dhcp(typ, xid, yiaddr=IP_K1, opcje=None, mac=MAC_K1, maska=bytes([255, 255, 255, 0]), router=IP_SIEC, dzierzawa=30,
-         serwer=IP_SIEC, suma_udp=True):
-    """A reply of the router to K1: OFFER (2), ACK (5), NAK (6). `opcje`: the whole options instead of the usual ones."""
+         serwer=IP_SIEC, suma_udp=True, czas=None):
+    """A reply of the router to K1: OFFER (2), ACK (5), NAK (6). `opcje`: the whole options instead of the usual ones;
+    `czas`: the time servers (option 42, 0.9.0 step 8)."""
     if opcje is None:
         opcje = bytes([53, 1, typ, 54, 4]) + serwer
         if typ != 6:
             opcje += bytes([1, 4]) + maska + bytes([3, 4]) + router + bytes([51, 4]) + struct.pack("!I", dzierzawa)
+            if czas:
+                opcje += bytes([42, 4 * len(czas)]) + b"".join(czas)
         opcje += b"\xff"
     d = bytes([2, 1, 6, 0]) + struct.pack("!IHH", xid, 0, 0) + bytes(4) + yiaddr + IP_SIEC + bytes(4) + mac + bytes(202)
     d += struct.pack("!I", DHCP_CIASTKO) + opcje
@@ -128,20 +131,54 @@ def dhcp(typ, xid, yiaddr=IP_K1, opcje=None, mac=MAC_K1, maska=bytes([255, 255, 
     return eth(MAC_K1, MAC_SIEC, ETH_IP, ip(IP_SIEC, cel, 17, u))
 
 
+# --- the time (0.9.0 step 8): SNTP answers of "servers on the internet" — the router answers for every address ---
+NTP_OD_1900 = 2208988800
+
+
+def ntp_z_ramki(r):
+    """A question of K1 to a time server (UDP → 123): {serwer, port, znacznik (the transmit timestamp), bajt0} or None."""
+    if len(r) < 42 or struct.unpack("!H", r[12:14])[0] != ETH_IP or r[23] != 17:
+        return None
+    l4 = 14 + (r[14] & 15) * 4
+    zp, cp = struct.unpack("!HH", r[l4:l4 + 4])
+    d = r[l4 + 8:]
+    if cp != 123 or len(d) < 48:
+        return None
+    return {"serwer": r[30:34], "port": zp, "znacznik": d[40:48], "bajt0": d[0], "dlugosc": len(d)}
+
+
+def ntp(pytanie, czas, znacznik=None, warstwa=2, skok=0):
+    """The server's answer to `pytanie` (ntp_z_ramki) with time `czas` (seconds since 1970)."""
+    t = int((czas + NTP_OD_1900) * 2 ** 32) & (2 ** 64 - 1)
+    d = bytes([skok << 6 | 4 << 3 | 4, warstwa, 4, 0xE9]) + struct.pack("!II", 0x10, 0x20) + b"K1TS"
+    d += struct.pack("!Q", t) + (znacznik if znacznik is not None else pytanie["znacznik"]) + struct.pack("!QQ", t, t)
+    u = struct.pack("!HHHH", 123, pytanie["port"], 8 + len(d), 0) + d
+    u = u[:6] + struct.pack("!H", _pseudo(pytanie["serwer"], IP_K1, 17, u) or 0xFFFF) + u[8:]
+    return eth(MAC_K1, MAC_SIEC, ETH_IP, ip(pytanie["serwer"], IP_K1, 17, u))
+
+
 class Router:
     """The test network's router: answers ARP for its own address and — once `wlaczony` — DHCP (OFFER to DISCOVER,
-    ACK to REQUEST; NAK when `odmowa`). Every DHCP message from K1 is kept in `dhcp` (time, message)."""
+    ACK to REQUEST; NAK when `odmowa`). Every DHCP message from K1 is kept in `dhcp` (time, message).
+    Time servers (0.9.0 step 8): the router names itself in option 42 and answers every question to port 123, whatever
+    the address, as `czas` says: None — silence; "dobry" — the time now; "zle" — every answer wrong in turn (another
+    timestamp, a time from 2020, stratum 0, the alarm); "niezgodne" — every server another time (100 s apart);
+    a number — that time from every server. Every question is kept in `ntp` (time, question)."""
 
     def __init__(self, siec, dzierzawa=30):
         self.siec, self.dzierzawa = siec, dzierzawa
         self.wlaczony, self.odmowa = False, False
-        self.dhcp = []
+        self.dhcp, self.ntp, self.czas = [], [], None
         siec.odpowiadacze.append(self)
 
     def __call__(self, r):
         if len(r) >= 42 and struct.unpack("!H", r[12:14])[0] == ETH_ARP and r[21] == 1 and r[38:42] in (IP_SIEC, IP_INNY):
             mac = MAC_SIEC if r[38:42] == IP_SIEC else MAC_INNY
             return [arp_odpowiedz(mac, r[38:42], r[22:28], r[28:32])]
+        p = ntp_z_ramki(r)
+        if p is not None and r[26:30] == IP_K1:
+            self.ntp.append((time.time(), p))
+            return self.czas_odpowiedz(p, len(self.ntp))
         m = dhcp_z_ramki(r)
         if m is None or m["op"] != 1:
             return []
@@ -150,11 +187,25 @@ class Router:
 
     def odpowiedz(self, m):
         if m["typ"] == 1:
-            return [dhcp(2, m["xid"], dzierzawa=self.dzierzawa)]
+            return [dhcp(2, m["xid"], dzierzawa=self.dzierzawa, czas=[IP_SIEC])]
         if m["typ"] == 3:
             return [dhcp(6 if self.odmowa else 5, m["xid"], yiaddr=bytes(4) if self.odmowa else IP_K1,
-                         dzierzawa=self.dzierzawa)]
+                         dzierzawa=self.dzierzawa, czas=[IP_SIEC])]
         return []
+
+    def czas_odpowiedz(self, p, nr):
+        teraz = time.time()
+        if self.czas is None:
+            return []
+        if self.czas == "dobry":
+            return [ntp(p, teraz)]
+        if self.czas == "niezgodne":
+            return [ntp(p, teraz + 100 * p["serwer"][3])]
+        if self.czas == "zle":
+            zle = [ntp(p, teraz, znacznik=bytes(a ^ 1 for a in p["znacznik"])), ntp(p, 1577836800.0),
+                   ntp(p, teraz, warstwa=0), ntp(p, teraz, skok=3)]
+            return [zle[nr % len(zle)]]
+        return [ntp(p, float(self.czas))]
 
     def ostatni(self, typ):
         return next((m for t, m in reversed(self.dhcp) if m["typ"] == typ), None)
