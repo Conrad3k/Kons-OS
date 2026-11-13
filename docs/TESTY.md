@@ -98,12 +98,12 @@ NEGATYWNE = coś, co ma się nie udać.
 - NEGATYWNE: zwykły użytkownik (UID 65534) nie widzi `/proc/1` i nie może wysłać sygnału do init
 - sysfs tylko do odczytu; cgroup2 zamontowane; devtmpfs `noexec,nosuid`
 - NEGATYWNE: brak `ptmx`, `pts`, `tty0`, `tty1`, `mem`, `kmem`, `port`
-- 13 sysctl ma wartości ustawione przez init; brak sysctl modułów, kexec, BPF, io_uring, SysRq,
+- 13 sysctl (od 0.9.0 + 23 sieci, ADR 0039) ma wartości ustawione przez init; brak sysctl modułów, kexec, BPF, io_uring, SysRq,
   userfaultfd; brak `/proc/modules`, `/proc/kcore`
 - LSM: landlock, lockdown, yama; lockdown `[confidentiality]`; Landlock dostępny (klatki wymagają ABI ≥ 6)
 - NEGATYWNE: `init_module`, `finit_module`, `kexec_load`, `kexec_file_load`, `io_uring_setup`, `bpf`,
-  `userfaultfd`, `modify_ldt`, `iopl`, `ioperm` → ENOSYS; gniazda AF_INET/AF_INET6 → EAFNOSUPPORT (gniazda UNIX
-  są — kanały usług)
+  `userfaultfd`, `modify_ldt`, `iopl`, `ioperm` → ENOSYS; gniazda AF_INET6 → EAFNOSUPPORT (od 0.9.0 AF_INET jest — ma
+  go tylko nadzorca; gniazda UNIX są — kanały usług)
 - init zbiera osierocone procesy (wnuk po zakończeniu nie zostaje zombie)
 - NEGATYWNE: SIGKILL wysłany do init nie zabija go
 - w `/rdzen` są dokładnie: `init`, `nadzorca`, identyfikator wydania, usługi z `K1_SYSTEM`, aplikacje z `K1_APLIKACJE`
@@ -505,3 +505,13 @@ celem) — tę regułę sprawdza host i skarbiec (`dok_przenies`).
 | w systemie `t_fortify` (obraz testowy) | `memcpy` w granicach bufora działa; NEGATYWNY: poza bufor — proces zatrzymany sygnałem SIGILL, nic nie nadpisane | negatywny |
 | pełne `scripts/testy.sh` | wszystkie usługi i aplikacje z nowym musl i fortify: klatki (nowe wywołania jądra byłyby „zabronione”, RYZYKA R24), pułapki przy zwykłej pracy (byłyby awarią usług) | regresja |
 
+## 0.9.0 krok 5 — jądro z siecią, nic nie odpowiada z zewnątrz (ADR 0039)
+| Test | Co sprawdza | Rodzaj |
+|---|---|---|
+| `scripts/test-siec.sh` (QEMU, obraz produkcyjny) | karta e1000e (jak X230) kablem do „sieci testowej” (`testy/qemu/k1siec.py`: drugi koniec kabla w Pythonie, QEMU `-netdev dgram`): jądro widzi kartę; sieć testowa wysyła ARP (pytanie o adres K1), ping (do K1, rozgłoszeniowy), ICMP „znacznik czasu” i „maska”, SYN na porty TCP 1–1024 i 10 wyższych, datagramy UDP na 15 portów (także rozgłoszeniowe) → **ani jednej ramki od K1** od startu (karta wyłączona: QEMU przyjmuje tylko pierwsze ramki do kolejki) | z zewnątrz + negatywny |
+| w systemie `t_proby` (każda klatka) | NEGATYWNE: `socket(AF_INET)`, `socket(AF_PACKET)`, `socket(AF_NETLINK)`, `socketpair(AF_INET)` — zablokowane (seccomp) | negatywny |
+| w systemie `t_syscalls` | jądro ma IPv4 (program testowy otwiera `AF_INET`), NEGATYWNY: `AF_INET6` → EAFNOSUPPORT | jednostkowy + negatywny |
+| w systemie `t_sysctl` | 23 sysctl sieci z init (ICMP, przekierowania, `rp_filter`, ARP, SYN cookies) | jednostkowy |
+
+Sieć testowa: każdy datagram gniazda UNIX to jedna ramka Ethernet. QEMU czyta kabel tylko wtedy, gdy karta w maszynie
+odbiera — karty wyłączonej nic nie „zalewa”. Dotychczasowe testy QEMU zostają bez karty (`-nic none`).

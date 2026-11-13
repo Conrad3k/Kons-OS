@@ -72,12 +72,22 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
   usług (sysfs tylko do odczytu, klatki bez ścieżek); w QEMU (TCG) ich nie widać — efekt sprawdza się na sprzęcie
   (X230: Zasoby → pobór mocy na baterii). Bez `CONFIG_PM` (usypianie urządzeń, np. autosuspend USB) i bez
   usypiania komputera — RYZYKA R63.
-  Brak VT, sieci IP (do 0.9 — tylko gniazda UNIX), I2C-HID, `i915`.
+  Od 0.9.0 (ADR 0039): **sieć** — `INET` (tylko IPv4; bez IPv6, zapory netfilter, multicastu, routingu
+  zaawansowanego, IPsec, `IP_PNP`, `INET_DIAG`), `SYN_COOKIES`, `PACKET` (gniazdo pakietowe dla DHCP — otwiera je tylko
+  nadzorca), sterowniki kart przewodowych szeroko (decyzje D0, T6): Intel (`E1000E`, `E1000`, `IGB`, `IGC`, `E100`),
+  Realtek (`R8169`, `8139CP`, `8139TOO`), Broadcom (`TIGON3`), Qualcomm Atheros (`ALX`, `ATL1C`, `ATL1E`, `ATL1`),
+  Marvell (`SKY2`, `SKGE`), NVIDIA (`FORCEDETH`), JMicron (`JME`), VIA (`VIA_RHINE`), maszyny wirtualne (`VIRTIO_NET`,
+  `VMXNET3`), przejściówki USB (`USB_RTL8152`, `USB_NET_AX8817X`, `USB_NET_AX88179_178A`, `USB_NET_CDCETHER`,
+  `USB_NET_CDC_NCM`). `IGC` wymaga `ETHTOOL_NETLINK`; `IGB` wybiera `I2C`; `R8169` wybiera `FW_LOADER` (K1 nie ma
+  plików od producenta — karta działa bez nich). Nie dają się wyłączyć (`def_bool`): `NET_DEVMEM`, `NET_SELFTESTS`.
+  Jądro: bzImage 5,0 → 6,3 MiB, `k1.efi` 7,1 → 8,4 MiB. ICMP i ARP ograniczają sysctl w init (`init.md`).
+  Brak VT, IPv6, I2C-HID, `i915`.
 
 ## Wywołania systemowe usunięte z jądra (test: `t_syscalls`)
 `init_module`, `finit_module`, `kexec_load`, `kexec_file_load`, `io_uring_setup`, `bpf`,
-`userfaultfd`, `modify_ldt`, `iopl`, `ioperm` → `ENOSYS`. Gniazda `AF_INET` i `AF_INET6` → `EAFNOSUPPORT`;
-gniazda UNIX są (od M3 — kanały między usługami, ADR 0007), a `socket` i tak blokuje seccomp usług.
+`userfaultfd`, `modify_ldt`, `iopl`, `ioperm` → `ENOSYS`. Gniazda `AF_INET6` → `EAFNOSUPPORT`; `AF_INET` (od 0.9.0) i UNIX
+są (UNIX od M3 — kanały między usługami, ADR 0007), a `socket` i `socketpair` blokuje seccomp każdej klatki (`t_proby`:
+`AF_INET`, `AF_PACKET`, `AF_NETLINK`) — gniazdo sieciowe otwiera tylko nadzorca (ADR 0039).
 
 ## Obsługa błędów
 `panic=-1 oops=panic` — błąd jądra kończy się restartem, nie pracą w niepewnym stanie.
@@ -86,7 +96,8 @@ gniazda UNIX są (od M3 — kanały między usługami, ADR 0007), a `socket` i t
 Parser SquashFS (od 0.6.3 obraz sprawdzany przez dm-verity), wywołania systemowe dostępne dla procesów
 (zawężane przez seccomp od M3), sterowniki virtio, ACPI (dane z firmware), `perf_event_open`;
 od M5a: urządzenia USB podłączane z zewnątrz (deskryptory USB, raporty HID, komendy mass storage)
-i parser GPT obcych nośników (RYZYKA R33–R34).
+i parser GPT obcych nośników (RYZYKA R33–R34); od 0.9.0: stos IPv4 i sterowniki kart sieciowych — pakiety od każdego
+w tej samej sieci, przejściówki USB–Ethernet (RYZYKA R66, R67; test z zewnątrz `scripts/test-siec.sh`).
 
 ## Testy
 `scripts/sprawdz-konfiguracje-jadra.sh` (każdy build), `scripts/sprawdz-kspp.sh` (przy zmianie

@@ -67,6 +67,34 @@ static const struct k1_sysctl sysctls[] = {
     { "vm/memfd_noexec", "2" },
     { "dev/tty/ldisc_autoload", "0" },
     { "dev/tty/legacy_tiocsti", "0" },
+    /* 0.9.0 network (ADR 0039, T3): nothing in K1 answers from outside. The kernel sends no ICMP at all: every
+     * ICMP type (0..NR_ICMP_TYPES) goes through the global limit, which is 0 per second (net/ipv4/icmp.c:
+     * icmpv4_mask_allow, icmp_global_allow) — no ping replies, no "port unreachable", no timestamp replies. */
+    { "net/ipv4/icmp_echo_ignore_all", "1" },
+    { "net/ipv4/icmp_echo_ignore_broadcasts", "1" },
+    { "net/ipv4/icmp_ignore_bogus_error_responses", "1" },
+    { "net/ipv4/icmp_ratemask", "524287" }, /* bits 0..18 */
+    { "net/ipv4/icmp_msgs_per_sec", "0" },
+    { "net/ipv4/icmp_msgs_burst", "0" },
+    { "net/ipv4/ip_forward", "0" },
+    { "net/ipv4/tcp_syncookies", "1" },
+    { "net/ipv4/tcp_rfc1337", "1" },
+    /* "default" reaches cards found before init as well (devinet.c: devinet_copy_dflt_conf), "all" is the
+     * second half of each check (rp_filter: the larger; redirects on a host: either) */
+    { "net/ipv4/conf/all/rp_filter", "1" },
+    { "net/ipv4/conf/default/rp_filter", "1" },
+    { "net/ipv4/conf/all/accept_redirects", "0" },
+    { "net/ipv4/conf/default/accept_redirects", "0" },
+    { "net/ipv4/conf/all/secure_redirects", "0" },
+    { "net/ipv4/conf/default/secure_redirects", "0" },
+    { "net/ipv4/conf/all/send_redirects", "0" },
+    { "net/ipv4/conf/default/send_redirects", "0" },
+    { "net/ipv4/conf/all/accept_source_route", "0" },
+    { "net/ipv4/conf/default/accept_source_route", "0" },
+    { "net/ipv4/conf/all/arp_ignore", "1" },
+    { "net/ipv4/conf/default/arp_ignore", "1" },
+    { "net/ipv4/conf/all/arp_announce", "2" },
+    { "net/ipv4/conf/default/arp_announce", "2" },
 };
 
 #define TMP_PROC "/rdzen/jadro/proc"

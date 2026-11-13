@@ -104,7 +104,8 @@ Każdego pilnuje test. Zmiana któregokolwiek = zmiana architektury → ADR i de
 2. **Brak powłoki, terminali i interpreterów:** bez `/bin/sh`, getty, VT, pty/devpts, SysRq. Log tylko
    jednokierunkowo na port szeregowy.
 3. **Jądro tylko przez fragment** `jadro/k1.config` na `allnoconfig`, każda linia z komentarzem. Bez modułów,
-   swapu, hibernacji, io_uring, BPF, userfaultfd, kexec, 32-bit, `INET` (do 0.9); lockdown confidentiality,
+   swapu, hibernacji, io_uring, BPF, userfaultfd, kexec, 32-bit, IPv6 i zapory (ADR 0039: IPv4 od 0.9.0, gniazdo
+   sieciowe otwiera tylko nadzorca, jądro nie wysyła ICMP — sysctl w init); lockdown confidentiality,
    Landlock, Yama.
 4. **Programy: statyczne PIE z flagami SPEC §11** (`-Werror`), sprawdzane przez `scripts/sprawdz-binaria.sh`.
    Od 0.9.0: nasz musl 1.2.5 (`musl/`: suma, podpis PGP, łatki; `scripts/zbuduj-musl.sh` → `build/musl`) i

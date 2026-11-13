@@ -95,7 +95,9 @@ UEFI + Secure Boot → podpisany UKI (jądro + initramfs + cmdline) → jądro L
   - gui: pulpit, okna i menu; rysuje do pamięci współdzielonej, bez dostępu do GPU,
   - wejście: czyta evdev i przekazuje zdarzenia do ekranu.
   Renderer własny, programowy, w C. LVGL dopuszczalny po uzasadnieniu. Przejęcie gui nie może dawać dostępu do danych ani systemu.
-- Sieć: osobna usługa. Na start Ethernet + DHCP; Wi-Fi później, w izolacji.
+- Sieć: osobna usługa. Na start Ethernet + DHCP; Wi-Fi później, w izolacji. **[korekta: ADR 0039 — jądro z IPv4 (bez IPv6
+  i bez zapory); gniazdo sieciowe otwiera tylko nadzorca, usługa „siec” w klatce dostaje deskryptor gniazda pakietowego
+  i o adres oraz zegar prosi nadzorcę; jądro nie wysyła ICMP; żadna klatka nie ma wywołania `socket`.]**
 - Dekodery plików (PNG, JPG, PDF…):
   - każde zadanie to jednorazowy proces z seccomp-BPF, RLIMIT_AS/CPU/FSIZE i limitami cgroups,
   - bez sieci, GPU, dostępu do magazynu i innych procesów,
