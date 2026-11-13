@@ -45,8 +45,8 @@ static int przygotuj(void)
 
     k1_bat_hist_init(&bat_hist, BATERIA_PROBKA);
     rozruch_wydanie();
-    for (i = 0; i < N_USLUG; i++) /* the system services; applications start on request of gui */
-        if (uslugi[i].aplikacja == 0)
+    for (i = 0; i < N_USLUG; i++) /* PRZY_STARCIE in k1_uslugi.h; applications start on request of gui */
+        if (uslugi[i].kiedy == START_PRZY_STARCIE)
             start(&uslugi[i]);
     if (stat(TEST, &st) == 0) {
         test_pid = uruchom_test();

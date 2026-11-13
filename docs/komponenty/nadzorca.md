@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M3, M4) — testy w systemie (`scripts/test-m1.sh`, scenariusz `testy-w-systemie`), `scripts/test-m4.sh` (uruchamianie aplikacji, wyłączanie) |
-| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (tablica usług, uruchamianie w klatkach, restarty, prośby pulpitu), `logi.c` (logi usług), `pendrive.c` (prośby Plików, pendrive i czytnik, 0.8.0), `dekoder.c` (dekoder obrazów dla Plików, 0.8.0, i Podglądu, 0.8.2), `powieksz.c` (K1-DANE do końca pendrive'a: pusta przy starcie, 0.8.0; z danymi na prośbę z Ustawień, 0.8.1), `profile.c` (klatki), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
+| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (usługi z tabel `K1_SYSTEM` i `K1_APLIKACJE`: uruchamianie w klatkach, kanały, restarty, prośby pulpitu), `kanaly.h` (nazwy kanałów `KANAL_*`, 0.9.0), `logi.c` (logi usług), `pendrive.c` (prośby Plików, pendrive i czytnik, 0.8.0), `dekoder.c` (dekoder obrazów dla Plików, 0.8.0, i Podglądu, 0.8.2), `powieksz.c` (K1-DANE do końca pendrive'a: pusta przy starcie, 0.8.0; z danymi na prośbę z Ustawień, 0.8.1), `profile.c` (klatki: `KLATKA_<NAZWA>` dla każdej usługi, aplikacje — jedna dla wszystkich), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
 | **Decyzje** | ADR 0006 (wersja M2), ADR 0007 (M3, klatki), ADR 0008 (pulpit i aplikacje), ADR 0013 (dyski i USB), ADR 0019 (moduły, zdarzenia jądra), ADR 0022 (A/B, Secure Boot), ADR 0030–0033 (pliki, pendrive, dekoder, K1-DANE do końca pendrive'a), ADR 0036 (potwierdzony start), ADR 0037 (Podgląd) |
 
 ## Etapy startu (0.6.0)
@@ -38,12 +38,15 @@ urządzenia) — część bazy zaufania. Od usług przyjmuje tylko: wiersze logu
 statusy zakończenia i komunikaty 32 B na kanałach z tabeli niżej — od `gui` (`URUCHOM`, `WYLACZ`), skarbca
 (`SKARB_*`, `POWIEKSZ_DANE`), okna Instalatora (`INST_*`, `SB_KLUCZ`), Plików (`PENDRIVE_OTWORZ`, `DEKODER`), Podglądu
 (`DEKODER`) i programu zapisującego; nadawca każdego sprawdzany `SO_PASSCRED`. Lista usług i profili jest stała,
-w kodzie (`K1_SYSTEM`, `K1_APLIKACJE`).
+w kodzie (`K1_SYSTEM`, `K1_APLIKACJE`): od 0.9.0 jeden wiersz opisuje usługę całą — kiedy startuje (`PRZY_STARCIE`
+albo `NA_PROSBE`), rolę przy ekranie i kanały od nadzorcy po kolei; z niego wynikają `uslugi[]`, nazwa i UID klatki,
+Zasoby i spis obrazu. Klatka (wywołania i limity) — `KLATKA_<NAZWA>` w `profile.c`; bez niej nadzorca się nie
+buduje. Tablica właścicieli naszych końców kanałów ma miejsce na każdy kanał każdego wiersza — nie może się zapełnić.
 
 ## Uprawnienia
 root, wszystkie capabilities (RYZYKA R23). Usługi — patrz tabela.
 
-Tabela poniżej to stan z `src/nadzorca/profile.c` (klatki) i `kanaly[]` w `src/nadzorca/uslugi.c` (deskryptory);
+Tabela poniżej to stan z `src/nadzorca/profile.c` (klatki) i kolumny kanałów w `src/wspolne/k1_uslugi.h` (deskryptory);
 źródłem prawdy jest kod. Każda usługa ma 1 proces w swojej cgroup (`pids.max = 1`).
 
 | Usługa | UID | Przekazane deskryptory | seccomp (poza bazą) | cgroup | `RLIMIT_FSIZE` |
@@ -87,6 +90,8 @@ usług, kanały (`socketpair`, strona odbiorcy z `SO_PASSCRED`), komunikaty `KLI
 ## Kanał testowy (tylko obraz testowy)
 Program testowy dostaje od nadzorcy fd 3 (`K1_KIER_DO_NADZORCY` / `OD_NADZORCY`, nadawca sprawdzany):
 `TEST_POLACZ` (rola, aplikacja, oczekiwany UID) → `TEST_GNIAZDO` z końcem nowego kanału do ekranu;
+`TEST_SKARB` (właściciel — numer profilu; 0.9.0) → `TEST_GNIAZDO` z końcem nowego kanału do skarbca, nadawcą jest program
+testowy (UID 0);
 `TEST_PROBA` (profil) → program testowy uruchomiony w klatce tej usługi, po końcu `TEST_WYNIK` (kod
 wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego kanału nie ma.
 

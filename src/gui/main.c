@@ -32,7 +32,7 @@ static struct k1_powierzchnia *wszystkie[] = { &gora, &dok, &menu, &dzwiek, &pul
 int32_t dok_x, dok_y, menu_x, menu_y;
 struct rozmieszczenie rozm;
 
-#define X_APL(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek) [apl] = { tytul, opis, K1_IK_##ikona, pasek },
+#define X_APL(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek, ...) [apl] = { tytul, opis, K1_IK_##ikona, pasek },
 const struct aplikacja_opis aplikacje[K1_APL_MAKS + 1] = { K1_APLIKACJE(X_APL) };
 
 const struct k1_motyw *motyw(void)

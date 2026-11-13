@@ -41,8 +41,7 @@ struct k1_komunikat miejsce_komunikat(void)
 
 void miejsce_wyslij(int fd)
 {
-    struct k1_komunikat m = miejsce_komunikat();
-    k1_kanal_wyslij(fd, &m, sizeof m, -1);
+    do_klienta(fd, miejsce_komunikat(), -1);
 }
 
 /* Ustawienia → Miejsce (0.8.5 step 3): one CZESC per part, numbers only — to Ustawienia alone, with the vault open;
@@ -58,7 +57,7 @@ int miejsce_podzial(int fd, int wlasciciel)
         uint64_t kib = (bajty[c] + 1023) >> 10;
         struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_SKARB_CZESC, (uint32_t)c, kib > INT32_MAX ? INT32_MAX : (int32_t)kib,
                                                   (int32_t)pliki[c], 0, 0, 0);
-        k1_kanal_wyslij(fd, &m, sizeof m, -1);
+        do_klienta(fd, m, -1);
     }
     return K1_MAG_OK;
 }

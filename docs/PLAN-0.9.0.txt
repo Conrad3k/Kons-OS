@@ -71,7 +71,9 @@ Potem sieć:
 --------------------------------------------------------------------------------------------------
      Krok                                                Luki (punkt 5)  Zależy od  Decyzje      Rozmiar  ADR
 [ ]  1  Jedna tabela usług systemowych                  L1 L2           —          —            M        —
+         [w toku: Claude, gałąź claude/plan-0-9-0-steps-1-2-kjiczt]
 [ ]  2  Komunikaty: podział, odpowiedzi skarbca          L3 L4           —          —            M        —
+         [w toku: Claude, gałąź claude/plan-0-9-0-steps-1-2-kjiczt]
 [ ]  3  Pliki startowe w aktualizacji; „Tymczasowe”      L5 L6           —          —            M–L      tak
 [ ]  4  musl 1.2.5 i fortify-headers                     L7 L8           —          —            M        korekta 0007
 [ ]  5  Jądro z siecią; nic nie odpowiada z zewnątrz     L9–L13          1, 4       T1–T4, T6    L        tak (sieć)
@@ -105,6 +107,20 @@ KROK 1 — Jedna tabela usług systemowych                                      
   _Static_assert na spójność tabel.
   Dokumenty: nadzorca.md, ARCHITEKTURA.md (przepis „nowa usługa”), skill kons-dev (punkt 6 „Nowa usługa systemowa”).
   Gotowe, gdy: przepis „nowa usługa” w skillu to jeden wiersz + program, testy [OK].
+  Ustalenia z wykonania (2026-11-13, Claude):
+  - Kształt: wiersz K1_SYSTEM ma trzy nowe kolumny — kiedy startuje (PRZY_STARCIE: i ponownie po awarii; NA_PROSBE:
+    przez swój moduł), rola przy ekranie (BRAK: nie klient ekranu) i kanały od nadzorcy po nazwie, np. (KANAL_SIECI);
+    K1_APLIKACJE dostała kolumnę kanałów, więc kanaly[] znikło. Nazwy kanałów: src/nadzorca/kanaly.h. Z wierszy wynikają
+    uslugi[], nazwa i UID klatki, Zasoby, spis obrazu.
+  - Klatka zostaje w profile.c (miejsce przeglądu bezpieczeństwa, uzasadnienie przy każdym wywołaniu), ale jako
+    KLATKA_<NAZWA> dla każdego wiersza — bez niej nadzorca się nie buduje. Usługa „siec” w kroku 6 = wiersz + KLATKA_SIEC
+    + program + reguła w Makefile; jej kanał (KANAL_SIECI) to linia w kanaly.h obok modułu nadzorcy, który go obsługuje.
+  - Usługa, która nie jest klientem ekranu i startuje przy starcie (siec), dostaje swoje kanały od fd 3
+    (start_z_kanalami). enum rodzaj zastąpiony kolumną „kiedy” i numerem profilu; sprzątanie po końcu — po_koncu().
+  - Tablica właścicieli kanałów: N_USLUG × K1_KANALY_MAKS miejsc — nie może się zapełnić; więcej niż 3 kanały w wierszu
+    = błąd budowy.
+  - Dowód: klatki wszystkich 17 programów wypisane pole po polu przed i po — identyczne; lista kanałów zgodna ze starą
+    kanaly[] wpis po wpisie; pełne testy [OK].
 
 KROK 2 — Komunikaty: podział pliku, odpowiedzi skarbca nie przepadają                M · bez decyzji · bez ADR
   Cel: plik komunikatów gotowy na komunikaty sieci; skarbiec nie gubi odpowiedzi (RYZYKA R64).
@@ -119,6 +135,18 @@ KROK 2 — Komunikaty: podział pliku, odpowiedzi skarbca nie przepadają       
   zmian, znów czyta → musi dostać odpowiedź i „zmieniło się”); host — kolejka (ASan/UBSan); fuzz bez zmian.
   Dokumenty: skarbiec.md (zasada doręczania), RYZYKA R64 (stan po poprawce), TESTY.md.
   Gotowe, gdy: test w systemie zielony, pełny scripts/testy.sh [OK].
+  Ustalenia z wykonania (2026-11-13, Claude):
+  - Podział: k1_komunikat.c (tworzenie, wspólne sprawdzenia, rozdział na grupy) + k1_kom_ekran.c, k1_kom_skarb.c,
+    k1_kom_nadzorca.c, k1_kom_pliki.c (czytnik, dekoder); wspólne części — k1_kom_wew.h. Komunikaty sieci w kroku 6:
+    nowy plik k1_kom_siec.c i jedno wywołanie w sprawdz_typ.
+  - zalegle.c ekranu NIE jest wspólny: ekran porzuca ruchy według wagi i nie przekazuje deskryptorów; skarbiec nie
+    porzuca niczego i przenosi memfd. Wspólny byłby tylko pierścień (kilkanaście wierszy) — osobny moduł
+    src/skarbiec/zalegle.c w tym samym kształcie i słownictwie („zaległe”, nowy wiersz w SLOWNIK).
+  - Dopóki coś czeka na klienta, skarbiec nie bierze jego próśb (prośby czekają w jego kanale) — kolejka jednego klienta
+    mieści się w 32; skarbiec ma RLIMIT_NOFILE 64 (było 32) na memfd czekające z odpowiedziami.
+  - Do testu w systemie: TEST_SKARB (tylko obraz testowy) — kanał do skarbca dla programu testowego.
+  - POTWIERDZONE próbą: na skarbcu 0.8.7 test czerwony (1500 próśb, 236 odpowiedzi, 0 „zmieniło się”); po poprawce
+    278 próśb (wstrzymane), 278 odpowiedzi, 1 zmiana; pełne testy [OK] (370, w systemie 158/158).
 
 KROK 3 — Pliki startowe w aktualizacji; usunięcie „Tymczasowe 0.9.0”                M–L · bez decyzji · ADR
   Cel: aktualizacja przez Instalator wymienia też pliki startowe (shim, GRUB, grub.cfg) — bez „Zainstaluj od nowa”

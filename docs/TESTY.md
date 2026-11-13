@@ -84,7 +84,7 @@ przed upływem limitu.
 
 ### Sprawdzenia w systemie (`testy/system/*.c`, obraz `rdzen-test.squashfs`)
 Pliki (od M4.1): `k1_test_systemu.c` (kolejność), `wspolne.c` (pomocnicze, kanał testowy),
-`t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4–M4.1, zaległe komunikaty 0.8.5), `t_sprzet.c` (M5a), `proba.c` (tryb `--proba`).
+`t_system.c` (M1), `t_uslugi.c` (M2–M3), `t_okna.c` (M4–M4.1, zaległe komunikaty 0.8.5), `t_skarbiec.c` (zaległe odpowiedzi skarbca, 0.9.0), `t_sprzet.c` (M5a), `proba.c` (tryb `--proba`).
 Program testowy jest w obrazie testowym jako `/rdzen/system/test-systemu` (uruchamia go nadzorca).
 NEGATYWNE = coś, co ma się nie udać.
 
@@ -456,6 +456,12 @@ celem) — tę regułę sprawdza host i skarbiec (`dok_przenies`).
 |---|---|
 | `test_zalegle` (host) | kolejka zaległych ekranu (`src/ekran/zalegle.c`): RAMKA raz na powierzchnię, ruch zastępuje ruch tuż przed nim, `USTAWIENIE` po kluczu, kolejność wciśnięć, puszczeń, klawiszy, `FOKUS`, `ZAMKNIJ`; pierścień dookoła; przepełnienie — najpierw ruchy i powtórzenia, potem wciśnięcia, `RAMKA` nigdy |
 | w systemie (`t_okna_zalegle`) | NEGATYWNY: klient z oknem na prawie cały ekran przestaje odbierać; 1500 ruchów myszy (więcej, niż mieści jego kanał), zatwierdzenie, kliknięcie → po wznowieniu odbioru dostaje `RAMKA` i `PUSZCZENIE`; drugi klient w tym czasie dostaje swoją `RAMKA` (nie jest blokowany), ekran działa. Na ekranie z 0.8.3 test jest czerwony (RAMKA i PUSZCZENIE przepadają) |
+
+## 0.9.0 krok 2 — odpowiedzi skarbca nie przepadają
+| Test | Co sprawdza |
+|---|---|
+| `test_skarb_zalegle` (host) | kolejka zaległych skarbca (`src/skarbiec/zalegle.c`) na prawdziwym kanale: wysłane od razu, gdy kanał przyjmuje; pełny kanał — czekają w kolejności, z deskryptorem (kopia), `DOK_ZMIANA` raz; po wznowieniu odbioru wszystko dochodzi; zamknięty kanał i koniec klienta zwalniają memfd; pełna kolejka — strata policzona |
+| w systemie (`t_skarb_zalegle`) | NEGATYWNY: kanał do skarbca od nadzorcy (`TEST_SKARB`, właściciel Pliki); klient nie odbiera i wysyła `SKARB_INFO`, aż skarbiec przestanie brać jego prośby (wstrzymanie); drugi klient tworzy folder; po wznowieniu odbioru pierwszy dostaje `SKARB_WYNIK` i `SKARB_MIEJSCE` na każdą prośbę i `DOK_ZMIANA`. Na skarbcu z 0.8.7 test jest czerwony (1500 wysłanych, 236 odpowiedzi, 0 zmian) |
 
 ## 0.8.5 krok 2 — Podgląd płynny
 | Test | Co sprawdza |

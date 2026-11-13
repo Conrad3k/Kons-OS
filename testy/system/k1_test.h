@@ -99,6 +99,7 @@ int memfd(size_t rozmiar, int pieczecie);
 void t_okna_ipc(void);
 void t_okna_ochrona(void);
 void t_okna_zalegle(void);
+void t_skarb_zalegle(void);
 void t_gui_crash(void);
 void t_aplikacja_bez_restartu(void);
 void zablokowane(const char *opis, long nr, long a0, long a1, long a2, long a3, long a4);

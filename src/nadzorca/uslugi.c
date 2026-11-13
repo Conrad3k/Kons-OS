@@ -1,67 +1,24 @@
 /* K1 nadzorca — the services: table, starting in sandboxes, restarts, requests of the desktop (their logs: logi.c).
  * Part of nadzorca (see main.c). */
 #include "nadzorca.h"
+#include "kanaly.h"
 
+/* Every program nadzorca starts follows from its row in k1_uslugi.h (0.9.0 step 1): the system services in the order
+ * of K1_SYSTEM (skarbiec first), then the applications. */
+#define ROZWIN(...) __VA_ARGS__ /* a row's list of channels "(KANAL_A, KANAL_B)" → the array's elements */
 struct usluga uslugi[] = {
-    /* skarbiec first: ekran gets its channel to it at start (M5d) */
-    USLUGA("skarbiec", "/rdzen/system/skarbiec", "K1-SKARBIEC", K1_PROFIL_SKARBIEC, R_SKARBIEC, 0, 0, 1),
-    USLUGA("ekran", "/rdzen/system/ekran", "K1-EKRAN", K1_PROFIL_EKRAN, R_EKRAN, 0, 0, 1),
-    USLUGA("wejscie", "/rdzen/system/wejscie", "K1-WEJSCIE", K1_PROFIL_WEJSCIE, R_KLIENT, K1_ROLA_WEJSCIE, 0, 1),
-    USLUGA("gui", "/rdzen/system/gui", "K1-GUI", K1_PROFIL_GUI, R_KLIENT, K1_ROLA_POWLOKA, 0, 1),
-    /* instead of gui while the vault waits for its password (M5e) */
-    USLUGA("logowanie", "/rdzen/system/logowanie", "K1-LOGOWANIE", K1_PROFIL_LOGOWANIE, R_KLIENT, K1_ROLA_LOGOWANIE, 0, 1),
-    /* applications (k1_uslugi.h): started on request of gui, not restarted (the user starts them again) */
-#define X_APL(n, apl, profil, uid, program, tag, ...) \
-    USLUGA(program, "/rdzen/aplikacje/" program, tag, K1_PROFIL_##n, R_KLIENT, K1_ROLA_APLIKACJA, K1_APL_##n, 0),
+#define X_S(n, profil_, uid_, program_, nazwa_, start_, rola_, lista)                                        \
+    { .nazwa = program_, .program = "/rdzen/system/" program_, .tag = "K1-" #n, .profil = K1_PROFIL_##n,       \
+      .kiedy = START_##start_, .rola = K1_ROLA_##rola_, .kanaly = { ROZWIN lista }, .log = -1 },
+    K1_SYSTEM(X_S)
+#undef X_S
+#define X_APL(n, apl_, profil_, uid_, program_, tag_, tytul_, opis_, ikona_, pasek_, lista)                  \
+    { .nazwa = program_, .program = "/rdzen/aplikacje/" program_, .tag = tag_, .profil = K1_PROFIL_##n,         \
+      .kiedy = START_NA_PROSBE, .rola = K1_ROLA_APLIKACJA, .aplikacja = K1_APL_##n, .kanaly = { ROZWIN lista }, \
+      .log = -1 },
     K1_APLIKACJE(X_APL)
 #undef X_APL
-    /* M5f: started only by an install/update request of the Instalator window (inst_zapis) */
-    USLUGA("instalator", "/rdzen/system/instalator", "K1-INSTALATOR", K1_PROFIL_INSTALATOR, R_INSTALATOR, 0, 0, 0),
-    /* 0.8.0 step 3: started only when Pliki opens a USB stick (pendrive.c) */
-    USLUGA("czytnik", "/rdzen/system/czytnik", "K1-CZYTNIK", K1_PROFIL_CZYTNIK, R_CZYTNIK, 0, 0, 0),
-    /* 0.8.0 step 4: started for one picture when Pliki ask (dekoder.c) */
-    USLUGA("dekoder", "/rdzen/system/dekoder", "K1-DEKODER", K1_PROFIL_DEKODER, R_DEKODER, 0, 0, 0),
 };
-
-/* What a service gets from us besides its channel to ekran: fd 4, 5, … in this order. */
-static const struct kanaly {
-    int profil;
-    struct kanal k[3];
-} kanaly[] = {
-    { K1_PROFIL_WEJSCIE, { { KN_WEJSCIA, NULL, NULL, NULL } } },
-    /* gui: fd 4 requests (URUCHOM, WYLACZ), fd 5 battery state, fd 6 skarbiec (the desktop arrangement, 0.7.5) */
-    { K1_PROFIL_GUI,
-      { { KN_OD, &gui_kanal, &gui_kanal_uid, NULL }, { KN_DO, &bateria_kanal, NULL, bateria_nowy_kanal }, { KN_SKARB, NULL, NULL, NULL } } },
-    /* the password screen: the same two, fd 6 skarbiec (the password) */
-    { K1_PROFIL_LOGOWANIE,
-      { { KN_OD, &gui_kanal, &gui_kanal_uid, NULL }, { KN_DO, &bateria_kanal, NULL, bateria_nowy_kanal }, { KN_SKARB, NULL, NULL, NULL } } },
-    /* Notatki: fd 4 skarbiec (its notes, files it was given), fd 5 a file to open (0.8.0, ADR 0030) */
-    { K1_PROFIL_NOTATKI, { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &plik_kanal[K1_APL_NOTATKI], NULL, NULL } } },
-    /* Ustawienia: fd 4 battery state and history, fd 5 skarbiec (the password) */
-    { K1_PROFIL_USTAWIENIA, { { KN_DO, &ustaw_kanal, NULL, ustawienia_nowy_kanal }, { KN_SKARB, NULL, NULL, NULL } } },
-    { K1_PROFIL_ZASOBY, { { KN_DO, &zasoby_kanal, NULL, NULL } } },              /* fd 4 statistics */
-    { K1_PROFIL_INSTALACJA, { { KN_OD, &inst_kanal, NULL, inst_nowy_kanal } } }, /* fd 4 disks, progress */
-    /* Pliki (0.8.0): fd 4 skarbiec (the user's files), fd 5 the place to show when the desktop opens it, fd 6 the USB
-     * stick (whether there is one, the channel to czytnik; step 3) and a picture decoder (step 4) */
-    { K1_PROFIL_PLIKI,
-      { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &plik_kanal[K1_APL_PLIKI], NULL, NULL },
-        { KN_OD, &pen_kanal, NULL, pendrive_nowy_kanal } } },
-    { K1_PROFIL_WYBOR, { { KN_SKARB, NULL, NULL, NULL } } }, /* the file picker: fd 4 skarbiec (names, the choice) */
-    /* Podgląd (0.8.2 step 4, ADR 0037): fd 4 skarbiec (the pictures it may see), fd 5 a file to open, fd 6 a picture
-     * decoder (dekoder.c) */
-    { K1_PROFIL_PODGLAD,
-      { { KN_SKARB, NULL, NULL, NULL }, { KN_DO, &plik_kanal[K1_APL_PODGLAD], NULL, NULL },
-        { KN_OD, &podglad_kanal, NULL, NULL } } },
-};
-
-static const struct kanaly *kanaly_uslugi(int profil)
-{
-    size_t i;
-    for (i = 0; i < N(kanaly); i++)
-        if (kanaly[i].profil == profil)
-            return &kanaly[i];
-    return NULL;
-}
 
 struct usluga *usluga_profilu(int profil)
 {
@@ -73,7 +30,7 @@ struct usluga *usluga_profilu(int profil)
 }
 
 /* Test probes: one at a time. */
-struct usluga proba = USLUGA("proba", TEST, "K1-PROBA", 0, R_PROBA, 0, 0, 0);
+struct usluga proba = { .nazwa = "proba", .program = TEST, .tag = "K1-PROBA", .kiedy = START_NA_PROSBE, .log = -1 };
 
 static int sterowanie = -1; /* our end of ekran's control channel */
 int zero = -1;        /* /dev/null for fds 0 and 1 of services */
@@ -137,7 +94,7 @@ pid_t uruchom(struct usluga *u, const struct k1_profil *p, const int *fds, int n
         ustaw_fd(potok[1], 2);
         for (i = 0; i < n; i++)
             ustaw_fd(kopie[i], 3 + i);
-        k1_klatka_uruchom(p, u->program, u->rodzaj == R_PROBA ? argv_proba : argv_usl, 2 + n);
+        k1_klatka_uruchom(p, u->program, u == &proba ? argv_proba : argv_usl, 2 + n);
     }
     close(potok[1]);
     (void)fcntl(potok[0], F_SETFL, O_NONBLOCK); /* a blocking pipe is still read: poll says when */
@@ -172,11 +129,12 @@ int kanal_do_ekranu(int rola, int apl, int uid)
 }
 
 /* Which service each of our channel ends currently belongs to (gui and the password screen share theirs:
- * one that ends late must not close the other's). */
+ * one that ends late must not close the other's). One place for every channel of every row of the tables: it cannot
+ * fill up (0.9.0: it had a size of its own, 10 of 12 taken). */
 static struct {
     int *nasz;
     int profil;
-} wlasciciele[12];
+} wlasciciele[N_USLUG * K1_KANALY_MAKS];
 
 static void ustaw_wlasciciela(int *nasz, int profil)
 {
@@ -206,10 +164,18 @@ static int wlasciciel(const int *nasz)
     return 0;
 }
 
-/* One channel of kanaly[] for service `u`: its end(s) into `fd`; how many (0: optional and not there), or -1. */
+/* Our end of channel `k` of `u` (KN_DO, KN_OD, KN_PLIK), or NULL. */
+static int *nasz_koniec(const struct kanal *k, const struct usluga *u)
+{
+    if (k->rodzaj == KN_PLIK)
+        return u->aplikacja >= 1 && u->aplikacja <= K1_APL_MAKS ? &plik_kanal[u->aplikacja] : NULL;
+    return k->rodzaj == KN_DO || k->rodzaj == KN_OD ? k->nasz : NULL;
+}
+
+/* One channel of the row of `u`: its end(s) into `fd`; how many (0: optional and not there), or -1. */
 static int otworz_kanal(const struct kanal *k, const struct usluga *u, int *fd)
 {
-    int para[2], tak = 1;
+    int para[2], tak = 1, *nasz = nasz_koniec(k, u);
     uid_t uid = profile[u->profil].uid;
     switch (k->rodzaj) {
     case KN_WEJSCIA:
@@ -219,19 +185,20 @@ static int otworz_kanal(const struct kanal *k, const struct usluga *u, int *fd)
         return *fd >= 0 ? 1 : 0;
     case KN_DO:
     case KN_OD:
-        if (k1_kanal_utworz(para) != 0) /* para[0] checks its sender: the service's end */
+    case KN_PLIK:
+        if (nasz == NULL || k1_kanal_utworz(para) != 0) /* para[0] checks its sender: the service's end */
             return -1;
-        if (k->rodzaj == KN_DO ? shutdown(para[1], SHUT_RD) != 0
+        if (k->rodzaj != KN_OD ? shutdown(para[1], SHUT_RD) != 0
                                : setsockopt(para[1], SOL_SOCKET, SO_PASSCRED, &tak, sizeof tak) != 0) {
             k1_log(TAG, "kanał dla %s: %s", u->nazwa, strerror(errno));
             close(para[0]);
             close(para[1]);
             return -1;
         }
-        if (*k->nasz >= 0)
-            close(*k->nasz);
-        *k->nasz = para[1];
-        ustaw_wlasciciela(k->nasz, u->profil);
+        if (*nasz >= 0)
+            close(*nasz);
+        *nasz = para[1];
+        ustaw_wlasciciela(nasz, u->profil);
         if (k->uid != NULL)
             *k->uid = (int)uid;
         if (k->nowy != NULL)
@@ -246,13 +213,14 @@ static int otworz_kanal(const struct kanal *k, const struct usluga *u, int *fd)
 /* The channels of `u` we keep: closed when it ends (the service's ends went with its process). */
 static void zamknij_kanaly(const struct usluga *u)
 {
-    const struct kanaly *k = kanaly_uslugi(u->profil);
-    int j;
-    for (j = 0; k != NULL && j < (int)N(k->k) && k->k[j].rodzaj != KN_BRAK; j++)
-        if (k->k[j].nasz != NULL && *k->k[j].nasz >= 0 && wlasciciel(k->k[j].nasz) == u->profil) {
-            close(*k->k[j].nasz);
-            *k->k[j].nasz = -1;
+    unsigned j;
+    for (j = 0; j < N(u->kanaly) && u->kanaly[j].rodzaj != KN_BRAK; j++) {
+        int *nasz = nasz_koniec(&u->kanaly[j], u);
+        if (nasz != NULL && *nasz >= 0 && wlasciciel(nasz) == u->profil) {
+            close(*nasz);
+            *nasz = -1;
         }
+    }
 }
 
 /* skarbiec: fd 3 = control channel, fd 4 = the K1-DANE partition (when there is one). */
@@ -340,11 +308,12 @@ static void start_ekran(struct usluga *u, const struct k1_profil *p)
         close(skarb);
 }
 
-/* A client of ekran (wejscie, gui, logowanie, the applications): fd 3 = its channel to ekran, then the
- * channels of its row in kanaly[]. */
-static void start_klienta(struct usluga *u, const struct k1_profil *p)
+/* Every other program: a client of ekran (wejscie, gui, logowanie, the applications) gets fd 3 = its channel to ekran,
+ * then the channels of its row (k1_uslugi.h); a service that is no client of ekran: only the channels of its row. */
+static void start_z_kanalami(struct usluga *u, const struct k1_profil *p)
 {
-    int fds[MAKS_URZADZEN + 1], n = 0, i;
+    int fds[MAKS_URZADZEN + K1_KANALY_MAKS], n = 0, i;
+    unsigned j;
 
     /* M5e: the desktop only when the vault is not waiting for its password; the password screen only
      * when it is. Without word from skarbiec for 20 s after boot: the desktop. */
@@ -354,29 +323,27 @@ static void start_klienta(struct usluga *u, const struct k1_profil *p)
         u->nastepny = k1_teraz() + 0.25;
         return;
     }
-    if (ekran()->pid <= 0) {
-        u->nastepny = k1_teraz() + 0.5; /* wait for ekran */
-        return;
-    }
-    fds[n] = kanal_do_ekranu(u->rola, u->aplikacja, (int)p->uid);
-    if (fds[n] < 0) {
-        u->nastepny = k1_teraz() + 1.0;
-        return;
-    }
-    n++;
-    {
-        const struct kanaly *k = kanaly_uslugi(u->profil);
-        int j;
-        for (j = 0; k != NULL && j < (int)N(k->k) && k->k[j].rodzaj != KN_BRAK; j++) {
-            int r = otworz_kanal(&k->k[j], u, fds + n);
-            if (r < 0) {
-                for (i = 0; i < n; i++)
-                    close(fds[i]);
-                u->nastepny = k1_teraz() + 1.0;
-                return;
-            }
-            n += r;
+    if (u->rola != K1_ROLA_BRAK) {
+        if (ekran()->pid <= 0) {
+            u->nastepny = k1_teraz() + 0.5; /* wait for ekran */
+            return;
         }
+        fds[n] = kanal_do_ekranu(u->rola, u->aplikacja, (int)p->uid);
+        if (fds[n] < 0) {
+            u->nastepny = k1_teraz() + 1.0;
+            return;
+        }
+        n++;
+    }
+    for (j = 0; j < N(u->kanaly) && u->kanaly[j].rodzaj != KN_BRAK; j++) {
+        int r = otworz_kanal(&u->kanaly[j], u, fds + n);
+        if (r < 0) {
+            for (i = 0; i < n; i++)
+                close(fds[i]);
+            u->nastepny = k1_teraz() + 1.0;
+            return;
+        }
+        n += r;
     }
     if (uruchom(u, p, fds, n) > 0)
         k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
@@ -390,14 +357,14 @@ void start(struct usluga *u)
 {
     const struct k1_profil *p = &profile[u->profil];
     u->nastepny = 0;
-    if (u->rodzaj == R_INSTALATOR || u->rodzaj == R_CZYTNIK || u->rodzaj == R_DEKODER)
-        return; /* only on request of the Instalator window (inst_zapis), of Pliki (pendrive.c, dekoder.c) */
-    if (u->rodzaj == R_SKARBIEC)
+    if (u->kiedy == START_NA_PROSBE && u->aplikacja == 0)
+        return; /* only by its module: the Instalator window (inst_zapis), Pliki (pendrive.c, dekoder.c) */
+    if (u->profil == K1_PROFIL_SKARBIEC)
         start_skarbiec(u, p);
-    else if (u->rodzaj == R_EKRAN)
+    else if (u->profil == K1_PROFIL_EKRAN)
         start_ekran(u, p);
     else
-        start_klienta(u, p);
+        start_z_kanalami(u, p);
 }
 
 void opisz(const char *nazwa, int status)
@@ -415,16 +382,11 @@ static double opoznienie(unsigned awarie)
     return d[awarie < N(d) ? awarie : N(d) - 1];
 }
 
-void zakonczona(struct usluga *u, int status)
+/* What ends with a service besides its log and channels: a few services leave state in their module. */
+static void po_koncu(const struct usluga *u)
 {
-    double t = k1_teraz();
     size_t i;
-
-    opisz(u->nazwa, status);
-    zamknij_log(u);
-    u->pid = 0;
-    zamknij_kanaly(u);
-    if (u->rodzaj == R_INSTALATOR) {
+    if (u->profil == K1_PROFIL_INSTALATOR) {
         if (inst_ster >= 0)
             close(inst_ster);
         inst_ster = -1;
@@ -434,11 +396,11 @@ void zakonczona(struct usluga *u, int status)
         }
         inst_wynik_wyslany = 1;
     }
-    if (u->rodzaj == R_CZYTNIK)
+    if (u->profil == K1_PROFIL_CZYTNIK)
         pendrive_koniec();
-    if (u->rodzaj == R_DEKODER)
+    if (u->profil == K1_PROFIL_DEKODER)
         dekoder_koniec();
-    if (u->rodzaj == R_SKARBIEC) {
+    if (u->profil == K1_PROFIL_SKARBIEC) {
         if (skarb_ster >= 0)
             close(skarb_ster);
         skarb_ster = -1;
@@ -451,19 +413,30 @@ void zakonczona(struct usluga *u, int status)
             kill(ekran()->pid, SIGTERM);
         }
     }
-    if (u->rodzaj == R_EKRAN) {
+    if (u->profil == K1_PROFIL_EKRAN) {
         if (sterowanie >= 0)
             close(sterowanie);
         sterowanie = -1;
         /* Clients lose their channels: stop them; they start again with the new ekran. */
         for (i = 0; i < N_USLUG; i++) {
-            if (uslugi[i].rodzaj == R_KLIENT && uslugi[i].pid > 0) {
+            if (uslugi[i].rola != K1_ROLA_BRAK && uslugi[i].pid > 0) {
                 uslugi[i].bez_liczenia = 1;
                 kill(uslugi[i].pid, SIGKILL);
             }
         }
     }
-    if (!u->restartuj || u->wylaczona)
+}
+
+void zakonczona(struct usluga *u, int status)
+{
+    double t = k1_teraz();
+
+    opisz(u->nazwa, status);
+    zamknij_log(u);
+    u->pid = 0;
+    zamknij_kanaly(u);
+    po_koncu(u);
+    if (u->kiedy != START_PRZY_STARCIE || u->wylaczona)
         return;
     if (u->bez_liczenia) {
         u->bez_liczenia = 0;

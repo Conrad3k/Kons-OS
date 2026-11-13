@@ -154,7 +154,7 @@ static int w_zakresie(const struct prawa *p, uint32_t id)
 static void wynik(int fd, uint32_t id, int typ, int r, uint32_t nowy)
 {
     struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_DOK_WYNIK, id, typ, r, (int32_t)nowy, 0, 0);
-    k1_kanal_wyslij(fd, &m, sizeof m, -1);
+    do_klienta(fd, m, -1);
 }
 
 static void wyslij_liste(int fd, const struct prawa *p)
@@ -169,7 +169,7 @@ static void wyslij_liste(int fd, const struct prawa *p)
         wynik(fd, 0, K1_KOM_DOK_SPIS, K1_MAG_PAMIEC, 0);
         return;
     }
-    k1_kanal_wyslij(fd, &m, sizeof m, m_fd);
+    do_klienta(fd, m, m_fd);
     close(m_fd);
     miejsce_wyslij(fd); /* Pliki say when little room is left (0.8.1) */
 }
@@ -212,7 +212,7 @@ static void wyslij_tresc(int fd, uint32_t id, uint32_t od_kawalka, uint64_t maks
     }
     m = k1_komunikat_nowy(K1_KOM_DOK_TRESC, id, (int32_t)ile, (int32_t)od_kawalka, k1_kom_niskie(w->rozmiar),
                           k1_kom_wysokie(w->rozmiar), 0);
-    k1_kanal_wyslij(fd, &m, sizeof m, m_fd);
+    do_klienta(fd, m, m_fd);
     close(m_fd);
 }
 

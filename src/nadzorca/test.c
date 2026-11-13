@@ -28,8 +28,8 @@ void obsluz_test(void)
         odpowiedz_testowi(-1, -1);
         return;
     }
-    if (k.typ == K1_KOM_TEST_POLACZ) {
-        int fd = kanal_do_ekranu(k.a, k.b, k.c);
+    if (k.typ == K1_KOM_TEST_POLACZ || k.typ == K1_KOM_TEST_SKARB) {
+        int fd = k.typ == K1_KOM_TEST_POLACZ ? kanal_do_ekranu(k.a, k.b, k.c) : kanal_do_skarbca(k.a, 0);
         if (fd < 0) {
             odpowiedz_testowi(-1, -1);
         } else {

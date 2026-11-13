@@ -51,14 +51,36 @@
 #define LOG_NA_SEKUNDE 20.0
 
 #define N(t) (unsigned)(sizeof(t) / sizeof((t)[0]))
-enum rodzaj { R_SKARBIEC, R_EKRAN, R_KLIENT, R_PROBA, R_INSTALATOR, R_CZYTNIK, R_DEKODER };
+
+/* The channels nadzorca gives a program besides the one to ekran: its fds in the order of its row in K1_SYSTEM /
+ * K1_APLIKACJE (k1_uslugi.h; the names: kanaly.h). The ends we keep live in the module that serves them. */
+enum kanal_rodzaj {
+    KN_BRAK = 0, /* (the end of a list) */
+    KN_WEJSCIA, /* the input devices (wejscie: as many fds as there are devices — always last) */
+    KN_SKARB,   /* to skarbiec, the service's profile as the owner (none without skarbiec) */
+    KN_DO,      /* one way from us: we write, the service checks that we (UID 0) send */
+    KN_OD,      /* requests to us and our replies: both ends check the sender (SO_PASSCRED) */
+    KN_PLIK,    /* KN_DO whose end is the application's own: plik_kanal[its number] (a file to open) */
+};
+struct kanal {
+    enum kanal_rodzaj rodzaj;
+    int *nasz;          /* KN_DO / KN_OD: our end (the previous one is closed when the service starts again) */
+    int *uid;           /* KN_OD: who is on the other end (one channel may serve two services), or NULL */
+    void (*nowy)(void); /* KN_DO / KN_OD: forget what was sent on the previous channel, or NULL */
+};
+#define K1_KANALY_MAKS 3 /* channels of one program (a longer list in k1_uslugi.h does not build) */
+
+enum kiedy_start {
+    START_PRZY_STARCIE, /* at boot, and again after it ends (K1_RESTARTY_MAKS in OKNO_RESTARTOW) */
+    START_NA_PROSBE,    /* applications: on request of gui; services: by their module; never again by itself */
+};
 
 struct usluga {
     const char *nazwa, *program, *tag;
     int profil;
-    enum rodzaj rodzaj;
-    int rola, aplikacja;  /* clients of ekran */
-    int restartuj;        /* restart when it ends */
+    enum kiedy_start kiedy;
+    int rola, aplikacja;  /* clients of ekran: K1_ROLA_* (K1_ROLA_BRAK: not a client), application number */
+    struct kanal kanaly[K1_KANALY_MAKS]; /* fd 4, 5, … for a client of ekran; fd 3, 4, … for the others */
     pid_t pid;
     int log;              /* read end of its stderr pipe, -1 */
     char linia[LOG_LINIA];
@@ -73,26 +95,7 @@ struct usluga {
     char argument[12];    /* its one argument, if any (dekoder: the application it decodes for; 0.8.2) */
 };
 
-#define USLUGA(n, prog, t, prof, r, rol, apl, rest)                                                         \
-    { .nazwa = n, .program = prog, .tag = t, .profil = prof, .rodzaj = r, .rola = rol, .aplikacja = apl,          \
-      .restartuj = rest, .log = -1 }
 #define N_USLUG (0 K1_SYSTEM(K1_X_LICZ) + K1_APL_MAKS) /* uslugi[]: the system services (K1_SYSTEM) + the applications */
-
-/* The channels nadzorca gives a service besides the one to ekran (fd 3), as fd 4, 5, … in the order of
- * kanaly_uslugi() (uslugi.c). The ends we keep live in the module that serves them. */
-enum kanal_rodzaj {
-    KN_BRAK = 0, /* (the end of a list) */
-    KN_WEJSCIA, /* the input devices (wejscie: as many fds as there are devices — always last) */
-    KN_SKARB,   /* to skarbiec, the service's profile as the owner (none without skarbiec — always last) */
-    KN_DO,      /* one way from us: we write, the service checks that we (UID 0) send */
-    KN_OD,      /* requests to us and our replies: both ends check the sender (SO_PASSCRED) */
-};
-struct kanal {
-    enum kanal_rodzaj rodzaj;
-    int *nasz;          /* KN_DO / KN_OD: our end (the previous one is closed when the service starts again) */
-    int *uid;           /* KN_OD: who is on the other end (one channel may serve two services), or NULL */
-    void (*nowy)(void); /* KN_DO / KN_OD: forget what was sent on the previous channel, or NULL */
-};
 struct usluga *usluga_profilu(int profil);
 
 #define BATERIA_CO 15.0     /* s between reads (ACPI: the embedded controller) */

@@ -85,6 +85,8 @@ enum k1_komunikat_typ {
     K1_KOM_WYLACZ = 51,       /* gui: a=0 power off, 1 restart, 2 log out (gui only) */
     K1_KOM_TEST_POLACZ = 52,  /* test image only: a=rola, b=aplikacja, c=expected uid → reply + 1 fd */
     K1_KOM_TEST_PROBA = 53,   /* test image only: a=sandbox profile → reply when the probe ends */
+    K1_KOM_TEST_SKARB = 123,  /* test image only (0.9.0): a=owner (profile 1..K1_PROFIL_MAKS) → TEST_GNIAZDO + 1 fd: a
+                               * channel to skarbiec as that owner, the test program (UID 0) its sender */
     /* Instalator application → nadzorca (M5f, ADR 0018) */
     K1_KOM_INST_DYSKI = 54,   /* obiekt=0: list the disks (reply: INST_DYSK…, INST_LISTA) */
     K1_KOM_INST_START = 55,   /* obiekt=disk 1..K1_INST_DYSKI_MAKS from the last list, a=K1_INST_* mode */
@@ -96,7 +98,7 @@ enum k1_komunikat_typ {
 
     /* nadzorca → test */
     K1_KOM_TEST_WYNIK = 60,   /* a=result (exit code, 128+signal, or -1 on error) */
-    K1_KOM_TEST_GNIAZDO = 61, /* reply to TEST_POLACZ: + 1 fd (the client end of the new channel) */
+    K1_KOM_TEST_GNIAZDO = 61, /* reply to TEST_POLACZ, TEST_SKARB: + 1 fd (the client end of the new channel) */
 
     /* nadzorca → Zasoby (once a second; the application never writes to this channel) */
     K1_KOM_ZASOBY_SYSTEM = 62, /* obiekt=0, a=CPU ‰ (all CPUs), b,c = memory used,total MiB, d=CPUs, e=uptime s */

@@ -27,6 +27,7 @@
 #include "k1_teraz.h"
 #include "k1_uslugi.h"
 #include "skarbiec.h"
+#include "zalegle.h"
 
 _Static_assert(K1_MAG_HASLO == K1_SKARB_ZLE_HASLO, "K1_SKARB_ZLE_HASLO must match K1_MAG_HASLO");
 _Static_assert(K1_MAG_PELNY == K1_SKARB_PELNY, "K1_SKARB_PELNY must match K1_MAG_PELNY");
@@ -39,6 +40,7 @@ _Static_assert(K1_MAG_IO == K1_SKARB_IO && K1_MAG_ARG == K1_SKARB_ARG, "K1_SKARB
 
 struct klient {
     int fd, wlasciciel, uid;
+    struct zalegle zal; /* replies its channel did not take yet (0.9.0 step 2) */
 };
 
 static struct klient kl[MAKS_KLIENTOW];
@@ -66,11 +68,26 @@ void do_nadzorcy(struct k1_komunikat m)
         k1_log(TAG, "komunikat do nadzorcy: %s", strerror(errno));
 }
 
+/* Every message to a client goes here (dok_kanal.c, dostep.c, miejsce.c too): when its channel is full, it waits in
+ * the client's queue (zalegle.h) and goes later, in order — a reply is never lost (0.9.0 step 2, RYZYKA R64). */
+void do_klienta(int fd, struct k1_komunikat m, int przekaz)
+{
+    for (int i = 0; i < MAKS_KLIENTOW; i++)
+        if (kl[i].fd == fd && fd >= 0) {
+            unsigned long przed = kl[i].zal.utracone;
+            if (zal_wyslij(&kl[i].zal, fd, &m, przekaz) != 0 && kl[i].zal.utracone != przed)
+                k1_log(TAG, "kolejka klienta pełna (właściciel %d): utracono odpowiedź, razem %lu", kl[i].wlasciciel,
+                       kl[i].zal.utracone);
+            return;
+        }
+    k1_kanal_wyslij(fd, &m, sizeof m, przekaz); /* not a client's channel (none such today): as before */
+}
+
 static void odpowiedz(struct klient *k, int id, int typ, int wynik)
 {
     struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_SKARB_WYNIK, (uint32_t)id, typ, wynik, ob_tryb(),
                                               haslo_ustawione() | (trwaly && na_usb ? 2 : 0), sekund_do_proby());
-    k1_kanal_wyslij(k->fd, &m, sizeof m, -1);
+    do_klienta(k->fd, m, -1);
 }
 
 static void zamknij_klienta(struct klient *k)
@@ -83,6 +100,7 @@ static void zamknij_klienta(struct klient *k)
     dok_koniec_kanalu(k->fd);
     if (powieksza == k)
         powieksza = NULL;
+    zal_wyczysc(&k->zal);
     close(k->fd);
     k->fd = -1;
 }
@@ -93,7 +111,7 @@ static void oglos_zmiane(void)
     struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_DOK_ZMIANA, 0, 0, 0, 0, 0, 0);
     for (int i = 0; i < MAKS_KLIENTOW; i++)
         if (kl[i].fd >= 0 && dok_moze_listowac(kl[i].wlasciciel))
-            k1_kanal_wyslij(kl[i].fd, &m, sizeof m, -1);
+            do_klienta(kl[i].fd, m, -1); /* waits at most once (zalegle.h) */
 }
 
 /* nadzorca's answer to POWIEKSZ_DANE: the vault takes the grown partition, the client that asked is told. */
@@ -120,6 +138,7 @@ static void nowy_klient(const struct k1_komunikat *m, int fd)
         return;
     }
     kl[i].fd = fd;
+    zal_poczatek(&kl[i].zal);
     kl[i].wlasciciel = m->a;
     kl[i].uid = m->b;
     na_usb = m->c;      /* where the K1-DANE is (nadzorca knows; shown in Ustawienia) */
@@ -174,7 +193,7 @@ static void czytaj_obiekt(struct klient *k, uint32_t id)
         return;
     }
     d = k1_komunikat_nowy(K1_KOM_SKARB_DANE, id, (int32_t)dl, 0, 0, 0, 0);
-    k1_kanal_wyslij(k->fd, &d, sizeof d, fd);
+    do_klienta(k->fd, d, fd);
     close(fd);
 }
 
@@ -245,9 +264,10 @@ static void wykonaj(struct klient *k, const struct k1_komunikat *m, int fd)
         close(fd);
 }
 
+/* Up to 16 requests of a client — none while replies wait for it (it is busy: its requests wait in its channel). */
 static void obsluz_klienta(struct klient *k)
 {
-    for (int n = 0; n < 16 && k->fd >= 0; n++) {
+    for (int n = 0; n < 16 && k->fd >= 0 && k->zal.n == 0; n++) {
         struct k1_odebrane o;
         struct k1_komunikat m;
         enum k1_kanal_wynik w = k1_kanal_odbierz(k->fd, &o);
@@ -295,7 +315,7 @@ int main(void)
         pfd[0].events = POLLIN;
         for (i = 0; i < MAKS_KLIENTOW; i++) {
             pfd[1 + i].fd = kl[i].fd;
-            pfd[1 + i].events = POLLIN;
+            pfd[1 + i].events = kl[i].zal.n > 0 ? POLLOUT : POLLIN; /* replies wait: only when it takes them */
         }
         t = kosz_kontrola - k1_teraz();
         cisza = przerwa_czeka(); /* compaction and the transition wait for a quiet moment (przerwy.c) */
@@ -312,8 +332,11 @@ int main(void)
         if (pfd[0].revents)
             obsluz_sterowanie();
         for (i = 0; i < MAKS_KLIENTOW; i++)
-            if (kl[i].fd >= 0 && pfd[1 + i].revents)
-                obsluz_klienta(&kl[i]);
+            if (kl[i].fd >= 0 && pfd[1 + i].revents) {
+                if (kl[i].zal.n > 0)
+                    zal_oproznij(&kl[i].zal, kl[i].fd);
+                obsluz_klienta(&kl[i]); /* nothing while replies still wait; a closed channel ends here */
+            }
         if (k1_teraz() >= kosz_kontrola) { /* Kosz: older than 30 days goes for good */
             kosz_kontrola = k1_teraz() + GODZINA;
             if (dok_co_godzine())
