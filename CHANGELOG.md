@@ -52,6 +52,8 @@ zainstalowanym na dysku. Wersji 0.8.4 nie ma (numer wybrałeś sam).
   klient rysuje normalnie (na 0.8.3 test był czerwony: 278 odebranych, reszta przepadła). Host: kolejka zaległych
   ekranu, szybka droga Podglądu, zaokrąglone prostokąty bit w bit jak dawniej, podział miejsca (też NEGATYWNY: inna
   aplikacja nie dostaje liczb), nowe komunikaty skarbca. Pomiar Podglądu na hoście (`pomiar_podgladu`).
+- `test-skarbiec`: najdłuższy krok przejścia na format 2 mierzony czasem procesora skarbca (praca kroku); czas zegarowy
+  zostaje w logu — w CI wydania krok 0,01 s trwał raz 1,25 s, bo osiem maszyn naraz zapisywało duże obrazy na dysk.
 - QEMU: Podgląd — 20 × „+” i 20 × „−” bez czekania i przeciąganie; Miejsce przed i po imporcie z pendrive'a (oba
   motywy), z pendrive'a (przycisk) i z dysku (bez przycisku); Secure Boot — K1 z dysku bez pendrive'a: link widać
   (na 0.8.3 czerwony), z kluczem wydania „Przygotuj klucz K1” zapisuje klucz dla MokManagera.

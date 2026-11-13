@@ -251,7 +251,7 @@ Pętla skarbca (`main.c`) pyta `przerwa_czeka()`, ile ciszy potrzeba przed nast�
   między prośbami, żeby zapis nie musiał sam kompaktować odcinka (do 64 MiB; `test_odcinki`: 600 zapisów po 1 MiB przy
   75 % zajętości — z krokami żaden zapis nie kompaktuje sam, bez kroków 196); format 1: całość po 2 s ciszy (ADR 0034);
 - każda prośba klienta i każdy krok są mierzone: **najdłuższa przerwa w odpowiedziach** trafia do logu z końcem pracy
-  („kompaktowanie (w przerwach): odcinek wolny po n krokach, najdłuższy krok … s; najdłuższa przerwa w odpowiedziach
+  („kompaktowanie (w przerwach): odcinek wolny po n krokach, najdłuższy krok … s (procesor … s); najdłuższa przerwa w odpowiedziach
   … s”), a prośba dłuższa niż 1 s — osobno („skarbiec nie odpowiadał … s”, najwyżej raz na 10 s);
 - błąd kroku wstrzymuje kompaktowanie w przerwach do końca sesji (zapis i tak kompaktuje, gdy musi).
 
@@ -272,7 +272,7 @@ Magazyn z hasłem — po odblokowaniu.
 - **Za mało miejsca** w wolnej połowie (dane prawie na całym obszarze): „przejście na format 2 odłożone”, magazyn działa
   w formacie 1; spróbuje znowu, gdy zwolni się 8 MiB albo K1-DANE urośnie.
 - Log: „start tej wersji potwierdzony”, „przejście na format 2 (ADR 0036): kopiuję n obiektów (X MiB)…”, „przejście na
-  format 2: gotowe — n obiektów, k kroków w t s, najdłuższy krok …, najdłuższa przerwa …; miejsce na dane A → B MiB”.
+  format 2: gotowe — n obiektów, k kroków w t s, najdłuższy krok … (procesor …; od 0.8.5 — praca kroku bez czekania na dysk), najdłuższa przerwa …; miejsce na dane A → B MiB”.
   Pliki i Ustawienia dostają `DOK_ZMIANA` (nowe miejsce).
 - 0.8.1 widzi magazyn formatu 2 jako obce dane i go nie nadpisuje (ADR 0036, pkt 8).
 
