@@ -55,8 +55,8 @@ int proba(const char *profil)
     long r;
     void *m;
     int e;
-    /* memfd (surfaces, data) for everyone but wejscie and the disk writer (nadzorca/profile.c) */
-    int okna = strstr(profil, "wejscie") == NULL && strstr(profil, "instalator") == NULL;
+    /* memfd (surfaces, data) for everyone but wejscie, the disk writer and siec (0.9.0) (nadzorca/profile.c) */
+    int okna = strstr(profil, "wejscie") == NULL && strstr(profil, "instalator") == NULL && strstr(profil, "siec") == NULL;
 
     memset(&sa, 0, sizeof sa);
     sa.sa_sigaction = proba_sigsys;
