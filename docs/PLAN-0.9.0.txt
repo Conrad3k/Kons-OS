@@ -74,10 +74,10 @@ Potem sieć:
          PR #94
 [x]  2  Komunikaty: podział, odpowiedzi skarbca          L3 L4           —          —            M        —
          PR #94
-[ ]  3  Pliki startowe w aktualizacji; „Tymczasowe”      L5 L6           —          —            M–L      tak
-         [w toku: Claude, gałąź claude/busy-dirac-p38156]
+[x]  3  Pliki startowe w aktualizacji; „Tymczasowe”      L5 L6           —          —            M–L      tak
+         PR #96 (ADR 0038)
 [ ]  4  musl 1.2.5 i fortify-headers                     L7 L8           —          —            M        korekta 0007
-         [w toku: Claude, gałąź claude/busy-dirac-p38156, po kroku 3]
+         [w toku: Claude, gałąź claude/busy-dirac-p38156]
 [ ]  5  Jądro z siecią; nic nie odpowiada z zewnątrz     L9–L13          1, 4       T1–T4, T6    L        tak (sieć)
 [ ]  6  Kabel i adres od routera (DHCP) w klatce         L10 L14 L15     5          D2 D3        L        —
 [ ]  7  Ikona sieci i Ustawienia → Sieć                  L16             6          D1           M        —
@@ -210,6 +210,22 @@ KROK 4 — musl 1.2.5 i fortify-headers                                         
   zrobić bez osłabiania obrazu produkcyjnego); powtarzalność.
   Dokumenty: ZALEZNOSCI.md, ADR 0007 (dopisek-korekta), SPEC §11 (dopisek), RYZYKA R7 i R8, ARCHITEKTURA (budowa).
   Gotowe, gdy: obraz zbudowany z naszego musl i z fortify, testy [OK], powtarzalność [OK].
+  Ustalenia z wykonania (2026-11-13, Claude):
+  - L7 POTWIERDZONE inaczej: w tym kontenerze deb.debian.org i musl.libc.org są zablokowane, GitHub poza repo K1 też;
+    działa archiwum Ubuntu (pool/universe/m/musl: musl_1.2.5.orig.tar.gz + .asc = wydanie musl bajt w bajt). Źródła po
+    kolei w musl/wersja.env: archiwum Ubuntu, potem musl.libc.org (CI). Suma a9a118bb…c75e4 = plik .dsc Ubuntu;
+    podpis PGP wydawcy sprawdzany przy każdym pobraniu (klucz z debian/upstream/signing-key.asc pakietu źródłowego,
+    odcisk 8364 8929 … 3020 450F).
+  - Poprawki po 1.2.5 według dziennika pakietu Debiana/Ubuntu (do 1.2.5-3build1): tylko CVE-2025-26519 (2 commity,
+    iconv). Plus łatka Debiana „-static-pie w musl-gcc” (bez niej musl-gcc nie zbuduje statycznego PIE — Ubuntu 1.2.4
+    miała ją od 1.2.4-1). renameat2 z Debiana — nie (nowa funkcja).
+  - fortify-headers 3.0.1 (commit eec2b5e0): GitHub niedostępny, pobrane przez proxy.golang.org (tag → commit), suma
+    modułu potwierdzona w sum.golang.org (go mod download). W repo jak Monocypher/Wuffs (src/zewnetrzne/, SHA256SUMS) —
+    CI nic nie pobiera.
+  - Kolejność nagłówków sprawdzona (gcc -v): fortify-headers, nagłówki jądra, musl. Bez fortify programy K1 nie mają ani
+    jednej instrukcji ud2, z fortify — 3 (init) … 124 (dekoder); stąd sprawdzenie „pułapki w każdym programie”
+    w sprawdz-binaria.sh i próbka proba_fortify (SIGILL, kod 132). Cały kod K1 skompilował się z -Werror bez zmian.
+  - musl budowany w 15 s; przebudowa tylko po zmianie musl/ (znacznik wejścia); make sam buduje musl, gdy go brak.
 
 KROK 5 — Jądro z siecią; nic w K1 nie odpowiada z zewnątrz                          L · decyzje T1–T4, T6 · ADR
   Cel: jądro umie sieć (tylko to, co potrzebne), a test z zewnątrz pokazuje, że K1 nie odpowiada na żadne

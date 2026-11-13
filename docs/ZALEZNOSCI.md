@@ -8,12 +8,13 @@ co trafia **do obrazu** (działa na komputerze użytkownika), od tego, co służ
 | Zależność | Wersja | Licencja | Źródło i weryfikacja | Uzasadnienie |
 |---|---|---|---|---|
 | Jądro Linux | 6.18.60 (LTS) | GPL-2.0 | cdn.kernel.org; SHA-256 przypięta w `jadro/wersja.env`, podpis PGP wydania sprawdzany przy każdym pobraniu | fundament systemu (SPEC §4) |
-| musl libc (statycznie w każdym programie) | 1.2.4-2 (Ubuntu 24.04) | MIT | archiwum Ubuntu (podpisane repozytoria apt) | mała, czytelna libc ze wsparciem statycznego linkowania (SPEC §4); ADR 0002 |
+| musl libc (statycznie w każdym programie) | 1.2.5 + łatki CVE-2025-26519 (`iconv`, 2 commity musl) i `-static-pie` w `musl-gcc` (Debian) — od 0.9.0 nasz build | MIT | oryginalne wydanie `musl-1.2.5.tar.gz` z archiwum Ubuntu (pakiet źródłowy) albo musl.libc.org; SHA-256 przypięta i podpis PGP wydawcy sprawdzany przy każdym pobraniu (`musl/wersja.env`, `musl/klucze/`); łatki w `musl/latki/`; budowa `scripts/zbuduj-musl.sh` (`musl/README.md`) | mała, czytelna libc ze wsparciem statycznego linkowania (SPEC §4); ADR 0002; własny build — przypięta wersja i poprawki bezpieczeństwa (0.9.0 krok 4, RYZYKA R8). Poprawki po 1.2.5 wg Debiana/Ubuntu (do 1.2.5-3build1): tylko CVE-2025-26519 |
+| fortify-headers (nagłówki, wbudowane w kod każdego programu przy kompilacji) | 3.0.1 (tag `3.0.1`, commit `eec2b5e0`, 2025-12-30) | 0BSD (ISC bez warunku) | github.com/jvoisin/fortify-headers (kontynuacja git.2f30.org/fortify-headers, jak w Alpine); pliki `include/` i `LICENSE` w `src/zewnetrzne/fortify-headers/` bez zmian, SHA-256 w `SHA256SUMS`; pobrane przez proxy.golang.org — suma modułu `h1:mGe2tFFxzSCPFdVtQboD+FSGJZWMU3/alrUO5RMgFZ4=` potwierdzona w publicznym rejestrze sum.golang.org (`go mod download`) | `_FORTIFY_SOURCE=3` z musl (0.9.0 krok 4, korekta ADR 0007, RYZYKA R7): sprawdzenie granic w `memcpy`, `read`, `snprintf`… w czasie działania; przepełnienie = pułapka (`ud2`, SIGILL), bez biblioteki i bez `__*_chk`; mały, czytelny kod (ok. 10 nagłówków) używany w Alpine i Chimera Linux; aktualizacja: nowy tag, porównanie zmian, nowe sumy, pełne testy |
 | IBM Plex Sans / Serif — **tylko bitmapy glifów** wbudowane w `gui` i aplikacje | 6.1.1 (`fonts-ibm-plex`) | SIL OFL 1.1 | archiwum Ubuntu | tekst z polskimi znakami bez parsera czcionek w systemie (ADR 0009) |
 | Wuffs (statycznie w usłudze `dekoder`, tylko moduły PNG, JPEG, GIF, BMP, WebP z VP8 — od 0.8.2 — oraz zlib/deflate, LZW, sumy kontrolne) | 0.4.0-alpha.12 (tag `v0.4.0-alpha.12`, commit `7f70dda9`, 2026-10-20) | Apache-2.0 albo MIT (do wyboru) | github.com/google/wuffs; `release/c/wuffs-v0.4.c` w `src/zewnetrzne/wuffs/` bez zmian, SHA-256 w `src/zewnetrzne/wuffs/SHA256SUMS` | dekoder obrazów PNG i JPEG (0.8.0, ADR 0032), od 0.8.2 także GIF, BMP i WebP (te same gwarancje, moduły z tego samego pliku): napisany w języku, który przy kompilacji dowodzi braku wyjścia poza tablice i przepełnień liczb, sprawdzany fuzzingiem przez Google (OSS-Fuzz); sam nic nie przydziela poza dekoderem; kompiluje się z naszymi flagami bez ostrzeżeń. Własny dekoder JPEG (progresywny, podpróbkowanie) to kilka tysięcy wierszy nowego, niesprawdzonego kodu. Wersja „alpha” to jedyna linia z JPEG-iem; aktualizacja: nowy tag, porównanie zmian, nowe sumy, `test_dekoder` i `fuzz_dekoder`. HEIC (iPhone) — nie: Wuffs go nie ma, a obcego dekodera HEVC w C do świata natywnego nie bierzemy |
 | Monocypher (statycznie w usłudze `skarbiec`) | 4.0.3 (tag `4.0.3`, commit `ab2b16dd`) | BSD-2-Clause albo CC0 (do wyboru) | github.com/LoupVaillant/monocypher; pliki w `src/zewnetrzne/monocypher/` bez zmian, SHA-256 (pełne sumy: `src/zewnetrzne/monocypher/SHA256SUMS`) | XChaCha20-Poly1305, BLAKE2b, Argon2id dla Blob Vault — mała, audytowana biblioteka, jeden plik (ADR 0015); aktualizacja: nowy tag, porównanie zmian, nowe sumy |
 
-Nic więcej (poza Monocypherem w `skarbiec` i Wuffs w `dekoder`): brak bibliotek współdzielonych, interpreterów, powłoki. Grafika bez bibliotek:
+Nic więcej (poza Monocypherem w `skarbiec`, Wuffs w `dekoder` i nagłówkami fortify-headers w każdym programie): brak bibliotek współdzielonych, interpreterów, powłoki. Grafika bez bibliotek:
 API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybornik GUI własne
 (`src/grafika/`, `src/przybornik/`).
 
@@ -35,7 +36,7 @@ API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybo
 | python3-pil (Pillow) | 10.2.0 | Ubuntu 24.04 | tylko testy: zdjęcia JPEG i PNG na wirtualnym pendrivie (`test-pendrive`, 0.8.0 krok 3) i obrazy do `test_dekoder` / korpusu `fuzz_dekoder` (krok 4); `mtools`, `sfdisk` — obrazy FAT do `test_fat` i `test-pendrive` |
 | `dosfstools` (`fsck.fat`) | 4.2 | Ubuntu 24.04 | tylko testy (0.9.0 krok 3, ADR 0038): niezależne sprawdzenie FAT32 po wymianie plików startowych (`test_start`, `test-m5f`) |
 | GCC (+ `gcc-13-plugin-dev`) | 13.3.0 | Ubuntu 24.04 | kompilacja jądra (z wtyczkami KSTACK_ERASE, LATENT_ENTROPY) i programów K1 |
-| `musl-tools` (`musl-gcc`) | 1.2.4-2 | Ubuntu 24.04 | wrapper kompilatora dla musl |
+| `musl-gcc` | z naszego musl (wyżej) | `build/musl/bin` | wrapper kompilatora dla musl (od 0.9.0 nie z `musl-tools` Ubuntu); `gnupg` — sprawdzenie podpisu wydania musl |
 | binutils, make, flex, bison, bc, libelf, libssl, rsync, cpio, xz | Ubuntu 24.04 | Ubuntu | wymagania budowy jądra |
 | `gen_init_cpio` | z jądra 6.18.60 | źródła jądra | budowa initramfs bez uprawnień roota, deterministycznie (`-t`) |
 | squashfs-tools (`mksquashfs`) | 4.6.1 | Ubuntu 24.04 | budowa obrazu `/rdzen` (zstd, `SOURCE_DATE_EPOCH`) |
@@ -60,5 +61,4 @@ Wersje użyte w danym buildzie zapisuje `build/wynik/srodowisko.txt`.
 | kernel-hardening-checker | v0.6.17.1 (`afc376f2…`) | GitHub | **tylko dane**: lista zaleceń KSPP czytana jako tekst przez `scripts/sprawdz-kspp.sh`; kod narzędzia nie jest uruchamiany |
 
 ## Planowane (do decyzji)
-- `fortify-headers` (GitHub) — na razie nie (ADR 0007); ponownie przy własnym buildzie musl.
-- Własny build musl 1.2.5 z poprawkami bezpieczeństwa (pakiet źródłowy Debiana).
+- (zrobione w 0.9.0: własny build musl 1.2.5 z poprawkami i fortify-headers — wyżej)

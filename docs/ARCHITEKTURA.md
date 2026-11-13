@@ -32,6 +32,7 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 | `src/dekoder/` | `/rdzen/system/dekoder` — jeden obraz (PNG, JPEG, od 0.8.2 GIF, BMP, WebP; do 100 Mpx) → piksele, jednorazowy proces w klatce na prośbę klienta z tabeli (Pliki, Podgląd; 0.8.0 krok 4, ADR 0032, 0037) |
 | `src/zewnetrzne/` | kod zewnętrzny w repozytorium: Monocypher (kryptografia skarbca) i Wuffs (dekoder obrazów) — jedyne obce biblioteki, wersje i uzasadnienie w `docs/ZALEZNOSCI.md` |
 | `jadro/` | wersja (`wersja.env`), konfiguracja (`k1.config`, `k1-zamkniete.config` dla `k1.efi`) i linia poleceń jądra, klucze PGP, `README.md` (zmiana wersji jądra) |
+| `musl/` | biblioteka C programów K1 (0.9.0): wersja, SHA-256 i źródła (`wersja.env`), klucz PGP wydań musl (`klucze/`), łatki (`latki/`: CVE-2025-26519, `-static-pie`) — budowa `scripts/zbuduj-musl.sh` → `build/musl` (`musl/README.md`) |
 | `testy/system/` | program testowy uruchamiany wewnątrz K1 (obraz testowy) |
 | `testy/host/` | testy jednostkowe (ASan/UBSan), fuzzing (`fuzz_*.c` + korpusy), podgląd grafiki i narzędzia testowe na hoście (`magazyn_testowy`, `notatki_w_plikach`, `pomiar_magazynu`; obrazy z mtools: `obrazy_fat.sh`, `obrazy_efi.sh`) |
 | `testy/qemu/` | `k1qemu.py` — biblioteka testów w QEMU (klasa `Maszyna`: log, monitor, klik, przeciąganie, zrzuty) |
@@ -79,8 +80,10 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 jadro/wersja.env ──► pobranie + SHA-256 + podpis PGP ──► allnoconfig + jadro/k1.config ──► bzImage
                                                          (sprawdzenie każdej opcji)    └► nagłówki UAPI, gen_init_cpio
 IBM Plex (fonts-ibm-plex) ──► narzedzia/czcionki.c (FreeType, host) ──► build/gen/k1_czcionki_dane.c
-src/ ──► musl-gcc (static-pie, flagi SPEC §11) ──► k1-initramfs, init, nadzorca, usługi z K1_SYSTEM,
-                                                      aplikacje z K1_APLIKACJE, k1-test-systemu ──► sprawdzenie ELF
+musl/wersja.env ──► pobranie + SHA-256 + podpis PGP + musl/latki ──► build/musl (libc.a, musl-gcc)
+src/ ──► build/musl/bin/musl-gcc (static-pie, flagi SPEC §11, _FORTIFY_SOURCE=3 z src/zewnetrzne/fortify-headers)
+         ──► k1-initramfs, init, nadzorca, usługi z K1_SYSTEM, aplikacje z K1_APLIKACJE, k1-test-systemu
+         ──► sprawdzenie ELF i pułapek fortify (sprawdz-binaria.sh)
                      initramfs.cpio  ◄── /init (k1-initramfs)
                      rdzen.squashfs  ◄── init, system/{nadzorca + usługi z K1_SYSTEM}, aplikacje/{z K1_APLIKACJE},
                                          katalogi jadro/{dev,proc,sys}

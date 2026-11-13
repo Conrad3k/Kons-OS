@@ -43,7 +43,7 @@ Ręcznie: `scripts/uruchom-qemu.sh [--obraz build/wynik/rdzen-test.squashfs]` i 
 |---|---|
 | Archiwum wersji debianowej | gałąź `archiwum/debian-0.1.2` na GitHubie |
 | Nowa struktura repo, dokumenty §2.9 | `docs/SPEC.md`, `docs/adr/`, `docs/ZALEZNOSCI.md`, `docs/RYZYKA.md`, `CHANGELOG.md` |
-| Toolchain musl, statyczne linkowanie | `scripts/sprawdz-binaria.sh`: static-pie, bez interpretera i bibliotek |
+| Toolchain musl, statyczne linkowanie | `scripts/sprawdz-binaria.sh`: static-pie, bez interpretera i bibliotek; od 0.9.0 pułapki fortify w każdym programie i próbka `proba_fortify` (z flagami obrazu: w granicach działa, przepełnienie — SIGILL) |
 | Skrypty: build, QEMU z logiem, zrzut ekranu | `scripts/zbuduj.sh`, `scripts/uruchom-qemu.sh`, `scripts/zrzut-ekranu.sh` |
 | CI na main | `.github/workflows/k1.yml` — build + `scripts/testy.sh` |
 
@@ -496,4 +496,12 @@ celem) — tę regułę sprawdza host i skarbiec (`dok_przenies`).
 | `fuzz_fat32` | dowolna K1-EFI (korpus: mała K1-EFI z mtools): drzewo, skrót, wymiana w pamięci — bez czytania i pisania poza obrazem, bez zawieszenia | fuzzing |
 | host `test_manifest` | manifest plików startowych (format 3); format 1 (0.6.2–0.6.3) odrzucany | jednostkowy + negatywny |
 | `test-m5f.sh` (QEMU) | kroki 1, 3a, 3b, 3 w tabeli M5f: instalacja sprawdza pliki startowe, odmowa dla zmienionego pliku startowego, przerwana aktualizacja nie psuje startu, aktualizacja wymienia pliki startowe, OVMF startuje z nowych (krok 4) | funkcjonalny + negatywny |
+
+## 0.9.0 krok 4 — musl 1.2.5 i fortify-headers (korekta ADR 0007)
+| Test | Co sprawdza | Rodzaj |
+|---|---|---|
+| `scripts/zbuduj-musl.sh` (przy każdej budowie bez gotowego `build/musl`) | archiwum musl: SHA-256 z `musl/wersja.env` i podpis PGP wydawcy (odcisk z `wersja.env`), łatki pasują | negatywny (zła suma, zły podpis, łatka nie pasuje → budowa przerwana) |
+| `scripts/sprawdz-binaria.sh --fortify` (w `zbuduj-obraz.sh`) | w każdym programie pułapki fortify (`ud2`; bez fortify K1 nie ma ich wcale); próbka `testy/host/proba_fortify.c` zbudowana z flagami obrazu: `memcpy` w granicach działa, 24 bajty za dużo — SIGILL | funkcjonalny + negatywny |
+| w systemie `t_fortify` (obraz testowy) | `memcpy` w granicach bufora działa; NEGATYWNY: poza bufor — proces zatrzymany sygnałem SIGILL, nic nie nadpisane | negatywny |
+| pełne `scripts/testy.sh` | wszystkie usługi i aplikacje z nowym musl i fortify: klatki (nowe wywołania jądra byłyby „zabronione”, RYZYKA R24), pułapki przy zwykłej pracy (byłyby awarią usług) | regresja |
 

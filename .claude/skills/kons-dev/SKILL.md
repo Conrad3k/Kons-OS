@@ -91,6 +91,7 @@ X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt. Stero
 | `src/zewnetrzne/` | (linkowane) | Monocypher (skarbiec) i Wuffs (dekoder, 0.8.0) — jedyne obce biblioteki w systemie |
 | `narzedzia/` | (host) | czcionki IBM Plex → bitmapy, ekran startowy GRUB-a, podpis, klucz Secure Boot |
 | `jadro/` | `k1.efi`, `bzImage` | `k1.config`, `k1-zamkniete.config`, `README.md` (zmiana wersji jądra) |
+| `musl/` | (w każdym programie) | biblioteka C: `wersja.env`, `klucze/`, `latki/`, `README.md` (zmiana wersji, łatki) |
 | `testy/host/`, `testy/system/`, `testy/qemu/` | — | testy na hoście i fuzzing; program testowy w systemie; biblioteka `k1qemu.py` |
 | `scripts/` | — | budowa (`zbuduj*.sh`), testy (`testy.sh`, `test-m*.sh`, `test-pliki.sh`, `test-pendrive.sh`), sprawdzenia (`sprawdz-*.sh`), `wspolne.sh` |
 
@@ -106,6 +107,8 @@ Każdego pilnuje test. Zmiana któregokolwiek = zmiana architektury → ADR i de
    swapu, hibernacji, io_uring, BPF, userfaultfd, kexec, 32-bit, `INET` (do 0.9); lockdown confidentiality,
    Landlock, Yama.
 4. **Programy: statyczne PIE z flagami SPEC §11** (`-Werror`), sprawdzane przez `scripts/sprawdz-binaria.sh`.
+   Od 0.9.0: nasz musl 1.2.5 (`musl/`: suma, podpis PGP, łatki; `scripts/zbuduj-musl.sh` → `build/musl`) i
+   `_FORTIFY_SOURCE=3` z fortify-headers (`src/zewnetrzne/fortify-headers`) — przepełnienie = SIGILL (pułapka `ud2`).
    Obca biblioteka tylko z wpisem i uzasadnieniem w `docs/ZALEZNOSCI.md` (np. grafika bez libdrm — ioctl
    z nagłówków UAPI w `build/naglowki`).
 5. **PID 1 nigdy nie wychodzi** — błąd krytyczny → `k1_awaria()` (komunikat, 5 s, wyłączenie). Usługa przy

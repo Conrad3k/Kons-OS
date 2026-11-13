@@ -62,6 +62,13 @@ Sprawdzone w źródłach 6.18.60 i man-pages:
   kod spoza Ubuntu/Debiana; zyski pokrywają dziś: jawne limity długości, `-Wformat=2`, ASan/UBSan
   i fuzzing na hoście, a w systemie — klatki (przejęta usługa i tak nie ma uprawnień). Wracamy do tego
   przy własnym buildzie musl (M12 albo wcześniej).
+  **[korekta 0.9.0 (krok 4 planu 0.9.0): tak — przed pierwszym kodem, który czyta dane z sieci.** Własny build musl
+  1.2.5 z poprawkami (`musl/`, `scripts/zbuduj-musl.sh`) i fortify-headers 3.0.1 w `src/zewnetrzne/fortify-headers/`
+  (obca zależność z wpisem w `docs/ZALEZNOSCI.md`: przypięty commit, sumy plików, suma modułu z rejestru sum.golang.org).
+  Wszystkie programy: `-D_FORTIFY_SOURCE=3`, nagłówki fortify przed nagłówkami musl (`#include_next`). Przepełnienie
+  bufora o znanym rozmiarze w funkcji biblioteki = pułapka (SIGILL) zamiast cichego zapisu; usługa kończy się jak przy
+  każdym błędzie (restart według nadzorcy). Sprawdzenie: `scripts/sprawdz-binaria.sh` (pułapki w każdym programie,
+  próbka z tymi samymi flagami), test w systemie `t_fortify`.]
 
 ## Konsekwencje
 - Przejęcie `ekran` albo `wejscie` nie daje już roota: brak capabilities, plików, nowych procesów,
