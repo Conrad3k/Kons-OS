@@ -33,7 +33,7 @@ static struct usluga *dekoder(void)
 
 /* At most 1/K1_DEK_PAMIEC_RAM of the computer's memory (8 GB and more: the profile's own numbers), never less than
  * K1_DEK_PAMIEC_MIN. */
-uint64_t dekoder_pamiec(uint64_t ram, uint64_t profil)
+static uint64_t dekoder_pamiec(uint64_t ram, uint64_t profil)
 {
     uint64_t r = ram / K1_DEK_PAMIEC_RAM;
     return r < K1_DEK_PAMIEC_MIN ? K1_DEK_PAMIEC_MIN : r < profil ? r : profil;

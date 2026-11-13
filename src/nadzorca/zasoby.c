@@ -316,25 +316,29 @@ void bateria_archiwum(double t)
     }
 }
 
-/* Before power off: this boot's history once more, and a moment for skarbiec to write it. */
+/* Before power off: this boot's history once more, and a moment for skarbiec to write it. init stops us first and
+ * alone (0.8.6), so skarbiec still runs; until 0.8.5 it was stopped at the same moment and this save was lost. */
 void bateria_archiwum_koniec(void)
 {
     struct pollfd p;
     double koniec = k1_teraz() + 1.5;
     if (arch_kanal < 0 || arch_stan != 2 || bat_hist.n == 0)
         return;
-    arch_zapisane = 1; /* no log line: the console may be going away */
     arch_zapisz();
     p.fd = arch_kanal;
     p.events = POLLIN;
     while (k1_teraz() < koniec && poll(&p, 1, 200) >= 0) {
         struct k1_komunikat k;
         int fd = -1;
-        if (k1_odbierz_komunikat(arch_kanal, K1_UID_SKARBIEC, K1_KIER_OD_SKARBCA, &k, &fd) == K1_ODB_JEST) {
-            if (fd >= 0)
-                close(fd);
-            if (k.typ == K1_KOM_SKARB_WYNIK && k.a == K1_KOM_SKARB_ZAPISZ)
-                return;
+        enum k1_odbior_wynik w = k1_odbierz_komunikat(arch_kanal, K1_UID_SKARBIEC, K1_KIER_OD_SKARBCA, &k, &fd);
+        if (fd >= 0)
+            close(fd);
+        if (w == K1_ODB_KONIEC)
+            break; /* skarbiec is gone: nothing to wait for (this loop used to spin until the time was up) */
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_SKARB_WYNIK && k.a == K1_KOM_SKARB_ZAPISZ) {
+            k1_log(TAG, "historia baterii %s przed wyłączeniem", k.b == 0 ? "zapisana" : "niezapisana");
+            return;
         }
     }
+    k1_log(TAG, "historia baterii niezapisana przed wyłączeniem (skarbiec nie odpowiedział)");
 }

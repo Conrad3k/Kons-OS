@@ -93,7 +93,7 @@ int otworz_urzadzenie(const char *nazwa, int flagi)
 /* Starts the writing program for disk `nr` (1-based, from the list the window saw). The disk must
  * still be there with the same size; install opens the whole disk exclusively (fails while anything
  * on it is open — the data partition of the running system too), update only its K1-EFI. */
-int inst_zapis(int nr, int tryb)
+static int inst_zapis(int nr, int tryb)
 {
     struct k1_dyski teraz_l;
     const struct k1_dysk *d;

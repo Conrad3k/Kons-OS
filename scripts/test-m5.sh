@@ -8,7 +8,8 @@
 # 5. (0.5.8) pendrive z partycją K1-DANE podłączony po starcie → skarbiec i pulpit od nowa,
 #    (0.8.0) obraz na pendrive większym od obrazu: pusta K1-DANE rośnie przy pierwszym starcie do końca pendrive'a,
 # 6. (0.5.3) bateria laptopa (tablica ACPI z testy/acpi/bateria.asl: 73 %, ładowanie, zasilacz
-#    podłączony) — wskaźnik na górnym pasku (log powłoki + zrzut).
+#    podłączony) — wskaźnik na górnym pasku (log powłoki + zrzut),
+# 7. (0.8.6) Start → Wyłącz na końcu: nadzorca zapisuje historię baterii, zanim init zatrzyma skarbiec.
 # Dyski (SATA, NVMe, pendrive) i kontrolery EHCI/OHCI sprawdza test w systemie (scripts/test-m1.sh).
 # Zrzut: build/testy/m5-usb.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
@@ -138,7 +139,17 @@ else:
 t = tekst()
 sprawdz("brak 'Kernel panic' i błędów usług", "Kernel panic" not in t and "BŁĄD" not in t)
 sprawdz("brak odrzuconych i zgubionych zdarzeń", re.findall(r"odrzucone (\d+)\)", t)[-1:] == ["0"] and "pominięto" not in t)
-q.koniec()
+# 0.8.6: Start → Wyłącz on a laptop — init stops nadzorca first, so the battery history is saved while skarbiec still
+# runs (until 0.8.5 both were stopped at the same moment and that save was lost), then the power goes off
+if g:
+    klik(int(g.group(1)), int(g.group(2)))
+    m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);", czas=30)
+    if m:
+        klik(int(m.group(4)), int(m.group(5)))
+    sprawdz("Start → Wyłącz: historia baterii zapisana przed wyłączeniem, potem system się wyłącza",
+            m and czekaj(r"K1-NADZORCA: historia baterii zapisana przed wyłączeniem", czas=30)
+            and czekaj(r"K1: wyłączanie zasilania", czas=30) and czekaj(r"reboot: Power down", czas=30))
+q.koniec(wylacz=False)
 PY
 zamknij_qemu "$MON" $QPID
 

@@ -16,7 +16,8 @@ scripts/testy.sh                  # wszystkie testy: test-m1.sh, potem test-m2, 
 Testy na hoście (`make testy-host`) dzielą pomocnicze makra `testy/host/k1_test_host.h` (`EXPECT`,
 `K1_TEST_KONIEC`); zmiana nagłówka przebudowuje wszystkie. Brak narzędzia, którego test używa
 (`grub-editenv` dla `test_uklad`, `sfdisk` dla `test_instalator`), to błąd, nie pominięcie. Fuzzing
-(`make fuzz`): jedna reguła dla listy `FUZZ` w `Makefile` (plik `testy/host/fuzz_<nazwa>.c` + dwa wiersze);
+(`make fuzz`): jedna reguła dla listy `FUZZ` w `Makefile` (plik `testy/host/fuzz_<nazwa>.c` + dwa wiersze); od 0.8.6
+każdy fuzzer to osobny cel (`fuzz-<nazwa>`) i `test-m1.sh` uruchamia je równolegle (`make -j$(nproc) -O fuzz`);
 korpusy startowe w `testy/host/korpus-<nazwa>`; przypadki, które libFuzzer zapisuje (błąd, „wolny” przypadek), trafiają do
 `build/fuzz-wyniki/<nazwa>-…` (0.8.3). Sprawdzenia na hoście opisują zachowanie
 (oczekiwane liczby, teksty, bajty formatu), a nie powtarzają wzorów z kodu (0.7.3). Testy w QEMU piszemy na
@@ -195,6 +196,7 @@ Wszędzie: brak „Kernel panic”, „BŁĄD” i zabronionych wywołań.
 | odłączenie | `device_del` → nadzorca: „urządzenie wejścia odłączone”, `wejscie`: „urządzenie odłączone” |
 | ponowne podłączenie | znów 3 urządzenia (ten sam numer `eventN` rozpoznany jako nowy) |
 | zrzut `m5-usb.png` | kursor w miejscu z logu; brak błędów usług, odrzuconych i zgubionych zdarzeń |
+| Start → Wyłącz (0.8.6) | na końcu scenariusza (bateria, K1-DANE na pendrivie): nadzorca — „historia baterii zapisana przed wyłączeniem”, potem „wyłączanie zasilania” (init zatrzymuje nadzorcę przed skarbcem) |
 | historia baterii (0.6.0) | dwa starty z pendrive'a z baterią ACPI: pierwszy — „historia baterii zapisana”, drugi — „historia baterii: 1 poprzednich uruchomień” |
 | bateria (0.5.3) | tablica ACPI: 73 %, ładowanie, zasilacz podłączony → log powłoki i jasne piksele wskaźnika na górnym pasku obok dźwięku |
 | pendrive po starcie (0.5.8) | start bez K1-DANE („dane tylko w pamięci”) → `drive_add` + `device_add usb-storage` z pustą partycją K1-DANE → nadzorca: „partycja K1-DANE pojawiła się po starcie”, skarbiec: nowy magazyn, nowy „pulpit gotowy” |

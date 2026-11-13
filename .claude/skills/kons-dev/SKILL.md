@@ -205,6 +205,8 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 - Niestabilny test: najpierw szukaj błędu w harnessie, potem w systemie — nigdy go nie ignoruj ani nie wyłączaj.
 
 **Pułapki, które już wystąpiły:**
+- *Wyłączanie (0.8.6):* init zatrzymuje najpierw samego nadzorcę (ten zapisuje historię baterii, póki skarbiec działa),
+  potem resztę; usługi giną razem z nadzorcą (`PR_SET_PDEATHSIG`), więc nic w usłudze nie może liczyć na sprzątanie.
 - *Jądro i procesy:* `/proc/cmdline` nie istnieje dla usług (`subset=pid`) — o nośniku czytaj z sysfs;
   `hidepid` daje ENOENT zamiast EACCES; rodzicem usług jest nadzorca, nie init; filtr seccomp działa od
   `execve`, więc obejmuje start musl; `RLIMIT_FSIZE` ogranicza też `ftruncate` memfd (SIGXFSZ = 25).
@@ -249,7 +251,7 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
 - **Wersja** (`VERSION`, raz na paczkę; ADR 0035): nowy temat z mapy drogi → MINOR (0.9, 0.10…), kroki planu
   wersji, poprawki i jądro → PATCH, docs/CI → bez zmiany; wpis
   w `CHANGELOG.md`. `VERSION`, `CHANGELOG.md` i `DO_ZROBIENIA.txt` zmienia ten, kto robi wydanie. Łącz zmiany
-  w paczki — CI trwa ok. 10 min, a właściciel ma ograniczony limit.
+  w paczki — CI trwa ok. 30 min (budowa 9, testy 20), a właściciel ma ograniczony limit.
 - **CI na PR-ze:** etykieta `testy` (`issue_write`) — build i testy bez wydania. `workflow_dispatch` daje 403.
 - **Scalanie** (repo prywatne — scalasz sam po zielonych testach): commit po angielsku → `git push -u origin
   <gałąź>` → PR po polsku (najpierw co widzi użytkownik, potem technika, `Closes #N`) → **squash z własnym

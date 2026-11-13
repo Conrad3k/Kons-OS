@@ -61,6 +61,17 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
   nie widzą `/proc` poza własnymi procesami i nie mają do niego dostępu w klatce).
   Od 0.6.3 (M6b, ADR 0021): device-mapper z `DM_VERITY` (SHA-256) — obraz rdzenia sprawdzany przy starcie; od 0.7.0
   (ADR 0022): `EFIVAR_FS` (zmienne UEFI dla nadzorcy).
+  Od 0.8.6 (audyt przed 0.9): **zarządzanie energią procesora** — `NO_HZ_IDLE` (bezczynny procesor bez przerwań
+  zegara; wcześniej 250 na sekundę zawsze), `HIGH_RES_TIMERS` (`poll`/`nanosleep` dokładniejsze niż takt 4 ms:
+  ekran bez page flip składa 60 klatek na sekundę zamiast ok. 50), `CPU_IDLE` + `INTEL_IDLE` (głębokie stany
+  uśpienia; governor `menu`), `CPU_FREQ` + `X86_INTEL_PSTATE` (częstotliwość i turbo; governor `schedutil`),
+  `ACPI_PROCESSOR` (stany uśpienia z tablic ACPI dla innych procesorów), `ACPI_THERMAL` +
+  `THERMAL_EMERGENCY_POWEROFF_DELAY_MS=1000` (temperatura krytyczna → jądro wyłącza komputer; bez tej drugiej
+  opcji próba kończyłaby się na nieistniejącym programie pomocniczym). Do 0.8.5 nie było żadnej z nich (skutek
+  `allnoconfig`): procesor spał tylko w `HLT` i nie zmieniał częstotliwości. Sterowniki nie mają interfejsu dla
+  usług (sysfs tylko do odczytu, klatki bez ścieżek); w QEMU (TCG) ich nie widać — efekt sprawdza się na sprzęcie
+  (X230: Zasoby → pobór mocy na baterii). Bez `CONFIG_PM` (usypianie urządzeń, np. autosuspend USB) i bez
+  usypiania komputera — RYZYKA R63.
   Brak VT, sieci IP (do 0.9 — tylko gniazda UNIX), I2C-HID, `i915`.
 
 ## Wywołania systemowe usunięte z jądra (test: `t_syscalls`)

@@ -97,8 +97,6 @@ static void oglos_zmiane(void)
 }
 
 /* nadzorca's answer to POWIEKSZ_DANE: the vault takes the grown partition, the client that asked is told. */
-static void oglos_zmiane(void);
-
 static void powiekszono(int wynik)
 {
     int r = miejsce_powiekszono(wynik);

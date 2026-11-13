@@ -75,7 +75,7 @@ struct usluga *usluga_profilu(int profil)
 /* Test probes: one at a time. */
 struct usluga proba = USLUGA("proba", TEST, "K1-PROBA", 0, R_PROBA, 0, 0, 0);
 
-int sterowanie = -1;  /* our end of ekran's control channel */
+static int sterowanie = -1; /* our end of ekran's control channel */
 int zero = -1;        /* /dev/null for fds 0 and 1 of services */
 int gui_kanal = -1;     /* our end of gui's request channel (gui's fd 4) */
 int gui_kanal_uid = -1; /* who is on the other end of it: gui, or the password screen */
@@ -140,8 +140,7 @@ pid_t uruchom(struct usluga *u, const struct k1_profil *p, const int *fds, int n
         k1_klatka_uruchom(p, u->program, u->rodzaj == R_PROBA ? argv_proba : argv_usl, 2 + n);
     }
     close(potok[1]);
-    if (fcntl(potok[0], F_SETFL, O_NONBLOCK) != 0) {
-    }
+    (void)fcntl(potok[0], F_SETFL, O_NONBLOCK); /* a blocking pipe is still read: poll says when */
     u->log = potok[0];
     u->dl = 0;
     u->zetony = 2 * LOG_NA_SEKUNDE;
@@ -193,6 +192,8 @@ static void ustaw_wlasciciela(int *nasz, int profil)
     if (wolne < N(wlasciciele)) {
         wlasciciele[wolne].nasz = nasz;
         wlasciciele[wolne].profil = profil;
+    } else {
+        k1_log(TAG, "tabela właścicieli kanałów pełna — kanał usługi %d nie zostanie zamknięty po jej końcu", profil);
     }
 }
 
@@ -291,6 +292,7 @@ static void start_skarbiec(struct usluga *u, const struct k1_profil *p)
         k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
     } else {
         close(para[1]);
+        u->nastepny = k1_teraz() + 1.0; /* try again (0.8.6: it stayed stopped for good) */
     }
     for (i = 0; i < n; i++)
         close(fds[i]);
@@ -312,6 +314,7 @@ static void start_ekran(struct usluga *u, const struct k1_profil *p)
     }
     if (k1_kanal_utworz(para) != 0) {
         close(karta);
+        u->nastepny = k1_teraz() + 1.0;
         return;
     }
     fds[0] = para[0]; /* ekran: fd 3 = control channel (its end has SO_PASSCRED: it checks us) */
@@ -329,6 +332,7 @@ static void start_ekran(struct usluga *u, const struct k1_profil *p)
         k1_log(TAG, "uruchomiono %s (pid %d, uid %d)", u->nazwa, (int)u->pid, (int)p->uid);
     } else {
         close(para[1]);
+        u->nastepny = k1_teraz() + 1.0; /* try again (0.8.6) */
     }
     close(para[0]);
     close(karta);

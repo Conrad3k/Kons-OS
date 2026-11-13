@@ -53,6 +53,17 @@ musl (statycznie); jądro: devtmpfs, proc, sysfs, cgroup2, tmpfs, Yama, PID_NS (
 Montowanie/sysctl/`fork` nieudane → `k1_awaria()` (ADR 0005). Zakończenie nadzorcy (M1) →
 kontrolowane wyłączenie. SIGTERM → wyłączenie, SIGINT → restart, inne sygnały → wpis w logu.
 
+## Wyłączanie (kolejność od 0.8.6)
+1. `SIGTERM` tylko do nadzorcy; init czeka na jego koniec (najwyżej 3 s). Nadzorca zapisuje w tym czasie to, co
+   trzyma (historię baterii — skarbiec jeszcze działa), i zatrzymuje swoje usługi.
+2. `SIGTERM` do wszystkich pozostałych procesów; init zbiera zakończone i czeka, aż nie zostanie żaden — najwyżej
+   3 s od ostatniego zakończenia.
+3. `SIGKILL` do reszty, `sync`, `reboot`.
+
+Do 0.8.5 wszystkie procesy dostawały `SIGTERM` naraz (skarbiec znikał przed ostatnim zapisem nadzorcy), a po
+zakończeniu ostatniego procesu init zawsze czekał jeszcze pełne 3 s — każde wyłączenie i restart trwały o 3 s dłużej
+(zmierzone w QEMU: 3,1 s → 0,1 s).
+
 ## Powierzchnia ataku
 Sygnały od roota (init, nadzorca; usługi w klatkach nie widzą PID 1 i nie mogą wysłać mu sygnału). Status zakończenia dzieci (liczby, bez parsowania).
 Brak plików konfiguracyjnych i IPC.

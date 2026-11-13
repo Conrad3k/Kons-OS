@@ -14,14 +14,18 @@ działa; do 20 s na jego stan) → `hasło` (magazyn zablokowany: ekran hasła z
 
 ## Zdarzenia jądra (0.6.0)
 Gniazdo netlink `NETLINK_KOBJECT_UEVENT` (grupa jądra; tylko nadawca o porcie 0): nowe/usunięte
-`input/eventN` → wejscie z nowym zestawem; partycja → K1-DANE (start, późne wykrycie); `power_supply`
+`input/eventN` → wejscie z nowym zestawem; dysk albo partycja (dodane, zmienione, od 0.8.6 także usunięte —
+Pliki od razu wiedzą, że pendrive wyjęto) → K1-DANE (start, późne wykrycie) i pendrive dla Plików; `power_supply`
 → odczyt baterii od razu. Bez gniazda albo po przepełnieniu kolejki — pełne sprawdzenie (co 10 s
 zawsze jako zapas). Parser: `uevent.c` (test + fuzzing).
 
 ## Historia baterii (0.6.0)
 Nadzorca jest klientem skarbca jako właściciel `K1_WL_SYSTEM` (obiekt `K1_OB_BATERIA`, format
 `k1_bat_arch.h`): odczyt raz po otwarciu magazynu, zapis tego uruchomienia od razu, co 5 min i przy
-wyłączaniu; Ustawienia dostają archiwum jako zapieczętowany memfd (`BATERIA_ARCH`).
+wyłączaniu; Ustawienia dostają archiwum jako zapieczętowany memfd (`BATERIA_ARCH`). Zapis przy wyłączaniu działa
+od 0.8.6: init zatrzymuje najpierw samego nadzorcę (`docs/komponenty/init.md`, „Wyłączanie”), więc skarbiec jeszcze
+odpowiada — log „historia baterii zapisana przed wyłączeniem” (test: `scripts/test-m5.sh`). Do 0.8.5 skarbiec
+dostawał `SIGTERM` w tej samej chwili i ten zapis przepadał (ostatnie minuty wykresu).
 
 ## Cel
 Uruchamia usługi świata natywnego, każdą w osobnej klatce, łączy je kanałami, przekazuje ich logi na
@@ -159,7 +163,10 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
 - Zakończenie usługi → wpis w logu (kod 159 = zabronione wywołanie systemowe) → restart po
   0,2 / 1 / 2 / 4 / 4 s; 6. zakończenie w ciągu 60 s → „wyłączony”.
 - Zakończenie ekranu → klienci zatrzymani (bez liczenia jako awarię) i uruchomieni ponownie.
-- `SIGTERM`/`SIGINT` (od init przy wyłączaniu) → zatrzymanie usług i koniec.
+- `SIGTERM`/`SIGINT` (od init przy wyłączaniu; od 0.8.6 nadzorca dostaje go pierwszy i sam) → ostatni zapis
+  historii baterii (najwyżej 1,5 s), zatrzymanie usług i koniec.
+- Nieudane uruchomienie skarbca albo ekranu (`fork`, kanał) → ponowna próba po 1 s (od 0.8.6; wcześniej usługa
+  zostawała zatrzymana — klienci ekranu zawsze próbowali ponownie).
 
 ## Wywołania systemowe
 `signalfd`, `poll`, `pipe2`, `socketpair`, `setsockopt`, `sendmsg`/`recvmsg`, `fork`, `dup2`, `fcntl`,

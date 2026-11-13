@@ -81,8 +81,9 @@ krok "czytelność: pliki ≤ 600 wierszy, funkcje ≤ 80, opisy usług, aplikac
     python3 -I "$K1_REPO/scripts/sprawdz-czytelnosc.py" "$K1_REPO"
 krok "jednostkowe: linia poleceń, protokoły, kanały, przybornik GUI, renderer (ASan/UBSan)" "$TESTY/host.log" \
     make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" testy-host
+# 0.8.6: the fuzzers side by side, as many as there are processors (one after another: 13 × the time of one)
 krok "fuzzing: linia poleceń, protokoły zdarzeń i usług (${K1_FUZZ_CZAS:-20} s każdy, libFuzzer)" "$TESTY/fuzz.log" \
-    make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" fuzz FUZZ_CZAS="${K1_FUZZ_CZAS:-20}"
+    make -s -j"$(nproc)" -O -C "$K1_REPO" BUDOWA="$K1_BUDOWA" fuzz FUZZ_CZAS="${K1_FUZZ_CZAS:-20}"
 # (binaries and the kernel config are checked by the build itself: zbuduj-obraz.sh, zbuduj-jadro.sh)
 
 echo "[k1] obrazy do testów negatywnych"

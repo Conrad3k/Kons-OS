@@ -2,7 +2,7 @@
 #
 #   make            programy K1 → build/bin/ (wymaga nagłówków jądra: scripts/zbuduj-jadro.sh)
 #   make testy-host testy jednostkowe na hoście (glibc + ASan/UBSan)
-#   make fuzz       fuzzing parserów (clang + libFuzzer, lista FUZZ), FUZZ_CZAS sekund każdy
+#   make fuzz       fuzzing parserów (clang + libFuzzer, lista FUZZ), FUZZ_CZAS sekund każdy; równolegle: make -j4 -O fuzz
 #
 # Flagi: SPEC §11, zweryfikowane w ADR 0002; scripts/sprawdz-binaria.sh sprawdza wynik.
 
@@ -388,12 +388,15 @@ FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined 
 $(OBJ)/fuzz_%: testy/host/fuzz_%.c $$(FUZZ_ZR_$$*) $(NAGL) $(wildcard src/nadzorca/*.h src/skarbiec/*.h src/gui/*.h src/czytnik/*.h src/dekoder/*.h) | $(OBJ)
 	$(CC_FUZZ) $(FUZZ_FLAGI) -o $@ $< $(FUZZ_ZR_$*)
 
-fuzz: $(FUZZ:%=$(OBJ)/fuzz_%)
-	$(foreach n,$(FUZZ),mkdir -p $(BUDOWA)/fuzz-korpus-$(n) $(BUDOWA)/fuzz-wyniki && $(OBJ)/fuzz_$(n) -max_total_time=$(FUZZ_CZAS) \
-		-artifact_prefix=$(BUDOWA)/fuzz-wyniki/$(n)- \
-		-max_len=$(FUZZ_DL_$(n)) $(BUDOWA)/fuzz-korpus-$(n) $(wildcard testy/host/korpus-$(n)) &&) true
+# One target per fuzzer (0.8.6): `make -j… fuzz` runs them side by side — one after another they took most of the
+# time of the host tests (13 × FUZZ_CZAS). `make -O` keeps the output of each one together.
+fuzz: $(FUZZ:%=fuzz-%)
+$(FUZZ:%=fuzz-%): fuzz-%: $(OBJ)/fuzz_%
+	mkdir -p $(BUDOWA)/fuzz-korpus-$* $(BUDOWA)/fuzz-wyniki
+	$(OBJ)/fuzz_$* -max_total_time=$(FUZZ_CZAS) -artifact_prefix=$(BUDOWA)/fuzz-wyniki/$*- \
+		-max_len=$(FUZZ_DL_$*) $(BUDOWA)/fuzz-korpus-$* $(wildcard testy/host/korpus-$*)
 
 clean:
 	rm -rf $(BIN) $(OBJ)
 
-.PHONY: all testy-host fuzz clean FORCE
+.PHONY: all testy-host fuzz $(FUZZ:%=fuzz-%) clean FORCE

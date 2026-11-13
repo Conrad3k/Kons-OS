@@ -266,8 +266,8 @@ void obsluz_uevent(void)
         if (u.rodzaj == K1_UE_WEJSCIE && strncmp(u.devname, "input/event", 11) == 0 &&
             (u.akcja == K1_UE_DODANE || u.akcja == K1_UE_USUNIETE))
             uevent_wejscie = 1;
-        else if (u.rodzaj == K1_UE_DYSK && (u.akcja == K1_UE_DODANE || u.akcja == K1_UE_ZMIANA))
-            uevent_dysk = 1;
+        else if (u.rodzaj == K1_UE_DYSK && (u.akcja == K1_UE_DODANE || u.akcja == K1_UE_ZMIANA || u.akcja == K1_UE_USUNIETE))
+            uevent_dysk = 1; /* removed too (0.8.6): Pliki learn at once that the stick is gone, not at the next look */
         else if (u.rodzaj == K1_UE_ZASILANIE)
             uevent_zasilanie = 1;
     }

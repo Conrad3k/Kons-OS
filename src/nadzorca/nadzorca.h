@@ -104,7 +104,6 @@ extern const struct k1_profil profile[K1_PROFIL_MAKS + 1];
 /* uslugi.c */
 extern struct usluga uslugi[N_USLUG];
 extern struct usluga proba;
-extern int sterowanie;
 extern int zero;
 extern int gui_kanal;
 extern int gui_kanal_uid;
@@ -116,7 +115,6 @@ void start(struct usluga *u);
 void opisz(const char *nazwa, int status);
 void zakonczona(struct usluga *u, int status);
 void uruchom_aplikacje(int apl);
-void uruchom_z_plikiem(int apl, uint32_t plik); /* skarb.c: SKARB_URUCHOM from skarbiec (0.8.0, ADR 0030) */
 void wylacz(int restart);
 void obsluz_gui(void);
 
@@ -159,13 +157,11 @@ extern int inst_tryb, inst_wynik_wyslany;
 struct usluga *instalator(void);
 void inst_nowy_kanal(void);
 int otworz_urzadzenie(const char *nazwa, int flagi);
-int inst_zapis(int nr, int tryb);
 void obsluz_instalacje(void);
 void obsluz_zapis(void);
 
 /* pendrive.c — Pliki's requests and the USB stick (0.8.0 step 3, ADR 0031) */
 extern int pen_kanal;
-struct usluga *czytnik(void);
 void pliki_wyslij(struct k1_komunikat k, int fd); /* to Pliki's fd 6 */
 void pendrive_nowy_kanal(void);
 void pendrive_sprawdz(void);
@@ -177,7 +173,6 @@ extern int podglad_kanal;     /* our end of Podgląd's fd 6 (its requests for a 
 void dekoder_otworz(int apl); /* a request of application `apl` (its row in the table of clients) */
 void obsluz_podglad(void);
 void dekoder_koniec(void);
-uint64_t dekoder_pamiec(uint64_t ram, uint64_t profil); /* the sandbox's memory on a computer with `ram` bytes */
 
 /* skarb.c: the start is confirmed — skarbiec may move its vault to format 2 (0.8.2, ADR 0036) */
 void skarb_start_potwierdzony(void);
