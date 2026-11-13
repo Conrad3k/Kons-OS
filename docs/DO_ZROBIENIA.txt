@@ -4,18 +4,16 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.8.3 — pierwsze podpisane wydanie (system jak w 0.8.2); teraz 0.8.5 (Podgląd i Miejsce), potem 0.9 Sieć.
-Data: 2026-11-12.
+Stan: 0.8.5 — Podgląd i Miejsce (okna nie zamarzają, płynny Podgląd, Ustawienia → Miejsce, Secure Boot na dysku);
+teraz 0.9 Sieć.
+Data: 2026-11-13.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — 0.8.5 Podgląd i Miejsce, potem 0.9 Sieć
----------------------------------------------------
-0.8.5 (prośba właściciela z 2026-11-12, przed 0.9): plan wersji — docs/PLAN-0.8.5.txt (5 kroków: okna nie zamarzają,
-Podgląd płynny, Ustawienia → Miejsce, Secure Boot — „Przygotuj klucz K1” nie działa, wydanie). Wersji 0.8.4 nie będzie.
-
+1. TERAZ — 0.9 Sieć
+-------------------
 0.9 Sieć (ADR 0019, 0026) — plan wersji (kroki, luki, decyzje) pisze pierwszy czat 0.9: docs/PLAN-<wersja>.txt
 (ADR 0035). Zakres wstępny:
     [ ] na początek (porządki z 0.8.2, „dziel przed rozbudową”): jedna tabela usług systemowych — dziś nowa usługa
@@ -29,13 +27,14 @@ Podgląd płynny, Ustawienia → Miejsce, Secure Boot — „Przygotuj klucz K1�
     [ ] kabel (X230: Intel 82579LM, e1000e, bez firmware) + DHCP w osobnej klatce
     [ ] czas z sieci (reguła z 0.8.1: skok zegara w przód nie opróżnia Kosza — RYZYKA R56)
     [ ] Wi-Fi (iwlwifi + firmware — osobny ADR)
-Zamknięte: 0.8.2 — plan i jego ustalenia w docs/archiwum/PLAN-0.8.2.txt (historia), zmiany w CHANGELOG.md.
+Zamknięte: 0.8.2 i 0.8.5 — plany i ich ustalenia w docs/archiwum/PLAN-0.8.2.txt i PLAN-0.8.5.txt (historia), zmiany
+w CHANGELOG.md.
 
 
 2. MAPA DROGI (ADR 0035; dawne numery etapów M w nawiasach)
 ------------------------------------------------------------
     0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
-    0.8      Pliki — gotowe (0.8.0–0.8.3); teraz 0.8.5: Podgląd i Miejsce          (natywna część M9, dawne M6)
+    0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
     0.9      Sieć — następna                                                       (M7)
     0.10     Strefy: obce aplikacje w mikro-maszynach, przeglądarka                (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
@@ -98,29 +97,32 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230)
 -----------------------------------------------
 Jedna lista — dla ostatniego wydania. Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
-z 2026-11-11). Lista dla 0.8.3 (system jak w 0.8.2 + pierwsze podpisane wydanie; najlepiej na pendrive'ie, na którym
-już masz dane z 0.8.1 — aktualizacja przez Instalator albo nagranie obrazu USB od nowa, jeśli dane nie są ważne):
-    [~] NIE DZIAŁA (Twoje zgłoszenie z 2026-11-12: nie da się „Przygotować klucza K1”) — naprawa: krok 4 planu 0.8.5.
-        Secure Boot (README → „Secure Boot z kluczem K1”): 0.8.3 na dysku X230 (instalacja albo aktualizacja przez
-        Instalator) → Instalator → „Secure Boot…” → „Przygotuj klucz K1” → MokManager (Enroll MOK, hasło kons) → BIOS:
-        Secure Boot Enabled → K1 startuje, „Secure Boot…” pisze „Wszystko gotowe: Secure Boot chroni ten komputer.”
-    [ ] start z danymi z 0.8.1: pulpit, tapeta i ustawienia od razu; po ok. minucie Ustawienia → Informacje
-        pokazują więcej miejsca na pliki (dane przeszły na nowy format) — notatki, pliki i ustawienia są na miejscu,
-        także po ponownym starcie
+z 2026-11-11). Lista dla 0.8.5 (zawiera niesprawdzone punkty 0.8.2–0.8.3; najlepiej najpierw aktualizacja K1 na dysku
+X230 przez Instalator z pendrive'a 0.8.5 — dane zostają):
+    [ ] Secure Boot (krok 4 — naprawa Twojego zgłoszenia): K1 z dysku, bez pendrive'a → Instalator → na dole
+        „Secure Boot…” (w 0.8.3 go nie było) → „Przygotuj klucz K1” → „Uruchom ponownie” → MokManager (w 10 s klawisz,
+        Enroll MOK, hasło kons) → F1: Secure Boot Enabled → K1 startuje, „Secure Boot…” pisze „Wszystko gotowe:
+        Secure Boot chroni ten komputer.” (README → „Secure Boot z kluczem K1”)
+    [ ] Podgląd płynny (krok 2): duże zdjęcie z telefonu, szybkie „+” kilka razy, przytrzymany „+”, przesuwanie
+        przybliżonego zdjęcia myszą, TrackPointem i touchpadem — czy płynnie, czy po zatrzymaniu robi się ostre
+    [ ] okna nie zamarzają (krok 1): w Podglądzie szybkie klikanie „+” / „−” i gwałtowne ruchy myszą — okno zawsze
+        dochodzi do końca i dalej odpowiada; puszczenie przycisku zawsze kończy przeciąganie (Podgląd, Pliki, pulpit)
+    [ ] Ustawienia → Miejsce (krok 3): na dysku po instalacji („na dysku”, bez przycisku) i na pendrivie z danymi
+        („na pendrive'ie”, przycisk „Użyj całego pendrive'a na dane”, gdy pendrive ma wolne miejsce); po imporcie zdjęć
+        w Plikach część „Obrazy” rośnie; czy kolory i liczby są czytelne
+    [ ] start z danymi z 0.8.1: pulpit, tapeta i ustawienia od razu; po ok. minucie Ustawienia → Miejsce pokazuje więcej
+        miejsca na pliki (dane przeszły na nowy format) — notatki, pliki i ustawienia są na miejscu
     [ ] pendrive albo karta z telefonu/aparatu: folder ze zdjęciami widać cały, „Importuj wszystkie”; drugi import —
         „Pominięto n — już zaimportowane”; daty zdjęć z pendrive'a
     [ ] duże zdjęcie z telefonu (tryb 48/50 Mpx) i GIF/WebP: miniatura w Plikach, Podgląd, „Ustaw jako tapetę”
-    [ ] Podgląd: podwójne kliknięcie zdjęcia (Pliki i pulpit), ← / →, − / + i przesuwanie myszą (czy płynne na
-        X230), R, Delete → Kosz
     [ ] prawy przycisk na pliku w Plikach i na pulpicie: „Otwórz za pomocą”, „Pokaż w Plikach”, „Zmień nazwę”;
         podwójne kliknięcie PDF albo ZIP → komunikat
     [ ] zaznaczanie wielu (Ctrl+klik, Shift+klik, Ctrl+A) i przeciąganie na folder, na Kosz (pytanie przy kilku),
-        z Kosza na folder, z pendrive'a na folder (import); na pulpicie plik na Kosz i na folder; TrackPoint
-        i touchpad przy przeciąganiu
+        z Kosza na folder, z pendrive'a na folder (import); na pulpicie plik na Kosz i na folder
 Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „pomysł”) albo w czacie.
 
 
-5. TWOJE OTWARTE DECYZJE I DZIAŁANIA (poza planem bieżącej wersji — decyzje 0.8.5: docs/PLAN-0.8.5.txt, punkt 4)
+5. TWOJE OTWARTE DECYZJE I DZIAŁANIA (decyzje 0.8.5 — zamknięte: docs/archiwum/PLAN-0.8.5.txt, punkt 4)
 --------------------------------------------------------
 [x] Klucz podpisu — sekret dodany 2026-11-12; od 0.8.3 wydania są podpisane, Secure Boot z kluczem K1 dostępny
     (włączenie — punkt 4).

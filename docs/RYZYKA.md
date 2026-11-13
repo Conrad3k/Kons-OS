@@ -2,7 +2,7 @@
 
 Zasada (SPEC §2.5): mechanizm bezpieczeństwa to nie gwarancja. Tu zapisujemy, czego system
 **jeszcze nie chroni** albo **nie może chronić**, i kiedy planujemy to zmienić.
-Stan na wersję 0.8.2. Kolumna „Plan” mówi numerem wersji (ADR 0035: 0.9 Sieć, 0.10 Strefy, 0.11 Pliki ze stref, 0.12 Bezpieczny start, 0.13 Audyt); dawne numery etapów M zostały w opisach jako historia. Klasyfikacja: **W** — wysokie, **Ś** — średnie, **N** — niskie.
+Stan na wersję 0.8.5. Kolumna „Plan” mówi numerem wersji (ADR 0035: 0.9 Sieć, 0.10 Strefy, 0.11 Pliki ze stref, 0.12 Bezpieczny start, 0.13 Audyt); dawne numery etapów M zostały w opisach jako historia. Klasyfikacja: **W** — wysokie, **Ś** — średnie, **N** — niskie.
 
 | Nr | Ryzyko / ograniczenie | Waga | Co je ogranicza teraz | Plan |
 |---|---|---|---|---|

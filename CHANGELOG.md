@@ -3,6 +3,59 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.8.5] — 2026-11-13
+
+**Podgląd i Miejsce** (`docs/archiwum/PLAN-0.8.5.txt`, kroki 1–5) — poprawki tematu 0.8 Pliki przed 0.9 Sieć: okna
+już nie zamarzają, Podgląd jest płynny, nowa sekcja Ustawienia → Miejsce, Secure Boot da się włączyć na K1
+zainstalowanym na dysku. Wersji 0.8.4 nie ma (numer wybrałeś sam).
+
+### Ważne przy aktualizacji
+- **Secure Boot na zainstalowanym K1:** w 0.8.3 Instalator uruchomiony z dysku nie pokazywał linku „Secure Boot…”
+  (Twoje zgłoszenie z X230). Zaktualizuj K1 na dysku do 0.8.5 przez Instalator z pendrive'a (dane zostają), uruchom
+  z dysku bez pendrive'a → Instalator → **Secure Boot…** → **Przygotuj klucz K1** → dalej jak w README („Secure Boot
+  z kluczem K1”).
+
+### Dodane
+- **Ustawienia → Miejsce** (krok 3; Twoje decyzje: szkic B, podział według folderów, miejsce na pliki): ile miejsca
+  jest wolne, szeroki pasek w kolorach motywu (największy folder w kolorze akcentu) i legenda — Pulpit, Dokumenty,
+  Obrazy, Muzyka, Wideo, Pobrane (z Twoimi folderami w środku), Kosz, „System”; „Zapas systemu” (zawsze wolny, żeby
+  dało się zapisać zmiany) i liczba plików. Sekcja wie, czy K1 działa z pendrive'a, z dysku czy tylko z pamięci;
+  przycisk **„Użyj całego pendrive'a na dane”** przeniósł się tu z Informacji. Odświeża się sama, gdy jest otwarta.
+
+### Zmienione
+- **Podgląd płynny** (krok 2): przybliżanie (− +, także szybkie klikanie) i przesuwanie przybliżonego zdjęcia liczą się
+  raz na klatkę i w ruchu szybko — z mniejszej kopii zdjęcia (ok. 12 % dawnego czasu klatki); gdy zdjęcie stanie,
+  w ułamku sekundy rysuje się ostro jak dotąd. Kolejne „+” w trakcie animacji idzie od ostatniego wybranego poziomu,
+  wolna klatka przeskakuje zamiast wydłużać animację.
+- **Każde okno rysuje tło szybciej** (krok 2): zaokrąglone prostokąty (tło okien, przyciski, karty) nie liczą już
+  odległości od brzegu dla każdego piksela wnętrza — tło okna 8 × szybciej, wygląd co do piksela ten sam.
+- Ustawienia → Informacje: wersja, ekran, jądro, gdzie są dane (miejsce na pliki — w sekcji Miejsce).
+
+### Naprawione
+- **Okna już nie zamarzają** (krok 1): gdy aplikacja chwilę liczyła, a mysz wysyłała dużo ruchów, ekran po cichu
+  wyrzucał to, czego aplikacja nie zdążyła odebrać — także „klatka pokazana” (okno już nigdy się nie odświeżało:
+  „zawieszony Podgląd”) i „puszczono przycisk” (przeciąganie się „przyklejało”). Teraz zaległe zdarzenia czekają
+  w ekranie, ruchy myszy łączą się w jeden, a te ważne nigdy nie przepadają.
+- **Secure Boot: „Przygotuj klucz K1”** (krok 4): Instalator pokazuje link „Secure Boot…” także wtedy, gdy K1 działa
+  z dysku, na którym go zainstalowano (w 0.8.3 tylko przy starcie z pendrive'a). Klucz przygotowany wcześniej, a nie
+  potwierdzony w MokManagerze: okno pokazuje „Uruchom ponownie” i mówi, co zrobić.
+
+### Porządki
+- Ustawienia: miejsce na pliki liczy i opisuje jeden moduł (`miejsce.c`) — Informacje nie mają już własnego paska ani
+  własnego zapisu rozmiarów (rozmiary jak w Plikach: `k1_rozmiar_tekst`).
+- Nowe części jako wiersze tabel: części miejsca (`K1_CZESCI` — z tabeli folderów + Kosz + rezerwa), sekcje Ustawień.
+- „Tymczasowe” przejrzane, terminy bez zmian: stary manifest formatu 1 i przeniesienie starych notatek — 0.9.0;
+  format 1 skarbca i przejście na format 2 — 0.10.0; GRUB — 0.12. Nic nowego tymczasowego w 0.8.5.
+
+### Testy
+- W systemie: klient, który przez chwilę nie odbiera (1500 ruchów myszy), dostaje potem „klatkę” i „puszczenie”, inny
+  klient rysuje normalnie (na 0.8.3 test był czerwony: 278 odebranych, reszta przepadła). Host: kolejka zaległych
+  ekranu, szybka droga Podglądu, zaokrąglone prostokąty bit w bit jak dawniej, podział miejsca (też NEGATYWNY: inna
+  aplikacja nie dostaje liczb), nowe komunikaty skarbca. Pomiar Podglądu na hoście (`pomiar_podgladu`).
+- QEMU: Podgląd — 20 × „+” i 20 × „−” bez czekania i przeciąganie; Miejsce przed i po imporcie z pendrive'a (oba
+  motywy), z pendrive'a (przycisk) i z dysku (bez przycisku); Secure Boot — K1 z dysku bez pendrive'a: link widać
+  (na 0.8.3 czerwony), z kluczem wydania „Przygotuj klucz K1” zapisuje klucz dla MokManagera.
+
 ## [0.8.3] — 2026-11-12
 
 **Pierwsze podpisane wydanie** — bez zmian w działaniu systemu. Od tej wersji wydania są podpisane Twoim kluczem
