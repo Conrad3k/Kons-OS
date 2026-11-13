@@ -62,8 +62,8 @@ Nowy czat — przebieg każdego kroku:
      Krok                                             Luki (punkt 5)     Zależy od  Decyzje    Rozmiar  ADR
 [x]  1  Okna nie zamarzają: ekran nie gubi zdarzeń   L1 L2              —          —          M        —   PR #83
 [x]  2  Podgląd płynny                                L3 L4 L5 L6        1          —          M–L      —   PR #84
-[ ]  3  Ustawienia → Miejsce                          L7 L8              —          D1 D2 D3   L        —   [w toku: Claude, gałąź claude/zen-bohr-6od7n8]
-[ ]  4  Secure Boot: „Przygotuj klucz K1”            L9                 —          D4         S–M      —
+[x]  3  Ustawienia → Miejsce                          L7 L8              —          D1 D2 D3   L        —   PR #85
+[ ]  4  Secure Boot: „Przygotuj klucz K1”            L9                 —          D4         S–M      —   [w toku: Claude, gałąź claude/zen-bohr-6od7n8]
 [ ]  5  Porządki i wydanie 0.8.5                      —                  1–4        —          S        —
 
 Kolejność: 1 przed 2 (najpierw zawieszanie, potem płynność — pomiar płynności nie ma sensu, gdy okno potrafi
@@ -247,13 +247,14 @@ KROK 5 — Porządki i wydanie 0.8.5                                            
        A/B) nie pokazujemy — nie da się ich użyć na pliki; ewentualnie jeden wiersz „System K1: 280 MB”.
        DECYZJA (2026-11-12): miejsce na pliki (rekomendacja), bez wiersza „System K1”. Uwaga właściciela: sekcja ma
        wiedzieć, czy K1 działa z pendrive'a, czy z dysku (opis, przycisk powiększania tylko na pendrivie).
-[!] D4 (krok 4) Secure Boot — co dokładnie się dzieje? Potrzebne na start kroku 4:
+[x] D4 (krok 4) Secure Boot — co dokładnie się dzieje? Potrzebne na start kroku 4:
        - skąd uruchamiasz K1 (z dysku po instalacji czy z pendrive'a) i jaka wersja jest na dysku (Ustawienia →
          Informacje);
        - co pokazuje okno „Secure Boot…” w Instalatorze: „Secure Boot: …” i „Klucz K1: …”;
        - czy przycisk „Przygotuj klucz K1” w ogóle jest; jeśli jest — co się dzieje po kliknięciu (komunikat?);
        - jeśli po kliknięciu i ponownym starcie: czy pojawia się niebieski ekran MokManagera.
        Zdjęcie ekranu telefonem wystarczy.
+       ODPOWIEDŹ (2026-11-12): przycisku nie ma — w oknie Instalatora w ogóle nie widać linku „Secure Boot…”.
 
 
 5. LUKI (z czytania kodu 0.8.3, 2026-11-12)
