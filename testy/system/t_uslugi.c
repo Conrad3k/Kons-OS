@@ -190,6 +190,8 @@ void t_klatki(void)
     /* skarbiec (M5d): the K1-DANE partition (sda1 in the test machine) and nothing else */
     static const char *const fd_skarbiec[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/memfd:",
                                                "/rdzen/jadro/dev/sd", NULL };
+    /* siec (0.9.0): its channel; the packet socket only with a card that has a cable (none in this machine) */
+    static const char *const fd_siec[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", NULL };
 #define X_APL(n, apl_, profil_, uid_, program_, ...) { apl_, program_, uid_ },
     static const struct { int apl; const char *nazwa; int uid; } apl[] = { K1_APLIKACJE(X_APL) };
 #undef X_APL
@@ -198,6 +200,7 @@ void t_klatki(void)
     t_klatka("skarbiec", K1_UID_SKARBIEC, fd_skarbiec);
     t_klatka("ekran", K1_UID_EKRAN, fd_ekran);
     t_klatka("wejscie", K1_UID_WEJSCIE, fd_wejscie);
+    t_klatka("siec", K1_UID_SIEC, fd_siec);
     for (j = 0; j < 100 && find_process("gui") == 0; j++)
         msleep(100);
     t_klatka("gui", K1_UID_GUI, fd_okna);

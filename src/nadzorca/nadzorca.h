@@ -177,6 +177,15 @@ void dekoder_otworz(int apl); /* a request of application `apl` (its row in the 
 void obsluz_podglad(void);
 void dekoder_koniec(void);
 
+/* siec.c — the network cards, the cable, the address siec asks for (0.9.0 step 6, ADR 0039) */
+extern int siec_kanal; /* our end of siec's fd 3 */
+extern int siec_rt;    /* rtnetlink: the kernel's messages about the cards */
+void siec_otworz(void);
+void siec_sprawdz(double t);
+void siec_nowy_kanal(void);
+void obsluz_siec(void);
+void obsluz_rt(void);
+
 /* skarb.c: the start is confirmed — skarbiec may move its vault to format 2 (0.8.2, ADR 0036) */
 void skarb_start_potwierdzony(void);
 

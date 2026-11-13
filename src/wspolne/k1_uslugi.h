@@ -27,7 +27,9 @@
       (KANAL_PULPITU, KANAL_BATERII, KANAL_SKARBCA))                                                                    \
     X(INSTALATOR, 10, 105, "instalator", "Instalator (zapis dysku)", NA_PROSBE, BRAK, ()) /* M5f: writes the disk */    \
     X(CZYTNIK, 15, 106, "czytnik", "Czytnik pendrive'a", NA_PROSBE, BRAK, ()) /* 0.8.0: a USB stick, read only */       \
-    X(DEKODER, 16, 107, "dekoder", "Dekoder obrazów", NA_PROSBE, BRAK, ())    /* 0.8.0: one picture, then it ends */
+    X(DEKODER, 16, 107, "dekoder", "Dekoder obrazów", NA_PROSBE, BRAK, ())    /* 0.8.0: one picture, then it ends */ \
+    /* 0.9.0 (ADR 0039): the address from the router (DHCP) for the card with a cable; nadzorca sets it */          \
+    X(SIEC, 18, 108, "siec", "Sieć (adres od routera)", PRZY_STARCIE, BRAK, (KANAL_SIECI))
 
 /* The native applications: one line each — everything else (UIDs, profiles, the Start menu, window names,
  * Zasoby, the sandbox profile, the image contents, the tests) follows from it.

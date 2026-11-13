@@ -55,8 +55,8 @@ int proba(const char *profil)
     long r;
     void *m;
     int e;
-    /* memfd (surfaces, data) for everyone but wejscie and the disk writer (nadzorca/profile.c) */
-    int okna = strstr(profil, "wejscie") == NULL && strstr(profil, "instalator") == NULL;
+    /* memfd (surfaces, data) for everyone but wejscie, the disk writer and siec (0.9.0) (nadzorca/profile.c) */
+    int okna = strstr(profil, "wejscie") == NULL && strstr(profil, "instalator") == NULL && strstr(profil, "siec") == NULL;
 
     memset(&sa, 0, sizeof sa);
     sa.sa_sigaction = proba_sigsys;
@@ -81,6 +81,14 @@ int proba(const char *profil)
     zablokowane("setuid(0)", SYS_setuid, 0, 0, 0, 0, 0);
     zablokowane("setresgid(0)", SYS_setresgid, 0, 0, 0, 0, 0);
     zablokowane("nowe gniazdo (socket)", SYS_socket, AF_UNIX, SOCK_STREAM, 0, 0, 0);
+    /* 0.9.0 (ADR 0039): the kernel has IPv4 now — still no cage may open a network socket of any kind */
+    zablokowane("gniazdo sieciowe (socket AF_INET)", SYS_socket, AF_INET, SOCK_DGRAM, 0, 0, 0);
+    zablokowane("gniazdo pakietowe (socket AF_PACKET)", SYS_socket, AF_PACKET, SOCK_RAW, 0, 0, 0);
+    zablokowane("gniazdo netlink (socket AF_NETLINK)", SYS_socket, AF_NETLINK, SOCK_RAW, 0, 0, 0);
+    zablokowane("para gniazd sieciowych (socketpair AF_INET)", SYS_socketpair, AF_INET, SOCK_STREAM, 0, 0, 0);
+    /* 0.9.0 step 6: setting an address is nadzorca's (CAP_NET_ADMIN, on siec's request) — no cage, siec included */
+    zablokowane("ustawienie adresu karty (ioctl SIOCSIFADDR)", SYS_ioctl, 3, 0x8916, 0, 0, 0);
+    zablokowane("zmiana filtra gniazda (setsockopt)", SYS_setsockopt, 3, 1 /* SOL_SOCKET */, 27 /* SO_DETACH_FILTER */, 0, 0);
     zablokowane("nowy proces (fork)", SYS_fork, 0, 0, 0, 0, 0);
     zablokowane("nowy proces (clone)", SYS_clone, SIGCHLD, 0, 0, 0, 0);
     zablokowane("sygnał do init (kill)", SYS_kill, 1, SIGTERM, 0, 0, 0);

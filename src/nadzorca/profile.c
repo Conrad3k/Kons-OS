@@ -19,6 +19,10 @@ static const long sc_dekoder[] = { SYS_memfd_create };
 static const long sc_okna[] = { SYS_memfd_create, SYS_ftruncate };
 /* instalator (M5f): the two devices it gets from us, randomness for the GPT GUIDs. No open. */
 static const long sc_instalator[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, SYS_getrandom };
+/* siec (0.9.0, ADR 0039): randomness for the DHCP transaction numbers. It sends and receives on the packet socket we
+ * give it (sendto/recvfrom: the base) — no socket, setsockopt, bind or ioctl: it can neither open another socket nor
+ * change the filter on this one (SO_LOCK_FILTER), nor set an address (nadzorca does, on its request). */
+static const long sc_siec[] = { SYS_getrandom };
 
 /* The sandbox of each system service: KLATKA_<NAME> for every row of K1_SYSTEM (k1_uslugi.h) — its system calls and
  * limits, with the reason; the name and the UID come from the row. A row without its KLATKA_ does not build. */
@@ -57,6 +61,9 @@ static const long sc_instalator[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, 
 #define KLATKA_DEKODER .wywolania = sc_dekoder, .n_wywolan = N(sc_dekoder),                                         \
                        .pamiec = (uint64_t)K1_DEK_PAMIEC + K1_DEK_ZAPAS + (64u << 20), .pliki = 8,                 \
                        .rozmiar_pliku = 17u << 20, .czas_cpu = 20, .przestrzen = (uint64_t)K1_DEK_PAMIEC + K1_DEK_ZAPAS
+
+/* siec: two descriptors (the channel, the packet socket) and a few kilobytes of state; 8 MiB like wejscie. */
+#define KLATKA_SIEC .wywolania = sc_siec, .n_wywolan = N(sc_siec), .pamiec = 8u << 20, .pliki = 8
 
 const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
 #define X_S(n, profil_, uid_, program_, ...) [K1_PROFIL_##n] = { .nazwa = program_, .uid = uid_, KLATKA_##n },

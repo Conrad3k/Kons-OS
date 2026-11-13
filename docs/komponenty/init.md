@@ -40,9 +40,21 @@ Montowania i ich flagi: tabela w ADR 0004. Sysctl (wszystkie wymagane, inaczej a
 | `vm.memfd_noexec` | 2 | programów z pamięci (memfd) nie da się uruchomić |
 | `dev.tty.ldisc_autoload` | 0 | brak automatycznego ładowania dyscyplin linii |
 | `dev.tty.legacy_tiocsti` | 0 | brak wstrzykiwania znaków do terminala |
+| `net.ipv4.icmp_echo_ignore_all`, `…_broadcasts` | 1, 1 | (0.9.0, ADR 0039) brak odpowiedzi na ping |
+| `net.ipv4.icmp_ratemask`, `icmp_msgs_per_sec`, `icmp_msgs_burst` | 524287, 0, 0 | jądro nie wysyła **żadnego** ICMP: każdy typ (0–18) przez globalny limit 0 na sekundę |
+| `net.ipv4.icmp_ignore_bogus_error_responses` | 1 | błędne komunikaty ICMP od routerów pomijane bez logu |
+| `net.ipv4.ip_forward` | 0 | K1 nie przekazuje pakietów |
+| `net.ipv4.tcp_syncookies`, `tcp_rfc1337` | 1, 1 | zalew SYN nie wyczerpuje pamięci; ochrona połączeń w TIME-WAIT |
+| `net.ipv4.conf.{all,default}.rp_filter` | 1 | ścisłe sprawdzanie nadawcy (pakiet tylko z karty, przez którą wraca odpowiedź) |
+| `net.ipv4.conf.{all,default}.accept_redirects`, `secure_redirects`, `send_redirects` | 0 | bez przekierowań ICMP |
+| `net.ipv4.conf.{all,default}.accept_source_route` | 0 | bez trasy wybranej przez nadawcę |
+| `net.ipv4.conf.{all,default}.arp_ignore`, `arp_announce` | 1, 2 | ARP tylko o własny adres na tej karcie |
+
+`default` dociera też do kart znalezionych przez jądro przed initem (`net/ipv4/devinet.c: devinet_copy_dflt_conf`) i do
+kart podłączonych później (przejściówki USB). Bez `log_martians` — wpisy z adresami (niezmiennik 8).
 
 ## Zależności
-musl (statycznie); jądro: devtmpfs, proc, sysfs, cgroup2, tmpfs, Yama, PID_NS (memfd_noexec).
+musl (statycznie); jądro: devtmpfs, proc, sysfs, cgroup2, tmpfs, Yama, PID_NS (memfd_noexec), INET (sysctl sieci, 0.9.0).
 
 ## Wywołania systemowe
 `getpid`, `umask`, `chdir`, `rt_sigprocmask`, `reboot` (`RB_DISABLE_CAD`, `RB_POWER_OFF`,

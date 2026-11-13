@@ -8,6 +8,10 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | Pojęcie | Znaczenie |
 |---|---|
 | **jądro** | Jądro Linux z naszą minimalną konfiguracją (`jadro/k1.config`). Jedyna rzecz, którą bierzemy z Linuksa. |
+| **karta sieciowa** | Urządzenie, przez które K1 łączy się z siecią — kablem (Ethernet; od 0.9.0) albo bez kabla (Wi-Fi; później). Sterownik zawsze z jądra (ADR 0039). Jądro nazywa ją „interfejsem sieciowym” (`eth0`). |
+| **router** | Urządzenie w domu, do którego idzie kabel sieciowy; daje K1 adres (DHCP) i drogę do internetu. |
+| **adres od routera** (DHCP) | Adres K1 w sieci domowej: usługa **siec** prosi o niego router, nadzorca go ustawia; ważny przez **dzierżawę** (czas od routera), odnawiany w połowie. Nie trafia do logu. |
+| **sieć testowa** | W testach QEMU: drugi koniec kabla karty sieciowej maszyny, program w Pythonie (`testy/qemu/k1siec.py`) — wysyła ramki jak router albo obcy komputer i zapisuje każdą ramkę od K1. |
 | **rdzeń** | Cały system K1 poza jądrem: obraz tylko do odczytu `/rdzen` (SquashFS). Nie da się go zmienić w działającym systemie. |
 | **sprawdzanie rdzenia** (dm-verity) | Przy każdym odczycie jądro sprawdza, że rdzeń jest bajt w bajt taki, jak w wydaniu; zmiana = zatrzymanie. |
 | **wydanie** | Jedna wersja K1 (`k1-vX.Y.Z`): podpisany plik `k1.efi` z jądrem i rdzeniem, ISO i obraz na pendrive. |

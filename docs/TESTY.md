@@ -98,12 +98,12 @@ NEGATYWNE = coś, co ma się nie udać.
 - NEGATYWNE: zwykły użytkownik (UID 65534) nie widzi `/proc/1` i nie może wysłać sygnału do init
 - sysfs tylko do odczytu; cgroup2 zamontowane; devtmpfs `noexec,nosuid`
 - NEGATYWNE: brak `ptmx`, `pts`, `tty0`, `tty1`, `mem`, `kmem`, `port`
-- 13 sysctl ma wartości ustawione przez init; brak sysctl modułów, kexec, BPF, io_uring, SysRq,
+- 13 sysctl (od 0.9.0 + 23 sieci, ADR 0039) ma wartości ustawione przez init; brak sysctl modułów, kexec, BPF, io_uring, SysRq,
   userfaultfd; brak `/proc/modules`, `/proc/kcore`
 - LSM: landlock, lockdown, yama; lockdown `[confidentiality]`; Landlock dostępny (klatki wymagają ABI ≥ 6)
 - NEGATYWNE: `init_module`, `finit_module`, `kexec_load`, `kexec_file_load`, `io_uring_setup`, `bpf`,
-  `userfaultfd`, `modify_ldt`, `iopl`, `ioperm` → ENOSYS; gniazda AF_INET/AF_INET6 → EAFNOSUPPORT (gniazda UNIX
-  są — kanały usług)
+  `userfaultfd`, `modify_ldt`, `iopl`, `ioperm` → ENOSYS; gniazda AF_INET6 → EAFNOSUPPORT (od 0.9.0 AF_INET jest — ma
+  go tylko nadzorca; gniazda UNIX są — kanały usług)
 - init zbiera osierocone procesy (wnuk po zakończeniu nie zostaje zombie)
 - NEGATYWNE: SIGKILL wysłany do init nie zabija go
 - w `/rdzen` są dokładnie: `init`, `nadzorca`, identyfikator wydania, usługi z `K1_SYSTEM`, aplikacje z `K1_APLIKACJE`
@@ -505,3 +505,24 @@ celem) — tę regułę sprawdza host i skarbiec (`dok_przenies`).
 | w systemie `t_fortify` (obraz testowy) | `memcpy` w granicach bufora działa; NEGATYWNY: poza bufor — proces zatrzymany sygnałem SIGILL, nic nie nadpisane | negatywny |
 | pełne `scripts/testy.sh` | wszystkie usługi i aplikacje z nowym musl i fortify: klatki (nowe wywołania jądra byłyby „zabronione”, RYZYKA R24), pułapki przy zwykłej pracy (byłyby awarią usług) | regresja |
 
+## 0.9.0 krok 5 — jądro z siecią, nic nie odpowiada z zewnątrz (ADR 0039)
+| Test | Co sprawdza | Rodzaj |
+|---|---|---|
+| `scripts/test-siec.sh` (QEMU, obraz produkcyjny) | karta e1000e (jak X230) kablem do „sieci testowej” (`testy/qemu/k1siec.py`: drugi koniec kabla w Pythonie, QEMU `-netdev dgram`): jądro widzi kartę; sieć testowa wysyła ARP (pytanie o adres K1), ping (do K1, rozgłoszeniowy), ICMP „znacznik czasu” i „maska”, SYN na porty TCP 1–1024 i 10 wyższych, datagramy UDP na 15 portów (także rozgłoszeniowe) → **ani jednej ramki od K1** od startu (karta wyłączona: QEMU przyjmuje tylko pierwsze ramki do kolejki). Od kroku 6 — patrz niżej | z zewnątrz + negatywny |
+| w systemie `t_proby` (każda klatka) | NEGATYWNE: `socket(AF_INET)`, `socket(AF_PACKET)`, `socket(AF_NETLINK)`, `socketpair(AF_INET)` — zablokowane (seccomp) | negatywny |
+| w systemie `t_syscalls` | jądro ma IPv4 (program testowy otwiera `AF_INET`), NEGATYWNY: `AF_INET6` → EAFNOSUPPORT | jednostkowy + negatywny |
+| w systemie `t_sysctl` | 23 sysctl sieci z init (ICMP, przekierowania, `rp_filter`, ARP, SYN cookies) | jednostkowy |
+
+Sieć testowa: każdy datagram gniazda UNIX to jedna ramka Ethernet. QEMU czyta kabel tylko wtedy, gdy karta w maszynie
+odbiera — karty wyłączonej nic nie „zalewa”. Dotychczasowe testy QEMU zostają bez karty (`-nic none`).
+
+## 0.9.0 krok 6 — kabel i adres od routera (DHCP) w klatce (ADR 0039)
+| Test | Co sprawdza | Rodzaj |
+|---|---|---|
+| host `test_siec` | adresy i maski (`k1_siec_adres_dobry`: dobre i każdy rodzaj złego), MAC z sysfs; komunikaty `SIEC_*` (złe pola, zły kierunek, deskryptor tylko przy `SIEC_KABEL`); pakiety DHCP wysyłane (nagłówki i sumy policzone w teście niezależnie); odbierane: OFFER, ACK, NAK, **każdy skrócony pakiet**, obca transakcja i karta, zła suma IP/UDP, fragment, złe porty, opcje za długie / bez końca / bez serwera, zły rodzaj, adres, maska i router nie do przyjęcia, dzierżawa za krótka i „na zawsze”; klient: powtórki 4…64 s, T1 (do routera), T2 (do wszystkich), koniec dzierżawy, NAK, ACK innego serwera, nowy adres, T1/T2 od routera | jednostkowy + negatywny |
+| `fuzz_dhcp` (korpus `testy/host/korpus-dhcp`) | dowolne pakiety po kolei do klienta w każdym stanie: pakiet odrzucony albo z adresem do przyjęcia; T1 ≤ T2 ≤ koniec dzierżawy; to, co klient chce wysłać, daje się zbudować | fuzzing |
+| `scripts/test-siec.sh` (QEMU, obraz produkcyjny, karta e1000e, sieć testowa z routerem `k1siec.Router`) | 1. nadzorca włącza kartę, widzi kabel, siec wysyła DISCOVER (do wszystkich, z MAC karty); 2. router milczy: skan (ARP, ping, ICMP, SYN na 1034 porty, UDP) → od K1 tylko DHCP; 3. NEGATYWNE: 5 złych odpowiedzi DHCP (za krótka, obca transakcja, złe opcje, zła suma UDP, adres 127.0.0.1) odrzuconych, usługa żyje; OFFER → REQUEST (opcje 50, 54) → ACK → „połączono”; 4. z adresem: ARP tylko o własny adres, 1034 × RST i żadnego SYN-ACK, żadnego ICMP; SYN spoza sieci → RST przez MAC routera (trasa domyślna); 5. dzierżawa 30 s: REQUEST prosto do routera z adresu K1 → „dzierżawa odnowiona”; 6. `set_link karta off` → „kabel odłączony”, `on` → znów adres i ARP; w logu nie ma adresu | z zewnątrz + negatywny |
+| w systemie `t_klatki`, `t_proby` | klatka siec (UID 108, tylko kanał — maszyna testów w systemie nie ma karty); każda klatka: `ioctl(SIOCSIFADDR)` i `setsockopt(SO_DETACH_FILTER)` zablokowane | funkcjonalny + negatywny |
+
+Sieć testowa: monitor QEMU `set_link karta off|on` to wyjęcie i włożenie kabla (karta ma `id=karta`). Router testowy
+odpowiada na ARP o swój adres (K1 pyta o niego przed odpowiedzią przez trasę) i — gdy `wlaczony` — na DHCP.

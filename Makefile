@@ -42,7 +42,7 @@ WSPOLNE := src/wspolne/k1_log.c src/wspolne/k1_cmdline.c src/wspolne/k1_zdarzeni
 NAGL    := $(wildcard src/wspolne/*.h)
 # The message of the services and its checks, one file per group of channels (0.9.0 step 2).
 KOMUNIKAT := src/wspolne/k1_komunikat.c src/wspolne/k1_kom_ekran.c src/wspolne/k1_kom_skarb.c \
-             src/wspolne/k1_kom_nadzorca.c src/wspolne/k1_kom_pliki.c
+             src/wspolne/k1_kom_nadzorca.c src/wspolne/k1_kom_pliki.c src/wspolne/k1_kom_siec.c src/wspolne/k1_siec.c
 # Services (M3): protocol, channels, sandbox.
 USLUGI  := src/wspolne/k1_uslugi.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
            src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c \
@@ -151,6 +151,11 @@ SKARBIEC := $(filter-out $(MAGAZYN_C),$(sort $(wildcard src/skarbiec/*.c))) $(MA
 $(BIN)/skarbiec: $(SKARBIEC) $(wildcard src/skarbiec/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -DK1_CZAS_BUDOWY=$(CZAS_BUDOWY) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ $(SKARBIEC) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
+# 0.9.0 step 6 (ADR 0039): the address from the router — DHCP packets and the client (host test: test_siec, fuzz_dhcp)
+SIEC := $(sort $(wildcard src/siec/*.c))
+$(BIN)/siec: $(SIEC) $(wildcard src/siec/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(SIEC) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+
 $(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
@@ -251,6 +256,10 @@ $(OBJ)/test_instalator: testy/host/test_instalator.c src/instalator/gpt.c src/in
 		src/wspolne/k1_io.h src/wspolne/k1_bajty.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/instalator -Isrc/nadzorca -o $@ testy/host/test_instalator.c src/instalator/gpt.c src/nadzorca/dyski.c
 
+# 0.9.0 step 6 (ADR 0039): addresses, the messages of siec, DHCP packets and the client
+$(OBJ)/test_siec: testy/host/test_siec.c $(SIEC) $(wildcard src/siec/*.h) $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_siec.c $(filter-out src/siec/main.c,$(SIEC)) $(KOMUNIKAT) $(DOK_C)
+
 $(OBJ)/test_uevent: testy/host/test_uevent.c src/nadzorca/uevent.c src/nadzorca/uevent.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_uevent.c src/nadzorca/uevent.c
 
@@ -336,7 +345,8 @@ $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instal
 	test_dokumenty test_notatki test_indeks test_log test_magazyn test_odcinki test_przejscie test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
 	test_zdarzenie): testy/host/k1_test_host.h
 
-testy-host: $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_podglad $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/test_menu $(OBJ)/test_przeciaganie $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/notatki_w_plikach $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder $(OBJ)/test_start
+testy-host: $(OBJ)/test_siec $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_podglad $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/test_menu $(OBJ)/test_przeciaganie $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/notatki_w_plikach $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder $(OBJ)/test_start
+	$(OBJ)/test_siec
 	$(OBJ)/test_zalegle
 	$(OBJ)/test_skarb_zalegle
 	$(OBJ)/test_indeks
@@ -386,7 +396,7 @@ testy-host: $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ)/test_indeks $(O
 # Fuzzing (libFuzzer): one program per parser of untrusted bytes, testy/host/fuzz_<name>.c with the sources
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
-FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32
+FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -415,11 +425,13 @@ FUZZ_ZR_dekoder   := $(DEKODER_OBRAZ) $(DOK_C) src/wspolne/k1_uslugi.c
 FUZZ_DL_dekoder   := 20000
 FUZZ_ZR_fat32     := $(FAT32) src/instalator/start.c src/wspolne/k1_log.c $(MONOCYPHER)
 FUZZ_DL_fat32     := 65536
+FUZZ_ZR_dhcp      := src/siec/dhcp.c src/siec/klient.c src/wspolne/k1_siec.c
+FUZZ_DL_dhcp      := 4096
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
-              -Isrc/wspolne -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/zewnetrzne/monocypher \
+              -Isrc/wspolne -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/zewnetrzne/monocypher \
               -Isrc/zewnetrzne/wuffs
 
-$(OBJ)/fuzz_%: testy/host/fuzz_%.c $$(FUZZ_ZR_$$*) $(NAGL) $(wildcard src/nadzorca/*.h src/skarbiec/*.h src/gui/*.h src/czytnik/*.h src/dekoder/*.h) | $(OBJ)
+$(OBJ)/fuzz_%: testy/host/fuzz_%.c $$(FUZZ_ZR_$$*) $(NAGL) $(wildcard src/nadzorca/*.h src/skarbiec/*.h src/gui/*.h src/czytnik/*.h src/dekoder/*.h src/siec/*.h) | $(OBJ)
 	$(CC_FUZZ) $(FUZZ_FLAGI) -o $@ $< $(FUZZ_ZR_$*)
 
 # One target per fuzzer (0.8.6): `make -j… fuzz` runs them side by side — one after another they took most of the

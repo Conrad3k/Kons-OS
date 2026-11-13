@@ -48,5 +48,6 @@ int k1_kom_sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierun
 int k1_kom_sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek kier);   /* k1_kom_nadzorca.c */
 int k1_kom_sprawdz_pendrive(const struct k1_komunikat *k, enum k1_kanal_kierunek kier);   /* k1_kom_pliki.c */
 int k1_kom_sprawdz_dekoder(const struct k1_komunikat *k, enum k1_kanal_kierunek kier);    /* k1_kom_pliki.c */
+int k1_kom_sprawdz_siec(const struct k1_komunikat *k, enum k1_kanal_kierunek kier);       /* k1_kom_siec.c */
 
 #endif

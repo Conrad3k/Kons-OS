@@ -28,7 +28,7 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
 {
     return k1_kom_sprawdz_sterowanie(k, kier) || k1_kom_sprawdz_skarb(k, kier) || k1_kom_sprawdz_dok(k, kier) ||
            k1_kom_sprawdz_ekran(k, kier) || k1_kom_sprawdz_nadzorca(k, kier) || k1_kom_sprawdz_pendrive(k, kier) ||
-           k1_kom_sprawdz_dekoder(k, kier);
+           k1_kom_sprawdz_dekoder(k, kier) || k1_kom_sprawdz_siec(k, kier);
 }
 
 int k1_komunikat_sprawdz(const void *buf, size_t len, enum k1_kanal_kierunek kierunek, struct k1_komunikat *out)
@@ -63,5 +63,6 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            (typ == K1_KOM_TAPETA_ZDJECIE && kierunek == K1_KIER_DO_EKRANU) ||
            (typ == K1_KOM_DEK_KAWALEK && kierunek == K1_KIER_DO_DEKODERA) ||
            (typ == K1_KOM_DEK_PIKSELE && kierunek == K1_KIER_OD_DEKODERA) ||
-           ((typ == K1_KOM_PEN_LISTA || typ == K1_KOM_PEN_PLIK) && kierunek == K1_KIER_OD_CZYTNIKA);
+           ((typ == K1_KOM_PEN_LISTA || typ == K1_KOM_PEN_PLIK) && kierunek == K1_KIER_OD_CZYTNIKA) ||
+           (typ == K1_KOM_SIEC_KABEL && kierunek == K1_KIER_OD_NADZORCY);
 }

@@ -193,6 +193,19 @@ void t_sysctl(void)
         { "fs/protected_regular", "2" },     { "fs/suid_dumpable", "0" },
         { "vm/memfd_noexec", "2" },          { "dev/tty/ldisc_autoload", "0" },
         { "dev/tty/legacy_tiocsti", "0" },
+        /* 0.9.0 (ADR 0039, T3): no ICMP at all, no forwarding, no redirects, strict source check */
+        { "net/ipv4/icmp_echo_ignore_all", "1" }, { "net/ipv4/icmp_echo_ignore_broadcasts", "1" },
+        { "net/ipv4/icmp_ratemask", "524287" }, { "net/ipv4/icmp_msgs_per_sec", "0" },
+        { "net/ipv4/icmp_msgs_burst", "0" },     { "net/ipv4/ip_forward", "0" },
+        { "net/ipv4/icmp_ignore_bogus_error_responses", "1" },
+        { "net/ipv4/tcp_syncookies", "1" },      { "net/ipv4/tcp_rfc1337", "1" },
+        { "net/ipv4/conf/all/rp_filter", "1" },  { "net/ipv4/conf/default/rp_filter", "1" },
+        { "net/ipv4/conf/all/accept_redirects", "0" }, { "net/ipv4/conf/default/accept_redirects", "0" },
+        { "net/ipv4/conf/all/secure_redirects", "0" }, { "net/ipv4/conf/default/secure_redirects", "0" },
+        { "net/ipv4/conf/all/send_redirects", "0" }, { "net/ipv4/conf/default/send_redirects", "0" },
+        { "net/ipv4/conf/all/accept_source_route", "0" }, { "net/ipv4/conf/default/accept_source_route", "0" },
+        { "net/ipv4/conf/all/arp_ignore", "1" }, { "net/ipv4/conf/default/arp_ignore", "1" },
+        { "net/ipv4/conf/all/arp_announce", "2" }, { "net/ipv4/conf/default/arp_announce", "2" },
     };
     static const char *const gone[] = { "kernel/modules_disabled", "kernel/kexec_load_disabled",
                                         "kernel/unprivileged_bpf_disabled", "kernel/io_uring_disabled",
@@ -213,7 +226,7 @@ void t_sysctl(void)
             strncat(bad, item, sizeof bad - strlen(bad) - 1);
         }
     }
-    check(bad[0] == '\0', "sysctl bezpieczeństwa ustawione przez init (13)", "złe: %s", bad[0] ? bad : "(brak)");
+    check(bad[0] == '\0', "sysctl bezpieczeństwa ustawione przez init (13 + 23 sieci)", "złe: %s", bad[0] ? bad : "(brak)");
     bad[0] = '\0';
     for (i = 0; i < sizeof gone / sizeof gone[0]; i++) {
         snprintf(path, sizeof path, "%s/sys/%s", mnt, gone[i]);
@@ -285,11 +298,15 @@ void t_syscalls(void)
           "dostępne: %s", bad[0] ? bad : "(nic)");
     errno = 0;
     {
-        int s1 = socket(AF_INET, SOCK_STREAM, 0), e1 = errno, s2 = socket(AF_INET6, SOCK_DGRAM, 0), e2 = errno;
+        /* 0.9.0 (ADR 0039, T2): the kernel has IPv4 (only nadzorca opens a socket — the cages have no socket call,
+         * t_proby), no IPv6 */
+        int s1 = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0), s2 = socket(AF_INET6, SOCK_DGRAM, 0), e2 = errno;
         int s3 = socket(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0);
-        check(s1 < 0 && e1 == EAFNOSUPPORT && s2 < 0 && e2 == EAFNOSUPPORT && s3 >= 0,
-              "NEGATYWNY: brak sieci (AF_INET, AF_INET6); są tylko gniazda UNIX (kanały usług, M3)",
-              "inet=%d/%d inet6=%d/%d unix=%d", s1, e1, s2, e2, s3);
+        check(s1 >= 0 && s2 < 0 && e2 == EAFNOSUPPORT && s3 >= 0,
+              "jądro: IPv4 jest, IPv6 nie ma (NEGATYWNY: AF_INET6 → EAFNOSUPPORT); gniazda UNIX są (kanały usług)",
+              "inet=%d inet6=%d/%d unix=%d", s1, s2, e2, s3);
+        if (s1 >= 0)
+            close(s1);
         if (s3 >= 0)
             close(s3);
     }

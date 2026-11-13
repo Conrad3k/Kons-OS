@@ -18,6 +18,7 @@
 #include "k1_dekoder.h"
 #include "k1_dokument.h"
 #include "k1_pendrive.h"
+#include "k1_siec.h"
 
 #define K1_KOMUNIKAT_WERSJA 1
 
@@ -252,6 +253,17 @@ enum k1_komunikat_typ {
                                 * (0 = history starts again), a=seconds between samples, b..e = up to 16
                                 * samples, one byte each (b: samples 0-3 from the lowest byte, …):
                                 * percent 0..100, +128 = on mains; 0xFF = no sample (only at the end) */
+
+    /* nadzorca ↔ siec (0.9.0 step 6, ADR 0039; siec's fd 3): obiekt = the card (its kernel number, 1..K1_SIEC_KARTA_MAKS);
+     * addresses in host order (k1_siec.h) */
+    K1_KOM_SIEC_KABEL = 124,      /* to siec: a cable is in — ask the router for an address. a,b = the card's MAC
+                                   * (k1_siec_mac_do_pol: k1_siec_mac_dobry); + 1 fd: a packet socket on the card (IPv4,
+                                   * UDP to port 68 only — a filter set and locked by nadzorca) */
+    K1_KOM_SIEC_ROZLACZONO = 125, /* to siec: a=K1_SIEC_KABEL_WYJETY / K1_SIEC_KARTA_ZNIKNELA — the address is gone */
+    K1_KOM_SIEC_ADRES = 126,      /* from siec: set this address: a=address, b=prefix K1_SIEC_PREFIKS_MIN..MAKS, c=router
+                                   * (0: none) — k1_siec_adres_dobry; d=lease seconds K1_SIEC_DZIERZAWA_MIN..MAKS */
+    K1_KOM_SIEC_ZWOLNIJ = 127,    /* from siec: the lease ended (or the router said no): take the address away */
+    K1_KOM_SIEC_WYNIK = 128,      /* to siec: a=request type (SIEC_ADRES, SIEC_ZWOLNIJ), b=0 or K1_SIEC_BLAD_* */
 };
 
 /* Surfaces */
