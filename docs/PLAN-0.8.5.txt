@@ -61,8 +61,8 @@ Nowy czat — przebieg każdego kroku:
 --------------------------------------------------------------------------------------------------
      Krok                                             Luki (punkt 5)     Zależy od  Decyzje    Rozmiar  ADR
 [x]  1  Okna nie zamarzają: ekran nie gubi zdarzeń   L1 L2              —          —          M        —   PR #83
-[ ]  2  Podgląd płynny                                L3 L4 L5 L6        1          —          M–L      —   [w toku: Claude, gałąź claude/zen-bohr-6od7n8]
-[ ]  3  Ustawienia → Miejsce                          L7 L8              —          D1 D2 D3   L        —
+[x]  2  Podgląd płynny                                L3 L4 L5 L6        1          —          M–L      —   PR #84
+[ ]  3  Ustawienia → Miejsce                          L7 L8              —          D1 D2 D3   L        —   [w toku: Claude, gałąź claude/zen-bohr-6od7n8]
 [ ]  4  Secure Boot: „Przygotuj klucz K1”            L9                 —          D4         S–M      —
 [ ]  5  Porządki i wydanie 0.8.5                      —                  1–4        —          S        —
 
@@ -231,18 +231,22 @@ KROK 5 — Porządki i wydanie 0.8.5                                            
 
 4. DECYZJE WŁAŚCICIELA (z rekomendacją; który krok ich potrzebuje)
 -----------------------------------------------------------------
-[!] D1 (krok 3) Wygląd sekcji Miejsce — 2–3 szkice do wyboru na początku kroku 3 (np. A: pierścień z liczbą wolnego
+[x] D1 (krok 3) Wygląd sekcji Miejsce — 2–3 szkice do wyboru na początku kroku 3 (np. A: pierścień z liczbą wolnego
        miejsca w środku i legenda obok; B: jeden szeroki pasek podzielony na kolory i legenda pod nim, jak w Windows 11;
        C: pierścień + kafelki części z rozmiarami).
-[!] D2 (krok 3) Z jakim podziałem zajętego miejsca?
+       DECYZJA (2026-11-12): B — szeroki pasek i legenda w dwóch kolumnach (szkice A, B, C narysowane częściami K1).
+[x] D2 (krok 3) Z jakim podziałem zajętego miejsca?
        Rekomendacja: według folderów, jak je widzisz w Plikach — Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane,
        Kosz, „Inne” (foldery dodane przez Ciebie liczą się do folderu, w którym leżą; ustawienia i notatki systemu —
        „System”). Inne możliwości: według rodzaju pliku (zdjęcia / inne — dziś K1 rozróżnia tylko rodzinę „obrazy”)
        albo bez podziału (tylko zajęte / wolne).
-[!] D3 (krok 3) Co pokazuje „Miejsce”? Rekomendacja: miejsce na Twoje pliki na pendrive'ie albo dysku (partycja
+       DECYZJA (2026-11-12): według folderów (rekomendacja).
+[x] D3 (krok 3) Co pokazuje „Miejsce”? Rekomendacja: miejsce na Twoje pliki na pendrive'ie albo dysku (partycja
        danych K1-DANE i nieużywana reszta pendrive'a). Nie pamięć RAM — ta jest w Zasobach (w słowniku K1 „pamięć”
        znaczy RAM; Windows nazywa tę sekcję „Pamięć”, my — „Miejsce”). Części samego systemu (K1-EFI z miejscami
        A/B) nie pokazujemy — nie da się ich użyć na pliki; ewentualnie jeden wiersz „System K1: 280 MB”.
+       DECYZJA (2026-11-12): miejsce na pliki (rekomendacja), bez wiersza „System K1”. Uwaga właściciela: sekcja ma
+       wiedzieć, czy K1 działa z pendrive'a, czy z dysku (opis, przycisk powiększania tylko na pendrivie).
 [!] D4 (krok 4) Secure Boot — co dokładnie się dzieje? Potrzebne na start kroku 4:
        - skąd uruchamiasz K1 (z dysku po instalacji czy z pendrive'a) i jaka wersja jest na dysku (Ustawienia →
          Informacje);
