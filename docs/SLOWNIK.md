@@ -57,7 +57,9 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **rodzina typów** | Grupa typów plików, które K1 traktuje tak samo; dziś jedna: **obrazy** (PNG, JPEG, GIF, BMP, WebP — czyta je dekoder: miniatura, Podgląd, tapeta). Kolumna w `K1_TYPY`, nazwy w `K1_RODZINY` (0.8.2); okno wyboru pliku może pokazać jedną rodzinę. |
 | **Kosz** | Usunięte pliki; można je przywrócić; usuwane na zawsze po 30 dniach albo ręcznie („Opróżnij Kosz”). To stan pliku, nie folder; ikona na pulpicie. |
 | **kompaktowanie** | Skarbiec przepisuje żywe dane i zapomina stare wersje: dysk dostaje miejsce z powrotem. Format 1: wszystko naraz do drugiej połowy K1-DANE (ADR 0015, 0034); format 2: jeden odcinek, krokami po 4 MiB w przerwach między prośbami (ADR 0036). |
-| **miejsce na pliki** | Ile plików zmieści skarbiec bez rezerwy dla systemu; pokazują je Ustawienia → Informacje (0.8.1). Format 1: połowa K1-DANE (druga połowa na kompaktowanie); format 2: 91–96 % (zapas wolnych odcinków, ADR 0036). |
+| **Miejsce** | Sekcja Ustawień (0.8.5): miejsce na pliki, co je zajmuje (części) i zapas systemu. Nie pamięć — pamięć to RAM (Zasoby). |
+| **część** (miejsca na pliki) | Jeden wiersz podziału w sekcji Miejsce (0.8.5): folder stały z wszystkim w środku, Kosz, rezerwa dla systemu (`K1_CZESCI`); „System” = reszta zajętego. |
+| **miejsce na pliki** | Ile plików zmieści skarbiec bez rezerwy dla systemu; pokazują je Ustawienia → Miejsce (0.8.5; w 0.8.1–0.8.3 Informacje). Format 1: połowa K1-DANE (druga połowa na kompaktowanie); format 2: 91–96 % (zapas wolnych odcinków, ADR 0036). |
 | **format skarbca** | Układ danych na K1-DANE. Format 1 (0.5.6–0.8.1): dwie połowy; format 2 (0.8.2, ADR 0036): odcinki i spis skarbca. |
 | **odcinek** (segment) | Część K1-DANE w formacie 2 skarbca (do 64 kawałków po 1 MiB); zapisy idą do kolejnych odcinków, kompaktowanie zwalnia po jednym (ADR 0036). |
 | **przejście na format 2** | Jednorazowe przeniesienie magazynu z 0.5.6–0.8.1 (format 1) na format 2: w przerwach, do wolnej połowy K1-DANE, dopiero po potwierdzonym starcie; przerwa prądu zostawia stary albo nowy magazyn (0.8.2, ADR 0036). |
@@ -66,7 +68,7 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **powiększenie K1-DANE** | K1-DANE rośnie do końca pendrive'a: pusta — sama przy pierwszym starcie (0.8.0), z danymi — po kliknięciu „Użyj całego pendrive'a na dane” w Ustawieniach (0.8.1, ADR 0033). Pliki zostają na miejscu. |
 | **kawałek** | 1 MiB treści pliku: tak skarbiec trzyma pliki i tak je przesyłają czytnik, Pliki i skarbiec (od 0.8.1 plik do 4 GB = 4096 kawałków). |
 | **zapis w toku** | Plik zapisywany kawałek po kawałku (0.8.1): widać go w Plikach dopiero po ostatnim kawałku; przerwany — znika bez śladu, stara treść zostaje. |
-| **rezerwa dla systemu** | Ostatnie 8 MiB (albo 2 %, najwyżej ćwierć) skarbca, których pliki nie zajmą — na ustawienia, pulpit, baterię, tapetę (0.8.1). |
+| **rezerwa dla systemu** | Ostatnie 8 MiB (albo 2 %, najwyżej ćwierć) skarbca, których pliki nie zajmą — na ustawienia, pulpit, baterię, tapetę (0.8.1). W sekcji Miejsce: „Zapas systemu”. |
 | **granica czasu** | Najwcześniejszy czas, jaki skarbiec przyjmuje od zegara (0.8.1): czas budowy wersji K1 albo najpóźniejszy widziany. Zegar za granicą = Kosz niczego nie usuwa. |
 | **odzyskany plik** | Plik, którego wpis skarbiec naprawił przy starcie (0.8.1): treść cała, nazwa poprawiona albo „Odzyskany plik <numer>”. |
 | **domyślna aplikacja** | Aplikacja, w której podwójne kliknięcie („Otwórz”) otwiera plik danego typu; wybór w Ustawieniach → Aplikacje albo „Zawsze otwieraj tą aplikacją” (gdy typ ma co najmniej dwie). Które aplikacje otwierają który typ: tabela `K1_OTWIERANIE` (ADR 0030). Pliki nie są aplikacją do otwierania (od 0.8.2) — pokazują każdy plik; typ bez aplikacji: „K1 nie ma jeszcze aplikacji do tego typu pliku”. |

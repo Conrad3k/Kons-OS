@@ -63,12 +63,18 @@ domyślna aplikacja: „Dokument tekstowy — Notatki”, „Obrazy (PNG, JPEG, 
 w jednym wierszu), „Plik”, „Dokument PDF”, „Archiwum ZIP” — „K1 nie ma jeszcze aplikacji do tego typu pliku”; typ, który
 otwierają co najmniej dwie aplikacje, ma przyciski wyboru (dziś żaden), wybór ustawia całą rodzinę; Pliki nie są już
 aplikacją do otwierania — pokazują każdy plik; ustawienie ekranu `K1_UST_OTWIERANIE` + typ, zapisane w skarbcu; dopisek
-odsyła do „Otwórz za pomocą”), Informacje (`informacje.c`: wersja, ekran, jądro, gdzie są dane; od
-0.8.1 — `SKARB_MIEJSCE` od skarbca — „Miejsce na pliki: zajęte X z Y” z paskiem (Y od 0.8.2 to ok. 90 % K1-DANE —
-format 2 skarbca, ADR 0036; w 0.8.1 połowa, bo druga była na kompaktowanie), „Pliki i foldery: n z 16 384”, bez
-K1-DANE „w pamięci do wyłączenia: zostało X”; na pendrivie K1 z wolnym miejscem za K1-DANE przycisk **„Użyj całego
-pendrive'a na dane”** — kliknięcie = zgoda, `SKARB_POWIEKSZ`, w trakcie „Powiększam… Nie wyjmuj pendrive'a.”, potem
-„Gotowe — cały pendrive jest teraz na dane.”; ADR 0033, `komponenty/skarbiec.md`).
+odsyła do „Otwórz za pomocą”), Miejsce (0.8.5 krok 3, `miejsce.c`; decyzje właściciela D1–D3, szkic B w `docs/WYGLAD.md`): miejsce na pliki
+w K1-DANE (nie pamięć RAM — ta jest w Zasobach; bez K1-DANE: „Pliki są tylko w pamięci do wyłączenia komputera”):
+„Wolne: X z Y”, szeroki pasek podzielony na części w kolorach (największy folder — akcent, Kosz i „System” — szare,
+mała część co najmniej 3 px), pod nim legenda w dwóch kolumnach (kolor, nazwa, rozmiar jak w Plikach) — foldery stałe,
+Kosz, „System” (reszta zajętego: ustawienia, notatki systemu, stare wersje); części puste nie są pokazane; suma części =
+zajęte. Pod legendą „Zapas systemu: X — zawsze wolny, żeby dało się zapisać zmiany.” (rezerwa skarbca) i „Pliki i foldery:
+n z 16 384”. Liczby od skarbca: `SKARB_INFO` → `SKARB_MIEJSCE`, `SKARB_PODZIAL` → `SKARB_CZESC` (tylko liczby);
+przy wejściu do sekcji i co 3 s, gdy jest pokazana (import w Plikach widać od razu). Na pendrivie K1 z wolnym miejscem za
+K1-DANE: „Pendrive ma jeszcze X nieużywanego miejsca.” i przycisk **„Użyj całego pendrive'a na dane”** (przeniesiony
+z Informacji) — kliknięcie = zgoda, `SKARB_POWIEKSZ`, w trakcie „Powiększam… Nie wyjmuj pendrive'a.”, potem „Gotowe —
+cały pendrive jest teraz na dane.” (ADR 0033, `komponenty/skarbiec.md`). Informacje (`informacje.c`): wersja, ekran,
+jądro, gdzie są dane i odesłanie do sekcji Miejsce.
 
 ### Instalator
 (0.5.9, ADR 0018, `src/aplikacje/instalacja/`, UID 204) — lista dysków od nadzorcy,

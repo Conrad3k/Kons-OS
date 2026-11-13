@@ -1,7 +1,7 @@
 /* K1 Ustawienia — state shared by the modules (0.7.5 split): main.c (sections, Wygląd, Ekran, Mysz,
  * Data i czas), bateria.c (Bateria: from nadzorca, fd 4), haslo.c (Hasło: through skarbiec, fd 5),
- * aplikacje.c (Aplikacje: the default application of a file type, 0.8.0), informacje.c (Informacje: the system, the
- * room for files, K1-DANE to the end of the stick — 0.8.1). */
+ * aplikacje.c (Aplikacje: the default application of a file type, 0.8.0), miejsce.c (Miejsce: the room for files and
+ * what takes it, K1-DANE to the end of the stick — 0.8.5), informacje.c (Informacje: the system). */
 #ifndef K1_USTAWIENIA_H
 #define K1_USTAWIENIA_H
 
@@ -17,7 +17,7 @@
 #define SEG_W 260
 #define SEG_H 36
 
-enum { S_WYGLAD, S_EKRAN, S_BATERIA, S_MYSZ, S_CZAS, S_HASLO, S_APLIKACJE, S_INFO, S_LICZBA };
+enum { S_WYGLAD, S_EKRAN, S_BATERIA, S_MYSZ, S_CZAS, S_HASLO, S_APLIKACJE, S_MIEJSCE, S_INFO, S_LICZBA };
 
 extern struct k1_apl apl;
 extern int sekcja;
@@ -47,13 +47,21 @@ void haslo_loguj(void);     /* the tests click by this line */
 const char *haslo_gdzie_dane(void); /* the Informacje line about the data */
 int skarbiec_kanal(void);   /* fd 5 while it is open, else -1 */
 int haslo_tylko_pamiec(void); /* no K1-DANE: the data only in memory */
+int haslo_na_pendrive(void);  /* K1-DANE on a USB stick */
 
 /* informacje.c */
 void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
-void informacje_miejsce(const struct k1_komunikat *k); /* SKARB_MIEJSCE */
-void informacje_wynik(const struct k1_komunikat *k);   /* WYNIK of SKARB_POWIEKSZ */
-int informacje_najechanie(int32_t x, int32_t y);       /* 1 = redraw */
-int informacje_klik(int32_t x, int32_t y);             /* 1 = handled */
+
+/* miejsce.c */
+void miejsce_info(void);                           /* asks skarbiec: SKARB_INFO and SKARB_PODZIAL */
+int miejsce_zegar(void);                           /* asks again every 3 s while shown; ms to the next time, -1 none */
+void miejsce_dane(const struct k1_komunikat *k);   /* SKARB_MIEJSCE */
+void miejsce_czesc(const struct k1_komunikat *k);  /* SKARB_CZESC */
+void miejsce_podzial(void);                        /* WYNIK of SKARB_PODZIAL: every part came */
+void miejsce_wynik(const struct k1_komunikat *k);  /* WYNIK of SKARB_POWIEKSZ */
+void miejsce_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
+int miejsce_najechanie(int32_t x, int32_t y);      /* 1 = redraw */
+int miejsce_klik(int32_t x, int32_t y);            /* 1 = handled */
 
 /* aplikacje.c */
 void aplikacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);

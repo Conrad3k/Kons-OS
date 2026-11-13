@@ -136,3 +136,32 @@ int dok_wybierz(int (*wybierz)(const struct k1_dok_wpis *w), struct k1_dok_wpis 
             out[n++] = wpisy[i];
     return n;
 }
+
+/* The part of the room for files entry `w` counts in (0.8.5 step 3): Kosz when it or a folder above it is in Kosz, else
+ * the standard folder it is in; 0 for a standard folder itself or a broken chain. */
+static int czesc(const struct k1_dok_wpis *w)
+{
+    for (int krok = 0; krok <= K1_DOK_GLEBOKOSC + 1; krok++) {
+        if (w->kosz != 0)
+            return K1_CZESC_KOSZ;
+        if (staly(w->rodzic))
+            return (int)w->rodzic;
+        if ((w = dok_wpis(w->rodzic)) == NULL)
+            return 0;
+    }
+    return 0;
+}
+
+void dok_podzial(uint64_t bajty[K1_CZESCI_MAKS + 1], uint32_t pliki[K1_CZESCI_MAKS + 1])
+{
+    memset(bajty, 0, (K1_CZESCI_MAKS + 1) * sizeof *bajty);
+    memset(pliki, 0, (K1_CZESCI_MAKS + 1) * sizeof *pliki);
+    for (int i = 0; i < n_wpisow; i++) {
+        int c = wpisy[i].rodzaj == K1_DOK_PLIK ? czesc(&wpisy[i]) : 0;
+        if (c > 0) {
+            bajty[c] += wpisy[i].rozmiar;
+            pliki[c]++;
+        }
+    }
+    bajty[K1_CZESC_ZAPAS] = dok_rezerwa();
+}

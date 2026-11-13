@@ -152,8 +152,10 @@ void haslo_odbierz(void)
         }
         if (w != K1_ODB_JEST)
             continue;
-        if (k.typ == K1_KOM_SKARB_MIEJSCE) /* the room for files: Informacje (0.8.1) */
-            informacje_miejsce(&k);
+        if (k.typ == K1_KOM_SKARB_MIEJSCE) /* the room for files: Miejsce (0.8.1, 0.8.5) */
+            miejsce_dane(&k);
+        if (k.typ == K1_KOM_SKARB_CZESC)
+            miejsce_czesc(&k);
         if (k.typ != K1_KOM_SKARB_WYNIK)
             continue;
         hs.znane = 1;
@@ -162,7 +164,9 @@ void haslo_odbierz(void)
         hs.usb = (k.d & 2) != 0;
         hs.przerwa = k.e;
         if (k.a == K1_KOM_SKARB_POWIEKSZ)
-            informacje_wynik(&k);
+            miejsce_wynik(&k);
+        if (k.a == K1_KOM_SKARB_PODZIAL)
+            miejsce_podzial();
         if (k.a != K1_KOM_SKARB_HASLO)
             continue;
         hs.czeka = 0;
@@ -323,6 +327,11 @@ void haslo_loguj(void)
 int haslo_tylko_pamiec(void)
 {
     return skarb < 0 || (hs.znane && hs.tryb == K1_SKARB_RAM);
+}
+
+int haslo_na_pendrive(void)
+{
+    return skarb >= 0 && hs.znane && hs.usb;
 }
 
 const char *haslo_gdzie_dane(void)

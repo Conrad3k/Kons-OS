@@ -2,6 +2,7 @@
  * Ustawienia → Informacje and to Pliki), and K1-DANE to the end of its USB stick when the user asks in Ustawienia: the
  * partition table belongs to nadzorca, so skarbiec asks it (POWIEKSZ_DANE) and then takes the grown partition
  * (k1_mag_powieksz: the data stays where it is). Only numbers reach the log. Part of skarbiec (skarbiec.h). */
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -42,6 +43,24 @@ void miejsce_wyslij(int fd)
 {
     struct k1_komunikat m = miejsce_komunikat();
     k1_kanal_wyslij(fd, &m, sizeof m, -1);
+}
+
+/* Ustawienia → Miejsce (0.8.5 step 3): one CZESC per part, numbers only — to Ustawienia alone, with the vault open;
+ * anyone else gets nothing (K1_MAG_ARG for its WYNIK). */
+int miejsce_podzial(int fd, int wlasciciel)
+{
+    uint64_t bajty[K1_CZESCI_MAKS + 1];
+    uint32_t pliki[K1_CZESCI_MAKS + 1];
+    if (wlasciciel != K1_PROFIL_USTAWIENIA || zablokowany)
+        return K1_MAG_ARG;
+    dok_podzial(bajty, pliki);
+    for (int c = 1; c <= K1_CZESCI_MAKS; c++) {
+        uint64_t kib = (bajty[c] + 1023) >> 10;
+        struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_SKARB_CZESC, (uint32_t)c, kib > INT32_MAX ? INT32_MAX : (int32_t)kib,
+                                                  (int32_t)pliki[c], 0, 0, 0);
+        k1_kanal_wyslij(fd, &m, sizeof m, -1);
+    }
+    return K1_MAG_OK;
 }
 
 int miejsce_powieksz(void)

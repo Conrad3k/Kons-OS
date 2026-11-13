@@ -10,7 +10,8 @@
 #      zaimportowane” (0.8.2 krok 2, D3)
 #   3. pojedynczo: plik 17 MB (do 0.8.0 „za duży”) i film 300 MB → Dokumenty kawałkami po 1 MiB (0.8.1 krok 4: czytnik
 #      ma cgroup 32 MiB, a Pliki i skarbiec dostają najwyżej kawałek), zdjęcie z polską nazwą → Obrazy, notatka → Dokumenty
-#   4. Obrazy: 10 plików „z pendrive'a”; Dokumenty: 3
+#   4. Obrazy: 10 plików „z pendrive'a”; Dokumenty: 3; (0.8.5 krok 3) Ustawienia → Miejsce przed importem i po nim:
+#      części od skarbca (Obrazy, Dokumenty rosną), zrzuty w jasnym i ciemnym motywie
 #   4c. (0.8.5 krok 2) Podgląd: 20 × „+” i 20 × „−” bez czekania, przeciąganie wieloma ruchami — okno nadąża i dalej
 #      odpowiada (← / ‹ potem), w ruchu szybka droga, po zatrzymaniu raz dokładna (log „ruch: klatek…”)
 #   4a. (krok 4) zaznaczone zdjęcie → dekoder w klatce (UID 107) → podgląd w Plikach (kolor na zrzucie); PNG też;
@@ -152,10 +153,43 @@ def widok(akcja, miejsce, ile, czas=40):
     return False
 
 
-g = czekaj(r"K1-GUI: pulpit gotowy")
+g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)")
 k0 = czekaj(r"K1-EKRAN: kursor (\d+),(\d+) ")
 if not sprawdz("pulpit gotowy", g and k0): sys.exit(1)
 q.kursor[:] = [int(k0.group(1)), int(k0.group(2))]
+CZESCI = r"K1-USTAWIENIA: miejsce: części: Pulpit (\d+) KiB, Dokumenty (\d+) KiB, Obrazy (\d+) KiB, Muzyka \d+ KiB, " \
+         r"Wideo \d+ KiB, Pobrane \d+ KiB, Kosz (\d+) KiB, System (\d+) KiB; zapas systemu (\d+) KiB; nośnik: (\w+)"
+
+
+def miejsce_w_ustawieniach(nazwa, ciemny=False):
+    """0.8.5 step 3: Ustawienia → Miejsce (the taskbar: 0 Zegar, 1 Notatki, 2 Ustawienia), the parts from skarbiec;
+    a screenshot (and one in the dark theme), then × closes the window. Returns the line of the parts."""
+    u = po(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)",
+           lambda: klik(int(g.group(3)) + 2 * int(g.group(5)), int(g.group(4))))
+    sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+); przyciski od (\d+),(\d+) \(szer\. (\d+)")
+    if not (u and sk):
+        return None
+    ux, uy = int(u.group(4)), int(u.group(5))
+    sekcja = lambda i: klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + i * int(sk.group(3)))
+    c = po(CZESCI, lambda: sekcja(7), czas=30)
+    zrzut(nazwa, gdy=lambda w, h, px: True)
+    if c and ciemny:  # Wygląd → "Ciemny", Miejsce again, back to "Jasny"
+        motyw = lambda i: klik(ux + int(sk.group(4)) + int(sk.group(6)) * (2 * i + 1) // 4, uy + int(sk.group(5)) + 18)
+        sekcja(0)
+        po(r"K1-EKRAN: ustawienie 1=1", lambda: motyw(1))
+        sekcja(7)
+        zrzut(nazwa + "-ciemny", gdy=lambda w, h, px: True)
+        sekcja(0)
+        po(r"K1-EKRAN: ustawienie 1=0", lambda: motyw(0))
+    po(r"K1-USTAWIENIA: okno zamknięte przez użytkownika", lambda: klik(ux + 680 - 8 - 14, uy + 22))
+    return c
+
+
+# 0. (0.8.5 step 3) Ustawienia → Miejsce before the import: Obrazy empty
+m0 = miejsce_w_ustawieniach("0-miejsce")
+# (K1-DANE of this machine is on a SATA disk — the stick holds only the photos: "dysk"; a K1-DANE on a stick: test-skarbiec)
+sprawdz("(0.8.5) Ustawienia → Miejsce: części od skarbca (tylko liczby), Obrazy puste, zapas systemu, nośnik: dysk",
+        m0 and int(m0.group(3)) == 0 and int(m0.group(6)) > 0 and m0.group(7) == "dysk", m0.group(0) if m0 else "brak")
 m = czekaj(IKONY)
 ik = {c.rsplit(" ", 1)[0]: tuple(int(v) for v in c.rsplit(" ", 1)[1].split(",")) for c in m.group(1).split("; ")} if m else {}
 o = po(r"K1-EKRAN: okno (\d+) \(pliki\) (\d+)x(\d+) w (\d+),(\d+)", lambda: q.dwuklik(*ik["Pliki"])) if "Pliki" in ik else None
@@ -233,6 +267,11 @@ sprawdz(f"skarbiec: 13 plików z pendrive'a (10 obrazów), razem {oczekiwane} B 
 # 4. where they went (Obrazy by name: IMG_0001.JPG, IMG_0002.PNG, USZKODZONE.JPG, Wakacje…, ZDJ_100MPX.JPG,
 # ZDJ_101MPX.JPG, ZDJ_48MPX.JPG, ZDJ_BMP.BMP, ZDJ_GIF.GIF, ZDJ_WEBP.WEBP)
 sprawdz("Obrazy: 10 plików", widok(lambda: klik(*miejsce(2)), "Obrazy", 10))
+# 4. (0.8.5 step 3) Ustawienia → Miejsce after the import: Obrazy and Dokumenty grew (17 MB and 300 MB in Dokumenty)
+m1 = miejsce_w_ustawieniach("4b-miejsce", ciemny=True)
+sprawdz("(0.8.5) Ustawienia → Miejsce po imporcie: Obrazy urosły, Dokumenty ≥ 317 MB, Kosz pusty (zrzuty w obu motywach)",
+        m0 and m1 and int(m1.group(3)) > int(m0.group(3)) + 1000 and int(m1.group(2)) >= 317 * 1024 and int(m1.group(4)) == 0,
+        m1.group(0) if m1 else "brak")
 # 4a. pictures (step 4): the preview through a dekoder, the wallpaper
 NIEBIESKI, ZIELONY = (60, 120, 180), (90, 160, 90)
 blisko = lambda a, b, t=12: all(abs(x - y) <= t for x, y in zip(a, b))

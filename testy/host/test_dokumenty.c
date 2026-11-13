@@ -1247,6 +1247,57 @@ static void test_zapis_w_toku(void)
     free(wy);
 }
 
+/* Ustawienia → Miejsce (0.8.5 step 3, D2): files count in the standard folder they are in (also inside folders of the
+ * user), everything in Kosz (also inside a folder in Kosz) in Kosz; folders count nothing; the reserve as it is. */
+static void test_podzial(void)
+{
+    uint64_t b0[K1_CZESCI_MAKS + 1], b[K1_CZESCI_MAKS + 1];
+    uint32_t p0[K1_CZESCI_MAKS + 1], p[K1_CZESCI_MAKS + 1];
+    static uint8_t dane[5000];
+    uint32_t album, wew, kosz_f, w_koszu;
+    dok_wczytaj(T0);
+    dok_podzial(b0, p0);
+    album = nowy(K1_FOLDER_OBRAZY, K1_DOK_FOLDER, "Album podziału", NULL, 0, T0);
+    wew = nowy(album, K1_DOK_FOLDER, "Wakacje", NULL, 0, T0);
+    EXPECT(nowy(album, K1_DOK_PLIK, "a.jpg", dane, 1000, T0) && nowy(wew, K1_DOK_PLIK, "b.jpg", dane, 5000, T0) &&
+           nowy(K1_FOLDER_OBRAZY, K1_DOK_PLIK, "c.png", dane, 24, T0));
+    EXPECT(nowy(K1_FOLDER_POBRANE, K1_DOK_PLIK, "d.zip", dane, 300, T0) && nowy(K1_FOLDER_PULPIT, K1_DOK_PLIK, "e", NULL, 0, T0));
+    kosz_f = nowy(K1_FOLDER_DOKUMENTY, K1_DOK_FOLDER, "Stare podziału", NULL, 0, T0);
+    EXPECT(nowy(kosz_f, K1_DOK_PLIK, "f.txt", dane, 70, T0) != 0);
+    w_koszu = nowy(K1_FOLDER_WIDEO, K1_DOK_PLIK, "g.mp4", dane, 2000, T0);
+    EXPECT(dok_do_kosza(kosz_f, T0) == 0 && dok_do_kosza(w_koszu, T0) == 0);
+    dok_podzial(b, p);
+    EXPECT(b[K1_FOLDER_OBRAZY] - b0[K1_FOLDER_OBRAZY] == 6024 && p[K1_FOLDER_OBRAZY] - p0[K1_FOLDER_OBRAZY] == 3);
+    EXPECT(b[K1_FOLDER_POBRANE] - b0[K1_FOLDER_POBRANE] == 300 && p[K1_FOLDER_POBRANE] - p0[K1_FOLDER_POBRANE] == 1);
+    EXPECT(b[K1_FOLDER_PULPIT] == b0[K1_FOLDER_PULPIT] && p[K1_FOLDER_PULPIT] - p0[K1_FOLDER_PULPIT] == 1); /* empty file */
+    EXPECT(b[K1_CZESC_KOSZ] - b0[K1_CZESC_KOSZ] == 2070 && p[K1_CZESC_KOSZ] - p0[K1_CZESC_KOSZ] == 2);
+    EXPECT(b[K1_FOLDER_WIDEO] == b0[K1_FOLDER_WIDEO] && b[K1_FOLDER_DOKUMENTY] == b0[K1_FOLDER_DOKUMENTY]);
+    EXPECT(b[K1_CZESC_ZAPAS] == dok_rezerwa() && p[K1_CZESC_ZAPAS] == 0 && b[0] == 0 && p[0] == 0);
+    /* back from Kosz: in its folder again */
+    EXPECT(dok_przywroc(w_koszu, 0) == 0);
+    dok_podzial(b, p);
+    EXPECT(b[K1_FOLDER_WIDEO] - b0[K1_FOLDER_WIDEO] == 2000 && b[K1_CZESC_KOSZ] - b0[K1_CZESC_KOSZ] == 70);
+    /* the channel (skarbiec's miejsce.c): Ustawienia get every part, valid, in order; anyone else nothing */
+    {
+        int k[2], n = 0, ok = 1, prof[] = { K1_PROFIL_PLIKI, K1_PROFIL_NOTATKI, K1_PROFIL_PODGLAD, K1_PROFIL_GUI };
+        struct k1_odebrane o;
+        struct k1_komunikat m;
+        EXPECT(k1_kanal_utworz(k) == 0);
+        for (size_t i = 0; i < sizeof prof / sizeof prof[0]; i++)
+            EXPECT(miejsce_podzial(k[1], prof[i]) == K1_MAG_ARG);
+        EXPECT(k1_kanal_odbierz(k[0], &o) == K1_KANAL_PUSTO); /* NEGATYWNY: no numbers without the right */
+        EXPECT(miejsce_podzial(k[1], K1_PROFIL_USTAWIENIA) == K1_MAG_OK);
+        while (k1_kanal_odbierz(k[0], &o) == K1_KANAL_KOMUNIKAT) {
+            ok &= k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_SKARBCA, &m) == 0 && m.typ == K1_KOM_SKARB_CZESC &&
+                  (int)m.obiekt == ++n;
+            ok &= m.obiekt != K1_FOLDER_OBRAZY || m.a == (int32_t)((b[K1_FOLDER_OBRAZY] + 1023) >> 10);
+        }
+        EXPECT(ok && n == K1_CZESCI_MAKS);
+        close(k[0]);
+        close(k[1]);
+    }
+}
+
 int main(void)
 {
     test_nazwy();
@@ -1270,5 +1321,6 @@ int main(void)
     test_limit_dostepu();
     test_duzo_wpisow();
     test_rezerwa();
+    test_podzial();
     return K1_TEST_KONIEC("test_dokumenty");
 }

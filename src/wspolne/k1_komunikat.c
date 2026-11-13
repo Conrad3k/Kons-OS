@@ -162,7 +162,12 @@ static int sprawdz_skarb(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
         return kier == K1_KIER_DO_SKARBCA && k->obiekt == 1 && w(k->a, 2, 2 * K1_HASLO_MAKS + 2) && zera(k, 1);
     case K1_KOM_SKARB_INFO:
     case K1_KOM_SKARB_POWIEKSZ:
+    case K1_KOM_SKARB_PODZIAL:
         return kier == K1_KIER_DO_SKARBCA && k->obiekt == 1 && zera(k, 0);
+    case K1_KOM_SKARB_CZESC:
+        return kier == K1_KIER_OD_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_CZESCI_MAKS &&
+               k->a >= 0 && w(k->b, 0, k->obiekt == K1_CZESC_ZAPAS ? 0 : K1_DOK_MAKS) &&
+               zera(k, 2);
     case K1_KOM_POWIEKSZ_DANE:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && zera(k, 0);
     case K1_KOM_SKARB_MIEJSCE:
@@ -179,7 +184,8 @@ static int sprawdz_skarb(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
                zera(k, 1);
     case K1_KOM_SKARB_WYNIK:
         return kier == K1_KIER_OD_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_OB_MAKS &&
-               (w(k->a, K1_KOM_SKARB_CZYTAJ, K1_KOM_SKARB_INFO) || k->a == K1_KOM_SKARB_POWIEKSZ) &&
+               (w(k->a, K1_KOM_SKARB_CZYTAJ, K1_KOM_SKARB_INFO) || k->a == K1_KOM_SKARB_POWIEKSZ ||
+                k->a == K1_KOM_SKARB_PODZIAL) &&
                w(k->b, K1_MAG_WYNIK_MIN, 0) &&
                w(k->c, K1_SKARB_TRWALY, K1_SKARB_ZABLOKOWANY) && w(k->d, 0, 3) && w(k->e, 0, K1_HASLO_PRZERWA);
     default:

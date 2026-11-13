@@ -84,6 +84,9 @@ int64_t dok_czas(int64_t zegar);
 const struct k1_dok_wpis *dok_wpis(uint32_t id);
 int dok_widoczny(uint32_t id);
 uint32_t dok_w_koszu(void);
+/* Ustawienia → Miejsce (0.8.5 step 3): the bytes and files of every part (K1_FOLDERY, Kosz; the reserve: its bytes);
+ * live files only — no folders, no old versions. Index 0 unused. */
+void dok_podzial(uint64_t bajty[K1_CZESCI_MAKS + 1], uint32_t pliki[K1_CZESCI_MAKS + 1]);
 int dok_ile(void); /* entries: files and folders, Kosz too (at most K1_DOK_MAKS) */
 /* Entries for which `wybierz` says 1 (and only those) into `out` (room for K1_DOK_MAKS); their number. */
 int dok_wybierz(int (*wybierz)(const struct k1_dok_wpis *w), struct k1_dok_wpis *out);
