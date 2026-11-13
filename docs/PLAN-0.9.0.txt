@@ -78,13 +78,16 @@ Potem sieć:
          PR #96 (ADR 0038)
 [x]  4  musl 1.2.5 i fortify-headers                     L7 L8           —          —            M        korekta 0007
          PR #97
-[ ]  5  Jądro z siecią; nic nie odpowiada z zewnątrz     L9–L13          1, 4       T1–T4, T6    L        tak (sieć)
-         [w toku: Claude, gałąź claude/lucid-pascal-79kpoq]
-[ ]  6  Kabel i adres od routera (DHCP) w klatce         L10 L14 L15     5          D2 D3        L        —
-         [w toku: Claude, gałąź claude/lucid-pascal-79kpoq]
+[x]  5  Jądro z siecią; nic nie odpowiada z zewnątrz     L9–L13          1, 4       T1–T4, T6    L        tak (sieć)
+         PR #100 (ADR 0039)
+[x]  6  Kabel i adres od routera (DHCP) w klatce         L10 L14 L15     5          D2 D3        L        —
+         PR #100
 [ ]  7  Ikona sieci i Ustawienia → Sieć                  L16             6          D1           M        —
+         [w toku: Claude, gałąź claude/upbeat-hypatia-fawu99]
 [ ]  8  Zegar z internetu                                L17 L18         6          T5           M        —
+         [w toku: Claude, gałąź claude/upbeat-hypatia-fawu99]
 [ ]  9  Porządki i wydanie 0.9.0                         L19 L20         1–8        D4           S–M      —
+         [w toku: Claude, gałąź claude/upbeat-hypatia-fawu99]
 
 Kolejność: 1–4 nie dotykają tych samych plików (1: nadzorca; 2: wspólne komunikaty i skarbiec; 3: Instalator;
 4: budowa) — mogą iść w dowolnej kolejności, ale wszystkie przed 5 (sieć wchodzi do uporządkowanego kodu,
@@ -371,8 +374,10 @@ Twoje (produkt):
 [x] D0 Sterowniki kart sieciowych (i później Wi-Fi) — z jądra Linux, nie własne.
        DECYZJA (2026-11-13, właściciel): „Nie piszemy swoich sterowników, bo jądro już te sterowniki ma.”
        Nasz kod: uprawnienia, adres od routera, zegar, stan na ekranie, testy (punkt 1).
-[!] D1 (krok 7) Wygląd ikony sieci i sekcji Ustawienia → Sieć — 2–3 szkice do wyboru na początku kroku 7.
+[x] D1 (krok 7) Wygląd ikony sieci i sekcji Ustawienia → Sieć — 2–3 szkice do wyboru na początku kroku 7.
        Rekomendacja: ikona liniowa obok dźwięku i baterii (jak w Windows 11), sekcja jak „Bateria” (stan, karta).
+       DECYZJA (2026-11-13, właściciel): ikona C — „Wtyczka sieciowa” (RJ45); sekcja B — „Kafelki kart” (każda karta
+       sieciowa osobno, z plakietką stanu). Szkice A, B, C narysowane częściami K1.
 [!] D2 (krok 6, plan Wi-Fi) Czy masz w domu kabel sieciowy do obu laptopów, czy używasz tylko Wi-Fi?
        Nie zmienia kroków 0.9.0 (kabel jest prostszy i testowalny w QEMU), ale jeśli tylko Wi-Fi — plan Wi-Fi
        (punkt 6) zaczynamy zaraz po 0.9.0, przed 0.10.
@@ -381,8 +386,9 @@ Twoje (produkt):
        kabel 10/100 i Wi-Fi 802.11ac; według niezależnego sklepu Wi-Fi to Qualcomm Atheros QCA9377 (NIEPEWNE). Jeśli
        masz na nim Windows: Menedżer urządzeń → Karty sieciowe → przepisz obie nazwy; inaczej pokaże je krok 7.
        Przy okazji: czy na IdeaPadzie działa touchpad, bateria w Zasobach, i czy K1 jest na dysku czy na pendrive'ie.
-[!] D4 (krok 9) Pamięć podręczna budowy jądra w CI (z audytu 0.8.6): ok. 7 z 30 min każdego przebiegu mniej.
+[x] D4 (krok 9) Pamięć podręczna budowy jądra w CI (z audytu 0.8.6): ok. 7 z 30 min każdego przebiegu mniej.
        Rekomendacja: tylko dla przebiegów PR-ów (etykieta „testy”); wydania zawsze budowane od zera.
+       DECYZJA (2026-11-13, właściciel): tak, tylko dla PR-ów.
 
 Techniczne (decyduje Claude w ADR kroku 5 i w krokach — Ty dostajesz krótkie wyjaśnienie):
     T1 Uprawnienia: rekomendacja — jak pendrive i dyski: nadzorca (root) robi to, co wymaga uprawnień (gniazdo
