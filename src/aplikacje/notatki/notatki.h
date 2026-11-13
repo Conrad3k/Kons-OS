@@ -3,7 +3,6 @@
  *   spis.c   the notes in the window: order, opening, a new one, deleting
  *   pliki.c  skarbiec (fd 4): the list of files, their content, saving (the name follows the first line), the file
  *            picker; nadzorca (fd 5): a file to open
- *   stare.c  the notes of 0.5.6–0.7.6 moved to files once (temporary)
  *   tekst.c  line wrap and editing of the open note */
 #ifndef K1_NOTATKI_H
 #define K1_NOTATKI_H

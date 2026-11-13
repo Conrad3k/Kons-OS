@@ -1,11 +1,11 @@
 /* K1 — signing of system images at build time (M6a, ADR 0021). Runs on the build host.
  *
  *   podpisz klucz-publiczny          > k1_klucz.h     the public key for the programs of K1
- *   podpisz obraz PLIK WERSJA                         manifest (format 1) at 47 MiB of the K1-EFI image PLIK
- *                                                     (k1: tymczasowe — usunąć w 0.9.0, with format 1)
  *   podpisz slot PLIK WERSJA WYDANIE FAT_BAJTY        slot manifest (format 2, ADR 0022) into the slot file PLIK
  *   podpisz grubenv PLIK                              GRUB's environment block for a fresh K1-EFI (slot a)
  *   podpisz uklad PLIK GRUBENV_OFF A_OFF B_OFF        the layout block into the K1-EFI image PLIK (checked)
+ *   podpisz start PLIK                                the manifest of the boot files (format 3, ADR 0038) of the
+ *                                                     K1-EFI image PLIK into its slot A, beside the slot manifest
  *
  * The key: environment variable K1_KLUCZ_PODPISU = 32 random bytes in base64 (the GitHub Actions
  * secret of the same name; never in the repository). Without it the build is a developer build:
@@ -17,6 +17,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "k1_fat32.h"
 #include "k1_manifest.h"
 #include "k1_uklad.h"
 #include "monocypher.h"
@@ -102,47 +103,6 @@ static int klucz_publiczny(void)
     return 0;
 }
 
-static int obraz(const char *plik, const char *wersja)
-{
-    static uint8_t buf[1u << 20];
-    uint8_t tajny[64], pub[32], man[K1_MANIFEST_BAJTY];
-    crypto_blake2b_ctx ctx;
-    struct k1_manifest m;
-    int32_t w = k1_wersja_z_tekstu(wersja);
-    uint64_t off;
-    int fd = open(plik, O_RDWR), jest;
-    if (fd < 0 || w < 0 || strlen(wersja) >= sizeof m.tekst) {
-        fprintf(stderr, "podpisz: %s / wersja %s\n", plik, wersja);
-        return 1;
-    }
-    if (lseek(fd, 0, SEEK_END) < (off_t)(K1_MANIFEST_OFF + K1_MANIFEST_BAJTY)) {
-        fprintf(stderr, "podpisz: obraz za mały na manifest\n");
-        return 1;
-    }
-    crypto_blake2b_init(&ctx, 32);
-    for (off = 0; off < K1_MANIFEST_OFF; off += sizeof buf) {
-        if (pread(fd, buf, sizeof buf, (off_t)off) != (ssize_t)sizeof buf)
-            return 1;
-        crypto_blake2b_update(&ctx, buf, sizeof buf);
-    }
-    memset(&m, 0, sizeof m);
-    crypto_blake2b_final(&ctx, m.skrot);
-    m.wersja = (uint32_t)w;
-    m.fat_bajty = K1_MANIFEST_OFF;
-    snprintf(m.tekst, sizeof m.tekst, "%s", wersja);
-    jest = klucze(tajny, pub);
-    k1_manifest_zbuduj(&m, jest ? tajny : NULL, pub, man);
-    crypto_wipe(tajny, sizeof tajny);
-    if (pwrite(fd, man, sizeof man, K1_MANIFEST_OFF) != (ssize_t)sizeof man || close(fd) != 0)
-        return 1;
-    if (jest && k1_manifest_sprawdz_podpis(man, pub) != 0) {
-        fprintf(stderr, "podpisz: podpis nie przechodzi własnego sprawdzenia\n");
-        return 1;
-    }
-    printf("%s: manifest %s, %s\n", plik, wersja, jest ? "podpisany" : "BEZ podpisu (wersja deweloperska)");
-    return 0;
-}
-
 /* 32 hex digits → 16 bytes; -1 if not exactly that. */
 static int hex16(const char *t, uint8_t out[16])
 {
@@ -188,7 +148,7 @@ static int slot(const char *plik, const char *wersja, const char *wydanie, const
         fprintf(stderr, "podpisz slot: %s / wersja %s / wydanie %s / %s B\n", plik, wersja, wydanie, fat);
         return 1;
     }
-    m.format = 2;
+    m.format = K1_MANIFEST_SLOT;
     m.wersja = (uint32_t)w;
     m.fat_bajty = fat_bajty;
     snprintf(m.tekst, sizeof m.tekst, "%s", wersja);
@@ -244,7 +204,7 @@ static int uklad(const char *plik, const char *genv, const char *a, const char *
             fprintf(stderr, "podpisz uklad: miejsce na blok układu jest zajęte\n");
             return 1;
         }
-    if (k1_grubenv_czytaj(e, &g) != 0 || g.slot != 'a' || k1_manifest_czytaj(man, &m) != 0 || m.format != 2) {
+    if (k1_grubenv_czytaj(e, &g) != 0 || g.slot != 'a' || k1_manifest_czytaj(man, &m) != 0 || m.format != K1_MANIFEST_SLOT) {
         fprintf(stderr, "podpisz uklad: pod podanymi przesunięciami nie ma grubenv / manifestu slotu A\n");
         return 1;
     }
@@ -256,19 +216,72 @@ static int uklad(const char *plik, const char *genv, const char *a, const char *
     return 0;
 }
 
+static int czytaj_fd(void *ctx, uint64_t od, void *buf, uint32_t n)
+{
+    return pread(*(int *)ctx, buf, n, (off_t)od) == (ssize_t)n ? 0 : -1;
+}
+
+/* The digest of the boot files of the K1-EFI image (everything but grubenv and the slots), signed as a format-3
+ * manifest of the same release as slot A's, written right after slot A's manifest. */
+static int start(const char *plik)
+{
+    static struct k1_fat32 f;
+    static struct k1_fat32_drzewo d;
+    static uint8_t zajete[K1_FAT32_MAPA];
+    uint8_t blok[K1_UKLAD_BAJTY], man[K1_MANIFEST_BAJTY], tajny[64], pub[32];
+    struct k1_uklad u;
+    struct k1_manifest a, m, r;
+    struct k1_fat32_we we;
+    uint64_t bez[3];
+    int fd = open(plik, O_RDWR), jest;
+    off_t rozm = fd < 0 ? -1 : lseek(fd, 0, SEEK_END);
+    if (rozm <= 0 || pread(fd, blok, sizeof blok, K1_UKLAD_OFF) != (ssize_t)sizeof blok ||
+        k1_uklad_czytaj(blok, (uint64_t)rozm, &u) != 0 ||
+        pread(fd, man, sizeof man, (off_t)(u.slot_off[0] + K1_SLOT_MANIFEST_OFF)) != (ssize_t)sizeof man ||
+        k1_manifest_czytaj(man, &a) != 0 || a.format != K1_MANIFEST_SLOT) {
+        fprintf(stderr, "podpisz start: %s bez bloku układu albo manifestu miejsca A\n", plik);
+        return 1;
+    }
+    we.czytaj = czytaj_fd;
+    we.ctx = &fd;
+    we.rozmiar = (uint64_t)rozm;
+    bez[0] = u.grubenv_off;
+    bez[1] = u.slot_off[0];
+    bez[2] = u.slot_off[1];
+    memset(&m, 0, sizeof m);
+    if (k1_fat32_otworz(&f, &we) != 0 || k1_fat32_drzewo(&f, &d, zajete) != 0 || k1_fat32_skrot(&f, &d, bez, 3, m.skrot) != 0) {
+        fprintf(stderr, "podpisz start: %s — FAT32 nieczytelny albo bez grubenv i miejsc A/B w jednym kawałku\n", plik);
+        return 1;
+    }
+    m.format = K1_MANIFEST_START;
+    m.wersja = a.wersja;
+    m.fat_bajty = u.fat_bajty;
+    memcpy(m.tekst, a.tekst, sizeof m.tekst);
+    memcpy(m.wydanie, a.wydanie, sizeof m.wydanie);
+    jest = klucze(tajny, pub);
+    k1_manifest_zbuduj(&m, jest ? tajny : NULL, pub, man);
+    crypto_wipe(tajny, sizeof tajny);
+    if (pwrite(fd, man, sizeof man, (off_t)(u.slot_off[0] + K1_SLOT_START_OFF)) != (ssize_t)sizeof man || close(fd) != 0 ||
+        k1_manifest_czytaj(man, &r) != 0 || (jest && k1_manifest_sprawdz_podpis(man, pub) != 0))
+        return 1;
+    printf("%s: manifest plików startowych %s (%d plików i folderów), %s\n", plik, m.tekst, d.n,
+           jest ? "podpisany" : "BEZ podpisu");
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     if (argc == 2 && strcmp(argv[1], "klucz-publiczny") == 0)
         return klucz_publiczny();
-    if (argc == 4 && strcmp(argv[1], "obraz") == 0)
-        return obraz(argv[2], argv[3]);
+    if (argc == 3 && strcmp(argv[1], "start") == 0)
+        return start(argv[2]);
     if (argc == 6 && strcmp(argv[1], "slot") == 0)
         return slot(argv[2], argv[3], argv[4], argv[5]);
     if (argc == 3 && strcmp(argv[1], "grubenv") == 0)
         return grubenv(argv[2]);
     if (argc == 6 && strcmp(argv[1], "uklad") == 0)
         return uklad(argv[2], argv[3], argv[4], argv[5]);
-    fprintf(stderr, "użycie: podpisz klucz-publiczny | obraz PLIK WERSJA | slot PLIK WERSJA WYDANIE FAT_BAJTY | "
-                    "grubenv PLIK | uklad PLIK GRUBENV_OFF A_OFF B_OFF\n");
+    fprintf(stderr, "użycie: podpisz klucz-publiczny | slot PLIK WERSJA WYDANIE FAT_BAJTY | "
+                    "grubenv PLIK | uklad PLIK GRUBENV_OFF A_OFF B_OFF | start PLIK\n");
     return 2;
 }

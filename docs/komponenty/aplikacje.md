@@ -28,8 +28,8 @@ użytkownik nie zmieni jej w Plikach; ta sama nazwa w folderze — „ (2)”. N
 pierwszym zapisie; pusta znika po przejściu do innej (plik — do Kosza). „Usuń notatkę” przenosi plik do Kosza
 (przywrócisz go w Plikach). Plik tekstowy otwarty w Notatkach z Plików, z pulpitu („Otwórz za pomocą”) albo przez
 „Otwórz…” dochodzi do listy; zamiast „Usuń notatkę” ma „Zamknij plik” (plik zostaje na swoim miejscu); większy
-niż 16 KB — komunikat w stopce. Przy pierwszym uruchomieniu 0.8.0 stare notatki (obiekty 1–33 z 0.5.6–0.7.6)
-stają się plikami; stary obiekt znika dopiero, gdy skarbiec potwierdzi plik (`stare.c`, tymczasowe — do 0.9.0).
+niż 16 KB — komunikat w stopce. (Przeniesienie notatek z 0.5.6–0.7.6 do plików, które 0.8.0–0.8.7 robiły przy
+pierwszym uruchomieniu, usunięto w 0.9.0 — decyzja właściciela z 2026-11-12: takie notatki nie przejdą już do Plików.)
 **Notatki nie gubią tekstu** (0.8.1): notatka, której treści skarbiec nie oddał, jest tylko do odczytu („Nie udało
 się wczytać tej notatki — spróbuję ponownie.”) — klawisz nie zapisze pustej notatki na plik; Notatki próbują znowu
 przy następnej zmianie plików. Gdy plik notatki trafi do Kosza (w Plikach), a w notatce jest niezapisany tekst,
@@ -261,7 +261,7 @@ Błąd zapisu notatki → komunikat w oknie i w logu.
 | `test-m4.sh` (0.8.0): Pliki — nowy folder, zmiana nazwy na klawiaturze, zajęta nazwa, wejście do folderu i „w górę”, Kosz (usuń, przywróć, usuń na zawsze z pytaniem, opróżnij), pliki po ponownym starcie; zrzut `m4-pliki.png` | funkcjonalny |
 | host: `test_dokumenty` (skarbiec), `test_komunikat` (`DOK_*`, `PLIKI_POKAZ`), `fuzz_dokument` (lista) | jednostkowy / negatywny / fuzzing |
 | host (0.8.0, ADR 0030): `test_dokumenty` — prawa Notatek (tylko własne pliki, nowy plik tylko w swoim folderze, Kosz tylko dla własnych), „Otwórz w…” (pulpit: tylko folder Pulpit; zły typ — odmowa), okno wyboru (jedna prośba naraz, tylko nazwy, folder i zły typ odrzucone, zamknięte okno = anulowanie, dostęp znika z aplikacją); `test_komunikat` — `DOK_OTWORZ`, `DOK_WYBIERZ`, `DOK_WYBRANO`, `DOK_WYBRANY`, `DOK_PROSBA`, `SKARB_URUCHOM`, `PLIK_OTWORZ`, `POKAZ_APL`, domyślne aplikacje | jednostkowy / negatywny |
-| `test-pliki.sh` (0.8.0, krok 2): stare notatki przeniesione do plików, nazwa za pierwszym wierszem, okno wyboru pliku (wybór i „Anuluj”), Ustawienia → Aplikacje; od 0.8.2 krok 5: menu pod prawym przyciskiem w Plikach → „Otwórz za pomocą” → Notatki, „Zmień nazwę” z menu pulpitu (Pliki z polem nazwy) | funkcjonalny |
+| `test-pliki.sh` (0.8.0, krok 2): notatki jako pliki (od 0.9.0 dysk z `notatki_w_plikach`; wcześniej przeniesienie starych notatek), nazwa za pierwszym wierszem, okno wyboru pliku (wybór i „Anuluj”), Ustawienia → Aplikacje; od 0.8.2 krok 5: menu pod prawym przyciskiem w Plikach → „Otwórz za pomocą” → Notatki, „Zmień nazwę” z menu pulpitu (Pliki z polem nazwy) | funkcjonalny |
 | host (0.8.2 krok 6): `test_przeciaganie` — każda para źródło/cel tabeli reguł, warunki (ten sam folder, w samym sobie, za głęboko, brak miejsca), pytanie przed Koszem (D8), okienka (pytanie, nazwa zajęta, odmowa), powody wyników skarbca, zaznaczanie (klik, Ctrl, Shift, Ctrl+A, 16 384 elementy), rysowanie na brzegach obrazu; `test_menu` — menu wielu zaznaczonych | jednostkowy |
 | `test-pliki.sh` (0.8.2 krok 6): folder przeciągnięty na folder, Ctrl+klik, dwa na Kosz z pytaniem i „Przenieś do Kosza”, z Kosza na folder z lewej, stały folder na Kosz (odmowa); na pulpicie folder na folder i na Kosz z pytaniem; `test-pendrive.sh`: plik z pendrive'a na Kosz (odmowa), na „Obrazy” (import tam); zrzuty `pliki-7…12-*.png`, `pendrive-5a-tylko-import.png` | funkcjonalny |
 | host (0.8.2 krok 5): `test_menu` — wiersze menu pliku dla każdego typu i miejsca (Pliki, pulpit, Kosz, pendrive), „Otwórz za pomocą” (bez Plików, ✓ przy tej, która otwiera, „Zawsze otwieraj” od dwóch aplikacji), komunikat bez aplikacji, położenie i trafienie, rysowanie na brzegach obrazu | jednostkowy |

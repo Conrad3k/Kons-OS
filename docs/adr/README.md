@@ -65,3 +65,4 @@ Krótko, dlaczego nie.
 | [0035](0035-mapa-drogi-wedlug-wersji.md) | Mapa drogi według wersji (0.9 Sieć, 0.10 Strefy…) zamiast etapów M; jedno miejsce na plan | Przyjęty |
 | [0036](0036-skarbiec-format-2-odcinki-i-spis.md) | Skarbiec na lata (0.8.2): format 2 — dziennik w odcinkach, spis skarbca, kompaktowanie po odcinku, 262 144 obiekty | Przyjęty, wykonany (0.8.2) |
 | [0037](0037-podglad-zdjec.md) | Aplikacja Podgląd (0.8.2): zdjęcie w osobnym oknie, zdjęcia jednego folderu (zakres w prawach skarbca), dekoder dla Podglądu | Przyjęty |
+| [0038](0038-pliki-startowe-w-aktualizacji.md) | Pliki startowe w aktualizacji (0.9.0): manifest plików startowych, nowe obok starych, jedno przełączenie; koniec manifestu formatu 1 | Przyjęty, wdrożony (0.9.0) |

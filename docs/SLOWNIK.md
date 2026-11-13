@@ -14,6 +14,9 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **podpis** | Dowód, że wydanie pochodzi od właściciela projektu (klucz w sekrecie CI). Instalator odmawia niepodpisanych i starszych. |
 | **miejsce A / B** | Dwa miejsca na system w partycji K1-EFI: aktualizacja trafia do wolnego, stare zostaje na wypadek błędu. |
 | **K1-EFI** | Partycja startowa: pliki startowe i miejsca A/B. |
+| **pliki startowe** | Wszystko w K1-EFI poza miejscami A/B i grubenv: shim, GRUB, MokManager, `grub.cfg`, ekran startowy, certyfikat K1, `.disk/info`. Od 0.9.0 aktualizacja wymienia je, gdy się zmieniły (ADR 0038). |
+| **manifest** | Podpisany opis części wydania (512 B): wersja, identyfikator wydania, skrót. **Manifest miejsca** — system w miejscu A/B; **manifest plików startowych** (0.9.0) — skrót drzewa plików startowych, niezależny od tego, gdzie leżą. |
+| **wymiana plików startowych** (0.9.0) | Nowe pliki startowe zapisane obok starych, sprawdzone z manifestem, przełączone jednym zapisem sektora startowego FAT; przerwanie zostawia stare albo nowe (`src/instalator/start.c`, ADR 0038). |
 | **K1-DANE** | Partycja z zaszyfrowanymi danymi użytkownika; czyta ją tylko skarbiec. |
 | **init** | Pierwszy program po starcie (PID 1): montuje, ustawia zabezpieczenia, uruchamia nadzorcę. Nigdy się nie kończy. |
 

@@ -15,9 +15,8 @@
 #include "k1_skarb_klient.h"
 #include "k1_uslugi.h"
 #include "notatki.h"
-#include "stare.h"
 
-#define OCZEKUJACE (MAKS_NOTATEK + 32) /* NOWY sent, number not here yet: notes and old notes */
+#define OCZEKUJACE MAKS_NOTATEK /* NOWY sent, number not here yet */
 
 static struct k1_dok_wpis wpisy[K1_DOK_MAKS];
 static uint8_t lista[K1_DOK_LISTA_MAKS];
@@ -25,10 +24,7 @@ static char bufor[K1_DOK_NAZWA + MAKS_TEKST];
 static uint32_t ukryte[MAKS_NOTATEK]; /* files given to Notatki that the user closed here */
 static int n_ukrytych, czeka_tresci, wczytane_zalogowane, pierwsza_lista = 1;
 static uint32_t do_pokazania; /* a file just given to us: shown once its content is here */
-static struct {
-    uint32_t nr; /* the note (0: an old note) */
-    int stary;
-} nowe[OCZEKUJACE];
+static uint32_t nowe[OCZEKUJACE]; /* the notes whose NOWY is on its way, in the order sent */
 static int n_nowych;
 
 static struct notatka *notatka_pliku(uint32_t id)
@@ -62,7 +58,7 @@ static void do_skarbca(int typ, uint32_t obiekt, int32_t a, int32_t b2, int32_t 
         close(fd);
 }
 
-int nowy_plik(const char *tekst, uint32_t dl, uint32_t nr, int stary)
+static int nowy_plik(const char *tekst, uint32_t dl, uint32_t nr)
 {
     char nazwa[K1_DOK_NAZWA];
     size_t nl;
@@ -74,8 +70,7 @@ int nowy_plik(const char *tekst, uint32_t dl, uint32_t nr, int stary)
     memcpy(bufor + nl, tekst, dl);
     /* "into Dokumenty": skarbiec puts the files of Notatki into its folder Dokumenty › Notatki */
     do_skarbca(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, (int32_t)nl, (int32_t)dl, bufor, nl + dl);
-    nowe[n_nowych].nr = nr;
-    nowe[n_nowych++].stary = stary;
+    nowe[n_nowych++] = nr;
     return 0;
 }
 
@@ -87,7 +82,7 @@ static void zapisz_notatke(struct notatka *n)
     if (n->id == 0) { /* a new note becomes a file with its first text */
         if (n->tworzona)
             n->do_zapisu = 1;
-        else if (n->dl > 0 && nowy_plik(n->tekst, n->dl, n->nr, 0) == 0) {
+        else if (n->dl > 0 && nowy_plik(n->tekst, n->dl, n->nr) == 0) {
             n->tworzona = 1;
             k1_dok_nazwa_z_tekstu(n->tekst, n->dl, n->auto_n);
             memcpy(n->nazwa, n->auto_n, sizeof n->nazwa);
@@ -168,7 +163,6 @@ void wczytaj(void)
         return;
     }
     skarb = FD_SKARBIEC;
-    stare_przenies();
     do_skarbca(K1_KOM_SKARB_INFO, 1, 0, 0, 0, NULL, 0); /* where the data is (the footer) */
     do_skarbca(K1_KOM_DOK_SPIS, 0, 0, 0, 0, NULL, 0);
 }
@@ -320,21 +314,15 @@ static void tresc_przyszla(const struct k1_komunikat *k, int fd)
     }
 }
 
-/* NOWY answered (in the order sent): the note gets its number, an old note is deleted. */
+/* NOWY answered (in the order sent): the note gets its number. */
 static void nowy_wynik(const struct k1_komunikat *k)
 {
     struct notatka *n;
     uint32_t nr;
-    int stary;
     if (n_nowych == 0)
         return;
-    nr = nowe[0].nr;
-    stary = nowe[0].stary;
+    nr = nowe[0];
     memmove(&nowe[0], &nowe[1], (size_t)--n_nowych * sizeof nowe[0]);
-    if (nr == 0) {
-        stare_wynik(stary, k->b);
-        return;
-    }
     if ((n = notatka_nr(nr)) == NULL)
         return;
     n->tworzona = 0;

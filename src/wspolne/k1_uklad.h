@@ -4,13 +4,14 @@
  * move once the image is built (contiguous clusters):
  *   /boot/grub/grubenv  GRUB's environment block (1024 B): which slot runs, which one to try once
  *   /k1/a.img, /k1/b.img  the slots, K1_SLOT_BAJTY each: an inner FAT image with /k1.efi (the whole
- *                       system, signed), its slot manifest at K1_SLOT_MANIFEST_OFF (k1_manifest.h, format 2)
+ *                       system, signed), its slot manifest at K1_SLOT_MANIFEST_OFF (k1_manifest.h, format 2) and the
+ *                       manifest of the boot files of its release at K1_SLOT_START_OFF (format 3, 0.9.0)
  * Where they are is written in the layout block at K1_UKLAD_OFF (in the FAT32 reserved sectors, which
  * no FAT driver uses), 512 bytes, little-endian:
  *    0 "K1U1"   4 format 1   8 FAT bytes   16 grubenv offset   24 slot bytes   32 slot A offset
  *   40 slot B offset   48 .. 495 zeros   496 BLAKE2b-128 of bytes 0..495 (damage, not attacks)
- * The installer (update) and nadzorca (confirming a new slot) write only the slot and grubenv bytes —
- * never the FAT itself.
+ * nadzorca (confirming a new slot) writes only grubenv; the installer (update) a slot and grubenv, and since 0.9.0
+ * the boot files beside the old ones, switched over in one write (src/instalator/start.c, ADR 0038).
  *
  * GRUB's environment block: "# GRUB Environment Block\n", lines "name=value\n", '#' up to 1024 bytes.
  * Our variables: k1_slot (the confirmed slot), k1_nowy (to try once on the next start), k1_start (what
@@ -26,6 +27,7 @@
 #define K1_GRUBENV_BAJTY 1024u
 #define K1_SLOT_BAJTY (128u << 20)
 #define K1_SLOT_MANIFEST_OFF (127u << 20)
+#define K1_SLOT_START_OFF (K1_SLOT_MANIFEST_OFF + 512u) /* the manifest of the boot files */
 
 struct k1_uklad {
     uint64_t fat_bajty;

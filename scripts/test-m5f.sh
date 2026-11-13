@@ -6,6 +6,10 @@
 #    (0.8.5 krok 3) z dysku: Ustawienia → Miejsce — „nośnik: dysk”, bez przycisku powiększania pendrive'a.
 # 3. znów pendrive + dysk: dane z dysku wewnętrznego (partycja pendrive'a pominięta), Instalator
 #    rozpoznaje K1 na dysku → aktualizacja (tylko K1-EFI), dane nietknięte (magazyn otwiera się dalej);
+#    (0.9.0 krok 3, ADR 0038) dysk ma „stare” pliki startowe (inny grub.cfg i .disk/info, jeden plik więcej):
+#    pendrive ze zmienionym plikiem startowym — odmowa, dysk nietknięty; aktualizacja przerwana (QEMU wyłączone
+#    w trakcie zapisu plików startowych) — dysk dalej startuje; aktualizacja — pliki startowe dysku = pendrive'a
+#    (mtools), fsck.fat bez błędów;
 # 4. start z dysku po aktualizacji: nowe miejsce (B) wystartowało na próbę i K1 je potwierdził (0.7.0, A/B),
 #    magazyn z kroku 2 otwarty (dane przetrwały);
 # 5. wycofanie (A/B): „nowe” miejsce A jest uszkodzone — GRUB wraca do B, K1 zgłasza nieudaną aktualizację.
@@ -68,6 +72,9 @@ if tryb == "z-dysku":
     if u:
         klik(int(u.group(4)) + 680 - 8 - 14, int(u.group(5)) + 22)  # × of Ustawienia
         czekaj(r"K1-USTAWIENIA: okno zamknięte przez użytkownika", czas=20)
+if tryb == "po-przerwaniu":
+    sprawdz("po przerwanej aktualizacji dysk dalej startuje (pulpit)", g)
+    koniec()
 if tryb == "po-aktualizacji":
     sprawdz("start z dysku po aktualizacji (pendrive też podłączony): magazyn dysku otwarty — dane przetrwały",
             czekaj(r"K1-SKARBIEC: magazyn otwarty", czas=10) and "utworzono nowy magazyn" not in tekst()
@@ -143,6 +150,8 @@ if tryb == "instaluj":
     sprawdz("potwierdzone po wpisaniu „usuń”", czekaj(r"K1-INSTALACJA: potwierdzono: instalacja na dysku 1", czas=10))
     sprawdz("nadzorca: program zapisujący w klatce (UID 105), źródło = K1-EFI pendrive'a",
             czekaj(r"K1-NADZORCA: instalator: instalacja na dysku — sda \(z sd\w+\), pid \d+, uid 105", czas=10))
+    sprawdz("instalator: system i pliki startowe pendrive'a zgodne z podpisanymi manifestami",
+            czekaj(r"K1-INSTALATOR: źródło: wersja [0-9.]+, .*, pliki startowe zgodne z manifestem", czas=60))
     sprawdz("instalator: kopia, sprawdzenie, tablica partycji", czekaj(r"K1-INSTALATOR: gotowe: K1 zainstalowany", czas=200))
     sprawdz("okno: „Gotowe”", czekaj(r"K1-INSTALACJA: zainstalowano", czas=20))
     zrzut("1-gotowe")
@@ -162,12 +171,30 @@ if tryb == "aktualizuj":
     klik(px, py)  # Zaktualizuj
     sprawdz("aktualizacja: tylko partycja K1-EFI (sda1)",
             czekaj(r"K1-NADZORCA: instalator: aktualizacja — sda1", czas=10))
+    sprawdz("(0.9.0) pliki startowe dysku zamienione na pendrive'a (po przerwanej próbie: już nowe)",
+            czekaj(r"K1-INSTALATOR: pliki startowe: wymienione na wersję [0-9.]+|K1-INSTALATOR: pliki startowe na dysku aktualne",
+                   czas=120))
     sprawdz("instalator (A/B): nowy system w wolnym miejscu B, działający i dane nietknięte",
             czekaj(r"K1-INSTALATOR: aktualizacja A/B: system [0-9.]+ \(\d+ MiB\) do miejsca b", czas=60)
             and czekaj(r"K1-INSTALATOR: gotowe: nowy system w miejscu b", czas=200)
             and czekaj(r"K1-INSTALACJA: zaktualizowano \(nowe miejsce A/B\)", czas=20))
     zrzut("3-gotowe")
     koniec()
+
+if tryb in ("pliki-zle", "przerwij"):  # 0.9.0 step 3 (ADR 0038)
+    sprawdz("Instalator: na dysku jest Kons K1", czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: tak", czas=5))
+    klik(px, py)
+    klik(px, py)
+    if tryb == "pliki-zle":
+        sprawdz("zmieniony plik startowy na pendrivie: odmowa przed zapisem (niezgodny z manifestem plików startowych)",
+                czekaj(r"K1-INSTALATOR: źródło [0-9.]+: pliki startowe nie zgadzają się z manifestem", czas=120)
+                and czekaj(r"K1-INSTALACJA: kod -8", czas=20))
+        zrzut("3a-pliki-zle")
+        koniec()
+    z = czekaj(r"K1-INSTALATOR: pliki startowe: zapis obok starych", czas=120)
+    monitor("quit")  # a power cut while the new boot files are written
+    sprawdz("aktualizacja przerwana w trakcie zapisu plików startowych (QEMU wyłączone)", z)
+    q.koniec(wylacz=False)
 PY
     zamknij_qemu "$MON" $QPID
 }
@@ -194,9 +221,50 @@ if sfdisk -d "$DYSK" 2>/dev/null | grep -q 'name="K1-EFI"' && sfdisk -d "$DYSK" 
 else
     echo "  [BŁĄD]  dysk: brak poprawnej tablicy GPT z K1-EFI i K1-DANE"; r=1
 fi
+# 0.9.0 step 3 (ADR 0038): the boot files of the disk (its K1-EFI at 1 MiB) and of the stick, through mtools
+export MTOOLS_SKIP_CHECK=1
+EFI_DYSK="$DYSK@@1M" EFI_PEN="$PEN@@1M"
+PLIKI_STARTOWE="EFI/BOOT/BOOTX64.EFI EFI/BOOT/grubx64.efi EFI/BOOT/mmx64.efi boot/grub/grub.cfg boot/grub/start.png .disk/info k1/klucz.cer"
+pliki_startowe() { # 0: the disk's boot files are the stick's (and nothing else), fsck.fat finds nothing wrong
+    for p in $PLIKI_STARTOWE; do
+        rm -f "$TESTY/m5f-p1" "$TESTY/m5f-p2"
+        mcopy -n -i "$EFI_DYSK" "::/$p" "$TESTY/m5f-p1" 2>/dev/null && mcopy -n -i "$EFI_PEN" "::/$p" "$TESTY/m5f-p2" \
+            && cmp -s "$TESTY/m5f-p1" "$TESTY/m5f-p2" || return 1
+    done
+    ! mcopy -n -i "$EFI_DYSK" ::/EFI/BOOT/stary.txt "$TESTY/m5f-p1" 2>/dev/null || return 1
+    dd if="$DYSK" of="$TESTY/m5f-efi.img" bs=1M skip=1 count=280 status=none && fsck.fat -n "$TESTY/m5f-efi.img" >/dev/null 2>&1
+}
+# every file of the disk's K1-EFI with its content, but NvVars: OVMF without a variables file keeps its variables there
+# and writes it at every start (a real laptop does not)
+efi_suma() {
+    mdir -/ -b -i "$EFI_DYSK" :: | grep -v '/NvVars$' | while IFS= read -r p; do
+        echo "$p"; mtype -i "$EFI_DYSK" "$p" 2>/dev/null | sha256sum
+    done | sha256sum | cut -c1-64
+}
+if pliki_startowe; then echo "  [OK]    instalacja: pliki startowe dysku = pendrive'a (fsck.fat bez błędów)"
+else echo "  [BŁĄD]  instalacja: pliki startowe dysku inne niż pendrive'a albo fsck.fat znalazł błędy"; r=1; fi
 uruchom z-dysku 2-z-dysku --dysk-uefi "$DYSK"
+# the disk as from an earlier release: another grub.cfg (a comment more) and .disk/info, a file more
+mcopy -n -i "$EFI_DYSK" ::/boot/grub/grub.cfg "$TESTY/m5f-grub.cfg" && printf '# K1 0.8.7\n' >> "$TESTY/m5f-grub.cfg"
+printf 'Kons K1 0.8.7\n' > "$TESTY/m5f-info"
+mcopy -o -i "$EFI_DYSK" "$TESTY/m5f-grub.cfg" ::/boot/grub/grub.cfg && mcopy -o -i "$EFI_DYSK" "$TESTY/m5f-info" ::/.disk/info \
+    && mcopy -i "$EFI_DYSK" "$TESTY/m5f-info" ::/EFI/BOOT/stary.txt || blad "mtools: stare pliki startowe na dysku"
+if pliki_startowe; then echo "  [BŁĄD]  „stare” pliki startowe na dysku nie różnią się od pendrive'a"; r=1; fi
+# a stick whose grub.cfg was changed (it still starts): its boot files no longer match their manifest
+cp "$PEN" "$TESTY/m5f-zly.img"
+mcopy -n -i "$PEN@@1M" ::/boot/grub/grub.cfg "$TESTY/m5f-grub.cfg" && printf '# zmieniony\n' >> "$TESTY/m5f-grub.cfg" \
+    && mcopy -o -i "$TESTY/m5f-zly.img@@1M" "$TESTY/m5f-grub.cfg" ::/boot/grub/grub.cfg || blad "mtools: zmieniony pendrive"
+przed=$(efi_suma)
+uruchom pliki-zle 3a-pliki-zle --pendrive "$TESTY/m5f-zly.img" --qemu "$SATA"
+if [ "$(efi_suma)" = "$przed" ]; then echo "  [OK]    po odmowie pliki K1-EFI dysku nietknięte (także miejsca i grubenv)"
+else echo "  [BŁĄD]  po odmowie K1-EFI dysku się zmieniła"; r=1; fi
+rm -f "$TESTY/m5f-zly.img"
+uruchom przerwij 3b-przerwana --pendrive "$PEN" --qemu "$SATA"
+uruchom po-przerwaniu 3c-po-przerwaniu --dysk-uefi "$DYSK"
 PEN_USB="-device qemu-xhci,id=xhci -drive if=none,id=pendrive,file=$PEN,format=raw -device usb-storage,bus=xhci.0,drive=pendrive"
 uruchom aktualizuj 3-aktualizacja --pendrive "$PEN" --qemu "$SATA"
+if pliki_startowe; then echo "  [OK]    aktualizacja: pliki startowe dysku = pendrive'a, starego pliku nie ma (fsck.fat bez błędów)"
+else echo "  [BŁĄD]  aktualizacja: pliki startowe dysku inne niż pendrive'a albo fsck.fat znalazł błędy"; r=1; fi
 uruchom po-aktualizacji 4-po-aktualizacji --dysk-uefi "$DYSK" --qemu "$PEN_USB"
 env_dysku() { python3 -I -c 'import sys; f=open(sys.argv[1],"rb"); f.seek(int(sys.argv[2])); print(" ".join(l.decode() for l in f.read(1024).split(b"\n") if l.startswith(b"k1_")))' "$DYSK" "$(uklad "$DYSK" 16)"; }
 if env_dysku | grep -q 'k1_slot=b k1_start=b k1_nowy= k1_proba=$'; then echo "  [OK]    grubenv dysku: potwierdzone miejsce B, nic do próby"
@@ -216,6 +284,6 @@ else echo "  [BŁĄD]  grubenv dysku po wycofaniu: $(env_dysku)"; r=1; fi
 # M6a: pretend the disk runs 99.0.0 (the manifest of its confirmed slot B, 127 MiB into the slot)
 python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); o=int(sys.argv[2])+127*1048576; f.seek(o+8); f.write((99<<16).to_bytes(4,"little")); f.seek(o+24); f.write(b"99.0.0".ljust(24,b"\0")); f.close()' "$DYSK" "$(uklad "$DYSK" 40)"
 uruchom starsza 6-starsza --pendrive "$PEN" --qemu "$SATA"
-rm -f "$DYSK" "$PEN"
+rm -f "$DYSK" "$PEN" "$TESTY"/m5f-p1 "$TESTY"/m5f-p2 "$TESTY"/m5f-efi.img "$TESTY"/m5f-grub.cfg "$TESTY"/m5f-info
 if [ $r -eq 0 ]; then info "M5f: wszystko zaliczone (zrzuty: $TESTY/m5f-*.png)"; else echo "[k1] M5f: BŁĄD (logi: $TESTY/m5f-*.log)"; fi
 exit $r

@@ -207,7 +207,7 @@ wpisów i wyniki — nigdy nazwy ani treść.
 ## Format na dysku (bloki po 4096 B, liczby little-endian)
 Dwa formaty (ADR 0036): **format 1** (0.5.6–0.8.1, opis niżej) i **format 2** (0.8.2, następny rozdział). Skarbiec
 otwiera oba; nowy magazyn ma format 2 (`K1_MAG_FORMAT`), stary przechodzi na format 2 po potwierdzeniu startu
-(„Przejście”, niżej). Format 1 tworzą już tylko testy (`k1_mag_utworz_w_formacie`, `magazyn_testowy`, `stare_notatki`).
+(„Przejście”, niżej). Format 1 tworzą już tylko testy (`k1_mag_utworz_w_formacie`, `magazyn_testowy`, `notatki_w_plikach`).
 
 ### Format 1: dwa obszary
 | Miejsce | Zawartość |
