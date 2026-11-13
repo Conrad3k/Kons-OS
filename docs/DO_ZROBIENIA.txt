@@ -15,11 +15,12 @@ Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Cl
 1. TERAZ — 0.9 Sieć
 -------------------
 0.9 Sieć (ADR 0019, 0026) — plan wersji 0.9.0: docs/PLAN-0.9.0.txt (9 kroków, luki, decyzje D1–D4 dla Ciebie).
-Zasada (Twoja decyzja z 2026-11-13): sterowniki kart z jądra Linux, nie własne. W skrócie:
+Zasada (Twoja decyzja z 2026-11-13): sterowniki kart z jądra Linux, nie własne — włączone szeroko (każda karta
+przewodowa, którą obsługuje jądro; plan, T6). W skrócie:
     [ ] kroki 1–4, porządki przed siecią: jedna tabela usług, podział komunikatów i odpowiedzi skarbca (R64), pliki
         startowe w aktualizacji (R45) i usunięcie „Tymczasowe” 0.9.0, musl 1.2.5 i fortify-headers (R7, R8)
     [ ] kroki 5–8, sieć: jądro z siecią i test „nic nie odpowiada z zewnątrz”, kabel i adres od routera w klatce
-        (X230 i IdeaPad), ikona sieci i Ustawienia → Sieć, zegar z internetu (R56)
+        (każda karta z jądra; sprawdzamy na X230 i IdeaPadzie), ikona sieci i Ustawienia → Sieć, zegar z internetu (R56)
     [ ] krok 9: porządki (pliki testów ponad limit, okna.c) i wydanie 0.9.0
     [ ] potem: Wi-Fi (oba laptopy; oprogramowanie kart i logowanie WPA — osobny plan i ADR, PLAN-0.9.0 punkt 6)
 Zamknięte: 0.8.2 i 0.8.5 — plany i ich ustalenia w docs/archiwum/PLAN-0.8.2.txt i PLAN-0.8.5.txt (historia), zmiany

@@ -45,7 +45,9 @@ Nowy czat — przebieg każdego kroku:
 1. W SKRÓCIE (dla właściciela)
 ------------------------------
 Zasada tej wersji (Twoja decyzja D0): sterowniki kart sieciowych bierzemy z jądra Linux — nie piszemy własnych.
-Sieć w jądrze to tylko kilka włączonych opcji. Nasza praca to wszystko dookoła: kto w K1 może dotknąć sieci,
+K1 obsłuży każdą kartę przewodową, którą obsługuje jądro (T6): nasz kod rozmawia z „interfejsem sieciowym”, który
+jądro daje dla każdej karty tak samo — żadnego kodu pod konkretną kartę w K1, żadnych aktualizacji „pod kartę”
+(nowe karty przychodzą z nowszym jądrem). Sieć w jądrze to włączone opcje. Nasza praca to wszystko dookoła: kto w K1 może dotknąć sieci,
 pobranie adresu od routera, zegar z internetu, pokazanie Ci stanu połączenia i testy, że z zewnątrz nie da się
 do K1 nic „powiedzieć”. Żadna aplikacja nie dostaje w 0.9.0 internetu — to przyjdzie z przeglądarką w strefie (0.10).
 
@@ -58,7 +60,8 @@ dziś trzeba dzielić:
   4. Nowsza, poprawiona biblioteka C (musl 1.2.5) i dodatkowa ochrona przed przepełnieniem pamięci w całym systemie.
 Potem sieć:
   5. Jądro z siecią i test „nic w K1 nie odpowiada z zewnątrz” — zanim cokolwiek pobierze adres.
-  6. Kabel: X230 (karta Intel) i IdeaPad 110-15ISK (karta Realtek — do potwierdzenia, D3) dostają adres od routera.
+  6. Kabel: każda karta przewodowa obsługiwana przez jądro (także przejściówki USB–Ethernet) dostaje adres od routera;
+     sprawdzamy na X230, IdeaPadzie 110-15ISK i w QEMU.
   7. Widać to: ikona sieci na górnym pasku i Ustawienia → Sieć (najpierw szkice do wyboru, D1).
   8. Zegar z internetu — godzina sama się poprawia (dziś po słabej baterii bywa rok 2000).
   9. Porządki i wydanie 0.9.0.
@@ -72,7 +75,7 @@ Potem sieć:
 [ ]  3  Pliki startowe w aktualizacji; „Tymczasowe”      L5 L6           —          —            M–L      tak
 [ ]  4  musl 1.2.5 i fortify-headers                     L7 L8           —          —            M        korekta 0007
 [ ]  5  Jądro z siecią; nic nie odpowiada z zewnątrz     L9–L13          1, 4       T1–T4, T6    L        tak (sieć)
-[ ]  6  Kabel i adres od routera (DHCP) w klatce         L10 L14 L15     5          D2 D3, T6    L        —
+[ ]  6  Kabel i adres od routera (DHCP) w klatce         L10 L14 L15     5          D2 D3        L        —
 [ ]  7  Ikona sieci i Ustawienia → Sieć                  L16             6          D1           M        —
 [ ]  8  Zegar z internetu                                L17 L18         6          T5           M        —
 [ ]  9  Porządki i wydanie 0.9.0                         L19 L20         1–8        D4           S–M      —
@@ -166,8 +169,10 @@ KROK 5 — Jądro z siecią; nic w K1 nie odpowiada z zewnątrz                 
   [ ] ADR „Sieć w K1”: T1 (kto ma jakie uprawnienia), T2 (IPv4/IPv6), T3 (co znaczy „nie odpowiada”), T4 (USER_NS),
       T6 (które sterowniki). Rekomendacje — punkt 4.
   [ ] jadro/k1.config (każda linia z komentarzem, sprawdzone w Kconfig — L9): INET; gniazda pakietowe dla DHCP
-      (PACKET); sterowniki kart wg T6 (E1000E — X230 i QEMU; R8169 — IdeaPad wg D3; VIRTIO_NET — maszyny
-      wirtualne); bez IPv6, zapory i opcji „serwerowych” wg ADR. scripts/sprawdz-kspp.sh — nowe zalecenia KSPP dla
+      (PACKET); sterowniki kart przewodowych wg T6 — szeroko, pogrupowane według producentów (komentarz przy grupie,
+      nie przy każdej karcie), w tym E1000E (X230, QEMU), R8169 (Realtek — IdeaPad), VIRTIO_NET (maszyny
+      wirtualne), E1000 (VirtualBox) i popularne przejściówki USB–Ethernet; bez IPv6, zapory i opcji „serwerowych”
+      wg ADR. Rozmiar k1.efi przed/po (miejsce A/B ma 128 MiB). scripts/sprawdz-kspp.sh — nowe zalecenia KSPP dla
       sieci (sysctl net.*) i odstępstwa w jadro.md.
   [ ] init: sysctl sieci (wg ADR, np. ignorowanie pinga, rp_filter, bez przekazywania pakietów) w tabeli sysctls[]
       (src/init) — każdy wymagany, nieudany = zatrzymanie startu (niezmiennik 10).
@@ -203,10 +208,11 @@ KROK 6 — Kabel i adres od routera (DHCP) w klatce                             
       net/ipv4/devinet.c); nadzorca sprawdza zakresy (adres prywatny/publiczny dowolny, ale np. nie 0.0.0.0,
       nie multicast) i robi to sam. Nowe komunikaty w k1_komunikat.h, test, fuzzing, test negatywny w systemie.
   [ ] Wykrywanie kabla (włożony / wyjęty) — przez netlink jądra w nadzorcy (NIEPEWNE: które powiadomienie, L15).
-  [ ] D3: IdeaPad — nazwa karty; jeśli to Realtek z rodziny r8169 (np. RTL8106E): sterownik prosi o plik
-      „rtl_nic/rtl8106e-1.fw”, ale bez niego działa dalej (ZE ŹRÓDEŁ: r8169_main.c, firmware_request_nowarn, brak
-      pliku → bez łatki) — sprawdzić na IdeaPadzie, czy połączenie jest stabilne bez pliku; jeśli nie — pliki
-      oprogramowania kart wchodzą razem z Wi-Fi (punkt 6), nie tutaj.
+  [ ] Karty przewodowe, które chcą pliku od producenta (L12): część działa bez niego — np. Realtek r8169 (prawdopodobnie
+      IdeaPad) prosi o „rtl_nic/rtl8106e-1.fw”, ale bez niego działa dalej (ZE ŹRÓDEŁ: r8169_main.c,
+      firmware_request_nowarn, brak pliku → bez łatki); sprawdzić na IdeaPadzie, czy połączenie jest stabilne. Listę
+      sterowników, które bez pliku nie działają wcale, zapisać w „Ustaleniach” — ich pliki wchodzą razem z Wi-Fi
+      (punkt 6: jeden ADR o plikach producentów), do tego czasu krok 7 mówi o takiej karcie wprost.
   Testy i dowód: „sieć testowa” z kroku 5 odpowiada jak router (OFFER, ACK) → log K1 „połączono”; negatywne: zły
   pakiet DHCP (za krótki, złe opcje, obcy identyfikator transakcji) — odrzucony, usługa żyje; „kabel wyjęty”
   (QEMU set_link off) → „rozłączono”; usługa w klatce nie może sama ustawić adresu (próba w klatce, t_proby).
@@ -270,10 +276,10 @@ Twoje (produkt):
 [!] D2 (krok 6, plan Wi-Fi) Czy masz w domu kabel sieciowy do obu laptopów, czy używasz tylko Wi-Fi?
        Nie zmienia kroków 0.9.0 (kabel jest prostszy i testowalny w QEMU), ale jeśli tylko Wi-Fi — plan Wi-Fi
        (punkt 6) zaczynamy zaraz po 0.9.0, przed 0.10.
-[!] D3 (krok 6) IdeaPad 110-15ISK — dokładne nazwy kart sieciowych. Według Lenovo: kabel 10/100 i Wi-Fi 802.11ac;
-       według niezależnego sklepu Wi-Fi to Qualcomm Atheros QCA9377 (NIEPEWNE). Jeśli masz na nim Windows:
-       Menedżer urządzeń → Karty sieciowe → przepisz obie nazwy. Bez tego krok 6 włączy sterownik Realtek r8169
-       (najczęstszy w tej klasie laptopów), a krok 7 pokaże identyfikator karty, gdy K1 jej nie obsłuży.
+[!] D3 (krok 6, plan Wi-Fi) IdeaPad 110-15ISK — dokładne nazwy kart sieciowych. Nie blokuje kroku 6 (sterowniki
+       przewodowe włączamy szeroko, T6) — przyda się do sprawdzenia na sprzęcie i do planu Wi-Fi. Według Lenovo:
+       kabel 10/100 i Wi-Fi 802.11ac; według niezależnego sklepu Wi-Fi to Qualcomm Atheros QCA9377 (NIEPEWNE). Jeśli
+       masz na nim Windows: Menedżer urządzeń → Karty sieciowe → przepisz obie nazwy; inaczej pokaże je krok 7.
        Przy okazji: czy na IdeaPadzie działa touchpad, bateria w Zasobach, i czy K1 jest na dysku czy na pendrive'ie.
 [!] D4 (krok 9) Pamięć podręczna budowy jądra w CI (z audytu 0.8.6): ok. 7 z 30 min każdego przebiegu mniej.
        Rekomendacja: tylko dla przebiegów PR-ów (etykieta „testy”); wydania zawsze budowane od zera.
@@ -293,9 +299,15 @@ Techniczne (decyduje Claude w ADR kroku 5 i w krokach — Ty dostajesz krótkie 
     T5 Źródło czasu: rekomendacja — prosty protokół czasu (SNTP) z kilku źródeł naraz i zgodność między nimi, serwer
        z odpowiedzi routera (DHCP), jeśli go podaje, inaczej stałe adresy; zmiana zegara tylko w granicach (np. nie
        wstecz poniżej daty wydania K1). Nazwy serwerów (DNS) — w kroku 8: czy potrzebne, czy wystarczą stałe adresy.
-    T6 Sterowniki w jądrze: E1000E (X230: Intel 82579LM; QEMU ma tę samą rodzinę karty do testów), R8169 (IdeaPad —
-       wg D3), VIRTIO_NET (maszyny wirtualne QEMU/KVM). E1000 (domyślna karta VirtualBoxa) — tylko jeśli używasz
-       VirtualBoxa z siecią. Każdy sterownik = więcej kodu jądra, który czyta dane z kabla.
+    T6 Sterowniki w jądrze — USTALONE (2026-11-13, po pytaniu właściciela „czy K1 obsłuży każdą kartę?”): szeroko,
+       jak dystrybucje, ale wbudowane w jądro (K1 nie wczytuje modułów — niezmiennik 3). Wszystkie rodziny kart
+       przewodowych PCI/PCIe spotykane w laptopach i komputerach domowych (Intel, Realtek, Broadcom, Qualcomm/
+       Atheros, Marvell, …; karty serwerowe 10G+ — według rozmiaru, do ustalenia w kroku 5), karty maszyn
+       wirtualnych (VIRTIO_NET, E1000 — VirtualBox) i popularne przejściówki USB–Ethernet. Dlaczego to bezpieczne:
+       sterownik karty, której nie ma w komputerze, nigdy się nie uruchamia (jądro dobiera go po identyfikatorze
+       karty). Wyjątek — USB: podłączone urządzenie może samo uruchomić sterownik, więc przy USB tylko popularne
+       rodziny (wpis w RYZYKA). Koszt: kilka MB jądra (zmierzyć). Gdy K1 nie zna karty, krok 7 pokazuje jej
+       identyfikator — dopisanie sterownika to jedna linia w jadro/k1.config w następnej wersji.
 
 
 5. LUKI (z czytania kodu 0.8.7 i źródeł jądra 6.18.60, 2026-11-13)
@@ -355,9 +367,10 @@ Porządki końcowe (krok 9)
 
 6. NIE W TEJ WERSJI — Wi-Fi (własny plan: docs/PLAN-0.9.<n>.txt po wydaniu 0.9.0)
 --------------------------------------------------------------------------------
-Sterowniki z jądra (D0): X230 — Intel (iwlwifi: IWLWIFI + IWLDVM albo IWLMVM, zależnie od karty — sprawdzić, jaka
-karta jest w Twoim X230); IdeaPad — wg D3 (jeśli QCA9377: ATH10K + ATH10K_PCI). Obie potrzebują plików
-oprogramowania od producenta (linux-firmware na kernel.org) — ADR: wbudowane w podpisane k1.efi (EXTRA_FIRMWARE —
+Sterowniki z jądra (D0), szeroko jak przy kablu (T6): główne rodziny kart Wi-Fi w laptopach — Intel (iwlwifi:
+X230), Qualcomm/Atheros (ath9k/ath10k/ath11k; IdeaPad wg D3 — jeśli QCA9377: ATH10K + ATH10K_PCI), Realtek
+(rtw88/rtw89), MediaTek (mt76), Broadcom (brcmfmac) — dokładna lista w tym planie. Prawie wszystkie potrzebują
+plików oprogramowania od producenta (wszystkich naraz jest za dużo — tylko dla wybranych rodzin) (linux-firmware na kernel.org) — ADR: wbudowane w podpisane k1.efi (EXTRA_FIRMWARE —
 podpis obejmuje je razem z jądrem) czy w rdzeniu (firmware_class.path). Do tego potrzebny jest program, który
 loguje do sieci Wi-Fi z hasłem (WPA2/WPA3 — ten krok jądro zostawia programom): przeniesiony obcy program
 (wpa_supplicant albo iwd — obca zależność, ADR) czy własny — decyzja w tym planie. W Ustawieniach: lista sieci,
