@@ -229,6 +229,9 @@ static void wykonaj(struct klient *k, const struct k1_komunikat *m, int fd)
         odpowiedz(k, 1, m->typ, K1_MAG_OK);
         miejsce_wyslij(k->fd);
         break;
+    case K1_KOM_SKARB_PODZIAL: /* only Ustawienia (0.8.5 step 3): numbers, never a name */
+        odpowiedz(k, 1, m->typ, miejsce_podzial(k->fd, k->wlasciciel));
+        break;
     case K1_KOM_SKARB_POWIEKSZ: /* only Ustawienia: the user clicked "Użyj całego pendrive'a" (ADR 0033) */
         if (k->wlasciciel == K1_PROFIL_USTAWIENIA && powieksza == NULL && miejsce_powieksz() == K1_MAG_OK) {
             powieksza = k;

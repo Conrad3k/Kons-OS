@@ -462,3 +462,12 @@ celem) — tę regułę sprawdza host i skarbiec (`dok_przenies`).
 | `test_przybornik` (host) | `k1_zaokraglony`, `k1_obrys`, `k1_kolo` bez liczenia odległości we wnętrzu — 400 losowych prostokątów (przy brzegach obrazu, przezroczyste i nie) bit w bit jak sposób z 0.8.3 |
 | `pomiar_podgladu` (host, `make build/obj/pomiar_podgladu`; nie w `testy-host` — to pomiar) | czas klatki widoku 1600 × 1600 na każdym poziomie przybliżenia: dokładnie (jak do 0.8.3 w każdej klatce) i szybko (0.8.5); koszt tła okna i nakładania zdjęcia. Próg planu: klatka ≤ 1/3 dawnej — zmierzone ok. 12 % |
 | `test-pendrive.sh` | Podgląd: 20 × „+” i 20 × „−” bez czekania, przeciąganie 20 ruchami → „powiększenie 400%” i „100%”, log „ruch: klatek…” (szybkie klatki, potem ostra), zrzut `pendrive-6b-podglad-szybko.png`; okno dalej odpowiada (obrót, ←, ‹, Delete, Ctrl+O, ›) |
+
+## 0.8.5 krok 3 — Ustawienia → Miejsce
+| Test | Co sprawdza |
+|---|---|
+| `test_dokumenty` (host) | `dok_podzial`: pliki w folderze użytkownika i w jego podfolderze liczą się do folderu stałego (Obrazy), plik w Koszu i folder w Koszu z plikiem — do Kosza, pusty plik, foldery bez rozmiaru, rezerwa = `dok_rezerwa()`; po przywróceniu z Kosza — znów w swoim folderze; NEGATYWNY przez prawdziwą parę gniazd: `SKARB_PODZIAL` od Plików, Notatek, Podglądu i pulpitu — odmowa i ani jednej liczby; od Ustawień — każda część po kolei, każda przechodzi `k1_komunikat_sprawdz`. Nowe typy są też w `fuzz_komunikat` (każdy typ przez to samo sprawdzanie) |
+| `test_komunikat` (host) | `SKARB_PODZIAL` (tylko do skarbca, obiekt 1, reszta 0), `SKARB_CZESC` (część 1…`K1_CZESCI_MAKS`, KiB ≥ 0, pliki 0…16 384, rezerwa bez plików, pola zarezerwowane, kierunek), `WYNIK` z a = `SKARB_PODZIAL` |
+| `test-pendrive.sh` | Ustawienia → Miejsce przed importem (log części: Obrazy 0 KiB, zapas systemu > 0) i po imporcie (Obrazy urosły, Dokumenty ≥ 317 MB — plik 17 MB i film 300 MB, Kosz pusty); zrzuty `pendrive-0-miejsce.png`, `pendrive-4b-miejsce.png` i `pendrive-4b-miejsce-ciemny.png` (motyw ciemny i z powrotem jasny) |
+| `test-m5f.sh` (z dysku) | K1 zainstalowany na dysku SATA, bez pendrive'a: Ustawienia → Miejsce — „nośnik: dysk”, pendrive ma więcej 0 MiB, bez przycisku powiększania; zrzut `m5f-2-miejsce-z-dysku.png` (w `test-pendrive` — „nośnik: pendrive”) |
+| `test-skarbiec.sh` | „Użyj całego pendrive'a na dane” — teraz w sekcji Miejsce (ta sama linia logu „miejsce: zajęte …; przycisk x,y”, ósma sekcja) |

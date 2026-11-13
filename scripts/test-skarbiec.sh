@@ -6,12 +6,12 @@
 #      wersji) → skarbiec kompaktuje przy otwarciu, pulpit startuje; po potwierdzeniu startu (15 s) — przejście na format 2;
 #      ponowny start — format 2, bez kompaktowania; na hoście: ostatnia wersja obiektu
 #   2. „przejście”: K1-DANE 64 MiB z 0.5.6–0.8.1 prawie pełna (format 1, obszar 31 MiB, 6 MiB wolne) → przejście na
-#      format 2 dopiero po potwierdzeniu startu, w przerwach → Ustawienia → Informacje: miejsce na pliki 23 → 50 MiB;
+#      format 2 dopiero po potwierdzeniu startu, w przerwach → Ustawienia → Miejsce: miejsce na pliki 23 → 50 MiB;
 #      na hoście: format 2 i każdy obiekt (25 × 1 MiB) bez zmian
 #   3. „pełny”: K1-DANE 64 MiB w formacie 2, zajęta prawie do końca (6 MiB wolne) → Pliki: „Nowy folder” odrzucony (brak
 #      miejsca na pliki, wynik −28), a ustawienie systemu (Ustawienia → Wygląd: ciemny motyw) się zapisuje
 #   4. (0.8.1 krok 3, ADR 0033) „powiększenie”: ta sama pełna K1-DANE na pendrivie USB o 512 MiB większym → Ustawienia →
-#      Informacje: zajęte, pliki i foldery, przycisk „Użyj całego pendrive'a na dane” → nadzorca pisze nową tablicę,
+#      Miejsce: zajęte, pliki i foldery, przycisk „Użyj całego pendrive'a na dane” → nadzorca pisze nową tablicę,
 #      skarbiec bierze całą partycję (dane na miejscu) → z drugiego pendrive'a (FAT32) import 16 zdjęć po 2,8 MB
 #      (próba T6 planu): 16 z 16; ponowny start: magazyn otwarty, nic już nie rośnie; tablica poprawna (sfdisk)
 #   5. „dokończenie”: tablica już powiększona, magazyn jeszcze nie (przerwa prądu w środku) → skarbiec kończy przy starcie
@@ -100,7 +100,7 @@ def przejscie(opis, przed, po):
 
 
 def informacje(u0=None):
-    """Ustawienia → Informacje: the room for files line."""
+    """Ustawienia → Miejsce (0.8.5; Informacje until 0.8.3): the room for files line."""
     u0 = u0 or okno("ustawienia", lambda: klik(*pasek(2)))
     sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
     m = u0 and sk and po(MIEJSCE, lambda: klik(u0[0] + int(sk.group(1)), u0[1] + int(sk.group(2)) + 7 * int(sk.group(3))))
@@ -119,7 +119,7 @@ elif tryb == "dziennik-ponownie":
 elif tryb == "przejscie":
     przejscie("K1-DANE 64 MiB z 0.8.1, prawie pełna", 31, 58)
     u0, m = informacje()
-    sprawdz("Ustawienia → Informacje po przejściu: miejsce na pliki 50 MiB (w formacie 1: 23), dane zostały",
+    sprawdz("Ustawienia → Miejsce po przejściu: miejsce na pliki 50 MiB (w formacie 1: 23), dane zostały",
             m and int(m.group(2)) == 50 and 25 <= int(m.group(1)) <= 30, m.group(0) if m else "brak")
     zrzut("przejscie-informacje", gdy=lambda w, h, px: True)
 elif tryb == "dokonczenie":
@@ -132,7 +132,7 @@ elif tryb == "powiekszenie-ponownie":
             czekaj(r"K1-SKARBIEC: magazyn otwarty") and "powiększon" not in tekst())
 elif tryb == "powiekszenie":
     u0, m = informacje()
-    if not sprawdz("Ustawienia → Informacje: miejsce na pliki (zajęte prawie wszystko z 50 MiB), pendrive ma 512 MiB więcej, "
+    if not sprawdz("Ustawienia → Miejsce: miejsce na pliki (zajęte prawie wszystko z 50 MiB), pendrive ma 512 MiB więcej, "
                    "przycisk „Użyj całego pendrive'a na dane”",
                    m and int(m.group(2)) == 50 and int(m.group(1)) >= 45 and int(m.group(4)) >= 512 and int(m.group(5)) > 0,
                    m.group(0) if m else "brak"): sys.exit(1)
@@ -146,7 +146,7 @@ elif tryb == "powiekszenie":
             czekaj(r"K1-SKARBIEC: magazyn powiększony do całej partycji K1-DANE \(na prośbę\): miejsce na dane 58 → 556 MiB") and
             czekaj(r"K1-USTAWIENIA: powiększenie K1-DANE: gotowe \(wynik 0\)"))
     m2 = czekaj(MIEJSCE, od=n, czas=30)
-    sprawdz("Informacje po powiększeniu: miejsce na pliki 545 MiB, przycisku już nie ma, liczba plików ta sama",
+    sprawdz("Miejsce po powiększeniu: miejsce na pliki 545 MiB, przycisku już nie ma, liczba plików ta sama",
             m2 and int(m2.group(2)) == 545 and int(m2.group(4)) == 0 and int(m2.group(5)) == -1 and m2.group(3) == m.group(3),
             m2.group(0) if m2 else "brak")
     zrzut("powiekszenie-2-gotowe", gdy=lambda w, h, px: True)

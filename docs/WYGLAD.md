@@ -157,6 +157,15 @@ akcentu (linia 2 px, delikatne wypełnienie pod nią), linia pomocnicza na 50%, 
 prawej krawędzi. Niżej tabela usług (procesor, pamięć) tekstem drugorzędnym. Bez drugiej osi
 i bez kolorów spoza motywu.
 
+## Ustawienia → Miejsce (0.8.5 krok 3, decyzja właściciela D1: szkic B)
+Trzy szkice (A — pierścień z wolnym miejscem w środku i legenda obok, B — szeroki pasek jak w Windows 11, C — pierścień
+i kafelki); wybrany **B**. Na górze „Wolne: 41,2 GB z 57,6 GB” (Plex Sans Medium 15), pod nim pasek 440 × 18 px
+z zaokrąglonymi końcami: tor `tekst` przy 22/255, części od lewej, 2 px przerwy w kolorze tła; największy folder —
+akcent (terakota), kolejne według wielkości: szałwia `#8a9a7b`, łupek `#7d8fa3`, piasek `#c9a27e`, wrzos `#a67f8e`,
+glina `#b7a99a`; Kosz `#9c9790`, System — `tekst3`. Legenda w dwóch kolumnach (co 228 px, wiersz 24 px): kwadracik
+10 px z zaokrągleniem 3, nazwa (Plex Sans 13), rozmiar do prawej (`tekst2`). Pod legendą zapas systemu i liczba plików
+(`tekst3`, 13 px); przycisk „Użyj całego pendrive'a na dane” na dole sekcji. Ikona sekcji: dysk (`K1_IK_DYSK`).
+
 ## Ustawienia → Ekran (M4.1)
 Rozdzielczości jako przyciski w trzech kolumnach (136×32): wybrana — wypełnienie akcentem, pozostałe
 — `pole` z obrysem; pod listą „Zalecana: …” (tryb preferowany przez monitor/kartę). Przy jednym trybie (obraz z firmware) — wyjaśnienie

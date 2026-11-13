@@ -112,6 +112,8 @@ enum k1_komunikat_typ {
     K1_KOM_SKARB_ODBLOKUJ = 73, /* login screen only (M5e): obiekt=1, a=password length 1..K1_HASLO_MAKS; + 1 memfd */
     K1_KOM_SKARB_HASLO = 74,    /* Ustawienia only: obiekt=1, a=length; + 1 memfd "current\0new\0" (empty: none) */
     K1_KOM_SKARB_INFO = 75,     /* obiekt=1: the state of the vault (reply: WYNIK with c, d, then MIEJSCE) */
+    K1_KOM_SKARB_PODZIAL = 121, /* Ustawienia only (0.8.5 step 3, Miejsce): obiekt=1 — what takes the room for files
+                                 * (reply: CZESC for every part, then WYNIK) */
     K1_KOM_SKARB_POWIEKSZ = 113, /* Ustawienia only (0.8.1 step 3, ADR 0033; the user clicked "Użyj całego pendrive'a"):
                                   * obiekt=1 — K1-DANE to the end of its USB stick (reply: WYNIK when done, then MIEJSCE) */
     /* skarbiec → client */
@@ -122,7 +124,10 @@ enum k1_komunikat_typ {
                                  * (files and folders, Kosz too; 0..K1_DOK_MAKS), d=MiB the stick has after K1-DANE
                                  * (0..K1_PAMIEC_MAKS_MIB: what "Użyj całego pendrive'a" adds), e=1 the files are
                                  * kept in memory — no K1-DANE (0.8.2 step 2: Pliki say "no room in memory"), else 0 */
-    K1_KOM_SKARB_WYNIK = 81,  /* obiekt=object id, a=request type (70..75, POWIEKSZ), b=result (0 or K1_MAG_* < 0),
+    K1_KOM_SKARB_CZESC = 122, /* obiekt=part 1..K1_CZESCI_MAKS (0.8.5 step 3, k1_dokument.h), a=KiB it takes
+                               * (0..INT32_MAX: 2 TiB, more is sent as INT32_MAX), b=files in it (0..K1_DOK_MAKS; the reserve: 0); one per
+                               * part, in order, before WYNIK of PODZIAL — only numbers, never a name */
+    K1_KOM_SKARB_WYNIK = 81,  /* obiekt=object id, a=request type (70..75, POWIEKSZ, PODZIAL), b=result (0 or K1_MAG_* < 0),
                                * c=K1_SKARB_TRWALY / _RAM / _ZABLOKOWANY, d: bit 0 password set, bit 1 K1-DANE on USB,
                                * e=seconds until the next password attempt is accepted (0..K1_HASLO_PRZERWA) */
     /* skarbiec → nadzorca, on the control channel (direction K1_KIER_DO_NADZORCY) */

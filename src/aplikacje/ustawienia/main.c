@@ -2,7 +2,7 @@
  * accepts settings changes from (role + UID checked by ekran), which keeps them in skarbiec (M5d);
  * the screen mode list comes from ekran (K1_KOM_TRYB). The battery state and
  * its history since boot come from the supervisor on fd 4 (one way, sender UID 0 checked; 0.5.5).
- * Sandbox: UID 202, seccomp (base + memfd_create, ftruncate), no paths.
+ * Sandbox: UID 202, seccomp (base + memfd_create, ftruncate), no paths. Sections: the table sekcje[].
  * Modules: ustawienia.h. Documentation: docs/komponenty/aplikacje.md. */
 #include <stdio.h>
 
@@ -35,7 +35,8 @@ static const struct {
     enum k1_ikona ikona;
 } sekcje[S_LICZBA] = {
     { "Wygląd", K1_IK_WYGLAD },  { "Ekran", K1_IK_EKRAN }, { "Bateria", K1_IK_BATERIA }, { "Mysz", K1_IK_MYSZ },
-    { "Data i czas", K1_IK_ZEGAR }, { "Hasło", K1_IK_KLODKA }, { "Aplikacje", K1_IK_FOLDER }, { "Informacje", K1_IK_INFO },
+    { "Data i czas", K1_IK_ZEGAR }, { "Hasło", K1_IK_KLODKA }, { "Aplikacje", K1_IK_FOLDER }, { "Miejsce", K1_IK_DYSK },
+    { "Informacje", K1_IK_INFO },
 };
 
 static int32_t karty_y(void)
@@ -257,6 +258,9 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     case S_APLIKACJE:
         aplikacje_rysuj(o, m);
         break;
+    case S_MIEJSCE:
+        miejsce_rysuj(o, m);
+        break;
     default:
         informacje_rysuj(o, m);
         break;
@@ -294,7 +298,7 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     seg = rodzaj == K1_WSK_WYJSCIE ? -1 : k1_segment_trafienie(TRESC_X, seg_y(), w, SEG_H, n, x, y);
     if (sekcja == S_APLIKACJE && aplikacje_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
         k1_apl_odswiez(&apl);
-    if (sekcja == S_INFO && informacje_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
+    if (sekcja == S_MIEJSCE && miejsce_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
         k1_apl_odswiez(&apl);
     if (nav != hover_nav || seg != hover_seg || karta != hover_karta || tryb != hover_tryb) {
         hover_nav = nav;
@@ -309,7 +313,7 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         return;
     if (sekcja == S_APLIKACJE && nav < 0 && aplikacje_klik(x, y))
         return;
-    if (sekcja == S_INFO && nav < 0 && informacje_klik(x, y))
+    if (sekcja == S_MIEJSCE && nav < 0 && miejsce_klik(x, y))
         return;
     if (nav >= 0) {
         if (nav != sekcja)
@@ -317,6 +321,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         sekcja = nav;
         if (sekcja == S_INFO || sekcja == S_HASLO)
             haslo_info();
+        if (sekcja == S_MIEJSCE)
+            miejsce_info();
         if (sekcja == S_HASLO)
             haslo_loguj();
         k1_apl_odswiez(&apl);
@@ -349,6 +355,7 @@ int main(void)
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
     apl.klawisz = klawisz;
+    apl.zegar = miejsce_zegar;
     apl.kanaly[0].fd = FD_NADZORCA; /* battery state and history */
     apl.kanaly[0].dane = nadzorca_dane;
     apl.kanaly[1].fd = haslo_start(); /* the password */

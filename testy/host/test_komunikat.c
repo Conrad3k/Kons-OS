@@ -1,6 +1,7 @@
 /* Host unit tests for the service protocol (k1_komunikat_sprawdz) and the channel helpers
  * (k1_kanal: real socketpairs — sender credentials, passed descriptors), ASan/UBSan build. */
 #include <errno.h>
+#include <stdint.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -390,6 +391,22 @@ static void miejsce(void)
     EXPECT(zle(K(K1_KOM_SKARB_KLIENT, 0, 2, 101, 1, -1, 0), K1_KIER_STEROWANIE));
     EXPECT(zle(K(K1_KOM_SKARB_KLIENT, 0, 2, 101, 1, K1_PAMIEC_MAKS_MIB + 1, 0), K1_KIER_STEROWANIE));
     EXPECT(zle(K(K1_KOM_SKARB_KLIENT, 0, 2, 101, 1, 0, 1), K1_KIER_STEROWANIE));
+    /* 0.8.5 step 3: the parts of the room for files (Ustawienia → Miejsce) */
+    EXPECT(ok(K(K1_KOM_SKARB_PODZIAL, 1, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_PODZIAL, 2, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA) && zle(K(K1_KOM_SKARB_PODZIAL, 1, 1, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_PODZIAL, 1, 0, 0, 0, 0, 0), K1_KIER_OD_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_CZESC, 1, 0, 0, 0, 0, 0), K1_KIER_OD_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_CZESC, K1_CZESC_KOSZ, INT32_MAX, K1_DOK_MAKS, 0, 0, 0), K1_KIER_OD_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_CZESC, K1_CZESC_ZAPAS, 8192, 0, 0, 0, 0), K1_KIER_OD_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_CZESC, K1_CZESC_ZAPAS, 8192, 1, 0, 0, 0), K1_KIER_OD_SKARBCA)); /* the reserve has no files */
+    EXPECT(zle(K(K1_KOM_SKARB_CZESC, 0, 0, 0, 0, 0, 0), K1_KIER_OD_SKARBCA) &&
+           zle(K(K1_KOM_SKARB_CZESC, K1_CZESCI_MAKS + 1, 0, 0, 0, 0, 0), K1_KIER_OD_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_CZESC, 1, -1, 0, 0, 0, 0), K1_KIER_OD_SKARBCA) &&
+           zle(K(K1_KOM_SKARB_CZESC, 1, 0, K1_DOK_MAKS + 1, 0, 0, 0), K1_KIER_OD_SKARBCA) &&
+           zle(K(K1_KOM_SKARB_CZESC, 1, 0, -1, 0, 0, 0), K1_KIER_OD_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_CZESC, 1, 0, 0, 1, 0, 0), K1_KIER_OD_SKARBCA) && zle(K(K1_KOM_SKARB_CZESC, 1, 0, 0, 0, 0, 1), K1_KIER_OD_SKARBCA));
+    EXPECT(zle(K(K1_KOM_SKARB_CZESC, 1, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_WYNIK, 1, K1_KOM_SKARB_PODZIAL, 0, K1_SKARB_TRWALY, 0, 0), K1_KIER_OD_SKARBCA));
     EXPECT(ok(K(K1_KOM_SKARB_MIEJSCE, 1, 0, 0, 0, 0, 0), K1_KIER_OD_SKARBCA));
     EXPECT(ok(K(K1_KOM_SKARB_MIEJSCE, 1, 23, 24, K1_DOK_MAKS, 512, 0), K1_KIER_OD_SKARBCA));
     EXPECT(ok(K(K1_KOM_SKARB_MIEJSCE, 1, K1_PAMIEC_MAKS_MIB, K1_PAMIEC_MAKS_MIB, 0, K1_PAMIEC_MAKS_MIB, 0), K1_KIER_OD_SKARBCA));

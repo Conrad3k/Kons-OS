@@ -44,9 +44,17 @@ innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
   za K1-DANE (0, gdy nie pendrive albo < 16 MiB), e = 0. **Miejsce na pliki** = miejsce na dane magazynu bez rezerwy dla
   systemu — format 2 (od 0.8.2): odcinki bez wolnego zapasu na kompaktowanie (3 %, co najmniej 2), czyli ok. 90 %
   K1-DANE; format 1: połowa partycji (druga na kompaktowanie, ADR 0015); bez K1-DANE — pamięć (128 MiB) bez rezerwy.
-  Zajęte = żywe obiekty (z ustawieniami); gdy system sięgnął do swojej rezerwy, zajęte = całość. Ustawienia → Informacje
-  pokazują „Miejsce na pliki: zajęte X z Y” z paskiem i „Pliki i foldery: n z 16 384” (bez K1-DANE: „w pamięci do
+  Zajęte = żywe obiekty (z ustawieniami); gdy system sięgnął do swojej rezerwy, zajęte = całość. Ustawienia → Miejsce
+  (do 0.8.3: Informacje) pokazują „Miejsce na pliki: zajęte X z Y” z paskiem i „Pliki i foldery: n z 16 384” (bez K1-DANE: „w pamięci do
   wyłączenia: zostało X”), Pliki — stopkę „Mało miejsca na pliki”, gdy zostało < 10 %.
+- **Podział zajętego miejsca** (0.8.5 krok 3, decyzja właściciela D2 — według folderów): `SKARB_PODZIAL` (tylko
+  właściciel Ustawienia, magazyn otwarty; inny — `WYNIK` z `K1_MAG_ARG` i nic więcej) → `SKARB_CZESC` dla każdej części
+  z tabeli `K1_CZESCI` (`k1_dokument.h`): foldery stałe (`K1_FOLDERY` — plik w folderze użytkownika liczy się do folderu
+  stałego, w którym leży), Kosz (wszystko w Koszu, też w folderze wyrzuconym do Kosza) i rezerwa dla systemu; a = KiB
+  (żywe pliki, bez starych wersji i folderów; do `INT32_MAX`), b = liczba plików (rezerwa: 0); potem `WYNIK`
+  (a = `SKARB_PODZIAL`). **Tylko liczby** — Ustawienia nie dostają nazw ani listy plików (nie mają praw do `DOK_*`).
+  Reszta zajętego (ustawienia, notatki systemu, stare wersje przed kompaktowaniem) to w Ustawieniach „System”
+  (`dok_podzial`, `dok_drzewo.c`; `miejsce_podzial`, `miejsce.c`).
 - **Powiększenie z danymi** (decyzja właściciela D4: przycisk, kliknięcie = zgoda, nigdy samo przy starcie): Ustawienia
   → `SKARB_POWIEKSZ` (tylko właściciel Ustawienia, magazyn otwarty, d ≥ 16) → skarbiec do nadzorcy `POWIEKSZ_DANE`
   (kanał sterujący) → nadzorca pisze nową tablicę GPT i `BLKPG_RESIZE_PARTITION` (jak dla pustej K1-DANE, `powieksz.c`)
@@ -172,6 +180,8 @@ wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po 
 | `DOK_PROSBA` | → Wybór pliku | a = aplikacja, która prosi, b = typ (0: każdy) |
 | `SKARB_URUCHOM` | → nadzorca | kanał sterujący: obiekt = plik (0: bez), a = aplikacja do uruchomienia (z plikiem: jej fd 5) |
 | `SKARB_MIEJSCE` | → klient | miejsce na pliki (0.8.1, wyżej): a = zajęte MiB, b = na pliki MiB, c = wpisy, d = MiB pendrive'a za K1-DANE, e = 1 pliki są w pamięci — bez K1-DANE (0.8.2) |
+| `SKARB_PODZIAL` | Ustawienia → | co zajmuje miejsce na pliki (0.8.5): → `SKARB_CZESC` dla każdej części, potem `SKARB_WYNIK` |
+| `SKARB_CZESC` | → Ustawienia | jedna część (0.8.5): obiekt = część 1…`K1_CZESCI_MAKS` (foldery stałe, Kosz, rezerwa), a = KiB, b = pliki (rezerwa: 0); bez nazw |
 | `SKARB_POWIEKSZ` | Ustawienia → | „Użyj całego pendrive'a na dane” (gest użytkownika) → `SKARB_WYNIK` + `SKARB_MIEJSCE` |
 | `POWIEKSZ_DANE` | → nadzorca | kanał sterujący: powiększ K1-DANE do końca pendrive'a (magazyn otwarty, prośba z Ustawień) |
 | `POWIEKSZONO` | nadzorca → | kanał sterujący: a = 0 albo `K1_SKARB_ARG` / `K1_SKARB_IO` |
@@ -296,7 +306,8 @@ od klientów i wpisy z dysku (`k1_dok_wpis_czytaj` — każde pole) oraz tabela 
 | `test-skarbiec.sh` (QEMU, 0.8.1; 0.8.2 krok 1c): K1-DANE z dziennikiem 78 MiB (format 1) — kompaktowanie przy otwarciu, po potwierdzeniu startu przejście na format 2 (94 → 168 MiB), drugi start: format 2, bez kompaktowania; K1-DANE 64 MiB z 0.8.1 prawie pełna — przejście dopiero po potwierdzeniu startu, w krokach < 1 s, Informacje: 50 MiB na pliki (było 23), na hoście każdy obiekt bez zmian; K1-DANE 64 MiB (format 2) prawie pełna — „Nowy folder” odrzucony (−28), ustawienie się zapisuje, Pliki: „mało miejsca”; krok 3: ta sama pełna K1-DANE na pendrivie większym o 512 MiB → Informacje → „Użyj całego pendrive'a” → 64 → 576 MiB, miejsce na dane 58 → 556 MiB, import 16 zdjęć po 2,8 MB (16 z 16), ponowny start, tablica (sfdisk); tablica powiększona bez magazynu → dokończenie przy starcie | funkcjonalny + negatywny |
 | `fuzz_magazyn` (libFuzzer): surowy obraz, zmiany bajtów, nagłówki z poprawnym MAC; od 0.8.2 to samo dla formatu 2 i losowe ciągi operacji z ponownym otwarciem (tryb 6: format 1 z krokami przejścia między operacjami) | fuzzing |
 | `test_dokumenty` (0.8.1 krok 4): zapis w toku przez prawdziwy kanał — plik 2 MiB + 12 345 B w trzech kawałkach, odczyt kawałkami, kawałek po krótkim (zapis porzucony), koniec bez zapisu, odczyt za końcem, nowa treść kawałkami przerwana Koszem, porzucenie przez klienta i zamknięty kanał, dwa zapisy na kanale i na pliku, przerwa prądu (kawałki usunięte przy starcie), 4096 kawałków i ani jednego więcej | funkcjonalny + negatywny |
-| `test_komunikat`: komunikaty `SKARB_*` (zakresy, kierunki, deskryptory; 0.8.1 krok 4: `DOK_KAWALEK`, `DOK_KONIEC`, rozmiary do 4 GiB w dwóch polach, kawałki w `DOK_CZYTAJ`/`DOK_TRESC`/`PEN_*`; krok 3: `SKARB_MIEJSCE`, `SKARB_POWIEKSZ`, `POWIEKSZ_DANE`, `POWIEKSZONO`, zapas w `SKARB_KLIENT`; 0.8.2: `START_POTWIERDZONY`) | negatywny |
+| `test_komunikat`: komunikaty `SKARB_*` (zakresy, kierunki, deskryptory; 0.8.1 krok 4: `DOK_KAWALEK`, `DOK_KONIEC`, rozmiary do 4 GiB w dwóch polach, kawałki w `DOK_CZYTAJ`/`DOK_TRESC`/`PEN_*`; krok 3: `SKARB_MIEJSCE`, `SKARB_POWIEKSZ`, `POWIEKSZ_DANE`, `POWIEKSZONO`, zapas w `SKARB_KLIENT`; 0.8.2: `START_POTWIERDZONY`; 0.8.5: `SKARB_PODZIAL`, `SKARB_CZESC` — numer części, rezerwa bez plików, ujemne, pola zarezerwowane) | negatywny |
+| `test_dokumenty` (0.8.5): `dok_podzial` — pliki w folderach użytkownika liczą się do folderu stałego, folder w Koszu z plikiem i plik w Koszu — do Kosza, pusty plik, foldery nic, rezerwa; po przywróceniu z Kosza — znów w folderze; kanał (`miejsce_podzial`): Ustawienia dostają wszystkie części, poprawne i po kolei, NEGATYWNY — Pliki, Notatki, Podgląd, pulpit nie dostają nic | jednostkowy / negatywny |
 | w systemie: klatka (UID, tylko partycja „K1-DANE”), próba w klatce `skarbiec`, dysk trzyma tylko skarbiec | funkcjonalny + negatywny |
 | `test-m4.sh`: tapeta, motyw, rozdzielczość i notatka wracają po wyłączeniu i ponownym starcie z tym samym dyskiem; na dysku brak jawnego tekstu | funkcjonalny |
 | `test_dokumenty` (host, 0.8.0): nazwy (złe znaki, UTF-8, odwrócony tekst), typy z zawartości, wpis i lista (każde pole poza zakresem), plik w trzech kawałkach, nowa treść bez starych kawałków, przerwany zapis, foldery (unikalne nazwy, „(2)”, do siebie, za głęboko), Kosz (przywracanie, 30 dni, cofnięty zegar, opróżnianie), uszkodzone wpisy i kawałki przy otwarciu; prawa przez prawdziwy kanał: Pliki, pulpit (tylko Pulpit, bez treści), inni — nic; zły memfd | funkcjonalny + negatywny |

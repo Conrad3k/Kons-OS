@@ -3,6 +3,7 @@
 # 1. pendrive (obraz USB) + pusty dysk 4 GiB: Instalator z menu Start → dysk → „USUŃ” → instalacja;
 #    na dysku GPT z „K1-EFI” i „K1-DANE” (sfdisk), program zapisujący w klatce (UID 105);
 # 2. start z samego dysku (UEFI, bez pendrive'a): pulpit, nowy magazyn na K1-DANE dysku;
+#    (0.8.5 krok 3) z dysku: Ustawienia → Miejsce — „nośnik: dysk”, bez przycisku powiększania pendrive'a.
 # 3. znów pendrive + dysk: dane z dysku wewnętrznego (partycja pendrive'a pominięta), Instalator
 #    rozpoznaje K1 na dysku → aktualizacja (tylko K1-EFI), dane nietknięte (magazyn otwiera się dalej);
 # 4. start z dysku po aktualizacji: nowe miejsce (B) wystartowało na próbę i K1 je potwierdził (0.7.0, A/B),
@@ -52,6 +53,21 @@ if tryb == "z-dysku":
     sprawdz("start z dysku: pulpit wie, że K1 jest zainstalowany (Start → Wyloguj dostępne)",
             czekaj(r"K1-GUI: K1 zainstalowany na tym komputerze: Wyloguj dostępne", czas=10))
     zrzut("2-z-dysku")
+    # 0.8.5 step 3: Ustawienia → Miejsce knows K1 runs from the disk — no stick, no "Użyj całego pendrive'a"
+    klik(int(g.group(3)) + 2 * int(g.group(5)), int(g.group(4)))
+    u = czekaj(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)", czas=30)
+    sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
+    if u and sk:
+        klik(int(u.group(4)) + int(sk.group(1)), int(u.group(5)) + int(sk.group(2)) + 7 * int(sk.group(3)))
+    c = czekaj(r"K1-USTAWIENIA: miejsce: części: .*; nośnik: (\w+)", czas=30)
+    mj = czekaj(r"K1-USTAWIENIA: miejsce: zajęte \d+ z (\d+) MiB, .* pendrive ma więcej (\d+) MiB; przycisk (-?\d+),", czas=10)
+    sprawdz("(0.8.5) start z dysku: Ustawienia → Miejsce — nośnik: dysk, bez przycisku „Użyj całego pendrive'a”",
+            c and c.group(1) == "dysk" and mj and mj.group(2) == "0" and mj.group(3) == "-1",
+            (c.group(0) if c else "brak części") + " / " + (mj.group(0) if mj else "brak miejsca"))
+    zrzut("2-miejsce-z-dysku")
+    if u:
+        klik(int(u.group(4)) + 680 - 8 - 14, int(u.group(5)) + 22)  # × of Ustawienia
+        czekaj(r"K1-USTAWIENIA: okno zamknięte przez użytkownika", czas=20)
 if tryb == "po-aktualizacji":
     sprawdz("start z dysku po aktualizacji (pendrive też podłączony): magazyn dysku otwarty — dane przetrwały",
             czekaj(r"K1-SKARBIEC: magazyn otwarty", czas=10) and "utworzono nowy magazyn" not in tekst()

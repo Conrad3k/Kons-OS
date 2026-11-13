@@ -73,6 +73,7 @@ int dok_co_godzine(void);    /* Kosz: delete what is older than 30 days; 1 when 
 void miejsce_zapas(int mib);              /* MiB the stick has after K1-DANE (SKARB_KLIENT d) */
 struct k1_komunikat miejsce_komunikat(void);
 void miejsce_wyslij(int fd);
+int miejsce_podzial(int fd, int wlasciciel); /* CZESC for every part (Ustawienia only, 0.8.5); the result for WYNIK */
 int miejsce_powieksz(void);               /* Ustawienia asked: 0 = nadzorca asked (POWIEKSZ_DANE), else K1_MAG_ARG */
 int miejsce_powiekszono(int wynik);       /* nadzorca's POWIEKSZONO: the vault takes the partition; the result */
 
