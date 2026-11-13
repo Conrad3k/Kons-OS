@@ -217,6 +217,15 @@ KROK 4 — Secure Boot: „Przygotuj klucz K1” w Instalatorze                 
   RYZYKA, TESTY.md.
   Gotowe, gdy: znana przyczyna (zapisana w „Ustaleniach”), test zielony, właściciel potwierdził na X230 (po wydaniu
   — punkt 4 DO_ZROBIENIA).
+  Ustalenia z wykonania (2026-11-13):
+  - Przyczyna (POTWIERDZONE próbą): Instalator rysował link „Secure Boot…” tylko obok listy dysków do instalacji, czyli
+    gdy K1 działa z pendrive'a. K1 zainstalowany na dysku (bez pendrive'a — dokładnie tam, gdzie włącza się Secure Boot)
+    pokazywał tylko „Aktualizacje są możliwe poprzez nośnik USB.” bez linku — miejsce a) z listy wyżej, ale nie z powodu
+    wersji ani zmiennych UEFI. Test M6 zawsze startował z pendrive'a, więc tego nie widział. Wydanie 0.8.3 ma prawdziwy
+    klucz (CI: „podpisane kluczem K1”, test-m6 w CI przeszedł drogę z MokManagerem).
+  - Nowy scenariusz test-m6 `z-dysku` (obraz jako dysk SATA, bez pendrive'a): na 0.8.3 czerwony (zrzut bez linku), po
+    poprawce zielony. Klucz przygotowany przy wcześniejszym starcie, a MokManager się nie pojawił: okno pokazuje
+    „Uruchom ponownie” i zdanie, co zrobić (dotąd ślepa uliczka bez przycisku).
 
 KROK 5 — Porządki i wydanie 0.8.5                                                          S · bez decyzji
   Cel: wydanie 0.8.5 z obrazem ISO i USB.

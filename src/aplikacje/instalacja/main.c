@@ -111,7 +111,7 @@ void przyciski(struct k1_przycisk p[2])
     case S_SB:
         if (sbk == K1_SBK_BRAK && sb_prawdziwy && sb != K1_SB_NIEZNANY)
             e1 = "Przygotuj klucz K1";
-        else if (sbk == K1_SBK_CZEKA && sb_wynik == K1_SBP_GOTOWE)
+        else if (sbk == K1_SBK_CZEKA) /* also when the key was prepared before an earlier start (0.8.5) */
             e1 = "Uruchom ponownie";
         e2 = "Wróć";
         break;
@@ -278,7 +278,7 @@ static void glowny(void)
         if (sbk == K1_SBK_BRAK && sb_prawdziwy && sb != K1_SB_NIEZNANY) {
             k1_log(TAG, "secure boot: proszę o przygotowanie klucza K1");
             wyslij(k1_komunikat_nowy(K1_KOM_SB_KLUCZ, 0, 0, 0, 0, 0, 0));
-        } else if (sbk == K1_SBK_CZEKA && sb_wynik == K1_SBP_GOTOWE) {
+        } else if (sbk == K1_SBK_CZEKA) {
             k1_log(TAG, "ponowne uruchamianie (klucz K1 dla MokManagera)");
             wyslij(k1_komunikat_nowy(K1_KOM_WYLACZ, 0, 1, 0, 0, 0, 0));
         }

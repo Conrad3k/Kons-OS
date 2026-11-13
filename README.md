@@ -132,9 +132,11 @@ indziej — także w czacie.**
 Z włączonym Secure Boot laptop uruchomi tylko K1 podpisany Twoim kluczem (podmieniony albo uszkodzony
 system się nie uruchomi). Klucz wpisuje się raz:
 1. Uruchom K1 z dysku (Secure Boot jeszcze wyłączony) → menu Start → **Instalator** → na dole
-   **Secure Boot…** → **Przygotuj klucz K1** → **Uruchom ponownie** (bez pendrive'a).
+   **Secure Boot…** (od 0.8.5 także, gdy K1 działa z dysku — w 0.8.3 tego linku tam nie było) → **Przygotuj klucz K1**
+   → **Uruchom ponownie** (bez pendrive'a).
 2. Pojawi się niebieski ekran *Shim UEFI key management* — **w ciągu 10 sekund naciśnij dowolny klawisz**
-   (jeśli nie zdążysz, K1 wystartuje normalnie — wtedy powtórz punkt 1).
+   (jeśli nie zdążysz, K1 wystartuje normalnie — wtedy powtórz punkt 1; gdy klucz dalej czeka, okno pokaże od razu
+   **Uruchom ponownie**).
 3. Strzałkami: **Enroll MOK** → Enter → **Continue** → Enter → **Yes** → Enter → wpisz hasło
    **kons** → Enter → **Reboot**.
 4. Przy starcie od razu **F1** → **Security → Secure Boot → Secure Boot: Enabled** → **F10** → *Yes*.

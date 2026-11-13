@@ -60,7 +60,12 @@ K1-EFI w formacie 2 (`k1_uklad.h`): FAT32 280 MiB, blok układu w zarezerwowanyc
 - **Potwierdzenie** robi nadzorca po starcie (`rozruch.c`), **Secure Boot** — nadzorca na prośbę okna
   (`efi.c`, `SB_KLUCZ` → `SB_STAN`; po wpisaniu klucza okno może poprosić o restart).
 - Okno: lista dysków z wersją zapasową (`INST_AB`), wiadomość o czekającej / nieudanej aktualizacji,
-  ekran „Secure Boot…” (stan, kroki właściciela, „Przygotuj klucz K1”, „Uruchom ponownie”).
+  ekran „Secure Boot…” (stan, kroki właściciela, „Przygotuj klucz K1”, „Uruchom ponownie”). Link „Secure Boot…” jest
+  na liście **zawsze, gdy nadzorca podał stan** — także bez systemu do skopiowania, czyli gdy K1 działa z dysku, na którym
+  go zainstalowano (0.8.5 krok 4: do 0.8.3 link był rysowany tylko obok listy dysków, więc na dysku X230 go nie było —
+  zgłoszenie właściciela). Klucz przygotowany przy wcześniejszym starcie, a MokManager się nie pojawił (`MokNew` czeka):
+  okno pokazuje „Uruchom ponownie” i zdanie, co zrobić (z dysku, bez pendrive'a, klawisz na niebieskim ekranie w 10 s);
+  nadzorca pozwala wtedy na ponowne uruchomienie z tego okna (`sb_czeka` także z odczytu stanu).
 
 ## Obsługa błędów
 Za mały dysk, zajęty dysk, brak pendrive'a K1 (start z ISO), błąd zapisu/odczytu, różnica przy
@@ -78,5 +83,6 @@ Komunikaty 32 B (sprawdzane w całości), sysfs czytany przez nadzorcę (nazwy u
 | `test_komunikat`: komunikaty `INST_*` (zakresy, kierunki) | negatywny |
 | `test-m5f.sh` (QEMU): pendrive + pusty dysk → Instalator z menu → bez „USUŃ” nic się nie dzieje → instalacja → GPT (sfdisk) → start z samego dysku → nowy magazyn → pendrive + dysk: dane z dysku, aktualizacja A/B do miejsca B → start z dysku: B na próbę, potwierdzone, magazyn otwarty (dane przetrwały) → uszkodzone „nowe” miejsce A: GRUB wraca do B, K1 zgłasza → starsza wersja zablokowana | funkcjonalny + negatywny |
 | `test-m6.sh` (QEMU, OVMF z Secure Boot): klucz K1 w MOK → pulpit; bez klucza / zmieniony `k1.efi` → odmowa z wyjaśnieniem; z kluczem wydania: „Przygotuj klucz K1” → MokManager → Secure Boot → K1 startuje | funkcjonalny + negatywny |
+| `test-m6.sh` (0.8.5 krok 4): K1 z dysku SATA bez pendrive'a — „system do skopiowania: brak”, link „Secure Boot…” widać na zrzucie (kolor akcentu), otwiera ekran; z kluczem wydania — „Przygotuj klucz K1” zapisuje `MokNew` | funkcjonalny (na 0.8.3 czerwony) |
 | `test_uklad`, `fuzz_uklad` (host): blok układu, grubenv (te same bajty co `grub-editenv`), decyzja A/B | jednostkowy + fuzzing |
 | w systemie: klatki `instalator` i `instalacja` (próby), okno Instalatora w klatce, spis programów obrazu | negatywny |

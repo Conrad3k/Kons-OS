@@ -471,3 +471,8 @@ celem) — tę regułę sprawdza host i skarbiec (`dok_przenies`).
 | `test-pendrive.sh` | Ustawienia → Miejsce przed importem (log części: Obrazy 0 KiB, zapas systemu > 0, nośnik: dysk — K1-DANE tej maszyny jest na dysku SATA) i po imporcie (Obrazy urosły, Dokumenty ≥ 317 MB — plik 17 MB i film 300 MB, Kosz pusty); zrzuty `pendrive-0-miejsce.png`, `pendrive-4b-miejsce.png` i `pendrive-4b-miejsce-ciemny.png` (motyw ciemny i z powrotem jasny) |
 | `test-m5f.sh` (z dysku) | K1 zainstalowany na dysku SATA, bez pendrive'a: Ustawienia → Miejsce — „nośnik: dysk”, pendrive ma więcej 0 MiB, bez przycisku powiększania; zrzut `m5f-2-miejsce-z-dysku.png` (K1-DANE na pendrivie USB: `test-skarbiec`, scenariusz powiększenia — „nośnik: pendrive”; w `test-pendrive` dane są na dysku SATA — „nośnik: dysk”) |
 | `test-skarbiec.sh` | „Użyj całego pendrive'a na dane” — teraz w sekcji Miejsce (ta sama linia logu „miejsce: zajęte …; przycisk x,y”, ósma sekcja) |
+
+## 0.8.5 krok 4 — Secure Boot: „Przygotuj klucz K1” na zainstalowanym K1
+| Test | Co sprawdza |
+|---|---|
+| `test-m6.sh` scenariusz `z-dysku` | obraz USB jako dysk SATA 2 GiB (jak K1 zainstalowany na dysku), bez pendrive'a, Secure Boot wyłączony: Instalator — „system do skopiowania: brak”, link „Secure Boot…” widać (kolor akcentu w jego miejscu na zrzucie `m6-5-z-dysku.png` — na 0.8.3 go nie ma), kliknięcie otwiera ekran Secure Boot (`m6-5-z-dysku-sb.png`); z kluczem wydania (CI) „Przygotuj klucz K1” → nadzorca zapisuje `MokNew` i `MokAuth` |
