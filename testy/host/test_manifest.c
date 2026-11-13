@@ -1,6 +1,6 @@
-/* Host tests of the system image manifest (M6a, ADR 0021): versions from text, build + read back,
- * signature valid only with the right key and unchanged bytes, unsigned manifests never "signed",
- * malformed manifests rejected. */
+/* Host tests of the manifests of a release (M6a, ADR 0021; the slot: ADR 0022; the boot files: ADR 0038): versions
+ * from text, build + read back, signature valid only with the right key and unchanged bytes, unsigned manifests never
+ * "signed", malformed manifests (and the format 1 of K1 0.6.2–0.6.3, no longer read since 0.9.0) rejected. */
 #include <stdio.h>
 #include <string.h>
 
@@ -27,15 +27,16 @@ int main(void)
     crypto_eddsa_key_pair(tajny, pub, ziarno);
     crypto_eddsa_key_pair(tajny2, pub2, ziarno2);
 
-    memset(&m, 0, sizeof m);
+    memset(&m, 0, sizeof m); /* the manifest of the boot files (format 3) of a K1-EFI of 280 MiB */
+    m.format = K1_MANIFEST_START;
     m.wersja = 0x000602;
-    m.fat_bajty = K1_MANIFEST_OFF;
+    m.fat_bajty = 280u << 20;
     snprintf(m.tekst, sizeof m.tekst, "0.6.2");
     for (i = 0; i < 32; i++)
         m.skrot[i] = (uint8_t)i;
     k1_manifest_zbuduj(&m, tajny, pub, buf);
     EXPECT(k1_manifest_czytaj(buf, &r) == 0 && r.wersja == 0x000602 && (r.flagi & K1_MANIFEST_PODPISANY) &&
-           strcmp(r.tekst, "0.6.2") == 0 && r.skrot[31] == 31 && r.fat_bajty == K1_MANIFEST_OFF);
+           strcmp(r.tekst, "0.6.2") == 0 && r.skrot[31] == 31 && r.fat_bajty == 280u << 20 && r.format == K1_MANIFEST_START);
     EXPECT(k1_manifest_sprawdz_podpis(buf, pub) == 0);
     EXPECT(k1_manifest_sprawdz_podpis(buf, pub2) == -1); /* another key */
     /* any changed byte of the signed part (version, checksum, length) breaks it */
@@ -58,7 +59,7 @@ int main(void)
     {
         struct k1_manifest s;
         memset(&s, 0, sizeof s);
-        s.format = 2;
+        s.format = K1_MANIFEST_SLOT;
         s.wersja = 0x000700;
         s.fat_bajty = 40u << 20;
         snprintf(s.tekst, sizeof s.tekst, "0.7.0");
@@ -77,10 +78,12 @@ int main(void)
         kopia[104] = 1; /* reserved after the build id */
         EXPECT(k1_manifest_czytaj(kopia, &r) == -1);
         kopia[104] = 0;
-        kopia[4] = 3; /* unknown format */
+        kopia[4] = 4; /* unknown format */
         EXPECT(k1_manifest_czytaj(kopia, &r) == -1);
-        /* format 1 has no build id: bytes 88.. must stay zero */
-        EXPECT(k1_manifest_czytaj(buf, &r) == 0 && r.format == 1 && r.wydanie[0] == 0);
+        kopia[4] = 1; /* the manifest of a whole K1-EFI of 0.6.2–0.6.3: no longer read (0.9.0) */
+        EXPECT(k1_manifest_czytaj(kopia, &r) == -1);
+        kopia[4] = 3; /* the same bytes as a manifest of the boot files: fine */
+        EXPECT(k1_manifest_czytaj(kopia, &r) == 0 && r.format == K1_MANIFEST_START);
     }
     /* malformed */
     memcpy(kopia, buf, sizeof kopia);
@@ -90,10 +93,10 @@ int main(void)
     kopia[8] = 0x03; /* version number no longer matches the text */
     EXPECT(k1_manifest_czytaj(kopia, &r) == -1);
     memcpy(kopia, buf, sizeof kopia);
-    kopia[100] = 1; /* reserved bytes */
+    kopia[110] = 1; /* reserved bytes */
     EXPECT(k1_manifest_czytaj(kopia, &r) == -1);
     memcpy(kopia, buf, sizeof kopia);
-    kopia[23] = 0x01; /* fat_bajty > K1_MANIFEST_OFF */
+    kopia[20] = 0x01; /* fat_bajty > K1_MANIFEST_EFI_MAKS */
     EXPECT(k1_manifest_czytaj(kopia, &r) == -1);
     memcpy(kopia, buf, sizeof kopia);
     kopia[12] = 2; /* unknown flag */

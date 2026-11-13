@@ -5,8 +5,8 @@
 # — 0.8.2 krok 5, „Usuń”, „Opróżnij Kosz”); przeciąganie (0.8.2 krok 6): folder na folder, Ctrl+klik, dwa elementy na
 # Kosz z pytaniem, z Kosza na folder, folder stały na Kosz (odmowa), na pulpicie folder na folder i na Kosz z pytaniem;
 # drugie — to samo po wyłączeniu.
-# Krok 2 (ADR 0030), osobny dysk z notatkami w formacie 0.5.8–0.7.6 (testy/host/stare_notatki.c): Notatki przenoszą je
-# do plików, okno wyboru pliku (wybór, „Anuluj”), menu pod prawym przyciskiem w Plikach → „Otwórz za pomocą” → Notatki
+# Krok 2 (ADR 0030), osobny dysk z notatkami jako plikami w magazynie formatu 1, jak w 0.8.0–0.8.1 (testy/host/
+# notatki_w_plikach.c; do 0.9.0 — notatki z 0.5.8–0.7.6, przenoszone do plików): Notatki pokazują je, okno wyboru pliku (wybór, „Anuluj”), menu pod prawym przyciskiem w Plikach → „Otwórz za pomocą” → Notatki
 # (0.8.2 krok 5) i podwójne kliknięcie w Plikach, Ustawienia → Aplikacje; po ponownym starcie pliki zostają. Dowody: log + zrzuty build/testy/pliki-*.png.
 # Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
@@ -396,15 +396,10 @@ kursor[:] = [int(k0.group(1)), int(k0.group(2))]
 sx, sy, ax, ay, krok = (int(g.group(i)) for i in range(1, 6))
 pasek = lambda i: (ax + i * krok, ay)  # 0 Zegar, 1 Notatki, 2 Ustawienia, 3 Zasoby, 4 Kalkulator, 5 Pliki
 
-# Notatki: the notes of 0.7.6 become files (first run) or come back as files (second run)
+# Notatki: the notes are files in Dokumenty › Notatki (made on the host, notatki_w_plikach)
 n0 = okno("notatki", lambda: klik(*pasek(1)))
 un = czekaj(r"K1-NOTATKI: układ: nowa .*; otwórz (\d+),(\d+)")
 wcz = czekaj(r"K1-NOTATKI: notatki wczytane: (\d+) \(pierwsza: (\d+) B\)", czas=60)
-if tryb == "notatki":
-    sprawdz("stare notatki (format 0.7.6): 3 do przeniesienia do plików", czekaj(r"K1-NOTATKI: stare notatki: 3 do przeniesienia do plików"))
-    sprawdz("stare notatki przeniesione do plików bez błędów", czekaj(r"K1-NOTATKI: stare notatki przeniesione do plików \(błędów: 0\)"))
-else:
-    sprawdz("po ponownym starcie: nic do przeniesienia (stare obiekty usunięte)", "stare notatki" not in tekst())
 sprawdz("Notatki: 3 notatki z plików, najnowsza na górze (9 B)", n0 and un and wcz and wcz.group(1) == "3" and wcz.group(2) == "9",
         wcz.group(0) if wcz else "brak")
 zrzut(f"{tryb}-1-notatki", gdy=lambda w, h, px: True)
@@ -505,11 +500,11 @@ sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych k
 sys.exit(0 if all(q.wyniki) else 1)
 PY
 
-echo "[k1] test Pliki, krok 2 (ADR 0030): stare notatki → pliki, okno wyboru pliku, „Otwórz za pomocą”, domyślna aplikacja"
+echo "[k1] test Pliki, krok 2 (ADR 0030): notatki w plikach, okno wyboru pliku, „Otwórz za pomocą”, domyślna aplikacja"
 STARE=$TESTY/pliki-stare.img
-[ -x "$K1_BUDOWA/obj/stare_notatki" ] || make -C "$K1_REPO" -s "$K1_BUDOWA/obj/stare_notatki" >/dev/null
+[ -x "$K1_BUDOWA/obj/notatki_w_plikach" ] || make -C "$K1_REPO" -s "$K1_BUDOWA/obj/notatki_w_plikach" >/dev/null
 rm -f "$STARE.czesc"; truncate -s $((30000 * 512)) "$STARE.czesc"
-"$K1_BUDOWA/obj/stare_notatki" "$STARE.czesc" "Najnowsza" "Lista: zakupy?
+"$K1_BUDOWA/obj/notatki_w_plikach" "$STARE.czesc" "Najnowsza" "Lista: zakupy?
 mleko" "Zażółć K1" >/dev/null || r=1
 dd if=/dev/zero of="$STARE" bs=1M count=16 status=none
 printf 'label: gpt\nstart=2048, size=30000, name="K1-DANE"\n' | sfdisk -q "$STARE" >/dev/null

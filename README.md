@@ -113,7 +113,9 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    dane zostają. Od 0.6.2 Instalator sprawdza odcisk i podpis systemu i nie pozwoli wrócić do starszej
    wersji (dlatego lepiej startować z dysku: wtedy sprawdza Twój system, a nie kod z pendrive'a).
    Od 0.7.0 nowa wersja trafia **obok** obecnej (A/B): po restarcie startuje na próbę, a gdyby nie
-   wystartowała — wraca poprzednia, a Instalator o tym napisze.
+   wystartowała — wraca poprzednia, a Instalator o tym napisze. Od 0.9.0 aktualizacja wymienia też pliki
+   startowe (shim, GRUB) — bezpiecznie, nawet gdy w trakcie zabraknie prądu. K1 starszy niż 0.7.0 na dysku:
+   najpierw zaktualizuj go do 0.8.x albo zainstaluj od nowa.
 
 ## Klucz podpisu (jednorazowo, od 0.6.2)
 Wydania K1 podpisuje GitHub kluczem, który znasz tylko Ty (i GitHub). **Nie wklejaj go nigdzie

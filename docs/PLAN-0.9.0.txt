@@ -75,7 +75,9 @@ Potem sieć:
 [x]  2  Komunikaty: podział, odpowiedzi skarbca          L3 L4           —          —            M        —
          PR #94
 [ ]  3  Pliki startowe w aktualizacji; „Tymczasowe”      L5 L6           —          —            M–L      tak
+         [w toku: Claude, gałąź claude/busy-dirac-p38156]
 [ ]  4  musl 1.2.5 i fortify-headers                     L7 L8           —          —            M        korekta 0007
+         [w toku: Claude, gałąź claude/busy-dirac-p38156, po kroku 3]
 [ ]  5  Jądro z siecią; nic nie odpowiada z zewnątrz     L9–L13          1, 4       T1–T4, T6    L        tak (sieć)
 [ ]  6  Kabel i adres od routera (DHCP) w klatce         L10 L14 L15     5          D2 D3        L        —
 [ ]  7  Ikona sieci i Ustawienia → Sieć                  L16             6          D1           M        —
@@ -167,6 +169,26 @@ KROK 3 — Pliki startowe w aktualizacji; usunięcie „Tymczasowe 0.9.0”     
   (wyłączenie QEMU między krokami) → komputer dalej startuje. test-m5f — instalacja jak dotąd.
   Dokumenty: instalator.md, ADR, RYZYKA R45, README (jeśli zmienia się coś przy aktualizacji ze starych wersji).
   Gotowe, gdy: test-m6 z wymianą i testy negatywne zielone, `k1: tymczasowe — usunąć w 0.9.0` nie ma w repo.
+  Ustalenia z wykonania (2026-11-13, Claude; ADR 0038):
+  - Manifest plików startowych = osobny manifest formatu 3 w miejscu A (127 MiB + 512 B), ten sam klucz, wersja
+    i identyfikator wydania co manifest miejsca. Nie pole w manifeście miejsca: K1 0.7.0–0.8.7 odrzuca nieznane pola, więc
+    stary Instalator widziałby na dysku „brak wersji” i pozwolił wrócić do starszej.
+  - Skrót obejmuje drzewo plików (src/wspolne/k1_fat32.c), nie surowe bajty: ten sam zestaw plików daje ten sam skrót
+    na pendrivie i na dysku, gdziekolwiek leżą; bez treści grubenv i miejsc A/B. Manifest formatu 1 obejmował w praktyce
+    tylko tablice FAT i katalogi (pliki startowe leżą za miejscami, od ok. 257 MiB).
+  - Wymiana (src/instalator/start.c): nowe drzewo w klastrach, których stare nie używa → odczyt i skrót → przełączenie
+    jednym zapisem sektora startowego (BPB_RootClus) → zwolnienie starych wpisów FAT. Wolne = poza drzewem (nie według
+    FAT), więc zagubione klastry przerwanej wymiany są używane i sprzątane później. POTWIERDZONE: host — przerwanie
+    przed każdym z 28 zapisów: 24 × stare, 4 × nowe, 0 złych, fsck.fat bez błędów; QEMU — przerwana wymiana zostawiła
+    stare pliki, dysk wystartował, następna aktualizacja wymieniła je („4112 KiB, 17 plików i folderów”), OVMF startuje
+    z nowych.
+  - Instalacja nie kopiuje już miejsca B (puste, bez manifestu); grubenv pisany od nowa; po zapisie skrót drzewa na
+    dysku = manifest (sprawdzone to, co zostało na dysku).
+  - Test w test-m5f (tam jest przebieg aktualizacji dysku), nie w test-m6 (Secure Boot). Pliki K1-EFI porównuje mtools,
+    nie suma partycji: OVMF w QEMU bez pliku zmiennych zapisuje przy każdym starcie /NvVars na partycję EFI dysku
+    (wymiana go usuwa — K1-EFI należy do K1). Narzędzie testów: dosfstools (fsck.fat).
+  - Notatki: test-pliki.sh dostaje dysk z notatkami już jako plikami w magazynie formatu 1 (testy/host/notatki_w_plikach.c,
+    kod skarbca), przejście skarbca na format 2 dalej testowane.
 
 KROK 4 — musl 1.2.5 i fortify-headers                                               M · bez decyzji · korekta ADR 0007
   Cel: własna, przypięta biblioteka C z poprawkami bezpieczeństwa (RYZYKA R8) i kontrola przepełnień w funkcjach

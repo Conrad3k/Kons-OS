@@ -72,11 +72,13 @@ all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(GEN)/sb/k1_sb_cert.h
 # M6a (ADR 0021): manifests and signatures of system images. The key comes from the environment
 # (K1_KLUCZ_PODPISU, the CI secret); without it: a developer build (unsigned, no key in K1).
 MANIFEST := src/wspolne/k1_manifest.c src/wspolne/k1_uklad.c $(MONOCYPHER)
+# the boot files of a K1-EFI as a tree (0.9.0 step 3, ADR 0038): the build and the installer
+FAT32    := src/wspolne/k1_fat32.c
 # what nadzorca and the installer read from a K1-EFI partition (k1_efi.h)
 EFI      := $(MANIFEST) src/wspolne/k1_efi.c
-$(OBJ)/podpisz: narzedzia/podpisz.c $(MANIFEST) $(NAGL) | $(OBJ)
+$(OBJ)/podpisz: narzedzia/podpisz.c $(MANIFEST) $(FAT32) $(NAGL) | $(OBJ)
 	$(CC_HOST) -std=c11 -O2 -D_GNU_SOURCE -Wall -Wextra -Werror -Isrc/wspolne -Isrc/zewnetrzne/monocypher \
-		-o $@ narzedzia/podpisz.c $(MANIFEST)
+		-o $@ narzedzia/podpisz.c $(MANIFEST) $(FAT32)
 
 # regenerated on every build, replaced only when it changed (the key may differ between builds)
 $(GEN)/k1_klucz.h: $(OBJ)/podpisz FORCE | $(GEN)
@@ -113,9 +115,11 @@ $(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) src/instalator/gpt.c s
 		src/wspolne/k1_sha256.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
-$(BIN)/instalator: src/instalator/main.c src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/k1_klucz.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -I$(GEN) -o $@ src/instalator/main.c src/instalator/gpt.c \
-		$(EFI) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+# 0.9.0 step 3 (ADR 0038): start.c — the boot files swapped beside the old ones (host test: test_start)
+INSTALATOR := $(sort $(wildcard src/instalator/*.c))
+$(BIN)/instalator: $(INSTALATOR) $(wildcard src/instalator/*.h) $(EFI) $(FAT32) $(GEN)/k1_klucz.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -I$(GEN) -o $@ $(INSTALATOR) \
+		$(EFI) $(FAT32) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # 0.8.0 step 3 (ADR 0031): the USB stick reader — FAT in a sandbox (host test: test_fat, fuzzing: fuzz_fat)
 # 0.8.0 step 4 (ADR 0032): the picture decoder — Wuffs (src/zewnetrzne, docs/ZALEZNOSCI.md) compiled as is inside
@@ -205,8 +209,9 @@ $(OBJ)/test_przeciaganie: testy/host/test_przeciaganie.c $(HOST_PRZYB) $(NAGL_P)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przeciaganie.c $(HOST_PRZYB) -lm
 
 # 0.8.0 (ADR 0030): a K1-DANE partition with notes in the format of 0.5.8–0.7.6 (scripts/test-pliki.sh)
-$(OBJ)/stare_notatki: testy/host/stare_notatki.c $(MAGAZYN) src/skarbiec/magazyn.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/stare_notatki.c $(MAGAZYN)
+$(OBJ)/notatki_w_plikach: testy/host/notatki_w_plikach.c $(DOK_TEST) $(wildcard src/skarbiec/*.h) $(NAGL) | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -DK1_CZAS_BUDOWY=$(CZAS_TESTU) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ \
+		testy/host/notatki_w_plikach.c $(DOK_TEST)
 
 $(OBJ)/test_magazyn: testy/host/test_magazyn.c testy/host/k1_ram_dysk.h $(MAGAZYN) src/skarbiec/magazyn.h src/skarbiec/magazyn_wew.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_magazyn.c $(MAGAZYN)
@@ -248,6 +253,11 @@ $(OBJ)/test_manifest: testy/host/test_manifest.c $(MANIFEST) | $(OBJ)
 
 $(OBJ)/test_uklad: testy/host/test_uklad.c src/wspolne/k1_uklad.c src/wspolne/k1_uklad.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_uklad.c src/wspolne/k1_uklad.c $(MONOCYPHER)
+
+# 0.9.0 step 3 (ADR 0038): the boot files as a tree, swapped beside the old ones (images: testy/host/obrazy_efi.sh)
+$(OBJ)/test_start: testy/host/test_start.c src/instalator/start.c src/instalator/start.h $(FAT32) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/instalator -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_start.c src/instalator/start.c \
+		$(FAT32) src/wspolne/k1_log.c $(MONOCYPHER)
 
 $(OBJ)/test_efi: testy/host/test_efi.c $(EFI) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_efi.c $(EFI)
@@ -314,7 +324,7 @@ $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instal
 	test_dokumenty test_notatki test_indeks test_log test_magazyn test_odcinki test_przejscie test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
 	test_zdarzenie): testy/host/k1_test_host.h
 
-testy-host: $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_podglad $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/test_menu $(OBJ)/test_przeciaganie $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/stare_notatki $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder
+testy-host: $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_podglad $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/test_menu $(OBJ)/test_przeciaganie $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/notatki_w_plikach $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder $(OBJ)/test_start
 	$(OBJ)/test_zalegle
 	$(OBJ)/test_skarb_zalegle
 	$(OBJ)/test_indeks
@@ -341,6 +351,8 @@ testy-host: $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ)/test_indeks $(O
 	rm -f $(OBJ)/gpt.img $(OBJ)/gpt.img-wiekszy
 	@echo "test_instalator: tablica GPT odczytana przez sfdisk (K1-EFI, K1-DANE; K1-DANE powiększona do 16 GiB)"
 	sh testy/host/obrazy_fat.sh $(OBJ)/fat && $(OBJ)/test_fat $(OBJ)/fat && rm -rf $(OBJ)/fat
+	sh testy/host/obrazy_efi.sh $(OBJ)/efi && $(OBJ)/test_start $(OBJ)/efi && sh testy/host/obrazy_efi.sh $(OBJ)/efi sprawdz && \
+		rm -rf $(OBJ)/efi
 	rm -rf $(OBJ)/obrazy && mkdir -p $(OBJ)/obrazy && python3 -I testy/host/obrazy_dekoder.py $(OBJ)/obrazy && \
 		$(OBJ)/test_dekoder $(OBJ)/obrazy && rm -rf $(OBJ)/obrazy
 	$(OBJ)/test_cmdline
@@ -362,7 +374,7 @@ testy-host: $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ)/test_indeks $(O
 # Fuzzing (libFuzzer): one program per parser of untrusted bytes, testy/host/fuzz_<name>.c with the sources
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
-FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder
+FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -389,8 +401,10 @@ FUZZ_ZR_pendrive  := src/wspolne/k1_pendrive.c $(DOK_C) src/wspolne/k1_uslugi.c
 FUZZ_DL_pendrive  := 1000
 FUZZ_ZR_dekoder   := $(DEKODER_OBRAZ) $(DOK_C) src/wspolne/k1_uslugi.c
 FUZZ_DL_dekoder   := 20000
+FUZZ_ZR_fat32     := $(FAT32) src/instalator/start.c src/wspolne/k1_log.c $(MONOCYPHER)
+FUZZ_DL_fat32     := 65536
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
-              -Isrc/wspolne -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/zewnetrzne/monocypher \
+              -Isrc/wspolne -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/zewnetrzne/monocypher \
               -Isrc/zewnetrzne/wuffs
 
 $(OBJ)/fuzz_%: testy/host/fuzz_%.c $$(FUZZ_ZR_$$*) $(NAGL) $(wildcard src/nadzorca/*.h src/skarbiec/*.h src/gui/*.h src/czytnik/*.h src/dekoder/*.h) | $(OBJ)

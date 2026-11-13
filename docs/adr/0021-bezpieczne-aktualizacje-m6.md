@@ -1,6 +1,7 @@
 # 0021. Bezpieczne aktualizacje (M6): manifest, podpis, wersje, dm-verity, A/B, Secure Boot
 
-- Status: Przyjęty (M6a wdrożone w 0.6.2, M6b w 0.6.3; M6c–M6d w 0.7.0 — szczegóły i zmiany w ADR 0022)
+- Status: Przyjęty (M6a wdrożone w 0.6.2, M6b w 0.6.3; M6c–M6d w 0.7.0 — szczegóły i zmiany w ADR 0022; manifest formatu 1
+  usunięty, pliki startowe w aktualizacji — 0.9.0, [uzupełnienie: ADR 0038])
 - Data: 2026-11-07
 - Dotyczy: ADR 0018 (instalator), ADR 0019 (plan), SPEC §6, RYZYKA R38, R41
 

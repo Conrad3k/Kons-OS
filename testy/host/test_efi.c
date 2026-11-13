@@ -1,6 +1,6 @@
 /* Host tests of reading a whole K1-EFI partition (k1_efi.h, 0.7.1) from a sparse file: format 2 with the
  * running slot taken from grubenv, an unreadable grubenv (slot a, env_ok 0), a disk of K1 0.6.2–0.6.3
- * (format 1), and nothing recognisable. What nadzorca and the installer decide from it is tested in QEMU. */
+ * (no longer recognised since 0.9.0), and nothing recognisable. What nadzorca and the installer decide from it is tested in QEMU. */
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,7 +22,7 @@ static void manifest(int fd, uint64_t off, uint32_t format, uint32_t wersja, int
     memset(&m, 0, sizeof m);
     m.format = format;
     m.wersja = wersja;
-    m.fat_bajty = format == 2 ? K1_SLOT_MANIFEST_OFF : K1_MANIFEST_OFF;
+    m.fat_bajty = K1_SLOT_MANIFEST_OFF;
     k1_wersja_tekst(wersja, m.tekst, sizeof m.tekst);
     m.wydanie[0] = (uint8_t)wersja;
     if (podpisany)
@@ -64,11 +64,9 @@ int main(void)
     /* nothing written: not K1 */
     EXPECT(k1_efi_czytaj(fd, PARTYCJA, &e) == -1 && e.format == 0 && k1_efi_dziala(&e)->wersja == 0);
 
-    /* 0.6.2–0.6.3: only the format-1 manifest at 47 MiB */
-    manifest(fd, K1_MANIFEST_OFF, 1, 0x000603, 1);
-    EXPECT(k1_efi_czytaj(fd, PARTYCJA, &e) == 0 && e.format == 1 && k1_efi_dziala(&e)->wersja == 0x000603 &&
-           (k1_efi_dziala(&e)->flagi & K1_MANIFEST_PODPISANY));
-    EXPECT(k1_efi_czytaj(fd, K1_MANIFEST_OFF + 100, &e) == -1); /* a partition too small to hold it */
+    /* 0.6.2–0.6.3: only a manifest (format 1) at 47 MiB — not recognised since 0.9.0 */
+    manifest(fd, 47 * MIB, 1, 0x000603, 1);
+    EXPECT(k1_efi_czytaj(fd, PARTYCJA, &e) == -1 && e.format == 0 && k1_efi_dziala(&e)->wersja == 0);
 
     /* format 2: layout block, grubenv, slot a 0.7.0 (unsigned), slot b 0.7.1 (signed) */
     k1_uklad_zbuduj(&u, b);
@@ -82,7 +80,6 @@ int main(void)
            e.slot[1].wydanie[0] == 0x01);
     EXPECT(k1_efi_dziala(&e) == &e.slot[1] && (e.slot[1].flagi & K1_MANIFEST_PODPISANY) &&
            !(e.slot[0].flagi & K1_MANIFEST_PODPISANY));
-    EXPECT(e.stary.wersja == 0); /* format 2 wins; the 47 MiB manifest is not looked at */
 
     /* an empty k1_slot is slot a (as in GRUB) */
     grubenv(fd, u.grubenv_off, "# GRUB Environment Block\nk1_slot=\n");
@@ -103,8 +100,8 @@ int main(void)
     }
     EXPECT(k1_efi_czytaj(fd, PARTYCJA, &e) == 0 && e.slot[1].wersja == 0 && e.slot[0].wersja == 0x000700);
 
-    /* a format-1 manifest in a slot is not a slot manifest */
-    manifest(fd, u.slot_off[1] + K1_SLOT_MANIFEST_OFF, 1, 0x000701, 0);
+    /* a manifest of the boot files (format 3) in place of a slot manifest is not one */
+    manifest(fd, u.slot_off[1] + K1_SLOT_MANIFEST_OFF, K1_MANIFEST_START, 0x000701, 0);
     EXPECT(k1_efi_czytaj(fd, PARTYCJA, &e) == 0 && e.slot[1].wersja == 0);
 
     /* the whole-buffer reader: past the end is an error (EIO), not a short read */

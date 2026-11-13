@@ -5,7 +5,8 @@
 #          MokManager, grub.cfg, grubenv, dwa miejsca na system: /k1/a.img (k1.efi tej wersji) i /k1/b.img
 #       2. „K1-DANE” (64 MiB, same zera): zaszyfrowany magazyn tworzy skarbiec przy pierwszym starcie; wcześniej
 #          nadzorca powiększa pustą K1-DANE do końca pendrive'a (0.8.0, ADR 0033, src/nadzorca/powieksz.c).
-# Instalacja kopiuje całą K1-EFI na dysk; aktualizacja zapisuje tylko nieużywane miejsce (A/B).
+# Instalacja kopiuje K1-EFI na dysk (bez miejsca B); aktualizacja zapisuje nieużywane miejsce (A/B) i — gdy się
+# zmieniły — pliki startowe obok starych (0.9.0, ADR 0038). W miejscu A: manifest systemu i manifest plików startowych.
 # Wymaga: scripts/zbuduj.sh (jądro, programy, obrazy, k1.efi).
 . "$(dirname "$0")/wspolne.sh"
 
@@ -71,8 +72,7 @@ sleep 600
 CFG
 
 # The EFI partition: FAT32 with 4 KiB clusters; the order of the files fixes where they are —
-# grubenv, slot B (over 47 MiB: the old manifest for K1 0.6.2–0.6.3 goes into its empty space), slot A,
-# then the rest. The same inputs give the same image (obraz_fat).
+# grubenv, slot B, slot A, then the rest (the boot files). The same inputs give the same image (obraz_fat).
 efi_podpisane
 ESP=$USB/esp.img
 printf 'Kons K1 %s\n' "$K1_WERSJA" > "$USB/info"
@@ -94,11 +94,9 @@ miejsce() { # $1 = path in the image, $2 = expected size → byte offset
     echo $(( (RES + NFAT * FATSZ + ($3 - 2) * SPC) * BPS ))
 }
 GENV=$(miejsce /boot/grub/grubenv 1024) A=$(miejsce /k1/a.img 134217728) B=$(miejsce /k1/b.img 134217728)
-[ "$B" -le $((47 * 1048576)) ] && [ $((B + 134217728)) -ge $((48 * 1048576)) ] || blad "slot B nie obejmuje 47 MiB"
 "$PODPISZ" uklad "$ESP" "$GENV" "$A" "$B" || blad "blok układu K1-EFI"
-# For K1 0.6.2–0.6.3 (they read a format-1 manifest at 47 MiB): the update to 0.7.0 copies this whole partition.
-# k1: tymczasowe — usunąć w 0.9.0 (this line, the 47 MiB check above and the format-1 manifest in narzedzia/podpisz.c)
-"$PODPISZ" obraz "$ESP" "$K1_WERSJA" || blad "manifest obrazu systemu (podpisz)"
+# The manifest of the boot files (ADR 0038): the digest of every file but grubenv and the slots, signed, in slot A.
+"$PODPISZ" start "$ESP" || blad "manifest plików startowych (podpisz)"
 
 # The disk: GPT with fixed GUIDs, the EFI partition copied in, K1-DANE left as zeros.
 rm -f "$WYJSCIE" "$WYJSCIE.xz"

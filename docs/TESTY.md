@@ -170,9 +170,11 @@ sprawdza z zewnątrz (`/proc/<pid>`) i od środka (próby).
 |---|---|---|
 | 0. obraz `.iso` (UEFI) + dysk SATA (0.6.1) | Instalator: „system do skopiowania: brak”, bez przycisku — kliknięcie w jego miejscu nic nie uruchamia | `m5f-0-z-iso.png` |
 | 1. pendrive + pusty dysk SATA 4 GiB | sesja z pendrive'a: w menu Start nie ma „Wyloguj” (0.7.2); Instalator z menu Start: 1 dysk, system z pendrive'a; bez „USUŃ” nic; po „usuń” nadzorca uruchamia program zapisujący (UID 105, cel `sda`, źródło K1-EFI pendrive'a); „gotowe”; „Wyłącz komputer” wyłącza | `m5f-1-lista.png`, `m5f-1-potwierdzenie.png`, `m5f-1-gotowe.png` |
-| dysk po instalacji | `sfdisk -d`: K1-EFI i K1-DANE; `sfdisk --verify` bez błędów | log testu |
+| dysk po instalacji | `sfdisk -d`: K1-EFI i K1-DANE; `sfdisk --verify` bez błędów; (0.9.0) pliki startowe dysku = pendrive'a (mtools), `fsck.fat -n` bez błędów; program zapisujący: „pliki startowe zgodne z manifestem” | log testu |
 | 2. start z samego dysku (UEFI) | pulpit; skarbiec: nowy magazyn na K1-DANE dysku; pulpit wie, że K1 jest zainstalowany (Wyloguj); Instalator nie prosi o pendrive („K1 działa z dysku”, 0.7.2) | `m5f-2-z-dysku.png`, `m5f-2-instalator-z-dysku.png` |
-| 3. pendrive + dysk | skarbiec dostaje `sda2` (dysk), Instalator: „Kons K1: tak (dane otwarte)” → aktualizacja tylko `sda1` → „zaktualizowano” | `m5f-3-aktualizacja.png` |
+| 3a. (0.9.0, ADR 0038) „stare” pliki startowe | mtools na K1-EFI dysku: `grub.cfg` z dodanym wierszem, `.disk/info` „0.8.7”, plik `EFI/BOOT/stary.txt`; pendrive ze zmienionym `grub.cfg` → „pliki startowe nie zgadzają się z manifestem”, kod -8, pliki K1-EFI dysku (mtools, z miejscami i grubenv; bez `NvVars`, który OVMF pisze przy każdym starcie) bez zmian | `m5f-3a-pliki-zle.png`, log |
+| 3b. aktualizacja przerwana | po „pliki startowe: zapis obok starych” QEMU wyłączone (`quit`); potem start z samego dysku — pulpit (stare albo nowe pliki startowe) | log |
+| 3. pendrive + dysk | skarbiec dostaje `sda2` (dysk), Instalator: „Kons K1: tak (dane otwarte)” → aktualizacja tylko `sda1`: „pliki startowe: wymienione” (albo „aktualne”, gdy przerwana próba zdążyła przełączyć) → „zaktualizowano”; pliki startowe dysku = pendrive'a, `stary.txt` zniknął, `fsck.fat -n` bez błędów | `m5f-3-aktualizacja.png` |
 | 4. start z dysku (pendrive też podłączony) | magazyn z kroku 2 otwarty, żaden nowy — dane przetrwały aktualizację; GRUB bierze jądro z dysku (`$cmdpath`) | log |
 
 Wszędzie: brak „Kernel panic”, „BŁĄD” i zabronionych wywołań.
@@ -279,12 +281,13 @@ Obraz produkcyjny z dyskiem danych (pusta K1-DANE), dwa uruchomienia.
 | ponownie | po wyłączeniu: Dokumenty z „Projekt”, Kosz pusty | `pliki-ponownie-dokumenty.png` |
 | czystość logu | bez nazw plików, paniki, błędów, zablokowanych wywołań i odrzuconych komunikatów | log |
 
-**Krok 2 (ADR 0030)** — osobny dysk: partycja K1-DANE z magazynem i trzema notatkami w formacie 0.5.8–0.7.6
-(`testy/host/stare_notatki.c` — kod formatu skarbca, ten sam co w systemie), dwa uruchomienia.
+**Krok 2 (ADR 0030)** — osobny dysk: partycja K1-DANE z magazynem formatu 1 i trzema notatkami jako plikami
+w Dokumenty › Notatki, jak w 0.8.0–0.8.1 (`testy/host/notatki_w_plikach.c` — kod skarbca, ten sam co w systemie; do 0.9.0
+były to notatki z 0.5.8–0.7.6, przenoszone przez Notatki do plików — to przeniesienie usunięto), dwa uruchomienia.
 
 | Krok | Sprawdzenie | Dowód |
 |---|---|---|
-| przeniesienie | Notatki z paska: „stare notatki: 3 do przeniesienia”, „przeniesione (błędów: 0)”, 3 notatki z plików, najnowsza na górze (9 B) | `pliki-notatki-1-notatki.png` |
+| notatki | Notatki z paska: 3 notatki z plików, najnowsza na górze (9 B) | `pliki-notatki-1-notatki.png` |
 | okno wyboru | „Otwórz…” w Notatkach → skarbiec prosi nadzorcę, okno „Wybór pliku” dostaje prośbę od skarbca (aplikacja 2, typ tekst); Dokumenty (1 folder, 0 plików do wyboru) → folder Notatki (3) → „Zażółć K1” → Otwórz → Notatki otwierają ją (13 B) | `pliki-notatki-2-wybor.png`, `pliki-notatki-3-wybor-plik.png` |
 | Anuluj | drugie „Otwórz…” → „Anuluj” → Notatki: „anulowano” | log |
 | Pliki | Dokumenty › Notatki: 3 pliki | `pliki-notatki-4-pliki.png` |
@@ -356,7 +359,7 @@ tylko od Plików), `test_instalator` (`k1_pendrive_znajdz`), `fuzz_fat`, `fuzz_p
 | `fuzz_uklad` | blok układu i grubenv: dowolne bajty, zapis z powrotem czyta się tak samo | fuzzing |
 | `test-m5f.sh` | aktualizacja A/B do wolnego miejsca B; start z dysku: B na próbę i potwierdzone (grubenv: `k1_slot=b`); „nowe” miejsce A uszkodzone → GRUB wraca do B, K1 zgłasza, próba wyczyszczona; starsza wersja zablokowana; uszkodzony system na pendrivie → odmowa przed zapisem | funkcjonalny + negatywny |
 | `test-m6.sh` | OVMF z Secure Boot i kluczami MS: klucz K1 w MOK → pulpit i „włączony, klucz wpisany”; bez klucza → odmowa z wyjaśnieniem na ekranie; zmieniony bajt `k1.efi` → odmowa; klucz wydania: „Przygotuj klucz K1” → MokManager (Enroll MOK, hasło) → MokList → Secure Boot → K1 startuje; wersja deweloperska: wpisanie niedostępne | funkcjonalny + negatywny |
-| host `test_efi` | wspólny czytnik K1-EFI: format 1 i 2, miejsce z grubenv, nieczytelny grubenv → miejsce A i jego wersja (to pokazuje lista dysków i z tym porównuje Instalator), miejsce bez manifestu | jednostkowy + negatywny |
+| host `test_efi` | wspólny czytnik K1-EFI: format 2 (dysk 0.6.2–0.6.3 z samym manifestem formatu 1 — od 0.9.0 nierozpoznany), miejsce z grubenv, nieczytelny grubenv → miejsce A i jego wersja (to pokazuje lista dysków i z tym porównuje Instalator), miejsce bez manifestu | jednostkowy + negatywny |
 | `test-m6.sh` bez sekretu | wpisanie klucza wydania przez MokManagera wymaga podpisanego wydania (`K1_KLUCZ_PODPISU`); w wersji deweloperskiej ten krok jest pominięty celowo (sprawdzane jest tylko, że wpisanie jest niedostępne) | — |
 | ręcznie (0.7.0) | GRUB z podsuniętym obcym initramfs i `rdinit=` → jądro uruchomiło tylko nasz initramfs; aktualizacja zainstalowanego 0.6.3 starym Instalatorem do 0.7.0 | negatywny |
 
@@ -402,7 +405,7 @@ Od 1c system tworzy format 2, a stary magazyn (format 1) przechodzi na format 2 
 | `test-skarbiec.sh` przejście | K1-DANE 64 MiB z 0.8.1 prawie pełna (format 1, 25 obiektów po 1 MiB) → przejście dopiero po potwierdzonym starcie, w krokach → miejsce na dane 31 → 58 MiB; Ustawienia → Informacje: na pliki 50 MiB (w 0.8.1: 23); na hoście: format 2, każdy obiekt bajt w bajt |
 | `test-skarbiec.sh` pełny, powiększenie, dokończenie | jak w 0.8.1, ale na formacie 2: na pliki 50 MiB, po powiększeniu do 576 MiB — miejsce na dane 58 → 556 MiB, na pliki 545 MiB |
 | `test-pendrive.sh` ponownie | magazyn z filmem 300 MB: „magazyn otwarty … (format 2, t s)” z t < 1 s i bez „skarbiec jeszcze otwiera magazyn” — ekran dostaje ustawienia od razu (R58) |
-| `test-pliki.sh` | notatki z 0.5.8–0.7.6 w magazynie formatu 1 (`stare_notatki`) — Notatki przenoszą je do plików, a skarbiec w tym czasie przechodzi na format 2 |
+| `test-pliki.sh` | notatki jako pliki w magazynie formatu 1 (`notatki_w_plikach`, jak 0.8.0–0.8.1; do 0.9.0 `stare_notatki` — notatki 0.5.8–0.7.6) — skarbiec przechodzi na format 2, Notatki pokazują pliki |
 
 ## 0.8.2 krok 2 — pendrive i nazwy plików
 
@@ -484,3 +487,13 @@ celem) — tę regułę sprawdza host i skarbiec (`dok_przenies`).
 | Test | Co sprawdza |
 |---|---|
 | `test-m6.sh` scenariusz `z-dysku` | obraz USB jako dysk SATA 2 GiB (jak K1 zainstalowany na dysku), bez pendrive'a, Secure Boot wyłączony: Instalator — „system do skopiowania: brak”, link „Secure Boot…” widać (kolor akcentu w jego miejscu na zrzucie `m6-5-z-dysku.png` — na 0.8.3 go nie ma), kliknięcie otwiera ekran Secure Boot (`m6-5-z-dysku-sb.png`); z kluczem wydania (CI) „Przygotuj klucz K1” → nadzorca zapisuje `MokNew` i `MokAuth` |
+
+## 0.9.0 krok 3 — pliki startowe w aktualizacji (ADR 0038)
+| Test | Co sprawdza | Rodzaj |
+|---|---|---|
+| host `test_start` (obrazy K1-EFI z mtools: `testy/host/obrazy_efi.sh`) | skrót drzewa plików (`k1_fat32`) ten sam wszędzie, gdzie leżą te same pliki, bez treści grubenv i miejsc; wymiana: pliki startowe pendrive'a na dysku, folder główny w nowym miejscu, kopia sektora startowego i obie kopie FAT zgodne, grubenv i miejsca dysku nietknięte; druga wymiana — „aktualne”, zero zapisów; tam i z powrotem (korzeń nie na klastrze 2); **przerwanie przed każdym zapisem po kolei** (28): zawsze stare albo nowe pliki, następne uruchomienie kończy z FAT bez zagubionych klastrów; wynik (`wynik.img`) czytają mtools (każdy plik, długa nazwa z polskimi literami) i `fsck.fat -n` | funkcjonalny |
+| host `test_start` — negatywne | nie FAT32, FAT bez lustra, korzeń poza zakresem, partycja krótsza niż system plików; drzewo z wolnym / zarezerwowanym klastrem w łańcuchu, za krótkim łańcuchem, pętlą, klastrem w dwóch plikach; dysk o innym układzie (klastry 8 KiB), bez miejsca obok starych, z uciętym łańcuchem miejsca A, z pętlą — nic nie zapisane; zapis, który czyta się inaczej — bez przełączenia (stare pliki, sektor startowy bez zmian) | negatywny |
+| `fuzz_fat32` | dowolna K1-EFI (korpus: mała K1-EFI z mtools): drzewo, skrót, wymiana w pamięci — bez czytania i pisania poza obrazem, bez zawieszenia | fuzzing |
+| host `test_manifest` | manifest plików startowych (format 3); format 1 (0.6.2–0.6.3) odrzucany | jednostkowy + negatywny |
+| `test-m5f.sh` (QEMU) | kroki 1, 3a, 3b, 3 w tabeli M5f: instalacja sprawdza pliki startowe, odmowa dla zmienionego pliku startowego, przerwana aktualizacja nie psuje startu, aktualizacja wymienia pliki startowe, OVMF startuje z nowych (krok 4) | funkcjonalny + negatywny |
+

@@ -39,23 +39,22 @@ int k1_manifest_czytaj(const uint8_t *buf, struct k1_manifest *m)
 {
     size_t i;
     memset(m, 0, sizeof *m);
-    if (memcmp(buf, "K1M1", 4) != 0 || (k1_c32(buf + 4) != 1 && k1_c32(buf + 4) != 2))
+    if (memcmp(buf, "K1M1", 4) != 0 || (k1_c32(buf + 4) != K1_MANIFEST_SLOT && k1_c32(buf + 4) != K1_MANIFEST_START))
         goto zle;
     m->format = k1_c32(buf + 4);
     m->wersja = k1_c32(buf + 8);
     m->flagi = k1_c32(buf + 12);
     m->fat_bajty = (uint64_t)k1_c32(buf + 16) | (uint64_t)k1_c32(buf + 20) << 32;
     if (m->wersja > 0xffffffu || (m->flagi & ~K1_MANIFEST_PODPISANY) != 0 || m->fat_bajty == 0 ||
-        m->fat_bajty > (m->format == 1 ? K1_MANIFEST_OFF : K1_SLOT_MANIFEST_OFF))
+        m->fat_bajty > (m->format == K1_MANIFEST_SLOT ? K1_SLOT_MANIFEST_OFF : K1_MANIFEST_EFI_MAKS))
         goto zle;
     memcpy(m->tekst, buf + 24, sizeof m->tekst);
     if (m->tekst[sizeof m->tekst - 1] != '\0' || k1_wersja_z_tekstu(m->tekst) != (int32_t)m->wersja)
         goto zle;
     memcpy(m->skrot, buf + 48, 32);
     memcpy(m->klucz_id, buf + 80, 8);
-    if (m->format == 2)
-        memcpy(m->wydanie, buf + 88, sizeof m->wydanie);
-    for (i = m->format == 2 ? 88 + sizeof m->wydanie : 88; i < PODPIS_OFF; i++)
+    memcpy(m->wydanie, buf + 88, sizeof m->wydanie);
+    for (i = 88 + sizeof m->wydanie; i < PODPIS_OFF; i++)
         if (buf[i] != 0)
             goto zle;
     memcpy(m->podpis, buf + PODPIS_OFF, 64);
@@ -74,8 +73,6 @@ void k1_manifest_zbuduj(struct k1_manifest *m, const uint8_t *klucz_tajny, const
         k1_klucz_id(klucz_publiczny, m->klucz_id);
     else
         memset(m->klucz_id, 0, sizeof m->klucz_id);
-    if (m->format != 2)
-        m->format = 1;
     memcpy(buf, "K1M1", 4);
     k1_z32(buf + 4, m->format);
     k1_z32(buf + 8, m->wersja);
@@ -86,8 +83,7 @@ void k1_manifest_zbuduj(struct k1_manifest *m, const uint8_t *klucz_tajny, const
     buf[24 + sizeof m->tekst - 1] = '\0';
     memcpy(buf + 48, m->skrot, 32);
     memcpy(buf + 80, m->klucz_id, 8);
-    if (m->format == 2)
-        memcpy(buf + 88, m->wydanie, sizeof m->wydanie);
+    memcpy(buf + 88, m->wydanie, sizeof m->wydanie);
     if (klucz_tajny != NULL) {
         crypto_eddsa_sign(buf + PODPIS_OFF, klucz_tajny, buf, PODPIS_OFF);
         memcpy(m->podpis, buf + PODPIS_OFF, 64);

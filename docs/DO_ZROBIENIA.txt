@@ -153,15 +153,12 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
 ---------------------------------------------------------------------------------------------------
     Każde miejsce w kodzie ma komentarz `k1: tymczasowe — usunąć w <termin>` i jest wymienione tutaj;
     scripts/sprawdz-czytelnosc.py (testy) pilnuje, żeby żadne nie zostało bez wpisu.
-    [ ] manifest formatu 1 na 47 MiB (aktualizacja z 0.6.2–0.6.3 starym Instalatorem) — termin 0.9.0 (przesunięty
-        w przeglądzie 0.8.0): Instalator sprawdza nim też przy instalacji pliki startowe (shim, GRUB), więc najpierw
-        nowe sprawdzanie plików startowych (manifest slotu ich nie obejmuje; RYZYKA R45), potem usunięcie.
-        Miejsca: src/wspolne/k1_efi.c, src/instalator/main.c, scripts/zbuduj-usb.sh, narzedzia/podpisz.c
+    [x] manifest formatu 1 na 47 MiB (aktualizacja z 0.6.2–0.6.3 starym Instalatorem) — usunięty w 0.9.0 (krok 3):
+        pliki startowe sprawdza manifest plików startowych (ADR 0038), aktualizacja je wymienia (RYZYKA R45)
     [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10” = 0.12); od 0.7.0 GRUB jest też częścią startu A/B
         (grubenv, ADR 0022), więc w 0.12 decyzja: zostaje czy zastępujemy (ADR)
-    [ ] przeniesienie notatek z 0.5.6–0.7.6 do plików (0.8.0, ADR 0030) — termin 0.9.0. Twoja decyzja
-        (2026-11-12): usunąć — notatki z pendrive'a zapisanego 0.5.6–0.7.6 nie przejdą już do Plików. Usunięcie
-        w 0.9 razem z innymi „Tymczasowe” 0.9.0 (punkt 1). Miejsce: src/aplikacje/notatki/stare.c
+    [x] przeniesienie notatek z 0.5.6–0.7.6 do plików (0.8.0, ADR 0030) — usunięte w 0.9.0 (krok 3), Twoja decyzja
+        z 2026-11-12: notatki z pendrive'a zapisanego 0.5.6–0.7.6 nie przejdą już do Plików
     [ ] format 1 skarbca (dwie połowy, 0.5.6–0.8.1) — odczyt, zapis do istniejącego magazynu i przejście na format 2
         (0.8.2, ADR 0036) — termin 0.10.0. Warunek usunięcia: żaden magazyn formatu 1 nie został (Twój pendrive
         przeszedł — log skarbca „format 2”; magazyn, który nie mieścił się w wolnej połowie, też). Bez tego kodu

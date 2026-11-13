@@ -16,7 +16,6 @@
 #include "k1_odbior.h"
 #include "k1_test_host.h"
 #include "notatki.h"
-#include "stare.h"
 #undef TAG
 #include "dokumenty.h"
 #include "skarbiec.h"
@@ -33,8 +32,6 @@ const char *komunikat;
 double zmiana;
 void popraw_przewiniecie(int do_biezacej) { (void)do_biezacej; }
 void k1_apl_odswiez(struct k1_apl *a) { (void)a; }
-void stare_przenies(void) {}
-void stare_wynik(int stary, int wynik) { (void)stary, (void)wynik; }
 size_t k1_utf8_znaki(const char *s, size_t n)
 {
     size_t z = 0;

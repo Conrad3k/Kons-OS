@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE (M5f w QEMU: instalacja na dysk SATA, start z dysku przez UEFI, aktualizacja z zachowaniem danych — 0.5.9; A/B, potwierdzenie i wycofanie, Secure Boot — 0.7.0) |
-| **Pliki** | `src/aplikacje/instalacja/` (okno: `main.c` stan i komunikaty, `ekrany.c` rysowanie), `src/instalator/main.c` (zapis), `src/instalator/gpt.{c,h}` (tablica partycji), `src/nadzorca/dyski.{c,h}` (lista dysków) |
-| **Decyzje** | ADR 0018, 0021, 0022 |
+| **Status** | PRZETESTOWANE (M5f w QEMU: instalacja na dysk SATA, start z dysku przez UEFI, aktualizacja z zachowaniem danych — 0.5.9; A/B, potwierdzenie i wycofanie, Secure Boot — 0.7.0; wymiana plików startowych — 0.9.0) |
+| **Pliki** | `src/aplikacje/instalacja/` (okno: `main.c` stan i komunikaty, `ekrany.c` rysowanie), `src/instalator/main.c` (zapis), `src/instalator/start.{c,h}` (wymiana plików startowych, 0.9.0), `src/instalator/gpt.{c,h}` (tablica partycji), `src/wspolne/k1_fat32.{c,h}` (drzewo plików K1-EFI i jego skrót), `src/nadzorca/dyski.{c,h}` (lista dysków) |
+| **Decyzje** | ADR 0018, 0021, 0022, 0038 |
 
 ## Cel
 Zainstalować Kons K1 z pendrive'a na dysk komputera (system + zaszyfrowane dane na całym dysku)
@@ -30,33 +30,39 @@ widziało okno, a dysk musi mieć ten sam rozmiar.
 3. Nadzorca otwiera urządzenia (`O_EXCL` — zajęty dysk = odmowa), uruchamia `instalator`, wysyła
    `INST_ZADANIE(tryb, sektor)`. Postęp `INST_ETAP` → `INST_POSTEP` do okna; wynik `INST_GOTOWE` →
    `INST_WYNIK`. Koniec programu bez wyniku → „przerwane”.
-4. Instalacja: zera w pierwszym i ostatnim MiB dysku i w pierwszym MiB „K1-DANE” → kopia K1-EFI
-   (1 MiB na raz) → `fdatasync` → odczyt i porównanie → GPT (wpisy zapasowe, nagłówek zapasowy,
-   wpisy, nagłówek główny, ochronny MBR) → `fdatasync`. Aktualizacja: kopia + porównanie.
+4. Najpierw pendrive: manifest miejsca A (system) i manifest plików startowych (0.9.0), podpisy, skróty — przed
+   jakimkolwiek zapisem. Instalacja: zera w pierwszym i ostatnim MiB dysku i w pierwszym MiB „K1-DANE” → kopia K1-EFI
+   bez miejsca B (1 MiB na raz) → `fdatasync` → odczyt i porównanie → grubenv od nowa, manifesty miejsca B zerami →
+   skrót drzewa plików na dysku = manifest → GPT (wpisy zapasowe, nagłówek zapasowy, wpisy, nagłówek główny, ochronny
+   MBR) → `fdatasync`. Aktualizacja: pliki startowe (gdy się różnią), potem miejsce A/B (niżej).
 5. Po instalacji: „Wyłącz komputer” (jedyna prośba o zasilanie, jaką nadzorca przyjmie od okna).
 
 Bez pendrive'a K1 okno nie ma przycisku, tylko tekst: start z ISO — jak przygotować pendrive; dwa
 pendrive'y K1 — który odłączyć; K1 zainstalowany na dysku (0.7.6) — jedno zdanie „Aktualizacje są
 możliwe poprzez nośnik USB.”
 
-## Manifest i podpis (0.6.2, ADR 0021)
-Przed zapisem program zapisujący czyta manifest źródła (47 MiB od początku K1-EFI, `k1_manifest.h`),
-liczy BLAKE2b-256 obszaru FAT i porównuje; gdy K1 ma wbudowany klucz (`build/gen/k1_klucz.h` z sekretu
-CI) — wymaga ważnego podpisu EdDSA; przy aktualizacji czyta manifest z dysku i odmawia starszej wersji
-(dysk bez manifestu = 0). Nadzorca czyta oba manifesty do listy (wersje w oknie: `INST_LISTA` c/d,
+## Manifesty i podpis (0.6.2, ADR 0021; od 0.9.0 ADR 0038)
+Przed zapisem program zapisujący czyta dwa manifesty z miejsca A pendrive'a (`k1_manifest.h`): **manifest miejsca**
+(127 MiB: BLAKE2b-256 wewnętrznego FAT z `k1.efi`) i **manifest plików startowych** (zaraz za nim: skrót drzewa plików
+K1-EFI bez grubenv i miejsc, `k1_fat32_skrot`); oba z tą samą wersją i identyfikatorem wydania. Gdy K1 ma wbudowany
+klucz (`build/gen/k1_klucz.h` z sekretu CI) — wymaga ważnych podpisów EdDSA. Przy aktualizacji czyta manifest
+działającego miejsca na dysku i odmawia starszej wersji (dysk bez bloku układu = 0). Manifest formatu 1 (47 MiB, dla
+K1 0.6.2–0.6.3) zniknął w 0.9.0. Nadzorca czyta oba manifesty do listy (wersje w oknie: `INST_LISTA` c/d,
 `INST_DYSK` c = `K1_INST_WERSJA`|wersja). Okno blokuje przycisk aktualizacji do starszej wersji.
 
 ## A/B i Secure Boot (0.7.0, ADR 0022)
 K1-EFI w formacie 2 (`k1_uklad.h`): FAT32 280 MiB, blok układu w zarezerwowanych sektorach, grubenv, miejsca
 `/k1/a.img` i `/k1/b.img` (128 MiB: wewnętrzny FAT z `k1.efi` + manifest formatu 2 na 127 MiB).
-- **Instalacja:** sprawdza manifest formatu 1 (47 MiB, pliki startowe) i manifest miejsca A (system),
-  kopiuje cały FAT pendrive'a, GPT na końcu.
-- **Aktualizacja (dysk w formacie 2):** grubenv dysku → działające miejsce; system z miejsca A pendrive'a
-  (wewnętrzny FAT + manifest) do drugiego, odczyt i porównanie, potem grubenv `k1_nowy` (GRUB spróbuje raz).
+- **Instalacja:** sprawdza manifesty miejsca A i plików startowych, kopiuje FAT pendrive'a bez miejsca B, sprawdza
+  skrót plików startowych na dysku, GPT na końcu.
+- **Aktualizacja (dysk w formacie 2):** grubenv dysku → działające miejsce; najpierw **wymiana plików startowych**
+  (0.9.0, niżej), potem system z miejsca A pendrive'a (wewnętrzny FAT + oba manifesty) do drugiego, odczyt
+  i porównanie, potem grubenv `k1_nowy` (GRUB spróbuje raz).
   Wersja porównywana z manifestem działającego miejsca. `INST_GOTOWE` b = 1 → okno: „nowa wersja obok
   obecnej”.
-- **Dysk z 0.5.9–0.6.3** (bez bloku układu): cała partycja raz (stary Instalator 0.6.2–0.6.3 robi to samo
-  z pendrive'a 0.7.0 — manifest formatu 1 jest tam, gdzie go szuka).
+- **Dysk bez bloku układu (K1 starszy niż 0.7.0) albo z nieczytelnym grubenv**: K1-EFI zapisana jak przy instalacji
+  (bez tablicy partycji; dane nietknięte). Stary Instalator 0.6.2–0.6.3 odmówi pendrive'a 0.9.0 (nie ma już manifestu
+  formatu 1) — taki komputer najpierw na 0.8.x.
 - **Potwierdzenie** robi nadzorca po starcie (`rozruch.c`), **Secure Boot** — nadzorca na prośbę okna
   (`efi.c`, `SB_KLUCZ` → `SB_STAN`; po wpisaniu klucza okno może poprosić o restart).
 - Okno: lista dysków z wersją zapasową (`INST_AB`), wiadomość o czekającej / nieudanej aktualizacji,
@@ -67,6 +73,21 @@ K1-EFI w formacie 2 (`k1_uklad.h`): FAT32 280 MiB, blok układu w zarezerwowanyc
   okno pokazuje „Uruchom ponownie” i zdanie, co zrobić (z dysku, bez pendrive'a, klawisz na niebieskim ekranie w 10 s);
   nadzorca pozwala wtedy na ponowne uruchomienie z tego okna (`sb_czeka` także z odczytu stanu).
 
+## Wymiana plików startowych (0.9.0, ADR 0038)
+`src/instalator/start.c`, przy aktualizacji A/B, gdy blok układu dysku i pendrive'a mówi to samo (rozmiar FAT,
+grubenv, miejsca):
+1. Drzewo plików K1-EFI dysku (`k1_fat32`) i jego skrót — taki jak w manifeście → „pliki startowe na dysku aktualne”
+   (zostawione przez przerwaną wymianę wpisy FAT klastrów, których nic nie używa, są przy tym zwalniane).
+2. Pliki i foldery pendrive'a (poza grubenv i miejscami — te zostają w swoich klastrach) do klastrów, których drzewo
+   dysku nie używa; numery klastrów w folderach przepisane; wpisy FAT nowych klastrów w obu kopiach FAT. Log: „pliki
+   startowe: zapis obok starych (N KiB, M plików i folderów)”.
+3. Nowe drzewo czytane z dysku: skrót = manifest, inaczej odmowa (`K1_INST_BLAD_SPRAWDZ`) — stare pliki działają.
+4. Przełączenie: sektor startowy FAT32 wskazuje nowy folder główny (jeden zapis), potem jego kopia i FSInfo.
+5. Wpisy FAT starych plików zwolnione.
+Inny układ K1-EFI, nieczytelny FAT dysku albo za mało miejsca obok starych — „pliki startowe: zostają stare (powód)”,
+aktualizacja systemu idzie dalej. Zanik prądu w trakcie: stare albo nowe pliki startowe, nigdy pomieszane (test
+przed każdym zapisem w `test_start`).
+
 ## Obsługa błędów
 Za mały dysk, zajęty dysk, brak pendrive'a K1 (start z ISO), błąd zapisu/odczytu, różnica przy
 porównaniu — kod `K1_INST_BLAD_*`, opis w oknie, wpis w logu. Przerwanie przed zapisem tablicy
@@ -74,14 +95,18 @@ zostawia dysk bez tablicy partycji (nie startuje, instalację można powtórzyć
 
 ## Powierzchnia ataku
 Komunikaty 32 B (sprawdzane w całości), sysfs czytany przez nadzorcę (nazwy urządzeń tylko `[a-z0-9]`,
-< 32 znaki). Program zapisujący nie parsuje danych — kopiuje bajty i buduje GPT z liczb.
+< 32 znaki). Program zapisujący kopiuje bajty, buduje GPT z liczb i — od 0.9.0 — czyta system plików FAT32 pendrive'a
+i dysku (`k1_fat32.c`: każda liczba sprawdzana, łańcuchy klastrów z granicą, klaster tylko w jednym miejscu, najwyżej
+128 plików; fuzzing `fuzz_fat32`, RYZYKA R65).
 
 ## Testy
 | Test | Rodzaj |
 |---|---|
 | `test_instalator` (host, ASan/UBSan): GPT dla 512 i 4096 B, dyski 4 GiB … 3 TiB, sumy CRC, obie kopie, ochronny MBR; za mały dysk; obraz odczytany przez `sfdisk --verify`; lista dysków na sztucznym sysfs (SATA z K1, NVMe, pendrive K1, loop, dwa pendrive'y = brak źródła) | funkcjonalny + negatywny |
 | `test_komunikat`: komunikaty `INST_*` (zakresy, kierunki) | negatywny |
-| `test-m5f.sh` (QEMU): pendrive + pusty dysk → Instalator z menu → bez „USUŃ” nic się nie dzieje → instalacja → GPT (sfdisk) → start z samego dysku → nowy magazyn → pendrive + dysk: dane z dysku, aktualizacja A/B do miejsca B → start z dysku: B na próbę, potwierdzone, magazyn otwarty (dane przetrwały) → uszkodzone „nowe” miejsce A: GRUB wraca do B, K1 zgłasza → starsza wersja zablokowana | funkcjonalny + negatywny |
+| `test_start` (host, 0.9.0; obrazy z mtools — `obrazy_efi.sh`): skrót drzewa niezależny od położenia; wymiana — pliki startowe pendrive'a na dysku, grubenv i miejsca dysku nietknięte, druga wymiana nic nie pisze; **przerwanie przed każdym zapisem po kolei** → stare albo nowe pliki, następne uruchomienie kończy z czystym FAT (obie kopie równe); NEGATYWNE: inny układ, brak miejsca, zepsuty FAT dysku (pętla, miejsce A ucięte) — nic nie zapisane; zapis odczytany inaczej — bez przełączenia; zepsute drzewa (pętla, wolny/zarezerwowany klaster w łańcuchu, za krótki łańcuch, klaster w dwóch plikach); wynik czytają mtools i `fsck.fat` | funkcjonalny + negatywny |
+| `fuzz_fat32`: dowolna K1-EFI — drzewo, skrót, wymiana w pamięci (zapis tylko w granicach) | fuzzing |
+| `test-m5f.sh` (QEMU): pendrive + pusty dysk → Instalator z menu → bez „USUŃ” nic się nie dzieje → instalacja (pliki startowe dysku = pendrive'a, `fsck.fat`) → GPT (sfdisk) → start z samego dysku → nowy magazyn → (0.9.0) „stare” pliki startowe na dysku (mtools): pendrive ze zmienionym `grub.cfg` → odmowa, K1-EFI dysku nietknięta; aktualizacja przerwana (QEMU wyłączone w trakcie zapisu plików startowych) → dysk startuje → pendrive + dysk: dane z dysku, aktualizacja A/B do miejsca B z wymianą plików startowych (pliki dysku = pendrive'a, starego pliku nie ma, `fsck.fat`) → start z dysku (OVMF z nowych plików startowych): B na próbę, potwierdzone, magazyn otwarty (dane przetrwały) → uszkodzone „nowe” miejsce A: GRUB wraca do B, K1 zgłasza → starsza wersja zablokowana | funkcjonalny + negatywny |
 | `test-m6.sh` (QEMU, OVMF z Secure Boot): klucz K1 w MOK → pulpit; bez klucza / zmieniony `k1.efi` → odmowa z wyjaśnieniem; z kluczem wydania: „Przygotuj klucz K1” → MokManager → Secure Boot → K1 startuje | funkcjonalny + negatywny |
 | `test-m6.sh` (0.8.5 krok 4): K1 z dysku SATA bez pendrive'a — „system do skopiowania: brak”, link „Secure Boot…” widać na zrzucie (kolor akcentu), otwiera ekran; z kluczem wydania — „Przygotuj klucz K1” zapisuje `MokNew` | funkcjonalny (na 0.8.3 czerwony) |
 | `test_uklad`, `fuzz_uklad` (host): blok układu, grubenv (te same bajty co `grub-editenv`), decyzja A/B | jednostkowy + fuzzing |
