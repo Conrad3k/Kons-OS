@@ -80,6 +80,19 @@ static float sd_box(float px, float py, float cx, float cy, float hx, float hy, 
     return sqrtf(ox * ox + oy * oy) + fminf(fmaxf(qx, qy), 0.0f) - r;
 }
 
+/* The pixels of row `j` surely `m` px inside the box (0.8.5 step 2): their distance to the edge is at most -m, so a
+ * fill covers them fully and an outline not at all — no distance to compute. [*a, *b) (empty when *a >= *b). */
+static void wnetrze(int32_t j, float cx, float cy, float hx, float hy, float r, float m, int32_t *a, int32_t *b)
+{
+    float dy = fabsf((float)j + 0.5f - cy) - hy, hw = dy <= -r ? hx - m : hx - r; /* corner rows: inside the corners */
+    *a = 1;
+    *b = 0;
+    if (dy > -m || hw < 0)
+        return;
+    *a = (int32_t)ceilf(cx - hw - 0.5f);
+    *b = (int32_t)floorf(cx + hw - 0.5f) + 1;
+}
+
 static void box(struct k1_obraz *o, float x, float y, float w, float h, float r, float g, uint32_t kolor)
 {
     int32_t x0, y0, x1, y1, i, j;
@@ -89,9 +102,19 @@ static void box(struct k1_obraz *o, float x, float y, float w, float h, float r,
     r = ogr(r, 0.0f, fminf(w, h) / 2);
     for (j = y0; j < y1; j++) {
         uint32_t *row = o->px + (size_t)j * o->krok;
+        int32_t a, b;
+        wnetrze(j, cx, cy, w / 2, h / 2, r, (g > 0 ? g + 0.5f : 0.5f) + 0.01f, &a, &b); /* + rounding */
         for (i = x0; i < x1; i++) {
-            float d = sd_box((float)i + 0.5f, (float)j + 0.5f, cx, cy, w / 2, h / 2, r);
+            float d;
             uint32_t c;
+            if (i >= a && i < b) { /* inside: a fill covers it, an outline does not touch it */
+                if (g <= 0)
+                    row[i] = (kolor >> 24) == 255 ? kolor : mieszaj(row[i], kolor, 256);
+                else
+                    i = b - 1;
+                continue;
+            }
+            d = sd_box((float)i + 0.5f, (float)j + 0.5f, cx, cy, w / 2, h / 2, r);
             if (g > 0)
                 d = fabsf(d + g / 2) - g / 2; /* outline inside the edge */
             c = pokr(d);
