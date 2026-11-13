@@ -190,6 +190,7 @@ Wiersze logu od usług (bufor 400 B, znaki sterujące zamieniane, limit 20/s), k
   (`INST_AB` d). Pisze tylko 1024 B grubenv. Pendrive'ów nie rusza.
 - `efi.c`: efivarfs montowany na chwilę pod `/rdzen/jadro/sys/firmware/efi/efivars`; stan Secure Boot
   (`SecureBoot`), klucz K1 w `MokListRT*`, prośba czekająca (`MokNew`); na `SB_KLUCZ` (tylko klucz wydania,
-  `K1_SB_PRAWDZIWY`) zapisuje `MokNew` i `MokAuth` (SHA-256, `k1_sha256.c`). Po zapisie okno Instalatora może
+  `K1_SB_PRAWDZIWY`) zapisuje `MokNew` i `MokAuth` (SHA-256, `k1_sha256.c`). Od 0.8.5 `MokNew` czekający z wcześniejszego
+  startu też pozwala na ponowne uruchomienie z okna Instalatora (`sb_czeka` ustawiane przy odczycie stanu). Po zapisie okno Instalatora może
   poprosić o restart (`WYLACZ` a=1).
 

@@ -139,11 +139,12 @@ static void rysuj_dyski(struct k1_obraz *o, const struct k1_motyw *m)
 static void rysuj_liste(struct k1_obraz *o, const struct k1_motyw *m)
 {
     rysuj_naglowek_listy(o, m);
-    if (zrodlo != 1) {
+    if (zrodlo != 1)
         rysuj_bez_zrodla(o, m);
-        return;
-    }
-    rysuj_dyski(o, m);
+    else
+        rysuj_dyski(o, m);
+    /* 0.8.5 step 4: also without a system to copy — K1 started from the disk it was installed on is where Secure
+     * Boot is turned on (until 0.8.3 the link was drawn only next to the disks; the owner's X230 showed none) */
     if (sb >= 0)
         k1_tekst(o, K1_CZ_TEKST, LEWO, przyciski_y() + 23, SB_LINK, k1_kolor(hover == 12 ? m->akcent : m->akcent_tekst, 255),
                  0);
@@ -279,6 +280,12 @@ static void rysuj_sb(struct k1_obraz *o, const struct k1_motyw *m)
         if (sb_wynik == K1_SBP_BLAD)
             k1_tekst(o, K1_CZ_MALA_MOCNA, LEWO, y + 96, "Nie udało się zapisać klucza w pamięci UEFI.",
                      k1_kolor(m->akcent_tekst, 255), 0);
+        else if (sbk == K1_SBK_CZEKA && sb_wynik != K1_SBP_GOTOWE) { /* prepared before an earlier start (0.8.5) */
+            k1_tekst(o, K1_CZ_MALA_MOCNA, LEWO, y + 96, "MokManager się nie pojawił? Uruchom ponownie z dysku, bez pendrive'a,",
+                     k1_kolor(m->akcent_tekst, 255), apl.szer - 2 * LEWO);
+            k1_tekst(o, K1_CZ_MALA_MOCNA, LEWO, y + 114, "i na niebieskim ekranie naciśnij klawisz w ciągu 10 sekund.",
+                     k1_kolor(m->akcent_tekst, 255), apl.szer - 2 * LEWO);
+        }
     }
 }
 

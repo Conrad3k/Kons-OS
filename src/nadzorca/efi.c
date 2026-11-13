@@ -20,7 +20,7 @@
 #define ATRYBUTY 7u /* NON_VOLATILE | BOOTSERVICE_ACCESS | RUNTIME_ACCESS */
 #define K1_MOK_HASLO "kons"
 
-int sb_czeka; /* MokNew written in this session: a restart from the Instalator window is allowed */
+int sb_czeka; /* MokNew waits for MokManager: a restart from the Instalator window is allowed */
 static int sb_wynik = K1_SBP_NIC;
 
 static int zamontuj(void)
@@ -98,6 +98,8 @@ struct k1_komunikat sb_komunikat(void)
 {
     int sb, klucz;
     stan(&sb, &klucz);
+    if (klucz == K1_SBK_CZEKA) /* MokNew waits (written now or before an earlier start): a restart shows MokManager */
+        sb_czeka = 1;
     return k1_komunikat_nowy(K1_KOM_SB_STAN, 0, sb, klucz, K1_SB_PRAWDZIWY, sb_wynik, 0);
 }
 
