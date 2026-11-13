@@ -90,6 +90,8 @@ usług, kanały (`socketpair`, strona odbiorcy z `SO_PASSCRED`), komunikaty `KLI
 ## Kanał testowy (tylko obraz testowy)
 Program testowy dostaje od nadzorcy fd 3 (`K1_KIER_DO_NADZORCY` / `OD_NADZORCY`, nadawca sprawdzany):
 `TEST_POLACZ` (rola, aplikacja, oczekiwany UID) → `TEST_GNIAZDO` z końcem nowego kanału do ekranu;
+`TEST_SKARB` (właściciel — numer profilu; 0.9.0) → `TEST_GNIAZDO` z końcem nowego kanału do skarbca, nadawcą jest program
+testowy (UID 0);
 `TEST_PROBA` (profil) → program testowy uruchomiony w klatce tej usługi, po końcu `TEST_WYNIK` (kod
 wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego kanału nie ma.
 

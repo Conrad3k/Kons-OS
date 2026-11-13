@@ -72,7 +72,7 @@ static void dostep_zabierz(int wl)
 static void wyslij(int fd, struct k1_komunikat m)
 {
     if (fd >= 0)
-        k1_kanal_wyslij(fd, &m, sizeof m, -1);
+        do_klienta(fd, m, -1);
 }
 
 /* An application can use the file: a visible file (not a folder, not in Kosz). */

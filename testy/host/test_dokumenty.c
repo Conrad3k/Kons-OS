@@ -27,6 +27,12 @@ void do_nadzorcy(struct k1_komunikat m)
     do_nadz = m;
 }
 
+/* skarbiec's main.c (its queue of what a client has not taken: test_skarb_zalegle): straight to the channel here */
+void do_klienta(int fd, struct k1_komunikat m, int przekaz)
+{
+    k1_kanal_wyslij(fd, &m, sizeof m, przekaz);
+}
+
 static int nazwa(const char *s)
 {
     return k1_dok_nazwa_poprawna(s, strlen(s));

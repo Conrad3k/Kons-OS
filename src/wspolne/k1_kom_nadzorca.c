@@ -115,6 +115,7 @@ int k1_kom_sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
     case K1_KOM_TEST_POLACZ:
         return kier == K1_KIER_DO_NADZORCY && klient(k);
     case K1_KOM_TEST_PROBA:
+    case K1_KOM_TEST_SKARB:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_PROFIL_MAKS) && zera(k, 1);
 
     case K1_KOM_TEST_WYNIK:

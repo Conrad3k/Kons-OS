@@ -25,6 +25,7 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **aplikacja** | Program K1 z oknem (Zegar, Notatki, Ustawienia…). Lista: `K1_APLIKACJE` — jedna aplikacja = jeden wiersz. |
 | **klatka** (sandbox) | Granice każdej usługi i aplikacji: własny użytkownik, zero uprawnień, lista dozwolonych wywołań jądra, brak dostępu do plików, limity pamięci. |
 | **kanał** | Jedyna droga rozmowy między dwoma programami (gniazdo UNIX). Tworzy go nadzorca; odbiorca zawsze wie, kto wysłał. |
+| **zaległe** (komunikaty) | To, czego pełny kanał klienta jeszcze nie przyjął (klient akurat nie odbiera). Czeka u nadawcy — w ekranie (0.8.5) i w skarbcu (0.9.0) — i idzie w kolejności, gdy kanał znów przyjmuje. |
 | **komunikat** | Wiadomość w kanale: zawsze 32 bajty, sprawdzana pole po polu przez odbiorcę. |
 | **wejście** | Usługa, która jako jedyna czyta klawiaturę i mysz. |
 | **ekran** | Usługa, która jako jedyna rysuje na karcie graficznej: składa okna, rysuje kursor, (od 0.10) ramki stref. |

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M5c na hoście, M5d w QEMU: dysk SATA i pendrive przez UEFI; 0.5.8: pendrive podłączony po starcie; 0.8.0: pliki i foldery — host i QEMU; 0.8.2: format 2 i przejście starych magazynów — host i QEMU) |
-| **Pliki** | `src/skarbiec/` w modułach (0.8.0, `skarbiec.h`): `main.c` (pętla, kanały, obiekty aplikacji), `obiekty.c` (obiekty według właściciela i nazwy: magazyn albo pamięć), `haslo.c` (odblokowanie, zmiana hasła, limit prób), `dokumenty.c` + `dok_drzewo.c`, `dok_kosz.c`, `dok_wczytaj.c` (pliki, foldery, Kosz; wspólne: `dok_wew.h`), `dok_kanal.c` (komunikaty `DOK_*`, tabela praw), `miejsce.c` (miejsce na pliki, powiększenie K1-DANE — 0.8.1), `przerwy.c` (praca w przerwach: kompaktowanie krokami, przejście na format 2 — 0.8.2); format: `magazyn.{c,h}` (funkcje publiczne, indeks), `obszary.c` (format 1: dwa obszary), `odcinki.c` i `spis.c` (format 2: odcinki, spis skarbca — 0.8.2, ADR 0036), `przejscie.c` (format 1 → 2), `naglowek.c` (nagłówek obu formatów i owinięty klucz; `magazyn_wew.h`), `src/zewnetrzne/monocypher/`; wspólne: `src/wspolne/k1_memfd.*`, `k1_skarb_klient.*` (strona klienta), `k1_dokument.*` (wpis pliku, typy, foldery) |
+| **Pliki** | `src/skarbiec/` w modułach (0.8.0, `skarbiec.h`): `main.c` (pętla, kanały, obiekty aplikacji), `obiekty.c` (obiekty według właściciela i nazwy: magazyn albo pamięć), `haslo.c` (odblokowanie, zmiana hasła, limit prób), `dokumenty.c` + `dok_drzewo.c`, `dok_kosz.c`, `dok_wczytaj.c` (pliki, foldery, Kosz; wspólne: `dok_wew.h`), `dok_kanal.c` (komunikaty `DOK_*`, tabela praw), `miejsce.c` (miejsce na pliki, powiększenie K1-DANE — 0.8.1), `przerwy.c` (praca w przerwach: kompaktowanie krokami, przejście na format 2 — 0.8.2), `zalegle.c` (odpowiedzi, których pełny kanał klienta jeszcze nie przyjął — 0.9.0); format: `magazyn.{c,h}` (funkcje publiczne, indeks), `obszary.c` (format 1: dwa obszary), `odcinki.c` i `spis.c` (format 2: odcinki, spis skarbca — 0.8.2, ADR 0036), `przejscie.c` (format 1 → 2), `naglowek.c` (nagłówek obu formatów i owinięty klucz; `magazyn_wew.h`), `src/zewnetrzne/monocypher/`; wspólne: `src/wspolne/k1_memfd.*`, `k1_skarb_klient.*` (strona klienta), `k1_dokument.*` (wpis pliku, typy, foldery) |
 | **Decyzje** | ADR 0015 (format, szyfrowanie), ADR 0016 (obraz USB), ADR 0013 (partycja „K1-DANE”), ADR 0029 (pliki, foldery, Kosz), ADR 0034 (duże dane: indeks, limity, kompaktowanie, rezerwa), ADR 0033 (K1-DANE do końca pendrive'a, od 0.8.1 także z danymi), ADR 0036 (format 2: odcinki, spis, kompaktowanie po odcinku — 0.8.2) |
 
 ## Cel
@@ -20,7 +20,7 @@ każdy pakiet ma sprawdzany UID nadawcy (`SO_PASSCRED`, w obie strony).
 UID/GID 103, klatka (ADR 0007): seccomp = baza + `pread64`, `pwrite64`, `fdatasync` (partycja i memfd —
 innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
 żadnej ścieżki (nie otworzy niczego); cgroup 320 MiB (Argon2id do 256 MiB), 1 proces;
-`RLIMIT_FSIZE` 24 MiB (memfd z plikiem do 16 MiB, 0.8.0; od 0.8.1 kawałek 1 MiB, w 0.8.1 w jednej odpowiedzi najwyżej całe zdjęcie dla dekodera — 16 MiB, od 0.8.2 też tylko kawałek; zapisu na urządzenie blokowe ten limit nie dotyczy —
+`RLIMIT_NOFILE` 64 (od 0.9.0: memfd czekający z odpowiedzią dla klienta z pełnym kanałem; było 32); `RLIMIT_FSIZE` 24 MiB (memfd z plikiem do 16 MiB, 0.8.0; od 0.8.1 kawałek 1 MiB, w 0.8.1 w jednej odpowiedzi najwyżej całe zdjęcie dla dekodera — 16 MiB, od 0.8.2 też tylko kawałek; zapisu na urządzenie blokowe ten limit nie dotyczy —
 `block/fops.c`). Bez partycji obiekty w pamięci: do 65 536, razem do 128 MiB.
 
 ## Wejścia i wyjścia
@@ -37,6 +37,20 @@ innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
   od każdego; limit prób (od trzeciej złej: 5 s … 5 min) liczy skarbiec. Zablokowany: odczyt/zapis
   obiektów → błąd „złe hasło”.
 - Log: utworzenie/otwarcie magazynu, klienci, zapisy (numer obiektu i rozmiar — nigdy treść).
+
+## Doręczanie (0.9.0 krok 2, RYZYKA R64)
+Skarbiec nigdy nie czeka na klienta i **nie gubi odpowiedzi**. Wszystko, co idzie do klienta, idzie przez jedno miejsce
+(`do_klienta`, `main.c`). Gdy kanał klienta jest pełny (klient akurat długo liczy albo importuje), odpowiedź czeka
+w skarbcu razem z memfd, który niesie (`zalegle.c`, do 32 na klienta), i idzie, gdy kanał znów przyjmuje (`poll`
+z `POLLOUT` tylko dla klientów z zaległymi) — w tej samej kolejności. Zasady:
+- „pliki się zmieniły” (`DOK_ZMIANA`) czeka najwyżej raz — klient po nim i tak prosi o listę i dostaje to, co jest
+  wtedy;
+- wszystko inne — w kolejności nadania, nic nie przepada celowo;
+- **dopóki coś czeka na klienta, skarbiec nie bierze jego próśb** (klient jest zajęty; jego prośby czekają w jego
+  kanale) — inni klienci są obsługiwani jak zwykle. Dlatego w kolejce jednego klienta są najwyżej odpowiedzi na jedną
+  prośbę (najwięcej: `SKARB_PODZIAL` — część po części) i to, co wywołali inni (zmiana, plik dla okna wyboru).
+  Pełna kolejka byłaby błędem: wpis w logu „kolejka klienta pełna …” z liczbą utraconych.
+Klient, który odszedł (kanał zamknięty), traci to, co na niego czekało — razem z memfd.
 
 ## Miejsce na pliki i cały pendrive na dane (0.8.1 krok 3, ADR 0033)
 - `SKARB_MIEJSCE` (skarbiec → klient, obiekt 1; po `WYNIK` na `SKARB_INFO` i `SKARB_POWIEKSZ` oraz po każdej `DOK_LISTA`):
@@ -309,6 +323,8 @@ od klientów i wpisy z dysku (`k1_dok_wpis_czytaj` — każde pole) oraz tabela 
 | `test_komunikat`: komunikaty `SKARB_*` (zakresy, kierunki, deskryptory; 0.8.1 krok 4: `DOK_KAWALEK`, `DOK_KONIEC`, rozmiary do 4 GiB w dwóch polach, kawałki w `DOK_CZYTAJ`/`DOK_TRESC`/`PEN_*`; krok 3: `SKARB_MIEJSCE`, `SKARB_POWIEKSZ`, `POWIEKSZ_DANE`, `POWIEKSZONO`, zapas w `SKARB_KLIENT`; 0.8.2: `START_POTWIERDZONY`; 0.8.5: `SKARB_PODZIAL`, `SKARB_CZESC` — numer części, rezerwa bez plików, ujemne, pola zarezerwowane) | negatywny |
 | `test_dokumenty` (0.8.5): `dok_podzial` — pliki w folderach użytkownika liczą się do folderu stałego, folder w Koszu z plikiem i plik w Koszu — do Kosza, pusty plik, foldery nic, rezerwa; po przywróceniu z Kosza — znów w folderze; kanał (`miejsce_podzial`): Ustawienia dostają wszystkie części, poprawne i po kolei, NEGATYWNY — Pliki, Notatki, Podgląd, pulpit nie dostają nic | jednostkowy / negatywny |
 | w systemie: klatka (UID, tylko partycja „K1-DANE”), próba w klatce `skarbiec`, dysk trzyma tylko skarbiec | funkcjonalny + negatywny |
+| `test_skarb_zalegle` (host, 0.9.0 krok 2): kolejka zaległych na prawdziwym kanale — od razu, gdy kanał przyjmuje; pełny kanał: czekają w kolejności, z deskryptorem, `DOK_ZMIANA` raz, po wznowieniu odbioru wszystko dochodzi; zamknięty kanał i koniec klienta zwalniają memfd; pełna kolejka liczy stratę | funkcjonalny + negatywny |
+| w systemie (`t_skarb_zalegle`, 0.9.0 krok 2): klient przestaje odbierać i wysyła prośby `SKARB_INFO`, aż skarbiec przestanie je brać; w tym czasie drugi klient tworzy folder → pierwszy po wznowieniu dostaje odpowiedź na każdą prośbę i „pliki się zmieniły”, skarbiec ten sam. Na skarbcu 0.8.7 czerwony: 1500 wysłanych, 236 odpowiedzi, 0 zmian | negatywny |
 | `test-m4.sh`: tapeta, motyw, rozdzielczość i notatka wracają po wyłączeniu i ponownym starcie z tym samym dyskiem; na dysku brak jawnego tekstu | funkcjonalny |
 | `test_dokumenty` (host, 0.8.0): nazwy (złe znaki, UTF-8, odwrócony tekst), typy z zawartości, wpis i lista (każde pole poza zakresem), plik w trzech kawałkach, nowa treść bez starych kawałków, przerwany zapis, foldery (unikalne nazwy, „(2)”, do siebie, za głęboko), Kosz (przywracanie, 30 dni, cofnięty zegar, opróżnianie), uszkodzone wpisy i kawałki przy otwarciu; prawa przez prawdziwy kanał: Pliki, pulpit (tylko Pulpit, bez treści), inni — nic; zły memfd | funkcjonalny + negatywny |
 | `test_dokumenty` (0.8.2 krok 2): zasady nazw (próba T1/6: znaki niewidoczne, kierunku, spacje na brzegach, znak diakrytyczny bez litery, NFD → NFC, porównanie Ä/ä, Č/č), wolna nazwa dla nazwy z długim „rozszerzeniem” (próba T1/2), wpisy z 0.8.1 z zakazaną nazwą poprawione przy wczytaniu (treść cała), `DOK_CZAS` (tylko Pliki, tylko plik z pendrive'a) | funkcjonalny + negatywny |

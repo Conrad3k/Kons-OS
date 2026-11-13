@@ -33,8 +33,9 @@ static const long sc_instalator[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, 
                          .rozmiar_pliku = 72u << 20
 /* skarbiec: Argon2id needs up to 256 MiB (ADR 0015); memfd up to a whole file of 16 MiB (0.8.0, ADR 0029; since 0.8.1
  * a piece of 1 MiB, or a whole picture for dekoder of up to 16 MiB; RLIMIT_FSIZE does not apply to the block device:
- * block/fops.c blkdev_write_iter has no rlimit check). */
-#define KLATKA_SKARBIEC .wywolania = sc_skarbiec, .n_wywolan = N(sc_skarbiec), .pamiec = 320u << 20, .pliki = 32, \
+ * block/fops.c blkdev_write_iter has no rlimit check). 64 files (0.9.0 step 2, was 32): 5 of its own and 16 client
+ * channels, and a memfd waiting with a reply for each client whose channel is full (src/skarbiec/zalegle.h). */
+#define KLATKA_SKARBIEC .wywolania = sc_skarbiec, .n_wywolan = N(sc_skarbiec), .pamiec = 320u << 20, .pliki = 64, \
                         .rozmiar_pliku = 24u << 20
 /* gui: the desktop layer (0.7.5) is one full-screen surface — RLIMIT_FSIZE for two halves of 4096×2160,
  * memory for it and the panels. Its arrangement in skarbiec on fd 6. */

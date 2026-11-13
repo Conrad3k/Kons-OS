@@ -457,6 +457,14 @@ static void do_nadzorcy(void)
     EXPECT(zle(K(K1_KOM_WYLACZ, 0, 3, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(ok(K(K1_KOM_TEST_PROBA, 0, K1_PROFIL_NOTATKI, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(zle(K(K1_KOM_TEST_PROBA, 0, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    /* 0.9.0: a channel to skarbiec for the test program, as one owner (a profile) */
+    EXPECT(ok(K(K1_KOM_TEST_SKARB, 0, K1_PROFIL_PLIKI, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(zle(K(K1_KOM_TEST_SKARB, 0, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_TEST_SKARB, 0, K1_PROFIL_MAKS + 1, 0, 0, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_TEST_SKARB, 1, K1_PROFIL_PLIKI, 0, 0, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_TEST_SKARB, 0, K1_PROFIL_PLIKI, 1, 0, 0, 0), K1_KIER_DO_NADZORCY) &&
+           zle(K(K1_KOM_TEST_SKARB, 0, K1_PROFIL_PLIKI, 0, 0, 0, 0), K1_KIER_OD_NADZORCY) &&
+           zle(K(K1_KOM_TEST_SKARB, 0, K1_PROFIL_PLIKI, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
     EXPECT(ok(K(K1_KOM_TEST_WYNIK, 0, -1, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(zle(K(K1_KOM_TEST_WYNIK, 0, 256, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_KLIENT, K1_KIER_STEROWANIE));

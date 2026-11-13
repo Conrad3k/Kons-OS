@@ -9,6 +9,7 @@
  *   dostep.c      a file for an application after a gesture: "Otwórz za pomocą", the file picker (ADR 0030)
  *   miejsce.c     the room for files, K1-DANE to the end of its USB stick (0.8.1 step 3, ADR 0033)
  *   przerwy.c     work between requests: compaction in steps, the transition to format 2 (0.8.2, ADR 0036)
+ *   zalegle.c     replies a client's full channel did not take yet: they wait and go in order (0.9.0, zalegle.h)
  *
  * Documentation: docs/komponenty/skarbiec.md. */
 #ifndef K1_SKARBIEC_H
@@ -58,6 +59,9 @@ int sekund_do_proby(void);
 int haslo_odblokuj(int fd, size_t dl);  /* login screen: memfd with the password */
 int haslo_zmien(int fd, size_t dl);     /* Ustawienia: memfd "current\0new\0" */
 void zglos_stan(void);                  /* SKARB_STAN to nadzorca (main.c) */
+/* main.c: a message (+ a memfd the caller keeps) to the client on channel `fd` — when its channel is full it waits and
+ * goes later in order (zalegle.h, 0.9.0 step 2); the only way anything goes to a client */
+void do_klienta(int fd, struct k1_komunikat m, int przekaz);
 void do_nadzorcy(struct k1_komunikat m); /* main.c: a message on the control channel */
 
 /* dok_kanal.c */
