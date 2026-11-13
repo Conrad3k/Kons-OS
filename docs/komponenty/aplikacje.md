@@ -96,7 +96,8 @@ tabela działających usług i aplikacji: procesor i pamięć każdej (z ich cgr
 ostatni „… i jeszcze n” — okno mieści się na ekranie 1024 × 768); czas pracy systemu. Dane od
 nadzorcy co sekundę (fd 4), sprawdzane: nadawca UID 0, bez deskryptorów, każde pole.
 0.6.3: wiersz **Bateria** (`ZASOBY_BATERIA`): procent, pobór mocy w W (`power_now` albo prąd ×
-napięcie, uśredniony przez nadzorcę: 30 % nowego odczytu, od nowa przy zmianie ładowanie ↔
+napięcie, uśredniony przez nadzorcę: połowa każdego nowego odczytu — od 0.8.7, wcześniej 30 %; liczba dogania
+zmianę w ok. 15 s, resztę opóźnienia daje sama bateria, która też uśrednia; od nowa przy zmianie ładowanie ↔
 rozładowanie; odczyt co 5 s, gdy Zasoby działają) i czas do rozładowania / naładowania (energia ÷
 pobór; brak szacunku poniżej 0,1 W i powyżej 99 h).
 

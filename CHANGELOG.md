@@ -3,6 +3,14 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.8.7] — 2026-11-13
+
+### Zmienione
+- **Zasoby: pobór mocy reaguje szybciej** (Twoja uwaga z X230 po 0.8.6: liczba spadała bardzo powoli). Nadzorca
+  wygładza odczyt słabiej — bierze połowę każdego nowego odczytu zamiast 30 % — więc liczba dogania zmianę w ok.
+  15 s zamiast 35 s. Może przez to trochę bardziej skakać; tak samo szacowany czas do rozładowania. Powolny spadek
+  przez minutę i dłużej to już sama bateria (jej kontroler też uśrednia pobór) — tego K1 nie przyspieszy.
+
 ## [0.8.6] — 2026-11-13
 
 **Audyt przed 0.9 Sieć** (`docs/archiwum/AUDYT-0.8.5.txt`) — przegląd porządku w kodzie, błędów i sprawności całego
