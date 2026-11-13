@@ -1,0 +1,282 @@
+K1 — PLAN WERSJI 0.9.1 „WI-FI” (druga wersja tematu 0.9 Sieć; po kablu z 0.9.0)
+==============================================================================
+
+Data: 2026-11-13 (porządek w planie: ADR 0035). Plan napisany, gdy trwa 0.9.0 (docs/PLAN-0.9.0.txt) — ta wersja
+zaczyna się DOPIERO po wydaniu 0.9.0 i stoi na tym, co ono daje: jądro z siecią, usługa „siec” w klatce, adres od
+routera (DHCP), ikona sieci i Ustawienia → Sieć, „sieć testowa” w testach. Krok 1 zaczyna od przeczytania „Ustaleń
+z wykonania” kroków 5–8 planu 0.9.0 i poprawia ten plan tam, gdzie 0.9.0 ustaliło coś inaczej.
+Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje. Mapa drogi: docs/DO_ZROBIENIA.txt.
+Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR (krok 1 ma swój ADR).
+
+Mało kroków (prośba właściciela z 2026-11-13: poprzednie wersje były zbyt pocięte): DWA kroki, wydanie w drugim.
+Każdy krok daje coś, co widać na ekranie; krok 2 kończy się wydaniem 0.9.1 — bez osobnego kroku wydania
+(o jeden przebieg CI mniej).
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 2 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
+zmieści się w jednym czacie, dzieli się na 1a/1b albo 2a/2b (wydanie zawsze w ostatniej części kroku 2).
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 0.8.7), ZE ŹRÓDEŁ (sprawdzone w źródłach jądra 6.18.60, 2026-11-13),
+POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku — nie zakładać), Z 0.9.0 (zależy od wyniku planu 0.9.0).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Najpierw krok 1, potem krok 2.
+
+Właściciel — co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.9.1.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku — możesz też od razu dopisać odpowiedź.
+
+Nowy czat — przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main). 0.9.0 musi być wydane.
+  2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); krok 1 — także „Ustalenia
+     z wykonania” planu 0.9.0 (od tego zależą punkty Z 0.9.0).
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
+  5. Najpierw test, który pokazuje lukę, potem zmiana, potem ten sam test na zielono.
+  6. Nie wymyślaj nazw opcji jądra, wywołań i zachowań — sprawdzaj w build/zrodla/linux-*/ (SPEC §2). Punkt NIEPEWNE
+     zamieniasz na POTWIERDZONE albo poprawiasz — w „Ustaleniach z wykonania” swojego kroku.
+  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, pełny scripts/testy.sh
+     lokalnie (wszystko [OK]); przy zmianach w budowie także scripts/sprawdz-powtarzalnosc.sh.
+  8. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, ZALEZNOSCI, WYGLAD, TESTY.md.
+     VERSION i CHANGELOG zmienia krok 2 (wydanie); krok 1 zapisuje „co widzi użytkownik” w opisie PR-a.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
+     ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+Po 0.9.1 laptop łączy się z domowym Wi-Fi: widzisz listę sieci, wybierasz swoją, wpisujesz hasło raz — potem K1
+łączy się sam przy każdym starcie. Działa na obu laptopach (X230 i IdeaPad 110-15ISK) i na większości kart Wi-Fi
+w laptopach (Intel, Qualcomm Atheros, Realtek, MediaTek).
+
+Jak przy kablu (Twoja decyzja D0): sterowniki kart Wi-Fi bierzemy z jądra Linux. Różnica: prawie każda karta Wi-Fi
+potrzebuje do działania pliku od producenta karty („oprogramowanie karty”) — wgrywa się go do karty przy starcie.
+Wbudujemy te pliki w podpisany K1 (D3), więc nikt nie może ich podmienić.
+
+Nasza praca: logowanie do sieci hasłem (to, czego jądro nie robi — „rozmowa” z routerem z hasłem, WPA2), lista
+sieci i okno hasła w Ustawieniach, zapamiętane sieci w skarbcu, ikona z siłą sygnału — i testy w maszynie
+wirtualnej z udawanymi kartami Wi-Fi (prawdziwego Wi-Fi w maszynie wirtualnej nie ma).
+  1. Karta Wi-Fi i lista sieci: K1 widzi kartę Wi-Fi i pokazuje sieci w okolicy (jeszcze bez łączenia).
+  2. Łączenie z hasłem, zapamiętane sieci, ikona z siłą sygnału — i wydanie 0.9.1.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                Luki (punkt 5)   Zależy od    Decyzje         Rozmiar  ADR
+[ ]  1  Karta Wi-Fi, oprogramowanie kart, lista sieci    W1–W9            0.9.0        D1 D3, T1–T3 T5  L        tak
+[ ]  2  Łączenie z hasłem, zapamiętane sieci; wydanie    W10–W14          1            D2 D4, T4 T6     L        —
+
+Dlaczego dwa, a nie jeden: krok 1 to jądro, pliki producentów i budowa (powtarzalność, rozmiar k1.efi), krok 2 to
+kryptografia i logowanie do sieci. Każdy z nich zajmuje pełny czat i pełne testy (ok. 50 min bez KVM); razem nie
+zmieściłyby się w jednym PR-ze do przejrzenia. Dlaczego nie więcej: ikona, Ustawienia i testy idą razem z tym, co
+pokazują — nie osobno.
+
+
+3. KROKI
+--------
+
+KROK 1 — Karta Wi-Fi, oprogramowanie kart, lista sieci                       L · decyzje D1 D3, T1–T3 T5 · ADR
+  Cel: K1 rozpoznaje kartę Wi-Fi na obu laptopach i pokazuje listę sieci w okolicy — bezpiecznie, w ten sam sposób
+  co kabel z 0.9.0 (uprawnienia w nadzorcy, wszystko z powietrza czytane w klatce).
+  Na początku: D1 — szkice WSZYSTKICH widoków Wi-Fi naraz (także tych z kroku 2), żeby krok 2 nie pytał ponownie;
+  D3 — zgoda na pliki producentów.
+  Co widzi użytkownik: Ustawienia → Sieć: „Wi-Fi” z listą sieci (nazwa, siła sygnału, kłódka przy sieci z hasłem),
+  przełącznik „Wi-Fi włączone/wyłączone”; gdy karty nie ma albo K1 jej nie zna — jej nazwa albo identyfikator
+  (jak przy kablu w 0.9.0); gdy wyłączona przełącznikiem w obudowie (X230) — „Wi-Fi wyłączone przełącznikiem
+  w komputerze”. Ikona Wi-Fi na górnym pasku (bez połączenia jeszcze: „nie połączono”).
+  Zadania:
+  [ ] ADR „Wi-Fi w K1” (uzupełnienie ADR sieci z 0.9.0): T1 pliki producentów, T2 rodziny kart, T3 kto co robi
+      (nadzorca/siec), T4 logowanie WPA i kryptografia (dla kroku 2 — decyzja już tu, żeby ADR był jeden), T5 testy.
+  [ ] Jądro (jadro/k1.config, każda linia z komentarzem; rodziny kart — komentarz przy grupie): CFG80211, MAC80211
+      (ZE ŹRÓDEŁ: sam wybiera CRYPTO_AES/CCM/GCM/CMAC), RFKILL, sterowniki wg T2, CFG80211_REQUIRE_SIGNED_REGDB +
+      CFG80211_USE_KERNEL_REGDB_KEYS (baza przepisów radiowych podpisana — W5), EXTRA_FIRMWARE + EXTRA_FIRMWARE_DIR
+      (T1), MAC80211_HWSIM (T5). Bez CFG80211_WEXT (stary interfejs), bez trybów punktu dostępu/mesh, jeśli da się
+      je wyłączyć (sprawdzić w Kconfig). Rozmiar k1.efi przed/po w opisie PR-a (miejsce A/B: 128 MiB).
+  [ ] Pliki producentów (T1): jedna tabela (zasada czytelności 5) „rodzina → pliki”, np. jadro/oprogramowanie-kart.txt,
+      z której wynika EXTRA_FIRMWARE; archiwum linux-firmware i wireless-regdb z cdn.kernel.org z przypiętą wersją
+      i sumą SHA-256 (jak jadro/wersja.env); scripts/przygotuj-srodowisko.sh, CI, powtarzalność. Wpis
+      w ZALEZNOSCI.md (licencje plików: można rozpowszechniać, kodu nie widać — RYZYKA).
+  [ ] Nadzorca (Z 0.9.0: ten sam wzór co kabel): karta Wi-Fi w uevent (podsystem „net”, typ urządzenia „wlan” —
+      ZE ŹRÓDEŁ: net/wireless/core.c, wiphy_type; czy jest w uevent jako DEVTYPE — NIEPEWNE); gniazdo nl80211
+      (generic netlink) TYLKO w nadzorcy — skanowanie (NL80211_CMD_TRIGGER_SCAN wymaga CAP_NET_ADMIN — ZE ŹRÓDEŁ,
+      net/wireless/nl80211.c: GENL_UNS_ADMIN_PERM), odczyt wyników, przełącznik (rfkill). Nadzorca rozbiera tylko
+      ramkę netlink od jądra; to, co przyszło z powietrza (elementy informacyjne sieci: nazwa, zabezpieczenia), idzie
+      jako surowe bajty do usługi „siec”.
+  [ ] Usługa „siec”: parser opisu sieci (nazwa ≤ 32 bajty, dowolne bajty — do wyświetlenia tylko bezpieczne znaki;
+      RSN: jakie zabezpieczenie) w osobnym pliku; test na hoście i fuzzing (testy/host/fuzz_wifi_*.c); lista sieci
+      (najsilniejszy sygnał na nazwę, limit liczby) do Ustawień i gui — kanałem z 0.9.0 (stan sieci), nowe komunikaty
+      w k1_komunikat.h z zakresami, test negatywny w systemie.
+  [ ] Ustawienia → Sieć: część „Wi-Fi” (wiersze tabeli sekcji), lista, przełącznik; gui: ikona Wi-Fi (K1_IK_* w
+      k1_rysuj.c), stany: wyłączone / nie połączono (w kroku 2: połączono + 1–4 kreski).
+  Testy i dowód (T5): mac80211_hwsim — dwie udawane karty w maszynie testowej; druga udaje router: wysyła ramki
+  „jestem siecią K1-TEST” (program testowy przez nl80211 — punkt dostępu testowy, część 1: tylko ogłaszanie sieci).
+  Scenariusz QEMU: Ustawienia → Sieć pokazuje „K1-TEST” z kłódką; przełącznik wyłącza i włącza listę; zrzuty
+  w obu motywach. Negatywne: sieć o złośliwej nazwie (znaki sterujące, 32 bajty, niepoprawny UTF-8) i z uszkodzonym
+  opisem zabezpieczeń → wyświetlona bezpiecznie albo pominięta, „siec” żyje; usługa „siec” w klatce nie otworzy
+  gniazda nl80211 (t_proby); obraz produkcyjny bez udawanych kart (T5). Rozmiar i powtarzalność obrazu.
+  Właściciel (po wydaniu w kroku 2): lista sieci na X230 i IdeaPadzie.
+  Dokumenty: ADR, jadro.md (opcje, odstępstwa), opis usługi siec i nadzorca.md, aplikacje.md (Ustawienia), gui.md,
+  WYGLAD (wybór D1), SLOWNIK (Wi-Fi, sieć Wi-Fi, oprogramowanie karty, siła sygnału), RYZYKA (sterowniki Wi-Fi
+  i pliki producentów — kod, którego nie widać, działa w karcie z dostępem do pamięci przez DMA; IOMMU — W8), TESTY.md,
+  ZALEZNOSCI.md.
+  Gotowe, gdy: scenariusz z listą sieci i testy negatywne zielone, testy [OK], obraz powtarzalny.
+
+KROK 2 — Łączenie z hasłem, zapamiętane sieci; wydanie 0.9.1                 L · decyzje D2 D4, T4 T6 · bez ADR
+  Cel: K1 łączy się z siecią domową z hasłem (WPA2 — także router w trybie mieszanym WPA2/WPA3) i z siecią otwartą
+  (wg D2), pamięta ją i łączy się sam; potem wydanie 0.9.1.
+  Co widzi użytkownik: kliknięcie sieci w Ustawieniach → okno hasła (wg D1) → „Połączono z <nazwa>”; ikona
+  z kreskami siły sygnału; złe hasło → „Złe hasło — spróbuj jeszcze raz”; po ponownym starcie łączy się sam (D4);
+  „Zapomnij tę sieć”. Kabel i Wi-Fi naraz — używany jest kabel (D4). Zegar z internetu (0.9.0 krok 8) działa też
+  przez Wi-Fi.
+  Zadania:
+  [ ] Kryptografia (T4): SHA-1, HMAC-SHA1, PBKDF2 (hasło → klucz sieci, 4096 powtórzeń), PRF z 802.11, AES
+      (rozpakowanie klucza grupowego, RFC 3394) — małe pliki, każdy sprawdzony oficjalnymi wektorami testowymi
+      (FIPS 180-4, RFC 2202, RFC 6070, FIPS 197, RFC 3394, przykłady z IEEE 802.11 — który aneks: NIEPEWNE, W10).
+      Szyfrowanie samych danych (CCMP) robi jądro albo karta — nie my.
+  [ ] Usługa „siec”: logowanie WPA2 (wymiana czterech wiadomości z routerem, potem odnawianie klucza grupowego),
+      każda ramka EAPOL sprawdzana pole po polu (niezmiennik 6: długość, wersja, licznik powtórzeń, MIC) — parser
+      w osobnym pliku, test na hoście, fuzzing. Ramki EAPOL przez gniazdo pakietowe od nadzorcy (Z 0.9.0: ten sam
+      wzór co DHCP) albo przez nl80211 (CONTROL_PORT_FRAME, też CAP_NET_ADMIN — ZE ŹRÓDEŁ) — wybór w kroku (T6).
+  [ ] Nadzorca na prośbę „siec”, ze sprawdzeniem zakresów (T3): połącz z siecią (NL80211_CMD_CONNECT), wpisz klucze
+      (NL80211_CMD_NEW_KEY), rozłącz — wszystkie trzy wymagają CAP_NET_ADMIN (ZE ŹRÓDEŁ). Komunikat z kluczem to
+      sekret: nigdy w logu (niezmiennik 8), pamięć czyszczona po użyciu. Potem DHCP z 0.9.0 na karcie Wi-Fi.
+  [ ] Hasło i zapamiętane sieci (D4, W12): Ustawienia wysyłają hasło raz do „siec” (kanałem, nie przez nadzorcę),
+      „siec” liczy klucz sieci i zapisuje go w skarbcu jako swoje dane (profil usługi = właściciel danych);
+      Ustawienia nigdy nie dostają hasła z powrotem. Połączenie samo przy starcie i po utracie zasięgu
+      (najsilniejsza zapamiętana sieć); „Zapomnij tę sieć”.
+  [ ] Ustawienia i gui: okno hasła (pole z ukrywaniem znaków, k1_pole_klawisz), stany połączenia, ikona z siłą
+      sygnału (1–4 kreski — progi w jednej tabeli).
+  [ ] Wydanie: VERSION 0.9.1; CHANGELOG (Dodane / Zmienione / Naprawione); DO_ZROBIENIA.txt — „Teraz” → następna
+      wersja wg mapy drogi, lista testów na X230 i IdeaPadzie dla 0.9.1 (lista sieci, łączenie hasłem, złe hasło,
+      start z zapamiętaną siecią, przełącznik w obudowie X230, kabel i Wi-Fi naraz, aktualizacja z 0.9.0 przez
+      Instalator); ten plik → docs/archiwum/. Po scaleniu: CI, tag k1-v0.9.1, wydanie; raport z linkami do ISO
+      i obrazu USB (dopiero gdy wydanie istnieje). Porządki MINOR nie dotyczą (0.9.1 to PATCH); jeśli krok 2
+      zostawił coś tymczasowego — wpis z terminem.
+  Testy i dowód (T5): punkt dostępu testowy, część 2 — na drugiej udawanej karcie program testowy przyjmuje
+  logowanie (WPA2 z hasłem testowym) i po nim wysyła zaszyfrowane zapytanie ARP; odpowiedź K1 (jądro odpowiada samo)
+  dowodzi, że klucze są wpisane po obu stronach i dane płyną. Scenariusz QEMU: kliknięcie „K1-TEST”, hasło,
+  „Połączono”, ikona z kreskami, restart → łączy się sam. Negatywne: złe hasło → komunikat, żadnego połączenia;
+  ramka EAPOL z złym MIC / starym licznikiem / za krótka → odrzucona, „siec” żyje; hasło testowe i klucz nie
+  pojawiają się w żadnym logu (test przeszukuje log); „siec” w klatce nie może sama wpisać klucza ani połączyć
+  (t_proby). Host: wektory testowe kryptografii (ASan/UBSan), fuzzing EAPOL.
+  Właściciel (po wydaniu): oba laptopy z domowym routerem — lista testów w DO_ZROBIENIA.txt.
+  Dokumenty: opis usługi siec, nadzorca.md, skarbiec.md (dane usługi „siec”), aplikacje.md, gui.md, WYGLAD, SLOWNIK
+  (zapamiętana sieć, hasło sieci), RYZYKA (podrobiony router o tej samej nazwie — WPA2 z hasłem chroni tylko przed
+  obcymi, nie przed kimś, kto zna hasło), TESTY.md, CHANGELOG.
+  Gotowe, gdy: testy zielone, wydanie k1-v0.9.1 istnieje, raport z linkami.
+
+
+4. DECYZJE
+----------
+Twoje (produkt):
+[x] D0 (z 0.9.0) Sterowniki — z jądra Linux, nie własne. Dotyczy też Wi-Fi.
+[!] D1 (krok 1) Wygląd Wi-Fi — szkice do wyboru NA POCZĄTKU KROKU 1, wszystkie naraz: ikona Wi-Fi na górnym pasku
+       (wyłączone / nie połączono / 1–4 kreski), lista sieci w Ustawieniach → Sieć, okno hasła, komunikat „złe
+       hasło”. Rekomendacja: ikona liniowa jak w Windows 11 obok dźwięku i baterii; lista jak w Windows (nazwa,
+       kreski, kłódka), kliknięcie rozwija wiersz z polem hasła — bez osobnego okna.
+[!] D2 (krok 2) Jakie sieci w 0.9.1. Rekomendacja: sieci domowe z hasłem (WPA2 i mieszane WPA2/WPA3 — tak działa
+       większość domowych routerów) oraz otwarte (kawiarnia, hotel) z napisem „sieć niezabezpieczona”. Uwaga: sieci
+       otwarte, które każą się najpierw zalogować na stronie, zadziałają dopiero z przeglądarką (0.10). Później: sieci
+       tylko WPA3, firmowe i uczelniane z loginem i hasłem (np. eduroam), sieci ukryte. Jeśli którejś potrzebujesz
+       wcześniej — powiedz, wejdzie do następnego planu.
+[!] D3 (krok 1) Pliki od producentów kart (zamknięte — nie widać, co robią w karcie; bez nich karta Wi-Fi nie
+       działa wcale). Rekomendacja: zgoda, tylko dla wybranych rodzin kart (T2), wbudowane w podpisany K1 — nie da
+       się ich podmienić ani dodać po cichu. Bez zgody: Wi-Fi tylko na nielicznych starszych kartach Atheros (ath9k).
+[!] D4 (krok 2) Zapamiętywanie sieci. Rekomendacja: sieć zapamiętana po udanym połączeniu; przy starcie i po utracie
+       zasięgu K1 łączy się sam z najsilniejszą zapamiętaną; kabel ma pierwszeństwo przed Wi-Fi; „Zapomnij tę sieć”
+       w Ustawieniach. Hasło nigdy nie jest pokazywane z powrotem (zmiana = wpisanie nowego).
+Pytania z 0.9.0, które dalej pomagają (D2, D3 w docs/PLAN-0.9.0.txt): czy masz kabel do routera i jakie dokładnie
+karty Wi-Fi mają oba laptopy (Ustawienia → Sieć w 0.9.0 pokaże identyfikator karty — przepisz go).
+
+Techniczne (decyduje Claude w ADR kroku 1 — Ty dostajesz krótkie wyjaśnienie):
+    T1 Pliki producentów: rekomendacja — wbudowane w jądro (EXTRA_FIRMWARE), czyli w podpisany k1.efi. Powód
+       (ZE ŹRÓDEŁ): jądro szuka plików najpierw wśród wbudowanych, potem w /lib/firmware… (drivers/base/
+       firmware_loader/main.c: fw_path) — K1 tego katalogu nie ma (ADR 0004), a sterownik wbudowany w jądro prosi
+       o plik już przy starcie, zanim rdzeń jest zamontowany. Wbudowane = podpis K1 obejmuje je razem z jądrem.
+       To samo dla bazy przepisów radiowych (regulatory.db + regulatory.db.p7s, sprawdzana podpisem — net/wireless/
+       reg.c). Źródło: linux-firmware i wireless-regdb z cdn.kernel.org, przypięta wersja i suma.
+    T2 Rodziny kart (szeroko jak przy kablu, ale ograniczone rozmiarem plików producentów — zmierzyć):
+       Intel iwlwifi: IWLDVM (starsze; X230: najczęściej Advanced-N 6205 → plik iwlwifi-6000g2a-6.ucode, rzadziej
+       Ultimate-N 6300 → iwlwifi-6000-6.ucode albo Wireless-N 2200 → iwlwifi-2000-6.ucode — ZE ŹRÓDEŁ: cfg/6000.c,
+       cfg/2000.c; który model w X230 właściciela — NIEPEWNE) oraz IWLMVM/IWLMLD (nowsze; pliki tylko dla
+       popularnych generacji); Qualcomm Atheros: ATH9K + ATH9K_PCI (bez pliku), ATH10K + ATH10K_PCI (QCA9377 —
+       prawdopodobnie IdeaPad, pliki ath10k/QCA9377/hw1.0/firmware-6.bin i board-2.bin — ZE ŹRÓDEŁ: ath10k/hw.h;
+       QCA6174); Realtek: rtlwifi (RTL8723BE, RTL8821AE — starsze laptopy) i rtw88 (RTW88_8822CE, RTW88_8821CE,
+       RTW88_8723DE), rtw89 (RTW89_8852BE i podobne — nowsze); MediaTek MT7921E (nowsze laptopy). Karty Wi-Fi na
+       USB — nie w 0.9.1 (podłączone urządzenie samo uruchamia sterownik; jak przy kablu — RYZYKA). Broadcom —
+       nie (w laptopach rzadki, część kart tylko z zamkniętym sterownikiem).
+    T3 Kto co robi (jak T1 z 0.9.0): nadzorca (root) — gniazdo nl80211, skanowanie, połączenie, wpisanie kluczy,
+       przełącznik; nadzorca rozbiera tylko ramki netlink od jądra, nigdy treści z powietrza. „siec” w klatce —
+       wszystko, co przychodzi z powietrza (opis sieci, ramki EAPOL), hasło, liczenie kluczy. ZE ŹRÓDEŁ:
+       TRIGGER_SCAN, CONNECT, NEW_KEY, DISCONNECT, CONTROL_PORT_FRAME wymagają CAP_NET_ADMIN, więc i tak nie mogą
+       być w klatce.
+    T4 Logowanie WPA: rekomendacja — własny, mały kod w „siec” (tylko WPA2 z hasłem; wg D2), nie obcy program
+       (wpa_supplicant, iwd). Powód: obce programy same otwierają nl80211 i potrzebują CAP_NET_ADMIN — to złamałoby
+       podział T3 (uprawnienia w nadzorcy, dane z powietrza w klatce); są też duże (setki tysięcy wierszy z obsługą
+       rzeczy, których nie chcemy). Kryptografia: własne małe pliki sprawdzone oficjalnymi wektorami — Monocypher
+       nie ma SHA-1 ani AES, a pełna obca biblioteka (np. BearSSL) to dużo kodu dla kilku funkcji. WPA3 tylko-SAE
+       (krzywe eliptyczne) — „Później”, z ADR.
+    T5 Testy: MAC80211_HWSIM wbudowany w jądro, ale w obrazie produkcyjnym bez udawanych kart (domyślnie tworzy dwie
+       — ZE ŹRÓDEŁ: mac80211_hwsim.c, radios = 2 — więc parametr radios=0 we wbudowanej linii poleceń); program
+       testowy tworzy karty sam (HWSIM_CMD_NEW_RADIO, też CAP_NET_ADMIN) albo test startuje bzImage z radios=2 jak
+       test-m1 — wybór w kroku 1. Drugą kartę obsługuje „punkt dostępu testowy” w programie testowym (nasz kod:
+       w mac80211 logowanie po stronie punktu dostępu robi zawsze program, nie jądro). Żeby błąd po obu stronach się
+       nie „znosił”: kryptografia sprawdzona wektorami z norm (krok 2), a ostateczny dowód to prawdziwy router
+       właściciela.
+    T6 (krok 2) Ramki EAPOL: gniazdo pakietowe od nadzorcy (ten sam wzór co DHCP z 0.9.0 — rekomendacja) albo
+       nl80211 CONTROL_PORT_FRAME — wybór po zobaczeniu kodu z 0.9.0.
+
+
+5. LUKI (z czytania kodu 0.8.7, planu 0.9.0 i źródeł jądra 6.18.60, 2026-11-13)
+------------------------------------------------------------------------------
+Waga: WYSOKA (blokuje krok), ŚREDNIA, NISKA.
+
+Krok 1
+  W1  Z 0.9.0, WYSOKA. Wszystko, co tu jest „jak przy kablu” (wykrywanie kart w nadzorcy, gniazdo pakietowe, usługa
+      „siec”, kanał stanu sieci do gui i Ustawień, sieć testowa), powstaje w krokach 5–8 planu 0.9.0. Krok 1 zaczyna
+      od ich „Ustaleń z wykonania”.
+  W2  ZE ŹRÓDEŁ. Jądro K1 nie ma nic z Wi-Fi: CFG80211, MAC80211, RFKILL, sterowniki — do dopisania; MAC80211 sam
+      wybiera kryptografię jądra (CRYPTO_AES/CCM/GCM/CMAC, CRYPTO_LIB_ARC4 — net/mac80211/Kconfig); CFG80211 wybiera
+      FW_LOADER. allnoconfig wyłącza resztę — zależności sprawdzi scripts/zbuduj-jadro.sh.
+  W3  ZE ŹRÓDEŁ, WYSOKA. Pliki producentów: jądro szuka ich wśród wbudowanych, potem w /lib/firmware… albo w ścieżce
+      z parametru firmware_class.path — K1 nie ma /lib/firmware (ADR 0004). Bez T1 żadna karta (poza ath9k) nie ruszy.
+  W4  NIEPEWNE, ŚREDNIA. Rozmiar plików producentów dla rodzin z T2 (rzędu kilku–kilkunastu MB) i czas budowy —
+      zmierzyć; miejsce A/B ma 128 MiB. Część kart Intela nowszych generacji potrzebuje dodatkowych plików (.pnvm) —
+      sprawdzić listę w sterowniku.
+  W5  ZE ŹRÓDEŁ. Bez bazy przepisów radiowych jądro używa ustawień „cały świat” (ostrożnych: część kanałów 5 GHz tylko
+      nasłuch) — Wi-Fi działa, ale gorzej. Baza wczytywana jak plik producenta (regulatory.db, net/wireless/reg.c),
+      podpis sprawdzany kluczem wbudowanym w jądro (CFG80211_USE_KERNEL_REGDB_KEYS; wymaga SYSTEM_DATA_VERIFICATION —
+      wybierane automatycznie, ale to dodatkowy kod podpisów PKCS#7 w jądrze — wpis w jadro.md).
+  W6  NIEPEWNE. Karta Wi-Fi w uevent — typ urządzenia „wlan” (net/wireless/core.c) — czy nadzorca odróżni ją od karty
+      przewodowej po DEVTYPE w uevent, czy musi zapytać nl80211.
+  W7  ZE ŹRÓDEŁ. Przełącznik Wi-Fi: rfkill (net/rfkill). Przełącznik w obudowie X230 — czy jądro K1 go widzi bez
+      sterownika ThinkPada (thinkpad_acpi), czy karta Intela zgłasza go sama — NIEPEWNE, sprawdzić na X230.
+  W8  Z KODU, ŚREDNIA (bezpieczeństwo). Karta Wi-Fi z plikiem producenta ma dostęp do pamięci (DMA); ochrona to IOMMU
+      — w jądrze K1 włączone od początku (jadro/k1.config: INTEL_IOMMU, INTEL_IOMMU_DEFAULT_ON, AMD_IOMMU), ale działa
+      tylko z VT-d włączonym w BIOS-ie (X230: do sprawdzenia przez właściciela; i tak potrzebne w 0.10). Wpis w RYZYKA.
+  W9  Z KODU. Testy QEMU nie mają Wi-Fi (QEMU nie udaje kart Wi-Fi); jedyna droga w maszynie testowej to
+      mac80211_hwsim (T5). Prawdziwe karty sprawdza tylko właściciel.
+
+Krok 2
+  W10 NIEPEWNE. Wektory testowe dla 802.11 (hasło → klucz sieci, klucze z wymiany czterech wiadomości) — który aneks
+      normy IEEE 802.11-2020 i czy dostępny bez opłat; zastępczo: RFC 6070 (PBKDF2) i przykłady z normy przytaczane
+      w innych źródłach, z adnotacją skąd.
+  W11 Z KODU. W systemie nie ma SHA-1, HMAC ani AES (jest k1_sha256 i Monocypher: BLAKE2b, ChaCha20, X25519, Ed25519,
+      Argon2) — T4.
+  W12 Z KODU. Usługi systemowe mają dane w skarbcu według profilu (K1_SYSTEM w src/wspolne/k1_uslugi.h; aplikacje:
+      „profil = właściciel danych”) — sprawdzić, czy „siec” dostanie kanał do skarbca tym samym wzorem co aplikacje
+      (k1_skarb_klient) i czy klucz sieci w skarbcu jest zaszyfrowany jak reszta (tak — cały magazyn, ADR 0015).
+  W13 NIEPEWNE. Rozpoznanie „złe hasło”: router przy złym haśle zwykle po prostu nie odpowiada na drugą wiadomość —
+      K1 rozpoznaje to po czasie i liczbie prób; sprawdzić na routerze właściciela, czy komunikat jest trafny.
+  W14 Z 0.9.0. Kabel i Wi-Fi naraz — jedna brama i jeden adres naraz (prostsze), kabel ma pierwszeństwo (D4);
+      jak usługa „siec” z 0.9.0 trzyma stan jednej karty — sprawdzić, czy wystarczy dodać drugą kartę do tabeli.
+
+
+6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” przy wydaniu)
+--------------------------------------------------------------------
+    sieci tylko WPA3 (SAE), firmowe/uczelniane z loginem (WPA2-Enterprise, eduroam), ukryte; karty Wi-Fi na USB;
+    losowy adres karty (prywatność w obcych sieciach); IPv6 (z 0.9.0); logowanie na stronie w sieciach otwartych
+    (z przeglądarką, 0.10); Bluetooth (osobny temat — często ta sama karta i ten sam plik producenta).
