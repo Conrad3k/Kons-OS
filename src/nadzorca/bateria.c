@@ -75,7 +75,9 @@ long long k1_bateria_srednia(long long poprz, long long moc_mw)
         return poprz;
     if (poprz < 0)
         return moc_mw;
-    return (poprz * 7 + moc_mw * 3 + 5) / 10;
+    /* half of each new reading (0.8.7; 30 % until 0.8.6): with a read every 5 s the number follows a change within
+     * about 15 s instead of 35 — the battery's controller averages its own reading already */
+    return (poprz + moc_mw + 1) / 2;
 }
 
 int k1_bateria_minuty(const struct k1_bateria *b, long long moc_mw)

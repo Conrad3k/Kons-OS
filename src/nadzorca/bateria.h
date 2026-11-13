@@ -19,7 +19,8 @@ struct k1_bateria {
 
 /* gui and Ustawienia get only these fields (the power changes on every read). */
 int k1_bateria_ta_sama(const struct k1_bateria *a, const struct k1_bateria *b);
-/* Smoothed power: the firmware's reading jumps with every burst of work. `poprz` < 0: none yet. */
+/* Smoothed power (half of each new reading): the firmware's reading jumps with every burst of work. `poprz` < 0:
+ * none yet. */
 long long k1_bateria_srednia(long long poprz, long long moc_mw);
 /* Minutes until empty (discharging) or full (charging) at power `moc_mw`; -1 when there is no sane
  * estimate (unknown energy or power, under 0.1 W, other states, over 99 h). */

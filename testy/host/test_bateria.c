@@ -173,9 +173,15 @@ int main(void)
         t.obecna = 0;
         EXPECT(k1_bateria_minuty(&t, 45000) == -1);
     }
-    /* smoothing: the first reading as is, then 30 % of each new one; unknown keeps the old value */
-    EXPECT(k1_bateria_srednia(-1, 10000) == 10000 && k1_bateria_srednia(10000, 20000) == 13000);
-    EXPECT(k1_bateria_srednia(13000, -1) == 13000 && k1_bateria_srednia(-1, -1) == -1);
+    /* smoothing: the first reading as is, then half of each new one (0.8.7); unknown keeps the old value */
+    EXPECT(k1_bateria_srednia(-1, 10000) == 10000 && k1_bateria_srednia(10000, 20000) == 15000);
+    EXPECT(k1_bateria_srednia(15000, -1) == 15000 && k1_bateria_srednia(-1, -1) == -1);
+    { /* a drop from 11 W to 8 W is shown within 0.1 W after 5 reads (25 s with Zasoby open; 0.8.6: 10 reads) */
+        long long m = 11000;
+        for (int i = 0; i < 5; i++)
+            m = k1_bateria_srednia(m, 8000);
+        EXPECT(m >= 8000 && m <= 8100);
+    }
     {
         struct k1_bateria x = { 1, 50, K1_BAT_ROZLADOWANIE, 0, 1, 2, 3 }, y = { 1, 50, K1_BAT_ROZLADOWANIE, 0, 9, 8, 7 };
         EXPECT(k1_bateria_ta_sama(&x, &y));

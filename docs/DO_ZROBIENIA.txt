@@ -4,8 +4,8 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.8.6 — audyt przed 0.9 (laptop oszczędza energię, szybsze wyłączanie, historia baterii przy wyłączaniu;
-raport: docs/archiwum/AUDYT-0.8.5.txt); teraz 0.9 Sieć.
+Stan: 0.8.7 — po audycie przed 0.9 (0.8.6: laptop oszczędza energię, szybsze wyłączanie, historia baterii przy
+wyłączaniu; raport: docs/archiwum/AUDYT-0.8.5.txt; 0.8.7: pobór mocy w Zasobach reaguje szybciej); teraz 0.9 Sieć.
 Data: 2026-11-13.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
@@ -105,12 +105,13 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230)
 -----------------------------------------------
 Jedna lista — dla ostatniego wydania. Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
-z 2026-11-11). Lista dla 0.8.6 (zawiera niesprawdzone punkty 0.8.2–0.8.5; najlepiej najpierw aktualizacja K1 na dysku
-X230 przez Instalator z pendrive'a 0.8.6 — dane zostają):
-    [ ] energia (0.8.6 — najważniejsze, w maszynie wirtualnej nie da się tego sprawdzić): PRZED aktualizacją, na
-        baterii, otwórz Zasoby, odczekaj minutę bez ruszania laptopa i zapisz „pobór mocy”; PO aktualizacji to samo.
-        Powinno być wyraźnie mniej (i cichszy wentylator, chłodniejsza obudowa). Sprawdź też: czy nic się nie
+z 2026-11-11). Lista dla 0.8.7 (zawiera niesprawdzone punkty 0.8.2–0.8.6; najlepiej najpierw aktualizacja K1 na dysku
+X230 przez Instalator z pendrive'a 0.8.7 — dane zostają):
+    [~] energia (0.8.6): Twój wynik z 2026-11-13 — pobór mocy mniejszy: 0.8.5 stałe 11 W, 0.8.6 po minucie 9,5 W
+        i dalej spadało. Zostaje: wartość, na której się zatrzyma (3–4 min bez ruszania laptopa), i czy nic się nie
         zacina (mysz, przesuwanie okien, Podgląd), czy przy cięższej pracy (duże zdjęcie) jest szybciej niż było
+    [ ] Zasoby (0.8.7): po zmianie obciążenia (np. zamknięcie Podglądu) pobór mocy dogania nową wartość w kilkanaście
+        sekund; czy liczba nie skacze za bardzo
     [ ] wyłączanie (0.8.6): Start → Wyłącz i „Uruchom ponownie” — o ok. 3 s szybciej; po ponownym starcie
         Ustawienia → Bateria: wykres poprzedniego uruchomienia sięga do samego wyłączenia
     [ ] pendrive w Plikach (0.8.6): po wyjęciu znika z Plików od razu (dotąd do 10 s)
