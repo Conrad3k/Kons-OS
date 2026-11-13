@@ -136,7 +136,10 @@ elif tryb == "powiekszenie":
                    "przycisk „Użyj całego pendrive'a na dane”",
                    m and int(m.group(2)) == 50 and int(m.group(1)) >= 45 and int(m.group(4)) >= 512 and int(m.group(5)) > 0,
                    m.group(0) if m else "brak"): sys.exit(1)
-    zrzut("powiekszenie-1-informacje", gdy=lambda w, h, px: True)
+    c = czekaj(r"K1-USTAWIENIA: miejsce: części: .*; nośnik: (\w+)", czas=30)
+    sprawdz("(0.8.5) Miejsce wie, że K1-DANE jest na pendrivie (opis, przycisk tylko tu)", c and c.group(1) == "pendrive",
+            c.group(0) if c else "brak")
+    zrzut("powiekszenie-1-miejsce", gdy=lambda w, h, px: True)
     n = q.ile(MIEJSCE)
     klik(u0[0] + int(m.group(5)), u0[1] + int(m.group(6)))
     sprawdz("klik = zgoda: nadzorca pisze nową tablicę (K1-DANE 64 → 576 MiB), dane zostają",

@@ -187,8 +187,9 @@ def miejsce_w_ustawieniach(nazwa, ciemny=False):
 
 # 0. (0.8.5 step 3) Ustawienia → Miejsce before the import: Obrazy empty
 m0 = miejsce_w_ustawieniach("0-miejsce")
-sprawdz("(0.8.5) Ustawienia → Miejsce: części od skarbca (tylko liczby), Obrazy puste, zapas systemu, nośnik: pendrive",
-        m0 and int(m0.group(3)) == 0 and int(m0.group(6)) > 0 and m0.group(7) == "pendrive", m0.group(0) if m0 else "brak")
+# (K1-DANE of this machine is on a SATA disk — the stick holds only the photos: "dysk"; a K1-DANE on a stick: test-skarbiec)
+sprawdz("(0.8.5) Ustawienia → Miejsce: części od skarbca (tylko liczby), Obrazy puste, zapas systemu, nośnik: dysk",
+        m0 and int(m0.group(3)) == 0 and int(m0.group(6)) > 0 and m0.group(7) == "dysk", m0.group(0) if m0 else "brak")
 m = czekaj(IKONY)
 ik = {c.rsplit(" ", 1)[0]: tuple(int(v) for v in c.rsplit(" ", 1)[1].split(",")) for c in m.group(1).split("; ")} if m else {}
 o = po(r"K1-EKRAN: okno (\d+) \(pliki\) (\d+)x(\d+) w (\d+),(\d+)", lambda: q.dwuklik(*ik["Pliki"])) if "Pliki" in ik else None
