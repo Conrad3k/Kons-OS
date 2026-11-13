@@ -4,6 +4,7 @@
  * data). Also the longest time skarbiec did not answer, in the log with the work done. Part of skarbiec
  * (skarbiec.h). */
 #include <string.h>
+#include <time.h>
 
 #include "k1_log.h"
 #include "k1_teraz.h"
@@ -20,7 +21,7 @@ static uint64_t odlozone_wolne, odlozone_pojemnosc;
 static int kompaktowanie_wstrzymane;
 static struct {
     unsigned krokow;
-    double od, najdluzszy;
+    double od, najdluzszy, procesor; /* the longest step: by the clock and the processor time of skarbiec in it */
 } praca;                     /* the work being done: a segment, or the transition */
 static double najdluzsza;    /* the longest time skarbiec did not answer since the last line about the work */
 static double dluga_wpis = -100.0;
@@ -35,13 +36,25 @@ void przerwa_trwala(double s)
     }
 }
 
-static void krok_zrobiony(double t0)
+/* The processor time of skarbiec, s: how much work a step was, without the time it waited for the disk (0.8.5: on a
+ * loaded machine a step of 10 ms took 1.25 s by the clock — the disk of the host, not skarbiec). */
+static double procesor(void)
 {
-    double t = k1_teraz() - t0;
+    struct timespec t;
+    if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t) != 0)
+        return 0;
+    return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
+}
+
+static void krok_zrobiony(double t0, double c0)
+{
+    double t = k1_teraz() - t0, c = procesor() - c0;
     if (praca.krokow++ == 0)
         praca.od = t0;
     if (t > praca.najdluzszy)
         praca.najdluzszy = t;
+    if (c > praca.procesor)
+        praca.procesor = c;
     przerwa_trwala(t);
 }
 
@@ -100,9 +113,10 @@ static int po_przejsciu(int r, uint64_t przed)
 {
     przejscie = r == K1_MAG_PELNY ? PR_ODLOZONE : PR_KONIEC;
     if (r == K1_MAG_OK)
-        k1_log(TAG, "przejście na format 2: gotowe — %d obiektów, %u kroków w %.1f s, najdłuższy krok %.2f s, "
-               "najdłuższa przerwa w odpowiedziach %.2f s; miejsce na dane %llu → %llu MiB", mag.n_wpisow,
-               praca.krokow, k1_teraz() - praca.od, praca.najdluzszy, najdluzsza, (unsigned long long)(przed >> 20),
+        k1_log(TAG, "przejście na format 2: gotowe — %d obiektów, %u kroków w %.1f s, najdłuższy krok %.2f s "
+               "(procesor %.2f s), najdłuższa przerwa w odpowiedziach %.2f s; miejsce na dane %llu → %llu MiB",
+               mag.n_wpisow, praca.krokow, k1_teraz() - praca.od, praca.najdluzszy, praca.procesor, najdluzsza,
+               (unsigned long long)(przed >> 20),
                (unsigned long long)(k1_mag_pojemnosc(&mag) >> 20));
     else if (r == K1_MAG_PELNY)
         k1_log(TAG, "przejście na format 2 odłożone: za mało miejsca w wolnej połowie K1-DANE (żywe dane %llu MiB) — "
@@ -119,7 +133,7 @@ static int po_przejsciu(int r, uint64_t przed)
 
 static int krok_przejscia(void)
 {
-    double t0 = k1_teraz();
+    double t0 = k1_teraz(), c0 = procesor();
     uint64_t przed = k1_mag_pojemnosc(&mag);
     int r;
     if (praca.krokow == 0)
@@ -127,20 +141,20 @@ static int krok_przejscia(void)
                "w przerwach po %u MiB", mag.n_wpisow, (unsigned long long)(mag.zywe * K1_MAG_BLOK >> 20),
                KROK_BLOKOW * K1_MAG_BLOK >> 20);
     r = k1_mag_przejscie_krok(&mag, KROK_BLOKOW);
-    krok_zrobiony(t0);
+    krok_zrobiony(t0, c0);
     return r == 1 ? 0 : po_przejsciu(r, przed);
 }
 
 static void krok_kompaktowania(void)
 {
-    double t0 = k1_teraz();
+    double t0 = k1_teraz(), c0 = procesor();
     int r = k1_mag_kompaktuj_krok(&mag, KROK_BLOKOW);
-    krok_zrobiony(t0);
+    krok_zrobiony(t0, c0);
     if (r == 1)
         return;
     if (r == K1_MAG_OK) {
-        k1_log(TAG, "kompaktowanie (w przerwach): odcinek wolny po %u krokach, najdłuższy krok %.2f s; najdłuższa "
-               "przerwa w odpowiedziach %.2f s", praca.krokow, praca.najdluzszy, najdluzsza);
+        k1_log(TAG, "kompaktowanie (w przerwach): odcinek wolny po %u krokach, najdłuższy krok %.2f s (procesor %.2f s); "
+               "najdłuższa przerwa w odpowiedziach %.2f s", praca.krokow, praca.najdluzszy, praca.procesor, najdluzsza);
     } else {
         kompaktowanie_wstrzymane = 1; /* a write still compacts when it must */
         k1_log(TAG, "kompaktowanie w przerwach wstrzymane: %s", k1_mag_opis(r));
