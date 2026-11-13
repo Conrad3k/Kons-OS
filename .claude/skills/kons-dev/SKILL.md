@@ -64,7 +64,9 @@ odmawia niepodpisanych i starszych wersji. Klucz Secure Boot K1 wpisuje się prz
 `MokNew`/`MokAuth`). Manifest formatu 1 (47 MiB) jest **tymczasowy** — dla aktualizacji z 0.6.x.
 
 **Sprzęt właściciela:** ThinkPad X230 (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez simpledrm,
-TPM 1.2), jedno konto na komputer. X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt.
+TPM 1.2; kabel: Intel 82579LM, `e1000e`) i od 2026-11-13 Lenovo IdeaPad 110-15ISK (Skylake, tylko xHCI, Intel HD 520;
+kabel 10/100 i Wi-Fi 802.11ac — dokładne układy: decyzja D3 w `docs/PLAN-0.9.0.txt`), jedno konto na komputer.
+X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt. Sterowniki — zawsze z jądra, nie własne (D0).
 
 ## 3. Mapa kodu
 
@@ -230,7 +232,7 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 **Plan — jedno miejsce (ADR 0035):** stan, mapa drogi i otwarte decyzje — `docs/DO_ZROBIENIA.txt`; kroki bieżącej
 wersji — `docs/PLAN-<wersja>.txt` (samodzielny: luki, kroki, decyzje; zakres zamrożony, nowe pomysły → „Później”;
 numery kroków się nie zmieniają; zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
-Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.5) → **0.9 Sieć** (teraz) → **0.10 Strefy** (mikro-maszyny, ramka,
+Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (teraz; plan `docs/PLAN-0.9.0.txt`) → **0.10 Strefy** (mikro-maszyny, ramka,
 przeglądarka; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery, TPM)
 → **0.13 Audyt** → 1.0. Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11,
 M10 = 0.12, M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).
