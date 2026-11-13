@@ -76,8 +76,8 @@ Potem sieć:
          PR #94
 [x]  3  Pliki startowe w aktualizacji; „Tymczasowe”      L5 L6           —          —            M–L      tak
          PR #96 (ADR 0038)
-[ ]  4  musl 1.2.5 i fortify-headers                     L7 L8           —          —            M        korekta 0007
-         [w toku: Claude, gałąź claude/busy-dirac-p38156]
+[x]  4  musl 1.2.5 i fortify-headers                     L7 L8           —          —            M        korekta 0007
+         PR #97
 [ ]  5  Jądro z siecią; nic nie odpowiada z zewnątrz     L9–L13          1, 4       T1–T4, T6    L        tak (sieć)
 [ ]  6  Kabel i adres od routera (DHCP) w klatce         L10 L14 L15     5          D2 D3        L        —
 [ ]  7  Ikona sieci i Ustawienia → Sieć                  L16             6          D1           M        —
