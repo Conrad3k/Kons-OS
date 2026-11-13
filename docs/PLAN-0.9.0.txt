@@ -300,6 +300,26 @@ KROK 6 — Kabel i adres od routera (DHCP) w klatce                             
   Dokumenty: nowy opis usługi „siec” w docs/komponenty/ (cel, granica zaufania, uprawnienia, kanały, testy), nadzorca.md,
   RYZYKA, SLOWNIK, TESTY.md.
   Gotowe, gdy: test DHCP i testy negatywne zielone, testy [OK].
+  Ustalenia z wykonania (2026-11-13, Claude):
+  - L14/L15 POTWIERDZONE inaczej niż w planie: uevent nie jest potrzebny — gniazdo rtnetlink (NETLINK_ROUTE, grupa
+    RTMGRP_LINK) w nadzorcy dostaje wiadomość jądra o nowej karcie, usuniętej karcie i o każdej zmianie kabla. Wiadomość
+    tylko budzi nadzorcę (bez parsowania), prawdą jest sysfs: class/net/*/type (1 = Ethernet), wireless/phy80211 (Wi-Fi
+    pomijane), ifindex, address, carrier (czytelny tylko dla włączonej karty — nadzorca włącza każdą kartę przewodową od
+    razu; bez adresu, IPv6 i multicastu włączona karta nic nie wysyła). Zapas: przegląd co 10 s.
+  - Adres, trasa, włączenie karty: rtnetlink (RTM_NEWLINK, RTM_NEWADDR, RTM_DELADDR, RTM_NEWROUTE), nie ioctl — ZE ŹRÓDEŁ
+    (net/ipv4/devinet.c): SIOCSIFADDR nie umie usunąć adresu (0.0.0.0 wstawiłby adres 0 z maską /0).
+  - Gniazdo pakietowe SOCK_DGRAM (jądro dokłada nagłówek Ethernet), utworzone z protokołem 0 (nic nie przychodzi przed
+    bind), filtr klasycznego BPF: IPv4, UDP, nie fragment, port docelowy 68 — przyłączony i zablokowany (SO_LOCK_FILTER).
+    Przejęta usługa mogłaby wysyłać dowolne ramki na tej karcie (sendto z innym protokołem) — RYZYKA R68.
+  - Adresu nie ma w logu (rekomendacja planu): „połączono (eth0, adres od routera, maska /24, z trasą)”; test sprawdza
+    adres z zewnątrz (ARP), a log — że go nie zawiera.
+  - Z adresem (T3) POTWIERDZONE testem: ARP tylko o własny adres, RST na każdy z 1034 SYN, zero ICMP (ping, „znacznik
+    czasu”, UDP na zamknięty port), żadnego SYN-ACK; trasa domyślna działa (RST spoza sieci idzie przez MAC routera).
+  - L12 ZE ŹRÓDEŁ: r8169 prosi o plik rtl_nic/… przez firmware_request_nowarn — brak pliku to nie błąd (karta bez łatki
+    działa). tg3: bez pliku tylko wyłączone TSO (starsze układy) albo EEE (57766); nie ruszy wyłącznie bardzo stary
+    BCM5701 A0. e100: bez pliku bez „CPUSaver”, kilka starych wersji układu wymaga pliku. Pozostałe sterowniki z listy
+    nie proszą o pliki. Stabilność r8169 na IdeaPadzie — test właściciela po wydaniu.
+  - D2, D3 nie były potrzebne do kroku (zgodnie z planem) — pytania zostają dla właściciela (raport).
 
 KROK 7 — Ikona sieci i Ustawienia → Sieć                                             M · decyzja D1 · bez ADR
   Cel: widać, czy K1 jest połączony z siecią, a gdy nie — dlaczego.

@@ -53,6 +53,7 @@ static int przygotuj(void)
         k1_log(TAG, "uruchomiono program testowy (pid %d)", (int)test_pid);
     }
     uevent_otworz();
+    siec_otworz();
     return sfd;
 }
 
@@ -123,6 +124,7 @@ static void okresowe(void)
     if (t >= nastepne_skanowanie)
         nastepne_skanowanie = t + (uevent_fd >= 0 ? 10.0 : 2.0);
     uevent_wejscie = uevent_dysk = uevent_zasilanie = uevent_zalegle = 0;
+    siec_sprawdz(t);
     wyslij_baterie();
     wyslij_ustawieniom();
     bateria_archiwum(t);
@@ -148,7 +150,8 @@ int main(void)
             { &skarb_ster, obsluz_skarbiec }, /* skarbiec ending is seen by waitpid */
             { &inst_kanal, obsluz_instalacje }, { &inst_ster, obsluz_zapis },
             { &uevent_fd, obsluz_uevent },    { &pen_kanal, obsluz_pendrive },
-            { &podglad_kanal, obsluz_podglad },
+            { &podglad_kanal, obsluz_podglad }, { &siec_kanal, obsluz_siec },
+            { &siec_rt, obsluz_rt },
         };
 #define N_KANALOW (sizeof kanaly / sizeof kanaly[0])
         struct pollfd pfd[1 + N_KANALOW + N_USLUG + 1];

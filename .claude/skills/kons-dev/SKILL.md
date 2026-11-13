@@ -46,6 +46,7 @@ firmware UEFI → shim (Microsoft) → GRUB (Canonical) → k1.efi z miejsca A a
 → /rdzen/system/nadzorca (root): usługi i aplikacje w klatkach, kanały, logi, restarty
      skarbiec (103) → ekran (101) → wejscie (100) → gui (102) albo logowanie (104, gdy jest hasło)
      aplikacje (200+) na prośbę gui; instalator (105) na prośbę okna Instalatora; czytnik (106) na prośbę Plików, dekoder (107) na prośbę Plików i Podglądu
+     siec (108) przy starcie: adres od routera (DHCP) dla karty z kablem, adres ustawia nadzorca (0.9.0, ADR 0039)
 ```
 Testy QEMU startują też `bzImage` + `initramfs.cpio` (tylko `test-m1`). ISO/USB mają GRUB-a do 0.12 (ADR 0010; dawne M10).
 
@@ -76,13 +77,14 @@ X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt. Stero
 |---|---|---|
 | `src/initramfs/` | `/init` | montuje rdzeń (dm-verity), przełącza korzeń |
 | `src/init/` | `/rdzen/init` | PID 1 |
-| `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` usługi z tabel `K1_SYSTEM`/`K1_APLIKACJE` (start, kanały, restarty); `kanaly.h` nazwy kanałów `KANAL_*`; `logi.c` logi usług; `profile.c` klatki (`KLATKA_<NAZWA>`); `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c`, `rozruch.c`, `efi.c`, `pendrive.c`, `dekoder.c`, `powieksz.c` (K1-DANE do końca pendrive'a), `test.c` |
+| `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` usługi z tabel `K1_SYSTEM`/`K1_APLIKACJE` (start, kanały, restarty); `kanaly.h` nazwy kanałów `KANAL_*`; `logi.c` logi usług; `profile.c` klatki (`KLATKA_<NAZWA>`); `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c`, `rozruch.c`, `efi.c`, `pendrive.c`, `dekoder.c`, `powieksz.c` (K1-DANE do końca pendrive'a), `siec.c` (karty sieciowe, adres; 0.9.0), `test.c` |
 | `src/wejscie/` | `system/wejscie` | klawiatura, mysz (evdev, EVIOCGRAB) |
 | `src/ekran/`, `src/grafika/` | `system/ekran` | DRM/KMS, składanie okien, kursor, tapety, znak K1; `zalegle.c` — to, czego pełny kanał klienta nie przyjął, czeka w ekranie (RAMKA nigdy nie przepada, ruchy się scalają; 0.8.5) |
 | `src/gui/` | `system/gui` | pulpit w modułach (`gui.h`): warstwa ikon, paski, menu Start, menu kontekstowe, rozmieszczenie w skarbcu (fd 6) |
 | `src/logowanie/` | `system/logowanie` | ekran hasła przy starcie |
 | `src/skarbiec/` | `system/skarbiec` | `magazyn.c` format i szyfrowanie, `main.c` usługa, `obiekty.c`, `haslo.c`, `dokumenty.c` + `dok_*.c` pliki, foldery, Kosz, naprawa przy starcie, granica czasu, prawa, zapis w toku kawałkami (0.8.0–0.8.1, `dok_wew.h`); limity, indeks, kompaktowanie, rezerwa, kawałki — ADR 0034; `miejsce.c` miejsce na pliki i powiększenie K1-DANE (ADR 0033); format 2 (0.8.2, ADR 0036): `odcinki.c`, `spis.c`, `przejscie.c` (format 1 → 2 po potwierdzonym starcie), `przerwy.c` (kompaktowanie krokami między prośbami); format 1 (`obszary.c`) i przejście — tymczasowe do 0.10.0 |
 | `src/instalator/` | `system/instalator` | zapis K1 na dysk (GPT), tylko urządzenia od nadzorcy; `start.c` — wymiana plików startowych (0.9.0) |
+| `src/siec/` | `system/siec` | adres od routera: klient DHCP w klatce (`dhcp.c` pakiety, `klient.c` stany i czasy); gniazdo pakietowe, karty, kabel i ustawienie adresu — nadzorca `siec.c` (0.9.0, ADR 0039) |
 | `src/czytnik/` | `system/czytnik` | pendrive dla Plików: FAT w klatce, tylko odczyt (0.8.0, ADR 0031); nadzorca `pendrive.c` |
 | `src/dekoder/` | `system/dekoder` | jeden obraz (PNG, JPEG, GIF, BMP, WebP) → piksele, jednorazowy proces w klatce (Wuffs; 0.8.0, ADR 0032); plik kawałkami, limity w jednej tabeli `k1_dekoder.h`, dekodery w `K1_DEKODERY` (0.8.2); nadzorca `dekoder.c` (tabela klientów: Pliki, Podgląd), Pliki `obrazy.c`, Podgląd `obraz.c`, ekran `zdjecie.c` (tabela nadawców tapety) |
 | `src/aplikacje/<program>/` | `aplikacje/<program>` | Zegar, Notatki, Ustawienia, Zasoby, Instalator (`instalacja`), Kalkulator, Pliki (0.8.0), Wybór pliku (`wybor`), Podgląd (`podglad`, 0.8.2: zdjęcie w oknie, zdjęcia jednego folderu — ADR 0037; 0.8.5: w ruchu szybko z kopii — `skala.c`, po zatrzymaniu `k1_skaluj`); Ustawienia → Miejsce (`miejsce.c`, 0.8.5: części z tabeli `K1_CZESCI` przez `SKARB_PODZIAL`/`SKARB_CZESC`, tylko liczby) |
@@ -165,7 +167,7 @@ Gotowe części przybornika: `k1_przycisk`, `k1_pole_klawisz`, `k1_menu` (menu p
 `k1_liczba.h` (też `k1_odmiana`: „1 plik / 3 pliki / 5 plików”), kolory `k1_motyw` / `K1_*` (`k1_grafika.h`).
 Ctrl/Shift przy kliknięciu: `apl.mody` (ekran podaje je w `WSKAZNIK` e, 0.8.2).
 
-**Nowa usługa systemowa** (np. `siec`) — jeden wiersz w tabeli (0.9.0 krok 1):
+**Nowa usługa systemowa** (wzór: `siec`, 0.9.0 krok 6) — jeden wiersz w tabeli (0.9.0 krok 1):
 1. Wiersz w `K1_SYSTEM` (`src/wspolne/k1_uslugi.h`): nazwa, profil, UID, program, nazwa w Zasobach, kiedy startuje
    (`PRZY_STARCIE` — i ponownie po awarii — albo `NA_PROSBE` przez swój moduł), rola przy ekranie (`BRAK`, gdy nie ma
    okna) i kanały od nadzorcy po kolei od fd 3 (u klienta ekranu od fd 4), np. `(KANAL_SIECI)`. Z wiersza wynika:

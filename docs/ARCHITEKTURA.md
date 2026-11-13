@@ -28,6 +28,7 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 | `src/skarbiec/` | `/rdzen/system/skarbiec` — Blob Vault: zaszyfrowane dane na partycji „K1-DANE” (M5c–M5e, ADR 0015–0017), od 0.8.0 pliki i foldery użytkownika (ADR 0029), od 0.8.2 format 2 — odcinki i spis (ADR 0036) |
 | `src/logowanie/` | `/rdzen/system/logowanie` — ekran hasła przy starcie (M5e, ADR 0017) |
 | `src/instalator/` | `/rdzen/system/instalator` — zapis K1 na dysk komputera, tablica GPT (M5f, ADR 0018), wymiana plików startowych przy aktualizacji (`start.c`, 0.9.0, ADR 0038) |
+| `src/siec/` | `/rdzen/system/siec` — adres od routera (DHCP) dla karty z kablem, w klatce; adres ustawia nadzorca (`src/nadzorca/siec.c`; 0.9.0, ADR 0039) |
 | `src/czytnik/` | `/rdzen/system/czytnik` — pendrive dla Plików: MBR/GPT i FAT12/16/32 w klatce, tylko odczyt (0.8.0 krok 3, ADR 0031) |
 | `src/dekoder/` | `/rdzen/system/dekoder` — jeden obraz (PNG, JPEG, od 0.8.2 GIF, BMP, WebP; do 100 Mpx) → piksele, jednorazowy proces w klatce na prośbę klienta z tabeli (Pliki, Podgląd; 0.8.0 krok 4, ADR 0032, 0037) |
 | `src/zewnetrzne/` | kod zewnętrzny w repozytorium: Monocypher (kryptografia skarbca) i Wuffs (dekoder obrazów) — jedyne obce biblioteki, wersje i uzasadnienie w `docs/ZALEZNOSCI.md` |

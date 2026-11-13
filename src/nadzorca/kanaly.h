@@ -19,5 +19,6 @@
 #define KANAL_INSTALACJI { KN_OD, &inst_kanal, NULL, inst_nowy_kanal }        /* Instalator: disks, progress */
 #define KANAL_PENDRIVE { KN_OD, &pen_kanal, NULL, pendrive_nowy_kanal } /* Pliki: the USB stick, a picture decoder */
 #define KANAL_DEKODERA { KN_OD, &podglad_kanal, NULL, NULL } /* Podgląd: a picture decoder (dekoder.c; Podgląd only) */
+#define KANAL_SIECI { KN_OD, &siec_kanal, NULL, siec_nowy_kanal } /* siec: the card with a cable, its address (siec.c) */
 
 #endif

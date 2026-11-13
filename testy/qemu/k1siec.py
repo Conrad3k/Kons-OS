@@ -82,6 +82,84 @@ def udp(port, tresc=b"K1 test", cel_ip=IP_K1, cel_mac=MAC_K1, mac=MAC_SIEC, ip_n
     return eth(cel_mac, mac, ETH_IP, ip(ip_nad, cel_ip, 17, t))
 
 
+def arp_odpowiedz(mac_nad, ip_nad, mac_cel, ip_cel):
+    return eth(mac_cel, mac_nad, ETH_ARP, arp(2, mac_nad, ip_nad, mac_cel, ip_cel))
+
+
+# --- DHCP (0.9.0 step 6): a home router in a few lines ---
+DHCP_CIASTKO = 0x63825363
+
+
+def dhcp_z_ramki(r):
+    """A DHCP message K1 sent (UDP 68 → 67): {xid, typ, ciaddr, opcje, ip_zrodlo, ip_cel, eth_cel} or None."""
+    if len(r) < 42 or struct.unpack("!H", r[12:14])[0] != ETH_IP or r[23] != 17:
+        return None
+    l4 = 14 + (r[14] & 15) * 4
+    if struct.unpack("!HH", r[l4:l4 + 4]) != (68, 67):
+        return None
+    d = r[l4 + 8:]
+    if len(d) < 240 or struct.unpack("!I", d[236:240])[0] != DHCP_CIASTKO:
+        return None
+    o, i = {}, 240
+    while i < len(d) and d[i] != 255:
+        if d[i] == 0:
+            i += 1
+            continue
+        o[d[i]] = d[i + 2:i + 2 + d[i + 1]]
+        i += 2 + d[i + 1]
+    return {"op": d[0], "xid": struct.unpack("!I", d[4:8])[0], "ciaddr": d[12:16], "chaddr": d[28:34],
+            "typ": o.get(53, b"\0")[0], "opcje": o, "ip_zrodlo": r[26:30], "ip_cel": r[30:34], "eth_cel": r[0:6]}
+
+
+def dhcp(typ, xid, yiaddr=IP_K1, opcje=None, mac=MAC_K1, maska=bytes([255, 255, 255, 0]), router=IP_SIEC, dzierzawa=30,
+         serwer=IP_SIEC, suma_udp=True):
+    """A reply of the router to K1: OFFER (2), ACK (5), NAK (6). `opcje`: the whole options instead of the usual ones."""
+    if opcje is None:
+        opcje = bytes([53, 1, typ, 54, 4]) + serwer
+        if typ != 6:
+            opcje += bytes([1, 4]) + maska + bytes([3, 4]) + router + bytes([51, 4]) + struct.pack("!I", dzierzawa)
+        opcje += b"\xff"
+    d = bytes([2, 1, 6, 0]) + struct.pack("!IHH", xid, 0, 0) + bytes(4) + yiaddr + IP_SIEC + bytes(4) + mac + bytes(202)
+    d += struct.pack("!I", DHCP_CIASTKO) + opcje
+    u = struct.pack("!HHHH", 67, 68, 8 + len(d), 0) + d
+    cel = yiaddr if yiaddr != bytes(4) else bytes([255] * 4)
+    if suma_udp:
+        u = u[:6] + struct.pack("!H", _pseudo(IP_SIEC, cel, 17, u) or 0xFFFF) + u[8:]
+    return eth(MAC_K1, MAC_SIEC, ETH_IP, ip(IP_SIEC, cel, 17, u))
+
+
+class Router:
+    """The test network's router: answers ARP for its own address and — once `wlaczony` — DHCP (OFFER to DISCOVER,
+    ACK to REQUEST; NAK when `odmowa`). Every DHCP message from K1 is kept in `dhcp` (time, message)."""
+
+    def __init__(self, siec, dzierzawa=30):
+        self.siec, self.dzierzawa = siec, dzierzawa
+        self.wlaczony, self.odmowa = False, False
+        self.dhcp = []
+        siec.odpowiadacze.append(self)
+
+    def __call__(self, r):
+        if len(r) >= 42 and struct.unpack("!H", r[12:14])[0] == ETH_ARP and r[21] == 1 and r[38:42] in (IP_SIEC, IP_INNY):
+            mac = MAC_SIEC if r[38:42] == IP_SIEC else MAC_INNY
+            return [arp_odpowiedz(mac, r[38:42], r[22:28], r[28:32])]
+        m = dhcp_z_ramki(r)
+        if m is None or m["op"] != 1:
+            return []
+        self.dhcp.append((time.time(), m))
+        return self.odpowiedz(m) if self.wlaczony else []
+
+    def odpowiedz(self, m):
+        if m["typ"] == 1:
+            return [dhcp(2, m["xid"], dzierzawa=self.dzierzawa)]
+        if m["typ"] == 3:
+            return [dhcp(6 if self.odmowa else 5, m["xid"], yiaddr=bytes(4) if self.odmowa else IP_K1,
+                         dzierzawa=self.dzierzawa)]
+        return []
+
+    def ostatni(self, typ):
+        return next((m for t, m in reversed(self.dhcp) if m["typ"] == typ), None)
+
+
 def opis(r):
     """A frame in one line, for the log of the test."""
     if len(r) < 14:
@@ -128,10 +206,10 @@ class SiecTestowa:
         self.watek.start()
 
     def qemu(self, karta="e1000e", mac=MAC_K1):
-        """QEMU options: the card and its cable to this test network."""
+        """QEMU options: the card (id "karta": monitor `set_link karta off` pulls the cable out) and its cable."""
         m = ":".join(f"{b:02x}" for b in mac)
         return (f"-netdev dgram,id=siec,local.type=unix,local.path={self.k1},remote.type=unix,remote.path={self.host} "
-                f"-device {karta},netdev=siec,mac={m}")
+                f"-device {karta},netdev=siec,mac={m},id=karta")
 
     def _odbior(self):
         while self.dziala:
