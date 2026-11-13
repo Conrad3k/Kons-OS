@@ -25,7 +25,7 @@ statycznie z musl. Budowany skryptami w `scripts/`, testowany w QEMU, CI w GitHu
 - Po każdej nowej wersji podaj bezpośredni link do ISO i obrazu USB z wydania:
   `https://github.com/Conrad3k/Kons-OS/releases/download/k1-v<wersja>/k1-<wersja>.iso` oraz
   `…/k1-<wersja>-usb.img.xz` — dopiero gdy wydanie naprawdę istnieje.
-- Testuje na ThinkPadzie X230 (UEFI, Secure Boot na razie wyłączony).
+- Testuje na ThinkPadzie X230 (UEFI, Secure Boot na razie wyłączony) i — od 2026-11-13 — na Lenovo IdeaPad 110-15ISK.
 
 ## Czytelność (decyzja właściciela, 2026-11-09)
 System ma być czytelny i intuicyjny od środka, także gdy rośnie. Części może być dużo (izolacja tego

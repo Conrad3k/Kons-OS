@@ -1,0 +1,364 @@
+K1 — PLAN WERSJI 0.9.0 „SIEĆ” (pierwsza wersja tematu 0.9 Sieć; kabel — Wi-Fi w następnej)
+=========================================================================================
+
+Data: 2026-11-13 (porządek w planie: ADR 0035). Stan wyjściowy: 0.8.7 (main zielony, wydanie k1-v0.8.7 jest).
+Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje do tej wersji. Mapa drogi i rzeczy na później:
+docs/DO_ZROBIENIA.txt. Zamknięte plany: docs/archiwum/. Plik jest planem, nie specyfikacją: zmiany architektury idą
+przez ADR (krok 5 ma swój ADR, krok 3 też).
+
+Wydanie jedno, na końcu (krok 9) — CI ma limit.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 9 kroków i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają (krok, który się
+dzieli, dostaje litery: 6a, 6b…). Wi-Fi NIE wchodzi do 0.9.0 — ma własny plan (punkt 6).
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1), ZE ŹRÓDEŁ (sprawdzone w źródłach jądra 6.18.60), POTWIERDZONE (próbą),
+NIEPEWNE (do sprawdzenia w kroku — nie zakładać).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kroki idą w kolejności z punktu 2.
+
+Właściciel — co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.9.0.txt.”
+Jeśli krok ma decyzje [!] (punkt 4), czat zapyta o nie na początku — możesz też od razu dopisać odpowiedź.
+
+Nowy czat — przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
+  2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4).
+     Brak decyzji [!] potrzebnej w kroku → zapytaj właściciela, zanim zaczniesz tę część.
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
+  5. Najpierw test, który pokazuje lukę, potem zmiana, potem ten sam test na zielono.
+  6. Nie wymyślaj nazw opcji jądra, wywołań i zachowań — sprawdzaj w build/zrodla/linux-*/ (SPEC §2). Punkt NIEPEWNE
+     z tego planu zamieniasz na POTWIERDZONE albo poprawiasz — w „Ustaleniach z wykonania” swojego kroku.
+  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, pełny scripts/testy.sh
+     lokalnie (wszystko [OK]); przy zmianach w budowie także scripts/sprawdz-powtarzalnosc.sh.
+  8. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, ZALEZNOSCI, WYGLAD, TESTY.md.
+     VERSION i CHANGELOG zmienia dopiero krok 9 (wydanie) — każdy krok zapisuje „co widzi użytkownik” w opisie PR-a.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
+     ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+Zasada tej wersji (Twoja decyzja D0): sterowniki kart sieciowych bierzemy z jądra Linux — nie piszemy własnych.
+Sieć w jądrze to tylko kilka włączonych opcji. Nasza praca to wszystko dookoła: kto w K1 może dotknąć sieci,
+pobranie adresu od routera, zegar z internetu, pokazanie Ci stanu połączenia i testy, że z zewnątrz nie da się
+do K1 nic „powiedzieć”. Żadna aplikacja nie dostaje w 0.9.0 internetu — to przyjdzie z przeglądarką w strefie (0.10).
+
+Najpierw porządki (kroki 1–4) — od nich nic się nie zmienia na ekranie, ale bez nich sieć weszłaby w kod, który już
+dziś trzeba dzielić:
+  1. Jedna tabela usług systemowych — nowa usługa (sieć) to jeden wiersz, a nie cztery miejsca w kodzie.
+  2. Komunikaty: podział za dużego pliku; odpowiedzi skarbca nigdy nie przepadają (jak w ekranie od 0.8.5).
+  3. Instalator wymienia też pliki startowe (shim, GRUB) przy aktualizacji, bez instalowania od nowa; potem usuwamy
+     stare rozwiązania tymczasowe (aktualizacja z 0.6.x, przenoszenie notatek z 0.5.6–0.7.6 — Twoja decyzja z 12.11).
+  4. Nowsza, poprawiona biblioteka C (musl 1.2.5) i dodatkowa ochrona przed przepełnieniem pamięci w całym systemie.
+Potem sieć:
+  5. Jądro z siecią i test „nic w K1 nie odpowiada z zewnątrz” — zanim cokolwiek pobierze adres.
+  6. Kabel: X230 (karta Intel) i IdeaPad 110-15ISK (karta Realtek — do potwierdzenia, D3) dostają adres od routera.
+  7. Widać to: ikona sieci na górnym pasku i Ustawienia → Sieć (najpierw szkice do wyboru, D1).
+  8. Zegar z internetu — godzina sama się poprawia (dziś po słabej baterii bywa rok 2000).
+  9. Porządki i wydanie 0.9.0.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                Luki (punkt 5)  Zależy od  Decyzje      Rozmiar  ADR
+[ ]  1  Jedna tabela usług systemowych                  L1 L2           —          —            M        —
+[ ]  2  Komunikaty: podział, odpowiedzi skarbca          L3 L4           —          —            M        —
+[ ]  3  Pliki startowe w aktualizacji; „Tymczasowe”      L5 L6           —          —            M–L      tak
+[ ]  4  musl 1.2.5 i fortify-headers                     L7 L8           —          —            M        korekta 0007
+[ ]  5  Jądro z siecią; nic nie odpowiada z zewnątrz     L9–L13          1, 4       T1–T4, T6    L        tak (sieć)
+[ ]  6  Kabel i adres od routera (DHCP) w klatce         L10 L14 L15     5          D2 D3, T6    L        —
+[ ]  7  Ikona sieci i Ustawienia → Sieć                  L16             6          D1           M        —
+[ ]  8  Zegar z internetu                                L17 L18         6          T5           M        —
+[ ]  9  Porządki i wydanie 0.9.0                         L19 L20         1–8        D4           S–M      —
+
+Kolejność: 1–4 nie dotykają tych samych plików (1: nadzorca; 2: wspólne komunikaty i skarbiec; 3: Instalator;
+4: budowa) — mogą iść w dowolnej kolejności, ale wszystkie przed 5 (sieć wchodzi do uporządkowanego kodu,
+z poprawioną biblioteką C). 2 po 1 jest wygodniej (tabela właścicieli kanałów z kroku 1). 7 i 8 po 6, między sobą
+niezależne.
+
+
+3. KROKI
+--------
+
+KROK 1 — Jedna tabela usług systemowych                                              M · bez decyzji · bez ADR
+  Cel: nowa usługa systemowa = jeden wiersz w jednej tabeli (zasada czytelności 5), jak aplikacje w K1_APLIKACJE.
+  Co widzi użytkownik: nic (porządki). Zasoby i start bez zmian.
+  Zadania:
+  [ ] Dziś (Z KODU, L1): usługa to wiersz w K1_SYSTEM (src/wspolne/k1_uslugi.h), osobny wpis w uslugi[] i kanaly[]
+      (src/nadzorca/uslugi.c) i profil w src/nadzorca/profile.c. Zebrać to w jedną tabelę (albo K1_SYSTEM
+      rozszerzony o to, czego dziś brakuje: kanały, kiedy startuje, restart) tak, żeby uslugi[], kanaly[] i profil
+      wynikały z niej jak dla aplikacji. Szczegół kształtu — w kroku; warunek: dodanie usługi „siec” w kroku 6 =
+      wiersz w tabeli + program + reguła w Makefile.
+  [ ] Tabela właścicieli kanałów w nadzorcy (uslugi.c: wlasciciele[12]) — rozmiar wynika z tabel, nie z liczby
+      wpisanej ręcznie (L2); przepełnienie = błąd przy budowie (_Static_assert), nie cichy brak właściciela.
+  [ ] Zasoby, spis plików obrazu (scripts/uslugi-systemu.sh), t_inventory, t_klatki — bez zmian zachowania.
+  Testy i dowód: pełny scripts/testy.sh [OK] bez zmian w scenariuszach (refaktoryzacja); test na hoście albo
+  _Static_assert na spójność tabel.
+  Dokumenty: nadzorca.md, ARCHITEKTURA.md (przepis „nowa usługa”), skill kons-dev (punkt 6 „Nowa usługa systemowa”).
+  Gotowe, gdy: przepis „nowa usługa” w skillu to jeden wiersz + program, testy [OK].
+
+KROK 2 — Komunikaty: podział pliku, odpowiedzi skarbca nie przepadają                M · bez decyzji · bez ADR
+  Cel: plik komunikatów gotowy na komunikaty sieci; skarbiec nie gubi odpowiedzi (RYZYKA R64).
+  Co widzi użytkownik: nic na co dzień; przy bardzo dużym imporcie Pliki nigdy nie „zapominają” o zmianie.
+  Zadania:
+  [ ] src/wspolne/k1_komunikat.c (531 wierszy, L3) — podzielić według kanałów (np. sprawdzanie komunikatów ekranu,
+      skarbca, nadzorcy w osobnych plikach), osobnym commitem, bez zmiany zachowania; test_komunikat i fuzz bez zmian.
+  [ ] Skarbiec: kolejka zaległych odpowiedzi dla klienta, którego kanał jest pełny (L4) — ta sama zasada co ekran od
+      0.8.5 (src/ekran/zalegle.c): odpowiedzi w kolejności, „pliki się zmieniły” scalone w jedno; POLLOUT tylko dla
+      klientów z zaległymi. Czy część zalegle.c da się wspólnie użyć (src/wspolne/) — sprawdzić w kroku.
+  Testy i dowód: najpierw test w systemie, który pokazuje lukę (klient skarbca przestaje czytać, dostaje dużo
+  zmian, znów czyta → musi dostać odpowiedź i „zmieniło się”); host — kolejka (ASan/UBSan); fuzz bez zmian.
+  Dokumenty: skarbiec.md (zasada doręczania), RYZYKA R64 (stan po poprawce), TESTY.md.
+  Gotowe, gdy: test w systemie zielony, pełny scripts/testy.sh [OK].
+
+KROK 3 — Pliki startowe w aktualizacji; usunięcie „Tymczasowe 0.9.0”                M–L · bez decyzji · ADR
+  Cel: aktualizacja przez Instalator wymienia też pliki startowe (shim, GRUB, grub.cfg) — bez „Zainstaluj od nowa”
+  (RYZYKA R45); potem znikają rozwiązania tymczasowe z terminem 0.9.0.
+  Co widzi użytkownik: nic nowego w oknie; K1 na dysku dostaje przy aktualizacji nowe pliki startowe (ważne, gdy
+  producent firmware unieważni stary shim). Pendrive nagrany 0.5.6–0.7.6 z notatkami — notatki nie przejdą do Plików
+  (Twoja decyzja z 2026-11-12). Aktualizacja wprost z 0.6.2–0.6.3 przestaje być możliwa (najpierw na 0.8.x).
+  Zadania:
+  [ ] ADR (uzupełnienie ADR 0021/0022): jak bezpiecznie wymienić pliki startowe — dwa kroki (nowe obok, sprawdzenie
+      sum z podpisanego manifestu, potem zamiana), co przy zaniku prądu w środku; manifest wydania obejmuje pliki
+      startowe (dziś manifest miejsca A/B ich nie obejmuje, L5).
+  [ ] Instalator: nowe sprawdzanie plików startowych przy instalacji (dziś robi to manifest formatu 1 — L5), potem
+      wymiana przy aktualizacji.
+  [ ] Usunąć (L6): manifest formatu 1 (src/wspolne/k1_efi.c, src/instalator/main.c, scripts/zbuduj-usb.sh,
+      narzedzia/podpisz.c) i src/aplikacje/notatki/stare.c; wpisy w DO_ZROBIENIA „Tymczasowe” → [x].
+  Testy i dowód: test-m6 — aktualizacja z 0.8.7 wymienia pliki startowe (suma na dysku po aktualizacji = nowa);
+  negatywne: plik startowy niezgodny z manifestem → Instalator odmawia, stary start działa; przerwanie w środku
+  (wyłączenie QEMU między krokami) → komputer dalej startuje. test-m5f — instalacja jak dotąd.
+  Dokumenty: instalator.md, ADR, RYZYKA R45, README (jeśli zmienia się coś przy aktualizacji ze starych wersji).
+  Gotowe, gdy: test-m6 z wymianą i testy negatywne zielone, `k1: tymczasowe — usunąć w 0.9.0` nie ma w repo.
+
+KROK 4 — musl 1.2.5 i fortify-headers                                               M · bez decyzji · korekta ADR 0007
+  Cel: własna, przypięta biblioteka C z poprawkami bezpieczeństwa (RYZYKA R8) i kontrola przepełnień w funkcjach
+  biblioteki w czasie działania (_FORTIFY_SOURCE, RYZYKA R7) — przed pierwszym kodem, który czyta dane z sieci.
+  Co widzi użytkownik: nic.
+  Zadania:
+  [ ] Build musl 1.2.5 ze źródeł z przypiętą sumą SHA-256 (jak jądro: jadro/wersja.env), z poprawkami
+      bezpieczeństwa wydanymi po 1.2.5 (m.in. CVE-2025-26519, iconv) — listę poprawek sprawdzić i zapisać
+      w ZALEZNOSCI.md. Źródło: kontener ma dostęp do deb.debian.org i GitHuba, nie do musl.libc.org (NIEPEWNE,
+      L7) — oryginalne archiwum z Debiana z sumą porównaną z podpisem wydania musl.
+  [ ] _FORTIFY_SOURCE: musl sam go nie obsługuje — potrzebne są osobne nagłówki fortify-headers (L8; SPEC §11
+      [korekta: ADR 0002], ADR 0007, ZALEZNOSCI: „ponownie przy własnym buildzie musl”). Dodać jako obcą zależność
+      z wpisem i uzasadnieniem, przypiętą wersją i sumą; -D_FORTIFY_SOURCE w flagach obrazu (dziś tylko w testach na
+      hoście z glibc, Makefile).
+  [ ] scripts/przygotuj-srodowisko.sh, CI (k1.yml), scripts/sprawdz-binaria.sh (czy programy naprawdę mają wersje
+      *_chk), scripts/sprawdz-powtarzalnosc.sh — obraz dalej powtarzalny.
+  Testy i dowód: pełny scripts/testy.sh [OK]; sprawdz-binaria pokazuje funkcje fortify; test negatywny w systemie
+  (np. przepełnienie memcpy w programie testowym kończy się zatrzymaniem procesu, nie cichym zapisem — jeśli da się
+  zrobić bez osłabiania obrazu produkcyjnego); powtarzalność.
+  Dokumenty: ZALEZNOSCI.md, ADR 0007 (dopisek-korekta), SPEC §11 (dopisek), RYZYKA R7 i R8, ARCHITEKTURA (budowa).
+  Gotowe, gdy: obraz zbudowany z naszego musl i z fortify, testy [OK], powtarzalność [OK].
+
+KROK 5 — Jądro z siecią; nic w K1 nie odpowiada z zewnątrz                          L · decyzje T1–T4, T6 · ADR
+  Cel: jądro umie sieć (tylko to, co potrzebne), a test z zewnątrz pokazuje, że K1 nie odpowiada na żadne
+  połączenie — zanim jakakolwiek usługa zacznie używać sieci.
+  Co widzi użytkownik: nic (na razie nikt nie pobiera adresu).
+  Zadania:
+  [ ] ADR „Sieć w K1”: T1 (kto ma jakie uprawnienia), T2 (IPv4/IPv6), T3 (co znaczy „nie odpowiada”), T4 (USER_NS),
+      T6 (które sterowniki). Rekomendacje — punkt 4.
+  [ ] jadro/k1.config (każda linia z komentarzem, sprawdzone w Kconfig — L9): INET; gniazda pakietowe dla DHCP
+      (PACKET); sterowniki kart wg T6 (E1000E — X230 i QEMU; R8169 — IdeaPad wg D3; VIRTIO_NET — maszyny
+      wirtualne); bez IPv6, zapory i opcji „serwerowych” wg ADR. scripts/sprawdz-kspp.sh — nowe zalecenia KSPP dla
+      sieci (sysctl net.*) i odstępstwa w jadro.md.
+  [ ] init: sysctl sieci (wg ADR, np. ignorowanie pinga, rp_filter, bez przekazywania pakietów) w tabeli sysctls[]
+      (src/init) — każdy wymagany, nieudany = zatrzymanie startu (niezmiennik 10).
+  [ ] Test „nic nie odpowiada” z zewnątrz (L11): QEMU z kartą e1000e podłączoną do programu testowego na hoście
+      (testy/qemu/: „sieć testowa” w Pythonie, ramki Ethernet przez -netdev socket/stream — który wariant ma QEMU
+      w kontenerze i CI: NIEPEWNE), który wysyła ARP, ping, SYN na wszystkie porty TCP i datagramy UDP i sprawdza, że
+      odpowiedzi są dokładnie takie, jak ustala T3 (żadnej usługi). Ta sama „sieć testowa” posłuży w krokach 6 i 8
+      (DHCP, czas).
+  [ ] Test w systemie (L10): żadna klatka nie może utworzyć gniazda sieciowego (seccomp bez socket — dziś prawda
+      dla wszystkich klatek, k1_klatka.c; test pilnuje, żeby tak zostało: próba socket(AF_INET) w klatce aplikacji
+      → zabronione wywołanie).
+  [ ] Testy dotychczasowe startują QEMU z -nic none (scripts/uruchom-qemu.sh) — zostaje; sieć tylko w nowym teście.
+  Testy i dowód: nowy test (np. scripts/test-siec.sh) w scripts/testy.sh i CI; konfiguracja jądra przechodzi
+  sprawdzenie fragmentu; rozmiar k1.efi przed/po w opisie PR-a.
+  Dokumenty: ADR, jadro.md, init.md, TESTY.md, RYZYKA (nowa powierzchnia ataku: stos sieciowy jądra i sterowniki),
+  SPEC §… (dopisek o INET), skill (niezmiennik 3: „INET (do 0.9)” → stan po ADR), SLOWNIK (sieć, karta sieciowa).
+  Gotowe, gdy: test z zewnątrz i test w systemie zielone, testy [OK].
+
+KROK 6 — Kabel i adres od routera (DHCP) w klatce                                   L · decyzje D2 D3, T6 · bez ADR
+  Cel: po włożeniu kabla K1 sam dostaje adres od routera na X230, IdeaPadzie i w QEMU; wyjęcie kabla = brak
+  połączenia; nic poza tym.
+  Co widzi użytkownik: na razie tylko to, że nic się nie psuje (stan sieci pokaże krok 7); w logu — „sieć: połączono,
+  adres …” bez danych osobistych poza adresem lokalnym (niezmiennik 8 — sprawdzić, czy adres w logu jest w porządku;
+  rekomendacja: tylko „połączono / rozłączono”).
+  Zadania (wg ADR z kroku 5 — kierunek T1):
+  [ ] Nadzorca (root, bez klatki) wykrywa karty sieciowe (uevent podsystemu „net” — dziś nadzorca rozpoznaje tylko
+      input, block, power_supply, L14), podnosi kartę, otwiera gniazdo pakietowe na tej karcie i przekazuje je usłudze
+      (otwarcie wymaga CAP_NET_RAW — ZE ŹRÓDEŁ, net/packet/af_packet.c; deskryptor po przekazaniu działa bez niego).
+  [ ] Nowa usługa „siec” (wiersz w tabeli z kroku 1, własny UID, klatka): klient DHCP (nasz kod w C — rozmowa
+      z routerem: DISCOVER/OFFER/REQUEST/ACK, odnawianie, utrata kabla); każdy pakiet z sieci sprawdzany pole po polu
+      jak komunikat (niezmiennik 6) — parser w osobnym pliku, test na hoście i fuzzing (testy/host/fuzz_dhcp.c).
+  [ ] Usługa prosi nadzorcę komunikatem o ustawienie adresu, maski i bramy (to wymaga CAP_NET_ADMIN — ZE ŹRÓDEŁ,
+      net/ipv4/devinet.c); nadzorca sprawdza zakresy (adres prywatny/publiczny dowolny, ale np. nie 0.0.0.0,
+      nie multicast) i robi to sam. Nowe komunikaty w k1_komunikat.h, test, fuzzing, test negatywny w systemie.
+  [ ] Wykrywanie kabla (włożony / wyjęty) — przez netlink jądra w nadzorcy (NIEPEWNE: które powiadomienie, L15).
+  [ ] D3: IdeaPad — nazwa karty; jeśli to Realtek z rodziny r8169 (np. RTL8106E): sterownik prosi o plik
+      „rtl_nic/rtl8106e-1.fw”, ale bez niego działa dalej (ZE ŹRÓDEŁ: r8169_main.c, firmware_request_nowarn, brak
+      pliku → bez łatki) — sprawdzić na IdeaPadzie, czy połączenie jest stabilne bez pliku; jeśli nie — pliki
+      oprogramowania kart wchodzą razem z Wi-Fi (punkt 6), nie tutaj.
+  Testy i dowód: „sieć testowa” z kroku 5 odpowiada jak router (OFFER, ACK) → log K1 „połączono”; negatywne: zły
+  pakiet DHCP (za krótki, złe opcje, obcy identyfikator transakcji) — odrzucony, usługa żyje; „kabel wyjęty”
+  (QEMU set_link off) → „rozłączono”; usługa w klatce nie może sama ustawić adresu (próba w klatce, t_proby).
+  Właściciel (po wydaniu): X230 i IdeaPad z kablem do routera.
+  Dokumenty: nowy opis usługi „siec” w docs/komponenty/ (cel, granica zaufania, uprawnienia, kanały, testy), nadzorca.md,
+  RYZYKA, SLOWNIK, TESTY.md.
+  Gotowe, gdy: test DHCP i testy negatywne zielone, testy [OK].
+
+KROK 7 — Ikona sieci i Ustawienia → Sieć                                             M · decyzja D1 · bez ADR
+  Cel: widać, czy K1 jest połączony z siecią, a gdy nie — dlaczego.
+  Najpierw: D1 — 2–3 szkice do wyboru (ikona na górnym pasku obok dźwięku i baterii; sekcja Ustawień), rysowane
+  częściami K1 na hoście; wybór w WYGLAD.md.
+  Co widzi użytkownik (wg szkicu): ikona — połączono / brak kabla / brak karty; Ustawienia → Sieć: „Połączono
+  kablem”, nazwa karty (np. „Intel 82579LM” — z identyfikatora PCI), od kiedy; „Nie znaleziono karty sieciowej
+  obsługiwanej przez K1 (identyfikator 10ec:8136)” — to pomoże przy kolejnych laptopach. Bez Wi-Fi (wejdzie później).
+  Zadania:
+  [ ] Stan sieci od usługi „siec”/nadzorcy do gui i Ustawień — kanałem, tylko stan i nazwa karty (żadnych pakietów,
+      L16); wiersz w tabeli sekcji Ustawień; ikona K1_IK_* w k1_rysuj.c.
+  Testy i dowód: QEMU — ikona i sekcja w obu stanach (kabel włożony/wyjęty w „sieci testowej”), zrzuty w obu motywach.
+  Dokumenty: aplikacje.md (Ustawienia), gui.md, WYGLAD, SLOWNIK.
+  Gotowe, gdy: scenariusz QEMU zielony, zrzuty pokazane właścicielowi.
+
+KROK 8 — Zegar z internetu                                                           M · decyzja T5 · bez ADR
+  Cel: po połączeniu K1 ustawia zegar komputera (RYZYKA R56), bezpiecznie wobec podrobionej odpowiedzi.
+  Co widzi użytkownik: godzina i data poprawne po podłączeniu kabla, także po rozładowanej baterii zegara.
+  Zadania:
+  [ ] T5 (punkt 4): źródło czasu i ochrona przed podrobieniem (zwykły protokół czasu nie jest podpisany — L17).
+  [ ] Klient czasu w klatce (w usłudze „siec” albo osobno — w kroku), parser z testem i fuzzingiem; ustawienie
+      zegara robi nadzorca na prośbę (wymaga CAP_SYS_TIME — NIEPEWNE do potwierdzenia w kernel/time/), z granicami
+      wg T5. Reguła z 0.8.1: skok w przód nie opróżnia Kosza (L18 — sprawdzić testem po zmianie zegara przez sieć).
+  [ ] Zegar sprzętowy (RTC) też poprawiony, żeby następny start miał dobrą godzinę bez sieci (NIEPEWNE: RTC w jądrze
+      K1 — sprawdzić konfigurację).
+  Testy i dowód: „sieć testowa” podaje czas → zegar K1 się zmienia; negatywne: odpowiedź podrobiona/zła (zły
+  identyfikator, czas spoza granic T5) → zegar bez zmian; Kosz po skoku zegara nie traci plików.
+  Dokumenty: siec.md, nadzorca.md, RYZYKA R56, skarbiec.md (Kosz a zegar), SLOWNIK.
+  Gotowe, gdy: testy zielone, [OK].
+
+KROK 9 — Porządki i wydanie 0.9.0                                                   S–M · decyzja D4
+  Cel: wydanie 0.9.0 z obrazem ISO i USB.
+  [ ] Porządki (zasada czytelności 2): pliki testów ponad 600 wierszy (testy/host/test_dokumenty.c 1326,
+      test_komunikat.c 781 — L19) podzielić albo zapisać w AGENTS.md, że limit dotyczy src/ (rekomendacja: podzielić
+      — test też ma być czytelny); src/ekran/okna.c (564 wiersze, funkcja „komunikat” 79) podzielić przed 0.10.
+      Co usunąć/scalić po krokach 1–8.
+  [ ] D4 — pamięć podręczna budowy jądra w CI (L20), jeśli właściciel się zgodzi.
+  [ ] Przegląd „Tymczasowe” (terminy 0.10.0 bez zmian, chyba że coś wyszło).
+  [ ] VERSION 0.9.0; CHANGELOG (Dodane / Zmienione / Naprawione / Porządki) z opisów PR-ów kroków 1–8.
+  [ ] DO_ZROBIENIA.txt: „Teraz” → Wi-Fi (plan 0.9.x) albo 0.10, lista testów na X230 i IdeaPadzie dla 0.9.0
+      (kabel do routera, ikona, Ustawienia → Sieć, zegar po podłączeniu, aktualizacja z 0.8.7 przez Instalator);
+      ten plik → docs/archiwum/.
+  [ ] Po scaleniu: CI, tag k1-v0.9.0, wydanie; raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
+
+
+4. DECYZJE
+----------
+Twoje (produkt):
+[x] D0 Sterowniki kart sieciowych (i później Wi-Fi) — z jądra Linux, nie własne.
+       DECYZJA (2026-11-13, właściciel): „Nie piszemy swoich sterowników, bo jądro już te sterowniki ma.”
+       Nasz kod: uprawnienia, adres od routera, zegar, stan na ekranie, testy (punkt 1).
+[!] D1 (krok 7) Wygląd ikony sieci i sekcji Ustawienia → Sieć — 2–3 szkice do wyboru na początku kroku 7.
+       Rekomendacja: ikona liniowa obok dźwięku i baterii (jak w Windows 11), sekcja jak „Bateria” (stan, karta).
+[!] D2 (krok 6, plan Wi-Fi) Czy masz w domu kabel sieciowy do obu laptopów, czy używasz tylko Wi-Fi?
+       Nie zmienia kroków 0.9.0 (kabel jest prostszy i testowalny w QEMU), ale jeśli tylko Wi-Fi — plan Wi-Fi
+       (punkt 6) zaczynamy zaraz po 0.9.0, przed 0.10.
+[!] D3 (krok 6) IdeaPad 110-15ISK — dokładne nazwy kart sieciowych. Według Lenovo: kabel 10/100 i Wi-Fi 802.11ac;
+       według niezależnego sklepu Wi-Fi to Qualcomm Atheros QCA9377 (NIEPEWNE). Jeśli masz na nim Windows:
+       Menedżer urządzeń → Karty sieciowe → przepisz obie nazwy. Bez tego krok 6 włączy sterownik Realtek r8169
+       (najczęstszy w tej klasie laptopów), a krok 7 pokaże identyfikator karty, gdy K1 jej nie obsłuży.
+       Przy okazji: czy na IdeaPadzie działa touchpad, bateria w Zasobach, i czy K1 jest na dysku czy na pendrive'ie.
+[!] D4 (krok 9) Pamięć podręczna budowy jądra w CI (z audytu 0.8.6): ok. 7 z 30 min każdego przebiegu mniej.
+       Rekomendacja: tylko dla przebiegów PR-ów (etykieta „testy”); wydania zawsze budowane od zera.
+
+Techniczne (decyduje Claude w ADR kroku 5 i w krokach — Ty dostajesz krótkie wyjaśnienie):
+    T1 Uprawnienia: rekomendacja — jak pendrive i dyski: nadzorca (root) robi to, co wymaga uprawnień (gniazdo
+       pakietowe, adres, brama, zegar) na prośbę usługi „siec”, sprawdzając zakresy; usługa „siec” w klatce bez
+       uprawnień czyta i liczy wszystko, co przychodzi z sieci. Usługa nigdy nie dostaje CAP_NET_ADMIN.
+    T2 IPv4 czy też IPv6: rekomendacja — tylko IPv4 w 0.9.0 (mniej kodu jądra; domowe routery dają IPv4);
+       IPv6 — „Później”, z ADR.
+    T3 „Nic nie odpowiada”: żadna usługa nie nasłuchuje (żadna klatka nie ma socket — test); ping ignorowany
+       (sysctl). Zostaje odpowiedź jądra „zamknięte” na próbę połączenia (TCP RST, ICMP „port niedostępny”) —
+       rekomendacja: przyjąć ją w 0.9.0 bez zapory (netfilter to duża część jądra i własny program reguł); wrócić
+       w 0.10, gdy strefy będą potrzebować przekazywania pakietów. Ostatecznie w ADR, po próbie w kroku 5.
+    T4 Przestrzenie nazw użytkownika (USER_NS): rekomendacja — nie (T1 ich nie potrzebuje; strefy w 0.10 to
+       maszyny wirtualne KVM, nie przestrzenie nazw). Decyzja z DO_ZROBIENIA punkt 7.
+    T5 Źródło czasu: rekomendacja — prosty protokół czasu (SNTP) z kilku źródeł naraz i zgodność między nimi, serwer
+       z odpowiedzi routera (DHCP), jeśli go podaje, inaczej stałe adresy; zmiana zegara tylko w granicach (np. nie
+       wstecz poniżej daty wydania K1). Nazwy serwerów (DNS) — w kroku 8: czy potrzebne, czy wystarczą stałe adresy.
+    T6 Sterowniki w jądrze: E1000E (X230: Intel 82579LM; QEMU ma tę samą rodzinę karty do testów), R8169 (IdeaPad —
+       wg D3), VIRTIO_NET (maszyny wirtualne QEMU/KVM). E1000 (domyślna karta VirtualBoxa) — tylko jeśli używasz
+       VirtualBoxa z siecią. Każdy sterownik = więcej kodu jądra, który czyta dane z kabla.
+
+
+5. LUKI (z czytania kodu 0.8.7 i źródeł jądra 6.18.60, 2026-11-13)
+------------------------------------------------------------------
+Waga: WYSOKA (blokuje krok), ŚREDNIA, NISKA.
+
+Porządki (kroki 1–4)
+  L1  Z KODU, ŚREDNIA. Usługa systemowa jest opisana w czterech miejscach: K1_SYSTEM (src/wspolne/k1_uslugi.h),
+      uslugi[] i kanaly[] (src/nadzorca/uslugi.c), profil (src/nadzorca/profile.c). Aplikacje mają jedną tabelę.
+  L2  Z KODU, NISKA. Tabela właścicieli kanałów w nadzorcy ma stały rozmiar (uslugi.c: wlasciciele[12]); nowa
+      usługa z kanałem może ją przepełnić bez błędu przy budowie (wg audytu 0.8.6: 10 z 12 zajętych).
+  L3  Z KODU, NISKA. src/wspolne/k1_komunikat.c ma 531 wierszy (limit 600) — komunikaty sieci by go przepełniły.
+  L4  Z KODU, NISKA (RYZYKA R64). Skarbiec wysyła odpowiedzi bez czekania — przy pełnym kanale klienta przepadają.
+  L5  Z KODU, ŚREDNIA (RYZYKA R45). Pliki startowe (shim, GRUB, grub.cfg) na dysku nie są wymieniane przez
+      aktualizację; manifest miejsca A/B ich nie obejmuje; przy instalacji sprawdza je manifest formatu 1
+      (src/instalator/main.c: „with format 1: check the boot files another way”).
+  L6  Z KODU. Tymczasowe z terminem 0.9.0: manifest formatu 1 (src/wspolne/k1_efi.c, src/instalator/main.c,
+      scripts/zbuduj-usb.sh, narzedzia/podpisz.c), przenoszenie starych notatek (src/aplikacje/notatki/stare.c).
+  L7  NIEPEWNE, ŚREDNIA. Źródło musl 1.2.5 dla kontenera: musl.libc.org nie jest na liście dozwolonych adresów
+      (CLAUDE.md: apt Ubuntu, deb.debian.org, GitHub, kernel.org). CI (GitHub) ma pełny dostęp, ale lokalny build musi
+      użyć tego samego archiwum (ta sama suma).
+  L8  Z KODU, ŚREDNIA. DO_ZROBIENIA mówił „razem z musl wraca _FORTIFY_SOURCE” — sam musl tego nie daje: potrzebne
+      są nagłówki fortify-headers (SPEC §11 [korekta: ADR 0002], ADR 0007, ZALEZNOSCI.md). To druga obca zależność
+      kroku 4, nie skutek nowej wersji musl.
+
+Sieć (kroki 5–8)
+  L9  Z KODU / ZE ŹRÓDEŁ. Jądro K1 ma dziś tylko CONFIG_NET (wymagane przez filtr seccomp), bez INET
+      (jadro/k1.config). Sterowniki: E1000E (drivers/net/ethernet/intel/Kconfig, bez pliku oprogramowania karty),
+      R8169 („Realtek 8169/8168/8101/8125”, select FW_LOADER, PHYLIB, REALTEK_PHY). allnoconfig wyłącza wszystko,
+      co nie jest we fragmencie — zależności (PHYLIB itp.) sprawdza scripts/zbuduj-jadro.sh.
+  L10 Z KODU, WAŻNE DLA BEZPIECZEŃSTWA. Żadna klatka nie ma dziś wywołania socket/connect/bind (src/wspolne/
+      k1_klatka.c: „channels are inherited”; w profile.c brak wyjątków) — włączenie INET nie daje sieci żadnej
+      aplikacji ani usłudze. Usługa „siec” też nie dostanie socket: gniazdo otwiera nadzorca (T1).
+  L11 Z KODU. Testy QEMU startują z -nic none (scripts/uruchom-qemu.sh) — sieci w testach dziś nie ma; dodatkowe
+      urządzenia przez DODATKI. Test „nic nie odpowiada” musi patrzeć z zewnątrz: /proc ma subset=pid (spis gniazd
+      w /proc/net prawdopodobnie niewidoczny — NIEPEWNE).
+  L12 ZE ŹRÓDEŁ. Oprogramowanie kart (firmware) jądro szuka tylko w /lib/firmware… albo w ścieżce z parametru
+      firmware_class.path (drivers/base/firmware_loader/main.c), albo wbudowane w jądro (EXTRA_FIRMWARE). K1 nie ma
+      /lib/firmware (ADR 0004). Kabel na X230 go nie potrzebuje; Wi-Fi potrzebuje zawsze (punkt 6).
+  L13 Z KODU. init ustawia wymagane sysctl z tabeli (src/init, sysctls[]) — sysctl sieci dopisać tam (fail closed).
+  L14 Z KODU. Nadzorca rozpoznaje w uevent tylko podsystemy input, block, power_supply (src/nadzorca/uevent.c) —
+      karta sieciowa to nowy rodzaj zdarzenia.
+  L15 NIEPEWNE. Wykrycie włożenia/wyjęcia kabla: przez netlink (RTNETLINK, zmiana stanu łącza) — sprawdzić
+      w źródłach, co nadzorca musi otworzyć i czy uevent tego nie daje.
+  L16 Z KODU. gui ma na górnym pasku dźwięk, baterię i zegar; stan sieci to nowy kanał albo nowe pole istniejącego
+      (sprawdzić w kroku, jak bateria dochodzi do gui — ten sam wzór).
+  L17 NIEPEWNE. Zwykły protokół czasu (NTP/SNTP) nie jest podpisany — ktoś w tej samej sieci może podać zły czas.
+      Bezpieczne warianty (NTS) wymagają TLS — za dużo na 0.9.0; stąd granice i kilka źródeł (T5).
+  L18 Z KODU (RYZYKA R56). Kosz liczy 30 dni według zegara; od 0.8.1 skok w przód nie opróżnia Kosza — test po
+      zmianie zegara przez sieć.
+
+Porządki końcowe (krok 9)
+  L19 Z KODU. testy/host/test_dokumenty.c 1326 wierszy, test_komunikat.c 781 — skrypt sprawdza limit tylko w src/;
+      src/ekran/okna.c 564 wiersze (przed 0.10: ramka stref).
+  L20 Z AUDYTU 0.8.6. Budowa jądra to ok. 7 z 30 min każdego przebiegu CI.
+
+
+6. NIE W TEJ WERSJI — Wi-Fi (własny plan: docs/PLAN-0.9.<n>.txt po wydaniu 0.9.0)
+--------------------------------------------------------------------------------
+Sterowniki z jądra (D0): X230 — Intel (iwlwifi: IWLWIFI + IWLDVM albo IWLMVM, zależnie od karty — sprawdzić, jaka
+karta jest w Twoim X230); IdeaPad — wg D3 (jeśli QCA9377: ATH10K + ATH10K_PCI). Obie potrzebują plików
+oprogramowania od producenta (linux-firmware na kernel.org) — ADR: wbudowane w podpisane k1.efi (EXTRA_FIRMWARE —
+podpis obejmuje je razem z jądrem) czy w rdzeniu (firmware_class.path). Do tego potrzebny jest program, który
+loguje do sieci Wi-Fi z hasłem (WPA2/WPA3 — ten krok jądro zostawia programom): przeniesiony obcy program
+(wpa_supplicant albo iwd — obca zależność, ADR) czy własny — decyzja w tym planie. W Ustawieniach: lista sieci,
+hasło (w skarbcu), zapamiętane sieci.
