@@ -11,9 +11,9 @@ Buduje go `scripts/zbuduj-musl.sh` do `build/musl/` (z niego `make` bierze kompi
 | `latki/` | łatki nakładane po kolei (`patch -p1`) — niżej |
 
 ## Źródło i sprawdzenie
-- Archiwum: oryginalne wydanie `musl-1.2.5.tar.gz`. Pierwsze źródło: archiwum Ubuntu (pakiet źródłowy `musl`, plik
-  `musl_1.2.5.orig.tar.gz` — to samo wydanie bajt w bajt), drugie: `musl.libc.org` (kontener deweloperski go nie
-  widzi; CI tak).
+- Archiwum: oryginalne wydanie `musl-1.2.5.tar.gz`. Źródła po kolei: archiwum Ubuntu (pakiet źródłowy `musl`, plik
+  `musl_1.2.5.orig.tar.gz` — to samo wydanie bajt w bajt), lustro Ubuntu na kernel.org (gdy nazwy Ubuntu nie odpowiadają),
+  `musl.libc.org` (kontener deweloperski widzi tylko pierwsze; CI — wszystkie).
 - Skrypt sprawdza **SHA-256** z `wersja.env` i **podpis PGP wydawcy** (`.asc` z tego samego źródła) — tylko klucz
   o odcisku z `wersja.env`. Inna suma albo zły podpis = budowa przerwana.
 - Sprawdzone 2026-11-13: suma `a9a118bb…c75e4` zgodna z plikiem `.dsc` Ubuntu (1.2.5-3build1), podpis
