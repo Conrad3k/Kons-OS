@@ -162,22 +162,34 @@ void miejsce_wynik(const struct k1_komunikat *k)
     k1_log(TAG, "powiększenie K1-DANE: %s (wynik %d)", k->b == 0 ? "gotowe" : "nieudane", (int)k->b);
 }
 
+/* The columns [x0, x1) of the bar in colour `c`: the whole rounded bar drawn into a view of only those columns, so a
+ * part at either end gets the rounded end and one in the middle straight sides. */
+static void wycinek(struct k1_obraz *o, int32_t y, int32_t x0, int32_t x1, uint32_t c)
+{
+    struct k1_obraz v;
+    if (x1 <= x0)
+        return;
+    v = (struct k1_obraz){ o->px + (size_t)y * o->krok + (size_t)x0, (uint32_t)(x1 - x0), PASEK_H, o->krok };
+    k1_zaokraglony(&v, (float)(TRESC_X - x0), 0, PASEK_W, PASEK_H, PASEK_H / 2.0f, c);
+}
+
 /* The bar: every part in its colour, from the left, 2 px apart; the rest of the track is free room. */
 static void pasek(struct k1_obraz *o, const struct k1_motyw *m, int32_t y, const int64_t *w, const int *nr, int n)
 {
+    const int32_t koniec = TRESC_X + PASEK_W;
     double x = TRESC_X, na_kib = in.calosc > 0 ? (double)PASEK_W / ((double)in.calosc * 1024.0) : 0;
     k1_zaokraglony(o, TRESC_X, (float)y, PASEK_W, PASEK_H, PASEK_H / 2.0f, k1_kolor(m->tekst, 22));
-    for (int k = 0; k < n && x < TRESC_X + PASEK_W - CZESC_MIN; k++) {
+    for (int k = 0; k < n && x < koniec; k++) {
         double d = (double)w[nr[k]] * na_kib;
-        uint32_t c = k1_kolor(kolor(m, nr, n, k), 255);
-        d = d < CZESC_MIN ? CZESC_MIN : (x + d > TRESC_X + PASEK_W ? TRESC_X + PASEK_W - x : d);
-        if (k == 0) /* the rounded start of the bar */
-            k1_zaokraglony(o, (float)x, (float)y, (float)d + PASEK_H / 2.0f, PASEK_H, PASEK_H / 2.0f, c);
-        else
-            k1_prostokat(o, (int32_t)x, y, (int32_t)(d + 0.5), PASEK_H, c);
-        x += d;
-        k1_prostokat(o, (int32_t)x, y, 2, PASEK_H, k1_kolor(m->tlo, 255));
-        x += 2;
+        int32_t x0 = (int32_t)(x + 0.5), x1;
+        d = d < CZESC_MIN ? CZESC_MIN : d;
+        x1 = x + d > koniec - CZESC_MIN ? koniec : (int32_t)(x + d + 0.5); /* never past the end, no sliver left */
+        wycinek(o, y, x0, x1, k1_kolor(kolor(m, nr, n, k), 255));
+        if (x1 >= koniec)
+            break;
+        if (k + 1 < n) /* a gap between two parts */
+            k1_prostokat(o, x1, y, 2, PASEK_H, k1_kolor(m->tlo, 255));
+        x = x1 + 2;
     }
 }
 
@@ -224,7 +236,7 @@ void miejsce_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         return;
     wiersze(w);
     n = podzial_znany ? kolejnosc(w, nr) : 0;
-    liczby(o, m, seg_y() + 16, seg_y() + 4 * WIERSZ + 98);
+    liczby(o, m, seg_y() + 16, seg_y() + 80 + 3 * WIERSZ + 30); /* below the 4th row of the legend */
     pasek(o, m, seg_y() + 30, w, nr, n);
     if (podzial_znany)
         legenda(o, m, seg_y() + 80, w, nr, n);
@@ -235,7 +247,7 @@ void miejsce_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         if (in.czeka)
             snprintf(buf, sizeof buf, "Powiększam… Nie wyjmuj pendrive'a.");
         else
-            snprintf(buf, sizeof buf, "Pendrive ma jeszcze %s nieużywanego miejsca. Pliki zostają na miejscu.", r);
+            snprintf(buf, sizeof buf, "Pendrive ma jeszcze %s nieużywanego miejsca.", r);
         k1_tekst(o, K1_CZ_MALA, TRESC_X, p.y - 10, buf, k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 24);
     } else if (in.komunikat[0] != '\0') {
         k1_tekst(o, K1_CZ_MALA, TRESC_X, apl.wys - 32, in.komunikat, k1_kolor(in.blad ? m->akcent_tekst : m->tekst2, 255),
