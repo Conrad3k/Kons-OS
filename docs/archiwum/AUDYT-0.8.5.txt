@@ -1,0 +1,65 @@
+K1 — AUDYT PRZED 0.9 SIEĆ (stan 0.8.5, wynik: wydanie 0.8.6)
+==============================================================
+Data: 2026-11-13. Zakres (prośba właściciela): porządek w kodzie, błędy, sprawność — cały system przed siecią.
+Ten plik to zapis historii (jak zamknięte plany); to, co zostało do zrobienia, jest w docs/DO_ZROBIENIA.txt.
+
+
+1. JAK SPRAWDZANO
+-----------------
+  - Czytanie kodu w całości: init, initramfs, nadzorca (wszystkie moduły), wspólne kanały, klatki, logi, memfd,
+    klient skarbca; ekran (pętla, scena, okna, wskaźnik, kolejka zaległych), wejscie, instalator, pętla aplikacji
+    i klienta ekranu, pętla skarbca i kanał plików, początek formatu 2 skarbca, konfiguracja jądra, CI, skrypty testów.
+  - Narzędzia na całym kodzie K1 (bez src/zewnetrzne): gcc -fanalyzer — 0 ostrzeżeń; clang --analyze — 2, oba
+    fałszywe (efi.c: kod martwy tylko w wersji deweloperskiej; rozruch.c: wskaźnik nie może być pusty przy
+    potwierdzeniu A/B); dodatkowe ostrzeżenia clang (nieosiągalny kod, zmienne bez inicjalizacji, zasłanianie nazw,
+    nieużywane makra) — tylko uwagi o stylu; symbole globalne nieużywane poza własnym plikiem; niebezpieczne funkcje
+    (strcpy, sprintf…) — brak; każda alokacja pamięci ma sprawdzenie; brak TODO/FIXME bez wpisu.
+  - Pomiary w QEMU: czas wyłączania, zapis historii baterii przy wyłączaniu, odstęp podwójnego kliknięcia.
+  - Tylko wyrywkowo (testy i fuzzing je pokrywają): wnętrze formatu skarbca, parser FAT, aplikacje (Pliki, Notatki,
+    Ustawienia…), pulpit. Tu audyt opiera się na istniejących testach, nie na czytaniu wiersz po wierszu.
+
+
+2. CO ZNALEZIONO I POPRAWIONO W 0.8.6
+-------------------------------------
+Sprawność
+  S1  Jądro bez zarządzania energią procesora (skutek „allnoconfig”, nigdzie niezapisany): przerwanie zegara 250×/s
+      także w bezczynności, sen tylko w HLT, brak zmiany częstotliwości i turbo, zegary z dokładnością 4 ms (ekran
+      bez page flip: ok. 50 klatek zamiast 60). → NO_HZ_IDLE, HIGH_RES_TIMERS, CPU_IDLE + INTEL_IDLE, CPU_FREQ +
+      X86_INTEL_PSTATE, ACPI_PROCESSOR, ACPI_THERMAL z wymuszonym wyłączeniem (jadro/k1.config, docs/komponenty/
+      jadro.md). Efekt do potwierdzenia na X230 (RYZYKA R63) — w maszynie wirtualnej go nie widać.
+  S2  Wyłączanie zawsze 3 s za długie: init po zebraniu ostatniego procesu czekał na sygnał, który nie mógł już
+      przyjść. Zmierzone 3,11 s → 0,10 s.
+  S3  Wyjęcie pendrive'a zauważane dopiero przy sprawdzaniu co 10 s (zdarzenie „usunięto dysk” było pomijane).
+  S4  Testy: 13 fuzzerów po kolei (4 min lokalnie, 6,5 min w CI na przebieg) → równolegle.
+Błędy
+  B1  Ostatni zapis historii baterii przy wyłączaniu nigdy się nie udawał: init wysyłał SIGTERM wszystkim naraz,
+      skarbiec znikał pierwszy, nadzorca kręcił pętlę 1,5 s. → init zatrzymuje najpierw nadzorcę; test w test-m5.
+  B2  Skarbiec i ekran po nieudanym uruchomieniu (fork, kanał) nie były uruchamiane ponownie.
+Porządek
+  P1  Nadzorca: funkcje i zmienne jednego pliku widoczne w całym programie; zbędna kolumna tabeli kanałów; ciche
+      przepełnienie tabeli właścicieli kanałów; drobiazgi w skarbcu, Plikach, grafice.
+  P2  Dokumenty: skill podawał czas CI „ok. 10 min” (jest ok. 30); brak opisu kolejności wyłączania.
+
+
+3. CO ZOSTAJE (wpisane do docs/DO_ZROBIENIA.txt i RYZYKA)
+----------------------------------------------------------
+  - Przed komunikatami sieci: podział src/wspolne/k1_komunikat.c (531/600 wierszy); z tabelą usług — tabela
+    właścicieli kanałów i kolejka zaległych odpowiedzi w skarbcu (R64).
+  - Pliki testów ponad limit (test_dokumenty.c 1326 wierszy, test_komunikat.c 781): podzielić albo doprecyzować zasadę.
+  - src/ekran/okna.c blisko limitu (564 wiersze, funkcja 79/80) — podział przed 0.10.
+  - Laptop: CONFIG_PM (usypianie urządzeń), pokrywa i przycisk zasilania, AMD — R63, sekcja „Laptop”.
+  - CI: pamięć podręczna jądra (ok. 7 z 30 min) — decyzja właściciela.
+
+
+4. CO SPRAWDZONO I ZOSTAWIONO BEZ ZMIAN (świadomie)
+---------------------------------------------------
+  - Budzenie się usług w bezczynności (ekran 4×/s, pulpit i nadzorca 1×/s): przy śpiącym procesorze koszt pomijalny;
+    rzadsze budzenie pulpitu popsułoby zegar na pasku po ustawieniu czasu z sieci (0.9).
+  - Filtr seccomp jako lista liniowa: jądro i tak zapamiętuje dozwolone wywołania (bitmapa), zmiana kolejności nic nie da.
+  - Wejście gubi zdarzenia, gdy ekran nie czyta (także puszczenie klawisza): ekran czyta w każdym obrocie pętli;
+    w testach nie wystąpiło.
+  - Dekoder, którego nie udało się uruchomić: aplikacja czeka na kanał bez końca — wymaga braku pamięci w nadzorcy.
+  - Jeden niepowtórzony błąd testu: w pierwszym pełnym przebiegu test-m4 nie zobaczył „otwieram Zegar” po podwójnym
+    kliknięciu (w tym czasie w kontenerze działały inne polecenia). Zbadane: pulpit widzi oba kliknięcia w odstępie
+    0–37 ms (60 z 60 rozpoznanych, także przy zajętym procesorze), test-m4 sam i cały przebieg powtórzony — zielone.
+    Przyczyny nie ustalono; jeśli wróci w CI, zaczynać od kolejki myszy PS/2 w QEMU (4 zdarzenia w 2 ms).

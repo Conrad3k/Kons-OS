@@ -28,7 +28,8 @@
 int pen_jest;
 int pen_stan = PEN_ZAMKNIETY;
 struct k1_dok_wpis pen[K1_PEN_FOLDER_MAKS];
-int n_pen, pen_wiecej, pen_laduje; /* the folder has more than Pliki take; its next list is on the way */
+int n_pen, pen_laduje; /* the next list of the folder is on the way */
+static int pen_wiecej; /* the folder has more than Pliki take */
 static int czytnik = -1;
 static uint8_t lista[K1_PEN_LISTA_MAKS];
 static struct {

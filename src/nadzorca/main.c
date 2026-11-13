@@ -143,13 +143,12 @@ int main(void)
         static const struct {
             int *fd;
             void (*obsluz)(void);
-            short zdarzenia;
         } kanaly[] = {
-            { &test_kanal, obsluz_test, POLLIN },     { &gui_kanal, obsluz_gui, POLLIN },
-            { &skarb_ster, obsluz_skarbiec, POLLIN }, /* skarbiec ending is seen by waitpid */
-            { &inst_kanal, obsluz_instalacje, POLLIN }, { &inst_ster, obsluz_zapis, POLLIN },
-            { &uevent_fd, obsluz_uevent, POLLIN },    { &pen_kanal, obsluz_pendrive, POLLIN },
-            { &podglad_kanal, obsluz_podglad, POLLIN },
+            { &test_kanal, obsluz_test },     { &gui_kanal, obsluz_gui },
+            { &skarb_ster, obsluz_skarbiec }, /* skarbiec ending is seen by waitpid */
+            { &inst_kanal, obsluz_instalacje }, { &inst_ster, obsluz_zapis },
+            { &uevent_fd, obsluz_uevent },    { &pen_kanal, obsluz_pendrive },
+            { &podglad_kanal, obsluz_podglad },
         };
 #define N_KANALOW (sizeof kanaly / sizeof kanaly[0])
         struct pollfd pfd[1 + N_KANALOW + N_USLUG + 1];
@@ -188,7 +187,7 @@ int main(void)
                 czytaj_log(zrodla[i]);
         for (i = 0; i < N_KANALOW; i++) {
             struct pollfd *p = &pfd[1 + i];
-            short z = kanaly[i].zdarzenia == POLLIN && kanaly[i].fd != &skarb_ster ? (POLLIN | POLLHUP | POLLERR) : POLLIN;
+            short z = kanaly[i].fd != &skarb_ster ? (POLLIN | POLLHUP | POLLERR) : POLLIN;
             if (*kanaly[i].fd >= 0 && p->fd == *kanaly[i].fd && (p->revents & z))
                 kanaly[i].obsluz();
         }

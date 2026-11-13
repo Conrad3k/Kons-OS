@@ -110,7 +110,7 @@ void zamknij_sesje(void)
 
 /* skarbiec gave application `apl` a file after a gesture of the user (0.8.0, ADR 0030), or asks for the file
  * picker (plik = 0): start it, tell it the file (its fd 5) and ask the desktop to show its window. */
-void uruchom_z_plikiem(int apl, uint32_t plik)
+static void uruchom_z_plikiem(int apl, uint32_t plik)
 {
     struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_PLIK_OTWORZ, plik, 0, 0, 0, 0, 0);
     if (apl == K1_APL_PLIKI)

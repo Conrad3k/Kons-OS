@@ -10,7 +10,7 @@ static char pen_dysk[32];   /* the stick the running czytnik reads */
 static int pen_wyslany = -1; /* what Pliki was told last: 1 a stick, 0 none, -1 nothing yet */
 static int pen_czeka;       /* Pliki asked while the previous czytnik was still ending */
 
-struct usluga *czytnik(void)
+static struct usluga *czytnik(void)
 {
     return usluga_profilu(K1_PROFIL_CZYTNIK);
 }

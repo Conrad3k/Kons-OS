@@ -3,6 +3,50 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.8.6] — 2026-11-13
+
+**Audyt przed 0.9 Sieć** (`docs/archiwum/AUDYT-0.8.5.txt`) — przegląd porządku w kodzie, błędów i sprawności całego
+systemu. Kod okazał się czysty (analizatory nie znalazły błędów pamięci), ale audyt znalazł jedną dużą rzecz dla
+laptopa i kilka mniejszych; wszystko, co dało się poprawić bezpiecznie, jest w tej wersji, reszta w planie 0.9.
+
+### Zmienione
+- **Laptop: procesor oszczędza energię.** Do 0.8.5 jądro K1 nie miało żadnego zarządzania energią procesora:
+  procesor budził się 250 razy na sekundę także bez pracy, spał tylko najpłycej i nie zmieniał częstotliwości —
+  laptop grzał się i zużywał baterię bez potrzeby, a bez „turbo” był wolniejszy przy cięższej pracy. Teraz bezczynny
+  procesor naprawdę śpi (głębokie stany uśpienia), częstotliwość dopasowuje się do pracy, a przy temperaturze
+  krytycznej jądro samo wyłącza komputer. Na X230: Zasoby → pobór mocy na baterii powinien wyraźnie spaść
+  (lista testów w `docs/DO_ZROBIENIA.txt`). W maszynie wirtualnej tego nie widać.
+- **Płynniejszy obraz na X230:** ekran bez „page flip” (X230) składał ok. 50 klatek na sekundę zamiast 60 — zegar
+  jądra miał dokładność 4 ms. Teraz zegary są dokładne.
+- **Wyłączanie i restart szybsze o 3 sekundy:** po zatrzymaniu ostatniego programu system zawsze czekał jeszcze
+  pełne 3 s (zmierzone: 3,1 s → 0,1 s).
+- **Wyjęty pendrive znika z Plików od razu** (dotąd nawet po 10 s — nadzorca nie słuchał zdarzenia „usunięto dysk”).
+
+### Naprawione
+- **Historia baterii z ostatnich minut przed wyłączeniem** nie zapisywała się: przy wyłączaniu wszystkie programy
+  dostawały sygnał naraz i magazyn danych znikał, zanim nadzorca zdążył zapisać (a nadzorca czekał na niego 1,5 s
+  w pętli). Teraz najpierw kończy nadzorca — zapisuje i zatrzymuje usługi — potem reszta.
+- Skarbiec albo ekran, których nie udało się uruchomić (brak pamięci na nowy proces), są uruchamiane ponownie po
+  sekundzie; dotąd zostawały zatrzymane.
+
+### Porządki
+- Nadzorca: pięć funkcji i zmiennych używanych w jednym pliku nie jest już widocznych w pozostałych; tabela kanałów
+  pętli bez zbędnej kolumny; pełna tabela właścicieli kanałów jest zgłaszana w logu (dotąd po cichu). Drobne:
+  zbędna deklaracja w skarbcu, zmienna Plików bez deklaracji, wcięcie w składaniu obrazu.
+- Dokumenty: kolejność wyłączania (`init.md`), zdarzenia dysków i historia baterii (`nadzorca.md`), zarządzanie
+  energią (`jadro.md`), RYZYKA R63–R64; skill i `CLAUDE.md` — prawdziwy czas CI (ok. 30 min) i to, że w kontenerze
+  Claude testy w tle idą tylko podczas czekania poleceniem.
+- Do planu 0.9 (`docs/DO_ZROBIENIA.txt`): podział `k1_komunikat.c` przed komunikatami sieci, pliki testów ponad
+  limit 600 wierszy, kolejka odpowiedzi skarbca, pamięć podręczna jądra w CI.
+
+### Testy
+- **Fuzzery biegną równolegle** (`make -j… fuzz`): 13 fuzzerów po kolei zajmowało 4–6,5 min każdego przebiegu testów,
+  teraz ok. 1,5–2 min.
+- `test-m5`: Start → Wyłącz na „laptopie” (bateria, dane na pendrivie): „historia baterii zapisana przed
+  wyłączeniem”, potem wyłączenie (na 0.8.5 tego zapisu nie było).
+- Analiza statyczna całego kodu K1 (gcc `-fanalyzer`, clang `--analyze`, dodatkowe ostrzeżenia): bez błędów —
+  szczegóły w raporcie audytu.
+
 ## [0.8.5] — 2026-11-13
 
 **Podgląd i Miejsce** (`docs/archiwum/PLAN-0.8.5.txt`, kroki 1–5) — poprawki tematu 0.8 Pliki przed 0.9 Sieć: okna

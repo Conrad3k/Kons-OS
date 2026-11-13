@@ -4,8 +4,8 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.8.5 — Podgląd i Miejsce (okna nie zamarzają, płynny Podgląd, Ustawienia → Miejsce, Secure Boot na dysku);
-teraz 0.9 Sieć.
+Stan: 0.8.6 — audyt przed 0.9 (laptop oszczędza energię, szybsze wyłączanie, historia baterii przy wyłączaniu;
+raport: docs/archiwum/AUDYT-0.8.5.txt); teraz 0.9 Sieć.
 Data: 2026-11-13.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
@@ -19,6 +19,14 @@ Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Cl
     [ ] na początek (porządki z 0.8.2, „dziel przed rozbudową”): jedna tabela usług systemowych — dziś nowa usługa
         to wiersz w K1_SYSTEM i osobne wpisy w uslugi[], kanaly[] (src/nadzorca/uslugi.c) i profile.c; sieć będzie
         pierwszą nową usługą od 0.8.0
+    [ ] z audytu 0.8.6 (docs/archiwum/AUDYT-0.8.5.txt), „dziel przed rozbudową”: src/wspolne/k1_komunikat.c (531
+        wierszy) podzielić, zanim dojdą komunikaty sieci; razem z tabelą usług — stały rozmiar tabeli właścicieli
+        kanałów w nadzorcy (dziś 12 miejsc, 10 zajętych) i kolejka zaległych odpowiedzi w skarbcu (RYZYKA R64)
+    [ ] z audytu 0.8.6, porządki: pliki testów ponad limit 600 wierszy (testy/host/test_dokumenty.c 1326,
+        test_komunikat.c 781; skrypt sprawdza dziś tylko src/) — podzielić albo zapisać w AGENTS.md, że limit
+        dotyczy src/; src/ekran/okna.c (564 wiersze, funkcja komunikat 79) podzielić przed 0.10 (ramka stref)
+    [ ] z audytu 0.8.6, do Twojej decyzji przy okazji: pamięć podręczna budowy jądra w CI (ok. 7 z 30 min każdego
+        przebiegu; wydania byłyby wtedy budowane częściowo z zapisanej kopii — dziś zawsze od zera)
     [ ] przed siecią: „Tymczasowe” z terminem 0.9.0 (punkt 6), w tym pliki startowe (shim, GRUB) wymieniane przez
         Instalator bez reinstalacji (RYZYKA R45)
     [ ] przed siecią: własny build musl 1.2.5 z poprawkami (dziś 1.2.4 z Ubuntu, RYZYKA R8); razem z nim wraca
@@ -97,8 +105,15 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230)
 -----------------------------------------------
 Jedna lista — dla ostatniego wydania. Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
-z 2026-11-11). Lista dla 0.8.5 (zawiera niesprawdzone punkty 0.8.2–0.8.3; najlepiej najpierw aktualizacja K1 na dysku
-X230 przez Instalator z pendrive'a 0.8.5 — dane zostają):
+z 2026-11-11). Lista dla 0.8.6 (zawiera niesprawdzone punkty 0.8.2–0.8.5; najlepiej najpierw aktualizacja K1 na dysku
+X230 przez Instalator z pendrive'a 0.8.6 — dane zostają):
+    [ ] energia (0.8.6 — najważniejsze, w maszynie wirtualnej nie da się tego sprawdzić): PRZED aktualizacją, na
+        baterii, otwórz Zasoby, odczekaj minutę bez ruszania laptopa i zapisz „pobór mocy”; PO aktualizacji to samo.
+        Powinno być wyraźnie mniej (i cichszy wentylator, chłodniejsza obudowa). Sprawdź też: czy nic się nie
+        zacina (mysz, przesuwanie okien, Podgląd), czy przy cięższej pracy (duże zdjęcie) jest szybciej niż było
+    [ ] wyłączanie (0.8.6): Start → Wyłącz i „Uruchom ponownie” — o ok. 3 s szybciej; po ponownym starcie
+        Ustawienia → Bateria: wykres poprzedniego uruchomienia sięga do samego wyłączenia
+    [ ] pendrive w Plikach (0.8.6): po wyjęciu znika z Plików od razu (dotąd do 10 s)
     [ ] Secure Boot (krok 4 — naprawa Twojego zgłoszenia): K1 z dysku, bez pendrive'a → Instalator → na dole
         „Secure Boot…” (w 0.8.3 go nie było) → „Przygotuj klucz K1” → „Uruchom ponownie” → MokManager (w 10 s klawisz,
         Enroll MOK, hasło kons) → F1: Secure Boot Enabled → K1 startuje, „Secure Boot…” pisze „Wszystko gotowe:

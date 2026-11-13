@@ -167,19 +167,39 @@ static int reap_children(pid_t supervisor)
     return supervisor_done;
 }
 
-static _Noreturn void shutdown_system(int cmd, const char *reason)
+/* Waits until child `who` has ended (who > 0) or nobody is left (who == 0), at most the grace period after the
+ * last child that ended. Every ended child is reaped before the next wait: several of them may stand behind one
+ * SIGCHLD, and waiting for a signal after the last one would always take the whole grace period (until 0.8.5 every
+ * power-off took 3 s longer). */
+static void wait_for_end(pid_t who)
 {
     sigset_t chld;
     struct timespec grace = { .tv_sec = SHUTDOWN_GRACE_S, .tv_nsec = 0 };
 
-    k1_log(TAG, "zamykanie systemu: %s", reason);
     sigemptyset(&chld);
     sigaddset(&chld, SIGCHLD);
-    kill(-1, SIGTERM); /* -1: every process except PID 1 */
-    while (waitpid(-1, NULL, WNOHANG) >= 0) {
+    for (;;) {
+        pid_t pid;
+        while ((pid = waitpid(-1, NULL, WNOHANG)) > 0)
+            if (pid == who)
+                return;
+        if (pid < 0)
+            return; /* ECHILD: every process has ended */
         if (sigtimedwait(&chld, NULL, &grace) < 0 && errno == EAGAIN)
-            break; /* grace period over */
+            return; /* grace period over */
     }
+}
+
+/* `supervisor`: its pid while it runs (0: it has ended, or there is none). */
+static _Noreturn void shutdown_system(int cmd, const char *reason, pid_t supervisor)
+{
+    k1_log(TAG, "zamykanie systemu: %s", reason);
+    /* The supervisor first, alone (0.8.6): it saves what it keeps (the battery history) while its services still
+     * run, then stops them. Until 0.8.5 everything got SIGTERM at once and skarbiec was gone before that save. */
+    if (supervisor > 0 && kill(supervisor, SIGTERM) == 0)
+        wait_for_end(supervisor);
+    kill(-1, SIGTERM); /* -1: every process except PID 1 */
+    wait_for_end(0);
     kill(-1, SIGKILL);
     while (waitpid(-1, NULL, 0) > 0) {
     }
@@ -223,13 +243,13 @@ int main(void)
             if (reap_children(supervisor)) {
                 /* M1 policy: the supervisor exists only in the test image; it exiting ends the
                  * session. M3 replaces this with restart/recovery rules. */
-                shutdown_system(RB_POWER_OFF, "nadzorca zakończył pracę");
+                shutdown_system(RB_POWER_OFF, "nadzorca zakończył pracę", 0);
             }
             break;
         case SIGTERM:
-            shutdown_system(RB_POWER_OFF, "otrzymano SIGTERM");
+            shutdown_system(RB_POWER_OFF, "otrzymano SIGTERM", supervisor);
         case SIGINT:
-            shutdown_system(RB_AUTOBOOT, "otrzymano SIGINT (Ctrl-Alt-Del)");
+            shutdown_system(RB_AUTOBOOT, "otrzymano SIGINT (Ctrl-Alt-Del)", supervisor);
         default:
             k1_log(TAG, "zignorowano sygnał %d od pid %d", sig, (int)si.si_pid);
             break;
