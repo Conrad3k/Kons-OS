@@ -36,8 +36,11 @@ DOK_C   := src/wspolne/k1_dokument.c src/wspolne/k1_nazwy.c
 WSPOLNE := src/wspolne/k1_log.c src/wspolne/k1_cmdline.c src/wspolne/k1_zdarzenie.c
 # Every program depends on all shared headers: one list to keep, a header change rebuilds a little more.
 NAGL    := $(wildcard src/wspolne/*.h)
+# The message of the services and its checks, one file per group of channels (0.9.0 step 2).
+KOMUNIKAT := src/wspolne/k1_komunikat.c src/wspolne/k1_kom_ekran.c src/wspolne/k1_kom_skarb.c \
+             src/wspolne/k1_kom_nadzorca.c src/wspolne/k1_kom_pliki.c
 # Services (M3): protocol, channels, sandbox.
-USLUGI  := src/wspolne/k1_uslugi.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
+USLUGI  := src/wspolne/k1_uslugi.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
            src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c \
            $(DOK_C) src/wspolne/k1_pendrive.c
 # Blob Vault (M5c, ADR 0015): format + Monocypher (src/zewnetrzne, docs/ZALEZNOSCI.md). Monocypher is
@@ -53,7 +56,7 @@ PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_liczba.c src/przybornik/k
            src/przybornik/k1_zaznaczenie.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
            $(GEN)/k1_czcionki_dane.c
 # Host: without the sandbox, the app skeleton and what uses it (they need our kernel's headers).
-HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c src/przybornik/k1_dekodowanie.c,$(PRZYB)) src/wspolne/k1_komunikat.c $(DOK_C) src/wspolne/k1_kanal.c \
+HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c src/przybornik/k1_dekodowanie.c,$(PRZYB)) $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c \
               src/wspolne/k1_log.c src/wspolne/k1_uslugi.c
 NAGL_P  := $(wildcard src/przybornik/*.h) src/grafika/k1_grafika.h src/grafika/k1_czcionka.h VERSION
 # Native applications: every directory src/aplikacje/<program> (its line in k1_uslugi.h K1_APLIKACJE names it).
@@ -177,15 +180,15 @@ $(OBJ)/test_cmdline: testy/host/test_cmdline.c src/wspolne/k1_cmdline.c src/wspo
 $(OBJ)/test_zdarzenie: testy/host/test_zdarzenie.c src/wspolne/k1_zdarzenie.c src/wspolne/k1_zdarzenie.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_zdarzenie.c src/wspolne/k1_zdarzenie.c
 
-$(OBJ)/test_komunikat: testy/host/test_komunikat.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_komunikat.h src/wspolne/k1_kanal.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_komunikat.c src/wspolne/k1_komunikat.c $(DOK_C) src/wspolne/k1_kanal.c
+$(OBJ)/test_komunikat: testy/host/test_komunikat.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_komunikat.h src/wspolne/k1_kanal.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_komunikat.c $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c
 
 $(OBJ)/test_log: testy/host/test_log.c src/wspolne/k1_log.c src/wspolne/k1_log.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_log.c src/wspolne/k1_log.c
 
-$(OBJ)/test_bateria: testy/host/test_bateria.c src/nadzorca/bateria.c src/nadzorca/bateria.h src/wspolne/k1_komunikat.c src/wspolne/k1_komunikat.h \
+$(OBJ)/test_bateria: testy/host/test_bateria.c src/nadzorca/bateria.c src/nadzorca/bateria.h $(KOMUNIKAT) src/wspolne/k1_komunikat.h \
 		src/wspolne/k1_io.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_bateria.c src/nadzorca/bateria.c src/wspolne/k1_komunikat.c $(DOK_C)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_bateria.c src/nadzorca/bateria.c $(KOMUNIKAT) $(DOK_C)
 
 $(OBJ)/podglad_grafiki: testy/host/podglad_grafiki.c $(GRAFIKA) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/podglad_grafiki.c src/grafika/k1_grafika.c -lm
@@ -234,8 +237,8 @@ $(OBJ)/test_instalator: testy/host/test_instalator.c src/instalator/gpt.c src/in
 $(OBJ)/test_uevent: testy/host/test_uevent.c src/nadzorca/uevent.c src/nadzorca/uevent.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_uevent.c src/nadzorca/uevent.c
 
-$(OBJ)/test_odbior: testy/host/test_odbior.c src/wspolne/k1_odbior.c src/wspolne/k1_odbior.h src/wspolne/k1_kanal.c src/wspolne/k1_komunikat.c | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_odbior.c src/wspolne/k1_odbior.c src/wspolne/k1_kanal.c src/wspolne/k1_komunikat.c $(DOK_C)
+$(OBJ)/test_odbior: testy/host/test_odbior.c src/wspolne/k1_odbior.c src/wspolne/k1_odbior.h src/wspolne/k1_kanal.c $(KOMUNIKAT) | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_odbior.c src/wspolne/k1_odbior.c src/wspolne/k1_kanal.c $(KOMUNIKAT) $(DOK_C)
 
 $(OBJ)/test_bat_arch: testy/host/test_bat_arch.c src/wspolne/k1_bat_arch.c src/wspolne/k1_bat_arch.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_bat_arch.c src/wspolne/k1_bat_arch.c
@@ -273,7 +276,7 @@ $(OBJ)/pomiar_podgladu: testy/host/pomiar_podgladu.c src/aplikacje/podglad/skala
 
 # 0.8.5 step 1: ekran's queue of what a client has not taken yet (pure functions)
 $(OBJ)/test_zalegle: testy/host/test_zalegle.c src/ekran/zalegle.c src/ekran/zalegle.h $(NAGL) testy/host/k1_test_host.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -Isrc/ekran -o $@ testy/host/test_zalegle.c src/ekran/zalegle.c src/wspolne/k1_komunikat.c $(DOK_C)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/ekran -o $@ testy/host/test_zalegle.c src/ekran/zalegle.c $(KOMUNIKAT) $(DOK_C)
 
 # 0.7.5: the desktop arrangement of gui (pure rules and the saved bytes)
 $(OBJ)/test_rozmieszczenie: testy/host/test_rozmieszczenie.c src/gui/rozmieszczenie.c src/gui/rozmieszczenie.h $(NAGL) | $(OBJ)
@@ -283,7 +286,7 @@ $(OBJ)/test_rozmieszczenie: testy/host/test_rozmieszczenie.c src/gui/rozmieszcze
 # (2026-11-18) so that the tests' clock (2027) stays after it whenever they run
 CZAS_TESTU := 1795000000
 DOK_TEST := src/skarbiec/dokumenty.c $(wildcard src/skarbiec/dok_*.c) src/skarbiec/dostep.c src/skarbiec/obiekty.c src/skarbiec/przerwy.c src/skarbiec/miejsce.c $(MAGAZYN) $(DOK_C) \
-            src/wspolne/k1_log.c src/wspolne/k1_komunikat.c src/wspolne/k1_kanal.c src/wspolne/k1_memfd.c src/wspolne/k1_uslugi.c
+            src/wspolne/k1_log.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_memfd.c src/wspolne/k1_uslugi.c
 $(OBJ)/test_dokumenty: testy/host/test_dokumenty.c $(DOK_TEST) $(wildcard src/skarbiec/*.h) $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -DK1_CZAS_BUDOWY=$(CZAS_TESTU) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ \
 		testy/host/test_dokumenty.c $(DOK_TEST)
@@ -359,7 +362,7 @@ FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
 FUZZ_DL_zdarzenie := 64
-FUZZ_ZR_komunikat := src/wspolne/k1_komunikat.c $(DOK_C)
+FUZZ_ZR_komunikat := $(KOMUNIKAT) $(DOK_C)
 FUZZ_DL_komunikat := 64
 FUZZ_ZR_magazyn   := $(MAGAZYN)
 FUZZ_DL_magazyn   := 16384

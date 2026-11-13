@@ -175,7 +175,8 @@ Ctrl/Shift przy kliknięciu: `apl.mody` (ekran podaje je w `WSKAZNIK` e, 0.8.2).
 5. `docs/komponenty/<nazwa>.md` (sprawdza `sprawdz-czytelnosc.py`), wiersz w tabeli `docs/komponenty/nadzorca.md`, ADR
    jeśli zmienia architekturę, `docs/RYZYKA.md`, słownik.
 
-**Nowy komunikat albo kanał:** typ w `k1_komunikat.h` z kierunkiem i zakresami pól; dla nowego formatu —
+**Nowy komunikat albo kanał:** typ w `k1_komunikat.h` z kierunkiem i zakresami pól, sprawdzanie w pliku swojej grupy
+`src/wspolne/k1_kom_<kanał>.c` (nowa grupa — nowy plik i jedno wywołanie w `sprawdz_typ`, `k1_komunikat.c`); dla nowego formatu —
 nagłówek w `src/wspolne/` ze stałym układem (`_Static_assert` na rozmiar i przesunięcia), sprawdzanie bez
 założeń o wyrównaniu (`memcpy`), test `testy/host/test_*.c` (ASan/UBSan), fuzzing `testy/host/fuzz_*.c`
 (lista `FUZZ` w `Makefile`) i test negatywny w systemie (jak `t_malicious_ipc`). Opis w dokumencie komponentu.
