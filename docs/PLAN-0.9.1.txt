@@ -1,7 +1,7 @@
 K1 — PLAN WERSJI 0.9.1 „WI-FI” (druga wersja tematu 0.9 Sieć; po kablu z 0.9.0)
 ==============================================================================
 
-Data: 2026-11-13 (porządek w planie: ADR 0035). Plan napisany, gdy trwa 0.9.0 (docs/PLAN-0.9.0.txt) — ta wersja
+Data: 2026-11-13 (porządek w planie: ADR 0035). Plan napisany, gdy trwa 0.9.0 (docs/archiwum/PLAN-0.9.0.txt) — ta wersja
 zaczyna się DOPIERO po wydaniu 0.9.0 i stoi na tym, co ono daje: jądro z siecią, usługa „siec” w klatce, adres od
 routera (DHCP), ikona sieci i Ustawienia → Sieć, „sieć testowa” w testach. Krok 1 zaczyna od przeczytania „Ustaleń
 z wykonania” kroków 5–8 planu 0.9.0 i poprawia ten plan tam, gdzie 0.9.0 ustaliło coś inaczej.
@@ -188,7 +188,7 @@ Twoje (produkt):
 [!] D4 (krok 2) Zapamiętywanie sieci. Rekomendacja: sieć zapamiętana po udanym połączeniu; przy starcie i po utracie
        zasięgu K1 łączy się sam z najsilniejszą zapamiętaną; kabel ma pierwszeństwo przed Wi-Fi; „Zapomnij tę sieć”
        w Ustawieniach. Hasło nigdy nie jest pokazywane z powrotem (zmiana = wpisanie nowego).
-Pytania z 0.9.0, które dalej pomagają (D2, D3 w docs/PLAN-0.9.0.txt): czy masz kabel do routera i jakie dokładnie
+Pytania z 0.9.0, które dalej pomagają (D2, D3 w docs/archiwum/PLAN-0.9.0.txt): czy masz kabel do routera i jakie dokładnie
 karty Wi-Fi mają oba laptopy (Ustawienia → Sieć w 0.9.0 pokaże identyfikator karty — przepisz go).
 
 Techniczne (decyduje Claude w ADR kroku 1 — Ty dostajesz krótkie wyjaśnienie):

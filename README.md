@@ -26,7 +26,8 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.8.0 Pliki | aplikacja Pliki, Kosz (30 dni albo ręcznie), okno wyboru pliku, zdjęcia z pendrive'a, miniatury zdjęć, tapeta z własnego zdjęcia, cały pendrive na dane | PRZETESTOWANE w QEMU (ADR 0029–0033) |
 | 0.8.1 Pliki — dopracowanie | dane nie giną (naprawa przy starcie, zły zegar), 16 384 pliki, szybki start, miejsce w Informacjach, stary pendrive powiększany przyciskiem, pliki do 4 GB | PRZETESTOWANE w QEMU (ADR 0033, 0034) |
 | 0.8.2 Pliki — dopracowanie, część 2 | skarbiec na duże dane (szybki start, prawie cały pendrive na pliki), pendrive z telefonu, duże zdjęcia, aplikacja Podgląd, „Otwórz za pomocą”, przeciąganie | PRZETESTOWANE w QEMU (ADR 0036, 0037) |
-| 0.9 Sieć | kabel, potem Wi-Fi; nic w K1 nie nasłuchuje | PLANOWANE — następne |
+| 0.9.0 Sieć — kabel | adres od routera, nic w K1 nie odpowiada z zewnątrz, ikona sieci, Ustawienia → Sieć, zegar z internetu | PRZETESTOWANE w QEMU (ADR 0038, 0039) |
+| 0.9.1 Sieć — Wi-Fi | Wi-Fi na laptopach (sterowniki z jądra), logowanie do sieci z hasłem | PLANOWANE — następne (`docs/PLAN-0.9.1.txt`) |
 | 0.10 Strefy | każda obca aplikacja (przeglądarka, Discord…) w swojej mikro-maszynie; kolorowa ramka; stała/jednorazowa; pełna izolacja/szybka grafika | PLANOWANE (ADR 0020) |
 | 0.11 Pliki ze stref | przenoszenie plików ze stref i do stref przez okno K1, schowek między strefami | PLANOWANE |
 | 0.12–0.13 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |
@@ -35,16 +36,17 @@ Od 0.9 etapy to numery wersji (ADR 0035); wcześniejsze etapy M0–M6 zostały w
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-**Co już jest (0.8.2):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopie ThinkPad X230 (niżej), a
+**Co już jest (0.9.0):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopie ThinkPad X230 (niżej), a
 Instalator zapisuje go na dysk. Pulpit jak w Windows 11, w stylu K1: ikony na pulpicie (aplikacje, Kosz, Twoje
 pliki i foldery z folderu Pulpit), pasek na dole z menu Start i przypiętymi aplikacjami (Zegar, Notatki, Ustawienia, Zasoby,
-Kalkulator, Pliki; w menu Start też Instalator i Podgląd), pasek na górze (dźwięk, bateria, data i godzina), okna,
+Kalkulator, Pliki; w menu Start też Instalator i Podgląd), pasek na górze (sieć, dźwięk, bateria, data i godzina), okna,
 menu pod prawym przyciskiem i polska klawiatura. **Pliki**: foldery jak w Windows (Pulpit, Dokumenty, Obrazy…),
 Kosz, przeciąganie i zaznaczanie wielu, „Otwórz za pomocą”, zdjęcia z pendrive'a z aparatu albo telefonu (FAT;
 tylko odczyt i import), **Podgląd** zdjęć (PNG, JPEG, GIF, BMP, WebP, do 100 Mpx), tapeta z własnego zdjęcia.
 Zna dyski SATA/NVMe oraz klawiatury, myszy i pamięci USB. Notatki, pliki, ustawienia i hasło są zaszyfrowane na
-partycji K1-DANE (pendrive albo dysk po instalacji). Czego jeszcze nie ma: internetu (0.9), obcych aplikacji
-i przeglądarki (0.10), dźwięku, jasności ekranu i klawiszy Fn. Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
+partycji K1-DANE (pendrive albo dysk po instalacji). **Sieć kablem** (0.9.0): adres od routera, ikona sieci,
+Ustawienia → Sieć (karty i ich szczegóły), zegar z internetu; z zewnątrz nic w K1 nie odpowiada. Czego jeszcze nie ma:
+Wi-Fi (0.9.1), internetu dla aplikacji, obcych aplikacji i przeglądarki (0.10), dźwięku, jasności ekranu i klawiszy Fn. Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
 
 ## Uruchom w maszynie wirtualnej
 1. Pobierz obraz: **Releases** → najnowsze `k1-vX.Y.Z` → plik `k1-X.Y.Z.iso` (ok. 16 MB).

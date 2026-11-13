@@ -30,7 +30,8 @@ statycznie z musl. Budowany skryptami w `scripts/`, testowany w QEMU, CI w GitHu
 ## Czytelność (decyzja właściciela, 2026-11-09)
 System ma być czytelny i intuicyjny od środka, także gdy rośnie. Części może być dużo (izolacja tego
 wymaga), ale każda jest mała, robi jedną rzecz i wygląda jak pozostałe.
-1. **Limity wielkości:** plik `.c` ≤ 600 wierszy, funkcja ≤ 80 wierszy (bez `src/zewnetrzne/`). Większe —
+1. **Limity wielkości:** plik `.c` ≤ 600 wierszy, funkcja ≤ 80 wierszy (bez `src/zewnetrzne/`); od 0.9.0 pliki testów
+   (`testy/**/*.c`) też ≤ 600 wierszy (bez limitu funkcji — długa lista sprawdzeń czyta się dobrze). Większe —
    podziel; wyjątek tylko z komentarzem `/* k1: limit — <powód> */` i wpisem w opisie PR-a. Od 0.7.5
    sprawdza to skrypt w testach.
 2. **Każda wersja MINOR kończy się porządkami:** co usunąć, scalić, uprościć — wynik w CHANGELOG
