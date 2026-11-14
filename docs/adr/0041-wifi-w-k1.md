@@ -1,9 +1,10 @@
 # 0041. Wi-Fi w K1: sterowniki i pliki producentów w podpisanym jądrze, nl80211 tylko u nadzorcy, opisy sieci w klatce
 
-- Status: Przyjęty; krok 1 planu 0.9.1 wdrożony (karta, radio, lista sieci), krok 2 (logowanie WPA2) — według tego ADR
+- Status: Przyjęty; wdrożony w 0.9.1 — krok 1 (karta, radio, lista sieci), krok 2 (logowanie WPA2, sieci otwarte, zapamiętane
+  sieci; T6 rozstrzygnięte niżej)
 - Data: 2026-11-14
 - Dotyczy: ADR 0039 (sieć w K1 — to jego uzupełnienie), ADR 0004 (brak `/lib/firmware`), ADR 0007 (klatki), SPEC §3
-  (niezmiennik 3), decyzje D0, D1, D3 i T1–T6 planu 0.9.1 (`docs/PLAN-0.9.1.txt`); RYZYKA R70–R73
+  (niezmiennik 3), decyzje D0, D1, D3 i T1–T6 planu 0.9.1 (`docs/archiwum/PLAN-0.9.1.txt`); RYZYKA R70–R76
 
 ## Kontekst
 0.9.0 dało kabel: IPv4, gniazda tylko u nadzorcy, usługę „siec” w klatce (ADR 0039). 0.9.1 ma dać Wi-Fi na obu laptopach
@@ -49,6 +50,15 @@ WPA2), nie obcy program. wpa_supplicant i iwd same otwierają nl80211 i potrzebu
 T3 — i są duże. Kryptografia (SHA-1, HMAC, PBKDF2, PRF 802.11, AES key wrap) — własne małe pliki sprawdzone oficjalnymi
 wektorami; szyfrowanie samych danych (CCMP) robi jądro albo karta. Ramki EAPOL — gniazdem pakietowym od nadzorcy (wzór
 DHCP) albo `CONTROL_PORT_FRAME` — wybór w kroku 2 (T6). WPA3 tylko-SAE, sieci firmowe (802.1X), ukryte — „Później”.
+
+**T6 (krok 2) — ramki EAPOL gniazdem pakietowym od nadzorcy.** Przed `CONNECT` nadzorca otwiera na karcie Wi-Fi gniazdo
+`AF_PACKET`/`SOCK_DGRAM` z protokołem `ETH_P_PAE` i oddaje je siec (jak gniazdo DHCP z 0.9.0); `CONNECT` z
+`NL80211_ATTR_CONTROL_PORT` — do autoryzacji jądro przepuszcza tylko ramki EAPOL (mac80211: protokół portu sterującego),
+resztę dopiero po `SET_STATION` (autoryzowany). `CONTROL_PORT_OVER_NL80211` odrzucone: ramki szłyby przez nl80211, którego
+klatka siec mieć nie może — nadzorca musiałby je przekazywać (więcej kodu u roota). Klucze policzone w siec wpisuje
+nadzorca (`NEW_KEY`) na prośbę z polami sprawdzonymi (karta, rodzaj, id, szyfr). Hasło Wi-Fi idzie z Ustawień **prosto do
+siec** (kanał `KANAL_DO_SIECI`, kierunek `K1_KIER_DO_SIECI`) — nadzorca go nie widzi; siec trzyma tylko klucz sieci
+(PBKDF2), w skarbcu jako swoje dane (profil 18). Szczegóły: `docs/komponenty/siec.md` („Łączenie z siecią Wi-Fi”).
 
 **T5 — testy.** QEMU nie ma kart Wi-Fi: `MAC80211_HWSIM` jest wbudowany, ale wydanie startuje z
 `mac80211_hwsim.radios=0` (`jadro/cmdline`) — w obrazie produkcyjnym nie ma udawanych kart; tworzyć je może tylko root

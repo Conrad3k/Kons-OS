@@ -20,7 +20,7 @@ int k1_kom_sprawdz_siec(const struct k1_komunikat *k, enum k1_kanal_kierunek kie
         return kier == K1_KIER_OD_NADZORCY && karta(k->obiekt) && w(k->b, 0, 0xFFFF) && k1_siec_mac_dobry(mac) &&
                zera(k, 2);
     case K1_KOM_SIEC_ROZLACZONO:
-        return kier == K1_KIER_OD_NADZORCY && karta(k->obiekt) && w(k->a, K1_SIEC_KABEL_WYJETY, K1_SIEC_KARTA_ZNIKNELA) &&
+        return kier == K1_KIER_OD_NADZORCY && karta(k->obiekt) && w(k->a, K1_SIEC_KABEL_WYJETY, K1_SIEC_WIFI_ROZLACZONE) &&
                zera(k, 1);
     case K1_KOM_SIEC_ADRES:
         return kier == K1_KIER_DO_NADZORCY && karta(k->obiekt) &&
@@ -45,8 +45,9 @@ int k1_kom_sprawdz_siec(const struct k1_komunikat *k, enum k1_kanal_kierunek kie
     }
     case K1_KOM_SIEC_STAN:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, K1_SIEC_BRAK_KARTY, K1_SIEC_STAN_MAKS) &&
-               w(k->b, 0, K1_SIEC_LISTA_MAKS) && w(k->c, 0, 0x7fffffff) && (k->c == 0 || k->a == K1_SIEC_POLACZONO) &&
-               w(k->d, 0, 0x7fffffff) && k->e == 0;
+               w(k->b, 0, K1_SIEC_LISTA_MAKS) && w(k->c, 0, 0x7fffffff) &&
+               (k->c == 0 || k->a == K1_SIEC_POLACZONO || k->a == K1_SIEC_WIFI_POLACZONO) && w(k->d, 0, 0x7fffffff) &&
+               (k->a == K1_SIEC_WIFI_POLACZONO ? w(k->e, 1, 4) : k->e == 0);
     case K1_KOM_SIEC_KARTA:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt < K1_SIEC_LISTA_MAKS &&
                w(k->b, K1_SIEC_PRZEWODOWA, K1_SIEC_INNA) && w(k->c, 0, K1_SIEC_KF_WSZYSTKIE) &&

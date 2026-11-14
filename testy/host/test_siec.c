@@ -181,7 +181,8 @@ static void t_komunikaty(void)
     EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_SIEC_KABEL, OD) && !k1_komunikat_z_deskryptorem(K1_KOM_SIEC_ADRES, DO));
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_ROZLACZONO, 2, K1_SIEC_KABEL_WYJETY, 0, 0, 0, 0), OD));
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_ROZLACZONO, 2, K1_SIEC_KARTA_ZNIKNELA, 0, 0, 0, 0), OD));
-    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_ROZLACZONO, 2, 3, 0, 0, 0, 0), OD));
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_ROZLACZONO, 2, K1_SIEC_WIFI_ROZLACZONE, 0, 0, 0, 0), OD)); /* 0.9.1 */
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_ROZLACZONO, 2, 4, 0, 0, 0, 0), OD));
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_ADRES, 2, (int32_t)IP(192, 168, 1, 10), 24, (int32_t)IP(192, 168, 1, 1),
                                    3600, 0), DO));
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_ADRES, 2, (int32_t)IP(10, 0, 2, 15), 24, 0, 10, 0), DO));
@@ -216,7 +217,12 @@ static void t_stan(void)
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_LACZENIE, 2, 120, 0, 0), OD)); /* "since" only connected */
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_WIFI_NIE_POLACZONO, 2, 0, 0, 0), OD)); /* 0.9.1 */
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_WIFI_WYLACZONE, 2, 5, 0, 0), OD));
-    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, 6, 2, 0, 0, 0), OD));
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_WIFI_LACZENIE, 2, 0, 0, 0), OD)); /* 0.9.1 step 2 */
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_WIFI_POLACZONO, 2, 120, 0, 4), OD)); /* + bars */
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_WIFI_POLACZONO, 2, 120, 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_WIFI_POLACZONO, 2, 120, 0, 5), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_WIFI_LACZENIE, 2, 0, 0, 1), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, 8, 2, 0, 0, 0), OD));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_BEZ_KABLA, K1_SIEC_LISTA_MAKS + 1, 0, 0, 0), OD));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 1, K1_SIEC_BEZ_KABLA, 1, 0, 0, 0), OD));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_BEZ_KABLA, 1, 0, -1, 0), OD));

@@ -5,11 +5,12 @@
 | **Status** | PRZETESTOWANE w QEMU (0.9.0 krok 6: karta e1000e kablem do sieci testowej — `scripts/test-siec.sh`; testy na hoście `test_siec`, fuzzing `fuzz_dhcp`); na X230 i IdeaPadzie z kablem do routera — test właściciela po wydaniu 0.9.0 |
 | **Pliki** | `src/siec/main.c` (usługa: kanał do nadzorcy, gniazdo pakietowe, log), `dhcp.{c,h}` (pakiety DHCP: budowa i sprawdzanie), `klient.{c,h}` (klient DHCP: stany i czasy); `src/nadzorca/siec.c` (karty, kabel, gniazdo pakietowe, ustawienie adresu); `src/wspolne/k1_siec.{c,h}` (sprawdzanie adresów, MAC), `k1_kom_siec.c` (komunikaty) |
 | **Decyzje** | ADR 0039 (T1: uprawnienia, T2: IPv4, T3: nic nie odpowiada, T6: sterowniki); ADR 0041 (Wi-Fi: pliki producentów, nl80211 u nadzorcy, opisy sieci w klatce) |
+| **Łączenie z Wi-Fi (0.9.1 krok 2)** | ZAIMPLEMENTOWANE; PRZETESTOWANE w QEMU z udawanymi kartami i routerem testowym (`scripts/test-wifi.sh`; `test_krypto`, `test_wpa`, `fuzz_eapol`); prawdziwy router — test właściciela po wydaniu 0.9.1. Pliki: `src/siec/eapol.{c,h}` (ramki EAPOL-Key), `wpa.{c,h}` (logowanie WPA2), `polacz.c` (połączenie), `wybor.c` (wybór sieci, kanał Ustawień), `pamiec.{c,h}` (format zapamiętanych sieci), `skarb.c` (skarbiec); `src/nadzorca/wifi_polacz.c`; `src/wspolne/k1_sha1.{c,h}`, `k1_aes.{c,h}` (kryptografia WPA2), `k1_wymaz.h` |
 | **Wi-Fi (0.9.1 krok 1)** | PRZETESTOWANE w QEMU z udawanymi kartami (`scripts/test-wifi.sh`; `test_wifi`, `fuzz_wifi`); prawdziwe karty (X230, IdeaPad) — test właściciela po wydaniu 0.9.1. Pliki: `src/siec/wifi.{c,h}` (opisy sieci z powietrza → lista), `lista.c` (wyniki od nadzorcy, lista do nadzorcy); `src/nadzorca/wifi.c` (karta, radio, szukanie, lista do Ustawień), `wifi_nl.c` (nl80211); `src/wspolne/k1_wifi.{c,h}` (nazwy, kreski, format wyników), `k1_kom_wifi.c` (komunikaty), `k1_nl.{c,h}` (generic netlink: nadzorca i program testowy) |
 
 ## Cel
 Gdy w komputerze jest karta przewodowa i włożony kabel do routera, K1 sam dostaje adres (DHCP) i trasę do internetu;
-po wyjęciu kabla adres znika. Nic poza tym: żadna aplikacja nie dostaje w 0.9 sieci, nic w K1 nie nasłuchuje.
+po wyjęciu kabla adres znika. Od 0.9.1 to samo przez Wi-Fi: lista sieci, hasło raz, potem K1 łączy się sam. Nic poza tym: żadna aplikacja nie dostaje w 0.9 sieci, nic w K1 nie nasłuchuje.
 
 ## Granica zaufania
 Wszystko, co przychodzi z sieci, jest wrogie: każdy w tej samej sieci może wysłać pakiet udający router. Dlatego
@@ -135,19 +136,79 @@ przyszło z powietrza.
    opisy 1)” — **bez nazw** (to sieci sąsiadów).
 5. Górny pasek: bez kabla, z kartą Wi-Fi stan `SIEC_STAN` to `K1_SIEC_WIFI_WYLACZONE` (4) albo `K1_SIEC_WIFI_NIE_POLACZONO`
    (5) — ikona „Wachlarz” (gui.md). Kabel (łączę, połączono) ma pierwszeństwo.
-Logowanie do sieci z hasłem (WPA2), zapamiętane sieci — krok 2 planu 0.9.1.
 
 | Typ | Kierunek | Pola |
 |---|---|---|
 | `SIEC_WIFI_WYNIKI` | nadzorca → siec | obiekt = karta Wi-Fi, a = rekordów 0–64, b = bajtów (0 bez rekordów); + 1 zapieczętowany memfd b bajtów |
 | `SIEC_WIFI_SIEC` | siec → nadzorca | obiekt = sieć 0–15, a = kreski 1–4 (zgodne z c), b = zabezpieczenie `K1_WIFI_*` 1–7, c = dBm −120…0, d = MHz 2400–7200, e = długość nazwy 1–32 |
 | `SIEC_WIFI_NAZWA` | siec → nadzorca | obiekt = sieć·2 + część; część 0: bajty 0–19 w a…e, część 1: bajty 20–31 w a…c (d, e = 0); całość sprawdza odbiorca (`k1_wifi_nazwa_dobra`) |
-| `SIEC_WIFI_LISTA` | siec → nadzorca | obiekt = karta z `SIEC_WIFI_WYNIKI`, a = sieci 0–16, b = odrzuconych rekordów 0–64 — lista gotowa |
+| `SIEC_WIFI_LISTA` | siec → nadzorca | obiekt = karta z `SIEC_WIFI_WYNIKI`, a = sieci 0–16, b = odrzuconych rekordów 0–64 — lista gotowa; od kroku 2: c = `K1_WIFI_P_*`, d = sieć tego stanu (−1), e = zapamiętane (bit na sieć) |
 | `WIFI_STAN` | nadzorca → Ustawienia | a = `K1_WIFI_*` (0 brak karty, 1 wyłączone przełącznikiem w komputerze, 2 wyłączone w Ustawieniach, 3 włączone), b = sieci 0–16 (tylko gdy włączone), c = 1 szukam teraz |
 | `WIFI_SIEC` | nadzorca → Ustawienia | jak `SIEC_WIFI_SIEC` |
 | `WIFI_NAZWA` | nadzorca → Ustawienia | jak `SIEC_WIFI_NAZWA` |
 | `WIFI_WLACZ` | Ustawienia → nadzorca | a = 1 włącz / 0 wyłącz radio (miękki rfkill); nadzorca sprawdza UID Ustawień |
 | `WIFI_SZUKAJ` | Ustawienia → nadzorca | wszystkie pola 0 — szukaj sieci teraz (Ustawienia pokazują listę) |
+
+## Łączenie z siecią Wi-Fi (0.9.1 krok 2, ADR 0041 T3/T4/T6; decyzje D2, D4)
+Sieci: **z hasłem** — WPA2-Personal i tryb mieszany WPA2/WPA3 (K1 loguje się jak WPA2), szyfr par CCMP, szyfr grupy CCMP
+albo TKIP, bez wymaganej ochrony ramek zarządzania; **otwarte** — z napisem „sieć niezabezpieczona”. Inne (tylko WPA3,
+firmowe z loginem, stare WEP/WPA) są na liście, ale K1 się z nimi nie łączy (`k1_wifi_mozna_polaczyc`).
+1. **Wybór** (`wybor.c`): Ustawienia mają własny kanał prosto do siec (`KANAL_DO_SIECI`, ich fd 6; koniec siec przychodzi
+   w `SIEC_USTAWIENIA`; siec sprawdza UID Ustawień) — **hasło nigdy nie przechodzi przez nadzorcę**. Ustawienia wysyłają
+   hasło raz (`WIFI_HASLO`, 4 części), nazwę sieci tak, jak ją pokazują (`WIFI_WYBRANA`), i `WIFI_POLACZ` (zabezpieczenie,
+   długość nazwy i hasła) albo `WIFI_ZAPOMNIJ`. siec znajduje sieć po nazwie i zabezpieczeniu w swojej liście
+   (`lista_znajdz`), liczy **klucz sieci** (PBKDF2-SHA1, 4096 powtórzeń, nazwa z powietrza jako sól; 64 cyfry szesnastkowe
+   = sam klucz) i czyści hasło. Sama (`wybor_auto`: nowa lista, odczyt skarbca, utrata połączenia) — najsilniejsza
+   zapamiętana sieć w zasięgu — nie wcześniej niż 60 s po własnej nieudanej próbie i 5 min po nieudanej próbie osoby
+   (może właśnie poprawiać hasło). Przejście na inną sieć: siec prosi od razu o nową, nadzorca sam opuszcza starą
+   (ogłoszenie jądra o jej rozłączeniu w czasie łączenia jest pomijane).
+2. **Połączenie** (`polacz.c` w siec, `wifi_polacz.c` w nadzorcy): siec prosi nadzorcę `SIEC_WIFI_SSID` (nazwa z
+   powietrza, 2 części) + `SIEC_WIFI_POLACZ` (BSSID, MHz, długość nazwy, tryb: otwarta / WPA2 z szyfrem grupy). Nadzorca
+   sprawdza, że to karta Wi-Fi z włączonym radiem, otwiera **gniazdo pakietowe EAPOL** (`AF_PACKET`, `ETH_P_PAE`, tylko na tej
+   karcie — T6: wzór DHCP) i wysyła nl80211 `CONNECT` (nazwę i BSSID kopiuje do prośby, nie czyta; dla WPA2: `PRIVACY`,
+   wersja 2, CCMP, AKM PSK, `CONTROL_PORT` — port zamknięty do wpisania kluczy, nasz element RSN `k1_wifi_rsn_nasz`
+   jako `IE`). Odpowiedź: gniazdo EAPOL (`SIEC_WIFI_EAPOL`) i `SIEC_WIFI_ZDARZENIE` `LACZE` (nasz MAC). Ogłoszenia jądra (grupa „mlme”:
+   `CONNECT`, `DISCONNECT`) → `SKOJARZONO`, `NIEUDANE` (status punktu dostępu), `ROZLACZONO` (powód).
+3. **Logowanie WPA2** (`wpa.c`, `eapol.c` — czyste funkcje): wymiana czterech wiadomości (IEEE 802.11-2020 12.7.6) i
+   odnawianie klucza grupy (12.7.7) — każda ramka sprawdzana pole po polu (wersja deskryptora 2, bity informacji, długość,
+   licznik powtórzeń tylko rośnie i liczy się dopiero po dobrym MIC, MIC HMAC-SHA1, dane klucza rozpakowane AES z kluczem
+   KEK, wiadomość 3 musi nieść **ten sam element RSN, który punkt dostępu ogłosił** — inaczej odrzucona, i nonce z wiadomości
+   1); klucz, który już jest wpisany, nie jest wpisywany drugi raz (powtórzona wiadomość 3 / klucz grupy — KRACK).
+   Klucze: `SIEC_WIFI_KLUCZ_CZESC` ×2 + `SIEC_WIFI_KLUCZ` (para: CCMP; grupa: id 1–3, szyfr, licznik RSC; TKIP — klucze
+   Michael zamienione jak w wpa_supplicant) → nadzorca nl80211 `NEW_KEY` (odpowiedź `KLUCZ`), potem `SIEC_WIFI_OTWORZ` →
+   `SET_STATION` (autoryzowany; odpowiedź `OTWARTE`). Klucze to sekrety: nigdy w logu, czyszczone po użyciu (`k1_wymaz`).
+4. **Adres** — gdy dane płyną (WPA2: port otwarty; otwarta: skojarzono), nadzorca (`siec.c`) daje karcie Wi-Fi gniazdo
+   DHCP i `SIEC_KABEL` jak karcie z kablem; **kabel ma pierwszeństwo** (D4): kabel włożony → Wi-Fi traci adres
+   (`SIEC_ROZLACZONO` a = `K1_SIEC_WIFI_ROZLACZONE`), połączenie Wi-Fi zostaje. Zegar z internetu działa przez Wi-Fi tak samo.
+5. **Złe hasło** (W13): wysłaliśmy wiadomość 2, a punkt dostępu nie odpowiedział wiadomością 3, zanim nas odłączył albo minęło
+   20 s → `K1_WIFI_P_ZLE_HASLO`; bez wiadomości 2 — `K1_WIFI_P_NIEUDANE`.
+6. **Zapamiętane sieci** (`pamiec.c` — format, `skarb.c` — skarbiec, fd 4, `KANAL_SKARBCA`, właściciel = profil 18): obiekt
+   1 — „K1WF”, wersja 1, radio wyłączone (0/1), liczba; na sieć: długość nazwy, hasło 0/1, nazwa (32 B), klucz sieci (32 B;
+   **hasła nie ma**). Najwyżej 16 (17. wypycha najstarszą). Sieć jest zapamiętywana, gdy przyjęła hasło (otwarta — gdy
+   przyjęła połączenie). Skarbiec zablokowany hasłem → siec pyta co 5 s (Wi-Fi łączy się samo po zalogowaniu). Przełącznik
+   radia z Ustawień (`SIEC_WIFI_RADIO` od nadzorcy) też jest zapamiętany; przy starcie „wyłączone” → `SIEC_WIFI_RADIO_USTAW`.
+7. **Stan dla Ustawień i ikony**: siec wysyła listę jeszcze raz przy każdej zmianie połączenia; `SIEC_WIFI_LISTA` c = stan
+   `K1_WIFI_P_*`, d = sieć tego stanu w liście (−1), e = zapamiętane sieci listy (bit na sieć); nadzorca podaje to
+   Ustawieniom (`WIFI_POLACZENIE`) i ikonie (`SIEC_STAN` `K1_SIEC_WIFI_LACZENIE` / `K1_SIEC_WIFI_POLACZONO` z kreskami w e).
+
+| Typ | Kierunek | Pola |
+|---|---|---|
+| `SIEC_WIFI_SSID` | siec → nadzorca | obiekt = część 0/1: nazwa z powietrza (część 0 a…e = bajty 0–19, część 1 a…c = 20–31, d = e = 0) |
+| `SIEC_WIFI_POLACZ` | siec → nadzorca | obiekt = karta, a, b = BSSID (`k1_siec_mac_do_pol`, adres jednej karty), c = MHz 2400–7200, d = długość nazwy 1–32, e = `K1_WIFI_TRYB_*` (1 otwarta, 2 WPA2 z grupą CCMP, 3 WPA2 z grupą TKIP) |
+| `SIEC_WIFI_ROZLACZ` | siec → nadzorca | obiekt = karta, pola 0 — opuść sieć |
+| `SIEC_WIFI_KLUCZ_CZESC` | siec → nadzorca | obiekt = część 0/1 klucza (jak `SIEC_WIFI_SSID`) — sekret |
+| `SIEC_WIFI_KLUCZ` | siec → nadzorca | obiekt = karta, a = 1 para (b = 0, c = CCMP, d = e = 0) / 2 grupa (b = id 1–3, c = `K1_WIFI_SZYFR_*`, d, e = licznik RSC: bajty 0–3 i 4–5) |
+| `SIEC_WIFI_OTWORZ` | siec → nadzorca | obiekt = karta, pola 0 — klucze wpisane, wpuść dane |
+| `SIEC_WIFI_RADIO_USTAW` | siec → nadzorca | obiekt = 0, a = 0 — przy starcie: radio było wyłączone (zapamiętane) |
+| `SIEC_WIFI_EAPOL` | nadzorca → siec | obiekt = karta, pola 0; + 1 fd: gniazdo pakietowe na ramki EAPOL (tylko WPA2; tuż przed `LACZE`) |
+| `SIEC_WIFI_ZDARZENIE` | nadzorca → siec | obiekt = karta, a = `K1_WIFI_Z_*`: 1 `LACZE` (c, d = nasz MAC), 2 `SKOJARZONO`, 3 `NIEUDANE` (b = status 1–65535 albo −1), 4 `ROZLACZONO` (b = powód 0–65535), 5 `KLUCZ`, 6 `OTWARTE` (b = 0 albo `K1_SIEC_BLAD_*`) |
+| `SIEC_WIFI_RADIO` | nadzorca → siec | obiekt = 0, a = 1 / 0 — osoba przełączyła radio w Ustawieniach (siec zapamiętuje) |
+| `SIEC_USTAWIENIA` | nadzorca → siec | obiekt = 0, pola 0; + 1 fd: koniec kanału Ustawienia → siec (`K1_KIER_DO_SIECI`) |
+| `WIFI_HASLO` | Ustawienia → siec | obiekt = część 0–3 (`k1_wifi_haslo_do_pol`: 0–2 po 20 B, 3 — 4 B w a), tylko znaki ASCII 32–126 albo 0 — sekret |
+| `WIFI_WYBRANA` | Ustawienia → siec | obiekt = część 0/1 nazwy sieci tak, jak jest pokazana (jak `WIFI_NAZWA`) |
+| `WIFI_POLACZ` | Ustawienia → siec | obiekt = 0, a = zabezpieczenie `K1_WIFI_*`, b = długość nazwy 1–32, c = długość hasła 0 (otwarta albo zapamiętana) lub 8–64 |
+| `WIFI_ZAPOMNIJ` | Ustawienia → siec | obiekt = 0, a = zabezpieczenie, b = długość nazwy — zapomnij sieć (i opuść ją, jeśli to ta) |
+| `WIFI_POLACZENIE` | nadzorca → Ustawienia | obiekt = 0, a = `K1_WIFI_P_*` (0 brak, 1 łączę, 2 połączono, 3 złe hasło, 4 nieudane), b = sieć 0–15 albo −1, c = zapamiętane (bit na sieć) — zaraz po `WIFI_STAN` |
 
 ## Karty a pliki od producenta
 Karty przewodowe z listy (ADR 0039, T6) działają bez plików od producenta. Realtek r8169 (np. IdeaPad 110-15ISK) prosi
@@ -166,4 +227,8 @@ IdeaPadzie jest stabilne — test właściciela. Karty Wi-Fi bez pliku nie dzia�
 | host `test_wifi` (0.9.1): nazwy (sterujące, C1, kierunek tekstu, zły i ucięty UTF-8, 32 B, ukryte), kreski, każde zabezpieczenie, każdy zepsuty element i RSN, cały wynik (jedna sieć na nazwę, najsilniejsza, 16 najsilniejszych, odrzucone, ukryte, zły format nadzorcy), komunikaty Wi-Fi (każde złe pole i kierunek) | jednostkowy + negatywny |
 | `fuzz_wifi`: dowolny opis i dowolny wynik — odrzucony albo lista, w której każda sieć przechodzi sprawdzenie komunikatu i nazwy | fuzzing |
 | `scripts/test-wifi.sh` (QEMU, udawane karty `mac80211_hwsim.radios=7`, punkty dostępu testowe z `t_wifi.c`): baza przepisów radiowych sprawdzona podpisem; karta i radio; 5 sieci (4 z hasłem, 1 otwarta), zepsuty opis odrzucony, siec żyje; nazwy ze znakiem nowej linii, sekwencją sterującą, złym UTF-8 i znakiem kierunku pokazane z „?”; ikona; przełącznik wyłącza i włącza radio; zakładka kart; w logu nie ma nazw sieci — zrzuty `wifi-*.png` | z zewnątrz + negatywny |
+| host `test_krypto` (0.9.1 krok 2): SHA-1 (FIPS 180-4), HMAC-SHA1 (RFC 2202), PBKDF2 (RFC 6070) i klucz sieci z hasła (IEEE 802.11 aneks J.4), PRF 802.11 (aneks J.3; reszta liczona z definicji w Pythonie — obca implementacja), AES-128 (FIPS 197), zawijanie klucza (RFC 3394), zmieniony bajt i zły klucz odrzucone | jednostkowy + negatywny |
+| host `test_wpa`: router napisany w teście (ramki bajt po bajcie): cała wymiana, klucze po obu stronach, nowy klucz grupy; złe hasło, zły MIC, stary licznik, inny nonce, zmieniony element RSN, zły klucz KEK, zła długość klucza grupy, id 0, bity błędu/prośby, inna wersja, klucz grupy przed połączeniem, ucięte i obce ramki, dopełnienie; powtórzona wiadomość 3 i klucz grupy — bez drugiego wpisania; hasło 7 znaków, ze znakiem sterującym, 64 cyfry z błędem | jednostkowy + negatywny |
+| `fuzz_eapol`: dowolna ramka w stanie „czekam na 1” i po prawdziwej wiadomości 1, dowolne dane klucza — odrzucone ze znanym powodem albo odpowiedź, którą da się przeczytać | fuzzing |
+| `scripts/test-wifi.sh` (0.9.1 krok 2, router testowy `t_wifi_ap.c`): „Kawiarnia” otwarta — połączenie i adres; „K1-TEST” — złe hasło („Złe hasło — spróbuj jeszcze raz”), dobre hasło (logowanie, klucze, adres od routera przez szyfrowane ramki), „Zapomnij tę sieć”, ponowny start z tym samym K1-DANE — łączy się sam; hasła i nazw nie ma w logu | z zewnątrz + negatywny |
 | w systemie `t_klatki` (klatka siec), `t_proby` (każda klatka: `socket(AF_INET/AF_PACKET/AF_NETLINK)`, `ioctl(SIOCSIFADDR)`, `setsockopt(SO_DETACH_FILTER)` zablokowane; 0.9.1: `socket(AF_NETLINK, NETLINK_GENERIC)` — nl80211 — też) | funkcjonalny + negatywny |

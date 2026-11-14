@@ -16,7 +16,7 @@
 #define K1_SIEC_PREFIKS_MAKS 30           /* the longest (255.255.255.252: two addresses) */
 
 /* Why the cable of the card is gone (K1_KOM_SIEC_ROZLACZONO a). */
-enum { K1_SIEC_KABEL_WYJETY = 1, K1_SIEC_KARTA_ZNIKNELA = 2 };
+enum { K1_SIEC_KABEL_WYJETY = 1, K1_SIEC_KARTA_ZNIKNELA = 2, K1_SIEC_WIFI_ROZLACZONE = 3 /* 0.9.1: Wi-Fi left the network */ };
 /* nadzorca's answer to SIEC_ADRES / SIEC_ZWOLNIJ (K1_KOM_SIEC_WYNIK b): 0 or one of these. */
 enum { K1_SIEC_BLAD_KARTA = -1, K1_SIEC_BLAD_JADRO = -2, K1_SIEC_BLAD_CZAS = -3, K1_SIEC_BLAD_MIN = -3 };
 
@@ -41,9 +41,11 @@ enum k1_siec_stan {
     K1_SIEC_POLACZONO = 3,  /* an address from the router is set */
     /* 0.9.1 (ADR 0041): no cable, a Wi-Fi card — the icon shows Wi-Fi (k1_wifi.h) */
     K1_SIEC_WIFI_WYLACZONE = 4,      /* its radio is off (in Ustawienia or by the switch in the computer) */
-    K1_SIEC_WIFI_NIE_POLACZONO = 5,  /* on, not connected (connecting: 0.9.1 step 2) */
+    K1_SIEC_WIFI_NIE_POLACZONO = 5,  /* on, not connected */
+    K1_SIEC_WIFI_LACZENIE = 6,       /* 0.9.1 step 2: joining a network (the router, the password, the address) */
+    K1_SIEC_WIFI_POLACZONO = 7,      /* connected through Wi-Fi with an address (SIEC_STAN e: bars 1..4) */
 };
-#define K1_SIEC_STAN_MAKS 5
+#define K1_SIEC_STAN_MAKS 7
 /* The network cards of the computer (K1_KOM_SIEC_KARTA): wired ones nadzorca uses, and every PCI network device —
  * also those K1 has no driver for (Wi-Fi: a later version), so that the person can tell us its identifier. */
 #define K1_SIEC_LISTA_MAKS 8

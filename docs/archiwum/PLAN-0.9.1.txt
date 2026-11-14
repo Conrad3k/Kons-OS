@@ -195,6 +195,32 @@ KROK 2 — Łączenie z hasłem, zapamiętane sieci; wydanie 0.9.1              
   (zapamiętana sieć, hasło sieci), RYZYKA (podrobiony router o tej samej nazwie — WPA2 z hasłem chroni tylko przed
   obcymi, nie przed kimś, kto zna hasło), TESTY.md, CHANGELOG.
   Gotowe, gdy: testy zielone, wydanie k1-v0.9.1 istnieje, raport z linkami.
+  Ustalenia z wykonania (2026-11-14, Claude):
+  - D2, D4: decyzje właściciela jak w rekomendacji (punkt 4).
+  - T6: ramki EAPOL gniazdem pakietowym od nadzorcy (ETH_P_PAE, wzór DHCP) + NL80211_ATTR_CONTROL_PORT w CONNECT — zapis
+    w ADR 0041. Gniazdo przychodzi osobnym komunikatem SIEC_WIFI_EAPOL: typ komunikatu niesie deskryptor zawsze albo nigdy
+    (k1_odbior.c), a dla sieci otwartej gniazda nie ma. Klucze: NEW_KEY z zagnieżdżonym NL80211_ATTR_KEY (ZE ŹRÓDEŁ:
+    nl80211_parse_key), autoryzacja SET_STATION z NL80211_STA_FLAG_AUTHORIZED; ogłoszenia z grupy „mlme” (CONNECT,
+    DISCONNECT) — ZE ŹRÓDEŁ i POTWIERDZONE w QEMU.
+  - Hasło: Ustawienia mają kanał prosto do siec (KANAL_DO_SIECI, rodzaj KN_SIEC, kierunek K1_KIER_DO_SIECI) — nadzorca nie
+    widzi hasła; siec liczy klucz sieci (PBKDF2) i hasło czyści. Stan połączenia wraca w liście (SIEC_WIFI_LISTA c, d, e →
+    WIFI_POLACZENIE), bez kanału zwrotnego.
+  - W10: wektory — RFC 2202, RFC 6070, FIPS 180-4, FIPS 197, RFC 3394, IEEE 802.11 aneks J.3 (PRF, przypadek 1) i J.4
+    (klucz sieci z hasła, trzy przykłady); pozostałe (PRF przypadek 2, klucze połączenia PRF-384) policzone z definicji
+    niezależnie w Pythonie (hashlib, hmac, cryptography) — test_krypto. Router po drugiej stronie napisany osobno (test_wpa,
+    t_wifi_ap.c), ostateczny dowód: prawdziwy router właściciela.
+  - W12: siec dostaje KANAL_SKARBCA jak aplikacje (właściciel = profil 18), obiekt 1 „K1WF”. POTWIERDZONE w QEMU: bez
+    RLIMIT_FSIZE w klatce zapis memfd dla skarbca kończy siec sygnałem 25 (SIGXFSZ) — KLATKA_SIEC ma 64 KiB.
+  - W13: „złe hasło” = wysłana wiadomość 2, a punkt dostępu odłączył albo minęło 20 s bez wiadomości 3; bez wiadomości 2 —
+    „nie udało się połączyć”. Na prawdziwym routerze — test właściciela (lista w DO_ZROBIENIA).
+  - W14: jeden adres naraz — nadzorca daje adres karcie Wi-Fi tylko bez kabla; kabel włożony → Wi-Fi traci adres
+    (SIEC_ROZLACZONO z K1_SIEC_WIFI_ROZLACZONE), połączenie z siecią zostaje. siec trzyma jeden klient DHCP — wystarczył.
+  - Dowód „dane płyną” (T5): zamiast zapytania ARP — adres od małego serwera DHCP routera testowego (prośba stacji
+    zaszyfrowana kluczem pary, rozgłoszona odpowiedź — kluczem grupy). Router testowy (t_wifi_ap.c) to mały hostapd:
+    REGISTER_FRAME, FRAME, NEW_STATION (bez flag AUTH/ASSOC — jądro dodaje je samo, ZE ŹRÓDEŁ nl80211_new_station).
+    Negatywne w QEMU: ramka EAPOL za krótka i podrobiona wiadomość 3 (zły MIC) — odrzucone, siec żyje.
+  - Budowa: git.kernel.org bywa niedostępny (w kontenerze Claude: 403) — scripts/oprogramowanie-kart.sh ma zapas: lustro
+    linux-firmware na gitlab.com (suma każdego pliku i tak sprawdzana).
 
 
 4. DECYZJE

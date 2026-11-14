@@ -61,6 +61,8 @@ enum kanal_rodzaj {
     KN_DO,      /* one way from us: we write, the service checks that we (UID 0) send */
     KN_OD,      /* requests to us and our replies: both ends check the sender (SO_PASSCRED) */
     KN_PLIK,    /* KN_DO whose end is the application's own: plik_kanal[its number] (a file to open) */
+    KN_SIEC,    /* 0.9.1 step 2: from the application straight to siec (a Wi-Fi password, not through us): its other end
+                 * goes to siec in SIEC_USTAWIENIA, siec checks the sender (none while siec does not run) */
 };
 struct kanal {
     enum kanal_rodzaj rodzaj;
@@ -220,9 +222,35 @@ extern int wifi_nl;           /* the kernel's notices of the "scan" group (main.
 int wifi_nl_otworz(void);
 int wifi_nl_stacja(int nr);   /* 1: a Wi-Fi card that joins networks */
 int wifi_nl_szukaj(int nr);
-int wifi_nl_zdarzenia(int nr); /* 1: the look on card nr finished */
+struct wifi_zdarzenia {
+    int koniec_szukania; /* the look finished (or was aborted) */
+    int polaczenie;      /* joining ended: 0 joined, the router's status code > 0; -1 no notice */
+    int rozlaczenie;     /* the connection ended: its reason code; -1 no notice */
+};
+void wifi_nl_zdarzenia(int nr, struct wifi_zdarzenia *z);
 int wifi_nl_wyniki(int nr, uint8_t *buf, size_t maks, int *rekordy, size_t *dl, int *pominiete);
+int wifi_nl_polacz(int nr, const uint8_t bssid[6], int mhz, const uint8_t *ssid, size_t n, int tryb); /* 0.9.1 step 2 */
+int wifi_nl_klucz(int nr, const uint8_t *bssid, int id, int szyfr, const uint8_t *klucz, size_t n, const uint8_t *rsc);
+int wifi_nl_otworz_port(int nr, const uint8_t bssid[6]);
+int wifi_nl_rozlacz(int nr);
 void obsluz_wifi_nl(void);
+/* wifi.c — what wifi_polacz.c needs of the card */
+int wifi_karta_nr(void);                /* the Wi-Fi card (ifindex) when its radio is on, else 0 */
+int wifi_karta_mac(uint8_t mac[6]);     /* its address: 0, or -1 */
+int wifi_poziom_sieci(int i);           /* bars 1..4 of network i of the list, 0 when there is no such network */
+int wifi_indeks_polaczenia(void);       /* the connected network in the list (siec says), -1 */
+void wifi_szukaj_wkrotce(void);         /* look for networks now (the connection ended) */
+void wifi_przelacz(int wlacz);          /* the radio on / off (soft rfkill) */
+void siec_zmiana(void);                 /* siec.c: look at the cards (and their address) at the next pass */
+/* wifi_polacz.c — joining a network on siec's request (0.9.1 step 2, ADR 0041 T3) */
+void wifi_polacz_od_sieci(const struct k1_komunikat *k); /* SIEC_WIFI_SSID … _OTWORZ, _RADIO_USTAW */
+void wifi_polacz_zdarzenia(const struct wifi_zdarzenia *z); /* the kernel's notices about the card */
+void wifi_polacz_czas(double t);        /* joining that takes too long */
+void wifi_polacz_koniec(int powod);     /* the card is gone or its radio is off: the connection with it */
+int wifi_lacze(void);                   /* the Wi-Fi card when data flows through it (for an address), else 0 */
+int wifi_laczy(void);                   /* 1 while joining (the icon: "łączę") */
+void wifi_radio_zmienione(int wlacz);   /* the person switched the radio: siec remembers it */
+int siec_kanal_ustawien(void);          /* KN_SIEC: a channel from Ustawienia straight to siec (its fd), or -1 */
 /* siec_zegar.c — the clock from the internet (0.9.0 step 8): 0, or K1_SIEC_BLAD_* */
 extern double siec_zegar_od;                       /* the clock set (or found right) at (k1_teraz), 0: not yet */
 int siec_gniazdo_czasu(uint32_t serwer, int *fd);  /* a UDP socket connected to serwer:123 */

@@ -108,5 +108,9 @@ int proba(const char *profil);
 /* t_wifi.c (0.9.1): the test access points of scripts/test-wifi.sh */
 int tryb_wifi(void);
 int t_wifi_punkty_dostepu(void);
+/* t_wifi_ap.c (0.9.1 step 2): access points that answer a station */
+int ap_dodaj(int nr, const char *nazwa, const uint8_t mac[6], int j, const uint8_t *ssid, int dl_ssid, int wpa2,
+             const uint8_t *rsn, size_t dl_rsn);
+void ap_obsluga(void);
 
 #endif

@@ -31,7 +31,9 @@ innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
 - Klienci (0.5.6): ekran (fd 5, obiekt `K1_OB_USTAWIENIA`), Notatki (fd 4; od 0.5.8 obiekt 1 = lista,
   2…33 = notatki), Ustawienia (fd 5: `SKARB_INFO`, `SKARB_HASLO`), ekran hasła (`SKARB_ODBLOKUJ`),
   nadzorca (0.6.0: właściciel `K1_WL_SYSTEM`, obiekt `K1_OB_BATERIA` — historia baterii, `k1_bat_arch.h`),
-  gui (0.7.5: rozmieszczenie pulpitu; 0.8.0: pliki folderu Pulpit), Pliki (0.8.0: pliki — `DOK_*`, niżej).
+  gui (0.7.5: rozmieszczenie pulpitu; 0.8.0: pliki folderu Pulpit), Pliki (0.8.0: pliki — `DOK_*`, niżej), siec (0.9.1
+  krok 2: fd 4, właściciel = profil 18, obiekt 1 — zapamiętane sieci Wi-Fi z kluczami sieci i przełącznik radia; format
+  „K1WF” — `komponenty/siec.md`; skarbiec zablokowany → siec pyta co 5 s).
 - Hasło (0.5.7, ADR 0017): stan „zablokowany” (magazyn z hasłem, nieotwarty) → `SKARB_STAN` do nadzorcy;
   `SKARB_ODBLOKUJ` tylko od ekranu hasła, `SKARB_HASLO` (obecne + nowe) tylko od Ustawień, `SKARB_INFO`
   od każdego; limit prób (od trzeciej złej: 5 s … 5 min) liczy skarbiec. Zablokowany: odczyt/zapis

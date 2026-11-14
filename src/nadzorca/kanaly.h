@@ -21,5 +21,7 @@
 #define KANAL_PENDRIVE { KN_OD, &pen_kanal, NULL, pendrive_nowy_kanal } /* Pliki: the USB stick, a picture decoder */
 #define KANAL_DEKODERA { KN_OD, &podglad_kanal, NULL, NULL } /* Podgląd: a picture decoder (dekoder.c; Podgląd only) */
 #define KANAL_SIECI { KN_OD, &siec_kanal, NULL, siec_nowy_kanal } /* siec: the card with a cable, its address (siec.c) */
+/* 0.9.1 step 2: Ustawienia → siec straight (a Wi-Fi password never passes through us; wifi_polacz.c) */
+#define KANAL_DO_SIECI { KN_SIEC, NULL, NULL, NULL }
 
 #endif

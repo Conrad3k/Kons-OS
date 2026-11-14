@@ -81,7 +81,13 @@ Nieobsługiwana), pod nimi „Szczegóły karty przewodowej” (sterownik z jąd
 (kafelki od x,y co 76)” (bez adresu). Od 0.9.1 (krok 1, D1: szkic A; `wifi.c`) pod tytułem zakładki „Wi-Fi | Karty
 sieciowe” (log „sieć: zakładki od x,y”): Wi-Fi — przełącznik radia (`WIFI_WLACZ`) i lista sieci w pobliżu (wachlarz z siłą
 sygnału, nazwa, kłódka, uwaga; najwyżej 6 wierszy), przy pokazaniu prośba o szukanie (`WIFI_SZUKAJ`); log „wifi: włączone;
-sieci 5 (z hasłem 4, otwarte 1, inne 0); wiersze od x,y co 40; przełącznik x,y” — bez nazw sieci. Karty sieciowe — kafelki
+sieci 5 (z hasłem 4, otwarte 1, inne 0); wiersze od x,y co 40; przełącznik x,y; rodzaje 2,1,3,4,3; połączenie s (rząd r)” — bez
+nazw sieci. Od 0.9.1 krok 2 (`wifi_haslo.c`, D1, D2, D4): kliknięcie sieci rozwija jej wiersz — pole hasła (kropki, nigdy
+hasło), „Połącz” (sieć otwarta: napis „Sieć niezabezpieczona…”; zapamiętana: „Połącz” i „Zapomnij tę sieć”; połączona:
+„Zapomnij tę sieć”); przy wierszu „Połączono”, „Łączę…” albo „zapamiętana”; złe hasło: czerwona ramka pola i „Złe hasło —
+spróbuj jeszcze raz.” pod nim; Esc zamyka wiersz, wyjście z sekcji czyści wpisane hasło. Hasło idzie raz prosto do usługi
+siec (fd 6, `KANAL_DO_SIECI`: `WIFI_HASLO`, `WIFI_WYBRANA`, `WIFI_POLACZ`, `WIFI_ZAPOMNIJ`) — nie przez nadzorcę; stan wraca
+w `WIFI_POLACZENIE`. Log „wifi: rząd i otwarty (rodzaj r); pole x,y; Połącz x,y; Zapomnij x,y”. Karty sieciowe — kafelki
 jak wyżej, karta Wi-Fi z plakietką Włączone/Wyłączone. Informacje (`informacje.c`): wersja, ekran,
 jądro, gdzie są dane i odesłanie do sekcji Miejsce.
 
@@ -238,7 +244,9 @@ Ustawienia: lista trybów ekranu (`K1_KOM_TRYB`) dostaje tylko ona; od 0.5.5 fd 
 (`BATERIA`, `BATERIA_HIST`: do 16 próbek po 1 bajcie w komunikacie), jednokierunkowy, nadawca UID 0; od 0.9.0 ten sam
 kanał: `SIEC_STAN`, `SIEC_KARTA`, `SIEC_SZCZEGOLY`, `SIEC_STEROWNIK`, `SIEC_ADRESY` (sekcja Sieć; `komponenty/siec.md`); od
 0.9.1 `WIFI_STAN`, `WIFI_SIEC`, `WIFI_NAZWA` — i ten kanał działa w obie strony: Ustawienia wysyłają `WIFI_WLACZ`
-(przełącznik radia) i `WIFI_SZUKAJ` (gdy pokazują listę sieci); nadzorca sprawdza UID nadawcy.
+(przełącznik radia) i `WIFI_SZUKAJ` (gdy pokazują listę sieci); nadzorca sprawdza UID nadawcy. Od 0.9.1 krok 2: `WIFI_POLACZENIE`
+(stan połączenia, zapamiętane sieci) i fd 6 — kanał prosto do usługi siec (`KANAL_DO_SIECI`, jednokierunkowy; siec sprawdza
+UID Ustawień): hasło Wi-Fi i wybór sieci.
 Bez kanału (zamknięty) reszta Ustawień działa.
 Pliki (0.8.0): fd 4 — kanał do skarbca z prawami do wszystkich plików użytkownika (i do niczego więcej: obiekty
 innych aplikacji są dla Plików niewidoczne), komunikaty `DOK_*` (`komponenty/skarbiec.md`); fd 5 — od nadzorcy,

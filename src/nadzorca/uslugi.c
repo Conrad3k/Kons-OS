@@ -183,6 +183,9 @@ static int otworz_kanal(const struct kanal *k, const struct usluga *u, int *fd)
     case KN_SKARB:
         *fd = kanal_do_skarbca(u->profil, (int)uid);
         return *fd >= 0 ? 1 : 0;
+    case KN_SIEC: /* 0.9.1 step 2: Ustawienia → siec, not through us (wifi_polacz.c) */
+        *fd = siec_kanal_ustawien();
+        return *fd >= 0 ? 1 : -1;
     case KN_DO:
     case KN_OD:
     case KN_PLIK:

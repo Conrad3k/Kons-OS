@@ -141,9 +141,9 @@ static int wyslij_karte(int i)
 void siec_stan_wyslij(void)
 {
     double od;
-    int stan = siec_stan(&od), i;
-    struct k1_komunikat k =
-        k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, stan, n_listy, sekundy(od), sekundy(siec_zegar_od), 0);
+    int stan = siec_stan(&od), i, kreski = wifi_poziom_sieci(wifi_indeks_polaczenia());
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, stan, n_listy, sekundy(od), sekundy(siec_zegar_od),
+                                              stan == K1_SIEC_WIFI_POLACZONO ? (kreski > 0 ? kreski : 1) : 0);
     if (bateria_kanal >= 0 && gui_kanal_uid == K1_UID_GUI) /* the password screen has no network icon */
         wyslij_stan(bateria_kanal, &k, &gui_ma, &gui_wie);
     if (ustaw_kanal < 0)

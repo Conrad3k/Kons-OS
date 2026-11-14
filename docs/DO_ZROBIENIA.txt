@@ -4,33 +4,32 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.9.0 — pierwsza wersja tematu 0.9 Sieć: kabel i adres od routera, nic nie odpowiada z zewnątrz, ikona sieci,
-Ustawienia → Sieć, zegar z internetu (plan 0.9.0 — w historii git); teraz 0.9.1 Wi-Fi.
-Data: 2026-11-13.
+Stan: 0.9.1 — temat 0.9 Sieć: kabel (0.9.0) i Wi-Fi (0.9.1: lista sieci, łączenie z hasłem, sieci otwarte, zapamiętane
+sieci; plan zamknięty: docs/archiwum/PLAN-0.9.1.txt); teraz 0.9 skończona — następna wersja: 0.10 Strefy.
+Data: 2026-11-14.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — 0.9.1 Wi-Fi
-----------------------
-0.9 Sieć (ADR 0019, 0026, 0039). Gotowe: 0.9.0 — kabel (zmiany w CHANGELOG.md; plan 0.9.0 usunięty, jest w historii git).
-Teraz: 0.9.1 Wi-Fi — plan docs/PLAN-0.9.1.txt (dwa kroki, wydanie w drugim; decyzje dla Ciebie w jego punkcie 4).
-    [x] 0.9.0: jedna tabela usług, komunikaty i odpowiedzi skarbca, pliki startowe w aktualizacji, musl 1.2.5 i
-        fortify (PR #94, #96, #97); jądro z siecią, kabel i adres od routera (PR #100); ikona sieci, Ustawienia → Sieć,
-        zegar z internetu, porządki i wydanie (kroki 7–9)
-    [ ] 0.9.1: Wi-Fi na obu laptopach (sterowniki z jądra, pliki od producenta, logowanie do sieci z hasłem)
-    [!] Pytania z planu 0.9.0, które zostały dla Ciebie (przydadzą się w 0.9.1): D2 — czy masz kabel sieciowy do obu
-        laptopów, czy tylko Wi-Fi? D3 — nazwy kart sieciowych IdeaPada: od 0.9.0 pokazuje je K1 sam — Ustawienia → Sieć
-        (kafelek z identyfikatorem, np. „Karta Wi-Fi 168c:0042”) — przepisz je w czacie.
+1. TERAZ — 0.10 Strefy (planu jeszcze nie ma)
+--------------------------------------------
+0.9 Sieć (ADR 0019, 0026, 0039, 0041) — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi (zmiany w CHANGELOG.md; zamknięty plan 0.9.1 —
+docs/archiwum/PLAN-0.9.1.txt; plan 0.9.0 — w historii git). Zanim zacznie się 0.10: Twoje testy 0.9.1 na obu laptopach
+(punkt 4) — błędy z nich idą jako PATCH 0.9.x.
+    [x] 0.9.0: kabel, adres od routera, ikona sieci, Ustawienia → Sieć, zegar z internetu
+    [x] 0.9.1: Wi-Fi — karta, pliki od producentów, lista sieci (PR #105); łączenie z hasłem i z siecią otwartą,
+        zapamiętane sieci, ikona z siłą sygnału, wydanie (krok 2)
+    [ ] 0.10: plan wersji (PLAN-0.10.0.txt) pisze pierwszy czat wersji (zakres wstępny: punkt 3); najpierw Twoje
+        decyzje z punktu 5 (sesje przeglądarki, KVM do testów)
 
 
 2. MAPA DROGI (ADR 0035; dawne numery etapów M w nawiasach)
 ------------------------------------------------------------
     0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
     0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
-    0.9      Sieć — teraz: 0.9.0 kabel (gotowe), 0.9.1 Wi-Fi                      (M7)
-    0.10     Strefy: obce aplikacje w mikro-maszynach, przeglądarka                (M8, z dawnym M11)
+    0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
+    0.10     Strefy — następna: obce aplikacje w mikro-maszynach, przeglądarka     (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
     0.13     Audyt → 1.0                                                           (M12)
@@ -86,25 +85,39 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
         myszy i touchpadem (wejście dziś nie obsługuje kółka; poza zakresem 0.8.5)
     [ ] dopasowanie rozdzielczości do okna VirtualBoxa (wymaga dodatków gościa); VMware — nie sprawdzony
     [ ] drugi, pusty dysk (bez tablicy partycji) w maszynie wirtualnej jako miejsce na dane
+    [ ] Wi-Fi (z planu 0.9.1, „Nie w tej wersji”): sieci tylko WPA3 (SAE), firmowe i uczelniane z loginem (WPA2-Enterprise,
+        eduroam), sieci ukryte; karty Wi-Fi na USB; losowy adres karty (prywatność w obcych sieciach); logowanie na stronie
+        w sieciach otwartych (z przeglądarką, 0.10); Bluetooth (często ta sama karta i plik producenta); IPv6
 
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.9.0). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
-z 2026-11-11). Najlepiej najpierw aktualizacja K1 na dysku X230 przez Instalator z pendrive'a 0.9.0 — dane zostają,
-a od 0.9.0 aktualizacja wymienia też pliki startowe.
-Nowe w 0.9.0:
-    [ ] aktualizacja z 0.8.7 przez Instalator (X230, K1 na dysku): po ponownym starcie K1 0.9.0 startuje, dane są;
-        w logu Instalatora „pliki startowe wymienione”
+Jedna lista — dla ostatniego wydania (0.9.1). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+z 2026-11-11). Najlepiej najpierw aktualizacja K1 na dysku X230 przez Instalator z pendrive'a 0.9.1 — dane zostają.
+Nowe w 0.9.1 (Wi-Fi):
+    [ ] aktualizacja z 0.9.0 przez Instalator (X230, K1 na dysku): po ponownym starcie K1 0.9.1 startuje, dane są
+    [ ] lista sieci — X230 i IdeaPad: Ustawienia → Sieć → zakładka Wi-Fi pokazuje Twoją sieć domową (i sąsiadów) z kreskami
+        i kłódką; jeśli zakładka mówi „K1 nie potrafi jej jeszcze uruchomić” — przepisz identyfikator karty z zakładki
+        „Karty sieciowe” w czacie
+    [ ] łączenie hasłem: kliknij swoją sieć, wpisz hasło, „Połącz” → przy sieci „Połączono”, na górnym pasku wachlarz
+        z kreskami; zegar z internetu działa też przez Wi-Fi (godzina poprawna)
+    [ ] złe hasło: celowo jedna literka źle → „Złe hasło — spróbuj jeszcze raz.” (czy komunikat przychodzi w rozsądnym
+        czasie — kilkanaście sekund; jeśli zamiast niego „Nie udało się połączyć”, napisz)
+    [ ] start z zapamiętaną siecią: wyłącz i włącz komputer (bez kabla) → po zalogowaniu K1 sam łączy się z siecią
+        (ikona: kropka „łączę”, potem kreski)
+    [ ] przełącznik w obudowie X230 (z lewej strony, przy porcie USB): przesunięty → Ustawienia „Wi-Fi wyłączone
+        przełącznikiem w komputerze”; z powrotem → sieć wraca (W7 — nie wiemy, czy jądro widzi go bez sterownika ThinkPada)
+    [ ] kabel i Wi-Fi naraz: z połączonym Wi-Fi włóż kabel → ikona zmienia się na wtyczkę (używany jest kabel); wyjmij
+        kabel → po chwili znów wachlarz z kreskami
+    [ ] „Zapomnij tę sieć”: przy połączonej sieci → rozłącza się; po ponownym starcie K1 się z nią nie łączy
+    [ ] (jeśli możesz) sieć otwarta, np. hotspot z telefonu bez hasła: „Połącz” → „Połączono” i napis o sieci
+        niezabezpieczonej
+Z 0.9.0 (kabel, niesprawdzone):
     [ ] kabel do routera — X230 i IdeaPad: ikona sieci na górnym pasku (wtyczka) przechodzi z „łączę” (kropka) na
         „połączono” (jasna) w kilka sekund; wyjęcie kabla — krzyżyk; włożenie — znów „połączono”
-    [ ] Ustawienia → Sieć: kafelki kart (X230: Intel 82579LM i Intel Centrino — Wi-Fi „Później”; IdeaPad: Realtek
-        i karta Wi-Fi z identyfikatorem — przepisz identyfikatory w czacie), szczegóły (sterownik, 100 lub 1000 Mb/s,
-        adres w sieci); czy coś jest niezrozumiałe
-    [ ] IdeaPad: czy połączenie kablem jest stabilne (karta Realtek działa bez pliku od producenta) — np. kilka minut
-        z kablem, ikona cały czas „połączono”
-    [ ] zegar z internetu: po podłączeniu kabla godzina i data poprawne; Ustawienia → Data i czas: „Zegar ustawiony
-        z internetu o …”; po wyłączeniu i włączeniu bez kabla godzina dalej dobra (zegar sprzętowy)
+    [ ] Ustawienia → Sieć → „Karty sieciowe”: kafelki kart, szczegóły (sterownik, 100 lub 1000 Mb/s, adres w sieci)
+    [ ] IdeaPad: czy połączenie kablem jest stabilne (karta Realtek działa bez pliku od producenta)
+    [ ] zegar z internetu: po połączeniu godzina i data poprawne; po wyłączeniu i włączeniu bez sieci godzina dalej dobra
 Z wcześniejszych wersji (niesprawdzone):
     [~] energia (0.8.6): Twój wynik z 2026-11-13 — pobór mocy mniejszy: 0.8.5 stałe 11 W, 0.8.6 po minucie 9,5 W
         i dalej spadało. Zostaje: wartość, na której się zatrzyma (3–4 min bez ruszania laptopa), i czy nic się nie
@@ -163,12 +176,12 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
     [x] przegląd 0.7.5, 0.8.0 i 0.8.2: innych rozwiązań tymczasowych nie ma; terminy 0.9.0 bez zmian
     [x] przegląd 0.9.0 (krok 9): terminy 0.9.0 usunięte (krok 3), format 1 skarbca — termin 0.10.0 bez zmian; nowych
         rozwiązań tymczasowych 0.9.0 nie dodało
+    [x] 0.9.1: nowych rozwiązań tymczasowych nie dodało (0.9.1 to PATCH — porządki MINOR przy 0.10)
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
 ---------------------------------------------------------------------------------------
-    0.9    0.9.0: podjęte (ADR 0038, 0039); 0.9.1: w docs/PLAN-0.9.1.txt (pliki
-           od producenta kart Wi-Fi, program logujący do sieci)
+    0.9    podjęte (ADR 0038, 0039, 0041 — pliki od producentów kart Wi-Fi, własne logowanie WPA2, ramki EAPOL)
     0.10   Firefox czy WPE WebKit (sandbox Firefoksa w strefie); wybór VMM (m.in. Cloud Hypervisor, Firecracker,
            crosvm); test KVM na Twoim sprzęcie
     0.12   RANDSTRUCT w jądrze; zarządzanie kluczami; ochrona jądra przez wirtualizację — tak/nie

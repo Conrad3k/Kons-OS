@@ -3,6 +3,42 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.9.1] — 2026-11-14
+
+**Sieć: Wi-Fi** (plan 0.9.1, kroki 1–2; ADR 0041) — druga wersja tematu 0.9 Sieć. Laptop łączy się z domowym Wi-Fi:
+widzisz listę sieci, wybierasz swoją, wpisujesz hasło raz — potem K1 łączy się sam przy każdym starcie.
+
+### Dodane
+- **Karta Wi-Fi i lista sieci** (krok 1): sterowniki kart Wi-Fi z jądra Linux (Intel, Qualcomm Atheros, Realtek,
+  MediaTek — w laptopach na PCIe) i pliki od producentów kart wbudowane w podpisany K1 (Twoja decyzja D3: nikt nie może
+  ich podmienić). Ustawienia → Sieć mają zakładki „Wi-Fi | Karty sieciowe” (Twój wybór D1, szkic A): przełącznik Wi-Fi
+  i listę sieci w pobliżu (siła sygnału, nazwa, kłódka przy sieci z hasłem). Nazwy z powietrza są pokazywane
+  bezpiecznie („?” zamiast znaków sterujących i złych bajtów) i nigdy nie trafiają do logu. Na górnym pasku — ikona
+  „Wachlarz” (Twój wybór D1, szkic B). Gdy przełącznik w obudowie wyłącza radio — Ustawienia to mówią.
+- **Łączenie z siecią z hasłem** (krok 2, Twoja decyzja D2): kliknięcie sieci rozwija jej wiersz z polem hasła
+  i „Połącz”; złe hasło — „Złe hasło — spróbuj jeszcze raz.” pod polem. Działa z sieciami domowymi WPA2 i mieszanymi
+  WPA2/WPA3 (tak działa większość routerów) oraz z sieciami otwartymi (kawiarnia, hotel) z napisem, że są
+  niezabezpieczone. Logowanie (wymiana czterech wiadomości z routerem) robi usługa siec w swojej klatce; klucze do jądra
+  wpisuje nadzorca. Hasło idzie z Ustawień prosto do usługi siec — nawet nadzorca go nie widzi — i nie jest nigdzie
+  zapisywane: K1 pamięta tylko liczony z niego klucz sieci.
+- **Zapamiętane sieci** (Twoja decyzja D4): sieć, która przyjęła hasło, jest zapamiętana w skarbcu (zaszyfrowana);
+  przy starcie i po utracie zasięgu K1 łączy się sam z najsilniejszą zapamiętaną. „Zapomnij tę sieć” w Ustawieniach.
+  Hasło nigdy nie jest pokazywane z powrotem. Przełącznik Wi-Fi z Ustawień też jest zapamiętany.
+- **Ikona z siłą sygnału**: łączę — wachlarz z pomarańczową kropką; połączono — wypełniona część wachlarza to siła
+  sygnału (1–4 kreski). Kabel i Wi-Fi naraz — używany jest kabel. Zegar z internetu działa też przez Wi-Fi.
+
+### Zmienione
+- **Jądro kompresowane zstd** (krok 1): z plikami kart Wi-Fi jądro z gzip miałoby 20 MB; zstd: 12,5 MB.
+- Usługa siec ma też kanał do skarbca (zapamiętane sieci), a Ustawienia — kanał prosto do usługi siec (hasło Wi-Fi).
+- Pliki kart Wi-Fi pobierane przy budowie także z lustra linux-firmware na gitlab.com, gdy kernel.org nie odpowiada
+  (suma każdego pliku i tak jest sprawdzana).
+
+### Bezpieczeństwo
+- Kryptografia WPA2 (SHA-1, HMAC, PBKDF2, PRF 802.11, AES z zawijaniem klucza) — małe własne pliki sprawdzone
+  oficjalnymi wektorami testowymi; każda ramka logowania sprawdzana pole po polu (test i fuzzing); ochrona przed
+  powtórzeniem ramek i ponownym wpisaniem tego samego klucza (KRACK); router musi potwierdzić te same zabezpieczenia,
+  które ogłosił (bez obniżania). Nowe ryzyka opisane: R74–R76.
+
 ## [0.9.0] — 2026-11-13
 
 **Sieć: kabel** (plan 0.9.0, kroki 1–9 — w historii git; ADR 0038, 0039) — pierwsza wersja tematu 0.9 Sieć. K1 łączy
