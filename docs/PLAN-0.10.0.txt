@@ -163,7 +163,9 @@ KROK 1 — Pierwsza strefa: KVM, VMM, okno w zaufanej ramce                L · 
     Pułapki QEMU 8.2 (emulowane SVM): gość bez stronicowania widzi złą pamięć (start prosto w 64 bit, CPUID bez LA57,
     strefa testowa z 1 procesorem); stary typ zdarzenia w exit_int_info → KVM_INTERNAL_ERROR_DELIVERY_EV przy MMIO po
     przerwaniu (VMM ponawia do 8 razy, jądro strefy z x2APIC). ADR 0042 T10.
-  - S7 NIEPEWNE do pierwszego CI: test-strefa.sh przechodzi na emulację, gdy runner nie ma zagnieżdżonej wirtualizacji.
+  - S7 CZĘŚCIOWO: pierwsze CI na main (run 74, commit 4e75b98) — runner ma /dev/kvm, test-strefa.sh zaliczony (wszystkie
+    testy zielone, testy trwały 23,5 min). Czy szedł z zagnieżdżoną wirtualizacją, czy z emulacją — log CI tego nie
+    mówi (tryb widać tylko w strefa.log w paczce logów). Krok 2: test-strefa.sh wypisuje tryb w podsumowaniu.
   - S9: jądro strefy wymaga też BLK_DEV i MISC_FILESYSTEMS (menu), init=/init (bez initramfs), DEVMEM bez STRICT_DEVMEM
     (testy złośliwego gościa), X86_X2APIC. 2,2 MB.
   - S10 POTWIERDZONE: tablica MP (bez ACPI) wystarcza; koniec gościa przez reboot=k (port 0x64, 0xFE).
