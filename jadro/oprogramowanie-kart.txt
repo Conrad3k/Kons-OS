@@ -1,0 +1,49 @@
+# Pliki od producentów kart Wi-Fi wbudowane w jądro K1 (decyzja D3 planu 0.9.1, ADR 0041) — jedna tabela.
+# Z niej scripts/oprogramowanie-kart.sh pobiera pliki z linux-firmware (wersja i adres: jadro/wersja.env), sprawdza
+# sumy i składa EXTRA_FIRMWARE dla jądra; podpis K1 obejmuje je razem z jądrem (k1.efi). Kodu tych plików nie widać —
+# działają w karcie (RYZYKA). Nowa karta = wiersz tutaj (i sterownik w jadro/k1.config).
+# Kolumny: nazwa, o którą prosi sterownik (tak też w jądrze) | ścieżka w linux-firmware | SHA-256.
+# Bazę przepisów radiowych (regulatory.db i podpis .p7s) skrypt bierze z wireless-regdb (jadro/wersja.env).
+
+# Intel iwlwifi DVM — X230: Centrino Advanced-N 6205 (6000g2a), 6235 (6000g2b), Ultimate-N 6300 (6000, API 4), Wireless-N 2200/2230 (2000, 2030)
+iwlwifi-2000-6.ucode                         intel/iwlwifi/iwlwifi-2000-6.ucode                   f026eed05503e1fe752bebcd1e0a03aed79d0da757ae69d7dea82295036f1f82
+iwlwifi-2030-6.ucode                         intel/iwlwifi/iwlwifi-2030-6.ucode                   8d84a8cbdaa1fd12917a8b65a08d4ba59fae1d578444389fcf5982193e3e8b9d
+iwlwifi-6000-4.ucode                         intel/iwlwifi/iwlwifi-6000-4.ucode                   5babe59eda1022a45b2ae0460e13302eff0b3575b776e86fa68e50dfce62f94f
+iwlwifi-6000g2a-6.ucode                      intel/iwlwifi/iwlwifi-6000g2a-6.ucode                9c435c7f413ff2ff1320604c68beb6e8239bb93522dc4b7c02c8cc94a393d88a
+iwlwifi-6000g2b-6.ucode                      intel/iwlwifi/iwlwifi-6000g2b-6.ucode                49f2408828b9b8ea3818f487a7c0b736d13879d4fcd21cf1082d41e03fb00e4f
+
+# Intel iwlwifi MVM — 7265, 8260, 8265, 9560, 9260, AX200 (cc), AX201 (Qu/QuZ hr), 9560 na Comet Lake (QuZ jf), AX210 (ty), AX211 (so);
+# numer API = jedyny, który przyjmuje jądro 6.18 (drivers/net/wireless/intel/iwlwifi/cfg/*.c, iwl-drv.c); .pnvm — dane radia AX210/AX211
+iwlwifi-7265D-29.ucode                       intel/iwlwifi/iwlwifi-7265D-29.ucode                 c52bcaa0595f64d5fb32b7db3dd4b832ea7bf78f1037bcafc19d9c0f5c5c617e
+iwlwifi-8000C-36.ucode                       intel/iwlwifi/iwlwifi-8000C-36.ucode                 479931721f5e168d69d67c297c11738acd75da390adb94f96030a1055f4cf57a
+iwlwifi-8265-36.ucode                        intel/iwlwifi/iwlwifi-8265-36.ucode                  1336afcd028ed094d1fe33893c84c273bb5711be52970040344a75a12f276d56
+iwlwifi-9000-pu-b0-jf-b0-46.ucode            intel/iwlwifi/iwlwifi-9000-pu-b0-jf-b0-46.ucode      9a0c5d938646942f9798e6212579c25771e4bb44301cd409b82abe361ca2c3e0
+iwlwifi-9260-th-b0-jf-b0-46.ucode            intel/iwlwifi/iwlwifi-9260-th-b0-jf-b0-46.ucode      05f4c12514fddfd56fea660b3d2eb6b6e6f4a87a324d5d40464050312ddca911
+iwlwifi-cc-a0-77.ucode                       intel/iwlwifi/iwlwifi-cc-a0-77.ucode                 1866a58a1daee56b120362122d5f7548b443b53d33f2558a7e4407d58fd27dab
+iwlwifi-Qu-b0-hr-b0-77.ucode                 intel/iwlwifi/iwlwifi-Qu-b0-hr-b0-77.ucode           df005896aafdf5eb9c427033781890a58c7ab97a8dc1e1ea6b8df4eefc033a9d
+iwlwifi-Qu-c0-hr-b0-77.ucode                 intel/iwlwifi/iwlwifi-Qu-c0-hr-b0-77.ucode           a250e179666288396e19ff15c307edfe8f089341c8713a22b457b7304fc1a6fe
+iwlwifi-QuZ-a0-hr-b0-77.ucode                intel/iwlwifi/iwlwifi-QuZ-a0-hr-b0-77.ucode          39d79587dd035bc84172b6bcf6de81217560088b0ceb06304d5121ba56db8d83
+iwlwifi-QuZ-a0-jf-b0-77.ucode                intel/iwlwifi/iwlwifi-QuZ-a0-jf-b0-77.ucode          5a9aef304c60d92b26878bf0c7e0c138776b71e5ce772de2f0fb7455d5340478
+iwlwifi-ty-a0-gf-a0-89.ucode                 intel/iwlwifi/iwlwifi-ty-a0-gf-a0-89.ucode           792478ef7752595525379a5068e2d47e310a2c344636b7df866c54746ced1dc0
+iwlwifi-ty-a0-gf-a0.pnvm                     intel/iwlwifi/iwlwifi-ty-a0-gf-a0.pnvm               9697e327f8171454b3c19b1ec9449753d5b934d4e91722f469616818a6d477b0
+iwlwifi-so-a0-gf-a0-89.ucode                 intel/iwlwifi/iwlwifi-so-a0-gf-a0-89.ucode           fae8230ebd1426dfb7d5b5594fdd89e346af5144080659d010b8d2a2fd2f7d4a
+iwlwifi-so-a0-gf-a0.pnvm                     intel/iwlwifi/iwlwifi-so-a0-gf-a0.pnvm               78abe08cf33bc209b96a887c7e3db8855a1d9650edacf849c4fa0d4596bcfac5
+
+# Qualcomm Atheros ath10k — QCA9377 (prawdopodobnie IdeaPad 110-15ISK), QCA6174; board-2.bin — dane anteny według modelu laptopa
+ath10k/QCA9377/hw1.0/firmware-6.bin          ath10k/QCA9377/hw1.0/firmware-6.bin                  8f8b002fccfe81d42238f27dd1f56d189604f180bd4772c7c8e75ae1fef16f01
+ath10k/QCA9377/hw1.0/board-2.bin             ath10k/QCA9377/hw1.0/board-2.bin                     0fdcc7838f478da81704de88f7b33e28862110c6d5decf7818543f8e37e6cd98
+ath10k/QCA6174/hw3.0/firmware-6.bin          ath10k/QCA6174/hw3.0/firmware-6.bin                  04d3bad5efa3f9fbe3ba53fd3e25fa9b0585ed227eea8111303b4e08861f979d
+ath10k/QCA6174/hw3.0/board-2.bin             ath10k/QCA6174/hw3.0/board-2.bin                     66e83dde1c9af535df1fcd17c72971a96a263357300e921b358d35a353227d60
+
+# Realtek — rtw88: 8822CE, 8822BE, 8821CE, 8723DE; rtlwifi: RTL8723BE, RTL8821AE; rtw89: 8852BE
+rtw88/rtw8822c_fw.bin                        rtw88/rtw8822c_fw.bin                                3deecb31210986d98cdbfb000391e08d602a6eee4ffc883969faa2b907ab03ba
+rtw88/rtw8822b_fw.bin                        rtw88/rtw8822b_fw.bin                                a72da690597bfa99d8eb6fc2ab090d18d8ad92ac2befd35db1c9e3662d8d8418
+rtw88/rtw8821c_fw.bin                        rtw88/rtw8821c_fw.bin                                2ef409bc418549fcf294061dd0cae1fc22fd9da79b60524950b25de18732f3f0
+rtw88/rtw8723d_fw.bin                        rtw88/rtw8723d_fw.bin                                9c64e079815a333a3f7b731be7cc0be65206ebc883891659dc8ff5ed36a5e2f5
+rtlwifi/rtl8723befw_36.bin                   rtlwifi/rtl8723befw_36.bin                           adba42ade555a5e4383373b76706443f27bf0f006fbc296a640c7155192febf2
+rtlwifi/rtl8821aefw_29.bin                   rtlwifi/rtl8821aefw_29.bin                           11e7ea00504fa2fa6f5216bb59403c4f2f20eec5b676c0add0695db3b0c4a335
+rtw89/rtw8852b_fw-1.bin                      rtw89/rtw8852b_fw-1.bin                              5b68415e3bfe72715d63a70703d4471b04b5475b8ff69cfdc8cdf48233cd5d3a
+
+# MediaTek MT7921E
+mediatek/WIFI_MT7961_patch_mcu_1_2_hdr.bin   mediatek/WIFI_MT7961_patch_mcu_1_2_hdr.bin           a276c06c2b772adb50b86639d33c82824ff4c21d617feb78caea74c040b873f6
+mediatek/WIFI_RAM_CODE_MT7961_1.bin          mediatek/WIFI_RAM_CODE_MT7961_1.bin                  b94217a951518a9c14095765f367bc5dd7698f2dc033941d6f18fc2ebd6a2ab9

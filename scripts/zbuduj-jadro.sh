@@ -30,10 +30,16 @@ if [ ! -d "$K1_JADRO_ZRODLA" ]; then
 fi
 
 
-info "konfiguracja: allnoconfig + jadro/k1.config"
+# Wi-Fi (0.9.1, ADR 0041): the vendor files and the radio rules built into the kernel — the fragment gets
+# CONFIG_EXTRA_FIRMWARE and its directory from the table jadro/oprogramowanie-kart.txt.
+"$K1_REPO/scripts/oprogramowanie-kart.sh"
+FRAGMENT=$K1_BUDOWA/jadro-fragment.config
+cat "$K1_REPO/jadro/k1.config" "$K1_BUDOWA/pliki-kart.config" >"$FRAGMENT"
+
+info "konfiguracja: allnoconfig + jadro/k1.config + pliki od producentów kart"
 mkdir -p "$K1_JADRO_OBJ"
-make_jadra KCONFIG_ALLCONFIG="$K1_REPO/jadro/k1.config" allnoconfig >/dev/null
-"$K1_REPO/scripts/sprawdz-konfiguracje-jadra.sh" "$K1_REPO/jadro/k1.config" "$K1_JADRO_OBJ/.config"
+make_jadra KCONFIG_ALLCONFIG="$FRAGMENT" allnoconfig >/dev/null
+"$K1_REPO/scripts/sprawdz-konfiguracje-jadra.sh" "$FRAGMENT" "$K1_JADRO_OBJ/.config"
 
 info "kompilacja jądra ($K1_CPU wątków)"
 make_jadra -j"$K1_CPU" bzImage

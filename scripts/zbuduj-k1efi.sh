@@ -17,9 +17,9 @@ LISTA=$K1_BUDOWA/k1efi.lista
 # the same line as before on the stick and in the ISO, plus noinitrd (see jadro/k1-zamkniete.config)
 LINIA="$(sed 's/k1\.rdzen=[^ ]*/k1.rdzen=wbudowany/' "$K1_REPO/jadro/cmdline") k1.rdzen_skrot=$(cat "$K1_WYNIK/rdzen.squashfs.skrot") noinitrd quiet loglevel=7"
 FRAG=$K1_BUDOWA/k1efi.config
-# k1.config without the options this fragment sets (both must hold exactly what is checked below)
+# k1.config with the vendor files (zbuduj-jadro.sh) without the options this fragment sets (both must hold exactly what is checked below)
 ZMIENIANE=$(sed -n 's/^\(CONFIG_[A-Z0-9_]*\)=.*/\1/p' "$K1_REPO/jadro/k1-zamkniete.config" | paste -sd'|')
-{ grep -Ev "^($ZMIENIANE)=|^# ($ZMIENIANE) is not set" "$K1_REPO/jadro/k1.config"
+{ grep -Ev "^($ZMIENIANE)=|^# ($ZMIENIANE) is not set" "$K1_BUDOWA/jadro-fragment.config"
   sed "s|@LINIA@|$LINIA|; s|@LISTA@|$LISTA|" "$K1_REPO/jadro/k1-zamkniete.config"; } > "$FRAG"
 
 make_jadra KCONFIG_ALLCONFIG="$FRAG" allnoconfig >/dev/null
