@@ -192,8 +192,9 @@ if tryb in ("pliki-zle", "przerwij"):  # 0.9.0 step 3 (ADR 0038)
         zrzut("3a-pliki-zle")
         koniec()
     z = czekaj(r"K1-INSTALATOR: pliki startowe: zapis obok starych", czas=120)
-    monitor("quit")  # a power cut while the new boot files are written
-    sprawdz("aktualizacja przerwana w trakcie zapisu plików startowych (QEMU wyłączone)", z)
+    monitor("quit")  # a power cut while the new boot files are written (the disk writes slowly in this run)
+    sprawdz("aktualizacja przerwana w trakcie zapisu plików startowych (QEMU wyłączone, przed przełączeniem)",
+            z and "K1-INSTALATOR: pliki startowe: przełączone" not in tekst() and "K1-INSTALATOR: gotowe" not in tekst())
     q.koniec(wylacz=False)
 PY
     zamknij_qemu "$MON" $QPID
@@ -259,7 +260,11 @@ uruchom pliki-zle 3a-pliki-zle --pendrive "$TESTY/m5f-zly.img" --qemu "$SATA"
 if [ "$(efi_suma)" = "$przed" ]; then echo "  [OK]    po odmowie pliki K1-EFI dysku nietknięte (także miejsca i grubenv)"
 else echo "  [BŁĄD]  po odmowie K1-EFI dysku się zmieniła"; r=1; fi
 rm -f "$TESTY/m5f-zly.img"
-uruchom przerwij 3b-przerwana --pendrive "$PEN" --qemu "$SATA"
+# The power cut must land in the middle of writing the boot files: with KVM (CI) the installer finished the whole update
+# before the monitor's "quit" took effect (0.9.0 CI). In this run the disk writes at 256 KiB/s — 4 MiB of boot files take
+# about 16 s.
+SATA_WOLNY="-drive if=none,id=dysk,file=$DYSK,format=raw,throttling.bps-write=262144 -device ide-hd,bus=ide.0,drive=dysk"
+uruchom przerwij 3b-przerwana --pendrive "$PEN" --qemu "$SATA_WOLNY"
 uruchom po-przerwaniu 3c-po-przerwaniu --dysk-uefi "$DYSK"
 PEN_USB="-device qemu-xhci,id=xhci -drive if=none,id=pendrive,file=$PEN,format=raw -device usb-storage,bus=xhci.0,drive=pendrive"
 uruchom aktualizuj 3-aktualizacja --pendrive "$PEN" --qemu "$SATA"
