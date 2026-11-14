@@ -149,7 +149,30 @@ KROK 1 — Pierwsza strefa: KVM, VMM, okno w zaufanej ramce                L · 
   SLOWNIK (VMM, jądro strefy, obraz strefy, strefa próbna, wirtualizacja), RYZYKA (VMM w C to duża powierzchnia ataku —
   klatka; błędy KVM w jądrze K1; VMSCAPE i podobne ataki procesora; R26 dla stref), TESTY.md, skill (mapa kodu).
   Gotowe, gdy: scenariusz strefy próbnej i testy negatywne zielone, testy [OK], obraz powtarzalny.
-  Ustalenia z wykonania: (pusto — wypełnia krok 1)
+  Ustalenia z wykonania (2026-11-14, krok 1):
+  - D1 (właściciel): ramka B2 — tylko obwódka 3 px w kolorze strefy i znaczek z ikoną w lewym górnym rogu; plakietka
+    (nazwa · „osobna maszyna”, minimalizuj, zamknij) po najechaniu na znaczek; okno przesuwa się za znaczek. Start S1
+    („Uruchamiam: …” w oknie strefy), ikona A „Globus” (krok 2), okienka i Ustawienia ze szkiców przyjęte. Kolory sesji ze
+    szkicu: Ogólna szałwia #5F8A6A, Bank łupek #4A6FA5, Prywatna wrzos #8B6AA8 (docs/WYGLAD.md). Okienko „nie może
+    ruszyć” to okienko odmowy pulpitu (to samo co przy plikach), nie osobne okno ze szkicu. D4: testy w emulacji — tak.
+  - S1 POTWIERDZONE: KVM_AMD, KVM_INTEL, KVM_IOAPIC trzeba wpisać wprost; MITIGATION_VMSCAPE też (prompt, allnoconfig go
+    wyłącza — „wraca sam” było NIEPEWNE i się nie potwierdziło). CPU_SUP_AMD był już włączony. bzImage +373 KiB.
+  - S2 POTWIERDZONE: /dev/kvm jest w devtmpfs K1 (0600 root) tylko przy procesorze z wirtualizacją.
+  - S3 POTWIERDZONE (t_kvm): memfd z MFD_NOEXEC_SEAL działa jako pamięć gościa. Gość potrzebuje KVM_SET_CPUID2 (bez bitu LM
+    EFER.LME = EINVAL).
+  - S6 POTWIERDZONE: jądro strefy startuje w ok. 0,6 s czasu gościa, maszyna do „gotowa” w 1,5–2 s — także w emulacji TCG.
+    Pułapki QEMU 8.2 (emulowane SVM): gość bez stronicowania widzi złą pamięć (start prosto w 64 bit, CPUID bez LA57,
+    strefa testowa z 1 procesorem); stary typ zdarzenia w exit_int_info → KVM_INTERNAL_ERROR_DELIVERY_EV przy MMIO po
+    przerwaniu (VMM ponawia do 8 razy, jądro strefy z x2APIC). ADR 0042 T10.
+  - S7 NIEPEWNE do pierwszego CI: test-strefa.sh przechodzi na emulację, gdy runner nie ma zagnieżdżonej wirtualizacji.
+  - S9: jądro strefy wymaga też BLK_DEV i MISC_FILESYSTEMS (menu), init=/init (bez initramfs), DEVMEM bez STRICT_DEVMEM
+    (testy złośliwego gościa), X86_X2APIC. 2,2 MB.
+  - S10 POTWIERDZONE: tablica MP (bez ACPI) wystarcza; koniec gościa przez reboot=k (port 0x64, 0xFE).
+  - Klatka: pids.max = 1 + procesory + 1 — KVM tworzy w procesie maszyny vhost_task (odzyskiwanie dużych stron).
+  - Tryb testu stref: dysk z numerem seryjnym „k1-test-strefy” (procesy K1 nie widzą /proc/cmdline — subset=pid).
+  - Okno strefy: 1024 × 720 najwyżej (z rozmiaru ekranu); zmiana rozmiaru okna i kółko myszy — później (ekran K1 nie
+    przekazuje kółka; ważne dla przeglądarki w kroku 2 — do decyzji w kroku 2, zakres zamrożony).
+  - Przy okazji: nadzorca liczył okno 60 s restartów od startu systemu, nie od pierwszej awarii — poprawione.
 
 KROK 2 — Przeglądarka w strefie, połączenia przez K1                    L · decyzje D2 D3 D6, T7–T9 · ADR 0043
   Cel: w menu Start jest Przeglądarka; otwiera Firefoksa w osobnej strefie (na razie jednorazowej — sesje, które

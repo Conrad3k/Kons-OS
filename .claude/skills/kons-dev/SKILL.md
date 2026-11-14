@@ -49,6 +49,8 @@ firmware UEFI → shim (Microsoft) → GRUB (Canonical) → k1.efi z miejsca A a
      siec (108) przy starcie: adres od routera (DHCP) dla karty z kablem, adres ustawia nadzorca (0.9.0, ADR 0039);
        potem zegar z internetu (kilka serwerów, większość zgodna), zegar ustawia nadzorca; Wi-Fi (0.9.1, ADR 0041): kartę,
        radio (rfkill) i szukanie sieci (nl80211) obsługuje nadzorca, opisy sieci z powietrza czyta siec w klatce
+     strefa (300+, na prośbę gui; 0.10.0, ADR 0042): VMM jednej mikro-maszyny KVM — /dev/kvm, jądro i obraz strefy od
+       nadzorcy, jądro strefy (jadro/strefa.config) startuje bez firmware, urządzenia virtio-mmio, okno w ramce ekranu
 ```
 Testy QEMU startują też `bzImage` + `initramfs.cpio` (tylko `test-m1`). ISO/USB mają GRUB-a do 0.12 (ADR 0010; dawne M10).
 
@@ -86,6 +88,7 @@ X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt. Stero
 | `src/logowanie/` | `system/logowanie` | ekran hasła przy starcie |
 | `src/skarbiec/` | `system/skarbiec` | `magazyn.c` format i szyfrowanie, `main.c` usługa, `obiekty.c`, `haslo.c`, `dokumenty.c` + `dok_*.c` pliki, foldery, Kosz, naprawa przy starcie, granica czasu, prawa, zapis w toku kawałkami (0.8.0–0.8.1, `dok_wew.h`); limity, indeks, kompaktowanie, rezerwa, kawałki — ADR 0034; `miejsce.c` miejsce na pliki i powiększenie K1-DANE (ADR 0033); format 2 (0.8.2, ADR 0036): `odcinki.c`, `spis.c`, `przejscie.c` (format 1 → 2 po potwierdzonym starcie), `przerwy.c` (kompaktowanie krokami między prośbami); format 1 (`obszary.c`) i przejście — tymczasowe do 0.10.0 |
 | `src/instalator/` | `system/instalator` | zapis K1 na dysk (GPT), tylko urządzenia od nadzorcy; `start.c` — wymiana plików startowych (0.9.0) |
+| `src/strefa/` | `system/strefa` | VMM strefy (0.10.0, ADR 0042): `kvm.c` maszyna i procesory (wątki), `start.c` start jądra strefy bez firmware (strona zerowa, e820, tablica MP), `virtq.c` + `mmio.c` kolejki i rejestry virtio (czyste: `test_virtio`, `fuzz_virtq`), urządzenia `blk.c` (obraz, tylko odczyt), `konsola.c`, `rng.c`, `wejscie.c`, `gpu.c` (2D), `vsock.c` (kanał sterujący), tabela `K1_URZADZENIA` w `strefa.h`; `okno.c` okno u ekranu; `gosc/` — `/init` strefy próbnej (tylko obraz testowy, tryby złośliwe przez `/dev/mem`). Tabela stref `K1_STREFY` (`k1_uslugi.h`), nadzorca `strefy.c`, ramka `src/ekran/strefy.c` |
 | `src/siec/` | `system/siec` | adres od routera: klient DHCP w klatce (`dhcp.c` pakiety, `klient.c` stany i czasy); zegar z internetu (`sntp.c` pakiety, `czas.c` runda i zgodność źródeł, `zegar.c` gniazda; krok 8); gniazdo pakietowe, karty, kabel i ustawienie adresu — nadzorca `siec.c`, `siec_jadro.c`; stan dla ikony i Ustawień — `siec_stan.c`; gniazda UDP do serwerów czasu i zegar — `siec_zegar.c` (0.9.0, ADR 0039); Wi-Fi (0.9.1, ADR 0041): `wifi.c` opisy sieci z powietrza (nazwa do pokazania, zabezpieczenie) → lista, `lista.c` wyniki od nadzorcy w memfd i lista do niego (ze stanem połączenia); krok 2: `eapol.c` ramki EAPOL-Key, `wpa.c` logowanie WPA2 (czyste, `test_wpa`, `fuzz_eapol`), `polacz.c` połączenie, `wybor.c` wybór sieci i kanał Ustawień (fd od `SIEC_USTAWIENIA`), `pamiec.c` + `skarb.c` zapamiętane sieci w skarbcu (fd 4); kryptografia `src/wspolne/k1_sha1.c`, `k1_aes.c`, `k1_wymaz.h` |
 | `src/czytnik/` | `system/czytnik` | pendrive dla Plików: FAT w klatce, tylko odczyt (0.8.0, ADR 0031); nadzorca `pendrive.c` |
 | `src/dekoder/` | `system/dekoder` | jeden obraz (PNG, JPEG, GIF, BMP, WebP) → piksele, jednorazowy proces w klatce (Wuffs; 0.8.0, ADR 0032); plik kawałkami, limity w jednej tabeli `k1_dekoder.h`, dekodery w `K1_DEKODERY` (0.8.2); nadzorca `dekoder.c` (tabela klientów: Pliki, Podgląd), Pliki `obrazy.c`, Podgląd `obraz.c`, ekran `zdjecie.c` (tabela nadawców tapety) |
@@ -208,7 +211,7 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 |---|---|---|
 | host | `make testy-host`, `make fuzz` | parsery, formaty, logika (ASan/UBSan, libFuzzer); sprawdzaj zachowanie, nie powtarzaj wzorów z kodu |
 | w systemie | `testy/system/` → `/rdzen/system/test-systemu` | obraz testowy = produkcyjny + program testowy; wynik `K1-TEST: WYNIK: OK (n/n)`; klatki, próby, złośliwe komunikaty |
-| QEMU z zewnątrz | `scripts/test-m1/m2/m4/m5/m5f/m6.sh`, `test-pliki.sh`, `test-pendrive.sh`, `test-skarbiec.sh` na `testy/qemu/k1qemu.py` | start i błędy startu, kursor, pulpit i aplikacje (zrzuty po kolorach), USB, instalator, aktualizacje i Secure Boot, Pliki, wirtualny pendrive ze zdjęciami (mtools + Pillow, `device_add`/`device_del`); `test-wifi.sh` (0.9.1): obraz testowy z `mac80211_hwsim.radios=7` — program testowy robi punkty dostępu testowe (`t_wifi.c`) |
+| QEMU z zewnątrz | `scripts/test-m1/m2/m4/m5/m5f/m6.sh`, `test-pliki.sh`, `test-pendrive.sh`, `test-skarbiec.sh`, `test-strefa.sh` (0.10.0: strefa próbna w emulacji AMD SVM, okno w ramce, złośliwy gość, brak wirtualizacji) na `testy/qemu/k1qemu.py` | start i błędy startu, kursor, pulpit i aplikacje (zrzuty po kolorach), USB, instalator, aktualizacje i Secure Boot, Pliki, wirtualny pendrive ze zdjęciami (mtools + Pillow, `device_add`/`device_del`); `test-wifi.sh` (0.9.1): obraz testowy z `mac80211_hwsim.radios=7` — program testowy robi punkty dostępu testowe (`t_wifi.c`) |
 | wszystko | `scripts/testy.sh` | to samo uruchamia CI (z KVM równolegle) |
 
 - **Bez stałych pauz:** `Maszyna.czekaj`/`czekaj_na` na log, `klik` czeka na potwierdzenie ekranu, `przeciagnij`
@@ -225,6 +228,15 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 - Niestabilny test: najpierw szukaj błędu w harnessie, potem w systemie — nigdy go nie ignoruj ani nie wyłączaj.
 
 **Pułapki, które już wystąpiły:**
+- *Strefy (0.10.0, ADR 0042 T10):* QEMU 8.2 w TCG udaje AMD SVM z NPT, ale gość **bez stronicowania** (tryb rzeczywisty,
+  przełączanie na LA57) widzi złą pamięć — start jądra strefy prosto w trybie 64-bit, CPUID bez LA57, strefa testowa
+  z 1 procesorem; QEMU zostawia typ zdarzenia w `exit_int_info`, KVM 6.18 widzi „dostarczanie w toku” przy MMIO tuż po
+  przerwaniu (`KVM_INTERNAL_ERROR_DELIVERY_EV`) — VMM ponawia, gość z x2APIC; bez `KVM_SET_CPUID2` gość nie wejdzie w tryb
+  64-bit (EINVAL); bez `init=/init` jądro z rootfs nie szuka `/init`; KVM tworzy w procesie maszyny własne zadanie
+  (`vhost_task`) — `pids.max` = 1 + procesory + 1; `GETCONNECTOR` w gościu: najpierw z liczbą trybów 0 (dopiero to
+  wykrywa tryby), tablica nie mniejsza niż liczba trybów; `/proc/cmdline` nie istnieje dla procesów K1 (`subset=pid`) —
+  tryb testu stref oznacza dysk z numerem seryjnym `k1-test-strefy` (`addr=0x1e`, żeby rdzeń został `/dev/vda`);
+  zrzut ekranu ma kursor — piksel do sprawdzenia obok jego czubka; element strefy na pasku przesuwa wyśrodkowany pasek.
 - *Wyłączanie (0.8.6):* init zatrzymuje najpierw samego nadzorcę (ten zapisuje historię baterii, póki skarbiec działa),
   potem resztę; usługi giną razem z nadzorcą (`PR_SET_PDEATHSIG`), więc nic w usłudze nie może liczyć na sprzątanie.
 - *Wi-Fi (0.9.1):* sysfs jest w K1 tylko do odczytu — przełącznik radia przez `/dev/rfkill` (`RFKILL_OP_CHANGE`), nie
@@ -260,7 +272,7 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 **Plan — jedno miejsce (ADR 0035):** stan, mapa drogi i otwarte decyzje — `docs/DO_ZROBIENIA.txt`; kroki bieżącej
 wersji — `docs/PLAN-<wersja>.txt` (samodzielny: luki, kroki, decyzje; zakres zamrożony, nowe pomysły → „Później”;
 numery kroków się nie zmieniają; zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
-Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (teraz: 0.10.0, plan `docs/PLAN-0.10.0.txt`) (mikro-maszyny, ramka,
+Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (teraz: 0.10.0, plan `docs/PLAN-0.10.0.txt`; krok 1 gotowy — strefa próbna) (mikro-maszyny, ramka,
 przeglądarka; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery, TPM)
 → **0.13 Audyt** → 1.0. Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11,
 M10 = 0.12, M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).
