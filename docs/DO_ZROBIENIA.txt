@@ -5,23 +5,27 @@ Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych w
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
 Stan: 0.9.1 — temat 0.9 Sieć: kabel (0.9.0) i Wi-Fi (0.9.1: lista sieci, łączenie z hasłem, sieci otwarte, zapamiętane
-sieci; plan zamknięty: docs/archiwum/PLAN-0.9.1.txt); teraz 0.9 skończona — następna wersja: 0.10 Strefy.
+sieci; plan zamknięty: docs/archiwum/PLAN-0.9.1.txt); teraz 0.10.0 — pierwsza wersja tematu 0.10 Strefy
+(plan: docs/PLAN-0.10.0.txt).
 Data: 2026-11-14.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — 0.10 Strefy (planu jeszcze nie ma)
---------------------------------------------
+1. TERAZ — 0.10.0 Strefy: pierwsza strefa i przeglądarka (plan: docs/PLAN-0.10.0.txt)
+------------------------------------------------------------------------------------
 0.9 Sieć (ADR 0019, 0026, 0039, 0041) — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi (zmiany w CHANGELOG.md; zamknięty plan 0.9.1 —
 docs/archiwum/PLAN-0.9.1.txt; plan 0.9.0 — w historii git). Zanim zacznie się 0.10: Twoje testy 0.9.1 na obu laptopach
 (punkt 4) — błędy z nich idą jako PATCH 0.9.x.
     [x] 0.9.0: kabel, adres od routera, ikona sieci, Ustawienia → Sieć, zegar z internetu
     [x] 0.9.1: Wi-Fi — karta, pliki od producentów, lista sieci (PR #105); łączenie z hasłem i z siecią otwartą,
         zapamiętane sieci, ikona z siłą sygnału, wydanie (krok 2, PR #107)
-    [ ] 0.10: plan wersji (PLAN-0.10.0.txt) pisze pierwszy czat wersji (zakres wstępny: punkt 3); najpierw Twoje
-        decyzje z punktu 5 (sesje przeglądarki, KVM do testów)
+    [x] 0.10.0: plan wersji — docs/PLAN-0.10.0.txt (2026-11-14): trzy kroki — 1 pierwsza strefa w zaufanej ramce,
+        2 przeglądarka w strefie z połączeniami przez K1, 3 sesje, które pamiętają, porządki i wydanie
+    [ ] 0.10.0 krok 1 — pierwsza strefa (KVM, VMM, okno w zaufanej ramce)
+    [ ] 0.10.0 krok 2 — przeglądarka w strefie, połączenia przez K1
+    [ ] 0.10.0 krok 3 — stała strefa, Ustawienia → Aplikacje, porządki; wydanie 0.10.0
 
 
 2. MAPA DROGI (ADR 0035; dawne numery etapów M w nawiasach)
@@ -29,7 +33,7 @@ docs/archiwum/PLAN-0.9.1.txt; plan 0.9.0 — w historii git). Zanim zacznie się
     0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
     0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
-    0.10     Strefy — następna: obce aplikacje w mikro-maszynach, przeglądarka     (M8, z dawnym M11)
+    0.10     Strefy — teraz (0.10.0): obce aplikacje w mikro-maszynach, przeglądarka     (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
     0.13     Audyt → 1.0                                                           (M12)
@@ -140,10 +144,10 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 --------------------------------------------------------
 [x] Klucz podpisu — sekret dodany 2026-11-12; od 0.8.3 wydania są podpisane, Secure Boot z kluczem K1 dostępny
     (włączenie — punkt 4).
-[!] Przed 0.10 — przeglądarka: jakie osobne sesje (np. „bank”, „prywatna”, „ogólna”)? W Przeglądarce K1 każda sesja
-    to osobna strefa z własnym kolorem karty, „prywatna” = jednorazowa.
-[!] Przed 0.10 — testy stref potrzebują KVM: runner na Twoim komputerze (Windows: WSL2) albo inny sposób; wrócimy
-    do tego na początku 0.10.
+[!] 0.10.0 — decyzje D1–D7 w docs/PLAN-0.10.0.txt (punkt 4), każda z rekomendacją; czat zada je na początku swojego
+    kroku. Dawne pytania stąd są tam: sesje przeglądarki — D2 (rekomendacja: Ogólna, Bank, Prywatna), testy stref
+    z KVM — D4 (rekomendacja: Twój komputer niepotrzebny — QEMU udaje wirtualizację także w emulacji).
+[!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (D5 w planie 0.10.0).
 
 Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
   - styl: minimalistyczno-ciepły (Claude/Anthropic); pulpit jak w Windows 11, pasek na dole, wyśrodkowany; na górze
@@ -182,7 +186,7 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
 ---------------------------------------------------------------------------------------
     0.9    podjęte (ADR 0038, 0039, 0041 — pliki od producentów kart Wi-Fi, własne logowanie WPA2, ramki EAPOL)
-    0.10   Firefox czy WPE WebKit (sandbox Firefoksa w strefie); wybór VMM (m.in. Cloud Hypervisor, Firecracker,
-           crosvm); test KVM na Twoim sprzęcie
+    0.10   rekomendacje w docs/PLAN-0.10.0.txt (T1–T11): własny VMM w C, Firefox ESR w strefie (WPE — dla Przeglądarki
+           K1), sieć stref przez łącznik (SOCKS5); decyzje w ADR 0042 (krok 1) i 0043 (krok 2); test KVM na Twoim sprzęcie
     0.12   RANDSTRUCT w jądrze; zarządzanie kluczami; ochrona jądra przez wirtualizację — tak/nie
     Podjęte wcześniej: docs/adr/README.md (spis wszystkich decyzji).
