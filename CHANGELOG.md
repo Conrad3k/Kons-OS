@@ -43,7 +43,7 @@ widzisz listę sieci, wybierasz swoją, wpisujesz hasło raz — potem K1 łącz
 
 **Sieć: kabel** (plan 0.9.0, kroki 1–9 — w historii git; ADR 0038, 0039) — pierwsza wersja tematu 0.9 Sieć. K1 łączy
 się z routerem kablem, pokazuje stan połączenia i sam ustawia zegar z internetu. Żadna aplikacja nie dostaje jeszcze
-internetu (przyjdzie z przeglądarką w strefie, 0.10). Wi-Fi — w 0.9.1 (`docs/PLAN-0.9.1.txt`).
+internetu (przyjdzie z przeglądarką w strefie, 0.10). Wi-Fi — w 0.9.1.
 
 ### Dodane
 - **Kabel sieciowy i adres od routera.** Po włożeniu kabla K1 sam dostaje adres od routera (DHCP); po wyjęciu — oddaje

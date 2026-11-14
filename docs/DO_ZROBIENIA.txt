@@ -5,7 +5,7 @@ Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych w
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
 Stan: 0.9.1 — temat 0.9 Sieć: kabel (0.9.0) i Wi-Fi (0.9.1: lista sieci, łączenie z hasłem, sieci otwarte, zapamiętane
-sieci; plan zamknięty: docs/archiwum/PLAN-0.9.1.txt); teraz 0.10.0 — pierwsza wersja tematu 0.10 Strefy
+sieci; plan 0.9.1 usunięty na Twoją prośbę — jest w historii git); teraz 0.10.0 — pierwsza wersja tematu 0.10 Strefy
 (plan: docs/PLAN-0.10.0.txt).
 Data: 2026-11-14.
 
@@ -15,9 +15,8 @@ Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Cl
 
 1. TERAZ — 0.10.0 Strefy: pierwsza strefa i przeglądarka (plan: docs/PLAN-0.10.0.txt)
 ------------------------------------------------------------------------------------
-0.9 Sieć (ADR 0019, 0026, 0039, 0041) — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi (zmiany w CHANGELOG.md; zamknięty plan 0.9.1 —
-docs/archiwum/PLAN-0.9.1.txt; plan 0.9.0 — w historii git). Zanim zacznie się 0.10: Twoje testy 0.9.1 na obu laptopach
-(punkt 4) — błędy z nich idą jako PATCH 0.9.x.
+0.9 Sieć (ADR 0019, 0026, 0039, 0041) — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi (zmiany w CHANGELOG.md; plany 0.9.0 i 0.9.1
+usunięte na Twoją prośbę — są w historii git). Twój test 0.9.1 z 2026-11-14: Wi-Fi działa (punkt 4).
     [x] 0.9.0: kabel, adres od routera, ikona sieci, Ustawienia → Sieć, zegar z internetu
     [x] 0.9.1: Wi-Fi — karta, pliki od producentów, lista sieci (PR #105); łączenie z hasłem i z siecią otwartą,
         zapamiętane sieci, ikona z siłą sygnału, wydanie (krok 2, PR #107)
@@ -99,23 +98,8 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 Jedna lista — dla ostatniego wydania (0.9.1). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
 z 2026-11-11). Najlepiej najpierw aktualizacja K1 na dysku X230 przez Instalator z pendrive'a 0.9.1 — dane zostają.
 Nowe w 0.9.1 (Wi-Fi):
-    [ ] aktualizacja z 0.9.0 przez Instalator (X230, K1 na dysku): po ponownym starcie K1 0.9.1 startuje, dane są
-    [ ] lista sieci — X230 i IdeaPad: Ustawienia → Sieć → zakładka Wi-Fi pokazuje Twoją sieć domową (i sąsiadów) z kreskami
-        i kłódką; jeśli zakładka mówi „K1 nie potrafi jej jeszcze uruchomić” — przepisz identyfikator karty z zakładki
-        „Karty sieciowe” w czacie
-    [ ] łączenie hasłem: kliknij swoją sieć, wpisz hasło, „Połącz” → przy sieci „Połączono”, na górnym pasku wachlarz
-        z kreskami; zegar z internetu działa też przez Wi-Fi (godzina poprawna)
-    [ ] złe hasło: celowo jedna literka źle → „Złe hasło — spróbuj jeszcze raz.” (czy komunikat przychodzi w rozsądnym
-        czasie — kilkanaście sekund; jeśli zamiast niego „Nie udało się połączyć”, napisz)
-    [ ] start z zapamiętaną siecią: wyłącz i włącz komputer (bez kabla) → po zalogowaniu K1 sam łączy się z siecią
-        (ikona: kropka „łączę”, potem kreski)
-    [ ] przełącznik w obudowie X230 (z lewej strony, przy porcie USB): przesunięty → Ustawienia „Wi-Fi wyłączone
-        przełącznikiem w komputerze”; z powrotem → sieć wraca (W7 — nie wiemy, czy jądro widzi go bez sterownika ThinkPada)
-    [ ] kabel i Wi-Fi naraz: z połączonym Wi-Fi włóż kabel → ikona zmienia się na wtyczkę (używany jest kabel); wyjmij
-        kabel → po chwili znów wachlarz z kreskami
-    [ ] „Zapomnij tę sieć”: przy połączonej sieci → rozłącza się; po ponownym starcie K1 się z nią nie łączy
-    [ ] (jeśli możesz) sieć otwarta, np. hotspot z telefonu bez hasła: „Połącz” → „Połączono” i napis o sieci
-        niezabezpieczonej
+    [x] Twój wynik z 2026-11-14: Wi-Fi działa — lista sieci, łączenie, „wszystko git”; IdeaPad 110-15ISK ma kartę
+        Qualcomm (Atheros, sterownik ath10k z plikiem producenta wbudowanym w K1)
 Z 0.9.0 (kabel, niesprawdzone):
     [ ] kabel do routera — X230 i IdeaPad: ikona sieci na górnym pasku (wtyczka) przechodzi z „łączę” (kropka) na
         „połączono” (jasna) w kilka sekund; wyjęcie kabla — krzyżyk; włożenie — znów „połączono”
