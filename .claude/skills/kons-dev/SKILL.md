@@ -26,8 +26,8 @@ wygrywają dokumenty, a skill poprawiasz w tym samym PR-ze.
 2. Otwarte PR-y i zgłoszenia (`list_pull_requests`, `list_issues`: etykiety `feedback`, `błąd`, `pomysł`).
    Punkt z `DO_ZROBIENIA.txt` oznacz `[w toku: Claude, gałąź …]` w pierwszym commicie; punktów Codexa nie ruszaj.
 3. Ostatni run „K1 — budowa i testy” na `main` — czerwony naprawiasz najpierw.
-4. Środowisko: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh`
-   (szybko: `make && make testy-host`). Kontener nie ma KVM — QEMU w emulacji, pełne testy trwają długo.
+4. Środowisko: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh` (szybko: `make && make -j4 -O testy-host`).
+   Kontener nie ma KVM — QEMU w emulacji; pełny komplet testów robi CI na PR-ze (§9).
 
 ## 2. Czym jest K1
 
@@ -211,8 +211,8 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 |---|---|---|
 | host | `make testy-host`, `make fuzz` | parsery, formaty, logika (ASan/UBSan, libFuzzer); sprawdzaj zachowanie, nie powtarzaj wzorów z kodu |
 | w systemie | `testy/system/` → `/rdzen/system/test-systemu` | obraz testowy = produkcyjny + program testowy; wynik `K1-TEST: WYNIK: OK (n/n)`; klatki, próby, złośliwe komunikaty |
-| QEMU z zewnątrz | `scripts/test-m1/m2/m4/m5/m5f/m6.sh`, `test-pliki.sh`, `test-pendrive.sh`, `test-skarbiec.sh`, `test-strefa.sh` (0.10.0: strefa próbna w emulacji AMD SVM, okno w ramce, złośliwy gość, brak wirtualizacji) na `testy/qemu/k1qemu.py` | start i błędy startu, kursor, pulpit i aplikacje (zrzuty po kolorach), USB, instalator, aktualizacje i Secure Boot, Pliki, wirtualny pendrive ze zdjęciami (mtools + Pillow, `device_add`/`device_del`); `test-wifi.sh` (0.9.1): obraz testowy z `mac80211_hwsim.radios=7` — program testowy robi punkty dostępu testowe (`t_wifi.c`) |
-| wszystko | `scripts/testy.sh` | to samo uruchamia CI (z KVM równolegle) |
+| QEMU z zewnątrz | `scripts/test-m1/m4/m5/m5f/m6.sh`, `test-pliki.sh`, `test-pendrive.sh`, `test-skarbiec.sh`, `test-strefa.sh` (0.10.0: strefa próbna w emulacji AMD SVM, okno w ramce, złośliwy gość, brak wirtualizacji) na `testy/qemu/k1qemu.py` | start i błędy startu, kursor, pulpit i aplikacje (zrzuty po kolorach), USB, instalator, aktualizacje i Secure Boot, Pliki, wirtualny pendrive ze zdjęciami (mtools + Pillow, `device_add`/`device_del`); `test-wifi.sh` (0.9.1): obraz testowy z `mac80211_hwsim.radios=7` — program testowy robi punkty dostępu testowe (`t_wifi.c`) |
+| wszystko | `scripts/testy.sh` | to samo uruchamia CI (z KVM równolegle) — przed scaleniem: CI na PR-ze (§9) |
 
 - **Bez stałych pauz:** `Maszyna.czekaj`/`czekaj_na` na log, `klik` czeka na potwierdzenie ekranu, `przeciagnij`
   (wciśnięcie, kilka ruchów, puszczenie), `klik_z("ctrl", x, y)` (QEMU `sendkey ctrl 1500` + klik),
@@ -287,14 +287,17 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
 
 ## 9. Wersja, scalanie, CI
 
-- **Przed scaleniem zmian w systemie:** `make` bez ostrzeżeń, `sh -n` na skryptach, pełny `scripts/testy.sh`
-  lokalnie (wszystko `[OK]`), przy zmianach w budowie `scripts/sprawdz-powtarzalnosc.sh` (nie commituj w trakcie —
-  data commita wchodzi do buildu). Sama dokumentacja — bez testów.
+- **Przed scaleniem zmian w systemie** (decyzja właściciela 2026-11-14): lokalnie `make` bez ostrzeżeń, `sh -n` na
+  skryptach, `scripts/test-m1.sh` i skrypty QEMU zmienianej części (mapa „która część — który skrypt” w `docs/TESTY.md`),
+  przy zmianach w budowie `scripts/sprawdz-powtarzalnosc.sh` (nie commituj w trakcie — data commita wchodzi do buildu);
+  potem **pełny komplet w CI na PR-ze** (etykieta `testy`) — scalasz dopiero przy zielonym. Pełny `scripts/testy.sh`
+  w kontenerze tylko, gdy CI nie działa. Sama dokumentacja — bez testów.
 - **Wersja** (`VERSION`, raz na paczkę; ADR 0035): nowy temat z mapy drogi → MINOR (0.9, 0.10…), kroki planu
   wersji, poprawki i jądro → PATCH, docs/CI → bez zmiany; wpis
-  w `CHANGELOG.md`. `VERSION`, `CHANGELOG.md` i `DO_ZROBIENIA.txt` zmienia ten, kto robi wydanie. Łącz zmiany
-  w paczki — CI trwa ok. 30 min (budowa 9, testy 20), a właściciel ma ograniczony limit.
-- **CI na PR-ze:** etykieta `testy` (`issue_write`) — build i testy bez wydania. `workflow_dispatch` daje 403.
+  w `CHANGELOG.md`. `VERSION`, `CHANGELOG.md` i `DO_ZROBIENIA.txt` zmienia ten, kto robi wydanie. CI trwa ok. 25 min
+  (budowa ~11, na PR-ze z jądrem z pamięci podręcznej mniej; testy ~12); repo jest publiczne, więc minuty CI są bezpłatne.
+- **CI na PR-ze:** etykieta `testy` (`issue_write`) — build i testy bez wydania; to jest pełny komplet testów przed
+  scaleniem. Wynik: `actions_list` (`list_workflow_runs`, gałąź PR-a), przy błędzie `get_job_logs`. `workflow_dispatch` daje 403.
 - **Scalanie** (repo publiczne od 2026-11-14, ADR 0040 — scalasz sam po zielonych testach): commit po angielsku → `git push -u origin
   <gałąź>` → PR po polsku (najpierw co widzi użytkownik, potem technika, `Closes #N`) → **squash z własnym
   `commit_message`**. Tylko docs: `[skip ci]` w tytule commita scalenia. Zmiana w systemie: **bez**

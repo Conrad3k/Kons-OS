@@ -7,7 +7,7 @@
 # drugie — to samo po wyłączeniu.
 # Krok 2 (ADR 0030), osobny dysk z notatkami jako plikami w magazynie formatu 1, jak w 0.8.0–0.8.1 (testy/host/
 # notatki_w_plikach.c; do 0.9.0 — notatki z 0.5.8–0.7.6, przenoszone do plików): Notatki pokazują je, okno wyboru pliku (wybór, „Anuluj”), menu pod prawym przyciskiem w Plikach → „Otwórz za pomocą” → Notatki
-# (0.8.2 krok 5) i podwójne kliknięcie w Plikach, Ustawienia → Aplikacje; po ponownym starcie pliki zostają. Dowody: log + zrzuty build/testy/pliki-*.png.
+# (0.8.2 krok 5) i podwójne kliknięcie w Plikach, Ustawienia → Aplikacje (od 0.10.0 bez ponownego startu z tym dyskiem). Dowody: log + zrzuty build/testy/pliki-*.png.
 # Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -405,32 +405,31 @@ sprawdz("Notatki: 3 notatki z plików, najnowsza na górze (9 B)", n0 and un and
 zrzut(f"{tryb}-1-notatki", gdy=lambda w, h, px: True)
 if not (n0 and un): sys.exit(1)
 
-if tryb == "notatki":
-    # the file picker of K1: Notatki asks, K1 shows the window, the user picks one file
-    ow = okno("wybor", lambda: klik(n0[0] + int(un.group(1)), n0[1] + int(un.group(2))))
-    sprawdz("Otwórz…: skarbiec prosi nadzorcę o okno wyboru pliku", czekaj(r"K1-SKARBIEC: pliki: aplikacja 2 prosi o plik") and
-            czekaj(r"K1-NADZORCA: skarbiec: aplikacja 8 uruchomiona \(okno wyboru pliku\)"))
-    uw = czekaj(r"K1-WYBOR: układ: miejsca od (\d+),(\d+) co (\d+); wiersze od (\d+),(\d+) co (\d+); Otwórz (\d+),(\d+); Anuluj (\d+),(\d+)")
-    sprawdz("okno wyboru: prośba od Notatek o plik tekstowy (od skarbca, nie od aplikacji)",
-            ow and uw and czekaj(r"K1-WYBOR: prośba: aplikacja 2, typ 2") and czekaj(r"K1-WYBOR: widok: Dokumenty, 1 elementów"))
-    if not (ow and uw): sys.exit(1)
-    wiersz = lambda i: (ow[0] + int(uw.group(4)), ow[1] + int(uw.group(5)) + i * int(uw.group(6)))
-    otworz, anuluj = (ow[0] + int(uw.group(7)), ow[1] + int(uw.group(8))), (ow[0] + int(uw.group(9)), ow[1] + int(uw.group(10)))
-    zrzut("notatki-2-wybor", gdy=lambda w, h, px: True)
-    sprawdz("okno wyboru: folder Notatki (3 pliki do wyboru)",
-            po(r"K1-WYBOR: widok: folder, 3 elementów \(plików do wyboru: 3\)", lambda: q.dwuklik(*wiersz(0))))
-    klik(*wiersz(2))  # by name: „Lista zakupy”, „Najnowsza”, „Zażółć K1”
-    zrzut("notatki-3-wybor-plik", gdy=lambda w, h, px: True)
-    n_o = q.ile(r"K1-NOTATKI: otwarto notatkę \(13 B\)")
-    klik(*otworz)
-    sprawdz("Otwórz: plik trafia do Notatek (wybrany, okno się zamyka)", czekaj(r"K1-WYBOR: wybrano plik") and
-            czekaj(r"K1-NOTATKI: okno wyboru pliku: plik wybrany") and czekaj(r"K1-NOTATKI: otwarto notatkę \(13 B\)", od=n_o))
-    # again (a new window: ekran puts it a bit lower and to the right), and "Anuluj"
-    n_w = q.ile(OKNO.format("wybor"))
-    po(r"K1-WYBOR: prośba: aplikacja 2", lambda: klik(n0[0] + int(un.group(1)), n0[1] + int(un.group(2))))
-    m = czekaj(OKNO.format("wybor"), od=n_w)
-    anuluj = (int(m.group(4)) + int(uw.group(9)), int(m.group(5)) + int(uw.group(10))) if m else anuluj
-    sprawdz("Anuluj: Notatki dowiadują się, że nic nie wybrano", po(r"K1-NOTATKI: okno wyboru pliku: anulowano", lambda: klik(*anuluj)))
+# the file picker of K1: Notatki asks, K1 shows the window, the user picks one file
+ow = okno("wybor", lambda: klik(n0[0] + int(un.group(1)), n0[1] + int(un.group(2))))
+sprawdz("Otwórz…: skarbiec prosi nadzorcę o okno wyboru pliku", czekaj(r"K1-SKARBIEC: pliki: aplikacja 2 prosi o plik") and
+        czekaj(r"K1-NADZORCA: skarbiec: aplikacja 8 uruchomiona \(okno wyboru pliku\)"))
+uw = czekaj(r"K1-WYBOR: układ: miejsca od (\d+),(\d+) co (\d+); wiersze od (\d+),(\d+) co (\d+); Otwórz (\d+),(\d+); Anuluj (\d+),(\d+)")
+sprawdz("okno wyboru: prośba od Notatek o plik tekstowy (od skarbca, nie od aplikacji)",
+        ow and uw and czekaj(r"K1-WYBOR: prośba: aplikacja 2, typ 2") and czekaj(r"K1-WYBOR: widok: Dokumenty, 1 elementów"))
+if not (ow and uw): sys.exit(1)
+wiersz = lambda i: (ow[0] + int(uw.group(4)), ow[1] + int(uw.group(5)) + i * int(uw.group(6)))
+otworz, anuluj = (ow[0] + int(uw.group(7)), ow[1] + int(uw.group(8))), (ow[0] + int(uw.group(9)), ow[1] + int(uw.group(10)))
+zrzut("notatki-2-wybor", gdy=lambda w, h, px: True)
+sprawdz("okno wyboru: folder Notatki (3 pliki do wyboru)",
+        po(r"K1-WYBOR: widok: folder, 3 elementów \(plików do wyboru: 3\)", lambda: q.dwuklik(*wiersz(0))))
+klik(*wiersz(2))  # by name: „Lista zakupy”, „Najnowsza”, „Zażółć K1”
+zrzut("notatki-3-wybor-plik", gdy=lambda w, h, px: True)
+n_o = q.ile(r"K1-NOTATKI: otwarto notatkę \(13 B\)")
+klik(*otworz)
+sprawdz("Otwórz: plik trafia do Notatek (wybrany, okno się zamyka)", czekaj(r"K1-WYBOR: wybrano plik") and
+        czekaj(r"K1-NOTATKI: okno wyboru pliku: plik wybrany") and czekaj(r"K1-NOTATKI: otwarto notatkę \(13 B\)", od=n_o))
+# again (a new window: ekran puts it a bit lower and to the right), and "Anuluj"
+n_w = q.ile(OKNO.format("wybor"))
+po(r"K1-WYBOR: prośba: aplikacja 2", lambda: klik(n0[0] + int(un.group(1)), n0[1] + int(un.group(2))))
+m = czekaj(OKNO.format("wybor"), od=n_w)
+anuluj = (int(m.group(4)) + int(uw.group(9)), int(m.group(5)) + int(uw.group(10))) if m else anuluj
+sprawdz("Anuluj: Notatki dowiadują się, że nic nie wybrano", po(r"K1-NOTATKI: okno wyboru pliku: anulowano", lambda: klik(*anuluj)))
 
 # Pliki: Dokumenty › Notatki — the notes are files there
 p0 = okno("pliki", lambda: klik(*pasek(5)))
@@ -457,40 +456,39 @@ def menu_plikow(o, punkt, wzor, wiersz_):
     return poz.get(wiersz_)
 
 
-if tryb == "notatki":
-    # 0.8.2 step 5 (D7): the menu under the right button in Pliki — "Otwórz za pomocą ›" → Notatki
-    zp = menu_plikow(p0, wiersz(0), r"K1-PLIKI: menu kontekstowe \(pliku\): (.*)", "Otwórz za pomocą")  # „Lista zakupy”
-    sprawdz("prawy przycisk na pliku tekstowym w Plikach: menu na ekranie z „Otwórz za pomocą”", zp)
-    pm = zp and po(r"K1-PLIKI: podmenu \(Otwórz za pomocą\): Notatki (\d+),(\d+)", lambda: klik(*zp))
-    sprawdz("„Otwórz za pomocą”: obok lista aplikacji, które otwierają tekst — tylko Notatki (bez Plików)", pm)
-    if pm:
-        nx, ny = p0[0] + int(pm.group(1)), p0[1] + int(pm.group(2))
-        zrzut("notatki-5-podmenu", gdy=lambda w, h, px: min(px(nx + 60, ny)) > 200)
-        n_o = q.ile(r"K1-NOTATKI: otwarto notatkę \(20 B\)")
-        klik(nx, ny)
-        sprawdz("Otwórz za pomocą → Notatki: skarbiec daje plik, nadzorca przekazuje go Notatkom, okno na wierzch",
-                czekaj(r"K1-SKARBIEC: pliki: plik \d+ otwarty w aplikacji 2") and
-                czekaj(r"K1-NADZORCA: skarbiec: aplikacja 2 uruchomiona z plikiem") and
-                czekaj(r"K1-NOTATKI: plik otwarty z Plików albo z pulpitu") and
-                czekaj(r"K1-NOTATKI: otwarto notatkę \(20 B\)", od=n_o))
-    okno("pliki", lambda: klik(*pasek(5)))
-    n_o = q.ile(r"K1-NOTATKI: otwarto notatkę \(9 B\)")
-    sprawdz("podwójne kliknięcie pliku: domyślna aplikacja (Notatki)",
-            po(r"K1-PLIKI: plik otwierany w aplikacji Notatki", lambda: q.dwuklik(*wiersz(1))) and
-            czekaj(r"K1-NOTATKI: otwarto notatkę \(9 B\)", od=n_o))
-    # Ustawienia → Aplikacje (0.8.2 step 5): every type and what opens it; no choice today (one application at most)
-    u0 = okno("ustawienia", lambda: klik(*pasek(2)))
-    sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
-    ap = u0 and sk and po(r"K1-USTAWIENIA: aplikacje: (.*)",
-                          lambda: klik(u0[0] + int(sk.group(1)), u0[1] + int(sk.group(2)) + 6 * int(sk.group(3))))
-    sprawdz("Ustawienia → Aplikacje: każdy typ i jego aplikacja (tekst — Notatki, obrazy — Podgląd, PDF, ZIP, „Plik” — brak)",
-            ap and ap.group(1) == "Plik — brak; Dokument tekstowy — Notatki; Obrazy (PNG, JPEG, GIF, BMP, WebP) — Podgląd; "
-                                  "Dokument PDF — brak; Archiwum ZIP — brak", ap.group(1) if ap else "")
-    zrzut("notatki-6-ustawienia", gdy=lambda w, h, px: True)
-    okno("pliki", lambda: klik(*pasek(5)))
+# 0.8.2 step 5 (D7): the menu under the right button in Pliki — "Otwórz za pomocą ›" → Notatki
+zp = menu_plikow(p0, wiersz(0), r"K1-PLIKI: menu kontekstowe \(pliku\): (.*)", "Otwórz za pomocą")  # „Lista zakupy”
+sprawdz("prawy przycisk na pliku tekstowym w Plikach: menu na ekranie z „Otwórz za pomocą”", zp)
+pm = zp and po(r"K1-PLIKI: podmenu \(Otwórz za pomocą\): Notatki (\d+),(\d+)", lambda: klik(*zp))
+sprawdz("„Otwórz za pomocą”: obok lista aplikacji, które otwierają tekst — tylko Notatki (bez Plików)", pm)
+if pm:
+    nx, ny = p0[0] + int(pm.group(1)), p0[1] + int(pm.group(2))
+    zrzut("notatki-5-podmenu", gdy=lambda w, h, px: min(px(nx + 60, ny)) > 200)
+    n_o = q.ile(r"K1-NOTATKI: otwarto notatkę \(20 B\)")
+    klik(nx, ny)
+    sprawdz("Otwórz za pomocą → Notatki: skarbiec daje plik, nadzorca przekazuje go Notatkom, okno na wierzch",
+            czekaj(r"K1-SKARBIEC: pliki: plik \d+ otwarty w aplikacji 2") and
+            czekaj(r"K1-NADZORCA: skarbiec: aplikacja 2 uruchomiona z plikiem") and
+            czekaj(r"K1-NOTATKI: plik otwarty z Plików albo z pulpitu") and
+            czekaj(r"K1-NOTATKI: otwarto notatkę \(20 B\)", od=n_o))
+okno("pliki", lambda: klik(*pasek(5)))
+n_o = q.ile(r"K1-NOTATKI: otwarto notatkę \(9 B\)")
+sprawdz("podwójne kliknięcie pliku: domyślna aplikacja (Notatki)",
+        po(r"K1-PLIKI: plik otwierany w aplikacji Notatki", lambda: q.dwuklik(*wiersz(1))) and
+        czekaj(r"K1-NOTATKI: otwarto notatkę \(9 B\)", od=n_o))
+# Ustawienia → Aplikacje (0.8.2 step 5): every type and what opens it; no choice today (one application at most)
+u0 = okno("ustawienia", lambda: klik(*pasek(2)))
+sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
+ap = u0 and sk and po(r"K1-USTAWIENIA: aplikacje: (.*)",
+                      lambda: klik(u0[0] + int(sk.group(1)), u0[1] + int(sk.group(2)) + 6 * int(sk.group(3))))
+sprawdz("Ustawienia → Aplikacje: każdy typ i jego aplikacja (tekst — Notatki, obrazy — Podgląd, PDF, ZIP, „Plik” — brak)",
+        ap and ap.group(1) == "Plik — brak; Dokument tekstowy — Notatki; Obrazy (PNG, JPEG, GIF, BMP, WebP) — Podgląd; "
+                              "Dokument PDF — brak; Archiwum ZIP — brak", ap.group(1) if ap else "")
+zrzut("notatki-6-ustawienia", gdy=lambda w, h, px: True)
+okno("pliki", lambda: klik(*pasek(5)))
 
 n_o = q.ile(r"K1-NOTATKI: otwarto notatkę \(13 B\)")
-sprawdz("podwójne kliknięcie pliku tekstowego: Notatki" + (" — także po ponownym starcie" if tryb != "notatki" else ""),
+sprawdz("podwójne kliknięcie pliku tekstowego: Notatki",
         po(r"K1-PLIKI: plik otwierany w aplikacji Notatki", lambda: q.dwuklik(*wiersz(2))) and
         czekaj(r"K1-NOTATKI: otwarto notatkę \(13 B\)", od=n_o))
 t_ = tekst()
@@ -510,8 +508,8 @@ dd if=/dev/zero of="$STARE" bs=1M count=16 status=none
 printf 'label: gpt\nstart=2048, size=30000, name="K1-DANE"\n' | sfdisk -q "$STARE" >/dev/null
 dd if="$STARE.czesc" of="$STARE" bs=512 seek=2048 conv=notrunc status=none; rm -f "$STARE.czesc"
 DYSK_STARY="-drive if=none,id=dane,file=$STARE,format=raw -device ide-hd,drive=dane,bus=ide.0"
-CZAS_ZW=$CZAS; CZAS=$((CZAS * 2)) # both runs are long (Notatki, the file picker, Pliki, Ustawienia); with 8 tests at once
-uruchom notatki --qemu "$DYSK_STARY"  # on CI the second one ran out of 240 s once (0.8.1 step 3, run 43)
+CZAS_ZW=$CZAS; CZAS=$((CZAS * 2)) # a long run (Notatki, the file picker, Pliki, Ustawienia); with 8 tests at once
+uruchom notatki --qemu "$DYSK_STARY"  # on CI it ran out of 240 s once (0.8.1 step 3, run 43)
 sprawdz notatki
 python3 -I - "$STARE" <<'PY' || r=1
 import sys
@@ -520,9 +518,8 @@ jawne = [t for t in ("Zażółć".encode(), b"Najnowsza", b"Lista", b"Notatki", 
 print(f"  [{'OK' if not jawne else 'BŁĄD'}]    dysk danych: notatki jako pliki i ustawienia zaszyfrowane" + (f" — jawne: {jawne}" if jawne else ""))
 sys.exit(1 if jawne else 0)
 PY
-echo "[k1] test Pliki, krok 2: ponowne uruchomienie z tym samym dyskiem"
-uruchom notatki-ponownie --qemu "$DYSK_STARY"
-sprawdz notatki-ponownie
+# (0.10.0) no second start with this disk: that the files stay after a restart is checked by "ponownie" above,
+# m4-ponownie (notes) and test-skarbiec (the move from format 1 to 2)
 CZAS=$CZAS_ZW
 if [ $r -eq 0 ]; then info "Pliki: wszystko zaliczone (zrzuty: $TESTY/pliki-*.png)"; else echo "[k1] Pliki: BŁĄD (logi: $TESTY/pliki-*.log)"; fi
 exit $r

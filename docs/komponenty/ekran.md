@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE (M2–M4) — `scripts/test-m2.sh`, `scripts/test-m4.sh` (zrzuty), testy w systemie (klatka, złośliwe IPC, restart) |
+| **Status** | PRZETESTOWANE (M2–M4) — `scripts/test-m4.sh` (zrzuty), testy w systemie (klatka, złośliwe IPC, restart) |
 | **Kod** | `src/ekran/main.c` (start, kanał sterujący, pętla, zmiana trybu), `scena.c` (składanie, wyjście), `okna.c` (klienci, okna, fokus, komunikaty), `powierzchnie.c` (pamięć, nowa powierzchnia, zatwierdzanie; 0.9.0), `wskaznik.c` (mysz, klawiatura), `drm.c` (KMS, lista trybów), renderer `src/grafika/k1_grafika.c`, protokoły `src/wspolne/k1_zdarzenie.c`, `k1_komunikat.c` |
 | **Decyzje** | ADR 0006, ADR 0007 (klatka, kanały), ADR 0008 (okna), ADR 0010 (simpledrm), ADR 0012 (przegląd, tryby); wygląd: `docs/WYGLAD.md` |
 
@@ -149,7 +149,7 @@ w jądrze (ioctl).
 ## Testy
 | Test | Rodzaj |
 |---|---|
-| `test-m2.sh`: tryb, pierwsza klatka, mysz, strzałki, przycisk — log + zrzuty | funkcjonalny |
+| `test-m4.sh` (początek): tryb, pierwsza klatka, mysz, strzałki, przycisk — log + zrzuty | funkcjonalny |
 | `test-m4.sh`: okna, przeciąganie, fokus, minimalizacja, motyw, tapeta — log + zrzuty | funkcjonalny |
 | w systemie: drugi proces nie przejmie ekranu (`SET_MASTER` → EBUSY) | negatywny |
 | w systemie: złośliwe zdarzenia wejścia i obcy nadawca (`odrzucone 5`) | negatywny (IPC) |

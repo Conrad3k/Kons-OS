@@ -39,8 +39,9 @@ Nowy czat — przebieg każdego kroku:
      (Documentation/virt/kvm/api.rst, include/uapi/linux/kvm.h, include/uapi/linux/virtio_*.h) i w specyfikacji
      virtio 1.2 (OASIS, wolna). Punkt NIEPEWNE zamieniasz na POTWIERDZONE albo poprawiasz — w „Ustaleniach
      z wykonania” swojego kroku.
-  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, pełny scripts/testy.sh
-     lokalnie (wszystko [OK]); przy zmianach w budowie także scripts/sprawdz-powtarzalnosc.sh. Testy stref w kontenerze
+  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, lokalnie scripts/test-m1.sh
+     i skrypty zmienianej części (np. test-strefa.sh), potem pełny komplet w CI na PR-ze (etykieta „testy”) — wszystko
+     [OK] (zasada od 2026-11-14, AGENTS.md); przy zmianach w budowie także scripts/sprawdz-powtarzalnosc.sh. Testy stref w kontenerze
      bez KVM idą w emulacji (T10) — wolno; czekaj poleceniem, nie rób w tym czasie innych wywołań (CLAUDE.md).
   8. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, ZALEZNOSCI, WYGLAD, TESTY.md, SPEC (dopiski
      [korekta: ADR …]). VERSION i CHANGELOG zmienia krok 3 (wydanie); kroki 1–2 zapisują „co widzi użytkownik”

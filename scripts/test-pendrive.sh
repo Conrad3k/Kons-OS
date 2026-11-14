@@ -101,10 +101,11 @@ rm -f "$NTFS"; truncate -s 16M "$NTFS"
 printf 'label: dos\nstart=2048, type=7\n' | sfdisk -q "$NTFS" >/dev/null
 printf '\353R\220NTFS    ' | dd of="$NTFS" bs=512 seek=2048 conv=notrunc status=none
 # a "small" FAT32 (0.8.2 step 2, L13 and L14): fewer than 65 525 clusters, in an MBR partition; a folder of 1100 pictures
-# (a JPEG start each — the type comes from the content), more than one list of czytnik (1024)
+# (a JPEG start each — the type comes from the content), more than one list of czytnik (1024). The names differ in
+# their first characters: names sharing them make mcopy search the whole folder for a free short name (~20 s here).
 rm -rf "$Z" "$MALY" "$TESTY/pendrive-czesc.img"; mkdir -p "$Z"
 python3 -I -c 'import sys
-for i in range(1100): open(f"{sys.argv[1]}/telefon_{i:04d}.jpg", "wb").write(b"\xff\xd8\xff\xe0" + str(i).encode())' "$Z"
+for i in range(1100): open(f"{sys.argv[1]}/{i:04d}_telefon.jpg", "wb").write(b"\xff\xd8\xff\xe0" + str(i).encode())' "$Z"
 mformat -C -i "$TESTY/pendrive-czesc.img" -F -c 8 -T 253952 :: || blad "mformat (mały FAT32)"
 mmd -i "$TESTY/pendrive-czesc.img" ::/Telefon
 mcopy -i "$TESTY/pendrive-czesc.img" "$Z"/* ::/Telefon/

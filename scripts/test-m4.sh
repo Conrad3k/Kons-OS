@@ -1,6 +1,7 @@
 #!/bin/sh
-# Test etapu M4 (powtarzalny): pulpit i aplikacje w działającym K1 (obraz produkcyjny) oraz start
-# z obrazu ISO (UEFI i BIOS, grafika z firmware — simpledrm). Sterowanie przez monitor QEMU (mysz,
+# Test etapu M4 (powtarzalny): pulpit i aplikacje w działającym K1 (obraz produkcyjny) — od 0.10.0 na początku także
+# kursor, mysz i klawiatura (dawny test-m2.sh) — oraz start z obrazu ISO przez BIOS (grafika z firmware — simpledrm;
+# start z ISO przez UEFI: test-m5f.sh, „0-z-iso”). Sterowanie przez monitor QEMU (mysz,
 # klawiatura), dowody: log + zrzuty ekranu sprawdzane automatycznie (build/testy/m4-*.png).
 # Wymaga: scripts/zbuduj.sh (z obrazem ISO).
 . "$(dirname "$0")/wspolne.sh"
@@ -155,6 +156,32 @@ if tryb != "pulpit":
     sprawdz("brak 'Kernel panic', błędów i zablokowanych wywołań", "Kernel panic" not in tekst() and "BŁĄD" not in tekst()
             and "zabronione wywołanie" not in tekst())
     sys.exit(0 if all(wyniki) else 1)
+
+# M2 (until 0.10.0 its own start, scripts/test-m2.sh): the cursor, the mouse and the keyboard before any window is open.
+# Each step: the screen's log + a screenshot checked by colours (m4-kursor-*.png).
+krem = lambda c: c[0] > 200 and c[1] > 195 and c[2] > 180
+x0, y0 = kursor
+sprawdz("zrzut: kursor w miejscu z logu", krem(px(x0 + 3, y0 + 9)), str(px(x0 + 3, y0 + 9)))
+px1 = px
+monitor(*["mouse_move -60 -30"] * 4)
+x1, y1 = x0 - 240, y0 - 120
+sprawdz(f"mysz: kursor przesunięty o (-240,-120) → {x1},{y1}", czekaj(rf"K1-EKRAN: kursor {x1},{y1} ") is not None)
+w, h, px2 = zrzut("kursor-2-mysz", gdy=lambda w, h, px: krem(px(x1 + 3, y1 + 9)))
+sprawdz("zrzut: kursor w nowym miejscu", krem(px2(x1 + 3, y1 + 9)), str(px2(x1 + 3, y1 + 9)))
+# arrows move the cursor while no window has the focus; the mouse button changes its colour
+monitor(*["sendkey right"] * 3 + ["mouse_button 1"])
+x2 = x1 + 60
+sprawdz(f"klawiatura: 3 x strzałka w prawo → {x2},{y1}; przycisk myszy wciśnięty",
+        czekaj(rf"K1-EKRAN: kursor {x2},{y1} przycisk wciśnięty") is not None)
+w, h, px3 = zrzut("kursor-3-klawiatura-przycisk", gdy=lambda w, h, px: akcent(px(x2 + 3, y1 + 9)))
+sprawdz("zrzut: kursor w kolorze akcentu (przycisk wciśnięty)", akcent(px3(x2 + 3, y1 + 9)), str(px3(x2 + 3, y1 + 9)))
+sprawdz("zrzuty: w starym miejscu kursora znów tapeta (brak śladu)",
+        px2(x0 + 3, y0 + 9) == px3(x0 + 3, y0 + 9) != px1(x0 + 3, y0 + 9), f"{px1(x0 + 3, y0 + 9)} {px2(x0 + 3, y0 + 9)}")
+monitor("mouse_button 0")
+czekaj(rf"K1-EKRAN: kursor {x2},{y1} przycisk puszczony")
+kursor[:] = [x2, y1]
+sprawdz("brak odrzuconych i zgubionych zdarzeń przy poprawnym wejściu",
+        re.findall(r"zdarzenia: .*odrzucone (\d+)\)", tekst())[-1:] == ["0"] and "pominięto" not in tekst())
 
 # 0.7.5: the desktop (owner's sketch A "Kafelki"): icons, double click, the right-click menus, pinning,
 # dragging on the bar and on the desktop. At the end the bar is as at the start (the steps below use it).
@@ -430,11 +457,7 @@ echo "[k1] test M5e: start z hasłem — ekran hasła, złe i dobre hasło, pulp
 uruchom haslo --qemu "$DYSK_DANYCH"
 sprawdz haslo
 if [ -f "$ISO" ]; then
-    echo "[k1] test M4: start z obrazu ISO — UEFI (OVMF), grafika z firmware (simpledrm)"
-    uruchom iso-uefi --iso "$ISO" --uefi --vga virtio
-    sprawdz iso-uefi
-    grep -q "obraz rdzenia zamontowany z /dev/loop" "$TESTY/m4-iso-uefi.log" && grep -q "simpledrm" "$TESTY/m4-iso-uefi.log" \
-        && echo "  [OK]    rdzeń wbudowany w ISO (loop), simpledrm" || { echo "  [BŁĄD]  ISO UEFI: brak loop/simpledrm"; r=1; }
+    # the start from the ISO through UEFI (OVMF) is checked by test-m5f ("0-z-iso"): the same image, one start
     echo "[k1] test M4: start z obrazu ISO — BIOS (SeaBIOS, VESA), grafika z firmware (simpledrm)"
     uruchom iso-bios --iso "$ISO" --vga virtio
     sprawdz iso-bios
