@@ -70,7 +70,7 @@ nowe obok starych, przełączenie jednym zapisem sektora startowego FAT (`src/in
 
 **Sprzęt właściciela:** ThinkPad X230 (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez simpledrm,
 TPM 1.2; kabel: Intel 82579LM, `e1000e`) i od 2026-11-13 Lenovo IdeaPad 110-15ISK (Skylake, tylko xHCI, Intel HD 520;
-kabel 10/100 i Wi-Fi 802.11ac — dokładne układy: Ustawienia → Sieć pokazują identyfikatory kart, pytanie D3 w `docs/PLAN-0.9.1.txt`), jedno konto na komputer.
+kabel 10/100 i Wi-Fi 802.11ac — dokładne układy: Ustawienia → Sieć pokazują identyfikatory kart, pytanie D3 w `docs/archiwum/PLAN-0.9.1.txt`), jedno konto na komputer.
 X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt. Sterowniki — zawsze z jądra, nie własne (D0).
 
 ## 3. Mapa kodu
@@ -79,14 +79,14 @@ X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt. Stero
 |---|---|---|
 | `src/initramfs/` | `/init` | montuje rdzeń (dm-verity), przełącza korzeń |
 | `src/init/` | `/rdzen/init` | PID 1 |
-| `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` usługi z tabel `K1_SYSTEM`/`K1_APLIKACJE` (start, kanały, restarty); `kanaly.h` nazwy kanałów `KANAL_*`; `logi.c` logi usług; `profile.c` klatki (`KLATKA_<NAZWA>`); `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c`, `rozruch.c`, `efi.c`, `pendrive.c`, `dekoder.c`, `powieksz.c` (K1-DANE do końca pendrive'a), `siec*.c` (karty sieciowe, adres, stan dla ikony i Ustawień, zegar z internetu; 0.9.0), `wifi.c`, `wifi_nl.c` (karta Wi-Fi, przełącznik radia przez `/dev/rfkill`, szukanie sieci nl80211, lista dla Ustawień; 0.9.1), `test.c` |
+| `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` usługi z tabel `K1_SYSTEM`/`K1_APLIKACJE` (start, kanały, restarty); `kanaly.h` nazwy kanałów `KANAL_*`; `logi.c` logi usług; `profile.c` klatki (`KLATKA_<NAZWA>`); `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c`, `rozruch.c`, `efi.c`, `pendrive.c`, `dekoder.c`, `powieksz.c` (K1-DANE do końca pendrive'a), `siec*.c` (karty sieciowe, adres, stan dla ikony i Ustawień, zegar z internetu; 0.9.0), `wifi.c`, `wifi_nl.c` (karta Wi-Fi, przełącznik radia przez `/dev/rfkill`, szukanie sieci nl80211, lista dla Ustawień; 0.9.1), `wifi_polacz.c` (łączenie na prośbę siec: CONNECT, gniazdo EAPOL, klucze NEW_KEY, SET_STATION; kanał Ustawienia → siec `KN_SIEC`; 0.9.1 krok 2), `test.c` |
 | `src/wejscie/` | `system/wejscie` | klawiatura, mysz (evdev, EVIOCGRAB) |
 | `src/ekran/`, `src/grafika/` | `system/ekran` | DRM/KMS, składanie okien, kursor, tapety, znak K1; `zalegle.c` — to, czego pełny kanał klienta nie przyjął, czeka w ekranie (RAMKA nigdy nie przepada, ruchy się scalają; 0.8.5) |
 | `src/gui/` | `system/gui` | pulpit w modułach (`gui.h`): warstwa ikon, paski, menu Start, menu kontekstowe, rozmieszczenie w skarbcu (fd 6) |
 | `src/logowanie/` | `system/logowanie` | ekran hasła przy starcie |
 | `src/skarbiec/` | `system/skarbiec` | `magazyn.c` format i szyfrowanie, `main.c` usługa, `obiekty.c`, `haslo.c`, `dokumenty.c` + `dok_*.c` pliki, foldery, Kosz, naprawa przy starcie, granica czasu, prawa, zapis w toku kawałkami (0.8.0–0.8.1, `dok_wew.h`); limity, indeks, kompaktowanie, rezerwa, kawałki — ADR 0034; `miejsce.c` miejsce na pliki i powiększenie K1-DANE (ADR 0033); format 2 (0.8.2, ADR 0036): `odcinki.c`, `spis.c`, `przejscie.c` (format 1 → 2 po potwierdzonym starcie), `przerwy.c` (kompaktowanie krokami między prośbami); format 1 (`obszary.c`) i przejście — tymczasowe do 0.10.0 |
 | `src/instalator/` | `system/instalator` | zapis K1 na dysk (GPT), tylko urządzenia od nadzorcy; `start.c` — wymiana plików startowych (0.9.0) |
-| `src/siec/` | `system/siec` | adres od routera: klient DHCP w klatce (`dhcp.c` pakiety, `klient.c` stany i czasy); zegar z internetu (`sntp.c` pakiety, `czas.c` runda i zgodność źródeł, `zegar.c` gniazda; krok 8); gniazdo pakietowe, karty, kabel i ustawienie adresu — nadzorca `siec.c`, `siec_jadro.c`; stan dla ikony i Ustawień — `siec_stan.c`; gniazda UDP do serwerów czasu i zegar — `siec_zegar.c` (0.9.0, ADR 0039); Wi-Fi (0.9.1, ADR 0041): `wifi.c` opisy sieci z powietrza (nazwa do pokazania, zabezpieczenie) → lista, `lista.c` wyniki od nadzorcy w memfd i lista do niego |
+| `src/siec/` | `system/siec` | adres od routera: klient DHCP w klatce (`dhcp.c` pakiety, `klient.c` stany i czasy); zegar z internetu (`sntp.c` pakiety, `czas.c` runda i zgodność źródeł, `zegar.c` gniazda; krok 8); gniazdo pakietowe, karty, kabel i ustawienie adresu — nadzorca `siec.c`, `siec_jadro.c`; stan dla ikony i Ustawień — `siec_stan.c`; gniazda UDP do serwerów czasu i zegar — `siec_zegar.c` (0.9.0, ADR 0039); Wi-Fi (0.9.1, ADR 0041): `wifi.c` opisy sieci z powietrza (nazwa do pokazania, zabezpieczenie) → lista, `lista.c` wyniki od nadzorcy w memfd i lista do niego (ze stanem połączenia); krok 2: `eapol.c` ramki EAPOL-Key, `wpa.c` logowanie WPA2 (czyste, `test_wpa`, `fuzz_eapol`), `polacz.c` połączenie, `wybor.c` wybór sieci i kanał Ustawień (fd od `SIEC_USTAWIENIA`), `pamiec.c` + `skarb.c` zapamiętane sieci w skarbcu (fd 4); kryptografia `src/wspolne/k1_sha1.c`, `k1_aes.c`, `k1_wymaz.h` |
 | `src/czytnik/` | `system/czytnik` | pendrive dla Plików: FAT w klatce, tylko odczyt (0.8.0, ADR 0031); nadzorca `pendrive.c` |
 | `src/dekoder/` | `system/dekoder` | jeden obraz (PNG, JPEG, GIF, BMP, WebP) → piksele, jednorazowy proces w klatce (Wuffs; 0.8.0, ADR 0032); plik kawałkami, limity w jednej tabeli `k1_dekoder.h`, dekodery w `K1_DEKODERY` (0.8.2); nadzorca `dekoder.c` (tabela klientów: Pliki, Podgląd), Pliki `obrazy.c`, Podgląd `obraz.c`, ekran `zdjecie.c` (tabela nadawców tapety) |
 | `src/aplikacje/<program>/` | `aplikacje/<program>` | Zegar, Notatki, Ustawienia, Zasoby, Instalator (`instalacja`), Kalkulator, Pliki (0.8.0), Wybór pliku (`wybor`), Podgląd (`podglad`, 0.8.2: zdjęcie w oknie, zdjęcia jednego folderu — ADR 0037; 0.8.5: w ruchu szybko z kopii — `skala.c`, po zatrzymaniu `k1_skaluj`); Ustawienia → Miejsce (`miejsce.c`, 0.8.5: części z tabeli `K1_CZESCI` przez `SKARB_PODZIAL`/`SKARB_CZESC`, tylko liczby) |
@@ -228,7 +228,10 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 - *Wyłączanie (0.8.6):* init zatrzymuje najpierw samego nadzorcę (ten zapisuje historię baterii, póki skarbiec działa),
   potem resztę; usługi giną razem z nadzorcą (`PR_SET_PDEATHSIG`), więc nic w usłudze nie może liczyć na sprzątanie.
 - *Wi-Fi (0.9.1):* sysfs jest w K1 tylko do odczytu — przełącznik radia przez `/dev/rfkill` (`RFKILL_OP_CHANGE`), nie
-  `rfkillN/soft`; bez `MAC80211_RC_MINSTREL` (za EXPERT) mac80211 nie rejestruje kart bez własnego doboru prędkości
+  `rfkillN/soft`; typ komunikatu niesie deskryptor zawsze albo nigdy (`k1_komunikat_z_deskryptorem`, inaczej odbiorca go
+  odrzuca — stąd osobny `SIEC_WIFI_EAPOL`); klatka, która pisze memfd (np. dla skarbca), potrzebuje `.rozmiar_pliku`
+  (inaczej SIGXFSZ = 25); jądro potrafi wpisać swój komunikat w środek wiersza K1 na porcie szeregowym, nawet w środku
+  znaku UTF-8 — `k1qemu.py` usuwa je z bajtów przed dekodowaniem; bez `MAC80211_RC_MINSTREL` (za EXPERT) mac80211 nie rejestruje kart bez własnego doboru prędkości
   („Failed to select rate control algorithm”: ath9k, rtw88, hwsim); `Maszyna.czekaj(wzor, od=n)` — `n` to liczba
   wcześniejszych dopasowań (`q.ile(wzor)`), nie długość logu; pętla `timeout … until grep KONIEC` mogła skończyć się
   limitem — przed nowym przebiegiem testu sprawdź `pgrep -af wifi.py|qemu`, inaczej dwa przebiegi mieszają log.
@@ -257,7 +260,7 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 **Plan — jedno miejsce (ADR 0035):** stan, mapa drogi i otwarte decyzje — `docs/DO_ZROBIENIA.txt`; kroki bieżącej
 wersji — `docs/PLAN-<wersja>.txt` (samodzielny: luki, kroki, decyzje; zakres zamrożony, nowe pomysły → „Później”;
 numery kroków się nie zmieniają; zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
-Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (0.9.0 kabel gotowe; teraz 0.9.1 Wi-Fi, plan `docs/PLAN-0.9.1.txt`) → **0.10 Strefy** (mikro-maszyny, ramka,
+Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (następna) (mikro-maszyny, ramka,
 przeglądarka; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery, TPM)
 → **0.13 Audyt** → 1.0. Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11,
 M10 = 0.12, M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).

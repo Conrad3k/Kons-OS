@@ -42,6 +42,32 @@ enum k1_wifi_zabezpieczenie {
 };
 #define K1_WIFI_ZABEZP_MAKS 7
 
+/* Joining a network (0.9.1 step 2): the ciphers of a connection, how siec asks nadzorca to join (SIEC_WIFI_POLACZ e). */
+enum { K1_WIFI_SZYFR_CCMP = 1, K1_WIFI_SZYFR_TKIP = 2 }; /* TKIP only as the group cipher of an older router */
+enum { K1_WIFI_TRYB_OTWARTA = 1, K1_WIFI_TRYB_WPA2_CCMP = 2, K1_WIFI_TRYB_WPA2_TKIP = 3 }; /* the latter two: the group */
+#define K1_WIFI_TRYB_MAKS 3
+/* Our security element (RSN, 22 bytes): version 1, the group cipher of the router, pairwise CCMP, AKM PSK, capabilities
+ * 0 — in the association request (nadzorca) and in message 2 (siec); the router compares them. */
+#define K1_WIFI_RSN_NASZ 22
+void k1_wifi_rsn_nasz(int grupa, uint8_t wynik[K1_WIFI_RSN_NASZ]);
+
+/* The connection as the person sees it (SIEC_WIFI_LISTA c, WIFI_POLACZENIE a). */
+enum k1_wifi_polaczenie {
+    K1_WIFI_P_BRAK = 0,      /* not connected to any network */
+    K1_WIFI_P_LACZE = 1,     /* joining network d (the router, the password, the address) */
+    K1_WIFI_P_POLACZONO = 2, /* connected to network d */
+    K1_WIFI_P_ZLE_HASLO = 3, /* network d did not take the password */
+    K1_WIFI_P_NIEUDANE = 4,  /* joining network d failed (no answer, the router said no) */
+};
+#define K1_WIFI_P_MAKS 4
+#define K1_WIFI_HASLO_MAKS 64 /* bytes of a Wi-Fi password: 8..63 characters, or 64 hexadecimal digits (the key) */
+#define K1_WIFI_HASLO_MIN 8
+/* A password in four messages (WIFI_HASLO): part 0..2 = bytes 0..59 in a..e, part 3 = bytes 60..63 in a (b..e = 0). */
+void k1_wifi_haslo_do_pol(const char t[K1_WIFI_HASLO_MAKS], int czesc, int32_t p[5]);
+void k1_wifi_haslo_z_pol(const int32_t p[5], int czesc, char t[K1_WIFI_HASLO_MAKS]);
+/* 1 when the fields of a part hold only printable ASCII or zeros (part 3: only a). */
+int k1_wifi_haslo_pola_dobre(int czesc, const int32_t p[5]);
+
 /* Bars of signal 1..4 from dBm — the thresholds in one table (k1_wifi.c). */
 int k1_wifi_poziom(int dbm);
 

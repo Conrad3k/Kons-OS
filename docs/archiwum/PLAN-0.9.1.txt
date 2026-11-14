@@ -69,7 +69,8 @@ wirtualnej z udawanymi kartami Wi-Fi (prawdziwego Wi-Fi w maszynie wirtualnej ni
      Krok                                                Luki (punkt 5)   Zależy od    Decyzje         Rozmiar  ADR
 [x]  1  Karta Wi-Fi, oprogramowanie kart, lista sieci    W1–W9            0.9.0        D1 D3, T1–T3 T5  L        tak
      PR #105 (2026-11-14)
-[ ]  2  Łączenie z hasłem, zapamiętane sieci; wydanie    W10–W14          1            D2 D4, T4 T6     L        —
+[x]  2  Łączenie z hasłem, zapamiętane sieci; wydanie    W10–W14          1            D2 D4, T4 T6     L        —
+     PR #107 (2026-11-14)
 
 Dlaczego dwa, a nie jeden: krok 1 to jądro, pliki producentów i budowa (powtarzalność, rozmiar k1.efi), krok 2 to
 kryptografia i logowanie do sieci. Każdy z nich zajmuje pełny czat i pełne testy (ok. 50 min bez KVM); razem nie
@@ -194,6 +195,32 @@ KROK 2 — Łączenie z hasłem, zapamiętane sieci; wydanie 0.9.1              
   (zapamiętana sieć, hasło sieci), RYZYKA (podrobiony router o tej samej nazwie — WPA2 z hasłem chroni tylko przed
   obcymi, nie przed kimś, kto zna hasło), TESTY.md, CHANGELOG.
   Gotowe, gdy: testy zielone, wydanie k1-v0.9.1 istnieje, raport z linkami.
+  Ustalenia z wykonania (2026-11-14, Claude):
+  - D2, D4: decyzje właściciela jak w rekomendacji (punkt 4).
+  - T6: ramki EAPOL gniazdem pakietowym od nadzorcy (ETH_P_PAE, wzór DHCP) + NL80211_ATTR_CONTROL_PORT w CONNECT — zapis
+    w ADR 0041. Gniazdo przychodzi osobnym komunikatem SIEC_WIFI_EAPOL: typ komunikatu niesie deskryptor zawsze albo nigdy
+    (k1_odbior.c), a dla sieci otwartej gniazda nie ma. Klucze: NEW_KEY z zagnieżdżonym NL80211_ATTR_KEY (ZE ŹRÓDEŁ:
+    nl80211_parse_key), autoryzacja SET_STATION z NL80211_STA_FLAG_AUTHORIZED; ogłoszenia z grupy „mlme” (CONNECT,
+    DISCONNECT) — ZE ŹRÓDEŁ i POTWIERDZONE w QEMU.
+  - Hasło: Ustawienia mają kanał prosto do siec (KANAL_DO_SIECI, rodzaj KN_SIEC, kierunek K1_KIER_DO_SIECI) — nadzorca nie
+    widzi hasła; siec liczy klucz sieci (PBKDF2) i hasło czyści. Stan połączenia wraca w liście (SIEC_WIFI_LISTA c, d, e →
+    WIFI_POLACZENIE), bez kanału zwrotnego.
+  - W10: wektory — RFC 2202, RFC 6070, FIPS 180-4, FIPS 197, RFC 3394, IEEE 802.11 aneks J.3 (PRF, przypadek 1) i J.4
+    (klucz sieci z hasła, trzy przykłady); pozostałe (PRF przypadek 2, klucze połączenia PRF-384) policzone z definicji
+    niezależnie w Pythonie (hashlib, hmac, cryptography) — test_krypto. Router po drugiej stronie napisany osobno (test_wpa,
+    t_wifi_ap.c), ostateczny dowód: prawdziwy router właściciela.
+  - W12: siec dostaje KANAL_SKARBCA jak aplikacje (właściciel = profil 18), obiekt 1 „K1WF”. POTWIERDZONE w QEMU: bez
+    RLIMIT_FSIZE w klatce zapis memfd dla skarbca kończy siec sygnałem 25 (SIGXFSZ) — KLATKA_SIEC ma 64 KiB.
+  - W13: „złe hasło” = wysłana wiadomość 2, a punkt dostępu odłączył albo minęło 20 s bez wiadomości 3; bez wiadomości 2 —
+    „nie udało się połączyć”. Na prawdziwym routerze — test właściciela (lista w DO_ZROBIENIA).
+  - W14: jeden adres naraz — nadzorca daje adres karcie Wi-Fi tylko bez kabla; kabel włożony → Wi-Fi traci adres
+    (SIEC_ROZLACZONO z K1_SIEC_WIFI_ROZLACZONE), połączenie z siecią zostaje. siec trzyma jeden klient DHCP — wystarczył.
+  - Dowód „dane płyną” (T5): zamiast zapytania ARP — adres od małego serwera DHCP routera testowego (prośba stacji
+    zaszyfrowana kluczem pary, rozgłoszona odpowiedź — kluczem grupy). Router testowy (t_wifi_ap.c) to mały hostapd:
+    REGISTER_FRAME, FRAME, NEW_STATION (bez flag AUTH/ASSOC — jądro dodaje je samo, ZE ŹRÓDEŁ nl80211_new_station).
+    Negatywne w QEMU: ramka EAPOL za krótka i podrobiona wiadomość 3 (zły MIC) — odrzucone, siec żyje.
+  - Budowa: git.kernel.org bywa niedostępny (w kontenerze Claude: 403) — scripts/oprogramowanie-kart.sh ma zapas: lustro
+    linux-firmware na gitlab.com (suma każdego pliku i tak sprawdzana).
 
 
 4. DECYZJE
@@ -208,18 +235,20 @@ Twoje (produkt):
        sygnału = wypełniona część; wyłączone — przekreślony, nie połączono — krzyżyk, łączę — kropka w terakocie);
        sekcja A „Zakładki” — „Wi-Fi | Karty sieciowe” (kafelki kart z 0.9.0 w drugiej), przełącznik Wi-Fi obok
        zakładek, lista w karcie, kliknięcie sieci rozwija jej wiersz z polem hasła i „Połącz”, złe hasło pod polem.
-[!] D2 (krok 2) Jakie sieci w 0.9.1. Rekomendacja: sieci domowe z hasłem (WPA2 i mieszane WPA2/WPA3 — tak działa
+[x] D2 (krok 2) Jakie sieci w 0.9.1. Rekomendacja: sieci domowe z hasłem (WPA2 i mieszane WPA2/WPA3 — tak działa
        większość domowych routerów) oraz otwarte (kawiarnia, hotel) z napisem „sieć niezabezpieczona”. Uwaga: sieci
        otwarte, które każą się najpierw zalogować na stronie, zadziałają dopiero z przeglądarką (0.10). Później: sieci
        tylko WPA3, firmowe i uczelniane z loginem i hasłem (np. eduroam), sieci ukryte. Jeśli którejś potrzebujesz
        wcześniej — powiedz, wejdzie do następnego planu.
+       DECYZJA (2026-11-14, właściciel): jak w rekomendacji — z hasłem (WPA2, mieszane WPA2/WPA3) i otwarte.
 [x] D3 (krok 1) Pliki od producentów kart (zamknięte — nie widać, co robią w karcie; bez nich karta Wi-Fi nie
        działa wcale). Rekomendacja: zgoda, tylko dla wybranych rodzin kart (T2), wbudowane w podpisany K1 — nie da
        się ich podmienić ani dodać po cichu. Bez zgody: Wi-Fi tylko na nielicznych starszych kartach Atheros (ath9k).
        DECYZJA (2026-11-14, właściciel): tak — wbudowane w podpisany K1, tylko dla wybranych rodzin kart.
-[!] D4 (krok 2) Zapamiętywanie sieci. Rekomendacja: sieć zapamiętana po udanym połączeniu; przy starcie i po utracie
+[x] D4 (krok 2) Zapamiętywanie sieci. Rekomendacja: sieć zapamiętana po udanym połączeniu; przy starcie i po utracie
        zasięgu K1 łączy się sam z najsilniejszą zapamiętaną; kabel ma pierwszeństwo przed Wi-Fi; „Zapomnij tę sieć”
        w Ustawieniach. Hasło nigdy nie jest pokazywane z powrotem (zmiana = wpisanie nowego).
+       DECYZJA (2026-11-14, właściciel): jak w rekomendacji.
 Pytania z 0.9.0, które dalej pomagają (D2, D3 planu 0.9.0 — w historii git): czy masz kabel do routera i jakie dokładnie
 karty Wi-Fi mają oba laptopy (Ustawienia → Sieć w 0.9.0 pokaże identyfikator karty — przepisz go).
     ODPOWIEDŹ (2026-11-14, właściciel): kabel do routera jest dla obu laptopów; kabel, karty i Wi-Fi sprawdzi na obu po

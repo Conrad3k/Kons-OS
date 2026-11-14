@@ -29,7 +29,8 @@
     X(CZYTNIK, 15, 106, "czytnik", "Czytnik pendrive'a", NA_PROSBE, BRAK, ()) /* 0.8.0: a USB stick, read only */       \
     X(DEKODER, 16, 107, "dekoder", "Dekoder obrazów", NA_PROSBE, BRAK, ())    /* 0.8.0: one picture, then it ends */ \
     /* 0.9.0 (ADR 0039): the address from the router (DHCP) for the card with a cable; nadzorca sets it */          \
-    X(SIEC, 18, 108, "siec", "Sieć (adres od routera)", PRZY_STARCIE, BRAK, (KANAL_SIECI))
+    /* 0.9.1 (ADR 0041): + Wi-Fi — the networks around, logging in with a password; the remembered networks in skarbiec */ \
+    X(SIEC, 18, 108, "siec", "Sieć (adres od routera, Wi-Fi)", PRZY_STARCIE, BRAK, (KANAL_SIECI, KANAL_SKARBCA))
 
 /* The native applications: one line each — everything else (UIDs, profiles, the Start menu, window names,
  * Zasoby, the sandbox profile, the image contents, the tests) follows from it.
@@ -44,7 +45,7 @@
     X(NOTATKI, 2, 5, 201, "notatki", "K1-NOTATKI", "Notatki", "Twoje notatki, zaszyfrowane", NOTATKI, 1,        \
       (KANAL_SKARBCA, KANAL_PLIKU))                                                                             \
     X(USTAWIENIA, 3, 6, 202, "ustawienia", "K1-USTAWIENIA", "Ustawienia", "Wygląd, ekran, mysz, bateria, hasło", \
-      USTAWIENIA, 1, (KANAL_USTAWIEN, KANAL_SKARBCA))                                                           \
+      USTAWIENIA, 1, (KANAL_USTAWIEN, KANAL_SKARBCA, KANAL_DO_SIECI))                                                           \
     X(ZASOBY, 4, 7, 203, "zasoby", "K1-ZASOBY", "Zasoby", "Procesor, pamięć, bateria", ZASOBY, 1, (KANAL_ZASOBOW)) \
     X(INSTALACJA, 5, 11, 204, "instalacja", "K1-INSTALACJA", "Instalator", "Instalacja, aktualizacja, Secure Boot", \
       DYSK, 0, (KANAL_INSTALACJI))                                                                              \

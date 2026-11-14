@@ -43,6 +43,7 @@ static int bat_odrzucone, bat_zalogowana;
 int bat_kanal = 1;
 int wyloguj_mozna = -1;
 static int siec = -1;             /* K1_SIEC_* from nadzorca; -1: not known yet (no icon) */
+static int kreski, kreski_zalogowane; /* 0.9.1 step 2: the bars of Wi-Fi when connected (SIEC_STAN e) */
 static int32_t siec_x_zalogowane; /* the tests find the icon by the log line */
 static int siec_zalogowana = -1;
 
@@ -87,6 +88,7 @@ void odbierz_baterie(void)
         }
         if (w == K1_ODB_JEST && m.typ == K1_KOM_SIEC_STAN) {
             siec = m.a;
+            kreski = m.e;
             gora.brudna = 1;
             continue;
         }
@@ -140,11 +142,14 @@ static int32_t rysuj_baterie(struct k1_obraz *o, uint32_t krem)
 
 /* The network icon (D1: sketch C, the plug), 16 px at x: connected — the plug with its cable; connecting — dimmed with
  * a terracotta dot; no cable — the plug alone, dimmed, with a small ×; no card — faint and crossed out. Without a cable
- * and with a Wi-Fi card (0.9.1, D1: sketch B): the fan — off: faint and crossed out; not connected: faint with a ×. */
+ * and with a Wi-Fi card (0.9.1, D1: sketch B): the fan — off: faint and crossed out; not connected: faint with a ×;
+ * joining: faint with a terracotta dot; connected: the filled part is the signal (step 2). */
 static void rysuj_siec(struct k1_obraz *o, float x, uint32_t krem)
 {
     static const char *const stany[] = { "brak obsługiwanej karty", "kabel odłączony", "łączę (czekam na adres od routera)",
-                                         "połączono", "Wi-Fi wyłączone", "Wi-Fi nie połączono" };
+                                         "połączono", "Wi-Fi wyłączone", "Wi-Fi nie połączono", "Wi-Fi łączę",
+                                         "Wi-Fi połączono" };
+    char opis[48];
     const float y = 8;
     const uint32_t slaby = k1_kolor(K1_KREM, 110), tlo = k1_kolor(K1_NOC, 255);
     switch (siec) {
@@ -172,15 +177,25 @@ static void rysuj_siec(struct k1_obraz *o, float x, uint32_t krem)
         k1_kreska(o, x + 11, y + 11, x + 15, y + 15, 1.3f, krem);
         k1_kreska(o, x + 15, y + 11, x + 11, y + 15, 1.3f, krem);
         break;
+    case K1_SIEC_WIFI_LACZENIE: /* 0.9.1 step 2: faint, with a terracotta dot */
+        k1_wachlarz(o, x, y, 16, 0, K1_KREM, 90, 0);
+        k1_kolo(o, x + 13, y + 14, 2.6f, tlo);
+        k1_kolo(o, x + 13, y + 14, 1.8f, k1_kolor(K1_TERAKOTA_JASNA, 255));
+        break;
+    case K1_SIEC_WIFI_POLACZONO: /* the filled part is the signal: 1–4 bars */
+        k1_wachlarz(o, x, y, 16, kreski >= 1 && kreski <= 4 ? kreski : 1, K1_KREM, 70, 255);
+        break;
     default:
         k1_ikona(o, K1_IK_SIEC_BEZ_KABLA, x, y, 16, k1_kolor(K1_KREM, 70));
         k1_kreska(o, x + 2, y + 2, x + 14, y + 14, 1.4f, k1_kolor(K1_KREM, 160));
         break;
     }
-    if (siec != siec_zalogowana || (int32_t)x != siec_x_zalogowane) {
-        k1_log(TAG, "sieć: %s (ikona w %d,%d)", stany[siec], (int)x, (int)y);
+    snprintf(opis, sizeof opis, siec == K1_SIEC_WIFI_POLACZONO ? "%s, kreski %d" : "%s", stany[siec], kreski);
+    if (siec != siec_zalogowana || (int32_t)x != siec_x_zalogowane || (siec == K1_SIEC_WIFI_POLACZONO && kreski != kreski_zalogowane)) {
+        k1_log(TAG, "sieć: %s (ikona w %d,%d)", opis, (int)x, (int)y);
         siec_zalogowana = siec;
         siec_x_zalogowane = (int32_t)x;
+        kreski_zalogowane = kreski;
     }
 }
 

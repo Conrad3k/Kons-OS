@@ -24,7 +24,9 @@ KURSOR = re.compile(r"K1-EKRAN: kursor (\d+),(\d+) ")
 PRZYCISK = r"K1-EKRAN: kursor \d+,\d+ przycisk "
 # A kernel message printed in the middle of one of our lines on the shared serial console
 # ("K1: wyłączanie[   12.3] reboot: …\nzasilania", the CI failure of 0.6.1): cut out, the line joined again.
-WTRACENIE = re.compile(r"(?<=[^\n])\[\s*\d+\.\d+\][^\n]*\n")
+# A kernel message printed in the middle of a line of K1 (the serial console has one stream) — removed from the bytes,
+# before decoding: it may split a character of UTF-8 in two (0.9.1: "sie\xc4[ 12.1] wlan0: …\n\x87 w zasięgu").
+WTRACENIE = re.compile(rb"(?<=[^\n])\[\s*\d+\.\d+\][^\n]*\n")
 # The machine stops or restarts: nothing more will come, waiting longer only wastes time.
 KONIEC_MASZYNY = r"Kernel panic|reboot: Power down|reboot: Restarting"
 ZACHETA = b"(qemu) "
@@ -131,7 +133,8 @@ class Maszyna:
         """The log up to its last complete line: QEMU may be writing a line just now, and a pattern must never match
         half of it (CI with KVM: "menu kontekstowe …: Zegar 548,617" without the rest of the menu's rows)."""
         try:
-            t = WTRACENIE.sub("", open(self.log, encoding="utf-8", errors="replace").read())
+            t = WTRACENIE.sub(b"", open(self.log, "rb").read()).decode("utf-8", errors="replace")
+            t = t.replace("\r\n", "\n").replace("\r", "\n")  # what reading as text did (universal newlines)
         except OSError:
             return ""
         return t[: t.rfind("\n") + 1]

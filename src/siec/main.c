@@ -11,7 +11,9 @@
  * its own (seccomp), only the packet socket nadzorca opened, with a filter nadzorca set and locked (IPv4, UDP to port
  * 68). It cannot set an address: nadzorca does, after checking it (k1_siec_adres_dobry). It never logs an address.
  * Channels: fd 3 = nadzorca (KANAL_SIECI; we check that UID 0 sends), fd of the packet socket from SIEC_KABEL, up to
- * K1_SIEC_ZRODLA_MAKS UDP sockets to time servers from SIEC_GNIAZDO (one round at a time).
+ * K1_SIEC_ZRODLA_MAKS UDP sockets to time servers from SIEC_GNIAZDO (one round at a time); 0.9.1 step 2: fd 4 =
+ * skarbiec (the remembered networks), the EAPOL socket from SIEC_WIFI_ZDARZENIE, Ustawienia's channel from
+ * SIEC_USTAWIENIA (polacz.c, wybor.c, skarb.c).
  * Documentation: docs/komponenty/siec.md. */
 #include <arpa/inet.h>
 #include <errno.h>
@@ -105,7 +107,7 @@ static void kabel(const struct k1_komunikat *k, int fd)
     if (getrandom(&ziarno, sizeof ziarno, 0) != (ssize_t)sizeof ziarno)
         k1_koniec(TAG, "getrandom: %s", strerror(errno));
     brak_odpowiedzi_zapisany = 0;
-    k1_log(TAG, "kabel podłączony (karta %u) — pytam router o adres (DHCP)", (unsigned)karta);
+    k1_log(TAG, "kabel albo Wi-Fi gotowe (karta %u) — pytam router o adres (DHCP)", (unsigned)karta);
     wykonaj(k1_dhcp_start(&klient, mac, ziarno, k1_teraz()), K1_DHCP_BEZ_KABLA);
 }
 
@@ -127,7 +129,8 @@ static void z_nadzorcy(void)
         if (k.typ == K1_KOM_SIEC_KABEL) {
             kabel(&k, fd);
         } else if (k.typ == K1_KOM_SIEC_ROZLACZONO && k.obiekt == karta) {
-            k1_log(TAG, "%s — bez adresu", k.a == K1_SIEC_KABEL_WYJETY ? "kabel odłączony" : "karta zniknęła");
+            k1_log(TAG, "%s — bez adresu", k.a == K1_SIEC_KABEL_WYJETY ? "kabel odłączony" : k.a == K1_SIEC_KARTA_ZNIKNELA ?
+                   "karta zniknęła" : "Wi-Fi rozłączone albo kabel ma pierwszeństwo");
             k1_dhcp_stop(&klient);
             zegar_stop();
             if (pakiety >= 0)
@@ -149,6 +152,10 @@ static void z_nadzorcy(void)
             fd = -1;
         } else if (k.typ == K1_KOM_SIEC_WIFI_WYNIKI) {
             wifi_wyniki(&k, fd); /* 0.9.1: the networks around (lista.c) */
+            fd = -1;
+        } else if (k.typ == K1_KOM_SIEC_WIFI_ZDARZENIE || k.typ == K1_KOM_SIEC_WIFI_RADIO ||
+                   k.typ == K1_KOM_SIEC_USTAWIENIA || k.typ == K1_KOM_SIEC_WIFI_EAPOL) {
+            polacz_od_nadzorcy(&k, fd); /* 0.9.1 step 2: joining a network (polacz.c) */
             fd = -1;
         }
         if (fd >= 0 && k.typ != K1_KOM_SIEC_KABEL)
@@ -188,22 +195,32 @@ int main(void)
     k1_klatka_w_usludze(TAG);
     k1_log(TAG, "usługa sieci gotowa — czekam na kartę z kablem");
     for (;;) {
-        struct pollfd p[2 + K1_SIEC_ZRODLA_MAKS] = { { NADZORCA, POLLIN, 0 }, { pakiety, POLLIN, 0 } };
-        double t = k1_teraz(), zegar = zegar_czas(t);
-        int czas = -1, n_zegar = zegar_poll(p + 2, K1_SIEC_ZRODLA_MAKS);
+        struct pollfd p[5 + K1_SIEC_ZRODLA_MAKS] = { { NADZORCA, POLLIN, 0 }, { pakiety, POLLIN, 0 } };
+        double t = k1_teraz(), zegar = zegar_czas(t), wifi[2] = { polacz_czas(t), skarb_czas(t) };
+        int czas = -1, n_zegar, i;
+        polacz_poll(&p[2]); /* 0.9.1 step 2: the EAPOL socket, Ustawienia's channel, skarbiec */
+        ustawienia_poll(&p[3]);
+        skarb_poll(&p[4]);
+        n_zegar = zegar_poll(p + 5, K1_SIEC_ZRODLA_MAKS);
         if (klient.nastepny > 0)
             czas = klient.nastepny <= t ? 0 : (int)((klient.nastepny - t) * 1000.0) + 1;
         if (zegar > 0 && (czas < 0 || (zegar - t) * 1000.0 < czas))
             czas = zegar <= t ? 0 : (int)((zegar - t) * 1000.0) + 1;
+        for (i = 0; i < 2; i++)
+            if (wifi[i] > 0 && (czas < 0 || (wifi[i] - t) * 1000.0 < czas))
+                czas = wifi[i] <= t ? 0 : (int)((wifi[i] - t) * 1000.0) + 1;
         if (odrzucone > 0 && (czas < 0 || czas > 5000))
             czas = 5000;
-        if (poll(p, (nfds_t)(2 + n_zegar), czas) < 0 && errno != EINTR)
+        if (poll(p, (nfds_t)(5 + n_zegar), czas) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
         if (p[0].revents)
             z_nadzorcy();
         if (pakiety >= 0 && p[1].revents)
             z_sieci();
-        zegar_odbierz(p + 2, n_zegar);
+        polacz_odbierz(&p[2]);
+        ustawienia_odbierz(&p[3]);
+        skarb_odbierz(&p[4]);
+        zegar_odbierz(p + 5, n_zegar);
         t = k1_teraz();
         if (klient.stan != K1_DHCP_BEZ_KABLA) {
             int przed = klient.stan;

@@ -34,11 +34,35 @@ static double szukam_od, nastepne, ostatnia_prosba;
 static struct k1_wifi_siec lista[K1_WIFI_LISTA_MAKS], nowa[K1_WIFI_LISTA_MAKS];
 static int n_listy, nowa_ma[K1_WIFI_LISTA_MAKS]; /* bits: 1 the network, 2 name part 0, 4 name part 1 */
 static int ust_nowe = 1; /* Ustawienia have not got the state and the list yet */
+static int polaczenie, indeks = -1, zapamietane; /* 0.9.1 step 2: from SIEC_WIFI_LISTA c, d, e */
 static uint8_t wyniki[K1_WIFI_WYNIKI_MAKS];
 
 int wifi_stan(void)
 {
     return karta.nr != 0 ? karta.stan : K1_WIFI_BRAK;
+}
+
+int wifi_karta_nr(void)
+{
+    return karta.nr != 0 && karta.stan == K1_WIFI_WLACZONE ? karta.nr : 0;
+}
+
+int wifi_karta_mac(uint8_t mac[6])
+{
+    char p[64], v[32];
+    int kat = open(KLASA, O_RDONLY | O_DIRECTORY | O_CLOEXEC), r = -1;
+    snprintf(p, sizeof p, "%s/address", karta.nazwa);
+    if (kat >= 0 && karta.nr != 0 && k1_czytaj_plik(kat, p, v, sizeof v) > 0 && k1_siec_mac_z_tekstu(v, mac) == 0 &&
+        k1_siec_mac_dobry(mac))
+        r = 0;
+    if (kat >= 0)
+        close(kat);
+    return r;
+}
+
+void wifi_szukaj_wkrotce(void)
+{
+    nastepne = 0;
 }
 
 /* The radio of the card: K1_WIFI_PRZELACZNIK / WYLACZONE / WLACZONE from its rfkill (no rfkill: on). */
@@ -105,6 +129,21 @@ static void zmiana_listy(int n)
 {
     n_listy = n;
     ust_nowe = 1;
+    if (n == 0) {
+        polaczenie = K1_WIFI_P_BRAK;
+        indeks = -1;
+        zapamietane = 0;
+    }
+}
+
+int wifi_poziom_sieci(int i)
+{
+    return i >= 0 && i < n_listy ? lista[i].poziom : 0;
+}
+
+int wifi_indeks_polaczenia(void)
+{
+    return polaczenie == K1_WIFI_P_POLACZONO ? indeks : -1;
 }
 
 /* The Wi-Fi card now (called with siec's look at the cards: a kernel message or every 10 s). */
@@ -122,6 +161,7 @@ void wifi_przejrzyj(void)
     if (nr != karta.nr) {
         if (karta.nr != 0)
             k1_log(TAG, "wifi: karta %s zniknęła", karta.nazwa);
+        wifi_polacz_koniec(0);
         memset(&karta, 0, sizeof karta);
         szukam = 0;
         zmiana_listy(0);
@@ -147,6 +187,7 @@ void wifi_przejrzyj(void)
             nastepne = 0; /* look now */
         } else {
             szukam = 0;
+            wifi_polacz_koniec(0);
         }
         zmiana_listy(0);
     }
@@ -183,6 +224,7 @@ void wifi_czas(double t)
     int r;
     if (karta.nr == 0 || karta.stan != K1_WIFI_WLACZONE)
         return;
+    wifi_polacz_czas(t);
     if (szukam && t - szukam_od >= SZUKANIE_MAKS)
         wyniki_do_sieci();
     if (szukam || t < nastepne)
@@ -202,8 +244,12 @@ void wifi_czas(double t)
 
 void obsluz_wifi_nl(void)
 {
-    if (wifi_nl_zdarzenia(karta.nr) && karta.nr != 0 && szukam)
+    struct wifi_zdarzenia z;
+    wifi_nl_zdarzenia(karta.nr, &z);
+    if (z.koniec_szukania && karta.nr != 0 && szukam)
         wyniki_do_sieci();
+    if (karta.nr != 0)
+        wifi_polacz_zdarzenia(&z); /* 0.9.1 step 2: joined, failed, left */
 }
 
 /* SIEC_WIFI_*: the list from siec, network by network; taken whole on SIEC_WIFI_LISTA. */
@@ -231,9 +277,14 @@ void wifi_od_sieci(const struct k1_komunikat *k)
     if (k->obiekt != (uint32_t)karta.nr || karta.stan != K1_WIFI_WLACZONE || !dobra) {
         if (!dobra)
             k1_log(TAG, "wifi: odrzucono listę sieci od usługi sieci");
-    } else if (n != n_listy || memcmp(lista, nowa, sizeof nowa[0] * (size_t)n) != 0) {
+    } else if (n != n_listy || memcmp(lista, nowa, sizeof nowa[0] * (size_t)n) != 0 || k->c != polaczenie ||
+               k->d != indeks || k->e != zapamietane) {
         memcpy(lista, nowa, sizeof nowa[0] * (size_t)n);
         zmiana_listy(n);
+        polaczenie = k->c;
+        indeks = k->d;
+        zapamietane = k->e;
+        siec_zmiana(); /* the icon: the bars of the connected network */
     }
     memset(nowa, 0, sizeof nowa);
     memset(nowa_ma, 0, sizeof nowa_ma);
@@ -267,6 +318,10 @@ int wifi_wyslij(void)
     k = k1_komunikat_nowy(K1_KOM_WIFI_STAN, 0, wifi_stan(), n, szukam, 0, 0);
     if (k1_kanal_wyslij(ustaw_kanal, &k, sizeof k, -1) != 0)
         return -1;
+    k = k1_komunikat_nowy(K1_KOM_WIFI_POLACZENIE, 0, n > 0 ? polaczenie : 0, n > 0 ? indeks : -1, n > 0 ? zapamietane : 0,
+                          0, 0);
+    if (k1_kanal_wyslij(ustaw_kanal, &k, sizeof k, -1) != 0)
+        return -1;
     for (i = 0; i < n; i++) {
         int32_t p[5];
         int czesc;
@@ -287,7 +342,7 @@ int wifi_wyslij(void)
 
 /* The radio on or off: soft rfkill of the card's phy, through /dev/rfkill (sysfs is read only in K1): its number from
  * sysfs (rfkillN/index), RFKILL_OP_CHANGE (net/rfkill/core.c: rfkill_fop_write). */
-static void przelacz(int wlacz)
+void wifi_przelacz(int wlacz)
 {
     struct rfkill_event e;
     char p[96], v[16];
@@ -334,7 +389,8 @@ void obsluz_ustawienia(void)
             continue;
         }
         if (k.typ == K1_KOM_WIFI_WLACZ) {
-            przelacz(k.a);
+            wifi_przelacz(k.a);
+            wifi_radio_zmienione(k.a); /* siec remembers it (0.9.1 step 2) */
         } else if (!szukam && t - ostatnia_prosba >= SZUKAJ_NA_PROSBE) { /* one in progress is new enough */
             ostatnia_prosba = t;
             nastepne = 0;

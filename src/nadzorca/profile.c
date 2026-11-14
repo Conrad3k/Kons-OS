@@ -22,7 +22,7 @@ static const long sc_instalator[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, 
 /* siec (0.9.0, ADR 0039): randomness for the DHCP transaction numbers. It sends and receives on the packet socket we
  * give it (sendto/recvfrom: the base) — no socket, setsockopt, bind or ioctl: it can neither open another socket nor
  * change the filter on this one (SO_LOCK_FILTER), nor set an address (nadzorca does, on its request). */
-static const long sc_siec[] = { SYS_getrandom };
+static const long sc_siec[] = { SYS_getrandom, SYS_memfd_create }; /* 0.9.1: memfd for its data in skarbiec */
 
 /* The sandbox of each system service: KLATKA_<NAME> for every row of K1_SYSTEM (k1_uslugi.h) — its system calls and
  * limits, with the reason; the name and the UID come from the row. A row without its KLATKA_ does not build. */
@@ -63,8 +63,11 @@ static const long sc_siec[] = { SYS_getrandom };
                        .rozmiar_pliku = 17u << 20, .czas_cpu = 20, .przestrzen = (uint64_t)K1_DEK_PAMIEC + K1_DEK_ZAPAS
 
 /* siec: the channel, the packet socket and (0.9.0 step 8) up to K1_SIEC_ZRODLA_MAKS UDP sockets to time servers from
- * nadzorca — 16 descriptors; a few kilobytes of state; 8 MiB like wejscie. */
-#define KLATKA_SIEC .wywolania = sc_siec, .n_wywolan = N(sc_siec), .pamiec = 8u << 20, .pliki = 16
+ * nadzorca; 0.9.1: the channel to skarbiec, Ustawienia's channel, the EAPOL socket, a memfd for skarbiec — 24
+ * descriptors; tens of kilobytes of state (the scan result: 132 KiB); 8 MiB like wejscie. RLIMIT_FSIZE (it limits
+ * the memfd it writes too — SIGXFSZ): the remembered networks for skarbiec, 1064 B (pamiec.h) — 64 KiB. */
+#define KLATKA_SIEC .wywolania = sc_siec, .n_wywolan = N(sc_siec), .pamiec = 8u << 20, .pliki = 24, \
+                    .rozmiar_pliku = 64u << 10
 
 const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
 #define X_S(n, profil_, uid_, program_, ...) [K1_PROFIL_##n] = { .nazwa = program_, .uid = uid_, KLATKA_##n },

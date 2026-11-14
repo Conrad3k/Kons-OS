@@ -5,7 +5,8 @@
  * others this program — root, outside any sandbox — makes an access point (nl80211: SET_INTERFACE to AP, START_AP) that
  * announces one network: a normal one with a password, an open one, names with control characters, with bad UTF-8 and of
  * 32 bytes, and one whose security element is broken (siec must skip it and live on). The beacons are built here byte by
- * byte (IEEE 802.11-2020 9.3.3.2, elements 9.4.2), not with the code under test. Then it waits for the end of the test. */
+ * byte (IEEE 802.11-2020 9.3.3.2, elements 9.4.2), not with the code under test. 0.9.1 step 2: "K1-TEST" and
+ * "Kawiarnia" let a computer join (t_wifi_ap.c) — then it serves them until the end of the test. */
 #include "k1_test.h"
 
 #include <linux/nl80211.h>
@@ -28,7 +29,8 @@ static const struct {
     { "Kawiarnia", 9, OTWARTA },
     { "Z\xc5\x82" "a\n\x1b[31mnazwa", 15, WPA2_WPA3 },      /* a new line and an escape sequence */
     { "K1-TEST-nazwa-z-32-bajtow-ABCDEF", 32, WPA3 },       /* the longest name */
-    { "\xff\xfe" "K1\xe2\x80\xae" "zle", 10, WPA2 },        /* bad UTF-8 and a bidi override */
+    { "\xff\xfe" "K1\xe2\x80\xae" "zle", 10, WPA2_WPA3 },   /* bad UTF-8 and a bidi override (0.9.1 step 2: WPA2/WPA3,
+                                                             * so that "K1-TEST" is the one WPA2 row the test clicks) */
     { "Zepsuta", 7, ZLE_RSN },                              /* skipped by siec */
 };
 #define N_SIECI (int)(sizeof sieci / sizeof sieci[0])
@@ -169,7 +171,10 @@ static int punkt_dostepu(int nr, const char *nazwa, int j, int fd, uint16_t rodz
     k1_nl_atr32(&w, NL80211_ATTR_CHANNEL_WIDTH, NL80211_CHAN_WIDTH_20_NOHT);
     if (zab)
         k1_nl_atr(&w, NL80211_ATTR_PRIVACY, NULL, 0);
-    return k1_nl_wyslij(fd, &w, NULL, NULL, 2000);
+    if ((r = k1_nl_wyslij(fd, &w, NULL, NULL, 2000)) != 0 || (sieci[j].rodzaj != WPA2 && sieci[j].rodzaj != OTWARTA))
+        return r;
+    /* 0.9.1 step 2: "K1-TEST" and "Kawiarnia" also let a computer join (t_wifi_ap.c) */
+    return ap_dodaj(nr, nazwa, mac, j, (const uint8_t *)sieci[j].nazwa, sieci[j].dl, sieci[j].rodzaj == WPA2, ogon, o);
 }
 
 /* The test of scripts/test-wifi.sh: access points on the cards after the first one; then it waits (QEMU is stopped by
@@ -195,8 +200,8 @@ int t_wifi_punkty_dostepu(void)
     k1_log(TAG, "punkt dostępu testowy gotowy (%d sieci z %d)", gotowe, N_SIECI);
     if (gotowe != N_SIECI)
         return 1;
-    for (;;)
-        pause();
+    ap_obsluga(); /* 0.9.1 step 2: answering stations (never returns) */
+    return 1;
 }
 
 /* 1 when the kernel was started with simulated Wi-Fi cards (mac80211_hwsim.radios > 0: scripts/test-wifi.sh). */

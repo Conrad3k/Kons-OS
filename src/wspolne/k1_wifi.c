@@ -128,3 +128,34 @@ int k1_wifi_pola_dobre(int32_t poziom, int32_t zabezpieczenie, int32_t dbm, int3
            dbm >= K1_WIFI_SYGNAL_MIN && dbm <= K1_WIFI_SYGNAL_MAKS && poziom == k1_wifi_poziom(dbm) &&
            mhz >= K1_WIFI_MHZ_MIN && mhz <= K1_WIFI_MHZ_MAKS && dl >= 1 && dl <= K1_WIFI_NAZWA_MAKS;
 }
+
+void k1_wifi_rsn_nasz(int grupa, uint8_t wynik[K1_WIFI_RSN_NASZ])
+{
+    static const uint8_t wzor[K1_WIFI_RSN_NASZ] = { 48, 20, 1, 0, 0x00, 0x0f, 0xac, 4, 1, 0, 0x00, 0x0f, 0xac, 4,
+                                                    1, 0, 0x00, 0x0f, 0xac, 2, 0, 0 };
+    memcpy(wynik, wzor, sizeof wzor);
+    if (grupa == K1_WIFI_SZYFR_TKIP)
+        wynik[7] = 2;
+}
+
+void k1_wifi_haslo_do_pol(const char t[K1_WIFI_HASLO_MAKS], int czesc, int32_t p[5])
+{
+    memset(p, 0, 5 * sizeof p[0]);
+    memcpy(p, t + 20 * czesc, czesc < 3 ? 20 : 4);
+}
+
+void k1_wifi_haslo_z_pol(const int32_t p[5], int czesc, char t[K1_WIFI_HASLO_MAKS])
+{
+    memcpy(t + 20 * czesc, p, czesc < 3 ? 20 : 4);
+}
+
+int k1_wifi_haslo_pola_dobre(int czesc, const int32_t p[5])
+{
+    uint8_t b[20];
+    int i, n = czesc < 3 ? 20 : 4;
+    memcpy(b, p, sizeof b);
+    for (i = 0; i < 20; i++)
+        if (i >= n ? b[i] != 0 : b[i] != 0 && (b[i] < 0x20 || b[i] > 0x7e))
+            return 0;
+    return 1;
+}

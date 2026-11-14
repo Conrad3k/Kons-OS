@@ -36,22 +36,35 @@ static int akm(const uint8_t *s)
     }
 }
 
-/* The RSN element (its data, n bytes) → AKM_* bits, or -1. Optional fields may end it at a field boundary. */
-static int rsn(const uint8_t *d, size_t n)
+/* The suite at s: its type when the OUI is 00-0F-AC, else -1. */
+static int typ_suity(const uint8_t *s)
+{
+    static const uint8_t oui[3] = { 0x00, 0x0f, 0xac };
+    return memcmp(s, oui, 3) == 0 ? s[3] : -1;
+}
+
+/* The RSN element (its data, n bytes) → AKM_* bits, or -1. Optional fields may end it at a field boundary.
+ * *grupa: K1_WIFI_SZYFR_* when K1 can log in with a password (0.9.1 step 2): group CCMP or TKIP, CCMP among the pairwise
+ * ciphers, management frame protection not required (capabilities bit 6); else 0. */
+static int rsn(const uint8_t *d, size_t n, int *grupa)
 {
     size_t p = 2, ile, i;
-    int bity = 0;
+    int bity = 0, g, ccmp = 0;
+    *grupa = 0;
     if (n < 2 || le16(d) != 1)
         return -1;
     if (n == p)
         return AKM_FIRMA; /* only the version: the defaults (CCMP, 802.1X) */
     if (n < p + 4)
         return -1;
+    g = typ_suity(d + p);
     p += 4; /* the group cipher */
     if (n == p)
         return AKM_FIRMA;
     if (n < p + 2 || (ile = le16(d + p)) == 0 || ile > SUITY_MAKS || n < p + 2 + 4 * ile)
         return -1;
+    for (i = 0; i < ile; i++)
+        ccmp |= typ_suity(d + p + 2 + 4 * i) == 4;
     p += 2 + 4 * ile; /* the pairwise ciphers */
     if (n == p)
         return AKM_FIRMA;
@@ -62,6 +75,8 @@ static int rsn(const uint8_t *d, size_t n)
     p += 2 + 4 * ile;
     if (n != p && n < p + 2)
         return -1; /* the capabilities are two bytes; what follows them (PMKIDs, the group management cipher) is not used */
+    if (ccmp && (g == 4 || g == 2) && !(n >= p + 2 && (d[p] & 0x40)))
+        *grupa = g == 4 ? K1_WIFI_SZYFR_CCMP : K1_WIFI_SZYFR_TKIP;
     return bity;
 }
 
@@ -71,9 +86,11 @@ static int wpa1(const uint8_t *d, size_t n)
     return n >= 4 && memcmp(d, wpa, 4) == 0;
 }
 
-static int rodzaj(int bity_rsn, int jest_wpa1, uint16_t mozliwosci)
+static int rodzaj(int bity_rsn, int jest_wpa1, uint16_t mozliwosci, int grupa)
 {
     if (bity_rsn >= 0) {
+        if ((bity_rsn & AKM_PSK) && !grupa) /* a password, but ciphers K1 does not use (TKIP only, protection required) */
+            return bity_rsn & AKM_SAE ? K1_WIFI_WPA3 : K1_WIFI_INNA;
         if ((bity_rsn & AKM_PSK) && (bity_rsn & AKM_SAE))
             return K1_WIFI_WPA2_WPA3;
         if (bity_rsn & AKM_SAE)
@@ -91,7 +108,7 @@ static int rodzaj(int bity_rsn, int jest_wpa1, uint16_t mozliwosci)
 int k1_wifi_opis_czytaj(const uint8_t *ie, size_t n, uint16_t mozliwosci, struct k1_wifi_opis *o)
 {
     size_t p = 0;
-    int bity = -2, jest_wpa1 = 0, jest_nazwa = 0;
+    int bity = -2, jest_wpa1 = 0, jest_nazwa = 0, grupa = 0;
     memset(o, 0, sizeof *o);
     while (p < n) {
         uint8_t id, dl;
@@ -102,39 +119,72 @@ int k1_wifi_opis_czytaj(const uint8_t *ie, size_t n, uint16_t mozliwosci, struct
             if (dl > K1_WIFI_NAZWA_MAKS)
                 return K1_WIFI_ZLY_ELEMENT;
             o->dl = k1_wifi_nazwa_czysta(ie + p + 2, dl, o->nazwa);
+            memcpy(o->ssid, ie + p + 2, dl);
+            o->dl_ssid = dl;
             jest_nazwa = 1;
         } else if (id == EL_RSN && bity == -2) {
-            if ((bity = rsn(ie + p + 2, dl)) < 0)
+            if ((bity = rsn(ie + p + 2, dl, &grupa)) < 0)
                 return K1_WIFI_ZLE_RSN;
+            o->rsn = ie + p;
+            o->dl_rsn = 2u + dl;
         } else if (id == EL_PRODUCENT) {
             jest_wpa1 |= wpa1(ie + p + 2, dl);
         }
         p += 2u + dl;
     }
-    o->zabezpieczenie = rodzaj(bity >= 0 ? bity : -1, jest_wpa1, mozliwosci);
+    o->zabezpieczenie = rodzaj(bity >= 0 ? bity : -1, jest_wpa1, mozliwosci, grupa);
     if (bity >= 0 && !(mozliwosci & PRYWATNOSC))
         o->zabezpieczenie = K1_WIFI_INNA; /* RSN without privacy does not add up: not offered */
+    o->grupa = k1_wifi_mozna_polaczyc(o->zabezpieczenie, grupa) && o->zabezpieczenie != K1_WIFI_OTWARTA ? grupa : 0;
     return 0;
 }
 
-/* Adds network s to the list (the same name and security: the stronger stays). */
-static void dodaj(struct k1_wifi_siec *t, int *n, const struct k1_wifi_siec *s)
+int k1_wifi_mozna_polaczyc(int zabezpieczenie, int grupa)
+{
+    return zabezpieczenie == K1_WIFI_OTWARTA ||
+           ((zabezpieczenie == K1_WIFI_WPA2 || zabezpieczenie == K1_WIFI_WPA2_WPA3) &&
+            (grupa == K1_WIFI_SZYFR_CCMP || grupa == K1_WIFI_SZYFR_TKIP));
+}
+
+/* Adds network s (joined by c) to the list (the same name and security: the stronger stays). */
+static void dodaj(struct k1_wifi_siec *t, struct k1_wifi_cel *tc, int *n, const struct k1_wifi_siec *s,
+                  const struct k1_wifi_cel *c)
 {
     int i;
     for (i = 0; i < *n; i++) {
         if (t[i].dl == s->dl && t[i].zabezpieczenie == s->zabezpieczenie && memcmp(t[i].nazwa, s->nazwa, (size_t)s->dl) == 0) {
-            if (s->dbm > t[i].dbm)
+            if (s->dbm > t[i].dbm) {
                 t[i] = *s;
+                tc[i] = *c;
+            }
             return;
         }
     }
-    if (*n < K1_WIFI_REKORDY_MAKS)
+    if (*n < K1_WIFI_REKORDY_MAKS) {
+        tc[*n] = *c;
         t[(*n)++] = *s;
+    }
+}
+
+/* What joining the network of record r with description o needs. */
+static void cel(struct k1_wifi_cel *c, const struct k1_wifi_rekord *r, const struct k1_wifi_opis *o)
+{
+    memset(c, 0, sizeof *c);
+    memcpy(c->bssid, r->bssid, 6);
+    c->mhz = (int)r->mhz;
+    memcpy(c->ssid, o->ssid, sizeof c->ssid);
+    c->dl_ssid = o->dl_ssid;
+    c->grupa = o->grupa;
+    if (o->rsn != NULL && o->dl_rsn <= sizeof c->rsn) {
+        memcpy(c->rsn, o->rsn, o->dl_rsn);
+        c->dl_rsn = o->dl_rsn;
+    }
 }
 
 int k1_wifi_wyniki_czytaj(const uint8_t *buf, size_t n, int rekordy, struct k1_wifi_wynik *w)
 {
     struct k1_wifi_siec wszystkie[K1_WIFI_REKORDY_MAKS];
+    struct k1_wifi_cel cele[K1_WIFI_REKORDY_MAKS]; /* about 20 KB on the stack */
     size_t p = 0;
     int i, j, ile = 0;
     memset(w, 0, sizeof *w);
@@ -144,6 +194,7 @@ int k1_wifi_wyniki_czytaj(const uint8_t *buf, size_t n, int rekordy, struct k1_w
         struct k1_wifi_rekord r;
         struct k1_wifi_opis o;
         struct k1_wifi_siec s;
+        struct k1_wifi_cel c;
         int dbm;
         if (n - p < sizeof r)
             return -1;
@@ -165,7 +216,8 @@ int k1_wifi_wyniki_czytaj(const uint8_t *buf, size_t n, int rekordy, struct k1_w
             s.mhz = (int)r.mhz;
             s.dl = o.dl;
             memcpy(s.nazwa, o.nazwa, sizeof s.nazwa);
-            dodaj(wszystkie, &ile, &s);
+            cel(&c, &r, &o);
+            dodaj(wszystkie, cele, &ile, &s, &c);
         }
         p += r.dl_ie;
     }
@@ -178,6 +230,7 @@ int k1_wifi_wyniki_czytaj(const uint8_t *buf, size_t n, int rekordy, struct k1_w
                 best = j;
         if (best < 0)
             break;
+        w->cele[w->n] = cele[best];
         w->sieci[w->n++] = wszystkie[best];
         wszystkie[best].dl = 0;
     }

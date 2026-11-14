@@ -2,16 +2,18 @@
  * Data i czas), bateria.c (Bateria: from nadzorca, fd 4), haslo.c (Hasło: through skarbiec, fd 5),
  * aplikacje.c (Aplikacje: the default application of a file type, 0.8.0), miejsce.c (Miejsce: the room for files and
  * what takes it, K1-DANE to the end of the stick — 0.8.5), siec.c (Sieć: the tabs and the network cards — 0.9.0),
- * wifi.c (Sieć → Wi-Fi: the radio and the networks around — 0.9.1),
+ * wifi.c (Sieć → Wi-Fi: the radio and the networks around — 0.9.1), wifi_haslo.c (joining one: 0.9.1 step 2),
  * informacje.c (Informacje: the system). */
 #ifndef K1_USTAWIENIA_H
 #define K1_USTAWIENIA_H
 
 #include "k1_aplikacja.h"
+#include "k1_wifi.h"
 
 #define TAG "K1-USTAWIENIA"
 #define FD_NADZORCA 4
 #define FD_SKARBIEC 5 /* M5e: the password */
+#define FD_SIEC 6     /* 0.9.1 step 2: Wi-Fi requests straight to siec (KANAL_DO_SIECI) */
 #define BOK 188        /* side navigation width */
 #define NAV_Y (K1_OKNO_TYTUL + 8)
 #define NAV_WIERSZ 36
@@ -70,6 +72,25 @@ int wifi_stan_radia(void);                       /* K1_WIFI_*, -1 not known yet 
 void wifi_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const char *karta_bez_obslugi);
 int wifi_klik(int32_t x, int32_t y);             /* the switch: 1 = handled */
 void wifi_pokazane(void);                        /* the list is shown: ask nadzorca to look for networks */
+/* what wifi.c and wifi_haslo.c share (0.9.1 step 2) */
+#define WIFI_WIERSZ_H 40
+#define WIFI_LISTA_Y (seg_y() - 8)
+#define ROZWINIETY_H 96 /* the open row: the password field, "Połącz", a line of message */
+struct wifi_ust {
+    int znany, stan, n, szukam;
+    int polaczenie, indeks, zapamietane; /* WIFI_POLACZENIE: K1_WIFI_P_*, its network (-1), bit i: network i remembered */
+};
+extern struct wifi_ust wf;
+extern struct k1_wifi_siec sieci[];
+int wifi_siec_dobra(int i);       /* network i is in and its name is safe to show */
+/* wifi_haslo.c (0.9.1 step 2, D1): the open row of a network — the password, "Połącz", "Zapomnij tę sieć" */
+int wifi_rozwiniety(void);        /* the open network, -1 */
+int wifi_pierwszy_wiersz(void);   /* the first row shown (the open one must fit) */
+void wifi_rozwiniety_rysuj(struct k1_obraz *o, const struct k1_motyw *m, int i, int32_t y, int32_t szer);
+int wifi_haslo_klik(int32_t x, int32_t y);      /* 1 = handled */
+int wifi_haslo_klawisz(unsigned kod, int wartosc, unsigned mody); /* 1 = handled */
+void wifi_zamknij(void);          /* leaving the section: the row closes, a typed password is wiped */
+void wifi_lista_zmieniona(void);  /* a new list: the open network found again by its name */
 
 /* informacje.c */
 void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);

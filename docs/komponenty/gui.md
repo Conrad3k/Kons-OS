@@ -74,7 +74,8 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   i `POKAZ_APL` (0.8.0: aplikacja dostała plik do otwarcia — jej okno na wierzch, jeśli już jest), `SIEC_STAN`
   (0.9.0: ikona sieci na górnym pasku — log „sieć: połączono (ikona w x,y)” przy zmianie; `komponenty/siec.md`; od
   0.9.1 bez kabla z kartą Wi-Fi: ikona „Wachlarz” — `k1_wachlarz.c` w przybornik, stany „Wi-Fi wyłączone”, „Wi-Fi nie
-  połączono”);
+  połączono”; od 0.9.1 krok 2: „Wi-Fi łączę” — kropka w terakocie, „Wi-Fi połączono” — wypełniona część wachlarza = siła
+  sygnału, 1–4 kreski z `SIEC_STAN` e; log „sieć: Wi-Fi połączono, kreski 4 (ikona w x,y)”);
   nadawca musi mieć UID 0, każde pole sprawdzane; po zamknięciu kanału gui przestaje go czytać.
   Log przy zmianie obecności, stanu, zasilacza lub co 5 % („bateria 73%, rozładowywanie, …”).
 - Powierzchnie: warstwa pulpitu (`K1_POW_PULPIT`, cały ekran, zatwierdzane tylko zmienione prostokąty),

@@ -120,7 +120,7 @@ sprawdz("jądro widzi kartę (e1000e), nadzorca ją włącza",
         czekaj(r"K1-NADZORCA: sieć: karta przewodowa eth0 \(sterownik e1000e, PCI 8086:10d3\) włączona", czas=30))
 sprawdz("kabel podłączony: nadzorca daje usłudze sieci kartę, usługa pyta router (DHCP)",
         czekaj(r"K1-NADZORCA: sieć: kabel podłączony \(eth0\)", czas=60) and
-        czekaj(r"K1-SIEC: kabel podłączony \(karta \d+\) — pytam router o adres \(DHCP\)", czas=10))
+        czekaj(r"K1-SIEC: kabel albo Wi-Fi gotowe \(karta \d+\) — pytam router o adres \(DHCP\)", czas=10))
 d = router.ostatni(1) if q.czekaj_na(lambda: router.ostatni(1), 30) else None
 sprawdz("DHCP DISCOVER od K1: do wszystkich, z MAC karty, od portu 68 do 67",
         d and d["chaddr"] == s.MAC_K1 and d["eth_cel"] == s.ROZGLOSZENIE and d["ip_cel"] == ROZGL)

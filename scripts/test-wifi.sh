@@ -11,11 +11,22 @@
 #      (4 z hasłem, 1 otwarta), zrzuty w jasnym i ciemnym motywie: build/testy/wifi-*.png
 #   4. przełącznik w Ustawieniach wyłącza radio (rfkill): lista znika, ikona „Wi-Fi wyłączone”; włącza — lista wraca
 #   5. zakładka „Karty sieciowe”: kafelek karty Wi-Fi z plakietką „Włączone”
-# Dowody: build/testy/wifi.log (log K1), zrzuty. Wymaga: scripts/zbuduj.sh.
+# 0.9.1 krok 2 (łączenie; „K1-TEST” i „Kawiarnia” przyjmują komputer — punkt dostępu testowy, część 2: t_wifi_ap.c):
+#   6. „Kawiarnia” (otwarta): kliknięcie → „Połącz” → adres od routera testowego (DHCP przez Wi-Fi), ikona z kreskami
+#   7. „K1-TEST” (WPA2): złe hasło → router nie przyjmuje wiadomości 2, „Złe hasło — spróbuj jeszcze raz”
+#   8. dobre hasło → logowanie WPA2, klucze po obu stronach, adres od routera (dane płyną zaszyfrowane), „Połączono”;
+#      ramka EAPOL za krótka i podrobiona wiadomość 3 (zły MIC) od routera testowego — odrzucone, siec działa dalej
+#   9. „Kawiarnia” → „Zapomnij tę sieć”
+#  10. ponowny start z tym samym dyskiem (K1-DANE): K1 łączy się sam z zapamiętaną „K1-TEST”
+#  hasła i nazwy sieci nie ma w żadnym logu
+# Dowody: build/testy/wifi.log i wifi-2.log (logi K1), zrzuty. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
 CZAS=${K1_TEST_CZAS:-1500}
 mkdir -p "$TESTY"; rm -f "$TESTY"/wifi*
+DANE=$TESTY/wifi-dane.img  # 0.9.1 step 2: K1-DANE, so that the remembered network survives a restart
+dd if=/dev/zero of="$DANE" bs=1M count=16 status=none
+printf 'label: gpt\nstart=2048, size=30000, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
 CMDLINE="$(sed 's/mac80211_hwsim\.radios=0/mac80211_hwsim.radios=7/' "$K1_REPO/jadro/cmdline")"
 echo "$CMDLINE" | grep -q 'radios=7' || blad "jadro/cmdline: brak mac80211_hwsim.radios=0"
 
@@ -23,10 +34,11 @@ cat > "$K1_BUDOWA/wifi.py" <<'PY'
 import os, re, subprocess, sys
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
-repo, out, limit, cmdline = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4]
+repo, out, limit, cmdline, dane = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4], sys.argv[5]
 log, mon = f"{out}/wifi.log", f"{out}/wifi.sock"
+DYSK = f"-drive if=none,id=dane,file={dane},format=raw -device ide-hd,drive=dane,bus=ide.0"
 qemu = subprocess.Popen([f"{repo}/scripts/uruchom-qemu.sh", "--obraz", f"{repo}/build/wynik/rdzen-test.squashfs",
-                         "--cmdline", cmdline, "--log", log, "--monitor", mon, "--czas", str(int(limit))])
+                         "--cmdline", cmdline, "--log", log, "--monitor", mon, "--czas", str(int(limit)), "--qemu", DYSK])
 q = Maszyna(log, mon, out, limit, "wifi")
 czekaj, sprawdz = q.czekaj, q.sprawdz
 LISTA = r"K1-USTAWIENIA: wifi: {stan}; sieci {n} \(z hasłem {h}, otwarte {o}, inne 0\)(?:; szukam)?; " \
@@ -116,19 +128,123 @@ sprawdz("zakładka „Karty sieciowe”: kafelek karty Wi-Fi z plakietką „Wł
         czekaj(KARTY, od=n, czas=30))
 q.zrzut("5-karty")
 
+# ---- 0.9.1 step 2: joining ----
+PELNA = r"K1-USTAWIENIA: wifi: włączone; sieci 5 \(z hasłem 4, otwarte 1, inne 0\)(?:; szukam)?; wiersze od (\d+),(\d+) " \
+        r"co (\d+); przełącznik (\d+),(\d+); rodzaje ([\d,]+); połączenie (\d) \(rząd (-?\d+)\)"
+ROZW = r"K1-USTAWIENIA: wifi: rząd {} otwarty \(rodzaj {}\); pole (\d+),(\d+); Połącz (\d+),(\d+); Zapomnij (\d+),(\d+)"
+OTWARTA, WPA2 = 1, 2                                # K1_WIFI_* of the rows
+R_HASLO, R_OTWARTA, R_ZAPAMIETANA = 0, 1, 2          # what an open row offers (wifi_haslo.c)
+
+
+def lista():
+    ms = list(re.finditer(PELNA, q.tekst()))
+    return ms[-1] if ms else None
+
+
+def rzad(rodzaj):
+    """Where the row of the network of this kind is now (the list may reorder): its index and centre."""
+    L = lista()
+    if not L or str(rodzaj) not in L.group(6).split(","):
+        return None, 0, 0
+    r = L.group(6).split(",").index(str(rodzaj))
+    return r, ux + int(L.group(1)) + 90, uy + int(L.group(2)) + r * int(L.group(3))
+
+
+def otworz(rodzaj, co):
+    q.pisz("esc")  # an open row closes first (with it open the list may be scrolled)
+    r, x, y = rzad(rodzaj)
+    if r is None:
+        return None
+    n = q.ile(ROZW.format(r, co))
+    q.klik(x, y)
+    return czekaj(ROZW.format(r, co), od=n, czas=30)
+
+
+def polaczenie(stan, n=0, czas=120):
+    return czekaj(PELNA.replace(r"połączenie (\d)", f"połączenie {stan}"), od=n, czas=czas)
+
+
+if z:  # back to the Wi-Fi tab
+    q.klik(ux + int(z.group(1)) + int(z.group(3)) // 4, uy + int(z.group(2)) + int(z.group(4)) // 2)
+POL = (r"K1-TEST: punkt dostępu testowy: sieć 2 — stacja połączona", r"K1-SIEC: połączono: adres od routera ustawiony",
+       r"K1-GUI: sieć: Wi-Fi połączono, kreski [1-4]")
+n = [q.ile(w) for w in POL] + [q.ile(PELNA.replace(r"połączenie (\d)", "połączenie 2"))]
+o = otworz(OTWARTA, R_OTWARTA)
+if o:
+    q.klik(ux + int(o.group(3)), uy + int(o.group(4)))
+sprawdz("„Kawiarnia” (otwarta): wiersz z „Połącz” i napisem o sieci niezabezpieczonej; po kliknięciu — połączenie, adres "
+        "od routera testowego (DHCP przez Wi-Fi), ikona Wi-Fi z kreskami, w Ustawieniach „Połączono”",
+        o and all(czekaj(w, od=k, czas=180) for w, k in zip(POL, n)) and polaczenie(2, n[3], 60))
+q.zrzut("6-polaczono-otwarta")
+
+ZLE = (r"K1-TEST: punkt dostępu testowy: sieć 1 — wiadomość 2 ze złym MIC \(złe hasło\)",
+       r"K1-TEST: punkt dostępu testowy: sieć 1 — stacja odłączona", r"K1-SIEC: wifi: sieć nie przyjęła hasła")
+n = [q.ile(w) for w in ZLE] + [q.ile(PELNA.replace(r"połączenie (\d)", "połączenie 3"))]
+h = otworz(WPA2, R_HASLO)
+if h:
+    q.pisz("z", "l", "e", "h", "a", "s", "l", "o", "1", "ret")
+sprawdz("„K1-TEST” (WPA2), złe hasło: router nie przyjmuje wiadomości 2 i odłącza komputer; Ustawienia: „Złe hasło — "
+        "spróbuj jeszcze raz” (zrzut wifi-7-zle-haslo)",
+        h and all(czekaj(w, od=k, czas=180) for w, k in zip(ZLE, n)) and polaczenie(3, n[3], 60))
+q.zrzut("7-zle-haslo")
+
+DOBRE = (r"K1-TEST: punkt dostępu testowy: sieć 1 — logowanie WPA2 udane, klucze wpisane",
+         r"K1-NADZORCA: wifi: połączono — klucze wpisane, dane płyną",
+         r"K1-TEST: punkt dostępu testowy: sieć 1 — DHCP: adres dla stacji", r"K1-SIEC: połączono: adres od routera ustawiony",
+         r"K1-GUI: sieć: Wi-Fi połączono, kreski [1-4]", r"K1-SIEC: wifi: sieć zapamiętana \(razem 2\)",
+         r"K1-SIEC: wifi: odrzucone ramki EAPOL: [1-9]")
+n = [q.ile(w) for w in DOBRE] + [q.ile(PELNA.replace(r"połączenie (\d)", "połączenie 2"))]
+if h:
+    q.pisz("h", "a", "s", "l", "o", "minus", "t", "e", "s", "t", "o", "w", "e", "ret")
+ok = h and all(czekaj(w, od=k, czas=240) for w, k in zip(DOBRE, n)) and polaczenie(2, n[-1], 60)
+L = lista()
+sprawdz("dobre hasło: logowanie WPA2 (wymiana czterech wiadomości), klucze po obu stronach, adres od routera — dane płyną "
+        "zaszyfrowane w obie strony; sieć zapamiętana; „Połączono” przy „K1-TEST”; ramka za krótka i podrobiona wiadomość 3 "
+        "(zły MIC) odrzucone, siec żyje (zrzut wifi-8-polaczono)",
+        ok and L and L.group(8) == str(rzad(WPA2)[0]))
+q.zrzut("8-polaczono")
+
+ZAP = r"K1-SIEC: wifi: sieć zapomniana \(zostało 1\)"
+n = q.ile(ZAP)
+o = otworz(OTWARTA, R_ZAPAMIETANA)
+if o:
+    q.klik(ux + int(o.group(5)), uy + int(o.group(6)))
+sprawdz("„Kawiarnia” → „Zapomnij tę sieć”: zapomniana (została zapamiętana „K1-TEST”)", o and czekaj(ZAP, od=n, czas=60))
+
 t_ = q.tekst()
-sprawdz("w logu nie ma nazw sieci (to sieci sąsiadów)",
-        "Kawiarnia" not in t_ and "nazwa-z-32" not in t_ and "31mnazwa" not in t_)
+sprawdz("w logu nie ma nazw sieci (to sieci sąsiadów) ani hasła",
+        "Kawiarnia" not in t_ and "nazwa-z-32" not in t_ and "31mnazwa" not in t_ and "haslo-testowe" not in t_ and
+        "zlehaslo" not in t_)
 sprawdz("brak 'Kernel panic', zablokowanych wywołań, odrzuconych komunikatów i restartu usługi sieci",
         "Kernel panic" not in t_ and "zabronione wywołanie" not in t_ and "odrzucono" not in t_ and
         "siec zakończył" not in t_ and "BŁĄD" not in t_)
 q.monitor("quit")
 qemu.wait()
+
+# ---- the second start with the same K1-DANE: the remembered network by itself ----
+log2, mon2 = f"{out}/wifi-2.log", f"{out}/wifi-2.sock"
+qemu = subprocess.Popen([f"{repo}/scripts/uruchom-qemu.sh", "--obraz", f"{repo}/build/wynik/rdzen-test.squashfs",
+                         "--cmdline", cmdline, "--log", log2, "--monitor", mon2, "--czas", str(int(limit)), "--qemu", DYSK])
+q2 = Maszyna(log2, mon2, out, limit, "wifi-2")
+q2.wyniki = q.wyniki
+sprawdz = q2.sprawdz
+sprawdz("ponowny start: zapamiętana sieć wczytana ze skarbca, K1 łączy się sam z „K1-TEST” (logowanie WPA2, adres, ikona)",
+        q2.czekaj(r"K1-SIEC: wifi: zapamiętane sieci: 1", czas=limit * 0.5) and
+        q2.czekaj(r"K1-SIEC: wifi: zapamiętana sieć w zasięgu — łączę sam", czas=300) and
+        q2.czekaj(r"K1-TEST: punkt dostępu testowy: sieć 1 — logowanie WPA2 udane", czas=180) and
+        q2.czekaj(r"K1-SIEC: połączono: adres od routera ustawiony", czas=180) and
+        q2.czekaj(r"K1-GUI: sieć: Wi-Fi połączono, kreski [1-4]", czas=60))
+q2.zrzut("9-sam-po-starcie")
+t_ = q2.tekst()
+sprawdz("po ponownym starcie: w logu nie ma hasła ani nazw sieci; brak zablokowanych wywołań",
+        "haslo-testowe" not in t_ and "Kawiarnia" not in t_ and "zabronione wywołanie" not in t_ and "BŁĄD" not in t_)
+q2.monitor("quit")
+qemu.wait()
 sys.exit(0 if all(q.wyniki) else 1)
 PY
 
-echo "[k1] test Wi-Fi (0.9.1): udawane karty, punkty dostępu testowe, lista sieci, przełącznik"
+echo "[k1] test Wi-Fi (0.9.1): udawane karty, punkty dostępu testowe, lista sieci, przełącznik, łączenie, hasło, zapamiętane"
 r=0
-K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I "$K1_BUDOWA/wifi.py" "$K1_REPO" "$TESTY" "$CZAS" "$CMDLINE" || r=1
+K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I "$K1_BUDOWA/wifi.py" "$K1_REPO" "$TESTY" "$CZAS" "$CMDLINE" "$DANE" || r=1
 if [ $r -eq 0 ]; then info "Wi-Fi: wszystko zaliczone"; else echo "[k1] Wi-Fi: BŁĄD (log: $TESTY/wifi.log)"; fi
 exit $r

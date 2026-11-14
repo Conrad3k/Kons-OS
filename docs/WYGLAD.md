@@ -199,6 +199,15 @@ C „Słupki”; sekcja A „Zakładki, wiersz się rozwija”, B „Lista i oki
   W kroku 2 kliknięcie sieci rozwija jej wiersz (tło `zaznaczenie`): „Hasło sieci”, pole 230 px, „Połącz” (przycisk
   główny), pod spodem „Hasło wpisujesz raz — K1 je zapamięta.” albo „Złe hasło — spróbuj jeszcze raz.” (`akcent_tekst`);
   połączona sieć — plakietka „Połączono” z kropką w szałwii.
+  **Wykonanie w kroku 2 (0.9.1):** rozwinięty wiersz 96 px na tle `zaznaczenie`; pole hasła 230 × 36 (tło `tlo`, obrys
+  akcentem, gdy aktywne albo po złym haśle), kropki zamiast znaków; „Połącz” (`k1_przycisk`, główny, 104 px; nieaktywny,
+  dopóki hasło ma < 8 znaków) na prawo od pola; pod nimi jedna linijka 13 px: „Hasło wpisujesz raz — K1 je zapamięta.”,
+  „Złe hasło — spróbuj jeszcze raz.” (pogrubiona, `akcent_tekst`), „Nie udało się połączyć — spróbuj jeszcze raz.”. Sieć
+  otwarta: sam „Połącz” i „Sieć niezabezpieczona — inni w pobliżu mogą widzieć, co przesyłasz.”; zapamiętana: „Połącz”
+  i „Zapomnij tę sieć” (zwykły, 160 px); połączona: „Zapomnij tę sieć”. Przy wierszu po prawej: „Połączono” (pogrubiony
+  `tekst2` z kropką w szałwii `#8A9A7B`), „Łączę…” albo „zapamiętana” (`tekst3`). Z otwartym wierszem widać 4 wiersze
+  listy. Ikona: łączę — przygaszony wachlarz z kropką w terakocie (jak „łączę” wtyczki); połączono — wypełnienie 70/255 tła
+  i kreski krem.
 - Zakładka „Karty sieciowe”: kafelki z 0.9.0 bez zmian; kafelek karty Wi-Fi, której K1 używa: „Wi-Fi · radio włączone”,
   plakietka „Włączone” (kropka w akcencie) albo „Wyłączone”.
 

@@ -35,6 +35,7 @@ static struct karta {
 } karty[KART_MAKS];
 static int n_kart;
 static int aktywna;         /* the card siec has now (SIEC_KABEL sent), 0: none */
+static int aktywna_wifi;    /* 0.9.1 step 2: it is the Wi-Fi card (wifi_polacz.c: data flows through it) */
 static char aktywna_nazwa[IFNAMSIZ];
 static int z_adresem;       /* an address is set on it */
 static double polaczono_od; /* since (k1_teraz) — the same address renewed keeps it */
@@ -110,13 +111,21 @@ static void zabierz_adres(void)
     polaczono_od = 0;
 }
 
-/* The card siec had is gone or has no cable any more: no address, siec forgets it. */
+/* The card siec had is gone or has no cable any more (Wi-Fi: left the network, or a cable came): no address, siec
+ * forgets it. */
 static void rozlacz(int powod)
 {
-    k1_log(TAG, "sieć: %s (%s)", powod == K1_SIEC_KABEL_WYJETY ? "kabel odłączony" : "karta zniknęła", aktywna_nazwa);
+    k1_log(TAG, "sieć: %s (%s)", powod == K1_SIEC_KABEL_WYJETY ? "kabel odłączony" : powod == K1_SIEC_KARTA_ZNIKNELA ?
+           "karta zniknęła" : "Wi-Fi bez adresu", aktywna_nazwa);
     zabierz_adres();
     do_sieci(k1_komunikat_nowy(K1_KOM_SIEC_ROZLACZONO, (uint32_t)aktywna, powod, 0, 0, 0, 0), -1);
     aktywna = 0;
+    aktywna_wifi = 0;
+}
+
+void siec_zmiana(void)
+{
+    zmiana = 1;
 }
 
 /* Hexadecimal number in sysfs file `p` (under `kat`), or -1. */
@@ -298,23 +307,47 @@ int siec_stan(double *od)
     int wifi = wifi_stan();
     *od = aktywna != 0 && z_adresem ? polaczono_od : 0;
     if (*od > 0)
-        return K1_SIEC_POLACZONO;
+        return aktywna_wifi ? K1_SIEC_WIFI_POLACZONO : K1_SIEC_POLACZONO;
     for (i = 0; i < n_kart; i++)
         kabel |= karty[i].kabel;
     if (kabel)
         return K1_SIEC_LACZENIE;
-    if (wifi != K1_WIFI_BRAK) /* 0.9.1: without a cable the icon shows Wi-Fi */
+    if (wifi != K1_WIFI_BRAK) { /* 0.9.1: without a cable the icon shows Wi-Fi */
+        if (wifi == K1_WIFI_WLACZONE && (wifi_laczy() || wifi_lacze() != 0))
+            return K1_SIEC_WIFI_LACZENIE; /* joining, the password, the address */
         return wifi == K1_WIFI_WLACZONE ? K1_SIEC_WIFI_NIE_POLACZONO : K1_SIEC_WIFI_WYLACZONE;
+    }
     return n_kart > 0 ? K1_SIEC_BEZ_KABLA : K1_SIEC_BRAK_KARTY;
+}
+
+/* 0.9.1 step 2: no card with a cable, but Wi-Fi through which data flows: it gets the address. */
+static void adres_przez_wifi(void)
+{
+    uint8_t mac[6];
+    int32_t a, b;
+    int nr = wifi_lacze(), fd;
+    if (nr == 0 || wifi_karta_mac(mac) != 0 || (fd = gniazdo_dhcp(nr)) < 0)
+        return;
+    k1_siec_mac_do_pol(mac, &a, &b);
+    aktywna = nr;
+    aktywna_wifi = 1;
+    snprintf(aktywna_nazwa, sizeof aktywna_nazwa, "Wi-Fi");
+    k1_log(TAG, "sieć: Wi-Fi połączone — usługa sieci pyta router o adres");
+    do_sieci(k1_komunikat_nowy(K1_KOM_SIEC_KABEL, (uint32_t)aktywna, a, b, 0, 0, 0), fd);
+    close(fd);
 }
 
 static void sprawdz_karty(void)
 {
     struct karta *k;
-    int i;
+    int i, kabel = 0;
     przejrzyj();
     k = karta_nr(aktywna);
-    if (aktywna != 0 && (k == NULL || !k->kabel))
+    for (i = 0; i < n_kart; i++)
+        kabel |= karty[i].kabel;
+    if (aktywna != 0 && aktywna_wifi && (wifi_lacze() != aktywna || kabel))
+        rozlacz(K1_SIEC_WIFI_ROZLACZONE); /* left the network, or a cable is in: the cable has priority (D4) */
+    else if (aktywna != 0 && !aktywna_wifi && (k == NULL || !k->kabel))
         rozlacz(k == NULL ? K1_SIEC_KARTA_ZNIKNELA : K1_SIEC_KABEL_WYJETY);
     if (aktywna != 0 || siec_kanal < 0)
         return;
@@ -331,6 +364,7 @@ static void sprawdz_karty(void)
         close(fd);
         return;
     }
+    adres_przez_wifi();
 }
 
 void siec_sprawdz(double t)
@@ -350,6 +384,7 @@ void siec_nowy_kanal(void)
 {
     zabierz_adres();
     aktywna = 0;
+    aktywna_wifi = 0;
     zmiana = 1;
 }
 
@@ -358,11 +393,11 @@ static void prosba_sieci(const struct k1_komunikat *k)
 {
     struct karta *c = karta_nr(aktywna);
     int wynik = 0, r;
-    if (aktywna == 0 || k->obiekt != (uint32_t)aktywna || c == NULL) {
+    if (aktywna == 0 || k->obiekt != (uint32_t)aktywna || (c == NULL && !aktywna_wifi)) {
         wynik = K1_SIEC_BLAD_KARTA;
     } else if (k->typ == K1_KOM_SIEC_ZWOLNIJ) {
         zabierz_adres();
-        k1_log(TAG, "sieć: adres zwolniony (%s)", c->nazwa);
+        k1_log(TAG, "sieć: adres zwolniony (%s)", aktywna_nazwa);
     } else {
         if (z_adresem && ((uint32_t)k->a != adres || k->b != prefiks))
             zabierz_adres(); /* another address from the router: the old one goes (and the routes through it) */
@@ -380,7 +415,8 @@ static void prosba_sieci(const struct k1_komunikat *k)
         }
         wynik = r == 0 ? 0 : K1_SIEC_BLAD_JADRO;
         if (r == 0)
-            k1_log(TAG, "sieć: połączono (%s, adres od routera, maska /%d%s)", c->nazwa, k->b, k->c != 0 ? ", z trasą" : "");
+            k1_log(TAG, "sieć: połączono (%s, adres od routera, maska /%d%s)", aktywna_nazwa, k->b,
+                   k->c != 0 ? ", z trasą" : "");
         else
             k1_log(TAG, "sieć: ustawienie adresu: %s", strerror(-r));
     }
@@ -423,6 +459,11 @@ void obsluz_siec(void)
         if (w == K1_ODB_JEST && (k.typ == K1_KOM_SIEC_WIFI_SIEC || k.typ == K1_KOM_SIEC_WIFI_NAZWA ||
                                  k.typ == K1_KOM_SIEC_WIFI_LISTA)) {
             wifi_od_sieci(&k); /* 0.9.1: the list of networks (wifi.c) */
+            continue;
+        }
+        if (w == K1_ODB_JEST && k.typ >= K1_KOM_SIEC_WIFI_SSID && k.typ <= K1_KOM_SIEC_WIFI_RADIO_USTAW &&
+            k.typ != K1_KOM_SIEC_WIFI_ZDARZENIE && k.typ != K1_KOM_SIEC_WIFI_RADIO) {
+            wifi_polacz_od_sieci(&k); /* 0.9.1 step 2: joining a network (wifi_polacz.c) */
             continue;
         }
         if (w != K1_ODB_JEST || (k.typ != K1_KOM_SIEC_ADRES && k.typ != K1_KOM_SIEC_ZWOLNIJ)) {

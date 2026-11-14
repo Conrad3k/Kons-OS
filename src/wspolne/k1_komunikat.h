@@ -36,8 +36,10 @@ enum k1_kanal_kierunek {
     K1_KIER_OD_CZYTNIKA = 9, /* czytnik → Pliki */
     K1_KIER_DO_DEKODERA = 10, /* Pliki → dekoder (one picture, 0.8.0 step 4) */
     K1_KIER_OD_DEKODERA = 11, /* dekoder → Pliki */
+    K1_KIER_DO_SIECI = 12,   /* Ustawienia → siec (0.9.1 step 2: a Wi-Fi password goes straight to siec, not through
+                              * nadzorca; one way — siec answers in the list of networks nadzorca passes on) */
 };
-#define K1_KIER_MAKS 11
+#define K1_KIER_MAKS 12
 
 enum k1_komunikat_typ {
     /* nadzorca → ekran */
@@ -300,7 +302,8 @@ enum k1_komunikat_typ {
     K1_KOM_SIEC_WIFI_NAZWA = 140,  /* from siec: obiekt=network*2+part (k1_wifi_nazwa_do_pol): part 0 a..e, part 1 a..c
                                     * (d, e = 0) — the name to show (checked whole by the receiver: k1_wifi_nazwa_dobra) */
     K1_KOM_SIEC_WIFI_LISTA = 141,  /* from siec, after its networks: obiekt=the card of WYNIKI, a=networks 0..LISTA_MAKS,
-                                    * b=records rejected 0..K1_WIFI_REKORDY_MAKS */
+                                    * b=records rejected 0..K1_WIFI_REKORDY_MAKS; 0.9.1 step 2: c=K1_WIFI_P_* the connection,
+                                    * d=its network 0..a-1 (-1: not in the list), e=the remembered ones (bit i: network i) */
     /* nadzorca → Ustawienia (fd 4): Wi-Fi in Ustawienia → Sieć */
     K1_KOM_WIFI_STAN = 142,  /* obiekt=0, a=K1_WIFI_* state 0..K1_WIFI_STAN_MAKS, b=networks 0..LISTA_MAKS (WIFI_SIEC and
                               * WIFI_NAZWA 0..b-1 follow; only when WLACZONE), c=1 looking for networks now, else 0 */
@@ -309,7 +312,51 @@ enum k1_komunikat_typ {
     /* Ustawienia → nadzorca (fd 4, 0.9.1: the channel goes both ways) */
     K1_KOM_WIFI_WLACZ = 145,  /* obiekt=0, a=1 Wi-Fi on / 0 off (the radio: soft rfkill) */
     K1_KOM_WIFI_SZUKAJ = 146, /* obiekt=0, all 0: look for networks now (Ustawienia shows the list) */
+    /* Joining a Wi-Fi network (0.9.1 step 2, ADR 0041 T3/T4/T6). siec → nadzorca: obiekt = the Wi-Fi card */
+    K1_KOM_SIEC_WIFI_SSID = 147,   /* obiekt=part 0/1: the network's name as it is in the air (any bytes; part 0 a..e =
+                                    * bytes 0..19, part 1 a..c = 20..31, d=e=0) — for the next SIEC_WIFI_POLACZ */
+    K1_KOM_SIEC_WIFI_POLACZ = 148, /* join: a,b=the router's address (k1_siec_mac_do_pol; k1_siec_mac_dobry), c=MHz
+                                    * K1_WIFI_MHZ_MIN..MAKS, d=name length 1..32 (the SSID parts before),
+                                    * e=K1_WIFI_TRYB_* (open, or WPA2 with the group cipher) */
+    K1_KOM_SIEC_WIFI_ROZLACZ = 149, /* leave the network (all 0) */
+    K1_KOM_SIEC_WIFI_KLUCZ_CZESC = 150, /* obiekt=part 0/1 of the next key (like SSID: 20 + 12 bytes) — a secret: never
+                                         * in a log, wiped after use */
+    K1_KOM_SIEC_WIFI_KLUCZ = 151,  /* install the key of the parts: a=1 pairwise (b=0, c=CCMP) / 2 group (b=key id 1..3,
+                                    * c=K1_WIFI_SZYFR_*), d,e = its receive counter (RSC bytes 0..3 and 4..5, little
+                                    * endian; pairwise: 0) */
+    K1_KOM_SIEC_WIFI_OTWORZ = 152, /* the keys are in: let data through (all 0) */
+    K1_KOM_SIEC_WIFI_RADIO_USTAW = 155, /* at start, what the person chose before (remembered by siec): a=0 radio off */
+    /* nadzorca → siec */
+    K1_KOM_SIEC_WIFI_EAPOL = 162,     /* obiekt=the card, all 0; + 1 fd: a packet socket for the EAPOL frames on the card
+                                       * (WPA2 only; right before SIEC_WIFI_ZDARZENIE LACZE) */
+    K1_KOM_SIEC_WIFI_ZDARZENIE = 153, /* a=K1_WIFI_Z_*; LACZE: c,d = our card's address, b=0; NIEUDANE: b=the router's status code
+                                       * 1..65535 or -1 (no answer, the kernel refused); ROZLACZONO: b=reason 0..65535;
+                                       * KLUCZ, OTWARTE: b=0 or K1_SIEC_BLAD_* */
+    K1_KOM_SIEC_WIFI_RADIO = 154,  /* the person switched the radio in Ustawienia: a=1 on / 0 off (siec remembers it) */
+    /* Ustawienia → siec (K1_KIER_DO_SIECI; Ustawienia's fd 6, siec's end comes with SIEC_USTAWIENIA) */
+    K1_KOM_WIFI_HASLO = 156,       /* obiekt=part 0..3 (k1_wifi_haslo_do_pol): the password for the next POLACZ —
+                                    * printable ASCII or 0; a secret: never in a log, wiped after use */
+    K1_KOM_WIFI_WYBRANA = 157,     /* obiekt=part 0/1: the name of the network as shown (like WIFI_NAZWA) */
+    K1_KOM_WIFI_POLACZ = 158,      /* join the network of the name parts: a=its security (K1_WIFI_*), b=name length 1..32,
+                                    * c=password length 0 (open) or K1_WIFI_HASLO_MIN..MAKS */
+    K1_KOM_WIFI_ZAPOMNIJ = 159,    /* forget the network of the name parts (and leave it): a=its security, b=name length */
+    /* nadzorca → Ustawienia, right after WIFI_STAN (when WLACZONE) */
+    K1_KOM_WIFI_POLACZENIE = 160,  /* obiekt=0, a=K1_WIFI_P_*, b=the network of that state 0..b-1 of WIFI_STAN (-1: none —
+                                    * also when it is not in the list), c=the remembered networks of the list (bit i: network i) */
+    /* nadzorca → siec: the end of Ustawienia's channel (when Ustawienia start) */
+    K1_KOM_SIEC_USTAWIENIA = 161,  /* obiekt=0, all 0; + 1 fd (siec's end of K1_KIER_DO_SIECI, sender UID checked) */
 };
+
+/* What happened to the connection (SIEC_WIFI_ZDARZENIE a). */
+enum k1_wifi_zdarzenie {
+    K1_WIFI_Z_LACZE = 1,       /* the kernel took the request: joining (the EAPOL socket comes with it) */
+    K1_WIFI_Z_SKOJARZONO = 2,  /* joined the router (the password exchange may start) */
+    K1_WIFI_Z_NIEUDANE = 3,    /* joining failed */
+    K1_WIFI_Z_ROZLACZONO = 4,  /* the connection ended (the router, the range, our request) */
+    K1_WIFI_Z_KLUCZ = 5,       /* the key of SIEC_WIFI_KLUCZ: installed (b=0) or not */
+    K1_WIFI_Z_OTWARTE = 6,     /* SIEC_WIFI_OTWORZ: data flows (b=0) or not */
+};
+#define K1_WIFI_Z_MAKS 6
 
 #define K1_ZEGAR_SKOK_MAKS (200LL * 366 * 86400) /* ZEGAR_PRZESUNIETY: seconds */
 

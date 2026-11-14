@@ -19,7 +19,8 @@ pobierz() { # <name> <path in linux-firmware> <sha256>
     cel=$POBRANE/$1
     if [ ! -f "$cel" ]; then
         mkdir -p "$(dirname "$cel")"
-        curl -fsSL --retry 3 -o "$cel.tmp" "$K1_PLIKI_KART_URL/$2?h=$K1_PLIKI_KART_WERSJA" || blad "nie pobrano $2"
+        curl -fsSL --retry 3 -o "$cel.tmp" "$K1_PLIKI_KART_URL/$2?h=$K1_PLIKI_KART_WERSJA" ||
+            curl -fsSL --retry 3 -o "$cel.tmp" "$K1_PLIKI_KART_ZAPAS/$K1_PLIKI_KART_WERSJA/$2" || blad "nie pobrano $2"
         mv "$cel.tmp" "$cel"
     fi
     echo "$3  $cel" | sha256sum -c --quiet - || { rm -f "$cel"; blad "zła suma kontrolna $1"; }

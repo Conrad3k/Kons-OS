@@ -56,7 +56,8 @@ int bateria_odbierz(void)
             zmiana = 1;
             continue;
         }
-        if (w == K1_ODB_JEST && (k.typ == K1_KOM_WIFI_STAN || k.typ == K1_KOM_WIFI_SIEC || k.typ == K1_KOM_WIFI_NAZWA)) {
+        if (w == K1_ODB_JEST && (k.typ == K1_KOM_WIFI_STAN || k.typ == K1_KOM_WIFI_SIEC || k.typ == K1_KOM_WIFI_NAZWA ||
+                                 k.typ == K1_KOM_WIFI_POLACZENIE)) {
             wifi_odbierz(&k); /* 0.9.1: Wi-Fi (wifi.c) */
             zmiana = 1;
             continue;

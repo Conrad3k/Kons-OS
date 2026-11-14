@@ -197,6 +197,8 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
 {
     if (sekcja == S_HASLO)
         haslo_klawisz(kod, wartosc, mody);
+    else if (sekcja == S_SIEC)
+        wifi_haslo_klawisz(kod, wartosc, mody); /* 0.9.1 step 2: the password of a Wi-Fi network */
 }
 
 static void nadzorca_dane(void)
@@ -324,8 +326,10 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     if (sekcja == S_SIEC && nav < 0 && siec_klik(x, y))
         return;
     if (nav >= 0) {
-        if (nav != sekcja)
+        if (nav != sekcja) {
             haslo_zamknij();
+            wifi_zamknij(); /* a typed Wi-Fi password is wiped */
+        }
         sekcja = nav;
         if (sekcja == S_INFO || sekcja == S_HASLO)
             haslo_info();
