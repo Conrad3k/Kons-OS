@@ -125,6 +125,31 @@ KROK 1 — Karta Wi-Fi, oprogramowanie kart, lista sieci                       L
   i pliki producentów — kod, którego nie widać, działa w karcie z dostępem do pamięci przez DMA; IOMMU — W8), TESTY.md,
   ZALEZNOSCI.md.
   Gotowe, gdy: scenariusz z listą sieci i testy negatywne zielone, testy [OK], obraz powtarzalny.
+  Ustalenia z wykonania (2026-11-14, Claude; ADR 0041):
+  - D1: szkice wszystkich widoków naraz (ikona A/B/C, sekcja A/B/C w 4 stanach, oba motywy) — wybrane ikona B „Wachlarz”
+    i sekcja A „Zakładki” (WYGLAD.md). Zakładki zastąpiły opis pod tytułem — kafelki zakładki „Karty sieciowe” zostały na
+    swoich miejscach (testy 0.9.0 bez zmian); zakładka Wi-Fi jest pierwsza, gdy komputer ma kartę Wi-Fi.
+  - T1: pliki pobierane POJEDYNCZO z git.kernel.org (repozytorium linux-firmware, tag 20261019) — archiwum ma 642 MB;
+    każdy z sumą w jadro/oprogramowanie-kart.txt (32 pliki, 27 MB). W linux-firmware pliki Intela są w intel/iwlwifi/ —
+    tabela ma osobno nazwę, o którą prosi sterownik, i ścieżkę. regulatory.db + .p7s z wireless-regdb 2026.09.03
+    (archiwum z sumą zgodną z sha256sums.asc). EXTRA_FIRMWARE dokłada zbuduj-jadro.sh do fragmentu (sprawdzany też).
+  - T2 ZE ŹRÓDEŁ: numer API pliku Intela = przecięcie zakresów MAC i RF (iwl-drv.c); dla Qu/QuZ (AX201) i AX210/AX211
+    zakres RF (100) jest poza MAC, więc obowiązuje MAC: 77 i 89. Bez IWLMLD (BE200). W4: rozmiar — z gzip bzImage 20 MB,
+    więc jądro przeszło na zstd: bzImage 6 595 584 → 12 530 688 B, k1.efi 8 923 792 → 14 899 856 B; ISO 23,9 MB.
+  - POTWIERDZONE w QEMU: bez MAC80211_RC_MINSTREL (za EXPERT, allnoconfig go wyłącza) mac80211 nie rejestruje kart bez
+    własnego doboru prędkości („Failed to select rate control algorithm”) — dotyczy też ath9k, rtlwifi, rtw88, mt76.
+  - W5 POTWIERDZONE: jądro wczytuje klucze bazy („Loaded X.509 cert 'sforshee…'”) i bazę bez błędu.
+  - W6 ZE ŹRÓDEŁ/POTWIERDZONE: karty Wi-Fi nie trzeba odróżniać po uevent — nadzorca już od 0.9.0 widzi phy80211 w sysfs;
+    typ (stacja/punkt dostępu) z nl80211 GET_INTERFACE.
+  - W7: sysfs w K1 jest tylko do odczytu, więc miękki przełącznik radia przez /dev/rfkill (RFKILL_OP_CHANGE); twardy
+    (przełącznik w obudowie X230) — czy jądro go widzi bez thinkpad_acpi: NIEPEWNE, test właściciela (Ustawienia powiedzą
+    „Wi-Fi wyłączone przełącznikiem w komputerze”).
+  - T5: wariant „bzImage z radios=N” wybrany inaczej: obraz testowy (ten sam k1 co testy w systemie) z
+    mac80211_hwsim.radios=7 w linii poleceń; program testowy rozpoznaje tryb po /sys/module/mac80211_hwsim/parameters/radios
+    i robi punkty dostępu (beacon co 20 TU — aktywne szukanie trwa ok. 60 ms na kanał). Wydanie: radios=0.
+  - Kanał Ustawień (fd 4) działa w obie strony (KN_OD): WIFI_WLACZ, WIFI_SZUKAJ. Generic netlink: wspólny k1_nl.c (nadzorca
+    i program testowy). Szukanie co minutę i na prośbę Ustawień (najwyżej co 10 s); przełącznik radia pamiętany do
+    wyłączenia komputera — zapamiętanie w skarbcu razem z sieciami w kroku 2.
 
 KROK 2 — Łączenie z hasłem, zapamiętane sieci; wydanie 0.9.1                 L · decyzje D2 D4, T4 T6 · bez ADR
   Cel: K1 łączy się z siecią domową z hasłem (WPA2 — także router w trybie mieszanym WPA2/WPA3) i z siecią otwartą
