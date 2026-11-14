@@ -4,7 +4,7 @@
   sieci; T6 rozstrzygnięte niżej)
 - Data: 2026-11-14
 - Dotyczy: ADR 0039 (sieć w K1 — to jego uzupełnienie), ADR 0004 (brak `/lib/firmware`), ADR 0007 (klatki), SPEC §3
-  (niezmiennik 3), decyzje D0, D1, D3 i T1–T6 planu 0.9.1 (`docs/archiwum/PLAN-0.9.1.txt`); RYZYKA R70–R76
+  (niezmiennik 3), decyzje D0, D1, D3 i T1–T6 planu 0.9.1 (w historii git; plan usunięty 2026-11-14 na prośbę właściciela); RYZYKA R70–R76
 
 ## Kontekst
 0.9.0 dało kabel: IPv4, gniazda tylko u nadzorcy, usługę „siec” w klatce (ADR 0039). 0.9.1 ma dać Wi-Fi na obu laptopach

@@ -27,7 +27,7 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.8.1 Pliki — dopracowanie | dane nie giną (naprawa przy starcie, zły zegar), 16 384 pliki, szybki start, miejsce w Informacjach, stary pendrive powiększany przyciskiem, pliki do 4 GB | PRZETESTOWANE w QEMU (ADR 0033, 0034) |
 | 0.8.2 Pliki — dopracowanie, część 2 | skarbiec na duże dane (szybki start, prawie cały pendrive na pliki), pendrive z telefonu, duże zdjęcia, aplikacja Podgląd, „Otwórz za pomocą”, przeciąganie | PRZETESTOWANE w QEMU (ADR 0036, 0037) |
 | 0.9.0 Sieć — kabel | adres od routera, nic w K1 nie odpowiada z zewnątrz, ikona sieci, Ustawienia → Sieć, zegar z internetu | PRZETESTOWANE w QEMU (ADR 0038, 0039) |
-| 0.9.1 Sieć — Wi-Fi | Wi-Fi na laptopach (sterowniki z jądra, pliki od producentów kart), lista sieci, łączenie z hasłem i z siecią otwartą, zapamiętane sieci | PRZETESTOWANE w QEMU z udawanymi kartami (ADR 0041; `docs/archiwum/PLAN-0.9.1.txt`); prawdziwe karty — test właściciela |
+| 0.9.1 Sieć — Wi-Fi | Wi-Fi na laptopach (sterowniki z jądra, pliki od producentów kart), lista sieci, łączenie z hasłem i z siecią otwartą, zapamiętane sieci | PRZETESTOWANE w QEMU z udawanymi kartami (ADR 0041) i na laptopach właściciela (2026-11-14; IdeaPad: Qualcomm) |
 | 0.10 Strefy | każda obca aplikacja (przeglądarka, Discord…) w swojej mikro-maszynie; kolorowa ramka; stała/jednorazowa; pełna izolacja/szybka grafika | PLANOWANE (ADR 0020) |
 | 0.11 Pliki ze stref | przenoszenie plików ze stref i do stref przez okno K1, schowek między strefami | PLANOWANE |
 | 0.12–0.13 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |

@@ -70,7 +70,7 @@ nowe obok starych, przełączenie jednym zapisem sektora startowego FAT (`src/in
 
 **Sprzęt właściciela:** ThinkPad X230 (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 przez simpledrm,
 TPM 1.2; kabel: Intel 82579LM, `e1000e`) i od 2026-11-13 Lenovo IdeaPad 110-15ISK (Skylake, tylko xHCI, Intel HD 520;
-kabel 10/100 i Wi-Fi 802.11ac — dokładne układy: Ustawienia → Sieć pokazują identyfikatory kart, pytanie D3 w `docs/archiwum/PLAN-0.9.1.txt`), jedno konto na komputer.
+kabel 10/100 i Wi-Fi Qualcomm Atheros — ath10k, potwierdzone przez właściciela 2026-11-14; Ustawienia → Sieć pokazują identyfikatory kart), jedno konto na komputer.
 X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt. Sterowniki — zawsze z jądra, nie własne (D0).
 
 ## 3. Mapa kodu
