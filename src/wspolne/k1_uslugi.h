@@ -58,9 +58,21 @@
     X(PODGLAD, 9, 17, 208, "podglad", "K1-PODGLAD", "Podgląd", "Zdjęcia i obrazy", OBRAZ, 0,                    \
       (KANAL_SKARBCA, KANAL_PLIKU, KANAL_DEKODERA))
 
+/* 0.10.0 (ADR 0042): the zones — each a micro machine with its own kernel, run by its own VMM process (program
+ * /rdzen/system/strefa, log tag K1-STREFA); one line each, everything else follows from it: the profile and the UID of
+ * its VMM (KLATKA_STREFA in src/nadzorca/profile.c with the row's memory), the frame ekran draws, Zasoby, the tests.
+ * X(NAME, zone number, profile, UID, image (/rdzen/strefy/<obraz>.img), title, session ("": none), memory of the guest
+ *   in MiB, processors, the frame colour 0xRRGGBB, JEDNORAZOWA (forgets everything when closed) or STALA (0.10.0 step 3),
+ *   icon (K1_IK_<icon>) of its mark, 1: the guest's console lines go to K1's log (the test zone only; others: counted)).
+ * The numbers never change (a STALA zone's disk in skarbiec belongs to its profile, step 3). The test zone's image is
+ * only in the test image: the production image has no file for it, nadzorca refuses to start it. */
+#define K1_STREFY(X)                                                                                                    \
+    X(PROBNA, 1, 19, 300, "probna", "Strefa próbna", "", 128, 1, 0xA8834A, JEDNORAZOWA, EKRAN, 1)
+
 #define K1_X_UID_S(n, profil, uid, ...) K1_UID_##n = uid,
 #define K1_X_UID_A(n, apl, profil, uid, ...) K1_UID_##n = uid,
-enum k1_uid { K1_SYSTEM(K1_X_UID_S) K1_APLIKACJE(K1_X_UID_A) };
+#define K1_X_UID_Z(n, nr, profil, uid, ...) K1_UID_STREFA_##n = uid,
+enum k1_uid { K1_SYSTEM(K1_X_UID_S) K1_APLIKACJE(K1_X_UID_A) K1_STREFY(K1_X_UID_Z) };
 
 /* Roles of clients of the screen process (who is on the other end of a channel). */
 enum k1_rola {
@@ -69,8 +81,9 @@ enum k1_rola {
     K1_ROLA_POWLOKA = 2,   /* the desktop shell (gui): panels, window list, launching apps */
     K1_ROLA_APLIKACJA = 3, /* a native application: windows only */
     K1_ROLA_LOGOWANIE = 4, /* the boot password screen (M5e): one full-screen panel, gets every key */
+    K1_ROLA_STREFA = 5,    /* the VMM of a zone (0.10.0, ADR 0042): one window, its frame and mark drawn by ekran */
 };
-#define K1_ROLA_MAKS 4
+#define K1_ROLA_MAKS 5
 
 /* Native applications: only the number travels between gui, nadzorca and ekran. */
 #define K1_X_APL(n, apl, ...) K1_APL_##n = apl,
@@ -78,11 +91,33 @@ enum k1_rola {
 enum k1_aplikacja { K1_APLIKACJE(K1_X_APL) };
 enum { K1_APL_MAKS = 0 K1_APLIKACJE(K1_X_LICZ) }; /* numbered 1..K1_APL_MAKS (checked in k1_uslugi.c) */
 
+/* Zones: only the number travels between gui, nadzorca and ekran. */
+#define K1_X_STREFA(n, nr, ...) K1_STREFA_##n = nr,
+enum k1_strefa_nr { K1_STREFY(K1_X_STREFA) };
+enum { K1_STREFY_MAKS = 0 K1_STREFY(K1_X_LICZ) }; /* numbered 1..K1_STREFY_MAKS (checked in k1_uslugi.c) */
+enum k1_trwalosc { K1_JEDNORAZOWA = 0, K1_STALA = 1 };
+
+/* A zone's row as a structure (k1_strefa). */
+struct k1_strefa_opis {
+    int nr, profil, uid;
+    const char *obraz, *tytul, *sesja;
+    unsigned pamiec_mib, procesory;
+    unsigned kolor;          /* 0xRRGGBB */
+    int trwalosc;            /* K1_JEDNORAZOWA / K1_STALA */
+    int ikona;               /* K1_IK_* (k1_rysuj.h) */
+    int log_goscia;
+};
+/* The zone with number `nr` (1..K1_STREFY_MAKS), or NULL. */
+const struct k1_strefa_opis *k1_strefa(int nr);
+/* The zone whose VMM has profile `profil`, or NULL. */
+const struct k1_strefa_opis *k1_strefa_profilu(int profil);
+
 /* Sandbox profiles the supervisor knows (also used for test probes in the test image). */
 #define K1_X_PROFIL_S(n, profil, ...) K1_PROFIL_##n = profil,
 #define K1_X_PROFIL_A(n, apl, profil, ...) K1_PROFIL_##n = profil,
-enum k1_profil_nr { K1_SYSTEM(K1_X_PROFIL_S) K1_APLIKACJE(K1_X_PROFIL_A) };
-enum { K1_PROFIL_MAKS = 0 K1_SYSTEM(K1_X_LICZ) K1_APLIKACJE(K1_X_LICZ) }; /* numbered 1..MAKS (checked) */
+#define K1_X_PROFIL_Z(n, nr, profil, ...) K1_PROFIL_STREFA_##n = profil,
+enum k1_profil_nr { K1_SYSTEM(K1_X_PROFIL_S) K1_APLIKACJE(K1_X_PROFIL_A) K1_STREFY(K1_X_PROFIL_Z) };
+enum { K1_PROFIL_MAKS = 0 K1_SYSTEM(K1_X_LICZ) K1_APLIKACJE(K1_X_LICZ) K1_STREFY(K1_X_LICZ) }; /* 1..MAKS (checked) */
 
 /* A profile's program name ("zegar") and the name Zasoby shows for it; NULL outside 1..K1_PROFIL_MAKS. */
 const char *k1_profil_program(int profil);

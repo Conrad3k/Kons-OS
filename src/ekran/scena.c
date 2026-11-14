@@ -80,6 +80,10 @@ void uszkodz_pow(const struct pow *p)
         uszkodz(p->x - CIEN, p->y - CIEN, p->w + 2 * CIEN, p->h + 2 * CIEN);
     else
         uszkodz(p->x, p->y, p->w, p->h);
+    if (okno_strefy(p)) { /* its badge may reach beyond the shadow (0.10.0) */
+        struct prost r = strefa_obszar(p);
+        uszkodz(r.x, r.y, r.w, r.h);
+    }
 }
 
 
@@ -208,7 +212,11 @@ static void skomponuj(void)
                                   (uint32_t)p->w, (uint32_t)p->h, (uint32_t)p->w };
             if (p->rodzaj == K1_POW_OKNO)
                 cien(p, &r);
+            if (okno_strefy(p))
+                strefa_ramka(p, &r); /* under the zone's picture: outside it, never covered by it */
             k1_skladaj(&s.scena, &o, p->x, p->y, r.x, r.y, r.w, r.h);
+            if (okno_strefy(p))
+                strefa_znaczek(p, &r);
         }
     }
     s.nowe.n = 0;

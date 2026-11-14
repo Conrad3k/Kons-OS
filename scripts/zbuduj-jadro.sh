@@ -1,6 +1,7 @@
 #!/bin/sh
 # Pobiera (z weryfikacją), konfiguruje i buduje jądro Linux dla K1.
-# Wynik: build/wynik/bzImage, build/wynik/jadro.config, build/naglowki (nagłówki UAPI dla programów K1),
+# Wynik: build/wynik/bzImage, build/wynik/jadro.config, build/wynik/strefa-jadro i strefa-jadro.config (jądro
+#        strefy, 0.10.0, ADR 0042: te same źródła, fragment jadro/strefa.config), build/naglowki (nagłówki UAPI dla programów K1),
 #        build/jadro-obj/usr/gen_init_cpio (narzędzie do budowy initramfs).
 . "$(dirname "$0")/wspolne.sh"
 
@@ -49,3 +50,14 @@ make_jadra headers_install INSTALL_HDR_PATH="$K1_NAGLOWKI" >/dev/null
 cp "$K1_JADRO_OBJ/arch/x86/boot/bzImage" "$K1_WYNIK/bzImage"
 cp "$K1_JADRO_OBJ/.config" "$K1_WYNIK/jadro.config"
 info "gotowe: $K1_WYNIK/bzImage ($(du -k "$K1_WYNIK/bzImage" | cut -f1) KiB)"
+
+# 0.10.0 (ADR 0042): the zone kernel — runs inside a micro machine, started by the VMM strefa; the same sources
+info "jądro strefy: allnoconfig + jadro/strefa.config"
+mkdir -p "$K1_STREFA_OBJ"
+make_jadra_w "$K1_STREFA_OBJ" KCONFIG_ALLCONFIG="$K1_REPO/jadro/strefa.config" allnoconfig >/dev/null
+"$K1_REPO/scripts/sprawdz-konfiguracje-jadra.sh" "$K1_REPO/jadro/strefa.config" "$K1_STREFA_OBJ/.config"
+info "kompilacja jądra strefy ($K1_CPU wątków)"
+make_jadra_w "$K1_STREFA_OBJ" -j"$K1_CPU" bzImage
+cp "$K1_STREFA_OBJ/arch/x86/boot/bzImage" "$K1_WYNIK/strefa-jadro"
+cp "$K1_STREFA_OBJ/.config" "$K1_WYNIK/strefa-jadro.config"
+info "gotowe: $K1_WYNIK/strefa-jadro ($(du -k "$K1_WYNIK/strefa-jadro" | cut -f1) KiB)"

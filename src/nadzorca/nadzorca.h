@@ -95,9 +95,11 @@ struct usluga {
     int wylaczona;
     int bez_liczenia;     /* stopped because ekran ended: not counted as a failure */
     char argument[12];    /* its one argument, if any (dekoder: the application it decodes for; 0.8.2) */
+    char argument2[4];    /* a second one (0.10.0: the VMM of a zone — the guest's test mode) */
 };
 
-#define N_USLUG (0 K1_SYSTEM(K1_X_LICZ) + K1_APL_MAKS) /* uslugi[]: the system services (K1_SYSTEM) + the applications */
+/* uslugi[]: the system services (K1_SYSTEM), the applications, the VMMs of the zones (K1_STREFY, 0.10.0) */
+#define N_USLUG (0 K1_SYSTEM(K1_X_LICZ) + K1_APL_MAKS + K1_STREFY_MAKS)
 struct usluga *usluga_profilu(int profil);
 
 #define BATERIA_CO 15.0     /* s between reads (ACPI: the embedded controller) */
@@ -178,6 +180,9 @@ extern int podglad_kanal;     /* our end of Podgląd's fd 6 (its requests for a 
 void dekoder_otworz(int apl); /* a request of application `apl` (its row in the table of clients) */
 void obsluz_podglad(void);
 void dekoder_koniec(void);
+
+/* strefy.c (0.10.0, ADR 0042): the VMM of zone `nr` (its row of K1_STREFY); tryb: the guest's test mode (test only) */
+void strefa_uruchom(int nr, int tryb);
 
 /* siec.c — the network cards, the cable, the address siec asks for (0.9.0 step 6, ADR 0039) */
 extern int siec_kanal; /* our end of siec's fd 3 */

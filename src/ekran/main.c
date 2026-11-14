@@ -164,7 +164,7 @@ static void start(void)
 
     for (i = 0; i < MAKS_KLIENTOW; i++)
         s.kl[i].fd = -1;
-    s.pod = s.chwyt = s.ciagniete = s.fokus = -1;
+    s.pod = s.chwyt = s.ciagniete = s.fokus = s.plakietka = -1;
     s.ust[K1_UST_MOTYW] = 0;
     s.ust[K1_UST_SEKUNDY] = 0;
     s.ust[K1_UST_MYSZ] = 2;

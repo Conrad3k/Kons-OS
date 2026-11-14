@@ -31,7 +31,7 @@
 
 /* System calls every K1 program needs (musl startup, memory, signals, time, its channels, log).
  * Not here, on purpose: open/openat (no file system), socket/connect/bind (channels are inherited),
- * clone/fork (pids.max = 1 anyway), kill, ptrace, mount, setuid & co., perf_event_open, bpf. */
+ * clone/fork (pids.max = 1 anyway; a profile with threads gets clone with CLONE_THREAD only), kill, ptrace, mount, setuid & co., perf_event_open, bpf. */
 static const long baza[] = {
     SYS_read,       SYS_write,          SYS_close,        SYS_exit,        SYS_exit_group,  SYS_rt_sigreturn,
     SYS_rt_sigprocmask, SYS_rt_sigaction, SYS_brk,       SYS_munmap,      SYS_mremap,      SYS_madvise,
@@ -82,7 +82,8 @@ int k1_klatka_grupa(const struct k1_profil *p)
     if (zapisz_plik(sciezka, "1") != 0)
         return -1;
     snprintf(sciezka, sizeof sciezka, CGROUP "/%s/pids.max", p->nazwa);
-    return zapisz_plik(sciezka, "1");
+    snprintf(wartosc, sizeof wartosc, "%u", 1 + p->watki);
+    return zapisz_plik(sciezka, wartosc);
 }
 
 /* ---- seccomp: a linear allow list (classic BPF) ---- */

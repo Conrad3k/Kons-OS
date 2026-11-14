@@ -50,7 +50,11 @@ struct aplikacja_opis {
     enum k1_ikona ikona;
     int domyslna;
 };
-extern const struct aplikacja_opis aplikacje[K1_APL_MAKS + 1];
+/* The items the bar and the window list know: the applications 1..K1_APL_MAKS, then the zones (0.10.0, ADR 0042):
+ * zone n is item K1_APL_MAKS + n — its title and icon from K1_STREFY, never in the Start menu, never pinned (-1). */
+#define POZYCJA_STREFY(n) (K1_APL_MAKS + (n))
+#define POZYCJE_MAKS (K1_APL_MAKS + K1_STREFY_MAKS)
+extern const struct aplikacja_opis aplikacje[POZYCJE_MAKS + 1];
 
 const struct k1_motyw *motyw(void);
 /* Background of a floating panel: shadow, rounded body, hairline border (w×h inside the MARG margin). */
@@ -78,6 +82,7 @@ void do_nadzorcy(struct k1_komunikat m);
 void rysuj_gora(void);
 void rysuj_dzwiek(void);
 void odbierz_baterie(void); /* fd 5: battery and session state from nadzorca */
+void strefa_stan(const struct k1_komunikat *m); /* fd 5 (0.10.0): a zone did not start — the window that says why */
 void wskaznik_gora(const struct k1_komunikat *m);
 void pokaz_dzwiek(int tak);
 int32_t glosnik_x(void);
@@ -92,7 +97,7 @@ extern int bat_kanal;     /* fd 5 still open */
 #define DOK_PAD 8
 #define DOK_WYS (EL + 2 * DOK_PAD)
 /* the widest bar: every application, pinned or running (the surface; the bar itself is centred in it) */
-#define DOK_SZER (DOK_PAD + EL + 13 + K1_APL_MAKS * (EL + ODST) + 9 + DOK_PAD)
+#define DOK_SZER (DOK_PAD + EL + 13 + POZYCJE_MAKS * (EL + ODST) + 9 + DOK_PAD)
 void rysuj_dok(void);
 void wskaznik_dok(const struct k1_komunikat *m);
 void dok_zmiana(void); /* pinned or running applications changed: new positions, logged for the tests */

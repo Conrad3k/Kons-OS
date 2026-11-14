@@ -31,6 +31,8 @@ static int klient(const struct k1_komunikat *k)
         return 0;
     if (k->a == K1_ROLA_APLIKACJA)
         return w(k->b, 1, K1_APL_MAKS);
+    if (k->a == K1_ROLA_STREFA)
+        return w(k->b, 1, K1_STREFY_MAKS);
     return k->b == 0;
 }
 
@@ -148,6 +150,12 @@ int k1_kom_sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
         return w(k->b, -1, 100) && w(k->c, K1_BAT_NIEZNANY, K1_BAT_STAN_MAKS);
     case K1_KOM_SESJA:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, 1) && zera(k, 1);
+    case K1_KOM_URUCHOM_STREFE:
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_STREFY_MAKS) &&
+               w(k->b, 0, K1_STREFA_TRYB_MAKS) && zera(k, 2);
+    case K1_KOM_STREFA_STAN:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_STREFY_MAKS) &&
+               w(k->b, 1, K1_STREFA_STAN_MAKS) && zera(k, 2);
     case K1_KOM_BATERIA_ARCH:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 8, 8 + K1_BAT_ARCH_SESJE * 8 + K1_BAT_ARCH_PROBKI) &&
                w(k->b, 0, K1_BAT_ARCH_SESJE) && zera(k, 2);

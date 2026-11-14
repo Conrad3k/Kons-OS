@@ -20,6 +20,8 @@ int main(int argc, char **argv)
     }
     if (argc > 2 && strcmp(argv[1], "--proba") == 0)
         return proba(argv[2]);
+    if (tryb_strefy()) /* 0.10.0: the zones' scenario of scripts/test-strefa.sh, not the checks */
+        return t_strefy_scenariusz();
     if (tryb_wifi()) /* 0.9.1: simulated Wi-Fi cards — the test access points of scripts/test-wifi.sh, not the checks */
         return t_wifi_punkty_dostepu();
     k1_log(TAG, "start testów M1–M5a (pid %d)", (int)getpid());
@@ -42,6 +44,7 @@ int main(int argc, char **argv)
     t_screen_input();
     t_sprzet();
     t_bateria();
+    t_kvm();
     t_klatki();
     t_malicious_ipc();
     t_proby();

@@ -8,7 +8,7 @@
 #include "gui.h"
 #include "k1_log.h"
 
-static int el[1 + K1_APL_MAKS]; /* the applications of items 1..n_el (item 0 = Start) */
+static int el[1 + POZYCJE_MAKS]; /* the applications of items 1..n_el (item 0 = Start) */
 static int n_el, n_przyp;        /* items after Start; how many of them are pinned */
 static int hover_dok = -1;
 static struct {
@@ -25,7 +25,7 @@ static void zbierz(void)
     for (a = 0; a < rozm.n_pasek; a++)
         el[++n_el] = rozm.pasek[a];
     n_przyp = n_el;
-    for (a = 1; a <= K1_APL_MAKS; a++)
+    for (a = 1; a <= POZYCJE_MAKS; a++) /* 0.10.0: the zones' windows too */
         if (rozm_na_pasku(&rozm, a) < 0 && okno_aplikacji(a) != NULL)
             el[++n_el] = a;
 }

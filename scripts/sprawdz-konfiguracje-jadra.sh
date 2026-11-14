@@ -20,5 +20,5 @@ while IFS= read -r linia; do
             fi ;;
     esac
 done < "$frag"
-if [ "$zle" -ne 0 ]; then echo "[k1] BŁĄD: konfiguracja jądra różni się od jadro/k1.config" >&2; exit 1; fi
+if [ "$zle" -ne 0 ]; then echo "[k1] BŁĄD: konfiguracja jądra różni się od fragmentu $frag" >&2; exit 1; fi
 echo "[k1] konfiguracja jądra zgodna z fragmentem ($(grep -cE '^(CONFIG_|# CONFIG_)' "$frag") opcji)"

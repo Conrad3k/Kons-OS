@@ -70,7 +70,7 @@ APLIKACJE := $(patsubst src/aplikacje/%/main.c,$(BIN)/%,$(wildcard src/aplikacje
 # System services: one line each in K1_SYSTEM (src/wspolne/k1_uslugi.h, the only list): scripts/uslugi-systemu.sh.
 USLUGI_SYSTEMU := $(shell sh scripts/uslugi-systemu.sh)
 PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(addprefix $(BIN)/,$(USLUGI_SYSTEMU)) $(APLIKACJE) \
-            $(BIN)/k1-test-systemu
+            $(BIN)/strefa $(BIN)/gosc $(BIN)/k1-test-systemu
 
 all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(GEN)/sb/k1_sb_cert.h $(OBJ)/proba_fortify
 
@@ -157,13 +157,27 @@ SIEC := $(sort $(wildcard src/siec/*.c))
 $(BIN)/siec: $(SIEC) $(wildcard src/siec/*.h) src/wspolne/k1_sha1.c src/wspolne/k1_aes.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(SIEC) src/wspolne/k1_sha1.c src/wspolne/k1_aes.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
+# 0.10.0 step 1 (ADR 0042): the VMM of a zone — one process per micro machine (host tests: test_virtio, test_strefa_start;
+# fuzzing: fuzz_virtq), its window drawn with a part of przybornik; gosc — /init of the test zone's image (it runs inside
+# the machine, not in K1; our flags all the same)
+STREFA := $(sort $(wildcard src/strefa/*.c))
+STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/grafika/k1_grafika.c \
+                $(GEN)/k1_czcionki_dane.c
+$(BIN)/strefa: $(STREFA) $(wildcard src/strefa/*.h) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(STREFA) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+GOSC := $(sort $(wildcard src/strefa/gosc/*.c))
+$(BIN)/gosc: $(GOSC) src/strefa/gosc/gosc.h | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(GOSC) $(LDFLAGS_K1)
+
 $(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
+# 0.10.0 (ADR 0042): the frame of the zones' windows (strefy.c) is drawn with przybornik's shapes, icons and text
 EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/powierzchnie.c src/ekran/wskaznik.c src/ekran/drm.c src/ekran/zapis.c \
-         src/ekran/zdjecie.c src/ekran/zalegle.c src/wspolne/k1_skaluj.c
-$(BIN)/ekran: $(EKRAN) src/ekran/ekran.h src/ekran/zalegle.h $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ $(EKRAN) src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+         src/ekran/zdjecie.c src/ekran/zalegle.c src/ekran/strefy.c src/wspolne/k1_skaluj.c
+EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c $(GEN)/k1_czcionki_dane.c
+$(BIN)/ekran: $(EKRAN) src/ekran/ekran.h src/ekran/zalegle.h $(EKRAN_PRZYB) $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(EKRAN) $(EKRAN_PRZYB) src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 $(BIN)/logowanie: src/logowanie/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/logowanie/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
