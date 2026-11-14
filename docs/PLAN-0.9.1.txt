@@ -222,6 +222,8 @@ Twoje (produkt):
        w Ustawieniach. Hasło nigdy nie jest pokazywane z powrotem (zmiana = wpisanie nowego).
 Pytania z 0.9.0, które dalej pomagają (D2, D3 planu 0.9.0 — w historii git): czy masz kabel do routera i jakie dokładnie
 karty Wi-Fi mają oba laptopy (Ustawienia → Sieć w 0.9.0 pokaże identyfikator karty — przepisz go).
+    ODPOWIEDŹ (2026-11-14, właściciel): kabel do routera jest dla obu laptopów; kabel, karty i Wi-Fi sprawdzi na obu po
+    wydaniu 0.9.1 (lista testów na sprzęcie przy wydaniu w kroku 2 — kabel i Wi-Fi razem).
 
 Techniczne (decyduje Claude w ADR kroku 1 — Ty dostajesz krótkie wyjaśnienie):
     T1 Pliki producentów: rekomendacja — wbudowane w jądro (EXTRA_FIRMWARE), czyli w podpisany k1.efi. Powód
