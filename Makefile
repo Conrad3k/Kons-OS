@@ -262,7 +262,7 @@ $(OBJ)/test_czas: testy/host/test_czas.c $(SIEC) $(wildcard src/siec/*.h) $(KOMU
 
 # 0.9.0 step 6 (ADR 0039): addresses, the messages of siec, DHCP packets and the client
 $(OBJ)/test_siec: testy/host/test_siec.c $(SIEC) $(wildcard src/siec/*.h) $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_siec.c $(filter-out src/siec/main.c,$(SIEC)) $(KOMUNIKAT) $(DOK_C)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_siec.c $(filter-out src/siec/main.c src/siec/zegar.c,$(SIEC)) $(KOMUNIKAT) $(DOK_C)
 
 $(OBJ)/test_uevent: testy/host/test_uevent.c src/nadzorca/uevent.c src/nadzorca/uevent.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_uevent.c src/nadzorca/uevent.c

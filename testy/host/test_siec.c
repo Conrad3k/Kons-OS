@@ -198,7 +198,7 @@ static void t_komunikaty(void)
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_ZWOLNIJ, 2, 1, 0, 0, 0, 0), DO));
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_WYNIK, 2, K1_KOM_SIEC_ADRES, 0, 0, 0, 0), OD));
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_WYNIK, 2, K1_KOM_SIEC_ZWOLNIJ, K1_SIEC_BLAD_JADRO, 0, 0, 0), OD));
-    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_WYNIK, 2, K1_KOM_SIEC_ADRES, -3, 0, 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_WYNIK, 2, K1_KOM_SIEC_ADRES, K1_SIEC_BLAD_MIN - 1, 0, 0, 0), OD));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_WYNIK, 2, K1_KOM_SIEC_KABEL, 0, 0, 0, 0), OD));
 }
 
