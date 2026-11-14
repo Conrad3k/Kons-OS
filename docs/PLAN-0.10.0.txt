@@ -1,0 +1,434 @@
+K1 — PLAN WERSJI 0.10.0 „PIERWSZA STREFA I PRZEGLĄDARKA” (pierwsza wersja tematu 0.10 Strefy)
+================================================================================================
+
+Data: 2026-11-14 (porządek w planie: ADR 0035). Plan napisany po wydaniu 0.9.1 — wersja stoi na tym, co dała 0.9 Sieć:
+kabel i Wi-Fi, adres od routera, zegar z internetu, gniazda sieciowe tylko u nadzorcy (ADR 0039, 0041). Kierunek stref
+ustalają ADR 0020 (każda obca aplikacja w swojej mikro-maszynie), 0024 (wspólna strefa), 0025 (Przeglądarka K1) i 0027
+(pliki tylko przez Pliki); ten plan robi z nich pierwszą działającą część.
+Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR (kroki 1 i 2 mają swoje ADR-y).
+
+Mało kroków (prośba właściciela z 2026-11-13 i ponownie z 2026-11-14): TRZY kroki, wydanie w trzecim. Każdy krok daje
+coś, co widać na ekranie; krok 3 kończy się wydaniem 0.10.0 — bez osobnego kroku wydania.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 3 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
+zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b albo 3a/3b (wydanie zawsze w ostatniej części kroku 3).
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 0.9.1), ZE ŹRÓDEŁ (sprawdzone 2026-11-14 w źródłach jądra 6.18.60 albo QEMU —
+z nazwą pliku), POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku — nie zakładać).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3.
+
+Właściciel — co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.0.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku — możesz też od razu dopisać odpowiedź.
+
+Nowy czat — przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
+  2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2 i 3 — także „Ustalenia
+     z wykonania” kroków wcześniejszych (mogą zmieniać to, co tu napisano).
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
+  5. Najpierw test, który pokazuje lukę, potem zmiana, potem ten sam test na zielono.
+  6. Nie wymyślaj nazw opcji jądra, wywołań KVM, pól virtio i zachowań — sprawdzaj w build/zrodla/linux-*/
+     (Documentation/virt/kvm/api.rst, include/uapi/linux/kvm.h, include/uapi/linux/virtio_*.h) i w specyfikacji
+     virtio 1.2 (OASIS, wolna). Punkt NIEPEWNE zamieniasz na POTWIERDZONE albo poprawiasz — w „Ustaleniach
+     z wykonania” swojego kroku.
+  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, pełny scripts/testy.sh
+     lokalnie (wszystko [OK]); przy zmianach w budowie także scripts/sprawdz-powtarzalnosc.sh. Testy stref w kontenerze
+     bez KVM idą w emulacji (T10) — wolno; czekaj poleceniem, nie rób w tym czasie innych wywołań (CLAUDE.md).
+  8. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, ZALEZNOSCI, WYGLAD, TESTY.md, SPEC (dopiski
+     [korekta: ADR …]). VERSION i CHANGELOG zmienia krok 3 (wydanie); kroki 1–2 zapisują „co widzi użytkownik”
+     w opisie PR-a.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
+     ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+Po 0.10.0 w menu Start jest Przeglądarka — prawdziwa, pełna przeglądarka internetowa (Firefox), z kartami i paskiem
+adresu. Działa w STREFIE: w osobnym, małym komputerze udawanym przez procesor (mikro-maszyna wirtualna), z własnym
+jądrem Linux. Jeśli jakaś strona zaatakuje przeglądarkę, zostaje zamknięta w tej strefie — nie dosięgnie Twoich plików,
+haseł ani reszty K1. Okno strefy ma kolorową ramkę rysowaną przez K1: po niej zawsze poznasz, że to, co w środku,
+pochodzi ze strefy, a nie z K1 (strona nie może tej ramki podrobić ani zasłonić).
+
+Sesje (Twoja decyzja D2): np. „Ogólna” i „Bank” pamiętają logowania, „Prywatna” zapomina wszystko po zamknięciu.
+Każda sesja to osobna strefa z własnym kolorem — strona otwarta w „Ogólnej” nie widzi tego, co robisz w „Banku”.
+
+Do internetu strefa nie dostaje własnej karty sieciowej: prosi K1 o połączenie ze stroną, a K1 łączy ją tylko z
+internetem (D3). Pliki ze strefy do Plików — dopiero w 0.11 (w 0.10.0 pobrane pliki zostają w strefie).
+
+Trzy kroki:
+  1. Pierwsza strefa: K1 uruchamia mikro-maszynę i pokazuje jej okno w zaufanej ramce; klawiatura i mysz działają
+     w środku. (Na razie z małym programem próbnym w środku — widać go w testach.)
+  2. Przeglądarka w strefie z internetem: obraz strefy z przeglądarką, połączenia przez K1, sesja jednorazowa.
+  3. Sesje, które pamiętają (stała strefa), przełączniki w Ustawieniach, porządki wersji — i wydanie 0.10.0.
+
+Na laptopach trzeba raz włączyć wirtualizację w BIOS-ie (D5) — bez niej K1 powie, że przeglądarka nie może ruszyć.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
+[ ]  1  Pierwsza strefa: KVM, VMM, okno w zaufanej ramce    S1–S11           0.9.1       D1 D4, T1–T6 T10 L        0042
+[ ]  2  Przeglądarka w strefie, połączenia przez K1         S12–S20          1           D2 D3 D6, T7–T9  L        0043
+[ ]  3  Stała strefa, Ustawienia, porządki; wydanie 0.10.0  S21–S25          2           D7, T11          L        —
+
+Dlaczego trzy, a nie dwa: krok 1 to cały fundament (jądro z KVM, własny VMM, nowa rola w ekranie, testy z emulowaną
+wirtualizacją), krok 2 to obcy świat (obraz z pakietów Debiana, kompozytor, przeglądarka) i nowa droga do internetu,
+krok 3 to dane (dysk strefy w skarbcu), Ustawienia i porządki MINOR (usunięcie formatu 1 skarbca — termin 0.10.0).
+Każdy z nich zajmuje pełny czat i pełne testy; dowolne dwa razem nie dałyby się rzetelnie przetestować w jednym PR-ze.
+Dlaczego nie więcej: ramka, wejście i testy idą razem z oknem, które pokazują; sesje razem z danymi, które pamiętają.
+
+
+3. KROKI
+--------
+
+KROK 1 — Pierwsza strefa: KVM, VMM, okno w zaufanej ramce                L · decyzje D1 D4, T1–T6 T10 · ADR 0042
+  Cel: K1 uruchamia mikro-maszynę wirtualną z własnym jądrem i pokazuje jej obraz jako okno na pulpicie — w ramce
+  rysowanej przez ekran K1, z klawiaturą i myszą przekazywanymi tylko wtedy, gdy okno ma fokus; awaria albo złośliwość
+  maszyny kończy tylko ją.
+  Na początku: D1 — szkice WSZYSTKICH widoków stref naraz (także tych z kroków 2–3), żeby kolejne kroki nie pytały
+  ponownie; D4 — zgoda na testy w emulacji.
+  Co widzi użytkownik (w testach; w wydaniu — dopiero przeglądarka z kroku 2): okno „Strefa próbna” w ramce w kolorze
+  strefy, z paskiem tytułu K1 (nazwa · „osobna maszyna”, minimalizuj, zamknij); w środku obraz rysowany przez program
+  w strefie, który reaguje na klawisze i mysz; zamknięcie okna wyłącza maszynę; gdy komputer nie ma wirtualizacji
+  (albo jest wyłączona w BIOS-ie) — komunikat zamiast okna (wg D1).
+  Zadania:
+  [ ] ADR 0042 „Strefy w K1” (szczegóły techniczne ADR 0020 p. 1 i 3): T1 VMM, T2 urządzenia i start gościa, T3 kto
+      co robi, T4 pamięć gościa i uściślenie niezmiennika 1 (oraz 2–4 dla jądra i obrazu strefy), T5 obraz strefy
+      w rdzeniu, T6 grafika, T10 testy; dopiski [korekta: ADR 0042] w SPEC §8 i §4; spis w docs/adr/README.md.
+  [ ] Jądro K1 (jadro/k1.config, każda linia z komentarzem): VIRTUALIZATION, KVM, KVM_INTEL, KVM_AMD, KVM_IOAPIC
+      (S1), MITIGATION_VMSCAPE wraca; bez KVM_SMM, KVM_HYPERV, KVM_XEN, X86_SGX_KVM, KVM_AMD_SEV; scripts/sprawdz-kspp.sh;
+      odstępstwa i nowy kod w jadro.md; rozmiar k1.efi przed/po w opisie PR-a.
+  [ ] Jądro strefy (S9): jadro/strefa.config na allnoconfig tych samych źródeł 6.18.60 (jedna wersja jądra), każda
+      linia z komentarzem, scripts/zbuduj-jadro.sh buduje oba (sprawdza oba fragmenty), powtarzalnie; bzImage strefy
+      w rdzeniu (/rdzen/strefy/jadro).
+  [ ] VMM `strefa` (T1, T2; src/strefa/, program system/strefa, log K1-STREFA): jeden proces = jedna mikro-maszyna;
+      KVM_CREATE_VM z fd /dev/kvm od nadzorcy (S2), pamięć gościa z memfd (S3), procesory w wątkach, start jądra
+      bezpośrednio (64-bitowy protokół startu Linuksa, bez BIOS-u i UEFI), urządzenia virtio-mmio: blk (obraz, tylko
+      odczyt), console (log gościa), rng, input (klawiatura, mysz bezwzględna), gpu 2D, vsock (kanał sterujący:
+      „gotowa”, „zamknij”); każda kolejka virtio sprawdzana pole po polu (niezmiennik 6: adresy i długości w pamięci
+      gościa, pętle w łańcuchach deskryptorów, limity) — zły deskryptor = koniec tej maszyny, nie K1. Małe pliki
+      (transport, każde urządzenie osobno, start, procesory), każdy ≤ 600 wierszy; części czyste (kolejki,
+      boot_params, tablice) testowane na hoście i fuzzowane.
+  [ ] Nadzorca (T3, S8): moduł strefy.c — tabela K1_STREFY (zasada czytelności 5: nazwa, numer, UID, obraz,
+      pamięć, procesory, kolor ramki, trwałość, tytuł; w kroku 1 jeden wiersz: strefa próbna — tylko w obrazie
+      testowym); start na prośbę gui (URUCHOM jak aplikacja), /dev/kvm otwierany przez nadzorcę (brak → komunikat dla
+      gui), fd obrazu i jądra strefy tylko do odczytu, kanał do ekranu (rola STREFA), sprzątanie po końcu, limit maszyn
+      naraz i pamięci (cgroup = pamięć gościa + zapas). Klatka KLATKA_STREFA w profile.c: ioctl tylko typu KVM (0xAE),
+      memfd, eventfd, wątki — każde z uzasadnieniem; osobny UID dla każdego wiersza tabeli.
+  [ ] Ekran (T6, S4): rola STREFA — okno bez własnej ramki: ramkę i pasek tytułu rysuje ekran (kolor z tabeli,
+      etykieta, przyciski), treść strefy tylko w środku (przycinana), pasek i ramka zawsze nad treścią; zmieniony
+      prostokąt od VMM; wejście: surowe kody klawiszy i położenie myszy względem treści idą do VMM tylko przy fokusie
+      (Super zawsze do powłoki); rozmiar okna do VMM (zmiana wyświetlacza w virtio-gpu). Domyka RYZYKA R26 dla stref.
+  [ ] Strefa próbna (tylko obraz testowy): program `gosc` (src/strefa/gosc/, nasz kod, statycznie z musl) jako init
+      w strefie: montowania, obraz przez DRM gościa (virtio-gpu, bufor „dumb”), echo wejścia (liczniki, nigdy kody
+      klawiszy w logu), „gotowa” i „zamykam” przez vsock; tryb złośliwy z linii poleceń (testy negatywne).
+      Ten sam `gosc` w kroku 2 uruchamia kompozytor i przeglądarkę.
+  [ ] gui: okno strefy na dolnym pasku i w Zasobach (pamięć maszyny), wg D1; menu Start bez zmian (przeglądarka
+      w kroku 2).
+  Testy i dowód (T10): host — test_virtio (kolejki, łańcuchy, granice pamięci), test_strefa_start (boot_params,
+  tablice), fuzz_virtq (ASan/UBSan, libFuzzer). Scenariusz QEMU scripts/test-strefa.sh: K1 w emulacji z wirtualizacją
+  AMD (S6, S7) → „Strefa próbna” → okno w ramce (zrzut: kolor ramki, wzór w środku, oba motywy), klik i klawisz
+  docierają do gościa (log), drugie okno K1 na wierzchu zasłania strefę, ramka nie znika pod treścią, zamknięcie →
+  maszyna kończy się, pamięć wraca (Zasoby). Negatywne: gość w trybie złośliwym (deskryptor poza pamięcią, pętla
+  deskryptorów, długość ponad limit, zapis do urządzenia tylko do odczytu) → kończy się tylko ta strefa, K1 żyje,
+  log z powodem; klatka VMM nie otworzy pliku ani gniazda sieciowego i nie dostanie innego urządzenia (t_proby);
+  K1 bez wirtualizacji (QEMU bez svm) → komunikat, nadzorca żyje; obraz produkcyjny bez strefy próbnej.
+  Rozmiar i powtarzalność obrazu.
+  Właściciel (po wydaniu w kroku 3): okno przeglądarki na X230 i IdeaPadzie (lista w DO_ZROBIENIA).
+  Dokumenty: ADR 0042, nowy opis usługi strefa w docs/komponenty/ (strefa.md: cel, granica zaufania, uprawnienia, kanały, urządzenia
+  virtio), nadzorca.md, ekran.md (rola STREFA, ramka), gui.md, jadro.md (KVM, jądro strefy), WYGLAD (wybór D1),
+  SLOWNIK (VMM, jądro strefy, obraz strefy, strefa próbna, wirtualizacja), RYZYKA (VMM w C to duża powierzchnia ataku —
+  klatka; błędy KVM w jądrze K1; VMSCAPE i podobne ataki procesora; R26 dla stref), TESTY.md, skill (mapa kodu).
+  Gotowe, gdy: scenariusz strefy próbnej i testy negatywne zielone, testy [OK], obraz powtarzalny.
+  Ustalenia z wykonania: (pusto — wypełnia krok 1)
+
+KROK 2 — Przeglądarka w strefie, połączenia przez K1                    L · decyzje D2 D3 D6, T7–T9 · ADR 0043
+  Cel: w menu Start jest Przeglądarka; otwiera Firefoksa w osobnej strefie (na razie jednorazowej — sesje, które
+  pamiętają, w kroku 3); strony z internetu działają przez K1, który łączy strefę tylko tam, gdzie pozwala D3.
+  Na początku: S12 — POMIAR rozmiaru obrazu przeglądarki, zanim powstanie cokolwiek innego (od niego zależy T7 i T8);
+  D2, D3, D6.
+  Co widzi użytkownik: Start → Przeglądarka → okienko „Uruchamiam przeglądarkę…” (wg D1) → okno Firefoksa w ramce
+  w kolorze sesji, po polsku, strona startowa; strony otwierają się, pisanie w polach i kliknięcia działają; bez
+  internetu — strona błędu przeglądarki; strona w sieci domowej (poza routerem, D3) — nie otwiera się. Zamknięcie
+  okna — wszystko z tej sesji znika (jednorazowa). W Ustawieniach → Sieć napis „Aplikacje nie mają jeszcze dostępu do
+  internetu.” znika.
+  Zadania:
+  [ ] ADR 0043 „Przeglądarka w strefie i połączenia stref”: T7 kompozytor, T8 silnik i jego ustawienia, T9 sieć stref
+      (łącznik, DNS, zakresy adresów wg D3), obraz z pakietów Debiana (S13), licencje (S18), łatki (S19); dopiski
+      w SPEC §8 (sieć, obraz).
+  [ ] Obraz strefy z przeglądarką (S12–S14): jedna tabela pakietów Debiana 13 (np. strefy/przegladarka.txt: pakiet,
+      wersja, suma SHA-256) i skrypt scripts/zbuduj-strefe.sh: pobiera .deb, sprawdza podpis InRelease (klucz archiwum
+      Debiana w repo) i sumy, rozpakowuje bez uruchamiania skryptów pakietów, usuwa dokumentację i zbędne języki,
+      dokłada nasze programy (`gosc`, kompozytor, przekaźnik), robi SquashFS powtarzalnie (SOURCE_DATE_EPOCH, stała
+      kolejność); wynik w rdzeniu (/rdzen/strefy/przegladarka.img). Skrypt odświeżenia tabeli (najnowsze wersje
+      z debian-security). Rozmiar k1.efi i ISO w opisie PR-a.
+  [ ] Kompozytor strefy (T7, S15): mały kompozytor Wayland w C w strefie (jedno okno na cały ekran, wl_shm,
+      xdg-shell z wyskakującymi menu, klawiatura z gotową mapą PL, mysz) na wyświetlaczu virtio-gpu z kroku 1.
+  [ ] Firefox (T8): uruchamiany przez `gosc` wprost (bez skryptu startowego), ustawienia w policies.json: pośrednik
+      SOCKS5 z nazwami po stronie K1, bez aktualizacji i telemetrii, strona startowa, polski interfejs; programowe
+      rysowanie; sandbox Firefoksa na przestrzeniach nazw jądra strefy (S9).
+  [ ] Sieć stref (T9, S16): DHCP — opcja 6 (serwery DNS) w siec i dalej do nadzorcy; przekaźnik w strefie
+      (127.0.0.1:1080 → vsock); VMM przekazuje każde połączenie vsock do łącznika jako osobny koniec gniazda;
+      usługa `lacznik` (src/lacznik/, jedna na strefę, klatka bez sieci): SOCKS5 sprawdzany pole po polu, DNS (tylko
+      rekordy A, losowy identyfikator, sprawdzenie pytania w odpowiedzi), prośba do nadzorcy o połączenie TCP;
+      nadzorca: zakres adresu wg D3, limit połączeń, otwiera gniazdo i daje deskryptor (ADR 0039 bez zmian: gniazda
+      tylko u nadzorcy). W logach tylko liczniki — nigdy nazwy stron ani adresy (niezmiennik 8).
+  [ ] Tabela K1_STREFY: wiersze sesji wg D2 (w kroku 2 działa sesja jednorazowa; stałe — w kroku 3 pokazane jako
+      jednorazowe albo ukryte — wybór w kroku); gui: Przeglądarka w menu Start (ikona K1_IK_PRZEGLADARKA w k1_rysuj.c,
+      wg D1), na pasku, sesje pod prawym przyciskiem wg D2; nadzorca: za mało wolnej pamięci → komunikat (D6).
+  Testy i dowód: host — test_lacznik (SOCKS5: wszystkie odpowiedzi błędów, długości, zarezerwowane bajty), test_dns,
+  fuzz_socks, fuzz_dns. Scenariusz QEMU scripts/test-przegladarka.sh (S17, S20): K1 w sieci QEMU z routerem testowym →
+  Start → Przeglądarka → strona testowa z serwera na „routerze” (duże kolorowe pola — zrzut), wpisanie tekstu
+  w formularzu → serwer testowy go dostaje; adres w sieci domowej inny niż router → odmowa (nadzorca liczy odmowę);
+  zamknięcie → maszyna kończy się, ponowne otwarcie nie pamięta poprzedniej strony. Negatywne: złośliwy klient SOCKS
+  (program testowy w roli przekaźnika: zła wersja, zły typ adresu, IPv6, nazwa ponad 255 bajtów, BIND/UDP) →
+  odmowa, łącznik żyje; złośliwa odpowiedź DNS (inny identyfikator, inne pytanie, wskaźniki w pętli) → odrzucona;
+  łącznik w klatce nie otworzy gniazda sam (t_proby); żadna nazwa strony ani adres w logu (test przeszukuje log).
+  Właściciel (po wydaniu): przeglądanie stron na obu laptopach (lista w DO_ZROBIENIA).
+  Dokumenty: ADR 0043, nowy opis usługi łącznik w docs/komponenty/ (lacznik.md), strefa.md (obraz, przekaźnik, kompozytor), siec.md
+  (opcja 6), nadzorca.md, aplikacje.md / gui.md (Przeglądarka w menu), ZALEZNOSCI (Debian 13, Firefox ESR, biblioteki
+  obrazu, libwayland — S18), RYZYKA (stara przeglądarka bez łatek, DNS bez szyfrowania, łącznik, znak towarowy),
+  SLOWNIK (przeglądarka, łącznik, obraz strefy, przekaźnik), TESTY.md, WYGLAD.
+  Gotowe, gdy: scenariusz przeglądarki i testy negatywne zielone, testy [OK], obraz powtarzalny i mieści się
+  w miejscu A/B.
+  Ustalenia z wykonania: (pusto — wypełnia krok 2)
+
+KROK 3 — Stała strefa, Ustawienia, porządki; wydanie 0.10.0               L · decyzje D7, T11 · bez ADR (uzupełnia 0042)
+  Cel: sesje, które mają pamiętać (D2), pamiętają — logowania, zakładki i historia zostają po zamknięciu i po ponownym
+  starcie K1, zaszyfrowane w skarbcu; w Ustawieniach przełącznik stała/jednorazowa (ADR 0020 p. 2); porządki MINOR;
+  wydanie 0.10.0.
+  Co widzi użytkownik: sesja „Ogólna” po zamknięciu i ponownym otwarciu pamięta zalogowanie i zakładki; „Prywatna” nie;
+  Ustawienia → Aplikacje: przy Przeglądarce sesje i przełącznik „stała / jednorazowa” (zmiana działa od następnego
+  otwarcia), „Wyczyść dane sesji”, stan wirtualizacji („włączona” / „wyłączona w BIOS-ie”); Ustawienia → Miejsce:
+  część „Strefy” (ile zajmują sesje).
+  Zadania:
+  [ ] Dysk strefy (T11, S21): drugie urządzenie virtio-blk do zapisu w VMM, dane w skarbcu jako obiekt w kawałkach
+      (ADR 0034, format 2) właściciela-strefy (profil wiersza K1_STREFY), przez kanał skarbca jak u aplikacji
+      (k1_skarb_klient); pamięć podręczna kawałków w VMM, zapis przy FLUSH gościa i co kilka sekund, limit wielkości
+      sesji; w strefie system plików z dziennikiem (nieczyste wyłączenie naprawia gość); „Wyczyść dane sesji” = usunięcie
+      obiektów. Część „Strefy” w K1_CZESCI (Ustawienia → Miejsce).
+  [ ] Ustawienia → Aplikacje (S23): sekcja przeglądarki — sesje z kolorami, przełącznik trwałości, wyczyszczenie,
+      stan wirtualizacji; zapis wyboru (ustawienia ekranu albo obiekt nadzorcy — wybór w kroku, jedna tabela).
+  [ ] Porządki MINOR (zasada czytelności 2; S22, S24): usunięcie formatu 1 skarbca (src/skarbiec/obszary.c, przejscie.c,
+      testy magazyn_testowy, test_magazyn, test_przejscie) — termin 0.10.0, warunek D7; przegląd: kandydaci do
+      usunięcia i scalenia (stare formaty ustawień ekranu K1U1–K1U3, komentarze „M8/M11” w kodzie i jadro/k1.config,
+      pliki blisko limitu po krokach 1–2), terminy „Tymczasowe”, R26/R50/R54 w RYZYKA (zaufana ramka — co zamknięte),
+      statusy ADR 0020/0024/0025 („częściowo wdrożony”); wynik w CHANGELOG („Porządki”).
+  [ ] Wydanie: VERSION 0.10.0; CHANGELOG (Dodane / Zmienione / Porządki); DO_ZROBIENIA.txt — „Teraz” → następna wersja
+      tematu 0.10 (0.10.1…: „Nie w tej wersji” niżej), lista testów na X230 i IdeaPadzie dla 0.10.0 (wirtualizacja
+      w BIOS-ie, otwarcie przeglądarki, strony, sesje, pamiętanie po ponownym starcie, Prywatna zapomina, aktualizacja
+      z 0.9.1 przez Instalator, czas startu przeglądarki); ten plik → docs/archiwum/. Po scaleniu: CI, tag k1-v0.10.0,
+      wydanie; raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
+  Testy i dowód: host — test_dysk_strefy (kawałki, pamięć podręczna, granice, przepełnienie limitu). Scenariusz QEMU
+  (test-przegladarka.sh): sesja stała — strona testowa ustawia ciasteczko → zamknięcie → ponowne otwarcie: serwer
+  testowy dostaje ciasteczko; ponowny start K1 z tym samym K1-DANE: dalej je dostaje; sesja jednorazowa: nie dostaje;
+  „Wyczyść dane sesji”: nie dostaje; przełącznik w Ustawieniach działa od następnego otwarcia. Negatywne: gość pisze
+  poza dyskiem / ponad limit → odmowa, strefa żyje albo kończy się, skarbiec żyje; jedna sesja nie odczyta dysku
+  drugiej (inny właściciel w skarbcu — test w systemie); przerwanie zasilania w trakcie zapisu (wzór test-m5f) →
+  po starcie sesja otwiera się. Testy formatu 1 odchodzą razem z kodem — reszta testów skarbca zielona.
+  Właściciel (po wydaniu): lista testów w DO_ZROBIENIA.
+  Dokumenty: strefa.md, skarbiec.md (dysk strefy), aplikacje.md (Ustawienia → Aplikacje, Miejsce), ADR 0042
+  (uzupełnienie: dysk strefy), RYZYKA, SLOWNIK (dysk strefy, dane sesji), TESTY.md, CHANGELOG, README (wirtualizacja
+  w BIOS-ie), skill.
+  Gotowe, gdy: testy zielone, wydanie k1-v0.10.0 istnieje, raport z linkami.
+  Ustalenia z wykonania: (pusto — wypełnia krok 3)
+
+
+4. DECYZJE
+----------
+Twoje (produkt):
+[!] D1 (krok 1) Wygląd stref — szkice do wyboru NA POCZĄTKU KROKU 1, wszystkie naraz (narysowane częściami K1, oba
+       motywy): ramka okna strefy i pasek tytułu rysowany przez K1, kolory sesji, wygląd przy sesji jednorazowej,
+       okienko „Uruchamiam przeglądarkę…”, komunikat „brak wirtualizacji”, ikona Przeglądarki w menu Start i na pasku,
+       sekcja przeglądarki w Ustawieniach → Aplikacje.
+       Rekomendacja: ramka 4 px w kolorze sesji wokół całego okna i pasek tytułu K1 w tym samym kolorze z etykietą
+       „Przeglądarka · Ogólna · osobna maszyna”; sesja jednorazowa — ten sam pasek z dopiskiem „zapomina po
+       zamknięciu”; nazwa w menu „Przeglądarka” z ikoną K1 (globus liniowy), bez logo Firefoksa (S18).
+[!] D2 (krok 2; pytanie z DO_ZROBIENIA punkt 5) Sesje przeglądarki. Rekomendacja: trzy — „Ogólna” (pamięta;
+       otwiera się z menu Start), „Bank” (pamięta; tylko do banku i urzędów), „Prywatna” (zapomina po zamknięciu);
+       inne sesje pod prawym przyciskiem na ikonie Przeglądarki. Każda ma swój kolor (D1). Własne sesje (dodawanie,
+       nazwy) — później.
+[!] D3 (krok 2) Gdzie strefa może się łączyć. Rekomendacja: internet i Twój router (jego strona ustawień i strony
+       logowania w hotelach/kawiarniach, które często są pod adresem routera); inne urządzenia w domu (drukarka, dysk
+       sieciowy, telewizor) — zablokowane, bo złośliwa strona mogłaby je atakować z wnętrza Twojej sieci. Tylko
+       połączenia zwykłych stron (TCP): rozmowy wideo w przeglądarce mogą nie działać (K1 i tak nie ma jeszcze dźwięku
+       ani kamery).
+[!] D4 (krok 1; pytanie z DO_ZROBIENIA punkt 5) Testy stref bez KVM. Rekomendacja: Twój komputer NIE jest potrzebny —
+       QEMU umie udawać wirtualizację AMD także w emulacji (ZE ŹRÓDEŁ, T10), więc testy stref idą lokalnie i w CI,
+       tylko wolniej. Jeśli krok 1 pokaże, że to za wolne (S6, S7) — wtedy wrócimy do runnera na Twoim komputerze.
+[!] D5 (działanie przed testami 0.10.0 na sprzęcie) Włącz wirtualizację w BIOS-ie (raz, przy starcie komputera):
+       X230 — F1 → Security → Virtualization → „Intel Virtualization Technology” i „Intel VT-d Feature”: Enabled;
+       IdeaPad 110 — F2 → Configuration → „Intel Virtual Technology”: Enabled. (Nazwy w menu mogą się nieco różnić;
+       VT-d chroni też przed kartami z dostępem do pamięci — RYZYKA, ADR 0041.)
+[!] D6 (krok 2) Informacja: ile pamięci (RAM) ma IdeaPad 110-15ISK — Zasoby → Pamięć. Przeglądarka w strefie bierze
+       ok. 1,5 GB; na 4 GB zmieści się jedna sesja naraz, na 8 GB (X230) — dwie–trzy. K1 nie otworzy kolejnej sesji,
+       gdy zabrakłoby pamięci, tylko powie dlaczego.
+[!] D7 (krok 3) Usunięcie formatu 1 skarbca (termin 0.10.0, DO_ZROBIENIA punkt 6). Pytanie: czy masz pendrive albo
+       dysk z K1 nagranym wersją 0.5.6–0.8.1, którego od tamtej pory nie uruchamiałeś? Jeśli tak — uruchom go raz
+       z 0.9.1 przed wydaniem 0.10.0 (inaczej jego dane się nie otworzą). Rekomendacja: usunąć w 0.10.0.
+
+Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
+    T1 VMM (krok 1): własny, mały VMM w C (`strefa`), statycznie z naszym musl i flagami SPEC §11. Powód: pasuje do
+       wzoru K1 — urządzenie (/dev/kvm) otwiera nadzorca i daje deskryptor, VMM nie dostaje żadnej ścieżki, klatka
+       z białą listą wywołań; robi tylko to, czego potrzebujemy (kilka urządzeń virtio); testy z ASan i fuzzing jak
+       reszta kodu. Rozważone: Firecracker i Cloud Hypervisor (Rust; bez wyświetlacza i wejścia), crosvm (ma wszystko,
+       także przyszłą szybką grafikę, ale ok. 300 tys. wierszy Rust z minijail i ścieżkami — nie da się go zamknąć
+       w naszym wzorze bez dużych łatek), QEMU i kvmtool (C, ale ogromne i nie pod klatkę). Szybka grafika (virgl,
+       Venus) zostaje na później — wtedy ponowna ocena crosvm jako pośrednika w osobnej klatce (ADR 0020 p. 2).
+    T2 Urządzenia i start gościa (krok 1): start jądra strefy wprost (protokół startu Linuksa x86-64, bez firmware),
+       urządzenia virtio-mmio opisane w linii poleceń gościa (VIRTIO_MMIO_CMDLINE_DEVICES — ZE ŹRÓDEŁ:
+       drivers/virtio/Kconfig), przerwania w jądrze (KVM_CREATE_IRQCHIP, PIT) z irqfd/ioeventfd (EVENTFD jest w K1).
+       Urządzenia: blk tylko do odczytu (obraz), console, rng (losowość dla TLS w strefie), input ×2, gpu 2D, vsock;
+       krok 3 — blk do zapisu (dysk strefy). Bez karty sieciowej, bez PCI, bez dźwięku, bez USB. Procesory i
+       wyłączenie bez ACPI — S10.
+    T3 Kto co robi (krok 1; jak T3 w Wi-Fi): nadzorca — /dev/kvm (fd), fd obrazów tylko do odczytu, kanały, limity,
+       start i koniec maszyny; VMM w klatce (UID wiersza K1_STREFY) — wszystko, co przychodzi od gościa (kolejki virtio,
+       obraz, zdarzenia); ekran — okno, ramka, wejście; łącznik (krok 2) — protokół połączeń strefy; skarbiec (krok 3) —
+       dysk strefy. ZE ŹRÓDEŁ (virt/kvm/kvm_main.c, kvm_vm_ioctl: kvm->mm != current->mm → EIO): maszyna KVM należy do
+       procesu, który ją stworzył — więc tworzy ją sam VMM, nadzorca daje tylko fd /dev/kvm.
+    T4 Pamięć gościa i niezmienniki (krok 1): pamięć gościa to memfd bez prawa wykonania (vm.memfd_noexec=2 zostaje),
+       zmapowana w VMM do odczytu i zapisu, nigdy wykonywana przez K1 — wykonuje ją tylko procesor w trybie gościa
+       (EPT/NPT). ADR 0042 uściśla: niezmienniki 1–4 dotyczą świata natywnego; w strefie (inne jądro, granica sprzętowa)
+       wolno JIT (Firefox), jądro strefy ma własny fragment konfiguracji z tymi samymi zasadami opisu (każda linia
+       z komentarzem), a obce programy w obrazie strefy nie podlegają flagom SPEC §11 (nasze programy w strefie — tak).
+    T5 Obraz strefy (krok 1, rozmiar — krok 2): SquashFS w rdzeniu (/rdzen/strefy/…). Powód: dm-verity rdzenia obejmuje
+       go bez nowego kodu, działa tak samo z ISO, pendrive'a i dysku, aktualizacja A/B i podpis bez zmian. Koszt: rdzeń
+       jest w pamięci (k1.rdzen=wbudowany — Z KODU: src/initramfs/main.c) i miejsce A/B ma 128 MiB (k1.efi 14,9 MB
+       w 0.9.1) — więc obrazy stref razem ≤ ok. 105 MiB i tyle więcej pamięci zajętej (S12). Inne miejsca (osobna
+       partycja, pobieranie obrazów) zmieniają układ dysku albo wymagają TLS w K1 — później, z ADR (najpóźniej 0.12,
+       razem z decyzją o GRUB-ie).
+    T6 Grafika w pełnej izolacji (krok 1): virtio-gpu tylko 2D. Gość rysuje procesorem do swojej pamięci; po każdej
+       zmianie VMM kopiuje zmieniony prostokąt do memfd okna (zapieczętowany, dokładny rozmiar — jak dziś u aplikacji)
+       i zgłasza go ekranowi; ekran mapuje tylko do odczytu. Jedna kopia na klatkę, ekran składa tylko przy zmianie
+       (oszczędność energii z 0.8.6 zostaje). Rozmiar okna → zdarzenie zmiany wyświetlacza w virtio-gpu.
+    T7 Kompozytor strefy (krok 2): rekomendacja — własny mały kompozytor Wayland w C (statycznie; libwayland-server —
+       MIT, wpis ZALEZNOSCI) zamiast cage/weston: tamte w Debianie ciągną mesa z LLVM (dziesiątki MB — S12), a nam
+       wystarczy jedno okno na cały ekran. Ostatecznie po pomiarze S12 i S15 — jeśli cage się zmieści i jest prostszy,
+       cage (wybór zapisany w ADR 0043).
+    T8 Silnik (krok 2; „Firefox czy WPE” z DO_ZROBIENIA punkt 7): Firefox ESR z Debiana 13 — pełna przeglądarka
+       z kartami, paskiem adresu i ustawieniami. WPE nie ma własnego okna (cog to „kiosk” bez paska adresu), więc
+       WPE zostaje silnikiem przyszłej Przeglądarki K1 (ADR 0025), gdzie okno rysuje K1. Sandbox Firefoksa działa na
+       przestrzeniach nazw w jądrze strefy (nie K1 — jądro K1 dalej bez USER_NS). Aktualizacje Firefoksa przychodzą
+       z wydaniem K1 (S19).
+    T9 Sieć stref (krok 2): strefa bez karty sieciowej; Firefox → SOCKS5 (RFC 1928) na 127.0.0.1 w strefie →
+       przekaźnik → vsock → VMM → łącznik (jeden na strefę, osobny UID: błąd w łączniku jednej sesji nie widzi ruchu
+       innej) → prośba do nadzorcy o połączenie TCP → nadzorca sprawdza adres (D3), otwiera, daje fd. Nazwy stron
+       zamienia na adresy łącznik (DNS do serwera od routera), więc strefa nie potrzebuje DNS ani adresu w sieci
+       domowej. Szyfrowanie (TLS) robi przeglądarka w strefie — K1 widzi tylko adres i port. SOCKS5 zamiast pośrednika
+       HTTP: protokół binarny, mały, łatwy do sprawdzenia pole po polu.
+    T10 Testy stref (krok 1): QEMU w emulacji (TCG) z `-cpu max` udaje procesor AMD z wirtualizacją SVM i NPT —
+       ZE ŹRÓDEŁ (QEMU target/i386/cpu.c: TCG_EXT3_FEATURES z CPUID_EXT3_SVM, TCG_SVM_FEATURES z CPUID_SVM_NPT, w TCG
+       domyślnie vendor AMD; target/i386/tcg/system/svm_helper.c obsługuje NPT) — więc jądro K1 z KVM_AMD uruchomi
+       strefę w kontenerze bez KVM. W CI (runner z /dev/kvm, -cpu host) najpierw zagnieżdżona wirtualizacja; gdy runner
+       jej nie da (S7) — ta sama emulacja dla testów stref. Strefa próbna (krok 1) jest mała i nie zależy od przeglądarki.
+    T11 Dysk strefy (krok 3): obiekt skarbca w kawałkach (ADR 0034/0036), właściciel = wiersz K1_STREFY, zapis kawałkami
+       z pamięcią podręczną w VMM; bez własnego szyfrowania w VMM (szyfruje skarbiec, jak wszystko). Wydajność — S21.
+
+
+5. LUKI (z czytania kodu 0.9.1 i źródeł jądra 6.18.60 / QEMU, 2026-11-14)
+------------------------------------------------------------------------
+Waga: WYSOKA (blokuje krok), ŚREDNIA, NISKA.
+
+Krok 1
+  S1  ZE ŹRÓDEŁ (arch/x86/kvm/Kconfig, arch/x86/Kconfig). Jądro K1 nie ma KVM (jadro/k1.config: „MITIGATION_VMSCAPE
+      zależy od KVM — wróci w M11”). KVM zależy od X86_LOCAL_APIC; KVM_INTEL od IA32_FEAT_CTL; KVM_AMD od CPU_SUP_AMD
+      (czy CPU_SUP_AMD jest dziś włączony przez allnoconfig — NIEPEWNE, sprawdzić w .config); KVM_X86 wybiera m.in.
+      PERF_EVENTS (już wymuszone), VHOST_TASK, KVM_VFIO, KVM_GUEST_MEMFD, KVM_MMIO. KVM_IOAPIC (nowa w 6.18, bool
+      z „default y”) — allnoconfig ją wyłączy, a bez niej nie ma przerwań w jądrze: dopisać wprost. KVM_SMM, KVM_HYPERV
+      (default y), KVM_XEN, X86_SGX_KVM, KVM_AMD_SEV — zostają wyłączone (mniej kodu). MITIGATION_VMSCAPE (default y,
+      depends on KVM) wraca sam — sprawdzić w .config.
+  S2  ZE ŹRÓDEŁ (virt/kvm/kvm_main.c). KVM_GET_VCPU_MMAP_SIZE jest tylko na fd /dev/kvm (kvm_dev_ioctl) — VMM trzyma
+      ten fd. Seccomp nie widzi, na jakim fd jest ioctl — biała lista po numerze (typ 0xAE) wystarcza, bo klatka nie
+      ma innych urządzeń KVM; opis w profile.c. /dev/kvm w K1 — czy węzeł jest w /rdzen/jadro/dev bez zmian
+      (devtmpfs) — NIEPEWNE.
+  S3  NIEPEWNE, WYSOKA. Pamięć gościa z memfd przy vm.memfd_noexec=2: czy KVM_SET_USER_MEMORY_REGION przyjmuje
+      mapowanie bez PROT_EXEC (oczekiwane: tak — strony gościa idą przez EPT/NPT, nie przez prawo wykonania w VMM) —
+      pierwsza próba kroku. Zapas: anonimowa pamięć (mmap MAP_ANONYMOUS) — wtedy bez współdzielenia z innymi.
+  S4  Z KODU. Ekran ma role (aplikacja, powłoka, logowanie, wejście); okna aplikacji rysują własne paski tytułu
+      (RYZYKA R26). Rola STREFA jest nowa: ramka i pasek z ekranu, treść przycinana do środka. Pliki ekranu: okna.c
+      396, scena.c 326, drm.c 304 wierszy — ramka i wejście strefy w osobnych plikach (np. strefy.c w ekranie).
+  S5  Z KODU. Wejście: aplikacje K1 dostają klawisze i same tłumaczą układ PL (przybornik); strefa potrzebuje surowych
+      kodów evdev dla virtio-input i mapy PL po stronie gościa. Mysz: położenie bezwzględne (urządzenie „tablet”
+      virtio-input), przeliczane na rozmiar treści. Kody klawiszy nigdy w logu (niezmiennik 8).
+  S6  NIEPEWNE. Prędkość strefy w TCG z emulowaną SVM: start jądra strefy i strefy próbnej — zmierzyć; budżet testu
+      kroku 1 ≤ 5 min. Za wolno → D4 wraca do właściciela.
+  S7  NIEPEWNE. CI: runner GitHub sam jest maszyną wirtualną; czy K1 w QEMU-KVM z -cpu host dostanie zagnieżdżoną
+      wirtualizację (VMX/SVM) — sprawdzić etykietą `testy` na PR-ze kroku 1; jeśli nie — testy stref w CI w TCG.
+  S8  Z KODU. Nadzorca: usługi NA_PROSBE (dekoder — jednorazowy proces) to wzór, ale strefa ma wiele instancji
+      (sesje) — osobna tabela K1_STREFY i moduł strefy.c; uslugi.c ma 514 wierszy — nie rozbudowywać go (podział
+      wcześniej, jeśli trzeba). Numery profili: wolny od 19 (zajęte 1–18; numery się nie zmieniają).
+  S9  ZE ŹRÓDEŁ (drivers/virtio/Kconfig, drivers/gpu/drm/virtio/Kconfig, net/vmw_vsock/Kconfig). Jądro strefy:
+      VIRTIO_MMIO + VIRTIO_MMIO_CMDLINE_DEVICES, VIRTIO_BLK, VIRTIO_CONSOLE, HW_RANDOM_VIRTIO, VIRTIO_INPUT (+ INPUT,
+      INPUT_EVDEV), DRM_VIRTIO_GPU (wybiera DRM_KMS_HELPER, DRM_GEM_SHMEM_HELPER), VSOCKETS + VIRTIO_VSOCKETS (tylko
+      w strefie; po stronie K1 vsock robi VMM w przestrzeni użytkownika — bez VHOST_VSOCK w jądrze K1), SQUASHFS,
+      OVERLAY_FS, TMPFS, KVM_GUEST (zegar od K1), USER_NS i SECCOMP (sandbox Firefoksa — krok 2). Nazwy opcji spoza tej
+      listy — sprawdzić w Kconfig w kroku.
+  S10 NIEPEWNE. Bez ACPI: procesory gościa z tablicy MP (jak Firecracker), wyłączenie gościa — reset przez kontroler
+      klawiatury i8042 przechwycony w VMM (jak Firecracker) — sprawdzić w arch/x86/kernel/mpparse.c i reboot.c.
+      Twardy limit: VMM kończy maszynę po 10 s od „zamknij”, jeśli gość sam się nie wyłączy.
+  S11 Z KODU. Zasoby i dolny pasek biorą procesy i okna z tabel (K1_SYSTEM, K1_APLIKACJE) — wiersze K1_STREFY muszą
+      się tam pojawić tym samym wzorem (Zasoby: pamięć maszyny).
+
+Krok 2
+  S12 NIEPEWNE, WYSOKA. Rozmiar obrazu przeglądarki: Firefox ESR + GTK3 + czcionki (DejaVu, IBM Plex) + nasze programy,
+      SquashFS xz ≤ ok. 105 MiB (T5) — ZMIERZYĆ NAJPIERW. Za duży → odchudzić (dokumentacja, man, języki poza pl/en,
+      motywy ikon); dalej za duży → decyzja w ADR 0043 (np. większe miejsca A/B — zmiana układu K1-EFI, czyli
+      Instalatora i aktualizacji). Także pamięć: rdzeń w RAM rośnie o rozmiar obrazu.
+  S13 NIEPEWNE. Obraz z .deb bez skryptów pakietów: co zrobić zamiast nich (glib-compile-schemas, fontconfig, moduły
+      gdk-pixbuf, ścieżki ld.so) — w budowie albo przy starcie gościa. Powtarzalność: deb.debian.org trzyma tylko
+      bieżące wersje — zapas snapshot.debian.org (czy dostępny z CI i z kontenera Claude — NIEPEWNE); podpis InRelease
+      sprawdzany kluczem archiwum Debiana zapisanym w repo.
+  S14 NIEPEWNE. Obraz strefy bez powłoki (obrona w głąb; debianowy „firefox-esr” to skrypt — `gosc` uruchamia plik
+      binarny wprost): czy Firefox albo GTK wołają /bin/sh przy zwykłej pracy.
+  S15 NIEPEWNE. Których interfejsów Wayland Firefox naprawdę potrzebuje (wl_subsurface, xdg_popup, xdg-decoration,
+      wl_data_device, wp_viewporter…) i czy programowe rysowanie działa bez mesa — sprawdzić z logiem Firefoksa.
+  S16 Z KODU. K1 nie ma DNS (src/siec/czas.h: „K1 has no DNS”); DHCP prosi o maskę, router, dzierżawę, T1, T2 i serwery
+      czasu (src/siec/dhcp.c, opcja 55) — dopisać opcję 6 (serwery DNS), sprawdzanie i przekazanie (tylko adresy).
+  S17 NIEPEWNE. Test przeglądarki w QEMU: sieć testowa (k1siec.py) mówi ramkami, a strony potrzebują TCP — rekomendacja:
+      w tym teście sieć QEMU -netdev user (router 10.0.2.2 = serwer testowy w Pythonie na hoście, DNS 10.0.2.3);
+      router jest dozwolony wg D3, więc test nie potrzebuje wyjątku. DNS przez QEMU w kontenerze bez internetu —
+      NIEPEWNE (zapas: strona testowa po adresie, DNS sprawdzany testami na hoście).
+  S18 ŚREDNIA. Licencje i znaki: Firefox — MPL 2.0, nazwa i logo to znaki Mozilli (w K1: „Przeglądarka” z ikoną K1,
+      niezmieniony program Debiana z policies.json — sprawdzić zasady Mozilli dla takiej dystrybucji); biblioteki
+      LGPL/GPL z Debiana — przy wydaniu lista pakietów źródłowych z wersjami i źródła (albo oferta) zgodnie z licencją —
+      sprawdzić wymagania. Wpis ZALEZNOSCI.
+  S19 ŚREDNIA (bezpieczeństwo). Firefox ESR dostaje poprawki bezpieczeństwa co ok. 4 tygodnie, w K1 — tylko z nowym
+      wydaniem. RYZYKA + skrypt odświeżenia tabeli pakietów; poprawka samej przeglądarki = PATCH 0.10.x.
+  S20 NIEPEWNE. Czas testu przeglądarki w TCG z emulowaną SVM (start Firefoksa) — zmierzyć; jeśli przekracza rozsądny
+      budżet (ok. 15 min), scenariusz pełny tylko w CI z zagnieżdżonym KVM, lokalnie skrócony — decyzja w kroku,
+      z zapisem w TESTY.md (żaden test nie jest pomijany po cichu).
+
+Krok 3
+  S21 Z KODU / NIEPEWNE. Skarbiec ma duże dane w kawałkach (ADR 0034, format 2 — odcinki i spis, 0.8.2); dysk strefy
+      (np. 1–2 GiB, kawałki po 1 MiB) — zapis 4 KiB gościa oznacza przepisanie kawałka: wydajność i zużycie miejsca —
+      zmierzyć; kompaktowanie krokami (przerwy.c) przy dużych zmianach.
+  S22 Z KODU. Format 1 skarbca: src/skarbiec/obszary.c, przejscie.c; testy magazyn_testowy, test_magazyn,
+      test_przejscie; termin 0.10.0 (DO_ZROBIENIA punkt 6) — warunek D7.
+  S23 Z KODU. Ustawienia → Aplikacje istnieje (src/aplikacje/ustawienia/aplikacje.c: czym otwierać pliki) — sekcja
+      przeglądarki dochodzi tam (ADR 0020 p. 2, ADR 0027 p. 6). Zapis wyborów: nadzorca musi go znać przy starcie
+      strefy — kto go trzyma, wybór w kroku.
+  S24 Z KODU. Do przeglądu przy porządkach: odczyt starych ustawień ekranu K1U1–K1U3 (src/ekran/zapis.c), komentarze
+      „M8/M11” (jadro/k1.config, kod), pliki blisko 600 wierszy po krokach 1–2 (dziś m.in. src/przybornik/k1_rysuj.c
+      537 — nowa ikona Przeglądarki), RYZYKA R26, R50, R54.
+  S25 Z KODU. Aktualizacja z 0.9.1: nowy rdzeń jest większy (obraz strefy), miejsce A/B to 128 MiB — test aktualizacji
+      (test-m6) z rozmiarem k1.efi bliskim granicy; Instalator odmawia, gdy k1.efi się nie mieści (sprawdzić, że tak).
+
+
+6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
+-----------------------------------------------------------------------------------
+    Następne wersje tematu 0.10 (PATCH, każda z własnym planem): szybki start (zamrożony stan, zapasowa czysta maszyna),
+    oddawanie pamięci (balon), wspólny obraz bazowy w pamięci raz dla wielu stref; wspólna strefa na drobne aplikacje
+    (ADR 0024); przełącznik grafiki (szybka grafika przez pośrednika — virgl/Venus, ADR 0020 p. 2); Przeglądarka K1
+    (okno i pasek adresu K1, silnik WPE w strefie — ADR 0025); własne sesje (dodawanie, nazwy, kolory).
+    0.11: pobrane pliki do Plików i pliki do strefy, schowek między strefami (ADR 0027).
+    Później: dźwięk, kamera i mikrofon w strefie; WebRTC/UDP; DNS szyfrowany; IPv6; obrazy stref poza rdzeniem
+    (pobierane, podpisane); inne obce aplikacje (Discord, Steam); strefy na laptopach bez wirtualizacji (nie będzie —
+    tylko komunikat).
