@@ -237,7 +237,9 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   usb-storage pokazuje dysk po ~1 s; na X230 pendrive potrafi zniknąć i wrócić (EHCI → xHCI) — K1-DANE
   szukamy też po starcie.
 - *QEMU:* usuń stary log i gniazdo **przed** startem QEMU w tle; q35 ma wbudowany AHCI (`bus=ide.0`);
-  `mouse_move`/`sendkey` idą do ostatnio aktywnego urządzenia (z USB — do USB); USB bez PS/2:
+  `mouse_move`/`sendkey` idą do ostatnio aktywnego urządzenia (z USB — do USB); „przerwanie w trakcie” (monitor `quit` po
+  wpisie w logu) w CI z KVM przychodzi za późno — zapis kończy się wcześniej; spowolnij dysk tego przebiegu
+  (`throttling.bps-write`, test-m5f, 0.9.0) i sprawdź, że przerwanie trafiło przed końcem; USB bez PS/2:
   `--maszyna ",i8042=off"`. **Wydajności nie widać w TCG** — emulator ignoruje typy pamięci (brak PAT dał na
   X230 zacinający się pulpit, 0.5.4).
 - *GRUB i ekran startowy:* `background_image` rysuje się po wypisaniu czegoś (`echo ""`); `set color_normal=
