@@ -134,6 +134,7 @@ class Maszyna:
         half of it (CI with KVM: "menu kontekstowe …: Zegar 548,617" without the rest of the menu's rows)."""
         try:
             t = WTRACENIE.sub(b"", open(self.log, "rb").read()).decode("utf-8", errors="replace")
+            t = t.replace("\r\n", "\n").replace("\r", "\n")  # what reading as text did (universal newlines)
         except OSError:
             return ""
         return t[: t.rfind("\n") + 1]
