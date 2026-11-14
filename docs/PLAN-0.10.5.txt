@@ -11,12 +11,13 @@ wersje nie powstaną wcześniej, ta i tak nazywa się 0.10.5.
 Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
 Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR (krok 2 ma swój ADR, krok 3 — swój).
 
-Mało kroków (prośba właściciela z 2026-11-14): TRZY kroki, wydanie w trzecim. Każdy krok daje coś, co widać; krok 3
+Mało kroków (prośba właściciela z 2026-11-14): CZTERY kroki, wydanie w czwartym (krok 4 — okno przeglądarki: zmiana
+rozmiaru i maksymalizacja — dodany na prośbę właściciela tego samego dnia). Każdy krok daje coś, co widać; krok 4
 kończy się wydaniem 0.10.5 — bez osobnego kroku wydania.
 
-ZAKRES ZAMROŻONY (ADR 0035): poniższe 3 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 4 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
-zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b albo 3a/3b (wydanie zawsze w ostatniej części kroku 3).
+zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b, 3a/3b albo 4a/4b (wydanie zawsze w ostatniej części kroku 4).
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
 Statusy wiedzy: Z KODU (z czytania kodu K1 0.9.1 — przed 0.10.0; krok 1 sprawdza jeszcze raz na kodzie po 0.10.0),
@@ -25,8 +26,9 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
-Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3. Krok 1 można zacząć dopiero
-po wydaniu 0.10.0 (zmienia Ustawienia, które 0.10.0 krok 3 też zmienia); krok 2 potrzebuje stref i łącznika z 0.10.0.
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4. Krok 1 można zacząć
+dopiero po wydaniu 0.10.0 (zmienia Ustawienia, które 0.10.0 krok 3 też zmienia); krok 2 potrzebuje stref i łącznika
+z 0.10.0; krok 4 zależy tylko od 0.10.0 (okno strefy w zaufanej ramce), ale idzie ostatni, bo kończy się wydaniem.
 
 Właściciel — co wpisać w nowym czacie (podmień N):
     „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.5.txt.”
@@ -47,7 +49,7 @@ Nowy czat — przebieg każdego kroku:
      lokalnie (wszystko [OK]); przy zmianach w budowie także scripts/sprawdz-powtarzalnosc.sh. Czekaj poleceniem,
      nie rób w tym czasie innych wywołań (CLAUDE.md).
   8. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, ZALEZNOSCI, WYGLAD, TESTY.md, SPEC (dopiski
-     [korekta: ADR …]), README. VERSION i CHANGELOG zmienia krok 3 (wydanie); kroki 1–2 zapisują „co widzi
+     [korekta: ADR …]), README. VERSION i CHANGELOG zmienia krok 4 (wydanie); kroki 1–3 zapisują „co widzi
      użytkownik” w opisie PR-a.
   9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
      ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
@@ -72,11 +74,16 @@ długoterminowe. Gdy nowe jądro nie pasuje do konfiguracji K1, robot nie zgaduj
 Gdyby nowa wersja na Twoim laptopie coś zepsuła (np. Wi-Fi), w Ustawieniach → Aktualizacje jest „Wróć do poprzedniej
 wersji” (D7).
 
-Trzy kroki:
+Do tego okno przeglądarki przestaje mieć stały rozmiar: rozciągasz je za brzeg albo róg ramki, a przycisk
+„Maksymalizuj” na pasku tytułu (albo podwójne kliknięcie paska) rozkłada je na cały ekran — od dolnej krawędzi górnego
+paska do górnej krawędzi dolnego paska, więc oba paski K1 zawsze zostają widoczne.
+
+Cztery kroki:
   1. Ustawienia → Aktualizacje: nowy panel (wersja, stan miejsc A/B, aktualizacja z pendrive'a — przeniesiona
      z Instalatora); okno Ustawień trochę większe, żeby zmieściła się nowa sekcja.
   2. Aktualizacje przez sieć: strefa do pobierania (HTTPS), sprawdzanie i pobieranie, pytanie przed instalacją.
-  3. Robot na GitHubie: jądro i przeglądarka same się podbijają, testy, wydanie — i wydanie 0.10.5.
+  3. Robot na GitHubie: jądro i przeglądarka same się podbijają, testy (wydaje sam dopiero po 0.10.5).
+  4. Okno przeglądarki: zmiana rozmiaru i maksymalizacja między paskami — i wydanie 0.10.5.
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
@@ -84,13 +91,17 @@ Trzy kroki:
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [ ]  1  Ustawienia → Aktualizacje (z Instalatora)           S1–S6            0.10.0      D1 D2 D3, T1     M        —
 [ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16, S25      1           D4 D5 D7, T2–T7  L        0044
-[ ]  3  Robot na GitHubie; wydanie 0.10.5                   S17–S24          2           D6, T8–T11       M        0045
+[ ]  3  Robot na GitHubie                                   S17–S24          2           D6, T8–T11       M        0045
+[ ]  4  Okno przeglądarki: rozmiar, maksymalizacja; wydanie S26–S32          0.10.0      D8, T12–T14      M        —
 (Numery ADR — następne wolne po ADR-ach 0.10.0; jeśli 0.10.0 zajmie więcej, krok bierze kolejne wolne.)
 
-Dlaczego trzy: krok 1 to sama aplikacja (bez sieci) — panel, okno i przeniesienie, łatwe do przetestowania osobno;
-krok 2 to nowa droga danych (strefa, łącznik, zapis do wolnego miejsca A/B) i własny ADR; krok 3 to CI (robot) i wydanie.
-Dlaczego robot na końcu: jego pierwsze wydanie przechodzi już przez aktualizację sieciową z kroku 2 — to jest jej
-pierwszy prawdziwy test. Robot nie zmienia systemu, więc nie blokuje niczego w krokach 1–2.
+Dlaczego cztery: krok 1 to sama aplikacja (bez sieci) — panel, okno i przeniesienie, łatwe do przetestowania osobno;
+krok 2 to nowa droga danych (strefa, łącznik, zapis do wolnego miejsca A/B) i własny ADR; krok 3 to CI (robot); krok 4
+to ekran i strefa (inna część systemu niż kroki 1–3) i wydanie.
+Dlaczego robot po krokach 1–2: jego pierwsze wydanie przechodzi już przez aktualizację sieciową z kroku 2 — to jest jej
+pierwszy prawdziwy test. Robot nie zmienia systemu, więc nie blokuje niczego w krokach 1–2. Robot scalony w kroku 3
+działa do wydania 0.10.5 tylko w trybie próbnym (bez scalania i wydań) — inaczej wydałby 0.10.x przed 0.10.5; pełny
+tryb włącza krok 4 po wydaniu.
 
 
 3. KROKI
@@ -193,10 +204,10 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · 
   Gotowe, gdy: scenariusz aktualizacji przez sieć i testy negatywne zielone, testy [OK], obraz powtarzalny.
   Ustalenia z wykonania: (pusto — wypełnia krok 2)
 
-KROK 3 — Robot na GitHubie; wydanie 0.10.5                              M · decyzje D6, T8–T11 · ADR 0045
+KROK 3 — Robot na GitHubie                                              M · decyzje D6, T8–T11 · ADR 0045
   Cel: poprawki jądra Linux i przeglądarki trafiają do wydania K1 same: robot raz dziennie sprawdza, przygotowuje
   zmianę, puszcza pełne testy i po zielonych wydaje nową wersję PATCH — także z nową linią jądra (np. 7.x), gdy
-  konfiguracja K1 na nią wchodzi (T11); wydanie 0.10.5.
+  konfiguracja K1 na nią wchodzi (T11). Do wydania 0.10.5 (krok 4) robot działa w trybie próbnym.
   Na początku: S17 (uprawnienia GITHUB_TOKEN — POMIAR na próbnym przebiegu), D6.
   Co widzi użytkownik: na GitHubie raz na jakiś czas PR „Robot: jądro 6.18.61”, „Robot: jądro 7.1 (nowa linia)”
   albo „Robot: Firefox ESR …”, który sam przechodzi testy, scala się i daje wydanie; na laptopie po 1–2 dniach pytanie
@@ -225,29 +236,82 @@ KROK 3 — Robot na GitHubie; wydanie 0.10.5                              M · d
       → Issue, bez scalania; nowe zalecenia sprawdz-kspp.sh → Issue do przejrzenia (nie wstrzymuje wydania); najwyżej
       jedno wydanie robota na dobę; nowa linia jądra — najwyżej jedna zmiana linii naraz i dopiero gdy poprzednie
       wydanie robota stoi co najmniej 7 dni bez Issue „błąd” (S24).
-  [ ] Porządki (wersja PATCH — bez pełnych porządków MINOR): przegląd tego, co zostało po przeniesieniu z Instalatora
-      (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–2.
-  [ ] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki); DO_ZROBIENIA.txt — „Teraz” → następna
-      wersja, lista testów na X230 i IdeaPadzie dla 0.10.5 (Ustawienia → Aktualizacje, aktualizacja z pendrive'a
-      z Ustawień, „Sprawdź teraz”, pierwsza aktualizacja przez sieć, gdy robot wyda następną wersję); ten plik →
-      docs/archiwum/. Po scaleniu: CI, tag k1-v0.10.5, wydanie z ogłoszeniem i paczką; raport z linkami do ISO
-      i obrazu USB (dopiero gdy wydanie istnieje). 0.10.5 instaluje się jeszcze z pendrive'a — kolejne już przez sieć.
+  [ ] Tryb próbny do wydania 0.10.5: harmonogram działa, robot otwiera PR i puszcza testy, ale nie scala i nie wydaje
+      (przełącznik w robot.yml — jedna zmienna, którą krok 4 przestawia po wydaniu).
   Testy i dowód: próbny przebieg robota na gałęzi z celowo starszym jądrem w jadro/wersja.env (PR robota powstaje,
   testy idą, scalenie wyłączone w trybie próbnym — S21); próbny przebieg „nic nowego” (koniec bez PR-a); robot
   z niedozwoloną zmianą (inny plik) → przerwanie; zły podpis sha256sums.asc (podmieniony plik w próbie) → Issue,
   bez PR-a; próba nowej linii: gałąź z jądrem starszej linii długoterminowej (np. 6.12.x) → robot proponuje 6.18.x
   z listą nowych opcji (gdy fragment nie wchodzi — Issue zamiast PR-a, i to też jest wynik próby). Pełne testy
   wydania [OK].
-  Właściciel (po wydaniu): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem poczekać na pierwszą
-  wersję od robota i zainstalować ją przez sieć (lista w DO_ZROBIENIA).
+  Właściciel (po wydaniu 0.10.5 w kroku 4): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem
+  poczekać na pierwszą wersję od robota i zainstalować ją przez sieć (lista w DO_ZROBIENIA).
   Dokumenty: ADR 0045, AGENTS.md (robot), nowy opis w docs/komponenty/ (robot.md: co sprawdza, czego nie rusza,
   jak go zatrzymać — wyłączenie workflow), jadro/README.md (procedura: robot robi kroki 1–6, także dla nowej linii),
   ADR 0003 (dopisek: linię jądra wybiera robot — najnowsza długoterminowa),
   TESTY.md, RYZYKA (przejęte konto GitHub albo archiwum Debiana = podpisana wersja na wszystkich komputerach — S22),
-  CHANGELOG, README, skill (CI, wydania).
-  Gotowe, gdy: robot przeszedł przebiegi próbne, testy zielone, wydanie k1-v0.10.5 istnieje z ogłoszeniem i paczką,
-  raport z linkami.
+  README, skill (CI, wydania).
+  Gotowe, gdy: robot przeszedł przebiegi próbne, jest scalony w trybie próbnym, testy zielone.
   Ustalenia z wykonania: (pusto — wypełnia krok 3)
+
+KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja; wydanie     M · decyzje D8, T12–T14 · bez ADR
+  Cel (prośba właściciela z 2026-11-14): okno przeglądarki (i każde okno strefy) można rozciągnąć i zmniejszyć za
+  brzeg albo róg zaufanej ramki oraz zmaksymalizować — na całą szerokość ekranu, od dolnej krawędzi górnego paska do
+  górnej krawędzi dolnego paska (nigdy pod paski); przeglądarka w środku dopasowuje się do nowego rozmiaru; wydanie
+  0.10.5.
+  Na początku: D8 (szkice); przeczytaj „Ustalenia z wykonania” 0.10.0 krok 1 (rola STREFA, ramka, zmiana wyświetlacza
+  w virtio-gpu) i krok 2 (kompozytor strefy).
+  Co widzi użytkownik: kursor nad brzegiem albo rogiem ramki okna przeglądarki zmienia się na strzałki; przeciągnięcie
+  zmienia rozmiar (w trakcie — zarys nowego rozmiaru, wg D8), po puszczeniu przeglądarka rysuje strony w nowym
+  rozmiarze. Na pasku tytułu K1 obok „minimalizuj” i „zamknij” — „maksymalizuj”: okno wypełnia ekran między paskami;
+  ten sam przycisk (wtedy „przywróć”) i podwójne kliknięcie paska tytułu wracają do poprzedniego rozmiaru i miejsca.
+  Zmaksymalizowane okno nie ma brzegów do ciągnięcia i nie da się go przesunąć (najpierw „przywróć”). Pełny ekran
+  w samej przeglądarce (F11, film na pełnym ekranie) wypełnia tylko okno strefy — nigdy paski ani ramkę K1 (T14).
+  Zmiana rozdzielczości w Ustawieniach → Ekran przy zmaksymalizowanym oknie — okno dopasowuje się samo. Rozmiar
+  i maksymalizacja zapamiętane dla sesji (wg D8).
+  Zadania:
+  [ ] Ekran (T12, S26–S29): w roli STREFA — strefy chwytu na brzegach i rogach ramki (rysowanej przez ekran, więc
+      treść strefy nie może ich podrobić ani zasłonić), przeciąganie jak dziś przesuwanie (s.ciagniete — nowy rodzaj
+      chwytu), najmniejszy rozmiar (wg D8), największy = obszar roboczy; obszar roboczy (ekran bez górnego i dolnego
+      paska) z położeń paneli gui, które ekran już zna; przycisk „maksymalizuj/przywróć” na pasku tytułu K1 i
+      podwójne kliknięcie; zapamiętany poprzedni prostokąt; nowe kształty kursora (strzałki poziome, pionowe,
+      ukośne — S29) w stylu K1. Kod w osobnym pliku ekranu (np. rozmiar.c), okna.c nie rośnie.
+  [ ] Nowy rozmiar do strefy (T12, S30): ekran → VMM (rola STREFA) komunikat z nowym rozmiarem treści (sprawdzany
+      pole po polu: zakresy od najmniejszego do obszaru roboczego); VMM → gość: zdarzenie zmiany wyświetlacza
+      virtio-gpu (z 0.10.0, T6); gość daje nowy bufor, VMM nową powierzchnię (nowy memfd o dokładnym rozmiarze —
+      S28), ekran podmienia ją przy następnej ramce. W trakcie przeciągania — zarys albo stara treść przycięta (D8);
+      do strefy tylko rozmiar końcowy (po puszczeniu) i najwyżej kilka razy na sekundę przy zmianie rozdzielczości.
+  [ ] Kompozytor strefy (S31): zmiana rozmiaru wyjścia Wayland → nowa konfiguracja okna Firefoksa (xdg_toplevel
+      configure z nowym rozmiarem i stanem „zmaksymalizowane”); pełny ekran Firefoksa = rozmiar okna strefy (T14).
+  [ ] Pamięć (D8): rozmiar i stan okna każdej sesji zapamiętane tam, gdzie gui pamięta rozmieszczenie (skarbiec,
+      fd 6 gui) albo w ustawieniach ekranu — wybór w kroku, jedna tabela; sesja jednorazowa — też (to wygląd okna,
+      nie dane z internetu).
+  [ ] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki); porządki wersji PATCH: przegląd tego, co
+      zostało po przeniesieniu z Instalatora (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–4;
+      DO_ZROBIENIA.txt — „Teraz” → następna wersja, lista testów na X230 i IdeaPadzie dla 0.10.5 (Ustawienia →
+      Aktualizacje, aktualizacja z pendrive'a z Ustawień, „Sprawdź teraz”, pierwsza aktualizacja przez sieć, gdy robot
+      wyda następną wersję, zmiana rozmiaru i maksymalizacja przeglądarki na obu ekranach); ten plik → docs/archiwum/.
+      Po scaleniu: CI, tag k1-v0.10.5, wydanie z ogłoszeniem i paczką; potem robot w pełny tryb (krok 3: jedna zmiana
+      w robot.yml, osobny commit po wydaniu); raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
+      0.10.5 instaluje się jeszcze z pendrive'a — kolejne już przez sieć.
+  Testy i dowód: scenariusz QEMU (rozszerzenie test-strefa.sh z 0.10.0 — strefa próbna, której `gosc` loguje rozmiar
+  wyświetlacza i rysuje wzór na całą powierzchnię; szybciej niż Firefox w TCG — S32): przeciągnięcie prawego dolnego
+  rogu → gość dostaje nowy rozmiar (log), zrzut: ramka i wzór w nowym rozmiarze; „maksymalizuj” → prostokąt okna =
+  obszar roboczy (log ekranu), zrzut: górny i dolny pasek widoczne nad oknem, wzór między nimi; „przywróć” i podwójne
+  kliknięcie → poprzedni prostokąt; zmiana rozdzielczości przy zmaksymalizowanym oknie → nowy obszar roboczy; ciągnięcie
+  poniżej najmniejszego rozmiaru → najmniejszy. Przeglądarka (test-przegladarka.sh z 0.10.0): maksymalizacja → strona
+  testowa w nowym rozmiarze (zrzut). Negatywne: strefa daje powierzchnię innego rozmiaru niż ostatnio zgłoszony →
+  odrzucona (ekran rysuje dalej poprzednią), strefa nie może sama zmienić rozmiaru ani położenia okna (nie ma takiego
+  komunikatu — test złośliwego gościa), powierzchnia ponad limit pamięci klienta → odrzucona, gość w trybie „pełny
+  ekran” nie zasłania pasków (zrzut); złośliwe komunikaty rozmiaru do VMM (zakresy) → odrzucone.
+  Właściciel (po wydaniu): rozciąganie i maksymalizacja przeglądarki na X230 (1366 × 768) i IdeaPadzie (lista
+  w DO_ZROBIENIA).
+  Dokumenty: ekran.md (zmiana rozmiaru i maksymalizacja okien stref, obszar roboczy, kursory), strefa.md (zmiana
+  wyświetlacza), gui.md (jeśli pamięć rozmiaru w gui), WYGLAD (D8), SLOWNIK (maksymalizacja, obszar roboczy, zmiana
+  rozmiaru), TESTY.md, RYZYKA (R26 — chwyty i przyciski ramki rysuje tylko ekran), CHANGELOG, README.
+  Gotowe, gdy: scenariusze zmiany rozmiaru i maksymalizacji oraz testy negatywne zielone, testy [OK], wydanie
+  k1-v0.10.5 istnieje z ogłoszeniem i paczką, robot w pełnym trybie, raport z linkami.
+  Ustalenia z wykonania: (pusto — wypełnia krok 4)
 
 
 4. DECYZJE
@@ -286,6 +350,13 @@ Twoje (produkt):
        już tego nie naprawi. Rekomendacja: tak — przycisk w sekcji, tylko do wersji w drugim miejscu (już raz
        potwierdzonej), z pytaniem „Wrócić do K1 0.10.6? Komputer uruchomi się ponownie.”; odrzuconej wersji K1 nie
        proponuje znowu, tylko następną.
+[!] D8 (krok 4) Wygląd i zachowanie zmiany rozmiaru — szkice do wyboru NA POCZĄTKU KROKU 4 (oba motywy): przycisk
+       „maksymalizuj/przywróć” na pasku tytułu K1, kursory strzałek, co widać w trakcie ciągnięcia, okno zmaksymalizowane
+       (ramka i pasek tytułu przy górnym pasku). Rekomendacja: przycisk między „minimalizuj” a „zamknij” (kwadrat;
+       zmaksymalizowane — dwa nachodzące kwadraty), chwyt 6 px na brzegach i 16 px w rogach; w trakcie — zarys
+       w kolorze sesji, przeglądarka dostaje rozmiar po puszczeniu (płynniej na X230 niż przerysowywanie strony
+       w trakcie); zmaksymalizowane okno bez bocznych brzegów ramki, z paskiem tytułu K1 tuż pod górnym paskiem;
+       najmniejszy rozmiar 640 × 480; rozmiar i maksymalizacja zapamiętane dla każdej sesji osobno.
 
 Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
     T1 Kanał aktualizacji (krok 1): Ustawienia dostają od nadzorcy osobny kanał, nie kanał Instalatora — inny UID
@@ -339,6 +410,17 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        Dlatego: tylko linie „longterm” z releases.json (poprawki przez lata; linie krótkie kończą się po ok. 3
        miesiącach i wymuszałyby skok co kwartał); fragment musi wejść w całości (inaczej Issue); pełne testy; nowe
        opcje na liście do przejrzenia po wydaniu; dopisek w pytaniu na laptopie i „Wróć do poprzedniej wersji” (D7).
+    T12 Kto zmienia rozmiar (krok 4): tylko ekran K1 — na gest użytkownika na ramce lub przycisku, które rysuje ekran.
+       Strefa nie ma komunikatu „zmień mój rozmiar” ani „przesuń mnie”: dostaje rozmiar i może go tylko przyjąć. Tak
+       złośliwa strona nie powiększy okna na cały ekran, nie zasłoni pasków i nie udaje okna K1 (R26). Do strefy idzie
+       rozmiar końcowy, nie każdy ruch myszy — mniej pracy w VMM, gościu i kompozytorze (jedna zmiana bufora).
+    T13 Obszar roboczy (krok 4): prostokąt ekranu bez górnego i dolnego paska, liczony przez ekran z powierzchni paneli
+       gui (ekran je składa, więc zna ich położenie) — nie z liczb przysłanych przez gui; przy zmianie rozdzielczości
+       liczony od nowa. Ta sama funkcja posłuży później maksymalizacji okien aplikacji K1.
+    T14 Pełny ekran w przeglądarce (krok 4): kompozytor strefy daje Firefoksowi stan „pełny ekran” w granicach okna
+       strefy. K1 nie ma trybu „okno strefy na cały ekran bez pasków” — paski i ramka to jedyne pewne znaki, co jest
+       z K1, a co ze strefy (ADR 0020, R26). Jeśli właściciel kiedyś zechce oglądać filmy bez pasków — osobna decyzja,
+       z wyjściem klawiszem, którego strefa nie dostaje (np. Super).
 
 
 5. LUKI (z czytania kodu 0.9.1 i dokumentacji, 2026-11-14)
@@ -424,6 +506,28 @@ Krok 3
       z listy, i dopisać to do sprawdzeń robota). Zabezpieczenia: D7, dopisek w pytaniu, 7 dni spokoju przed zmianą
       linii, Twój test po każdej nowej linii (lista w DO_ZROBIENIA).
 
+Krok 4
+  S26 Z KODU (src/ekran/okna.c). Ekran umie dziś przesuwać panele przeciąganiem (s.ciagniete) — zmiany rozmiaru ani
+      maksymalizacji okien nie ma; aplikacje K1 mają stały rozmiar (np. Ustawienia: apl.szer/apl.wys). Rola STREFA,
+      ramka i pasek tytułu z ekranu powstają w 0.10.0 krok 1 — sprawdzić, jak wyszły (Ustalenia z wykonania).
+  S27 Z KODU / NIEPEWNE (src/gui/gui.h). Dolny pasek: element 44 px + 2 × 8 px (DOK_WYS = 60), wyśrodkowany;
+      wysokość górnego paska i to, czy dolny pasek „pływa” nad dolną krawędzią (odstęp) — sprawdzić w gui
+      (pasek_gorny.c, pasek_dolny.c) i w położeniach paneli w ekranie; obszar roboczy kończy się nad dolnym paskiem
+      łącznie z odstępem.
+  S28 Z KODU (src/ekran/powierzchnie.c). Powierzchnia to zapieczętowany memfd o dokładnym rozmiarze (szer × wys × 4 × 2
+      — dwa bufory), limit pamięci klienta 2 × rozmiar ekranu — zmaksymalizowane okno się mieści; nowy rozmiar = nowa
+      powierzchnia (stara zwolniona po podmianie), bez zmiany zasady.
+  S29 Z KODU / NIEPEWNE (src/ekran/ekran.h: kursor[2], src/grafika/k1_grafika.h: 24 × 32). Ekran ma dziś gotowe obrazy
+      kursora (dwa warianty — sprawdzić, czy to motywy); kursorów do zmiany rozmiaru nie ma — narysować tak samo
+      (w grafice K1), czterema kształtami: ↔, ↕ i dwie ukośne.
+  S30 NIEPEWNE. Zmiana wyświetlacza w virtio-gpu z 0.10.0 (T6): czy VMM już ją wysyła przy zmianie okna i czy jądro
+      strefy (virtio-gpu, DRM) i kompozytor reagują bez ponownego startu — sprawdzić na strefie próbnej.
+  S31 NIEPEWNE. Kompozytor strefy (0.10.0 T7): czy Firefox na Wayland przyjmuje zmianę rozmiaru przez configure bez
+      zacięć i czy stan „zmaksymalizowane” zmienia jego wygląd (np. zaokrąglenia, cienie, przyciski okna Firefoksa —
+      mają być ukryte, okno ma tylko pasek K1; sprawdzić z 0.10.0 krok 2).
+  S32 NIEPEWNE. Czas: Firefox w TCG zmienia rozmiar wolno — scenariusz z liczeniem pikseli na strefie próbnej
+      (szybkiej), z Firefoksem tylko jeden zrzut (budżet testu jak w 0.10.0 S20).
+
 
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
 -----------------------------------------------------------------------------------
@@ -433,4 +537,6 @@ Krok 3
     (0.12, TPM — RYZYKA R44); robot dla musl, plików od producentów kart Wi-Fi i bazy przepisów radiowych (rzadkie
     zmiany — na razie ręcznie); świeżość ogłoszenia (codziennie podpisywana data, ochrona przed ukrywaniem nowej
     wersji — RYZYKA w kroku 2); aktualizacja czasu podpisanego (NTS) przez strefę pobierania; linie jądra krótkie
-    (nie „longterm”) i jądro z gałęzi głównej (rc) — robot ich nie bierze (T11).
+    (nie „longterm”) i jądro z gałęzi głównej (rc) — robot ich nie bierze (T11); zmiana rozmiaru i maksymalizacja
+    okien aplikacji K1 (Pliki, Notatki, Podgląd — rysują się same w stałym rozmiarze; obszar roboczy z T13 będzie
+    gotowy); przyciąganie okien do połowy ekranu; okno strefy na cały ekran bez pasków (T14).
