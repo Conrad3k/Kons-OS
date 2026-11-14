@@ -55,7 +55,7 @@ Nie obiecujemy odporności na zero-day. Projektujemy tak, by przejęcie jednego 
 ## 4. Architektura
 Dwa światy:
 - Świat natywny K1: nasz kod w C, statycznie linkowany (musl). Bez powłoki, bez X11/Wayland, bez systemd, bez drzewa FHS.
-- Strefa zgodności: „równoległy Linux” tworzony na żądanie dla obcych aplikacji (przeglądarka itd.), ze standardowymi bibliotekami Linuksa, w pełni odizolowany. Pliki przechodzą między światami tylko przez Gatekeepera i tylko za zgodą użytkownika.
+- Strefa zgodności: „równoległy Linux” tworzony na żądanie dla obcych aplikacji (przeglądarka itd.), ze standardowymi bibliotekami Linuksa, w pełni odizolowany. Pliki przechodzą między światami tylko przez Gatekeepera i tylko za zgodą użytkownika. **[korekta: ADR 0042 — strefa to mikro-maszyna KVM prowadzona przez nasz VMM `strefa` (jeden proces w klatce na maszynę), z jądrem strefy i obrazem strefy w rdzeniu (`/rdzen/strefy/`); niezmienniki 1–4 (W^X, brak interpreterów, jądro z fragmentu, flagi SPEC §11) dotyczą świata natywnego — we wnętrzu strefy wolno JIT, obce programy strefy nie podlegają §11]**
 
 Warstwy:
 UEFI + Secure Boot → podpisany UKI (jądro + initramfs + cmdline) → jądro Linux (własna, minimalna konfiguracja) → K1 Core (init, nadzorca, ekran, GUI, wejście, Gatekeeper, Blob Vault, sieć, dekodery) → aplikacje natywne i strefy zgodności.
@@ -115,7 +115,7 @@ UEFI + Secure Boot → podpisany UKI (jądro + initramfs + cmdline) → jądro L
   - w drugą stronę: użytkownik wybiera obiekt, a Gatekeeper przekazuje do strefy jedną kopię.
 - Dwa zaplecza izolacji z tym samym interfejsem:
   - A: namespaces (user, mount, pid, ipc, net, uts) + pivot_root + seccomp + Landlock + cgroups v2. Testowalne bez KVM, używane w developmencie.
-  - B, docelowe dla przeglądarki: mikro-VM KVM z własnym minimalnym jądrem, więc luka w jądrze strefy nie daje dostępu do jądra K1. Wybór VMM w ADR. Wymaga KVM: testy na sprzęcie właściciela albo na runnerze z KVM (do sprawdzenia).
+  - B, docelowe dla przeglądarki: mikro-VM KVM z własnym minimalnym jądrem, więc luka w jądrze strefy nie daje dostępu do jądra K1. Wybór VMM w ADR. Wymaga KVM: testy na sprzęcie właściciela albo na runnerze z KVM (do sprawdzenia). **[korekta: ADR 0042 — VMM własny w C (`src/strefa/`), urządzenia virtio-mmio sprawdzane pole po polu, obraz przez virtio-gpu 2D do okna K1 w zaufanej ramce rysowanej przez ekran; testy w emulacji QEMU (udawane AMD SVM) — bez sprzętu właściciela (D4)]**
 - Do sprawdzenia: Firefox ma własny sandbox oparty na user namespaces, trzeba zweryfikować jego działanie w strefie. Wybór Firefox czy WPE WebKit w ADR.
 
 ## 9. Blob Vault i Gatekeeper

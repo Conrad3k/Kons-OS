@@ -76,7 +76,13 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   0.9.1 bez kabla z kartą Wi-Fi: ikona „Wachlarz” — `k1_wachlarz.c` w przybornik, stany „Wi-Fi wyłączone”, „Wi-Fi nie
   połączono”; od 0.9.1 krok 2: „Wi-Fi łączę” — kropka w terakocie, „Wi-Fi połączono” — wypełniona część wachlarza = siła
   sygnału, 1–4 kreski z `SIEC_STAN` e; log „sieć: Wi-Fi połączono, kreski 4 (ikona w x,y)”);
+  od 0.10.0 `STREFA_STAN` (strefa nie ruszyła: brak wirtualizacji, pamięci albo obrazu — okienko odmowy „<tytuł> nie może
+  ruszyć” z wyjaśnieniem i „Rozumiem”, log „strefa N nie ruszyła (powód P): okienko”);
   nadawca musi mieć UID 0, każde pole sprawdzane; po zamknięciu kanału gui przestaje go czytać.
+- Strefy (0.10.0, ADR 0042): prośba `URUCHOM_STREFE` (fd 4) — w kroku 1 nic w pulpicie jej nie wysyła (strefa próbna jest
+  tylko w testach), w kroku 2 — Przeglądarka. Okno strefy (`OKNO` z `a` = 0, `c` = strefa) jest pozycją paska
+  `K1_APL_MAKS + strefa` (`POZYCJA_STREFY`, tytuł i ikona z `K1_STREFY`): na dolnym pasku wśród działających, kliknięcie
+  pokazuje albo chowa okno, menu „Zamknij okno”; nie da się jej przypiąć ani położyć na pulpicie.
   Log przy zmianie obecności, stanu, zasilacza lub co 5 % („bateria 73%, rozładowywanie, …”).
 - Powierzchnie: warstwa pulpitu (`K1_POW_PULPIT`, cały ekran, zatwierdzane tylko zmienione prostokąty),
   panele: górny pasek, dolny pasek, menu Start, okienko dźwięku, menu kontekstowe (memfd, ADR 0008).

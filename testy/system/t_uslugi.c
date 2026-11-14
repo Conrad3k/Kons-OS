@@ -127,7 +127,8 @@ static int deskryptory_ok(long pid, const char *const *dozwolone, char *zle, siz
     return ok;
 }
 
-static void t_klatka(const char *nazwa, int uid, const char *const *fds)
+/* The sandbox of process `nazwa` in cgroup `grupa` with `watki` threads besides its main one (0.10.0: a zone's VMM). */
+void t_klatka_grupy(const char *nazwa, const char *grupa_nazwa, unsigned watki, int uid, const char *const *fds)
 {
     long pid = find_process(nazwa);
     char v[128], oczekiwane[64], zle[256], grupa[64], path[96], pids[16];
@@ -167,17 +168,22 @@ static void t_klatka(const char *nazwa, int uid, const char *const *fds)
 
     snprintf(path, sizeof path, "/rdzen/jadro/proc/%ld/cgroup", pid);
     read_file(path, grupa, sizeof grupa);
-    snprintf(oczekiwane, sizeof oczekiwane, "0::/%s", nazwa);
-    snprintf(path, sizeof path, "/rdzen/jadro/sys/fs/cgroup/%s/pids.max", nazwa);
+    snprintf(oczekiwane, sizeof oczekiwane, "0::/%s", grupa_nazwa);
+    snprintf(path, sizeof path, "/rdzen/jadro/sys/fs/cgroup/%s/pids.max", grupa_nazwa);
     read_file(path, pids, sizeof pids);
-    snprintf(path, sizeof path, "/rdzen/jadro/sys/fs/cgroup/%s/memory.max", nazwa);
+    snprintf(path, sizeof path, "/rdzen/jadro/sys/fs/cgroup/%s/memory.max", grupa_nazwa);
     read_file(path, v, sizeof v);
-    ok_cg = strcmp(grupa, oczekiwane) == 0 && strcmp(pids, "1") == 0 && strtoull(v, NULL, 10) > 0;
-    check(ok_cg, "M3: własna cgroup z limitem pamięci i procesów (pids.max=1)", "%s: %s pids.max=%s memory.max=%s",
-          nazwa, grupa, pids, v);
+    ok_cg = strcmp(grupa, oczekiwane) == 0 && strtoul(pids, NULL, 10) == 1 + watki && strtoull(v, NULL, 10) > 0;
+    check(ok_cg, "M3: własna cgroup z limitem pamięci i procesów (pids.max=1, VMM strefy: + wątki)",
+          "%s: %s pids.max=%s memory.max=%s", nazwa, grupa, pids, v);
     check(deskryptory_ok(pid, fds, zle, sizeof zle),
           "M3: usługa ma tylko przekazane deskryptory (bez konsoli i innych plików)", "%s: %s", nazwa,
           zle[0] ? zle : "OK");
+}
+
+static void t_klatka(const char *nazwa, int uid, const char *const *fds)
+{
+    t_klatka_grupy(nazwa, nazwa, 0, uid, fds);
 }
 
 void t_klatki(void)

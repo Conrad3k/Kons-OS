@@ -79,6 +79,8 @@ int proba(const char *profil)
     zablokowane("otwarcie pliku (open)", SYS_open, (long)"/rdzen/init", O_RDONLY, 0, 0, 0);
     zablokowane("otwarcie pliku (openat)", SYS_openat, AT_FDCWD, (long)"/rdzen/jadro/proc/1/status", O_RDONLY, 0, 0);
     zablokowane("otwarcie dysku (openat)", SYS_openat, AT_FDCWD, (long)"/rdzen/jadro/dev/vda", O_RDWR, 0, 0);
+    /* 0.10.0 (ADR 0042): /dev/kvm only from nadzorca, to the VMM of a zone — no cage opens it (the VMM neither) */
+    zablokowane("otwarcie /dev/kvm (openat)", SYS_openat, AT_FDCWD, (long)"/rdzen/jadro/dev/kvm", O_RDWR, 0, 0);
     zablokowane("setuid(0)", SYS_setuid, 0, 0, 0, 0, 0);
     zablokowane("setresgid(0)", SYS_setresgid, 0, 0, 0, 0, 0);
     zablokowane("nowe gniazdo (socket)", SYS_socket, AF_UNIX, SOCK_STREAM, 0, 0, 0);

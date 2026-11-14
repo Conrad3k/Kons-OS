@@ -38,8 +38,9 @@ scenariusz() {
     # Stary log z poprzedniego przebiegu musi zniknąć PRZED startem QEMU w tle — inaczej pętla
     # niżej mogłaby go przeczytać, zanim uruchom-qemu.sh zdąży go usunąć.
     rm -f "$log" "$mon" "$TESTY/$nazwa.png"
+    # 512 MiB (0.10.0): the in-system test starts the test zone (its 128 MiB and nadzorca's margin must be free)
     # shellcheck disable=SC2086
-    "$K1_REPO/scripts/uruchom-qemu.sh" $dysk --cmdline "$cmd" --log "$log" --monitor "$mon" --czas "$CZAS" \
+    "$K1_REPO/scripts/uruchom-qemu.sh" $dysk --cmdline "$cmd" --log "$log" --monitor "$mon" --czas "$CZAS" --pamiec 512 \
         ${SPRZET:+--qemu "$SPRZET"} &
     qpid=$!
     sam=0; t=0

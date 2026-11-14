@@ -453,7 +453,7 @@ void zakonczona(struct usluga *u, int status)
         u->nastepny = t + 0.2;
         return;
     }
-    if (t - u->okno > OKNO_RESTARTOW) {
+    if (u->awarie == 0 || t - u->okno > OKNO_RESTARTOW) { /* the window starts at the first failure (0.10.0: not at boot) */
         u->okno = t;
         u->awarie = 0;
     }

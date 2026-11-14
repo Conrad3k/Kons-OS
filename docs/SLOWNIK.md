@@ -118,7 +118,16 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **osobna / wspólna strefa** | Jedna aplikacja na maszynę albo kilka drobnych, zaufanych aplikacji w jednej (ADR 0024). Przeglądarka zawsze osobna. |
 | **stała / jednorazowa** | Strefa pamięta dane między uruchomieniami albo zaczyna zawsze od czysta i wszystko zapomina po zamknięciu. |
 | **pełna izolacja / szybka grafika** | Strefa rysuje procesorem albo dostaje kartę graficzną przez pośrednika (słabsza izolacja). |
-| **ramka** | Obwódka w kolorze strefy rysowana przez ekran K1 wokół jej okien; aplikacja nie może jej podrobić. |
+| **ramka** | Obwódka w kolorze strefy rysowana przez ekran K1 wokół jej okien; aplikacja nie może jej podrobić. Od 0.10.0 (D1: szkic B2): 3 px na zewnątrz obrazu strefy + **znaczek**. |
+| **znaczek strefy** (0.10.0) | Mały kwadrat z ikoną strefy na lewym górnym rogu jej okna, rysowany przez ekran K1; za niego przesuwa się okno. Kursor na nim rozwija **plakietkę**. |
+| **plakietka** (0.10.0) | Rozwinięty znaczek strefy: nazwa strefy · „osobna maszyna” (jednorazowa: „zapomina po zamknięciu”), minimalizuj, zamknij — rysowana przez K1, nie przez strefę. |
+| **wirtualizacja** | Funkcja procesora (Intel VT-x, AMD-V), dzięki której K1 uruchamia strefy; włącza się ją w BIOS-ie. Bez niej strefa nie ruszy — K1 mówi, co włączyć. Jądro: KVM, urządzenie `/dev/kvm`. |
+| **VMM** (strefa) | Program K1 `strefa`, który prowadzi jedną mikro-maszynę: jej pamięć, procesory, urządzenia, okno. Jeden proces na strefę, w klatce. (Virtual Machine Monitor.) |
+| **gość** | To, co działa wewnątrz strefy: jądro strefy i jej programy. Dla K1 zawsze wrogi — wszystko od gościa sprawdzane pole po polu. |
+| **jądro strefy** | Drugie jądro Linux z tych samych źródeł, z własną konfiguracją (`jadro/strefa.config`), działające wewnątrz stref; w rdzeniu jako `/rdzen/strefy/jadro`. |
+| **obraz strefy** | Pliki strefy (SquashFS tylko do odczytu) w rdzeniu: `/rdzen/strefy/<nazwa>.img`; gość widzi go jako dysk `/dev/vda`. |
+| **strefa próbna** (0.10.0) | Strefa testowa z naszym małym programem `gosc` w środku (wzór na ekranie, liczniki klawiszy i kliknięć, tryby złośliwego gościa) — tylko w obrazie testowym. |
+| **urządzenie virtio** | Udawane urządzenie maszyny (dysk, konsola, losowość, klawiatura, wskaźnik, ekran, vsock), przez które gość rozmawia z VMM kolejkami w swojej pamięci. |
 | **sesja przeglądarki** | Osobna strefa silnika stron (np. „bank”, „prywatna”), z własnym kolorem karty (ADR 0025). |
 
 ## Plan i wersje

@@ -83,11 +83,19 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `FOKUS` | ekran → klient | — | okno dostało / straciło klawiaturę |
 | `RAMKA` | ekran → klient | — | ostatnie zatwierdzenie jest na ekranie, można rysować drugą połowę |
 | `ZAMKNIJ` | ekran → aplikacja | — | zamknij to okno — jak przycisk × (0.7.5; Notatki najpierw zapisują) |
-| `OKNO` | ekran → powłoka | — | okno aplikacji powstało / zmieniło stan / zniknęło (dolny pasek) |
+| `OKNO` | ekran → powłoka | — | okno aplikacji powstało / zmieniło stan / zniknęło (dolny pasek); okno strefy (0.10.0): `a` = 0, `c` = numer strefy |
 | `USTAWIENIE` | ekran → wszyscy | — | nowa wartość ustawienia (motyw, tapeta, mysz, sekundy, rozdzielczość, czy jest zdjęcie na tapetę, domyślne aplikacje) |
 | `TRYB` | ekran → Ustawienia | — | jeden z trybów ekranu (rozmiar, Hz, czy zalecany) |
 
-Kanał sterujący (fd 3) od nadzorcy: `KLIENT`. Złe pole, zła rola albo obcy UID → komunikat odrzucony
+**Rola `STREFA` (0.10.0, ADR 0042; `strefy.c`).** VMM strefy jest klientem z jednym oknem (bez paneli, ustawień,
+tapety). Ekran rysuje mu **ramkę** (D1: szkic B2): obwódkę 3 px w kolorze strefy z `K1_STREFY` na zewnątrz okna — przed
+obrazem strefy, więc strefa nie może jej zasłonić — i **znaczek** z ikoną strefy na lewym górnym rogu, po obrazie strefy;
+kursor na znaczku rozwija **plakietkę** (nazwa · „osobna maszyna”, minimalizuj, zamknij; zostaje otwarta do 40 px od
+niej). Wskaźnik na ramce, znaczku i plakietce nie trafia do strefy: wciśnięcie znaczka przesuwa okno (górna krawędź
+okna nie wyżej niż pasek + 8 px, żeby znaczek było widać), minimalizuj chowa okno, zamknij wysyła VMM `ZAMKNIJ`.
+Log: `strefa: plakietka okna N (minimalizuj X,Y, zamknij X,Y)` (testy klikają według niego).
+
+Kanał sterujący (fd 3) od nadzorcy: `KLIENT` (rola `STREFA`: `b` = numer strefy). Złe pole, zła rola albo obcy UID → komunikat odrzucony
 z wpisem w logu (≤ 8 na klienta), po 50 — klient rozłączony.
 
 ## Doręczanie (0.8.5 krok 1)

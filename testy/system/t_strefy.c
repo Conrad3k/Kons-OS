@@ -129,6 +129,34 @@ void t_kvm(void)
     close(kvm);
 }
 
+/* The sandbox of a zone's VMM (0.10.0): the test zone started through nadzorca, its process checked like every service
+ * (own UID, no capabilities, seccomp, cgroup: pids.max = 1 + its threads), its descriptors only what nadzorca gave
+ * (the channel to ekran, /dev/kvm, the zone kernel and image read only) and what it made (the machine, its processor,
+ * memfd, eventfd); then it is killed — nadzorca lives on, no restart. */
+void t_strefa_klatka(void)
+{
+    static const char *const fds[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/rdzen/jadro/dev/kvm",
+                                       "/rdzen/strefy/jadro", "/rdzen/strefy/probna.img", "/memfd:", "anon_inode:", NULL };
+    const struct k1_strefa_opis *z = k1_strefa(K1_STREFA_PROBNA);
+    long pid;
+    int i;
+    if (absent(DEV "/kvm"))
+        return;
+    zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, 0, 0, 0, 0), NULL, 10);
+    for (i = 0; i < 300 && (pid = find_process("strefa")) <= 0; i++)
+        msleep(100);
+    msleep(3000); /* its processor thread is up */
+    t_klatka_grupy("strefa", "strefa-probna", z->procesory + 1, z->uid, fds);
+    pid = find_process("strefa");
+    check(pid > 0 && kill((pid_t)pid, SIGKILL) == 0, "strefa: VMM strefy próbnej działał w klatce", "pid %ld", pid);
+    for (i = 0; i < 100 && find_process("strefa") > 0; i++)
+        msleep(100);
+    msleep(500);
+    check(find_process("strefa") <= 0 && kill(getppid(), 0) == 0,
+          "NEGATYWNY: zabity VMM strefy kończy tylko ją (bez ponownego startu), nadzorca żyje", "strefa=%ld",
+          find_process("strefa"));
+}
+
 /* ---- scripts/test-strefa.sh: the test program in "zones" mode — the script adds a small disk with the serial
  * number "k1-test-strefy" (/proc/cmdline is not there: /proc has subset=pid) ---- */
 

@@ -166,6 +166,28 @@ glina `#b7a99a`; Kosz `#9c9790`, System — `tekst3`. Legenda w dwóch kolumnach
 10 px z zaokrągleniem 3, nazwa (Plex Sans 13), rozmiar do prawej (`tekst2`). Pod legendą zapas systemu i liczba plików
 (`tekst3`, 13 px); przycisk „Użyj całego pendrive'a na dane” na dole sekcji. Ikona sekcji: dysk (`K1_IK_DYSK`).
 
+## Strefy (0.10.0 krok 1, decyzja właściciela D1: ramka B2, start S1, ikona A)
+Szkice narysowane częściami K1 na hoście (2026-11-14), wszystkie widoki stref naraz (także kroków 2–3): ramka A „Ramka
+i pasek”, B „Pasek K1 z plakietką”, C „Zakładka”; start S1 „w oknie strefy” i S2 „karteczka K1”; ikona A „Globus”,
+B „Kompas”, C „Okno z globusem”; okienka „brak wirtualizacji” i „za mało pamięci”; Ustawienia → Aplikacje → Przeglądarka.
+Właściciel wybrał **B, ale bez paska nad oknem**: „plakietka ma się pokazywać po najechaniu na jej małą ikonkę w rogu;
+ramki mają minimalnie tylko informować” — szkic **B2** zaakceptowany; **S1**; ikona **A** (krok 2).
+- **Obwódka:** 3 px w kolorze strefy, na zewnątrz obrazu strefy (prostokąt zaokrąglony 6 px); okno bez fokusu — kolor
+  zmieszany w 45 % z tłem motywu. Bez paska tytułu K1 — przeglądarka (krok 2) ma własne karty i przyciski.
+- **Znaczek:** 30 × 30, zaokrąglenie 10, wystaje 8 px z lewego górnego rogu okna, lekki cień; ikona strefy 18 px biała na
+  kolorze strefy. Strefa jednorazowa: tło `pole` z 14 % koloru strefy, obwódka 2 px w kolorze, ikona w kolorze strefy
+  przyciemnionym w stronę tekstu.
+- **Plakietka** (kursor na znaczku): znaczek wydłuża się w prawo — „<tytuł> · <sesja> · osobna maszyna”
+  (+ „· zapomina po zamknięciu”) Plex Sans Medium 13, kreska 1 × 16, minimalizuj i zamknij (ikony 20 px, pola 28 px).
+  Zostaje otwarta, dopóki kursor jest do 40 px od niej. Chwycenie znaczka przesuwa okno.
+- **Start (S1):** okno w ramce od razu; w środku tło motywu, ikona strefy 40 px (`tekst3`), „Uruchamiam: <tytuł>…”
+  (Plex Sans 15) i pasek 160 × 4 z odcinkiem w kolorze strefy — do pierwszego obrazu gościa.
+- **Kolory:** strefa próbna — piasek `#A8834A`; sesje przeglądarki (krok 2, ze szkicu): Ogólna — szałwia `#5F8A6A`, Bank —
+  łupek `#4A6FA5`, Prywatna — wrzos `#8B6AA8`.
+- **„Nie może ruszyć”** (brak wirtualizacji, pamięci, obrazu): okienko odmowy pulpitu (to samo co przy przeciąganiu
+  plików, nie osobne okno ze szkicu): pogrubione „<tytuł> nie może ruszyć”, wyjaśnienie, kreska, „Rozumiem”.
+- **Dolny pasek:** okno strefy wśród działających (po kresce), ikona strefy; strefy nie przypina się.
+
 ## Sieć (0.9.0 krok 7, decyzja właściciela D1: ikona C, sekcja B)
 Trzy szkice ikony (A — monitor z kablem, B — trzy połączone węzły, C — wtyczka sieciowa) i trzy układy sekcji (A — jak
 Bateria, B — kafelki kart, C — stan na karcie); wybrane **ikona C** i **sekcja B** (2026-11-13).

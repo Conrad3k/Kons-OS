@@ -46,6 +46,7 @@ int main(int argc, char **argv)
     t_bateria();
     t_kvm();
     t_klatki();
+    t_strefa_klatka();
     t_malicious_ipc();
     t_proby();
     t_okna_ipc();
