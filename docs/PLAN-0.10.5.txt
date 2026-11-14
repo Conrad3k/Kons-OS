@@ -1,0 +1,381 @@
+K1 — PLAN WERSJI 0.10.5 „AKTUALIZACJE PRZEZ SIEĆ” (wersja tematu 0.10 Strefy)
+================================================================================
+
+Data: 2026-11-14 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-14), w czasie
+pracy nad 0.10.0 — stoi na tym, co da 0.10.0: strefy (mikro-maszyny, własny VMM), łącznik (połączenia stref przez K1)
+i obraz strefy z pakietów Debiana (plan 0.10.0, kroki 1–2; ADR 0042, 0043). Kierunek: ADR 0021 i 0022 (bezpieczne
+aktualizacje, A/B) zostają — zmienia się tylko to, skąd przychodzi nowa wersja (z sieci, nie tylko z pendrive'a), kto
+ją przygotowuje (robot na GitHubie) i gdzie użytkownik nią steruje (Ustawienia → Aktualizacje).
+Numer 0.10.5 wybrał właściciel: 0.10.1–0.10.4 zostają na resztę tematu 0.10 (plan 0.10.0, punkt 6). Jeśli tamte
+wersje nie powstaną wcześniej, ta i tak nazywa się 0.10.5.
+Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR (krok 2 ma swój ADR, krok 3 — swój).
+
+Mało kroków (prośba właściciela z 2026-11-14): TRZY kroki, wydanie w trzecim. Każdy krok daje coś, co widać; krok 3
+kończy się wydaniem 0.10.5 — bez osobnego kroku wydania.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 3 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
+zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b albo 3a/3b (wydanie zawsze w ostatniej części kroku 3).
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 0.9.1 — przed 0.10.0; krok 1 sprawdza jeszcze raz na kodzie po 0.10.0),
+ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku — nie zakładać).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3. Krok 1 można zacząć dopiero
+po wydaniu 0.10.0 (zmienia Ustawienia, które 0.10.0 krok 3 też zmienia); krok 2 potrzebuje stref i łącznika z 0.10.0.
+
+Właściciel — co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.5.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku — możesz też od razu dopisać odpowiedź.
+
+Nowy czat — przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
+  2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2 i 3 — także „Ustalenia
+     z wykonania” kroków wcześniejszych. Przeczytaj też „Ustalenia z wykonania” planu 0.10.0 (docs/archiwum/
+     PLAN-0.10.0.txt po wydaniu) — strefy, VMM i łącznik mogły wyjść inaczej, niż ten plan zakłada.
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
+  5. Najpierw test, który pokazuje lukę, potem zmiana, potem ten sam test na zielono.
+  6. Nie wymyślaj zachowań GitHuba (adresy wydań, przekierowania, uprawnienia GITHUB_TOKEN), formatów ani wywołań —
+     sprawdzaj w dokumentacji GitHuba i w kodzie K1; punkt NIEPEWNE zamieniasz na POTWIERDZONE albo poprawiasz —
+     w „Ustaleniach z wykonania” swojego kroku.
+  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, pełny scripts/testy.sh
+     lokalnie (wszystko [OK]); przy zmianach w budowie także scripts/sprawdz-powtarzalnosc.sh. Czekaj poleceniem,
+     nie rób w tym czasie innych wywołań (CLAUDE.md).
+  8. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, ZALEZNOSCI, WYGLAD, TESTY.md, SPEC (dopiski
+     [korekta: ADR …]), README. VERSION i CHANGELOG zmienia krok 3 (wydanie); kroki 1–2 zapisują „co widzi
+     użytkownik” w opisie PR-a.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
+     ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+Po 0.10.5 K1 sam sprawdza, czy jest nowsza wersja, i sam ją pobiera. Zanim cokolwiek zmieni, pyta: „Jest nowa wersja
+K1 — zainstalować?”. Dopiero po Twoim „Zainstaluj” nowa wersja startuje (na próbę — jak dziś po aktualizacji
+z pendrive'a: jeśli nie wstanie, K1 wraca do poprzedniej i to pokazuje).
+
+Bezpieczeństwo bez zmian: K1 przyjmuje tylko wersję podpisaną kluczem K1 i nigdy starszą od tej, którą masz. Nawet
+gdyby ktoś podmienił plik na GitHubie albo po drodze, bez klucza nie zrobi podpisu, który K1 przyjmie. Pobiera osobna
+mała strefa (mikro-maszyna, jak przeglądarka), bo GitHub działa tylko przez szyfrowane połączenie (HTTPS), a K1 tego
+w sobie nie ma i nie musi mieć: strefa podaje K1 tylko bajty, a K1 sam sprawdza podpis.
+
+Po drugiej stronie robot na GitHubie codziennie sprawdza, czy jest poprawione jądro Linux albo poprawiona przeglądarka
+(Firefox i jego biblioteki z Debiana). Jeśli tak — sam przygotowuje nową wersję K1, puszcza wszystkie testy i dopiero
+po zielonych wydaje ją, podpisaną. Od poprawki u Mozilli albo w jądrze do pytania na Twoim laptopie: ok. 1–2 dni.
+
+Trzy kroki:
+  1. Ustawienia → Aktualizacje: nowy panel (wersja, stan miejsc A/B, aktualizacja z pendrive'a — przeniesiona
+     z Instalatora); okno Ustawień trochę większe, żeby zmieściła się nowa sekcja.
+  2. Aktualizacje przez sieć: strefa do pobierania (HTTPS), sprawdzanie i pobieranie, pytanie przed instalacją.
+  3. Robot na GitHubie: jądro i przeglądarka same się podbijają, testy, wydanie — i wydanie 0.10.5.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
+[ ]  1  Ustawienia → Aktualizacje (z Instalatora)           S1–S6            0.10.0      D1 D2 D3, T1     M        —
+[ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16           1           D4 D5, T2–T7     L        0044
+[ ]  3  Robot na GitHubie; wydanie 0.10.5                   S17–S23          2           D6, T8–T10       M        0045
+(Numery ADR — następne wolne po ADR-ach 0.10.0; jeśli 0.10.0 zajmie więcej, krok bierze kolejne wolne.)
+
+Dlaczego trzy: krok 1 to sama aplikacja (bez sieci) — panel, okno i przeniesienie, łatwe do przetestowania osobno;
+krok 2 to nowa droga danych (strefa, łącznik, zapis do wolnego miejsca A/B) i własny ADR; krok 3 to CI (robot) i wydanie.
+Dlaczego robot na końcu: jego pierwsze wydanie przechodzi już przez aktualizację sieciową z kroku 2 — to jest jej
+pierwszy prawdziwy test. Robot nie zmienia systemu, więc nie blokuje niczego w krokach 1–2.
+
+
+3. KROKI
+--------
+
+KROK 1 — Ustawienia → Aktualizacje (przeniesienie z Instalatora)            M · decyzje D1 D2 D3, T1 · bez ADR
+  Cel: wszystko o aktualizacjach w jednym miejscu — Ustawienia → Aktualizacje; Instalator zostaje tylko do instalacji
+  na nowy dysk (i Secure Boot — D3); okno Ustawień mieści nową sekcję.
+  Na początku: D1 — szkice WSZYSTKICH widoków aktualizacji naraz (także tych z kroku 2), żeby krok 2 nie pytał
+  ponownie; D2 (większe okno czy przewijanie); D3 (co zostaje w Instalatorze).
+  Co widzi użytkownik: w Ustawieniach nowa sekcja „Aktualizacje” (ikona K1, wg D1): wersja K1, która działa (np.
+  „0.10.5 · podpisana kluczem K1”), co jest w drugim miejscu (A/B) i wynik ostatniej próby („Nowa wersja nie
+  uruchomiła się — działa poprzednia”, dziś w Instalatorze); gdy K1 działa z pendrive'a, a na dysku jest starsza
+  wersja — „Zaktualizuj K1 na dysku do 0.10.5” (to, co dziś robi Instalator), postęp, wynik, „Uruchom ponownie”.
+  Okno Ustawień większe (wg D2), wszystkie sekcje widać. Instalator: tylko „Zainstaluj na dysku” (i Secure Boot, D3);
+  przy dysku ze starszym K1 — odsyła do Ustawień → Aktualizacje.
+  Zadania:
+  [ ] Okno Ustawień (S1, D2): rozmiar wg D2 (rekomendacja: 720 × 520 — mieści 12 sekcji w lewym pasku) i sprawdzenie
+      na najmniejszym trybie ekranu, który K1 pokazuje (S2); położenia w logu („układ: …”) zostają — testy klikają wg
+      logu.
+  [ ] Sekcja „Aktualizacje” w tabeli sekcje[] (zasada czytelności 5: jeden wiersz), nowy moduł
+      src/aplikacje/ustawienia/aktualizacje.c (≤ 600 wierszy) — stan od nadzorcy, przycisk aktualizacji z pendrive'a,
+      postęp, wynik; main.c ma 382 wiersze — sekcja nie wchodzi do main.c.
+  [ ] Kanał (T1, S3): Ustawienia dostają od nadzorcy kanał aktualizacji (np. KANAL_AKTUALIZACJI w kanaly.h, ostatnia
+      kolumna wiersza USTAWIENIA w K1_APLIKACJE) — te same komunikaty INST_* / stan A/B, które dziś dostaje okno
+      Instalatora, sprawdzane pole po polu; nadzorca (instalacja.c) obsługuje dwa okna: Instalator (instalacja) i
+      Ustawienia (aktualizacja), najwyżej jedno zadanie zapisu naraz (drugie okno widzi „trwa aktualizacja”).
+  [ ] Instalator (wg D3): ekran aktualizacji usunięty; dysk ze starszym K1 — informacja „Aktualizacja jest teraz
+      w Ustawieniach → Aktualizacje” (z przyciskiem, który otwiera Ustawienia na tej sekcji — jeśli gui to umie, S4);
+      opis w K1_APLIKACJE („Instalacja, aktualizacja, Secure Boot”) poprawiony.
+  [ ] gui: wynik nieudanej próby nowej wersji pokazany też przy starcie (dziś tylko w oknie Instalatora — S5),
+      wg D1.
+  Testy i dowód: scenariusz aktualizacji z pendrive'a (dziś test-m6) przeniesiony do Ustawień: K1 z pendrive'a 0.x+1
+  → Ustawienia → Aktualizacje → „Zaktualizuj” → start na próbę → potwierdzenie; nieudana próba → komunikat w sekcji
+  (zrzuty obu motywów). Instalator: instalacja na pusty dysk bez zmian (test-m5f zielony). Negatywne: dwa okna naraz
+  (Instalator instaluje, Ustawienia proszą o aktualizację) → odmowa, nic nie zapisane; złośliwe komunikaty na nowym
+  kanale (t_malicious_ipc); aplikacja inna niż Ustawienia nie dostanie kanału aktualizacji (UID nadawcy).
+  Dokumenty: aplikacje.md (Ustawienia → Aktualizacje, Instalator), instalator.md, nadzorca.md (kanał), WYGLAD (D1,
+  D2), SLOWNIK (Aktualizacje — sekcja), TESTY.md, README (aktualizacja z pendrive'a — nowe miejsce), skill (mapa kodu).
+  Gotowe, gdy: aktualizacja z pendrive'a działa z Ustawień, testy [OK], Instalator nie ma już ekranu aktualizacji.
+  Ustalenia z wykonania: (pusto — wypełnia krok 1)
+
+KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie       L · decyzje D4 D5, T2–T7 · ADR 0044
+  Cel: K1 na dysku sam sprawdza, czy jest nowsza podpisana wersja, pobiera ją przez strefę z HTTPS prosto do wolnego
+  miejsca A/B i pyta użytkownika o instalację; bez zgody nic się nie zmienia w tym, co startuje.
+  Na początku: S7 i S8 — POMIAR (przekierowania GitHuba, wielkość paczki), zanim powstanie reszta; D4, D5.
+  Co widzi użytkownik: Ustawienia → Aktualizacje: „Sprawdzono dziś o 14:05 — masz najnowszą wersję” albo „Pobieram
+  K1 0.10.6… 45 %” albo „K1 0.10.6 jest gotowa” z przyciskami „Zainstaluj i uruchom ponownie” / „Później”; przycisk
+  „Sprawdź teraz”; przełącznik „Sprawdzaj sam” (D4). Gdy wersja jest gotowa — okienko K1 z tym samym pytaniem (wg D1
+  z kroku 1, raz na start, „Później” je zamyka) i znak na górnym pasku. Bez internetu — „Nie udało się sprawdzić
+  (brak połączenia)”. Wersja z pendrive'a (K1 uruchomiony z pendrive'a) — wg D5.
+  Zadania:
+  [ ] ADR 0044 „Aktualizacje przez sieć”: T2 skąd (plik w wydaniu, nie w repo), T3 ogłoszenie wydania (nowy podpisany
+      format), T4 paczka aktualizacji, T5 strefa pobierania, T6 kto co robi, T7 zapis prosto do wolnego miejsca;
+      dopiski [korekta: ADR 0044] w SPEC (aktualizacje) i w ADR 0021 (status: uzupełniony); spis w docs/adr/README.md.
+  [ ] CI (S9): wydanie dostaje dwa nowe pliki: ogłoszenie (`k1-ogloszenie.bin` — T3) i paczkę (`k1-<wersja>.k1a` —
+      T4), zrobione i podpisane w tym samym kroku budowy co manifest (sekret K1_KLUCZ_PODPISU bez zmian; bez sekretu =
+      wersja deweloperska, której K1 przez sieć nie przyjmie). SHA256SUMS obejmuje oba.
+  [ ] Format ogłoszenia (T3) i paczki (T4): nagłówki w src/wspolne/ ze stałym układem (_Static_assert), sprawdzanie
+      bez założeń o wyrównaniu, narzędzie w narzedzia/ (budowa i podpis — wzór podpisz.c), test_ogloszenie i
+      test_paczka (ASan/UBSan), fuzz_ogloszenie i fuzz_paczka.
+  [ ] Strefa pobierania (T5, S10–S12): wiersz w K1_STREFY (bez okna: bez virtio-gpu i virtio-input), obraz strefy
+      z pakietów Debiana (ta sama tabela i skrypt co przeglądarka z 0.10.0: curl i ca-certificates — S11) i program
+      `gosc`, który pobiera dwa adresy (ogłoszenie, paczka) i podaje bajty przez vsock; łącznik tej strefy łączy tylko
+      z hostami wydań GitHuba (lista w jednej tabeli — S8), nic więcej (nadzorca liczy odmowy).
+  [ ] Nadzorca: moduł aktualizacji (np. aktualizacja.c, ≤ 600 wierszy): kiedy sprawdzać (D4: po połączeniu z siecią
+      i co 6 godzin), start strefy pobierania na prośbę, przekazanie ogłoszenia do sprawdzenia, prośba o paczkę tylko
+      gdy wersja nowsza, stan dla Ustawień (kanał z kroku 1), limit czasu i wielkości (S13); tylko K1 na dysku (D5).
+  [ ] Zapis (T7, S14): program zapisujący (instalator, UID 105) w nowym trybie „z sieci”: dostaje dysk (K1-EFI) jak
+      przy aktualizacji i strumień paczki zamiast partycji pendrive'a; najpierw manifesty (podpis, wersja nie starsza,
+      ten sam klucz), potem zawartość miejsca prosto do wolnego miejsca A/B ze skrótem liczonym w trakcie, odczyt
+      i porównanie; pliki startowe (shim, GRUB) czekają w pamięci (kilka MB) — zapisane obok starych dopiero po
+      „Zainstaluj” (start.c, ADR 0038), razem z k1_nowy. Zły podpis, zły skrót, przerwane pobieranie → wolne miejsce
+      oznaczone jako puste, nic nie startuje inaczej.
+  [ ] Ustawienia i gui (wg D1): stan, „Sprawdź teraz”, „Sprawdzaj sam”, postęp, pytanie; okienko „Jest nowa wersja”
+      rysuje gui (zaufany interfejs K1), znak na pasku; „Zainstaluj i uruchom ponownie” = pliki startowe + k1_nowy +
+      ponowne uruchomienie (jak po aktualizacji z pendrive'a), „Później” = paczka czeka w wolnym miejscu.
+  Testy i dowód: host — test_ogloszenie, test_paczka (zła wersja, zły klucz, zły podpis, starsza wersja, ucięta
+  paczka, zły skrót), fuzz_*. Scenariusz QEMU scripts/test-aktualizacja-siec.sh (S15): K1 na dysku w sieci QEMU →
+  serwer testowy HTTPS na „routerze” (certyfikat z testowego CA — tylko w obrazie testowym strefy) podaje ogłoszenie
+  i paczkę nowszej wersji testowej → Ustawienia: „K1 … jest gotowa” → „Zainstaluj” → start na próbę → potwierdzenie
+  (zrzuty). Negatywne: paczka niepodpisana / innym kluczem / starsza / ze złym skrótem / ucięta / większa niż
+  miejsce → odmowa, działający system bez zmian, wolne miejsce puste, log z powodem; „Później” → po ponownym starcie
+  działa stara wersja i pyta znowu; strefa pobierania próbuje innego hosta → odmowa łącznika; strefa podaje
+  śmieci zamiast paczki → odmowa (zapis nie zaczyna się przed sprawdzonym podpisem manifestu); przerwanie zasilania
+  w trakcie pobierania (wzór test-m5f) → start ze starej wersji.
+  Właściciel (po wydaniu): pierwsza prawdziwa aktualizacja przez sieć — z 0.10.5 do następnej wersji (krok 3: robot).
+  Dokumenty: ADR 0044, nowy opis w docs/komponenty/ (aktualizacja.md: cel, granica zaufania, formaty, droga danych),
+  instalator.md (tryb z sieci), nadzorca.md, strefa.md (strefa pobierania), lacznik.md (lista hostów), aplikacje.md,
+  RYZYKA (nowe: ukrywanie nowej wersji, host GitHuba, prywatność — GitHub widzi adres komputera), SLOWNIK
+  (ogłoszenie wydania, paczka aktualizacji, strefa pobierania, aktualizacja przez sieć), TESTY.md, README.
+  Gotowe, gdy: scenariusz aktualizacji przez sieć i testy negatywne zielone, testy [OK], obraz powtarzalny.
+  Ustalenia z wykonania: (pusto — wypełnia krok 2)
+
+KROK 3 — Robot na GitHubie; wydanie 0.10.5                              M · decyzje D6, T8–T10 · ADR 0045
+  Cel: poprawki jądra Linux i przeglądarki trafiają do wydania K1 same: robot raz dziennie sprawdza, przygotowuje
+  zmianę, puszcza pełne testy i po zielonych wydaje nową wersję PATCH; wydanie 0.10.5.
+  Na początku: S17 (uprawnienia GITHUB_TOKEN — POMIAR na próbnym przebiegu), D6.
+  Co widzi użytkownik: na GitHubie raz na jakiś czas PR „Robot: jądro 6.18.61” albo „Robot: Firefox ESR …”, który
+  sam przechodzi testy, scala się i daje wydanie; na laptopie po 1–2 dniach pytanie z kroku 2. Gdy robot nie umie
+  (testy czerwone, nowa linia jądra, zmiana konfiguracji) — zgłoszenie (Issue) z etykietą „robot” zamiast wydania.
+  Zadania:
+  [ ] ADR 0045 „Robot aktualizacji”: T8 co robot zmienia (tylko numery i sumy), T9 jak przechodzi testy i wydaje
+      (GITHUB_TOKEN — S17), T10 kiedy przestaje i pyta; robot jako trzeci „asystent” w AGENTS.md (gałęzie robot/…,
+      robi wydania PATCH, nie rusza cudzych gałęzi).
+  [ ] Workflow .github/workflows/robot.yml (harmonogram raz dziennie + ręczne uruchomienie): (a) jądro — najnowsze
+      wydanie tej samej linii LTS z kernel.org (releases.json), sha256sums.asc sprawdzony kluczem z jadro/klucze/,
+      nowa suma do jadro/wersja.env (procedura z jadro/README.md, kroki 1–2); (b) przeglądarka — skrypt odświeżenia
+      tabeli pakietów z 0.10.0 krok 2 (debian-security, podpis InRelease); (c) nic nowego → koniec bez śladu.
+  [ ] Gdy coś nowego: gałąź robot/<co>-<wersja>, VERSION +1 PATCH, wpis w CHANGELOG (gotowy tekst po polsku: „Jądro
+      Linux 6.18.61 — poprawki bezpieczeństwa” / „Przeglądarka: Firefox ESR …”), PR, pełne testy (T9), po zielonych
+      squash do main i wydanie (tag, ISO, obraz USB, ogłoszenie, paczka); czerwone → PR zostaje otwarty + Issue.
+  [ ] Bezpieczniki (T8, T10, S18–S20): robot zmienia wyłącznie pliki z jednej listy (jadro/wersja.env, tabela pakietów
+      strefy, VERSION, CHANGELOG.md) — sprawdzenie w workflow, inna zmiana = przerwanie; nie scala, gdy na main jest
+      otwarty PR, który zmienia VERSION (czeka do następnego dnia — S19); nowa linia jądra (6.18 → następna LTS), błąd
+      zbuduj-jadro.sh przy konfiguracji, sprawdz-kspp.sh z nowymi zaleceniami → Issue, bez scalania; najwyżej jedno
+      wydanie robota na dobę.
+  [ ] Porządki (wersja PATCH — bez pełnych porządków MINOR): przegląd tego, co zostało po przeniesieniu z Instalatora
+      (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–2.
+  [ ] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki); DO_ZROBIENIA.txt — „Teraz” → następna
+      wersja, lista testów na X230 i IdeaPadzie dla 0.10.5 (Ustawienia → Aktualizacje, aktualizacja z pendrive'a
+      z Ustawień, „Sprawdź teraz”, pierwsza aktualizacja przez sieć, gdy robot wyda następną wersję); ten plik →
+      docs/archiwum/. Po scaleniu: CI, tag k1-v0.10.5, wydanie z ogłoszeniem i paczką; raport z linkami do ISO
+      i obrazu USB (dopiero gdy wydanie istnieje). 0.10.5 instaluje się jeszcze z pendrive'a — kolejne już przez sieć.
+  Testy i dowód: próbny przebieg robota na gałęzi z celowo starszym jądrem w jadro/wersja.env (PR robota powstaje,
+  testy idą, scalenie wyłączone w trybie próbnym — S21); próbny przebieg „nic nowego” (koniec bez PR-a); robot
+  z niedozwoloną zmianą (inny plik) → przerwanie; zły podpis sha256sums.asc (podmieniony plik w próbie) → Issue,
+  bez PR-a. Pełne testy wydania [OK].
+  Właściciel (po wydaniu): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem poczekać na pierwszą
+  wersję od robota i zainstalować ją przez sieć (lista w DO_ZROBIENIA).
+  Dokumenty: ADR 0045, AGENTS.md (robot), nowy opis w docs/komponenty/ (robot.md: co sprawdza, czego nie rusza,
+  jak go zatrzymać — wyłączenie workflow), jadro/README.md (procedura: robot robi kroki 1–6 dla tej samej linii),
+  TESTY.md, RYZYKA (przejęte konto GitHub albo archiwum Debiana = podpisana wersja na wszystkich komputerach — S22),
+  CHANGELOG, README, skill (CI, wydania).
+  Gotowe, gdy: robot przeszedł przebiegi próbne, testy zielone, wydanie k1-v0.10.5 istnieje z ogłoszeniem i paczką,
+  raport z linkami.
+  Ustalenia z wykonania: (pusto — wypełnia krok 3)
+
+
+4. DECYZJE
+----------
+Twoje (produkt):
+[!] D1 (krok 1) Wygląd aktualizacji — szkice do wyboru NA POCZĄTKU KROKU 1, wszystkie naraz (narysowane częściami K1,
+       oba motywy): sekcja „Aktualizacje” w Ustawieniach (wszystkie stany: najnowsza, sprawdzam, pobieram, gotowa,
+       nieudana próba, brak sieci, z pendrive'a), okienko „Jest nowa wersja”, znak na górnym pasku, ikona sekcji.
+       Rekomendacja: sekcja jak Sieć — u góry duży wiersz „K1 0.10.5 · podpisana” i stan jednym zdaniem, pod nim
+       jeden główny przycisk (terakota) dla tego, co teraz można zrobić; okienko — wyśrodkowane, „K1 0.10.6 jest
+       gotowa do instalacji. Komputer uruchomi się ponownie (ok. 30 s).” i dwa przyciski; na pasku mała kropka
+       w kolorze akcentu przy ikonie Startu, dopóki wersja czeka.
+[!] D2 (krok 1) Nowa sekcja w Ustawieniach: większe okno czy przewijanie. Z KODU (S1): lewy pasek mieści dokładnie 10
+       sekcji, jedenasta się nie zmieści. Przewijanie wymaga kółka myszy, którego K1 jeszcze nie obsługuje (S6).
+       Rekomendacja: okno lekko większe — 720 × 520 (dziś 680 × 440): mieści 12 sekcji, czyli jeszcze jedną na
+       przyszłość, i więcej miejsca w Sieci i Miejscu. Przewijanie — razem z kółkiem myszy, później.
+[!] D3 (krok 1) Co zostaje w Instalatorze. Rekomendacja: instalacja na dysk i Secure Boot (to rzeczy „raz na
+       komputer”, robione z pendrive'a); wszystko o wersjach — w Ustawieniach → Aktualizacje.
+[!] D4 (krok 2) Kiedy K1 sprawdza i pobiera. Twoje ustalenie: o instalację zawsze pyta; wielkość pobierania nie gra
+       roli. Rekomendacja: sprawdza sam po połączeniu z siecią i co 6 godzin, nową wersję pobiera sam od razu (żeby
+       pytanie przyszło z gotową wersją), instaluje dopiero po „Zainstaluj”. Przełącznik „Sprawdzaj sam” w sekcji —
+       domyślnie włączony; wyłączony = tylko „Sprawdź teraz”.
+[!] D5 (krok 2) K1 uruchomiony z pendrive'a. Z KODU (S16): pendrive nie ma potwierdzania nowej wersji (A/B) — K1
+       na pendrive'ie nigdy go nie zmienia. Rekomendacja: przez sieć aktualizuje się tylko K1 zainstalowany na
+       dysku; na pendrive'ie sekcja mówi „Jest nowsza wersja K1 0.10.6 — nagraj nowy pendrive (README)”.
+       Aktualizacja pendrive'a przez sieć — później.
+[!] D6 (krok 3) Czy robot scala i wydaje sam, czy czeka na Twoje „tak”. Rekomendacja: sam (inaczej poprawka czeka na
+       Ciebie i tracimy to, po co jest robot) — ale tylko jądro tej samej linii i pakiety przeglądarki z archiwum
+       bezpieczeństwa Debiana, po pełnych zielonych testach; wszystko inne — Issue do Ciebie i do mnie. Warunek:
+       Twoje konto GitHub z logowaniem dwuetapowym (najlepiej kluczem dostępu, passkey) — od tego konta zależy klucz
+       podpisu (S22). Zatrzymanie robota w każdej chwili: GitHub → Actions → „Robot” → Disable workflow.
+
+Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
+    T1 Kanał aktualizacji (krok 1): Ustawienia dostają od nadzorcy osobny kanał, nie kanał Instalatora — inny UID
+       nadawcy, inne prawa (Ustawienia: tylko aktualizacja, nigdy wyczyszczenie dysku). Te same komunikaty i to samo
+       sprawdzanie; nadzorca pilnuje jednego zapisu naraz.
+    T2 Skąd K1 bierze wersję (krok 2): z pliku w NAJNOWSZYM WYDANIU, nie z pliku w repo. Powód: plik w repo zmienia się
+       z każdym commitem, także przed testami; wydanie powstaje dopiero po zielonych testach i ma stały adres
+       https://github.com/Conrad3k/Kons-OS/releases/latest/download/k1-ogloszenie.bin (GitHub przekierowuje
+       „latest/download/<plik>” do pliku najnowszego wydania — S7). K1 ufa podpisowi, nie GitHubowi.
+    T3 Ogłoszenie wydania (krok 2): mały plik (≤ 4 KiB, stały układ): wersja, identyfikator wydania, nazwa i wielkość
+       paczki, skrót SHA-256 paczki, data wydania, podpis EdDSA kluczem K1 (ten sam co manifest, Monocypher). K1
+       przyjmuje tylko ogłoszenie z poprawnym podpisem, wersją nowszą od działającej i nazwą paczki z jednej tabeli
+       znaków (bez ukośników). Ochrona przed starym ogłoszeniem: wersja nie starsza (jak Instalator).
+    T4 Paczka aktualizacji (krok 2): to, co dziś Instalator bierze z pendrive'a, w jednym pliku: nagłówek, manifest
+       miejsca (format 2) i zawartość miejsca A/B (k1.efi), manifest plików startowych (format 3) i pliki startowe
+       (drzewo z k1_fat32). Bez kompresji w K1 (mniej kodu, który czyta obce bajty; wielkość nie gra roli — D4).
+    T5 Strefa pobierania (krok 2): mikro-maszyna z 0.10.0 bez okna, z obrazem z pakietów Debiana (curl, ca-certificates)
+       i programem `gosc`; HTTPS robi curl w strefie, połączenia przez łącznik (SOCKS5, nazwy po stronie K1) tylko do
+       hostów wydań GitHuba. Rozważone: TLS w K1 (własny albo biblioteka w świecie natywnym) — dużo kodu w najbardziej
+       zaufanej części, a i tak nie chroni przed niczym więcej niż podpis; pobieranie w strefie przeglądarki — miesza
+       dane sesji z aktualizacją. Przejęta strefa pobierania może tylko nie podać wersji albo podać śmieci (odrzucone).
+    T6 Kto co robi (krok 2; jak T3 w 0.10.0): nadzorca — kiedy sprawdzać, start strefy, łącznik i lista hostów, stan
+       dla Ustawień, start programu zapisującego; strefa pobierania — HTTPS; program zapisujący (UID 105, klatka bez
+       ścieżek) — sprawdzenie ogłoszenia i paczki (podpis, wersja, skrót), zapis do wolnego miejsca, pliki startowe po
+       zgodzie; Ustawienia i gui — stan i pytanie. Ogłoszenie i paczkę czyta tylko program zapisujący.
+    T7 Zapis prosto do wolnego miejsca A/B (krok 2): bez kopii pośredniej (pamięć, skarbiec). Wolne miejsce to nie to,
+       z którego K1 startuje, więc zapis nic nie psuje; dopóki nie ma zgody, k1_nowy się nie zmienia i GRUB startuje
+       to samo co zawsze. Koszt: przez czas pobierania „drugie miejsce” nie ma poprzedniej wersji (powrót do niej
+       dotyczy tylko próby nowej wersji — tej jeszcze nie ma). Pliki startowe — po zgodzie (ADR 0038: obok starych,
+       jeden zapis sektora).
+    T8 Co robot zmienia (krok 3): tylko numery wersji i sumy w plikach z jednej listy — nigdy kod, skrypty, konfigurację
+       jądra ani workflow. Źródła sprawdza jak dziś budowa: podpis PGP kernel.org (klucze w jadro/klucze/), podpis
+       InRelease Debiana (klucz archiwum w repo, 0.10.0 krok 2).
+    T9 Testy i wydanie robota (krok 3): zdarzenia zrobione przez GITHUB_TOKEN nie uruchamiają innych workflow — oprócz
+       workflow_dispatch i repository_dispatch (ZE ŹRÓDEŁ: dokumentacja GitHub Actions, „Triggering a workflow from
+       a workflow” — S17). Dlatego robot: PR → uruchamia k1.yml na swojej gałęzi przez workflow_dispatch (testy bez
+       wydania) → po zielonych squash do main → workflow_dispatch k1.yml na main (budowa, testy, tag, wydanie). Bez
+       osobnego tokenu ani nowego sekretu.
+    T10 Kiedy robot przestaje (krok 3): nowa linia jądra, zmiana opcji w konfiguracji (zbuduj-jadro.sh przerywa, gdy
+       fragment nie wchodzi), nowe zalecenia KSPP, czerwone testy, zła suma albo podpis źródła, otwarty PR ze zmianą
+       VERSION — za każdym razem Issue z etykietą „robot” i log, bez scalania.
+
+
+5. LUKI (z czytania kodu 0.9.1 i dokumentacji, 2026-11-14)
+---------------------------------------------------------
+Waga: WYSOKA (blokuje krok), ŚREDNIA, NISKA.
+
+Krok 1
+  S1  Z KODU (src/aplikacje/ustawienia/main.c, ustawienia.h, src/przybornik/k1_okno.h). Okno Ustawień 680 × 440,
+      pasek tytułu 44 px, sekcje od y = 52 co 36 px: 10 sekcji kończy się na 412, dół paska na 428 — jedenasta
+      (do 448) się nie mieści. Sekcje w tabeli sekcje[S_LICZBA] — nowa sekcja to wiersz w tabeli i w enum.
+      0.10.0 krok 3 też zmienia Ustawienia (Aplikacje → przeglądarka) — sprawdzić stan po 0.10.0.
+  S2  NIEPEWNE. Najmniejszy tryb ekranu, w którym K1 pokazuje pulpit (VirtualBox, stare ekrany 1024 × 768), i czy
+      okno 720 × 520 z paskiem na dole się mieści — sprawdzić w ekranie (rozmieszczenie okien) i na zrzucie.
+  S3  Z KODU (src/nadzorca/instalacja.c, src/wspolne/k1_uslugi.h). Nadzorca trzyma jeden kanał okna Instalatora
+      (inst_kanal) i jeden program zapisujący; kanały aplikacji wynikają z ostatniej kolumny K1_APLIKACJE
+      (Ustawienia: KANAL_USTAWIEN, KANAL_SKARBCA, KANAL_DO_SIECI). Drugie okno = drugi kanał i zasada „jedno zadanie
+      naraz”.
+  S4  NIEPEWNE. Czy gui umie otworzyć aplikację na wybranej sekcji (dziś URUCHOM bez argumentu) — jeśli nie, Instalator
+      tylko pisze, gdzie szukać (bez przycisku).
+  S5  Z KODU (src/nadzorca/rozruch.c). Wynik nieudanej próby (ab_nieudana) idzie dziś tylko do okna Instalatora.
+  S6  Z KODU (docs/DO_ZROBIENIA.txt, „Później”: wejście nie obsługuje kółka). Przewijanie sekcji wymagałoby kółka
+      w wejsciu i ekranie albo paska przewijania — poza zakresem (D2).
+
+Krok 2
+  S7  NIEPEWNE, WYSOKA. Adres „releases/latest/download/<plik>” i przekierowanie do hosta plików GitHuba (nazwa
+      hosta — zmieniała się, np. objects.githubusercontent.com / release-assets.githubusercontent.com) — sprawdzić
+      próbą z kontenera (curl -sI) i wpisać do listy hostów łącznika (S8). „Najnowsze wydanie” GitHuba to ostatnie
+      niebędące wersją próbną — CI tworzy zwykłe wydania (sprawdzić w k1.yml).
+  S8  NIEPEWNE. Lista hostów strefy pobierania — jedna tabela (zasada 5), tylko dokładne nazwy; łącznik z 0.10.0 musi
+      umieć listę dozwolonych nazw na strefę (sprawdzić w ADR 0043 i łączniku po 0.10.0).
+  S9  Z KODU (.github/workflows/k1.yml). Wydanie dostaje dziś: ISO, obraz USB, ich sumy, SHA256SUMS, logi. Ogłoszenie
+      i paczka muszą powstać w scripts/zbuduj*.sh (tam jest sekret i podpis manifestu), nie w workflow.
+  S10 Z KODU / NIEPEWNE. Tabela K1_STREFY i VMM z 0.10.0: strefa bez virtio-gpu i bez okna — czy VMM i ekran to
+      przewidują (rola STREFA jest dla okna); jeśli nie — mała zmiana w tabeli (kolumna „okno: tak/nie”).
+  S11 NIEPEWNE. Wielkość obrazu strefy pobierania (curl, libcurl, OpenSSL albo GnuTLS, ca-certificates) w rdzeniu —
+      miejsce A/B 128 MiB dzieli z przeglądarką (plan 0.10.0, T5, S12). Wspólne biblioteki z obrazem przeglądarki —
+      sprawdzić, czy da się jednym obrazem z dwoma programami startowymi (`gosc` z argumentem).
+  S12 NIEPEWNE. Zaufane certyfikaty w strefie: ca-certificates z Debiana odświeżane z wydaniem K1 (robot). Przypięcie
+      tylko do certyfikatów GitHuba — kruche (GitHub zmienia wystawców); podpis K1 i tak chroni treść.
+  S13 Z KODU. Paczka ≈ zawartość miejsca A/B (≤ 128 MiB) + pliki startowe (kilka MB). Limit czasu pobierania
+      i ponawianie (przerwane łącze) — od początku, bez wznawiania (prostsze; wielkość nie gra roli — D4).
+  S14 Z KODU (src/instalator/main.c). Program zapisujący dostaje dziś źródło jako partycję (fd 4, pread64) — tryb
+      „z sieci” czyta strumień w kawałkach (inny kształt wejścia: kanał z deskryptorem albo potok); manifesty
+      sprawdza już dziś (k1_manifest_sprawdz_podpis), zapis miejsca, odczyt i porównanie też. Plik main.c ma 444
+      wiersze — tryb z sieci w osobnym pliku (np. siec.c w src/instalator/).
+  S15 NIEPEWNE. Test w QEMU: serwer HTTPS na „routerze” (QEMU -netdev user, jak plan 0.10.0 S17) z testowym CA tylko
+      w obrazie testowym strefy; paczka testowa podpisana kluczem testowym (obraz testowy ma klucz testowy — sprawdzić,
+      jak dziś test-m6 robi wersję „nowszą”).
+  S16 Z KODU (src/nadzorca/rozruch.c: „A stick (USB) is never touched”). Pendrive nie ma potwierdzania A/B — D5.
+
+Krok 3
+  S17 NIEPEWNE, WYSOKA. Uprawnienia robota: permissions w robot.yml (contents: write, pull-requests: write,
+      actions: write, issues: write); czy GITHUB_TOKEN może scalić PR (squash przez API) i uruchomić workflow_dispatch
+      k1.yml (dokumentacja: tak — T9); czy ochrona gałęzi main (jeśli ją włączysz) nie zablokuje robota — sprawdzić
+      próbnym przebiegiem. Dziś k1.yml ma workflow_dispatch (Claude dostaje 403 — robot działa jako GitHub Actions,
+      nie jako Claude).
+  S18 Z KODU (jadro/wersja.env, jadro/README.md). Wersja jądra, suma i adres w jednym pliku; procedura 6 kroków
+      (releases.json, sha256sums.asc z podpisem, zbuduj-jadro.sh, sprawdz-kspp.sh, testy, CHANGELOG i VERSION) —
+      robot robi ją całą dla tej samej linii (6.18.x).
+  S19 Z KODU (AGENTS.md: VERSION i CHANGELOG zmienia ten, kto robi wydanie). Robot robi wydania PATCH — gdy człowiek
+      (Claude, Codex) ma otwarty PR wydania, robot czeka; człowiek po scaleniu robota bierze następny numer.
+  S20 NIEPEWNE. Czas: CI ok. 30 min na przebieg (budowa i testy), robot = dwa przebiegi (gałąź, main). Repo publiczne
+      (ADR 0040) — minuty zwykłych runnerów GitHuba dla repozytoriów publicznych są bezpłatne (sprawdzić w ustawieniach
+      konta, czy nic się nie zmieniło).
+  S21 Z KODU. Próbny przebieg robota bez psucia main: wejście „próba” w workflow_dispatch robota (PR i testy, bez
+      scalania i wydania).
+  S22 ŚREDNIA (bezpieczeństwo). Dziś wydanie ląduje na komputerze dopiero, gdy właściciel pobierze ISO; po 0.10.5
+      podpisana wersja z main trafia na komputery sama (po pytaniu). Kto przejmie konto GitHub właściciela albo
+      przemyci zmianę do main, ma podpisaną wersję u wszystkich (klucz jest w sekrecie CI). RYZYKA: logowanie
+      dwuetapowe kluczem dostępu, robot tylko numery i sumy (T8), pytanie przed instalacją (D4), wydania tylko z main.
+      Podpis offline (klucz poza GitHubem) — później, z decyzją o kluczach w 0.12.
+  S23 Z KODU. Pierwsza wersja z aktualizacjami przez sieć (0.10.5) instaluje się jeszcze z pendrive'a — dopiero od niej
+      w górę K1 aktualizuje się sam.
+
+
+6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
+-----------------------------------------------------------------------------------
+    Aktualizacja pendrive'a przez sieć (D5); przewijanie w Ustawieniach i kółko myszy (D2, S6); wznawianie przerwanego
+    pobierania; kompresja paczki; aktualizacja tylko zmienionych części (różnicowa); „Co nowego” w K1 (tekst zmian
+    z sieci — trzeba go bezpiecznie pokazać); podpis wydań kluczem poza GitHubem i odwoływanie starszych wersji
+    (0.12, TPM — RYZYKA R44); robot dla musl, plików od producentów kart Wi-Fi i bazy przepisów radiowych (rzadkie
+    zmiany — na razie ręcznie); świeżość ogłoszenia (codziennie podpisywana data, ochrona przed ukrywaniem nowej
+    wersji — RYZYKA w kroku 2); aktualizacja czasu podpisanego (NTS) przez strefę pobierania.
