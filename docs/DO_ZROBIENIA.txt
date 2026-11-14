@@ -22,7 +22,7 @@ usunięte na Twoją prośbę — są w historii git). Twój test 0.9.1 z 2026-11
         zapamiętane sieci, ikona z siłą sygnału, wydanie (krok 2, PR #107)
     [x] 0.10.0: plan wersji — docs/PLAN-0.10.0.txt (2026-11-14): trzy kroki — 1 pierwsza strefa w zaufanej ramce,
         2 przeglądarka w strefie z połączeniami przez K1, 3 sesje, które pamiętają, porządki i wydanie
-    [ ] 0.10.0 krok 1 — pierwsza strefa (KVM, VMM, okno w zaufanej ramce)
+    [ ] 0.10.0 krok 1 — pierwsza strefa (KVM, VMM, okno w zaufanej ramce) [w toku: Claude, gałąź claude/epic-goldberg-eypdjs]
     [ ] 0.10.0 krok 2 — przeglądarka w strefie, połączenia przez K1
     [ ] 0.10.0 krok 3 — stała strefa, Ustawienia → Aplikacje, porządki; wydanie 0.10.0
 
