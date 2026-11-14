@@ -67,3 +67,4 @@ Krótko, dlaczego nie.
 | [0037](0037-podglad-zdjec.md) | Aplikacja Podgląd (0.8.2): zdjęcie w osobnym oknie, zdjęcia jednego folderu (zakres w prawach skarbca), dekoder dla Podglądu | Przyjęty |
 | [0038](0038-pliki-startowe-w-aktualizacji.md) | Pliki startowe w aktualizacji (0.9.0): manifest plików startowych, nowe obok starych, jedno przełączenie; koniec manifestu formatu 1 | Przyjęty, wdrożony (0.9.0) |
 | [0039](0039-siec-w-k1.md) | Sieć w K1 (0.9.0): tylko IPv4 po kablu, gniazda sieciowe tylko u nadzorcy, jądro nie wysyła ICMP, sterowniki kart szeroko | Przyjęty, wdrożony (0.9.0) |
+| [0040](0040-repo-publiczne.md) | Repo publiczne (2026-11-14): minuty CI bez limitu; scalanie i zasady bez zmian | Przyjęty |
