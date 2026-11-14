@@ -166,6 +166,20 @@ glina `#b7a99a`; Kosz `#9c9790`, System — `tekst3`. Legenda w dwóch kolumnach
 10 px z zaokrągleniem 3, nazwa (Plex Sans 13), rozmiar do prawej (`tekst2`). Pod legendą zapas systemu i liczba plików
 (`tekst3`, 13 px); przycisk „Użyj całego pendrive'a na dane” na dole sekcji. Ikona sekcji: dysk (`K1_IK_DYSK`).
 
+## Sieć (0.9.0 krok 7, decyzja właściciela D1: ikona C, sekcja B)
+Trzy szkice ikony (A — monitor z kablem, B — trzy połączone węzły, C — wtyczka sieciowa) i trzy układy sekcji (A — jak
+Bateria, B — kafelki kart, C — stan na karcie); wybrane **ikona C** i **sekcja B** (2026-11-13).
+- **Ikona na górnym pasku:** wtyczka RJ45 (`K1_IK_SIEC`: obudowa 14×11 z zaokrągleniem 2, cztery styki, zatrzask,
+  kabel w dół; `K1_IK_SIEC_BEZ_KABLA` — bez kabla), 16 px, 10 px na lewo od baterii (bez baterii — od dźwięku).
+  Połączono: krem. Łączę: krem 110/255 i kropka 1,8 px w `#e9a88b` (terakota jasna) w ciemnej obwódce, prawy dolny róg.
+  Kabel odłączony: wtyczka bez kabla 110/255 i krzyżyk 4 × 4 px w ciemnym kółku. Brak karty: 70/255 i ukośna kreska.
+- **Ustawienia → Sieć:** w bocznej liście przed „Informacje”, ikona wtyczki. Kafelek na kartę: `pole`, 64 px wysokości,
+  zaokrąglenie 10, włoskowaty obrys, co 76 px; ikona 24 px (wtyczka albo Wi-Fi — trzy łuki nad kropką), nazwa Plex Sans
+  Medium 15, opis Plex Sans 13 `tekst2`; plakietka po prawej: zaokrąglenie 12, tło `najechanie`, kropka 4 px — szałwia
+  `#8a9a7b` (połączono), akcent (łączę, brak sterownika), `tekst3` (pozostałe). Najwyżej 3 kafelki (2, gdy są szczegóły),
+  reszta „…i jeszcze n”. Pod kafelkami „Szczegóły karty przewodowej” (Plex Sans Medium 13) i wiersze co 22 px: etykieta
+  `tekst2`, wartość `tekst` od 140 px. Na dole `tekst3`: „Aplikacje nie mają jeszcze dostępu do internetu.”
+
 ## Ustawienia → Ekran (M4.1)
 Rozdzielczości jako przyciski w trzech kolumnach (136×32): wybrana — wypełnienie akcentem, pozostałe
 — `pole` z obrysem; pod listą „Zalecana: …” (tryb preferowany przez monitor/kartę). Przy jednym trybie (obraz z firmware) — wyjaśnienie

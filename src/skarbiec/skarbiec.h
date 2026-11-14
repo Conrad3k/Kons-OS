@@ -72,6 +72,7 @@ int dok_moze_listowac(int wl);
 void dok_koniec_kanalu(int fd); /* main.c: a client channel closes — its write in progress is abandoned (0.8.1) */
 void dok_po_otwarciu(void); /* the vault is readable (opened, unlocked, or memory): load the entries */
 int dok_co_godzine(void);    /* Kosz: delete what is older than 30 days; 1 when something went */
+void dok_zegar_z_internetu(int64_t skok); /* nadzorca set the clock (0.9.0 step 8): Kosz keeps the age of its files */
 
 /* miejsce.c: the room for files (SKARB_MIEJSCE) and growing K1-DANE (nadzorca does the partition table) */
 void miejsce_zapas(int mib);              /* MiB the stick has after K1-DANE (SKARB_KLIENT d) */

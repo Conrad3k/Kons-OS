@@ -1,5 +1,5 @@
 /* K1 ekran — state shared by the parts of the compositor: main.c (start, control channel, loop),
- * scena.c (composing, output), okna.c (clients, surfaces), wskaznik.c (input), drm.c (KMS). */
+ * scena.c (composing, output), okna.c (clients, windows), powierzchnie.c (surfaces), wskaznik.c (input), drm.c (KMS). */
 #ifndef K1_EKRAN_H
 #define K1_EKRAN_H
 
@@ -141,6 +141,15 @@ void aktywuj(int i);
 void rozlacz(int kl);
 int odbierz_klienta(int kl); /* 0 when the channel is closed */
 void ustawienie(int k, int32_t v);
+int znajdz_pow(int kl, uint32_t id);          /* the index of client kl's surface id, -1 */
+int panele(const struct klient *k);            /* the client may have panels (the shell, the password screen) */
+void odrzuc(int kl, const char *powod);        /* a message refused: logged (limited), the client warned */
+void na_wierzch(int i);
+void ustaw_fokus(int i);
+
+/* powierzchnie.c */
+void nowa_pow(int kl, const struct k1_komunikat *m, int fd); /* POWIERZCHNIA: checked, mapped, placed */
+void zatwierdz(int kl, const struct k1_komunikat *m);        /* ZATWIERDZ: the damaged part to compose */
 
 /* wskaznik.c */
 struct k1_zdarzenie;

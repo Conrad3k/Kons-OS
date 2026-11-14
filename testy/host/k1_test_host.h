@@ -5,7 +5,16 @@
 
 #include <stdio.h>
 
+/* A test of several files (0.9.0, files ≤ 600 lines): the file with main() defines K1_TEST_GLOWNY, the others
+ * K1_TEST_CZESC before including this — one pair of counters for all. A test of one file: neither. */
+#if defined K1_TEST_GLOWNY || defined K1_TEST_CZESC
+extern int k1_t_bledy, k1_t_razem;
+#ifdef K1_TEST_GLOWNY
+int k1_t_bledy, k1_t_razem;
+#endif
+#else
 static int k1_t_bledy, k1_t_razem;
+#endif
 
 #define EXPECT(cond)                                                                                                   \
     do {                                                                                                               \

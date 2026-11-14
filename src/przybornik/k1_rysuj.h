@@ -73,6 +73,10 @@ enum k1_ikona {
     K1_IK_WIDEO,
     K1_IK_POBRANE,
     K1_IK_W_GORE,
+    /* 0.9.0 step 7: the network */
+    K1_IK_SIEC,           /* a network plug with its cable (connected; Ustawienia → Sieć) */
+    K1_IK_SIEC_BEZ_KABLA, /* the plug alone */
+    K1_IK_WIFI,
 };
 void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozmiar, uint32_t kolor);
 

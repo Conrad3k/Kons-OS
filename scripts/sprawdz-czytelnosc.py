@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Zasady czytelności K1 (AGENTS.md, decyzja właściciela z 2026-11-09), sprawdzane w testach:
 
-  1. plik .c ma najwyżej 600 wierszy, funkcja najwyżej 80 (bez src/zewnetrzne/);
+  1. plik .c ma najwyżej 600 wierszy, funkcja najwyżej 80 (bez src/zewnetrzne/); od 0.9.0 pliki testów (testy/**/*.c)
+     też najwyżej 600 wierszy (bez limitu funkcji);
      wyjątek: komentarz `/* k1: limit — <powód> */` w pierwszych 20 wierszach pliku (cały plik)
      albo w 5 wierszach nad funkcją (ta funkcja);
   2. każda usługa (K1_SYSTEM) ma opis docs/komponenty/<program>.md, każda aplikacja (K1_APLIKACJE)
@@ -68,7 +69,23 @@ def funkcje(wiersze):
         i += 1
 
 
+def pliki_testow(repo):
+    """0.9.0: test sources (C) count for the file limit too — a test must be readable as well (not the function
+    limit: a long list of checks reads well)."""
+    for katalog, podkatalogi, pliki in os.walk(os.path.join(repo, "testy")):
+        podkatalogi[:] = sorted(podkatalogi)
+        for p in sorted(pliki):
+            if p.endswith(".c"):
+                yield os.path.join(katalog, p)
+
+
 def sprawdz_limity(repo, bledy):
+    for sciezka in pliki_testow(repo):
+        wzgl = os.path.relpath(sciezka, repo)
+        with open(sciezka, encoding="utf-8") as f:
+            wiersze = f.read().rstrip("\n").split("\n")
+        if len(wiersze) > PLIK_MAKS and not any(WYJATEK.search(w) for w in wiersze[:20]):
+            bledy.append(f"{wzgl}: {len(wiersze)} wierszy (limit {PLIK_MAKS}; test)")
     for sciezka in pliki_c(repo):
         wzgl = os.path.relpath(sciezka, repo)
         with open(sciezka, encoding="utf-8") as f:

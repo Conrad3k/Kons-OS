@@ -79,6 +79,10 @@ int dok_miejsce_na(uint64_t bajty);
 uint64_t dok_rezerwa(void);
 /* The time to write into entries for clock `zegar` (0.8.1): never before this K1's build or the latest clock seen. */
 int64_t dok_czas(int64_t zegar);
+/* The clock was set from the internet (0.9.0 step 8): it is `zegar` now, it moved by `skok` seconds. The latest clock
+ * seen becomes `zegar` (also when it went back), and every time in Kosz moves by as much as the time written into
+ * entries moved — what lay in Kosz for 2 days still has 28 to go. How many entries moved. */
+int dok_zegar_przesuniety(int64_t zegar, int64_t skok);
 
 /* Looking: the entry (NULL: none); visible = not in Kosz and not inside a folder in Kosz. */
 const struct k1_dok_wpis *dok_wpis(uint32_t id);

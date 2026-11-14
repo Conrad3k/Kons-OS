@@ -24,7 +24,7 @@ innych plików nie ma), `getrandom`, `memfd_create`, `sysinfo`; Landlock bez
 `block/fops.c`). Bez partycji obiekty w pamięci: do 65 536, razem do 128 MiB.
 
 ## Wejścia i wyjścia
-- fd 3: kanał sterujący od nadzorcy — `SKARB_KLIENT(właściciel, uid, na_usb, zapas)` + koniec kanału klienta (0.6.3: `na_usb` wraca do klientów w `SKARB_WYNIK` d, bit 1; 0.8.1: d = ile MiB pendrive ma jeszcze za K1-DANE) i `POWIEKSZONO` (wynik powiększenia, niżej); od 0.8.2 `START_POTWIERDZONY` (przejście na format 2, niżej).
+- fd 3: kanał sterujący od nadzorcy — `SKARB_KLIENT(właściciel, uid, na_usb, zapas)` + koniec kanału klienta (0.6.3: `na_usb` wraca do klientów w `SKARB_WYNIK` d, bit 1; 0.8.1: d = ile MiB pendrive ma jeszcze za K1-DANE) i `POWIEKSZONO` (wynik powiększenia, niżej); od 0.8.2 `START_POTWIERDZONY` (przejście na format 2, niżej); od 0.9.0 `ZEGAR_PRZESUNIETY` (zegar z internetu, niżej).
 - fd 4: partycja GPT „K1-DANE” (otwarta przez nadzorcę `O_RDWR|O_EXCL`); brak → tryb „tylko w pamięci”.
 - Kanały klientów: `SKARB_CZYTAJ`, `SKARB_ZAPISZ` (+ zapieczętowany memfd o podanym rozmiarze),
   `SKARB_USUN` → `SKARB_DANE` (+ memfd) albo `SKARB_WYNIK` (wynik, tryb: dysk / pamięć).
@@ -200,6 +200,7 @@ wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po 
 | `POWIEKSZ_DANE` | → nadzorca | kanał sterujący: powiększ K1-DANE do końca pendrive'a (magazyn otwarty, prośba z Ustawień) |
 | `POWIEKSZONO` | nadzorca → | kanał sterujący: a = 0 albo `K1_SKARB_ARG` / `K1_SKARB_IO` |
 | `START_POTWIERDZONY` | nadzorca → | kanał sterujący (0.8.2): wszystkie pola 0 — start tej wersji potwierdzony, magazyn formatu 1 może przejść na format 2 |
+| `ZEGAR_PRZESUNIETY` | nadzorca → | kanał sterujący (0.9.0 krok 8): a, b = o ile sekund nadzorca przestawił zegar z internetu (ze znakiem, 64 bity, najwyżej ±200 lat). Skarbiec: najpóźniejszy widziany zegar = teraz (także gdy zegar cofnięto), a czas każdego pliku w Koszu przesuwa się o tyle, o ile przesunął się czas zapisywany we wpisach (`dok_zegar_przesuniety`) — plik leżący w Koszu 2 dni ma dalej 28 dni, także gdy zegar skoczył z 2000 r. na dziś |
 
 Zablokowany magazyn (hasło) — każda prośba `DOK_*` dostaje „złe hasło”. W logu tylko numery komunikatów, liczby
 wpisów i wyniki — nigdy nazwy ani treść.

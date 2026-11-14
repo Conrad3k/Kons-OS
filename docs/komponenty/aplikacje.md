@@ -73,7 +73,12 @@ n z 16 384”. Liczby od skarbca: `SKARB_INFO` → `SKARB_MIEJSCE`, `SKARB_PODZI
 przy wejściu do sekcji i co 3 s, gdy jest pokazana (import w Plikach widać od razu). Na pendrivie K1 z wolnym miejscem za
 K1-DANE: „Pendrive ma jeszcze X nieużywanego miejsca.” i przycisk **„Użyj całego pendrive'a na dane”** (przeniesiony
 z Informacji) — kliknięcie = zgoda, `SKARB_POWIEKSZ`, w trakcie „Powiększam… Nie wyjmuj pendrive'a.”, potem „Gotowe —
-cały pendrive jest teraz na dane.” (ADR 0033, `komponenty/skarbiec.md`). Informacje (`informacje.c`): wersja, ekran,
+cały pendrive jest teraz na dane.” (ADR 0033, `komponenty/skarbiec.md`). Sieć (0.9.0 krok 7, `siec.c`; decyzja D1:
+szkic B w `docs/WYGLAD.md`): kafelek na każdą kartę sieciową komputera (nazwa z tabeli `K1_KARTY_SIECIOWE` albo rodzaj
+i identyfikator, linijka opisu, plakietka stanu: Połączono / Łączę… / Brak kabla / Brak sterownika / Później — Wi-Fi /
+Nieobsługiwana), pod nimi „Szczegóły karty przewodowej” (sterownik z jądra, łącze: prędkość i dupleks, adres karty
+(MAC), adres w sieci z maską i routerem — gdy połączono); log „sieć: Intel 82574L: Połączono; szczegóły: e1000e, łącze
+(kafelki od x,y co 76)” (bez adresu). Informacje (`informacje.c`): wersja, ekran,
 jądro, gdzie są dane i odesłanie do sekcji Miejsce.
 
 ### Instalator
@@ -226,7 +231,8 @@ własne pliki i pliki dane przez użytkownika (tabela praw w skarbcu), `DOK_WYBI
 `DOK_PROSBA`, `DOK_WYBRANO`). Zasoby: fd 4 —
 kanał od nadzorcy (`ZASOBY_SYSTEM`, `ZASOBY_USLUGA`, od 0.6.3 `ZASOBY_BATERIA`), aplikacja nie może do niego pisać.
 Ustawienia: lista trybów ekranu (`K1_KOM_TRYB`) dostaje tylko ona; od 0.5.5 fd 4 — kanał od nadzorcy
-(`BATERIA`, `BATERIA_HIST`: do 16 próbek po 1 bajcie w komunikacie), jednokierunkowy, nadawca UID 0.
+(`BATERIA`, `BATERIA_HIST`: do 16 próbek po 1 bajcie w komunikacie), jednokierunkowy, nadawca UID 0; od 0.9.0 ten sam
+kanał: `SIEC_STAN`, `SIEC_KARTA`, `SIEC_SZCZEGOLY`, `SIEC_STEROWNIK`, `SIEC_ADRESY` (sekcja Sieć; `komponenty/siec.md`).
 Bez kanału (zamknięty) reszta Ustawień działa.
 Pliki (0.8.0): fd 4 — kanał do skarbca z prawami do wszystkich plików użytkownika (i do niczego więcej: obiekty
 innych aplikacji są dla Plików niewidoczne), komunikaty `DOK_*` (`komponenty/skarbiec.md`); fd 5 — od nadzorcy,

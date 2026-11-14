@@ -82,9 +82,12 @@ Potem sieć:
          PR #100 (ADR 0039)
 [x]  6  Kabel i adres od routera (DHCP) w klatce         L10 L14 L15     5          D2 D3        L        —
          PR #100
-[ ]  7  Ikona sieci i Ustawienia → Sieć                  L16             6          D1           M        —
-[ ]  8  Zegar z internetu                                L17 L18         6          T5           M        —
-[ ]  9  Porządki i wydanie 0.9.0                         L19 L20         1–8        D4           S–M      —
+[x]  7  Ikona sieci i Ustawienia → Sieć                  L16             6          D1           M        —
+         PR #102
+[x]  8  Zegar z internetu                                L17 L18         6          T5           M        —
+         PR #102
+[x]  9  Porządki i wydanie 0.9.0                         L19 L20         1–8        D4           S–M      —
+         PR #102; wydanie k1-v0.9.0
 
 Kolejność: 1–4 nie dotykają tych samych plików (1: nadzorca; 2: wspólne komunikaty i skarbiec; 3: Instalator;
 4: budowa) — mogą iść w dowolnej kolejności, ale wszystkie przed 5 (sieć wchodzi do uporządkowanego kodu,
@@ -334,6 +337,20 @@ KROK 7 — Ikona sieci i Ustawienia → Sieć                                   
   Testy i dowód: QEMU — ikona i sekcja w obu stanach (kabel włożony/wyjęty w „sieci testowej”), zrzuty w obu motywach.
   Dokumenty: aplikacje.md (Ustawienia), gui.md, WYGLAD, SLOWNIK.
   Gotowe, gdy: scenariusz QEMU zielony, zrzuty pokazane właścicielowi.
+  Ustalenia z wykonania (2026-11-13, Claude):
+  - D1: szkice A/B/C ikony i A/B/C sekcji narysowane częściami K1 na hoście; właściciel wybrał ikonę C (wtyczka) i
+    sekcję B (kafelki kart). W trakcie prośba właściciela: „pod kafelkami ciut więcej szczegółów o karcie, jeśli jądro to
+    podaje” — sterownik (link device/driver), prędkość i dupleks (sysfs speed, duplex — tylko z kablem), MAC i adres
+    w sieci z maską i routerem (to, co nadzorca sam ustawił). Adres widać w oknie, w logu dalej nie (niezmiennik 8).
+  - L16 Z KODU: stan idzie tym samym kanałem co bateria (gui fd 5, Ustawienia fd 4) — bez nowego kanału. Pięć
+    komunikatów, tylko liczby: SIEC_STAN, SIEC_KARTA, SIEC_SZCZEGOLY, SIEC_STEROWNIK (nazwa sterownika 1–20 znaków
+    a-z 0-9 _ - w polach a…e), SIEC_ADRESY. Ekran hasła nie dostaje stanu (nie ma ikony sieci).
+  - Lista kart: karty przewodowe nadzorcy, potem każde urządzenie PCI klasy 02 z bus/pci/devices (02 00 przewodowa,
+    02 80 Wi-Fi, inne — „inna”), także bez sterownika (identyfikator vendor:device dla właściciela; USB — idVendor:
+    idProduct z device/..). Nazwy kart — tabela K1_KARTY_SIECIOWE w Ustawieniach (nowa karta = wiersz).
+  - Sekcja Sieć przed „Informacje” (nie trzecia, jak w szkicu): testy QEMU klikają sekcje po numerze — wstawienie
+    wcześniej przesunęłoby Baterię, Hasło, Aplikacje i Miejsce w pięciu skryptach.
+  - Podział przed rozbudową: src/nadzorca/siec.c → siec_jadro.c (zapytania rtnetlink); nowy siec_stan.c.
 
 KROK 8 — Zegar z internetu                                                           M · decyzja T5 · bez ADR
   Cel: po połączeniu K1 ustawia zegar komputera (RYZYKA R56), bezpiecznie wobec podrobionej odpowiedzi.
@@ -349,6 +366,24 @@ KROK 8 — Zegar z internetu                                                    
   identyfikator, czas spoza granic T5) → zegar bez zmian; Kosz po skoku zegara nie traci plików.
   Dokumenty: siec.md, nadzorca.md, RYZYKA R56, skarbiec.md (Kosz a zegar), SLOWNIK.
   Gotowe, gdy: testy zielone, [OK].
+  Ustalenia z wykonania (2026-11-13, Claude):
+  - T5: SNTP do 6 serwerów naraz — od routera (opcja DHCP 42, najwyżej 2) i stałe adresy anycast dwóch firm na zmianę
+    (time.google.com 216.239.35.0, .4; time.cloudflare.com 162.159.200.1, .123); bez DNS. Czas tylko, gdy ≥ 2 i więcej
+    niż połowa odpowiedzi zgadzają się co do 2 s (mediana); 64 losowe bity w polu „transmit”, sprawdzane w „origin”.
+    Runda 8 s (krócej, gdy wszyscy odpowiedzieli), potem po 15, 30, 60 s … 1 h; po dobrej — co 6 h.
+  - Gniazda: siec nie ma socket — nadzorca otwiera gniazdo UDP i łączy je z adresem serwera, port 123 (connect: losowy
+    port źródłowy, odpowiedzi tylko od tego adresu), najwyżej 18 na minutę. siec ma teraz 16 plików (było 8).
+  - L17/T5 granice: nadzorca — nie sprzed K1_CZAS_BUDOWY (SOURCE_DATE_EPOCH, jak skarbiec) i najwyżej raz na minutę;
+    komunikat — 2026–2100. POTWIERDZONE testem: zgodny czas sprzed wydania → nadzorca odmawia, siec próbuje później.
+  - CAP_SYS_TIME: nadzorca ma pełne uprawnienia roota (init ich nie odbiera) — clock_settime działa (POTWIERDZONE
+    w QEMU). RTC: jądro miało RTC_CLASS i CMOS bez /dev/rtc — dodane CONFIG_RTC_INTF_DEV; RTC_SET_TIME w UTC (jak
+    czyta RTC_HCTOSYS przy starcie). RTC_SYSTOHC (zapis co 11 min przez jądro) — nie: wymaga stanu „zsynchronizowany”
+    w adjtimex, którym K1 nie zarządza.
+  - L18: zamiast wykrywać skok w skarbcu (testy wołają Kosz z różnym zegarem bez upływu czasu) — nadzorca mówi
+    skarbcowi wprost: ZEGAR_PRZESUNIETY (o ile sekund). Skarbiec przesuwa czas Kosza o tyle, o ile przesunął się czas
+    zapisywany we wpisach (z granicą: przy zegarze z 2000 r. wpisy miały czas budowy), i przyjmuje nowy zegar jako
+    granicę — także w tył (zegar wcześniej za daleko w przód). POTWIERDZONE: test_dokumenty, test-siec (log skarbca).
+  - Test w QEMU: -rtc base=2001-01-01 (słaba bateryjka); sieć testowa odpowiada na pytania o czas za każdy adres.
 
 KROK 9 — Porządki i wydanie 0.9.0                                                   S–M · decyzja D4
   Cel: wydanie 0.9.0 z obrazem ISO i USB.
@@ -363,6 +398,17 @@ KROK 9 — Porządki i wydanie 0.9.0                                            
       (kabel do routera, ikona, Ustawienia → Sieć, zegar po podłączeniu, aktualizacja z 0.8.7 przez Instalator);
       ten plik → docs/archiwum/.
   [ ] Po scaleniu: CI, tag k1-v0.9.0, wydanie; raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
+  Ustalenia z wykonania (2026-11-13, Claude):
+  - L19: test_dokumenty.c (1370) → 4 pliki ze wspólnym test_dokumenty.h, test_komunikat.c (789) → 2 pliki
+    (test_komunikat.h), liczba sprawdzeń bez zmian (2826, 461). k1_test_host.h: tryb „test z kilku plików”
+    (K1_TEST_GLOWNY / K1_TEST_CZESC — jedne liczniki). Limit 600 wierszy obejmuje od teraz też testy/**/*.c
+    (sprawdz-czytelnosc.py, AGENTS.md); limit funkcji — tylko src/ (10 długich list sprawdzeń w testach).
+  - src/ekran/okna.c (564) → okna.c (klienci, okna, komunikaty) + powierzchnie.c (pamięć, nowa powierzchnia,
+    zatwierdzanie) — przed ramką stref w 0.10.
+  - D4: kopia katalogu budowy jądra (build/jadro-obj, build/naglowki) w pamięci podręcznej Actions: zapisuje ją build
+    na main (zawsze od zera), przywracają tylko przebiegi PR-ów z etykietą „testy”; klucz — jadro/** i skrypty budowy
+    jądra. Źródła rozpakowane z archiwum mają stare daty, więc make buduje tylko to, co się zmieniło.
+  - Tymczasowe: terminy 0.9.0 usunięte w kroku 3; format 1 skarbca — 0.10.0 bez zmian.
 
 
 4. DECYZJE
@@ -371,8 +417,10 @@ Twoje (produkt):
 [x] D0 Sterowniki kart sieciowych (i później Wi-Fi) — z jądra Linux, nie własne.
        DECYZJA (2026-11-13, właściciel): „Nie piszemy swoich sterowników, bo jądro już te sterowniki ma.”
        Nasz kod: uprawnienia, adres od routera, zegar, stan na ekranie, testy (punkt 1).
-[!] D1 (krok 7) Wygląd ikony sieci i sekcji Ustawienia → Sieć — 2–3 szkice do wyboru na początku kroku 7.
+[x] D1 (krok 7) Wygląd ikony sieci i sekcji Ustawienia → Sieć — 2–3 szkice do wyboru na początku kroku 7.
        Rekomendacja: ikona liniowa obok dźwięku i baterii (jak w Windows 11), sekcja jak „Bateria” (stan, karta).
+       DECYZJA (2026-11-13, właściciel): ikona C — „Wtyczka sieciowa” (RJ45); sekcja B — „Kafelki kart” (każda karta
+       sieciowa osobno, z plakietką stanu). Szkice A, B, C narysowane częściami K1.
 [!] D2 (krok 6, plan Wi-Fi) Czy masz w domu kabel sieciowy do obu laptopów, czy używasz tylko Wi-Fi?
        Nie zmienia kroków 0.9.0 (kabel jest prostszy i testowalny w QEMU), ale jeśli tylko Wi-Fi — plan Wi-Fi
        (punkt 6) zaczynamy zaraz po 0.9.0, przed 0.10.
@@ -381,8 +429,9 @@ Twoje (produkt):
        kabel 10/100 i Wi-Fi 802.11ac; według niezależnego sklepu Wi-Fi to Qualcomm Atheros QCA9377 (NIEPEWNE). Jeśli
        masz na nim Windows: Menedżer urządzeń → Karty sieciowe → przepisz obie nazwy; inaczej pokaże je krok 7.
        Przy okazji: czy na IdeaPadzie działa touchpad, bateria w Zasobach, i czy K1 jest na dysku czy na pendrive'ie.
-[!] D4 (krok 9) Pamięć podręczna budowy jądra w CI (z audytu 0.8.6): ok. 7 z 30 min każdego przebiegu mniej.
+[x] D4 (krok 9) Pamięć podręczna budowy jądra w CI (z audytu 0.8.6): ok. 7 z 30 min każdego przebiegu mniej.
        Rekomendacja: tylko dla przebiegów PR-ów (etykieta „testy”); wydania zawsze budowane od zera.
+       DECYZJA (2026-11-13, właściciel): tak, tylko dla PR-ów.
 
 Techniczne (decyduje Claude w ADR kroku 5 i w krokach — Ty dostajesz krótkie wyjaśnienie):
     T1 Uprawnienia: rekomendacja — jak pendrive i dyski: nadzorca (root) robi to, co wymaga uprawnień (gniazdo

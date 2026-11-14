@@ -3,6 +3,68 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.9.0] — 2026-11-13
+
+**Sieć: kabel** (`docs/archiwum/PLAN-0.9.0.txt`, kroki 1–9; ADR 0038, 0039) — pierwsza wersja tematu 0.9 Sieć. K1 łączy
+się z routerem kablem, pokazuje stan połączenia i sam ustawia zegar z internetu. Żadna aplikacja nie dostaje jeszcze
+internetu (przyjdzie z przeglądarką w strefie, 0.10). Wi-Fi — w 0.9.1 (`docs/PLAN-0.9.1.txt`).
+
+### Dodane
+- **Kabel sieciowy i adres od routera.** Po włożeniu kabla K1 sam dostaje adres od routera (DHCP); po wyjęciu — oddaje
+  go. Sterowniki kart z jądra Linux, włączone szeroko (Twoja decyzja D0, T6): karty przewodowe Intel (X230), Realtek
+  (IdeaPad 110-15ISK), Broadcom, Qualcomm Atheros, Marvell, NVIDIA, JMicron, VIA, karty maszyn wirtualnych (QEMU,
+  VMware, VirtualBox) i popularne przejściówki USB–Ethernet. Adres pobiera nowa usługa **siec** w swojej klatce (bez
+  żadnych uprawnień: każdy pakiet z sieci sprawdzany pole po polu), a ustawia go nadzorca po sprawdzeniu.
+- **Nic w K1 nie odpowiada z zewnątrz** (ADR 0039): bez adresu K1 wysyła do sieci tylko pytanie o adres; z adresem
+  odpowiada wyłącznie „kto ma ten adres” (ARP) i „zamknięte” na próbę połączenia — żadnego pinga, żadnego ICMP, nic nie
+  nasłuchuje. Tylko IPv4 (bez IPv6 i zapory). Żadna klatka nie może otworzyć gniazda sieciowego.
+- **Ikona sieci na górnym pasku** (Twój wybór D1: wtyczka sieciowa): jasna wtyczka z kablem — połączono; przygaszona
+  z pomarańczową kropką — łączę (czekam na adres od routera); przygaszona z krzyżykiem — kabel odłączony; przekreślona —
+  brak obsługiwanej karty.
+- **Ustawienia → Sieć** (Twój wybór D1: kafelki kart): kafelek na każdą kartę sieciową komputera z plakietką stanu
+  (Połączono / Łączę… / Brak kabla / Brak sterownika / Później — Wi-Fi). Pod kafelkami — Twoja prośba — szczegóły karty
+  przewodowej: sterownik z jądra, prędkość i dupleks łącza, adres karty (MAC), a gdy połączono — adres w sieci, maska
+  i router. Karta, której K1 nie zna, pokazuje swój identyfikator (np. `10ec:8136`) — dopisanie sterownika to jedna
+  linia w następnej wersji. Widać też kartę Wi-Fi (z identyfikatorem), choć Wi-Fi przyjdzie w 0.9.1.
+- **Zegar z internetu** (T5): po połączeniu K1 pyta naraz do 6 serwerów czasu (te od routera i stałe adresy dwóch firm)
+  i ustawia zegar tylko wtedy, gdy większość odpowiedzi się zgadza; nigdy na czas sprzed tego wydania. Ustawia też
+  zegar sprzętowy — następny start ma dobrą godzinę bez sieci (dotąd po słabej bateryjce zegara bywał rok 2000).
+  Skok zegara nie opróżnia Kosza: czas plików w Koszu przesuwa się o tyle samo. Ustawienia → Data i czas mówią, kiedy
+  zegar przyszedł z internetu.
+- **Aktualizacja wymienia też pliki startowe** (shim, GRUB, `grub.cfg` — ADR 0038): przy aktualizacji przez Instalator
+  nowe pliki zapisują się obok starych, są sprawdzane z podpisanym manifestem i przełączane jednym zapisem; zanik prądu
+  w środku zostawia stare albo nowe — komputer zawsze startuje.
+
+### Zmienione
+- **Nowsza biblioteka C** — własny, przypięty musl 1.2.5 z poprawką bezpieczeństwa CVE-2025-26519 i dodatkowa ochrona
+  przed przepełnieniem pamięci w całym systemie (`_FORTIFY_SOURCE=3`, fortify-headers): przepełnienie zatrzymuje
+  program zamiast cicho nadpisać pamięć.
+- Odpowiedzi skarbca nigdy nie przepadają (dotąd przy bardzo dużym imporcie Pliki mogły „zapomnieć” o zmianie, R64).
+- Aktualizacja wprost z 0.6.2–0.6.3 nie jest już możliwa (najpierw na 0.8.x); notatki z pendrive'a nagranego
+  0.5.6–0.7.6 nie przechodzą do Plików (Twoja decyzja z 2026-11-12).
+
+### Porządki
+- Usługa systemowa to jeden wiersz w tabeli `K1_SYSTEM` (dotąd cztery miejsca w kodzie) — nowa usługa siec to wiersz,
+  klatka i program; tabela właścicieli kanałów nie może się już zapełnić.
+- Sprawdzanie komunikatów podzielone według kanałów (`k1_kom_*.c`), sieć dostała własny plik.
+- Usunięte rozwiązania tymczasowe z terminem 0.9.0: manifest formatu 1 i przenoszenie starych notatek.
+- Nadzorca: zapytania do jądra o sieć w osobnym pliku (`siec_jadro.c`), stan dla ekranu (`siec_stan.c`), zegar
+  (`siec_zegar.c`).
+- Pliki testów też mają limit 600 wierszy (zasada czytelności 1, `AGENTS.md`): `test_dokumenty.c` (1370 wierszy) i
+  `test_komunikat.c` (789) podzielone na części, te same sprawdzenia. Ekran: `okna.c` podzielony (powierzchnie
+  w `powierzchnie.c`) przed ramką stref w 0.10.
+- CI (Twoja decyzja D4): przebiegi PR-ów (etykieta „testy”) budują jądro przyrostowo z kopii, którą zostawia build na
+  `main` — ok. 7 min krócej; wydanie zawsze budowane od zera.
+- „Tymczasowe”: terminy 0.9.0 załatwione; format 1 skarbca — dalej 0.10.0.
+
+### Testy
+- `test-siec.sh` (QEMU z „siecią testową” w Pythonie): z zewnątrz nic nie odpowiada, adres od routera, 5 złych
+  odpowiedzi DHCP odrzuconych, kabel wyjęty i włożony; ikona w trzech stanach i Ustawienia → Sieć w jasnym i ciemnym
+  motywie (zrzuty); zegar z 2001 r.: serwery milczą, odpowiadają źle, nie zgadzają się, podają czas sprzed wydania —
+  zegar bez zmian; dobry czas — zegar ustawiony, Kosz przesunięty.
+- Na hoście: `test_siec`, `test_czas` (pakiety czasu, zgodność źródeł), Kosz po przestawieniu zegara; fuzzing
+  `fuzz_dhcp`, `fuzz_sntp`; w systemie: żadna klatka nie ustawi zegara ani adresu, nie otworzy gniazda sieciowego.
+
 ## [0.8.7] — 2026-11-13
 
 ### Zmienione

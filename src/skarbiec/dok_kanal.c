@@ -111,6 +111,13 @@ int dok_co_godzine(void)
     return n > 0;
 }
 
+void dok_zegar_z_internetu(int64_t skok)
+{
+    int n = dok_zegar_przesuniety((int64_t)time(NULL), skok);
+    k1_log(TAG, "zegar przesunięty z internetu (%+lld s) — Kosz: czas %d plików przesunięty o tyle samo, wiek bez zmian",
+           (long long)skok, n);
+}
+
 /* What Pliki shows: visible entries and those in Kosz (not what lies inside a folder in Kosz). */
 static int dla_plikow(const struct k1_dok_wpis *w)
 {

@@ -4,35 +4,32 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.8.7 — po audycie przed 0.9 (0.8.6: laptop oszczędza energię, szybsze wyłączanie, historia baterii przy
-wyłączaniu; raport: docs/archiwum/AUDYT-0.8.5.txt; 0.8.7: pobór mocy w Zasobach reaguje szybciej); teraz 0.9 Sieć.
+Stan: 0.9.0 — pierwsza wersja tematu 0.9 Sieć: kabel i adres od routera, nic nie odpowiada z zewnątrz, ikona sieci,
+Ustawienia → Sieć, zegar z internetu (plan zamknięty: docs/archiwum/PLAN-0.9.0.txt); teraz 0.9.1 Wi-Fi.
 Data: 2026-11-13.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — 0.9 Sieć
--------------------
-0.9 Sieć (ADR 0019, 0026) — plan wersji 0.9.0: docs/PLAN-0.9.0.txt (9 kroków, luki, decyzje D1–D4 dla Ciebie).
-Zasada (Twoja decyzja z 2026-11-13): sterowniki kart z jądra Linux, nie własne — włączone szeroko (każda karta
-przewodowa, którą obsługuje jądro; plan, T6). W skrócie:
-    [x] kroki 1–4, porządki przed siecią: jedna tabela usług, podział komunikatów i odpowiedzi skarbca (R64), pliki
-        startowe w aktualizacji (R45) i usunięcie „Tymczasowe” 0.9.0, musl 1.2.5 i fortify-headers (R7, R8) — PR #94,
-        #96, #97
-    [ ] kroki 5–8, sieć: jądro z siecią i test „nic nie odpowiada z zewnątrz”, kabel i adres od routera w klatce
-        (każda karta z jądra; sprawdzamy na X230 i IdeaPadzie), ikona sieci i Ustawienia → Sieć, zegar z internetu (R56)
-    [ ] krok 9: porządki (pliki testów ponad limit, okna.c) i wydanie 0.9.0
-    [ ] potem: Wi-Fi (oba laptopy; oprogramowanie kart i logowanie WPA — osobny plan i ADR, PLAN-0.9.0 punkt 6)
-Zamknięte: 0.8.2 i 0.8.5 — plany i ich ustalenia w docs/archiwum/PLAN-0.8.2.txt i PLAN-0.8.5.txt (historia), zmiany
-w CHANGELOG.md.
+1. TERAZ — 0.9.1 Wi-Fi
+----------------------
+0.9 Sieć (ADR 0019, 0026, 0039). Gotowe: 0.9.0 — kabel (docs/archiwum/PLAN-0.9.0.txt; zmiany w CHANGELOG.md).
+Teraz: 0.9.1 Wi-Fi — plan docs/PLAN-0.9.1.txt (dwa kroki, wydanie w drugim; decyzje dla Ciebie w jego punkcie 4).
+    [x] 0.9.0: jedna tabela usług, komunikaty i odpowiedzi skarbca, pliki startowe w aktualizacji, musl 1.2.5 i
+        fortify (PR #94, #96, #97); jądro z siecią, kabel i adres od routera (PR #100); ikona sieci, Ustawienia → Sieć,
+        zegar z internetu, porządki i wydanie (kroki 7–9)
+    [ ] 0.9.1: Wi-Fi na obu laptopach (sterowniki z jądra, pliki od producenta, logowanie do sieci z hasłem)
+    [!] Pytania z planu 0.9.0, które zostały dla Ciebie (przydadzą się w 0.9.1): D2 — czy masz kabel sieciowy do obu
+        laptopów, czy tylko Wi-Fi? D3 — nazwy kart sieciowych IdeaPada: od 0.9.0 pokazuje je K1 sam — Ustawienia → Sieć
+        (kafelek z identyfikatorem, np. „Karta Wi-Fi 168c:0042”) — przepisz je w czacie.
 
 
 2. MAPA DROGI (ADR 0035; dawne numery etapów M w nawiasach)
 ------------------------------------------------------------
     0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
     0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
-    0.9      Sieć — następna                                                       (M7)
+    0.9      Sieć — teraz: 0.9.0 kabel (gotowe), 0.9.1 Wi-Fi                      (M7)
     0.10     Strefy: obce aplikacje w mikro-maszynach, przeglądarka                (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
@@ -91,40 +88,38 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
     [ ] drugi, pusty dysk (bez tablicy partycji) w maszynie wirtualnej jako miejsce na dane
 
 
-4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230)
------------------------------------------------
-Komputery: ThinkPad X230 i — od 2026-11-13 — Lenovo IdeaPad 110-15ISK (0.8.7 działa; Twoja wiadomość z 2026-11-13).
-Jedna lista — dla ostatniego wydania. Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
-z 2026-11-11). Lista dla 0.8.7 (zawiera niesprawdzone punkty 0.8.2–0.8.6; najlepiej najpierw aktualizacja K1 na dysku
-X230 przez Instalator z pendrive'a 0.8.7 — dane zostają):
+4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
+-------------------------------------------------------------------------
+Jedna lista — dla ostatniego wydania (0.9.0). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+z 2026-11-11). Najlepiej najpierw aktualizacja K1 na dysku X230 przez Instalator z pendrive'a 0.9.0 — dane zostają,
+a od 0.9.0 aktualizacja wymienia też pliki startowe.
+Nowe w 0.9.0:
+    [ ] aktualizacja z 0.8.7 przez Instalator (X230, K1 na dysku): po ponownym starcie K1 0.9.0 startuje, dane są;
+        w logu Instalatora „pliki startowe wymienione”
+    [ ] kabel do routera — X230 i IdeaPad: ikona sieci na górnym pasku (wtyczka) przechodzi z „łączę” (kropka) na
+        „połączono” (jasna) w kilka sekund; wyjęcie kabla — krzyżyk; włożenie — znów „połączono”
+    [ ] Ustawienia → Sieć: kafelki kart (X230: Intel 82579LM i Intel Centrino — Wi-Fi „Później”; IdeaPad: Realtek
+        i karta Wi-Fi z identyfikatorem — przepisz identyfikatory w czacie), szczegóły (sterownik, 100 lub 1000 Mb/s,
+        adres w sieci); czy coś jest niezrozumiałe
+    [ ] IdeaPad: czy połączenie kablem jest stabilne (karta Realtek działa bez pliku od producenta) — np. kilka minut
+        z kablem, ikona cały czas „połączono”
+    [ ] zegar z internetu: po podłączeniu kabla godzina i data poprawne; Ustawienia → Data i czas: „Zegar ustawiony
+        z internetu o …”; po wyłączeniu i włączeniu bez kabla godzina dalej dobra (zegar sprzętowy)
+Z wcześniejszych wersji (niesprawdzone):
     [~] energia (0.8.6): Twój wynik z 2026-11-13 — pobór mocy mniejszy: 0.8.5 stałe 11 W, 0.8.6 po minucie 9,5 W
         i dalej spadało. Zostaje: wartość, na której się zatrzyma (3–4 min bez ruszania laptopa), i czy nic się nie
         zacina (mysz, przesuwanie okien, Podgląd), czy przy cięższej pracy (duże zdjęcie) jest szybciej niż było
-    [ ] Zasoby (0.8.7): po zmianie obciążenia (np. zamknięcie Podglądu) pobór mocy dogania nową wartość w kilkanaście
-        sekund; czy liczba nie skacze za bardzo
+    [ ] Zasoby (0.8.7): po zmianie obciążenia pobór mocy dogania nową wartość w kilkanaście sekund
     [ ] wyłączanie (0.8.6): Start → Wyłącz i „Uruchom ponownie” — o ok. 3 s szybciej; po ponownym starcie
         Ustawienia → Bateria: wykres poprzedniego uruchomienia sięga do samego wyłączenia
-    [ ] pendrive w Plikach (0.8.6): po wyjęciu znika z Plików od razu (dotąd do 10 s)
-    [ ] Secure Boot (krok 4 — naprawa Twojego zgłoszenia): K1 z dysku, bez pendrive'a → Instalator → na dole
-        „Secure Boot…” (w 0.8.3 go nie było) → „Przygotuj klucz K1” → „Uruchom ponownie” → MokManager (w 10 s klawisz,
-        Enroll MOK, hasło kons) → F1: Secure Boot Enabled → K1 startuje, „Secure Boot…” pisze „Wszystko gotowe:
-        Secure Boot chroni ten komputer.” (README → „Secure Boot z kluczem K1”)
-    [ ] Podgląd płynny (krok 2): duże zdjęcie z telefonu, szybkie „+” kilka razy, przytrzymany „+”, przesuwanie
-        przybliżonego zdjęcia myszą, TrackPointem i touchpadem — czy płynnie, czy po zatrzymaniu robi się ostre
-    [ ] okna nie zamarzają (krok 1): w Podglądzie szybkie klikanie „+” / „−” i gwałtowne ruchy myszą — okno zawsze
-        dochodzi do końca i dalej odpowiada; puszczenie przycisku zawsze kończy przeciąganie (Podgląd, Pliki, pulpit)
-    [ ] Ustawienia → Miejsce (krok 3): na dysku po instalacji („na dysku”, bez przycisku) i na pendrivie z danymi
-        („na pendrive'ie”, przycisk „Użyj całego pendrive'a na dane”, gdy pendrive ma wolne miejsce); po imporcie zdjęć
-        w Plikach część „Obrazy” rośnie; czy kolory i liczby są czytelne
-    [ ] start z danymi z 0.8.1: pulpit, tapeta i ustawienia od razu; po ok. minucie Ustawienia → Miejsce pokazuje więcej
-        miejsca na pliki (dane przeszły na nowy format) — notatki, pliki i ustawienia są na miejscu
-    [ ] pendrive albo karta z telefonu/aparatu: folder ze zdjęciami widać cały, „Importuj wszystkie”; drugi import —
-        „Pominięto n — już zaimportowane”; daty zdjęć z pendrive'a
-    [ ] duże zdjęcie z telefonu (tryb 48/50 Mpx) i GIF/WebP: miniatura w Plikach, Podgląd, „Ustaw jako tapetę”
-    [ ] prawy przycisk na pliku w Plikach i na pulpicie: „Otwórz za pomocą”, „Pokaż w Plikach”, „Zmień nazwę”;
-        podwójne kliknięcie PDF albo ZIP → komunikat
-    [ ] zaznaczanie wielu (Ctrl+klik, Shift+klik, Ctrl+A) i przeciąganie na folder, na Kosz (pytanie przy kilku),
-        z Kosza na folder, z pendrive'a na folder (import); na pulpicie plik na Kosz i na folder
+    [ ] pendrive w Plikach (0.8.6): po wyjęciu znika z Plików od razu
+    [ ] Secure Boot: K1 z dysku → Instalator → „Secure Boot…” → „Przygotuj klucz K1” → „Uruchom ponownie” →
+        MokManager (Enroll MOK, hasło kons) → F1: Secure Boot Enabled → „Wszystko gotowe” (README → „Secure Boot z
+        kluczem K1”)
+    [ ] Podgląd płynny i okna nie zamarzają (0.8.5): duże zdjęcie, szybkie „+”, przesuwanie myszą i touchpadem
+    [ ] Ustawienia → Miejsce (0.8.5): na dysku i na pendrivie; po imporcie zdjęć część „Obrazy” rośnie
+    [ ] pendrive albo karta z telefonu: „Importuj wszystkie”, drugi import „Pominięto n”; duże zdjęcie i GIF/WebP;
+        menu pod prawym przyciskiem; zaznaczanie wielu i przeciąganie
 Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „pomysł”) albo w czacie.
 
 
@@ -166,11 +161,14 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         pendrive nagrany 0.5.6–0.8.1 i nieuruchomiony z 0.8.2+ nie otworzy się. Testy formatu 1 (magazyn_testowy,
         test_magazyn, test_przejscie) odchodzą razem z nim. Miejsca: src/skarbiec/obszary.c, src/skarbiec/przejscie.c
     [x] przegląd 0.7.5, 0.8.0 i 0.8.2: innych rozwiązań tymczasowych nie ma; terminy 0.9.0 bez zmian
+    [x] przegląd 0.9.0 (krok 9): terminy 0.9.0 usunięte (krok 3), format 1 skarbca — termin 0.10.0 bez zmian; nowych
+        rozwiązań tymczasowych 0.9.0 nie dodało
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
 ---------------------------------------------------------------------------------------
-    0.9    w docs/PLAN-0.9.0.txt (T1–T6: uprawnienia sieci, IPv4/IPv6, „nic nie odpowiada”, USER_NS, czas, sterowniki)
+    0.9    0.9.0: podjęte (ADR 0038, 0039; T1–T6 w docs/archiwum/PLAN-0.9.0.txt); 0.9.1: w docs/PLAN-0.9.1.txt (pliki
+           od producenta kart Wi-Fi, program logujący do sieci)
     0.10   Firefox czy WPE WebKit (sandbox Firefoksa w strefie); wybór VMM (m.in. Cloud Hypervisor, Firecracker,
            crosvm); test KVM na Twoim sprzęcie
     0.12   RANDSTRUCT w jądrze; zarządzanie kluczami; ochrona jądra przez wirtualizację — tak/nie

@@ -3,6 +3,8 @@
 
 #include "k1_siec.h"
 
+#include <string.h>
+
 static int karta(uint32_t obiekt)
 {
     return obiekt >= 1 && obiekt <= K1_SIEC_KARTA_MAKS;
@@ -28,7 +30,43 @@ int k1_kom_sprawdz_siec(const struct k1_komunikat *k, enum k1_kanal_kierunek kie
         return kier == K1_KIER_DO_NADZORCY && karta(k->obiekt) && zera(k, 0);
     case K1_KOM_SIEC_WYNIK:
         return kier == K1_KIER_OD_NADZORCY && karta(k->obiekt) &&
-               (k->a == K1_KOM_SIEC_ADRES || k->a == K1_KOM_SIEC_ZWOLNIJ) && w(k->b, K1_SIEC_BLAD_MIN, 0) && zera(k, 2);
+               (k->a == K1_KOM_SIEC_ADRES || k->a == K1_KOM_SIEC_ZWOLNIJ || k->a == K1_KOM_SIEC_ZEGAR) &&
+               w(k->b, K1_SIEC_BLAD_MIN, 0) && zera(k, 2);
+    case K1_KOM_SIEC_CZAS_GNIAZDO:
+        return kier == K1_KIER_DO_NADZORCY && karta(k->obiekt) && k1_siec_serwer_dobry((uint32_t)k->a) &&
+               w(k->b, 0, K1_SIEC_ZRODLA_MAKS - 1) && zera(k, 2);
+    case K1_KOM_SIEC_GNIAZDO:
+        return kier == K1_KIER_OD_NADZORCY && karta(k->obiekt) && k1_siec_serwer_dobry((uint32_t)k->a) &&
+               w(k->b, 0, K1_SIEC_ZRODLA_MAKS - 1) && w(k->c, K1_SIEC_BLAD_MIN, 0) && zera(k, 3);
+    case K1_KOM_SIEC_ZEGAR: {
+        int64_t s = (int64_t)k1_kom_u64(k->a, k->b);
+        return kier == K1_KIER_DO_NADZORCY && karta(k->obiekt) && s >= K1_SIEC_CZAS_MIN && s <= K1_SIEC_CZAS_MAKS &&
+               w(k->c, 0, 999999999) && w(k->d, 2, K1_SIEC_ZRODLA_MAKS) && k->e == 0;
+    }
+    case K1_KOM_SIEC_STAN:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, K1_SIEC_BRAK_KARTY, K1_SIEC_STAN_MAKS) &&
+               w(k->b, 0, K1_SIEC_LISTA_MAKS) && w(k->c, 0, 0x7fffffff) && (k->c == 0 || k->a == K1_SIEC_POLACZONO) &&
+               w(k->d, 0, 0x7fffffff) && k->e == 0;
+    case K1_KOM_SIEC_KARTA:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt < K1_SIEC_LISTA_MAKS &&
+               w(k->b, K1_SIEC_PRZEWODOWA, K1_SIEC_INNA) && w(k->c, 0, K1_SIEC_KF_WSZYSTKIE) &&
+               ((k->c & (K1_SIEC_KF_KABEL | K1_SIEC_KF_AKTYWNA)) == 0 ||
+                (k->b == K1_SIEC_PRZEWODOWA && (k->c & K1_SIEC_KF_STEROWNIK))) &&
+               (!(k->c & K1_SIEC_KF_AKTYWNA) || (k->c & K1_SIEC_KF_KABEL)) && zera(k, 3);
+    case K1_KOM_SIEC_SZCZEGOLY:
+        k1_siec_mac_z_pol(k->c, k->d, mac);
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt < K1_SIEC_LISTA_MAKS && w(k->a, 0, K1_SIEC_PREDKOSC_MAKS) &&
+               w(k->b, K1_SIEC_DUPLEKS_NIEZNANY, K1_SIEC_DUPLEKS_PELNY) && w(k->d, 0, 0xFFFF) && k1_siec_mac_dobry(mac) &&
+               k->e == 0;
+    case K1_KOM_SIEC_STEROWNIK: {
+        char t[K1_SIEC_STEROWNIK_MAKS];
+        const int32_t p[5] = { k->a, k->b, k->c, k->d, k->e };
+        memcpy(t, p, sizeof t);
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt < K1_SIEC_LISTA_MAKS && k1_siec_sterownik_dobry(t);
+    }
+    case K1_KOM_SIEC_ADRESY:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt < K1_SIEC_LISTA_MAKS &&
+               k1_siec_adres_dobry((uint32_t)k->a, k->b, (uint32_t)k->c) && zera(k, 3);
     default:
         return 0;
     }

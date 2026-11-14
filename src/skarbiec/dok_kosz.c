@@ -153,3 +153,19 @@ int dok_przeterminowane(int64_t zegar)
     r = usun_gdzie(przeterminowany, &zegar);
     return r < 0 ? 0 : r;
 }
+
+int dok_zegar_przesuniety(int64_t zegar, int64_t skok)
+{
+    int64_t stary = zegar - skok, przed, po;
+    int n = 0;
+    przed = stary > dok_granica() ? stary : dok_granica(); /* the time entries got just before */
+    dok_czas_ustaw(zegar);
+    po = dok_czas(zegar);
+    for (int i = 0; i < n_wpisow; i++)
+        if (wpisy[i].kosz != 0 && po != przed) {
+            wpisy[i].kosz += po - przed;
+            zapisz_wpis(&wpisy[i]);
+            n++;
+        }
+    return n;
+}

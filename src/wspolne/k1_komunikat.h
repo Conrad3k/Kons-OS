@@ -47,6 +47,9 @@ enum k1_komunikat_typ {
     K1_KOM_POWIEKSZONO = 115, /* nadzorca → skarbiec (0.8.1 step 3, ADR 0033): obiekt=0, a=0 K1-DANE grew to the end of
                                * the stick, K1_SKARB_ARG it cannot (no room, a table K1 did not write), K1_SKARB_IO
                                * writing failed (one valid table stays) */
+    K1_KOM_ZEGAR_PRZESUNIETY = 137, /* nadzorca → skarbiec (0.9.0 step 8): the clock was set from the internet; a,b = by
+                                     * how many seconds (signed 64 bits: k1_kom_u64; at most ±200 years) — skarbiec moves
+                                     * the time of the files in Kosz by as much (their age does not change) */
     K1_KOM_START_POTWIERDZONY = 118, /* nadzorca → skarbiec (0.8.2 step 1c, ADR 0036): all fields 0; the start of this
                                       * version is confirmed (15 s of desktop or password screen, not an A/B try that
                                       * waits) — a vault of format 1 may move to format 2 (a rollback no longer can) */
@@ -263,8 +266,33 @@ enum k1_komunikat_typ {
     K1_KOM_SIEC_ADRES = 126,      /* from siec: set this address: a=address, b=prefix K1_SIEC_PREFIKS_MIN..MAKS, c=router
                                    * (0: none) — k1_siec_adres_dobry; d=lease seconds K1_SIEC_DZIERZAWA_MIN..MAKS */
     K1_KOM_SIEC_ZWOLNIJ = 127,    /* from siec: the lease ended (or the router said no): take the address away */
-    K1_KOM_SIEC_WYNIK = 128,      /* to siec: a=request type (SIEC_ADRES, SIEC_ZWOLNIJ), b=0 or K1_SIEC_BLAD_* */
+    K1_KOM_SIEC_WYNIK = 128,      /* to siec: a=request type (SIEC_ADRES, SIEC_ZWOLNIJ, SIEC_ZEGAR), b=0 or K1_SIEC_BLAD_* */
+    /* nadzorca → gui (fd 5) and Ustawienia (fd 4): the network as the person sees it (0.9.0 step 7; k1_siec.h) */
+    K1_KOM_SIEC_STAN = 129,  /* obiekt=0, a=K1_SIEC_* state 0..K1_SIEC_STAN_MAKS, b=cards in the list 0..K1_SIEC_LISTA_MAKS
+                              * (Ustawienia: SIEC_KARTA 0..b-1 follow), c=connected since (CLOCK_MONOTONIC, whole seconds;
+                              * > 0 only when POLACZONO), d=the clock set from the internet at (CLOCK_MONOTONIC s; 0: not
+                              * yet) */
+    K1_KOM_SIEC_KARTA = 130, /* to Ustawienia: obiekt=index 0..K1_SIEC_LISTA_MAKS-1, a=identifier (vendor << 16 | device),
+                              * b=K1_SIEC_PRZEWODOWA/WIFI/INNA, c=K1_SIEC_KF_* (KABEL, AKTYWNA: wired with a driver only) */
+    /* to Ustawienia, after SIEC_KARTA of a wired card with a driver (the owner's wish: "a bit more about the card") */
+    K1_KOM_SIEC_SZCZEGOLY = 131, /* obiekt=index as in SIEC_KARTA, a=link speed Mb/s 0..K1_SIEC_PREDKOSC_MAKS (0: no link
+                                  * or unknown), b=K1_SIEC_DUPLEKS_*, c,d=the card's MAC (k1_siec_mac_do_pol;
+                                  * k1_siec_mac_dobry) */
+    K1_KOM_SIEC_STEROWNIK = 132, /* obiekt=index, a..e=the kernel driver's name, 20 bytes (k1_siec_sterownik_dobry) */
+    K1_KOM_SIEC_ADRESY = 133,    /* obiekt=index of the card with the address (only when POLACZONO), a=address, b=prefix,
+                                  * c=router (0: none) — k1_siec_adres_dobry */
+    /* nadzorca ↔ siec: the clock from the internet (0.9.0 step 8, T5; k1_siec.h); obiekt = the card with the address */
+    K1_KOM_SIEC_CZAS_GNIAZDO = 134, /* from siec: a UDP socket to time server a (k1_siec_serwer_dobry), port 123;
+                                     * b=source 0..K1_SIEC_ZRODLA_MAKS-1 (comes back in SIEC_GNIAZDO) */
+    K1_KOM_SIEC_GNIAZDO = 135,      /* to siec: a=the server, b=the source, c=0 + 1 fd (a UDP socket connected to a:123),
+                                     * or c=K1_SIEC_BLAD_* without a fd */
+    K1_KOM_SIEC_ZEGAR = 136,        /* from siec: set the clock: a,b = seconds since 1970, UTC (k1_kom_u64;
+                                     * K1_SIEC_CZAS_MIN..MAKS), c=nanoseconds 0..999999999, d=sources that agree
+                                     * 2..K1_SIEC_ZRODLA_MAKS; answer: SIEC_WYNIK (b: K1_SIEC_BLAD_CZAS — out of bounds or
+                                     * too often) */
 };
+
+#define K1_ZEGAR_SKOK_MAKS (200LL * 366 * 86400) /* ZEGAR_PRZESUNIETY: seconds */
 
 /* Surfaces */
 #define K1_POW_MAKS 8         /* surfaces per client */

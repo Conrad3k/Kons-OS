@@ -78,6 +78,9 @@ static void zwiaz(struct k1_dhcp_klient *k, const struct k1_dhcp_odpowiedz *o, c
     k->router = o->router;
     k->serwer = o->serwer;
     k->dzierzawa = o->dzierzawa;
+    k->czas[0] = o->czas[0];
+    k->czas[1] = o->czas[1];
+    k->n_czas = o->n_czas;
     k->t1 = teraz + a;
     k->t2 = teraz + b;
     k->koniec = teraz + d;

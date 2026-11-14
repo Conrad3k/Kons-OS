@@ -36,7 +36,7 @@ static const struct {
 } sekcje[S_LICZBA] = {
     { "Wygląd", K1_IK_WYGLAD },  { "Ekran", K1_IK_EKRAN }, { "Bateria", K1_IK_BATERIA }, { "Mysz", K1_IK_MYSZ },
     { "Data i czas", K1_IK_ZEGAR }, { "Hasło", K1_IK_KLODKA }, { "Aplikacje", K1_IK_FOLDER }, { "Miejsce", K1_IK_DYSK },
-    { "Informacje", K1_IK_INFO },
+    { "Sieć", K1_IK_SIEC },      { "Informacje", K1_IK_INFO },
 };
 
 static int32_t karty_y(void)
@@ -201,7 +201,7 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
 
 static void nadzorca_dane(void)
 {
-    if (bateria_odbierz() && sekcja == S_BATERIA)
+    if (bateria_odbierz() && (sekcja == S_BATERIA || sekcja == S_SIEC || sekcja == S_CZAS))
         k1_apl_odswiez(&apl);
 }
 
@@ -216,6 +216,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     static const char *const motywy[] = { "Jasny", "Ciemny" };
     static const char *const predkosci[] = { "Wolno", "Średnio", "Szybko" };
     static const char *const tak_nie[] = { "Bez sekund", "Z sekundami" };
+    char zegar[96];
     int i;
 
     k1_prostokat(o, BOK, K1_OKNO_TYTUL, 1, apl.wys - K1_OKNO_TYTUL - 12, k1_kolor(m->tekst, 20));
@@ -251,6 +252,8 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         k1_segment(o, m, TRESC_X, seg_y(), SEG_W + 40, SEG_H, tak_nie, 2, apl.k.ustawienia[K1_UST_SEKUNDY], hover_seg);
         k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 64, "Strefa czasowa: Polska (czas letni ustawia się sam)",
                  k1_kolor(m->tekst3, 255), 0);
+        siec_zegar_tekst(zegar, sizeof zegar);
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 86, zegar, k1_kolor(m->tekst3, 255), 0);
         break;
     case S_HASLO:
         haslo_rysuj(o, m);
@@ -260,6 +263,9 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         break;
     case S_MIEJSCE:
         miejsce_rysuj(o, m);
+        break;
+    case S_SIEC:
+        siec_rysuj(o, m);
         break;
     default:
         informacje_rysuj(o, m);

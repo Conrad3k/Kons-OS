@@ -73,6 +73,25 @@ jobs:
           path: ${{ runner.temp }}/k1-apt-zapas
           key: ${{ steps.klucz-apt.outputs.klucz }}
 
+      # D4 (0.9.0 step 9, the owner's decision): the kernel's build directory in the Actions cache, for the test runs of
+      # PRs only (label "testy") — the kernel then builds incrementally (about 7 of 30 minutes less). A build on main
+      # (a release) never starts from it: it builds the kernel from zero and saves the result for the PRs. The key:
+      # the kernel's version and configuration and the scripts that build it. Nothing secret is in it (no modules, no
+      # module keys; the Secure Boot key lives in build/gen, not here).
+      - name: Klucz pamięci podręcznej jądra
+        id: klucz-jadra
+        run: echo "klucz=k1-jadro-${{ hashFiles('jadro/**', 'scripts/wspolne.sh', 'scripts/zbuduj-jadro.sh', 'scripts/zbuduj-k1efi.sh', 'scripts/sprawdz-konfiguracje-jadra.sh') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Przywróć zbudowane jądro (tylko PR — wydanie zawsze od zera)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/jadro-obj
+            build/naglowki
+          key: ${{ steps.klucz-jadra.outputs.klucz }}
+
       - name: Zbuduj jądro, programy, obrazy i ISO
         # M6a (ADR 0021): the signing key (32 bytes, base64) — a secret the owner adds once in
         # Settings → Secrets and variables → Actions. Without it: an unsigned developer build.
@@ -87,6 +106,16 @@ jobs:
           else
             echo "K1_PODPIS=wersja deweloperska (bez podpisu — brak sekretu K1_KLUCZ_PODPISU)" >> "$GITHUB_ENV"
           fi
+
+      - name: Zapisz zbudowane jądro dla PR-ów (tylko main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/jadro-obj
+            build/naglowki
+          key: ${{ steps.klucz-jadra.outputs.klucz }}
 
       - name: Testy (host + QEMU, także negatywne; M1–M6, start z ISO)
         run: |
