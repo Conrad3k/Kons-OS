@@ -539,3 +539,17 @@ odpowiada na ARP o swój adres (K1 pyta o niego przed odpowiedzią przez trasę)
 
 Router testowy (krok 8) odpowiada na każde pytanie o czas (UDP na port 123, na każdy adres) według `Router.czas`:
 milczy, „dobry”, „zle”, „niezgodne” albo podany czas.
+
+## 0.9.1 krok 1 — Wi-Fi: karta, radio, lista sieci (ADR 0041), `scripts/test-wifi.sh`
+QEMU nie ma kart Wi-Fi: test startuje **obraz testowy** z `mac80211_hwsim.radios=7` (wydanie: 0) — siedem udawanych kart
+w jednym „powietrzu”. Program testowy widzi to w `/sys/module/mac80211_hwsim/parameters/radios` i zamiast sprawdzeń
+w systemie robi **punkty dostępu testowe** (`testy/system/t_wifi.c`): pierwsza karta zostaje dla nadzorcy, na sześciu
+pozostałych nl80211 `SET_INTERFACE` (AP) i `START_AP` z ramką beacon zbudowaną bajt po bajcie (co 20 TU — krótkie
+szukanie słyszy każdą sieć); potem czeka, aż skrypt zatrzyma maszynę.
+| Test | Co sprawdza | Rodzaj |
+|---|---|---|
+| host `test_wifi` | nazwy do pokazania (znaki sterujące, sekwencja ESC, C1, znak kierunku, zły, ucięty i za długi UTF-8, 32 B, ukryte) i ich części w komunikatach; kreski 1–4; każde zabezpieczenie (WPA2, WPA2/WPA3, WPA3, FT, firmowa, OWE, otwarta, WEP, pierwsze WPA, RSN bez prywatności); każde ucięcie opisu, nazwa 33 B, RSN: wersja 2, liczba szyfrów poza długością, 0 szyfrów, ucięte możliwości; cały wynik (jedna sieć na nazwę, najsilniejsza, 16 najsilniejszych, odrzucone, ukryte; zły format nadzorcy: liczba, długość, pole zarezerwowane); komunikaty `SIEC_WIFI_*` i `WIFI_*` (każde złe pole i kierunek) | jednostkowy + negatywny |
+| `fuzz_wifi` | dowolny opis i dowolny wynik: odrzucony albo lista, w której każda sieć przechodzi sprawdzenie komunikatu i nazwy, najsilniejsze pierwsze | fuzzing |
+| host `test_przybornik` (`t_wachlarz`) | ikona „Wachlarz”: więcej kresek = większa część, nic poza kwadratem ikony, przygaszone tło, rysowanie poza obrazem | jednostkowy |
+| `scripts/test-wifi.sh` | 1. baza przepisów radiowych wbudowana i sprawdzona kluczem z jądra; 2. punkty dostępu: „K1-TEST” (WPA2), „Kawiarnia” (otwarta), nazwa z nową linią i sekwencją sterującą (WPA2/WPA3), nazwa 32 B (WPA3), zły UTF-8 i znak kierunku (WPA2), zepsuty RSN; 3. nadzorca: karta `wlan0` (wirtualna), radio włączone; siec: 5 sieci, 1 opis odrzucony, usługa żyje; 4. ikona „Wi-Fi nie połączono”; Ustawienia → Sieć: zakładka Wi-Fi pierwsza, 5 sieci (4 z hasłem, 1 otwarta) — zrzuty w jasnym i ciemnym motywie; 5. przełącznik: radio wyłączone (rfkill), lista znika, ikona „Wi-Fi wyłączone”; włączone — od razu szukanie, lista wraca; 6. zakładka „Karty sieciowe”: kafelek „Karta Wi-Fi (wirtualna) — Włączone”; 7. w logu nie ma nazw sieci, nie ma zablokowanych wywołań, odrzuconych komunikatów ani restartu siec. Zrzuty `wifi-1…5-*.png` | z zewnątrz + negatywny |
+| w systemie `t_proby` | każda klatka: `socket(AF_NETLINK, NETLINK_GENERIC)` (nl80211) zablokowane | negatywny |

@@ -8,10 +8,17 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | Pojęcie | Znaczenie |
 |---|---|
 | **jądro** | Jądro Linux z naszą minimalną konfiguracją (`jadro/k1.config`). Jedyna rzecz, którą bierzemy z Linuksa. |
-| **karta sieciowa** | Urządzenie, przez które K1 łączy się z siecią — kablem (Ethernet; od 0.9.0) albo bez kabla (Wi-Fi; później). Sterownik zawsze z jądra (ADR 0039). Jądro nazywa ją „interfejsem sieciowym” (`eth0`). |
+| **karta sieciowa** | Urządzenie, przez które K1 łączy się z siecią — kablem (Ethernet; od 0.9.0) albo bez kabla (Wi-Fi; od 0.9.1). Sterownik zawsze z jądra (ADR 0039, 0041). Jądro nazywa ją „interfejsem sieciowym” (`eth0`, `wlan0`). |
+| **Wi-Fi** (0.9.1) | Łączność bez kabla przez radio: karta Wi-Fi rozmawia z **punktem dostępu** (router domowy, sieć w kawiarni). W K1 jedna karta Wi-Fi naraz; kabel ma pierwszeństwo (ADR 0041). |
+| **sieć Wi-Fi** | To, co widać na liście w Ustawienia → Sieć → Wi-Fi: nazwa (z powietrza, pokazana po oczyszczeniu — „?” zamiast znaków sterujących i złych bajtów), siła sygnału i zabezpieczenie (z hasłem — kłódka; niezabezpieczona; logowanie loginem; stare zabezpieczenie). Jedna pozycja na nazwę, najsilniejsze pierwsze, najwyżej 16. |
+| **punkt dostępu** | Urządzenie, które ogłasza sieć Wi-Fi (router, hotspot). W testach: **punkt dostępu testowy** — udawana karta Wi-Fi (`mac80211_hwsim`), na której program testowy ogłasza sieć (`testy/system/t_wifi.c`). |
+| **siła sygnału** (kreski) | 1–4 kreski z mocy sygnału w dBm (progi −55, −67, −75 — jedna tabela w `k1_wifi.c`); ikona „Wachlarz”: wypełniona część wachlarza. |
+| **przełącznik radia** | Włącza i wyłącza Wi-Fi: w Ustawieniach (programowo) albo w obudowie komputera (np. X230 — wtedy K1 tylko to pokazuje). Jądro nazywa to rfkill. |
+| **plik od producenta** (karty) | Zamknięty program od producenta karty, który jądro wgrywa do karty Wi-Fi (firmware). W K1 wbudowany w podpisane jądro — tabela `jadro/oprogramowanie-kart.txt` (decyzja D3, ADR 0041). |
+| **baza przepisów radiowych** | Plik `regulatory.db` z wireless-regdb: jakie kanały i moce wolno używać w danym kraju; wbudowany w jądro i sprawdzany podpisem. |
 | **router** | Urządzenie w domu, do którego idzie kabel sieciowy; daje K1 adres (DHCP) i drogę do internetu. |
 | **adres od routera** (DHCP) | Adres K1 w sieci domowej: usługa **siec** prosi o niego router, nadzorca go ustawia; ważny przez **dzierżawę** (czas od routera), odnawiany w połowie. Nie trafia do logu. |
-| **ikona sieci** (0.9.0) | Wtyczka sieciowa na górnym pasku obok baterii: jasna z kablem — połączono; przygaszona z kropką w kolorze terakoty — łączę (czekam na adres od routera); przygaszona z krzyżykiem — kabel odłączony; przekreślona — brak obsługiwanej karty. |
+| **ikona sieci** (0.9.0) | Wtyczka sieciowa na górnym pasku obok baterii: jasna z kablem — połączono; przygaszona z kropką w kolorze terakoty — łączę (czekam na adres od routera); przygaszona z krzyżykiem — kabel odłączony; przekreślona — brak obsługiwanej karty. Bez kabla, z kartą Wi-Fi (0.9.1): **wachlarz** — przygaszony z krzyżykiem — nie połączono; przekreślony — Wi-Fi wyłączone (w kroku 2: wypełniony według siły sygnału — połączono). |
 | **identyfikator karty** | Dwie liczby szesnastkowe producent:urządzenie (np. `10ec:8136`), z PCI albo USB. Ustawienia → Sieć pokazują go przy karcie, której K1 nie zna — dopisanie sterownika to jedna linia w `jadro/k1.config`. |
 | **sieć testowa** | W testach QEMU: drugi koniec kabla karty sieciowej maszyny, program w Pythonie (`testy/qemu/k1siec.py`) — wysyła ramki jak router albo obcy komputer i zapisuje każdą ramkę od K1. |
 | **rdzeń** | Cały system K1 poza jądrem: obraz tylko do odczytu `/rdzen` (SquashFS). Nie da się go zmienić w działającym systemie. |

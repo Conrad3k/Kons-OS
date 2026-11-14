@@ -180,6 +180,28 @@ Bateria, B — kafelki kart, C — stan na karcie); wybrane **ikona C** i **sekc
   reszta „…i jeszcze n”. Pod kafelkami „Szczegóły karty przewodowej” (Plex Sans Medium 13) i wiersze co 22 px: etykieta
   `tekst2`, wartość `tekst` od 140 px. Na dole `tekst3`: „Aplikacje nie mają jeszcze dostępu do internetu.”
 
+## Wi-Fi (0.9.1 krok 1, decyzja właściciela D1: ikona B, sekcja A)
+Szkice narysowane częściami K1 na hoście (2026-11-14), wszystkie widoki naraz (także kroku 2): ikona A „Łuki”, B „Wachlarz”,
+C „Słupki”; sekcja A „Zakładki, wiersz się rozwija”, B „Lista i okienko hasła”, C „Kafelek karty i widok sieci”. Wybrane
+**ikona B** i **sekcja A**.
+- **Ikona na górnym pasku** (bez kabla, z kartą Wi-Fi; kabel ma pierwszeństwo — wtyczka): pełny wachlarz 90° (16 px,
+  promień 12, wierzchołek u dołu) — `k1_wachlarz.c`. Nie połączono: wachlarz krem 90/255 i krzyżyk 4 × 4 px w ciemnym
+  kółku w prawym dolnym rogu (jak „kabel odłączony”). Wyłączone: krem 46/255, ukośna kreska. W kroku 2: łączę — przygaszony
+  z kropką w terakocie; połączono — wypełniona część według kresek 1–4 (promień 0,1 + 0,225·kreski), reszta przygaszona.
+- **Ustawienia → Sieć:** pod tytułem „Sieć” (zamiast opisu) zakładki „Wi-Fi | Karty sieciowe” (`k1_segment`, 260 × 32);
+  zakładka Wi-Fi jest pierwsza, gdy komputer ma kartę Wi-Fi (także nieobsługiwaną). Na prawo od zakładek „Wi-Fi”
+  (`tekst2`, 13 px) i przełącznik (36 × 20; nieaktywny, gdy radio wyłączone przełącznikiem w obudowie). Lista w karcie
+  (`pole`, zaokrąglenie 10, włoskowaty obrys): wiersz 40 px, wachlarz 18 px (`tekst2`, tło 60/255), nazwa Plex Sans 15,
+  kłódka 14 px (`tekst3`) przy sieci z hasłem, po prawej uwaga `tekst3` 13 px („niezabezpieczona”, „logowanie loginem”,
+  „stare zabezpieczenie”); kreska między wierszami od 42 px; najwyżej 6 wierszy, reszta „…i jeszcze n”. Bez listy: dwie
+  linijki (Plex Sans 15 i 13): „Szukam sieci…”, „Nie znaleziono sieci w pobliżu.”, „Wi-Fi wyłączone.”, „Wi-Fi wyłączone
+  przełącznikiem w komputerze.”, „Nie znaleziono karty Wi-Fi.”, „<karta> — K1 nie potrafi jej jeszcze uruchomić.”
+  W kroku 2 kliknięcie sieci rozwija jej wiersz (tło `zaznaczenie`): „Hasło sieci”, pole 230 px, „Połącz” (przycisk
+  główny), pod spodem „Hasło wpisujesz raz — K1 je zapamięta.” albo „Złe hasło — spróbuj jeszcze raz.” (`akcent_tekst`);
+  połączona sieć — plakietka „Połączono” z kropką w szałwii.
+- Zakładka „Karty sieciowe”: kafelki z 0.9.0 bez zmian; kafelek karty Wi-Fi, której K1 używa: „Wi-Fi · radio włączone”,
+  plakietka „Włączone” (kropka w akcencie) albo „Wyłączone”.
+
 ## Ustawienia → Ekran (M4.1)
 Rozdzielczości jako przyciski w trzech kolumnach (136×32): wybrana — wypełnienie akcentem, pozostałe
 — `pole` z obrysem; pod listą „Zalecana: …” (tryb preferowany przez monitor/kartę). Przy jednym trybie (obraz z firmware) — wyjaśnienie

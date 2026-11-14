@@ -68,3 +68,4 @@ Krótko, dlaczego nie.
 | [0038](0038-pliki-startowe-w-aktualizacji.md) | Pliki startowe w aktualizacji (0.9.0): manifest plików startowych, nowe obok starych, jedno przełączenie; koniec manifestu formatu 1 | Przyjęty, wdrożony (0.9.0) |
 | [0039](0039-siec-w-k1.md) | Sieć w K1 (0.9.0): tylko IPv4 po kablu, gniazda sieciowe tylko u nadzorcy, jądro nie wysyła ICMP, sterowniki kart szeroko | Przyjęty, wdrożony (0.9.0) |
 | [0040](0040-repo-publiczne.md) | Repo publiczne (2026-11-14): minuty CI bez limitu; scalanie i zasady bez zmian | Przyjęty |
+| [0041](0041-wifi-w-k1.md) | Wi-Fi w K1 (0.9.1): sterowniki i pliki producentów w podpisanym jądrze, nl80211 tylko u nadzorcy, opisy sieci w klatce, własne logowanie WPA2 | Przyjęty, krok 1 wdrożony (0.9.1) |
