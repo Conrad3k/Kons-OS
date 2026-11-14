@@ -67,8 +67,8 @@ wirtualnej z udawanymi kartami Wi-Fi (prawdziwego Wi-Fi w maszynie wirtualnej ni
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                Luki (punkt 5)   Zależy od    Decyzje         Rozmiar  ADR
-[~]  1  Karta Wi-Fi, oprogramowanie kart, lista sieci    W1–W9            0.9.0        D1 D3, T1–T3 T5  L        tak
-     [w toku: Claude, gałąź claude/hopeful-gauss-6c3a0t]
+[x]  1  Karta Wi-Fi, oprogramowanie kart, lista sieci    W1–W9            0.9.0        D1 D3, T1–T3 T5  L        tak
+     PR #105 (2026-11-14)
 [ ]  2  Łączenie z hasłem, zapamiętane sieci; wydanie    W10–W14          1            D2 D4, T4 T6     L        —
 
 Dlaczego dwa, a nie jeden: krok 1 to jądro, pliki producentów i budowa (powtarzalność, rozmiar k1.efi), krok 2 to
