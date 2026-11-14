@@ -17,7 +17,7 @@ Historia repo: wcześniej był tu „Kons-OS”, dystrybucja na bazie Debiana (l
 - Brak /dev/kvm: QEMU działa tylko w emulacji (TCG), wolno, ale działa. Sprawdzone: obraz się uruchamia, a zrzuty ekranu można robić przez monitor QEMU (screendump przez gniazdo unix) i oglądać.
 - qemu-system-x86 i ovmf instaluje się z apt Ubuntu.
 - Sieć działa tylko po HTTPS przez proxy. Dostępne: apt Ubuntu, deb.debian.org, security.debian.org, GitHub. Nie sprawdzano: cdn.kernel.org, git.kernel.org, musl.libc.org. Źródła jądra i musl można wziąć z pakietów Debiana/Ubuntu albo z oryginalnych serwerów. Jeśli host jest zablokowany, zaproponuj zmianę ustawień środowiska zamiast obchodzić blokadę.
-- GitHub Actions: repo prywatne, minuty są ograniczone, więc CI buduje tylko main. Właściciel ma ograniczony limit użycia Claude: pracuj oszczędnie, łącz zmiany, nie powtarzaj bez potrzeby długich buildów.
+- GitHub Actions: repo prywatne, minuty są ograniczone, więc CI buduje tylko main. **[korekta: ADR 0040 — od 2026-11-14 repo publiczne, minuty bez limitu; CI dalej buduje main i PR-y z etykietą „testy”]** Właściciel ma ograniczony limit użycia Claude: pracuj oszczędnie, łącz zmiany, nie powtarzaj bez potrzeby długich buildów.
 - W repo są CLAUDE.md i skill .claude/skills/kons-dev z poprzedniej wersji. Zaktualizuj je pod K1.
 
 ## 2. Zasady pracy
@@ -41,7 +41,7 @@ Historia repo: wcześniej był tu „Kons-OS”, dystrybucja na bazie Debiana (l
    - CHANGELOG.md.
 10. Przepływ pracy w repo:
    - gałąź robocza → commit (po angielsku) → PR po polsku (najpierw to, co widzi użytkownik, potem technika),
-   - squash merge do main bez pytania (repo prywatne, właściciel się zgodził),
+   - squash merge do main bez pytania (repo prywatne, właściciel się zgodził), **[korekta: ADR 0040 — repo publiczne; zgoda właściciela na scalanie bez zmian]**
    - wersje K1 w SemVer od 0.1.0, tagi k1-vX.Y.Z (stare tagi v0.1.x należą do wersji debianowej).
 11. Po każdym milestone krótki raport w czacie: cel i kryteria, co zrobiono, dowody, testy negatywne, ograniczenia, statusy. Nie wklejaj całych plików, są w repo.
 

@@ -61,8 +61,8 @@ wymaga), ale każda jest mała, robi jedną rzecz i wygląda jak pozostałe.
   gałąź z `main` (merge, bez przepisywania historii cudzych gałęzi).
 - Małe PR-y, jeden temat każdy. Pliki, które zmieniają prawie wszyscy (`VERSION`, `CHANGELOG.md`,
   `docs/DO_ZROBIENIA.txt`), zmienia ten, kto robi wydanie — inni dopisują swoje zmiany w opisie PR-a.
-- Repo jest prywatne: po zakończeniu pracy i zielonych testach scalaj PR do `main` sam (squash, z
-  wyraźnym opisem commita). CI na `main` tworzy wydanie, gdy `VERSION` ma nową wersję.
+- Repo jest publiczne (od 2026-11-14, ADR 0040 — nigdy żadnych sekretów w repo): po zakończeniu pracy i zielonych
+  testach scalaj PR do `main` sam (squash, z wyraźnym opisem commita). CI na `main` tworzy wydanie, gdy `VERSION` ma nową wersję.
 
 ## Środowisko i testy
 - Start pracy: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh` (bez KVM ok.
