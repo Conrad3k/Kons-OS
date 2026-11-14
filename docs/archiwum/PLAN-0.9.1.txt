@@ -69,8 +69,8 @@ wirtualnej z udawanymi kartami Wi-Fi (prawdziwego Wi-Fi w maszynie wirtualnej ni
      Krok                                                Luki (punkt 5)   Zależy od    Decyzje         Rozmiar  ADR
 [x]  1  Karta Wi-Fi, oprogramowanie kart, lista sieci    W1–W9            0.9.0        D1 D3, T1–T3 T5  L        tak
      PR #105 (2026-11-14)
-[ ]  2  Łączenie z hasłem, zapamiętane sieci; wydanie    W10–W14          1            D2 D4, T4 T6     L        —
-     [w toku: Claude, gałąź claude/lucid-cray-p4xcnk]
+[x]  2  Łączenie z hasłem, zapamiętane sieci; wydanie    W10–W14          1            D2 D4, T4 T6     L        —
+     PR #107 (2026-11-14)
 
 Dlaczego dwa, a nie jeden: krok 1 to jądro, pliki producentów i budowa (powtarzalność, rozmiar k1.efi), krok 2 to
 kryptografia i logowanie do sieci. Każdy z nich zajmuje pełny czat i pełne testy (ok. 50 min bez KVM); razem nie

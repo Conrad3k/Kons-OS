@@ -19,7 +19,7 @@ docs/archiwum/PLAN-0.9.1.txt; plan 0.9.0 — w historii git). Zanim zacznie się
 (punkt 4) — błędy z nich idą jako PATCH 0.9.x.
     [x] 0.9.0: kabel, adres od routera, ikona sieci, Ustawienia → Sieć, zegar z internetu
     [x] 0.9.1: Wi-Fi — karta, pliki od producentów, lista sieci (PR #105); łączenie z hasłem i z siecią otwartą,
-        zapamiętane sieci, ikona z siłą sygnału, wydanie (krok 2)
+        zapamiętane sieci, ikona z siłą sygnału, wydanie (krok 2, PR #107)
     [ ] 0.10: plan wersji (PLAN-0.10.0.txt) pisze pierwszy czat wersji (zakres wstępny: punkt 3); najpierw Twoje
         decyzje z punktu 5 (sesje przeglądarki, KVM do testów)
 
