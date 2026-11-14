@@ -7,6 +7,7 @@ K1_WERSJA=$(cat "$K1_REPO/VERSION")
 . "$K1_REPO/jadro/wersja.env"
 K1_JADRO_ZRODLA=$K1_BUDOWA/zrodla/linux-$K1_JADRO_WERSJA
 K1_JADRO_OBJ=$K1_BUDOWA/jadro-obj
+K1_STREFA_OBJ=$K1_BUDOWA/jadro-strefy-obj  # 0.10.0 (ADR 0042): the zone kernel, the same sources
 K1_NAGLOWKI=$K1_BUDOWA/naglowki
 # Stały znacznik czasu = powtarzalne wyniki (data ostatniego commita, a bez gita: 0).
 SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-$(git -C "$K1_REPO" log -1 --format=%ct 2>/dev/null || echo 0)}
@@ -45,9 +46,14 @@ bateria_aml() {
 # time in the kernel; the latent_entropy plugin draws its constants on every build without -frandom-seed
 # (scripts/gcc-plugins/latent_entropy_plugin.c: get_random_seed) — a fixed seed gives the same kernel.
 make_jadra() {
+    make_jadra_w "$K1_JADRO_OBJ" "$@"
+}
+# make_jadra_w DIR …: the kernel build in object directory DIR (the K1 kernel or the zone kernel)
+make_jadra_w() {
+    obj=$1; shift
     KBUILD_BUILD_USER=k1 KBUILD_BUILD_HOST=k1-budowa KBUILD_BUILD_VERSION=1 \
     KBUILD_BUILD_TIMESTAMP=$(date -u -d "@$SOURCE_DATE_EPOCH" '+%Y-%m-%d %H:%M:%S UTC') \
-        make -s -C "$K1_JADRO_ZRODLA" O="$K1_JADRO_OBJ" ARCH=x86_64 KCFLAGS=-frandom-seed=k1-"$K1_JADRO_WERSJA" "$@"
+        make -s -C "$K1_JADRO_ZRODLA" O="$obj" ARCH=x86_64 KCFLAGS=-frandom-seed=k1-"$K1_JADRO_WERSJA" "$@"
 }
 
 # The start of every K1 grub.cfg (ISO and stick): no menu, the graphics mode, the boot screen settings.

@@ -112,5 +112,11 @@ int t_wifi_punkty_dostepu(void);
 int ap_dodaj(int nr, const char *nazwa, const uint8_t mac[6], int j, const uint8_t *ssid, int dl_ssid, int wpa2,
              const uint8_t *rsn, size_t dl_rsn);
 void ap_obsluga(void);
+/* t_strefy.c (0.10.0, ADR 0042): KVM and zones */
+void t_kvm(void);
+void t_strefa_klatka(void);
+void t_klatka_grupy(const char *nazwa, const char *grupa, unsigned watki, int uid, const char *const *fds);
+int tryb_strefy(void);
+int t_strefy_scenariusz(void);
 
 #endif

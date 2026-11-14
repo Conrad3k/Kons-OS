@@ -63,7 +63,7 @@ int k1_kom_sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
 
     case K1_KOM_WITAJ:
         return kier == K1_KIER_OD_EKRANU && k->obiekt == 0 && w(k->a, 1, K1_POZ_MAKS) && w(k->b, 1, K1_POZ_MAKS) &&
-               w(k->c, 1, K1_ROLA_MAKS) && w(k->d, 0, K1_APL_MAKS) && k->e == 0;
+               w(k->c, 1, K1_ROLA_MAKS) && w(k->d, 0, K1_KLIENT_NR_MAKS) && k->e == 0;
     case K1_KOM_WSKAZNIK:
         return kier == K1_KIER_OD_EKRANU && k->obiekt <= K1_POW_MAKS && w(k->a, -K1_POZ_MAKS, K1_POZ_MAKS) &&
                w(k->b, -K1_POZ_MAKS, K1_POZ_MAKS) && w(k->c, K1_WSK_RUCH, K1_WSK_WYJSCIE) &&
@@ -77,8 +77,8 @@ int k1_kom_sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
     case K1_KOM_ZAMKNIJ:
         return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && zera(k, 0);
     case K1_KOM_OKNO:
-        return kier == K1_KIER_OD_EKRANU && k->obiekt != 0 && w(k->a, 1, K1_APL_MAKS) &&
-               w(k->b, 1, K1_OKNO_STAN_MAKS) && zera(k, 2);
+        return kier == K1_KIER_OD_EKRANU && k->obiekt != 0 && w(k->b, 1, K1_OKNO_STAN_MAKS) &&
+               ((w(k->a, 1, K1_APL_MAKS) && k->c == 0) || (k->a == 0 && w(k->c, 1, K1_STREFY_MAKS))) && zera(k, 3);
     case K1_KOM_USTAWIENIE:
         return kier == K1_KIER_OD_EKRANU && k->obiekt == 0 && k1_ustawienie_poprawne(k->a, k->b) && zera(k, 2);
     case K1_KOM_TRYB:

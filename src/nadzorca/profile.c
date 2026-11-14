@@ -1,6 +1,8 @@
 /* K1 nadzorca — sandbox profiles of the services (ADR 0007). Part of nadzorca (see main.c). */
 #include "nadzorca.h"
 
+#include <sched.h>
+
 static const long sc_wejscie[] = { 0 };
 static const struct k1_warunek wa_wejscie[] = { { SYS_ioctl, 1, 0xff00u, 'E' << 8 } }; /* evdev only */
 /* ekran: + memfd for the settings it saves in skarbiec (M5d) */
@@ -23,6 +25,15 @@ static const long sc_instalator[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, 
  * give it (sendto/recvfrom: the base) — no socket, setsockopt, bind or ioctl: it can neither open another socket nor
  * change the filter on this one (SO_LOCK_FILTER), nor set an address (nadzorca does, on its request). */
 static const long sc_siec[] = { SYS_getrandom, SYS_memfd_create }; /* 0.9.1: memfd for its data in skarbiec */
+
+/* the VMM of a zone (0.10.0, ADR 0042 T1, T3): the machine through KVM ioctls only (type 0xAE: on /dev/kvm, the machine
+ * and its processors — nadzorca gives it no other device, so the type is enough: S2); guest memory and its window from
+ * memfd (ftruncate: RLIMIT_FSIZE is the guest's memory); eventfd for the interrupts (irqfd) and to wake its main
+ * thread; a thread per processor (clone with CLONE_THREAD only, futex for their lock); getrandom for virtio-rng;
+ * pread64 for the zone kernel and image (read only, from nadzorca). No open, no socket: Landlock and the list. */
+static const long sc_strefa[] = { SYS_memfd_create, SYS_ftruncate, SYS_eventfd2, SYS_futex, SYS_getrandom, SYS_pread64 };
+static const struct k1_warunek wa_strefa[] = { { SYS_ioctl, 1, 0xff00u, 0xae00u },
+                                                { SYS_clone, 0, CLONE_THREAD, CLONE_THREAD } };
 
 /* The sandbox of each system service: KLATKA_<NAME> for every row of K1_SYSTEM (k1_uslugi.h) — its system calls and
  * limits, with the reason; the name and the UID come from the row. A row without its KLATKA_ does not build. */
@@ -83,4 +94,14 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
                         .rozmiar_pliku = 16u << 20 },
     K1_APLIKACJE(X_APL)
 #undef X_APL
+    /* zones (k1_uslugi.h K1_STREFY): a thread per processor + 1 task KVM makes in the machine's process itself (the
+     * recovery of large pages: a vhost_task, arch/x86/kvm/mmu/mmu.c — counted by the pids controller); the guest's
+     * memory + 160 MiB (the resources of virtio-gpu, up to 96 MiB, the window,
+     * the VMM itself, KVM's structures), RLIMIT_FSIZE = the guest's memory (its memfd) */
+#define X_Z(n, nr_, profil_, uid_, obraz_, tytul_, sesja_, pamiec_, procesory_, ...)                                 \
+    [profil_] = { .nazwa = "strefa-" obraz_, .uid = uid_, .wywolania = sc_strefa, .n_wywolan = N(sc_strefa),          \
+                  .warunki = wa_strefa, .n_warunkow = N(wa_strefa), .pamiec = ((uint64_t)(pamiec_) + 160u) << 20,     \
+                  .watki = (procesory_) + 1, .pliki = 64, .rozmiar_pliku = (uint64_t)(pamiec_) << 20 },
+    K1_STREFY(X_Z)
+#undef X_Z
 };

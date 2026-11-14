@@ -43,7 +43,8 @@ enum k1_kanal_kierunek {
 
 enum k1_komunikat_typ {
     /* nadzorca → ekran */
-    K1_KOM_KLIENT = 1, /* a=rola, b=aplikacja (rola APLIKACJA: 1..K1_APL_MAKS, else 0), c=uid; + 1 fd */
+    K1_KOM_KLIENT = 1, /* a=rola, b=aplikacja (rola APLIKACJA: 1..K1_APL_MAKS; rola STREFA: the zone 1..K1_STREFY_MAKS;
+                        * else 0), c=uid; + 1 fd */
     /* nadzorca → skarbiec (same direction K1_KIER_STEROWANIE) */
     K1_KOM_SKARB_KLIENT = 2, /* a=owner (K1_WL_*), b=uid of the client, c=1 K1-DANE is on a USB stick, d=MiB the stick
                               * has after K1-DANE (0..K1_PAMIEC_MAKS_MIB; 0.8.1); + 1 fd (skarbiec's end) */
@@ -81,7 +82,8 @@ enum k1_komunikat_typ {
     K1_KOM_KLAWISZ = 32,    /* obiekt=surface, a=Linux key code, b=0 up/1 down/2 repeat, c=K1_MOD_* bits */
     K1_KOM_FOKUS = 33,      /* obiekt=surface, a=1 gained / 0 lost keyboard focus */
     K1_KOM_RAMKA = 34,      /* obiekt=surface: the last commit is on screen, the other half may be drawn */
-    K1_KOM_OKNO = 35,       /* shell only: obiekt=window id, a=aplikacja, b=K1_OKNO_* state */
+    K1_KOM_OKNO = 35,       /* shell only: obiekt=window id, a=aplikacja, b=K1_OKNO_* state, c=zone (0.10.0: a zone's
+                             * window has a=0, c=its number; an application's c=0) */
     K1_KOM_USTAWIENIE = 36, /* obiekt=0, a=key, b=value (broadcast to all clients) */
     K1_KOM_TRYB = 37,       /* to Ustawienia: obiekt=mode 1..K1_TRYBY_MAKS, a,b = width,height, c=Hz, d=1 preferred */
     K1_KOM_ZAMKNIJ = 38,    /* to an application (0.7.5): obiekt=window surface — close it (as with its × button) */
@@ -326,6 +328,10 @@ enum k1_komunikat_typ {
                                     * endian; pairwise: 0) */
     K1_KOM_SIEC_WIFI_OTWORZ = 152, /* the keys are in: let data through (all 0) */
     K1_KOM_SIEC_WIFI_RADIO_USTAW = 155, /* at start, what the person chose before (remembered by siec): a=0 radio off */
+    /* 0.10.0 (ADR 0042): the zones — gui (and the test program) → nadzorca, nadzorca → gui (fd 5) */
+    K1_KOM_URUCHOM_STREFE = 163, /* obiekt=0, a=zone 1..K1_STREFY_MAKS, b=the guest's test mode 0..K1_STREFA_TRYB_MAKS
+                                  * (src/strefa/gosc/gosc.h; not 0: the test program only), c..e=0 */
+    K1_KOM_STREFA_STAN = 164,    /* obiekt=0, a=zone, b=K1_STREFA_* why it did not start, c..e=0 (gui says it) */
     /* nadzorca → siec */
     K1_KOM_SIEC_WIFI_EAPOL = 162,     /* obiekt=the card, all 0; + 1 fd: a packet socket for the EAPOL frames on the card
                                        * (WPA2 only; right before SIEC_WIFI_ZDARZENIE LACZE) */
@@ -384,6 +390,13 @@ enum { K1_PRZYCISK_BRAK = 0, K1_PRZYCISK_LEWY = 1, K1_PRZYCISK_PRAWY = 2, K1_PRZ
 #define K1_MOD_ALTGR 8
 #define K1_MOD_MASKA 15
 #define K1_KLAWISZ_MAKS 0x2ff /* KEY_MAX */
+
+/* 0.10.0 (ADR 0042): why a zone did not start (K1_KOM_STREFA_STAN b) */
+enum { K1_STREFA_BEZ_WIRTUALIZACJI = 1, K1_STREFA_ZA_MALO_PAMIECI = 2, K1_STREFA_BRAK_OBRAZU = 3 };
+#define K1_STREFA_STAN_MAKS 3
+#define K1_STREFA_TRYB_MAKS 4 /* the hostile test guests (gosc/zlosliwy.c) */
+/* The number in KLIENT b and WITAJ d: an application (role APLIKACJA) or a zone (role STREFA). */
+#define K1_KLIENT_NR_MAKS ((int)K1_APL_MAKS > (int)K1_STREFY_MAKS ? (int)K1_APL_MAKS : (int)K1_STREFY_MAKS)
 
 /* Window states reported to the shell */
 enum { K1_OKNO_NOWE = 1, K1_OKNO_AKTYWNE = 2, K1_OKNO_NIEAKTYWNE = 3, K1_OKNO_ZMINIMALIZOWANE = 4, K1_OKNO_ZAMKNIETE = 5 };

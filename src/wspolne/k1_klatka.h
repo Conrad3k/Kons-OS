@@ -32,7 +32,9 @@ struct k1_profil {
     unsigned n_wywolan;
     const struct k1_warunek *warunki; /* allowed only with argument conditions */
     unsigned n_warunkow;
-    uint64_t pamiec;                 /* cgroup memory.max in bytes (pids.max is always 1: no service forks) */
+    uint64_t pamiec;                 /* cgroup memory.max in bytes */
+    unsigned watki;                  /* threads besides the main one (pids.max = 1 + watki; no service forks; 0.10.0: the
+                                      * VMM of a zone, one per processor of its machine) */
     unsigned pliki;                  /* RLIMIT_NOFILE */
     uint64_t rozmiar_pliku;          /* RLIMIT_FSIZE in bytes (0: may not grow any file) */
     unsigned czas_cpu;               /* RLIMIT_CPU in seconds (0: no limit) — decoders (SPEC §7) */

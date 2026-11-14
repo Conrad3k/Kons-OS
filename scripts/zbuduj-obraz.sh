@@ -2,7 +2,8 @@
 # Buduje programy K1 i składa z nich obrazy startowe:
 #   build/wynik/initramfs.cpio     — /init (k1-initramfs) + /dev/console, bez kompresji
 #   build/wynik/rdzen.squashfs     — obraz /rdzen: init, system/ (nadzorca i usługi z K1_SYSTEM), katalogi jadro/
-#   build/wynik/rdzen-test.squashfs — to samo + program testowy jako /rdzen/system/test-systemu
+#   build/wynik/rdzen-test.squashfs — to samo + program testowy jako /rdzen/system/test-systemu i obraz strefy próbnej
+#                                     (/rdzen/strefy/probna.img: /init = gosc; 0.10.0, ADR 0042)
 # Wymaga zbudowanego jądra (scripts/zbuduj-jadro.sh: nagłówki i gen_init_cpio) i biblioteki C (scripts/zbuduj-musl.sh;
 # make zbuduje ją sam, gdy jej brak).
 . "$(dirname "$0")/wspolne.sh"
@@ -26,12 +27,24 @@ LISTA
 
 # Drzewo /rdzen: tylko to, co potrzebne. Uprawnienia ustawiane jawnie, właściciel root (-all-root).
 przygotuj_rdzen() { # $1 = katalog docelowy
-    rm -rf "$1"; mkdir -p "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje"
+    rm -rf "$1"; mkdir -p "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje" "$1/strefy"
     install -m 0555 "$K1_BUDOWA/bin/init" "$1/init"
-    for p in nadzorca $(sh "$K1_REPO/scripts/uslugi-systemu.sh"); do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/system/$p"; done
+    for p in nadzorca strefa $(sh "$K1_REPO/scripts/uslugi-systemu.sh"); do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/system/$p"; done
+    # 0.10.0 (ADR 0042 T5): the zone kernel — data for the VMM (read, never executed by K1); the zone images beside it
+    install -m 0444 "$K1_WYNIK/strefa-jadro" "$1/strefy/jadro"
     # Built-in native applications (M4); signed application images come with M10 (/aplikacje).
     for d in "$K1_REPO"/src/aplikacje/*/; do p=$(basename "$d"); install -m 0555 "$K1_BUDOWA/bin/$p" "$1/aplikacje/$p"; done
-    chmod 0755 "$1" "$1/jadro" "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje"
+    chmod 0755 "$1" "$1/jadro" "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje" "$1/strefy"
+}
+# The image of the test zone (0.10.0 step 1): gosc as /init and the mount points it uses; SquashFS like the core.
+obraz_strefy_probnej() { # $1 = plik wynikowy
+    d=$K1_BUDOWA/strefa-probna
+    rm -rf "$d"; mkdir -p "$d/dev" "$d/proc" "$d/sys" "$d/tmp"
+    install -m 0555 "$K1_BUDOWA/bin/gosc" "$d/init"
+    chmod 0755 "$d" "$d/dev" "$d/proc" "$d/sys" "$d/tmp"
+    rm -f "$1"
+    mksquashfs "$d" "$1" -quiet -no-progress -noappend -comp zstd -all-root -no-xattrs >/dev/null
+    chmod 0444 "$1"
 }
 # The build id (0.7.0, ADR 0022): 128 bits of SHA-256 over the names and contents of every file of the core.
 # The slot manifest carries the same id: nadzorca confirms a new slot only when it is the very build it runs.
@@ -58,6 +71,7 @@ install -m 0555 "$K1_BUDOWA/bin/k1-test-systemu" "$K1_BUDOWA/rdzen-test/system/t
 # Plik ze „#!” — test sprawdza, że jądro NIE uruchamia skryptów (brak CONFIG_BINFMT_SCRIPT).
 printf '#!/rdzen/system/test-systemu --echo\n' > "$K1_BUDOWA/rdzen-test/system/skrypt-testowy"
 chmod 0555 "$K1_BUDOWA/rdzen-test/system/skrypt-testowy"
+obraz_strefy_probnej "$K1_BUDOWA/rdzen-test/strefy/probna.img"
 squashfs "$K1_BUDOWA/rdzen-test" "$K1_WYNIK/rdzen-test.squashfs"
 
 cp "$K1_REPO/jadro/cmdline" "$K1_WYNIK/cmdline"

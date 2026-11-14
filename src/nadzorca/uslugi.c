@@ -18,6 +18,12 @@ struct usluga uslugi[] = {
       .log = -1 },
     K1_APLIKACJE(X_APL)
 #undef X_APL
+/* 0.10.0 (ADR 0042): the VMM of each zone — started by strefy.c with its descriptors, never again by itself */
+#define X_Z(n, nr_, profil_, uid_, obraz_, tytul_, ...)                                                       \
+    { .nazwa = "strefa-" obraz_, .program = "/rdzen/system/strefa", .tag = "K1-STREFA", .profil = profil_,      \
+      .kiedy = START_NA_PROSBE, .rola = K1_ROLA_BRAK, .log = -1 },
+    K1_STREFY(X_Z)
+#undef X_Z
 };
 
 struct usluga *usluga_profilu(int profil)
@@ -61,7 +67,8 @@ pid_t uruchom(struct usluga *u, const struct k1_profil *p, const int *fds, int n
 {
     int potok[2], i;
     pid_t pid;
-    char *const argv_usl[] = { (char *)u->program, u->argument[0] != '\0' ? u->argument : NULL, NULL };
+    char *const argv_usl[] = { (char *)u->program, u->argument[0] != '\0' ? u->argument : NULL,
+                               u->argument[0] != '\0' && u->argument2[0] != '\0' ? u->argument2 : NULL, NULL };
     char *const argv_proba[] = { (char *)u->program, (char *)"--proba", (char *)p->nazwa, NULL };
 
     if (k1_klatka_grupa(p) != 0) {
@@ -446,7 +453,7 @@ void zakonczona(struct usluga *u, int status)
         u->nastepny = t + 0.2;
         return;
     }
-    if (t - u->okno > OKNO_RESTARTOW) {
+    if (u->awarie == 0 || t - u->okno > OKNO_RESTARTOW) { /* the window starts at the first failure (0.10.0: not at boot) */
         u->okno = t;
         u->awarie = 0;
     }
@@ -488,12 +495,15 @@ void obsluz_gui(void)
             return;
         }
         /* gui: start an application, power off, log out; the password screen (M5e): power off only */
-        if (w != K1_ODB_JEST || (k.typ != K1_KOM_URUCHOM && k.typ != K1_KOM_WYLACZ) ||
-            ((k.typ == K1_KOM_URUCHOM || k.a == 2) && gui_kanal_uid != K1_UID_GUI)) {
+        if (w != K1_ODB_JEST || (k.typ != K1_KOM_URUCHOM && k.typ != K1_KOM_WYLACZ && k.typ != K1_KOM_URUCHOM_STREFE) ||
+            ((k.typ != K1_KOM_WYLACZ || k.a == 2) && gui_kanal_uid != K1_UID_GUI) ||
+            (k.typ == K1_KOM_URUCHOM_STREFE && k.b != 0)) { /* a hostile test guest: the test program only */
             k1_log(TAG, "odrzucono prośbę od pulpitu");
             continue;
         }
-        if (k.typ == K1_KOM_URUCHOM) {
+        if (k.typ == K1_KOM_URUCHOM_STREFE) {
+            strefa_uruchom(k.a, 0);
+        } else if (k.typ == K1_KOM_URUCHOM) {
             uruchom_aplikacje(k.a);
             if (k.a == K1_APL_PLIKI && (k.b != 0 || k.c != 0) && plik_kanal[K1_APL_PLIKI] >= 0) { /* a file, a folder or Kosz */
                 struct k1_komunikat p = k1_komunikat_nowy(K1_KOM_PLIKI_POKAZ, 0, k.b, k.c, 0, 0, 0);

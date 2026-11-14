@@ -91,6 +91,8 @@ const char *nazwa_roli(const struct klient *k)
         return "powłoka";
     if (k->rola == K1_ROLA_LOGOWANIE)
         return "logowanie";
+    if (k->rola == K1_ROLA_STREFA)
+        return "strefa";
     return apl != NULL ? apl : "?";
 }
 
@@ -119,7 +121,8 @@ void zglos_okno(const struct pow *p, int stan)
 {
     int sh = powloka();
     if (sh >= 0 && p->okno != 0)
-        wyslij(sh, k1_komunikat_nowy(K1_KOM_OKNO, p->okno, s.kl[p->kl].apl, stan, 0, 0, 0));
+        wyslij(sh, okno_strefy(p) ? k1_komunikat_nowy(K1_KOM_OKNO, p->okno, 0, stan, s.kl[p->kl].apl, 0, 0)
+                                  : k1_komunikat_nowy(K1_KOM_OKNO, p->okno, s.kl[p->kl].apl, stan, 0, 0, 0));
 }
 
 void ustaw_fokus(int i)
@@ -169,7 +172,7 @@ void aktywuj(int i)
     ustaw_fokus(i);
 }
 
-static void minimalizuj(int i)
+void minimalizuj(int i)
 {
     struct pow *p = &s.p[i];
     if (p->zmin)
@@ -186,8 +189,8 @@ static void minimalizuj(int i)
     zglos_okno(p, K1_OKNO_ZMINIMALIZOWANE);
 }
 
-/* The shell's "Zamknij okno" (0.7.5): the application closes its window itself, as with its × button. */
-static void zamknij_okno(int i)
+/* The shell's "Zamknij okno" (0.7.5) and the badge of a zone (0.10.0): the client closes its window itself. */
+void zamknij_okno(int i)
 {
     k1_log(TAG, "okno %u: powłoka prosi aplikację o zamknięcie", s.p[i].okno);
     wyslij(s.p[i].kl, k1_komunikat_nowy(K1_KOM_ZAMKNIJ, s.p[i].id, 0, 0, 0, 0, 0));
@@ -212,6 +215,8 @@ static void usun_pow(int i)
         s.chwyt = -1;
     if (s.ciagniete == i)
         s.ciagniete = -1;
+    if (s.plakietka == i)
+        s.plakietka = -1;
     if (s.fokus == i) {
         s.fokus = -1;
         ustaw_fokus(najwyzsze_okno(i));

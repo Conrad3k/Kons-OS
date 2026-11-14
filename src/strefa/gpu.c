@@ -1,0 +1,323 @@
+/* K1 strefa — virtio-gpu, 2D only (virtio 1.2, section 5.7; ADR 0042 T6): the guest draws with its processor into its
+ * own memory ("backing" pages), TRANSFER_TO_HOST_2D copies a rectangle into our copy of the resource, RESOURCE_FLUSH of
+ * the shown resource tells the window (okno.c) which part changed. No 3D, no blob resources, no EDID (none offered).
+ * Limits: K1_GPU_ZASOBY resources, each at most 4096 × 4096, all together GPU_PAMIEC; every rectangle inside its
+ * resource and every byte read inside the backing the guest gave (ERR_INVALID_PARAMETER otherwise); a command shorter
+ * than its structure or without room for the answer ends the machine. */
+#include <stdlib.h>
+#include <string.h>
+
+#include <linux/virtio_gpu.h>
+#include <linux/virtio_ids.h>
+
+#include "okno.h"
+#include "strefa.h"
+
+#define ZASOBY 16
+#define BOK_MAKS 4096u
+#define GPU_PAMIEC (96u << 20)
+#define WPISY_MAKS 16384u /* backing entries of one resource (4 KiB pages: 64 MiB) */
+
+struct zasob {
+    uint32_t id, w, h;
+    uint32_t *px;
+    struct virtio_gpu_mem_entry *tlo; /* the backing: guest memory, checked when attached */
+    uint64_t *od;                     /* od[i] = bytes of the backing before entry i */
+    uint32_t n_tla;
+};
+
+static struct zasob zasoby[ZASOBY];
+static uint32_t pokazany;            /* the resource on scanout 0 (0: none) */
+static uint64_t zajete;              /* bytes of all resources */
+static unsigned long polecenia, bledy;
+
+static struct zasob *znajdz(uint32_t id)
+{
+    int i;
+    for (i = 0; i < ZASOBY && id != 0; i++)
+        if (zasoby[i].id == id)
+            return &zasoby[i];
+    return NULL;
+}
+
+static void zwolnij_tlo(struct zasob *z)
+{
+    free(z->tlo);
+    free(z->od);
+    z->tlo = NULL;
+    z->od = NULL;
+    z->n_tla = 0;
+}
+
+static void usun(struct zasob *z)
+{
+    zwolnij_tlo(z);
+    free(z->px);
+    zajete -= (uint64_t)z->w * z->h * 4;
+    if (pokazany == z->id)
+        pokazany = 0;
+    memset(z, 0, sizeof *z);
+}
+
+const uint32_t *gpu_obraz(uint32_t *w, uint32_t *h)
+{
+    struct zasob *z = znajdz(pokazany);
+    if (z == NULL)
+        return NULL;
+    *w = z->w;
+    *h = z->h;
+    return z->px;
+}
+
+/* Bytes [od, od + n) of the resource's backing into dst: 0, or -1 when they are not all inside it. */
+static int z_tla(const struct zasob *z, uint64_t od, uint8_t *dst, uint64_t n)
+{
+    uint32_t lo = 0, hi = z->n_tla;
+    while (hi - lo > 1) { /* the entry holding byte `od` */
+        uint32_t m = (lo + hi) / 2;
+        if (z->od[m] <= od)
+            lo = m;
+        else
+            hi = m;
+    }
+    for (; n > 0 && lo < z->n_tla; lo++) {
+        uint64_t w_wpisie = od - z->od[lo], ile;
+        if (w_wpisie >= z->tlo[lo].length)
+            continue;
+        ile = z->tlo[lo].length - w_wpisie;
+        if (ile > n)
+            ile = n;
+        memcpy(dst, mz.pamiec.baza + z->tlo[lo].addr + w_wpisie, (size_t)ile); /* addr checked at attach */
+        dst += ile;
+        od += ile;
+        n -= ile;
+    }
+    return n == 0 ? 0 : -1;
+}
+
+static int prostokat_w(const struct virtio_gpu_rect *r, const struct zasob *z)
+{
+    return r->width > 0 && r->height > 0 && r->x <= z->w && r->width <= z->w - r->x && r->y <= z->h &&
+           r->height <= z->h - r->y;
+}
+
+static uint32_t utworz(const struct virtio_gpu_resource_create_2d *c)
+{
+    struct zasob *z = NULL;
+    uint64_t bajty = (uint64_t)c->width * c->height * 4;
+    int i;
+    if (c->resource_id == 0 || znajdz(c->resource_id) != NULL || c->width == 0 || c->height == 0 ||
+        c->width > BOK_MAKS || c->height > BOK_MAKS ||
+        (c->format != VIRTIO_GPU_FORMAT_B8G8R8X8_UNORM && c->format != VIRTIO_GPU_FORMAT_B8G8R8A8_UNORM))
+        return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
+    for (i = 0; i < ZASOBY && z == NULL; i++)
+        if (zasoby[i].id == 0)
+            z = &zasoby[i];
+    if (z == NULL || zajete + bajty > GPU_PAMIEC)
+        return VIRTIO_GPU_RESP_ERR_OUT_OF_MEMORY;
+    z->px = calloc((size_t)bajty, 1);
+    if (z->px == NULL)
+        return VIRTIO_GPU_RESP_ERR_OUT_OF_MEMORY;
+    z->id = c->resource_id;
+    z->w = c->width;
+    z->h = c->height;
+    zajete += bajty;
+    return VIRTIO_GPU_RESP_OK_NODATA;
+}
+
+/* ATTACH_BACKING: the entries follow the structure in the request; each must lie in guest memory. */
+static uint32_t dolacz(const struct vq_lancuch *l, const struct virtio_gpu_resource_attach_backing *a)
+{
+    struct zasob *z = znajdz(a->resource_id);
+    uint64_t suma = 0;
+    uint32_t i;
+    if (z == NULL || z->tlo != NULL || a->nr_entries == 0 || a->nr_entries > WPISY_MAKS ||
+        l->dl_odczyt < sizeof *a + (uint64_t)a->nr_entries * sizeof(struct virtio_gpu_mem_entry))
+        return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
+    z->tlo = malloc(a->nr_entries * sizeof *z->tlo);
+    z->od = malloc(a->nr_entries * sizeof *z->od);
+    if (z->tlo == NULL || z->od == NULL) {
+        zwolnij_tlo(z);
+        return VIRTIO_GPU_RESP_ERR_OUT_OF_MEMORY;
+    }
+    vq_czytaj(l, sizeof *a, z->tlo, (uint64_t)a->nr_entries * sizeof *z->tlo);
+    for (i = 0; i < a->nr_entries; i++) {
+        if (gp_wsk(&mz.pamiec, z->tlo[i].addr, z->tlo[i].length) == NULL) {
+            zwolnij_tlo(z);
+            return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
+        }
+        z->od[i] = suma;
+        suma += z->tlo[i].length;
+    }
+    z->n_tla = a->nr_entries;
+    return VIRTIO_GPU_RESP_OK_NODATA;
+}
+
+static uint32_t przenies(const struct virtio_gpu_transfer_to_host_2d *t)
+{
+    struct zasob *z = znajdz(t->resource_id);
+    uint64_t krok;
+    uint32_t y;
+    if (z == NULL || z->tlo == NULL || !prostokat_w(&t->r, z))
+        return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
+    krok = (uint64_t)z->w * 4;
+    for (y = 0; y < t->r.height; y++)
+        if (z_tla(z, t->offset + krok * y, (uint8_t *)(z->px + (size_t)(t->r.y + y) * z->w + t->r.x),
+                  (uint64_t)t->r.width * 4) != 0)
+            return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
+    return VIRTIO_GPU_RESP_OK_NODATA;
+}
+
+static uint32_t pokaz(const struct virtio_gpu_set_scanout *s)
+{
+    struct zasob *z = znajdz(s->resource_id);
+    if (s->scanout_id != 0)
+        return VIRTIO_GPU_RESP_ERR_INVALID_SCANOUT_ID;
+    if (s->resource_id != 0 && z == NULL)
+        return VIRTIO_GPU_RESP_ERR_INVALID_RESOURCE_ID;
+    pokazany = s->resource_id;
+    if (z != NULL)
+        okno_zmiana(0, 0, z->w, z->h);
+    return VIRTIO_GPU_RESP_OK_NODATA;
+}
+
+static uint32_t splucz(const struct virtio_gpu_resource_flush *f)
+{
+    struct zasob *z = znajdz(f->resource_id);
+    if (z == NULL || !prostokat_w(&f->r, z))
+        return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
+    if (f->resource_id == pokazany)
+        okno_zmiana(f->r.x, f->r.y, f->r.width, f->r.height);
+    return VIRTIO_GPU_RESP_OK_NODATA;
+}
+
+/* The structure of a command (its whole size read from the chain) or -1 when the chain is shorter. */
+#define POLECENIE(typ, zm)                                                                                            \
+    typ zm;                                                                                                          \
+    if (vq_czytaj(l, 0, &zm, sizeof zm) != sizeof zm)                                                               \
+        return -1;
+
+static int wykonaj(const struct vq_lancuch *l, uint32_t typ, uint32_t *wynik, struct virtio_gpu_resp_display_info *info)
+{
+    uint32_t w, h;
+    switch (typ) {
+    case VIRTIO_GPU_CMD_GET_DISPLAY_INFO:
+        okno_rozmiar(&w, &h);
+        info->pmodes[0].r.width = w;
+        info->pmodes[0].r.height = h;
+        info->pmodes[0].enabled = 1;
+        *wynik = VIRTIO_GPU_RESP_OK_DISPLAY_INFO;
+        return 0;
+    case VIRTIO_GPU_CMD_RESOURCE_CREATE_2D: {
+        POLECENIE(struct virtio_gpu_resource_create_2d, c)
+        *wynik = utworz(&c);
+        return 0;
+    }
+    case VIRTIO_GPU_CMD_RESOURCE_UNREF: {
+        POLECENIE(struct virtio_gpu_resource_unref, u)
+        if (znajdz(u.resource_id) == NULL)
+            *wynik = VIRTIO_GPU_RESP_ERR_INVALID_RESOURCE_ID;
+        else
+            usun(znajdz(u.resource_id));
+        return 0;
+    }
+    case VIRTIO_GPU_CMD_SET_SCANOUT: {
+        POLECENIE(struct virtio_gpu_set_scanout, s)
+        *wynik = pokaz(&s);
+        return 0;
+    }
+    case VIRTIO_GPU_CMD_RESOURCE_FLUSH: {
+        POLECENIE(struct virtio_gpu_resource_flush, f)
+        *wynik = splucz(&f);
+        return 0;
+    }
+    case VIRTIO_GPU_CMD_TRANSFER_TO_HOST_2D: {
+        POLECENIE(struct virtio_gpu_transfer_to_host_2d, t)
+        *wynik = przenies(&t);
+        return 0;
+    }
+    case VIRTIO_GPU_CMD_RESOURCE_ATTACH_BACKING: {
+        POLECENIE(struct virtio_gpu_resource_attach_backing, a)
+        *wynik = dolacz(l, &a);
+        return 0;
+    }
+    case VIRTIO_GPU_CMD_RESOURCE_DETACH_BACKING: {
+        POLECENIE(struct virtio_gpu_resource_detach_backing, d)
+        if (znajdz(d.resource_id) == NULL)
+            *wynik = VIRTIO_GPU_RESP_ERR_INVALID_RESOURCE_ID;
+        else
+            zwolnij_tlo(znajdz(d.resource_id));
+        return 0;
+    }
+    case VIRTIO_GPU_CMD_UPDATE_CURSOR:
+    case VIRTIO_GPU_CMD_MOVE_CURSOR:
+        return 0; /* K1 draws its own cursor */
+    default:
+        *wynik = VIRTIO_GPU_RESP_ERR_UNSPEC;
+        return 0;
+    }
+}
+
+static int powiadom(struct mmio_urz *u, int k, const char **powod)
+{
+    struct vq_lancuch l;
+    int w, bylo = 0;
+    while ((w = vq_wez(&u->q[k], u->pamiec, &l, powod)) > 0) {
+        struct virtio_gpu_ctrl_hdr h;
+        struct virtio_gpu_resp_display_info odp;
+        uint32_t wynik = VIRTIO_GPU_RESP_OK_NODATA;
+        uint64_t dl;
+        memset(&odp, 0, sizeof odp);
+        if (vq_czytaj(&l, 0, &h, sizeof h) != sizeof h || wykonaj(&l, h.type, &wynik, &odp) != 0) {
+            *powod = "virtio-gpu: polecenie krótsze niż jego struktura";
+            return -1;
+        }
+        polecenia++;
+        bylo = 1;
+        if (k == 1) { /* the cursor queue: no answers */
+            vq_oddaj(&u->q[k], u->pamiec, l.glowa, 0);
+            continue;
+        }
+        bledy += wynik >= VIRTIO_GPU_RESP_ERR_UNSPEC;
+        odp.hdr.type = wynik;
+        odp.hdr.flags = h.flags & VIRTIO_GPU_FLAG_FENCE;
+        odp.hdr.fence_id = h.fence_id;
+        odp.hdr.ctx_id = h.ctx_id;
+        dl = wynik == VIRTIO_GPU_RESP_OK_DISPLAY_INFO ? sizeof odp : sizeof odp.hdr;
+        if (l.dl_zapis < dl) {
+            *powod = "virtio-gpu: brak miejsca na odpowiedź";
+            return -1;
+        }
+        vq_zapisz(&l, 0, &odp, dl);
+        vq_oddaj(&u->q[k], u->pamiec, l.glowa, (uint32_t)dl);
+    }
+    if (bylo)
+        mmio_uzyte(u);
+    return w;
+}
+
+static void konfig(struct mmio_urz *u, uint32_t od, uint8_t *dst, uint32_t n)
+{
+    struct virtio_gpu_config c = { 0, 0, 1, 0 };
+    (void)u;
+    memcpy(dst, (const uint8_t *)&c + od, n);
+}
+
+static void reset(struct mmio_urz *u)
+{
+    int i;
+    (void)u;
+    for (i = 0; i < ZASOBY; i++)
+        if (zasoby[i].id != 0)
+            usun(&zasoby[i]);
+    pokazany = 0;
+}
+
+const struct mmio_ops gpu_ops = {
+    .id = VIRTIO_ID_GPU,
+    .n_kolejek = 2, /* control, cursor */
+    .rozmiar_konfig = sizeof(struct virtio_gpu_config),
+    .konfig_czytaj = konfig,
+    .powiadom = powiadom,
+    .reset = reset,
+};

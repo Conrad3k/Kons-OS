@@ -5,6 +5,8 @@
 #   scripts/uruchom-qemu.sh [--obraz PLIK | --bez-dysku] [--cmdline "..."] [--log PLIK]
 #                           [--monitor GNIAZDO] [--czas SEKUNDY]
 #                           [--maszyna ",i8042=off"] [--qemu "-device ..."]   (dyski, USB — M5a)
+#                           [--pamiec MiB] [--emulacja] [--bez-wirtualizacji]   (strefy — 0.10.0: pamięć K1 w QEMU,
+#                           emulacja zamiast KVM — QEMU udaje wtedy wirtualizację AMD; procesor bez VT-x/AMD-V)
 #   scripts/uruchom-qemu.sh --iso PLIK [--uefi] [--vga std|virtio] ...   (start z obrazu ISO, ADR 0010)
 #   scripts/uruchom-qemu.sh --pendrive PLIK ...   (obraz USB jako pamięć USB, start przez UEFI — M5d)
 #   scripts/uruchom-qemu.sh --dysk-uefi PLIK ...  (dysk SATA, start z niego przez UEFI — zainstalowany K1, M5f)
@@ -20,7 +22,7 @@ CMDLINE=$(cat "$K1_REPO/jadro/cmdline")
 LOG=$K1_BUDOWA/qemu/serial.log
 MONITOR=$K1_BUDOWA/qemu/monitor.sock
 CZAS=0
-ISO= UEFI= VGA=std MASZYNA= DODATKI= PENDRIVE= DYSK_UEFI= ZMIENNE=
+ISO= UEFI= VGA=std MASZYNA= DODATKI= PENDRIVE= DYSK_UEFI= ZMIENNE= PAMIEC= EMULACJA= BEZ_WIRT=
 while [ $# -gt 0 ]; do
     case $1 in
         --obraz) OBRAZ=$2; shift 2 ;;
@@ -37,6 +39,9 @@ while [ $# -gt 0 ]; do
         --vga) VGA=$2; shift 2 ;;
         --maszyna) MASZYNA=$2; shift 2 ;;
         --qemu) DODATKI=$2; shift 2 ;;
+        --pamiec) PAMIEC=$2; shift 2 ;;
+        --emulacja) EMULACJA=1; shift ;;
+        --bez-wirtualizacji) BEZ_WIRT=1; shift ;;
         *) blad "nieznana opcja: $1" ;;
     esac
 done
@@ -44,7 +49,11 @@ mkdir -p "$(dirname "$LOG")" "$(dirname "$MONITOR")"
 rm -f "$LOG" "$MONITOR"
 
 # KVM, jeśli jest (np. runner CI z /dev/kvm); inaczej emulacja TCG (wolniej, ale działa wszędzie).
-if [ -w /dev/kvm ]; then AKCEL="-accel kvm -cpu host"; else AKCEL="-accel tcg -cpu max"; fi
+if [ -w /dev/kvm ] && [ -z "$EMULACJA" ]; then AKCEL="-accel kvm -cpu host"; else AKCEL="-accel tcg -cpu max"; fi
+# 0.10.0 (ADR 0042): a processor without virtualization (the zones must say so instead of starting)
+[ -n "$BEZ_WIRT" ] && AKCEL="$AKCEL,vmx=off,svm=off"
+# The memory of the machine: 512 MiB from firmware, 256 MiB without (bzImage + initramfs); --pamiec for the zones.
+P512=${PAMIEC:-512}M P256=${PAMIEC:-256}M
 DYSK=
 [ -n "$OBRAZ" ] && DYSK="-drive file=$OBRAZ,if=virtio,format=raw,readonly=on"
 # M6b: the image's dm-verity root hash (OBRAZ.skrot from the build) unless the command line has one
@@ -64,23 +73,23 @@ if [ -n "$ZMIENNE" ]; then
 fi
 if [ -n "$DYSK_UEFI" ]; then
     # An installed K1 (M5f): UEFI firmware boots the SATA disk (AHCI of q35, like the X230's disk).
-    set -- -machine "q35$MASZYNA" $AKCEL -m 512M -smp 2 -nodefaults -no-reboot $FW \
+    set -- -machine "q35$MASZYNA" $AKCEL -m $P512 -smp 2 -nodefaults -no-reboot $FW \
         -vga virtio -display none -nic none -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" \
         -drive if=none,id=dysk,file="$DYSK_UEFI",format=raw -device ide-hd,bus=ide.0,drive=dysk,bootindex=1
 elif [ -n "$PENDRIVE" ]; then
     # Like the ThinkPad: UEFI firmware boots the stick (usb-storage on xHCI); picture from GOP → simpledrm.
-    set -- -machine "q35$MASZYNA" $AKCEL -m 512M -smp 2 -nodefaults -no-reboot $FW \
+    set -- -machine "q35$MASZYNA" $AKCEL -m $P512 -smp 2 -nodefaults -no-reboot $FW \
         -vga virtio -display none -nic none -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" \
         -device qemu-xhci,id=xhci -drive if=none,id=pendrive,file="$PENDRIVE",format=raw \
         -device usb-storage,bus=xhci.0,drive=pendrive,bootindex=1
 elif [ -n "$ISO" ]; then
     # Like a VM user: firmware → GRUB from the CD → kernel; virtio-vga has no K1 driver → simpledrm.
     FIRMWARE=; [ -n "$UEFI" ] && FIRMWARE="-bios /usr/share/ovmf/OVMF.fd"
-    set -- -machine "q35$MASZYNA" $AKCEL -m 512M -smp 2 -nodefaults -no-reboot $FIRMWARE \
+    set -- -machine "q35$MASZYNA" $AKCEL -m $P512 -smp 2 -nodefaults -no-reboot $FIRMWARE \
         -vga "$VGA" -display none -nic none \
         -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" -cdrom "$ISO"
 else
-set -- -machine "q35$MASZYNA" $AKCEL -m 256M -smp 2 -nodefaults -no-reboot \
+set -- -machine "q35$MASZYNA" $AKCEL -m $P256 -smp 2 -nodefaults -no-reboot \
     -vga std -display none -nic none \
     -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" \
     -kernel "$K1_WYNIK/bzImage" -initrd "$K1_WYNIK/initramfs.cpio" -append "$CMDLINE" $DYSK

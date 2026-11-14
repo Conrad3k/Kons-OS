@@ -49,7 +49,7 @@ static const char *miejsce_na_pow(int kl, const struct k1_komunikat *m, size_t r
             zajete += s.p[i].rozmiar;
         }
     }
-    if (*wolny < 0 || okien >= (panele(k) ? K1_POW_MAKS : MAKS_OKIEN_KLIENTA))
+    if (*wolny < 0 || okien >= (panele(k) ? K1_POW_MAKS : k->rola == K1_ROLA_STREFA ? 1 : MAKS_OKIEN_KLIENTA))
         return "za dużo powierzchni";
     /* Every mapped surface costs ekran memory when it is composed: at most what two full-screen
      * windows need per client (shell: one), so that clients cannot exhaust ekran's cgroup. */

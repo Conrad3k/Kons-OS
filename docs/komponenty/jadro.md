@@ -84,6 +84,20 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
   Jądro: bzImage 5,0 → 6,3 MiB, `k1.efi` 7,1 → 8,4 MiB. ICMP i ARP ograniczają sysctl w init (`init.md`).
   Brak VT, IPv6, I2C-HID, `i915`.
 
+### Strefy (0.10.0, ADR 0042)
+`VIRTUALIZATION`, `KVM` (wbudowany), `KVM_INTEL`, `KVM_AMD`, `KVM_IOAPIC` (kontroler przerwań i PIT w jądrze — „default y”,
+który allnoconfig wyłącza) i z powrotem `MITIGATION_VMSCAPE`. Bez `KVM_SMM`, `KVM_HYPERV`, `KVM_XEN`, `X86_SGX_KVM`,
+`KVM_AMD_SEV`, `KVM_INTEL_TDX`, `KVM_SW_PROTECTED_VM`. KVM wybiera sam `VHOST_TASK`, `KVM_VFIO`, `KVM_GUEST_MEMFD`,
+`KVM_MMIO` (nic z tego nie jest używane poza tym, co trzeba maszynom stref). `/dev/kvm` tylko przy wirtualizacji
+włączonej w BIOS-ie, prawa 0600 root — otwiera go tylko nadzorca dla VMM strefy. bzImage 12 530 688 B → 12 903 424 B.
+
+**Jądro strefy** (`jadro/strefa.config`, ten sam allnoconfig tych samych źródeł, `scripts/zbuduj-jadro.sh` buduje oba
+i sprawdza oba fragmenty; obiekty w `build/jadro-strefy-obj`, wynik `build/wynik/strefa-jadro`, w rdzeniu
+`/rdzen/strefy/jadro`): 64-bit, SMP (8 procesorów), zstd, gość KVM (kvmclock, x2APIC), tylko virtio-mmio z urządzeniami
+z linii poleceń (blk, konsola z TTY bez VT i pty, rng, input + evdev bez PS/2, DRM virtio-gpu z KMS bez fbdev, vsock
+z NET bez INET), proc, sysfs, devtmpfs (montowany sam), tmpfs, SquashFS (zstd), `DEVMEM` bez `STRICT_DEVMEM` (root gościa
+i tak ma całą swoją maszynę; testy złośliwego gościa). Bez PCI, ACPI, modułów, swapu. 2,2 MB.
+
 ### Wi-Fi (0.9.1, ADR 0041)
 `WIRELESS`, `CFG80211` (bez `CFG80211_WEXT` i CRDA), `MAC80211` z minstrelem (bez mesh), `RFKILL` (bez `RFKILL_INPUT`),
 sterowniki kart PCIe: Intel iwlwifi (DVM, MVM), Qualcomm Atheros ath9k (z `ATH9K_PCOEM`) i ath10k, Realtek rtlwifi

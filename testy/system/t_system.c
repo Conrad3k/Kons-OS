@@ -369,20 +369,25 @@ static int inventory_cb(const char *path, const struct stat *st, int type, struc
 }
 
 /* The files the core must hold: init, nadzorca, every service and application of k1_uslugi.h, the build
- * id, and in the test image the test program and its "#!" file. */
+ * id, and in the test image the test program and its "#!" file; since 0.10.0 the VMM of the zones, the zone kernel and
+ * the image of every zone of K1_STREFY (the test zone's only in the test image — this program runs there). */
 static size_t oczekiwane_pliki(char (*p)[64], size_t maks)
 {
     static const char *const stale[] = { "/rdzen/init", "/rdzen/system/nadzorca", "/rdzen/system/wydanie",
-                                         "/rdzen/system/test-systemu", "/rdzen/system/skrypt-testowy" };
+                                         "/rdzen/system/test-systemu", "/rdzen/system/skrypt-testowy",
+                                         "/rdzen/system/strefa", "/rdzen/strefy/jadro" };
     size_t n = 0, i;
     for (i = 0; i < sizeof stale / sizeof stale[0] && n < maks; i++)
         snprintf(p[n++], sizeof p[0], "%s", stale[i]);
 #define X_S(n_, profil_, uid_, program_, ...) if (n < maks) snprintf(p[n++], sizeof p[0], "/rdzen/system/%s", program_);
 #define X_A(n_, apl_, profil_, uid_, program_, ...) if (n < maks) snprintf(p[n++], sizeof p[0], "/rdzen/aplikacje/%s", program_);
+#define X_Z(n_, nr_, profil_, uid_, obraz_, ...) if (n < maks) snprintf(p[n++], sizeof p[0], "/rdzen/strefy/%s.img", obraz_);
     K1_SYSTEM(X_S)
     K1_APLIKACJE(X_A)
+    K1_STREFY(X_Z)
 #undef X_S
 #undef X_A
+#undef X_Z
     return n;
 }
 

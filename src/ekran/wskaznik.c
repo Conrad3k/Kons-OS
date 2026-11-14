@@ -23,12 +23,19 @@ static int trafia(const struct pow *p, int32_t x, int32_t y)
     return (p->mem[(size_t)p->polowa * (size_t)p->w * (size_t)p->h + (size_t)ly * (size_t)p->w + (size_t)lx] >> 24) > 8;
 }
 
-static int pod_kursorem(void)
+/* The surface under the pointer, or -1; *ramka = STREFA_* when it is the frame of a zone's window (K1's, not the
+ * zone's: its mark and badge lie over its own window, its outline outside it), else 0. */
+static int pod_kursorem_r(int *ramka)
 {
     int idx[MAKS_POW], n = kolejnosc(idx), i;
-    for (i = n - 1; i >= 0; i--)
-        if (trafia(&s.p[idx[i]], s.x, s.y))
+    *ramka = 0;
+    for (i = n - 1; i >= 0; i--) {
+        const struct pow *p = &s.p[idx[i]];
+        if (okno_strefy(p) && (*ramka = strefa_trafienie(p, s.x, s.y)) != 0)
             return idx[i];
+        if (trafia(p, s.x, s.y))
+            return idx[i];
+    }
     return -1;
 }
 
@@ -43,9 +50,9 @@ static void ruch_wskaznika(void)
     int cel;
     if (s.ciagniete >= 0) {
         struct pow *p = &s.p[s.ciagniete];
-        int32_t nx = s.x - s.ciag_dx, ny = s.y - s.ciag_dy;
+        int32_t nx = s.x - s.ciag_dx, ny = s.y - s.ciag_dy, gora = K1_PASEK_GORNY + (okno_strefy(p) ? strefa_znaczek_od() : 0);
         nx = nx < 80 - p->w ? 80 - p->w : (nx > s.W - 80 ? s.W - 80 : nx);
-        ny = ny < K1_PASEK_GORNY ? K1_PASEK_GORNY : (ny > s.H - 48 ? s.H - 48 : ny);
+        ny = ny < gora ? gora : (ny > s.H - 48 ? s.H - 48 : ny);
         if (nx != p->x || ny != p->y) {
             uszkodz_pow(p);
             p->x = nx;
@@ -54,7 +61,15 @@ static void ruch_wskaznika(void)
         }
         return;
     }
-    cel = s.chwyt >= 0 ? s.chwyt : pod_kursorem();
+    if (s.chwyt >= 0) {
+        cel = s.chwyt;
+    } else {
+        int ramka;
+        cel = pod_kursorem_r(&ramka);
+        strefa_najechanie(ramka >= STREFA_ZNACZEK ? cel : -1);
+        if (ramka != 0)
+            cel = -1; /* K1's frame of a zone: nothing goes to the zone */
+    }
     if (cel != s.pod && s.pod >= 0 && s.p[s.pod].uzyta)
         do_wskaznika(s.pod, K1_WSK_WYJSCIE, K1_PRZYCISK_BRAK);
     s.pod = cel;
@@ -68,14 +83,16 @@ static void przycisk(int nr, int wcisniety)
     if (nr == K1_PRZYCISK_LEWY)
         s.wcisniety = wcisniety;
     if (wcisniety) {
-        int cel = pod_kursorem();
+        int ramka, cel = pod_kursorem_r(&ramka);
         s.przyciski |= 1 << nr;
-        if (s.chwyt < 0)
+        if (s.chwyt < 0 && ramka == 0)
             s.chwyt = cel;
         if (cel >= 0 && s.p[cel].rodzaj == K1_POW_OKNO) {
             if (cel != s.fokus || s.p[cel].z != s.z_licznik)
                 aktywuj(cel);
         }
+        if (ramka != 0 && s.chwyt < 0 && nr == K1_PRZYCISK_LEWY)
+            strefa_wcisniecie(cel, ramka); /* a zone's frame: K1's buttons, moving the window */
         /* The shell closes its menus when the user clicks anywhere else. */
         if (sh >= 0 && (cel < 0 || s.p[cel].kl != sh))
             wyslij(sh, k1_komunikat_nowy(K1_KOM_WSKAZNIK, 0, s.x, s.y, K1_WSK_WCISNIECIE, nr, (int32_t)s.mody));

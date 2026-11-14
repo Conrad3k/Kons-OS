@@ -91,6 +91,7 @@ struct stan {
     int przyciski;        /* bit per K1_PRZYCISK_* held */
     int wcisniety, zmiana, mody;
     int pod, chwyt, ciagniete, fokus; /* surface indices or -1 */
+    int plakietka;        /* the zone window whose badge is open (0.10.0, strefy.c), or -1 */
     int32_t ciag_dx, ciag_dy;
     unsigned long ciag_klatki; /* frames when the drag started (log: cost of a drag) */
     double ciag_cpu;           /* our CPU time then, s */
@@ -146,6 +147,19 @@ int panele(const struct klient *k);            /* the client may have panels (th
 void odrzuc(int kl, const char *powod);        /* a message refused: logged (limited), the client warned */
 void na_wierzch(int i);
 void ustaw_fokus(int i);
+void minimalizuj(int i);
+void zamknij_okno(int i); /* asks its client to close it (K1_KOM_ZAMKNIJ) */
+
+/* strefy.c — the frame of a zone's window (0.10.0, ADR 0042) */
+enum { STREFA_RAMKA = 1, STREFA_ZNACZEK, STREFA_MINIMALIZUJ, STREFA_ZAMKNIJ }; /* where on the frame */
+int okno_strefy(const struct pow *p);
+struct prost strefa_obszar(const struct pow *p);              /* the mark or the open badge, with its shadow */
+void strefa_ramka(const struct pow *p, const struct prost *r);   /* into the scene inside r, before the window */
+void strefa_znaczek(const struct pow *p, const struct prost *r); /* into the scene inside r, after the window */
+int strefa_trafienie(const struct pow *p, int32_t x, int32_t y); /* STREFA_* or 0 */
+void strefa_najechanie(int i);
+void strefa_wcisniecie(int i, int co);
+int32_t strefa_znaczek_od(void);
 
 /* powierzchnie.c */
 void nowa_pow(int kl, const struct k1_komunikat *m, int fd); /* POWIERZCHNIA: checked, mapped, placed */
