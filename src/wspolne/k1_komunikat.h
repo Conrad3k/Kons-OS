@@ -19,6 +19,7 @@
 #include "k1_dokument.h"
 #include "k1_pendrive.h"
 #include "k1_siec.h"
+#include "k1_wifi.h"
 
 #define K1_KOMUNIKAT_WERSJA 1
 
@@ -290,6 +291,24 @@ enum k1_komunikat_typ {
                                      * K1_SIEC_CZAS_MIN..MAKS), c=nanoseconds 0..999999999, d=sources that agree
                                      * 2..K1_SIEC_ZRODLA_MAKS; answer: SIEC_WYNIK (b: K1_SIEC_BLAD_CZAS — out of bounds or
                                      * too often) */
+    /* Wi-Fi (0.9.1 step 1, ADR 0041; k1_wifi.h). nadzorca ↔ siec: the networks around */
+    K1_KOM_SIEC_WIFI_WYNIKI = 138, /* to siec: obiekt=the Wi-Fi card (1..K1_SIEC_KARTA_MAKS), a=records 0..K1_WIFI_REKORDY_MAKS,
+                                    * b=bytes 0..K1_WIFI_WYNIKI_MAKS; + 1 sealed memfd of b bytes (struct k1_wifi_rekord,
+                                    * each followed by its description from the air) */
+    K1_KOM_SIEC_WIFI_SIEC = 139,   /* from siec: network obiekt=0..K1_WIFI_LISTA_MAKS-1 of the next list: a=bars 1..4
+                                    * (k1_wifi_poziom of c), b=K1_WIFI_* security, c=dBm, d=MHz, e=name length 1..32 */
+    K1_KOM_SIEC_WIFI_NAZWA = 140,  /* from siec: obiekt=network*2+part (k1_wifi_nazwa_do_pol): part 0 a..e, part 1 a..c
+                                    * (d, e = 0) — the name to show (checked whole by the receiver: k1_wifi_nazwa_dobra) */
+    K1_KOM_SIEC_WIFI_LISTA = 141,  /* from siec, after its networks: obiekt=the card of WYNIKI, a=networks 0..LISTA_MAKS,
+                                    * b=records rejected 0..K1_WIFI_REKORDY_MAKS */
+    /* nadzorca → Ustawienia (fd 4): Wi-Fi in Ustawienia → Sieć */
+    K1_KOM_WIFI_STAN = 142,  /* obiekt=0, a=K1_WIFI_* state 0..K1_WIFI_STAN_MAKS, b=networks 0..LISTA_MAKS (WIFI_SIEC and
+                              * WIFI_NAZWA 0..b-1 follow; only when WLACZONE), c=1 looking for networks now, else 0 */
+    K1_KOM_WIFI_SIEC = 143,  /* as SIEC_WIFI_SIEC */
+    K1_KOM_WIFI_NAZWA = 144, /* as SIEC_WIFI_NAZWA */
+    /* Ustawienia → nadzorca (fd 4, 0.9.1: the channel goes both ways) */
+    K1_KOM_WIFI_WLACZ = 145,  /* obiekt=0, a=1 Wi-Fi on / 0 off (the radio: soft rfkill) */
+    K1_KOM_WIFI_SZUKAJ = 146, /* obiekt=0, all 0: look for networks now (Ustawienia shows the list) */
 };
 
 #define K1_ZEGAR_SKOK_MAKS (200LL * 366 * 86400) /* ZEGAR_PRZESUNIETY: seconds */

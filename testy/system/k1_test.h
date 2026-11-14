@@ -105,5 +105,8 @@ void t_gui_crash(void);
 void t_aplikacja_bez_restartu(void);
 void zablokowane(const char *opis, long nr, long a0, long a1, long a2, long a3, long a4);
 int proba(const char *profil);
+/* t_wifi.c (0.9.1): the test access points of scripts/test-wifi.sh */
+int tryb_wifi(void);
+int t_wifi_punkty_dostepu(void);
 
 #endif

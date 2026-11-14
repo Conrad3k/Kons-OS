@@ -321,6 +321,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         return;
     if (sekcja == S_MIEJSCE && nav < 0 && miejsce_klik(x, y))
         return;
+    if (sekcja == S_SIEC && nav < 0 && siec_klik(x, y))
+        return;
     if (nav >= 0) {
         if (nav != sekcja)
             haslo_zamknij();
@@ -329,6 +331,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
             haslo_info();
         if (sekcja == S_MIEJSCE)
             miejsce_info();
+        if (sekcja == S_SIEC)
+            siec_pokazana();
         if (sekcja == S_HASLO)
             haslo_loguj();
         k1_apl_odswiez(&apl);

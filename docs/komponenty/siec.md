@@ -1,10 +1,11 @@
-# Komponent: siec (adres od routera)
+# Komponent: siec (adres od routera, sieci Wi-Fi)
 
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE w QEMU (0.9.0 krok 6: karta e1000e kablem do sieci testowej — `scripts/test-siec.sh`; testy na hoście `test_siec`, fuzzing `fuzz_dhcp`); na X230 i IdeaPadzie z kablem do routera — test właściciela po wydaniu 0.9.0 |
 | **Pliki** | `src/siec/main.c` (usługa: kanał do nadzorcy, gniazdo pakietowe, log), `dhcp.{c,h}` (pakiety DHCP: budowa i sprawdzanie), `klient.{c,h}` (klient DHCP: stany i czasy); `src/nadzorca/siec.c` (karty, kabel, gniazdo pakietowe, ustawienie adresu); `src/wspolne/k1_siec.{c,h}` (sprawdzanie adresów, MAC), `k1_kom_siec.c` (komunikaty) |
-| **Decyzje** | ADR 0039 (T1: uprawnienia, T2: IPv4, T3: nic nie odpowiada, T6: sterowniki) |
+| **Decyzje** | ADR 0039 (T1: uprawnienia, T2: IPv4, T3: nic nie odpowiada, T6: sterowniki); ADR 0041 (Wi-Fi: pliki producentów, nl80211 u nadzorcy, opisy sieci w klatce) |
+| **Wi-Fi (0.9.1 krok 1)** | PRZETESTOWANE w QEMU z udawanymi kartami (`scripts/test-wifi.sh`; `test_wifi`, `fuzz_wifi`); prawdziwe karty (X230, IdeaPad) — test właściciela po wydaniu 0.9.1. Pliki: `src/siec/wifi.{c,h}` (opisy sieci z powietrza → lista), `lista.c` (wyniki od nadzorcy, lista do nadzorcy); `src/nadzorca/wifi.c` (karta, radio, szukanie, lista do Ustawień), `wifi_nl.c` (nl80211); `src/wspolne/k1_wifi.{c,h}` (nazwy, kreski, format wyników), `k1_kom_wifi.c` (komunikaty), `k1_nl.{c,h}` (generic netlink: nadzorca i program testowy) |
 
 ## Cel
 Gdy w komputerze jest karta przewodowa i włożony kabel do routera, K1 sam dostaje adres (DHCP) i trasę do internetu;
@@ -71,8 +72,8 @@ a gdy połączono — adres, maska i router (to, co nadzorca sam ustawił). Nazw
 
 | Typ | Kierunek | Pola |
 |---|---|---|
-| `SIEC_STAN` | nadzorca → gui, Ustawienia | a = `K1_SIEC_*` stan 0–3, b = kart na liście 0–8, c = połączono od (CLOCK_MONOTONIC, s; > 0 tylko „połączono”), d = zegar z internetu od (s; 0: jeszcze nie) |
-| `SIEC_KARTA` | nadzorca → Ustawienia | obiekt = pozycja 0–7, a = identyfikator (producent << 16 \| urządzenie; PCI albo USB), b = przewodowa / Wi-Fi / inna, c = `K1_SIEC_KF_*` (USB, sterownik, kabel, używana — kabel i używana tylko przewodowa ze sterownikiem) |
+| `SIEC_STAN` | nadzorca → gui, Ustawienia | a = `K1_SIEC_*` stan 0–5 (4, 5: Wi-Fi — od 0.9.1), b = kart na liście 0–8, c = połączono od (CLOCK_MONOTONIC, s; > 0 tylko „połączono”), d = zegar z internetu od (s; 0: jeszcze nie) |
+| `SIEC_KARTA` | nadzorca → Ustawienia | obiekt = pozycja 0–7, a = identyfikator (producent << 16 \| urządzenie; PCI albo USB), b = przewodowa / Wi-Fi / inna, c = `K1_SIEC_KF_*` (USB, sterownik, kabel, używana — kabel tylko przewodowa ze sterownikiem; używana: przewodowa z kablem albo, od 0.9.1, karta Wi-Fi ze sterownikiem) |
 | `SIEC_SZCZEGOLY` | nadzorca → Ustawienia | obiekt = pozycja, a = prędkość 0–800000 Mb/s (0: brak łącza), b = dupleks (0 nieznany, 1 pół, 2 pełny), c, d = MAC (`k1_siec_mac_dobry`) |
 | `SIEC_STEROWNIK` | nadzorca → Ustawienia | obiekt = pozycja, a…e = nazwa sterownika: 1–20 znaków `a-z 0-9 _ -`, reszta zera (`k1_siec_sterownik_dobry`) |
 | `SIEC_ADRESY` | nadzorca → Ustawienia | obiekt = pozycja (tylko „połączono”), a = adres, b = maska, c = router — `k1_siec_adres_dobry` |
@@ -107,10 +108,53 @@ które poda router (opcja DHCP 42, najwyżej 2), i stałe adresy dwóch firm na 
 | `SIEC_GNIAZDO` | nadzorca → siec | obiekt = karta, a = serwer, b = źródło, c = 0 + 1 fd (gniazdo UDP połączone z serwerem:123) albo `K1_SIEC_BLAD_*` bez fd |
 | `SIEC_ZEGAR` | siec → nadzorca | obiekt = karta, a, b = sekundy od 1970 (2026–2100), c = nanosekundy, d = zgodnych źródeł 2–6; odpowiedź `SIEC_WYNIK` |
 
+## Wi-Fi (0.9.1 krok 1, ADR 0041)
+Podział jak przy kablu: **nadzorca** robi to, co wymaga uprawnień (nl80211 — `CAP_NET_ADMIN`), **siec** czyta to, co
+przyszło z powietrza.
+1. Karta: nadzorca (`wifi.c`, przy każdym przeglądzie kart) bierze pierwszą kartę Wi-Fi (`class/net/*/phy80211`), która
+   łączy się z sieciami (nl80211 `GET_INTERFACE`: typ „stacja”) — jedna naraz. Log „wifi: karta Wi-Fi wlan0 (PCI
+   8086:0085)”. Radio: przełącznik rfkill jej `phy` — twardy (przełącznik w obudowie, tylko odczyt) i miękki (Ustawienia,
+   `WIFI_WLACZ`; zapis przez `/dev/rfkill`, bo sysfs jest w K1 tylko do odczytu). Radio włączone → karta włączona
+   (`RTM_NEWLINK`) i od razu szukanie.
+2. Szukanie: co minutę i na prośbę Ustawień (`WIFI_SZUKAJ`, najwyżej co 10 s) nl80211 `TRIGGER_SCAN` (aktywne: jedna pusta
+   nazwa — odpowiada każda sieć); koniec ogłasza jądro w grupie „scan” (`NEW_SCAN_RESULTS`/`SCAN_ABORTED`; bez ogłoszenia —
+   po 15 s). Wyniki (`GET_SCAN`, zrzut): dla każdego punktu dostępu nadzorca kopiuje liczby jądra (BSSID, częstotliwość,
+   sygnał, pole możliwości) i **opis z powietrza bez czytania** (elementy informacyjne, ≤ 2048 B) do rekordu
+   `struct k1_wifi_rekord`; najwyżej 64 rekordy, w zapieczętowanym memfd → `SIEC_WIFI_WYNIKI`.
+3. siec (`wifi.c`, czyste funkcje): rekord po rekordzie — długości sprawdzone (element dłuższy niż reszta, nazwa > 32 B,
+   zepsuty element RSN: wersja ≠ 1, liczba szyfrów poza długością, 0 albo > 32 szyfrów, ucięte pole) → rekord odrzucony
+   i policzony; częstotliwość 2400–7200 MHz, sygnał −120…0 dBm. Nazwa do pokazania (`k1_wifi_nazwa_czysta`): poprawny
+   UTF-8 bez znaków sterujących (C0, DEL, C1), znaków kierunku tekstu, niewidocznych i BOM — każdy zły bajt albo znak to
+   „?”; pusta nazwa albo same zera = sieć ukryta (nie pokazywana). Zabezpieczenie: RSN z AKM PSK i SAE → WPA2/WPA3,
+   tylko SAE → WPA3, PSK → WPA2, 802.1X → firmowa; bez RSN: bez bitu prywatności → otwarta, z nim (WEP, pierwsze WPA) →
+   stare; RSN bez bitu prywatności → inne. Jedna sieć na nazwę i zabezpieczenie (najsilniejszy punkt dostępu), najwyżej
+   16, najsilniejsze pierwsze; kreski 1–4 z dBm (`k1_wifi_poziom`: progi −55, −67, −75 — jedna tabela).
+4. Lista wraca do nadzorcy (`SIEC_WIFI_SIEC`, dwa `SIEC_WIFI_NAZWA` na sieć, na końcu `SIEC_WIFI_LISTA`); nadzorca bierze ją
+   tylko w całości (każda sieć ze wszystkimi częściami, każda nazwa `k1_wifi_nazwa_dobra`) i podaje Ustawieniom
+   (`WIFI_STAN`, `WIFI_SIEC`, `WIFI_NAZWA`). Log siec: „sieci Wi-Fi w pobliżu: 5 (punktów dostępu 6, ukryte 0, odrzucone
+   opisy 1)” — **bez nazw** (to sieci sąsiadów).
+5. Górny pasek: bez kabla, z kartą Wi-Fi stan `SIEC_STAN` to `K1_SIEC_WIFI_WYLACZONE` (4) albo `K1_SIEC_WIFI_NIE_POLACZONO`
+   (5) — ikona „Wachlarz” (gui.md). Kabel (łączę, połączono) ma pierwszeństwo.
+Logowanie do sieci z hasłem (WPA2), zapamiętane sieci — krok 2 planu 0.9.1.
+
+| Typ | Kierunek | Pola |
+|---|---|---|
+| `SIEC_WIFI_WYNIKI` | nadzorca → siec | obiekt = karta Wi-Fi, a = rekordów 0–64, b = bajtów (0 bez rekordów); + 1 zapieczętowany memfd b bajtów |
+| `SIEC_WIFI_SIEC` | siec → nadzorca | obiekt = sieć 0–15, a = kreski 1–4 (zgodne z c), b = zabezpieczenie `K1_WIFI_*` 1–7, c = dBm −120…0, d = MHz 2400–7200, e = długość nazwy 1–32 |
+| `SIEC_WIFI_NAZWA` | siec → nadzorca | obiekt = sieć·2 + część; część 0: bajty 0–19 w a…e, część 1: bajty 20–31 w a…c (d, e = 0); całość sprawdza odbiorca (`k1_wifi_nazwa_dobra`) |
+| `SIEC_WIFI_LISTA` | siec → nadzorca | obiekt = karta z `SIEC_WIFI_WYNIKI`, a = sieci 0–16, b = odrzuconych rekordów 0–64 — lista gotowa |
+| `WIFI_STAN` | nadzorca → Ustawienia | a = `K1_WIFI_*` (0 brak karty, 1 wyłączone przełącznikiem w komputerze, 2 wyłączone w Ustawieniach, 3 włączone), b = sieci 0–16 (tylko gdy włączone), c = 1 szukam teraz |
+| `WIFI_SIEC` | nadzorca → Ustawienia | jak `SIEC_WIFI_SIEC` |
+| `WIFI_NAZWA` | nadzorca → Ustawienia | jak `SIEC_WIFI_NAZWA` |
+| `WIFI_WLACZ` | Ustawienia → nadzorca | a = 1 włącz / 0 wyłącz radio (miękki rfkill); nadzorca sprawdza UID Ustawień |
+| `WIFI_SZUKAJ` | Ustawienia → nadzorca | wszystkie pola 0 — szukaj sieci teraz (Ustawienia pokazują listę) |
+
 ## Karty a pliki od producenta
 Karty przewodowe z listy (ADR 0039, T6) działają bez plików od producenta. Realtek r8169 (np. IdeaPad 110-15ISK) prosi
-o plik z łatką (`rtl_nic/…`): K1 go nie ma (`EXTRA_FIRMWARE=""`, bez `/lib/firmware`), sterownik pracuje bez niego
-(`firmware_request_nowarn` — brak pliku to nie błąd). Czy połączenie na IdeaPadzie jest stabilne — test właściciela.
+o plik z łatką (`rtl_nic/…`): K1 go nie ma (w jądrze są tylko pliki kart Wi-Fi z `jadro/oprogramowanie-kart.txt`, bez
+`/lib/firmware`), sterownik pracuje bez niego (`firmware_request_nowarn` — brak pliku to nie błąd). Czy połączenie na
+IdeaPadzie jest stabilne — test właściciela. Karty Wi-Fi bez pliku nie działają wcale — ich pliki są wbudowane w jądro
+(ADR 0041, T1).
 
 ## Testy
 | Test | Rodzaj |
@@ -119,4 +163,7 @@ o plik z łatką (`rtl_nic/…`): K1 go nie ma (`EXTRA_FIRMWARE=""`, bez `/lib/f
 | host `test_siec`: adresy i maski (dobre, każdy rodzaj złego), MAC z sysfs, komunikaty `SIEC_*` w każdą stronę (złe pola, zły kierunek), pakiety wysyłane (nagłówki i sumy liczone niezależnie), odbierane (OFFER, ACK, NAK; każdy skrócony pakiet; obca transakcja i karta; zła suma IP i UDP; fragment; złe porty; opcje za długie, bez końca, bez serwera; zły rodzaj; adres, maska, router nie do przyjęcia; dzierżawa za krótka, „na zawsze”, brak), klient w każdym stanie (powtórki, T1, T2, koniec dzierżawy, NAK, inny serwer, inny adres) | jednostkowy + negatywny |
 | `fuzz_dhcp` (korpus `testy/host/korpus-dhcp`): dowolne pakiety po kolei do klienta — pakiet albo odrzucony, albo z adresem do przyjęcia; T1 ≤ T2 ≤ koniec | fuzzing |
 | `scripts/test-siec.sh` (QEMU): karta włączona, kabel, DISCOVER; bez adresu nic nie odpowiada; 5 złych odpowiedzi DHCP odrzuconych; adres od routera; z adresem: ARP tylko o swój adres, RST na każdy SYN, żadnego ICMP; trasa domyślna; odnowienie; kabel wyjęty i włożony; brak adresu w logu; ikona na górnym pasku w stanach „łączę”, „połączono”, „kabel odłączony” i Ustawienia → Sieć (kafelek, szczegóły) w jasnym i ciemnym motywie — zrzuty `siec-*.png` | z zewnątrz + negatywny |
-| w systemie `t_klatki` (klatka siec), `t_proby` (każda klatka: `socket(AF_INET/AF_PACKET/AF_NETLINK)`, `ioctl(SIOCSIFADDR)`, `setsockopt(SO_DETACH_FILTER)` zablokowane) | funkcjonalny + negatywny |
+| host `test_wifi` (0.9.1): nazwy (sterujące, C1, kierunek tekstu, zły i ucięty UTF-8, 32 B, ukryte), kreski, każde zabezpieczenie, każdy zepsuty element i RSN, cały wynik (jedna sieć na nazwę, najsilniejsza, 16 najsilniejszych, odrzucone, ukryte, zły format nadzorcy), komunikaty Wi-Fi (każde złe pole i kierunek) | jednostkowy + negatywny |
+| `fuzz_wifi`: dowolny opis i dowolny wynik — odrzucony albo lista, w której każda sieć przechodzi sprawdzenie komunikatu i nazwy | fuzzing |
+| `scripts/test-wifi.sh` (QEMU, udawane karty `mac80211_hwsim.radios=7`, punkty dostępu testowe z `t_wifi.c`): baza przepisów radiowych sprawdzona podpisem; karta i radio; 5 sieci (4 z hasłem, 1 otwarta), zepsuty opis odrzucony, siec żyje; nazwy ze znakiem nowej linii, sekwencją sterującą, złym UTF-8 i znakiem kierunku pokazane z „?”; ikona; przełącznik wyłącza i włącza radio; zakładka kart; w logu nie ma nazw sieci — zrzuty `wifi-*.png` | z zewnątrz + negatywny |
+| w systemie `t_klatki` (klatka siec), `t_proby` (każda klatka: `socket(AF_INET/AF_PACKET/AF_NETLINK)`, `ioctl(SIOCSIFADDR)`, `setsockopt(SO_DETACH_FILTER)` zablokowane; 0.9.1: `socket(AF_NETLINK, NETLINK_GENERIC)` — nl80211 — też) | funkcjonalny + negatywny |

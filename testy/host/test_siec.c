@@ -214,7 +214,9 @@ static void t_stan(void)
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_BRAK_KARTY, 0, 0, 0, 0), OD));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_POLACZONO, 2, 120, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_LACZENIE, 2, 120, 0, 0), OD)); /* "since" only connected */
-    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, 4, 2, 0, 0, 0), OD));
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_WIFI_NIE_POLACZONO, 2, 0, 0, 0), OD)); /* 0.9.1 */
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_WIFI_WYLACZONE, 2, 5, 0, 0), OD));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, 6, 2, 0, 0, 0), OD));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_BEZ_KABLA, K1_SIEC_LISTA_MAKS + 1, 0, 0, 0), OD));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 1, K1_SIEC_BEZ_KABLA, 1, 0, 0, 0), OD));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_STAN, 0, K1_SIEC_BEZ_KABLA, 1, 0, -1, 0), OD));
@@ -224,6 +226,10 @@ static void t_stan(void)
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0x168c0042, K1_SIEC_WIFI, KA, 0, 0), OD)); /* Wi-Fi with a cable */
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0x10ec8136, P, KA, 0, 0), OD));         /* no driver */
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0x10ec8136, P, ST | AK, 0, 0), OD));    /* active, no cable */
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, (int32_t)0x80860085, K1_SIEC_WIFI, ST | AK, 0, 0), OD)); /* 0.9.1 */
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0, K1_SIEC_WIFI, ST | AK, 0, 0), OD)); /* virtual */
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, (int32_t)0x80860085, K1_SIEC_WIFI, AK, 0, 0), OD)); /* no driver */
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, (int32_t)0x80860085, K1_SIEC_INNA, ST | AK, 0, 0), OD));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0x10ec8136, 4, 0, 0, 0), OD));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0x10ec8136, P, 16, 0, 0), OD));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_SIEC_KARTA, 0, 0x10ec8136, P, ST, 1, 0), OD));

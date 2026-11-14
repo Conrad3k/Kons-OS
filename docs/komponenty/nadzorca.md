@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M3, M4) — testy w systemie (`scripts/test-m1.sh`, scenariusz `testy-w-systemie`), `scripts/test-m4.sh` (uruchamianie aplikacji, wyłączanie) |
-| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (usługi z tabel `K1_SYSTEM` i `K1_APLIKACJE`: uruchamianie w klatkach, kanały, restarty, prośby pulpitu), `kanaly.h` (nazwy kanałów `KANAL_*`, 0.9.0), `logi.c` (logi usług), `pendrive.c` (prośby Plików, pendrive i czytnik, 0.8.0), `dekoder.c` (dekoder obrazów dla Plików, 0.8.0, i Podglądu, 0.8.2), `powieksz.c` (K1-DANE do końca pendrive'a: pusta przy starcie, 0.8.0; z danymi na prośbę z Ustawień, 0.8.1), `profile.c` (klatki: `KLATKA_<NAZWA>` dla każdej usługi, aplikacje — jedna dla wszystkich), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `siec.c` (karty sieciowe, kabel, gniazdo pakietowe dla usługi siec, ustawianie adresu — 0.9.0, ADR 0039), `siec_jadro.c` (zapytania rtnetlink), `siec_stan.c` (stan sieci i lista kart dla pulpitu i Ustawień), `siec_zegar.c` (zegar z internetu), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
+| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (usługi z tabel `K1_SYSTEM` i `K1_APLIKACJE`: uruchamianie w klatkach, kanały, restarty, prośby pulpitu), `kanaly.h` (nazwy kanałów `KANAL_*`, 0.9.0), `logi.c` (logi usług), `pendrive.c` (prośby Plików, pendrive i czytnik, 0.8.0), `dekoder.c` (dekoder obrazów dla Plików, 0.8.0, i Podglądu, 0.8.2), `powieksz.c` (K1-DANE do końca pendrive'a: pusta przy starcie, 0.8.0; z danymi na prośbę z Ustawień, 0.8.1), `profile.c` (klatki: `KLATKA_<NAZWA>` dla każdej usługi, aplikacje — jedna dla wszystkich), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `siec.c` (karty sieciowe, kabel, gniazdo pakietowe dla usługi siec, ustawianie adresu — 0.9.0, ADR 0039), `siec_jadro.c` (zapytania rtnetlink), `siec_stan.c` (stan sieci i lista kart dla pulpitu i Ustawień), `siec_zegar.c` (zegar z internetu), `wifi.c` (karta Wi-Fi, przełącznik radia, szukanie sieci, lista dla Ustawień — 0.9.1, ADR 0041), `wifi_nl.c` (nl80211), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
 | **Decyzje** | ADR 0006 (wersja M2), ADR 0007 (M3, klatki), ADR 0008 (pulpit i aplikacje), ADR 0013 (dyski i USB), ADR 0019 (moduły, zdarzenia jądra), ADR 0022 (A/B, Secure Boot), ADR 0030–0033 (pliki, pendrive, dekoder, K1-DANE do końca pendrive'a), ADR 0036 (potwierdzony start), ADR 0037 (Podgląd), ADR 0039 (sieć) |
 
 ## Etapy startu (0.6.0)
@@ -46,7 +46,10 @@ zapisującego; nadawca każdego sprawdzany `SO_PASSCRED`. Od 0.9.0 nadzorca jest
 który dotyka sieci: włącza karty, otwiera gniazdo pakietowe dla usługi siec, ustawia i zabiera adres (rtnetlink) —
 `docs/komponenty/siec.md`; mówi pulpitowi i Ustawieniom, jak wygląda sieć (`siec_stan.c`: ikona, lista kart ze
 szczegółami — tylko liczby), otwiera gniazda UDP do serwerów czasu i ustawia zegar systemowy i sprzętowy
-(`siec_zegar.c`, krok 8; CAP_SYS_TIME, `/dev/rtc0`), a skarbcowi mówi, o ile zegar się przesunął. Lista usług i profili jest stała,
+(`siec_zegar.c`, krok 8; CAP_SYS_TIME, `/dev/rtc0`), a skarbcowi mówi, o ile zegar się przesunął. Od 0.9.1 (ADR 0041) także Wi-Fi:
+wybiera kartę, przełącza radio (rfkill przez `/dev/rfkill`), szuka sieci przez nl80211 (`CAP_NET_ADMIN`) i oddaje
+usłudze siec opisy z powietrza bez czytania (`SIEC_WIFI_WYNIKI`, memfd); listę od siec sprawdza w całości i podaje
+Ustawieniom, a od nich przyjmuje `WIFI_WLACZ` i `WIFI_SZUKAJ` (kanał Ustawień działa od 0.9.1 w obie strony). Lista usług i profili jest stała,
 w kodzie (`K1_SYSTEM`, `K1_APLIKACJE`): od 0.9.0 jeden wiersz opisuje usługę całą — kiedy startuje (`PRZY_STARCIE`
 albo `NA_PROSBE`), rolę przy ekranie i kanały od nadzorcy po kolei; z niego wynikają `uslugi[]`, nazwa i UID klatki,
 Zasoby i spis obrazu. Klatka (wywołania i limity) — `KLATKA_<NAZWA>` w `profile.c`; bez niej nadzorca się nie
@@ -76,7 +79,7 @@ Tabela poniżej to stan z `src/nadzorca/profile.c` (klatki) i kolumny kanałów 
 | `instalator` (na prośbę okna Instalatora) | 105 | 3: kanał sterujący, 4: źródło (K1-EFI pendrive'a), 5: cel (dysk albo jego K1-EFI) | `pread64`, `pwrite64`, `fdatasync`, `getrandom` | 16 MiB | 0 |
 | `czytnik` (na prośbę Plików) | 106 | 3: kanał do Plików, 4: pendrive (tylko odczyt) | `pread64`, `memfd_create` | 32 MiB | 17 MiB |
 | `dekoder` (na prośbę Plików albo Podglądu) | 107 | 3: kanał do klienta | `memfd_create` | 1216 MiB (mniej przy < 8 GB RAM) | 17 MiB; `RLIMIT_AS` 1152 MiB, `RLIMIT_CPU` 20 s |
-| `siec` (0.9.0) | 108 | 3: kanał do nadzorcy; gniazdo pakietowe na karcie z kablem (w komunikacie `SIEC_KABEL`); do 6 gniazd UDP do serwerów czasu (`SIEC_GNIAZDO`) | `getrandom` | 8 MiB, 16 plików | 0 |
+| `siec` (0.9.0) | 108 | 3: kanał do nadzorcy; gniazdo pakietowe na karcie z kablem (w komunikacie `SIEC_KABEL`); do 6 gniazd UDP do serwerów czasu (`SIEC_GNIAZDO`); memfd z wynikami szukania sieci Wi-Fi (`SIEC_WIFI_WYNIKI`, 0.9.1) | `getrandom` | 8 MiB, 16 plików | 0 |
 
 Landlock (ABI ≥ 6, inaczej usługa nie startuje): jedyna reguła to własny program (uruchomienie i odczyt — tylko
 do `execve` przy starcie), poza tym żadnej ścieżki; zablokowane też TCP oraz sygnały i abstrakcyjne gniazda UNIX

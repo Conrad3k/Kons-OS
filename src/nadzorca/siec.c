@@ -130,15 +130,16 @@ static long liczba16(int kat, const char *p)
     return koniec != v && x >= 0 && x <= 0xffff ? x : -1;
 }
 
-/* Which device the card is: PCI vendor:device (and its name in sysfs), or USB idVendor:idProduct of an adapter. */
-static void identyfikuj(int kat, const char *nazwa, struct karta *k)
+/* Which device the card is: PCI vendor:device (and its name in sysfs), or USB idVendor:idProduct of an adapter; *id 0
+ * when neither (a virtual card). Also for Wi-Fi cards (wifi.c). */
+void siec_identyfikuj(int kat, const char *nazwa, uint32_t *id, int *usb, char *slot, size_t n_slot)
 {
     char p[96], cel[160];
     long a, b;
     ssize_t n;
-    k->id = 0;
-    k->usb = 0;
-    k->slot[0] = '\0';
+    *id = 0;
+    *usb = 0;
+    slot[0] = '\0';
     snprintf(p, sizeof p, "%s/device/vendor", nazwa);
     if ((a = liczba16(kat, p)) >= 0) {
         snprintf(p, sizeof p, "%s/device/device", nazwa);
@@ -148,17 +149,17 @@ static void identyfikuj(int kat, const char *nazwa, struct karta *k)
             const char *s;
             cel[n] = '\0';
             s = strrchr(cel, '/');
-            snprintf(k->slot, sizeof k->slot, "%s", s != NULL ? s + 1 : cel);
+            snprintf(slot, n_slot, "%s", s != NULL ? s + 1 : cel);
         }
     } else {
         snprintf(p, sizeof p, "%s/device/../idVendor", nazwa); /* device: the USB interface; its parent: the device */
         a = liczba16(kat, p);
         snprintf(p, sizeof p, "%s/device/../idProduct", nazwa);
         b = liczba16(kat, p);
-        k->usb = a >= 0;
+        *usb = a >= 0;
     }
     if (a >= 0 && b >= 0)
-        k->id = (uint32_t)a << 16 | (uint32_t)b;
+        *id = (uint32_t)a << 16 | (uint32_t)b;
 }
 
 /* The driver of a card: the name of the link device/driver, or "" (the log shows "?"). */
@@ -203,7 +204,7 @@ static void lacze(int kat, const char *nazwa, struct karta *k)
                                                  : K1_SIEC_DUPLEKS_NIEZNANY;
 }
 
-/* One entry of class/net: a wired card (Ethernet, not Wi-Fi — later, not loopback) → *k; 0, or -1 to skip it. */
+/* One entry of class/net: a wired card (Ethernet, not Wi-Fi — wifi.c, not loopback) → *k; 0, or -1 to skip it. */
 static int czytaj_karte(int kat, const char *nazwa, struct karta *k)
 {
     char p[64], v[32];
@@ -230,7 +231,7 @@ static int czytaj_karte(int kat, const char *nazwa, struct karta *k)
     snprintf(k->nazwa, sizeof k->nazwa, "%s", nazwa);
     snprintf(p, sizeof p, "%s/carrier", nazwa); /* readable only when the card is on (EINVAL when off) */
     k->kabel = k1_czytaj_plik(kat, p, v, sizeof v) > 0 && strcmp(v, "1\n") == 0;
-    identyfikuj(kat, nazwa, k);
+    siec_identyfikuj(kat, nazwa, &k->id, &k->usb, k->slot, sizeof k->slot);
     lacze(kat, nazwa, k);
     sterownik(kat, nazwa, k->sterownik, sizeof k->sterownik);
     return 0;
@@ -294,12 +295,17 @@ int siec_przewodowe(struct siec_karta *t, int maks)
 int siec_stan(double *od)
 {
     int i, kabel = 0;
+    int wifi = wifi_stan();
     *od = aktywna != 0 && z_adresem ? polaczono_od : 0;
     if (*od > 0)
         return K1_SIEC_POLACZONO;
     for (i = 0; i < n_kart; i++)
         kabel |= karty[i].kabel;
-    return kabel ? K1_SIEC_LACZENIE : n_kart > 0 ? K1_SIEC_BEZ_KABLA : K1_SIEC_BRAK_KARTY;
+    if (kabel)
+        return K1_SIEC_LACZENIE;
+    if (wifi != K1_WIFI_BRAK) /* 0.9.1: without a cable the icon shows Wi-Fi */
+        return wifi == K1_WIFI_WLACZONE ? K1_SIEC_WIFI_NIE_POLACZONO : K1_SIEC_WIFI_WYLACZONE;
+    return n_kart > 0 ? K1_SIEC_BEZ_KABLA : K1_SIEC_BRAK_KARTY;
 }
 
 static void sprawdz_karty(void)
@@ -329,11 +335,13 @@ static void sprawdz_karty(void)
 
 void siec_sprawdz(double t)
 {
+    wifi_czas(t);
     if (!zmiana && t < nastepne)
         return;
     zmiana = 0;
     nastepne = t + SPRAWDZ_CO;
     sprawdz_karty();
+    wifi_przejrzyj(); /* 0.9.1: the Wi-Fi card (wifi.c) */
     siec_stan_karty(); /* after the card siec has may have changed */
 }
 
@@ -412,6 +420,11 @@ void obsluz_siec(void)
             prosba_czasu(&k);
             continue;
         }
+        if (w == K1_ODB_JEST && (k.typ == K1_KOM_SIEC_WIFI_SIEC || k.typ == K1_KOM_SIEC_WIFI_NAZWA ||
+                                 k.typ == K1_KOM_SIEC_WIFI_LISTA)) {
+            wifi_od_sieci(&k); /* 0.9.1: the list of networks (wifi.c) */
+            continue;
+        }
         if (w != K1_ODB_JEST || (k.typ != K1_KOM_SIEC_ADRES && k.typ != K1_KOM_SIEC_ZWOLNIJ)) {
             k1_log(TAG, "sieć: odrzucono prośbę usługi sieci");
             continue;
@@ -448,6 +461,6 @@ void obsluz_rt(void)
             return;
         }
         if (dl == sizeof od && od.nl_family == AF_NETLINK && od.nl_pid == 0)
-            zmiana = 1;
+            zmiana = 1; /* also a Wi-Fi card that came or went, and its radio on or off */
     }
 }

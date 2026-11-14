@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "gui.h"
+#include "k1_wachlarz.h"
 #include "k1_czas.h"
 #include "k1_log.h"
 #include "k1_odbior.h"
@@ -138,11 +139,12 @@ static int32_t rysuj_baterie(struct k1_obraz *o, uint32_t krem)
 }
 
 /* The network icon (D1: sketch C, the plug), 16 px at x: connected — the plug with its cable; connecting — dimmed with
- * a terracotta dot; no cable — the plug alone, dimmed, with a small ×; no card — faint and crossed out. */
+ * a terracotta dot; no cable — the plug alone, dimmed, with a small ×; no card — faint and crossed out. Without a cable
+ * and with a Wi-Fi card (0.9.1, D1: sketch B): the fan — off: faint and crossed out; not connected: faint with a ×. */
 static void rysuj_siec(struct k1_obraz *o, float x, uint32_t krem)
 {
     static const char *const stany[] = { "brak obsługiwanej karty", "kabel odłączony", "łączę (czekam na adres od routera)",
-                                         "połączono" };
+                                         "połączono", "Wi-Fi wyłączone", "Wi-Fi nie połączono" };
     const float y = 8;
     const uint32_t slaby = k1_kolor(K1_KREM, 110), tlo = k1_kolor(K1_NOC, 255);
     switch (siec) {
@@ -156,6 +158,16 @@ static void rysuj_siec(struct k1_obraz *o, float x, uint32_t krem)
         break;
     case K1_SIEC_BEZ_KABLA:
         k1_ikona(o, K1_IK_SIEC_BEZ_KABLA, x, y, 16, slaby);
+        k1_kolo(o, x + 13, y + 13, 4.2f, tlo);
+        k1_kreska(o, x + 11, y + 11, x + 15, y + 15, 1.3f, krem);
+        k1_kreska(o, x + 15, y + 11, x + 11, y + 15, 1.3f, krem);
+        break;
+    case K1_SIEC_WIFI_WYLACZONE: /* 0.9.1 (D1: sketch B "Wachlarz"): faint and crossed out */
+        k1_wachlarz(o, x, y, 16, 0, K1_KREM, 46, 0);
+        k1_kreska(o, x + 2, y + 2, x + 14, y + 14, 1.4f, k1_kolor(K1_KREM, 170));
+        break;
+    case K1_SIEC_WIFI_NIE_POLACZONO: /* faint, with a small × */
+        k1_wachlarz(o, x, y, 16, 0, K1_KREM, 90, 0);
         k1_kolo(o, x + 13, y + 13, 4.2f, tlo);
         k1_kreska(o, x + 11, y + 11, x + 15, y + 15, 1.3f, krem);
         k1_kreska(o, x + 15, y + 11, x + 11, y + 15, 1.3f, krem);

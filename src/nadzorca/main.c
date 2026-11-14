@@ -152,7 +152,8 @@ int main(void)
             { &inst_kanal, obsluz_instalacje }, { &inst_ster, obsluz_zapis },
             { &uevent_fd, obsluz_uevent },    { &pen_kanal, obsluz_pendrive },
             { &podglad_kanal, obsluz_podglad }, { &siec_kanal, obsluz_siec },
-            { &siec_rt, obsluz_rt },
+            { &siec_rt, obsluz_rt },          { &wifi_nl, obsluz_wifi_nl },
+            { &ustaw_kanal, obsluz_ustawienia }, /* 0.9.1: Wi-Fi on/off, a look for networks */
         };
 #define N_KANALOW (sizeof kanaly / sizeof kanaly[0])
         struct pollfd pfd[1 + N_KANALOW + N_USLUG + 1];

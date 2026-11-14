@@ -5,7 +5,7 @@ Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wers
 
 ## [0.9.0] — 2026-11-13
 
-**Sieć: kabel** (`docs/archiwum/PLAN-0.9.0.txt`, kroki 1–9; ADR 0038, 0039) — pierwsza wersja tematu 0.9 Sieć. K1 łączy
+**Sieć: kabel** (plan 0.9.0, kroki 1–9 — w historii git; ADR 0038, 0039) — pierwsza wersja tematu 0.9 Sieć. K1 łączy
 się z routerem kablem, pokazuje stan połączenia i sam ustawia zegar z internetu. Żadna aplikacja nie dostaje jeszcze
 internetu (przyjdzie z przeglądarką w strefie, 0.10). Wi-Fi — w 0.9.1 (`docs/PLAN-0.9.1.txt`).
 

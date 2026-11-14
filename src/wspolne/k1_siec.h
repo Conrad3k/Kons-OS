@@ -39,8 +39,11 @@ enum k1_siec_stan {
     K1_SIEC_BEZ_KABLA = 1,  /* a wired card, no cable */
     K1_SIEC_LACZENIE = 2,   /* a cable is in, the router has not given an address (yet) */
     K1_SIEC_POLACZONO = 3,  /* an address from the router is set */
+    /* 0.9.1 (ADR 0041): no cable, a Wi-Fi card — the icon shows Wi-Fi (k1_wifi.h) */
+    K1_SIEC_WIFI_WYLACZONE = 4,      /* its radio is off (in Ustawienia or by the switch in the computer) */
+    K1_SIEC_WIFI_NIE_POLACZONO = 5,  /* on, not connected (connecting: 0.9.1 step 2) */
 };
-#define K1_SIEC_STAN_MAKS 3
+#define K1_SIEC_STAN_MAKS 5
 /* The network cards of the computer (K1_KOM_SIEC_KARTA): wired ones nadzorca uses, and every PCI network device —
  * also those K1 has no driver for (Wi-Fi: a later version), so that the person can tell us its identifier. */
 #define K1_SIEC_LISTA_MAKS 8
@@ -48,7 +51,7 @@ enum { K1_SIEC_PRZEWODOWA = 1, K1_SIEC_WIFI = 2, K1_SIEC_INNA = 3 }; /* PCI clas
 #define K1_SIEC_KF_USB 1        /* on USB (an adapter): the identifier is idVendor:idProduct, else PCI vendor:device */
 #define K1_SIEC_KF_STEROWNIK 2  /* the kernel has a driver for it */
 #define K1_SIEC_KF_KABEL 4      /* a cable is in (wired with a driver only) */
-#define K1_SIEC_KF_AKTYWNA 8    /* the card siec uses (wired with a driver and a cable only) */
+#define K1_SIEC_KF_AKTYWNA 8    /* the card K1 uses: wired with a driver and a cable, or the Wi-Fi card (0.9.1) */
 #define K1_SIEC_KF_WSZYSTKIE 15
 /* Details of a wired card with a driver (K1_KOM_SIEC_SZCZEGOLY, SIEC_STEROWNIK, SIEC_ADRESY — Ustawienia → Sieć). */
 #define K1_SIEC_PREDKOSC_MAKS 800000 /* Mb/s: anything above is a driver's error */

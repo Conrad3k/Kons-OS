@@ -67,6 +67,8 @@ void siec_stan_karty(void)
     memcpy(stara, lista, sizeof lista);
     memset(lista, 0, sizeof lista); /* compared byte by byte: nothing left from before */
     n_listy = siec_przewodowe(lista, K1_SIEC_LISTA_MAKS);
+    if (n_listy < K1_SIEC_LISTA_MAKS)
+        n_listy += wifi_karty(&lista[n_listy]); /* 0.9.1: the Wi-Fi card K1 uses */
     while (d != NULL && n_listy < K1_SIEC_LISTA_MAKS && (e = readdir(d)) != NULL) {
         if (e->d_name[0] == '.' || na_liscie(e->d_name, n_listy))
             continue;
@@ -91,6 +93,7 @@ void siec_stan_nowy_kanal_ustawien(void)
 {
     ust_wie = 0;
     lista_nowa = 1;
+    wifi_nowy_kanal_ustawien();
 }
 
 static int sekundy(double t)
@@ -147,7 +150,11 @@ void siec_stan_wyslij(void)
         return;
     if (lista_nowa)
         ust_wie = 0; /* the list follows SIEC_STAN (its b) */
-    if (!wyslij_stan(ustaw_kanal, &k, &ust_ma, &ust_wie) || !lista_nowa)
+    if (!wyslij_stan(ustaw_kanal, &k, &ust_ma, &ust_wie))
+        return;
+    if (wifi_wyslij() != 0) /* 0.9.1: Wi-Fi in Ustawienia (wifi.c); the rest on the next pass */
+        return;
+    if (!lista_nowa)
         return;
     for (i = 0; i < n_listy; i++) {
         if (wyslij_karte(i) != 0) {

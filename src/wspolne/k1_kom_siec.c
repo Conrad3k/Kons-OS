@@ -50,9 +50,9 @@ int k1_kom_sprawdz_siec(const struct k1_komunikat *k, enum k1_kanal_kierunek kie
     case K1_KOM_SIEC_KARTA:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt < K1_SIEC_LISTA_MAKS &&
                w(k->b, K1_SIEC_PRZEWODOWA, K1_SIEC_INNA) && w(k->c, 0, K1_SIEC_KF_WSZYSTKIE) &&
-               ((k->c & (K1_SIEC_KF_KABEL | K1_SIEC_KF_AKTYWNA)) == 0 ||
-                (k->b == K1_SIEC_PRZEWODOWA && (k->c & K1_SIEC_KF_STEROWNIK))) &&
-               (!(k->c & K1_SIEC_KF_AKTYWNA) || (k->c & K1_SIEC_KF_KABEL)) && zera(k, 3);
+               (!(k->c & K1_SIEC_KF_KABEL) || (k->b == K1_SIEC_PRZEWODOWA && (k->c & K1_SIEC_KF_STEROWNIK))) &&
+               (!(k->c & K1_SIEC_KF_AKTYWNA) || (k->b == K1_SIEC_PRZEWODOWA && (k->c & K1_SIEC_KF_KABEL)) ||
+                (k->b == K1_SIEC_WIFI && (k->c & K1_SIEC_KF_STEROWNIK))) && zera(k, 3);
     case K1_KOM_SIEC_SZCZEGOLY:
         k1_siec_mac_z_pol(k->c, k->d, mac);
         return kier == K1_KIER_OD_NADZORCY && k->obiekt < K1_SIEC_LISTA_MAKS && w(k->a, 0, K1_SIEC_PREDKOSC_MAKS) &&

@@ -9,6 +9,7 @@
 #include "klient.h"
 
 #define TAG "K1-SIEC"
+#define NADZORCA 3
 
 extern struct k1_dhcp_klient klient;
 /* A request to nadzorca about the card siec has (obiekt = the card); a broken channel ends the service. */
@@ -22,5 +23,8 @@ int zegar_poll(struct pollfd *p, int maks);               /* the sockets to watc
 void zegar_odbierz(const struct pollfd *p, int n);        /* after poll: the answers */
 void zegar_odrzucony(void); /* SIEC_WYNIK of SIEC_ZEGAR with an error: try again later */
 double zegar_czas(double t); /* timers; the next time it has something to do (CLOCK_MONOTONIC), 0: never */
+
+/* lista.c (0.9.1): the Wi-Fi networks around — SIEC_WIFI_WYNIKI with its memfd (closed here) */
+void wifi_wyniki(const struct k1_komunikat *k, int fd);
 
 #endif

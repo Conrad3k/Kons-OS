@@ -84,6 +84,20 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
   Jądro: bzImage 5,0 → 6,3 MiB, `k1.efi` 7,1 → 8,4 MiB. ICMP i ARP ograniczają sysctl w init (`init.md`).
   Brak VT, IPv6, I2C-HID, `i915`.
 
+### Wi-Fi (0.9.1, ADR 0041)
+`WIRELESS`, `CFG80211` (bez `CFG80211_WEXT` i CRDA), `MAC80211` z minstrelem (bez mesh), `RFKILL` (bez `RFKILL_INPUT`),
+sterowniki kart PCIe: Intel iwlwifi (DVM, MVM), Qualcomm Atheros ath9k (z `ATH9K_PCOEM`) i ath10k, Realtek rtlwifi
+(8723BE, 8821AE), rtw88 (8822CE, 8822BE, 8821CE, 8723DE), rtw89 (8852BE), MediaTek MT7921E; `MAC80211_HWSIM` do testów
+(`mac80211_hwsim.radios=0` w linii poleceń wydania). **Pliki od producentów** kart są wbudowane (`EXTRA_FIRMWARE`, tabela
+`jadro/oprogramowanie-kart.txt`, 32 pliki z linux-firmware 20261019, 27 MB) — `scripts/zbuduj-jadro.sh` dokłada
+`CONFIG_EXTRA_FIRMWARE` i `CONFIG_EXTRA_FIRMWARE_DIR` do fragmentu (`build/jadro-fragment.config`), więc sprawdzenie
+konfiguracji obejmuje i je. **Baza przepisów radiowych** (`regulatory.db` z wireless-regdb 2026.09.03) wbudowana
+i sprawdzana podpisem (`CFG80211_REQUIRE_SIGNED_REGDB`, `CFG80211_USE_KERNEL_REGDB_KEYS` — „default y” za pytaniem
+ukrytym bez `CFG80211_CERTIFICATION_ONUS`). **Odstępstwo:** to wybiera `SYSTEM_DATA_VERIFICATION` — w jądrze jest kod
+podpisów (RSA, X.509, PKCS#7, `KEYS`, `SYSTEM_TRUSTED_KEYRING`) — tylko do sprawdzania bazy; wywołania `add_key`/`keyctl`
+są w każdej klatce zablokowane (seccomp), używa ich tylko jądro. **Kompresja jądra: zstd** (od 0.9.1; bzImage
+6 595 584 B → 12 530 688 B, `k1.efi` 8 923 792 B → 14 899 856 B; z gzip byłoby 20 MB).
+
 ## Wywołania systemowe usunięte z jądra (test: `t_syscalls`)
 `init_module`, `finit_module`, `kexec_load`, `kexec_file_load`, `io_uring_setup`, `bpf`,
 `userfaultfd`, `modify_ldt`, `iopl`, `ioperm` → `ENOSYS`. Gniazda `AF_INET6` → `EAFNOSUPPORT`; `AF_INET` (od 0.9.0) i UNIX
@@ -97,7 +111,8 @@ są (UNIX od M3 — kanały między usługami, ADR 0007), a `socket` i `socketpa
 Parser SquashFS (od 0.6.3 obraz sprawdzany przez dm-verity), wywołania systemowe dostępne dla procesów
 (zawężane przez seccomp od M3), sterowniki virtio, ACPI (dane z firmware), `perf_event_open`;
 od M5a: urządzenia USB podłączane z zewnątrz (deskryptory USB, raporty HID, komendy mass storage)
-i parser GPT obcych nośników (RYZYKA R33–R34); od 0.9.0: stos IPv4 i sterowniki kart sieciowych — pakiety od każdego
+i parser GPT obcych nośników (RYZYKA R33–R34); od 0.9.1: stos 802.11 (cfg80211, mac80211), sterowniki kart Wi-Fi
+i pliki producentów działające w karcie (RYZYKA R70–R72); od 0.9.0: stos IPv4 i sterowniki kart sieciowych — pakiety od każdego
 w tej samej sieci, przejściówki USB–Ethernet (RYZYKA R66, R67; test z zewnątrz `scripts/test-siec.sh`).
 
 ## Testy

@@ -1,5 +1,5 @@
 /* K1 Ustawienia — Sieć (0.9.0 step 7, D1: sketch B): one tile per network card of the computer, with a pill of its
- * state. From nadzorca on fd 4 (one way, sender UID 0 checked): SIEC_STAN (the state, how many cards), then SIEC_KARTA
+ * state. Since 0.9.1 (D1: sketch A) two tabs under the title: "Wi-Fi" (wifi.c) and "Karty sieciowe" (the tiles). From nadzorca on fd 4 (one way, sender UID 0 checked): SIEC_STAN (the state, how many cards), then SIEC_KARTA
  * 0..n-1 (identifier, kind, flags) — only numbers; the names are the table below. Part of Ustawienia (ustawienia.h). */
 #include <stdio.h>
 #include <string.h>
@@ -8,6 +8,7 @@
 #include "k1_czas.h"
 #include "k1_log.h"
 #include "k1_teraz.h"
+#include "k1_wifi.h"
 #include "ustawienia.h"
 
 /* Names of the cards K1 has met (the owner's computers, virtual machines, popular ones): one row each.
@@ -50,6 +51,8 @@ static struct {
     int prefiks;
 } karty[K1_SIEC_LISTA_MAKS];
 static char zalogowane[200];
+static int zakladka = -1; /* 0 Wi-Fi, 1 the cards; -1: not chosen yet — Wi-Fi when the computer has a Wi-Fi card */
+static int zakladki_zalogowane;
 
 void siec_odbierz(const struct k1_komunikat *k)
 {
@@ -97,6 +100,8 @@ static void nazwa(int i, char *buf, size_t n)
                                                                  : "Karta sieciowa";
     if (t != NULL)
         snprintf(buf, n, "%s", t);
+    else if (karty[i].id == 0 && karty[i].rodzaj == K1_SIEC_WIFI)
+        snprintf(buf, n, "Karta Wi-Fi (wirtualna)");
     else
         snprintf(buf, n, "%s %04x:%04x", rodzaj, karty[i].id >> 16, karty[i].id & 0xffff);
 }
@@ -139,9 +144,17 @@ static void opis(int i, const struct k1_motyw *m, char *buf, size_t n, const cha
         snprintf(buf, n, "K1 nie ma jeszcze jej sterownika (identyfikator %s)", id);
         *pig = "Brak sterownika";
         *kropka = m->akcent;
+    } else if (karty[i].rodzaj == K1_SIEC_WIFI && (f & K1_SIEC_KF_AKTYWNA)) { /* 0.9.1: the card K1 uses */
+        int r = wifi_stan_radia();
+        snprintf(buf, n, "Wi-Fi · %s", r == K1_WIFI_WLACZONE    ? "radio włączone"
+                                       : r == K1_WIFI_WYLACZONE ? "radio wyłączone w zakładce Wi-Fi"
+                                                                : "radio wyłączone przełącznikiem w komputerze");
+        *pig = r == K1_WIFI_WLACZONE ? "Włączone" : "Wyłączone";
+        *kropka = r == K1_WIFI_WLACZONE ? m->akcent : m->tekst3;
     } else if (karty[i].rodzaj == K1_SIEC_WIFI) {
-        snprintf(buf, n, "Wi-Fi — w następnej wersji K1%s%s", znana ? "" : " · identyfikator ", znana ? "" : id);
-        *pig = "Później";
+        snprintf(buf, n, "Wi-Fi — K1 nie potrafi jej jeszcze uruchomić%s%s", znana ? "" : " · identyfikator ",
+                 znana ? "" : id);
+        *pig = f & K1_SIEC_KF_STEROWNIK ? "Nieobsługiwana" : "Brak sterownika";
     } else {
         snprintf(buf, n, "Karta sieciowa innego rodzaju (identyfikator %s)", id);
         *pig = "Nieobsługiwana";
@@ -233,11 +246,46 @@ void siec_zegar_tekst(char *buf, size_t n)
     }
 }
 
-void siec_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
+/* A Wi-Fi card of the computer K1 does not use (no driver, no vendor file): its index, or -1. */
+static int wifi_bez_obslugi(void)
+{
+    int i;
+    for (i = 0; s.znany && i < s.n && i < K1_SIEC_LISTA_MAKS; i++)
+        if (karty[i].rodzaj == K1_SIEC_WIFI && !(karty[i].flagi & K1_SIEC_KF_AKTYWNA))
+            return i;
+    return -1;
+}
+
+static int ktora_zakladka(void)
+{
+    return zakladka >= 0 ? zakladka : wifi_jest() || wifi_bez_obslugi() >= 0 ? 0 : 1;
+}
+
+void siec_pokazana(void)
+{
+    if (ktora_zakladka() == 0)
+        wifi_pokazane();
+}
+
+int siec_klik(int32_t x, int32_t y)
+{
+    int z = k1_segment_trafienie(TRESC_X, ZAKLADKI_Y, ZAKLADKI_W, ZAKLADKI_H, 2, x, y);
+    if (z >= 0) {
+        zakladka = z;
+        k1_log(TAG, "sieć: zakładka %s", z == 0 ? "Wi-Fi" : "Karty sieciowe");
+        if (z == 0)
+            wifi_pokazane();
+        k1_apl_odswiez(&apl);
+        return 1;
+    }
+    return ktora_zakladka() == 0 && wifi_klik(x, y);
+}
+
+/* The Karty sieciowe tab: the tiles and the details of the main card. */
+static void karty_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char log[sizeof zalogowane] = "", buf[64];
     int i, g = glowna(), kafle = g >= 0 ? KAFLE_MAKS - 1 : KAFLE_MAKS;
-    naglowek(o, m, "Sieć", "Połączenie kablem z routerem");
     if (!s.znany) {
         k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, "Czekam na dane…", k1_kolor(m->tekst2, 255), 0);
         return;
@@ -262,10 +310,28 @@ void siec_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     }
     if (s.zegar > 0)
         snprintf(log + strlen(log), sizeof log - strlen(log), "; zegar z internetu");
-    k1_tekst(o, K1_CZ_MALA, TRESC_X, apl.wys - 24, "Aplikacje nie mają jeszcze dostępu do internetu.",
-             k1_kolor(m->tekst3, 255), 0);
     if (strcmp(log, zalogowane) != 0) { /* the tests read the tiles from this line */
         k1_log(TAG, "sieć: %s (kafelki od %d,%d co %d)", log, TRESC_X, KAFEL_Y, KAFEL_H + KAFEL_ODST);
         snprintf(zalogowane, sizeof zalogowane, "%s", log);
     }
+}
+
+void siec_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    static const char *const zakladki[] = { "Wi-Fi", "Karty sieciowe" };
+    int z = ktora_zakladka(), b = wifi_bez_obslugi();
+    char n[64];
+    k1_tekst(o, K1_CZ_TYTUL, TRESC_X, K1_OKNO_TYTUL + 40, "Sieć", k1_kolor(m->tekst, 255), 0);
+    k1_segment(o, m, TRESC_X, ZAKLADKI_Y, ZAKLADKI_W, ZAKLADKI_H, zakladki, 2, z, -1);
+    if (!zakladki_zalogowane++) /* the tests click the tabs by this line */
+        k1_log(TAG, "sieć: zakładki od %d,%d (szer. %d, wys. %d)", TRESC_X, ZAKLADKI_Y, ZAKLADKI_W, ZAKLADKI_H);
+    if (z == 0) {
+        if (b >= 0)
+            nazwa(b, n, sizeof n);
+        wifi_rysuj(o, m, b >= 0 ? n : NULL);
+    } else {
+        karty_rysuj(o, m);
+    }
+    k1_tekst(o, K1_CZ_MALA, TRESC_X, apl.wys - 24, "Aplikacje nie mają jeszcze dostępu do internetu.",
+             k1_kolor(m->tekst3, 255), 0);
 }

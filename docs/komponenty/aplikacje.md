@@ -78,7 +78,11 @@ szkic B w `docs/WYGLAD.md`): kafelek na każdą kartę sieciową komputera (nazw
 i identyfikator, linijka opisu, plakietka stanu: Połączono / Łączę… / Brak kabla / Brak sterownika / Później — Wi-Fi /
 Nieobsługiwana), pod nimi „Szczegóły karty przewodowej” (sterownik z jądra, łącze: prędkość i dupleks, adres karty
 (MAC), adres w sieci z maską i routerem — gdy połączono); log „sieć: Intel 82574L: Połączono; szczegóły: e1000e, łącze
-(kafelki od x,y co 76)” (bez adresu). Informacje (`informacje.c`): wersja, ekran,
+(kafelki od x,y co 76)” (bez adresu). Od 0.9.1 (krok 1, D1: szkic A; `wifi.c`) pod tytułem zakładki „Wi-Fi | Karty
+sieciowe” (log „sieć: zakładki od x,y”): Wi-Fi — przełącznik radia (`WIFI_WLACZ`) i lista sieci w pobliżu (wachlarz z siłą
+sygnału, nazwa, kłódka, uwaga; najwyżej 6 wierszy), przy pokazaniu prośba o szukanie (`WIFI_SZUKAJ`); log „wifi: włączone;
+sieci 5 (z hasłem 4, otwarte 1, inne 0); wiersze od x,y co 40; przełącznik x,y” — bez nazw sieci. Karty sieciowe — kafelki
+jak wyżej, karta Wi-Fi z plakietką Włączone/Wyłączone. Informacje (`informacje.c`): wersja, ekran,
 jądro, gdzie są dane i odesłanie do sekcji Miejsce.
 
 ### Instalator
@@ -232,7 +236,9 @@ własne pliki i pliki dane przez użytkownika (tabela praw w skarbcu), `DOK_WYBI
 kanał od nadzorcy (`ZASOBY_SYSTEM`, `ZASOBY_USLUGA`, od 0.6.3 `ZASOBY_BATERIA`), aplikacja nie może do niego pisać.
 Ustawienia: lista trybów ekranu (`K1_KOM_TRYB`) dostaje tylko ona; od 0.5.5 fd 4 — kanał od nadzorcy
 (`BATERIA`, `BATERIA_HIST`: do 16 próbek po 1 bajcie w komunikacie), jednokierunkowy, nadawca UID 0; od 0.9.0 ten sam
-kanał: `SIEC_STAN`, `SIEC_KARTA`, `SIEC_SZCZEGOLY`, `SIEC_STEROWNIK`, `SIEC_ADRESY` (sekcja Sieć; `komponenty/siec.md`).
+kanał: `SIEC_STAN`, `SIEC_KARTA`, `SIEC_SZCZEGOLY`, `SIEC_STEROWNIK`, `SIEC_ADRESY` (sekcja Sieć; `komponenty/siec.md`); od
+0.9.1 `WIFI_STAN`, `WIFI_SIEC`, `WIFI_NAZWA` — i ten kanał działa w obie strony: Ustawienia wysyłają `WIFI_WLACZ`
+(przełącznik radia) i `WIFI_SZUKAJ` (gdy pokazują listę sieci); nadzorca sprawdza UID nadawcy.
 Bez kanału (zamknięty) reszta Ustawień działa.
 Pliki (0.8.0): fd 4 — kanał do skarbca z prawami do wszystkich plików użytkownika (i do niczego więcej: obiekty
 innych aplikacji są dla Plików niewidoczne), komunikaty `DOK_*` (`komponenty/skarbiec.md`); fd 5 — od nadzorcy,
