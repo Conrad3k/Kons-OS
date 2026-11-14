@@ -91,7 +91,7 @@ Cztery kroki:
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [ ]  1  Ustawienia → Aktualizacje (z Instalatora)           S1–S6            0.10.0      D1 D2 D3, T1     M        —
 [ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16, S25      1           D4 D5 D7, T2–T7  L        0044
-[ ]  3  Robot na GitHubie                                   S17–S24          2           D6, T8–T11       M        0045
+[ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11       M        0045
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja; wydanie S26–S32          0.10.0      D8, T12–T14      M        —
 (Numery ADR — następne wolne po ADR-ach 0.10.0; jeśli 0.10.0 zajmie więcej, krok bierze kolejne wolne.)
 
@@ -238,20 +238,47 @@ KROK 3 — Robot na GitHubie                                              M · d
       wydanie robota stoi co najmniej 7 dni bez Issue „błąd” (S24).
   [ ] Tryb próbny do wydania 0.10.5: harmonogram działa, robot otwiera PR i puszcza testy, ale nie scala i nie wydaje
       (przełącznik w robot.yml — jedna zmienna, którą krok 4 przestawia po wydaniu).
+  [ ] Robot i wydania ludzi — nigdy dwa wydania naraz (prośba właściciela z 2026-11-14: „żeby nie było tak, że my
+      wydajemy 1.2.4, a robot też”; S19, S33). Po stronie robota: tuż przed scaleniem pobiera świeży main — gdy VERSION
+      na main zmieniło się od chwili, w której robot zaczął, zamyka swój PR i zaczyna od nowa od świeżego main (nowy
+      numer, wpis CHANGELOG nad wpisem ludzi); nie zaczyna, gdy otwarty PR człowieka zmienia VERSION, jadro/wersja.env
+      albo tabelę pakietów strefy (te same pliki — człowiek ma pierwszeństwo); nie uruchamia wydania, gdy na main trwa
+      budowa k1.yml; robot nigdy nie podbija MINOR ani MAJOR (tylko PATCH od tego, co jest na main). Po stronie CI
+      (S33): k1.yml na main nie anuluje trwającego wydania (cancel-in-progress tylko dla PR-ów), a tag i wydanie
+      powstają tylko, gdy VERSION w budowanym commicie to wciąż VERSION na main.
+  [ ] Skill kons-dev (.claude/skills/kons-dev/SKILL.md) i AGENTS.md — każdy czat Claude'a i Codexa wie o robocie
+      (zmiany w tym samym PR-ze co robot, wpisane w opisie PR-a):
+      · „Na start sesji”: obok otwartych PR-ów i ostatniego runu CI — otwarte PR-y robota (gałęzie robot/…, etykieta
+        „robot”), Issue „robot” i ostatni bieg workflow „Robot”; czerwone Issue robota naprawia się jak czerwone CI;
+      · „Wersja, scalanie, CI”: przed scaleniem PR-a, który zmienia VERSION — zaktualizuj gałąź z main TUŻ przed
+        scaleniem i sprawdź VERSION na main; jeśli robot w tym czasie wydał wersję, Twój numer to następny (np. robot
+        wydał 1.2.4 → Ty 1.2.5), a Twój wpis w CHANGELOG idzie nad wpis robota; nie scalaj w trakcie budowy wydania
+        robota na main (poczekaj na jej koniec); otwarty PR robota, który przeszkadza (np. zmienia jądro, które Ty też
+        zmieniasz), można zamknąć — robot zrobi nowy następnego dnia od świeżego main;
+      · „Wersja”: robot robi tylko PATCH z poprawkami jądra i przeglądarki — MINOR (nowy temat) i kroki planów robią
+        ludzie; plan wersji, który zmienia jądro albo pakiety strefy ręcznie, uwzględnia robota (robot czeka na PR);
+      · „Przepisy” → „Opcja jądra” i jadro/README.md: ręczna zmiana jadro/wersja.env tylko wtedy, gdy robot nie umie
+        (Issue „robot”) albo w kroku planu — nie równolegle z robotem;
+      · jak wstrzymać robota na czas dużych prac (zmienna w robot.yml albo Disable workflow) i kiedy to robić; po
+        wstrzymaniu — wpis w DO_ZROBIENIA („Tymczasowe”, z terminem), żeby robot nie został wyłączony na zawsze;
+      · mapa repo (robot.yml, robot.md) i „Pułapki” (zderzenie numerów wersji — S19, S33).
   Testy i dowód: próbny przebieg robota na gałęzi z celowo starszym jądrem w jadro/wersja.env (PR robota powstaje,
   testy idą, scalenie wyłączone w trybie próbnym — S21); próbny przebieg „nic nowego” (koniec bez PR-a); robot
   z niedozwoloną zmianą (inny plik) → przerwanie; zły podpis sha256sums.asc (podmieniony plik w próbie) → Issue,
   bez PR-a; próba nowej linii: gałąź z jądrem starszej linii długoterminowej (np. 6.12.x) → robot proponuje 6.18.x
-  z listą nowych opcji (gdy fragment nie wchodzi — Issue zamiast PR-a, i to też jest wynik próby). Pełne testy
-  wydania [OK].
+  z listą nowych opcji (gdy fragment nie wchodzi — Issue zamiast PR-a, i to też jest wynik próby); zderzenia (S33):
+  otwarty PR człowieka ze zmianą VERSION → robot nie zaczyna (log „czekam na wydanie ludzi”); VERSION na main zmienione
+  po otwarciu PR-a robota → robot zamyka PR i otwiera nowy z następnym numerem; dwa wydania na main jedno po drugim →
+  oba tagi i oba wydania istnieją, żadne nie zostało anulowane. Pełne testy wydania [OK].
   Właściciel (po wydaniu 0.10.5 w kroku 4): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem
   poczekać na pierwszą wersję od robota i zainstalować ją przez sieć (lista w DO_ZROBIENIA).
   Dokumenty: ADR 0045, AGENTS.md (robot), nowy opis w docs/komponenty/ (robot.md: co sprawdza, czego nie rusza,
   jak go zatrzymać — wyłączenie workflow), jadro/README.md (procedura: robot robi kroki 1–6, także dla nowej linii),
   ADR 0003 (dopisek: linię jądra wybiera robot — najnowsza długoterminowa),
   TESTY.md, RYZYKA (przejęte konto GitHub albo archiwum Debiana = podpisana wersja na wszystkich komputerach — S22),
-  README, skill (CI, wydania).
-  Gotowe, gdy: robot przeszedł przebiegi próbne, jest scalony w trybie próbnym, testy zielone.
+  README, skill kons-dev i AGENTS.md (zadanie wyżej).
+  Gotowe, gdy: robot przeszedł przebiegi próbne (także zderzenia), jest scalony w trybie próbnym, skill i AGENTS.md
+  mówią o nim, testy zielone.
   Ustalenia z wykonania: (pusto — wypełnia krok 3)
 
 KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja; wydanie     M · decyzje D8, T12–T14 · bez ADR
@@ -486,7 +513,10 @@ Krok 3
       robot robi ją całą — dla tej samej linii (6.18.x) i dla nowej (adres v7.x, klucz podpisu ten sam — sprawdzić
       w jadro/klucze/, czy kernel.org podpisuje nową linię tym samym kluczem autosignera).
   S19 Z KODU (AGENTS.md: VERSION i CHANGELOG zmienia ten, kto robi wydanie). Robot robi wydania PATCH — gdy człowiek
-      (Claude, Codex) ma otwarty PR wydania, robot czeka; człowiek po scaleniu robota bierze następny numer.
+      (Claude, Codex) ma otwarty PR wydania, robot czeka; człowiek po scaleniu robota bierze następny numer. Groźny
+      przypadek: robot i człowiek podbijają VERSION do tego samego numeru (np. 1.2.4) — git połączy dwie takie same
+      zmiany VERSION bez konfliktu, a CHANGELOG dostanie dwa wpisy „1.2.4”; dlatego obie strony sprawdzają VERSION na
+      main tuż przed scaleniem (zadanie „Robot i wydania ludzi”, skill).
   S20 NIEPEWNE. Czas: CI ok. 30 min na przebieg (budowa i testy), robot = dwa przebiegi (gałąź, main). Repo publiczne
       (ADR 0040) — minuty zwykłych runnerów GitHuba dla repozytoriów publicznych są bezpłatne (sprawdzić w ustawieniach
       konta, czy nic się nie zmieniło).
@@ -505,6 +535,10 @@ Krok 3
       może prosić o nowsze pliki (NIEPEWNE: sprawdzić w źródłach nowej linii, o jakie nazwy plików proszą sterowniki
       z listy, i dopisać to do sprawdzeń robota). Zabezpieczenia: D7, dopisek w pytaniu, 7 dni spokoju przed zmianą
       linii, Twój test po każdej nowej linii (lista w DO_ZROBIENIA).
+  S33 Z KODU (.github/workflows/k1.yml: concurrency „k1-<gałąź>”, cancel-in-progress: true; tag „jeśli tagu jeszcze nie
+      ma”). Dziś nowsza budowa na main anuluje starszą — scalenie człowieka w trakcie budowy wydania robota
+      przerwałoby je (wersja robota bez tagu i wydania, choć VERSION na main ją ma); zmienić: anulowanie tylko dla PR-ów,
+      na main kolejka. Tag dziś pomija istniejący — dwa commity z tym samym VERSION dałyby jeden tag na starszym.
 
 Krok 4
   S26 Z KODU (src/ekran/okna.c). Ekran umie dziś przesuwać panele przeciąganiem (s.ciagniete) — zmiany rozmiaru ani
