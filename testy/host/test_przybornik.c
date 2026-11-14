@@ -14,6 +14,7 @@
 #include "k1_okno.h"
 #include "k1_rysuj.h"
 #include "k1_test_host.h"
+#include "k1_wachlarz.h"
 
 static int czas(int64_t utc, int r, int m, int d, int g, int mi, int s, int dt, int letni)
 {
@@ -206,8 +207,34 @@ static void t_okno(void)
     }
 }
 
+/* 0.9.1: the Wi-Fi fan — more bars cover more of it, nothing outside its square, faint part under the bars. */
+static void t_wachlarz(void)
+{
+    static uint32_t px[32 * 32];
+    struct k1_obraz o = { px, 32, 32, 32 };
+    int poziom, pop = -1, i;
+    for (poziom = 0; poziom <= 4; poziom++) {
+        int jasne = 0;
+        memset(px, 0, sizeof px);
+        k1_wachlarz(&o, 8, 8, 16, poziom, 0xffffff, 0, 255);
+        for (i = 0; i < 32 * 32; i++) {
+            jasne += (px[i] >> 24) > 128;
+            if ((px[i] >> 24) != 0 && (i % 32 < 7 || i % 32 > 25 || i / 32 < 7 || i / 32 > 23))
+                jasne = -1000; /* outside the square of the icon */
+        }
+        EXPECT(poziom == 0 ? jasne == 0 : jasne > pop);
+        pop = jasne;
+    }
+    memset(px, 0, sizeof px);
+    k1_wachlarz(&o, 8, 8, 16, 0, 0xffffff, 60, 255);
+    EXPECT((px[16 * 32 + 16] >> 24) > 50 && (px[16 * 32 + 16] >> 24) < 70); /* the faint fan in the middle */
+    k1_wachlarz(&o, -40, -40, 16, 4, 0xffffff, 60, 255);                  /* off the image: no harm (ASan) */
+    k1_wachlarz(&o, 30, 30, 64, 4, 0xffffff, 60, 255);
+}
+
 int main(void)
 {
+    t_wachlarz();
     t_czas();
     t_klawiatura();
     t_utf8();

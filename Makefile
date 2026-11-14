@@ -42,7 +42,8 @@ WSPOLNE := src/wspolne/k1_log.c src/wspolne/k1_cmdline.c src/wspolne/k1_zdarzeni
 NAGL    := $(wildcard src/wspolne/*.h)
 # The message of the services and its checks, one file per group of channels (0.9.0 step 2).
 KOMUNIKAT := src/wspolne/k1_komunikat.c src/wspolne/k1_kom_ekran.c src/wspolne/k1_kom_skarb.c \
-             src/wspolne/k1_kom_nadzorca.c src/wspolne/k1_kom_pliki.c src/wspolne/k1_kom_siec.c src/wspolne/k1_siec.c
+             src/wspolne/k1_kom_nadzorca.c src/wspolne/k1_kom_pliki.c src/wspolne/k1_kom_siec.c src/wspolne/k1_siec.c \
+             src/wspolne/k1_kom_wifi.c src/wspolne/k1_wifi.c
 # Services (M3): protocol, channels, sandbox.
 USLUGI  := src/wspolne/k1_uslugi.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
            src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c \
@@ -54,7 +55,7 @@ MAGAZYN_C := src/skarbiec/magazyn.c src/skarbiec/naglowek.c src/skarbiec/obszary
 MAGAZYN := $(MAGAZYN_C) src/wspolne/k1_indeks.c $(MONOCYPHER)
 GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 # GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
-PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
+PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_wachlarz.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_aplikacja.c \
            src/przybornik/k1_dekodowanie.c src/przybornik/k1_menu.c src/przybornik/k1_przeciaganie.c \
            src/przybornik/k1_zaznaczenie.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
@@ -122,9 +123,9 @@ $(BIN)/init: src/init/main.c $(WSPOLNE) $(NAGL) | $(BIN)
 # test; pure parts with host tests: bateria, dyski, uevent.
 NADZORCA := $(sort $(wildcard src/nadzorca/*.c))
 # 0.8.0 step 5: nadzorca grows an empty K1-DANE to the end of the stick with the installer's GPT code (powieksz.c)
-$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -DK1_CZAS_BUDOWY=$(CZAS_BUDOWY) -Isrc/zewnetrzne/monocypher -Isrc/instalator -I$(GEN)/sb -o $@ $(NADZORCA) src/instalator/gpt.c $(EFI) \
-		src/wspolne/k1_sha256.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+		src/wspolne/k1_sha256.c src/wspolne/k1_nl.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
 # 0.9.0 step 3 (ADR 0038): start.c — the boot files swapped beside the old ones (host test: test_start)
@@ -188,8 +189,8 @@ $(GEN)/k1_czcionki_dane.c: $(OBJ)/czcionki | $(GEN)
 	$(OBJ)/czcionki $(CZCIONKI) > $@.tmp && mv $@.tmp $@
 
 TEST_SYS := $(sort $(wildcard testy/system/*.c))
-$(BIN)/k1-test-systemu: $(TEST_SYS) testy/system/k1_test.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ $(TEST_SYS) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/k1-test-systemu: $(TEST_SYS) testy/system/k1_test.h src/wspolne/k1_nl.c src/wspolne/k1_nl.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(TEST_SYS) src/wspolne/k1_nl.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 $(BIN) $(OBJ) $(GEN):
 	mkdir -p $@
@@ -261,8 +262,12 @@ $(OBJ)/test_czas: testy/host/test_czas.c $(SIEC) $(wildcard src/siec/*.h) $(KOMU
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_czas.c src/siec/sntp.c src/siec/czas.c $(KOMUNIKAT) $(DOK_C)
 
 # 0.9.0 step 6 (ADR 0039): addresses, the messages of siec, DHCP packets and the client
+# 0.9.1 step 1: the Wi-Fi networks from the air (src/siec/wifi.c) and the shared names and messages (k1_wifi.c)
+$(OBJ)/test_wifi: testy/host/test_wifi.c src/siec/wifi.c src/siec/wifi.h $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_wifi.c src/siec/wifi.c $(KOMUNIKAT) $(DOK_C)
+
 $(OBJ)/test_siec: testy/host/test_siec.c $(SIEC) $(wildcard src/siec/*.h) $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_siec.c $(filter-out src/siec/main.c src/siec/zegar.c,$(SIEC)) $(KOMUNIKAT) $(DOK_C)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_siec.c $(filter-out src/siec/main.c src/siec/zegar.c src/siec/lista.c,$(SIEC)) $(KOMUNIKAT) $(DOK_C)
 
 $(OBJ)/test_uevent: testy/host/test_uevent.c src/nadzorca/uevent.c src/nadzorca/uevent.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_uevent.c src/nadzorca/uevent.c
@@ -349,7 +354,8 @@ $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instal
 	test_dokumenty test_notatki test_indeks test_log test_magazyn test_odcinki test_przejscie test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
 	test_zdarzenie): testy/host/k1_test_host.h
 
-testy-host: $(OBJ)/test_siec $(OBJ)/test_czas $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_podglad $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/test_menu $(OBJ)/test_przeciaganie $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/notatki_w_plikach $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder $(OBJ)/test_start
+testy-host: $(OBJ)/test_wifi $(OBJ)/test_siec $(OBJ)/test_czas $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_podglad $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/test_menu $(OBJ)/test_przeciaganie $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/notatki_w_plikach $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder $(OBJ)/test_start
+	$(OBJ)/test_wifi
 	$(OBJ)/test_siec
 	$(OBJ)/test_czas
 	$(OBJ)/test_zalegle
@@ -401,7 +407,7 @@ testy-host: $(OBJ)/test_siec $(OBJ)/test_czas $(OBJ)/test_zalegle $(OBJ)/test_sk
 # Fuzzing (libFuzzer): one program per parser of untrusted bytes, testy/host/fuzz_<name>.c with the sources
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
-FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp
+FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -434,6 +440,8 @@ FUZZ_ZR_dhcp      := src/siec/dhcp.c src/siec/klient.c src/wspolne/k1_siec.c
 FUZZ_DL_dhcp      := 4096
 FUZZ_ZR_sntp      := src/siec/sntp.c src/siec/czas.c src/wspolne/k1_siec.c
 FUZZ_DL_sntp      := 4096
+FUZZ_ZR_wifi      := src/siec/wifi.c src/wspolne/k1_wifi.c
+FUZZ_DL_wifi      := 8192
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
               -Isrc/wspolne -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/zewnetrzne/monocypher \
               -Isrc/zewnetrzne/wuffs

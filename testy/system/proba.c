@@ -85,6 +85,8 @@ int proba(const char *profil)
     zablokowane("gniazdo sieciowe (socket AF_INET)", SYS_socket, AF_INET, SOCK_DGRAM, 0, 0, 0);
     zablokowane("gniazdo pakietowe (socket AF_PACKET)", SYS_socket, AF_PACKET, SOCK_RAW, 0, 0, 0);
     zablokowane("gniazdo netlink (socket AF_NETLINK)", SYS_socket, AF_NETLINK, SOCK_RAW, 0, 0, 0);
+    /* 0.9.1 (ADR 0041): looking for Wi-Fi networks, the radio, keys — nl80211 is nadzorca's (CAP_NET_ADMIN) */
+    zablokowane("gniazdo nl80211 (socket AF_NETLINK, NETLINK_GENERIC)", SYS_socket, AF_NETLINK, SOCK_RAW, 16, 0, 0);
     zablokowane("para gniazd sieciowych (socketpair AF_INET)", SYS_socketpair, AF_INET, SOCK_STREAM, 0, 0, 0);
     /* 0.9.0 step 6: setting an address is nadzorca's (CAP_NET_ADMIN, on siec's request) — no cage, siec included */
     zablokowane("ustawienie adresu karty (ioctl SIOCSIFADDR)", SYS_ioctl, 3, 0x8916, 0, 0, 0);

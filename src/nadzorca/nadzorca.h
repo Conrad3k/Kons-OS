@@ -205,6 +205,24 @@ void siec_stan_karty(void);          /* the cards changed (or a look at them): t
 void siec_stan_wyslij(void);         /* what gui and Ustawienia have not got yet */
 void siec_stan_nowy_kanal_gui(void); /* a new channel: everything again */
 void siec_stan_nowy_kanal_ustawien(void);
+void siec_identyfikuj(int kat, const char *nazwa, uint32_t *id, int *usb, char *slot, size_t n_slot); /* PCI/USB id */
+/* wifi.c — the Wi-Fi card, its radio, the networks around (0.9.1 step 1, ADR 0041) */
+int wifi_stan(void);          /* K1_WIFI_* (k1_wifi.h) */
+void wifi_przejrzyj(void);    /* the Wi-Fi card and its radio now (with siec_sprawdz's look at the cards) */
+void wifi_czas(double t);     /* a look for networks when due */
+void wifi_od_sieci(const struct k1_komunikat *k); /* SIEC_WIFI_SIEC, _NAZWA, _LISTA from siec */
+int wifi_karty(struct siec_karta *t); /* the Wi-Fi card for the list of cards: 1, or 0 none */
+int wifi_wyslij(void);        /* WIFI_STAN and the list to Ustawienia when changed: 0, -1 the channel is full */
+void wifi_nowy_kanal_ustawien(void);
+void obsluz_ustawienia(void); /* Ustawienia's requests: WIFI_WLACZ, WIFI_SZUKAJ */
+/* wifi_nl.c — nl80211 (0.9.1): 0, or -errno */
+extern int wifi_nl;           /* the kernel's notices of the "scan" group (main.c) */
+int wifi_nl_otworz(void);
+int wifi_nl_stacja(int nr);   /* 1: a Wi-Fi card that joins networks */
+int wifi_nl_szukaj(int nr);
+int wifi_nl_zdarzenia(int nr); /* 1: the look on card nr finished */
+int wifi_nl_wyniki(int nr, uint8_t *buf, size_t maks, int *rekordy, size_t *dl, int *pominiete);
+void obsluz_wifi_nl(void);
 /* siec_zegar.c — the clock from the internet (0.9.0 step 8): 0, or K1_SIEC_BLAD_* */
 extern double siec_zegar_od;                       /* the clock set (or found right) at (k1_teraz), 0: not yet */
 int siec_gniazdo_czasu(uint32_t serwer, int *fd);  /* a UDP socket connected to serwer:123 */

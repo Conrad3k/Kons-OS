@@ -1,7 +1,8 @@
 /* K1 Ustawienia — state shared by the modules (0.7.5 split): main.c (sections, Wygląd, Ekran, Mysz,
  * Data i czas), bateria.c (Bateria: from nadzorca, fd 4), haslo.c (Hasło: through skarbiec, fd 5),
  * aplikacje.c (Aplikacje: the default application of a file type, 0.8.0), miejsce.c (Miejsce: the room for files and
- * what takes it, K1-DANE to the end of the stick — 0.8.5), siec.c (Sieć: the network cards — 0.9.0),
+ * what takes it, K1-DANE to the end of the stick — 0.8.5), siec.c (Sieć: the tabs and the network cards — 0.9.0),
+ * wifi.c (Sieć → Wi-Fi: the radio and the networks around — 0.9.1),
  * informacje.c (Informacje: the system). */
 #ifndef K1_USTAWIENIA_H
 #define K1_USTAWIENIA_H
@@ -54,6 +55,21 @@ int haslo_na_pendrive(void);  /* K1-DANE on a USB stick */
 void siec_odbierz(const struct k1_komunikat *k); /* SIEC_* from nadzorca (bateria_odbierz) */
 void siec_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 void siec_zegar_tekst(char *buf, size_t n); /* Data i czas: whether the clock came from the internet, when */
+
+/* Sieć (0.9.1, D1: sketch A): the tabs "Wi-Fi | Karty sieciowe" under the title, instead of the description */
+#define ZAKLADKI_Y (K1_OKNO_TYTUL + 54)
+#define ZAKLADKI_W 260
+#define ZAKLADKI_H 32
+int siec_klik(int32_t x, int32_t y); /* 1 = handled */
+void siec_pokazana(void);            /* the section was opened */
+
+/* wifi.c (0.9.1): Sieć → Wi-Fi */
+void wifi_odbierz(const struct k1_komunikat *k); /* WIFI_STAN, WIFI_SIEC, WIFI_NAZWA (bateria_odbierz) */
+int wifi_jest(void);                             /* 1: a Wi-Fi card K1 uses */
+int wifi_stan_radia(void);                       /* K1_WIFI_*, -1 not known yet */
+void wifi_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const char *karta_bez_obslugi);
+int wifi_klik(int32_t x, int32_t y);             /* the switch: 1 = handled */
+void wifi_pokazane(void);                        /* the list is shown: ask nadzorca to look for networks */
 
 /* informacje.c */
 void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);

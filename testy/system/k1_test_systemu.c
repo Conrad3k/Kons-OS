@@ -20,6 +20,8 @@ int main(int argc, char **argv)
     }
     if (argc > 2 && strcmp(argv[1], "--proba") == 0)
         return proba(argv[2]);
+    if (tryb_wifi()) /* 0.9.1: simulated Wi-Fi cards — the test access points of scripts/test-wifi.sh, not the checks */
+        return t_wifi_punkty_dostepu();
     k1_log(TAG, "start testów M1–M5a (pid %d)", (int)getpid());
     t_parent();
     t_root_layout();

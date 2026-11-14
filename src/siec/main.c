@@ -3,7 +3,8 @@
  * Job: when nadzorca says a cable is in (SIEC_KABEL with a packet socket on that card), ask the router for an address
  * (DHCP: DISCOVER, OFFER, REQUEST, ACK), ask nadzorca to set it (SIEC_ADRES), renew the lease in time, and start again
  * when the router says no or the lease ends. When the cable is out (SIEC_ROZLACZONO), forget everything. With the
- * address: the clock from the internet (0.9.0 step 8, zegar.c — several time servers that must agree).
+ * address: the clock from the internet (0.9.0 step 8, zegar.c — several time servers that must agree). Wi-Fi (0.9.1
+ * step 1, lista.c and wifi.c): what the Wi-Fi card heard (from nadzorca, in a sealed memfd) → the list of networks.
  *
  * Trust boundary: everything that comes from the network is untrusted — every packet is checked field by field
  * (dhcp.c: k1_dhcp_czytaj; host test and fuzzing) before anything uses it. The service has no privileges: no socket of
@@ -33,8 +34,6 @@
 #include "k1_teraz.h"
 #include "klient.h"
 #include "usluga.h"
-
-#define NADZORCA 3
 
 struct k1_dhcp_klient klient;
 static int pakiety = -1;       /* the packet socket on the card (from SIEC_KABEL), -1 */
@@ -147,6 +146,9 @@ static void z_nadzorcy(void)
                 zegar_odrzucony();
         } else if (k.typ == K1_KOM_SIEC_GNIAZDO && k.obiekt == karta) {
             zegar_gniazdo(&k, fd);
+            fd = -1;
+        } else if (k.typ == K1_KOM_SIEC_WIFI_WYNIKI) {
+            wifi_wyniki(&k, fd); /* 0.9.1: the networks around (lista.c) */
             fd = -1;
         }
         if (fd >= 0 && k.typ != K1_KOM_SIEC_KABEL)
