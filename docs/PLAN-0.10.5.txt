@@ -67,6 +67,10 @@ w sobie nie ma i nie musi mieć: strefa podaje K1 tylko bajty, a K1 sam sprawdza
 Po drugiej stronie robot na GitHubie codziennie sprawdza, czy jest poprawione jądro Linux albo poprawiona przeglądarka
 (Firefox i jego biblioteki z Debiana). Jeśli tak — sam przygotowuje nową wersję K1, puszcza wszystkie testy i dopiero
 po zielonych wydaje ją, podpisaną. Od poprawki u Mozilli albo w jądrze do pytania na Twoim laptopie: ok. 1–2 dni.
+Robot przechodzi też na nowe linie jądra (np. 7.x — Twoja decyzja z 2026-11-14), gdy kernel.org ogłosi je jako
+długoterminowe. Gdy nowe jądro nie pasuje do konfiguracji K1, robot nie zgaduje, tylko prosi Claude'a albo Codexa.
+Gdyby nowa wersja na Twoim laptopie coś zepsuła (np. Wi-Fi), w Ustawieniach → Aktualizacje jest „Wróć do poprzedniej
+wersji” (D7).
 
 Trzy kroki:
   1. Ustawienia → Aktualizacje: nowy panel (wersja, stan miejsc A/B, aktualizacja z pendrive'a — przeniesiona
@@ -79,8 +83,8 @@ Trzy kroki:
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [ ]  1  Ustawienia → Aktualizacje (z Instalatora)           S1–S6            0.10.0      D1 D2 D3, T1     M        —
-[ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16           1           D4 D5, T2–T7     L        0044
-[ ]  3  Robot na GitHubie; wydanie 0.10.5                   S17–S23          2           D6, T8–T10       M        0045
+[ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16, S25      1           D4 D5 D7, T2–T7  L        0044
+[ ]  3  Robot na GitHubie; wydanie 0.10.5                   S17–S24          2           D6, T8–T11       M        0045
 (Numery ADR — następne wolne po ADR-ach 0.10.0; jeśli 0.10.0 zajmie więcej, krok bierze kolejne wolne.)
 
 Dlaczego trzy: krok 1 to sama aplikacja (bez sieci) — panel, okno i przeniesienie, łatwe do przetestowania osobno;
@@ -129,15 +133,17 @@ KROK 1 — Ustawienia → Aktualizacje (przeniesienie z Instalatora)            
   Gotowe, gdy: aktualizacja z pendrive'a działa z Ustawień, testy [OK], Instalator nie ma już ekranu aktualizacji.
   Ustalenia z wykonania: (pusto — wypełnia krok 1)
 
-KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie       L · decyzje D4 D5, T2–T7 · ADR 0044
+KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · decyzje D4 D5 D7, T2–T7 · ADR 0044
   Cel: K1 na dysku sam sprawdza, czy jest nowsza podpisana wersja, pobiera ją przez strefę z HTTPS prosto do wolnego
   miejsca A/B i pyta użytkownika o instalację; bez zgody nic się nie zmienia w tym, co startuje.
-  Na początku: S7 i S8 — POMIAR (przekierowania GitHuba, wielkość paczki), zanim powstanie reszta; D4, D5.
+  Na początku: S7 i S8 — POMIAR (przekierowania GitHuba, wielkość paczki), zanim powstanie reszta; D4, D5, D7.
   Co widzi użytkownik: Ustawienia → Aktualizacje: „Sprawdzono dziś o 14:05 — masz najnowszą wersję” albo „Pobieram
   K1 0.10.6… 45 %” albo „K1 0.10.6 jest gotowa” z przyciskami „Zainstaluj i uruchom ponownie” / „Później”; przycisk
   „Sprawdź teraz”; przełącznik „Sprawdzaj sam” (D4). Gdy wersja jest gotowa — okienko K1 z tym samym pytaniem (wg D1
   z kroku 1, raz na start, „Później” je zamyka) i znak na górnym pasku. Bez internetu — „Nie udało się sprawdzić
-  (brak połączenia)”. Wersja z pendrive'a (K1 uruchomiony z pendrive'a) — wg D5.
+  (brak połączenia)”. Wersja z pendrive'a (K1 uruchomiony z pendrive'a) — wg D5. Wersja z nową linią jądra — w pytaniu
+  dopisek „Nowe jądro Linux 7.1 — jeśli coś przestanie działać, wróć do poprzedniej wersji” (T3). W sekcji przycisk
+  „Wróć do poprzedniej wersji” (D7), dopóki poprzednia wersja jest w drugim miejscu.
   Zadania:
   [ ] ADR 0044 „Aktualizacje przez sieć”: T2 skąd (plik w wydaniu, nie w repo), T3 ogłoszenie wydania (nowy podpisany
       format), T4 paczka aktualizacji, T5 strefa pobierania, T6 kto co robi, T7 zapis prosto do wolnego miejsca;
@@ -164,6 +170,10 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie       L 
   [ ] Ustawienia i gui (wg D1): stan, „Sprawdź teraz”, „Sprawdzaj sam”, postęp, pytanie; okienko „Jest nowa wersja”
       rysuje gui (zaufany interfejs K1), znak na pasku; „Zainstaluj i uruchom ponownie” = pliki startowe + k1_nowy +
       ponowne uruchomienie (jak po aktualizacji z pendrive'a), „Później” = paczka czeka w wolnym miejscu.
+  [ ] „Wróć do poprzedniej wersji” (D7, S25): tylko na kliknięcie w Ustawieniach (zaufany interfejs K1), tylko do
+      wersji, która jest w drugim miejscu A/B, podpisana i była już potwierdzona; k1_nowy na drugie miejsce, start na
+      próbę jak zawsze. K1 zapamiętuje wersję, od której wrócono, i nie proponuje jej znowu — tylko nowszą od niej.
+      Poza tym przyciskiem zasada „nigdy starsza” bez zmian (sieć i pendrive nie cofną wersji).
   Testy i dowód: host — test_ogloszenie, test_paczka (zła wersja, zły klucz, zły podpis, starsza wersja, ucięta
   paczka, zły skrót), fuzz_*. Scenariusz QEMU scripts/test-aktualizacja-siec.sh (S15): K1 na dysku w sieci QEMU →
   serwer testowy HTTPS na „routerze” (certyfikat z testowego CA — tylko w obrazie testowym strefy) podaje ogłoszenie
@@ -172,7 +182,9 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie       L 
   miejsce → odmowa, działający system bez zmian, wolne miejsce puste, log z powodem; „Później” → po ponownym starcie
   działa stara wersja i pyta znowu; strefa pobierania próbuje innego hosta → odmowa łącznika; strefa podaje
   śmieci zamiast paczki → odmowa (zapis nie zaczyna się przed sprawdzonym podpisem manifestu); przerwanie zasilania
-  w trakcie pobierania (wzór test-m5f) → start ze starej wersji.
+  w trakcie pobierania (wzór test-m5f) → start ze starej wersji; „Wróć do poprzedniej wersji” → start poprzedniej,
+  odrzucona wersja nie wraca w „Sprawdź teraz”, nowsza od niej — tak; drugie miejsce puste albo z niepotwierdzoną
+  wersją → przycisku nie ma; złośliwy komunikat „wróć” spoza Ustawień → odmowa.
   Właściciel (po wydaniu): pierwsza prawdziwa aktualizacja przez sieć — z 0.10.5 do następnej wersji (krok 3: robot).
   Dokumenty: ADR 0044, nowy opis w docs/komponenty/ (aktualizacja.md: cel, granica zaufania, formaty, droga danych),
   instalator.md (tryb z sieci), nadzorca.md, strefa.md (strefa pobierania), lacznik.md (lista hostów), aplikacje.md,
@@ -181,29 +193,38 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie       L 
   Gotowe, gdy: scenariusz aktualizacji przez sieć i testy negatywne zielone, testy [OK], obraz powtarzalny.
   Ustalenia z wykonania: (pusto — wypełnia krok 2)
 
-KROK 3 — Robot na GitHubie; wydanie 0.10.5                              M · decyzje D6, T8–T10 · ADR 0045
+KROK 3 — Robot na GitHubie; wydanie 0.10.5                              M · decyzje D6, T8–T11 · ADR 0045
   Cel: poprawki jądra Linux i przeglądarki trafiają do wydania K1 same: robot raz dziennie sprawdza, przygotowuje
-  zmianę, puszcza pełne testy i po zielonych wydaje nową wersję PATCH; wydanie 0.10.5.
+  zmianę, puszcza pełne testy i po zielonych wydaje nową wersję PATCH — także z nową linią jądra (np. 7.x), gdy
+  konfiguracja K1 na nią wchodzi (T11); wydanie 0.10.5.
   Na początku: S17 (uprawnienia GITHUB_TOKEN — POMIAR na próbnym przebiegu), D6.
-  Co widzi użytkownik: na GitHubie raz na jakiś czas PR „Robot: jądro 6.18.61” albo „Robot: Firefox ESR …”, który
-  sam przechodzi testy, scala się i daje wydanie; na laptopie po 1–2 dniach pytanie z kroku 2. Gdy robot nie umie
-  (testy czerwone, nowa linia jądra, zmiana konfiguracji) — zgłoszenie (Issue) z etykietą „robot” zamiast wydania.
+  Co widzi użytkownik: na GitHubie raz na jakiś czas PR „Robot: jądro 6.18.61”, „Robot: jądro 7.1 (nowa linia)”
+  albo „Robot: Firefox ESR …”, który sam przechodzi testy, scala się i daje wydanie; na laptopie po 1–2 dniach pytanie
+  z kroku 2. Gdy robot nie umie (testy czerwone, konfiguracja jądra nie wchodzi) — zgłoszenie (Issue) z etykietą
+  „robot” zamiast wydania; Claude albo Codex robi wtedy zmianę ręcznie zwykłym PR-em.
   Zadania:
   [ ] ADR 0045 „Robot aktualizacji”: T8 co robot zmienia (tylko numery i sumy), T9 jak przechodzi testy i wydaje
       (GITHUB_TOKEN — S17), T10 kiedy przestaje i pyta; robot jako trzeci „asystent” w AGENTS.md (gałęzie robot/…,
       robi wydania PATCH, nie rusza cudzych gałęzi).
   [ ] Workflow .github/workflows/robot.yml (harmonogram raz dziennie + ręczne uruchomienie): (a) jądro — najnowsze
-      wydanie tej samej linii LTS z kernel.org (releases.json), sha256sums.asc sprawdzony kluczem z jadro/klucze/,
-      nowa suma do jadro/wersja.env (procedura z jadro/README.md, kroki 1–2); (b) przeglądarka — skrypt odświeżenia
+      wydanie najnowszej linii długoterminowej z kernel.org (releases.json, tylko „longterm” — T11; ta sama linia
+      albo nowsza, np. 6.18 → 7.x), sha256sums.asc sprawdzony kluczem z jadro/klucze/, wersja, adres (v6.x / v7.x)
+      i suma do jadro/wersja.env (procedura z jadro/README.md, kroki 1–2); (b) przeglądarka — skrypt odświeżenia
       tabeli pakietów z 0.10.0 krok 2 (debian-security, podpis InRelease); (c) nic nowego → koniec bez śladu.
+  [ ] Nowa linia jądra (T11, S24): oba fragmenty (jadro/k1.config i jadro/strefa.config z 0.10.0) muszą wejść
+      w całości (zbuduj-jadro.sh przerywa, gdy opcja z fragmentu nie weszła — fail closed); w opisie PR-a: nowe opcje
+      jądra, których dotąd nie było (lista z Kconfig przed/po), rozmiar k1.efi przed/po, wynik sprawdz-kspp.sh; po
+      wydaniu Issue „przejrzyj nowe opcje jądra 7.x” dla Claude'a/Codexa (nie wstrzymuje wydania); w ogłoszeniu flaga
+      „nowa linia jądra” (T3); w CHANGELOG „Jądro Linux 7.1 — nowa linia długoterminowa”.
   [ ] Gdy coś nowego: gałąź robot/<co>-<wersja>, VERSION +1 PATCH, wpis w CHANGELOG (gotowy tekst po polsku: „Jądro
       Linux 6.18.61 — poprawki bezpieczeństwa” / „Przeglądarka: Firefox ESR …”), PR, pełne testy (T9), po zielonych
       squash do main i wydanie (tag, ISO, obraz USB, ogłoszenie, paczka); czerwone → PR zostaje otwarty + Issue.
   [ ] Bezpieczniki (T8, T10, S18–S20): robot zmienia wyłącznie pliki z jednej listy (jadro/wersja.env, tabela pakietów
       strefy, VERSION, CHANGELOG.md) — sprawdzenie w workflow, inna zmiana = przerwanie; nie scala, gdy na main jest
-      otwarty PR, który zmienia VERSION (czeka do następnego dnia — S19); nowa linia jądra (6.18 → następna LTS), błąd
-      zbuduj-jadro.sh przy konfiguracji, sprawdz-kspp.sh z nowymi zaleceniami → Issue, bez scalania; najwyżej jedno
-      wydanie robota na dobę.
+      otwarty PR, który zmienia VERSION (czeka do następnego dnia — S19); błąd zbuduj-jadro.sh przy konfiguracji
+      → Issue, bez scalania; nowe zalecenia sprawdz-kspp.sh → Issue do przejrzenia (nie wstrzymuje wydania); najwyżej
+      jedno wydanie robota na dobę; nowa linia jądra — najwyżej jedna zmiana linii naraz i dopiero gdy poprzednie
+      wydanie robota stoi co najmniej 7 dni bez Issue „błąd” (S24).
   [ ] Porządki (wersja PATCH — bez pełnych porządków MINOR): przegląd tego, co zostało po przeniesieniu z Instalatora
       (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–2.
   [ ] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki); DO_ZROBIENIA.txt — „Teraz” → następna
@@ -214,11 +235,14 @@ KROK 3 — Robot na GitHubie; wydanie 0.10.5                              M · d
   Testy i dowód: próbny przebieg robota na gałęzi z celowo starszym jądrem w jadro/wersja.env (PR robota powstaje,
   testy idą, scalenie wyłączone w trybie próbnym — S21); próbny przebieg „nic nowego” (koniec bez PR-a); robot
   z niedozwoloną zmianą (inny plik) → przerwanie; zły podpis sha256sums.asc (podmieniony plik w próbie) → Issue,
-  bez PR-a. Pełne testy wydania [OK].
+  bez PR-a; próba nowej linii: gałąź z jądrem starszej linii długoterminowej (np. 6.12.x) → robot proponuje 6.18.x
+  z listą nowych opcji (gdy fragment nie wchodzi — Issue zamiast PR-a, i to też jest wynik próby). Pełne testy
+  wydania [OK].
   Właściciel (po wydaniu): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem poczekać na pierwszą
   wersję od robota i zainstalować ją przez sieć (lista w DO_ZROBIENIA).
   Dokumenty: ADR 0045, AGENTS.md (robot), nowy opis w docs/komponenty/ (robot.md: co sprawdza, czego nie rusza,
-  jak go zatrzymać — wyłączenie workflow), jadro/README.md (procedura: robot robi kroki 1–6 dla tej samej linii),
+  jak go zatrzymać — wyłączenie workflow), jadro/README.md (procedura: robot robi kroki 1–6, także dla nowej linii),
+  ADR 0003 (dopisek: linię jądra wybiera robot — najnowsza długoterminowa),
   TESTY.md, RYZYKA (przejęte konto GitHub albo archiwum Debiana = podpisana wersja na wszystkich komputerach — S22),
   CHANGELOG, README, skill (CI, wydania).
   Gotowe, gdy: robot przeszedł przebiegi próbne, testy zielone, wydanie k1-v0.10.5 istnieje z ogłoszeniem i paczką,
@@ -251,10 +275,17 @@ Twoje (produkt):
        dysku; na pendrive'ie sekcja mówi „Jest nowsza wersja K1 0.10.6 — nagraj nowy pendrive (README)”.
        Aktualizacja pendrive'a przez sieć — później.
 [!] D6 (krok 3) Czy robot scala i wydaje sam, czy czeka na Twoje „tak”. Rekomendacja: sam (inaczej poprawka czeka na
-       Ciebie i tracimy to, po co jest robot) — ale tylko jądro tej samej linii i pakiety przeglądarki z archiwum
-       bezpieczeństwa Debiana, po pełnych zielonych testach; wszystko inne — Issue do Ciebie i do mnie. Warunek:
+       Ciebie i tracimy to, po co jest robot) — ale tylko jądro z linii długoterminowych (także nowa linia, np. 7.x —
+       Twoja decyzja z 2026-11-14, z bezpiecznikami T11) i pakiety przeglądarki z archiwum bezpieczeństwa Debiana, po
+       pełnych zielonych testach; wszystko inne — Issue do Ciebie i do mnie. Warunek:
        Twoje konto GitHub z logowaniem dwuetapowym (najlepiej kluczem dostępu, passkey) — od tego konta zależy klucz
        podpisu (S22). Zatrzymanie robota w każdej chwili: GitHub → Actions → „Robot” → Disable workflow.
+[!] D7 (krok 2) „Wróć do poprzedniej wersji” w Ustawieniach → Aktualizacje. Po co: testy w QEMU nie widzą Twojego
+       sprzętu (S24) — nowe jądro może uruchomić K1 poprawnie (więc start na próbę się uda i wersja zostanie
+       potwierdzona), a mimo to zepsuć np. Wi-Fi albo obraz na jednym z laptopów; bez sieci aktualizacja przez sieć
+       już tego nie naprawi. Rekomendacja: tak — przycisk w sekcji, tylko do wersji w drugim miejscu (już raz
+       potwierdzonej), z pytaniem „Wrócić do K1 0.10.6? Komputer uruchomi się ponownie.”; odrzuconej wersji K1 nie
+       proponuje znowu, tylko następną.
 
 Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
     T1 Kanał aktualizacji (krok 1): Ustawienia dostają od nadzorcy osobny kanał, nie kanał Instalatora — inny UID
@@ -267,7 +298,8 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
     T3 Ogłoszenie wydania (krok 2): mały plik (≤ 4 KiB, stały układ): wersja, identyfikator wydania, nazwa i wielkość
        paczki, skrót SHA-256 paczki, data wydania, podpis EdDSA kluczem K1 (ten sam co manifest, Monocypher). K1
        przyjmuje tylko ogłoszenie z poprawnym podpisem, wersją nowszą od działającej i nazwą paczki z jednej tabeli
-       znaków (bez ukośników). Ochrona przed starym ogłoszeniem: wersja nie starsza (jak Instalator).
+       znaków (bez ukośników). Ochrona przed starym ogłoszeniem: wersja nie starsza (jak Instalator). Flagi: „nowa
+       linia jądra” (dopisek w pytaniu — krok 2), pozostałe bity zarezerwowane = 0.
     T4 Paczka aktualizacji (krok 2): to, co dziś Instalator bierze z pendrive'a, w jednym pliku: nagłówek, manifest
        miejsca (format 2) i zawartość miejsca A/B (k1.efi), manifest plików startowych (format 3) i pliki startowe
        (drzewo z k1_fat32). Bez kompresji w K1 (mniej kodu, który czyta obce bajty; wielkość nie gra roli — D4).
@@ -287,15 +319,26 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        jeden zapis sektora).
     T8 Co robot zmienia (krok 3): tylko numery wersji i sumy w plikach z jednej listy — nigdy kod, skrypty, konfigurację
        jądra ani workflow. Źródła sprawdza jak dziś budowa: podpis PGP kernel.org (klucze w jadro/klucze/), podpis
-       InRelease Debiana (klucz archiwum w repo, 0.10.0 krok 2).
+       InRelease Debiana (klucz archiwum w repo, 0.10.0 krok 2). Przy nowej linii jądra też tylko numer, adres i suma
+       — fragmenty konfiguracji zmienia człowiek (T11).
     T9 Testy i wydanie robota (krok 3): zdarzenia zrobione przez GITHUB_TOKEN nie uruchamiają innych workflow — oprócz
        workflow_dispatch i repository_dispatch (ZE ŹRÓDEŁ: dokumentacja GitHub Actions, „Triggering a workflow from
        a workflow” — S17). Dlatego robot: PR → uruchamia k1.yml na swojej gałęzi przez workflow_dispatch (testy bez
        wydania) → po zielonych squash do main → workflow_dispatch k1.yml na main (budowa, testy, tag, wydanie). Bez
        osobnego tokenu ani nowego sekretu.
-    T10 Kiedy robot przestaje (krok 3): nowa linia jądra, zmiana opcji w konfiguracji (zbuduj-jadro.sh przerywa, gdy
-       fragment nie wchodzi), nowe zalecenia KSPP, czerwone testy, zła suma albo podpis źródła, otwarty PR ze zmianą
-       VERSION — za każdym razem Issue z etykietą „robot” i log, bez scalania.
+    T10 Kiedy robot przestaje (krok 3): konfiguracja nie wchodzi (zbuduj-jadro.sh przerywa, gdy opcja z fragmentu
+       nie weszła), czerwone testy, zła suma albo podpis źródła, otwarty PR ze zmianą VERSION — za każdym razem Issue
+       z etykietą „robot” i log, bez scalania. Nowe zalecenia KSPP — Issue, ale wydanie idzie.
+    T11 Nowe linie jądra (krok 3; Twoja decyzja z 2026-11-14: robot przechodzi też na 7.x). Zasada Linusa „nie psujemy
+       przestrzeni użytkownika” chroni wywołania systemowe i ioctl, których używają programy K1 — więc nowe jądro nie
+       zepsuje nadzorcy, skarbca ani okien. Nie chroni trzech rzeczy, na których K1 też stoi: (1) konfiguracji jądra —
+       K1 buduje je z allnoconfig i krótkiego fragmentu, a nowa linia zmienia nazwy i zależności opcji, dodaje nowe
+       opcje „domyślnie tak”, które allnoconfig wyłącza (przykład z 6.18: KVM_IOAPIC, bez której strefy nie mają
+       przerwań — plan 0.10.0 S1); (2) zachowania sterowników na prawdziwym sprzęcie (Wi-Fi, grafika, karta
+       sieciowa) — testy w QEMU go nie widzą; (3) części sysfs i uevent, które K1 czyta (nie wszystkie są stałym ABI).
+       Dlatego: tylko linie „longterm” z releases.json (poprawki przez lata; linie krótkie kończą się po ok. 3
+       miesiącach i wymuszałyby skok co kwartał); fragment musi wejść w całości (inaczej Issue); pełne testy; nowe
+       opcje na liście do przejrzenia po wydaniu; dopisek w pytaniu na laptopie i „Wróć do poprzedniej wersji” (D7).
 
 
 5. LUKI (z czytania kodu 0.9.1 i dokumentacji, 2026-11-14)
@@ -345,6 +388,10 @@ Krok 2
       w obrazie testowym strefy; paczka testowa podpisana kluczem testowym (obraz testowy ma klucz testowy — sprawdzić,
       jak dziś test-m6 robi wersję „nowszą”).
   S16 Z KODU (src/nadzorca/rozruch.c: „A stick (USB) is never touched”). Pendrive nie ma potwierdzania A/B — D5.
+  S25 NIEPEWNE. „Wróć do poprzedniej wersji” (D7): drugie miejsce A/B po potwierdzeniu nowej wersji ma poprzednią
+      (podpisaną, potwierdzoną) — o ile pobieranie jeszcze go nie nadpisało (T7: wtedy przycisku nie ma). Gdzie K1
+      pamięta odrzuconą wersję (grubenv ma 1024 B i zmienne GRUB-a; obiekt nadzorcy w skarbcu?) — wybór w kroku;
+      Instalator dziś odmawia starszych wersji (M6a) — wyjątek tylko dla tej jednej drogi, w ADR 0044.
 
 Krok 3
   S17 NIEPEWNE, WYSOKA. Uprawnienia robota: permissions w robot.yml (contents: write, pull-requests: write,
@@ -354,7 +401,8 @@ Krok 3
       nie jako Claude).
   S18 Z KODU (jadro/wersja.env, jadro/README.md). Wersja jądra, suma i adres w jednym pliku; procedura 6 kroków
       (releases.json, sha256sums.asc z podpisem, zbuduj-jadro.sh, sprawdz-kspp.sh, testy, CHANGELOG i VERSION) —
-      robot robi ją całą dla tej samej linii (6.18.x).
+      robot robi ją całą — dla tej samej linii (6.18.x) i dla nowej (adres v7.x, klucz podpisu ten sam — sprawdzić
+      w jadro/klucze/, czy kernel.org podpisuje nową linię tym samym kluczem autosignera).
   S19 Z KODU (AGENTS.md: VERSION i CHANGELOG zmienia ten, kto robi wydanie). Robot robi wydania PATCH — gdy człowiek
       (Claude, Codex) ma otwarty PR wydania, robot czeka; człowiek po scaleniu robota bierze następny numer.
   S20 NIEPEWNE. Czas: CI ok. 30 min na przebieg (budowa i testy), robot = dwa przebiegi (gałąź, main). Repo publiczne
@@ -369,6 +417,12 @@ Krok 3
       Podpis offline (klucz poza GitHubem) — później, z decyzją o kluczach w 0.12.
   S23 Z KODU. Pierwsza wersja z aktualizacjami przez sieć (0.10.5) instaluje się jeszcze z pendrive'a — dopiero od niej
       w górę K1 aktualizuje się sam.
+  S24 ŚREDNIA. Nowa linia jądra a sprzęt właściciela: testy w QEMU sprawdzają start, klatki, okna, skarbiec, sieć
+      w maszynie wirtualnej i Wi-Fi z udawanymi kartami (mac80211_hwsim) — nie ath10k na IdeaPadzie, e1000e na X230
+      ani simpledrm na prawdziwym ekranie. Pliki od producentów kart (jadro/oprogramowanie-kart.txt) — nowe jądro
+      może prosić o nowsze pliki (NIEPEWNE: sprawdzić w źródłach nowej linii, o jakie nazwy plików proszą sterowniki
+      z listy, i dopisać to do sprawdzeń robota). Zabezpieczenia: D7, dopisek w pytaniu, 7 dni spokoju przed zmianą
+      linii, Twój test po każdej nowej linii (lista w DO_ZROBIENIA).
 
 
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
@@ -378,4 +432,5 @@ Krok 3
     z sieci — trzeba go bezpiecznie pokazać); podpis wydań kluczem poza GitHubem i odwoływanie starszych wersji
     (0.12, TPM — RYZYKA R44); robot dla musl, plików od producentów kart Wi-Fi i bazy przepisów radiowych (rzadkie
     zmiany — na razie ręcznie); świeżość ogłoszenia (codziennie podpisywana data, ochrona przed ukrywaniem nowej
-    wersji — RYZYKA w kroku 2); aktualizacja czasu podpisanego (NTS) przez strefę pobierania.
+    wersji — RYZYKA w kroku 2); aktualizacja czasu podpisanego (NTS) przez strefę pobierania; linie jądra krótkie
+    (nie „longterm”) i jądro z gałęzi głównej (rc) — robot ich nie bierze (T11).
