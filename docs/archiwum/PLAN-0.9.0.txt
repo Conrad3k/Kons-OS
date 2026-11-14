@@ -83,11 +83,11 @@ Potem sieć:
 [x]  6  Kabel i adres od routera (DHCP) w klatce         L10 L14 L15     5          D2 D3        L        —
          PR #100
 [x]  7  Ikona sieci i Ustawienia → Sieć                  L16             6          D1           M        —
-         PR z kroków 7–9 (gałąź claude/upbeat-hypatia-fawu99)
+         PR #102
 [x]  8  Zegar z internetu                                L17 L18         6          T5           M        —
-         PR z kroków 7–9
+         PR #102
 [x]  9  Porządki i wydanie 0.9.0                         L19 L20         1–8        D4           S–M      —
-         PR z kroków 7–9; wydanie k1-v0.9.0
+         PR #102; wydanie k1-v0.9.0
 
 Kolejność: 1–4 nie dotykają tych samych plików (1: nadzorca; 2: wspólne komunikaty i skarbiec; 3: Instalator;
 4: budowa) — mogą iść w dowolnej kolejności, ale wszystkie przed 5 (sieć wchodzi do uporządkowanego kodu,
