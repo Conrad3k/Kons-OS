@@ -226,6 +226,12 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   nie miejsce A (z niego startuje).
 - **Nie edytuj skryptów ani kodu, gdy testy działają w tle** — powłoka czyta skrypt w trakcie.
 - Niestabilny test: najpierw szukaj błędu w harnessie, potem w systemie — nigdy go nie ignoruj ani nie wyłączaj.
+- **Dziwny błąd testu, którego nie widać w kodzie K1** (decyzja właściciela 2026-11-15; np. zachowanie obcego programu
+  w strefie — Enter w Firefoksie, przewijanie): najwyżej **1–2 próby** wyjaśnienia (log, jeden przebieg z diagnostyką).
+  Potem nie szukaj dalej kolejnymi przebiegami CI — **oddaj test właścicielowi**: link do obrazu USB z artefaktu PR-a
+  (`k1-<wersja>-obraz`, przebieg CI) i krótka lista „co kliknąć, co powinno się stać”; właściciel uruchamia go
+  z pendrive'a na X230 / IdeaPadzie. Działa na sprzęcie → test w CI omija to zachowanie, z notatką w skrypcie i w
+  `docs/TESTY.md` (wzór: `test-przegladarka.sh` bez Entera — przebiegi 95–103 PR-a #119, cały dzień szukania).
 
 **Pułapki, które już wystąpiły:**
 - *Strefy (0.10.0, ADR 0042 T10):* QEMU 8.2 w TCG udaje AMD SVM z NPT, ale gość **bez stronicowania** (tryb rzeczywisty,
@@ -266,14 +272,20 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 - *GRUB i ekran startowy:* `background_image` rysuje się po wypisaniu czegoś (`echo ""`); `set color_normal=
   black/black` **po** `terminal_output gfxterm`; `quiet` wycisza „EFI stub”; w QEMU fazę GRUB-a widać na
   zrzutach dopiero z `sleep` w kopii `grub.cfg` (`mcopy -i obraz@@1M`).
-- Próba kliknięcia "Enter" w przeglądarce nie działała tylko w testach agenta, a na prawdziwym sprzęcie klawisz działał zawsze.
+- *Przeglądarka w CI (0.10.0 krok 2):* Enter w pasku adresu i w polu formularza Firefoksa w strefie bywał bez skutku tylko
+  w testach (CI z KVM), na prawdziwym sprzęcie działał zawsze — `test-przegladarka.sh` nie naciska Entera nigdzie
+  (podpowiedź „otwórz stronę”, formularz wysyła się sam, D3 — obrazek z sieci domowej na stronie testowej). Nie wracaj
+  do Entera bez decyzji właściciela. Firefox w strefie ocenia sieć po kartach systemu (strefa ich nie ma) —
+  `network.manage-offline-status` wyłączone w `strefy/przegladarka/k1.js`. Pełny Firefox w emulacji zagnieżdżonej
+  (kontener bez KVM) nie rysuje okna — do szukania błędów: obraz strefy wprost w QEMU z jednorazowym przekaźnikiem
+  albo sonda zamiast Firefoksa w K1 (tak znaleziono zamykanie fd 0 w VMM).
 
 ## 8. Plan i zasady etapu
 
 **Plan — jedno miejsce (ADR 0035):** stan, mapa drogi i otwarte decyzje — `docs/DO_ZROBIENIA.txt`; kroki bieżącej
 wersji — `docs/PLAN-<wersja>.txt` (samodzielny: luki, kroki, decyzje; zakres zamrożony, nowe pomysły → „Później”;
 numery kroków się nie zmieniają; zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
-Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (teraz: 0.10.0, plan `docs/PLAN-0.10.0.txt`; krok 1 gotowy — strefa próbna) (mikro-maszyny, ramka,
+Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (teraz: 0.10.0, plan `docs/PLAN-0.10.0.txt`; kroki 1–2 gotowe — strefa próbna, przeglądarka; krok 3 — poprawki przeglądarki, krok 4 — stała strefa i wydanie) (mikro-maszyny, ramka,
 przeglądarka; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery, TPM)
 → **0.13 Audyt** → 1.0. Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11,
 M10 = 0.12, M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).
