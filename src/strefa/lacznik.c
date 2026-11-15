@@ -104,8 +104,11 @@ int socks_prosba(const uint8_t *b, size_t n, size_t *zuzyte, struct socks_cel *c
             return -SOCKS_BLAD;
         memcpy(c->nazwa, b + 5, adr);
         c->nazwa[adr] = '\0';
-        if (nazwa_ipv4(c->nazwa, &c->adres))
+        if (nazwa_ipv4(c->nazwa, &c->adres)) {
             c->nazwa[0] = '\0';
+            if (!k1_siec_serwer_dobry(c->adres)) /* "00.0.0.0" too: an address, never a name to look up */
+                return -SOCKS_NIE_WOLNO;
+        }
     }
     if (c->adres != 0 && !k1_siec_serwer_dobry(c->adres))
         return -SOCKS_NIE_WOLNO;

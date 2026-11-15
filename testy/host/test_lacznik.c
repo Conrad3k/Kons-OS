@@ -48,7 +48,9 @@ static void t_prosba(void)
     EXPECT(socks_prosba(petla, sizeof petla, &z, &c) == -SOCKS_NIE_WOLNO);
     {   /* 0.0.0.0 (found by fuzz_lacznik: once taken for a name to look up) */
         static const uint8_t nic[] = { 5, 1, 0, 1, 0, 0, 0, 0, 0, 80 };
+        static const uint8_t nic_nazwa[] = { 5, 1, 0, 3, 8, '0', '0', '.', '0', '.', '0', '.', '0', 0, 80 };
         EXPECT(socks_prosba(nic, sizeof nic, &z, &c) == -SOCKS_NIE_WOLNO);
+        EXPECT(socks_prosba(nic_nazwa, sizeof nic_nazwa, &z, &c) == -SOCKS_NIE_WOLNO); /* the same as a name (CI run 88) */
     }
     for (i = 0; i < 255; i++)
         dluga[5 + i] = 'a';
