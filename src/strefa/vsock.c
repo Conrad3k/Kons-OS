@@ -229,6 +229,8 @@ static void prosba(const struct virtio_vsock_hdr *h)
     } else if (h->dst_port == POL_PORT && pol_znajdz(h->src_port) == 0 && (n = pol_nowe(h->src_port, &k)) > 0) {
         kolejkuj(POL_PORT, h->src_port, VIRTIO_VSOCK_OP_RESPONSE, 0, NULL, 0);
     } else {
+        if (h->dst_port == POL_PORT && pol_znajdz(h->src_port) != 0)
+            pol_ten_sam_port();
         kolejkuj(h->dst_port, h->src_port, VIRTIO_VSOCK_OP_RST, 0, NULL, 0);
     }
 }

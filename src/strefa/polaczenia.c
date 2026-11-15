@@ -41,7 +41,8 @@ struct polaczenie {
 };
 static struct polaczenie pol[K1_STREFA_POLACZENIA_MAKS];
 static int dns_fd = -1, dns_prosba;   /* the DNS socket; asked for and not yet answered */
-static unsigned long l_polaczen, l_odmow, l_nazw;
+static unsigned long l_polaczen, l_odmow, l_nazw, l_bez_miejsca, l_ten_sam_port;
+static unsigned szczyt; /* the most slots taken at once */
 
 static struct polaczenie *nr(uint32_t obiekt)
 {
@@ -94,6 +95,21 @@ static void zwolnij(struct polaczenie *p)
     p->czeka_nadzorce = czeka;
 }
 
+static unsigned zajete_teraz(void)
+{
+    unsigned i, n = 0;
+    for (i = 0; i < K1_STREFA_POLACZENIA_MAKS; i++)
+        n += pol[i].stan != WOLNE || pol[i].czeka_nadzorce;
+    if (n > szczyt)
+        szczyt = n;
+    return n;
+}
+
+void pol_ten_sam_port(void)
+{
+    l_ten_sam_port++;
+}
+
 /* --- the guest side (vsock.c, under mz.zamek) --- */
 int pol_nowe(uint32_t port_goscia, const struct pol_kredyt *kr)
 {
@@ -105,8 +121,10 @@ int pol_nowe(uint32_t port_goscia, const struct pol_kredyt *kr)
             pol[i].port_goscia = port_goscia;
             pol[i].kr = *kr;
             l_polaczen++;
+            zajete_teraz();
             return i + 1;
         }
+    l_bez_miejsca++;
     return 0;
 }
 
@@ -409,5 +427,7 @@ void pol_obsluz(const struct pollfd *p, int n)
 void pol_podsumowanie(void)
 {
     if (l_polaczen > 0)
-        k1_log(TAG, "połączenia przeglądarki: %lu, nazwy %lu, odmowy %lu", l_polaczen, l_nazw, l_odmow);
+        k1_log(TAG, "połączenia przeglądarki: %lu, nazwy %lu, odmowy %lu; bez wolnego miejsca %lu, port w użyciu %lu; "
+               "najwięcej naraz %u, zajęte na końcu %u", l_polaczen, l_nazw, l_odmow, l_bez_miejsca, l_ten_sam_port, szczyt,
+               zajete_teraz());
 }
