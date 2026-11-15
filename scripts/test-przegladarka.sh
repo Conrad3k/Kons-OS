@@ -114,8 +114,17 @@ def strona(w, h, px):
     return blisko(px(x + w_ // 2, y + h_ - 40), POMARANCZ) and blisko(px(x + w_ // 2, y + 160), NIEBIESKI, 40)
 
 
+def adres(nazwa):  # CI's diagnosis: does the typed text reach Firefox's address bar (dark pixels of text in it)?
+    w, h, px = q.zrzut(nazwa)
+    ciemne = sum(1 for xx in range(x + 80, x + w_ - 80, 2) for yy in range(y + 52, y + 78, 2) if max(px(xx, yy)) < 110)
+    return f"{nazwa}: ciemne piksele w pasku adresu {ciemne}, środek okna {px(x + w_ // 2, y + h_ // 2)}"
+
+
+opisy = [adres("2a-przed")]
 q.klik(x + w_ // 2, y + 64)  # the address bar
+opisy.append(adres("2b-klik"))
 wpisz(f"10.0.2.2:{port}/")
+opisy.append(adres("2c-wpisane"))
 q.pisz("ret")
 w, h, px = q.zrzut("2-strona", gdy=strona, czas=900)
 
@@ -124,6 +133,8 @@ def pokaz():  # what the zone and nadzorca said (counts, reasons, the watchman �
     for l_ in [l for l in q.tekst().splitlines() if re.search(r"K1-STREFA|strefa 2", l)][-25:]:
         print("            | " + l_[:240], flush=True)
     print(f"            | serwer dostał: {len(odebrane)} żądań", flush=True)
+    for o_ in opisy:
+        print("            | " + o_, flush=True)
 
 
 if not strona(w, h, px):
