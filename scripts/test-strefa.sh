@@ -48,10 +48,16 @@ def blisko(c, w, tol=24):
 
 
 g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", czas=limit * 0.4)
-# The kernel's KVM line comes long before the desktop. It is read from the raw bytes of the log: q.tekst() drops a
-# kernel message printed in the middle of a K1 line (WTRACENIE), and with KVM in CI this one landed there once (run 77).
-sprawdz("jądro K1 z KVM: wirtualizacja w maszynie testowej (w emulacji: AMD z zagnieżdżonym stronicowaniem)",
-        re.search(rb"kvm_amd: Nested Paging enabled|kvm_intel|kvm: ", open(log, "rb").read()))
+# The proof of KVM is the zone's machine running (KVM_CREATE_VM, KVM_RUN), not a kernel line: kvm_amd prints
+# "Nested Paging enabled", but kvm_intel prints nothing when VMX works — CI runners are AMD or Intel (runs 77, 79:
+# Intel Xeon with nested VMX). The kernel lines only name the kind, from the raw bytes of the log (q.tekst() drops a
+# kernel message printed in the middle of a K1 line).
+dziala = czekaj(r"K1-STREFA: strefa 1 \(Strefa próbna\): maszyna działa", czas=240)
+surowy = open(log, "rb").read()
+rodzaj = ("AMD z zagnieżdżonym stronicowaniem" if b"kvm_amd: Nested Paging enabled" in surowy else
+          "Intel VMX" if b"kvm_intel" not in surowy else "?")
+sprawdz(f"jądro K1 z KVM: maszyna strefy działa ({rodzaj}{', emulacja' if emulacja else ''})", dziala and rodzaj != "?",
+        rodzaj)
 ax, ay, krok = (int(g.group(i)) for i in (3, 4, 5)) if g else (0, 0, 0)
 o = czekaj(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", czas=180)
 nr, w_, h_, x, y = (int(o.group(i)) for i in range(1, 6)) if o else (0, 0, 0, 0, 0)
