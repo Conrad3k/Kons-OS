@@ -31,6 +31,11 @@ pref("browser.discovery.enabled", false, locked);
 pref("browser.safebrowsing.downloads.remote.enabled", false);
 pref("network.captive-portal-service.enabled", false);
 pref("network.connectivity-service.enabled", false);
+// Strefa nie ma karty sieciowej (tylko pętlę zwrotną — wszystko idzie przez przekaźnik), więc Firefox, który sam ocenia
+// sieć po kartach systemu, uznawał po chwili, że „sieć jest wyłączona”, i przestawał otwierać strony: Enter w pasku adresu
+// nie robił nic (plan 0.10.0, krok 2, ustalenie 7). Firefox w strefie nigdy sam nie przechodzi w tryb bez sieci.
+pref("network.manage-offline-status", false, locked);
+pref("network.offline-mirrors-connectivity", false, locked);
 pref("browser.newtabpage.activity-stream.feeds.telemetry", false, locked);
 pref("browser.newtabpage.activity-stream.telemetry", false, locked);
 pref("browser.ping-centre.telemetry", false, locked);
@@ -48,9 +53,3 @@ pref("gfx.webrender.software", true);
 pref("widget.dmabuf.force-enabled", false);
 pref("media.hardware-video-decoding.enabled", false);
 pref("media.ffmpeg.vaapi.enabled", false);
-// k1: tymczasowe — diagnostyka tej sesji (usunąć przed scaleniem)
-pref("devtools.console.stdout.chrome", true);
-pref("browser.dom.window.dump.enabled", true);
-pref("browser.urlbar.loglevel", "Debug");
-pref("browser.search.log", true);
-pref("browser.region.log", true);

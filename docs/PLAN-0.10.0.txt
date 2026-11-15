@@ -278,6 +278,13 @@ KROK 2 — Przeglądarka w strefie, połączenia przez K1                    L �
         połączenie do 10.0.2.2 dawało stronę, każde następne — od razu koniec). Poprawka: miejsca startują z fd = -1;
         błąd na gnieździe DNS (POLLERR) jest odczytywany. „no-kvmapf” z S20 nie było w kodzie — dopisane do linii poleceń
         gościa (src/strefa/main.c). Pełny Firefox w emulacji zagnieżdżonej w kontenerze nie rysuje okna nawet po 17 min.
+    (7) Po poprawce (6) Enter dalej bywał bez skutku (przebiegi 99, 100, 102; 101 przeszedł): klawisze dochodziły (ciąg
+        kodów z VMM czysty, Firefox loguje „Enter pressed”), droga do sieci przenosi duże dane (sonda: 4 × 3 MB naraz).
+        Dziennik Firefoksa: „NetworkOfflineError: Network is offline” — strefa nie ma karty sieciowej (tylko pętlę
+        zwrotną, ruch idzie przez przekaźnik), a Firefox sam ocenia sieć po kartach systemu i po chwili uznaje, że jej
+        nie ma. Wynik zależał od tego, czy Enter zdążył przed tą chwilą. Poprawka: network.manage-offline-status = false
+        (zablokowane, strefy/przegladarka/k1.js) — Firefox w strefie nie reaguje na stan kart. Klikanie w podpowiedź
+        paska adresu działało częściej, bo przychodziło później albo inną drogą (pickElement) — ślepy trop.
     Pułapki szukania: zrzuty są tylko w artefakcie — test przy błędzie wypisuje górę okna strefy do logu (obrazek
     w base64, tylko strona testowa); Firefoksa z obrazu strefy z naszym kompozytorem da się uruchomić na hoście bez
     maszyny (chroot + udawane urządzenia wejścia) — tak wykluczono kompozytor i Firefoksa.

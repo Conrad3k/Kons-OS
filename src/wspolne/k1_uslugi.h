@@ -71,7 +71,7 @@
  * when closed, step 3 makes Ogólna and Bank remember. */
 #define K1_STREFY(X)                                                                                                    \
     X(PROBNA, 1, 19, 300, "probna", "Strefa próbna", "", 128, 1, 0xA8834A, JEDNORAZOWA, EKRAN, 1, "")                 \
-    X(OGOLNA, 2, 20, 301, "przegladarka", "Przeglądarka", "Ogólna", 1536, 2, 0x5F8A6A, JEDNORAZOWA, PRZEGLADARKA, 1,  \
+    X(OGOLNA, 2, 20, 301, "przegladarka", "Przeglądarka", "Ogólna", 1536, 2, 0x5F8A6A, JEDNORAZOWA, PRZEGLADARKA, 0,  \
       "Strony internetowe w osobnej maszynie")                                                                  \
     X(BANK, 3, 21, 302, "przegladarka", "Przeglądarka", "Bank", 1536, 2, 0x4A6FA5, JEDNORAZOWA, PRZEGLADARKA, 0, "")  \
     X(PRYWATNA, 4, 22, 303, "przegladarka", "Przeglądarka", "Prywatna", 1536, 2, 0x8B6AA8, JEDNORAZOWA, PRZEGLADARKA,\
