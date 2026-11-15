@@ -92,7 +92,27 @@ jobs:
             build/naglowki
           key: ${{ steps.klucz-jadra.outputs.klucz }}
 
+      # The downloads (the kernel's and musl's sources, the firmware, the regulatory database, the zone's Debian
+      # packages, the firmware for the test machines) in the Actions cache: each is still checked by its SHA-256 (or
+      # signature) at every build, so a copy from the cache is the same file — but a slow server no longer holds the
+      # build (runs 83 and 87 of PR #119 waited an hour on git.kernel.org). The key: the tables of what is downloaded.
+      - name: Klucz pamięci podręcznej pobranych plików
+        id: klucz-pobranych
+        run: echo "klucz=k1-pobrane-${{ hashFiles('scripts/wspolne.sh', 'jadro/oprogramowanie-kart.txt', 'strefy/przegladarka.txt') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Przywróć pobrane pliki (pamięć podręczna)
+        id: pobrane
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/pobrane
+            build/strefa-pakiety
+          key: ${{ steps.klucz-pobranych.outputs.klucz }}
+          restore-keys: k1-pobrane-
+
       - name: Zbuduj jądro, programy, obrazy i ISO
+        timeout-minutes: 50
         # M6a (ADR 0021): the signing key (32 bytes, base64) — a secret the owner adds once in
         # Settings → Secrets and variables → Actions. Without it: an unsigned developer build.
         env:
@@ -106,6 +126,16 @@ jobs:
           else
             echo "K1_PODPIS=wersja deweloperska (bez podpisu — brak sekretu K1_KLUCZ_PODPISU)" >> "$GITHUB_ENV"
           fi
+
+      - name: Zapisz pobrane pliki (pamięć podręczna)
+        if: steps.pobrane.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/pobrane
+            build/strefa-pakiety
+          key: ${{ steps.klucz-pobranych.outputs.klucz }}
 
       - name: Zapisz zbudowane jądro dla PR-ów (tylko main)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

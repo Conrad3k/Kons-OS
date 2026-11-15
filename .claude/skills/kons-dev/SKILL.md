@@ -296,6 +296,8 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
   wersji, poprawki i jądro → PATCH, docs/CI → bez zmiany; wpis
   w `CHANGELOG.md`. `VERSION`, `CHANGELOG.md` i `DO_ZROBIENIA.txt` zmienia ten, kto robi wydanie. CI trwa ok. 25 min
   (budowa ~11, na PR-ze z jądrem z pamięci podręcznej mniej; testy ~12); repo jest publiczne, więc minuty CI są bezpłatne.
+  Pobrane pliki (`build/pobrane`, `build/strefa-pakiety`) są w pamięci podręcznej Actions (klucz: tabele pobieranych
+  plików) — wolny serwer nie trzyma budowy; każde `curl` ma limit połączenia i zatrzymania (60 s poniżej 2 KB/s).
 - **CI na PR-ze:** etykieta `testy` (`issue_write`) — build i testy bez wydania; to jest pełny komplet testów przed
   scaleniem. Wynik: `actions_list` (`list_workflow_runs`, gałąź PR-a), przy błędzie `get_job_logs`. `workflow_dispatch` daje 403.
 - **Scalanie** (repo publiczne od 2026-11-14, ADR 0040 — scalasz sam po zielonych testach): commit po angielsku → `git push -u origin

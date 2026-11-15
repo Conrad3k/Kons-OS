@@ -27,8 +27,8 @@ grep -v '^#' "$TABELA" | while read -r pakiet wersja archiwum suma plik; do
             *) blad "nieznane archiwum $archiwum ($pakiet)" ;;
         esac
         # Debian keeps only the newest versions: an older one is on snapshot.debian.org at the table's moment
-        curl -fsS --retry 3 --connect-timeout 30 --max-time 900 -o "$cel.part" "$adres/$plik" ||
-            curl -fsS --retry 3 --connect-timeout 30 --max-time 900 -o "$cel.part" "https://snapshot.debian.org/archive/$archiwum/$MIGAWKA/$plik" ||
+        curl -fsS --retry 3 --connect-timeout 30 --speed-limit 2048 --speed-time 60 --max-time 900 -o "$cel.part" "$adres/$plik" ||
+            curl -fsS --retry 3 --connect-timeout 30 --speed-limit 2048 --speed-time 60 --max-time 900 -o "$cel.part" "https://snapshot.debian.org/archive/$archiwum/$MIGAWKA/$plik" ||
             blad "nie pobrano $pakiet $wersja"
         mv "$cel.part" "$cel"
     fi
