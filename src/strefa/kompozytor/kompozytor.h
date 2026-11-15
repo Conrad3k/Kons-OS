@@ -230,8 +230,7 @@ int wejscie_fd(unsigned i);                   /* -1 past the last */
 void wejscie_czytaj(unsigned i);
 void wejscie_zapomnij(struct powierzchnia *p);
 void wejscie_klient_koniec(struct klient *k);
-void wejscie_okno_zmiana(void);
-void wejscie_zatwierdzono(int z_buforem);      /* a surface was committed (znaki_wejscia.h: does the client draw) */               /* the toplevel or the popups changed: keyboard focus anew */
+void wejscie_okno_zmiana(void);               /* the toplevel or the popups changed: keyboard focus anew */
 extern const char *mapa_klawiatury;           /* the XKB keymap file (argv) */
 
 /* scena.c */

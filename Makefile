@@ -166,13 +166,13 @@ STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przyborni
 $(BIN)/strefa: $(STREFA) $(wildcard src/strefa/*.h) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(STREFA) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 GOSC := $(sort $(wildcard src/strefa/gosc/*.c))
-$(BIN)/gosc: $(GOSC) $(wildcard src/strefa/gosc/*.h) src/strefa/znaki_wejscia.h | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -Isrc/strefa -o $@ $(GOSC) $(LDFLAGS_K1)
+$(BIN)/gosc: $(GOSC) $(wildcard src/strefa/gosc/*.h) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(GOSC) $(LDFLAGS_K1)
 # 0.10.0 step 2 (ADR 0043): the browser zone's own programs — the Wayland compositor (with gosc's display, kms.c) and
 # the relay of the browser's connections; they run inside the machine, built like gosc
 KOMPOZYTOR := $(sort $(wildcard src/strefa/kompozytor/*.c)) src/strefa/gosc/kms.c
-$(BIN)/kompozytor: $(KOMPOZYTOR) $(wildcard src/strefa/kompozytor/*.h) src/strefa/gosc/kms.h src/strefa/znaki_wejscia.h | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -Isrc/strefa/gosc -Isrc/strefa -o $@ $(KOMPOZYTOR) $(LDFLAGS_K1)
+$(BIN)/kompozytor: $(KOMPOZYTOR) $(wildcard src/strefa/kompozytor/*.h) src/strefa/gosc/kms.h | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -Isrc/strefa/gosc -o $@ $(KOMPOZYTOR) $(LDFLAGS_K1)
 $(BIN)/przekaznik: src/strefa/przekaznik/main.c | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/strefa/przekaznik/main.c $(LDFLAGS_K1)
 

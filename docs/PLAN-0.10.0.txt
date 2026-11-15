@@ -260,6 +260,20 @@ KROK 2 — Przeglądarka w strefie, połączenia przez K1                    L �
     i klatkę na sesję; gniazda nadal otwiera tylko nadzorca (strefy_siec.c). fuzz_lacznik znalazł 0.0.0.0 brane za nazwę.
   - Kółko myszy: K1 nie przekazuje go nigdzie (usługa wejścia, format zdarzeń, ekran) — strony przewija się klawiszami;
     kółko → DO_ZROBIENIA (zakres zamrożony).
+  - CI z KVM (przebiegi 84–96 PR-a #119) — pierwszy raz cały scenariusz z Firefoksem; co znalazł:
+    (1) Shift, Ctrl, Alt i AltGr nie docierały do gościa: ekran daje aplikacjom K1 modyfikatory w polu c każdego
+        klawisza, a samych klawiszy modyfikatorów nie wysyła; gość ma własną klawiaturę i musi je widzieć — w strefie
+        nie dało się wpisać „:”, wielkiej litery ani Ctrl+L (test wpisywał „10.0.2.2;port” i „l…”). Poprawka: ekran
+        wysyła klawisze modyfikatorów także jako KLAWISZ, tylko do okna strefy (wskaznik.c); test-strefa sprawdza Shift,
+        test-przegladarka Ctrl+L.
+    (2) fuzz_lacznik: nazwa „00.0.0.0” czytana jako adres 0 szła dalej jako pusta nazwa — odmowa jak dla adresu.
+    (3) k1.efi z obrazem strefy (121 MiB) nie mieścił się w 512 MiB maszyn testów startu z firmware — 1 GiB.
+    (4) Budowa wisiała na pobieraniu z git.kernel.org — pobrane pliki w pamięci podręcznej Actions, limit zatrzymania.
+    (5) Stróż VMM (stroz.c), liczniki połączeń (bez miejsca, szczyt, zajęte na końcu) i „wejście do gościa” w logu
+        zostają; szybki tryb CI: etykieta testy-przegladarka (sam test przeglądarki, wąsko).
+    Pułapki szukania: zrzuty są tylko w artefakcie — test przy błędzie wypisuje górę okna strefy do logu (obrazek
+    w base64, tylko strona testowa); Firefoksa z obrazu strefy z naszym kompozytorem da się uruchomić na hoście bez
+    maszyny (chroot + udawane urządzenia wejścia) — tak wykluczono kompozytor i Firefoksa.
   - Napis „Aplikacje nie mają jeszcze dostępu do internetu.” usunięty z Ustawienia → Sieć.
 
 KROK 3 — Stała strefa, Ustawienia, porządki; wydanie 0.10.0               L · decyzje D7, T11 · bez ADR (uzupełnia 0042)

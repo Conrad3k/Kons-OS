@@ -138,6 +138,10 @@ static void klawisz(const struct k1_zdarzenie *z)
     }
     if (bit) {
         s.mody = z->wartosc ? (s.mody | bit) : (s.mody & ~bit);
+        /* K1's applications read the modifiers from each key's message (c). A zone's guest has a keyboard of its own:
+         * it must see Shift, Ctrl and Alt go down and up, or nothing typed there is a capital, ":" or Ctrl+C. */
+        if (logowanie() < 0 && s.fokus >= 0 && s.kl[s.p[s.fokus].kl].rola == K1_ROLA_STREFA)
+            wyslij(s.p[s.fokus].kl, k1_komunikat_nowy(K1_KOM_KLAWISZ, s.p[s.fokus].id, z->kod, z->wartosc, s.mody, 0, 0));
         return;
     }
     /* The password screen (M5e) takes every key: nothing else is on screen while it runs. */

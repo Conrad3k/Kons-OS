@@ -95,6 +95,9 @@ sprawdz("klawisz dociera do gościa przy fokusie (licznik, nigdy kod klawisza w 
         czekaj(r"K1-GOSC: wejście: klawisze 1, kliknięcia 1", czas=60))
 w, h, px = q.zrzut("3-klawisz", gdy=lambda w, h, px: blisko(px(x + w_ // 2, y + h_ // 2), POMARANCZOWY))
 sprawdz("gość zmienia pas po klawiszu (zrzut strefa-3-klawisz)", blisko(px(x + w_ // 2, y + h_ // 2), POMARANCZOWY))
+q.pisz("shift-b")  # CI runs 88-96 of PR #119: without Shift itself the browser got ";" for ":" and "l" for Ctrl+L
+sprawdz("Shift dociera do gościa jako klawisz (Shift i litera: licznik rośnie o 2)",
+        czekaj(r"K1-GOSC: wejście: klawisze 3, kliknięcia 1", czas=60))
 
 PLAK = r"K1-EKRAN: strefa: plakietka okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr)
 n = q.ile(PLAK)
@@ -164,9 +167,9 @@ if u and sk:
     q.klik(ux + int(sk.group(4)) + int(sk.group(6)) * 3 // 4, uy + int(sk.group(5)) + 10)
 sprawdz("ciemny motyw", czekaj(r"K1-EKRAN: ustawienie 1=1", czas=60))
 # the zone's window to the front: a click on its content (focus), the frame then in the full colour
-n = q.ile(r"K1-GOSC: wejście: klawisze 1, kliknięcia 2")
+n = q.ile(r"K1-GOSC: wejście: klawisze 3, kliknięcia 2")
 q.klik(x + w_ - 40, y + h_ - 40)
-czekaj(r"K1-GOSC: wejście: klawisze 1, kliknięcia 2", czas=60)
+czekaj(r"K1-GOSC: wejście: klawisze 3, kliknięcia 2", czas=60)
 w, h, px = q.zrzut("6-ciemny", gdy=lambda w, h, px: blisko(px(x - 2, y + h_ // 2), PIASEK))
 sprawdz("ciemny motyw: obwódka strefy w jej kolorze, znaczek nad treścią (zrzut strefa-6-ciemny)",
         blisko(px(x - 2, y + h_ // 2), PIASEK) and not blisko(px(zx, zy + 12), TLO_GOSCIA))

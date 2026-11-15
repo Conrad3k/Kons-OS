@@ -14,7 +14,6 @@
 #include <linux/input.h>
 
 #include "kompozytor.h"
-#include "znaki_wejscia.h"
 
 #define URZADZENIA_MAKS 4
 #define KLAWISZE_MAKS 0x300
@@ -32,20 +31,6 @@ static uint32_t zablokowane, przyciski;
 static int32_t kx, ky;                     /* the pointer on the display */
 static struct powierzchnia *pod_kursorem, *z_klawiatura;
 static int mapa_fd = -1;
-static unsigned znaki; /* WEJ_* (kompozytor.h): what input did, for the zone's log (only these bits) */
-
-static void znak(unsigned z)
-{
-    int f;
-    if ((znaki & z) == z)
-        return;
-    znaki |= z;
-    f = open(PLIK_WEJSCIA, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
-    if (f >= 0) {
-        dprintf(f, "%u\n", znaki);
-        close(f);
-    }
-}
 static uint32_t mapa_rozmiar;
 
 /* musl: ioctl(int, int, ...); glibc (host tests): ioctl(int, unsigned long, ...) */
@@ -78,7 +63,6 @@ static int mapa(void)
         return -1;
     }
     mapa_rozmiar = (uint32_t)n;
-    znak(WEJ_MAPA);
     return 0;
 }
 
@@ -152,17 +136,8 @@ static void klawiatura_do(struct powierzchnia *p)
             klaw[n++] = i;
     s = kolejny_serial();
     KAZDY(klawiatury, p, j, kl)
-    {
         zdarzenie(kl, 1, "uoa", s, p->o, klaw, n * 4u);
-        znak(WEJ_FOKUS);
-    }
     wyslij_mody(p);
-}
-
-void wejscie_zatwierdzono(int z_buforem)
-{
-    if (z_buforem && (znaki & WEJ_KLAWISZ_WYSLANY))
-        znak(WEJ_KLATKA_PO_KLAWISZU);
 }
 
 void wejscie_okno_zmiana(void)
@@ -196,7 +171,6 @@ static void klawisz(int kod, int wartosc)
         return;
     if (wcisniete[kod] == (wartosc != 0))
         return;
-    znak(WEJ_KLAWISZ | (z_klawiatura != NULL ? WEJ_KLAWISZ_OKNO : 0));
     wcisniete[kod] = wartosc != 0;
     if (wartosc && kod == KEY_CAPSLOCK)
         zablokowane ^= M_LOCK;
@@ -204,10 +178,7 @@ static void klawisz(int kod, int wartosc)
         zablokowane ^= M_NUM;
     s = kolejny_serial();
     KAZDY(klawiatury, z_klawiatura, i, kl)
-    {
         zdarzenie(kl, 3, "uuuu", s, teraz_ms(), (uint32_t)kod, (uint32_t)(wartosc != 0));
-        znak(WEJ_KLAWISZ_WYSLANY | (kod == KEY_ENTER || kod == KEY_KPENTER ? WEJ_ENTER : 0));
-    }
     if (m != mody() || z != zablokowane)
         wyslij_mody(z_klawiatura);
 }
@@ -265,7 +236,6 @@ static void przycisk(int kod, int wartosc)
     unsigned i;
     if (bit == 0 || ((przyciski & bit) != 0) == (wartosc != 0))
         return;
-    znak(WEJ_PRZYCISK);
     if (wartosc && !przyciski && !w_wyskakujacym(pod_kursorem))
         xdg_wyskakujace_zamknij();
     przyciski = wartosc ? przyciski | bit : przyciski & ~bit;

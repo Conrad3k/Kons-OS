@@ -120,80 +120,45 @@ def zamknij_strefe():  # the frame's badge (hover the mark, then its close butto
 def wpisz(tekst):
     nazwy = {".": "dot", ":": "shift-semicolon", "/": "slash"}
     q.pisz(*[nazwy.get(c, c) for c in tekst])
+    time.sleep(1)  # as a person: Enter a moment after the last letter
 
 
 def strona(w, h, px):
     return blisko(px(x + w_ // 2, y + h_ - 40), POMARANCZ) and blisko(px(x + w_ // 2, y + 160), NIEBIESKI, 40)
 
 
-if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label testy-przegladarka): only the page
-    q.pisz("ctrl-l")
-    wpisz(f"10.0.2.2:{port}/")
-    time.sleep(3)  # as a person types: Firefox fills its suggestion first (an Enter in the same instant got lost)
-    q.pisz("ret")
-    w, h, px = q.zrzut("2-strona", gdy=strona, czas=60)
-    if not strona(w, h, px):  # the same with the mouse: Firefox's "go" arrow at the right of the address field
-        print("            | Enter nie otworzył strony — klikam strzałkę „przejdź”", flush=True)
-        q.klik(x + w_ * 820 // 1024, y + 64)
-        w, h, px = q.zrzut("2-strona", gdy=strona, czas=60)
-        print(f"            | po strzałce strona {'jest' if strona(w, h, px) else 'nie ma'}", flush=True)
-    jest = strona(w, h, px) and "/" in odebrane
+def pokaz(w, h, px):  # on failure: what the zone and nadzorca said (counts only) and the top of the window — the test
+    # page's address only — half size, 16 greys, zlib + base64 (the screenshots are in the artifact, not in the log)
+    for l_ in [l for l in q.tekst().splitlines() if re.search(r"K1-STREFA|strefa 2", l)][-12:]:
+        print("            | " + l_[:300], flush=True)
     print(f"            | serwer dostał: {len(odebrane)} żądań", flush=True)
-    if not jest:  # Firefox's error page (its heading): the top 300 rows of the window, half size, 16 greys
-        b = bytes(min(15, sum(px(x + 2 * i, y + 2 * j)) // 48) for j in range(150) for i in range(w_ // 2))
-        print(f"            | obrazek strona-blad {w_ // 2}x150 " + base64.b64encode(zlib.compress(b, 9)).decode(),
-              flush=True)
+    b = bytes(min(15, sum(px(x + 2 * i, y + 2 * j)) // 48) for j in range(150) for i in range(w_ // 2))
+    print(f"            | obrazek okno {w_ // 2}x150 " + base64.b64encode(zlib.compress(b, 9)).decode(), flush=True)
+
+
+if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label testy-przegladarka): only the page
+    q.pisz("ctrl-l")  # the address bar by its shortcut: Ctrl reaches the zone
+    wpisz(f"10.0.2.2:{port}/")
+    q.pisz("ret")
+    w, h, px = q.zrzut("2-strona", gdy=strona, czas=120)
+    jest = strona(w, h, px) and "/" in odebrane
+    if not jest:
+        pokaz(w, h, px)
     zamknij_strefe()
     q.czekaj(r"K1-NADZORCA: strefa 2: połączenia", czas=20)
-    for l_ in [l for l in q.tekst().splitlines() if re.search(r"połączenia|wejście do gościa|gość:", l)][-6:]:
+    for l_ in [l for l in q.tekst().splitlines() if re.search(r"połączenia|wejście do gościa", l)][-3:]:
         print("            | " + l_[:300], flush=True)
     sprawdz("[WĄSKO] strona testowa otwiera się (Ctrl+L, adres, Enter)", jest)
     q.monitor("quit")
     qemu.wait()
     sys.exit(0 if all(q.wyniki) else 1)
 
-obrazki = []
-
-
-def adres(nazwa):  # CI's diagnosis: does the typed text reach Firefox's address bar (dark pixels of text in it)?
-    w, h, px = q.zrzut(nazwa)
-    ciemne = sum(1 for xx in range(x + 80, x + w_ - 80, 2) for yy in range(y + 52, y + 78, 2) if max(px(xx, yy)) < 110)
-    # the top of the window (the test page only: no address of the user's), half size, 16 greys, zlib + base64
-    sz, wy = w_ // 2, 100
-    b = bytes(min(15, sum(px(x + 2 * i, y + 2 * j)) // 48) for j in range(wy) for i in range(sz))
-    obrazki.append(f"{nazwa} {sz}x{wy} " + base64.b64encode(zlib.compress(b, 9)).decode())
-    return f"{nazwa}: ciemne piksele w pasku adresu {ciemne}, środek okna {px(x + w_ // 2, y + h_ // 2)}"
-
-
-opisy = [adres("2a-przed")]
 q.klik(x + w_ // 2, y + 64)  # the address bar
-opisy.append(adres("2b-klik"))
 wpisz(f"10.0.2.2:{port}/")
-opisy.append(adres("2c-wpisane"))
 q.pisz("ret")
-w, h, px = q.zrzut("2-strona", gdy=strona, czas=120)
-if not strona(w, h, px):  # the diagnosis: the same through the keyboard only (Ctrl+L), not the click
-    q.pisz("ctrl-l")
-    opisy.append(adres("2d-ctrl-l"))
-    wpisz(f"10.0.2.2:{port}/")
-    opisy.append(adres("2e-wpisane-po-ctrl-l"))
-    q.pisz("ret")
-    w, h, px = q.zrzut("2-strona", gdy=strona, czas=60)
-    opisy.append(f"po Ctrl+L strona {'jest' if strona(w, h, px) else 'nie ma'}, serwer dostał {len(odebrane)} żądań")
-
-
-def pokaz():  # what the zone and nadzorca said (counts, reasons, the watchman — never an address)
-    for l_ in [l for l in q.tekst().splitlines() if re.search(r"K1-STREFA|strefa 2", l)][-25:]:
-        print("            | " + l_[:240], flush=True)
-    print(f"            | serwer dostał: {len(odebrane)} żądań", flush=True)
-    for o_ in opisy:
-        print("            | " + o_, flush=True)
-    for o_ in obrazki:
-        print("            | obrazek " + o_, flush=True)
-
-
+w, h, px = q.zrzut("2-strona", gdy=strona, czas=300)
 if not strona(w, h, px):
-    pokaz()
+    pokaz(w, h, px)
 sprawdz("strona testowa z serwera na routerze otwiera się w strefie (SOCKS5 → łącznik → gniazdo od nadzorcy; zrzut "
         "przegladarka-2-strona)", strona(w, h, px) and "/" in odebrane)
 q.klik(x + 200, y + h_ // 2)  # the form's field (autofocus too)
@@ -202,7 +167,7 @@ q.pisz("ret")
 dotarlo = q.czekaj_na(lambda: any(TEKST in p for p in odebrane), czas=120)
 sprawdz("tekst wpisany w pole formularza dociera do serwera", dotarlo)
 
-q.klik(x + w_ // 2, y + 64)
+q.pisz("ctrl-l")  # the address bar by its shortcut: Ctrl reaches the zone (Shift did with ":")
 n0 = q.ile(r"K1-NADZORCA: strefa 2: pierwsza odmowa połączenia")
 wpisz(f"10.0.2.3:{port}/")
 q.pisz("ret")
@@ -216,7 +181,7 @@ sprawdz("w logu K1 żadnego adresu strony ani wpisanego tekstu — tylko licznik
 
 koniec_ = zamknij_strefe()
 if not koniec_:
-    pokaz()
+    pokaz(*q.zrzut("4-koniec"))
 sprawdz("zamknięcie okna: gość dostaje „zamknij”, przeglądarka kończy się, maszyna znika (sesja jednorazowa)", koniec_)
 sprawdz("liczniki połączeń w logu: VMM i nadzorca (bez adresów)",
         czekaj(r"K1-STREFA: połączenia przeglądarki: \d+, nazwy \d+, odmowy \d+", czas=30) and
