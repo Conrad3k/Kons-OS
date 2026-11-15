@@ -118,6 +118,10 @@ q.klik(x + w_ // 2, y + 64)  # the address bar
 wpisz(f"10.0.2.2:{port}/")
 q.pisz("ret")
 w, h, px = q.zrzut("2-strona", gdy=strona, czas=900)
+if not strona(w, h, px):  # what the zone and nadzorca said (counts and reasons only — never an address)
+    for w_ in [l for l in q.tekst().splitlines() if re.search(r"K1-STREFA|strefa 2|STREFA: gość", l)][-25:]:
+        print("            | " + w_[:200], flush=True)
+    print(f"            | serwer dostał: {len(odebrane)} żądań", flush=True)
 sprawdz("strona testowa z serwera na routerze otwiera się w strefie (SOCKS5 → łącznik → gniazdo od nadzorcy; zrzut "
         "przegladarka-2-strona)", strona(w, h, px) and "/" in odebrane)
 q.klik(x + 200, y + h_ // 2)  # the form's field (autofocus too)
