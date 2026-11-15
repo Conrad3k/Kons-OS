@@ -24,7 +24,9 @@
 #include "strefa.h"
 
 #define JADRO_MAKS (64u << 20)
-#define LINIA_GOSCIA "console=hvc0 root=/dev/vda ro rootfstype=squashfs init=/init reboot=k panic=-1"
+/* no-kvmapf: no asynchronous page faults of KVM in the guest — under emulated SVM they gave Firefox a double fault, and
+ * K1 swaps nothing, so they bring nothing (plan 0.10.0, S20) */
+#define LINIA_GOSCIA "console=hvc0 root=/dev/vda ro rootfstype=squashfs init=/init reboot=k panic=-1 no-kvmapf"
 
 struct maszyna mz = { .kvm = FD_KVM, .vm = -1, .budzik = -1, .zamek = PTHREAD_MUTEX_INITIALIZER };
 

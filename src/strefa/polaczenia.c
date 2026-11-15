@@ -44,6 +44,14 @@ static int dns_fd = -1, dns_prosba;   /* the DNS socket; asked for and not yet a
 static unsigned long l_polaczen, l_odmow, l_nazw, l_bez_miejsca, l_ten_sam_port;
 static unsigned szczyt; /* the most slots taken at once */
 
+/* Every slot starts without a socket. Zeroed, it would hold fd 0, and the first use of each slot would close whatever
+ * has number 0 by then (the DNS socket, a page's socket). */
+static void __attribute__((constructor)) poczatek(void)
+{
+    for (int i = 0; i < K1_STREFA_POLACZENIA_MAKS; i++)
+        pol[i].fd = -1;
+}
+
 static struct polaczenie *nr(uint32_t obiekt)
 {
     return obiekt >= 1 && obiekt <= K1_STREFA_POLACZENIA_MAKS ? &pol[obiekt - 1] : NULL;
@@ -411,8 +419,8 @@ void pol_obsluz(const struct pollfd *p, int n)
     zamek_wez("połączenia: gniazda");
     if (p[0].revents & (POLLIN | POLLHUP))
         od_nadzorcy();
-    if (dns_fd >= 0 && (p[1].revents & POLLIN))
-        dns_odbierz();
+    if (dns_fd >= 0 && (p[1].revents & (POLLIN | POLLERR)))
+        dns_odbierz(); /* an error (ICMP "port unreachable") is read too: left there, poll would wake at once forever */
     for (i = 0; i + 2 < n; i++) {
         struct polaczenie *c = &pol[i];
         if (p[i + 2].fd >= 0 && p[i + 2].revents)
