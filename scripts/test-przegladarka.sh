@@ -156,7 +156,7 @@ if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label tes
         w, h, px = q.zrzut("2c-klik", gdy=strona, czas=60)
         pokaz(w, h, px)
         print(f"            | po kliknięciu serwer dostał: {len(odebrane)}", flush=True)
-        for l_ in [l for l in q.tekst().splitlines() if "gość:" in l and re.search(r"Console|JavaScript|rror|DocumentLoad|rlbar|K1-|Defer|defer|Enter|ommand", l)][-90:]:
+        for l_ in [l for l in q.tekst().splitlines() if "gość:" in l and re.search(r"rror|DocumentLoad|K1-|Defer|Enter|ommand|earch|egion|init|Query start|Settings", l) and "Registering" not in l][-150:]:
             print("            | " + re.sub(r"\d+\.\d+\.\d+\.\d+(:\d+)?", "<adres>", l_)[:240], flush=True)
     zamknij_strefe()
     q.czekaj(r"K1-NADZORCA: strefa 2: połączenia", czas=20)

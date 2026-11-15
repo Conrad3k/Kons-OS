@@ -52,3 +52,5 @@ pref("media.ffmpeg.vaapi.enabled", false);
 pref("devtools.console.stdout.chrome", true);
 pref("browser.dom.window.dump.enabled", true);
 pref("browser.urlbar.loglevel", "Debug");
+pref("browser.search.log", true);
+pref("browser.region.log", true);
