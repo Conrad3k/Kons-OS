@@ -65,10 +65,13 @@ wymaga), ale każda jest mała, robi jedną rzecz i wygląda jak pozostałe.
   testach scalaj PR do `main` sam (squash, z wyraźnym opisem commita). CI na `main` tworzy wydanie, gdy `VERSION` ma nową wersję.
 
 ## Środowisko i testy
-- Start pracy: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh && scripts/testy.sh` (bez KVM ok.
-  5 min budowy i 50 min testów). Szybko: `make && make testy-host`.
-- Przed scaleniem zmian w systemie (kod, skrypty, jądro): pełny `scripts/testy.sh` lokalnie, wszystko
-  `[OK]`. Sama dokumentacja — bez testów.
+- Start pracy: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh` (bez KVM ok. 5 min budowy, z jądrem dłużej).
+  Szybko: `make && make -j4 -O testy-host` (ok. 1,5 min).
+- Przed scaleniem zmian w systemie (kod, skrypty, jądro) — decyzja właściciela 2026-11-14 (repo publiczne, CI bez
+  limitu minut): **lokalnie** `scripts/test-m1.sh` (czytelność, testy na hoście, fuzzing, start, testy w systemie)
+  i skrypty QEMU zmienianej części (`scripts/test-<część>.sh`, mapa w `docs/TESTY.md`); **pełny komplet** — CI na
+  PR-ze (etykieta `testy`, z KVM ok. 15 min testów). Scalasz dopiero, gdy CI na PR-ze jest zielone. Pełny
+  `scripts/testy.sh` w kontenerze (bez KVM ok. 40 min) — tylko gdy CI nie działa. Sama dokumentacja — bez testów.
 - Nie edytuj skryptów ani kodu, gdy budowanie albo testy działają w tle.
-- Zrzuty ekranu z testów: `build/testy/m2-*.png`, `build/testy/m4-*.png`. Obraz do maszyny wirtualnej:
+- Zrzuty ekranu z testów: `build/testy/m4-*.png` (pulpit i aplikacje) i `build/testy/<część>-*.png`. Obraz do maszyny wirtualnej:
   `build/wynik/k1-<wersja>.iso` (CI: Releases).

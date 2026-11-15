@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE (M2, M3) — `scripts/test-m2.sh` (mysz i klawiatura przez monitor QEMU), klatka: testy w systemie |
+| **Status** | PRZETESTOWANE (M2, M3) — `scripts/test-m4.sh` (mysz i klawiatura przez monitor QEMU; do 0.10.0 `test-m2.sh`), `scripts/test-m5.sh` (USB), klatka: testy w systemie |
 | **Kod** | `src/wejscie/main.c`, protokół `src/wspolne/k1_zdarzenie.h` |
 | **Decyzje** | ADR 0006, ADR 0007 (klatka, kanał) |
 

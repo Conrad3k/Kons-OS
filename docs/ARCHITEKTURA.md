@@ -60,10 +60,9 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 | `uruchom-qemu.sh` | uruchamia K1 w QEMU (log szeregowy do pliku, monitor do gniazda); `--iso PLIK [--uefi] [--vga virtio]` — start z ISO |
 | `zrzut-ekranu.sh` | zrzut ekranu działającej maszyny (PNG) |
 | `testy.sh` | wszystkie testy (to uruchamia CI) |
-| `test-m4.sh` | pulpit i aplikacje (klikanie, pisanie, przeciąganie, motyw, tapeta, wyłączenie) + start z ISO przez UEFI i BIOS |
+| `test-m4.sh` | kursor, mysz i klawiatura (dawny `test-m2.sh`), pulpit i aplikacje (klikanie, pisanie, przeciąganie, motyw, tapeta, wyłączenie) + start z ISO przez BIOS |
 | `test-m1.sh` | czytelność, testy na hoście i fuzzing, start, testy w systemie, błędy startu |
-| `test-m2.sh` | ekran i wejście: mysz/klawiatura przez monitor QEMU, zrzuty ekranu sprawdzane automatycznie |
-| `test-m5f.sh` | instalator: instalacja, start z dysku, aktualizacja A/B z wymianą plików startowych (odmowa dla zmienionych, przerwanie), potwierdzenie, wycofanie, starsza wersja |
+| `test-m5f.sh` | instalator: start z ISO przez UEFI, instalacja, start z dysku, aktualizacja A/B z wymianą plików startowych (odmowa dla zmienionych, przerwanie), potwierdzenie, wycofanie, starsza wersja |
 | `test-m6.sh` | Secure Boot (OVMF secboot): klucz K1 w MOK, odmowy, wpisanie klucza przez MokManagera |
 | `test-m5.sh` | sprzęt: klawiatura i mysz USB bez PS/2, dyski i pendrive (M5a) |
 | `test-pliki.sh` | Pliki i Kosz: foldery, nazwy, Kosz, pliki na pulpicie, menu pod prawym przyciskiem, przeciąganie i zaznaczanie wielu, okno wyboru pliku, Notatki na plikach |

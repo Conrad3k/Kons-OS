@@ -34,7 +34,7 @@ uruchom() {
     "$K1_REPO/scripts/uruchom-qemu.sh" --log "$LOG" --monitor "$MON" --czas "$CZAS" "$@" &
     QPID=$!
     K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$tryb" "$LOG" "$MON" "$TESTY" "$CZAS" <<'PY' || r=1
-import os, sys
+import os, re, sys
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
 tryb = sys.argv[1]
@@ -48,6 +48,24 @@ def koniec():
 g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", czas=200)
 sprawdz("pulpit gotowy", g)
 if not g: koniec()
+
+if tryb == "z-iso":
+    # 0.10.0: also the checks of the former test-m4 start "iso-uefi" (the same ISO through UEFI with virtio): one start
+    s_ = czekaj(r"K1-GUI: (K1 zainstalowany na tym komputerze|sesja z pendrive'a)", czas=10)
+    sprawdz("iso-uefi: Wyloguj w menu Start ukryte (K1 nie jest zainstalowany)",
+            s_ and not s_.group(1).startswith("K1 zainst"), s_.group(0) if s_ else "brak")
+    t = czekaj(r"K1-EKRAN: tryb (\d+)x(\d+)")
+    W, H, ay = int(t.group(1)), int(t.group(2)), int(g.group(4))
+    jasny = lambda c: min(c) > 200
+    w, h, px = q.zrzut("0-iso-uefi-pulpit", gdy=lambda w, h, px: (w, h) == (W, H) and max(px(W // 2, 6)) < 120
+                       and jasny(px(W // 2, ay - 26)))
+    sprawdz(f"iso-uefi: zrzut {w}x{h} = tryb {W}x{H}", (w, h) == (W, H))
+    sprawdz("iso-uefi: górny pasek ciemny, dolny pasek jasny (motyw jasny)",
+            max(px(W // 2, 6)) < 120 and jasny(px(W // 2, ay - 26)), f"{px(W // 2, 6)} {px(W // 2, ay - 26)}")
+    sprawdz("iso-uefi: kolorowa tapeta (nie czarna, nie jednolita)",
+            px(W // 4, H // 2) != px(W - 20, H // 3) and max(px(W // 3, H // 2)) > 80, f"{px(W // 4, H // 2)}")
+    sprawdz("iso-uefi: rdzeń wbudowany w ISO (loop), simpledrm",
+            "obraz rdzenia zamontowany z /dev/loop" in tekst() and "simpledrm" in tekst())
 
 if tryb == "z-dysku":
     sprawdz("start z dysku SATA przez UEFI (bez pendrive'a): K1-DANE dysku otwarta",

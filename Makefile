@@ -1,7 +1,7 @@
 # K1 — budowa programów natywnych (C, musl, statycznie) i testów na hoście.
 #
 #   make            programy K1 → build/bin/ (wymaga nagłówków jądra: scripts/zbuduj-jadro.sh)
-#   make testy-host testy jednostkowe na hoście (glibc + ASan/UBSan)
+#   make testy-host testy jednostkowe na hoście (glibc + ASan/UBSan); równolegle: make -j4 -O testy-host
 #   make fuzz       fuzzing parserów (clang + libFuzzer, lista FUZZ), FUZZ_CZAS sekund każdy; równolegle: make -j4 -O fuzz
 #
 # Flagi: SPEC §11, zweryfikowane w ADR 0002; scripts/sprawdz-binaria.sh sprawdza wynik.
@@ -381,32 +381,29 @@ $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instal
 	test_dokumenty test_notatki test_indeks test_log test_magazyn test_odcinki test_przejscie test_manifest test_odbior test_przybornik test_rozmieszczenie test_sha256 test_uevent test_uklad \
 	test_zdarzenie): testy/host/k1_test_host.h
 
-testy-host: $(OBJ)/test_virtio $(OBJ)/test_strefa_start $(OBJ)/test_krypto $(OBJ)/test_wpa $(OBJ)/test_wifi_polacz $(OBJ)/test_wifi $(OBJ)/test_siec $(OBJ)/test_czas $(OBJ)/test_zalegle $(OBJ)/test_skarb_zalegle $(OBJ)/test_indeks $(OBJ)/test_dokumenty $(OBJ)/test_notatki $(OBJ)/test_rozmieszczenie $(OBJ)/test_kalkulator $(OBJ)/test_podglad $(OBJ)/test_efi $(OBJ)/test_sha256 $(OBJ)/test_uklad $(OBJ)/test_manifest $(OBJ)/test_bat_arch $(OBJ)/test_odbior $(OBJ)/test_uevent $(OBJ)/test_cmdline $(OBJ)/test_log $(OBJ)/test_bateria $(OBJ)/test_magazyn $(OBJ)/test_odcinki $(OBJ)/test_przejscie $(OBJ)/test_zdarzenie $(OBJ)/test_komunikat $(OBJ)/test_przybornik $(OBJ)/test_menu $(OBJ)/test_przeciaganie $(OBJ)/podglad_grafiki $(OBJ)/test_instalator $(OBJ)/notatki_w_plikach $(OBJ)/magazyn_testowy $(OBJ)/test_fat $(OBJ)/test_dekoder $(OBJ)/test_start
-	$(OBJ)/test_virtio
-	$(OBJ)/test_strefa_start
-	$(OBJ)/test_krypto
-	$(OBJ)/test_wpa
-	$(OBJ)/test_wifi_polacz
-	$(OBJ)/test_wifi
-	$(OBJ)/test_siec
-	$(OBJ)/test_czas
-	$(OBJ)/test_zalegle
-	$(OBJ)/test_skarb_zalegle
-	$(OBJ)/test_indeks
-	$(OBJ)/test_dokumenty
-	$(OBJ)/test_notatki
-	$(OBJ)/test_rozmieszczenie
-	$(OBJ)/test_kalkulator
-	$(OBJ)/test_podglad
+# Host tests (0.10.0): one target per test, so `make -j… -O testy-host` runs them side by side (one after another they
+# took most of test-m1's time); `-O` keeps the output of each one together. The slow ones come first, so they start
+# first. A plain test (no arguments, no files): its name in TESTY_HOST. One that needs files: its own rule below,
+# named host-<name>, and the name in TESTY_HOST_PLIKI.
+TESTY_HOST := test_odcinki test_przejscie test_magazyn test_dokumenty test_indeks test_wpa test_krypto test_virtio \
+	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
+	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
+	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
+	test_przeciaganie
+TESTY_HOST_PLIKI := test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
+
+# notatki_w_plikach and magazyn_testowy are not run here: scripts/test-*.sh use them
+testy-host: $(TESTY_HOST:%=host-%) $(TESTY_HOST_PLIKI:%=host-%) $(OBJ)/notatki_w_plikach $(OBJ)/magazyn_testowy
+
+$(TESTY_HOST:%=host-%): host-%: $(OBJ)/%
+	$(OBJ)/$*
+
+host-test_uklad: $(OBJ)/test_uklad
 	rm -f $(OBJ)/grubenv.ref && grub-editenv $(OBJ)/grubenv.ref create && \
 		grub-editenv $(OBJ)/grubenv.ref set k1_slot=a k1_start=a k1_nowy= k1_proba=
 	$(OBJ)/test_uklad $(OBJ)/grubenv.ref
-	$(OBJ)/test_manifest
-	$(OBJ)/test_efi
-	$(OBJ)/test_sha256
-	$(OBJ)/test_bat_arch
-	$(OBJ)/test_odbior
-	$(OBJ)/test_uevent
+
+host-test_instalator: $(OBJ)/test_instalator
 	$(OBJ)/test_instalator $(OBJ)/gpt.img
 	sfdisk -d $(OBJ)/gpt.img | grep -q 'start=        2048, size=     1048576, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B.*name="K1-EFI"'
 	sfdisk -d $(OBJ)/gpt.img | grep -q 'start=     1050624, size=     7335936, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4.*name="K1-DANE"'
@@ -415,22 +412,19 @@ testy-host: $(OBJ)/test_virtio $(OBJ)/test_strefa_start $(OBJ)/test_krypto $(OBJ
 	sfdisk --verify $(OBJ)/gpt.img-wiekszy >/dev/null
 	rm -f $(OBJ)/gpt.img $(OBJ)/gpt.img-wiekszy
 	@echo "test_instalator: tablica GPT odczytana przez sfdisk (K1-EFI, K1-DANE; K1-DANE powiększona do 16 GiB)"
+
+host-test_fat: $(OBJ)/test_fat
 	sh testy/host/obrazy_fat.sh $(OBJ)/fat && $(OBJ)/test_fat $(OBJ)/fat && rm -rf $(OBJ)/fat
+
+host-test_start: $(OBJ)/test_start
 	sh testy/host/obrazy_efi.sh $(OBJ)/efi && $(OBJ)/test_start $(OBJ)/efi && sh testy/host/obrazy_efi.sh $(OBJ)/efi sprawdz && \
 		rm -rf $(OBJ)/efi
+
+host-test_dekoder: $(OBJ)/test_dekoder
 	rm -rf $(OBJ)/obrazy && mkdir -p $(OBJ)/obrazy && python3 -I testy/host/obrazy_dekoder.py $(OBJ)/obrazy && \
 		$(OBJ)/test_dekoder $(OBJ)/obrazy && rm -rf $(OBJ)/obrazy
-	$(OBJ)/test_cmdline
-	$(OBJ)/test_log
-	$(OBJ)/test_bateria
-	$(OBJ)/test_magazyn
-	$(OBJ)/test_odcinki
-	$(OBJ)/test_przejscie
-	$(OBJ)/test_zdarzenie
-	$(OBJ)/test_komunikat
-	$(OBJ)/test_przybornik
-	$(OBJ)/test_menu
-	$(OBJ)/test_przeciaganie
+
+host-podglad_grafiki: $(OBJ)/podglad_grafiki
 	$(OBJ)/podglad_grafiki 1280 800 900 400 0 > $(OBJ)/podglad.ppm
 	$(OBJ)/podglad_grafiki 13 7 -50 3 1 > /dev/null
 	$(OBJ)/podglad_grafiki 1 1 0 0 0 > /dev/null
@@ -496,4 +490,4 @@ $(FUZZ:%=fuzz-%): fuzz-%: $(OBJ)/fuzz_%
 clean:
 	rm -rf $(BIN) $(OBJ)
 
-.PHONY: all testy-host fuzz $(FUZZ:%=fuzz-%) clean FORCE
+.PHONY: all testy-host $(TESTY_HOST:%=host-%) $(TESTY_HOST_PLIKI:%=host-%) fuzz $(FUZZ:%=fuzz-%) clean FORCE

@@ -5,7 +5,7 @@
 #   fat16-mbr.img  tablica MBR, FAT16, duży plik, plik w kawałkach (pofragmentowany)
 #   fat32-gpt.img  tablica GPT, FAT32, zdjęcie JPEG, folder z 1100 plikami
 #   fat32-maly.img FAT32 z mniej niż 65 525 klastrami (mformat -F -c 8, jak próba T6 planu 0.8.2), bez partycji,
-#                  folder z 3000 plików (plan 0.8.2, krok 2: L13, L14)
+#                  folder z 3000 plików (plan 0.8.2, krok 2: L13, L14); 100 z nich o podobnych nazwach (IMG_20~n)
 #   ntfs-mbr.img   tablica MBR z partycją NTFS (śmieci) — czytnik ma odmówić
 # Treść plików: bajt i = (i*31 + 7) mod 251 (test liczy to samo). Użycie: obrazy_fat.sh KATALOG
 set -eu
@@ -64,8 +64,12 @@ rm -f "$OUT/fat32-maly.img"
 mformat -C -i "$OUT/fat32-maly.img" -F -c 8 -T 131072 ::
 mmd -i "$OUT/fat32-maly.img" ::/Telefon
 rm -rf "$Z/telefon"; mkdir -p "$Z/telefon"
+# Only the first 100 names share their first 6 characters: for each of those mcopy looks for a free short name
+# (IMG_20~1, ~2…) through the whole folder — 3000 of them took about 5 minutes, 100 take a fraction of a second.
 python3 -I -c 'import sys
-for i in range(3000): open(f"{sys.argv[1]}/IMG_2026{i:04d}_zdjecie.jpg", "w").write(str(i))' "$Z/telefon"
+for i in range(3000):
+    n = f"IMG_2026{i:04d}_zdjecie.jpg" if i < 100 else f"{i:04d}_IMG_2026_zdjecie.jpg"
+    open(f"{sys.argv[1]}/{n}", "w").write(str(i))' "$Z/telefon"
 mcopy -i "$OUT/fat32-maly.img" "$Z"/telefon/* ::/Telefon/
 wzor "$Z/zdjecie.jpg" 20000 ffd8ffe0
 mcopy -i "$OUT/fat32-maly.img" "$Z/zdjecie.jpg" ::

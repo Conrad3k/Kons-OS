@@ -1,7 +1,7 @@
 # Wygląd K1
 
 Decyzje o wyglądzie podejmuje właściciel; ten plik zapisuje ustalenia i ich realizację.
-Zrzuty z testów: `build/testy/m2-*.png`, `build/testy/m4-*.png` (artefakt CI `k1-<wersja>-logi`).
+Zrzuty z testów: `build/testy/m4-*.png`, `build/testy/<część>-*.png` (artefakt CI `k1-<wersja>-logi`).
 Podgląd tapety bez QEMU: `make build/obj/podglad_grafiki && build/obj/podglad_grafiki 1920 1080 -1 -1 0 WARIANT > tlo.ppm`
 (PPM → PNG: `python3 -I scripts/ppm-na-png.py tlo.ppm tlo.png`).
 

@@ -117,11 +117,29 @@ jobs:
             build/naglowki
           key: ${{ steps.klucz-jadra.outputs.klucz }}
 
+      # 0.10.0: the fuzzers' corpus (inputs that reach new code) is kept between runs in the Actions cache, so each
+      # run goes deeper instead of starting from nothing. Only generated test inputs, nothing secret.
+      - name: Przywróć korpus fuzzingu (pamięć podręczna)
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: build/fuzz-korpus-*
+          key: k1-fuzz-${{ github.run_id }}
+          restore-keys: k1-fuzz-
+
       - name: Testy (host + QEMU, także negatywne; M1–M6, start z ISO)
         run: |
           set -o pipefail
           mkdir -p build/testy
           K1_FUZZ_CZAS=30 scripts/testy.sh 2>&1 | tee build/testy/wynik.txt
+
+      - name: Zapisz korpus fuzzingu (pamięć podręczna)
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: build/fuzz-korpus-*
+          key: k1-fuzz-${{ github.run_id }}
 
       # Logs are always kept in three places that do not depend on the artifact quota:
       # the job console, the job summary and (on main) the release.

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Test etapów M1–M4 (powtarzalny): testy na hoście + uruchomienia K1 w QEMU, także negatywne
-# (start, testy w systemie, błędy startu). Ekran i wejście z zewnątrz: scripts/test-m2.sh.
+# (start, testy w systemie, błędy startu). Ekran i wejście z zewnątrz: scripts/test-m4.sh (początek).
 # Wymaga zbudowanych obrazów (scripts/zbuduj.sh). Logi: build/testy/<scenariusz>.log
 # Kod wyjścia 0 = wszystko zaliczone. Opis scenariuszy: docs/TESTY.md.
 . "$(dirname "$0")/wspolne.sh"
@@ -81,10 +81,11 @@ krok() { # $1 = nazwa, $2 = plik logu, reszta = polecenie
 krok "czytelność: pliki ≤ 600 wierszy, funkcje ≤ 80, opisy usług, aplikacji i komunikatów" "$TESTY/czytelnosc.log" \
     python3 -I "$K1_REPO/scripts/sprawdz-czytelnosc.py" "$K1_REPO"
 krok "jednostkowe: linia poleceń, protokoły, kanały, przybornik GUI, renderer (ASan/UBSan)" "$TESTY/host.log" \
-    make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" testy-host
-# 0.8.6: the fuzzers side by side, as many as there are processors (one after another: 13 × the time of one)
-krok "fuzzing: linia poleceń, protokoły zdarzeń i usług (${K1_FUZZ_CZAS:-20} s każdy, libFuzzer)" "$TESTY/fuzz.log" \
-    make -s -j"$(nproc)" -O -C "$K1_REPO" BUDOWA="$K1_BUDOWA" fuzz FUZZ_CZAS="${K1_FUZZ_CZAS:-20}"
+    make -s -j"$(nproc)" -O -C "$K1_REPO" BUDOWA="$K1_BUDOWA" testy-host
+# 0.8.6: the fuzzers side by side, as many as there are processors (one after another: 13 × the time of one).
+# 10 s each by default (a local run); CI fuzzes longer and keeps the corpus between runs (k1.yml).
+krok "fuzzing: linia poleceń, protokoły zdarzeń i usług (${K1_FUZZ_CZAS:-10} s każdy, libFuzzer)" "$TESTY/fuzz.log" \
+    make -s -j"$(nproc)" -O -C "$K1_REPO" BUDOWA="$K1_BUDOWA" fuzz FUZZ_CZAS="${K1_FUZZ_CZAS:-10}"
 # (binaries and the kernel config are checked by the build itself: zbuduj-obraz.sh, zbuduj-jadro.sh)
 
 echo "[k1] obrazy do testów negatywnych"
@@ -132,25 +133,44 @@ scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE
     "ekran zakończony sygnałem 11" "ponowne uruchomienie ekran" "wejscie wyłączony: 6 zakończeń" \
     "K1: wyłączanie zasilania" "reboot: Power down"
 SPRZET=
-scenariusz neg-brak-dysku wylaczenie - "$CMDLINE k1.rdzen_skrot=$ZERA_SKROT" \
+# The negative starts are independent of each other (own logs, sockets and images): with KVM side by side, without it
+# (emulation takes the whole processor) one after another — like scripts/testy.sh. Each prints its result to a file.
+ROWNOLEGLE=${K1_TESTY_ROWNOLEGLE:-}
+if [ -z "$ROWNOLEGLE" ]; then
+    if [ -w /dev/kvm ]; then ROWNOLEGLE=1; else ROWNOLEGLE=0; fi
+fi
+NEG=
+neg() { # the arguments of scenariusz
+    NEG="$NEG $1"
+    # in a subshell either way: the counters are summed from the files below
+    if [ "$ROWNOLEGLE" = 1 ]; then (scenariusz "$@") > "$TESTY/$1.wynik" 2>&1 &
+    else (scenariusz "$@") > "$TESTY/$1.wynik" 2>&1 || true; fi
+}
+neg neg-brak-dysku wylaczenie - "$CMDLINE k1.rdzen_skrot=$ZERA_SKROT" \
     "nie znaleziono urządzenia z obrazem rdzenia: /dev/vda" "system zostanie wyłączony" "reboot: Power down"
-scenariusz neg-dysk-bez-obrazu wylaczenie "$TESTY/zera.img" "$CMDLINE" \
+neg neg-dysk-bez-obrazu wylaczenie "$TESTY/zera.img" "$CMDLINE" \
     "nie udało się zamontować obrazu rdzenia z /dev/vda" "reboot: Power down"
-scenariusz neg-obraz-bez-init wylaczenie "$TESTY/bez-init.squashfs" "$CMDLINE" \
+neg neg-obraz-bez-init wylaczenie "$TESTY/bez-init.squashfs" "$CMDLINE" \
     "obraz rdzenia nie zawiera programu init" "reboot: Power down"
-scenariusz neg-brak-parametru wylaczenie "$K1_WYNIK/rdzen.squashfs" "$BAZA" \
-    "brak parametru k1.rdzen" "reboot: Power down"
-scenariusz neg-zly-parametr wylaczenie "$K1_WYNIK/rdzen.squashfs" "$BAZA k1.rdzen=/dev/../vda" \
+# One bad k1.rdzen is enough here (the system shuts down): the parser's cases (missing, "..", repeated, too long)
+# are checked on the host (test_cmdline, fuzz_cmdline) — since 0.10.0 not one start each.
+neg neg-zly-parametr wylaczenie "$K1_WYNIK/rdzen.squashfs" "$BAZA k1.rdzen=/dev/../vda" \
     "niepoprawny parametr k1.rdzen: dozwolone tylko" "reboot: Power down"
-scenariusz neg-powtorzony-parametr wylaczenie "$K1_WYNIK/rdzen.squashfs" "$CMDLINE k1.rdzen=/dev/vdb" \
-    "niepoprawny parametr k1.rdzen (za długi, powtórzony" "reboot: Power down"
 # M6b (ADR 0021): dm-verity — no root hash, a wrong one, one changed byte in the image
-scenariusz neg-brak-skrotu wylaczenie "$TESTY/bez-skrotu.squashfs" "$CMDLINE" \
+neg neg-brak-skrotu wylaczenie "$TESTY/bez-skrotu.squashfs" "$CMDLINE" \
     "brak parametru k1.rdzen_skrot" "reboot: Power down"
-scenariusz neg-zly-skrot wylaczenie "$K1_WYNIK/rdzen.squashfs" "$CMDLINE k1.rdzen_skrot=$(echo "$ZERA_SKROT" | tr 0 a)" \
+neg neg-zly-skrot wylaczenie "$K1_WYNIK/rdzen.squashfs" "$CMDLINE k1.rdzen_skrot=$(echo "$ZERA_SKROT" | tr 0 a)" \
     "obraz rdzenia jest zmieniony albo uszkodzony" "reboot: Power down"
-scenariusz neg-zmieniony-obraz wylaczenie "$TESTY/zmieniony.squashfs" "$CMDLINE" \
+neg neg-zmieniony-obraz wylaczenie "$TESTY/zmieniony.squashfs" "$CMDLINE" \
     "obraz rdzenia jest zmieniony albo uszkodzony" "reboot: Power down"
+wait
+for n in $NEG; do
+    cat "$TESTY/$n.wynik"
+    # grep -c prints 0 and exits with 1 when nothing matches (set -e in wspolne.sh)
+    zaliczone=$((zaliczone + $(grep -c '^  \[OK\]' "$TESTY/$n.wynik" || true)))
+    niezaliczone=$((niezaliczone + $(grep -c '^  \[BŁĄD\]' "$TESTY/$n.wynik" || true)))
+    grep -q '^  \[\(OK\|BŁĄD\)\]' "$TESTY/$n.wynik" || { niezaliczone=$((niezaliczone + 1)); echo "  [BŁĄD]  qemu: $n — brak wyniku"; }
+done
 
 echo "[k1] wynik: zaliczone $zaliczone, niezaliczone $niezaliczone"
 [ "$niezaliczone" -eq 0 ]

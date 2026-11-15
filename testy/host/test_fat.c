@@ -302,7 +302,9 @@ static void fat32_maly(const char *kat)
     EXPECT(folder(&f, 0) == 0 && n_spis == 2 && wzor(znajdz("zdjecie.jpg"), &f, 4));
     w = znajdz("Telefon");
     EXPECT(w != NULL && w->folder && folder(&f, w->klaster) == 0 && n_spis == 3000);
-    EXPECT(znajdz("IMG_20260000_zdjecie.jpg") != NULL && znajdz("IMG_20262999_zdjecie.jpg") != NULL);
+    /* the first 100 share their short-name stem (IMG_20~n), the rest do not (see obrazy_fat.sh) */
+    EXPECT(znajdz("IMG_20260000_zdjecie.jpg") != NULL && znajdz("IMG_20260099_zdjecie.jpg") != NULL &&
+           znajdz("0100_IMG_2026_zdjecie.jpg") != NULL && znajdz("2999_IMG_2026_zdjecie.jpg") != NULL);
     /* the same boot sector with a 16-bit FAT size: by the count FAT16, but no fixed root folder — not FAT */
     k1_z16(o.d + 22, 1);
     EXPECT(otworz(&f, &o) == FAT_BLAD_FORMAT);

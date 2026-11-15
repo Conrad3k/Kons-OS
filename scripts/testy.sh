@@ -12,7 +12,7 @@ ROWNOLEGLE=${K1_TESTY_ROWNOLEGLE:-}
 if [ -z "$ROWNOLEGLE" ]; then
     if [ -w /dev/kvm ]; then ROWNOLEGLE=1; else ROWNOLEGLE=0; fi
 fi
-TESTY="test-m2 test-m4 test-pliki test-pendrive test-skarbiec test-siec test-wifi test-strefa test-m5 test-m5f test-m6"
+TESTY="test-m4 test-pliki test-pendrive test-skarbiec test-siec test-wifi test-strefa test-m5 test-m5f test-m6"
 WYJ=$K1_BUDOWA/testy/rownolegle
 mkdir -p "$WYJ"
 if [ "$ROWNOLEGLE" = 1 ]; then
@@ -27,12 +27,10 @@ if [ "$ROWNOLEGLE" = 1 ]; then
         i=$((i + 1))
         p=$(echo $pidy | cut -d' ' -f$i)
         wait "$p" || r=1
-        [ "$t" = test-m2 ] && echo "[k1] test M2: ekran i wejście"
         cat "$WYJ/$t.txt"
     done
 else
     for t in $TESTY; do
-        [ "$t" = test-m2 ] && echo "[k1] test M2: ekran i wejście"
         "$K1_REPO/scripts/$t.sh" || r=1
     done
 fi
