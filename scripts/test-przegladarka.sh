@@ -155,6 +155,7 @@ q.idz(x + 60, y + 60)
 q.idz(x - 8 + 15, y - 8 + 15)  # the mark (src/ekran/strefy.c: 30 px, 8 px out of the corner)
 p = czekaj(PLAK, od=n, czas=30)
 if p:
+    q.idz(int(p.group(1)), int(p.group(2)))  # along the badge first: a long move overshoots and the badge closes
     q.klik(int(p.group(3)), int(p.group(4)))
 koniec_ = czekaj(r"K1-STREFA: strefa 2: koniec", czas=120)
 if not koniec_:

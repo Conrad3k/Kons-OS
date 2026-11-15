@@ -177,6 +177,7 @@ q.idz(x + 60, y + 60)
 q.idz(zx, zy)
 p = czekaj(PLAK, od=n, czas=30)
 if p:
+    q.idz(int(p.group(1)), int(p.group(2)))  # along the badge first: a long move overshoots and the badge closes
     q.klik(int(p.group(3)), int(p.group(4)))
 sprawdz("„zamknij” w plakietce: VMM prosi gościa (vsock), gość się zamyka, maszyna kończy się, okno znika",
         p and czekaj(r"K1-STREFA: zamykam strefę na prośbę ekranu", czas=30) and
