@@ -3,13 +3,20 @@
 # (-netdev user: router 10.0.2.2 = ten komputer, adres od DHCP), na „routerze” serwer strony testowej w Pythonie:
 #   1. Start → Przeglądarka: nadzorca uruchamia strefę „Ogólna” (VMM w klatce), w oknie w ramce koloru sesji Firefox
 #      (zrzut przegladarka-1-okno: pasek kart i adresu)
-#   2. adres strony testowej wpisany z klawiatury (virtio-input → kompozytor → Firefox) → serwer ją wysyła przez
-#      łącznik w VMM (SOCKS5 od przekaźnika w strefie) i gniazdo od nadzorcy; strona w oknie (zrzut: duże pola koloru)
-#   3. tekst wpisany w pole formularza dociera do serwera (pisanie w polach działa)
+#   2. adres strony testowej wpisany z klawiatury (virtio-input → kompozytor → Firefox), kliknięcie podpowiedzi
+#      „otwórz stronę” pod paskiem adresu → serwer ją wysyła przez łącznik w VMM (SOCKS5 od przekaźnika w strefie)
+#      i gniazdo od nadzorcy; strona w oknie (zrzut: duże pola koloru)
+#   3. tekst wpisany w pole formularza dociera do serwera (pisanie w polach działa; strona wysyła pole sama, gdy jest
+#      w nim cały tekst)
 #   4. NEGATYWNE: strona testowa sama prosi o obrazek z adresu w sieci domowej, który nie jest routerem (10.0.2.3) —
 #      jak złośliwa strona, która szuka urządzeń w domu; nadzorca odmawia (D3), strefa i K1 żyją
 #   5. w logu K1 żadnego adresu strony ani wpisanego tekstu (niezmiennik 8) — tylko liczniki
 #   6. zamknięcie okna: maszyna kończy się (sesja jednorazowa: nic nie zostaje), liczniki połączeń w logu
+# BEZ ENTERA (decyzja właściciela 2026-11-15): w CI z KVM Enter w pasku adresu i w polu formularza bywał bez skutku
+# (przebiegi 95–103 PR-a #119; klawisz dochodził do Firefoksa — „Enter pressed” w jego dzienniku), a na sprzęcie
+# (IdeaPad 110) działa zawsze. Cały dzień szukania nie dał przyczyny po stronie K1 — dlatego test nie naciska Entera
+# nigdzie: stronę otwiera kliknięcie podpowiedzi, formularz wysyła się sam, D3 sprawdza obrazek na stronie.
+# Nie wracaj do Entera w tym teście bez nowej decyzji właściciela (plan 0.10.0, krok 2, ustalenie 7; skill kons-dev).
 # Nazwy stron (DNS) — tylko testy na hoście (test_lacznik, fuzz_lacznik): DNS sieci QEMU prowadzi do resolvera
 # komputera, którego kontener testów nie ma (plan 0.10.0, S17).
 # Bez KVM (emulacja QEMU, kontener Claude) — scenariusz SKRÓCONY do kroku 1 i tak opisany w wyniku (plan 0.10.0, S20,
@@ -37,7 +44,8 @@ odebrane = []
 # the page asks for a picture from 10.0.2.3 (the home network, not the router) by itself: D3's refusal without typing
 STRONA = ("<!doctype html><html><head><meta charset=utf-8><title>K1</title></head>"
           "<body style='margin:0;background:#ff8800'><div style='height:200px;background:#1e64c8'></div>"
-          "<form action=/wyslij><input name=t autofocus style='font-size:30px;width:400px'></form>"
+          "<form action=/wyslij><input name=t autofocus style='font-size:30px;width:400px' "
+          "oninput=\"if (this.value.indexOf('" + TEKST + "') >= 0) this.form.submit()\"></form>"
           "<img src='http://10.0.2.3:{port}/dom.png' width=1 height=1></body></html>")
 
 
@@ -123,7 +131,12 @@ def zamknij_strefe():  # the frame's badge (hover the mark, then its close butto
 def wpisz(tekst):
     nazwy = {".": "dot", ":": "shift-semicolon", "/": "slash"}
     q.pisz(*[nazwy.get(c, c) for c in tekst])
-    time.sleep(1)  # as a person: Enter a moment after the last letter
+    time.sleep(1)
+
+
+def otworz_podpowiedz():  # no Enter (the note at the top): the address bar's suggestion "otwórz stronę" below it
+    time.sleep(2)
+    q.klik(x + 330, y + 107)
 
 
 def strona(w, h, px):
@@ -142,7 +155,7 @@ def pokaz(w, h, px):  # on failure: what the zone and nadzorca said (counts only
 if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label testy-przegladarka): only the page
     q.pisz("ctrl-l")  # the address bar by its shortcut: Ctrl reaches the zone
     wpisz(f"10.0.2.2:{port}/")
-    q.pisz("ret")
+    otworz_podpowiedz()
     w, h, px = q.zrzut("2-strona", gdy=strona, czas=120)
     jest = strona(w, h, px) and "/" in odebrane
     if not jest:
@@ -151,7 +164,7 @@ if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label tes
     q.czekaj(r"K1-NADZORCA: strefa 2: połączenia", czas=20)
     for l_ in [l for l in q.tekst().splitlines() if re.search(r"połączenia|wejście do gościa", l)][-3:]:
         print("            | " + l_[:300], flush=True)
-    sprawdz("[WĄSKO] strona testowa otwiera się (Ctrl+L, adres, Enter)", jest)
+    sprawdz("[WĄSKO] strona testowa otwiera się (Ctrl+L, adres, podpowiedź)", jest)
     q.monitor("quit")
     qemu.wait()
     sys.exit(0 if all(q.wyniki) else 1)
@@ -159,15 +172,14 @@ if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label tes
 n0 = q.ile(r"K1-NADZORCA: strefa 2: pierwsza odmowa połączenia")
 q.klik(x + w_ // 2, y + 64)  # the address bar
 wpisz(f"10.0.2.2:{port}/")
-q.pisz("ret")
+otworz_podpowiedz()
 w, h, px = q.zrzut("2-strona", gdy=strona, czas=300)
 if not strona(w, h, px):
     pokaz(w, h, px)
 sprawdz("strona testowa z serwera na routerze otwiera się w strefie (SOCKS5 → łącznik → gniazdo od nadzorcy; zrzut "
         "przegladarka-2-strona)", strona(w, h, px) and "/" in odebrane)
-q.klik(x + 200, y + h_ // 2)  # the form's field (autofocus too)
+q.klik(x + 200, y + h_ // 2)  # the form's field (autofocus too); the page sends it by itself, without Enter
 wpisz(TEKST)
-q.pisz("ret")
 dotarlo = q.czekaj_na(lambda: any(TEKST in p for p in odebrane), czas=120)
 sprawdz("tekst wpisany w pole formularza dociera do serwera", dotarlo)
 
