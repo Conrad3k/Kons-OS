@@ -240,7 +240,7 @@ static void io(struct kvm_run *r)
     memset(dane, r->io.port == PORT_8042 ? 0 : 0xff, (size_t)n); /* 8042: "input buffer empty" for reboot=k */
 }
 
-static void mmio(struct kvm_run *r)
+static void mmio(struct procesor *c, struct kvm_run *r)
 {
     uint64_t a = r->mmio.phys_addr, i = (a - MMIO_BAZA) / MMIO_ROZMIAR;
     const char *powod = NULL;
@@ -252,12 +252,16 @@ static void mmio(struct kvm_run *r)
         mz.nieznane++;
         return;
     }
-    pthread_mutex_lock(&mz.zamek);
+    c->urz = (int)i;
+    c->gdzie = ST_CZEKA;
+    zamek_wez("procesor: urządzenie");
+    c->gdzie = ST_ZAMEK;
     if (r->mmio.is_write)
         w = mmio_pisz(&mz.urz[i], a - MMIO_BAZA - i * MMIO_ROZMIAR, r->mmio.data, r->mmio.len, &powod);
     else
         w = mmio_czytaj(&mz.urz[i], a - MMIO_BAZA - i * MMIO_ROZMIAR, r->mmio.data, r->mmio.len, &powod);
-    pthread_mutex_unlock(&mz.zamek);
+    zamek_oddaj();
+    c->gdzie = ST_WYJSCIE;
     if (w != 0)
         koniec(powod != NULL ? powod : "błąd urządzenia");
 }
@@ -285,7 +289,9 @@ static void *petla(void *arg)
 {
     struct procesor *c = arg;
     unsigned razy = 0;
+    c->urz = -1;
     while (!mz.koniec) {
+        c->gdzie = ST_W_GOSCIU;
         if (ioctl(c->fd, (int)KVM_RUN, 0) != 0) {
             if (errno == EINTR || errno == EAGAIN)
                 continue;
@@ -295,12 +301,14 @@ static void *petla(void *arg)
         if (c->run->exit_reason == KVM_EXIT_INTERNAL_ERROR && ponow(c, &razy))
             continue;
         razy = 0;
+        c->gdzie = ST_WYJSCIE;
+        c->wyjscie = c->run->exit_reason;
         switch (c->run->exit_reason) {
         case KVM_EXIT_IO:
             io(c->run);
             break;
         case KVM_EXIT_MMIO:
-            mmio(c->run);
+            mmio(c, c->run);
             break;
         case KVM_EXIT_INTR:
             break;

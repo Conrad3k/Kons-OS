@@ -37,6 +37,31 @@ static void oczysc(void)
     dl = j;
 }
 
+/* What a browser's guest kernel says about itself in its worst moments: only the kind from this table goes to the
+ * log, once each (the guest may fake it — it then only says something false about itself), never its words. */
+static const struct {
+    const char *wzor, *rodzaj;
+} BLEDY[] = {
+    { "Kernel panic", "panika jądra" },          { "Out of memory", "brak pamięci (OOM)" },
+    { "soft lockup", "zawieszony procesor" },     { "rcu_sched self-detected stall", "zawieszony procesor (RCU)" },
+    { "rcu: INFO", "zawieszony procesor (RCU)" }, { "blocked for more than", "zawieszone zadanie" },
+    { "BUG:", "błąd jądra (BUG)" },             { "Oops", "błąd jądra (Oops)" },
+    { "general protection fault", "błąd ochrony" }, { "double fault", "podwójny błąd" },
+    { "segfault at", "program gościa padł" },
+};
+static unsigned zgloszone; /* bit i: BLEDY[i] already in the log */
+
+static void blad_jadra(const char *t)
+{
+    unsigned i;
+    for (i = 0; i < sizeof BLEDY / sizeof BLEDY[0]; i++)
+        if (!(zgloszone & (1u << i)) && strstr(t, BLEDY[i].wzor) != NULL) {
+            zgloszone |= 1u << i;
+            k1_log(TAG, "gość: jądro gościa zgłasza: %s (sam rodzaj — wiersz gościa nie trafia do logu)",
+                   BLEDY[i].rodzaj);
+        }
+}
+
 static void wypisz(void)
 {
     const char *t = linia;
@@ -48,6 +73,8 @@ static void wypisz(void)
         k1_log(TAG, "gość: %s", t);
     else if (linie == LINIE_MAKS)
         k1_log(TAG, "gość: dalsze wiersze tylko liczone");
+    else
+        blad_jadra(t);
     linie++;
     dl = 0;
 }

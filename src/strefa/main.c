@@ -103,21 +103,27 @@ static void petla(void)
     double zamknij_do = 0;
     while (!mz.koniec) {
         struct pollfd p[2 + 2 + K1_STREFA_POLACZENIA_MAKS] = { { mz.budzik, POLLIN, 0 }, { okno_fd(), POLLIN, 0 } };
-        int czas = zamknij_do > 0 ? 500 : 1000, n = 2 + pol_deskryptory(p + 2, 2 + K1_STREFA_POLACZENIA_MAKS);
+        int czas = zamknij_do > 0 ? 500 : 1000, n;
+        petla_krok("deskryptory połączeń");
+        n = 2 + pol_deskryptory(p + 2, 2 + K1_STREFA_POLACZENIA_MAKS);
+        petla_krok("poll");
         if (poll(p, (nfds_t)n, czas) < 0 && errno != EINTR)
             koniec("poll nieudane");
+        petla_krok("gniazda połączeń");
         pol_obsluz(p + 2, n - 2);
         if (p[0].revents & POLLIN) {
             uint64_t v;
             if (read(mz.budzik, &v, sizeof v) < 0)
                 mz.nieznane++;
         }
+        petla_krok("wiadomości ekranu");
         if (okno_fd() >= 0 && (p[1].revents & (POLLIN | POLLHUP | POLLERR)) && okno_odbierz() == OKNO_ZAMKNIJ &&
             zamknij_do == 0) {
             zamknij_do = k1_teraz() + 10.0;
             k1_log(TAG, "zamykam strefę na prośbę ekranu");
             okno_zamknij_goscia();
         }
+        petla_krok("obraz okna");
         okno_obraz();
         if (zamknij_do > 0 && k1_teraz() >= zamknij_do)
             koniec("gość nie zamknął się w 10 s — wyłączony");
@@ -137,7 +143,7 @@ int main(int argc, char **argv)
     if (mz.budzik < 0 || przygotuj() != 0)
         k1_koniec(TAG, "nie można przygotować maszyny");
     okno_start();
-    if (kvm_uruchom() != 0)
+    if (kvm_uruchom() != 0 || stroz_start() != 0)
         k1_koniec(TAG, "nie można uruchomić procesorów");
     k1_log(TAG, "strefa %d (%s): maszyna działa — %u MiB, procesory %d, urządzenia %d (%.1f s)", nr, mz.opis->tytul,
            mz.opis->pamiec_mib, mz.n_cpu, URZ_LICZBA, k1_teraz() - od);

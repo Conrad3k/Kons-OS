@@ -40,10 +40,16 @@ enum { K1_URZADZENIA(X_URZ) URZ_LICZBA };
 #define MMIO_BAZA 0xd0000000ull
 #define PRZERWANIE_PIERWSZE 5
 
+/* Where a processor thread is (stroz.c tells it when the main thread stops). */
+enum { ST_W_GOSCIU, ST_WYJSCIE, ST_CZEKA, ST_ZAMEK };
+
 struct procesor {
     int fd;
     struct kvm_run *run;
     pthread_t watek;
+    volatile int gdzie;                  /* ST_* */
+    volatile unsigned wyjscie;           /* its last exit (KVM_EXIT_*) */
+    volatile int urz;                    /* the device of its last MMIO exit (-1: none) */
 };
 
 struct maszyna {
@@ -63,8 +69,17 @@ struct maszyna {
     volatile int koniec;
     const char *powod;                   /* why the machine ended (a constant text) */
     unsigned long wyjscia_io, wyjscia_mmio, nieznane;
+    volatile double petla_t;             /* the main thread's last step (stroz.c) and its name */
+    const char *volatile petla_krok;
+    const char *volatile zamek_kto;      /* who holds mz.zamek (a constant name), NULL: nobody */
 };
 extern struct maszyna mz;
+
+/* stroz.c: mz.zamek with its holder's name; the main thread's steps; the watchman's thread */
+void zamek_wez(const char *kto);
+void zamek_oddaj(void);
+void petla_krok(const char *krok);
+int stroz_start(void);
 
 /* The machine ends: the reason goes to the log, the main thread ends the process. Thread-safe; the first reason stays. */
 void koniec(const char *powod);

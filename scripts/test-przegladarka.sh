@@ -118,10 +118,16 @@ q.klik(x + w_ // 2, y + 64)  # the address bar
 wpisz(f"10.0.2.2:{port}/")
 q.pisz("ret")
 w, h, px = q.zrzut("2-strona", gdy=strona, czas=900)
-if not strona(w, h, px):  # what the zone and nadzorca said (counts and reasons only — never an address)
-    for w_ in [l for l in q.tekst().splitlines() if re.search(r"K1-STREFA|strefa 2|STREFA: gość", l)][-25:]:
-        print("            | " + w_[:200], flush=True)
+
+
+def pokaz():  # what the zone and nadzorca said (counts, reasons, the watchman — never an address)
+    for l_ in [l for l in q.tekst().splitlines() if re.search(r"K1-STREFA|strefa 2", l)][-25:]:
+        print("            | " + l_[:240], flush=True)
     print(f"            | serwer dostał: {len(odebrane)} żądań", flush=True)
+
+
+if not strona(w, h, px):
+    pokaz()
 sprawdz("strona testowa z serwera na routerze otwiera się w strefie (SOCKS5 → łącznik → gniazdo od nadzorcy; zrzut "
         "przegladarka-2-strona)", strona(w, h, px) and "/" in odebrane)
 q.klik(x + 200, y + h_ // 2)  # the form's field (autofocus too)
@@ -150,8 +156,10 @@ q.idz(x - 8 + 15, y - 8 + 15)  # the mark (src/ekran/strefy.c: 30 px, 8 px out o
 p = czekaj(PLAK, od=n, czas=30)
 if p:
     q.klik(int(p.group(3)), int(p.group(4)))
-sprawdz("zamknięcie okna: gość dostaje „zamknij”, przeglądarka kończy się, maszyna znika (sesja jednorazowa)",
-        czekaj(r"K1-STREFA: strefa 2: koniec", czas=120))
+koniec_ = czekaj(r"K1-STREFA: strefa 2: koniec", czas=120)
+if not koniec_:
+    pokaz()
+sprawdz("zamknięcie okna: gość dostaje „zamknij”, przeglądarka kończy się, maszyna znika (sesja jednorazowa)", koniec_)
 sprawdz("liczniki połączeń w logu: VMM i nadzorca (bez adresów)",
         czekaj(r"K1-STREFA: połączenia przeglądarki: \d+, nazwy \d+, odmowy \d+", czas=30) and
         czekaj(r"K1-NADZORCA: strefa 2: połączenia \d+, odmowy [1-9]", czas=30))

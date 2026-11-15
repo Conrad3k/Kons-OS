@@ -345,7 +345,7 @@ static void od_nadzorcy(void)
 int pol_deskryptory(struct pollfd *p, int maks)
 {
     int n = 0, i;
-    pthread_mutex_lock(&mz.zamek);
+    zamek_wez("połączenia: deskryptory");
     p[n++] = (struct pollfd){ FD_NADZORCA, POLLIN, 0 };
     p[n++] = (struct pollfd){ dns_fd, POLLIN, 0 };
     for (i = 0; i < K1_STREFA_POLACZENIA_MAKS && n < maks; i++) {
@@ -357,7 +357,7 @@ int pol_deskryptory(struct pollfd *p, int maks)
             z |= POLLIN;
         p[n++] = (struct pollfd){ z ? c->fd : -1, z, 0 };
     }
-    pthread_mutex_unlock(&mz.zamek);
+    zamek_oddaj();
     return n;
 }
 
@@ -390,7 +390,7 @@ void pol_obsluz(const struct pollfd *p, int n)
 {
     int i;
     double t = k1_teraz();
-    pthread_mutex_lock(&mz.zamek);
+    zamek_wez("połączenia: gniazda");
     if (p[0].revents & (POLLIN | POLLHUP))
         od_nadzorcy();
     if (dns_fd >= 0 && (p[1].revents & POLLIN))
@@ -403,7 +403,7 @@ void pol_obsluz(const struct pollfd *p, int n)
             c->dns_proby < 2 ? nazwa_pytaj(c) : zamknij(c, SOCKS_BRAK_HOSTA);
     }
     vsock_wyslij(); /* what came from the sockets, to the guest */
-    pthread_mutex_unlock(&mz.zamek);
+    zamek_oddaj();
 }
 
 void pol_podsumowanie(void)

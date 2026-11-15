@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | ZAIMPLEMENTOWANE (0.10.0 krok 1: strefa próbna, tylko w obrazie testowym; krok 2: przeglądarka — sesje Ogólna, Bank, Prywatna, jednorazowe, ADR 0043); PRZETESTOWANE na hoście (`test_virtio`, `test_strefa_start`, `fuzz_virtq`), w systemie (`t_kvm`, `t_strefa_klatka`, próba w klatce `t_proby`) i w QEMU (`scripts/test-strefa.sh`: okno w ramce, wejście, plakietka, zamykanie, 4 złośliwe tryby gościa, komputer bez wirtualizacji) — w emulacji AMD SVM; na prawdziwym sprzęcie — po wydaniu (krok 3) |
-| **Pliki** | `src/strefa/`: `main.c` (start, pętla wątku głównego, koniec), `kvm.c` (maszyna, procesory, wyjścia), `start.{c,h}` (start jądra bez firmware: strona zerowa, e820, tablice stron, GDT, tablica MP), `virtq.{c,h}` (kolejka virtio), `mmio.{c,h}` (rejestry virtio-mmio), urządzenia `blk.c`, `konsola.c`, `rng.c`, `wejscie.c`, `gpu.c`, `vsock.c`, okno `okno.{c,h}`; wspólne `strefa.h` (tabela urządzeń `K1_URZADZENIA`); gość próbny `src/strefa/gosc/` (`main.c`, `obraz.c`, `zlosliwy.c`); nadzorca `src/nadzorca/strefy.c`, `profile.c` (`KLATKA_STREFA`); ekran `src/ekran/strefy.c` (ramka); tabela stref `K1_STREFY` w `src/wspolne/k1_uslugi.h`; jądro strefy `jadro/strefa.config` |
+| **Pliki** | `src/strefa/`: `main.c` (start, pętla wątku głównego, koniec), `kvm.c` (maszyna, procesory, wyjścia), `start.{c,h}` (start jądra bez firmware: strona zerowa, e820, tablice stron, GDT, tablica MP), `virtq.{c,h}` (kolejka virtio), `mmio.{c,h}` (rejestry virtio-mmio), stróż `stroz.c`, urządzenia `blk.c`, `konsola.c`, `rng.c`, `wejscie.c`, `gpu.c`, `vsock.c`, okno `okno.{c,h}`; wspólne `strefa.h` (tabela urządzeń `K1_URZADZENIA`); gość próbny `src/strefa/gosc/` (`main.c`, `obraz.c`, `zlosliwy.c`); nadzorca `src/nadzorca/strefy.c`, `profile.c` (`KLATKA_STREFA`); ekran `src/ekran/strefy.c` (ramka); tabela stref `K1_STREFY` w `src/wspolne/k1_uslugi.h`; jądro strefy `jadro/strefa.config` |
 | **Decyzje** | ADR 0042 (T1–T6, T10, zaufana ramka), ADR 0020 (kierunek), decyzje właściciela D1 (szkic B2, S1), D4 (testy w emulacji) |
 
 ## Cel
@@ -16,7 +16,13 @@ w środku działa program próbny `gosc`; w kroku 2 — przeglądarka.
 grafiki, pakiety vsock, linie konsoli), sprawdzane pole po polu; coś, co robi tylko zepsuty albo wrogi sterownik, kończy
 tę maszynę z powodem w logu (`K1-STREFA: strefa N: koniec — <powód>`), nigdy K1. Ekran i nadzorca są zaufane.
 Konsola gościa: tylko w strefie, której wiersz `K1_STREFY` na to pozwala (strefa próbna), jej wiersze idą do logu K1
-(oczyszczone: znaki sterujące i zły UTF-8 → „?”, najwyżej 3000); w innych strefach — tylko liczba bajtów (niezmiennik 8).
+(oczyszczone: znaki sterujące i zły UTF-8 → „?”, najwyżej 3000); w innych strefach — tylko liczba bajtów (niezmiennik 8)
+i, raz na rodzaj, nazwa ciężkiego błędu jądra gościa z naszej tabeli (`konsola.c`: panika, brak pamięci, zawieszony
+procesor lub zadanie, BUG/Oops, padnięty program): `K1-STREFA: gość: jądro gościa zgłasza: <rodzaj>` — nigdy jego słowa.
+**Stróż** (`stroz.c`, osobny wątek): gdy pętla główna VMM nie ruszy się przez 15 s (okno bez obrazów, „zamknij” od ekranu
+niewidoczne), raz zapisuje, gdzie jest każdy wątek — krok pętli, kto trzyma zamek urządzeń, każdy procesor (w gościu, przy
+wyjściu, czeka na zamek, ma zamek; ostatnie wyjście i urządzenie): `K1-STREFA: stróż: pętla główna stoi od N s (…)`.
+Tylko patrzy — niczego nie zmienia i nie kończy maszyny.
 Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 
 ## Uprawnienia (klatka `KLATKA_STREFA`, z wiersza `K1_STREFY`)
@@ -25,7 +31,7 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 | UID | z wiersza (strefa próbna: 300), bez grup i capabilities, `NoNewPrivs`, Landlock bez ścieżek |
 | deskryptory od nadzorcy | 3: kanał do ekranu (rola `STREFA`, numer strefy), 4: `/dev/kvm`, 5: jądro strefy (tylko odczyt), 6: obraz strefy (tylko odczyt), 7: kanał do nadzorcy — połączenia przeglądarki (0.10.0 krok 2) |
 | seccomp (poza bazą) | `ioctl` tylko typu KVM (0xAE), `memfd_create`, `ftruncate`, `eventfd2`, `futex`, `getrandom`, `pread64`, `clone` tylko z `CLONE_THREAD`; od kroku 2: `shutdown`, `getsockopt` tylko `SO_ERROR` (gniazda od nadzorcy; VMM nie otwiera gniazd) |
-| cgroup | pamięć gościa + 160 MiB; `pids.max` = 1 + procesory + 1 (zadanie KVM w procesie maszyny) |
+| cgroup | pamięć gościa + 160 MiB; `pids.max` = 1 + procesory + 1 (stróż) + 1 (zadanie KVM w procesie maszyny) |
 | `RLIMIT_FSIZE` | pamięć gościa (memfd jej pamięci) |
 | argumenty | numer strefy, tryb gościa testowego (0; 1–4 tylko od programu testowego) |
 
