@@ -142,8 +142,9 @@ fi
 NEG=
 neg() { # the arguments of scenariusz
     NEG="$NEG $1"
-    if [ "$ROWNOLEGLE" = 1 ]; then scenariusz "$@" > "$TESTY/$1.wynik" 2>&1 &
-    else scenariusz "$@" > "$TESTY/$1.wynik" 2>&1; fi
+    # in a subshell either way: the counters are summed from the files below
+    if [ "$ROWNOLEGLE" = 1 ]; then (scenariusz "$@") > "$TESTY/$1.wynik" 2>&1 &
+    else (scenariusz "$@") > "$TESTY/$1.wynik" 2>&1 || true; fi
 }
 neg neg-brak-dysku wylaczenie - "$CMDLINE k1.rdzen_skrot=$ZERA_SKROT" \
     "nie znaleziono urządzenia z obrazem rdzenia: /dev/vda" "system zostanie wyłączony" "reboot: Power down"
@@ -165,8 +166,9 @@ neg neg-zmieniony-obraz wylaczenie "$TESTY/zmieniony.squashfs" "$CMDLINE" \
 wait
 for n in $NEG; do
     cat "$TESTY/$n.wynik"
-    zaliczone=$((zaliczone + $(grep -c '^  \[OK\]' "$TESTY/$n.wynik")))
-    niezaliczone=$((niezaliczone + $(grep -c '^  \[BŁĄD\]' "$TESTY/$n.wynik")))
+    # grep -c prints 0 and exits with 1 when nothing matches (set -e in wspolne.sh)
+    zaliczone=$((zaliczone + $(grep -c '^  \[OK\]' "$TESTY/$n.wynik" || true)))
+    niezaliczone=$((niezaliczone + $(grep -c '^  \[BŁĄD\]' "$TESTY/$n.wynik" || true)))
     grep -q '^  \[\(OK\|BŁĄD\)\]' "$TESTY/$n.wynik" || { niezaliczone=$((niezaliczone + 1)); echo "  [BŁĄD]  qemu: $n — brak wyniku"; }
 done
 
