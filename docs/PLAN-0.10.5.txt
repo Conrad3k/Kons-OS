@@ -11,13 +11,15 @@ wersje nie powstaną wcześniej, ta i tak nazywa się 0.10.5.
 Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
 Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR (krok 2 ma swój ADR, krok 3 — swój).
 
-Mało kroków (prośba właściciela z 2026-11-14): CZTERY kroki, wydanie w czwartym (krok 4 — okno przeglądarki: zmiana
-rozmiaru i maksymalizacja — dodany na prośbę właściciela tego samego dnia). Każdy krok daje coś, co widać; krok 4
-kończy się wydaniem 0.10.5 — bez osobnego kroku wydania.
+Mało kroków (prośba właściciela z 2026-11-14): były CZTERY kroki (krok 4 — okno przeglądarki: zmiana rozmiaru
+i maksymalizacja — dodany na prośbę właściciela tego samego dnia). 2026-11-15 właściciel dodał krok 5 (Raptor Bridge —
+weryfikacja mostu między strefami a K1 i jego dokumentacja) i krok 6 (przegląd całej dokumentacji repozytorium);
+wydanie przeszło z kroku 4 do kroku 6. Każdy krok daje coś, co widać; krok 6 kończy się wydaniem 0.10.5 — bez
+osobnego kroku wydania.
 
-ZAKRES ZAMROŻONY (ADR 0035): poniższe 4 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 6 kroków i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
-zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b, 3a/3b albo 4a/4b (wydanie zawsze w ostatniej części kroku 4).
+zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b, 3a/3b 4a/4b, 5a/5b albo 6a/6b (wydanie zawsze w ostatniej części kroku 6).
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
 Statusy wiedzy: Z KODU (z czytania kodu K1 0.9.1 — przed 0.10.0; krok 1 sprawdza jeszcze raz na kodzie po 0.10.0),
@@ -26,9 +28,11 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
-Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4. Krok 1 można zacząć
-dopiero po wydaniu 0.10.0 (zmienia Ustawienia, które 0.10.0 krok 3 też zmienia); krok 2 potrzebuje stref i łącznika
-z 0.10.0; krok 4 zależy tylko od 0.10.0 (okno strefy w zaufanej ramce), ale idzie ostatni, bo kończy się wydaniem.
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4, krok 5, krok 6.
+Krok 1 można zacząć dopiero po wydaniu 0.10.0 (zmienia Ustawienia, które 0.10.0 krok 5 też zmienia); krok 2 potrzebuje stref
+i łącznika z 0.10.0; krok 4 zależy tylko od 0.10.0 (okno strefy w zaufanej ramce); krok 5 (Raptor Bridge) zależy tylko
+od 0.10.0 — można go zrobić wcześniej, zalecane przed krokiem 2 (krok 2 buduje na tym moście); krok 6 idzie ostatni,
+bo przegląda dokumentację po wszystkich krokach i kończy się wydaniem.
 
 Właściciel — co wpisać w nowym czacie (podmień N):
     „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.5.txt.”
@@ -49,7 +53,7 @@ Nowy czat — przebieg każdego kroku:
      lokalnie (wszystko [OK]); przy zmianach w budowie także scripts/sprawdz-powtarzalnosc.sh. Czekaj poleceniem,
      nie rób w tym czasie innych wywołań (CLAUDE.md).
   8. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, ZALEZNOSCI, WYGLAD, TESTY.md, SPEC (dopiski
-     [korekta: ADR …]), README. VERSION i CHANGELOG zmienia krok 4 (wydanie); kroki 1–3 zapisują „co widzi
+     [korekta: ADR …]), README. VERSION i CHANGELOG zmienia krok 6 (wydanie); kroki 1–5 zapisują „co widzi
      użytkownik” w opisie PR-a.
   9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
      ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
@@ -78,12 +82,15 @@ Do tego okno przeglądarki przestaje mieć stały rozmiar: rozciągasz je za brz
 „Maksymalizuj” na pasku tytułu (albo podwójne kliknięcie paska) rozkłada je na cały ekran — od dolnej krawędzi górnego
 paska do górnej krawędzi dolnego paska, więc oba paski K1 zawsze zostają widoczne.
 
-Cztery kroki:
+Sześć kroków:
   1. Ustawienia → Aktualizacje: nowy panel (wersja, stan miejsc A/B, aktualizacja z pendrive'a — przeniesiona
      z Instalatora); okno Ustawień trochę większe, żeby zmieściła się nowa sekcja.
   2. Aktualizacje przez sieć: strefa do pobierania (HTTPS), sprawdzanie i pobieranie, pytanie przed instalacją.
   3. Robot na GitHubie: jądro i przeglądarka same się podbijają, testy (wydaje sam dopiero po 0.10.5).
-  4. Okno przeglądarki: zmiana rozmiaru i maksymalizacja między paskami — i wydanie 0.10.5.
+  4. Okno przeglądarki: zmiana rozmiaru i maksymalizacja między paskami.
+  5. Raptor Bridge: sprawdzenie mostu, którym strefy (przeglądarka, a później inne aplikacje) łączą się ze światem przez
+     K1 — próby obciążenia i ataku, poprawki — i porządna dokumentacja tego mostu.
+  6. Przegląd całej dokumentacji repozytorium: usunięcie powtórzeń i rzeczy zbędnych — i wydanie 0.10.5.
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
@@ -92,16 +99,19 @@ Cztery kroki:
 [ ]  1  Ustawienia → Aktualizacje (z Instalatora)           S1–S6            0.10.0      D1 D2 D3, T1     M        —
 [ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16, S25      1           D4 D5 D7, T2–T7  L        0044
 [ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11       M        0045
-[ ]  4  Okno przeglądarki: rozmiar, maksymalizacja; wydanie S26–S32          0.10.0      D8, T12–T14      M        —
+[ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
+[ ]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
+[ ]  6  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–5         D10              M        —
 (Numery ADR — następne wolne po ADR-ach 0.10.0; jeśli 0.10.0 zajmie więcej, krok bierze kolejne wolne.)
 
-Dlaczego cztery: krok 1 to sama aplikacja (bez sieci) — panel, okno i przeniesienie, łatwe do przetestowania osobno;
+Dlaczego tyle: krok 1 to sama aplikacja (bez sieci) — panel, okno i przeniesienie, łatwe do przetestowania osobno;
 krok 2 to nowa droga danych (strefa, łącznik, zapis do wolnego miejsca A/B) i własny ADR; krok 3 to CI (robot); krok 4
-to ekran i strefa (inna część systemu niż kroki 1–3) i wydanie.
+to ekran i strefa (inna część systemu niż kroki 1–3); krok 5 to przegląd i testy jednej części, na której stoją
+przeglądarka, aktualizacje (krok 2) i przyszłe aplikacje w strefach; krok 6 to sama dokumentacja i wydanie.
 Dlaczego robot po krokach 1–2: jego pierwsze wydanie przechodzi już przez aktualizację sieciową z kroku 2 — to jest jej
 pierwszy prawdziwy test. Robot nie zmienia systemu, więc nie blokuje niczego w krokach 1–2. Robot scalony w kroku 3
 działa do wydania 0.10.5 tylko w trybie próbnym (bez scalania i wydań) — inaczej wydałby 0.10.x przed 0.10.5; pełny
-tryb włącza krok 4 po wydaniu.
+tryb włącza krok 6 po wydaniu.
 
 
 3. KROKI
@@ -207,7 +217,7 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · 
 KROK 3 — Robot na GitHubie                                              M · decyzje D6, T8–T11 · ADR 0045
   Cel: poprawki jądra Linux i przeglądarki trafiają do wydania K1 same: robot raz dziennie sprawdza, przygotowuje
   zmianę, puszcza pełne testy i po zielonych wydaje nową wersję PATCH — także z nową linią jądra (np. 7.x), gdy
-  konfiguracja K1 na nią wchodzi (T11). Do wydania 0.10.5 (krok 4) robot działa w trybie próbnym.
+  konfiguracja K1 na nią wchodzi (T11). Do wydania 0.10.5 (krok 6) robot działa w trybie próbnym.
   Na początku: S17 (uprawnienia GITHUB_TOKEN — POMIAR na próbnym przebiegu), D6.
   Co widzi użytkownik: na GitHubie raz na jakiś czas PR „Robot: jądro 6.18.61”, „Robot: jądro 7.1 (nowa linia)”
   albo „Robot: Firefox ESR …”, który sam przechodzi testy, scala się i daje wydanie; na laptopie po 1–2 dniach pytanie
@@ -237,7 +247,7 @@ KROK 3 — Robot na GitHubie                                              M · d
       jedno wydanie robota na dobę; nowa linia jądra — najwyżej jedna zmiana linii naraz i dopiero gdy poprzednie
       wydanie robota stoi co najmniej 7 dni bez Issue „błąd” (S24).
   [ ] Tryb próbny do wydania 0.10.5: harmonogram działa, robot otwiera PR i puszcza testy, ale nie scala i nie wydaje
-      (przełącznik w robot.yml — jedna zmienna, którą krok 4 przestawia po wydaniu).
+      (przełącznik w robot.yml — jedna zmienna, którą krok 6 przestawia po wydaniu).
   [ ] Robot i wydania ludzi — nigdy dwa wydania naraz (prośba właściciela z 2026-11-14: „żeby nie było tak, że my
       wydajemy 1.2.4, a robot też”; S19, S33). Po stronie robota: tuż przed scaleniem pobiera świeży main — gdy VERSION
       na main zmieniło się od chwili, w której robot zaczął, zamyka swój PR i zaczyna od nowa od świeżego main (nowy
@@ -270,7 +280,7 @@ KROK 3 — Robot na GitHubie                                              M · d
   otwarty PR człowieka ze zmianą VERSION → robot nie zaczyna (log „czekam na wydanie ludzi”); VERSION na main zmienione
   po otwarciu PR-a robota → robot zamyka PR i otwiera nowy z następnym numerem; dwa wydania na main jedno po drugim →
   oba tagi i oba wydania istnieją, żadne nie zostało anulowane. Pełne testy wydania [OK].
-  Właściciel (po wydaniu 0.10.5 w kroku 4): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem
+  Właściciel (po wydaniu 0.10.5 w kroku 6): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem
   poczekać na pierwszą wersję od robota i zainstalować ją przez sieć (lista w DO_ZROBIENIA).
   Dokumenty: ADR 0045, AGENTS.md (robot), nowy opis w docs/komponenty/ (robot.md: co sprawdza, czego nie rusza,
   jak go zatrzymać — wyłączenie workflow), jadro/README.md (procedura: robot robi kroki 1–6, także dla nowej linii),
@@ -281,11 +291,10 @@ KROK 3 — Robot na GitHubie                                              M · d
   mówią o nim, testy zielone.
   Ustalenia z wykonania: (pusto — wypełnia krok 3)
 
-KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja; wydanie     M · decyzje D8, T12–T14 · bez ADR
+KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja              M · decyzje D8, T12–T14 · bez ADR
   Cel (prośba właściciela z 2026-11-14): okno przeglądarki (i każde okno strefy) można rozciągnąć i zmniejszyć za
   brzeg albo róg zaufanej ramki oraz zmaksymalizować — na całą szerokość ekranu, od dolnej krawędzi górnego paska do
-  górnej krawędzi dolnego paska (nigdy pod paski); przeglądarka w środku dopasowuje się do nowego rozmiaru; wydanie
-  0.10.5.
+  górnej krawędzi dolnego paska (nigdy pod paski); przeglądarka w środku dopasowuje się do nowego rozmiaru (wydanie przeszło do kroku 6).
   Na początku: D8 (szkice); przeczytaj „Ustalenia z wykonania” 0.10.0 krok 1 (rola STREFA, ramka, zmiana wyświetlacza
   w virtio-gpu) i krok 2 (kompozytor strefy).
   Co widzi użytkownik: kursor nad brzegiem albo rogiem ramki okna przeglądarki zmienia się na strzałki; przeciągnięcie
@@ -313,14 +322,6 @@ KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja; wydanie     M �
   [ ] Pamięć (D8): rozmiar i stan okna każdej sesji zapamiętane tam, gdzie gui pamięta rozmieszczenie (skarbiec,
       fd 6 gui) albo w ustawieniach ekranu — wybór w kroku, jedna tabela; sesja jednorazowa — też (to wygląd okna,
       nie dane z internetu).
-  [ ] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki); porządki wersji PATCH: przegląd tego, co
-      zostało po przeniesieniu z Instalatora (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–4;
-      DO_ZROBIENIA.txt — „Teraz” → następna wersja, lista testów na X230 i IdeaPadzie dla 0.10.5 (Ustawienia →
-      Aktualizacje, aktualizacja z pendrive'a z Ustawień, „Sprawdź teraz”, pierwsza aktualizacja przez sieć, gdy robot
-      wyda następną wersję, zmiana rozmiaru i maksymalizacja przeglądarki na obu ekranach); ten plik → docs/archiwum/.
-      Po scaleniu: CI, tag k1-v0.10.5, wydanie z ogłoszeniem i paczką; potem robot w pełny tryb (krok 3: jedna zmiana
-      w robot.yml, osobny commit po wydaniu); raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
-      0.10.5 instaluje się jeszcze z pendrive'a — kolejne już przez sieć.
   Testy i dowód: scenariusz QEMU (rozszerzenie test-strefa.sh z 0.10.0 — strefa próbna, której `gosc` loguje rozmiar
   wyświetlacza i rysuje wzór na całą powierzchnię; szybciej niż Firefox w TCG — S32): przeciągnięcie prawego dolnego
   rogu → gość dostaje nowy rozmiar (log), zrzut: ramka i wzór w nowym rozmiarze; „maksymalizuj” → prostokąt okna =
@@ -335,10 +336,81 @@ KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja; wydanie     M �
   w DO_ZROBIENIA).
   Dokumenty: ekran.md (zmiana rozmiaru i maksymalizacja okien stref, obszar roboczy, kursory), strefa.md (zmiana
   wyświetlacza), gui.md (jeśli pamięć rozmiaru w gui), WYGLAD (D8), SLOWNIK (maksymalizacja, obszar roboczy, zmiana
-  rozmiaru), TESTY.md, RYZYKA (R26 — chwyty i przyciski ramki rysuje tylko ekran), CHANGELOG, README.
-  Gotowe, gdy: scenariusze zmiany rozmiaru i maksymalizacji oraz testy negatywne zielone, testy [OK], wydanie
-  k1-v0.10.5 istnieje z ogłoszeniem i paczką, robot w pełnym trybie, raport z linkami.
+  rozmiaru), TESTY.md, RYZYKA (R26 — chwyty i przyciski ramki rysuje tylko ekran).
+  Gotowe, gdy: scenariusze zmiany rozmiaru i maksymalizacji oraz testy negatywne zielone, testy [OK].
   Ustalenia z wykonania: (pusto — wypełnia krok 4)
+
+KROK 5 — Raptor Bridge: weryfikacja mostu stref i jego dokumentacja        M · decyzja D9, T15 · bez ADR (chyba że
+  przegląd zmieni architekturę — wtedy ADR)
+  Dodany przez właściciela 2026-11-15. „Raptor Bridge” — nazwa całego mostu między strefą a światem przez K1 (nazwa
+  właściciela, D9): przekaźnik w strefie (SOCKS5 → vsock) → VMM (vsock z kredytem, łącznik: SOCKS5 i DNS) → nadzorca
+  (zasada D3, gniazdo) → internet. Dziś służy przeglądarce; potem aplikacjom w strefach (wspólna strefa, ADR 0024)
+  i strefie pobierania aktualizacji (krok 2). W PR #119 most miał błąd, którego testy na hoście nie widziały (VMM
+  zamykał deskryptor 0: DNS i strony padały) — znaleziony dopiero sondą w strefie. Ten krok ma sprawić, że most jest
+  sprawdzony i opisany tak, żeby kolejne strefy mogły na nim stać bez niespodzianek.
+  Cel: Raptor Bridge przetestowany w strefie (nie tylko jego protokoły na hoście): wiele połączeń naraz, duże dane,
+  wolni i złośliwi klienci, koniec połączeń z obu stron; przegląd kodu z poprawkami; jeden dokument, z którego widać
+  całą drogę bajtu i granice zaufania.
+  Na początku: przeczytaj „Ustalenia z wykonania” 0.10.0 krok 2 (ustalenia 6–7) i kod mostu (src/strefa/przekaznik/,
+  vsock.c, polaczenia.c, lacznik.c, src/nadzorca/strefy_siec.c, k1_siec_dla_strefy).
+  Co widzi użytkownik: nic nowego na ekranie — przeglądarka i (po kroku 2) aktualizacje działają pewniej; w docs/ jest
+  opis Raptor Bridge zrozumiały także dla właściciela (część „w skrócie”).
+  Zadania:
+  [ ] Stały test mostu w strefie (S34, T15): program testowy w strefie próbnej (wzór: jednorazowa sonda z PR #119) —
+      przez przekaźnik do serwera na routerze QEMU: kilkadziesiąt połączeń naraz, odpowiedzi od bajtów do kilku MiB,
+      połączenie zamknięte przez klienta w połowie, przez serwer w połowie, półzamknięcia, odmowy D3 obok udanych,
+      nazwy (DNS) obok adresów; liczniki zgodne z obu stron; działa też w emulacji (bez KVM) — w test-strefa.sh.
+  [ ] Testy złośliwego gościa mostu (S35): gość łamie vsock (kredyt, porty, typy pakietów, długości), SOCKS5 i DNS
+      od środka strefy — maszyna kończy się albo połączenie dostaje odmowę, K1 i inne strefy żyją; fuzzing ścieżki
+      pakietu vsock (dziś fuzz_virtq i fuzz_lacznik — bez stanu połączeń).
+  [ ] Przegląd kodu mostu (S36): cykl życia miejsca połączenia (zajęte, czeka na nadzorcę, koniec), deskryptory
+      (każdy z jednym właścicielem — klasa błędu „fd 0”), limity (miejsca, kredyt, bufory, połączenia na 10 s u
+      nadzorcy), co się dzieje przy pełnej kolejce pakietów do gościa (dziś cicho porzucane), czasy oczekiwania (DNS,
+      łączenie TCP), sprzątanie po końcu strefy; każda poprawka z testem, który ją pokazuje.
+  [ ] Wydajność (S37): przepustowość i opóźnienie mostu (pomiar w strefie z KVM: jedno połączenie, wiele naraz) —
+      liczby w dokumencie; poprawki tylko tanie (wąskie gardło — opis i wpis do „Później”).
+  [ ] Dokumentacja (S38): nowy opis komponentu raptor-bridge.md (w docs, katalog komponenty) — w skrócie dla
+      właściciela; droga bajtu krok po kroku (schemat), granice zaufania i kto co sprawdza, komunikaty i ich pola
+      (STREFA_POLACZ, STREFA_GNIAZDO, STREFA_ODMOWA, porty vsock), limity, liczniki w logu, pułapki (Firefox i stan sieci — 0.10.0 krok 2 ustalenie 7),
+      jak podłączyć nową strefę (przepis); strefa.md i nadzorca.md odsyłają tam zamiast powtarzać; SLOWNIK: Raptor
+      Bridge (= przekaźnik + vsock + łącznik + nadzorca), bez zmiany nazw w kodzie (przekaźnik, łącznik zostają).
+  Testy i dowód: test mostu w test-strefa.sh (lokalnie w emulacji i w CI), testy złośliwego gościa, fuzzing; pomiar
+  wydajności w opisie PR-a.
+  Dokumenty: raptor-bridge.md (nowy, docs, katalog komponenty), strefa.md, nadzorca.md, lacznik (jeśli osobny opis),
+  SLOWNIK, RYZYKA (most — co zamknięte, co zostaje), TESTY.md, skill kons-dev (mapa kodu: Raptor Bridge).
+  Gotowe, gdy: test mostu i testy negatywne zielone (także w emulacji), przegląd zamknięty poprawkami albo wpisami
+  do „Później”, dokument jest i inne dokumenty do niego odsyłają.
+  Ustalenia z wykonania: (pusto — wypełnia krok 5)
+
+KROK 6 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M · decyzja D10 · bez ADR
+  Dodany przez właściciela 2026-11-15: na koniec wersji — weryfikacja całej dokumentacji repozytorium i usunięcie
+  informacji powtarzających się albo zbędnych.
+  Cel: każda informacja jest w jednym miejscu (inne miejsca odsyłają), nic nie jest nieaktualne, nic zbędnego; nowa
+  osoba (albo nowy czat) znajduje drogę od README do szczegółu bez sprzecznych wersji tej samej rzeczy. Potem wydanie.
+  Co widzi użytkownik: krótsza, spójna dokumentacja (README, docs/); wydanie 0.10.5.
+  Zadania:
+  [ ] Przegląd (S39): README, AGENTS.md, CLAUDE.md, skill kons-dev, docs/SPEC.md, ARCHITEKTURA.md, TESTY.md,
+      SLOWNIK.md, RYZYKA.md, ZALEZNOSCI.md, WYGLAD.md, DO_ZROBIENIA.txt, docs/komponenty/*, spis ADR (statusy),
+      archiwum (czy wszystko, co zamknięte, jest w archiwum) — dla każdego faktu: gdzie jest jego „jedno miejsce”;
+      lista powtórzeń, sprzeczności, nieaktualnych zdań (stare numery etapów M, wersje, liczby testów, ścieżki).
+  [ ] Porządki (D10): powtórzenia zamienione na odesłania, nieaktualne poprawione albo usunięte, zbędne usunięte;
+      ADR-y i CHANGELOG nie są przepisywane (to historia) — najwyżej status i odesłanie; lista zmian w opisie PR-a
+      (co usunięto, skąd, dokąd odsyła).
+  [ ] Sprawdzanie na stałe (S40): czego się da — w scripts/sprawdz-czytelnosc.py (np. istniejące ścieżki i odesłania,
+      spis komponentów, słowa ze słownika w nagłówkach), żeby dokumenty nie rozjeżdżały się znowu.
+  [ ] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki); porządki wersji PATCH: przegląd tego, co
+      zostało po przeniesieniu z Instalatora (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–5;
+      DO_ZROBIENIA.txt — „Teraz” → następna wersja, lista testów na X230 i IdeaPadzie dla 0.10.5 (Ustawienia →
+      Aktualizacje, aktualizacja z pendrive'a z Ustawień, „Sprawdź teraz”, pierwsza aktualizacja przez sieć, gdy robot
+      wyda następną wersję, zmiana rozmiaru i maksymalizacja przeglądarki na obu ekranach); ten plik → docs/archiwum/.
+      Po scaleniu: CI, tag k1-v0.10.5, wydanie z ogłoszeniem i paczką; potem robot w pełny tryb (krok 3: jedna zmiana
+      w robot.yml, osobny commit po wydaniu); raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
+      0.10.5 instaluje się jeszcze z pendrive'a — kolejne już przez sieć.
+  Testy i dowód: sprawdz-czytelnosc.py (z nowymi sprawdzeniami) zielone; pełne testy wydania [OK].
+  Dokumenty: wszystkie (przegląd), CHANGELOG, README.
+  Gotowe, gdy: przegląd zamknięty (lista w opisie PR-a), sprawdzenia zielone, wydanie k1-v0.10.5 istnieje
+  z ogłoszeniem i paczką, robot w pełnym trybie, raport z linkami.
+  Ustalenia z wykonania: (pusto — wypełnia krok 6)
 
 
 4. DECYZJE
@@ -384,6 +456,13 @@ Twoje (produkt):
        w kolorze sesji, przeglądarka dostaje rozmiar po puszczeniu (płynniej na X230 niż przerysowywanie strony
        w trakcie); zmaksymalizowane okno bez bocznych brzegów ramki, z paskiem tytułu K1 tuż pod górnym paskiem;
        najmniejszy rozmiar 640 × 480; rozmiar i maksymalizacja zapamiętane dla każdej sesji osobno.
+[x] D9 (krok 5; właściciel 2026-11-15) Nazwa mostu między strefami a K1: „Raptor Bridge” — nazwa całego systemu
+       (przekaźnik, vsock, łącznik, nadzorca) w dokumentacji i w rozmowie; części w kodzie zachowują swoje polskie
+       nazwy ze słownika (przekaźnik, łącznik). Zakres: weryfikacja i dokumentacja, dla przeglądarki i przyszłych
+       aplikacji w strefach.
+[!] D10 (krok 6) Co wolno usunąć przy przeglądzie dokumentacji. Rekomendacja: powtórzenia (zostaje jedno miejsce,
+       reszta odsyła), nieaktualne zdania i zamknięte listy „do zrobienia”; NIE usuwamy historii (ADR, CHANGELOG,
+       archiwum planów) — najwyżej status i odesłanie; pełna lista usuniętego w opisie PR-a, żebyś widział, co znikło.
 
 Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
     T1 Kanał aktualizacji (krok 1): Ustawienia dostają od nadzorcy osobny kanał, nie kanał Instalatora — inny UID
@@ -449,6 +528,11 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        z K1, a co ze strefy (ADR 0020, R26). Jeśli właściciel kiedyś zechce oglądać filmy bez pasków — osobna decyzja,
        z wyjściem klawiszem, którego strefa nie dostaje (np. Super).
 
+    T15 Test mostu w strefie (krok 5): program testowy w obrazie strefy próbnej (nasz kod, statycznie z musl — jak
+       gosc), sterowany numerem trybu z linii poleceń gościa jak tryby złośliwe; serwer po stronie „routera” QEMU
+       w Pythonie (jak w test-przegladarka.sh). Powód: Firefox w emulacji (kontener bez KVM) nie rusza, a sonda —
+       tak, więc most da się sprawdzać lokalnie i w CI tym samym testem (wzór: sonda z PR #119, która znalazła błąd
+       fd 0, gdy testy na hoście były zielone).
 
 5. LUKI (z czytania kodu 0.9.1 i dokumentacji, 2026-11-14)
 ---------------------------------------------------------
@@ -563,10 +647,30 @@ Krok 4
       (szybkiej), z Firefoksem tylko jeden zrzut (budżet testu jak w 0.10.0 S20).
 
 
+Krok 5 (dodany 2026-11-15)
+  S34 Z KODU. Strefa próbna (src/strefa/gosc/) nie ma przekaźnika ani sieci — test mostu potrzebuje przekaźnika w jej
+      obrazie (scripts/zbuduj-obraz.sh: obraz_strefy_probnej) i kanału połączeń VMM ↔ nadzorca także dla wiersza
+      PROBNA w K1_STREFY (dziś tylko przeglądarka) — sprawdzić, czy nadzorca daje fd 7 każdej strefie.
+  S35 Z KODU. Testy złośliwego gościa (gosc/zlosliwy.c) łamią kolejki virtio przez /dev/mem; złamany vsock (kredyt,
+      porty) i złośliwy SOCKS5 od środka strefy nie mają testu w systemie — tylko test_lacznik/fuzz_lacznik na hoście.
+  S36 Z KODU (0.10.0 krok 2). Znane miejsca do przeglądu: kolejka pakietów do gościa (CZEKAJACE = 64, pełna → pakiet
+      cicho porzucony: RESPONSE/RST/CREDIT_UPDATE), przekaźnik łączy się z VMM blokująco (do 2 s — VSOCK_DEFAULT_CONNECT
+      _TIMEOUT), miejsce połączenia czekające na odpowiedź nadzorcy, limit 400 połączeń / 10 s u nadzorcy.
+  S37 NIEPEWNE. Przepustowość: w emulacji 4 × 3 MiB w ok. 1 s (sonda, PR #119); z KVM i dla wideo — zmierzyć.
+  S38 Z KODU. Opis mostu jest dziś rozrzucony: strefa.md, nadzorca.md, ADR 0043, plan 0.10.0 — krok 5 zbiera go
+      w jednym dokumencie, reszta odsyła.
+
+Krok 6 (dodany 2026-11-15)
+  S39 Z PRZEGLĄDU. Dokumentacja rosła z każdą wersją; te same fakty bywają w kilku miejscach (np. mapa kodu w skillu
+      i w ARCHITEKTURA.md, zasady w AGENTS.md i w skillu, stan w DO_ZROBIENIA i w planach) — lista w kroku.
+  S40 Z KODU. scripts/sprawdz-czytelnosc.py sprawdza dziś istniejące ścieżki docs/, opisy usług i komunikatów, spis
+      ADR — nie sprawdza powtórzeń ani odesłań między dokumentami.
+  S41 Wydanie 0.10.5 przeszło z kroku 4 do kroku 6 (2026-11-15) — robot (krok 3) czeka w trybie próbnym do kroku 6.
+
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
 -----------------------------------------------------------------------------------
-    Aktualizacja pendrive'a przez sieć (D5); przewijanie w Ustawieniach i kółko myszy (D2, S6); wznawianie przerwanego
-    pobierania; kompresja paczki; aktualizacja tylko zmienionych części (różnicowa); „Co nowego” w K1 (tekst zmian
+    Aktualizacja pendrive'a przez sieć (D5); przewijanie w Ustawieniach (D2, S6; kółko myszy i touchpad — 0.10.0
+    krok 4); wznawianie przerwanego pobierania; kompresja paczki; aktualizacja tylko zmienionych części (różnicowa); „Co nowego” w K1 (tekst zmian
     z sieci — trzeba go bezpiecznie pokazać); podpis wydań kluczem poza GitHubem i odwoływanie starszych wersji
     (0.12, TPM — RYZYKA R44); robot dla musl, plików od producentów kart Wi-Fi i bazy przepisów radiowych (rzadkie
     zmiany — na razie ręcznie); świeżość ogłoszenia (codziennie podpisywana data, ochrona przed ukrywaniem nowej
