@@ -77,7 +77,7 @@ Na laptopach trzeba raz włączyć wirtualizację w BIOS-ie (D5) — bez niej K1
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [x]  1  Pierwsza strefa: KVM, VMM, okno w zaufanej ramce    S1–S11           0.9.1       D1 D4, T1–T6 T10 L        0042   PR #114
-[ ]  2  Przeglądarka w strefie, połączenia przez K1         S12–S20          1           D2 D3 D6, T7–T9  L        0043
+[ ]  2  Przeglądarka w strefie, połączenia przez K1         S12–S20          1           D2 D3 D6, T7–T9  L        0043   [w toku: Claude, gałąź claude/nifty-goodall-o5ujdr]
 [ ]  3  Stała strefa, Ustawienia, porządki; wydanie 0.10.0  S21–S25          2           D7, T11          L        —
 
 Dlaczego trzy, a nie dwa: krok 1 to cały fundament (jądro z KVM, własny VMM, nowa rola w ekranie, testy z emulowaną
