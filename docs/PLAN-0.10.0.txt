@@ -285,6 +285,9 @@ KROK 2 — Przeglądarka w strefie, połączenia przez K1                    L �
         nie ma. Wynik zależał od tego, czy Enter zdążył przed tą chwilą. Poprawka: network.manage-offline-status = false
         (zablokowane, strefy/przegladarka/k1.js) — Firefox w strefie nie reaguje na stan kart. Klikanie w podpowiedź
         paska adresu działało częściej, bo przychodziło później albo inną drogą (pickElement) — ślepy trop.
+        Właściciel (2026-11-15, IdeaPad 110, obraz z przebiegu 101): Enter działa na sprzęcie; przeglądarka startuje
+        kilkadziesiąt sekund. Decyzja: Enter w CI pominąć — sprawdzenie D3 nie wpisuje już adresu: strona testowa sama
+        prosi o obrazek z 10.0.2.3 (tak działałaby złośliwa strona szukająca urządzeń w domu), nadzorca odmawia.
     Pułapki szukania: zrzuty są tylko w artefakcie — test przy błędzie wypisuje górę okna strefy do logu (obrazek
     w base64, tylko strona testowa); Firefoksa z obrazu strefy z naszym kompozytorem da się uruchomić na hoście bez
     maszyny (chroot + udawane urządzenia wejścia) — tak wykluczono kompozytor i Firefoksa.

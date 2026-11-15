@@ -6,8 +6,8 @@
 #   2. adres strony testowej wpisany z klawiatury (virtio-input → kompozytor → Firefox) → serwer ją wysyła przez
 #      łącznik w VMM (SOCKS5 od przekaźnika w strefie) i gniazdo od nadzorcy; strona w oknie (zrzut: duże pola koloru)
 #   3. tekst wpisany w pole formularza dociera do serwera (pisanie w polach działa)
-#   4. NEGATYWNE: adres w sieci domowej, który nie jest routerem (10.0.2.3) — nadzorca odmawia (D3), przeglądarka
-#      pokazuje błąd, strefa i K1 żyją
+#   4. NEGATYWNE: strona testowa sama prosi o obrazek z adresu w sieci domowej, który nie jest routerem (10.0.2.3) —
+#      jak złośliwa strona, która szuka urządzeń w domu; nadzorca odmawia (D3), strefa i K1 żyją
 #   5. w logu K1 żadnego adresu strony ani wpisanego tekstu (niezmiennik 8) — tylko liczniki
 #   6. zamknięcie okna: maszyna kończy się (sesja jednorazowa: nic nie zostaje), liczniki połączeń w logu
 # Nazwy stron (DNS) — tylko testy na hoście (test_lacznik, fuzz_lacznik): DNS sieci QEMU prowadzi do resolvera
@@ -34,19 +34,22 @@ from k1qemu import Maszyna
 repo, out, limit, cmdline, emulacja = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4], sys.argv[5:]
 TEKST = "kontestk1"
 odebrane = []
-STRONA = (b"<!doctype html><html><head><meta charset=utf-8><title>K1</title></head>"
-          b"<body style='margin:0;background:#ff8800'><div style='height:200px;background:#1e64c8'></div>"
-          b"<form action=/wyslij><input name=t autofocus style='font-size:30px;width:400px'></form></body></html>")
+# the page asks for a picture from 10.0.2.3 (the home network, not the router) by itself: D3's refusal without typing
+STRONA = ("<!doctype html><html><head><meta charset=utf-8><title>K1</title></head>"
+          "<body style='margin:0;background:#ff8800'><div style='height:200px;background:#1e64c8'></div>"
+          "<form action=/wyslij><input name=t autofocus style='font-size:30px;width:400px'></form>"
+          "<img src='http://10.0.2.3:{port}/dom.png' width=1 height=1></body></html>")
 
 
 class Serwer(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         odebrane.append(self.path)
+        b = STRONA.format(port=self.server.server_address[1]).encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(STRONA)))
+        self.send_header("Content-Length", str(len(b)))
         self.end_headers()
-        self.wfile.write(STRONA)
+        self.wfile.write(b)
 
     def log_message(self, *a):
         pass
@@ -153,6 +156,7 @@ if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label tes
     qemu.wait()
     sys.exit(0 if all(q.wyniki) else 1)
 
+n0 = q.ile(r"K1-NADZORCA: strefa 2: pierwsza odmowa połączenia")
 q.klik(x + w_ // 2, y + 64)  # the address bar
 wpisz(f"10.0.2.2:{port}/")
 q.pisz("ret")
@@ -167,11 +171,7 @@ q.pisz("ret")
 dotarlo = q.czekaj_na(lambda: any(TEKST in p for p in odebrane), czas=120)
 sprawdz("tekst wpisany w pole formularza dociera do serwera", dotarlo)
 
-q.pisz("ctrl-l")  # the address bar by its shortcut: Ctrl reaches the zone (Shift did with ":")
-n0 = q.ile(r"K1-NADZORCA: strefa 2: pierwsza odmowa połączenia")
-wpisz(f"10.0.2.3:{port}/")
-q.pisz("ret")
-sprawdz("NEGATYWNY: adres w sieci domowej (nie router) — nadzorca odmawia (D3), strefa żyje",
+sprawdz("NEGATYWNY: strona prosi o obrazek z sieci domowej (nie router) — nadzorca odmawia (D3), strefa żyje",
         czekaj(r"K1-NADZORCA: strefa 2: pierwsza odmowa połączenia \(powód 1\)", od=n0, czas=120) and
         "strefa 2: koniec" not in q.tekst())
 q.zrzut("3-odmowa")
