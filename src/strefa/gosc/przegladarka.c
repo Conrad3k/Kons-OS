@@ -10,6 +10,8 @@
 #include <net/if.h>
 #include <poll.h>
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mount.h>
@@ -21,6 +23,7 @@
 #include <unistd.h>
 
 #include "gosc.h"
+#include "znaki_wejscia.h"
 
 #define KOMPOZYTOR "/usr/lib/k1/kompozytor"
 #define PRZEKAZNIK "/usr/lib/k1/przekaznik"
@@ -74,6 +77,24 @@ static void id_maszyny(void)
         loguj("machine-id: %s", strerror(errno));
     if (fd >= 0)
         close(fd);
+}
+
+/* What the compositor did with input (znaki_wejscia.h: bits only), to the VMM's log. */
+static void znaki_wejscia(int ster)
+{
+    char b[16], l[24];
+    unsigned z = 0;
+    int f = open(PLIK_WEJSCIA, O_RDONLY | O_CLOEXEC);
+    ssize_t n = f >= 0 ? read(f, b, sizeof b - 1) : -1;
+    if (f >= 0)
+        close(f);
+    if (n > 0) {
+        b[n] = '\0';
+        z = (unsigned)strtoul(b, NULL, 10) & WEJ_WSZYSTKIE;
+    }
+    n = snprintf(l, sizeof l, "wejscie %u\n", z);
+    if (write(ster, l, (size_t)n) != n)
+        loguj("kanał sterujący: zapis nieudany");
 }
 
 static pid_t uruchom(const char *program, char *const argv[], char *const env[], uid_t uid)
@@ -151,6 +172,8 @@ void przegladarka(int ster)
             ssize_t n = read(ster, b, sizeof b - 1);
             if (n <= 0 || (b[n] = '\0', strstr(b, "zamknij") != NULL)) {
                 loguj("zamykam (prośba VMM)");
+                if (n > 0)
+                    znaki_wejscia(ster);
                 if (n > 0 && write(ster, "zamykam\n", 8) != 8)
                     loguj("kanał sterujący: zapis nieudany");
                 kill(przegl, SIGTERM);

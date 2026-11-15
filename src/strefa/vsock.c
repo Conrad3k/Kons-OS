@@ -6,6 +6,7 @@
  * Any other connection is refused (RST). Every header from the guest is checked: its CIDs, type, length within the
  * chain, credit (a guest that sends more than the room we announced is hostile: the machine ends). Under mz.zamek. */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <linux/virtio_ids.h>
@@ -15,6 +16,7 @@
 #include "k1_teraz.h"
 #include "polaczenia.h"
 #include "strefa.h"
+#include "znaki_wejscia.h"
 
 #define CID_HOSTA 2
 #define CID_GOSCIA 3
@@ -169,6 +171,22 @@ void vsock_wyslij(void)
         mmio_uzyte(u);
 }
 
+/* "wejscie <n>": what the compositor did with input — bits of znaki_wejscia.h, logged as yes/no (never a key). */
+static void znaki_wejscia(const char *s)
+{
+    char *k;
+    unsigned long z = strtoul(s, &k, 10);
+    if (*k != '\0' || z > WEJ_WSZYSTKIE) {
+        v.odrzucone++;
+        return;
+    }
+#define TN(b) ((z & (b)) ? "tak" : "nie")
+    k1_log(TAG, "gość: mapa klawiatury %s, okno z klawiaturą %s, klawisz z urządzenia %s, gdy okno ma klawiaturę %s, "
+           "wysłany do okna %s; przycisk myszy %s", TN(WEJ_MAPA), TN(WEJ_FOKUS), TN(WEJ_KLAWISZ), TN(WEJ_KLAWISZ_OKNO),
+           TN(WEJ_KLAWISZ_WYSLANY), TN(WEJ_PRZYCISK));
+#undef TN
+}
+
 static void linia_od_goscia(void)
 {
     v.linia[v.dl] = '\0';
@@ -176,6 +194,8 @@ static void linia_od_goscia(void)
         k1_log(TAG, "gość gotowy (kanał sterujący)");
     else if (strcmp(v.linia, "zamykam") == 0)
         k1_log(TAG, "gość się zamyka");
+    else if (strncmp(v.linia, "wejscie ", 8) == 0 && v.dl <= 10 && v.linia[8] >= '0' && v.linia[8] <= '9')
+        znaki_wejscia(v.linia + 8);
     else
         v.odrzucone++;
     v.dl = 0;
