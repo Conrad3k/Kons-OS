@@ -51,3 +51,4 @@ pref("media.ffmpeg.vaapi.enabled", false);
 // k1: tymczasowe — diagnostyka tej sesji (usunąć przed scaleniem)
 pref("devtools.console.stdout.chrome", true);
 pref("browser.dom.window.dump.enabled", true);
+pref("browser.urlbar.loglevel", "Debug");

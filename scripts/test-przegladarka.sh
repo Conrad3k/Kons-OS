@@ -144,13 +144,19 @@ if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label tes
     jest = strona(w, h, px) and "/" in odebrane
     if not jest:  # k1: tymczasowe — diagnostyka tej sesji: Firefox żyje? (x), podpowiedź kliknięta
         pokaz(w, h, px)
-        q.pisz("x")
-        pokaz(*q.zrzut("2b-x", czas=10))
+        q.pisz("backspace")
+        time.sleep(2)
+        q.pisz("ret")  # the same Enter, two minutes after the first
+        w, h, px = q.zrzut("2b-enter2", gdy=strona, czas=60)
+        print(f"            | drugi Enter: strona {strona(w, h, px)}, serwer dostał: {len(odebrane)}", flush=True)
+        pokaz(w, h, px)
+        q.pisz("ctrl-l")
+        wpisz(f"10.0.2.2:{port}/x")
         q.klik(x + 330, y + 107)
         w, h, px = q.zrzut("2c-klik", gdy=strona, czas=60)
         pokaz(w, h, px)
         print(f"            | po kliknięciu serwer dostał: {len(odebrane)}", flush=True)
-        for l_ in [l for l in q.tekst().splitlines() if "gość:" in l and re.search(r"Console|JavaScript|Error|rror|SOCKS|DocumentLoad|nsHttp|Urlbar|K1-", l)][-60:]:
+        for l_ in [l for l in q.tekst().splitlines() if "gość:" in l and re.search(r"Console|JavaScript|rror|DocumentLoad|rlbar|K1-|Defer|defer|Enter|ommand", l)][-90:]:
             print("            | " + re.sub(r"\d+\.\d+\.\d+\.\d+(:\d+)?", "<adres>", l_)[:240], flush=True)
     zamknij_strefe()
     q.czekaj(r"K1-NADZORCA: strefa 2: połączenia", czas=20)
