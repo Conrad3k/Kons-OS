@@ -322,6 +322,7 @@ static void w_zatwierdz(struct klient *k, struct obiekt *o, union arg *a)
 {
     struct powierzchnia *p = o->dane;
     (void)k, (void)a;
+    wejscie_zatwierdzono(p->nowy.dolaczono && p->nowy.bufor != NULL);
     if (synchroniczna(p)) {
         struct stan_pow *c = &p->czekajacy, *n = &p->nowy;
         unsigned i;

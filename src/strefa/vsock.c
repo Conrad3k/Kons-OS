@@ -182,8 +182,8 @@ static void znaki_wejscia(const char *s)
     }
 #define TN(b) ((z & (b)) ? "tak" : "nie")
     k1_log(TAG, "gość: mapa klawiatury %s, okno z klawiaturą %s, klawisz z urządzenia %s, gdy okno ma klawiaturę %s, "
-           "wysłany do okna %s; przycisk myszy %s", TN(WEJ_MAPA), TN(WEJ_FOKUS), TN(WEJ_KLAWISZ), TN(WEJ_KLAWISZ_OKNO),
-           TN(WEJ_KLAWISZ_WYSLANY), TN(WEJ_PRZYCISK));
+           "wysłany do okna %s; przycisk myszy %s; nowa klatka po klawiszu %s", TN(WEJ_MAPA), TN(WEJ_FOKUS), TN(WEJ_KLAWISZ),
+           TN(WEJ_KLAWISZ_OKNO), TN(WEJ_KLAWISZ_WYSLANY), TN(WEJ_PRZYCISK), TN(WEJ_KLATKA_PO_KLAWISZU));
 #undef TN
 }
 
@@ -194,7 +194,7 @@ static void linia_od_goscia(void)
         k1_log(TAG, "gość gotowy (kanał sterujący)");
     else if (strcmp(v.linia, "zamykam") == 0)
         k1_log(TAG, "gość się zamyka");
-    else if (strncmp(v.linia, "wejscie ", 8) == 0 && v.dl <= 10 && v.linia[8] >= '0' && v.linia[8] <= '9')
+    else if (strncmp(v.linia, "wejscie ", 8) == 0 && v.dl <= 11 && v.linia[8] >= '0' && v.linia[8] <= '9')
         znaki_wejscia(v.linia + 8);
     else
         v.odrzucone++;

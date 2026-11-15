@@ -13,7 +13,8 @@ enum {
     WEJ_KLAWISZ_OKNO = 8,      /* ... while a window had the keys */
     WEJ_KLAWISZ_WYSLANY = 16,  /* ... and went to a wl_keyboard of that window's client */
     WEJ_PRZYCISK = 32,         /* a pointer button came */
-    WEJ_WSZYSTKIE = 63
+    WEJ_KLATKA_PO_KLAWISZU = 64, /* a client committed a new buffer after a key went to it (it reacts, it draws) */
+    WEJ_WSZYSTKIE = 127
 };
 
 #endif

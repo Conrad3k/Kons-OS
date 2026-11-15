@@ -159,6 +159,12 @@ static void klawiatura_do(struct powierzchnia *p)
     wyslij_mody(p);
 }
 
+void wejscie_zatwierdzono(int z_buforem)
+{
+    if (z_buforem && (znaki & WEJ_KLAWISZ_WYSLANY))
+        znak(WEJ_KLATKA_PO_KLAWISZU);
+}
+
 void wejscie_okno_zmiana(void)
 {
     struct xdg_pow *x = xdg_fokus();
