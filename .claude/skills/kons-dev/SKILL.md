@@ -266,6 +266,7 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 - *GRUB i ekran startowy:* `background_image` rysuje się po wypisaniu czegoś (`echo ""`); `set color_normal=
   black/black` **po** `terminal_output gfxterm`; `quiet` wycisza „EFI stub”; w QEMU fazę GRUB-a widać na
   zrzutach dopiero z `sleep` w kopii `grub.cfg` (`mcopy -i obraz@@1M`).
+- Próba kliknięcia "Enter" w przeglądarce nie działała tylko w testach agenta, a na prawdziwym sprzęcie klawisz działał zawsze.
 
 ## 8. Plan i zasady etapu
 
