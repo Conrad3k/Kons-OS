@@ -229,7 +229,37 @@ KROK 2 — Przeglądarka w strefie, połączenia przez K1                    L �
   SLOWNIK (przeglądarka, łącznik, obraz strefy, przekaźnik), TESTY.md, WYGLAD.
   Gotowe, gdy: scenariusz przeglądarki i testy negatywne zielone, testy [OK], obraz powtarzalny i mieści się
   w miejscu A/B.
-  Ustalenia z wykonania: (pusto — wypełnia krok 2)
+  Ustalenia z wykonania (2026-11-15, krok 2; czat uruchomiony o 4:00 bez właściciela):
+  - D2, D3, D6 — właściciel nie odpowiadał (krok uruchomiony zaplanowanym zadaniem w nocy): przyjęte REKOMENDACJE, do
+    potwierdzenia w raporcie. D2: sesje Ogólna (szałwia), Bank (łupek), Prywatna (wrzos) — trzy wiersze K1_STREFY; w kroku 2
+    wszystkie jednorazowe, w menu Start „Przeglądarka” = Ogólna. D3: internet + router, bez reszty sieci domowej, tylko
+    TCP. D6: 1536 MiB na sesję; „za mało pamięci” — okienko z kroku 1.
+  - S12 POTWIERDZONE: 117 pakietów (113 MiB .deb), po odchudzeniu SquashFS xz + BCJ x86 = 104 MB; k1.efi 17,6 → 121 MiB
+    (miejsce 128 MiB). zstd dałby 117 MB. Jądro strefy potrzebuje SQUASHFS_XZ i XZ_DEC_X86 (bez BCJ: „xz decompression
+    failed”).
+  - S13: łańcuch zaufania kluczy Debiana 13 — strefy/README.md (bookworm → debian-archive-keyring deb12u2). InRelease
+    trixie ma też podpis kluczem Debiana 12 — gpgv kończy się kodem 2; przyjmujemy jak apt (dobry podpis kluczy 13, żadnego
+    złego). Skrypty pakietów zastąpione: update-mime-database i gdk-pixbuf-query-loaders przez ld.so obrazu (bez nich GTK
+    pada na „Unrecognized image file format”). snapshot.debian.org z kontenera Claude — 403 (zapas tylko dla CI).
+  - S14 POTWIERDZONE: firefox-esr to program ELF, nie skrypt; Firefox startuje bez powłoki.
+  - S15: Firefox (GTK 3) wystarczają: wl_compositor 4, wl_shm, wl_subcompositor, wl_seat 5, wl_output 2,
+    wl_data_device_manager (zaślepka), xdg_wm_base 2 z popupami. Rysowanie procesorem bez mesa działa. Dwie pułapki:
+    (1) Firefox ma DWA wl_pointer i DWA wl_keyboard na jednym połączeniu (GTK i własny) — zdarzenia muszą iść do
+    wszystkich, inaczej GTK nie dostaje kliknięć ani klawiszy; (2) zatwierdzenie bez uszkodzeń też czeka na „done” —
+    bez niego GTK przestaje rysować po pierwszej klatce. Firefox z własnym „Wayland proxy” (gniazdo w XDG_RUNTIME_DIR)
+    nie dochodził do kompozytora w strefie — proxy wyłączone (MOZ_DISABLE_WAYLAND_PROXY, katalog roota).
+  - S16: opcja 6 DHCP → pole e komunikatu SIEC_ADRES (0 albo k1_siec_serwer_dobry).
+  - S17: test w QEMU -netdev user: połączenia do 10.0.2.2 trafiają do 127.0.0.1 komputera testów (serwer strony
+    w Pythonie, losowy port); DNS sieci QEMU nie działa w kontenerze bez resolvera — nazwy tylko w testach na hoście.
+  - S20: w emulacji (TCG + emulowane SVM) strefa ma 1 procesor (dwa — potrójny błąd gościa; VMM rozpoznaje QEMU po
+    „TCGTCGTCGTCG” w CPUID); start Firefoksa 4–5 min. Pułapka: asynchroniczne błędy stron KVM (KVM_GUEST) w gościu dawały
+    w emulacji podwójny błąd w Firefoksie po pierwszych połączeniach — jądro strefy dostaje „no-kvmapf” (bez wymiany
+    pamięci w K1 i tak nic nie dają).
+  - T9 ZMIENIONE (ADR 0043): łącznik jest modułem VMM (lacznik.c, polaczenia.c), nie osobną usługą — VMM już ma osobny UID
+    i klatkę na sesję; gniazda nadal otwiera tylko nadzorca (strefy_siec.c). fuzz_lacznik znalazł 0.0.0.0 brane za nazwę.
+  - Kółko myszy: K1 nie przekazuje go nigdzie (usługa wejścia, format zdarzeń, ekran) — strony przewija się klawiszami;
+    kółko → DO_ZROBIENIA (zakres zamrożony).
+  - Napis „Aplikacje nie mają jeszcze dostępu do internetu.” usunięty z Ustawienia → Sieć.
 
 KROK 3 — Stała strefa, Ustawienia, porządki; wydanie 0.10.0               L · decyzje D7, T11 · bez ADR (uzupełnia 0042)
   Cel: sesje, które mają pamiętać (D2), pamiętają — logowania, zakładki i historia zostają po zamknięciu i po ponownym

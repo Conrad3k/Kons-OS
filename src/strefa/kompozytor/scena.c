@@ -8,6 +8,12 @@
 #define TLO 0xff2b2a27u /* K1's dark neutral, where no window is */
 
 static int32_t z0, zy0, z1, zy1; /* the part to draw again (z1 <= z0: nothing) */
+static int wywolania;             /* frame callbacks wait (a commit without damage still gets its "done") */
+
+void scena_klatka(void)
+{
+    wywolania = 1;
+}
 
 void scena_zmiana(int32_t x, int32_t y, int32_t w, int32_t h)
 {
@@ -118,8 +124,14 @@ int scena_rysuj(void)
 {
     struct xdg_pow *x;
     unsigned i;
-    if (z1 <= z0 || ekran.px == NULL)
-        return 0;
+    if (z1 <= z0 || ekran.px == NULL) {
+        if (!wywolania)
+            return 0;
+        wywolania = 0;
+        powierzchnie_klatka_gotowa(teraz_ms()); /* nothing to draw, but the client waits for its frame */
+        return 1;
+    }
+    wywolania = 0;
     prostokat(z0, zy0, z1, zy1, TLO);
     for (i = 0; (x = xdg_okno(i)) != NULL; i++)
         if (x->pow != NULL && powierzchnia_widoczna(x->pow))

@@ -200,7 +200,8 @@ Bateria, B — kafelki kart, C — stan na karcie); wybrane **ikona C** i **sekc
   Medium 15, opis Plex Sans 13 `tekst2`; plakietka po prawej: zaokrąglenie 12, tło `najechanie`, kropka 4 px — szałwia
   `#8a9a7b` (połączono), akcent (łączę, brak sterownika), `tekst3` (pozostałe). Najwyżej 3 kafelki (2, gdy są szczegóły),
   reszta „…i jeszcze n”. Pod kafelkami „Szczegóły karty przewodowej” (Plex Sans Medium 13) i wiersze co 22 px: etykieta
-  `tekst2`, wartość `tekst` od 140 px. Na dole `tekst3`: „Aplikacje nie mają jeszcze dostępu do internetu.”
+  `tekst2`, wartość `tekst` od 140 px. (Do 0.10.0 krok 1 na dole `tekst3`: „Aplikacje nie mają jeszcze dostępu do
+  internetu.” — od kroku 2 przeglądarka ma internet, napis zniknął.)
 
 ## Wi-Fi (0.9.1 krok 1, decyzja właściciela D1: ikona B, sekcja A)
 Szkice narysowane częściami K1 na hoście (2026-11-14), wszystkie widoki naraz (także kroku 2): ikona A „Łuki”, B „Wachlarz”,

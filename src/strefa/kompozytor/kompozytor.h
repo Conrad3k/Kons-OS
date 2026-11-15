@@ -10,7 +10,7 @@
  * client (wl_display.error), never the compositor. The whole zone is in turn hostile to K1 — K1 never runs this code.
  *
  * Parts: main.c (socket, loop), protokol.c (wire, objects), interfejsy.c (the table of interfaces), powierzchnia.c
- * (surfaces, buffers, regions, subsurfaces), xdg.c (xdg-shell), wejscie.c (seat, pointer, keyboard, evdev), scena.c
+ * (surfaces, regions, subsurfaces), bufory.c (wl_shm, pools, buffers), xdg.c (xdg-shell), wejscie.c (seat, pointer, keyboard, evdev), scena.c
  * (composition), drm.c (the display). */
 #ifndef K1_KOMPOZYTOR_H
 #define K1_KOMPOZYTOR_H
@@ -29,6 +29,7 @@
 #define DZIECI_MAKS 32            /* subsurfaces of one surface */
 #define WYSKAKUJACE_MAKS 8        /* popups at once */
 #define WYWOLANIA_MAKS 64         /* frame callbacks waiting on one surface */
+#define URZ_KLIENTA 4             /* wl_pointer and wl_keyboard objects of one client */
 
 /* wl_display.error codes (wayland.xml) */
 enum { BLAD_ZLY_OBIEKT = 0, BLAD_ZLA_METODA = 1, BLAD_PAMIEC = 2, BLAD_WEWNETRZNY = 3 };
@@ -125,7 +126,9 @@ struct klient {
     size_t wy_n;
     int fd_wy[FD_KOLEJKA];
     unsigned fd_wy_n;
-    struct obiekt *wskaznik, *klawiatura, *wyjscie; /* the newest wl_pointer, wl_keyboard, wl_output of this client */
+    /* every wl_pointer and wl_keyboard of this client gets the events (Firefox has two of each: GTK's and its own) */
+    struct obiekt *wskazniki[URZ_KLIENTA], *klawiatury[URZ_KLIENTA];
+    struct obiekt *wyjscie; /* the newest wl_output */
 };
 
 /* protokol.c */
@@ -233,6 +236,7 @@ extern const char *mapa_klawiatury;           /* the XKB keymap file (argv) */
 /* scena.c */
 void scena_zmiana(int32_t x, int32_t y, int32_t w, int32_t h); /* this part of the display must be drawn again */
 void scena_zmiana_powierzchni(const struct powierzchnia *p);
+void scena_klatka(void);                      /* frame callbacks were committed: "done" at the next frame */
 int scena_rysuj(void);                        /* 1 when something was drawn */
 int scena_pozycja(const struct powierzchnia *p, int32_t *x, int32_t *y); /* its place on the display; 0: not shown */
 struct powierzchnia *scena_pod(int32_t x, int32_t y, int32_t *lx, int32_t *ly); /* the surface under a point */

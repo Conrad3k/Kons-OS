@@ -269,7 +269,8 @@ enum k1_komunikat_typ {
                                    * UDP to port 68 only — a filter set and locked by nadzorca) */
     K1_KOM_SIEC_ROZLACZONO = 125, /* to siec: a=K1_SIEC_KABEL_WYJETY / K1_SIEC_KARTA_ZNIKNELA — the address is gone */
     K1_KOM_SIEC_ADRES = 126,      /* from siec: set this address: a=address, b=prefix K1_SIEC_PREFIKS_MIN..MAKS, c=router
-                                   * (0: none) — k1_siec_adres_dobry; d=lease seconds K1_SIEC_DZIERZAWA_MIN..MAKS */
+                                   * (0: none) — k1_siec_adres_dobry; d=lease seconds K1_SIEC_DZIERZAWA_MIN..MAKS;
+                                   * e=the DNS server (DHCP option 6; 0: none, else k1_siec_serwer_dobry; 0.10.0 step 2) */
     K1_KOM_SIEC_ZWOLNIJ = 127,    /* from siec: the lease ended (or the router said no): take the address away */
     K1_KOM_SIEC_WYNIK = 128,      /* to siec: a=request type (SIEC_ADRES, SIEC_ZWOLNIJ, SIEC_ZEGAR), b=0 or K1_SIEC_BLAD_* */
     /* nadzorca → gui (fd 5) and Ustawienia (fd 4): the network as the person sees it (0.9.0 step 7; k1_siec.h) */
@@ -332,6 +333,14 @@ enum k1_komunikat_typ {
     K1_KOM_URUCHOM_STREFE = 163, /* obiekt=0, a=zone 1..K1_STREFY_MAKS, b=the guest's test mode 0..K1_STREFA_TRYB_MAKS
                                   * (src/strefa/gosc/gosc.h; not 0: the test program only), c..e=0 */
     K1_KOM_STREFA_STAN = 164,    /* obiekt=0, a=zone, b=K1_STREFA_* why it did not start, c..e=0 (gui says it) */
+    /* 0.10.0 step 2 (ADR 0043 T9): the browser's connections — the zone's VMM ↔ nadzorca (VMM's fd 7; the sender's UID
+     * is the zone's) */
+    K1_KOM_STREFA_POLACZ = 165,   /* from the VMM: obiekt=its connection 1..K1_STREFA_POLACZENIA_MAKS; TCP: a=IPv4 address
+                                   * (k1_siec_serwer_dobry), b=port 1..65535, c=K1_STREFA_TCP; the DNS server: a=b=0,
+                                   * c=K1_STREFA_DNS; d=e=0 */
+    K1_KOM_STREFA_GNIAZDO = 166,  /* to the VMM: obiekt=the connection, a=K1_STREFA_TCP/DNS, b..e=0; + 1 fd: a TCP socket
+                                   * connecting (non-blocking) or a UDP socket connected to the DNS server, port 53 */
+    K1_KOM_STREFA_ODMOWA = 167,   /* to the VMM: obiekt=the connection, a=K1_STREFA_ODM_* why not, b..e=0 (no fd) */
     /* nadzorca → siec */
     K1_KOM_SIEC_WIFI_EAPOL = 162,     /* obiekt=the card, all 0; + 1 fd: a packet socket for the EAPOL frames on the card
                                        * (WPA2 only; right before SIEC_WIFI_ZDARZENIE LACZE) */
@@ -395,6 +404,14 @@ enum { K1_PRZYCISK_BRAK = 0, K1_PRZYCISK_LEWY = 1, K1_PRZYCISK_PRAWY = 2, K1_PRZ
 enum { K1_STREFA_BEZ_WIRTUALIZACJI = 1, K1_STREFA_ZA_MALO_PAMIECI = 2, K1_STREFA_BRAK_OBRAZU = 3 };
 #define K1_STREFA_STAN_MAKS 3
 #define K1_STREFA_TRYB_MAKS 4 /* the hostile test guests (gosc/zlosliwy.c) */
+/* 0.10.0 step 2 (ADR 0043 T9): the zones' connections (STREFA_POLACZ c, STREFA_GNIAZDO a, STREFA_ODMOWA a) */
+#define K1_STREFA_POLACZENIA_MAKS 128 /* at once in one zone (the relay in the zone has as many) */
+enum { K1_STREFA_TCP = 0, K1_STREFA_DNS = 1 };
+enum { K1_STREFA_ODM_ADRES = 1,  /* not allowed (D3: the home network) */
+       K1_STREFA_ODM_SIEC = 2,   /* K1 has no network (or no DNS server from the router) */
+       K1_STREFA_ODM_LIMIT = 3,  /* too many connections in a short time */
+       K1_STREFA_ODM_BLAD = 4 }; /* the socket could not be opened */
+#define K1_STREFA_ODM_MAKS 4
 /* The number in KLIENT b and WITAJ d: an application (role APLIKACJA) or a zone (role STREFA). */
 #define K1_KLIENT_NR_MAKS ((int)K1_APL_MAKS > (int)K1_STREFY_MAKS ? (int)K1_APL_MAKS : (int)K1_STREFY_MAKS)
 

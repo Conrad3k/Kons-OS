@@ -154,6 +154,9 @@ int main(void)
             { &podglad_kanal, obsluz_podglad }, { &siec_kanal, obsluz_siec },
             { &siec_rt, obsluz_rt },          { &wifi_nl, obsluz_wifi_nl },
             { &ustaw_kanal, obsluz_ustawienia }, /* 0.9.1: Wi-Fi on/off, a look for networks */
+#define X_KANAL_STREFY(n, nr, ...) { &strefa_kanal[nr], obsluz_strefe_##n },
+            K1_STREFY(X_KANAL_STREFY) /* 0.10.0 step 2: each zone's connections (strefy_siec.c) */
+#undef X_KANAL_STREFY
         };
 #define N_KANALOW (sizeof kanaly / sizeof kanaly[0])
         struct pollfd pfd[1 + N_KANALOW + N_USLUG + 1];

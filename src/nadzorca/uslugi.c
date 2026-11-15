@@ -409,6 +409,8 @@ static void po_koncu(const struct usluga *u)
     }
     if (u->profil == K1_PROFIL_CZYTNIK)
         pendrive_koniec();
+    if (k1_strefa_profilu(u->profil) != NULL) /* 0.10.0 step 2: a zone's channel for its connections */
+        strefa_kanal_koniec(k1_strefa_profilu(u->profil)->nr);
     if (u->profil == K1_PROFIL_DEKODER)
         dekoder_koniec();
     if (u->profil == K1_PROFIL_SKARBIEC) {

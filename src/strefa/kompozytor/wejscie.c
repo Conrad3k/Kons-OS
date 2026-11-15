@@ -104,29 +104,40 @@ static uint32_t mody(void)
     return m;
 }
 
-static void wyslij_mody(struct obiekt *kl)
+/* Each wl_keyboard (wl_pointer) of the client that owns surface p, in turn (tab: klawiatury, wskazniki) */
+#define KAZDY(tab, pow_, i_, ob_) \
+    for (i_ = 0; (pow_) != NULL && i_ < URZ_KLIENTA; i_++) \
+        if (((ob_) = (pow_)->o->klient->tab[i_]) != NULL)
+
+static void wyslij_mody(struct powierzchnia *p)
 {
-    zdarzenie(kl, 4, "uuuuu", kolejny_serial(), mody(), 0u, zablokowane, 0u);
+    struct obiekt *kl;
+    unsigned i;
+    uint32_t s = kolejny_serial();
+    KAZDY(klawiatury, p, i, kl)
+        zdarzenie(kl, 4, "uuuuu", s, mody(), 0u, zablokowane, 0u);
 }
 
 /* The keyboard goes to surface p (a window's main surface; NULL: nowhere). */
 static void klawiatura_do(struct powierzchnia *p)
 {
     uint32_t klaw[KLAWISZE_MAKS];
-    uint32_t n = 0, i;
+    uint32_t n = 0, i, s;
     struct obiekt *kl;
+    unsigned j;
     if (p == z_klawiatura)
         return;
-    if (z_klawiatura != NULL && (kl = z_klawiatura->o->klient->klawiatura) != NULL)
-        zdarzenie(kl, 2, "uo", kolejny_serial(), z_klawiatura->o);
+    s = kolejny_serial();
+    KAZDY(klawiatury, z_klawiatura, j, kl)
+        zdarzenie(kl, 2, "uo", s, z_klawiatura->o);
     z_klawiatura = p;
-    if (p == NULL || (kl = p->o->klient->klawiatura) == NULL)
-        return;
     for (i = 0; i < KLAWISZE_MAKS; i++)
         if (wcisniete[i])
             klaw[n++] = i;
-    zdarzenie(kl, 1, "uoa", kolejny_serial(), p->o, klaw, n * 4u);
-    wyslij_mody(kl);
+    s = kolejny_serial();
+    KAZDY(klawiatury, p, j, kl)
+        zdarzenie(kl, 1, "uoa", s, p->o, klaw, n * 4u);
+    wyslij_mody(p);
 }
 
 void wejscie_okno_zmiana(void)
@@ -154,7 +165,8 @@ void wejscie_klient_koniec(struct klient *k)
 static void klawisz(int kod, int wartosc)
 {
     struct obiekt *kl;
-    uint32_t m = mody(), z = zablokowane;
+    uint32_t m = mody(), z = zablokowane, s;
+    unsigned i;
     if (kod <= 0 || kod >= KLAWISZE_MAKS || wartosc == 2) /* repeats: the client repeats (repeat_info) */
         return;
     if (wcisniete[kod] == (wartosc != 0))
@@ -164,22 +176,20 @@ static void klawisz(int kod, int wartosc)
         zablokowane ^= M_LOCK;
     if (wartosc && kod == KEY_NUMLOCK)
         zablokowane ^= M_NUM;
-    if (z_klawiatura == NULL || (kl = z_klawiatura->o->klient->klawiatura) == NULL)
-        return;
-    zdarzenie(kl, 3, "uuuu", kolejny_serial(), teraz_ms(), (uint32_t)kod, (uint32_t)(wartosc != 0));
+    s = kolejny_serial();
+    KAZDY(klawiatury, z_klawiatura, i, kl)
+        zdarzenie(kl, 3, "uuuu", s, teraz_ms(), (uint32_t)kod, (uint32_t)(wartosc != 0));
     if (m != mody() || z != zablokowane)
-        wyslij_mody(kl);
+        wyslij_mody(z_klawiatura);
 }
 
-static struct obiekt *wskaznik_od(struct powierzchnia *p)
+static void ramka(struct powierzchnia *p)
 {
-    return p != NULL ? p->o->klient->wskaznik : NULL;
-}
-
-static void ramka(struct obiekt *w)
-{
-    if (w != NULL && w->wersja >= 5)
-        zdarzenie(w, 5, "");
+    struct obiekt *w;
+    unsigned i;
+    KAZDY(wskazniki, p, i, w)
+        if (w->wersja >= 5)
+            zdarzenie(w, 5, "");
 }
 
 static void ruch(void)
@@ -187,23 +197,27 @@ static void ruch(void)
     int32_t lx = 0, ly = 0;
     struct powierzchnia *p = przyciski ? pod_kursorem : scena_pod(kx, ky, &lx, &ly);
     struct obiekt *w;
+    unsigned i;
+    uint32_t s;
     if (przyciski && p != NULL) { /* held: the same surface, coordinates relative to it */
         int32_t sx, sy;
         if (scena_pozycja(p, &sx, &sy))
             lx = kx - sx, ly = ky - sy;
     }
     if (p != pod_kursorem) {
-        if ((w = wskaznik_od(pod_kursorem)) != NULL) {
-            zdarzenie(w, 1, "uo", kolejny_serial(), pod_kursorem->o);
-            ramka(w);
-        }
+        s = kolejny_serial();
+        KAZDY(wskazniki, pod_kursorem, i, w)
+            zdarzenie(w, 1, "uo", s, pod_kursorem->o);
+        ramka(pod_kursorem);
         pod_kursorem = p;
-        if ((w = wskaznik_od(p)) != NULL)
-            zdarzenie(w, 0, "uoff", kolejny_serial(), p->o, lx * 256, ly * 256);
-    } else if ((w = wskaznik_od(p)) != NULL) {
-        zdarzenie(w, 2, "uff", teraz_ms(), lx * 256, ly * 256);
+        s = kolejny_serial();
+        KAZDY(wskazniki, p, i, w)
+            zdarzenie(w, 0, "uoff", s, p->o, lx * 256, ly * 256);
+    } else {
+        KAZDY(wskazniki, p, i, w)
+            zdarzenie(w, 2, "uff", teraz_ms(), lx * 256, ly * 256);
     }
-    ramka(wskaznik_od(p));
+    ramka(p);
 }
 
 /* A popup's surface tree contains p (a click there does not close the popups). */
@@ -217,32 +231,36 @@ static int w_wyskakujacym(const struct powierzchnia *p)
 
 static void przycisk(int kod, int wartosc)
 {
-    uint32_t bit = kod == BTN_LEFT ? 1u : kod == BTN_RIGHT ? 2u : kod == BTN_MIDDLE ? 4u : 0u;
+    uint32_t bit = kod == BTN_LEFT ? 1u : kod == BTN_RIGHT ? 2u : kod == BTN_MIDDLE ? 4u : 0u, s;
     struct obiekt *w;
+    unsigned i;
     if (bit == 0 || ((przyciski & bit) != 0) == (wartosc != 0))
         return;
     if (wartosc && !przyciski && !w_wyskakujacym(pod_kursorem))
         xdg_wyskakujace_zamknij();
     przyciski = wartosc ? przyciski | bit : przyciski & ~bit;
-    if ((w = wskaznik_od(pod_kursorem)) != NULL) {
-        zdarzenie(w, 3, "uuuu", kolejny_serial(), teraz_ms(), (uint32_t)kod, (uint32_t)(wartosc != 0));
-        ramka(w);
-    }
+    s = kolejny_serial();
+    KAZDY(wskazniki, pod_kursorem, i, w)
+        zdarzenie(w, 3, "uuuu", s, teraz_ms(), (uint32_t)kod, (uint32_t)(wartosc != 0));
+    ramka(pod_kursorem);
     if (!przyciski)
         ruch(); /* released: the surface under the pointer gets it again */
 }
 
 static void kolko(int wartosc)
 {
-    struct obiekt *w = wskaznik_od(pod_kursorem);
-    if (w == NULL || wartosc == 0)
+    struct obiekt *w;
+    unsigned i;
+    if (wartosc == 0)
         return;
-    if (w->wersja >= 5) {
-        zdarzenie(w, 6, "u", 0u);                     /* axis_source: wheel */
-        zdarzenie(w, 8, "ui", 0u, -wartosc);          /* axis_discrete: vertical */
+    KAZDY(wskazniki, pod_kursorem, i, w) {
+        if (w->wersja >= 5) {
+            zdarzenie(w, 6, "u", 0u);            /* axis_source: wheel */
+            zdarzenie(w, 8, "ui", 0u, -wartosc); /* axis_discrete: vertical */
+        }
+        zdarzenie(w, 4, "uuf", teraz_ms(), 0u, -wartosc * 10 * 256); /* axis: 10 units a notch, positive = down */
     }
-    zdarzenie(w, 4, "uuf", teraz_ms(), 0u, -wartosc * 10 * 256); /* axis: 10 units a notch, positive = down */
-    ramka(w);
+    ramka(pod_kursorem);
 }
 
 void wejscie_czytaj(unsigned i)
@@ -290,27 +308,47 @@ static void s_przywiaz(struct obiekt *o)
         zdarzenie(o, 1, "s", "seat0");
 }
 
+/* A new wl_pointer or wl_keyboard in the client's list; 0, or -1 (too many: error posted). */
+static int dopisz(struct klient *k, struct obiekt **tab, struct obiekt *n)
+{
+    unsigned i;
+    for (i = 0; i < URZ_KLIENTA; i++)
+        if (tab[i] == NULL) {
+            tab[i] = n;
+            return 0;
+        }
+    blad(k, n, BLAD_PAMIEC, "za dużo urządzeń wejścia");
+    return -1;
+}
+
+static void wypisz(struct obiekt **tab, const struct obiekt *o)
+{
+    unsigned i;
+    for (i = 0; i < URZ_KLIENTA; i++)
+        if (tab[i] == o)
+            tab[i] = NULL;
+}
+
 static void s_wskaznik(struct klient *k, struct obiekt *o, union arg *a)
 {
     struct obiekt *n = obiekt_nowy(k, a[0].u, IF_POINTER, o->wersja);
     if (n != NULL)
-        k->wskaznik = n;
+        dopisz(k, k->wskazniki, n);
 }
 
 static void s_klawiatura(struct klient *k, struct obiekt *o, union arg *a)
 {
     struct obiekt *n = obiekt_nowy(k, a[0].u, IF_KEYBOARD, o->wersja);
-    if (n == NULL)
+    if (n == NULL || dopisz(k, k->klawiatury, n) != 0)
         return;
-    k->klawiatura = n;
     if (mapa() == 0)
         zdarzenie(n, 0, "uhu", 1u, mapa_fd, mapa_rozmiar); /* keymap: xkb_v1 */
     if (n->wersja >= 4)
         zdarzenie(n, 5, "ii", 25, 600); /* repeat_info: 25 a second after 600 ms */
-    if (z_klawiatura != NULL && z_klawiatura->o->klient == k) {
-        struct powierzchnia *p = z_klawiatura;
-        z_klawiatura = NULL;
-        klawiatura_do(p);
+    if (z_klawiatura != NULL && z_klawiatura->o->klient == k) { /* the window has the keys: this one learns it too */
+        uint32_t s = kolejny_serial();
+        zdarzenie(n, 1, "uoa", s, z_klawiatura->o, NULL, 0u);
+        zdarzenie(n, 4, "uuuuu", kolejny_serial(), mody(), 0u, zablokowane, 0u);
     }
 }
 
@@ -336,14 +374,12 @@ static void w_kursor(struct klient *k, struct obiekt *o, union arg *a)
 
 static void w_zwolnij(struct obiekt *o)
 {
-    if (o->klient->wskaznik == o)
-        o->klient->wskaznik = NULL;
+    wypisz(o->klient->wskazniki, o);
 }
 
 static void kl_zwolnij(struct obiekt *o)
 {
-    if (o->klient->klawiatura == o)
-        o->klient->klawiatura = NULL;
+    wypisz(o->klient->klawiatury, o);
 }
 
 static const struct zadanie z_seat[] = { { "get_pointer", "n", s_wskaznik, 0 }, { "get_keyboard", "n", s_klawiatura, 0 },

@@ -41,6 +41,7 @@ struct k1_dhcp_klient {
     int proby;                 /* retries in this state */
     /* the offer we asked for, then the lease we hold */
     uint32_t adres, serwer, router;
+    uint32_t dns;              /* DHCP option 6, 0: none (0.10.0 step 2: the zones' names) */
     int prefiks;
     uint32_t dzierzawa;
     double t1, t2, koniec;     /* renew, rebind, the end of the lease (absolute times) */

@@ -12,7 +12,7 @@ ROWNOLEGLE=${K1_TESTY_ROWNOLEGLE:-}
 if [ -z "$ROWNOLEGLE" ]; then
     if [ -w /dev/kvm ]; then ROWNOLEGLE=1; else ROWNOLEGLE=0; fi
 fi
-TESTY="test-m4 test-pliki test-pendrive test-skarbiec test-siec test-wifi test-strefa test-m5 test-m5f test-m6"
+TESTY="test-m4 test-pliki test-pendrive test-skarbiec test-siec test-wifi test-strefa test-przegladarka test-m5 test-m5f test-m6"
 WYJ=$K1_BUDOWA/testy/rownolegle
 mkdir -p "$WYJ"
 if [ "$ROWNOLEGLE" = 1 ]; then

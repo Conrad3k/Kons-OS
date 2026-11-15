@@ -51,6 +51,7 @@ struct k1_dhcp_odpowiedz {
     uint32_t t1, t2;    /* options 58, 59 (0: none — the client takes 1/2 and 7/8 of the lease) */
     uint32_t czas[2];   /* option 42 (0.9.0 step 8): the first two time servers that can be (k1_siec_serwer_dobry) */
     int n_czas;
+    uint32_t dns;       /* option 6 (0.10.0 step 2): the first DNS server that can be one (k1_siec_serwer_dobry), 0: none */
 };
 
 /* Builds the datagram of `z` into `bufor` (at least K1_DHCP_PAKIET_MAKS bytes): its length, or 0 for a wrong `z`. */

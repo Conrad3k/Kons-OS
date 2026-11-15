@@ -25,7 +25,8 @@ int k1_kom_sprawdz_siec(const struct k1_komunikat *k, enum k1_kanal_kierunek kie
     case K1_KOM_SIEC_ADRES:
         return kier == K1_KIER_DO_NADZORCY && karta(k->obiekt) &&
                k1_siec_adres_dobry((uint32_t)k->a, k->b, (uint32_t)k->c) &&
-               w(k->d, K1_SIEC_DZIERZAWA_MIN, K1_SIEC_DZIERZAWA_MAKS) && k->e == 0;
+               w(k->d, K1_SIEC_DZIERZAWA_MIN, K1_SIEC_DZIERZAWA_MAKS) &&
+               (k->e == 0 || k1_siec_serwer_dobry((uint32_t)k->e));
     case K1_KOM_SIEC_ZWOLNIJ:
         return kier == K1_KIER_DO_NADZORCY && karta(k->obiekt) && zera(k, 0);
     case K1_KOM_SIEC_WYNIK:

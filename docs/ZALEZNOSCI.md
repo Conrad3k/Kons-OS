@@ -28,6 +28,12 @@ API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybo
 | MokManager (`mmx64.efi`, podpis Canonical) | 15.8 (`shim-signed`) | BSD-2-Clause | jw. | wpisanie klucza K1 do MOK przy pierwszym włączeniu Secure Boot (0.7.0, ADR 0022) |
 | GRUB BIOS (i386-pc, obraz El Torito z wbudowanymi modułami) | 2.12-1ubuntu7.3 | GPL-3.0 | archiwum Ubuntu (`grub-pc-bin`), `grub-mkimage` | start z płyty przez BIOS w maszynach wirtualnych; tymczasowo do 0.12 (ADR 0010, RYZYKA R25) |
 
+## W obrazie strefy przeglądarki (0.10.0 krok 2, ADR 0043 — poza bazą zaufania K1: działa w mikro-maszynie)
+| Zależność | Wersja | Licencja | Źródło i weryfikacja | Uzasadnienie |
+|---|---|---|---|---|
+| Firefox ESR (`firefox-esr`, polski interfejs `firefox-esr-l10n-pl`) i jego biblioteki z Debiana 13 (GTK 3, GLib, Cairo, Pango, fontconfig, czcionki DejaVu, glibc …) — 117 pakietów | wersje w `strefy/przegladarka.txt` (np. firefox-esr 153.7.0esr-1~deb13u1) | MPL 2.0 (Firefox), LGPL/GPL i inne (biblioteki — pliki `copyright` pakietów; przy wydaniu lista pakietów źródłowych) | deb.debian.org i security.debian.org (zapas: snapshot.debian.org); `InRelease` sprawdzany kluczami Debiana 13 z `strefy/klucze/` (`scripts/odswiez-strefe.py`), każdy pakiet — SHA-256 z tabeli (`scripts/zbuduj-strefe.sh`) | pełna przeglądarka w strefie (T8); WPE — później, jako silnik Przeglądarki K1 (ADR 0025). Nazwa i logo Firefoksa to znaki Mozilli: K1 pokazuje „Przeglądarka” z własną ikoną, program jest niezmieniony (S18) |
+| Mapa klawiatury PL (XKB) — `strefy/klawiatura-pl.xkb` | xkeyboard-config z Debiana 13 (`xkb-data` w tabeli), skompilowana libxkbcommon 1.6 (Ubuntu 24.04) | MIT/X11 | wygenerowana raz z pakietu `xkb-data` obrazu (reguły evdev, pc105, pl); w repo | kompozytor strefy podaje ją przeglądarce (`wl_keyboard.keymap`) — bez libxkbcommon w kompozytorze |
+
 ## Do budowy (wpływają na wynik)
 
 | Narzędzie | Wersja | Źródło | Po co |
@@ -35,6 +41,7 @@ API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybo
 | sbsigntool (`sbsign`, `sbverify`) | 0.9.4-3.1ubuntu7 | Ubuntu 24.04 | podpis `k1.efi` do Secure Boot (0.7.0) |
 | faketime | Ubuntu 24.04 | Ubuntu 24.04 | zamrożony zegar przy podpisie (czas podpisu = `SOURCE_DATE_EPOCH`, powtarzalność) |
 | python3-virt-firmware (`virt-fw-vars`) | 24.1.1 | Ubuntu 24.04 | tylko testy: zmienne OVMF z kluczami MS i MOK (`test-m6`) |
+| dpkg-deb, gpgv | Ubuntu 24.04 | Ubuntu 24.04 | obraz strefy przeglądarki: rozpakowanie pakietów Debiana (`scripts/zbuduj-strefe.sh`), sprawdzenie podpisów `InRelease` (`scripts/odswiez-strefe.py`) |
 | python3-pil (Pillow) | 10.2.0 | Ubuntu 24.04 | tylko testy: zdjęcia JPEG i PNG na wirtualnym pendrivie (`test-pendrive`, 0.8.0 krok 3) i obrazy do `test_dekoder` / korpusu `fuzz_dekoder` (krok 4); `mtools`, `sfdisk` — obrazy FAT do `test_fat` i `test-pendrive` |
 | `zstd` | Ubuntu 24.04 | Ubuntu 24.04 | kompresja jądra (`CONFIG_KERNEL_ZSTD`, od 0.9.1 — z plikami kart Wi-Fi gzip dawał 20 MB) |
 | `dosfstools` (`fsck.fat`) | 4.2 | Ubuntu 24.04 | tylko testy (0.9.0 krok 3, ADR 0038): niezależne sprawdzenie FAT32 po wymianie plików startowych (`test_start`, `test-m5f`) |

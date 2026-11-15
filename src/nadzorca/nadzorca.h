@@ -183,6 +183,13 @@ void dekoder_koniec(void);
 
 /* strefy.c (0.10.0, ADR 0042): the VMM of zone `nr` (its row of K1_STREFY); tryb: the guest's test mode (test only) */
 void strefa_uruchom(int nr, int tryb);
+/* strefy_siec.c (0.10.0 step 2, ADR 0043 T9): the browser's connections — each running zone's channel (VMM's fd 7) */
+extern int strefa_kanal[K1_STREFY_MAKS + 1];
+int strefa_kanal_nowy(int nr);  /* a new channel for zone nr: the VMM's end (fd), or -1 */
+void strefa_kanal_koniec(int nr); /* the zone ended: its channel goes */
+#define X_OBSLUZ_STREFE(n, nr, ...) void obsluz_strefe_##n(void);
+K1_STREFY(X_OBSLUZ_STREFE)
+#undef X_OBSLUZ_STREFE
 
 /* siec.c — the network cards, the cable, the address siec asks for (0.9.0 step 6, ADR 0039) */
 extern int siec_kanal; /* our end of siec's fd 3 */
@@ -207,6 +214,7 @@ struct siec_karta {
 };
 int siec_przewodowe(struct siec_karta *t, int maks); /* the wired cards nadzorca uses */
 int siec_stan(double *od);                           /* K1_SIEC_*; *od: connected since (k1_teraz) or 0 */
+int siec_dla_stref(uint32_t *nasz, int *prefiks, uint32_t *router, uint32_t *dns); /* 1: K1 has an address (0.10.0) */
 /* siec_stan.c — the network for gui (the top bar) and Ustawienia → Sieć (0.9.0 step 7) */
 void siec_stan_karty(void);          /* the cards changed (or a look at them): the PCI list again */
 void siec_stan_wyslij(void);         /* what gui and Ustawienia have not got yet */

@@ -1,7 +1,8 @@
 /* K1 nadzorca — the zones (0.10.0, ADR 0042 T3): on request of gui (or the test program: with a hostile guest's test
  * mode) the VMM of a zone (program strefa, its row of K1_STREFY: profile, UID, memory) starts in its sandbox with
  *   fd 3 = a new channel to ekran (role STREFA, the zone's number), fd 4 = /dev/kvm, fd 5 = the zone kernel,
- *   fd 6 = the zone image — all opened here, read only but /dev/kvm; the VMM gets no path.
+ *   fd 6 = the zone image — all opened here, read only but /dev/kvm; the VMM gets no path;
+ *   fd 7 = its channel to us for the browser's connections (strefy_siec.c; 0.10.0 step 2, ADR 0043 T9).
  * One machine per row at a time. Without virtualization (no /dev/kvm: the processor has none, or it is off in the
  * BIOS), without the zone's image or without enough free memory gui is told why (STREFA_STAN) and nothing starts.
  * The VMM's end is an ordinary end of a service started on request (uslugi.c): no restart. Part of nadzorca. */
@@ -55,7 +56,7 @@ void strefa_uruchom(int nr, int tryb)
 {
     const struct k1_strefa_opis *z = k1_strefa(nr);
     struct usluga *u = z != NULL ? usluga_profilu(z->profil) : NULL;
-    int fd[4] = { -1, -1, -1, -1 }, powod, i;
+    int fd[5] = { -1, -1, -1, -1, -1 }, powod, i;
     if (u == NULL)
         return;
     if (u->pid > 0) {
@@ -67,17 +68,18 @@ void strefa_uruchom(int nr, int tryb)
         fd[0] = kanal_do_ekranu(K1_ROLA_STREFA, nr, z->uid);
         if (fd[0] < 0)
             k1_log(TAG, "strefa %d: ekran nie działa", nr);
+        fd[4] = strefa_kanal_nowy(nr);
         snprintf(u->argument, sizeof u->argument, "%d", nr);
         snprintf(u->argument2, sizeof u->argument2, "%d", tryb);
-        if (fd[0] >= 0 && uruchom(u, &profile[z->profil], fd, 4) > 0)
+        if (fd[0] >= 0 && fd[4] >= 0 && uruchom(u, &profile[z->profil], fd, 5) > 0)
             k1_log(TAG, "strefa %d (%s): pid %d, uid %d, pamięć %u MiB, procesory %u%s", nr, z->tytul, (int)u->pid, z->uid,
                    z->pamiec_mib, z->procesory, tryb ? ", gość testowy" : "");
         else
-            k1_log(TAG, "strefa %d: uruchomienie nieudane", nr);
+            k1_log(TAG, "strefa %d: uruchomienie nieudane", nr), strefa_kanal_koniec(nr);
     } else {
         zglos(nr, powod);
     }
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < 5; i++)
         if (fd[i] >= 0)
             close(fd[i]);
 }

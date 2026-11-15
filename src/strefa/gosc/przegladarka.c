@@ -116,7 +116,7 @@ void przegladarka(int ster)
     static char *const env_k1[] = { "PATH=/usr/bin", NULL };
     static char *const env_p[] = { "PATH=/usr/bin", "HOME=/home/k1", "XDG_RUNTIME_DIR=/run/k1",
                                    "WAYLAND_DISPLAY=wayland-0", "MOZ_ENABLE_WAYLAND=1", "LANG=C.UTF-8",
-                                   "MOZ_CRASHREPORTER_DISABLE=1", NULL };
+                                   "MOZ_CRASHREPORTER_DISABLE=1", "MOZ_DISABLE_WAYLAND_PROXY=1", NULL };
     char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;
@@ -126,7 +126,10 @@ void przegladarka(int ster)
     katalog_tmpfs("/run", "mode=0755", 0);
     katalog_tmpfs("/home", "mode=0755", 0);
     katalog_tmpfs("/dev/shm", "mode=1777", 0);
-    mkdir("/run/k1", 0755);
+    /* XDG_RUNTIME_DIR of the browser: root's, so only the compositor makes its socket there. Firefox's own Wayland
+     * proxy (a socket of its own there) stays off — with it Firefox never reached the compositor in the zone. */
+    if (mkdir("/run/k1", 0755) != 0)
+        loguj("/run/k1: %s", strerror(errno));
     id_maszyny();
     if (mkdir("/home/k1", 0700) != 0 || chown("/home/k1", UZYTKOWNIK, UZYTKOWNIK) != 0 ||
         mkdir("/home/k1/profil", 0700) != 0 || chown("/home/k1/profil", UZYTKOWNIK, UZYTKOWNIK) != 0)
