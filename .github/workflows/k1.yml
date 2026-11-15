@@ -160,7 +160,15 @@ jobs:
           done
           # once more at the very end: the end of a long log is what one reads first (and all the API returns)
           echo "=== K1 ${K1_WERSJA}: podsumowanie testów (niezaliczone i wynik) ==="
-          grep -a -E '\[BŁĄD\]|\[uwaga\]|^\[k1\]|Traceback|Error' build/testy/wynik.txt 2>/dev/null | tail -n 80 || echo "brak wyniku testów"
+          # with what a failed check printed under it (its lines start with "            |": the last lines of the
+          # system, the zone's and nadzorca's counts) — 0.10.0 step 2
+          grep -a -E '\[BŁĄD\]|\[uwaga\]|^\[k1\]|Traceback|Error|^            \| ' build/testy/wynik.txt 2>/dev/null |
+            tail -n 260 || echo "brak wyniku testów"
+          if grep -aq 'BŁĄD.*fuzzing' build/testy/wynik.txt 2>/dev/null; then
+            echo "=== fuzzing: co znalazł (build/testy/fuzz.log) ==="
+            grep -a -E 'ERROR|SUMMARY|crash-|leak-|timeout-|oom-|Test unit written|deadly|BŁĄD|==[0-9]+==' build/testy/fuzz.log |
+              tail -n 40
+          fi
 
       - name: Spakuj logi testów (zawsze)
         if: always()
