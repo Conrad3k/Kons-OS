@@ -28,7 +28,7 @@ if [ -w /dev/kvm ] && grep -qsE '^(1|Y)$' /sys/module/kvm_intel/parameters/neste
 fi
 
 cat > "$K1_BUDOWA/przegladarka.py" <<'PY'
-import base64, http.server, os, re, socket, subprocess, sys, threading, zlib
+import base64, http.server, os, re, socket, subprocess, sys, threading, time, zlib
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
 repo, out, limit, cmdline, emulacja = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4], sys.argv[5:]
@@ -129,6 +129,7 @@ def strona(w, h, px):
 if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label testy-przegladarka): only the page
     q.pisz("ctrl-l")
     wpisz(f"10.0.2.2:{port}/")
+    time.sleep(3)  # as a person types: Firefox fills its suggestion first (an Enter in the same instant got lost)
     q.pisz("ret")
     w, h, px = q.zrzut("2-strona", gdy=strona, czas=90)
     jest = strona(w, h, px) and "/" in odebrane
