@@ -28,7 +28,7 @@ if [ -w /dev/kvm ] && grep -qsE '^(1|Y)$' /sys/module/kvm_intel/parameters/neste
 fi
 
 cat > "$K1_BUDOWA/przegladarka.py" <<'PY'
-import http.server, os, re, socket, subprocess, sys, threading
+import base64, http.server, os, re, socket, subprocess, sys, threading, zlib
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
 repo, out, limit, cmdline, emulacja = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4], sys.argv[5:]
@@ -114,9 +114,16 @@ def strona(w, h, px):
     return blisko(px(x + w_ // 2, y + h_ - 40), POMARANCZ) and blisko(px(x + w_ // 2, y + 160), NIEBIESKI, 40)
 
 
+obrazki = []
+
+
 def adres(nazwa):  # CI's diagnosis: does the typed text reach Firefox's address bar (dark pixels of text in it)?
     w, h, px = q.zrzut(nazwa)
     ciemne = sum(1 for xx in range(x + 80, x + w_ - 80, 2) for yy in range(y + 52, y + 78, 2) if max(px(xx, yy)) < 110)
+    # the top of the window (the test page only: no address of the user's), half size, 16 greys, zlib + base64
+    sz, wy = w_ // 2, 100
+    b = bytes(min(15, sum(px(x + 2 * i, y + 2 * j)) // 48) for j in range(wy) for i in range(sz))
+    obrazki.append(f"{nazwa} {sz}x{wy} " + base64.b64encode(zlib.compress(b, 9)).decode())
     return f"{nazwa}: ciemne piksele w pasku adresu {ciemne}, środek okna {px(x + w_ // 2, y + h_ // 2)}"
 
 
@@ -143,6 +150,8 @@ def pokaz():  # what the zone and nadzorca said (counts, reasons, the watchman �
     print(f"            | serwer dostał: {len(odebrane)} żądań", flush=True)
     for o_ in opisy:
         print("            | " + o_, flush=True)
+    for o_ in obrazki:
+        print("            | obrazek " + o_, flush=True)
 
 
 if not strona(w, h, px):
