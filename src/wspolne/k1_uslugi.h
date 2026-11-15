@@ -63,11 +63,19 @@
  * its VMM (KLATKA_STREFA in src/nadzorca/profile.c with the row's memory), the frame ekran draws, Zasoby, the tests.
  * X(NAME, zone number, profile, UID, image (/rdzen/strefy/<obraz>.img), title, session ("": none), memory of the guest
  *   in MiB, processors, the frame colour 0xRRGGBB, JEDNORAZOWA (forgets everything when closed) or STALA (0.10.0 step 3),
- *   icon (K1_IK_<icon>) of its mark, 1: the guest's console lines go to K1's log (the test zone only; others: counted)).
+ *   icon (K1_IK_<icon>) of its mark, 1: the guest's console lines go to K1's log (the test zone only; others: counted),
+ *   its line in the Start menu ("": not there; 0.10.0 step 2)).
  * The numbers never change (a STALA zone's disk in skarbiec belongs to its profile, step 3). The test zone's image is
- * only in the test image: the production image has no file for it, nadzorca refuses to start it. */
+ * only in the test image: the production image has no file for it, nadzorca refuses to start it. 0.10.0 step 2
+ * (ADR 0043, D2): the browser's sessions — each its own zone (machine, colour, UID); in step 2 all forget everything
+ * when closed, step 3 makes Ogólna and Bank remember. */
 #define K1_STREFY(X)                                                                                                    \
-    X(PROBNA, 1, 19, 300, "probna", "Strefa próbna", "", 128, 1, 0xA8834A, JEDNORAZOWA, EKRAN, 1)
+    X(PROBNA, 1, 19, 300, "probna", "Strefa próbna", "", 128, 1, 0xA8834A, JEDNORAZOWA, EKRAN, 1, "")                 \
+    X(OGOLNA, 2, 20, 301, "przegladarka", "Przeglądarka", "Ogólna", 1536, 2, 0x5F8A6A, JEDNORAZOWA, PRZEGLADARKA, 0,  \
+      "Strony internetowe w osobnej maszynie")                                                                  \
+    X(BANK, 3, 21, 302, "przegladarka", "Przeglądarka", "Bank", 1536, 2, 0x4A6FA5, JEDNORAZOWA, PRZEGLADARKA, 0, "")  \
+    X(PRYWATNA, 4, 22, 303, "przegladarka", "Przeglądarka", "Prywatna", 1536, 2, 0x8B6AA8, JEDNORAZOWA, PRZEGLADARKA,\
+      0, "")
 
 #define K1_X_UID_S(n, profil, uid, ...) K1_UID_##n = uid,
 #define K1_X_UID_A(n, apl, profil, uid, ...) K1_UID_##n = uid,

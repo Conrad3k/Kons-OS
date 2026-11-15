@@ -146,7 +146,7 @@ void t_strefa_klatka(void)
     for (i = 0; i < 300 && (pid = find_process("strefa")) <= 0; i++)
         msleep(100);
     msleep(3000); /* its processor thread is up */
-    t_klatka_grupy("strefa", "strefa-probna", z->procesory + 1, z->uid, fds);
+    t_klatka_grupy("strefa", "strefa-1", z->procesory + 1, z->uid, fds);
     pid = find_process("strefa");
     check(pid > 0 && kill((pid_t)pid, SIGKILL) == 0, "strefa: VMM strefy próbnej działał w klatce", "pid %ld", pid);
     for (i = 0; i < 100 && find_process("strefa") > 0; i++)

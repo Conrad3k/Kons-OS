@@ -24,6 +24,21 @@
 #define RESET_8042 0xfe
 #define CPUID_WPISY 128
 
+/* K1 itself runs in QEMU's emulation (TCG: the hypervisor leaf says "TCGTCGTCGTCG") — the tests without KVM. Its
+ * emulated SVM breaks a second processor of the zone (it starts in real mode, without paging: ADR 0042 T10), so a zone
+ * gets one there; on a real processor (or KVM under KVM in CI) the row's number. */
+static int emulacja_qemu(void)
+{
+    unsigned a, b, c, d;
+    char p[13];
+    __asm__ volatile("cpuid" : "=a"(a), "=b"(b), "=c"(c), "=d"(d) : "a"(0x40000000u), "c"(0u));
+    memcpy(p, &b, 4);
+    memcpy(p + 4, &c, 4);
+    memcpy(p + 8, &d, 4);
+    p[12] = '\0';
+    return strcmp(p, "TCGTCGTCGTCG") == 0;
+}
+
 int kvm_maszyna(uint64_t pamiec_mib, int procesory)
 {
     struct kvm_userspace_memory_region r = { 0 };
@@ -68,7 +83,9 @@ int kvm_maszyna(uint64_t pamiec_mib, int procesory)
             return -1;
         }
     }
-    mz.n_cpu = procesory;
+    mz.n_cpu = procesory > 1 && emulacja_qemu() ? 1 : procesory;
+    if (mz.n_cpu != procesory)
+        k1_log(TAG, "emulacja QEMU (testy): 1 procesor zamiast %d", procesory);
     return 0;
 }
 

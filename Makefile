@@ -70,7 +70,7 @@ APLIKACJE := $(patsubst src/aplikacje/%/main.c,$(BIN)/%,$(wildcard src/aplikacje
 # System services: one line each in K1_SYSTEM (src/wspolne/k1_uslugi.h, the only list): scripts/uslugi-systemu.sh.
 USLUGI_SYSTEMU := $(shell sh scripts/uslugi-systemu.sh)
 PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(addprefix $(BIN)/,$(USLUGI_SYSTEMU)) $(APLIKACJE) \
-            $(BIN)/strefa $(BIN)/gosc $(BIN)/k1-test-systemu
+            $(BIN)/strefa $(BIN)/gosc $(BIN)/kompozytor $(BIN)/przekaznik $(BIN)/k1-test-systemu
 
 all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(GEN)/sb/k1_sb_cert.h $(OBJ)/proba_fortify
 
@@ -166,8 +166,15 @@ STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przyborni
 $(BIN)/strefa: $(STREFA) $(wildcard src/strefa/*.h) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(STREFA) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 GOSC := $(sort $(wildcard src/strefa/gosc/*.c))
-$(BIN)/gosc: $(GOSC) src/strefa/gosc/gosc.h | $(BIN)
+$(BIN)/gosc: $(GOSC) $(wildcard src/strefa/gosc/*.h) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(GOSC) $(LDFLAGS_K1)
+# 0.10.0 step 2 (ADR 0043): the browser zone's own programs — the Wayland compositor (with gosc's display, kms.c) and
+# the relay of the browser's connections; they run inside the machine, built like gosc
+KOMPOZYTOR := $(sort $(wildcard src/strefa/kompozytor/*.c)) src/strefa/gosc/kms.c
+$(BIN)/kompozytor: $(KOMPOZYTOR) $(wildcard src/strefa/kompozytor/*.h) src/strefa/gosc/kms.h | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -Isrc/strefa/gosc -o $@ $(KOMPOZYTOR) $(LDFLAGS_K1)
+$(BIN)/przekaznik: src/strefa/przekaznik/main.c | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ src/strefa/przekaznik/main.c $(LDFLAGS_K1)
 
 $(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)

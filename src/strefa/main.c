@@ -136,8 +136,8 @@ int main(int argc, char **argv)
     okno_start();
     if (kvm_uruchom() != 0)
         k1_koniec(TAG, "nie można uruchomić procesorów");
-    k1_log(TAG, "strefa %d (%s): maszyna działa — %u MiB, procesory %u, urządzenia %d (%.1f s)", nr, mz.opis->tytul,
-           mz.opis->pamiec_mib, mz.opis->procesory, URZ_LICZBA, k1_teraz() - od);
+    k1_log(TAG, "strefa %d (%s): maszyna działa — %u MiB, procesory %d, urządzenia %d (%.1f s)", nr, mz.opis->tytul,
+           mz.opis->pamiec_mib, mz.n_cpu, URZ_LICZBA, k1_teraz() - od);
     petla();
     k1_log(TAG, "strefa %d: koniec — %s (po %.1f s; wyjścia: io %lu, mmio %lu, nieznane %lu)", nr, mz.powod,
            k1_teraz() - od, mz.wyjscia_io, mz.wyjscia_mmio, mz.nieznane);

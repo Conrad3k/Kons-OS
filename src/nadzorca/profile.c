@@ -99,7 +99,7 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
      * memory + 160 MiB (the resources of virtio-gpu, up to 96 MiB, the window,
      * the VMM itself, KVM's structures), RLIMIT_FSIZE = the guest's memory (its memfd) */
 #define X_Z(n, nr_, profil_, uid_, obraz_, tytul_, sesja_, pamiec_, procesory_, ...)                                 \
-    [profil_] = { .nazwa = "strefa-" obraz_, .uid = uid_, .wywolania = sc_strefa, .n_wywolan = N(sc_strefa),          \
+    [profil_] = { .nazwa = "strefa-" #nr_, .uid = uid_, .wywolania = sc_strefa, .n_wywolan = N(sc_strefa),          \
                   .warunki = wa_strefa, .n_warunkow = N(wa_strefa), .pamiec = ((uint64_t)(pamiec_) + 160u) << 20,     \
                   .watki = (procesory_) + 1, .pliki = 64, .rozmiar_pliku = (uint64_t)(pamiec_) << 20 },
     K1_STREFY(X_Z)

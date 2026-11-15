@@ -49,9 +49,11 @@ struct aplikacja_opis {
     const char *nazwa, *opis;
     enum k1_ikona ikona;
     int domyslna;
+    int strefa_w_menu;       /* a zone with a line in the Start menu (K1_STREFY, 0.10.0 step 2: the browser) */
 };
 /* The items the bar and the window list know: the applications 1..K1_APL_MAKS, then the zones (0.10.0, ADR 0042):
- * zone n is item K1_APL_MAKS + n — its title and icon from K1_STREFY, never in the Start menu, never pinned (-1). */
+ * zone n is item K1_APL_MAKS + n — its title and icon from K1_STREFY, never pinned (-1); in the Start menu only when
+ * its row says so (strefa_w_menu). */
 #define POZYCJA_STREFY(n) (K1_APL_MAKS + (n))
 #define POZYCJE_MAKS (K1_APL_MAKS + K1_STREFY_MAKS)
 extern const struct aplikacja_opis aplikacje[POZYCJE_MAKS + 1];
@@ -108,10 +110,14 @@ void dok_gotowy(void); /* "pulpit gotowy" with the positions of the bar (after l
 #define MENU_WIERSZ 56
 #define MENU_NAGL 72
 #define MENU_STOPKA 56
-/* rows of the Start menu: every application but the windows of K1 itself (column -1 of K1_APLIKACJE, ADR 0030) */
+/* rows of the Start menu: every application but the windows of K1 itself (column -1 of K1_APLIKACJE, ADR 0030), then
+ * the zones whose K1_STREFY row has a menu line (0.10.0 step 2: the browser) */
 #define X_W_MENU(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek, ...) +((pasek) >= 0)
-enum { MENU_APL = 0 K1_APLIKACJE(X_W_MENU) };
+#define X_W_MENU_Z(n, nr, profil, uid, obraz, tytul, sesja, pamiec, procesory, kolor, trwalosc, ikona, log, menu) \
+    +(sizeof(menu) > 1)
+enum { MENU_APL = 0 K1_APLIKACJE(X_W_MENU) K1_STREFY(X_W_MENU_Z) };
 #undef X_W_MENU
+#undef X_W_MENU_Z
 #define MENU_WYS (MENU_NAGL + MENU_APL * MENU_WIERSZ + 8 + MENU_STOPKA)
 extern int menu_otwarte;
 void rysuj_menu(void);
