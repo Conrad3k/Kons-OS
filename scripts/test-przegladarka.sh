@@ -131,7 +131,12 @@ if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label tes
     wpisz(f"10.0.2.2:{port}/")
     time.sleep(3)  # as a person types: Firefox fills its suggestion first (an Enter in the same instant got lost)
     q.pisz("ret")
-    w, h, px = q.zrzut("2-strona", gdy=strona, czas=90)
+    w, h, px = q.zrzut("2-strona", gdy=strona, czas=60)
+    if not strona(w, h, px):  # the same with the mouse: Firefox's "go" arrow at the right of the address field
+        print("            | Enter nie otworzył strony — klikam strzałkę „przejdź”", flush=True)
+        q.klik(x + w_ * 820 // 1024, y + 64)
+        w, h, px = q.zrzut("2-strona", gdy=strona, czas=60)
+        print(f"            | po strzałce strona {'jest' if strona(w, h, px) else 'nie ma'}", flush=True)
     jest = strona(w, h, px) and "/" in odebrane
     print(f"            | serwer dostał: {len(odebrane)} żądań", flush=True)
     if not jest:  # Firefox's error page (its heading): the top 300 rows of the window, half size, 16 greys

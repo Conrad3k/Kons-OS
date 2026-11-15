@@ -206,7 +206,7 @@ static void klawisz(int kod, int wartosc)
     KAZDY(klawiatury, z_klawiatura, i, kl)
     {
         zdarzenie(kl, 3, "uuuu", s, teraz_ms(), (uint32_t)kod, (uint32_t)(wartosc != 0));
-        znak(WEJ_KLAWISZ_WYSLANY);
+        znak(WEJ_KLAWISZ_WYSLANY | (kod == KEY_ENTER || kod == KEY_KPENTER ? WEJ_ENTER : 0));
     }
     if (m != mody() || z != zablokowane)
         wyslij_mody(z_klawiatura);

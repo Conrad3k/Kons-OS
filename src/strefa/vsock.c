@@ -182,8 +182,9 @@ static void znaki_wejscia(const char *s)
     }
 #define TN(b) ((z & (b)) ? "tak" : "nie")
     k1_log(TAG, "gość: mapa klawiatury %s, okno z klawiaturą %s, klawisz z urządzenia %s, gdy okno ma klawiaturę %s, "
-           "wysłany do okna %s; przycisk myszy %s; nowa klatka po klawiszu %s", TN(WEJ_MAPA), TN(WEJ_FOKUS), TN(WEJ_KLAWISZ),
-           TN(WEJ_KLAWISZ_OKNO), TN(WEJ_KLAWISZ_WYSLANY), TN(WEJ_PRZYCISK), TN(WEJ_KLATKA_PO_KLAWISZU));
+           "wysłany do okna %s; przycisk myszy %s; nowa klatka po klawiszu %s; Enter do okna %s", TN(WEJ_MAPA), TN(WEJ_FOKUS),
+           TN(WEJ_KLAWISZ), TN(WEJ_KLAWISZ_OKNO), TN(WEJ_KLAWISZ_WYSLANY), TN(WEJ_PRZYCISK), TN(WEJ_KLATKA_PO_KLAWISZU),
+           TN(WEJ_ENTER));
 #undef TN
 }
 
