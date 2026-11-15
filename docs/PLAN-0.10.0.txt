@@ -9,12 +9,13 @@ Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). 
 Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR (kroki 1 i 2 mają swoje ADR-y).
 
 Mało kroków (prośba właściciela z 2026-11-13 i ponownie z 2026-11-14): były TRZY kroki; 2026-11-15 właściciel dodał
-krok 3 (poprawki przeglądarki po pierwszym teście na sprzęcie) — dawny krok 3 jest teraz krokiem 4. Każdy krok daje
-coś, co widać na ekranie; krok 4 kończy się wydaniem 0.10.0 — bez osobnego kroku wydania.
+krok 3 (poprawki przeglądarki po pierwszym teście na sprzęcie) i krok 4 (przewijanie — wydzielone z kroku 3 na prośbę
+właściciela) — dawny krok 3 jest teraz krokiem 5. Każdy krok daje coś, co widać na ekranie; krok 5 kończy się
+wydaniem 0.10.0 — bez osobnego kroku wydania.
 
 ZAKRES ZAMROŻONY (ADR 0035): poniższe 3 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
-zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b 3a/3b albo 4a/4b (wydanie zawsze w ostatniej części kroku 4).
+zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b 3a/3b, 4a/4b albo 5a/5b (wydanie zawsze w ostatniej części kroku 5).
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
 Statusy wiedzy: Z KODU (z czytania kodu K1 0.9.1), ZE ŹRÓDEŁ (sprawdzone 2026-11-14 w źródłach jądra 6.18.60 albo QEMU —
@@ -23,7 +24,7 @@ z nazwą pliku), POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku — ni
 
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
-Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4.
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4, krok 5.
 
 Właściciel — co wpisać w nowym czacie (podmień N):
     „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.0.txt.”
@@ -45,7 +46,7 @@ Nowy czat — przebieg każdego kroku:
      [OK] (zasada od 2026-11-14, AGENTS.md); przy zmianach w budowie także scripts/sprawdz-powtarzalnosc.sh. Testy stref w kontenerze
      bez KVM idą w emulacji (T10) — wolno; czekaj poleceniem, nie rób w tym czasie innych wywołań (CLAUDE.md).
   8. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, ZALEZNOSCI, WYGLAD, TESTY.md, SPEC (dopiski
-     [korekta: ADR …]). VERSION i CHANGELOG zmienia krok 4 (wydanie); kroki 1–3 zapisują „co widzi użytkownik”
+     [korekta: ADR …]). VERSION i CHANGELOG zmienia krok 5 (wydanie); kroki 1–4 zapisują „co widzi użytkownik”
      w opisie PR-a.
   9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
      ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
@@ -65,14 +66,14 @@ Każda sesja to osobna strefa z własnym kolorem — strona otwarta w „Ogólne
 Do internetu strefa nie dostaje własnej karty sieciowej: prosi K1 o połączenie ze stroną, a K1 łączy ją tylko z
 internetem (D3). Pliki ze strefy do Plików — dopiero w 0.11 (w 0.10.0 pobrane pliki zostają w strefie).
 
-Cztery kroki:
+Pięć kroków:
   1. Pierwsza strefa: K1 uruchamia mikro-maszynę i pokazuje jej okno w zaufanej ramce; klawiatura i mysz działają
      w środku. (Na razie z małym programem próbnym w środku — widać go w testach.)
   2. Przeglądarka w strefie z internetem: obraz strefy z przeglądarką, połączenia przez K1, sesja jednorazowa.
   3. Poprawki po pierwszym teście na sprzęcie: przeglądarka się nie wysypuje, okno strefy ma pełną ramkę K1 (pasek
-     tytułu, przesuwanie, minimalizuj, zamknij), Firefox nie pokazuje własnych przycisków okna, przewijanie kółkiem
-     myszy i dwoma palcami na touchpadzie w całym systemie.
-  4. Sesje, które pamiętają (stała strefa), przełączniki w Ustawieniach, porządki wersji — i wydanie 0.10.0.
+     tytułu, przesuwanie, minimalizuj, zamknij), Firefox nie pokazuje własnych przycisków okna.
+  4. Przewijanie w całym systemie: kółkiem myszy i dwoma palcami na touchpadzie (przeglądarka, Pliki, okna K1).
+  5. Sesje, które pamiętają (stała strefa), przełączniki w Ustawieniach, porządki wersji — i wydanie 0.10.0.
 
 Na laptopach trzeba raz włączyć wirtualizację w BIOS-ie (D5) — bez niej K1 powie, że przeglądarka nie może ruszyć.
 
@@ -82,15 +83,17 @@ Na laptopach trzeba raz włączyć wirtualizację w BIOS-ie (D5) — bez niej K1
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [x]  1  Pierwsza strefa: KVM, VMM, okno w zaufanej ramce    S1–S11           0.9.1       D1 D4, T1–T6 T10 L        0042   PR #114
 [x]  2  Przeglądarka w strefie, połączenia przez K1         S12–S20          1           D2 D3 D6, T7–T9  L        0043   PR #119
-[ ]  3  Poprawki przeglądarki: awarie, ramka, przewijanie   S26–S30          2           D1 (zmiana), D8  L        —
-[ ]  4  Stała strefa, Ustawienia, porządki; wydanie 0.10.0  S21–S25          3           D7, T11          L        —
+[ ]  3  Poprawki przeglądarki: awarie, ramka, przyciski     S26–S28, S30     2           D1 (zmiana)      L        —
+[ ]  4  Przewijanie: kółko myszy, dwa palce na touchpadzie S29              2           D8               M        —
+[ ]  5  Stała strefa, Ustawienia, porządki; wydanie 0.10.0  S21–S25          3, 4        D7, T11          L        —
 
 Dlaczego trzy, a nie dwa: krok 1 to cały fundament (jądro z KVM, własny VMM, nowa rola w ekranie, testy z emulowaną
 wirtualizacją), krok 2 to obcy świat (obraz z pakietów Debiana, kompozytor, przeglądarka) i nowa droga do internetu,
-krok 4 to dane (dysk strefy w skarbcu), Ustawienia i porządki MINOR (usunięcie formatu 1 skarbca — termin 0.10.0).
+krok 5 to dane (dysk strefy w skarbcu), Ustawienia i porządki MINOR (usunięcie formatu 1 skarbca — termin 0.10.0).
 Każdy z nich zajmuje pełny czat i pełne testy; dowolne dwa razem nie dałyby się rzetelnie przetestować w jednym PR-ze.
 Dlaczego nie więcej: ramka, wejście i testy idą razem z oknem, które pokazują; sesje razem z danymi, które pamiętają.
-Krok 3 dodał właściciel 2026-11-15 po pierwszym teście przeglądarki na IdeaPadzie 110 (zakres zamrożony zmienia tylko on).
+Kroki 3 i 4 dodał właściciel 2026-11-15 po pierwszym teście przeglądarki na IdeaPadzie 110 (zakres zamrożony zmienia
+tylko on); przewijanie jest osobnym krokiem, bo dotyka innej części systemu (wejście, format zdarzeń, wszystkie okna).
 
 
 3. KROKI
@@ -100,7 +103,7 @@ KROK 1 — Pierwsza strefa: KVM, VMM, okno w zaufanej ramce                L · 
   Cel: K1 uruchamia mikro-maszynę wirtualną z własnym jądrem i pokazuje jej obraz jako okno na pulpicie — w ramce
   rysowanej przez ekran K1, z klawiaturą i myszą przekazywanymi tylko wtedy, gdy okno ma fokus; awaria albo złośliwość
   maszyny kończy tylko ją.
-  Na początku: D1 — szkice WSZYSTKICH widoków stref naraz (także tych z kroków 2–4), żeby kolejne kroki nie pytały
+  Na początku: D1 — szkice WSZYSTKICH widoków stref naraz (także tych z kroków 2–5), żeby kolejne kroki nie pytały
   ponownie; D4 — zgoda na testy w emulacji.
   Co widzi użytkownik (w testach; w wydaniu — dopiero przeglądarka z kroku 2): okno „Strefa próbna” w ramce w kolorze
   strefy, z paskiem tytułu K1 (nazwa · „osobna maszyna”, minimalizuj, zamknij); w środku obraz rysowany przez program
@@ -149,7 +152,7 @@ KROK 1 — Pierwsza strefa: KVM, VMM, okno w zaufanej ramce                L · 
   log z powodem; klatka VMM nie otworzy pliku ani gniazda sieciowego i nie dostanie innego urządzenia (t_proby);
   K1 bez wirtualizacji (QEMU bez svm) → komunikat, nadzorca żyje; obraz produkcyjny bez strefy próbnej.
   Rozmiar i powtarzalność obrazu.
-  Właściciel (po wydaniu w kroku 4): okno przeglądarki na X230 i IdeaPadzie (lista w DO_ZROBIENIA).
+  Właściciel (po wydaniu w kroku 5): okno przeglądarki na X230 i IdeaPadzie (lista w DO_ZROBIENIA).
   Dokumenty: ADR 0042, nowy opis usługi strefa w docs/komponenty/ (strefa.md: cel, granica zaufania, uprawnienia, kanały, urządzenia
   virtio), nadzorca.md, ekran.md (rola STREFA, ramka), gui.md, jadro.md (KVM, jądro strefy), WYGLAD (wybór D1),
   SLOWNIK (VMM, jądro strefy, obraz strefy, strefa próbna, wirtualizacja), RYZYKA (VMM w C to duża powierzchnia ataku —
@@ -188,7 +191,7 @@ KROK 1 — Pierwsza strefa: KVM, VMM, okno w zaufanej ramce                L · 
 
 KROK 2 — Przeglądarka w strefie, połączenia przez K1                    L · decyzje D2 D3 D6, T7–T9 · ADR 0043
   Cel: w menu Start jest Przeglądarka; otwiera Firefoksa w osobnej strefie (na razie jednorazowej — sesje, które
-  pamiętają, w kroku 4); strony z internetu działają przez K1, który łączy strefę tylko tam, gdzie pozwala D3.
+  pamiętają, w kroku 5); strony z internetu działają przez K1, który łączy strefę tylko tam, gdzie pozwala D3.
   Na początku: S12 — POMIAR rozmiaru obrazu przeglądarki, zanim powstanie cokolwiek innego (od niego zależy T7 i T8);
   D2, D3, D6.
   Co widzi użytkownik: Start → Przeglądarka → okienko „Uruchamiam przeglądarkę…” (wg D1) → okno Firefoksa w ramce
@@ -217,7 +220,7 @@ KROK 2 — Przeglądarka w strefie, połączenia przez K1                    L �
       rekordy A, losowy identyfikator, sprawdzenie pytania w odpowiedzi), prośba do nadzorcy o połączenie TCP;
       nadzorca: zakres adresu wg D3, limit połączeń, otwiera gniazdo i daje deskryptor (ADR 0039 bez zmian: gniazda
       tylko u nadzorcy). W logach tylko liczniki — nigdy nazwy stron ani adresy (niezmiennik 8).
-  [ ] Tabela K1_STREFY: wiersze sesji wg D2 (w kroku 2 działa sesja jednorazowa; stałe — w kroku 4 pokazane jako
+  [ ] Tabela K1_STREFY: wiersze sesji wg D2 (w kroku 2 działa sesja jednorazowa; stałe — w kroku 5 pokazane jako
       jednorazowe albo ukryte — wybór w kroku); gui: Przeglądarka w menu Start (ikona K1_IK_PRZEGLADARKA w k1_rysuj.c,
       wg D1), na pasku, sesje pod prawym przyciskiem wg D2; nadzorca: za mało wolnej pamięci → komunikat (D6).
   Testy i dowód: host — test_lacznik (SOCKS5: wszystkie odpowiedzi błędów, długości, zarezerwowane bajty), test_dns,
@@ -238,7 +241,7 @@ KROK 2 — Przeglądarka w strefie, połączenia przez K1                    L �
   Ustalenia z wykonania (2026-11-15, krok 2; czat uruchomiony o 4:00 bez właściciela):
   - D2, D3, D6 — właściciel nie odpowiadał (krok uruchomiony zaplanowanym zadaniem w nocy): przyjęte REKOMENDACJE;
     POTWIERDZONE przez właściciela 2026-11-15 rano („trzy sesje są okej … reszta git”), z dopiskiem do D2: nazwy sesji
-    ma się dać zmieniać — robi to krok 4 (Ustawienia → Aplikacje, przy sesjach; zmiana nazwy, kolor i numer zostają). D2: sesje Ogólna (szałwia), Bank (łupek), Prywatna (wrzos) — trzy wiersze K1_STREFY; w kroku 2
+    ma się dać zmieniać — robi to krok 5 (Ustawienia → Aplikacje, przy sesjach; zmiana nazwy, kolor i numer zostają). D2: sesje Ogólna (szałwia), Bank (łupek), Prywatna (wrzos) — trzy wiersze K1_STREFY; w kroku 2
     wszystkie jednorazowe, w menu Start „Przeglądarka” = Ogólna. D3: internet + router, bez reszty sieci domowej, tylko
     TCP. D6: 1536 MiB na sesję; „za mało pamięci” — okienko z kroku 1.
   - S12 POTWIERDZONE: 117 pakietów (113 MiB .deb), po odchudzeniu SquashFS xz + BCJ x86 = 104 MB; k1.efi 17,6 → 121 MiB
@@ -265,7 +268,7 @@ KROK 2 — Przeglądarka w strefie, połączenia przez K1                    L �
   - T9 ZMIENIONE (ADR 0043): łącznik jest modułem VMM (lacznik.c, polaczenia.c), nie osobną usługą — VMM już ma osobny UID
     i klatkę na sesję; gniazda nadal otwiera tylko nadzorca (strefy_siec.c). fuzz_lacznik znalazł 0.0.0.0 brane za nazwę.
   - Kółko myszy: K1 nie przekazuje go nigdzie (usługa wejścia, format zdarzeń, ekran) — strony przewija się klawiszami
-    — 2026-11-15 właściciel przeniósł przewijanie (kółko i dwa palce na touchpadzie) do nowego kroku 3.
+    — 2026-11-15 właściciel przeniósł przewijanie (kółko i dwa palce na touchpadzie) do osobnego kroku 4.
   - CI z KVM (przebiegi 84–96 PR-a #119) — pierwszy raz cały scenariusz z Firefoksem; co znalazł:
     (1) Shift, Ctrl, Alt i AltGr nie docierały do gościa: ekran daje aplikacjom K1 modyfikatory w polu c każdego
         klawisza, a samych klawiszy modyfikatorów nie wysyła; gość ma własną klawiaturę i musi je widzieć — w strefie
@@ -301,15 +304,14 @@ KROK 2 — Przeglądarka w strefie, połączenia przez K1                    L �
     maszyny (chroot + udawane urządzenia wejścia) — tak wykluczono kompozytor i Firefoksa.
   - Napis „Aplikacje nie mają jeszcze dostępu do internetu.” usunięty z Ustawienia → Sieć.
 
-KROK 3 — Poprawki przeglądarki: awarie, ramka, przewijanie                L · decyzje D1 (zmiana), D8 · bez ADR
+KROK 3 — Poprawki przeglądarki: awarie, ramka, przyciski okna             L · decyzje D1 (zmiana) · bez ADR
   Dodany przez właściciela 2026-11-15 po pierwszym teście przeglądarki na IdeaPadzie 110 (obraz z CI, PR #119).
   Cel: przeglądarka w strefie zachowuje się jak zwykłe okno K1 i daje się wygodnie używać na laptopie.
-  Na początku: S26 — skąd awarie (log strefy przy awarii, pamięć); D1 (zmiana) — szkice pełnej ramki; D8.
+  Na początku: S26 — skąd awarie (log strefy przy awarii, pamięć); D1 (zmiana) — szkice pełnej ramki.
   Co widzi użytkownik: przeglądarka nie wysypuje się w trakcie pracy (a jeśli strefa padnie — jasny komunikat zamiast
   zniknięcia okna); okno strefy ma pełną ramkę K1 jak inne aplikacje: pasek tytułu (za niego przesuwa się okno),
   minimalizuj i zamknij — w kolorze sesji, bez szukania plakietki; Firefox nie pokazuje własnych (fałszywych w strefie)
-  przycisków minimalizuj / powiększ / zamknij; kółko myszy i dwa palce na touchpadzie przewijają strony, listy w Plikach
-  i inne okna K1. Przeglądarka startuje szybciej niż dziś (kilkadziesiąt sekund na IdeaPadzie) — o ile da się to
+  przycisków minimalizuj / powiększ / zamknij. Przeglądarka startuje szybciej niż dziś (kilkadziesiąt sekund na IdeaPadzie) — o ile da się to
   zrobić małym kosztem; większe zmiany startu (zamrożony stan) zostają w „Nie w tej wersji”.
   Zadania:
   [ ] Awarie (S26): przyczyna z logu (OOM w gościu? limit pamięci klatki VMM? błąd VMM — powód w logu K1-STREFA),
@@ -319,24 +321,43 @@ KROK 3 — Poprawki przeglądarki: awarie, ramka, przewijanie                L �
       tylko znaczkiem (wg szkicu). Treść strefy pod paskiem, przycinana; pasek zawsze nad treścią (R26).
   [ ] Przyciski Firefoksa (S28): bez własnej dekoracji okna (ustawienia w k1.js / xdg-decoration „po stronie serwera”
       w kompozytorze — wybór w kroku); minimalizacja i zamknięcie tylko z ramki K1.
-  [ ] Przewijanie (S29, D8): usługa wejścia czyta kółko (REL_WHEEL, REL_HWHEEL, wersje „hi-res”) i touchpad
-      wielodotykowy (ABS_MT_*: dwa palce = przewijanie), nowy rodzaj zdarzenia w k1_zdarzenie; ekran daje je oknu pod
-      kursorem — aplikacjom K1 (przybornik: listy i pola przewijają się) i strefie (virtio-input REL_WHEEL → kompozytor
-      wl_pointer.axis). Najpierw: jak jądro K1 widzi touchpady X230 (PS/2: psmouse, Synaptics/Elan) i IdeaPada 110
-      (możliwe I2C-HID — opcja jądra, plik od producenta?) — sprawdzić, nie zakładać.
   [ ] Start przeglądarki (S30): pomiar, gdzie idą sekundy (jądro strefy, kompozytor, Firefox); tanie poprawki.
-  Testy i dowód: host — test zdarzeń przewijania (kółko, dwa palce: progi, kierunek), fuzzing nowego pola zdarzenia;
-  QEMU — test-strefa: pasek tytułu strefy (zrzut, przesunięcie za pasek, minimalizuj, zamknij), kółko w strefie
-  próbnej (licznik w gościu); test-przegladarka: przewinięcie długiej strony testowej kółkiem (zrzut), brak przycisków
-  okna Firefoksa (zrzut); test-m4: kółko w Plikach. Touchpad — na sprzęcie u właściciela (QEMU nie udaje touchpada
-  wielodotykowego). Dziwny błąd testu (zasada skilla, §7): 1–2 próby, potem obraz z artefaktu PR-a do sprawdzenia
-  u właściciela.
-  Dokumenty: WYGLAD (ramka), ekran.md, wejscie.md, strefa.md, SLOWNIK (przewijanie), RYZYKA (R26), TESTY.md.
-  Gotowe, gdy: testy zielone, właściciel potwierdził na sprzęcie ramkę, przewijanie (kółko i touchpad) i brak awarii.
+  Testy i dowód: QEMU — test-strefa: pasek tytułu strefy (zrzut, przesunięcie za pasek, minimalizuj, zamknij);
+  test-przegladarka: brak przycisków okna Firefoksa (zrzut); awaria — test z kroku (strona testowa, która ją wywołuje).
+  Dziwny błąd testu (zasada skilla, §7): 1–2 próby, potem obraz z artefaktu PR-a do sprawdzenia u właściciela.
+  Dokumenty: WYGLAD (ramka), ekran.md, strefa.md, RYZYKA (R26), TESTY.md.
+  Gotowe, gdy: testy zielone, właściciel potwierdził na sprzęcie ramkę i brak awarii.
   Ustalenia z wykonania: (pusto — wypełnia krok 3)
 
-KROK 4 — Stała strefa, Ustawienia, porządki; wydanie 0.10.0               L · decyzje D7, T11 · bez ADR (uzupełnia 0042)
-  (do 2026-11-15 był to krok 3; przesunięty, gdy właściciel dodał nowy krok 3)
+KROK 4 — Przewijanie: kółko myszy i dwa palce na touchpadzie              M · decyzja D8 · bez ADR
+  Wydzielony z kroku 3 na prośbę właściciela (2026-11-15): w przeglądarce niezbędne, a dotyczy całego systemu.
+  Cel: kółko myszy i dwa palce na touchpadzie przewijają zawartość okna pod kursorem — strony w przeglądarce, listy
+  w Plikach, okna aplikacji K1.
+  Na początku: S29 — jak jądro K1 widzi touchpady X230 i IdeaPada 110 (sprawdzić na sprzęcie: identyfikatory urządzeń
+  w logu wejścia); D8.
+  Co widzi użytkownik: kręci kółkiem albo przesuwa dwoma palcami po touchpadzie — strona w przeglądarce, lista
+  w Plikach czy inne przewijane okno K1 jedzie w górę i w dół (i w bok, gdzie jest przewijanie poziome); kierunek wg D8.
+  Zadania:
+  [ ] Wejście (S29): usługa wejścia czyta kółko (REL_WHEEL, REL_HWHEEL, wersje „hi-res”) i touchpad wielodotykowy
+      (ABS_MT_*: dwa palce = przewijanie, progi i bezwładność bez przesady); nowy rodzaj zdarzenia w k1_zdarzenie
+      (sprawdzany pole po polu, fuzzing). Opcje jądra dla touchpadów (Synaptics/Elan przez PS/2, I2C-HID, jeśli
+      IdeaPad go wymaga) — każda z komentarzem w jadro/k1.config.
+  [ ] Ekran: przewijanie idzie do okna pod kursorem (nie tylko z fokusem — jak w innych systemach), nowy komunikat dla
+      aplikacji K1 i dla strefy.
+  [ ] Aplikacje K1 (przybornik): przewijane listy i pola reagują (Pliki, Notatki, Ustawienia, Podgląd — gdzie jest
+      co przewijać).
+  [ ] Strefa: virtio-input z REL_WHEEL/REL_HWHEEL w bitmapie wskaźnika, kompozytor → wl_pointer.axis (Firefox).
+  Testy i dowód: host — test zdarzeń przewijania (kółko, dwa palce: progi, kierunek), fuzzing nowego pola zdarzenia;
+  QEMU — kółko w strefie próbnej (licznik w gościu), test-przegladarka: przewinięcie długiej strony testowej kółkiem
+  (zrzut), test-m4: kółko w Plikach. Touchpad — na sprzęcie u właściciela (QEMU nie udaje touchpada wielodotykowego).
+  Dziwny błąd testu (zasada skilla, §7): 1–2 próby, potem obraz z artefaktu PR-a do sprawdzenia u właściciela.
+  Dokumenty: wejscie.md, ekran.md, strefa.md, aplikacje.md, jadro.md (opcje touchpadów), SLOWNIK (przewijanie),
+  komunikaty kanału wejścia, TESTY.md.
+  Gotowe, gdy: testy zielone, właściciel potwierdził na sprzęcie kółko i touchpad (przeglądarka, Pliki).
+  Ustalenia z wykonania: (pusto — wypełnia krok 4)
+
+KROK 5 — Stała strefa, Ustawienia, porządki; wydanie 0.10.0               L · decyzje D7, T11 · bez ADR (uzupełnia 0042)
+  (do 2026-11-15 był to krok 3; przesunięty, gdy właściciel dodał kroki 3 i 4)
   Cel: sesje, które mają pamiętać (D2), pamiętają — logowania, zakładki i historia zostają po zamknięciu i po ponownym
   starcie K1, zaszyfrowane w skarbcu; w Ustawieniach przełącznik stała/jednorazowa (ADR 0020 p. 2); porządki MINOR;
   wydanie 0.10.0.
@@ -355,7 +376,7 @@ KROK 4 — Stała strefa, Ustawienia, porządki; wydanie 0.10.0               L 
   [ ] Porządki MINOR (zasada czytelności 2; S22, S24): usunięcie formatu 1 skarbca (src/skarbiec/obszary.c, przejscie.c,
       testy magazyn_testowy, test_magazyn, test_przejscie) — termin 0.10.0, warunek D7; przegląd: kandydaci do
       usunięcia i scalenia (stare formaty ustawień ekranu K1U1–K1U3, komentarze „M8/M11” w kodzie i jadro/k1.config,
-      pliki blisko limitu po krokach 1–3), terminy „Tymczasowe”, R26/R50/R54 w RYZYKA (zaufana ramka — co zamknięte),
+      pliki blisko limitu po krokach 1–4), terminy „Tymczasowe”, R26/R50/R54 w RYZYKA (zaufana ramka — co zamknięte),
       statusy ADR 0020/0024/0025 („częściowo wdrożony”); wynik w CHANGELOG („Porządki”).
   [ ] Wydanie: VERSION 0.10.0; CHANGELOG (Dodane / Zmienione / Porządki); DO_ZROBIENIA.txt — „Teraz” → następna wersja
       tematu 0.10 (0.10.1…: „Nie w tej wersji” niżej), lista testów na X230 i IdeaPadzie dla 0.10.0 (wirtualizacja
@@ -374,7 +395,7 @@ KROK 4 — Stała strefa, Ustawienia, porządki; wydanie 0.10.0               L 
   (uzupełnienie: dysk strefy), RYZYKA, SLOWNIK (dysk strefy, dane sesji), TESTY.md, CHANGELOG, README (wirtualizacja
   w BIOS-ie), skill.
   Gotowe, gdy: testy zielone, wydanie k1-v0.10.0 istnieje, raport z linkami.
-  Ustalenia z wykonania: (pusto — wypełnia krok 4)
+  Ustalenia z wykonania: (pusto — wypełnia krok 5)
 
 
 4. DECYZJE
@@ -406,7 +427,7 @@ Twoje (produkt):
 [x] D6 (krok 2) Informacja: ile pamięci (RAM) ma IdeaPad 110-15ISK — Zasoby → Pamięć. Przeglądarka w strefie bierze
        ok. 1,5 GB; na 4 GB zmieści się jedna sesja naraz, na 8 GB (X230) — dwie–trzy. K1 nie otworzy kolejnej sesji,
        gdy zabrakłoby pamięci, tylko powie dlaczego.
-[x] D7 (krok 4; właściciel 2026-11-15: „Nie mam takiego pendrive” — usuwamy w 0.10.0) Usunięcie formatu 1 skarbca (termin 0.10.0, DO_ZROBIENIA punkt 6). Pytanie: czy masz pendrive albo
+[x] D7 (krok 5; właściciel 2026-11-15: „Nie mam takiego pendrive” — usuwamy w 0.10.0) Usunięcie formatu 1 skarbca (termin 0.10.0, DO_ZROBIENIA punkt 6). Pytanie: czy masz pendrive albo
        dysk z K1 nagranym wersją 0.5.6–0.8.1, którego od tamtej pory nie uruchamiałeś? Jeśli tak — uruchom go raz
        z 0.9.1 przed wydaniem 0.10.0 (inaczej jego dane się nie otworzą). Rekomendacja: usunąć w 0.10.0.
 
@@ -414,7 +435,7 @@ Twoje (produkt):
        aplikacje (pasek tytułu do przesuwania, minimalizuj, zamknij) zamiast samej obwódki ze znaczkiem i plakietką po
        najechaniu (B2). Szkice do wyboru na początku kroku 3. Rekomendacja: pasek tytułu K1 w kolorze sesji z etykietą
        „Przeglądarka · Ogólna · osobna maszyna” i przyciskami po prawej, obwódka 3 px jak dziś.
-[!] D8 (krok 3) Przewijanie dwoma palcami: kierunek „naturalny” (treść jedzie za palcami, jak w telefonie) czy
+[!] D8 (krok 4) Przewijanie dwoma palcami: kierunek „naturalny” (treść jedzie za palcami, jak w telefonie) czy
        „klasyczny” (jak kółko myszy). Rekomendacja: naturalny na touchpadzie, klasyczny dla kółka; przełącznik
        w Ustawieniach → Mysz — później, jeśli będzie potrzebny.
 
@@ -430,11 +451,11 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        urządzenia virtio-mmio opisane w linii poleceń gościa (VIRTIO_MMIO_CMDLINE_DEVICES — ZE ŹRÓDEŁ:
        drivers/virtio/Kconfig), przerwania w jądrze (KVM_CREATE_IRQCHIP, PIT) z irqfd/ioeventfd (EVENTFD jest w K1).
        Urządzenia: blk tylko do odczytu (obraz), console, rng (losowość dla TLS w strefie), input ×2, gpu 2D, vsock;
-       krok 4 — blk do zapisu (dysk strefy). Bez karty sieciowej, bez PCI, bez dźwięku, bez USB. Procesory i
+       krok 5 — blk do zapisu (dysk strefy). Bez karty sieciowej, bez PCI, bez dźwięku, bez USB. Procesory i
        wyłączenie bez ACPI — S10.
     T3 Kto co robi (krok 1; jak T3 w Wi-Fi): nadzorca — /dev/kvm (fd), fd obrazów tylko do odczytu, kanały, limity,
        start i koniec maszyny; VMM w klatce (UID wiersza K1_STREFY) — wszystko, co przychodzi od gościa (kolejki virtio,
-       obraz, zdarzenia); ekran — okno, ramka, wejście; łącznik (krok 2) — protokół połączeń strefy; skarbiec (krok 4) —
+       obraz, zdarzenia); ekran — okno, ramka, wejście; łącznik (krok 2) — protokół połączeń strefy; skarbiec (krok 5) —
        dysk strefy. ZE ŹRÓDEŁ (virt/kvm/kvm_main.c, kvm_vm_ioctl: kvm->mm != current->mm → EIO): maszyna KVM należy do
        procesu, który ją stworzył — więc tworzy ją sam VMM, nadzorca daje tylko fd /dev/kvm.
     T4 Pamięć gościa i niezmienniki (krok 1): pamięć gościa to memfd bez prawa wykonania (vm.memfd_noexec=2 zostaje),
@@ -472,7 +493,7 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        domyślnie vendor AMD; target/i386/tcg/system/svm_helper.c obsługuje NPT) — więc jądro K1 z KVM_AMD uruchomi
        strefę w kontenerze bez KVM. W CI (runner z /dev/kvm, -cpu host) najpierw zagnieżdżona wirtualizacja; gdy runner
        jej nie da (S7) — ta sama emulacja dla testów stref. Strefa próbna (krok 1) jest mała i nie zależy od przeglądarki.
-    T11 Dysk strefy (krok 4): obiekt skarbca w kawałkach (ADR 0034/0036), właściciel = wiersz K1_STREFY, zapis kawałkami
+    T11 Dysk strefy (krok 5): obiekt skarbca w kawałkach (ADR 0034/0036), właściciel = wiersz K1_STREFY, zapis kawałkami
        z pamięcią podręczną w VMM; bez własnego szyfrowania w VMM (szyfruje skarbiec, jak wszystko). Wydajność — S21.
 
 
@@ -558,12 +579,13 @@ Krok 3 (dodany 2026-11-15)
   S28 NIEPEWNE. Firefox na Waylandzie rysuje własne przyciski okna (dekoracje po stronie klienta, „CSD”); kompozytor
       strefy nie ma xdg-decoration — sprawdzić, czy wystarczy ustawienie (browser.tabs.inTitlebar = 0 / widget.gtk…)
       czy potrzebny protokół zxdg_decoration_manager_v1 z trybem „po stronie serwera”.
+  S30 Z POMIARU WŁAŚCICIELA. Start przeglądarki na IdeaPadzie 110: kilkadziesiąt sekund (KVM). Gdzie idzie czas — zmierzyć.
+Krok 4 (dodany 2026-11-15, wydzielony z kroku 3)
   S29 Z KODU / NIEPEWNE. Wejście K1 nie zna kółka ani dotyku wielopalcowego (format k1_zdarzenie: ruch, klawisz,
       przycisk); touchpady: X230 — PS/2 (psmouse; tryb wielodotykowy Synaptics/Elan — opcje jądra), IdeaPad 110 —
       NIEPEWNE (PS/2 czy I2C-HID). virtio-input w strefie: REL_WHEEL w bitmapie urządzenia wskazującego.
-  S30 Z POMIARU WŁAŚCICIELA. Start przeglądarki na IdeaPadzie 110: kilkadziesiąt sekund (KVM). Gdzie idzie czas — zmierzyć.
 
-Krok 4 (do 2026-11-15: krok 3)
+Krok 5 (do 2026-11-15: krok 3)
   S21 Z KODU / NIEPEWNE. Skarbiec ma duże dane w kawałkach (ADR 0034, format 2 — odcinki i spis, 0.8.2); dysk strefy
       (np. 1–2 GiB, kawałki po 1 MiB) — zapis 4 KiB gościa oznacza przepisanie kawałka: wydajność i zużycie miejsca —
       zmierzyć; kompaktowanie krokami (przerwy.c) przy dużych zmianach.
@@ -573,7 +595,7 @@ Krok 4 (do 2026-11-15: krok 3)
       przeglądarki dochodzi tam (ADR 0020 p. 2, ADR 0027 p. 6). Zapis wyborów: nadzorca musi go znać przy starcie
       strefy — kto go trzyma, wybór w kroku.
   S24 Z KODU. Do przeglądu przy porządkach: odczyt starych ustawień ekranu K1U1–K1U3 (src/ekran/zapis.c), komentarze
-      „M8/M11” (jadro/k1.config, kod), pliki blisko 600 wierszy po krokach 1–3 (dziś m.in. src/przybornik/k1_rysuj.c
+      „M8/M11” (jadro/k1.config, kod), pliki blisko 600 wierszy po krokach 1–4 (dziś m.in. src/przybornik/k1_rysuj.c
       537 — nowa ikona Przeglądarki), RYZYKA R26, R50, R54.
   S25 Z KODU. Aktualizacja z 0.9.1: nowy rdzeń jest większy (obraz strefy), miejsce A/B to 128 MiB — test aktualizacji
       (test-m6) z rozmiarem k1.efi bliskim granicy; Instalator odmawia, gdy k1.efi się nie mieści (sprawdzić, że tak).
