@@ -18,6 +18,10 @@ void loguj(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 int obraz_start(void);                  /* 0, or -1 (logged) */
 void obraz_rysuj(unsigned klawisze, unsigned klikniecia, int32_t x, int32_t y); /* pointer x, y in 0..32767 */
 
+/* przegladarka.c — the browser zone (0.10.0 step 2): the image has the compositor and the browser */
+int przegladarka_jest(void);
+void przegladarka(int ster);            /* returns when the machine should end */
+
 /* zlosliwy.c — hostile modes (k1.tryb=1..4, the test image only) */
 enum { TRYB_ZWYKLY = 0, TRYB_ZLY_ADRES = 1, TRYB_PETLA = 2, TRYB_DLUGOSC = 3, TRYB_ZAPIS_RO = 4, TRYB_MAKS = 4 };
 int zlosliwy(int tryb);                 /* returns only when the VMM did not stop the machine */

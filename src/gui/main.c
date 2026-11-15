@@ -33,8 +33,8 @@ int32_t dok_x, dok_y, menu_x, menu_y;
 struct rozmieszczenie rozm;
 
 #define X_APL(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek, ...) [apl] = { tytul, opis, K1_IK_##ikona, pasek },
-#define X_ZONA(n, nr, profil, uid, obraz, tytul, sesja, pamiec, procesory, kolor, trwalosc, ikona, ...)              \
-    [POZYCJA_STREFY(nr)] = { tytul, "osobna maszyna", K1_IK_##ikona, -1 },
+#define X_ZONA(n, nr, profil, uid, obraz, tytul, sesja, pamiec, procesory, kolor, trwalosc, ikona, log, menu)          \
+    [POZYCJA_STREFY(nr)] = { tytul, sizeof(menu) > 1 ? menu : "osobna maszyna", K1_IK_##ikona, -1, sizeof(menu) > 1 },
 const struct aplikacja_opis aplikacje[POZYCJE_MAKS + 1] = { K1_APLIKACJE(X_APL) K1_STREFY(X_ZONA) };
 
 const struct k1_motyw *motyw(void)

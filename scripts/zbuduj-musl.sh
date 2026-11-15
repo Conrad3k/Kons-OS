@@ -22,7 +22,7 @@ if [ ! -f "$POBRANE/$PLIK" ] || ! echo "$K1_MUSL_SHA256  $POBRANE/$PLIK" | sha25
     rm -f "$POBRANE/$PLIK" "$POBRANE/$PLIK.asc"
     for url in $K1_MUSL_ZRODLA; do
         info "pobieram musl $K1_MUSL_WERSJA: $url"
-        if curl -fsSL --retry 3 -o "$POBRANE/$PLIK.tmp" "$url" && curl -fsSL --retry 3 -o "$POBRANE/$PLIK.asc" "$url.asc" &&
+        if curl -fsSL --retry 3 --connect-timeout 30 --speed-limit 2048 --speed-time 60 -o "$POBRANE/$PLIK.tmp" "$url" && curl -fsSL --retry 3 --connect-timeout 30 --speed-limit 2048 --speed-time 60 -o "$POBRANE/$PLIK.asc" "$url.asc" &&
             echo "$K1_MUSL_SHA256  $POBRANE/$PLIK.tmp" | sha256sum -c --quiet -; then
             mv "$POBRANE/$PLIK.tmp" "$POBRANE/$PLIK"
             break

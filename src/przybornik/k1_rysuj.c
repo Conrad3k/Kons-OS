@@ -415,6 +415,10 @@ static const struct prym ik_siec_bez[] = { WTYCZKA };
 static const struct prym ik_wifi[] = { { P_LUK, 12, 19, 4.5f, -45, 45 }, { P_LUK, 12, 19, 9, -45, 45 },
                                        { P_LUK, 12, 19, 13.5f, -45, 45 }, { P_KOLO, 12, 19, 1.3f, 0, 0 } };
 
+/* 0.10.0 step 2 (D1: A): a globe — its outline, the equator and a meridian (two arcs) */
+static const struct prym ik_przegladarka[] = { { P_OKRAG, 12, 12, 8.5f, 0, 0 }, { P_KRESKA, 3.5f, 12, 20.5f, 12, 0 },
+                                               { P_LUK, 19, 12, 9, -140, -40 }, { P_LUK, 5, 12, 9, 40, 140 } };
+
 static const struct prym ik_kalkulator[] = {
     { P_PROST, 5.5f, 3, 13, 18, 2.5f }, { P_KRESKA, 8.5f, 7.5f, 15.5f, 7.5f, 0 }, { P_KOLO, 9, 12, 1.2f, 0, 0 },
     { P_KOLO, 12, 12, 1.2f, 0, 0 },     { P_KOLO, 15, 12, 1.2f, 0, 0 },          { P_KOLO, 9, 15.5f, 1.2f, 0, 0 },
@@ -503,6 +507,7 @@ void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozm
         [K1_IK_WIDEO] = IK(ik_wideo),       [K1_IK_POBRANE] = IK(ik_pobrane),
         [K1_IK_W_GORE] = IK(ik_w_gore),     [K1_IK_SIEC] = IK(ik_siec),
         [K1_IK_SIEC_BEZ_KABLA] = IK(ik_siec_bez), [K1_IK_WIFI] = IK(ik_wifi),
+        [K1_IK_PRZEGLADARKA] = IK(ik_przegladarka),
     };
     float s = rozmiar / 24.0f, g = 1.6f;
     int32_t x0, y0, x1, y1, i, j;

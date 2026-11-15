@@ -18,9 +18,10 @@ struct usluga uslugi[] = {
       .log = -1 },
     K1_APLIKACJE(X_APL)
 #undef X_APL
-/* 0.10.0 (ADR 0042): the VMM of each zone — started by strefy.c with its descriptors, never again by itself */
+/* 0.10.0 (ADR 0042): the VMM of each zone — started by strefy.c with its descriptors, never again by itself; named by
+ * the zone's number (one image serves several zones: the browser's sessions, 0.10.0 step 2) */
 #define X_Z(n, nr_, profil_, uid_, obraz_, tytul_, ...)                                                       \
-    { .nazwa = "strefa-" obraz_, .program = "/rdzen/system/strefa", .tag = "K1-STREFA", .profil = profil_,      \
+    { .nazwa = "strefa-" #nr_, .program = "/rdzen/system/strefa", .tag = "K1-STREFA", .profil = profil_,      \
       .kiedy = START_NA_PROSBE, .rola = K1_ROLA_BRAK, .log = -1 },
     K1_STREFY(X_Z)
 #undef X_Z
@@ -408,6 +409,8 @@ static void po_koncu(const struct usluga *u)
     }
     if (u->profil == K1_PROFIL_CZYTNIK)
         pendrive_koniec();
+    if (k1_strefa_profilu(u->profil) != NULL) /* 0.10.0 step 2: a zone's channel for its connections */
+        strefa_kanal_koniec(k1_strefa_profilu(u->profil)->nr);
     if (u->profil == K1_PROFIL_DEKODER)
         dekoder_koniec();
     if (u->profil == K1_PROFIL_SKARBIEC) {

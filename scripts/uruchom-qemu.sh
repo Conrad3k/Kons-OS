@@ -52,8 +52,9 @@ rm -f "$LOG" "$MONITOR"
 if [ -w /dev/kvm ] && [ -z "$EMULACJA" ]; then AKCEL="-accel kvm -cpu host"; else AKCEL="-accel tcg -cpu max"; fi
 # 0.10.0 (ADR 0042): a processor without virtualization (the zones must say so instead of starting)
 [ -n "$BEZ_WIRT" ] && AKCEL="$AKCEL,vmx=off,svm=off"
-# The memory of the machine: 512 MiB from firmware, 256 MiB without (bzImage + initramfs); --pamiec for the zones.
-P512=${PAMIEC:-512}M P256=${PAMIEC:-256}M
+# The memory of the machine: 1 GiB from firmware (k1.efi carries the core in memory — with the browser zone's image
+# 121 MiB since 0.10.0 step 2; 512 MiB no longer boots it), 256 MiB without (bzImage + initramfs); --pamiec for the zones.
+P512=${PAMIEC:-1024}M P256=${PAMIEC:-256}M
 DYSK=
 [ -n "$OBRAZ" ] && DYSK="-drive file=$OBRAZ,if=virtio,format=raw,readonly=on"
 # M6b: the image's dm-verity root hash (OBRAZ.skrot from the build) unless the command line has one

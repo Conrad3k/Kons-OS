@@ -43,7 +43,7 @@ NAGL    := $(wildcard src/wspolne/*.h)
 # The message of the services and its checks, one file per group of channels (0.9.0 step 2).
 KOMUNIKAT := src/wspolne/k1_komunikat.c src/wspolne/k1_kom_ekran.c src/wspolne/k1_kom_skarb.c \
              src/wspolne/k1_kom_nadzorca.c src/wspolne/k1_kom_pliki.c src/wspolne/k1_kom_siec.c src/wspolne/k1_siec.c \
-             src/wspolne/k1_kom_wifi.c src/wspolne/k1_wifi.c
+             src/wspolne/k1_kom_wifi.c src/wspolne/k1_wifi.c src/wspolne/k1_kom_strefa.c
 # Services (M3): protocol, channels, sandbox.
 USLUGI  := src/wspolne/k1_uslugi.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
            src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c \
@@ -70,7 +70,7 @@ APLIKACJE := $(patsubst src/aplikacje/%/main.c,$(BIN)/%,$(wildcard src/aplikacje
 # System services: one line each in K1_SYSTEM (src/wspolne/k1_uslugi.h, the only list): scripts/uslugi-systemu.sh.
 USLUGI_SYSTEMU := $(shell sh scripts/uslugi-systemu.sh)
 PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(addprefix $(BIN)/,$(USLUGI_SYSTEMU)) $(APLIKACJE) \
-            $(BIN)/strefa $(BIN)/gosc $(BIN)/k1-test-systemu
+            $(BIN)/strefa $(BIN)/gosc $(BIN)/kompozytor $(BIN)/przekaznik $(BIN)/k1-test-systemu
 
 all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(GEN)/sb/k1_sb_cert.h $(OBJ)/proba_fortify
 
@@ -166,8 +166,15 @@ STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przyborni
 $(BIN)/strefa: $(STREFA) $(wildcard src/strefa/*.h) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(STREFA) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 GOSC := $(sort $(wildcard src/strefa/gosc/*.c))
-$(BIN)/gosc: $(GOSC) src/strefa/gosc/gosc.h | $(BIN)
+$(BIN)/gosc: $(GOSC) $(wildcard src/strefa/gosc/*.h) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(GOSC) $(LDFLAGS_K1)
+# 0.10.0 step 2 (ADR 0043): the browser zone's own programs — the Wayland compositor (with gosc's display, kms.c) and
+# the relay of the browser's connections; they run inside the machine, built like gosc
+KOMPOZYTOR := $(sort $(wildcard src/strefa/kompozytor/*.c)) src/strefa/gosc/kms.c
+$(BIN)/kompozytor: $(KOMPOZYTOR) $(wildcard src/strefa/kompozytor/*.h) src/strefa/gosc/kms.h | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -Isrc/strefa/gosc -o $@ $(KOMPOZYTOR) $(LDFLAGS_K1)
+$(BIN)/przekaznik: src/strefa/przekaznik/main.c | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ src/strefa/przekaznik/main.c $(LDFLAGS_K1)
 
 $(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
@@ -286,6 +293,9 @@ $(OBJ)/test_wifi_polacz: testy/host/test_wifi_polacz.c src/siec/wifi.c src/siec/
 # 0.10.0 step 1 (ADR 0042): the zones' virtqueues and virtio-mmio, the start of the zone kernel (fuzzing: fuzz_virtq)
 $(OBJ)/test_virtio: testy/host/test_virtio.c src/strefa/virtq.c src/strefa/mmio.c $(wildcard src/strefa/*.h) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_virtio.c src/strefa/virtq.c src/strefa/mmio.c
+# 0.10.0 step 2 (ADR 0043 T9): the zones' connector — SOCKS5, DNS, the D3 rule, the messages (fuzzing: fuzz_lacznik)
+$(OBJ)/test_lacznik: testy/host/test_lacznik.c src/strefa/lacznik.c src/strefa/lacznik.h $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_lacznik.c src/strefa/lacznik.c $(KOMUNIKAT) $(DOK_C)
 $(OBJ)/test_strefa_start: testy/host/test_strefa_start.c src/strefa/start.c $(wildcard src/strefa/*.h) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_strefa_start.c src/strefa/start.c
 
@@ -389,7 +399,7 @@ TESTY_HOST := test_odcinki test_przejscie test_magazyn test_dokumenty test_indek
 	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
-	test_przeciaganie
+	test_przeciaganie test_lacznik
 TESTY_HOST_PLIKI := test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
 
 # notatki_w_plikach and magazyn_testowy are not run here: scripts/test-*.sh use them
@@ -433,7 +443,8 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # Fuzzing (libFuzzer): one program per parser of untrusted bytes, testy/host/fuzz_<name>.c with the sources
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
-FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq
+FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
+        lacznik
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -472,6 +483,8 @@ FUZZ_ZR_eapol     := src/siec/eapol.c src/siec/wpa.c src/wspolne/k1_sha1.c src/w
 FUZZ_DL_eapol     := 700
 FUZZ_ZR_virtq     := src/strefa/virtq.c src/strefa/mmio.c
 FUZZ_DL_virtq     := 40000
+FUZZ_ZR_lacznik   := src/strefa/lacznik.c src/wspolne/k1_siec.c
+FUZZ_DL_lacznik   := 700
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
               -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/strefa -Isrc/zewnetrzne/monocypher \
               -Isrc/zewnetrzne/wuffs

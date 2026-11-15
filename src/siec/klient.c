@@ -41,7 +41,7 @@ static int odkrywaj(struct k1_dhcp_klient *k, double teraz)
     k->poczatek = teraz;
     k->odstep = K1_DHCP_ODSTEP_MIN;
     k->proby = 0;
-    k->adres = k->serwer = k->router = 0;
+    k->adres = k->serwer = k->router = k->dns = 0;
     k->prefiks = 0;
     k->dzierzawa = 0;
     k->t1 = k->t2 = k->koniec = 0;
@@ -76,6 +76,7 @@ static void zwiaz(struct k1_dhcp_klient *k, const struct k1_dhcp_odpowiedz *o, c
     k->adres = o->adres;
     k->prefiks = o->prefiks;
     k->router = o->router;
+    k->dns = o->dns;
     k->serwer = o->serwer;
     k->dzierzawa = o->dzierzawa;
     k->czas[0] = o->czas[0];

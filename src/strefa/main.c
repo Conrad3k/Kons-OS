@@ -1,7 +1,8 @@
 /* K1 strefa — the VMM of one zone (0.10.0 step 1, ADR 0042): one process = one micro machine with the zone kernel and
  * the zone image, its window at ekran in a frame ekran draws. Started by nadzorca (strefy.c) in KLATKA_STREFA with
  *   argv[1] = the zone number (its row of K1_STREFY), argv[2] = the guest's test mode (test image only; 0: none),
- *   fd 3 = the channel to ekran (role STREFA), fd 4 = /dev/kvm, fd 5 = the zone kernel, fd 6 = the zone image.
+ *   fd 3 = the channel to ekran (role STREFA), fd 4 = /dev/kvm, fd 5 = the zone kernel, fd 6 = the zone image,
+ *   fd 7 = the channel to nadzorca for the browser's connections (polaczenia.c; 0.10.0 step 2, ADR 0043 T9).
  * Trust boundary: the guest is hostile (strefa.h); ekran and nadzorca are trusted. The machine ends when the guest
  * ends, when it does something only a hostile guest does (the reason in the log), or 10 s after "close" (K1_KOM_ZAMKNIJ
  * from ekran) when the guest has not ended by itself. */
@@ -19,10 +20,13 @@
 #include "k1_log.h"
 #include "k1_teraz.h"
 #include "okno.h"
+#include "polaczenia.h"
 #include "strefa.h"
 
 #define JADRO_MAKS (64u << 20)
-#define LINIA_GOSCIA "console=hvc0 root=/dev/vda ro rootfstype=squashfs init=/init reboot=k panic=-1"
+/* no-kvmapf: no asynchronous page faults of KVM in the guest — under emulated SVM they gave Firefox a double fault, and
+ * K1 swaps nothing, so they bring nothing (plan 0.10.0, S20) */
+#define LINIA_GOSCIA "console=hvc0 root=/dev/vda ro rootfstype=squashfs init=/init reboot=k panic=-1 no-kvmapf"
 
 struct maszyna mz = { .kvm = FD_KVM, .vm = -1, .budzik = -1, .zamek = PTHREAD_MUTEX_INITIALIZER };
 
@@ -100,21 +104,28 @@ static void petla(void)
 {
     double zamknij_do = 0;
     while (!mz.koniec) {
-        struct pollfd p[2] = { { mz.budzik, POLLIN, 0 }, { okno_fd(), POLLIN, 0 } };
-        int czas = zamknij_do > 0 ? 500 : -1;
-        if (poll(p, okno_fd() >= 0 ? 2 : 1, czas) < 0 && errno != EINTR)
+        struct pollfd p[2 + 2 + K1_STREFA_POLACZENIA_MAKS] = { { mz.budzik, POLLIN, 0 }, { okno_fd(), POLLIN, 0 } };
+        int czas = zamknij_do > 0 ? 500 : 1000, n;
+        petla_krok("deskryptory połączeń");
+        n = 2 + pol_deskryptory(p + 2, 2 + K1_STREFA_POLACZENIA_MAKS);
+        petla_krok("poll");
+        if (poll(p, (nfds_t)n, czas) < 0 && errno != EINTR)
             koniec("poll nieudane");
+        petla_krok("gniazda połączeń");
+        pol_obsluz(p + 2, n - 2);
         if (p[0].revents & POLLIN) {
             uint64_t v;
             if (read(mz.budzik, &v, sizeof v) < 0)
                 mz.nieznane++;
         }
+        petla_krok("wiadomości ekranu");
         if (okno_fd() >= 0 && (p[1].revents & (POLLIN | POLLHUP | POLLERR)) && okno_odbierz() == OKNO_ZAMKNIJ &&
             zamknij_do == 0) {
             zamknij_do = k1_teraz() + 10.0;
             k1_log(TAG, "zamykam strefę na prośbę ekranu");
             okno_zamknij_goscia();
         }
+        petla_krok("obraz okna");
         okno_obraz();
         if (zamknij_do > 0 && k1_teraz() >= zamknij_do)
             koniec("gość nie zamknął się w 10 s — wyłączony");
@@ -134,11 +145,13 @@ int main(int argc, char **argv)
     if (mz.budzik < 0 || przygotuj() != 0)
         k1_koniec(TAG, "nie można przygotować maszyny");
     okno_start();
-    if (kvm_uruchom() != 0)
+    if (kvm_uruchom() != 0 || stroz_start() != 0)
         k1_koniec(TAG, "nie można uruchomić procesorów");
-    k1_log(TAG, "strefa %d (%s): maszyna działa — %u MiB, procesory %u, urządzenia %d (%.1f s)", nr, mz.opis->tytul,
-           mz.opis->pamiec_mib, mz.opis->procesory, URZ_LICZBA, k1_teraz() - od);
+    k1_log(TAG, "strefa %d (%s): maszyna działa — %u MiB, procesory %d, urządzenia %d (%.1f s)", nr, mz.opis->tytul,
+           mz.opis->pamiec_mib, mz.n_cpu, URZ_LICZBA, k1_teraz() - od);
     petla();
+    pol_podsumowanie();
+    wejscie_podsumowanie();
     k1_log(TAG, "strefa %d: koniec — %s (po %.1f s; wyjścia: io %lu, mmio %lu, nieznane %lu)", nr, mz.powod,
            k1_teraz() - od, mz.wyjscia_io, mz.wyjscia_mmio, mz.nieznane);
     _exit(0);

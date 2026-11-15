@@ -331,7 +331,5 @@ void siec_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         wifi_rysuj(o, m, b >= 0 ? n : NULL);
     } else {
         karty_rysuj(o, m);
-    }
-    k1_tekst(o, K1_CZ_MALA, TRESC_X, apl.wys - 24, "Aplikacje nie mają jeszcze dostępu do internetu.",
-             k1_kolor(m->tekst3, 255), 0);
+    } /* 0.10.0 step 2: no more "Aplikacje nie mają jeszcze dostępu do internetu." — the browser has it */
 }

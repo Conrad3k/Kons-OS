@@ -12,8 +12,8 @@ mkdir -p "$POBRANE" "$K1_WYNIK" "$K1_BUDOWA/zrodla"
 if [ ! -d "$K1_JADRO_ZRODLA" ]; then
     if [ ! -f "$POBRANE/$PLIK" ]; then
         info "pobieram $PLIK"
-        curl -fsSL --retry 3 -o "$POBRANE/$PLIK.tmp" "$K1_JADRO_URL/$PLIK"
-        curl -fsSL --retry 3 -o "$POBRANE/linux-$K1_JADRO_WERSJA.tar.sign" "$K1_JADRO_URL/linux-$K1_JADRO_WERSJA.tar.sign"
+        curl -fsSL --retry 3 --connect-timeout 30 --speed-limit 2048 --speed-time 60 -o "$POBRANE/$PLIK.tmp" "$K1_JADRO_URL/$PLIK"
+        curl -fsSL --retry 3 --connect-timeout 30 --speed-limit 2048 --speed-time 60 -o "$POBRANE/linux-$K1_JADRO_WERSJA.tar.sign" "$K1_JADRO_URL/linux-$K1_JADRO_WERSJA.tar.sign"
         mv "$POBRANE/$PLIK.tmp" "$POBRANE/$PLIK"
     fi
     info "sprawdzam sumę SHA-256 (przypiętą w jadro/wersja.env)"

@@ -4,6 +4,7 @@
 #   build/wynik/rdzen.squashfs     — obraz /rdzen: init, system/ (nadzorca i usługi z K1_SYSTEM), katalogi jadro/
 #   build/wynik/rdzen-test.squashfs — to samo + program testowy jako /rdzen/system/test-systemu i obraz strefy próbnej
 #                                     (/rdzen/strefy/probna.img: /init = gosc; 0.10.0, ADR 0042)
+#   w obu: obraz strefy przeglądarki /rdzen/strefy/przegladarka.img (scripts/zbuduj-strefe.sh; 0.10.0 krok 2, ADR 0043)
 # Wymaga zbudowanego jądra (scripts/zbuduj-jadro.sh: nagłówki i gen_init_cpio) i biblioteki C (scripts/zbuduj-musl.sh;
 # make zbuduje ją sam, gdy jej brak).
 . "$(dirname "$0")/wspolne.sh"
@@ -14,6 +15,8 @@ GEN_CPIO=$K1_JADRO_OBJ/usr/gen_init_cpio
 info "programy K1 (musl, statycznie)"
 make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" NAGLOWKI="$K1_NAGLOWKI/include"
 "$K1_REPO/scripts/sprawdz-binaria.sh" --fortify "$K1_BUDOWA/obj/proba_fortify" "$K1_BUDOWA"/bin/*
+# 0.10.0 step 2 (ADR 0043): the browser zone's image (Debian's packages + our gosc, kompozytor, przekaznik)
+"$K1_REPO/scripts/zbuduj-strefe.sh"
 
 info "initramfs.cpio"
 cat > "$K1_BUDOWA/initramfs.lista" <<LISTA
@@ -32,6 +35,7 @@ przygotuj_rdzen() { # $1 = katalog docelowy
     for p in nadzorca strefa $(sh "$K1_REPO/scripts/uslugi-systemu.sh"); do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/system/$p"; done
     # 0.10.0 (ADR 0042 T5): the zone kernel — data for the VMM (read, never executed by K1); the zone images beside it
     install -m 0444 "$K1_WYNIK/strefa-jadro" "$1/strefy/jadro"
+    install -m 0444 "$K1_WYNIK/strefa-przegladarka.img" "$1/strefy/przegladarka.img"
     # Built-in native applications (M4); signed application images come with M10 (/aplikacje).
     for d in "$K1_REPO"/src/aplikacje/*/; do p=$(basename "$d"); install -m 0555 "$K1_BUDOWA/bin/$p" "$1/aplikacje/$p"; done
     chmod 0755 "$1" "$1/jadro" "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje" "$1/strefy"

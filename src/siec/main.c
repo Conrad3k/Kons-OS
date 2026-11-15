@@ -48,6 +48,8 @@ static int brak_odpowiedzi_zapisany;
 void do_nadzorcy(enum k1_komunikat_typ typ, int32_t a, int32_t b, int32_t c, int32_t d)
 {
     struct k1_komunikat k = k1_komunikat_nowy(typ, karta, a, b, c, d, 0);
+    if (typ == K1_KOM_SIEC_ADRES)
+        k.e = (int32_t)klient.dns; /* 0.10.0 step 2: the DNS server from the router (0: none) */
     if (k1_kanal_wyslij(NADZORCA, &k, sizeof k, -1) != 0)
         k1_koniec(TAG, "kanał do nadzorcy: %s", strerror(errno));
 }

@@ -24,6 +24,21 @@
 #define RESET_8042 0xfe
 #define CPUID_WPISY 128
 
+/* K1 itself runs in QEMU's emulation (TCG: the hypervisor leaf says "TCGTCGTCGTCG") — the tests without KVM. Its
+ * emulated SVM breaks a second processor of the zone (it starts in real mode, without paging: ADR 0042 T10), so a zone
+ * gets one there; on a real processor (or KVM under KVM in CI) the row's number. */
+static int emulacja_qemu(void)
+{
+    unsigned a, b, c, d;
+    char p[13];
+    __asm__ volatile("cpuid" : "=a"(a), "=b"(b), "=c"(c), "=d"(d) : "a"(0x40000000u), "c"(0u));
+    memcpy(p, &b, 4);
+    memcpy(p + 4, &c, 4);
+    memcpy(p + 8, &d, 4);
+    p[12] = '\0';
+    return strcmp(p, "TCGTCGTCGTCG") == 0;
+}
+
 int kvm_maszyna(uint64_t pamiec_mib, int procesory)
 {
     struct kvm_userspace_memory_region r = { 0 };
@@ -68,7 +83,9 @@ int kvm_maszyna(uint64_t pamiec_mib, int procesory)
             return -1;
         }
     }
-    mz.n_cpu = procesory;
+    mz.n_cpu = procesory > 1 && emulacja_qemu() ? 1 : procesory;
+    if (mz.n_cpu != procesory)
+        k1_log(TAG, "emulacja QEMU (testy): 1 procesor zamiast %d", procesory);
     return 0;
 }
 
@@ -223,7 +240,7 @@ static void io(struct kvm_run *r)
     memset(dane, r->io.port == PORT_8042 ? 0 : 0xff, (size_t)n); /* 8042: "input buffer empty" for reboot=k */
 }
 
-static void mmio(struct kvm_run *r)
+static void mmio(struct procesor *c, struct kvm_run *r)
 {
     uint64_t a = r->mmio.phys_addr, i = (a - MMIO_BAZA) / MMIO_ROZMIAR;
     const char *powod = NULL;
@@ -235,12 +252,16 @@ static void mmio(struct kvm_run *r)
         mz.nieznane++;
         return;
     }
-    pthread_mutex_lock(&mz.zamek);
+    c->urz = (int)i;
+    c->gdzie = ST_CZEKA;
+    zamek_wez("procesor: urządzenie");
+    c->gdzie = ST_ZAMEK;
     if (r->mmio.is_write)
         w = mmio_pisz(&mz.urz[i], a - MMIO_BAZA - i * MMIO_ROZMIAR, r->mmio.data, r->mmio.len, &powod);
     else
         w = mmio_czytaj(&mz.urz[i], a - MMIO_BAZA - i * MMIO_ROZMIAR, r->mmio.data, r->mmio.len, &powod);
-    pthread_mutex_unlock(&mz.zamek);
+    zamek_oddaj();
+    c->gdzie = ST_WYJSCIE;
     if (w != 0)
         koniec(powod != NULL ? powod : "błąd urządzenia");
 }
@@ -268,7 +289,9 @@ static void *petla(void *arg)
 {
     struct procesor *c = arg;
     unsigned razy = 0;
+    c->urz = -1;
     while (!mz.koniec) {
+        c->gdzie = ST_W_GOSCIU;
         if (ioctl(c->fd, (int)KVM_RUN, 0) != 0) {
             if (errno == EINTR || errno == EAGAIN)
                 continue;
@@ -278,12 +301,14 @@ static void *petla(void *arg)
         if (c->run->exit_reason == KVM_EXIT_INTERNAL_ERROR && ponow(c, &razy))
             continue;
         razy = 0;
+        c->gdzie = ST_WYJSCIE;
+        c->wyjscie = c->run->exit_reason;
         switch (c->run->exit_reason) {
         case KVM_EXIT_IO:
             io(c->run);
             break;
         case KVM_EXIT_MMIO:
-            mmio(c->run);
+            mmio(c, c->run);
             break;
         case KVM_EXIT_INTR:
             break;

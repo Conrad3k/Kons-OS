@@ -10,6 +10,7 @@
 #include <linux/virtio_input.h>
 
 #include "k1_komunikat.h"
+#include "k1_log.h"
 #include "strefa.h"
 
 #define ABS_MAKS 32767
@@ -184,6 +185,14 @@ static void pusc(struct wejscie *w)
         if (w->wcisniete[k / 8] & (1u << (k % 8)))
             klawisz(w, k, 0);
     synchronizuj(w);
+}
+
+/* At the end: whether input reached the guest (yes/no and what was dropped — never how many keys). */
+void wejscie_podsumowanie(void)
+{
+    k1_log(TAG, "wejście do gościa: klawiatura %s (porzucone %lu), wskaźnik %s (porzucone %lu)",
+           klawiatura.zdarzenia ? "dotarła" : "nic", klawiatura.porzucone, mysz.zdarzenia ? "dotarł" : "nic",
+           mysz.porzucone);
 }
 
 void wejscie_pusc(void)

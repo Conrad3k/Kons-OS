@@ -128,11 +128,11 @@ void okno_obraz(void)
     if (kl.fd < 0 || okno.czeka)
         return;
     pol = okno.pokazywana == 0 ? 1 : 0;
-    pthread_mutex_lock(&mz.zamek);
+    zamek_wez("okno: obraz");
     r = brud[pol];
     src = gpu_obraz(&w, &h);
     if (src == NULL || r.x1 <= r.x0 || (o = k1_pow_rysuj(&okno)) == NULL) {
-        pthread_mutex_unlock(&mz.zamek);
+        zamek_oddaj();
         return;
     }
     if (!obraz_gosc) { /* the first picture: the whole window (the "Uruchamiam …" text goes) */
@@ -144,7 +144,7 @@ void okno_obraz(void)
     }
     kopiuj(o, src, w, h, r);
     brud[pol] = (struct prost){ 0, 0, 0, 0 };
-    pthread_mutex_unlock(&mz.zamek);
+    zamek_oddaj();
     k1_pow_zatwierdz_obszar(&kl, &okno, (int32_t)r.x0, (int32_t)r.y0, (int32_t)(r.x1 - r.x0), (int32_t)(r.y1 - r.y0));
     klatki++;
 }
@@ -155,7 +155,7 @@ int okno_odbierz(void)
     struct k1_komunikat m;
     int wynik = OKNO_NIC;
     while (kl.fd >= 0 && k1_odbierz(&kl, &p, 1, &m) == 1) {
-        pthread_mutex_lock(&mz.zamek);
+        zamek_wez("okno: wejście");
         switch (m.typ) {
         case K1_KOM_KLAWISZ:
             wejscie_klawisz(m.a, m.b);
@@ -174,14 +174,14 @@ int okno_odbierz(void)
         default:
             break;
         }
-        pthread_mutex_unlock(&mz.zamek);
+        zamek_oddaj();
     }
     return wynik;
 }
 
 void okno_zamknij_goscia(void)
 {
-    pthread_mutex_lock(&mz.zamek);
+    zamek_wez("okno: zamknij");
     vsock_zamknij();
-    pthread_mutex_unlock(&mz.zamek);
+    zamek_oddaj();
 }

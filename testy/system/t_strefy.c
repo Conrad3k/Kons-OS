@@ -130,7 +130,8 @@ void t_kvm(void)
 }
 
 /* The sandbox of a zone's VMM (0.10.0): the test zone started through nadzorca, its process checked like every service
- * (own UID, no capabilities, seccomp, cgroup: pids.max = 1 + its threads), its descriptors only what nadzorca gave
+ * (own UID, no capabilities, seccomp, cgroup: pids.max = 1 + its threads: processors, the watchman, KVM's task), its
+ * descriptors only what nadzorca gave
  * (the channel to ekran, /dev/kvm, the zone kernel and image read only) and what it made (the machine, its processor,
  * memfd, eventfd); then it is killed — nadzorca lives on, no restart. */
 void t_strefa_klatka(void)
@@ -146,7 +147,7 @@ void t_strefa_klatka(void)
     for (i = 0; i < 300 && (pid = find_process("strefa")) <= 0; i++)
         msleep(100);
     msleep(3000); /* its processor thread is up */
-    t_klatka_grupy("strefa", "strefa-probna", z->procesory + 1, z->uid, fds);
+    t_klatka_grupy("strefa", "strefa-1", z->procesory + 2, z->uid, fds); /* + the watchman (stroz.c) */
     pid = find_process("strefa");
     check(pid > 0 && kill((pid_t)pid, SIGKILL) == 0, "strefa: VMM strefy próbnej działał w klatce", "pid %ld", pid);
     for (i = 0; i < 100 && find_process("strefa") > 0; i++)

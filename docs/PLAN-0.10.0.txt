@@ -77,7 +77,7 @@ Na laptopach trzeba raz włączyć wirtualizację w BIOS-ie (D5) — bez niej K1
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [x]  1  Pierwsza strefa: KVM, VMM, okno w zaufanej ramce    S1–S11           0.9.1       D1 D4, T1–T6 T10 L        0042   PR #114
-[ ]  2  Przeglądarka w strefie, połączenia przez K1         S12–S20          1           D2 D3 D6, T7–T9  L        0043
+[ ]  2  Przeglądarka w strefie, połączenia przez K1         S12–S20          1           D2 D3 D6, T7–T9  L        0043   [w toku: Claude, gałąź claude/nifty-goodall-o5ujdr]
 [ ]  3  Stała strefa, Ustawienia, porządki; wydanie 0.10.0  S21–S25          2           D7, T11          L        —
 
 Dlaczego trzy, a nie dwa: krok 1 to cały fundament (jądro z KVM, własny VMM, nowa rola w ekranie, testy z emulowaną
@@ -229,7 +229,71 @@ KROK 2 — Przeglądarka w strefie, połączenia przez K1                    L �
   SLOWNIK (przeglądarka, łącznik, obraz strefy, przekaźnik), TESTY.md, WYGLAD.
   Gotowe, gdy: scenariusz przeglądarki i testy negatywne zielone, testy [OK], obraz powtarzalny i mieści się
   w miejscu A/B.
-  Ustalenia z wykonania: (pusto — wypełnia krok 2)
+  Ustalenia z wykonania (2026-11-15, krok 2; czat uruchomiony o 4:00 bez właściciela):
+  - D2, D3, D6 — właściciel nie odpowiadał (krok uruchomiony zaplanowanym zadaniem w nocy): przyjęte REKOMENDACJE;
+    POTWIERDZONE przez właściciela 2026-11-15 rano („trzy sesje są okej … reszta git”), z dopiskiem do D2: nazwy sesji
+    ma się dać zmieniać — robi to krok 3 (Ustawienia → Aplikacje, przy sesjach; zmiana nazwy, kolor i numer zostają). D2: sesje Ogólna (szałwia), Bank (łupek), Prywatna (wrzos) — trzy wiersze K1_STREFY; w kroku 2
+    wszystkie jednorazowe, w menu Start „Przeglądarka” = Ogólna. D3: internet + router, bez reszty sieci domowej, tylko
+    TCP. D6: 1536 MiB na sesję; „za mało pamięci” — okienko z kroku 1.
+  - S12 POTWIERDZONE: 117 pakietów (113 MiB .deb), po odchudzeniu SquashFS xz + BCJ x86 = 104 MB; k1.efi 17,6 → 121 MiB
+    (miejsce 128 MiB). zstd dałby 117 MB. Jądro strefy potrzebuje SQUASHFS_XZ i XZ_DEC_X86 (bez BCJ: „xz decompression
+    failed”).
+  - S13: łańcuch zaufania kluczy Debiana 13 — strefy/README.md (bookworm → debian-archive-keyring deb12u2). InRelease
+    trixie ma też podpis kluczem Debiana 12 — gpgv kończy się kodem 2; przyjmujemy jak apt (dobry podpis kluczy 13, żadnego
+    złego). Skrypty pakietów zastąpione: update-mime-database i gdk-pixbuf-query-loaders przez ld.so obrazu (bez nich GTK
+    pada na „Unrecognized image file format”). snapshot.debian.org z kontenera Claude — 403 (zapas tylko dla CI).
+  - S14 POTWIERDZONE: firefox-esr to program ELF, nie skrypt; Firefox startuje bez powłoki.
+  - S15: Firefox (GTK 3) wystarczają: wl_compositor 4, wl_shm, wl_subcompositor, wl_seat 5, wl_output 2,
+    wl_data_device_manager (zaślepka), xdg_wm_base 2 z popupami. Rysowanie procesorem bez mesa działa. Dwie pułapki:
+    (1) Firefox ma DWA wl_pointer i DWA wl_keyboard na jednym połączeniu (GTK i własny) — zdarzenia muszą iść do
+    wszystkich, inaczej GTK nie dostaje kliknięć ani klawiszy; (2) zatwierdzenie bez uszkodzeń też czeka na „done” —
+    bez niego GTK przestaje rysować po pierwszej klatce. Firefox z własnym „Wayland proxy” (gniazdo w XDG_RUNTIME_DIR)
+    nie dochodził do kompozytora w strefie — proxy wyłączone (MOZ_DISABLE_WAYLAND_PROXY, katalog roota).
+  - S16: opcja 6 DHCP → pole e komunikatu SIEC_ADRES (0 albo k1_siec_serwer_dobry).
+  - S17: test w QEMU -netdev user: połączenia do 10.0.2.2 trafiają do 127.0.0.1 komputera testów (serwer strony
+    w Pythonie, losowy port); DNS sieci QEMU nie działa w kontenerze bez resolvera — nazwy tylko w testach na hoście.
+  - S20: w emulacji (TCG + emulowane SVM) strefa ma 1 procesor (dwa — potrójny błąd gościa; VMM rozpoznaje QEMU po
+    „TCGTCGTCGTCG” w CPUID); start Firefoksa 4–5 min. Pułapka: asynchroniczne błędy stron KVM (KVM_GUEST) w gościu dawały
+    w emulacji podwójny błąd w Firefoksie po pierwszych połączeniach — jądro strefy dostaje „no-kvmapf” (bez wymiany
+    pamięci w K1 i tak nic nie dają).
+  - T9 ZMIENIONE (ADR 0043): łącznik jest modułem VMM (lacznik.c, polaczenia.c), nie osobną usługą — VMM już ma osobny UID
+    i klatkę na sesję; gniazda nadal otwiera tylko nadzorca (strefy_siec.c). fuzz_lacznik znalazł 0.0.0.0 brane za nazwę.
+  - Kółko myszy: K1 nie przekazuje go nigdzie (usługa wejścia, format zdarzeń, ekran) — strony przewija się klawiszami;
+    kółko → DO_ZROBIENIA (zakres zamrożony).
+  - CI z KVM (przebiegi 84–96 PR-a #119) — pierwszy raz cały scenariusz z Firefoksem; co znalazł:
+    (1) Shift, Ctrl, Alt i AltGr nie docierały do gościa: ekran daje aplikacjom K1 modyfikatory w polu c każdego
+        klawisza, a samych klawiszy modyfikatorów nie wysyła; gość ma własną klawiaturę i musi je widzieć — w strefie
+        nie dało się wpisać „:”, wielkiej litery ani Ctrl+L (test wpisywał „10.0.2.2;port” i „l…”). Poprawka: ekran
+        wysyła klawisze modyfikatorów także jako KLAWISZ, tylko do okna strefy (wskaznik.c); test-strefa sprawdza Shift,
+        test-przegladarka Ctrl+L.
+    (2) fuzz_lacznik: nazwa „00.0.0.0” czytana jako adres 0 szła dalej jako pusta nazwa — odmowa jak dla adresu.
+    (3) k1.efi z obrazem strefy (121 MiB) nie mieścił się w 512 MiB maszyn testów startu z firmware — 1 GiB.
+    (4) Budowa wisiała na pobieraniu z git.kernel.org — pobrane pliki w pamięci podręcznej Actions, limit zatrzymania.
+    (5) Stróż VMM (stroz.c), liczniki połączeń (bez miejsca, szczyt, zajęte na końcu) i „wejście do gościa” w logu
+        zostają; szybki tryb CI: etykieta testy-przegladarka (sam test przeglądarki, wąsko).
+    (6) Po Enterze strona się nie otwierała (przebiegi 95–97): VMM zamykał deskryptor nr 0 przy pierwszym użyciu każdego
+        miejsca połączenia (wyzerowana tablica = fd 0, a zwolnienie miejsca zamyka jego gniazdo) — czyli kolejno gniazdo
+        DNS i gniazda stron (stąd 94 z 95 nazw bez odpowiedzi). Znalezione lokalnie, bez CI: obraz strefy w samym QEMU
+        z jednorazowym przekaźnikiem udającym łącznik (Firefox otwiera 10.0.2.2) i sonda zamiast Firefoksa w K1 (pierwsze
+        połączenie do 10.0.2.2 dawało stronę, każde następne — od razu koniec). Poprawka: miejsca startują z fd = -1;
+        błąd na gnieździe DNS (POLLERR) jest odczytywany. „no-kvmapf” z S20 nie było w kodzie — dopisane do linii poleceń
+        gościa (src/strefa/main.c). Pełny Firefox w emulacji zagnieżdżonej w kontenerze nie rysuje okna nawet po 17 min.
+    (7) Po poprawce (6) Enter dalej bywał bez skutku (przebiegi 99, 100, 102; 101 przeszedł): klawisze dochodziły (ciąg
+        kodów z VMM czysty, Firefox loguje „Enter pressed”), droga do sieci przenosi duże dane (sonda: 4 × 3 MB naraz).
+        Dziennik Firefoksa: „NetworkOfflineError: Network is offline” — strefa nie ma karty sieciowej (tylko pętlę
+        zwrotną, ruch idzie przez przekaźnik), a Firefox sam ocenia sieć po kartach systemu i po chwili uznaje, że jej
+        nie ma. Wynik zależał od tego, czy Enter zdążył przed tą chwilą. Poprawka: network.manage-offline-status = false
+        (zablokowane, strefy/przegladarka/k1.js) — Firefox w strefie nie reaguje na stan kart. Klikanie w podpowiedź
+        paska adresu działało częściej, bo przychodziło później albo inną drogą (pickElement) — ślepy trop.
+        Właściciel (2026-11-15, IdeaPad 110, obraz z przebiegu 101): Enter działa na sprzęcie; przeglądarka startuje
+        kilkadziesiąt sekund. DECYZJA (na stałe): test-przegladarka nie naciska Entera nigdzie — stronę otwiera
+        kliknięcie podpowiedzi „otwórz stronę”, formularz wysyła się sam po wpisaniu tekstu, D3 sprawdza obrazek
+        z 10.0.2.3 na stronie testowej (tak działałaby złośliwa strona szukająca urządzeń w domu). Przyczyny Entera
+        w CI nie znaleziono po stronie K1 (dzień szukania) — nie wracać do niego bez nowej decyzji właściciela.
+    Pułapki szukania: zrzuty są tylko w artefakcie — test przy błędzie wypisuje górę okna strefy do logu (obrazek
+    w base64, tylko strona testowa); Firefoksa z obrazu strefy z naszym kompozytorem da się uruchomić na hoście bez
+    maszyny (chroot + udawane urządzenia wejścia) — tak wykluczono kompozytor i Firefoksa.
+  - Napis „Aplikacje nie mają jeszcze dostępu do internetu.” usunięty z Ustawienia → Sieć.
 
 KROK 3 — Stała strefa, Ustawienia, porządki; wydanie 0.10.0               L · decyzje D7, T11 · bez ADR (uzupełnia 0042)
   Cel: sesje, które mają pamiętać (D2), pamiętają — logowania, zakładki i historia zostają po zamknięciu i po ponownym
@@ -282,11 +346,11 @@ Twoje (produkt):
        Rekomendacja: ramka 4 px w kolorze sesji wokół całego okna i pasek tytułu K1 w tym samym kolorze z etykietą
        „Przeglądarka · Ogólna · osobna maszyna”; sesja jednorazowa — ten sam pasek z dopiskiem „zapomina po
        zamknięciu”; nazwa w menu „Przeglądarka” z ikoną K1 (globus liniowy), bez logo Firefoksa (S18).
-[!] D2 (krok 2; pytanie z DO_ZROBIENIA punkt 5) Sesje przeglądarki. Rekomendacja: trzy — „Ogólna” (pamięta;
+[x] D2 (krok 2; pytanie z DO_ZROBIENIA punkt 5) Sesje przeglądarki. Rekomendacja: trzy — „Ogólna” (pamięta;
        otwiera się z menu Start), „Bank” (pamięta; tylko do banku i urzędów), „Prywatna” (zapomina po zamknięciu);
        inne sesje pod prawym przyciskiem na ikonie Przeglądarki. Każda ma swój kolor (D1). Własne sesje (dodawanie,
        nazwy) — później.
-[!] D3 (krok 2) Gdzie strefa może się łączyć. Rekomendacja: internet i Twój router (jego strona ustawień i strony
+[x] D3 (krok 2) Gdzie strefa może się łączyć. Rekomendacja: internet i Twój router (jego strona ustawień i strony
        logowania w hotelach/kawiarniach, które często są pod adresem routera); inne urządzenia w domu (drukarka, dysk
        sieciowy, telewizor) — zablokowane, bo złośliwa strona mogłaby je atakować z wnętrza Twojej sieci. Tylko
        połączenia zwykłych stron (TCP): rozmowy wideo w przeglądarce mogą nie działać (K1 i tak nie ma jeszcze dźwięku
@@ -298,10 +362,10 @@ Twoje (produkt):
        X230 — F1 → Security → Virtualization → „Intel Virtualization Technology” i „Intel VT-d Feature”: Enabled;
        IdeaPad 110 — F2 → Configuration → „Intel Virtual Technology”: Enabled. (Nazwy w menu mogą się nieco różnić;
        VT-d chroni też przed kartami z dostępem do pamięci — RYZYKA, ADR 0041.)
-[!] D6 (krok 2) Informacja: ile pamięci (RAM) ma IdeaPad 110-15ISK — Zasoby → Pamięć. Przeglądarka w strefie bierze
+[x] D6 (krok 2) Informacja: ile pamięci (RAM) ma IdeaPad 110-15ISK — Zasoby → Pamięć. Przeglądarka w strefie bierze
        ok. 1,5 GB; na 4 GB zmieści się jedna sesja naraz, na 8 GB (X230) — dwie–trzy. K1 nie otworzy kolejnej sesji,
        gdy zabrakłoby pamięci, tylko powie dlaczego.
-[!] D7 (krok 3) Usunięcie formatu 1 skarbca (termin 0.10.0, DO_ZROBIENIA punkt 6). Pytanie: czy masz pendrive albo
+[x] D7 (krok 3; właściciel 2026-11-15: „Nie mam takiego pendrive” — usuwamy w 0.10.0) Usunięcie formatu 1 skarbca (termin 0.10.0, DO_ZROBIENIA punkt 6). Pytanie: czy masz pendrive albo
        dysk z K1 nagranym wersją 0.5.6–0.8.1, którego od tamtej pory nie uruchamiałeś? Jeśli tak — uruchom go raz
        z 0.9.1 przed wydaniem 0.10.0 (inaczej jego dane się nie otworzą). Rekomendacja: usunąć w 0.10.0.
 

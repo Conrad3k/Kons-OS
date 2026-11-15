@@ -53,7 +53,7 @@ int k1_apl_uid(int apl)
     return apl >= 1 && apl <= K1_APL_MAKS ? uid_apl[apl] : 0;
 }
 
-#define X_OPIS(n, nr_, profil_, uid_, obraz_, tytul_, sesja_, pamiec_, procesory_, kolor_, trwalosc_, ikona_, log_) \
+#define X_OPIS(n, nr_, profil_, uid_, obraz_, tytul_, sesja_, pamiec_, procesory_, kolor_, trwalosc_, ikona_, log_, ...) \
     [nr_] = { .nr = nr_, .profil = profil_, .uid = uid_, .obraz = obraz_, .tytul = tytul_, .sesja = sesja_,          \
               .pamiec_mib = pamiec_, .procesory = procesory_, .kolor = kolor_, .trwalosc = K1_##trwalosc_,           \
               .ikona = K1_IK_##ikona_, .log_goscia = log_ },

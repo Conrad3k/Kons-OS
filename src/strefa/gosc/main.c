@@ -159,6 +159,11 @@ int main(void)
         loguj("tryb %d: VMM nie zatrzymał maszyny", t);
         wylacz();
     }
+    if (przegladarka_jest()) {
+        ster = sterowanie();
+        przegladarka(ster);
+        wylacz();
+    }
     if (obraz_start() == 0)
         obraz_rysuj(0, 0, -1, -1);
     for (i = 0; i < WEJSCIA; i++) {

@@ -31,6 +31,11 @@ enum { K1_SIEC_BLAD_KARTA = -1, K1_SIEC_BLAD_JADRO = -2, K1_SIEC_BLAD_CZAS = -3,
 /* 1 when `a` (host order) may be a time server: one computer on the internet or in the home network — not 0.x, 127.x,
  * 224.x and above (multicast, reserved, broadcast). */
 int k1_siec_serwer_dobry(uint32_t a);
+/* 0.10.0 step 2 (ADR 0043 T9, D3): may a zone connect to `cel` while K1 has address `nasz`/`prefiks` with `router`?
+ * Yes for the internet (public unicast) and for the router itself; no for the home network (our subnet, private,
+ * shared and link-local ranges — a printer, a NAS, a TV), loopback, multicast, broadcast, the documentation and
+ * reserved ranges. 1 / 0. */
+int k1_siec_dla_strefy(uint32_t cel, uint32_t nasz, int prefiks, uint32_t router);
 
 /* What the person sees (0.9.0 step 7): the state of the network on the top bar and in Ustawienia → Sieć
  * (K1_KOM_SIEC_STAN a). */

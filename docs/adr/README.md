@@ -70,3 +70,4 @@ Krótko, dlaczego nie.
 | [0040](0040-repo-publiczne.md) | Repo publiczne (2026-11-14): minuty CI bez limitu; scalanie i zasady bez zmian | Przyjęty |
 | [0041](0041-wifi-w-k1.md) | Wi-Fi w K1 (0.9.1): sterowniki i pliki producentów w podpisanym jądrze, nl80211 tylko u nadzorcy, opisy sieci w klatce, własne logowanie WPA2 | Przyjęty, krok 1 wdrożony (0.9.1) |
 | [0042](0042-strefy-w-k1.md) | Strefy w K1 (0.10.0): KVM w jądrze, własny VMM „strefa” w klatce, jądro i obrazy stref w rdzeniu, virtio-mmio, zaufana ramka, testy w emulacji | Przyjęty, krok 1 wdrożony (0.10.0) |
+| [0043](0043-przegladarka-w-strefie.md) | Przeglądarka w strefie (0.10.0): Firefox ESR z pakietów Debiana 13, własny kompozytor Wayland, połączenia stref przez łącznik w VMM i gniazda od nadzorcy (D3) | Przyjęty, krok 2 wdrożony (0.10.0) |

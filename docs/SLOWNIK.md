@@ -128,7 +128,12 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **obraz strefy** | Pliki strefy (SquashFS tylko do odczytu) w rdzeniu: `/rdzen/strefy/<nazwa>.img`; gość widzi go jako dysk `/dev/vda`. |
 | **strefa próbna** (0.10.0) | Strefa testowa z naszym małym programem `gosc` w środku (wzór na ekranie, liczniki klawiszy i kliknięć, tryby złośliwego gościa) — tylko w obrazie testowym. |
 | **urządzenie virtio** | Udawane urządzenie maszyny (dysk, konsola, losowość, klawiatura, wskaźnik, ekran, vsock), przez które gość rozmawia z VMM kolejkami w swojej pamięci. |
-| **sesja przeglądarki** | Osobna strefa silnika stron (np. „bank”, „prywatna”), z własnym kolorem karty (ADR 0025). |
+| **sesja przeglądarki** | Osobna strefa przeglądarki z własnym kolorem ramki: „Ogólna”, „Bank”, „Prywatna” (0.10.0, D2; wiersze `K1_STREFY`). Jednorazowa zapomina wszystko po zamknięciu. |
+| **Przeglądarka** (0.10.0) | Pozycja menu Start: Firefox ESR z Debiana w strefie, w sesji „Ogólna” (ADR 0043). Nie mylić z przyszłą **Przeglądarką K1** (ADR 0025: okno rysuje K1, silnik WPE). |
+| **kompozytor** (strefy) | Nasz program w strefie przeglądarki (`src/strefa/kompozytor`): serwer Wayland, który pokazuje okna przeglądarki na wyświetlaczu gościa i podaje im klawiaturę i mysz. |
+| **przekaźnik** | Nasz program w strefie (`src/strefa/przekaznik`): przyjmuje połączenia przeglądarki (SOCKS5 na 127.0.0.1:1080) i każde przekazuje do VMM przez vsock. Nic nie czyta. |
+| **łącznik** | Część VMM strefy (`lacznik.c`, `polaczenia.c`): sprawdza prośby SOCKS5, zamienia nazwy stron na adresy (DNS), prosi nadzorcę o gniazdo i przesyła bajty. Strefa nie ma karty sieciowej — to jej jedyna droga do internetu (ADR 0043). |
+| **reguła D3** | Dokąd strefa może się łączyć: internet i sam router, nie reszta sieci domowej (`k1_siec_dla_strefy`; decyzja właściciela D3 planu 0.10.0). |
 
 ## Plan i wersje
 | Pojęcie | Znaczenie |

@@ -122,6 +122,29 @@ void k1_siec_sterownik_z_pol(const int32_t p[5], char nazwa[K1_SIEC_STEROWNIK_MA
     nazwa[K1_SIEC_STEROWNIK_MAKS] = '\0';
 }
 
+int k1_siec_dla_strefy(uint32_t cel, uint32_t nasz, int prefiks, uint32_t router)
+{
+    static const struct {
+        uint32_t siec;
+        int prefiks;
+    } nie[] = {
+        { 0x00000000u, 8 },  { 0x0A000000u, 8 },  { 0x64400000u, 10 }, { 0x7F000000u, 8 },  { 0xA9FE0000u, 16 },
+        { 0xAC100000u, 12 }, { 0xC0000000u, 24 }, { 0xC0000200u, 24 }, { 0xC0A80000u, 16 }, { 0xC6120000u, 15 },
+        { 0xC6336400u, 24 }, { 0xCB007100u, 24 }, { 0xE0000000u, 3 },
+    }; /* this network, private, shared (CGNAT), loopback, link-local, private, IETF, TEST-NET-1, private, benchmarks,
+        * TEST-NET-2, TEST-NET-3, multicast and the reserved rest up to the broadcast */
+    size_t i;
+    if (router != 0 && cel == router)
+        return 1;
+    if (prefiks >= K1_SIEC_PREFIKS_MIN && prefiks <= K1_SIEC_PREFIKS_MAKS &&
+        (cel & k1_siec_maska(prefiks)) == (nasz & k1_siec_maska(prefiks)))
+        return 0; /* our own network, even when its addresses are public */
+    for (i = 0; i < sizeof nie / sizeof nie[0]; i++)
+        if ((cel & k1_siec_maska(nie[i].prefiks)) == nie[i].siec)
+            return 0;
+    return 1;
+}
+
 int k1_siec_serwer_dobry(uint32_t a)
 {
     uint32_t pierwszy = a >> 24;

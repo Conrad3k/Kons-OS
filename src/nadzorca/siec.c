@@ -41,6 +41,7 @@ static int z_adresem;       /* an address is set on it */
 static double polaczono_od; /* since (k1_teraz) — the same address renewed keeps it */
 static uint32_t adres;      /* (to take it away; and for Ustawienia → Sieć) */
 static uint32_t router;
+static uint32_t dns;      /* the DNS server from the router (DHCP option 6; 0.10.0 step 2: the zones' names) */
 static int prefiks;
 static int zmiana = 1;      /* look at the cards at the next pass */
 static double nastepne;
@@ -96,6 +97,13 @@ static void do_sieci(struct k1_komunikat k, int fd)
 {
     if (siec_kanal >= 0 && k1_kanal_wyslij(siec_kanal, &k, sizeof k, fd) != 0)
         k1_log(TAG, "sieć: kanał do usługi sieci: %s", strerror(errno));
+}
+
+/* 0.10.0 step 2 (ADR 0043 T9): what a zone's connection needs to know; 1 when K1 has an address. */
+int siec_dla_stref(uint32_t *nasz, int *prefiks_, uint32_t *router_, uint32_t *dns_)
+{
+    *nasz = adres, *prefiks_ = prefiks, *router_ = router, *dns_ = dns;
+    return z_adresem;
 }
 
 static void zabierz_adres(void)
@@ -409,6 +417,7 @@ static void prosba_sieci(const struct k1_komunikat *k)
             adres = (uint32_t)k->a;
             prefiks = k->b;
             router = (uint32_t)k->c;
+            dns = (uint32_t)k->e;
             zmiana = 1;
             if (k->c != 0 && (r = siec_trasa(aktywna, (uint32_t)k->c)) != 0)
                 k1_log(TAG, "sieć: trasa przez router: %s", strerror(-r));

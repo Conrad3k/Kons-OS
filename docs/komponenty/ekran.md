@@ -79,7 +79,7 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `TAPETA_ZDJECIE` | Pliki, Podgląd → ekran | tabela nadawców (`zdjecie.c`) | zdjęcie na tapetę (0.8.0): szerokość, wysokość; + memfd z pikselami od dekodera |
 | `WITAJ` | ekran → klient | — | rozmiar ekranu, rola, aplikacja; ponownie po zmianie rozdzielczości |
 | `WSKAZNIK` | ekran → klient | — | mysz nad powierzchnią klienta (0 = poza nią): x, y, ruch / przycisk, który przycisk, e = wciśnięte Shift / Ctrl / Alt / AltGr (`K1_MOD_*`, 0.8.2 krok 6: Ctrl+klik i Shift+klik w Plikach) |
-| `KLAWISZ` | ekran → klient | — | klawisz dla okna z fokusem (kod, w dół / w górę / powtórzenie, modyfikatory); nigdy w logu |
+| `KLAWISZ` | ekran → klient | — | klawisz dla okna z fokusem (kod, w dół / w górę / powtórzenie, modyfikatory); nigdy w logu. Same klawisze Shift, Ctrl, Alt i AltGr idą jako `KLAWISZ` tylko do okna strefy (gość ma własną klawiaturę) — aplikacje K1 czytają je z pola modyfikatorów |
 | `FOKUS` | ekran → klient | — | okno dostało / straciło klawiaturę |
 | `RAMKA` | ekran → klient | — | ostatnie zatwierdzenie jest na ekranie, można rysować drugą połowę |
 | `ZAMKNIJ` | ekran → aplikacja | — | zamknij to okno — jak przycisk × (0.7.5; Notatki najpierw zapisują) |

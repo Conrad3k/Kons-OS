@@ -79,7 +79,9 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   od 0.10.0 `STREFA_STAN` (strefa nie ruszyła: brak wirtualizacji, pamięci albo obrazu — okienko odmowy „<tytuł> nie może
   ruszyć” z wyjaśnieniem i „Rozumiem”, log „strefa N nie ruszyła (powód P): okienko”);
   nadawca musi mieć UID 0, każde pole sprawdzane; po zamknięciu kanału gui przestaje go czytać.
-- Strefy (0.10.0, ADR 0042): prośba `URUCHOM_STREFE` (fd 4) — w kroku 1 nic w pulpicie jej nie wysyła (strefa próbna jest
+- Strefy (0.10.0, ADR 0042): prośba `URUCHOM_STREFE` (fd 4). Od kroku 2 (ADR 0043) wiersz `K1_STREFY` z linią menu
+  (sesja „Ogólna”) jest w menu Start jako „Przeglądarka” (ikona `K1_IK_PRZEGLADARKA` — globus, D1: A) po aplikacjach; przyciski
+  stopki menu mają numery od 100 (ponad wszystkimi pozycjami). Okno strefy na pasku — jak w kroku 1.
   tylko w testach), w kroku 2 — Przeglądarka. Okno strefy (`OKNO` z `a` = 0, `c` = strefa) jest pozycją paska
   `K1_APL_MAKS + strefa` (`POZYCJA_STREFY`, tytuł i ikona z `K1_STREFY`): na dolnym pasku wśród działających, kliknięcie
   pokazuje albo chowa okno, menu „Zamknij okno”; nie da się jej przypiąć ani położyć na pulpicie.

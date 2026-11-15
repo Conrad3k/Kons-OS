@@ -77,6 +77,7 @@ enum k1_ikona {
     K1_IK_SIEC,           /* a network plug with its cable (connected; Ustawienia → Sieć) */
     K1_IK_SIEC_BEZ_KABLA, /* the plug alone */
     K1_IK_WIFI,
+    K1_IK_PRZEGLADARKA, /* 0.10.0 step 2 (D1: icon A): a globe — the browser in its zone */
 };
 void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozmiar, uint32_t kolor);
 

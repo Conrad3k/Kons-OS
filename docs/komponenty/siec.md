@@ -55,7 +55,7 @@ Adresu nie ma w żadnym logu (niezmiennik 8) — tylko „połączono”, maska 
 |---|---|---|
 | `SIEC_KABEL` | nadzorca → siec | obiekt = karta (numer jądra), a, b = MAC karty (`k1_siec_mac_do_pol`); + 1 fd: gniazdo pakietowe |
 | `SIEC_ROZLACZONO` | nadzorca → siec | obiekt = karta, a = 1 kabel wyjęty / 2 karta zniknęła |
-| `SIEC_ADRES` | siec → nadzorca | obiekt = karta, a = adres, b = maska /8…/30, c = router (0: brak), d = dzierżawa 10 s…2³¹−1 s |
+| `SIEC_ADRES` | siec → nadzorca | obiekt = karta, a = adres, b = maska /8…/30, c = router (0: brak), d = dzierżawa 10 s…2³¹−1 s, e = serwer DNS z opcji 6 DHCP (0: brak; od 0.10.0 krok 2 — nazwy stron w strefach, ADR 0043) |
 | `SIEC_ZWOLNIJ` | siec → nadzorca | obiekt = karta — zabierz adres |
 | `SIEC_WYNIK` | nadzorca → siec | obiekt = karta, a = prośba (`SIEC_ADRES`, `SIEC_ZWOLNIJ`), b = 0 albo `K1_SIEC_BLAD_*` |
 
