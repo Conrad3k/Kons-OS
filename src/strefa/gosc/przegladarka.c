@@ -116,7 +116,8 @@ void przegladarka(int ster)
     static char *const env_k1[] = { "PATH=/usr/bin", NULL };
     static char *const env_p[] = { "PATH=/usr/bin", "HOME=/home/k1", "XDG_RUNTIME_DIR=/run/k1",
                                    "WAYLAND_DISPLAY=wayland-0", "MOZ_ENABLE_WAYLAND=1", "LANG=C.UTF-8",
-                                   "MOZ_CRASHREPORTER_DISABLE=1", "MOZ_DISABLE_WAYLAND_PROXY=1", NULL };
+                                   "MOZ_CRASHREPORTER_DISABLE=1", "MOZ_DISABLE_WAYLAND_PROXY=1",
+                                   "MOZ_LOG=DocumentLoadListener:4,SOCKS:4,nsHttp:2", NULL }; /* k1: tymczasowe */
     char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;

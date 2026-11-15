@@ -48,3 +48,6 @@ pref("gfx.webrender.software", true);
 pref("widget.dmabuf.force-enabled", false);
 pref("media.hardware-video-decoding.enabled", false);
 pref("media.ffmpeg.vaapi.enabled", false);
+// k1: tymczasowe — diagnostyka tej sesji (usunąć przed scaleniem)
+pref("devtools.console.stdout.chrome", true);
+pref("browser.dom.window.dump.enabled", true);
