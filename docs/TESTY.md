@@ -23,7 +23,8 @@ scripts/testy.sh                  # wszystko — to uruchamia CI (z KVM równole
 części; pełny komplet — CI na PR-ze (etykieta `testy`, z KVM ok. 12 min testów). Repo jest publiczne, minuty CI są
 bezpłatne; kontener bez KVM liczy QEMU w emulacji, więc pełny komplet lokalnie — tylko gdy CI nie działa.
 Szukanie błędu przeglądarki (tylko z KVM): etykieta `testy-przegladarka` — budowa i sam `test-przegladarka` (ok. 20 min,
-`K1_TESTY_TYLKO`); do scalenia nigdy nie wystarcza.
+`K1_TESTY_TYLKO`; test wtedy WĄSKO — tylko otwarcie strony i liczniki, `K1_PRZEGLADARKA_WASKO`); do scalenia nigdy nie
+wystarcza.
 
 Zmienne: `K1_TEST_CZAS` — limit na jedno uruchomienie QEMU (domyślnie 240 s), `K1_FUZZ_CZAS` — sekundy na fuzzer
 (domyślnie 10; CI: 30), `K1_TESTY_ROWNOLEGLE=0|1` — wymuś po kolei / równolegle (domyślnie: równolegle, gdy jest

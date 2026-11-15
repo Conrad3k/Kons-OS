@@ -105,6 +105,18 @@ sprawdz("okno przeglądarki w ramce w kolorze sesji, pasek kart i adresu (zrzut 
         firefox(w, h, px))
 
 
+def zamknij_strefe():  # the frame's badge (hover the mark, then its close button) — as test-strefa does
+    plak = r"K1-EKRAN: strefa: plakietka okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr)
+    n = q.ile(plak)
+    q.idz(x + 60, y + 60)
+    q.idz(x - 8 + 15, y - 8 + 15)  # the mark (src/ekran/strefy.c: 30 px, 8 px out of the corner)
+    p = czekaj(plak, od=n, czas=30)
+    if p:
+        q.idz(int(p.group(1)), int(p.group(2)))  # along the badge first: a long move overshoots and the badge closes
+        q.klik(int(p.group(3)), int(p.group(4)))
+    return czekaj(r"K1-STREFA: strefa 2: koniec", czas=120)
+
+
 def wpisz(tekst):
     nazwy = {".": "dot", ":": "shift-semicolon", "/": "slash"}
     q.pisz(*[nazwy.get(c, c) for c in tekst])
@@ -113,6 +125,22 @@ def wpisz(tekst):
 def strona(w, h, px):
     return blisko(px(x + w_ // 2, y + h_ - 40), POMARANCZ) and blisko(px(x + w_ // 2, y + 160), NIEBIESKI, 40)
 
+
+if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label testy-przegladarka): only the page
+    q.pisz("ctrl-l")
+    wpisz(f"10.0.2.2:{port}/")
+    q.pisz("ret")
+    w, h, px = q.zrzut("2-strona", gdy=strona, czas=90)
+    jest = strona(w, h, px) and "/" in odebrane
+    print(f"            | serwer dostał: {len(odebrane)} żądań", flush=True)
+    zamknij_strefe()
+    q.czekaj(r"K1-NADZORCA: strefa 2: połączenia", czas=20)
+    for l_ in [l for l in q.tekst().splitlines() if re.search(r"połączenia|wejście do gościa|gość:", l)][-6:]:
+        print("            | " + l_[:300], flush=True)
+    sprawdz("[WĄSKO] strona testowa otwiera się (Ctrl+L, adres, Enter)", jest)
+    q.monitor("quit")
+    qemu.wait()
+    sys.exit(0 if all(q.wyniki) else 1)
 
 obrazki = []
 
@@ -176,16 +204,7 @@ t_ = q.tekst()
 sprawdz("w logu K1 żadnego adresu strony ani wpisanego tekstu — tylko liczniki (niezmiennik 8)",
         TEKST not in t_ and f"10.0.2.2:{port}" not in t_ and "10.0.2.3" not in t_ and "wyslij" not in t_)
 
-# closing: the frame's badge (hover the mark, then its close button) — as test-strefa does
-PLAK = r"K1-EKRAN: strefa: plakietka okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr)
-n = q.ile(PLAK)
-q.idz(x + 60, y + 60)
-q.idz(x - 8 + 15, y - 8 + 15)  # the mark (src/ekran/strefy.c: 30 px, 8 px out of the corner)
-p = czekaj(PLAK, od=n, czas=30)
-if p:
-    q.idz(int(p.group(1)), int(p.group(2)))  # along the badge first: a long move overshoots and the badge closes
-    q.klik(int(p.group(3)), int(p.group(4)))
-koniec_ = czekaj(r"K1-STREFA: strefa 2: koniec", czas=120)
+koniec_ = zamknij_strefe()
 if not koniec_:
     pokaz()
 sprawdz("zamknięcie okna: gość dostaje „zamknij”, przeglądarka kończy się, maszyna znika (sesja jednorazowa)", koniec_)

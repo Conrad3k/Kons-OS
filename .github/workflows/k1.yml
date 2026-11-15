@@ -164,6 +164,7 @@ jobs:
           set -o pipefail
           mkdir -p build/testy
           K1_FUZZ_CZAS=30 K1_TESTY_TYLKO="${{ github.event.label.name == 'testy-przegladarka' && 'test-przegladarka' || '' }}" \
+            K1_PRZEGLADARKA_WASKO="${{ github.event.label.name == 'testy-przegladarka' && '1' || '' }}" \
             scripts/testy.sh 2>&1 | tee build/testy/wynik.txt
 
       - name: Zapisz korpus fuzzingu (pamięć podręczna)
