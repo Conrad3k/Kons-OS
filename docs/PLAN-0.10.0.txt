@@ -167,6 +167,10 @@ KROK 1 — Pierwsza strefa: KVM, VMM, okno w zaufanej ramce                L · 
   - S7 CZĘŚCIOWO: pierwsze CI na main (run 74, commit 4e75b98) — runner ma /dev/kvm, test-strefa.sh zaliczony (wszystkie
     testy zielone, testy trwały 23,5 min). Czy szedł z zagnieżdżoną wirtualizacją, czy z emulacją — log CI tego nie
     mówi (tryb widać tylko w strefa.log w paczce logów). Krok 2: test-strefa.sh wypisuje tryb w podsumowaniu.
+    2026-11-15 (przebiegi 77 i 79 na main, PR #117, #118): runnery bywają też Intelem (Xeon 8573C) z zagnieżdżonym
+    VMX — wtedy strefa idzie na prawdziwym KVM, a jądro nie wypisuje nic o kvm_intel (pierwsze sprawdzenie szukało
+    wiersza kvm_amd i padało, choć strefa działała). Od #118 dowodem jest „maszyna działa”, a tryb (AMD z NPT / Intel
+    VMX, emulacja) jest w opisie tego sprawdzenia w podsumowaniu.
   - S9: jądro strefy wymaga też BLK_DEV i MISC_FILESYSTEMS (menu), init=/init (bez initramfs), DEVMEM bez STRICT_DEVMEM
     (testy złośliwego gościa), X86_X2APIC. 2,2 MB.
   - S10 POTWIERDZONE: tablica MP (bez ACPI) wystarcza; koniec gościa przez reboot=k (port 0x64, 0xFE).
