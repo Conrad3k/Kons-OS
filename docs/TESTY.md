@@ -22,6 +22,13 @@ scripts/testy.sh                  # wszystko — to uruchamia CI (z KVM równole
 **Przed scaleniem** (decyzja właściciela 2026-11-14, `AGENTS.md`): lokalnie `scripts/test-m1.sh` i skrypty zmienianej
 części; pełny komplet — CI na PR-ze (etykieta `testy`, z KVM ok. 12 min testów). Repo jest publiczne, minuty CI są
 bezpłatne; kontener bez KVM liczy QEMU w emulacji, więc pełny komplet lokalnie — tylko gdy CI nie działa.
+**CI w trzech etapach** (decyzja właściciela 2026-11-15 — krótsze CI; `.github/workflows/k1.yml`): `budowa` (jedna,
+paczka `build/` dla testów jako artefakt na 1 dzień: obrazy, programy, nagłówki, musl, firmware maszyn testowych — bez
+źródeł i kluczy) → `testy`: pięć grup naraz, każda na swoim runnerze z KVM (`m1`; `pulpit`: m4, pliki, pendrive;
+`dane-i-siec`: skarbiec, sieć, Wi-Fi; `strefy`: strefa, przeglądarka; `instalator`: m5, m5f, m6 — `K1_TESTY_TYLKO`,
+z `test-m1` na liście także on), każda z własnym podsumowaniem i logami → `wynik`: jedna paczka logów, obrazy jako
+artefakt PR-a, na `main` po wszystkich zielonych grupach tag i wydanie. Nowy skrypt testu = dopisz go do `TESTY`
+w `scripts/testy.sh` **i** do jednej grupy w workflow.
 Szukanie błędu przeglądarki (tylko z KVM): etykieta `testy-przegladarka` — budowa i sam `test-przegladarka` (ok. 20 min,
 `K1_TESTY_TYLKO`; test wtedy WĄSKO — tylko otwarcie strony i liczniki, `K1_PRZEGLADARKA_WASKO`); do scalenia nigdy nie
 wystarcza.

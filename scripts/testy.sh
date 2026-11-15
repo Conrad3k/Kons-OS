@@ -4,21 +4,29 @@
 # i instalatora. Te ostatnie są od siebie niezależne (osobne logi, gniazda i obrazy dysków): z KVM
 # (CI) idą równolegle, bez KVM (emulacja zajmuje cały procesor) — po kolei. Ręcznie:
 #   K1_TESTY_ROWNOLEGLE=1 scripts/testy.sh    (wymuś równolegle)   =0 (wymuś po kolei)
-#   K1_TESTY_TYLKO="test-przegladarka" scripts/testy.sh   (tylko te, bez test-m1 — szukanie błędu; CI: etykieta
-#   „testy-przegladarka”; przed scaleniem zawsze pełny komplet)
+#   K1_TESTY_TYLKO="test-przegladarka" scripts/testy.sh   (tylko te — jedna grupa; test-m1 tylko, gdy jest na liście)
+#   CI dzieli komplet na grupy, każda na osobnym runnerze (.github/workflows/k1.yml, zadanie „testy”); etykieta
+#   „testy-przegladarka” — sam wąski test przeglądarki; przed scaleniem zawsze pełny komplet.
 . "$(dirname "$0")/wspolne.sh"
 r=0
-[ -n "${K1_TESTY_TYLKO:-}" ] || "$K1_REPO/scripts/test-m1.sh" || r=1
+TESTY="test-m4 test-pliki test-pendrive test-skarbiec test-siec test-wifi test-strefa test-przegladarka test-m5 test-m5f test-m6"
+M1=1
+if [ -n "${K1_TESTY_TYLKO:-}" ]; then
+    case " $K1_TESTY_TYLKO " in *" test-m1 "*) M1=1 ;; *) M1=0 ;; esac
+    TESTY=$(echo " $K1_TESTY_TYLKO " | sed 's/ test-m1 / /g')
+fi
+[ "$M1" = 0 ] || "$K1_REPO/scripts/test-m1.sh" || r=1
 
 ROWNOLEGLE=${K1_TESTY_ROWNOLEGLE:-}
 if [ -z "$ROWNOLEGLE" ]; then
     if [ -w /dev/kvm ]; then ROWNOLEGLE=1; else ROWNOLEGLE=0; fi
 fi
-TESTY="test-m4 test-pliki test-pendrive test-skarbiec test-siec test-wifi test-strefa test-przegladarka test-m5 test-m5f test-m6"
-[ -z "${K1_TESTY_TYLKO:-}" ] || TESTY=$K1_TESTY_TYLKO
 WYJ=$K1_BUDOWA/testy/rownolegle
 mkdir -p "$WYJ"
-if [ "$ROWNOLEGLE" = 1 ]; then
+TESTY=$(echo $TESTY)  # without the spaces around (an empty list: test-m1 alone)
+if [ -z "$TESTY" ]; then
+    :
+elif [ "$ROWNOLEGLE" = 1 ]; then
     info "testy pulpitu, sprzętu i instalatora — równolegle ($TESTY)"
     pidy=
     for t in $TESTY; do
