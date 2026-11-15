@@ -126,7 +126,15 @@ opisy.append(adres("2b-klik"))
 wpisz(f"10.0.2.2:{port}/")
 opisy.append(adres("2c-wpisane"))
 q.pisz("ret")
-w, h, px = q.zrzut("2-strona", gdy=strona, czas=900)
+w, h, px = q.zrzut("2-strona", gdy=strona, czas=120)
+if not strona(w, h, px):  # the diagnosis: the same through the keyboard only (Ctrl+L), not the click
+    q.pisz("ctrl-l")
+    opisy.append(adres("2d-ctrl-l"))
+    wpisz(f"10.0.2.2:{port}/")
+    opisy.append(adres("2e-wpisane-po-ctrl-l"))
+    q.pisz("ret")
+    w, h, px = q.zrzut("2-strona", gdy=strona, czas=60)
+    opisy.append(f"po Ctrl+L strona {'jest' if strona(w, h, px) else 'nie ma'}, serwer dostał {len(odebrane)} żądań")
 
 
 def pokaz():  # what the zone and nadzorca said (counts, reasons, the watchman — never an address)
@@ -144,7 +152,7 @@ sprawdz("strona testowa z serwera na routerze otwiera się w strefie (SOCKS5 →
 q.klik(x + 200, y + h_ // 2)  # the form's field (autofocus too)
 wpisz(TEKST)
 q.pisz("ret")
-dotarlo = q.czekaj_na(lambda: any(TEKST in p for p in odebrane), czas=300)
+dotarlo = q.czekaj_na(lambda: any(TEKST in p for p in odebrane), czas=120)
 sprawdz("tekst wpisany w pole formularza dociera do serwera", dotarlo)
 
 q.klik(x + w_ // 2, y + 64)
@@ -152,7 +160,7 @@ n0 = q.ile(r"K1-NADZORCA: strefa 2: pierwsza odmowa połączenia")
 wpisz(f"10.0.2.3:{port}/")
 q.pisz("ret")
 sprawdz("NEGATYWNY: adres w sieci domowej (nie router) — nadzorca odmawia (D3), strefa żyje",
-        czekaj(r"K1-NADZORCA: strefa 2: pierwsza odmowa połączenia \(powód 1\)", od=n0, czas=300) and
+        czekaj(r"K1-NADZORCA: strefa 2: pierwsza odmowa połączenia \(powód 1\)", od=n0, czas=120) and
         "strefa 2: koniec" not in q.tekst())
 q.zrzut("3-odmowa")
 t_ = q.tekst()

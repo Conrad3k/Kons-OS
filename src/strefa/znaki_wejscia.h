@@ -1,6 +1,6 @@
 /* K1 strefa — what the zone's compositor did with input, as bits only (0.10.0 step 2, CI's diagnosis of the browser
  * zone: where keys stop). The compositor writes the number to PLIK_WEJSCIA when a bit appears; gosc sends it in the
- * line "wejscie <n>" on the control channel before "zamykam"; the VMM logs the bits as yes/no — never a key. */
+ * line "wejscie <n>" on the control channel each time it changes; the VMM logs the bits as yes/no — never a key. */
 #ifndef K1_STREFA_ZNAKI_WEJSCIA_H
 #define K1_STREFA_ZNAKI_WEJSCIA_H
 

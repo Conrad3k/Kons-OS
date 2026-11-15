@@ -4,15 +4,18 @@
 # i instalatora. Te ostatnie są od siebie niezależne (osobne logi, gniazda i obrazy dysków): z KVM
 # (CI) idą równolegle, bez KVM (emulacja zajmuje cały procesor) — po kolei. Ręcznie:
 #   K1_TESTY_ROWNOLEGLE=1 scripts/testy.sh    (wymuś równolegle)   =0 (wymuś po kolei)
+#   K1_TESTY_TYLKO="test-przegladarka" scripts/testy.sh   (tylko te, bez test-m1 — szukanie błędu; CI: etykieta
+#   „testy-przegladarka”; przed scaleniem zawsze pełny komplet)
 . "$(dirname "$0")/wspolne.sh"
 r=0
-"$K1_REPO/scripts/test-m1.sh" || r=1
+[ -n "${K1_TESTY_TYLKO:-}" ] || "$K1_REPO/scripts/test-m1.sh" || r=1
 
 ROWNOLEGLE=${K1_TESTY_ROWNOLEGLE:-}
 if [ -z "$ROWNOLEGLE" ]; then
     if [ -w /dev/kvm ]; then ROWNOLEGLE=1; else ROWNOLEGLE=0; fi
 fi
 TESTY="test-m4 test-pliki test-pendrive test-skarbiec test-siec test-wifi test-strefa test-przegladarka test-m5 test-m5f test-m6"
+[ -z "${K1_TESTY_TYLKO:-}" ] || TESTY=$K1_TESTY_TYLKO
 WYJ=$K1_BUDOWA/testy/rownolegle
 mkdir -p "$WYJ"
 if [ "$ROWNOLEGLE" = 1 ]; then

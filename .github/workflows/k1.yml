@@ -23,7 +23,9 @@ concurrency:
 
 jobs:
   k1:
-    if: github.event_name != 'pull_request' || github.event.label.name == 'testy'
+    # "testy": the full set (before every merge); "testy-przegladarka": only the build and the browser test, while
+    # looking for a fault there (about 20 minutes instead of 50) — never enough to merge.
+    if: github.event_name != 'pull_request' || github.event.label.name == 'testy' || github.event.label.name == 'testy-przegladarka'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -161,7 +163,8 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build/testy
-          K1_FUZZ_CZAS=30 scripts/testy.sh 2>&1 | tee build/testy/wynik.txt
+          K1_FUZZ_CZAS=30 K1_TESTY_TYLKO="${{ github.event.label.name == 'testy-przegladarka' && 'test-przegladarka' || '' }}" \
+            scripts/testy.sh 2>&1 | tee build/testy/wynik.txt
 
       - name: Zapisz korpus fuzzingu (pamięć podręczna)
         if: always()

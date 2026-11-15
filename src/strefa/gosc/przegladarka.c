@@ -79,9 +79,10 @@ static void id_maszyny(void)
         close(fd);
 }
 
-/* What the compositor did with input (znaki_wejscia.h: bits only), to the VMM's log. */
+/* What the compositor did with input (znaki_wejscia.h: bits only), to the VMM's log — each time a bit appears. */
 static void znaki_wejscia(int ster)
 {
+    static unsigned bylo;
     char b[16], l[24];
     unsigned z = 0;
     int f = open(PLIK_WEJSCIA, O_RDONLY | O_CLOEXEC);
@@ -92,6 +93,9 @@ static void znaki_wejscia(int ster)
         b[n] = '\0';
         z = (unsigned)strtoul(b, NULL, 10) & WEJ_WSZYSTKIE;
     }
+    if (z == bylo)
+        return;
+    bylo = z;
     n = snprintf(l, sizeof l, "wejscie %u\n", z);
     if (write(ster, l, (size_t)n) != n)
         loguj("kanał sterujący: zapis nieudany");
@@ -166,14 +170,14 @@ void przegladarka(int ster)
         struct timespec t;
         int r = poll(&p, ster >= 0 ? 1 : 0, 200);
         sprzataj(przegl, komp, &koniec);
+        if (ster >= 0)
+            znaki_wejscia(ster);
         clock_gettime(CLOCK_MONOTONIC, &t);
         if (r > 0 && (p.revents & (POLLIN | POLLHUP)) && !zamykam) {
             char b[64];
             ssize_t n = read(ster, b, sizeof b - 1);
             if (n <= 0 || (b[n] = '\0', strstr(b, "zamknij") != NULL)) {
                 loguj("zamykam (prośba VMM)");
-                if (n > 0)
-                    znaki_wejscia(ster);
                 if (n > 0 && write(ster, "zamykam\n", 8) != 8)
                     loguj("kanał sterujący: zapis nieudany");
                 kill(przegl, SIGTERM);
