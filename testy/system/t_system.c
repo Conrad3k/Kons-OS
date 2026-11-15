@@ -382,12 +382,20 @@ static size_t oczekiwane_pliki(char (*p)[64], size_t maks)
 #define X_S(n_, profil_, uid_, program_, ...) if (n < maks) snprintf(p[n++], sizeof p[0], "/rdzen/system/%s", program_);
 #define X_A(n_, apl_, profil_, uid_, program_, ...) if (n < maks) snprintf(p[n++], sizeof p[0], "/rdzen/aplikacje/%s", program_);
 #define X_Z(n_, nr_, profil_, uid_, obraz_, ...) if (n < maks) snprintf(p[n++], sizeof p[0], "/rdzen/strefy/%s.img", obraz_);
+    /* several zones share one image (the browser's sessions, 0.10.0 step 2): each file once */
     K1_SYSTEM(X_S)
     K1_APLIKACJE(X_A)
     K1_STREFY(X_Z)
 #undef X_S
 #undef X_A
 #undef X_Z
+    for (i = 1; i < n; i++)
+        for (size_t j = 0; j < i; j++)
+            if (strcmp(p[i], p[j]) == 0) {
+                memmove(p[i], p[i + 1], (n - i - 1) * sizeof p[0]);
+                n--, i--;
+                break;
+            }
     return n;
 }
 
