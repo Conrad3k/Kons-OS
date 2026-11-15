@@ -133,6 +133,10 @@ if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label tes
     w, h, px = q.zrzut("2-strona", gdy=strona, czas=90)
     jest = strona(w, h, px) and "/" in odebrane
     print(f"            | serwer dostał: {len(odebrane)} żądań", flush=True)
+    if not jest:  # Firefox's error page (its heading): the top 300 rows of the window, half size, 16 greys
+        b = bytes(min(15, sum(px(x + 2 * i, y + 2 * j)) // 48) for j in range(150) for i in range(w_ // 2))
+        print(f"            | obrazek strona-blad {w_ // 2}x150 " + base64.b64encode(zlib.compress(b, 9)).decode(),
+              flush=True)
     zamknij_strefe()
     q.czekaj(r"K1-NADZORCA: strefa 2: połączenia", czas=20)
     for l_ in [l for l in q.tekst().splitlines() if re.search(r"połączenia|wejście do gościa|gość:", l)][-6:]:
