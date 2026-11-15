@@ -22,20 +22,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  k1:
+  # Three stages (2026-11-15, the owner's decision: shorter CI): one build, the tests split over five runners at once
+  # (each with its own KVM; before: eleven QEMU machines on the four processors of one runner), the release last.
+  budowa:
     # "testy": the full set (before every merge); "testy-przegladarka": only the build and the browser test, while
-    # looking for a fault there (about 20 minutes instead of 50) — never enough to merge.
+    # looking for a fault there — never enough to merge.
     if: github.event_name != 'pull_request' || github.event.label.name == 'testy' || github.event.label.name == 'testy-przegladarka'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    permissions:
-      contents: write   # tag k1-vX.Y.Z po udanym buildzie i testach
+    outputs:
+      wersja: ${{ steps.wersja.outputs.wersja }}
+      podpis: ${{ steps.podpis.outputs.podpis }}
     steps:
       - name: Pobierz kod
         uses: actions/checkout@v5
 
       - name: Odczytaj wersję
-        run: echo "K1_WERSJA=$(cat VERSION)" >> "$GITHUB_ENV"
+        id: wersja
+        run: |
+          echo "K1_WERSJA=$(cat VERSION)" >> "$GITHUB_ENV"
+          echo "wersja=$(cat VERSION)" >> "$GITHUB_OUTPUT"
 
       - name: Włącz KVM, jeśli runner go ma (inaczej QEMU użyje emulacji TCG)
         run: |
@@ -114,6 +120,7 @@ jobs:
           restore-keys: k1-pobrane-
 
       - name: Zbuduj jądro, programy, obrazy i ISO
+        id: podpis
         timeout-minutes: 50
         # M6a (ADR 0021): the signing key (32 bytes, base64) — a secret the owner adds once in
         # Settings → Secrets and variables → Actions. Without it: an unsigned developer build.
@@ -124,9 +131,9 @@ jobs:
           mkdir -p build
           scripts/zbuduj.sh 2>&1 | tee build/zbuduj.log
           if grep -q "manifest.*podpisany" build/zbuduj.log && ! grep -q "BEZ podpisu" build/zbuduj.log; then
-            echo "K1_PODPIS=podpisane kluczem K1" >> "$GITHUB_ENV"
+            echo "podpis=podpisane kluczem K1" >> "$GITHUB_OUTPUT"
           else
-            echo "K1_PODPIS=wersja deweloperska (bez podpisu — brak sekretu K1_KLUCZ_PODPISU)" >> "$GITHUB_ENV"
+            echo "podpis=wersja deweloperska (bez podpisu — brak sekretu K1_KLUCZ_PODPISU)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Zapisz pobrane pliki (pamięć podręczna)
@@ -149,9 +156,107 @@ jobs:
             build/naglowki
           key: ${{ steps.klucz-jadra.outputs.klucz }}
 
+      # What the tests need from build/ (the images, our programs and the test programs, the headers and musl for the host
+      # tests, the test machines' firmware, the Secure Boot certificate for M6) — a tar keeps the modes and times that an
+      # artifact's zip would lose. Not the sources, the kernels' build directories nor any private key.
+      - name: Spakuj budowę dla testów
+        run: |
+          tar -cf build/k1-budowa.tar --exclude='*.key' --exclude='*-usb.img.xz*' --exclude='k1.efi.niepodpisany' \
+            build/wynik build/gen build/bin build/obj build/musl build/naglowki build/pobrane/efi
+          ls -l build/k1-budowa.tar
+
+      - name: Wyślij budowę do zadań testów
+        uses: actions/upload-artifact@v5
+        with:
+          name: k1-budowa
+          path: build/k1-budowa.tar
+          compression-level: 1
+          retention-days: 1
+
+      # the compressed USB image only for the end: the release (main) and the PR's artifact (the owner's test on hardware)
+      - name: Wyślij obraz USB (spakowany) do ostatniego zadania
+        uses: actions/upload-artifact@v5
+        with:
+          name: k1-usb-xz
+          path: |
+            build/wynik/*-usb.img.xz
+            build/wynik/*-usb.img.xz.sha256
+          compression-level: 0
+          retention-days: 1
+
+  testy:
+    needs: budowa
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - grupa: m1
+            testy: test-m1
+          - grupa: pulpit
+            testy: test-m4 test-pliki test-pendrive
+          - grupa: dane-i-siec
+            testy: test-skarbiec test-siec test-wifi
+          - grupa: strefy
+            testy: test-strefa test-przegladarka
+          - grupa: instalator
+            testy: test-m5 test-m5f test-m6
+    env:
+      K1_WERSJA: ${{ needs.budowa.outputs.wersja }}
+      # the label "testy-przegladarka": only the narrow browser test, in its group; the other groups pass empty
+      WASKO: ${{ github.event.label.name == 'testy-przegladarka' && '1' || '' }}
+    steps:
+      - name: Pobierz kod
+        if: env.WASKO != '1' || matrix.grupa == 'strefy'
+        uses: actions/checkout@v5
+
+      - name: Włącz KVM, jeśli runner go ma (inaczej QEMU użyje emulacji TCG)
+        if: env.WASKO != '1' || matrix.grupa == 'strefy'
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+            sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+          fi
+          ls -l /dev/kvm || echo "brak /dev/kvm"
+
+      - name: Klucz kopii pakietów
+        if: env.WASKO != '1' || matrix.grupa == 'strefy'
+        id: klucz-apt
+        run: echo "klucz=k1-apt-${ImageOS:-ubuntu}-${ImageVersion:-0}-${{ hashFiles('scripts/przygotuj-srodowisko.sh') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Przywróć kopię pakietów (pamięć podręczna)
+        if: env.WASKO != '1' || matrix.grupa == 'strefy'
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/k1-apt-zapas
+          key: ${{ steps.klucz-apt.outputs.klucz }}
+          restore-keys: k1-apt-
+
+      - name: Zainstaluj narzędzia
+        if: env.WASKO != '1' || matrix.grupa == 'strefy'
+        timeout-minutes: 10
+        env:
+          K1_APT_ZAPAS: ${{ runner.temp }}/k1-apt-zapas
+        run: scripts/przygotuj-srodowisko.sh
+
+      - name: Pobierz budowę
+        if: env.WASKO != '1' || matrix.grupa == 'strefy'
+        uses: actions/download-artifact@v5
+        with:
+          name: k1-budowa
+          path: .
+
+      - name: Rozpakuj budowę
+        if: env.WASKO != '1' || matrix.grupa == 'strefy'
+        # newer than the checked-out sources: make in the tests (testy-host, magazyn_testowy…) must not build again
+        run: tar -xf k1-budowa.tar && rm k1-budowa.tar && find build -exec touch {} + && ls build
+
       # 0.10.0: the fuzzers' corpus (inputs that reach new code) is kept between runs in the Actions cache, so each
-      # run goes deeper instead of starting from nothing. Only generated test inputs, nothing secret.
+      # run goes deeper instead of starting from nothing. Only generated test inputs, nothing secret. (Group m1 only.)
       - name: Przywróć korpus fuzzingu (pamięć podręczna)
+        if: matrix.grupa == 'm1' && env.WASKO != '1'
         continue-on-error: true
         uses: actions/cache/restore@v4
         with:
@@ -159,29 +264,29 @@ jobs:
           key: k1-fuzz-${{ github.run_id }}
           restore-keys: k1-fuzz-
 
-      - name: Testy (host + QEMU, także negatywne; M1–M6, start z ISO)
+      - name: Testy (${{ matrix.testy }})
+        if: env.WASKO != '1' || matrix.grupa == 'strefy'
         run: |
           set -o pipefail
           mkdir -p build/testy
-          K1_FUZZ_CZAS=30 K1_TESTY_TYLKO="${{ github.event.label.name == 'testy-przegladarka' && 'test-przegladarka' || '' }}" \
-            K1_PRZEGLADARKA_WASKO="${{ github.event.label.name == 'testy-przegladarka' && '1' || '' }}" \
-            scripts/testy.sh 2>&1 | tee build/testy/wynik.txt
+          K1_FUZZ_CZAS=30 K1_TESTY_TYLKO="${{ env.WASKO == '1' && 'test-przegladarka' || matrix.testy }}" \
+            K1_PRZEGLADARKA_WASKO="${{ env.WASKO }}" scripts/testy.sh 2>&1 | tee build/testy/wynik.txt
 
       - name: Zapisz korpus fuzzingu (pamięć podręczna)
-        if: always()
+        if: always() && matrix.grupa == 'm1' && env.WASKO != '1'
         continue-on-error: true
         uses: actions/cache/save@v4
         with:
           path: build/fuzz-korpus-*
           key: k1-fuzz-${{ github.run_id }}
 
-      # Logs are always kept in three places that do not depend on the artifact quota:
-      # the job console, the job summary and (on main) the release.
+      # Logs are always kept in places that do not depend on the artifact quota: the job console, the job summary
+      # and (on main) the release.
       - name: Logi testów — podsumowanie i konsola (zawsze)
-        if: always()
+        if: always() && (env.WASKO != '1' || matrix.grupa == 'strefy')
         run: |
           {
-            echo "## K1 ${K1_WERSJA} — wynik testów"
+            echo "## K1 ${K1_WERSJA} — wynik testów (${{ matrix.grupa }})"
             echo '```'
             grep -a -E '\[(OK|BŁĄD)\]|wynik|WYNIK|zaliczone|BŁĄD' build/testy/wynik.txt 2>/dev/null || echo "brak wyniku testów"
             echo '```'
@@ -193,7 +298,7 @@ jobs:
             echo "::endgroup::"
           done
           # once more at the very end: the end of a long log is what one reads first (and all the API returns)
-          echo "=== K1 ${K1_WERSJA}: podsumowanie testów (niezaliczone i wynik) ==="
+          echo "=== K1 ${K1_WERSJA}: podsumowanie testów, grupa ${{ matrix.grupa }} (niezaliczone i wynik) ==="
           # with what a failed check printed under it (its lines start with "            |": the last lines of the
           # system, the zone's and nadzorca's counts) — 0.10.0 step 2
           grep -a -E '\[BŁĄD\]|\[uwaga\]|^\[k1\]|Traceback|Error|^            \| ' build/testy/wynik.txt 2>/dev/null |
@@ -204,13 +309,86 @@ jobs:
               tail -n 40
           fi
 
+      - name: Wyślij logi testów grupy (zawsze)
+        if: always() && (env.WASKO != '1' || matrix.grupa == 'strefy')
+        continue-on-error: true
+        uses: actions/upload-artifact@v5
+        with:
+          name: k1-logi-${{ matrix.grupa }}
+          path: |
+            build/testy/*.log
+            build/testy/*.png
+            build/testy/wynik.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # One package of logs (all groups) for the artifact and the release; on main, after every test passed: the tag and
+  # the release with the ISO and the USB image.
+  wynik:
+    needs: [budowa, testy]
+    if: always() && needs.budowa.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write   # tag k1-vX.Y.Z po udanym buildzie i testach
+    env:
+      K1_WERSJA: ${{ needs.budowa.outputs.wersja }}
+      K1_PODPIS: ${{ needs.budowa.outputs.podpis }}
+    steps:
+      - name: Pobierz kod
+        uses: actions/checkout@v5
+
+      - name: Pobierz logi grup
+        continue-on-error: true
+        uses: actions/download-artifact@v5
+        with:
+          pattern: k1-logi-*
+          path: build/testy-grupy
+
+      - name: Pobierz budowę
+        uses: actions/download-artifact@v5
+        with:
+          name: k1-budowa
+          path: .
+
       - name: Spakuj logi testów (zawsze)
-        if: always()
         run: |
+          tar -xf k1-budowa.tar build/wynik && rm k1-budowa.tar
           tar -czf "build/k1-${K1_WERSJA}-logi.tar.gz" --ignore-failed-read \
-            build/testy/*.log build/testy/*.png build/testy/wynik.txt build/wynik/SHA256SUMS \
-            build/wynik/srodowisko.txt 2>/dev/null || true
+            build/testy-grupy build/wynik/SHA256SUMS build/wynik/srodowisko.txt 2>/dev/null || true
           ls -l "build/k1-${K1_WERSJA}-logi.tar.gz" || true
+
+      - name: Wyślij logi testów jako artefakt (zawsze; dodatkowo do konsoli i wydania)
+        continue-on-error: true
+        uses: actions/upload-artifact@v5
+        with:
+          name: k1-${{ env.K1_WERSJA }}-logi
+          path: build/k1-${{ env.K1_WERSJA }}-logi.tar.gz
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Pobierz obraz USB (spakowany)
+        uses: actions/download-artifact@v5
+        with:
+          name: k1-usb-xz
+          path: build/wynik
+
+      - name: Wyślij obrazy jako artefakt (tylko PR — na main obraz jest w wydaniu)
+        # Brak miejsca na artefakty (limit konta) nie może blokować wersji — tag jest niżej.
+        if: github.ref != 'refs/heads/main'
+        continue-on-error: true
+        uses: actions/upload-artifact@v5
+        with:
+          name: k1-${{ env.K1_WERSJA }}-obraz
+          path: |
+            build/wynik/
+            !build/wynik/*-usb.img
+          retention-days: 7
+
+      - name: Czy wszystkie testy przeszły
+        run: |
+          echo "testy: ${{ needs.testy.result }}"
+          [ "${{ needs.testy.result }}" = success ]
 
       - name: Oznacz wersję tagiem (jeśli tagu jeszcze nie ma)
         if: github.ref == 'refs/heads/main'
@@ -239,25 +417,3 @@ jobs:
               build/wynik/SHA256SUMS "build/k1-${K1_WERSJA}-logi.tar.gz" --title "Kons K1 ${K1_WERSJA}" \
               --notes "k1-${K1_WERSJA}-usb.img.xz — na pendrive ≥ 512 MB (laptop, UEFI): system i zaszyfrowane miejsce na dane (Rufus/balenaEtcher). k1-${K1_WERSJA}.iso — do maszyny wirtualnej (UEFI albo BIOS), bez zapisu danych. Instrukcja: README.md. Zmiany: CHANGELOG.md. System: ${K1_PODPIS}."
           fi
-
-      - name: Wyślij obrazy jako artefakt (tylko PR — na main obraz jest w wydaniu)
-        # Brak miejsca na artefakty (limit konta) nie może blokować wersji — tag jest wyżej.
-        if: github.ref != 'refs/heads/main'
-        continue-on-error: true
-        uses: actions/upload-artifact@v5
-        with:
-          name: k1-${{ env.K1_WERSJA }}-obraz
-          path: |
-            build/wynik/
-            !build/wynik/*-usb.img
-          retention-days: 7
-
-      - name: Wyślij logi testów jako artefakt (zawsze; dodatkowo do konsoli i wydania)
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v5
-        with:
-          name: k1-${{ env.K1_WERSJA }}-logi
-          path: build/k1-${{ env.K1_WERSJA }}-logi.tar.gz
-          if-no-files-found: ignore
-          retention-days: 7
