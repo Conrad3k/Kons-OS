@@ -47,9 +47,11 @@ def blisko(c, w, tol=24):
     return all(abs(a - b) <= tol for a, b in zip(c, w))
 
 
-sprawdz("jądro K1 z KVM: wirtualizacja w maszynie testowej (w emulacji: AMD z zagnieżdżonym stronicowaniem)",
-        czekaj(r"kvm_amd: Nested Paging enabled|kvm_intel|kvm: ", czas=limit * 0.2))
 g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", czas=limit * 0.4)
+# The kernel's KVM line comes long before the desktop. It is read from the raw bytes of the log: q.tekst() drops a
+# kernel message printed in the middle of a K1 line (WTRACENIE), and with KVM in CI this one landed there once (run 77).
+sprawdz("jądro K1 z KVM: wirtualizacja w maszynie testowej (w emulacji: AMD z zagnieżdżonym stronicowaniem)",
+        re.search(rb"kvm_amd: Nested Paging enabled|kvm_intel|kvm: ", open(log, "rb").read()))
 ax, ay, krok = (int(g.group(i)) for i in (3, 4, 5)) if g else (0, 0, 0)
 o = czekaj(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", czas=180)
 nr, w_, h_, x, y = (int(o.group(i)) for i in range(1, 6)) if o else (0, 0, 0, 0, 0)
