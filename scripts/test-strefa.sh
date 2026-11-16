@@ -229,7 +229,7 @@ liczniki = lambda: [int(m) for m in re.findall(DYSK, q.tekst())]
 sprawdz("STREFA PAMIĘTA (krok 5): z danymi na dysku nadzorca daje strefie dysk w skarbcu — pierwsze uruchomienie 1",
         czekaj(r"K1-NADZORCA: strefa 1 \(Strefa próbna\): pid \d+, .*pamięta \(dysk w skarbcu\)", czas=30) and
         liczniki()[:1] == [1], str(liczniki()))
-sprawdz("…ponowne otwarcie: gość czyta licznik z dysku — 2 (dane w skarbcu, pieces of 64 KiB)",
+sprawdz("…ponowne otwarcie: gość czyta licznik z dysku — 2 (dane w skarbcu, kawałki po 64 KiB)",
         czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 5\)", czas=300) and liczniki()[1:2] == [2], str(liczniki()))
 sprawdz("„Wyczyść dane sesji”: skarbiec usuwa kawałki dysku strefy, następne otwarcie liczy od 1",
         czekaj(r"K1-NADZORCA: strefa 1: dane sesji usunięte \(\d+ kawałków\)", czas=60) and

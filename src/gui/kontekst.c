@@ -98,12 +98,20 @@ static void uloz(void)
     kontekst.brudna = 1;
 }
 
-/* The tests click by these lines: the centre of every row on the screen. */
+/* The tests click by these lines: the centre of every row on the screen. A session's name is the user's text: in the
+ * log it is "sesja <zone>" (invariant 8). */
 static void loguj(void)
 {
     static const char *const cele[] = { "", "pulpit", "ikona", "pasek", "menu Start", "komunikat" };
+    static struct k1_menu kopia;
     char buf[400];
-    k1_menu_opis(&glowne, gx, gy, buf, sizeof buf);
+    kopia = glowne;
+    for (int i = 0; i < kopia.n; i++)
+        if (kopia.p[i].akcja > A_SESJA && kopia.p[i].akcja <= A_SESJA + K1_STREFY_MAKS)
+            snprintf(kopia.p[i].tekst, sizeof kopia.p[i].tekst, "sesja %d", kopia.p[i].akcja - A_SESJA);
+        else if (kopia.p[i].akcja == K1_MA_OTWORZ && cel == K_PASEK && apl > K1_APL_MAKS) /* "Przeglądarka · <name>" */
+            snprintf(kopia.p[i].tekst, sizeof kopia.p[i].tekst, "%s", aplikacje[apl].nazwa);
+    k1_menu_opis(&kopia, gx, gy, buf, sizeof buf);
     if (cel == K_OKIENKO) {
         k1_log(TAG, "okienko (%s): %s", okienko_rodzaj, buf);
         return;

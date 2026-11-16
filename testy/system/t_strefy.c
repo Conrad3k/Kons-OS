@@ -132,12 +132,14 @@ void t_kvm(void)
 /* The sandbox of a zone's VMM (0.10.0): the test zone started through nadzorca, its process checked like every service
  * (own UID, no capabilities, seccomp, cgroup: pids.max = 1 + its threads: processors, the watchman, KVM's task), its
  * descriptors only what nadzorca gave
- * (the channel to ekran, /dev/kvm, the zone kernel and image read only) and what it made (the machine, its processor,
- * memfd, eventfd); then it is killed — nadzorca lives on, no restart. */
+ * (the channel to ekran, /dev/kvm, the zone kernel and image read only; since 0.10.0 step 5 a zone that remembers: a
+ * channel to skarbiec and the empty disk, read only) and what it made (the machine, its processor, memfd, eventfd);
+ * then it is killed — nadzorca lives on, no restart. */
 void t_strefa_klatka(void)
 {
     static const char *const fds[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/rdzen/jadro/dev/kvm",
-                                       "/rdzen/strefy/jadro", "/rdzen/strefy/probna.img", "/memfd:", "anon_inode:", NULL };
+                                       "/rdzen/strefy/jadro", "/rdzen/strefy/probna.img", "/rdzen/strefy/dysk.img",
+                                       "/memfd:", "anon_inode:", NULL }; /* dysk.img: the zone remembers (step 5) */
     const struct k1_strefa_opis *z = k1_strefa(K1_STREFA_PROBNA);
     long pid;
     int i;
