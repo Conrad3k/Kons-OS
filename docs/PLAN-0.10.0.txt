@@ -83,7 +83,7 @@ Na laptopach trzeba raz włączyć wirtualizację w BIOS-ie (D5) — bez niej K1
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [x]  1  Pierwsza strefa: KVM, VMM, okno w zaufanej ramce    S1–S11           0.9.1       D1 D4, T1–T6 T10 L        0042   PR #114
 [x]  2  Przeglądarka w strefie, połączenia przez K1         S12–S20          1           D2 D3 D6, T7–T9  L        0043   PR #119
-[ ]  3  Poprawki przeglądarki: awarie, ramka, przyciski     S26–S28, S30     2           D1 (zmiana)      L        —   [w toku: Claude, gałąź claude/serene-ritchie-zw0gbr]
+[x]  3  Poprawki przeglądarki: awarie, ramka, przyciski     S26–S28, S30     2           D1 (zmiana)      L        —      PR #126
 [ ]  4  Przewijanie: kółko myszy, dwa palce na touchpadzie S29              2           D8               M        —
 [ ]  5  Stała strefa, Ustawienia, porządki; wydanie 0.10.0  S21–S25          3, 4        D7, T11          L        —
 
@@ -327,7 +327,32 @@ KROK 3 — Poprawki przeglądarki: awarie, ramka, przyciski okna             L �
   Dziwny błąd testu (zasada skilla, §7): 1–2 próby, potem obraz z artefaktu PR-a do sprawdzenia u właściciela.
   Dokumenty: WYGLAD (ramka), ekran.md, strefa.md, RYZYKA (R26), TESTY.md.
   Gotowe, gdy: testy zielone, właściciel potwierdził na sprzęcie ramkę i brak awarii.
-  Ustalenia z wykonania: (pusto — wypełnia krok 3)
+  Ustalenia z wykonania (2026-11-16, krok 3):
+  - D1 (zmiana, właściciel): szkic A „Pasek w kolorze sesji” — pasek 40 px nad obrazem strefy (ikona, „<tytuł> ·
+    <sesja> · osobna maszyna”, minimalizuj, zamknij) i obwódka 3 px; sesja jednorazowa — jasny pasek w obwódce koloru
+    sesji. Znaczek i plakietka (B2) usunięte. Szkice B (pasek K1 z kolorowym znaczkiem) i C (pasek 30 px) odrzucone.
+  - S26 (właściciel: IdeaPad 110 ma 4 GB; okno przeglądarki „nagle znikało”, bez komunikatu; jego podejrzenie: stała
+    pamięć mikro-maszyny). POTWIERDZONE testem: strona testowa zajmująca 1400 MiB w strefie 1536 MiB — przed poprawką
+    (przebieg CI 114) jądro strefy zgłosiło brak pamięci przy 768 MiB i strona nie doszła do końca. Przyczyna: gość ma
+    stałe 1536 MiB bez żadnego zapasu (bez wymiany), a jądro gościa przy braku pamięci zabija największy proces — często
+    samą przeglądarkę, a koniec przeglądarki = koniec strefy. Do tego pamięć podręczna stron Firefoksa „na dysku” leżała
+    w tmpfs, czyli w tej samej pamięci. Poprawki (tanie, w strefie): pamięć kompresowana (zram w jądrze strefy, lz4,
+    rozmiar = pamięć gościa; nagłówek wymiany pisze gosc), główny proces przeglądarki chroniony (oom_score_adj −900),
+    procesy stron idą pierwsze (+300), bez pamięci podręcznej na „dysku”, zamknięcie ostatniej karty nie zamyka okna.
+    Gdy strefa mimo to skończy się sama — okienko „Przeglądarka zamknęła się” z powodem (pamięć strefy, pamięć komputera,
+    awaria, błąd); wcześniej okno po prostu znikało. Jądro strefy potrzebowało też VM_EVENT_COUNTERS (bez niej
+    /proc/vmstat nie ma licznika oom_kill — przebieg 114 pokazał 0 zabitych stron mimo OOM).
+    NIE W TEJ WERSJI: oddawanie pamięci strefy z powrotem do K1 (balon / zgłaszanie wolnych stron virtio) i rozmiar
+    strefy zależny od pamięci komputera — 0.10.x („Nie w tej wersji”, punkt 6: „oddawanie pamięci (balon)”).
+  - S28 POTWIERDZONE (Firefox z obrazu strefy pod Xvfb, wymuszone dekoracje po stronie programu — jak na Waylandzie):
+    wystarcza ustawienie GTK „gtk-decoration-layout=” (puste) w /etc/gtk-3.0/settings.ini obrazu; protokół
+    xdg-decoration niepotrzebny. Obraz nie ma schematów GNOME, więc GTK na Waylandzie bierze wartość z pliku.
+  - S30: pomiar w logu — „gość gotowy (kanał sterujący) po N s” i „gość: okno przeglądarki po N s od startu maszyny”
+    (kompozytor zgłasza pierwsze okno przez rurę do gosc, gosc przez kanał sterujący). Tania poprawka: jądro strefy
+    rozpakowuje bloki obrazu (xz, 1 MiB) wprost do pamięci podręcznej stron i na każdym procesorze (było: jeden wątek
+    i pośredni bufor — przy losowym czytaniu libxul, 183 MB, ten sam blok bywał rozpakowywany wiele razy). Czasy z CI
+    (KVM, szybki procesor) — w opisie PR-a; na IdeaPadzie — test właściciela. Większe zmiany startu (zamrożony stan)
+    zostają w „Nie w tej wersji”.
 
 KROK 4 — Przewijanie: kółko myszy i dwa palce na touchpadzie              M · decyzja D8 · bez ADR
   Wydzielony z kroku 3 na prośbę właściciela (2026-11-15): w przeglądarce niezbędne, a dotyczy całego systemu.
