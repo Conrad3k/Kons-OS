@@ -78,10 +78,13 @@ static void id_maszyny(void)
         close(fd);
 }
 
-static pid_t uruchom(const char *program, char *const argv[], char *const env[], uid_t uid)
+/* `fd3`: a descriptor the program gets as its fd 3 (-1: none) */
+static pid_t uruchom(const char *program, char *const argv[], char *const env[], uid_t uid, int fd3)
 {
     pid_t p = fork();
     if (p == 0) {
+        if (fd3 >= 0 && dup2(fd3, 3) != 3)
+            _exit(126);
         if (uid != 0 && (setgroups(0, NULL) != 0 || setgid(uid) != 0 || setuid(uid) != 0))
             _exit(126);
         execve(program, argv, env);
@@ -127,14 +130,25 @@ static void sprzataj(pid_t przegl, pid_t komp, int ster, unsigned long zabite_od
         }
 }
 
-/* Once a second: the VMM hears of every page killed for memory. */
+/* Once a second: the browser's other processes go first, and the VMM hears of every page killed for memory. */
 static void pilnuj(pid_t przegl, int ster, unsigned long *zabite)
 {
     unsigned long z = pamiec_zabite();
-    (void)przegl;
+    pamiec_kolejnosc(UZYTKOWNIK, przegl);
     if (z > *zabite && ster >= 0 && write(ster, "pamiec strona\n", 14) != 14)
         loguj("kanał sterujący: zapis nieudany");
     *zabite = z;
+}
+
+/* The compositor said its first window is up (0.10.0 step 3, S30): "etap okno" to the VMM, which logs the time. */
+static void okno_jest(int *okno, int ster)
+{
+    char b[16];
+    ssize_t n = read(okno[0], b, sizeof b);
+    if (n > 0 && ster >= 0 && write(ster, "etap okno\n", 10) != 10)
+        loguj("kanał sterujący: zapis nieudany");
+    close(okno[0]);
+    okno[0] = -1;
 }
 
 void przegladarka(int ster)
@@ -146,7 +160,7 @@ void przegladarka(int ster)
     char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;
-    int koniec = 0, zamykam = 0, krok = 0;
+    int koniec = 0, zamykam = 0, krok = 0, okno[2];
     uint64_t od = 0;
     unsigned long zabite = pamiec_zabite(), zabite_od = zabite;
     katalog_tmpfs("/tmp", "mode=1777", 0);
@@ -162,20 +176,27 @@ void przegladarka(int ster)
         mkdir("/home/k1/profil", 0700) != 0 || chown("/home/k1/profil", UZYTKOWNIK, UZYTKOWNIK) != 0)
         loguj("katalog domowy: %s", strerror(errno));
     petla_zwrotna();
-    uruchom(PRZEKAZNIK, a_prze, env_k1, UZYTKOWNIK);
-    komp = uruchom(KOMPOZYTOR, a_komp, env_k1, 0);
+    uruchom(PRZEKAZNIK, a_prze, env_k1, UZYTKOWNIK, -1);
+    if (pipe2(okno, O_CLOEXEC | O_NONBLOCK) != 0)
+        okno[0] = okno[1] = -1;
+    komp = uruchom(KOMPOZYTOR, a_komp, env_k1, 0, okno[1]);
+    if (okno[1] >= 0)
+        close(okno[1]);
     czekaj_na_gniazdo();
-    przegl = uruchom(PRZEGLADARKA, a_przegl, env_p, UZYTKOWNIK);
+    przegl = uruchom(PRZEGLADARKA, a_przegl, env_p, UZYTKOWNIK, -1);
+    pamiec_chron(przegl);
     loguj("przeglądarka uruchomiona");
     while (!koniec) {
-        struct pollfd p = { ster, POLLIN, 0 };
+        struct pollfd p[2] = { { ster, POLLIN, 0 }, { okno[0], POLLIN, 0 } }; /* negative fds: ignored */
         struct timespec t;
-        int r = poll(&p, ster >= 0 ? 1 : 0, 200);
+        int r = poll(p, 2, 200);
+        if (p[1].revents & (POLLIN | POLLHUP))
+            okno_jest(okno, zamykam ? -1 : ster);
         sprzataj(przegl, komp, zamykam ? -1 : ster, zabite_od, &koniec);
         if (++krok % 5 == 0 && !koniec)
             pilnuj(przegl, zamykam ? -1 : ster, &zabite);
         clock_gettime(CLOCK_MONOTONIC, &t);
-        if (r > 0 && (p.revents & (POLLIN | POLLHUP)) && !zamykam) {
+        if (r > 0 && (p[0].revents & (POLLIN | POLLHUP)) && !zamykam) {
             char b[64];
             ssize_t n = read(ster, b, sizeof b - 1);
             if (n <= 0 || (b[n] = '\0', strstr(b, "zamknij") != NULL)) {

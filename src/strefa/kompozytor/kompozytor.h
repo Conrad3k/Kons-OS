@@ -251,6 +251,9 @@ int ekran_start(void);                        /* 0, or -1 (logged) */
 void ekran_pokaz(int32_t x, int32_t y, int32_t w, int32_t h); /* this part changed (DIRTYFB) */
 
 void kloguj(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+/* The first window of the browser is on the display: "okno" once to gosc on fd 3 (a pipe, when gosc gave one) — the
+ * VMM logs how long the browser took to start (0.10.0 step 3, S30). */
+void zglos_okno(void);
 uint32_t teraz_ms(void);
 
 #endif

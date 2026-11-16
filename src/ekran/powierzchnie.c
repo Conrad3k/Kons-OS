@@ -82,14 +82,14 @@ static void polozenie_nowej(struct pow *p, const struct k1_komunikat *m)
     } else if (p->rodzaj == K1_POW_PULPIT) {
         p->x = p->y = 0;
     } else {
-        int32_t nr = (int32_t)(s.nastepne_okno % 6);
+        int32_t nr = (int32_t)(s.nastepne_okno % 6), gora = K1_PASEK_GORNY + (okno_strefy(p) ? strefa_nad() : 0);
         p->okno = ++s.nastepne_okno;
         p->x = (s.W - p->w) / 2 + nr * 28 - 70;
-        p->y = K1_PASEK_GORNY + (s.H - K1_PASEK_GORNY - 80 - p->h) / 2 + nr * 28 - 40;
+        p->y = gora + (s.H - gora - 80 - p->h) / 2 + nr * 28 - 40; /* a zone's frame above its picture: strefy.c */
         if (p->x < 0)
             p->x = 0;
-        if (p->y < K1_PASEK_GORNY + 8)
-            p->y = K1_PASEK_GORNY + 8;
+        if (p->y < gora + 8)
+            p->y = gora + 8;
     }
 }
 

@@ -124,19 +124,31 @@ def firefox(w, h, px):  # the frame in the session's colour, Firefox's address f
             and blisko(px(x + w_ // 3, y + 20), (250, 250, 251), 4))
 
 
+def bez_przyciskow(px):  # S28 (step 3): the top right corner of the tab bar is empty — Firefox draws no minimise,
+    # maximise and close of its own (strefy/przegladarka/gtk-settings.ini); its close button was right there
+    tlo = px(x + w_ // 3, y + 20)
+    return all(blisko(px(x + w_ - 30 + i, y + 10 + j), tlo, 12) for i in range(0, 26, 2) for j in range(0, 24, 2))
+
+
 w, h, px = q.zrzut("1-okno", gdy=firefox, czas=900)
 sprawdz("okno przeglądarki w ramce w kolorze sesji, pasek kart i adresu (zrzut przegladarka-1-okno)",
         firefox(w, h, px))
+sprawdz("Firefox bez własnych przycisków okna (minimalizuj, powiększ, zamknij) — tylko pasek K1 w kolorze sesji (S28)",
+        bez_przyciskow(px), str(px(x + w_ - 16, y + 20)))
+sprawdz("pasek tytułu K1 nad oknem przeglądarki: obwódka w kolorze sesji, jasny pasek sesji jednorazowej (krok 3, D1: A)",
+        blisko(px(x + w_ // 2, y - 42), SZALWIA) and blisko(px(x + w_ - 60, y - 20), (232, 238, 234), 16),
+        str((px(x + w_ // 2, y - 42), px(x + w_ - 60, y - 20))))
+for l_ in re.findall(r"K1-STREFA: gość (?:gotowy|: okno przeglądarki)[^\n]*", q.tekst()):  # S30: where the start goes
+    print("            | start: " + l_[:200], flush=True)
 
 
-def zamknij_strefe():  # the frame's badge (hover the mark, then its close button) — as test-strefa does
-    plak = r"K1-EKRAN: strefa: plakietka okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr)
-    n = q.ile(plak)
+def zamknij_strefe():  # "zamknij" on K1's title bar above the zone (step 3, D1: sketch A) — as test-strefa does
+    pasek = r"K1-EKRAN: strefa: pasek okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr)
+    n = q.ile(pasek)
     q.idz(x + 60, y + 60)
-    q.idz(x - 8 + 15, y - 8 + 15)  # the mark (src/ekran/strefy.c: 30 px, 8 px out of the corner)
-    p = czekaj(plak, od=n, czas=30)
+    q.idz(x + w_ // 2, y - 20)  # the bar (K1_STREFA_TYTUL = 40 px above the picture)
+    p = czekaj(pasek, od=n, czas=30)
     if p:
-        q.idz(int(p.group(1)), int(p.group(2)))  # along the badge first: a long move overshoots and the badge closes
         q.klik(int(p.group(3)), int(p.group(4)))
     return czekaj(r"K1-STREFA: strefa 2: koniec", czas=120)
 

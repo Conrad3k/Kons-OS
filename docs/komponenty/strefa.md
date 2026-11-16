@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | ZAIMPLEMENTOWANE (0.10.0 krok 1: strefa próbna, tylko w obrazie testowym; krok 2: przeglądarka — sesje Ogólna, Bank, Prywatna, jednorazowe, ADR 0043); PRZETESTOWANE na hoście (`test_virtio`, `test_strefa_start`, `fuzz_virtq`), w systemie (`t_kvm`, `t_strefa_klatka`, próba w klatce `t_proby`) i w QEMU (`scripts/test-strefa.sh`: okno w ramce, wejście, plakietka, zamykanie, 4 złośliwe tryby gościa, komputer bez wirtualizacji) — w emulacji AMD SVM; na prawdziwym sprzęcie — po wydaniu (krok 3) |
-| **Pliki** | `src/strefa/`: `main.c` (start, pętla wątku głównego, koniec), `kvm.c` (maszyna, procesory, wyjścia), `start.{c,h}` (start jądra bez firmware: strona zerowa, e820, tablice stron, GDT, tablica MP), `virtq.{c,h}` (kolejka virtio), `mmio.{c,h}` (rejestry virtio-mmio), stróż `stroz.c`, urządzenia `blk.c`, `konsola.c`, `rng.c`, `wejscie.c`, `gpu.c`, `vsock.c`, okno `okno.{c,h}`; wspólne `strefa.h` (tabela urządzeń `K1_URZADZENIA`); gość próbny `src/strefa/gosc/` (`main.c`, `obraz.c`, `zlosliwy.c`); nadzorca `src/nadzorca/strefy.c`, `profile.c` (`KLATKA_STREFA`); ekran `src/ekran/strefy.c` (ramka); tabela stref `K1_STREFY` w `src/wspolne/k1_uslugi.h`; jądro strefy `jadro/strefa.config` |
-| **Decyzje** | ADR 0042 (T1–T6, T10, zaufana ramka), ADR 0020 (kierunek), decyzje właściciela D1 (szkic B2, S1), D4 (testy w emulacji) |
+| **Status** | ZAIMPLEMENTOWANE (0.10.0 krok 1: strefa próbna, tylko w obrazie testowym; krok 2: przeglądarka — sesje Ogólna, Bank, Prywatna, jednorazowe, ADR 0043); PRZETESTOWANE na hoście (`test_virtio`, `test_strefa_start`, `fuzz_virtq`), w systemie (`t_kvm`, `t_strefa_klatka`, próba w klatce `t_proby`) i w QEMU (`scripts/test-strefa.sh`: okno w ramce, wejście, pasek tytułu K1, zamykanie, 4 złośliwe tryby gościa, komputer bez wirtualizacji) — w emulacji AMD SVM; na prawdziwym sprzęcie — po wydaniu (krok 3) |
+| **Pliki** | `src/strefa/`: `main.c` (start, pętla wątku głównego, koniec), `kvm.c` (maszyna, procesory, wyjścia), `start.{c,h}` (start jądra bez firmware: strona zerowa, e820, tablice stron, GDT, tablica MP), `virtq.{c,h}` (kolejka virtio), `mmio.{c,h}` (rejestry virtio-mmio), stróż `stroz.c`, urządzenia `blk.c`, `konsola.c`, `rng.c`, `wejscie.c`, `gpu.c`, `vsock.c`, okno `okno.{c,h}`; wspólne `strefa.h` (tabela urządzeń `K1_URZADZENIA`); gość `src/strefa/gosc/` (`main.c`, `obraz.c`, `zlosliwy.c`, `przegladarka.c`, `pamiec.c`); nadzorca `src/nadzorca/strefy.c`, `profile.c` (`KLATKA_STREFA`); ekran `src/ekran/strefy.c` (ramka); tabela stref `K1_STREFY` w `src/wspolne/k1_uslugi.h`; jądro strefy `jadro/strefa.config` |
+| **Decyzje** | ADR 0042 (T1–T6, T10, zaufana ramka), ADR 0020 (kierunek), decyzje właściciela D1 (szkic B2, S1; krok 3: szkic A — pełny pasek tytułu), D4 (testy w emulacji) |
 
 ## Cel
 Uruchomić obcą aplikację w osobnym, małym komputerze udawanym przez procesor (mikro-maszyna, KVM), z własnym jądrem Linux
@@ -46,6 +46,12 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
   nieobsługiwane — koniec; dostęp do MMIO zgłoszony jako „w trakcie przerwania” — ponawiany do 8 razy (emulacja QEMU,
   ADR 0042 T10).
 - **Koniec:** gość sam (reset), zły dostęp, `ZAMKNIJ` od ekranu → „zamknij” przez vsock, po 10 s maszyna wyłączana.
+- **Powód końca** (krok 3, S26; `main.c` `kod_wyjscia`): kod wyjścia VMM — 0, gdy zamknął użytkownik (`ZAMKNIJ` od ekranu)
+  albo program strefy zamknął się zwyczajnie; `K1_STREFA_KONIEC_PAMIEC` / `_AWARIA`, gdy program strefy skończył się sam
+  i powiedział dlaczego („koniec …” na kanale sterującym); `_BLAD`, gdy maszyna stanęła bez słowa (jądro gościa, zły
+  dostęp). Nadzorca (`strefy.c` `strefa_koniec`) dokłada SIGKILL = `_PAMIEC_K1` (OOM w K1 — w cgroup albo w komputerze)
+  i daje powód gui (`STREFA_STAN`) — okienko „<tytuł> zamknęła się”; bez okienka, gdy zamknął użytkownik, K1 zatrzymał
+  strefę sam (`bez_liczenia`) albo to złośliwy gość testu. Wcześniej okno po prostu znikało.
 
 ## Urządzenia virtio-mmio (`K1_URZADZENIA`, okno 4 KiB od 0xd0000000, linia przerwania od 5)
 | Urządzenie | Kolejki | Co robi | Co kończy maszynę |
@@ -55,7 +61,7 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 | losowość (rng) | 1 | `getrandom` do 4 KiB na prośbę | — |
 | klawiatura, wskaźnik (input) | 2 + 2 | zdarzenia `EV_KEY`, `EV_ABS` (0…32767), `EV_SYN` z ekranu; bez wolnego bufora — zdarzenie przepada (licznik) | — |
 | ekran (gpu 2D) | 2 | zasoby ≤ 4096 × 4096 (razem ≤ 96 MiB), tło z pamięci gościa (sprawdzone przy dołączeniu), przeniesienie, pokazanie, odświeżenie → okno | polecenie krótsze niż jego struktura, brak miejsca na odpowiedź |
-| vsock | 3 | kanał sterujący (port 1 hosta): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
+| vsock | 3 | kanał sterujący (port 1 hosta): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
 
 Wspólne dla wszystkich (`virtq.c`, `mmio.c`): deskryptor poza pamięcią, pętla deskryptorów, deskryptor pośredni, do
 odczytu po do zapisu, skok indeksu, kolejka poza pamięcią albo niewyrównana, rejestr czytany nie po 4 bajty — koniec.
@@ -64,7 +70,8 @@ odczytu po do zapisu, skok indeksu, kolejka poza pamięcią albo niewyrównana, 
 Klient ekranu z rolą `STREFA`, jedno okno (≤ 1024 × 720, z rozmiaru ekranu; tyle widzi gość jako wyświetlacz). Przed
 pierwszym obrazem gościa: „Uruchamiam: <tytuł>…” z ikoną strefy i paskiem w jej kolorze (D1: S1). Obraz gościa — zmienione
 prostokąty kopiowane do wolnej połówki powierzchni (nieprzezroczyste). Klawisze i wskaźnik od ekranu (tylko przy fokusie)
-→ urządzenia wejścia; utrata fokusu puszcza wszystko. Ramkę, znaczek i plakietkę rysuje ekran (`docs/komponenty/ekran.md`).
+→ urządzenia wejścia; utrata fokusu puszcza wszystko. Ramkę — pasek tytułu nad obrazem i obwódkę (krok 3, szkic A) —
+rysuje ekran (`docs/komponenty/ekran.md`); wysokość obrazu jest o pasek (`K1_STREFA_TYTUL`) mniejsza.
 
 ## Przeglądarka (0.10.0 krok 2, ADR 0043)
 Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka”), „Bank” (łupek), „Prywatna” (wrzos): obraz
@@ -72,10 +79,24 @@ Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka�
 - **Obraz** (`scripts/zbuduj-strefe.sh`): pakiety Debiana 13 z tabeli `strefy/przegladarka.txt` (wersje i sumy;
   odświeżenie `scripts/odswiez-strefe.py` — podpisy Debiana sprawdzane kluczami z `strefy/klucze/`), rozpakowane bez
   skryptów pakietów, bez powłoki; nasze: `/init` (`gosc`), `/usr/lib/k1/kompozytor`, `/usr/lib/k1/przekaznik`, mapa
-  klawiatury (`strefy/klawiatura-pl.xkb`), ustawienia Firefoksa (`strefy/przegladarka/k1.js`, `policies.json`).
+  klawiatury (`strefy/klawiatura-pl.xkb`), ustawienia Firefoksa (`strefy/przegladarka/k1.js`, `policies.json`) i GTK
+  (`strefy/przegladarka/gtk-settings.ini`: pusty układ przycisków okna — Firefox nie rysuje własnych minimalizuj /
+  powiększ / zamknij, krok 3, S28).
 - **`gosc`** (tryb przeglądarki, `gosc/przegladarka.c`): tmpfs na `/tmp`, `/run`, `/home`, `/dev/shm`, pętla zwrotna, nowy
   `machine-id`; przekaźnik, kompozytor, Firefox jako użytkownik 1000; koniec przeglądarki = koniec maszyny; „zamknij” →
-  SIGTERM i 5 s.
+  SIGTERM i 5 s. Krok 3 (S26): gdy przeglądarka skończy się sama — „koniec pamiec” (zabita przez jądro gościa z braku
+  pamięci: `/proc/vmstat` oom_kill), „koniec awaria” (sygnał, kod ≠ 0, padł kompozytor) albo „koniec sam” (zamknięta
+  z jej menu); co sekundę „pamiec strona”, gdy jądro gościa zabiło proces strony.
+- **Pamięć strefy** (krok 3, S26; `gosc/pamiec.c`): na IdeaPadzie z 4 GB okno przeglądarki znikało — ciężkie strony
+  zapełniały 1536 MiB gościa (bez wymiany), a jądro gościa zabijało największy proces, często samą przeglądarkę. Teraz:
+  **pamięć kompresowana** — zram w jądrze strefy (lz4) jako urządzenie wymiany w pamięci gościa, rozmiaru jego pamięci
+  (nagłówek wymiany pisze `gosc` — obraz nie ma `mkswap`), `swappiness` 100; główny proces przeglądarki chroniony
+  (`oom_score_adj` −900), każdy inny proces użytkownika 1000 idzie pierwszy (+300) — przy braku pamięci kończy się strona
+  („Karta uległa awarii”), nie przeglądarka; Firefox bez pamięci podręcznej na „dysku” (to tmpfs, czyli pamięć),
+  zamknięcie ostatniej karty nie zamyka okna. Gość dalej nie bierze od K1 więcej niż pamięć z wiersza `K1_STREFY`.
+- **Czas startu** (krok 3, S30): kompozytor pisze „okno” na fd 3 (rura od `gosc`) przy pierwszym oknie przeglądarki,
+  `gosc` przekazuje „etap okno”, VMM loguje `gość: okno przeglądarki po N s od startu maszyny` (i czas „gotowa”).
+  Jądro strefy rozpakowuje obraz wprost do pamięci podręcznej stron i na każdym procesorze osobno.
 - **Kompozytor** (`src/strefa/kompozytor/`): Wayland bez libwayland — tabela interfejsów `K1_INTERFEJSY` (`wl_compositor`,
   `wl_shm`, `wl_subcompositor`, `wl_seat`, `wl_output`, `wl_data_device_manager` bez schowka, `xdg_wm_base`), każda
   wiadomość sprawdzana według sygnatury (zła — koniec tego klienta). Okno na cały wyświetlacz, dialogi na środku,
@@ -94,7 +115,7 @@ Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka�
 | `STREFA_GNIAZDO` | nadzorca → VMM (+ 1 deskryptor) | obiekt = połączenie, a = `K1_STREFA_TCP` (gniazdo TCP w trakcie łączenia) / `K1_STREFA_DNS` (gniazdo UDP do serwera DNS, port 53), reszta 0 |
 | `STREFA_ODMOWA` | nadzorca → VMM | obiekt = połączenie, a = `K1_STREFA_ODM_*` (adres poza D3, brak sieci albo DNS, limit, błąd gniazda), reszta 0 |
 | `URUCHOM_STREFE` | gui → nadzorca (fd 4); program testowy → nadzorca | `a` strefa 1…`K1_STREFY_MAKS`, `b` tryb gościa testowego 0…4 (≠ 0 tylko od programu testowego; gui — odrzucone), reszta 0 |
-| `STREFA_STAN` | nadzorca → gui (fd 5) | `a` strefa, `b` powód: `K1_STREFA_BEZ_WIRTUALIZACJI`, `_ZA_MALO_PAMIECI`, `_BRAK_OBRAZU`; reszta 0 |
+| `STREFA_STAN` | nadzorca → gui (fd 5) | `a` strefa, `b` powód: nie ruszyła — `K1_STREFA_BEZ_WIRTUALIZACJI`, `_ZA_MALO_PAMIECI`, `_BRAK_OBRAZU`; zamknęła się sama (krok 3) — `K1_STREFA_KONIEC_PAMIEC` (pamięć strefy), `_PAMIEC_K1` (pamięć komputera), `_AWARIA`, `_BLAD` (1…`K1_STREFA_STAN_MAKS`); reszta 0 |
 | `KLIENT` (rola `STREFA`) | nadzorca → ekran | `b` = numer strefy (1…`K1_STREFY_MAKS`) |
 | `OKNO` | ekran → gui | okno strefy: `a` = 0, `c` = numer strefy |
 
@@ -116,5 +137,5 @@ poza pamięcią, pętla deskryptorów, odczyt 8 MiB, zapis do obrazu (w trybach 
 | `t_proby` (profil strefy): bez `open` (także `/dev/kvm`), `socket`, procesów, pamięci wykonywalnej | negatywny |
 | `test_lacznik`: SOCKS5 (powitanie, prośby, odmowy: BIND, UDP, IPv6, port 0, zła nazwa, 0.0.0.0, pętla zwrotna), DNS (pytanie; odpowiedzi: inny identyfikator, inne pytanie, ucięte, NXDOMAIN, CNAME, adres prywatny, wskaźniki), reguła D3, komunikaty `STREFA_*` | funkcjonalny, negatywny |
 | `fuzz_lacznik`: dowolna prośba SOCKS5 i odpowiedź DNS | fuzzing |
-| `scripts/test-przegladarka.sh` | QEMU: przeglądarka, strona przez łącznik, formularz, odmowa D3, logi bez adresów (opis w `docs/TESTY.md`) |
+| `scripts/test-przegladarka.sh` | QEMU: przeglądarka, strona przez łącznik, formularz, odmowa D3, strona zajmująca 1400 MiB (strefa żyje), bez przycisków okna Firefoksa, logi bez adresów (opis w `docs/TESTY.md`) |
 | `scripts/test-strefa.sh` | QEMU, funkcjonalny i negatywny (opis w `docs/TESTY.md`) |

@@ -149,6 +149,7 @@ int main(int argc, char **argv)
     int nr = argc > 1 ? atoi(argv[1]) : 0, tryb = argc > 2 ? atoi(argv[2]) : 0;
     double od = k1_teraz();
     k1_klatka_w_usludze(TAG);
+    mz.start_t = od;
     mz.opis = k1_strefa(nr);
     if (mz.opis == NULL || tryb < 0 || tryb > 99)
         k1_koniec(TAG, "zły numer strefy");

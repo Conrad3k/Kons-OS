@@ -2,7 +2,8 @@
  *   VSOCK_STEROWANIE (1): one connection, the guest's control channel — text lines "gotowa" (the guest is up) and
  *     "zamykam"; the VMM sends "zamknij" when ekran asks to close the zone (0.10.0 step 1); since step 3 (S26) also
  *     "koniec pamiec|awaria|sam" (why the browser ended by itself: K1 tells the user) and "pamiec strona" (a page
- *     killed for lack of memory) — only these exact lines, anything else is counted and ignored;
+ *     killed for lack of memory), "etap okno" (the browser's first window: the time to the log, S30) — only these exact
+ *     lines, anything else is counted and ignored;
  *   POL_PORT (2): the browser's connections through the relay in the zone, up to K1_STREFA_POLACZENIA_MAKS, each with
  *     its own credit; their bytes go to and from polaczenia.c (0.10.0 step 2, ADR 0043 T9).
  * Any other connection is refused (RST). Every header from the guest is checked: its CIDs, type, length within the
@@ -176,7 +177,9 @@ static void linia_od_goscia(void)
 {
     v.linia[v.dl] = '\0';
     if (strcmp(v.linia, "gotowa") == 0)
-        k1_log(TAG, "gość gotowy (kanał sterujący)");
+        k1_log(TAG, "gość gotowy (kanał sterujący) po %.1f s", k1_teraz() - mz.start_t);
+    else if (strcmp(v.linia, "etap okno") == 0) /* S30: how long the browser takes to start */
+        k1_log(TAG, "gość: okno przeglądarki po %.1f s od startu maszyny", k1_teraz() - mz.start_t);
     else if (strcmp(v.linia, "zamykam") == 0)
         k1_log(TAG, "gość się zamyka");
     else if (strcmp(v.linia, "koniec pamiec") == 0 || strcmp(v.linia, "koniec awaria") == 0 ||

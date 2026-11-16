@@ -77,7 +77,9 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   połączono”; od 0.9.1 krok 2: „Wi-Fi łączę” — kropka w terakocie, „Wi-Fi połączono” — wypełniona część wachlarza = siła
   sygnału, 1–4 kreski z `SIEC_STAN` e; log „sieć: Wi-Fi połączono, kreski 4 (ikona w x,y)”);
   od 0.10.0 `STREFA_STAN` (strefa nie ruszyła: brak wirtualizacji, pamięci albo obrazu — okienko odmowy „<tytuł> nie może
-  ruszyć” z wyjaśnieniem i „Rozumiem”, log „strefa N nie ruszyła (powód P): okienko”);
+  ruszyć” z wyjaśnieniem i „Rozumiem”, log „strefa N nie ruszyła (powód P): okienko”; od 0.10.0 krok 3 także strefa,
+  która zamknęła się sama: „<tytuł> zamknęła się” z powodem — brak pamięci w strefie albo w komputerze, awaria programu,
+  błąd strefy — log „strefa N zamknęła się (powód P): okienko”);
   nadawca musi mieć UID 0, każde pole sprawdzane; po zamknięciu kanału gui przestaje go czytać.
 - Strefy (0.10.0, ADR 0042): prośba `URUCHOM_STREFE` (fd 4). Od kroku 2 (ADR 0043) wiersz `K1_STREFY` z linią menu
   (sesja „Ogólna”) jest w menu Start jako „Przeglądarka” (ikona `K1_IK_PRZEGLADARKA` — globus, D1: A) po aplikacjach; przyciski

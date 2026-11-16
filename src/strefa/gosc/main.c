@@ -159,6 +159,7 @@ int main(void)
         loguj("tryb %d: VMM nie zatrzymał maszyny", t);
         wylacz();
     }
+    pamiec_zram(); /* 0.10.0 step 3: compressed memory (the test zone too: test-strefa sees it in the log) */
     if (przegladarka_jest()) {
         ster = sterowanie();
         przegladarka(ster);

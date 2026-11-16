@@ -88,12 +88,14 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `TRYB` | ekran → Ustawienia | — | jeden z trybów ekranu (rozmiar, Hz, czy zalecany) |
 
 **Rola `STREFA` (0.10.0, ADR 0042; `strefy.c`).** VMM strefy jest klientem z jednym oknem (bez paneli, ustawień,
-tapety). Ekran rysuje mu **ramkę** (D1: szkic B2): obwódkę 3 px w kolorze strefy z `K1_STREFY` na zewnątrz okna — przed
-obrazem strefy, więc strefa nie może jej zasłonić — i **znaczek** z ikoną strefy na lewym górnym rogu, po obrazie strefy;
-kursor na znaczku rozwija **plakietkę** (nazwa · „osobna maszyna”, minimalizuj, zamknij; zostaje otwarta do 40 px od
-niej). Wskaźnik na ramce, znaczku i plakietce nie trafia do strefy: wciśnięcie znaczka przesuwa okno (górna krawędź
-okna nie wyżej niż pasek + 8 px, żeby znaczek było widać), minimalizuj chowa okno, zamknij wysyła VMM `ZAMKNIJ`.
-Log: `strefa: plakietka okna N (minimalizuj X,Y, zamknij X,Y)` (testy klikają według niego).
+tapety). Ekran rysuje mu **ramkę** (0.10.0 krok 3, zmiana D1: szkic A — `docs/WYGLAD.md`): **pasek tytułu** 40 px
+(`K1_STREFA_TYTUL`, `k1_okno.h`) nad obrazem strefy, w kolorze strefy z `K1_STREFY` — ikona, „<tytuł> · <sesja> ·
+osobna maszyna”, minimalizuj, zamknij — i obwódkę 3 px wokół paska i obrazu. Cała ramka leży **na zewnątrz** prostokąta
+strefy i jest rysowana przed jej obrazem, więc strefa nie może jej zasłonić ani narysować (R26, R80); cień obejmuje okno
+z ramką. Wskaźnik na ramce nie trafia do strefy: chwycenie paska przesuwa okno (pasek nie wyżej niż górny pasek K1),
+minimalizuj chowa okno, zamknij wysyła VMM `ZAMKNIJ`; kursor nad przyciskiem go podświetla. VMM odejmuje wysokość paska
+od wysokości obrazu (`src/strefa/okno.c`). Log, gdy kursor wchodzi na pasek okna: `strefa: pasek okna N (minimalizuj X,Y,
+zamknij X,Y)` (testy klikają według niego). Do 0.10.0 krok 2 ramką była obwódka ze znaczkiem i plakietką (szkic B2).
 
 Kanał sterujący (fd 3) od nadzorcy: `KLIENT` (rola `STREFA`: `b` = numer strefy). Złe pole, zła rola albo obcy UID → komunikat odrzucony
 z wpisem w logu (≤ 8 na klienta), po 50 — klient rozłączony.

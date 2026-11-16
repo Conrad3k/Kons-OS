@@ -24,7 +24,7 @@ static int trafia(const struct pow *p, int32_t x, int32_t y)
 }
 
 /* The surface under the pointer, or -1; *ramka = STREFA_* when it is the frame of a zone's window (K1's, not the
- * zone's: its mark and badge lie over its own window, its outline outside it), else 0. */
+ * zone's: its title bar and outline lie outside the zone's picture), else 0. */
 static int pod_kursorem_r(int *ramka)
 {
     int idx[MAKS_POW], n = kolejnosc(idx), i;
@@ -50,7 +50,7 @@ static void ruch_wskaznika(void)
     int cel;
     if (s.ciagniete >= 0) {
         struct pow *p = &s.p[s.ciagniete];
-        int32_t nx = s.x - s.ciag_dx, ny = s.y - s.ciag_dy, gora = K1_PASEK_GORNY + (okno_strefy(p) ? strefa_znaczek_od() : 0);
+        int32_t nx = s.x - s.ciag_dx, ny = s.y - s.ciag_dy, gora = K1_PASEK_GORNY + (okno_strefy(p) ? strefa_nad() : 0);
         nx = nx < 80 - p->w ? 80 - p->w : (nx > s.W - 80 ? s.W - 80 : nx);
         ny = ny < gora ? gora : (ny > s.H - 48 ? s.H - 48 : ny);
         if (nx != p->x || ny != p->y) {
@@ -66,7 +66,7 @@ static void ruch_wskaznika(void)
     } else {
         int ramka;
         cel = pod_kursorem_r(&ramka);
-        strefa_najechanie(ramka >= STREFA_ZNACZEK ? cel : -1);
+        strefa_najechanie(ramka != 0 ? cel : -1, ramka);
         if (ramka != 0)
             cel = -1; /* K1's frame of a zone: nothing goes to the zone */
     }

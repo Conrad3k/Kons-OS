@@ -118,9 +118,9 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **osobna / wspólna strefa** | Jedna aplikacja na maszynę albo kilka drobnych, zaufanych aplikacji w jednej (ADR 0024). Przeglądarka zawsze osobna. |
 | **stała / jednorazowa** | Strefa pamięta dane między uruchomieniami albo zaczyna zawsze od czysta i wszystko zapomina po zamknięciu. |
 | **pełna izolacja / szybka grafika** | Strefa rysuje procesorem albo dostaje kartę graficzną przez pośrednika (słabsza izolacja). |
-| **ramka** | Obwódka w kolorze strefy rysowana przez ekran K1 wokół jej okien; aplikacja nie może jej podrobić. Od 0.10.0 (D1: szkic B2): 3 px na zewnątrz obrazu strefy + **znaczek**. |
-| **znaczek strefy** (0.10.0) | Mały kwadrat z ikoną strefy na lewym górnym rogu jej okna, rysowany przez ekran K1; za niego przesuwa się okno. Kursor na nim rozwija **plakietkę**. |
-| **plakietka** (0.10.0) | Rozwinięty znaczek strefy: nazwa strefy · „osobna maszyna” (jednorazowa: „zapomina po zamknięciu”), minimalizuj, zamknij — rysowana przez K1, nie przez strefę. |
+| **ramka** | Pasek tytułu i obwódka w kolorze strefy rysowane przez ekran K1 wokół jej okien; aplikacja nie może ich podrobić. Od 0.10.0 krok 3 (D1: szkic A): **pasek tytułu strefy** 40 px nad obrazem strefy + obwódka 3 px. (Krok 1–2: obwódka ze znaczkiem i plakietką — szkic B2, zastąpiony.) |
+| **pasek tytułu strefy** (0.10.0 krok 3) | Pasek nad obrazem strefy w jej kolorze: ikona, „<tytuł> · <sesja> · osobna maszyna”, minimalizuj, zamknij — rysowany przez K1, nie przez strefę; za niego przesuwa się okno. |
+| **pamięć kompresowana** (0.10.0 krok 3) | Wymiana (zram) w pamięci gościa strefy: rzadko używane strony ściśnięte, więc w tej samej pamięci strefy mieści się więcej. Nigdy na dysku; tylko w jądrze strefy (K1 nie ma wymiany). |
 | **wirtualizacja** | Funkcja procesora (Intel VT-x, AMD-V), dzięki której K1 uruchamia strefy; włącza się ją w BIOS-ie. Bez niej strefa nie ruszy — K1 mówi, co włączyć. Jądro: KVM, urządzenie `/dev/kvm`. |
 | **VMM** (strefa) | Program K1 `strefa`, który prowadzi jedną mikro-maszynę: jej pamięć, procesory, urządzenia, okno. Jeden proces na strefę, w klatce. (Virtual Machine Monitor.) |
 | **gość** | To, co działa wewnątrz strefy: jądro strefy i jej programy. Dla K1 zawsze wrogi — wszystko od gościa sprawdzane pole po polu. |

@@ -5,7 +5,8 @@
 #   - rozpakowane bez uruchamiania skryptów pakietów; to, co robiłyby skrypty, robimy tu (spis typów plików, moduły
 #     obrazków GTK) — programami z tych samych pakietów, przez ich własny ld.so (bez chroot, bez roota);
 #   - bez dokumentacji, podręczników, tłumaczeń poza polskim, raportów awarii Firefoksa;
-#   - nasze programy: /init (gosc), /usr/lib/k1/{kompozytor,przekaznik}, mapa klawiatury, ustawienia przeglądarki.
+#   - nasze programy: /init (gosc), /usr/lib/k1/{kompozytor,przekaznik}, mapa klawiatury, ustawienia przeglądarki
+#     i GTK (bez przycisków okna Firefoksa — okno strefy zamyka i minimalizuje pasek K1).
 # Powtarzalnie: stała kolejność i czas plików (SOURCE_DATE_EPOCH), właściciel root.
 . "$(dirname "$0")/wspolne.sh"
 
@@ -66,6 +67,7 @@ install -m 0555 "$K1_BUDOWA/bin/kompozytor" "$K1_BUDOWA/bin/przekaznik" "$D/usr/
 install -m 0444 "$K1_REPO/strefy/klawiatura-pl.xkb" "$D/usr/share/k1/klawiatura.xkb"
 install -m 0444 "$K1_REPO/strefy/przegladarka/k1.js" "$D/etc/firefox-esr/k1.js"
 install -m 0444 "$K1_REPO/strefy/przegladarka/policies.json" "$D/usr/share/firefox-esr/distribution/policies.json"
+install -m 0444 "$K1_REPO/strefy/przegladarka/gtk-settings.ini" "$D/etc/gtk-3.0/settings.ini" # S28: no window buttons
 printf 'root:x:0:0::/:/nonexistent\nk1:x:1000:1000::/home/k1:/nonexistent\n' > "$D/etc/passwd"
 printf 'root:x:0:\nk1:x:1000:\n' > "$D/etc/group"
 chmod 0444 "$D/etc/passwd" "$D/etc/group"

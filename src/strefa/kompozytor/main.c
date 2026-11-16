@@ -2,6 +2,7 @@
  * /run/k1/wayland-0 (gosc gives the browser XDG_RUNTIME_DIR=/run/k1, WAYLAND_DISPLAY=wayland-0) and the keymap of
  * the zone image. Draws at most every 16 ms, only when something changed. */
 #include <errno.h>
+#include <fcntl.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -16,6 +17,7 @@
 #include "kompozytor.h"
 
 #define KLATKA_MS 16
+#define FD_ZGLOSZEN 3 /* from gosc */
 
 void kloguj(const char *fmt, ...)
 {
@@ -28,6 +30,16 @@ void kloguj(const char *fmt, ...)
     if (n < 0)
         return;
     dprintf(2, KTAG ": %.*s\n", n >= (int)sizeof b ? (int)sizeof b - 1 : n, b);
+}
+
+void zglos_okno(void)
+{
+    static int bylo;
+    if (!bylo && fcntl(FD_ZGLOSZEN, F_GETFD) >= 0 && write(FD_ZGLOSZEN, "okno\n", 5) != 5)
+        kloguj("zgłoszenie okna: %s", strerror(errno));
+    if (!bylo)
+        close(FD_ZGLOSZEN);
+    bylo = 1;
 }
 
 uint32_t teraz_ms(void)

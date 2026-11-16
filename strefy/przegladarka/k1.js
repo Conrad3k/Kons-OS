@@ -53,3 +53,10 @@ pref("gfx.webrender.software", true);
 pref("widget.dmabuf.force-enabled", false);
 pref("media.hardware-video-decoding.enabled", false);
 pref("media.ffmpeg.vaapi.enabled", false);
+// Pamięć strefy (0.10.0 krok 3, S26): „dysk” przeglądarki w strefie to pamięć (katalog domowy na tmpfs), więc pamięć
+// podręczna stron na dysku zajmowała do kilkuset MB pamięci strefy na stałe — zostaje tylko pamięć podręczna w pamięci
+// (sama się zmniejsza). Zamknięcie ostatniej karty nie zamyka przeglądarki (koniec przeglądarki = koniec strefy);
+// przy braku pamięci przeglądarka sama zwalnia nieużywane karty.
+pref("browser.cache.disk.enable", false, locked);
+pref("browser.tabs.closeWindowWithLastTab", false);
+pref("browser.tabs.unloadOnLowMemory", true);
