@@ -33,13 +33,15 @@ static int64_t kib[K1_CZESCI_MAKS + 1], nowe_kib[K1_CZESCI_MAKS + 1]; /* SKARB_C
 static int podzial_znany, najechany;
 static double ostatnio = -ODSWIEZ;
 
-/* The rows of the legend: the standard folders (their table), Kosz, "System" (the rest of what is taken). */
+/* The rows of the legend: the standard folders (their table), Kosz, Strefy (the browser's sessions that remember —
+ * 0.10.0 step 5), "System" (the rest of what is taken). */
 #define X_NAZWA(n, nr, nazwa, ...) [nr] = nazwa,
-static const char *const nazwy[K1_CZESC_KOSZ + 2] = { K1_FOLDERY(X_NAZWA)[K1_CZESC_KOSZ] = "Kosz",
-                                                       [K1_CZESC_KOSZ + 1] = "System" };
+static const char *const nazwy[K1_CZESC_STREFY + 2] = { K1_FOLDERY(X_NAZWA)[K1_CZESC_KOSZ] = "Kosz",
+                                                        [K1_CZESC_STREFY] = "Strefy", [K1_CZESC_STREFY + 1] = "System" };
 #undef X_NAZWA
-#define SYSTEM (K1_CZESC_KOSZ + 1)
-#define WIERSZY (K1_CZESC_KOSZ + 1)
+#define SYSTEM (K1_CZESC_STREFY + 1)
+#define WIERSZY (K1_CZESC_STREFY + 1)
+#define KOLOR_STREF 0x5F8A6A /* the sage of the default session (WYGLAD.md, Strefy) */
 /* The largest folder gets the accent, the next ones these, by size; Kosz and System stay grey. */
 static const uint32_t kolory[] = { 0x8a9a7b, 0x7d8fa3, 0xc9a27e, 0xa67f8e, 0xb7a99a };
 
@@ -58,7 +60,7 @@ static void wiersze(int64_t w[WIERSZY + 1])
 {
     int64_t suma = 0;
     memset(w, 0, (WIERSZY + 1) * sizeof *w);
-    for (int i = 1; i <= K1_CZESC_KOSZ; i++)
+    for (int i = 1; i <= K1_CZESC_STREFY; i++)
         suma += w[i] = kib[i];
     w[SYSTEM] = (int64_t)in.zajete * 1024 > suma ? (int64_t)in.zajete * 1024 - suma : 0;
 }
@@ -84,10 +86,12 @@ static uint32_t kolor(const struct k1_motyw *m, const int *nr, int n, int k)
     int ranga = 0;
     if (nr[k] == K1_CZESC_KOSZ)
         return 0x9c9790;
+    if (nr[k] == K1_CZESC_STREFY)
+        return KOLOR_STREF;
     if (nr[k] == SYSTEM)
         return m->tekst3;
     for (int i = 0; i < k && i < n; i++)
-        ranga += nr[i] != K1_CZESC_KOSZ && nr[i] != SYSTEM;
+        ranga += nr[i] != K1_CZESC_KOSZ && nr[i] != K1_CZESC_STREFY && nr[i] != SYSTEM;
     return ranga == 0 ? m->akcent : kolory[(ranga - 1) % (int)(sizeof kolory / sizeof kolory[0])];
 }
 

@@ -1,7 +1,6 @@
 /* K1 skarbiec — Blob Vault on a raw partition (M5c, ADR 0015): the public functions, the disk and the index of
- * objects; the records of format 1 are in obszary.c, of format 2 in odcinki.c and spis.c (ADR 0036), the header in
- * naglowek.c. Format and reasoning: magazyn.h,
- * docs/komponenty/skarbiec.md. All integers on disk are little-endian; nothing read from the disk is trusted before
+ * objects; the records are in odcinki.c and spis.c (format 2, ADR 0036), the header in naglowek.c. Format and
+ * reasoning: magazyn.h, docs/komponenty/skarbiec.md. All integers on disk are little-endian; nothing read from the disk is trusted before
  * its checks (header: fields, then MAC with the master key; records: AEAD). */
 #include "magazyn_wew.h"
 #include "k1_bajty.h"
@@ -126,11 +125,9 @@ static void nowy(struct k1_magazyn *m, struct k1_mag_dysk *d)
     nowy_indeks(m);
 }
 
-/* Format 2: live blocks of each segment, as entries come and go. */
+/* Live blocks of each segment, as entries come and go. */
 static void zywe_w_odcinku(struct k1_magazyn *m, uint64_t blok, uint32_t bloki, int dodaj)
 {
-    if (m->format != 2)
-        return;
     if (dodaj)
         m->zywe_odc[f2_odcinek(m, blok)] += bloki;
     else
@@ -166,8 +163,7 @@ int mag_indeksuj(struct k1_magazyn *m, uint8_t typ, uint16_t wl, const char nazw
         return K1_MAG_OK;
     }
     if (i < 0) {
-        if (m->n_wpisow == (m->format == 1 ? K1_MAG_MAKS_OBIEKTOW_F1 : K1_MAG_MAKS_OBIEKTOW) ||
-            m->n_wpisow == m->maks_wpisow)
+        if (m->n_wpisow == K1_MAG_MAKS_OBIEKTOW || m->n_wpisow == m->maks_wpisow)
             return K1_MAG_PELNY;
         i = m->n_wpisow++;
         m->wpisy[i].bloki = 0;
@@ -205,6 +201,8 @@ int k1_mag_sprawdz(struct k1_mag_dysk *d, int *haslo)
         if (d->czytaj(d, (uint64_t)i, bufor, 1) != 0)
             return K1_MAG_IO;
         ok[i] = naglowek_czytaj(bufor, mag_bloki_dysku(d), &n[i]) == 0;
+        if (!ok[i] && naglowek_stary(bufor))
+            return K1_MAG_STARY;
     }
     if (ok[0] || ok[1]) {
         i = ok[0] && (!ok[1] || n[0].generacja > n[1].generacja) ? 0 : 1;
@@ -228,27 +226,17 @@ int k1_mag_sprawdz(struct k1_mag_dysk *d, int *haslo)
 
 int k1_mag_utworz(struct k1_magazyn *m, struct k1_mag_dysk *d, const char *haslo, uint32_t argon_kib)
 {
-    return k1_mag_utworz_w_formacie(m, d, haslo, argon_kib, K1_MAG_FORMAT);
-}
-
-int k1_mag_utworz_w_formacie(struct k1_magazyn *m, struct k1_mag_dysk *d, const char *haslo, uint32_t argon_kib,
-                             uint32_t format)
-{
     int h, r = k1_mag_sprawdz(d, &h);
     if (r != K1_MAG_PUSTY)
         return r < 0 ? r : K1_MAG_OBCY; /* never format anything that is not empty */
-    if (argon_kib < ARGON_MIN_KIB || argon_kib > ARGON_MAKS_KIB || format < 1 || format > 2)
+    if (argon_kib < ARGON_MIN_KIB || argon_kib > ARGON_MAKS_KIB)
         return K1_MAG_ARG;
     nowy(m, d);
-    m->format = format;
+    m->format = WERSJA2;
     m->argon_kib = argon_kib;
     m->argon_przejscia = 3;
-    if (format == 1) {
-        m->obszar_blokow = (mag_bloki_dysku(d) - 2) / 2;
-        m->epoka = 1;
-    } else if ((r = f2_utworz(m)) != K1_MAG_OK) {
+    if ((r = f2_utworz(m)) != K1_MAG_OK)
         return r;
-    }
     d->losowe(m->klucz, 32);
     d->losowe(m->uuid, 16);
     r = owin(m, haslo);
@@ -275,13 +263,6 @@ static void przyjmij_naglowek(struct k1_magazyn *m, const struct naglowek *h)
     m->haslo = (h->flagi & FLAGA_HASLO) != 0;
     m->argon_kib = h->argon_kib;
     m->argon_przejscia = h->argon_przejscia;
-    if (m->format == 1) {
-        m->epoka = h->epoka;
-        m->koniec = h->koniec;
-        m->aktywny = h->aktywny;
-        m->obszar_blokow = (h->bloki - 2) / 2;
-        return;
-    }
     m->odcinek = h->odcinek;
     m->n_odcinkow = h->n_odcinkow;
     m->licznik_gen = h->licznik_gen;
@@ -340,8 +321,7 @@ int k1_mag_otworz(struct k1_magazyn *m, struct k1_mag_dysk *d, const char *haslo
         k1_mag_zamknij(m);
         return wynik;
     }
-    /* rebuild the index: format 1 — every record up to `koniec` must authenticate; format 2 — the spis and the tail */
-    wynik = m->format == 1 ? f1_wczytaj(m) : f2_wczytaj(m);
+    wynik = f2_wczytaj(m); /* rebuild the index: the spis and the tail */
     if (wynik != K1_MAG_OK)
         k1_mag_zamknij(m);
     return wynik;
@@ -353,7 +333,7 @@ static int dopisz(struct k1_magazyn *m, uint8_t typ, uint16_t wl, const char *na
     char nazwa_pelna[K1_MAG_NAZWA];
     memset(nazwa_pelna, 0, sizeof nazwa_pelna);
     memcpy(nazwa_pelna, nazwa, strnlen(nazwa, K1_MAG_NAZWA - 1));
-    return m->format == 1 ? f1_dopisz(m, typ, wl, nazwa_pelna, dane, dl) : f2_dopisz(m, typ, wl, nazwa_pelna, dane, dl);
+    return f2_dopisz(m, typ, wl, nazwa_pelna, dane, dl);
 }
 
 int k1_mag_zapisz(struct k1_magazyn *m, uint16_t wlasciciel, const char *nazwa, const void *dane, uint32_t dlugosc)
@@ -386,30 +366,21 @@ int k1_mag_czytaj(struct k1_magazyn *m, uint16_t wlasciciel, const char *nazwa, 
         return K1_MAG_BRAK;
     if (m->wpisy[i].dlugosc > maks)
         return K1_MAG_ZA_DUZY;
-    r = m->format == 1 ? f1_czytaj(m, i, buf) : f2_czytaj_obiekt(m, i, buf);
+    r = f2_czytaj_obiekt(m, i, buf);
     if (r != K1_MAG_OK)
         return r;
     *dlugosc = m->wpisy[i].dlugosc;
     return K1_MAG_OK;
 }
 
-#define BLOKI_MIB (1048576u / K1_MAG_BLOK)
-
-int k1_mag_kompaktowac(const struct k1_magazyn *m, int przy_otwarciu)
+int k1_mag_kompaktowac(const struct k1_magazyn *m)
 {
-    if (m->format == 2)
-        return przy_otwarciu ? 0 : f2_kompaktowac(m); /* 1, or 2: urgent */
-    if (przy_otwarciu)
-        return m->koniec > 64 * BLOKI_MIB && m->koniec > 2 * m->zywe;
-    return m->koniec - m->zywe > m->zywe + 256 * BLOKI_MIB;
+    return f2_kompaktowac(m); /* 1, or 2: urgent */
 }
 
 int k1_mag_kompaktuj_krok(struct k1_magazyn *m, uint32_t maks_blokow)
 {
-    int r;
-    if (m->format == 1)
-        return f1_kompaktuj(m);
-    r = f2_krok(m, maks_blokow, m->odcinek / 4);
+    int r = f2_krok(m, maks_blokow, m->odcinek / 4);
     return r == K1_MAG_BRAK ? 0 : r;
 }
 
@@ -427,7 +398,7 @@ int k1_mag_powieksz(struct k1_magazyn *m, uint64_t bajty)
     int r, i;
     if (bajty < m->d->bajty)
         return K1_MAG_ARG;
-    r = m->format == 1 ? f1_powieksz(m, bajty) : f2_powieksz(m, bajty);
+    r = f2_powieksz(m, bajty);
     nowy_indeks(m); /* room for more objects: the index again, larger */
     for (i = 0; i < m->n_wpisow; i++)
         k1_idx_wstaw(&m->idx, skrot(m->wpisy[i].wlasciciel, m->wpisy[i].nazwa), i);
@@ -436,7 +407,7 @@ int k1_mag_powieksz(struct k1_magazyn *m, uint64_t bajty)
 
 uint64_t k1_mag_pojemnosc(const struct k1_magazyn *m)
 {
-    return (m->format == 1 ? m->obszar_blokow : f2_pojemnosc_blokow(m)) * K1_MAG_BLOK;
+    return f2_pojemnosc_blokow(m) * K1_MAG_BLOK;
 }
 
 uint64_t k1_mag_wolne(const struct k1_magazyn *m)
@@ -462,6 +433,7 @@ const char *k1_mag_opis(int w)
     case K1_MAG_PUSTY: return "pusta partycja";
     case K1_MAG_OBCY: return "partycja zawiera obce dane";
     case K1_MAG_JEST: return "magazyn K1";
+    case K1_MAG_STARY: return "magazyn formatu 1 (K1 0.5.6–0.8.1)";
     case K1_MAG_HASLO: return "złe hasło";
     case K1_MAG_USZKODZONY: return "dane uszkodzone albo zmienione";
     case K1_MAG_PELNY: return "brak miejsca";

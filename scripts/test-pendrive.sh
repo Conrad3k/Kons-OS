@@ -160,7 +160,8 @@ k0 = czekaj(r"K1-EKRAN: kursor (\d+),(\d+) ")
 if not sprawdz("pulpit gotowy", g and k0): sys.exit(1)
 q.kursor[:] = [int(k0.group(1)), int(k0.group(2))]
 CZESCI = r"K1-USTAWIENIA: miejsce: części: Pulpit (\d+) KiB, Dokumenty (\d+) KiB, Obrazy (\d+) KiB, Muzyka \d+ KiB, " \
-         r"Wideo \d+ KiB, Pobrane \d+ KiB, Kosz (\d+) KiB, System (\d+) KiB; zapas systemu (\d+) KiB; nośnik: (\w+)"
+         r"Wideo \d+ KiB, Pobrane \d+ KiB, Kosz (\d+) KiB, Strefy \d+ KiB, System (\d+) KiB; zapas systemu (\d+) KiB; " \
+         r"nośnik: (\w+)"
 
 
 def miejsce_w_ustawieniach(nazwa, ciemny=False):

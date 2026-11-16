@@ -62,6 +62,12 @@ int bateria_odbierz(void)
             zmiana = 1;
             continue;
         }
+        if (w == K1_ODB_JEST && (k.typ == K1_KOM_STREFY_STAN || k.typ == K1_KOM_STREFA_NAZWA ||
+                                 k.typ == K1_KOM_STREFA_WYCZYSZCZONO)) {
+            przegladarka_odbierz(&k); /* 0.10.0 step 5: the browser's sessions (przegladarka.c) */
+            zmiana = 1;
+            continue;
+        }
         if (w != K1_ODB_JEST ||
             (k.typ != K1_KOM_BATERIA && k.typ != K1_KOM_BATERIA_HIST && k.typ != K1_KOM_BATERIA_ARCH)) {
             if (fd >= 0)

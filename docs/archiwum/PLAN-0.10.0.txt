@@ -1,6 +1,7 @@
 K1 — PLAN WERSJI 0.10.0 „PIERWSZA STREFA I PRZEGLĄDARKA” (pierwsza wersja tematu 0.10 Strefy)
 ================================================================================================
 
+PLAN ZAMKNIĘTY 2026-11-16: wszystkie kroki zrobione, wydanie 0.10.0 (CHANGELOG.md); dalej docs/PLAN-0.10.1.txt.
 Data: 2026-11-14 (porządek w planie: ADR 0035). Plan napisany po wydaniu 0.9.1 — wersja stoi na tym, co dała 0.9 Sieć:
 kabel i Wi-Fi, adres od routera, zegar z internetu, gniazda sieciowe tylko u nadzorcy (ADR 0039, 0041). Kierunek stref
 ustalają ADR 0020 (każda obca aplikacja w swojej mikro-maszynie), 0024 (wspólna strefa), 0025 (Przeglądarka K1) i 0027
@@ -85,7 +86,7 @@ Na laptopach trzeba raz włączyć wirtualizację w BIOS-ie (D5) — bez niej K1
 [x]  2  Przeglądarka w strefie, połączenia przez K1         S12–S20          1           D2 D3 D6, T7–T9  L        0043   PR #119
 [x]  3  Poprawki przeglądarki: awarie, ramka, przyciski     S26–S28, S30     2           D1 (zmiana)      L        —      PR #126
 [x]  4  Przewijanie: kółko myszy, dwa palce na touchpadzie S29              2           D8               M        —      PR #128
-[ ]  5  Stała strefa, Ustawienia, porządki; wydanie 0.10.0  S21–S25          3, 4        D7, T11          L        —
+[x]  5  Stała strefa, Ustawienia, porządki; wydanie 0.10.0  S21–S25          3, 4        D7, T11          L        —      PR #132
 
 Dlaczego trzy, a nie dwa: krok 1 to cały fundament (jądro z KVM, własny VMM, nowa rola w ekranie, testy z emulowaną
 wirtualizacją), krok 2 to obcy świat (obraz z pakietów Debiana, kompozytor, przeglądarka) i nowa droga do internetu,
@@ -453,7 +454,34 @@ KROK 5 — Stała strefa, Ustawienia, porządki; wydanie 0.10.0               L 
   (uzupełnienie: dysk strefy), RYZYKA, SLOWNIK (dysk strefy, dane sesji), TESTY.md, CHANGELOG, README (wirtualizacja
   w BIOS-ie), skill.
   Gotowe, gdy: testy zielone, wydanie k1-v0.10.0 istnieje, raport z linkami.
-  Ustalenia z wykonania: (pusto — wypełnia krok 5)
+  Ustalenia z wykonania (2026-11-16, krok 5; czat bez pytań do właściciela — decyzje produktowe były już podjęte: D2
+  z dopiskiem o nazwach, D7, szkic Ustawień z kroku 1):
+  - T11 / S21: kawałki dysku po 64 KiB, nie 1 MiB — zapis 4 KiB gościa przepisuje cały kawałek (rekord + 2 × fdatasync w
+    skarbcu), a bazy Firefoksa synchronizują się często; ok. 3 % na nagłówki rekordów to mniejsza cena. Dysk 2 GiB =
+    32 768 kawałków (obiekty `K1_OB_DYSK` + numer, format 2 skarbca mieści 262 144 obiekty). Pomiar na sprzęcie — test
+    właściciela (czas otwarcia strony po zalogowaniu na USB).
+  - Pusty dysk strefy zamiast mkfs w gościu: ext4 2 GiB robiony przy budowie (`mke2fs` bez konfiguracji komputera, stały
+    UUID, ziarno i czas — dwa przebiegi dają ten sam plik), w SquashFS rdzenia prawie nic nie zajmuje (rdzeń +0,26 MB z
+    ext4 w jądrze strefy); kawałek, którego sesja nie zapisała, VMM czyta stamtąd. „Wyczyść dane sesji” = usunięcie
+    kawałków (skarbiec: `SKARB_WYCZYSC` od nadzorcy).
+  - Wątek dysku w VMM (prośby bez zamka urządzeń) — skarbiec potrafi odpowiadać sekundami (pendrive, kompaktowanie).
+    FLUSH gościa = wszystkie brudne kawałki w skarbcu przed odpowiedzią; błąd = błąd, nigdy inne dane (`test_dysk_strefy`).
+  - Wybór zapisu ustawień (S23): obiekt nadzorcy (`strefy_ust.c`, format `sesje.c`), bo to nadzorca daje VMM dysk albo nie;
+    gui, ekran i Ustawienia dostają nazwy i stan (`STREFA_NAZWA`, `STREFY_STAN`) — nazwa w polach komunikatu (20 bajtów
+    UTF-8, `k1_strefa_nazwa_dobra`), bez memfd. Do wczytania sesji ze skarbca każda strefa zapomina (prywatność ważniejsza).
+  - Ustawienia → Przeglądarka jako osobna sekcja (przed Informacjami — testy klikają sekcje po numerach), nie wiersz w
+    Aplikacjach: tam nie było miejsca. Okno Ustawień 680 × 440 → 480. „Wyczyść dane” pyta dwa razy.
+  - Sesje Bank i Prywatna nie miały dotąd jak się otworzyć (krok 2 dał tylko Ogólną w menu Start) — prawy przycisk na
+    Przeglądarce w menu Start (D2). Nazwy sesji nigdy w logu: menu loguje „sesja N”.
+  - Strefa próbna pamięta (test-strefa z K1-DANE): gość liczy uruchomienia na dysku (1, 2, po „Wyczyść” znów 1), tryb 5
+    gościa jest uczciwy (VMM: złośliwe tylko 1–4).
+  - Porządki MINOR (S22, S24): format 1 skarbca i `START_POTWIERDZONY` usunięte (D7), nagłówek formatu 1 rozpoznawany
+    (`K1_MAG_STARY` — nietknięty); ustawienia ekranu K1U1–K1U3 zapisywane od nowa jako K1U4 przy odczycie, sam odczyt
+    starych — tymczasowe do 0.11.0; „M8/M11” w kodzie i `jadro/k1.config` — już nie było; RYZYKA R26/R50/R54 (ramka K1
+    dla stref), nowe R87; statusy ADR 0020/0024/0025; pliki blisko limitu w CHANGELOG.
+  - Testy lokalne (kontener, TCG): host 40/40, test-m1 12/12 (w systemie 189/189 z `t_skarb_strefy`), test-strefa
+    (z dyskiem: 1, 2, 1; liczby dysku bez błędów), test-skarbiec (stary, wersje, pełny, powiększenie, dokończenie),
+    test-przegladarka (skrót w emulacji: Ogólna startuje z dyskiem). Ciasteczko w Firefoksie — tylko CI z KVM.
 
 
 4. DECYZJE

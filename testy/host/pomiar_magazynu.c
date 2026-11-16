@@ -1,8 +1,8 @@
 /* K1 — the measurement of step 1 of docs/archiwum/PLAN-0.8.2.txt (ADR 0036; the way of trial T3): a vault in a sparse file,
- * filled with files in pieces of 1 MiB (and a small object for every 16 pieces), in format 1 or 2. Prints the room for
- * files, how long opening takes (processor time) and how much it reads, and the longest pause of compaction: format 1
- * — the one compaction of everything; format 2 — the longest step of 4 MiB and the longest write while half the files
- * are written again. Without fdatasync (it measures the format, not the disk) and without ASan:
+ * filled with files in pieces of 1 MiB (and a small object for every 16 pieces). Prints the room for files, how long
+ * opening takes (processor time) and how much it reads, and the longest pause of compaction: the longest step of 4 MiB
+ * and the longest write while half the files are written again. (Format 1 — measured against it in ADR 0036 — is gone
+ * since 0.10.0.) Without fdatasync (it measures the format, not the disk) and without ASan:
  *   make build/obj/pomiar_magazynu && build/obj/pomiar_magazynu FILE SIZE_MIB DATA_MIB FORMAT */
 #include <fcntl.h>
 #include <stdio.h>
@@ -60,8 +60,8 @@ static int wypelnij(long mib)
     return K1_MAG_OK;
 }
 
-/* The longest pause: format 1 — compaction after half the pieces were written again; format 2 — the longest of the
- * same writes (compaction when space is short is part of them) and the longest step of compaction of 4 MiB after. */
+/* The longest pause: the longest write while half the pieces are written again (compaction when space is short is part
+ * of them) and the longest step of compaction of 4 MiB after. */
 static void przerwy(long mib)
 {
     double najdluzszy = 0, t0;
@@ -75,19 +75,13 @@ static void przerwy(long mib)
     printf("pomiar: połowa plików zapisana jeszcze raz: najdłuższy zapis %.3f s%s%s\n", najdluzszy,
            r == K1_MAG_OK ? "" : " — ", r == K1_MAG_OK ? "" : k1_mag_opis(r));
     najdluzszy = 0;
-    if (m.format == 1) {
-        t0 = zegar(CLOCK_MONOTONIC);
-        r = k1_mag_kompaktuj(&m);
-        printf("pomiar: kompaktowanie całości (format 1): %.3f s — %s\n", zegar(CLOCK_MONOTONIC) - t0, k1_mag_opis(r));
-        return;
-    }
     do {
         t0 = zegar(CLOCK_MONOTONIC);
         r = k1_mag_kompaktuj_krok(&m, 1024);
         if (zegar(CLOCK_MONOTONIC) - t0 > najdluzszy)
             najdluzszy = zegar(CLOCK_MONOTONIC) - t0;
         krokow++;
-    } while ((r == 1 || (r == 0 && k1_mag_kompaktowac(&m, 0))) && krokow < 100000);
+    } while ((r == 1 || (r == 0 && k1_mag_kompaktowac(&m))) && krokow < 100000);
     printf("pomiar: kompaktowanie po odcinku: %d kroków po 4 MiB, najdłuższy %.3f s — %s\n", krokow, najdluzszy,
            k1_mag_opis(r < 0 ? r : 0));
 }
@@ -95,23 +89,21 @@ static void przerwy(long mib)
 int main(int argc, char **argv)
 {
     struct k1_mag_dysk d;
-    long rozmiar, mib, format;
+    long rozmiar, mib;
     double c0, w0;
     int fd;
-    if (argc != 5 || (rozmiar = atol(argv[2])) < 1 || (mib = atol(argv[3])) < 0 || (format = atol(argv[4])) < 1 ||
-        format > 2 || (fd = open(argv[1], O_RDWR | O_CREAT | O_TRUNC, 0600)) < 0 ||
-        ftruncate(fd, (off_t)rozmiar << 20) != 0) {
-        fprintf(stderr, "użycie: pomiar_magazynu PLIK ROZMIAR_MIB DANE_MIB FORMAT(1|2)\n");
+    if (argc != 4 || (rozmiar = atol(argv[2])) < 1 || (mib = atol(argv[3])) < 0 ||
+        (fd = open(argv[1], O_RDWR | O_CREAT | O_TRUNC, 0600)) < 0 || ftruncate(fd, (off_t)rozmiar << 20) != 0) {
+        fprintf(stderr, "użycie: pomiar_magazynu PLIK ROZMIAR_MIB DANE_MIB\n");
         return 2;
     }
     k1_mag_dysk_fd(&d, fd, (uint64_t)rozmiar << 20);
     d.synchronizuj = bez_synchronizacji;
     czytaj_pliku = d.czytaj;
     d.czytaj = licz_czytaj;
-    if (k1_mag_utworz_w_formacie(&m, &d, NULL, 64, (uint32_t)format) != K1_MAG_OK || wypelnij(mib) != K1_MAG_OK)
+    if (k1_mag_utworz(&m, &d, NULL, 64) != K1_MAG_OK || wypelnij(mib) != K1_MAG_OK)
         return 1;
-    printf("pomiar: format %ld, K1-DANE %ld MiB: miejsce na pliki %llu MiB (%.1f %%), zapisano %ld MiB\n", format,
-           rozmiar, (unsigned long long)(k1_mag_pojemnosc(&m) >> 20),
+    printf("pomiar: K1-DANE %ld MiB: miejsce na pliki %llu MiB (%.1f %%), zapisano %ld MiB\n", rozmiar, (unsigned long long)(k1_mag_pojemnosc(&m) >> 20),
            100.0 * (double)k1_mag_pojemnosc(&m) / (double)((uint64_t)rozmiar << 20), mib);
     k1_mag_zamknij(&m);
     odczytano = 0;

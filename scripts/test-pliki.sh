@@ -5,8 +5,8 @@
 # — 0.8.2 krok 5, „Usuń”, „Opróżnij Kosz”); przeciąganie (0.8.2 krok 6): folder na folder, Ctrl+klik, dwa elementy na
 # Kosz z pytaniem, z Kosza na folder, folder stały na Kosz (odmowa), na pulpicie folder na folder i na Kosz z pytaniem;
 # drugie — to samo po wyłączeniu.
-# Krok 2 (ADR 0030), osobny dysk z notatkami jako plikami w magazynie formatu 1, jak w 0.8.0–0.8.1 (testy/host/
-# notatki_w_plikach.c; do 0.9.0 — notatki z 0.5.8–0.7.6, przenoszone do plików): Notatki pokazują je, okno wyboru pliku (wybór, „Anuluj”), menu pod prawym przyciskiem w Plikach → „Otwórz za pomocą” → Notatki
+# Krok 2 (ADR 0030), osobny dysk z notatkami jako plikami (testy/host/notatki_w_plikach.c; do 0.10.0 w magazynie
+# formatu 1, jak w 0.8.0–0.8.1; do 0.9.0 — notatki z 0.5.8–0.7.6, przenoszone do plików): Notatki pokazują je, okno wyboru pliku (wybór, „Anuluj”), menu pod prawym przyciskiem w Plikach → „Otwórz za pomocą” → Notatki
 # (0.8.2 krok 5) i podwójne kliknięcie w Plikach, Ustawienia → Aplikacje (od 0.10.0 bez ponownego startu z tym dyskiem). Dowody: log + zrzuty build/testy/pliki-*.png.
 # Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
@@ -519,7 +519,7 @@ print(f"  [{'OK' if not jawne else 'BŁĄD'}]    dysk danych: notatki jako pliki
 sys.exit(1 if jawne else 0)
 PY
 # (0.10.0) no second start with this disk: that the files stay after a restart is checked by "ponownie" above,
-# m4-ponownie (notes) and test-skarbiec (the move from format 1 to 2)
+# m4-ponownie (notes) and test-skarbiec
 CZAS=$CZAS_ZW
 if [ $r -eq 0 ]; then info "Pliki: wszystko zaliczone (zrzuty: $TESTY/pliki-*.png)"; else echo "[k1] Pliki: BŁĄD (logi: $TESTY/pliki-*.log)"; fi
 exit $r

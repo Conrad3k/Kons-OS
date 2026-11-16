@@ -75,8 +75,8 @@ odsyła do „Otwórz za pomocą”), Miejsce (0.8.5 krok 3, `miejsce.c`; decyzj
 w K1-DANE (nie pamięć RAM — ta jest w Zasobach; bez K1-DANE: „Pliki są tylko w pamięci do wyłączenia komputera”):
 „Wolne: X z Y”, szeroki pasek podzielony na części w kolorach (największy folder — akcent, Kosz i „System” — szare,
 mała część co najmniej 3 px), pod nim legenda w dwóch kolumnach (kolor, nazwa, rozmiar jak w Plikach) — foldery stałe,
-Kosz, „System” (reszta zajętego: ustawienia, notatki systemu, stare wersje); części puste nie są pokazane; suma części =
-zajęte. Pod legendą „Zapas systemu: X — zawsze wolny, żeby dało się zapisać zmiany.” (rezerwa skarbca) i „Pliki i foldery:
+Kosz, od 0.10.0 krok 5 „Strefy” (dyski sesji przeglądarki, które pamiętają; szałwia `#5F8A6A`), „System” (reszta
+zajętego: ustawienia, notatki systemu, stare wersje); części puste nie są pokazane; suma części = zajęte. Pod legendą „Zapas systemu: X — zawsze wolny, żeby dało się zapisać zmiany.” (rezerwa skarbca) i „Pliki i foldery:
 n z 16 384”. Liczby od skarbca: `SKARB_INFO` → `SKARB_MIEJSCE`, `SKARB_PODZIAL` → `SKARB_CZESC` (tylko liczby);
 przy wejściu do sekcji i co 3 s, gdy jest pokazana (import w Plikach widać od razu). Na pendrivie K1 z wolnym miejscem za
 K1-DANE: „Pendrive ma jeszcze X nieużywanego miejsca.” i przycisk **„Użyj całego pendrive'a na dane”** (przeniesiony
@@ -96,8 +96,18 @@ hasło), „Połącz” (sieć otwarta: napis „Sieć niezabezpieczona…”; z
 spróbuj jeszcze raz.” pod nim; Esc zamyka wiersz, wyjście z sekcji czyści wpisane hasło. Hasło idzie raz prosto do usługi
 siec (fd 6, `KANAL_DO_SIECI`: `WIFI_HASLO`, `WIFI_WYBRANA`, `WIFI_POLACZ`, `WIFI_ZAPOMNIJ`) — nie przez nadzorcę; stan wraca
 w `WIFI_POLACZENIE`. Log „wifi: rząd i otwarty (rodzaj r); pole x,y; Połącz x,y; Zapomnij x,y”. Karty sieciowe — kafelki
-jak wyżej, karta Wi-Fi z plakietką Włączone/Wyłączone. Informacje (`informacje.c`): wersja, ekran,
-jądro, gdzie są dane i odesłanie do sekcji Miejsce.
+jak wyżej, karta Wi-Fi z plakietką Włączone/Wyłączone. Przeglądarka (0.10.0 krok 5, `przegladarka.c`; ADR 0020 p. 2, D2;
+sekcja przed Informacjami — testy klikają sekcje po numerach): wiersz na każdą sesję przeglądarki (od nadzorcy:
+`STREFA_NAZWA`, `STREFY_STAN`) — kropka w kolorze sesji, nazwa, przełącznik „Pamięta | Zapomina” (`STREFA_TRWALOSC`; bez
+K1-DANE nieczynny: „Dane K1 są tylko w pamięci — sesje zapominają po zamknięciu”), opis („Pamięta zalogowania, zakładki
+i historię.” / „Zapomina wszystko po zamknięciu.” / „Otwarta — zmiana działa od następnego otwarcia.”), „Zmień nazwę”
+(pole tekstu, Enter albo „Zapisz”, Esc albo „Anuluj”; nazwa sprawdzana jak u nadzorcy — `k1_strefa_nazwa_dobra`, do 20
+bajtów; `STREFA_NAZWA`), „Wyczyść dane” (pierwsze kliknięcie pyta „Na pewno? Wyczyść”, drugie wysyła `STREFA_WYCZYSC`;
+nieczynne, gdy sesja jest otwarta; wynik `STREFA_WYCZYSZCZONO` jako napis na dole). Na dole stan wirtualizacji: „włączona”
+albo „wyłączona — włącz ją w BIOS-ie (F1 albo F2 przy starcie komputera)”. Log „przeglądarka: sesje 3 (dane na dysku 1,
+wirtualizacja 1): 2 pamięta, przełącznik x,y, Zmień nazwę x,y, Wyczyść x,y; …” — numery stref, nigdy nazwy (tekst
+użytkownika). Okno Ustawień od 0.10.0 krok 5 ma 680 × 480 (o jedną sekcję więcej). Informacje (`informacje.c`): wersja,
+ekran, jądro, gdzie są dane i odesłanie do sekcji Miejsce.
 
 ### Instalator
 (0.5.9, ADR 0018, `src/aplikacje/instalacja/`, UID 204) — lista dysków od nadzorcy,

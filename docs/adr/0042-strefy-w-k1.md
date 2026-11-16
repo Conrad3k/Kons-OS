@@ -1,10 +1,10 @@
 # 0042. Strefy w K1: KVM w jądrze, własny VMM „strefa” w klatce, jądro i obraz strefy w rdzeniu, zaufana ramka
 
-- Status: Przyjęty; wdrożony w 0.10.0 krok 1 (strefa próbna — tylko w obrazie testowym); krok 2 dokłada przeglądarkę,
-  krok 3 dysk strefy (uzupełnienie tego ADR)
+- Status: Przyjęty; wdrożony w 0.10.0 — krok 1 (strefa próbna — tylko w obrazie testowym), krok 2 przeglądarka (ADR 0043),
+  krok 5 dysk strefy (uzupełnienie T11 niżej)
 - Data: 2026-11-14
 - Dotyczy: ADR 0020 p. 1 i 3 (szczegóły techniczne stref), ADR 0007 (klatki), ADR 0008 (okna), ADR 0004 (rdzeń),
-  SPEC §4, §8 (dopiski [korekta: ADR 0042]), decyzje T1–T6, T10 i D1, D4 planu `docs/PLAN-0.10.0.txt`; RYZYKA R77–R80
+  SPEC §4, §8 (dopiski [korekta: ADR 0042]), decyzje T1–T6, T10 i D1, D4 planu `docs/archiwum/PLAN-0.10.0.txt`; RYZYKA R77–R80
 
 ## Kontekst
 ADR 0020 ustalił kierunek: każda obca aplikacja w osobnej mikro-maszynie wirtualnej (strefie), okno strefy w ramce
@@ -76,7 +76,7 @@ zmianie. Rozmiar wyświetlacza gościa = rozmiar okna (≤ 1024 × 720, z rozmia
 zasłonić ani podrobić) i mały znaczek z ikoną strefy na lewym górnym rogu, nad wszystkim w swoim oknie. Kursor na znaczku
 rozwija plakietkę: nazwa strefy · „osobna maszyna” (jednorazowa: „· zapomina po zamknięciu”), minimalizuj, zamknij;
 chwycenie znaczka przesuwa okno. Wskaźnik na ramce, znaczku i plakietce nigdy nie trafia do strefy. „Zamknij” → VMM
-mówi gościowi „zamknij” (vsock), gość się zamyka; po 10 s VMM wyłącza maszynę sam. Strefa jednorazowa — jasny znaczek
+mówi gościowi „zamknij” (vsock), gość się zamyka; po 10 s VMM wyłącza maszynę sam (0.10.0 krok 5: 40 s, przeglądarka ma 20 s na zapisanie danych sesji). Strefa jednorazowa — jasny znaczek
 z obwódką; okno bez fokusu — kolor ramki przygaszony. Przed pierwszym obrazem gościa w oknie „Uruchamiam: …” (D1: S1).
 
 **T10 — testy w emulacji (decyzja właściciela D4).** QEMU TCG z `-cpu max` udaje procesor AMD z SVM i zagnieżdżonym
@@ -93,10 +93,30 @@ stronicowaniem (NPT) — jądro K1 z `KVM_AMD` uruchamia w nim strefę. Ustaleni
 - **CI:** runner GitHuba ma `/dev/kvm`; K1 dostaje wirtualizację tylko przy zagnieżdżonej (`nested=1` w module kvm runnera) —
   inaczej `test-strefa.sh` sam przechodzi na emulację (`uruchom-qemu.sh --emulacja`; S7 sprawdzi pierwszy przebieg CI).
 
+### Uzupełnienie (0.10.0 krok 5): dysk strefy (T11)
+- **Sesja, która pamięta**, dostaje drugie urządzenie virtio-blk do zapisu (`/dev/vdb`, 2 GiB) — w ostatnim wierszu tabeli
+  `K1_URZADZENIA`; sesja, która zapomina, ma je z 0 sektorów (gość trzyma dane w pamięci, jak w kroku 2).
+- **Dane w skarbcu**, nie w pliku: kawałki po 64 KiB to obiekty właściciela = profil wiersza strefy (`K1_OB_DYSK` + numer);
+  szyfruje skarbiec, VMM nie ma własnego szyfrowania; nadzorca daje VMM kanał do skarbca z tym właścicielem (fd 8). Kawałki
+  64 KiB, nie 1 MiB jak pliki: zapis 4 KiB gościa przepisuje cały kawałek, a baza danych przeglądarki synchronizuje się
+  często (S21 — mniejsza cena zapisu ważniejsza niż ok. 3 % na nagłówki rekordów). Inni klienci skarbca nie nazwą tych
+  obiektów; kawałek nie bierze rezerwy, którą pliki zostawiają systemowi.
+- **Pusty dysk strefy w rdzeniu** (`/rdzen/strefy/dysk.img`, fd 9): ext4 zrobiony przy budowie (`mke2fs` z ustalonym
+  UUID, ziarnem i czasem — powtarzalnie; w SquashFS prawie same zera, kilka KiB). Kawałek, którego sesja nie zapisała,
+  VMM czyta stamtąd — w strefie nie ma `mkfs`, „Wyczyść dane sesji” to po prostu usunięcie kawałków.
+- **System plików z dziennikiem w gościu** (ext4, `CONFIG_EXT4_FS` w `jadro/strefa.config`): przerwane wyłączenie naprawia
+  jądro gościa przy montowaniu. VMM honoruje `FLUSH`: wszystko, co gość zapisał przed nim, jest w skarbcu, zanim usłyszy
+  „gotowe”; między `FLUSH`-ami VMM trzyma kawałki w pamięci podręcznej (256 × 64 KiB) i może zapisać je wcześniej.
+- **Wątek dysku w VMM:** skarbiec odpowiada wolno (pendrive, kompaktowanie), więc prośby dysku idą w osobnym wątku, bez
+  zamka urządzeń — okno i wejście strefy nie stoją; `pids.max` klatki +1, pamięć +24 MiB.
+- **Kto decyduje:** nadzorca (ustawienia sesji w skarbcu — właściciel `K1_WL_SYSTEM`); strefa pamięta tylko, gdy dane K1
+  są na dysku (K1-DANE). Bez TRIM (`discard`): usunięte pliki gościa nie zwalniają miejsca w skarbcu — dysk sesji nie
+  przekroczy 2 GiB, a „Wyczyść dane sesji” zwalnia wszystko (RYZYKA R87).
+
 ## Konsekwencje
 - Nowa powierzchnia ataku: VMM w C rozbiera wszystko od gościa (klatka, testy i fuzzing; RYZYKA R77), błędy KVM w jądrze K1
   (R78), ataki procesora na VMM (VMSCAPE i podobne; R79). Okno strefy nie może udawać K1 (R26 domknięte dla stref, R80).
 - Komputer bez wirtualizacji (albo z wyłączoną w BIOS-ie) nie uruchomi strefy — okienko mówi, co włączyć (D5).
 - Strefa próbna jest tylko w obrazie testowym; użytkownik zobaczy strefy w kroku 2 (Przeglądarka).
-- Później: zmiana rozmiaru okna strefy, kółko myszy (ekran K1 go jeszcze nie przekazuje), dysk strefy (krok 3), szybka
-  grafika (virgl/Venus, ADR 0020 p. 2), szybki start i oddawanie pamięci (plan, punkt 6).
+- Później: zmiana rozmiaru okna strefy (0.10.5), szybka grafika (virgl/Venus, ADR 0020 p. 2), szybki start i oddawanie
+  pamięci (0.10.1 „Balon”). Kółko myszy — 0.10.0 krok 4; dysk strefy — krok 5 (wyżej).

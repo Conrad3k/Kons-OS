@@ -151,7 +151,7 @@ static void petla(int ster, const int *wej, int n)
 
 int main(void)
 {
-    int wej[WEJSCIA], n = 0, i, t, ster;
+    int wej[WEJSCIA], n = 0, i, t, ster, dysk;
     if (fcntl(2, F_GETFD) < 0) {
         int c = open("/dev/console", O_RDWR);
         if (c >= 0) {
@@ -163,6 +163,13 @@ int main(void)
     montuj();
     t = tryb();
     loguj("start (tryb %d)", t);
+    if (t == TRYB_DYSK) { /* the test zone: the counter on its disk, then the end */
+        if (dysk_montuj("/dane") == 0) {
+            dysk_licznik("/dane");
+            dysk_odmontuj("/dane");
+        }
+        wylacz();
+    }
     if (t > TRYB_ZWYKLY) {
         zlosliwy(t);
         loguj("tryb %d: VMM nie zatrzymał maszyny", t);
@@ -183,8 +190,13 @@ int main(void)
         if (wej[n] >= 0)
             n++;
     }
+    dysk = dysk_montuj("/dane") == 0; /* the test zone remembers (0.10.0 step 5): its counter of starts */
+    if (dysk)
+        dysk_licznik("/dane");
     ster = sterowanie();
     loguj("gotowa: urządzenia wejścia %d, kanał sterujący %s", n, ster >= 0 ? "jest" : "brak");
     petla(ster, wej, n);
+    if (dysk)
+        dysk_odmontuj("/dane");
     wylacz();
 }

@@ -70,7 +70,9 @@ wymaga), ale każda jest mała, robi jedną rzecz i wygląda jak pozostałe.
 - Przed scaleniem zmian w systemie (kod, skrypty, jądro) — decyzja właściciela 2026-11-14 (repo publiczne, CI bez
   limitu minut): **lokalnie** `scripts/test-m1.sh` (czytelność, testy na hoście, fuzzing, start, testy w systemie)
   i skrypty QEMU zmienianej części (`scripts/test-<część>.sh`, mapa w `docs/TESTY.md`); **pełny komplet** — CI na
-  PR-ze (etykieta `testy`, z KVM ok. 15 min testów). Scalasz dopiero, gdy CI na PR-ze jest zielone. Pełny
+  PR-ze (etykieta `testy`, z KVM ok. 15 min testów). Scalasz dopiero, gdy CI na PR-ze jest zielone. Test przeglądarki
+  (`test-przegladarka`) jest **informacyjny** (decyzja właściciela 2026-11-16): idzie zawsze, jego błąd widać w logu
+  („UWAGA: … test informacyjny”), ale nie blokuje scalenia ani wydania — przeglądarkę sprawdza właściciel na sprzęcie. Pełny
   `scripts/testy.sh` w kontenerze (bez KVM ok. 40 min) — tylko gdy CI nie działa. Sama dokumentacja — bez testów.
 - Nie edytuj skryptów ani kodu, gdy budowanie albo testy działają w tle.
 - Zrzuty ekranu z testów: `build/testy/m4-*.png` (pulpit i aplikacje) i `build/testy/<część>-*.png`. Obraz do maszyny wirtualnej:

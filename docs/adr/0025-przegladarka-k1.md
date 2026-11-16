@@ -1,6 +1,7 @@
 # 0025. Przeglądarka K1: własne okno, pożyczony silnik w strefie
 
-- Status: Przyjęty (kierunek; wybór silnika i szczegóły — w ADR etapu po M8)
+- Status: Przyjęty (kierunek); niewdrożony — w 0.10.0 przeglądarką jest Firefox w strefie (ADR 0043); Przeglądarka K1
+  (okno K1, silnik w strefie) — później
 - Data: 2026-11-08
 - Dotyczy: ADR 0020 (strefy), ADR 0024 (wspólna strefa), SPEC §8, DO_ZROBIENIA (sesje przeglądarki)
 

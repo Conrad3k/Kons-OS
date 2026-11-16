@@ -46,9 +46,10 @@ enum { K1_FOLDERY_MAKS = 0 K1_FOLDERY(K1_X_JEDEN) };
 
 /* The parts of the room for files (0.8.5 step 3, Ustawienia → Miejsce; the owner's decision D2: by folder, as in Pliki):
  * the standard folders (their numbers, K1_FOLDERY — a folder of the user counts in the standard folder it is in), then
- * Kosz (everything in it) and the reserve for the system (never taken by files). What the vault holds besides (settings,
- * notes of the system, old versions not yet compacted) is the rest of "taken": Ustawienia show it as "System". */
-enum { K1_CZESC_KOSZ = K1_FOLDERY_MAKS + 1, K1_CZESC_ZAPAS, K1_CZESCI_MAKS = K1_CZESC_ZAPAS };
+ * Kosz (everything in it), the sessions of the zones that remember (0.10.0 step 5: the disks of the zones, no number of
+ * files) and the reserve for the system (never taken by files). What the vault holds besides (settings, notes of the
+ * system, old versions not yet compacted) is the rest of "taken": Ustawienia show it as "System". */
+enum { K1_CZESC_KOSZ = K1_FOLDERY_MAKS + 1, K1_CZESC_STREFY, K1_CZESC_ZAPAS, K1_CZESCI_MAKS = K1_CZESC_ZAPAS };
 
 /* File types, recognised by skarbiec from the first bytes of the content, never from the name:
  * X(NAME, number, description in Pliki, icon K1_IK_<icon>, family). A new type: one line (and its test in k1_dok_typ).

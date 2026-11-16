@@ -1,6 +1,7 @@
 /* K1 kompozytor — start and the loop (kompozytor.h). Arguments: [socket path [keymap path]]; by default
  * /run/k1/wayland-0 (gosc gives the browser XDG_RUNTIME_DIR=/run/k1, WAYLAND_DISPLAY=wayland-0) and the keymap of
- * the zone image. Draws at most every 16 ms, only when something changed. */
+ * the zone image. Draws at most every 16 ms, only when something changed. SIGUSR1 (from gosc, when the zone closes):
+ * every window gets xdg_toplevel.close, so the browser quits by itself and saves its profile (0.10.0 step 5). */
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -8,6 +9,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/signalfd.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
@@ -79,11 +81,19 @@ static void przyjmij(int g)
     kloguj("klient połączony");
 }
 
-static void petla(int g)
+/* gosc asks to close the windows (SIGUSR1, read from the signalfd) */
+static void prosba_zamkniecia(int sfd)
+{
+    struct signalfd_siginfo si;
+    if (read(sfd, &si, sizeof si) == (ssize_t)sizeof si)
+        kloguj("prośba o zamknięcie okien: %u", xdg_zamknij_okna());
+}
+
+static void petla(int g, int sfd)
 {
     uint32_t ostatnia = 0;
     for (;;) {
-        struct pollfd p[1 + KLIENCI_MAKS + 4];
+        struct pollfd p[1 + KLIENCI_MAKS + 4 + 1];
         struct klient *kl[KLIENCI_MAKS];
         unsigned n = 1, nk = 0, i, nw;
         int czekaj = -1;
@@ -107,8 +117,11 @@ static void petla(int g)
             }
         for (nw = 0; wejscie_fd(nw) >= 0 && nw < 4; nw++)
             p[n++] = (struct pollfd){ wejscie_fd(nw), POLLIN, 0 };
+        p[n++] = (struct pollfd){ sfd, POLLIN, 0 }; /* negative: ignored */
         if (poll(p, n, czekaj) < 0 && errno != EINTR)
             return;
+        if (p[n - 1].revents & POLLIN)
+            prosba_zamkniecia(sfd);
         if (p[0].revents & POLLIN)
             przyjmij(g);
         for (i = 0; i < nk; i++)
@@ -125,8 +138,14 @@ static void petla(int g)
 
 int main(int argc, char **argv)
 {
-    int g;
+    int g, sfd;
+    sigset_t m;
     signal(SIGPIPE, SIG_IGN);
+    sigemptyset(&m);
+    sigaddset(&m, SIGUSR1);
+    sfd = sigprocmask(SIG_BLOCK, &m, NULL) == 0 ? signalfd(-1, &m, SFD_CLOEXEC | SFD_NONBLOCK) : -1;
+    if (sfd < 0)
+        kloguj("signalfd nieudane — zamknięcie okien tylko sygnałem dla przeglądarki");
     if (argc > 2)
         mapa_klawiatury = argv[2];
     if (ekran_start() != 0)
@@ -137,6 +156,6 @@ int main(int argc, char **argv)
         return 1;
     scena_zmiana(0, 0, ekran.szer, ekran.wys);
     kloguj("gotowy %dx%d", ekran.szer, ekran.wys);
-    petla(g);
+    petla(g, sfd);
     return 1;
 }

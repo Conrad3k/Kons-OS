@@ -7,6 +7,7 @@
  * with the zone's colour as the outline and the text. Without focus the colour is mixed with the theme's background.
  * Part of ekran (ekran.h). */
 #include <stdio.h>
+#include <string.h>
 
 #include "ekran.h"
 #include "k1_log.h"
@@ -29,10 +30,33 @@ static const struct k1_strefa_opis *opis(const struct pow *p)
     return k1_strefa(s.kl[p->kl].apl);
 }
 
-static void tekst(const struct k1_strefa_opis *z, char *b, size_t n)
+/* The sessions as the user set them (nadzorca, 0.10.0 step 5): the names, which zones remember. Until nadzorca says,
+ * the names of the rows. */
+static char nazwy[K1_STREFY_MAKS + 1][K1_STREFA_NAZWA_MAKS + 1];
+static int32_t pamietaja;
+
+void strefy_sesje(const struct k1_komunikat *k)
 {
-    snprintf(b, n, "%s%s%s · osobna maszyna%s", z->tytul, z->sesja[0] ? " · " : "", z->sesja,
-             z->trwalosc == K1_JEDNORAZOWA ? " · zapomina po zamknięciu" : "");
+    if (k->typ == K1_KOM_STREFY_STAN) {
+        pamietaja = k->a;
+        return;
+    }
+    const int32_t p[5] = { k->a, k->b, k->c, k->d, k->e }; /* checked: k1_strefa_nazwa_dobra */
+    memcpy(nazwy[k->obiekt], p, K1_STREFA_NAZWA_MAKS);
+    nazwy[k->obiekt][K1_STREFA_NAZWA_MAKS] = '\0';
+}
+
+int strefa_pamieta(int nr)
+{
+    return nr >= 1 && nr <= K1_STREFY_MAKS && (pamietaja >> (nr - 1) & 1);
+}
+
+static void tekst(const struct pow *p, char *b, size_t n)
+{
+    const struct k1_strefa_opis *z = opis(p);
+    const char *sesja = nazwy[z->nr][0] ? nazwy[z->nr] : z->sesja;
+    snprintf(b, n, "%s%s%s · osobna maszyna%s", z->tytul, sesja[0] ? " · " : "", sesja,
+             s.kl[p->kl].pamieta ? "" : " · zapomina po zamknięciu");
 }
 
 struct prost strefa_obszar(const struct pow *p)
@@ -100,7 +124,7 @@ void strefa_ramka(const struct pow *p, const struct prost *r)
     const struct k1_strefa_opis *z = opis(p);
     struct k1_obraz o = wycinek(r);
     struct prost f = strefa_obszar(p);
-    int jednorazowa = z->trwalosc == K1_JEDNORAZOWA;
+    int jednorazowa = !s.kl[p->kl].pamieta;
     uint32_t k = kolor(p), ink = jednorazowa ? mieszaj(k, m->tekst, 64) : 0xffffff;
     float x = (float)(f.x - r->x), y = (float)(f.y - r->y);
     char t[160];
@@ -110,7 +134,7 @@ void strefa_ramka(const struct pow *p, const struct prost *r)
                        k1_kolor(mieszaj(m->pole, k, 36), 255));
     k1_ikona(&o, (enum k1_ikona)z->ikona, x + OBWODKA + 10, y + OBWODKA + (K1_STREFA_TYTUL - 18) / 2.0f, 18,
              k1_kolor(ink, 255));
-    tekst(z, t, sizeof t);
+    tekst(p, t, sizeof t);
     k1_tekst(&o, K1_CZ_TEKST_MOCNA, (int32_t)x + OBWODKA + 36, (int32_t)y + OBWODKA + K1_STREFA_TYTUL / 2 + 6, t,
              k1_kolor(ink, 255), p->w - 36 - 2 * ODSTEP - MARGINES - 8);
     rysuj_przycisk(&o, p, r, STREFA_MINIMALIZUJ, ink);

@@ -14,9 +14,13 @@
 #   5. w logu K1 żadnego adresu strony ani wpisanego tekstu (niezmiennik 8) — tylko liczniki
 #   5a. PRZEWIJANIE (0.10.0 krok 4): długa strona testowa przewijana kółkiem — w dół i z powrotem; strona sama mówi
 #      serwerowi, jak daleko ją przewinięto (zrzut przegladarka-6-dluga)
-#   6. PAMIĘĆ (0.10.0 krok 3, S26): strona testowa zajmuje 1400 MiB w strefie, która ma 1536 MiB (jak ciężkie strony,
+#   6. PAMIĘĆ (0.10.0 krok 3, S26; od przebiegu 142 na samym końcu, we własnej strefie): strona testowa zajmuje 1400 MiB w strefie, która ma 1536 MiB (jak ciężkie strony,
 #      po których na IdeaPadzie z 4 GB okno przeglądarki znikało) — strona dochodzi do końca, przeglądarka i strefa żyją
-#   7. zamknięcie okna: maszyna kończy się (sesja jednorazowa: nic nie zostaje), liczniki połączeń w logu
+#   7. zamknięcie okna: maszyna kończy się, liczniki połączeń w logu
+#   8. SESJE (0.10.0 krok 5): K1 z dyskiem danych (K1-DANE) — „Ogólna” pamięta: strona testowa ustawia ciasteczko,
+#      po zamknięciu i ponownym otwarciu serwer je dostaje; po ponownym starcie K1 (ten sam K1-DANE) — dalej; „Prywatna”
+#      (prawy przycisk na Przeglądarce w menu Start) go nie ma; Ustawienia → Przeglądarka: „Wyczyść dane” dla Ogólnej
+#      (dwa kliknięcia) i „Zapomina” — następne otwarcie bez ciasteczka i z jasnym paskiem, kolejne znów bez
 # BEZ ENTERA (decyzja właściciela 2026-11-15): w CI z KVM Enter w pasku adresu i w polu formularza bywał bez skutku
 # (przebiegi 95–103 PR-a #119; klawisz dochodził do Firefoksa — „Enter pressed” w jego dzienniku), a na sprzęcie
 # (IdeaPad 110) działa zawsze. Cały dzień szukania nie dał przyczyny po stronie K1 — dlatego test nie naciska Entera
@@ -30,7 +34,7 @@
 # Dowody: build/testy/przegladarka.log, zrzuty build/testy/przegladarka-*.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
-CZAS=${K1_TEST_CZAS:-2400}
+CZAS=${K1_TEST_CZAS:-2100} # the whole test, both starts of K1 together (35 min — the owner, 2026-11-16)
 mkdir -p "$TESTY"; rm -f "$TESTY"/przegladarka*
 CMDLINE="$(cat "$K1_REPO/jadro/cmdline")"
 # KVM with nested virtualization (CI): the full scenario; otherwise (the container: no KVM at all) — emulated, shortened
@@ -44,6 +48,7 @@ import base64, http.server, os, re, socket, subprocess, sys, threading, time, zl
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
 repo, out, limit, cmdline, emulacja = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4], sys.argv[5:]
+START = time.time()  # the test's limit counts from here, over both starts of K1
 TEKST = "kontestk1"
 odebrane = []
 # the page asks for a picture from 10.0.2.3 (the home network, not the router) by itself: D3's refusal without typing
@@ -78,7 +83,12 @@ class Serwer(http.server.BaseHTTPRequestHandler):
         odebrane.append(self.path)
         b = (STRONA_PAMIEC if self.path == "/pamiec" else STRONA_DLUGA if self.path == "/dluga" else
              STRONA.format(port=self.server.server_address[1])).encode()
+        jest = "k1test=tak" in (self.headers.get("Cookie") or "")
+        if self.path == "/ciastko":  # 0.10.0 step 5: did the session remember the cookie it got before?
+            odebrane.append("/ciastko-jest" if jest else "/ciastko-brak")
         self.send_response(200)
+        if self.path == "/ciastko" and not jest:
+            self.send_header("Set-Cookie", "k1test=tak; Max-Age=864000; Path=/")
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(b)))
         self.end_headers()
@@ -93,13 +103,19 @@ port = serwer.server_address[1]
 threading.Thread(target=serwer.serve_forever, daemon=True).start()
 # QEMU's user network: a connection to the router 10.0.2.2 reaches this computer's 127.0.0.1 (our server's port)
 SIEC = "-netdev user,id=n0 -device e1000e,netdev=n0"
+# 0.10.0 step 5: K1-DANE (skarbiec makes a vault on it) — a session remembers only with the data on a disk
+DANE = f"-drive if=none,id=dane,file={out}/przegladarka-dane.img,format=raw -device ide-hd,drive=dane,bus=ide.0"
+subprocess.run(["truncate", "-s", "1G", f"{out}/przegladarka-dane.img"], check=True)
+subprocess.run(["sfdisk", "-q", f"{out}/przegladarka-dane.img"], input=b'label: gpt\nstart=2048, name="K1-DANE"\n',
+               check=True, stdout=subprocess.DEVNULL)
 log, mon = f"{out}/przegladarka.log", f"{out}/przegladarka.sock"
 qemu = subprocess.Popen([f"{repo}/scripts/uruchom-qemu.sh", "--obraz", f"{repo}/build/wynik/rdzen.squashfs",
                          "--cmdline", cmdline, "--log", log, "--monitor", mon, "--czas", str(int(limit)),
-                         "--pamiec", "3072", "--qemu", SIEC] + emulacja)
+                         "--pamiec", "3072", "--qemu", SIEC + " " + DANE] + emulacja)
 q = Maszyna(log, mon, out, limit, "przegladarka")
 czekaj, sprawdz = q.czekaj, q.sprawdz
-SZALWIA = (0x5F, 0x8A, 0x6A)  # K1_STREFY: Ogólna
+SZALWIA, WRZOS = (0x5F, 0x8A, 0x6A), (0x8B, 0x6A, 0xA8)  # K1_STREFY: Ogólna, Prywatna
+KOLOR = SZALWIA  # the frame of the zone shown now
 POMARANCZ, NIEBIESKI = (0xFF, 0x88, 0x00), (0x1E, 0x64, 0xC8)
 
 
@@ -116,13 +132,13 @@ mx, my, co, sy = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(
 wiersze = (sy - my + co // 2 - 2 - 36) // co  # the rows of the menu; the browser is the last one (k1_uslugi.h)
 q.klik(mx, my + (wiersze - 1) * co)
 sprawdz("menu Start → Przeglądarka: gui prosi nadzorcę o strefę „Ogólna”", czekaj(r"K1-GUI: uruchamiam: Przeglądarka"))
-o = czekaj(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", czas=180)
+o = czekaj(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", czas=120)
 nr, w_, h_, x, y = (int(o.group(i)) for i in range(1, 6)) if o else (0, 0, 0, 0, 0)
 sprawdz("VMM strefy 2 w klatce (uid 301, 1536 MiB), maszyna działa",
         czekaj(r"K1-NADZORCA: strefa 2 \(Przeglądarka\): pid \d+, uid 301, pamięć 1536 MiB", czas=60) and
-        czekaj(r"K1-STREFA: strefa 2 \(Przeglądarka\): maszyna działa", czas=240))
+        czekaj(r"K1-STREFA: strefa 2 \(Przeglądarka\): maszyna działa", czas=120))
 sprawdz("gość: kanał sterujący „gotowa” (gosc uruchomił przekaźnik, kompozytor i przeglądarkę)",
-        czekaj(r"K1-STREFA: gość gotowy \(kanał sterujący\)", czas=300))
+        czekaj(r"K1-STREFA: gość gotowy \(kanał sterujący\)", czas=120))
 if emulacja:
     print("  [SKRÓT] emulacja bez KVM: dalsze kroki (Firefox, strona, formularz, odmowa D3, logi) — tylko z KVM (CI)",
           flush=True)
@@ -131,9 +147,13 @@ if emulacja:
     sys.exit(0 if all(q.wyniki) else 1)
 
 
-def firefox(w, h, px):  # the frame in the session's colour, Firefox's address field (not K1's "Uruchamiam…": 250,249,246)
-    return (o and blisko(px(x - 2, y + h_ // 2), SZALWIA) and blisko(px(x + w_ // 2, y + 64), (242, 242, 242), 4)
-            and blisko(px(x + w_ // 3, y + 20), (250, 250, 251), 4))
+# The frame in the session's colour, Firefox's address field and tab bar (not K1's "Uruchamiam…": 250,249,246). After
+# Firefox quit by itself it starts focused (CI run 140, przegladarka-7-sesja-2): the field white, the tab bar darker.
+def firefox(w, h, px):
+    pole, karty = px(x + w_ // 2, y + 64), px(x + w_ // 3, y + 20)
+    return (o and blisko(px(x - 2, y + h_ // 2), KOLOR)
+            and (blisko(pole, (242, 242, 242), 4) or blisko(pole, (255, 255, 255), 4))
+            and (blisko(karty, (250, 250, 251), 4) or blisko(karty, (235, 235, 237), 4)))
 
 
 def bez_przyciskow(px):  # S28 (step 3): the top right corner of the tab bar is empty — Firefox draws no minimise,
@@ -142,16 +162,22 @@ def bez_przyciskow(px):  # S28 (step 3): the top right corner of the tab bar is 
     return all(blisko(px(x + w_ - 30 + i, y + 10 + j), tlo, 12) for i in range(0, 26, 2) for j in range(0, 24, 2))
 
 
-w, h, px = q.zrzut("1-okno", gdy=firefox, czas=900)
+w, h, px = q.zrzut("1-okno", gdy=firefox, czas=300)  # seen: 33-156 s
 sprawdz("okno przeglądarki w ramce w kolorze sesji, pasek kart i adresu (zrzut przegladarka-1-okno)",
         firefox(w, h, px))
 sprawdz("Firefox bez własnych przycisków okna (minimalizuj, powiększ, zamknij) — tylko pasek K1 w kolorze sesji (S28)",
         bez_przyciskow(px), str(px(x + w_ - 16, y + 20)))
-sprawdz("pasek tytułu K1 nad oknem przeglądarki: obwódka w kolorze sesji, jasny pasek sesji jednorazowej (krok 3, D1: A)",
-        blisko(px(x + w_ // 2, y - 42), SZALWIA) and blisko(px(x + w_ - 60, y - 20), (232, 238, 234), 16),
-        str((px(x + w_ // 2, y - 42), px(x + w_ - 60, y - 20))))
+sprawdz("pasek tytułu K1 nad oknem przeglądarki w kolorze sesji, która pamięta (krok 3, D1: A; krok 5: Ogólna pamięta)",
+        blisko(px(x + w_ // 2, y - 42), SZALWIA) and blisko(px(x + w_ - 150, y - 20), SZALWIA),
+        str((px(x + w_ // 2, y - 42), px(x + w_ - 150, y - 20))))
+sprawdz("nadzorca: Ogólna pamięta — VMM dostaje dysk strefy w skarbcu, gość montuje go jako katalog domowy",
+        czekaj(r"K1-NADZORCA: strefa 2 \(Przeglądarka\): pid \d+, .*pamięta \(dysk w skarbcu\)") and
+        czekaj(r"K1-STREFA: dysk strefy: pamięta", czas=30))
 for l_ in re.findall(r"K1-STREFA: gość(?: gotowy|: okno przeglądarki)[^\n]*", q.tekst()):  # S30: where the start goes
     print("            | start: " + l_[:200], flush=True)
+
+
+STREFA = 2  # the zone shown now (Ogólna; Prywatna: 4)
 
 
 def zamknij_strefe():  # "zamknij" on K1's title bar above the zone (step 3, D1: sketch A) — as test-strefa does
@@ -160,9 +186,10 @@ def zamknij_strefe():  # "zamknij" on K1's title bar above the zone (step 3, D1:
     q.idz(x + 60, y + 60)
     q.idz(x + w_ // 2, y - 20)  # the bar (K1_STREFA_TYTUL = 40 px above the picture)
     p = czekaj(pasek, od=n, czas=30)
+    n = q.ile(rf"K1-STREFA: strefa {STREFA}: koniec")
     if p:
         q.klik(int(p.group(3)), int(p.group(4)))
-    return czekaj(r"K1-STREFA: strefa 2: koniec", czas=120)
+    return czekaj(rf"K1-STREFA: strefa {STREFA}: koniec", od=n, czas=90)  # VMM: 40 s + saving the disk
 
 
 def wpisz(tekst):
@@ -233,7 +260,7 @@ def pamiec():  # S26: the page that takes 1400 MiB; True when it got all of it a
     otworz_strone(60, "/pamiec", lambda w, h, px: "/pamiec" in odebrane)
     t0 = time.time()
     q.czekaj_na(lambda: "/pamiec-koniec" in odebrane or "strefa 2: koniec" in q.tekst() or
-                q.ile(r"K1-STREFA: gość: strona zakończona — brak pamięci") > n0, czas=600)
+                q.ile(r"K1-STREFA: gość: strona zakończona — brak pamięci") > n0, czas=240)
     zyje = "strefa 2: koniec" not in q.tekst()
     print(f"            | pamięć: {[p for p in odebrane if p.startswith('/pamiec-postep')][-1:]} po "
           f"{time.time() - t0:.0f} s, strony zakończone z braku pamięci: "
@@ -241,6 +268,128 @@ def pamiec():  # S26: the page that takes 1400 MiB; True when it got all of it a
     if not zyje:
         pokaz(*q.zrzut("5-pamiec"))
     return "/pamiec-koniec" in odebrane and zyje
+
+
+# "jest" when ANY request for the page carried the cookie, "brak" when none did. Firefox may send the page twice right
+# after it starts — CI run 138: ['brak', 'jest'], the cookie was there (it was after the restart of K1 too); so
+# "remembers" = the server got it, "forgets" = it never did (the strict side for privacy).
+def ciastko():  # 0.10.0 step 5: the page /ciastko — did the request carry the cookie set before?
+    n = len(odebrane)
+    q.klik(x + w_ // 2, y + 64)  # the address bar
+    q.pisz("ctrl-a")
+    wpisz(f"10.0.2.2:{port}/ciastko")
+    otworz_strone(120, "/ciastko", lambda w, h, px: any(p.startswith("/ciastko-") for p in odebrane[n:]))
+    q.czekaj_na(lambda: "/ciastko-jest" in odebrane[n:], czas=10)  # a second request, if one comes
+    wynik = [p[9:] for p in odebrane[n:] if p.startswith("/ciastko-")]
+    print(f"            | /ciastko (strefa {STREFA}): {wynik}", flush=True)
+    return "jest" if "jest" in wynik else ("brak" if wynik else "nic")
+
+
+def okno_strefy(n0):  # the zone's window after a start: its place, Firefox drawn in it
+    global o, nr, w_, h_, x, y
+    o = czekaj(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", od=n0, czas=120)
+    if not o:
+        return False
+    nr, w_, h_, x, y = (int(o.group(i)) for i in range(1, 6))
+    w, h, px = q.zrzut(f"7-sesja-{STREFA}", gdy=firefox, czas=300)
+    return firefox(w, h, px)
+
+
+def otworz_przegladarke(strefa, prawym=False):  # Start → Przeglądarka (Ogólna), or the right button → a session
+    global STREFA, KOLOR
+    STREFA, KOLOR = strefa, (WRZOS if strefa == 4 else SZALWIA)
+    n0, nm = q.ile(r"K1-EKRAN: okno (\d+) \(strefa\)"), q.ile(r"menu Start otwarte")
+    s = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+)")
+    q.klik(int(s.group(1)), int(s.group(2)))
+    m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);", od=nm, czas=60)
+    if not m:
+        return False
+    mx_, my_, co_, sy_ = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(5))
+    wiersz = (mx_, my_ + ((sy_ - my_ + co_ // 2 - 2 - 36) // co_ - 1) * co_)  # the browser: the last row
+    if not prawym:
+        q.klik(*wiersz)
+    else:
+        nk = q.ile(r"K1-GUI: menu kontekstowe \(menu Start Przeglądarka\)")
+        q.prawy_klik(*wiersz)
+        k = czekaj(r"K1-GUI: menu kontekstowe \(menu Start Przeglądarka\): (.*)", od=nk, czas=30)
+        p = k and re.search(rf"sesja {strefa} (\d+),(\d+)", k.group(1))
+        print(f"            | menu pod prawym przyciskiem: {k.group(1)[:200] if k else 'brak'}", flush=True)
+        if not p:
+            return False
+        q.klik(int(p.group(1)), int(p.group(2)))
+    return okno_strefy(n0)
+
+
+def uruchom_ponownie_k1():  # the same K1-DANE, a new QEMU: K1 starts again (the zone was closed before)
+    global q, qemu, czekaj
+    wyniki = q.wyniki
+    q.monitor("quit")
+    qemu.wait()
+    # one limit for the whole test: the second machine gets what is left of it, never a fresh one (CI run 125)
+    reszta = int(limit - (time.time() - START))
+    print(f"            | drugie uruchomienie K1: zostało {reszta} s z limitu testu", flush=True)
+    if reszta < 300:
+        return False
+    log2, mon2 = f"{out}/przegladarka-2.log", f"{out}/przegladarka-2.sock"
+    qemu = subprocess.Popen([f"{repo}/scripts/uruchom-qemu.sh", "--obraz", f"{repo}/build/wynik/rdzen.squashfs",
+                             "--cmdline", cmdline, "--log", log2, "--monitor", mon2, "--czas", str(reszta),
+                             "--pamiec", "3072", "--qemu", SIEC + " " + DANE] + emulacja)
+    q = Maszyna(log2, mon2, out, reszta, "przegladarka-2")
+    q.wyniki = wyniki
+    czekaj = q.czekaj
+    return czekaj(r"K1-GUI: pulpit gotowy", czas=reszta * 0.3) and czekaj(r"K1-NADZORCA: sieć: połączono \(", czas=240)
+
+
+def ustawienia_ogolna():  # Ustawienia → Przeglądarka: "Wyczyść dane" of Ogólna (two clicks), then "Zapomina"
+    g2 = czekaj(r"K1-GUI: pulpit gotowy: Start \d+,\d+, aplikacje od (\d+),(\d+) co (\d+)")
+    n0 = q.ile(r"K1-EKRAN: okno (\d+) \(ustawienia\)")
+    q.klik(int(g2.group(1)) + 2 * int(g2.group(3)), int(g2.group(2)))  # the bottom bar: 0 Zegar, 1 Notatki, 2 Ustawienia
+    u = czekaj(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)", od=n0, czas=60)
+    sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
+    if not (u and sk):
+        return False
+    ux, uy = int(u.group(4)), int(u.group(5))
+    np_ = q.ile(r"K1-USTAWIENIA: przeglądarka: sesje")
+    q.klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + 9 * int(sk.group(3)))  # section 9: Przeglądarka
+    l_ = czekaj(r"K1-USTAWIENIA: przeglądarka: sesje \d+ \(dane na dysku 1, wirtualizacja 1\): (.*)", od=np_, czas=30)
+    p = l_ and re.search(r"2 pamięta, przełącznik (\d+),(\d+), Zmień nazwę \d+,\d+, Wyczyść (\d+),(\d+)", l_.group(1))
+    print(f"            | Ustawienia → Przeglądarka: {l_.group(1)[:220] if l_ else 'brak'}", flush=True)
+    if not p:
+        return False
+    wx, wy = ux + int(p.group(3)), uy + int(p.group(4))
+    q.klik(wx, wy)
+    q.klik(wx, wy)  # "Na pewno? Wyczyść"
+    ok = czekaj(r"K1-NADZORCA: strefa 2: dane sesji usunięte \(\d+ kawałków\)", czas=60)
+    q.klik(ux + int(p.group(1)) + 150, uy + int(p.group(2)) + 16)  # "Zapomina": the right half of the switch
+    return ok and czekaj(r"K1-NADZORCA: strefa 2: zapomina \(od następnego otwarcia\)", czas=30)
+
+
+def sesje():  # 0.10.0 step 5: the scenario of the sessions (the first page of /ciastko was in the first window)
+    sprawdz("SESJE: Ogólna pamięta — po zamknięciu i ponownym otwarciu serwer dostaje ciasteczko",
+            otworz_przegladarke(2) and ciastko() == "jest")
+    zamknij_strefe()
+    sprawdz("SESJE: po ponownym starcie K1 (ten sam K1-DANE) Ogólna dalej ma ciasteczko",
+            uruchom_ponownie_k1() and otworz_przegladarke(2) and ciastko() == "jest")
+    zamknij_strefe()
+    sprawdz("SESJE: Prywatna (prawy przycisk na Przeglądarce w menu Start) nie ma ciasteczka Ogólnej, jasny pasek",
+            otworz_przegladarke(4, prawym=True) and ciastko() == "brak")
+    w, h, px = q.zrzut("8-prywatna")
+    sprawdz("SESJE: Prywatna zapomina — jasny pasek w obwódce koloru sesji (wrzos)",
+            blisko(px(x + w_ // 2, y - 42), WRZOS) and not blisko(px(x + w_ - 150, y - 20), WRZOS),
+            str((px(x + w_ // 2, y - 42), px(x + w_ - 150, y - 20))))
+    zamknij_strefe()
+    sprawdz("SESJE: Ustawienia → Przeglądarka — „Wyczyść dane” Ogólnej (dwa kliknięcia), potem „Zapomina”",
+            ustawienia_ogolna())
+    sprawdz("SESJE: po „Wyczyść dane” Ogólna nie ma ciasteczka (strona ustawia je jeszcze raz)",
+            otworz_przegladarke(2) and ciastko() == "brak" and
+            czekaj(r"K1-NADZORCA: strefa 2 \(Przeglądarka\): pid \d+, .*zapomina po zamknięciu"))
+    zamknij_strefe()
+    sprawdz("SESJE: Ogólna przełączona na „Zapomina” — następne otwarcie znów bez ciasteczka",
+            otworz_przegladarke(2) and ciastko() == "brak")
+    zamknij_strefe()
+    t_ = q.tekst()
+    sprawdz("SESJE: w logu K1 żadnej nazwy sesji ani zawartości dysku — tylko numery stref i liczby kawałków",
+            "k1test" not in t_ and not re.search(r"menu kontekstowe \(menu Start Przeglądarka\): .*(Ogólna|Bank|Prywatna)", t_))
 
 
 if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label testy-przegladarka): only the page
@@ -283,15 +432,21 @@ sprawdz("w logu K1 żadnego adresu strony ani wpisanego tekstu — tylko licznik
 
 sprawdz("PRZEWIJANIE: kółko nad długą stroną przewija ją w dół, potem z powrotem na górę (0.10.0 krok 4; zrzut "
         "przegladarka-6-dluga-przewinieta)", przewijanie())
-sprawdz(f"PAMIĘĆ: strona zajmuje {PAMIEC_MIB} MiB w strefie 1536 MiB — dochodzi do końca, przeglądarka i strefa żyją "
-        "(S26; zrzut przegladarka-5-pamiec)", pamiec())
+sprawdz("SESJE: strona ustawia ciasteczko (serwer: pierwsze wejście bez niego)", ciastko() == "brak")
 koniec_ = zamknij_strefe()
 if not koniec_:
     pokaz(*q.zrzut("4-koniec"))
-sprawdz("zamknięcie okna: gość dostaje „zamknij”, przeglądarka kończy się, maszyna znika (sesja jednorazowa)", koniec_)
+sprawdz("zamknięcie okna: gość dostaje „zamknij”, przeglądarka kończy się, maszyna znika", koniec_)
 sprawdz("liczniki połączeń w logu: VMM i nadzorca (bez adresów)",
         czekaj(r"K1-STREFA: połączenia przeglądarki: \d+, nazwy \d+, odmowy \d+", czas=30) and
         czekaj(r"K1-NADZORCA: strefa 2: połączenia \d+, odmowy [1-9]", czas=30))
+sesje()
+# PAMIĘĆ last, in a fresh zone of its own (CI run 142): the page pushes the browser to the edge of the zone's memory and
+# the browser may end soon after it (on X230 and IdeaPad too: 0.10.1 Balon) — before, every check after it in the same
+# browser failed with it. Ogólna forgets by now (sesje), so nothing of this lands on the session's disk.
+sprawdz(f"PAMIĘĆ: strona zajmuje {PAMIEC_MIB} MiB w strefie 1536 MiB — dochodzi do końca, przeglądarka i strefa żyją "
+        "(S26; zrzut przegladarka-5-pamiec)", otworz_przegladarke(2) and pamiec())
+zamknij_strefe()
 t_ = q.tekst()
 sprawdz("brak zabronionych wywołań i paniki w K1", "zabronione wywołanie" not in t_ and "Kernel panic" not in t_)
 q.monitor("quit")

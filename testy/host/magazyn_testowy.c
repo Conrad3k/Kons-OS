@@ -1,11 +1,9 @@
-/* K1 — test helper (0.8.1 step 2, ADR 0034; formats: 0.8.2 step 1c, ADR 0036): a K1-DANE partition with a vault that
- * is hard for skarbiec — a long log (one object written over and over: format 1 reads every old version at open until
- * skarbiec compacts it) or almost full (objects of an owner no program has, until `zostaw` MiB of the room are free),
- * in format 1 (as 0.5.6–0.8.1 wrote it: skarbiec moves it to format 2) or 2. scripts/test-skarbiec.sh boots K1 with it
- * and then checks it with --sprawdz: the format, and every object of that owner as it was written. Uses skarbiec's own
- * format code.
- *   magazyn_testowy PARTITION_FILE VERSIONS LEAVE_MIB FORMAT  (the file must exist, all zeros; LEAVE_MIB 0: no filling)
- *   magazyn_testowy --sprawdz PARTITION_FILE VERSIONS FORMAT    (exit 0: the format and the objects as written) */
+/* K1 — test helper (0.8.1 step 2, ADR 0034; format 2: ADR 0036 — format 1 is gone since 0.10.0): a K1-DANE partition
+ * with a vault that is hard for skarbiec — many old versions of one object, or almost full (objects of an owner no
+ * program has, until `zostaw` MiB of the room are free). scripts/test-skarbiec.sh boots K1 with it and then checks it
+ * with --sprawdz: every object of that owner as it was written. Uses skarbiec's own format code.
+ *   magazyn_testowy PARTITION_FILE VERSIONS LEAVE_MIB   (the file must exist, all zeros; LEAVE_MIB 0: no filling)
+ *   magazyn_testowy --sprawdz PARTITION_FILE VERSIONS   (exit 0: the objects as written) */
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,13 +42,13 @@ static int otworz(struct k1_mag_dysk *d, const char *plik)
     return fd;
 }
 
-static int utworz(const char *plik, long wersji, long zostaw, uint32_t format)
+static int utworz(const char *plik, long wersji, long zostaw)
 {
     struct k1_mag_dysk d;
     long i;
     int r = K1_MAG_OK;
     char n[16];
-    if (otworz(&d, plik) < 0 || k1_mag_utworz_w_formacie(&mag, &d, NULL, 64, format) != K1_MAG_OK) {
+    if (otworz(&d, plik) < 0 || k1_mag_utworz(&mag, &d, NULL, 64) != K1_MAG_OK) {
         fprintf(stderr, "magazyn_testowy: nie udało się utworzyć magazynu\n");
         return 1;
     }
@@ -71,7 +69,7 @@ static int utworz(const char *plik, long wersji, long zostaw, uint32_t format)
     return 0;
 }
 
-static int sprawdz(const char *plik, long wersji, uint32_t format)
+static int sprawdz(const char *plik, long wersji)
 {
     struct k1_mag_dysk d;
     uint32_t dl;
@@ -93,17 +91,17 @@ static int sprawdz(const char *plik, long wersji, uint32_t format)
         zle += r != K1_MAG_OK || dl != sizeof mib || memcmp(wynik, mib, sizeof mib) != 0;
     }
     printf("magazyn_testowy: format %u, %d obiektów, wypełniaczy %ld, niezgodnych %d\n", mag.format, mag.n_wpisow, i, zle);
-    return mag.format == format && zle == 0 ? 0 : 1;
+    return zle == 0 ? 0 : 1;
 }
 
 int main(int argc, char **argv)
 {
-    if (argc == 5 && strcmp(argv[1], "--sprawdz") == 0)
-        return sprawdz(argv[2], atol(argv[3]), (uint32_t)atol(argv[4]));
-    if (argc != 5 || atol(argv[2]) < 0 || atol(argv[3]) < 0 || (atol(argv[4]) != 1 && atol(argv[4]) != 2)) {
-        fprintf(stderr, "użycie: magazyn_testowy PLIK_PARTYCJI WERSJI ZOSTAW_MIB FORMAT\n"
-                        "        magazyn_testowy --sprawdz PLIK_PARTYCJI WERSJI FORMAT\n");
+    if (argc == 4 && strcmp(argv[1], "--sprawdz") == 0)
+        return sprawdz(argv[2], atol(argv[3]));
+    if (argc != 4 || atol(argv[2]) < 0 || atol(argv[3]) < 0) {
+        fprintf(stderr, "użycie: magazyn_testowy PLIK_PARTYCJI WERSJI ZOSTAW_MIB\n"
+                        "        magazyn_testowy --sprawdz PLIK_PARTYCJI WERSJI\n");
         return 2;
     }
-    return utworz(argv[1], atol(argv[2]), atol(argv[3]), (uint32_t)atol(argv[4]));
+    return utworz(argv[1], atol(argv[2]), atol(argv[3]));
 }

@@ -159,8 +159,8 @@ static void obsluz_sterowanie(void)
             k1_koniec(TAG, "nadzorca zamknął kanał sterujący");
         if (o.obciete || !o.ma_nadawce || o.uid != 0 ||
             k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &m) != 0 ||
-            (m.typ != K1_KOM_SKARB_KLIENT && m.typ != K1_KOM_POWIEKSZONO && m.typ != K1_KOM_START_POTWIERDZONY &&
-             m.typ != K1_KOM_ZEGAR_PRZESUNIETY) ||
+            (m.typ != K1_KOM_SKARB_KLIENT && m.typ != K1_KOM_POWIEKSZONO &&
+             m.typ != K1_KOM_ZEGAR_PRZESUNIETY && m.typ != K1_KOM_SKARB_WYCZYSC) ||
             (o.fd >= 0) != k1_komunikat_z_deskryptorem(m.typ, K1_KIER_STEROWANIE)) {
             if (o.fd >= 0)
                 close(o.fd);
@@ -169,10 +169,10 @@ static void obsluz_sterowanie(void)
         }
         if (m.typ == K1_KOM_POWIEKSZONO)
             powiekszono(m.a);
-        else if (m.typ == K1_KOM_START_POTWIERDZONY)
-            przejscie_wolno();
         else if (m.typ == K1_KOM_ZEGAR_PRZESUNIETY)
             dok_zegar_z_internetu((int64_t)k1_kom_u64(m.a, m.b));
+        else if (m.typ == K1_KOM_SKARB_WYCZYSC) /* 0.10.0 step 5: "Wyczyść dane sesji" */
+            strefy_wyczysc(m.a);
         else
             nowy_klient(&m, o.fd);
     }
@@ -210,10 +210,10 @@ static void zapisz_obiekt(struct klient *k, const struct k1_komunikat *m, int fd
         return;
     }
     nazwa((int)m->obiekt, n);
-    r = ob_zapisz(k->wlasciciel, n, bufor, (uint32_t)m->a);
+    r = strefy_miejsce_na(m->obiekt, (uint32_t)m->a) ? ob_zapisz(k->wlasciciel, n, bufor, (uint32_t)m->a) : K1_MAG_PELNY;
     if (r != K1_MAG_OK)
         k1_log(TAG, "zapis obiektu %u (właściciel %d): %s", m->obiekt, k->wlasciciel, k1_mag_opis(r));
-    else
+    else if (m->obiekt < K1_OB_DYSK) /* the pieces of a zone's disk: too many to log each */
         k1_log(TAG, "zapisano obiekt %u właściciela %d (%d B, %s)", m->obiekt, k->wlasciciel, (int)m->a,
                trwaly ? "na dysku" : "w pamięci");
     odpowiedz(k, (int)m->obiekt, m->typ, r);
@@ -226,6 +226,14 @@ static void wykonaj(struct klient *k, const struct k1_komunikat *m, int fd)
     if (k1_kom_dok_prosba(m->typ)) {
         if (dok_obsluz(k->fd, k->wlasciciel, m, fd))
             oglos_zmiane();
+        return;
+    }
+    if ((m->typ == K1_KOM_SKARB_CZYTAJ || m->typ == K1_KOM_SKARB_ZAPISZ || m->typ == K1_KOM_SKARB_USUN) &&
+        !strefy_wolno(k->wlasciciel, m->obiekt)) { /* a piece of a zone's disk: only a zone's VMM (0.10.0 step 5) */
+        if (fd >= 0)
+            close(fd);
+        k1_log(TAG, "odrzucono: obiekt %u dysku strefy, a właściciel %d nie jest strefą", m->obiekt, k->wlasciciel);
+        odpowiedz(k, (int)m->obiekt, m->typ, K1_MAG_ARG);
         return;
     }
     switch (m->typ) {

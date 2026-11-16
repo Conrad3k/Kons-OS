@@ -432,14 +432,7 @@ static void miejsce(void)
     EXPECT(zle(K(K1_KOM_POWIEKSZONO, 0, 0, 1, 0, 0, 0), K1_KIER_STEROWANIE));
     EXPECT(zle(K(K1_KOM_POWIEKSZONO, 0, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(!k1_komunikat_z_deskryptorem(K1_KOM_POWIEKSZONO, K1_KIER_STEROWANIE));
-    /* 0.8.2 step 1c: the start is confirmed — nothing in it, only from nadzorca's control channel */
-    EXPECT(ok(K(K1_KOM_START_POTWIERDZONY, 0, 0, 0, 0, 0, 0), K1_KIER_STEROWANIE));
-    EXPECT(zle(K(K1_KOM_START_POTWIERDZONY, 1, 0, 0, 0, 0, 0), K1_KIER_STEROWANIE));
-    EXPECT(zle(K(K1_KOM_START_POTWIERDZONY, 0, 1, 0, 0, 0, 0), K1_KIER_STEROWANIE));
-    EXPECT(zle(K(K1_KOM_START_POTWIERDZONY, 0, 0, 0, 0, 0, -1), K1_KIER_STEROWANIE));
-    EXPECT(zle(K(K1_KOM_START_POTWIERDZONY, 0, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
-    EXPECT(zle(K(K1_KOM_START_POTWIERDZONY, 0, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
-    EXPECT(!k1_komunikat_z_deskryptorem(K1_KOM_START_POTWIERDZONY, K1_KIER_STEROWANIE));
+    EXPECT(zle(K(118, 0, 0, 0, 0, 0, 0), K1_KIER_STEROWANIE)); /* START_POTWIERDZONY: gone with format 1 (0.10.0) */
 }
 
 int main(void)
@@ -458,5 +451,6 @@ int main(void)
     pendrive();
     dekoder();
     kanal();
+    strefy();
     return K1_TEST_KONIEC("test_komunikat");
 }

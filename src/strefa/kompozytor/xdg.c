@@ -48,6 +48,20 @@ static void schowaj(struct xdg_pow *x)
     wejscie_okno_zmiana();
 }
 
+/* xdg_toplevel.close to every window (gosc asks, when the VMM says "zamknij"): the browser quits as if its window
+ * were closed by hand — and saves its profile (cookies, logins) on the way; SIGTERM ends it at once without that
+ * (CI run 136: it ended 0.3 s after SIGTERM and the session forgot the cookie). The number of windows asked. */
+unsigned xdg_zamknij_okna(void)
+{
+    unsigned i, n = 0;
+    for (i = 0; i < n_okien; i++)
+        if (okna[i]->okno == 1 && okna[i]->rola != NULL) {
+            zdarzenie(okna[i]->rola, 1, ""); /* xdg_toplevel.close */
+            n++;
+        }
+    return n;
+}
+
 void xdg_wyskakujace_zamknij(void)
 {
     unsigned i;

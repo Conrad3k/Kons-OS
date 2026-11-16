@@ -1,6 +1,7 @@
 /* K1 — host test of the service protocol, split into files like the checking itself (src/wspolne/k1_kom_*.c; 0.9.0
  * step 9): test_komunikat.c (header, ekran, Zasoby, skarbiec, main), test_komunikat_pliki.c (nadzorca, the channel
- * helpers, Pliki, opening files, the USB stick, dekoder). What the parts share. */
+ * helpers, Pliki, opening files, the USB stick, dekoder), test_komunikat_strefy.c (the sessions of the zones and their
+ * disks, 0.10.0 step 5). What the parts share. */
 #ifndef K1_TEST_KOMUNIKAT_H
 #define K1_TEST_KOMUNIKAT_H
 
@@ -29,5 +30,7 @@ void pliki(void);
 void otwieranie(void);
 void pendrive(void);
 void dekoder(void);
+/* test_komunikat_strefy.c (0.10.0 step 5) */
+void strefy(void);
 
 #endif

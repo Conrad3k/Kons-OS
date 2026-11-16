@@ -62,18 +62,19 @@
  * /rdzen/system/strefa, log tag K1-STREFA); one line each, everything else follows from it: the profile and the UID of
  * its VMM (KLATKA_STREFA in src/nadzorca/profile.c with the row's memory), the frame ekran draws, Zasoby, the tests.
  * X(NAME, zone number, profile, UID, image (/rdzen/strefy/<obraz>.img), title, session ("": none), memory of the guest
- *   in MiB, processors, the frame colour 0xRRGGBB, JEDNORAZOWA (forgets everything when closed) or STALA (0.10.0 step 3),
+ *   in MiB, processors, the frame colour 0xRRGGBB, JEDNORAZOWA (forgets everything when closed) or STALA (its disk in
+ *   skarbiec — 0.10.0 step 5; the default: the user changes it in Ustawienia → Przeglądarka, nadzorca keeps the choice),
  *   icon (K1_IK_<icon>) of its mark, 1: the guest's console lines go to K1's log (the test zone only; others: counted),
  *   its line in the Start menu ("": not there; 0.10.0 step 2)).
- * The numbers never change (a STALA zone's disk in skarbiec belongs to its profile, step 3). The test zone's image is
- * only in the test image: the production image has no file for it, nadzorca refuses to start it. 0.10.0 step 2
- * (ADR 0043, D2): the browser's sessions — each its own zone (machine, colour, UID); in step 2 all forget everything
- * when closed, step 3 makes Ogólna and Bank remember. */
+ * The numbers never change (a STALA zone's disk in skarbiec belongs to its profile). The test zone's image is only in
+ * the test image: the production image has no file for it, nadzorca refuses to start it. 0.10.0 step 2 (ADR 0043, D2):
+ * the browser's sessions — each its own zone (machine, colour, UID); since step 5 Ogólna and Bank remember, Prywatna
+ * forgets (the test zone remembers: test-strefa checks the disk). */
 #define K1_STREFY(X)                                                                                                    \
-    X(PROBNA, 1, 19, 300, "probna", "Strefa próbna", "", 128, 1, 0xA8834A, JEDNORAZOWA, EKRAN, 1, "")                 \
-    X(OGOLNA, 2, 20, 301, "przegladarka", "Przeglądarka", "Ogólna", 1536, 2, 0x5F8A6A, JEDNORAZOWA, PRZEGLADARKA, 0,  \
+    X(PROBNA, 1, 19, 300, "probna", "Strefa próbna", "", 128, 1, 0xA8834A, STALA, EKRAN, 1, "")                       \
+    X(OGOLNA, 2, 20, 301, "przegladarka", "Przeglądarka", "Ogólna", 1536, 2, 0x5F8A6A, STALA, PRZEGLADARKA, 0,        \
       "Strony internetowe w osobnej maszynie")                                                                  \
-    X(BANK, 3, 21, 302, "przegladarka", "Przeglądarka", "Bank", 1536, 2, 0x4A6FA5, JEDNORAZOWA, PRZEGLADARKA, 0, "")  \
+    X(BANK, 3, 21, 302, "przegladarka", "Przeglądarka", "Bank", 1536, 2, 0x4A6FA5, STALA, PRZEGLADARKA, 0, "")        \
     X(PRYWATNA, 4, 22, 303, "przegladarka", "Przeglądarka", "Prywatna", 1536, 2, 0x8B6AA8, JEDNORAZOWA, PRZEGLADARKA,\
       0, "")
 
@@ -115,6 +116,12 @@ struct k1_strefa_opis {
     int ikona;               /* K1_IK_* (k1_rysuj.h) */
     int log_goscia;
 };
+/* 1: `profil` is the profile of a zone's VMM (the owner of its disk in skarbiec, 0.10.0 step 5). */
+#define K1_X_PROFIL_STREFY(n, nr, profil, ...) || p == (profil)
+static inline int k1_profil_strefy(int p)
+{
+    return 0 K1_STREFY(K1_X_PROFIL_STREFY);
+}
 /* The zone with number `nr` (1..K1_STREFY_MAKS), or NULL. */
 const struct k1_strefa_opis *k1_strefa(int nr);
 /* The zone whose VMM has profile `profil`, or NULL. */

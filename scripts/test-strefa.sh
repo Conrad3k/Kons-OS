@@ -15,6 +15,9 @@
 #      tylko do odczytu) — kończy się tylko ta strefa, z powodem w logu; K1 działa dalej
 #   8. NEGATYWNE: procesor bez wirtualizacji — nadzorca mówi „brak wirtualizacji”, nic nie startuje, nadzorca żyje
 #   9. obraz produkcyjny nie ma strefy próbnej (tylko jądro strefy)
+#  10. (0.10.0 krok 5) strefa pamięta: K1 z dyskiem danych (K1-DANE), strefa próbna dostaje dysk w skarbcu (/dev/vdb,
+#      ext4 z pustego dysku strefy) — gość liczy na nim swoje uruchomienia: pierwsze 1, po złośliwych gościach 2; po
+#      „Wyczyść dane sesji” znów 1
 # Dowody: build/testy/strefa.log, strefa-bez-wirt.log, zrzuty build/testy/strefa-*.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -23,6 +26,10 @@ mkdir -p "$TESTY"; rm -f "$TESTY"/strefa*
 CMDLINE="$(cat "$K1_REPO/jadro/cmdline")"
 ZNAK=$TESTY/strefa-znak.img
 dd if=/dev/zero of="$ZNAK" bs=1M count=1 status=none
+# 0.10.0 step 5: an empty K1-DANE (skarbiec makes a vault on it): a zone remembers only with the data on a disk
+DANE=$TESTY/strefa-dane.img
+rm -f "$DANE"; truncate -s 260M "$DANE"
+printf 'label: gpt\nstart=2048, size=524288, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
 # CI with KVM: K1 needs nested virtualization from the runner (S7); without it the zone test runs emulated
 EMULACJA=
 if [ -w /dev/kvm ]; then
@@ -34,7 +41,8 @@ import os, re, subprocess, sys
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
 repo, out, limit, cmdline, znak, emulacja = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4], sys.argv[5], sys.argv[6:]
-ZNAK = f"-drive if=none,id=znak,file={znak},format=raw,readonly=on -device virtio-blk-pci,drive=znak,serial=k1-test-strefy,addr=0x1e"
+ZNAK = (f"-drive if=none,id=znak,file={znak},format=raw,readonly=on -device virtio-blk-pci,drive=znak,serial=k1-test-strefy,"
+        f"addr=0x1e -drive if=none,id=dane,file={znak.replace('-znak', '-dane')},format=raw -device ide-hd,drive=dane,bus=ide.0")
 log, mon = f"{out}/strefa.log", f"{out}/strefa.sock"
 qemu = subprocess.Popen([f"{repo}/scripts/uruchom-qemu.sh", "--obraz", f"{repo}/build/wynik/rdzen-test.squashfs",
                          "--cmdline", cmdline, "--log", log, "--monitor", mon, "--czas", str(int(limit)),
@@ -216,6 +224,20 @@ for t in range(1, 5):
             czekaj(rf"K1-TEST: strefy: strefa próbna uruchomiona \(tryb {t}\)", czas=120) and
             czekaj(rf"K1-STREFA: strefa 1: koniec — {POWODY[t]}", czas=180) and
             czekaj(rf"K1-TEST: strefy: strefa skończyła się \(tryb {t}\)", czas=60))
+DYSK = r"K1-GOSC: dysk: uruchomienie (\d+)"
+liczniki = lambda: [int(m) for m in re.findall(DYSK, q.tekst())]
+sprawdz("STREFA PAMIĘTA (krok 5): z danymi na dysku nadzorca daje strefie dysk w skarbcu — pierwsze uruchomienie 1",
+        czekaj(r"K1-NADZORCA: strefa 1 \(Strefa próbna\): pid \d+, .*pamięta \(dysk w skarbcu\)", czas=30) and
+        liczniki()[:1] == [1], str(liczniki()))
+sprawdz("…ponowne otwarcie: gość czyta licznik z dysku — 2 (dane w skarbcu, kawałki po 64 KiB)",
+        czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 5\)", czas=300) and liczniki()[1:2] == [2], str(liczniki()))
+sprawdz("„Wyczyść dane sesji”: skarbiec usuwa kawałki dysku strefy, następne otwarcie liczy od 1",
+        czekaj(r"K1-NADZORCA: strefa 1: dane sesji usunięte \(\d+ kawałków\)", czas=60) and
+        czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 5\)", od=1, czas=300) and liczniki()[2:3] == [1],
+        str(liczniki()))
+z = re.findall(r"K1-STREFA: dysk strefy: kawałki wczytane (\d+), zapisane (\d+), błędy (\d+)", q.tekst())
+print(f"  [info]  dysk strefy na końcu każdego uruchomienia (wczytane, zapisane, błędy): {z}", flush=True)
+sprawdz("dysk strefy bez błędów zapisu i odczytu", z and all(b == "0" for _, _, b in z), str(z))
 sprawdz("K1 działa dalej po złośliwych gościach: nadzorca, ekran i pulpit bez awarii",
         czekaj(r"K1-TEST: strefy: koniec scenariusza", czas=60) and
         not re.search(r"K1-NADZORCA: (ekran|gui|nadzorca).*zakończon", q.tekst()))

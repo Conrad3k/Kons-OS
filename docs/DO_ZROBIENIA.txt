@@ -4,31 +4,26 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.9.1 — temat 0.9 Sieć: kabel (0.9.0) i Wi-Fi (0.9.1: lista sieci, łączenie z hasłem, sieci otwarte, zapamiętane
-sieci; plan 0.9.1 usunięty na Twoją prośbę — jest w historii git); teraz 0.10.0 — pierwsza wersja tematu 0.10 Strefy
-(plan: docs/PLAN-0.10.0.txt).
-Data: 2026-11-14.
+Stan: 0.10.0 — pierwsza wersja tematu 0.10 Strefy: Przeglądarka (Firefox) w osobnej maszynie, zaufana ramka, przewijanie,
+sesje, które pamiętają (plan zamknięty: docs/archiwum/PLAN-0.10.0.txt); teraz 0.10.1 „Balon” (plan: docs/PLAN-0.10.1.txt).
+Data: 2026-11-16.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — 0.10.0 Strefy: pierwsza strefa i przeglądarka (plan: docs/PLAN-0.10.0.txt)
-------------------------------------------------------------------------------------
-0.9 Sieć (ADR 0019, 0026, 0039, 0041) — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi (zmiany w CHANGELOG.md; plany 0.9.0 i 0.9.1
-usunięte na Twoją prośbę — są w historii git). Twój test 0.9.1 z 2026-11-14: Wi-Fi działa (punkt 4).
-    [x] 0.9.0: kabel, adres od routera, ikona sieci, Ustawienia → Sieć, zegar z internetu
-    [x] 0.9.1: Wi-Fi — karta, pliki od producentów, lista sieci (PR #105); łączenie z hasłem i z siecią otwartą,
-        zapamiętane sieci, ikona z siłą sygnału, wydanie (krok 2, PR #107)
-    [x] 0.10.0: plan wersji — docs/PLAN-0.10.0.txt (2026-11-14): trzy kroki — 1 pierwsza strefa w zaufanej ramce,
-        2 przeglądarka w strefie z połączeniami przez K1, 3 sesje, które pamiętają, porządki i wydanie
+1. TERAZ — 0.10.1 „Balon”: pamięć strefy według potrzeby (plan: docs/PLAN-0.10.1.txt)
+-------------------------------------------------------------------------------------
+0.10.0 Strefy (ADR 0042, 0043) — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.0.txt):
     [x] 0.10.0 krok 1 — pierwsza strefa (KVM, VMM, okno w zaufanej ramce; strefa próbna w testach) — PR #114
     [x] 0.10.0 krok 2 — przeglądarka w strefie, połączenia przez K1 — PR #119
-    [x] 0.10.0 krok 3 — poprawki przeglądarki po teście na sprzęcie: pamięć strefy (przeglądarka nie znika; gdy strefa
-        się zamknie — okienko z powodem), pełna ramka okna strefy (szkic A), bez przycisków okna Firefoksa — PR #126
-    [ ] 0.10.0 krok 4 — przewijanie kółkiem myszy i dwoma palcami na touchpadzie w całym systemie (wydzielony z kroku 3)
-    [ ] 0.10.0 krok 5 — stała strefa, Ustawienia → Aplikacje, porządki; wydanie 0.10.0
-    [x] 0.10.1: plan wersji — docs/PLAN-0.10.1.txt (2026-11-16, Twoja prośba): balon — po wydaniu 0.10.0
+    [x] 0.10.0 krok 3 — poprawki przeglądarki po teście na sprzęcie: pamięć strefy, pełna ramka (szkic A), bez przycisków
+        okna Firefoksa — PR #126
+    [x] 0.10.0 krok 4 — przewijanie kółkiem myszy i dwoma palcami na touchpadzie w całym systemie — PR #128
+    [x] 0.10.0 krok 5 — sesje, które pamiętają (dysk strefy w skarbcu), Ustawienia → Przeglądarka, menu sesji, porządki
+        (format 1 skarbca usunięty); wydanie 0.10.0 — PR #132
+    [ ] 0.10.1 krok 1 — pomiar: który limit pęka (awaria przy przełączaniu kart: kto się skończył) — plan 0.10.1
+    [ ] 0.10.1 krok 2 — balon (ADR 0044); krok 3 — pamięć komputera dzielona między K1 i strefy, wydanie 0.10.1
 
 
 2. MAPA DROGI (ADR 0035; dawne numery etapów M w nawiasach)
@@ -36,7 +31,7 @@ usunięte na Twoją prośbę — są w historii git). Twój test 0.9.1 z 2026-11
     0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
     0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
-    0.10     Strefy — teraz (0.10.0): obce aplikacje w mikro-maszynach, przeglądarka     (M8, z dawnym M11)
+    0.10     Strefy — 0.10.0 gotowe (przeglądarka w strefie); teraz 0.10.1 Balon, potem 0.10.5   (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
     0.13     Audyt → 1.0                                                           (M12)
@@ -47,15 +42,24 @@ Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kro
 3. NASTĘPNE WERSJE (zakres wstępny — dokładny plan pisze pierwszy czat danej wersji: docs/PLAN-<wersja>.txt)
 ---------------------------------------------------------------------------------------------------------
 0.10 Strefy (ADR 0020, 0024, 0025)
-    [ ] pierwsza mikro-maszyna (KVM; X230: włącz VT-x i VT-d w BIOS-ie) i okno z niej na ekranie K1
-    [ ] zaufana ramka w kolorze strefy rysowana przez ekran K1 (też RYZYKA R26: dziś aplikacje rysują własne ramki)
-    [ ] przełączniki przy aplikacji: stała / jednorazowa; pełna izolacja / szybka grafika (inny kolor ramki)
-    [ ] przeglądarka jako pierwsza aplikacja (Firefox czy WPE — ADR), sesje wg Twojej decyzji (punkt 5)
+    [x] pierwsza mikro-maszyna (KVM; X230: włącz VT-x i VT-d w BIOS-ie) i okno z niej na ekranie K1 (0.10.0)
+    [x] zaufana ramka w kolorze strefy rysowana przez ekran K1 (RYZYKA R26 domknięte dla stref, R80; 0.10.0)
+    [~] przełączniki przy aplikacji: stała / jednorazowa — 0.10.0 (Ustawienia → Przeglądarka); pełna izolacja / szybka
+        grafika (inny kolor ramki) — później
+    [x] przeglądarka jako pierwsza aplikacja (Firefox ESR w strefie, ADR 0043), sesje Ogólna, Bank, Prywatna (0.10.0)
     [ ] szybki start (zamrożony stan, zapasowa czysta maszyna), wspólny obraz bazowy
     [ ] 0.10.1 Balon (Twoja prośba z 2026-11-16; plan: docs/PLAN-0.10.1.txt, po 0.10.0): przeglądarka wysypywała się
         na X230 i IdeaPadzie po dwóch kartach i chwili czekania albo po minimalizacji i przywróceniu — najpierw pomiar,
         który limit pęka, potem balon (pamięć strefy rośnie i maleje według potrzeby, wolna wraca do K1), podział
         pamięci komputera między K1 i sesje, Zasoby pokazują pamięć sesji
+    [ ] szybszy dysk sesji, która pamięta (wyszło w CI 0.10.0, 2026-11-16): pierwsze okno Firefoksa po 156 s zamiast
+        62 s — skarbiec potwierdza na dysku osobno każdy zapisany kawałek (2× fdatasync; ok. 2900 zapisów w jednej
+        sesji testu). Kierunek: wiele kawałków jednym zatwierdzeniem przy FLUSH gościa (do 0.10.1 albo 0.10.5)
+    [ ] sesja, która pamięta: pierwsza strona tuż po starcie przeglądarki bywa wysłana dwa razy, raz bez ciasteczka (CI
+        0.10.0, przebieg 138: serwer dostał „brak”, zaraz potem „jest”) — sprawdzić na sprzęcie, czy po otwarciu
+        przeglądarki strona, na której byłeś zalogowany, pokazuje się od razu jako zalogowana
+    [ ] okno sesji znika od razu po „zamknij” (wyszło w CI 0.10.0, 2026-11-16): przeglądarka ma teraz do 20 s na zapisanie
+        danych sesji, a maszyna do 40 s na koniec — przez ten czas okno zostaje na ekranie (zwykle 1–2 s)
     [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna)
     [ ] Przeglądarka K1 (po pierwszej przeglądarce w strefie): okno, karty i pasek adresu jako aplikacja K1, silnik
         (kierunek: WPE WebKit) w strefie; sesje = strefy
@@ -107,11 +111,25 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.9.1). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
-z 2026-11-11). Najlepiej najpierw aktualizacja K1 na dysku X230 przez Instalator z pendrive'a 0.9.1 — dane zostają.
-Nowe w 0.9.1 (Wi-Fi):
-    [x] Twój wynik z 2026-11-14: Wi-Fi działa — lista sieci, łączenie, „wszystko git”; IdeaPad 110-15ISK ma kartę
-        Qualcomm (Atheros, sterownik ath10k z plikiem producenta wbudowanym w K1)
+Jedna lista — dla ostatniego wydania (0.10.0). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+z 2026-11-11). Najlepiej najpierw aktualizacja K1 na dysku przez Instalator z pendrive'a 0.10.0 — dane zostają.
+Nowe w 0.10.0 (przeglądarka w strefie):
+    [!] najpierw raz: wirtualizacja w BIOS-ie (README, punkt 8; D5 planu 0.10.0) — bez niej okienko „nie może ruszyć”
+    [ ] aktualizacja z 0.9.1 przez Instalator (Zaktualizuj system): dane i ustawienia zostają, pulpit startuje
+    [ ] menu Start → Przeglądarka: okno w ramce w kolorze sesji (szałwia), Firefox po polsku; ile sekund do strony
+        startowej (X230 i IdeaPad)
+    [ ] strony z internetu otwierają się; pisanie w polach, kliknięcia, kółko i dwa palce na touchpadzie przewijają
+    [ ] sesja pamięta: zaloguj się na jakiejś stronie (albo dodaj zakładkę) w Ogólnej → zamknij okno → otwórz znów —
+        dalej zalogowany; to samo po wyłączeniu i włączeniu K1
+    [ ] Prywatna (prawy przycisk na Przeglądarce w menu Start → Prywatna): jasny pasek, po zamknięciu nic nie pamięta
+    [ ] Ustawienia → Przeglądarka: „Zmień nazwę” (np. Bank → Urzędy) — nowa nazwa na pasku okna i w menu; „Wyczyść dane”
+        (dwa kliknięcia) — Ogólna zaczyna od nowa; „Zapomina” — od następnego otwarcia
+    [ ] Ustawienia → Miejsce: część „Strefy” rośnie, gdy sesja pamięta strony
+    [ ] touchpad (krok 4): ruch, stuknięcia (1/2/3 palce), przewijanie dwoma palcami — X230 i IdeaPad; log wejścia z
+        nazwą touchpada (jeśli coś nie działa)
+    [ ] przeglądarka nie znika przy kilku kartach (jeśli zniknie — okienko „zamknęła się” z powodem: zapisz go; to temat
+        0.10.1 „Balon”)
+Z 0.9.1 (Wi-Fi): [x] Twój wynik z 2026-11-14 — Wi-Fi działa.
 Z 0.9.0 (kabel, niesprawdzone):
     [ ] kabel do routera — X230 i IdeaPad: ikona sieci na górnym pasku (wtyczka) przechodzi z „łączę” (kropka) na
         „połączono” (jasna) w kilka sekund; wyjęcie kabla — krzyżyk; włożenie — znów „połączono”
@@ -140,10 +158,9 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 --------------------------------------------------------
 [x] Klucz podpisu — sekret dodany 2026-11-12; od 0.8.3 wydania są podpisane, Secure Boot z kluczem K1 dostępny
     (włączenie — punkt 4).
-[!] 0.10.0 — decyzje D1–D7 w docs/PLAN-0.10.0.txt (punkt 4), każda z rekomendacją; czat zada je na początku swojego
-    kroku. Dawne pytania stąd są tam: sesje przeglądarki — D2 (rekomendacja: Ogólna, Bank, Prywatna), testy stref
-    z KVM — D4 (rekomendacja: Twój komputer niepotrzebny — QEMU udaje wirtualizację także w emulacji).
-[!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (D5 w planie 0.10.0).
+[x] 0.10.0 — decyzje D1–D8 podjęte (docs/archiwum/PLAN-0.10.0.txt, punkt 4).
+[!] 0.10.1 — decyzje w docs/PLAN-0.10.1.txt (punkt 4); czat zada je na początku swojego kroku.
+[!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
 
 Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
   - styl: minimalistyczno-ciepły (Claude/Anthropic); pulpit jak w Windows 11, pasek na dole, wyśrodkowany; na górze
@@ -168,21 +185,25 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         (grubenv, ADR 0022), więc w 0.12 decyzja: zostaje czy zastępujemy (ADR)
     [x] przeniesienie notatek z 0.5.6–0.7.6 do plików (0.8.0, ADR 0030) — usunięte w 0.9.0 (krok 3), Twoja decyzja
         z 2026-11-12: notatki z pendrive'a zapisanego 0.5.6–0.7.6 nie przejdą już do Plików
-    [ ] format 1 skarbca (dwie połowy, 0.5.6–0.8.1) — odczyt, zapis do istniejącego magazynu i przejście na format 2
-        (0.8.2, ADR 0036) — termin 0.10.0. Warunek usunięcia: żaden magazyn formatu 1 nie został (Twój pendrive
-        przeszedł — log skarbca „format 2”; magazyn, który nie mieścił się w wolnej połowie, też). Bez tego kodu
-        pendrive nagrany 0.5.6–0.8.1 i nieuruchomiony z 0.8.2+ nie otworzy się. Testy formatu 1 (magazyn_testowy,
-        test_magazyn, test_przejscie) odchodzą razem z nim. Miejsca: src/skarbiec/obszary.c, src/skarbiec/przejscie.c
+    [x] format 1 skarbca (dwie połowy, 0.5.6–0.8.1) i przejście na format 2 — usunięte w 0.10.0 (krok 5, Twoja decyzja
+        D7: takiego nośnika już nie masz); nagłówek formatu 1 jest rozpoznawany i zostawiany nietknięty
+    [ ] odczyt ustawień ekranu w starych formatach K1U1–K1U3 (src/ekran/zapis.c) — termin 0.11.0: od 0.10.0 ekran zapisuje
+        takie ustawienia od nowa jako K1U4 przy pierwszym odczycie, więc po jednym starcie z 0.10.x nie są już potrzebne
     [x] przegląd 0.7.5, 0.8.0 i 0.8.2: innych rozwiązań tymczasowych nie ma; terminy 0.9.0 bez zmian
     [x] przegląd 0.9.0 (krok 9): terminy 0.9.0 usunięte (krok 3), format 1 skarbca — termin 0.10.0 bez zmian; nowych
         rozwiązań tymczasowych 0.9.0 nie dodało
     [x] 0.9.1: nowych rozwiązań tymczasowych nie dodało (0.9.1 to PATCH — porządki MINOR przy 0.10)
+    [x] przegląd 0.10.0 (krok 5): termin 0.10.0 dotrzymany (format 1 skarbca); nowe tymczasowe — K1U1–K1U3 (0.11.0)
+    [ ] test przeglądarki informacyjny (Twoja decyzja 2026-11-16, scripts/testy.sh: INFORMACYJNE) — jego błąd nie
+        blokuje scalenia ani wydania; w 0.10.1 (Balon: stabilna przeglądarka w strefie) wraca jako blokujący albo
+        dzieli się na część stałą (K1: strefa, łącznik, zamykanie, dysk sesji — po logach) i część na sprzęcie
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
 ---------------------------------------------------------------------------------------
     0.9    podjęte (ADR 0038, 0039, 0041 — pliki od producentów kart Wi-Fi, własne logowanie WPA2, ramki EAPOL)
-    0.10   rekomendacje w docs/PLAN-0.10.0.txt (T1–T11): własny VMM w C, Firefox ESR w strefie (WPE — dla Przeglądarki
-           K1), sieć stref przez łącznik (SOCKS5); decyzje w ADR 0042 (krok 1) i 0043 (krok 2); test KVM na Twoim sprzęcie
+    0.10   podjęte (docs/archiwum/PLAN-0.10.0.txt, T1–T11): własny VMM w C, Firefox ESR w strefie (WPE — dla Przeglądarki
+           K1), sieć stref przez łącznik (SOCKS5), dysk strefy w skarbcu; ADR 0042 (z uzupełnieniem T11) i 0043;
+           0.10.1 — balon (ADR 0044, plan 0.10.1)
     0.12   RANDSTRUCT w jądrze; zarządzanie kluczami; ochrona jądra przez wirtualizację — tak/nie
     Podjęte wcześniej: docs/adr/README.md (spis wszystkich decyzji).

@@ -8,7 +8,8 @@
  *   dok_kanal.c   K1_KOM_DOK_* requests of clients: the table of rights, memfd in and out
  *   dostep.c      a file for an application after a gesture: "Otwórz za pomocą", the file picker (ADR 0030)
  *   miejsce.c     the room for files, K1-DANE to the end of its USB stick (0.8.1 step 3, ADR 0033)
- *   przerwy.c     work between requests: compaction in steps, the transition to format 2 (0.8.2, ADR 0036)
+ *   przerwy.c     work between requests: compaction in steps (0.8.2, ADR 0036)
+ *   strefy.c      the disks of the zones that remember: who may name their pieces, room, deleting (0.10.0 step 5)
  *   zalegle.c     replies a client's full channel did not take yet: they wait and go in order (0.9.0, zalegle.h)
  *
  * Documentation: docs/komponenty/skarbiec.md. */
@@ -37,21 +38,20 @@ int ob_zapisz(int wl, const char *nazwa, const void *dane, uint32_t dl);
 int ob_usun(int wl, const char *nazwa);
 /* Calls `f` for the name of every object of owner `wl` (the names are copied first: `f` may delete). */
 void ob_kazdy(int wl, void (*f)(const char *nazwa, void *ctx), void *ctx);
+/* Bytes of the objects of owner `wl` (their data); *ile grows by their number. */
+uint64_t ob_bajty(int wl, uint32_t *ile);
 /* Room (0.8.1, ADR 0034): free bytes and the whole (the vault's region, or the memory for objects without one). */
 uint64_t ob_wolne(void);
 uint64_t ob_pojemnosc(void);
 /* The vault takes all of a partition now `bajty` long (k1_mag_powieksz; logged with `kiedy`). */
 int ob_powieksz(uint64_t bajty, const char *kiedy);
-/* Right after the vault opened or was unlocked: a grow cut off is finished, a long log of format 1 compacted. */
+/* Right after the vault opened or was unlocked: a grow cut off is finished. */
 void ob_po_otwarciu(void);
 
-/* przerwy.c: work in the quiet moments of the loop (0.8.2, ADR 0036) — compaction (format 2 in steps of 4 MiB) and
- * the transition to format 2 once the start of this version is confirmed */
+/* przerwy.c: work in the quiet moments of the loop (0.8.2, ADR 0036) — compaction in steps of 4 MiB */
 double przerwa_czeka(void);    /* seconds without a request before the next piece of work; < 0: none (0: now) */
 int przerwa_praca(void);       /* one piece of it; 1 when the room for files changed (clients ask again) */
 void przerwa_trwala(double s); /* a request kept the loop busy `s` seconds (the longest goes to the log) */
-void przerwa_kompaktuj_calosc(const char *kiedy); /* format 1: everything at once, logged with `kiedy` */
-void przejscie_wolno(void);    /* nadzorca's START_POTWIERDZONY */
 
 /* haslo.c */
 int haslo_ustawione(void);
@@ -81,6 +81,12 @@ void miejsce_wyslij(int fd);
 int miejsce_podzial(int fd, int wlasciciel); /* CZESC for every part (Ustawienia only, 0.8.5); the result for WYNIK */
 int miejsce_powieksz(void);               /* Ustawienia asked: 0 = nadzorca asked (POWIEKSZ_DANE), else K1_MAG_ARG */
 int miejsce_powiekszono(int wynik);       /* nadzorca's POWIEKSZONO: the vault takes the partition; the result */
+
+/* strefy.c: the disks of the zones (0.10.0 step 5) */
+int strefy_wolno(int wl, uint32_t obiekt);           /* 1: owner `wl` may name object `obiekt` (a piece: zones only) */
+int strefy_miejsce_na(uint32_t obiekt, uint32_t dl); /* 1: room for it (a piece never takes the files' reserve) */
+void strefy_wyczysc(int wl);                         /* SKARB_WYCZYSC: every piece of `wl`, then WYCZYSZCZONO */
+uint64_t strefy_bajty(uint32_t *kawalki);            /* what the disks of all zones take (Ustawienia → Miejsce) */
 
 /* dostep.c: what applications were given (owner `wl`, file `id`) and the file picker */
 int dostep_daj(int wl, uint32_t id); /* 0, or K1_DOK_BLAD_OTWARTE: it has K1_DOK_DOSTEP_APL files already */

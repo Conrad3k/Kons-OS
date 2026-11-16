@@ -187,6 +187,14 @@ void strefa_uruchom(int nr, int tryb);
  * `cicho` — K1 stopped it itself, or a test's hostile guest: only the log. */
 void strefa_koniec(int nr, int status, int cicho);
 /* strefy_siec.c (0.10.0 step 2, ADR 0043 T9): the browser's connections — each running zone's channel (VMM's fd 7) */
+/* strefy_ust.c (0.10.0 step 5): the sessions as the user set them — kept in skarbiec, sent to gui, ekran, Ustawienia */
+int sesja_pamieta(int nr);        /* 1: zone nr gets its disk (it remembers, the vault is on a disk, they were read) */
+const char *sesja_nazwa(int nr);  /* its session's name ("" for a zone without a session) */
+void sesje_okresowe(void);        /* every loop: read them, send what changed */
+void sesje_nowy_kanal(int ustawienia); /* a new channel of gui (0) or Ustawienia (1): send everything again */
+void sesje_prosba(const struct k1_komunikat *k, int z_testu); /* STREFA_TRWALOSC / _NAZWA / _WYCZYSC */
+void sesje_wyczyszczono(const struct k1_komunikat *k);        /* skarbiec's SKARB_WYCZYSZCZONO */
+int do_ekranu_fd(void);           /* uslugi.c: our end of ekran's control channel (-1: none) */
 extern int strefa_kanal[K1_STREFY_MAKS + 1];
 int strefa_kanal_nowy(int nr);  /* a new channel for zone nr: the VMM's end (fd), or -1 */
 void strefa_kanal_koniec(int nr); /* the zone ended: its channel goes */
@@ -277,7 +285,6 @@ int siec_adres_karty(int nr, uint32_t a, int pre, int dodaj); /* add / take away
 int siec_trasa(int nr, uint32_t router);                     /* the default route through `router` on card nr */
 
 /* skarb.c: the start is confirmed — skarbiec may move its vault to format 2 (0.8.2, ADR 0036) */
-void skarb_start_potwierdzony(void);
 
 /* rozruch.c — A/B after a start (0.7.0, ADR 0022) */
 extern char ab_nieudana[32];

@@ -29,7 +29,7 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 | `src/logowanie/` | `/rdzen/system/logowanie` — ekran hasła przy starcie (M5e, ADR 0017) |
 | `src/instalator/` | `/rdzen/system/instalator` — zapis K1 na dysk komputera, tablica GPT (M5f, ADR 0018), wymiana plików startowych przy aktualizacji (`start.c`, 0.9.0, ADR 0038) |
 | `src/siec/` | `/rdzen/system/siec` — adres od routera (DHCP) dla karty z kablem i zegar z internetu (SNTP, kilka serwerów), w klatce; adres i zegar ustawia nadzorca (`src/nadzorca/siec*.c`; 0.9.0, ADR 0039); od 0.9.1 opisy sieci Wi-Fi z powietrza → lista (`wifi.c`, `lista.c`); kartę, radio i szukanie obsługuje nadzorca (`src/nadzorca/wifi*.c`, ADR 0041); krok 2: logowanie WPA2 (`eapol.c`, `wpa.c`), połączenie (`polacz.c`), wybór sieci (`wybor.c`), zapamiętane sieci w skarbcu (`pamiec.c`, `skarb.c`) |
-| `src/strefa/` | `/rdzen/system/strefa` — VMM jednej strefy (0.10.0, ADR 0042): maszyna KVM (`kvm.c`), start jądra strefy bez firmware (`start.c`), kolejki i rejestry virtio (`virtq.c`, `mmio.c` — czyste, testy na hoście i fuzzing), urządzenia (`blk.c`, `konsola.c`, `rng.c`, `wejscie.c`, `gpu.c`, `vsock.c`; jedna tabela `K1_URZADZENIA` w `strefa.h`), okno u ekranu (`okno.c`); `gosc/` — `/init` strefy próbnej (tylko obraz testowy). Strefy: tabela `K1_STREFY` w `k1_uslugi.h`, uruchamia nadzorca (`strefy.c`), ramkę rysuje ekran (`src/ekran/strefy.c`) |
+| `src/strefa/` | `/rdzen/system/strefa` — VMM jednej strefy (0.10.0, ADR 0042): maszyna KVM (`kvm.c`), start jądra strefy bez firmware (`start.c`), kolejki i rejestry virtio (`virtq.c`, `mmio.c` — czyste, testy na hoście i fuzzing), urządzenia (`blk.c`, `konsola.c`, `rng.c`, `wejscie.c`, `gpu.c`, `vsock.c`; jedna tabela `K1_URZADZENIA` w `strefa.h`), okno u ekranu (`okno.c`); `gosc/` — `/init` strefy próbnej (tylko obraz testowy). Strefy: tabela `K1_STREFY` w `k1_uslugi.h`, uruchamia nadzorca (`strefy.c`), ramkę rysuje ekran (`src/ekran/strefy.c`); dysk sesji, która pamięta — `dane.c` + `dysk.c` (kawałki w skarbcu, 0.10.0 krok 5) |
 | `src/czytnik/` | `/rdzen/system/czytnik` — pendrive dla Plików: MBR/GPT i FAT12/16/32 w klatce, tylko odczyt (0.8.0 krok 3, ADR 0031) |
 | `src/dekoder/` | `/rdzen/system/dekoder` — jeden obraz (PNG, JPEG, od 0.8.2 GIF, BMP, WebP; do 100 Mpx) → piksele, jednorazowy proces w klatce na prośbę klienta z tabeli (Pliki, Podgląd; 0.8.0 krok 4, ADR 0032, 0037) |
 | `src/zewnetrzne/` | kod zewnętrzny w repozytorium: Monocypher (kryptografia skarbca) i Wuffs (dekoder obrazów) — jedyne obce biblioteki, wersje i uzasadnienie w `docs/ZALEZNOSCI.md` |
@@ -91,7 +91,8 @@ src/ ──► build/musl/bin/musl-gcc (static-pie, flagi SPEC §11, _FORTIFY_SO
          ──► sprawdzenie ELF i pułapek fortify (sprawdz-binaria.sh)
                      initramfs.cpio  ◄── /init (k1-initramfs)
                      rdzen.squashfs  ◄── init, system/{nadzorca + usługi z K1_SYSTEM}, aplikacje/{z K1_APLIKACJE},
-                                         katalogi jadro/{dev,proc,sys}
+                                         katalogi jadro/{dev,proc,sys}, strefy/{jadro, przegladarka.img (0.10.0),
+                                         dysk.img — pusty dysk strefy, mke2fs przy budowie (0.10.0 krok 5)}
                      rdzen-test.squashfs ◄── + system/test-systemu (+ plik ze „#!” do testu negatywnego)
                      k1.efi ◄── to samo jądro + wbudowana linia poleceń (noinitrd) + initramfs z rdzen.squashfs,
                                 podpis Secure Boot (klucz z K1_KLUCZ_PODPISU; bez niego — deweloperski)

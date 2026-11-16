@@ -53,6 +53,7 @@ struct klient {
     int zalogowane;       /* rejection log lines written (rate limit) */
     double od;            /* when it connected */
     int mial_okno;        /* it has shown a window before (focus stealing protection) */
+    int pamieta;          /* a zone (role STREFA): it got its disk when it started (0.10.0 step 5; its frame says so) */
     struct zalegle zal;   /* what its full channel did not take yet (0.8.5 step 1, zalegle.h) */
     unsigned long zal_log; /* zal.porzucone + zal.wazne when last logged */
 };
@@ -151,7 +152,9 @@ void ustaw_fokus(int i);
 void minimalizuj(int i);
 void zamknij_okno(int i); /* asks its client to close it (K1_KOM_ZAMKNIJ) */
 
-/* strefy.c — the frame of a zone's window (0.10.0, ADR 0042) */
+/* strefy.c — the frame of a zone's window (0.10.0, ADR 0042); the sessions from nadzorca (0.10.0 step 5) */
+void strefy_sesje(const struct k1_komunikat *k);              /* STREFY_STAN, STREFA_NAZWA on the control channel */
+int strefa_pamieta(int nr);                                   /* zone nr remembers (as nadzorca said last) */
 enum { STREFA_RAMKA = 1, STREFA_TYTUL, STREFA_MINIMALIZUJ, STREFA_ZAMKNIJ }; /* where on the frame */
 int okno_strefy(const struct pow *p);
 struct prost strefa_obszar(const struct pow *p);              /* the window with K1's frame around it */

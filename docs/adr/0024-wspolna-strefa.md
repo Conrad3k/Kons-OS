@@ -1,6 +1,6 @@
 # 0024. Wspólna strefa na drobne, zaufane aplikacje
 
-- Status: Przyjęty (kierunek; szczegóły techniczne — w ADR etapu M8)
+- Status: Przyjęty (kierunek); niewdrożony — w 0.10.0 każda strefa to osobna maszyna (ADR 0042), wspólna strefa po 0.10.x
 - Data: 2026-11-08
 - Dotyczy: ADR 0020 (strefy — rozszerza punkt 4 „grupy”), SPEC §8, RYZYKA R26
 

@@ -1,13 +1,12 @@
 #!/bin/sh
-# Test 0.8.1 krok 2 (ADR 0034, powtarzalny) i 0.8.2 krok 1c (ADR 0036): skarbiec z trudnym dyskiem danych w działającym
-# K1 (obraz produkcyjny). Dyski robi testy/host/magazyn_testowy.c (kod skarbca) w formacie 1 (jak zapisywały 0.5.6–0.8.1)
-# albo 2; po teście ten sam program sprawdza na hoście format i treść każdego obiektu.
-#   1. „dziennik”: K1-DANE 190 MiB, format 1 z długim dziennikiem (jeden obiekt zapisany 20 000 razy — 78 MiB starych
-#      wersji) → skarbiec kompaktuje przy otwarciu, pulpit startuje; po potwierdzeniu startu (15 s) — przejście na format 2;
-#      ponowny start — format 2, bez kompaktowania; na hoście: ostatnia wersja obiektu
-#   2. „przejście”: K1-DANE 64 MiB z 0.5.6–0.8.1 prawie pełna (format 1, obszar 31 MiB, 6 MiB wolne) → przejście na
-#      format 2 dopiero po potwierdzeniu startu, w przerwach → Ustawienia → Miejsce: miejsce na pliki 23 → 50 MiB;
-#      na hoście: format 2 i każdy obiekt (25 × 1 MiB) bez zmian
+# Test 0.8.1 krok 2 (ADR 0034, powtarzalny) i 0.8.2 (ADR 0036): skarbiec z trudnym dyskiem danych w działającym K1
+# (obraz produkcyjny). Dyski robi testy/host/magazyn_testowy.c (kod skarbca); po teście ten sam program sprawdza na
+# hoście treść każdego obiektu.
+#   1. (0.10.0, D7) „stary”: K1-DANE z magazynem formatu 1 (0.5.6–0.8.1; od 0.10.0 bez kodu przejścia na format 2) →
+#      skarbiec mówi, że go nie otwiera (uruchom raz z 0.9.1), dane tylko w pamięci, pulpit startuje; na hoście: partycja
+#      nietknięta (ta sama suma). Do 0.9.1 tu były „dziennik” (format 1 z długim dziennikiem) i „przejście” (format 1 → 2)
+#   2. „wersje”: K1-DANE 190 MiB, jeden obiekt zapisany 20 000 razy (78 MiB starych wersji) → magazyn otwiera się od razu
+#      (format 2 czyta spis i ogon, nie dane), pulpit startuje; na hoście: ostatnia wersja obiektu
 #   3. „pełny”: K1-DANE 64 MiB w formacie 2, zajęta prawie do końca (6 MiB wolne) → Pliki: „Nowy folder” odrzucony (brak
 #      miejsca na pliki, wynik −28), a ustawienie systemu (Ustawienia → Wygląd: ciemny motyw) się zapisuje
 #   4. (0.8.1 krok 3, ADR 0033) „powiększenie”: ta sama pełna K1-DANE na pendrivie USB o 512 MiB większym → Ustawienia →
@@ -33,23 +32,23 @@ sprawdz() {
         "$TESTY" "$CZAS" "$1" || r=1
     zamknij_qemu "$TESTY/skarbiec-$1.sock" $QPID
 }
-# dysk OBRAZ SEKTORY WERSJI ZOSTAW_MIB FORMAT — a GPT disk with one K1-DANE partition holding magazyn_testowy's vault
+# dysk OBRAZ SEKTORY WERSJI ZOSTAW_MIB — a GPT disk with one K1-DANE partition holding magazyn_testowy's vault
 dysk() {
     rm -f "$1" "$1.czesc"
     truncate -s $(( ($2 + 4096) * 512 )) "$1"
     printf 'label: gpt\nstart=2048, size=%s, name="K1-DANE"\n' "$2" | sfdisk -q "$1" >/dev/null
     truncate -s $(( $2 * 512 )) "$1.czesc"
-    wynik=$("$K1_BUDOWA/obj/magazyn_testowy" "$1.czesc" "$3" "$4" "$5") || r=1
+    wynik=$("$K1_BUDOWA/obj/magazyn_testowy" "$1.czesc" "$3" "$4") || r=1
     echo "  $wynik"
     dd if="$1.czesc" of="$1" bs=512 seek=2048 conv=notrunc,sparse status=none; rm -f "$1.czesc"
 }
-# tresc OBRAZ SEKTORY WERSJI FORMAT OPIS — after the run: the vault on the disk has FORMAT and every object as written
+# tresc OBRAZ SEKTORY WERSJI OPIS — after the run: every object of the vault on the disk as written
 tresc() {
     dd if="$1" of="$1.czesc" bs=512 skip=2048 count="$2" conv=sparse status=none
-    if wynik=$("$K1_BUDOWA/obj/magazyn_testowy" --sprawdz "$1.czesc" "$3" "$4"); then
-        echo "  [OK]    $5 ($wynik)"
+    if wynik=$("$K1_BUDOWA/obj/magazyn_testowy" --sprawdz "$1.czesc" "$3"); then
+        echo "  [OK]    $4 ($wynik)"
     else
-        echo "  [BŁĄD]  $5 ($wynik)"; r=1
+        echo "  [BŁĄD]  $4 ($wynik)"; r=1
     fi
     rm -f "$1.czesc"
 }
@@ -61,7 +60,6 @@ from k1qemu import Maszyna
 log, mon, out, limit, tryb = sys.argv[1], sys.argv[2], sys.argv[3], float(sys.argv[4]), sys.argv[5]
 q = Maszyna(log, mon, out, limit, "skarbiec")
 tekst, czekaj, zrzut, sprawdz, klik = q.tekst, q.czekaj, q.zrzut, q.sprawdz, q.klik
-KOMP = r"K1-SKARBIEC: kompaktowanie \(przy otwarciu\): dziennik (\d+) → (\d+) MiB"
 
 
 def po(wzor, akcja, czas=30):
@@ -83,24 +81,6 @@ ax, ay, krok = int(g.group(3)), int(g.group(4)), int(g.group(5))
 pasek = lambda i: (ax + i * krok, ay)  # 0 Zegar, 1 Notatki, 2 Ustawienia, 3 Zasoby, 4 Kalkulator, 5 Pliki
 
 MIEJSCE = r"K1-USTAWIENIA: miejsce: zajęte (\d+) z (\d+) MiB, pliki i foldery (\d+) z 16384, pendrive ma więcej (\d+) MiB; przycisk (-?\d+),(-?\d+)"
-PRZEJSCIE = (r"K1-SKARBIEC: przejście na format 2: gotowe — (\d+) obiektów, (\d+) kroków w [\d.]+ s, najdłuższy krok ([\d.]+) s "
-             r"\(procesor ([\d.]+) s\), najdłuższa przerwa w odpowiedziach ([\d.]+) s; miejsce na dane (\d+) → (\d+) MiB")
-
-
-def przejscie(opis, przed, po):
-    """The transition to format 2 (0.8.2 step 1c): only after the start was confirmed, then done in steps."""
-    p = czekaj(PRZEJSCIE, czas=limit * 0.6)
-    t_ = tekst()
-    i_potw, i_start = t_.find("start tej wersji potwierdzony"), t_.find("przejście na format 2 (ADR 0036): kopiuję")
-    sprawdz(f"{opis}: przejście na format 2 dopiero po potwierdzeniu startu (nadzorca, 15 s pulpitu)",
-            0 <= i_potw < i_start and "K1-NADZORCA: start" in t_[:i_potw])
-    # 0.8.5: the work of a step is its processor time — by the clock a step of 0.01 s took 1.25 s once in CI (eight
-    # machines writing big images at once: the disk of the host), the clock time stays in the log
-    sprawdz(f"{opis}: przejście gotowe w przerwach — miejsce na dane {przed} → {po} MiB, najdłuższy krok < 1 s procesora",
-            p and int(p.group(6)) == przed and int(p.group(7)) == po and float(p.group(4)) < 1.0, p.group(0) if p else "brak")
-    return p
-
-
 def informacje(u0=None):
     """Ustawienia → Miejsce (0.8.5; Informacje until 0.8.3): the room for files line."""
     u0 = u0 or okno("ustawienia", lambda: klik(*pasek(2)))
@@ -109,21 +89,14 @@ def informacje(u0=None):
     return u0, m
 
 
-if tryb == "dziennik":
-    m = czekaj(KOMP)
-    sprawdz("długi dziennik (78 MiB starych wersji): skarbiec kompaktuje przy otwarciu",
-            m and int(m.group(1)) >= 78 and int(m.group(2)) <= 1, m.group(0) if m else "brak")
-    przejscie("K1-DANE 190 MiB", 94, 168)
-elif tryb == "dziennik-ponownie":
-    sprawdz("ponownie: magazyn otwarty w formacie 2, bez kompaktowania i bez ponownego przejścia",
-            czekaj(r"K1-SKARBIEC: magazyn otwarty: \d+ obiektów \(format 2, ") and not re.search(KOMP, tekst()) and
-            "przejście na format 2" not in tekst())
-elif tryb == "przejscie":
-    przejscie("K1-DANE 64 MiB z 0.8.1, prawie pełna", 31, 58)
-    u0, m = informacje()
-    sprawdz("Ustawienia → Miejsce po przejściu: miejsce na pliki 50 MiB (w formacie 1: 23), dane zostały",
-            m and int(m.group(2)) == 50 and 25 <= int(m.group(1)) <= 30, m.group(0) if m else "brak")
-    zrzut("przejscie-informacje", gdy=lambda w, h, px: True)
+if tryb == "stary":
+    sprawdz("magazyn formatu 1 (0.5.6–0.8.1): skarbiec go nie otwiera ani nie nadpisuje, dane tylko w pamięci",
+            czekaj(r"K1-SKARBIEC: partycja K1-DANE ma magazyn formatu 1 \(K1 0\.5\.6–0\.8\.1\) — ta wersja go nie otwiera") and
+            "utworzono nowy magazyn" not in tekst())
+elif tryb == "wersje":
+    m = czekaj(r"K1-SKARBIEC: magazyn otwarty: (\d+) obiektów \(format 2, ([\d.]+) s\)")
+    sprawdz("20 000 wersji jednego obiektu (78 MiB starych): magazyn otwiera się od razu (spis i ogon, nie dane)",
+            m and float(m.group(2)) < 5.0, m.group(0) if m else "brak")
 elif tryb == "dokonczenie":
     sprawdz("tablica powiększona, magazyn nie (przerwa prądu): skarbiec bierze całą partycję przy starcie",
             (m := czekaj(r"K1-SKARBIEC: magazyn powiększony do całej partycji K1-DANE \(dokończenie po starcie\): miejsce na dane 58 → (\d+) MiB"))
@@ -204,27 +177,31 @@ sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych k
 sys.exit(0 if all(q.wyniki) else 1)
 PY
 
-echo "[k1] test skarbca (0.8.1 krok 2, 3; 0.8.2 krok 1c): długi dziennik, przejście na format 2, prawie pełny dysk danych, powiększenie"
+echo "[k1] test skarbca (0.8.1 krok 2, 3; 0.10.0): magazyn formatu 1, wiele wersji, prawie pełny dysk danych, powiększenie"
 make -C "$K1_REPO" -s "$K1_BUDOWA/obj/magazyn_testowy" >/dev/null
-DZ=$TESTY/skarbiec-dziennik.img
-dysk "$DZ" 389120 20000 0 1
-uruchom dziennik --qemu "-drive if=none,id=dane,file=$DZ,format=raw -device ide-hd,drive=dane,bus=ide.0"
-sprawdz dziennik
-uruchom dziennik-ponownie --qemu "-drive if=none,id=dane,file=$DZ,format=raw -device ide-hd,drive=dane,bus=ide.0"
-sprawdz dziennik-ponownie
-tresc "$DZ" 389120 20000 2 "dziennik na hoście: format 2, ostatnia z 20 000 wersji"
-PR=$TESTY/skarbiec-przejscie.img
-dysk "$PR" 131072 0 6 1
-uruchom przejscie --qemu "-drive if=none,id=dane,file=$PR,format=raw -device ide-hd,drive=dane,bus=ide.0"
-sprawdz przejscie
-tresc "$PR" 131072 0 2 "przejście na hoście: format 2, każdy obiekt (1 MiB) bez zmian"
+# 1. a vault of format 1: its two header copies ("K1SKARB1", version 1) and some data after them, as 0.8.1 left it
+ST=$TESTY/skarbiec-stary.img
+rm -f "$ST"; truncate -s $(( (131072 + 4096) * 512 )) "$ST"
+printf 'label: gpt\nstart=2048, size=131072, name="K1-DANE"\n' | sfdisk -q "$ST" >/dev/null
+for b in 0 1; do printf 'K1SKARB1\001\000\000\000' | dd of="$ST" bs=1 seek=$(( 2048 * 512 + b * 4096 )) conv=notrunc status=none; done
+head -c 65536 /dev/urandom | dd of="$ST" bs=4096 seek=$(( 2048 / 8 + 2 )) conv=notrunc status=none
+SUMA=$(sha256sum < "$ST")
+uruchom stary --qemu "-drive if=none,id=dane,file=$ST,format=raw -device ide-hd,drive=dane,bus=ide.0"
+sprawdz stary
+if [ "$(sha256sum < "$ST")" = "$SUMA" ]; then echo "  [OK]    magazyn formatu 1 na hoście: partycja nietknięta (ta sama suma)"
+else echo "  [BŁĄD]  magazyn formatu 1 na hoście: partycja zmieniona"; r=1; fi
+DZ=$TESTY/skarbiec-wersje.img
+dysk "$DZ" 389120 20000 0
+uruchom wersje --qemu "-drive if=none,id=dane,file=$DZ,format=raw -device ide-hd,drive=dane,bus=ide.0"
+sprawdz wersje
+tresc "$DZ" 389120 20000 "wersje na hoście: ostatnia z 20 000 wersji"
 PE=$TESTY/skarbiec-pelny.img
-dysk "$PE" 131072 0 6 2
+dysk "$PE" 131072 0 6
 uruchom pelny --qemu "-drive if=none,id=dane,file=$PE,format=raw -device ide-hd,drive=dane,bus=ide.0"
 sprawdz pelny
 # 3. the same full K1-DANE on a USB stick 512 MiB larger, a second stick (FAT32) with 16 photos of 2.8 MB
 PW=$TESTY/skarbiec-powiekszenie.img FOT=$TESTY/skarbiec-zdjecia.img
-dysk "$PW" 131072 0 6 2
+dysk "$PW" 131072 0 6
 truncate -s $(( (131072 + 4096) * 512 + (512 << 20) )) "$PW" # as a small image written to a larger stick
 Z=$TESTY/skarbiec-zdjecia
 rm -rf "$Z" "$FOT"; mkdir -p "$Z"
@@ -255,12 +232,12 @@ else
 fi
 # 4. a power cut between the new table and the vault's header: the table grown by another program
 DK=$TESTY/skarbiec-dokonczenie.img
-dysk "$DK" 131072 0 6 2
+dysk "$DK" 131072 0 6
 truncate -s $(( (131072 + 4096) * 512 + (512 << 20) )) "$DK"
 sfdisk -q --relocate gpt-bak-std "$DK" >/dev/null 2>&1
 echo ", +" | sfdisk -q -N 1 "$DK" >/dev/null 2>&1 || r=1
 uruchom dokonczenie --qemu "-drive if=none,id=dane,file=$DK,format=raw -device ide-hd,drive=dane,bus=ide.0"
 sprawdz dokonczenie
-rm -f "$DZ" "$PR" "$PE" "$PW" "$FOT" "$DK"
+rm -f "$ST" "$DZ" "$PE" "$PW" "$FOT" "$DK"
 if [ $r -eq 0 ]; then info "skarbiec: wszystko zaliczone"; else echo "[k1] skarbiec: BŁĄD (logi: $TESTY/skarbiec-*.log)"; fi
 exit $r

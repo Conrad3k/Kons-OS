@@ -2,7 +2,8 @@
  * the zone image, its window at ekran in a frame ekran draws. Started by nadzorca (strefy.c) in KLATKA_STREFA with
  *   argv[1] = the zone number (its row of K1_STREFY), argv[2] = the guest's test mode (test image only; 0: none),
  *   fd 3 = the channel to ekran (role STREFA), fd 4 = /dev/kvm, fd 5 = the zone kernel, fd 6 = the zone image,
- *   fd 7 = the channel to nadzorca for the browser's connections (polaczenia.c; 0.10.0 step 2, ADR 0043 T9).
+ *   fd 7 = the channel to nadzorca for the browser's connections (polaczenia.c; 0.10.0 step 2, ADR 0043 T9),
+ *   fd 8, 9 = a zone that remembers: a channel to skarbiec and its empty disk (dane.c; 0.10.0 step 5) — or neither.
  * Trust boundary: the guest is hostile (strefa.h); ekran and nadzorca are trusted. The machine ends when the guest
  * ends, when it does something only a hostile guest does (the reason in the log), or 10 s after "close" (K1_KOM_ZAMKNIJ
  * from ekran) when the guest has not ended by itself. */
@@ -86,7 +87,7 @@ static int przygotuj(void)
     kvm_linia_urzadzen(linia, sizeof linia);
     p = strlen(linia);
     snprintf(linia + p, sizeof linia - p, " " LINIA_GOSCIA " k1.tryb=%d%s", mz.tryb,
-             mz.tryb > 0 ? " memmap=1M$0x3f00000" : ""); /* the hostile test guest's queue (gosc/zlosliwy.c) */
+             zlosliwy_gosc() ? " memmap=1M$0x3f00000" : ""); /* the hostile test guest's queue (gosc/zlosliwy.c) */
     jadro = wczytaj_jadro(&dl);
     if (jadro == NULL) {
         k1_log(TAG, "brak jądra strefy");
@@ -100,6 +101,10 @@ static int przygotuj(void)
     }
     return kvm_procesory(&w);
 }
+
+/* After "zamknij": the guest gives its program 20 s (gosc/przegladarka.c), then syncs its disk (each piece through
+ * skarbiec) and ends; the VMM waits that long and more before it ends the machine itself. */
+#define ZAMKNIJ_S 40.0
 
 static void petla(void)
 {
@@ -122,7 +127,8 @@ static void petla(void)
         petla_krok("wiadomości ekranu");
         if (okno_fd() >= 0 && (p[1].revents & (POLLIN | POLLHUP | POLLERR)) && okno_odbierz() == OKNO_ZAMKNIJ &&
             zamknij_do == 0) {
-            zamknij_do = k1_teraz() + 10.0;
+            zamknij_do = k1_teraz() + ZAMKNIJ_S;
+            mz.zamykana_t = k1_teraz();
             mz.zamykana = 1;
             k1_log(TAG, "zamykam strefę na prośbę ekranu");
             okno_zamknij_goscia();
@@ -130,7 +136,7 @@ static void petla(void)
         petla_krok("obraz okna");
         okno_obraz();
         if (zamknij_do > 0 && k1_teraz() >= zamknij_do)
-            koniec("gość nie zamknął się w 10 s — wyłączony");
+            koniec("gość nie zamknął się w 40 s — wyłączony");
     }
 }
 
@@ -155,7 +161,7 @@ int main(int argc, char **argv)
         k1_koniec(TAG, "zły numer strefy");
     mz.tryb = tryb;
     mz.budzik = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
-    if (mz.budzik < 0 || przygotuj() != 0)
+    if (mz.budzik < 0 || przygotuj() != 0 || dane_start() != 0)
         k1_koniec(TAG, "nie można przygotować maszyny");
     okno_start();
     if (kvm_uruchom() != 0 || stroz_start() != 0)
@@ -163,6 +169,7 @@ int main(int argc, char **argv)
     k1_log(TAG, "strefa %d (%s): maszyna działa — %u MiB, procesory %d, urządzenia %d (%.1f s)", nr, mz.opis->tytul,
            mz.opis->pamiec_mib, mz.n_cpu, URZ_LICZBA, k1_teraz() - od);
     petla();
+    dane_koniec();
     pol_podsumowanie();
     wejscie_podsumowanie();
     k1_log(TAG, "strefa %d: koniec — %s (po %.1f s; wyjścia: io %lu, mmio %lu, nieznane %lu)", nr, mz.powod,

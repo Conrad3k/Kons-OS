@@ -1,8 +1,10 @@
 /* K1 gosc — the browser zone (0.10.0 step 2, ADR 0043): when the zone image has the compositor, gosc (PID 1 of the
  * machine) does not draw its test pattern but starts, in this order: the relay (przekaznik: the browser's only way
- * out), the compositor (kompozytor: the guest's display and input) and the browser, as user 1000 with its home on
- * tmpfs (a one-time session forgets everything when the machine ends). It reaps every child; when the browser ends,
- * the machine ends; when the VMM says "zamknij", the browser gets SIGTERM and 5 s, then the machine ends anyway.
+ * out), the compositor (kompozytor: the guest's display and input) and the browser, as user 1000 with its home on the
+ * session's disk (0.10.0 step 5: a session that remembers — logins, bookmarks, history stay) or on tmpfs (a session
+ * that forgets: everything goes when the machine ends). It reaps every child; when the browser ends,
+ * the machine ends; when the VMM says "zamknij", the browser's windows are closed (the compositor, SIGUSR1) and it
+ * quits by itself, saving its profile; SIGTERM only when it has not quit in 15 s, the end in 20 s (zamykanie_*).
  * 0.10.0 step 3 (S26): the VMM hears why the browser ended by itself ("koniec pamiec|awaria|sam" — K1 tells the user)
  * and when a page ended for lack of memory ("pamiec strona"); the browser goes last when memory runs out (pamiec.c).
  * Paths here are the zone image's (Debian's tree), never K1's. */
@@ -29,7 +31,11 @@
 #define PRZEGLADARKA "/usr/lib/firefox-esr/firefox-esr"
 #define WAYLAND "/run/k1/wayland-0"
 #define UZYTKOWNIK 1000
-#define CZAS_ZAMYKANIA_MS 5000
+/* Closing (0.10.0 step 5): Firefox saves its profile (cookies, logins) only when it quits by itself — on SIGTERM it
+ * ends at once (0.3 s, CI run 136) and the session forgot its newest cookie. So its windows are closed first, as if by
+ * hand; SIGTERM only for one that did not quit in ZAMKNIJ_OKNA_MS, the end after CZAS_ZAMYKANIA_MS. */
+#define ZAMKNIJ_OKNA_MS 15000
+#define CZAS_ZAMYKANIA_MS 20000
 
 int przegladarka_jest(void)
 {
@@ -151,6 +157,52 @@ static void okno_jest(int *okno, int ster)
     okno[0] = -1;
 }
 
+struct zamykanie {
+    int trwa, sygnal, ster; /* ster: where to say how it went (-1: nowhere) */
+    uint64_t od;            /* ms (CLOCK_MONOTONIC) */
+};
+
+static uint64_t teraz_ms(void)
+{
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return (uint64_t)t.tv_sec * 1000u + (uint64_t)t.tv_nsec / 1000000u;
+}
+
+static void zamykanie_start(struct zamykanie *z, pid_t komp, int ster, int odpowiedz)
+{
+    loguj("zamykam (prośba VMM)");
+    if (odpowiedz && write(ster, "zamykam\n", 8) != 8)
+        loguj("kanał sterujący: zapis nieudany");
+    kill(komp, SIGUSR1); /* the compositor: xdg_toplevel.close to every window */
+    z->trwa = 1;
+    z->od = teraz_ms();
+    z->ster = odpowiedz ? ster : -1;
+}
+
+static void zamykanie_krok(struct zamykanie *z, pid_t przegl, int *koniec)
+{
+    uint64_t t = teraz_ms() - z->od;
+    if (!z->trwa || *koniec)
+        return;
+    if (!z->sygnal && t > ZAMKNIJ_OKNA_MS) {
+        loguj("przeglądarka nie zamknęła się po zamknięciu okien — SIGTERM");
+        kill(przegl, SIGTERM);
+        z->sygnal = 1;
+    }
+    if (t > CZAS_ZAMYKANIA_MS)
+        *koniec = 2;
+}
+
+/* To the VMM: "zamykanie gotowe" (quit by itself, the profile saved), "zamykanie sygnal" (only after SIGTERM — what it
+ * had not saved is gone), "zamykanie po czasie" (killed). */
+static void zamykanie_koniec(const struct zamykanie *z, int koniec)
+{
+    const char *l = koniec == 2 ? "zamykanie po czasie\n" : z->sygnal ? "zamykanie sygnal\n" : "zamykanie gotowe\n";
+    if (z->ster >= 0 && write(z->ster, l, strlen(l)) != (ssize_t)strlen(l))
+        loguj("kanał sterujący: zapis nieudany");
+}
+
 void przegladarka(int ster)
 {
     static char *const env_k1[] = { "PATH=/usr/bin", NULL };
@@ -160,20 +212,22 @@ void przegladarka(int ster)
     char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;
-    int koniec = 0, zamykam = 0, krok = 0, okno[2];
-    uint64_t od = 0;
+    int koniec = 0, krok = 0, okno[2], dysk; /* koniec 2: the browser out of time */
+    struct zamykanie z = { 0, 0, -1, 0 };
     unsigned long zabite = pamiec_zabite(), zabite_od = zabite;
     katalog_tmpfs("/tmp", "mode=1777", 0);
     katalog_tmpfs("/run", "mode=0755", 0);
-    katalog_tmpfs("/home", "mode=0755", 0);
+    dysk = dysk_montuj("/home") == 0; /* a session that remembers (dysk.c); else in memory */
+    if (!dysk)
+        katalog_tmpfs("/home", "mode=0755", 0);
     katalog_tmpfs("/dev/shm", "mode=1777", 0);
     /* XDG_RUNTIME_DIR of the browser: root's, so only the compositor makes its socket there. Firefox's own Wayland
      * proxy (a socket of its own there) stays off — with it Firefox never reached the compositor in the zone. */
     if (mkdir("/run/k1", 0755) != 0)
         loguj("/run/k1: %s", strerror(errno));
     id_maszyny();
-    if (mkdir("/home/k1", 0700) != 0 || chown("/home/k1", UZYTKOWNIK, UZYTKOWNIK) != 0 ||
-        mkdir("/home/k1/profil", 0700) != 0 || chown("/home/k1/profil", UZYTKOWNIK, UZYTKOWNIK) != 0)
+    if ((mkdir("/home/k1", 0700) != 0 && errno != EEXIST) || chown("/home/k1", UZYTKOWNIK, UZYTKOWNIK) != 0 ||
+        (mkdir("/home/k1/profil", 0700) != 0 && errno != EEXIST) || chown("/home/k1/profil", UZYTKOWNIK, UZYTKOWNIK) != 0)
         loguj("katalog domowy: %s", strerror(errno));
     petla_zwrotna();
     uruchom(PRZEKAZNIK, a_prze, env_k1, UZYTKOWNIK, -1);
@@ -188,29 +242,24 @@ void przegladarka(int ster)
     loguj("przeglądarka uruchomiona");
     while (!koniec) {
         struct pollfd p[2] = { { ster, POLLIN, 0 }, { okno[0], POLLIN, 0 } }; /* negative fds: ignored */
-        struct timespec t;
-        int r = poll(p, 2, 200);
+        int r = poll(p, 2, 200), s_ = z.trwa ? -1 : ster;
         if (p[1].revents & (POLLIN | POLLHUP))
-            okno_jest(okno, zamykam ? -1 : ster);
-        sprzataj(przegl, komp, zamykam ? -1 : ster, zabite_od, &koniec);
+            okno_jest(okno, s_);
+        sprzataj(przegl, komp, s_, zabite_od, &koniec);
         if (++krok % 5 == 0 && !koniec)
-            pilnuj(przegl, zamykam ? -1 : ster, &zabite);
-        clock_gettime(CLOCK_MONOTONIC, &t);
-        if (r > 0 && (p[0].revents & (POLLIN | POLLHUP)) && !zamykam) {
+            pilnuj(przegl, s_, &zabite);
+        if (r > 0 && (p[0].revents & (POLLIN | POLLHUP)) && !z.trwa) {
             char b[64];
             ssize_t n = read(ster, b, sizeof b - 1);
-            if (n <= 0 || (b[n] = '\0', strstr(b, "zamknij") != NULL)) {
-                loguj("zamykam (prośba VMM)");
-                if (n > 0 && write(ster, "zamykam\n", 8) != 8)
-                    loguj("kanał sterujący: zapis nieudany");
-                kill(przegl, SIGTERM);
-                zamykam = 1;
-                od = (uint64_t)t.tv_sec * 1000u + (uint64_t)t.tv_nsec / 1000000u;
-                ster = -1;
-            }
+            if (n <= 0 || (b[n] = '\0', strstr(b, "zamknij") != NULL))
+                zamykanie_start(&z, komp, ster, n > 0);
         }
-        if (zamykam && (uint64_t)t.tv_sec * 1000u + (uint64_t)t.tv_nsec / 1000000u - od > CZAS_ZAMYKANIA_MS)
-            koniec = 1;
+        zamykanie_krok(&z, przegl, &koniec);
     }
+    zamykanie_koniec(&z, koniec);
     kill(-1, SIGKILL);
+    while (waitpid(-1, NULL, 0) > 0) /* nothing holds the disk any more */
+        ;
+    if (dysk)
+        dysk_odmontuj("/home");
 }

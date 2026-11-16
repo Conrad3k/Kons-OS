@@ -36,7 +36,7 @@ static const struct {
 } sekcje[S_LICZBA] = {
     { "Wygląd", K1_IK_WYGLAD },  { "Ekran", K1_IK_EKRAN }, { "Bateria", K1_IK_BATERIA }, { "Mysz", K1_IK_MYSZ },
     { "Data i czas", K1_IK_ZEGAR }, { "Hasło", K1_IK_KLODKA }, { "Aplikacje", K1_IK_FOLDER }, { "Miejsce", K1_IK_DYSK },
-    { "Sieć", K1_IK_SIEC },      { "Informacje", K1_IK_INFO },
+    { "Sieć", K1_IK_SIEC },      { "Przeglądarka", K1_IK_PRZEGLADARKA }, { "Informacje", K1_IK_INFO },
 };
 
 static int32_t karty_y(void)
@@ -199,11 +199,13 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
         haslo_klawisz(kod, wartosc, mody);
     else if (sekcja == S_SIEC)
         wifi_haslo_klawisz(kod, wartosc, mody); /* 0.9.1 step 2: the password of a Wi-Fi network */
+    else if (sekcja == S_PRZEGLADARKA)
+        przegladarka_klawisz(kod, wartosc, mody); /* 0.10.0 step 5: a session's new name */
 }
 
 static void nadzorca_dane(void)
 {
-    if (bateria_odbierz() && (sekcja == S_BATERIA || sekcja == S_SIEC || sekcja == S_CZAS))
+    if (bateria_odbierz() && (sekcja == S_BATERIA || sekcja == S_SIEC || sekcja == S_CZAS || sekcja == S_PRZEGLADARKA))
         k1_apl_odswiez(&apl);
 }
 
@@ -269,6 +271,9 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     case S_SIEC:
         siec_rysuj(o, m);
         break;
+    case S_PRZEGLADARKA:
+        przegladarka_rysuj(o, m);
+        break;
     default:
         informacje_rysuj(o, m);
         break;
@@ -325,10 +330,13 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         return;
     if (sekcja == S_SIEC && nav < 0 && siec_klik(x, y))
         return;
+    if (sekcja == S_PRZEGLADARKA && nav < 0 && przegladarka_klik(x, y))
+        return;
     if (nav >= 0) {
         if (nav != sekcja) {
             haslo_zamknij();
             wifi_zamknij(); /* a typed Wi-Fi password is wiped */
+            przegladarka_zamknij();
         }
         sekcja = nav;
         if (sekcja == S_INFO || sekcja == S_HASLO)
@@ -346,6 +354,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
             bateria_loguj();
         if (sekcja == S_APLIKACJE)
             aplikacje_loguj();
+        if (sekcja == S_PRZEGLADARKA)
+            przegladarka_loguj();
     } else if (tryb >= 0) {
         k1_log(TAG, "zmiana ustawienia %d → %d", K1_UST_ROZDZIELCZOSC, tryb);
         k1_wyslij(&apl.k, k1_komunikat_nowy(K1_KOM_USTAW, 0, K1_UST_ROZDZIELCZOSC, tryb, 0, 0, 0));
@@ -365,7 +375,7 @@ int main(void)
     apl.tag = TAG;
     apl.numer = K1_APL_USTAWIENIA;
     apl.szer = 680;
-    apl.wys = 440;
+    apl.wys = 480; /* 0.10.0 step 5: one section more (Przeglądarka) */
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
     apl.klawisz = klawisz;

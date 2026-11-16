@@ -370,12 +370,13 @@ static int inventory_cb(const char *path, const struct stat *st, int type, struc
 
 /* The files the core must hold: init, nadzorca, every service and application of k1_uslugi.h, the build
  * id, and in the test image the test program and its "#!" file; since 0.10.0 the VMM of the zones, the zone kernel and
- * the image of every zone of K1_STREFY (the test zone's only in the test image — this program runs there). */
+ * the image of every zone of K1_STREFY (the test zone's only in the test image — this program runs there); since 0.10.0
+ * step 5 the zones' empty disk. */
 static size_t oczekiwane_pliki(char (*p)[64], size_t maks)
 {
     static const char *const stale[] = { "/rdzen/init", "/rdzen/system/nadzorca", "/rdzen/system/wydanie",
                                          "/rdzen/system/test-systemu", "/rdzen/system/skrypt-testowy",
-                                         "/rdzen/system/strefa", "/rdzen/strefy/jadro" };
+                                         "/rdzen/system/strefa", "/rdzen/strefy/jadro", "/rdzen/strefy/dysk.img" };
     size_t n = 0, i;
     for (i = 0; i < sizeof stale / sizeof stale[0] && n < maks; i++)
         snprintf(p[n++], sizeof p[0], "%s", stale[i]);

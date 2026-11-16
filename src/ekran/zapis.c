@@ -34,7 +34,9 @@ _Static_assert(K1_TYPY_MAKS <= TYPY_ZAPIS, "zapis ustawień: more file types tha
 
 /* The formats still read: the same fields, room for fewer file types (the rest keep their defaults). Before K1U4
  * (0.8.2 step 4) Pliki was the only application for pictures: what was saved for them was no choice of the user, so
- * they get the default now (Podgląd, ADR 0037). */
+ * they get the default now (Podgląd, ADR 0037). Since 0.10.0 settings of an old format are saved again as K1U4 right
+ * after they are read (ekran saved only after a change: settings set long ago and never changed stayed old).
+ * k1: tymczasowe — usunąć w 0.11.0 (the rows K1U1–K1U3: by then every vault opened once with 0.10.x holds K1U4) */
 static const struct {
     char magia[5];
     int typy, przed_podgladem;
@@ -47,6 +49,7 @@ static const struct {
 
 static int skarb = -1;
 static int32_t zapisana_szer, zapisana_wys;
+static int stary_format; /* read in K1U1–K1U3: saved again as K1U4 (0.10.0) */
 static int czeka; /* 0.8.1: skarbiec was still opening a large vault at start — its answer comes later */
 
 /* The saved settings `z` (n bytes) into `ust` (a copy of s.ust), each value checked; 0, or -1 for an unknown format. */
@@ -57,6 +60,7 @@ static int odczytaj(const struct zapis *z, int n, int ust[K1_UST_MAKS + 1])
         if (n == ZAPIS_STARY + 4 * formaty[f].typy && memcmp(z->magia, formaty[f].magia, 4) == 0) {
             typy = formaty[f].typy;
             przed = formaty[f].przed_podgladem;
+            stary_format = f > 0;
         }
     if (typy < 0) {
         k1_log(TAG, "zapisane ustawienia w nieznanym formacie — domyślne");
@@ -83,6 +87,29 @@ static int odczytaj(const struct zapis *z, int n, int ust[K1_UST_MAKS + 1])
     return 0;
 }
 
+/* The settings now, with the resolution `szer` × `wys`, to skarbiec (K1U4); `dlaczego`: logged when not a change. */
+static void zapisz(int32_t szer, int32_t wys, const char *dlaczego)
+{
+    struct zapis z;
+    stary_format = 0;
+    if (skarb < 0)
+        return;
+    memcpy(z.magia, MAGIA, 4);
+    z.motyw = s.ust[K1_UST_MOTYW];
+    z.sekundy = s.ust[K1_UST_SEKUNDY];
+    z.mysz = s.ust[K1_UST_MYSZ];
+    z.tapeta = s.ust[K1_UST_TAPETA];
+    z.szer = szer;
+    z.wys = wys;
+    memset(z.otwieranie, 0, sizeof z.otwieranie);
+    for (int i = 0; i < K1_TYPY_MAKS; i++)
+        z.otwieranie[i] = s.ust[K1_UST_OTWIERANIE + i];
+    if (k1_skarb_zapisz(skarb, K1_OB_USTAWIENIA, &z, sizeof z) != 0)
+        k1_log(TAG, "zapis ustawień nieudany");
+    else if (dlaczego != NULL)
+        k1_log(TAG, "ustawienia zapisane: %s", dlaczego);
+}
+
 void ustawienia_wczytaj(void)
 {
     struct zapis z;
@@ -102,7 +129,8 @@ void ustawienia_wczytaj(void)
         k1_log(TAG, "brak zapisanych ustawień — domyślne (%s)", tryb == K1_SKARB_RAM ? "zapis tylko w pamięci" : "na dysku");
         return;
     }
-    odczytaj(&z, n, s.ust);
+    if (odczytaj(&z, n, s.ust) == 0 && stary_format)
+        zapisz(zapisana_szer ? zapisana_szer : s.W, zapisana_szer ? zapisana_wys : s.H, "przepisane ze starego formatu");
 }
 
 int ustawienia_czeka(void)
@@ -128,6 +156,8 @@ static void spoznione(const struct zapis *z, int n)
             ustawienie(k, ust[k]);
     if (n > 0)
         ustawienia_po_starcie();
+    if (n > 0 && stary_format)
+        zapisz(zapisana_szer ? zapisana_szer : s.W, zapisana_szer ? zapisana_wys : s.H, "przepisane ze starego formatu");
 }
 
 /* After the first frame: the saved resolution, if this card offers it. */
@@ -147,21 +177,7 @@ void ustawienia_po_starcie(void)
 
 void ustawienia_zapisz(void)
 {
-    struct zapis z;
-    if (skarb < 0)
-        return;
-    memcpy(z.magia, MAGIA, 4);
-    z.motyw = s.ust[K1_UST_MOTYW];
-    z.sekundy = s.ust[K1_UST_SEKUNDY];
-    z.mysz = s.ust[K1_UST_MYSZ];
-    z.tapeta = s.ust[K1_UST_TAPETA];
-    z.szer = s.W;
-    z.wys = s.H;
-    memset(z.otwieranie, 0, sizeof z.otwieranie);
-    for (int i = 0; i < K1_TYPY_MAKS; i++)
-        z.otwieranie[i] = s.ust[K1_UST_OTWIERANIE + i];
-    if (k1_skarb_zapisz(skarb, K1_OB_USTAWIENIA, &z, sizeof z) != 0)
-        k1_log(TAG, "zapis ustawień nieudany");
+    zapisz(s.W, s.H, NULL);
 }
 
 int ustawienia_fd(void)

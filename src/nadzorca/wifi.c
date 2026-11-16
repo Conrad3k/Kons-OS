@@ -369,7 +369,8 @@ void wifi_przelacz(int wlacz)
     wifi_przejrzyj();
 }
 
-/* Ustawienia's requests (fd 4, both ways since 0.9.1): WIFI_WLACZ, WIFI_SZUKAJ. */
+/* Ustawienia's requests (fd 4, both ways since 0.9.1): WIFI_WLACZ, WIFI_SZUKAJ; since 0.10.0 step 5 also the sessions
+ * of the zones (strefy_ust.c). */
 void obsluz_ustawienia(void)
 {
     int i;
@@ -383,6 +384,11 @@ void obsluz_ustawienia(void)
             close(ustaw_kanal);
             ustaw_kanal = -1;
             return;
+        }
+        if (w == K1_ODB_JEST && (k.typ == K1_KOM_STREFA_TRWALOSC || k.typ == K1_KOM_STREFA_NAZWA ||
+                                 k.typ == K1_KOM_STREFA_WYCZYSC)) { /* 0.10.0 step 5: Przeglądarka (strefy_ust.c) */
+            sesje_prosba(&k, 0);
+            continue;
         }
         if (w != K1_ODB_JEST || (k.typ != K1_KOM_WIFI_WLACZ && k.typ != K1_KOM_WIFI_SZUKAJ)) {
             k1_log(TAG, "odrzucono prośbę Ustawień");

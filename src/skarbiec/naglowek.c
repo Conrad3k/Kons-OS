@@ -17,7 +17,7 @@ static int zera_od(const uint8_t *b, uint32_t od)
     return 0;
 }
 
-/* Fields both formats have in the same place. */
+/* Fields every format has in the same place (format 1, 0.5.6–0.8.1, too — gone since 0.10.0). */
 static void wspolne_czytaj(const uint8_t *b, struct naglowek *n)
 {
     n->flagi = k1_c32(b + 12);
@@ -35,18 +35,6 @@ static int wspolne_dobre(const struct naglowek *n, uint64_t bloki_dysk)
     return (n->flagi & ~FLAGA_HASLO) == 0 && n->bloki >= K1_MAG_MIN_BLOKOW && n->bloki <= bloki_dysk &&
            n->argon_kib >= ARGON_MIN_KIB && n->argon_kib <= ARGON_MAKS_KIB && n->argon_przejscia >= 1 &&
            n->argon_przejscia <= 10 && n->generacja != 0;
-}
-
-/* Format 1: two regions. */
-static int czytaj1(const uint8_t *b, uint64_t bloki_dysk, struct naglowek *n)
-{
-    n->aktywny = k1_c32(b + 48);
-    n->epoka = k1_c64(b + 64);
-    n->koniec = k1_c64(b + 72);
-    if (!wspolne_dobre(n, bloki_dysk) || k1_c32(b + 60) != 0 || n->aktywny > 1 || n->epoka == 0 ||
-        n->koniec > (n->bloki - 2) / 2)
-        return -1;
-    return zera_od(b, OWINIETY + OWINIETY_DL);
 }
 
 #define OGON_POLE 176u /* format 2: where the tail starts in the header (16 B per segment) */
@@ -93,6 +81,11 @@ static int czytaj2(const uint8_t *b, uint64_t bloki_dysk, struct naglowek *n)
     return zera_od(b, OGON_POLE + 16 * n->n_ogona);
 }
 
+int naglowek_stary(const uint8_t *b)
+{
+    return memcmp(b, MAGIA, 8) == 0 && k1_c32(b + 8) == WERSJA1;
+}
+
 int naglowek_czytaj(const uint8_t *b, uint64_t bloki_dysk, struct naglowek *n)
 {
     memset(n, 0, sizeof *n);
@@ -100,11 +93,7 @@ int naglowek_czytaj(const uint8_t *b, uint64_t bloki_dysk, struct naglowek *n)
         return -1;
     n->wersja = k1_c32(b + 8);
     wspolne_czytaj(b, n);
-    if (n->wersja == WERSJA)
-        return czytaj1(b, bloki_dysk, n);
-    if (n->wersja == WERSJA2)
-        return czytaj2(b, bloki_dysk, n);
-    return -1;
+    return n->wersja == WERSJA2 ? czytaj2(b, bloki_dysk, n) : -1;
 }
 
 void klucz_naglowka(const uint8_t klucz[32], uint8_t kn[32])
@@ -118,7 +107,7 @@ void naglowek_zbuduj(const struct k1_magazyn *m, uint8_t *b)
     uint8_t kn[32];
     memset(b, 0, K1_MAG_BLOK);
     memcpy(b, MAGIA, 8);
-    k1_z32(b + 8, m->format == 2 ? WERSJA2 : WERSJA);
+    k1_z32(b + 8, WERSJA2);
     k1_z32(b + 12, m->haslo ? FLAGA_HASLO : 0);
     memcpy(b + 16, m->uuid, 16);
     k1_z64(b + 32, m->generacja);
@@ -126,24 +115,17 @@ void naglowek_zbuduj(const struct k1_magazyn *m, uint8_t *b)
     k1_z32(b + 56, m->argon_przejscia);
     memcpy(b + 80, m->sol, 16);
     memcpy(b + OWINIETY, m->owiniety, OWINIETY_DL);
-    if (m->format == 2) {
-        k1_z64(b + 40, 2 + (uint64_t)m->n_odcinkow * m->odcinek);
-        k1_z32(b + 48, m->odcinek);
-        k1_z32(b + 60, m->n_odcinkow);
-        k1_z64(b + 64, m->licznik_gen);
-        k1_z32(b + 72, m->spis_bloki);
-        k1_z32(b + 76, m->spis_wpisow);
-        k1_z32(b + 168, m->n_ogona);
-        for (uint32_t c = 0; c < m->n_ogona; c++) {
-            k1_z32(b + OGON_POLE + 16 * c, m->ogon[c].odcinek);
-            k1_z32(b + OGON_POLE + 16 * c + 4, m->ogon[c].koniec);
-            k1_z64(b + OGON_POLE + 16 * c + 8, m->ogon[c].gen);
-        }
-    } else {
-        k1_z64(b + 40, 2 + 2 * m->obszar_blokow);
-        k1_z32(b + 48, m->aktywny);
-        k1_z64(b + 64, m->epoka);
-        k1_z64(b + 72, m->koniec);
+    k1_z64(b + 40, 2 + (uint64_t)m->n_odcinkow * m->odcinek);
+    k1_z32(b + 48, m->odcinek);
+    k1_z32(b + 60, m->n_odcinkow);
+    k1_z64(b + 64, m->licznik_gen);
+    k1_z32(b + 72, m->spis_bloki);
+    k1_z32(b + 76, m->spis_wpisow);
+    k1_z32(b + 168, m->n_ogona);
+    for (uint32_t c = 0; c < m->n_ogona; c++) {
+        k1_z32(b + OGON_POLE + 16 * c, m->ogon[c].odcinek);
+        k1_z32(b + OGON_POLE + 16 * c + 4, m->ogon[c].koniec);
+        k1_z64(b + OGON_POLE + 16 * c + 8, m->ogon[c].gen);
     }
     klucz_naglowka(m->klucz, kn);
     crypto_blake2b_keyed(b + NAGLOWEK_MAC, 16, kn, 32, b, NAGLOWEK_MAC);

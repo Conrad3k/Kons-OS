@@ -29,4 +29,4 @@ jednokierunkowo); fd 6: skarbiec (`SKARB_ODBLOKUJ` + memfd z hasłem). Log: „e
 | `test-m4.sh` (`haslo`): ekran hasła zamiast pulpitu, złe hasło odrzucone, dobre → pulpit z zapisanymi ustawieniami, hasła brak w logu; zrzuty `m4-haslo-*.png` | funkcjonalny + negatywny |
 | w systemie: próba klatki `logowanie` | negatywny |
 | `test_komunikat`: `SKARB_ODBLOKUJ`, `SKARB_HASLO`, `SKARB_INFO`, `SKARB_STAN`, rola LOGOWANIE | negatywny |
-| `test_magazyn`: `k1_mag_sprawdz_haslo` | funkcjonalny |
+| `test_odcinki` (do 0.9.1 `test_magazyn`): `k1_mag_sprawdz_haslo` | funkcjonalny |

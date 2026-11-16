@@ -87,7 +87,7 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **format skarbca** | Układ danych na K1-DANE. Format 1 (0.5.6–0.8.1): dwie połowy; format 2 (0.8.2, ADR 0036): odcinki i spis skarbca. |
 | **odcinek** (segment) | Część K1-DANE w formacie 2 skarbca (do 64 kawałków po 1 MiB); zapisy idą do kolejnych odcinków, kompaktowanie zwalnia po jednym (ADR 0036). |
 | **przejście na format 2** | Jednorazowe przeniesienie magazynu z 0.5.6–0.8.1 (format 1) na format 2: w przerwach, do wolnej połowy K1-DANE, dopiero po potwierdzonym starcie; przerwa prądu zostawia stary albo nowy magazyn (0.8.2, ADR 0036). |
-| **potwierdzony start** | Nowa wersja działa 15 s (pulpit albo ekran hasła) i nie czeka próba A/B innej wersji: nadzorca zatwierdza miejsce A/B i mówi skarbcowi `START_POTWIERDZONY` (ADR 0022, 0036). |
+| **potwierdzony start** | Nowa wersja działa 15 s (pulpit albo ekran hasła) i nie czeka próba A/B innej wersji: nadzorca zatwierdza miejsce A/B (ADR 0022; do 0.9.1 mówił też skarbcowi `START_POTWIERDZONY` — przejście formatu 1, ADR 0036). |
 | **spis skarbca** (checkpoint) | Zapisana co jakiś czas lista żywych obiektów i ich miejsc w formacie 2; start czyta spis i to, co dopisano po nim (**ogon**), nie treść plików (ADR 0036). |
 | **powiększenie K1-DANE** | K1-DANE rośnie do końca pendrive'a: pusta — sama przy pierwszym starcie (0.8.0), z danymi — po kliknięciu „Użyj całego pendrive'a na dane” w Ustawieniach (0.8.1, ADR 0033). Pliki zostają na miejscu. |
 | **kawałek** | 1 MiB treści pliku: tak skarbiec trzyma pliki i tak je przesyłają czytnik, Pliki i skarbiec (od 0.8.1 plik do 4 GB = 4096 kawałków). |
@@ -130,7 +130,10 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **obraz strefy** | Pliki strefy (SquashFS tylko do odczytu) w rdzeniu: `/rdzen/strefy/<nazwa>.img`; gość widzi go jako dysk `/dev/vda`. |
 | **strefa próbna** (0.10.0) | Strefa testowa z naszym małym programem `gosc` w środku (wzór na ekranie, liczniki klawiszy i kliknięć, tryby złośliwego gościa) — tylko w obrazie testowym. |
 | **urządzenie virtio** | Udawane urządzenie maszyny (dysk, konsola, losowość, klawiatura, wskaźnik, ekran, vsock), przez które gość rozmawia z VMM kolejkami w swojej pamięci. |
-| **sesja przeglądarki** | Osobna strefa przeglądarki z własnym kolorem ramki: „Ogólna”, „Bank”, „Prywatna” (0.10.0, D2; wiersze `K1_STREFY`). Jednorazowa zapomina wszystko po zamknięciu. |
+| **sesja przeglądarki** | Osobna strefa przeglądarki z własnym kolorem ramki: „Ogólna”, „Bank”, „Prywatna” (0.10.0, D2; wiersze `K1_STREFY`); nazwę można zmienić w Ustawieniach → Przeglądarka (0.10.0 krok 5). Sesja **pamięta** (stała strefa: zalogowania, zakładki, historia zostają na jej dysku strefy) albo **zapomina** (jednorazowa: wszystko znika po zamknięciu). Domyślnie Ogólna i Bank pamiętają, Prywatna zapomina; zmiana działa od następnego otwarcia. |
+| **dysk strefy** (0.10.0 krok 5) | Drugi dysk gościa (`/dev/vdb`, 2 GiB) sesji, która pamięta; leży w skarbcu w kawałkach po 64 KiB (obiekty strefy, ADR 0042 T11). Nie mylić z **obrazem strefy** (tylko do odczytu, wspólny). |
+| **pusty dysk strefy** (0.10.0 krok 5) | `/rdzen/strefy/dysk.img` — system plików ext4 zrobiony przy budowie K1; kawałek dysku strefy, którego sesja jeszcze nie zapisała, czyta się stąd. |
+| **dane sesji** (0.10.0 krok 5) | Wszystko na dysku strefy jednej sesji. „Wyczyść dane sesji” (Ustawienia → Przeglądarka) usuwa je ze skarbca — następne otwarcie zaczyna od pustego dysku. W Ustawieniach → Miejsce: część „Strefy”. |
 | **Przeglądarka** (0.10.0) | Pozycja menu Start: Firefox ESR z Debiana w strefie, w sesji „Ogólna” (ADR 0043). Nie mylić z przyszłą **Przeglądarką K1** (ADR 0025: okno rysuje K1, silnik WPE). |
 | **kompozytor** (strefy) | Nasz program w strefie przeglądarki (`src/strefa/kompozytor`): serwer Wayland, który pokazuje okna przeglądarki na wyświetlaczu gościa i podaje im klawiaturę i mysz. |
 | **przekaźnik** | Nasz program w strefie (`src/strefa/przekaznik`): przyjmuje połączenia przeglądarki (SOCKS5 na 127.0.0.1:1080) i każde przekazuje do VMM przez vsock. Nic nie czyta. |

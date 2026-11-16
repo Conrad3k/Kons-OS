@@ -1,7 +1,7 @@
 /* K1 — test helper (0.9.0 step 3; before it stare_notatki.c, the notes of 0.5.8–0.7.6): a K1-DANE partition with
- * notes as K1 0.8.0–0.8.1 kept them — files in Dokumenty › Notatki (owner Notatki) in a vault of format 1, written
- * by skarbiec's own code (magazyn, obiekty.c, dokumenty). scripts/test-pliki.sh boots K1 with it: skarbiec moves the
- * vault to format 2 (ADR 0036), Notatki lists the notes, the file picker, "Otwórz za pomocą", the default application.
+ * notes as files in Dokumenty › Notatki (owner Notatki), written by skarbiec's own code (magazyn, obiekty.c,
+ * dokumenty; format 2 — until 0.10.0 format 1, as 0.8.0–0.8.1 wrote it). scripts/test-pliki.sh boots K1 with it:
+ * Notatki lists the notes, the file picker, "Otwórz za pomocą", the default application.
  *   notatki_w_plikach PARTITION_FILE NOTE...   (the file must exist, all zeros; the first note is the newest) */
 #include <fcntl.h>
 #include <stdio.h>
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
         return 2;
     }
     k1_mag_dysk_fd(&d, fd, (uint64_t)st.st_size);
-    if (k1_mag_utworz_w_formacie(&stary, &d, NULL, 64, 1) != K1_MAG_OK) { /* as 0.8.0–0.8.1 wrote it */
+    if (k1_mag_utworz(&stary, &d, NULL, 64) != K1_MAG_OK) {
         fprintf(stderr, "notatki_w_plikach: nie udało się utworzyć magazynu\n");
         return 1;
     }
@@ -74,6 +74,6 @@ int main(int argc, char **argv)
             return 1;
     }
     close(fd);
-    printf("notatki_w_plikach: magazyn formatu 1 z %d notatkami w Dokumenty › Notatki\n", n);
+    printf("notatki_w_plikach: magazyn z %d notatkami w Dokumenty › Notatki\n", n);
     return 0;
 }

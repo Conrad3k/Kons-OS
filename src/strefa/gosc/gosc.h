@@ -29,8 +29,15 @@ unsigned long pamiec_zabite(void);      /* the guest kernel's count of OOM kills
 void pamiec_chron(pid_t glowny);        /* the browser's main process goes last */
 void pamiec_kolejnosc(uid_t uid, pid_t glowny); /* every other process of uid goes first */
 
-/* zlosliwy.c — hostile modes (k1.tryb=1..4, the test image only) */
-enum { TRYB_ZWYKLY = 0, TRYB_ZLY_ADRES = 1, TRYB_PETLA = 2, TRYB_DLUGOSC = 3, TRYB_ZAPIS_RO = 4, TRYB_MAKS = 4 };
+/* dysk.c — the disk of a zone that remembers (0.10.0 step 5): /dev/vdb, ext4 */
+int dysk_montuj(const char *gdzie);     /* 0: mounted; -1: none (a zone that forgets) or it failed (logged) */
+void dysk_odmontuj(const char *gdzie);  /* synced and unmounted */
+int dysk_licznik(const char *gdzie);    /* the test zone: the counter of starts on the disk, +1; logged */
+
+/* zlosliwy.c — hostile modes (k1.tryb=1..4, the test image only); TRYB_DYSK (5): an honest guest that counts its start
+ * on the disk and ends by itself (test-strefa: the zone remembers; after "Wyczyść dane sesji" it starts from 1) */
+enum { TRYB_ZWYKLY = 0, TRYB_ZLY_ADRES = 1, TRYB_PETLA = 2, TRYB_DLUGOSC = 3, TRYB_ZAPIS_RO = 4, TRYB_MAKS = 4,
+       TRYB_DYSK = 5 };
 int zlosliwy(int tryb);                 /* returns only when the VMM did not stop the machine */
 
 #endif

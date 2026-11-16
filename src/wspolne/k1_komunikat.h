@@ -54,9 +54,11 @@ enum k1_komunikat_typ {
     K1_KOM_ZEGAR_PRZESUNIETY = 137, /* nadzorca → skarbiec (0.9.0 step 8): the clock was set from the internet; a,b = by
                                      * how many seconds (signed 64 bits: k1_kom_u64; at most ±200 years) — skarbiec moves
                                      * the time of the files in Kosz by as much (their age does not change) */
-    K1_KOM_START_POTWIERDZONY = 118, /* nadzorca → skarbiec (0.8.2 step 1c, ADR 0036): all fields 0; the start of this
-                                      * version is confirmed (15 s of desktop or password screen, not an A/B try that
-                                      * waits) — a vault of format 1 may move to format 2 (a rollback no longer can) */
+    /* 118: START_POTWIERDZONY (0.8.2–0.9.1, the move of a vault of format 1 to format 2) — gone in 0.10.0 */
+    K1_KOM_SKARB_WYCZYSC = 168, /* nadzorca → skarbiec (0.10.0 step 5): obiekt=0, a=the owner of a zone (the profile of a
+                                 * row of K1_STREFY), b..e=0 — delete every piece of its disk ("Wyczyść dane sesji") */
+    K1_KOM_SKARB_WYCZYSZCZONO = 169, /* skarbiec → nadzorca (K1_KIER_DO_NADZORCY): obiekt=0, a=that owner, b=0 or
+                                      * K1_MAG_* < 0, c=pieces deleted 0..K1_STREFA_DYSK_KAWALKI, d=e=0 */
     /* nadzorca → instalator (M5f, ADR 0018; same direction K1_KIER_STEROWANIE): the job, once */
     K1_KOM_INST_ZADANIE = 3, /* a=K1_INST_* mode, b=logical sector size (512/4096) of the target */
 
@@ -338,6 +340,19 @@ enum k1_komunikat_typ {
     K1_KOM_URUCHOM_STREFE = 163, /* obiekt=0, a=zone 1..K1_STREFY_MAKS, b=the guest's test mode 0..K1_STREFA_TRYB_MAKS
                                   * (src/strefa/gosc/gosc.h; not 0: the test program only), c..e=0 */
     K1_KOM_STREFA_STAN = 164,    /* obiekt=0, a=zone, b=K1_STREFA_* why it did not start or ended, c..e=0 (gui says it) */
+    /* 0.10.0 step 5: the sessions as the user set them (nadzorca keeps them: strefy_ust.c) — nadzorca → gui (fd 5),
+     * Ustawienia (fd 4) and ekran (its control channel, K1_KIER_STEROWANIE); after STREFA_NAZWA of every zone */
+    K1_KOM_STREFY_STAN = 170,    /* obiekt=0, a=bit nr-1: zone nr remembers (STALA), b=1 the computer has virtualization,
+                                  * c=1 the vault is on a disk (else no zone remembers: a=0), d=bit nr-1: zone nr runs,
+                                  * e=0 */
+    K1_KOM_STREFA_NAZWA = 172,   /* obiekt=zone 1..K1_STREFY_MAKS, a..e=its session's name, K1_STREFA_NAZWA_MAKS bytes
+                                  * (k1_strefa_nazwa_dobra); nadzorca → the three above, and Ustawienia → nadzorca: the
+                                  * user renamed it */
+    /* Ustawienia → nadzorca (fd 4), Ustawienia → Przeglądarka */
+    K1_KOM_STREFA_TRWALOSC = 171, /* obiekt=zone, a=K1_STALA / K1_JEDNORAZOWA (from its next start), b..e=0 */
+    K1_KOM_STREFA_WYCZYSC = 173,  /* obiekt=zone, all 0: delete its session's data (not while it runs) */
+    K1_KOM_STREFA_WYCZYSZCZONO = 174, /* nadzorca → Ustawienia: obiekt=zone, a=K1_STREFA_WYCZ_*, b=pieces deleted
+                                       * 0..K1_STREFA_DYSK_KAWALKI, c..e=0 */
     /* 0.10.0 step 2 (ADR 0043 T9): the browser's connections — the zone's VMM ↔ nadzorca (VMM's fd 7; the sender's UID
      * is the zone's) */
     K1_KOM_STREFA_POLACZ = 165,   /* from the VMM: obiekt=its connection 1..K1_STREFA_POLACZENIA_MAKS; TCP: a=IPv4 address
@@ -417,7 +432,7 @@ enum { K1_STREFA_BEZ_WIRTUALIZACJI = 1, K1_STREFA_ZA_MALO_PAMIECI = 2, K1_STREFA
        K1_STREFA_KONIEC_PAMIEC = 4, K1_STREFA_KONIEC_PAMIEC_K1 = 5, K1_STREFA_KONIEC_AWARIA = 6, K1_STREFA_KONIEC_BLAD = 7 };
 #define K1_STREFA_STAN_MAKS 7
 #define K1_STREFA_KONIEC_OD K1_STREFA_KONIEC_PAMIEC /* b >= this: the zone ended (not: did not start) */
-#define K1_STREFA_TRYB_MAKS 4 /* the hostile test guests (gosc/zlosliwy.c) */
+#define K1_STREFA_TRYB_MAKS 5 /* 1..4: the hostile test guests (gosc/zlosliwy.c); 5: one that counts its starts on the disk */
 /* 0.10.0 step 2 (ADR 0043 T9): the zones' connections (STREFA_POLACZ c, STREFA_GNIAZDO a, STREFA_ODMOWA a) */
 #define K1_STREFA_POLACZENIA_MAKS 128 /* at once in one zone (the relay in the zone has as many) */
 enum { K1_STREFA_TCP = 0, K1_STREFA_DNS = 1 };
@@ -426,6 +441,13 @@ enum { K1_STREFA_ODM_ADRES = 1,  /* not allowed (D3: the home network) */
        K1_STREFA_ODM_LIMIT = 3,  /* too many connections in a short time */
        K1_STREFA_ODM_BLAD = 4 }; /* the socket could not be opened */
 #define K1_STREFA_ODM_MAKS 4
+/* 0.10.0 step 5: the sessions (STREFA_NAZWA, STREFA_WYCZYSZCZONO a) */
+#define K1_STREFA_NAZWA_MAKS 20 /* bytes of a session's name, UTF-8, zero padded */
+enum { K1_STREFA_WYCZ_OK = 0, K1_STREFA_WYCZ_DZIALA = 1 /* it runs: close it first */, K1_STREFA_WYCZ_BLAD = 2 };
+#define K1_STREFA_WYCZ_MAKS 2
+/* A session's name: 1..K1_STREFA_NAZWA_MAKS bytes of UTF-8 then zeros; no control or invisible characters, none
+ * that turn the text's direction, no space at either end. 1: good. */
+int k1_strefa_nazwa_dobra(const char n[K1_STREFA_NAZWA_MAKS]);
 /* The number in KLIENT b and WITAJ d: an application (role APLIKACJA) or a zone (role STREFA). */
 #define K1_KLIENT_NR_MAKS ((int)K1_APL_MAKS > (int)K1_STREFY_MAKS ? (int)K1_APL_MAKS : (int)K1_STREFY_MAKS)
 
@@ -467,6 +489,17 @@ _Static_assert(K1_TAPETY < K1_TAPETA_ZDJECIE, "k1_komunikat: the photo wallpaper
 #define K1_OB_ZDJECIE 9           /* ekran (0.8.0 step 4): the wallpaper photo — its size (ekran/zdjecie.c) */
 #define K1_OB_ZDJECIE_KAWALEK 10  /* ekran: its pixels, 1 MiB per object: 10..10+K1_ZDJECIE_KAWALKI-1 */
 #define K1_ZDJECIE_KAWALKI 12     /* 2560 × 1600 × 3 bytes */
+/* 0.10.0 step 5 (T11): the disk of a zone that remembers — pieces of K1_STREFA_DYSK_KAWALEK, piece i is object
+ * K1_OB_DYSK + i of the zone's owner (the profile of its row of K1_STREFY); only a zone's VMM may use them (skarbiec
+ * checks the owner). A piece never written is read from the zone's empty disk (/rdzen/strefy/dysk.img). */
+#define K1_OB_DYSK 65536u
+#define K1_STREFA_DYSK_KAWALEK (64u << 10)
+#define K1_STREFA_DYSK_KAWALKI 32768u /* 2 GiB */
+/* An object id a client may name: 1..K1_OB_MAKS, or a piece of a zone's disk. */
+static inline int k1_ob_poprawny(uint32_t ob)
+{
+    return (ob >= 1 && ob <= K1_OB_MAKS) || (ob >= K1_OB_DYSK && ob - K1_OB_DYSK < K1_STREFA_DYSK_KAWALKI);
+}
 #define K1_SKARB_MAKS (1 << 20)   /* bytes in one object (Blob Vault limit) */
 #define K1_SKARB_TRWALY 0         /* saved on the K1-DANE partition */
 #define K1_SKARB_RAM 1            /* no (usable) partition: kept in memory until power off */
@@ -476,6 +509,7 @@ _Static_assert(K1_TAPETY < K1_TAPETA_ZDJECIE, "k1_komunikat: the photo wallpaper
 #define K1_MAG_WYNIK_MIN (-8)     /* most negative K1_MAG_* result */
 #define K1_SKARB_ZLE_HASLO (-1)   /* WYNIK b: wrong password (= K1_MAG_HASLO, magazyn.h) */
 #define K1_SKARB_PELNY (-3)       /* WYNIK b: no room left (= K1_MAG_PELNY) */
+#define K1_SKARB_BRAK (-6)        /* WYNIK b: no such object (= K1_MAG_BRAK) */
 #define K1_SKARB_IO (-4)          /* WYNIK b, POWIEKSZONO a: writing failed (= K1_MAG_IO) */
 #define K1_SKARB_ARG (-8)         /* WYNIK b, POWIEKSZONO a: not possible (= K1_MAG_ARG) */
 
