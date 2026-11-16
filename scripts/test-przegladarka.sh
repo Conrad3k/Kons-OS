@@ -147,9 +147,13 @@ if emulacja:
     sys.exit(0 if all(q.wyniki) else 1)
 
 
-def firefox(w, h, px):  # the frame in the session's colour, Firefox's address field (not K1's "Uruchamiam…": 250,249,246)
-    return (o and blisko(px(x - 2, y + h_ // 2), KOLOR) and blisko(px(x + w_ // 2, y + 64), (242, 242, 242), 4)
-            and blisko(px(x + w_ // 3, y + 20), (250, 250, 251), 4))
+# The frame in the session's colour, Firefox's address field and tab bar (not K1's "Uruchamiam…": 250,249,246). After
+# Firefox quit by itself it starts focused (CI run 140, przegladarka-7-sesja-2): the field white, the tab bar darker.
+def firefox(w, h, px):
+    pole, karty = px(x + w_ // 2, y + 64), px(x + w_ // 3, y + 20)
+    return (o and blisko(px(x - 2, y + h_ // 2), KOLOR)
+            and (blisko(pole, (242, 242, 242), 4) or blisko(pole, (255, 255, 255), 4))
+            and (blisko(karty, (250, 250, 251), 4) or blisko(karty, (235, 235, 237), 4)))
 
 
 def bez_przyciskow(px):  # S28 (step 3): the top right corner of the tab bar is empty — Firefox draws no minimise,
