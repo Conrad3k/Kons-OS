@@ -218,6 +218,7 @@ struct xdg_pow {
     int zmapowana;
 };
 void xdg_wyskakujace_zamknij(void);           /* popup_done to every popup (a click outside them) */
+unsigned xdg_zamknij_okna(void);              /* xdg_toplevel.close to every window; how many */
 struct xdg_pow *xdg_okno(unsigned i);         /* the i-th mapped window from the bottom (toplevels, then popups) */
 struct xdg_pow *xdg_fokus(void);              /* the window that gets the keys: the top grabbing popup, else the top
                                                * toplevel; NULL: none */

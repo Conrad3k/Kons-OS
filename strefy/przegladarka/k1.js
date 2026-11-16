@@ -59,4 +59,9 @@ pref("media.ffmpeg.vaapi.enabled", false);
 // przy braku pamięci przeglądarka sama zwalnia nieużywane karty.
 pref("browser.cache.disk.enable", false, locked);
 pref("browser.tabs.closeWindowWithLastTab", false);
+// Zamknięcie strefy (0.10.0 krok 5): K1 zamyka okno przeglądarki jak ręcznie — bez pytania „Zamknąć karty?”, żeby
+// przeglądarka skończyła się sama i zapisała dane sesji (ciasteczka, logowania).
+pref("browser.tabs.warnOnClose", false, locked);
+pref("browser.warnOnQuit", false, locked);
+pref("browser.warnOnQuitShortcut", false, locked);
 pref("browser.tabs.unloadOnLowMemory", true);
