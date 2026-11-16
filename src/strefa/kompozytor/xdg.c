@@ -162,8 +162,8 @@ static void wm_powierzchnia(struct klient *k, struct obiekt *o, union arg *a)
     if (obiekt_typu(k, a[1].o, IF_SURFACE, 0) == NULL)
         return;
     p = a[1].o->dane;
-    if (p->rola != ROLA_BRAK || p->piksele != NULL) {
-        blad(k, o, WM_ROLA, "powierzchnia ma już rolę");
+    if ((p->rola != ROLA_BRAK && p->rola != ROLA_XDG) || p->xdg != NULL || p->piksele != NULL) {
+        blad(k, o, WM_ROLA, R_XDG_ROLA); /* the same role again is allowed, as for a subsurface (powierzchnia.c) */
         return;
     }
     n = obiekt_nowy(k, a[0].u, IF_XDG_SURFACE, o->wersja);
@@ -182,7 +182,7 @@ static void po_rozmiar(struct klient *k, struct obiekt *o, union arg *a)
 {
     struct pozycjoner *p = o->dane;
     if (a[0].i <= 0 || a[1].i <= 0 || a[0].i > POWIERZCHNIA_MAKS || a[1].i > POWIERZCHNIA_MAKS) {
-        blad(k, o, 0, "zły rozmiar");
+        blad(k, o, 0, R_POZ_ROZMIAR);
         return;
     }
     p->szer = a[0].i, p->wys = a[1].i;
@@ -194,7 +194,7 @@ static void po_kotwica_prost(struct klient *k, struct obiekt *o, union arg *a)
     if (a[2].i < 0 || a[3].i < 0 || a[2].i > POWIERZCHNIA_MAKS || a[3].i > POWIERZCHNIA_MAKS ||
         a[0].i < -POWIERZCHNIA_MAKS || a[0].i > POWIERZCHNIA_MAKS || a[1].i < -POWIERZCHNIA_MAKS ||
         a[1].i > POWIERZCHNIA_MAKS) {
-        blad(k, o, 0, "zły prostokąt kotwicy");
+        blad(k, o, 0, R_POZ_KOTWICA_PROST);
         return;
     }
     p->ax = a[0].i, p->ay = a[1].i, p->aw = a[2].i, p->ah = a[3].i;
@@ -203,7 +203,7 @@ static void po_kotwica_prost(struct klient *k, struct obiekt *o, union arg *a)
 static void po_kotwica(struct klient *k, struct obiekt *o, union arg *a)
 {
     if (a[0].u > 8)
-        blad(k, o, 1, "zła kotwica");
+        blad(k, o, 1, R_POZ_KOTWICA);
     else
         ((struct pozycjoner *)o->dane)->kotwica = a[0].u;
 }
@@ -211,7 +211,7 @@ static void po_kotwica(struct klient *k, struct obiekt *o, union arg *a)
 static void po_grawitacja(struct klient *k, struct obiekt *o, union arg *a)
 {
     if (a[0].u > 8)
-        blad(k, o, 1, "zła grawitacja");
+        blad(k, o, 1, R_POZ_GRAWITACJA);
     else
         ((struct pozycjoner *)o->dane)->grawitacja = a[0].u;
 }
@@ -265,7 +265,7 @@ static void xs_okno(struct klient *k, struct obiekt *o, union arg *a)
     struct xdg_pow *x = o->dane;
     struct obiekt *n;
     if (x == NULL || x->okno != 0) {
-        blad(k, o, WM_ROLA, "xdg_surface ma już rolę");
+        blad(k, o, WM_ROLA, R_XDG_SURFACE_ROLA);
         return;
     }
     n = obiekt_nowy(k, a[0].u, IF_TOPLEVEL, o->wersja);
@@ -282,7 +282,7 @@ static void xs_wyskakujace(struct klient *k, struct obiekt *o, union arg *a)
     struct pozycjoner *p;
     struct obiekt *n;
     if (x == NULL || x->okno != 0) {
-        blad(k, o, WM_ROLA, "xdg_surface ma już rolę");
+        blad(k, o, WM_ROLA, R_XDG_SURFACE_ROLA);
         return;
     }
     if (obiekt_typu(k, a[2].o, IF_POSITIONER, 0) == NULL ||
@@ -290,7 +290,7 @@ static void xs_wyskakujace(struct klient *k, struct obiekt *o, union arg *a)
         return;
     p = a[2].o->dane;
     if (a[1].o == NULL || a[1].o->dane == NULL || p->szer <= 0) {
-        blad(k, o, WM_ZLY_POZYCJONER, "wyskakujące bez rodzica albo rozmiaru");
+        blad(k, o, WM_ZLY_POZYCJONER, R_WYSKAKUJACE);
         return;
     }
     n = obiekt_nowy(k, a[0].u, IF_POPUP, o->wersja);
@@ -309,7 +309,7 @@ static void xs_geometria(struct klient *k, struct obiekt *o, union arg *a)
     if (a[2].i <= 0 || a[3].i <= 0 || a[2].i > POWIERZCHNIA_MAKS || a[3].i > POWIERZCHNIA_MAKS ||
         a[0].i < -POWIERZCHNIA_MAKS || a[0].i > POWIERZCHNIA_MAKS || a[1].i < -POWIERZCHNIA_MAKS ||
         a[1].i > POWIERZCHNIA_MAKS) {
-        blad(k, o, 0, "zła geometria okna");
+        blad(k, o, 0, R_GEOMETRIA);
         return;
     }
     if (x != NULL && x->okno != 2)
@@ -335,8 +335,12 @@ static void xs_zwolnij(struct obiekt *o)
     schowaj(x);
     if (x->rola != NULL)
         x->rola->dane = NULL;
-    if (x->pow != NULL)
+    if (x->pow != NULL) { /* unmapped: what it showed is gone, a new xdg_surface may come on it */
         x->pow->xdg = NULL;
+        free(x->pow->piksele);
+        x->pow->piksele = NULL;
+        x->pow->szer = x->pow->wys = 0;
+    }
     for (i = 0; i < n_okien; i++)
         if (okna[i]->rodzic == x)
             okna[i]->rodzic = NULL;
@@ -396,7 +400,7 @@ static void w_chwyt(struct klient *k, struct obiekt *o, union arg *a)
     if (obiekt_typu(k, a[0].o, IF_SEAT, 0) == NULL || x == NULL)
         return;
     if (x->zmapowana) {
-        blad(k, o, 0, "chwyt po pokazaniu"); /* xdg_popup.error.invalid_grab */
+        blad(k, o, 0, R_CHWYT); /* xdg_popup.error.invalid_grab */
         return;
     }
     x->chwyt = 1;

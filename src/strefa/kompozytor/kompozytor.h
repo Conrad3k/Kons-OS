@@ -34,6 +34,56 @@
 /* wl_display.error codes (wayland.xml) */
 enum { BLAD_ZLY_OBIEKT = 0, BLAD_ZLA_METODA = 1, BLAD_PAMIEC = 2, BLAD_WEWNETRZNY = 3 };
 
+/* The rules a client can break (0.10.1 step 1, S15): one row each — X(NAME, the text of wl_display.error and of our
+ * log). Its number (the row, from 1) goes to gosc and on to K1's log — never the text, never anything of the client's:
+ * K1 learns WHICH rule ended the browser. Numbers do not change: a new rule is a new last row. */
+#define K1_REGULY(X) \
+    X(NOWY_ID, "zły nowy identyfikator") \
+    X(BRAK_OBIEKTU, "brak obiektu") \
+    X(RODZAJ_OBIEKTU, "obiekt innego rodzaju") \
+    X(NIEZNANY_OBIEKT, "nieznany obiekt") \
+    X(KROTKA, "wiadomość za krótka") \
+    X(DLUGA, "wiadomość za długa") \
+    X(ROZMIAR_WIAD, "zły rozmiar wiadomości") \
+    X(DLUGOSC, "długość poza wiadomością") \
+    X(BRAK_NAPISU, "brak napisu") \
+    X(NAPIS_KONIEC, "napis bez końca") \
+    X(SYGNATURA, "zła sygnatura") \
+    X(POLECENIE, "nieznane polecenie") \
+    X(ARGUMENTY, "za dużo argumentów") \
+    X(BRAK_FD, "brak deskryptora") \
+    X(ZA_DUZO_FD, "za dużo deskryptorów") \
+    X(OBCIETE_FD, "obcięte deskryptory") \
+    X(GLOBALNY, "zły obiekt globalny") \
+    X(PAMIEC, "brak pamięci") \
+    X(PULA_ROZMIAR, "zły rozmiar puli") \
+    X(PULA_MAPA, "pula nie do zmapowania") \
+    X(PULA_MALEJE, "pula nie może zmaleć") \
+    X(PULA_POWIEKSZENIE, "pula nie do powiększenia") \
+    X(BUFOR_FORMAT, "nieobsługiwany format") \
+    X(BUFOR_POZA_PULA, "bufor poza pulą") \
+    X(BUFOR_ODCZYT, "bufor nie do odczytu") \
+    X(WYWOLANIA, "za dużo wywołań klatki") \
+    X(PODPOW_PETLA, "pętla podpowierzchni") \
+    X(PODPOW_ROLA, "powierzchnia ma już rolę") \
+    X(PODPOW_ZA_DUZO, "za dużo podpowierzchni") \
+    X(PODPOW_SASIAD, "zły sąsiad") \
+    X(URZADZENIA, "za dużo urządzeń wejścia") \
+    X(DOTYK, "brak ekranu dotykowego") \
+    X(KURSOR_ROLA, "powierzchnia ma już rolę") \
+    X(XDG_ROLA, "powierzchnia ma już rolę") \
+    X(XDG_SURFACE_ROLA, "xdg_surface ma już rolę") \
+    X(POZ_ROZMIAR, "zły rozmiar") \
+    X(POZ_KOTWICA_PROST, "zły prostokąt kotwicy") \
+    X(POZ_KOTWICA, "zła kotwica") \
+    X(POZ_GRAWITACJA, "zła grawitacja") \
+    X(WYSKAKUJACE, "wyskakujące bez rodzica albo rozmiaru") \
+    X(GEOMETRIA, "zła geometria okna") \
+    X(CHWYT, "chwyt po pokazaniu")
+#define X_R(n, t) R_##n,
+enum { R_BRAK = 0, K1_REGULY(X_R) R_LICZBA };
+#undef X_R
+
 /* The interfaces (interfejsy.c): one row each — X(NAME, C name, wire name, version we serve, global: 1 in the
  * registry). Each part defines ob_<C name> (its requests and hooks); the order of the rows is the registry's order. */
 #define K1_INTERFEJSY(X)                                                   \
@@ -139,7 +189,7 @@ int klient_wyslij_bufor(struct klient *k);            /* flushes events; -1: the
 struct obiekt *obiekt_nowy(struct klient *k, uint32_t id, int typ, uint32_t wersja); /* NULL: error posted */
 void obiekt_usun(struct obiekt *o);                   /* frees its data, delete_id to the client */
 struct obiekt *obiekt_typu(struct klient *k, struct obiekt *o, int typ, int moze_null); /* NULL+error when wrong */
-void blad(struct klient *k, const struct obiekt *o, uint32_t kod, const char *opis);
+void blad(struct klient *k, const struct obiekt *o, uint32_t kod, int regula); /* regula: R_* */
 /* An event: the object, its opcode, the signature of its arguments (i u f s o h a), then the arguments; "o" takes a
  * struct obiekt * (NULL = 0), "a" a pointer and a length, "h" a descriptor (dup'ed by the call). */
 void zdarzenie(struct obiekt *o, uint16_t opkod, const char *syg, ...);
@@ -252,9 +302,11 @@ int ekran_start(void);                        /* 0, or -1 (logged) */
 void ekran_pokaz(int32_t x, int32_t y, int32_t w, int32_t h); /* this part changed (DIRTYFB) */
 
 void kloguj(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
-/* The first window of the browser is on the display: "okno" once to gosc on fd 3 (a pipe, when gosc gave one) — the
- * VMM logs how long the browser took to start (0.10.0 step 3, S30). */
+/* To gosc on fd 3 (a pipe, when gosc gave one): "okno" once — the browser's first window is on the display, the VMM
+ * logs how long it took to start (0.10.0 step 3, S30); "regula N" — a client broke rule N and was disconnected
+ * (0.10.1 step 1, S15). */
 void zglos_okno(void);
+void zglos_regule(int regula);
 uint32_t teraz_ms(void);
 
 #endif

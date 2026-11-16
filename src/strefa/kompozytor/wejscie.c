@@ -367,7 +367,7 @@ static int dopisz(struct klient *k, struct obiekt **tab, struct obiekt *n)
             tab[i] = n;
             return 0;
         }
-    blad(k, n, BLAD_PAMIEC, "za dużo urządzeń wejścia");
+    blad(k, n, BLAD_PAMIEC, R_URZADZENIA);
     return -1;
 }
 
@@ -405,7 +405,7 @@ static void s_klawiatura(struct klient *k, struct obiekt *o, union arg *a)
 static void s_dotyk(struct klient *k, struct obiekt *o, union arg *a)
 {
     (void)a;
-    blad(k, o, 0, "brak ekranu dotykowego"); /* wl_seat.error.missing_capability */
+    blad(k, o, 0, R_DOTYK); /* wl_seat.error.missing_capability */
 }
 
 static void w_kursor(struct klient *k, struct obiekt *o, union arg *a)
@@ -416,7 +416,7 @@ static void w_kursor(struct klient *k, struct obiekt *o, union arg *a)
         return;
     p = a[1].o->dane;
     if (p->rola != ROLA_BRAK && p->rola != ROLA_KURSOR) {
-        blad(k, o, 0, "powierzchnia ma już rolę");
+        blad(k, o, 0, R_KURSOR_ROLA);
         return;
     }
     p->rola = ROLA_KURSOR; /* never drawn: ekran K1 draws its own pointer over the zone's window */

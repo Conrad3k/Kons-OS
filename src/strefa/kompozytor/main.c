@@ -34,14 +34,26 @@ void kloguj(const char *fmt, ...)
     dprintf(2, KTAG ": %.*s\n", n >= (int)sizeof b ? (int)sizeof b - 1 : n, b);
 }
 
+static void zglos(const char *linia, size_t n)
+{
+    if (fcntl(FD_ZGLOSZEN, F_GETFD) >= 0 && write(FD_ZGLOSZEN, linia, n) != (ssize_t)n)
+        kloguj("zgłoszenie dla gosc: %s", strerror(errno));
+}
+
 void zglos_okno(void)
 {
     static int bylo;
-    if (!bylo && fcntl(FD_ZGLOSZEN, F_GETFD) >= 0 && write(FD_ZGLOSZEN, "okno\n", 5) != 5)
-        kloguj("zgłoszenie okna: %s", strerror(errno));
     if (!bylo)
-        close(FD_ZGLOSZEN);
+        zglos("okno\n", 5);
     bylo = 1;
+}
+
+void zglos_regule(int regula)
+{
+    char l[24];
+    int n = snprintf(l, sizeof l, "regula %d\n", regula);
+    if (n > 0 && n < (int)sizeof l)
+        zglos(l, (size_t)n);
 }
 
 uint32_t teraz_ms(void)
