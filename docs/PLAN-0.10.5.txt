@@ -9,6 +9,8 @@ ją przygotowuje (robot na GitHubie) i gdzie użytkownik nią steruje (Ustawieni
 Numer 0.10.5 wybrał właściciel: 0.10.1–0.10.4 zostają na resztę tematu 0.10 (plan 0.10.0, punkt 6). Jeśli tamte
 wersje nie powstaną wcześniej, ta i tak nazywa się 0.10.5. 2026-11-16 właściciel wstawił przed nią 0.10.1 „Balon”
 (pamięć strefy według potrzeby, docs/PLAN-0.10.1.txt) — ta wersja zaczyna się po wydaniu 0.10.1.
+Tego samego dnia doszło 0.10.3 „Filmy” (docs/PLAN-0.10.3.txt) — numer mniejszy, więc jego wydanie wychodzi przed
+0.10.5; jego ADR może zająć numer 0045 (wtedy ta wersja bierze kolejne wolne — punkt 2).
 Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
 Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR (krok 2 ma swój ADR, krok 3 — swój).
 

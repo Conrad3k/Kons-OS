@@ -1,0 +1,360 @@
+K1 — PLAN WERSJI 0.10.3 „FILMY” (wersja tematu 0.10 Strefy)
+==========================================================
+
+Data: 2026-11-16 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-16), w czasie
+pracy nad 0.10.1 „Balon”. Temat: SPRZĘTOWE DEKODOWANIE FILMÓW jako przełącznik w ustawieniach strefy (sesji
+przeglądarki). Strefa wysyła do K1 skompresowany film, a osobny, zamknięty w klatce proces K1 rozpakowuje go kartą
+graficzną (sterownik z jądra i VA-API — sprzętowe dekodowanie wideo) i oddaje strefie gotowe klatki. Strefa dalej nie
+widzi karty; ryzyko dotyczy tylko tego procesu — jak przy dzisiejszym dekoderze zdjęć. Zmienia to jedną zasadę („tylko
+ekran dotyka karty graficznej”), więc wersja ma ADR (krok 1).
+Wersja stoi na 0.10.1 (balon i podział pamięci — klatki filmu to pamięć strefy; ADR 0044) i na 0.10.0 (strefy, VMM,
+przeglądarka, sesje i Ustawienia → Przeglądarka; ADR 0042, 0043). Numer 0.10.3 wybrał właściciel. Numer mniejszy niż
+0.10.5, więc wydanie 0.10.3 musi wyjść PRZED 0.10.5 (docs/PLAN-0.10.5.txt). Jeśli 0.10.5 wyjdzie pierwsze, ta wersja
+dostanie następny wolny numer — plan się nie zmienia.
+Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+Plik jest planem, nie specyfikacją: zmiana architektury (niezmiennik 7: właściciel karty graficznej; ADR 0020 p. 2)
+idzie przez ADR z kroku 1.
+
+Mało kroków (prośba właściciela z 2026-11-16): TRZY. Krok 1 — próba na sprzęcie i w kontenerze, potem ADR (czy
+i jak ta droga w ogóle działa, zanim powstanie kod do utrzymania). Krok 2 — strona K1: sterownik karty w jądrze
+i usługa „dekoder filmów”. Krok 3 — strona strefy: przełącznik w Ustawieniach, przeglądarka korzysta z dekodera
+filmów; wydanie 0.10.3.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 3 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
+zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b albo 3a/3b (wydanie zawsze w ostatniej części kroku 3).
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.10.0, 2026-11-16 — krok 1 sprawdza jeszcze raz po 0.10.1),
+ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku — nie zakładać).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3.
+Cała wersja zaczyna się po wydaniu 0.10.1 (Balon, docs/PLAN-0.10.1.txt — zmienia VMM, pamięć stref i Ustawienia →
+Przeglądarka, na których ten plan stoi). Krok 1 to głównie próby i ADR — można go zrobić wcześniej, równolegle
+z 0.10.1, jeśli nie dotyka tych samych plików (próby na osobnej gałęzi, do main tylko ADR i ustalenia).
+
+Właściciel — co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.3.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku — możesz też od razu dopisać odpowiedź.
+W krokach 1 i 2 czat poprosi Cię o uruchomienie obrazu z pendrive'a na X230 i IdeaPadzie (link do obrazu USB z PR-a
+i krótka lista „co kliknąć, co powinno się stać”) — karty Intela nie da się udać w QEMU ani w CI.
+
+Nowy czat — przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
+  2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2 i 3 — także „Ustalenia
+     z wykonania” kroków wcześniejszych i ADR z kroku 1. Przeczytaj też ustalenia planu 0.10.1 (docs/PLAN-0.10.1.txt
+     albo docs/archiwum/) — balon, podział pamięci i nowy układ Ustawień → Przeglądarka mogły wyjść inaczej.
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
+  5. Najpierw test, który pokazuje lukę, potem zmiana, potem ten sam test na zielono.
+  6. Nie wymyślaj opcji Kconfig, ioctl, zachowań i915, VA-API ani prefów Firefoksa — sprawdzaj w build/zrodla/,
+     build/naglowki/, źródłach libva, intel-vaapi-driver i Firefoksa ESR; punkt NIEPEWNE zamieniasz na POTWIERDZONE
+     albo poprawiasz — w „Ustaleniach z wykonania” swojego kroku.
+  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, scripts/test-m1.sh i skrypty
+     QEMU zmienianej części (docs/TESTY.md), przy zmianach w budowie scripts/sprawdz-powtarzalnosc.sh; pełny komplet —
+     CI na PR-ze (etykieta „testy”), scalasz przy zielonym (AGENTS.md). Czekaj poleceniem, nie rób w tym czasie
+     innych wywołań (CLAUDE.md).
+  8. Dokumenty w tym samym PR-ze: docs/komponenty/* (nowy filmy.md, ekran.md, jadro.md, strefa.md, nadzorca.md,
+     aplikacje.md), SLOWNIK, RYZYKA, ZALEZNOSCI, TESTY.md, SPEC (dopiski [korekta: ADR …]), skill kons-dev
+     (niezmiennik 7, mapa kodu). VERSION i CHANGELOG zmienia krok 3 (wydanie); kroki 1–2 zapisują „co widzi
+     użytkownik” w opisie PR-a.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”, chyba że PR to sama dokumentacja), po scaleniu:
+     w tabeli „[x] PR #n”, nowe ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co
+     widać, dowody, co zostało.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+Po 0.10.3 w Ustawieniach → Przeglądarka przy sesji (Ogólna, Bank, Prywatna — D1) jest przełącznik „Sprzętowe
+dekodowanie filmów”. Włączony: filmy w tej sesji (np. YouTube) rozpakowuje karta graficzna laptopa, nie procesor —
+obraz płynniejszy, wentylator ciszej, bateria wytrzymuje dłużej. Zmiana działa od następnego otwarcia sesji (jak
+„Pamięta / Zapomina”).
+
+Co umie Twoja karta (sprawdzi krok 1): HD 4000 w X230 — H.264; HD 520 w IdeaPadzie — H.264, HEVC i częściowo VP9.
+Filmów w innych formatach dalej pilnuje procesor, sam, bez Twojego udziału. YouTube wysyła zwykle VP9 albo AV1, których
+karta X230 nie umie — dlatego na X230 przeglądarka z włączoną opcją poprosi strony o H.264 (D4).
+
+Bezpieczeństwo: strefa nadal nie dotyka karty. Wysyła tylko skompresowany film i jego opis; K1 sprawdza każde pole
+i dopiero wtedy przekazuje go karcie przez osobny, mały proces w klatce — jeden na sesję, więc Bank nie dzieli go
+z Ogólną. Złośliwa strona może co najwyżej zepsuć ten jeden proces: film przechodzi wtedy na procesor, przeglądarka
+działa dalej. Słabsza izolacja niż bez przełącznika — dlatego domyślnie wyłączony (D2) i widoczny na ramce okna (D3).
+
+Przy okazji: K1 dostaje własny sterownik karty Intela z jądra (i915) zamiast prostego „obrazu z firmware” (simpledrm).
+To osobna, widoczna zmiana: obraz może być płynniejszy, a karta lepiej oszczędza energię (punkt „Laptop” w
+DO_ZROBIENIA — dotąd „tylko jeśli simpledrm nie wystarczy”). Dlatego krok 1 i krok 2 proszą Cię o sprawdzenie pulpitu
+na obu laptopach.
+
+Pamięć karty: karty Twoich laptopów nie mają osobnej pamięci („VRAM”) — biorą ją ze zwykłej pamięci RAM. Dlatego
+nie trzeba drugiego balona: pamięć, której karta używa na filmy sesji, liczy się do pamięci tej sesji w balonie
+i podziale z 0.10.1 (T8). Gdy pamięci brak, film idzie na procesor — nic się nie wysypuje.
+
+Uwaga: K1 nie ma jeszcze dźwięku (punkt „Laptop” w DO_ZROBIENIA) — filmy w 0.10.3 będą płynne, ale bez dźwięku.
+
+Trzy kroki:
+  1. Próba: obraz testowy ze sterownikiem karty z jądra (sprawdzasz pulpit i listę formatów karty na obu laptopach)
+     i próba w kontenerze, czy Firefox w strefie w ogóle skorzysta z dekodera K1; potem ADR.
+  2. K1: sterownik karty w jądrze, usługa „dekoder filmów” w klatce; Ustawienia → Przeglądarka pokazują, co umie karta.
+  3. Strefa: przełącznik przy sesji, przeglądarka oddaje filmy dekoderowi K1; wydanie 0.10.3.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
+[ ]  1  Próba: i915, VA-API w K1, Firefox w strefie; ADR    S1–S9            0.10.0      T1–T5            M        nowy
+[ ]  2  K1: i915 w jądrze, usługa „dekoder filmów”          S10–S17, S26     1, 0.10.1   T1–T3, T6–T8     L        z kr. 1
+[ ]  3  Strefa: przełącznik, Firefox z dekoderem; wydanie   S18–S25          2           D1–D4, T4, T5    L        z kr. 1
+(Numer ADR — następny wolny w chwili kroku 1. Jeśli 0.10.5 jeszcze nie zaczęte, to 0045, a plan 0.10.5 bierze kolejne
+wolne, jak przewiduje jego punkt 2.)
+
+Dlaczego tyle: krok 1 rozstrzyga trzy rzeczy, których nie da się sprawdzić z kodu (i915 na sprzęcie właściciela,
+sterownik VA-API zbudowany statycznie z musl, Firefox w piaskownicy z obcym sterownikiem VA) — bez nich kroki 2–3
+mogłyby zbudować coś, czego Firefox nie użyje. Krok 2 to strona K1 (jądro, ekran, nowa usługa, nowy format komunikatów)
+— sprawdzalna na sprzęcie bez strefy (Ustawienia pokazują formaty karty). Krok 3 to strona strefy (VMM, obraz strefy,
+Firefox, Ustawienia) i wydanie.
+
+
+3. KROKI
+--------
+
+KROK 1 — Próba: sterownik karty z jądra, VA-API w K1, Firefox w strefie; ADR      M · decyzje T1–T5 · ADR (nowy)
+  Cel: przed pisaniem kodu do utrzymania wiedzieć, że cała droga działa: (a) i915 w jądrze K1 nie psuje obrazu na X230
+  i IdeaPadzie, (b) sterownik VA-API da się zbudować statycznie z musl i na sprzęcie podaje listę formatów, (c) Firefox
+  w strefie (bez GL, rysowanie procesorem) użyje obcego sterownika VA i przyjmie od niego klatki. Wynik — ADR.
+  Co widzi użytkownik: nic w wydaniu. Właściciel dostaje obraz USB z artefaktu PR-a (obraz próbny, nie wydanie) i listę:
+  uruchom z pendrive'a na X230 i IdeaPadzie → pulpit wygląda jak zwykle (bez czarnego ekranu, migania), mysz i okna
+  płynne → w logu (Ustawienia albo port szeregowy — wg tego, co czat przygotuje) lista formatów karty.
+  Zadania:
+  [ ] (a) i915 (S1–S3, T1): opcje w jadro/k1.config (DRM_I915 i to, czego wymaga — z Kconfig w build/zrodla), ekran
+      na i915 (KMS, dumb buffers — sprawdzić, że src/ekran działa bez zmian albo co trzeba); czy simpledrm może zostać
+      (S2); węzeł render (/dev/dri/renderD128) — kto go tworzy, jakie ma ioctl (S16). Obraz próbny dla właściciela.
+  [ ] (b) VA-API w K1 (S4, S5, T2): libva + intel-vaapi-driver (i965) + libdrm zbudowane statycznie z naszym musl,
+      bez dlopen (sterownik wołany wprost) — mały program próbny (sonda) na obrazie próbnym: otwiera węzeł render,
+      wypisuje profile i największe rozmiary (vaQueryConfigProfiles, vaGetConfigAttributes) i rozpakowuje jedną
+      klatkę H.264 z wbudowanego w sondę krótkiego filmu (suma klatki w logu); melduje pamięć swojej cgroup przed
+      i po (S26 — czy bufory karty liczą się do procesu; T8). Rozmiar programu, czas budowy,
+      ostrzeżenia z naszymi flagami (SPEC §11).
+  [ ] (c) Firefox w strefie (S6–S8, T4, T5): w kontenerze, Firefox z obrazu strefy pod Xvfb (skill kons-dev §7 —
+      chroot w kopię build/strefa-przegladarka) z próbnym sterownikiem VA (zwraca szare klatki) i prefami VA-API
+      włączonymi: czy proces dekodowania (RDD) ładuje sterownik, czy działa bez EGL i dmabuf (klatki kopiowane do
+      pamięci), czy jego piaskownica pozwala na vsock albo tylko na węzeł /dev/dri (T4), czy potrzebny jest FFmpeg
+      w strefie i jaki (T5: pakiet Debiana libavcodec — rozmiar z zależnościami — albo własna, mała budowa).
+      about:support → „Media” pokazuje dekodowanie sprzętowe? Zrzut i log w opisie PR-a.
+  [ ] ADR: właściciel karty (niezmiennik 7 → „obrazem steruje tylko ekran; węzeł render karty dostaje tylko dekoder
+      filmów, jeden proces na strefę”), wybory T1–T5 z uzasadnieniem, odrzucone warianty; dopisek w ADR 0020 p. 2
+      (to nie jest „szybka grafika” — strefa dalej rysuje procesorem).
+  Testy i dowód: wyniki prób (logi sondy z obu laptopów — od właściciela, zrzut about:support z kontenera), make bez
+  ostrzeżeń dla kodu próbnego. Kod prób nie trafia do main (zostaje na gałęzi, link w ADR); do main — ADR i ustalenia.
+  Jeśli (c) wyjdzie źle we wszystkich wariantach T4 — zatrzymaj wersję i opisz właścicielowi, co dalej (np. dekodowanie
+  tylko dla odtwarzacza K1 w przyszłości); nie zgaduj dalej (skill §7: 1–2 próby wyjaśnienia).
+  Gotowe, gdy: ADR scalony, wszystkie NIEPEWNE z S1–S9 rozstrzygnięte, właściciel potwierdził pulpit z i915 na obu
+  laptopach.
+  Ustalenia z wykonania: (pusto — wypełnia krok 1)
+
+KROK 2 — K1: sterownik karty w jądrze, usługa „dekoder filmów”                    L · decyzje T1–T3, T6–T8 · ADR z kr. 1
+  Cel: K1 ma i915 na stałe, a nowa usługa w klatce umie rozpakować film kartą graficzną na prośbę strefy — sprawdzona
+  testami bez strefy i na sprzęcie właściciela.
+  Co widzi użytkownik: pulpit przez sterownik karty z jądra (wg kroku 1); Ustawienia → Przeglądarka (nowy układ z
+  0.10.1 krok 4) — jedna linia pod listą sesji: „Karta graficzna tego komputera rozpakowuje filmy: H.264, HEVC, VP9”
+  albo „Ten komputer nie rozpakowuje filmów kartą graficzną” (maszyna wirtualna, brak i915). Przełącznika jeszcze nie ma.
+  Zadania:
+  [ ] Jądro (T1, S10–S12): opcje i915 w jadro/k1.config z komentarzem, jadro/k1-zamkniete.config, sprawdz-kspp,
+      plik DMC dla Skylake w tabeli plików od producentów (jeśli krok 1 tak ustalił), docs/komponenty/jadro.md
+      (odstępstwo „bez i915” znika). Ekran: tylko jeśli krok 1 wykazał zmiany. Zatwierdzenie A/B dopiero, gdy ekran
+      pokazał obraz (S3) — inaczej wersja z czarnym ekranem zostałaby zatwierdzona.
+  [ ] Nadzorca (S13, T6): węzeł render otwiera nadzorca (urzadzenia.c — jak inne urządzenia) i daje go tylko usłudze
+      „dekoder filmów”; ekran dalej jedynym właścicielem węzła karty (card0, DRM master). Usługa NA_PROSBE — jedna na
+      strefę (start z VMM-em strefy, koniec z nim); wiersz w K1_SYSTEM (przepis „Nowa usługa systemowa”), klatka
+      KLATKA_FILMY z listą ioctl węzła render (S16) i limitem pamięci, nowy kanał KANAL_* VMM ↔ dekoder filmów.
+  [ ] Usługa src/filmy/ (T2, T3): VA-API (libva + i965 statycznie, src/zewnetrzne/ z sumami, wpis w docs/ZALEZNOSCI.md),
+      prośby od VMM-a wg formatu z T3, klatki do pamięci współdzielonej (memfd od nadzorcy), pytanie „co umiesz” (lista
+      formatów dla Ustawień — przez nadzorcę, tylko liczby/flagi).
+  [ ] Pamięć karty w balonie (T8, S15, S26): limit buforów z K1_KODEKI sprawdzany przed przydziałem, bufory oddane po
+      końcu filmu; pamięć dekodera filmów doliczona do strefy w podziale pamięci z 0.10.1 i w Zasobach; brak pamięci =
+      odmowa nowego filmu (film na procesorze). Test: zalew prośbami o nowe filmy → pamięć usługi nie rośnie ponad limit.
+  [ ] Format komunikatów (T3, S14): src/wspolne/k1_filmy.h (stały układ, _Static_assert), tabela K1_KODEKI (kodek,
+      profil VA, największy rozmiar, klatki odniesienia, największy kawałek danych) — sprawdzanie pole po polu
+      w src/wspolne/k1_kom_filmy.c; test_filmy (ASan/UBSan) i fuzz_filmy.
+  [ ] Testy bez karty Intela (T7, S17): w systemie — klatka (t_klatki), próba w klatce (t_proby), złośliwe prośby
+      (zły kodek, rozmiar ponad tabelę, dane dłuższe niż kawałek, brak klatek odniesienia) → odrzucone, usługa żyje;
+      „brak karty” w QEMU → Ustawienia mówią „nie rozpakowuje”. Na sprzęcie — właściciel: obraz USB z PR-a, linia
+      w Ustawieniach na obu laptopach, pulpit płynny, Ustawienia → Bateria (pobór mocy nie gorszy niż w 0.10.1).
+  Dokumenty: nowy opis usługi filmy w docs/komponenty/, nadzorca.md, ekran.md, jadro.md, aplikacje.md, SLOWNIK („dekoder
+  filmów”, „sprzętowe dekodowanie filmów”, „węzeł render”), RYZYKA (nowe: sterownik karty i i965 w zasięgu danych ze
+  strefy; i965 w trybie utrzymania), ZALEZNOSCI, TESTY.md, SPEC [korekta: ADR …], skill kons-dev (niezmiennik 7, mapa).
+  Gotowe, gdy: CI zielone, właściciel potwierdził linię w Ustawieniach i pulpit na obu laptopach.
+  Ustalenia z wykonania: (pusto — wypełnia krok 2)
+
+KROK 3 — Strefa: przełącznik w Ustawieniach, Firefox z dekoderem filmów; wydanie 0.10.3   L · D1–D4, T4, T5 · ADR z kr. 1
+  Cel: film w sesji z włączonym przełącznikiem rozpakowuje karta, a strefa nadal nie widzi karty.
+  Na początku: D1–D4 (D3 — szkice do wyboru, oba motywy).
+  Co widzi użytkownik: Ustawienia → Przeglądarka — przy sesji przełącznik „Sprzętowe dekodowanie filmów” (wg D1, D2;
+  nieaktywny z krótkim wyjaśnieniem, gdy karta nie umie); po ponownym otwarciu sesji filmy płynniejsze, procesor
+  mniej zajęty (Zasoby), znak na ramce okna wg D3; na X230 strony dostają prośbę o H.264 (D4).
+  Zadania:
+  [ ] Ustawienie przy sesji (D1, D2, S18): w skarbcu obok nazw i „Pamięta / Zapomina” (strefy_ust.c, format sesje.c —
+      nowe pole, sprawdzane pole po polu, test na hoście, fuzzing); Ustawienia → Przeglądarka (przybornik), zmiana od
+      następnego otwarcia sesji; nadzorca uruchamia dekoder filmów dla strefy tylko przy włączonym i działającej karcie.
+  [ ] VMM (T4, S19, S20): droga wybrana w kroku 1 — port vsock albo kontekst virtio-gpu (gpu.c ma dziś tylko 2D —
+      najpierw podział pliku, jeśli rośnie); VMM przekazuje prośby do dekodera filmów i kopiuje klatki do pamięci
+      gościa (sprawdza adresy jak w virtq.c); awaria dekodera filmów = błąd dla gościa, strefa żyje.
+  [ ] Gość (T4, T5, S21, S22): nasz sterownik VA w obrazie strefy (src/strefa/gosc/ — w C, budowany dla glibc strefy,
+      S21), FFmpeg w strefie wg T5 (scripts/odswiez-strefe.py, strefy/przegladarka.txt, suma każdego pliku); prefy
+      w k1.js tylko dla sesji z włączonym przełącznikiem (dziś: media.hardware-video-decoding.enabled i
+      media.ffmpeg.vaapi.enabled wyłączone na stałe) — gość dostaje ustawienie od VMM-a jak tryb sesji (S22).
+  [ ] X230 i formaty (D4, S23): przy włączonym przełączniku i karcie bez VP9/AV1 przeglądarka nie zgłasza stronom VP9
+      i AV1 (prefy media.* — sprawdzić nazwy w Firefoksie ESR 153), więc YouTube wysyła H.264.
+  [ ] Ramka (D3): znak przy sesji z dekodowaniem filmów — ekran (src/ekran/strefy.c), z tabeli, nie z kodu strefy.
+  [ ] Złośliwy gość (S24): nowy tryb złośliwy gościa (gosc/zlosliwy.c, tryby 1–4 → kolejny) — prośby z błędnymi polami,
+      zalew prośbami, adresy klatek poza pamięcią gościa → odrzucone, K1 i inne strefy żyją.
+  [ ] Porządki tej wersji (PATCH — małe): nic tymczasowego bez terminu; DO_ZROBIENIA → „Właściciel”: lista do
+      sprawdzenia na sprzęcie (niżej).
+  [ ] Wydanie 0.10.3: VERSION, CHANGELOG („co widzisz”, potem technika), DO_ZROBIENIA (stan, mapa, punkt 4), ten plan →
+      do archiwum planów (katalog docs/archiwum/).
+  Testy i dowód: test-strefa.sh — strefa próbna z dekoderem testowym (S17: program testowy albo tryb testowy usługi
+  podaje szare klatki bez karty) przechodzi całą drogę gość → VMM → dekoder filmów → klatka w gościu; złośliwy gość;
+  przełącznik wyłączony = żadnego dekodera filmów (log nadzorcy). test-m4.sh — zrzut Ustawień → Przeglądarka
+  (oba motywy). test-przegladarka (informacyjny) — bez zmian albo z filmem testowym, jeśli krok 1 pokazał, że Firefox
+  w CI to zniesie. Na sprzęcie — właściciel: lista niżej.
+  Lista dla właściciela (X230 i IdeaPad): Ustawienia → Przeglądarka → Ogólna → włącz → otwórz Przeglądarkę → YouTube,
+  film 1080p → płynny? Zasoby: procesor sesji mniejszy niż z wyłączonym przełącznikiem (porównaj ten sam film)?
+  znak na ramce? Bank z wyłączonym — bez znaku, film działa (procesorem).
+  Gotowe, gdy: CI zielone (test-przegladarka — informacyjny), właściciel potwierdził na sprzęcie albo dostał listę
+  przy wydaniu, wydanie 0.10.3 istnieje (linki ISO i USB w raporcie).
+  Ustalenia z wykonania: (pusto — wypełnia krok 3)
+
+
+4. DECYZJE
+----------
+Twoje (produkt) — czat kroku 3 zada je na początku (możesz odpowiedzieć wcześniej):
+
+  [!] D1 — Przełącznik osobno dla każdej sesji czy jeden dla całej przeglądarki?
+      A (zalecane): osobno przy każdej sesji (Ogólna, Bank, Prywatna) — np. Bank bez, Ogólna z.
+      B: jeden przełącznik dla wszystkich sesji.
+  [!] D2 — Domyślnie włączony czy wyłączony?
+      A (zalecane): wyłączony wszędzie — jak „pełna izolacja domyślnie” w ADR 0020; włączasz tam, gdzie oglądasz filmy.
+      B: włączony w Ogólnej, wyłączony w Banku i Prywatnej.
+  [!] D3 — Czy widać na oknie, że sesja używa karty? (ADR 0020: słabsza izolacja = widoczna na ramce)
+      A (zalecane): mały znak na pasku tytułu ramki (np. ikonka filmu przy nazwie sesji) — szkice do wyboru.
+      B: inny odcień ramki.   C: nic na ramce, tylko w Ustawieniach.
+  [!] D4 — X230 (karta umie tylko H.264): czy przeglądarka ma prosić strony o H.264, gdy przełącznik jest włączony?
+      A (zalecane): tak, sama — inaczej YouTube wyśle VP9/AV1 i karta nic nie pomoże; czasem najwyżej 1080p.
+      B: nie — zostaje, co wybierze strona.
+
+Techniczne (decyduje Claude w ADR kroku 1 — Ty dostajesz krótkie wyjaśnienie):
+
+  T1 — Sterownik karty: i915 z jądra (Intel Gen7 Ivy Bridge — X230, Gen9 Skylake — IdeaPad). Kierunek: i915 przejmuje
+       też obraz (KMS) zamiast simpledrm — ekran dalej jedynym właścicielem węzła karty i DRM master; jeśli krok 1 pokaże,
+       że simpledrm może zostać obok węzła render (S2) i to coś daje — ADR to rozważa. bochs i vmwgfx zostają (QEMU,
+       maszyny wirtualne). Nowsze karty Intela (Xe) i AMD — nie w tej wersji.
+  T2 — Sterownik VA-API w K1: libva + intel-vaapi-driver (i965) + libdrm, statycznie z musl, w jednej usłudze w klatce;
+       bez dlopen (K1 nie ma bibliotek współdzielonych — sterownik wołany wprost). Dlaczego i965: jeden sterownik dla
+       obu laptopów, w C (iHD — C++, tylko Gen8+, K1 nie ma biblioteki C++). Odrzucone: własny sterownik karty (ogrom
+       pracy), FFmpeg w świecie natywnym (nie potrzebny — strumień rozbiera FFmpeg w strefie, T3). Ryzyko: i965 jest
+       w trybie utrzymania (RYZYKA, ZALEZNOSCI).
+  T3 — Co przechodzi ze strefy do K1: prośby na poziomie VA (kodek, parametry obrazu i plasterków, skompresowane dane
+       plasterków), nie surowy plik — rozbieranie strumienia zostaje w strefie (FFmpeg), K1 sprawdza każde pole wg
+       tabeli K1_KODEKI (niezmiennik 6). Klatki wracają jako NV12 w pamięci współdzielonej (VMM kopiuje je do pamięci
+       gościa). Do sprawdzenia w kroku 1: czy parametry, które i965 przyjmuje, da się sprawdzić tabelą (S14).
+  T4 — Droga w strefie: (A) port vsock (jak kanał sterujący i połączenia przeglądarki) albo (B) kontekst virtio-gpu
+       z węzłem /dev/dri w strefie (sterownik VA gościa mówi przez ioctl DRM — to, na co piaskownica RDD Firefoksa
+       zwykle pozwala). Rozstrzyga próba (c) w kroku 1 (S7): kierunek — A, jeśli piaskownica RDD go dopuszcza; inaczej B.
+       Wyłączanie piaskownicy RDD — tylko jako ostateczność, z wpisem w RYZYKA.
+  T5 — FFmpeg w strefie: dziś obraz strefy go nie ma (S8 — Firefox w strefie nie odtwarza H.264 wcale; VP9/AV1 rozpakowuje
+       procesorem własną biblioteką). A: pakiet Debiana (libavcodec + zależności — zmierzyć rozmiar obrazu), B: własna
+       budowa FFmpeg tylko z potrzebnymi częściami (powtarzalność). Kierunek: B, jeśli A powiększa obraz strefy o więcej
+       niż ok. 50 MB.
+  T6 — Jeden dekoder filmów na strefę, na czas jej życia, startowany przez nadzorcę razem z VMM-em tylko przy włączonym
+       przełączniku i karcie, która umie; awaria = film na procesorze, strefa i inne strefy żyją; restartu nie ma
+       (do następnego otwarcia sesji).
+  T7 — Testy bez karty: QEMU nie udaje karty Intela — CI sprawdza format, klatkę, złośliwe prośby i drogę z dekoderem
+       testowym (szare klatki; tylko w obrazie testowym); działanie na karcie — właściciel na sprzęcie (krok 1, 2, 3).
+  T8 — Pamięć karty („VRAM”) a balon z 0.10.1 (pytanie właściciela z 2026-11-16: czy pamięć karty też potrzebuje
+       balona). Karty obu laptopów (HD 4000, HD 520) są zintegrowane — NIE MAJĄ osobnej pamięci; bufory karty (klatki
+       filmu, klatki odniesienia) i915 bierze ze zwykłej pamięci RAM. Dlatego nie ma drugiego balona — jest JEDNA
+       pamięć i jedno liczenie: bufory dekodera filmów strefy liczą się do pamięci tej strefy w podziale pamięci
+       z 0.10.1 (krok 3 tamtego planu), tak by balon i podział widziały całość (gość + VMM + dekoder filmów). Kierunek:
+       (1) twardy limit z tabeli K1_KODEKI (najwięcej klatek × największy rozmiar — np. 1080p: ok. 20 klatek × 3 MB),
+       sprawdzany przed przydziałem bufora; (2) bufory oddawane od razu, gdy film się kończy (zamknięcie kontekstu VA)
+       i całe — z końcem procesu (jeden na strefę, T6); (3) jeśli jądro liczy bufory i915 do cgroup procesu (S26) —
+       limit pamięci klatki usługi pilnuje tego samo jądro; jeśli nie — liczy dekoder filmów i melduje nadzorcy, a
+       nadzorca dolicza to do strefy (Zasoby, podział). Gdy pamięci brak (balon nie może dać), dekoder filmów odmawia
+       nowego filmu — film idzie na procesor, nic nie ginie. Prawdziwa osobna pamięć karty (karty dedykowane, „szybka
+       grafika”) — nie w tej wersji; wtedy osobny ADR.
+
+
+5. LUKI (z czytania kodu po 0.10.0 i dokumentacji, 2026-11-16)
+-------------------------------------------------------------
+Waga: WYSOKA (blokuje krok), ŚREDNIA, NISKA.
+
+Krok 1 (także S26 — niżej, przy kroku 2)
+  S1 WYSOKA, Z KODU. Jądro K1 nie ma i915: jadro/k1.config — DRM_SIMPLEDRM (laptopy), DRM_BOCHS, DRM_VMWGFX (maszyny
+     wirtualne); docs/komponenty/jadro.md: „Brak … i915”. Bez i915 nie ma węzła render ani VA-API.
+  S2 WYSOKA, NIEPEWNE. Czy i915 przy starcie usuwa simpledrm (przejęcie bufora firmware) także z wyłączonym obrazem
+     (parametr i915 disable_display) — sprawdzić w build/zrodla/linux-*/drivers/gpu/drm/i915. Od tego zależy T1.
+  S3 ŚREDNIA, Z KODU. Zatwierdzenie nowej wersji (src/nadzorca/rozruch.c, ROZRUCH_OK 15 s): po pulpicie albo ekranie
+     hasła — nie po tym, że ekran naprawdę pokazał obraz. Wersja z i915 i czarnym ekranem zostałaby zatwierdzona.
+     Sprawdzić, skąd nadzorca wie o pulpicie; w kroku 2 — warunek „ekran wyświetlił klatkę”.
+  S4 WYSOKA, NIEPEWNE. libva ładuje sterownik przez dlopen; K1 jest statyczny (musl, bez bibliotek współdzielonych) —
+     czy i965 da się zlinkować statycznie i wywołać jego __vaDriverInit_* wprost (źródła libva: va.c, va_backend.h).
+  S5 ŚREDNIA, NIEPEWNE. i965 i libdrm z naszymi flagami (SPEC §11, -Werror, fortify, PIE) — ile ostrzeżeń, czy trzeba
+     łatek (musl/latki — wzór); wersje i sumy (Debian 13: intel-vaapi-driver 2.4.1 — sprawdzić).
+  S6 WYSOKA, Z KODU + NIEPEWNE. Firefox w strefie rysuje procesorem i ma VA-API wyłączone (strefy/przegladarka/k1.js:
+     gfx.webrender.software, widget.dmabuf.force-enabled false, media.hardware-video-decoding.enabled false,
+     media.ffmpeg.vaapi.enabled false). Czy Firefox ESR 153 używa VA-API bez EGL i dmabuf (klatki kopiowane) —
+     próba (c).
+  S7 WYSOKA, NIEPEWNE. Piaskownica procesu RDD Firefoksa (dekodowanie): czy sterownik VA w nim może otworzyć gniazdo
+     vsock; czy dopuszcza węzeł /dev/dri i ioctl DRM (źródła Firefoksa: security/sandbox/linux). Rozstrzyga T4.
+  S8 WYSOKA, Z KODU. Obraz strefy nie ma FFmpeg (strefy/przegladarka.txt: z bibliotek filmów tylko libvpx9) —
+     H.264 i HEVC w strefie dziś nie działają wcale; VA-API w Firefoksie idzie przez FFmpeg (T5). Czy wbudowane w
+     Firefoksa ffvpx (VP9) ma ścieżkę VA-API w ESR 153 — NIEPEWNE.
+  S9 ŚREDNIA, NIEPEWNE (ZE ŹRÓDEŁ do sprawdzenia). Co umieją karty: HD 4000 (Ivy Bridge) — H.264 (bez VP8, VP9, HEVC);
+     HD 520 (Skylake) — H.264, HEVC 8-bit, VP8, VP9 częściowo. Potwierdza sonda na sprzęcie (krok 1 b).
+
+Krok 2
+  S10 ŚREDNIA, NIEPEWNE. Skylake: plik DMC (oszczędzanie energii obrazu) — bez niego i915 działa, ale bateria może być
+      gorsza; tabela jadro/oprogramowanie-kart.txt jest dziś tylko dla Wi-Fi (nazwa i opis do rozszerzenia).
+  S11 ŚREDNIA. i915 w k1-zamkniete.config (lockdown, KSPP) — sprawdź scripts/sprawdz-kspp.sh i odstępstwa.
+  S12 NISKA. src/ekran na i915: tryby (EDID panelu), wybór karty, gdy są dwie (simpledrm i i915) — z kroku 1.
+  S13 ŚREDNIA, Z KODU. Urządzenia otwiera nadzorca (urzadzenia.c, uevent.c); węzeł render to nowy rodzaj urządzenia —
+      tylko dla usługi „dekoder filmów”, nigdy dla ekranu ani strefy.
+  S14 WYSOKA. Granica sprawdzania: parametry VA dla H.264/HEVC/VP9 to duże struktury (VAPictureParameterBuffer*,
+      VASliceParameterBuffer*) — sprawdzać tylko pola, które wpływają na pamięć i rozmiary (wymiary, liczba plasterków,
+      długość danych, indeksy klatek odniesienia), resztę przekazywać? Rozstrzyga ADR (krok 1) — pole po polu dla
+      naszego formatu, zakresy z K1_KODEKI.
+  S15 WYSOKA. Pamięć dekodera filmów (T8): bufory karty dla klatek odniesienia (4K HEVC — kilkadziesiąt MB) to RAM;
+      limit z K1_KODEKI i miejsce w podziale pamięci z 0.10.1 krok 3 (strefa = gość + VMM + jej dekoder filmów).
+  S26 WYSOKA, NIEPEWNE. Czy bufory i915 (GEM, shmem) liczą się do cgroup procesu, który je tworzy (memory.current
+      klatki dekodera filmów) — sprawdzić w build/zrodla (drivers/gpu/drm/i915/gem/i915_gem_shmem.c, mm/shmem.c)
+      i próbą na sprzęcie (krok 1: sonda melduje memory.current przed i po rozpakowaniu klatek). Od tego zależy T8 (3).
+  S16 WYSOKA, NIEPEWNE. Lista ioctl węzła render i915 potrzebnych i965 (GEM create/mmap/execbuffer2, context, wait…) —
+      do warunków seccomp (profile; wzór wa_strefa dla KVM) — z próby (krok 1) i nagłówków UAPI (build/naglowki).
+  S17 ŚREDNIA. Dekoder testowy bez karty dla QEMU (T7): tylko w obrazie testowym — jak program testowy w roli usługi
+      (TEST_PROBA) albo tryb testowy wybrany przez nadzorcę; nie może trafić do obrazu produkcyjnego jako droga obejścia.
+
+Krok 3
+  S18 ŚREDNIA, Z KODU. Ustawienia sesji: strefy_ust.c (208 wierszy) i format sesje.c w skarbcu — nowe pole; Ustawienia
+      → Przeglądarka (src/aplikacje/ustawienia/przegladarka.c) po nowym układzie z 0.10.1 krok 4.
+  S19 ŚREDNIA, Z KODU. VMM: src/strefa/gpu.c (323 wiersze) — tylko 2D; wariant B (T4) to konteksty i zasoby blob —
+      duża zmiana, najpierw podział. vsock.c (354 wiersze) — porty 1 i 2; wariant A to port 3.
+  S20 ŚREDNIA. Kopiowanie klatek do pamięci gościa: 1080p NV12 ok. 3 MB, 30–60 klatek/s → 90–180 MB/s; zmierzyć
+      w kroku 1/3 (przepustowość vsock w emulacji: 4 × 3 MiB w ok. 1 s — plan 0.10.5 S37).
+  S21 WYSOKA, NIEPEWNE. Sterownik VA gościa to biblioteka .so ładowana przez Firefoksa (glibc strefy) — nasze programy
+      gościa są statyczne z musl; trzeba budowy pod glibc Debiana 13 (zbuduj-strefe.sh; powtarzalność).
+  S22 ŚREDNIA, Z KODU. Prefy Firefoksa są dziś jedne dla wszystkich sesji (/etc/firefox-esr/k1.js w obrazie) — ustawienie
+      sesji musi dojść do gościa (jak tryb sesji przez kanał sterujący, gosc/przegladarka.c) i zmienić prefy w profilu.
+  S23 ŚREDNIA, NIEPEWNE. Nazwy prefów do wyłączenia VP9/AV1 w MSE w Firefoksie ESR 153 (np. media.mediasource.vp9.enabled,
+      media.av1.enabled) — sprawdzić w źródłach (modules/libpref/init/StaticPrefList.yaml).
+  S24 ŚREDNIA. Złośliwy gość: tryby 1–4 w gosc/zlosliwy.c, tryb 5 = uczciwy dysk (skill §7) — nowy tryb dla filmów.
+  S25 NISKA. Zasoby: dekoder filmów pokaże się sam (wiersz K1_SYSTEM); czy przypisać jego procesor i pamięć do sesji.
+
+
+6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
+-----------------------------------------------------------------------------------
+    Dźwięk (K1 nie ma jeszcze usługi dźwięku — filmy bez dźwięku); „szybka grafika” dla stref (virgl/Venus, ADR 0020
+    p. 2 — rysowanie kartą, nie tylko filmy); nowsze karty Intela (Xe, sterownik iHD) i AMD; AV1 kartą (HD 4000 i HD 520
+    go nie mają); kodowanie kartą (wideorozmowy — WebRTC w strefie i tak wyłączone); odtwarzacz filmów w Plikach K1
+    (pliki wideo da się już przechowywać — „Później”); filmy prosto na ekran K1 bez kopiowania (nakładka ekranu);
+    jasność ekranu i klawisze Fn przez i915 (punkt „Laptop” — osobny PATCH, choć i915 to otwiera).
