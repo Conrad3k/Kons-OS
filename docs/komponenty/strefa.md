@@ -45,7 +45,8 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 - **Wyjścia:** MMIO urządzeń (pod zamkiem), reset przez kontroler klawiatury (koniec gościa), potrójny błąd, inne
   nieobsługiwane — koniec; dostęp do MMIO zgłoszony jako „w trakcie przerwania” — ponawiany do 8 razy (emulacja QEMU,
   ADR 0042 T10).
-- **Koniec:** gość sam (reset), zły dostęp, `ZAMKNIJ` od ekranu → „zamknij” przez vsock, po 10 s maszyna wyłączana.
+- **Koniec:** gość sam (reset), zły dostęp, `ZAMKNIJ` od ekranu → „zamknij” przez vsock, po 40 s maszyna wyłączana (do
+  0.10.0 krok 5: 10 s — za mało na przeglądarkę po ciężkiej stronie i zapis dysku strefy, przebieg CI 132).
 - **Powód końca** (krok 3, S26; `main.c` `kod_wyjscia`): kod wyjścia VMM — 0, gdy zamknął użytkownik (`ZAMKNIJ` od ekranu)
   albo program strefy zamknął się zwyczajnie; `K1_STREFA_KONIEC_PAMIEC` / `_AWARIA`, gdy program strefy skończył się sam
   i powiedział dlaczego („koniec …” na kanale sterującym); `_BLAD`, gdy maszyna stanęła bez słowa (jądro gościa, zły
@@ -61,7 +62,7 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 | losowość (rng) | 1 | `getrandom` do 4 KiB na prośbę | — |
 | klawiatura, wskaźnik (input) | 2 + 2 | zdarzenia `EV_KEY`, `EV_ABS` (0…32767), `EV_SYN` z ekranu; od 0.10.0 krok 4 wskaźnik z kółkiem: `REL_WHEEL`, `REL_HWHEEL` i `*_HI_RES` (1/120 ząbka) z `PRZEWIN` — z kółka oba, z touchpada tylko `*_HI_RES`; bez wolnego bufora — zdarzenie przepada (licznik) | — |
 | ekran (gpu 2D) | 2 | zasoby ≤ 4096 × 4096 (razem ≤ 96 MiB), tło z pamięci gościa (sprawdzone przy dołączeniu), przeniesienie, pokazanie, odświeżenie → okno | polecenie krótsze niż jego struktura, brak miejsca na odpowiedź |
-| vsock | 3 | kanał sterujący (port 1 hosta): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
+| vsock | 3 | kanał sterujący (port 1 hosta): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30); od kroku 5 „zamykanie gotowe\|po czasie” (czy przeglądarka po „zamknij” skończyła się sama w 20 s — czas w logu); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
 
 | dysk strefy (blk, krok 5) | 1 | drugi dysk gościa (`/dev/vdb`) do zapisu i odczytu, `FLUSH`, `SEG_MAX`; 2 GiB w kawałkach po 64 KiB przez pamięć podręczną `dysk.c`; strefa, która zapomina: 0 sektorów | prośba bez nagłówka, odczyt albo zapis > 4 MiB |
 
@@ -87,7 +88,9 @@ Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka�
   powiększ / zamknij, krok 3, S28).
 - **`gosc`** (tryb przeglądarki, `gosc/przegladarka.c`): tmpfs na `/tmp`, `/run`, `/home`, `/dev/shm`, pętla zwrotna, nowy
   `machine-id`; przekaźnik, kompozytor, Firefox jako użytkownik 1000; koniec przeglądarki = koniec maszyny; „zamknij” →
-  SIGTERM i 5 s. Krok 3 (S26): gdy przeglądarka skończy się sama — „koniec pamiec” (zabita przez jądro gościa z braku
+  SIGTERM i 20 s (krok 5: było 5 s — po stronie zajmującej prawie całą pamięć Firefox nie zdążył zapisać ostatniego
+  ciasteczka, przebieg CI 132), potem wymiana dysku (`sync`) i koniec; VMM dostaje „zamykanie gotowe” albo „zamykanie po
+  czasie” i loguje `gość: przeglądarka zamknęła się sama po N s` (albo „nie zamknęła się w czasie — zatrzymana”). Krok 3 (S26): gdy przeglądarka skończy się sama — „koniec pamiec” (zabita przez jądro gościa z braku
   pamięci: `/proc/vmstat` oom_kill), „koniec awaria” (sygnał, kod ≠ 0, padł kompozytor) albo „koniec sam” (zamknięta
   z jej menu); co sekundę „pamiec strona”, gdy jądro gościa zabiło proces strony.
 - **Pamięć strefy** (krok 3, S26; `gosc/pamiec.c`): na IdeaPadzie z 4 GB okno przeglądarki znikało — ciężkie strony

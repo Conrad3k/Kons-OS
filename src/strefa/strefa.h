@@ -79,6 +79,7 @@ struct maszyna {
                                           * say, or it closed normally) — the VMM's exit code (0.10.0 step 3) */
     volatile int gosc_powiedzial;        /* "koniec …" came (first one counts) */
     volatile int zamykana;               /* ekran asked to close it: the end is the user's (exit code 0) */
+    volatile double zamykana_t;          /* when (k1_teraz) — the guest says how long its program took to close */
     unsigned strony_bez_pamieci;         /* pages of the browser the guest killed for lack of memory */
     unsigned long wyjscia_io, wyjscia_mmio, nieznane;
     volatile double petla_t;             /* the main thread's last step (stroz.c) and its name */

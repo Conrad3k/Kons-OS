@@ -76,7 +76,7 @@ zmianie. Rozmiar wyświetlacza gościa = rozmiar okna (≤ 1024 × 720, z rozmia
 zasłonić ani podrobić) i mały znaczek z ikoną strefy na lewym górnym rogu, nad wszystkim w swoim oknie. Kursor na znaczku
 rozwija plakietkę: nazwa strefy · „osobna maszyna” (jednorazowa: „· zapomina po zamknięciu”), minimalizuj, zamknij;
 chwycenie znaczka przesuwa okno. Wskaźnik na ramce, znaczku i plakietce nigdy nie trafia do strefy. „Zamknij” → VMM
-mówi gościowi „zamknij” (vsock), gość się zamyka; po 10 s VMM wyłącza maszynę sam. Strefa jednorazowa — jasny znaczek
+mówi gościowi „zamknij” (vsock), gość się zamyka; po 10 s VMM wyłącza maszynę sam (0.10.0 krok 5: 40 s, przeglądarka ma 20 s na zapisanie danych sesji). Strefa jednorazowa — jasny znaczek
 z obwódką; okno bez fokusu — kolor ramki przygaszony. Przed pierwszym obrazem gościa w oknie „Uruchamiam: …” (D1: S1).
 
 **T10 — testy w emulacji (decyzja właściciela D4).** QEMU TCG z `-cpu max` udaje procesor AMD z SVM i zagnieżdżonym

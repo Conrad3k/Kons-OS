@@ -3,7 +3,8 @@
  * out), the compositor (kompozytor: the guest's display and input) and the browser, as user 1000 with its home on the
  * session's disk (0.10.0 step 5: a session that remembers — logins, bookmarks, history stay) or on tmpfs (a session
  * that forgets: everything goes when the machine ends). It reaps every child; when the browser ends,
- * the machine ends; when the VMM says "zamknij", the browser gets SIGTERM and 5 s, then the machine ends anyway.
+ * the machine ends; when the VMM says "zamknij", the browser gets SIGTERM and 20 s, then the machine ends anyway (it
+ * tells the VMM which: "zamykanie gotowe|po czasie").
  * 0.10.0 step 3 (S26): the VMM hears why the browser ended by itself ("koniec pamiec|awaria|sam" — K1 tells the user)
  * and when a page ended for lack of memory ("pamiec strona"); the browser goes last when memory runs out (pamiec.c).
  * Paths here are the zone image's (Debian's tree), never K1's. */
@@ -30,7 +31,9 @@
 #define PRZEGLADARKA "/usr/lib/firefox-esr/firefox-esr"
 #define WAYLAND "/run/k1/wayland-0"
 #define UZYTKOWNIK 1000
-#define CZAS_ZAMYKANIA_MS 5000
+/* Firefox writes its profile (cookies, logins) as it quits; after a heavy page (zram) that took over 5 s and the newest
+ * cookie was lost (CI run 132), so 20 s. It normally quits in a second or two; this only bounds a hung one. */
+#define CZAS_ZAMYKANIA_MS 20000
 
 int przegladarka_jest(void)
 {
@@ -161,7 +164,7 @@ void przegladarka(int ster)
     char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;
-    int koniec = 0, zamykam = 0, krok = 0, okno[2], dysk;
+    int koniec = 0, zamykam = 0, krok = 0, okno[2], dysk, ster_z = -1; /* koniec 2: the browser out of time */
     uint64_t od = 0;
     unsigned long zabite = pamiec_zabite(), zabite_od = zabite;
     katalog_tmpfs("/tmp", "mode=1777", 0);
@@ -209,11 +212,17 @@ void przegladarka(int ster)
                 kill(przegl, SIGTERM);
                 zamykam = 1;
                 od = (uint64_t)t.tv_sec * 1000u + (uint64_t)t.tv_nsec / 1000000u;
+                ster_z = n > 0 ? ster : -1;
                 ster = -1;
             }
         }
-        if (zamykam && (uint64_t)t.tv_sec * 1000u + (uint64_t)t.tv_nsec / 1000000u - od > CZAS_ZAMYKANIA_MS)
-            koniec = 1;
+        if (zamykam && !koniec && (uint64_t)t.tv_sec * 1000u + (uint64_t)t.tv_nsec / 1000000u - od > CZAS_ZAMYKANIA_MS)
+            koniec = 2;
+    }
+    if (ster_z >= 0) {
+        const char *l = koniec == 2 ? "zamykanie po czasie\n" : "zamykanie gotowe\n";
+        if (write(ster_z, l, strlen(l)) != (ssize_t)strlen(l))
+            loguj("kanał sterujący: zapis nieudany");
     }
     kill(-1, SIGKILL);
     while (waitpid(-1, NULL, 0) > 0) /* nothing holds the disk any more */

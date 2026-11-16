@@ -55,6 +55,8 @@ Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kro
     [ ] szybszy dysk sesji, która pamięta (wyszło w CI 0.10.0, 2026-11-16): pierwsze okno Firefoksa po 156 s zamiast
         62 s — skarbiec potwierdza na dysku osobno każdy zapisany kawałek (2× fdatasync; ok. 2900 zapisów w jednej
         sesji testu). Kierunek: wiele kawałków jednym zatwierdzeniem przy FLUSH gościa (do 0.10.1 albo 0.10.5)
+    [ ] okno sesji znika od razu po „zamknij” (wyszło w CI 0.10.0, 2026-11-16): przeglądarka ma teraz do 20 s na zapisanie
+        danych sesji, a maszyna do 40 s na koniec — przez ten czas okno zostaje na ekranie (zwykle 1–2 s)
     [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna)
     [ ] Przeglądarka K1 (po pierwszej przeglądarce w strefie): okno, karty i pasek adresu jako aplikacja K1, silnik
         (kierunek: WPE WebKit) w strefie; sesje = strefy

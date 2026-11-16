@@ -102,6 +102,10 @@ static int przygotuj(void)
     return kvm_procesory(&w);
 }
 
+/* After "zamknij": the guest gives its program 20 s (gosc/przegladarka.c), then syncs its disk (each piece through
+ * skarbiec) and ends; the VMM waits that long and more before it ends the machine itself. */
+#define ZAMKNIJ_S 40.0
+
 static void petla(void)
 {
     double zamknij_do = 0;
@@ -123,7 +127,8 @@ static void petla(void)
         petla_krok("wiadomości ekranu");
         if (okno_fd() >= 0 && (p[1].revents & (POLLIN | POLLHUP | POLLERR)) && okno_odbierz() == OKNO_ZAMKNIJ &&
             zamknij_do == 0) {
-            zamknij_do = k1_teraz() + 10.0;
+            zamknij_do = k1_teraz() + ZAMKNIJ_S;
+            mz.zamykana_t = k1_teraz();
             mz.zamykana = 1;
             k1_log(TAG, "zamykam strefę na prośbę ekranu");
             okno_zamknij_goscia();
@@ -131,7 +136,7 @@ static void petla(void)
         petla_krok("obraz okna");
         okno_obraz();
         if (zamknij_do > 0 && k1_teraz() >= zamknij_do)
-            koniec("gość nie zamknął się w 10 s — wyłączony");
+            koniec("gość nie zamknął się w 40 s — wyłączony");
     }
 }
 

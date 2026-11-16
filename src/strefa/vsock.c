@@ -182,6 +182,9 @@ static void linia_od_goscia(void)
         k1_log(TAG, "gość: okno przeglądarki po %.1f s od startu maszyny", k1_teraz() - mz.start_t);
     else if (strcmp(v.linia, "zamykam") == 0)
         k1_log(TAG, "gość się zamyka");
+    else if (strcmp(v.linia, "zamykanie gotowe") == 0 || strcmp(v.linia, "zamykanie po czasie") == 0)
+        k1_log(TAG, "gość: przeglądarka %s po %.1f s", v.linia[10] == 'g' ? "zamknęła się sama" :
+               "nie zamknęła się w czasie — zatrzymana", mz.zamykana_t > 0 ? k1_teraz() - mz.zamykana_t : 0.0);
     else if (strcmp(v.linia, "koniec pamiec") == 0 || strcmp(v.linia, "koniec awaria") == 0 ||
              strcmp(v.linia, "koniec sam") == 0) {
         int kod = v.linia[7] == 'p' ? K1_STREFA_KONIEC_PAMIEC : v.linia[7] == 'a' ? K1_STREFA_KONIEC_AWARIA : 0;
