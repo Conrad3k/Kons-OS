@@ -26,8 +26,10 @@ usunięte na Twoją prośbę — są w historii git). Twój test 0.9.1 z 2026-11
     [x] 0.10.0 krok 2 — przeglądarka w strefie, połączenia przez K1 — PR #119
     [x] 0.10.0 krok 3 — poprawki przeglądarki po teście na sprzęcie: pamięć strefy (przeglądarka nie znika; gdy strefa
         się zamknie — okienko z powodem), pełna ramka okna strefy (szkic A), bez przycisków okna Firefoksa — PR #126
-    [ ] 0.10.0 krok 4 — przewijanie kółkiem myszy i dwoma palcami na touchpadzie w całym systemie (wydzielony z kroku 3)
-    [ ] 0.10.0 krok 5 — stała strefa, Ustawienia → Aplikacje, porządki; wydanie 0.10.0
+    [x] 0.10.0 krok 4 — przewijanie kółkiem myszy i dwoma palcami na touchpadzie w całym systemie (wydzielony z kroku 3)
+        — PR #128
+    [ ] 0.10.0 krok 5 — stała strefa, Ustawienia → Aplikacje, porządki; wydanie 0.10.0 [w toku: Claude, gałąź
+        claude/festive-allen-ckietd]
     [x] 0.10.1: plan wersji — docs/PLAN-0.10.1.txt (2026-11-16, Twoja prośba): balon — po wydaniu 0.10.0
 
 
