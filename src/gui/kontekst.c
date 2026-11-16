@@ -58,7 +58,7 @@ static void wiersze_aplikacji(void)
         dodaj(przypieta ? "Odepnij od paska" : "Przypnij do paska", przypieta ? A_ODEPNIJ : A_PRZYPNIJ);
     if (cel == K_IKONA || (cel == K_MENU && na_pulpicie))
         dodaj("Usuń z pulpitu", A_USUN_IKONE);
-    else if (cel == K_MENU)
+    else if (cel == K_MENU && apl <= K1_APL_MAKS) /* a zone has no icon on the desktop */
         dodaj("Dodaj do pulpitu", A_DODAJ);
     if (cel == K_PASEK && okno_aplikacji(apl) != NULL)
         k1_menu_dodaj(&glowne, "Zamknij okno", A_ZAMKNIJ, 0)->akcent = 1;
@@ -117,7 +117,7 @@ static void loguj(void)
         return;
     }
     k1_log(TAG, "menu kontekstowe (%s%s%s): %s", cele[cel], klucz ? " " : "",
-           rozm_plik(klucz) ? "pliku" : klucz ? ikona_nazwa(klucz) : "", buf);
+           rozm_plik(klucz) ? "pliku" : apl > K1_APL_MAKS ? aplikacje[apl].nazwa : klucz ? ikona_nazwa(klucz) : "", buf);
 }
 
 static void otworz_pod(int wiersz)
@@ -153,7 +153,9 @@ void kontekst_otworz(int nowy_cel, uint32_t nowy_klucz, int32_t x, int32_t y)
     }
     cel = nowy_cel;
     klucz = nowy_klucz;
-    apl = rozm_aplikacja(nowy_klucz);
+    /* the Start menu and the bar know the zones too (items above K1_APL_MAKS); a desktop icon is never a zone */
+    apl = (cel == K_MENU || cel == K_PASEK) && nowy_klucz >= 1 && nowy_klucz <= POZYCJE_MAKS ? (int)nowy_klucz
+                                                                                            : rozm_aplikacja(nowy_klucz);
     hover = hover_pod = pod_wiersz = -1;
     wiersze();
     /* top left at the pointer, to the left / above it at the edges; for the bottom bar above the bar, centred */
@@ -255,7 +257,12 @@ static void wykonaj(const struct k1_menu_poz *p)
     }
     kontekst_zamknij();
     switch (akcja) {
-    case K1_MA_OTWORZ: ikona_otworz(klucz, gx, gy); return;
+    case K1_MA_OTWORZ:
+        if (apl > K1_APL_MAKS) /* a zone: the Start menu or the bar */
+            otworz_aplikacje(apl);
+        else
+            ikona_otworz(klucz, gx, gy);
+        return;
     case K1_MA_APLIKACJA:
         for (int i = zawsze ? k1_menu_zawsze(typ, arg, ust) : 0; i > 0; i--) /* ekran saves it and tells everyone */
             k1_wyslij(&k, ust[i - 1]);
