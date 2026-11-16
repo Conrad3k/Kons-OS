@@ -87,6 +87,10 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   tylko w testach), w kroku 2 — Przeglądarka. Okno strefy (`OKNO` z `a` = 0, `c` = strefa) jest pozycją paska
   `K1_APL_MAKS + strefa` (`POZYCJA_STREFY`, tytuł i ikona z `K1_STREFY`): na dolnym pasku wśród działających, kliknięcie
   pokazuje albo chowa okno, menu „Zamknij okno”; nie da się jej przypiąć ani położyć na pulpicie.
+  Od kroku 5 (D2): prawy przycisk na „Przeglądarce” w menu Start — „Otwórz” i pod napisem „Sesje” każda sesja przeglądarki
+  (Ogólna, Bank, Prywatna — nazwy od nadzorcy, `STREFA_NAZWA` na fd 5), kliknięcie otwiera tę sesję; w logu menu sesje
+  jako „sesja N” (nazwa to tekst użytkownika). Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
+  mówią „Przeglądarka · <sesja>”.
   Log przy zmianie obecności, stanu, zasilacza lub co 5 % („bateria 73%, rozładowywanie, …”).
 - Powierzchnie: warstwa pulpitu (`K1_POW_PULPIT`, cały ekran, zatwierdzane tylko zmienione prostokąty),
   panele: górny pasek, dolny pasek, menu Start, okienko dźwięku, menu kontekstowe (memfd, ADR 0008).

@@ -102,6 +102,9 @@ i tak ma całą swoją maszynę; testy złośliwego gościa). Bez PCI, ACPI, mod
 zabijały przeglądarkę; jądro K1 dalej bez swapu — niezmiennik 3 dotyczy świata natywnego, ADR 0042 T4); SquashFS
 `FILE_DIRECT` i `COMPILE_DECOMP_MULTI_PERCPU` — bloki obrazu rozpakowywane wprost do pamięci podręcznej stron i na każdym
 procesorze osobno (S30: szybszy start przeglądarki).
+0.10.0 krok 5: **`EXT4_FS`** — dysk sesji, która pamięta (`/dev/vdb`): ext4 z dziennikiem (przerwane wyłączenie naprawia
+jądro gościa przy montowaniu; `JBD2`, `CRC32` jako biblioteka, bez `CRYPTO`); pusty system plików robi budowa
+(`mke2fs`), w strefie nie ma `mkfs` (ADR 0042 T11).
 
 ### Wi-Fi (0.9.1, ADR 0041)
 `WIRELESS`, `CFG80211` (bez `CFG80211_WEXT` i CRDA), `MAC80211` z minstrelem (bez mesh), `RFKILL` (bez `RFKILL_INPUT`),

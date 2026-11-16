@@ -97,8 +97,13 @@ z ramką. Wskaźnik na ramce nie trafia do strefy: chwycenie paska przesuwa okno
 minimalizuj chowa okno, zamknij wysyła VMM `ZAMKNIJ`; kursor nad przyciskiem go podświetla. VMM odejmuje wysokość paska
 od wysokości obrazu (`src/strefa/okno.c`). Log, gdy kursor wchodzi na pasek okna: `strefa: pasek okna N (minimalizuj X,Y,
 zamknij X,Y)` (testy klikają według niego). Do 0.10.0 krok 2 ramką była obwódka ze znaczkiem i plakietką (szkic B2).
+Od 0.10.0 krok 5 nazwa sesji na pasku to nazwa od nadzorcy (`STREFA_NAZWA` — użytkownik może ją zmienić; do pierwszej
+wiadomości — z `K1_STREFY`), a „· zapomina po zamknięciu” i jasny pasek — według tego, czy strefa dostała dysk, gdy
+ruszyła (`STREFY_STAN` a w chwili `KLIENT`; zmiana w Ustawieniach działa od następnego otwarcia, więc otwarte okno jej nie
+pokazuje).
 
-Kanał sterujący (fd 3) od nadzorcy: `KLIENT` (rola `STREFA`: `b` = numer strefy). Złe pole, zła rola albo obcy UID → komunikat odrzucony
+Kanał sterujący (fd 3) od nadzorcy: `KLIENT` (rola `STREFA`: `b` = numer strefy); od 0.10.0 krok 5 także `STREFY_STAN` i
+`STREFA_NAZWA` (bez deskryptora; sesje — `komponenty/strefa.md`). Złe pole, zła rola albo obcy UID → komunikat odrzucony
 z wpisem w logu (≤ 8 na klienta), po 50 — klient rozłączony.
 
 ## Doręczanie (0.8.5 krok 1)

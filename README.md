@@ -94,8 +94,8 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    zmiana Secure Boot może sprawić, że przy następnym starcie zapyta o *klucz odzyskiwania* — przed
    zmianą miej go pod ręką (konto Microsoft → urządzenia) albo w Windowsie wstrzymaj ochronę
    BitLocker („Wstrzymaj ochronę”).
-3. Po kilku sekundach powinien pojawić się pulpit. Klawiatura, TrackPoint, touchpad (ruch i kliknięcia,
-   bez przewijania dwoma palcami) i mysz USB powinny działać. Na górnym pasku przy głośniku — bateria
+3. Po kilku sekundach powinien pojawić się pulpit. Klawiatura, TrackPoint, touchpad (ruch, kliknięcia i — od
+   0.10.0 — przewijanie dwoma palcami) i mysz USB z kółkiem powinny działać. Na górnym pasku przy głośniku — bateria
    (procent; błyskawica, gdy podłączysz zasilacz — zmiana widoczna do 15 s). Jasność ekranu i klawisze
    Fn — jeszcze nie.
 4. Wyłączenie: znak K1 → **Wyłącz** (laptop powinien się sam wyłączyć), potem wyjmij pendrive.
@@ -117,7 +117,15 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    Od 0.7.0 nowa wersja trafia **obok** obecnej (A/B): po restarcie startuje na próbę, a gdyby nie
    wystartowała — wraca poprzednia, a Instalator o tym napisze. Od 0.9.0 aktualizacja wymienia też pliki
    startowe (shim, GRUB) — bezpiecznie, nawet gdy w trakcie zabraknie prądu. K1 starszy niż 0.7.0 na dysku:
-   najpierw zaktualizuj go do 0.8.x albo zainstaluj od nowa.
+   najpierw zaktualizuj go do 0.8.x albo zainstaluj od nowa. **Od 0.10.0** dane zapisane przez 0.5.6–0.8.1, których od
+   tamtej pory nie otworzyła żadna wersja 0.8.2–0.9.1, się nie otworzą (K1 ich nie rusza) — uruchom taki nośnik najpierw
+   raz z 0.9.1.
+8. **Przeglądarka** (od 0.10.0): menu Start → **Przeglądarka** — prawdziwy Firefox w osobnej maszynie (strefie).
+   **Najpierw raz włącz wirtualizację w BIOS-ie:** X230 — F1 → Security → Virtualization → „Intel Virtualization
+   Technology” i „Intel VT-d Feature”: *Enabled*; IdeaPad 110 — F2 → Configuration → „Intel Virtual Technology”:
+   *Enabled*; F10 zapisuje. Bez tego K1 powie, że przeglądarka nie może ruszyć. Sesje (prawy przycisk na Przeglądarce w
+   menu Start): **Ogólna** i **Bank** pamiętają zalogowania, zakładki i historię (zaszyfrowane w danych K1), **Prywatna**
+   zapomina wszystko po zamknięciu. Ustawienia → **Przeglądarka**: pamięta / zapomina, zmiana nazwy, „Wyczyść dane”.
 
 ## Klucz podpisu (jednorazowo, od 0.6.2)
 Wydania K1 podpisuje GitHub kluczem, który znasz tylko Ty (i GitHub). **Nie wklejaj go nigdzie

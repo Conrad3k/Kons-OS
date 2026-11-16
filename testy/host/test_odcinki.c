@@ -104,10 +104,10 @@ static void test_podstawy(struct k1_mag_dysk *d)
     k1_mag_zamknij(&m);
     EXPECT(k1_mag_sprawdz(d, &h) == K1_MAG_JEST && h == 1);
     EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_HASLO && k1_mag_otworz(&m, d, "kocham-k1") == K1_MAG_HASLO);
-    EXPECT(k1_mag_otworz(&m, d, "Kocham-K1") == K1_MAG_OK && k1_mag_zmien_haslo(&m, "Nowe") == K1_MAG_OK);
+    EXPECT(k1_mag_otworz(&m, d, "Kocham-K1") == K1_MAG_OK && k1_mag_sprawdz_haslo(&m, "Kocham-K1") == K1_MAG_OK &&
+           k1_mag_sprawdz_haslo(&m, "kocham-k1") == K1_MAG_HASLO && k1_mag_zmien_haslo(&m, "Nowe") == K1_MAG_OK);
     k1_mag_zamknij(&m);
     EXPECT(k1_mag_otworz(&m, d, "Nowe") == K1_MAG_OK && k1_mag_czytaj(&m, 5, "notatka", t, sizeof t, &dl) == K1_MAG_OK);
-    k1_mag_zamknij(&m);
 
     /* too small for segments: nothing written */
     dysk(d, 200);

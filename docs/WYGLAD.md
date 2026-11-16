@@ -196,6 +196,17 @@ wybrany **A**. Znaczek i plakietka B2 zniknęły.
 - **„Zamknęła się”** (krok 3, S26): to samo okienko, gdy strefa skończyła się bez zamknięcia przez użytkownika —
   „<tytuł> zamknęła się” i powód (brak pamięci w strefie, brak pamięci w komputerze, awaria programu, błąd strefy).
 - **Dolny pasek:** okno strefy wśród działających (po kresce), ikona strefy; strefy nie przypina się.
+- **Sesje (krok 5, D2; szkic Ustawień ze szkiców kroku 1 — „Ustawienia → Aplikacje → Przeglądarka” — jako osobna sekcja,
+  bo w sekcji Aplikacje brakowało miejsca):** Ustawienia → **Przeglądarka** (ikona globusa `K1_IK_PRZEGLADARKA`, sekcja przed
+  Informacjami): opis „Sesje — każda w osobnej maszynie, z własnym kolorem”; wiersz co 78 px na sesję — kropka 10 px w kolorze
+  sesji, nazwa (Plex Sans Medium 15), po prawej przełącznik segmentowy 200 × 32 „Pamięta | Zapomina”; pod nazwą ciche
+  przyciski (Plex Sans 13) „Zmień nazwę” i „Wyczyść dane” (po pierwszym kliknięciu „Na pewno? Wyczyść”, pogrubione), pod
+  nimi opis (`tekst3`). Zmiana nazwy: pole 210 × 32 z ramką w kolorze akcentu w miejscu nazwy, pod nim „Zapisz” (akcent) i
+  „Anuluj”. Na dole: wynik czyszczenia (pogrubiony, `tekst2`) i stan wirtualizacji (`tekst3`). Okno Ustawień 680 × 480.
+- **Menu sesji (krok 5, D2):** prawy przycisk na „Przeglądarce” w menu Start — „Otwórz” (pogrubione), kreska, napis „Sesje”
+  i wiersz na sesję (jej nazwa), potem jak u aplikacji („Dodaj do pulpitu”). Okienka i menu paska: „Przeglądarka · <sesja>”.
+- **Sesja, która pamięta / zapomina (krok 5):** pasek w pełnym kolorze sesji = pamięta; jasny pasek i „· zapomina po
+  zamknięciu” = zapomina (według tego, jak strefa ruszyła). Ustawienia → Miejsce: część „Strefy” w szałwii `#5F8A6A`.
 
 ## Sieć (0.9.0 krok 7, decyzja właściciela D1: ikona C, sekcja B)
 Trzy szkice ikony (A — monitor z kablem, B — trzy połączone węzły, C — wtyczka sieciowa) i trzy układy sekcji (A — jak

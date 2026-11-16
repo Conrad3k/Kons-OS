@@ -1,6 +1,7 @@
 # 0020. Strefy: każda obca aplikacja w swojej mikro-maszynie wirtualnej
 
-- Status: Przyjęty (kierunek; szczegóły techniczne — w ADR etapu M8)
+- Status: Przyjęty (kierunek); częściowo wdrożony w 0.10.0 — mikro-maszyny, zaufana ramka i przełącznik stała / jednorazowa
+  (ADR 0042, 0043); przełącznik pełna izolacja / szybka grafika — później
 - Data: 2026-11-07
 - Dotyczy: SPEC §8 (strefa zgodności: zaplecze A i B), §9 (Gatekeeper), ADR 0019 (plan), RYZYKA R26
 

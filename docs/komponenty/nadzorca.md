@@ -138,10 +138,13 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   „Użyj całego pendrive'a na dane” w Ustawieniach (gest użytkownika, decyzja D4) i przy otwartym magazynie; te same
   zapisy tablicy, skarbiec zostaje przy otwartej partycji, odpowiedź `POWIEKSZONO` (a = 0 / `K1_SKARB_ARG` /
   `K1_SKARB_IO`). `SKARB_KLIENT` d = ile MiB pendrive ma jeszcze za K1-DANE (0: nie pendrive albo < 16 MiB).
-- Potwierdzony start (0.8.2 krok 1c, ADR 0036, `rozruch.c`, `skarb.c`): po sprawdzeniu A/B (15 s pulpitu albo ekranu
-  hasła) nadzorca wysyła skarbcowi `START_POTWIERDZONY` — stary magazyn (format 1) może przejść na format 2, bo
-  wycofanie do 0.8.1 już nie nastąpi. Gdy na którymś dysku czeka próba A/B innej wersji — nie wysyła („skarbiec zostaje
-  przy swoim formacie do następnego startu”). Skarbiec uruchomiony ponownie dostaje go jeszcze raz.
+- Potwierdzony start (`rozruch.c`): po sprawdzeniu A/B (15 s pulpitu albo ekranu hasła). Do 0.9.1 nadzorca mówił wtedy
+  skarbcowi `START_POTWIERDZONY` (stary magazyn formatu 1 mógł przejść na format 2, ADR 0036) — usunięte w 0.10.0 razem z
+  formatem 1; gdy na którymś dysku czeka próba A/B innej wersji, log „A/B: próba innej wersji czeka”.
+- Sesje stref (0.10.0 krok 5, `strefy_ust.c`, format `sesje.c`): która sesja przeglądarki pamięta i jak się nazywa —
+  w skarbcu (właściciel `K1_WL_SYSTEM`, obiekt 4); do gui, ekranu i Ustawień `STREFA_NAZWA` i `STREFY_STAN`, od Ustawień
+  `STREFA_TRWALOSC`, `STREFA_NAZWA`, `STREFA_WYCZYSC` (do skarbca `SKARB_WYCZYSC`). Strefa, która pamięta, dostaje od
+  `strefy.c` fd 8 (kanał do skarbca, właściciel = jej profil) i fd 9 (pusty dysk strefy) — `komponenty/strefa.md`.
 - Dekoder (0.8.0 krok 4, ADR 0032, `dekoder.c`): na `DEKODER` od klienta z tabeli klientów (0.8.2: Pliki — ten sam
   fd 6 co pendrive; Podgląd — jego fd 6, `podglad_kanal`, tylko `DEKODER`, nadawca UID 208; ADR 0037) — nowy proces `dekoder` w klatce (fd 3: kanał do klienta, obie strony z `SO_PASSCRED`; argument: numer
   aplikacji klienta), drugi koniec klientowi w `DEKODER_KANAL`. Jeden obraz na proces, jeden proces naraz, najwyżej

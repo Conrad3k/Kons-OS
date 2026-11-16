@@ -3,6 +3,64 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.10.0] — 2026-11-16
+
+**Strefy: pierwsza strefa i przeglądarka** (plan 0.10.0, kroki 1–5; ADR 0042, 0043) — pierwsza wersja tematu 0.10 Strefy.
+W menu Start jest **Przeglądarka**: prawdziwy Firefox w osobnej maszynie (strefie) z własnym jądrem Linux. Strona, która
+zaatakuje przeglądarkę, zostaje w tej maszynie — nie dosięgnie Twoich plików, haseł ani reszty K1. Na laptopie trzeba raz
+włączyć wirtualizację w BIOS-ie (README, punkt 8).
+
+### Dodane
+- **Pierwsza strefa** (krok 1, ADR 0042): jądro K1 z KVM; nasz mały program „strefa” (VMM) prowadzi jedną mikro-maszynę
+  w swojej klatce — pamięć maszyny nigdy nie jest wykonywalna w K1, każda prośba od maszyny sprawdzana pole po polu
+  (złośliwa maszyna kończy tylko siebie). Drugie, małe jądro Linux dla wnętrza stref (`jadro/strefa.config`). Bez
+  wirtualizacji (albo wyłączonej w BIOS-ie) — okienko „nie może ruszyć” z radą, co włączyć.
+- **Przeglądarka w strefie** (krok 2, ADR 0043): Firefox ESR z Debiana 13 w obrazie strefy (pakiety sprawdzane podpisem
+  Debiana i sumami), nasz kompozytor Wayland w strefie; do internetu strefa nie ma karty sieciowej — prosi K1 o każde
+  połączenie, a K1 łączy ją tylko z internetem i routerem, nigdy z resztą sieci domowej (Twoja decyzja D3). W logach
+  tylko liczby — nigdy adresy stron ani wpisany tekst. Trzy sesje (D2): **Ogólna**, **Bank**, **Prywatna**, każda z własnym
+  kolorem ramki.
+- **Zaufana ramka** (krok 3, Twój szkic A): okno strefy ma pasek tytułu K1 w kolorze sesji („Przeglądarka · Ogólna ·
+  osobna maszyna”, minimalizuj, zamknij; przesuwanie za pasek) i obwódkę — rysuje je K1, strona nie może ich podrobić
+  ani zasłonić. Firefox nie rysuje już własnych przycisków okna.
+- **Przewijanie** (krok 4, Twoja decyzja D8): kółko myszy i dwa palce na touchpadzie przewijają okno pod kursorem —
+  strony w przeglądarce, listy w Plikach, Notatkach, Wyborze pliku, powiększone zdjęcie w Podglądzie; na touchpadzie
+  kierunek naturalny. Touchpad ma teraz własny tryb (protokoły Synaptics, Elantech, ALPS): ruch, stuknięcia, przycisk.
+- **Sesje, które pamiętają** (krok 5, ADR 0042 T11): Ogólna i Bank pamiętają zalogowania, zakładki i historię — po
+  zamknięciu i po ponownym starcie K1; Prywatna zapomina wszystko. Dane sesji leżą zaszyfrowane w skarbcu (dysk strefy:
+  2 GiB w kawałkach po 64 KiB); bez K1-DANE (dane tylko w pamięci) każda sesja zapomina. Inne sesje i aplikacje nie
+  widzą danych sesji.
+- **Ustawienia → Przeglądarka** (krok 5): przy każdej sesji kolor, nazwa, „Pamięta | Zapomina” (od następnego otwarcia),
+  **„Zmień nazwę”**, **„Wyczyść dane”** (pyta dwa razy); na dole stan wirtualizacji. **Menu sesji**: prawy przycisk na
+  Przeglądarce w menu Start — Ogólna, Bank, Prywatna. **Ustawienia → Miejsce**: część „Strefy” (ile zajmują sesje).
+
+### Zmienione
+- **Pamięć strefy** (krok 3): przeglądarka nie znika przy ciężkich stronach — pamięć kompresowana w strefie, strony
+  oddają pamięć przed samą przeglądarką; gdy strefa skończy się sama, okienko mówi dlaczego (pamięć strefy, pamięć
+  komputera, awaria, błąd). Pamięć według potrzeby (balon) — 0.10.1.
+- Szybszy start przeglądarki (krok 3): obraz strefy rozpakowywany wprost do pamięci podręcznej i na każdym procesorze.
+- Okno Ustawień: 680 × 480 (jedna sekcja więcej).
+- Ustawienia ekranu zapisane dawno temu (formaty K1U1–K1U3) są przy pierwszym odczycie zapisywane od nowa (K1U4).
+
+### Porządki (zasada czytelności 2)
+- **Usunięty format 1 skarbca** (0.5.6–0.8.1) i jego przejście na format 2 (termin 0.10.0, Twoja decyzja D7): `obszary.c`,
+  `przejscie.c`, komunikat `START_POTWIERDZONY`, kompaktowanie przy otwarciu, `test_magazyn`, `test_przejscie`, tryby
+  formatu 1 w `fuzz_magazyn`. Nośnik z takim magazynem K1 rozpoznaje i zostawia nietknięty (dane tylko w pamięci, rada:
+  uruchom go raz z 0.9.1). Ogólne sprawdzenia (pusta partycja, obce dane, hasło) przeszły do `test_odcinki`.
+- `test-skarbiec.sh`: zamiast scenariuszy formatu 1 — „stary” (magazyn formatu 1 nietknięty) i „wersje” (20 000 wersji
+  jednego obiektu otwierają się od razu).
+- Tymczasowe: format 1 skarbca — usunięty (termin dotrzymany); nowy termin: odczyt ustawień ekranu K1U1–K1U3 — 0.11.0.
+  Komentarzy „M8/M11” w kodzie i konfiguracji jądra już nie ma.
+- Statusy ADR 0020 (częściowo wdrożony), 0024 i 0025 (niewdrożone), 0042 (uzupełnienie T11); RYZYKA R26, R50, R54 —
+  ramka K1 dla okien stref (R80), nowe R87 (dysk sesji).
+- Blisko limitu 600 wierszy (dzielić przed następną rozbudową): `test_odcinki.c` (599), `k1_rysuj.c` (542),
+  `uslugi.c` (534).
+
+### Bezpieczeństwo
+- Nowe ryzyka: R77–R80 (VMM, KVM, ataki procesora, okno udające K1), R81–R85 (obraz przeglądarki, stary Firefox,
+  DNS bez szyfrowania, łącznik w VMM, router dostępny ze strefy), R86 (touchpad), R87 (dysk sesji).
+- Nazwy sesji to tekst użytkownika — nigdy w logu (menu loguje „sesja N”).
+
 ## [0.9.1] — 2026-11-14
 
 **Sieć: Wi-Fi** (plan 0.9.1, kroki 1–2; ADR 0041) — druga wersja tematu 0.9 Sieć. Laptop łączy się z domowym Wi-Fi:

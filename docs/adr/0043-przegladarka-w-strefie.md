@@ -3,7 +3,7 @@
 - Status: Przyjęty; wdrożony w 0.10.0 krok 2 (sesje jednorazowe); krok 3 — sesje, które pamiętają (dysk strefy)
 - Data: 2026-11-15
 - Dotyczy: ADR 0042 (strefy), ADR 0039 (gniazda sieciowe tylko u nadzorcy), ADR 0020 p. 2 i 3, ADR 0025 (Przeglądarka K1
-  — później), ADR 0027 (pliki — 0.11), SPEC §8 (dopisek [korekta: ADR 0043]); plan `docs/PLAN-0.10.0.txt`: T7–T9,
+  — później), ADR 0027 (pliki — 0.11), SPEC §8 (dopisek [korekta: ADR 0043]); plan `docs/archiwum/PLAN-0.10.0.txt`: T7–T9,
   S12–S20, decyzje właściciela D2, D3, D6; RYZYKA R81–R85
 
 ## Kontekst

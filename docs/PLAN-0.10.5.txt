@@ -44,7 +44,7 @@ Nowy czat — przebieg każdego kroku:
   1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
   2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2 i 3 — także „Ustalenia
      z wykonania” kroków wcześniejszych. Przeczytaj też „Ustalenia z wykonania” planu 0.10.0 (docs/archiwum/
-     PLAN-0.10.0.txt po wydaniu) — strefy, VMM i łącznik mogły wyjść inaczej, niż ten plan zakłada.
+     PLAN-0.10.0.txt) — strefy, VMM i łącznik mogły wyjść inaczej, niż ten plan zakłada.
   3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
   4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
   5. Najpierw test, który pokazuje lukę, potem zmiana, potem ten sam test na zielono.
