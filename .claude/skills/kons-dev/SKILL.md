@@ -313,6 +313,9 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
   plików) — wolny serwer nie trzyma budowy; każde `curl` ma limit połączenia i zatrzymania (60 s poniżej 2 KB/s).
 - **CI na PR-ze:** etykieta `testy` (`issue_write`) — build i testy bez wydania; to jest pełny komplet testów przed
   scaleniem. Wynik: `actions_list` (`list_workflow_runs`, gałąź PR-a), przy błędzie `get_job_logs`. `workflow_dispatch` daje 403.
+  Ponowny przebieg po nowym commicie: `issue_write` z `labels: []` NIE zdejmuje etykiety — zamień na `["feedback"]`, potem
+  `["testy"]`. Każda zmiana etykiety to osobny przebieg, a nowszy anuluje starszy (`concurrency`) — liczy się ostatni
+  przebieg z zadaniem `k1`; sprawdź, że ruszył i na którym commicie (PR #124: przebiegi 110–112).
 - **Scalanie** (repo publiczne od 2026-11-14, ADR 0040 — scalasz sam po zielonych testach): commit po angielsku → `git push -u origin
   <gałąź>` → PR po polsku (najpierw co widzi użytkownik, potem technika, `Closes #N`) → **squash z własnym
   `commit_message`**. Tylko docs: `[skip ci]` w tytule commita scalenia. Zmiana w systemie: **bez**
