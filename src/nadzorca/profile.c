@@ -98,14 +98,15 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
                         .rozmiar_pliku = 16u << 20 },
     K1_APLIKACJE(X_APL)
 #undef X_APL
-    /* zones (k1_uslugi.h K1_STREFY): a thread per processor, the watchman's (strefa/stroz.c) + 1 task KVM makes in
-     * the machine's process itself (the recovery of large pages: a vhost_task, arch/x86/kvm/mmu/mmu.c — counted by
-     * the pids controller); the guest's memory + 160 MiB (the resources of virtio-gpu, up to 96 MiB, the window,
-     * the VMM itself, KVM's structures), RLIMIT_FSIZE = the guest's memory (its memfd) */
+    /* zones (k1_uslugi.h K1_STREFY): a thread per processor, the watchman's (strefa/stroz.c), the disk's (strefa/dane.c,
+     * 0.10.0 step 5) + 1 task KVM makes in the machine's process itself (the recovery of large pages: a vhost_task,
+     * arch/x86/kvm/mmu/mmu.c — counted by the pids controller); the guest's memory + 184 MiB (the resources of
+     * virtio-gpu, up to 96 MiB, the window, the VMM itself, KVM's structures; the disk's cache of 16 MiB and its
+     * buffer of 4 MiB), RLIMIT_FSIZE = the guest's memory (its memfd; a piece of the disk to skarbiec: 64 KiB) */
 #define X_Z(n, nr_, profil_, uid_, obraz_, tytul_, sesja_, pamiec_, procesory_, ...)                                 \
     [profil_] = { .nazwa = "strefa-" #nr_, .uid = uid_, .wywolania = sc_strefa, .n_wywolan = N(sc_strefa),          \
-                  .warunki = wa_strefa, .n_warunkow = N(wa_strefa), .pamiec = ((uint64_t)(pamiec_) + 160u) << 20,     \
-                  .watki = (procesory_) + 2, .pliki = 64 + K1_STREFA_POLACZENIA_MAKS + 8,                          \
+                  .warunki = wa_strefa, .n_warunkow = N(wa_strefa), .pamiec = ((uint64_t)(pamiec_) + 184u) << 20,     \
+                  .watki = (procesory_) + 3, .pliki = 64 + K1_STREFA_POLACZENIA_MAKS + 8,                          \
                   .rozmiar_pliku = (uint64_t)(pamiec_) << 20 },
     K1_STREFY(X_Z)
 #undef X_Z

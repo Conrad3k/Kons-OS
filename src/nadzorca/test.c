@@ -42,6 +42,9 @@ void obsluz_test(void)
     } else if (k.typ == K1_KOM_URUCHOM_STREFE) { /* 0.10.0: also a hostile guest (b: its test mode) */
         strefa_uruchom(k.a, k.b);
         odpowiedz_testowi(0, -1);
+    } else if (k.typ == K1_KOM_STREFA_WYCZYSC) { /* 0.10.0 step 5: "Wyczyść dane sesji" of the test zone */
+        sesje_prosba(&k, 1);
+        odpowiedz_testowi(0, -1);
     } else if (k.typ == K1_KOM_TEST_PROBA && proba.pid == 0) {
         static struct k1_profil p;
         static char nazwa[32];

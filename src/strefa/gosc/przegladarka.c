@@ -1,7 +1,8 @@
 /* K1 gosc — the browser zone (0.10.0 step 2, ADR 0043): when the zone image has the compositor, gosc (PID 1 of the
  * machine) does not draw its test pattern but starts, in this order: the relay (przekaznik: the browser's only way
- * out), the compositor (kompozytor: the guest's display and input) and the browser, as user 1000 with its home on
- * tmpfs (a one-time session forgets everything when the machine ends). It reaps every child; when the browser ends,
+ * out), the compositor (kompozytor: the guest's display and input) and the browser, as user 1000 with its home on the
+ * session's disk (0.10.0 step 5: a session that remembers — logins, bookmarks, history stay) or on tmpfs (a session
+ * that forgets: everything goes when the machine ends). It reaps every child; when the browser ends,
  * the machine ends; when the VMM says "zamknij", the browser gets SIGTERM and 5 s, then the machine ends anyway.
  * 0.10.0 step 3 (S26): the VMM hears why the browser ended by itself ("koniec pamiec|awaria|sam" — K1 tells the user)
  * and when a page ended for lack of memory ("pamiec strona"); the browser goes last when memory runs out (pamiec.c).
@@ -160,20 +161,22 @@ void przegladarka(int ster)
     char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;
-    int koniec = 0, zamykam = 0, krok = 0, okno[2];
+    int koniec = 0, zamykam = 0, krok = 0, okno[2], dysk;
     uint64_t od = 0;
     unsigned long zabite = pamiec_zabite(), zabite_od = zabite;
     katalog_tmpfs("/tmp", "mode=1777", 0);
     katalog_tmpfs("/run", "mode=0755", 0);
-    katalog_tmpfs("/home", "mode=0755", 0);
+    dysk = dysk_montuj("/home") == 0; /* a session that remembers (dysk.c); else in memory */
+    if (!dysk)
+        katalog_tmpfs("/home", "mode=0755", 0);
     katalog_tmpfs("/dev/shm", "mode=1777", 0);
     /* XDG_RUNTIME_DIR of the browser: root's, so only the compositor makes its socket there. Firefox's own Wayland
      * proxy (a socket of its own there) stays off — with it Firefox never reached the compositor in the zone. */
     if (mkdir("/run/k1", 0755) != 0)
         loguj("/run/k1: %s", strerror(errno));
     id_maszyny();
-    if (mkdir("/home/k1", 0700) != 0 || chown("/home/k1", UZYTKOWNIK, UZYTKOWNIK) != 0 ||
-        mkdir("/home/k1/profil", 0700) != 0 || chown("/home/k1/profil", UZYTKOWNIK, UZYTKOWNIK) != 0)
+    if ((mkdir("/home/k1", 0700) != 0 && errno != EEXIST) || chown("/home/k1", UZYTKOWNIK, UZYTKOWNIK) != 0 ||
+        (mkdir("/home/k1/profil", 0700) != 0 && errno != EEXIST) || chown("/home/k1/profil", UZYTKOWNIK, UZYTKOWNIK) != 0)
         loguj("katalog domowy: %s", strerror(errno));
     petla_zwrotna();
     uruchom(PRZEKAZNIK, a_prze, env_k1, UZYTKOWNIK, -1);
@@ -213,4 +216,8 @@ void przegladarka(int ster)
             koniec = 1;
     }
     kill(-1, SIGKILL);
+    while (waitpid(-1, NULL, 0) > 0) /* nothing holds the disk any more */
+        ;
+    if (dysk)
+        dysk_odmontuj("/home");
 }

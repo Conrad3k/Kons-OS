@@ -128,6 +128,7 @@ static void okresowe(void)
     siec_stan_wyslij();
     wyslij_baterie();
     wyslij_ustawieniom();
+    sesje_okresowe();
     bateria_archiwum(t);
     rozruch_po_starcie(t);
     if (zasoby_kanal >= 0 && t >= nastepny_raport) {

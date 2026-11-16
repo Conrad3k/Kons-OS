@@ -224,12 +224,16 @@ $(OBJ)/test_zdarzenie: testy/host/test_zdarzenie.c src/wspolne/k1_zdarzenie.c sr
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_zdarzenie.c src/wspolne/k1_zdarzenie.c
 
 # 0.10.0 step 4: a touchpad in its own mode (src/wejscie/touchpad.c — pure)
+$(OBJ)/test_dysk_strefy: testy/host/test_dysk_strefy.c src/strefa/dysk.c src/strefa/dysk.h testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_dysk_strefy.c src/strefa/dysk.c
+$(OBJ)/test_sesje: testy/host/test_sesje.c src/nadzorca/sesje.c src/nadzorca/sesje.h $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_sesje.c src/nadzorca/sesje.c $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_uslugi.c
 $(OBJ)/test_touchpad: testy/host/test_touchpad.c src/wejscie/touchpad.c src/wejscie/touchpad.h src/wspolne/k1_zdarzenie.c \
 	src/wspolne/k1_zdarzenie.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/wejscie -o $@ testy/host/test_touchpad.c src/wejscie/touchpad.c src/wspolne/k1_zdarzenie.c
 
-$(OBJ)/test_komunikat: testy/host/test_komunikat.c testy/host/test_komunikat_pliki.c testy/host/test_komunikat.h $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_komunikat.h src/wspolne/k1_kanal.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_komunikat.c testy/host/test_komunikat_pliki.c $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c
+$(OBJ)/test_komunikat: testy/host/test_komunikat.c testy/host/test_komunikat_pliki.c testy/host/test_komunikat_strefy.c testy/host/test_komunikat.h $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_komunikat.h src/wspolne/k1_kanal.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_komunikat.c testy/host/test_komunikat_pliki.c testy/host/test_komunikat_strefy.c $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c
 
 $(OBJ)/test_log: testy/host/test_log.c src/wspolne/k1_log.c src/wspolne/k1_log.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_log.c src/wspolne/k1_log.c
@@ -367,7 +371,7 @@ $(OBJ)/test_rozmieszczenie: testy/host/test_rozmieszczenie.c src/gui/rozmieszcze
 # 0.8.0: the user's files — names, types, the entry layout, folders, Kosz, the rights of the channel; a fixed build time
 # (2026-11-18) so that the tests' clock (2027) stays after it whenever they run
 CZAS_TESTU := 1795000000
-DOK_TEST := src/skarbiec/dokumenty.c $(wildcard src/skarbiec/dok_*.c) src/skarbiec/dostep.c src/skarbiec/obiekty.c src/skarbiec/przerwy.c src/skarbiec/miejsce.c $(MAGAZYN) $(DOK_C) \
+DOK_TEST := src/skarbiec/dokumenty.c $(wildcard src/skarbiec/dok_*.c) src/skarbiec/dostep.c src/skarbiec/obiekty.c src/skarbiec/przerwy.c src/skarbiec/miejsce.c src/skarbiec/strefy.c $(MAGAZYN) $(DOK_C) \
             src/wspolne/k1_log.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_memfd.c src/wspolne/k1_uslugi.c
 $(OBJ)/test_dokumenty: $(wildcard testy/host/test_dokumenty*.c) testy/host/test_dokumenty.h $(DOK_TEST) $(wildcard src/skarbiec/*.h) $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -DK1_CZAS_BUDOWY=$(CZAS_TESTU) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ \
@@ -400,7 +404,7 @@ TESTY_HOST := test_odcinki test_dokumenty test_indeks test_wpa test_krypto test_
 	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
-	test_przeciaganie test_lacznik test_touchpad
+	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje
 TESTY_HOST_PLIKI := test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
 
 # notatki_w_plikach and magazyn_testowy are not run here: scripts/test-*.sh use them

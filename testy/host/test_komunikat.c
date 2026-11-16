@@ -451,5 +451,6 @@ int main(void)
     pendrive();
     dekoder();
     kanal();
+    strefy();
     return K1_TEST_KONIEC("test_komunikat");
 }

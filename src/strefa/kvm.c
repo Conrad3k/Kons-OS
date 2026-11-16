@@ -115,7 +115,8 @@ int kvm_urzadzenia(void)
             return -1;
         }
         /* the negative tests 3 and 4 (gosc/zlosliwy.c) need a read-only disk the guest's kernel does not drive */
-        mmio_start(&mz.urz[i], i == URZ_LOSOWOSC && mz.tryb >= 3 ? &blk_ops : ops[i], NULL, &mz.pamiec, przerwij);
+        mmio_start(&mz.urz[i], i == URZ_LOSOWOSC && mz.tryb >= 3 && mz.tryb <= ST_TRYB_ZLOSLIWY ? &blk_ops : ops[i], NULL,
+                   &mz.pamiec, przerwij);
     }
     return 0;
 }
@@ -126,7 +127,7 @@ void kvm_linia_urzadzen(char *buf, size_t n)
     int i;
     buf[0] = '\0';
     for (i = 0; i < URZ_LICZBA && p < n; i++)
-        if (!(mz.tryb > 0 && i == URZ_LOSOWOSC)) /* a hostile test guest drives that one itself */
+        if (!(zlosliwy_gosc() && i == URZ_LOSOWOSC)) /* a hostile test guest drives that one itself */
             p += (size_t)snprintf(buf + p, n - p, "%svirtio_mmio.device=4K@0x%llx:%d", p ? " " : "",
                               (unsigned long long)(MMIO_BAZA + (uint64_t)i * MMIO_ROZMIAR), PRZERWANIE_PIERWSZE + i);
 }

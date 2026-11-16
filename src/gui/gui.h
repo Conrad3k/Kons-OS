@@ -85,6 +85,11 @@ void rysuj_gora(void);
 void rysuj_dzwiek(void);
 void odbierz_baterie(void); /* fd 5: battery and session state from nadzorca */
 void strefa_stan(const struct k1_komunikat *m); /* fd 5 (0.10.0): a zone did not start — the window that says why */
+/* fd 5 (0.10.0 step 5): the sessions as the user set them — their names (Start menu, the zone's window on the bar) */
+void strefy_sesje(const struct k1_komunikat *m);
+const char *nazwa_sesji(int nr); /* the session's name of zone nr ("" for a zone without one) */
+/* The name of item `apl` (an application, or a zone: "Przeglądarka · Bank") into `buf`. */
+const char *nazwa_pozycji(int apl, char *buf, size_t n);
 void wskaznik_gora(const struct k1_komunikat *m);
 void pokaz_dzwiek(int tak);
 int32_t glosnik_x(void);

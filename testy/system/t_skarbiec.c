@@ -1,4 +1,5 @@
-/* K1 in-system test — skarbiec and its clients (0.9.0 step 2): a reply never goes lost when a client's channel is full.
+/* K1 in-system test — skarbiec and its clients (0.9.0 step 2): a reply never goes lost when a client's channel is full;
+ * the disks of the zones (0.10.0 step 5): only a zone names their pieces, sessions apart, "Wyczyść dane sesji".
  * The test program gets channels to skarbiec from nadzorca (TEST_SKARB) as the owner Pliki, itself (UID 0) the sender. */
 #include <poll.h>
 
@@ -133,4 +134,55 @@ void t_skarb_zalegle(void)
     }
     close(a);
     close(b);
+}
+
+/* One object request on `fd` (CZYTAJ / ZAPISZ with `dl` bytes of `dane` / USUN) for `id`: the length that came back
+ * (DANE), or WYNIK's b (0 or K1_MAG_* < 0), or -100 when nothing came. */
+static int obiekt(int fd, int typ, uint32_t id, const uint8_t *dane, size_t dl)
+{
+    struct k1_komunikat m = k1_komunikat_nowy(typ, id, typ == K1_KOM_SKARB_ZAPISZ ? (int32_t)dl : 0, 0, 0, 0, 0);
+    int mfd = typ == K1_KOM_SKARB_ZAPISZ ? k1_memfd_z_danymi("t", dane, dl) : -1, r;
+    if (k1_kanal_wyslij(fd, &m, sizeof m, mfd) != 0) {
+        if (mfd >= 0)
+            close(mfd);
+        return -100;
+    }
+    if (mfd >= 0)
+        close(mfd);
+    while ((r = od_skarbca(fd, 10000, &m)) != 0)
+        if (r > 0 && m.obiekt == id && (m.typ == K1_KOM_SKARB_DANE || (m.typ == K1_KOM_SKARB_WYNIK && m.a == typ)))
+            return m.typ == K1_KOM_SKARB_DANE ? m.a : m.b;
+    return -100;
+}
+
+/* 0.10.0 step 5 (T11): the pieces of a zone's disk — only a zone's VMM (its owner) names them, one session never sees
+ * another's, nadzorca's "Wyczyść dane sesji" deletes them. */
+void t_skarb_strefy(void)
+{
+    static uint8_t kawalek[K1_STREFA_DYSK_KAWALEK];
+    int og = skarb(K1_PROFIL_STREFA_OGOLNA), bank = skarb(K1_PROFIL_STREFA_BANK), notatki = skarb(K1_PROFIL_NOTATKI);
+    const uint32_t id = K1_OB_DYSK + 3;
+    int w_og, w_bank, w_not, w_not_zapis, po = -100, i;
+    memset(kawalek, 0x5a, sizeof kawalek);
+    w_og = obiekt(og, K1_KOM_SKARB_ZAPISZ, id, kawalek, sizeof kawalek);
+    w_bank = obiekt(bank, K1_KOM_SKARB_CZYTAJ, id, NULL, 0);
+    w_not = obiekt(notatki, K1_KOM_SKARB_CZYTAJ, id, NULL, 0);
+    w_not_zapis = obiekt(notatki, K1_KOM_SKARB_ZAPISZ, id, kawalek, sizeof kawalek);
+    check(og >= 0 && w_og == 0 && obiekt(og, K1_KOM_SKARB_CZYTAJ, id, NULL, 0) == (int)sizeof kawalek,
+          "strefa: sesja zapisuje i czyta kawałek swojego dysku w skarbcu (64 KiB)", "zapis %d", w_og);
+    check(bank >= 0 && w_bank == K1_SKARB_BRAK, "NEGATYWNY: inna sesja (Bank) nie widzi dysku Ogólnej", "wynik %d", w_bank);
+    check(notatki >= 0 && w_not == K1_SKARB_ARG && w_not_zapis == K1_SKARB_ARG,
+          "NEGATYWNY: aplikacja (Notatki) nie może czytać ani pisać kawałków dysku strefy", "czytanie %d, zapis %d", w_not,
+          w_not_zapis);
+    zapytaj(k1_komunikat_nowy(K1_KOM_STREFA_WYCZYSC, K1_STREFA_OGOLNA, 0, 0, 0, 0, 0), NULL, 10);
+    for (i = 0; i < 50 && (po = obiekt(og, K1_KOM_SKARB_CZYTAJ, id, NULL, 0)) != K1_SKARB_BRAK; i++)
+        msleep(100);
+    check(po == K1_SKARB_BRAK, "„Wyczyść dane sesji”: nadzorca prosi skarbiec, kawałki dysku Ogólnej znikają", "wynik %d",
+          po);
+    if (og >= 0)
+        close(og);
+    if (bank >= 0)
+        close(bank);
+    if (notatki >= 0)
+        close(notatki);
 }

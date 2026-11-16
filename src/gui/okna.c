@@ -126,6 +126,31 @@ void zamknij_aplikacje(int apl)
     k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_ZAMKNIJ_OKNO, w->id, 0, 0, 0, 0, 0));
 }
 
+static char sesje[K1_STREFY_MAKS + 1][K1_STREFA_NAZWA_MAKS + 1];
+
+void strefy_sesje(const struct k1_komunikat *m)
+{
+    const int32_t p[5] = { m->a, m->b, m->c, m->d, m->e }; /* checked: k1_strefa_nazwa_dobra */
+    if (m->typ != K1_KOM_STREFA_NAZWA)
+        return;
+    memcpy(sesje[m->obiekt], p, K1_STREFA_NAZWA_MAKS);
+    sesje[m->obiekt][K1_STREFA_NAZWA_MAKS] = '\0';
+}
+
+const char *nazwa_sesji(int nr)
+{
+    if (nr < 1 || nr > K1_STREFY_MAKS)
+        return "";
+    return sesje[nr][0] ? sesje[nr] : k1_strefa(nr)->sesja;
+}
+
+const char *nazwa_pozycji(int apl, char *buf, size_t n)
+{
+    const char *s = apl > K1_APL_MAKS ? nazwa_sesji(apl - K1_APL_MAKS) : "";
+    snprintf(buf, n, "%s%s%s", aplikacje[apl].nazwa, s[0] ? " · " : "", s);
+    return buf;
+}
+
 static void rozumiem(int odpowiedz)
 {
     (void)odpowiedz;
@@ -150,9 +175,9 @@ void strefa_stan(const struct k1_komunikat *m)
     };
     int apl = POZYCJA_STREFY(m->a), koniec = m->b >= K1_STREFA_KONIEC_OD;
     struct k1_menu okno;
-    char t[96];
+    char t[96], n[64];
     uruchamiane[apl] = 0;
-    snprintf(t, sizeof t, "%s %s", aplikacje[apl].nazwa, koniec ? "zamknęła się" : "nie może ruszyć");
+    snprintf(t, sizeof t, "%s %s", nazwa_pozycji(apl, n, sizeof n), koniec ? "zamknęła się" : "nie może ruszyć");
     k1_menu_zacznij(&okno, K1_MENU_SZER_PYTANIE);
     k1_menu_tekst(&okno, t)->mocna = 1;
     k1_menu_tekst(&okno, powody[m->b]);

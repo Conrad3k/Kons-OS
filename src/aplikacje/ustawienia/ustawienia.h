@@ -3,6 +3,7 @@
  * aplikacje.c (Aplikacje: the default application of a file type, 0.8.0), miejsce.c (Miejsce: the room for files and
  * what takes it, K1-DANE to the end of the stick — 0.8.5), siec.c (Sieć: the tabs and the network cards — 0.9.0),
  * wifi.c (Sieć → Wi-Fi: the radio and the networks around — 0.9.1), wifi_haslo.c (joining one: 0.9.1 step 2),
+ * przegladarka.c (Przeglądarka: the browser's sessions, 0.10.0 step 5),
  * informacje.c (Informacje: the system). */
 #ifndef K1_USTAWIENIA_H
 #define K1_USTAWIENIA_H
@@ -21,7 +22,8 @@
 #define SEG_W 260
 #define SEG_H 36
 
-enum { S_WYGLAD, S_EKRAN, S_BATERIA, S_MYSZ, S_CZAS, S_HASLO, S_APLIKACJE, S_MIEJSCE, S_SIEC, S_INFO, S_LICZBA };
+enum { S_WYGLAD, S_EKRAN, S_BATERIA, S_MYSZ, S_CZAS, S_HASLO, S_APLIKACJE, S_MIEJSCE, S_SIEC, S_PRZEGLADARKA, S_INFO,
+       S_LICZBA }; /* the tests click by these numbers: a new section goes before Informacje */
 
 extern struct k1_apl apl;
 extern int sekcja;
@@ -91,6 +93,14 @@ int wifi_haslo_klik(int32_t x, int32_t y);      /* 1 = handled */
 int wifi_haslo_klawisz(unsigned kod, int wartosc, unsigned mody); /* 1 = handled */
 void wifi_zamknij(void);          /* leaving the section: the row closes, a typed password is wiped */
 void wifi_lista_zmieniona(void);  /* a new list: the open network found again by its name */
+
+/* przegladarka.c (0.10.0 step 5): the browser's sessions */
+void przegladarka_odbierz(const struct k1_komunikat *k); /* STREFY_STAN, STREFA_NAZWA, STREFA_WYCZYSZCZONO */
+void przegladarka_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
+int przegladarka_klik(int32_t x, int32_t y);                  /* 1 = handled */
+int przegladarka_klawisz(unsigned kod, int wartosc, unsigned mody); /* the new name being typed; 1 = handled */
+void przegladarka_zamknij(void);                              /* leaving the section */
+void przegladarka_loguj(void);                                /* the tests click by this line */
 
 /* informacje.c */
 void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);

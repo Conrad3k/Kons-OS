@@ -53,6 +53,8 @@ int miejsce_podzial(int fd, int wlasciciel)
     if (wlasciciel != K1_PROFIL_USTAWIENIA || zablokowany)
         return K1_MAG_ARG;
     dok_podzial(bajty, pliki);
+    bajty[K1_CZESC_STREFY] = strefy_bajty(&pliki[K1_CZESC_STREFY]);
+    pliki[K1_CZESC_STREFY] = 0; /* pieces of disks, not files */
     for (int c = 1; c <= K1_CZESCI_MAKS; c++) {
         uint64_t kib = (bajty[c] + 1023) >> 10;
         struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_SKARB_CZESC, (uint32_t)c, kib > INT32_MAX ? INT32_MAX : (int32_t)kib,

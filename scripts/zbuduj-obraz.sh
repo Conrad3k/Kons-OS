@@ -5,6 +5,8 @@
 #   build/wynik/rdzen-test.squashfs — to samo + program testowy jako /rdzen/system/test-systemu i obraz strefy próbnej
 #                                     (/rdzen/strefy/probna.img: /init = gosc; 0.10.0, ADR 0042)
 #   w obu: obraz strefy przeglądarki /rdzen/strefy/przegladarka.img (scripts/zbuduj-strefe.sh; 0.10.0 krok 2, ADR 0043)
+#          i pusty dysk strefy /rdzen/strefy/dysk.img (ext4 2 GiB, prawie same zera; 0.10.0 krok 5 — dysk sesji, która
+#          pamięta: kawałek, którego strefa jeszcze nie zapisała, VMM czyta stąd)
 # Wymaga zbudowanego jądra (scripts/zbuduj-jadro.sh: nagłówki i gen_init_cpio) i biblioteki C (scripts/zbuduj-musl.sh;
 # make zbuduje ją sam, gdy jej brak).
 . "$(dirname "$0")/wspolne.sh"
@@ -28,6 +30,20 @@ file /init $K1_BUDOWA/bin/k1-initramfs 0500 0 0
 LISTA
 "$GEN_CPIO" -t "$SOURCE_DATE_EPOCH" "$K1_BUDOWA/initramfs.lista" > "$K1_WYNIK/initramfs.cpio"
 
+# 0.10.0 step 5 (T11): the empty disk of a zone that remembers — ext4 of 2 GiB (K1_STREFA_DYSK_KAWALKI pieces of 64 KiB),
+# made here so that no zone needs mkfs; reproducible: a fixed UUID and hash seed, the time from SOURCE_DATE_EPOCH, no
+# mke2fs.conf of the build computer (every feature named), inode tables and the journal written now (zeros).
+pusty_dysk_strefy() { # $1 = plik wynikowy
+    rm -f "$1"; truncate -s 2G "$1"
+    MKE2FS_CONFIG=/dev/null E2FSPROGS_FAKE_TIME=$SOURCE_DATE_EPOCH mke2fs -q -F -b 4096 -I 256 -i 16384 -m 0 -J size=16 \
+        -L k1-dane -U 4b315f64-616e-6500-0000-000000000001 \
+        -O has_journal,extent,huge_file,flex_bg,metadata_csum,64bit,dir_nlink,extra_isize,sparse_super,large_file,filetype,dir_index,ext_attr,^resize_inode \
+        -E hash_seed=4b315f64-616e-6500-0000-000000000002,lazy_itable_init=0,lazy_journal_init=0,root_owner=0:0,nodiscard \
+        "$1" 2>/dev/null || blad "mke2fs: pusty dysk strefy"
+    chmod 0444 "$1"
+}
+pusty_dysk_strefy "$K1_WYNIK/strefa-dysk.img"
+
 # Drzewo /rdzen: tylko to, co potrzebne. Uprawnienia ustawiane jawnie, właściciel root (-all-root).
 przygotuj_rdzen() { # $1 = katalog docelowy
     rm -rf "$1"; mkdir -p "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje" "$1/strefy"
@@ -36,6 +52,7 @@ przygotuj_rdzen() { # $1 = katalog docelowy
     # 0.10.0 (ADR 0042 T5): the zone kernel — data for the VMM (read, never executed by K1); the zone images beside it
     install -m 0444 "$K1_WYNIK/strefa-jadro" "$1/strefy/jadro"
     install -m 0444 "$K1_WYNIK/strefa-przegladarka.img" "$1/strefy/przegladarka.img"
+    cp --sparse=always "$K1_WYNIK/strefa-dysk.img" "$1/strefy/dysk.img" && chmod 0444 "$1/strefy/dysk.img"
     # Built-in native applications (M4); signed application images come with M10 (/aplikacje).
     for d in "$K1_REPO"/src/aplikacje/*/; do p=$(basename "$d"); install -m 0555 "$K1_BUDOWA/bin/$p" "$1/aplikacje/$p"; done
     chmod 0755 "$1" "$1/jadro" "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje" "$1/strefy"
@@ -43,9 +60,9 @@ przygotuj_rdzen() { # $1 = katalog docelowy
 # The image of the test zone (0.10.0 step 1): gosc as /init and the mount points it uses; SquashFS like the core.
 obraz_strefy_probnej() { # $1 = plik wynikowy
     d=$K1_BUDOWA/strefa-probna
-    rm -rf "$d"; mkdir -p "$d/dev" "$d/proc" "$d/sys" "$d/tmp"
+    rm -rf "$d"; mkdir -p "$d/dev" "$d/proc" "$d/sys" "$d/tmp" "$d/dane"
     install -m 0555 "$K1_BUDOWA/bin/gosc" "$d/init"
-    chmod 0755 "$d" "$d/dev" "$d/proc" "$d/sys" "$d/tmp"
+    chmod 0755 "$d" "$d/dev" "$d/proc" "$d/sys" "$d/tmp" "$d/dane"
     rm -f "$1"
     mksquashfs "$d" "$1" -quiet -no-progress -noappend -comp zstd -all-root -no-xattrs >/dev/null
     chmod 0444 "$1"

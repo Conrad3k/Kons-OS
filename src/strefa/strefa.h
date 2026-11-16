@@ -1,6 +1,7 @@
 /* K1 strefa — the VMM: one process = one micro machine (ADR 0042 T1). Shared state of its parts:
  * main.c (start, the loop of the main thread, the end), kvm.c (the machine, its processors and their exits),
- * the devices (blk.c, konsola.c, rng.c, wejscie.c, gpu.c, vsock.c), okno.c (the window at ekran).
+ * the devices (blk.c, konsola.c, rng.c, wejscie.c, gpu.c, vsock.c; dane.c + dysk.c: the disk of a zone that
+ * remembers, 0.10.0 step 5), okno.c (the window at ekran).
  *
  * Trust: everything that comes from the guest (its memory, its queues, its register accesses) is hostile — checked
  * field by field (virtq.c, mmio.c and each device); a wrong value ends this machine (koniec()), never K1. The VMM runs
@@ -22,6 +23,9 @@
 #define FD_KVM 4     /* /dev/kvm */
 #define FD_JADRO 5   /* the zone kernel, read only */
 #define FD_OBRAZ 6   /* the zone image (SquashFS), read only */
+/* fd 7: the channel to nadzorca for the browser's connections (polaczenia.h) */
+#define FD_SKARB 8   /* 0.10.0 step 5: a zone that remembers — a channel to skarbiec (the owner: the zone's profile) */
+#define FD_WZOR 9    /* …and its empty disk (/rdzen/strefy/dysk.img), read only; a zone that forgets: neither */
 
 /* The devices of every zone: one row each (readability rule 5) — its MMIO window is MMIO_BAZA + i × MMIO_ROZMIAR and
  * its interrupt line PRZERWANIE_PIERWSZE + i, in this order; the command line of the guest names them in this order
@@ -33,7 +37,8 @@
     X(KLAWIATURA, klawiatura_ops) \
     X(MYSZ, mysz_ops)     \
     X(EKRAN, gpu_ops)     \
-    X(VSOCK, vsock_ops)
+    X(VSOCK, vsock_ops)   \
+    X(DANE, dane_ops)
 #define X_URZ(n, ops) URZ_##n,
 enum { K1_URZADZENIA(X_URZ) URZ_LICZBA };
 #undef X_URZ
@@ -65,7 +70,8 @@ struct maszyna {
     int budzik;                          /* eventfd: wakes the main thread (the end, a picture, a message) */
     uint64_t obraz_sektory;              /* the zone image (FD_OBRAZ) in 512-byte sectors */
     int tryb;                            /* the guest's test mode (argv[2], gosc/gosc.h): 0 none; 1..4 a hostile guest
-                                          * drives slot LOSOWOSC itself (3, 4: virtio-blk there) */
+                                          * drives slot LOSOWOSC itself (3, 4: virtio-blk there); 5: an honest one that
+                                          * counts its start on the disk (0.10.0 step 5) */
     volatile int koniec;
     double start_t;                      /* when the VMM started (k1_teraz) */
     const char *powod;                   /* why the machine ended (a constant text) */
@@ -80,6 +86,11 @@ struct maszyna {
     const char *volatile zamek_kto;      /* who holds mz.zamek (a constant name), NULL: nobody */
 };
 extern struct maszyna mz;
+#define ST_TRYB_ZLOSLIWY 4 /* test modes 1..4: a hostile guest (gosc/zlosliwy.c) */
+static inline int zlosliwy_gosc(void)
+{
+    return mz.tryb >= 1 && mz.tryb <= ST_TRYB_ZLOSLIWY;
+}
 
 /* stroz.c: mz.zamek with its holder's name; the main thread's steps; the watchman's thread */
 void zamek_wez(const char *kto);
@@ -107,6 +118,8 @@ void wejscie_przewin(int32_t x, int32_t y, uint32_t w, uint32_t h, int32_t dx, i
 void wejscie_podsumowanie(void);                     /* at the end: whether input reached the guest, in the log */
 void wejscie_pusc(void);                             /* focus lost: every held key and button up */
 void vsock_zamknij(void);                            /* vsock.c: "close" to the guest */
-extern const struct mmio_ops blk_ops, konsola_ops, rng_ops, klawiatura_ops, mysz_ops, gpu_ops, vsock_ops;
+int dane_start(void);   /* dane.c: the disk (fd 8, 9 — or none) and its thread; 0, or -1 */
+void dane_koniec(void); /* its thread ends, the dirty pieces are saved (at most 20 s), the numbers to the log */
+extern const struct mmio_ops blk_ops, konsola_ops, rng_ops, klawiatura_ops, mysz_ops, gpu_ops, vsock_ops, dane_ops;
 
 #endif

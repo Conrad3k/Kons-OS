@@ -147,7 +147,7 @@ void t_strefa_klatka(void)
     for (i = 0; i < 300 && (pid = find_process("strefa")) <= 0; i++)
         msleep(100);
     msleep(3000); /* its processor thread is up */
-    t_klatka_grupy("strefa", "strefa-1", z->procesory + 2, z->uid, fds); /* + the watchman (stroz.c) */
+    t_klatka_grupy("strefa", "strefa-1", z->procesory + 3, z->uid, fds); /* + the watchman (stroz.c), the disk (dane.c) */
     pid = find_process("strefa");
     check(pid > 0 && kill((pid_t)pid, SIGKILL) == 0, "strefa: VMM strefy próbnej działał w klatce", "pid %ld", pid);
     for (i = 0; i < 100 && find_process("strefa") > 0; i++)
@@ -194,8 +194,27 @@ static int czekaj_strefa(int dziala, int sekundy)
     return 0;
 }
 
+/* Zone 1 with the guest's test mode `tryb`: started (logged), then waited for until it ends; 1 when it did. */
+static int strefa_raz(int tryb, int sekundy)
+{
+    if (zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, tryb, 0, 0, 0), NULL, 10) != 0 ||
+        !czekaj_strefa(1, 30)) {
+        k1_log(TAG, "strefy: strefa (tryb %d) nie ruszyła", tryb);
+        return 0;
+    }
+    k1_log(TAG, "strefy: strefa próbna uruchomiona (tryb %d)", tryb);
+    if (!czekaj_strefa(0, sekundy)) {
+        k1_log(TAG, "strefy: strefa (tryb %d) nie skończyła się", tryb);
+        return 0;
+    }
+    k1_log(TAG, "strefy: strefa skończyła się (tryb %d)", tryb);
+    return 1;
+}
+
 /* The scenario's guest side: the test zone with an honest guest — the script clicks, types, closes it through its
- * badge; then one hostile guest after another (gosc/zlosliwy.c), each must end only its own machine. */
+ * bar; then one hostile guest after another (gosc/zlosliwy.c), each must end only its own machine; then (0.10.0 step 5)
+ * the zone remembers: an honest guest counts its start on the zone's disk (2: the first run counted 1), "Wyczyść dane
+ * sesji", and the count starts again from 1. */
 int t_strefy_scenariusz(void)
 {
     int tryb, i;
@@ -207,17 +226,13 @@ int t_strefy_scenariusz(void)
         zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, 0, 0, 0, 0), NULL, 10);
         k1_log(TAG, "strefy: brak wirtualizacji — strefa %s", czekaj_strefa(1, 10) ? "BŁĘDNIE ruszyła" : "nie ruszyła");
     }
-    for (tryb = absent(DEV "/kvm") ? K1_STREFA_TRYB_MAKS + 1 : 0; tryb <= K1_STREFA_TRYB_MAKS; tryb++) {
-        if (zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, tryb, 0, 0, 0), NULL, 10) != 0 ||
-            !czekaj_strefa(1, 30)) {
-            k1_log(TAG, "strefy: strefa (tryb %d) nie ruszyła", tryb);
-            continue;
-        }
-        k1_log(TAG, "strefy: strefa próbna uruchomiona (tryb %d)", tryb);
-        if (!czekaj_strefa(0, tryb == 0 ? 1200 : 120))
-            k1_log(TAG, "strefy: strefa (tryb %d) nie skończyła się", tryb);
-        else
-            k1_log(TAG, "strefy: strefa skończyła się (tryb %d)", tryb);
+    for (tryb = absent(DEV "/kvm") ? K1_STREFA_TRYB_MAKS + 1 : 0; tryb < K1_STREFA_TRYB_MAKS; tryb++)
+        strefa_raz(tryb, tryb == 0 ? 1200 : 120);
+    if (!absent(DEV "/kvm")) {
+        strefa_raz(K1_STREFA_TRYB_MAKS, 240); /* the disk: 2 */
+        zapytaj(k1_komunikat_nowy(K1_KOM_STREFA_WYCZYSC, K1_STREFA_PROBNA, 0, 0, 0, 0, 0), NULL, 10);
+        msleep(2000);
+        strefa_raz(K1_STREFA_TRYB_MAKS, 240); /* after "Wyczyść dane sesji": 1 */
     }
     k1_log(TAG, "strefy: koniec scenariusza");
     for (;;)

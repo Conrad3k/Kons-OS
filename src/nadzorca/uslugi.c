@@ -116,6 +116,11 @@ pid_t uruchom(struct usluga *u, const struct k1_profil *p, const int *fds, int n
 
 /* Creates a channel to ekran for a client: ekran gets the checking end with KLIENT(rola, apl, uid).
  * Returns the client's end or -1. */
+int do_ekranu_fd(void)
+{
+    return ekran()->pid > 0 ? sterowanie : -1;
+}
+
 int kanal_do_ekranu(int rola, int apl, int uid)
 {
     int para[2];

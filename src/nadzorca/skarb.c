@@ -144,6 +144,10 @@ void obsluz_skarbiec(void)
             powieksz_na_prosbe();
             continue;
         }
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_SKARB_WYCZYSZCZONO) { /* "Wyczyść dane sesji" (0.10.0 step 5) */
+            sesje_wyczyszczono(&k);
+            continue;
+        }
         if (w != K1_ODB_JEST || k.typ != K1_KOM_SKARB_STAN) {
             k1_log(TAG, "odrzucono komunikat od skarbca");
             continue;

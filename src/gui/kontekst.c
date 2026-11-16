@@ -6,11 +6,13 @@
  *   file         Otwórz · Otwórz za pomocą › · Pokaż w Plikach · Zmień nazwę · Usuń       (k1_menu_pliku)
  *   bottom bar   <application> · Przypnij / Odepnij · Zamknij okno (when it runs)
  *   Start menu   Otwórz · Przypnij / Odepnij · Dodaj do pulpitu / Usuń z pulpitu
+ *                Przeglądarka (0.10.0 step 5, D2): Otwórz · Sesje: Ogólna, Bank, Prywatna (their names from nadzorca)
  *   message      a double click on a file no application opens: why, "Pokaż w Plikach"   (k1_menu_bez_aplikacji)
  *   window       a question or a refusal after a file is dropped (k1_przeciaganie)            (0.8.2 step 6)
  * "Otwórz za pomocą" opens its submenu beside it (pointing at it or clicking it), on the same panel — it moves so that
  * both fit. A row acts when the left button is released on it; a press anywhere else closes the menu. */
 #include <stdio.h>
+#include <string.h>
 
 #include "gui.h"
 #include "k1_log.h"
@@ -18,6 +20,7 @@
 
 /* The desktop's own rows (a file's rows act by K1_MA_*, k1_menu.h). */
 enum { A_PRZYPNIJ = 20, A_ODEPNIJ, A_DODAJ, A_USUN_IKONE, A_ZAMKNIJ, A_ULOZ, A_WYGLAD, A_OPROZNIJ };
+#define A_SESJA 40 /* + the zone: open that session (0.10.0 step 5) */
 
 static struct k1_menu glowne, pod, okienko;
 static void (*odpowiedz)(int); /* the window of a question is open: who gets the answer */
@@ -32,10 +35,24 @@ static void dodaj(const char *tekst, int akcja)
     k1_menu_dodaj(&glowne, tekst, akcja, 0);
 }
 
+/* A zone in the Start menu (the browser): the sessions of the zones with its image, each opens its own (D2). */
+static void sesje(void)
+{
+    const struct k1_strefa_opis *z = k1_strefa(apl - K1_APL_MAKS);
+    k1_menu_kreska(&glowne);
+    k1_menu_tekst(&glowne, "Sesje");
+    for (int nr = 1; nr <= K1_STREFY_MAKS; nr++)
+        if (nazwa_sesji(nr)[0] && strcmp(k1_strefa(nr)->obraz, z->obraz) == 0)
+            dodaj(nazwa_sesji(nr), A_SESJA + nr);
+}
+
 static void wiersze_aplikacji(void)
 {
     int przypieta = rozm_na_pasku(&rozm, apl) >= 0, na_pulpicie = rozm_ikona(&rozm, (uint32_t)apl) >= 0;
-    k1_menu_dodaj(&glowne, cel == K_PASEK ? aplikacje[apl].nazwa : "Otwórz", K1_MA_OTWORZ, 0)->mocna = 1;
+    char n[64];
+    k1_menu_dodaj(&glowne, cel == K_PASEK ? nazwa_pozycji(apl, n, sizeof n) : "Otwórz", K1_MA_OTWORZ, 0)->mocna = 1;
+    if (cel == K_MENU && apl > K1_APL_MAKS && aplikacje[apl].strefa_w_menu)
+        sesje();
     k1_menu_kreska(&glowne);
     if (aplikacje[apl].domyslna >= 0) /* a window of K1 itself (the file picker) is never pinned */
         dodaj(przypieta ? "Odepnij od paska" : "Przypnij do paska", przypieta ? A_ODEPNIJ : A_PRZYPNIJ);
@@ -202,7 +219,10 @@ static void wykonaj_pulpit(int akcja)
         pliki_dopasuj();
         snprintf(co, sizeof co, "ułożono ikony");
         break;
-    default: return;
+    default:
+        if (akcja > A_SESJA && akcja <= A_SESJA + K1_STREFY_MAKS) /* a session of the browser (0.10.0 step 5) */
+            otworz_aplikacje(POZYCJA_STREFY(akcja - A_SESJA));
+        return;
     }
     rozm_zmienione(co);
 }

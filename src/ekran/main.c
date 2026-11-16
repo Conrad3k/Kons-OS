@@ -45,8 +45,14 @@ static int odbierz_sterowanie(void)
     if (w != K1_KANAL_KOMUNIKAT)
         return 0;
     /* Only the supervisor (root) holds the other end; check it anyway, and every field. */
+    if (o.ma_nadawce && o.uid == 0 && !o.obciete && o.fd < 0 &&
+        k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &k) == 0 &&
+        (k.typ == K1_KOM_STREFY_STAN || k.typ == K1_KOM_STREFA_NAZWA)) { /* the sessions (0.10.0 step 5) */
+        strefy_sesje(&k);
+        return 1;
+    }
     if (!o.ma_nadawce || o.uid != 0 || o.obciete || o.fd < 0 ||
-        k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &k) != 0) {
+        k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &k) != 0 || k.typ != K1_KOM_KLIENT) {
         k1_log(TAG, "odrzucono komunikat sterujący");
         if (o.fd >= 0)
             close(o.fd);
@@ -75,6 +81,7 @@ static int odbierz_sterowanie(void)
     s.kl[wolny].rola = k.a;
     s.kl[wolny].apl = k.b;
     s.kl[wolny].od = k1_teraz();
+    s.kl[wolny].pamieta = k.a == K1_ROLA_STREFA && strefa_pamieta(k.b); /* as it started: a change waits for the next */
     if (k.a == K1_ROLA_WEJSCIE) {
         k1_log(TAG, "nowe źródło wejścia (uid %d)", (int)k.c);
         return 1;

@@ -246,6 +246,22 @@ int ob_usun(int wl, const char *nazwa)
     return K1_MAG_OK;
 }
 
+uint64_t ob_bajty(int wl, uint32_t *ile)
+{
+    uint64_t b = 0;
+    int i;
+    if (trwaly) {
+        for (i = 0; i < mag.n_wpisow; i++)
+            if (mag.wpisy[i].wlasciciel == wl)
+                b += mag.wpisy[i].dlugosc, (*ile)++;
+    } else if (!zablokowany) {
+        for (i = 0; i < n_ram; i++)
+            if (ram[i].wlasciciel == wl)
+                b += ram[i].dl, (*ile)++;
+    }
+    return b;
+}
+
 void ob_kazdy(int wl, void (*f)(const char *nazwa, void *ctx), void *ctx)
 {
     static char nazwy[K1_MAG_MAKS_OBIEKTOW][K1_MAG_NAZWA];
