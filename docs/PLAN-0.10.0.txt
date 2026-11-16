@@ -84,7 +84,7 @@ Na laptopach trzeba raz włączyć wirtualizację w BIOS-ie (D5) — bez niej K1
 [x]  1  Pierwsza strefa: KVM, VMM, okno w zaufanej ramce    S1–S11           0.9.1       D1 D4, T1–T6 T10 L        0042   PR #114
 [x]  2  Przeglądarka w strefie, połączenia przez K1         S12–S20          1           D2 D3 D6, T7–T9  L        0043   PR #119
 [x]  3  Poprawki przeglądarki: awarie, ramka, przyciski     S26–S28, S30     2           D1 (zmiana)      L        —      PR #126
-[ ]  4  Przewijanie: kółko myszy, dwa palce na touchpadzie S29              2           D8               M        —
+[ ]  4  Przewijanie: kółko myszy, dwa palce na touchpadzie S29              2           D8               M        —      [w toku: Claude, gałąź claude/exciting-einstein-thk3hk]
 [ ]  5  Stała strefa, Ustawienia, porządki; wydanie 0.10.0  S21–S25          3, 4        D7, T11          L        —
 
 Dlaczego trzy, a nie dwa: krok 1 to cały fundament (jądro z KVM, własny VMM, nowa rola w ekranie, testy z emulowaną
@@ -466,7 +466,7 @@ Twoje (produkt):
        aplikacje (pasek tytułu do przesuwania, minimalizuj, zamknij) zamiast samej obwódki ze znaczkiem i plakietką po
        najechaniu (B2). Szkice do wyboru na początku kroku 3. Rekomendacja: pasek tytułu K1 w kolorze sesji z etykietą
        „Przeglądarka · Ogólna · osobna maszyna” i przyciskami po prawej, obwódka 3 px jak dziś.
-[!] D8 (krok 4) Przewijanie dwoma palcami: kierunek „naturalny” (treść jedzie za palcami, jak w telefonie) czy
+[x] D8 (krok 4; właściciel 2026-11-16: „naturalny na touchpadzie”) Przewijanie dwoma palcami: kierunek „naturalny” (treść jedzie za palcami, jak w telefonie) czy
        „klasyczny” (jak kółko myszy). Rekomendacja: naturalny na touchpadzie, klasyczny dla kółka; przełącznik
        w Ustawieniach → Mysz — później, jeśli będzie potrzebny.
 
