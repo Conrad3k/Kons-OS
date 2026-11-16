@@ -7,7 +7,8 @@ i obraz strefy z pakietów Debiana (plan 0.10.0, kroki 1–2; ADR 0042, 0043). K
 aktualizacje, A/B) zostają — zmienia się tylko to, skąd przychodzi nowa wersja (z sieci, nie tylko z pendrive'a), kto
 ją przygotowuje (robot na GitHubie) i gdzie użytkownik nią steruje (Ustawienia → Aktualizacje).
 Numer 0.10.5 wybrał właściciel: 0.10.1–0.10.4 zostają na resztę tematu 0.10 (plan 0.10.0, punkt 6). Jeśli tamte
-wersje nie powstaną wcześniej, ta i tak nazywa się 0.10.5.
+wersje nie powstaną wcześniej, ta i tak nazywa się 0.10.5. 2026-11-16 właściciel wstawił przed nią 0.10.1 „Balon”
+(pamięć strefy według potrzeby, docs/PLAN-0.10.1.txt) — ta wersja zaczyna się po wydaniu 0.10.1.
 Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
 Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR (krok 2 ma swój ADR, krok 3 — swój).
 
@@ -29,7 +30,8 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
 Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4, krok 5, krok 6.
-Krok 1 można zacząć dopiero po wydaniu 0.10.0 (zmienia Ustawienia, które 0.10.0 krok 5 też zmienia); krok 2 potrzebuje stref
+Cała wersja zaczyna się po wydaniu 0.10.1 (Balon, docs/PLAN-0.10.1.txt — decyzja właściciela z 2026-11-16; tamten plan
+zmienia VMM, nadzorcę i Zasoby). Krok 1 zależy od Ustawień po 0.10.0 krok 5; krok 2 potrzebuje stref
 i łącznika z 0.10.0; krok 4 zależy tylko od 0.10.0 (okno strefy w zaufanej ramce); krok 5 (Raptor Bridge) zależy tylko
 od 0.10.0 — można go zrobić wcześniej, zalecane przed krokiem 2 (krok 2 buduje na tym moście); krok 6 idzie ostatni,
 bo przegląda dokumentację po wszystkich krokach i kończy się wydaniem.
@@ -97,12 +99,12 @@ Sześć kroków:
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [ ]  1  Ustawienia → Aktualizacje (z Instalatora)           S1–S6            0.10.0      D1 D2 D3, T1     M        —
-[ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16, S25      1           D4 D5 D7, T2–T7  L        0044
-[ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11       M        0045
+[ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16, S25      1           D4 D5 D7, T2–T7  L        0045
+[ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11       M        0046
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
 [ ]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
 [ ]  6  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–5         D10              M        —
-(Numery ADR — następne wolne po ADR-ach 0.10.0; jeśli 0.10.0 zajmie więcej, krok bierze kolejne wolne.)
+(Numery ADR — następne wolne po ADR-ach 0.10.0 i 0.10.1 (0.10.1: ADR 0044); jeśli zajmą więcej, krok bierze kolejne wolne.)
 
 Dlaczego tyle: krok 1 to sama aplikacja (bez sieci) — panel, okno i przeniesienie, łatwe do przetestowania osobno;
 krok 2 to nowa droga danych (strefa, łącznik, zapis do wolnego miejsca A/B) i własny ADR; krok 3 to CI (robot); krok 4
@@ -154,7 +156,7 @@ KROK 1 — Ustawienia → Aktualizacje (przeniesienie z Instalatora)            
   Gotowe, gdy: aktualizacja z pendrive'a działa z Ustawień, testy [OK], Instalator nie ma już ekranu aktualizacji.
   Ustalenia z wykonania: (pusto — wypełnia krok 1)
 
-KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · decyzje D4 D5 D7, T2–T7 · ADR 0044
+KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · decyzje D4 D5 D7, T2–T7 · ADR 0045
   Cel: K1 na dysku sam sprawdza, czy jest nowsza podpisana wersja, pobiera ją przez strefę z HTTPS prosto do wolnego
   miejsca A/B i pyta użytkownika o instalację; bez zgody nic się nie zmienia w tym, co startuje.
   Na początku: S7 i S8 — POMIAR (przekierowania GitHuba, wielkość paczki), zanim powstanie reszta; D4, D5, D7.
@@ -166,9 +168,9 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · 
   dopisek „Nowe jądro Linux 7.1 — jeśli coś przestanie działać, wróć do poprzedniej wersji” (T3). W sekcji przycisk
   „Wróć do poprzedniej wersji” (D7), dopóki poprzednia wersja jest w drugim miejscu.
   Zadania:
-  [ ] ADR 0044 „Aktualizacje przez sieć”: T2 skąd (plik w wydaniu, nie w repo), T3 ogłoszenie wydania (nowy podpisany
+  [ ] ADR 0045 „Aktualizacje przez sieć”: T2 skąd (plik w wydaniu, nie w repo), T3 ogłoszenie wydania (nowy podpisany
       format), T4 paczka aktualizacji, T5 strefa pobierania, T6 kto co robi, T7 zapis prosto do wolnego miejsca;
-      dopiski [korekta: ADR 0044] w SPEC (aktualizacje) i w ADR 0021 (status: uzupełniony); spis w docs/adr/README.md.
+      dopiski [korekta: ADR 0045] w SPEC (aktualizacje) i w ADR 0021 (status: uzupełniony); spis w docs/adr/README.md.
   [ ] CI (S9): wydanie dostaje dwa nowe pliki: ogłoszenie (`k1-ogloszenie.bin` — T3) i paczkę (`k1-<wersja>.k1a` —
       T4), zrobione i podpisane w tym samym kroku budowy co manifest (sekret K1_KLUCZ_PODPISU bez zmian; bez sekretu =
       wersja deweloperska, której K1 przez sieć nie przyjmie). SHA256SUMS obejmuje oba.
@@ -207,14 +209,14 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · 
   odrzucona wersja nie wraca w „Sprawdź teraz”, nowsza od niej — tak; drugie miejsce puste albo z niepotwierdzoną
   wersją → przycisku nie ma; złośliwy komunikat „wróć” spoza Ustawień → odmowa.
   Właściciel (po wydaniu): pierwsza prawdziwa aktualizacja przez sieć — z 0.10.5 do następnej wersji (krok 3: robot).
-  Dokumenty: ADR 0044, nowy opis w docs/komponenty/ (aktualizacja.md: cel, granica zaufania, formaty, droga danych),
+  Dokumenty: ADR 0045, nowy opis w docs/komponenty/ (aktualizacja.md: cel, granica zaufania, formaty, droga danych),
   instalator.md (tryb z sieci), nadzorca.md, strefa.md (strefa pobierania), lacznik.md (lista hostów), aplikacje.md,
   RYZYKA (nowe: ukrywanie nowej wersji, host GitHuba, prywatność — GitHub widzi adres komputera), SLOWNIK
   (ogłoszenie wydania, paczka aktualizacji, strefa pobierania, aktualizacja przez sieć), TESTY.md, README.
   Gotowe, gdy: scenariusz aktualizacji przez sieć i testy negatywne zielone, testy [OK], obraz powtarzalny.
   Ustalenia z wykonania: (pusto — wypełnia krok 2)
 
-KROK 3 — Robot na GitHubie                                              M · decyzje D6, T8–T11 · ADR 0045
+KROK 3 — Robot na GitHubie                                              M · decyzje D6, T8–T11 · ADR 0046
   Cel: poprawki jądra Linux i przeglądarki trafiają do wydania K1 same: robot raz dziennie sprawdza, przygotowuje
   zmianę, puszcza pełne testy i po zielonych wydaje nową wersję PATCH — także z nową linią jądra (np. 7.x), gdy
   konfiguracja K1 na nią wchodzi (T11). Do wydania 0.10.5 (krok 6) robot działa w trybie próbnym.
@@ -224,7 +226,7 @@ KROK 3 — Robot na GitHubie                                              M · d
   z kroku 2. Gdy robot nie umie (testy czerwone, konfiguracja jądra nie wchodzi) — zgłoszenie (Issue) z etykietą
   „robot” zamiast wydania; Claude albo Codex robi wtedy zmianę ręcznie zwykłym PR-em.
   Zadania:
-  [ ] ADR 0045 „Robot aktualizacji”: T8 co robot zmienia (tylko numery i sumy), T9 jak przechodzi testy i wydaje
+  [ ] ADR 0046 „Robot aktualizacji”: T8 co robot zmienia (tylko numery i sumy), T9 jak przechodzi testy i wydaje
       (GITHUB_TOKEN — S17), T10 kiedy przestaje i pyta; robot jako trzeci „asystent” w AGENTS.md (gałęzie robot/…,
       robi wydania PATCH, nie rusza cudzych gałęzi).
   [ ] Workflow .github/workflows/robot.yml (harmonogram raz dziennie + ręczne uruchomienie): (a) jądro — najnowsze
@@ -282,7 +284,7 @@ KROK 3 — Robot na GitHubie                                              M · d
   oba tagi i oba wydania istnieją, żadne nie zostało anulowane. Pełne testy wydania [OK].
   Właściciel (po wydaniu 0.10.5 w kroku 6): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem
   poczekać na pierwszą wersję od robota i zainstalować ją przez sieć (lista w DO_ZROBIENIA).
-  Dokumenty: ADR 0045, AGENTS.md (robot), nowy opis w docs/komponenty/ (robot.md: co sprawdza, czego nie rusza,
+  Dokumenty: ADR 0046, AGENTS.md (robot), nowy opis w docs/komponenty/ (robot.md: co sprawdza, czego nie rusza,
   jak go zatrzymać — wyłączenie workflow), jadro/README.md (procedura: robot robi kroki 1–6, także dla nowej linii),
   ADR 0003 (dopisek: linię jądra wybiera robot — najnowsza długoterminowa),
   TESTY.md, RYZYKA (przejęte konto GitHub albo archiwum Debiana = podpisana wersja na wszystkich komputerach — S22),
@@ -584,7 +586,7 @@ Krok 2
   S25 NIEPEWNE. „Wróć do poprzedniej wersji” (D7): drugie miejsce A/B po potwierdzeniu nowej wersji ma poprzednią
       (podpisaną, potwierdzoną) — o ile pobieranie jeszcze go nie nadpisało (T7: wtedy przycisku nie ma). Gdzie K1
       pamięta odrzuconą wersję (grubenv ma 1024 B i zmienne GRUB-a; obiekt nadzorcy w skarbcu?) — wybór w kroku;
-      Instalator dziś odmawia starszych wersji (M6a) — wyjątek tylko dla tej jednej drogi, w ADR 0044.
+      Instalator dziś odmawia starszych wersji (M6a) — wyjątek tylko dla tej jednej drogi, w ADR 0045.
 
 Krok 3
   S17 NIEPEWNE, WYSOKA. Uprawnienia robota: permissions w robot.yml (contents: write, pull-requests: write,

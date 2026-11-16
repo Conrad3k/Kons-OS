@@ -1,0 +1,380 @@
+K1 — PLAN WERSJI 0.10.1 „BALON” (wersja tematu 0.10 Strefy)
+===========================================================
+
+Data: 2026-11-16 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-16), w czasie
+pracy nad 0.10.0 krok 4. Powód: przeglądarka w strefie wysypuje się na OBU laptopach — ThinkPad X230 (8 GB) i IdeaPad
+110 (4 GB) — po otwarciu zaledwie dwóch kart i odczekaniu chwili albo po zminimalizowaniu i przywróceniu okna
+przeglądarki. Właściciel jest prawie pewien, że to uderzenie o limit pamięci. Ta wersja (1) znajduje ten limit
+i (2) zastępuje stałą pamięć strefy BALONEM: pamięć przechodzi między strefą a K1 w obie strony, według potrzeby.
+Wersja stoi na 0.10.0 (strefy, VMM, przeglądarka, pamięć strefy z kroku 3: zram w gościu, okienko z powodem końca;
+ADR 0042, 0043) i idzie PRZED 0.10.5 (docs/PLAN-0.10.5.txt — tamta zaczyna się po wydaniu tej).
+Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+Plik jest planem, nie specyfikacją: zmiana architektury (pamięć strefy, T4 w ADR 0042) idzie przez ADR 0044 (krok 2).
+
+Mało kroków: TRZY. Krok 1 — pomiar i przyczyna (najpierw wiedzieć, który limit pęka), krok 2 — sam balon, krok 3 —
+pamięć komputera dzielona między K1 i strefy widocznie dla użytkownika, i wydanie 0.10.1.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 3 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
+zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b albo 3a/3b (wydanie zawsze w ostatniej części kroku 3).
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.10.0 krok 3), ZE ŹRÓDEŁ (sprawdzone 2026-11-16 w źródłach jądra 6.18.60 —
+z nazwą pliku), Z OBSERWACJI WŁAŚCICIELA, POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku — nie zakładać).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3. Krok 1 można zacząć po
+wydaniu 0.10.0 (plan 0.10.0, krok 5).
+
+Właściciel — co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.1.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku — możesz też od razu dopisać odpowiedź.
+
+Nowy czat — przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
+  2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2 i 3 — także „Ustalenia
+     z wykonania” kroków wcześniejszych (krok 1 może zmienić to, co tu napisano o przyczynie). Przeczytaj też
+     „Ustalenia z wykonania” planu 0.10.0 (po wydaniu — w docs/archiwum), zwłaszcza krok 3 (S26: pamięć).
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
+  5. Najpierw test, który pokazuje lukę (na czerwono), potem zmiana, potem ten sam test na zielono.
+  6. Nie wymyślaj opcji jądra, pól virtio ani zachowań KVM i cgroup — sprawdzaj w build/zrodla/linux-*/
+     (drivers/virtio/virtio_balloon.c, include/uapi/linux/virtio_balloon.h, mm/page_reporting.c,
+     Documentation/admin-guide/cgroup-v2.rst, Documentation/virt/kvm/api.rst) i w specyfikacji virtio 1.2 (rozdział
+     5.5 „Traditional Memory Balloon Device”). Punkt NIEPEWNE zamieniasz na POTWIERDZONE albo poprawiasz —
+     w „Ustaleniach z wykonania” swojego kroku.
+  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, lokalnie scripts/test-m1.sh
+     i skrypty zmienianej części (test-strefa.sh; test-przegladarka.sh — w kontenerze bez KVM wolno albo tylko w CI,
+     docs/TESTY.md), potem pełny komplet w CI na PR-ze (etykieta „testy”) — wszystko [OK] (AGENTS.md); czekaj
+     poleceniem, nie rób w tym czasie innych wywołań (CLAUDE.md).
+  8. Dziwny błąd testu (skill §7): 1–2 próby, potem obraz z artefaktu PR-a do sprawdzenia u właściciela.
+  9. Dokumenty w tym samym PR-ze: docs/komponenty/* (strefa.md, nadzorca.md, aplikacje.md), SLOWNIK, RYZYKA, TESTY.md,
+     jadro.md (jądro strefy), SPEC (dopiski [korekta: ADR 0044]). VERSION i CHANGELOG zmienia krok 3 (wydanie);
+     kroki 1–2 zapisują „co widzi użytkownik” w opisie PR-a.
+ 10. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
+     ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+Dziś każda sesja przeglądarki dostaje przy starcie stały kawałek pamięci komputera — 1,5 GB — i ani bajta więcej,
+nawet gdy laptop ma 8 GB i większość leży wolna. Co gorsza, raz zajętej pamięci strefa już K1 nie oddaje, nawet gdy
+zamkniesz kartę. Dwie cięższe karty potrafią ten kawałek zapełnić; wtedy w środku strefy coś musi zginąć — karta albo
+cała przeglądarka. Dlatego wysypuje się tak samo na X230 (8 GB), jak na IdeaPadzie (4 GB): ograniczeniem nie jest
+Twój komputer, tylko stały przydział strefy.
+
+Po 0.10.1 strefa ma BALON — znaną z innych systemów wirtualizacji „gumową” pamięć:
+  - przeglądarka bierze tyle pamięci, ile w tej chwili potrzebuje — więcej, gdy otwierasz ciężkie strony, aż do
+    górnej granicy zależnej od pamięci Twojego laptopa (D2); od razu, bez czekania na K1 — nagły skok (ciężka strona,
+    przywrócenie okna) nie kończy się awarią;
+  - to, czego już nie potrzebuje (zamknięta karta, wyczyszczona pamięć podręczna), wraca do K1 w kilka sekund;
+  - gdy pamięci komputera zaczyna brakować, K1 najpierw zabiera nieużywaną pamięć sesjom w tle, a dopiero potem pyta
+    Ciebie, co zamknąć (D3) — nic nie znika bez słowa;
+  - na 4 GB zmieszczą się dwie lekkie sesje naraz (dziś jedna), na 8 GB — kilka.
+W Zasobach widać, ile pamięci ma teraz każda sesja przeglądarki i ile może dostać.
+
+Trzy kroki:
+  1. Pomiar i przyczyna: test odtwarza dokładnie Twoje dwa przypadki (dwie karty i chwila czekania; minimalizacja
+     i przywrócenie), K1 liczy pamięć strefy co kilka sekund i mówi PRAWDZIWY powód końca strefy (dziś na X230 mógłby
+     powiedzieć „za mało pamięci komputera”, choć komputer ma jej dużo). Jeśli przyczyną okaże się coś innego niż
+     pamięć (np. błąd przy minimalizacji) — poprawka od razu w tym kroku.
+  2. Balon: pamięć strefy rośnie i maleje według potrzeby, wolna pamięć wraca do K1 sama.
+  3. Pamięć komputera dla wszystkich: K1 dzieli pamięć między siebie i kilka sesji, Zasoby pokazują przydział sesji,
+     okienko, gdy pamięci naprawdę brakuje — i wydanie 0.10.1.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
+[ ]  1  Pomiar i przyczyna: odtworzenie, liczniki, powody   S1–S6, S12, S13  0.10.0      D1, T7           M        —
+[ ]  2  Balon: virtio-balloon, wolne strony wracają do K1   S7–S11           1           D2, T1–T5        L        0044
+[ ]  3  Pamięć komputera dla wszystkich; wydanie 0.10.1     S5, S14          2           D3, T6           M        —
+(ADR 0044 — następny wolny po ADR-ach 0.10.0; jeśli 0.10.0 zajmie więcej, krok bierze kolejny wolny. Plan 0.10.5 bierze
+numery po tym.)
+
+Dlaczego najpierw pomiar: limitów, o które strefa może uderzyć, jest kilka (S1–S4) i nie wszystkie są pamięcią
+gościa. Balon zmienia pamięć gościa i limit klatki VMM — jeśli pęka coś innego (zasoby grafiki, liczba połączeń,
+ścieżka minimalizacji), sam balon by nie pomógł, a my byśmy o tym nie wiedzieli. Krok 1 daje też stały test, który
+w kroku 2 i 3 pokazuje, że problem zniknął.
+Dlaczego krok 3 osobno: krok 2 to mechanika (nowe urządzenie virtio, gość, VMM), krok 3 to zasada podziału pamięci
+całego komputera (nadzorca, Zasoby, okienko — Twoje decyzje) i wydanie; razem nie dałoby się ich rzetelnie przetestować
+w jednym PR-ze.
+
+
+3. KROKI
+--------
+
+KROK 1 — Pomiar i przyczyna: odtworzenie, liczniki, prawdziwy powód końca    M · decyzje D1, T7 · bez ADR
+  Cel: test w CI odtwarza awarię właściciela na czerwono; wiadomo, KTÓRY limit pęka (S1–S4); okienko po końcu strefy
+  podaje prawdziwy powód; jeśli przyczyna nie jest pamięcią — jest poprawiona.
+  Na początku: D1 (Twoje obserwacje — co dokładnie widać przy awarii); przeczytaj „Ustalenia z wykonania” 0.10.0
+  kroki 3 i 4 (pamięć strefy, okienko z powodem; przewijanie zmieniło wejście strefy).
+  Co widzi użytkownik: gdy przeglądarka się zamknie, okienko mówi, czy zabrakło pamięci w samej sesji („sesja
+  przeglądarki zużyła całą swoją pamięć”), pamięci komputera, czy był to błąd — dziś „pamięć komputera” pojawia się
+  także wtedy, gdy pękł limit samej sesji (S3). Poza tym bez zmian (chyba że przyczyną jest błąd — wtedy znika awaria).
+  Zadania:
+  [ ] Odtworzenie (S12, T7): test-przegladarka.sh — dwa nowe scenariusze dokładnie wg obserwacji właściciela:
+      (a) dwie karty ze stronami testowymi „jak prawdziwe strony” (obrazy, skrypty, animacja, przyrost pamięci w czasie
+      — strona serwera testowego), potem 2–3 minuty czekania; (b) to samo i 10 × minimalizuj → przywróć (pasek tytułu
+      strefy, element na pasku zadań). Pamięć gościa w teście NIEZMIENIONA (1536 MiB) — test ma być czerwony przed
+      poprawką. Strefa próbna: tryb `gosc` „pamięć” (zajmij / zwolnij N MiB na komendę) — szybki test w emulacji.
+  [ ] Liczniki (S13): co 5 s jedna linia w logu K1-STREFA (najwyżej 2 wpisy/s, niezmiennik 8 — same liczby): gość
+      (MemAvailable, zajęty zram, liczba zabitych procesów — gosc przez kanał sterujący), VMM (bajty zasobów grafiki,
+      liczba zasobów, połączenia, kolejka vsock), nadzorca (memory.current i memory.events klatki strefy). Przy końcu
+      strefy — ostatnie wartości w jednej linii. To samo dostaje krok 2 jako „przed”.
+  [ ] Prawdziwy powód (S3): nadzorca po końcu VMM czyta memory.events jego klatki (oom_kill > 0 → limit SESJI, nowy
+      powód K1_STREFA_KONIEC_LIMIT; SIGKILL bez oom_kill w klatce → pamięć komputera); okienko gui z nowym tekstem
+      (słowa ze słownika). Wiersz w docs (komunikat STREFA_STAN — nowa wartość b).
+  [ ] Przyczyna: z liczników i zrzutów (a) i (b) — który limit z S1–S4 pęka i przy czym. Pamięć gościa / klatka VMM →
+      zostaje dla kroku 2 (tu najwyżej tani zapas, jeśli test pokaże, że 160 MiB zapasu klatki to za mało — z liczbą
+      w opisie PR-a). Coś innego (zasoby grafiki przy minimalizacji, połączenia, kompozytor) → poprawka u źródła tu.
+  Testy i dowód: scenariusze (a) i (b) — przed poprawką czerwone z linią liczników, po — wg przyczyny: zielone (błąd
+  nie-pamięciowy) albo czerwone dalej, ale z PRAWDZIWYM powodem w okienku (pamięć — naprawia krok 2); test na hoście
+  powodu końca (status + memory.events → powód). Właściciel: obraz z artefaktu PR-a — te same dwa przypadki na X230
+  i IdeaPadzie, odczyt okienka i Zasobów (D1).
+  Dokumenty: strefa.md (liczniki, powody końca), nadzorca.md, gui (okienko), SLOWNIK (limit sesji — jeśli nowe słowo),
+  TESTY.md (scenariusze a, b).
+  Gotowe, gdy: przyczyna wpisana w „Ustaleniach z wykonania” (z liczbami), okienko mówi prawdziwy powód, scenariusze
+  (a) i (b) są stałą częścią test-przegladarka.sh.
+  Ustalenia z wykonania: (pusto — wypełnia krok 1)
+
+KROK 2 — Balon: virtio-balloon, wolne strony wracają do K1                   L · decyzje D2, T1–T5 · ADR 0044
+  Cel: pamięć strefy nie jest już stała. Strefa startuje z górną granicą zależną od pamięci komputera (D2), ale K1
+  oddaje jej tylko tyle, ile używa; pamięć zwolniona w strefie wraca do K1 w kilka sekund (zgłaszanie wolnych stron);
+  K1 może poprosić strefę o oddanie pamięci (balon się „pompuje”) i oddać jej z powrotem (balon „spuszcza powietrze”).
+  Na początku: D2; „Ustalenia z wykonania” kroku 1 (przyczyna; liczby „przed”).
+  Co widzi użytkownik: scenariusze z kroku 1 nie kończą się awarią; w Zasobach pamięć sesji przeglądarki rośnie przy
+  ciężkiej stronie i spada po zamknięciu karty (dziś tylko rośnie).
+  Zadania:
+  [ ] ADR 0044 „Pamięć stref: balon” (uzupełnia ADR 0042 T4): T1 co (balon + zgłaszanie wolnych stron), T2 jak pamięć
+      wraca do K1, T3 kto decyduje, T4 twarda granica, T5 pamięć gościa powyżej 4 GiB; dopiski [korekta: ADR 0044]
+      w SPEC §8; spis w docs/adr/README.md.
+  [ ] Jądro strefy (S7): CONFIG_VIRTIO_BALLOON w jadro/strefa.config (z komentarzem; wybiera MEMORY_BALLOON
+      i PAGE_REPORTING); scripts/zbuduj-jadro.sh sprawdza, że weszło. Nic w jądrze K1 (jadro/k1.config) się nie zmienia.
+  [ ] VMM — urządzenie balon (T1, S8, S9): src/strefa/balon.c, wiersz w tabeli K1_URZADZENIA (virtio-mmio, typ 5);
+      cechy: STATS_VQ, DEFLATE_ON_OOM, REPORTING (bez FREE_PAGE_HINT, PAGE_POISON, MUST_TELL_HOST — T1); kolejki:
+      pompowanie, spuszczanie, statystyki, zgłaszanie (indeksy wg sterownika — S9); konfiguracja num_pages
+      (ustawia VMM) i actual (pisze gość). Każdy numer strony i każdy zgłoszony zakres sprawdzany pole po polu
+      (niezmiennik 6): w pamięci gościa, wyrównany, bez przepełnienia, limit długości łańcucha — zły = koniec tej
+      maszyny. Części czyste (odczyt listy stron, zakresów, statystyk) — test_balon na hoście, fuzz_balon (lista FUZZ).
+  [ ] Oddawanie pamięci (T2, S10): strony z balonu i zgłoszone zakresy → fallocate(PUNCH_HOLE | KEEP_SIZE) na memfd
+      pamięci gościa — strony wracają do K1, a gość, który ich dotknie, dostaje zera (i zostaje policzony w klatce);
+      nowe wywołanie w KLATKA_STREFA (profile.c) z uzasadnieniem. Licznik „oddane MiB” w linii liczników z kroku 1.
+  [ ] Rozmiar i granica (T4, T5, S11, D2): wiersz K1_STREFY — kolumna pamięci staje się „pamięć na start”, górna
+      granica wynika z pamięci komputera (jedna tabela progów, zasada 5); pamięć gościa powyżej 4 GiB — drugi obszar
+      w e820 i drugie miejsce pamięci w KVM nad dziurą na urządzenia (dziś ST_PAMIEC_MAKS = 3 GiB, start.c, kvm.c);
+      limit klatki VMM (memory.max) = górna granica + zapas z kroku 1; RLIMIT_FSIZE za memfd — zgodnie.
+  [ ] Sterowanie (T3): nowe komunikaty na kanale VMM ↔ nadzorca (fd 7 VMM): od VMM — STREFA_PAMIEC (pamięć dostępna
+      w gościu, rozmiar balonu, oddane MiB; najwyżej raz na sekundę), od nadzorcy — STREFA_BALON (cel balonu w MiB);
+      typy w k1_komunikat.h, sprawdzanie w k1_kom_strefa*.c, fuzzing, test złośliwego komunikatu. W kroku 2 nadzorca
+      trzyma balon pusty, a pompuje go tylko na komendę testową (sprawdzenie mechaniki); zasada dla wielu stref
+      i braku pamięci komputera — krok 3 (T6).
+  Testy i dowód: host — test_balon, fuzz_balon, test nowych komunikatów. QEMU (test-strefa.sh, emulacja i CI): nagły
+  skok — strefa próbna zajmuje naraz prawie całą górną granicę → żyje (bez czekania na K1); strefa próbna zajmuje
+  1 GiB i zwalnia → memory.current klatki VMM spada w ciągu kilku sekund (log), cel balonu z nadzorcy →
+  gość oddaje strony (actual w logu); test-przegladarka.sh: scenariusze (a) i (b) z kroku 1 ZIELONE, strona 1400 MiB
+  z 0.10.0 krok 3 dalej przechodzi. Negatywne (złośliwy gość, gosc/zlosliwy.c — nowe tryby): numery stron poza
+  pamięcią, zakresy zgłoszeń poza pamięcią i nachodzące na urządzenia, ogromne listy, kłamliwe statystyki (gość
+  twierdzi, że nie ma pamięci, i bierze wszystko) → maszyna kończy się albo dostaje najwyżej swoją górną granicę
+  (twarda granica klatki), K1 i inne strefy żyją.
+  Dokumenty: ADR 0044, strefa.md (urządzenie balon, kolejki, liczniki), nadzorca.md, jadro.md (jądro strefy), SPEC,
+  SLOWNIK (balon, przydział sesji, górna granica sesji), RYZYKA (gość kłamie o pamięci; strony oddane i dotknięte
+  znowu), TESTY.md.
+  Gotowe, gdy: scenariusze (a) i (b) zielone w CI, pamięć wraca do K1 (log), testy negatywne zielone, ADR 0044 w spisie.
+  Ustalenia z wykonania: (pusto — wypełnia krok 2)
+
+KROK 3 — Pamięć komputera dla wszystkich; wydanie 0.10.1                     M · decyzje D3, T6 · bez ADR (stosuje 0044)
+  Cel: nadzorca dzieli pamięć komputera między K1 i wszystkie otwarte sesje: K1 zawsze ma swoją rezerwę, sesja
+  w oknie z fokusem ma pierwszeństwo, sesje w tle oddają nieużywaną pamięć pierwsze; gdy pamięci naprawdę brakuje —
+  okienko wg D3, nigdy ciche zniknięcie. Potem wydanie 0.10.1.
+  Na początku: D3 (szkice okienka i widoku w Zasobach, oba motywy); „Ustalenia z wykonania” kroków 1–2.
+  Co widzi użytkownik: na IdeaPadzie (4 GB) można otworzyć dwie sesje naraz (np. Ogólna i Bank), jeśli są lekkie;
+  Zasoby pokazują przy każdej sesji przeglądarki „używa X · może dostać Y”; gdy pamięci komputera zaczyna brakować —
+  okienko wg D3 (np. „Mało pamięci — zamknij kartę albo sesję”) z listą sesji i ich pamięcią.
+  Zadania:
+  [ ] Rozdzielacz (T6, S14): moduł nadzorcy (pamiec_stref.c — nazwa w kroku) — raz na sekundę: pamięć dostępna
+      komputera (jak w zasoby.c: sysinfo + memory.stat korzenia), zgłoszenia STREFA_PAMIEC wszystkich stref → cele
+      balonów (STREFA_BALON). Progi i kroki w jednej tabeli (zasada 5): rezerwa K1, zapas wolnej pamięci gościa (na
+      skok), krok pompowania i spuszczania, pamięć na start; okno z fokusem (ekran wie, który to — informacja przez gui albo ekran, wybór
+      w kroku) ma pierwszeństwo.
+  [ ] Start sesji (S5): jest_pamiec() w strefy.c sprawdza tylko pamięć na start (nie górną granicę) i wlicza pamięć,
+      którą balony sesji w tle mogą oddać; brak — komunikat jak dziś (ZA_MALO_PAMIECI).
+  [ ] Brak pamięci komputera (D3): kolejność — balony sesji w tle → balon sesji z fokusem do jej minimum → okienko
+      gui; ostatecznie jądro K1 zabija VMM (nigdy usługę K1: oom_score_adj usług i stref — sprawdzić, co dziś ustawia
+      nadzorca), a okienko mówi, która sesja się zamknęła i dlaczego.
+  [ ] Zasoby (D3): przy sesjach przeglądarki — używa / może dostać (dane od nadzorcy, kanał Zasobów jak dziś; nowe pole
+      albo komunikat — sprawdzany pole po polu).
+  [ ] Wydanie: VERSION 0.10.1; CHANGELOG (Dodane / Zmienione / Poprawione); porządki wersji PATCH: martwy kod stałej
+      pamięci, kolumna K1_STREFY, liczby w docs (D6 planu 0.10.0: „ok. 1,5 GB, na 4 GB jedna sesja” — już nieaktualne),
+      pliki blisko limitu; DO_ZROBIENIA.txt — „Teraz” → 0.10.5 (docs/PLAN-0.10.5.txt), lista testów na X230
+      i IdeaPadzie dla 0.10.1 (wiersz „Właściciel” niżej); ten plik → docs/archiwum/. Po scaleniu: CI, tag k1-v0.10.1, wydanie; raport
+      z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
+  Testy i dowód: host — test rozdzielacza (tabela progów: K1 poniżej rezerwy → balony w tle rosną pierwsze; sesja
+  z fokusem dostaje pamięć przed sesjami w tle; dwie sesje o tę samą pamięć — żadna nie zabiera K1 rezerwy). QEMU
+  (test-przegladarka.sh, maszyna testowa z -m 4G jak IdeaPad): dwie sesje naraz, każda z ciężką stroną → obie żyją
+  albo okienko D3 (nigdy ciche zniknięcie); sesja w tle oddaje pamięć, gdy sesja z fokusem jej potrzebuje (log celów).
+  Negatywne: strefa, która mimo celu nie oddaje pamięci (złośliwy gość: ignoruje balon) → nie dostaje więcej niż
+  twarda granica, inne sesje i K1 żyją; zalew komunikatów STREFA_PAMIEC → ograniczony, nadzorca żyje.
+  Właściciel (po wydaniu, lista w DO_ZROBIENIA): na X230 i IdeaPadzie — dwie karty i chwila czekania, minimalizacja
+  i przywrócenie, ciężka strona (np. film), dwie sesje naraz; Zasoby: pamięć sesji rośnie i spada.
+  Dokumenty: nadzorca.md (rozdzielacz), aplikacje.md (Zasoby), WYGLAD (okienko D3), SLOWNIK (rezerwa K1), RYZYKA,
+  TESTY.md, CHANGELOG, README (ile pamięci potrzebuje przeglądarka), skill kons-dev (pułapki: balon).
+  Gotowe, gdy: testy zielone, wydanie k1-v0.10.1 istnieje, raport z linkami.
+  Ustalenia z wykonania: (pusto — wypełnia krok 3)
+
+UWAGI Z DRUGIEJ OPINII (właściciel, 2026-11-16: uwagi Gemini o balonach w mikro-maszynach) — co z nich wynika w planie:
+  - „Brak autopilota: sterownik w gościu to tylko mięśnie, decyduje demon na hoście” — tak; w K1 tym demonem jest
+    nadzorca (rozdzielacz, T3 i T6) — nie osobny program, bo nadzorca i tak jest właścicielem pamięci i klatek.
+  - „Balon za wolno reaguje na nagłe skoki” — przyjęte, zmienia projekt (T1, T6): balon jest DOMYŚLNIE PUSTY, więc
+    gość może od razu sięgnąć do swojej górnej granicy bez pytania K1; pamięć wraca przez zgłaszanie wolnych stron
+    (bierne, bez czekania); balon pompujemy tylko, gdy brakuje pamięci komputera, i zawsze zostawiamy gościowi zapas
+    wolnej pamięci (próg w tabeli T6). Skok w kilku strefach naraz łapie rezerwa K1 i kolejność z D3.
+  - „Balon opiera się na dobrej woli jądra gościa” — tak; twarda granica to memory.max klatki VMM (T4), test
+    złośliwego gościa w krokach 2 i 3.
+  - „Duże strony (hugetlbfs, 2 MiB) blokują balon 4 KiB” — w K1 nie dotyczy: pamięć gościa to zwykły memfd, jądro K1
+    nie ma ani hugetlbfs, ani przezroczystych dużych stron (jadro/k1.config). Duże strony dla szybkości — tylko razem
+    z virtio-mem („Nie w tej wersji”).
+  - „Zgłaszanie wolnych stron nie zmusza gościa do oddania pamięci podręcznej” — tak; dlatego obok zgłaszania jest
+    balon (pompowany przy braku pamięci komputera zmusza gościa do zrzucenia pamięci podręcznej) — T1, T6.
+  - „Balon zwraca strony przez MADV_DONTNEED” — w K1 nie: pamięć gościa jest współdzielonym memfd, a MADV_DONTNEED
+    na takim odwzorowaniu nie zwalnia stron tmpfs, tylko je odmapowuje; dlatego fallocate(PUNCH_HOLE) (T2).
+  - KSM (łączenie jednakowych stron między maszynami) — ODRZUCONE na stałe: otwiera kanał boczny (Flush+Reload)
+    między strefami, które sobie nie ufają (sesja Bank obok złośliwej strony w Ogólnej); jądro K1 go nie ma.
+
+
+4. DECYZJE
+----------
+Twoje (produkt):
+[!] D1 (krok 1) Twoje obserwacje — informacja, nie wybór (odpowiedz, co pamiętasz; resztę zmierzy test):
+       (a) Gdy przeglądarka się „wysypuje”: znika całe okno i pojawia się okienko K1 „Przeglądarka zamknęła się”
+           (jaki powód?), czy w oknie przeglądarki pojawia się strona Firefoksa „Karta uległa awarii” (ginie karta, nie
+           przeglądarka), czy obraz zamarza?
+       (b) Jakie strony były otwarte (np. YouTube, serwis informacyjny, poczta)? Czy coś grało albo się ruszało?
+       (c) „Chwila czekania” — ile mniej więcej: kilkanaście sekund, minuta, kilka minut?
+       (d) Przy „minimalizacji i maksymalizacji” — chodzi o przycisk „minimalizuj” na pasku tytułu i przywrócenie
+           okna z dolnego paska? Czy awaria jest od razu po przywróceniu, czy po chwili?
+       (e) Jeśli zdążysz: Start → Zasoby przed awarią — ile pamięci pokazuje „strefa-2” (sesja Ogólna)?
+       Którą wersję testowałeś (obraz z CI kroku 3 — przebieg 117 — czy nowszy)?
+[!] D2 (krok 2) Ile pamięci może dostać jedna sesja przeglądarki (górna granica). Rekomendacja: tyle, ile ma komputer,
+       minus rezerwa K1 (D3) — czyli na 4 GB ok. 2,5–3 GB, na 8 GB ok. 6 GB; K1 i tak oddaje sesji tylko to, czego
+       naprawdę używa, a resztę zabiera z powrotem. Mniejsza granica (np. połowa pamięci) chroni inne sesje, ale ciężka
+       strona na 4 GB znów może nie zmieścić się w sesji.
+[!] D3 (krok 3) Co, gdy pamięci komputera naprawdę brakuje, i jak to wygląda — szkice do wyboru NA POCZĄTKU KROKU 3
+       (oba motywy): okienko „Mało pamięci”, widok sesji w Zasobach. Rekomendacja: (1) K1 po cichu zabiera nieużywaną
+       pamięć sesjom w tle; (2) gdy to nie wystarcza — okienko „Mało pamięci: zamknij kartę albo sesję” z listą sesji
+       i ich pamięcią (przycisk „Zamknij” przy każdej); (3) dopiero gdy nic nie pomaga — K1 zamyka sesję w tle (nie tę,
+       w której pracujesz) i mówi o tym okienkiem. Rezerwa K1 (pamięć, której strefy nigdy nie dostają): 768 MiB na
+       4 GB, 1 GiB na 8 GB i więcej.
+
+Techniczne (moje — z uzasadnieniem; krok może je poprawić w „Ustaleniach z wykonania”):
+    T1 Co (krok 2): klasyczny balon virtio (virtio 1.2 §5.5) z trzema cechami: STATS_VQ (gość co kilka sekund mówi,
+       ile ma dostępnej pamięci — podstawa decyzji), REPORTING (zgłaszanie wolnych stron: gość sam oddaje zwolnione
+       bloki 2 MiB po ok. 2 s — to rozwiązuje „raz zajęta pamięć nigdy nie wraca”; bierne — nie odpytuje gościa i nie
+       spowalnia go; nie oddaje pamięci podręcznej — od tego jest balon), DEFLATE_ON_OOM (siatka
+       bezpieczeństwa: zanim jądro gościa zabije proces, bierze strony z balonu — tylko 1 MiB na raz, S9). Nie: virtio-mem
+       (dokładanie pamięci „na gorąco” — więcej kodu w VMM i gościu, potrzebne dopiero przy dużo większych granicach;
+       „Nie w tej wersji”), FREE_PAGE_HINT (służy migracji maszyn), PAGE_POISON (jądro strefy nie zatruwa stron —
+       sprawdzić), MUST_TELL_HOST (zbędne: VMM i tak może dać zera).
+       Balon jest DOMYŚLNIE PUSTY (uwaga z drugiej opinii, niżej po kroku 3): pompowanie wymaga od gościa zrzucenia
+       pamięci podręcznej albo wymiany i trwa — przy nagłym skoku za długo. Dlatego gość ma od startu całą swoją górną
+       granicę (strony dochodzą z memfd od razu, gdy ich dotknie), wolne wracają przez zgłaszanie, a balon pompujemy
+       tylko, gdy brakuje pamięci KOMPUTERA (T6) — i nigdy do zera wolnej pamięci gościa.
+    T2 Jak pamięć wraca (krok 2): fallocate(PUNCH_HOLE | KEEP_SIZE) na memfd pamięci gościa — tmpfs zwalnia strony,
+       KVM przez powiadomienia MMU zapomina ich odwzorowanie, następny dostęp gościa dostaje stronę zer i jest liczony
+       w klatce VMM. Nie MADV_DONTNEED: na współdzielonym odwzorowaniu memfd tylko odmapowuje, stron tmpfs nie zwalnia
+       (jedno źródło prawdy: memfd). Pamięć gościa to zwykłe strony 4 KiB — jądro K1 nie ma hugetlbfs ani przezroczystych
+       dużych stron, więc balon 4 KiB nie trafia na niepodzielne bloki 2 MiB. K1 nie ma wymiany (jadro/k1.config:
+       SWAP wyłączony), więc to jedyna droga zwrotu pamięci strefy — bez niej memfd tylko rośnie (S2).
+    T3 Kto decyduje (kroki 2–3): nadzorca — widzi pamięć całego komputera i wszystkie strefy; VMM tylko wykonuje cel
+       balonu i przekazuje statystyki gościa; gość tylko zgłasza. Statystyki gościa to podpowiedź, nie prawda: kłamiący
+       gość szkodzi najwyżej sobie (T4). Kanał: istniejący kanał VMM ↔ nadzorca (fd 7), dwa nowe typy komunikatów.
+    T4 Twarda granica (krok 2): memory.max klatki VMM = górna granica sesji (D2) + zapas VMM (z pomiaru w kroku 1),
+       stała przez całe życie strefy; balon to sterowanie „miękkie”. Gość, który ignoruje balon, dojdzie najwyżej do
+       swojej granicy, a przy braku pamięci komputera jądro K1 wybiera VMM, nie usługę K1 (oom_score_adj — krok 3).
+       Odrzucone: memory.max zmieniane w locie razem z balonem (wyścig: gość dotyka stron, zanim nadzorca podniesie
+       limit → zabity VMM — dokładnie to, co dziś psuje sesje).
+    T5 Pamięć gościa powyżej 4 GiB (krok 2): dziś jeden obszar pamięci pod urządzeniami (do 3 GiB, S11). Granica z D2
+       na 8 GB to ok. 6 GiB → drugi obszar RAM od 4 GiB w e820 i drugie miejsce pamięci KVM (ten sam memfd, przesunięcie
+       3 GiB); urządzenia virtio-mmio zostają pod 4 GiB. Jądro strefy jest 64-bitowe — nie potrzebuje niczego więcej
+       (NIEPEWNE: sprawdzić w kroku start z 6 GiB w emulacji).
+    T6 Zasada podziału (krok 3): jedna tabela progów w nadzorcy (zasada 5); nadzorca jest „demonem” balonów — sam
+       sterownik w gościu niczego nie reguluje. Co sekundę: K1 ma ponad rezerwę → balony spuszczane (do zera — T1);
+       K1 poniżej rezerwy → balony pompowane, najpierw sesje w tle (najpierw te z dużą pamięcią podręczną — STATS:
+       CACHES), potem sesja z fokusem, każda najwyżej do zapasu wolnej pamięci gościa (np. 256 MiB — na skok)
+       i nie poniżej pamięci na start; dalej — okienko i kolejność z D3. Skok w kilku strefach naraz łapie rezerwa
+       K1; gdy nie wystarczy, jądro K1 zabija VMM (oom_score_adj), nie usługę K1. Liczby — z pomiarów kroków 1–2,
+       nie z tego planu.
+    T7 Pomiar przed zmianą (krok 1): najpierw odtworzenie i liczniki, dopiero potem balon — żeby wiedzieć, że naprawiamy
+       właściwy limit (S1–S4), i mieć „przed / po” w liczbach. Scenariusze w test-przegladarka.sh zostają na stałe.
+
+
+5. LUKI (z czytania kodu K1 po 0.10.0 krok 3 i źródeł jądra 6.18.60, 2026-11-16)
+---------------------------------------------------------------------------------
+Krok 1
+  S1  Z KODU. Pamięć gościa stała: wiersze K1_STREFY (src/wspolne/k1_uslugi.h) — Ogólna, Bank, Prywatna po 1536 MiB,
+      strefa próbna 128 MiB; memfd tej wielkości (src/strefa/kvm.c), gość bez wymiany na dysk — tylko zram w swojej
+      pamięci (src/strefa/gosc/pamiec.c: zram = pamięć gościa, oom_score_adj: główny proces −900, karty +300).
+  S2  Z KODU. Klatka VMM: memory.max = pamięć gościa + 160 MiB, memory.oom.group = 1 (src/nadzorca/profile.c X_Z,
+      src/wspolne/k1_klatka.c k1_klatka_grupa). Strony memfd gościa, raz dotknięte, są w klatce na stałe: K1 nie ma
+      wymiany, a gość nie oddaje stron (brak balonu). Pamięć podręczna plików w gościu (obraz strefy rozpakowany
+      w pamięci gościa, 0.10.0 krok 3 S30) szybko dotyka całej pamięci gościa → VMM ≈ cały gość + własne bufory,
+      zapas 160 MiB na grafikę (do 96 MiB), okno, VMM i struktury KVM.
+  S3  Z KODU. Powód końca: SIGKILL VMM → zawsze K1_STREFA_KONIEC_PAMIEC_K1 („pamięć komputera”; strefy.c powod_konca),
+      także gdy zabił go limit WŁASNEJ klatki (memory.oom.group zabija całą grupę SIGKILL-em). Na X230 z 8 GB takie
+      okienko wprowadzałoby w błąd. memory.events klatki (oom_kill) rozróżnia — NIEPEWNE: czy liczniki są czytelne po
+      końcu procesów (katalog klatki zostaje, nadzorca używa go ponownie — wyzerować / zapamiętać wartość przy starcie).
+  S4  Z KODU. Inne limity VMM, o które strefa może uderzyć (kandydaci obok pamięci): zasoby grafiki 16 i razem 96 MiB
+      (src/strefa/gpu.c ZASOBY, GPU_PAMIEC — przekroczenie = błąd dla gościa), połączenia 128 naraz
+      (K1_STREFA_POLACZENIA_MAKS) i 400 na 10 s u nadzorcy, pliki 64 + 128 + 8, wątki procesory + 2 (profile.c),
+      kolejka pakietów vsock do gościa (vsock.c CZEKAJACE; przy pełnej — porzucane), okno najwyżej 1024 × 720
+      (src/strefa/okno.c).
+  S12 Z OBSERWACJI WŁAŚCICIELA (2026-11-16). Awaria na X230 (8 GB) i IdeaPadzie 110 (4 GB) tak samo → nie pamięć
+      komputera, tylko limit strefy (S1–S4). Wyzwalacze: (a) dwie karty + chwila czekania — pamięć rośnie z czasem
+      (strony, skrypty, pamięć podręczna), (b) minimalizacja i przywrócenie — NIEPEWNE: skok pamięci (Firefox po
+      przywróceniu rysuje całe okno od nowa — bufory procesów kart w pamięci gościa) albo osobny błąd na tej ścieżce
+      (ekran przestaje pokazywać okno strefy; co dostaje VMM, kompozytor strefy i Firefox — sprawdzić w kroku 1).
+  S13 Z KODU. Zasoby (src/nadzorca/zasoby.c) już pokazują memory.current każdej klatki, także „strefa-N” — właściciel
+      może to odczytać przed awarią (D1 e). Gość liczy zabite procesy (/proc/vmstat oom_kill, 0.10.0 krok 3), ale nie
+      wysyła ich na bieżąco — tylko powód przy końcu.
+Krok 2
+  S7  ZE ŹRÓDEŁ (drivers/virtio/Kconfig, mm/Kconfig). VIRTIO_BALLOON: depends on VIRTIO, select MEMORY_BALLOON,
+      select PAGE_REPORTING. BALLOON_COMPACTION (default y) wymaga COMPACTION — jądra strefy bez niej nie dotyczy.
+      jadro/strefa.config ma VIRTIO_MMIO, SWAP, ZRAM — balonu nie.
+  S8  ZE ŹRÓDEŁ (include/uapi/linux/virtio_balloon.h). Cechy: MUST_TELL_HOST 0, STATS_VQ 1, DEFLATE_ON_OOM 2,
+      FREE_PAGE_HINT 3, PAGE_POISON 4, REPORTING 5. Konfiguracja: num_pages (ile stron 4 KiB host chce w balonie),
+      actual (ile gość w nim ma), free_page_hint_cmd_id, poison_val — wszystkie LE32. Numery stron: PFN_SHIFT 12.
+      Statystyki: pary {tag 16 bit, wartość 64 bit}, tagi 0–15 (m.in. MEMFREE 4, MEMTOT 5, AVAIL 6, CACHES 7,
+      OOM_KILL 10).
+  S9  ZE ŹRÓDEŁ (drivers/virtio/virtio_balloon.c, mm/page_reporting.c, include/linux/page_reporting.h). Kolejki po
+      kolei: pompowanie, spuszczanie, statystyki (z STATS_VQ), wolne strony (z FREE_PAGE_HINT), zgłaszanie (z
+      REPORTING) — bez FREE_PAGE_HINT zgłaszanie jest czwartą kolejką: NIEPEWNE, sprawdzić numerację w init_vqs.
+      Zgłaszanie: gość wkłada listę zakresów (scatterlist) i CZEKA, aż VMM odda bufor — VMM musi odpowiadać szybko.
+      Kolejka zgłaszania musi mieć ≥ 32 miejsc (PAGE_REPORTING_CAPACITY), inaczej sterownik się nie uruchamia
+      (-ENOSPC). Rząd zgłaszanych bloków: domyślnie pageblock_order (x86: 2 MiB), opóźnienie 2 s (PAGE_REPORTING_DELAY).
+      DEFLATE_ON_OOM: najwyżej 256 stron (1 MiB) na jedno powiadomienie OOM — siatka, nie sposób na stały brak pamięci.
+  S10 Z KODU / NIEPEWNE. Pamięć gościa: k1_memfd_nowy (src/wspolne/k1_memfd.c: MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL);
+      pieczęć zapisu (F_SEAL_WRITE) zakłada tylko k1_memfd zapieczętowanie — pamięci gościa nie dotyczy, więc
+      fallocate(PUNCH_HOLE) powinno działać; sprawdzić próbą, także z RLIMIT_FSIZE klatki (= pamięć gościa) i po
+      zmianie granicy (T5).
+  S11 Z KODU. Jeden obszar pamięci gościa: ST_PAMIEC_MAKS = 3 GiB (src/strefa/start.h, „pod urządzeniami — MMIO od
+      0xd0000000”), e820 w start.c, jedno KVM_SET_USER_MEMORY_REGION w kvm.c.
+Krok 3
+  S5  Z KODU. Start sesji: jest_pamiec() (strefy.c) wymaga wolnej pamięci (free + bufory, bez pamięci podręcznej) ≥
+      pamięć gościa + 64 MiB — na 4 GB druga sesja nie ruszy, choć pierwsza mogłaby oddać nieużywaną pamięć.
+  S14 Z KODU. Pamięć dostępna komputera: zasoby.c liczy „używaną” z sysinfo i memory.stat korzenia cgroup (pamięć
+      podręczna plików minus tmpfs) — ten sam sposób dla rozdzielacza. /proc/meminfo nie jest dostępne (/proc
+      z subset=pid). NIEPEWNE: czy jądro K1 ma PSI (presja pamięci) — w jadro/k1.config nie ma; bez niego wystarczą
+      progi.
+
+
+6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
+-----------------------------------------------------------------------------------
+    virtio-mem (dokładanie i zabieranie pamięci gościa całymi blokami „na gorąco” — bez narzutu stron 4 KiB, zgodne
+    z dużymi stronami; wymaga obsługi w VMM i gościu); duże strony (2 MiB) dla szybkości stref — tylko z virtio-mem;
+    wspólny obraz bazowy w pamięci raz dla wielu stref (bez KSM — odrzucony, uwagi po kroku 3); zram albo wymiana dla
+    samego K1; szybki start z zamrożonego
+    stanu (zapasowa czysta maszyna); ustawienie granicy pamięci sesji przez użytkownika w Ustawieniach → Aplikacje;
+    balon dla przyszłych stref innych niż przeglądarka — działa sam (to samo urządzenie), osobne progi dopiero, gdy
+    będą potrzebne (strefa pobierania z 0.10.5, wspólna strefa ADR 0024).
