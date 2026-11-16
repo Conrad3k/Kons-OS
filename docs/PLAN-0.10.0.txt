@@ -84,7 +84,7 @@ Na laptopach trzeba raz włączyć wirtualizację w BIOS-ie (D5) — bez niej K1
 [x]  1  Pierwsza strefa: KVM, VMM, okno w zaufanej ramce    S1–S11           0.9.1       D1 D4, T1–T6 T10 L        0042   PR #114
 [x]  2  Przeglądarka w strefie, połączenia przez K1         S12–S20          1           D2 D3 D6, T7–T9  L        0043   PR #119
 [x]  3  Poprawki przeglądarki: awarie, ramka, przyciski     S26–S28, S30     2           D1 (zmiana)      L        —      PR #126
-[ ]  4  Przewijanie: kółko myszy, dwa palce na touchpadzie S29              2           D8               M        —      [w toku: Claude, gałąź claude/exciting-einstein-thk3hk]
+[x]  4  Przewijanie: kółko myszy, dwa palce na touchpadzie S29              2           D8               M        —      PR #128
 [ ]  5  Stała strefa, Ustawienia, porządki; wydanie 0.10.0  S21–S25          3, 4        D7, T11          L        —
 
 Dlaczego trzy, a nie dwa: krok 1 to cały fundament (jądro z KVM, własny VMM, nowa rola w ekranie, testy z emulowaną
@@ -409,6 +409,10 @@ KROK 4 — Przewijanie: kółko myszy i dwa palce na touchpadzie              M 
   - test-przegladarka: poprawiony wydruk czasu startu (wyrażenie „gość(?: gotowy|: okno …)”).
   - Testy lokalne (kontener, TCG): test-m1 12/12 (w systemie 185/185, z t_okna_przewijanie), test-pendrive i test-strefa
     — wszystko zaliczone; przewijanie strony w Firefoksie — tylko CI z KVM.
+  - CI: przebieg 119 — maszyna CI zgubiona w trakcie testów (wisiało ponad 45 min, bez logów; właściciel anulował — jak
+    przebieg 115 w kroku 3); 123 — wszystko zielone: strona testowa przewinięta kółkiem o 228 px i z powrotem na 0,
+    gość „gotowy” po 7,2 s, pierwsze okno przeglądarki po 62,2 s od startu maszyny (poprawiony wydruk).
+  - Gotowe, gdy właściciel potwierdzi na sprzęcie kółko i touchpad (przeglądarka, Pliki) — test na X230 i IdeaPadzie.
 
 KROK 5 — Stała strefa, Ustawienia, porządki; wydanie 0.10.0               L · decyzje D7, T11 · bez ADR (uzupełnia 0042)
   (do 2026-11-15 był to krok 3; przesunięty, gdy właściciel dodał kroki 3 i 4)
