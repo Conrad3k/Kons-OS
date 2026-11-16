@@ -24,8 +24,8 @@ usunięte na Twoją prośbę — są w historii git). Twój test 0.9.1 z 2026-11
         2 przeglądarka w strefie z połączeniami przez K1, 3 sesje, które pamiętają, porządki i wydanie
     [x] 0.10.0 krok 1 — pierwsza strefa (KVM, VMM, okno w zaufanej ramce; strefa próbna w testach) — PR #114
     [x] 0.10.0 krok 2 — przeglądarka w strefie, połączenia przez K1 — PR #119
-    [ ] 0.10.0 krok 3 — poprawki przeglądarki po teście na sprzęcie: awarie, pełna ramka okna strefy, bez przycisków
-        okna Firefoksa (dodany przez Ciebie 2026-11-15)
+    [x] 0.10.0 krok 3 — poprawki przeglądarki po teście na sprzęcie: pamięć strefy (przeglądarka nie znika; gdy strefa
+        się zamknie — okienko z powodem), pełna ramka okna strefy (szkic A), bez przycisków okna Firefoksa — PR #126
     [ ] 0.10.0 krok 4 — przewijanie kółkiem myszy i dwoma palcami na touchpadzie w całym systemie (wydzielony z kroku 3)
     [ ] 0.10.0 krok 5 — stała strefa, Ustawienia → Aplikacje, porządki; wydanie 0.10.0
 

@@ -5,7 +5,8 @@
  *   fd 7 = its channel to us for the browser's connections (strefy_siec.c; 0.10.0 step 2, ADR 0043 T9).
  * One machine per row at a time. Without virtualization (no /dev/kvm: the processor has none, or it is off in the
  * BIOS), without the zone's image or without enough free memory gui is told why (STREFA_STAN) and nothing starts.
- * The VMM's end is an ordinary end of a service started on request (uslugi.c): no restart. Part of nadzorca. */
+ * The VMM's end is an ordinary end of a service started on request (uslugi.c): no restart. When the user did not
+ * close it, gui says why it ended (0.10.0 step 3, S26: before, the window was simply gone). Part of nadzorca. */
 #include "nadzorca.h"
 
 #define STREFY "/rdzen/strefy"
@@ -82,4 +83,26 @@ void strefa_uruchom(int nr, int tryb)
     for (i = 0; i < 5; i++)
         if (fd[i] >= 0)
             close(fd[i]);
+}
+
+/* Why the VMM ended: its exit code (main.c in src/strefa: K1_STREFA_KONIEC_*), or SIGKILL — the kernel's OOM killer
+ * (its cgroup's limit, or the computer's memory: nadzorca kills a zone only with `cicho`); 0: the user closed it. */
+static int powod_konca(int status)
+{
+    if (WIFEXITED(status))
+        return WEXITSTATUS(status) == 0 ? 0
+               : WEXITSTATUS(status) >= K1_STREFA_KONIEC_OD && WEXITSTATUS(status) <= K1_STREFA_STAN_MAKS
+                   ? WEXITSTATUS(status)
+                   : K1_STREFA_KONIEC_BLAD;
+    return WIFSIGNALED(status) && WTERMSIG(status) == SIGKILL ? K1_STREFA_KONIEC_PAMIEC_K1 : K1_STREFA_KONIEC_BLAD;
+}
+
+void strefa_koniec(int nr, int status, int cicho)
+{
+    int powod = powod_konca(status);
+    if (powod == 0)
+        return;
+    k1_log(TAG, "strefa %d zakończyła się sama (powód %d)%s", nr, powod, cicho ? " — bez okienka" : "");
+    if (!cicho)
+        zglos(nr, powod);
 }

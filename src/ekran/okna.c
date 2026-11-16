@@ -215,8 +215,8 @@ static void usun_pow(int i)
         s.chwyt = -1;
     if (s.ciagniete == i)
         s.ciagniete = -1;
-    if (s.plakietka == i)
-        s.plakietka = -1;
+    if (s.strefa_okno == i)
+        s.strefa_okno = -1;
     if (s.fokus == i) {
         s.fokus = -1;
         ustaw_fokus(najwyzsze_okno(i));

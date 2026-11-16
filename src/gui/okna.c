@@ -131,7 +131,8 @@ static void rozumiem(int odpowiedz)
     (void)odpowiedz;
 }
 
-/* nadzorca (fd 5, 0.10.0): zone m->a did not start — why, in the window of a refusal (the one of Pliki and the desktop) */
+/* nadzorca (fd 5, 0.10.0): zone m->a did not start — or (step 3, S26) ended without the user closing it — why, in the
+ * window of a refusal (the one of Pliki and the desktop) */
 void strefa_stan(const struct k1_komunikat *m)
 {
     static const char *const powody[K1_STREFA_STAN_MAKS + 1] = {
@@ -139,17 +140,24 @@ void strefa_stan(const struct k1_komunikat *m)
                                         "F1 (ThinkPad) albo F2 (IdeaPad) → „Intel Virtualization Technology”: Enabled.",
         [K1_STREFA_ZA_MALO_PAMIECI] = "Za mało wolnej pamięci. Zamknij inną strefę albo aplikację.",
         [K1_STREFA_BRAK_OBRAZU] = "Ta wersja K1 nie ma tej strefy.",
+        [K1_STREFA_KONIEC_PAMIEC] = "Strony zajęły całą pamięć strefy. Otwórz ją ponownie; zamykaj karty, których "
+                                    "nie używasz.",
+        [K1_STREFA_KONIEC_PAMIEC_K1] = "Komputerowi zabrakło pamięci, więc K1 ją zatrzymał. Zamknij inne okna i otwórz "
+                                       "ją ponownie.",
+        [K1_STREFA_KONIEC_AWARIA] = "Program w strefie uległ awarii. Otwórz ją ponownie — reszta K1 działa normalnie.",
+        [K1_STREFA_KONIEC_BLAD] = "Strefa zatrzymała się z powodu błędu. Otwórz ją ponownie — reszta K1 działa "
+                                  "normalnie.",
     };
-    int apl = POZYCJA_STREFY(m->a);
+    int apl = POZYCJA_STREFY(m->a), koniec = m->b >= K1_STREFA_KONIEC_OD;
     struct k1_menu okno;
     char t[96];
     uruchamiane[apl] = 0;
-    snprintf(t, sizeof t, "%s nie może ruszyć", aplikacje[apl].nazwa);
+    snprintf(t, sizeof t, "%s %s", aplikacje[apl].nazwa, koniec ? "zamknęła się" : "nie może ruszyć");
     k1_menu_zacznij(&okno, K1_MENU_SZER_PYTANIE);
     k1_menu_tekst(&okno, t)->mocna = 1;
     k1_menu_tekst(&okno, powody[m->b]);
     k1_menu_kreska(&okno);
     k1_menu_dodaj(&okno, "Rozumiem", K1_PO_OK, 0)->mocna = 1;
-    k1_log(TAG, "strefa %d nie ruszyła (powód %d): okienko", (int)m->a, (int)m->b);
+    k1_log(TAG, "strefa %d %s (powód %d): okienko", (int)m->a, koniec ? "zamknęła się" : "nie ruszyła", (int)m->b);
     kontekst_okienko(&okno, "strefa", (k.szer_ekranu - K1_MENU_SZER_PYTANIE) / 2, k.wys_ekranu / 3, rozumiem);
 }

@@ -100,6 +100,8 @@ void xdg_po_zatwierdzeniu(struct powierzchnia *p)
         umiesc(x);
         okna[n_okien++] = x;
         x->zmapowana = 1;
+        if (x->okno == 1)
+            zglos_okno();
         wejscie_okno_zmiana();
     } else if (x->zmapowana && x->okno == 1) {
         umiesc(x);

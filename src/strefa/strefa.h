@@ -67,7 +67,13 @@ struct maszyna {
     int tryb;                            /* the guest's test mode (argv[2], gosc/gosc.h): 0 none; 1..4 a hostile guest
                                           * drives slot LOSOWOSC itself (3, 4: virtio-blk there) */
     volatile int koniec;
+    double start_t;                      /* when the VMM started (k1_teraz) */
     const char *powod;                   /* why the machine ended (a constant text) */
+    volatile int kod_goscia;             /* why the guest's program ended by itself (K1_STREFA_KONIEC_*, 0: it did not
+                                          * say, or it closed normally) — the VMM's exit code (0.10.0 step 3) */
+    volatile int gosc_powiedzial;        /* "koniec …" came (first one counts) */
+    volatile int zamykana;               /* ekran asked to close it: the end is the user's (exit code 0) */
+    unsigned strony_bez_pamieci;         /* pages of the browser the guest killed for lack of memory */
     unsigned long wyjscia_io, wyjscia_mmio, nieznane;
     volatile double petla_t;             /* the main thread's last step (stroz.c) and its name */
     const char *volatile petla_krok;

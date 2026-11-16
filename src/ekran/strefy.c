@@ -1,10 +1,11 @@
-/* K1 ekran — the trusted frame of a zone's window (0.10.0, ADR 0042 T6; ADR 0020 p. 3; the owner's D1: sketch B2):
- * a 3 px outline in the zone's colour around the window, OUTSIDE the zone's picture (drawn before it: the zone can
- * neither cover nor draw it — it only ever has its own rectangle), and a small mark with the zone's icon on the
- * top-left corner, drawn over everything of its window. With the pointer on the mark it opens into a badge: the zone's
- * name and "osobna maszyna" (one-off: "zapomina po zamknięciu"), minimise and close. Grabbing the mark moves the window.
- * The mark, the badge and the outline are K1's: the pointer there never reaches the zone. One-off zone: the mark light
- * with an outline instead of filled. Part of ekran (ekran.h). */
+/* K1 ekran — the trusted frame of a zone's window (0.10.0, ADR 0042 T6; ADR 0020 p. 3). Step 3, the owner's D1
+ * change (sketch A, docs/WYGLAD.md): a full title bar like every K1 window, in the zone's colour — the zone's icon,
+ * "<title> · <session> · osobna maszyna" (one-off: "· zapomina po zamknięciu"), minimise and close — K1_STREFA_TYTUL
+ * px above the zone's picture, and a 3 px outline around both. Grabbing the bar moves the window. Everything here lies
+ * OUTSIDE the zone's rectangle and is drawn before it: the zone only ever has its own rectangle, so it can neither
+ * cover nor draw the frame (RYZYKA R26), and the pointer on the frame never reaches the zone. One-off zone: a light bar
+ * with the zone's colour as the outline and the text. Without focus the colour is mixed with the theme's background.
+ * Part of ekran (ekran.h). */
 #include <stdio.h>
 
 #include "ekran.h"
@@ -12,10 +13,11 @@
 #include "k1_okno.h"
 #include "k1_rysuj.h"
 
-#define ZN_BOK 30   /* the mark */
-#define ZN_OD 8     /* how far it sticks out of the window's top-left corner */
-#define PRZYCISK 28 /* minimise / close in the badge */
-#define TOLERANCJA 40
+#define OBWODKA 3   /* the outline */
+#define PROMIEN 10  /* the frame's corners */
+#define PRZYCISK 28 /* minimise / close */
+#define ODSTEP 32   /* from one button to the next */
+#define MARGINES 8  /* the close button from the right edge */
 
 int okno_strefy(const struct pow *p)
 {
@@ -33,42 +35,40 @@ static void tekst(const struct k1_strefa_opis *z, char *b, size_t n)
              z->trwalosc == K1_JEDNORAZOWA ? " · zapomina po zamknięciu" : "");
 }
 
-static int rozwiniety(const struct pow *p)
-{
-    return (int)(p - s.p) == s.plakietka;
-}
-
-/* The mark, or the open badge with its buttons (screen coordinates); *tw = the text's width. */
-static struct prost obszar(const struct pow *p, int32_t *tw)
-{
-    struct prost r = { p->x - ZN_OD, p->y - ZN_OD, ZN_BOK, ZN_BOK };
-    char t[160];
-    *tw = 0;
-    if (rozwiniety(p)) {
-        tekst(opis(p), t, sizeof t);
-        *tw = k1_tekst_szer(K1_CZ_MALA_MOCNA, t);
-        r.w = ZN_BOK - 2 + *tw + 12 + 1 + 8 + PRZYCISK + 2 + PRZYCISK + 4;
-    }
-    return r;
-}
-
 struct prost strefa_obszar(const struct pow *p)
 {
-    int32_t tw;
-    struct prost r = obszar(p, &tw);
-    r.x -= 4; /* its shadow */
-    r.w += 8;
-    r.h += 8;
+    struct prost r = { p->x - OBWODKA, p->y - K1_STREFA_TYTUL - OBWODKA, p->w + 2 * OBWODKA,
+                       p->h + K1_STREFA_TYTUL + 2 * OBWODKA };
     return r;
+}
+
+int32_t strefa_nad(void)
+{
+    return K1_STREFA_TYTUL + OBWODKA;
+}
+
+/* The button `co` (STREFA_MINIMALIZUJ / STREFA_ZAMKNIJ) of window p, in screen coordinates. */
+static struct prost przycisk(const struct pow *p, int co)
+{
+    struct prost r = { p->x + p->w + OBWODKA - MARGINES - PRZYCISK, p->y - K1_STREFA_TYTUL + (K1_STREFA_TYTUL - PRZYCISK) / 2,
+                       PRZYCISK, PRZYCISK };
+    if (co == STREFA_MINIMALIZUJ)
+        r.x -= ODSTEP;
+    return r;
+}
+
+static int w(const struct prost *r, int32_t x, int32_t y)
+{
+    return x >= r->x && x < r->x + r->w && y >= r->y && y < r->y + r->h;
 }
 
 static uint32_t mieszaj(uint32_t a, uint32_t b, unsigned t) /* a·(255−t) + b·t, 0xRRGGBB */
 {
-    uint32_t w = 0;
+    uint32_t wy = 0;
     int k;
     for (k = 0; k < 24; k += 8)
-        w |= ((((a >> k) & 255) * (255 - t) + ((b >> k) & 255) * t) / 255) << k;
-    return w;
+        wy |= ((((a >> k) & 255) * (255 - t) + ((b >> k) & 255) * t) / 255) << k;
+    return wy;
 }
 
 static uint32_t kolor(const struct pow *p)
@@ -85,92 +85,77 @@ static struct k1_obraz wycinek(const struct prost *r)
     return o;
 }
 
-void strefa_ramka(const struct pow *p, const struct prost *r)
+static void rysuj_przycisk(struct k1_obraz *o, const struct pow *p, const struct prost *r, int co, uint32_t ink)
 {
-    struct k1_obraz o = wycinek(r);
-    k1_zaokraglony(&o, (float)(p->x - 3 - r->x), (float)(p->y - 3 - r->y), (float)p->w + 6, (float)p->h + 6, 6,
-                   k1_kolor(kolor(p), 255));
+    struct prost b = przycisk(p, co);
+    float x = (float)(b.x - r->x), y = (float)(b.y - r->y);
+    if ((int)(p - s.p) == s.strefa_okno && s.strefa_przycisk == co)
+        k1_zaokraglony(o, x, y, PRZYCISK, PRZYCISK, 8, k1_kolor(ink, 40));
+    k1_ikona(o, co == STREFA_ZAMKNIJ ? K1_IK_ZAMKNIJ : K1_IK_MINIMALIZUJ, x + 6, y + 6, 16, k1_kolor(ink, 255));
 }
 
-void strefa_znaczek(const struct pow *p, const struct prost *r)
+void strefa_ramka(const struct pow *p, const struct prost *r)
 {
     const struct k1_motyw *m = k1_motyw(s.ust[K1_UST_MOTYW]);
     const struct k1_strefa_opis *z = opis(p);
     struct k1_obraz o = wycinek(r);
-    int32_t tw;
-    struct prost a = obszar(p, &tw);
-    float x = (float)(a.x - r->x), y = (float)(a.y - r->y);
+    struct prost f = strefa_obszar(p);
     int jednorazowa = z->trwalosc == K1_JEDNORAZOWA;
-    uint32_t k = kolor(p), tlo = jednorazowa ? mieszaj(m->pole, k, 36) : k, ink = jednorazowa ? mieszaj(k, m->tekst, 64) : 0xffffff;
-    k1_cien(&o, x, y, (float)a.w, (float)a.h, 10, 2, 6, 60);
-    k1_zaokraglony(&o, x, y, (float)a.w, (float)a.h, 10, k1_kolor(tlo, 255));
-    if (jednorazowa)
-        k1_obrys(&o, x, y, (float)a.w, (float)a.h, 10, 2, k1_kolor(k, 255));
-    k1_ikona(&o, (enum k1_ikona)z->ikona, x + 6, y + 6, 18, k1_kolor(ink, 255));
-    if (rozwiniety(p)) {
-        char t[160];
-        float bx = x + ZN_BOK - 2 + (float)tw + 12;
-        tekst(z, t, sizeof t);
-        k1_tekst(&o, K1_CZ_MALA_MOCNA, (int32_t)x + ZN_BOK - 2, (int32_t)y + 20, t, k1_kolor(ink, 255), 0);
-        k1_prostokat(&o, (int32_t)bx, (int32_t)y + 7, 1, 16, k1_kolor(ink, 90));
-        k1_ikona(&o, K1_IK_MINIMALIZUJ, bx + 9 + 4, y + 5, 20, k1_kolor(ink, 255));
-        k1_ikona(&o, K1_IK_ZAMKNIJ, bx + 9 + PRZYCISK + 2 + 4, y + 5, 20, k1_kolor(ink, 255));
-    }
+    uint32_t k = kolor(p), ink = jednorazowa ? mieszaj(k, m->tekst, 64) : 0xffffff;
+    float x = (float)(f.x - r->x), y = (float)(f.y - r->y);
+    char t[160];
+    k1_zaokraglony(&o, x, y, (float)f.w, (float)f.h, PROMIEN, k1_kolor(k, 255));
+    if (jednorazowa) /* the light bar inside the outline; its lower corners hide under the zone's picture */
+        k1_zaokraglony(&o, x + OBWODKA, y + OBWODKA, (float)p->w, K1_STREFA_TYTUL + 8, PROMIEN - OBWODKA,
+                       k1_kolor(mieszaj(m->pole, k, 36), 255));
+    k1_ikona(&o, (enum k1_ikona)z->ikona, x + OBWODKA + 10, y + OBWODKA + (K1_STREFA_TYTUL - 18) / 2.0f, 18,
+             k1_kolor(ink, 255));
+    tekst(z, t, sizeof t);
+    k1_tekst(&o, K1_CZ_TEKST_MOCNA, (int32_t)x + OBWODKA + 36, (int32_t)y + OBWODKA + K1_STREFA_TYTUL / 2 + 6, t,
+             k1_kolor(ink, 255), p->w - 36 - 2 * ODSTEP - MARGINES - 8);
+    rysuj_przycisk(&o, p, r, STREFA_MINIMALIZUJ, ink);
+    rysuj_przycisk(&o, p, r, STREFA_ZAMKNIJ, ink);
 }
 
 int strefa_trafienie(const struct pow *p, int32_t x, int32_t y)
 {
-    int32_t tw;
-    struct prost a = obszar(p, &tw);
-    if (x >= a.x && x < a.x + a.w && y >= a.y && y < a.y + a.h) {
-        int32_t bx = a.x + ZN_BOK - 2 + tw + 12 + 9;
-        if (rozwiniety(p) && x >= bx && x < bx + PRZYCISK)
-            return STREFA_MINIMALIZUJ;
-        if (rozwiniety(p) && x >= bx + PRZYCISK + 2 && x < bx + 2 * PRZYCISK + 2)
-            return STREFA_ZAMKNIJ;
-        return STREFA_ZNACZEK;
-    }
-    if (x >= p->x - 3 && x < p->x + p->w + 3 && y >= p->y - 3 && y < p->y + p->h + 3 &&
-        !(x >= p->x && x < p->x + p->w && y >= p->y && y < p->y + p->h))
-        return STREFA_RAMKA;
-    return 0;
-}
-
-/* The open badge stays open while the pointer is near it (TOLERANCJA px around): a hand, or a mouse that overshoots,
- * does not close it on the way to its buttons. */
-static int przy_plakietce(int i)
-{
-    int32_t tw;
-    struct prost a;
-    if (i < 0 || !s.p[i].uzyta)
+    struct prost f = strefa_obszar(p), tresc = { p->x, p->y, p->w, p->h }, b;
+    if (!w(&f, x, y) || w(&tresc, x, y))
         return 0;
-    a = obszar(&s.p[i], &tw);
-    return s.x >= a.x - TOLERANCJA && s.x < a.x + a.w + TOLERANCJA && s.y >= a.y - TOLERANCJA &&
-           s.y < a.y + a.h + TOLERANCJA;
+    b = przycisk(p, STREFA_ZAMKNIJ);
+    if (w(&b, x, y))
+        return STREFA_ZAMKNIJ;
+    b = przycisk(p, STREFA_MINIMALIZUJ);
+    if (w(&b, x, y))
+        return STREFA_MINIMALIZUJ;
+    return y < p->y ? STREFA_TYTUL : STREFA_RAMKA;
 }
 
-/* The pointer is over the mark or the badge of window i (-1: of none): the badge opens or closes. */
-void strefa_najechanie(int i)
+/* The title bar of window i must be drawn again (a button lit or dimmed). */
+static void uszkodz_pasek(int i)
 {
-    int stary = s.plakietka;
-    if (i < 0 && przy_plakietce(stary))
-        return;
-    if (i == stary)
-        return;
-    if (stary >= 0 && s.p[stary].uzyta) {
-        struct prost r = strefa_obszar(&s.p[stary]);
-        uszkodz(r.x, r.y, r.w, r.h);
+    if (i >= 0 && s.p[i].uzyta) {
+        struct prost f = strefa_obszar(&s.p[i]);
+        uszkodz(f.x, f.y, f.w, strefa_nad());
     }
-    s.plakietka = i;
-    if (i >= 0) {
-        int32_t tw;
-        struct prost r = strefa_obszar(&s.p[i]), a = obszar(&s.p[i], &tw);
-        int32_t bx = a.x + ZN_BOK - 2 + tw + 12 + 9;
-        uszkodz(r.x, r.y, r.w, r.h);
-        k1_log(TAG, "strefa: plakietka okna %u (minimalizuj %d,%d, zamknij %d,%d)", s.p[i].okno,
-               (int)(bx + PRZYCISK / 2), (int)(a.y + ZN_BOK / 2), (int)(bx + PRZYCISK + 2 + PRZYCISK / 2),
-               (int)(a.y + ZN_BOK / 2));
+}
+
+/* The pointer is over part `co` (STREFA_*, 0: none) of the frame of window i (-1: of none): a button lights up. The
+ * first time the pointer comes to a window's bar, its buttons' places go to the log (the tests click by it). */
+void strefa_najechanie(int i, int co)
+{
+    int przyc = co == STREFA_MINIMALIZUJ || co == STREFA_ZAMKNIJ ? co : 0, stary = s.strefa_okno;
+    if (i == stary && przyc == s.strefa_przycisk)
+        return;
+    if (i >= 0 && i != stary) {
+        struct prost mi = przycisk(&s.p[i], STREFA_MINIMALIZUJ), za = przycisk(&s.p[i], STREFA_ZAMKNIJ);
+        k1_log(TAG, "strefa: pasek okna %u (minimalizuj %d,%d, zamknij %d,%d)", s.p[i].okno, (int)(mi.x + PRZYCISK / 2),
+               (int)(mi.y + PRZYCISK / 2), (int)(za.x + PRZYCISK / 2), (int)(za.y + PRZYCISK / 2));
     }
+    s.strefa_okno = i;
+    s.strefa_przycisk = przyc;
+    uszkodz_pasek(stary);
+    uszkodz_pasek(i);
 }
 
 /* A press on the frame of window i (STREFA_*): K1's own buttons and moving the window. */
@@ -181,16 +166,11 @@ void strefa_wcisniecie(int i, int co)
         minimalizuj(i);
     } else if (co == STREFA_ZAMKNIJ) {
         zamknij_okno(i);
-    } else if (co == STREFA_ZNACZEK) {
+    } else if (co == STREFA_TYTUL) {
         s.ciagniete = i;
         s.ciag_dx = s.x - p->x;
         s.ciag_dy = s.y - p->y;
         s.ciag_klatki = s.klatki;
         s.ciag_cpu = czas_procesora();
     }
-}
-
-int32_t strefa_znaczek_od(void)
-{
-    return ZN_OD;
 }

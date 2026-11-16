@@ -333,7 +333,7 @@ enum k1_komunikat_typ {
     /* 0.10.0 (ADR 0042): the zones — gui (and the test program) → nadzorca, nadzorca → gui (fd 5) */
     K1_KOM_URUCHOM_STREFE = 163, /* obiekt=0, a=zone 1..K1_STREFY_MAKS, b=the guest's test mode 0..K1_STREFA_TRYB_MAKS
                                   * (src/strefa/gosc/gosc.h; not 0: the test program only), c..e=0 */
-    K1_KOM_STREFA_STAN = 164,    /* obiekt=0, a=zone, b=K1_STREFA_* why it did not start, c..e=0 (gui says it) */
+    K1_KOM_STREFA_STAN = 164,    /* obiekt=0, a=zone, b=K1_STREFA_* why it did not start or ended, c..e=0 (gui says it) */
     /* 0.10.0 step 2 (ADR 0043 T9): the browser's connections — the zone's VMM ↔ nadzorca (VMM's fd 7; the sender's UID
      * is the zone's) */
     K1_KOM_STREFA_POLACZ = 165,   /* from the VMM: obiekt=its connection 1..K1_STREFA_POLACZENIA_MAKS; TCP: a=IPv4 address
@@ -401,9 +401,13 @@ enum { K1_PRZYCISK_BRAK = 0, K1_PRZYCISK_LEWY = 1, K1_PRZYCISK_PRAWY = 2, K1_PRZ
 #define K1_MOD_MASKA 15
 #define K1_KLAWISZ_MAKS 0x2ff /* KEY_MAX */
 
-/* 0.10.0 (ADR 0042): why a zone did not start (K1_KOM_STREFA_STAN b) */
-enum { K1_STREFA_BEZ_WIRTUALIZACJI = 1, K1_STREFA_ZA_MALO_PAMIECI = 2, K1_STREFA_BRAK_OBRAZU = 3 };
-#define K1_STREFA_STAN_MAKS 3
+/* 0.10.0 (ADR 0042): why a zone did not start (K1_KOM_STREFA_STAN b); since step 3 (S26) also why it ended without
+ * the user closing it: its program said so (PAMIEC: the guest ran out of memory, AWARIA: it crashed — also the VMM's
+ * exit code), K1 killed it for lack of memory in the computer (PAMIEC_K1), or it stopped without a word (BLAD) */
+enum { K1_STREFA_BEZ_WIRTUALIZACJI = 1, K1_STREFA_ZA_MALO_PAMIECI = 2, K1_STREFA_BRAK_OBRAZU = 3,
+       K1_STREFA_KONIEC_PAMIEC = 4, K1_STREFA_KONIEC_PAMIEC_K1 = 5, K1_STREFA_KONIEC_AWARIA = 6, K1_STREFA_KONIEC_BLAD = 7 };
+#define K1_STREFA_STAN_MAKS 7
+#define K1_STREFA_KONIEC_OD K1_STREFA_KONIEC_PAMIEC /* b >= this: the zone ended (not: did not start) */
 #define K1_STREFA_TRYB_MAKS 4 /* the hostile test guests (gosc/zlosliwy.c) */
 /* 0.10.0 step 2 (ADR 0043 T9): the zones' connections (STREFA_POLACZ c, STREFA_GNIAZDO a, STREFA_ODMOWA a) */
 #define K1_STREFA_POLACZENIA_MAKS 128 /* at once in one zone (the relay in the zone has as many) */

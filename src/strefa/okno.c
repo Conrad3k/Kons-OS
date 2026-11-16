@@ -95,7 +95,10 @@ void okno_start(void)
     kl.fd = FD_EKRAN;
     k1_klient_start(&kl, TAG);
     w = kl.szer_ekranu - 160 < OKNO_MAKS_W ? kl.szer_ekranu - 160 : OKNO_MAKS_W;
-    h = kl.wys_ekranu - K1_PASEK_GORNY - 160 < OKNO_MAKS_H ? kl.wys_ekranu - K1_PASEK_GORNY - 160 : OKNO_MAKS_H;
+    /* 0.10.0 step 3: K1's title bar (strefy.c in ekran) above the picture — the picture as high as before (576 px on
+     * the IdeaPad's 1366 × 768): 40 px less of the margin for the bars */
+    h = kl.wys_ekranu - K1_PASEK_GORNY - K1_STREFA_TYTUL - 120;
+    h = h < OKNO_MAKS_H ? h : OKNO_MAKS_H;
     szer = (uint32_t)(w < OKNO_MIN_W ? OKNO_MIN_W : w) & ~7u;
     wys = (uint32_t)(h < OKNO_MIN_H ? OKNO_MIN_H : h) & ~7u;
     k1_pow_utworz(&kl, &okno, OKNO_ID, (int32_t)szer, (int32_t)wys, K1_POW_OKNO, 0, 0);

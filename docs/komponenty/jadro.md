@@ -96,7 +96,11 @@ i sprawdza oba fragmenty; obiekty w `build/jadro-strefy-obj`, wynik `build/wynik
 `/rdzen/strefy/jadro`): 64-bit, SMP (8 procesorów), zstd, gość KVM (kvmclock, x2APIC), tylko virtio-mmio z urządzeniami
 z linii poleceń (blk, konsola z TTY bez VT i pty, rng, input + evdev bez PS/2, DRM virtio-gpu z KMS bez fbdev, vsock
 z NET bez INET), proc, sysfs, devtmpfs (montowany sam), tmpfs, SquashFS (zstd), `DEVMEM` bez `STRICT_DEVMEM` (root gościa
-i tak ma całą swoją maszynę; testy złośliwego gościa). Bez PCI, ACPI, modułów, swapu. 2,2 MB.
+i tak ma całą swoją maszynę; testy złośliwego gościa). Bez PCI, ACPI, modułów. 2,2 MB.
+0.10.0 krok 3: **`SWAP` + `ZRAM`** (lz4) — pamięć kompresowana w pamięci gościa, nigdy na dysku (S26: ciężkie strony
+zabijały przeglądarkę; jądro K1 dalej bez swapu — niezmiennik 3 dotyczy świata natywnego, ADR 0042 T4); SquashFS
+`FILE_DIRECT` i `COMPILE_DECOMP_MULTI_PERCPU` — bloki obrazu rozpakowywane wprost do pamięci podręcznej stron i na każdym
+procesorze osobno (S30: szybszy start przeglądarki).
 
 ### Wi-Fi (0.9.1, ADR 0041)
 `WIRELESS`, `CFG80211` (bez `CFG80211_WEXT` i CRDA), `MAC80211` z minstrelem (bez mesh), `RFKILL` (bez `RFKILL_INPUT`),

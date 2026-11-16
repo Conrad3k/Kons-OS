@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include "k1_klatka.h"
+#include "k1_komunikat.h"
 #include "k1_log.h"
 #include "k1_teraz.h"
 #include "okno.h"
@@ -122,6 +123,7 @@ static void petla(void)
         if (okno_fd() >= 0 && (p[1].revents & (POLLIN | POLLHUP | POLLERR)) && okno_odbierz() == OKNO_ZAMKNIJ &&
             zamknij_do == 0) {
             zamknij_do = k1_teraz() + 10.0;
+            mz.zamykana = 1;
             k1_log(TAG, "zamykam strefę na prośbę ekranu");
             okno_zamknij_goscia();
         }
@@ -132,11 +134,22 @@ static void petla(void)
     }
 }
 
+/* The exit code tells nadzorca why the machine ended (0.10.0 step 3, S26): 0 — the user closed it (or its program
+ * closed normally); K1_STREFA_KONIEC_PAMIEC / _AWARIA — its program ended by itself and said why; else the machine
+ * stopped without a word from its program (its kernel failed, or the VMM ended it): K1_STREFA_KONIEC_BLAD. */
+static int kod_wyjscia(void)
+{
+    if (mz.zamykana)
+        return 0;
+    return mz.gosc_powiedzial ? mz.kod_goscia : K1_STREFA_KONIEC_BLAD;
+}
+
 int main(int argc, char **argv)
 {
     int nr = argc > 1 ? atoi(argv[1]) : 0, tryb = argc > 2 ? atoi(argv[2]) : 0;
     double od = k1_teraz();
     k1_klatka_w_usludze(TAG);
+    mz.start_t = od;
     mz.opis = k1_strefa(nr);
     if (mz.opis == NULL || tryb < 0 || tryb > 99)
         k1_koniec(TAG, "zły numer strefy");
@@ -154,5 +167,5 @@ int main(int argc, char **argv)
     wejscie_podsumowanie();
     k1_log(TAG, "strefa %d: koniec — %s (po %.1f s; wyjścia: io %lu, mmio %lu, nieznane %lu)", nr, mz.powod,
            k1_teraz() - od, mz.wyjscia_io, mz.wyjscia_mmio, mz.nieznane);
-    _exit(0);
+    _exit(kod_wyjscia());
 }

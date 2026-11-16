@@ -91,7 +91,8 @@ struct stan {
     int przyciski;        /* bit per K1_PRZYCISK_* held */
     int wcisniety, zmiana, mody;
     int pod, chwyt, ciagniete, fokus; /* surface indices or -1 */
-    int plakietka;        /* the zone window whose badge is open (0.10.0, strefy.c), or -1 */
+    int strefa_okno, strefa_przycisk; /* the zone window with the pointer on its frame (-1) and the button lit
+                                       * there (STREFA_MINIMALIZUJ / _ZAMKNIJ, 0: none) — strefy.c, 0.10.0 step 3 */
     int32_t ciag_dx, ciag_dy;
     unsigned long ciag_klatki; /* frames when the drag started (log: cost of a drag) */
     double ciag_cpu;           /* our CPU time then, s */
@@ -151,15 +152,14 @@ void minimalizuj(int i);
 void zamknij_okno(int i); /* asks its client to close it (K1_KOM_ZAMKNIJ) */
 
 /* strefy.c — the frame of a zone's window (0.10.0, ADR 0042) */
-enum { STREFA_RAMKA = 1, STREFA_ZNACZEK, STREFA_MINIMALIZUJ, STREFA_ZAMKNIJ }; /* where on the frame */
+enum { STREFA_RAMKA = 1, STREFA_TYTUL, STREFA_MINIMALIZUJ, STREFA_ZAMKNIJ }; /* where on the frame */
 int okno_strefy(const struct pow *p);
-struct prost strefa_obszar(const struct pow *p);              /* the mark or the open badge, with its shadow */
+struct prost strefa_obszar(const struct pow *p);              /* the window with K1's frame around it */
+int32_t strefa_nad(void);                                     /* how far the frame reaches above the picture */
 void strefa_ramka(const struct pow *p, const struct prost *r);   /* into the scene inside r, before the window */
-void strefa_znaczek(const struct pow *p, const struct prost *r); /* into the scene inside r, after the window */
 int strefa_trafienie(const struct pow *p, int32_t x, int32_t y); /* STREFA_* or 0 */
-void strefa_najechanie(int i);
+void strefa_najechanie(int i, int co);                        /* the pointer on part co of window i's frame (-1, 0) */
 void strefa_wcisniecie(int i, int co);
-int32_t strefa_znaczek_od(void);
 
 /* powierzchnie.c */
 void nowa_pow(int kl, const struct k1_komunikat *m, int fd); /* POWIERZCHNIA: checked, mapped, placed */

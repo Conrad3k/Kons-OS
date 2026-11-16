@@ -3,11 +3,13 @@
 # „k1-test-strefy” (znak dla programu testowego: /proc/cmdline go nie widzi) — program testowy prosi
 # nadzorcę o strefę próbną (mikro-maszyna z jądrem strefy i programem gosc), a ten skrypt patrzy z zewnątrz:
 #   1. jądro K1 ma KVM (w emulacji QEMU udaje wirtualizację AMD — ADR 0042 T10), strefa startuje, okno w ramce
-#   2. ramka (obwódka 3 px w kolorze strefy) i znaczek w rogu rysuje ekran K1; w środku wzór gościa (zrzut)
+#   2. ramkę (pasek tytułu nad obrazem strefy i obwódka 3 px w kolorze strefy — krok 3, D1: szkic A) rysuje ekran K1;
+#      w środku wzór gościa (zrzut)
 #   3. kliknięcie i klawisz docierają do gościa (licznik w logu gościa, zmiana wzoru); bez fokusu klawisz nie dociera
-#   4. kursor na znaczku: plakietka z nazwą strefy (zrzut); przeciągnięcie znaczka przesuwa okno
+#   4. kursor na pasku: przyciski K1 (zrzut); przeciągnięcie paska przesuwa okno; „minimalizuj” chowa okno
 #   5. okno K1 (Zegar) na wierzchu zasłania strefę, ramka strefy zostaje tam, gdzie jej nie zasłania; ciemny motyw
-#   6. „zamknij” w plakietce: gość dostaje „zamknij” (vsock), kończy się, maszyna znika, okno też
+#   6. „zamknij” na pasku: gość dostaje „zamknij” (vsock), kończy się, maszyna znika, okno też
+#   (krok 3, S26: gość włącza pamięć kompresowaną — zram w jądrze strefy; wpis w logu gościa)
 #   7. NEGATYWNE: złośliwy gość (deskryptor poza pamięcią, pętla deskryptorów, odczyt ponad limit, zapis do obrazu
 #      tylko do odczytu) — kończy się tylko ta strefa, z powodem w logu; K1 działa dalej
 #   8. NEGATYWNE: procesor bez wirtualizacji — nadzorca mówi „brak wirtualizacji”, nic nie startuje, nadzorca żyje
@@ -69,20 +71,23 @@ sprawdz("gość startuje: jądro strefy, gosc, kanał sterujący (vsock) „goto
 start = czekaj(r"K1-STREFA: strefa 1 \(Strefa próbna\): maszyna działa")
 gotowy = czekaj(r"K1-GOSC: gotowa: urządzenia wejścia 2, kanał sterujący jest", czas=30)
 sprawdz("gość: dwa urządzenia wejścia (klawiatura, wskaźnik) i kanał sterujący", gotowy)
+sprawdz("gość: pamięć kompresowana (zram w jądrze strefy, krok 3 — S26)",
+        czekaj(r"K1-GOSC: pamięć kompresowana: \d+ MiB", czas=30))
+TYTUL = 40  # K1_STREFA_TYTUL (k1_okno.h): the bar ekran draws above the zone's picture, inside the 3 px outline
 
 
 def ramka_i_wzor(w, h, px):
     return (o and blisko(px(x - 2, y + h_ // 2), PIASEK) and blisko(px(x + w_ + 1, y + h_ // 2), PIASEK) and
-            blisko(px(x + w_ // 2, y + h_ // 6), TLO_GOSCIA) and blisko(px(x + w_ // 2, y + h_ // 2), ZIELONY) and
+            blisko(px(x + w_ // 2, y - TYTUL - 2), PIASEK) and not blisko(px(x + w_ // 2, y - TYTUL // 2), TLO_GOSCIA)
+            and blisko(px(x + w_ // 2, y + h_ // 6), TLO_GOSCIA) and blisko(px(x + w_ // 2, y + h_ // 2), ZIELONY) and
             blisko(px(x + w_ - 6, y + 6), (0xFF, 0xD7, 0x00)))
 
 
 w, h, px = q.zrzut("1-okno", gdy=ramka_i_wzor)
-sprawdz("okno strefy: obwódka w kolorze strefy rysowana przez ekran, w środku wzór gościa (zrzut strefa-1-okno)",
-        ramka_i_wzor(w, h, px), str((px(x - 2, y + h_ // 2), px(x + w_ // 2, y + h_ // 2))) if o else "brak okna")
-zx, zy = x - 8 + 15, y - 8 + 15  # the mark (strefy.c: 30 px, 8 px out of the corner)
-sprawdz("znaczek strefy w lewym górnym rogu, nad treścią (kolor obwódki przy jasnym motywie — strefa jednorazowa)",
-        o and not blisko(px(zx, zy + 12), TLO_GOSCIA))
+sprawdz("okno strefy: pasek tytułu nad obrazem i obwódka w kolorze strefy rysowane przez ekran, w środku wzór gościa "
+        "(zrzut strefa-1-okno)", ramka_i_wzor(w, h, px),
+        str((px(x - 2, y + h_ // 2), px(x + w_ // 2, y - TYTUL - 2), px(x + w_ // 2, y + h_ // 2))) if o else "brak okna")
+zx, zy = x + w_ // 2, y - TYTUL // 2  # the bar, between the title and the buttons
 
 kx, ky = x + w_ // 3, y + h_ // 4
 q.klik(kx, ky)
@@ -99,34 +104,41 @@ q.pisz("shift-b")  # CI runs 88-96 of PR #119: without Shift itself the browser 
 sprawdz("Shift dociera do gościa jako klawisz (Shift i litera: licznik rośnie o 2)",
         czekaj(r"K1-GOSC: wejście: klawisze 3, kliknięcia 1", czas=60))
 
-PLAK = r"K1-EKRAN: strefa: plakietka okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr)
-n = q.ile(PLAK)
-q.idz(zx, zy)
-p = czekaj(PLAK, od=n, czas=30)
-w, h, px = q.zrzut("4-plakietka", gdy=lambda w, h, px: p and not blisko(px(x + 120, zy), TLO_GOSCIA))
-sprawdz("kursor na znaczku: plakietka z nazwą strefy nad oknem, rysowana przez K1 (zrzut strefa-4-plakietka)",
-        p and not blisko(px(x + 120, zy), TLO_GOSCIA))
+PASEK = r"K1-EKRAN: strefa: pasek okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr)
+
+
+def na_pasek():  # the pointer into the zone's picture, then onto its bar: ekran logs where the bar's buttons are
+    n = q.ile(PASEK)
+    q.idz(zx, y + 60)
+    q.idz(zx, zy)
+    return czekaj(PASEK, od=n, czas=30)
+
+
+p = na_pasek()
+if p:
+    q.idz(int(p.group(3)), int(p.group(4)))  # "zamknij" lights up (not clicked)
+w, h, px = q.zrzut("4-pasek", gdy=lambda w, h, px: p and not blisko(px(zx, zy), TLO_GOSCIA))
+sprawdz("kursor na pasku: przyciski K1 (minimalizuj, zamknij) w pasku nad obrazem strefy (zrzut strefa-4-pasek)",
+        p and int(p.group(4)) < y and int(p.group(3)) > int(p.group(1)) and not blisko(px(zx, zy), TLO_GOSCIA),
+        p.group(0) if p else "")
 PRZES = r"K1-EKRAN: okno {} przesunięte do (\d+),(\d+)".format(nr)
 q.przeciagnij(zx, zy, zx + 60, zy + 40)
 m = czekaj(PRZES, czas=30)
-sprawdz("przeciągnięcie znaczka przesuwa okno strefy", m and int(m.group(1)) == x + 60 and int(m.group(2)) == y + 40,
+sprawdz("przeciągnięcie paska tytułu przesuwa okno strefy", m and int(m.group(1)) == x + 60 and int(m.group(2)) == y + 40,
         m.group(0) if m else "")
 if m:
     x, y = int(m.group(1)), int(m.group(2))
-    zx, zy = x - 8 + 15, y - 8 + 15
+    zx, zy = x + w_ // 2, y - TYTUL // 2
 
-# the bottom bar: the zone's window among the running ones; minimise from the badge, back from the bar
+# the bottom bar: the zone's window among the running ones; minimise from the title bar, back from the bottom bar
 pk = czekaj(r"K1-GUI: pasek zmieniony: Start \d+,\d+, aplikacje od (\d+),(\d+) co (\d+), dźwięk \d+,\d+ \(pasek: ([^)]*)\)",
             czas=30)
 sprawdz("dolny pasek: okno strefy wśród działających (ikona strefy)", pk and pk.group(4).endswith("Strefa próbna"),
         pk.group(4) if pk else "")
-n = q.ile(PLAK)
-q.idz(zx + 40, zy + 60)
-q.idz(zx, zy)
-p = czekaj(PLAK, od=n, czas=30)
+p = na_pasek()
 if p:
     q.klik(int(p.group(1)), int(p.group(2)))
-sprawdz("„minimalizuj” w plakietce chowa okno strefy", p and czekaj(r"K1-EKRAN: okno {} zminimalizowane".format(nr), czas=30))
+sprawdz("„minimalizuj” na pasku chowa okno strefy", p and czekaj(r"K1-EKRAN: okno {} zminimalizowane".format(nr), czas=30))
 if pk:
     elementy = pk.group(4).split(", ")
     przypiete = next((i for i, e in enumerate(elementy) if e.startswith("| ")), len(elementy))
@@ -171,18 +183,14 @@ n = q.ile(r"K1-GOSC: wejście: klawisze 3, kliknięcia 2")
 q.klik(x + w_ - 40, y + h_ - 40)
 czekaj(r"K1-GOSC: wejście: klawisze 3, kliknięcia 2", czas=60)
 w, h, px = q.zrzut("6-ciemny", gdy=lambda w, h, px: blisko(px(x - 2, y + h_ // 2), PIASEK))
-sprawdz("ciemny motyw: obwódka strefy w jej kolorze, znaczek nad treścią (zrzut strefa-6-ciemny)",
-        blisko(px(x - 2, y + h_ // 2), PIASEK) and not blisko(px(zx, zy + 12), TLO_GOSCIA))
+sprawdz("ciemny motyw: obwódka strefy w jej kolorze, pasek tytułu nad treścią (zrzut strefa-6-ciemny)",
+        blisko(px(x - 2, y + h_ // 2), PIASEK) and not blisko(px(zx, zy), TLO_GOSCIA))
 
-# closing through the badge
-n = q.ile(PLAK)
-q.idz(x + 60, y + 60)
-q.idz(zx, zy)
-p = czekaj(PLAK, od=n, czas=30)
+# closing from the title bar
+p = na_pasek()
 if p:
-    q.idz(int(p.group(1)), int(p.group(2)))  # along the badge first: a long move overshoots and the badge closes
     q.klik(int(p.group(3)), int(p.group(4)))
-sprawdz("„zamknij” w plakietce: VMM prosi gościa (vsock), gość się zamyka, maszyna kończy się, okno znika",
+sprawdz("„zamknij” na pasku: VMM prosi gościa (vsock), gość się zamyka, maszyna kończy się, okno znika",
         p and czekaj(r"K1-STREFA: zamykam strefę na prośbę ekranu", czas=30) and
         czekaj(r"K1-STREFA: gość się zamyka", czas=60) and
         czekaj(r"K1-STREFA: strefa 1: koniec — gość zakończył pracę \(reset\)", czas=60) and

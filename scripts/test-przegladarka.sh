@@ -12,7 +12,9 @@
 #   4. NEGATYWNE: strona testowa sama prosi o obrazek z adresu w sieci domowej, który nie jest routerem (10.0.2.3) —
 #      jak złośliwa strona, która szuka urządzeń w domu; nadzorca odmawia (D3), strefa i K1 żyją
 #   5. w logu K1 żadnego adresu strony ani wpisanego tekstu (niezmiennik 8) — tylko liczniki
-#   6. zamknięcie okna: maszyna kończy się (sesja jednorazowa: nic nie zostaje), liczniki połączeń w logu
+#   6. PAMIĘĆ (0.10.0 krok 3, S26): strona testowa zajmuje 1400 MiB w strefie, która ma 1536 MiB (jak ciężkie strony,
+#      po których na IdeaPadzie z 4 GB okno przeglądarki znikało) — strona dochodzi do końca, przeglądarka i strefa żyją
+#   7. zamknięcie okna: maszyna kończy się (sesja jednorazowa: nic nie zostaje), liczniki połączeń w logu
 # BEZ ENTERA (decyzja właściciela 2026-11-15): w CI z KVM Enter w pasku adresu i w polu formularza bywał bez skutku
 # (przebiegi 95–103 PR-a #119; klawisz dochodził do Firefoksa — „Enter pressed” w jego dzienniku), a na sprzęcie
 # (IdeaPad 110) działa zawsze. Cały dzień szukania nie dał przyczyny po stronie K1 — dlatego test nie naciska Entera
@@ -48,12 +50,22 @@ STRONA = ("<!doctype html><html><head><meta charset=utf-8><title>K1</title></hea
           "<form action=/wyslij><input name=t autofocus style='font-size:30px;width:400px' "
           "oninput=\"if (this.value.indexOf('" + TEKST + "') >= 0) this.form.submit()\"></form>"
           "<img src='http://10.0.2.3:{port}/dom.png' width=1 height=1></body></html>")
+# 0.10.0 step 3 (S26): a page that takes PAMIEC_MIB of the zone's 1536 MiB in pieces of 32 MiB (a quarter of each 4 KiB
+# random, the rest zeros — about as compressible as a browser's real memory) and says when it holds all of it
+PAMIEC_MIB = 1400
+STRONA_PAMIEC = ("<!doctype html><html><head><meta charset=utf-8><title>K1</title></head>"
+                 "<body style='margin:0;background:#1e64c8'><script>var b = [], n = 0;"
+                 "function krok() { if (n >= " + str(PAMIEC_MIB) + ") { document.body.style.background = '#00a050';"
+                 " fetch('/pamiec-koniec'); return; } var a = new Uint8Array(32 << 20);"
+                 " for (var i = 0; i < a.length; i += 4096) crypto.getRandomValues(a.subarray(i, i + 1024));"
+                 " b.push(a); n += 32; if (n % 256 == 0) fetch('/pamiec-postep?n=' + n); setTimeout(krok, 0); }"
+                 "setTimeout(krok, 100);</script></body></html>")
 
 
 class Serwer(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         odebrane.append(self.path)
-        b = STRONA.format(port=self.server.server_address[1]).encode()
+        b = (STRONA_PAMIEC if self.path == "/pamiec" else STRONA.format(port=self.server.server_address[1])).encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(b)))
@@ -112,19 +124,31 @@ def firefox(w, h, px):  # the frame in the session's colour, Firefox's address f
             and blisko(px(x + w_ // 3, y + 20), (250, 250, 251), 4))
 
 
+def bez_przyciskow(px):  # S28 (step 3): the top right corner of the tab bar is empty — Firefox draws no minimise,
+    # maximise and close of its own (strefy/przegladarka/gtk-settings.ini); its close button was right there
+    tlo = px(x + w_ // 3, y + 20)
+    return all(blisko(px(x + w_ - 30 + i, y + 10 + j), tlo, 12) for i in range(0, 26, 2) for j in range(0, 24, 2))
+
+
 w, h, px = q.zrzut("1-okno", gdy=firefox, czas=900)
 sprawdz("okno przeglądarki w ramce w kolorze sesji, pasek kart i adresu (zrzut przegladarka-1-okno)",
         firefox(w, h, px))
+sprawdz("Firefox bez własnych przycisków okna (minimalizuj, powiększ, zamknij) — tylko pasek K1 w kolorze sesji (S28)",
+        bez_przyciskow(px), str(px(x + w_ - 16, y + 20)))
+sprawdz("pasek tytułu K1 nad oknem przeglądarki: obwódka w kolorze sesji, jasny pasek sesji jednorazowej (krok 3, D1: A)",
+        blisko(px(x + w_ // 2, y - 42), SZALWIA) and blisko(px(x + w_ - 60, y - 20), (232, 238, 234), 16),
+        str((px(x + w_ // 2, y - 42), px(x + w_ - 60, y - 20))))
+for l_ in re.findall(r"K1-STREFA: gość (?:gotowy|: okno przeglądarki)[^\n]*", q.tekst()):  # S30: where the start goes
+    print("            | start: " + l_[:200], flush=True)
 
 
-def zamknij_strefe():  # the frame's badge (hover the mark, then its close button) — as test-strefa does
-    plak = r"K1-EKRAN: strefa: plakietka okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr)
-    n = q.ile(plak)
+def zamknij_strefe():  # "zamknij" on K1's title bar above the zone (step 3, D1: sketch A) — as test-strefa does
+    pasek = r"K1-EKRAN: strefa: pasek okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr)
+    n = q.ile(pasek)
     q.idz(x + 60, y + 60)
-    q.idz(x - 8 + 15, y - 8 + 15)  # the mark (src/ekran/strefy.c: 30 px, 8 px out of the corner)
-    p = czekaj(plak, od=n, czas=30)
+    q.idz(x + w_ // 2, y - 20)  # the bar (K1_STREFA_TYTUL = 40 px above the picture)
+    p = czekaj(pasek, od=n, czas=30)
     if p:
-        q.idz(int(p.group(1)), int(p.group(2)))  # along the badge first: a long move overshoots and the badge closes
         q.klik(int(p.group(3)), int(p.group(4)))
     return czekaj(r"K1-STREFA: strefa 2: koniec", czas=120)
 
@@ -135,7 +159,7 @@ def wpisz(tekst):
     time.sleep(1)
 
 
-def otworz_strone(czas):  # no Enter (the note at the top): the address is typed, then a mouse click opens it.
+def otworz_strone(czas, sciezka="/", gotowe=None):  # no Enter (the note at the top): typed, then a click opens it.
     # First the go arrow at the right end of the address bar; run 109 (PR #124) had the address typed but no list of
     # suggestions under the bar, so a click on "otwórz stronę" alone hit the bookmarks bar. Next tries: the address
     # typed again, then the arrow again and the suggestion. Each try waits for the test page; the last screen returns.
@@ -144,14 +168,15 @@ def otworz_strone(czas):  # no Enter (the note at the top): the address is typed
         if i:
             q.klik(x + w_ // 2, y + 64)  # the address bar again: the text is selected and typed over
             q.pisz("ctrl-a")
-            wpisz(f"10.0.2.2:{port}/")
+            wpisz(f"10.0.2.2:{port}{sciezka}")
         time.sleep(2)
         q.klik(x + w_ - 204, y + 63)  # the go arrow (1024-wide window: 820,63 — the picture in run 109's log)
         for kx, ky in potem:
             time.sleep(2)
             q.klik(kx, ky)  # the suggestion "otwórz stronę", if the list is there
-        w, h, px = q.zrzut("2-strona", gdy=strona, czas=czas)
-        if strona(w, h, px):
+        gotowe = gotowe or strona
+        w, h, px = q.zrzut("2-strona" if sciezka == "/" else "5-pamiec", gdy=gotowe, czas=czas)
+        if gotowe(w, h, px):
             return w, h, px
         print(f"            | próba {i + 1} ({opis}): strona się nie otworzyła", flush=True)
     return w, h, px
@@ -170,6 +195,23 @@ def pokaz(w, h, px):  # on failure: what the zone and nadzorca said (counts only
     print(f"            | obrazek okno {w_ // 2}x150 " + base64.b64encode(zlib.compress(b, 9)).decode(), flush=True)
 
 
+def pamiec():  # S26: the page that takes 1400 MiB; True when it got all of it and the zone lives on
+    n0 = q.ile(r"K1-STREFA: gość: strona zakończona — brak pamięci")
+    q.pisz("ctrl-l")
+    wpisz(f"10.0.2.2:{port}/pamiec")
+    otworz_strone(60, "/pamiec", lambda w, h, px: "/pamiec" in odebrane)
+    t0 = time.time()
+    q.czekaj_na(lambda: "/pamiec-koniec" in odebrane or "strefa 2: koniec" in q.tekst() or
+                q.ile(r"K1-STREFA: gość: strona zakończona — brak pamięci") > n0, czas=600)
+    zyje = "strefa 2: koniec" not in q.tekst()
+    print(f"            | pamięć: {[p for p in odebrane if p.startswith('/pamiec-postep')][-1:]} po "
+          f"{time.time() - t0:.0f} s, strony zakończone z braku pamięci: "
+          f"{q.ile(r'K1-STREFA: gość: strona zakończona — brak pamięci') - n0}, strefa żyje: {zyje}", flush=True)
+    if not zyje:
+        pokaz(*q.zrzut("5-pamiec"))
+    return "/pamiec-koniec" in odebrane and zyje
+
+
 if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label testy-przegladarka): only the page
     q.pisz("ctrl-l")  # the address bar by its shortcut: Ctrl reaches the zone
     wpisz(f"10.0.2.2:{port}/")
@@ -177,11 +219,12 @@ if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label tes
     jest = strona(w, h, px) and "/" in odebrane
     if not jest:
         pokaz(w, h, px)
+    sprawdz("[WĄSKO] strona testowa otwiera się (Ctrl+L, adres, strzałka)", jest)
+    sprawdz(f"[WĄSKO] strona zajmuje {PAMIEC_MIB} MiB w strefie 1536 MiB: dochodzi do końca, strefa żyje", pamiec())
     zamknij_strefe()
     q.czekaj(r"K1-NADZORCA: strefa 2: połączenia", czas=20)
     for l_ in [l for l in q.tekst().splitlines() if re.search(r"połączenia|wejście do gościa", l)][-3:]:
         print("            | " + l_[:300], flush=True)
-    sprawdz("[WĄSKO] strona testowa otwiera się (Ctrl+L, adres, strzałka)", jest)
     q.monitor("quit")
     qemu.wait()
     sys.exit(0 if all(q.wyniki) else 1)
@@ -207,6 +250,8 @@ t_ = q.tekst()
 sprawdz("w logu K1 żadnego adresu strony ani wpisanego tekstu — tylko liczniki (niezmiennik 8)",
         TEKST not in t_ and f"10.0.2.2:{port}" not in t_ and "10.0.2.3" not in t_ and "wyslij" not in t_)
 
+sprawdz(f"PAMIĘĆ: strona zajmuje {PAMIEC_MIB} MiB w strefie 1536 MiB — dochodzi do końca, przeglądarka i strefa żyją "
+        "(S26; zrzut przegladarka-5-pamiec)", pamiec())
 koniec_ = zamknij_strefe()
 if not koniec_:
     pokaz(*q.zrzut("4-koniec"))

@@ -172,20 +172,29 @@ i pasek”, B „Pasek K1 z plakietką”, C „Zakładka”; start S1 „w okni
 B „Kompas”, C „Okno z globusem”; okienka „brak wirtualizacji” i „za mało pamięci”; Ustawienia → Aplikacje → Przeglądarka.
 Właściciel wybrał **B, ale bez paska nad oknem**: „plakietka ma się pokazywać po najechaniu na jej małą ikonkę w rogu;
 ramki mają minimalnie tylko informować” — szkic **B2** zaakceptowany; **S1**; ikona **A** (krok 2).
-- **Obwódka:** 3 px w kolorze strefy, na zewnątrz obrazu strefy (prostokąt zaokrąglony 6 px); okno bez fokusu — kolor
-  zmieszany w 45 % z tłem motywu. Bez paska tytułu K1 — przeglądarka (krok 2) ma własne karty i przyciski.
-- **Znaczek:** 30 × 30, zaokrąglenie 10, wystaje 8 px z lewego górnego rogu okna, lekki cień; ikona strefy 18 px biała na
-  kolorze strefy. Strefa jednorazowa: tło `pole` z 14 % koloru strefy, obwódka 2 px w kolorze, ikona w kolorze strefy
-  przyciemnionym w stronę tekstu.
-- **Plakietka** (kursor na znaczku): znaczek wydłuża się w prawo — „<tytuł> · <sesja> · osobna maszyna”
-  (+ „· zapomina po zamknięciu”) Plex Sans Medium 13, kreska 1 × 16, minimalizuj i zamknij (ikony 20 px, pola 28 px).
-  Zostaje otwarta, dopóki kursor jest do 40 px od niej. Chwycenie znaczka przesuwa okno.
+
+**Zmiana D1 (krok 3, 2026-11-16) — ramka A „Pasek w kolorze sesji”.** Po teście przeglądarki na IdeaPadzie właściciel
+chciał pełnej ramki jak u innych okien K1 (pasek do przesuwania, minimalizuj, zamknij — bez szukania plakietki). Trzy
+szkice (A — pasek 40 px w kolorze sesji, B — pasek K1 44 px z kolorowym znaczkiem i obwódką, C — cienki pasek 30 px);
+wybrany **A**. Znaczek i plakietka B2 zniknęły.
+- **Pasek tytułu:** 40 px (`K1_STREFA_TYTUL`) nad obrazem strefy, w kolorze strefy; ikona strefy 18 px, napis
+  „<tytuł> · <sesja> · osobna maszyna” (+ „· zapomina po zamknięciu”) Plex Sans Medium 15 biały; po prawej minimalizuj
+  i zamknij (ikony 16 px w polach 28 px, co 32 px, 8 px od krawędzi; kursor nad przyciskiem — pole w kolorze napisu
+  z przezroczystością 40). Chwycenie paska przesuwa okno (pasek nie wjedzie pod górny pasek K1).
+- **Obwódka:** 3 px w kolorze strefy wokół paska i obrazu (prostokąt zaokrąglony 10 px); okno bez fokusu — kolor
+  zmieszany w 45 % z tłem motywu.
+- **Strefa jednorazowa:** jasny pasek — `pole` z 14 % koloru strefy — w obwódce w kolorze strefy; ikona, napis i
+  przyciski w kolorze strefy przyciemnionym w stronę tekstu.
+- **Przeglądarka bez własnych przycisków okna** (S28): Firefox w strefie nie rysuje minimalizuj / powiększ / zamknij
+  (ustawienie GTK w obrazie strefy) — robi to tylko pasek K1.
 - **Start (S1):** okno w ramce od razu; w środku tło motywu, ikona strefy 40 px (`tekst3`), „Uruchamiam: <tytuł>…”
   (Plex Sans 15) i pasek 160 × 4 z odcinkiem w kolorze strefy — do pierwszego obrazu gościa.
 - **Kolory:** strefa próbna — piasek `#A8834A`; sesje przeglądarki (krok 2, ze szkicu): Ogólna — szałwia `#5F8A6A`, Bank —
   łupek `#4A6FA5`, Prywatna — wrzos `#8B6AA8`.
 - **„Nie może ruszyć”** (brak wirtualizacji, pamięci, obrazu): okienko odmowy pulpitu (to samo co przy przeciąganiu
   plików, nie osobne okno ze szkicu): pogrubione „<tytuł> nie może ruszyć”, wyjaśnienie, kreska, „Rozumiem”.
+- **„Zamknęła się”** (krok 3, S26): to samo okienko, gdy strefa skończyła się bez zamknięcia przez użytkownika —
+  „<tytuł> zamknęła się” i powód (brak pamięci w strefie, brak pamięci w komputerze, awaria programu, błąd strefy).
 - **Dolny pasek:** okno strefy wśród działających (po kresce), ikona strefy; strefy nie przypina się.
 
 ## Sieć (0.9.0 krok 7, decyzja właściciela D1: ikona C, sekcja B)

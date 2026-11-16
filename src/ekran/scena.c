@@ -74,16 +74,20 @@ void uszkodz(int32_t x, int32_t y, int32_t w, int32_t h)
     s.zmiana = 1;
 }
 
+/* A window as the screen shows it: a zone's with K1's frame around its picture (0.10.0 step 3). */
+static struct prost cale_okno(const struct pow *p)
+{
+    struct prost r = { p->x, p->y, p->w, p->h };
+    return okno_strefy(p) ? strefa_obszar(p) : r;
+}
+
 void uszkodz_pow(const struct pow *p)
 {
+    struct prost r = cale_okno(p);
     if (p->rodzaj == K1_POW_OKNO)
-        uszkodz(p->x - CIEN, p->y - CIEN, p->w + 2 * CIEN, p->h + 2 * CIEN);
+        uszkodz(r.x - CIEN, r.y - CIEN, r.w + 2 * CIEN, r.h + 2 * CIEN);
     else
-        uszkodz(p->x, p->y, p->w, p->h);
-    if (okno_strefy(p)) { /* its badge may reach beyond the shadow (0.10.0) */
-        struct prost r = strefa_obszar(p);
         uszkodz(r.x, r.y, r.w, r.h);
-    }
 }
 
 
@@ -158,8 +162,8 @@ static inline uint32_t mnoz255(uint32_t x, uint32_t a)
 /* Soft neutral shadow under a window, only where the window does not cover it. */
 static void cien(const struct pow *p, const struct prost *k)
 {
-    struct prost r = { p->x - CIEN, p->y - CIEN, p->w + 2 * CIEN, p->h + 2 * CIEN };
-    float cx = (float)p->x + (float)p->w / 2, cy = (float)p->y + (float)p->h / 2 + 6;
+    struct prost o = cale_okno(p), r = { o.x - CIEN, o.y - CIEN, o.w + 2 * CIEN, o.h + 2 * CIEN };
+    float cx = (float)o.x + (float)o.w / 2, cy = (float)o.y + (float)o.h / 2 + 6;
     int mocny = p->kl >= 0 && (int)(p - s.p) == s.fokus;
     uint32_t sila = mocny ? 70 : 46;
     const uint8_t *tab = cien_alfa[mocny];
@@ -169,15 +173,15 @@ static void cien(const struct pow *p, const struct prost *k)
     cien_tablica();
     for (j = r.y; j < r.y + r.h; j++) {
         uint32_t *row = s.scena.px + (size_t)j * s.scena.krok;
-        int wewnatrz_y = j >= p->y + 12 && j < p->y + p->h - 12;
+        int wewnatrz_y = j >= o.y + 12 && j < o.y + o.h - 12;
         for (i = r.x; i < r.x + r.w; i++) {
             float d;
             uint32_t a, ia, px;
-            if (wewnatrz_y && i >= p->x && i < p->x + p->w) {
-                i = p->x + p->w - 1; /* covered by the opaque middle of the window: skip it */
+            if (wewnatrz_y && i >= o.x && i < o.x + o.w) {
+                i = o.x + o.w - 1; /* covered by the opaque middle of the window: skip it */
                 continue;
             }
-            d = sd_box((float)i + 0.5f, (float)j + 0.5f, cx, cy, (float)p->w / 2 - 4, (float)p->h / 2 - 4, 14);
+            d = sd_box((float)i + 0.5f, (float)j + 0.5f, cx, cy, (float)o.w / 2 - 4, (float)o.h / 2 - 4, 14);
             if (d < -14)
                 continue;
             if (d < 0)
@@ -213,10 +217,8 @@ static void skomponuj(void)
             if (p->rodzaj == K1_POW_OKNO)
                 cien(p, &r);
             if (okno_strefy(p))
-                strefa_ramka(p, &r); /* under the zone's picture: outside it, never covered by it */
+                strefa_ramka(p, &r); /* before the zone's picture: outside it, never covered by it */
             k1_skladaj(&s.scena, &o, p->x, p->y, r.x, r.y, r.w, r.h);
-            if (okno_strefy(p))
-                strefa_znaczek(p, &r);
         }
     }
     s.nowe.n = 0;

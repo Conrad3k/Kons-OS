@@ -20,6 +20,7 @@ const struct k1_motyw *k1_motyw(int ciemny);
 
 #define K1_OKNO_PROMIEN 12
 #define K1_OKNO_TYTUL 44 /* title bar height */
+#define K1_STREFA_TYTUL 40 /* the title bar ekran draws above a zone's picture (0.10.0 step 3, D1: sketch A) */
 
 enum k1_trafienie { K1_TR_BRAK = 0, K1_TR_TRESC, K1_TR_TYTUL, K1_TR_MINIMALIZUJ, K1_TR_ZAMKNIJ };
 
