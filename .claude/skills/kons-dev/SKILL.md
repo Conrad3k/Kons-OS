@@ -82,7 +82,7 @@ X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt. Stero
 | `src/initramfs/` | `/init` | montuje rdzeń (dm-verity), przełącza korzeń |
 | `src/init/` | `/rdzen/init` | PID 1 |
 | `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` usługi z tabel `K1_SYSTEM`/`K1_APLIKACJE` (start, kanały, restarty); `kanaly.h` nazwy kanałów `KANAL_*`; `logi.c` logi usług; `profile.c` klatki (`KLATKA_<NAZWA>`); `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c`, `rozruch.c`, `efi.c`, `pendrive.c`, `dekoder.c`, `powieksz.c` (K1-DANE do końca pendrive'a), `siec*.c` (karty sieciowe, adres, stan dla ikony i Ustawień, zegar z internetu; 0.9.0), `wifi.c`, `wifi_nl.c` (karta Wi-Fi, przełącznik radia przez `/dev/rfkill`, szukanie sieci nl80211, lista dla Ustawień; 0.9.1), `wifi_polacz.c` (łączenie na prośbę siec: CONNECT, gniazdo EAPOL, klucze NEW_KEY, SET_STATION; kanał Ustawienia → siec `KN_SIEC`; 0.9.1 krok 2), `test.c` |
-| `src/wejscie/` | `system/wejscie` | klawiatura, mysz (evdev, EVIOCGRAB) |
+| `src/wejscie/` | `system/wejscie` | klawiatura, mysz, kółko (evdev, EVIOCGRAB); `touchpad.c` — touchpad we własnym trybie (palce → ruch, przewijanie dwoma palcami w kierunku naturalnym D8, stuknięcia, przycisk touchpada; czysty, `test_touchpad`; 0.10.0 krok 4) |
 | `src/ekran/`, `src/grafika/` | `system/ekran` | DRM/KMS, składanie okien, kursor, tapety, znak K1; `zalegle.c` — to, czego pełny kanał klienta nie przyjął, czeka w ekranie (RAMKA nigdy nie przepada, ruchy się scalają; 0.8.5) |
 | `src/gui/` | `system/gui` | pulpit w modułach (`gui.h`): warstwa ikon, paski, menu Start, menu kontekstowe, rozmieszczenie w skarbcu (fd 6) |
 | `src/logowanie/` | `system/logowanie` | ekran hasła przy starcie |
@@ -249,6 +249,9 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   `VM_EVENT_COUNTERS` (za EXPERT); katalog domowy przeglądarki to tmpfs — każda „pamięć podręczna na dysku” to pamięć.
   Firefox z obrazu strefy da się uruchomić w kontenerze pod Xvfb (`chroot` w kopię `build/strefa-przegladarka`,
   `GDK_BACKEND=x11`, `MOZ_GTK_TITLEBAR_DECORATION=client` udaje dekoracje Waylanda) — tak sprawdzono S28 (zrzut).
+- *Przewijanie (0.10.0 krok 4):* QEMU `mouse_move 0 0 dz` — dz > 0 to kółko od siebie (`Maszyna.kolko(x, y, w_dol)`
+  odwraca znak sam); QEMU nie udaje touchpada wielodotykowego — touchpad sprawdza właściciel na sprzęcie (log wejścia:
+  nazwa i identyfikatory). Touchpad we własnym trybie nie ma `REL_X/REL_Y` — bez `touchpad.c` byłby martwy.
 - *Wyłączanie (0.8.6):* init zatrzymuje najpierw samego nadzorcę (ten zapisuje historię baterii, póki skarbiec działa),
   potem resztę; usługi giną razem z nadzorcą (`PR_SET_PDEATHSIG`), więc nic w usłudze nie może liczyć na sprzątanie.
 - *Wi-Fi (0.9.1):* sysfs jest w K1 tylko do odczytu — przełącznik radia przez `/dev/rfkill` (`RFKILL_OP_CHANGE`), nie
@@ -291,7 +294,7 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 **Plan — jedno miejsce (ADR 0035):** stan, mapa drogi i otwarte decyzje — `docs/DO_ZROBIENIA.txt`; kroki bieżącej
 wersji — `docs/PLAN-<wersja>.txt` (samodzielny: luki, kroki, decyzje; zakres zamrożony, nowe pomysły → „Później”;
 numery kroków się nie zmieniają; zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
-Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (teraz: 0.10.0, plan `docs/PLAN-0.10.0.txt`; kroki 1–3 gotowe — strefa próbna, przeglądarka, poprawki (pamięć strefy, pełna ramka, bez przycisków Firefoksa); krok 4 — przewijanie, krok 5 — stała strefa i wydanie) (mikro-maszyny, ramka,
+Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (teraz: 0.10.0, plan `docs/PLAN-0.10.0.txt`; kroki 1–3 gotowe — strefa próbna, przeglądarka, poprawki (pamięć strefy, pełna ramka, bez przycisków Firefoksa); krok 4 — przewijanie (kółko i touchpad: `K1_ZD_PRZEWIJANIE`, komunikat `PRZEWIN` do okna pod kursorem, `k1_apl.przewin`), krok 5 — stała strefa i wydanie) (mikro-maszyny, ramka,
 przeglądarka; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery, TPM)
 → **0.13 Audyt** → 1.0. Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11,
 M10 = 0.12, M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).
