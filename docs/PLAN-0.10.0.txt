@@ -343,7 +343,8 @@ KROK 3 — Poprawki przeglądarki: awarie, ramka, przyciski okna             L �
     awaria, błąd); wcześniej okno po prostu znikało. Jądro strefy potrzebowało też VM_EVENT_COUNTERS (bez niej
     /proc/vmstat nie ma licznika oom_kill — przebieg 114 pokazał 0 zabitych stron mimo OOM).
     NIE W TEJ WERSJI: oddawanie pamięci strefy z powrotem do K1 (balon / zgłaszanie wolnych stron virtio) i rozmiar
-    strefy zależny od pamięci komputera — 0.10.x („Nie w tej wersji”, punkt 6: „oddawanie pamięci (balon)”).
+    strefy zależny od pamięci komputera — 0.10.1 „Balon” (docs/PLAN-0.10.1.txt; właściciel 2026-11-16: przeglądarka
+    dalej wysypuje się na X230 i IdeaPadzie po dwóch kartach i chwili czekania albo po minimalizacji i przywróceniu).
   - S28 POTWIERDZONE (Firefox z obrazu strefy pod Xvfb, wymuszone dekoracje po stronie programu — jak na Waylandzie):
     wystarcza ustawienie GTK „gtk-decoration-layout=” (puste) w /etc/gtk-3.0/settings.ini obrazu; protokół
     xdg-decoration niepotrzebny. Obraz nie ma schematów GNOME, więc GTK na Waylandzie bierze wartość z pliku.
@@ -431,8 +432,8 @@ KROK 5 — Stała strefa, Ustawienia, porządki; wydanie 0.10.0               L 
       usunięcia i scalenia (stare formaty ustawień ekranu K1U1–K1U3, komentarze „M8/M11” w kodzie i jadro/k1.config,
       pliki blisko limitu po krokach 1–4), terminy „Tymczasowe”, R26/R50/R54 w RYZYKA (zaufana ramka — co zamknięte),
       statusy ADR 0020/0024/0025 („częściowo wdrożony”); wynik w CHANGELOG („Porządki”).
-  [ ] Wydanie: VERSION 0.10.0; CHANGELOG (Dodane / Zmienione / Porządki); DO_ZROBIENIA.txt — „Teraz” → następna wersja
-      tematu 0.10 (0.10.1…: „Nie w tej wersji” niżej), lista testów na X230 i IdeaPadzie dla 0.10.0 (wirtualizacja
+  [ ] Wydanie: VERSION 0.10.0; CHANGELOG (Dodane / Zmienione / Porządki); DO_ZROBIENIA.txt — „Teraz” → 0.10.1 „Balon”
+      (docs/PLAN-0.10.1.txt), lista testów na X230 i IdeaPadzie dla 0.10.0 (wirtualizacja
       w BIOS-ie, otwarcie przeglądarki, strony, sesje, pamiętanie po ponownym starcie, Prywatna zapomina, aktualizacja
       z 0.9.1 przez Instalator, czas startu przeglądarki); ten plik → docs/archiwum/. Po scaleniu: CI, tag k1-v0.10.0,
       wydanie; raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
@@ -656,8 +657,9 @@ Krok 5 (do 2026-11-15: krok 3)
 
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
 -----------------------------------------------------------------------------------
-    Następne wersje tematu 0.10 (PATCH, każda z własnym planem): szybki start (zamrożony stan, zapasowa czysta maszyna),
-    oddawanie pamięci (balon), wspólny obraz bazowy w pamięci raz dla wielu stref; wspólna strefa na drobne aplikacje
+    Następne wersje tematu 0.10 (PATCH, każda z własnym planem): 0.10.1 Balon — pamięć strefy według potrzeby
+    (docs/PLAN-0.10.1.txt), 0.10.5 Aktualizacje przez sieć (docs/PLAN-0.10.5.txt); szybki start (zamrożony stan, zapasowa czysta maszyna),
+    wspólny obraz bazowy w pamięci raz dla wielu stref; wspólna strefa na drobne aplikacje
     (ADR 0024); przełącznik grafiki (szybka grafika przez pośrednika — virgl/Venus, ADR 0020 p. 2); Przeglądarka K1
     (okno i pasek adresu K1, silnik WPE w strefie — ADR 0025); własne sesje (dodawanie, nazwy, kolory).
     0.11: pobrane pliki do Plików i pliki do strefy, schowek między strefami (ADR 0027).
