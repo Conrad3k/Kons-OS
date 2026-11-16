@@ -274,8 +274,8 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   zrzutach dopiero z `sleep` w kopii `grub.cfg` (`mcopy -i obraz@@1M`).
 - *Przeglądarka w CI (0.10.0 krok 2):* Enter w pasku adresu i w polu formularza Firefoksa w strefie bywał bez skutku tylko
   w testach (CI z KVM), na prawdziwym sprzęcie działał zawsze — `test-przegladarka.sh` nie naciska Entera nigdzie
-  (podpowiedź „otwórz stronę”, formularz wysyła się sam, D3 — obrazek z sieci domowej na stronie testowej). Nie wracaj
-  do Entera bez decyzji właściciela. Firefox w strefie ocenia sieć po kartach systemu (strefa ich nie ma) —
+  (stronę otwiera strzałka „→” w pasku adresu — lista podpowiedzi w CI bywa niewidoczna, przebieg 109; formularz wysyła
+  się sam, D3 — obrazek z sieci domowej na stronie testowej). Nie wracaj do Entera bez decyzji właściciela. Firefox w strefie ocenia sieć po kartach systemu (strefa ich nie ma) —
   `network.manage-offline-status` wyłączone w `strefy/przegladarka/k1.js`. Pełny Firefox w emulacji zagnieżdżonej
   (kontener bez KVM) nie rysuje okna — do szukania błędów: obraz strefy wprost w QEMU z jednorazowym przekaźnikiem
   albo sonda zamiast Firefoksa w K1 (tak znaleziono zamykanie fd 0 w VMM).
