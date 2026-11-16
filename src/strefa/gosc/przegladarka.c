@@ -3,6 +3,8 @@
  * out), the compositor (kompozytor: the guest's display and input) and the browser, as user 1000 with its home on
  * tmpfs (a one-time session forgets everything when the machine ends). It reaps every child; when the browser ends,
  * the machine ends; when the VMM says "zamknij", the browser gets SIGTERM and 5 s, then the machine ends anyway.
+ * 0.10.0 step 3 (S26): the VMM hears why the browser ended by itself ("koniec pamiec|awaria|sam" — K1 tells the user)
+ * and when a page ended for lack of memory ("pamiec strona"); the browser goes last when memory runs out (pamiec.c).
  * Paths here are the zone image's (Debian's tree), never K1's. */
 #include <errno.h>
 #include <fcntl.h>
@@ -99,16 +101,40 @@ static void czekaj_na_gniazdo(void)
     }
 }
 
-static void sprzataj(pid_t przegl, pid_t komp, int *koniec)
+/* Why the browser ended by itself, as the VMM's line (src/strefa/vsock.c): killed by the guest kernel for lack of
+ * memory, crashed (it or the compositor), or closed by the user from its own menu. */
+static const char *powod(pid_t p, pid_t przegl, int st, unsigned long zabite_od)
+{
+    if (p == przegl && WIFEXITED(st) && WEXITSTATUS(st) == 0)
+        return "koniec sam\n";
+    if (p == przegl && WIFSIGNALED(st) && WTERMSIG(st) == SIGKILL && pamiec_zabite() > zabite_od)
+        return "koniec pamiec\n";
+    return "koniec awaria\n";
+}
+
+static void sprzataj(pid_t przegl, pid_t komp, int ster, unsigned long zabite_od, int *koniec)
 {
     pid_t p;
     int st;
     while ((p = waitpid(-1, &st, WNOHANG)) > 0)
         if (p == przegl || p == komp) {
+            const char *l = powod(p, przegl, st, zabite_od);
             loguj("%s zakończony (%d)", p == przegl ? "przeglądarka" : "kompozytor",
                   WIFEXITED(st) ? WEXITSTATUS(st) : 128 + WTERMSIG(st));
+            if (ster >= 0 && !*koniec && write(ster, l, strlen(l)) != (ssize_t)strlen(l))
+                loguj("kanał sterujący: zapis nieudany");
             *koniec = 1;
         }
+}
+
+/* Once a second: the VMM hears of every page killed for memory. */
+static void pilnuj(pid_t przegl, int ster, unsigned long *zabite)
+{
+    unsigned long z = pamiec_zabite();
+    (void)przegl;
+    if (z > *zabite && ster >= 0 && write(ster, "pamiec strona\n", 14) != 14)
+        loguj("kanał sterujący: zapis nieudany");
+    *zabite = z;
 }
 
 void przegladarka(int ster)
@@ -120,8 +146,9 @@ void przegladarka(int ster)
     char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;
-    int koniec = 0, zamykam = 0;
+    int koniec = 0, zamykam = 0, krok = 0;
     uint64_t od = 0;
+    unsigned long zabite = pamiec_zabite(), zabite_od = zabite;
     katalog_tmpfs("/tmp", "mode=1777", 0);
     katalog_tmpfs("/run", "mode=0755", 0);
     katalog_tmpfs("/home", "mode=0755", 0);
@@ -144,7 +171,9 @@ void przegladarka(int ster)
         struct pollfd p = { ster, POLLIN, 0 };
         struct timespec t;
         int r = poll(&p, ster >= 0 ? 1 : 0, 200);
-        sprzataj(przegl, komp, &koniec);
+        sprzataj(przegl, komp, zamykam ? -1 : ster, zabite_od, &koniec);
+        if (++krok % 5 == 0 && !koniec)
+            pilnuj(przegl, zamykam ? -1 : ster, &zabite);
         clock_gettime(CLOCK_MONOTONIC, &t);
         if (r > 0 && (p.revents & (POLLIN | POLLHUP)) && !zamykam) {
             char b[64];

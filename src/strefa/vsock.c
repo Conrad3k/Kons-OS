@@ -1,6 +1,8 @@
 /* K1 strefa — virtio-vsock (virtio 1.2, section 5.10), stream sockets only. Two host ports:
  *   VSOCK_STEROWANIE (1): one connection, the guest's control channel — text lines "gotowa" (the guest is up) and
- *     "zamykam"; the VMM sends "zamknij" when ekran asks to close the zone (0.10.0 step 1);
+ *     "zamykam"; the VMM sends "zamknij" when ekran asks to close the zone (0.10.0 step 1); since step 3 (S26) also
+ *     "koniec pamiec|awaria|sam" (why the browser ended by itself: K1 tells the user) and "pamiec strona" (a page
+ *     killed for lack of memory) — only these exact lines, anything else is counted and ignored;
  *   POL_PORT (2): the browser's connections through the relay in the zone, up to K1_STREFA_POLACZENIA_MAKS, each with
  *     its own credit; their bytes go to and from polaczenia.c (0.10.0 step 2, ADR 0043 T9).
  * Any other connection is refused (RST). Every header from the guest is checked: its CIDs, type, length within the
@@ -11,6 +13,7 @@
 #include <linux/virtio_ids.h>
 #include <linux/virtio_vsock.h>
 
+#include "k1_komunikat.h"
 #include "k1_log.h"
 #include "k1_teraz.h"
 #include "polaczenia.h"
@@ -176,6 +179,16 @@ static void linia_od_goscia(void)
         k1_log(TAG, "gość gotowy (kanał sterujący)");
     else if (strcmp(v.linia, "zamykam") == 0)
         k1_log(TAG, "gość się zamyka");
+    else if (strcmp(v.linia, "koniec pamiec") == 0 || strcmp(v.linia, "koniec awaria") == 0 ||
+             strcmp(v.linia, "koniec sam") == 0) {
+        int kod = v.linia[7] == 'p' ? K1_STREFA_KONIEC_PAMIEC : v.linia[7] == 'a' ? K1_STREFA_KONIEC_AWARIA : 0;
+        if (!mz.gosc_powiedzial)
+            mz.kod_goscia = kod;
+        mz.gosc_powiedzial = 1;
+        k1_log(TAG, "gość: program strefy zakończył się sam (%s)",
+               kod == K1_STREFA_KONIEC_PAMIEC ? "brak pamięci" : kod == K1_STREFA_KONIEC_AWARIA ? "awaria" : "zamknięty");
+    } else if (strcmp(v.linia, "pamiec strona") == 0)
+        k1_log(TAG, "gość: strona zakończona — brak pamięci w strefie (%u)", ++mz.strony_bez_pamieci);
     else
         v.odrzucone++;
     v.dl = 0;

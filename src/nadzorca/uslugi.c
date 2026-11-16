@@ -394,7 +394,7 @@ static double opoznienie(unsigned awarie)
 }
 
 /* What ends with a service besides its log and channels: a few services leave state in their module. */
-static void po_koncu(const struct usluga *u)
+static void po_koncu(const struct usluga *u, int status)
 {
     size_t i;
     if (u->profil == K1_PROFIL_INSTALATOR) {
@@ -409,8 +409,10 @@ static void po_koncu(const struct usluga *u)
     }
     if (u->profil == K1_PROFIL_CZYTNIK)
         pendrive_koniec();
-    if (k1_strefa_profilu(u->profil) != NULL) /* 0.10.0 step 2: a zone's channel for its connections */
+    if (k1_strefa_profilu(u->profil) != NULL) { /* 0.10.0 step 2: a zone's channel; step 3: why it ended */
         strefa_kanal_koniec(k1_strefa_profilu(u->profil)->nr);
+        strefa_koniec(k1_strefa_profilu(u->profil)->nr, status, u->bez_liczenia || atoi(u->argument2) != 0);
+    }
     if (u->profil == K1_PROFIL_DEKODER)
         dekoder_koniec();
     if (u->profil == K1_PROFIL_SKARBIEC) {
@@ -448,7 +450,7 @@ void zakonczona(struct usluga *u, int status)
     zamknij_log(u);
     u->pid = 0;
     zamknij_kanaly(u);
-    po_koncu(u);
+    po_koncu(u, status);
     if (u->kiedy != START_PRZY_STARCIE || u->wylaczona)
         return;
     if (u->bez_liczenia) {

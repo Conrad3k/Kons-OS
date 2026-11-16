@@ -9,6 +9,7 @@
 #define K1_GOSC_H
 
 #include <stdint.h>
+#include <sys/types.h>
 
 #define GOSC_TAG "K1-GOSC"
 
@@ -21,6 +22,12 @@ void obraz_rysuj(unsigned klawisze, unsigned klikniecia, int32_t x, int32_t y); 
 /* przegladarka.c — the browser zone (0.10.0 step 2): the image has the compositor and the browser */
 int przegladarka_jest(void);
 void przegladarka(int ster);            /* returns when the machine should end */
+
+/* pamiec.c — the zone's memory (0.10.0 step 3): compressed swap, who goes first when memory runs out */
+void pamiec_zram(void);                 /* logged either way */
+unsigned long pamiec_zabite(void);      /* the guest kernel's count of OOM kills */
+void pamiec_chron(pid_t glowny);        /* the browser's main process goes last */
+void pamiec_kolejnosc(uid_t uid, pid_t glowny); /* every other process of uid goes first */
 
 /* zlosliwy.c — hostile modes (k1.tryb=1..4, the test image only) */
 enum { TRYB_ZWYKLY = 0, TRYB_ZLY_ADRES = 1, TRYB_PETLA = 2, TRYB_DLUGOSC = 3, TRYB_ZAPIS_RO = 4, TRYB_MAKS = 4 };

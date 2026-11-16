@@ -183,6 +183,9 @@ void dekoder_koniec(void);
 
 /* strefy.c (0.10.0, ADR 0042): the VMM of zone `nr` (its row of K1_STREFY); tryb: the guest's test mode (test only) */
 void strefa_uruchom(int nr, int tryb);
+/* The VMM of zone nr ended with `status` (waitpid): unless the user closed it, gui says why (0.10.0 step 3, S26);
+ * `cicho` — K1 stopped it itself, or a test's hostile guest: only the log. */
+void strefa_koniec(int nr, int status, int cicho);
 /* strefy_siec.c (0.10.0 step 2, ADR 0043 T9): the browser's connections — each running zone's channel (VMM's fd 7) */
 extern int strefa_kanal[K1_STREFY_MAKS + 1];
 int strefa_kanal_nowy(int nr);  /* a new channel for zone nr: the VMM's end (fd), or -1 */
