@@ -28,7 +28,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.label.name == 'testy' || github.event.label.name == 'testy-przegladarka'
     runs-on: ubuntu-24.04
     # Room for a build with no cache (the first one after the kernel or the download tables change) plus the tests.
-    timeout-minutes: 90
+    timeout-minutes: 80
     permissions:
       contents: write   # tag k1-vX.Y.Z po udanym buildzie i testach
     steps:
@@ -163,7 +163,7 @@ jobs:
       # Its own limit, below the job's: a test that hangs ends here, and the steps after it still save the logs
       # (CI run 125: no step limit, the run was stopped by hand with no result).
       - name: Testy (host + QEMU, także negatywne; M1–M6, start z ISO)
-        timeout-minutes: 60
+        timeout-minutes: 45
         run: |
           set -o pipefail
           mkdir -p build/testy

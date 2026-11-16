@@ -34,7 +34,7 @@
 # Dowody: build/testy/przegladarka.log, zrzuty build/testy/przegladarka-*.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
-CZAS=${K1_TEST_CZAS:-2700} # the whole test, both starts of K1 together (45 min)
+CZAS=${K1_TEST_CZAS:-2100} # the whole test, both starts of K1 together (35 min — the owner, 2026-11-16)
 mkdir -p "$TESTY"; rm -f "$TESTY"/przegladarka*
 CMDLINE="$(cat "$K1_REPO/jadro/cmdline")"
 # KVM with nested virtualization (CI): the full scenario; otherwise (the container: no KVM at all) — emulated, shortened
@@ -132,13 +132,13 @@ mx, my, co, sy = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(
 wiersze = (sy - my + co // 2 - 2 - 36) // co  # the rows of the menu; the browser is the last one (k1_uslugi.h)
 q.klik(mx, my + (wiersze - 1) * co)
 sprawdz("menu Start → Przeglądarka: gui prosi nadzorcę o strefę „Ogólna”", czekaj(r"K1-GUI: uruchamiam: Przeglądarka"))
-o = czekaj(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", czas=180)
+o = czekaj(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", czas=120)
 nr, w_, h_, x, y = (int(o.group(i)) for i in range(1, 6)) if o else (0, 0, 0, 0, 0)
 sprawdz("VMM strefy 2 w klatce (uid 301, 1536 MiB), maszyna działa",
         czekaj(r"K1-NADZORCA: strefa 2 \(Przeglądarka\): pid \d+, uid 301, pamięć 1536 MiB", czas=60) and
-        czekaj(r"K1-STREFA: strefa 2 \(Przeglądarka\): maszyna działa", czas=240))
+        czekaj(r"K1-STREFA: strefa 2 \(Przeglądarka\): maszyna działa", czas=120))
 sprawdz("gość: kanał sterujący „gotowa” (gosc uruchomił przekaźnik, kompozytor i przeglądarkę)",
-        czekaj(r"K1-STREFA: gość gotowy \(kanał sterujący\)", czas=300))
+        czekaj(r"K1-STREFA: gość gotowy \(kanał sterujący\)", czas=120))
 if emulacja:
     print("  [SKRÓT] emulacja bez KVM: dalsze kroki (Firefox, strona, formularz, odmowa D3, logi) — tylko z KVM (CI)",
           flush=True)
@@ -158,7 +158,7 @@ def bez_przyciskow(px):  # S28 (step 3): the top right corner of the tab bar is 
     return all(blisko(px(x + w_ - 30 + i, y + 10 + j), tlo, 12) for i in range(0, 26, 2) for j in range(0, 24, 2))
 
 
-w, h, px = q.zrzut("1-okno", gdy=firefox, czas=900)
+w, h, px = q.zrzut("1-okno", gdy=firefox, czas=300)  # seen: 33-156 s
 sprawdz("okno przeglądarki w ramce w kolorze sesji, pasek kart i adresu (zrzut przegladarka-1-okno)",
         firefox(w, h, px))
 sprawdz("Firefox bez własnych przycisków okna (minimalizuj, powiększ, zamknij) — tylko pasek K1 w kolorze sesji (S28)",
@@ -185,7 +185,7 @@ def zamknij_strefe():  # "zamknij" on K1's title bar above the zone (step 3, D1:
     n = q.ile(rf"K1-STREFA: strefa {STREFA}: koniec")
     if p:
         q.klik(int(p.group(3)), int(p.group(4)))
-    return czekaj(rf"K1-STREFA: strefa {STREFA}: koniec", od=n, czas=120)
+    return czekaj(rf"K1-STREFA: strefa {STREFA}: koniec", od=n, czas=90)  # VMM: 40 s + saving the disk
 
 
 def wpisz(tekst):
@@ -256,7 +256,7 @@ def pamiec():  # S26: the page that takes 1400 MiB; True when it got all of it a
     otworz_strone(60, "/pamiec", lambda w, h, px: "/pamiec" in odebrane)
     t0 = time.time()
     q.czekaj_na(lambda: "/pamiec-koniec" in odebrane or "strefa 2: koniec" in q.tekst() or
-                q.ile(r"K1-STREFA: gość: strona zakończona — brak pamięci") > n0, czas=600)
+                q.ile(r"K1-STREFA: gość: strona zakończona — brak pamięci") > n0, czas=240)
     zyje = "strefa 2: koniec" not in q.tekst()
     print(f"            | pamięć: {[p for p in odebrane if p.startswith('/pamiec-postep')][-1:]} po "
           f"{time.time() - t0:.0f} s, strony zakończone z braku pamięci: "
@@ -279,11 +279,11 @@ def ciastko():  # 0.10.0 step 5: the page /ciastko — "jest" when the request c
 
 def okno_strefy(n0):  # the zone's window after a start: its place, Firefox drawn in it
     global o, nr, w_, h_, x, y
-    o = czekaj(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", od=n0, czas=180)
+    o = czekaj(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", od=n0, czas=120)
     if not o:
         return False
     nr, w_, h_, x, y = (int(o.group(i)) for i in range(1, 6))
-    w, h, px = q.zrzut(f"7-sesja-{STREFA}", gdy=firefox, czas=900)
+    w, h, px = q.zrzut(f"7-sesja-{STREFA}", gdy=firefox, czas=300)
     return firefox(w, h, px)
 
 

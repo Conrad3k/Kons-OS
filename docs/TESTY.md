@@ -33,7 +33,7 @@ nie ruszy w ciągu kilku minut, Claude prosi właściciela o „Run workflow” 
 tu 403). Wydanie (tag, ISO, obraz USB) powstaje tylko z przebiegu na `main`, gdy `VERSION` ma nową wersję.
 **Pamięć podręczna na PR-ze:** PR widzi kopie zapisane na `main` i swoje własne, nie cudze. Zbudowane jądro zapisuje
 tylko przebieg na `main`, więc pierwszy PR po zmianie jądra albo tabel pobieranych plików buduje i pobiera wszystko od
-zera — dłużej niż zwykle (limit zadania: 90 min; sam krok testów: 60 min, żeby po zawieszonym teście zostały logi). Z KVM `testy.sh` co minutę pisze, które testy jeszcze trwają i od ilu minut („[k1] trwa (12 min): test-przegladarka”) — widać to na żywo na stronie przebiegu. Test przeglądarki ma jeden limit na cały scenariusz (45 min, oba starty K1 razem). Gdy `git.kernel.org` nie odpowiada, pliki kart idą z zapasu (gitlab.com)
+zera — dłużej niż zwykle (limit zadania: 80 min; sam krok testów: 45 min, żeby po zawieszonym teście zostały logi). Z KVM `testy.sh` co minutę pisze, które testy jeszcze trwają i od ilu minut („[k1] trwa (12 min): test-przegladarka”) — widać to na żywo na stronie przebiegu. Test przeglądarki ma jeden limit na cały scenariusz (35 min, oba starty K1 razem — decyzja właściciela 2026-11-16; w środku krótkie czekania: okno Firefoksa 5 min, strona pamięci 4 min). Gdy `git.kernel.org` nie odpowiada, pliki kart idą z zapasu (gitlab.com)
 po pierwszej nieudanej próbie (przebieg 108 PR-a #123 wisiał na tym ponad 40 min).
 
 Zmienne: `K1_TEST_CZAS` — limit na jedno uruchomienie QEMU (domyślnie 240 s), `K1_FUZZ_CZAS` — sekundy na fuzzer
