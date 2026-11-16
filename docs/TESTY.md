@@ -25,12 +25,12 @@ bezpłatne; kontener bez KVM liczy QEMU w emulacji, więc pełny komplet lokalni
 Szukanie błędu przeglądarki (tylko z KVM): etykieta `testy-przegladarka` — budowa i sam `test-przegladarka` (ok. 20 min,
 `K1_TESTY_TYLKO`; test wtedy WĄSKO — tylko otwarcie strony i liczniki, `K1_PRZEGLADARKA_WASKO`); do scalenia nigdy nie
 wystarcza.
-**CI na `main` po scaleniu — przyczyna nieznana** (2026-11-15). Po scaleniu #119 na liście Actions nie widać przebiegu
-na `main`. Nie wiadomo dlaczego: brak przebiegu na liście nie dowodzi, że go nie było (przebiegi 75–106 zniknęły z listy,
-a opis #118 wymienia przebiegi 77 i 79 na `main` po scaleniach Claude'a). Nie zakładaj więc, że scalenie przez Claude'a
-nie uruchamia CI. Dowodem przed scaleniem jest pełny przebieg na PR-ze (etykieta `testy` — liczy stan „`main` + PR”).
-Jeśli po scaleniu wersji przebieg na `main` nie ruszy w ciągu kilku minut, Claude prosi właściciela o „Run workflow”
-(Actions → „K1 — budowa i testy”; Claude dostaje tu 403). Wydanie (tag, ISO, obraz USB) powstaje tylko z przebiegu na `main`.
+**Scalenie przez Claude'a uruchamia CI na `main`** (sprawdzone 2026-11-16: po scaleniu #124 sam ruszył przebieg 113 —
+zdarzenie `push`, zielony). Po #119 przebiegu na liście Actions nie widać z nieznanego powodu — lista bywa niekompletna
+(przebiegów 75–106 na niej nie ma), więc brak przebiegu na liście niczego nie dowodzi. Dowodem przed scaleniem jest pełny
+przebieg na PR-ze (etykieta `testy` — liczy stan „`main` + PR”). Jeśli po scaleniu zmiany w systemie przebieg na `main`
+nie ruszy w ciągu kilku minut, Claude prosi właściciela o „Run workflow” (Actions → „K1 — budowa i testy”; Claude dostaje
+tu 403). Wydanie (tag, ISO, obraz USB) powstaje tylko z przebiegu na `main`, gdy `VERSION` ma nową wersję.
 **Pamięć podręczna na PR-ze:** PR widzi kopie zapisane na `main` i swoje własne, nie cudze. Zbudowane jądro zapisuje
 tylko przebieg na `main`, więc pierwszy PR po zmianie jądra albo tabel pobieranych plików buduje i pobiera wszystko od
 zera — dłużej niż zwykle (limit zadania: 75 min). Gdy `git.kernel.org` nie odpowiada, pliki kart idą z zapasu (gitlab.com)
