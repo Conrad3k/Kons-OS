@@ -14,13 +14,19 @@ mkdir -p "$POBRANE"
 rm -rf "$KATALOG"
 mkdir -p "$KATALOG"
 
-# One file: downloaded once, checked every time.
+# One file: downloaded once, checked every time. When kernel.org fails once, the rest come from the mirror straight
+# away: run 108 (PR #123) spent over 40 minutes trying an unreachable git.kernel.org four times for each of 33 files.
+GLOWNE_PADLO=
 pobierz() { # <name> <path in linux-firmware> <sha256>
     cel=$POBRANE/$1
     if [ ! -f "$cel" ]; then
         mkdir -p "$(dirname "$cel")"
-        curl -fsSL --retry 3 --connect-timeout 30 --speed-limit 2048 --speed-time 60 --max-time 300 -o "$cel.tmp" "$K1_PLIKI_KART_URL/$2?h=$K1_PLIKI_KART_WERSJA" ||
+        if [ -n "$GLOWNE_PADLO" ] ||
+            ! curl -fsSL --retry 3 --connect-timeout 30 --speed-limit 2048 --speed-time 60 --max-time 300 -o "$cel.tmp" "$K1_PLIKI_KART_URL/$2?h=$K1_PLIKI_KART_WERSJA"; then
+            [ -n "$GLOWNE_PADLO" ] || info "git.kernel.org nie odpowiada — pliki kart z zapasu (gitlab.com)"
+            GLOWNE_PADLO=1
             curl -fsSL --retry 3 --connect-timeout 30 --speed-limit 2048 --speed-time 60 --max-time 300 -o "$cel.tmp" "$K1_PLIKI_KART_ZAPAS/$K1_PLIKI_KART_WERSJA/$2" || blad "nie pobrano $2"
+        fi
         mv "$cel.tmp" "$cel"
     fi
     echo "$3  $cel" | sha256sum -c --quiet - || { rm -f "$cel"; blad "zła suma kontrolna $1"; }

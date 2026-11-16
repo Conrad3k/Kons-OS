@@ -25,11 +25,16 @@ bezpłatne; kontener bez KVM liczy QEMU w emulacji, więc pełny komplet lokalni
 Szukanie błędu przeglądarki (tylko z KVM): etykieta `testy-przegladarka` — budowa i sam `test-przegladarka` (ok. 20 min,
 `K1_TESTY_TYLKO`; test wtedy WĄSKO — tylko otwarcie strony i liczniki, `K1_PRZEGLADARKA_WASKO`); do scalenia nigdy nie
 wystarcza.
-**Scalenie przez Claude'a nie uruchamia CI na `main`** (ustalenie 2026-11-15: po #117, #118 i #119 na `main` nie ruszył
-żaden przebieg — zmiany wypchnięte przez integrację GitHuba, z której korzysta Claude, nie odpalają workflow).
-Dlatego dowodem przed scaleniem jest pełny przebieg na PR-ze (etykieta `testy` — liczy stan „`main` + PR”); pełne testy
-samego `main` uruchamia właściciel: Actions → „K1 — budowa i testy” → „Run workflow” (Claude dostaje tu 403). Wydanie
-z `main` (tag, ISO, obraz USB) powstaje tylko z przebiegu na `main` — po scaleniu wersji Claude prosi o to właściciela.
+**CI na `main` po scaleniu — przyczyna nieznana** (2026-11-15). Po scaleniu #119 na liście Actions nie widać przebiegu
+na `main`. Nie wiadomo dlaczego: brak przebiegu na liście nie dowodzi, że go nie było (przebiegi 75–106 zniknęły z listy,
+a opis #118 wymienia przebiegi 77 i 79 na `main` po scaleniach Claude'a). Nie zakładaj więc, że scalenie przez Claude'a
+nie uruchamia CI. Dowodem przed scaleniem jest pełny przebieg na PR-ze (etykieta `testy` — liczy stan „`main` + PR”).
+Jeśli po scaleniu wersji przebieg na `main` nie ruszy w ciągu kilku minut, Claude prosi właściciela o „Run workflow”
+(Actions → „K1 — budowa i testy”; Claude dostaje tu 403). Wydanie (tag, ISO, obraz USB) powstaje tylko z przebiegu na `main`.
+**Pamięć podręczna na PR-ze:** PR widzi kopie zapisane na `main` i swoje własne, nie cudze. Zbudowane jądro zapisuje
+tylko przebieg na `main`, więc pierwszy PR po zmianie jądra albo tabel pobieranych plików buduje i pobiera wszystko od
+zera — dłużej niż zwykle (limit zadania: 75 min). Gdy `git.kernel.org` nie odpowiada, pliki kart idą z zapasu (gitlab.com)
+po pierwszej nieudanej próbie (przebieg 108 PR-a #123 wisiał na tym ponad 40 min).
 
 Zmienne: `K1_TEST_CZAS` — limit na jedno uruchomienie QEMU (domyślnie 240 s), `K1_FUZZ_CZAS` — sekundy na fuzzer
 (domyślnie 10; CI: 30), `K1_TESTY_ROWNOLEGLE=0|1` — wymuś po kolei / równolegle (domyślnie: równolegle, gdy jest
