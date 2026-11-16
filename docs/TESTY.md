@@ -25,6 +25,11 @@ bezpłatne; kontener bez KVM liczy QEMU w emulacji, więc pełny komplet lokalni
 Szukanie błędu przeglądarki (tylko z KVM): etykieta `testy-przegladarka` — budowa i sam `test-przegladarka` (ok. 20 min,
 `K1_TESTY_TYLKO`; test wtedy WĄSKO — tylko otwarcie strony i liczniki, `K1_PRZEGLADARKA_WASKO`); do scalenia nigdy nie
 wystarcza.
+**Test informacyjny** (decyzja właściciela 2026-11-16): `test-przegladarka` idzie w każdym pełnym komplecie, ale jego błąd
+nie psuje wyniku `testy.sh` (lista `INFORMACYJNE`; w logu „[k1] UWAGA: test-przegladarka niezaliczony — test informacyjny”).
+Powód: przez trzy dni CI (przebiegi 125–142) padał za każdym razem na czymś innym w zachowaniu Firefoksa, a K1 działał na
+X230 i IdeaPadzie. Przeglądarkę sprawdza właściciel na sprzęcie; błąd z tego testu czytaj i zgłaszaj, ale nie wstrzymuj wydania.
+Uruchomiony sam (`K1_TESTY_TYLKO`) liczy się normalnie.
 **Scalenie przez Claude'a uruchamia CI na `main`** (sprawdzone 2026-11-16: po scaleniu #124 sam ruszył przebieg 113 —
 zdarzenie `push`, zielony). Po #119 przebiegu na liście Actions nie widać z nieznanego powodu — lista bywa niekompletna
 (przebiegów 75–106 na niej nie ma), więc brak przebiegu na liście niczego nie dowodzi. Dowodem przed scaleniem jest pełny

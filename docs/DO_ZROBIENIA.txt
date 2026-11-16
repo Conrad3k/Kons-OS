@@ -194,6 +194,9 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         rozwiązań tymczasowych 0.9.0 nie dodało
     [x] 0.9.1: nowych rozwiązań tymczasowych nie dodało (0.9.1 to PATCH — porządki MINOR przy 0.10)
     [x] przegląd 0.10.0 (krok 5): termin 0.10.0 dotrzymany (format 1 skarbca); nowe tymczasowe — K1U1–K1U3 (0.11.0)
+    [ ] test przeglądarki informacyjny (Twoja decyzja 2026-11-16, scripts/testy.sh: INFORMACYJNE) — jego błąd nie
+        blokuje scalenia ani wydania; w 0.10.1 (Balon: stabilna przeglądarka w strefie) wraca jako blokujący albo
+        dzieli się na część stałą (K1: strefa, łącznik, zamykanie, dysk sesji — po logach) i część na sprzęcie
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)

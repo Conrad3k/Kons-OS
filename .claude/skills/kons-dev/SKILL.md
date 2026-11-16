@@ -316,7 +316,9 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
 - **Przed scaleniem zmian w systemie** (decyzja właściciela 2026-11-14): lokalnie `make` bez ostrzeżeń, `sh -n` na
   skryptach, `scripts/test-m1.sh` i skrypty QEMU zmienianej części (mapa „która część — który skrypt” w `docs/TESTY.md`),
   przy zmianach w budowie `scripts/sprawdz-powtarzalnosc.sh` (nie commituj w trakcie — data commita wchodzi do buildu);
-  potem **pełny komplet w CI na PR-ze** (etykieta `testy`) — scalasz dopiero przy zielonym. Pełny `scripts/testy.sh`
+  potem **pełny komplet w CI na PR-ze** (etykieta `testy`) — scalasz dopiero przy zielonym. `test-przegladarka` jest
+  informacyjny (decyzja właściciela 2026-11-16, `docs/TESTY.md`): jego błąd nie blokuje — przeczytaj go i opisz w raporcie
+  (właściciel sprawdza przeglądarkę na sprzęcie), nie stroj go kolejnymi przebiegami przed wydaniem. Pełny `scripts/testy.sh`
   w kontenerze tylko, gdy CI nie działa. Sama dokumentacja — bez testów.
 - **Wersja** (`VERSION`, raz na paczkę; ADR 0035): nowy temat z mapy drogi → MINOR (0.9, 0.10…), kroki planu
   wersji, poprawki i jądro → PATCH, docs/CI → bez zmiany; wpis

@@ -42,6 +42,16 @@ włączyć wirtualizację w BIOS-ie (README, punkt 8).
 - Okno Ustawień: 680 × 480 (jedna sekcja więcej).
 - Ustawienia ekranu zapisane dawno temu (formaty K1U1–K1U3) są przy pierwszym odczycie zapisywane od nowa (K1U4).
 
+### Naprawione (przed wydaniem, CI)
+- **Zamknięcie przeglądarki zapisuje sesję:** K1 zamyka okno Firefoksa jak krzyżyk (kompozytor strefy wysyła
+  `xdg_toplevel.close`), Firefox kończy się sam i zapisuje ciasteczka i zalogowania; wcześniej dostawał SIGTERM, kończył się
+  w 0,3 s bez zapisu i sesja zapominała ostatnie zmiany. SIGTERM dopiero po 15 s; bez pytań „Zamknąć karty?”.
+- **Szybkie kręcenie kółkiem** przewija stronę do końca: kompozytor strefy wysyła każdy ząbek osobno (GTK robi z kilku
+  ząbków w jednej porcji jeden krok).
+- **Testy:** krótsze limity (test przeglądarki 35 min, krok testów 45 min — Twoja decyzja); test przeglądarki jest
+  **informacyjny** — idzie zawsze, ale jego błąd nie blokuje wydania (Twoja decyzja; przeglądarkę sprawdzasz na sprzęcie;
+  do 0.10.1).
+
 ### Porządki (zasada czytelności 2)
 - **Usunięty format 1 skarbca** (0.5.6–0.8.1) i jego przejście na format 2 (termin 0.10.0, Twoja decyzja D7): `obszary.c`,
   `przejscie.c`, komunikat `START_POTWIERDZONY`, kompaktowanie przy otwarciu, `test_magazyn`, `test_przejscie`, tryby
