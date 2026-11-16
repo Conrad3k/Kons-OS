@@ -137,9 +137,40 @@ static void t_przepelnienie(void)
            nty(&z, ZAL_MAKS - 1)->typ == K1_KOM_RAMKA);
 }
 
+static struct k1_komunikat przewin(uint32_t pow, int32_t x, int32_t d, int zrodlo)
+{
+    return k1_komunikat_nowy(K1_KOM_PRZEWIN, pow, x, 5, 0, d, zrodlo);
+}
+
+/* 0.10.0 step 4: scrolling adds up (the newest place), not across surfaces, sources or another message; bounded. */
+static void t_przewijanie(void)
+{
+    struct zalegle z;
+    int i;
+    zal_wyczysc(&z);
+    EXPECT(dodaj(&z, przewin(1, 1, 120, K1_PRZEWIN_KOLKO)) == 0 && dodaj(&z, przewin(1, 2, 120, K1_PRZEWIN_KOLKO)) == 0);
+    EXPECT(z.n == 1 && nty(&z, 0)->d == 240 && nty(&z, 0)->a == 2);
+    dodaj(&z, przewin(2, 3, 60, K1_PRZEWIN_KOLKO));     /* another surface */
+    dodaj(&z, przewin(2, 3, 60, K1_PRZEWIN_TOUCHPAD));  /* another source */
+    dodaj(&z, przycisk(2, K1_WSK_WCISNIECIE));
+    dodaj(&z, przewin(2, 3, 60, K1_PRZEWIN_TOUCHPAD));  /* after a press: in order */
+    EXPECT(z.n == 5 && nty(&z, 1)->d == 60 && nty(&z, 2)->e == K1_PRZEWIN_TOUCHPAD && nty(&z, 4)->typ == K1_KOM_PRZEWIN);
+    dodaj(&z, przewin(2, 3, -60, K1_PRZEWIN_TOUCHPAD)); /* the sum would be nothing: both stay */
+    EXPECT(z.n == 6);
+    zal_wyczysc(&z);
+    for (i = 0; i < 200; i++)
+        dodaj(&z, przewin(1, 1, K1_PRZEWIN_MAKS / 4, K1_PRZEWIN_KOLKO));
+    {
+        struct k1_komunikat k;
+        EXPECT(z.n == 1 && nty(&z, 0)->d == K1_PRZEWIN_MAKS &&
+               k1_komunikat_sprawdz(nty(&z, 0), sizeof k, K1_KIER_OD_EKRANU, &k) == 0);
+    }
+}
+
 int main(void)
 {
     t_puste();
+    t_przewijanie();
     t_scalanie();
     t_kolejnosc();
     t_przepelnienie();

@@ -186,6 +186,20 @@ static void klawisz(const struct k1_zdarzenie *z)
     ruch_wskaznika();
 }
 
+/* The wheel or two fingers on a touchpad (0.10.0 step 4): to the surface under the pointer — any window, not only the
+ * focused one, as in other systems; while a button is held, to the one holding the pointer. Never to a zone through
+ * K1's frame of its window. The direction is already K1's (wejscie: the touchpad's natural one, D8). */
+static void przewin(const struct k1_zdarzenie *z)
+{
+    int ramka = 0, cel = s.chwyt >= 0 ? s.chwyt : pod_kursorem_r(&ramka);
+    struct pow *p;
+    if (cel < 0 || ramka != 0)
+        return;
+    p = &s.p[cel];
+    s.przewiniecia++;
+    wyslij(p->kl, k1_komunikat_nowy(K1_KOM_PRZEWIN, p->id, s.x - p->x, s.y - p->y, z->dx, z->dy, z->kod));
+}
+
 void zastosuj(const struct k1_zdarzenie *z)
 {
     static const float predkosc[] = { 1.0f, 0.5f, 1.0f, 2.0f };
@@ -211,6 +225,9 @@ void zastosuj(const struct k1_zdarzenie *z)
     case K1_ZD_KLAWISZ:
         s.klawisze++;
         klawisz(z);
+        break;
+    case K1_ZD_PRZEWIJANIE:
+        przewin(z);
         break;
     case K1_ZD_PRZYCISK:
         s.ruchy++;

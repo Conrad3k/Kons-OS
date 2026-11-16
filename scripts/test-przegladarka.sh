@@ -12,6 +12,8 @@
 #   4. NEGATYWNE: strona testowa sama prosi o obrazek z adresu w sieci domowej, który nie jest routerem (10.0.2.3) —
 #      jak złośliwa strona, która szuka urządzeń w domu; nadzorca odmawia (D3), strefa i K1 żyją
 #   5. w logu K1 żadnego adresu strony ani wpisanego tekstu (niezmiennik 8) — tylko liczniki
+#   5a. PRZEWIJANIE (0.10.0 krok 4): długa strona testowa przewijana kółkiem — w dół i z powrotem; strona sama mówi
+#      serwerowi, jak daleko ją przewinięto (zrzut przegladarka-6-dluga)
 #   6. PAMIĘĆ (0.10.0 krok 3, S26): strona testowa zajmuje 1400 MiB w strefie, która ma 1536 MiB (jak ciężkie strony,
 #      po których na IdeaPadzie z 4 GB okno przeglądarki znikało) — strona dochodzi do końca, przeglądarka i strefa żyją
 #   7. zamknięcie okna: maszyna kończy się (sesja jednorazowa: nic nie zostaje), liczniki połączeń w logu
@@ -62,10 +64,20 @@ STRONA_PAMIEC = ("<!doctype html><html><head><meta charset=utf-8><title>K1</titl
                  "setTimeout(krok, 100);</script></body></html>")
 
 
+# 0.10.0 step 4: a long page (6600 px) that tells the server how far it was scrolled, once the scrolling stops
+STRONA_DLUGA = ("<!doctype html><html><head><meta charset=utf-8><title>K1</title></head><body style='margin:0'>"
+                "<div style='height:600px;background:#1e64c8'></div>"
+                "<div style='height:6000px;background:linear-gradient(#ff8800,#00a050)'></div><script>var t;"
+                " onscroll = function () { clearTimeout(t); t = setTimeout(function () {"
+                " fetch('/przewinieto?y=' + Math.round(scrollY)); }, 400); };"
+                " onload = function () { fetch('/dluga-gotowa'); };</script></body></html>")
+
+
 class Serwer(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         odebrane.append(self.path)
-        b = (STRONA_PAMIEC if self.path == "/pamiec" else STRONA.format(port=self.server.server_address[1])).encode()
+        b = (STRONA_PAMIEC if self.path == "/pamiec" else STRONA_DLUGA if self.path == "/dluga" else
+             STRONA.format(port=self.server.server_address[1])).encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(b)))
@@ -138,7 +150,7 @@ sprawdz("Firefox bez własnych przycisków okna (minimalizuj, powiększ, zamknij
 sprawdz("pasek tytułu K1 nad oknem przeglądarki: obwódka w kolorze sesji, jasny pasek sesji jednorazowej (krok 3, D1: A)",
         blisko(px(x + w_ // 2, y - 42), SZALWIA) and blisko(px(x + w_ - 60, y - 20), (232, 238, 234), 16),
         str((px(x + w_ // 2, y - 42), px(x + w_ - 60, y - 20))))
-for l_ in re.findall(r"K1-STREFA: gość (?:gotowy|: okno przeglądarki)[^\n]*", q.tekst()):  # S30: where the start goes
+for l_ in re.findall(r"K1-STREFA: gość(?: gotowy|: okno przeglądarki)[^\n]*", q.tekst()):  # S30: where the start goes
     print("            | start: " + l_[:200], flush=True)
 
 
@@ -175,7 +187,8 @@ def otworz_strone(czas, sciezka="/", gotowe=None):  # no Enter (the note at the 
             time.sleep(2)
             q.klik(kx, ky)  # the suggestion "otwórz stronę", if the list is there
         gotowe = gotowe or strona
-        w, h, px = q.zrzut("2-strona" if sciezka == "/" else "5-pamiec", gdy=gotowe, czas=czas)
+        w, h, px = q.zrzut({"/": "2-strona", "/pamiec": "5-pamiec"}.get(sciezka, "6-" + sciezka.strip("/")), gdy=gotowe,
+                           czas=czas)
         if gotowe(w, h, px):
             return w, h, px
         print(f"            | próba {i + 1} ({opis}): strona się nie otworzyła", flush=True)
@@ -193,6 +206,24 @@ def pokaz(w, h, px):  # on failure: what the zone and nadzorca said (counts only
     print(f"            | serwer dostał: {len(odebrane)} żądań", flush=True)
     b = bytes(min(15, sum(px(x + 2 * i, y + 2 * j)) // 48) for j in range(150) for i in range(w_ // 2))
     print(f"            | obrazek okno {w_ // 2}x150 " + base64.b64encode(zlib.compress(b, 9)).decode(), flush=True)
+
+
+def przewiniecia():  # 0.10.0 step 4: how far the long page said it was scrolled, in order
+    return [int(p.split("=", 1)[1]) for p in odebrane if p.startswith("/przewinieto?y=")]
+
+
+def przewijanie():  # the long page: 3 notches down, then 5 up — back at the top
+    q.pisz("ctrl-l")
+    wpisz(f"10.0.2.2:{port}/dluga")
+    otworz_strone(60, "/dluga", lambda w, h, px: "/dluga-gotowa" in odebrane)
+    q.kolko(x + w_ // 2, y + h_ // 2 + 40, w_dol=3)
+    w_dol = q.czekaj_na(lambda: any(v > 0 for v in przewiniecia()), czas=60)
+    q.zrzut("6-dluga-przewinieta")
+    n = len(przewiniecia())
+    q.kolko(x + w_ // 2, y + h_ // 2 + 40, w_dol=-5)
+    w_gore = q.czekaj_na(lambda: len(przewiniecia()) > n and przewiniecia()[-1] == 0, czas=60)
+    print(f"            | przewinięcia strony: {przewiniecia()}", flush=True)
+    return w_dol and w_gore
 
 
 def pamiec():  # S26: the page that takes 1400 MiB; True when it got all of it and the zone lives on
@@ -250,6 +281,8 @@ t_ = q.tekst()
 sprawdz("w logu K1 żadnego adresu strony ani wpisanego tekstu — tylko liczniki (niezmiennik 8)",
         TEKST not in t_ and f"10.0.2.2:{port}" not in t_ and "10.0.2.3" not in t_ and "wyslij" not in t_)
 
+sprawdz("PRZEWIJANIE: kółko nad długą stroną przewija ją w dół, potem z powrotem na górę (0.10.0 krok 4; zrzut "
+        "przegladarka-6-dluga-przewinieta)", przewijanie())
 sprawdz(f"PAMIĘĆ: strona zajmuje {PAMIEC_MIB} MiB w strefie 1536 MiB — dochodzi do końca, przeglądarka i strefa żyją "
         "(S26; zrzut przegladarka-5-pamiec)", pamiec())
 koniec_ = zamknij_strefe()

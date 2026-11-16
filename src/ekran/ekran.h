@@ -100,7 +100,7 @@ struct stan {
     unsigned z_licznik;
     uint32_t nastepne_okno;
     int ust[K1_UST_MAKS + 1];
-    unsigned long klatki, klawisze, ruchy, odrzucone, obcy;
+    unsigned long klatki, klawisze, ruchy, przewiniecia, odrzucone, obcy;
     struct klient kl[MAKS_KLIENTOW];
     struct pow p[MAKS_POW];
 };

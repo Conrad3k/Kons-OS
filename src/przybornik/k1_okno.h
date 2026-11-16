@@ -29,6 +29,12 @@ enum k1_trafienie { K1_TR_BRAK = 0, K1_TR_TRESC, K1_TR_TYTUL, K1_TR_MINIMALIZUJ,
 void k1_ramka_okna(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul, int aktywne, int najechany);
 enum k1_trafienie k1_trafienie_ramki(uint32_t szer, uint32_t wys, int32_t x, int32_t y);
 
+/* Scrolling of a list (0.10.0 step 4): how many rows `d` (K1_KOM_PRZEWIN c or d: 1/K1_PRZEWIN_ZABEK of a notch) is —
+ * K1_WIERSZE_NA_ZABEK a notch, as in other systems; parts of a row wait in *reszta (one per list), a turn of the
+ * direction drops them. */
+#define K1_WIERSZE_NA_ZABEK 3
+int k1_przewin_wiersze(int32_t *reszta, int32_t d);
+
 /* Segmented control: `n` labels in a row, `wybrany` selected, `najechany` hovered (-1: none).
  * Returns nothing; k1_segment_trafienie gives the index under (x, y) or -1. */
 void k1_segment(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y, int32_t w, int32_t h,

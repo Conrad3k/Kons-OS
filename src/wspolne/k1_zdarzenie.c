@@ -27,6 +27,11 @@ int k1_zdarzenie_sprawdz(const void *buf, size_t len, struct k1_zdarzenie *out)
         if (z.kod < 0x110 || z.kod > 0x117 || z.wartosc < 0 || z.wartosc > 1 || z.dx != 0 || z.dy != 0)
             return -1;
         break;
+    case K1_ZD_PRZEWIJANIE:
+        if ((z.kod != K1_ZD_KOLKO && z.kod != K1_ZD_TOUCHPAD) || z.wartosc != 0 || z.dx < -K1_ZD_PRZEWIN_MAX ||
+            z.dx > K1_ZD_PRZEWIN_MAX || z.dy < -K1_ZD_PRZEWIN_MAX || z.dy > K1_ZD_PRZEWIN_MAX || (z.dx == 0 && z.dy == 0))
+            return -1;
+        break;
     default:
         return -1;
     }

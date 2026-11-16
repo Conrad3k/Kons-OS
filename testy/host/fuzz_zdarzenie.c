@@ -20,6 +20,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
     if (size != sizeof z || z.wersja != K1_ZDARZENIE_WERSJA || z.dlugosc != sizeof z || z.zarezerwowane != 0)
         abort();
+    if (z.typ == K1_ZD_PRZEWIJANIE) {
+        if (z.dx < -K1_ZD_PRZEWIN_MAX || z.dx > K1_ZD_PRZEWIN_MAX || z.dy < -K1_ZD_PRZEWIN_MAX ||
+            z.dy > K1_ZD_PRZEWIN_MAX || (z.dx == 0 && z.dy == 0) || (z.kod != K1_ZD_KOLKO && z.kod != K1_ZD_TOUCHPAD))
+            abort();
+        return 0;
+    }
     if (z.dx < -K1_ZD_RUCH_MAX || z.dx > K1_ZD_RUCH_MAX || z.dy < -K1_ZD_RUCH_MAX || z.dy > K1_ZD_RUCH_MAX)
         abort();
     if (z.typ != K1_ZD_KLAWISZ && z.typ != K1_ZD_RUCH && z.typ != K1_ZD_PRZYCISK)

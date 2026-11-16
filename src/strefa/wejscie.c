@@ -2,7 +2,10 @@
  * fed from ekran's KLAWISZ and WSKAZNIK — ekran sends them only while the zone's window has the focus (ADR 0042 T3),
  * as Linux key codes: the guest translates the layout itself (S5). When the focus goes, every key and button still
  * held is released in the guest (no key stays pressed in a window the user left). Key codes never go to the log
- * (invariant 8): only counts. The guest gives buffers on its event queue; with none free an event is dropped (counted). */
+ * (invariant 8): only counts. The guest gives buffers on its event queue; with none free an event is dropped (counted).
+ * 0.10.0 step 4: the pointer has a wheel — REL_WHEEL / REL_HWHEEL and their 1/120 forms (*_HI_RES). From the wheel come
+ * both (a notch when the parts make one); from a touchpad only the 1/120 parts, so the zone's compositor can tell the
+ * fingers from a wheel (smooth scrolling in the browser). Scrolling goes to the window under the pointer, like K1's. */
 #include <string.h>
 
 #include <linux/input-event-codes.h>
@@ -21,7 +24,8 @@ struct wejscie {
     int klawiatura;                 /* 1: the keyboard, 0: the pointer */
     uint8_t sel, subsel;            /* what the driver asked for in the configuration space */
     uint8_t wcisniete[KLAWISZE / 8]; /* held keys and buttons */
-    unsigned long zdarzenia, porzucone;
+    unsigned long zdarzenia, porzucone, przewiniecia;
+    int32_t reszta_x, reszta_y;     /* the wheel: parts of a notch not sent as REL_(H)WHEEL yet */
 };
 static struct wejscie klawiatura = { .klawiatura = 1 }, mysz = { .klawiatura = 0 };
 
@@ -69,6 +73,12 @@ static void wypelnij(const struct wejscie *w, struct virtio_input_config *c)
             bit(c->u.bitmap, ABS_X);
             bit(c->u.bitmap, ABS_Y);
             c->size = 1;
+        } else if (w->subsel == EV_REL && !w->klawiatura) {
+            bit(c->u.bitmap, REL_HWHEEL);
+            bit(c->u.bitmap, REL_WHEEL);
+            bit(c->u.bitmap, REL_WHEEL_HI_RES);
+            bit(c->u.bitmap, REL_HWHEEL_HI_RES);
+            c->size = REL_HWHEEL_HI_RES / 8 + 1;
         }
         break;
     case VIRTIO_INPUT_CFG_ABS_INFO:
@@ -178,6 +188,38 @@ void wejscie_wskaznik(int32_t x, int32_t y, uint32_t w, uint32_t h, int rodzaj, 
     synchronizuj(&mysz);
 }
 
+/* Whole notches out of the parts in *reszta (v: K1's direction turned into Linux's, > 0 up / right). */
+static int32_t zabki(int32_t *reszta, int32_t v)
+{
+    int32_t n;
+    if ((*reszta > 0 && v < 0) || (*reszta < 0 && v > 0))
+        *reszta = 0;
+    *reszta += v;
+    n = *reszta / K1_PRZEWIN_ZABEK;
+    *reszta -= n * K1_PRZEWIN_ZABEK;
+    return n;
+}
+
+void wejscie_przewin(int32_t x, int32_t y, uint32_t w, uint32_t h, int32_t dx, int32_t dy, int zrodlo)
+{
+    int32_t ny, nx;
+    if (dx < -K1_PRZEWIN_MAKS || dx > K1_PRZEWIN_MAKS || dy < -K1_PRZEWIN_MAKS || dy > K1_PRZEWIN_MAKS)
+        return;
+    wejscie_wskaznik(x, y, w, h, K1_WSK_RUCH, K1_PRZYCISK_BRAK); /* where: the guest scrolls what is under it */
+    ny = zabki(&mysz.reszta_y, -dy); /* Linux: REL_WHEEL > 0 is up; K1: dy > 0 is further down */
+    nx = zabki(&mysz.reszta_x, dx);
+    if (dy != 0)
+        zdarzenie(&mysz, EV_REL, REL_WHEEL_HI_RES, -dy);
+    if (dx != 0)
+        zdarzenie(&mysz, EV_REL, REL_HWHEEL_HI_RES, dx);
+    if (zrodlo == K1_PRZEWIN_KOLKO && ny != 0)
+        zdarzenie(&mysz, EV_REL, REL_WHEEL, ny);
+    if (zrodlo == K1_PRZEWIN_KOLKO && nx != 0)
+        zdarzenie(&mysz, EV_REL, REL_HWHEEL, nx);
+    mysz.przewiniecia++;
+    synchronizuj(&mysz);
+}
+
 static void pusc(struct wejscie *w)
 {
     int k;
@@ -190,9 +232,9 @@ static void pusc(struct wejscie *w)
 /* At the end: whether input reached the guest (yes/no and what was dropped — never how many keys). */
 void wejscie_podsumowanie(void)
 {
-    k1_log(TAG, "wejście do gościa: klawiatura %s (porzucone %lu), wskaźnik %s (porzucone %lu)",
+    k1_log(TAG, "wejście do gościa: klawiatura %s (porzucone %lu), wskaźnik %s (porzucone %lu), przewijanie %s",
            klawiatura.zdarzenia ? "dotarła" : "nic", klawiatura.porzucone, mysz.zdarzenia ? "dotarł" : "nic",
-           mysz.porzucone);
+           mysz.porzucone, mysz.przewiniecia ? "dotarło" : "nic");
 }
 
 void wejscie_pusc(void)
@@ -220,6 +262,7 @@ static void reset(struct mmio_urz *u)
 {
     struct wejscie *w = stan(u);
     w->sel = w->subsel = 0;
+    w->reszta_x = w->reszta_y = 0;
     memset(w->wcisniete, 0, sizeof w->wcisniete);
 }
 

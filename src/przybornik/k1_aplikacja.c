@@ -108,6 +108,11 @@ void k1_apl_uruchom(struct k1_apl *a)
                 if (m.obiekt == a->okno.id)
                     wskaznik(a, &m);
                 break;
+            case K1_KOM_PRZEWIN:
+                if (m.obiekt == a->okno.id && a->przewin &&
+                    k1_trafienie_ramki((uint32_t)a->szer, (uint32_t)a->wys, m.a, m.b) == K1_TR_TRESC)
+                    a->przewin(m.a, m.b, m.c, m.d);
+                break;
             case K1_KOM_KLAWISZ:
                 if (a->klawisz)
                     a->klawisz((unsigned)m.a, m.b, (unsigned)m.c);

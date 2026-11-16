@@ -87,6 +87,7 @@ static int sterowanie(void)
 struct stan {
     unsigned klawisze, klikniecia;
     int32_t x, y;
+    int32_t kolko, dokladne; /* the wheel (0.10.0 step 4): notches (REL_WHEEL, > 0 up) and 1/120 parts (_HI_RES) */
 };
 
 /* Events of one input device; 1 when the picture should change. */
@@ -94,7 +95,7 @@ static int zdarzenia(int fd, struct stan *s)
 {
     struct input_event e[32];
     ssize_t n = read(fd, e, sizeof e);
-    int zmiana = 0, i;
+    int zmiana = 0, przewiniecie = 0, i;
     for (i = 0; n > 0 && i < (int)((size_t)n / sizeof e[0]); i++) {
         if (e[i].type == EV_KEY && e[i].code == BTN_LEFT && e[i].value == 1) {
             s->klikniecia++;
@@ -106,16 +107,24 @@ static int zdarzenia(int fd, struct stan *s)
             s->x = e[i].value;
         } else if (e[i].type == EV_ABS && e[i].code == ABS_Y) {
             s->y = e[i].value;
+        } else if (e[i].type == EV_REL && e[i].code == REL_WHEEL) {
+            s->kolko += e[i].value;
+            przewiniecie = 1;
+        } else if (e[i].type == EV_REL && e[i].code == REL_WHEEL_HI_RES) {
+            s->dokladne += e[i].value;
+            przewiniecie = 1;
         }
     }
     if (zmiana)
         loguj("wejście: klawisze %u, kliknięcia %u", s->klawisze, s->klikniecia); /* counts only, never codes */
+    if (przewiniecie) /* the sums: the test turns the wheel and reads them */
+        loguj("wejście: kółko %d ząbków, %d/120", (int)s->kolko, (int)s->dokladne);
     return zmiana;
 }
 
 static void petla(int ster, const int *wej, int n)
 {
-    struct stan s = { 0, 0, -1, -1 };
+    struct stan s = { 0, 0, -1, -1, 0, 0 };
     for (;;) {
         struct pollfd p[WEJSCIA + 1];
         int i;

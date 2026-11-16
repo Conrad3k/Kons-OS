@@ -88,6 +88,10 @@ enum k1_komunikat_typ {
     K1_KOM_USTAWIENIE = 36, /* obiekt=0, a=key, b=value (broadcast to all clients) */
     K1_KOM_TRYB = 37,       /* to Ustawienia: obiekt=mode 1..K1_TRYBY_MAKS, a,b = width,height, c=Hz, d=1 preferred */
     K1_KOM_ZAMKNIJ = 38,    /* to an application (0.7.5): obiekt=window surface — close it (as with its × button) */
+    K1_KOM_PRZEWIN = 40,    /* 0.10.0 step 4: the wheel or two fingers over a surface (not only the focused one):
+                             * obiekt=surface, a,b = x,y, c,d = across, down in 1/K1_PRZEWIN_ZABEK of a notch (d > 0:
+                             * further down, the content goes up; c > 0: to the right; |c|,|d| <= K1_PRZEWIN_MAKS, not
+                             * both 0), e = K1_PRZEWIN_KOLKO / K1_PRZEWIN_TOUCHPAD */
     /* WITAJ is sent again when the screen size changes (K1_UST_ROZDZIELCZOSC): clients lay out anew. */
 
     /* gui / test → nadzorca */
@@ -392,6 +396,11 @@ enum { K1_POW_OKNO = 1, K1_POW_PANEL = 2, K1_POW_PULPIT = 3 };
 enum { K1_PLIKI_MIEJSCE = 0, K1_PLIKI_KOSZ = 1, K1_PLIKI_NAZWA = 2 };
 enum { K1_WSK_RUCH = 1, K1_WSK_WCISNIECIE = 2, K1_WSK_PUSZCZENIE = 3, K1_WSK_WYJSCIE = 4 };
 enum { K1_PRZYCISK_BRAK = 0, K1_PRZYCISK_LEWY = 1, K1_PRZYCISK_PRAWY = 2, K1_PRZYCISK_SRODKOWY = 3 };
+
+/* Scrolling (K1_KOM_PRZEWIN; the same units and sources as K1_ZD_PRZEWIJANIE in k1_zdarzenie.h) */
+#define K1_PRZEWIN_ZABEK 120
+#define K1_PRZEWIN_MAKS (64 * K1_PRZEWIN_ZABEK) /* ekran adds up what a client has not taken yet */
+enum { K1_PRZEWIN_KOLKO = 1, K1_PRZEWIN_TOUCHPAD = 2 };
 
 /* Keyboard modifiers */
 #define K1_MOD_SHIFT 1

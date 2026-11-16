@@ -187,6 +187,16 @@ static void t_zaokraglone(void)
 static void t_okno(void)
 {
     const char *const et[] = { "A", "B", "C" };
+    int32_t r = 0;
+    int i, n = 0;
+    /* scrolling (0.10.0 step 4): a notch is 3 rows; a touchpad's small parts add up; a turn drops what waited */
+    EXPECT(k1_przewin_wiersze(&r, K1_PRZEWIN_ZABEK) == K1_WIERSZE_NA_ZABEK && r == 0);
+    EXPECT(k1_przewin_wiersze(&r, -2 * K1_PRZEWIN_ZABEK) == -2 * K1_WIERSZE_NA_ZABEK);
+    for (i = 0; i < 45; i++)
+        n += k1_przewin_wiersze(&r, 10); /* 450 parts of a notch: 11 rows and a part */
+    EXPECT(n == 11 && r > 0);
+    EXPECT(k1_przewin_wiersze(&r, -10) == 0 && r < 0); /* the turn: the 30 that waited are gone */
+    EXPECT(k1_przewin_wiersze(&r, K1_PRZEWIN_MAKS) == 64 * K1_WIERSZE_NA_ZABEK);
     EXPECT(k1_trafienie_ramki(400, 300, 10, 10) == K1_TR_TYTUL);
     EXPECT(k1_trafienie_ramki(400, 300, 10, K1_OKNO_TYTUL) == K1_TR_TRESC);
     EXPECT(k1_trafienie_ramki(400, 300, 400 - 8 - 14, 22) == K1_TR_ZAMKNIJ);

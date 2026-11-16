@@ -5,7 +5,8 @@
 #   1. jądro K1 ma KVM (w emulacji QEMU udaje wirtualizację AMD — ADR 0042 T10), strefa startuje, okno w ramce
 #   2. ramkę (pasek tytułu nad obrazem strefy i obwódka 3 px w kolorze strefy — krok 3, D1: szkic A) rysuje ekran K1;
 #      w środku wzór gościa (zrzut)
-#   3. kliknięcie i klawisz docierają do gościa (licznik w logu gościa, zmiana wzoru); bez fokusu klawisz nie dociera
+#   3. kliknięcie i klawisz docierają do gościa (licznik w logu gościa, zmiana wzoru); bez fokusu klawisz nie dociera;
+#      kółko (0.10.0 krok 4) dociera — z fokusem i bez niego (okno pod kursorem)
 #   4. kursor na pasku: przyciski K1 (zrzut); przeciągnięcie paska przesuwa okno; „minimalizuj” chowa okno
 #   5. okno K1 (Zegar) na wierzchu zasłania strefę, ramka strefy zostaje tam, gdzie jej nie zasłania; ciemny motyw
 #   6. „zamknij” na pasku: gość dostaje „zamknij” (vsock), kończy się, maszyna znika, okno też
@@ -103,6 +104,9 @@ sprawdz("gość zmienia pas po klawiszu (zrzut strefa-3-klawisz)", blisko(px(x +
 q.pisz("shift-b")  # CI runs 88-96 of PR #119: without Shift itself the browser got ";" for ":" and "l" for Ctrl+L
 sprawdz("Shift dociera do gościa jako klawisz (Shift i litera: licznik rośnie o 2)",
         czekaj(r"K1-GOSC: wejście: klawisze 3, kliknięcia 1", czas=60))
+q.kolko(kx, ky, w_dol=2)  # 0.10.0 step 4: the pointer's wheel (virtio-input REL_WHEEL and REL_WHEEL_HI_RES)
+sprawdz("kółko dociera do gościa: 2 ząbki do siebie = REL_WHEEL −2 i REL_WHEEL_HI_RES −240",
+        czekaj(r"K1-GOSC: wejście: kółko -2 ząbków, -240/120", czas=60))
 
 PASEK = r"K1-EKRAN: strefa: pasek okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr)
 
@@ -168,6 +172,13 @@ sprawdz("okno K1 (Zegar) na wierzchu zasłania treść strefy (zrzut strefa-5-ze
 n = q.ile(r"K1-GOSC: wejście: klawisze")
 q.pisz("b")
 sprawdz("NEGATYWNY: klawisz przy fokusie Zegara nie trafia do strefy", q.cisza(r"K1-GOSC: wejście: klawisze", 15))
+# 0.10.0 step 4: scrolling goes to the window under the pointer — the zone's, though Zegar has the focus
+wid = [(px_, py_) for px_, py_ in ((x + 30, y + h_ - 30), (x + w_ - 30, y + h_ - 30), (x + 30, y + 30), (x + w_ - 30, y + 30))
+       if not (zg and gx <= px_ < gx + gw and gy - TYTUL <= py_ < gy + gh)]
+if wid:
+    q.kolko(*wid[0], w_dol=-1)
+sprawdz("kółko nad widoczną częścią strefy dociera do niej bez fokusu (okno pod kursorem)",
+        wid and czekaj(r"K1-GOSC: wejście: kółko -1 ząbków, -120/120", czas=60), str(wid[:1]))
 
 # the dark theme: Ustawienia → Wygląd → Ciemny (as in the other tests)
 q.klik(ax + 2 * krok, ay)

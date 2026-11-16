@@ -79,6 +79,7 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `TAPETA_ZDJECIE` | Pliki, Podgląd → ekran | tabela nadawców (`zdjecie.c`) | zdjęcie na tapetę (0.8.0): szerokość, wysokość; + memfd z pikselami od dekodera |
 | `WITAJ` | ekran → klient | — | rozmiar ekranu, rola, aplikacja; ponownie po zmianie rozdzielczości |
 | `WSKAZNIK` | ekran → klient | — | mysz nad powierzchnią klienta (0 = poza nią): x, y, ruch / przycisk, który przycisk, e = wciśnięte Shift / Ctrl / Alt / AltGr (`K1_MOD_*`, 0.8.2 krok 6: Ctrl+klik i Shift+klik w Plikach) |
+| `PRZEWIN` | ekran → klient | — | **przewijanie** (0.10.0 krok 4): kółko myszy albo dwa palce na touchpadzie nad powierzchnią — `a`, `b` = x, y; `c`, `d` = w bok i w dół w 1/120 ząbka kółka (`K1_PRZEWIN_ZABEK`; `d` > 0 = dalej w dół, treść jedzie w górę; `c` > 0 = w prawo; najwyżej `K1_PRZEWIN_MAKS`, nie oba 0); `e` = skąd (`K1_PRZEWIN_KOLKO` / `K1_PRZEWIN_TOUCHPAD`). Idzie do okna **pod kursorem**, także bez fokusu (jak w innych systemach); przy wciśniętym przycisku — do okna, które trzyma wskaźnik; nigdy do strefy przez ramkę K1 |
 | `KLAWISZ` | ekran → klient | — | klawisz dla okna z fokusem (kod, w dół / w górę / powtórzenie, modyfikatory); nigdy w logu. Same klawisze Shift, Ctrl, Alt i AltGr idą jako `KLAWISZ` tylko do okna strefy (gość ma własną klawiaturę) — aplikacje K1 czytają je z pola modyfikatorów |
 | `FOKUS` | ekran → klient | — | okno dostało / straciło klawiaturę |
 | `RAMKA` | ekran → klient | — | ostatnie zatwierdzenie jest na ekranie, można rysować drugą połowę |
@@ -107,7 +108,8 @@ do niej wysyła, czeka w ekranie (`zalegle.c`, do 64 komunikatów na klienta) i 
 - `RAMKA` czeka najwyżej raz na powierzchnię (druga mówiłaby to samo) i **nigdy nie przepada** — bez niej okno
   już nigdy by się nie odświeżyło;
 - ruch wskaźnika zastępuje ruch tuż przed nim (liczy się ostatnie położenie), `USTAWIENIE` — wcześniejsze o tym
-  samym kluczu;
+  samym kluczu; `PRZEWIN` tuż po `PRZEWIN` tej samej powierzchni i z tego samego źródła **dodaje się** (0.10.0 krok 4:
+  ostatnie położenie, suma do `K1_PRZEWIN_MAKS`), a przy pełnej kolejce przepada jak wciśnięcie;
 - wciśnięcia i puszczenia przycisków, klawisze, `FOKUS`, `ZAMKNIJ` — w kolejności nadania;
 - klient, który w ogóle nie odbiera (kolejka pełna): najpierw przepadają najstarsze ruchy i powtórzenia klawisza,
   potem wciśnięcia; `PUSZCZENIE` i puszczony klawisz — dopiero gdy nic innego nie zostało. Log: „klient … nie

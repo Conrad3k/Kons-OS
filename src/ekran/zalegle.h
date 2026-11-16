@@ -5,7 +5,7 @@
  * Delivery rules (docs/komponenty/ekran.md, "Doręczanie"):
  *   - RAMKA waits at most once per surface (a second one would say the same);
  *   - a pointer motion replaces the motion just before it (only the last position matters), USTAWIENIE replaces an
- *     earlier one of the same key;
+ *     earlier one of the same key; scrolling right after scrolling of the same surface and source adds up (0.10.0);
  *   - everything else waits in the order it was sent;
  *   - when the queue is full (a client that does not read at all), the oldest motion or key repeat goes first, then
  *     the oldest key or button press; RAMKA, PUSZCZENIE and a released key go only when nothing else is left

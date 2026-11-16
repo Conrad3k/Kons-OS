@@ -68,6 +68,11 @@ int k1_kom_sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
         return kier == K1_KIER_OD_EKRANU && k->obiekt <= K1_POW_MAKS && w(k->a, -K1_POZ_MAKS, K1_POZ_MAKS) &&
                w(k->b, -K1_POZ_MAKS, K1_POZ_MAKS) && w(k->c, K1_WSK_RUCH, K1_WSK_WYJSCIE) &&
                w(k->d, K1_PRZYCISK_BRAK, K1_PRZYCISK_SRODKOWY) && w(k->e, 0, K1_MOD_MASKA);
+    case K1_KOM_PRZEWIN:
+        return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && w(k->a, -K1_POZ_MAKS, K1_POZ_MAKS) &&
+               w(k->b, -K1_POZ_MAKS, K1_POZ_MAKS) && w(k->c, -K1_PRZEWIN_MAKS, K1_PRZEWIN_MAKS) &&
+               w(k->d, -K1_PRZEWIN_MAKS, K1_PRZEWIN_MAKS) && (k->c != 0 || k->d != 0) &&
+               w(k->e, K1_PRZEWIN_KOLKO, K1_PRZEWIN_TOUCHPAD);
     case K1_KOM_KLAWISZ:
         return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && w(k->a, 1, K1_KLAWISZ_MAKS) && w(k->b, 0, 2) &&
                w(k->c, 0, K1_MOD_MASKA) && zera(k, 3);

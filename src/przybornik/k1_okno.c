@@ -1,5 +1,7 @@
 #include "k1_okno.h"
 
+#include "k1_komunikat.h"
+
 static const struct k1_motyw jasny = {
     .tlo = 0xfaf9f6, .pole = 0xffffff, .linia = 0xe5e2dc, .najechanie = 0xf0eee9, .zaznaczenie = 0xebe8e1,
     .tekst = 0x1f1e1c, .tekst2 = 0x5e5c57, .tekst3 = 0x8d8a84,
@@ -124,4 +126,15 @@ int k1_przycisk_pod(const struct k1_przycisk *p, int n, int32_t x, int32_t y)
         if (x >= p[i].x && x < p[i].x + p[i].w && y >= p[i].y && y < p[i].y + p[i].h)
             return i;
     return -1;
+}
+
+int k1_przewin_wiersze(int32_t *reszta, int32_t d)
+{
+    int32_t r;
+    if ((*reszta > 0 && d < 0) || (*reszta < 0 && d > 0))
+        *reszta = 0;
+    *reszta += d * K1_WIERSZE_NA_ZABEK;
+    r = *reszta / K1_PRZEWIN_ZABEK;
+    *reszta -= r * K1_PRZEWIN_ZABEK;
+    return (int)r;
 }

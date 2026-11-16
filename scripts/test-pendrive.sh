@@ -21,7 +21,8 @@
 #   5. wyjęcie pendrive'a (device_del): czytnik zatrzymany, miejsce znika; włożenie pendrive'a z NTFS: Pliki mówią,
 #      że K1 go jeszcze nie odczyta
 #   5a. (0.8.2 krok 2) pendrive z „małym” FAT32 (mformat -F -c 8, mniej niż 65 525 klastrów — do 0.8.1 „nie FAT”)
-#      i folderem 1100 zdjęć (więcej niż jedna lista czytnika): widać wszystkie, „Importuj wszystkie” bierze wszystkie,
+#      i folderem 1100 zdjęć (więcej niż jedna lista czytnika): widać wszystkie (0.10.0 krok 4: kółko przewija listę po
+#      3 wiersze na ząbek, nad miejscami po lewej — nie), „Importuj wszystkie” bierze wszystkie,
 #      czas z pendrive'a zostaje przy pliku, drugi import pomija wszystkie
 #   6. nazwy plików i ich treść nie trafiają do logu; brak zabronionych wywołań i odrzuconych komunikatów
 #   7. ponowny start z tym samym dyskiem danych: tapeta ze zdjęcia wraca ze skarbca; magazyn z filmem 300 MB otwiera się
@@ -459,6 +460,19 @@ sprawdz("pendrive z małym FAT32 (mniej niż 65 525 klastrów; do 0.8.1: „nie 
 sprawdz("folder 1100 zdjęć: czytnik wysyła dwie listy, Pliki pokazują wszystkie 1100 (do 0.8.1: pierwsze 1024)",
         widok(lambda: q.dwuklik(*wiersz(0)), "Pendrive", 1100, czas=120) and czekaj(r"K1-CZYTNIK: folder: 1100 elementów \(list: 2\)"))
 zrzut("9-folder-1100", gdy=lambda w, h, px: True)
+# 5b. (0.10.0 step 4) the wheel over the long list: a notch = 3 rows; NEGATIVE: over the places on the left — nothing
+LISTA = r"K1-PLIKI: lista przewinięta: od wiersza (\d+) z 1100"
+od_wiersza = lambda: ([None] + [int(v) for v in re.findall(LISTA, tekst())])[-1]
+q.kolko(*wiersz(2), w_dol=2)
+sprawdz("kółko nad listą: 2 ząbki w dół — lista od wiersza 7 (3 wiersze na ząbek)",
+        q.czekaj_na(lambda: od_wiersza() == 7, czas=30))
+q.kolko(*wiersz(2), w_dol=-1)
+sprawdz("kółko w górę: ząbek — od wiersza 4", q.czekaj_na(lambda: od_wiersza() == 4, czas=30))
+zrzut("9-przewinieta", gdy=lambda w, h, px: True)
+q.kolko(*miejsce(0), w_dol=3)
+sprawdz("NEGATYWNY: kółko nad miejscami po lewej nie przewija listy", q.cisza(LISTA, 5))
+q.kolko(*wiersz(2), w_dol=-5)
+sprawdz("kółko w górę ponad początek: lista od wiersza 1 (nie mniej)", q.czekaj_na(lambda: od_wiersza() == 1, czas=30))
 p = przyciski()
 sprawdz("„Importuj wszystkie”: 1100 plików → Obrazy (każdy z czasem z pendrive'a)",
         "Importuj wszystkie" in p and importuj(lambda: klik(*p["Importuj wszystkie"]), 1100, 1100, 0, czas=float(limit) * 0.4))
