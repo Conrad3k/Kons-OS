@@ -272,17 +272,18 @@ void t_okna_przewijanie(void)
 {
     struct k1_komunikat m;
     int a = polacz(K1_ROLA_APLIKACJA, K1_APL_ZEGAR, 0), b = polacz(K1_ROLA_APLIKACJA, K1_APL_NOTATKI, 0),
-        we = polacz(K1_ROLA_WEJSCIE, 0, 0), ok, nad = 0, fokus_b = 0, przewin = 0, obcy, i, W, H;
+        we = polacz(K1_ROLA_WEJSCIE, 0, 0), ok, nad = 0, bez_fokusu = 0, przewin = 0, obcy, i, W, H;
     if (a < 0 || b < 0 || we < 0 || !odbierz_typ(a, K1_KOM_WITAJ, 5000, &m) || !czekaj_na(b, K1_KOM_WITAJ, 0, 5000)) {
         check(0, "0.10.0: przewijanie trafia do okna pod kursorem", "kanały: %d %d %d", a, b, we);
         return;
     }
     W = m.a;
     H = m.b;
-    /* a: almost the whole screen; then b: a small window of a new client — it takes the focus */
+    /* a: almost the whole screen; then b: a small window of a new client — it takes the focus, a loses it */
     ok = okno_pelne(a, 1, W, H - 120) && czekaj_na(a, K1_KOM_RAMKA, 1, 10000);
     ok &= okno_pelne(b, 1, 120, 80) && czekaj_na(b, K1_KOM_RAMKA, 1, 10000);
-    fokus_b = odbierz_typ(b, K1_KOM_FOKUS, 2000, &m) && m.a == 1;
+    for (i = 0; i < 3 && !bez_fokusu; i++)
+        bez_fokusu = odbierz_typ(a, K1_KOM_FOKUS, 2000, &m) && m.obiekt == 1 && m.a == 0;
     for (i = 0; i < 4; i++)
         ok &= zdarzenie(we, K1_ZD_RUCH, 0, 0, -1000, -1000);
     for (i = 0; i < 6 && ok && !nad; i++) {
@@ -293,10 +294,10 @@ void t_okna_przewijanie(void)
     przewin = odbierz_typ(a, K1_KOM_PRZEWIN, 3000, &m) && m.obiekt == 1 && m.c == 0 && m.d == K1_PRZEWIN_ZABEK &&
               m.e == K1_PRZEWIN_KOLKO && m.a > 0 && m.b > 0;
     obcy = odbierz_typ(b, K1_KOM_PRZEWIN, 500, &m);
-    check(ok && nad && przewin && !obcy && find_process("ekran") > 0,
+    check(ok && bez_fokusu && nad && przewin && !obcy && find_process("ekran") > 0,
           "0.10.0: kółko trafia do okna pod kursorem (bez fokusu) z położeniem i ząbkiem; NEGATYWNY: okno z fokusem "
           "gdzie indziej nic nie dostaje",
-          "wysłanie=%d kursor_nad=%d fokus_innego=%d PRZEWIN=%d u_innego=%d", ok, nad, fokus_b, przewin, obcy);
+          "wysłanie=%d okno_bez_fokusu=%d kursor_nad=%d PRZEWIN=%d u_innego=%d", ok, bez_fokusu, nad, przewin, obcy);
     close(a);
     close(b);
     close(we);
