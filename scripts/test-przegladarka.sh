@@ -266,15 +266,19 @@ def pamiec():  # S26: the page that takes 1400 MiB; True when it got all of it a
     return "/pamiec-koniec" in odebrane and zyje
 
 
-def ciastko():  # 0.10.0 step 5: the page /ciastko — "jest" when the request carried the cookie set before, else "brak"
+# "jest" when ANY request for the page carried the cookie, "brak" when none did. Firefox may send the page twice right
+# after it starts — CI run 138: ['brak', 'jest'], the cookie was there (it was after the restart of K1 too); so
+# "remembers" = the server got it, "forgets" = it never did (the strict side for privacy).
+def ciastko():  # 0.10.0 step 5: the page /ciastko — did the request carry the cookie set before?
     n = len(odebrane)
     q.klik(x + w_ // 2, y + 64)  # the address bar
     q.pisz("ctrl-a")
     wpisz(f"10.0.2.2:{port}/ciastko")
     otworz_strone(120, "/ciastko", lambda w, h, px: any(p.startswith("/ciastko-") for p in odebrane[n:]))
+    q.czekaj_na(lambda: "/ciastko-jest" in odebrane[n:], czas=10)  # a second request, if one comes
     wynik = [p[9:] for p in odebrane[n:] if p.startswith("/ciastko-")]
     print(f"            | /ciastko (strefa {STREFA}): {wynik}", flush=True)
-    return wynik[0] if wynik else "nic"
+    return "jest" if "jest" in wynik else ("brak" if wynik else "nic")
 
 
 def okno_strefy(n0):  # the zone's window after a start: its place, Firefox drawn in it
