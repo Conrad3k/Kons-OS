@@ -11,12 +11,16 @@ ADR 0042, 0043) i idzie PRZED 0.10.5 (docs/PLAN-0.10.5.txt — tamta zaczyna si�
 Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
 Plik jest planem, nie specyfikacją: zmiana architektury (pamięć strefy, T4 w ADR 0042) idzie przez ADR 0044 (krok 2).
 
-Mało kroków: TRZY. Krok 1 — pomiar i przyczyna (najpierw wiedzieć, który limit pęka), krok 2 — sam balon, krok 3 —
-pamięć komputera dzielona między K1 i strefy widocznie dla użytkownika, i wydanie 0.10.1.
+Mało kroków: PIĘĆ. Krok 1 — pomiar i przyczyna (najpierw wiedzieć, który limit pęka), krok 2 — sam balon, krok 3 —
+pamięć komputera dzielona między K1 i strefy widocznie dla użytkownika. Kroki 4 i 5 dopisane na prośbę właściciela
+(2026-11-16): krok 4 — wybór sesji przeglądarki przy otwieraniu i uporządkowana sekcja Ustawienia → Przeglądarka (nie
+zależy od balonu, w dowolnym momencie przed krokiem 5); krok 5 — OSTATNI: przewijanie, które psuje się po otwarciu
+nowej karty, i wydanie 0.10.1 (przeniesione tu z kroku 3).
 
-ZAKRES ZAMROŻONY (ADR 0035): poniższe 3 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 5 kroków i nic więcej (kroki 4 i 5 — decyzje właściciela z 2026-11-16).
+Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
-zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b albo 3a/3b (wydanie zawsze w ostatniej części kroku 3).
+zmieści się w jednym czacie, dzieli się na 1a/1b … 5a/5b (wydanie zawsze w ostatniej części kroku 5).
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
 Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.10.0 krok 3), ZE ŹRÓDEŁ (sprawdzone 2026-11-16 w źródłach jądra 6.18.60 —
@@ -25,8 +29,11 @@ z nazwą pliku), Z OBSERWACJI WŁAŚCICIELA, POTWIERDZONE (próbą), NIEPEWNE (d
 
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
-Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3. Krok 1 można zacząć po
-wydaniu 0.10.0 (plan 0.10.0, krok 5).
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 5 (ostatni — z wydaniem).
+Krok 1 można zacząć po wydaniu 0.10.0 (plan 0.10.0, krok 5). Krok 4 nie zależy od kroków 1–3 (dotyka gui i Ustawień,
+nie pamięci strefy) — można go zrobić w dowolnym momencie, także jako pierwszy, ale PRZED krokiem 5. Krok 5 jest
+ostatni z woli właściciela — i dobrze: krok 1 poprawia kompozytor strefy (awaria przy przełączaniu kart, S15), a to ta
+sama część co przewijanie, więc krok 5 zaczyna od sprawdzenia, czy błąd jeszcze jest.
 
 Właściciel — co wpisać w nowym czacie (podmień N):
     „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.1.txt.”
@@ -51,8 +58,8 @@ Nowy czat — przebieg każdego kroku:
      poleceniem, nie rób w tym czasie innych wywołań (CLAUDE.md).
   8. Dziwny błąd testu (skill §7): 1–2 próby, potem obraz z artefaktu PR-a do sprawdzenia u właściciela.
   9. Dokumenty w tym samym PR-ze: docs/komponenty/* (strefa.md, nadzorca.md, aplikacje.md), SLOWNIK, RYZYKA, TESTY.md,
-     jadro.md (jądro strefy), SPEC (dopiski [korekta: ADR 0044]). VERSION i CHANGELOG zmienia krok 3 (wydanie);
-     kroki 1–2 zapisują „co widzi użytkownik” w opisie PR-a.
+     jadro.md (jądro strefy), SPEC (dopiski [korekta: ADR 0044]). VERSION i CHANGELOG zmienia krok 5 (wydanie);
+     kroki 1–4 zapisują „co widzi użytkownik” w opisie PR-a.
  10. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
      ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
 
@@ -80,7 +87,7 @@ Po 0.10.1 strefa ma BALON — znaną z innych systemów wirtualizacji „gumową
   - na 4 GB zmieszczą się dwie lekkie sesje naraz (dziś jedna), na 8 GB — kilka.
 W Zasobach widać, ile pamięci ma teraz każda sesja przeglądarki i ile może dostać.
 
-Trzy kroki:
+Pięć kroków:
   1. Awaria przy przełączaniu kart (Twoja próba — to nie pamięć) naprawiona; pomiar i przyczyna: test odtwarza
      dokładnie Twoje przypadki (dwie karty i chwila czekania; minimalizacja
      i przywrócenie), K1 liczy pamięć strefy co kilka sekund i mówi PRAWDZIWY powód końca strefy (dziś na X230 mógłby
@@ -88,7 +95,12 @@ Trzy kroki:
      pamięć (np. błąd przy minimalizacji) — poprawka od razu w tym kroku.
   2. Balon: pamięć strefy rośnie i maleje według potrzeby, wolna pamięć wraca do K1 sama.
   3. Pamięć komputera dla wszystkich: K1 dzieli pamięć między siebie i kilka sesji, Zasoby pokazują przydział sesji,
-     okienko, gdy pamięci naprawdę brakuje — i wydanie 0.10.1.
+     okienko, gdy pamięci naprawdę brakuje.
+  4. (Twoja prośba z 2026-11-16, przed krokiem 5) Wybór sesji: otwierając przeglądarkę, widać od razu, którą sesję
+     uruchamiasz (Ogólna, Bank, Prywatna — albo Twoje nazwy), zamiast zawsze Ogólnej i ukrytego menu pod prawym
+     przyciskiem; sekcja Ustawienia → Przeglądarka uporządkowana — nic na siebie nie nachodzi, spokojny wygląd.
+  5. (Twoja prośba z 2026-11-16, ostatni) Przewijanie w przeglądarce działa też po otwarciu nowej karty (dziś się
+     psuje) — i wydanie 0.10.1.
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
@@ -96,7 +108,9 @@ Trzy kroki:
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [ ]  1  Awaria kart; pomiar i przyczyna, liczniki, powody   S1–S6, S12–S15  0.10.0      D1, T7           M        —
 [ ]  2  Balon: virtio-balloon, wolne strony wracają do K1   S7–S11           1           D2, T1–T5        L        0044
-[ ]  3  Pamięć komputera dla wszystkich; wydanie 0.10.1     S5, S14          2           D3, T6           M        —
+[ ]  3  Pamięć komputera dla wszystkich                     S5, S14          2           D3, T6           M        —
+[ ]  4  Wybór sesji przeglądarki; Ustawienia → Przeglądarka S16–S19          0.10.0      D4, D5, T8       S        —
+[ ]  5  Przewijanie po nowej karcie; wydanie 0.10.1         S20–S22          1, 3, 4     D6               S        —
 (ADR 0044 — następny wolny po ADR-ach 0.10.0; jeśli 0.10.0 zajmie więcej, krok bierze kolejny wolny. Plan 0.10.5 bierze
 numery po tym.)
 
@@ -105,7 +119,7 @@ gościa. Balon zmienia pamięć gościa i limit klatki VMM — jeśli pęka coś
 ścieżka minimalizacji), sam balon by nie pomógł, a my byśmy o tym nie wiedzieli. Krok 1 daje też stały test, który
 w kroku 2 i 3 pokazuje, że problem zniknął.
 Dlaczego krok 3 osobno: krok 2 to mechanika (nowe urządzenie virtio, gość, VMM), krok 3 to zasada podziału pamięci
-całego komputera (nadzorca, Zasoby, okienko — Twoje decyzje) i wydanie; razem nie dałoby się ich rzetelnie przetestować
+całego komputera (nadzorca, Zasoby, okienko — Twoje decyzje); razem nie dałoby się ich rzetelnie przetestować
 w jednym PR-ze.
 
 
@@ -198,10 +212,10 @@ KROK 2 — Balon: virtio-balloon, wolne strony wracają do K1                   
   Gotowe, gdy: scenariusze (a) i (b) zielone w CI, pamięć wraca do K1 (log), testy negatywne zielone, ADR 0044 w spisie.
   Ustalenia z wykonania: (pusto — wypełnia krok 2)
 
-KROK 3 — Pamięć komputera dla wszystkich; wydanie 0.10.1                     M · decyzje D3, T6 · bez ADR (stosuje 0044)
+KROK 3 — Pamięć komputera dla wszystkich                                    M · decyzje D3, T6 · bez ADR (stosuje 0044)
   Cel: nadzorca dzieli pamięć komputera między K1 i wszystkie otwarte sesje: K1 zawsze ma swoją rezerwę, sesja
   w oknie z fokusem ma pierwszeństwo, sesje w tle oddają nieużywaną pamięć pierwsze; gdy pamięci naprawdę brakuje —
-  okienko wg D3, nigdy ciche zniknięcie. Potem wydanie 0.10.1.
+  okienko wg D3, nigdy ciche zniknięcie. (Wydanie 0.10.1 — w kroku 5, decyzja właściciela 2026-11-16.)
   Na początku: D3 (szkice okienka i widoku w Zasobach, oba motywy); „Ustalenia z wykonania” kroków 1–2.
   Co widzi użytkownik: na IdeaPadzie (4 GB) można otworzyć dwie sesje naraz (np. Ogólna i Bank), jeśli są lekkie;
   Zasoby pokazują przy każdej sesji przeglądarki „używa X · może dostać Y”; gdy pamięci komputera zaczyna brakować —
@@ -219,23 +233,97 @@ KROK 3 — Pamięć komputera dla wszystkich; wydanie 0.10.1                    
       nadzorca), a okienko mówi, która sesja się zamknęła i dlaczego.
   [ ] Zasoby (D3): przy sesjach przeglądarki — używa / może dostać (dane od nadzorcy, kanał Zasobów jak dziś; nowe pole
       albo komunikat — sprawdzany pole po polu).
-  [ ] Wydanie: VERSION 0.10.1; CHANGELOG (Dodane / Zmienione / Poprawione); porządki wersji PATCH: martwy kod stałej
-      pamięci, kolumna K1_STREFY, liczby w docs (D6 planu 0.10.0: „ok. 1,5 GB, na 4 GB jedna sesja” — już nieaktualne),
-      pliki blisko limitu; DO_ZROBIENIA.txt — „Teraz” → 0.10.5 (docs/PLAN-0.10.5.txt), lista testów na X230
-      i IdeaPadzie dla 0.10.1 (wiersz „Właściciel” niżej); ten plik → docs/archiwum/. Po scaleniu: CI, tag k1-v0.10.1, wydanie; raport
-      z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
   Testy i dowód: host — test rozdzielacza (tabela progów: K1 poniżej rezerwy → balony w tle rosną pierwsze; sesja
   z fokusem dostaje pamięć przed sesjami w tle; dwie sesje o tę samą pamięć — żadna nie zabiera K1 rezerwy). QEMU
   (test-przegladarka.sh, maszyna testowa z -m 4G jak IdeaPad): dwie sesje naraz, każda z ciężką stroną → obie żyją
   albo okienko D3 (nigdy ciche zniknięcie); sesja w tle oddaje pamięć, gdy sesja z fokusem jej potrzebuje (log celów).
   Negatywne: strefa, która mimo celu nie oddaje pamięci (złośliwy gość: ignoruje balon) → nie dostaje więcej niż
   twarda granica, inne sesje i K1 żyją; zalew komunikatów STREFA_PAMIEC → ograniczony, nadzorca żyje.
-  Właściciel (po wydaniu, lista w DO_ZROBIENIA): na X230 i IdeaPadzie — dwie karty i chwila czekania, minimalizacja
-  i przywrócenie, ciężka strona (np. film), dwie sesje naraz; Zasoby: pamięć sesji rośnie i spada.
+  Właściciel (lista w opisie PR-a; do DO_ZROBIENIA wpisuje ją krok 5 przy wydaniu): na X230 i IdeaPadzie — dwie karty
+  i chwila czekania, minimalizacja i przywrócenie, ciężka strona (np. film), dwie sesje naraz; Zasoby: pamięć sesji
+  rośnie i spada.
   Dokumenty: nadzorca.md (rozdzielacz), aplikacje.md (Zasoby), WYGLAD (okienko D3), SLOWNIK (rezerwa K1), RYZYKA,
-  TESTY.md, CHANGELOG, README (ile pamięci potrzebuje przeglądarka), skill kons-dev (pułapki: balon).
-  Gotowe, gdy: testy zielone, wydanie k1-v0.10.1 istnieje, raport z linkami.
+  TESTY.md, README (ile pamięci potrzebuje przeglądarka), skill kons-dev (pułapki: balon).
+  Gotowe, gdy: testy zielone, CI na PR-ze zielone (wydanie — krok 5).
   Ustalenia z wykonania: (pusto — wypełnia krok 3)
+
+KROK 4 — Wybór sesji przeglądarki; Ustawienia → Przeglądarka uporządkowane      S · decyzje D4, D5, T8 · bez ADR
+  (Dopisany na prośbę właściciela 2026-11-16 — obie rzeczy w jednym kroku. Nie zależy od kroków 1–3; przed krokiem 5.)
+  Cel: (1) otwierając przeglądarkę, użytkownik wybiera, którą sesję uruchamia — widocznie, bez szukania pod prawym
+  przyciskiem; (2) sekcja Ustawienia → Przeglądarka ma czytelny, spokojny układ: każda sesja w swoim miejscu, nic na
+  siebie nie nachodzi, ostrzeżenia tylko tam, gdzie naprawdę są potrzebne, i bez krzyczenia.
+  Na początku: D4 i D5 — szkice do wyboru (oba motywy, zrzuty: pulpit w QEMU + scripts/zrzut-ekranu.sh, Ustawienia
+  w oknie 680 × 480), najlepiej jednym zestawem, bo wybór sesji i sekcja w Ustawieniach mogą się łączyć (np. sesja
+  domyślna ustawiana w Ustawieniach — wariant D4 C). Zapytaj właściciela, co dokładnie w dzisiejszej sekcji jest
+  „rozjechane i dramatyczne” (najlepiej zrzut ze sprzętu) — luki S17 to tylko to, co widać z kodu.
+  Co widzi użytkownik: kliknięcie „Przeglądarka” w menu Start daje wybór sesji wg D4 (każda z kropką w swoim kolorze,
+  nazwą i informacją „pamięta / zapomina”); sesja, która ma już okno, nie startuje drugi raz — jej okno wychodzi na
+  wierzch (S16 — sprawdzić). Ustawienia → Przeglądarka wg D5: równe wiersze (albo karty) sesji, jeden spokojny opis
+  stanu, „Wyczyść dane” z pytaniem wg D5 (nie „Na pewno? Wyczyść” w tym samym miejscu), uwaga o wirtualizacji i o braku K1-DANE raz, nie w każdym wierszu.
+  Zadania:
+  [ ] Szkice D4 i D5 (oba motywy) → wybór właściciela → ustalenia w docs/WYGLAD.md („Sesje”, „Menu sesji”: stare
+      ustalenia z 0.10.0 krok 5 zastąpione, z datą).
+  [ ] Wybór sesji (D4, S16, T8): wg wybranego wariantu w gui (menu_start.c / kontekst.c — sesje z tej samej tabeli
+      K1_STREFY, po obrazie, jak dziś sesje() w kontekst.c; nowa sesja w tabeli = nowy wiersz wyboru bez zmian w
+      gui, zasada 5). Menu pod prawym przyciskiem zostaje (spójnie z nowym wyborem). Nazwy sesji to tekst
+      użytkownika — w logu „sesja N” (niezmiennik 8). Element na pasku zadań i okienka — bez zmian („Przeglądarka · <sesja>”).
+  [ ] Ustawienia → Przeglądarka (D5, S17): układ z jednego miejsca (uklad() liczy wszystko, rysowanie i kliknięcia
+      tylko z niego — dziś Zapisz/Anuluj przesuwane osobno w rysuj i klik), wysokość wiersza z tego, co w nim jest
+      (dziś opis na y+84 przy wierszu 78 px wchodzi na następną sesję); stan „Dane K1 są tylko w pamięci” — raz nad
+      listą, a przełącznik „Pamięta | Zapomina” wtedy nieaktywny (dziś pokazuje „Pamięta”, choć sesja zapomni);
+      wynik czyszczenia i wirtualizacja pod listą, nie w stałych miejscach od dołu okna; „Wyczyść dane” wg D5
+      (np. pytanie w okienku przybornika zamiast „Na pewno? Wyczyść”). Jeśli D4 wybierze sesję domyślną — jej
+      wybór tutaj (nadzorca ją pamięta w skarbcu obok nazw: strefy_ust.c, format sesje.c; nowy komunikat albo pole —
+      sprawdzany pole po polu, test na hoście, fuzzing jak dla STREFA_NAZWA).
+  [ ] Słowa (SLOWNIK): „sesja”, „sesja domyślna” (jeśli D4 C), komunikaty w Ustawieniach — tymi samymi słowami co
+      w menu i okienkach.
+  Testy i dowód: test-m4.sh — zrzuty Ustawień → Przeglądarka (oba motywy; sprawdzenie po kolorach, że opis wiersza
+  nie wchodzi na następny), wybór sesji w menu Start (klik według logu, jak dziś menu kontekstowe); test-przegladarka.sh
+  — otwarcie sesji Bank/Prywatna nowym wyborem (dziś: prawy przycisk), ustawienia_ogolna() według nowej linii logu
+  Ustawień (S18). Jeśli doszedł komunikat (sesja domyślna) — test na hoście, fuzzing, test złośliwego komunikatu
+  w systemie. Zrzuty przed / po w opisie PR-a (SendUserFile dla właściciela).
+  Dokumenty: WYGLAD.md, docs/komponenty/aplikacje.md (Ustawienia → Przeglądarka), gui (docs/komponenty — menu Start),
+  nadzorca.md i strefa.md tylko przy sesji domyślnej, SLOWNIK, TESTY.md; DO_ZROBIENIA („Właściciel”: lista do
+  sprawdzenia — robi krok 5 przy wydaniu; krok 4 wpisuje ją w opis PR-a).
+  Gotowe, gdy: właściciel wybrał D4 i D5, test-m4 i test-przegladarka otwierają sesje nowym wyborem, zrzuty Ustawień
+  bez nachodzenia (oba motywy), CI zielone.
+  Ustalenia z wykonania: (pusto — wypełnia krok 4)
+
+KROK 5 — Przewijanie po otwarciu nowej karty; wydanie 0.10.1                  S · decyzja D6 · bez ADR
+  (Dopisany na prośbę właściciela 2026-11-16 jako OSTATNI krok wersji; wydanie 0.10.1 przeniesione tu z kroku 3.)
+  Cel: kółko myszy i dwa palce na touchpadzie przewijają stronę w przeglądarce zawsze — także po otwarciu nowej karty
+  (dziś po nowej karcie przewijanie się psuje); potem wydanie 0.10.1 ze wszystkimi krokami.
+  Na początku: D6 (Twoje obserwacje); „Ustalenia z wykonania” kroków 1–4 — krok 1 poprawia kompozytor strefy przy
+  przełączaniu kart (S15), więc najpierw sprawdź, czy błąd przewijania jeszcze jest (scenariusz niżej na czerwono).
+  Co widzi użytkownik: otwierasz nową kartę (Ctrl+T albo „+”), wchodzisz na stronę — kółko i dwa palce przewijają ją
+  od razu, bez ruszania myszą, klikania czy przełączania kart; tak samo po powrocie do starej karty.
+  Zadania:
+  [ ] Odtworzenie (S20, D6): test-przegladarka.sh — scenariusz: długa strona testowa (ta z 0.10.0 krok 4) przewija się
+      → nowa karta (Ctrl+T i „+”) → ta sama długa strona w nowej karcie → kółko bez ruchu myszy, potem po ruchu →
+      strona przewinięta (strona sama mówi, jak daleko — jak dziś); powrót do pierwszej karty i to samo. Przed poprawką
+      czerwony (jeśli zielony w CI, a u właściciela błąd jest — skill §7: 1–2 próby, potem obraz z artefaktu PR-a).
+  [ ] Przyczyna (S21, S22): kolejno — (1) dokąd kompozytor wysyła przewijanie po nowej karcie (log kompozytora w
+      strefie próbnej / liczniki: która powierzchnia jest „pod kursorem”, czy dostała wl_pointer.enter); (2) czy VMM
+      i gość w ogóle dostają zdarzenia kółka (licznik „przewijanie” w linii K1-STREFA wejścia do gościa); (3) Firefox
+      (APZ, fokus treści) — dopiero gdy (1) i (2) są w porządku. Wpis w „Ustaleniach z wykonania” z dowodem z logu.
+  [ ] Poprawka u źródła: w kompozytorze zgodnie z protokołem (wl_pointer: enter/leave po zmianie sceny pod nieruchomym
+      kursorem — jak inne kompozytory, gdy powierzchnia pod kursorem znika albo się zmienia), bez luzowania sprawdzeń
+      bezpieczeństwa; test na hoście tej części, jeśli da się ją wydzielić jako czystą (wybór powierzchni pod
+      kursorem po zmianie sceny).
+  [ ] Wydanie: VERSION 0.10.1; CHANGELOG (Dodane / Zmienione / Poprawione — wszystkie kroki 1–5, z opisów PR-ów);
+      porządki wersji PATCH: martwy kod stałej pamięci, kolumna K1_STREFY, liczby w docs (D6 planu 0.10.0: „ok. 1,5 GB,
+      na 4 GB jedna sesja” — już nieaktualne), pliki blisko limitu; DO_ZROBIENIA.txt — „Teraz” → 0.10.5
+      (docs/PLAN-0.10.5.txt), lista testów na X230 i IdeaPadzie dla 0.10.1 (wiersz „Właściciel” niżej, z list w
+      opisach PR-ów kroków 1–4); ten plik → docs/archiwum/. Po scaleniu: CI, tag k1-v0.10.1, wydanie; raport z linkami
+      do ISO i obrazu USB (dopiero gdy wydanie istnieje).
+  Testy i dowód: scenariusz z odtworzenia — czerwony przed, zielony po (zrzut „przewinięta” w nowej karcie); stary
+  scenariusz PRZEWIJANIE z 0.10.0 krok 4 dalej zielony; pełny komplet w CI na PR-ze.
+  Właściciel (po wydaniu, lista w DO_ZROBIENIA): kroki 1–4 (listy z opisów ich PR-ów) oraz: nowa karta → przewijanie
+  kółkiem i dwoma palcami od razu, na X230 i IdeaPadzie.
+  Dokumenty: strefa.md (kompozytor: wskaźnik po zmianie sceny), TESTY.md (nowy scenariusz), CHANGELOG, skill kons-dev
+  (pułapka, jeśli przyczyna okaże się nieoczywista), DO_ZROBIENIA.
+  Gotowe, gdy: przewijanie po nowej karcie działa w CI, wydanie k1-v0.10.1 istnieje, raport z linkami.
+  Ustalenia z wykonania: (pusto — wypełnia krok 5)
 
 UWAGI Z DRUGIEJ OPINII (właściciel, 2026-11-16: uwagi Gemini o balonach w mikro-maszynach) — co z nich wynika w planie:
   - „Brak autopilota: sterownik w gościu to tylko mięśnie, decyduje demon na hoście” — tak; w K1 tym demonem jest
@@ -285,6 +373,26 @@ Twoje (produkt):
        w której pracujesz) i mówi o tym okienkiem. Rezerwa K1 (pamięć, której strefy nigdy nie dostają): 768 MiB na
        4 GB, 1 GiB na 8 GB i więcej.
 
+[!] D4 (krok 4) Jak wybierać sesję przy otwieraniu przeglądarki — szkice do wyboru NA POCZĄTKU KROKU 4 (oba motywy):
+       A) kliknięcie „Przeglądarka” w menu Start rozwija pod nią wiersze sesji (kropka w kolorze, nazwa, „pamięta /
+          zapomina”) — jedno kliknięcie więcej, bez nowego okna;
+       B) kliknięcie otwiera małe okienko „Którą sesję otworzyć?” na środku ekranu (jak okienka gui) z kafelkami sesji;
+       C) jak dziś jedno kliknięcie, ale sesję „domyślną” wybierasz w Ustawieniach → Przeglądarka, a inne — strzałką
+          obok „Przeglądarki” w menu Start.
+       Rekomendacja: A — wybór widać od razu tam, gdzie i tak klikasz, nic nie otwiera się bez pytania, a Bank
+       i Prywatna nie są już ukryte; skrót „ostatnio używana” niepotrzebny przy trzech sesjach.
+[!] D5 (krok 4) Wygląd sekcji Ustawienia → Przeglądarka — szkice do wyboru NA POCZĄTKU KROKU 4 (oba motywy; razem z D4).
+       Najpierw Twoje słowa: co jest „rozjechane” i co „dramatyczne” (zrzut ze sprzętu). Rekomendacja: karta na
+       sesję (zaokrąglone tło jak karty w Sieci — sekcja B z 0.9.0), w karcie: kropka i nazwa, pod nią jedno zdanie
+       stanu, po prawej „Pamięta | Zapomina”, w dolnym rzędzie ciche „Zmień nazwę” i „Wyczyść dane…” (pytanie
+       w okienku, bez czerwieni); uwaga o braku K1-DANE i o wirtualizacji — jedna spokojna linia nad listą, tylko
+       gdy dotyczy.
+
+[!] D6 (krok 5) Twoje obserwacje przewijania (czat zada je na początku kroku 5; możesz dopisać od razu): (a) kółko,
+       dwa palce czy oba; (b) nowa karta przez Ctrl+T, „+”, czy link w nowej karcie; (c) psuje się tylko w nowej karcie,
+       czy potem także w starych; (d) wraca po ruszeniu myszą, po kliknięciu w stronę, po przełączeniu kart — czy
+       dopiero po zamknięciu przeglądarki; (e) X230, IdeaPad, czy oba.
+
 Techniczne (moje — z uzasadnieniem; krok może je poprawić w „Ustaleniach z wykonania”):
     T1 Co (krok 2): klasyczny balon virtio (virtio 1.2 §5.5) z trzema cechami: STATS_VQ (gość co kilka sekund mówi,
        ile ma dostępnej pamięci — podstawa decyzji), REPORTING (zgłaszanie wolnych stron: gość sam oddaje zwolnione
@@ -323,6 +431,10 @@ Techniczne (moje — z uzasadnieniem; krok może je poprawić w „Ustaleniach z
        i nie poniżej pamięci na start; dalej — okienko i kolejność z D3. Skok w kilku strefach naraz łapie rezerwa
        K1; gdy nie wystarczy, jądro K1 zabija VMM (oom_score_adj), nie usługę K1. Liczby — z pomiarów kroków 1–2,
        nie z tego planu.
+    T8 Wybór sesji (krok 4): z tabeli K1_STREFY (sesje = strefy o tym samym obrazie, jak dziś menu pod prawym
+       przyciskiem), bez nowej usługi i bez nowego kanału; nadzorca dalej sprawdza każdą prośbę URUCHOM_STREFE (numer
+       strefy, pamięć, wirtualizacja). Nowy komunikat tylko przy sesji domyślnej (D4 C) — wtedy jak STREFA_TRWALOSC:
+       Ustawienia → nadzorca → skarbiec, sprawdzany pole po polu.
     T7 Pomiar przed zmianą (krok 1): najpierw odtworzenie i liczniki, dopiero potem balon — żeby wiedzieć, że naprawiamy
        właściwy limit (S1–S4), i mieć „przed / po” w liczbach. Scenariusze w test-przegladarka.sh zostają na stałe.
 
@@ -412,6 +524,39 @@ Krok 3
       podręczna plików minus tmpfs) — ten sam sposób dla rozdzielacza. /proc/meminfo nie jest dostępne (/proc
       z subset=pid). NIEPEWNE: czy jądro K1 ma PSI (presja pamięci) — w jadro/k1.config nie ma; bez niego wystarczą
       progi.
+Krok 4
+  S16 Z KODU. Menu Start ma jedną pozycję „Przeglądarka” — wiersz OGOLNA w K1_STREFY (kolumna linii menu; Bank i Prywatna
+      mają ją pustą, src/gui/main.c X_ZONA); lewy przycisk zawsze otwiera Ogólną. Bank i Prywatna — tylko pod prawym
+      przyciskiem (src/gui/kontekst.c sesje(), A_SESJA + strefa → otworz_aplikacje). Sesja z oknem: gui nie wysyła
+      drugiej prośby (okna.c uruchom: 5 s), nadzorca loguje „strefa N już działa” — NIEPEWNE, czy okno tej sesji
+      wychodzi wtedy na wierzch; sprawdzić w kroku.
+  S17 Z KODU (src/aplikacje/ustawienia/przegladarka.c, 0.10.0 krok 5). Wiersz sesji co 78 px (WIERSZ_H), a opis pod
+      przyciskami rysowany na y + 84 → wchodzi na nazwę i przełącznik następnej sesji. Zapisz/Anuluj przy zmianie nazwy
+      przesuwane osobno w rysowaniu i w kliknięciach (dwa miejsca układu). Bez K1-DANE każdy wiersz powtarza „Dane K1 są
+      tylko w pamięci…”, a przełącznik pokazuje „Pamięta”, choć sesja zapomni. Wynik czyszczenia i uwaga o wirtualizacji
+      w stałych miejscach od dołu okna (apl.wys − 52, − 24), niezależnie od liczby sesji. „Wyczyść dane” → „Na pewno?
+      Wyczyść” pogrubione w tym samym miejscu.
+  S18 Z KODU. Testy klikają po logu: gui — „menu kontekstowe (menu Start Przeglądarka): … sesja N …”; Ustawienia —
+      „przeglądarka: sesje …: N pamięta, przełącznik x,y, Zmień nazwę x,y, Wyczyść x,y” (przegladarka_loguj);
+      test-przegladarka.sh (otwieranie Banku/Prywatnej prawym przyciskiem, ustawienia_ogolna()) i test-m4.sh. Zmiana
+      układu = zmiana linii logu i testów w tym samym PR-ze; nazw sesji nigdy w logu.
+  S19 Z KODU. Rozmiary plików (limit 600): src/gui/kontekst.c 304, src/gui/menu_start.c 144,
+      src/aplikacje/ustawienia/przegladarka.c 241 — miejsce jest; okno Ustawień 680 × 480, treść od x = 216 (BOK 188 + 28),
+      ok. 440 px szerokości na wiersz sesji.
+Krok 5
+  S20 Z OBSERWACJI WŁAŚCICIELA (2026-11-16): przewijanie w przeglądarce psuje się po otwarciu nowej karty. Szczegóły —
+      D6. Test PRZEWIJANIE (0.10.0 krok 4, test-przegladarka.sh przewijanie()) sprawdza tylko pierwszą kartę.
+  S21 Z KODU (src/strefa/kompozytor/wejscie.c). Kółko idzie tylko do powierzchni „pod kursorem” (pod_kursorem: kolko_ramka,
+      KAZDY(wskazniki, pod_kursorem…)), a tę kompozytor wybiera na nowo TYLKO przy ruchu wskaźnika i puszczeniu
+      przycisku (ruch()). Gdy powierzchnia pod kursorem zniknie (wejscie_zapomnij, wejscie_klient_koniec) — pod_kursorem
+      = NULL i przewijanie idzie donikąd aż do ruchu myszy; gdy scena się zmieni pod nieruchomym kursorem (nowa karta:
+      nowe podpowierzchnie / bufory Firefoksa), kursor zostaje „nad” starą powierzchnią bez wl_pointer.enter nowej.
+      Hipoteza wiodąca (NIEPEWNE) — wyjaśnia „po nowej karcie”, ale nie wyjaśnia, jeśli ruch myszą NIE pomaga (D6 d).
+  S22 Z KODU. Inne miejsca do sprawdzenia: znacznik czasu kółka (kolko_t rośnie o 1 ms, gdy zdarzenia są szybsze niż
+      zegar — „Firefox drops a wheel event with the time of the one before”; ruch używa teraz_ms() — czy czasy wskaźnika
+      się nie cofają względem kółka); axis_source / axis_discrete dla wersji wl_pointer ≥ 5 (nowa karta = nowy proces
+      treści, ten sam klient Wayland — raczej nie); po stronie VMM (src/strefa/wejscie.c) — licznik porzuconych
+      zdarzeń „przewijanie” w linii logu wejścia do gościa.
 
 
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)

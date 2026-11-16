@@ -23,7 +23,11 @@ Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Cl
     [x] 0.10.0 krok 5 — sesje, które pamiętają (dysk strefy w skarbcu), Ustawienia → Przeglądarka, menu sesji, porządki
         (format 1 skarbca usunięty); wydanie 0.10.0 — PR #132
     [ ] 0.10.1 krok 1 — pomiar: który limit pęka (awaria przy przełączaniu kart: kto się skończył) — plan 0.10.1
-    [ ] 0.10.1 krok 2 — balon (ADR 0044); krok 3 — pamięć komputera dzielona między K1 i strefy, wydanie 0.10.1
+    [ ] 0.10.1 krok 2 — balon (ADR 0044); krok 3 — pamięć komputera dzielona między K1 i strefy
+    [ ] 0.10.1 krok 4 — wybór sesji przeglądarki przy otwieraniu, Ustawienia → Przeglądarka uporządkowane (Twoja prośba
+        z 2026-11-16; w dowolnym momencie przed krokiem 5)
+    [ ] 0.10.1 krok 5 (ostatni) — przewijanie, które psuje się po otwarciu nowej karty (Twoja prośba z 2026-11-16);
+        wydanie 0.10.1
 
 
 2. MAPA DROGI (ADR 0035; dawne numery etapów M w nawiasach)
