@@ -251,18 +251,18 @@ static void przycisk(int kod, int wartosc)
  * (*_HI_RES). Only parts, no notches: the fingers on a touchpad (the VMM sends no notches for them) — axis_source
  * "finger", so the browser scrolls smoothly; otherwise "wheel" with axis_discrete. */
 static int32_t kolko_v, kolko_h, dokladne_v, dokladne_h;
+static uint32_t kolko_t; /* the time of the last wheel frame: each one later than the one before */
 
-static void kolko_wyslij(void)
+#define ZABKI_OSOBNO 16 /* notches sent one per frame; the rest (a very fast wheel) goes in the last one */
+
+/* One wl_pointer frame of the wheel: v, h in 1/120 of a notch (as the device: v > 0 up, h > 0 right). */
+static void kolko_ramka(int palce, int32_t v, int32_t h)
 {
-    int palce = (dokladne_v || dokladne_h) && !kolko_v && !kolko_h;
-    int32_t v = dokladne_v ? dokladne_v : kolko_v * 120, h = dokladne_h ? dokladne_h : kolko_h * 120;
     struct obiekt *w;
     unsigned i;
-    kolko_v = kolko_h = dokladne_v = dokladne_h = 0;
-    if (v == 0 && h == 0)
-        return;
+    uint32_t t = teraz_ms();
+    kolko_t = t > kolko_t ? t : kolko_t + 1; /* Firefox drops a wheel event with the time of the one before */
     KAZDY(wskazniki, pod_kursorem, i, w) {
-        uint32_t t = teraz_ms();
         if (w->wersja >= 5) {
             zdarzenie(w, 6, "u", palce ? 1u : 0u); /* axis_source: finger / wheel */
             if (!palce && v / 120 != 0)
@@ -272,11 +272,29 @@ static void kolko_wyslij(void)
         }
         /* axis: 10 units a notch (as weston), > 0 down / right; wl_fixed = value × 256 */
         if (v != 0)
-            zdarzenie(w, 4, "uuf", t, 0u, -v * 64 / 3);
+            zdarzenie(w, 4, "uuf", kolko_t, 0u, -v * 64 / 3);
         if (h != 0)
-            zdarzenie(w, 4, "uuf", t, 1u, h * 64 / 3);
+            zdarzenie(w, 4, "uuf", kolko_t, 1u, h * 64 / 3);
     }
     ramka(pod_kursorem);
+}
+
+/* GTK (Firefox in the zone) makes one scroll step of a frame's axis_discrete, whatever its count (gdkdevice-wayland.c
+ * flush_scroll_event) — 5 notches up in one frame scrolled 2 steps (CI run 134). So one notch a frame, as libinput
+ * gives them; what is left of a hi-res wheel (parts of a notch) goes last. */
+static void kolko_wyslij(void)
+{
+    int palce = (dokladne_v || dokladne_h) && !kolko_v && !kolko_h, k;
+    int32_t v = dokladne_v ? dokladne_v : kolko_v * 120, h = dokladne_h ? dokladne_h : kolko_h * 120;
+    kolko_v = kolko_h = dokladne_v = dokladne_h = 0;
+    for (k = 0; !palce && k < ZABKI_OSOBNO && (v / 120 != 0 || h / 120 != 0); k++) {
+        int32_t zv = v >= 120 ? 120 : (v <= -120 ? -120 : 0), zh = h >= 120 ? 120 : (h <= -120 ? -120 : 0);
+        kolko_ramka(0, zv, zh);
+        v -= zv;
+        h -= zh;
+    }
+    if (v != 0 || h != 0)
+        kolko_ramka(palce, v, h);
 }
 
 static void kolko(int kod, int32_t wartosc)

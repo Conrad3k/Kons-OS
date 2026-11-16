@@ -109,7 +109,10 @@ Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka�
   wyskakujące menu z pozycjonerem; zdarzenia wejścia do każdego `wl_pointer`/`wl_keyboard` klienta (Firefox ma po dwa);
   „klatka gotowa” także po zatwierdzeniu bez zmian (inaczej GTK przestaje rysować). Kółko (krok 4): jedna ramka
   zdarzeń urządzenia = jedno przewinięcie `wl_pointer.axis` (10 jednostek na ząbek, jak weston); z ząbkami —
-  `axis_source` „wheel” i `axis_discrete`, same części ząbka (touchpad) — „finger”, więc Firefox przewija płynnie.
+  `axis_source` „wheel” i `axis_discrete`, same części ząbka (touchpad) — „finger”, więc Firefox przewija płynnie. Od
+  kroku 5: **jeden ząbek = jedna ramka** `wl_pointer` (do 16, reszta w ostatniej), każda z późniejszym czasem — GTK robi
+  z `axis_discrete` jednej ramki jeden krok bez względu na liczbę (przebieg CI 134: 5 ząbków w górę, 2 kroki), a Firefox
+  pomija zdarzenie kółka z czasem poprzedniego. Ząbki skleja QEMU w teście i ekran, gdy klient nie nadąża.
 - **Przekaźnik** (`src/strefa/przekaznik/`): SOCKS5 na 127.0.0.1:1080 → jedno połączenie vsock (port 2) na każde.
 - **Łącznik** (moduł VMM: `lacznik.c` czyste protokoły, `polaczenia.c` stan połączeń): SOCKS5 — tylko CONNECT, IPv4 albo
   nazwa (BIND, UDP, IPv6 — odmowa kodem SOCKS); nazwy — DNS (rekord A) przez gniazdo UDP od nadzorcy do serwera z DHCP;
