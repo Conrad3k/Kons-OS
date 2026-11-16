@@ -100,6 +100,7 @@ int memfd(size_t rozmiar, int pieczecie);
 void t_okna_ipc(void);
 void t_okna_ochrona(void);
 void t_okna_zalegle(void);
+void t_okna_przewijanie(void);
 void t_skarb_zalegle(void);
 void t_gui_crash(void);
 void t_aplikacja_bez_restartu(void);

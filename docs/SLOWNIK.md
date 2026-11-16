@@ -48,7 +48,7 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **kanał** | Jedyna droga rozmowy między dwoma programami (gniazdo UNIX). Tworzy go nadzorca; odbiorca zawsze wie, kto wysłał. |
 | **zaległe** (komunikaty) | To, czego pełny kanał klienta jeszcze nie przyjął (klient akurat nie odbiera). Czeka u nadawcy — w ekranie (0.8.5) i w skarbcu (0.9.0) — i idzie w kolejności, gdy kanał znów przyjmuje. |
 | **komunikat** | Wiadomość w kanale: zawsze 32 bajty, sprawdzana pole po polu przez odbiorcę. |
-| **wejście** | Usługa, która jako jedyna czyta klawiaturę i mysz. |
+| **wejście** | Usługa, która jako jedyna czyta klawiaturę, mysz i touchpad. |
 | **ekran** | Usługa, która jako jedyna rysuje na karcie graficznej: składa okna, rysuje kursor, (od 0.10) ramki stref. |
 | **pulpit** (`gui`) | Usługa rysująca paski, menu Start i (od 0.7.5) ikony na pulpicie. Nie widzi treści okien. |
 | **przybornik** | Wspólna biblioteka do rysowania: tekst, przyciski, okna, ikony, kolory K1. |
@@ -57,6 +57,8 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **menu kontekstowe** | Menu pod prawym przyciskiem myszy (pulpit, ikona, dolny pasek, menu Start; od 0.8.2 plik i folder w Plikach — to samo menu co na pulpicie, `k1_menu` w przyborniku). |
 | **zaznaczenie** | To, co jest wybrane w Plikach (0.8.2 krok 6): jeden element (kliknięcie) albo wiele (Ctrl+klik, Shift+klik, Ctrl+A). Przyciski, menu i przeciąganie działają na całe zaznaczenie. `k1_zaznaczenie` w przyborniku. |
 | **przeciągnąć** | Chwycić lewym przyciskiem zaznaczone pliki (albo ikonę) i przesunąć je myszą (0.8.2 krok 6); przy kursorze karteczka z nazwą i liczbą oraz **znak** — co się stanie po upuszczeniu („Przenieś do…”, „Do Kosza”, „Kopiuj do… (import)”, „Nie można…”). |
+| **przewijanie** | Przesuwanie treści okna kółkiem myszy albo dwoma palcami na touchpadzie (0.10.0 krok 4) — zawsze okna **pod kursorem**, także bez fokusu. Jednostka: 1/120 **ząbka** kółka (`K1_PRZEWIN_ZABEK`); ząbek = 3 wiersze listy (`k1_przewin_wiersze`). Kółko — kierunek klasyczny, dwa palce — **naturalny** (treść jedzie za palcami, decyzja D8). Komunikat `PRZEWIN`, zdarzenie `K1_ZD_PRZEWIJANIE`. |
+| **touchpad** | Płytka dotykowa laptopa. K1 czyta palce sam (`src/wejscie/touchpad.c`): jeden palec — kursor, dwa — przewijanie, **stuknięcie** — kliknięcie (jeden palec lewy, dwa prawy, trzy środkowy); touchpad, który cały jest przyciskiem: prawy dolny róg albo dwa palce = prawy przycisk. |
 | **upuścić** | Puścić przeciągane pliki nad celem (folder, Kosz, pendrive). Co się stanie, mówi jedna **tabela reguł przeciągania** (źródło, cel — `k1_przeciaganie` w przyborniku, ta sama w Plikach i na pulpicie). Na razie w obrębie jednego okna albo pulpitu; między oknami — po 0.8.2 (D6). |
 | **okienko** | Mały panel w wyglądzie menu kontekstowego z pytaniem („Przenieść 12 elementów do Kosza?”) albo odmową („Nie możesz — …”) i wierszami odpowiedzi; pokazuje się w miejscu upuszczenia (0.8.2 krok 6). |
 | **rozmieszczenie pulpitu** | Które aplikacje są przypięte i w jakiej kolejności oraz gdzie leżą ikony; zapisane w skarbcu jako obiekt pulpitu. (Nie mylić z blokiem układu K1-EFI.) |

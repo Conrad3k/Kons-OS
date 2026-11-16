@@ -176,8 +176,8 @@ $(BIN)/kompozytor: $(KOMPOZYTOR) $(wildcard src/strefa/kompozytor/*.h) src/stref
 $(BIN)/przekaznik: src/strefa/przekaznik/main.c | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/strefa/przekaznik/main.c $(LDFLAGS_K1)
 
-$(BIN)/wejscie: src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/wejscie: src/wejscie/main.c src/wejscie/touchpad.c src/wejscie/touchpad.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c src/wejscie/touchpad.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # 0.10.0 (ADR 0042): the frame of the zones' windows (strefy.c) is drawn with przybornik's shapes, icons and text
 EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/powierzchnie.c src/ekran/wskaznik.c src/ekran/drm.c src/ekran/zapis.c \
@@ -222,6 +222,11 @@ $(OBJ)/test_cmdline: testy/host/test_cmdline.c src/wspolne/k1_cmdline.c src/wspo
 
 $(OBJ)/test_zdarzenie: testy/host/test_zdarzenie.c src/wspolne/k1_zdarzenie.c src/wspolne/k1_zdarzenie.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_zdarzenie.c src/wspolne/k1_zdarzenie.c
+
+# 0.10.0 step 4: a touchpad in its own mode (src/wejscie/touchpad.c — pure)
+$(OBJ)/test_touchpad: testy/host/test_touchpad.c src/wejscie/touchpad.c src/wejscie/touchpad.h src/wspolne/k1_zdarzenie.c \
+	src/wspolne/k1_zdarzenie.h testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/wejscie -o $@ testy/host/test_touchpad.c src/wejscie/touchpad.c src/wspolne/k1_zdarzenie.c
 
 $(OBJ)/test_komunikat: testy/host/test_komunikat.c testy/host/test_komunikat_pliki.c testy/host/test_komunikat.h $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_komunikat.h src/wspolne/k1_kanal.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_komunikat.c testy/host/test_komunikat_pliki.c $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c
@@ -399,7 +404,7 @@ TESTY_HOST := test_odcinki test_przejscie test_magazyn test_dokumenty test_indek
 	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
-	test_przeciaganie test_lacznik
+	test_przeciaganie test_lacznik test_touchpad
 TESTY_HOST_PLIKI := test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
 
 # notatki_w_plikach and magazyn_testowy are not run here: scripts/test-*.sh use them

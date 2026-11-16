@@ -18,12 +18,35 @@ static int ruch(const struct k1_komunikat *m)
     return m->typ == K1_KOM_WSKAZNIK && m->c == K1_WSK_RUCH;
 }
 
+static int32_t do_granicy(int32_t v)
+{
+    return v > K1_PRZEWIN_MAKS ? K1_PRZEWIN_MAKS : (v < -K1_PRZEWIN_MAKS ? -K1_PRZEWIN_MAKS : v);
+}
+
+/* Scrolling right after scrolling of the same surface from the same source adds up (0.10.0 step 4): the newest place,
+ * the sum within K1_PRZEWIN_MAKS (both parts 0 cannot be: then the older one stays). 1 when merged. */
+static int dodaj_przewiniecie(struct k1_komunikat *k, const struct k1_komunikat *m)
+{
+    int32_t c, d;
+    if (k->typ != K1_KOM_PRZEWIN || k->obiekt != m->obiekt || k->e != m->e)
+        return 0;
+    c = do_granicy(k->c + m->c);
+    d = do_granicy(k->d + m->d);
+    if (c == 0 && d == 0)
+        return 0;
+    k->a = m->a;
+    k->b = m->b;
+    k->c = c;
+    k->d = d;
+    return 1;
+}
+
 /* 0: may go first (only the latest counts), 1: may go when the queue is full, 2: never on purpose. */
 static int waga(const struct k1_komunikat *m)
 {
     if (ruch(m) || (m->typ == K1_KOM_KLAWISZ && m->b == 2))
         return 0;
-    if ((m->typ == K1_KOM_KLAWISZ && m->b == 1) ||
+    if ((m->typ == K1_KOM_KLAWISZ && m->b == 1) || m->typ == K1_KOM_PRZEWIN ||
         (m->typ == K1_KOM_WSKAZNIK && (m->c == K1_WSK_WCISNIECIE || m->c == K1_WSK_WYJSCIE)))
         return 1;
     return 2;
@@ -66,6 +89,8 @@ int zal_dodaj(struct zalegle *z, const struct k1_komunikat *m)
         *nty(z, z->n - 1) = *m;
         return 0;
     }
+    if (m->typ == K1_KOM_PRZEWIN && z->n > 0 && dodaj_przewiniecie(nty(z, z->n - 1), m))
+        return 0;
     if (z->n < ZAL_MAKS) {
         *nty(z, z->n++) = *m;
         return 0;

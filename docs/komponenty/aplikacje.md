@@ -10,6 +10,14 @@
 Każda aplikacja to jeden wiersz w `K1_APLIKACJE` (`src/wspolne/k1_uslugi.h`) i katalog
 `src/aplikacje/<program>/`; każda ma tu swój rozdział (sprawdza `scripts/sprawdz-czytelnosc.py`).
 
+**Przewijanie (0.10.0 krok 4).** Kółko myszy i dwa palce na touchpadzie przesuwają to, co jest **pod kursorem**,
+także w oknie bez fokusu (komunikat `PRZEWIN` od ekranu → `k1_apl.przewin`; `k1_przewin_wiersze`: ząbek = 3 wiersze,
+części ząbka z touchpada się sumują). Gdzie: lista w **Plikach** (log „lista przewinięta: od wiersza N z M”, najwyżej
+2 razy na sekundę — testy przewijają według niego), lista notatek i sam tekst w **Notatkach** (kursor zostaje, gdzie
+był — klawisz albo kliknięcie wraca do niego), lista w **Wyborze pliku**, powiększone zdjęcie w **Podglądzie** (ząbek =
+60 px; dopasowane do okna — bez zmian). Ustawienia, Zasoby, Zegar, Kalkulator i Instalator mieszczą się w oknie — nie
+przewijają (lista sieci Wi-Fi pokazuje najwyżej 6 — przewijanie jej to pomysł na później).
+
 ### Zegar
 Tarcza analogowa (sekundnik w kolorze akcentu), godzina, data po polsku, czas
 letni/zimowy.

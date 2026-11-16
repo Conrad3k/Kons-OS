@@ -84,7 +84,7 @@ Na laptopach trzeba raz włączyć wirtualizację w BIOS-ie (D5) — bez niej K1
 [x]  1  Pierwsza strefa: KVM, VMM, okno w zaufanej ramce    S1–S11           0.9.1       D1 D4, T1–T6 T10 L        0042   PR #114
 [x]  2  Przeglądarka w strefie, połączenia przez K1         S12–S20          1           D2 D3 D6, T7–T9  L        0043   PR #119
 [x]  3  Poprawki przeglądarki: awarie, ramka, przyciski     S26–S28, S30     2           D1 (zmiana)      L        —      PR #126
-[ ]  4  Przewijanie: kółko myszy, dwa palce na touchpadzie S29              2           D8               M        —
+[x]  4  Przewijanie: kółko myszy, dwa palce na touchpadzie S29              2           D8               M        —      PR #128
 [ ]  5  Stała strefa, Ustawienia, porządki; wydanie 0.10.0  S21–S25          3, 4        D7, T11          L        —
 
 Dlaczego trzy, a nie dwa: krok 1 to cały fundament (jądro z KVM, własny VMM, nowa rola w ekranie, testy z emulowaną
@@ -386,7 +386,33 @@ KROK 4 — Przewijanie: kółko myszy i dwa palce na touchpadzie              M 
   Dokumenty: wejscie.md, ekran.md, strefa.md, aplikacje.md, jadro.md (opcje touchpadów), SLOWNIK (przewijanie),
   komunikaty kanału wejścia, TESTY.md.
   Gotowe, gdy: testy zielone, właściciel potwierdził na sprzęcie kółko i touchpad (przeglądarka, Pliki).
-  Ustalenia z wykonania: (pusto — wypełnia krok 4)
+  Ustalenia z wykonania (2026-11-16, krok 4):
+  - D8 (właściciel): kierunek naturalny na touchpadzie (treść jedzie za palcami), klasyczny dla kółka.
+  - S29 Z KODU / ZE ŹRÓDEŁ (drivers/input/mouse/Kconfig): touchpad X230 działał dotąd jako zwykła mysz PS/2 — jądro K1
+    nie miało żadnego protokołu touchpadów (MOUSE_PS2_SYNAPTICS, _ELANTECH, _ALPS — za EXPERT, allnoconfig je wyłączał),
+    więc palców nie widział nikt. Teraz są (bez wersji przez SMBus); IdeaPad 110: touchpad działa w K1 bez I2C-HID,
+    czyli jest na PS/2 — który to protokół, pokaże log wejścia na sprzęcie („urządzenie N: touchpad „…” (bus:vendor:
+    product)”). NIEPEWNE do testu właściciela: oba laptopy (ruch, stuknięcia, przycisk, dwa palce).
+  - Touchpad we własnym trybie to dla K1 nowe urządzenie: palce zamienia na zdarzenia src/wejscie/touchpad.c (czysty,
+    test_touchpad): jeden palec — ruch z lekkim przyspieszeniem (4–16 px/mm), dwa — przewijanie (próg 1,5 mm, 8 mm = ząbek),
+    stuknięcie — kliknięcie (1/2/3 palce: lewy/prawy/środkowy; nie 400 ms po klawiszu), touchpad-przycisk (X230) —
+    prawy dolny róg albo dwa palce = prawy. Bez tego (same opcje jądra) touchpad straciłby ruch i stuknięcia. Bez
+    bezwładności.
+  - Protokół: zdarzenie K1_ZD_PRZEWIJANIE i komunikat PRZEWIN — jednostka 1/120 ząbka (jak REL_WHEEL_HI_RES w jądrze),
+    dy > 0 = dalej w dół, źródło (kółko / touchpad). Ekran: do okna pod kursorem, bez fokusu też; nie przez ramkę
+    strefy; zaległe przewijanie jednej powierzchni się sumuje. Przybornik: k1_apl.przewin, k1_przewin_wiersze (ząbek =
+    3 wiersze). Pliki, Notatki (lista i tekst), Wybór pliku, Podgląd (powiększone zdjęcie). Lista sieci Wi-Fi w
+    Ustawieniach pokazuje najwyżej 6 i nie przewija się wcale — przewijanie jej to „Później”.
+  - Strefa: wskaźnik virtio-input ma REL_WHEEL/REL_HWHEEL i *_HI_RES; z touchpada VMM wysyła tylko *_HI_RES — kompozytor
+    poznaje po tym palce (axis_source „finger”: Firefox przewija płynnie), z kółka axis_discrete.
+  - POTWIERDZONE (test-pendrive): QEMU „mouse_move 0 0 dz” — dz > 0 to kółko od siebie (REL_WHEEL +1).
+  - test-przegladarka: poprawiony wydruk czasu startu (wyrażenie „gość(?: gotowy|: okno …)”).
+  - Testy lokalne (kontener, TCG): test-m1 12/12 (w systemie 185/185, z t_okna_przewijanie), test-pendrive i test-strefa
+    — wszystko zaliczone; przewijanie strony w Firefoksie — tylko CI z KVM.
+  - CI: przebieg 119 — maszyna CI zgubiona w trakcie testów (wisiało ponad 45 min, bez logów; właściciel anulował — jak
+    przebieg 115 w kroku 3); 123 — wszystko zielone: strona testowa przewinięta kółkiem o 228 px i z powrotem na 0,
+    gość „gotowy” po 7,2 s, pierwsze okno przeglądarki po 62,2 s od startu maszyny (poprawiony wydruk).
+  - Gotowe, gdy właściciel potwierdzi na sprzęcie kółko i touchpad (przeglądarka, Pliki) — test na X230 i IdeaPadzie.
 
 KROK 5 — Stała strefa, Ustawienia, porządki; wydanie 0.10.0               L · decyzje D7, T11 · bez ADR (uzupełnia 0042)
   (do 2026-11-15 był to krok 3; przesunięty, gdy właściciel dodał kroki 3 i 4)
@@ -467,7 +493,7 @@ Twoje (produkt):
        aplikacje (pasek tytułu do przesuwania, minimalizuj, zamknij) zamiast samej obwódki ze znaczkiem i plakietką po
        najechaniu (B2). Szkice do wyboru na początku kroku 3. Rekomendacja: pasek tytułu K1 w kolorze sesji z etykietą
        „Przeglądarka · Ogólna · osobna maszyna” i przyciskami po prawej, obwódka 3 px jak dziś.
-[!] D8 (krok 4) Przewijanie dwoma palcami: kierunek „naturalny” (treść jedzie za palcami, jak w telefonie) czy
+[x] D8 (krok 4; właściciel 2026-11-16: „naturalny na touchpadzie”) Przewijanie dwoma palcami: kierunek „naturalny” (treść jedzie za palcami, jak w telefonie) czy
        „klasyczny” (jak kółko myszy). Rekomendacja: naturalny na touchpadzie, klasyczny dla kółka; przełącznik
        w Ustawieniach → Mysz — później, jeśli będzie potrzebny.
 

@@ -217,18 +217,21 @@ static void loguj_kursor(void)
     static double t_log;
     static int32_t ost_x = -1, ost_y = -1;
     static int ost_w = -1;
-    static unsigned long ost_odrzucone;
+    static unsigned long ost_odrzucone, ost_przewiniecia;
     double t = k1_teraz();
     /* also when only the count of rejected input changed: the tests read it here (test-m1, "odrzucone 5)") — a valid
      * event among rejected ones may not move the cursor in time (0.8.1: CI run 44 missed the line) */
-    if (t - t_log >= 0.5 && (s.x != ost_x || s.y != ost_y || s.wcisniety != ost_w || s.odrzucone != ost_odrzucone) &&
+    if (t - t_log >= 0.5 && (s.x != ost_x || s.y != ost_y || s.wcisniety != ost_w || s.odrzucone != ost_odrzucone ||
+                          s.przewiniecia != ost_przewiniecia) &&
         !s.flip_w_toku && !s.zmiana) {
-        k1_log(TAG, "kursor %d,%d przycisk %s (zdarzenia: klawiatura %lu, mysz %lu, odrzucone %lu)", (int)s.x, (int)s.y,
-               s.wcisniety ? "wciśnięty" : "puszczony", s.klawisze, s.ruchy, s.odrzucone);
+        k1_log(TAG, "kursor %d,%d przycisk %s (zdarzenia: klawiatura %lu, mysz %lu, przewijanie %lu, odrzucone %lu)",
+               (int)s.x, (int)s.y, s.wcisniety ? "wciśnięty" : "puszczony", s.klawisze, s.ruchy, s.przewiniecia,
+               s.odrzucone);
         ost_x = s.x;
         ost_y = s.y;
         ost_w = s.wcisniety;
         ost_odrzucone = s.odrzucone;
+        ost_przewiniecia = s.przewiniecia;
         t_log = t;
     }
 }

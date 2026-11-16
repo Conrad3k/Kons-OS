@@ -59,7 +59,7 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 | obraz (blk) | 1 | odczyt z obrazu strefy (`pread`), `VIRTIO_BLK_F_RO`, `SEG_MAX` | zapis do obrazu, odczyt > 4 MiB, prośba bez nagłówka |
 | konsola | 2 | wiersze gościa do logu (strefa próbna) albo licznik | — |
 | losowość (rng) | 1 | `getrandom` do 4 KiB na prośbę | — |
-| klawiatura, wskaźnik (input) | 2 + 2 | zdarzenia `EV_KEY`, `EV_ABS` (0…32767), `EV_SYN` z ekranu; bez wolnego bufora — zdarzenie przepada (licznik) | — |
+| klawiatura, wskaźnik (input) | 2 + 2 | zdarzenia `EV_KEY`, `EV_ABS` (0…32767), `EV_SYN` z ekranu; od 0.10.0 krok 4 wskaźnik z kółkiem: `REL_WHEEL`, `REL_HWHEEL` i `*_HI_RES` (1/120 ząbka) z `PRZEWIN` — z kółka oba, z touchpada tylko `*_HI_RES`; bez wolnego bufora — zdarzenie przepada (licznik) | — |
 | ekran (gpu 2D) | 2 | zasoby ≤ 4096 × 4096 (razem ≤ 96 MiB), tło z pamięci gościa (sprawdzone przy dołączeniu), przeniesienie, pokazanie, odświeżenie → okno | polecenie krótsze niż jego struktura, brak miejsca na odpowiedź |
 | vsock | 3 | kanał sterujący (port 1 hosta): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
 
@@ -70,7 +70,8 @@ odczytu po do zapisu, skok indeksu, kolejka poza pamięcią albo niewyrównana, 
 Klient ekranu z rolą `STREFA`, jedno okno (≤ 1024 × 720, z rozmiaru ekranu; tyle widzi gość jako wyświetlacz). Przed
 pierwszym obrazem gościa: „Uruchamiam: <tytuł>…” z ikoną strefy i paskiem w jej kolorze (D1: S1). Obraz gościa — zmienione
 prostokąty kopiowane do wolnej połówki powierzchni (nieprzezroczyste). Klawisze i wskaźnik od ekranu (tylko przy fokusie)
-→ urządzenia wejścia; utrata fokusu puszcza wszystko. Ramkę — pasek tytułu nad obrazem i obwódkę (krok 3, szkic A) —
+→ urządzenia wejścia; utrata fokusu puszcza wszystko. Przewijanie (`PRZEWIN`, krok 4) przychodzi do okna pod kursorem,
+także bez fokusu: VMM ustawia najpierw położenie wskaźnika (gość przewija to, co jest pod nim), potem kółko. Ramkę — pasek tytułu nad obrazem i obwódkę (krok 3, szkic A) —
 rysuje ekran (`docs/komponenty/ekran.md`); wysokość obrazu jest o pasek (`K1_STREFA_TYTUL`) mniejsza.
 
 ## Przeglądarka (0.10.0 krok 2, ADR 0043)
@@ -101,7 +102,9 @@ Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka�
   `wl_shm`, `wl_subcompositor`, `wl_seat`, `wl_output`, `wl_data_device_manager` bez schowka, `xdg_wm_base`), każda
   wiadomość sprawdzana według sygnatury (zła — koniec tego klienta). Okno na cały wyświetlacz, dialogi na środku,
   wyskakujące menu z pozycjonerem; zdarzenia wejścia do każdego `wl_pointer`/`wl_keyboard` klienta (Firefox ma po dwa);
-  „klatka gotowa” także po zatwierdzeniu bez zmian (inaczej GTK przestaje rysować).
+  „klatka gotowa” także po zatwierdzeniu bez zmian (inaczej GTK przestaje rysować). Kółko (krok 4): jedna ramka
+  zdarzeń urządzenia = jedno przewinięcie `wl_pointer.axis` (10 jednostek na ząbek, jak weston); z ząbkami —
+  `axis_source` „wheel” i `axis_discrete`, same części ząbka (touchpad) — „finger”, więc Firefox przewija płynnie.
 - **Przekaźnik** (`src/strefa/przekaznik/`): SOCKS5 na 127.0.0.1:1080 → jedno połączenie vsock (port 2) na każde.
 - **Łącznik** (moduł VMM: `lacznik.c` czyste protokoły, `polaczenia.c` stan połączeń): SOCKS5 — tylko CONNECT, IPv4 albo
   nazwa (BIND, UDP, IPv6 — odmowa kodem SOCKS); nazwy — DNS (rekord A) przez gniazdo UDP od nadzorcy do serwera z DHCP;

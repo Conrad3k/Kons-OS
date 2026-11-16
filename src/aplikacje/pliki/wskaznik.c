@@ -113,15 +113,56 @@ static void klik_w_liste(int i)
     szczegoly_zadaj(id);
 }
 
-/* The scroll arrows under the list: a page up (left one) or down (right one). */
-static void przewin(int32_t x)
+/* The list moved by o rows (kept in range). */
+static void przesun_liste(int o)
 {
     int w = wierszy_widac();
-    od_wiersza += x < LISTA_X + LISTA_W / 2 ? -w : w;
+    od_wiersza += o;
     if (od_wiersza > n_widok - w)
         od_wiersza = n_widok - w;
     if (od_wiersza < 0)
         od_wiersza = 0;
+}
+
+/* The scroll arrows under the list: a page up (left one) or down (right one). */
+static void strona(int32_t x)
+{
+    przesun_liste(x < LISTA_X + LISTA_W / 2 ? -wierszy_widac() : wierszy_widac());
+}
+
+static double t_log_listy;
+static int log_listy; /* the first row shown changed: to the log (the tests scroll by it) */
+
+/* apl.zegar: that row goes to the log at most twice a second — the latest one, a little later if need be. */
+int przewin_zegar(void)
+{
+    double zostalo = 0.5 - (k1_teraz() - t_log_listy);
+    if (!log_listy)
+        return -1;
+    if (zostalo > 0)
+        return (int)(zostalo * 1000) + 1;
+    k1_log(TAG, "lista przewinięta: od wiersza %d z %d", od_wiersza + 1, n_widok);
+    t_log_listy = k1_teraz();
+    log_listy = 0;
+    return -1;
+}
+
+/* The wheel or two fingers over the list (0.10.0 step 4): K1_WIERSZE_NA_ZABEK rows a notch. */
+void przewin(int32_t x, int32_t y, int32_t dx, int32_t dy)
+{
+    static int32_t reszta;
+    int bylo = od_wiersza;
+    (void)dx;
+    if (x < LISTA_X || x >= LISTA_X + LISTA_W || y < WIERSZE_Y)
+        return;
+    if (menu_otwarte())
+        menu_zamknij();
+    przesun_liste(k1_przewin_wiersze(&reszta, dy));
+    if (od_wiersza == bylo)
+        return;
+    najechany = wiersz_pod(x, y);
+    log_listy = 1;
+    k1_apl_odswiez(&apl);
 }
 
 void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
@@ -180,7 +221,7 @@ void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         obraz_tapeta(zaznaczony);
     else if (przewijanie_potrzebne() && x >= LISTA_X && x < LISTA_X + LISTA_W && y >= apl.wys - STOPKA - PRZEWIJANIE &&
              y < apl.wys - STOPKA)
-        przewin(x);
+        strona(x);
     else if (x >= LISTA_X && x < LISTA_X + LISTA_W && y >= WIERSZE_Y)
         klik_w_liste(wr);
     k1_apl_odswiez(&apl);

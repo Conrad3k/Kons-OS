@@ -40,6 +40,7 @@ uint32_t kursor, pierwsza;
 int lista_od, pytanie;
 const char *komunikat;
 static int nad_wierszem = -1; /* hover: row of the list, -2 = the new note button, -5 = "Otwórz…" */
+static int sledz = 1;         /* the text follows the cursor (0: scrolled away by the wheel — until a key or a click) */
 double zmiana;
 int zapis_blad, skarb = -1, tryb = -1;
 
@@ -171,10 +172,12 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     rysuj_liste(o, m);
     uloz(szer_tekstu());
     lk = linia_kursora();
-    if (lk < pierwsza)
+    if (sledz && lk < pierwsza)
         pierwsza = lk;
-    if ((int32_t)(lk - pierwsza) >= widoczne())
+    if (sledz && (int32_t)(lk - pierwsza) >= widoczne())
         pierwsza = lk - (uint32_t)widoczne() + 1;
+    if (!sledz && (int32_t)(n_linii - pierwsza) < widoczne()) /* scrolled: not past the end */
+        pierwsza = (int32_t)n_linii > widoczne() ? n_linii - (uint32_t)widoczne() : 0;
     if (b->dl == 0)
         k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 16,
                  b->wczytana       ? "Zacznij pisać…"
@@ -215,6 +218,7 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     int n;
     if (wartosc == 0)
         return;
+    sledz = 1;
     if (mody & K1_MOD_CTRL) { /* Ctrl+N: new note; Ctrl+O: a file; Ctrl+↑/↓: the previous / next note of the list */
         if (kod == KEY_N)
             nowa();
@@ -351,11 +355,34 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     if (y < GORA || !b->wczytana)
         return;
     uloz(szer_tekstu());
+    sledz = 1;
     ln = pierwsza + (uint32_t)((y - GORA) / WIERSZ);
     if (ln >= n_linii)
         ln = n_linii - 1;
     kursor = pozycja_w_linii(ln, x - LEWO);
     k1_apl_odswiez(&apl);
+}
+
+/* The wheel or two fingers (0.10.0 step 4): over the list its rows, over the text its lines (the cursor stays where it
+ * is until a key or a click). */
+static void przewin(int32_t x, int32_t y, int32_t dx, int32_t dy)
+{
+    static int32_t reszta_listy, reszta_tekstu;
+    int o;
+    (void)y, (void)dx;
+    if (x < BOK) {
+        o = k1_przewin_wiersze(&reszta_listy, dy);
+        lista_od += o;
+        popraw_przewiniecie(0);
+    } else {
+        o = k1_przewin_wiersze(&reszta_tekstu, dy);
+        if (o == 0)
+            return;
+        sledz = 0;
+        pierwsza = o < 0 && (uint32_t)-o > pierwsza ? 0 : pierwsza + (uint32_t)o;
+    }
+    if (o != 0)
+        k1_apl_odswiez(&apl);
 }
 
 /* The window closes: what was typed in the last 0.8 s is saved first. */
@@ -385,6 +412,7 @@ int main(void)
     apl.rysuj = rysuj;
     apl.klawisz = klawisz;
     apl.wskaznik = wskaznik;
+    apl.przewin = przewin;
     apl.zegar = zegar;
     apl.zamykanie = zamykanie;
     wczytaj();

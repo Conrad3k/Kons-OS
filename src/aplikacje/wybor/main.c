@@ -198,7 +198,7 @@ static void lista(struct k1_obraz *o, const struct k1_motyw *m)
     }
     if (n_widok > w) { /* more than fits: where we are */
         char buf[48];
-        snprintf(buf, sizeof buf, "%d–%d z %d (strzałki)", od + 1, od + w < n_widok ? od + w : n_widok, n_widok);
+        snprintf(buf, sizeof buf, "%d–%d z %d (strzałki, kółko)", od + 1, od + w < n_widok ? od + w : n_widok, n_widok);
         k1_tekst(o, K1_CZ_MALA, LISTA_X, apl.wys - STOPKA + 34, buf, k1_kolor(m->tekst3, 255), 0);
     }
 }
@@ -326,6 +326,25 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     k1_apl_odswiez(&apl);
 }
 
+/* The wheel or two fingers over the list (0.10.0 step 4): its rows. */
+static void przewin(int32_t x, int32_t y, int32_t dx, int32_t dy)
+{
+    static int32_t reszta;
+    int bylo = od;
+    (void)dx;
+    if (x < LISTA_X || x >= LISTA_X + LISTA_W || y < WIERSZE_Y)
+        return;
+    od += k1_przewin_wiersze(&reszta, dy);
+    if (od > n_widok - wierszy_widac())
+        od = n_widok - wierszy_widac();
+    if (od < 0)
+        od = 0;
+    if (od != bylo) {
+        nad_wierszem = wiersz_pod(x, y);
+        k1_apl_odswiez(&apl);
+    }
+}
+
 /* The window's × is "Anuluj": the application hears that the user changed their mind. */
 static void zamykanie(void)
 {
@@ -343,6 +362,7 @@ int main(void)
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
     apl.klawisz = klawisz;
+    apl.przewin = przewin;
     apl.zamykanie = zamykanie;
     apl.kanaly[0].fd = dane_start();
     apl.kanaly[0].dane = dane_odbierz;

@@ -292,6 +292,21 @@ class Maszyna:
         self.monitor("mouse_button 2", "mouse_button 0")
         return trafil
 
+    def kolko(self, x, y, w_dol=1):
+        """The wheel over (x, y) (0.10.0 step 4): `w_dol` notches towards the user (further down; < 0: up), one monitor
+        command each (QEMU: mouse_move 0 0 dz — dz > 0 is a turn away from the user, Linux REL_WHEEL +1). Waits until
+        ekran counted them (its cursor line: "przewijanie N"). False when the pointer never got there."""
+        trafil = self.idz(x, y)
+        n = self.przewiniecia()
+        self.monitor(*[f"mouse_move 0 0 {-1 if w_dol > 0 else 1}"] * abs(w_dol))
+        self.czekaj_na(lambda: self.przewiniecia() >= n + abs(w_dol), czas=10)
+        return trafil
+
+    def przewiniecia(self):
+        """How many scrollings ekran has counted (its rate-limited cursor line)."""
+        m = re.findall(r"K1-EKRAN: kursor .*przewijanie (\d+),", self.tekst())
+        return int(m[-1]) if m else 0
+
     def przeciagnij(self, x1, y1, x2, y2, krokow=4):
         """Dragging (0.8.2 step 6): press at (x1, y1), move in a few steps to (x2, y2) (each one confirmed by ekran's
         cursor line), release. False when the pointer never got to the start."""

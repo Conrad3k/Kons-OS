@@ -167,6 +167,10 @@ int okno_odbierz(void)
             if (m.obiekt == OKNO_ID || m.c == K1_WSK_PUSZCZENIE)
                 wejscie_wskaznik(m.a, m.b, szer, wys, m.c, m.d);
             break;
+        case K1_KOM_PRZEWIN:
+            if (m.obiekt == OKNO_ID)
+                wejscie_przewin(m.a, m.b, szer, wys, m.c, m.d, m.e);
+            break;
         case K1_KOM_FOKUS:
             if (m.a == 0)
                 wejscie_pusc();

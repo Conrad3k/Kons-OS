@@ -247,20 +247,50 @@ static void przycisk(int kod, int wartosc)
         ruch(); /* released: the surface under the pointer gets it again */
 }
 
-static void kolko(int wartosc)
+/* The wheel of one frame of a device (0.10.0 step 4): notches (REL_WHEEL, REL_HWHEEL: > 0 up / right) and 1/120 parts
+ * (*_HI_RES). Only parts, no notches: the fingers on a touchpad (the VMM sends no notches for them) — axis_source
+ * "finger", so the browser scrolls smoothly; otherwise "wheel" with axis_discrete. */
+static int32_t kolko_v, kolko_h, dokladne_v, dokladne_h;
+
+static void kolko_wyslij(void)
 {
+    int palce = (dokladne_v || dokladne_h) && !kolko_v && !kolko_h;
+    int32_t v = dokladne_v ? dokladne_v : kolko_v * 120, h = dokladne_h ? dokladne_h : kolko_h * 120;
     struct obiekt *w;
     unsigned i;
-    if (wartosc == 0)
+    kolko_v = kolko_h = dokladne_v = dokladne_h = 0;
+    if (v == 0 && h == 0)
         return;
     KAZDY(wskazniki, pod_kursorem, i, w) {
+        uint32_t t = teraz_ms();
         if (w->wersja >= 5) {
-            zdarzenie(w, 6, "u", 0u);            /* axis_source: wheel */
-            zdarzenie(w, 8, "ui", 0u, -wartosc); /* axis_discrete: vertical */
+            zdarzenie(w, 6, "u", palce ? 1u : 0u); /* axis_source: finger / wheel */
+            if (!palce && v / 120 != 0)
+                zdarzenie(w, 8, "ui", 0u, -v / 120); /* axis_discrete: vertical, > 0 down */
+            if (!palce && h / 120 != 0)
+                zdarzenie(w, 8, "ui", 1u, h / 120);
         }
-        zdarzenie(w, 4, "uuf", teraz_ms(), 0u, -wartosc * 10 * 256); /* axis: 10 units a notch, positive = down */
+        /* axis: 10 units a notch (as weston), > 0 down / right; wl_fixed = value × 256 */
+        if (v != 0)
+            zdarzenie(w, 4, "uuf", t, 0u, -v * 64 / 3);
+        if (h != 0)
+            zdarzenie(w, 4, "uuf", t, 1u, h * 64 / 3);
     }
     ramka(pod_kursorem);
+}
+
+static void kolko(int kod, int32_t wartosc)
+{
+    if (wartosc < -16 * 120 * 64 || wartosc > 16 * 120 * 64)
+        return;
+    if (kod == REL_WHEEL)
+        kolko_v += wartosc;
+    else if (kod == REL_HWHEEL)
+        kolko_h += wartosc;
+    else if (kod == REL_WHEEL_HI_RES)
+        dokladne_v += wartosc;
+    else if (kod == REL_HWHEEL_HI_RES)
+        dokladne_h += wartosc;
 }
 
 void wejscie_czytaj(unsigned i)
@@ -284,11 +314,13 @@ void wejscie_czytaj(unsigned i)
             else
                 ky = (int32_t)((int64_t)v * (r - 1) / m);
             ruszyl = 1;
-        } else if (e[j].type == EV_REL && e[j].code == REL_WHEEL) {
-            kolko(e[j].value);
-        } else if (e[j].type == EV_SYN && ruszyl) {
-            ruch();
+        } else if (e[j].type == EV_REL) {
+            kolko(e[j].code, e[j].value);
+        } else if (e[j].type == EV_SYN) {
+            if (ruszyl)
+                ruch();
             ruszyl = 0;
+            kolko_wyslij();
         }
     }
     if (ruszyl)

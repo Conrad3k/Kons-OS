@@ -18,6 +18,9 @@ struct k1_apl {
     /* pointer in window coordinates (only in the content area), key events */
     void (*wskaznik)(int rodzaj, int32_t x, int32_t y, int przycisk);
     void (*klawisz)(unsigned kod, int wartosc, unsigned mody);
+    /* 0.10.0 step 4: the wheel or two fingers over the content (x, y as above), also when the window has no focus;
+     * dx, dy in 1/K1_PRZEWIN_ZABEK of a notch, dy > 0: further down (k1_przewin_wiersze: rows). NULL: nothing scrolls */
+    void (*przewin)(int32_t x, int32_t y, int32_t dx, int32_t dy);
     /* called once every loop; returns the time in ms until it wants to be called again (-1: no timer) */
     int (*zegar)(void);
     /* called right before the window closes (its × button, or "Zamknij okno" on the bottom bar — 0.7.5) */

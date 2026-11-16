@@ -50,7 +50,8 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
 ## Uprawnienia, urządzenia
 - Sterowniki: PCI, ACPI (wyłączanie zasilania), virtio-blk, 8250 (port szeregowy), IOMMU, EFI stub;
   od M2: DRM + `bochs` (karta QEMU stdvga, tylko KMS — bez fbdev/fbcon), evdev, i8042 + atkbd + psmouse
-  (bez rozszerzeń producentów i bez mousedev); od M4: `simpledrm` (obraz z firmware), loop, CMOS RTC (od 0.9.0
+  (bez mousedev; od 0.10.0 krok 4 z protokołami touchpadów Synaptics — X230 — Elantech i ALPS: dopiero w nich jądro
+  podaje palce, więc działa przewijanie dwoma palcami i stuknięcia, `src/wejscie/touchpad.c`; bez wersji przez SMBus); od M4: `simpledrm` (obraz z firmware), loop, CMOS RTC (od 0.9.0
   krok 8 z `/dev/rtc0` — tylko nadzorca zapisuje tam czas z internetu);
   od M4.1: `vmwgfx` (VirtualBox VMSVGA, VMware) z `HYPERVISOR_GUEST` — bez PARAVIRT, KVM_GUEST, Xen
   (ADR 0012); od M5a (ADR 0013): dyski SATA (AHCI) i NVMe, dyski SCSI (`sd`: SATA i pamięci USB),

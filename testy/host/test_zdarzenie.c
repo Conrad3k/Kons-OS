@@ -42,13 +42,15 @@ int main(void)
     z = baza(K1_ZD_RUCH); z.dx = K1_ZD_RUCH_MAX; z.dy = -K1_ZD_RUCH_MAX; EXPECT(ok(z));
     z = baza(K1_ZD_PRZYCISK); z.kod = 0x110; z.wartosc = 1; EXPECT(ok(z));
     z = baza(K1_ZD_PRZYCISK); z.kod = 0x117; z.wartosc = 0; EXPECT(ok(z));
+    z = baza(K1_ZD_PRZEWIJANIE); z.kod = K1_ZD_KOLKO; z.dy = K1_ZD_ZABEK; EXPECT(ok(z));
+    z = baza(K1_ZD_PRZEWIJANIE); z.kod = K1_ZD_TOUCHPAD; z.dx = -K1_ZD_PRZEWIN_MAX; z.dy = K1_ZD_PRZEWIN_MAX; EXPECT(ok(z));
 
     /* nagłówek */
     z = baza(K1_ZD_RUCH); z.dx = 1; z.wersja = 2; EXPECT(zle(z));
     z = baza(K1_ZD_RUCH); z.dx = 1; z.dlugosc = 15; EXPECT(zle(z));
     z = baza(K1_ZD_RUCH); z.dx = 1; z.zarezerwowane = 1; EXPECT(zle(z));
     z = baza(0); EXPECT(zle(z));
-    z = baza(4); EXPECT(zle(z));
+    z = baza(5); EXPECT(zle(z));
     z = baza(255); EXPECT(zle(z));
 
     /* klawisz */
@@ -70,6 +72,14 @@ int main(void)
     z = baza(K1_ZD_PRZYCISK); z.kod = 0x10f; z.wartosc = 1; EXPECT(zle(z));
     z = baza(K1_ZD_PRZYCISK); z.kod = 0x118; z.wartosc = 1; EXPECT(zle(z));
     z = baza(K1_ZD_PRZYCISK); z.kod = 0x110; z.wartosc = 2; EXPECT(zle(z));
+
+    /* przewijanie (0.10.0 krok 4) */
+    z = baza(K1_ZD_PRZEWIJANIE); z.kod = K1_ZD_KOLKO; EXPECT(zle(z)); /* zerowe */
+    z = baza(K1_ZD_PRZEWIJANIE); z.dy = 1; EXPECT(zle(z));             /* bez źródła */
+    z = baza(K1_ZD_PRZEWIJANIE); z.kod = 3; z.dy = 1; EXPECT(zle(z));
+    z = baza(K1_ZD_PRZEWIJANIE); z.kod = K1_ZD_KOLKO; z.dy = K1_ZD_PRZEWIN_MAX + 1; EXPECT(zle(z));
+    z = baza(K1_ZD_PRZEWIJANIE); z.kod = K1_ZD_KOLKO; z.dx = -K1_ZD_PRZEWIN_MAX - 1; EXPECT(zle(z));
+    z = baza(K1_ZD_PRZEWIJANIE); z.kod = K1_ZD_KOLKO; z.dy = 1; z.wartosc = 1; EXPECT(zle(z));
 
     /* długość bufora: za krótki, za długi, NULL */
     z = baza(K1_ZD_RUCH); z.dx = 1;

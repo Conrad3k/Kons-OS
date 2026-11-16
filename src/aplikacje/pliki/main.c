@@ -309,6 +309,8 @@ int main(void)
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
     apl.klawisz = klawisz;
+    apl.przewin = przewin;
+    apl.zegar = przewin_zegar;
     apl.kanaly[0].fd = dane_start();
     apl.kanaly[0].dane = dane_odbierz;
     apl.kanaly[1].fd = FD_NADZORCA;

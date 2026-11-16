@@ -255,6 +255,17 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     }
 }
 
+/* The wheel or two fingers (0.10.0 step 4): a zoomed-in picture moves as if dragged the other way (a notch = 60 px);
+ * a fitted one stays (the arrows and the bar change the picture). */
+static void przewin(int32_t x, int32_t y, int32_t dx, int32_t dy)
+{
+    (void)x, (void)y;
+    if (!widok_powiekszony())
+        return;
+    widok_przesun(-dx / 2, -dy / 2);
+    k1_apl_odswiez(&apl);
+}
+
 static void klawisz(unsigned kod, int wartosc, unsigned mody)
 {
     if (wartosc == 0)
@@ -292,6 +303,7 @@ int main(void)
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
     apl.klawisz = klawisz;
+    apl.przewin = przewin;
     apl.zegar = widok_zegar;
     uklad();
     dane_start();
