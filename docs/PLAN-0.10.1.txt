@@ -61,9 +61,12 @@ Nowy czat — przebieg każdego kroku:
 ------------------------------
 Dziś każda sesja przeglądarki dostaje przy starcie stały kawałek pamięci komputera — 1,5 GB — i ani bajta więcej,
 nawet gdy laptop ma 8 GB i większość leży wolna. Co gorsza, raz zajętej pamięci strefa już K1 nie oddaje, nawet gdy
-zamkniesz kartę. Dwie cięższe karty potrafią ten kawałek zapełnić; wtedy w środku strefy coś musi zginąć — karta albo
-cała przeglądarka. Dlatego wysypuje się tak samo na X230 (8 GB), jak na IdeaPadzie (4 GB): ograniczeniem nie jest
-Twój komputer, tylko stały przydział strefy.
+zamkniesz kartę. To trzeba zmienić tak czy inaczej — i to robi balon (kroki 2–3).
+Twoje odpowiedzi (D1, 2026-11-16): wysypuje się już przy pustych kartach — po minimalizacji i przywróceniu okna
+często od razu, a bez minimalizacji też, tylko później. To mogą być DWA niezależne błędy. Twoje założenie: oba naprawi
+balon. Krok 1 sprawdza to osobno dla każdego z nich: jeśli przyczyną jest pamięć — naprawia ją balon (kroki 2–3); jeśli
+któryś okaże się czymś innym (np. sam powrót zminimalizowanego okna), krok 1 naprawia go od razu, żeby po 0.10.1
+nie zostało nic.
 
 Po 0.10.1 strefa ma BALON — znaną z innych systemów wirtualizacji „gumową” pamięć:
   - przeglądarka bierze tyle pamięci, ile w tej chwili potrzebuje — więcej, gdy otwierasz ciężkie strony, aż do
@@ -115,10 +118,11 @@ KROK 1 — Pomiar i przyczyna: odtworzenie, liczniki, prawdziwy powód końca   
   przeglądarki zużyła całą swoją pamięć”), pamięci komputera, czy był to błąd — dziś „pamięć komputera” pojawia się
   także wtedy, gdy pękł limit samej sesji (S3). Poza tym bez zmian (chyba że przyczyną jest błąd — wtedy znika awaria).
   Zadania:
-  [ ] Odtworzenie (S12, T7): test-przegladarka.sh — dwa nowe scenariusze dokładnie wg obserwacji właściciela:
-      (a) dwie karty ze stronami testowymi „jak prawdziwe strony” (obrazy, skrypty, animacja, przyrost pamięci w czasie
-      — strona serwera testowego), potem 2–3 minuty czekania; (b) to samo i 10 × minimalizuj → przywróć (pasek tytułu
-      strefy, element na pasku zadań). Pamięć gościa w teście NIEZMIENIONA (1536 MiB) — test ma być czerwony przed
+  [ ] Odtworzenie (S12, T7): test-przegladarka.sh — dwa nowe scenariusze dokładnie wg obserwacji właściciela (D1):
+      (a) dwie PUSTE karty (Ctrl+T), bez minimalizacji, do 5 min czekania (błąd „później”); (b) to samo
+      i 10 × minimalizuj → przywróć (przycisk na pasku
+      tytułu strefy, element na pasku zadań), po każdym przywróceniu kilka sekund i sprawdzenie, że strefa żyje;
+      (c) dodatkowo dwie ciężkie strony testowe z przyrostem pamięci — dla kroku 2. Pamięć gościa w teście NIEZMIENIONA (1536 MiB) — test ma być czerwony przed
       poprawką. Strefa próbna: tryb `gosc` „pamięć” (zajmij / zwolnij N MiB na komendę) — szybki test w emulacji.
   [ ] Liczniki (S13): co 5 s jedna linia w logu K1-STREFA (najwyżej 2 wpisy/s, niezmiennik 8 — same liczby): gość
       (MemAvailable, zajęty zram, liczba zabitych procesów — gosc przez kanał sterujący), VMM (bajty zasobów grafiki,
@@ -127,7 +131,8 @@ KROK 1 — Pomiar i przyczyna: odtworzenie, liczniki, prawdziwy powód końca   
   [ ] Prawdziwy powód (S3): nadzorca po końcu VMM czyta memory.events jego klatki (oom_kill > 0 → limit SESJI, nowy
       powód K1_STREFA_KONIEC_LIMIT; SIGKILL bez oom_kill w klatce → pamięć komputera); okienko gui z nowym tekstem
       (słowa ze słownika). Wiersz w docs (komunikat STREFA_STAN — nowa wartość b).
-  [ ] Przyczyna: z liczników i zrzutów (a) i (b) — który limit z S1–S4 pęka i przy czym. Pamięć gościa / klatka VMM →
+  [ ] Przyczyna — OSOBNO dla (a) i (b) (mogą być dwa błędy): z liczników, logu i zrzutów; dla (b) najpierw ścieżka
+      przywrócenia okna (S12), dla obu — limity S1–S4. Dla każdego wpis w „Ustaleniach”: pamięć (→ krok 2) czy nie. Pamięć gościa / klatka VMM →
       zostaje dla kroku 2 (tu najwyżej tani zapas, jeśli test pokaże, że 160 MiB zapasu klatki to za mało — z liczbą
       w opisie PR-a). Coś innego (zasoby grafiki przy minimalizacji, połączenia, kompozytor) → poprawka u źródła tu.
   Testy i dowód: scenariusze (a) i (b) — przed poprawką czerwone z linią liczników, po — wg przyczyny: zielone (błąd
@@ -247,16 +252,17 @@ UWAGI Z DRUGIEJ OPINII (właściciel, 2026-11-16: uwagi Gemini o balonach w mikr
 4. DECYZJE
 ----------
 Twoje (produkt):
-[!] D1 (krok 1) Twoje obserwacje — informacja, nie wybór (odpowiedz, co pamiętasz; resztę zmierzy test):
-       (a) Gdy przeglądarka się „wysypuje”: znika całe okno i pojawia się okienko K1 „Przeglądarka zamknęła się”
-           (jaki powód?), czy w oknie przeglądarki pojawia się strona Firefoksa „Karta uległa awarii” (ginie karta, nie
-           przeglądarka), czy obraz zamarza?
-       (b) Jakie strony były otwarte (np. YouTube, serwis informacyjny, poczta)? Czy coś grało albo się ruszało?
-       (c) „Chwila czekania” — ile mniej więcej: kilkanaście sekund, minuta, kilka minut?
-       (d) Przy „minimalizacji i maksymalizacji” — chodzi o przycisk „minimalizuj” na pasku tytułu i przywrócenie
-           okna z dolnego paska? Czy awaria jest od razu po przywróceniu, czy po chwili?
-       (e) Jeśli zdążysz: Start → Zasoby przed awarią — ile pamięci pokazuje „strefa-2” (sesja Ogólna)?
-       Którą wersję testowałeś (obraz z CI kroku 3 — przebieg 117 — czy nowszy)?
+[x] D1 (krok 1) Twoje obserwacje — odpowiedź właściciela z 2026-11-16:
+       (a) znika całe okno, pojawia się okienko K1 „Przeglądarka zamknęła się” (czyli kończy się cała strefa, nie
+           karta; zdanie z powodem pod tytułem — jeszcze nieznane, patrz niżej);
+       (b) wystarczą puste, nowe karty — strony nie grają roli;
+       (c) awaria zwykle w niecałą minutę;
+       (d) często od razu po przywróceniu zminimalizowanego okna;
+       (e) bez minimalizacji też się wysypuje, tylko później — możliwe dwa niezależne błędy; założenie właściciela:
+           oba naprawi balon (krok 1 sprawdza to osobno dla każdego).
+       Do uzupełnienia, jeśli się da (krok 1 zmierzy to i tak): zdanie pod tytułem okienka („Strony zajęły całą pamięć
+       strefy…”, „Komputerowi zabrakło pamięci…”, „Program w strefie uległ awarii…” albo „Strefa zatrzymała się
+       z powodu błędu…”) i pamięć „strefa-2” w Zasobach tuż przed awarią.
 [!] D2 (krok 2) Ile pamięci może dostać jedna sesja przeglądarki (górna granica). Rekomendacja: tyle, ile ma komputer,
        minus rezerwa K1 (D3) — czyli na 4 GB ok. 2,5–3 GB, na 8 GB ok. 6 GB; K1 i tak oddaje sesji tylko to, czego
        naprawdę używa, a resztę zabiera z powrotem. Mniejsza granica (np. połowa pamięci) chroni inne sesje, ale ciężka
@@ -330,11 +336,19 @@ Krok 1
       (K1_STREFA_POLACZENIA_MAKS) i 400 na 10 s u nadzorcy, pliki 64 + 128 + 8, wątki procesory + 2 (profile.c),
       kolejka pakietów vsock do gościa (vsock.c CZEKAJACE; przy pełnej — porzucane), okno najwyżej 1024 × 720
       (src/strefa/okno.c).
-  S12 Z OBSERWACJI WŁAŚCICIELA (2026-11-16). Awaria na X230 (8 GB) i IdeaPadzie 110 (4 GB) tak samo → nie pamięć
-      komputera, tylko limit strefy (S1–S4). Wyzwalacze: (a) dwie karty + chwila czekania — pamięć rośnie z czasem
-      (strony, skrypty, pamięć podręczna), (b) minimalizacja i przywrócenie — NIEPEWNE: skok pamięci (Firefox po
-      przywróceniu rysuje całe okno od nowa — bufory procesów kart w pamięci gościa) albo osobny błąd na tej ścieżce
-      (ekran przestaje pokazywać okno strefy; co dostaje VMM, kompozytor strefy i Firefox — sprawdzić w kroku 1).
+  S12 Z OBSERWACJI WŁAŚCICIELA (2026-11-16, D1). Awaria na X230 (8 GB) i IdeaPadzie 110 (4 GB) tak samo → nie pamięć
+      komputera. Kończy się cała strefa (okienko „Przeglądarka zamknęła się”), już przy PUSTYCH kartach: po
+      minimalizacji i przywróceniu często od razu, bez minimalizacji — później. Dwa wyzwalacze → możliwe dwa
+      niezależne błędy (D1 e). Pamięć gościa: NIEPEWNE — puste karty to mało, ale Firefox ma kilka procesów, a zram,
+      pamięć podręczna obrazu i bufory obrazu siedzą w tych samych 1536 MiB; liczniki z kroku 1 rozstrzygną. Z KODU (2026-11-16, krótki przegląd):
+      ekran przy minimalizacji tylko chowa okno (src/ekran/okna.c minimalizuj: zmin = 1, fokus do innego okna,
+      zglos_okno); przy przywróceniu aktywuj → fokus wraca, VMM dostaje FOKUS (a = 0 przy utracie: wejscie_pusc puszcza
+      wszystkie klawisze i przyciski w gościu) i zdarzenia wskaźnika (przyciskanie paska zadań, puszczenie przycisku
+      idzie do VMM zawsze — okno.c okno_odbierz, przycinane do okna w wejscie.c); potwierdzenie ramki (RAMKA) wysyła
+      ekran przy składaniu sceny (scena.c) — sprawdzić, czy przy ukrytym oknie VMM czeka (okno.czeka) i co wtedy robi
+      gość. W strefie: kompozytor (wl_pointer, xdg_toplevel — stan „activated”), Firefox. Kandydaci do sprawdzenia
+      kolejno: kod wyjścia VMM i zdanie okienka (powód), log K1-STREFA i konsola gościa przy końcu, potem pamięć
+      (S1–S4). Stróż VMM (stroz.c) tylko loguje zastój pętli — nie kończy maszyny.
   S13 Z KODU. Zasoby (src/nadzorca/zasoby.c) już pokazują memory.current każdej klatki, także „strefa-N” — właściciel
       może to odczytać przed awarią (D1 e). Gość liczy zabite procesy (/proc/vmstat oom_kill, 0.10.0 krok 3), ale nie
       wysyła ich na bieżąco — tylko powód przy końcu.
