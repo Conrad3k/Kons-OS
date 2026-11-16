@@ -1,6 +1,6 @@
-/* K1 skarbiec — internal parts of the Blob Vault shared by magazyn.c (index, public functions), obszary.c (format 1:
- * two regions), odcinki.c and spis.c (format 2: segments, ADR 0036) and naglowek.c (the header and the wrapped master
- * key). Not for other programs: magazyn.h is the interface. */
+/* K1 skarbiec — internal parts of the Blob Vault shared by magazyn.c (index, public functions), odcinki.c and spis.c
+ * (format 2: segments, ADR 0036) and naglowek.c (the header and the wrapped master key). Not for other programs:
+ * magazyn.h is the interface. */
 #ifndef K1_MAGAZYN_WEW_H
 #define K1_MAGAZYN_WEW_H
 
@@ -9,7 +9,7 @@
 #include "magazyn.h"
 
 #define MAGIA "K1SKARB1"
-#define WERSJA 1u  /* format 1: two regions */
+#define WERSJA1 1u /* format 1: two regions (0.5.6–0.8.1) — not opened since 0.10.0, only recognised */
 #define WERSJA2 2u /* format 2: segments (ADR 0036) */
 #define FLAGA_HASLO 1u
 #define NAGLOWEK_MAC 4080u /* MAC of bytes 0..4079 */
@@ -19,18 +19,19 @@
 #define ARGON_MAKS_KIB (1u << 20) /* 1 GiB */
 
 struct naglowek {
-    uint32_t wersja, flagi, aktywny, argon_kib, argon_przejscia;
+    uint32_t wersja, flagi, argon_kib, argon_przejscia;
     uint8_t uuid[16], sol[16], owiniety[OWINIETY_DL];
-    uint64_t generacja, bloki, epoka, koniec;
-    /* format 2 */
+    uint64_t generacja, bloki;
     uint32_t odcinek, n_odcinkow, spis_bloki, spis_wpisow, n_ogona;
     uint64_t licznik_gen;
     struct k1_mag_ogniwo ogon[K1_MAG_OGON];
 };
 
-/* Field checks that need no key (format 1 or 2): 0, or -1 for anything wrong. */
+/* Field checks that need no key (format 2): 0, or -1 for anything wrong. */
 int naglowek_czytaj(const uint8_t *b, uint64_t bloki_dysk, struct naglowek *n);
-/* The header block of the vault's current state (its format), with its MAC (key derived from the master key). */
+/* 1: the header of a vault of format 1 (0.5.6–0.8.1), which this version does not open. */
+int naglowek_stary(const uint8_t *b);
+/* The header block of the vault's current state, with its MAC (key derived from the master key). */
 void naglowek_zbuduj(const struct k1_magazyn *m, uint8_t *b);
 /* The MAC key of the header, derived from the master key. */
 void klucz_naglowka(const uint8_t klucz[32], uint8_t kn[32]);
@@ -59,17 +60,6 @@ int mag_indeksuj(struct k1_magazyn *m, uint8_t typ, uint16_t wl, const char nazw
                  uint32_t bloki, uint32_t dl);
 /* Format 2: entry `i` now lives at `blok` (compaction). */
 void mag_przenies(struct k1_magazyn *m, int i, uint64_t blok);
-
-/* ---- format 1: two regions (obszary.c) ---- */
-/* Reads the active region up to `koniec` into the index (every record is authenticated). */
-int f1_wczytaj(struct k1_magazyn *m);
-/* Appends a record (the name already zero padded); compacts when the region is full. */
-int f1_dopisz(struct k1_magazyn *m, uint8_t typ, uint16_t wl, const char nazwa[K1_MAG_NAZWA], const void *dane,
-              uint32_t dl);
-/* Copies the data of entry `i` (already checked: fits in `buf`) after authenticating its record. */
-int f1_czytaj(struct k1_magazyn *m, int i, void *buf);
-int f1_kompaktuj(struct k1_magazyn *m);
-int f1_powieksz(struct k1_magazyn *m, uint64_t bajty);
 
 /* ---- format 2: segments (odcinki.c — records, writing, compaction; spis.c — the spis, opening) ----
  * A record: blocks u32, zero u32, nonce 24 and MAC 16 of the meta, the meta (48 B encrypted: type, zero, owner,
@@ -123,9 +113,5 @@ uint64_t f2_pojemnosc_blokow(const struct k1_magazyn *m);
 int f2_zapisz_spis(struct k1_magazyn *m, uint32_t odc);
 /* Opening after the header: the spis, then the records of the tail. */
 int f2_wczytaj(struct k1_magazyn *m);
-
-/* ---- format 1 → 2 (przejscie.c) ---- */
-/* Forgets the copies made so far (compaction or growing of format 1 changes where its records are). */
-void przejscie_przerwij(struct k1_magazyn *m);
 
 #endif

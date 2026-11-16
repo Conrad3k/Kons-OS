@@ -72,7 +72,7 @@ static void test_podstawy(struct k1_mag_dysk *d)
     uint32_t dl;
     int h;
     dysk(d, 4096); /* 16 MiB: 7 segments for 2 pieces of 1 MiB (514 blocks), 2 kept free */
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
     EXPECT(m.format == 2 && m.odcinek == 514 && m.n_odcinkow == 7 && m.rezerwa == 2);
     EXPECT(k1_mag_pojemnosc(&m) == 5ull * 514 * K1_MAG_BLOK && k1_mag_wolne(&m) == k1_mag_pojemnosc(&m));
     EXPECT(k1_mag_sprawdz(d, &h) == K1_MAG_JEST && h == 0);
@@ -97,9 +97,9 @@ static void test_podstawy(struct k1_mag_dysk *d)
     EXPECT(k1_mag_otworz(&m, d, "haslo") == K1_MAG_HASLO);
     k1_mag_zamknij(&m);
 
-    /* a password, as in format 1 (the same header code) */
+    /* a password */
     dysk(d, 1024);
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, "Kocham-K1", 64, 2) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz(&m, d, "Kocham-K1", 64) == K1_MAG_OK);
     EXPECT(k1_mag_zapisz(&m, 5, "notatka", "z haslem", 8) == K1_MAG_OK);
     k1_mag_zamknij(&m);
     EXPECT(k1_mag_sprawdz(d, &h) == K1_MAG_JEST && h == 1);
@@ -111,19 +111,27 @@ static void test_podstawy(struct k1_mag_dysk *d)
 
     /* too small for segments: nothing written */
     dysk(d, 200);
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_ARG && k1_mag_sprawdz(d, &h) == K1_MAG_PUSTY);
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 3) == K1_MAG_ARG);
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_ARG && k1_mag_sprawdz(d, &h) == K1_MAG_PUSTY);
+    dysk(d, 32);
+    EXPECT(k1_mag_sprawdz(d, &h) == K1_MAG_ARG); /* smaller than the smallest vault */
+    dysk(d, 512), ram[300000] = 1; /* foreign data (a byte in the first MiB): never formatted, never touched */
+    EXPECT(k1_mag_sprawdz(d, &h) == K1_MAG_OBCY && k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OBCY && ram[300000] == 1);
+    /* 0.10.0: a vault of format 1 (0.5.6–0.8.1; "K1SKARB1", version 1) is recognised, neither opened nor formatted */
+    dysk(d, 512);
+    for (int k = 0; k < 2; k++)
+        memcpy(ram + k * K1_MAG_BLOK, "K1SKARB1\1\0\0\0", 12);
+    EXPECT(k1_mag_sprawdz(d, &h) == K1_MAG_STARY && k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OBCY);
+    EXPECT(k1_mag_otworz(&m, d, NULL) == K1_MAG_USZKODZONY && ram[8] == 1);
 }
 
 /* ---- opening reads the spis and the tail, not the data (L25) ---- */
-
 static void test_otwarcie(struct k1_mag_dysk *d)
 {
     char n[16];
     int i, r = K1_MAG_OK, zle = 0;
     uint32_t dl;
     dysk(d, 2 + 64 * 1024); /* 256 MiB: 31 segments for 8 pieces of 1 MiB */
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_OK && m.odcinek == 8 * 257 && m.n_odcinkow == 31);
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK && m.odcinek == 8 * 257 && m.n_odcinkow == 31);
     for (i = 0; i < 150 && r == K1_MAG_OK; i++) { /* 150 MiB in pieces of 1 MiB, and small objects */
         snprintf(n, sizeof n, "k%d", i);
         memset(dane, i, K1_MAG_MAKS_DANYCH);
@@ -152,7 +160,6 @@ static void test_otwarcie(struct k1_mag_dysk *d)
 }
 
 /* ---- changed bytes, swapped records, a header with a valid MAC that lies ---- */
-
 static uint64_t blok_obiektu(const char *nazwa)
 {
     for (int i = 0; i < m.n_wpisow; i++)
@@ -168,7 +175,7 @@ static void test_zmiany(struct k1_mag_dysk *d)
     uint32_t dl;
     static uint8_t blok_a[K1_MAG_BLOK], blok_b[K1_MAG_BLOK];
     dysk(d, 4096);
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
     memset(dane, 0x5a, 20000);
     EXPECT(k1_mag_zapisz(&m, 3, "duzy", dane, 20000) == K1_MAG_OK);
     EXPECT(k1_mag_zapisz(&m, 3, "a", "AAAA", 4) == K1_MAG_OK && k1_mag_zapisz(&m, 3, "b", "BBBB", 4) == K1_MAG_OK);
@@ -234,7 +241,6 @@ static void test_zmiany(struct k1_mag_dysk *d)
 }
 
 /* ---- an old segment put back after it was used again: its records never count ---- */
-
 static void test_stary_odcinek(struct k1_mag_dysk *d)
 {
     static uint64_t gen[64];
@@ -243,7 +249,7 @@ static void test_stary_odcinek(struct k1_mag_dysk *d)
     uint32_t x, zle = 0, ok = 0;
     int j, id, r;
     dysk(d, 1024); /* 4 MiB: 7 segments of 512 KiB */
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
     for (j = 0; j < OBIEKTY; j++)
         wersja[j] = -1;
     for (j = 1; j < 200; j++) {
@@ -334,7 +340,7 @@ static void test_przerwy_pradu(struct k1_mag_dysk *d)
     int naglowki, k, w, zle = 0, ile = 160, przerwy = 0;
     uint64_t z0;
     dysk(d, 260);
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_OK && m.n_odcinkow == 4 && m.odcinek == 64);
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK && m.n_odcinkow == 4 && m.odcinek == 64);
     k1_mag_zamknij(&m);
     free(pusty);
     pusty = malloc(bajty);
@@ -368,7 +374,7 @@ static void test_pelny(struct k1_mag_dysk *d)
     uint64_t poj;
     uint32_t dl;
     dysk(d, 2 + 15 * 2048); /* 120 MiB: 29 segments for 4 pieces of 1 MiB, 2 kept free */
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_OK && m.n_odcinkow == 29 && m.odcinek == 4 * 257);
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK && m.n_odcinkow == 29 && m.odcinek == 4 * 257);
     poj = k1_mag_pojemnosc(&m);
     EXPECT(poj == 27ull * 4 * 257 * K1_MAG_BLOK);
     for (ile = 0; r == K1_MAG_OK; ile++) {
@@ -413,7 +419,7 @@ static void test_kroki(struct k1_mag_dysk *d)
     uint64_t z, najwiecej = 0;
     uint32_t dl;
     dysk(d, 2 + 15 * 2048);
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
     for (i = 0; i < 300; i++) { /* 75 MiB in objects of 256 KiB; then three in four deleted */
         snprintf(n, sizeof n, "c%d", i);
         dane[0] = (uint8_t)i;
@@ -424,11 +430,11 @@ static void test_kroki(struct k1_mag_dysk *d)
             snprintf(n, sizeof n, "c%d", i);
             zle += k1_mag_usun(&m, 4, n) != K1_MAG_OK;
         }
-    for (i = 0; i < 100 && !k1_mag_kompaktowac(&m, 0); i++) { /* free segments go down until it is worth it */
+    for (i = 0; i < 100 && !k1_mag_kompaktowac(&m); i++) { /* free segments go down until it is worth it */
         snprintf(n, sizeof n, "x%d", i);
         EXPECT(k1_mag_zapisz(&m, 5, n, dane, K1_MAG_MAKS_DANYCH) == K1_MAG_OK);
     }
-    EXPECT(k1_mag_kompaktowac(&m, 0) && !k1_mag_kompaktowac(&m, 1));
+    EXPECT(k1_mag_kompaktowac(&m));
     do {
         z = zapisow;
         r = k1_mag_kompaktuj_krok(&m, 64); /* a quarter of a MiB a step */
@@ -459,9 +465,9 @@ static uint64_t obciazenie(struct k1_mag_dysk *d, int obiektow, int kroki)
     uint64_t z, najwiecej = 0;
     uint32_t los = 12345;
     dysk(d, 2 + 15 * 2048); /* 120 MiB: 29 segments of 4 MiB */
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
     for (int j = 0; j < 600; j++) {
-        int k = kroki ? k1_mag_kompaktowac(&m, 0) : 0;
+        int k = kroki ? k1_mag_kompaktowac(&m) : 0;
         los = los * 1103515245u + 12345u; /* objects in random order: segments keep some live data */
         snprintf(n, sizeof n, "p%u", j < obiektow ? (uint32_t)j : (los >> 8) % (uint32_t)obiektow);
         dane[0] = (uint8_t)j;
@@ -498,7 +504,7 @@ static void test_powiekszenie(struct k1_mag_dysk *d)
     size_t bajty = 4096 * K1_MAG_BLOK;
     dysk(d, 4096);
     d->bajty = 1024 * K1_MAG_BLOK; /* 4 MiB first, 16 MiB after */
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_OK && m.odcinek == 128 && m.n_odcinkow == 7);
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK && m.odcinek == 128 && m.n_odcinkow == 7);
     for (i = 0; i < 20; i++) {
         snprintf(n, sizeof n, "g%d", i);
         EXPECT(k1_mag_zapisz(&m, 2, n, &i, sizeof i) == K1_MAG_OK);
@@ -543,7 +549,7 @@ static void test_powiekszenie(struct k1_mag_dysk *d)
     k1_mag_zamknij(&m);
 }
 
-/* ---- more objects than format 1 can hold: the spis in pieces ---- */
+/* ---- more objects than 65 536: the spis in pieces ---- */
 
 static void test_wiele_obiektow(struct k1_mag_dysk *d)
 {
@@ -551,7 +557,7 @@ static void test_wiele_obiektow(struct k1_mag_dysk *d)
     int i, r = K1_MAG_OK, zle = 0;
     uint32_t dl, v;
     dysk(d, 100000);
-    EXPECT(k1_mag_utworz_w_formacie(&m, d, NULL, 64, 2) == K1_MAG_OK);
+    EXPECT(k1_mag_utworz(&m, d, NULL, 64) == K1_MAG_OK);
     for (i = 0; i < 70000 && r == K1_MAG_OK; i++) {
         snprintf(n, sizeof n, "o%d", i);
         r = k1_mag_zapisz(&m, (uint16_t)(1 + i % 3), n, &i, sizeof i);

@@ -54,9 +54,7 @@ enum k1_komunikat_typ {
     K1_KOM_ZEGAR_PRZESUNIETY = 137, /* nadzorca → skarbiec (0.9.0 step 8): the clock was set from the internet; a,b = by
                                      * how many seconds (signed 64 bits: k1_kom_u64; at most ±200 years) — skarbiec moves
                                      * the time of the files in Kosz by as much (their age does not change) */
-    K1_KOM_START_POTWIERDZONY = 118, /* nadzorca → skarbiec (0.8.2 step 1c, ADR 0036): all fields 0; the start of this
-                                      * version is confirmed (15 s of desktop or password screen, not an A/B try that
-                                      * waits) — a vault of format 1 may move to format 2 (a rollback no longer can) */
+    /* 118: START_POTWIERDZONY (0.8.2–0.9.1, the move of a vault of format 1 to format 2) — gone in 0.10.0 */
     /* nadzorca → instalator (M5f, ADR 0018; same direction K1_KIER_STEROWANIE): the job, once */
     K1_KOM_INST_ZADANIE = 3, /* a=K1_INST_* mode, b=logical sector size (512/4096) of the target */
 

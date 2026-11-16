@@ -5,8 +5,8 @@
  * internal disk: a try that started — and holds the very build that runs now (the build id of the slot
  * manifest = /rdzen/system/wydanie) — becomes the confirmed slot; a try GRUB went back from (k1_start is
  * not k1_proba) is cleared and reported in the Instalator window. Only the 1024 bytes of grubenv are
- * written. A stick (USB) is never touched. Then — unless a try of another build still waits — the start is confirmed
- * for skarbiec (START_POTWIERDZONY, 0.8.2): it may move a vault of 0.5.6–0.8.1 to format 2 (ADR 0036). */
+ * written. A stick (USB) is never touched. (0.8.2–0.9.1 then told skarbiec it may move a vault of format 1 to format 2 —
+ * gone with format 1 in 0.10.0.) */
 #include "nadzorca.h"
 #include "k1_cmdline.h"
 
@@ -88,7 +88,5 @@ void rozruch_po_starcie(double t)
             if (l.d[i].efi[0] && l.d[i].dane[0])
                 czeka |= sprawdz_dysk(l.d[i].efi);
     if (czeka)
-        k1_log(TAG, "A/B: próba innej wersji czeka — skarbiec zostaje przy swoim formacie do następnego startu");
-    else
-        skarb_start_potwierdzony();
+        k1_log(TAG, "A/B: próba innej wersji czeka");
 }

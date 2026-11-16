@@ -49,8 +49,6 @@ int k1_kom_sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierun
     case K1_KOM_POWIEKSZONO:
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && (k->a == 0 || k->a == K1_SKARB_ARG || k->a == K1_SKARB_IO) &&
                zera(k, 1);
-    case K1_KOM_START_POTWIERDZONY:
-        return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && zera(k, 0);
     case K1_KOM_ZEGAR_PRZESUNIETY: {
         int64_t skok = (int64_t)k1_kom_u64(k->a, k->b);
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && skok >= -K1_ZEGAR_SKOK_MAKS &&

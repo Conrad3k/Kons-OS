@@ -13,7 +13,7 @@
 #include "skarbiec.h"
 
 #define RAM_BAJTY (128u << 20) /* all objects in memory together */
-#define RAM_OBIEKTOW 65536     /* objects in memory (as in format 1 of the vault) */
+#define RAM_OBIEKTOW 65536     /* objects in memory */
 
 struct obiekt_ram {
     int wlasciciel;
@@ -90,6 +90,9 @@ void ob_otworz_magazyn(int fd_dysk)
         }
     } else if (w == K1_MAG_OBCY) {
         k1_log(TAG, "partycja K1-DANE zawiera nieznane dane — nie nadpisuję; dane tylko w pamięci");
+    } else if (w == K1_MAG_STARY) { /* format 1: its transition to format 2 was in 0.8.2–0.9.1 (ADR 0036) */
+        k1_log(TAG, "partycja K1-DANE ma magazyn formatu 1 (K1 0.5.6–0.8.1) — ta wersja go nie otwiera ani nie nadpisuje; "
+               "uruchom ten nośnik raz z K1 0.9.1 (przejście na format 2). Dane tylko w pamięci");
     } else {
         k1_log(TAG, "partycja K1-DANE: %s — dane tylko w pamięci", k1_mag_opis(w));
     }
@@ -111,8 +114,6 @@ void ob_po_otwarciu(void)
     /* a partition larger than the vault: a grow cut off after the new table (ADR 0033) — finish it */
     if (trwaly)
         ob_powieksz(dysk.bajty, "dokończenie po starcie");
-    if (trwaly && k1_mag_kompaktowac(&mag, 1))
-        przerwa_kompaktuj_calosc("przy otwarciu");
 }
 
 uint64_t ob_wolne(void)

@@ -159,7 +159,7 @@ static void obsluz_sterowanie(void)
             k1_koniec(TAG, "nadzorca zamknął kanał sterujący");
         if (o.obciete || !o.ma_nadawce || o.uid != 0 ||
             k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &m) != 0 ||
-            (m.typ != K1_KOM_SKARB_KLIENT && m.typ != K1_KOM_POWIEKSZONO && m.typ != K1_KOM_START_POTWIERDZONY &&
+            (m.typ != K1_KOM_SKARB_KLIENT && m.typ != K1_KOM_POWIEKSZONO &&
              m.typ != K1_KOM_ZEGAR_PRZESUNIETY) ||
             (o.fd >= 0) != k1_komunikat_z_deskryptorem(m.typ, K1_KIER_STEROWANIE)) {
             if (o.fd >= 0)
@@ -169,8 +169,6 @@ static void obsluz_sterowanie(void)
         }
         if (m.typ == K1_KOM_POWIEKSZONO)
             powiekszono(m.a);
-        else if (m.typ == K1_KOM_START_POTWIERDZONY)
-            przejscie_wolno();
         else if (m.typ == K1_KOM_ZEGAR_PRZESUNIETY)
             dok_zegar_z_internetu((int64_t)k1_kom_u64(m.a, m.b));
         else
