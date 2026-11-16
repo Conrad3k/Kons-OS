@@ -107,6 +107,7 @@ Pięć kroków:
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [ ]  1  Awaria kart; pomiar i przyczyna, liczniki, powody   S1–S6, S12–S15  0.10.0      D1, T7           M        —
+     [w toku: Claude, gałąź claude/trusting-mayer-xiafha]
 [ ]  2  Balon: virtio-balloon, wolne strony wracają do K1   S7–S11           1           D2, T1–T5        L        0044
 [ ]  3  Pamięć komputera dla wszystkich                     S5, S14          2           D3, T6           M        —
 [ ]  4  Wybór sesji przeglądarki; Ustawienia → Przeglądarka S16–S19          0.10.0      D4, D5, T8       S        —
