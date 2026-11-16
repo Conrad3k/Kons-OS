@@ -274,8 +274,8 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   zrzutach dopiero z `sleep` w kopii `grub.cfg` (`mcopy -i obraz@@1M`).
 - *Przeglądarka w CI (0.10.0 krok 2):* Enter w pasku adresu i w polu formularza Firefoksa w strefie bywał bez skutku tylko
   w testach (CI z KVM), na prawdziwym sprzęcie działał zawsze — `test-przegladarka.sh` nie naciska Entera nigdzie
-  (podpowiedź „otwórz stronę”, formularz wysyła się sam, D3 — obrazek z sieci domowej na stronie testowej). Nie wracaj
-  do Entera bez decyzji właściciela. Firefox w strefie ocenia sieć po kartach systemu (strefa ich nie ma) —
+  (stronę otwiera strzałka „→” w pasku adresu — lista podpowiedzi w CI bywa niewidoczna, przebieg 109; formularz wysyła
+  się sam, D3 — obrazek z sieci domowej na stronie testowej). Nie wracaj do Entera bez decyzji właściciela. Firefox w strefie ocenia sieć po kartach systemu (strefa ich nie ma) —
   `network.manage-offline-status` wyłączone w `strefy/przegladarka/k1.js`. Pełny Firefox w emulacji zagnieżdżonej
   (kontener bez KVM) nie rysuje okna — do szukania błędów: obraz strefy wprost w QEMU z jednorazowym przekaźnikiem
   albo sonda zamiast Firefoksa w K1 (tak znaleziono zamykanie fd 0 w VMM).
@@ -313,6 +313,9 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
   plików) — wolny serwer nie trzyma budowy; każde `curl` ma limit połączenia i zatrzymania (60 s poniżej 2 KB/s).
 - **CI na PR-ze:** etykieta `testy` (`issue_write`) — build i testy bez wydania; to jest pełny komplet testów przed
   scaleniem. Wynik: `actions_list` (`list_workflow_runs`, gałąź PR-a), przy błędzie `get_job_logs`. `workflow_dispatch` daje 403.
+  Ponowny przebieg po nowym commicie: `issue_write` z `labels: []` NIE zdejmuje etykiety — zamień na `["feedback"]`, potem
+  `["testy"]`. Każda zmiana etykiety to osobny przebieg, a nowszy anuluje starszy (`concurrency`) — liczy się ostatni
+  przebieg z zadaniem `k1`; sprawdź, że ruszył i na którym commicie (PR #124: przebiegi 110–112).
 - **Scalanie** (repo publiczne od 2026-11-14, ADR 0040 — scalasz sam po zielonych testach): commit po angielsku → `git push -u origin
   <gałąź>` → PR po polsku (najpierw co widzi użytkownik, potem technika, `Closes #N`) → **squash z własnym
   `commit_message`**. Tylko docs: `[skip ci]` w tytule commita scalenia. Zmiana w systemie: **bez**

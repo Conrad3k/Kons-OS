@@ -27,7 +27,8 @@ jobs:
     # looking for a fault there (about 20 minutes instead of 50) — never enough to merge.
     if: github.event_name != 'pull_request' || github.event.label.name == 'testy' || github.event.label.name == 'testy-przegladarka'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # Room for a build with no cache (the first one after the kernel or the download tables change) plus the tests.
+    timeout-minutes: 75
     permissions:
       contents: write   # tag k1-vX.Y.Z po udanym buildzie i testach
     steps:
