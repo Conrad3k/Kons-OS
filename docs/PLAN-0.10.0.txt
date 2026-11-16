@@ -357,6 +357,8 @@ KROK 3 — Poprawki przeglądarki: awarie, ramka, przyciski okna             L �
   - Wyniki CI: przebieg 114 (przed poprawką pamięci, wąsko) — czerwony, jak oczekiwano; 115 — maszyna CI zgubiona po
     7 min testów (bez logów; właściciel anulował, GitHub zamknął sam); 117 — wszystko zielone: strona 1400 MiB doszła
     do końca w 42 s, żadna strona nie zginęła, strefa żyje; pasek K1, brak przycisków Firefoksa.
+  - Właściciel 2026-11-16 (IdeaPad 110, obraz z przebiegu CI 117): „Działa wszystko” — ramka, brak przycisków
+    Firefoksa, brak awarii. Krok gotowy.
 
 KROK 4 — Przewijanie: kółko myszy i dwa palce na touchpadzie              M · decyzja D8 · bez ADR
   Wydzielony z kroku 3 na prośbę właściciela (2026-11-15): w przeglądarce niezbędne, a dotyczy całego systemu.
