@@ -350,9 +350,13 @@ KROK 3 — Poprawki przeglądarki: awarie, ramka, przyciski okna             L �
   - S30: pomiar w logu — „gość gotowy (kanał sterujący) po N s” i „gość: okno przeglądarki po N s od startu maszyny”
     (kompozytor zgłasza pierwsze okno przez rurę do gosc, gosc przez kanał sterujący). Tania poprawka: jądro strefy
     rozpakowuje bloki obrazu (xz, 1 MiB) wprost do pamięci podręcznej stron i na każdym procesorze (było: jeden wątek
-    i pośredni bufor — przy losowym czytaniu libxul, 183 MB, ten sam blok bywał rozpakowywany wiele razy). Czasy z CI
-    (KVM, szybki procesor) — w opisie PR-a; na IdeaPadzie — test właściciela. Większe zmiany startu (zamrożony stan)
-    zostają w „Nie w tej wersji”.
+    i pośredni bufor — przy losowym czytaniu libxul, 183 MB, ten sam blok bywał rozpakowywany wiele razy). CI z KVM
+    (przebieg 117): „gotowa” po 3,9 s; czasu pierwszego okna test nie wypisał — błąd wyrażenia w test-przegladarka.sh
+    (wiersz „start:”: „gość (?:gotowy|: okno …)” ma zbędną spację; poprawka w kroku 4 — sam wydruk, nie sprawdzenie).
+    Na IdeaPadzie — test właściciela. Większe zmiany startu (zamrożony stan) zostają w „Nie w tej wersji”.
+  - Wyniki CI: przebieg 114 (przed poprawką pamięci, wąsko) — czerwony, jak oczekiwano; 115 — maszyna CI zgubiona po
+    7 min testów (bez logów; właściciel anulował, GitHub zamknął sam); 117 — wszystko zielone: strona 1400 MiB doszła
+    do końca w 42 s, żadna strona nie zginęła, strefa żyje; pasek K1, brak przycisków Firefoksa.
 
 KROK 4 — Przewijanie: kółko myszy i dwa palce na touchpadzie              M · decyzja D8 · bez ADR
   Wydzielony z kroku 3 na prośbę właściciela (2026-11-15): w przeglądarce niezbędne, a dotyczy całego systemu.
