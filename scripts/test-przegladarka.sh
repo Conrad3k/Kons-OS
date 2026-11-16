@@ -14,7 +14,7 @@
 #   5. w logu K1 żadnego adresu strony ani wpisanego tekstu (niezmiennik 8) — tylko liczniki
 #   5a. PRZEWIJANIE (0.10.0 krok 4): długa strona testowa przewijana kółkiem — w dół i z powrotem; strona sama mówi
 #      serwerowi, jak daleko ją przewinięto (zrzut przegladarka-6-dluga)
-#   6. PAMIĘĆ (0.10.0 krok 3, S26): strona testowa zajmuje 1400 MiB w strefie, która ma 1536 MiB (jak ciężkie strony,
+#   6. PAMIĘĆ (0.10.0 krok 3, S26; od przebiegu 142 na samym końcu, we własnej strefie): strona testowa zajmuje 1400 MiB w strefie, która ma 1536 MiB (jak ciężkie strony,
 #      po których na IdeaPadzie z 4 GB okno przeglądarki znikało) — strona dochodzi do końca, przeglądarka i strefa żyją
 #   7. zamknięcie okna: maszyna kończy się, liczniki połączeń w logu
 #   8. SESJE (0.10.0 krok 5): K1 z dyskiem danych (K1-DANE) — „Ogólna” pamięta: strona testowa ustawia ciasteczko,
@@ -432,8 +432,6 @@ sprawdz("w logu K1 żadnego adresu strony ani wpisanego tekstu — tylko licznik
 
 sprawdz("PRZEWIJANIE: kółko nad długą stroną przewija ją w dół, potem z powrotem na górę (0.10.0 krok 4; zrzut "
         "przegladarka-6-dluga-przewinieta)", przewijanie())
-sprawdz(f"PAMIĘĆ: strona zajmuje {PAMIEC_MIB} MiB w strefie 1536 MiB — dochodzi do końca, przeglądarka i strefa żyją "
-        "(S26; zrzut przegladarka-5-pamiec)", pamiec())
 sprawdz("SESJE: strona ustawia ciasteczko (serwer: pierwsze wejście bez niego)", ciastko() == "brak")
 koniec_ = zamknij_strefe()
 if not koniec_:
@@ -443,6 +441,12 @@ sprawdz("liczniki połączeń w logu: VMM i nadzorca (bez adresów)",
         czekaj(r"K1-STREFA: połączenia przeglądarki: \d+, nazwy \d+, odmowy \d+", czas=30) and
         czekaj(r"K1-NADZORCA: strefa 2: połączenia \d+, odmowy [1-9]", czas=30))
 sesje()
+# PAMIĘĆ last, in a fresh zone of its own (CI run 142): the page pushes the browser to the edge of the zone's memory and
+# the browser may end soon after it (on X230 and IdeaPad too: 0.10.1 Balon) — before, every check after it in the same
+# browser failed with it. Ogólna forgets by now (sesje), so nothing of this lands on the session's disk.
+sprawdz(f"PAMIĘĆ: strona zajmuje {PAMIEC_MIB} MiB w strefie 1536 MiB — dochodzi do końca, przeglądarka i strefa żyją "
+        "(S26; zrzut przegladarka-5-pamiec)", otworz_przegladarke(2) and pamiec())
+zamknij_strefe()
 t_ = q.tekst()
 sprawdz("brak zabronionych wywołań i paniki w K1", "zabronione wywołanie" not in t_ and "Kernel panic" not in t_)
 q.monitor("quit")
