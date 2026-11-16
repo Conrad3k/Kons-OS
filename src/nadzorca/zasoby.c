@@ -103,7 +103,7 @@ void wyslij_ustawieniom(void)
 
 /* Value of `klucz` ("usage_usec", "file", ...) in a cgroup key-value file, or of the single number
  * in the file when klucz is NULL. -1 if missing. */
-static long long liczba_z_pliku(const char *sciezka, const char *klucz)
+long long cgroup_liczba(const char *sciezka, const char *klucz)
 {
     char buf[4096];
     const char *p = buf;
@@ -129,7 +129,7 @@ static long long cpu_usec(const char *grupa)
 {
     char sciezka[128];
     snprintf(sciezka, sizeof sciezka, K1_CGROUP "%s%s/cpu.stat", grupa[0] ? "/" : "", grupa);
-    return liczba_z_pliku(sciezka, "usage_usec");
+    return cgroup_liczba(sciezka, "usage_usec");
 }
 
 static int32_t promile(long long delta_usec, double delta_s, long cpus)
@@ -154,8 +154,8 @@ void raport_zasobow(void)
         cpus = 1;
     if (sysinfo(&si) != 0 || si.mem_unit == 0)
         return;
-    plik = liczba_z_pliku(K1_CGROUP "/memory.stat", "file");
-    shmem = liczba_z_pliku(K1_CGROUP "/memory.stat", "shmem");
+    plik = cgroup_liczba(K1_CGROUP "/memory.stat", "file");
+    shmem = cgroup_liczba(K1_CGROUP "/memory.stat", "shmem");
     /* used = total - free - page cache that can be dropped (tmpfs data stays "used") */
     uzyta = ((long long)si.totalram - (long long)si.freeram) * (long long)si.mem_unit;
     if (plik >= 0 && shmem >= 0 && plik > shmem)
@@ -185,7 +185,7 @@ void raport_zasobow(void)
         long long u = cpu_usec(p->nazwa), pam;
         int pr = uslugi[i].profil;
         snprintf(sciezka, sizeof sciezka, K1_CGROUP "/%s/memory.current", p->nazwa);
-        pam = uslugi[i].pid > 0 ? liczba_z_pliku(sciezka, NULL) : 0;
+        pam = uslugi[i].pid > 0 ? cgroup_liczba(sciezka, NULL) : 0;
         k = k1_komunikat_nowy(K1_KOM_ZASOBY_USLUGA, (uint32_t)pr,
                               uslugi[i].pid > 0 && poprz[pr] > 0 && u >= poprz[pr] && dt > 0.1 ? promile(u - poprz[pr], dt, cpus) : 0,
                               (int32_t)(pam > 0 ? (pam >> 10 > INT32_MAX ? INT32_MAX : pam >> 10) : 0),

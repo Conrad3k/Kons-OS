@@ -172,6 +172,8 @@ void strefa_stan(const struct k1_komunikat *m)
         [K1_STREFA_KONIEC_AWARIA] = "Program w strefie uległ awarii. Otwórz ją ponownie — reszta K1 działa normalnie.",
         [K1_STREFA_KONIEC_BLAD] = "Strefa zatrzymała się z powodu błędu. Otwórz ją ponownie — reszta K1 działa "
                                   "normalnie.",
+        [K1_STREFA_KONIEC_LIMIT] = "Strefa zużyła całą pamięć, którą K1 jej daje. Otwórz ją ponownie; zamykaj karty, "
+                                   "których nie używasz.",
     };
     int apl = POZYCJA_STREFY(m->a), koniec = m->b >= K1_STREFA_KONIEC_OD;
     struct k1_menu okno;

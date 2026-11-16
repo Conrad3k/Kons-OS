@@ -226,6 +226,9 @@ $(OBJ)/test_zdarzenie: testy/host/test_zdarzenie.c src/wspolne/k1_zdarzenie.c sr
 # 0.10.0 step 4: a touchpad in its own mode (src/wejscie/touchpad.c — pure)
 $(OBJ)/test_dysk_strefy: testy/host/test_dysk_strefy.c src/strefa/dysk.c src/strefa/dysk.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_dysk_strefy.c src/strefa/dysk.c
+# 0.10.1 step 1 (S3): why a zone ended — the VMM's status and its sandbox's memory events
+$(OBJ)/test_powod_strefy: testy/host/test_powod_strefy.c src/nadzorca/strefy_powod.c src/nadzorca/strefy_powod.h $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_powod_strefy.c src/nadzorca/strefy_powod.c
 $(OBJ)/test_sesje: testy/host/test_sesje.c src/nadzorca/sesje.c src/nadzorca/sesje.h $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_sesje.c src/nadzorca/sesje.c $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_uslugi.c
 $(OBJ)/test_touchpad: testy/host/test_touchpad.c src/wejscie/touchpad.c src/wejscie/touchpad.h src/wspolne/k1_zdarzenie.c \
@@ -296,8 +299,8 @@ $(OBJ)/test_wpa: testy/host/test_wpa.c src/siec/wpa.c src/siec/eapol.c src/siec/
 $(OBJ)/test_wifi_polacz: testy/host/test_wifi_polacz.c src/siec/wifi.c src/siec/pamiec.c src/siec/wifi.h src/siec/pamiec.h $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_wifi_polacz.c src/siec/wifi.c src/siec/pamiec.c $(KOMUNIKAT) $(DOK_C)
 # 0.10.0 step 1 (ADR 0042): the zones' virtqueues and virtio-mmio, the start of the zone kernel (fuzzing: fuzz_virtq)
-$(OBJ)/test_virtio: testy/host/test_virtio.c src/strefa/virtq.c src/strefa/mmio.c $(wildcard src/strefa/*.h) testy/host/k1_test_host.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_virtio.c src/strefa/virtq.c src/strefa/mmio.c
+$(OBJ)/test_virtio: testy/host/test_virtio.c src/strefa/virtq.c src/strefa/mmio.c src/strefa/linia.c $(wildcard src/strefa/*.h) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_virtio.c src/strefa/virtq.c src/strefa/mmio.c src/strefa/linia.c
 # 0.10.0 step 2 (ADR 0043 T9): the zones' connector — SOCKS5, DNS, the D3 rule, the messages (fuzzing: fuzz_lacznik)
 $(OBJ)/test_lacznik: testy/host/test_lacznik.c src/strefa/lacznik.c src/strefa/lacznik.h $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_lacznik.c src/strefa/lacznik.c $(KOMUNIKAT) $(DOK_C)
@@ -404,7 +407,7 @@ TESTY_HOST := test_odcinki test_dokumenty test_indeks test_wpa test_krypto test_
 	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
-	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje
+	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy
 TESTY_HOST_PLIKI := test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
 
 # notatki_w_plikach and magazyn_testowy are not run here: scripts/test-*.sh use them

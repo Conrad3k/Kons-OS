@@ -113,6 +113,11 @@ static unsigned zajete_teraz(void)
     return n;
 }
 
+unsigned pol_zajete(void)
+{
+    return zajete_teraz();
+}
+
 void pol_ten_sam_port(void)
 {
     l_ten_sam_port++;

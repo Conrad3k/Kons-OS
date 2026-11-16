@@ -112,6 +112,7 @@ void kvm_linia_urzadzen(char *buf, size_t n);        /* "virtio_mmio.device=4K@0
 
 /* the devices (each its file) */
 const uint32_t *gpu_obraz(uint32_t *w, uint32_t *h); /* gpu.c: the shown resource (under mz.zamek), NULL: none yet */
+void gpu_liczniki(unsigned *n, unsigned *mib);        /* gpu.c: resources now and their MiB (the counters' line) */
 void wejscie_klawisz(int kod, int wartosc);          /* wejscie.c: a Linux key code, 0 up / 1 down / 2 repeat */
 void wejscie_wskaznik(int32_t x, int32_t y, uint32_t w, uint32_t h, int rodzaj, int przycisk); /* K1_WSK_* in a w×h window */
 /* the wheel or two fingers at x, y (K1_KOM_PRZEWIN: c, d in 1/120 of a notch, d > 0 further down; e = source) */
@@ -119,6 +120,7 @@ void wejscie_przewin(int32_t x, int32_t y, uint32_t w, uint32_t h, int32_t dx, i
 void wejscie_podsumowanie(void);                     /* at the end: whether input reached the guest, in the log */
 void wejscie_pusc(void);                             /* focus lost: every held key and button up */
 void vsock_zamknij(void);                            /* vsock.c: "close" to the guest */
+void vsock_podsumowanie(void);                       /* vsock.c: the last counters' line (0.10.1 step 1) */
 int dane_start(void);   /* dane.c: the disk (fd 8, 9 — or none) and its thread; 0, or -1 */
 void dane_koniec(void); /* its thread ends, the dirty pieces are saved (at most 20 s), the numbers to the log */
 extern const struct mmio_ops blk_ops, konsola_ops, rng_ops, klawiatura_ops, mysz_ops, gpu_ops, vsock_ops, dane_ops;

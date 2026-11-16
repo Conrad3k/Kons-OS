@@ -7,6 +7,8 @@
  * quits by itself, saving its profile; SIGTERM only when it has not quit in 15 s, the end in 20 s (zamykanie_*).
  * 0.10.0 step 3 (S26): the VMM hears why the browser ended by itself ("koniec pamiec|awaria|sam" — K1 tells the user)
  * and when a page ended for lack of memory ("pamiec strona"); the browser goes last when memory runs out (pamiec.c).
+ * 0.10.1 step 1 (S13, S15): every 5 s the counters ("liczniki", pamiec.c) and, when the browser or the compositor ends
+ * by itself, who it was ("kto": numbers only, with the compositor's rule the browser broke, if any).
  * Paths here are the zone image's (Debian's tree), never K1's. */
 #include <errno.h>
 #include <fcntl.h>
@@ -14,6 +16,8 @@
 #include <net/if.h>
 #include <poll.h>
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mount.h>
@@ -121,7 +125,18 @@ static const char *powod(pid_t p, pid_t przegl, int st, unsigned long zabite_od)
     return "koniec awaria\n";
 }
 
-static void sprzataj(pid_t przegl, pid_t komp, int ster, unsigned long zabite_od, int *koniec)
+/* Who ended, as numbers for the VMM's log (0.10.1 step 1, S15): "kto <1 the browser, 2 the compositor> <exit code, or
+ * 128 + signal> <the compositor's rule the browser broke last, 0: none>" — before "koniec …". */
+static void kto(int ster, int przegladarka, int st, int regula)
+{
+    char l[48];
+    int n = snprintf(l, sizeof l, "kto %d %d %d\n", przegladarka ? 1 : 2,
+                     WIFEXITED(st) ? WEXITSTATUS(st) : WIFSIGNALED(st) ? 128 + WTERMSIG(st) : 255, regula);
+    if (n > 0 && n < (int)sizeof l && write(ster, l, (size_t)n) != n)
+        loguj("kanał sterujący: zapis nieudany");
+}
+
+static void sprzataj(pid_t przegl, pid_t komp, int ster, unsigned long zabite_od, int regula, int *koniec)
 {
     pid_t p;
     int st;
@@ -130,31 +145,49 @@ static void sprzataj(pid_t przegl, pid_t komp, int ster, unsigned long zabite_od
             const char *l = powod(p, przegl, st, zabite_od);
             loguj("%s zakończony (%d)", p == przegl ? "przeglądarka" : "kompozytor",
                   WIFEXITED(st) ? WEXITSTATUS(st) : 128 + WTERMSIG(st));
-            if (ster >= 0 && !*koniec && write(ster, l, strlen(l)) != (ssize_t)strlen(l))
-                loguj("kanał sterujący: zapis nieudany");
+            if (ster >= 0 && !*koniec) {
+                kto(ster, p == przegl, st, regula);
+                if (write(ster, l, strlen(l)) != (ssize_t)strlen(l))
+                    loguj("kanał sterujący: zapis nieudany");
+            }
             *koniec = 1;
         }
 }
 
-/* Once a second: the browser's other processes go first, and the VMM hears of every page killed for memory. */
-static void pilnuj(pid_t przegl, int ster, unsigned long *zabite)
+/* Once a second: the browser's other processes go first, and the VMM hears of every page killed for memory; every
+ * LICZNIKI_S seconds the counters (0.10.1 step 1). */
+#define LICZNIKI_S 5
+static void pilnuj(pid_t przegl, int ster, unsigned long *zabite, int krok)
 {
     unsigned long z = pamiec_zabite();
     pamiec_kolejnosc(UZYTKOWNIK, przegl);
     if (z > *zabite && ster >= 0 && write(ster, "pamiec strona\n", 14) != 14)
         loguj("kanał sterujący: zapis nieudany");
     *zabite = z;
+    if (krok % LICZNIKI_S == 0)
+        pamiec_liczniki(ster);
 }
 
-/* The compositor said its first window is up (0.10.0 step 3, S30): "etap okno" to the VMM, which logs the time. */
-static void okno_jest(int *okno, int ster)
+/* A line of the compositor on its pipe: "okno" — its first window (0.10.0 step 3, S30): "etap okno" to the VMM, which
+ * logs the time; "regula N" — it disconnected the browser for breaking its rule N (0.10.1 step 1): kept for "kto". */
+static void od_kompozytora(int *okno, int ster, int *regula)
 {
-    char b[16];
-    ssize_t n = read(okno[0], b, sizeof b);
-    if (n > 0 && ster >= 0 && write(ster, "etap okno\n", 10) != 10)
-        loguj("kanał sterujący: zapis nieudany");
-    close(okno[0]);
-    okno[0] = -1;
+    char b[128];
+    ssize_t n = read(okno[0], b, sizeof b - 1);
+    char *l, *z;
+    if (n < 0 && errno == EAGAIN)
+        return;
+    if (n <= 0) {
+        close(okno[0]);
+        okno[0] = -1;
+        return;
+    }
+    b[n] = '\0';
+    for (l = strtok_r(b, "\n", &z); l != NULL; l = strtok_r(NULL, "\n", &z))
+        if (strcmp(l, "okno") == 0 && ster >= 0 && write(ster, "etap okno\n", 10) != 10)
+            loguj("kanał sterujący: zapis nieudany");
+        else if (strncmp(l, "regula ", 7) == 0)
+            *regula = atoi(l + 7) > 0 && atoi(l + 7) < 1000 ? atoi(l + 7) : 0;
 }
 
 struct zamykanie {
@@ -212,7 +245,7 @@ void przegladarka(int ster)
     char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;
-    int koniec = 0, krok = 0, okno[2], dysk; /* koniec 2: the browser out of time */
+    int koniec = 0, krok = 0, okno[2], dysk, regula = 0; /* koniec 2: the browser out of time */
     struct zamykanie z = { 0, 0, -1, 0 };
     unsigned long zabite = pamiec_zabite(), zabite_od = zabite;
     katalog_tmpfs("/tmp", "mode=1777", 0);
@@ -244,10 +277,10 @@ void przegladarka(int ster)
         struct pollfd p[2] = { { ster, POLLIN, 0 }, { okno[0], POLLIN, 0 } }; /* negative fds: ignored */
         int r = poll(p, 2, 200), s_ = z.trwa ? -1 : ster;
         if (p[1].revents & (POLLIN | POLLHUP))
-            okno_jest(okno, s_);
-        sprzataj(przegl, komp, s_, zabite_od, &koniec);
+            od_kompozytora(okno, s_, &regula);
+        sprzataj(przegl, komp, s_, zabite_od, regula, &koniec);
         if (++krok % 5 == 0 && !koniec)
-            pilnuj(przegl, s_, &zabite);
+            pilnuj(przegl, s_, &zabite, krok / 5);
         if (r > 0 && (p[0].revents & (POLLIN | POLLHUP)) && !z.trwa) {
             char b[64];
             ssize_t n = read(ster, b, sizeof b - 1);

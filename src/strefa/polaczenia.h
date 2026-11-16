@@ -26,6 +26,7 @@ struct pol_kredyt {
 int pol_nowe(uint32_t port_goscia, const struct pol_kredyt *kr); /* a new connection: its number, 0: all taken */
 void pol_ten_sam_port(void);                         /* a new connection from a port still in use (counted) */
 int pol_znajdz(uint32_t port_goscia);                            /* the connection of the guest's port, 0: none */
+unsigned pol_zajete(void);                                       /* connections in use now (the counters' line) */
 uint32_t pol_port(int n);                                        /* its guest's port; 0: the connection is free */
 struct pol_kredyt *pol_kredyt(int n);
 int pol_od_goscia(int n, const void *b, size_t dl);  /* the guest's bytes; -1: more than its credit (hostile) */

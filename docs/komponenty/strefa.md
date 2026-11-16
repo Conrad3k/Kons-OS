@@ -50,9 +50,23 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 - **Powód końca** (krok 3, S26; `main.c` `kod_wyjscia`): kod wyjścia VMM — 0, gdy zamknął użytkownik (`ZAMKNIJ` od ekranu)
   albo program strefy zamknął się zwyczajnie; `K1_STREFA_KONIEC_PAMIEC` / `_AWARIA`, gdy program strefy skończył się sam
   i powiedział dlaczego („koniec …” na kanale sterującym); `_BLAD`, gdy maszyna stanęła bez słowa (jądro gościa, zły
-  dostęp). Nadzorca (`strefy.c` `strefa_koniec`) dokłada SIGKILL = `_PAMIEC_K1` (OOM w K1 — w cgroup albo w komputerze)
-  i daje powód gui (`STREFA_STAN`) — okienko „<tytuł> zamknęła się”; bez okienka, gdy zamknął użytkownik, K1 zatrzymał
-  strefę sam (`bez_liczenia`) albo to złośliwy gość testu. Wcześniej okno po prostu znikało.
+  dostęp). Nadzorca (`strefy.c` `strefa_koniec`, czysta część `strefy_powod.c`) dokłada SIGKILL — od 0.10.1 krok 1 (S3)
+  rozróżnia po zdarzeniach klatki VMM (`memory.events`, różnica od startu strefy): `oom` wzrosło → `_LIMIT` (strefa
+  zużyła całą pamięć, którą K1 jej daje — limit własnej klatki), tylko `oom_kill` → `_PAMIEC_K1` (pamięć komputera),
+  ani jedno → `_BLAD`; nieczytelne → `_PAMIEC_K1` jak dawniej. (`oom_kill` liczy zabicia przez każdy OOM, także całego
+  komputera — Documentation/admin-guide/cgroup-v2.rst; o limicie klatki mówi tylko `oom`.) W logu: `strefa N: pamięć
+  klatki — szczyt X MiB (od startu K1), limit osiągnięty A, zabite B`. Powód idzie do gui (`STREFA_STAN`) — okienko
+  „<tytuł> zamknęła się”; bez okienka, gdy zamknął użytkownik, K1 zatrzymał strefę sam (`bez_liczenia`) albo to
+  złośliwy gość testu. Wcześniej okno po prostu znikało.
+- **Liczniki** (0.10.1 krok 1, S13): `gosc` co 5 s wysyła „liczniki A Z K” (pamięć dostępna w gościu w MiB, zajęty zram
+  w MiB, procesy zabite przez OOM gościa); VMM dokłada swoje i loguje jedną linię (najwyżej co 4 s, niezależnie od tego,
+  ile przyśle gość): `liczniki: gość — dostępna A MiB, zram Z MiB, zabite K; grafika: zasoby N, M MiB; połączenia P;
+  vsock czeka Q, odrzucone R`; przy końcu maszyny jeszcze raz (`liczniki przy końcu`). Same liczby (niezmiennik 8).
+- **Kto się skończył** (0.10.1 krok 1, S15): gdy przeglądarka albo kompozytor skończy się sam, `gosc` wysyła przed
+  „koniec …” linię „kto P K R” — P 1 przeglądarka / 2 kompozytor, K kod wyjścia albo 128 + sygnał, R numer reguły
+  kompozytora, którą przeglądarka złamała ostatnio (0: żadnej). VMM loguje `gość: przeglądarka zakończony (kod 1) —
+  kompozytor odrzucił przeglądarkę (reguła 28)`. Linie z liczbami sprawdza `linia.c` (czyste, `test_virtio`): słowo,
+  potem dokładnie tyle liczb dziesiętnych, każda w limicie — nic więcej; tekstu gościa nie ma w logu.
 
 ## Urządzenia virtio-mmio (`K1_URZADZENIA`, okno 4 KiB od 0xd0000000, linia przerwania od 5)
 | Urządzenie | Kolejki | Co robi | Co kończy maszynę |
@@ -62,7 +76,7 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 | losowość (rng) | 1 | `getrandom` do 4 KiB na prośbę | — |
 | klawiatura, wskaźnik (input) | 2 + 2 | zdarzenia `EV_KEY`, `EV_ABS` (0…32767), `EV_SYN` z ekranu; od 0.10.0 krok 4 wskaźnik z kółkiem: `REL_WHEEL`, `REL_HWHEEL` i `*_HI_RES` (1/120 ząbka) z `PRZEWIN` — z kółka oba, z touchpada tylko `*_HI_RES`; bez wolnego bufora — zdarzenie przepada (licznik) | — |
 | ekran (gpu 2D) | 2 | zasoby ≤ 4096 × 4096 (razem ≤ 96 MiB), tło z pamięci gościa (sprawdzone przy dołączeniu), przeniesienie, pokazanie, odświeżenie → okno | polecenie krótsze niż jego struktura, brak miejsca na odpowiedź |
-| vsock | 3 | kanał sterujący (port 1 hosta): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30); od kroku 5 „zamykanie gotowe\|sygnal\|po czasie” (jak przeglądarka skończyła się po „zamknij” — czas w logu); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
+| vsock | 3 | kanał sterujący (port 1 hosta): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30); od 0.10.1 krok 1 „liczniki A Z K” i „kto P K R” (same liczby, `linia.c`); od kroku 5 „zamykanie gotowe\|sygnal\|po czasie” (jak przeglądarka skończyła się po „zamknij” — czas w logu); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
 
 | dysk strefy (blk, krok 5) | 1 | drugi dysk gościa (`/dev/vdb`) do zapisu i odczytu, `FLUSH`, `SEG_MAX`; 2 GiB w kawałkach po 64 KiB przez pamięć podręczną `dysk.c`; strefa, która zapomina: 0 sektorów | prośba bez nagłówka, odczyt albo zapis > 4 MiB |
 
@@ -116,6 +130,16 @@ Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka�
   kroku 5: **jeden ząbek = jedna ramka** `wl_pointer` (do 16, reszta w ostatniej), każda z późniejszym czasem — GTK robi
   z `axis_discrete` jednej ramki jeden krok bez względu na liczbę (przebieg CI 134: 5 ząbków w górę, 2 kroki), a Firefox
   pomija zdarzenie kółka z czasem poprzedniego. Ząbki skleja QEMU w teście i ekran, gdy klient nie nadąża.
+  **Reguły** (0.10.1 krok 1, S15): każdy powód odrzucenia klienta to wiersz tabeli `K1_REGULY` (`kompozytor.h`) z numerem
+  (od 1, numery się nie zmieniają); przy błędzie protokołu kompozytor wysyła `gosc` „regula N” na fd 3 (ta sama rura co
+  „okno”), a ten — numer w „kto”. **Ta sama rola drugi raz** (0.10.1 krok 1, D1 f): rola powierzchni jest na stałe, ale
+  wolno ją nadać ponownie (wayland.xml: „must not already have another role, and it must not have an existing
+  wl_subsurface object”) — Firefox niszczy podpowierzchnię podglądu karty, gdy go chowa, i tworzy ją znów na tej samej
+  powierzchni. Kompozytor odrzucał to (reguła 28) — drugi podgląd karty kończył przeglądarkę: awaria przy przełączaniu
+  kart, po minimalizacji (kursor wychodzi z okna górną krawędzią, gość „widzi” go dalej nad kartami) i „później, bez
+  minimalizacji”. Teraz: podpowierzchnia — ponownie, gdy nie ma już `wl_subsurface` (pozycja od 0,0, stan czekający
+  starej znika, jej wywołania klatki „gotowe”); `xdg_surface` — ponownie, gdy poprzednia zniszczona (to, co pokazywała,
+  znika razem z nią). Za dużo podpowierzchni ma osobną regułę (29).
 - **Przekaźnik** (`src/strefa/przekaznik/`): SOCKS5 na 127.0.0.1:1080 → jedno połączenie vsock (port 2) na każde.
 - **Łącznik** (moduł VMM: `lacznik.c` czyste protokoły, `polaczenia.c` stan połączeń): SOCKS5 — tylko CONNECT, IPv4 albo
   nazwa (BIND, UDP, IPv6 — odmowa kodem SOCKS); nazwy — DNS (rekord A) przez gniazdo UDP od nadzorcy do serwera z DHCP;
@@ -154,7 +178,7 @@ Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka�
 | `STREFA_GNIAZDO` | nadzorca → VMM (+ 1 deskryptor) | obiekt = połączenie, a = `K1_STREFA_TCP` (gniazdo TCP w trakcie łączenia) / `K1_STREFA_DNS` (gniazdo UDP do serwera DNS, port 53), reszta 0 |
 | `STREFA_ODMOWA` | nadzorca → VMM | obiekt = połączenie, a = `K1_STREFA_ODM_*` (adres poza D3, brak sieci albo DNS, limit, błąd gniazda), reszta 0 |
 | `URUCHOM_STREFE` | gui → nadzorca (fd 4); program testowy → nadzorca | `a` strefa 1…`K1_STREFY_MAKS`, `b` tryb gościa testowego 0…4 (≠ 0 tylko od programu testowego; gui — odrzucone), reszta 0 |
-| `STREFA_STAN` | nadzorca → gui (fd 5) | `a` strefa, `b` powód: nie ruszyła — `K1_STREFA_BEZ_WIRTUALIZACJI`, `_ZA_MALO_PAMIECI`, `_BRAK_OBRAZU`; zamknęła się sama (krok 3) — `K1_STREFA_KONIEC_PAMIEC` (pamięć strefy), `_PAMIEC_K1` (pamięć komputera), `_AWARIA`, `_BLAD` (1…`K1_STREFA_STAN_MAKS`); reszta 0 |
+| `STREFA_STAN` | nadzorca → gui (fd 5) | `a` strefa, `b` powód: nie ruszyła — `K1_STREFA_BEZ_WIRTUALIZACJI`, `_ZA_MALO_PAMIECI`, `_BRAK_OBRAZU`; zamknęła się sama (krok 3) — `K1_STREFA_KONIEC_PAMIEC` (pamięć strefy), `_PAMIEC_K1` (pamięć komputera), `_AWARIA`, `_BLAD`; od 0.10.1 krok 1 `_LIMIT` (8: strefa zużyła całą pamięć, którą K1 jej daje — limit klatki) (1…`K1_STREFA_STAN_MAKS`); reszta 0 |
 | `KLIENT` (rola `STREFA`) | nadzorca → ekran | `b` = numer strefy (1…`K1_STREFY_MAKS`) |
 | `STREFY_STAN` | nadzorca → gui (fd 5), Ustawienia (fd 4), ekran (kanał sterujący) | krok 5: `a` bity stref, które pamiętają (bit nr−1), `b` = 1 komputer ma wirtualizację, `c` = 1 dane K1 na dysku (bez tego `a` = 0), `d` bity stref, które działają, `e` = 0 |
 | `STREFA_NAZWA` | nadzorca → gui, Ustawienia, ekran; Ustawienia → nadzorca (nowa nazwa) | krok 5: obiekt = strefa, `a`…`e` = nazwa sesji, 20 bajtów UTF-8 dopełnione zerami (`k1_strefa_nazwa_dobra`: bez znaków sterujących, niewidocznych i zmieniających kierunek, bez spacji na brzegach); nigdy w logu |

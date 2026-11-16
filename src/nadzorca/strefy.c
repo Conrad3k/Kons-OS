@@ -10,6 +10,7 @@
  * The VMM's end is an ordinary end of a service started on request (uslugi.c): no restart. When the user did not
  * close it, gui says why it ended (0.10.0 step 3, S26: before, the window was simply gone). Part of nadzorca. */
 #include "nadzorca.h"
+#include "strefy_powod.h"
 
 #define STREFY "/rdzen/strefy"
 #define ZAPAS_PAMIECI (64ull << 20) /* free memory K1 keeps besides the zone's own */
@@ -71,6 +72,32 @@ static int dysk(const struct k1_strefa_opis *z, int *fd)
     return 0;
 }
 
+/* The memory events of zone nr's sandbox (memory.events: its counters live as long as the cgroup, which nadzorca
+ * reuses — so the values at the start are kept and the end compares with them); the peak of its memory in MiB. */
+static struct strefa_zdarzenia zdarzenia_od[K1_STREFY_MAKS + 1];
+
+static struct strefa_zdarzenia zdarzenia(int nr)
+{
+    const struct k1_strefa_opis *z = k1_strefa(nr);
+    char sciezka[128];
+    struct strefa_zdarzenia d = { -1, -1 };
+    if (z == NULL)
+        return d;
+    snprintf(sciezka, sizeof sciezka, K1_CGROUP "/%s/memory.events", profile[z->profil].nazwa);
+    d.oom = cgroup_liczba(sciezka, "oom");
+    d.oom_kill = cgroup_liczba(sciezka, "oom_kill");
+    return d;
+}
+
+static void zdarzenia_start(int nr)
+{
+    struct strefa_zdarzenia d = zdarzenia(nr);
+    if (nr < 1 || nr > K1_STREFY_MAKS)
+        return;
+    zdarzenia_od[nr] = (struct strefa_zdarzenia){ d.oom > 0 ? d.oom : 0, /* no cgroup yet: a new one starts at 0 */
+                                                  d.oom_kill > 0 ? d.oom_kill : 0 };
+}
+
 void strefa_uruchom(int nr, int tryb)
 {
     const struct k1_strefa_opis *z = k1_strefa(nr);
@@ -91,6 +118,7 @@ void strefa_uruchom(int nr, int tryb)
         snprintf(u->argument, sizeof u->argument, "%d", nr);
         snprintf(u->argument2, sizeof u->argument2, "%d", tryb);
         d = dysk(z, fd);
+        zdarzenia_start(nr);
         if (fd[0] >= 0 && fd[4] >= 0 && uruchom(u, &profile[z->profil], fd, 5 + d) > 0)
             k1_log(TAG, "strefa %d (%s): pid %d, uid %d, pamięć %u MiB, procesory %u, %s%s", nr, z->tytul, (int)u->pid,
                    z->uid, z->pamiec_mib, z->procesory, d ? "pamięta (dysk w skarbcu)" : "zapomina po zamknięciu",
@@ -105,21 +133,24 @@ void strefa_uruchom(int nr, int tryb)
             close(fd[i]);
 }
 
-/* Why the VMM ended: its exit code (main.c in src/strefa: K1_STREFA_KONIEC_*), or SIGKILL — the kernel's OOM killer
- * (its cgroup's limit, or the computer's memory: nadzorca kills a zone only with `cicho`); 0: the user closed it. */
-static int powod_konca(int status)
-{
-    if (WIFEXITED(status))
-        return WEXITSTATUS(status) == 0 ? 0
-               : WEXITSTATUS(status) >= K1_STREFA_KONIEC_OD && WEXITSTATUS(status) <= K1_STREFA_STAN_MAKS
-                   ? WEXITSTATUS(status)
-                   : K1_STREFA_KONIEC_BLAD;
-    return WIFSIGNALED(status) && WTERMSIG(status) == SIGKILL ? K1_STREFA_KONIEC_PAMIEC_K1 : K1_STREFA_KONIEC_BLAD;
-}
-
+/* Why the VMM ended (strefy_powod.c: its exit code — src/strefa/main.c, K1_STREFA_KONIEC_* — or SIGKILL and the
+ * sandbox's events: its own limit, or the computer's memory); 0: the user closed it. The log has the numbers. */
 void strefa_koniec(int nr, int status, int cicho)
 {
-    int powod = powod_konca(status);
+    struct strefa_zdarzenia d = zdarzenia(nr), r = { -1, -1 };
+    const struct k1_strefa_opis *z = k1_strefa(nr);
+    char sciezka[128];
+    long long szczyt = -1;
+    int powod;
+    if (z == NULL)
+        return;
+    if (d.oom >= 0 && d.oom_kill >= 0 && zdarzenia_od[nr].oom >= 0 && zdarzenia_od[nr].oom_kill >= 0)
+        r = (struct strefa_zdarzenia){ d.oom - zdarzenia_od[nr].oom, d.oom_kill - zdarzenia_od[nr].oom_kill };
+    snprintf(sciezka, sizeof sciezka, K1_CGROUP "/%s/memory.peak", profile[z->profil].nazwa);
+    szczyt = cgroup_liczba(sciezka, NULL);
+    powod = strefa_powod_konca(status, &r);
+    k1_log(TAG, "strefa %d: pamięć klatki — szczyt %lld MiB (od startu K1), limit osiągnięty %lld, zabite %lld", nr,
+           szczyt >= 0 ? szczyt >> 20 : -1, r.oom, r.oom_kill);
     if (powod == 0)
         return;
     k1_log(TAG, "strefa %d zakończyła się sama (powód %d)%s", nr, powod, cicho ? " — bez okienka" : "");

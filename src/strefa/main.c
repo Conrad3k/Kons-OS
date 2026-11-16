@@ -172,6 +172,7 @@ int main(int argc, char **argv)
     dane_koniec();
     pol_podsumowanie();
     wejscie_podsumowanie();
+    vsock_podsumowanie();
     k1_log(TAG, "strefa %d: koniec — %s (po %.1f s; wyjścia: io %lu, mmio %lu, nieznane %lu)", nr, mz.powod,
            k1_teraz() - od, mz.wyjscia_io, mz.wyjscia_mmio, mz.nieznane);
     _exit(kod_wyjscia());

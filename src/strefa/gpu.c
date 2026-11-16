@@ -303,6 +303,16 @@ static void konfig(struct mmio_urz *u, uint32_t od, uint8_t *dst, uint32_t n)
     memcpy(dst, (const uint8_t *)&c + od, n);
 }
 
+/* The counters for the log (0.10.1 step 1, S13): resources now and their MiB (GPU_PAMIEC at most). */
+void gpu_liczniki(unsigned *n, unsigned *mib)
+{
+    unsigned i;
+    *n = 0;
+    for (i = 0; i < ZASOBY; i++)
+        *n += zasoby[i].id != 0;
+    *mib = (unsigned)(zajete >> 20);
+}
+
 static void reset(struct mmio_urz *u)
 {
     int i;

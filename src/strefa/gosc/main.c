@@ -9,6 +9,7 @@
 #include <sys/mount.h>
 #include <sys/reboot.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <linux/input.h>
@@ -125,14 +126,19 @@ static int zdarzenia(int fd, struct stan *s)
 static void petla(int ster, const int *wej, int n)
 {
     struct stan s = { 0, 0, -1, -1, 0, 0 };
+    time_t liczniki = 0;
     for (;;) {
         struct pollfd p[WEJSCIA + 1];
         int i;
         for (i = 0; i < n; i++)
             p[i] = (struct pollfd){ wej[i], POLLIN, 0 };
         p[n] = (struct pollfd){ ster, POLLIN, 0 };
-        if (poll(p, (nfds_t)(n + 1), -1) < 0 && errno != EINTR)
+        if (poll(p, (nfds_t)(n + 1), 1000) < 0 && errno != EINTR)
             return;
+        if (time(NULL) - liczniki >= 5) { /* 0.10.1 step 1: the counters, as the browser zone (test-strefa reads them) */
+            pamiec_liczniki(ster);
+            liczniki = time(NULL);
+        }
         for (i = 0; i < n; i++)
             if ((p[i].revents & POLLIN) && zdarzenia(wej[i], &s))
                 obraz_rysuj(s.klawisze, s.klikniecia, s.x, s.y);

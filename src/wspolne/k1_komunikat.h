@@ -427,10 +427,12 @@ enum { K1_PRZEWIN_KOLKO = 1, K1_PRZEWIN_TOUCHPAD = 2 };
 
 /* 0.10.0 (ADR 0042): why a zone did not start (K1_KOM_STREFA_STAN b); since step 3 (S26) also why it ended without
  * the user closing it: its program said so (PAMIEC: the guest ran out of memory, AWARIA: it crashed — also the VMM's
- * exit code), K1 killed it for lack of memory in the computer (PAMIEC_K1), or it stopped without a word (BLAD) */
+ * exit code), K1 killed it for lack of memory in the computer (PAMIEC_K1), or it stopped without a word (BLAD); since
+ * 0.10.1 step 1 (S3): the session used all the memory K1 gives it — its sandbox's own limit (LIMIT) */
 enum { K1_STREFA_BEZ_WIRTUALIZACJI = 1, K1_STREFA_ZA_MALO_PAMIECI = 2, K1_STREFA_BRAK_OBRAZU = 3,
-       K1_STREFA_KONIEC_PAMIEC = 4, K1_STREFA_KONIEC_PAMIEC_K1 = 5, K1_STREFA_KONIEC_AWARIA = 6, K1_STREFA_KONIEC_BLAD = 7 };
-#define K1_STREFA_STAN_MAKS 7
+       K1_STREFA_KONIEC_PAMIEC = 4, K1_STREFA_KONIEC_PAMIEC_K1 = 5, K1_STREFA_KONIEC_AWARIA = 6, K1_STREFA_KONIEC_BLAD = 7,
+       K1_STREFA_KONIEC_LIMIT = 8 };
+#define K1_STREFA_STAN_MAKS 8
 #define K1_STREFA_KONIEC_OD K1_STREFA_KONIEC_PAMIEC /* b >= this: the zone ended (not: did not start) */
 #define K1_STREFA_TRYB_MAKS 5 /* 1..4: the hostile test guests (gosc/zlosliwy.c); 5: one that counts its starts on the disk */
 /* 0.10.0 step 2 (ADR 0043 T9): the zones' connections (STREFA_POLACZ c, STREFA_GNIAZDO a, STREFA_ODMOWA a) */
