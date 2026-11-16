@@ -333,6 +333,9 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
   <gałąź>` → PR po polsku (najpierw co widzi użytkownik, potem technika, `Closes #N`) → **squash z własnym
   `commit_message`**. Tylko docs: `[skip ci]` w tytule commita scalenia. Zmiana w systemie: **bez**
   „[skip ci]” nigdzie w opisie (domyślny opis skleja commity gałęzi — tak przepadło wydanie 0.5.4).
+- **Czekanie na CI:** testy z KVM trwają zwykle ok. 13–15 min (cały przebieg ok. 30 min). Trwają ponad dwa razy
+  dłużej — od razu powiedz właścicielowi, zamiast czekać w ciszy. Logu trwającego zadania API nie daje; artefakt
+  z logami pobierasz z `productionresultssa1.blob.core.windows.net` (dozwolony w środowisku od 2026-11-16).
 - **Po scaleniu:** `send_later` ok. 15 min; CI padło → `get_job_logs` (`failed_only`) i poprawka (PATCH);
   przeszło → tag `k1-v<wersja>` i wydanie z ISO, obrazem USB i `k1-<wersja>-logi.tar.gz`. Logi testów są
   zawsze: konsola zadania (krok „Logi testów”), podsumowanie, wydanie, artefakt (7 dni). Stare artefakty usuwa

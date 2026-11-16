@@ -52,6 +52,9 @@ Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kro
         na X230 i IdeaPadzie po dwóch kartach i chwili czekania albo po minimalizacji i przywróceniu — najpierw pomiar,
         który limit pęka, potem balon (pamięć strefy rośnie i maleje według potrzeby, wolna wraca do K1), podział
         pamięci komputera między K1 i sesje, Zasoby pokazują pamięć sesji
+    [ ] szybszy dysk sesji, która pamięta (wyszło w CI 0.10.0, 2026-11-16): pierwsze okno Firefoksa po 156 s zamiast
+        62 s — skarbiec potwierdza na dysku osobno każdy zapisany kawałek (2× fdatasync; ok. 2900 zapisów w jednej
+        sesji testu). Kierunek: wiele kawałków jednym zatwierdzeniem przy FLUSH gościa (do 0.10.1 albo 0.10.5)
     [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna)
     [ ] Przeglądarka K1 (po pierwszej przeglądarce w strefie): okno, karty i pasek adresu jako aplikacja K1, silnik
         (kierunek: WPE WebKit) w strefie; sesje = strefy

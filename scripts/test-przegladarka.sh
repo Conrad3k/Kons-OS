@@ -34,7 +34,7 @@
 # Dowody: build/testy/przegladarka.log, zrzuty build/testy/przegladarka-*.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
-CZAS=${K1_TEST_CZAS:-2400}
+CZAS=${K1_TEST_CZAS:-2700} # the whole test, both starts of K1 together (45 min)
 mkdir -p "$TESTY"; rm -f "$TESTY"/przegladarka*
 CMDLINE="$(cat "$K1_REPO/jadro/cmdline")"
 # KVM with nested virtualization (CI): the full scenario; otherwise (the container: no KVM at all) — emulated, shortened
@@ -48,6 +48,7 @@ import base64, http.server, os, re, socket, subprocess, sys, threading, time, zl
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
 repo, out, limit, cmdline, emulacja = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4], sys.argv[5:]
+START = time.time()  # the test's limit counts from here, over both starts of K1
 TEKST = "kontestk1"
 odebrane = []
 # the page asks for a picture from 10.0.2.3 (the home network, not the router) by itself: D3's refusal without typing
@@ -316,14 +317,19 @@ def uruchom_ponownie_k1():  # the same K1-DANE, a new QEMU: K1 starts again (the
     wyniki = q.wyniki
     q.monitor("quit")
     qemu.wait()
+    # one limit for the whole test: the second machine gets what is left of it, never a fresh one (CI run 125)
+    reszta = int(limit - (time.time() - START))
+    print(f"            | drugie uruchomienie K1: zostało {reszta} s z limitu testu", flush=True)
+    if reszta < 300:
+        return False
     log2, mon2 = f"{out}/przegladarka-2.log", f"{out}/przegladarka-2.sock"
     qemu = subprocess.Popen([f"{repo}/scripts/uruchom-qemu.sh", "--obraz", f"{repo}/build/wynik/rdzen.squashfs",
-                             "--cmdline", cmdline, "--log", log2, "--monitor", mon2, "--czas", str(int(limit)),
+                             "--cmdline", cmdline, "--log", log2, "--monitor", mon2, "--czas", str(reszta),
                              "--pamiec", "3072", "--qemu", SIEC + " " + DANE] + emulacja)
-    q = Maszyna(log2, mon2, out, limit, "przegladarka-2")
+    q = Maszyna(log2, mon2, out, reszta, "przegladarka-2")
     q.wyniki = wyniki
     czekaj = q.czekaj
-    return czekaj(r"K1-GUI: pulpit gotowy", czas=limit * 0.3) and czekaj(r"K1-NADZORCA: sieć: połączono \(", czas=240)
+    return czekaj(r"K1-GUI: pulpit gotowy", czas=reszta * 0.3) and czekaj(r"K1-NADZORCA: sieć: połączono \(", czas=240)
 
 
 def ustawienia_ogolna():  # Ustawienia → Przeglądarka: "Wyczyść dane" of Ogólna (two clicks), then "Zapomina"
