@@ -36,6 +36,9 @@ zdarzenie `push`, zielony). Po #119 przebiegu na liście Actions nie widać z ni
 przebieg na PR-ze (etykieta `testy` — liczy stan „`main` + PR”). Jeśli po scaleniu zmiany w systemie przebieg na `main`
 nie ruszy w ciągu kilku minut, Claude prosi właściciela o „Run workflow” (Actions → „K1 — budowa i testy”; Claude dostaje
 tu 403). Wydanie (tag, ISO, obraz USB) powstaje tylko z przebiegu na `main`, gdy `VERSION` ma nową wersję.
+**Na `main` testów nie ma** (decyzja właściciela 2026-11-17): przebieg na `main` tylko buduje i wydaje — pełny komplet
+idzie wcześniej, na PR-ze (przebieg 171 wydania 0.10.1 zawiesił się w test-strefa, choć ten sam kod przeszedł na PR-ze).
+Wydanie nie ma już pliku `k1-<wersja>-logi.tar.gz` — logi testów są w artefakcie przebiegu PR-a.
 **Pamięć podręczna na PR-ze:** PR widzi kopie zapisane na `main` i swoje własne, nie cudze. Zbudowane jądro zapisuje
 tylko przebieg na `main`, więc pierwszy PR po zmianie jądra albo tabel pobieranych plików buduje i pobiera wszystko od
 zera — dłużej niż zwykle (limit zadania: 80 min; sam krok testów: 45 min, żeby po zawieszonym teście zostały logi). Z KVM `testy.sh` co minutę pisze, które testy jeszcze trwają i od ilu minut („[k1] trwa (12 min): test-strefa”) — widać to na żywo na stronie przebiegu. Gdy `git.kernel.org` nie odpowiada, pliki kart idą z zapasu (gitlab.com)
