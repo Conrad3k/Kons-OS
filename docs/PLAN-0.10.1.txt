@@ -115,6 +115,7 @@ Pięć kroków:
 [x]  4  Wybór sesji przeglądarki; Ustawienia → Przeglądarka S16–S19          0.10.0      D4, D5, T8       S        —
      PR #139
 [ ]  5  Przewijanie po nowej karcie; wydanie 0.10.1         S20–S22          1, 3, 4     D6               S        —
+     [w toku: Claude, gałąź claude/intelligent-franklin-4wqxt1]
 (ADR 0044 — następny wolny po ADR-ach 0.10.0; jeśli 0.10.0 zajmie więcej, krok bierze kolejny wolny. Plan 0.10.5 bierze
 numery po tym.)
 
