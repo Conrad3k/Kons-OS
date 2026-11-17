@@ -36,24 +36,22 @@ int aktywna_aplikacja(void)
 void zmiana_okna(const struct k1_komunikat *m)
 {
     size_t i, wolny = N_OKIEN;
-    for (i = 0; i < N_OKIEN; i++) {
-        if (okna[i].id == m->obiekt) {
-            if (m->b == K1_OKNO_ZAMKNIETE)
-                okna[i].id = 0;
-            else
-                okna[i].stan = m->b;
-            return;
-        }
+    for (i = 0; i < N_OKIEN && okna[i].id != m->obiekt; i++)
         if (okna[i].id == 0 && wolny == N_OKIEN)
             wolny = i;
-    }
-    if (m->b != K1_OKNO_ZAMKNIETE && wolny < N_OKIEN) {
+    if (i < N_OKIEN) {
+        if (m->b == K1_OKNO_ZAMKNIETE)
+            okna[i].id = 0;
+        else
+            okna[i].stan = m->b;
+    } else if (m->b != K1_OKNO_ZAMKNIETE && wolny < N_OKIEN) {
         int apl = m->a != 0 ? m->a : POZYCJA_STREFY(m->c); /* a zone's window: a=0, c=its number (0.10.0) */
         okna[wolny].id = m->obiekt;
         okna[wolny].apl = apl;
         okna[wolny].stan = m->b;
         uruchamiane[apl] = 0;
     }
+    pamiec_fokus(); /* 0.10.1 step 3: the focused zone to nadzorca, when it changed */
 }
 
 void do_nadzorcy(struct k1_komunikat m)

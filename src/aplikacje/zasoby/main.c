@@ -1,5 +1,6 @@
 /* K1 Zasoby — native application: processor and memory use of the whole system over the last
- * minute and of every service (M4.1); the battery with the power draw and the time left (0.6.3).
+ * minute and of every service (M4.1); the battery with the power draw and the time left (0.6.3); every running
+ * session's memory — what it uses of what it may get (0.10.1 step 3, the owner's D3: sketch B "paski sesji").
  *
  * The numbers come from the supervisor once a second on fd 4 (k1_komunikat ZASOBY_SYSTEM and
  * ZASOBY_USLUGA, from the cgroup statistics and sysinfo): the application reads no files and
@@ -36,21 +37,61 @@ static struct {
 static struct {
     int32_t znana, obecna, procent, stan, moc_mw, minuty;
 } bat;
+static struct {
+    int32_t uzywa, moze, znana;
+    char nazwa[K1_STREFA_NAZWA_MAKS + 1]; /* the session's name from nadzorca (the user's text: never in the log) */
+} strefy[K1_STREFY_MAKS + 1];
 static unsigned long odrzucone;
 static int pierwsze = 1;
+#define SESJA_H 46
 
-
-/* Memory in MiB as "850 MB" or "1,2 GB". */
-static void pamiec_tekst(char *buf, size_t n, int32_t mib)
+/* The running zones nadzorca told us about (their VMM's profile runs). */
+static int sesje(int *nr)
 {
-    char d[24];
-    if (mib < 1024) {
-        snprintf(buf, n, "%d MB", (int)mib);
-        return;
-    }
-    k1_dziesietne(d, sizeof d, ((long)mib * 10 + 512) / 1024);
-    snprintf(buf, n, "%s GB", d);
+    int n = 0;
+    for (int z = 1; z <= K1_STREFY_MAKS; z++)
+        if (strefy[z].znana && uslugi[k1_strefa(z)->profil].dziala)
+            nr[n++] = z;
+    return n;
 }
+
+/* The sessions: a bar each in its colour — what it uses of what it may get; returns the new y. */
+static int32_t rysuj_sesje(struct k1_obraz *o, const struct k1_motyw *m, int32_t y, int32_t w)
+{
+    int nr[K1_STREFY_MAKS], n = sesje(nr), przegladarka = 1;
+    char a[24], b[24], buf[64];
+    for (int i = 0; i < n; i++)
+        przegladarka &= strefy[nr[i]].nazwa[0] != '\0';
+    if (n == 0)
+        return y;
+    k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG, y + 16, przegladarka ? "Sesje przeglądarki" : "Strefy", k1_kolor(m->tekst, 255), 0);
+    y += 28;
+    for (int i = 0; i < n; i++, y += SESJA_H) {
+        const struct k1_strefa_opis *z = k1_strefa(nr[i]);
+        int32_t moze = strefy[nr[i]].moze > 0 ? strefy[nr[i]].moze : 1, u = strefy[nr[i]].uzywa;
+        k1_kolo(o, (float)MARG + 5, (float)y + 8, 4, k1_kolor(z->kolor, 255));
+        k1_tekst(o, K1_CZ_MALA_MOCNA, MARG + 16, y + 13, strefy[nr[i]].nazwa[0] ? strefy[nr[i]].nazwa : z->tytul,
+                 k1_kolor(m->tekst, 255), w / 2);
+        k1_pamiec_tekst(a, sizeof a, u);
+        k1_pamiec_tekst(b, sizeof b, strefy[nr[i]].moze);
+        snprintf(buf, sizeof buf, "%s z %s", a, b);
+        k1_tekst(o, K1_CZ_MALA, MARG + w - k1_tekst_szer(K1_CZ_MALA, buf), y + 13, buf, k1_kolor(m->tekst2, 255), 0);
+        k1_zaokraglony(o, MARG, (float)y + 22, (float)w, 10, 5, k1_kolor(m->tekst, 22));
+        k1_zaokraglony(o, MARG, (float)y + 22, (float)w * (float)(u < moze ? u : moze) / (float)moze, 10, 5,
+                       k1_kolor(z->kolor, 255));
+    }
+    k1_tekst(o, K1_CZ_MALA, MARG, y + 6, "Nieużywaną pamięć sesja oddaje K1 sama, po kilku sekundach.",
+             k1_kolor(m->tekst3, 255), w);
+    return y + 24;
+}
+
+/* Rows of services the sessions leave room for. */
+static int wiersze_uslug(void)
+{
+    int nr[K1_STREFY_MAKS], n = sesje(nr), zajete = n ? (28 + n * SESJA_H + 24 + WIERSZ - 1) / WIERSZ : 0;
+    return WIERSZE_MAKS - zajete > 3 ? WIERSZE_MAKS - zajete : 3;
+}
+
 
 /* One series, one hue: a soft area under a 2-px line, a hairline grid at 50 %. */
 static void wykres(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y, int32_t w, int32_t h,
@@ -99,7 +140,7 @@ static void bateria_opis(char *buf, size_t n)
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char a[40], b[40], buf[96];
-    int32_t y = K1_OKNO_TYTUL + 12, w = apl.szer - 2 * MARG, p, dzialaja, wiersz;
+    int32_t y = K1_OKNO_TYTUL + 12, w = apl.szer - 2 * MARG, p, dzialaja, wiersz, maks;
     int32_t ostatni_cpu = probek ? cpu[PROBKI - 1] : 0;
 
     /* Processor: a headline number, then the last minute */
@@ -115,8 +156,8 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 
     /* Memory */
     k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG, y + 16, "Pamięć", k1_kolor(m->tekst, 255), 0);
-    pamiec_tekst(a, sizeof a, pam_uzyta);
-    pamiec_tekst(b, sizeof b, pam_calk);
+    k1_pamiec_tekst(a, sizeof a, pam_uzyta);
+    k1_pamiec_tekst(b, sizeof b, pam_calk);
     snprintf(buf, sizeof buf, "%s z %s", a, b);
     if (pam_calk > 0)
         k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG + w - k1_tekst_szer(K1_CZ_TEKST_MOCNA, buf), y + 16, buf,
@@ -137,6 +178,8 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         y += 36;
     }
 
+    y = rysuj_sesje(o, m, y, w); /* 0.10.1 step 3 */
+
     /* Services: name, processor, memory */
     k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG, y + 16, "Usługi i aplikacje", k1_kolor(m->tekst, 255), 0);
     k1_tekst(o, K1_CZ_MALA, MARG + w - 200, y + 16, "procesor", k1_kolor(m->tekst3, 255), 0);
@@ -145,11 +188,11 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     k1_prostokat(o, MARG, y, w, 1, k1_kolor(m->tekst, 20));
     for (p = 1, dzialaja = 0; p <= K1_PROFIL_MAKS; p++)
         dzialaja += uslugi[p].dziala != 0;
-    for (p = 1, wiersz = 0; p <= K1_PROFIL_MAKS; p++) {
+    for (p = 1, wiersz = 0, maks = wiersze_uslug(); p <= K1_PROFIL_MAKS; p++) {
         if (!uslugi[p].dziala)
             continue;
-        if (++wiersz == WIERSZE_MAKS && dzialaja > WIERSZE_MAKS) { /* the last row says how many more */
-            snprintf(buf, sizeof buf, "… i jeszcze %d", dzialaja - WIERSZE_MAKS + 1);
+        if (++wiersz == maks && dzialaja > maks) { /* the last row says how many more */
+            snprintf(buf, sizeof buf, "… i jeszcze %d", dzialaja - maks + 1);
             k1_tekst(o, K1_CZ_MALA, MARG, y + 16, buf, k1_kolor(m->tekst3, 255), 0);
             break;
         }
@@ -183,8 +226,11 @@ static void odbierz(void)
             break;
         if (w == K1_ODB_KONIEC)
             k1_koniec(TAG, "nadzorca zamknął kanał");
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFY_STAN)
+            continue; /* after the names: nothing Zasoby shows */
         if (w != K1_ODB_JEST ||
-            (k.typ != K1_KOM_ZASOBY_SYSTEM && k.typ != K1_KOM_ZASOBY_USLUGA && k.typ != K1_KOM_ZASOBY_BATERIA)) {
+            (k.typ != K1_KOM_ZASOBY_SYSTEM && k.typ != K1_KOM_ZASOBY_USLUGA && k.typ != K1_KOM_ZASOBY_BATERIA &&
+             k.typ != K1_KOM_STREFA_PRZYDZIAL && k.typ != K1_KOM_STREFA_NAZWA)) {
             if (odrzucone++ < 3)
                 k1_log(TAG, "odrzucono komunikat od nadzorcy");
             continue;
@@ -215,6 +261,13 @@ static void odbierz(void)
             bateria_opis(opis, sizeof opis);
             if (nowa) /* once per state, not every second */
                 k1_log(TAG, "bateria: %s", opis);
+        } else if (k.typ == K1_KOM_STREFA_PRZYDZIAL) { /* 0.10.1 step 3: a running zone's share */
+            if (!strefy[k.obiekt].znana) /* once a zone: the tests read it */
+                k1_log(TAG, "strefa %u: używa %d MiB z %d MiB", k.obiekt, (int)k.a, (int)k.b);
+            strefy[k.obiekt].uzywa = k.a, strefy[k.obiekt].moze = k.b, strefy[k.obiekt].znana = 1;
+        } else if (k.typ == K1_KOM_STREFA_NAZWA) {
+            const int32_t n[5] = { k.a, k.b, k.c, k.d, k.e }; /* checked: k1_strefa_nazwa_dobra */
+            memcpy(strefy[k.obiekt].nazwa, n, K1_STREFA_NAZWA_MAKS);
         } else {
             uslugi[k.obiekt].cpu = k.a;
             uslugi[k.obiekt].kib = k.b;

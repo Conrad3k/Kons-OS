@@ -162,7 +162,7 @@ void kosz_oproznij(void);
 int kosz_pelny(void);
 
 /* kontekst.c */
-enum { K_PULPIT = 1, K_IKONA, K_PASEK, K_MENU, K_KOMUNIKAT, K_OKIENKO, K_SESJE };
+enum { K_PULPIT = 1, K_IKONA, K_PASEK, K_MENU, K_KOMUNIKAT, K_OKIENKO, K_WLASNE };
 #define KONT_SZER (K1_MENU_SZER + K1_MENU_SZER_POD) /* the panel: the menu and its submenu side by side */
 #define KONT_WYS K1_MENU_WYS_MAKS
 extern int kontekst_otwarte;
@@ -173,14 +173,22 @@ void kontekst_zamknij(void);
 void kontekst_okienko(const struct k1_menu *m, const char *rodzaj, int32_t x, int32_t y, void (*wybrano)(int));
 void rysuj_kontekst(void);
 void wskaznik_kontekst(const struct k1_komunikat *m);
+/* A window another module draws on this panel (0.10.1): its top left at (x, y) on the screen, what it logs for the tests,
+ * the pointer in its coordinates (it closes itself: kontekst_zamknij). It must fit KONT_SZER × KONT_WYS. */
+struct okienko_wlasne {
+    void (*rysuj)(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y);
+    void (*loguj)(int32_t x, int32_t y);
+    void (*wskaznik)(int rodzaj, int przycisk, int32_t x, int32_t y);
+};
+void kontekst_wlasne(const struct okienko_wlasne *w, uint32_t klucz, int32_t x, int32_t y);
 
 /* sesje.c (0.10.1 step 4, D4: sketch B) */
 void sesje_wybierz(int apl); /* opening the browser (item apl): the window of its sessions, or the only one at once */
-int32_t sesje_szer(void);
-int32_t sesje_wys(void);
-void sesje_rysuj(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y);
-void sesje_loguj(int32_t x, int32_t y);
-int sesje_wskaznik(int rodzaj, int przycisk, int32_t x, int32_t y); /* x, y in the window; 1 = it closed */
+
+/* pamiec.c (0.10.1 step 3, D3: window A) — nadzorca on fd 5 */
+void pamiec_przydzial(const struct k1_komunikat *m); /* STREFA_PRZYDZIAL: a session's share */
+void pamiec_malo(const struct k1_komunikat *m);      /* MALO_PAMIECI: the window with the sessions */
+void pamiec_fokus(void);                             /* the windows changed: the zone with the focus to nadzorca */
 
 /* zapis.c */
 void rozm_wczytaj(void); /* at start: from skarbiec, else the first-start arrangement */

@@ -40,7 +40,7 @@ void obsluz_test(void)
         uruchom_aplikacje(k.a);
         odpowiedz_testowi(0, -1);
     } else if (k.typ == K1_KOM_URUCHOM_STREFE) { /* 0.10.0: also a hostile guest (b: its test mode) */
-        strefa_uruchom(k.a, k.b);
+        strefa_uruchom(k.a, k.b, 1);
         odpowiedz_testowi(0, -1);
     } else if (k.typ == K1_KOM_STREFA_BALON) { /* 0.10.1 step 2: the balloon's mechanics (test-strefa) */
         strefa_balon((int)k.obiekt, k.a);

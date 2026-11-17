@@ -102,6 +102,17 @@ const char *k1_odmiana(long n, const char *jeden, const char *kilka, const char 
     return d % 10 >= 2 && d % 10 <= 4 && (d % 100 < 12 || d % 100 > 14) ? kilka : wiele;
 }
 
+void k1_pamiec_tekst(char *buf, size_t n, int32_t mib)
+{
+    char d[24];
+    if (mib < 1024) {
+        snprintf(buf, n, "%d MB", (int)mib);
+        return;
+    }
+    k1_dziesietne(d, sizeof d, ((long)mib * 10 + 512) / 1024);
+    snprintf(buf, n, "%s GB", d);
+}
+
 void k1_rozmiar_tekst(uint64_t b, char *buf, size_t n)
 {
     if (b < 1024)

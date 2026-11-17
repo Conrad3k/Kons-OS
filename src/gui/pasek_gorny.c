@@ -100,6 +100,14 @@ void odbierz_baterie(void)
             strefy_sesje(&m);
             continue;
         }
+        if (w == K1_ODB_JEST && m.typ == K1_KOM_STREFA_PRZYDZIAL) { /* 0.10.1 step 3 (pamiec.c) */
+            pamiec_przydzial(&m);
+            continue;
+        }
+        if (w == K1_ODB_JEST && m.typ == K1_KOM_MALO_PAMIECI) {
+            pamiec_malo(&m);
+            continue;
+        }
         if (w == K1_ODB_JEST && m.typ == K1_KOM_POKAZ_APL) { /* an application got a file to open (ADR 0030) */
             pokaz_aplikacje(m.a);
             continue;

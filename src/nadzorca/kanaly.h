@@ -16,7 +16,7 @@
 #define KANAL_PLIKU { KN_PLIK, NULL, NULL, NULL } /* an application: a file to open (Pliki: a place; plik_kanal[apl]) */
 /* Ustawienia: battery state, history, the network; since 0.9.1 also its requests (Wi-Fi on/off, a look; wifi.c) */
 #define KANAL_USTAWIEN { KN_OD, &ustaw_kanal, NULL, ustawienia_nowy_kanal }
-#define KANAL_ZASOBOW { KN_DO, &zasoby_kanal, NULL, NULL }                     /* Zasoby: the statistics */
+#define KANAL_ZASOBOW { KN_DO, &zasoby_kanal, NULL, zasoby_nowy_kanal }        /* Zasoby: the statistics */
 #define KANAL_INSTALACJI { KN_OD, &inst_kanal, NULL, inst_nowy_kanal }        /* Instalator: disks, progress */
 #define KANAL_PENDRIVE { KN_OD, &pen_kanal, NULL, pendrive_nowy_kanal } /* Pliki: the USB stick, a picture decoder */
 #define KANAL_DEKODERA { KN_OD, &podglad_kanal, NULL, NULL } /* Podgląd: a picture decoder (dekoder.c; Podgląd only) */

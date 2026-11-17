@@ -180,7 +180,7 @@ int main(void)
         pamiec_proba();
         wylacz();
     }
-    if (t > TRYB_ZWYKLY) {
+    if (t > TRYB_ZWYKLY && t != TRYB_ROZDZIELACZ) { /* 10 (0.10.1 step 3): the ordinary zone, its balloon K1's */
         zlosliwy(t);
         loguj("tryb %d: VMM nie zatrzymał maszyny", t);
         wylacz();
@@ -203,6 +203,8 @@ int main(void)
     dysk = dysk_montuj("/dane") == 0; /* the test zone remembers (0.10.0 step 5): its counter of starts */
     if (dysk)
         dysk_licznik("/dane");
+    if (t == TRYB_ROZDZIELACZ)
+        pamiec_podreczna();
     ster = sterowanie();
     loguj("gotowa: urządzenia wejścia %d, kanał sterujący %s", n, ster >= 0 ? "jest" : "brak");
     petla(ster, wej, n);

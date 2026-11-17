@@ -216,6 +216,17 @@ wybrany **A**. Znaczek i plakietka B2 zniknęły.
   Właściciel najpierw wybrał A („pigułki sesji w wierszu menu Start”), potem B — bo przeglądarkę będzie się otwierać też
   z innych miejsc. Odrzucone: A, C „strona sesji w menu”. Wariant „rozwija pod sobą wiersze” nie mieścił się na ekranie
   768 px.
+- **Mało pamięci (0.10.1 krok 3, decyzja właściciela D3 z 2026-11-17: okienko A „na środku, z sesjami”):** panel 380 px
+  (jak okienko sesji) na środku ekranu, w 1/3 wysokości: „Mało pamięci” (Plex Sans Medium 15), dwie linie Plex Sans 13
+  `tekst2` „Komputerowi kończy się pamięć. Zamknij kartę albo / całą sesję, której nie potrzebujesz.”; wiersz co 44 px na
+  sesję: kropka 5 px w kolorze sesji, nazwa (Medium 15), pamięć (Plex Sans 13 `tekst2`, x 150), „w oknie” (`tekst3`, x 214)
+  przy sesji z fokusem, po prawej przycisk obrysowany „Zamknij” 92 × 28; kreska i ciche „Później” na dole. Odrzucone:
+  okienko B (karteczka pod górnym paskiem z „Pokaż sesje”).
+- **Zasoby → Sesje przeglądarki (0.10.1 krok 3, D3: szkic B „paski sesji”):** część nad „Usługi i aplikacje”: tytuł
+  „Sesje przeglądarki” (Medium 15), wiersz co 46 px — kropka 4 px w kolorze sesji, nazwa (Medium 13), po prawej „1,1 GB
+  z 2,8 GB” (13, `tekst2`), pod nimi tor 10 px (zaokrąglenie 5, `tekst` 22/255) z wypełnieniem w kolorze sesji; pod
+  wierszami „Nieużywaną pamięć sesja oddaje K1 sama, po kilku sekundach.” (13, `tekst3`). Odrzucone: A (wiersze listy usług
+  z drugą linijką „używa … · może dostać …”).
 - **Menu sesji (0.10.0 krok 5, D2; zostaje obok okienka sesji):** prawy przycisk na „Przeglądarce” w menu Start — „Otwórz”
   (pogrubione; od 0.10.1 otwiera okienko sesji), kreska, napis „Sesje” i wiersz na sesję (jej nazwa), potem jak u aplikacji
   („Dodaj do pulpitu”). Okienka i menu paska: „Przeglądarka · <sesja>”.

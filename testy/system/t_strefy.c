@@ -5,6 +5,8 @@
  * stops (KVM_EXIT_IO, KVM_EXIT_HLT). The guest starts in long mode with paging, like the zone kernel the VMM strefa
  * starts (in real mode QEMU 8.2's emulated nested paging gave the guest the wrong memory). */
 #include <linux/kvm.h>
+#include <sys/mman.h>
+#include <sys/sysinfo.h>
 
 #include "k1_test.h"
 
@@ -231,11 +233,40 @@ static void balon(void)
            K1_STREFA_TRYB_PAMIEC);
 }
 
+/* 0.10.1 step 3 (T6, the owner's D3): the rozdzielacz decides this zone's balloon (test mode 10: an ordinary guest).
+ * The test program takes K1's memory as a heavy program would, until K1 has ROZ_ZOSTAW MiB free — below its reserve
+ * (768): nadzorca takes the guest's free memory by its balloon, and when no more can be taken gui shows "Mało pamięci";
+ * Zasoby shows the zone's share. The script closes the zone from that window; then the memory is given back. */
+#define ROZ_ZOSTAW 420
+static void rozdzielacz(void)
+{
+    struct sysinfo si;
+    size_t ile = 0;
+    void *p = MAP_FAILED;
+    if (zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_ROZDZIELACZ, 0, 0, 0), NULL,
+                10) != 0 || !czekaj_strefa(1, 30)) {
+        k1_log(TAG, "strefy: strefa (tryb %d) nie ruszyła", K1_STREFA_TRYB_ROZDZIELACZ);
+        return;
+    }
+    k1_log(TAG, "strefy: strefa próbna uruchomiona (tryb %d)", K1_STREFA_TRYB_ROZDZIELACZ);
+    msleep(30000); /* the guest reads its disk into the page cache, its statistics reach nadzorca */
+    if (sysinfo(&si) == 0 && ((uint64_t)si.freeram * si.mem_unit >> 20) > ROZ_ZOSTAW + 16)
+        ile = (size_t)(((uint64_t)si.freeram * si.mem_unit >> 20) - ROZ_ZOSTAW) << 20;
+    if (ile > 0 && (p = mmap(NULL, ile, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)) != MAP_FAILED)
+        memset(p, 1, ile);
+    k1_log(TAG, "strefy: program testowy zajmuje %zu MiB pamięci K1", p != MAP_FAILED ? ile >> 20 : 0);
+    zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM, 0, K1_APL_ZASOBY, 0, 0, 0, 0), NULL, 10);
+    k1_log(TAG, "strefy: strefa %s (tryb %d)", czekaj_strefa(0, 600) ? "skończyła się" : "nie skończyła się",
+           K1_STREFA_TRYB_ROZDZIELACZ);
+    if (p != MAP_FAILED)
+        munmap(p, ile);
+}
+
 /* The scenario's guest side: the test zone with an honest guest — the script clicks, types, closes it through its
  * bar; then one hostile guest after another (gosc/zlosliwy.c), each must end only its own machine — since 0.10.1 also
  * those hostile to the balloon, then the balloon's mechanics (balon()); then (0.10.0 step 5)
  * the zone remembers: an honest guest counts its start on the zone's disk (2: the first run counted 1), "Wyczyść dane
- * sesji", and the count starts again from 1. */
+ * sesji", and the count starts again from 1; then the rozdzielacz (0.10.1 step 3). */
 int t_strefy_scenariusz(void)
 {
     int tryb, i;
@@ -257,6 +288,7 @@ int t_strefy_scenariusz(void)
         zapytaj(k1_komunikat_nowy(K1_KOM_STREFA_WYCZYSC, K1_STREFA_PROBNA, 0, 0, 0, 0, 0), NULL, 10);
         msleep(2000);
         strefa_raz(K1_STREFA_TRYB_DYSK, 240); /* after "Wyczyść dane sesji": 1 */
+        rozdzielacz();
     }
     k1_log(TAG, "strefy: koniec scenariusza");
     for (;;)

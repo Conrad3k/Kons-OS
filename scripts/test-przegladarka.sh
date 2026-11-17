@@ -343,13 +343,14 @@ def przewijanie():  # the long page: 3 notches down, then 5 up — back at the t
 
 def pamiec():  # S26: the page that takes 1400 MiB; True when it got all of it and the zone lives on
     n0 = q.ile(r"K1-STREFA: gość: strona zakończona — brak pamięci")
+    nk = q.ile(r"strefa 2: koniec")  # the sessions before closed zone 2 too (CI run 154): only a new end counts
     q.pisz("ctrl-l")
     wpisz(f"10.0.2.2:{port}/pamiec")
     otworz_strone(60, "/pamiec", lambda w, h, px: "/pamiec" in odebrane)
     t0 = time.time()
-    q.czekaj_na(lambda: "/pamiec-koniec" in odebrane or "strefa 2: koniec" in q.tekst() or
+    q.czekaj_na(lambda: "/pamiec-koniec" in odebrane or q.ile(r"strefa 2: koniec") > nk or
                 q.ile(r"K1-STREFA: gość: strona zakończona — brak pamięci") > n0, czas=240)
-    zyje = "strefa 2: koniec" not in q.tekst()
+    zyje = q.ile(r"strefa 2: koniec") == nk
     print(f"            | pamięć: {[p for p in odebrane if p.startswith('/pamiec-postep')][-1:]} po "
           f"{time.time() - t0:.0f} s, strony zakończone z braku pamięci: "
           f"{q.ile(r'K1-STREFA: gość: strona zakończona — brak pamięci') - n0}, strefa żyje: {zyje}", flush=True)

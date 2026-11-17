@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M3, M4) — testy w systemie (`scripts/test-m1.sh`, scenariusz `testy-w-systemie`), `scripts/test-m4.sh` (uruchamianie aplikacji, wyłączanie) |
-| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (usługi z tabel `K1_SYSTEM` i `K1_APLIKACJE`: uruchamianie w klatkach, kanały, restarty, prośby pulpitu), `kanaly.h` (nazwy kanałów `KANAL_*`, 0.9.0), `logi.c` (logi usług), `pendrive.c` (prośby Plików, pendrive i czytnik, 0.8.0), `dekoder.c` (dekoder obrazów dla Plików, 0.8.0, i Podglądu, 0.8.2), `powieksz.c` (K1-DANE do końca pendrive'a: pusta przy starcie, 0.8.0; z danymi na prośbę z Ustawień, 0.8.1), `profile.c` (klatki: `KLATKA_<NAZWA>` dla każdej usługi, aplikacje — jedna dla wszystkich), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `siec.c` (karty sieciowe, kabel, gniazdo pakietowe dla usługi siec, ustawianie adresu — 0.9.0, ADR 0039), `siec_jadro.c` (zapytania rtnetlink), `siec_stan.c` (stan sieci i lista kart dla pulpitu i Ustawień), `siec_zegar.c` (zegar z internetu), `wifi.c` (karta Wi-Fi, przełącznik radia, szukanie sieci, lista dla Ustawień — 0.9.1, ADR 0041), `wifi_nl.c` (nl80211), `wifi_polacz.c` (łączenie z siecią na prośbę siec, klucze, gniazdo EAPOL — 0.9.1 krok 2), `strefy.c` (strefy: VMM strefy na prośbę gui albo programu testowego, `/dev/kvm`, jądro i obraz strefy, kanał do ekranu; brak wirtualizacji, pamięci, obrazu → `STREFA_STAN` do gui — 0.10.0, ADR 0042; powód końca strefy z kodu VMM i zdarzeń jej klatki `memory.events` — czysta część `strefy_powod.c`, 0.10.1 krok 1; górna granica pamięci strefy — `pamiec_stref.c`, czyste, 0.10.1 krok 2), `strefy_balon.c` (pamięć stref od VMM — `STREFA_PAMIEC`, cel balonu — `STREFA_BALON`; w 0.10.1 krok 2 tylko na prośbę programu testowego; ADR 0044), `strefy_siec.c` (połączenia przeglądarki w strefie: kanał każdej strefy — fd 7 VMM, `STREFA_POLACZ` → reguła D3 `k1_siec_dla_strefy`, limit, gniazdo TCP albo UDP do serwera DNS z DHCP → `STREFA_GNIAZDO` / `STREFA_ODMOWA`; w logu tylko liczniki — 0.10.0 krok 2, ADR 0043), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
+| **Kod** | od 0.6.0 moduły (ADR 0019): `main.c` (pętla: tablica kanałów, sygnały, zdarzenia), `uslugi.c` (usługi z tabel `K1_SYSTEM` i `K1_APLIKACJE`: uruchamianie w klatkach, kanały, restarty, prośby pulpitu), `kanaly.h` (nazwy kanałów `KANAL_*`, 0.9.0), `logi.c` (logi usług), `pendrive.c` (prośby Plików, pendrive i czytnik, 0.8.0), `dekoder.c` (dekoder obrazów dla Plików, 0.8.0, i Podglądu, 0.8.2), `powieksz.c` (K1-DANE do końca pendrive'a: pusta przy starcie, 0.8.0; z danymi na prośbę z Ustawień, 0.8.1), `profile.c` (klatki: `KLATKA_<NAZWA>` dla każdej usługi, aplikacje — jedna dla wszystkich), `urzadzenia.c` (karta, wejścia, partycja K1-DANE, uevent), `skarb.c` (kanały skarbca, **etapy startu**), `instalacja.c` (instalator), `siec.c` (karty sieciowe, kabel, gniazdo pakietowe dla usługi siec, ustawianie adresu — 0.9.0, ADR 0039), `siec_jadro.c` (zapytania rtnetlink), `siec_stan.c` (stan sieci i lista kart dla pulpitu i Ustawień), `siec_zegar.c` (zegar z internetu), `wifi.c` (karta Wi-Fi, przełącznik radia, szukanie sieci, lista dla Ustawień — 0.9.1, ADR 0041), `wifi_nl.c` (nl80211), `wifi_polacz.c` (łączenie z siecią na prośbę siec, klucze, gniazdo EAPOL — 0.9.1 krok 2), `strefy.c` (strefy: VMM strefy na prośbę gui albo programu testowego, `/dev/kvm`, jądro i obraz strefy, kanał do ekranu; brak wirtualizacji, pamięci, obrazu → `STREFA_STAN` do gui — 0.10.0, ADR 0042; powód końca strefy z kodu VMM i zdarzeń jej klatki `memory.events` — czysta część `strefy_powod.c`, 0.10.1 krok 1; górna granica pamięci strefy — `pamiec_stref.c`, czyste, 0.10.1 krok 2), `strefy_balon.c` (pamięć stref od VMM — `STREFA_PAMIEC`, cel balonu — `STREFA_BALON`; ADR 0044; od 0.10.1 krok 3 **rozdzielacz** — pamięć komputera dla K1 i stref, zasada w czystym `pamiec_stref.c`, opis niżej), `strefy_siec.c` (połączenia przeglądarki w strefie: kanał każdej strefy — fd 7 VMM, `STREFA_POLACZ` → reguła D3 `k1_siec_dla_strefy`, limit, gniazdo TCP albo UDP do serwera DNS z DHCP → `STREFA_GNIAZDO` / `STREFA_ODMOWA`; w logu tylko liczniki — 0.10.0 krok 2, ADR 0043), `zasoby.c` (bateria, historia baterii w skarbcu, Zasoby), `test.c` (kanał testowy); czyste części z testami na hoście: `bateria.c`, `dyski.c`, `uevent.c`; wspólne: `nadzorca.h`. Klatka `src/wspolne/k1_klatka.c`, kanały `k1_kanal.c`, odbiór `k1_odbior.c`, protokół `k1_komunikat.c` |
 | **Decyzje** | ADR 0006 (wersja M2), ADR 0007 (M3, klatki), ADR 0008 (pulpit i aplikacje), ADR 0013 (dyski i USB), ADR 0019 (moduły, zdarzenia jądra), ADR 0022 (A/B, Secure Boot), ADR 0030–0033 (pliki, pendrive, dekoder, K1-DANE do końca pendrive'a), ADR 0036 (potwierdzony start), ADR 0037 (Podgląd), ADR 0039 (sieć) |
 
 ## Etapy startu (0.6.0)
@@ -228,4 +228,36 @@ Wiersze logu od usług (bufor 400 B, znaki sterujące zamieniane, limit 20/s), k
   `K1_SB_PRAWDZIWY`) zapisuje `MokNew` i `MokAuth` (SHA-256, `k1_sha256.c`). Od 0.8.5 `MokNew` czekający z wcześniejszego
   startu też pozwala na ponowne uruchomienie z okna Instalatora (`sb_czeka` ustawiane przy odczycie stanu). Po zapisie okno Instalatora może
   poprosić o restart (`WYLACZ` a=1).
+
+## Rozdzielacz — pamięć komputera dla wszystkich (0.10.1 krok 3, ADR 0044 T6, decyzja właściciela D3)
+Raz na sekundę, gdy działa strefa, którą rządzi rozdzielacz (każda uruchomiona przez gui; z programu testowego tylko
+w trybie 10), `strefy_balon.c` liczy, ile K1 ma wolnej pamięci (wolna + pamięć podręczna plików, którą jądro może
+zrzucić; tmpfs i pamięć stref — zajęta; to samo co Zasoby: `pamiec_uzyta`), i daje to czystej funkcji
+`pamiec_rozdziel` (`pamiec_stref.c`, test na hoście `test_pamiec_stref`) razem z tym, co każda strefa powiedziała
+o sobie (`STREFA_PAMIEC` — podpowiedź, nie prawda; twarda granica to `memory.max` klatki VMM). Progi w jednej tabeli
+(`PROGI`): **rezerwa K1** (768 MiB do 6 GiB pamięci, 1 GiB od 6 GiB — tabela `REZERWA`), zapas wolnej pamięci gościa
+(256 MiB, najwyżej ćwierć jego granicy — na nagły skok), krok balonu (256 MiB na sekundę), histereza (128 MiB).
+- K1 poniżej rezerwy → balony rosną: najpierw sesje w tle (ta, która może oddać najwięcej, pierwsza), sesja z fokusem
+  na końcu i nigdy poniżej swojej pamięci na start (D3: „do jej minimum”); żadna nigdy w zapas gościa. Balon daje K1
+  tylko pamięć, którą gość trzyma, a której nie potrzebuje (jego pamięć podręczna) — wolne strony gość oddał już sam
+  (zgłaszanie), więc cel balonu to „gość tak duży, ile K1 ma go trzymać”: granica − (pamięć w K1 − to, co ma wrócić).
+  To, o co już poproszono, a gość jeszcze nie oddał, się liczy. K1 ma rezerwę i 128 MiB więcej → balony maleją (najpierw
+  sesja z fokusem).
+- Żaden balon nie może wziąć więcej, a K1 dalej poniżej rezerwy (2 s z rzędu) → gui dostaje przydział każdej sesji
+  (`STREFA_PRZYDZIAL`) i `MALO_PAMIECI`: okienko „Mało pamięci” (D3 (2); najwyżej raz na 2 min), log „mało pamięci: K1 ma
+  N MiB (rezerwa R), balony nie mogą wziąć więcej — okienko”.
+- Do tego K1 ma mniej niż ćwierć rezerwy (3 s z rzędu) → nadzorca zamyka sesję w tle z największą pamięcią (SIGKILL VMM;
+  D3 (3), nigdy sesji z fokusem) i gui mówi „<tytuł> zamknęła się — Komputerowi zabrakło pamięci…” (`STREFA_STAN`
+  `_PAMIEC_K1`); log „brak pamięci: K1 ma N MiB — zamykam strefę S (w tle, M MiB)”.
+- Fokus: gui wysyła `STREFA_FOKUS`, gdy zmienia się aktywne okno (log „fokus: strefa N” / „żadna strefa”).
+- `oom_score_adj` VMM: 800 w tle, 500 z fokusem (usługi K1: 0) — gdy cały komputer naprawdę nie ma pamięci, jądro
+  wybiera VMM, nie usługę K1.
+- Start sesji (`jest_pamiec`, S5): wolna pamięć K1 + to, co balony działających sesji mogą jeszcze oddać ≥ pamięć na
+  start + 64 MiB.
+- Zasoby dostają co sekundę przydział każdej działającej strefy (`STREFA_PRZYDZIAL`) i nazwy sesji (`STREFA_NAZWA`).
+- `STREFA_PAMIEC` częściej niż co 0,5 s — nadmiar odrzucony (raz w logu), ostatnie liczby zostają. Na końcu strefy
+  log „pamięć na końcu — w K1 …, wolne w gościu … (−1: statystyki nie doszły), balon …, oddane …”; przy okienku „Mało
+  pamięci” liczby każdej strefy (w K1, wolne, cel).
+- W logu jedna linia na sekundę najwyżej, gdy cel się zmienił: „rozdzielacz: K1 ma N MiB (rezerwa R); cel balonu:
+  strefa S M MiB, …” — same liczby.
 

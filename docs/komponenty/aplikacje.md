@@ -137,6 +137,13 @@ napięcie, uśredniony przez nadzorcę: połowa każdego nowego odczytu — od 0
 zmianę w ok. 15 s, resztę opóźnienia daje sama bateria, która też uśrednia; od nowa przy zmianie ładowanie ↔
 rozładowanie; odczyt co 5 s, gdy Zasoby działają) i czas do rozładowania / naładowania (energia ÷
 pobór; brak szacunku poniżej 0,1 W i powyżej 99 h).
+0.10.1 krok 3 (D3 właściciela: szkic B „paski sesji”): nad usługami część **„Sesje przeglądarki”** (gdy działa strefa bez
+sesji, np. strefa próbna w testach — „Strefy”): przy każdej działającej sesji kropka w jej kolorze, nazwa (od nadzorcy:
+`STREFA_NAZWA` — tekst użytkownika, nigdy w logu), „1,1 GB z 2,8 GB” i pasek 10 px — ile używa (kolor sesji) z tego, ile
+może dostać (`STREFA_PRZYDZIAL`: górna granica minus to, co K1 trzyma w jej balonie); pod nimi „Nieużywaną pamięć sesja
+oddaje K1 sama, po kilku sekundach.”. Usług jest wtedy o tyle mniej wierszy, ile zajmują sesje (najmniej 3). Log raz na
+strefę: „strefa N: używa X MiB z Y MiB”. Zapis pamięci („850 MB”, „1,2 GB”) — `k1_pamiec_tekst` przybornika (to samo
+w okienku „Mało pamięci”).
 
 ### Pliki
 (0.8.0, ADR 0029, `src/aplikacje/pliki/`, UID 206) — pliki i foldery użytkownika, jak w Windows: z lewej

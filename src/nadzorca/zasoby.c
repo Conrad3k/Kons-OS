@@ -49,6 +49,11 @@ void bateria_nowy_kanal(void)
     sesje_nowy_kanal(0);
 }
 
+void zasoby_nowy_kanal(void)
+{
+    sesje_nowy_kanal(2); /* 0.10.1 step 3: the sessions' names for their shares */
+}
+
 void ustawienia_nowy_kanal(void)
 {
     ustaw_znana = 0;
@@ -138,6 +143,16 @@ static int32_t promile(long long delta_usec, double delta_s, long cpus)
     return v < 0 ? 0 : (v > 1000 ? 1000 : (int32_t)(v + 0.5));
 }
 
+long long pamiec_uzyta(const struct sysinfo *si)
+{
+    long long plik = cgroup_liczba(K1_CGROUP "/memory.stat", "file"), shmem = cgroup_liczba(K1_CGROUP "/memory.stat", "shmem");
+    /* used = total - free - page cache that can be dropped (tmpfs data and the zones' memory stay "used") */
+    long long uzyta = ((long long)si->totalram - (long long)si->freeram) * (long long)si->mem_unit;
+    if (plik >= 0 && shmem >= 0 && plik > shmem)
+        uzyta -= plik - shmem;
+    return uzyta < 0 ? 0 : uzyta;
+}
+
 /* Once a second while Zasoby runs: the whole system, then every service. */
 void raport_zasobow(void)
 {
@@ -145,7 +160,7 @@ void raport_zasobow(void)
     static double poprz_t;
     double t = k1_teraz(), dt = t - poprz_t;
     long cpus = sysconf(_SC_NPROCESSORS_ONLN);
-    long long uz = cpu_usec(""), plik, shmem, uzyta;
+    long long uz = cpu_usec(""), uzyta;
     struct sysinfo si;
     size_t i;
     struct k1_komunikat k;
@@ -154,14 +169,7 @@ void raport_zasobow(void)
         cpus = 1;
     if (sysinfo(&si) != 0 || si.mem_unit == 0)
         return;
-    plik = cgroup_liczba(K1_CGROUP "/memory.stat", "file");
-    shmem = cgroup_liczba(K1_CGROUP "/memory.stat", "shmem");
-    /* used = total - free - page cache that can be dropped (tmpfs data stays "used") */
-    uzyta = ((long long)si.totalram - (long long)si.freeram) * (long long)si.mem_unit;
-    if (plik >= 0 && shmem >= 0 && plik > shmem)
-        uzyta -= plik - shmem;
-    if (uzyta < 0)
-        uzyta = 0;
+    uzyta = pamiec_uzyta(&si);
     k = k1_komunikat_nowy(K1_KOM_ZASOBY_SYSTEM, 0, poprz_sys >= 0 && uz >= 0 && dt > 0.1 ? promile(uz - poprz_sys, dt, cpus) : 0,
                           (int32_t)(uzyta >> 20), (int32_t)(((long long)si.totalram * si.mem_unit) >> 20), (int32_t)cpus,
                           (int32_t)(si.uptime > INT32_MAX ? INT32_MAX : si.uptime));
@@ -193,6 +201,7 @@ void raport_zasobow(void)
         poprz[pr] = u;
         k1_kanal_wyslij(zasoby_kanal, &k, sizeof k, -1);
     }
+    strefy_przydzial(zasoby_kanal); /* 0.10.1 step 3: the sessions' shares */
     poprz_sys = uz;
     poprz_t = t;
 }

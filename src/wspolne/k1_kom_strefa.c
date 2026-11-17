@@ -117,6 +117,14 @@ int k1_kom_sprawdz_strefa(const struct k1_komunikat *k, enum k1_kanal_kierunek k
     case K1_KOM_STREFA_BALON:
         return (kier == K1_KIER_OD_NADZORCY || kier == K1_KIER_DO_NADZORCY) && strefa(k->obiekt) &&
                w(k->a, 0, K1_STREFA_PAMIEC_MAKS) && zera(k, 1);
+    case K1_KOM_STREFA_FOKUS: /* 0.10.1 step 3 */
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_STREFY_MAKS) && zera(k, 1);
+    case K1_KOM_STREFA_PRZYDZIAL:
+        return kier == K1_KIER_OD_NADZORCY && strefa(k->obiekt) && w(k->a, 0, K1_STREFA_PAMIEC_MAKS) &&
+               w(k->b, 0, K1_STREFA_PAMIEC_MAKS) && w(k->c, 0, 1) && zera(k, 3);
+    case K1_KOM_MALO_PAMIECI:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_PAMIEC_MAKS_MIB) && k->b > 0 &&
+               (k->b & ~((1 << K1_STREFY_MAKS) - 1)) == 0 && zera(k, 2);
     default:
         return sesje(k, kier);
     }

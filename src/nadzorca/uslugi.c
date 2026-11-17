@@ -507,14 +507,18 @@ void obsluz_gui(void)
             return;
         }
         /* gui: start an application, power off, log out; the password screen (M5e): power off only */
-        if (w != K1_ODB_JEST || (k.typ != K1_KOM_URUCHOM && k.typ != K1_KOM_WYLACZ && k.typ != K1_KOM_URUCHOM_STREFE) ||
+        if (w != K1_ODB_JEST ||
+            (k.typ != K1_KOM_URUCHOM && k.typ != K1_KOM_WYLACZ && k.typ != K1_KOM_URUCHOM_STREFE &&
+             k.typ != K1_KOM_STREFA_FOKUS) ||
             ((k.typ != K1_KOM_WYLACZ || k.a == 2) && gui_kanal_uid != K1_UID_GUI) ||
             (k.typ == K1_KOM_URUCHOM_STREFE && k.b != 0)) { /* a hostile test guest: the test program only */
             k1_log(TAG, "odrzucono prośbę od pulpitu");
             continue;
         }
-        if (k.typ == K1_KOM_URUCHOM_STREFE) {
-            strefa_uruchom(k.a, 0);
+        if (k.typ == K1_KOM_STREFA_FOKUS) { /* 0.10.1 step 3: the rozdzielacz's order */
+            strefa_fokus(k.a);
+        } else if (k.typ == K1_KOM_URUCHOM_STREFE) {
+            strefa_uruchom(k.a, 0, 0);
         } else if (k.typ == K1_KOM_URUCHOM) {
             uruchom_aplikacje(k.a);
             if (k.a == K1_APL_PLIKI && (k.b != 0 || k.c != 0) && plik_kanal[K1_APL_PLIKI] >= 0) { /* a file, a folder or Kosz */

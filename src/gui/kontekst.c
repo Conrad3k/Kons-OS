@@ -9,7 +9,8 @@
  *                Przeglądarka (0.10.0 step 5, D2): Otwórz · Sesje: Ogólna, Bank, Prywatna (their names from nadzorca)
  *   message      a double click on a file no application opens: why, "Pokaż w Plikach"   (k1_menu_bez_aplikacji)
  *   window       a question or a refusal after a file is dropped (k1_przeciaganie)            (0.8.2 step 6)
- *   sessions     "Którą sesję otworzyć?" — the browser's sessions as tiles (sesje.c)            (0.10.1 step 4)
+ *   own window   a window another module draws (struct okienko_wlasne): "Którą sesję otworzyć?" (sesje.c, 0.10.1
+ *                step 4), "Mało pamięci" (pamiec.c, step 3)
  * "Otwórz za pomocą" opens its submenu beside it (pointing at it or clicking it), on the same panel — it moves so that
  * both fit. A row acts when the left button is released on it; a press anywhere else closes the menu. */
 #include <stdio.h>
@@ -27,6 +28,7 @@ static struct k1_menu glowne, pod, okienko;
 static void (*odpowiedz)(int); /* the window of a question is open: who gets the answer */
 static const char *okienko_rodzaj = "";
 static int cel, apl, hover = -1, hover_pod = -1, pod_wiersz = -1, zawsze; /* pod_wiersz: the row of the open submenu */
+static const struct okienko_wlasne *wlasne; /* K_WLASNE: who draws the window */
 static uint32_t klucz;
 static int32_t gx, gy, px, py, ox, oy; /* on the screen: the menu's body, the submenu's body, the panel's origin */
 int kontekst_otwarte;
@@ -112,8 +114,8 @@ static void loguj(void)
             snprintf(kopia.p[i].tekst, sizeof kopia.p[i].tekst, "sesja %d", kopia.p[i].akcja - A_SESJA);
         else if (kopia.p[i].akcja == K1_MA_OTWORZ && cel == K_PASEK && apl > K1_APL_MAKS) /* "Przeglądarka · <name>" */
             snprintf(kopia.p[i].tekst, sizeof kopia.p[i].tekst, "%s", aplikacje[apl].nazwa);
-    if (cel == K_SESJE) {
-        sesje_loguj(gx, gy);
+    if (cel == K_WLASNE) {
+        wlasne->loguj(gx, gy);
         return;
     }
     k1_menu_opis(&kopia, gx, gy, buf, sizeof buf);
@@ -159,16 +161,16 @@ void kontekst_otworz(int nowy_cel, uint32_t nowy_klucz, int32_t x, int32_t y)
     cel = nowy_cel;
     klucz = nowy_klucz;
     /* the Start menu and the bar know the zones too (items above K1_APL_MAKS); a desktop icon is never a zone */
-    apl = (cel == K_MENU || cel == K_PASEK || cel == K_SESJE) && nowy_klucz >= 1 && nowy_klucz <= POZYCJE_MAKS ? (int)nowy_klucz
+    apl = (cel == K_MENU || cel == K_PASEK || cel == K_WLASNE) && nowy_klucz >= 1 && nowy_klucz <= POZYCJE_MAKS ? (int)nowy_klucz
                                                                                             : rozm_aplikacja(nowy_klucz);
     hover = hover_pod = pod_wiersz = -1;
-    if (cel == K_SESJE)
-        k1_menu_zacznij(&glowne, 0); /* no rows: sesje.c draws the window, its top left at (x, y) */
+    if (cel == K_WLASNE)
+        k1_menu_zacznij(&glowne, 0); /* no rows: its module draws the window, its top left at (x, y) */
     else
         wiersze();
     /* top left at the pointer, to the left / above it at the edges; for the bottom bar above the bar, centred */
     k1_menu_polozenie(&glowne, x, y, k.szer_ekranu, k.wys_ekranu, &gx, &gy);
-    if (cel == K_SESJE) {
+    if (cel == K_WLASNE) {
         gx = x, gy = y;
     } else if (cel == K_PASEK) {
         gx = x - K1_MENU_SZER / 2;
@@ -203,6 +205,13 @@ void kontekst_okienko(const struct k1_menu *m, const char *rodzaj, int32_t x, in
     odpowiedz = wybrano;
 }
 
+void kontekst_wlasne(const struct okienko_wlasne *w, uint32_t klucz_, int32_t x, int32_t y)
+{
+    kontekst_zamknij();
+    wlasne = w;
+    kontekst_otworz(K_WLASNE, klucz_, x, y);
+}
+
 void rysuj_kontekst(void)
 {
     const struct k1_motyw *m = motyw();
@@ -210,8 +219,8 @@ void rysuj_kontekst(void)
     if (o == NULL)
         return;
     k1_wyczysc(o, 0);
-    if (cel == K_SESJE)
-        sesje_rysuj(o, m, gx - ox, gy - oy);
+    if (cel == K_WLASNE)
+        wlasne->rysuj(o, m, gx - ox, gy - oy);
     else
         k1_menu_rysuj(o, m, &glowne, gx - ox, gy - oy, hover >= 0 ? hover : pod_wiersz);
     if (pod_wiersz >= 0)
@@ -293,8 +302,8 @@ static void wykonaj(const struct k1_menu_poz *p)
 void wskaznik_kontekst(const struct k1_komunikat *m)
 {
     int32_t x = m->a + ox, y = m->b + oy; /* on the screen */
-    if (cel == K_SESJE) {
-        sesje_wskaznik(m->c, m->d, x - gx, y - gy);
+    if (cel == K_WLASNE) {
+        wlasne->wskaznik(m->c, m->d, x - gx, y - gy);
         return;
     }
     int wyjscie = m->c == K1_WSK_WYJSCIE, w = wyjscie ? -1 : k1_menu_pod(&glowne, x - gx, y - gy);

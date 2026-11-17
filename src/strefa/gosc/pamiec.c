@@ -204,3 +204,21 @@ void pamiec_proba(void)
     skok = d > SKOK_ZAPAS_MIB ? d - SKOK_ZAPAS_MIB : 0;
     loguj("pamięć: skok %lu MiB naraz: %s", skok, zajmij(skok) == 0 ? "żyję" : "nie dostałem");
 }
+
+/* TRYB_ROZDZIELACZ (0.10.1 step 3): memory the guest holds but does not need — the page cache of its disk, as a browser
+ * keeps files in memory — so that K1's rozdzielacz has something to take by the balloon (the free pages the guest
+ * reports are K1's anyway). Reads up to PODRECZNA_MIB of /dev/vdb, never so much that the guest has less than
+ * PODRECZNA_ZAPAS free. */
+#define PODRECZNA_MIB 64 /* more stalled the whole nested emulation of the container's test (no KVM) */
+#define PODRECZNA_ZAPAS 24
+void pamiec_podreczna(void)
+{
+    static char buf[1u << 20];
+    int fd = open("/dev/vdb", O_RDONLY | O_CLOEXEC);
+    unsigned mib = 0;
+    while (fd >= 0 && mib < PODRECZNA_MIB && dostepna_mib() > PODRECZNA_ZAPAS && read(fd, buf, sizeof buf) == sizeof buf)
+        mib++;
+    if (fd >= 0)
+        close(fd);
+    loguj("pamięć: w pamięci podręcznej %u MiB z dysku (dostępna %lu MiB)", mib, dostepna_mib());
+}

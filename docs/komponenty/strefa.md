@@ -42,7 +42,10 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 - **Wielkość i balon** (0.10.1 krok 2, ADR 0044): gość dostaje swoją **górną granicę** — pamięć komputera minus rezerwa
   K1 (D2: 768 MiB do 6 GiB pamięci komputera, 1 GiB od 6 GiB; nigdy mniej niż pamięć na start z wiersza `K1_STREFY`;
   `src/nadzorca/pamiec_stref.c`) — ale K1 trzyma tylko strony, których gość dotknął; zwolnione wracają do K1 (balon,
-  niżej). Raz na sekundę VMM mówi nadzorcy `STREFA_PAMIEC`.
+  niżej). Raz na sekundę VMM mówi nadzorcy `STREFA_PAMIEC`. Od 0.10.1 krok 3: gdy sterownik ustawia `DRIVER_OK`,
+  urządzenie zagląda do każdej gotowej kolejki (`mmio.c`) — powiadomienie sprzed `DRIVER_OK` nie przepada (sterownik
+  balonu w Linuksie wkłada pierwszy bufor statystyk i powiadamia, zanim urządzenie jest gotowe; do 0.10.1 krok 3
+  statystyki nie dochodziły nigdy — „wolne w gościu” było nieznane).
 - **Start:** 64-bitowy protokół startu Linuksa z pliku bzImage — jądro od 1 MiB, strona zerowa (nagłówek z jądra, e820,
   linia poleceń), GDT, tablice stron 1:1 (4 GiB), tablica MP (procesory, I/O APIC; bez ACPI). Linia poleceń gościa:
   urządzenia virtio-mmio, `console=hvc0 root=/dev/vda ro rootfstype=squashfs init=/init reboot=k panic=-1 k1.tryb=N`.
@@ -185,9 +188,12 @@ Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka�
 | `STREFA_POLACZ` | VMM → nadzorca (fd 7) | obiekt = połączenie 1…128; TCP: a = adres IPv4 (`k1_siec_serwer_dobry`), b = port 1…65535, c = `K1_STREFA_TCP`; DNS: a = b = 0, c = `K1_STREFA_DNS`; d = e = 0 |
 | `STREFA_GNIAZDO` | nadzorca → VMM (+ 1 deskryptor) | obiekt = połączenie, a = `K1_STREFA_TCP` (gniazdo TCP w trakcie łączenia) / `K1_STREFA_DNS` (gniazdo UDP do serwera DNS, port 53), reszta 0 |
 | `STREFA_PAMIEC` (0.10.1 krok 2, ADR 0044) | VMM → nadzorca, najwyżej raz na sekundę | obiekt 0, a = pamięć gościa trzymana w K1 (MiB — strony memfd), b = dostępna w gościu wg jego statystyk (−1: jeszcze brak; podpowiedź), c = w balonie, d = cel balonu, e = oddane K1 od startu (a–d: 0…`K1_STREFA_PAMIEC_MAKS`, e: 0…`INT32_MAX`) |
-| `STREFA_BALON` (0.10.1 krok 2) | nadzorca → VMM; program testowy → nadzorca | obiekt = strefa, a = cel balonu 0…`K1_STREFA_PAMIEC_MAKS` MiB, reszta 0; w kroku 2 nadzorca pompuje balon tylko na prośbę programu testowego |
+| `STREFA_BALON` (0.10.1 krok 2) | nadzorca → VMM; program testowy → nadzorca | obiekt = strefa, a = cel balonu 0…`K1_STREFA_PAMIEC_MAKS` MiB, reszta 0; od kroku 3 cel ustawia rozdzielacz nadzorcy (`nadzorca.md`); strefa programu testowego (tryby 1…9) — tylko jego prośby |
+| `STREFA_FOKUS` (0.10.1 krok 3) | gui → nadzorca (fd 4) | obiekt 0, a = strefa, której okno ma fokus 0…`K1_STREFY_MAKS` (0: żadna), reszta 0; tylko od gui (UID), podpowiedź dla rozdzielacza i `oom_score_adj` |
+| `STREFA_PRZYDZIAL` (0.10.1 krok 3) | nadzorca → Zasoby (fd 4, co sekundę), gui (fd 5, tuż przed `MALO_PAMIECI`) | obiekt = działająca strefa, a = ile używa (pamięć gościa w K1), b = ile może dostać (górna granica minus cel balonu), MiB 0…`K1_STREFA_PAMIEC_MAKS`; c = 1 jej okno ma fokus; d = e = 0 |
+| `MALO_PAMIECI` (0.10.1 krok 3) | nadzorca → gui (fd 5) | obiekt 0, a = ile K1 ma wolnej pamięci (MiB, 0…`K1_PAMIEC_MAKS_MIB`), b = bit nr−1: strefa nr w okienku (tylko bity stref, nie 0), reszta 0 |
 | `STREFA_ODMOWA` | nadzorca → VMM | obiekt = połączenie, a = `K1_STREFA_ODM_*` (adres poza D3, brak sieci albo DNS, limit, błąd gniazda), reszta 0 |
-| `URUCHOM_STREFE` | gui → nadzorca (fd 4); program testowy → nadzorca | `a` strefa 1…`K1_STREFY_MAKS`, `b` tryb gościa testowego 0…4 (≠ 0 tylko od programu testowego; gui — odrzucone), reszta 0 |
+| `URUCHOM_STREFE` | gui → nadzorca (fd 4); program testowy → nadzorca | `a` strefa 1…`K1_STREFY_MAKS`, `b` tryb gościa testowego 0…`K1_STREFA_TRYB_MAKS` (≠ 0 tylko od programu testowego; gui — odrzucone; 10 od 0.10.1 krok 3: zwykły gość, którego balonem rządzi rozdzielacz), reszta 0 |
 | `STREFA_STAN` | nadzorca → gui (fd 5) | `a` strefa, `b` powód: nie ruszyła — `K1_STREFA_BEZ_WIRTUALIZACJI`, `_ZA_MALO_PAMIECI`, `_BRAK_OBRAZU`; zamknęła się sama (krok 3) — `K1_STREFA_KONIEC_PAMIEC` (pamięć strefy), `_PAMIEC_K1` (pamięć komputera), `_AWARIA`, `_BLAD`; od 0.10.1 krok 1 `_LIMIT` (8: strefa zużyła całą pamięć, którą K1 jej daje — limit klatki) (1…`K1_STREFA_STAN_MAKS`); reszta 0 |
 | `KLIENT` (rola `STREFA`) | nadzorca → ekran | `b` = numer strefy (1…`K1_STREFY_MAKS`) |
 | `STREFY_STAN` | nadzorca → gui (fd 5), Ustawienia (fd 4), ekran (kanał sterujący) | krok 5: `a` bity stref, które pamiętają (bit nr−1), `b` = 1 komputer ma wirtualizację, `c` = 1 dane K1 na dysku (bez tego `a` = 0), `d` bity stref, które działają, `e` = 0 |

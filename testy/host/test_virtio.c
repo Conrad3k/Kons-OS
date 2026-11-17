@@ -271,16 +271,22 @@ static void t_transport(void)
     EXPECT(resety == 1);
     EXPECT(sterownik(&u, 1) == 0 && mmio_dziala(&u, 0) && !mmio_dziala(&u, 1));
     EXPECT(czytaj(&u, VIRTIO_MMIO_QUEUE_READY) == 1);
+    /* DRIVER_OK: the device looks into the ready queue once — a notification sent before it was dropped (0.10.1 step 3:
+     * Linux's balloon notifies its statistics queue before DRIVER_OK) */
+    EXPECT(powiadomienia == 1 && przerwania == 1);
+    pisz(&u, VIRTIO_MMIO_STATUS, 15);
+    EXPECT(powiadomienia == 1); /* only when DRIVER_OK is new */
+    pisz(&u, VIRTIO_MMIO_INTERRUPT_ACK, VIRTIO_MMIO_INT_VRING);
     /* the queue's address cannot change while it is ready */
     pisz(&u, VIRTIO_MMIO_QUEUE_DESC_LOW, 0x5000);
     EXPECT(u.q[0].desc == DESC);
     /* notify: the device's handler, the interrupt; acknowledged */
-    EXPECT(pisz(&u, VIRTIO_MMIO_QUEUE_NOTIFY, 0) == 0 && powiadomienia == 1 && przerwania == 1);
+    EXPECT(pisz(&u, VIRTIO_MMIO_QUEUE_NOTIFY, 0) == 0 && powiadomienia == 2 && przerwania == 2);
     EXPECT(czytaj(&u, VIRTIO_MMIO_INTERRUPT_STATUS) == VIRTIO_MMIO_INT_VRING);
     pisz(&u, VIRTIO_MMIO_INTERRUPT_ACK, VIRTIO_MMIO_INT_VRING);
     EXPECT(czytaj(&u, VIRTIO_MMIO_INTERRUPT_STATUS) == 0);
     /* a queue that is not ready, a queue that does not exist: nothing */
-    EXPECT(pisz(&u, VIRTIO_MMIO_QUEUE_NOTIFY, 1) == 0 && pisz(&u, VIRTIO_MMIO_QUEUE_NOTIFY, 7) == 0 && powiadomienia == 1);
+    EXPECT(pisz(&u, VIRTIO_MMIO_QUEUE_NOTIFY, 1) == 0 && pisz(&u, VIRTIO_MMIO_QUEUE_NOTIFY, 7) == 0 && powiadomienia == 2);
     /* configuration: bytes, words, out of range reads zeros, writes ignored */
     EXPECT(mmio_czytaj(&u, VIRTIO_MMIO_CONFIG + 2, b, 2, &p) == 0 && b[0] == 3 && b[1] == 4);
     EXPECT(mmio_czytaj(&u, VIRTIO_MMIO_CONFIG + 6, b, 4, &p) == 0 && b[0] == 0); /* crosses the end */
