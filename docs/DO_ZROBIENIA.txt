@@ -6,7 +6,7 @@ rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji �
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
 Stan: 0.10.2 „Testy” — ekran startu przeglądarki do jej okna, zamykanie w tle, opis ekranu dla testów i zrzuty wzorcowe
 (plany zamknięte: docs/archiwum/PLAN-0.10.0.txt, PLAN-0.10.1.txt, PLAN-0.10.2.txt); teraz 0.10.5 Aktualizacje przez sieć
-(plan: docs/PLAN-0.10.5.txt), potem 0.10.7 Filmy.
+(plan: docs/PLAN-0.10.5.txt), potem 0.10.7 Wygląd i 0.10.9 Filmy.
 Data: 2026-11-17.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
@@ -15,8 +15,9 @@ Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Cl
 
 1. TERAZ — 0.10.5 Aktualizacje przez sieć (plan: docs/PLAN-0.10.5.txt)
 ---------------------------------------------------------------------
-Kroki i decyzje — w planie 0.10.5. Potem 0.10.7 Filmy (docs/PLAN-0.10.7.txt — do 2026-11-17 „0.10.3”; przesunięte na
-Twoją prośbę: grafika po fundamentach).
+Kroki i decyzje — w planie 0.10.5. Potem 0.10.7 Wygląd (docs/PLAN-0.10.7.txt: poprawki wyglądu po przeglądzie,
+Twoja prośba z 2026-11-17) i 0.10.9 Filmy (docs/PLAN-0.10.9.txt — wcześniej „0.10.3”, potem „0.10.7”; przesunięte na
+Twoją prośbę: grafika po fundamentach, numer 0.10.7 dostał Wygląd).
 0.10.2 Testy — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.2.txt; ADR 0045):
     [x] 0.10.2 krok 1 — ekran startu przeglądarki do jej okna, okno znika od razu po „zamknij”, wyłączanie czeka na
         sesje — PR #144
@@ -37,7 +38,8 @@ Twoją prośbę: grafika po fundamentach).
     0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
     0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
-    0.10     Strefy — 0.10.0 (przeglądarka w strefie), 0.10.1 Balon i 0.10.2 Testy gotowe; teraz 0.10.5, potem 0.10.7 Filmy
+    0.10     Strefy — 0.10.0 (przeglądarka w strefie), 0.10.1 Balon i 0.10.2 Testy gotowe; teraz 0.10.5, potem 0.10.7 Wygląd,
+             0.10.9 Filmy
              (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
@@ -70,8 +72,13 @@ Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kro
     [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna)
     [ ] Przeglądarka K1 (po pierwszej przeglądarce w strefie): okno, karty i pasek adresu jako aplikacja K1, silnik
         (kierunek: WPE WebKit) w strefie; sesje = strefy
-    [ ] 0.10.7 Filmy (Twoja prośba z 2026-11-16; plan: docs/PLAN-0.10.7.txt; do 2026-11-17 „0.10.3” — przesunięte PO
-        0.10.5 na Twoją prośbę z 2026-11-17: grafika, gdy fundamenty już będą): przełącznik
+    [ ] 0.10.7 Wygląd (Twoja prośba z 2026-11-17; plan: docs/PLAN-0.10.7.txt, po 0.10.5): poprawki wyglądu po przeglądzie:
+        napisy bez opisów tego, co widać, i bez półpauz; sekcje Ustawień w środku (lista sekcji bez zmian); Pliki
+        (przyciski i szczegóły po zaznaczeniu, pusty folder); okno przeglądarki bez kolorowej obwódki, kolor sesji
+        dyskretnie na pasku (ADR 0048); napisy pod ikonami pulpitu, tapeta z matową krawędzią do porównania
+    [ ] 0.10.9 Filmy (Twoja prośba z 2026-11-16; plan: docs/PLAN-0.10.9.txt; wcześniej „0.10.3”, potem „0.10.7” —
+        przesunięte PO 0.10.5 na Twoją prośbę z 2026-11-17: grafika, gdy fundamenty już będą; numer 0.10.7 dostał
+        Wygląd): przełącznik
         „Sprzętowe dekodowanie filmów” przy sesji przeglądarki — film rozpakowuje karta graficzna przez osobny proces K1
         w klatce (sterownik i915 z jądra, VA-API), strefa nie widzi karty; pamięć karty liczy się do pamięci sesji
         w balonie z 0.10.1 (karty laptopów nie mają osobnej pamięci); ADR (zmienia zasadę „tylko ekran dotyka karty”)
@@ -196,7 +203,8 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 [x] 0.10.1 — decyzje D1–D6 podjęte (docs/archiwum/PLAN-0.10.1.txt, punkt 4).
 [x] 0.10.2 — decyzje D1–D4 podjęte (docs/archiwum/PLAN-0.10.2.txt, punkt 4); D3: zmianę wyglądu zatwierdzasz Ty —
     PR pokazuje obrazy „przed / po”, wzorce zmieniają się po Twoim „OK”.
-[!] 0.10.7 — decyzje w docs/PLAN-0.10.7.txt (punkt 4); czat zada je na początku swojego kroku.
+[!] 0.10.7 Wygląd — decyzje D1–D6 w docs/PLAN-0.10.7.txt (punkt 4); czat zada je na początku swojego kroku.
+[!] 0.10.9 Filmy — decyzje w docs/PLAN-0.10.9.txt (punkt 4); czat zada je na początku swojego kroku.
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
 
 Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
