@@ -1,20 +1,23 @@
-# Komponent: instalator (okno „Instalator” + program zapisujący)
+# Komponent: instalator (okno „Instalator”, Ustawienia → Aktualizacje + program zapisujący)
 
 | | |
 |---|---|
-| **Status** | PRZETESTOWANE (M5f w QEMU: instalacja na dysk SATA, start z dysku przez UEFI, aktualizacja z zachowaniem danych — 0.5.9; A/B, potwierdzenie i wycofanie, Secure Boot — 0.7.0; wymiana plików startowych — 0.9.0) |
-| **Pliki** | `src/aplikacje/instalacja/` (okno: `main.c` stan i komunikaty, `ekrany.c` rysowanie), `src/instalator/main.c` (zapis), `src/instalator/start.{c,h}` (wymiana plików startowych, 0.9.0), `src/instalator/gpt.{c,h}` (tablica partycji), `src/wspolne/k1_fat32.{c,h}` (drzewo plików K1-EFI i jego skrót), `src/nadzorca/dyski.{c,h}` (lista dysków) |
+| **Status** | PRZETESTOWANE (M5f w QEMU: instalacja na dysk SATA, start z dysku przez UEFI, aktualizacja z zachowaniem danych — 0.5.9; A/B, potwierdzenie i wycofanie, Secure Boot — 0.7.0; wymiana plików startowych — 0.9.0; aktualizacja z Ustawień → Aktualizacje — 0.10.5 krok 1, test-m5f) |
+| **Pliki** | `src/aplikacje/instalacja/` (okno: `main.c` stan i komunikaty, `ekrany.c` rysowanie), `src/aplikacje/ustawienia/aktualizacje.c` (sekcja Aktualizacje, 0.10.5), `src/wspolne/k1_inst_teksty.h` (etapy i błędy — wspólne dla obu okien), `src/nadzorca/instalacja.c`, `inst_prawa.c` (co które okno może), `src/instalator/main.c` (zapis), `src/instalator/start.{c,h}` (wymiana plików startowych, 0.9.0), `src/instalator/gpt.{c,h}` (tablica partycji), `src/wspolne/k1_fat32.{c,h}` (drzewo plików K1-EFI i jego skrót), `src/nadzorca/dyski.{c,h}` (lista dysków) |
 | **Decyzje** | ADR 0018, 0021, 0022, 0038 |
 
 ## Cel
 Zainstalować Kons K1 z pendrive'a na dysk komputera (system + zaszyfrowane dane na całym dysku)
-i aktualizować go później z nowszego pendrive'a bez ruszania danych.
+i aktualizować go później z nowszego pendrive'a bez ruszania danych. Od 0.10.5 (krok 1, decyzja właściciela D3) okno
+„Instalator” tylko instaluje (i włącza Secure Boot); aktualizacja K1 na dysku jest w **Ustawieniach → Aktualizacje**
+(`docs/komponenty/aplikacje.md`) — ten sam program zapisujący, osobny kanał do nadzorcy.
 
 ## Granica zaufania
-Okno: tylko komunikaty od nadzorcy (UID 0) i klawisze/mysz od ekranu. Program zapisujący: tylko
+Okna: tylko komunikaty od nadzorcy (UID 0) i klawisze/mysz od ekranu. Program zapisujący: tylko
 zadanie od nadzorcy (UID 0) i dwa urządzenia, które nadzorca otworzył. Nadzorca: prośby tylko od
-UID 204 (okno) i postęp tylko od UID 105 (program zapisujący); numer dysku odnosi się do listy, którą
-widziało okno, a dysk musi mieć ten sam rozmiar.
+UID 204 (Instalator: instalacja) i UID 202 (Ustawienia, osobny kanał: tylko aktualizacja — nigdy wyczyszczenie dysku;
+`inst_prawa.c`), postęp tylko od UID 105 (program zapisujący); numer dysku odnosi się do listy, którą widziało to okno,
+a dysk musi mieć ten sam rozmiar; zapis naraz najwyżej jeden (drugie okno: `K1_INST_BLAD_TRWA`).
 
 ## Uprawnienia
 | Program | UID | seccomp (poza bazą) | Landlock | cgroup | urządzenia |
@@ -25,8 +28,10 @@ widziało okno, a dysk musi mieć ten sam rozmiar.
 ## Przebieg
 1. Okno → `INST_DYSKI`; nadzorca skanuje sysfs (`dyski.c`: dyski nie-USB ≥ 1 GiB, sektor 512/4096;
    partycje „K1-EFI”/„K1-DANE”; źródło = jedyna „K1-EFI” na USB) → `INST_DYSK` × n + `INST_LISTA`.
-2. Dysk bez K1 → „Zainstaluj” → wpisanie „USUŃ” → `INST_START(dysk, INSTALUJ)`. Dysk z K1 →
-   „Zaktualizuj system” (albo „Zainstaluj od nowa”, gdy jego dane nie są otwarte).
+2. Instalator: dysk bez K1 → „Zainstaluj” → wpisanie „USUŃ” → `INST_START(dysk, INSTALUJ)`. Dysk z K1 → karta
+   „Aktualizacja jest teraz w Ustawieniach” z linkiem „Otwórz Ustawienia → Aktualizacje” (`OTWORZ_AKTUALIZACJE`) i
+   „Zainstaluj od nowa”, gdy jego dane nie są otwarte. Ustawienia → Aktualizacje: pierwszy dysk z K1 starszym niż
+   pendrive → „Zaktualizuj K1 na dysku do X” → `INST_START(dysk, AKTUALIZUJ)` (bez wpisywania — dane zostają).
 3. Nadzorca otwiera urządzenia (`O_EXCL` — zajęty dysk = odmowa), uruchamia `instalator`, wysyła
    `INST_ZADANIE(tryb, sektor)`. Postęp `INST_ETAP` → `INST_POSTEP` do okna; wynik `INST_GOTOWE` →
    `INST_WYNIK`. Koniec programu bez wyniku → „przerwane”.
@@ -35,11 +40,12 @@ widziało okno, a dysk musi mieć ten sam rozmiar.
    bez miejsca B (1 MiB na raz) → `fdatasync` → odczyt i porównanie → grubenv od nowa, manifesty miejsca B zerami →
    skrót drzewa plików na dysku = manifest → GPT (wpisy zapasowe, nagłówek zapasowy, wpisy, nagłówek główny, ochronny
    MBR) → `fdatasync`. Aktualizacja: pliki startowe (gdy się różnią), potem miejsce A/B (niżej).
-5. Po instalacji: „Wyłącz komputer” (jedyna prośba o zasilanie, jaką nadzorca przyjmie od okna).
+5. Po instalacji: „Wyłącz komputer”; po aktualizacji (Ustawienia): „Uruchom ponownie” — jedyne prośby o zasilanie,
+   jakie nadzorca przyjmie od tych okien.
 
-Bez pendrive'a K1 okno nie ma przycisku, tylko tekst: start z ISO — jak przygotować pendrive; dwa
-pendrive'y K1 — który odłączyć; K1 zainstalowany na dysku (0.7.6) — jedno zdanie „Aktualizacje są
-możliwe poprzez nośnik USB.”
+Bez pendrive'a K1 Instalator nie ma przycisku, tylko tekst: start z ISO — jak przygotować pendrive; dwa
+pendrive'y K1 — który odłączyć; K1 zainstalowany na dysku — karta z linkiem do Ustawień → Aktualizacje (0.10.5; od 0.7.6
+do 0.10.2 jedno zdanie „Aktualizacje są możliwe poprzez nośnik USB.”).
 
 ## Manifesty i podpis (0.6.2, ADR 0021; od 0.9.0 ADR 0038)
 Przed zapisem program zapisujący czyta dwa manifesty z miejsca A pendrive'a (`k1_manifest.h`): **manifest miejsca**
@@ -48,7 +54,8 @@ K1-EFI bez grubenv i miejsc, `k1_fat32_skrot`); oba z tą samą wersją i identy
 klucz (`build/gen/k1_klucz.h` z sekretu CI) — wymaga ważnych podpisów EdDSA. Przy aktualizacji czyta manifest
 działającego miejsca na dysku i odmawia starszej wersji (dysk bez bloku układu = 0). Manifest formatu 1 (47 MiB, dla
 K1 0.6.2–0.6.3) zniknął w 0.9.0. Nadzorca czyta oba manifesty do listy (wersje w oknie: `INST_LISTA` c/d,
-`INST_DYSK` c = `K1_INST_WERSJA`|wersja). Okno blokuje przycisk aktualizacji do starszej wersji.
+`INST_DYSK` c = `K1_INST_WERSJA`|wersja). Ustawienia → Aktualizacje nie pokazują przycisku, gdy na dysku jest nowsza
+wersja; przy tej samej — „Zapisz K1 na dysku jeszcze raz”.
 
 ## A/B i Secure Boot (0.7.0, ADR 0022)
 K1-EFI w formacie 2 (`k1_uklad.h`): FAT32 280 MiB, blok układu w zarezerwowanych sektorach, grubenv, miejsca
@@ -58,15 +65,16 @@ K1-EFI w formacie 2 (`k1_uklad.h`): FAT32 280 MiB, blok układu w zarezerwowanyc
 - **Aktualizacja (dysk w formacie 2):** grubenv dysku → działające miejsce; najpierw **wymiana plików startowych**
   (0.9.0, niżej), potem system z miejsca A pendrive'a (wewnętrzny FAT + oba manifesty) do drugiego, odczyt
   i porównanie, potem grubenv `k1_nowy` (GRUB spróbuje raz).
-  Wersja porównywana z manifestem działającego miejsca. `INST_GOTOWE` b = 1 → okno: „nowa wersja obok
-  obecnej”.
+  Wersja porównywana z manifestem działającego miejsca. `INST_GOTOWE` b = 1 → Ustawienia: „Gotowe — X czeka na dysku
+  obok Y”.
 - **Dysk bez bloku układu (K1 starszy niż 0.7.0) albo z nieczytelnym grubenv**: K1-EFI zapisana jak przy instalacji
   (bez tablicy partycji; dane nietknięte). Stary Instalator 0.6.2–0.6.3 odmówi pendrive'a 0.9.0 (nie ma już manifestu
   formatu 1) — taki komputer najpierw na 0.8.x.
 - **Potwierdzenie** robi nadzorca po starcie (`rozruch.c`), **Secure Boot** — nadzorca na prośbę okna
   (`efi.c`, `SB_KLUCZ` → `SB_STAN`; po wpisaniu klucza okno może poprosić o restart).
-- Okno: lista dysków z wersją zapasową (`INST_AB`), wiadomość o czekającej / nieudanej aktualizacji,
-  ekran „Secure Boot…” (stan, kroki właściciela, „Przygotuj klucz K1”, „Uruchom ponownie”). Link „Secure Boot…” jest
+- Ustawienia → Aktualizacje (0.10.5): wersja, która działa, i skąd (miejsce A/B na dysku, pendrive, bez instalacji),
+  co jest w drugim miejscu, wiadomość o czekającej / nieudanej aktualizacji (do 0.10.2 w Instalatorze).
+- Instalator: lista dysków z wersją zapasową (`INST_AB`), ekran „Secure Boot…” (stan, kroki właściciela, „Przygotuj klucz K1”, „Uruchom ponownie”). Link „Secure Boot…” jest
   na liście **zawsze, gdy nadzorca podał stan** — także bez systemu do skopiowania, czyli gdy K1 działa z dysku, na którym
   go zainstalowano (0.8.5 krok 4: do 0.8.3 link był rysowany tylko obok listy dysków, więc na dysku X230 go nie było —
   zgłoszenie właściciela). Klucz przygotowany przy wcześniejszym starcie, a MokManager się nie pojawił (`MokNew` czeka):

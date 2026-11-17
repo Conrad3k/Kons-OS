@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M4; pulpit z ikonami 0.7.5) — `scripts/test-m4.sh` (klikanie, zrzuty), testy w systemie (klatka, próba, restart), `test_rozmieszczenie` + fuzzing |
-| **Kod** | `src/gui/` (0.7.5: moduły opisane w `gui.h`): `main.c` (start, pętla, ułożenie paneli), `okna.c` (lista okien, uruchamianie i zamykanie aplikacji), `pasek_gorny.c` (górny pasek, ikona sieci — 0.9.0, bateria, okienko dźwięku), `pasek_dolny.c`, `menu_start.c`, `pulpit.c` (warstwa ikon), `pliki.c` (Kosz i pliki folderu Pulpit, 0.8.0), `kontekst.c` (menu pod prawym przyciskiem), `zapis.c` (rozmieszczenie w skarbcu), `rozmieszczenie.c` (reguły, bez rysowania); przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
+| **Kod** | `src/gui/` (0.7.5: moduły opisane w `gui.h`): `main.c` (start, pętla, ułożenie paneli), `okna.c` (lista okien, uruchamianie i zamykanie aplikacji), `pasek_gorny.c` (górny pasek, ikona sieci — 0.9.0, bateria, okienko dźwięku), `pasek_dolny.c`, `menu_start.c`, `pulpit.c` (warstwa ikon), `pliki.c` (Kosz i pliki folderu Pulpit, 0.8.0), `kontekst.c` (menu pod prawym przyciskiem), `wersja.c` (okienko „Nowa wersja K1 nie uruchomiła się”, 0.10.5), `zapis.c` (rozmieszczenie w skarbcu), `rozmieszczenie.c` (reguły, bez rysowania); przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
 | **Decyzje** | ADR 0008 (pulpit), ADR 0009 (czcionki), ADR 0007 (klatka), ADR 0026 i 0028 (ikony, menu kontekstowe, rozmieszczenie); wygląd: `docs/WYGLAD.md` |
 
 ## Cel
@@ -111,7 +111,12 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   potrzebujesz.”, wiersz na każdą sesję (kropka w kolorze, nazwa, pamięć, „w oknie” przy sesji z fokusem, „Zamknij” —
   zamyka okno tej sesji jak „Zamknij okno”: przeglądarka zapisuje i kończy się), „Później”. Rysowane na panelu menu
   kontekstowego (`kontekst.c`: okienko innego modułu — `struct okienko_wlasne`, jak okienko sesji). Log „okienko (mało
-  pamięci): sesja N (M MiB) Zamknij x,y; …; Później x,y”, potem „zamykam sesję N” albo „Później”. Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
+  pamięci): sesja N (M MiB) Zamknij x,y; …; Później x,y”, potem „zamykam sesję N” albo „Później”.
+  Od 0.10.5 krok 1 (S5 planu; wygląd jak okienko „Jest nowa wersja” z D1; `wersja.c`): `AB_NIEUDANA` od nadzorcy (fd 5,
+  raz po starcie, gdy nowa wersja A/B nie wystartowała i GRUB wrócił) → okienko na środku ekranu „Nowa wersja K1 nie
+  uruchomiła się”: „K1 X nie wystartowała na tym komputerze.”, „Komputer sam wrócił do poprzedniej wersji (Y). Nic nie
+  zginęło.”, przyciski „Pokaż w Ustawieniach” (`OTWORZ_AKTUALIZACJE` do nadzorcy, fd 4 — Ustawienia → Aktualizacje) i
+  „Rozumiem”; kliknięcie obok zamyka. Log „okienko (nieudana próba nowej wersji): Rozumiem x,y; Pokaż w Ustawieniach x,y”. Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
   mówią „Przeglądarka · <sesja>”.
   Log przy zmianie obecności, stanu, zasilacza lub co 5 % („bateria 73%, rozładowywanie, …”).
 - Powierzchnie: warstwa pulpitu (`K1_POW_PULPIT`, cały ekran, zatwierdzane tylko zmienione prostokąty),

@@ -1,9 +1,12 @@
 /* K1 Instalator (window) — what each screen shows: the list of disks (or what to do without a K1 stick),
- * the confirmation, the progress, the result, Secure Boot. */
+ * the confirmation, the progress, the result, Secure Boot; for a disk with K1 the card "the update is in Ustawienia"
+ * (0.10.5 step 1, D3). */
 #include <stdio.h>
 #include <string.h>
 
+#include "k1_inst_teksty.h"
 #include "k1_manifest.h"
+#include "k1_opis_klient.h"
 #include "instalacja.h"
 
 static int32_t pole_y(void)
@@ -21,39 +24,12 @@ static void opis_dysku(int i, char *buf, size_t n)
         snprintf(buf, n, "%s · %d GB", rodzaje[dyski[i].rodzaj], (int)((double)mib * 1048576.0 / 1e9 + 0.5));
 }
 
-static const char *blad_tekst(int b)
-{
-    switch (b) {
-    case K1_INST_BLAD_ZAJETY:
-        return "Dysk jest teraz używany przez system (jego dane są otwarte).";
-    case K1_INST_BLAD_MALY:
-        return "Dysk jest za mały (potrzeba co najmniej 1 GB).";
-    case K1_INST_BLAD_ZAPIS:
-        return "Zapis na dysk się nie udał. Dysk może być uszkodzony.";
-    case K1_INST_BLAD_SPRAWDZ:
-        return "Dysk zwrócił inne dane niż zapisane. Dysk może być uszkodzony.";
-    case K1_INST_BLAD_ZRODLO:
-        return "Nie znaleziono systemu do skopiowania (uruchom K1 z pendrive'a).";
-    case K1_INST_BLAD_PODPIS:
-        return "System na pendrivie nie jest podpisaną kopią Kons K1 (albo jest uszkodzony) — nie zapisuję go.";
-    case K1_INST_BLAD_STARSZA:
-        return "Na pendrivie jest starsza wersja niż na dysku — powrót do starszej wersji jest zablokowany.";
-    case K1_INST_BLAD_PRZERWANE:
-        return "Program zapisujący zakończył się bez wyniku.";
-    default:
-        return "Dysk zniknął albo się zmienił — sprawdź listę jeszcze raz.";
-    }
-}
-
 static void rysuj_naglowek_listy(struct k1_obraz *o, const struct k1_motyw *m)
 {
     if (zainstalowany()) { /* 0.7.2: K1 already runs from this computer's disk — not "install" */
         k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Kons K1 jest zainstalowany", k1_kolor(m->tekst, 255), 0);
         k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "System i Twoje zaszyfrowane dane są na dysku tego komputera.",
                  k1_kolor(m->tekst2, 255), 0);
-        if (zrodlo == 1)
-            k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 68, "Z podłączonego pendrive'a możesz zaktualizować system.",
-                     k1_kolor(m->tekst2, 255), 0);
     } else {
         k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Zainstaluj Kons K1", k1_kolor(m->tekst, 255), 0);
         k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "System i Twoje zaszyfrowane dane zamieszkają na dysku tego komputera —",
@@ -78,11 +54,9 @@ static void rysuj_bez_zrodla(struct k1_obraz *o, const struct k1_motyw *m)
         "Odłącz ten, z którego komputer nie startował, i otwórz Instalator jeszcze raz.",
         NULL,
     };
-    static const char *const kroki_dysk[] = { /* 0.7.6: the owner wants one sentence, no steps */
-        "Aktualizacje są możliwe poprzez nośnik USB.",
-        NULL,
-    };
-    const char *const *t = zrodlo == 2 ? kroki_dwa : zainstalowany() ? kroki_dysk : kroki_iso;
+    const char *const *t = zrodlo == 2 ? kroki_dwa : kroki_iso;
+    if (zrodlo != 2 && zainstalowany())
+        return; /* K1 runs from this disk: the card about Ustawienia (karta) */
     for (i = 0; t[i]; i++)
         k1_tekst(o, i == 0 ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, LEWO, DYSKI_Y + 20 + i * 26 + (i > 0 ? 8 : 0), t[i],
                  k1_kolor(i == 0 ? m->tekst : m->tekst2, 255), apl.szer - 2 * LEWO);
@@ -122,18 +96,21 @@ static void rysuj_dyski(struct k1_obraz *o, const struct k1_motyw *m)
         }
         k1_tekst(o, K1_CZ_MALA, LEWO + 56, y + 45, buf, k1_kolor(m->tekst2, 255), apl.szer - 2 * LEWO - 72);
     }
-    for (i = 0; i < n_dyskow; i++) { /* A/B news (0.7.0): one line above the buttons */
-        const char *t = dyski[i].ab_fl & K1_AB_FL_NIEUDANA
-                            ? "Ostatnia aktualizacja nie wystartowała — K1 wrócił do poprzedniej wersji."
-                        : dyski[i].ab_fl & K1_AB_FL_NOWY
-                            ? "Nowa wersja czeka na dysku: wystartuje na próbę po ponownym uruchomieniu."
-                            : NULL;
-        if (t != NULL) {
-            k1_tekst(o, K1_CZ_MALA_MOCNA, LEWO, przyciski_y() - 22, t,
-                     k1_kolor(dyski[i].ab_fl & K1_AB_FL_NIEUDANA ? m->akcent_tekst : m->tekst2, 255), apl.szer - 2 * LEWO);
-            break;
-        }
-    }
+}
+
+/* 0.10.5 step 1 (D3, sketch 4): the update of K1 on a disk is in Ustawienia → Aktualizacje — a card with the link. */
+static void karta(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    int32_t y = karta_y();
+    if (y < 0)
+        return;
+    k1_zaokraglony(o, LEWO, (float)y, (float)(apl.szer - 2 * LEWO), KARTA_H, 10, k1_kolor(m->pole, 255));
+    k1_ikona(o, K1_IK_AKTUALIZACJE, LEWO + 16, (float)y + 16, 20, k1_kolor(m->akcent_tekst, 255));
+    k1_tekst(o, K1_CZ_TEKST_MOCNA, LEWO + 48, y + 31, "Aktualizacja jest teraz w Ustawieniach.", k1_kolor(m->tekst, 255), 0);
+    k1_tekst(o, K1_CZ_MALA, LEWO + 48, y + 52, "Tam zaktualizujesz K1 na dysku z pendrive'a z nowszą wersją.",
+             k1_kolor(m->tekst2, 255), apl.szer - 2 * LEWO - 64);
+    k1_tekst(o, K1_CZ_MALA_MOCNA, LEWO + 48, y + 74, AKT_LINK, k1_kolor(hover == 13 ? m->akcent : m->akcent_tekst, 255), 0);
+    k1_el(K1_EL_PRZYCISK, AKT_LINK, LEWO + 48, y + 56, k1_tekst_szer(K1_CZ_MALA_MOCNA, AKT_LINK), 28, 0);
 }
 
 static void rysuj_liste(struct k1_obraz *o, const struct k1_motyw *m)
@@ -143,6 +120,7 @@ static void rysuj_liste(struct k1_obraz *o, const struct k1_motyw *m)
         rysuj_bez_zrodla(o, m);
     else
         rysuj_dyski(o, m);
+    karta(o, m);
     /* 0.8.5 step 4: also without a system to copy — K1 started from the disk it was installed on is where Secure
      * Boot is turned on (until 0.8.3 the link was drawn only next to the disks; the owner's X230 showed none) */
     if (sb >= 0)
@@ -154,53 +132,26 @@ static void rysuj_potwierdz(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char buf[200];
     opis_dysku(wybrany, buf, sizeof buf);
-    if (tryb == K1_INST_INSTALUJ) {
-        k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Na pewno?", k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 58, buf, k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 84, "Wszystko na tym dysku zostanie usunięte: pliki, inne systemy,",
-                 k1_kolor(m->akcent_tekst, 255), 0);
-        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 104, "partycje. Tego nie da się cofnąć.", k1_kolor(m->akcent_tekst, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, LEWO, pole_y() - 8, "Wpisz USUŃ, aby potwierdzić", k1_kolor(m->tekst2, 255), 0);
-        k1_zaokraglony(o, LEWO, (float)pole_y(), POLE_W, POLE_H, 8, k1_kolor(m->pole, 255));
-        k1_obrys(o, LEWO, (float)pole_y(), POLE_W, POLE_H, 8, 1.5f, k1_kolor(m->akcent, 255));
-        memcpy(buf, pole, pole_dl);
-        buf[pole_dl] = '\0';
-        k1_tekst(o, K1_CZ_TEKST, LEWO + 14, pole_y() + 25, buf, k1_kolor(m->tekst, 255), POLE_W - 28);
-        k1_prostokat(o, LEWO + 14 + k1_tekst_szer(K1_CZ_TEKST, buf), pole_y() + 10, 2, 19, k1_kolor(m->akcent, 255));
-    } else {
-        k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Aktualizacja", k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 58, buf, k1_kolor(m->tekst, 255), 0);
-        {
-            char stara[16] = "?", nowa[16] = "?";
-            if (wersja_dysku(wybrany) > 0)
-                k1_wersja_tekst((uint32_t)wersja_dysku(wybrany), stara, sizeof stara);
-            else
-                snprintf(stara, sizeof stara, "0.5.9–0.6.1");
-            if (wersja_zrodla > 0)
-                k1_wersja_tekst((uint32_t)wersja_zrodla, nowa, sizeof nowa);
-            snprintf(buf, sizeof buf, "Na dysku: %s  →  z pendrive'a: %s%s", stara, nowa,
-                     wersja_zrodla > 0 ? (zrodlo_podpisane ? " (podpisana)" : " (wersja deweloperska)") : "");
-        }
-        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 84, buf, k1_kolor(m->tekst, 255), 0);
-        if (starsza())
-            k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 108, "Na pendrivie jest starsza wersja — aktualizacja zablokowana.",
-                     k1_kolor(m->akcent_tekst, 255), 0);
-        else
-            k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 108, "Twoje dane (ustawienia, notatki, hasło) zostają.",
-                     k1_kolor(m->tekst, 255), 0);
-    }
+    k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Na pewno?", k1_kolor(m->tekst, 255), 0);
+    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 58, buf, k1_kolor(m->tekst, 255), 0);
+    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 84, "Wszystko na tym dysku zostanie usunięte: pliki, inne systemy,",
+             k1_kolor(m->akcent_tekst, 255), 0);
+    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 104, "partycje. Tego nie da się cofnąć.", k1_kolor(m->akcent_tekst, 255), 0);
+    k1_tekst(o, K1_CZ_MALA, LEWO, pole_y() - 8, "Wpisz USUŃ, aby potwierdzić", k1_kolor(m->tekst2, 255), 0);
+    k1_zaokraglony(o, LEWO, (float)pole_y(), POLE_W, POLE_H, 8, k1_kolor(m->pole, 255));
+    k1_obrys(o, LEWO, (float)pole_y(), POLE_W, POLE_H, 8, 1.5f, k1_kolor(m->akcent, 255));
+    memcpy(buf, pole, pole_dl);
+    buf[pole_dl] = '\0';
+    k1_tekst(o, K1_CZ_TEKST, LEWO + 14, pole_y() + 25, buf, k1_kolor(m->tekst, 255), POLE_W - 28);
+    k1_prostokat(o, LEWO + 14 + k1_tekst_szer(K1_CZ_TEKST, buf), pole_y() + 10, 2, 19, k1_kolor(m->akcent, 255));
 }
 
 static void rysuj_postep(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char buf[32];
-    static const char *const etapy[] = { "Przygotowuję…", "Czyszczę dysk…", "Kopiuję system…", "Sprawdzam zapis…",
-                                         "Zapisuję tablicę partycji…" };
     int32_t w = apl.szer - 2 * LEWO;
-    k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, tryb == K1_INST_INSTALUJ ? "Instaluję" : "Aktualizuję",
-             k1_kolor(m->tekst, 255), 0);
-    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 90, etapy[etap >= 1 && etap <= K1_INST_ETAP_MAKS ? etap : 0],
-             k1_kolor(m->tekst2, 255), 0);
+    k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Instaluję", k1_kolor(m->tekst, 255), 0);
+    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 90, k1_inst_etap_tekst(etap), k1_kolor(m->tekst2, 255), 0);
     snprintf(buf, sizeof buf, "%d%%", procent);
     k1_tekst(o, K1_CZ_TEKST_MOCNA, apl.szer - LEWO - k1_tekst_szer(K1_CZ_TEKST_MOCNA, buf), GORA + 90, buf,
              k1_kolor(m->tekst, 255), 0);
@@ -215,23 +166,10 @@ static void rysuj_postep(struct k1_obraz *o, const struct k1_motyw *m)
 static void rysuj_gotowe(struct k1_obraz *o, const struct k1_motyw *m)
 {
     k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Gotowe", k1_kolor(m->tekst, 255), 0);
-    if (tryb == K1_INST_INSTALUJ) {
-        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 64, "Kons K1 jest na dysku tego komputera.", k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 88, "Wyłącz komputer, wyjmij pendrive i włącz go ponownie.",
-                 k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 120, "Jeśli laptop uruchomi się z czymś innym: F12 przy starcie → wybierz dysk.",
-                 k1_kolor(m->tekst3, 255), 0);
-    } else if (nowe_miejsce) {
-        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 64, "Nowa wersja jest zapisana obok obecnej, dane zostały.",
-                 k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 88, "Uruchom komputer ponownie — bez pendrive'a.", k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 120, "Gdyby nowa wersja nie wystartowała, K1 sam wróci do obecnej.",
-                 k1_kolor(m->tekst3, 255), 0);
-    } else {
-        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 64, "System na dysku jest zaktualizowany, dane zostały.",
-                 k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 88, "Uruchom komputer ponownie — bez pendrive'a.", k1_kolor(m->tekst, 255), 0);
-    }
+    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 64, "Kons K1 jest na dysku tego komputera.", k1_kolor(m->tekst, 255), 0);
+    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 88, "Wyłącz komputer, wyjmij pendrive i włącz go ponownie.", k1_kolor(m->tekst, 255), 0);
+    k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 120, "Jeśli laptop uruchomi się z czymś innym: F12 przy starcie → wybierz dysk.",
+             k1_kolor(m->tekst3, 255), 0);
 }
 
 static void rysuj_sb(struct k1_obraz *o, const struct k1_motyw *m)
@@ -292,9 +230,9 @@ static void rysuj_sb(struct k1_obraz *o, const struct k1_motyw *m)
 static void rysuj_blad(struct k1_obraz *o, const struct k1_motyw *m)
 {
     k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Nie udało się", k1_kolor(m->tekst, 255), 0);
-    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 64, blad_tekst(wynik), k1_kolor(m->tekst, 255), apl.szer - 2 * LEWO);
-    if (tryb == K1_INST_INSTALUJ && wynik != K1_INST_BLAD_ZAJETY && wynik != K1_INST_BLAD_MALY &&
-        wynik != K1_INST_BLAD_ARG && wynik != K1_INST_BLAD_ZRODLO)
+    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 64, k1_inst_blad_tekst(wynik), k1_kolor(m->tekst, 255), apl.szer - 2 * LEWO);
+    if (wynik != K1_INST_BLAD_ZAJETY && wynik != K1_INST_BLAD_MALY && wynik != K1_INST_BLAD_ARG &&
+        wynik != K1_INST_BLAD_ZRODLO && wynik != K1_INST_BLAD_TRWA)
         k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 92, "Dysk może być teraz pusty — spróbuj jeszcze raz.",
                  k1_kolor(m->tekst3, 255), 0);
 }
@@ -330,8 +268,7 @@ void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     przyciski(p);
     if (p[0].etykieta != NULL)
         k1_przycisk(o, m, &p[0], K1_CZ_TEKST_MOCNA, hover == 10,
-                    !(stan == S_LISTA && wybrany < 0) && !(stan == S_POTWIERDZ && tryb == K1_INST_INSTALUJ && !potwierdzone()) &&
-                        !(stan == S_POTWIERDZ && tryb == K1_INST_AKTUALIZUJ && starsza()));
+                    !(stan == S_LISTA && wybrany < 0) && !(stan == S_POTWIERDZ && !potwierdzone()));
     if (p[1].etykieta != NULL)
         k1_przycisk(o, m, &p[1], K1_CZ_TEKST_MOCNA, hover == 11, 1);
 }

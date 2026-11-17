@@ -153,6 +153,7 @@ int main(void)
             { &test_kanal, obsluz_test },     { &gui_kanal, obsluz_gui },
             { &skarb_ster, obsluz_skarbiec }, /* skarbiec ending is seen by waitpid */
             { &inst_kanal, obsluz_instalacje }, { &inst_ster, obsluz_zapis },
+            { &akt_kanal, obsluz_aktualizacje }, /* 0.10.5 step 1: Ustawienia → Aktualizacje */
             { &uevent_fd, obsluz_uevent },    { &pen_kanal, obsluz_pendrive },
             { &podglad_kanal, obsluz_podglad }, { &siec_kanal, obsluz_siec },
             { &siec_rt, obsluz_rt },          { &wifi_nl, obsluz_wifi_nl },

@@ -192,6 +192,9 @@ void pamiec_przydzial(const struct k1_komunikat *m); /* STREFA_PRZYDZIAL: a sess
 void pamiec_malo(const struct k1_komunikat *m);      /* MALO_PAMIECI: the window with the sessions */
 void pamiec_fokus(void);                             /* the windows changed: the zone with the focus to nadzorca */
 
+/* wersja.c (0.10.5 step 1, S5) — nadzorca on fd 5 */
+void wersja_nieudana(const struct k1_komunikat *m); /* AB_NIEUDANA: the window "Nowa wersja K1 nie uruchomiła się" */
+
 /* zapis.c */
 void rozm_wczytaj(void); /* at start: from skarbiec, else the first-start arrangement */
 void rozm_zapisz_teraz(void);

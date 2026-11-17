@@ -405,16 +405,8 @@ static double opoznienie(unsigned awarie)
 static void po_koncu(const struct usluga *u, int status)
 {
     size_t i;
-    if (u->profil == K1_PROFIL_INSTALATOR) {
-        if (inst_ster >= 0)
-            close(inst_ster);
-        inst_ster = -1;
-        if (!inst_wynik_wyslany && inst_kanal >= 0) { /* ended without a result */
-            struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, K1_INST_BLAD_PRZERWANE, inst_tryb, 0, 0, 0);
-            k1_kanal_wyslij(inst_kanal, &k, sizeof k, -1);
-        }
-        inst_wynik_wyslany = 1;
-    }
+    if (u->profil == K1_PROFIL_INSTALATOR)
+        inst_koniec();
     if (u->profil == K1_PROFIL_CZYTNIK)
         pendrive_koniec();
     if (k1_strefa_profilu(u->profil) != NULL) { /* 0.10.0 step 2: a zone's channel; step 3: why it ended */
@@ -516,13 +508,15 @@ void obsluz_gui(void)
         /* gui: start an application, power off, log out; the password screen (M5e): power off only */
         if (w != K1_ODB_JEST ||
             (k.typ != K1_KOM_URUCHOM && k.typ != K1_KOM_WYLACZ && k.typ != K1_KOM_URUCHOM_STREFE &&
-             k.typ != K1_KOM_STREFA_FOKUS) ||
+             k.typ != K1_KOM_STREFA_FOKUS && k.typ != K1_KOM_OTWORZ_AKTUALIZACJE) ||
             ((k.typ != K1_KOM_WYLACZ || k.a == 2) && gui_kanal_uid != K1_UID_GUI) ||
             (k.typ == K1_KOM_URUCHOM_STREFE && k.b != 0)) { /* a hostile test guest: the test program only */
             k1_log(TAG, "odrzucono prośbę od pulpitu");
             continue;
         }
-        if (k.typ == K1_KOM_STREFA_FOKUS) { /* 0.10.1 step 3: the rozdzielacz's order */
+        if (k.typ == K1_KOM_OTWORZ_AKTUALIZACJE) { /* 0.10.5 step 1: from the window of a failed try */
+            otworz_aktualizacje();
+        } else if (k.typ == K1_KOM_STREFA_FOKUS) { /* 0.10.1 step 3: the rozdzielacz's order */
             strefa_fokus(k.a);
         } else if (k.typ == K1_KOM_URUCHOM_STREFE) {
             strefa_uruchom(k.a, 0, 0);

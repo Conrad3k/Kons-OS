@@ -4,15 +4,18 @@
 #    na dysku GPT z „K1-EFI” i „K1-DANE” (sfdisk), program zapisujący w klatce (UID 105);
 # 2. start z samego dysku (UEFI, bez pendrive'a): pulpit, nowy magazyn na K1-DANE dysku;
 #    (0.8.5 krok 3) z dysku: Ustawienia → Miejsce — „nośnik: dysk”, bez przycisku powiększania pendrive'a.
-# 3. znów pendrive + dysk: dane z dysku wewnętrznego (partycja pendrive'a pominięta), Instalator
-#    rozpoznaje K1 na dysku → aktualizacja (tylko K1-EFI), dane nietknięte (magazyn otwiera się dalej);
+# 3. znów pendrive + dysk: dane z dysku wewnętrznego (partycja pendrive'a pominięta), Ustawienia → Aktualizacje
+#    (0.10.5 krok 1; wcześniej Instalator) rozpoznają starszy K1 na dysku → aktualizacja (tylko K1-EFI), dane nietknięte;
 #    (0.9.0 krok 3, ADR 0038) dysk ma „stare” pliki startowe (inny grub.cfg i .disk/info, jeden plik więcej):
 #    pendrive ze zmienionym plikiem startowym — odmowa, dysk nietknięty; aktualizacja przerwana (QEMU wyłączone
 #    w trakcie zapisu plików startowych) — dysk dalej startuje; aktualizacja — pliki startowe dysku = pendrive'a
 #    (mtools), fsck.fat bez błędów;
 # 4. start z dysku po aktualizacji: nowe miejsce (B) wystartowało na próbę i K1 je potwierdził (0.7.0, A/B),
 #    magazyn z kroku 2 otwarty (dane przetrwały);
-# 5. wycofanie (A/B): „nowe” miejsce A jest uszkodzone — GRUB wraca do B, K1 zgłasza nieudaną aktualizację.
+# 5. wycofanie (A/B): „nowe” miejsce A jest uszkodzone — GRUB wraca do B, K1 zgłasza nieudaną aktualizację: okienko na
+#    pulpicie (0.10.5 krok 1), „Pokaż w Ustawieniach” otwiera Ustawienia → Aktualizacje z „nieudaną próbą”;
+# 6. (M6a) na dysku nowsza wersja niż na pendrivie — Ustawienia → Aktualizacje bez przycisku, nic się nie zaczyna.
+# Z dysku (bez pendrive'a) Instalator nie ma ekranu aktualizacji: karta z linkiem do Ustawień → Aktualizacje.
 # Zrzuty: build/testy/m5f-*.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -44,6 +47,22 @@ def zrzut(nazwa): q.zrzut(nazwa)
 def koniec():
     q.czysty_log()
     q.koniec()
+
+def aktualizacje(g):
+    """0.10.5 step 1: Ustawienia → Aktualizacje from the Start menu (3rd row, section 11); (window x, y, state line)."""
+    klik(int(g.group(1)), int(g.group(2)))
+    m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+)", czas=20)
+    if not m:
+        return None
+    klik(int(m.group(1)), int(m.group(2)) + 2 * int(m.group(3)))
+    o = czekaj(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)", czas=30)
+    sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
+    if not (o and sk):
+        return None
+    ox, oy = int(o.group(4)), int(o.group(5))
+    klik(ox + int(sk.group(1)), oy + int(sk.group(2)) + 10 * int(sk.group(3)))
+    return ox, oy, czekaj(STAN_AKT, czas=60)
+STAN_AKT = r"K1-USTAWIENIA: aktualizacje: (?!sprawdzam)([^(]+?) \(dysk: ([^,]*), pendrive: ([^)]*)\); przycisk (-?\d+),(-?\d+)"
 
 g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", czas=200)
 sprawdz("pulpit gotowy", g)
@@ -88,7 +107,7 @@ if tryb == "z-dysku":
             (c.group(0) if c else "brak części") + " / " + (mj.group(0) if mj else "brak miejsca"))
     zrzut("2-miejsce-z-dysku")
     if u:
-        klik(int(u.group(4)) + 680 - 8 - 14, int(u.group(5)) + 22)  # × of Ustawienia
+        klik(int(u.group(4)) + 720 - 8 - 14, int(u.group(5)) + 22)  # × of Ustawienia (720 wide since 0.10.5)
         czekaj(r"K1-USTAWIENIA: okno zamknięte przez użytkownika", czas=20)
 if tryb == "po-przerwaniu":
     sprawdz("po przerwanej aktualizacji dysk dalej startuje (pulpit)", g)
@@ -105,7 +124,65 @@ if tryb == "wycofanie":
     sprawdz("A/B: uszkodzone nowe miejsce A — GRUB wrócił do B, K1 zgłasza nieudaną aktualizację",
             czekaj(r"K1-NADZORCA: A/B: aktualizacja \(miejsce a\) nie wystartowała — działa poprzednia wersja \(sda1, miejsce b\)",
                    czas=60))
+    ok_ = czekaj(r"K1-GUI: okienko \(nieudana próba nowej wersji\): Rozumiem (\d+),(\d+); Pokaż w Ustawieniach (\d+),(\d+)", czas=30)
+    sprawdz("(0.10.5) okienko na pulpicie: „Nowa wersja K1 nie uruchomiła się”", ok_)
+    if ok_:
+        zrzut("5-okienko")
+        klik(int(ok_.group(3)), int(ok_.group(4)))
+        a = czekaj(STAN_AKT, czas=60)
+        sprawdz("„Pokaż w Ustawieniach”: Ustawienia → Aktualizacje — nieudana próba, działa poprzednia (miejsce B)",
+                czekaj(r"K1-USTAWIENIA: aktualizacje: otwarte na prośbę nadzorcy", czas=30) and a
+                and a.group(1) == "nieudana próba", a.group(0) if a else "brak")
+        zrzut("5-ustawienia")
     koniec()
+
+if tryb in ("aktualizuj", "pliki-zle", "przerwij", "starsza"):  # 0.10.5 step 1: Ustawienia → Aktualizacje
+    if tryb == "aktualizuj":
+        sprawdz("pendrive + dysk z K1: skarbiec dostaje K1-DANE dysku wewnętrznego (sda2), nie pendrive'a",
+                czekaj(r"K1-NADZORCA: partycja danych K1-DANE otwarta dla skarbca \(sda2\)", czas=5)
+                and czekaj(r"K1-SKARBIEC: magazyn otwarty", czas=5))
+    u = aktualizacje(g)
+    a = u and u[2]
+    if tryb == "starsza":  # M6a: the disk says 99.0.0 — the stick is older
+        sprawdz("Ustawienia → Aktualizacje: na dysku nowsza wersja (99.0.0) niż na pendrivie — bez przycisku",
+                a and a.group(1) == "dysk nowszy" and a.group(2) == "99.0.0" and a.group(4) == "-1", a.group(0) if a else "brak")
+        zrzut("6-starsza")
+        if u:
+            klik(u[0] + 216 + 100, u[1] + 318)  # where the button would be: nothing may start
+        sprawdz("powrót do starszej wersji zablokowany (nic się nie zaczyna)", cisza(r"proszę o aktualizację|instalator: aktualizacja", 3))
+        koniec()
+    # the test stick has the disk's version (0.10.x of this build): "ta sama wersja" with "Zapisz K1 na dysku jeszcze raz"
+    sprawdz("Ustawienia → Aktualizacje: na dysku starsza albo ta sama wersja, przycisk zapisu na dysk",
+            a and a.group(1) in ("dysk starszy", "ta sama wersja") and a.group(4) != "-1", a.group(0) if a else "brak")
+    if not a or a.group(4) == "-1":
+        koniec()
+    zrzut("3-aktualizacje" if tryb == "aktualizuj" else "3a-aktualizacje")
+    klik(u[0] + int(a.group(4)), u[1] + int(a.group(5)))
+    sprawdz("aktualizacja: tylko partycja K1-EFI (sda1), na prośbę okna Ustawień",
+            czekaj(r"K1-NADZORCA: instalator: aktualizacja — sda1 \(z sd\w+, okno: Ustawienia\)", czas=10))
+    if tryb == "aktualizuj":
+        sprawdz("(0.9.0) pliki startowe dysku zamienione na pendrive'a (po przerwanej próbie: już nowe)",
+                czekaj(r"K1-INSTALATOR: pliki startowe: wymienione na wersję [0-9.]+|K1-INSTALATOR: pliki startowe na dysku aktualne",
+                       czas=120))
+        sprawdz("instalator (A/B): nowy system w wolnym miejscu B, działający i dane nietknięte",
+                czekaj(r"K1-INSTALATOR: aktualizacja A/B: system [0-9.]+ \(\d+ MiB\) do miejsca b", czas=60)
+                and czekaj(r"K1-INSTALATOR: gotowe: nowy system w miejscu b", czas=200)
+                and czekaj(r"K1-USTAWIENIA: aktualizacje: zaktualizowano \(nowe miejsce A/B\)", czas=20))
+        k_ = czekaj(r"K1-USTAWIENIA: aktualizacje: gotowe \(dysk: [^)]*\); przycisk (\d+),(\d+)", czas=20)
+        sprawdz("Ustawienia: „Gotowe” i „Uruchom ponownie”", k_)
+        zrzut("3-gotowe")
+        koniec()
+    if tryb == "pliki-zle":
+        sprawdz("zmieniony plik startowy na pendrivie: odmowa przed zapisem (niezgodny z manifestem plików startowych)",
+                czekaj(r"K1-INSTALATOR: źródło [0-9.]+: pliki startowe nie zgadzają się z manifestem", czas=120)
+                and czekaj(r"K1-USTAWIENIA: aktualizacje: błąd aktualizacji \(kod -8\)", czas=20))
+        zrzut("3a-pliki-zle")
+        koniec()
+    z = czekaj(r"K1-INSTALATOR: pliki startowe: zapis obok starych", czas=120)
+    monitor("quit")  # a power cut while the new boot files are written (the disk writes slowly in this run)
+    sprawdz("aktualizacja przerwana w trakcie zapisu plików startowych (QEMU wyłączone, przed przełączeniem)",
+            z and "K1-INSTALATOR: pliki startowe: przełączone" not in tekst() and "K1-INSTALATOR: gotowe" not in tekst())
+    q.koniec(wylacz=False)
 
 # Instalator from the Start menu (5th row)
 klik(int(g.group(1)), int(g.group(2)))
@@ -122,7 +199,17 @@ if not (o and d): koniec()
 if tryb == "z-dysku":  # 0.7.2: not "run K1 from a stick" — K1 runs from this disk
     sprawdz("start z dysku: Instalator wie, że K1 jest zainstalowany (nie prosi o pendrive)",
             d.group(2) == "brak" and "K1 działa z dysku" in d.group(0), d.group(0))
+    l_ = czekaj(r"K1-INSTALACJA: aktualizacja jest w Ustawieniach; link (\d+),(\d+)", czas=10)
+    sprawdz("(0.10.5) Instalator bez aktualizacji: karta „Aktualizacja jest teraz w Ustawieniach” z linkiem", l_)
     zrzut("2-instalator-z-dysku")
+    if l_:
+        klik(int(o.group(4)) + int(l_.group(1)), int(o.group(5)) + int(l_.group(2)))
+        a = czekaj(STAN_AKT, czas=60)
+        sprawdz("link otwiera Ustawienia → Aktualizacje: K1 na dysku (miejsce A)",
+                czekaj(r"K1-NADZORCA: otwieram Ustawienia → Aktualizacje", czas=10)
+                and czekaj(r"K1-USTAWIENIA: aktualizacje: otwarte na prośbę nadzorcy", czas=30) and a and a.group(1) == "na dysku",
+                a.group(0) if a else "brak")
+        zrzut("2-aktualizacje-z-dysku")
     koniec()
 ox, oy = int(o.group(4)), int(o.group(5))
 px, py = ox + int(d.group(6)), oy + int(d.group(7))
@@ -146,14 +233,6 @@ if tryb == "uszkodzony":  # M6a: one byte of the system on the stick changed
     zrzut("0-uszkodzony")
     koniec()
 
-if tryb == "starsza":  # M6a: the disk says 99.0.0 — the stick is older
-    sprawdz("na dysku nowsza wersja (99.0.0) niż na pendrivie",
-            czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: tak \(dane otwarte\) \(wersja 6488064\)", czas=5))
-    klik(px, py); zrzut("5-starsza")
-    klik(px, py)
-    sprawdz("powrót do starszej wersji zablokowany (przycisk nieaktywny, nic się nie zaczyna)", cisza(r"potwierdzono", 3))
-    koniec()
-
 if tryb == "instaluj":
     sprawdz("dysk pusty: bez Kons K1", czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: nie", czas=5))
     sprawdz("sesja z pendrive'a: w menu Start nie ma „Wyloguj”", "K1-GUI: sesja z pendrive'a: bez Wyloguj" in tekst())
@@ -167,7 +246,7 @@ if tryb == "instaluj":
     klik(px, py)
     sprawdz("potwierdzone po wpisaniu „usuń”", czekaj(r"K1-INSTALACJA: potwierdzono: instalacja na dysku 1", czas=10))
     sprawdz("nadzorca: program zapisujący w klatce (UID 105), źródło = K1-EFI pendrive'a",
-            czekaj(r"K1-NADZORCA: instalator: instalacja na dysku — sda \(z sd\w+\), pid \d+, uid 105", czas=10))
+            czekaj(r"K1-NADZORCA: instalator: instalacja na dysku — sda \(z sd\w+, okno: Instalator\), pid \d+, uid 105", czas=10))
     sprawdz("instalator: system i pliki startowe pendrive'a zgodne z podpisanymi manifestami",
             czekaj(r"K1-INSTALATOR: źródło: wersja [0-9.]+, .*, pliki startowe zgodne z manifestem", czas=60))
     sprawdz("instalator: kopia, sprawdzenie, tablica partycji", czekaj(r"K1-INSTALATOR: gotowe: K1 zainstalowany", czas=200))
@@ -178,42 +257,6 @@ if tryb == "instaluj":
     q.czysty_log()
     q.koniec(wylacz=False)
 
-if tryb == "aktualizuj":
-    sprawdz("pendrive + dysk z K1: skarbiec dostaje K1-DANE dysku wewnętrznego (sda2), nie pendrive'a",
-            czekaj(r"K1-NADZORCA: partycja danych K1-DANE otwarta dla skarbca \(sda2\)", czas=5)
-            and czekaj(r"K1-SKARBIEC: magazyn otwarty", czas=5))
-    sprawdz("Instalator: na dysku jest Kons K1 (dane otwarte)",
-            czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: tak \(dane otwarte\)", czas=5))
-    klik(px, py)  # Zaktualizuj system
-    zrzut("3-aktualizacja")
-    klik(px, py)  # Zaktualizuj
-    sprawdz("aktualizacja: tylko partycja K1-EFI (sda1)",
-            czekaj(r"K1-NADZORCA: instalator: aktualizacja — sda1", czas=10))
-    sprawdz("(0.9.0) pliki startowe dysku zamienione na pendrive'a (po przerwanej próbie: już nowe)",
-            czekaj(r"K1-INSTALATOR: pliki startowe: wymienione na wersję [0-9.]+|K1-INSTALATOR: pliki startowe na dysku aktualne",
-                   czas=120))
-    sprawdz("instalator (A/B): nowy system w wolnym miejscu B, działający i dane nietknięte",
-            czekaj(r"K1-INSTALATOR: aktualizacja A/B: system [0-9.]+ \(\d+ MiB\) do miejsca b", czas=60)
-            and czekaj(r"K1-INSTALATOR: gotowe: nowy system w miejscu b", czas=200)
-            and czekaj(r"K1-INSTALACJA: zaktualizowano \(nowe miejsce A/B\)", czas=20))
-    zrzut("3-gotowe")
-    koniec()
-
-if tryb in ("pliki-zle", "przerwij"):  # 0.9.0 step 3 (ADR 0038)
-    sprawdz("Instalator: na dysku jest Kons K1", czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: tak", czas=5))
-    klik(px, py)
-    klik(px, py)
-    if tryb == "pliki-zle":
-        sprawdz("zmieniony plik startowy na pendrivie: odmowa przed zapisem (niezgodny z manifestem plików startowych)",
-                czekaj(r"K1-INSTALATOR: źródło [0-9.]+: pliki startowe nie zgadzają się z manifestem", czas=120)
-                and czekaj(r"K1-INSTALACJA: kod -8", czas=20))
-        zrzut("3a-pliki-zle")
-        koniec()
-    z = czekaj(r"K1-INSTALATOR: pliki startowe: zapis obok starych", czas=120)
-    monitor("quit")  # a power cut while the new boot files are written (the disk writes slowly in this run)
-    sprawdz("aktualizacja przerwana w trakcie zapisu plików startowych (QEMU wyłączone, przed przełączeniem)",
-            z and "K1-INSTALATOR: pliki startowe: przełączone" not in tekst() and "K1-INSTALATOR: gotowe" not in tekst())
-    q.koniec(wylacz=False)
 PY
     zamknij_qemu "$MON" $QPID
 }

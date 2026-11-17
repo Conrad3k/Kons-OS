@@ -4,7 +4,8 @@
  * (the desktop or the password screen for ROZRUCH_OK seconds), nadzorca looks at the K1-EFI of every
  * internal disk: a try that started — and holds the very build that runs now (the build id of the slot
  * manifest = /rdzen/system/wydanie) — becomes the confirmed slot; a try GRUB went back from (k1_start is
- * not k1_proba) is cleared and reported in the Instalator window. Only the 1024 bytes of grubenv are
+ * not k1_proba) is cleared and reported in Ustawienia → Aktualizacje (INST_AB) and, once, in a window of gui (AB_NIEUDANA,
+ * 0.10.5 step 1). Only the 1024 bytes of grubenv are
  * written. A stick (USB) is never touched. (0.8.2–0.9.1 then told skarbiec it may move a vault of format 1 to format 2 —
  * gone with format 1 in 0.10.0.) */
 #include "nadzorca.h"
@@ -16,7 +17,8 @@
 static uint8_t wydanie[16];
 static int wydanie_jest, ab_zrobione;
 static double ab_od;
-char ab_nieudana[32]; /* the K1-EFI whose last try did not start (this session; for the Instalator window) */
+static struct k1_komunikat ab_do_gui; /* AB_NIEUDANA waiting for gui (typ 0: none) */
+char ab_nieudana[32]; /* the K1-EFI whose last try did not start (this session; for Ustawienia → Aktualizacje) */
 
 void rozruch_wydanie(void)
 {
@@ -55,6 +57,9 @@ static int sprawdz_dysk(const char *efi)
     } else if (d == K1_AB_NIEUDANA) {
         k1_log(TAG, "A/B: aktualizacja (miejsce %c) nie wystartowała — działa poprzednia wersja (%s, miejsce %c)", e.proba,
                efi, e.start ? e.start : '?');
+        nr = k1_slot_nr(e.proba);
+        ab_do_gui = k1_komunikat_nowy(K1_KOM_AB_NIEUDANA, 0, nr >= 0 ? (int32_t)p.slot[nr].wersja : 0,
+                                      m != NULL ? (int32_t)m->wersja : 0, 0, 0, 0);
         e.proba = 0;
         snprintf(ab_nieudana, sizeof ab_nieudana, "%s", efi);
     }
@@ -74,6 +79,11 @@ void rozruch_po_starcie(double t)
     struct k1_dyski l;
     enum etap_startu e = etap_startu();
     int i, czeka = 0;
+    if (ab_do_gui.typ != 0 && bateria_kanal >= 0 && gui_kanal_uid == K1_UID_GUI) { /* not the password screen */
+        if (k1_kanal_wyslij(bateria_kanal, &ab_do_gui, sizeof ab_do_gui, -1) == 0)
+            k1_log(TAG, "A/B: okienko o nieudanej próbie — do pulpitu");
+        ab_do_gui.typ = 0;
+    }
     if (ab_zrobione || (e != E_PULPIT && e != E_HASLO))
         return;
     if (ab_od == 0) {

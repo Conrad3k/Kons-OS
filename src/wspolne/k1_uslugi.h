@@ -45,9 +45,9 @@
     X(NOTATKI, 2, 5, 201, "notatki", "K1-NOTATKI", "Notatki", "Twoje notatki, zaszyfrowane", NOTATKI, 1,        \
       (KANAL_SKARBCA, KANAL_PLIKU))                                                                             \
     X(USTAWIENIA, 3, 6, 202, "ustawienia", "K1-USTAWIENIA", "Ustawienia", "Wygląd, ekran, mysz, bateria, hasło", \
-      USTAWIENIA, 1, (KANAL_USTAWIEN, KANAL_SKARBCA, KANAL_DO_SIECI))                                                           \
+      USTAWIENIA, 1, (KANAL_USTAWIEN, KANAL_SKARBCA, KANAL_DO_SIECI, KANAL_AKTUALIZACJI))                       \
     X(ZASOBY, 4, 7, 203, "zasoby", "K1-ZASOBY", "Zasoby", "Procesor, pamięć, bateria", ZASOBY, 1, (KANAL_ZASOBOW)) \
-    X(INSTALACJA, 5, 11, 204, "instalacja", "K1-INSTALACJA", "Instalator", "Instalacja, aktualizacja, Secure Boot", \
+    X(INSTALACJA, 5, 11, 204, "instalacja", "K1-INSTALACJA", "Instalator", "Instalacja na dysku, Secure Boot", \
       DYSK, 0, (KANAL_INSTALACJI))                                                                              \
     X(KALKULATOR, 6, 12, 205, "kalkulator", "K1-KALKULATOR", "Kalkulator", "Działania, procenty, pamięć",          \
       KALKULATOR, 1, ())                                                                                        \

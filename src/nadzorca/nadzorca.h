@@ -70,7 +70,7 @@ struct kanal {
     int *uid;           /* KN_OD: who is on the other end (one channel may serve two services), or NULL */
     void (*nowy)(void); /* KN_DO / KN_OD: forget what was sent on the previous channel, or NULL */
 };
-#define K1_KANALY_MAKS 3 /* channels of one program (a longer list in k1_uslugi.h does not build) */
+#define K1_KANALY_MAKS 4 /* channels of one program (a longer list in k1_uslugi.h does not build) */
 
 enum kiedy_start {
     START_PRZY_STARCIE, /* at boot, and again after it ends (K1_RESTARTY_MAKS in OKNO_RESTARTOW) */
@@ -162,13 +162,17 @@ void obsluz_skarbiec(void);
 
 /* instalacja.c */
 extern int inst_kanal;
+extern int akt_kanal; /* 0.10.5 step 1: Ustawienia → Aktualizacje */
 extern int inst_ster;
-extern int inst_tryb, inst_wynik_wyslany;
 struct usluga *instalator(void);
 void inst_nowy_kanal(void);
+void akt_nowy_kanal(void);
 int otworz_urzadzenie(const char *nazwa, int flagi);
 void obsluz_instalacje(void);
+void obsluz_aktualizacje(void);
 void obsluz_zapis(void);
+void inst_koniec(void); /* the writing program ended */
+void otworz_aktualizacje(void); /* Ustawienia on Aktualizacje (Instalator's link, gui's window) */
 
 /* pendrive.c — Pliki's requests and the USB stick (0.8.0 step 3, ADR 0031) */
 extern int pen_kanal;

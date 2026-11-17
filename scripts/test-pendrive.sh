@@ -184,7 +184,7 @@ def miejsce_w_ustawieniach(nazwa, ciemny=False):
         zrzut(nazwa + "-ciemny", gdy=lambda w, h, px: True)
         sekcja(0)
         po(r"K1-EKRAN: ustawienie 1=0", lambda: motyw(0))
-    po(r"K1-USTAWIENIA: okno zamknięte przez użytkownika", lambda: klik(ux + 680 - 8 - 14, uy + 22))
+    po(r"K1-USTAWIENIA: okno zamknięte przez użytkownika", lambda: klik(ux + 720 - 8 - 14, uy + 22))
     return c
 
 

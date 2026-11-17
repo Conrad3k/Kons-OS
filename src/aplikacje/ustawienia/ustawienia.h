@@ -4,7 +4,7 @@
  * what takes it, K1-DANE to the end of the stick — 0.8.5), siec.c (Sieć: the tabs and the network cards — 0.9.0),
  * wifi.c (Sieć → Wi-Fi: the radio and the networks around — 0.9.1), wifi_haslo.c (joining one: 0.9.1 step 2),
  * przegladarka.c (Przeglądarka: the browser's sessions, 0.10.0 step 5),
- * informacje.c (Informacje: the system). */
+ * aktualizacje.c (Aktualizacje: the version, A/B, the update from a stick — 0.10.5 step 1), informacje.c (Informacje: the system). */
 #ifndef K1_USTAWIENIA_H
 #define K1_USTAWIENIA_H
 
@@ -16,6 +16,7 @@
 #define FD_NADZORCA 4
 #define FD_SKARBIEC 5 /* M5e: the password */
 #define FD_SIEC 6     /* 0.9.1 step 2: Wi-Fi requests straight to siec (KANAL_DO_SIECI) */
+#define FD_AKTUALIZACJE 7 /* 0.10.5 step 1: updates (KANAL_AKTUALIZACJI) */
 #define BOK 188        /* side navigation width */
 #define NAV_Y (K1_OKNO_TYTUL + 8)
 #define NAV_WIERSZ 36
@@ -23,8 +24,8 @@
 #define SEG_W 260
 #define SEG_H 36
 
-enum { S_WYGLAD, S_EKRAN, S_BATERIA, S_MYSZ, S_CZAS, S_HASLO, S_APLIKACJE, S_MIEJSCE, S_SIEC, S_PRZEGLADARKA, S_INFO,
-       S_LICZBA }; /* the tests click by these numbers: a new section goes before Informacje */
+enum { S_WYGLAD, S_EKRAN, S_BATERIA, S_MYSZ, S_CZAS, S_HASLO, S_APLIKACJE, S_MIEJSCE, S_SIEC, S_PRZEGLADARKA,
+       S_AKTUALIZACJE, S_INFO, S_LICZBA }; /* the tests click by these numbers: a new section goes before Informacje */
 
 extern struct k1_apl apl;
 extern int sekcja;
@@ -41,6 +42,9 @@ static inline void zmienne(const char *nazwa, int32_t y, int32_t h)
 {
     k1_el(K1_EL_ZMIENNE, nazwa, TRESC_X - 4, y, apl.szer - TRESC_X - 12, h, 0);
 }
+
+/* Shows section `s` (as a click on its row; 0.10.5 step 1: also nadzorca's AKT_POKAZ). */
+void ustawienia_pokaz(int s);
 
 /* Title and one-line description of a section. */
 void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul, const char *opis);
@@ -111,6 +115,14 @@ int przegladarka_najechanie(int32_t x, int32_t y);            /* x < 0: the poin
 int przegladarka_klawisz(unsigned kod, int wartosc, unsigned mody); /* the new name being typed; 1 = handled */
 void przegladarka_zamknij(void);                              /* leaving the section */
 void przegladarka_loguj(void);                                /* the tests click by this line */
+
+/* aktualizacje.c (0.10.5 step 1, D1: sketch A) — nadzorca on fd 7 */
+int aktualizacje_start(void);   /* fd 7 when there is the channel, else -1 */
+void aktualizacje_dane(void);   /* what nadzorca sent */
+void aktualizacje_pokazane(void); /* the section was opened: the disks again */
+void aktualizacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
+int aktualizacje_najechanie(int32_t x, int32_t y); /* x < 0: the pointer left; 1 = redraw */
+int aktualizacje_klik(int32_t x, int32_t y);       /* 1 = handled */
 
 /* informacje.c */
 void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);

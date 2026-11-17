@@ -4,7 +4,8 @@
  * src/instalator/) and passes its progress back. After a finished install it may ask nadzorca to
  * power off or restart (nothing else). 0.7.0 (ADR 0022): it shows what runs on a disk and what is in the
  * other slot (A/B), and a Secure Boot screen: the state, and on request nadzorca prepares the K1 key
- * for MokManager (the owner confirms it there with a password on the next start).
+ * for MokManager (the owner confirms it there with a password on the next start). 0.10.5 step 1 (D3): it installs
+ * only — for a disk with K1 a card sends the owner to Ustawienia → Aktualizacje (nadzorca opens it: OTWORZ_AKTUALIZACJE).
  * Sandbox: UID 204, like the other applications (memfd for the window, no paths).
  * Modules: instalacja.h. Documentation: docs/komponenty/instalator.md. */
 #include <fcntl.h>
@@ -24,9 +25,7 @@ int stan = S_SZUKAM;
 static int kanal = -1;
 struct dysk dyski[K1_INST_DYSKI_MAKS];
 int32_t sb = -1, sbk, sb_prawdziwy, sb_wynik;
-int nowe_miejsce;
-int n_dyskow, zrodlo, wybrany = -1, tryb = K1_INST_INSTALUJ, procent, etap, wynik;
-int32_t wersja_zrodla, zrodlo_podpisane;
+int n_dyskow, zrodlo, wybrany = -1, procent, etap, wynik;
 char pole[64];
 size_t pole_dl;
 int hover = -1;
@@ -49,10 +48,15 @@ int zainstalowany(void)
     return 0;
 }
 
-/* An update would go back to an older version (the writing program refuses it too). */
-int starsza(void)
+/* The card "the update is in Ustawienia" (0.10.5 step 1, D3): under the disks when the chosen one has K1, or in place
+ * of the disks when there is nothing to copy and K1 runs from this computer's disk. */
+int karta_y(void)
 {
-    return wybrany >= 0 && wersja_dysku(wybrany) > 0 && wersja_zrodla > 0 && wersja_zrodla < wersja_dysku(wybrany);
+    if (stan != S_LISTA)
+        return -1;
+    if (zrodlo == 1)
+        return wybrany >= 0 && dyski[wybrany].k1 ? DYSKI_Y + n_dyskow * (DYSK_H + 8) + 12 : -1;
+    return zainstalowany() ? DYSKI_Y : -1;
 }
 
 /* Whether the field says "usuń" (any case, with or without the Polish letter). */
@@ -95,18 +99,17 @@ void przyciski(struct k1_przycisk p[2])
     case S_LISTA:
         if (zrodlo != 1)
             break; /* nothing to install from: no button (0.6.1) */
-        if (wybrany >= 0 && dyski[wybrany].k1) {
-            e1 = "Zaktualizuj system";
-            e2 = dyski[wybrany].zajety ? NULL : "Zainstaluj od nowa";
-        } else
+        if (wybrany >= 0 && dyski[wybrany].k1) /* 0.10.5 step 1: the update is in Ustawienia */
+            e1 = dyski[wybrany].zajety ? NULL : "Zainstaluj od nowa";
+        else
             e1 = "Zainstaluj";
         break;
     case S_POTWIERDZ:
-        e1 = tryb == K1_INST_INSTALUJ ? "Usuń wszystko i zainstaluj" : "Zaktualizuj";
+        e1 = "Usuń wszystko i zainstaluj";
         e2 = "Anuluj";
         break;
     case S_GOTOWE:
-        e1 = tryb == K1_INST_INSTALUJ ? "Wyłącz komputer" : "Uruchom ponownie";
+        e1 = "Wyłącz komputer";
         break;
     case S_SB:
         if (sbk == K1_SBK_BRAK && sb_prawdziwy && sb != K1_SB_NIEZNANY)
@@ -127,7 +130,7 @@ void przyciski(struct k1_przycisk p[2])
         p[i].w = p[i].etykieta ? k1_tekst_szer(K1_CZ_TEKST_MOCNA, p[i].etykieta) + 40 : 0;
         p[i].y = przyciski_y();
         p[i].h = PRZ_H;
-        p[i].styl = i == 0 ? K1_PRZ_GLOWNY : K1_PRZ_ZWYKLY;
+        p[i].styl = i == 0 && !(stan == S_LISTA && wybrany >= 0 && dyski[wybrany].k1) ? K1_PRZ_GLOWNY : K1_PRZ_ZWYKLY;
     }
     p[0].x = apl.szer - LEWO - p[0].w;
     p[1].x = p[0].x - 12 - p[1].w;
@@ -139,6 +142,14 @@ static void wyslij(struct k1_komunikat k)
 {
     if (kanal >= 0 && k1_kanal_wyslij(kanal, &k, sizeof k, -1) != 0)
         k1_log(TAG, "wysłanie do nadzorcy nieudane");
+}
+
+/* The tests click the link by this line (0.10.5 step 1). */
+static void loguj_karte(void)
+{
+    if (karta_y() >= 0)
+        k1_log(TAG, "aktualizacja jest w Ustawieniach; link %d,%d", LEWO + 48 + k1_tekst_szer(K1_CZ_MALA_MOCNA, AKT_LINK) / 2,
+               karta_y() + 70);
 }
 
 /* One message from nadzorca (disks, progress, result, Secure Boot). */
@@ -160,10 +171,7 @@ static void komunikat(const struct k1_komunikat *k)
         if (stan == S_SZUKAM && (int)k->obiekt == n_dyskow && n_dyskow > 0) {
             dyski[n_dyskow - 1].ab_zapas = k->b;
             dyski[n_dyskow - 1].ab_slot = k->c;
-            dyski[n_dyskow - 1].ab_fl = k->d;
-            k1_log(TAG, "dysk %d: A/B — działa miejsce %c, zapasowa wersja %d%s%s", n_dyskow, k->c == 2 ? 'B' : 'A', (int)k->b,
-                   k->d & K1_AB_FL_NOWY ? ", nowa czeka na próbę" : "",
-                   k->d & K1_AB_FL_NIEUDANA ? ", ostatnia aktualizacja nie wystartowała" : "");
+            k1_log(TAG, "dysk %d: A/B — działa miejsce %c, zapasowa wersja %d", n_dyskow, k->c == 2 ? 'B' : 'A', (int)k->b);
         }
         break;
     case K1_KOM_SB_STAN:
@@ -180,8 +188,6 @@ static void komunikat(const struct k1_komunikat *k)
         if (stan != S_SZUKAM || k->a != n_dyskow)
             break;
         zrodlo = k->b;
-        wersja_zrodla = k->c;
-        zrodlo_podpisane = k->d;
         stan = S_LISTA;
         wybrany = n_dyskow == 1 ? 0 : -1;
         /* the tests click by this line (the main button: its right end, whatever its label) */
@@ -193,6 +199,7 @@ static void komunikat(const struct k1_komunikat *k)
             k1_log(TAG, "dysk %d: %d MiB, rodzaj %d, Kons K1: %s%s (wersja %d)", i + 1, (int)dyski[i].mib,
                    (int)dyski[i].rodzaj, dyski[i].k1 ? "tak" : "nie", dyski[i].zajety ? " (dane otwarte)" : "",
                    (int)wersja_dysku(i));
+        loguj_karte();
         break;
     case K1_KOM_INST_POSTEP:
         if (stan == S_POSTEP) {
@@ -206,11 +213,8 @@ static void komunikat(const struct k1_komunikat *k)
         if (stan != S_POSTEP)
             break;
         wynik = k->a;
-        nowe_miejsce = k->c;
         stan = k->a == 0 ? S_GOTOWE : S_BLAD;
-        k1_log(TAG, "%s", k->a == 0 ? (tryb == K1_INST_INSTALUJ ? "zainstalowano"
-                                                               : nowe_miejsce ? "zaktualizowano (nowe miejsce A/B)" : "zaktualizowano")
-                                   : "błąd instalacji");
+        k1_log(TAG, "%s", k->a == 0 ? "zainstalowano" : "błąd instalacji");
         if (k->a != 0)
             k1_log(TAG, "kod %d", (int)k->a);
         break;
@@ -252,24 +256,23 @@ static void glowny(void)
 {
     switch (stan) {
     case S_LISTA:
-        if (wybrany < 0 || zrodlo != 1)
-            return;
-        tryb = dyski[wybrany].k1 ? K1_INST_AKTUALIZUJ : K1_INST_INSTALUJ;
+        if (wybrany < 0 || zrodlo != 1 || (dyski[wybrany].k1 && dyski[wybrany].zajety))
+            return; /* a disk with K1 only "od nowa" — its update is in Ustawienia */
         pole_dl = 0;
         stan = S_POTWIERDZ;
         break;
     case S_POTWIERDZ:
-        if ((tryb == K1_INST_INSTALUJ && !potwierdzone()) || (tryb == K1_INST_AKTUALIZUJ && starsza()))
+        if (!potwierdzone())
             return;
-        k1_log(TAG, "potwierdzono: %s na dysku %d", tryb == K1_INST_INSTALUJ ? "instalacja" : "aktualizacja", wybrany + 1);
+        k1_log(TAG, "potwierdzono: instalacja na dysku %d", wybrany + 1);
         procent = 0;
         etap = 0;
         stan = S_POSTEP;
-        wyslij(k1_komunikat_nowy(K1_KOM_INST_START, (uint32_t)wybrany + 1, tryb, 0, 0, 0, 0));
+        wyslij(k1_komunikat_nowy(K1_KOM_INST_START, (uint32_t)wybrany + 1, K1_INST_INSTALUJ, 0, 0, 0, 0));
         break;
     case S_GOTOWE:
-        k1_log(TAG, "%s", tryb == K1_INST_INSTALUJ ? "wyłączanie" : "ponowne uruchamianie");
-        wyslij(k1_komunikat_nowy(K1_KOM_WYLACZ, 0, tryb == K1_INST_INSTALUJ ? 0 : 1, 0, 0, 0, 0));
+        k1_log(TAG, "wyłączanie");
+        wyslij(k1_komunikat_nowy(K1_KOM_WYLACZ, 0, 0, 0, 0, 0, 0));
         break;
     case S_BLAD:
         szukaj();
@@ -291,11 +294,7 @@ static void glowny(void)
 
 static void drugi(void)
 {
-    if (stan == S_LISTA && wybrany >= 0 && dyski[wybrany].k1 && !dyski[wybrany].zajety) {
-        tryb = K1_INST_INSTALUJ; /* reinstall: wipe the old K1 with its data */
-        pole_dl = 0;
-        stan = S_POTWIERDZ;
-    } else if (stan == S_POTWIERDZ || stan == S_SB) {
+    if (stan == S_POTWIERDZ || stan == S_SB) {
         stan = S_LISTA;
     }
     k1_apl_odswiez(&apl);
@@ -311,7 +310,11 @@ static int pod(int32_t x, int32_t y)
         return 10 + b;
     if (stan == S_LISTA && sb >= 0 && x >= LEWO && x < LEWO + k1_tekst_szer(K1_CZ_TEKST, SB_LINK) && y >= py && y < py + PRZ_H)
         return 12;
-    if (stan == S_LISTA && zrodlo == 1 && x >= LEWO && x < apl.szer - LEWO && y >= DYSKI_Y && y < py - 30) {
+    if (karta_y() >= 0 && x >= LEWO + 48 && x < LEWO + 48 + k1_tekst_szer(K1_CZ_MALA_MOCNA, AKT_LINK) &&
+        y >= karta_y() + 56 && y < karta_y() + 84)
+        return 13;
+    if (stan == S_LISTA && zrodlo == 1 && x >= LEWO && x < apl.szer - LEWO && y >= DYSKI_Y &&
+        y < DYSKI_Y + n_dyskow * (DYSK_H + 8)) {
         int i = (y - DYSKI_Y) / (DYSK_H + 8);
         if (i < n_dyskow && (y - DYSKI_Y) % (DYSK_H + 8) < DYSK_H)
             return i;
@@ -332,7 +335,10 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk_nr)
         glowny();
     else if (p == 11)
         drugi();
-    else if (p == 12) {
+    else if (p == 13) {
+        k1_log(TAG, "otwieram Ustawienia → Aktualizacje");
+        wyslij(k1_komunikat_nowy(K1_KOM_OTWORZ_AKTUALIZACJE, 0, 0, 0, 0, 0, 0));
+    } else if (p == 12) {
         struct k1_przycisk b[2];
         stan = S_SB;
         przyciski(b);
@@ -343,6 +349,7 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk_nr)
     else if (p >= 0 && p < n_dyskow && stan == S_LISTA) {
         wybrany = p;
         k1_apl_odswiez(&apl);
+        loguj_karte();
     }
 }
 
@@ -355,7 +362,7 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     } else if (kod == KEY_ENTER) {
         glowny();
         return;
-    } else if (stan == S_POTWIERDZ && tryb == K1_INST_INSTALUJ) {
+    } else if (stan == S_POTWIERDZ) {
         if (!k1_pole_klawisz(pole, &pole_dl, sizeof pole - 1, kod, mody))
             return;
     } else {

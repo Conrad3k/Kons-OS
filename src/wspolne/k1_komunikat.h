@@ -163,13 +163,21 @@ enum k1_komunikat_typ {
     K1_KOM_INST_WYNIK = 69,   /* obiekt=0, a=result (0 or K1_INST_BLAD_* < 0), b=K1_INST_* mode, c=1 new slot (A/B) */
     /* nadzorca → Instalator window (0.7.0, ADR 0022): A/B and Secure Boot */
     K1_KOM_INST_AB = 76,      /* obiekt=disk 1..K1_INST_DYSKI_MAKS (after its INST_DYSK), a=version it runs, b=version in the
-                               * other slot (0: none), c=slot it runs (1=A, 2=B), d=K1_AB_FL_* flags */
+                               * other slot (0: none), c=slot it runs (1=A, 2=B), d=K1_AB_FL_* flags, e=1 the manifest of
+                               * the slot it runs is signed (0.10.5) */
     K1_KOM_SESJA = 79,        /* to gui (fd 5, 0.7.2): obiekt=0, a=1 K1 is installed here (the K1-DANE in use is on
                                * an internal disk: "Wyloguj" makes sense), a=0 a session from a stick or the .iso; b..e=0 */
     K1_KOM_SB_STAN = 77,      /* obiekt=0, a=K1_SB_* Secure Boot, b=K1_SBK_* the K1 key, c=1 release key (0: developer
                                * key — never enrolled), d=K1_SBP_* result of the last SB_KLUCZ */
     /* Instalator window → nadzorca */
     K1_KOM_SB_KLUCZ = 78,     /* obiekt=0: prepare the enrolment of the K1 key (MokNew + MokAuth for MokManager) */
+    /* 0.10.5 step 1: updates moved to Ustawienia → Aktualizacje (KANAL_AKTUALIZACJI: Ustawienia's fd 7 — INST_DYSKI,
+     * INST_START with K1_INST_AKTUALIZUJ only, WYLACZ a=1 after a finished update; back INST_DYSK, INST_AB, INST_LISTA,
+     * INST_POSTEP, INST_WYNIK) */
+    K1_KOM_AKT_POKAZ = 185,   /* nadzorca → Ustawienia: obiekt=0, all 0 — show the section Aktualizacje */
+    K1_KOM_OTWORZ_AKTUALIZACJE = 186, /* Instalator, gui → nadzorca: obiekt=0, all 0 — open Ustawienia on Aktualizacje */
+    K1_KOM_AB_NIEUDANA = 187, /* nadzorca → gui (fd 5): obiekt=0, a=the version that did not start (0: not known), b=the
+                               * version that runs (0: not known) — a try A/B did not start, the previous version runs */
     /* client (Pliki, gui) → skarbiec (0.8.0, ADR 0029): files and folders; what a client may do comes from
      * the table of rights in skarbiec (dokumenty.c). Entry numbers: 1..K1_FOLDERY_MAKS standard folders,
      * K1_DOK_PIERWSZY..K1_DOK_ID_MAKS the user's. Names and content travel in a sealed memfd. Since 0.8.1 (step 4,
@@ -573,7 +581,8 @@ enum { K1_INST_ETAP_CZYSZCZENIE = 1, K1_INST_ETAP_KOPIA = 2, K1_INST_ETAP_SPRAWD
 #define K1_INST_BLAD_PRZERWANE (-7) /* the writing program ended without a result */
 #define K1_INST_BLAD_PODPIS (-8)   /* M6a: no manifest, wrong checksum, or no valid K1 signature */
 #define K1_INST_BLAD_STARSZA (-9)  /* M6a: the stick has an older version than the disk */
-#define K1_INST_BLAD_MIN (-9)
+#define K1_INST_BLAD_TRWA (-10)    /* 0.10.5: another job runs (asked from the other window) */
+#define K1_INST_BLAD_MIN (-10)
 #define K1_AB_FL_NOWY 1        /* INST_AB d: a new slot waits to be tried on the next start */
 #define K1_AB_FL_NIEUDANA 2    /* INST_AB d: the last new slot did not start (GRUB went back) */
 enum { K1_SB_WYL = 0, K1_SB_WL = 1, K1_SB_NIEZNANY = 2 };            /* Secure Boot off / on / no UEFI variables */

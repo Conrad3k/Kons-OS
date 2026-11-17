@@ -21,7 +21,7 @@ log, mon, out, limit = sys.argv[1], sys.argv[2], sys.argv[3], float(sys.argv[4])
 q = Maszyna(log, mon, out, limit, "wzorce")
 SEKCJE = {"Wygląd": "wyglad", "Ekran": "ekran", "Bateria": "bateria", "Mysz": "mysz", "Data i czas": "czas",
           "Hasło": "haslo", "Aplikacje": "aplikacje", "Miejsce": "miejsce", "Sieć": "siec",
-          "Przeglądarka": "przegladarka", "Informacje": "informacje"}
+          "Przeglądarka": "przegladarka", "Aktualizacje": "aktualizacje", "Informacje": "informacje"}
 
 if not q.sprawdz("pulpit gotowy, opis ekranu: pasek z „Start” i ikony pulpitu",
                  q.czekaj(r"K1-GUI: pulpit gotowy", czas=limit * 0.5) and q.czekaj_na_element("Pasek", "Start", czas=120)
@@ -51,8 +51,12 @@ def ustawienia(motyw):
     if not q.element("Ustawienia") and not otworz("Ustawienia"):
         return q.sprawdz("Ustawienia otwarte", False)
     for sekcja, krotko in SEKCJE.items():
+        stan_akt = r"K1-USTAWIENIA: aktualizacje: (?!sprawdzam)"
+        n = q.ile(stan_akt)
         q.klik_w("Ustawienia", sekcja, "zakladka")
         q.czekaj_na(lambda: (q.element("Ustawienia", sekcja, "zakladka") or {}).get("stan", 0) & 1, czas=30)
+        if sekcja == "Aktualizacje":  # 0.10.5 step 1: the disks came from nadzorca (not "Sprawdzam dyski…")
+            q.czekaj(stan_akt, od=n, czas=30)
         q.wzorzec(f"ustawienia-{krotko}-{motyw}", "Ustawienia")
     q.klik_w("Ustawienia", "Wygląd", "zakladka")
 
