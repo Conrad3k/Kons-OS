@@ -1,413 +1,286 @@
-K1 — PLAN WERSJI 0.10.7 „FILMY” (wersja tematu 0.10 Strefy)
-==========================================================
+K1: PLAN WERSJI 0.10.7 „WYGLĄD” (wersja tematu 0.10, poprawki wyglądu)
+=====================================================================
 
-Data: 2026-11-16 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-16), w czasie
-pracy nad 0.10.1 „Balon”. Temat: SPRZĘTOWE DEKODOWANIE FILMÓW jako przełącznik w ustawieniach strefy (sesji
-przeglądarki). Strefa wysyła do K1 skompresowany film, a osobny, zamknięty w klatce proces K1 rozpakowuje go kartą
-graficzną (sterownik z jądra i VA-API — sprzętowe dekodowanie wideo) i oddaje strefie gotowe klatki. Strefa dalej nie
-widzi karty; ryzyko dotyczy tylko tego procesu — jak przy dzisiejszym dekoderze zdjęć. Zmienia to jedną zasadę („tylko
-ekran dotyka karty graficznej”), więc wersja ma ADR (krok 1).
-Wersja stoi na 0.10.1 (balon i podział pamięci — klatki filmu to pamięć strefy; ADR 0044) i na 0.10.0 (strefy, VMM,
-przeglądarka, sesje i Ustawienia → Przeglądarka; ADR 0042, 0043). Numer: do 2026-11-17 „0.10.3” (wybrał go właściciel);
-2026-11-17 właściciel przesunął tę wersję na 0.10.7 — PO 0.10.5 Aktualizacje przez sieć (docs/PLAN-0.10.5.txt): „lepiej
-zająć się grafiką, gdy fundamenty, które chcemy zrobić, już będą”. Plan się nie zmienił — tylko numer i kolejność.
+Data: 2026-11-17 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-17, po przeglądzie
+wyglądu K1 metodą „unslop” na zrzutach wzorcowych z testy/wzorce/). Wynik przeglądu: K1 nie wygląda jak interfejs
+„zrobiony przez AI”, kolory, czcionki i ikony są spójne, więc to POPRAWKI, nie przebudowa. Kierunek z docs/WYGLAD.md
+(„Kierunek (M4)”: spokojny, rzeczowy, lekko ciepły; papier i glina; znak „Warstwy”) zostaje.
+Numer 0.10.7 wybrał właściciel: wcześniej miały go „Filmy”, które przeszły na 0.10.9 (docs/PLAN-0.10.9.txt).
+Wersja stoi na 0.10.5 (Ustawienia 720 × 520 z sekcją Aktualizacje, okno przeglądarki: rozmiar i maksymalizacja;
+docs/PLAN-0.10.5.txt) i zaczyna się po jej wydaniu: krok 4 tego planu zmienia ramkę okna strefy, którą zmienia też
+0.10.5 krok 4.
 Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
-Plik jest planem, nie specyfikacją: zmiana architektury (niezmiennik 7: właściciel karty graficznej; ADR 0020 p. 2)
-idzie przez ADR z kroku 1.
+Plik jest planem, nie specyfikacją: zmiana ramki okna strefy zmienia ADR 0020 p. 3 („obwódka w kolorze strefy”), więc
+idzie przez ADR 0048 (krok 4).
 
-Mało kroków (prośba właściciela z 2026-11-16): TRZY. Krok 1 — próba na sprzęcie i w kontenerze, potem ADR (czy
-i jak ta droga w ogóle działa, zanim powstanie kod do utrzymania). Krok 2 — strona K1: sterownik karty w jądrze
-i usługa „dekoder filmów”. Krok 3 — strona strefy: przełącznik w Ustawieniach, przeglądarka korzysta z dekodera
-filmów; wydanie 0.10.7.
+Zasady właściciela dla tej wersji (2026-11-17), obowiązują w każdym kroku:
+  Z1 Lista sekcji w Ustawieniach (pasek z lewej) zostaje taka, jak jest: minimalistyczna, bez grup, kresek i nagłówków.
+  Z2 Z napisów w systemie znikają OPISY TEGO, CO UŻYTKOWNIK WIDZI (podtytuły typu „Prędkość wskaźnika”, „Zegar na
+     górnym pasku”, zdania-podpisy typu „Każda część systemu działa w osobnej, zamkniętej klatce.”). Nowych takich zdań
+     nie dodajemy (np. „Twój system i to, jak chroni dane” jest wykluczone).
+  Z3 Z napisów w systemie znikają półpauzy (—). Zdanie dzielimy na dwa albo używamy przecinka czy dwukropka.
+  Z4 Każda zmiana wyglądu: szkice albo obrazy „przed / po” najpierw, wzorce w repo dopiero po „OK” właściciela
+     (decyzja D3 z 0.10.2, docs/TESTY.md, scripts/przyjmij-wzorce.sh, osobny commit).
 
-ZAKRES ZAMROŻONY (ADR 0035): poniższe 3 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
-wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
-zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b albo 3a/3b (wydanie zawsze w ostatniej części kroku 3).
+PIĘĆ kroków. Krok 1: teksty w całym systemie (Z2, Z3). Krok 2: Ustawienia. Krok 3: Pliki. Krok 4: ramka okna strefy
+(ADR 0048). Krok 5: pulpit, tapeta, porządki i wydanie 0.10.7.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 5 kroków i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”);
+wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; wydanie jest zawsze
+ostatnim krokiem; jeśli krok nie zmieści się w jednym czacie, dzieli się na 1a/1b … (wydanie w ostatniej części kroku 5).
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
-Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.10.0, 2026-11-16 — krok 1 sprawdza jeszcze raz po 0.10.1),
-ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku — nie zakładać).
+Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.10.5 krok 1, 2026-11-17), Z ZRZUTU (ze zrzutów wzorcowych testy/wzorce/),
+POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku, nie zakładać).
 
 
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
-Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3.
-Cała wersja zaczyna się po wydaniu 0.10.2 (Testy, docs/archiwum/PLAN-0.10.2.txt — wstawione przez właściciela 2026-11-17) i 0.10.1 (Balon, docs/archiwum/PLAN-0.10.1.txt — zmienia VMM, pamięć stref i Ustawienia →
-Przeglądarka, na których ten plan stoi). Krok 1 to głównie próby i ADR — można go zrobić wcześniej, równolegle
-z 0.10.1, jeśli nie dotyka tych samych plików (próby na osobnej gałęzi, do main tylko ADR i ustalenia).
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, 2, 3, 4, 5. Krok 1 najpierw, bo zmienia napisy
+prawie w każdym oknie, a kolejne kroki rysują już bez nich.
 
-Właściciel — co wpisać w nowym czacie (podmień N):
+Właściciel: co wpisać w nowym czacie (podmień N):
     „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.7.txt.”
-Decyzje [!] (punkt 4) czat zada na początku kroku — możesz też od razu dopisać odpowiedź.
-W krokach 1 i 2 czat poprosi Cię o uruchomienie obrazu z pendrive'a na X230 i IdeaPadzie (link do obrazu USB z PR-a
-i krótka lista „co kliknąć, co powinno się stać”) — karty Intela nie da się udać w QEMU ani w CI.
+Decyzje [!] (punkt 4) czat zada na początku kroku. Przy wyglądzie czat najpierw pokaże szkice albo obrazy „przed / po”.
 
-Nowy czat — przebieg każdego kroku:
+Nowy czat: przebieg każdego kroku:
   1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
-  2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2 i 3 — także „Ustalenia
-     z wykonania” kroków wcześniejszych i ADR z kroku 1. Przeczytaj też ustalenia planu 0.10.1 (docs/archiwum/PLAN-0.10.1.txt
-     albo docs/archiwum/) — balon, podział pamięci i nowy układ Ustawień → Przeglądarka mogły wyjść inaczej.
+  2. Przeczytaj zasady Z1 do Z4 (wyżej), swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2 do 5 także
+     „Ustalenia z wykonania” kroków wcześniejszych. Zmiany z 0.10.5 (okno przeglądarki, Ustawienia → Aktualizacje) mogły
+     przesunąć to, co opisują luki: sprawdź kod jeszcze raz.
   3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
-  4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
-  5. Najpierw test, który pokazuje lukę, potem zmiana, potem ten sam test na zielono.
-  6. Nie wymyślaj opcji Kconfig, ioctl, zachowań i915, VA-API ani prefów Firefoksa — sprawdzaj w build/zrodla/,
-     build/naglowki/, źródłach libva, intel-vaapi-driver i Firefoksa ESR; punkt NIEPEWNE zamieniasz na POTWIERDZONE
-     albo poprawiasz — w „Ustaleniach z wykonania” swojego kroku.
-  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, scripts/test-m1.sh i skrypty
-     QEMU zmienianej części (docs/TESTY.md), przy zmianach w budowie scripts/sprawdz-powtarzalnosc.sh; pełny komplet —
-     CI na PR-ze (etykieta „testy”), scalasz przy zielonym (AGENTS.md). Czekaj poleceniem, nie rób w tym czasie
-     innych wywołań (CLAUDE.md).
-  8. Dokumenty w tym samym PR-ze: docs/komponenty/* (nowy filmy.md, ekran.md, jadro.md, strefa.md, nadzorca.md,
-     aplikacje.md), SLOWNIK, RYZYKA, ZALEZNOSCI, TESTY.md, SPEC (dopiski [korekta: ADR …]), skill kons-dev
-     (niezmiennik 7, mapa kodu). VERSION i CHANGELOG zmienia krok 3 (wydanie); kroki 1–2 zapisują „co widzi
-     użytkownik” w opisie PR-a.
-  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”, chyba że PR to sama dokumentacja), po scaleniu:
-     w tabeli „[x] PR #n”, nowe ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co
-     widać, dowody, co zostało.
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy (punkt 5, W15) najpierw osobny commit z podziałem.
+  5. Szkice: rysowane kodem K1 na hoście (jak szkice stref z 0.10.0: części K1, oba motywy), pokazane przez SendUserFile.
+     Wzorce: test-wzorce daje obrazy „po”; właściciel je ogląda; potem scripts/przyjmij-wzorce.sh (Z4).
+  6. Testy klikają po nazwach (ADR 0045): zmiana nazwy przycisku albo elementu = zmiana w test-m4 / test-pliki / test-strefa
+     w tym samym PR-ze. Nigdy tekst użytkownika w opisie ekranu (SKILL, przepis „Nowa aplikacja”).
+  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, scripts/test-m1.sh, test-wzorce
+     i skrypty QEMU zmienianej części (docs/TESTY.md); pełny komplet: CI na PR-ze (etykieta „testy”), scalasz przy
+     zielonym (AGENTS.md). Czekaj poleceniem, nie rób w tym czasie innych wywołań (CLAUDE.md).
+  8. Dokumenty w tym samym PR-ze: docs/WYGLAD.md (każde ustalenie), docs/komponenty/* (aplikacje.md, gui.md, ekran.md,
+     strefa.md), dokumenty kanałów, gdy zmienia się tekst komunikatu, SLOWNIK (bez nowych synonimów), RYZYKA (krok 4).
+     VERSION i CHANGELOG zmienia krok 5 (wydanie); kroki 1 do 4 zapisują „co widzi użytkownik” w opisie PR-a.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
+     w swoim kroku. Raport dla właściciela: obrazy „przed / po”, co zostało.
 
 
 1. W SKRÓCIE (dla właściciela)
 ------------------------------
-Po 0.10.7 w Ustawieniach → Przeglądarka przy sesji (Ogólna, Bank, Prywatna — D1) jest przełącznik „Sprzętowe
-dekodowanie filmów”. Włączony: filmy w tej sesji (np. YouTube) rozpakowuje karta graficzna laptopa, nie procesor —
-obraz płynniejszy, wentylator ciszej, bateria wytrzymuje dłużej. Zmiana działa od następnego otwarcia sesji (jak
-„Pamięta / Zapomina”).
-
-Co umie Twoja karta (sprawdzi krok 1): HD 4000 w X230 — H.264; HD 520 w IdeaPadzie — H.264, HEVC i częściowo VP9.
-Filmów w innych formatach dalej pilnuje procesor, sam, bez Twojego udziału. YouTube wysyła zwykle VP9 albo AV1, których
-karta X230 nie umie — dlatego na X230 przeglądarka z włączoną opcją poprosi strony o H.264 (D4).
-
-Bezpieczeństwo: strefa nadal nie dotyka karty. Wysyła tylko skompresowany film i jego opis; K1 sprawdza każde pole
-i dopiero wtedy przekazuje go karcie przez osobny, mały proces w klatce — jeden na sesję, więc Bank nie dzieli go
-z Ogólną. Złośliwa strona może co najwyżej zepsuć ten jeden proces: film przechodzi wtedy na procesor, przeglądarka
-działa dalej. Słabsza izolacja niż bez przełącznika — dlatego domyślnie wyłączony (D2) i widoczny na ramce okna (D3).
-
-Przy okazji: K1 dostaje własny sterownik karty Intela z jądra (i915) zamiast prostego „obrazu z firmware” (simpledrm).
-To osobna, widoczna zmiana: obraz może być płynniejszy, a karta lepiej oszczędza energię (punkt „Laptop” w
-DO_ZROBIENIA — dotąd „tylko jeśli simpledrm nie wystarczy”). Dlatego krok 1 i krok 2 proszą Cię o sprawdzenie pulpitu
-na obu laptopach.
-
-Pamięć karty: karty Twoich laptopów nie mają osobnej pamięci („VRAM”) — biorą ją ze zwykłej pamięci RAM. Dlatego
-nie trzeba drugiego balona: pamięć, której karta używa na filmy sesji, liczy się do pamięci tej sesji w balonie
-i podziale z 0.10.1 (T8). Gdy pamięci brak, film idzie na procesor — nic się nie wysypuje.
-
-Droga gotowej klatki (T9, uwaga właściciela z 2026-11-16: „oddawanie gotowych klatek strefie zjada zysk”): są dwa
-poziomy. Poziom 1 — klatka wraca do strefy (prostszy, pewny): karta sama kopiuje klatkę do zwykłej pamięci, strefa ją
-pokazuje; kopia kosztuje mało, ale przeglądarka w strefie dalej składa obraz filmu procesorem. Poziom 2 — klatka nie
-wraca do strefy: dekoder filmów oddaje ją wprost ekranowi K1, który rysuje ją w oknie strefy (w ramce, w miejscu, które
-wskaże strefa); strefa dostaje tylko „klatka nr n gotowa”. Poziom 2 daje pełny zysk, ale zależy od rzeczy, których dziś
-nie wiemy (czy Firefox bez karty w strefie odda film osobną warstwą). Krok 1 MIERZY na Twoich laptopach i wybiera:
-poziom 2, jeśli się da; poziom 1, jeśli daje wyraźny zysk; inaczej wersja się zatrzymuje.
-
-Uwaga: K1 nie ma jeszcze dźwięku (punkt „Laptop” w DO_ZROBIENIA) — filmy w 0.10.7 będą płynne, ale bez dźwięku.
-
-Trzy kroki:
-  1. Próba: obraz testowy ze sterownikiem karty z jądra (sprawdzasz pulpit i listę formatów karty na obu laptopach)
-     i próba w kontenerze, czy Firefox w strefie w ogóle skorzysta z dekodera K1; potem ADR.
-  2. K1: sterownik karty w jądrze, usługa „dekoder filmów” w klatce; Ustawienia → Przeglądarka pokazują, co umie karta.
-  3. Strefa: przełącznik przy sesji, przeglądarka oddaje filmy dekoderowi K1; wydanie 0.10.7.
+  - Krok 1: napisy krótsze. Znikają podtytuły pod nazwami sekcji Ustawień i inne zdania, które opisują to, co i tak
+    widać; znikają półpauzy. Zostają ostrzeżenia i instrukcje potrzebne do działania (np. o utracie danych przy
+    zapomnianym haśle), przepisane bez półpauz.
+  - Krok 2: Ustawienia porządniej. Lista sekcji z lewej bez zmian (Z1). W środku: Aplikacje jako równe wiersze (typ
+    pliku z lewej, aplikacja z prawej), Informacje jako wizytówka (duży znak „Warstwy”, nazwa, wersja, pod spodem dane
+    w równej kolumnie), Hasło z wyjaśnieniem tuż pod przełącznikiem, Ekran z rozdzielczościami równo w rzędach,
+    Aktualizacje bez terakotowego kwadratu pod ikoną, Przeglądarka z przyciskami, które wyglądają na przyciski, nowa
+    ikona Sieci (dziś przypomina dymek rozmowy).
+  - Krok 3: Pliki spokojniej. Stale widać tylko „Nowy folder”; „Otwórz”, „Zmień nazwę”, „Usuń” pojawiają się po
+    zaznaczeniu pliku. Panel szczegółów tylko przy zaznaczonym pliku. Pusty folder: szary rysunek „Warstw”
+    i przycisk „Nowy folder”. Bez uciętych napisów.
+  - Krok 4: okno przeglądarki bez kolorowej obwódki dookoła. Kolor sesji zostaje, ale dyskretnie, w jednym miejscu
+    paska tytułu (szkice do wyboru, D1). Pasek dalej rysuje K1, więc strona nie podszyje się pod okno systemu.
+  - Krok 5: napisy pod ikonami na pulpicie czytelne na każdej tapecie; wariant tapety z matową krawędzią łuków do
+    porównania (D5); porządki i wydanie 0.10.7.
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
-[ ]  1  Próba i pomiar: i915, VA-API, Firefox; ADR         S1–S9, S26–S30   0.10.0      T1–T5, T9        M        nowy
-[ ]  2  K1: i915 w jądrze, usługa „dekoder filmów”          S10–S17, S26     1, 0.10.1   T1–T3, T6–T8     L        z kr. 1
-[ ]  3  Strefa: przełącznik, Firefox z dekoderem; wydanie   S18–S25, S29     2           D1–D4, T4, T5, T9 L        z kr. 1
-(Numer ADR — następny wolny w chwili kroku 1 (0.10.2 zajmuje 0045, więc zwykle 0046), a plan 0.10.5 bierze kolejne
-wolne, jak przewiduje jego punkt 2.)
-
-Dlaczego tyle: krok 1 rozstrzyga trzy rzeczy, których nie da się sprawdzić z kodu (i915 na sprzęcie właściciela,
-sterownik VA-API zbudowany statycznie z musl, Firefox w piaskownicy z obcym sterownikiem VA) — bez nich kroki 2–3
-mogłyby zbudować coś, czego Firefox nie użyje. Krok 2 to strona K1 (jądro, ekran, nowa usługa, nowy format komunikatów)
-— sprawdzalna na sprzęcie bez strefy (Ustawienia pokazują formaty karty). Krok 3 to strona strefy (VMM, obraz strefy,
-Firefox, Ustawienia) i wydanie.
+[ ]  1  Teksty: bez opisów i bez półpauz                    W1–W3            0.10.5      D2, T1           M        brak
+[ ]  2  Ustawienia: sekcje w środku                         W4–W9            1           D3, T2, T3       M        brak
+[ ]  3  Pliki: przyciski, szczegóły, pusty folder           W10–W11          1           D4, T4           M        brak
+[ ]  4  Ramka okna strefy: kolor sesji dyskretnie           W12              1           D1, T5           M        0048
+[ ]  5  Pulpit, tapeta; porządki; wydanie 0.10.7            W13–W15          1–4         D5, D6           M        brak
+(ADR 0048: następny wolny po 0046 i 0047 z 0.10.5; 0.10.9 Filmy bierze następne.)
 
 
 3. KROKI
 --------
-
-KROK 1 — Próba i pomiar: sterownik karty, VA-API w K1, Firefox w strefie; ADR   M · decyzje T1–T5, T9 · ADR (nowy)
-  Cel: przed pisaniem kodu do utrzymania wiedzieć, że cała droga działa: (a) i915 w jądrze K1 nie psuje obrazu na X230
-  i IdeaPadzie, (b) sterownik VA-API da się zbudować statycznie z musl i na sprzęcie podaje listę formatów, (c) Firefox
-  w strefie (bez GL, rysowanie procesorem) użyje obcego sterownika VA i przyjmie od niego klatki. Wynik — ADR.
-  Co widzi użytkownik: nic w wydaniu. Właściciel dostaje obraz USB z artefaktu PR-a (obraz próbny, nie wydanie) i listę:
-  uruchom z pendrive'a na X230 i IdeaPadzie → pulpit wygląda jak zwykle (bez czarnego ekranu, migania), mysz i okna
-  płynne → w logu (Ustawienia albo port szeregowy — wg tego, co czat przygotuje) lista formatów karty.
+KROK 1: Teksty: bez opisów i bez półpauz                                     M · D2, T1 · bez ADR
+  Cel: napisy w oknach K1 (gui, aplikacje, okienka przybornika, ekran hasła, Instalator, ramka strefy) bez opisów tego,
+  co widać (Z2), i bez półpauz (Z3).
+  Na początku: lista wszystkich napisów do zmiany (W1, W2) w trzech kolumnach: „usuwam”, „przepisuję” (stary i nowy
+  tekst), „zostaje” (z powodem); właściciel ją zatwierdza (D2), zanim zmieni się kod.
   Zadania:
-  [ ] (a) i915 (S1–S3, T1): opcje w jadro/k1.config (DRM_I915 i to, czego wymaga — z Kconfig w build/zrodla), ekran
-      na i915 (KMS, dumb buffers — sprawdzić, że src/ekran działa bez zmian albo co trzeba); czy simpledrm może zostać
-      (S2); węzeł render (/dev/dri/renderD128) — kto go tworzy, jakie ma ioctl (S16). Obraz próbny dla właściciela.
-  [ ] (b) VA-API w K1 (S4, S5, T2): libva + intel-vaapi-driver (i965) + libdrm zbudowane statycznie z naszym musl,
-      bez dlopen (sterownik wołany wprost) — mały program próbny (sonda) na obrazie próbnym: otwiera węzeł render,
-      wypisuje profile i największe rozmiary (vaQueryConfigProfiles, vaGetConfigAttributes) i rozpakowuje jedną
-      klatkę H.264 z wbudowanego w sondę krótkiego filmu (suma klatki w logu); melduje pamięć swojej cgroup przed
-      i po (S26 — czy bufory karty liczą się do procesu; T8). Rozmiar programu, czas budowy,
-      ostrzeżenia z naszymi flagami (SPEC §11).
-  [ ] (c) Firefox w strefie (S6–S8, T4, T5): w kontenerze, Firefox z obrazu strefy pod Xvfb (skill kons-dev §7 —
-      chroot w kopię build/strefa-przegladarka) z próbnym sterownikiem VA (zwraca szare klatki) i prefami VA-API
-      włączonymi: czy proces dekodowania (RDD) ładuje sterownik, czy działa bez EGL i dmabuf (klatki kopiowane do
-      pamięci), czy jego piaskownica pozwala na vsock albo tylko na węzeł /dev/dri (T4), czy potrzebny jest FFmpeg
-      w strefie i jaki (T5: pakiet Debiana libavcodec — rozmiar z zależnościami — albo własna, mała budowa).
-      about:support → „Media” pokazuje dekodowanie sprzętowe? Zrzut i log w opisie PR-a.
-  [ ] (d) Pomiar na sprzęcie (T9, S27, S28): sonda z (b) na obu laptopach — ten sam film 1080p (H.264; na IdeaPadzie
-      też HEVC/VP9) rozpakowany (1) procesorem (Wuffs nie ma filmów — sonda z FFmpeg programowym albo libavcodec
-      tylko na obrazie próbnym), (2) kartą z kopią klatki do zwykłej pamięci (karta kopiuje do bufora liniowego,
-      procesor czyta — nie wprost z bufora karty), (3) kartą bez kopii; dla każdego: czas procesora na sekundę filmu,
-      klatki/s, pobór mocy (Ustawienia → Bateria / log baterii). Do tego w kontenerze: ile procesora kosztuje Firefox
-      w strefie samo pokazanie filmu 1080p (składanie obrazu procesorem — S29).
-  [ ] (e) Poziom 2 (T9, S29, S30): czy Firefox ESR 153 z rysowaniem procesorem potrafi oddać film osobną podpowierzchnią
-      Waylanda z buforem dmabuf (natywny kompozytor WebRender, linux-dmabuf) — próba w kontenerze z kompozytorem strefy
-      i próbnym sterownikiem VA; jeśli tak — jak ekran K1 narysuje klatkę NV12 (S30).
-  [ ] ADR: właściciel karty (niezmiennik 7 → „obrazem steruje tylko ekran; węzeł render karty dostaje tylko dekoder
-      filmów, jeden proces na strefę”), wybory T1–T5 z uzasadnieniem, odrzucone warianty; dopisek w ADR 0020 p. 2
-      (to nie jest „szybka grafika” — strefa dalej rysuje procesorem).
-  Testy i dowód: wyniki prób (logi sondy z obu laptopów — od właściciela, zrzut about:support z kontenera), make bez
-  ostrzeżeń dla kodu próbnego. Kod prób nie trafia do main (zostaje na gałęzi, link w ADR); do main — ADR i ustalenia.
-  Jeśli (c) wyjdzie źle we wszystkich wariantach T4 — zatrzymaj wersję i opisz właścicielowi, co dalej (np. dekodowanie
-  tylko dla odtwarzacza K1 w przyszłości); nie zgaduj dalej (skill §7: 1–2 próby wyjaśnienia).
-  Gotowe, gdy: ADR scalony (z wyborem poziomu z T9 i liczbami z pomiaru), NIEPEWNE z S1–S9 i S26–S30 rozstrzygnięte, właściciel potwierdził pulpit z i915 na obu
-  laptopach.
-  Ustalenia z wykonania: (pusto — wypełnia krok 1)
+  [ ] Ustawienia: podtytuły sekcji (W1) usunięte; nagłówek sekcji (Plex Serif 24) zostaje, treść przesuwa się do góry
+      o jeden równy odstęp (ten sam we wszystkich sekcjach, wielokrotność 4 px).
+  [ ] Menu Start: opisy pod nazwami aplikacji (kolumna opisu w K1_APLIKACJE, W2), jeśli D2 je usuwa: wiersz bez opisu,
+      niższy (np. 40 px zamiast 56 px), menu krótsze.
+  [ ] Zdania-podpisy (Informacje na dole, „Ile miejsca zajmują Twoje pliki…”, „Inną aplikację: prawy przycisk…”,
+      „Zalecana: … Wybór obowiązuje…”) według listy z D2.
+  [ ] Półpauzy w napisach widocznych na ekranie (W3): przepisane. Logi (port szeregowy) i komentarze w kodzie bez zmian
+      (nie widzi ich użytkownik; testy szukają w logach wzorców).
+  [ ] Kropki: zdania pełne zachowują kropkę, krótkie napisy (nagłówki, przyciski, etykiety) bez kropki.
+  [ ] Test (sprawdz-czytelnosc.py, nowy punkt): półpauza w literale napisu w src/aplikacje, src/gui, src/przybornik,
+      src/logowanie, src/ekran poza k1_log = błąd (wyjątki tylko z komentarzem, jak limit wielkości).
+  Testy i dowód: test-wzorce (obrazy „przed / po” wszystkich zmienionych okien, Z4), test-m4, test-pliki; sprawdzenie
+  z sprawdz-czytelnosc „na czerwono” przed poprawką.
+  Dokumenty: WYGLAD.md (zasady Z2 i Z3 w „Ustaleniach właściciela”), aplikacje.md, gui.md, dokumenty kanałów, jeśli
+  zmienia się tekst komunikatu (np. okienka nadzorcy).
+  Gotowe, gdy: testy zielone, wzorce przyjęte po „OK” właściciela.
+  Ustalenia z wykonania: (pusto, wypełnia krok 1)
 
-KROK 2 — K1: sterownik karty w jądrze, usługa „dekoder filmów”                    L · decyzje T1–T3, T6–T8 · ADR z kr. 1
-  Cel: K1 ma i915 na stałe, a nowa usługa w klatce umie rozpakować film kartą graficzną na prośbę strefy — sprawdzona
-  testami bez strefy i na sprzęcie właściciela.
-  Co widzi użytkownik: pulpit przez sterownik karty z jądra (wg kroku 1); Ustawienia → Przeglądarka (nowy układ z
-  0.10.1 krok 4) — jedna linia pod listą sesji: „Karta graficzna tego komputera rozpakowuje filmy: H.264, HEVC, VP9”
-  albo „Ten komputer nie rozpakowuje filmów kartą graficzną” (maszyna wirtualna, brak i915). Przełącznika jeszcze nie ma.
+KROK 2: Ustawienia: sekcje w środku                                           M · D3, T2, T3 · bez ADR
+  Cel: każda sekcja Ustawień ułożona równo: jeden rytm odstępów, etykiety i wartości w kolumnach, przyciski wyglądają
+  na przyciski. Lista sekcji z lewej bez zmian (Z1).
   Zadania:
-  [ ] Jądro (T1, S10–S12): opcje i915 w jadro/k1.config z komentarzem, jadro/k1-zamkniete.config, sprawdz-kspp,
-      plik DMC dla Skylake w tabeli plików od producentów (jeśli krok 1 tak ustalił), docs/komponenty/jadro.md
-      (odstępstwo „bez i915” znika). Ekran: tylko jeśli krok 1 wykazał zmiany. Zatwierdzenie A/B dopiero, gdy ekran
-      pokazał obraz (S3) — inaczej wersja z czarnym ekranem zostałaby zatwierdzona.
-  [ ] Nadzorca (S13, T6): węzeł render otwiera nadzorca (urzadzenia.c — jak inne urządzenia) i daje go tylko usłudze
-      „dekoder filmów”; ekran dalej jedynym właścicielem węzła karty (card0, DRM master). Usługa NA_PROSBE — jedna na
-      strefę (start z VMM-em strefy, koniec z nim); wiersz w K1_SYSTEM (przepis „Nowa usługa systemowa”), klatka
-      KLATKA_FILMY z listą ioctl węzła render (S16) i limitem pamięci, nowy kanał KANAL_* VMM ↔ dekoder filmów.
-  [ ] Usługa src/filmy/ (T2, T3): VA-API (libva + i965 statycznie, src/zewnetrzne/ z sumami, wpis w docs/ZALEZNOSCI.md),
-      prośby od VMM-a wg formatu z T3, klatki do pamięci współdzielonej (memfd od nadzorcy), pytanie „co umiesz” (lista
-      formatów dla Ustawień — przez nadzorcę, tylko liczby/flagi).
-  [ ] Pamięć karty w balonie (T8, S15, S26): limit buforów z K1_KODEKI sprawdzany przed przydziałem, bufory oddane po
-      końcu filmu; pamięć dekodera filmów doliczona do strefy w podziale pamięci z 0.10.1 i w Zasobach; brak pamięci =
-      odmowa nowego filmu (film na procesorze). Test: zalew prośbami o nowe filmy → pamięć usługi nie rośnie ponad limit.
-  [ ] Format komunikatów (T3, S14): src/wspolne/k1_filmy.h (stały układ, _Static_assert), tabela K1_KODEKI (kodek,
-      profil VA, największy rozmiar, klatki odniesienia, największy kawałek danych) — sprawdzanie pole po polu
-      w src/wspolne/k1_kom_filmy.c; test_filmy (ASan/UBSan) i fuzz_filmy.
-  [ ] Testy bez karty Intela (T7, S17): w systemie — klatka (t_klatki), próba w klatce (t_proby), złośliwe prośby
-      (zły kodek, rozmiar ponad tabelę, dane dłuższe niż kawałek, brak klatek odniesienia) → odrzucone, usługa żyje;
-      „brak karty” w QEMU → Ustawienia mówią „nie rozpakowuje”. Na sprzęcie — właściciel: obraz USB z PR-a, linia
-      w Ustawieniach na obu laptopach, pulpit płynny, Ustawienia → Bateria (pobór mocy nie gorszy niż w 0.10.1).
-  Dokumenty: nowy opis usługi filmy w docs/komponenty/, nadzorca.md, ekran.md, jadro.md, aplikacje.md, SLOWNIK („dekoder
-  filmów”, „sprzętowe dekodowanie filmów”, „węzeł render”), RYZYKA (nowe: sterownik karty i i965 w zasięgu danych ze
-  strefy; i965 w trybie utrzymania), ZALEZNOSCI, TESTY.md, SPEC [korekta: ADR …], skill kons-dev (niezmiennik 7, mapa).
-  Gotowe, gdy: CI zielone, właściciel potwierdził linię w Ustawieniach i pulpit na obu laptopach.
-  Ustalenia z wykonania: (pusto — wypełnia krok 2)
+  [ ] Aplikacje (W4): każdy typ pliku jako jeden wiersz 44 px z cienką linią pod spodem; z lewej typ (Plex Sans 15),
+      z prawej aplikacja (tekst2) albo wyciszone „brak aplikacji” (tekst3).
+  [ ] Informacje (W5, D3): wizytówka: znak „Warstwy” ok. 72 px, pod nim „Kons K1” (Plex Serif 24) i wersja; niżej dane
+      w dwóch kolumnach: etykiety w kolumnie 96 px (tekst2), wartości równo za nią (tekst). Bez zdań (Z2).
+  [ ] Hasło (W6): przełącznik i ostrzeżenie (przepisane w kroku 1) na jednej karcie, ostrzeżenie 8 px pod przełącznikiem.
+  [ ] Ekran (W7): rozdzielczości wierszami po 3, od największej; zalecana z małym dopiskiem „zalecana” w przycisku
+      (Plex Sans 13); wybrana jak dziś (wypełnienie akcentem).
+  [ ] Aktualizacje (W8): ikona bez kwadratu w kolorze akcentu: kolor tekstu na polu „najechanie” (40 × 40, zaokrąglenie 10).
+  [ ] Przeglądarka (W9): „Zmień nazwę” i „Wyczyść dane…” jako ciche przyciski (podświetlenie po najechaniu, k1_przycisk
+      w odmianie bez obrysu, jeśli jej nie ma, to jedna nowa odmiana w przyborniku, nie rysowanie ręczne).
+  [ ] Ikona Sieci (K1_IK_SIEC, W9): trzy łuki Wi-Fi z kropką (ta sama grubość linii co reszta ikon); ikona jest też na
+      górnym pasku i w menu: jedna zmiana w k1_rysuj.c.
+  [ ] Tryby ekranu i karty tapet zgłaszane do opisu ekranu (k1_el, T3): test-m4 klika „1280 × 800” po nazwie, bez
+      położeń z logu (TESTY.md: lista wyjątków krótsza).
+  Testy i dowód: test-wzorce (wszystkie sekcje Ustawień, oba motywy, „przed / po”), test-m4.
+  Dokumenty: WYGLAD.md (Ustawienia: wiersze, wizytówka, ikona Sieci), aplikacje.md, TESTY.md.
+  Gotowe, gdy: testy zielone, wzorce przyjęte po „OK” właściciela.
+  Ustalenia z wykonania: (pusto, wypełnia krok 2)
 
-KROK 3 — Strefa: przełącznik w Ustawieniach, Firefox z dekoderem filmów; wydanie 0.10.7   L · D1–D4, T4, T5 · ADR z kr. 1
-  Cel: film w sesji z włączonym przełącznikiem rozpakowuje karta, a strefa nadal nie widzi karty.
-  Na początku: D1–D4 (D3 — szkice do wyboru, oba motywy).
-  Co widzi użytkownik: Ustawienia → Przeglądarka — przy sesji przełącznik „Sprzętowe dekodowanie filmów” (wg D1, D2;
-  nieaktywny z krótkim wyjaśnieniem, gdy karta nie umie); po ponownym otwarciu sesji filmy płynniejsze, procesor
-  mniej zajęty (Zasoby), znak na ramce okna wg D3; na X230 strony dostają prośbę o H.264 (D4).
+KROK 3: Pliki: przyciski, szczegóły, pusty folder                              M · D4, T4 · bez ADR
+  Cel: okno Plików pokazuje tylko to, czego można teraz użyć.
   Zadania:
-  [ ] Ustawienie przy sesji (D1, D2, S18): w skarbcu obok nazw i „Pamięta / Zapomina” (strefy_ust.c, format sesje.c —
-      nowe pole, sprawdzane pole po polu, test na hoście, fuzzing); Ustawienia → Przeglądarka (przybornik), zmiana od
-      następnego otwarcia sesji; nadzorca uruchamia dekoder filmów dla strefy tylko przy włączonym i działającej karcie.
-  [ ] VMM (T4, T9, S19, S20): poziom drogi klatki i droga wybrane w kroku 1 — port vsock albo kontekst virtio-gpu (gpu.c ma dziś tylko 2D —
-      najpierw podział pliku, jeśli rośnie); VMM przekazuje prośby do dekodera filmów i kopiuje klatki do pamięci
-      gościa (sprawdza adresy jak w virtq.c); awaria dekodera filmów = błąd dla gościa, strefa żyje.
-  [ ] Gość (T4, T5, S21, S22): nasz sterownik VA w obrazie strefy (src/strefa/gosc/ — w C, budowany dla glibc strefy,
-      S21), FFmpeg w strefie wg T5 (scripts/odswiez-strefe.py, strefy/przegladarka.txt, suma każdego pliku); prefy
-      w k1.js tylko dla sesji z włączonym przełącznikiem (dziś: media.hardware-video-decoding.enabled i
-      media.ffmpeg.vaapi.enabled wyłączone na stałe) — gość dostaje ustawienie od VMM-a jak tryb sesji (S22).
-  [ ] X230 i formaty (D4, S23): przy włączonym przełączniku i karcie bez VP9/AV1 przeglądarka nie zgłasza stronom VP9
-      i AV1 (prefy media.* — sprawdzić nazwy w Firefoksie ESR 153), więc YouTube wysyła H.264.
-  [ ] Ramka (D3): znak przy sesji z dekodowaniem filmów — ekran (src/ekran/strefy.c), z tabeli, nie z kodu strefy.
-  [ ] Złośliwy gość (S24): nowy tryb złośliwy gościa (gosc/zlosliwy.c, tryby 1–4 → kolejny) — prośby z błędnymi polami,
-      zalew prośbami, adresy klatek poza pamięcią gościa → odrzucone, K1 i inne strefy żyją.
-  [ ] Porządki tej wersji (PATCH — małe): nic tymczasowego bez terminu; DO_ZROBIENIA → „Właściciel”: lista do
-      sprawdzenia na sprzęcie (niżej).
-  [ ] Wydanie 0.10.7: VERSION, CHANGELOG („co widzisz”, potem technika), DO_ZROBIENIA (stan, mapa, punkt 4), ten plan →
-      do archiwum planów (katalog docs/archiwum/).
-  Testy i dowód: test-strefa.sh — strefa próbna z dekoderem testowym (S17: program testowy albo tryb testowy usługi
-  podaje szare klatki bez karty) przechodzi całą drogę gość → VMM → dekoder filmów → klatka w gościu; złośliwy gość;
-  przełącznik wyłączony = żadnego dekodera filmów (log nadzorcy). test-m4.sh — zrzut Ustawień → Przeglądarka
-  (oba motywy). Przeglądarki CI nie testuje (decyzja właściciela 2026-11-17) — film w Firefoksie: stanowisko, jeśli
-  się da, i właściciel. Na sprzęcie — właściciel: lista niżej.
-  Lista dla właściciela (X230 i IdeaPad): Ustawienia → Przeglądarka → Ogólna → włącz → otwórz Przeglądarkę → YouTube,
-  film 1080p → płynny? Zasoby: procesor sesji mniejszy niż z wyłączonym przełącznikiem (porównaj ten sam film)?
-  znak na ramce? Bank z wyłączonym — bez znaku, film działa (procesorem).
-  Gotowe, gdy: CI zielone, właściciel potwierdził na sprzęcie albo dostał listę
-  przy wydaniu, wydanie 0.10.7 istnieje (linki ISO i USB w raporcie).
-  Ustalenia z wykonania: (pusto — wypełnia krok 3)
+  [ ] Przyciski (W10, D4): stale tylko „Nowy folder” (w Koszu: „Opróżnij Kosz”); „Otwórz”, „Zmień nazwę”, „Usuń”
+      („Przywróć”, „Usuń na zawsze” w Koszu) pojawiają się po zaznaczeniu, w tym samym miejscu, bez przesuwania listy.
+  [ ] Panel szczegółów (W11, D4): tylko przy zaznaczonym pliku; bez zaznaczenia lista zajmuje całą szerokość.
+      Napisy w panelu zawijane, nigdy ucięte.
+  [ ] Pusty folder: znak „Warstwy” w odcieniach szarości (tekst3, ok. 64 px), pod nim „Ten folder jest pusty” (tekst2)
+      i przycisk „Nowy folder”; wyśrodkowane w liście. Kosz pusty: ten sam układ, bez przycisku.
+  Testy i dowód: test-pliki i test-m4 (przyciski po zaznaczeniu, po nazwach), test-wzorce (Pliki: pusty folder,
+  folder z plikami i zaznaczeniem, Kosz; oba motywy).
+  Dokumenty: WYGLAD.md („Pliki i Kosz”), aplikacje.md.
+  Gotowe, gdy: testy zielone, wzorce przyjęte po „OK” właściciela.
+  Ustalenia z wykonania: (pusto, wypełnia krok 3)
+
+KROK 4: Ramka okna strefy: kolor sesji dyskretnie (ADR 0048)                  M · D1, T5 · ADR 0048
+  Cel (prośba właściciela 2026-11-17): kolor sesji nie obejmuje już całego okna („psuje estetykę”). Okno przeglądarki
+  ma ramkę jak okna K1 (tło okna, włoskowaty obrys, cień), a kolor sesji jest w jednym, małym miejscu paska tytułu.
+  Pasek tytułu dalej rysuje ekran K1, na zewnątrz obrazu strefy (R80 bez zmian co do zasady).
+  Na początku: D1 (szkice A, B, C w obu motywach, z fokusem i bez, sesja zwykła i jednorazowa).
+  Zadania:
+  [ ] ADR 0048 „Ramka okna strefy bez kolorowej obwódki”: co się zmienia w ADR 0020 p. 3 i ADR 0042 („Zaufana ramka”),
+      dlaczego okno strefy dalej różni się od okna K1 (T5), dopiski [korekta: ADR 0048] w ADR 0020 i ADR 0042, spis
+      w docs/adr/README.md.
+  [ ] src/ekran/strefy.c (W12): ramka według D1; okno bez fokusu jak inne okna K1 (słabszy cień), kolor sesji
+      przygaszony jak dziś (mieszanie z tłem).
+  [ ] Strefa jednorazowa: znak różnicy według D1 (dziś jasny pasek w kolorowej obwódce).
+  [ ] Ekran startu przeglądarki (pasek z odcinkiem w kolorze sesji, D1 z 0.10.2) bez zmian.
+  Testy i dowód: test-strefa (pasek: przesuwanie, minimalizuj, zamknij; strefa próbna), test-wzorce (ramka-strefy,
+  oba motywy, „przed / po”), test negatywny bez zmian (gość nie rysuje poza swoim prostokątem).
+  Właściciel (lista do DO_ZROBIENIA przy wydaniu): otwórz Ogólną i Bank obok siebie: widać, która jest która; przesuń,
+  zminimalizuj, zamknij z paska.
+  Dokumenty: ADR 0048, WYGLAD.md („Strefy”: nowa ramka, stara jako historia), ekran.md, strefa.md, RYZYKA (R80, R50:
+  opis ramki), SLOWNIK („zaufana ramka”, jeśli zmienia się znaczenie).
+  Gotowe, gdy: testy zielone, wzorce przyjęte po „OK” właściciela.
+  Ustalenia z wykonania: (pusto, wypełnia krok 4)
+
+KROK 5: Pulpit, tapeta; porządki; wydanie 0.10.7                              M · D5, D6 · bez ADR
+  Cel: napisy pod ikonami pulpitu czytelne na każdej tapecie; tapeta według D5; wydanie.
+  Zadania:
+  [ ] Napisy pod ikonami pulpitu (W13, D6).
+  [ ] Tapeta (W14, D5): szkice wszystkich pięciu wariantów „dziś / matowa krawędź”; zmiana tylko po wyborze właściciela.
+  [ ] Porządki wersji PATCH: pliki blisko limitu (W15), Tymczasowe, DO_ZROBIENIA.
+  [ ] Wydanie: VERSION 0.10.7; CHANGELOG (kroki 1 do 5, najpierw „co widzisz”); DO_ZROBIENIA: „Teraz” → 0.10.9 Filmy
+      (docs/PLAN-0.10.9.txt), lista dla właściciela (z kroku 4); ten plik → docs/archiwum/. Po scaleniu: CI, tag
+      k1-v0.10.7, wydanie, raport z linkami.
+  Testy i dowód: pełny komplet w CI; test-wzorce (pulpit-ikony, oba motywy; tapety: miniatury w Ustawieniach → Wygląd).
+  Gotowe, gdy: wydanie k1-v0.10.7 istnieje, raport z linkami.
+  Ustalenia z wykonania: (pusto, wypełnia krok 5)
 
 
 4. DECYZJE
 ----------
-Twoje (produkt) — czat kroku 3 zada je na początku (możesz odpowiedzieć wcześniej):
+Twoje (produkt):
+[!] D1 (krok 4) Gdzie kolor sesji na pasku okna strefy. Szkice w obu motywach:
+       A „Kropka i linia” (rekomendacja): pasek w kolorze okna K1, ikona strefy i napis w kolorach tekstu; przed nazwą
+         sesji kropka 10 px w kolorze sesji, pod paskiem (między paskiem a stroną) linia 2 px w kolorze sesji.
+       B „Plakietka”: pasek w kolorze okna K1; nazwa sesji w małej pigułce w kolorze sesji (biały napis), bez linii.
+       C „Sama ikona”: pasek w kolorze okna K1; tylko ikona strefy w kolorze sesji.
+     W każdym: napis „osobna maszyna” zostaje (R80: to on mówi, że okno nie jest oknem K1; to oznaczenie bezpieczeństwa,
+     nie opis, więc Z2 go nie usuwa), sesja jednorazowa ma dopisek „zapomina” (bez półpauzy).
+[!] D2 (krok 1) Lista napisów do zmiany (usuwam / przepisuję / zostaje), zwłaszcza: (a) opisy pod nazwami aplikacji
+       w menu Start: usunąć (rekomendacja, zgodnie z Z2: nazwa i ikona wystarczą) czy zostawić; (b) ostrzeżenie przy
+       haśle i podtytuł Miejsca „Pliki są tylko w pamięci do wyłączenia komputera”: rekomendacja zostawić (to informacja,
+       której nie widać, a od niej zależą dane), przepisane bez półpauz.
+[!] D3 (krok 2) Informacje: szkic wizytówki (znak, nazwa, wersja, dane w kolumnie) obok dzisiejszego widoku.
+[!] D4 (krok 3) Pliki: rekomendacja jak w kroku 3 (przyciski i panel po zaznaczeniu). Inne: wszystkie przyciski zawsze,
+       tylko wyraźniej nieaktywne (tekst3, bez obrysu).
+[!] D5 (krok 5) Tapeta: matowa krawędź łuków (ciepło oświetlona ścianka bez jasnej, „świecącej” linii) czy jak dziś.
+       Rekomendacja: obejrzeć szkic; bez wyraźnej poprawy zostaje jak dziś.
+[!] D6 (krok 5) Napisy pod ikonami pulpitu. Rekomendacja: miękka ciemna pigułka pod napisem (czarny ok. 35 %,
+       zaokrąglenie 6). Inne: mocniejszy, rozmyty cień zamiast pigułki.
 
-  [!] D1 — Przełącznik osobno dla każdej sesji czy jeden dla całej przeglądarki?
-      A (zalecane): osobno przy każdej sesji (Ogólna, Bank, Prywatna) — np. Bank bez, Ogólna z.
-      B: jeden przełącznik dla wszystkich sesji.
-  [!] D2 — Domyślnie włączony czy wyłączony?
-      A (zalecane): wyłączony wszędzie — jak „pełna izolacja domyślnie” w ADR 0020; włączasz tam, gdzie oglądasz filmy.
-      B: włączony w Ogólnej, wyłączony w Banku i Prywatnej.
-  [!] D3 — Czy widać na oknie, że sesja używa karty? (ADR 0020: słabsza izolacja = widoczna na ramce)
-      A (zalecane): mały znak na pasku tytułu ramki (np. ikonka filmu przy nazwie sesji) — szkice do wyboru.
-      B: inny odcień ramki.   C: nic na ramce, tylko w Ustawieniach.
-  [!] D4 — X230 (karta umie tylko H.264): czy przeglądarka ma prosić strony o H.264, gdy przełącznik jest włączony?
-      A (zalecane): tak, sama — inaczej YouTube wyśle VP9/AV1 i karta nic nie pomoże; czasem najwyżej 1080p.
-      B: nie — zostaje, co wybierze strona.
-
-Techniczne (decyduje Claude w ADR kroku 1 — Ty dostajesz krótkie wyjaśnienie):
-
-  T1 — Sterownik karty: i915 z jądra (Intel Gen7 Ivy Bridge — X230, Gen9 Skylake — IdeaPad). Kierunek: i915 przejmuje
-       też obraz (KMS) zamiast simpledrm — ekran dalej jedynym właścicielem węzła karty i DRM master; jeśli krok 1 pokaże,
-       że simpledrm może zostać obok węzła render (S2) i to coś daje — ADR to rozważa. bochs i vmwgfx zostają (QEMU,
-       maszyny wirtualne). Nowsze karty Intela (Xe) i AMD — nie w tej wersji.
-  T2 — Sterownik VA-API w K1: libva + intel-vaapi-driver (i965) + libdrm, statycznie z musl, w jednej usłudze w klatce;
-       bez dlopen (K1 nie ma bibliotek współdzielonych — sterownik wołany wprost). Dlaczego i965: jeden sterownik dla
-       obu laptopów, w C (iHD — C++, tylko Gen8+, K1 nie ma biblioteki C++). Odrzucone: własny sterownik karty (ogrom
-       pracy), FFmpeg w świecie natywnym (nie potrzebny — strumień rozbiera FFmpeg w strefie, T3). Ryzyko: i965 jest
-       w trybie utrzymania (RYZYKA, ZALEZNOSCI).
-  T3 — Co przechodzi ze strefy do K1: prośby na poziomie VA (kodek, parametry obrazu i plasterków, skompresowane dane
-       plasterków), nie surowy plik — rozbieranie strumienia zostaje w strefie (FFmpeg), K1 sprawdza każde pole wg
-       tabeli K1_KODEKI (niezmiennik 6). Klatki wracają jako NV12 w pamięci współdzielonej (VMM kopiuje je do pamięci
-       gościa). Do sprawdzenia w kroku 1: czy parametry, które i965 przyjmuje, da się sprawdzić tabelą (S14).
-  T4 — Droga w strefie: (A) port vsock (jak kanał sterujący i połączenia przeglądarki) albo (B) kontekst virtio-gpu
-       z węzłem /dev/dri w strefie (sterownik VA gościa mówi przez ioctl DRM — to, na co piaskownica RDD Firefoksa
-       zwykle pozwala). Rozstrzyga próba (c) w kroku 1 (S7): kierunek — A, jeśli piaskownica RDD go dopuszcza; inaczej B.
-       Wyłączanie piaskownicy RDD — tylko jako ostateczność, z wpisem w RYZYKA.
-  T5 — FFmpeg w strefie: dziś obraz strefy go nie ma (S8 — Firefox w strefie nie odtwarza H.264 wcale; VP9/AV1 rozpakowuje
-       procesorem własną biblioteką). A: pakiet Debiana (libavcodec + zależności — zmierzyć rozmiar obrazu), B: własna
-       budowa FFmpeg tylko z potrzebnymi częściami (powtarzalność). Kierunek: B, jeśli A powiększa obraz strefy o więcej
-       niż ok. 50 MB.
-  T6 — Jeden dekoder filmów na strefę, na czas jej życia, startowany przez nadzorcę razem z VMM-em tylko przy włączonym
-       przełączniku i karcie, która umie; awaria = film na procesorze, strefa i inne strefy żyją; restartu nie ma
-       (do następnego otwarcia sesji).
-  T7 — Testy bez karty: QEMU nie udaje karty Intela — CI sprawdza format, klatkę, złośliwe prośby i drogę z dekoderem
-       testowym (szare klatki; tylko w obrazie testowym); działanie na karcie — właściciel na sprzęcie (krok 1, 2, 3).
-  T9 — Droga gotowej klatki (uwaga właściciela z 2026-11-16, zrzut: „oddaje gotowe klatki” = wąskie gardło).
-       Ocena: uwaga słuszna co do kierunku, przesadzona co do skali. (1) Odczyt z pamięci karty: obie karty (Ivy Bridge,
-       Skylake) dzielą z procesorem pamięć podręczną (LLC), a i915 daje bufory z pamięcią podręczną — wolny jest odczyt
-       wprost z bufora karty w układzie kafelkowym albo z mapowaniem write-combining; dlatego karta najpierw kopiuje
-       klatkę do zwykłego bufora (vaGetImage / przetwarzanie VA), a procesor czyta dopiero ten (NIEPEWNE — mierzy krok 1 d).
-       (2) Przepustowość: 1080p60 NV12 ≈ 190 MB/s, przy kilku kopiach (dekoder → VMM → gość) ok. 0,5–0,8 GB/s — kilka
-       procent przepustowości pamięci X230; rozpakowanie programowe 1080p60 to 1–2 rdzenie (NIEPEWNE — mierzy krok 1 d).
-       (3) Większy koszt niż kopie: Firefox w strefie składa stronę z filmem procesorem (gfx.webrender.software,
-       ADR 0042 T6) — zamiana kolorów i skalowanie każdej klatki; tego poziom 1 nie usuwa.
-       Dwa poziomy:
-       Poziom 1 — klatka wraca do strefy (opis T3): pewny, prosty; zysk = koszt rozpakowania minus kopie.
-       Poziom 2 — klatka nie wraca: sterownik VA gościa oddaje Firefoksowi „bufor” będący tylko uchwytem klatki w K1;
-       Firefox kładzie go na podpowierzchni (kompozytor strefy ma wl_subsurface — src/strefa/kompozytor/powierzchnia.c;
-       nie ma linux-dmabuf), kompozytor strefy podaje VMM-owi tylko numer klatki, miejsce i przycięcie; ekran K1 rysuje
-       klatkę od dekodera filmów w oknie strefy, w ramce, pod elementami strony z wyższych podpowierzchni. Strefa dostaje
-       tylko „klatka n gotowa” (czas, stan). Zaufanie bez zmian: rysuje K1, w granicach okna strefy (jak dziś obraz 2D).
-       Koszty poziomu 2: ekran K1 składa okna procesorem (bez warstw sprzętowych — Z KODU: src/ekran nie używa planes),
-       więc albo dekoder filmów każe karcie od razu zamienić klatkę na RGB w rozmiarze okna (przetwarzanie VA, za darmo
-       dla procesora), albo ekran używa warstwy sprzętowej karty (S30 — później); gdy strefa potrzebuje pikseli filmu
-       (canvas, zrzut strony) — wolna droga przez poziom 1 albo czarny prostokąt (do decyzji w ADR).
-       Wybór (krok 1, ADR): poziom 2, jeśli próba (e) pokaże, że Firefox z rysowaniem procesorem odda film osobną
-       podpowierzchnią; jeśli nie — poziom 1, o ile pomiar (d) pokaże wyraźny zysk (kierunek: co najmniej połowa mniej
-       procesora niż rozpakowanie programowe, na obu laptopach); jeśli i to nie — wersja się zatrzymuje (raport, nie
-       zgadujemy dalej). Poziom 2 przy poziomie 1 w 0.10.7 → „Później”.
-  T8 — Pamięć karty („VRAM”) a balon z 0.10.1 (pytanie właściciela z 2026-11-16: czy pamięć karty też potrzebuje
-       balona). Karty obu laptopów (HD 4000, HD 520) są zintegrowane — NIE MAJĄ osobnej pamięci; bufory karty (klatki
-       filmu, klatki odniesienia) i915 bierze ze zwykłej pamięci RAM. Dlatego nie ma drugiego balona — jest JEDNA
-       pamięć i jedno liczenie: bufory dekodera filmów strefy liczą się do pamięci tej strefy w podziale pamięci
-       z 0.10.1 (krok 3 tamtego planu), tak by balon i podział widziały całość (gość + VMM + dekoder filmów). Kierunek:
-       (1) twardy limit z tabeli K1_KODEKI (najwięcej klatek × największy rozmiar — np. 1080p: ok. 20 klatek × 3 MB),
-       sprawdzany przed przydziałem bufora; (2) bufory oddawane od razu, gdy film się kończy (zamknięcie kontekstu VA)
-       i całe — z końcem procesu (jeden na strefę, T6); (3) jeśli jądro liczy bufory i915 do cgroup procesu (S26) —
-       limit pamięci klatki usługi pilnuje tego samo jądro; jeśli nie — liczy dekoder filmów i melduje nadzorcy, a
-       nadzorca dolicza to do strefy (Zasoby, podział). Gdy pamięci brak (balon nie może dać), dekoder filmów odmawia
-       nowego filmu — film idzie na procesor, nic nie ginie. Prawdziwa osobna pamięć karty (karty dedykowane, „szybka
-       grafika”) — nie w tej wersji; wtedy osobny ADR.
+Techniczne (moje, z uzasadnieniem; krok może je poprawić w „Ustaleniach z wykonania”):
+    T1 Półpauzy pilnuje test (sprawdz-czytelnosc.py), nie pamięć: inaczej wrócą z następnym oknem. Zakres: literały
+       napisów rysowanych na ekranie; logi nie (testy QEMU dopasowują wzorce logów).
+    T2 Kolejność sekcji Ustawień i ich numery (S_* w ustawienia.h) bez zmian: testy klikają według nich, a Z1 i tak nie
+       zmienia listy.
+    T3 Tryby ekranu i karty tapet jako elementy opisu ekranu (k1_el, ADR 0045): zmiana układu nie wymaga wtedy zmiany
+       wzorca logu w test-m4. Rozdzielczość to nie tekst użytkownika, więc może być nazwą elementu.
+    T4 Przyciski Plików z jednej tabeli (przyciski.c) z kolumną „widoczny bez zaznaczenia”: nowa reguła to wiersz w tabeli
+       (zasada czytelności 5), nie warunek w rysowaniu.
+    T5 Okno strefy nadal różni się od okna K1 bez kolorowej obwódki: napis „osobna maszyna”, ikona strefy i kolor sesji
+       na pasku, który rysuje ekran poza obrazem strefy; strefa nie może narysować nic poza swoim prostokątem (test
+       negatywny w test-strefa). Wysokość paska K1_STREFA_TYTUL (40 px) zostaje: VMM i gość liczą na nią rozmiar obrazu
+       (0.10.5 krok 4: rozmiar i maksymalizacja).
 
 
-5. LUKI (z czytania kodu po 0.10.0 i dokumentacji, 2026-11-16)
--------------------------------------------------------------
-Waga: WYSOKA (blokuje krok), ŚREDNIA, NISKA.
-
-Krok 1 (także S26–S30 — niżej, przy kroku 2)
-  S1 WYSOKA, Z KODU. Jądro K1 nie ma i915: jadro/k1.config — DRM_SIMPLEDRM (laptopy), DRM_BOCHS, DRM_VMWGFX (maszyny
-     wirtualne); docs/komponenty/jadro.md: „Brak … i915”. Bez i915 nie ma węzła render ani VA-API.
-  S2 WYSOKA, NIEPEWNE. Czy i915 przy starcie usuwa simpledrm (przejęcie bufora firmware) także z wyłączonym obrazem
-     (parametr i915 disable_display) — sprawdzić w build/zrodla/linux-*/drivers/gpu/drm/i915. Od tego zależy T1.
-  S3 ŚREDNIA, Z KODU. Zatwierdzenie nowej wersji (src/nadzorca/rozruch.c, ROZRUCH_OK 15 s): po pulpicie albo ekranie
-     hasła — nie po tym, że ekran naprawdę pokazał obraz. Wersja z i915 i czarnym ekranem zostałaby zatwierdzona.
-     Sprawdzić, skąd nadzorca wie o pulpicie; w kroku 2 — warunek „ekran wyświetlił klatkę”.
-  S4 WYSOKA, NIEPEWNE. libva ładuje sterownik przez dlopen; K1 jest statyczny (musl, bez bibliotek współdzielonych) —
-     czy i965 da się zlinkować statycznie i wywołać jego __vaDriverInit_* wprost (źródła libva: va.c, va_backend.h).
-  S5 ŚREDNIA, NIEPEWNE. i965 i libdrm z naszymi flagami (SPEC §11, -Werror, fortify, PIE) — ile ostrzeżeń, czy trzeba
-     łatek (musl/latki — wzór); wersje i sumy (Debian 13: intel-vaapi-driver 2.4.1 — sprawdzić).
-  S6 WYSOKA, Z KODU + NIEPEWNE. Firefox w strefie rysuje procesorem i ma VA-API wyłączone (strefy/przegladarka/k1.js:
-     gfx.webrender.software, widget.dmabuf.force-enabled false, media.hardware-video-decoding.enabled false,
-     media.ffmpeg.vaapi.enabled false). Czy Firefox ESR 153 używa VA-API bez EGL i dmabuf (klatki kopiowane) —
-     próba (c).
-  S7 WYSOKA, NIEPEWNE. Piaskownica procesu RDD Firefoksa (dekodowanie): czy sterownik VA w nim może otworzyć gniazdo
-     vsock; czy dopuszcza węzeł /dev/dri i ioctl DRM (źródła Firefoksa: security/sandbox/linux). Rozstrzyga T4.
-  S8 WYSOKA, Z KODU. Obraz strefy nie ma FFmpeg (strefy/przegladarka.txt: z bibliotek filmów tylko libvpx9) —
-     H.264 i HEVC w strefie dziś nie działają wcale; VA-API w Firefoksie idzie przez FFmpeg (T5). Czy wbudowane w
-     Firefoksa ffvpx (VP9) ma ścieżkę VA-API w ESR 153 — NIEPEWNE.
-  S9 ŚREDNIA, NIEPEWNE (ZE ŹRÓDEŁ do sprawdzenia). Co umieją karty: HD 4000 (Ivy Bridge) — H.264 (bez VP8, VP9, HEVC);
-     HD 520 (Skylake) — H.264, HEVC 8-bit, VP8, VP9 częściowo. Potwierdza sonda na sprzęcie (krok 1 b).
-
+5. LUKI (z czytania kodu i zrzutów wzorcowych, 2026-11-17)
+----------------------------------------------------------
+Krok 1
+  W1  Z KODU: podtytuły sekcji Ustawień: naglowek(o, m, „<sekcja>”, „<podtytuł>”) w ustawienia/main.c (Wygląd, Ekran,
+      Mysz, Data i czas), bateria.c, aplikacje.c, informacje.c („Kons K1 Sovereign”), haslo.c, miejsce.c (dwa warianty),
+      aktualizacje.c, przegladarka.c (jedyny z kropką); Sieć nie ma podtytułu (siec.c), więc dziś treść stoi wyżej niż
+      w innych sekcjach (Z ZRZUTU).
+  W2  Z KODU: opis w menu Start to kolumna wiersza X(...) w K1_APLIKACJE (src/wspolne/k1_uslugi.h); menu Start
+      (src/gui/menu_start.c) rysuje wiersz 56 px: ikona, nazwa, opis. Zdania-podpisy: informacje.c (na dole okna),
+      ustawienia/main.c („Zalecana: …”), aplikacje.c (dolna wskazówka), haslo.c (dwa akapity).
+  W3  Z KODU: ok. 100 literałów z półpauzą w src (bez src/zewnetrzne); część to logi (k1_log), część napisy na ekranie,
+      najwięcej: k1_przeciaganie.c (13), instalacja/ekrany.c (8), ustawienia/przegladarka.c (6), pliki/pendrive.c (6),
+      notatki/pliki.c (6), wifi_haslo.c (5), k1_inst_teksty.h (4), haslo.c (4), aktualizacje.c (4), pliki/dane.c (4).
+      NIEPEWNE: które z nich trafiają na ekran (komunikaty nadzorcy do gui też): rozdzielić w kroku.
 Krok 2
-  S10 ŚREDNIA, NIEPEWNE. Skylake: plik DMC (oszczędzanie energii obrazu) — bez niego i915 działa, ale bateria może być
-      gorsza; tabela jadro/oprogramowanie-kart.txt jest dziś tylko dla Wi-Fi (nazwa i opis do rozszerzenia).
-  S11 ŚREDNIA. i915 w k1-zamkniete.config (lockdown, KSPP) — sprawdź scripts/sprawdz-kspp.sh i odstępstwa.
-  S12 NISKA. src/ekran na i915: tryby (EDID panelu), wybór karty, gdy są dwie (simpledrm i i915) — z kroku 1.
-  S13 ŚREDNIA, Z KODU. Urządzenia otwiera nadzorca (urzadzenia.c, uevent.c); węzeł render to nowy rodzaj urządzenia —
-      tylko dla usługi „dekoder filmów”, nigdy dla ekranu ani strefy.
-  S14 WYSOKA. Granica sprawdzania: parametry VA dla H.264/HEVC/VP9 to duże struktury (VAPictureParameterBuffer*,
-      VASliceParameterBuffer*) — sprawdzać tylko pola, które wpływają na pamięć i rozmiary (wymiary, liczba plasterków,
-      długość danych, indeksy klatek odniesienia), resztę przekazywać? Rozstrzyga ADR (krok 1) — pole po polu dla
-      naszego formatu, zakresy z K1_KODEKI.
-  S15 WYSOKA. Pamięć dekodera filmów (T8): bufory karty dla klatek odniesienia (4K HEVC — kilkadziesiąt MB) to RAM;
-      limit z K1_KODEKI i miejsce w podziale pamięci z 0.10.1 krok 3 (strefa = gość + VMM + jej dekoder filmów).
-  S27 WYSOKA, NIEPEWNE. Koszt odczytu klatki procesorem: bufor karty (kafelkowy, write-combining) a bufor liniowy
-      z pamięcią podręczną po kopii kartą — zmierzyć w sondzie (krok 1 d); mapowania i915 (I915_GEM_MMAP_OFFSET: WB/WC)
-      sprawdzić w build/naglowki/drm/i915_drm.h.
-  S28 ŚREDNIA. Pomiar programowego rozpakowania na sprzęcie wymaga programowego dekodera filmów na obrazie próbnym
-      (K1 go nie ma — Wuffs to tylko zdjęcia); tylko w kodzie próby, nigdy w main.
-  S29 WYSOKA, NIEPEWNE. Czy Firefox ESR 153 na Waylandzie z rysowaniem procesorem (software WebRender) oddaje film
-      osobną podpowierzchnią z dmabuf (natywny kompozytor; prefy gfx.webrender.compositor*, widget.dmabuf*) — czy tylko
-      z GL. Bez tego poziom 2 wymaga GL w strefie (osobny temat — „szybka grafika”, ADR 0020).
-  S30 ŚREDNIA, Z KODU + NIEPEWNE. Ekran K1 składa okna procesorem (src/ekran, src/grafika — bez SETPLANE/ATOMIC); klatka
-      dla poziomu 2 musi przyjść jako RGB w rozmiarze okna (przetwarzanie VA kartą) albo przez warstwę sprzętową
-      (HD 4000: warstwa nakładki bez NV12 — NIEPEWNE; HD 520: NV12 — NIEPEWNE).
-  S26 WYSOKA, NIEPEWNE. Czy bufory i915 (GEM, shmem) liczą się do cgroup procesu, który je tworzy (memory.current
-      klatki dekodera filmów) — sprawdzić w build/zrodla (drivers/gpu/drm/i915/gem/i915_gem_shmem.c, mm/shmem.c)
-      i próbą na sprzęcie (krok 1: sonda melduje memory.current przed i po rozpakowaniu klatek). Od tego zależy T8 (3).
-  S16 WYSOKA, NIEPEWNE. Lista ioctl węzła render i915 potrzebnych i965 (GEM create/mmap/execbuffer2, context, wait…) —
-      do warunków seccomp (profile; wzór wa_strefa dla KVM) — z próby (krok 1) i nagłówków UAPI (build/naglowki).
-  S17 ŚREDNIA. Dekoder testowy bez karty dla QEMU (T7): tylko w obrazie testowym — jak program testowy w roli usługi
-      (TEST_PROBA) albo tryb testowy wybrany przez nadzorcę; nie może trafić do obrazu produkcyjnego jako droga obejścia.
-
+  W4  Z ZRZUTU: Aplikacje: odstęp między typami plików (ok. 23 px) prawie równy odstępowi między nazwą typu a aplikacją
+      (ok. 21 px), więc pary się nie odróżniają; „K1 nie ma jeszcze aplikacji do tego typu pliku” trzy razy.
+      Z KODU: ten napis to K1_MENU_BEZ_APLIKACJI_KROTKO (src/przybornik/k1_menu.h), wspólny z menu pliku: w menu zostaje,
+      Ustawienia dostają własne „brak aplikacji”.
+  W5  Z ZRZUTU: Informacje: wartości („1280 × 800”, „Linux 6.18…”, „zaszyfrowane…”) zaczynają się zaraz po etykiecie,
+      w różnych miejscach. Z KODU: informacje.c ma 22 wiersze (rysowanie w jednym miejscu).
+  W6  Z KODU: haslo.c: wyjaśnienie na seg_y() + 96, ok. 70 px pod przełącznikiem (Z ZRZUTU).
+  W7  Z KODU: ustawienia/main.c: TRYBY_W_KOLUMNIE 6, przyciski 136 × 32 kolumnami z góry na dół (13 trybów QEMU: 6 + 6 + 1);
+      test-m4 czyta położenia z logu „tryby ekranu: … (przyciski od x,y, n w kolumnie, co …)” (scripts/test-m4.sh).
+  W8  Z KODU: aktualizacje.c: kwadrat 40 × 40 w kolorze akcentu pod ikoną (jedyne takie miejsce w K1).
+  W9  Z ZRZUTU: Przeglądarka: „Zmień nazwę”, „Wyczyść dane…” rysowane jak zwykły tekst. Ikona Sieci (ik_siec
+      w k1_rysuj.c) przy 16 px wygląda jak dymek rozmowy.
 Krok 3
-  S18 ŚREDNIA, Z KODU. Ustawienia sesji: strefy_ust.c (208 wierszy) i format sesje.c w skarbcu — nowe pole; Ustawienia
-      → Przeglądarka (src/aplikacje/ustawienia/przegladarka.c) po nowym układzie z 0.10.1 krok 4.
-  S19 ŚREDNIA, Z KODU. VMM: src/strefa/gpu.c (323 wiersze) — tylko 2D; wariant B (T4) to konteksty i zasoby blob —
-      duża zmiana, najpierw podział. vsock.c (354 wiersze) — porty 1 i 2; wariant A to port 3.
-  S20 ŚREDNIA. Kopiowanie klatek do pamięci gościa: 1080p NV12 ok. 3 MB, 30–60 klatek/s → 90–180 MB/s; zmierzyć
-      w kroku 1/3 (przepustowość vsock w emulacji: 4 × 3 MiB w ok. 1 s — plan 0.10.5 S37).
-  S21 WYSOKA, NIEPEWNE. Sterownik VA gościa to biblioteka .so ładowana przez Firefoksa (glibc strefy) — nasze programy
-      gościa są statyczne z musl; trzeba budowy pod glibc Debiana 13 (zbuduj-strefe.sh; powtarzalność).
-  S22 ŚREDNIA, Z KODU. Prefy Firefoksa są dziś jedne dla wszystkich sesji (/etc/firefox-esr/k1.js w obrazie) — ustawienie
-      sesji musi dojść do gościa (jak tryb sesji przez kanał sterujący, gosc/przegladarka.c) i zmienić prefy w profilu.
-  S23 ŚREDNIA, NIEPEWNE. Nazwy prefów do wyłączenia VP9/AV1 w MSE w Firefoksie ESR 153 (np. media.mediasource.vp9.enabled,
-      media.av1.enabled) — sprawdzić w źródłach (modules/libpref/init/StaticPrefList.yaml).
-  S24 ŚREDNIA. Złośliwy gość: tryby 1–4 w gosc/zlosliwy.c, tryb 5 = uczciwy dysk (skill §7) — nowy tryb dla filmów.
-  S25 NISKA. Zasoby: dekoder filmów pokaże się sam (wiersz K1_SYSTEM); czy przypisać jego procesor i pamięć do sesji.
+  W10 Z KODU: pliki/przyciski.c: tabela etykiet (Nowy folder, Zmień nazwę, Usuń, Przywróć, Usuń na zawsze, Opróżnij
+      Kosz, Tak, usuń, Anuluj, Otwórz, Importuj…); Z ZRZUTU: nieaktywne przyciski różnią się od aktywnych tylko
+      jaśniejszym napisem. test-pliki i test-m4 klikają je po nazwach: sprawdzić, czy klikają bez zaznaczenia.
+  W11 Z KODU: pliki/rysuj.c: „Wybierz plik, aby zobaczyć szczegóły” w panelu szczegółów (232 px) jest ucięty
+      („…szcz…”, Z ZRZUTU); panel jest zawsze, także w pustym folderze.
+Krok 4
+  W12 Z KODU: src/ekran/strefy.c: OBWODKA 3; strefa_ramka() maluje cały zaokrąglony prostokąt (pasek + obwódka) kolorem
+      strefy, okno bez fokusu: kolor zmieszany z tłem (115/255); strefa jednorazowa: jasny pasek („pole” z 14 % koloru)
+      w kolorowej obwódce. Pasek K1_STREFA_TYTUL 40 (src/przybornik/k1_okno.h). Zasada w ADR 0020 p. 3 („obwódka
+      w kolorze strefy i etykieta”) i ADR 0042 („Zaufana ramka”); RYZYKA R80 i R50 opisują ramkę. 0.10.5 krok 4
+      (rozmiar, maksymalizacja) zmienia ten sam plik: krok 4 tego planu stoi na jego wyniku.
+Krok 5
+  W13 Z KODU: gui/pulpit.c: nazwa pod kafelkiem: krem z cieniem 1 px (K1_NOC, krycie 150), bez tła; Z ZRZUTU: na jasnych
+      łukach Gliny (i na całej tapecie Świt) słabo czytelna.
+  W14 Z KODU: k1_rysuj_tlo (src/grafika/k1_grafika.c): krawędzie arkuszy z ciepło oświetloną ścianką. NIEPEWNE: który
+      parametr daje jasną linię na krawędzi; sprawdzić podglądem na hoście (podglad_grafiki, WYGLAD.md).
+  W15 Z KODU: pliki blisko limitu 600 wierszy: k1_rysuj.c 546 (krok 2: ikona Sieci to zmiana istniejącej; rysunek
+      pustego folderu w kroku 3 to znak „Warstwy” z k1_grafika.c, nie nowa ikona), pliki/pendrive.c 504, gui/pulpit.c 486,
+      ustawienia/aktualizacje.c 429, ustawienia/main.c 414.
 
 
-6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
------------------------------------------------------------------------------------
-    Dźwięk (K1 nie ma jeszcze usługi dźwięku — filmy bez dźwięku); „szybka grafika” dla stref (virgl/Venus, ADR 0020
-    p. 2 — rysowanie kartą, nie tylko filmy); nowsze karty Intela (Xe, sterownik iHD) i AMD; AV1 kartą (HD 4000 i HD 520
-    go nie mają); kodowanie kartą (wideorozmowy — WebRTC w strefie i tak wyłączone); odtwarzacz filmów w Plikach K1
-    (pliki wideo da się już przechowywać — „Później”); poziom 2 drogi klatki, jeśli krok 1 wybierze poziom 1 (T9);
-    warstwy sprzętowe karty w ekranie K1 (S30);
-    jasność ekranu i klawisze Fn przez i915 (punkt „Laptop” — osobny PATCH, choć i915 to otwiera).
+6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później”)
+--------------------------------------------------------
+    grupy, kreski albo nagłówki w liście sekcji Ustawień (Z1: właściciel 2026-11-17, nie); animacje (otwieranie menu,
+    najechanie); wyszukiwanie w menu Start; nowe tapety i nowe kolory motywów; zmiana czcionek; kolorowe ikony aplikacji.

@@ -35,6 +35,11 @@ Podgląd tapety bez QEMU: `make build/obj/podglad_grafiki && build/obj/podglad_g
   Zasoby, Kalkulator i ramka strefy, w obu motywach. **Zmianę wyglądu zatwierdza właściciel (D3):** PR, który ją
   wprowadza, pokazuje obrazy „przed / po” z testu; wzorce w repo zmieniają się dopiero po jego „OK”.
 
+- 2026-11-17 (po przeglądzie wyglądu, plan 0.10.7 „Wygląd”, `docs/PLAN-0.10.7.txt`): **lista sekcji w Ustawieniach
+  zostaje taka, jak jest** (minimalistyczna, bez grup i nagłówków); z napisów w systemie znikają **opisy tego, co
+  użytkownik widzi** (podtytuły sekcji, zdania-podpisy) i **półpauzy**; nowych takich zdań nie dodajemy. **Kolor sesji
+  nie obejmuje całego okna przeglądarki** („psuje estetykę”): ma być w jednym miejscu, dyskretnie (szkice w kroku 4).
+
 ## Kierunek (M4)
 - **Charakter:** spokojny, rzeczowy, lekko ciepły.
 - **Świat:** papier i glina — kremowy papier okien, terakota, ciemny brąz wieczoru.
