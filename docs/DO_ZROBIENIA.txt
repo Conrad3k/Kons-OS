@@ -21,7 +21,7 @@ Twoją prośbę: grafika po fundamentach).
     [x] 0.10.2 krok 1 — ekran startu przeglądarki do jej okna, okno znika od razu po „zamknij”, wyłączanie czeka na
         sesje — PR #144
     [x] 0.10.2 krok 2 — opis ekranu dla testów (ADR 0045), test-m4 klika po nazwach — PR #145
-    [x] 0.10.2 krok 3 — zrzuty wzorcowe (40 obrazów, oba motywy), porządki, wydanie 0.10.2 — PR #147
+    [x] 0.10.2 krok 3 — zrzuty wzorcowe (40 obrazów, oba motywy), porządki, wydanie 0.10.2 — PR #149
 0.10.1 Balon — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.1.txt; ADR 0044):
     [x] 0.10.1 krok 1 — awaria przy przełączaniu kart naprawiona (kompozytor strefy), liczniki strefy, prawdziwy powód
         końca — PR #134
