@@ -111,7 +111,9 @@ Pięć kroków:
 [x]  2  Balon: virtio-balloon, wolne strony wracają do K1   S7–S11           1           D2, T1–T5        L        0044
      PR #137
 [ ]  3  Pamięć komputera dla wszystkich                     S5, S14          2           D3, T6           M        —
+     [w toku: Claude, gałąź claude/focused-galileo-cdf7um]
 [ ]  4  Wybór sesji przeglądarki; Ustawienia → Przeglądarka S16–S19          0.10.0      D4, D5, T8       S        —
+     [w toku: Claude, gałąź claude/focused-galileo-cdf7um]
 [ ]  5  Przewijanie po nowej karcie; wydanie 0.10.1         S20–S22          1, 3, 4     D6               S        —
 (ADR 0044 — następny wolny po ADR-ach 0.10.0; jeśli 0.10.0 zajmie więcej, krok bierze kolejny wolny. Plan 0.10.5 bierze
 numery po tym.)
@@ -417,14 +419,22 @@ Twoje (produkt):
        minus rezerwa K1 (D3) — czyli na 4 GB ok. 2,5–3 GB, na 8 GB ok. 6 GB; K1 i tak oddaje sesji tylko to, czego
        naprawdę używa, a resztę zabiera z powrotem. Mniejsza granica (np. połowa pamięci) chroni inne sesje, ale ciężka
        strona na 4 GB znów może nie zmieścić się w sesji.
-[!] D3 (krok 3) Co, gdy pamięci komputera naprawdę brakuje, i jak to wygląda — szkice do wyboru NA POCZĄTKU KROKU 3
-       (oba motywy): okienko „Mało pamięci”, widok sesji w Zasobach. Rekomendacja: (1) K1 po cichu zabiera nieużywaną
+[x] D3 (krok 3) DECYZJA właściciela 2026-11-17 (szkice narysowane częściami K1, oba motywy): kolejność z rekomendacji
+       (1)–(3); okienko A „na środku, z sesjami” (lista otwartych sesji z ich pamięcią, „Zamknij” przy każdej,
+       „Później”); Zasoby B „paski sesji” (osobna część „Sesje przeglądarki” nad usługami: pasek w kolorze sesji —
+       „1,1 GB z 2,8 GB”). Odrzucone: okienko B (karteczka pod górnym paskiem), Zasoby A (wiersze listy).
+       Pytanie z planu: Co, gdy pamięci komputera naprawdę brakuje, i jak to wygląda — szkice do wyboru (oba motywy): okienko „Mało pamięci”, widok sesji w Zasobach. Rekomendacja: (1) K1 po cichu zabiera nieużywaną
        pamięć sesjom w tle; (2) gdy to nie wystarcza — okienko „Mało pamięci: zamknij kartę albo sesję” z listą sesji
        i ich pamięcią (przycisk „Zamknij” przy każdej); (3) dopiero gdy nic nie pomaga — K1 zamyka sesję w tle (nie tę,
        w której pracujesz) i mówi o tym okienkiem. Rezerwa K1 (pamięć, której strefy nigdy nie dostają): 768 MiB na
        4 GB, 1 GiB na 8 GB i więcej.
 
-[!] D4 (krok 4) Jak wybierać sesję przy otwieraniu przeglądarki — szkice do wyboru NA POCZĄTKU KROKU 4 (oba motywy):
+[x] D4 (krok 4) DECYZJA właściciela 2026-11-17: szkic B „okienko na środku ekranu” — „Którą sesję otworzyć?” z kafelkiem
+       na sesję (kropka w kolorze, nazwa, „pamięta / zapomina”), „Anuluj”. Powód właściciela: przeglądarkę będzie się
+       dało otwierać też z innych miejsc (np. z pulpitu) — okienko działa wszędzie tak samo. Najpierw wybrał A („sesje
+       w wierszu menu”), potem zmienił na B. Odrzucone: A, C „strona sesji w menu”; sesja domyślna — niepotrzebna.
+       (Wariant „rozwija pod sobą wiersze” z planu nie mieścił się na ekranie 768 px — menu Start ma już 640 px.)
+       Pytanie z planu: Jak wybierać sesję przy otwieraniu przeglądarki — szkice do wyboru (oba motywy):
        A) kliknięcie „Przeglądarka” w menu Start rozwija pod nią wiersze sesji (kropka w kolorze, nazwa, „pamięta /
           zapomina”) — jedno kliknięcie więcej, bez nowego okna;
        B) kliknięcie otwiera małe okienko „Którą sesję otworzyć?” na środku ekranu (jak okienka gui) z kafelkami sesji;
@@ -432,7 +442,9 @@ Twoje (produkt):
           obok „Przeglądarki” w menu Start.
        Rekomendacja: A — wybór widać od razu tam, gdzie i tak klikasz, nic nie otwiera się bez pytania, a Bank
        i Prywatna nie są już ukryte; skrót „ostatnio używana” niepotrzebny przy trzech sesjach.
-[!] D5 (krok 4) Wygląd sekcji Ustawienia → Przeglądarka — szkice do wyboru NA POCZĄTKU KROKU 4 (oba motywy; razem z D4).
+[x] D5 (krok 4) DECYZJA właściciela 2026-11-17: szkic A „karta na sesję” (rekomendacja niżej); „Wyczyść dane…” pyta
+       w okienku przybornika. Odrzucone: B „lista, wybrana sesja się rozwija”.
+       Pytanie z planu: Wygląd sekcji Ustawienia → Przeglądarka — szkice do wyboru (oba motywy; razem z D4).
        Najpierw Twoje słowa: co jest „rozjechane” i co „dramatyczne” (zrzut ze sprzętu). Rekomendacja: karta na
        sesję (zaokrąglone tło jak karty w Sieci — sekcja B z 0.9.0), w karcie: kropka i nazwa, pod nią jedno zdanie
        stanu, po prawej „Pamięta | Zapomina”, w dolnym rzędzie ciche „Zmień nazwę” i „Wyczyść dane…” (pytanie

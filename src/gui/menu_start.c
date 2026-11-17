@@ -133,7 +133,9 @@ void wskaznik_menu(const struct k1_komunikat *m)
     }
     if (m->c == K1_WSK_WCISNIECIE && m->d == K1_PRZYCISK_PRAWY && nowy >= 1 && nowy <= POZYCJE_MAKS) { /* zones too */
         kontekst_otworz(K_MENU, (uint32_t)nowy, menu_x + m->a, menu_y + m->b);
-    } else if (puszcz && nowy >= 1 && nowy <= POZYCJE_MAKS) { /* an application, or a zone with a menu line */
+    } else if (puszcz && nowy > K1_APL_MAKS && nowy <= POZYCJE_MAKS) { /* the browser: which session (0.10.1 step 4) */
+        sesje_wybierz(nowy);
+    } else if (puszcz && nowy >= 1 && nowy <= K1_APL_MAKS) {
         otworz_aplikacje(nowy);
     } else if (puszcz && nowy >= STOPKA) {
         k1_log(TAG, "%s", co[nowy - STOPKA]);

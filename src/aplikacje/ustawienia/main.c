@@ -313,6 +313,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         k1_apl_odswiez(&apl);
     if (sekcja == S_MIEJSCE && miejsce_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
         k1_apl_odswiez(&apl);
+    if (sekcja == S_PRZEGLADARKA && przegladarka_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
+        k1_apl_odswiez(&apl);
     if (nav != hover_nav || seg != hover_seg || karta != hover_karta || tryb != hover_tryb) {
         hover_nav = nav;
         hover_seg = seg;

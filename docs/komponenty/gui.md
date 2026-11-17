@@ -90,11 +90,19 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   pokazuje albo chowa okno, menu „Zamknij okno”; nie da się jej przypiąć ani położyć na pulpicie.
   Od kroku 5 (D2): prawy przycisk na „Przeglądarce” w menu Start — „Otwórz” i pod napisem „Sesje” każda sesja przeglądarki
   (Ogólna, Bank, Prywatna — nazwy od nadzorcy, `STREFA_NAZWA` na fd 5), kliknięcie otwiera tę sesję; w logu menu sesje
-  jako „sesja N” (nazwa to tekst użytkownika). Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
+  jako „sesja N” (nazwa to tekst użytkownika).
+  Od 0.10.1 krok 4 (D4 właściciela: szkic B; `sesje.c`): kliknięcie „Przeglądarki” w menu Start (i „Otwórz” w jej menu —
+  wszędzie, skąd przeglądarka się otwiera) pokazuje na środku ekranu okienko „Którą sesję otworzyć?”: kafelek na każdą
+  strefę z tym samym obrazem (`K1_STREFY` — nowa sesja to nowy wiersz tabeli, gui się nie zmienia) — kropka w kolorze sesji,
+  nazwa, „pamięta” / „zapomina” (`STREFY_STAN` a) albo „otwarta”, gdy sesja ma okno (kliknięcie wysuwa je na wierzch:
+  nadzorca nie uruchamia strefy drugi raz); „Anuluj” albo kliknięcie obok zamyka. Rysowane na panelu menu kontekstowego
+  (`kontekst.c`, cel `K_SESJE`). Jedna sesja — bez pytania. Log „okienko (sesje): sesja 2 x,y; sesja 3 x,y; sesja 4 x,y;
+  Anuluj x,y”, potem „okienko (sesje): sesja N” albo „Anuluj”. Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
   mówią „Przeglądarka · <sesja>”.
   Log przy zmianie obecności, stanu, zasilacza lub co 5 % („bateria 73%, rozładowywanie, …”).
 - Powierzchnie: warstwa pulpitu (`K1_POW_PULPIT`, cały ekran, zatwierdzane tylko zmienione prostokąty),
-  panele: górny pasek, dolny pasek, menu Start, okienko dźwięku, menu kontekstowe (memfd, ADR 0008).
+  panele: górny pasek, dolny pasek, menu Start, okienko dźwięku, menu kontekstowe (memfd, ADR 0008; na nim także okienka
+  pytań i „Którą sesję otworzyć?”).
 - Do ekranu (0.7.5): `ZAMKNIJ_OKNO` — „Zamknij okno” z paska; ekran prosi aplikację (`ZAMKNIJ`).
 - Zmiana rozdzielczości (M4.1): ekran wysyła ponownie `WITAJ` z nowym rozmiarem → gui zamyka menu,
   tworzy górny pasek na nową szerokość, przesuwa pozostałe panele i loguje nowe położenia.

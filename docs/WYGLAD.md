@@ -196,15 +196,29 @@ wybrany **A**. Znaczek i plakietka B2 zniknęły.
 - **„Zamknęła się”** (krok 3, S26): to samo okienko, gdy strefa skończyła się bez zamknięcia przez użytkownika —
   „<tytuł> zamknęła się” i powód (brak pamięci w strefie, brak pamięci w komputerze, awaria programu, błąd strefy).
 - **Dolny pasek:** okno strefy wśród działających (po kresce), ikona strefy; strefy nie przypina się.
-- **Sesje (krok 5, D2; szkic Ustawień ze szkiców kroku 1 — „Ustawienia → Aplikacje → Przeglądarka” — jako osobna sekcja,
-  bo w sekcji Aplikacje brakowało miejsca):** Ustawienia → **Przeglądarka** (ikona globusa `K1_IK_PRZEGLADARKA`, sekcja przed
-  Informacjami): opis „Sesje — każda w osobnej maszynie, z własnym kolorem”; wiersz co 78 px na sesję — kropka 10 px w kolorze
-  sesji, nazwa (Plex Sans Medium 15), po prawej przełącznik segmentowy 200 × 32 „Pamięta | Zapomina”; pod nazwą ciche
-  przyciski (Plex Sans 13) „Zmień nazwę” i „Wyczyść dane” (po pierwszym kliknięciu „Na pewno? Wyczyść”, pogrubione), pod
-  nimi opis (`tekst3`). Zmiana nazwy: pole 210 × 32 z ramką w kolorze akcentu w miejscu nazwy, pod nim „Zapisz” (akcent) i
-  „Anuluj”. Na dole: wynik czyszczenia (pogrubiony, `tekst2`) i stan wirtualizacji (`tekst3`). Okno Ustawień 680 × 480.
-- **Menu sesji (krok 5, D2):** prawy przycisk na „Przeglądarce” w menu Start — „Otwórz” (pogrubione), kreska, napis „Sesje”
-  i wiersz na sesję (jej nazwa), potem jak u aplikacji („Dodaj do pulpitu”). Okienka i menu paska: „Przeglądarka · <sesja>”.
+- **Sesje — Ustawienia → Przeglądarka (0.10.1 krok 4, decyzja właściciela D5 z 2026-11-17: szkic A „karta na sesję”;
+  zastępuje wiersze co 78 px z 0.10.0 krok 5 — opis wchodził na następną sesję):** sekcja przed Informacjami (ikona globusa),
+  opis „Każda sesja to osobna maszyna z własnym kolorem.”; karta na sesję: `pole`, 440 × 88, zaokrąglenie 10, włoskowaty
+  obrys, co 96 px; kropka 6 px w kolorze sesji (22, 23), nazwa Plex Sans Medium 15, pod nią jedno zdanie stanu Plex Sans 13
+  `tekst2`; dolny rząd: ciche „Zmień nazwę” i „Wyczyść dane…” (Plex Sans 13), po prawej przełącznik segmentowy 184 × 28
+  „Pamięta | Zapomina”. Zmiana nazwy: pole 210 × 30 z ramką w kolorze akcentu w miejscu nazwy, w dolnym rzędzie „Zapisz”
+  (akcent) i „Anuluj”. „Wyczyść dane…” pyta w okienku przybornika (to od przeciągania plików): pogrubione „Wyczyścić dane
+  sesji <nazwa>?”, zdanie wyjaśnienia, kreska, „Wyczyść dane” (pogrubione), „Anuluj” — bez czerwieni. Uwagi (bez K1-DANE,
+  bez wirtualizacji) — tylko gdy dotyczą, każda jedna linia nad listą: ikona info 16 px `tekst3` i Plex Sans 13 `tekst2`;
+  bez K1-DANE przełącznik wyciszony (`pole` 130/255 na nim) i bez „Wyczyść dane…”. Wynik czyszczenia pod listą
+  (Plex Sans Medium 13, `tekst2`). Okno Ustawień 680 × 480. Odrzucony szkic B „lista, wybrana sesja się rozwija”.
+- **Okienko sesji (0.10.1 krok 4, decyzja właściciela D4 z 2026-11-17: szkic B „okienko na środku ekranu”):** kliknięcie
+  „Przeglądarki” (menu Start, „Otwórz” w jej menu; w przyszłości też pulpit) pokazuje panel (jak menu: tło motywu
+  z przezroczystością panelu, zaokrąglenie 16, cień) na środku ekranu, w 1/3 wysokości: ikona globusa 20 px `tekst2`
+  i „Którą sesję otworzyć?” (Plex Sans Medium 15); kafelki 120 × 104 co 132 px (`pole`, zaokrąglenie 10, włoskowaty
+  obrys; pod kursorem tło `najechanie` i obrys 1,5 px w kolorze sesji): kropka 11 px w kolorze sesji, nazwa (Medium 15),
+  „pamięta” / „zapomina” / „otwarta” (Plex Sans 13 `tekst2`); kreska i „Anuluj” (Plex Sans 15 `tekst2`) po prawej na dole.
+  Właściciel najpierw wybrał A („pigułki sesji w wierszu menu Start”), potem B — bo przeglądarkę będzie się otwierać też
+  z innych miejsc. Odrzucone: A, C „strona sesji w menu”. Wariant „rozwija pod sobą wiersze” nie mieścił się na ekranie
+  768 px.
+- **Menu sesji (0.10.0 krok 5, D2; zostaje obok okienka sesji):** prawy przycisk na „Przeglądarce” w menu Start — „Otwórz”
+  (pogrubione; od 0.10.1 otwiera okienko sesji), kreska, napis „Sesje” i wiersz na sesję (jej nazwa), potem jak u aplikacji
+  („Dodaj do pulpitu”). Okienka i menu paska: „Przeglądarka · <sesja>”.
 - **Sesja, która pamięta / zapomina (krok 5):** pasek w pełnym kolorze sesji = pamięta; jasny pasek i „· zapomina po
   zamknięciu” = zapomina (według tego, jak strefa ruszyła). Ustawienia → Miejsce: część „Strefy” w szałwii `#5F8A6A`.
 
