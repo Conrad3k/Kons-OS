@@ -91,7 +91,7 @@ Nowy czat: przebieg każdego kroku:
 [ ]  3  Pliki: przyciski, szczegóły, pusty folder           W10–W11          1           D4, T4           M        brak
 [ ]  4  Ramka okna strefy: kolor sesji dyskretnie           W12              1           D1, T5           M        0048
 [ ]  5  Pulpit, tapeta; porządki; wydanie 0.10.7            W13–W15          1–4         D5, D6           M        brak
-(ADR 0048: następny wolny po 0046 i 0047 z 0.10.5; 0.10.9 Filmy bierze następne.)
+(ADR 0048: następny wolny po 0046 i 0047 z 0.10.5; 0.10.9 Filmy i szybka grafika bierze następne.)
 
 
 3. KROKI
@@ -186,7 +186,7 @@ KROK 5: Pulpit, tapeta; porządki; wydanie 0.10.7                              M
   [ ] Napisy pod ikonami pulpitu (W13, D6).
   [ ] Tapeta (W14, D5): szkice wszystkich pięciu wariantów „dziś / matowa krawędź”; zmiana tylko po wyborze właściciela.
   [ ] Porządki wersji PATCH: pliki blisko limitu (W15), Tymczasowe, DO_ZROBIENIA.
-  [ ] Wydanie: VERSION 0.10.7; CHANGELOG (kroki 1 do 5, najpierw „co widzisz”); DO_ZROBIENIA: „Teraz” → 0.10.9 Filmy
+  [ ] Wydanie: VERSION 0.10.7; CHANGELOG (kroki 1 do 5, najpierw „co widzisz”); DO_ZROBIENIA: „Teraz” → 0.10.9 Filmy i szybka grafika
       (docs/PLAN-0.10.9.txt), lista dla właściciela (z kroku 4); ten plik → docs/archiwum/. Po scaleniu: CI, tag
       k1-v0.10.7, wydanie, raport z linkami.
   Testy i dowód: pełny komplet w CI; test-wzorce (pulpit-ikony, oba motywy; tapety: miniatury w Ustawieniach → Wygląd).
