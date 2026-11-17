@@ -18,12 +18,14 @@ Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR (krok 2 
 Mało kroków (prośba właściciela z 2026-11-14): były CZTERY kroki (krok 4 — okno przeglądarki: zmiana rozmiaru
 i maksymalizacja — dodany na prośbę właściciela tego samego dnia). 2026-11-15 właściciel dodał krok 5 (Raptor Bridge —
 weryfikacja mostu między strefami a K1 i jego dokumentacja) i krok 6 (przegląd całej dokumentacji repozytorium);
-wydanie przeszło z kroku 4 do kroku 6. Każdy krok daje coś, co widać; krok 6 kończy się wydaniem 0.10.5 — bez
-osobnego kroku wydania.
+wydanie przeszło z kroku 4 do kroku 6. 2026-11-17 właściciel dodał krok 7 (Alt+Tab — przełączanie okien — oraz
+przeglądarka przypinana do paska i kładziona na pulpit jak inne aplikacje); krok 7 idzie PRZED krokiem 6 (numery się nie
+zmieniają, a krok 6 przegląda dokumentację po wszystkich krokach i wydaje). Każdy krok daje coś, co widać; krok 6 kończy
+się wydaniem 0.10.5 — bez osobnego kroku wydania.
 
-ZAKRES ZAMROŻONY (ADR 0035): poniższe 6 kroków i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 7 kroków i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
-zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b, 3a/3b 4a/4b, 5a/5b albo 6a/6b (wydanie zawsze w ostatniej części kroku 6).
+zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b, 3a/3b 4a/4b, 5a/5b 7a/7b albo 6a/6b (wydanie zawsze w ostatniej części kroku 6).
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
 Statusy wiedzy: Z KODU (z czytania kodu K1 0.9.1 — przed 0.10.0; krok 1 sprawdza jeszcze raz na kodzie po 0.10.0),
@@ -32,12 +34,15 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
-Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4, krok 5, krok 6.
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4, krok 5, krok 7,
+krok 6 (krok 7 dodany później — przed wydaniem).
 Cała wersja zaczyna się po wydaniu 0.10.1 (Balon, docs/archiwum/PLAN-0.10.1.txt — decyzja właściciela z 2026-11-16; tamten plan
 zmienia VMM, nadzorcę i Zasoby). Krok 1 zależy od Ustawień po 0.10.0 krok 5; krok 2 potrzebuje stref
 i łącznika z 0.10.0; krok 4 zależy tylko od 0.10.0 (okno strefy w zaufanej ramce); krok 5 (Raptor Bridge) zależy tylko
-od 0.10.0 — można go zrobić wcześniej, zalecane przed krokiem 2 (krok 2 buduje na tym moście); krok 6 idzie ostatni,
-bo przegląda dokumentację po wszystkich krokach i kończy się wydaniem.
+od 0.10.0 — można go zrobić wcześniej, zalecane przed krokiem 2 (krok 2 buduje na tym moście); krok 7 (Alt+Tab,
+przeglądarka na pasku i pulpicie) zależy tylko od 0.10.2 (opis ekranu — testy klikają po nazwach), zalecany po kroku 4
+(oba zmieniają ekran i okna stref — mniej zderzeń); krok 6 idzie ostatni, bo przegląda dokumentację po wszystkich
+krokach i kończy się wydaniem.
 
 Właściciel — co wpisać w nowym czacie (podmień N):
     „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.5.txt.”
@@ -87,7 +92,10 @@ Do tego okno przeglądarki przestaje mieć stały rozmiar: rozciągasz je za brz
 „Maksymalizuj” na pasku tytułu (albo podwójne kliknięcie paska) rozkłada je na cały ekran — od dolnej krawędzi górnego
 paska do górnej krawędzi dolnego paska, więc oba paski K1 zawsze zostają widoczne.
 
-Sześć kroków:
+I dwie wygody z Windowsa: Alt+Tab przełącza między otwartymi oknami (aplikacji K1 i sesji przeglądarki), a Przeglądarkę
+przypinasz do dolnego paska i kładziesz na pulpit tak samo jak Notatki czy Pliki.
+
+Siedem kroków (kolejność: 1–5, 7, 6):
   1. Ustawienia → Aktualizacje: nowy panel (wersja, stan miejsc A/B, aktualizacja z pendrive'a — przeniesiona
      z Instalatora); okno Ustawień trochę większe, żeby zmieściła się nowa sekcja.
   2. Aktualizacje przez sieć: strefa do pobierania (HTTPS), sprawdzanie i pobieranie, pytanie przed instalacją.
@@ -96,6 +104,7 @@ Sześć kroków:
   5. Raptor Bridge: sprawdzenie mostu, którym strefy (przeglądarka, a później inne aplikacje) łączą się ze światem przez
      K1 — próby obciążenia i ataku, poprawki — i porządna dokumentacja tego mostu.
   6. Przegląd całej dokumentacji repozytorium: usunięcie powtórzeń i rzeczy zbędnych — i wydanie 0.10.5.
+  7. Alt+Tab (przełączanie okien) i Przeglądarka na pasku i pulpicie jak inne aplikacje (przed krokiem 6).
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
@@ -106,13 +115,15 @@ Sześć kroków:
 [ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11       M        0046
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
 [ ]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
-[ ]  6  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–5         D10              M        —
+[ ]  6  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–5, 7      D10              M        —
+[ ]  7  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
 (Numery ADR — następne wolne po ADR 0045 z 0.10.2; jeśli zajmą więcej, krok bierze kolejne wolne.)
 
 Dlaczego tyle: krok 1 to sama aplikacja (bez sieci) — panel, okno i przeniesienie, łatwe do przetestowania osobno;
 krok 2 to nowa droga danych (strefa, łącznik, zapis do wolnego miejsca A/B) i własny ADR; krok 3 to CI (robot); krok 4
 to ekran i strefa (inna część systemu niż kroki 1–3); krok 5 to przegląd i testy jednej części, na której stoją
-przeglądarka, aktualizacje (krok 2) i przyszłe aplikacje w strefach; krok 6 to sama dokumentacja i wydanie.
+przeglądarka, aktualizacje (krok 2) i przyszłe aplikacje w strefach; krok 6 to sama dokumentacja i wydanie; krok 7
+(dodany 2026-11-17) to pulpit i ekran — klawiatura i pasek, bez sieci i bez strefy w środku.
 Dlaczego robot po krokach 1–2: jego pierwsze wydanie przechodzi już przez aktualizację sieciową z kroku 2 — to jest jej
 pierwszy prawdziwy test. Robot nie zmienia systemu, więc nie blokuje niczego w krokach 1–2. Robot scalony w kroku 3
 działa do wydania 0.10.5 tylko w trybie próbnym (bez scalania i wydań) — inaczej wydałby 0.10.x przed 0.10.5; pełny
@@ -407,7 +418,8 @@ KROK 6 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M �
       zostało po przeniesieniu z Instalatora (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–5;
       DO_ZROBIENIA.txt — „Teraz” → następna wersja, lista testów na X230 i IdeaPadzie dla 0.10.5 (Ustawienia →
       Aktualizacje, aktualizacja z pendrive'a z Ustawień, „Sprawdź teraz”, pierwsza aktualizacja przez sieć, gdy robot
-      wyda następną wersję, zmiana rozmiaru i maksymalizacja przeglądarki na obu ekranach); ten plik → docs/archiwum/.
+      wyda następną wersję, zmiana rozmiaru i maksymalizacja przeglądarki na obu ekranach, Alt+Tab z Firefoksa i do
+      niego, Przeglądarka przypięta do paska i na pulpicie — krok 7); ten plik → docs/archiwum/.
       Po scaleniu: CI, tag k1-v0.10.5, wydanie z ogłoszeniem i paczką; potem robot w pełny tryb (krok 3: jedna zmiana
       w robot.yml, osobny commit po wydaniu); raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
       0.10.5 instaluje się jeszcze z pendrive'a — kolejne już przez sieć.
@@ -416,6 +428,62 @@ KROK 6 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M �
   Gotowe, gdy: przegląd zamknięty (lista w opisie PR-a), sprawdzenia zielone, wydanie k1-v0.10.5 istnieje
   z ogłoszeniem i paczką, robot w pełnym trybie, raport z linkami.
   Ustalenia z wykonania: (pusto — wypełnia krok 6)
+
+KROK 7 — Alt+Tab; Przeglądarka na pasku i pulpicie                         M · decyzje D11 D12, T16 T17 · bez ADR
+  Dodany przez właściciela 2026-11-17; idzie PRZED krokiem 6 (wydanie). Dwie wygody pulpitu, które dziś mają inne
+  systemy, a K1 nie: przełączanie okien klawiaturą i Przeglądarka traktowana jak każda inna aplikacja.
+  Cel: (a) Alt+Tab przełącza między otwartymi oknami — aplikacji K1 i sesji przeglądarki (stref) — także wtedy, gdy
+  fokus ma przeglądarka; (b) Przeglądarkę da się przypiąć do dolnego paska i położyć na pulpicie (i odpiąć, usunąć
+  z pulpitu) tak samo jak Notatki czy Pliki; po ponownym starcie wraca na swoje miejsce.
+  Na początku: D11 i D12 (szkice przełącznika okien w obu motywach); przeczytaj „Ustalenia z wykonania” kroku 4, jeśli
+  jest już zrobiony (ekran i okna stref), i opis gui (docs/komponenty/gui.md: pasek, rozmieszczenie, okienko sesji).
+  Co widzi użytkownik:
+    Alt+Tab — przytrzymujesz Alt i naciskasz Tab: na środku ekranu pojawia się przełącznik okien (wg D11) — każde
+    otwarte okno (także zminimalizowane) jako kafelek z ikoną i nazwą; okno sesji przeglądarki z kropką w kolorze sesji
+    i jej nazwą („Przeglądarka · Bank”). Każde następne Tab — następny kafelek, Shift+Tab — poprzedni, Esc — anuluj;
+    puszczenie Alt pokazuje wybrane okno na wierzchu (zminimalizowane wraca). Szybkie Alt+Tab (bez przytrzymania)
+    przełącza do okna używanego przed chwilą. Jedno okno — Alt+Tab nic nie robi; bez okien — też.
+    Przeglądarka na pasku i pulpicie — menu pod prawym przyciskiem na „Przeglądarce” w menu Start ma, jak każda
+    aplikacja, „Przypnij do paska” / „Odepnij od paska” i „Dodaj do pulpitu” / „Usuń z pulpitu”; ikona na pulpicie ma
+    „Otwórz”, „Przypnij do paska”, „Usuń z pulpitu”. Kliknięcie przypiętej ikony (i podwójne kliknięcie ikony na
+    pulpicie) robi to, co „Przeglądarka” w menu Start: okienko „Którą sesję otworzyć?” (jedna sesja — bez pytania).
+    Okna otwartych sesji na pasku — wg D12.
+  Zadania:
+  [ ] Ekran — Alt+Tab (T16, S42–S44): ekran rozpoznaje Tab przy wciśniętym Alt (także Shift+Tab, Esc i puszczenie Alt
+      w trakcie przełączania) i oddaje je powłoce (gui) jak klawisz Super — nigdy oknu z fokusem; strefie z fokusem
+      wysyła najpierw puszczenie Alt (inaczej przeglądarka zostałaby z „wciśniętym” Alt — S43). Strefa nie może
+      przełączyć okien ani zablokować Alt+Tab (nie ma takiego komunikatu, a klawiatura idzie przez ekran). Kod
+      w wskaznik.c (246 wierszy) albo osobnym pliku ekranu, jeśli rośnie.
+  [ ] gui — przełącznik okien (T16, D11, S45): kolejność ostatnio używanych okien (gui widzi zmianę aktywnego okna —
+      tak już mówi nadzorcy o fokusie stref, pamiec.c), przełącznik rysowany na panelu okienek (`okienko_wlasne`, jak
+      okienko sesji i „Mało pamięci” — nie nowy panel), wybór przez AKTYWUJ_OKNO. Nowy moduł src/gui/przelacznik.c.
+      Opis ekranu (ADR 0045): panel „Przełącznik okien”, kafelki po tytułach aplikacji, sesje jako „sesja N”.
+  [ ] Rozmieszczenie (T17, S46–S47): przeglądarka jako pozycja paska i ikona pulpitu — nowy rodzaj klucza (jak Kosz:
+      np. ROZM_PRZEGLADARKA; jeden klucz dla wszystkich sesji wg D12), pasek trzyma klucze zamiast numerów aplikacji
+      (dziś uint8_t = numer aplikacji) — nowy zapis „K1R3”, „K1R2” i „K1R1” dalej czytane (test_rozmieszczenie
+      i fuzz_rozmieszczenie: stare zapisy, nowe klucze, uszkodzone bajty). pulpit.c ma 486 wierszy — dziel przed
+      rozbudową (osobny commit), jeśli zmiana go powiększa.
+  [ ] gui — pasek, pulpit, menu (D12, S48): wiersze menu dla Przeglądarki jak dla aplikacji (menu Start, pasek,
+      ikona pulpitu), kliknięcie przypiętej / podwójne kliknięcie na pulpicie → okienko sesji (`sesje.c`, to samo co
+      z menu Start), kropka „uruchomiona”, gdy któraś sesja ma okno; przeciąganie na pasku i pulpicie jak dla
+      aplikacji; „Ułóż ikony” uwzględnia Przeglądarkę. Przy pierwszym starcie — wg D12.
+  Testy i dowód: test-m4 (przebieg „pulpit”, klikanie po nazwach): Start → prawy przycisk na „Przeglądarce” → „Przypnij
+  do paska” i „Dodaj do pulpitu” → ikona na pasku i na pulpicie (zrzuty obu motywów); kliknięcie ikony na pasku →
+  okienko sesji; po ponownym starcie (przebieg „ponownie”) przypięta Przeglądarka i ikona wracają; odpięcie i usunięcie
+  z pulpitu. Alt+Tab: dwa okna aplikacji K1 (np. Notatki i Zegar) → Alt+Tab → aktywne drugie (log ekranu / opis),
+  przytrzymanie Alt i dwa Tab → przełącznik z kafelkami (zrzut obu motywów), Esc → bez zmiany, zminimalizowane okno
+  wraca. Okno strefy w Alt+Tab — test-strefa (strefa próbna z oknem: Alt+Tab z aplikacji K1 do strefy i ze strefy
+  z powrotem; gość loguje klawisze — nie dostaje Tab z Alt ani nie zostaje z wciśniętym Alt). Negatywne: strefa
+  z fokusem nie dostaje Alt+Tab (log gościa), złośliwy gość nie przełączy okien; zapis rozmieszczenia z nieznanym
+  kluczem → odrzucony cały (domyślne), jak dziś. Przeglądarka (Firefox) — właściciel na sprzęcie: Alt+Tab z Firefoksa
+  i do niego, Alt w Firefoksie po powrocie działa normalnie (od 0.10.1 bez testu przeglądarki w CI).
+  Dokumenty: gui.md (przełącznik okien, Przeglądarka na pasku i pulpicie, zapis K1R3), ekran.md (Alt+Tab do powłoki),
+  aplikacje.md (jeśli opis Przeglądarki tam jest), WYGLAD (D11, D12; zdanie „strefy nie przypina się” — poprawione),
+  SLOWNIK (przełącznik okien), TESTY.md, RYZYKA (R26 — przełącznik rysuje K1, strefa go nie podrobi ani nie zablokuje),
+  README (skróty klawiszowe, jeśli są opisane).
+  Gotowe, gdy: Alt+Tab przełącza okna aplikacji i stref, Przeglądarka przypina się i leży na pulpicie, wraca po
+  ponownym starcie; testy [OK]; w kroku 6 lista testów właściciela ma Alt+Tab i przypiętą Przeglądarkę.
+  Ustalenia z wykonania: (pusto — wypełnia krok 7)
 
 
 4. DECYZJE
@@ -468,6 +536,19 @@ Twoje (produkt):
 [!] D10 (krok 6) Co wolno usunąć przy przeglądzie dokumentacji. Rekomendacja: powtórzenia (zostaje jedno miejsce,
        reszta odsyła), nieaktualne zdania i zamknięte listy „do zrobienia”; NIE usuwamy historii (ADR, CHANGELOG,
        archiwum planów) — najwyżej status i odesłanie; pełna lista usuniętego w opisie PR-a, żebyś widział, co znikło.
+
+[!] D11 (krok 7) Wygląd i zachowanie przełącznika okien (Alt+Tab) — szkice do wyboru NA POCZĄTKU KROKU 7 (oba motywy).
+       Rekomendacja: jak w Windows 11, w stylu K1 — panel na środku ekranu (tło `pole`, zaokrąglenie 12, włoskowaty
+       obrys), w rzędzie kafelki 120 × 96: ikona aplikacji 40 px i nazwa pod nią (Plex Sans 13), sesja przeglądarki —
+       ikona globusa z kropką w kolorze sesji i nazwą sesji; wybrany kafelek z obwódką w kolorze akcentu; bez podglądu
+       treści okien (podgląd okna strefy pokazywałby jej treść poza oknem — i kosztuje pamięć na X230). Kolejność:
+       ostatnio używane najpierw; szybkie Alt+Tab — poprzednie okno; Shift — wstecz; Esc — anuluj; zminimalizowane też.
+[!] D12 (krok 7) Jak Przeglądarka wygląda na pasku i pulpicie. Rekomendacja: JEDNA ikona „Przeglądarka” (jak w menu
+       Start), nie osobna na każdą sesję — kliknięcie otwiera okienko „Którą sesję otworzyć?”; okna otwartych sesji
+       zostają na pasku jak dziś (po kresce, ikona z kropką w kolorze sesji), a przypięta ikona ma kropkę
+       „uruchomiona”, gdy któraś sesja ma okno. Przy pierwszym starcie (nowa instalacja) Przeglądarka przypięta i na
+       pulpicie, jak inne aplikacje z tym znacznikiem w tabeli; po aktualizacji — zapisane rozmieszczenie właściciela
+       zostaje, Przeglądarkę dodaje się samemu (K1 nie zmienia ułożonego pulpitu bez pytania).
 
 Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
     T1 Kanał aktualizacji (krok 1): Ustawienia dostają od nadzorcy osobny kanał, nie kanał Instalatora — inny UID
@@ -538,6 +619,14 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        w Pythonie (jak w dawnym test-przegladarka.sh, usuniętym w 0.10.1). Powód: Firefox w emulacji (kontener bez KVM) nie rusza, a sonda —
        tak, więc most da się sprawdzać lokalnie i w CI tym samym testem (wzór: sonda z PR #119, która znalazła błąd
        fd 0, gdy testy na hoście były zielone).
+    T16 Kto obsługuje Alt+Tab (krok 7): ekran rozpoznaje skrót (jak dziś klawisz Super — wskaznik.c) i oddaje go tylko
+       powłoce (gui); gui zna listę okien (OKNO), rysuje przełącznik na swoim panelu i wybiera okno przez AKTYWUJ_OKNO.
+       Nowy komunikat ani kanał nie jest potrzebny (KLAWISZ do powłoki już jest). Strefa z fokusem nie dostaje Tab
+       przy Alt i dostaje puszczenie Alt, zanim fokus odejdzie. Rozważone: przełącznik rysowany przez ekran — ekran
+       nie zna nazw sesji ani ikon aplikacji (to gui), a panel gui i tak jest rysowany przez K1, nad oknami (R26).
+    T17 Przeglądarka w rozmieszczeniu (krok 7): klucz na całą Przeglądarkę (wszystkie wiersze K1_STREFY z linią menu),
+       nie na sesję — nowa sesja w tabeli nie zmienia zapisu; pasek zapisany kluczami u32 jak ikony (format „K1R3”),
+       stare formaty czytane; bez zmian w skarbcu (ten sam obiekt K1_OB_ROZMIESZCZENIE, ADR 0028) — bez ADR.
 
 5. LUKI (z czytania kodu 0.9.1 i dokumentacji, 2026-11-14)
 ---------------------------------------------------------
@@ -671,6 +760,30 @@ Krok 6 (dodany 2026-11-15)
   S40 Z KODU. scripts/sprawdz-czytelnosc.py sprawdza dziś istniejące ścieżki docs/, opisy usług i komunikatów, spis
       ADR — nie sprawdza powtórzeń ani odesłań między dokumentami.
   S41 Wydanie 0.10.5 przeszło z kroku 4 do kroku 6 (2026-11-15) — robot (krok 3) czeka w trybie próbnym do kroku 6.
+
+Krok 7 (dodany 2026-11-17, z czytania kodu po 0.10.2 krok 2)
+  S42 Z KODU (src/ekran/wskaznik.c). Ekran śledzi Alt (K1_MOD_ALT w s.mody) i oddaje powłoce tylko Super; Tab idzie
+      do okna z fokusem — Alt+Tab trzeba przechwycić przed tym (także gdy fokus ma strefa).
+  S43 Z KODU (src/ekran/wskaznik.c). Strefie z fokusem ekran wysyła wciśnięcia i puszczenia Shift, Ctrl i Alt (gość ma
+      własną klawiaturę). Po Alt+Tab strefa traci fokus z wciśniętym Alt — bez puszczenia Alt Firefox po powrocie
+      uznałby Alt za trzymany (skróty zamiast liter). Przy zmianie fokusu ekran wysyła oknu FOKUS 0 (okna.c,
+      ustaw_fokus) — NIEPEWNE, czy VMM puszcza wtedy w gościu wciśnięte klawisze; sprawdzić (dotyczy też zmiany myszą).
+  S44 Z KODU. Tab czyta dziś tylko Ustawienia (haslo.c — przejście między polami hasła), bez Alt; Alt+Tab nie zabiera
+      więc niczego aplikacjom K1. Skrót systemu i tak wygrywa (jak w Windows).
+  S45 Z KODU (src/gui/okna.c, pamiec.c, kontekst.c). gui zna okna z OKNO (aplikacja, stan, strefa) i widzi zmianę
+      aktywnego okna (STREFA_FOKUS); kolejności ostatnio używanych nie trzyma — nowa lista w przelacznik.c. Okienka
+      spoza menu rysuje na panelu menu kontekstowego (`okienko_wlasne`) — przełącznik też tam.
+  S46 Z KODU (src/gui/rozmieszczenie.h). Pasek to uint8_t pasek[K1_APL_MAKS] — numery aplikacji 1..K1_APL_MAKS;
+      ikony to klucze u32 (aplikacja, ROZM_KOSZ, ROZM_PLIK + numer). Okno strefy na pasku to pozycja
+      K1_APL_MAKS + strefa (POZYCJA_STREFY) — tylko dopóki działa, „nie da się jej przypiąć” (gui.md, WYGLAD).
+  S47 Z KODU (src/gui/rozmieszczenie.h). ROZM_BAJTY_MAKS liczy pasek po 1 bajcie — nowy zapis z kluczami u32 zmienia
+      limit; zapis czytany pole po polu, zły bajt = domyślne (jak dziś) — test i fuzzing na nowy format.
+  S48 Z KODU (src/gui/sesje.c, menu_start.c). Okienko sesji otwiera się dziś z menu Start i z „Otwórz” w menu
+      Przeglądarki — ta sama funkcja dla paska i pulpitu. Menu Przeglądarki w Starcie ma „Otwórz” i listę sesji, bez
+      „Przypnij” i „Dodaj do pulpitu”.
+  S49 Z KODU (src/wspolne/k1_uslugi.h). „Na pasku i pulpicie przy pierwszym starcie” to kolumna K1_APLIKACJE —
+      K1_STREFY jej nie ma; Przeglądarka przy pierwszym starcie (D12) — kolumna w K1_STREFY albo stała w gui (wybór
+      w kroku, jedna tabela).
 
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
 -----------------------------------------------------------------------------------
