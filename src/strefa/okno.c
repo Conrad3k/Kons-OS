@@ -6,6 +6,7 @@
 
 #include "k1_klient.h"
 #include "k1_log.h"
+#include "k1_teraz.h"
 #include "k1_okno.h"
 #include "k1_rysuj.h"
 #include "okno.h"
@@ -16,6 +17,15 @@
 #define OKNO_MIN_W 320
 #define OKNO_MIN_H 240
 #define OKNO_ID 1
+/* The start screen (0.10.2 step 1, the owner's D1: sketch A): "Uruchamiam: <title> · <session>…" and a bar with a
+ * segment in the zone's colour moving to and fro — until the guest's program shows its window ("etap okno", T1); a
+ * guest that never said "etap start" (the test zone, future zones): until its first picture. Never longer than
+ * START_MAKS_S, then the guest's picture. Drawn by the main thread every ANIM_MS. */
+#define START_MAKS_S 300.0
+#define ANIM_MS 100
+#define PASEK_W 160
+#define ODCINEK_W 48
+#define OKRES_MS 1600u
 
 struct prost {
     uint32_t x0, y0, x1, y1; /* empty when x1 <= x0 */
@@ -27,6 +37,12 @@ static uint32_t szer, wys;
 static struct prost brud[2];  /* what each half lacks of the guest's picture (under mz.zamek) */
 static int obraz_gosc;        /* the guest has shown a picture (the "Uruchamiam …" text is gone) */
 static unsigned long klatki;
+static int czeka_okna, okno_gosc; /* "etap start" / "etap okno" from the guest (under mz.zamek) */
+static int obraz_przed_oknem;     /* its first picture came while the start screen stays (logged once) */
+static int schowane;              /* closed by the user: the surface is gone, the machine ends in the background */
+static double anim_t;             /* the start screen's last frame (k1_teraz) */
+static unsigned anim_n;
+static char sesja[K1_STREFA_NAZWA_MAKS + 1]; /* the session's name as the user set it (argv[4]), "" none */
 
 static void dodaj(struct prost *p, uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1)
 {
@@ -63,23 +79,88 @@ int okno_fd(void)
     return kl.fd;
 }
 
-/* "Uruchamiam …" in the colours of the theme, until the guest shows its first picture (D1: S1). */
-static void rysuj_start(void)
+/* The start screen in the colours of the theme; `faza` 0..1: where the segment is on the bar. Each frame draws all of
+ * it (both halves of the surface stay whole); after the first two only the bar goes to ekran. */
+static void rysuj_start(float faza)
 {
     const struct k1_motyw *m = k1_motyw(kl.ustawienia[K1_UST_MOTYW]);
     struct k1_obraz *o = k1_pow_rysuj(&okno);
-    char t[96];
+    float bx = (float)szer / 2 - PASEK_W / 2, by = (float)wys / 2 + 22;
+    char t[128];
     int32_t tw;
     if (o == NULL)
         return;
     k1_wyczysc(o, k1_kolor(m->tlo, 255));
-    snprintf(t, sizeof t, "Uruchamiam: %s…", mz.opis->tytul);
+    if (sesja[0])
+        snprintf(t, sizeof t, "Uruchamiam: %s · %s…", mz.opis->tytul, sesja);
+    else
+        snprintf(t, sizeof t, "Uruchamiam: %s…", mz.opis->tytul);
     tw = k1_tekst_szer(K1_CZ_TEKST, t);
     k1_ikona(o, (enum k1_ikona)mz.opis->ikona, (float)szer / 2 - 20, (float)wys / 2 - 70, 40, k1_kolor(m->tekst3, 255));
     k1_tekst(o, K1_CZ_TEKST, ((int32_t)szer - tw) / 2, (int32_t)wys / 2 + 4, t, k1_kolor(m->tekst, 255), 0);
-    k1_zaokraglony(o, (float)szer / 2 - 80, (float)wys / 2 + 22, 160, 4, 2, k1_kolor(m->tekst, 24));
-    k1_zaokraglony(o, (float)szer / 2 - 80, (float)wys / 2 + 22, 64, 4, 2, k1_kolor(mz.opis->kolor, 255));
-    k1_pow_zatwierdz(&kl, &okno);
+    k1_zaokraglony(o, bx, by, PASEK_W, 4, 2, k1_kolor(m->tekst, 24));
+    k1_zaokraglony(o, bx + faza * (PASEK_W - ODCINEK_W), by, ODCINEK_W, 4, 2, k1_kolor(mz.opis->kolor, 255));
+    if (anim_n++ < 2)
+        k1_pow_zatwierdz(&kl, &okno);
+    else
+        k1_pow_zatwierdz_obszar(&kl, &okno, (int32_t)bx - 2, (int32_t)by - 2, PASEK_W + 4, 8);
+}
+
+/* The next frame of the start screen, when its time came: the segment to and fro once in OKRES_MS. */
+static void animuj(void)
+{
+    double t = k1_teraz();
+    unsigned ms;
+    if ((t - anim_t) * 1000.0 < ANIM_MS)
+        return;
+    anim_t = t;
+    ms = (unsigned)((t - mz.start_t) * 1000.0) % OKRES_MS;
+    rysuj_start((float)(ms < OKRES_MS / 2 ? ms : OKRES_MS - ms) / (float)(OKRES_MS / 2));
+}
+
+/* The start screen stays (under mz.zamek): no picture of the guest yet, or its program said it will show a window and
+ * has not yet — within START_MAKS_S. */
+static int start_trwa(int jest_obraz)
+{
+    return !jest_obraz || (czeka_okna && !okno_gosc && k1_teraz() - mz.start_t < START_MAKS_S);
+}
+
+void okno_etap(int etap)
+{
+    if (etap == OKNO_ETAP_START)
+        czeka_okna = 1;
+    else if (etap == OKNO_ETAP_OKNO)
+        okno_gosc = 1;
+    obudz();
+}
+
+int okno_czas_ms(void)
+{
+    return kl.fd >= 0 && !schowane && !obraz_gosc ? ANIM_MS : -1;
+}
+
+void okno_sesja(const char *nazwa)
+{
+    char n[K1_STREFA_NAZWA_MAKS] = { 0 };
+    size_t dl = nazwa != NULL ? strnlen(nazwa, K1_STREFA_NAZWA_MAKS + 1) : 0;
+    if (dl == 0 || dl > K1_STREFA_NAZWA_MAKS)
+        return;
+    memcpy(n, nazwa, dl);
+    if (k1_strefa_nazwa_dobra(n)) { /* nadzorca's text, checked as every session's name */
+        memcpy(sesja, n, dl);
+        sesja[dl] = '\0';
+    }
+}
+
+void okno_schowaj(void)
+{
+    if (kl.fd < 0 || schowane)
+        return;
+    zamek_wez("okno: schowaj");
+    schowane = 1;
+    zamek_oddaj();
+    k1_pow_usun(&kl, &okno);
+    k1_log(TAG, "okno strefy zamknięte — maszyna kończy się w tle");
 }
 
 void okno_start(void)
@@ -102,7 +183,8 @@ void okno_start(void)
     szer = (uint32_t)(w < OKNO_MIN_W ? OKNO_MIN_W : w) & ~7u;
     wys = (uint32_t)(h < OKNO_MIN_H ? OKNO_MIN_H : h) & ~7u;
     k1_pow_utworz(&kl, &okno, OKNO_ID, (int32_t)szer, (int32_t)wys, K1_POW_OKNO, 0, 0);
-    rysuj_start();
+    anim_t = k1_teraz();
+    rysuj_start(0);
 }
 
 /* Copies rectangle r of the guest's picture (w × h, any size) into image o (the window), opaque. */
@@ -128,22 +210,32 @@ void okno_obraz(void)
     uint32_t w = 0, h = 0;
     int pol;
     struct prost r;
-    if (kl.fd < 0 || okno.czeka)
+    if (kl.fd < 0 || schowane || okno.czeka)
         return;
     pol = okno.pokazywana == 0 ? 1 : 0;
     zamek_wez("okno: obraz");
-    r = brud[pol];
     src = gpu_obraz(&w, &h);
+    if (!obraz_gosc && start_trwa(src != NULL)) {
+        if (src != NULL && !obraz_przed_oknem++)
+            k1_log(TAG, "pierwszy obraz gościa (%ux%u) — ekran startu zostaje do okna programu strefy", w, h);
+        zamek_oddaj();
+        animuj();
+        return;
+    }
+    r = !obraz_gosc ? (struct prost){ 0, 0, szer, wys } : brud[pol];
     if (src == NULL || r.x1 <= r.x0 || (o = k1_pow_rysuj(&okno)) == NULL) {
         zamek_oddaj();
         return;
     }
-    if (!obraz_gosc) { /* the first picture: the whole window (the "Uruchamiam …" text goes) */
-        r = (struct prost){ 0, 0, szer, wys };
+    if (!obraz_gosc) { /* the start screen goes: the whole window */
         k1_wyczysc(o, 0xff000000u);
         brud[1 - pol] = r;
         obraz_gosc = 1;
-        k1_log(TAG, "pierwszy obraz gościa (%ux%u)", w, h);
+        if (obraz_przed_oknem)
+            k1_log(TAG, "ekran startu zniknął: %s po %.1f s", okno_gosc ? "okno programu strefy" : "limit czasu",
+                   k1_teraz() - mz.start_t);
+        else
+            k1_log(TAG, "pierwszy obraz gościa (%ux%u)", w, h);
     }
     kopiuj(o, src, w, h, r);
     brud[pol] = (struct prost){ 0, 0, 0, 0 };
@@ -157,6 +249,11 @@ int okno_odbierz(void)
     struct k1_powierzchnia *p = &okno;
     struct k1_komunikat m;
     int wynik = OKNO_NIC;
+    if (schowane) { /* nothing is shown: what ekran says is drained, nothing more */
+        while (kl.fd >= 0 && k1_odbierz(&kl, &p, 0, &m) == 1)
+            ;
+        return wynik;
+    }
     while (kl.fd >= 0 && k1_odbierz(&kl, &p, 1, &m) == 1) {
         zamek_wez("okno: wejście");
         switch (m.typ) {

@@ -130,6 +130,7 @@ static void okresowe(void)
     wyslij_ustawieniom();
     sesje_okresowe();
     strefy_rozdziel(); /* 0.10.1 step 3 */
+    strefy_zamykanie(); /* 0.10.2 step 1 */
     bateria_archiwum(t);
     rozruch_po_starcie(t);
     if (zasoby_kanal >= 0 && t >= nastepny_raport) {

@@ -62,7 +62,10 @@ void strefy(void)
     EXPECT(zle(K(K1_KOM_STREFY_STAN, 0, wszystkie + 1, 1, 1, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(zle(K(K1_KOM_STREFY_STAN, 0, 0, 2, 1, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(zle(K(K1_KOM_STREFY_STAN, 0, 0, 1, 1, -1, 0), K1_KIER_OD_NADZORCY));
-    EXPECT(zle(K(K1_KOM_STREFY_STAN, 0, 0, 1, 1, 0, 1), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_STREFY_STAN, 0, 0, 1, 1, 0, 1), K1_KIER_OD_NADZORCY)); /* closing, but not running */
+    EXPECT(ok(K(K1_KOM_STREFY_STAN, 0, 0, 1, 1, 6, 2), K1_KIER_OD_NADZORCY));  /* 0.10.2: zone 2 is closing */
+    EXPECT(zle(K(K1_KOM_STREFY_STAN, 0, 0, 1, 1, 6, 3), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_STREFY_STAN, 0, 0, 1, 1, wszystkie, -1), K1_KIER_OD_NADZORCY));
     EXPECT(zle(K(K1_KOM_STREFY_STAN, 1, 0, 1, 1, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(zle(K(K1_KOM_STREFY_STAN, 0, 0, 1, 1, 0, 0), K1_KIER_DO_NADZORCY)); /* from nadzorca only */
     /* Ustawienia → nadzorca */
@@ -100,6 +103,16 @@ void strefy(void)
     EXPECT(zle(K(K1_KOM_STREFA_BALON, 2, K1_STREFA_PAMIEC_MAKS + 1, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(zle(K(K1_KOM_STREFA_BALON, 2, 512, 1, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(zle(K(K1_KOM_STREFA_BALON, 2, 512, 0, 0, 0, 0), K1_KIER_STEROWANIE));
+    /* 0.10.2 step 1: closing in the background — the VMM says it, nadzorca asks it (power off) */
+    EXPECT(ok(K(K1_KOM_STREFA_ZAMYKA, 0, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(zle(K(K1_KOM_STREFA_ZAMYKA, 2, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(zle(K(K1_KOM_STREFA_ZAMYKA, 0, 0, 0, 0, 0, 1), K1_KIER_DO_NADZORCY));
+    EXPECT(zle(K(K1_KOM_STREFA_ZAMYKA, 0, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(ok(K(K1_KOM_STREFA_ZAMKNIJ, 2, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_STREFA_ZAMKNIJ, 0, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_STREFA_ZAMKNIJ, K1_STREFY_MAKS + 1, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_STREFA_ZAMKNIJ, 2, 1, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(zle(K(K1_KOM_STREFA_ZAMKNIJ, 2, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY)); /* never from a zone */
     /* 0.10.1 step 3: the focus from gui, a session's share and "Mało pamięci" to Zasoby and gui */
     EXPECT(ok(K(K1_KOM_STREFA_FOKUS, 0, 2, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(ok(K(K1_KOM_STREFA_FOKUS, 0, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY)); /* no zone has the focus */

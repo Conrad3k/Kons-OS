@@ -118,6 +118,8 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | Pojęcie | Znaczenie |
 |---|---|
 | **strefa** | Mikro-maszyna wirtualna z własnym jądrem dla obcej aplikacji (przeglądarka, Discord…). Błąd w niej nie sięga K1. |
+| **ekran startu** (strefy) | To, co okno strefy pokazuje, zanim program strefy pokaże swoje okno: „Uruchamiam: <tytuł> · <sesja>…” z ruchomym paskiem w kolorze strefy (0.10.2 krok 1). Rysuje go VMM. |
+| **zamyka się (w tle)** | Sesja (strefa) po „zamknij”: okna już nie ma, a maszyna jeszcze kończy pracę — przeglądarka zapisuje sesję (0.10.2 krok 1). W okienku sesji: „zamyka się…”; otwarcie jej teraz czeka, aż maszyna skończy. |
 | **osobna / wspólna strefa** | Jedna aplikacja na maszynę albo kilka drobnych, zaufanych aplikacji w jednej (ADR 0024). Przeglądarka zawsze osobna. |
 | **stała / jednorazowa** | Strefa pamięta dane między uruchomieniami albo zaczyna zawsze od czysta i wszystko zapomina po zamknięciu. |
 | **pełna izolacja / szybka grafika** | Strefa rysuje procesorem albo dostaje kartę graficzną przez pośrednika (słabsza izolacja). |

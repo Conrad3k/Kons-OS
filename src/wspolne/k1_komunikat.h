@@ -344,7 +344,8 @@ enum k1_komunikat_typ {
      * Ustawienia (fd 4) and ekran (its control channel, K1_KIER_STEROWANIE); after STREFA_NAZWA of every zone */
     K1_KOM_STREFY_STAN = 170,    /* obiekt=0, a=bit nr-1: zone nr remembers (STALA), b=1 the computer has virtualization,
                                   * c=1 the vault is on a disk (else no zone remembers: a=0), d=bit nr-1: zone nr runs,
-                                  * e=0 */
+                                  * e=bit nr-1: zone nr is closing (0.10.2 step 1: its window is gone, its machine ends
+                                  * in the background — only a running zone: e ⊆ d) */
     K1_KOM_STREFA_NAZWA = 172,   /* obiekt=zone 1..K1_STREFY_MAKS, a..e=its session's name, K1_STREFA_NAZWA_MAKS bytes
                                   * (k1_strefa_nazwa_dobra); nadzorca → the three above, and Ustawienia → nadzorca: the
                                   * user renamed it */
@@ -368,6 +369,11 @@ enum k1_komunikat_typ {
                                    * K1_STREFA_PAMIEC_MAKS but e: 0..INT32_MAX) */
     K1_KOM_STREFA_BALON = 176,    /* to the VMM (and from the test program to nadzorca): obiekt=the zone, a=the balloon's
                                    * target 0..K1_STREFA_PAMIEC_MAKS MiB, b..e=0 */
+    /* 0.10.2 step 1: closing in the background — on the same channel (VMM's fd 7) */
+    K1_KOM_STREFA_ZAMYKA = 180,    /* from the VMM: obiekt=0, all 0 — the user closed it (its window is gone already), its
+                                    * machine ends in the background (the guest saves its session) */
+    K1_KOM_STREFA_ZAMKNIJ = 181,   /* to the VMM: obiekt=the zone, all 0 — close as the user would (K1 powers off: nadzorca
+                                    * waits for the zones before it stops the rest) */
     /* 0.10.1 step 3 (T6, the owner's D3): the computer's memory for K1 and every zone */
     K1_KOM_STREFA_FOKUS = 177,     /* gui → nadzorca (its fd 4): obiekt=0, a=the zone whose window has the focus
                                     * 0..K1_STREFY_MAKS (0: none), b..e=0 — a hint for the rozdzielacz, nothing more */
@@ -452,11 +458,14 @@ enum { K1_STREFA_BEZ_WIRTUALIZACJI = 1, K1_STREFA_ZA_MALO_PAMIECI = 2, K1_STREFA
 #define K1_STREFA_KONIEC_OD K1_STREFA_KONIEC_PAMIEC /* b >= this: the zone ended (not: did not start) */
 /* The guest's test modes (URUCHOM_STREFE b; the test image only, gosc/gosc.h): 1..4 hostile guests (a broken queue —
  * gosc/zlosliwy.c), 5 an honest one that counts its starts on the disk; 0.10.1 step 2 (ADR 0044): 6..8 hostile to the
- * balloon, 9 an honest one that takes memory and gives it back (the balloon's scenario of test-strefa); step 3: 10 */
+ * balloon, 9 an honest one that takes memory and gives it back (the balloon's scenario of test-strefa); step 3: 10;
+ * 0.10.2 step 1: 11 an honest one with a "window" like the browser's — its first picture at once, "etap okno" later,
+ * slow to close (it saves something on its disk, when it has one) */
 enum { K1_STREFA_TRYB_DYSK = 5, K1_STREFA_TRYB_BALON_OD = 6, K1_STREFA_TRYB_BALON_DO = 8, K1_STREFA_TRYB_PAMIEC = 9,
        K1_STREFA_TRYB_ROZDZIELACZ = 10 }; /* 0.10.1 step 3: an honest guest that keeps its memory free and waits — its
                                            * balloon is the rozdzielacz's, as a session's (test-strefa) */
-#define K1_STREFA_TRYB_MAKS 10
+enum { K1_STREFA_TRYB_OKNO = 11 };
+#define K1_STREFA_TRYB_MAKS 11
 #define K1_STREFA_PAMIEC_MAKS 65536 /* MiB: the largest memory of a zone (0.10.1 step 2, ADR 0044 T5) */
 /* 0.10.0 step 2 (ADR 0043 T9): the zones' connections (STREFA_POLACZ c, STREFA_GNIAZDO a, STREFA_ODMOWA a) */
 #define K1_STREFA_POLACZENIA_MAKS 128 /* at once in one zone (the relay in the zone has as many) */

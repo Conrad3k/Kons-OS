@@ -248,6 +248,8 @@ void przegladarka(int ster)
     int koniec = 0, krok = 0, okno[2], dysk, regula = 0; /* koniec 2: the browser out of time */
     struct zamykanie z = { 0, 0, -1, 0 };
     unsigned long zabite = pamiec_zabite(), zabite_od = zabite;
+    if (ster >= 0 && write(ster, "etap start\n", 11) != 11) /* 0.10.2 step 1: the start screen until "etap okno" */
+        loguj("kanał sterujący: zapis nieudany");
     katalog_tmpfs("/tmp", "mode=1777", 0);
     katalog_tmpfs("/run", "mode=0755", 0);
     dysk = dysk_montuj("/home") == 0; /* a session that remembers (dysk.c); else in memory */

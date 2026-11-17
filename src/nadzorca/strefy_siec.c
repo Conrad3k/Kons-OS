@@ -100,6 +100,10 @@ static void obsluz(int nr)
             strefa_pamiec(nr, &k);
             continue;
         }
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFA_ZAMYKA) { /* 0.10.2 step 1: strefy_zamyk.c */
+            strefa_zamyka(nr);
+            continue;
+        }
         if (w != K1_ODB_JEST || k.typ != K1_KOM_STREFA_POLACZ) {
             k1_log(TAG, "strefa %d: odrzucono prośbę VMM", nr);
             continue;

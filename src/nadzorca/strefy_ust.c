@@ -17,7 +17,7 @@ static int kanal = -1, wczytane, czyta; /* our channel to skarbiec (owner K1_WL_
 static unsigned wersja = 1;
 static struct {
     unsigned wersja;
-    int32_t a, b, c, d;
+    int32_t a, b, c, d, e;
     pid_t ekran;
 } wyslane[CELE];
 static int czyszczenie[K1_STREFY_MAKS + 1]; /* 1: Ustawienia asked, 2: the test program */
@@ -98,8 +98,9 @@ static void wyslij(int cel, int fd, pid_t ekr)
     struct k1_komunikat s = k1_komunikat_nowy(K1_KOM_STREFY_STAN, 0, bity(0), access(DEV "/kvm", F_OK) == 0, dysk(),
                                               bity(1), 0);
     int nowy = wyslane[cel].wersja != wersja || wyslane[cel].ekran != ekr;
+    s.e = strefy_zamykane() & s.d; /* 0.10.2 step 1: closing in the background */
     if (fd < 0 || (!nowy && s.a == wyslane[cel].a && s.b == wyslane[cel].b && s.c == wyslane[cel].c &&
-                   s.d == wyslane[cel].d))
+                   s.d == wyslane[cel].d && s.e == wyslane[cel].e))
         return;
     for (int nr = 1; nr <= K1_STREFY_MAKS && nowy; nr++)
         if (ses[nr].nazwa[0] != '\0') {
@@ -115,6 +116,7 @@ static void wyslij(int cel, int fd, pid_t ekr)
     wyslane[cel].wersja = wersja;
     wyslane[cel].ekran = ekr;
     wyslane[cel].a = s.a, wyslane[cel].b = s.b, wyslane[cel].c = s.c, wyslane[cel].d = s.d;
+    wyslane[cel].e = s.e;
 }
 
 void sesje_nowy_kanal(int kto)

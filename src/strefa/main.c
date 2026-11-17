@@ -3,12 +3,14 @@
  *   argv[1] = the zone number (its row of K1_STREFY), argv[2] = the guest's test mode (test image only; 0: none),
  *   argv[3] = the guest's memory in MiB — its upper limit (0.10.1 step 2, ADR 0044: the balloon gives back what it does
  *   not use; nadzorca's pamiec_stref.c),
+ *   argv[4] = the session's name as the user set it (0.10.2 step 1: the start screen says it; none: the row's),
  *   fd 3 = the channel to ekran (role STREFA), fd 4 = /dev/kvm, fd 5 = the zone kernel, fd 6 = the zone image,
  *   fd 7 = the channel to nadzorca for the browser's connections (polaczenia.c; 0.10.0 step 2, ADR 0043 T9),
  *   fd 8, 9 = a zone that remembers: a channel to skarbiec and its empty disk (dane.c; 0.10.0 step 5) — or neither.
  * Trust boundary: the guest is hostile (strefa.h); ekran and nadzorca are trusted. The machine ends when the guest
- * ends, when it does something only a hostile guest does (the reason in the log), or 10 s after "close" (K1_KOM_ZAMKNIJ
- * from ekran) when the guest has not ended by itself. */
+ * ends, when it does something only a hostile guest does (the reason in the log), or ZAMKNIJ_S after "close" (K1_KOM_ZAMKNIJ
+ * from ekran, or STREFA_ZAMKNIJ from nadzorca when K1 powers off) when the guest has not ended by itself. Since 0.10.2
+ * step 1 the window goes at once on "close" and nadzorca hears STREFA_ZAMYKA: the machine ends in the background. */
 #include <errno.h>
 #include <poll.h>
 #include <signal.h>
@@ -129,13 +131,32 @@ static void pamiec_krok(void)
 /* After "zamknij": the guest gives its program 20 s (gosc/przegladarka.c), then syncs its disk (each piece through
  * skarbiec) and ends; the VMM waits that long and more before it ends the machine itself. */
 #define ZAMKNIJ_S 40.0
+static double zamknij_do;
+
+/* "close" from ekran (the user) or nadzorca (K1 powers off): the window goes now, nadzorca hears that the zone is
+ * closing (gui: "zamyka się…"), the guest is asked to end. Once. */
+static void zamknij(const char *kto)
+{
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_STREFA_ZAMYKA, 0, 0, 0, 0, 0, 0);
+    if (zamknij_do > 0)
+        return;
+    zamknij_do = k1_teraz() + ZAMKNIJ_S;
+    mz.zamykana_t = k1_teraz();
+    mz.zamykana = 1;
+    k1_log(TAG, "zamykam strefę na prośbę %s", kto);
+    okno_schowaj();
+    if (k1_kanal_wyslij(FD_NADZORCA, &k, sizeof k, -1) != 0)
+        mz.nieznane++;
+    okno_zamknij_goscia();
+}
 
 static void petla(void)
 {
-    double zamknij_do = 0;
     while (!mz.koniec) {
         struct pollfd p[2 + 2 + K1_STREFA_POLACZENIA_MAKS] = { { mz.budzik, POLLIN, 0 }, { okno_fd(), POLLIN, 0 } };
         int czas = zamknij_do > 0 ? 500 : 1000, n;
+        if (okno_czas_ms() >= 0)
+            czas = okno_czas_ms(); /* the start screen's bar moves */
         petla_krok("deskryptory połączeń");
         n = 2 + pol_deskryptory(p + 2, 2 + K1_STREFA_POLACZENIA_MAKS);
         petla_krok("poll");
@@ -149,14 +170,10 @@ static void petla(void)
                 mz.nieznane++;
         }
         petla_krok("wiadomości ekranu");
-        if (okno_fd() >= 0 && (p[1].revents & (POLLIN | POLLHUP | POLLERR)) && okno_odbierz() == OKNO_ZAMKNIJ &&
-            zamknij_do == 0) {
-            zamknij_do = k1_teraz() + ZAMKNIJ_S;
-            mz.zamykana_t = k1_teraz();
-            mz.zamykana = 1;
-            k1_log(TAG, "zamykam strefę na prośbę ekranu");
-            okno_zamknij_goscia();
-        }
+        if (okno_fd() >= 0 && (p[1].revents & (POLLIN | POLLHUP | POLLERR)) && okno_odbierz() == OKNO_ZAMKNIJ)
+            zamknij("ekranu");
+        if (mz.prosba_nadzorcy)
+            zamknij("nadzorcy (wyłączanie K1)");
         petla_krok("obraz okna");
         okno_obraz();
         petla_krok("balon");
@@ -193,6 +210,7 @@ int main(int argc, char **argv)
     mz.budzik = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
     if (mz.budzik < 0 || przygotuj() != 0 || dane_start() != 0)
         k1_koniec(TAG, "nie można przygotować maszyny");
+    okno_sesja(argc > 4 ? argv[4] : NULL);
     okno_start();
     if (kvm_uruchom() != 0 || stroz_start() != 0)
         k1_koniec(TAG, "nie można uruchomić procesorów");

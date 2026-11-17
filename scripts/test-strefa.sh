@@ -21,6 +21,9 @@
 #      tylko do odczytu) — kończy się tylko ta strefa, z powodem w logu; K1 działa dalej
 #   8. NEGATYWNE: procesor bez wirtualizacji — nadzorca mówi „brak wirtualizacji”, nic nie startuje, nadzorca żyje
 #   9. obraz produkcyjny nie ma strefy próbnej (tylko jądro strefy)
+#  (0.10.2 krok 1) EKRAN STARTU do okna programu strefy (gość z „oknem” — tryb 11), pasek w ruchu; ZAMYKANIE W TLE:
+#      okno znika od razu, maszyna kończy się potem; otwarcie w trakcie zamykania — nadzorca czeka i otwiera sam;
+#      WYŁĄCZANIE przy działającej strefie: najpierw strefa się zamyka i zapisuje dysk, potem reszta K1
 #  10. (0.10.0 krok 5) strefa pamięta: K1 z dyskiem danych (K1-DANE), strefa próbna dostaje dysk w skarbcu (/dev/vdb,
 #      ext4 z pustego dysku strefy) — gość liczy na nim swoje uruchomienia: pierwsze 1, po złośliwych gościach 2; po
 #      „Wyczyść dane sesji” znów 1
@@ -312,6 +315,63 @@ sprawdz("„Zamknij” w okienku zamyka sesję: okno strefy, maszyna kończy si�
         mp and czekaj(r"K1-GUI: okienko \(mało pamięci\): zamykam sesję 1", czas=30) and
         czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 10\)", czas=300) and
         not re.search(r"K1-GUI: strefa 1 zamknęła się", q.tekst()))
+# 0.10.2 step 1 (S1, S2, T1; the owner's D1): the start screen stays until the guest's program shows its window — the
+# test guest (mode 11) says "etap start", shows its first picture at once and its "window" 8 s later
+OKNO_STREFY = r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)"
+sprawdz("EKRAN STARTU (0.10.2 krok 1): gość z „oknem” (tryb 11) mówi „etap start”; jego pierwszy obraz przychodzi, a ekran "
+        "startu zostaje",
+        czekaj(r"K1-TEST: strefy: strefa próbna uruchomiona \(tryb 11\)", czas=300) and
+        czekaj(r"K1-STREFA: gość: program strefy startuje — ekran startu do jego okna", czas=240) and
+        czekaj(r"K1-STREFA: pierwszy obraz gościa \(\d+x\d+\) — ekran startu zostaje do okna programu strefy", czas=120))
+t_ = q.tekst()
+o2 = czekaj(OKNO_STREFY, od=len(re.findall(OKNO_STREFY, t_[:t_.find("strefa skończyła się (tryb 10)")])), czas=30)
+nr2, w2, h2, x2, y2 = (int(o2.group(i)) for i in range(1, 6)) if o2 else (0, 0, 0, 0, 0)
+
+
+def odcinek(px):  # where the segment in the zone's colour is on the start screen's bar (-1: not there)
+    by = y2 + h2 // 2 + 24
+    return next((dx for dx in range(-80, 80) if blisko(px(x2 + w2 // 2 + dx, by), PIASEK, 40)), -1)
+
+
+def ekran_startu(w, h, px):
+    return o2 and not blisko(px(x2 + w2 // 2, y2 + h2 // 6), TLO_GOSCIA) and odcinek(px) >= -80
+
+
+w, h, px = q.zrzut("10-ekran-startu", gdy=ekran_startu)
+d1 = odcinek(px)
+sprawdz("…obraz gościa jest, a okno pokazuje „Uruchamiam…” z paskiem w kolorze strefy (zrzut strefa-10-ekran-startu)",
+        ekran_startu(w, h, px) and not re.search(r"K1-STREFA: ekran startu zniknął", q.tekst()), f"odcinek {d1}")
+w, h, px = q.zrzut("11-pasek-w-ruchu", gdy=lambda w, h, px: ekran_startu(w, h, px) and odcinek(px) not in (-1, d1),
+                   czas=5)
+sprawdz("…pasek w ruchu: odcinek przesuwa się (dwa zrzuty)", odcinek(px) not in (-1, d1), f"{d1} → {odcinek(px)}")
+sprawdz("…ekran startu znika dopiero przy „etap okno” (8 s po pierwszym obrazie), potem obraz gościa (zrzut strefa-12-okno)",
+        czekaj(r"K1-STREFA: gość: okno przeglądarki po", czas=120) and
+        czekaj(r"K1-STREFA: ekran startu zniknął: okno programu strefy po [\d.]+ s", czas=30) and
+        blisko(q.zrzut("12-okno", gdy=lambda w, h, px: blisko(px(x2 + w2 // 2, y2 + h2 // 6), TLO_GOSCIA))[2](
+            x2 + w2 // 2, y2 + h2 // 6), TLO_GOSCIA))
+# 0.10.2 step 1 (S3, T2): "zamknij" — the window goes at once, the machine ends in the background (the guest takes 6 s,
+# as the browser saving its session); meanwhile the test program asks for the same zone again (D2: it opens after)
+PASEK2 = r"K1-EKRAN: strefa: pasek okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr2)
+n_ = q.ile(PASEK2)
+q.idz(x2 + w2 // 2, y2 + 60)
+q.idz(x2 + w2 // 2, y2 - TYTUL // 2)
+p2 = czekaj(PASEK2, od=n_, czas=30)
+KONIEC1 = r"K1-STREFA: strefa 1: koniec"
+n_kon = q.ile(KONIEC1)
+if p2:
+    q.klik(int(p2.group(3)), int(p2.group(4)))
+zamk = p2 and czekaj(r"K1-EKRAN: okno {} zamknięte".format(nr2), czas=30)
+sprawdz("ZAMYKANIE W TLE: po „zamknij” okno strefy znika od razu — maszyna jeszcze działa (gość zapisuje sesję)",
+        zamk and q.ile(KONIEC1) == n_kon and
+        czekaj(r"K1-STREFA: okno strefy zamknięte — maszyna kończy się w tle", czas=10) and
+        czekaj(r"K1-NADZORCA: strefa 1 zamyka się w tle \(okno zamknięte\)", czas=10))
+sprawdz("…potem gość kończy (6 s), maszyna kończy się; okno zniknęło przed jej końcem",
+        czekaj(r"K1-GOSC: zamknięty po 6 s", czas=120) and czekaj(KONIEC1 + r" — gość zakończył pracę", od=n_kon, czas=60))
+sprawdz("OTWARCIE W TRAKCIE ZAMYKANIA (D2): nadzorca czeka na starą maszynę i sam otwiera strefę ponownie",
+        czekaj(r"K1-NADZORCA: strefa 1 jeszcze się zamyka — otworzę ją, gdy skończy", czas=10) and
+        czekaj(r"K1-NADZORCA: strefa 1 skończyła się — otwieram ją ponownie", czas=60) and
+        czekaj(r"K1-TEST: strefy: strefa otwarta ponownie po zamknięciu \(tryb 5\)", czas=60) and
+        czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 5\)", od=2, czas=300))
 sprawdz("K1 działa dalej po złośliwych gościach: nadzorca, ekran i pulpit bez awarii",
         czekaj(r"K1-TEST: strefy: koniec scenariusza", czas=60) and
         not re.search(r"K1-NADZORCA: (ekran|gui|nadzorca).*zakończon", q.tekst()))
@@ -320,7 +380,32 @@ sprawdz("brak zabronionych wywołań i paniki; strefa nie otwiera plików ani gn
         "zabronione wywołanie" not in t_ and "Kernel panic" not in t_)
 if start and gotowy:
     print(f"  [info]  czas startu strefy (od maszyny do „gotowa”): w logu {start.group(0)[:60]}", flush=True)
-q.monitor("quit")
+# 0.10.2 step 1 (S5): Start → Wyłącz while a zone that remembers runs — nadzorca asks it to close and waits; the guest
+# writes its disk on closing (as the browser saves its session), then K1 powers off
+GOTOWA = r"K1-GOSC: gotowa: urządzenia wejścia 2, kanał sterujący jest"
+ost = czekaj(r"K1-TEST: strefy: strefa próbna uruchomiona \(tryb 0\)", od=1, czas=60)
+t_ = q.tekst()
+n_g = len(re.findall(GOTOWA, t_[:t_.rfind("strefa próbna uruchomiona (tryb 0)")]))
+sprawdz("WYŁĄCZANIE: strefa (tryb 0, pamięta) działa, gdy K1 się wyłącza", ost and czekaj(GOTOWA, od=n_g, czas=240))
+KAWALKI = r"K1-STREFA: dysk strefy: kawałki wczytane \d+, zapisane [1-9]\d*, błędy 0"
+n_kaw = q.ile(KAWALKI)
+m = czekaj(r"K1-GUI: (?:pasek zmieniony|pulpit gotowy): Start (\d+),(\d+)", czas=10)
+nm = q.ile(r"menu Start otwarte")
+if m:
+    q.klik(int(m.group(1)), int(m.group(2)))
+m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);", od=nm, czas=30)
+if m:
+    q.klik(int(m.group(4)), int(m.group(5)))
+wyl = m and czekaj(r"K1-NADZORCA: wyłączanie: najpierw zamykam strefy \(1, najwyżej 30 s\)", czas=30)
+sprawdz("…nadzorca najpierw prosi strefę o zamknięcie (jak „zamknij” na pasku), gość zapisuje dysk i kończy się",
+        wyl and czekaj(r"K1-STREFA: zamykam strefę na prośbę nadzorcy \(wyłączanie K1\)", czas=30) and
+        czekaj(r"K1-GOSC: dysk: zamknięcie zapisane: tak", czas=60) and
+        czekaj(KAWALKI, od=n_kaw, czas=60))
+sprawdz("…dopiero potem K1 wyłącza resztę (skarbiec przyjął zapis) i komputer się wyłącza",
+        wyl and czekaj(r"K1-NADZORCA: strefy zamknięte — wyłączam resztę", czas=60) and
+        czekaj(r"K1: wyłączanie zasilania", czas=60) and czekaj(r"reboot: Power down", czas=60))
+if not re.search(r"reboot: Power down", q.tekst()):
+    q.monitor("quit")
 qemu.wait()
 
 # ---- a processor without virtualization ----

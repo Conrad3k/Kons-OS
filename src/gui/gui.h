@@ -90,6 +90,7 @@ void strefa_stan(const struct k1_komunikat *m); /* fd 5 (0.10.0): a zone did not
 void strefy_sesje(const struct k1_komunikat *m);
 const char *nazwa_sesji(int nr); /* the session's name of zone nr ("" for a zone without one) */
 int sesja_pamieta(int nr);        /* zone nr remembers (STREFY_STAN a; 0 without K1-DANE — 0.10.1 step 4) */
+int sesja_zamyka_sie(int nr);     /* zone nr is closing in the background (STREFY_STAN e — 0.10.2 step 1) */
 /* The name of item `apl` (an application, or a zone: "Przeglądarka · Bank") into `buf`. */
 const char *nazwa_pozycji(int apl, char *buf, size_t n);
 void wskaznik_gora(const struct k1_komunikat *m);

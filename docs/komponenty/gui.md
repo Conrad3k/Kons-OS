@@ -95,7 +95,8 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   wszędzie, skąd przeglądarka się otwiera) pokazuje na środku ekranu okienko „Którą sesję otworzyć?”: kafelek na każdą
   strefę z tym samym obrazem (`K1_STREFY` — nowa sesja to nowy wiersz tabeli, gui się nie zmienia) — kropka w kolorze sesji,
   nazwa, „pamięta” / „zapomina” (`STREFY_STAN` a) albo „otwarta”, gdy sesja ma okno (kliknięcie wysuwa je na wierzch:
-  nadzorca nie uruchamia strefy drugi raz); „Anuluj” albo kliknięcie obok zamyka. Rysowane na panelu menu kontekstowego
+  nadzorca nie uruchamia strefy drugi raz), albo (0.10.2 krok 1) „zamyka się…”, gdy okno już zamknięto, a maszyna kończy się
+  w tle (`STREFY_STAN` e; kliknięcie działa — nadzorca otworzy sesję sam, gdy stara maszyna skończy; D2 właściciela); „Anuluj” albo kliknięcie obok zamyka. Rysowane na panelu menu kontekstowego
   (`kontekst.c`, cel `K_SESJE`). Jedna sesja — bez pytania. Log „okienko (sesje): sesja 2 x,y; sesja 3 x,y; sesja 4 x,y;
   Anuluj x,y”, potem „okienko (sesje): sesja N” albo „Anuluj”.
   Od 0.10.1 krok 3 (D3 właściciela: okienko A; `pamiec.c`): gdy zmienia się aktywne okno, gui mówi nadzorcy, która strefa

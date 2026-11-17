@@ -34,6 +34,7 @@ void pamiec_kolejnosc(uid_t uid, pid_t glowny); /* every other process of uid go
 int dysk_montuj(const char *gdzie);     /* 0: mounted; -1: none (a zone that forgets) or it failed (logged) */
 void dysk_odmontuj(const char *gdzie);  /* synced and unmounted */
 int dysk_licznik(const char *gdzie);    /* the test zone: the counter of starts on the disk, +1; logged */
+void dysk_zamkniecie(const char *gdzie); /* the test zone, when it closes: "zamkniecie" on the disk, synced; logged */
 
 /* zlosliwy.c — hostile modes (k1.tryb=1..4, 6..8, the test image only); TRYB_DYSK (5): an honest guest that counts its
  * start on the disk and ends by itself (test-strefa: the zone remembers; after "Wyczyść dane sesji" it starts from 1);
@@ -41,7 +42,11 @@ int dysk_licznik(const char *gdzie);    /* the test zone: the counter of starts 
  * TRYB_PAMIEC (9): an honest guest that takes memory and gives it back (pamiec.c) */
 enum { TRYB_ZWYKLY = 0, TRYB_ZLY_ADRES = 1, TRYB_PETLA = 2, TRYB_DLUGOSC = 3, TRYB_ZAPIS_RO = 4, TRYB_MAKS = 4,
        TRYB_DYSK = 5, TRYB_BALON_STRONA = 6, TRYB_BALON_BLOK = 7, TRYB_BALON_LISTA = 8, TRYB_PAMIEC = 9,
-       TRYB_ROZDZIELACZ = 10 /* 0.10.1 step 3: as TRYB_ZWYKLY; nadzorca's rozdzielacz decides its balloon */ };
+       TRYB_ROZDZIELACZ = 10 /* 0.10.1 step 3: as TRYB_ZWYKLY; nadzorca's rozdzielacz decides its balloon */,
+       TRYB_OKNO = 11 /* 0.10.2 step 1: as TRYB_ZWYKLY, but "etap start" first and "etap okno" OKNO_PO_S later (the
+                       * start screen stays between); closing takes ZAMYKANIE_S, as a browser that saves its session */ };
+#define OKNO_PO_S 8
+#define ZAMYKANIE_S 6
 int zlosliwy(int tryb);                 /* returns only when the VMM did not stop the machine */
 void pamiec_proba(void);                /* TRYB_PAMIEC: takes and frees memory (pamiec.c), then ends */
 void pamiec_podreczna(void);            /* TRYB_ROZDZIELACZ: the disk read into the page cache (0.10.1 step 3) */

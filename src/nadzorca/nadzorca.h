@@ -97,6 +97,7 @@ struct usluga {
     char argument[12];    /* its one argument, if any (dekoder: the application it decodes for; 0.8.2) */
     char argument2[4];    /* a second one (0.10.0: the VMM of a zone — the guest's test mode) */
     char argument3[8];    /* a third one (0.10.1 step 2: the VMM — the guest's memory, its upper limit in MiB) */
+    char argument4[K1_STREFA_NAZWA_MAKS + 1]; /* a fourth (0.10.2 step 1: the VMM — its session's name; "" none) */
 };
 
 /* uslugi[]: the system services (K1_SYSTEM), the applications, the VMMs of the zones (K1_STREFY, 0.10.0) */
@@ -123,7 +124,8 @@ void start(struct usluga *u);
 void opisz(const char *nazwa, int status);
 void zakonczona(struct usluga *u, int status);
 void uruchom_aplikacje(int apl);
-void wylacz(int restart);
+void wylacz(int restart);       /* gui asks: the zones close first (strefy_zamyk.c), then wylacz_teraz */
+void wylacz_teraz(int restart); /* init powers off (SIGTERM) or restarts (SIGINT) */
 void obsluz_gui(void);
 
 /* logi.c */
@@ -188,6 +190,12 @@ void strefa_uruchom(int nr, int tryb, int z_testu);
 /* The VMM of zone nr ended with `status` (waitpid): unless the user closed it, gui says why (0.10.0 step 3, S26);
  * `cicho` — K1 stopped it itself, or a test's hostile guest: only the log. */
 void strefa_koniec(int nr, int status, int cicho);
+/* strefy_zamyk.c (0.10.2 step 1): closing in the background, opening again while closing (D2), power off (S5) */
+void strefa_zamyka(int nr);       /* the VMM said STREFA_ZAMYKA: its window is gone, its machine ends */
+int strefa_otworz_po_zamknieciu(int nr, int tryb, int z_testu); /* 1: it is closing — it opens when it ended */
+int32_t strefy_zamykane(void);    /* bit nr-1: zone nr is closing (STREFY_STAN e) */
+int strefy_przed_wylaczeniem(int restart); /* 1: zones run — asked to close, wylacz_teraz follows (strefy_zamykanie) */
+void strefy_zamykanie(void);      /* every loop: a zone that waited opens; the power off once the zones ended */
 /* strefy_siec.c (0.10.0 step 2, ADR 0043 T9): the browser's connections — each running zone's channel (VMM's fd 7) */
 /* strefy_ust.c (0.10.0 step 5): the sessions as the user set them — kept in skarbiec, sent to gui, ekran, Ustawienia */
 int sesja_pamieta(int nr);        /* 1: zone nr gets its disk (it remembers, the vault is on a disk, they were read) */

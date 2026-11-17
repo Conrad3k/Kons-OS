@@ -2,7 +2,8 @@
  *   VSOCK_STEROWANIE (1): one connection, the guest's control channel — text lines "gotowa" (the guest is up) and
  *     "zamykam"; the VMM sends "zamknij" when ekran asks to close the zone (0.10.0 step 1); since step 3 (S26) also
  *     "koniec pamiec|awaria|sam" (why the browser ended by itself: K1 tells the user) and "pamiec strona" (a page
- *     killed for lack of memory), "etap okno" (the browser's first window: the time to the log, S30); since 0.10.1
+ *     killed for lack of memory), "etap okno" (the browser's first window: the time to the log, S30; since 0.10.2 the
+ *     end of the start screen after "etap start" — okno.c); since 0.10.1
  *     step 1 "liczniki A Z K" (the guest's memory, zram, OOM kills: one line of counters with ours, S13) and "kto P K R"
  *     (who ended and how, S15) — numbers only, checked by linia.c — only these exact lines, anything else is counted
  *     and ignored;
@@ -20,6 +21,7 @@
 #include "k1_log.h"
 #include "k1_teraz.h"
 #include "linia.h"
+#include "okno.h"
 #include "polaczenia.h"
 #include "strefa.h"
 
@@ -243,8 +245,13 @@ static void linia_od_goscia(void)
         kto(w);
     else if (strcmp(v.linia, "gotowa") == 0)
         k1_log(TAG, "gość gotowy (kanał sterujący) po %.1f s", k1_teraz() - mz.start_t);
-    else if (strcmp(v.linia, "etap okno") == 0) /* S30: how long the browser takes to start */
+    else if (strcmp(v.linia, "etap start") == 0) { /* 0.10.2 step 1: the start screen stays until "etap okno" */
+        okno_etap(OKNO_ETAP_START);
+        k1_log(TAG, "gość: program strefy startuje — ekran startu do jego okna");
+    } else if (strcmp(v.linia, "etap okno") == 0) { /* S30: how long the browser takes to start */
+        okno_etap(OKNO_ETAP_OKNO);
         k1_log(TAG, "gość: okno przeglądarki po %.1f s od startu maszyny", k1_teraz() - mz.start_t);
+    }
     else if (strcmp(v.linia, "zamykam") == 0)
         k1_log(TAG, "gość się zamyka");
     else if (strcmp(v.linia, "zamykanie gotowe") == 0 || strcmp(v.linia, "zamykanie sygnal") == 0 ||
