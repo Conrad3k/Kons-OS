@@ -78,7 +78,7 @@ Testy (kroki 2–3) — tego nie zobaczysz w systemie, ale zobaczysz w spokojnie
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [x]  1  Przeglądarka: ekran startu, zamykanie w tle         S1–S5            0.10.1      D1, D2, T1, T2   M        —   PR #144
 [x]  2  Opis ekranu dla testów; testy klikają po nazwach    S6–S8            0.10.1      T3, T4           M        0045 PR #145
-[ ]  3  Zrzuty wzorcowe; wydanie 0.10.2                       S9               2           D3, D4           M        —
+[w toku: Claude, gałąź claude/stoic-shannon-9iasoo]  3  Zrzuty wzorcowe; wydanie 0.10.2   S9   2   D3, D4   M   —
 (ADR 0045 — następny wolny po 0044 z 0.10.1; plany 0.10.5 i 0.10.7 biorą numery po tym.)
 
 
