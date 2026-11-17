@@ -18,6 +18,8 @@
 #   5b. KARTY, MINIMALIZACJA, CZEKANIE (0.10.1 krok 1, D1 właściciela): druga karta, 20 przełączeń kart z kursorem nad
 #      kartą (jej podgląd); 10 × minimalizuj na pasku K1 i przywróć z paska zadań; 1 min bez ruchu — przeglądarka żyje;
 #      przed poprawką kompozytora strefy (0.10.1) drugi podgląd karty kończył przeglądarkę (reguła 28)
+#   5c. PRZEWIJANIE PO NOWEJ KARCIE (0.10.1 krok 5, D6): długa strona w karcie z Ctrl+T, w karcie z „+” i po powrocie
+#      do starszej karty — kółko w dół i z powrotem (palców QEMU nie udaje: test_palce i stanowisko na hoście, TESTY.md)
 #   6. PAMIĘĆ (0.10.0 krok 3, S26; od przebiegu 142 na samym końcu, we własnej strefie): strona testowa zajmuje 1400 MiB w strefie, która ma 1536 MiB (jak ciężkie strony,
 #      po których na IdeaPadzie z 4 GB okno przeglądarki znikało) — strona dochodzi do końca, przeglądarka i strefa żyją
 #   7. zamknięcie okna: maszyna kończy się, liczniki połączeń w logu
@@ -341,6 +343,41 @@ def przewijanie():  # the long page: 3 notches down, then 5 up — back at the t
     return w_dol and w_gore
 
 
+def tam_i_z_powrotem():  # the wheel over the long page: 3 notches down, then 5 up — back at the top
+    n = len(przewiniecia())
+    q.kolko(x + w_ // 2, y + h_ // 2 + 40, w_dol=3)
+    w_dol = q.czekaj_na(lambda: any(v > 0 for v in przewiniecia()[n:]), czas=60)
+    n2 = len(przewiniecia())
+    q.kolko(x + w_ // 2 + 30, y + h_ // 2 + 60, w_dol=-5)
+    return w_dol and q.czekaj_na(lambda: len(przewiniecia()) > n2 and przewiniecia()[-1] == 0, czas=60)
+
+
+def dluga():  # the long page in the tab shown now
+    n = odebrane.count("/dluga-gotowa")
+    q.pisz("ctrl-l")
+    wpisz(f"10.0.2.2:{port}/dluga")
+    otworz_strone(60, "/dluga", lambda w, h, px: odebrane.count("/dluga-gotowa") > n)
+
+
+def nowa_karta():  # 0.10.1 step 5 (S20, D6): scrolling after a new tab — the empty tab KARTY opened with Ctrl+T, a tab
+    # opened by "+" (the pointer passes its tooltip), then back in the older one. Before 0.10.1 step 5 the fingers'
+    # gesture never ended, so after a new tab nothing scrolled, in any tab (the owner's IdeaPad; QEMU has no touchpad —
+    # the fingers: test_palce and the host stand, TESTY.md)
+    wyniki = []
+    for opis, klik in (("karta z Ctrl+T", None), ("karta z „+”", (x + 514, y + 22)),
+                       ("powrót do starszej karty", (x + KARTA2[0], y + KARTA2[1]))):
+        n = len(przewiniecia())
+        if klik:
+            q.klik(*klik)
+            time.sleep(3)
+        if klik is None or "+" in opis:
+            dluga()
+        wyniki.append(tam_i_z_powrotem())
+        print(f"            | {opis}: przewinięcia strony {przewiniecia()[n:]}", flush=True)
+    q.zrzut("10-nowa-karta")
+    return all(wyniki) and zyje()
+
+
 def pamiec():  # S26: the page that takes 1400 MiB; True when it got all of it and the zone lives on
     n0 = q.ile(r"K1-STREFA: gość: strona zakończona — brak pamięci")
     nk = q.ile(r"strefa 2: koniec")  # the sessions before closed zone 2 too (CI run 154): only a new end counts
@@ -531,6 +568,8 @@ sprawdz("MINIMALIZACJA: 10 × minimalizuj na pasku K1 i przywróć z paska zada�
         minimalizacja())
 sprawdz("CZEKANIE: dwie karty, 1 min bez ruchu — przeglądarka żyje, liczniki strefy co 5 s w logu (0.10.1 krok 1, D1 e)",
         czekanie(60))
+sprawdz("PRZEWIJANIE PO NOWEJ KARCIE: długa strona w karcie z Ctrl+T, w karcie z „+” i znów w starszej karcie — kółko "
+        "przewija w dół i z powrotem na górę (0.10.1 krok 5, D6; zrzut przegladarka-10-nowa-karta)", nowa_karta())
 koniec_ = zamknij_strefe()
 if not koniec_:
     pokaz(*q.zrzut("4-koniec"))

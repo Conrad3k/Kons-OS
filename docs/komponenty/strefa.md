@@ -137,7 +137,14 @@ Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka�
   wyskakujące menu z pozycjonerem; zdarzenia wejścia do każdego `wl_pointer`/`wl_keyboard` klienta (Firefox ma po dwa);
   „klatka gotowa” także po zatwierdzeniu bez zmian (inaczej GTK przestaje rysować). Kółko (krok 4): jedna ramka
   zdarzeń urządzenia = jedno przewinięcie `wl_pointer.axis` (10 jednostek na ząbek, jak weston); z ząbkami —
-  `axis_source` „wheel” i `axis_discrete`, same części ząbka (touchpad) — „finger”, więc Firefox przewija płynnie. Od
+  `axis_source` „wheel” i `axis_discrete`, palce na touchpadzie — „finger”, więc Firefox przewija płynnie. **Palce**
+  (0.10.1 krok 5, D6): ramkę z touchpada VMM oznacza `BTN_TOOL_FINGER` (wciśnięty i puszczony w tej samej ramce;
+  urządzenie wskazujące ma ten bit) — wcześniej „same części ząbka” znaczyły palce, a tak wygląda też precyzyjne kółko.
+  Gest palców kończy się ramką z `axis_source` „finger” i `axis_stop` (`palce.c`, czyste — `test_palce`): po 200 ms
+  bez ramki palców (K1 nie wysyła chwili podniesienia palców) albo od razu przed kółkiem, wciśnięciem przycisku
+  i zmianą powierzchni pod kursorem. Bez `axis_stop` gest w Firefoksie (APZ: blok gestu przesuwania) nie kończył się
+  nigdy i każde dalsze przewijanie szło do strony karty, w której palce przewinęły pierwszy raz — po nowej karcie nic
+  się nie przewijało, w żadnej karcie, aż do zamknięcia przeglądarki. Od
   kroku 5: **jeden ząbek = jedna ramka** `wl_pointer` (do 16, reszta w ostatniej), każda z późniejszym czasem — GTK robi
   z `axis_discrete` jednej ramki jeden krok bez względu na liczbę (przebieg CI 134: 5 ząbków w górę, 2 kroki), a Firefox
   pomija zdarzenie kółka z czasem poprzedniego. Ząbki skleja QEMU w teście i ekran, gdy klient nie nadąża.

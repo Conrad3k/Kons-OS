@@ -252,6 +252,12 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   użytkownik 1000, środowisko jak w `gosc/przegladarka.c`) i kompozytor zbudowany na hoście z ASan: `drm.c` zastąpiony
   wyświetlaczem w pamięci (zrzut PPM), `/dev/input/eventN` — kolejka FIFO, do której skrypt pisze `struct input_event`
   (EV_ABS 0…32767). Tak znaleziono regułę 28 (podgląd karty). Rola powierzchni: ta sama rola drugi raz jest dozwolona.
+  Od 0.10.1 krok 5 gotowe narzędzie: `scripts/stanowisko.sh [scenariusz]` (`testy/stanowisko/`, opis w TESTY.md).
+- *Przewijanie w strefie (0.10.1 krok 5):* GTK kończy gest touchpada przeglądarki tylko ramką z `axis_stop` — i tylko
+  z `axis_source` „finger” w tej samej ramce (bez niego bierze koniec za kółko); Firefox (APZ) wysyła każdą ramkę
+  niezakończonego gestu do celu z jego początku — bez `axis_stop` po nowej karcie nic się nie przewijało, w żadnej karcie.
+  Ramkę palców oznacza VMM (`BTN_TOOL_FINGER`), nie „same części ząbka” — tak wygląda też precyzyjne kółko. QEMU nie
+  udaje touchpada ani precyzyjnego kółka: palce w Firefoksie sprawdza stanowisko.
 - *Balon (0.10.1 krok 2):* bez FREE_PAGE_HINT zgłaszanie to kolejka 3; zgłaszane bloki to bufory do zapisu; pamięć
   wraca przez `fallocate(PUNCH_HOLE)` (nie `MADV_DONTNEED` — memfd współdzielony); gość ponad 3 GiB ma drugą część od
   4 GiB (`gosc_pamiec.dol`) — adres gościa zawsze przez `gp_wsk`. W emulacji (kontener) bezczynny gość bywa budzony
