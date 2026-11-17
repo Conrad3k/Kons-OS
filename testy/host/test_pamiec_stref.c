@@ -68,6 +68,11 @@ static void rozdzielacz(void)
     EXPECT(pamiec_moze_oddac(&s[0]) == 64);
     s[0].fokus = 0;
     EXPECT(pamiec_moze_oddac(&s[0]) == 1600 - 900 - 256);
+    /* old statistics (more free than the guest can have): the target never takes the guest below two zapasy */
+    s[0] = strefa(0, 2800, 2800), s[0].cel = s[0].balon = 2000;
+    EXPECT(pamiec_moze_oddac(&s[0]) == 2800 - (2900 - 2388) - (2800 - (2900 - 2000)));
+    EXPECT(pamiec_rozdziel(100, 768, s, 1, &z) != PAMIEC_KRYTYCZNIE || s[0].cel <= 2900 - 512);
+    EXPECT(s[0].cel <= 2900 - 512);
     /* statistics not known yet: nothing from that zone */
     s[0] = strefa(0, 2400, -1);
     EXPECT(pamiec_moze_oddac(&s[0]) == 0);

@@ -62,6 +62,8 @@ static int32_t oddaje(const struct pamiec_strefy *z, int32_t cel)
 static int32_t cel_maks(const struct pamiec_strefy *z)
 {
     int32_t a = z->balon + z->dostepna - zapas(z), b = (int32_t)z->granica - (int32_t)z->start, m = z->fokus && b < a ? b : a;
+    int32_t sufit = (int32_t)z->granica - 2 * zapas(z); /* whatever the guest says, it keeps at least two zapasy */
+    m = m < sufit ? m : sufit;
     return m > z->cel ? m : z->cel;
 }
 

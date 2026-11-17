@@ -241,7 +241,8 @@ o sobie (`STREFA_PAMIEC` — podpowiedź, nie prawda; twarda granica to `memory.
   na końcu i nigdy poniżej swojej pamięci na start (D3: „do jej minimum”); żadna nigdy w zapas gościa. Balon daje K1
   tylko pamięć, którą gość trzyma, a której nie potrzebuje (jego pamięć podręczna) — wolne strony gość oddał już sam
   (zgłaszanie), więc cel balonu to „gość tak duży, ile K1 ma go trzymać”: granica − (pamięć w K1 − to, co ma wrócić).
-  To, o co już poproszono, a gość jeszcze nie oddał, się liczy. K1 ma rezerwę i 128 MiB więcej → balony maleją (najpierw
+  To, o co już poproszono, a gość jeszcze nie oddał, się liczy; gość zawsze zostaje z co najmniej dwoma zapasami (sufit
+  celu — statystyki gościa przychodzą co kilka sekund, VMM odejmuje od nich to, co balon wziął od tamtej pory). K1 ma rezerwę i 128 MiB więcej → balony maleją (najpierw
   sesja z fokusem).
 - Żaden balon nie może wziąć więcej, a K1 dalej poniżej rezerwy (2 s z rzędu) → gui dostaje przydział każdej sesji
   (`STREFA_PRZYDZIAL`) i `MALO_PAMIECI`: okienko „Mało pamięci” (D3 (2); najwyżej raz na 2 min), log „mało pamięci: K1 ma

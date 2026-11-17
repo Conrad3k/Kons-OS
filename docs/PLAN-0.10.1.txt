@@ -310,6 +310,9 @@ KROK 3 — Pamięć komputera dla wszystkich                                    
     (D3: „balon sesji z fokusem do jej minimum”); sesje w tle oddają wszystko ponad potrzebę i zapas (256 MiB, najwyżej
     ćwierć granicy). Progi w tabeli PROGI (pamiec_stref.c): zapas 256, krok 256 MiB/s, histereza 128, krytycznie poniżej
     ćwierci rezerwy.
+  - CI 156 (KVM): cel balonu rósł 104 → 211 MiB, ponad całą pamięć strefy (182) — statystyki gościa przychodzą co 5 s,
+    rozmiar balonu od razu, więc wolna pamięć była sprzed pompowania. Poprawka: VMM odejmuje od wolnej pamięci to, co balon
+    wziął od ostatnich statystyk (balon.c), a rozdzielacz ma sufit — gość zawsze ma co najmniej dwa zapasy.
   - Fokus: gui → nadzorca (STREFA_FOKUS) przy zmianie aktywnego okna — gui i tak zna stan okien od ekranu (bez nowego
     kanału). oom_score_adj: dziś nadzorca nie ustawiał go nikomu (wszyscy 0); teraz VMM 800 w tle, 500 z fokusem.
   - Strefy programu testowego (tryby 0–9) mają balon „testowy”; rozdzielacz rządzi strefami z gui i trybem 10 — K1
