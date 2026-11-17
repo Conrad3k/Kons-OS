@@ -76,7 +76,8 @@ Testy (kroki 2–3) — tego nie zobaczysz w systemie, ale zobaczysz w spokojnie
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
-[ ]  1  Przeglądarka: ekran startu, zamykanie w tle         S1–S5            0.10.1      D1, D2, T1, T2   M        —
+[w toku: Claude, gałąź claude/magical-knuth-g7qpxl]
+     1  Przeglądarka: ekran startu, zamykanie w tle         S1–S5            0.10.1      D1, D2, T1, T2   M        —
 [ ]  2  Opis ekranu dla testów; testy klikają po nazwach    S6–S8            0.10.1      T3, T4           M        0045
 [ ]  3  Zrzuty wzorcowe; wydanie 0.10.2                       S9               2           D3, D4           M        —
 (ADR 0045 — następny wolny po 0044 z 0.10.1; plany 0.10.3 i 0.10.5 biorą numery po tym.)
@@ -156,11 +157,11 @@ KROK 3 — Zrzuty wzorcowe; wydanie 0.10.2                                      
 4. DECYZJE
 ----------
 Twoje (produkt):
-[!] D1 (krok 1) Ekran startu przeglądarki — szkice do wyboru (oba motywy). Rekomendacja: jak dziś (ikona, „Uruchamiam:
+[x] D1 (krok 1; właściciel 2026-11-17: A — pasek z odcinkiem w kolorze sesji) Ekran startu przeglądarki — szkice do wyboru (oba motywy). Rekomendacja: jak dziś (ikona, „Uruchamiam:
        Przeglądarka · Ogólna…”), pod spodem pasek, po którym przesuwa się odcinek w kolorze sesji (bez procentów —
        nie wiemy, ile zostało); do pojawienia się okna Firefoksa. Inne: kropki zamiast paska; zdanie „Pierwszy start może
        potrwać do minuty” po 20 s.
-[!] D2 (krok 1) Otwierasz tę samą sesję, która jeszcze się zamyka w tle. Rekomendacja: kafelek w okienku „Którą sesję
+[x] D2 (krok 1; właściciel 2026-11-17: rekomendacja — K1 czeka sam) Otwierasz tę samą sesję, która jeszcze się zamyka w tle. Rekomendacja: kafelek w okienku „Którą sesję
        otworzyć?” mówi „zamyka się…”; kliknięcie go przyjmuje — okno sesji pokazuje „Uruchamiam…” od razu, a maszyna
        startuje sama, gdy poprzednia skończy (najwyżej 40 s). Inne: kafelek nieaktywny do końca zamykania.
 [!] D3 (krok 3) Jak zatwierdzasz zmianę wyglądu. Rekomendacja: PR, który zmienia wygląd, ma w opisie obrazy „przed / po”
