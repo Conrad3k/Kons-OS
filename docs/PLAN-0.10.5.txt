@@ -125,8 +125,8 @@ Osiem kroków:
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
-[ ]  1  Ustawienia → Aktualizacje (z Instalatora)           S1–S6            0.10.0      D1 D2 D3, T1     M        —
-     [w toku: Claude, gałąź claude/nice-albattani-aqqb0y]
+[x]  1  Ustawienia → Aktualizacje (z Instalatora)           S1–S6            0.10.0      D1 D2 D3, T1     M        —
+     PR #152
 [ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16, S25, S50 1           D4 D5 D7 D13,    L        0046
                                                                                          T2–T7, T18
 [ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11, T18  M        0047
