@@ -329,7 +329,9 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 
 **Plan — jedno miejsce (ADR 0035):** stan, mapa drogi i otwarte decyzje — `docs/DO_ZROBIENIA.txt`; kroki bieżącej
 wersji — `docs/PLAN-<wersja>.txt` (samodzielny: luki, kroki, decyzje; zakres zamrożony, nowe pomysły → „Później”;
-numery kroków się nie zmieniają; zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
+numery kroków się nie zmieniają — wyjątek: **wydanie jest zawsze ostatnim krokiem** (decyzja właściciela 2026-11-17),
+więc nowy krok dodany do planu bierze numer kroku wydania, a wydanie przesuwa się na koniec, póki się nie zaczęło;
+zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
 Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (0.10.0 gotowe — plan w `docs/archiwum/PLAN-0.10.0.txt`: strefa próbna, przeglądarka, poprawki, przewijanie, sesje, które pamiętają; 0.10.1 Balon gotowe — pamięć strefy według potrzeby, `docs/archiwum/PLAN-0.10.1.txt`; 0.10.2 Testy gotowe — opis ekranu dla testów, zrzuty wzorcowe, dwa błędy przeglądarki, `docs/archiwum/PLAN-0.10.2.txt`; teraz 0.10.5 Aktualizacje przez sieć (`docs/PLAN-0.10.5.txt`) i 0.10.7 Filmy (sprzętowe dekodowanie filmów dla stref, `docs/PLAN-0.10.7.txt`; do 2026-11-17 „0.10.3”) (mikro-maszyny, ramka,
 przeglądarka; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery, TPM)
 → **0.13 Audyt** → 1.0. Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11,

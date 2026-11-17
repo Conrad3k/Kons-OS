@@ -78,7 +78,8 @@ Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kro
     [ ] 0.10.5 Aktualizacje przez sieć (Twoja prośba z 2026-11-14; plan: docs/PLAN-0.10.5.txt, po 0.10.1): Ustawienia →
         Aktualizacje (z Instalatora), pobieranie przez strefę z HTTPS i pytanie przed instalacją, robot na GitHubie
         (poprawki jądra i przeglądarki same do wydania, także nowe linie jądra), zmiana rozmiaru i maksymalizacja okna
-        przeglądarki (między górnym a dolnym paskiem)
+        przeglądarki (między górnym a dolnym paskiem); od 2026-11-17 (Twoja prośba) także Alt+Tab — przełączanie okien —
+        i Przeglądarka przypinana do paska i kładziona na pulpit jak inne aplikacje (krok 6; wydanie — krok 7, zawsze ostatni)
 
 0.11 Pliki ze stref (ADR 0027)
     [ ] pliki ze strefy („Do K1”) i do strefy („Wyślij do…”) przez Pliki (zgoda = gest w K1, pytanie tylko, gdy
