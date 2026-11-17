@@ -176,6 +176,10 @@ int main(void)
         }
         wylacz();
     }
+    if (t == TRYB_PAMIEC) { /* 0.10.1 step 2: the balloon's scenario, then the end */
+        pamiec_proba();
+        wylacz();
+    }
     if (t > TRYB_ZWYKLY) {
         zlosliwy(t);
         loguj("tryb %d: VMM nie zatrzymał maszyny", t);

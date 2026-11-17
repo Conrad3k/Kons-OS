@@ -30,13 +30,19 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 |---|---|
 | UID | z wiersza (strefa próbna: 300), bez grup i capabilities, `NoNewPrivs`, Landlock bez ścieżek |
 | deskryptory od nadzorcy | 3: kanał do ekranu (rola `STREFA`, numer strefy), 4: `/dev/kvm`, 5: jądro strefy (tylko odczyt), 6: obraz strefy (tylko odczyt), 7: kanał do nadzorcy — połączenia przeglądarki (0.10.0 krok 2); 8, 9 (krok 5, tylko sesja, która pamięta): kanał do skarbca (właściciel = profil wiersza strefy) i pusty dysk strefy `/rdzen/strefy/dysk.img` (tylko odczyt) |
-| seccomp (poza bazą) | `ioctl` tylko typu KVM (0xAE), `memfd_create`, `ftruncate`, `eventfd2`, `futex`, `getrandom`, `pread64`, `clone` tylko z `CLONE_THREAD`; od kroku 2: `shutdown`, `getsockopt` tylko `SO_ERROR` (gniazda od nadzorcy; VMM nie otwiera gniazd) |
-| cgroup | pamięć gościa + 184 MiB (od kroku 5: + pamięć podręczna dysku 16 MiB i bufor prośby 4 MiB); `pids.max` = 1 + procesory + 1 (stróż) + 1 (wątek dysku, krok 5) + 1 (zadanie KVM w procesie maszyny) |
-| `RLIMIT_FSIZE` | pamięć gościa (memfd jej pamięci) |
-| argumenty | numer strefy, tryb gościa testowego (0; 1–4 złośliwy, 5 licznik na dysku — tylko od programu testowego) |
+| seccomp (poza bazą) | `ioctl` tylko typu KVM (0xAE), `memfd_create`, `ftruncate`, `eventfd2`, `futex`, `getrandom`, `pread64`, `clone` tylko z `CLONE_THREAD`; od kroku 2: `shutdown`, `getsockopt` tylko `SO_ERROR` (gniazda od nadzorcy; VMM nie otwiera gniazd); od 0.10.1 krok 2: `fallocate` tylko z `PUNCH_HOLE \| KEEP_SIZE` (balon oddaje strony K1, ADR 0044 T2) |
+| cgroup | pamięć gościa (od 0.10.1 krok 2: jej górna granica — ADR 0044 T4, stała przez całe życie strefy) + 184 MiB (od kroku 5: + pamięć podręczna dysku 16 MiB i bufor prośby 4 MiB); `pids.max` = 1 + procesory + 1 (stróż) + 1 (wątek dysku, krok 5) + 1 (zadanie KVM w procesie maszyny) |
+| `RLIMIT_FSIZE` | pamięć gościa (memfd jej pamięci; od 0.10.1 krok 2 — górna granica) |
+| argumenty | numer strefy, tryb gościa testowego (0; 1–4 złośliwy, 5 licznik na dysku; od 0.10.1 krok 2: 6–8 złośliwy dla balonu, 9 pamięć — tylko od programu testowego), od 0.10.1 krok 2 pamięć gościa w MiB (górna granica od nadzorcy: `pamiec_stref.c`) |
 
 ## Maszyna
-- **Pamięć:** memfd z `MFD_NOEXEC_SEAL` od adresu 0 gościa (≤ 3 GiB, poniżej urządzeń); nigdy wykonywana przez K1.
+- **Pamięć:** memfd z `MFD_NOEXEC_SEAL`; nigdy wykonywana przez K1. Od adresu 0 gościa do 3 GiB (poniżej urządzeń), od
+  0.10.1 krok 2 (ADR 0044 T5) reszta większego gościa od 4 GiB — drugi wpis RAM w e820 i drugie miejsce pamięci KVM z tego
+  samego memfd (`gosc_pamiec.dol`; `gp_wsk` nie przepuszcza zakresu przez dziurę, kolejki virtio czytane tylko przez nie).
+- **Wielkość i balon** (0.10.1 krok 2, ADR 0044): gość dostaje swoją **górną granicę** — pamięć komputera minus rezerwa
+  K1 (D2: 768 MiB do 6 GiB pamięci komputera, 1 GiB od 6 GiB; nigdy mniej niż pamięć na start z wiersza `K1_STREFY`;
+  `src/nadzorca/pamiec_stref.c`) — ale K1 trzyma tylko strony, których gość dotknął; zwolnione wracają do K1 (balon,
+  niżej). Raz na sekundę VMM mówi nadzorcy `STREFA_PAMIEC`.
 - **Start:** 64-bitowy protokół startu Linuksa z pliku bzImage — jądro od 1 MiB, strona zerowa (nagłówek z jądra, e820,
   linia poleceń), GDT, tablice stron 1:1 (4 GiB), tablica MP (procesory, I/O APIC; bez ACPI). Linia poleceń gościa:
   urządzenia virtio-mmio, `console=hvc0 root=/dev/vda ro rootfstype=squashfs init=/init reboot=k panic=-1 k1.tryb=N`.
@@ -60,8 +66,9 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
   złośliwy gość testu. Wcześniej okno po prostu znikało.
 - **Liczniki** (0.10.1 krok 1, S13): `gosc` co 5 s wysyła „liczniki A Z K” (pamięć dostępna w gościu w MiB, zajęty zram
   w MiB, procesy zabite przez OOM gościa); VMM dokłada swoje i loguje jedną linię (najwyżej co 4 s, niezależnie od tego,
-  ile przyśle gość): `liczniki: gość — dostępna A MiB, zram Z MiB, zabite K; grafika: zasoby N, M MiB; połączenia P;
-  vsock czeka Q, odrzucone R`; przy końcu maszyny jeszcze raz (`liczniki przy końcu`). Same liczby (niezmiennik 8).
+  ile przyśle gość): `liczniki: gość — dostępna A MiB, zram Z MiB, zabite K; pamięć w K1 W MiB, oddane O MiB, balon B
+  MiB; grafika: zasoby N, M MiB; połączenia P; vsock czeka Q, odrzucone R` (pamięć w K1, oddane, balon — od 0.10.1 krok
+  2); przy końcu maszyny jeszcze raz (`liczniki przy końcu`). Same liczby (niezmiennik 8).
 - **Kto się skończył** (0.10.1 krok 1, S15): gdy przeglądarka albo kompozytor skończy się sam, `gosc` wysyła przed
   „koniec …” linię „kto P K R” — P 1 przeglądarka / 2 kompozytor, K kod wyjścia albo 128 + sygnał, R numer reguły
   kompozytora, którą przeglądarka złamała ostatnio (0: żadnej). VMM loguje `gość: przeglądarka zakończony (kod 1) —
@@ -78,6 +85,7 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 | ekran (gpu 2D) | 2 | zasoby ≤ 4096 × 4096 (razem ≤ 96 MiB), tło z pamięci gościa (sprawdzone przy dołączeniu), przeniesienie, pokazanie, odświeżenie → okno | polecenie krótsze niż jego struktura, brak miejsca na odpowiedź |
 | vsock | 3 | kanał sterujący (port 1 hosta): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30); od 0.10.1 krok 1 „liczniki A Z K” i „kto P K R” (same liczby, `linia.c`); od kroku 5 „zamykanie gotowe\|sygnal\|po czasie” (jak przeglądarka skończyła się po „zamknij” — czas w logu); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
 
+| balon (0.10.1 krok 2, ADR 0044) | 4 | `balon.c`: cechy `STATS_VQ`, `DEFLATE_ON_OOM`, `REPORTING`; kolejki 0 pompowanie, 1 spuszczanie (listy le32 numerów stron 4 KiB, najwyżej 256), 2 statystyki (VMM trzyma bufor i co 5 s oddaje go po świeże — `AVAIL` do `STREFA_PAMIEC`), 3 zgłaszanie wolnych bloków (bufory do zapisu, każdy blok z całych stron); strony z balonu i zgłoszone bloki → `fallocate(PUNCH_HOLE \| KEEP_SIZE)` na memfd — wracają do K1; konfiguracja: `num_pages` (cel od nadzorcy, `STREFA_BALON` → zmiana konfiguracji), `actual` (pisze gość; log, gdy dojdzie do celu); balon domyślnie pusty. Czyste części: `strony.c` | strona poza RAM gościa albo w dziurze, lista nie z całych numerów albo dłuższa niż 256, blok nie z całych stron, statystyki złej długości albo o nieznanym/powtórzonym znaczniku, zapis konfiguracji poza `actual` albo `actual` ponad pamięć gościa, zgłoszenie z częścią do odczytu |
 | dysk strefy (blk, krok 5) | 1 | drugi dysk gościa (`/dev/vdb`) do zapisu i odczytu, `FLUSH`, `SEG_MAX`; 2 GiB w kawałkach po 64 KiB przez pamięć podręczną `dysk.c`; strefa, która zapomina: 0 sektorów | prośba bez nagłówka, odczyt albo zapis > 4 MiB |
 
 Wspólne dla wszystkich (`virtq.c`, `mmio.c`): deskryptor poza pamięcią, pętla deskryptorów, deskryptor pośredni, do
@@ -176,6 +184,8 @@ Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka�
 |---|---|---|
 | `STREFA_POLACZ` | VMM → nadzorca (fd 7) | obiekt = połączenie 1…128; TCP: a = adres IPv4 (`k1_siec_serwer_dobry`), b = port 1…65535, c = `K1_STREFA_TCP`; DNS: a = b = 0, c = `K1_STREFA_DNS`; d = e = 0 |
 | `STREFA_GNIAZDO` | nadzorca → VMM (+ 1 deskryptor) | obiekt = połączenie, a = `K1_STREFA_TCP` (gniazdo TCP w trakcie łączenia) / `K1_STREFA_DNS` (gniazdo UDP do serwera DNS, port 53), reszta 0 |
+| `STREFA_PAMIEC` (0.10.1 krok 2, ADR 0044) | VMM → nadzorca, najwyżej raz na sekundę | obiekt 0, a = pamięć gościa trzymana w K1 (MiB — strony memfd), b = dostępna w gościu wg jego statystyk (−1: jeszcze brak; podpowiedź), c = w balonie, d = cel balonu, e = oddane K1 od startu (a–d: 0…`K1_STREFA_PAMIEC_MAKS`, e: 0…`INT32_MAX`) |
+| `STREFA_BALON` (0.10.1 krok 2) | nadzorca → VMM; program testowy → nadzorca | obiekt = strefa, a = cel balonu 0…`K1_STREFA_PAMIEC_MAKS` MiB, reszta 0; w kroku 2 nadzorca pompuje balon tylko na prośbę programu testowego |
 | `STREFA_ODMOWA` | nadzorca → VMM | obiekt = połączenie, a = `K1_STREFA_ODM_*` (adres poza D3, brak sieci albo DNS, limit, błąd gniazda), reszta 0 |
 | `URUCHOM_STREFE` | gui → nadzorca (fd 4); program testowy → nadzorca | `a` strefa 1…`K1_STREFY_MAKS`, `b` tryb gościa testowego 0…4 (≠ 0 tylko od programu testowego; gui — odrzucone), reszta 0 |
 | `STREFA_STAN` | nadzorca → gui (fd 5) | `a` strefa, `b` powód: nie ruszyła — `K1_STREFA_BEZ_WIRTUALIZACJI`, `_ZA_MALO_PAMIECI`, `_BRAK_OBRAZU`; zamknęła się sama (krok 3) — `K1_STREFA_KONIEC_PAMIEC` (pamięć strefy), `_PAMIEC_K1` (pamięć komputera), `_AWARIA`, `_BLAD`; od 0.10.1 krok 1 `_LIMIT` (8: strefa zużyła całą pamięć, którą K1 jej daje — limit klatki) (1…`K1_STREFA_STAN_MAKS`); reszta 0 |
@@ -194,9 +204,12 @@ Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka�
 Montuje `/proc`, `/sys`; rysuje wzór przez KMS (bufor „dumb”): granatowe tło, żółte rogi, pas — zielony po parzystej liczbie
 klawiszy, pomarańczowy po nieparzystej — i biały kwadrat w miejscu ostatniego kliknięcia; czyta wejście (`/dev/input`),
 loguje liczniki; „gotowa” i „zamykam” przez vsock; kończy przez `reboot`. Od kroku 5 strefa próbna pamięta: gość montuje
-dysk strefy w `/dane` i liczy na nim swoje uruchomienia („K1-GOSC: dysk: uruchomienie N”); tryb 5 — tylko to i koniec. Tryby złośliwe (`k1.tryb=1…4`): sam steruje
+dysk strefy w `/dane` i liczy na nim swoje uruchomienia („K1-GOSC: dysk: uruchomienie N”); tryb 5 — tylko to i koniec.
+Tryb 9 (0.10.1 krok 2, `pamiec.c`): zajmuje i zwalnia 64 MiB (zgłoszone wolne bloki wracają do K1), czeka, aż program
+testowy poprosi o balon 32 MiB i 0, po 55 s bierze naraz prawie całą swoją pamięć („skok … żyję”) i kończy się. Tryby złośliwe (`k1.tryb=1…4`): sam steruje
 urządzeniem w gnieździe LOSOWOSC przez `/dev/mem` (VMM nie podaje go jądru gościa i rezerwuje 1 MiB pamięci) — deskryptor
-poza pamięcią, pętla deskryptorów, odczyt 8 MiB, zapis do obrazu (w trybach 3–4 VMM wkłada tam virtio-blk).
+poza pamięcią, pętla deskryptorów, odczyt 8 MiB, zapis do obrazu (w trybach 3–4 VMM wkłada tam virtio-blk); od 0.10.1
+krok 2 tryby 6–8 — VMM wkłada tam balon: strona poza pamięcią (pompowanie), blok pół strony (zgłaszanie), lista 300 numerów.
 
 ## Testy
 | Test | Rodzaj |
@@ -204,6 +217,8 @@ poza pamięcią, pętla deskryptorów, odczyt 8 MiB, zapis do obrazu (w trybach 
 | `test_virtio`: łańcuchy, zapis i odczyt w łańcuchu, zawijanie pierścienia; wrogie łańcuchy (poza pamięcią, pętle, pośrednie, kolejność, skok indeksu); rejestry, cechy, gotowość kolejki, przerwania, reset | funkcjonalny, negatywny |
 | `test_strefa_start`: strona zerowa, e820, tablice stron, GDT, tablica MP (sumy); złe jądra i pamięci | funkcjonalny, negatywny |
 | `fuzz_virtq`: dowolna pamięć gościa i zapisy rejestrów | fuzzing |
+| `test_balon` (0.10.1 krok 2): listy stron (łączenie sąsiednich, pamięć ponad 4 GiB, dziura, koniec, nie z całych numerów, ponad 256), bloki zgłaszania, statystyki (długość, znacznik nieznany i powtórzony); `test_strefa_start` — e820 z drugą częścią, `gp_wsk` przez dziurę; `test_pamiec_stref` — górna granica (D2) | funkcjonalny, negatywny |
+| `fuzz_balon`: dowolna lista, blok, statystyki od gościa | fuzzing |
 | `test_dysk_strefy` (krok 5): losowe odczyty i zapisy na 64 MiB z pamięcią 16 MiB, `FLUSH` zapisuje wszystko, cały kawałek bez odczytu, granice dysku, źródło z błędem (błąd, nigdy inne dane; kawałek zostaje), kolejność zapisu, pełna pamięć podręczna bez możliwości zapisu | funkcjonalny, negatywny |
 | `test_sesje` (krok 5): format sesji w skarbcu — domyślne, zapis i odczyt, złe pole zostawia domyślne, nieznana strefa, uszkodzony obiekt | funkcjonalny, negatywny |
 | `test_komunikat` (krok 5): `STREFY_STAN`, `STREFA_*`, `SKARB_WYCZYSC`/`_WYCZYSZCZONO`, nazwy sesji (znaki sterujące, niewidoczne, kierunek, zły UTF-8), zakres obiektów dysku | negatywny |

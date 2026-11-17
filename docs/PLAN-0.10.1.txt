@@ -109,6 +109,7 @@ Pięć kroków:
 [x]  1  Awaria kart; pomiar i przyczyna, liczniki, powody   S1–S6, S12–S15  0.10.0      D1, T7           M        —
      PR #134
 [ ]  2  Balon: virtio-balloon, wolne strony wracają do K1   S7–S11           1           D2, T1–T5        L        0044
+     [w toku: Claude, gałąź claude/trusting-mayer-xiafha]
 [ ]  3  Pamięć komputera dla wszystkich                     S5, S14          2           D3, T6           M        —
 [ ]  4  Wybór sesji przeglądarki; Ustawienia → Przeglądarka S16–S19          0.10.0      D4, D5, T8       S        —
 [ ]  5  Przewijanie po nowej karcie; wydanie 0.10.1         S20–S22          1, 3, 4     D6               S        —
@@ -238,7 +239,28 @@ KROK 2 — Balon: virtio-balloon, wolne strony wracają do K1                   
   SLOWNIK (balon, przydział sesji, górna granica sesji), RYZYKA (gość kłamie o pamięci; strony oddane i dotknięte
   znowu), TESTY.md.
   Gotowe, gdy: scenariusze (a) i (b) zielone w CI, pamięć wraca do K1 (log), testy negatywne zielone, ADR 0044 w spisie.
-  Ustalenia z wykonania: (pusto — wypełnia krok 2)
+  Ustalenia z wykonania (2026-11-17):
+  - D2 (właściciel): górna granica = pamięć komputera minus rezerwa K1 (768 MiB do 6 GiB, 1 GiB od 6 GiB — tabela
+    src/nadzorca/pamiec_stref.c; IdeaPad ok. 2,9 GiB, X230 ok. 6,6 GiB, QEMU testu przeglądarki z 3 GiB ok. 2,1 GiB).
+    Kolumna pamięci K1_STREFY = pamięć na start (sprawdzana przy starcie jak dotąd: jest_pamiec — krok 3 ją rozszerzy).
+  - S9 POTWIERDZONE (ZE ŹRÓDEŁ): bez FREE_PAGE_HINT kolejki 0 pompowanie, 1 spuszczanie, 2 statystyki, 3 zgłaszanie
+    (vm_find_vqs w virtio_mmio.c numeruje tylko kolejki z nazwą). Zgłaszane bloki przychodzą jako bufory DO ZAPISU
+    (virtqueue_add_inbuf), statystyki — bufor, który VMM trzyma i oddaje po świeże.
+  - S10 POTWIERDZONE (próbą, test-strefa w emulacji): fallocate(PUNCH_HOLE | KEEP_SIZE) na memfd pamięci gościa działa
+    w klatce z RLIMIT_FSIZE = granica; klatka dostaje fallocate tylko z tym trybem (warunek seccomp na argumencie).
+    Gość 182 MiB: po starcie K1 trzyma 31 MiB, „oddane” 140 MiB; zajęte i zwolnione 64 MiB wracają w kilka sekund.
+  - T5 POTWIERDZONE (próbą): K1 w QEMU z 8 GiB → granica strefy próbnej 6906 MiB (część od 4 GiB); gość startuje,
+    widzi 6624 MiB dostępnej, K1 trzyma ok. 246 MiB (głównie struktury stron jądra gościa), zgłaszanie oddaje też
+    pamięć ponad 4 GiB („oddane 6444 MiB”). Kolejki virtio czytane tylko przez gp_wsk (gość może je położyć ponad 4 GiB).
+  - Balon na prośbę (program testowy → nadzorca → VMM): cel 32 MiB osiągnięty i z powrotem 0 (log VMM „gość ma w nim
+    N MiB (cel)”). Złośliwi goście balonu (tryby 6–8) kończą tylko swoją strefę z powodem w logu.
+  - Pułapka emulacji (kontener bez KVM): gość, który długo śpi bezczynnie, w zagnieżdżonej emulacji bywa budzony dużo
+    później, niż prosił (w logu gościa „rcu_sched self-detected stall”) — także bez balonu; raz zamknięcie strefy trwało
+    przez to ponad 40 s. Tryb 9 czeka więc aktywnie i pisze postęp co 10 s; VMM loguje liczniki co 5 s sam (nie tylko
+    po linii „liczniki” od gościa). Pełna ocena — CI z KVM.
+  - Nie zrobione w kroku 2 (zgodnie z planem — krok 3): kłamliwe statystyki gościa (gość ignoruje balon) jako test
+    negatywny; zasada pompowania balonów przy braku pamięci komputera; strona testowa ponad 1536 MiB w przeglądarce
+    (dziś: 1400 MiB — dalej przechodzi przy granicy ok. 2,1 GiB w QEMU testu).
 
 KROK 3 — Pamięć komputera dla wszystkich                                    M · decyzje D3, T6 · bez ADR (stosuje 0044)
   Cel: nadzorca dzieli pamięć komputera między K1 i wszystkie otwarte sesje: K1 zawsze ma swoją rezerwę, sesja
@@ -390,7 +412,8 @@ Twoje (produkt):
        Do uzupełnienia, jeśli się da (krok 1 zmierzy to i tak): zdanie pod tytułem okienka („Strony zajęły całą pamięć
        strefy…”, „Komputerowi zabrakło pamięci…”, „Program w strefie uległ awarii…” albo „Strefa zatrzymała się
        z powodu błędu…”) i pamięć „strefa-2” w Zasobach tuż przed awarią.
-[!] D2 (krok 2) Ile pamięci może dostać jedna sesja przeglądarki (górna granica). Rekomendacja: tyle, ile ma komputer,
+[x] D2 (krok 2) Ile pamięci może dostać jedna sesja przeglądarki (górna granica). DECYZJA właściciela 2026-11-16:
+       rekomendacja — pamięć komputera minus rezerwa K1. Rekomendacja: tyle, ile ma komputer,
        minus rezerwa K1 (D3) — czyli na 4 GB ok. 2,5–3 GB, na 8 GB ok. 6 GB; K1 i tak oddaje sesji tylko to, czego
        naprawdę używa, a resztę zabiera z powrotem. Mniejsza granica (np. połowa pamięci) chroni inne sesje, ale ciężka
        strona na 4 GB znów może nie zmieścić się w sesji.
@@ -574,6 +597,9 @@ Krok 4
 Krok 5
   S20 Z OBSERWACJI WŁAŚCICIELA (2026-11-16): przewijanie w przeglądarce psuje się po otwarciu nowej karty. Szczegóły —
       D6. Test PRZEWIJANIE (0.10.0 krok 4, test-przegladarka.sh przewijanie()) sprawdza tylko pierwszą kartę.
+      POTWIERDZONE W CI (przebieg 150, PR #134, krok 1): gdy scenariusz KARTY (Ctrl+T, 20 przełączeń) szedł PRZED
+      przewijaniem, strona przewinęła się w dół (228 px), ale z powrotem tylko do 114 — nie na górę. Od kroku 2 test
+      przewija przed nową kartą; krok 5 dopisuje przewijanie w nowej karcie (czerwone przed poprawką — jest odtworzenie).
   S21 Z KODU (src/strefa/kompozytor/wejscie.c). Kółko idzie tylko do powierzchni „pod kursorem” (pod_kursorem: kolko_ramka,
       KAZDY(wskazniki, pod_kursorem…)), a tę kompozytor wybiera na nowo TYLKO przy ruchu wskaźnika i puszczeniu
       przycisku (ruch()). Gdy powierzchnia pod kursorem zniknie (wejscie_zapomnij, wejscie_klient_koniec) — pod_kursorem

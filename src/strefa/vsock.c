@@ -176,9 +176,10 @@ void vsock_wyslij(void)
         mmio_uzyte(u);
 }
 
-/* The counters (0.10.1 step 1, S13): the guest's numbers from "liczniki" and ours, one line every few seconds — at
- * most one every LICZNIKI_ODSTEP s, whatever the guest sends — and once more at the machine's end (vsock_podsumowanie). */
-#define LICZNIKI_ODSTEP 4.0
+/* The counters (0.10.1 step 1, S13): the guest's numbers from "liczniki" and ours, one line every LICZNIKI_ODSTEP s
+ * (the main thread: vsock_liczniki — whatever the guest sends, or does not) and once more at the machine's end
+ * (vsock_podsumowanie). */
+#define LICZNIKI_ODSTEP 5.0
 static struct {
     uint32_t g[3];   /* the guest's: available MiB, zram MiB, OOM kills */
     int sa;          /* the guest sent them at least once */
@@ -188,14 +189,27 @@ static struct {
 static void liczniki_loguj(const char *kiedy)
 {
     unsigned zasoby, mib;
+    struct balon_stan b;
+    char g[80];
     gpu_liczniki(&zasoby, &mib);
+    balon_stan(&b); /* 0.10.1 step 2: what K1 holds of the guest's memory, the balloon */
     if (lz.sa)
-        k1_log(TAG, "liczniki%s: gość — dostępna %u MiB, zram %u MiB, zabite %u; grafika: zasoby %u, %u MiB; "
-                    "połączenia %u; vsock czeka %d, odrzucone %lu", kiedy, lz.g[0], lz.g[1], lz.g[2], zasoby, mib,
-               pol_zajete(), v.n_czeka, v.odrzucone);
+        snprintf(g, sizeof g, "dostępna %u MiB, zram %u MiB, zabite %u", lz.g[0], lz.g[1], lz.g[2]);
     else
-        k1_log(TAG, "liczniki%s: gość — brak; grafika: zasoby %u, %u MiB; połączenia %u; vsock czeka %d, odrzucone %lu",
-               kiedy, zasoby, mib, pol_zajete(), v.n_czeka, v.odrzucone);
+        snprintf(g, sizeof g, "brak");
+    k1_log(TAG, "liczniki%s: gość — %s; pamięć w K1 %u MiB, oddane %u MiB, balon %u MiB; grafika: zasoby %u, %u MiB; "
+                "połączenia %u; vsock czeka %d, odrzucone %lu", kiedy, g, b.w_k1_mib, b.oddane_mib, b.balon_mib, zasoby,
+           mib, pol_zajete(), v.n_czeka, v.odrzucone);
+}
+
+/* The main thread, once a second (main.c): the counters' line every LICZNIKI_ODSTEP s — also when the guest sends no
+ * numbers of its own (a guest that is busy, a hostile one). */
+void vsock_liczniki(void)
+{
+    if (k1_teraz() - lz.t < LICZNIKI_ODSTEP)
+        return;
+    lz.t = k1_teraz();
+    liczniki_loguj("");
 }
 
 void vsock_podsumowanie(void)
@@ -225,10 +239,6 @@ static void linia_od_goscia(void)
     if (linia_liczby(v.linia, "liczniki", w, 3, 1u << 24)) {
         memcpy(lz.g, w, sizeof lz.g);
         lz.sa = 1;
-        if (k1_teraz() - lz.t >= LICZNIKI_ODSTEP) {
-            lz.t = k1_teraz();
-            liczniki_loguj("");
-        }
     } else if (linia_liczby(v.linia, "kto", w, 3, 999))
         kto(w);
     else if (strcmp(v.linia, "gotowa") == 0)

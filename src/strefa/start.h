@@ -2,7 +2,8 @@
  * (Documentation/arch/x86/boot.rst, „64-bit BOOT PROTOCOL”). The VMM puts into guest memory: the kernel from its
  * bzImage file, the zero page (struct boot_params: the kernel's own setup header, the memory map, the command line),
  * a GDT with the boot segments 0x10/0x18, page tables mapping the first 4 GiB 1:1 and an MP table (processors and the
- * I/O APIC, no ACPI — S10). Pure: tested on the host (testy/host/test_strefa_start.c). */
+ * I/O APIC, no ACPI — S10). The memory map: RAM below the devices and, since 0.10.1 (ADR 0044 T5), the rest of a larger
+ * guest from 4 GiB (struct gosc_pamiec: dol bytes from 0, one part never other than ST_PAMIEC_MAKS when there are two). Pure: tested on the host (testy/host/test_strefa_start.c). */
 #ifndef K1_STREFA_START_H
 #define K1_STREFA_START_H
 
@@ -23,7 +24,8 @@
 #define ST_NISKA_KONIEC 0xa0000u
 #define ST_JADRO 0x100000u   /* the protected-mode kernel (code32_start) */
 #define ST_PAMIEC_MIN (64ull << 20)
-#define ST_PAMIEC_MAKS (3ull << 30) /* below the devices (MMIO from 0xd0000000) */
+#define ST_PAMIEC_MAKS (3ull << 30) /* below the devices (MMIO from 0xd0000000); the rest from 4 GiB (GP_GORA) */
+#define ST_PAMIEC_CALA_MAKS (64ull << 30) /* the whole guest (0.10.1 step 2, ADR 0044 T5) */
 #define ST_PROCESORY_MAKS 8
 #define ST_IOAPIC 0xfec00000u
 #define ST_LAPIC 0xfee00000u

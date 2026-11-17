@@ -361,6 +361,13 @@ enum k1_komunikat_typ {
     K1_KOM_STREFA_GNIAZDO = 166,  /* to the VMM: obiekt=the connection, a=K1_STREFA_TCP/DNS, b..e=0; + 1 fd: a TCP socket
                                    * connecting (non-blocking) or a UDP socket connected to the DNS server, port 53 */
     K1_KOM_STREFA_ODMOWA = 167,   /* to the VMM: obiekt=the connection, a=K1_STREFA_ODM_* why not, b..e=0 (no fd) */
+    /* 0.10.1 step 2 (ADR 0044 T3): the zone's memory and its balloon — on the same channel (VMM's fd 7) */
+    K1_KOM_STREFA_PAMIEC = 175,   /* from the VMM, at most once a second: obiekt=0, a=the guest's memory K1 holds now (MiB),
+                                   * b=available in the guest by its own statistics (-1: none yet), c=in the balloon,
+                                   * d=what K1 asks in it, e=handed back to K1 since the start (MiB; each 0..
+                                   * K1_STREFA_PAMIEC_MAKS but e: 0..INT32_MAX) */
+    K1_KOM_STREFA_BALON = 176,    /* to the VMM (and from the test program to nadzorca): obiekt=the zone, a=the balloon's
+                                   * target 0..K1_STREFA_PAMIEC_MAKS MiB, b..e=0 */
     /* nadzorca → siec */
     K1_KOM_SIEC_WIFI_EAPOL = 162,     /* obiekt=the card, all 0; + 1 fd: a packet socket for the EAPOL frames on the card
                                        * (WPA2 only; right before SIEC_WIFI_ZDARZENIE LACZE) */
@@ -434,7 +441,12 @@ enum { K1_STREFA_BEZ_WIRTUALIZACJI = 1, K1_STREFA_ZA_MALO_PAMIECI = 2, K1_STREFA
        K1_STREFA_KONIEC_LIMIT = 8 };
 #define K1_STREFA_STAN_MAKS 8
 #define K1_STREFA_KONIEC_OD K1_STREFA_KONIEC_PAMIEC /* b >= this: the zone ended (not: did not start) */
-#define K1_STREFA_TRYB_MAKS 5 /* 1..4: the hostile test guests (gosc/zlosliwy.c); 5: one that counts its starts on the disk */
+/* The guest's test modes (URUCHOM_STREFE b; the test image only, gosc/gosc.h): 1..4 hostile guests (a broken queue —
+ * gosc/zlosliwy.c), 5 an honest one that counts its starts on the disk; 0.10.1 step 2 (ADR 0044): 6..8 hostile to the
+ * balloon, 9 an honest one that takes memory and gives it back (the balloon's scenario of test-strefa) */
+enum { K1_STREFA_TRYB_DYSK = 5, K1_STREFA_TRYB_BALON_OD = 6, K1_STREFA_TRYB_BALON_DO = 8, K1_STREFA_TRYB_PAMIEC = 9 };
+#define K1_STREFA_TRYB_MAKS 9
+#define K1_STREFA_PAMIEC_MAKS 65536 /* MiB: the largest memory of a zone (0.10.1 step 2, ADR 0044 T5) */
 /* 0.10.0 step 2 (ADR 0043 T9): the zones' connections (STREFA_POLACZ c, STREFA_GNIAZDO a, STREFA_ODMOWA a) */
 #define K1_STREFA_POLACZENIA_MAKS 128 /* at once in one zone (the relay in the zone has as many) */
 enum { K1_STREFA_TCP = 0, K1_STREFA_DNS = 1 };

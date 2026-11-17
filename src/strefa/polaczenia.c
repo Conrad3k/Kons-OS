@@ -339,6 +339,10 @@ static void od_nadzorcy(void)
             koniec("nadzorca zamknął kanał połączeń");
             return;
         }
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFA_BALON) { /* 0.10.1 step 2: the balloon's target (balon.c) */
+            balon_cel((uint32_t)k.a);
+            continue;
+        }
         if (w != K1_ODB_JEST || (p = nr(k.obiekt)) == NULL) {
             if (fd >= 0)
                 close(fd);

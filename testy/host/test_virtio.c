@@ -21,7 +21,7 @@
 #define USED 0x3000u
 
 static uint8_t pam[PAMIEC];
-static const struct gosc_pamiec m = { pam, PAMIEC };
+static const struct gosc_pamiec m = { pam, PAMIEC, 0 };
 
 static void opis(int i, uint64_t adres, uint32_t dl, uint16_t flagi, uint16_t nast)
 {

@@ -96,6 +96,7 @@ struct usluga {
     int bez_liczenia;     /* stopped because ekran ended: not counted as a failure */
     char argument[12];    /* its one argument, if any (dekoder: the application it decodes for; 0.8.2) */
     char argument2[4];    /* a second one (0.10.0: the VMM of a zone — the guest's test mode) */
+    char argument3[8];    /* a third one (0.10.1 step 2: the VMM — the guest's memory, its upper limit in MiB) */
 };
 
 /* uslugi[]: the system services (K1_SYSTEM), the applications, the VMMs of the zones (K1_STREFY, 0.10.0) */
@@ -198,6 +199,10 @@ int do_ekranu_fd(void);           /* uslugi.c: our end of ekran's control channe
 extern int strefa_kanal[K1_STREFY_MAKS + 1];
 int strefa_kanal_nowy(int nr);  /* a new channel for zone nr: the VMM's end (fd), or -1 */
 void strefa_kanal_koniec(int nr); /* the zone ended: its channel goes */
+/* strefy_balon.c (0.10.1 step 2, ADR 0044): the zone's memory from its VMM (STREFA_PAMIEC), its balloon's target */
+void strefa_pamiec(int nr, const struct k1_komunikat *k);
+void strefa_pamiec_koniec(int nr);            /* the last numbers to the log */
+void strefa_balon(int nr, int32_t mib);
 #define X_OBSLUZ_STREFE(n, nr, ...) void obsluz_strefe_##n(void);
 K1_STREFY(X_OBSLUZ_STREFE)
 #undef X_OBSLUZ_STREFE

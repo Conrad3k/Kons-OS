@@ -8,6 +8,9 @@
 #   3. kliknięcie i klawisz docierają do gościa (licznik w logu gościa, zmiana wzoru); bez fokusu klawisz nie dociera;
 #      kółko (0.10.0 krok 4) dociera — z fokusem i bez niego (okno pod kursorem)
 #   (0.10.1 krok 1) linia liczników strefy co kilka sekund i przy końcu, szczyt pamięci klatki u nadzorcy
+#   (0.10.1 krok 2) BALON: złośliwi goście balonu (strona poza pamięcią, blok nie z całych stron, za długa lista) — koniec
+#      tylko strefy; uczciwy gość (tryb 9): górna granica ponad pamięć na start, zwolnione 64 MiB wracają do K1, cel
+#      balonu 32 MiB i z powrotem 0 (prośby programu testowego przez nadzorcę), nagły skok prawie do granicy — żyje
 #   4. kursor na pasku: przyciski K1 (zrzut); przeciągnięcie paska przesuwa okno; „minimalizuj” chowa okno
 #   5. okno K1 (Zegar) na wierzchu zasłania strefę, ramka strefy zostaje tam, gdzie jej nie zasłania; ciemny motyw
 #   6. „zamknij” na pasku: gość dostaje „zamknij” (vsock), kończy się, maszyna znika, okno też
@@ -74,7 +77,7 @@ ax, ay, krok = (int(g.group(i)) for i in (3, 4, 5)) if g else (0, 0, 0)
 o = czekaj(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", czas=180)
 nr, w_, h_, x, y = (int(o.group(i)) for i in range(1, 6)) if o else (0, 0, 0, 0, 0)
 sprawdz("nadzorca uruchamia strefę próbną (VMM w klatce), ekran pokazuje jej okno",
-        czekaj(r"K1-NADZORCA: strefa 1 \(Strefa próbna\): pid \d+, uid 300, pamięć 128 MiB", czas=60) and o)
+        czekaj(r"K1-NADZORCA: strefa 1 \(Strefa próbna\): pid \d+, uid 300, pamięć 128 MiB na start, granica (\d+) MiB", czas=60) and o)
 sprawdz("gość startuje: jądro strefy, gosc, kanał sterujący (vsock) „gotowa”, pierwszy obraz",
         czekaj(r"K1-STREFA: gość gotowy \(kanał sterujący\)", czas=240) and
         czekaj(r"K1-STREFA: pierwszy obraz gościa", czas=120))
@@ -219,7 +222,8 @@ sprawdz("„zamknij” na pasku: VMM prosi gościa (vsock), gość się zamyka, 
 
 sprawdz("LICZNIKI (0.10.1 krok 1): co kilka sekund linia liczników — pamięć gościa, zram, grafika, połączenia; przy końcu "
         "jeszcze raz; nadzorca: szczyt pamięci klatki i zdarzenia jej limitu",
-        czekaj(r"K1-STREFA: liczniki: gość — dostępna [1-9]\d* MiB, zram \d+ MiB, zabite 0; grafika: zasoby [1-9]",
+        czekaj(r"K1-STREFA: liczniki: gość — dostępna [1-9]\d* MiB, zram \d+ MiB, zabite 0; pamięć w K1 [1-9]\d* MiB, "
+               r"oddane \d+ MiB, balon 0 MiB; grafika: zasoby [1-9]",
                czas=10) and czekaj(r"K1-STREFA: liczniki przy końcu: gość — dostępna", czas=10) and
         czekaj(r"K1-NADZORCA: strefa 1: pamięć klatki — szczyt [1-9]\d* MiB \(od startu K1\), limit osiągnięty 0, zabite 0",
                czas=10))
@@ -234,6 +238,43 @@ for t in range(1, 5):
             czekaj(rf"K1-TEST: strefy: strefa próbna uruchomiona \(tryb {t}\)", czas=120) and
             czekaj(rf"K1-STREFA: strefa 1: koniec — {POWODY[t]}", czas=180) and
             czekaj(rf"K1-TEST: strefy: strefa skończyła się \(tryb {t}\)", czas=60))
+# 0.10.1 step 2 (ADR 0044): guests hostile to the balloon (the VMM puts one in the slot the guest drives itself)
+POWODY.update({6: "balon: strona poza pamięcią gościa", 7: "balon: zgłoszony blok nie z całych stron",
+               8: "balon: lista stron nie do odczytu albo za długa"})
+OPISY.update({6: "balon: strona poza pamięcią", 7: "balon: blok nie z całych stron", 8: "balon: za długa lista stron"})
+for t in range(6, 9):
+    sprawdz(f"NEGATYWNY: złośliwy gość ({OPISY[t]}) — kończy się tylko ta strefa, powód w logu",
+            czekaj(rf"K1-TEST: strefy: strefa próbna uruchomiona \(tryb {t}\)", czas=120) and
+            czekaj(rf"K1-STREFA: strefa 1: koniec — {POWODY[t]}", czas=180) and
+            czekaj(rf"K1-TEST: strefy: strefa skończyła się \(tryb {t}\)", czas=60))
+
+
+def oddane():  # the VMM's counters: MiB handed back to K1, in order
+    return [int(m) for m in re.findall(r"K1-STREFA: liczniki: gość — [^;]*; pamięć w K1 \d+ MiB, oddane (\d+) MiB", q.tekst())]
+
+
+n_l, g = len(oddane()), None
+sprawdz("BALON (0.10.1 krok 2): gość ma górną granicę — pamięć komputera minus rezerwa K1 (więcej niż 128 MiB na start)",
+        czekaj(r"K1-TEST: strefy: strefa próbna uruchomiona \(tryb 9\)", czas=120) and
+        (g := czekaj(r"K1-NADZORCA: strefa 1 \(Strefa próbna\): pid \d+, uid 300, pamięć 128 MiB na start, granica (\d+) MiB",
+                     od=q.ile(r"strefa 1 \(Strefa próbna\): pid")-1, czas=30)) and int(g.group(1)) > 128,
+        g.group(0) if g else "")
+sprawdz("BALON: gość zajmuje 64 MiB i zwalnia — wolne bloki wracają do K1 (zgłaszanie wolnych stron: oddane ≥ 48 MiB)",
+        czekaj(r"K1-GOSC: pamięć: zajęte i zwolnione 64 MiB: tak", czas=120) and
+        q.czekaj_na(lambda: any(v >= 48 for v in oddane()[n_l:]), czas=60), str(oddane()[n_l:]))
+sprawdz("BALON: nadzorca prosi o 32 MiB w balonie — gość je oddaje (cel osiągnięty), potem 0 — bierze z powrotem",
+        czekaj(r"K1-NADZORCA: strefa 1: cel balonu 32 MiB", czas=60) and
+        czekaj(r"K1-STREFA: balon: gość ma w nim 32 MiB \(cel\)", czas=60) and
+        czekaj(r"K1-NADZORCA: strefa 1: cel balonu 0 MiB", czas=60) and
+        czekaj(r"K1-STREFA: balon: gość ma w nim 0 MiB \(cel\)", czas=60))
+sprawdz("BALON: nagły skok — gość bierze naraz prawie całą swoją pamięć, bez czekania na K1, i żyje; potem kończy się sam",
+        czekaj(r"K1-GOSC: pamięć: skok [1-9]\d* MiB naraz: żyję", czas=120) and
+        czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 9\)", czas=120) and
+        czekaj(r"K1-NADZORCA: strefa 1: pamięć na końcu — w K1 \d+ MiB, balon 0 MiB \(cel 0\), oddane [1-9]\d* MiB",
+               czas=30))
+for l_ in re.findall(r"K1-(?:STREFA: (?:liczniki|balon)|NADZORCA: strefa 1: (?:pamięć|cel))[^\n]*", q.tekst())[-8:]:
+    print("            | " + l_[:240], flush=True)
+
 DYSK = r"K1-GOSC: dysk: uruchomienie (\d+)"
 liczniki = lambda: [int(m) for m in re.findall(DYSK, q.tekst())]
 sprawdz("STREFA PAMIĘTA (krok 5): z danymi na dysku nadzorca daje strefie dysk w skarbcu — pierwsze uruchomienie 1",

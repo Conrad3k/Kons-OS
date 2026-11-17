@@ -1,6 +1,7 @@
 /* K1 strefa — the split virtqueue (virtq.h). The guest may change its memory at any time (another processor of the
  * guest): every field is read once into a local copy and checked there, the available index with "acquire" order
- * before its entries, the used index with "release" order after its entry. */
+ * before its entries, the used index with "release" order after its entry. Every guest address goes through gp_wsk
+ * (since 0.10.1 the guest's memory may have two parts, below and above 4 GiB). */
 #include "virtq.h"
 
 #include <string.h>
@@ -38,7 +39,7 @@ struct desc {
 
 static void opis(const struct virtq *q, const struct gosc_pamiec *m, uint16_t i, struct desc *d)
 {
-    const uint8_t *p = m->baza + q->desc + (uint64_t)i * DESC_ROZMIAR;
+    const uint8_t *p = gp_wsk(m, q->desc, (uint64_t)q->rozmiar * DESC_ROZMIAR) + (uint64_t)i * DESC_ROZMIAR;
     memcpy(&d->adres, p, 8);
     memcpy(&d->dl, p + 8, 4);
     memcpy(&d->flagi, p + 12, 2);
@@ -86,10 +87,11 @@ static const char *lancuch(const struct virtq *q, const struct gosc_pamiec *m, u
 
 int vq_wez(struct virtq *q, const struct gosc_pamiec *m, struct vq_lancuch *l, const char **powod)
 {
-    const uint8_t *avail = m->baza + q->avail;
+    const uint8_t *avail;
     uint16_t idx, glowa;
     if (!q->gotowa)
         return 0;
+    avail = gp_wsk(m, q->avail, 6 + 2u * (uint64_t)q->rozmiar); /* checked when it became ready (vq_sprawdz) */
     idx = __atomic_load_n((const uint16_t *)(const void *)(avail + 2), __ATOMIC_ACQUIRE);
     if (idx == q->ost_avail)
         return 0;
@@ -107,7 +109,7 @@ int vq_wez(struct virtq *q, const struct gosc_pamiec *m, struct vq_lancuch *l, c
 
 void vq_oddaj(struct virtq *q, const struct gosc_pamiec *m, uint16_t glowa, uint32_t zapisane)
 {
-    uint8_t *used = m->baza + q->used;
+    uint8_t *used = gp_wsk(m, q->used, 6 + 8u * (uint64_t)q->rozmiar); /* checked when it became ready */
     uint8_t *wpis = used + 4 + 8u * (q->used_idx % q->rozmiar);
     uint32_t id = glowa;
     memcpy(wpis, &id, 4);

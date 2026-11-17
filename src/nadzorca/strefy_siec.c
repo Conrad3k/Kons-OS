@@ -96,6 +96,10 @@ static void obsluz(int nr)
             strefa_kanal_koniec(nr);
             return;
         }
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFA_PAMIEC) { /* 0.10.1 step 2: strefy_balon.c */
+            strefa_pamiec(nr, &k);
+            continue;
+        }
         if (w != K1_ODB_JEST || k.typ != K1_KOM_STREFA_POLACZ) {
             k1_log(TAG, "strefa %d: odrzucono prośbę VMM", nr);
             continue;

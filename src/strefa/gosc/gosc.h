@@ -35,10 +35,13 @@ int dysk_montuj(const char *gdzie);     /* 0: mounted; -1: none (a zone that for
 void dysk_odmontuj(const char *gdzie);  /* synced and unmounted */
 int dysk_licznik(const char *gdzie);    /* the test zone: the counter of starts on the disk, +1; logged */
 
-/* zlosliwy.c — hostile modes (k1.tryb=1..4, the test image only); TRYB_DYSK (5): an honest guest that counts its start
- * on the disk and ends by itself (test-strefa: the zone remembers; after "Wyczyść dane sesji" it starts from 1) */
+/* zlosliwy.c — hostile modes (k1.tryb=1..4, 6..8, the test image only); TRYB_DYSK (5): an honest guest that counts its
+ * start on the disk and ends by itself (test-strefa: the zone remembers; after "Wyczyść dane sesji" it starts from 1);
+ * 0.10.1 step 2: 6..8 hostile to the balloon (a page outside memory, a block not of whole pages, a list too long),
+ * TRYB_PAMIEC (9): an honest guest that takes memory and gives it back (pamiec.c) */
 enum { TRYB_ZWYKLY = 0, TRYB_ZLY_ADRES = 1, TRYB_PETLA = 2, TRYB_DLUGOSC = 3, TRYB_ZAPIS_RO = 4, TRYB_MAKS = 4,
-       TRYB_DYSK = 5 };
+       TRYB_DYSK = 5, TRYB_BALON_STRONA = 6, TRYB_BALON_BLOK = 7, TRYB_BALON_LISTA = 8, TRYB_PAMIEC = 9 };
 int zlosliwy(int tryb);                 /* returns only when the VMM did not stop the machine */
+void pamiec_proba(void);                /* TRYB_PAMIEC: takes and frees memory (pamiec.c), then ends */
 
 #endif

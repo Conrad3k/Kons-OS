@@ -1,6 +1,7 @@
 /* K1 nadzorca — sandbox profiles of the services (ADR 0007). Part of nadzorca (see main.c). */
 #include "nadzorca.h"
 
+#include <linux/falloc.h>
 #include <sched.h>
 
 static const long sc_wejscie[] = { 0 };
@@ -35,9 +36,13 @@ static const long sc_siec[] = { SYS_getrandom, SYS_memfd_create }; /* 0.9.1: mem
  * from nadzorca connected (the VMM never opens a socket itself: no socket, connect, bind) */
 static const long sc_strefa[] = { SYS_memfd_create, SYS_ftruncate, SYS_eventfd2, SYS_futex, SYS_getrandom, SYS_pread64,
                                   SYS_shutdown };
+/* 0.10.1 step 2 (ADR 0044 T2): fallocate only to punch a hole keeping the size — the balloon gives the guest's free
+ * pages back to K1 out of the memfd of its memory (strefa/balon.c); never to grow or to allocate */
 static const struct k1_warunek wa_strefa[] = { { SYS_ioctl, 1, 0xff00u, 0xae00u },
                                                 { SYS_clone, 0, CLONE_THREAD, CLONE_THREAD },
-                                                { SYS_getsockopt, 2, 0xffffffffu, SO_ERROR } };
+                                                { SYS_getsockopt, 2, 0xffffffffu, SO_ERROR },
+                                                { SYS_fallocate, 1, 0xffffffffu,
+                                                  FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE } };
 
 /* The sandbox of each system service: KLATKA_<NAME> for every row of K1_SYSTEM (k1_uslugi.h) — its system calls and
  * limits, with the reason; the name and the UID come from the row. A row without its KLATKA_ does not build. */

@@ -1,6 +1,8 @@
 /* K1 strefa — the VMM of one zone (0.10.0 step 1, ADR 0042): one process = one micro machine with the zone kernel and
  * the zone image, its window at ekran in a frame ekran draws. Started by nadzorca (strefy.c) in KLATKA_STREFA with
  *   argv[1] = the zone number (its row of K1_STREFY), argv[2] = the guest's test mode (test image only; 0: none),
+ *   argv[3] = the guest's memory in MiB — its upper limit (0.10.1 step 2, ADR 0044: the balloon gives back what it does
+ *   not use; nadzorca's pamiec_stref.c),
  *   fd 3 = the channel to ekran (role STREFA), fd 4 = /dev/kvm, fd 5 = the zone kernel, fd 6 = the zone image,
  *   fd 7 = the channel to nadzorca for the browser's connections (polaczenia.c; 0.10.0 step 2, ADR 0043 T9),
  *   fd 8, 9 = a zone that remembers: a channel to skarbiec and its empty disk (dane.c; 0.10.0 step 5) — or neither.
@@ -17,6 +19,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "k1_kanal.h"
 #include "k1_klatka.h"
 #include "k1_komunikat.h"
 #include "k1_log.h"
@@ -82,7 +85,7 @@ static int przygotuj(void)
         return -1;
     }
     mz.obraz_sektory = (uint64_t)st.st_size / 512;
-    if (kvm_maszyna(mz.opis->pamiec_mib, (int)mz.opis->procesory) != 0 || kvm_urzadzenia() != 0)
+    if (kvm_maszyna(mz.pamiec_mib, (int)mz.opis->procesory) != 0 || kvm_urzadzenia() != 0)
         return -1;
     kvm_linia_urzadzen(linia, sizeof linia);
     p = strlen(linia);
@@ -100,6 +103,27 @@ static int przygotuj(void)
         return -1;
     }
     return kvm_procesory(&w);
+}
+
+/* Once a second (0.10.1 step 2, ADR 0044 T3): a new copy of the guest's statistics, and to nadzorca what K1 holds of
+ * the guest's memory now (STREFA_PAMIEC) — the numbers nadzorca will share the computer's memory by (step 3). */
+static void pamiec_krok(void)
+{
+    static double t;
+    struct balon_stan b;
+    struct k1_komunikat k;
+    if (k1_teraz() - t < 1.0)
+        return;
+    t = k1_teraz();
+    zamek_wez("balon: krok");
+    balon_krok();
+    balon_stan(&b);
+    vsock_liczniki();
+    zamek_oddaj();
+    k = k1_komunikat_nowy(K1_KOM_STREFA_PAMIEC, 0, (int32_t)b.w_k1_mib, (int32_t)b.dostepna_mib, (int32_t)b.balon_mib,
+                          (int32_t)b.cel_mib, (int32_t)(b.oddane_mib > INT32_MAX ? INT32_MAX : b.oddane_mib));
+    if (k1_kanal_wyslij(FD_NADZORCA, &k, sizeof k, -1) != 0)
+        mz.nieznane++;
 }
 
 /* After "zamknij": the guest gives its program 20 s (gosc/przegladarka.c), then syncs its disk (each piece through
@@ -135,6 +159,8 @@ static void petla(void)
         }
         petla_krok("obraz okna");
         okno_obraz();
+        petla_krok("balon");
+        pamiec_krok();
         if (zamknij_do > 0 && k1_teraz() >= zamknij_do)
             koniec("gość nie zamknął się w 40 s — wyłączony");
     }
@@ -160,6 +186,10 @@ int main(int argc, char **argv)
     if (mz.opis == NULL || tryb < 0 || tryb > 99)
         k1_koniec(TAG, "zły numer strefy");
     mz.tryb = tryb;
+    /* 0.10.1 step 2 (ADR 0044): the guest's memory — its upper limit from nadzorca (argv[3]), never below its row's */
+    mz.pamiec_mib = argc > 3 ? (uint32_t)strtoul(argv[3], NULL, 10) : 0;
+    if (mz.pamiec_mib < mz.opis->pamiec_mib || mz.pamiec_mib > K1_STREFA_PAMIEC_MAKS)
+        mz.pamiec_mib = mz.opis->pamiec_mib;
     mz.budzik = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
     if (mz.budzik < 0 || przygotuj() != 0 || dane_start() != 0)
         k1_koniec(TAG, "nie można przygotować maszyny");
@@ -167,7 +197,7 @@ int main(int argc, char **argv)
     if (kvm_uruchom() != 0 || stroz_start() != 0)
         k1_koniec(TAG, "nie można uruchomić procesorów");
     k1_log(TAG, "strefa %d (%s): maszyna działa — %u MiB, procesory %d, urządzenia %d (%.1f s)", nr, mz.opis->tytul,
-           mz.opis->pamiec_mib, mz.n_cpu, URZ_LICZBA, k1_teraz() - od);
+           mz.pamiec_mib, mz.n_cpu, URZ_LICZBA, k1_teraz() - od);
     petla();
     dane_koniec();
     pol_podsumowanie();

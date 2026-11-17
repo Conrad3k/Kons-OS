@@ -10,6 +10,7 @@
  * The VMM's end is an ordinary end of a service started on request (uslugi.c): no restart. When the user did not
  * close it, gui says why it ended (0.10.0 step 3, S26: before, the window was simply gone). Part of nadzorca. */
 #include "nadzorca.h"
+#include "pamiec_stref.h"
 #include "strefy_powod.h"
 
 #define STREFY "/rdzen/strefy"
@@ -22,7 +23,20 @@ static void zglos(int nr, int powod)
         k1_log(TAG, "strefa %d: powiadomienie pulpitu nieudane", nr);
 }
 
-/* The guest's memory and what the VMM needs fit in what is free now. */
+/* The zone's upper limit (pamiec_stref.c: D2) into its sandbox's copy: memory.max = the limit + the VMM's own room
+ * (VMM_ZAPAS), fixed for the zone's whole life (ADR 0044 T4); RLIMIT_FSIZE = the limit (the memfd of its memory). */
+#define VMM_ZAPAS (184ull << 20) /* the resources of virtio-gpu (up to 96 MiB), the window, the VMM, KVM, the disk's cache */
+static uint32_t granica_strefy(const struct k1_strefa_opis *z, struct k1_profil *p)
+{
+    struct sysinfo si;
+    uint64_t ram = sysinfo(&si) == 0 ? ((uint64_t)si.totalram * si.mem_unit) >> 20 : 0;
+    uint32_t g = pamiec_granica(ram, z->pamiec_mib);
+    p->pamiec = ((uint64_t)g << 20) + VMM_ZAPAS;
+    p->rozmiar_pliku = (uint64_t)g << 20;
+    return g;
+}
+
+/* The guest's memory at the start and what the VMM needs fit in what is free now. */
 static int jest_pamiec(const struct k1_strefa_opis *z)
 {
     struct sysinfo si;
@@ -103,6 +117,8 @@ void strefa_uruchom(int nr, int tryb)
     const struct k1_strefa_opis *z = k1_strefa(nr);
     struct usluga *u = z != NULL ? usluga_profilu(z->profil) : NULL;
     int fd[7] = { -1, -1, -1, -1, -1, -1, -1 }, powod, i, d;
+    struct k1_profil p;
+    uint32_t granica;
     if (u == NULL)
         return;
     if (u->pid > 0) {
@@ -115,14 +131,17 @@ void strefa_uruchom(int nr, int tryb)
         if (fd[0] < 0)
             k1_log(TAG, "strefa %d: ekran nie działa", nr);
         fd[4] = strefa_kanal_nowy(nr);
+        p = profile[z->profil];
+        granica = granica_strefy(z, &p);
         snprintf(u->argument, sizeof u->argument, "%d", nr);
         snprintf(u->argument2, sizeof u->argument2, "%d", tryb);
+        snprintf(u->argument3, sizeof u->argument3, "%u", granica);
         d = dysk(z, fd);
         zdarzenia_start(nr);
-        if (fd[0] >= 0 && fd[4] >= 0 && uruchom(u, &profile[z->profil], fd, 5 + d) > 0)
-            k1_log(TAG, "strefa %d (%s): pid %d, uid %d, pamięć %u MiB, procesory %u, %s%s", nr, z->tytul, (int)u->pid,
-                   z->uid, z->pamiec_mib, z->procesory, d ? "pamięta (dysk w skarbcu)" : "zapomina po zamknięciu",
-                   tryb ? ", gość testowy" : "");
+        if (fd[0] >= 0 && fd[4] >= 0 && uruchom(u, &p, fd, 5 + d) > 0)
+            k1_log(TAG, "strefa %d (%s): pid %d, uid %d, pamięć %u MiB na start, granica %u MiB, procesory %u, %s%s", nr,
+                   z->tytul, (int)u->pid, z->uid, z->pamiec_mib, granica, z->procesory,
+                   d ? "pamięta (dysk w skarbcu)" : "zapomina po zamknięciu", tryb ? ", gość testowy" : "");
         else
             k1_log(TAG, "strefa %d: uruchomienie nieudane", nr), strefa_kanal_koniec(nr);
     } else {
@@ -149,6 +168,7 @@ void strefa_koniec(int nr, int status, int cicho)
     snprintf(sciezka, sizeof sciezka, K1_CGROUP "/%s/memory.peak", profile[z->profil].nazwa);
     szczyt = cgroup_liczba(sciezka, NULL);
     powod = strefa_powod_konca(status, &r);
+    strefa_pamiec_koniec(nr);
     k1_log(TAG, "strefa %d: pamięć klatki — szczyt %lld MiB (od startu K1), limit osiągnięty %lld, zabite %lld", nr,
            szczyt >= 0 ? szczyt >> 20 : -1, r.oom, r.oom_kill);
     if (powod == 0)
