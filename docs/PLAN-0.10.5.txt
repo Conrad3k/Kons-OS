@@ -22,7 +22,8 @@ wydanie przeszło z kroku 4 do kroku 6. 2026-11-17 właściciel dodał krok „A
 przeglądarka przypinana do paska i kładziona na pulpit jak inne aplikacje” i zdecydował, że wydanie jest zawsze ostatnim
 krokiem: nowy krok dostał numer 6, a przegląd dokumentacji z wydaniem przeszedł z kroku 6 do kroku 7 (zmiana numeru
 możliwa, bo żaden z nich się nie zaczął). Każdy krok daje coś, co widać; krok 7 kończy się wydaniem 0.10.5 — bez
-osobnego kroku wydania.
+osobnego kroku wydania. Też 2026-11-17, przed startem wersji, właściciel dodał do kroków 1–3 opis aktualizacji
+widoczny przed „Zainstaluj” (D13; wersje od robota — stałe zdanie) i podjął D6 (robot wydaje sam) — bez nowego kroku.
 
 ZAKRES ZAMROŻONY (ADR 0035): poniższe 7 kroków i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
@@ -74,7 +75,9 @@ Nowy czat — przebieg każdego kroku:
 ------------------------------
 Po 0.10.5 K1 sam sprawdza, czy jest nowsza wersja, i sam ją pobiera. Zanim cokolwiek zmieni, pyta: „Jest nowa wersja
 K1 — zainstalować?”. Dopiero po Twoim „Zainstaluj” nowa wersja startuje (na próbę — jak dziś po aktualizacji
-z pendrive'a: jeśli nie wstanie, K1 wraca do poprzedniej i to pokazuje).
+z pendrive'a: jeśli nie wstanie, K1 wraca do poprzedniej i to pokazuje). Przy pytaniu jest krótki opis, co nowa wersja
+zmienia (D13): wersje przygotowane przez nas — opis od nas („Pliki ze stref: …”), wersje od robota — zawsze to samo
+zdanie: „Ta aktualizacja zawiera istotne poprawki dotyczące bezpieczeństwa i jakości.”
 
 Bezpieczeństwo bez zmian: K1 przyjmuje tylko wersję podpisaną kluczem K1 i nigdy starszą od tej, którą masz. Nawet
 gdyby ktoś podmienił plik na GitHubie albo po drodze, bez klucza nie zrobi podpisu, który K1 przyjmie. Pobiera osobna
@@ -112,8 +115,9 @@ Siedem kroków:
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [ ]  1  Ustawienia → Aktualizacje (z Instalatora)           S1–S6            0.10.0      D1 D2 D3, T1     M        —
-[ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16, S25      1           D4 D5 D7, T2–T7  L        0045
-[ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11       M        0046
+[ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16, S25, S50 1           D4 D5 D7 D13,    L        0046
+                                                                                         T2–T7, T18
+[ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11, T18  M        0047
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
 [ ]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
 [ ]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
@@ -138,8 +142,8 @@ tryb włącza krok 7 po wydaniu.
 KROK 1 — Ustawienia → Aktualizacje (przeniesienie z Instalatora)            M · decyzje D1 D2 D3, T1 · bez ADR
   Cel: wszystko o aktualizacjach w jednym miejscu — Ustawienia → Aktualizacje; Instalator zostaje tylko do instalacji
   na nowy dysk (i Secure Boot — D3); okno Ustawień mieści nową sekcję.
-  Na początku: D1 — szkice WSZYSTKICH widoków aktualizacji naraz (także tych z kroku 2), żeby krok 2 nie pytał
-  ponownie; D2 (większe okno czy przewijanie); D3 (co zostaje w Instalatorze).
+  Na początku: D1 — szkice WSZYSTKICH widoków aktualizacji naraz (także tych z kroku 2, z opisem wersji — D13), żeby
+  krok 2 nie pytał ponownie; D2 (większe okno czy przewijanie); D3 (co zostaje w Instalatorze).
   Co widzi użytkownik: w Ustawieniach nowa sekcja „Aktualizacje” (ikona K1, wg D1): wersja K1, która działa (np.
   „0.10.5 · podpisana kluczem K1”), co jest w drugim miejscu (A/B) i wynik ostatniej próby („Nowa wersja nie
   uruchomiła się — działa poprzednia”, dziś w Instalatorze); gdy K1 działa z pendrive'a, a na dysku jest starsza
@@ -178,8 +182,11 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · 
   Na początku: S7 i S8 — POMIAR (przekierowania GitHuba, wielkość paczki), zanim powstanie reszta; D4, D5, D7.
   Co widzi użytkownik: Ustawienia → Aktualizacje: „Sprawdzono dziś o 14:05 — masz najnowszą wersję” albo „Pobieram
   K1 0.10.6… 45 %” albo „K1 0.10.6 jest gotowa” z przyciskami „Zainstaluj i uruchom ponownie” / „Później”; przycisk
-  „Sprawdź teraz”; przełącznik „Sprawdzaj sam” (D4). Gdy wersja jest gotowa — okienko K1 z tym samym pytaniem (wg D1
-  z kroku 1, raz na start, „Później” je zamyka) i znak na górnym pasku. Bez internetu — „Nie udało się sprawdzić
+  „Sprawdź teraz”; przełącznik „Sprawdzaj sam” (D4). Pod „K1 0.10.6 jest gotowa”, nad przyciskami — opis wersji
+  (D13, T18): tekst od nas albo, dla wersji od robota, „Ta aktualizacja zawiera istotne poprawki dotyczące
+  bezpieczeństwa i jakości.”; gdy wersji jest kilka (np. 0.11.0 od nas i 0.11.1 od robota) — opis każdej, najnowsza
+  u góry. Gdy wersja jest gotowa — okienko K1 z tym samym pytaniem i tym samym opisem (wg D1 z kroku 1, raz na start,
+  „Później” je zamyka; dłuższy opis — „Cały opis: Ustawienia → Aktualizacje”) i znak na górnym pasku. Bez internetu — „Nie udało się sprawdzić
   (brak połączenia)”. Wersja z pendrive'a (K1 uruchomiony z pendrive'a) — wg D5. Wersja z nową linią jądra — w pytaniu
   dopisek „Nowe jądro Linux 7.1 — jeśli coś przestanie działać, wróć do poprzedniej wersji” (T3). W sekcji przycisk
   „Wróć do poprzedniej wersji” (D7), dopóki poprzednia wersja jest w drugim miejscu.
@@ -193,6 +200,11 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · 
   [ ] Format ogłoszenia (T3) i paczki (T4): nagłówki w src/wspolne/ ze stałym układem (_Static_assert), sprawdzanie
       bez założeń o wyrównaniu, narzędzie w narzedzia/ (budowa i podpis — wzór podpisz.c), test_ogloszenie i
       test_paczka (ASan/UBSan), fuzz_ogloszenie i fuzz_paczka.
+  [ ] Opis wersji (D13, T18): wiersz „Opis w K1:” we wpisie CHANGELOG każdej wersji od ludzi; narzędzie z narzedzia/
+      bierze opisy ostatnich wersji do ogłoszenia i odmawia podpisu, gdy tekst łamie zasady T18 (ta sama funkcja
+      sprawdzania co w K1 — src/wspolne/); sprawdz-czytelnosc.py pilnuje wiersza we wpisach od 0.10.5 (oprócz wpisów
+      robota); zdanie dla wersji od robota jest w K1 (jedna stała w src/wspolne/), nie w sieci; tekst do Ustawień
+      i gui — droga w ADR 0046 (S50). Wydanie 0.10.5 ma już swój „Opis w K1:” (krok 7).
   [ ] Strefa pobierania (T5, S10–S12): wiersz w K1_STREFY (bez okna: bez virtio-gpu i virtio-input), obraz strefy
       z pakietów Debiana (ta sama tabela i skrypt co przeglądarka z 0.10.0: curl i ca-certificates — S11) i program
       `gosc`, który pobiera dwa adresy (ogłoszenie, paczka) i podaje bajty przez vsock; łącznik tej strefy łączy tylko
@@ -214,10 +226,11 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · 
       próbę jak zawsze. K1 zapamiętuje wersję, od której wrócono, i nie proponuje jej znowu — tylko nowszą od niej.
       Poza tym przyciskiem zasada „nigdy starsza” bez zmian (sieć i pendrive nie cofną wersji).
   Testy i dowód: host — test_ogloszenie, test_paczka (zła wersja, zły klucz, zły podpis, starsza wersja, ucięta
-  paczka, zły skrót), fuzz_*. Scenariusz QEMU scripts/test-aktualizacja-siec.sh (S15): K1 na dysku w sieci QEMU →
+  paczka, zły skrót; opis: znak spoza tabeli, znak sterujący, zły UTF-8, za długi, za dużo wersji, wersja od robota
+  z tekstem), fuzz_*. Scenariusz QEMU scripts/test-aktualizacja-siec.sh (S15): K1 na dysku w sieci QEMU →
   serwer testowy HTTPS na „routerze” (certyfikat z testowego CA — tylko w obrazie testowym strefy) podaje ogłoszenie
-  i paczkę nowszej wersji testowej → Ustawienia: „K1 … jest gotowa” → „Zainstaluj” → start na próbę → potwierdzenie
-  (zrzuty). Negatywne: paczka niepodpisana / innym kluczem / starsza / ze złym skrótem / ucięta / większa niż
+  i paczkę nowszej wersji testowej → Ustawienia: „K1 … jest gotowa” z opisem (wersja od ludzi i wersja od robota —
+  dwa przebiegi) → „Zainstaluj” → start na próbę → potwierdzenie (zrzuty). Negatywne: paczka niepodpisana / innym kluczem / starsza / ze złym skrótem / ucięta / większa niż
   miejsce → odmowa, działający system bez zmian, wolne miejsce puste, log z powodem; „Później” → po ponownym starcie
   działa stara wersja i pyta znowu; strefa pobierania próbuje innego hosta → odmowa łącznika; strefa podaje
   śmieci zamiast paczki → odmowa (zapis nie zaczyna się przed sprawdzonym podpisem manifestu); przerwanie zasilania
@@ -256,7 +269,8 @@ KROK 3 — Robot na GitHubie                                              M · d
       wydaniu Issue „przejrzyj nowe opcje jądra 7.x” dla Claude'a/Codexa (nie wstrzymuje wydania); w ogłoszeniu flaga
       „nowa linia jądra” (T3); w CHANGELOG „Jądro Linux 7.1 — nowa linia długoterminowa”.
   [ ] Gdy coś nowego: gałąź robot/<co>-<wersja>, VERSION +1 PATCH, wpis w CHANGELOG (gotowy tekst po polsku: „Jądro
-      Linux 6.18.61 — poprawki bezpieczeństwa” / „Przeglądarka: Firefox ESR …”), PR, pełne testy (T9), po zielonych
+      Linux 6.18.61 — poprawki bezpieczeństwa” / „Przeglądarka: Firefox ESR …”; bez „Opis w K1:” i ze znacznikiem
+      wpisu robota — w ogłoszeniu rodzaj „poprawki”, K1 pokazuje swoje stałe zdanie, D13, T18), PR, pełne testy (T9), po zielonych
       squash do main i wydanie (tag, ISO, obraz USB, ogłoszenie, paczka); czerwone → PR zostaje otwarty + Issue.
   [ ] Bezpieczniki (T8, T10, S18–S20): robot zmienia wyłącznie pliki z jednej listy (jadro/wersja.env, tabela pakietów
       strefy, VERSION, CHANGELOG.md) — sprawdzenie w workflow, inna zmiana = przerwanie; nie scala, gdy na main jest
@@ -472,11 +486,11 @@ KROK 7 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M �
       (co usunięto, skąd, dokąd odsyła).
   [ ] Sprawdzanie na stałe (S40): czego się da — w scripts/sprawdz-czytelnosc.py (np. istniejące ścieżki i odesłania,
       spis komponentów, słowa ze słownika w nagłówkach), żeby dokumenty nie rozjeżdżały się znowu.
-  [ ] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki); porządki wersji PATCH: przegląd tego, co
+  [ ] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki; „Opis w K1:” — D13); porządki wersji PATCH: przegląd tego, co
       zostało po przeniesieniu z Instalatora (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–6;
       DO_ZROBIENIA.txt — „Teraz” → następna wersja, lista testów na X230 i IdeaPadzie dla 0.10.5 (Ustawienia →
       Aktualizacje, aktualizacja z pendrive'a z Ustawień, „Sprawdź teraz”, pierwsza aktualizacja przez sieć, gdy robot
-      wyda następną wersję, zmiana rozmiaru i maksymalizacja przeglądarki na obu ekranach, Alt+Tab z Firefoksa i do
+      wyda następną wersję (z opisem przed „Zainstaluj”), zmiana rozmiaru i maksymalizacja przeglądarki na obu ekranach, Alt+Tab z Firefoksa i do
       niego, Przeglądarka przypięta do paska i na pulpicie — krok 6); ten plik → docs/archiwum/.
       Po scaleniu: CI, tag k1-v0.10.5, wydanie z ogłoszeniem i paczką; potem robot w pełny tryb (krok 3: jedna zmiana
       w robot.yml, osobny commit po wydaniu); raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
@@ -512,7 +526,8 @@ Twoje (produkt):
        na pendrive'ie nigdy go nie zmienia. Rekomendacja: przez sieć aktualizuje się tylko K1 zainstalowany na
        dysku; na pendrive'ie sekcja mówi „Jest nowsza wersja K1 0.10.6 — nagraj nowy pendrive (README)”.
        Aktualizacja pendrive'a przez sieć — później.
-[!] D6 (krok 3) Czy robot scala i wydaje sam, czy czeka na Twoje „tak”. Rekomendacja: sam (inaczej poprawka czeka na
+[x] D6 (krok 3; właściciel 2026-11-17: „wydaje je robot” — poprawki jądra i Firefoksa; większe zmiany, np. kolejny
+       etap prac, wydajemy my) Czy robot scala i wydaje sam, czy czeka na Twoje „tak”. Rekomendacja: sam (inaczej poprawka czeka na
        Ciebie i tracimy to, po co jest robot) — ale tylko jądro z linii długoterminowych (także nowa linia, np. 7.x —
        Twoja decyzja z 2026-11-14, z bezpiecznikami T11) i pakiety przeglądarki z archiwum bezpieczeństwa Debiana, po
        pełnych zielonych testach; wszystko inne — Issue do Ciebie i do mnie. Warunek:
@@ -551,6 +566,10 @@ Twoje (produkt):
        „uruchomiona”, gdy któraś sesja ma okno. Przy pierwszym starcie (nowa instalacja) Przeglądarka przypięta i na
        pulpicie, jak inne aplikacje z tym znacznikiem w tabeli; po aktualizacji — zapisane rozmieszczenie właściciela
        zostaje, Przeglądarkę dodaje się samemu (K1 nie zmienia ułożonego pulpitu bez pytania).
+[x] D13 (kroki 1–3; właściciel 2026-11-17) Opis aktualizacji, zanim użytkownik kliknie „Zainstaluj” — w Ustawieniach
+       → Aktualizacje i w okienku „Jest nowa wersja”. Wersje od ludzi — opis od nas; wersje od robota — zawsze:
+       „Ta aktualizacja zawiera istotne poprawki dotyczące bezpieczeństwa i jakości.” (słowa właściciela, w brzmieniu
+       ze słownika: „aktualizacja”). Wygląd — w szkicach D1; zasady tekstu — T18.
 
 Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
     T1 Kanał aktualizacji (krok 1): Ustawienia dostają od nadzorcy osobny kanał, nie kanał Instalatora — inny UID
@@ -560,8 +579,9 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        z każdym commitem, także przed testami; wydanie powstaje dopiero po zielonych testach i ma stały adres
        https://github.com/Conrad3k/Kons-OS/releases/latest/download/k1-ogloszenie.bin (GitHub przekierowuje
        „latest/download/<plik>” do pliku najnowszego wydania — S7). K1 ufa podpisowi, nie GitHubowi.
-    T3 Ogłoszenie wydania (krok 2): mały plik (≤ 4 KiB, stały układ): wersja, identyfikator wydania, nazwa i wielkość
-       paczki, skrót SHA-256 paczki, data wydania, podpis EdDSA kluczem K1 (ten sam co manifest, Monocypher). K1
+    T3 Ogłoszenie wydania (krok 2): mały plik (≤ 8 KiB, stały układ): wersja, identyfikator wydania, nazwa i wielkość
+       paczki, skrót SHA-256 paczki, data wydania, opisy ostatnich wersji (T18), podpis EdDSA kluczem K1 (ten sam co
+       manifest, Monocypher; obejmuje też opisy). K1
        przyjmuje tylko ogłoszenie z poprawnym podpisem, wersją nowszą od działającej i nazwą paczki z jednej tabeli
        znaków (bez ukośników). Ochrona przed starym ogłoszeniem: wersja nie starsza (jak Instalator). Flagi: „nowa
        linia jądra” (dopisek w pytaniu — krok 2), pozostałe bity zarezerwowane = 0.
@@ -626,6 +646,16 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        Nowy komunikat ani kanał nie jest potrzebny (KLAWISZ do powłoki już jest). Strefa z fokusem nie dostaje Tab
        przy Alt i dostaje puszczenie Alt, zanim fokus odejdzie. Rozważone: przełącznik rysowany przez ekran — ekran
        nie zna nazw sesji ani ikon aplikacji (to gui), a panel gui i tak jest rysowany przez K1, nad oknami (R26).
+    T18 Opis wersji (kroki 2–3, D13). Skąd: wiersz „Opis w K1:” we wpisie CHANGELOG — pisze go ten, kto robi wydanie,
+       prostym językiem, bez numerów kroków i ADR. W ogłoszeniu: do 8 ostatnich wersji, każda z rodzajem („opis” albo
+       „poprawki”) i tekstem (tylko przy „opis”); K1 pokazuje wersje nowsze od działającej, najnowszą u góry, kilka
+       „poprawek” z rzędu jako jedno zdanie; dalej niż 8 wersji wstecz — dopisek „oraz wcześniejsze zmiany”. Zdanie dla
+       „poprawek” jest w K1, nie w sieci — robot nie pisze żadnego tekstu, który pokazuje K1. Tekst (podpisany kluczem
+       K1, a mimo to sprawdzany — fail closed): poprawny UTF-8, tylko znaki z jednej tabeli, które ma czcionka K1
+       (litery z polskimi, cyfry, spacja, podstawowa interpunkcja), bez znaków sterujących i adresów do klikania, jeden
+       akapit do 400 bajtów (wiersze łamie K1); zły tekst = całe ogłoszenie odrzucone, ale tę samą funkcję sprawdzania
+       ma narzędzie podpisu, więc taki tekst nie przejdzie budowy. Opis to zwykły tekst w oknie K1 — nie zmienia tego,
+       co się instaluje; czyta go program zapisujący razem z ogłoszeniem (T6), dalej idzie tylko sprawdzony.
     T17 Przeglądarka w rozmieszczeniu (krok 6): klucz na całą Przeglądarkę (wszystkie wiersze K1_STREFY z linią menu),
        nie na sesję — nowa sesja w tabeli nie zmienia zapisu; pasek zapisany kluczami u32 jak ikony (format „K1R3”),
        stare formaty czytane; bez zmian w skarbcu (ten sam obiekt K1_OB_ROZMIESZCZENIE, ADR 0028) — bez ADR.
@@ -681,6 +711,10 @@ Krok 2
       (podpisaną, potwierdzoną) — o ile pobieranie jeszcze go nie nadpisało (T7: wtedy przycisku nie ma). Gdzie K1
       pamięta odrzuconą wersję (grubenv ma 1024 B i zmienne GRUB-a; obiekt nadzorcy w skarbcu?) — wybór w kroku;
       Instalator dziś odmawia starszych wersji (M6a) — wyjątek tylko dla tej jednej drogi, w ADR 0046.
+  S50 NIEPEWNE (dodane 2026-11-17, D13). Droga opisu wersji od programu zapisującego do Ustawień i gui: komunikat ma
+      32 B, a opisy — do kilku KiB; kandydat: memfd tylko do odczytu, jak lista sieci Wi-Fi (0.9.1, src/siec/lista.c);
+      Ustawienia i gui sprawdzają go jeszcze raz tą samą funkcją (src/wspolne/). Sprawdzić też, czy czcionki K1 mają
+      wszystkie znaki z tabeli T18 i jak przybornik łamie wiersze (k1_tekst) — wybór w ADR 0046.
 
 Krok 3
   S17 NIEPEWNE, WYSOKA. Uprawnienia robota: permissions w robot.yml (contents: write, pull-requests: write,
@@ -791,8 +825,8 @@ Krok 7 (dodany 2026-11-15 jako krok 6)
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
 -----------------------------------------------------------------------------------
     Aktualizacja pendrive'a przez sieć (D5); przewijanie w Ustawieniach (D2, S6; kółko myszy i touchpad — 0.10.0
-    krok 4); wznawianie przerwanego pobierania; kompresja paczki; aktualizacja tylko zmienionych części (różnicowa); „Co nowego” w K1 (tekst zmian
-    z sieci — trzeba go bezpiecznie pokazać); podpis wydań kluczem poza GitHubem i odwoływanie starszych wersji
+    krok 4); wznawianie przerwanego pobierania; kompresja paczki; aktualizacja tylko zmienionych części (różnicowa); pełna historia zmian
+    w K1 (cały CHANGELOG — w 0.10.5 tylko krótki opis z ogłoszenia, D13, T18); podpis wydań kluczem poza GitHubem i odwoływanie starszych wersji
     (0.12, TPM — RYZYKA R44); robot dla musl, plików od producentów kart Wi-Fi i bazy przepisów radiowych (rzadkie
     zmiany — na razie ręcznie); świeżość ogłoszenia (codziennie podpisywana data, ochrona przed ukrywaniem nowej
     wersji — RYZYKA w kroku 2); aktualizacja czasu podpisanego (NTS) przez strefę pobierania; linie jądra krótkie
