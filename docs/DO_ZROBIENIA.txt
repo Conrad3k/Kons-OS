@@ -6,17 +6,18 @@ rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji �
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
 Stan: 0.10.1 „Balon” — przeglądarka w strefie bierze pamięć według potrzeby i oddaje ją K1, okienko „Mało pamięci”,
 wybór sesji przy otwieraniu, przewijanie po nowej karcie (plany zamknięte: docs/archiwum/PLAN-0.10.0.txt, PLAN-0.10.1.txt);
-teraz 0.10.3 „Filmy” (plan: docs/PLAN-0.10.3.txt), potem 0.10.5 (docs/PLAN-0.10.5.txt).
+teraz 0.10.2 „Testy” (plan: docs/PLAN-0.10.2.txt), potem 0.10.3 Filmy i 0.10.5.
 Data: 2026-11-17.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — 0.10.3 „Filmy”: sprzętowe dekodowanie filmów dla stref (plan: docs/PLAN-0.10.3.txt)
----------------------------------------------------------------------------------------------
-Kroki i decyzje — w planie 0.10.3 (trzy kroki: próba i ADR, strona K1, strona strefy z wydaniem). Po wydaniu 0.10.3 —
-0.10.5 Aktualizacje przez sieć (docs/PLAN-0.10.5.txt).
+1. TERAZ — 0.10.2 „Testy”: opis ekranu dla testów, zrzuty wzorcowe, dwa błędy przeglądarki (plan: docs/PLAN-0.10.2.txt)
+---------------------------------------------------------------------------------------------------------------------
+Kroki i decyzje — w planie 0.10.2 (trzy kroki: ekran startu i zamykanie przeglądarki w tle, opis ekranu dla testów,
+zrzuty wzorcowe z wydaniem; Twoja prośba z 2026-11-17). Potem 0.10.3 Filmy (docs/PLAN-0.10.3.txt) i 0.10.5 Aktualizacje
+przez sieć (docs/PLAN-0.10.5.txt).
 0.10.1 Balon — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.1.txt; ADR 0044):
     [x] 0.10.1 krok 1 — awaria przy przełączaniu kart naprawiona (kompozytor strefy), liczniki strefy, prawdziwy powód
         końca — PR #134
@@ -32,7 +33,7 @@ Kroki i decyzje — w planie 0.10.3 (trzy kroki: próba i ADR, strona K1, strona
     0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
     0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
-    0.10     Strefy — 0.10.0 (przeglądarka w strefie) i 0.10.1 Balon gotowe; teraz 0.10.3 Filmy, potem 0.10.5
+    0.10     Strefy — 0.10.0 (przeglądarka w strefie) i 0.10.1 Balon gotowe; teraz 0.10.2 Testy, potem 0.10.3 Filmy, 0.10.5
              (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
@@ -60,7 +61,7 @@ Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kro
     [ ] sesja, która pamięta: pierwsza strona tuż po starcie przeglądarki bywa wysłana dwa razy, raz bez ciasteczka (CI
         0.10.0, przebieg 138: serwer dostał „brak”, zaraz potem „jest”) — sprawdzić na sprzęcie, czy po otwarciu
         przeglądarki strona, na której byłeś zalogowany, pokazuje się od razu jako zalogowana
-    [ ] okno sesji znika od razu po „zamknij” (wyszło w CI 0.10.0, 2026-11-16): przeglądarka ma teraz do 20 s na zapisanie
+    [ ] okno sesji znika od razu po „zamknij” — w 0.10.2 krok 1 (wyszło w CI 0.10.0, 2026-11-16; Twoje zgłoszenie z 2026-11-17): przeglądarka ma teraz do 20 s na zapisanie
         danych sesji, a maszyna do 40 s na koniec — przez ten czas okno zostaje na ekranie (zwykle 1–2 s)
     [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna)
     [ ] Przeglądarka K1 (po pierwszej przeglądarce w strefie): okno, karty i pasek adresu jako aplikacja K1, silnik
@@ -180,6 +181,7 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
     (włączenie — punkt 4).
 [x] 0.10.0 — decyzje D1–D8 podjęte (docs/archiwum/PLAN-0.10.0.txt, punkt 4).
 [x] 0.10.1 — decyzje D1–D6 podjęte (docs/archiwum/PLAN-0.10.1.txt, punkt 4).
+[!] 0.10.2 — decyzje D1–D4 w docs/PLAN-0.10.2.txt (punkt 4); czat zada je na początku swojego kroku.
 [!] 0.10.3 — decyzje w docs/PLAN-0.10.3.txt (punkt 4); czat zada je na początku swojego kroku.
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
 

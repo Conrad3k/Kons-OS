@@ -1,0 +1,223 @@
+K1 — PLAN WERSJI 0.10.2 „TESTY” (wersja tematu 0.10 Strefy)
+==========================================================
+
+Data: 2026-11-17 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-17, przy wydaniu
+0.10.1). Dwa tematy:
+  (1) TESTY, które sprawdzają pulpit pewniej: K1 sam mówi testom, co ma na ekranie (zamiast kolorów pikseli), a wygląd
+      pilnują zrzuty wzorcowe zatwierdzane przez właściciela (część „B” propozycji innego agenta — przyjęta przez
+      właściciela 2026-11-17; część „A”, pulpit na komputerze budowy bez maszyny wirtualnej — odrzucona, punkt 6);
+  (2) DWA BŁĘDY przeglądarki zgłoszone przez właściciela 2026-11-17: znikający ekran „Uruchamiam: Przeglądarka…” i okno,
+      które po zamknięciu zostaje na ekranie, dopóki maszyna strefy się nie zamknie.
+Wersja stoi na 0.10.1 (balon, okienko sesji, Ustawienia → Przeglądarka, stanowisko na hoście; test przeglądarki usunięty
+z CI — decyzja właściciela 2026-11-17) i idzie PRZED 0.10.3 Filmy (docs/PLAN-0.10.3.txt) i 0.10.5 (docs/PLAN-0.10.5.txt).
+Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+Plik jest planem, nie specyfikacją: kanał testowy „co jest na ekranie” dotyka niezmiennika kanałów (SKILL §4, pkt 6–7)
+— idzie przez ADR 0045 (krok 2).
+
+Mało kroków: TRZY. Krok 1 — oba błędy przeglądarki (to widzi użytkownik, więc pierwsze). Krok 2 — opis ekranu dla
+testów (ADR 0045) i testy klikające po nazwach. Krok 3 — zrzuty wzorcowe, porządki i wydanie 0.10.2.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 3 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
+zmieści się w jednym czacie, dzieli się na 1a/1b … 3a/3b (wydanie zawsze w ostatniej części kroku 3).
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.10.1, 2026-11-17), POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia
+w kroku — nie zakładać).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, 2, 3. Krok 1 nie zależy od reszty —
+można go zrobić w dowolnym momencie przed krokiem 3.
+
+Właściciel — co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.2.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku — możesz też od razu dopisać odpowiedź. Przy wyglądzie (krok 1)
+czat najpierw pokaże szkice do wyboru (zasada z WYGLAD.md).
+
+Nowy czat — przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
+  2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2–3 — także „Ustalenia z wykonania”
+     kroków wcześniejszych i ADR 0045.
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
+  5. Najpierw test, który pokazuje lukę (na czerwono), potem zmiana, potem ten sam test na zielono.
+  6. Przeglądarki nie testuje CI (decyzja właściciela 2026-11-17, AGENTS.md): Firefox w strefie — stanowisko na hoście
+     (scripts/stanowisko.sh) i lista dla właściciela; części K1 (VMM, okno, ekran, nadzorca) — testy na hoście
+     i test-strefa (strefa próbna).
+  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, scripts/test-m1.sh i skrypty QEMU
+     zmienianej części (docs/TESTY.md); pełny komplet — CI na PR-ze (etykieta „testy”), scalasz przy zielonym
+     (AGENTS.md). Czekaj poleceniem, nie rób w tym czasie innych wywołań (CLAUDE.md).
+  8. Dokumenty w tym samym PR-ze: docs/komponenty/* (ekran.md, gui.md, strefa.md, nadzorca.md), TESTY.md, SLOWNIK,
+     RYZYKA, WYGLAD (krok 1), skill kons-dev (nowe przepisy testów). VERSION i CHANGELOG zmienia krok 3 (wydanie);
+     kroki 1–2 zapisują „co widzi użytkownik” w opisie PR-a.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
+     w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+Błędy (krok 1):
+  - Przeglądarka po kliknięciu pokazuje „Uruchamiam: Przeglądarka…”, ale po sekundzie okno robi się puste, choć maszyna
+    dalej startuje (Firefox potrzebuje jeszcze kilkudziesięciu sekund). Po poprawce ekran startu zostaje — z ruchomym
+    paskiem — aż Firefox pokaże swoje okno.
+  - Po „zamknij” okno przeglądarki znika od razu. Sesja zapisuje się i maszyna kończy się w tle (dziś okno wisi do 20 s,
+    a czasem do 40 s). Gdy otworzysz tę samą sesję, zanim tamta skończy, K1 poczeka na nią sam i otworzy nową (D2).
+    Wyłączenie komputera też poczeka, aż sesje się zapiszą (z limitem) — dziś nie czeka (S5, NIEPEWNE).
+Testy (kroki 2–3) — tego nie zobaczysz w systemie, ale zobaczysz w spokojniejszym CI:
+  - K1 w obrazie testowym odpowiada testom na pytanie „co jest na ekranie”: jakie okna, jakie przyciski (z nazwą
+    i miejscem), co ma fokus. Test pisze „kliknij »Nowy folder« w Plikach”, a nie „kliknij 412,388 i sprawdź kolor
+    piksela”. W obrazie, który instalujesz, tego kanału nie ma — pilnuje tego test.
+  - Zrzuty wzorcowe: wygląd okien porównywany co do piksela z zatwierdzonym obrazem. Gdy wygląd się zmieni, dostajesz
+    w PR-ze „przed i po” do zatwierdzenia — o wyglądzie dalej decydujesz Ty (D3).
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
+[ ]  1  Przeglądarka: ekran startu, zamykanie w tle         S1–S5            0.10.1      D1, D2, T1, T2   M        —
+[ ]  2  Opis ekranu dla testów; testy klikają po nazwach    S6–S8            0.10.1      T3, T4           M        0045
+[ ]  3  Zrzuty wzorcowe; wydanie 0.10.2                       S9               2           D3, D4           M        —
+(ADR 0045 — następny wolny po 0044 z 0.10.1; plany 0.10.3 i 0.10.5 biorą numery po tym.)
+
+
+3. KROKI
+--------
+KROK 1 — Przeglądarka: ekran startu do pierwszego okna, zamykanie w tle          M · D1, D2, T1, T2 · bez ADR
+  Cel: (a) „Uruchamiam: <tytuł>…” w oknie strefy zostaje, aż przeglądarka pokaże swoje okno, z paskiem w ruchu;
+  (b) po „zamknij” okno strefy znika od razu, a maszyna kończy się w tle (sesja się zapisuje).
+  Na początku: D1 (szkice ekranu startu, oba motywy, częściami K1), D2 (ta sama sesja otwarta w trakcie zamykania).
+  Zadania:
+  [ ] (a) Odtworzenie: test-strefa — tryb strefy próbnej, który pokazuje pierwszy obraz od razu, a „okno” (etap jak
+      w przeglądarce) dopiero po chwili; zrzut po 2 s: przed poprawką bez napisu „Uruchamiam…” (czerwony).
+  [ ] (a) Poprawka (T1): VMM (src/strefa/okno.c) zostawia ekran startu do etapu „okno” od gościa (S2), nie do
+      pierwszego obrazu gościa (S1); pasek w ruchu (rysowany w pętli VMM co ok. 100 ms, tylko do etapu „okno”); strefa
+      bez etapu „okno” (strefa próbna, przyszłe strefy) — jak dziś, do pierwszego obrazu, i zawsze najdłużej do limitu
+      (np. 5 min), potem obraz gościa. Wygląd wg D1.
+  [ ] (b) Odtworzenie: test-strefa — „zamknij” na pasku: okno strefy znika z ekranu (log ekranu, zrzut) PRZED końcem
+      maszyny (dziś dopiero po; czerwony).
+  [ ] (b) Poprawka (T2): po K1_KOM_ZAMKNIJ VMM chowa swoją powierzchnię u ekranu (albo ekran sam ją chowa — wybór w
+      kroku, S3) i dalej zamyka gościa jak dziś (20 s przeglądarka, 40 s maszyna); gui: element strefy znika z paska,
+      okienko sesji pokazuje „zamyka się…” (D2); nadzorca: prośba o sesję, która się zamyka — zgodnie z D2 (S4).
+  [ ] (b) Wyłączanie K1 (S5 — najpierw sprawdzić, NIEPEWNE): gdy działają sesje, nadzorca przed wyłączeniem prosi każdą
+      o zamknięcie i czeka (limit, np. 30 s), zanim init zatrzyma resztę; test-strefa: wyłączenie przy działającej
+      strefie próbnej, która pamięta — licznik na dysku zapisany.
+  Testy i dowód: test-strefa (oba scenariusze czerwone przed, zielone po), testy na hoście części czystych (jeśli
+  wydzielone — np. stan okna strefy), stanowisko nie jest potrzebne (to części K1, nie Firefox).
+  Właściciel (lista do DO_ZROBIENIA przy wydaniu): Start → Przeglądarka — „Uruchamiam…” z ruchomym paskiem aż do okna
+  Firefoksa; zamknij okno — znika od razu; otwórz zaraz tę samą sesję — otwiera się, gdy poprzednia skończy (D2);
+  w Ogólnej zaloguj się, zamknij okno, od razu wyłącz komputer — po starcie dalej zalogowany.
+  Dokumenty: strefa.md, ekran.md, gui.md, nadzorca.md, WYGLAD (D1), SLOWNIK („zamyka się”, jeśli nowe pojęcie).
+  Gotowe, gdy: testy zielone, CI na PR-ze zielone (wydanie — krok 3).
+  Ustalenia z wykonania: (pusto)
+
+KROK 2 — Opis ekranu dla testów (ADR 0045); testy klikają po nazwach            M · T3, T4 · ADR 0045
+  Cel: w obrazie testowym ekran i gui odpowiadają osobnym kanałem testowym na pytanie „co jest na ekranie” — okna
+  (aplikacja, tytuł, prostokąt, fokus, zminimalizowane), elementy (przyciski, wiersze menu, kafelki, pola: nazwa,
+  prostokąt, stan); testy QEMU używają tego zamiast położeń z logu i kolorów pikseli.
+  Zadania:
+  [ ] ADR 0045 „Opis ekranu dla testów” (T3): kanał tylko w obrazie testowym (przez program testowy — wzór TEST_POLACZ,
+      S7), nowy komunikat i format odpowiedzi (memfd ze stałym układem, sprawdzany pole po polu), kto odpowiada (ekran —
+      okna; każdy klient ekranu — swoje elementy, przez przybornik), co NIE może w nim być (treść plików, wpisany tekst,
+      nazwy sesji — niezmiennik 8 obowiązuje też tu); dlaczego obraz produkcyjny go nie ma i jak tego pilnować.
+  [ ] Przybornik: elementy rysowane przez k1_przycisk, k1_menu, kafelki i pola zgłaszają się do jednej tabeli elementów
+      okna (nazwa, prostokąt) — jedno miejsce, z którego czyta i rysowanie, i opis (zasada czytelności 5).
+  [ ] Ekran: odpowiedź „co jest na ekranie” (okna w kolejności, fokus, elementy od klientów).
+  [ ] testy/qemu/k1qemu.py: `q.ekran()` (opis), `q.klik_w("Pliki", "Nowy folder")`, `q.czekaj_na_element(...)`;
+      przepisać na nie test-m4 (menu Start, pulpit, Ustawienia) — położenia z logu zostają tylko tam, gdzie opis ich nie
+      daje (zapisane w TESTY.md).
+  [ ] Test negatywny: obraz produkcyjny nie odpowiada na pytanie (brak kanału/typu — sprawdzenie w test-m1 i w
+      scripts/sprawdz-binaria.sh albo sprawdz-czytelnosc: ślad kodu tylko w programie testowym).
+  Testy i dowód: test_komunikat i fuzzing nowego formatu; test-m4 po przepisaniu zielony; czas test-m4 przed i po.
+  Dokumenty: ADR 0045, ekran.md, gui.md, aplikacje.md (przybornik), TESTY.md (jak pisać testy po nazwach), skill
+  (przepis „Nowa aplikacja” — elementy w opisie), SLOWNIK („opis ekranu”).
+  Gotowe, gdy: CI zielone, test-m4 klika po nazwach.
+  Ustalenia z wykonania: (pusto)
+
+KROK 3 — Zrzuty wzorcowe; wydanie 0.10.2                                        M · D3, D4 · bez ADR
+  Cel: wygląd okien K1 sprawdzany co do piksela z zatwierdzonymi obrazami. Zrzut z QEMU, z niego wycięte okno według
+  opisu ekranu (krok 2) — bez kursora i zegara; K1 rysuje sam, więc ten sam kod daje ten sam piksel (S9).
+  Zadania:
+  [ ] Zrzuty wzorcowe (D3, D4): testy/wzorce/*.png (małe, oba motywy) dla okien z D4; porównanie w testach QEMU
+      (k1qemu.py: `q.wzorzec("pliki-jasny", okno="Pliki")`); różnica = błąd testu z obrazami „przed / po / różnica” w
+      build/testy/ i w artefakcie CI; zatwierdzenie zmiany wyglądu — wg D3; kursor odsunięty poza okno przed zrzutem,
+      zegar i inne zmienne miejsca (czas, liczby z Zasobów) wyłączone z porównania według opisu ekranu.
+  [ ] Porządki wersji PATCH: martwe pomocniki testów (położenia z logu, kolory pikseli) po przepisaniu na opis ekranu;
+      pliki blisko limitu (0.10.1: test_odcinki.c 599, k1_rysuj.c 542, uslugi.c 540, t_wifi_ap.c 528, powierzchnia.c
+      527); Tymczasowe; DO_ZROBIENIA.
+  [ ] Wydanie: VERSION 0.10.2; CHANGELOG (kroki 1–3); DO_ZROBIENIA — „Teraz” → 0.10.3 (docs/PLAN-0.10.3.txt), lista
+      dla właściciela (z kroku 1); ten plik → docs/archiwum/. Po scaleniu: CI, tag k1-v0.10.2, wydanie, raport z linkami.
+  Testy i dowód: pełny komplet w CI; celowo zmieniony kolor w jednym oknie (lokalnie) → test pokazuje „przed / po”.
+  Gotowe, gdy: wydanie k1-v0.10.2 istnieje, raport z linkami.
+  Ustalenia z wykonania: (pusto)
+
+
+4. DECYZJE
+----------
+Twoje (produkt):
+[!] D1 (krok 1) Ekran startu przeglądarki — szkice do wyboru (oba motywy). Rekomendacja: jak dziś (ikona, „Uruchamiam:
+       Przeglądarka · Ogólna…”), pod spodem pasek, po którym przesuwa się odcinek w kolorze sesji (bez procentów —
+       nie wiemy, ile zostało); do pojawienia się okna Firefoksa. Inne: kropki zamiast paska; zdanie „Pierwszy start może
+       potrwać do minuty” po 20 s.
+[!] D2 (krok 1) Otwierasz tę samą sesję, która jeszcze się zamyka w tle. Rekomendacja: kafelek w okienku „Którą sesję
+       otworzyć?” mówi „zamyka się…”; kliknięcie go przyjmuje — okno sesji pokazuje „Uruchamiam…” od razu, a maszyna
+       startuje sama, gdy poprzednia skończy (najwyżej 40 s). Inne: kafelek nieaktywny do końca zamykania.
+[!] D3 (krok 3) Jak zatwierdzasz zmianę wyglądu. Rekomendacja: PR, który zmienia wygląd, ma w opisie obrazy „przed / po”
+       (z CI); piszesz w czacie „OK” albo uwagi — czat dopiero wtedy podmienia wzorce w repo. Inne: wzorce zmienia czat
+       sam, a Ty oglądasz je po wydaniu.
+[!] D4 (krok 3) Które okna dostają zrzuty wzorcowe najpierw. Rekomendacja: pulpit z paskami, menu Start, okienko
+       „Którą sesję otworzyć?”, Ustawienia (wszystkie sekcje), Pliki, Zasoby, Kalkulator — w obu motywach; ramka strefy
+       (strefa próbna). Bez Firefoksa (CI go nie testuje) i bez Podglądu ze zdjęciem (dekoder — osobno, później).
+
+Techniczne (moje — z uzasadnieniem; krok może je poprawić w „Ustaleniach z wykonania”):
+    T1 Koniec ekranu startu = etap „okno” od gościa (S2), nie pierwszy obraz: pierwszy obraz gościa przychodzi długo
+       przed oknem przeglądarki (S1). Pasek w ruchu rysuje VMM (jego okno, jego wątek) — ekran K1 nic nie wie o etapach
+       strefy i tak zostaje.
+    T2 Okno znika od razu: po „zamknij” VMM nie potrzebuje już okna — zamyka swoją powierzchnię u ekranu (ekran usuwa
+       okno jak przy końcu klienta), a resztę zamykania robi bez okna. Zasoby i nadzorca widzą strefę do jej końca.
+    T3 Kanał opisu ekranu tylko przez program testowy (jak TEST_POLACZ, S7): w obrazie produkcyjnym nie ma programu
+       testowego, więc nie ma kto zapytać; kod odpowiedzi w ekranie i przyborniku jest — dlatego ADR i test, że bez
+       roli testowej ekran odrzuca pytanie (fail closed).
+    T4 Elementy zgłasza przybornik (jedna tabela elementów okna), nie każda aplikacja osobno — inaczej opis rozjedzie się
+       z tym, co narysowane.
+
+
+5. LUKI (z czytania kodu po 0.10.1, 2026-11-17)
+-----------------------------------------------
+Krok 1
+  S1  Z KODU (src/strefa/okno.c): „Uruchamiam: <tytuł>…” rysuje rysuj_start() raz przy okno_start(); znika przy
+      PIERWSZYM obrazie gościa (okno_obraz: obraz_gosc). Kompozytor strefy przy starcie zgłasza zmianę całego
+      wyświetlacza (kompozytor/main.c: scena_zmiana(0, 0, …) — ciemne tło TLO), więc pierwszy obraz to tło kompozytora,
+      kilkadziesiąt sekund przed oknem Firefoksa — to jest „po sekundzie znika”. NIEPEWNE: czy jeszcze wcześniej nie
+      przychodzi obraz z jądra strefy albo gosc (kms.c). Pasek pod napisem jest stały (64 z 160 px) — to nie animacja.
+  S2  Z KODU (src/strefa/vsock.c, gosc/przegladarka.c): kompozytor pisze „okno” przy pierwszym oknie przeglądarki,
+      gosc wysyła VMM „etap okno”, VMM loguje czas (S30 z 0.10.0) — sygnał już jest, tylko nie steruje oknem.
+  S3  Z KODU (src/strefa/main.c): K1_KOM_ZAMKNIJ → okno_zamknij_goscia() → vsock „zamknij”; gość daje przeglądarce
+      20 s, VMM kończy po 40 s (ZAMKNIJ_S) albo gdy gość się zamknie; okno istnieje, dopóki VMM ma kanał do ekranu
+      (koniec procesu). DO_ZROBIENIA ma to w „0.10 Strefy” („okno sesji znika od razu po zamknij”) — ten krok to zamyka.
+  S4  Z KODU (src/nadzorca/strefy.c, gui sesje.c): nadzorca odmawia startu strefy, która działa („strefa N już działa”);
+      okienko sesji pokazuje „otwarta” i wysuwa jej okno — po poprawce okna już nie będzie, a strefa jeszcze działa.
+  S5  NIEPEWNE (src/nadzorca/uslugi.c: wylacz → kill(1, SIGTERM); init zatrzymuje nadzorcę, usługi giną z nim —
+      PR_SET_PDEATHSIG): przy wyłączaniu K1 działające strefy nie dostają „zamknij” — przeglądarka nie zapisuje sesji.
+      Sprawdzić próbą (test-strefa: wyłączenie przy działającej strefie, która pamięta).
+Krok 2
+  S6  Z KODU (testy/qemu/k1qemu.py, scripts/test-m4.sh): testy klikają według położeń z logu (np. „menu Start otwarte
+      (pierwszy wiersz x,y co n…)”, „pasek zmieniony: Start x,y…”) i sprawdzają kolory pikseli na zrzutach; każdy nowy
+      element to nowa linia logu i nowe wyrażenie regularne w teście.
+  S7  Z KODU (k1_komunikat.h): K1_KOM_TEST_POLACZ (52) — tylko obraz testowy: kanał do ekranu z dowolną rolą; wzór dla
+      kanału opisu ekranu.
+  S8  Z KODU (src/przybornik/): przyciski, menu i pola mają swoje prostokąty w strukturach przybornika, ale nie ma jednej
+      tabeli elementów okna.
+Krok 3
+  S9  Z KODU (src/grafika, src/przybornik, narzedzia/podglad_grafiki): K1 rysuje wszystko sam, procesorem, bez karty
+      graficznej i bez obcych bibliotek — ten sam obraz w każdym uruchomieniu (podgląd tapet na hoście i test_przybornik
+      już na tym polegają). NIEPEWNE: czy QEMU (VGA std / simpledrm) nie zmienia pikseli przy zrzucie (screendump) —
+      sprawdzić w kroku dwoma zrzutami tego samego okna.
+
+
+6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
+-----------------------------------------------------------------------------------
+    pulpit, aplikacje i skarbiec jako programy na komputerze budowy, bez maszyny wirtualnej (część „A” propozycji —
+    właściciel 2026-11-17: nie robimy); test przeglądarki z Firefoksem z powrotem w CI (właściciel 2026-11-17: nie);
+    udawany touchpad wielodotykowy w QEMU; testy wydajności (TCG i tak ich nie pokazuje).
