@@ -260,6 +260,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
                  k1_kolor(m->tekst3, 255), 0);
         siec_zegar_tekst(zegar, sizeof zegar);
         k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 86, zegar, k1_kolor(m->tekst3, 255), 0);
+        zmienne("Zegar", seg_y() + 70, 24);
         break;
     case S_HASLO:
         haslo_rysuj(o, m);

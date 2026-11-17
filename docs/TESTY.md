@@ -56,6 +56,7 @@ i `tail -f build/qemu/serial.log`; zrzut: `scripts/zrzut-ekranu.sh plik.png`.
 |---|---|
 | init, initramfs, jądro, klatki, kanały, nadzorca (ogólnie) | `test-m1.sh` wystarczy; jądro i sprzęt — też `test-m5.sh` |
 | ekran, wejście, gui, aplikacje, przybornik, logowanie | `test-m4.sh` |
+| wygląd czegokolwiek, co rysuje K1 (grafika, przybornik, gui, okna aplikacji, ramka strefy; 0.10.2 krok 3) | `test-wzorce.sh` (+ `test-strefa.sh` dla ramki) — zmiana wyglądu: obrazy „przed / po” do akceptacji właściciela, niżej |
 | Pliki, Kosz, Notatki, okno wyboru pliku, przeciąganie | `test-pliki.sh` |
 | czytnik, dekoder, Podgląd, tapeta ze zdjęcia, Ustawienia → Miejsce | `test-pendrive.sh` |
 | skarbiec (format, kompaktowanie, miejsce, powiększenie) | `test-skarbiec.sh` (+ `test-pliki.sh`) |
@@ -133,7 +134,8 @@ Klasa `Maszyna`: `czekaj`, `czekaj_na`, `cisza`, `klik`, `dwuklik`, `prawy_klik`
 `kolko` (0.10.0: ząbki kółka nad punktem — QEMU `mouse_move 0 0 dz`, dz > 0 = od siebie; czeka na licznik
 „przewijanie N” ekranu), `pisz`, `zrzut`, `sprawdz`, `wyniki`; od 0.10.2 (ADR 0045) **opis ekranu**: `ekran()` (okna i
 panele od dołu, każdy z elementami: rodzaj, prostokąt, stan, nazwa), `element(okno, nazwa, rodzaj)`,
-`czekaj_na_element(…)`, `klik_w("Menu Start", "Notatki")`, `srodek(e)`; maszynę zamyka `zamknij_qemu` (`scripts/wspolne.sh`); sieć testowa —
+`czekaj_na_element(…)`, `klik_w("Menu Start", "Notatki")`, `srodek(e)`; od 0.10.2 krok 3 **zrzuty wzorcowe**:
+`wzorzec(nazwa, okno, elementy=False, prostokat=None, pomin=())` (`testy/qemu/k1wzorce.py`, niżej); maszynę zamyka `zamknij_qemu` (`scripts/wspolne.sh`); sieć testowa —
 `testy/qemu/k1siec.py` (drugi koniec kabla, router z DHCP i czasem).
 
 **Bez stałych pauz.** Krok czeka na dowód, że się stał, nie na upływ czasu: polecenie monitora — na odpowiedź;
@@ -147,6 +149,7 @@ wywołań i odrzuconych komunikatów; tekstów, haseł, nazw plików i sieci nie
 |---|---|---|
 | `test-m1.sh` | `start`, `testy-w-systemie`, 7 negatywnych (z KVM równolegle) | start z dm-verity aż do pulpitu, brak baterii; testy w systemie (warstwa 5) z restartem ekranu i kontrolowanym wyłączeniem; NEGATYWNE: brak dysku, dysk bez obrazu, obraz bez init, zły `k1.rdzen` (pozostałe przypadki parametru — `test_cmdline`), brak skrótu, zły skrót, jeden bajt obrazu zmieniony — każdy kończy się komunikatem i wyłączeniem, bez paniki |
 | `test-m4.sh` | `pulpit` (od 0.10.2 obraz testowy z opisem ekranu — klika po nazwach), `ponownie`, `haslo`, `iso-bios` | kursor, mysz i klawiatura (dawny `test-m2.sh`: ruch, strzałki, przycisk, brak śladu); pulpit (ikony, menu pod prawym przyciskiem, przypinanie, przeciąganie na pasku i pulpicie), menu Start, okienko sesji (0.10.1 krok 4: Start → Przeglądarka — kafelki Ogólnej, Banku i Prywatnej z kropką w kolorze sesji, zrzut `m4-1f-okienko-sesji`; „Anuluj” nie uruchamia strefy), Notatki (polskie znaki, dwie notatki), Zegar, Ustawienia (ciemny motyw, tapeta, rozdzielczość; 0.10.1 krok 4: Przeglądarka w obu motywach — trzy karty sesji, rząd pikseli między kartami w kolorze tła okna, czyli opis nie wchodzi na następną kartę; zrzuty `m4-5c-przegladarka-jasny`, `-ciemny`), Zasoby, Kalkulator, minimalizacja, Start → Wyłącz; dysk zaszyfrowany; po ponownym starcie ustawienia, rozmieszczenie i notatki wracają; hasło: ekran hasła, złe i dobre, Wyloguj; start z ISO przez BIOS (SeaBIOS, VESA, simpledrm) |
+| `test-wzorce.sh` | 1 (obraz testowy z opisem ekranu i pustym dyskiem danych) | **zrzuty wzorcowe** (0.10.2 krok 3, decyzja D4) w obu motywach: dolny i górny pasek, ikony pulpitu, menu Start, okienko „Którą sesję otworzyć?”, Ustawienia — każda z 11 sekcji, Pliki, Zasoby, Kalkulator — 38 obrazów w `testy/wzorce/` co do piksela; ramkę strefy (`ramka-strefy-jasny`, `-ciemny`) sprawdza `test-strefa.sh` |
 | `test-pliki.sh` | `pierwszy`, `ponownie`, `notatki` | foldery, nazwy (zajęta — odmowa), Kosz (przywróć, usuń na zawsze z pytaniem), pliki na pulpicie i ich menu, przeciąganie i Ctrl+klik, foldery stałe (odmowa), po ponownym starcie zostają; dysk formatu 1 z notatkami jako plikami: Notatki, okno wyboru pliku (Otwórz, Anuluj), „Otwórz za pomocą”, domyślna aplikacja, Ustawienia → Aplikacje |
 | `test-pendrive.sh` | `pendrive`, `ponownie` | wirtualny pendrive FAT32 (mtools, Pillow): czytnik w klatce tylko do odczytu, import (pojedynczo, wszystkie, drugi raz — pominięte), pliki 17 MB i 300 MB kawałkami, miniatury (JPEG, PNG, GIF, BMP, WebP, 48/100 Mpx), NEGATYWNE: uszkodzony JPEG, 101 Mpx, plik z pendrive'a na Kosz, plik bez aplikacji; tapeta ze zdjęcia; Podgląd (przybliżanie, obrót, ← →, Delete, Ctrl+O, płynność); Ustawienia → Miejsce; wyjęcie, NTFS (odmowa), „mały” FAT32 z 1100 zdjęciami (0.10.0 krok 4: kółko nad listą — 3 wiersze na ząbek, w górę ponad początek, NEGATYWNY: nad miejscami po lewej nic); po ponownym starcie tapeta i magazyn z filmem otwarty od razu |
 | `test-skarbiec.sh` | `dziennik` (+ponownie), `przejscie`, `pelny`, `powiekszenie` (+ponownie), `dokonczenie` | dyski z `magazyn_testowy`: długi dziennik → kompaktowanie przy otwarciu; przejście z formatu 1 na 2 dopiero po potwierdzonym starcie, krokami < 1 s; prawie pełna K1-DANE: „Nowy folder” odrzucony, ustawienie systemu się zapisuje; „Użyj całego pendrive'a na dane” → nowa tablica, import 16 zdjęć; dokończenie powiększenia po przerwie prądu; na hoście treść każdego obiektu |
@@ -161,13 +164,31 @@ wywołań i odrzuconych komunikatów; tekstów, haseł, nazw plików i sieci nie
 z małym dyskiem o numerze seryjnym `k1-test-opis` (wzór: `test-m4.sh`, przebieg `pulpit`): program testowy pyta wtedy
 ekran co pół sekundy, co jest na ekranie, i wypisuje opis do logu, gdy się zmienił — „K1-TEST: ekran n część/części:
 rekord | …”, rekord „rodzaj okno x,y,w,h stan nazwa” (O okno, P panel, B przycisk, W wiersz, K kafelek, I ikona,
-Z zakładka). Skrypt czeka na element i klika jego środek: `q.klik_w("Pasek", "Start")`, `q.klik_w("Menu Start",
-"Wyłącz")`, `q.klik_w("Ustawienia", "Ciemny")`. Nazwy paneli powłoki: „Pasek”, „Menu Start”, „Pulpit” (ikony: nazwy
+Z zakładka, F pole, M miejsce zmienne — 0.10.2 krok 3). Skrypt czeka na element i klika jego środek: `q.klik_w("Pasek", "Start")`, `q.klik_w("Menu Start",
+"Wyłącz")`, `q.klik_w("Ustawienia", "Ciemny")`. Nazwy paneli powłoki: „Pasek”, „Pasek górny” (0.10.2 krok 3: „Dźwięk”, miejsce zmienne „Stan i zegar”), „Menu Start”, „Pulpit” (ikony: nazwy
 aplikacji, „Kosz”, „plik N”), „Menu” (menu pod prawym przyciskiem), „Okienko” (okienka pulpitu: „sesja N”, „Anuluj”);
 okno aplikacji — jej tytuł (przyciski przybornika, „Minimalizuj”, „Zamknij”, sekcje i segmenty jako zakładki).
 **Położenia z logu zostają** tam, gdzie opis ich nie daje: listy plików i notatek (nazwy to treść użytkownika), karty
 tapet i lista trybów ekranu w Ustawieniach, przyciski Kalkulatora, przesuwanie okien, pasek okna strefy (rysuje go
 ekran). Zysk: nowy element nie potrzebuje nowej linii logu ani wyrażenia regularnego w teście.
+
+**Zrzuty wzorcowe (0.10.2 krok 3; decyzje właściciela D3, D4).** K1 rysuje wszystko sam, procesorem — ten sam kod daje
+ten sam piksel w każdym uruchomieniu i na każdym komputerze (sprawdzone: lokalnie w emulacji i w CI z KVM). Test wycina
+z zrzutu ekranu okno albo panel według opisu ekranu i porównuje co do piksela z `testy/wzorce/<nazwa>.png`:
+`q.wzorzec("pliki-jasny", "Pliki")`, `q.wzorzec("pulpit-ikony-jasny", "Pulpit", elementy=True)` (prostokąt wokół
+elementów), `q.wzorzec("ramka-strefy-jasny", prostokat=(x, y, w, h), pomin=[(…)])` (bez opisu ekranu). Przed zrzutem
+kursor wychodzi poza wycinek (najbliższy punkt obok — krótki ruch); test czeka, aż okno będzie wyglądać jak wzorzec
+(domyślnie 30 s). **Miejsca zmienne** — to, co zmienia się samo (zegar i stan na górnym pasku, liczby i wykresy Zasobów,
+numer wersji w menu Start i w Informacjach, czas, miejsce na pliki, karty sieciowe) — program zgłasza w opisie ekranu
+jako rodzaj „zmienne” (`k1_el(K1_EL_ZMIENNE, "Zegar", x, y, w, h, 0)`, w logu „M”); w obrazie wzorcowym są zamalowane
+kolorem `#FF00FF` i porównanie je pomija. Nowa liczba albo czas w oknie, które ma wzorzec = nowe miejsce zmienne.
+**Gdy wygląd się różni:** błąd testu z liczbą różnych pikseli i trzema obrazami w `build/testy/wzorce/`:
+`<nazwa>-przed.png` (wzorzec), `-po.png` (teraz), `-roznica.png` (różne piksele na czerwono); w CI są w artefakcie
+z logami (`k1-<wersja>-logi`). Brak wzorca — też błąd, z obrazem „po”. **Zmianę wyglądu zatwierdza właściciel (D3):**
+PR, który zmienia wygląd, pokazuje mu obrazy „przed / po” (w opisie PR-a albo przez `SendUserFile`); dopiero po jego
+„OK” `scripts/przyjmij-wzorce.sh [katalog z artefaktu] [nazwy…]` przenosi obrazy „po” do `testy/wzorce/` (osobny commit).
+Wzorców nie zmienia się „przy okazji”. Nowy wzorzec (nowe okno) — tak samo: pierwszy przebieg daje „po”, właściciel
+ogląda, skrypt przyjmuje. Okna z Firefoksem i Podgląd ze zdjęciem — bez wzorców (D4). Rozmiar: 40 obrazów ok. 1,5 MB.
 
 Pułapki QEMU, Wi-Fi, jądra i kanałów, które już wystąpiły: skill `kons-dev`, §7.
 

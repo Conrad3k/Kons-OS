@@ -16,6 +16,7 @@
 #include "k1_liczba.h"
 #include "k1_kanal.h"
 #include "k1_log.h"
+#include "k1_opis_klient.h"
 #include "k1_odbior.h"
 #include "k1_uslugi.h"
 
@@ -55,6 +56,12 @@ static int sesje(int *nr)
     return n;
 }
 
+/* A changing place (0.10.2 step 3, k1_opis.h K1_EL_ZMIENNE): the reference screenshots leave it out. */
+static void zmienna(int32_t x, int32_t y, int32_t w, int32_t h, const char *nazwa)
+{
+    k1_el(K1_EL_ZMIENNE, nazwa, x, y, w, h, 0);
+}
+
 /* The sessions: a bar each in its colour — what it uses of what it may get; returns the new y. */
 static int32_t rysuj_sesje(struct k1_obraz *o, const struct k1_motyw *m, int32_t y, int32_t w)
 {
@@ -64,6 +71,7 @@ static int32_t rysuj_sesje(struct k1_obraz *o, const struct k1_motyw *m, int32_t
         przegladarka &= strefy[nr[i]].nazwa[0] != '\0';
     if (n == 0)
         return y;
+    zmienna(MARG, y, w, 28 + n * SESJA_H + 24, "Sesje teraz"); /* which run and how much memory each uses */
     k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG, y + 16, przegladarka ? "Sesje przeglądarki" : "Strefy", k1_kolor(m->tekst, 255), 0);
     y += 28;
     for (int i = 0; i < n; i++, y += SESJA_H) {
@@ -152,6 +160,8 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
              procesory == 1 ? "rdzeń" : (procesory % 10 >= 2 && procesory % 10 <= 4 && (procesory % 100 < 12 || procesory % 100 > 14) ? "rdzenie" : "rdzeni"));
     k1_tekst(o, K1_CZ_MALA, MARG + 84, y + 16, procesory ? buf : "", k1_kolor(m->tekst3, 255), 0);
     wykres(o, m, MARG, y + 26, w, WYKRES_H, cpu);
+    zmienna(MARG + 260, y, w - 260, 22, "Procesor teraz"); /* 0.10.2 step 3: the numbers and charts change */
+    zmienna(MARG, y + 24, w, WYKRES_H + 4, "Wykres procesora");
     y += 26 + WYKRES_H + 16;
 
     /* Memory */
@@ -163,10 +173,13 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG + w - k1_tekst_szer(K1_CZ_TEKST_MOCNA, buf), y + 16, buf,
                  k1_kolor(m->tekst, 255), 0);
     wykres(o, m, MARG, y + 26, w, WYKRES_H, pam);
+    zmienna(MARG + 120, y, w - 120, 22, "Pamięć teraz");
+    zmienna(MARG, y + 24, w, WYKRES_H + 4, "Wykres pamięci");
     y += 26 + WYKRES_H + 20;
 
     /* Battery (0.6.3): percent, power draw now, time left at that rate */
     if (bat.znana) {
+        zmienna(MARG + 80, y, w - 80, 22, "Bateria teraz");
         k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG, y + 16, "Bateria", k1_kolor(m->tekst, 255), 0);
         bateria_opis(buf, sizeof buf);
         k1_tekst(o, K1_CZ_MALA, MARG + 84, y + 16, buf, k1_kolor(m->tekst2, 255), w - 84 - 56);
@@ -185,6 +198,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     k1_tekst(o, K1_CZ_MALA, MARG + w - 200, y + 16, "procesor", k1_kolor(m->tekst3, 255), 0);
     k1_tekst(o, K1_CZ_MALA, MARG + w - 72, y + 16, "pamięć", k1_kolor(m->tekst3, 255), 0);
     y += 24;
+    zmienna(MARG, y, w, apl.wys - y, "Usługi i aplikacje teraz"); /* which run, their numbers, the time since start */
     k1_prostokat(o, MARG, y, w, 1, k1_kolor(m->tekst, 20));
     for (p = 1, dzialaja = 0; p <= K1_PROFIL_MAKS; p++)
         dzialaja += uslugi[p].dziala != 0;

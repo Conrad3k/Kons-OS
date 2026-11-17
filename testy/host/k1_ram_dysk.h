@@ -67,7 +67,7 @@ static void dysk(struct k1_mag_dysk *d, uint64_t bloki)
     tylko_naglowki_padaja = 0;
 }
 
-static int zawiera(const uint8_t *hay, size_t n, const char *igla)
+static inline int zawiera(const uint8_t *hay, size_t n, const char *igla)
 {
     size_t k = strlen(igla);
     for (size_t i = 0; i + k <= n; i++)

@@ -226,6 +226,7 @@ void rysuj_gora(void)
     if (o == NULL)
         return;
     tekst_zegara(zegar_tekst, sizeof zegar_tekst);
+    k1_el_od_nowa(&gora, "Pasek górny"); /* 0.10.2 step 3: the screen's description for the tests */
     k1_wyczysc(o, k1_kolor(K1_NOC, 150));
     k1_tekst(o, K1_CZ_MALA_MOCNA, 16, 21, apl ? aplikacje[apl].nazwa : "Kons K1", krem, 300);
     k1_tekst(o, K1_CZ_MALA_MOCNA, k.szer_ekranu - 16 - k1_tekst_szer(K1_CZ_MALA_MOCNA, zegar_tekst), 21, zegar_tekst, krem, 0);
@@ -234,8 +235,13 @@ void rysuj_gora(void)
         k1_zaokraglony(o, (float)gx, 4, 28, 24, 6, k1_kolor(K1_KREM, 36));
     k1_ikona(o, K1_IK_GLOSNIK, (float)gx + 6, 8, 16, krem);
     gx = bat.obecna ? rysuj_baterie(o, krem) : gx;
-    if (siec >= K1_SIEC_BRAK_KARTY && siec <= K1_SIEC_STAN_MAKS)
+    if (siec >= K1_SIEC_BRAK_KARTY && siec <= K1_SIEC_STAN_MAKS) {
         rysuj_siec(o, (float)gx - 10 - 16, krem);
+        gx -= 10 + 16;
+    }
+    /* the network, the battery and the clock change by themselves (and move with the clock's width): a changing place */
+    k1_el(K1_EL_ZMIENNE, "Stan i zegar", gx - 8, 0, k.szer_ekranu - gx + 8, gora.wys, 0);
+    k1_el(K1_EL_PRZYCISK, "Dźwięk", glosnik_x(), 4, 28, 24, dzwiek_otwarty ? K1_EL_WYBRANY : 0);
     k1_pow_zatwierdz(&k, &gora);
 }
 

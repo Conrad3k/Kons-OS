@@ -239,6 +239,7 @@ void miejsce_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     if (!in.znane)
         return;
     wiersze(w);
+    zmienne("Miejsce na pliki", seg_y() - 4, 80 + 3 * WIERSZ + 58); /* the numbers, the bar and the legend */
     n = podzial_znany ? kolejnosc(w, nr) : 0;
     liczby(o, m, seg_y() + 16, seg_y() + 80 + 3 * WIERSZ + 30); /* below the 4th row of the legend */
     pasek(o, m, seg_y() + 30, w, nr, n);

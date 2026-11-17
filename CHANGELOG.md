@@ -3,6 +3,44 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.10.2] — 2026-11-17
+
+**Testy** (plan 0.10.2, kroki 1–3; ADR 0045). Przeglądarka pokazuje „Uruchamiam…” aż do swojego okna i znika od razu po
+zamknięciu, a sesja zapisuje się w tle — także przy wyłączaniu komputera. Testy pytają K1, co jest na ekranie, i klikają
+po nazwach, a wygląd okien K1 pilnują zrzuty wzorcowe, które zatwierdzasz Ty.
+
+### Dodane
+- **Zrzuty wzorcowe** (krok 3, Twoje decyzje D3 i D4): `scripts/test-wzorce.sh` porównuje co do piksela 38 obrazów
+  w `testy/wzorce/` — dolny i górny pasek, ikony pulpitu, menu Start, okienko „Którą sesję otworzyć?”, każdą z 11 sekcji
+  Ustawień, Pliki, Zasoby i Kalkulator, w jasnym i ciemnym motywie; ramkę strefy (2 obrazy) — `test-strefa.sh`. Różnica
+  = błąd testu z obrazami „przed / po / różnica” (w CI: artefakt z logami). Zmianę wyglądu zatwierdzasz Ty: wzorce zmienia
+  `scripts/przyjmij-wzorce.sh` dopiero po Twoim „OK”.
+- **Miejsca zmienne** (krok 3, uzupełnienie ADR 0045): to, co zmienia się samo (zegar i stan na górnym pasku, numer
+  wersji, czas, liczby i wykresy Zasobów, miejsce na pliki, karty sieciowe), program zgłasza w opisie ekranu
+  (`K1_EL_ZMIENNE`) — porównanie je pomija. Górny pasek jest panelem opisu („Pasek górny”, „Dźwięk”).
+- **Opis ekranu dla testów** (krok 2, ADR 0045): w obrazie testowym ekran mówi programowi testowemu, jakie okna i panele są
+  na ekranie, a w nich przyciski, wiersze menu, kafelki, ikony i zakładki — z nazwą i prostokątem (format `k1_opis.h`:
+  memfd, każde pole sprawdzane, `test_opis`, `fuzz_opis`). Tylko rola `TEST` (program testowy); w obrazie, który
+  instalujesz, nikt nie może zapytać (`t_opis`, `sprawdz-czytelnosc`). Bez tekstu użytkownika: pliki to „plik N”, sesje
+  „sesja N”. `test-m4` klika po nazwach (`q.klik_w("Menu Start", "Notatki")`).
+
+### Zmienione
+- **Ekran startu przeglądarki** (krok 1, Twoja decyzja D1 — szkic A): „Uruchamiam: Przeglądarka · Ogólna…” z odcinkiem
+  w kolorze sesji, który jeździ po pasku, zostaje, aż Firefox pokaże swoje okno (dotąd znikał po sekundzie, gdy strefa
+  narysowała pierwsze tło); najwyżej 5 minut.
+- **Zamykanie w tle** (krok 1, Twoja decyzja D2): po „zamknij” okno sesji znika od razu, a przeglądarka zapisuje sesję
+  i maszyna kończy się w tle; kafelek sesji mówi wtedy „zamyka się…”, a otwarcie tej sesji w tym czasie K1 wykona sam,
+  gdy poprzednia skończy.
+- **Wyłączanie i ponowne uruchamianie** z pulpitu najpierw prosi każdą działającą sesję o zamknięcie i czeka na nią
+  (najwyżej 30 s) — dotąd sesje kończyły się razem z nadzorcą, a przeglądarka nie zdążyła zapisać, że jesteś zalogowany.
+
+### Porządki
+- `test_odcinki.c` (599 wierszy, tuż pod limitem) podzielony: pełny magazyn, kroki kompaktowania, powiększanie
+  i 70 000 obiektów — w `test_odcinki_pelny.c`.
+- Położenia z logu w testach zostają tylko tam, gdzie opisu ekranu nie ma (listy plików i notatek, karty tapet, tryby
+  ekranu, Kalkulator, przesuwanie okien, pasek okna strefy — `docs/TESTY.md`).
+- Tymczasowe: terminów na 0.10.2 nie było; nowych rozwiązań tymczasowych nie dodano. Plan 0.10.2 — w archiwum.
+
 ## [0.10.1] — 2026-11-17
 
 **Balon: pamięć strefy według potrzeby** (plan 0.10.1, kroki 1–5; ADR 0044). Przeglądarka nie wysypuje się już przy

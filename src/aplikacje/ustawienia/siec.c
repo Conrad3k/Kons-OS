@@ -296,6 +296,7 @@ static void karty_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
                  k1_kolor(m->tekst2, 255), 0);
         snprintf(log, sizeof log, "brak kart");
     }
+    zmienne("Karty sieciowe", KAFEL_Y - 4, apl.wys - KAFEL_Y - 8); /* state, address and times come from the network */
     for (i = 0; i < s.n && i < kafle; i++)
         kafel(o, m, i, KAFEL_Y + i * (KAFEL_H + KAFEL_ODST), log, sizeof log);
     if (s.n > kafle) {

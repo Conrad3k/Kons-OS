@@ -3,7 +3,7 @@
 - Status: Przyjęty; wdrożony w 0.10.2 (krok 2)
 - Data: 2026-11-17
 - Dotyczy: niezmienniki kanałów i klatek (SKILL §4, pkt 6–7: każdy komunikat sprawdzany pole po polu, tylko nadzorca
-  daje kanały i role), niezmiennik 8 (żadnych treści w logach); plan `docs/PLAN-0.10.2.txt`: krok 2, T3, T4, S6–S8
+  daje kanały i role), niezmiennik 8 (żadnych treści w logach); plan `docs/archiwum/PLAN-0.10.2.txt`: krok 2, T3, T4, S6–S8
 
 ## Kontekst
 Testy QEMU (`test-m4`, `test-strefa`…) klikają według położeń, które aplikacje i pulpit wypisują do logu („menu Start
@@ -58,3 +58,11 @@ i `OPIS_PYTANIE` tylko w ekranie, w `src/wspolne/` i w testach — nigdy w innym
 - Testy klikają po nazwach; położenia z logu zostają tam, gdzie opis ich nie daje (listy plików, karty tapet, przyciski
   Kalkulatora, Notatki) — zapisane w `docs/TESTY.md`. Zrzuty wzorcowe (krok 3) wycinają okna według opisu.
 - Koszt w obrazie testowym: memfd z tabelą przy każdej zmianie tabeli (nie przy każdej klatce — skrót tabeli).
+
+## Uzupełnienie (0.10.2 krok 3): miejsca zmienne
+Rodzaj rekordu 10 — `K1_EL_ZMIENNE`, **miejsce zmienne**: prostokąt, w którym K1 rysuje coś, co zmienia się samo (zegar
+i stan na górnym pasku, liczby i wykresy Zasobów, numer wersji, czas, miejsce na pliki, karty sieciowe). Zrzuty wzorcowe
+(`testy/qemu/k1wzorce.py`) go nie porównują. Ten sam format (wersja 1 — obie strony budowane razem, opis istnieje tylko
+w obrazie testowym), te same sprawdzenia (`K1_EL_MAKS` = 10; `test_opis` odrzuca 11). Nazwa jak każda inna — tylko słowa
+K1 („Zegar”, „Wersja systemu”), nigdy wartość, która się zmienia. Górny pasek jest od tego kroku panelem opisu („Pasek
+górny”: „Dźwięk”, miejsce zmienne „Stan i zegar”).

@@ -24,6 +24,7 @@
 #  (0.10.2 krok 1) EKRAN STARTU do okna programu strefy (gość z „oknem” — tryb 11), pasek w ruchu; ZAMYKANIE W TLE:
 #      okno znika od razu, maszyna kończy się potem; otwarcie w trakcie zamykania — nadzorca czeka i otwiera sam;
 #      WYŁĄCZANIE przy działającej strefie: najpierw strefa się zamyka i zapisuje dysk, potem reszta K1
+#  (0.10.2 krok 3) ZRZUT WZORCOWY ramki strefy w obu motywach (testy/wzorce/ramka-strefy-*.png, obraz gościa pominięty)
 #  10. (0.10.0 krok 5) strefa pamięta: K1 z dyskiem danych (K1-DANE), strefa próbna dostaje dysk w skarbcu (/dev/vdb,
 #      ext4 z pustego dysku strefy) — gość liczy na nim swoje uruchomienia: pierwsze 1, po złośliwych gościach 2; po
 #      „Wyczyść dane sesji” znów 1
@@ -106,6 +107,17 @@ sprawdz("okno strefy: pasek tytułu nad obrazem i obwódka w kolorze strefy ryso
         "(zrzut strefa-1-okno)", ramka_i_wzor(w, h, px),
         str((px(x - 2, y + h_ // 2), px(x + w_ // 2, y - TYTUL - 2), px(x + w_ // 2, y + h_ // 2))) if o else "brak okna")
 zx, zy = x + w_ // 2, y - TYTUL // 2  # the bar, between the title and the buttons
+
+
+def wzorzec_ramki(motyw):
+    """0.10.2 step 3 (D4): the frame ekran draws — the title bar and the 3 px outline — pixel by pixel as in
+    testy/wzorce/ramka-strefy-<motyw>.png; the guest's picture inside is left out (the pointer goes outside)."""
+    q.wzorzec(f"ramka-strefy-{motyw}", prostokat=(x - 3, y - TYTUL - 3, w_ + 6, h_ + TYTUL + 6),
+              pomin=[(3, TYTUL + 3, w_, h_)])
+
+
+if o:
+    wzorzec_ramki("jasny")
 
 kx, ky = x + w_ // 3, y + h_ // 4
 q.klik(kx, ky)
@@ -213,6 +225,8 @@ czekaj(r"K1-GOSC: wejście: klawisze 3, kliknięcia 2", czas=60)
 w, h, px = q.zrzut("6-ciemny", gdy=lambda w, h, px: blisko(px(x - 2, y + h_ // 2), PIASEK))
 sprawdz("ciemny motyw: obwódka strefy w jej kolorze, pasek tytułu nad treścią (zrzut strefa-6-ciemny)",
         blisko(px(x - 2, y + h_ // 2), PIASEK) and not blisko(px(zx, zy), TLO_GOSCIA))
+if o:
+    wzorzec_ramki("ciemny")
 
 # closing from the title bar
 p = na_pasek()
