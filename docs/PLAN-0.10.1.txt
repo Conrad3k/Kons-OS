@@ -110,8 +110,8 @@ Pięć kroków:
      PR #134
 [x]  2  Balon: virtio-balloon, wolne strony wracają do K1   S7–S11           1           D2, T1–T5        L        0044
      PR #137
-[ ]  3  Pamięć komputera dla wszystkich                     S5, S14          2           D3, T6           M        —
-     [w toku: Claude, gałąź claude/focused-galileo-cdf7um]
+[x]  3  Pamięć komputera dla wszystkich                     S5, S14          2           D3, T6           M        —
+     PR #140
 [x]  4  Wybór sesji przeglądarki; Ustawienia → Przeglądarka S16–S19          0.10.0      D4, D5, T8       S        —
      PR #139
 [ ]  5  Przewijanie po nowej karcie; wydanie 0.10.1         S20–S22          1, 3, 4     D6               S        —
@@ -297,7 +297,10 @@ KROK 3 — Pamięć komputera dla wszystkich                                    
   Dokumenty: nadzorca.md (rozdzielacz), aplikacje.md (Zasoby), WYGLAD (okienko D3), SLOWNIK (rezerwa K1), RYZYKA,
   TESTY.md, README (ile pamięci potrzebuje przeglądarka), skill kons-dev (pułapki: balon).
   Gotowe, gdy: testy zielone, CI na PR-ze zielone (wydanie — krok 5).
-  Ustalenia z wykonania (2026-11-17; D3 właściciela: okienko A, Zasoby B — szkice narysowane częściami K1):
+  Ustalenia z wykonania (2026-11-17, PR #140; CI przebieg 158 zielony; D3 właściciela: okienko A, Zasoby B — szkice
+  narysowane częściami K1):
+  - CI 158: rozdzielacz zadziałał też na prawdziwym Firefoksie („cel balonu: strefa 2 116 MiB”); strona pamięci 1400 MiB
+    przeszła. Limit testu przeglądarki podniesiony do 50 min (decyzja właściciela 2026-11-17 — 35 min uciął przebieg 156).
   - BŁĄD Z KROKU 2 ZNALEZIONY: statystyki balonu nie dochodziły nigdy („wolne w gościu −1” w każdej strefie). Sterownik
     balonu w Linuksie (virtio_balloon.c: init_vqs w virtballoon_probe) wkłada pierwszy bufor statystyk i powiadamia
     PRZED virtio_device_ready, a mmio.c VMM-u przyjmowało powiadomienie kolejki dopiero przy DRIVER_OK — bufor czekał na
