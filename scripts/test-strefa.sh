@@ -11,6 +11,8 @@
 #   (0.10.1 krok 2) BALON: złośliwi goście balonu (strona poza pamięcią, blok nie z całych stron, za długa lista) — koniec
 #      tylko strefy; uczciwy gość (tryb 9): górna granica ponad pamięć na start, zwolnione 64 MiB wracają do K1, cel
 #      balonu 32 MiB i z powrotem 0 (prośby programu testowego przez nadzorcę), nagły skok prawie do granicy — żyje
+#   (0.10.1 krok 3) ROZDZIELACZ: K1 (1 GiB) poniżej rezerwy — nadzorca sam bierze balonem wolną pamięć strefy (tryb 10),
+#      fokus od gui, Zasoby z przydziałem sesji, okienko „Mało pamięci” z „Zamknij” — zamyka strefę
 #   4. kursor na pasku: przyciski K1 (zrzut); przeciągnięcie paska przesuwa okno; „minimalizuj” chowa okno
 #   5. okno K1 (Zegar) na wierzchu zasłania strefę, ramka strefy zostaje tam, gdzie jej nie zasłania; ciemny motyw
 #   6. „zamknij” na pasku: gość dostaje „zamknij” (vsock), kończy się, maszyna znika, okno też
@@ -270,7 +272,7 @@ sprawdz("BALON: nadzorca prosi o 32 MiB w balonie — gość je oddaje (cel osi�
 sprawdz("BALON: nagły skok — gość bierze naraz prawie całą swoją pamięć, bez czekania na K1, i żyje; potem kończy się sam",
         czekaj(r"K1-GOSC: pamięć: skok [1-9]\d* MiB naraz: żyję", czas=120) and
         czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 9\)", czas=120) and
-        czekaj(r"K1-NADZORCA: strefa 1: pamięć na końcu — w K1 \d+ MiB, balon 0 MiB \(cel 0\), oddane [1-9]\d* MiB",
+        czekaj(r"K1-NADZORCA: strefa 1: pamięć na końcu — w K1 \d+ MiB, wolne w gościu -?\d+ MiB, balon 0 MiB \(cel 0\), oddane [1-9]\d* MiB",
                czas=30))
 for l_ in re.findall(r"K1-(?:STREFA: (?:liczniki|balon)|NADZORCA: strefa 1: (?:pamięć|cel))[^\n]*", q.tekst())[-8:]:
     print("            | " + l_[:240], flush=True)
@@ -289,6 +291,27 @@ sprawdz("„Wyczyść dane sesji”: skarbiec usuwa kawałki dysku strefy, nast�
 z = re.findall(r"K1-STREFA: dysk strefy: kawałki wczytane (\d+), zapisane (\d+), błędy (\d+)", q.tekst())
 print(f"  [info]  dysk strefy na końcu każdego uruchomienia (wczytane, zapisane, błędy): {z}", flush=True)
 sprawdz("dysk strefy bez błędów zapisu i odczytu", z and all(b == "0" for _, _, b in z), str(z))
+# 0.10.1 step 3 (T6, D3): the rozdzielacz — K1 here has 1 GiB, below its reserve (768 MiB): nadzorca takes the guest's
+# free memory by its balloon itself; when no more can be taken, gui shows "Mało pamięci" with the zone and "Zamknij"
+sprawdz("ROZDZIELACZ (0.10.1 krok 3): K1 poniżej rezerwy — nadzorca sam bierze balonem wolną pamięć strefy (cel od "
+        "rozdzielacza, gość oddaje strony)",
+        czekaj(r"K1-TEST: strefy: strefa próbna uruchomiona \(tryb 10\)", czas=300) and
+        czekaj(r"K1-NADZORCA: rozdzielacz: K1 ma -?\d+ MiB \(rezerwa \d+\); cel balonu: strefa 1 [1-9]\d* MiB", czas=120)
+        and czekaj(r"K1-STREFA: balon: gość ma w nim [1-9]\d* MiB \(cel\)", czas=120),
+        "; ".join(re.findall(r"K1-NADZORCA: rozdzielacz:[^\n]*", q.tekst())[-3:]))
+sprawdz("fokus: okno strefy aktywne — gui mówi nadzorcy, która strefa ma fokus (STREFA_FOKUS)",
+        czekaj(r"K1-NADZORCA: fokus: strefa 1", czas=60))
+sprawdz("Zasoby: sesja ze swoim przydziałem (używa … z …)", czekaj(r"K1-ZASOBY: strefa 1: używa \d+ MiB z [1-9]\d* MiB", czas=120))
+mp = czekaj(r"K1-GUI: okienko \(mało pamięci\): sesja 1 \(\d+ MiB\) Zamknij (\d+),(\d+); Później \d+,\d+", czas=180)
+sprawdz("MAŁO PAMIĘCI (D3): balon nie może wziąć więcej — okienko z sesją, jej pamięcią i „Zamknij”",
+        mp and czekaj(r"K1-NADZORCA: mało pamięci: K1 ma -?\d+ MiB \(rezerwa \d+\), balony nie mogą wziąć więcej — okienko"))
+if mp:
+    q.zrzut("9-malo-pamieci")
+    q.klik(int(mp.group(1)), int(mp.group(2)))
+sprawdz("„Zamknij” w okienku zamyka sesję: okno strefy, maszyna kończy się (bez okienka „zamknęła się”)",
+        mp and czekaj(r"K1-GUI: okienko \(mało pamięci\): zamykam sesję 1", czas=30) and
+        czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 10\)", czas=300) and
+        not re.search(r"K1-GUI: strefa 1 zamknęła się", q.tekst()))
 sprawdz("K1 działa dalej po złośliwych gościach: nadzorca, ekran i pulpit bez awarii",
         czekaj(r"K1-TEST: strefy: koniec scenariusza", czas=60) and
         not re.search(r"K1-NADZORCA: (ekran|gui|nadzorca).*zakończon", q.tekst()))

@@ -19,6 +19,8 @@ int k1_liczba(double v, int cyfr, int grupuj, char *buf, size_t n);
 void k1_minuty(char *buf, size_t n, long minuty);
 /* The size of a file: "512 B", "12 KB", "1,4 MB", "2,1 GB" (Pliki, Podgląd). */
 void k1_rozmiar_tekst(uint64_t bajty, char *buf, size_t n);
+/* Memory in MiB: "850 MB", "1,2 GB" (Zasoby; gui's "Mało pamięci" — 0.10.1 step 3). */
+void k1_pamiec_tekst(char *buf, size_t n, int32_t mib);
 
 /* The Polish form of a noun after the number `n`: "1 plik", "3 pliki", "5 plików", "22 pliki", "12 plików"
  * (0.8.2 step 6: one rule for Pliki, the import and the questions of dragging). */

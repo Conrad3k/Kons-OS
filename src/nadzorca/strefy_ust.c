@@ -10,7 +10,7 @@
 #include "nadzorca.h"
 #include "sesje.h"
 
-enum { CEL_GUI, CEL_USTAWIENIA, CEL_EKRAN, CELE };
+enum { CEL_GUI, CEL_USTAWIENIA, CEL_ZASOBY, CEL_EKRAN, CELE }; /* sesje_nowy_kanal: the first three */
 
 static struct sesja ses[K1_STREFY_MAKS + 1];
 static int kanal = -1, wczytane, czyta; /* our channel to skarbiec (owner K1_WL_SYSTEM) */
@@ -117,9 +117,10 @@ static void wyslij(int cel, int fd, pid_t ekr)
     wyslane[cel].a = s.a, wyslane[cel].b = s.b, wyslane[cel].c = s.c, wyslane[cel].d = s.d;
 }
 
-void sesje_nowy_kanal(int ustawienia)
+void sesje_nowy_kanal(int kto)
 {
-    wyslane[ustawienia ? CEL_USTAWIENIA : CEL_GUI].wersja = 0;
+    if (kto >= CEL_GUI && kto <= CEL_ZASOBY)
+        wyslane[kto].wersja = 0;
 }
 
 void sesje_okresowe(void)
@@ -141,6 +142,7 @@ void sesje_okresowe(void)
     odbierz();
     wyslij(CEL_GUI, bateria_kanal, 0);
     wyslij(CEL_USTAWIENIA, ustaw_kanal, 0);
+    wyslij(CEL_ZASOBY, zasoby_kanal, 0);
     wyslij(CEL_EKRAN, do_ekranu_fd(), ekran()->pid);
 }
 

@@ -182,8 +182,9 @@ void dekoder_otworz(int apl); /* a request of application `apl` (its row in the 
 void obsluz_podglad(void);
 void dekoder_koniec(void);
 
-/* strefy.c (0.10.0, ADR 0042): the VMM of zone `nr` (its row of K1_STREFY); tryb: the guest's test mode (test only) */
-void strefa_uruchom(int nr, int tryb);
+/* strefy.c (0.10.0, ADR 0042): the VMM of zone `nr` (its row of K1_STREFY); tryb: the guest's test mode (test only);
+ * z_testu: the test program asked — the test decides its balloon, not the rozdzielacz (but in test mode 10) */
+void strefa_uruchom(int nr, int tryb, int z_testu);
 /* The VMM of zone nr ended with `status` (waitpid): unless the user closed it, gui says why (0.10.0 step 3, S26);
  * `cicho` — K1 stopped it itself, or a test's hostile guest: only the log. */
 void strefa_koniec(int nr, int status, int cicho);
@@ -192,17 +193,23 @@ void strefa_koniec(int nr, int status, int cicho);
 int sesja_pamieta(int nr);        /* 1: zone nr gets its disk (it remembers, the vault is on a disk, they were read) */
 const char *sesja_nazwa(int nr);  /* its session's name ("" for a zone without a session) */
 void sesje_okresowe(void);        /* every loop: read them, send what changed */
-void sesje_nowy_kanal(int ustawienia); /* a new channel of gui (0) or Ustawienia (1): send everything again */
+void sesje_nowy_kanal(int kto); /* a new channel of gui (0), Ustawienia (1) or Zasoby (2): send everything again */
 void sesje_prosba(const struct k1_komunikat *k, int z_testu); /* STREFA_TRWALOSC / _NAZWA / _WYCZYSC */
 void sesje_wyczyszczono(const struct k1_komunikat *k);        /* skarbiec's SKARB_WYCZYSZCZONO */
 int do_ekranu_fd(void);           /* uslugi.c: our end of ekran's control channel (-1: none) */
 extern int strefa_kanal[K1_STREFY_MAKS + 1];
 int strefa_kanal_nowy(int nr);  /* a new channel for zone nr: the VMM's end (fd), or -1 */
 void strefa_kanal_koniec(int nr); /* the zone ended: its channel goes */
-/* strefy_balon.c (0.10.1 step 2, ADR 0044): the zone's memory from its VMM (STREFA_PAMIEC), its balloon's target */
+/* strefy_balon.c (0.10.1 step 2, ADR 0044): the zone's memory from its VMM (STREFA_PAMIEC), its balloon's target;
+ * step 3 (T6, D3): the rozdzielacz — the computer's memory for K1 and every zone */
+void strefa_pamiec_start(int nr, uint32_t granica, uint32_t start, int rozdzielacz); /* 0: a test's zone */
 void strefa_pamiec(int nr, const struct k1_komunikat *k);
-void strefa_pamiec_koniec(int nr);            /* the last numbers to the log */
-void strefa_balon(int nr, int32_t mib);
+int strefa_pamiec_koniec(int nr);             /* the last numbers to the log; 1: K1 closed it for memory */
+void strefa_balon(int nr, int32_t mib);       /* the test program's target: the test decides from now on */
+void strefa_fokus(int nr);                    /* gui: the zone whose window has the focus (0: none) */
+int64_t strefy_moga_oddac(void);              /* MiB the running sessions' balloons may still give */
+void strefy_przydzial(int fd);                /* every running zone's share (STREFA_PRZYDZIAL) */
+void strefy_rozdziel(void);                   /* every loop; works once a second while a zone runs */
 #define X_OBSLUZ_STREFE(n, nr, ...) void obsluz_strefe_##n(void);
 K1_STREFY(X_OBSLUZ_STREFE)
 #undef X_OBSLUZ_STREFE
@@ -319,6 +326,8 @@ void wyslij_ustawieniom(void);
 void bateria_archiwum(double t);
 void bateria_archiwum_koniec(void);
 void raport_zasobow(void);
+long long pamiec_uzyta(const struct sysinfo *si); /* bytes used: all but free and the page cache K1 can drop */
+void zasoby_nowy_kanal(void);                     /* Zasoby started: the sessions' names again */
 
 /* test.c */
 extern int test_kanal;

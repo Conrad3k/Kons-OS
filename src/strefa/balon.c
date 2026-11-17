@@ -37,6 +37,7 @@ struct balon {
     double staty_t;
     uint64_t st[STRONY_STAT_MAKS];
     uint32_t st_jest;
+    uint32_t jest_przy_statach; /* `jest` when the statistics came: they are older than the balloon (0.10.1 step 3) */
 };
 static struct balon balony[2] = { { .glowa_staty = -1 }, { .glowa_staty = -1 } }; /* [1]: a hostile test's slot */
 
@@ -107,6 +108,7 @@ static int staty(struct balon *b, struct mmio_urz *u, const struct vq_lancuch *l
         vq_oddaj(&u->q[K_STATY], u->pamiec, (uint16_t)b->glowa_staty, 0);
     b->glowa_staty = l->glowa;
     b->staty_t = k1_teraz();
+    b->jest_przy_statach = b->jest;
     return 0;
 }
 
@@ -165,6 +167,7 @@ static void reset(struct mmio_urz *u)
     b->jest = 0;
     b->glowa_staty = -1;
     b->st_jest = 0;
+    b->jest_przy_statach = 0;
 }
 
 const struct mmio_ops balon_ops = {
@@ -211,6 +214,12 @@ void balon_stan(struct balon_stan *s)
     struct stat st;
     s->w_k1_mib = fstat(mz.pamiec_fd, &st) == 0 ? (uint32_t)(((uint64_t)st.st_blocks * 512) >> 20) : 0;
     s->dostepna_mib = (b->st_jest & (1u << VIRTIO_BALLOON_S_AVAIL)) ? (int64_t)(b->st[VIRTIO_BALLOON_S_AVAIL] >> 20) : -1;
+    /* the statistics come every few seconds, the balloon's size at once: what it took since then is not free any more
+     * (0.10.1 step 3, CI run 156: K1's target ran past the guest's whole memory on numbers 5 s old) */
+    if (s->dostepna_mib >= 0 && b->jest > b->jest_przy_statach) {
+        int64_t d = s->dostepna_mib - (int64_t)((b->jest - b->jest_przy_statach) >> 8);
+        s->dostepna_mib = d > 0 ? d : 0;
+    }
     s->balon_mib = b->jest >> 8;
     s->cel_mib = b->cel >> 8;
     s->oddane_mib = (uint32_t)(b->oddane >> 20);

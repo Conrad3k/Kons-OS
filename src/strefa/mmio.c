@@ -129,6 +129,21 @@ static uint32_t nowy_status(const struct mmio_urz *u, uint32_t v)
     return v;
 }
 
+/* A new status. When the driver sets DRIVER_OK the device looks into every ready queue: a notification sent before it
+ * was not handled then (QUEUE_NOTIFY needs DRIVER_OK), and Linux's balloon puts its first statistics buffer in and
+ * notifies before virtio_device_ready (drivers/virtio/virtio_balloon.c: init_vqs, then virtballoon_probe's end) — it
+ * waits for that buffer back and sends no statistics until then (0.10.1 step 3: the guest's free memory was never
+ * known). */
+static int status(struct mmio_urz *u, uint32_t v, const char **powod)
+{
+    int byl = (u->status & VIRTIO_CONFIG_S_DRIVER_OK) != 0;
+    u->status = nowy_status(u, v);
+    for (int k = 0; !byl && k < u->ops->n_kolejek; k++)
+        if (mmio_dziala(u, k) && u->ops->powiadom(u, k, powod) < 0)
+            return -1;
+    return 0;
+}
+
 /* A half of a 64-bit guest address of the selected queue (only while it is not ready). */
 static void adres(struct mmio_urz *u, uint64_t od, uint32_t v)
 {
@@ -196,10 +211,9 @@ static int zapisz_rejestr(struct mmio_urz *u, uint64_t od, uint32_t v, const cha
         u->przerwanie &= ~v;
         return 0;
     case VIRTIO_MMIO_STATUS:
-        if (v == 0)
-            reset(u);
-        else
-            u->status = nowy_status(u, v);
+        if (v != 0)
+            return status(u, v, powod);
+        reset(u);
         return 0;
     case VIRTIO_MMIO_QUEUE_DESC_LOW:
     case VIRTIO_MMIO_QUEUE_DESC_HIGH:

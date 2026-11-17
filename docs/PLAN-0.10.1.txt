@@ -112,8 +112,8 @@ Pięć kroków:
      PR #137
 [ ]  3  Pamięć komputera dla wszystkich                     S5, S14          2           D3, T6           M        —
      [w toku: Claude, gałąź claude/focused-galileo-cdf7um]
-[ ]  4  Wybór sesji przeglądarki; Ustawienia → Przeglądarka S16–S19          0.10.0      D4, D5, T8       S        —
-     [w toku: Claude, gałąź claude/focused-galileo-cdf7um]
+[x]  4  Wybór sesji przeglądarki; Ustawienia → Przeglądarka S16–S19          0.10.0      D4, D5, T8       S        —
+     PR #139
 [ ]  5  Przewijanie po nowej karcie; wydanie 0.10.1         S20–S22          1, 3, 4     D6               S        —
 (ADR 0044 — następny wolny po ADR-ach 0.10.0; jeśli 0.10.0 zajmie więcej, krok bierze kolejny wolny. Plan 0.10.5 bierze
 numery po tym.)
@@ -297,7 +297,34 @@ KROK 3 — Pamięć komputera dla wszystkich                                    
   Dokumenty: nadzorca.md (rozdzielacz), aplikacje.md (Zasoby), WYGLAD (okienko D3), SLOWNIK (rezerwa K1), RYZYKA,
   TESTY.md, README (ile pamięci potrzebuje przeglądarka), skill kons-dev (pułapki: balon).
   Gotowe, gdy: testy zielone, CI na PR-ze zielone (wydanie — krok 5).
-  Ustalenia z wykonania: (pusto — wypełnia krok 3)
+  Ustalenia z wykonania (2026-11-17; D3 właściciela: okienko A, Zasoby B — szkice narysowane częściami K1):
+  - BŁĄD Z KROKU 2 ZNALEZIONY: statystyki balonu nie dochodziły nigdy („wolne w gościu −1” w każdej strefie). Sterownik
+    balonu w Linuksie (virtio_balloon.c: init_vqs w virtballoon_probe) wkłada pierwszy bufor statystyk i powiadamia
+    PRZED virtio_device_ready, a mmio.c VMM-u przyjmowało powiadomienie kolejki dopiero przy DRIVER_OK — bufor czekał na
+    zawsze, gość nie wysyłał nowych. Poprawka: przy ustawieniu DRIVER_OK urządzenie zagląda do każdej gotowej kolejki
+    (test_virtio). Bez tego rozdzielacz nie miałby z czego liczyć.
+  - T6 POPRAWIONE (próbą w test-strefa): balon nad wolnymi stronami nic K1 nie daje — gość wolne strony oddał już sam
+    (zgłaszanie), a balon bierze je pierwsze. K1 odzyskuje tylko pamięć, którą gość trzyma i której nie potrzebuje
+    (pamięć podręczna). Rozdzielacz liczy więc „ile K1 dostanie” = pamięć w K1 − (granica − cel), a cel ustawia tak, by gość
+    był tak duży, ile K1 ma go trzymać. Plan mówił „nie poniżej pamięci na start” — to zostaje tylko dla sesji z fokusem
+    (D3: „balon sesji z fokusem do jej minimum”); sesje w tle oddają wszystko ponad potrzebę i zapas (256 MiB, najwyżej
+    ćwierć granicy). Progi w tabeli PROGI (pamiec_stref.c): zapas 256, krok 256 MiB/s, histereza 128, krytycznie poniżej
+    ćwierci rezerwy.
+  - CI 156 (KVM): cel balonu rósł 104 → 211 MiB, ponad całą pamięć strefy (182) — statystyki gościa przychodzą co 5 s,
+    rozmiar balonu od razu, więc wolna pamięć była sprzed pompowania. Poprawka: VMM odejmuje od wolnej pamięci to, co balon
+    wziął od ostatnich statystyk (balon.c), a rozdzielacz ma sufit — gość zawsze ma co najmniej dwa zapasy.
+  - Fokus: gui → nadzorca (STREFA_FOKUS) przy zmianie aktywnego okna — gui i tak zna stan okien od ekranu (bez nowego
+    kanału). oom_score_adj: dziś nadzorca nie ustawiał go nikomu (wszyscy 0); teraz VMM 800 w tle, 500 z fokusem.
+  - Strefy programu testowego (tryby 0–9) mają balon „testowy”; rozdzielacz rządzi strefami z gui i trybem 10 — K1
+    w test-strefa ma 1 GiB, mniej niż rezerwa, i rozdzielacz przeszkadzałby w klikaniu.
+  - Test w emulacji (test-strefa, przebieg lokalny 2026-11-17): strefa w trybie 10 czyta 64 MiB dysku do pamięci
+    podręcznej, program testowy zajmuje pamięć K1 (zostawia 420 MiB wolnej), Zasoby zabierają fokus → „rozdzielacz: K1 ma
+    506 MiB (rezerwa 768); cel balonu: strefa 1 104 MiB”, gość oddał (w K1 110 → 75 MiB), okienko „Mało pamięci” z sesją
+    i „Zamknij” — zamyka strefę. Pułapka: 160 MiB czytania dysku w zagnieżdżonej emulacji zatrzymało całe QEMU (monitor
+    też) — gość czyta 64 MiB.
+  - Nie zrobione (bez sprzętu i KVM nie do sprawdzenia w kontenerze): dwie sesje przeglądarki naraz w QEMU z 4 GiB
+    (plan: test-przegladarka) — scenariusz zostaje na listę właściciela; zamknięcie sesji w tle w krytycznym braku —
+    tylko test na hoście (pamiec_rozdziel → *zamknij), w systemie nie wywołane.
 
 KROK 4 — Wybór sesji przeglądarki; Ustawienia → Przeglądarka uporządkowane      S · decyzje D4, D5, T8 · bez ADR
   (Dopisany na prośbę właściciela 2026-11-16 — obie rzeczy w jednym kroku. Nie zależy od kroków 1–3; przed krokiem 5.)
@@ -339,7 +366,17 @@ KROK 4 — Wybór sesji przeglądarki; Ustawienia → Przeglądarka uporządkowa
   sprawdzenia — robi krok 5 przy wydaniu; krok 4 wpisuje ją w opis PR-a).
   Gotowe, gdy: właściciel wybrał D4 i D5, test-m4 i test-przegladarka otwierają sesje nowym wyborem, zrzuty Ustawień
   bez nachodzenia (oba motywy), CI zielone.
-  Ustalenia z wykonania: (pusto — wypełnia krok 4)
+  Ustalenia z wykonania (2026-11-17, PR #139; CI przebieg 154 zielony):
+  - D4: właściciel wybrał najpierw A (pigułki sesji w wierszu menu), potem B (okienko na środku) — przeglądarkę będzie
+    się otwierać też z pulpitu. Wariant „rozwija pod sobą wiersze” nie mieści się na ekranie 768 px (menu Start ma 640).
+  - S16 POTWIERDZONE: sesja z oknem nie startuje drugi raz (gui: otworz_aplikacje aktywuje jej okno; nadzorca i tak
+    odmawia — „strefa N już działa”). Kafelek takiej sesji mówi „otwarta”.
+  - Okienko sesji rysuje się na panelu menu kontekstowego (bez nowej powierzchni ekranu); od kroku 3 wspólny mechanizm
+    `struct okienko_wlasne` (okienko sesji i „Mało pamięci”).
+  - S17: jeden `uklad()` w przegladarka.c; test-m4 sprawdza w obu motywach, że rząd pikseli między kartami ma kolor tła
+    okna. Sesja domyślna (D4 C) — niepotrzebna, bez nowego komunikatu (T8).
+  - CI 154: test przeglądarki (informacyjny) przeszedł wszystkie kroki z nowym okienkiem; padła tylko strona pamięci —
+    błąd samego testu („strefa 2: koniec” z wcześniejszych sesji w tym samym logu; poprawiony w kroku 3).
 
 KROK 5 — Przewijanie po otwarciu nowej karty; wydanie 0.10.1                  S · decyzja D6 · bez ADR
   (Dopisany na prośbę właściciela 2026-11-16 jako OSTATNI krok wersji; wydanie 0.10.1 przeniesione tu z kroku 3.)

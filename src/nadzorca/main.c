@@ -129,6 +129,7 @@ static void okresowe(void)
     wyslij_baterie();
     wyslij_ustawieniom();
     sesje_okresowe();
+    strefy_rozdziel(); /* 0.10.1 step 3 */
     bateria_archiwum(t);
     rozruch_po_starcie(t);
     if (zasoby_kanal >= 0 && t >= nastepny_raport) {

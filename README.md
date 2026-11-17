@@ -123,9 +123,13 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
 8. **Przeglądarka** (od 0.10.0): menu Start → **Przeglądarka** — prawdziwy Firefox w osobnej maszynie (strefie).
    **Najpierw raz włącz wirtualizację w BIOS-ie:** X230 — F1 → Security → Virtualization → „Intel Virtualization
    Technology” i „Intel VT-d Feature”: *Enabled*; IdeaPad 110 — F2 → Configuration → „Intel Virtual Technology”:
-   *Enabled*; F10 zapisuje. Bez tego K1 powie, że przeglądarka nie może ruszyć. Sesje (prawy przycisk na Przeglądarce w
-   menu Start): **Ogólna** i **Bank** pamiętają zalogowania, zakładki i historię (zaszyfrowane w danych K1), **Prywatna**
-   zapomina wszystko po zamknięciu. Ustawienia → **Przeglądarka**: pamięta / zapomina, zmiana nazwy, „Wyczyść dane”.
+   *Enabled*; F10 zapisuje. Bez tego K1 powie, że przeglądarka nie może ruszyć. Sesje (od 0.10.1 okienko „Którą sesję
+   otworzyć?” po kliknięciu Przeglądarki): **Ogólna** i **Bank** pamiętają zalogowania, zakładki i historię (zaszyfrowane
+   w danych K1), **Prywatna** zapomina wszystko po zamknięciu. Ustawienia → **Przeglądarka**: pamięta / zapomina, zmiana
+   nazwy, „Wyczyść dane…”. **Pamięć (od 0.10.1):** sesja bierze tyle pamięci, ile w tej chwili potrzebuje (najwyżej pamięć
+   komputera minus 768 MB na 4 GB albo 1 GB na 8 GB, które K1 zostawia sobie), a nieużywaną oddaje K1 sama po kilku
+   sekundach; na 4 GB zmieszczą się dwie lekkie sesje naraz. Gdy pamięci zaczyna brakować, K1 najpierw zabiera ją
+   sesjom w tle, potem pokazuje okienko „Mało pamięci” z sesjami i „Zamknij”; ile używa każda sesja — w Zasobach.
 
 ## Klucz podpisu (jednorazowo, od 0.6.2)
 Wydania K1 podpisuje GitHub kluczem, który znasz tylko Ty (i GitHub). **Nie wklejaj go nigdzie

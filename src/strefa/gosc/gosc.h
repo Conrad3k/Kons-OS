@@ -40,8 +40,10 @@ int dysk_licznik(const char *gdzie);    /* the test zone: the counter of starts 
  * 0.10.1 step 2: 6..8 hostile to the balloon (a page outside memory, a block not of whole pages, a list too long),
  * TRYB_PAMIEC (9): an honest guest that takes memory and gives it back (pamiec.c) */
 enum { TRYB_ZWYKLY = 0, TRYB_ZLY_ADRES = 1, TRYB_PETLA = 2, TRYB_DLUGOSC = 3, TRYB_ZAPIS_RO = 4, TRYB_MAKS = 4,
-       TRYB_DYSK = 5, TRYB_BALON_STRONA = 6, TRYB_BALON_BLOK = 7, TRYB_BALON_LISTA = 8, TRYB_PAMIEC = 9 };
+       TRYB_DYSK = 5, TRYB_BALON_STRONA = 6, TRYB_BALON_BLOK = 7, TRYB_BALON_LISTA = 8, TRYB_PAMIEC = 9,
+       TRYB_ROZDZIELACZ = 10 /* 0.10.1 step 3: as TRYB_ZWYKLY; nadzorca's rozdzielacz decides its balloon */ };
 int zlosliwy(int tryb);                 /* returns only when the VMM did not stop the machine */
 void pamiec_proba(void);                /* TRYB_PAMIEC: takes and frees memory (pamiec.c), then ends */
+void pamiec_podreczna(void);            /* TRYB_ROZDZIELACZ: the disk read into the page cache (0.10.1 step 3) */
 
 #endif

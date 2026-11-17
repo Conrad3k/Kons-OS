@@ -97,7 +97,14 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   nazwa, „pamięta” / „zapomina” (`STREFY_STAN` a) albo „otwarta”, gdy sesja ma okno (kliknięcie wysuwa je na wierzch:
   nadzorca nie uruchamia strefy drugi raz); „Anuluj” albo kliknięcie obok zamyka. Rysowane na panelu menu kontekstowego
   (`kontekst.c`, cel `K_SESJE`). Jedna sesja — bez pytania. Log „okienko (sesje): sesja 2 x,y; sesja 3 x,y; sesja 4 x,y;
-  Anuluj x,y”, potem „okienko (sesje): sesja N” albo „Anuluj”. Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
+  Anuluj x,y”, potem „okienko (sesje): sesja N” albo „Anuluj”.
+  Od 0.10.1 krok 3 (D3 właściciela: okienko A; `pamiec.c`): gdy zmienia się aktywne okno, gui mówi nadzorcy, która strefa
+  ma fokus (`STREFA_FOKUS`, fd 4). Od nadzorcy (fd 5) przydział każdej sesji (`STREFA_PRZYDZIAL`) i `MALO_PAMIECI` →
+  okienko „Mało pamięci” na środku ekranu: zdanie „Komputerowi kończy się pamięć. Zamknij kartę albo całą sesję, której nie
+  potrzebujesz.”, wiersz na każdą sesję (kropka w kolorze, nazwa, pamięć, „w oknie” przy sesji z fokusem, „Zamknij” —
+  zamyka okno tej sesji jak „Zamknij okno”: przeglądarka zapisuje i kończy się), „Później”. Rysowane na panelu menu
+  kontekstowego (`kontekst.c`: okienko innego modułu — `struct okienko_wlasne`, jak okienko sesji). Log „okienko (mało
+  pamięci): sesja N (M MiB) Zamknij x,y; …; Później x,y”, potem „zamykam sesję N” albo „Później”. Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
   mówią „Przeglądarka · <sesja>”.
   Log przy zmianie obecności, stanu, zasilacza lub co 5 % („bateria 73%, rozładowywanie, …”).
 - Powierzchnie: warstwa pulpitu (`K1_POW_PULPIT`, cały ekran, zatwierdzane tylko zmienione prostokąty),

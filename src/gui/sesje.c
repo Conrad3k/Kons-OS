@@ -2,7 +2,7 @@
  * the Start menu or its "Otwórz", and wherever it can be opened later (the desktop) — first asks which session: a tile
  * for every zone with the same image (K1_STREFY: a new session is a new row, nothing here changes), each with its
  * colour, its name and whether it remembers, or "otwarta" when its window is there (a click brings that window to the
- * front: nadzorca never starts a zone twice). It is drawn on the panel of the right-click menu (kontekst.c: K_SESJE),
+ * front: nadzorca never starts a zone twice). It is drawn on the panel of the right-click menu (kontekst.c: K_WLASNE),
  * in the middle of the screen; a press outside it or "Anuluj" closes it. A session's name is the user's text: the log
  * says "sesja <zone>" (invariant 8). */
 #include <stdio.h>
@@ -36,12 +36,12 @@ static int zbierz(int apl)
     return n;
 }
 
-int32_t sesje_szer(void)
+static int32_t sesje_szer(void)
 {
     return 2 * PAD + n * KAF_W + (n - 1) * KAF_ODST;
 }
 
-int32_t sesje_wys(void)
+static int32_t sesje_wys(void)
 {
     return KAF_Y + KAF_H + 16 + DOL;
 }
@@ -86,7 +86,7 @@ static void kafelek(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int
     k1_tekst(o, K1_CZ_MALA, x + (KAF_W - k1_tekst_szer(K1_CZ_MALA, stan)) / 2, y + 88, stan, k1_kolor(m->tekst2, 255), 0);
 }
 
-void sesje_rysuj(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y)
+static void sesje_rysuj(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y)
 {
     int32_t w = sesje_szer(), h = sesje_wys(), ax, ay, aw, ah;
     k1_cien(o, (float)x, (float)y, (float)w, (float)h, 16, 4, 16, 60);
@@ -104,7 +104,7 @@ void sesje_rysuj(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_
 }
 
 /* The tests click by this line: the centre of every tile and of "Anuluj" on the screen. */
-void sesje_loguj(int32_t x, int32_t y)
+static void sesje_loguj(int32_t x, int32_t y)
 {
     char buf[200];
     size_t d = 0;
@@ -116,8 +116,8 @@ void sesje_loguj(int32_t x, int32_t y)
     k1_log(TAG, "okienko (sesje): %sAnuluj %d,%d", buf, x + ax + aw / 2, y + ay + ah / 2);
 }
 
-/* The pointer over the window (x, y in it): 1 = it closed */
-int sesje_wskaznik(int rodzaj, int przycisk, int32_t x, int32_t y)
+/* The pointer over the window (x, y in it). */
+static void sesje_wskaznik(int rodzaj, int przycisk, int32_t x, int32_t y)
 {
     int w = rodzaj == K1_WSK_WYJSCIE ? -1 : pod(x, y);
     int poza = x < 0 || y < 0 || x >= sesje_szer() || y >= sesje_wys();
@@ -127,10 +127,10 @@ int sesje_wskaznik(int rodzaj, int przycisk, int32_t x, int32_t y)
     }
     if (rodzaj == K1_WSK_WCISNIECIE && poza) {
         kontekst_zamknij();
-        return 1;
+        return;
     }
     if (rodzaj != K1_WSK_PUSZCZENIE || przycisk != K1_PRZYCISK_LEWY || w < 0)
-        return 0;
+        return;
     kontekst_zamknij();
     if (w == SESJE_ANULUJ) {
         k1_log(TAG, "okienko (sesje): Anuluj");
@@ -138,8 +138,9 @@ int sesje_wskaznik(int rodzaj, int przycisk, int32_t x, int32_t y)
         k1_log(TAG, "okienko (sesje): sesja %d", nr[w]);
         otworz_aplikacje(POZYCJA_STREFY(nr[w]));
     }
-    return 1;
 }
+
+static const struct okienko_wlasne okienko = { sesje_rysuj, sesje_loguj, sesje_wskaznik };
 
 void sesje_wybierz(int apl)
 {
@@ -149,5 +150,5 @@ void sesje_wybierz(int apl)
         return;
     }
     hover = -1;
-    kontekst_otworz(K_SESJE, (uint32_t)apl, (k.szer_ekranu - sesje_szer()) / 2, k.wys_ekranu / 3);
+    kontekst_wlasne(&okienko, (uint32_t)apl, (k.szer_ekranu - sesje_szer()) / 2, k.wys_ekranu / 3);
 }

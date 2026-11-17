@@ -36,15 +36,16 @@ static uint32_t granica_strefy(const struct k1_strefa_opis *z, struct k1_profil 
     return g;
 }
 
-/* The guest's memory at the start and what the VMM needs fit in what is free now. */
+/* The guest's memory at the start and what the VMM needs fit in what is free now — with what the running sessions'
+ * balloons may still give (0.10.1 step 3, S5: on 4 GB a second session can start when the first one is light). */
 static int jest_pamiec(const struct k1_strefa_opis *z)
 {
     struct sysinfo si;
-    uint64_t wolne;
-    if (sysinfo(&si) != 0)
+    long long wolne;
+    if (sysinfo(&si) != 0 || si.mem_unit == 0)
         return 1;
-    wolne = ((uint64_t)si.freeram + si.bufferram) * si.mem_unit;
-    return wolne >= ((uint64_t)z->pamiec_mib << 20) + ZAPAS_PAMIECI;
+    wolne = (long long)si.totalram * si.mem_unit - pamiec_uzyta(&si) + (strefy_moga_oddac() << 20);
+    return wolne >= (long long)((uint64_t)z->pamiec_mib << 20) + (long long)ZAPAS_PAMIECI;
 }
 
 /* Opens what the VMM gets (fd[1..3]: kvm, kernel, image); 0, or the K1_STREFA_* reason. */
@@ -112,7 +113,7 @@ static void zdarzenia_start(int nr)
                                                   d.oom_kill > 0 ? d.oom_kill : 0 };
 }
 
-void strefa_uruchom(int nr, int tryb)
+void strefa_uruchom(int nr, int tryb, int z_testu)
 {
     const struct k1_strefa_opis *z = k1_strefa(nr);
     struct usluga *u = z != NULL ? usluga_profilu(z->profil) : NULL;
@@ -138,7 +139,8 @@ void strefa_uruchom(int nr, int tryb)
         snprintf(u->argument3, sizeof u->argument3, "%u", granica);
         d = dysk(z, fd);
         zdarzenia_start(nr);
-        if (fd[0] >= 0 && fd[4] >= 0 && uruchom(u, &p, fd, 5 + d) > 0)
+        if (fd[0] >= 0 && fd[4] >= 0 && uruchom(u, &p, fd, 5 + d) > 0 &&
+            (strefa_pamiec_start(nr, granica, z->pamiec_mib, !z_testu || tryb == K1_STREFA_TRYB_ROZDZIELACZ), 1))
             k1_log(TAG, "strefa %d (%s): pid %d, uid %d, pamięć %u MiB na start, granica %u MiB, procesory %u, %s%s", nr,
                    z->tytul, (int)u->pid, z->uid, z->pamiec_mib, granica, z->procesory,
                    d ? "pamięta (dysk w skarbcu)" : "zapomina po zamknięciu", tryb ? ", gość testowy" : "");
@@ -168,7 +170,8 @@ void strefa_koniec(int nr, int status, int cicho)
     snprintf(sciezka, sizeof sciezka, K1_CGROUP "/%s/memory.peak", profile[z->profil].nazwa);
     szczyt = cgroup_liczba(sciezka, NULL);
     powod = strefa_powod_konca(status, &r);
-    strefa_pamiec_koniec(nr);
+    if (strefa_pamiec_koniec(nr)) /* K1 closed it itself: the computer's memory (D3 (3)) — and says so */
+        powod = K1_STREFA_KONIEC_PAMIEC_K1, cicho = 0;
     k1_log(TAG, "strefa %d: pamięć klatki — szczyt %lld MiB (od startu K1), limit osiągnięty %lld, zabite %lld", nr,
            szczyt >= 0 ? szczyt >> 20 : -1, r.oom, r.oom_kill);
     if (powod == 0)
