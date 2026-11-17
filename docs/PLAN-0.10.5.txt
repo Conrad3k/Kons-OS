@@ -21,13 +21,15 @@ weryfikacja mostu między strefami a K1 i jego dokumentacja) i krok 6 (przegląd
 wydanie przeszło z kroku 4 do kroku 6. 2026-11-17 właściciel dodał krok „Alt+Tab — przełączanie okien — oraz
 przeglądarka przypinana do paska i kładziona na pulpit jak inne aplikacje” i zdecydował, że wydanie jest zawsze ostatnim
 krokiem: nowy krok dostał numer 6, a przegląd dokumentacji z wydaniem przeszedł z kroku 6 do kroku 7 (zmiana numeru
-możliwa, bo żaden z nich się nie zaczął). Każdy krok daje coś, co widać; krok 7 kończy się wydaniem 0.10.5 — bez
+możliwa, bo żaden z nich się nie zaczął). Każdy krok daje coś, co widać; krok 8 kończy się wydaniem 0.10.5 — bez
 osobnego kroku wydania. Też 2026-11-17, przed startem wersji, właściciel dodał do kroków 1–3 opis aktualizacji
-widoczny przed „Zainstaluj” (D13; wersje od robota — stałe zdanie) i podjął D6 (robot wydaje sam) — bez nowego kroku.
+widoczny przed „Zainstaluj” (D13; wersje od robota — stałe zdanie) i podjął D6 (robot wydaje sam) — bez nowego kroku;
+tego samego dnia dodał krok 7 „Jądro Linux 7.x” (D14: 0.10.5 wychodzi już na najnowszej linii jądra) — przegląd
+dokumentacji z wydaniem przeszedł z kroku 7 do kroku 8 (żaden z nich się nie zaczął).
 
-ZAKRES ZAMROŻONY (ADR 0035): poniższe 7 kroków i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 8 kroków i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
-zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b, 3a/3b 4a/4b, 5a/5b, 6a/6b albo 7a/7b (wydanie zawsze w ostatniej części kroku 7).
+zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b, 3a/3b 4a/4b, 5a/5b, 6a/6b, 7a/7b albo 8a/8b (wydanie zawsze w ostatniej części kroku 8).
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
 Statusy wiedzy: Z KODU (z czytania kodu K1 0.9.1 — przed 0.10.0; krok 1 sprawdza jeszcze raz na kodzie po 0.10.0),
@@ -37,13 +39,14 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
 Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4, krok 5, krok 6,
-krok 7 (wydanie zawsze ostatnie).
+krok 7, krok 8 (wydanie zawsze ostatnie).
 Cała wersja zaczyna się po wydaniu 0.10.1 (Balon, docs/archiwum/PLAN-0.10.1.txt — decyzja właściciela z 2026-11-16; tamten plan
 zmienia VMM, nadzorcę i Zasoby). Krok 1 zależy od Ustawień po 0.10.0 krok 5; krok 2 potrzebuje stref
 i łącznika z 0.10.0; krok 4 zależy tylko od 0.10.0 (okno strefy w zaufanej ramce); krok 5 (Raptor Bridge) zależy tylko
 od 0.10.0 — można go zrobić wcześniej, zalecane przed krokiem 2 (krok 2 buduje na tym moście); krok 6 (Alt+Tab,
 przeglądarka na pasku i pulpicie) zależy tylko od 0.10.2 (opis ekranu — testy klikają po nazwach), zalecany po kroku 4
-(oba zmieniają ekran i okna stref — mniej zderzeń); krok 7 idzie ostatni, bo przegląda dokumentację po wszystkich
+(oba zmieniają ekran i okna stref — mniej zderzeń); krok 7 (jądro 7.x) zależy od kroku 3 (porównanie konfiguracji,
+T19) i idzie tuż przed wydaniem — wtedy linia 7.x jest najnowsza w chwili wydania (T20); krok 8 idzie ostatni, bo przegląda dokumentację po wszystkich
 krokach i kończy się wydaniem.
 
 Właściciel — co wpisać w nowym czacie (podmień N):
@@ -65,7 +68,7 @@ Nowy czat — przebieg każdego kroku:
      lokalnie (wszystko [OK]); przy zmianach w budowie także scripts/sprawdz-powtarzalnosc.sh. Czekaj poleceniem,
      nie rób w tym czasie innych wywołań (CLAUDE.md).
   8. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, ZALEZNOSCI, WYGLAD, TESTY.md, SPEC (dopiski
-     [korekta: ADR …]), README. VERSION i CHANGELOG zmienia krok 7 (wydanie); kroki 1–6 zapisują „co widzi
+     [korekta: ADR …]), README. VERSION i CHANGELOG zmienia krok 8 (wydanie); kroki 1–7 zapisują „co widzi
      użytkownik” w opisie PR-a.
   9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
      ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
@@ -103,7 +106,10 @@ paska do górnej krawędzi dolnego paska, więc oba paski K1 zawsze zostają wid
 I dwie wygody z Windowsa: Alt+Tab przełącza między otwartymi oknami (aplikacji K1 i sesji przeglądarki), a Przeglądarkę
 przypinasz do dolnego paska i kładziesz na pulpit tak samo jak Notatki czy Pliki.
 
-Siedem kroków:
+0.10.5 wychodzi już na najnowszej linii jądra Linux 7.x (Twoja decyzja D14 z 2026-11-17), zamiast 6.18 — tę pierwszą
+zmianę linii robimy my (krok 7), z porównaniem konfiguracji robota i pełnymi testami; dalej jądro prowadzi robot.
+
+Osiem kroków:
   1. Ustawienia → Aktualizacje: nowy panel (wersja, stan miejsc A/B, aktualizacja z pendrive'a — przeniesiona
      z Instalatora); okno Ustawień trochę większe, żeby zmieściła się nowa sekcja.
   2. Aktualizacje przez sieć: strefa do pobierania (HTTPS), sprawdzanie i pobieranie, pytanie przed instalacją.
@@ -112,7 +118,8 @@ Siedem kroków:
   5. Raptor Bridge: sprawdzenie mostu, którym strefy (przeglądarka, a później inne aplikacje) łączą się ze światem przez
      K1 — próby obciążenia i ataku, poprawki — i porządna dokumentacja tego mostu.
   6. Alt+Tab (przełączanie okien) i Przeglądarka na pasku i pulpicie jak inne aplikacje.
-  7. Przegląd całej dokumentacji repozytorium: usunięcie powtórzeń i rzeczy zbędnych — i wydanie 0.10.5 (zawsze ostatni).
+  7. Jądro Linux 7.x: przejście z 6.18 na najnowszą linię, dla K1 i dla stref.
+  8. Przegląd całej dokumentacji repozytorium: usunięcie powtórzeń i rzeczy zbędnych — i wydanie 0.10.5 (zawsze ostatni).
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
@@ -125,19 +132,21 @@ Siedem kroków:
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
 [ ]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
 [ ]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
-[ ]  7  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–6         D10              M        —
+[ ]  7  Jądro Linux 7.x (najnowsza linia)                  S52–S55          3           D14, T19 T20     M        —
+[ ]  8  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–7         D10              M        —
 (Numery ADR — następne wolne po ADR 0045 z 0.10.2; jeśli zajmą więcej, krok bierze kolejne wolne.)
 
 Dlaczego tyle: krok 1 to sama aplikacja (bez sieci) — panel, okno i przeniesienie, łatwe do przetestowania osobno;
 krok 2 to nowa droga danych (strefa, łącznik, zapis do wolnego miejsca A/B) i własny ADR; krok 3 to CI (robot); krok 4
 to ekran i strefa (inna część systemu niż kroki 1–3); krok 5 to przegląd i testy jednej części, na której stoją
 przeglądarka, aktualizacje (krok 2) i przyszłe aplikacje w strefach; krok 6
-(dodany 2026-11-17) to pulpit i ekran — klawiatura i pasek, bez sieci i bez strefy w środku; krok 7 to sama
+(dodany 2026-11-17) to pulpit i ekran — klawiatura i pasek, bez sieci i bez strefy w środku; krok 7 to jądro (konfiguracja, testy, bez zmian
+w kodzie K1, jeśli nie wyjdą); krok 8 to sama
 dokumentacja i wydanie.
 Dlaczego robot po krokach 1–2: jego pierwsze wydanie przechodzi już przez aktualizację sieciową z kroku 2 — to jest jej
 pierwszy prawdziwy test. Robot nie zmienia systemu, więc nie blokuje niczego w krokach 1–2. Robot scalony w kroku 3
 działa do wydania 0.10.5 tylko w trybie próbnym (bez scalania i wydań) — inaczej wydałby 0.10.x przed 0.10.5; pełny
-tryb włącza krok 7 po wydaniu.
+tryb włącza krok 8 po wydaniu.
 
 
 3. KROKI
@@ -208,7 +217,7 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · 
       bierze opisy ostatnich wersji do ogłoszenia i odmawia podpisu, gdy tekst łamie zasady T18 (ta sama funkcja
       sprawdzania co w K1 — src/wspolne/); sprawdz-czytelnosc.py pilnuje wiersza we wpisach od 0.10.5 (oprócz wpisów
       robota); zdanie dla wersji od robota jest w K1 (jedna stała w src/wspolne/), nie w sieci; tekst do Ustawień
-      i gui — droga w ADR 0046 (S50). Wydanie 0.10.5 ma już swój „Opis w K1:” (krok 7).
+      i gui — droga w ADR 0046 (S50). Wydanie 0.10.5 ma już swój „Opis w K1:” (krok 8).
   [ ] Strefa pobierania (T5, S10–S12): wiersz w K1_STREFY (bez okna: bez virtio-gpu i virtio-input), obraz strefy
       z pakietów Debiana (ta sama tabela i skrypt co przeglądarka z 0.10.0: curl i ca-certificates — S11) i program
       `gosc`, który pobiera dwa adresy (ogłoszenie, paczka) i podaje bajty przez vsock; łącznik tej strefy łączy tylko
@@ -252,7 +261,7 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · 
 KROK 3 — Robot na GitHubie                                              M · decyzje D6, T8–T11 · ADR 0047
   Cel: poprawki jądra Linux i przeglądarki trafiają do wydania K1 same: robot raz dziennie sprawdza, przygotowuje
   zmianę, puszcza pełne testy i po zielonych wydaje nową wersję PATCH — także z nową linią jądra (np. 7.x), gdy
-  konfiguracja K1 na nią wchodzi (T11). Do wydania 0.10.5 (krok 7) robot działa w trybie próbnym.
+  konfiguracja K1 na nią wchodzi (T11). Do wydania 0.10.5 (krok 8) robot działa w trybie próbnym.
   Na początku: S17 (uprawnienia GITHUB_TOKEN — POMIAR na próbnym przebiegu), D6.
   Co widzi użytkownik: na GitHubie raz na jakiś czas PR „Robot: jądro 6.18.61”, „Robot: jądro 7.1 (nowa linia)”
   albo „Robot: Firefox ESR …”, który sam przechodzi testy, scala się i daje wydanie; na laptopie po 1–2 dniach pytanie
@@ -264,7 +273,7 @@ KROK 3 — Robot na GitHubie                                              M · d
       robi wydania PATCH, nie rusza cudzych gałęzi).
   [ ] Workflow .github/workflows/robot.yml (harmonogram raz dziennie + ręczne uruchomienie): (a) jądro — najnowsze
       wydanie najnowszej linii długoterminowej z kernel.org (releases.json, tylko „longterm” — T11; ta sama linia
-      albo nowsza, np. 6.18 → 7.x), sha256sums.asc sprawdzony kluczem z jadro/klucze/, wersja, adres (v6.x / v7.x)
+      albo nowsza, np. 6.18 → 7.x; gdy K1 jest na linii krótkiej — T20), sha256sums.asc sprawdzony kluczem z jadro/klucze/, wersja, adres (v6.x / v7.x)
       i suma do jadro/wersja.env (procedura z jadro/README.md, kroki 1–2); (b) przeglądarka — skrypt odświeżenia
       tabeli pakietów z 0.10.0 krok 2 (debian-security, podpis InRelease); (c) nic nowego → koniec bez śladu.
   [ ] Nowa linia jądra (T11, S24): oba fragmenty (jadro/k1.config i jadro/strefa.config z 0.10.0) muszą wejść
@@ -293,7 +302,7 @@ KROK 3 — Robot na GitHubie                                              M · d
       jedno wydanie robota na dobę; nowa linia jądra — najwyżej jedna zmiana linii naraz i dopiero gdy poprzednie
       wydanie robota stoi co najmniej 7 dni bez Issue „błąd” (S24).
   [ ] Tryb próbny do wydania 0.10.5: harmonogram działa, robot otwiera PR i puszcza testy, ale nie scala i nie wydaje
-      (przełącznik w robot.yml — jedna zmienna, którą krok 7 przestawia po wydaniu).
+      (przełącznik w robot.yml — jedna zmienna, którą krok 8 przestawia po wydaniu).
   [ ] Robot i wydania ludzi — nigdy dwa wydania naraz (prośba właściciela z 2026-11-14: „żeby nie było tak, że my
       wydajemy 1.2.4, a robot też”; S19, S33). Po stronie robota: tuż przed scaleniem pobiera świeży main — gdy VERSION
       na main zmieniło się od chwili, w której robot zaczął, zamyka swój PR i zaczyna od nowa od świeżego main (nowy
@@ -329,7 +338,7 @@ KROK 3 — Robot na GitHubie                                              M · d
   otwarty PR człowieka ze zmianą VERSION → robot nie zaczyna (log „czekam na wydanie ludzi”); VERSION na main zmienione
   po otwarciu PR-a robota → robot zamyka PR i otwiera nowy z następnym numerem; dwa wydania na main jedno po drugim →
   oba tagi i oba wydania istnieją, żadne nie zostało anulowane. Pełne testy wydania [OK].
-  Właściciel (po wydaniu 0.10.5 w kroku 7): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem
+  Właściciel (po wydaniu 0.10.5 w kroku 8): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem
   poczekać na pierwszą wersję od robota i zainstalować ją przez sieć (lista w DO_ZROBIENIA).
   Dokumenty: ADR 0047, AGENTS.md (robot), nowy opis w docs/komponenty/ (robot.md: co sprawdza, czego nie rusza,
   jak go zatrzymać — wyłączenie workflow), jadro/README.md (procedura: robot robi kroki 1–6, także dla nowej linii;
@@ -344,7 +353,7 @@ KROK 3 — Robot na GitHubie                                              M · d
 KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja              M · decyzje D8, T12–T14 · bez ADR
   Cel (prośba właściciela z 2026-11-14): okno przeglądarki (i każde okno strefy) można rozciągnąć i zmniejszyć za
   brzeg albo róg zaufanej ramki oraz zmaksymalizować — na całą szerokość ekranu, od dolnej krawędzi górnego paska do
-  górnej krawędzi dolnego paska (nigdy pod paski); przeglądarka w środku dopasowuje się do nowego rozmiaru (wydanie przeszło do kroku 7).
+  górnej krawędzi dolnego paska (nigdy pod paski); przeglądarka w środku dopasowuje się do nowego rozmiaru (wydanie przeszło do kroku 8).
   Na początku: D8 (szkice); przeczytaj „Ustalenia z wykonania” 0.10.0 krok 1 (rola STREFA, ramka, zmiana wyświetlacza
   w virtio-gpu) i krok 2 (kompozytor strefy).
   Co widzi użytkownik: kursor nad brzegiem albo rogiem ramki okna przeglądarki zmienia się na strzałki; przeciągnięcie
@@ -485,11 +494,44 @@ KROK 6 — Alt+Tab; Przeglądarka na pasku i pulpicie                         M 
   SLOWNIK (przełącznik okien), TESTY.md, RYZYKA (R26 — przełącznik rysuje K1, strefa go nie podrobi ani nie zablokuje),
   README (skróty klawiszowe, jeśli są opisane).
   Gotowe, gdy: Alt+Tab przełącza okna aplikacji i stref, Przeglądarka przypina się i leży na pulpicie, wraca po
-  ponownym starcie; testy [OK]; w kroku 7 lista testów właściciela ma Alt+Tab i przypiętą Przeglądarkę.
+  ponownym starcie; testy [OK]; w kroku 8 lista testów właściciela ma Alt+Tab i przypiętą Przeglądarkę.
   Ustalenia z wykonania: (pusto — wypełnia krok 6)
 
-KROK 7 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M · decyzja D10 · bez ADR
-  Dodany przez właściciela 2026-11-15 (jako krok 6; od 2026-11-17 krok 7 — wydanie zawsze ostatnie): na koniec
+KROK 7 — Jądro Linux 7.x (najnowsza linia)                               M · decyzje D14, T19 T20 · bez ADR
+  Dodany przez właściciela 2026-11-17 (D14): 0.10.5 wychodzi na najnowszej linii jądra 7.x, nie na 6.18.
+  Cel: jądro K1 i jądro stref na najnowszej linii 7.x (wybór linii — T20); pierwsza zmiana linii zrobiona porównaniem
+  konfiguracji z kroku 3 (T19) przez Claude'a albo Codexa, z pełnymi testami — dalsze poprawki i zmiany linii prowadzi
+  robot (T11, T19, T20).
+  Na początku: wybór linii wg T20 na dzień startu kroku (releases.json — wynik w „Ustaleniach z wykonania”); stan
+  robota (otwarty PR robota ze zmianą jadro/wersja.env — zamknąć, ten krok ma pierwszeństwo).
+  Co widzi użytkownik: na ekranie nic nowego — K1 działa jak dotąd, na nowszych sterownikach; w CHANGELOG i w opisie
+  wersji „Jądro Linux 7.x — nowa linia”.
+  Zadania:
+  [ ] jadro/wersja.env: wersja, adres (v7.x), suma — z sha256sums.asc sprawdzonym kluczem z jadro/klucze/ (S52);
+      procedura z jadro/README.md.
+  [ ] scripts/porownaj-jadro.sh (krok 3) 6.18 → 7.x dla obu jąder (jadro/k1.config, jadro/strefa.config): każde
+      pytanie rozstrzygnięte — do fragmentu (z komentarzem) albo do listy odrzuconych (z powodem); opcje zniknięte
+      albo przemianowane — poprawione we fragmentach (nazwy sprawdzone w Kconfig 7.x); nagłówek k1.config „Nazwy opcji
+      sprawdzone w źródłach 7.x”. Po zmianach porównanie 7.x z samym sobą — 0 pytań.
+  [ ] Pliki od producentów kart (S53): o jakie nazwy plików proszą w 7.x sterowniki z jadro/oprogramowanie-kart.txt
+      (ath10k na IdeaPadzie i reszta listy) — tabela i sumy poprawione.
+  [ ] Nasz kod na nowych nagłówkach (S54): make bez ostrzeżeń; ioctl i wywołania, których używamy (KVM, DRM, evdev,
+      nl80211, rfkill, generic netlink, virtio w strefie, vsock) — stały ABI, ale sprawdzone testami; nowe pola
+      w strukturach UAPI nie zmieniają naszych sprawdzeń.
+  [ ] sprawdz-kspp.sh na 7.x: nowe zalecenia — włączone albo z powodem w docs/komponenty/jadro.md.
+  [ ] Rozmiar k1.efi przed/po (miejsce A/B 128 MiB, S55) i czas startu (log test-m1).
+  Testy i dowód: lokalnie test-m1, test-strefa, test-wifi; scripts/sprawdz-powtarzalnosc.sh; pełny komplet w CI
+  na PR-ze [OK]; wynik porownaj-jadro.sh (pytania i rozstrzygnięcia) w opisie PR-a.
+  Właściciel (po wydaniu, lista w DO_ZROBIENIA — krok 8): najpierw K1 0.10.5 z pendrive'a bez instalacji (Wi-Fi,
+  kabel, obraz, touchpad, klawiatura, bateria, przeglądarka) na X230 i IdeaPadzie, dopiero potem aktualizacja na
+  dysku. Gdyby coś zepsuło się dopiero na dysku — „Wróć do poprzedniej wersji” (D7) wraca do 0.10.2 z drugiego miejsca.
+  Dokumenty: jadro/README.md (wersja, linia), docs/komponenty/jadro.md (odstępstwa KSPP, nowe opcje), ADR 0003
+  (dopisek: linia 7.x, T20), ZALEZNOSCI (jądro), CHANGELOG — w kroku 8.
+  Gotowe, gdy: oba jądra na 7.x, porównanie bez nierozstrzygniętych pytań, testy [OK], obraz powtarzalny.
+  Ustalenia z wykonania: (pusto — wypełnia krok 7)
+
+KROK 8 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M · decyzja D10 · bez ADR
+  Dodany przez właściciela 2026-11-15 (jako krok 6; od 2026-11-17 krok 7, potem krok 8 — wydanie zawsze ostatnie): na koniec
   wersji — weryfikacja całej dokumentacji repozytorium i usunięcie informacji powtarzających się albo zbędnych.
   Cel: każda informacja jest w jednym miejscu (inne miejsca odsyłają), nic nie jest nieaktualne, nic zbędnego; nowa
   osoba (albo nowy czat) znajduje drogę od README do szczegółu bez sprzecznych wersji tej samej rzeczy. Potem wydanie.
@@ -505,11 +547,11 @@ KROK 7 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M �
   [ ] Sprawdzanie na stałe (S40): czego się da — w scripts/sprawdz-czytelnosc.py (np. istniejące ścieżki i odesłania,
       spis komponentów, słowa ze słownika w nagłówkach), żeby dokumenty nie rozjeżdżały się znowu.
   [ ] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki; „Opis w K1:” — D13); porządki wersji PATCH: przegląd tego, co
-      zostało po przeniesieniu z Instalatora (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–6;
+      zostało po przeniesieniu z Instalatora (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–7;
       DO_ZROBIENIA.txt — „Teraz” → następna wersja, lista testów na X230 i IdeaPadzie dla 0.10.5 (Ustawienia →
       Aktualizacje, aktualizacja z pendrive'a z Ustawień, „Sprawdź teraz”, pierwsza aktualizacja przez sieć, gdy robot
       wyda następną wersję (z opisem przed „Zainstaluj”), zmiana rozmiaru i maksymalizacja przeglądarki na obu ekranach, Alt+Tab z Firefoksa i do
-      niego, Przeglądarka przypięta do paska i na pulpicie — krok 6); ten plik → docs/archiwum/.
+      niego, Przeglądarka przypięta do paska i na pulpicie — krok 6; jądro 7.x na obu laptopach — krok 7); ten plik → docs/archiwum/.
       Po scaleniu: CI, tag k1-v0.10.5, wydanie z ogłoszeniem i paczką; potem robot w pełny tryb (krok 3: jedna zmiana
       w robot.yml, osobny commit po wydaniu); raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
       0.10.5 instaluje się jeszcze z pendrive'a — kolejne już przez sieć.
@@ -517,7 +559,7 @@ KROK 7 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M �
   Dokumenty: wszystkie (przegląd), CHANGELOG, README.
   Gotowe, gdy: przegląd zamknięty (lista w opisie PR-a), sprawdzenia zielone, wydanie k1-v0.10.5 istnieje
   z ogłoszeniem i paczką, robot w pełnym trybie, raport z linkami.
-  Ustalenia z wykonania: (pusto — wypełnia krok 7)
+  Ustalenia z wykonania: (pusto — wypełnia krok 8)
 
 
 4. DECYZJE
@@ -568,7 +610,7 @@ Twoje (produkt):
        (przekaźnik, vsock, łącznik, nadzorca) w dokumentacji i w rozmowie; części w kodzie zachowują swoje polskie
        nazwy ze słownika (przekaźnik, łącznik). Zakres: weryfikacja i dokumentacja, dla przeglądarki i przyszłych
        aplikacji w strefach.
-[!] D10 (krok 7) Co wolno usunąć przy przeglądzie dokumentacji. Rekomendacja: powtórzenia (zostaje jedno miejsce,
+[!] D10 (krok 8) Co wolno usunąć przy przeglądzie dokumentacji. Rekomendacja: powtórzenia (zostaje jedno miejsce,
        reszta odsyła), nieaktualne zdania i zamknięte listy „do zrobienia”; NIE usuwamy historii (ADR, CHANGELOG,
        archiwum planów) — najwyżej status i odesłanie; pełna lista usuniętego w opisie PR-a, żebyś widział, co znikło.
 
@@ -588,6 +630,8 @@ Twoje (produkt):
        → Aktualizacje i w okienku „Jest nowa wersja”. Wersje od ludzi — opis od nas; wersje od robota — zawsze:
        „Ta aktualizacja zawiera istotne poprawki dotyczące bezpieczeństwa i jakości.” (słowa właściciela, w brzmieniu
        ze słownika: „aktualizacja”). Wygląd — w szkicach D1; zasady tekstu — T18.
+[x] D14 (krok 7; właściciel 2026-11-17) 0.10.5 wychodzi na jądrze Linux 7.x — od najnowszej linii, nie na 6.18.
+       Którą linię 7.x dokładnie — decyzja techniczna T20.
 
 Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
     T1 Kanał aktualizacji (krok 1): Ustawienia dostają od nadzorcy osobny kanał, nie kanał Instalatora — inny UID
@@ -640,7 +684,7 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        opcje „domyślnie tak”, które allnoconfig wyłącza (przykład z 6.18: KVM_IOAPIC, bez której strefy nie mają
        przerwań — plan 0.10.0 S1); (2) zachowania sterowników na prawdziwym sprzęcie (Wi-Fi, grafika, karta
        sieciowa) — testy w QEMU go nie widzą; (3) części sysfs i uevent, które K1 czyta (nie wszystkie są stałym ABI).
-       Dlatego: tylko linie „longterm” z releases.json (poprawki przez lata; linie krótkie kończą się po ok. 3
+       Dlatego: tylko linie „longterm” z releases.json (wyjątek — linia krótka wybrana przez człowieka, T20) (poprawki przez lata; linie krótkie kończą się po ok. 3
        miesiącach i wymuszałyby skok co kwartał); fragment musi wejść w całości (inaczej Issue); porównanie
        konfiguracji (T19) — nowe opcje „domyślnie tak” rozstrzyga człowiek przed wydaniem, reszta nowych opcji na
        liście do przejrzenia po wydaniu; pełne testy; dopisek w pytaniu na laptopie i „Wróć do poprzedniej wersji” (D7).
@@ -677,6 +721,14 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        o nowe. Czego to nie da: gwarancji, że nowe jądro tak samo obsłuży prawdziwy sprzęt (Wi-Fi, grafika — T11 (2)) —
        na to D7 i 7 dni spokoju przed zmianą linii. Rozważone: zaczynać od konfiguracji domyślnej i wyłączać to, czego
        nie chcemy — każda nowa opcja weszłaby sama, bez decyzji (więcej kodu w jądrze, łamie niezmiennik 3).
+    T20 Która linia 7.x (krok 7, D14) i co dalej robi robot. ZE ŹRÓDEŁ (kernel.org releases.json, 2026-11-17):
+       linie 7.x są dziś tylko krótkie — stabilna 7.3.5, 7.2 już bez poprawek, 7.4 w przygotowaniu (7.4-rc3);
+       długoterminowe to 6.18 i starsze; zwykle długoterminową zostaje ostatnia linia roku (dla 7.x — NIEPEWNE,
+       ogłasza kernel.org po wydaniu). Zasada: krok 7 bierze najnowszą linię 7.x w chwili startu kroku — długoterminową,
+       jeśli już jest, a jeśli nie — najnowszą stabilną (nigdy rc). Robot (zmiana T11): na linii krótkiej robi jej
+       poprawki, a gdy pojawi się długoterminowa nie starsza od obecnej — przechodzi na nią (T19, 7 dni spokoju);
+       gdy linia krótka kończy wsparcie, a długoterminowej nowszej nie ma — Issue: przejście na najnowszą stabilną
+       robi człowiek (robot sam linii krótkiej nie wybiera). Na linię starszą robot nie wraca nigdy.
     T18 Opis wersji (kroki 2–3, D13). Skąd: wiersz „Opis w K1:” we wpisie CHANGELOG — pisze go ten, kto robi wydanie,
        prostym językiem, bez numerów kroków i ADR. W ogłoszeniu: do 8 ostatnich wersji, każda z rodzajem („opis” albo
        „poprawki”) i tekstem (tylko przy „opis”); K1 pokazuje wersje nowsze od działającej, najnowszą u góry, kilka
@@ -850,13 +902,23 @@ Krok 6 (dodany 2026-11-17, z czytania kodu po 0.10.2 krok 2)
       K1_STREFY jej nie ma; Przeglądarka przy pierwszym starcie (D12) — kolumna w K1_STREFY albo stała w gui (wybór
       w kroku, jedna tabela).
 
-Krok 7 (dodany 2026-11-15 jako krok 6)
+Krok 7 (dodany 2026-11-17)
+  S52 Z KODU / NIEPEWNE (jadro/wersja.env: adres v6.x). Linia 7.x ma adres cdn.kernel.org/pub/linux/kernel/v7.x —
+      sprawdzić, czy sha256sums.asc dla v7.x podpisuje ten sam klucz (autosigner) co dla v6.x (jadro/klucze/).
+  S53 NIEPEWNE. Sterowniki Wi-Fi i kart mogą w 7.x prosić o nowsze pliki od producentów (nowe nazwy z numerem API) —
+      sprawdzić w źródłach 7.x (MODULE_FIRMWARE, nazwy w sterownikach z listy) i w logu startu na laptopach.
+  S54 Z KODU. Nagłówki UAPI w build/naglowki pochodzą z drzewa jądra — po zmianie linii nasz kod buduje się na nowych
+      nagłówkach (`-Werror`): ostrzeżenia i zmienione stałe wyjdą przy make; zachowanie — w testach.
+  S55 NIEPEWNE. Rozmiar: nowa linia zwykle rośnie o kilka procent; k1.efi z plikami kart i rdzeniem musi zmieścić się
+      w miejscu A/B (128 MiB) z zapasem — pomiar przed/po.
+
+Krok 8 (dodany 2026-11-15 jako krok 6, od 2026-11-17 krok 8)
   S39 Z PRZEGLĄDU. Dokumentacja rosła z każdą wersją; te same fakty bywają w kilku miejscach (np. mapa kodu w skillu
       i w ARCHITEKTURA.md, zasady w AGENTS.md i w skillu, stan w DO_ZROBIENIA i w planach) — lista w kroku.
   S40 Z KODU. scripts/sprawdz-czytelnosc.py sprawdza dziś istniejące ścieżki docs/, opisy usług i komunikatów, spis
       ADR — nie sprawdza powtórzeń ani odesłań między dokumentami.
-  S41 Wydanie 0.10.5 przeszło z kroku 4 do kroku 6 (2026-11-15), potem do kroku 7 (2026-11-17) — robot (krok 3) czeka
-      w trybie próbnym do kroku 7.
+  S41 Wydanie 0.10.5 przeszło z kroku 4 do kroku 6 (2026-11-15), potem do kroku 7 (2026-11-17), a po dodaniu
+      kroku 7 „Jądro 7.x” do kroku 8 (2026-11-17) — robot (krok 3) czeka w trybie próbnym do kroku 8.
 
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
 -----------------------------------------------------------------------------------
@@ -866,6 +928,7 @@ Krok 7 (dodany 2026-11-15 jako krok 6)
     (0.12, TPM — RYZYKA R44); robot dla musl, plików od producentów kart Wi-Fi i bazy przepisów radiowych (rzadkie
     zmiany — na razie ręcznie); świeżość ogłoszenia (codziennie podpisywana data, ochrona przed ukrywaniem nowej
     wersji — RYZYKA w kroku 2); aktualizacja czasu podpisanego (NTS) przez strefę pobierania; linie jądra krótkie
-    (nie „longterm”) i jądro z gałęzi głównej (rc) — robot ich nie bierze (T11); zmiana rozmiaru i maksymalizacja
+    (nie „longterm”) — robot sam na nie nie przechodzi, tylko prowadzi poprawki tej, na której jest (T11, T20); jądro
+    z gałęzi głównej (rc) — nigdy; zmiana rozmiaru i maksymalizacja
     okien aplikacji K1 (Pliki, Notatki, Podgląd — rysują się same w stałym rozmiarze; obszar roboczy z T13 będzie
     gotowy); przyciąganie okien do połowy ekranu; okno strefy na cały ekran bez pasków (T14).
