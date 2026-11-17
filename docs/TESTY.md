@@ -61,7 +61,7 @@ i `tail -f build/qemu/serial.log`; zrzut: `scripts/zrzut-ekranu.sh plik.png`.
 | skarbiec (format, kompaktowanie, miejsce, powiększenie) | `test-skarbiec.sh` (+ `test-pliki.sh`) |
 | siec, kabel, DHCP, zegar z internetu | `test-siec.sh` |
 | Wi-Fi | `test-wifi.sh` |
-| strefy (KVM, VMM, ramka) | `test-strefa.sh` |
+| strefy (KVM, VMM, ramka; od 0.10.2: ekran startu do okna programu strefy, zamykanie w tle, wyłączanie przy działającej strefie) | `test-strefa.sh` |
 | przewijanie (kółko, touchpad; 0.10.0 krok 4) | na hoście `test_touchpad`, `test_zdarzenie`, `test_zalegle`, `fuzz_zdarzenie`, `test_palce` (gest palców w kompozytorze strefy, 0.10.1 krok 5); w systemie `t_okna_przewijanie`; QEMU: `test-pendrive.sh` (lista Plików), `test-strefa.sh` (gość); touchpad — tylko na sprzęcie (QEMU go nie udaje); palce w Firefoksie — `scripts/stanowisko.sh` (niżej) |
 | przeglądarka w strefie (obraz, kompozytor, łącznik, sieć stref) | na hoście `test_lacznik`, `fuzz_lacznik`, `test_palce`; `test-strefa.sh` (strefa próbna); Firefox — `scripts/stanowisko.sh` i właściciel na sprzęcie (od 0.10.1 bez testu w CI) |
 | sesje i dysk strefy (0.10.0 krok 5) | na hoście `test_dysk_strefy`, `test_sesje`, `test_komunikat` (strefy); w systemie `t_skarb_strefy`; QEMU: `test-strefa.sh` (licznik na dysku strefy próbnej); ciasteczko w prawdziwej przeglądarce — na sprzęcie |

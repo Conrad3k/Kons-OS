@@ -356,7 +356,7 @@ n_ = q.ile(PASEK2)
 q.idz(x2 + w2 // 2, y2 + 60)
 q.idz(x2 + w2 // 2, y2 - TYTUL // 2)
 p2 = czekaj(PASEK2, od=n_, czas=30)
-KONIEC1 = r"K1-STREFA: strefa 1: koniec"
+KONIEC1 = r"K1-STREFA: strefa 1: koniec — gość zakończył pracę"
 n_kon = q.ile(KONIEC1)
 if p2:
     q.klik(int(p2.group(3)), int(p2.group(4)))
@@ -366,7 +366,7 @@ sprawdz("ZAMYKANIE W TLE: po „zamknij” okno strefy znika od razu — maszyna
         czekaj(r"K1-STREFA: okno strefy zamknięte — maszyna kończy się w tle", czas=10) and
         czekaj(r"K1-NADZORCA: strefa 1 zamyka się w tle \(okno zamknięte\)", czas=10))
 sprawdz("…potem gość kończy (6 s), maszyna kończy się; okno zniknęło przed jej końcem",
-        czekaj(r"K1-GOSC: zamknięty po 6 s", czas=120) and czekaj(KONIEC1 + r" — gość zakończył pracę", od=n_kon, czas=60))
+        czekaj(r"K1-GOSC: zamknięty po 6 s", czas=120) and czekaj(KONIEC1, od=n_kon, czas=60))
 sprawdz("OTWARCIE W TRAKCIE ZAMYKANIA (D2): nadzorca czeka na starą maszynę i sam otwiera strefę ponownie",
         czekaj(r"K1-NADZORCA: strefa 1 jeszcze się zamyka — otworzę ją, gdy skończy", czas=10) and
         czekaj(r"K1-NADZORCA: strefa 1 skończyła się — otwieram ją ponownie", czas=60) and

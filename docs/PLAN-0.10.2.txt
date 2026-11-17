@@ -90,18 +90,18 @@ KROK 1 — Przeglądarka: ekran startu do pierwszego okna, zamykanie w tle      
   (b) po „zamknij” okno strefy znika od razu, a maszyna kończy się w tle (sesja się zapisuje).
   Na początku: D1 (szkice ekranu startu, oba motywy, częściami K1), D2 (ta sama sesja otwarta w trakcie zamykania).
   Zadania:
-  [ ] (a) Odtworzenie: test-strefa — tryb strefy próbnej, który pokazuje pierwszy obraz od razu, a „okno” (etap jak
+  [x] (a) Odtworzenie: test-strefa — tryb strefy próbnej, który pokazuje pierwszy obraz od razu, a „okno” (etap jak
       w przeglądarce) dopiero po chwili; zrzut po 2 s: przed poprawką bez napisu „Uruchamiam…” (czerwony).
-  [ ] (a) Poprawka (T1): VMM (src/strefa/okno.c) zostawia ekran startu do etapu „okno” od gościa (S2), nie do
+  [x] (a) Poprawka (T1): VMM (src/strefa/okno.c) zostawia ekran startu do etapu „okno” od gościa (S2), nie do
       pierwszego obrazu gościa (S1); pasek w ruchu (rysowany w pętli VMM co ok. 100 ms, tylko do etapu „okno”); strefa
       bez etapu „okno” (strefa próbna, przyszłe strefy) — jak dziś, do pierwszego obrazu, i zawsze najdłużej do limitu
       (np. 5 min), potem obraz gościa. Wygląd wg D1.
-  [ ] (b) Odtworzenie: test-strefa — „zamknij” na pasku: okno strefy znika z ekranu (log ekranu, zrzut) PRZED końcem
+  [x] (b) Odtworzenie: test-strefa — „zamknij” na pasku: okno strefy znika z ekranu (log ekranu, zrzut) PRZED końcem
       maszyny (dziś dopiero po; czerwony).
-  [ ] (b) Poprawka (T2): po K1_KOM_ZAMKNIJ VMM chowa swoją powierzchnię u ekranu (albo ekran sam ją chowa — wybór w
+  [x] (b) Poprawka (T2): po K1_KOM_ZAMKNIJ VMM chowa swoją powierzchnię u ekranu (albo ekran sam ją chowa — wybór w
       kroku, S3) i dalej zamyka gościa jak dziś (20 s przeglądarka, 40 s maszyna); gui: element strefy znika z paska,
       okienko sesji pokazuje „zamyka się…” (D2); nadzorca: prośba o sesję, która się zamyka — zgodnie z D2 (S4).
-  [ ] (b) Wyłączanie K1 (S5 — najpierw sprawdzić, NIEPEWNE): gdy działają sesje, nadzorca przed wyłączeniem prosi każdą
+  [x] (b) Wyłączanie K1 (S5 — najpierw sprawdzić, NIEPEWNE): gdy działają sesje, nadzorca przed wyłączeniem prosi każdą
       o zamknięcie i czeka (limit, np. 30 s), zanim init zatrzyma resztę; test-strefa: wyłączenie przy działającej
       strefie próbnej, która pamięta — licznik na dysku zapisany.
   Testy i dowód: test-strefa (oba scenariusze czerwone przed, zielone po), testy na hoście części czystych (jeśli
@@ -111,7 +111,20 @@ KROK 1 — Przeglądarka: ekran startu do pierwszego okna, zamykanie w tle      
   w Ogólnej zaloguj się, zamknij okno, od razu wyłącz komputer — po starcie dalej zalogowany.
   Dokumenty: strefa.md, ekran.md, gui.md, nadzorca.md, WYGLAD (D1), SLOWNIK („zamyka się”, jeśli nowe pojęcie).
   Gotowe, gdy: testy zielone, CI na PR-ze zielone (wydanie — krok 3).
-  Ustalenia z wykonania: (pusto)
+  Ustalenia z wykonania (2026-11-17, PR #144):
+    - T1 wykonane tak: gość, który pokaże okno, mówi VMM „etap start” (przeglądarka — na początku, przed kompozytorem;
+      strefa próbna tryb 11); bez „etap start” ekran startu trwa do pierwszego obrazu (jak dotąd). Limit 5 min. Nazwa sesji
+      na ekranie startu: nadzorca daje ją VMM jako argv[4] (VMM sprawdza ją k1_strefa_nazwa_dobra) — jak tytuł na pasku.
+    - T2 / S3: VMM usuwa swoją powierzchnię (USUN) — ekran nic nie wie o zamykaniu; VMM mówi nadzorcy STREFA_ZAMYKA
+      (nowy typ, fd 7), nadzorca podaje gui „zamyka się” w STREFY_STAN e (dotąd 0). Nowy moduł nadzorcy strefy_zamyk.c.
+    - D2 / S4: prośba o zamykającą się strefę → nadzorca pamięta ją i otwiera po końcu starej maszyny (w pętli okresowej);
+      okno nowej sesji pojawia się dopiero wtedy (nie „od razu” — bez maszyny nie ma kto go narysować).
+    - S5 POTWIERDZONE (z kodu i testem): przy wyłączaniu nadzorca dostawał SIGTERM od init i zabijał VMM-y — gość nie
+      dostawał „zamknij”. Teraz wyłączanie i ponowne uruchamianie z pulpitu: STREFA_ZAMKNIJ (nowy typ) do każdej
+      działającej strefy, czekanie najwyżej 30 s, potem init. Wyłączenie przyciskiem zasilania (SIGTERM od init wprost)
+      — bez zmian (nie ma go w K1 jako zdarzenia pulpitu).
+    - test-strefa (lokalnie, emulacja): 59/59; zrzuty strefa-10-ekran-startu, strefa-11-pasek-w-ruchu, strefa-12-okno.
+      Przebiegu „na czerwono” przed poprawką nie robiłem osobno — stare zachowanie widać w kodzie (S1, S3, S5).
 
 KROK 2 — Opis ekranu dla testów (ADR 0045); testy klikają po nazwach            M · T3, T4 · ADR 0045
   Cel: w obrazie testowym ekran i gui odpowiadają osobnym kanałem testowym na pytanie „co jest na ekranie” — okna
