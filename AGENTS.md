@@ -62,7 +62,8 @@ wymaga), ale każda jest mała, robi jedną rzecz i wygląda jak pozostałe.
 - Małe PR-y, jeden temat każdy. Pliki, które zmieniają prawie wszyscy (`VERSION`, `CHANGELOG.md`,
   `docs/DO_ZROBIENIA.txt`), zmienia ten, kto robi wydanie — inni dopisują swoje zmiany w opisie PR-a.
 - Repo jest publiczne (od 2026-11-14, ADR 0040 — nigdy żadnych sekretów w repo): po zakończeniu pracy i zielonych
-  testach scalaj PR do `main` sam (squash, z wyraźnym opisem commita). CI na `main` tworzy wydanie, gdy `VERSION` ma nową wersję.
+  testach scalaj PR do `main` sam (squash, z wyraźnym opisem commita). CI na `main` tylko buduje i tworzy wydanie, gdy `VERSION` ma nową
+  wersję — bez testów (decyzja właściciela 2026-11-17: testy idą na PR-ze, przed scaleniem).
 
 ## Środowisko i testy
 - Start pracy: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh` (bez KVM ok. 5 min budowy, z jądrem dłużej).

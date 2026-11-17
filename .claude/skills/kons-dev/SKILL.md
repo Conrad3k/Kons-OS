@@ -25,7 +25,7 @@ wygrywają dokumenty, a skill poprawiasz w tym samym PR-ze.
    origin/main`; wypychanie z nadpisaniem jest zablokowane → `git merge -s ours origin/<gałąź>` i zwykły push).
 2. Otwarte PR-y i zgłoszenia (`list_pull_requests`, `list_issues`: etykiety `feedback`, `błąd`, `pomysł`).
    Punkt z `DO_ZROBIENIA.txt` oznacz `[w toku: Claude, gałąź …]` w pierwszym commicie; punktów Codexa nie ruszaj.
-3. Ostatni run „K1 — budowa i testy” na `main` — czerwony naprawiasz najpierw.
+3. Ostatni run „K1 — budowa i testy” na `main` (od 2026-11-17 sama budowa) — czerwony naprawiasz najpierw.
 4. Środowisko: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh` (szybko: `make && make -j4 -O testy-host`).
    Kontener nie ma KVM — QEMU w emulacji; pełny komplet testów robi CI na PR-ze (§9).
 
@@ -357,10 +357,10 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
 - **Czekanie na CI:** testy z KVM trwają zwykle ok. 13–15 min (cały przebieg ok. 30 min). Trwają ponad dwa razy
   dłużej — od razu powiedz właścicielowi, zamiast czekać w ciszy. Logu trwającego zadania API nie daje; artefakt
   z logami pobierasz z `productionresultssa1.blob.core.windows.net` (dozwolony w środowisku od 2026-11-16).
-- **Po scaleniu:** `send_later` ok. 15 min; CI padło → `get_job_logs` (`failed_only`) i poprawka (PATCH);
-  przeszło → tag `k1-v<wersja>` i wydanie z ISO, obrazem USB i `k1-<wersja>-logi.tar.gz`. Logi testów są
-  zawsze: konsola zadania (krok „Logi testów”), podsumowanie, wydanie, artefakt (7 dni). Stare artefakty usuwa
-  workflow „Sprzątanie artefaktów”.
+- **Po scaleniu:** na `main` CI tylko buduje (bez testów — decyzja właściciela 2026-11-17; testy idą na PR-ze); budowa
+  z jądrem od zera ok. 15 min. Padła → `get_job_logs` (`failed_only`) i poprawka (PATCH); przeszła → tag `k1-v<wersja>`
+  i wydanie z ISO i obrazem USB. Logi testów są na PR-ze: konsola zadania (krok „Logi testów”), podsumowanie, artefakt
+  (7 dni). Stare artefakty usuwa workflow „Sprzątanie artefaktów”.
 
 ## 10. Właściciel i raport
 

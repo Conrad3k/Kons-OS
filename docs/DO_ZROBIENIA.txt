@@ -197,7 +197,8 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
     stała/jednorazowa, pełna izolacja/szybka grafika (ADR 0020); wspólna strefa na drobne aplikacje (ADR 0024);
   - kolejność techniczną planu ustala Claude (ADR 0011, 0035); decyzje produktowe (wygląd, zachowanie) — Ty;
   - przeglądarkę (Firefox w strefie) sprawdzasz Ty na sprzęcie — CI jej nie testuje (2026-11-17); Twoje zgłoszenia Claude
-    odtwarza na stanowisku na hoście (scripts/stanowisko.sh) i poprawia; lista „co sprawdzić” — punkt 4 przy każdym wydaniu.
+    odtwarza na stanowisku na hoście (scripts/stanowisko.sh) i poprawia; lista „co sprawdzić” — punkt 4 przy każdym wydaniu;
+  - testy idą na PR-ze przed scaleniem; na main CI tylko buduje ISO i obraz USB i tworzy wydanie (2026-11-17).
 
 
 6. TYMCZASOWE (zasada czytelności 3 — każde z terminem; przegląd przy porządkach każdej wersji MINOR)
