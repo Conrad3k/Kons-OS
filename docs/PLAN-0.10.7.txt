@@ -1,4 +1,4 @@
-K1 — PLAN WERSJI 0.10.3 „FILMY” (wersja tematu 0.10 Strefy)
+K1 — PLAN WERSJI 0.10.7 „FILMY” (wersja tematu 0.10 Strefy)
 ==========================================================
 
 Data: 2026-11-16 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-16), w czasie
@@ -8,9 +8,9 @@ graficzną (sterownik z jądra i VA-API — sprzętowe dekodowanie wideo) i odda
 widzi karty; ryzyko dotyczy tylko tego procesu — jak przy dzisiejszym dekoderze zdjęć. Zmienia to jedną zasadę („tylko
 ekran dotyka karty graficznej”), więc wersja ma ADR (krok 1).
 Wersja stoi na 0.10.1 (balon i podział pamięci — klatki filmu to pamięć strefy; ADR 0044) i na 0.10.0 (strefy, VMM,
-przeglądarka, sesje i Ustawienia → Przeglądarka; ADR 0042, 0043). Numer 0.10.3 wybrał właściciel. Numer mniejszy niż
-0.10.5, więc wydanie 0.10.3 musi wyjść PRZED 0.10.5 (docs/PLAN-0.10.5.txt). Jeśli 0.10.5 wyjdzie pierwsze, ta wersja
-dostanie następny wolny numer — plan się nie zmienia.
+przeglądarka, sesje i Ustawienia → Przeglądarka; ADR 0042, 0043). Numer: do 2026-11-17 „0.10.3” (wybrał go właściciel);
+2026-11-17 właściciel przesunął tę wersję na 0.10.7 — PO 0.10.5 Aktualizacje przez sieć (docs/PLAN-0.10.5.txt): „lepiej
+zająć się grafiką, gdy fundamenty, które chcemy zrobić, już będą”. Plan się nie zmienił — tylko numer i kolejność.
 Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
 Plik jest planem, nie specyfikacją: zmiana architektury (niezmiennik 7: właściciel karty graficznej; ADR 0020 p. 2)
 idzie przez ADR z kroku 1.
@@ -18,7 +18,7 @@ idzie przez ADR z kroku 1.
 Mało kroków (prośba właściciela z 2026-11-16): TRZY. Krok 1 — próba na sprzęcie i w kontenerze, potem ADR (czy
 i jak ta droga w ogóle działa, zanim powstanie kod do utrzymania). Krok 2 — strona K1: sterownik karty w jądrze
 i usługa „dekoder filmów”. Krok 3 — strona strefy: przełącznik w Ustawieniach, przeglądarka korzysta z dekodera
-filmów; wydanie 0.10.3.
+filmów; wydanie 0.10.7.
 
 ZAKRES ZAMROŻONY (ADR 0035): poniższe 3 kroki i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
@@ -37,7 +37,7 @@ Przeglądarka, na których ten plan stoi). Krok 1 to głównie próby i ADR — 
 z 0.10.1, jeśli nie dotyka tych samych plików (próby na osobnej gałęzi, do main tylko ADR i ustalenia).
 
 Właściciel — co wpisać w nowym czacie (podmień N):
-    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.3.txt.”
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.7.txt.”
 Decyzje [!] (punkt 4) czat zada na początku kroku — możesz też od razu dopisać odpowiedź.
 W krokach 1 i 2 czat poprosi Cię o uruchomienie obrazu z pendrive'a na X230 i IdeaPadzie (link do obrazu USB z PR-a
 i krótka lista „co kliknąć, co powinno się stać”) — karty Intela nie da się udać w QEMU ani w CI.
@@ -68,7 +68,7 @@ Nowy czat — przebieg każdego kroku:
 
 1. W SKRÓCIE (dla właściciela)
 ------------------------------
-Po 0.10.3 w Ustawieniach → Przeglądarka przy sesji (Ogólna, Bank, Prywatna — D1) jest przełącznik „Sprzętowe
+Po 0.10.7 w Ustawieniach → Przeglądarka przy sesji (Ogólna, Bank, Prywatna — D1) jest przełącznik „Sprzętowe
 dekodowanie filmów”. Włączony: filmy w tej sesji (np. YouTube) rozpakowuje karta graficzna laptopa, nie procesor —
 obraz płynniejszy, wentylator ciszej, bateria wytrzymuje dłużej. Zmiana działa od następnego otwarcia sesji (jak
 „Pamięta / Zapomina”).
@@ -99,13 +99,13 @@ wskaże strefa); strefa dostaje tylko „klatka nr n gotowa”. Poziom 2 daje pe
 nie wiemy (czy Firefox bez karty w strefie odda film osobną warstwą). Krok 1 MIERZY na Twoich laptopach i wybiera:
 poziom 2, jeśli się da; poziom 1, jeśli daje wyraźny zysk; inaczej wersja się zatrzymuje.
 
-Uwaga: K1 nie ma jeszcze dźwięku (punkt „Laptop” w DO_ZROBIENIA) — filmy w 0.10.3 będą płynne, ale bez dźwięku.
+Uwaga: K1 nie ma jeszcze dźwięku (punkt „Laptop” w DO_ZROBIENIA) — filmy w 0.10.7 będą płynne, ale bez dźwięku.
 
 Trzy kroki:
   1. Próba: obraz testowy ze sterownikiem karty z jądra (sprawdzasz pulpit i listę formatów karty na obu laptopach)
      i próba w kontenerze, czy Firefox w strefie w ogóle skorzysta z dekodera K1; potem ADR.
   2. K1: sterownik karty w jądrze, usługa „dekoder filmów” w klatce; Ustawienia → Przeglądarka pokazują, co umie karta.
-  3. Strefa: przełącznik przy sesji, przeglądarka oddaje filmy dekoderowi K1; wydanie 0.10.3.
+  3. Strefa: przełącznik przy sesji, przeglądarka oddaje filmy dekoderowi K1; wydanie 0.10.7.
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
@@ -204,7 +204,7 @@ KROK 2 — K1: sterownik karty w jądrze, usługa „dekoder filmów”         
   Gotowe, gdy: CI zielone, właściciel potwierdził linię w Ustawieniach i pulpit na obu laptopach.
   Ustalenia z wykonania: (pusto — wypełnia krok 2)
 
-KROK 3 — Strefa: przełącznik w Ustawieniach, Firefox z dekoderem filmów; wydanie 0.10.3   L · D1–D4, T4, T5 · ADR z kr. 1
+KROK 3 — Strefa: przełącznik w Ustawieniach, Firefox z dekoderem filmów; wydanie 0.10.7   L · D1–D4, T4, T5 · ADR z kr. 1
   Cel: film w sesji z włączonym przełącznikiem rozpakowuje karta, a strefa nadal nie widzi karty.
   Na początku: D1–D4 (D3 — szkice do wyboru, oba motywy).
   Co widzi użytkownik: Ustawienia → Przeglądarka — przy sesji przełącznik „Sprzętowe dekodowanie filmów” (wg D1, D2;
@@ -228,7 +228,7 @@ KROK 3 — Strefa: przełącznik w Ustawieniach, Firefox z dekoderem filmów; wy
       zalew prośbami, adresy klatek poza pamięcią gościa → odrzucone, K1 i inne strefy żyją.
   [ ] Porządki tej wersji (PATCH — małe): nic tymczasowego bez terminu; DO_ZROBIENIA → „Właściciel”: lista do
       sprawdzenia na sprzęcie (niżej).
-  [ ] Wydanie 0.10.3: VERSION, CHANGELOG („co widzisz”, potem technika), DO_ZROBIENIA (stan, mapa, punkt 4), ten plan →
+  [ ] Wydanie 0.10.7: VERSION, CHANGELOG („co widzisz”, potem technika), DO_ZROBIENIA (stan, mapa, punkt 4), ten plan →
       do archiwum planów (katalog docs/archiwum/).
   Testy i dowód: test-strefa.sh — strefa próbna z dekoderem testowym (S17: program testowy albo tryb testowy usługi
   podaje szare klatki bez karty) przechodzi całą drogę gość → VMM → dekoder filmów → klatka w gościu; złośliwy gość;
@@ -239,7 +239,7 @@ KROK 3 — Strefa: przełącznik w Ustawieniach, Firefox z dekoderem filmów; wy
   film 1080p → płynny? Zasoby: procesor sesji mniejszy niż z wyłączonym przełącznikiem (porównaj ten sam film)?
   znak na ramce? Bank z wyłączonym — bez znaku, film działa (procesorem).
   Gotowe, gdy: CI zielone, właściciel potwierdził na sprzęcie albo dostał listę
-  przy wydaniu, wydanie 0.10.3 istnieje (linki ISO i USB w raporcie).
+  przy wydaniu, wydanie 0.10.7 istnieje (linki ISO i USB w raporcie).
   Ustalenia z wykonania: (pusto — wypełnia krok 3)
 
 
@@ -311,7 +311,7 @@ Techniczne (decyduje Claude w ADR kroku 1 — Ty dostajesz krótkie wyjaśnienie
        Wybór (krok 1, ADR): poziom 2, jeśli próba (e) pokaże, że Firefox z rysowaniem procesorem odda film osobną
        podpowierzchnią; jeśli nie — poziom 1, o ile pomiar (d) pokaże wyraźny zysk (kierunek: co najmniej połowa mniej
        procesora niż rozpakowanie programowe, na obu laptopach); jeśli i to nie — wersja się zatrzymuje (raport, nie
-       zgadujemy dalej). Poziom 2 przy poziomie 1 w 0.10.3 → „Później”.
+       zgadujemy dalej). Poziom 2 przy poziomie 1 w 0.10.7 → „Później”.
   T8 — Pamięć karty („VRAM”) a balon z 0.10.1 (pytanie właściciela z 2026-11-16: czy pamięć karty też potrzebuje
        balona). Karty obu laptopów (HD 4000, HD 520) są zintegrowane — NIE MAJĄ osobnej pamięci; bufory karty (klatki
        filmu, klatki odniesienia) i915 bierze ze zwykłej pamięci RAM. Dlatego nie ma drugiego balona — jest JEDNA
