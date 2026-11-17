@@ -1,4 +1,5 @@
 #include "k1_okno.h"
+#include "k1_opis_klient.h"
 
 #include "k1_komunikat.h"
 
@@ -32,10 +33,12 @@ void k1_ramka_okna(struct k1_obraz *o, const struct k1_motyw *m, const char *tyt
     if (najechany == K1_TR_ZAMKNIJ)
         k1_zaokraglony(o, bx, by, PRZYCISK, PRZYCISK, 8, k1_kolor(m->najechanie, 255));
     k1_ikona(o, K1_IK_ZAMKNIJ, bx + 6, by + 6, 16, k1_kolor(m->tekst2, 255));
+    k1_el(K1_EL_PRZYCISK, "Zamknij", (int32_t)bx, (int32_t)by, PRZYCISK, PRZYCISK, 0);
     bx -= PRZYCISK + 4;
     if (najechany == K1_TR_MINIMALIZUJ)
         k1_zaokraglony(o, bx, by, PRZYCISK, PRZYCISK, 8, k1_kolor(m->najechanie, 255));
     k1_ikona(o, K1_IK_MINIMALIZUJ, bx + 6, by + 6, 16, k1_kolor(m->tekst2, 255));
+    k1_el(K1_EL_PRZYCISK, "Minimalizuj", (int32_t)bx, (int32_t)by, PRZYCISK, PRZYCISK, 0);
 }
 
 enum k1_trafienie k1_trafienie_ramki(uint32_t szer, uint32_t wys, int32_t x, int32_t y)
@@ -74,6 +77,7 @@ void k1_segment(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t
         }
         k1_tekst(o, i == wybrany ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, (int32_t)(sx + (sw - (float)tw) / 2),
                  y + h / 2 + 5, etykiety[i], k1_kolor(i == wybrany ? m->tekst : m->tekst2, 255), 0);
+        k1_el(K1_EL_ZAKLADKA, etykiety[i], (int32_t)sx, y + 4, (int32_t)sw, h - 8, i == wybrany ? K1_EL_WYBRANY : 0);
     }
 }
 
@@ -117,6 +121,7 @@ void k1_przycisk(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_p
         break;
     }
     k1_tekst(o, cz, p->x + (p->w - tw) / 2, ty, p->etykieta, k1_kolor(tekst, 255), 0);
+    k1_el(K1_EL_PRZYCISK, p->etykieta, p->x, p->y, p->w, p->h, aktywny ? 0 : K1_EL_NIEDOSTEPNY);
 }
 
 int k1_przycisk_pod(const struct k1_przycisk *p, int n, int32_t x, int32_t y)

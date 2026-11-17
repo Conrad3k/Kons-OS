@@ -146,6 +146,21 @@ if tryb == "ponownie":
     sys.exit(0 if all(wyniki) else 1)
 W, H = int(t.group(1)), int(t.group(2))
 sx, sy, ax, ay, krok = (int(g.group(i)) for i in range(1, 6))
+if tryb == "pulpit":  # 0.10.2 step 2: positions by name from the screen's description (ADR 0045)
+    sprawdz("opis ekranu dla testów: program testowy podaje pasek z „Start” (kanał tylko w obrazie testowym)",
+            q.czekaj_na_element("Pasek", "Start", czas=60), str(q.ekran())[:300])
+
+
+def na_pasku(nazwa):
+    """The centre of `nazwa` on the bottom bar (the description: the bar is centred and changes)."""
+    e = q.czekaj_na_element("Pasek", nazwa, czas=20)
+    return q.srodek(e) if e else (0, 0)
+
+
+def otworz_start():
+    """Start clicked, the Start menu in the description."""
+    q.klik(*na_pasku("Start"))
+    return q.czekaj_na_element("Menu Start", "Wyłącz", czas=20)
 kursor[:] = [int(k0.group(1)), int(k0.group(2))]
 w, h, px = zrzut(f"{tryb}-1-pulpit", gdy=lambda w, h, px: (w, h) == (W, H) and max(px(W // 2, 6)) < 120
                  and jasny(px(W // 2, ay - 26)))
@@ -189,9 +204,16 @@ sprawdz("brak odrzuconych i zgubionych zdarzeń przy poprawnym wejściu",
 # dragging on the bar and on the desktop. At the end the bar is as at the start (the steps below use it).
 IKONY = r"K1-GUI: ikony na pulpicie \(siatka (\d+)x(\d+), co (\d+),(\d+)\): (.*)"
 ik = czekaj(IKONY)
-ikony = {n: (int(x), int(y)) for n, x, y in re.findall(r"(\w+) (\d+),(\d+)", ik.group(5))} if ik else {}
-sprawdz("pulpit: Kosz i ikony aplikacji przy pierwszym starcie (bez Instalatora)",
-        set(ikony) == {"Kosz", "Zegar", "Notatki", "Ustawienia", "Zasoby", "Kalkulator", "Pliki"}, ik.group(0) if ik else "brak")
+
+
+def ikony_pulpitu():
+    """{name: centre of its tile's icon} from the description (the log's point: 8 px under the cell's top + the tile)."""
+    p_ = q.element("Pulpit")
+    return {e["nazwa"]: (e["x"] + e["w"] // 2, e["y"] + 8 + 26) for e in p_["elementy"]} if p_ else {}  # 26: KAFEL / 2
+q.czekaj_na_element("Pulpit", "Pliki", czas=30)
+ikony = ikony_pulpitu()
+sprawdz("pulpit: Kosz i ikony aplikacji przy pierwszym starcie (bez Instalatora) — z opisu ekranu",
+        set(ikony) == {"Kosz", "Zegar", "Notatki", "Ustawienia", "Zasoby", "Kalkulator", "Pliki"}, str(sorted(ikony)))
 if not ikony: sys.exit(1)
 kafel = lambda px, n: jasny(px(ikony[n][0] - 20, ikony[n][1]))  # a light tile left of the line icon
 w, h, px = zrzut("1b-ikony", gdy=lambda w, h, px: kafel(px, "Zegar") and kafel(px, "Kalkulator"))
@@ -206,9 +228,17 @@ PASEK = r"K1-GUI: (?:pulpit gotowy|pasek zmieniony): Start (\d+),(\d+), aplikacj
 
 
 def pasek():
-    """The bar's latest positions (it is centred: Start moves when applications are pinned or unpinned)."""
-    m = list(re.finditer(PASEK, tekst()))
-    return tuple(int(m[-1].group(i)) for i in range(1, 6))
+    """The bar's positions (it is centred: Start moves when applications are pinned or unpinned) — 0.10.2 step 2: from
+    the screen's description, once it shows the bar as gui's newest log line has it: Start, the first application, the
+    step."""
+    m = list(re.finditer(PASEK + r", dźwięk \d+,\d+ \(pasek: ([^)]*)\)", tekst()))
+    chce = m[-1].group(6).replace("| ", "").split(", ") if m else None
+    ikony_ = lambda: [e for e in (q.element("Pasek") or {"elementy": []})["elementy"] if e["rodzaj"] == "ikona"]
+    q.czekaj_na(lambda: [e["nazwa"] for e in ikony_()][1:] == chce, czas=20)
+    el_ = ikony_()
+    if len(el_) < 3:
+        return tuple(int(m[-1].group(i)) for i in range(1, 6))  # the log's, when the description has no bar
+    return q.srodek(el_[0]) + q.srodek(el_[1]) + (el_[2]["x"] - el_[1]["x"],)
 
 
 def ostatni(wzor):
@@ -234,8 +264,9 @@ def menu_k(prawy, wzor, wiersz, nazwa_zrzutu=None):
     n = q.ile(wz)
     przed = kadr()
     q.prawy_klik(*prawy)
-    mk = czekaj(wz, od=n, czas=20)
-    pozycje = {t.strip(): (int(x), int(y)) for t, x, y in re.findall(r"([^;:]+?) (\d+),(\d+)", mk.group(1))} if mk else {}
+    mk = czekaj(wz, od=n, czas=20)  # which menu opened: gui's log; where its rows are: the screen's description
+    e_ = q.czekaj_na_element("Menu", wiersz, "wiersz", czas=20) if mk else None
+    pozycje = {wiersz: q.srodek(e_)} if e_ else {}
     widac = False
     if wiersz in pozycje:
         x, y = pozycje[wiersz]
@@ -261,29 +292,27 @@ sprawdz("ikona: „Odepnij od paska” — Notatki znikają z paska",
 sprawdz("ikona: „Usuń z pulpitu” — Zasoby", menu_k(ikony["Zasoby"], "ikona Zasoby", "Usuń z pulpitu") and
         czekaj(r"K1-GUI: usunięto z pulpitu: Zasoby"), menu_opis[0])
 sx, sy, ax, ay, krok = pasek()
-klik(sx, sy)
-m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+);")
+m = otworz_start()
 if m:
-    rx, ry, rk = (int(m.group(i)) for i in range(1, 4))
     sprawdz("menu Start: prawy przycisk → „Dodaj do pulpitu” — Zasoby wracają",
-            menu_k((rx, ry + 3 * rk), "menu Start Zasoby", "Dodaj do pulpitu") and czekaj(r"K1-GUI: dodano do pulpitu: Zasoby"),
-            menu_opis[0])
+            menu_k(q.srodek(q.element("Menu Start", "Zasoby")), "menu Start Zasoby", "Dodaj do pulpitu") and
+            czekaj(r"K1-GUI: dodano do pulpitu: Zasoby"), menu_opis[0])
+    q.czekaj_na(lambda: q.element("Menu") is None, czas=10)  # the right-click menu closed: the Start menu again
     sprawdz("menu Start: prawy przycisk → „Przypnij do paska” — Notatki na końcu paska",
-            menu_k((rx, ry + rk), "menu Start Notatki", "Przypnij do paska") and
+            menu_k(q.srodek(q.czekaj_na_element("Menu Start", "Notatki")), "menu Start Notatki", "Przypnij do paska") and
             czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki, Notatki\)"),
             menu_opis[0] + " | " + ostatni(r"K1-GUI: pasek zmieniony: .*"))
 klik(W // 2, H // 3)  # a click on the empty desktop closes the Start menu
 sx, sy, ax, ay, krok = pasek()
 # 0.10.1 step 4 (the owner's D4: sketch B): Start → Przeglądarka asks "Którą sesję otworzyć?"; "Anuluj" starts nothing
-nm = q.ile(r"menu Start otwarte")
-klik(sx, sy)
-m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);", od=nm)
+m = otworz_start()
 if m:
-    rx, ry, rk, wy_ = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(5))
-    klik(rx, ry + ((wy_ - ry + rk // 2 - 2 - 36) // rk - 1) * rk)  # the browser: the last row
+    q.klik_w("Menu Start", "Przeglądarka", "wiersz")  # 0.10.2 step 2: the row by its name
     ok_ = czekaj(r"K1-GUI: okienko \(sesje\): (sesja.*)", czas=20)
-    kaf = {int(n): (int(x), int(y)) for n, x, y in re.findall(r"sesja (\d+) (\d+),(\d+)", ok_.group(1))} if ok_ else {}
-    an = re.search(r"Anuluj (\d+),(\d+)", ok_.group(1)) if ok_ else None
+    an_ = q.czekaj_na_element("Okienko", "Anuluj", "przycisk", czas=20)
+    kaf = {int(e["nazwa"].split()[1]): (e["x"] + e["w"] // 2, e["y"] + e["h"] // 2)
+           for e in (q.element("Okienko") or {"elementy": []})["elementy"] if e["rodzaj"] == "kafelek"}
+    an = q.srodek(an_) if an_ else None
     kafelki = lambda px: all(jasny(px(x, y - 2)) and blisko(px(x, y - 24), SESJE_KOLORY[n]) for n, (x, y) in kaf.items())
     sprawdz("menu Start → Przeglądarka: okienko „Którą sesję otworzyć?” — Ogólna, Bank, Prywatna",
             sorted(kaf) == [2, 3, 4] and an, ok_.group(0) if ok_ else "brak")
@@ -292,7 +321,7 @@ if m:
         sprawdz("zrzut: kafelki sesji (jasne) z kropką w kolorze sesji",
                 kafelki(px), str([(px(x, y - 2), px(x, y - 24)) for x, y in kaf.values()]))
     if an:
-        klik(int(an.group(1)), int(an.group(2)))
+        klik(*an)
         sprawdz("okienko sesji: „Anuluj” zamyka je, żadna strefa nie rusza",
                 czekaj(r"K1-GUI: okienko \(sesje\): Anuluj") and "uruchamiam: Przeglądarka" not in tekst())
 # the bar: Notatki dragged from the end back to the second place
@@ -316,14 +345,13 @@ w, h, px = zrzut("1e-pulpit-po-zmianach", gdy=lambda w, h, px: jasny(px(cel[0] -
 sprawdz("zrzut: kafelek Kalkulatora w nowej komórce", jasny(px(cel[0] - 20, cel[1])), str(px(cel[0] - 20, cel[1])))
 
 # menu Start → Notatki
-klik(sx, sy)
-m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);", od=1)
-sprawdz("menu Start otwiera się po kliknięciu", m)
+m = otworz_start()
+sprawdz("menu Start otwiera się po kliknięciu (w opisie ekranu: panel „Menu Start” z „Wyłącz”)", m)
 if not m: sys.exit(1)
-rx, ry, rk, wx, wy = (int(m.group(i)) for i in range(1, 6))
+rx, ry = q.srodek(q.element("Menu Start", "Zegar"))
 w, h, px = zrzut("2-menu")
 sprawdz("zrzut: menu Start widoczne (jasne tło nad paskiem)", jasny(px(rx, ry - 50)), str(px(rx, ry - 50)))
-klik(rx, ry + rk)
+q.klik_w("Menu Start", "Notatki", "wiersz")
 o = czekaj(r"K1-EKRAN: okno (\d+) \(notatki\) (\d+)x(\d+) w (\d+),(\d+)")
 sprawdz("Notatki: nadzorca uruchamia aplikację, ekran pokazuje okno", o and czekaj(r"uruchomiono notatki \(pid \d+, uid 201\)"))
 if not o: sys.exit(1)
@@ -368,9 +396,8 @@ def ust_przegladarka(ux, uy, ciemny_):
     """Ustawienia → Przeglądarka (0.10.1 step 4, D5: sketch A): a card per session, none runs into the next one — the
     row of pixels between two cards is the window's background all along, inside a card under its buttons the card's
     field (S17: before, a session's description was drawn over the next one); then back to Wygląd."""
-    sk_ = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)")
     n_ = q.ile(r"K1-USTAWIENIA: przeglądarka: sesje")
-    klik(ux + int(sk_.group(1)), uy + int(sk_.group(2)) + 9 * int(sk_.group(3)))  # section 9: Przeglądarka
+    q.klik_w("Ustawienia", "Przeglądarka", "zakladka")  # 0.10.2 step 2: the section by its name
     l_ = czekaj(r"K1-USTAWIENIA: przeglądarka: sesje (\d+) \(.*?\): (.*)", od=n_, czas=30)
     karty = [tuple(int(v) for v in k) for k in re.findall(r"karta (\d+),(\d+) (\d+)x(\d+)", l_.group(2))] if l_ else []
     tlo, pole = ((0x26, 0x25, 0x23), (0x30, 0x2F, 0x2C)) if ciemny_ else ((0xFA, 0xF9, 0xF6), (0xFF, 0xFF, 0xFF))
@@ -384,14 +411,14 @@ def ust_przegladarka(ux, uy, ciemny_):
     w, h, px = zrzut(f"5c-przegladarka-{'ciemny' if ciemny_ else 'jasny'}", gdy=lambda w, h, px: dobre(px))
     sprawdz(f"Ustawienia → Przeglądarka ({'ciemny' if ciemny_ else 'jasny'} motyw): trzy karty sesji, opis nie wchodzi "
             "na następną (zrzut)", dobre(px), l_.group(0)[:300] if l_ else "brak linii")
-    klik(ux + int(sk_.group(1)), uy + int(sk_.group(2)))  # back to section 0: Wygląd
+    q.klik_w("Ustawienia", "Wygląd", "zakladka")
 
 
 if u and l:
     uid_, ux, uy = int(u.group(1)), int(u.group(4)), int(u.group(5))
     bx, by, bw, bh, tx, ty, tk = (int(l.group(i)) for i in range(1, 8))
     ust_przegladarka(ux, uy, False)
-    klik(ux + bx + bw * 3 // 4, uy + by + bh // 2)
+    q.klik_w("Ustawienia", "Ciemny", "zakladka")  # the theme's segment by its label
     sprawdz("ciemny motyw: ekran przyjmuje ustawienie tylko od Ustawień", czekaj(r"K1-EKRAN: ustawienie 1=1"))
     w, h, px = zrzut("5-ciemny", gdy=lambda w, h, px: ciemny(px(ux + 600, uy + 400)))
     sprawdz("zrzut: okno Ustawień w ciemnym motywie", ciemny(px(ux + 600, uy + 400)), str(px(ux + 600, uy + 400)))
@@ -405,8 +432,7 @@ if u and l:
     sprawdz("zrzut: nowa tapeta (fiolet/niebieski w rogu)", c[2] > c[0], str(c))
     ust_przegladarka(ux, uy, True)
     # Ustawienia → Ekran: inna rozdzielczość, pulpit układa się od nowa (karta bochs ma wiele trybów)
-    sek = czekaj(r"sekcje od (\d+),(\d+) co (\d+)")
-    klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + int(sek.group(3)))
+    q.klik_w("Ustawienia", "Ekran", "zakladka")
     tr = czekaj(r"tryby ekranu: ([\dx ]+) \(przyciski od (\d+),(\d+), (\d+) w kolumnie, co (\d+) i (\d+)\)")
     sprawdz("Ustawienia → Ekran: lista rozdzielczości od ekranu", tr and len(tr.group(1).split()) >= 2,
             tr.group(1) if tr else "brak")
@@ -472,15 +498,13 @@ tx_ = tekst()
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów",
         "Kernel panic" not in tx_ and "BŁĄD" not in tx_ and "zabronione wywołanie" not in tx_ and "odrzucono" not in tx_)
 # Start → Wyłącz: kontrolowane wyłączenie
-klik(sx, sy)
-m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);", od=2)
-if m: wx, wy = int(m.group(4)), int(m.group(5))
-klik(wx, wy)
+otworz_start()
+q.klik_w("Menu Start", "Wyłącz", "przycisk")
 sprawdz("Start → Wyłącz: system się wyłącza", czekaj(r"K1: wyłączanie zasilania") and czekaj(r"reboot: Power down"))
 sys.exit(0 if all(wyniki) else 1)
 PY
 
-echo "[k1] test M4: pulpit i aplikacje (obraz produkcyjny)"
+echo "[k1] test M4: pulpit i aplikacje (obraz testowy z opisem ekranu; ponowny start, hasło, ISO — obraz produkcyjny)"
 # M5d: a data disk (GPT, empty partition „K1-DANE”) — the desktop run changes settings and writes a
 # note, powers off; the second run with the same disk must get them back.
 DANE=$TESTY/m4-dane.img
@@ -488,7 +512,12 @@ dd if=/dev/zero of="$DANE" bs=1M count=16 status=none
 printf 'label: gpt\nstart=2048, size=30000, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
 DYSK_DANYCH="-drive if=none,id=dane,file=$DANE,format=raw -device ide-hd,drive=dane,bus=ide.0"
 CZAS_ZW=$CZAS; CZAS=$((CZAS * 2))  # 0.7.5: the longest scenario (the desktop steps) — twice the time
-uruchom pulpit --qemu "$DYSK_DANYCH"
+# 0.10.2 step 2 (ADR 0045): the desktop run on the test image — its test program (disk "k1-test-opis") logs the screen's
+# description and the script clicks by names (testy/qemu/k1qemu.py: q.ekran(), q.klik_w()); the other runs: production
+ZNAK=$TESTY/m4-znak.img
+dd if=/dev/zero of="$ZNAK" bs=1M count=1 status=none
+ZNAK_OPISU="-drive if=none,id=znak,file=$ZNAK,format=raw,readonly=on -device virtio-blk-pci,drive=znak,serial=k1-test-opis,addr=0x1e"
+uruchom pulpit --obraz "$K1_WYNIK/rdzen-test.squashfs" --qemu "$DYSK_DANYCH $ZNAK_OPISU"
 sprawdz pulpit
 CZAS=$CZAS_ZW
 python3 -I - "$DANE" <<'PY' || r=1

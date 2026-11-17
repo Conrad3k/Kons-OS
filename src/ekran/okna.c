@@ -93,6 +93,8 @@ const char *nazwa_roli(const struct klient *k)
         return "logowanie";
     if (k->rola == K1_ROLA_STREFA)
         return "strefa";
+    if (k->rola == K1_ROLA_TEST)
+        return "test";
     return apl != NULL ? apl : "?";
 }
 
@@ -111,7 +113,7 @@ void odrzuc(int kl, const char *powod)
  * ("Zawsze otwieraj tą aplikacją" in "Otwórz za pomocą", 0.8.2 step 5). */
 static int ustawia(const struct klient *k, int32_t klucz)
 {
-    int otwieranie = klucz >= K1_UST_OTWIERANIE && klucz <= K1_UST_MAKS;
+    int otwieranie = klucz >= K1_UST_OTWIERANIE && klucz < K1_UST_OPIS;
     if (k->rola == K1_ROLA_APLIKACJA && k->apl == K1_APL_USTAWIENIA)
         return 1;
     return otwieranie && (k->rola == K1_ROLA_POWLOKA || (k->rola == K1_ROLA_APLIKACJA && k->apl == K1_APL_PLIKI));
@@ -201,6 +203,7 @@ static void usun_pow(int i)
     struct pow *p = &s.p[i];
     if (!p->uzyta)
         return;
+    opis_pow_koniec(i);
     uszkodz_pow(p);
     if (p->okno != 0 && p->polowa >= 0) {
         k1_log(TAG, "okno %u zamknięte", p->okno);
@@ -233,6 +236,7 @@ void rozlacz(int kl)
         k1_log(TAG, "klient %s rozłączony (odrzucone komunikaty: %lu)", nazwa_roli(&s.kl[kl]), s.kl[kl].odrzucone);
     close(s.kl[kl].fd);
     s.kl[kl].fd = -1;
+    opis_klienci();
 }
 
 int znajdz_pow(int kl, uint32_t id)
@@ -275,14 +279,34 @@ void ustawienie(int k, int32_t v)
     ustawienia_zapisz(); /* M5d: a new version in skarbiec */
 }
 
+/* 0.10.2 step 2 (opis.c): the screen's description, and the test client that may only ask for it; a descriptor no
+ * other message carries. 1: handled (refused or done). */
+static int opis_albo_test(int kl, const struct k1_komunikat *m, int fd)
+{
+    const char *powod;
+    if (m->typ == K1_KOM_OPIS || m->typ == K1_KOM_OPIS_PYTANIE)
+        powod = opis_komunikat(kl, m, fd);
+    else if (s.kl[kl].rola == K1_ROLA_TEST) { /* no surfaces, nothing else */
+        if (fd >= 0)
+            close(fd);
+        powod = "klient testowy tylko pyta o opis ekranu";
+    } else if (m->typ != K1_KOM_POWIERZCHNIA && m->typ != K1_KOM_TAPETA_ZDJECIE && fd >= 0) {
+        close(fd);
+        powod = "niespodziewany deskryptor";
+    } else {
+        return 0;
+    }
+    if (powod != NULL)
+        odrzuc(kl, powod);
+    return 1;
+}
+
 static void komunikat(int kl, const struct k1_komunikat *m, int fd)
 {
     struct klient *k = &s.kl[kl];
     int i = -1;
-    if (m->typ != K1_KOM_POWIERZCHNIA && m->typ != K1_KOM_TAPETA_ZDJECIE && fd >= 0) {
-        close(fd);
-        { odrzuc(kl, "niespodziewany deskryptor"); return; }
-    }
+    if (opis_albo_test(kl, m, fd))
+        return;
     if (m->typ == K1_KOM_TAPETA_ZDJECIE) { /* 0.8.0 step 4: zdjecie.c */
         const char *powod = zdjecie_przyjmij(kl, m, fd);
         if (powod != NULL)

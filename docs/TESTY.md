@@ -131,7 +131,9 @@ baterię ACPI (`testy/acpi/bateria.asl`). NEGATYWNE = coś, co ma się nie udać
 ### 6. QEMU z zewnątrz (`scripts/test-*.sh`, biblioteka `testy/qemu/k1qemu.py`)
 Klasa `Maszyna`: `czekaj`, `czekaj_na`, `cisza`, `klik`, `dwuklik`, `prawy_klik`, `przycisk`, `przeciagnij`, `klik_z`,
 `kolko` (0.10.0: ząbki kółka nad punktem — QEMU `mouse_move 0 0 dz`, dz > 0 = od siebie; czeka na licznik
-„przewijanie N” ekranu), `pisz`, `zrzut`, `sprawdz`, `wyniki`; maszynę zamyka `zamknij_qemu` (`scripts/wspolne.sh`); sieć testowa —
+„przewijanie N” ekranu), `pisz`, `zrzut`, `sprawdz`, `wyniki`; od 0.10.2 (ADR 0045) **opis ekranu**: `ekran()` (okna i
+panele od dołu, każdy z elementami: rodzaj, prostokąt, stan, nazwa), `element(okno, nazwa, rodzaj)`,
+`czekaj_na_element(…)`, `klik_w("Menu Start", "Notatki")`, `srodek(e)`; maszynę zamyka `zamknij_qemu` (`scripts/wspolne.sh`); sieć testowa —
 `testy/qemu/k1siec.py` (drugi koniec kabla, router z DHCP i czasem).
 
 **Bez stałych pauz.** Krok czeka na dowód, że się stał, nie na upływ czasu: polecenie monitora — na odpowiedź;
@@ -144,7 +146,7 @@ wywołań i odrzuconych komunikatów; tekstów, haseł, nazw plików i sieci nie
 | Skrypt | Starty | Co sprawdza |
 |---|---|---|
 | `test-m1.sh` | `start`, `testy-w-systemie`, 7 negatywnych (z KVM równolegle) | start z dm-verity aż do pulpitu, brak baterii; testy w systemie (warstwa 5) z restartem ekranu i kontrolowanym wyłączeniem; NEGATYWNE: brak dysku, dysk bez obrazu, obraz bez init, zły `k1.rdzen` (pozostałe przypadki parametru — `test_cmdline`), brak skrótu, zły skrót, jeden bajt obrazu zmieniony — każdy kończy się komunikatem i wyłączeniem, bez paniki |
-| `test-m4.sh` | `pulpit`, `ponownie`, `haslo`, `iso-bios` | kursor, mysz i klawiatura (dawny `test-m2.sh`: ruch, strzałki, przycisk, brak śladu); pulpit (ikony, menu pod prawym przyciskiem, przypinanie, przeciąganie na pasku i pulpicie), menu Start, okienko sesji (0.10.1 krok 4: Start → Przeglądarka — kafelki Ogólnej, Banku i Prywatnej z kropką w kolorze sesji, zrzut `m4-1f-okienko-sesji`; „Anuluj” nie uruchamia strefy), Notatki (polskie znaki, dwie notatki), Zegar, Ustawienia (ciemny motyw, tapeta, rozdzielczość; 0.10.1 krok 4: Przeglądarka w obu motywach — trzy karty sesji, rząd pikseli między kartami w kolorze tła okna, czyli opis nie wchodzi na następną kartę; zrzuty `m4-5c-przegladarka-jasny`, `-ciemny`), Zasoby, Kalkulator, minimalizacja, Start → Wyłącz; dysk zaszyfrowany; po ponownym starcie ustawienia, rozmieszczenie i notatki wracają; hasło: ekran hasła, złe i dobre, Wyloguj; start z ISO przez BIOS (SeaBIOS, VESA, simpledrm) |
+| `test-m4.sh` | `pulpit` (od 0.10.2 obraz testowy z opisem ekranu — klika po nazwach), `ponownie`, `haslo`, `iso-bios` | kursor, mysz i klawiatura (dawny `test-m2.sh`: ruch, strzałki, przycisk, brak śladu); pulpit (ikony, menu pod prawym przyciskiem, przypinanie, przeciąganie na pasku i pulpicie), menu Start, okienko sesji (0.10.1 krok 4: Start → Przeglądarka — kafelki Ogólnej, Banku i Prywatnej z kropką w kolorze sesji, zrzut `m4-1f-okienko-sesji`; „Anuluj” nie uruchamia strefy), Notatki (polskie znaki, dwie notatki), Zegar, Ustawienia (ciemny motyw, tapeta, rozdzielczość; 0.10.1 krok 4: Przeglądarka w obu motywach — trzy karty sesji, rząd pikseli między kartami w kolorze tła okna, czyli opis nie wchodzi na następną kartę; zrzuty `m4-5c-przegladarka-jasny`, `-ciemny`), Zasoby, Kalkulator, minimalizacja, Start → Wyłącz; dysk zaszyfrowany; po ponownym starcie ustawienia, rozmieszczenie i notatki wracają; hasło: ekran hasła, złe i dobre, Wyloguj; start z ISO przez BIOS (SeaBIOS, VESA, simpledrm) |
 | `test-pliki.sh` | `pierwszy`, `ponownie`, `notatki` | foldery, nazwy (zajęta — odmowa), Kosz (przywróć, usuń na zawsze z pytaniem), pliki na pulpicie i ich menu, przeciąganie i Ctrl+klik, foldery stałe (odmowa), po ponownym starcie zostają; dysk formatu 1 z notatkami jako plikami: Notatki, okno wyboru pliku (Otwórz, Anuluj), „Otwórz za pomocą”, domyślna aplikacja, Ustawienia → Aplikacje |
 | `test-pendrive.sh` | `pendrive`, `ponownie` | wirtualny pendrive FAT32 (mtools, Pillow): czytnik w klatce tylko do odczytu, import (pojedynczo, wszystkie, drugi raz — pominięte), pliki 17 MB i 300 MB kawałkami, miniatury (JPEG, PNG, GIF, BMP, WebP, 48/100 Mpx), NEGATYWNE: uszkodzony JPEG, 101 Mpx, plik z pendrive'a na Kosz, plik bez aplikacji; tapeta ze zdjęcia; Podgląd (przybliżanie, obrót, ← →, Delete, Ctrl+O, płynność); Ustawienia → Miejsce; wyjęcie, NTFS (odmowa), „mały” FAT32 z 1100 zdjęciami (0.10.0 krok 4: kółko nad listą — 3 wiersze na ząbek, w górę ponad początek, NEGATYWNY: nad miejscami po lewej nic); po ponownym starcie tapeta i magazyn z filmem otwarty od razu |
 | `test-skarbiec.sh` | `dziennik` (+ponownie), `przejscie`, `pelny`, `powiekszenie` (+ponownie), `dokonczenie` | dyski z `magazyn_testowy`: długi dziennik → kompaktowanie przy otwarciu; przejście z formatu 1 na 2 dopiero po potwierdzonym starcie, krokami < 1 s; prawie pełna K1-DANE: „Nowy folder” odrzucony, ustawienie systemu się zapisuje; „Użyj całego pendrive'a na dane” → nowa tablica, import 16 zdjęć; dokończenie powiększenia po przerwie prądu; na hoście treść każdego obiektu |
@@ -154,6 +156,18 @@ wywołań i odrzuconych komunikatów; tekstów, haseł, nazw plików i sieci nie
 | `test-m5.sh` | `usb`, `pendrive1`, `pendrive2` | maszyna bez PS/2: klawiatura i mysz USB, mysz podłączana, odłączana i znów podłączana; bateria ACPI (wskaźnik, Ustawienia → Bateria, historia między startami); pendrive z K1-DANE włożony po starcie; obraz USB startuje z pendrive'a, pierwszy start tworzy magazyn, drugi otwiera |
 | `test-m5f.sh` | 11 (`0-z-iso` … `6-starsza`) | start z ISO przez UEFI (OVMF, virtio, simpledrm, rdzeń przez loop) — Instalator nie ma skąd kopiować; uszkodzony system na pendrivie — odmowa przed zapisem; instalacja (GPT, pliki startowe = pendrive'a, `fsck.fat`); start z dysku; zmienione pliki startowe — odmowa; aktualizacja przerwana (wolny dysk, `quit`) i pełna; A/B: nowe miejsce na próbę i potwierdzone, uszkodzone → wycofanie; starsza wersja odrzucona |
 | `test-m6.sh` | 5 (+2 z sekretem) | OVMF z Secure Boot i kluczami Microsoftu: klucz K1 w MOK → start; bez klucza i ze zmienionym `k1.efi` → odmowa z wyjaśnieniem; z sekretem `K1_KLUCZ_PODPISU` (CI na `main`) pełna droga przez MokManagera, bez niego tylko „wpisanie niedostępne”; K1 z dysku: „Przygotuj klucz K1” |
+
+**Testy po nazwach (0.10.2 krok 2, ADR 0045).** Scenariusz, który klika w pulpit i okna K1, uruchamia obraz testowy
+z małym dyskiem o numerze seryjnym `k1-test-opis` (wzór: `test-m4.sh`, przebieg `pulpit`): program testowy pyta wtedy
+ekran co pół sekundy, co jest na ekranie, i wypisuje opis do logu, gdy się zmienił — „K1-TEST: ekran n część/części:
+rekord | …”, rekord „rodzaj okno x,y,w,h stan nazwa” (O okno, P panel, B przycisk, W wiersz, K kafelek, I ikona,
+Z zakładka). Skrypt czeka na element i klika jego środek: `q.klik_w("Pasek", "Start")`, `q.klik_w("Menu Start",
+"Wyłącz")`, `q.klik_w("Ustawienia", "Ciemny")`. Nazwy paneli powłoki: „Pasek”, „Menu Start”, „Pulpit” (ikony: nazwy
+aplikacji, „Kosz”, „plik N”), „Menu” (menu pod prawym przyciskiem), „Okienko” (okienka pulpitu: „sesja N”, „Anuluj”);
+okno aplikacji — jej tytuł (przyciski przybornika, „Minimalizuj”, „Zamknij”, sekcje i segmenty jako zakładki).
+**Położenia z logu zostają** tam, gdzie opis ich nie daje: listy plików i notatek (nazwy to treść użytkownika), karty
+tapet i lista trybów ekranu w Ustawieniach, przyciski Kalkulatora, przesuwanie okien, pasek okna strefy (rysuje go
+ekran). Zysk: nowy element nie potrzebuje nowej linii logu ani wyrażenia regularnego w teście.
 
 Pułapki QEMU, Wi-Fi, jądra i kanałów, które już wystąpiły: skill `kons-dev`, §7.
 

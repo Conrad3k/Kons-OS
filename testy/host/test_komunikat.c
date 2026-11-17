@@ -2,6 +2,7 @@
  * (k1_kanal: real socketpairs — sender credentials, passed descriptors), ASan/UBSan build. The rest of the groups:
  * test_komunikat_pliki.c (test_komunikat.h). */
 #define K1_TEST_GLOWNY
+#include "k1_opis.h"
 #include "test_komunikat.h"
 
 int ok(struct k1_komunikat k, enum k1_kanal_kierunek kier)
@@ -92,6 +93,24 @@ static void powierzchnie(void)
     EXPECT(ok(K(K1_KOM_AKTYWUJ_OKNO, 123456, 0, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
     EXPECT(zle(K(K1_KOM_AKTYWUJ_OKNO, 0, 0, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
     EXPECT(ok(K(K1_KOM_USTAW, 0, K1_UST_MOTYW, 1, 0, 0, 0), K1_KIER_DO_EKRANU));
+    /* 0.10.2 step 2 (ADR 0045): the screen's description — nobody sets K1_UST_OPIS, ekran sends it; the messages */
+    EXPECT(zle(K(K1_KOM_USTAW, 0, K1_UST_OPIS, 1, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(ok(K(K1_KOM_USTAWIENIE, 0, K1_UST_OPIS, 1, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(zle(K(K1_KOM_USTAWIENIE, 0, K1_UST_OPIS, 2, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(ok(K(K1_KOM_OPIS, 2, 5, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_OPIS, 0, 5, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_OPIS, 2, K1_OPIS_MAKS + 1, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_OPIS, 2, 5, 1, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_OPIS, 2, 5, 0, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(ok(K(K1_KOM_OPIS_PYTANIE, 0, 0, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_OPIS_PYTANIE, 1, 0, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_OPIS_PYTANIE, 0, 0, 0, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(ok(K(K1_KOM_OPIS_EKRANU, 0, 40, 1280, 800, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(zle(K(K1_KOM_OPIS_EKRANU, 0, K1_OPIS_EKRAN_MAKS + 1, 1280, 800, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(zle(K(K1_KOM_OPIS_EKRANU, 0, 40, 0, 800, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(zle(K(K1_KOM_OPIS_EKRANU, 0, 40, 1280, 800, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(ok(K(K1_KOM_TEST_POLACZ, 0, K1_ROLA_TEST, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(zle(K(K1_KOM_TEST_POLACZ, 0, K1_ROLA_TEST, 1, 0, 0, 0), K1_KIER_DO_NADZORCY)); /* no application number */
     EXPECT(zle(K(K1_KOM_USTAW, 0, K1_UST_MOTYW, 2, 0, 0, 0), K1_KIER_DO_EKRANU));
     EXPECT(ok(K(K1_KOM_USTAW, 0, K1_UST_MYSZ, 3, 0, 0, 0), K1_KIER_DO_EKRANU));
     EXPECT(zle(K(K1_KOM_USTAW, 0, K1_UST_MYSZ, 0, 0, 0, 0), K1_KIER_DO_EKRANU));

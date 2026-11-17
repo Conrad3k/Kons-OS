@@ -5,6 +5,7 @@
 #include "k1_dokument.h"
 #include "k1_komunikat.h"
 #include "k1_menu.h"
+#include "k1_opis_klient.h"
 #include "k1_uslugi.h"
 
 #define TEKST_X 18 /* text from the body's left edge */
@@ -187,6 +188,15 @@ void k1_menu_rysuj(struct k1_obraz *o, const struct k1_motyw *mt, const struct k
     k1_obrys(o, (float)x, (float)y, (float)m->szer, h, 12, 1.0f, k1_kolor(mt->tekst, 24));
     for (int i = 0; i < m->n; i++)
         rysuj_poz(o, mt, m, &m->p[i], x, y + k1_menu_y(m, i), i == najechana, znaki);
+    k1_menu_el(m, x, y);
+}
+
+void k1_menu_el(const struct k1_menu *m, int32_t x, int32_t y)
+{
+    for (int i = 0; i < m->n; i++)
+        if (m->p[i].styl == K1_MS_WIERSZ) /* 0.10.2 step 2: the rows the tests click, by name */
+            k1_el(K1_EL_WIERSZ, m->p[i].tekst, x + 6, y + k1_menu_y(m, i), m->szer - 12, K1_MENU_WIERSZ - 4,
+                  (m->p[i].zaznaczona ? K1_EL_WYBRANY : 0) | (m->p[i].wyszarzona ? K1_EL_NIEDOSTEPNY : 0));
 }
 
 int k1_menu_pod(const struct k1_menu *m, int32_t x, int32_t y)

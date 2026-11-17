@@ -94,6 +94,7 @@ static int odbierz_sterowanie(void)
                                             (int32_t)s.tryby[i].vrefresh, i + 1 == s.tryb_zalecany, 0));
     for (i = 1; i <= K1_UST_MAKS; i++)
         wyslij(wolny, k1_komunikat_nowy(K1_KOM_USTAWIENIE, 0, i, s.ust[i], 0, 0, 0));
+    opis_klienci(); /* 0.10.2 step 2: a test client switches the description on (after its settings: no doubles) */
     if (k.a == K1_ROLA_POWLOKA) /* a restarted shell learns about the windows that are already open */
         for (i = 0; i < MAKS_POW; i++)
             if (s.p[i].uzyta && s.p[i].okno != 0 && s.p[i].polowa >= 0) {

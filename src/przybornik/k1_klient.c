@@ -1,4 +1,5 @@
 #include "k1_klient.h"
+#include "k1_opis_klient.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -30,10 +31,16 @@ void k1_wyslij(struct k1_klient *k, struct k1_komunikat m)
     k1_koniec(k->tag, "kanał do ekranu: %s", strerror(errno));
 }
 
-static void ustaw(struct k1_klient *k, const struct k1_komunikat *m)
+static void ustaw(struct k1_klient *k, const struct k1_komunikat *m, struct k1_powierzchnia **pow, int n)
 {
     if (m->a >= 1 && m->a <= K1_UST_MAKS)
         k->ustawienia[m->a] = m->b;
+    if (m->a == K1_UST_OPIS) { /* 0.10.2 step 2: draw again — the elements go with the commit */
+        k1_opis_ustaw(m->b);
+        for (int i = 0; i < n; i++)
+            if (pow[i] != NULL)
+                pow[i]->brudna = 1;
+    }
 }
 
 int k1_odbierz(struct k1_klient *k, struct k1_powierzchnia **pow, int n, struct k1_komunikat *m)
@@ -55,7 +62,7 @@ int k1_odbierz(struct k1_klient *k, struct k1_powierzchnia **pow, int n, struct 
                 if (pow[i] != NULL && pow[i]->id == m->obiekt)
                     pow[i]->czeka = 0;
         if (m->typ == K1_KOM_USTAWIENIE)
-            ustaw(k, m);
+            ustaw(k, m, pow, n);
         if (m->typ == K1_KOM_WITAJ) {
             k->nowy_rozmiar = k->szer_ekranu != 0 && (k->szer_ekranu != m->a || k->wys_ekranu != m->b);
             k->szer_ekranu = m->a;
@@ -137,6 +144,7 @@ struct k1_obraz *k1_pow_rysuj(struct k1_powierzchnia *p)
     p->obraz.szer = (uint32_t)p->szer;
     p->obraz.wys = (uint32_t)p->wys;
     p->obraz.krok = (uint32_t)p->szer;
+    k1_el_cel(p);
     return &p->obraz;
 }
 
@@ -148,6 +156,7 @@ void k1_pow_zatwierdz(struct k1_klient *k, struct k1_powierzchnia *p)
 void k1_pow_zatwierdz_obszar(struct k1_klient *k, struct k1_powierzchnia *p, int32_t x, int32_t y, int32_t w, int32_t h)
 {
     int pol = p->pokazywana == 0 ? 1 : 0;
+    k1_opis_wyslij(k, p); /* 0.10.2 step 2: only while ekran asks, and only a changed table */
     k1_wyslij(k, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, p->id, pol, x, y, w, h));
     p->pokazywana = pol;
     p->czeka = 1;
@@ -156,6 +165,7 @@ void k1_pow_zatwierdz_obszar(struct k1_klient *k, struct k1_powierzchnia *p, int
 
 void k1_pow_usun(struct k1_klient *k, struct k1_powierzchnia *p)
 {
+    k1_opis_usun(p);
     k1_wyslij(k, k1_komunikat_nowy(K1_KOM_USUN, p->id, 0, 0, 0, 0, 0));
     if (p->pamiec != NULL)
         munmap(p->pamiec, (size_t)p->szer * (size_t)p->wys * 4u * 2u);

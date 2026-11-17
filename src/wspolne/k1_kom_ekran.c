@@ -1,6 +1,7 @@
 /* K1 — checking messages of ekran and its clients: windows, input, settings (ADR 0008; the split: k1_kom_wew.h). */
 #include "k1_kom_wew.h"
 
+#include "k1_opis.h"
 #include "k1_uslugi.h"
 
 static int powierzchnia(uint32_t obiekt)
@@ -19,6 +20,7 @@ int k1_ustawienie_poprawne(int32_t klucz, int32_t wartosc)
     case K1_UST_TAPETA:
         return w(wartosc, 0, K1_TAPETY - 1) || wartosc == K1_TAPETA_ZDJECIE;
     case K1_UST_ZDJECIE:
+    case K1_UST_OPIS:
         return w(wartosc, 0, 1);
     case K1_UST_ROZDZIELCZOSC:
         return w(wartosc, 1, K1_TRYBY_MAKS);
@@ -55,8 +57,15 @@ int k1_kom_sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
     case K1_KOM_ZAMKNIJ_OKNO:
         return kier == K1_KIER_DO_EKRANU && k->obiekt != 0 && zera(k, 0);
     case K1_KOM_USTAW: /* whether ekran keeps a photo is not a setting anyone sets */
-        return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && k->a != K1_UST_ZDJECIE && k1_ustawienie_poprawne(k->a, k->b) &&
-               zera(k, 2);
+        return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && k->a != K1_UST_ZDJECIE && k->a != K1_UST_OPIS &&
+               k1_ustawienie_poprawne(k->a, k->b) && zera(k, 2);
+    case K1_KOM_OPIS: /* 0.10.2 step 2 (ADR 0045) */
+        return kier == K1_KIER_DO_EKRANU && powierzchnia(k->obiekt) && w(k->a, 0, K1_OPIS_MAKS) && zera(k, 1);
+    case K1_KOM_OPIS_PYTANIE:
+        return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && zera(k, 0);
+    case K1_KOM_OPIS_EKRANU:
+        return kier == K1_KIER_OD_EKRANU && k->obiekt == 0 && w(k->a, 0, K1_OPIS_EKRAN_MAKS) &&
+               w(k->b, 1, K1_POW_MAKS_BOK) && w(k->c, 1, K1_POW_MAKS_BOK) && zera(k, 3);
     case K1_KOM_TAPETA_ZDJECIE:
         return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && w(k->a, 1, K1_DEK_MAKS_W) && w(k->b, 1, K1_DEK_MAKS_H) &&
                zera(k, 2);

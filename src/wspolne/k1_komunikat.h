@@ -369,6 +369,12 @@ enum k1_komunikat_typ {
                                    * K1_STREFA_PAMIEC_MAKS but e: 0..INT32_MAX) */
     K1_KOM_STREFA_BALON = 176,    /* to the VMM (and from the test program to nadzorca): obiekt=the zone, a=the balloon's
                                    * target 0..K1_STREFA_PAMIEC_MAKS MiB, b..e=0 */
+    /* 0.10.2 step 2 (ADR 0045): the screen's description for the tests (k1_opis.h) */
+    K1_KOM_OPIS = 182,             /* a client → ekran, only while K1_UST_OPIS = 1: obiekt=its surface, a=records
+                                    * 0..K1_OPIS_MAKS, b..e=0; + 1 fd (memfd: k1_opis.h, the surface's elements) */
+    K1_KOM_OPIS_PYTANIE = 183,     /* the test client (role TEST) → ekran: obiekt=0, all 0 — what is on the screen? */
+    K1_KOM_OPIS_EKRANU = 184,      /* ekran → the test client: obiekt=0, a=records 0..K1_OPIS_EKRAN_MAKS, b, c=the
+                                    * screen's size, d=e=0; + 1 fd (memfd: k1_opis.h) */
     /* 0.10.2 step 1: closing in the background — on the same channel (VMM's fd 7) */
     K1_KOM_STREFA_ZAMYKA = 180,    /* from the VMM: obiekt=0, all 0 — the user closed it (its window is gone already), its
                                     * machine ends in the background (the guest saves its session) */
@@ -482,6 +488,8 @@ enum { K1_STREFA_WYCZ_OK = 0, K1_STREFA_WYCZ_DZIALA = 1 /* it runs: close it fir
 /* A session's name: 1..K1_STREFA_NAZWA_MAKS bytes of UTF-8 then zeros; no control or invisible characters, none
  * that turn the text's direction, no space at either end. 1: good. */
 int k1_strefa_nazwa_dobra(const char n[K1_STREFA_NAZWA_MAKS]);
+/* `dl` bytes of UTF-8 without control, invisible or direction-turning characters (names; 0.10.2: k1_opis.c). */
+int k1_napis_dobry(const char *n, size_t dl);
 /* The number in KLIENT b and WITAJ d: an application (role APLIKACJA) or a zone (role STREFA). */
 #define K1_KLIENT_NR_MAKS ((int)K1_APL_MAKS > (int)K1_STREFY_MAKS ? (int)K1_APL_MAKS : (int)K1_STREFY_MAKS)
 
@@ -499,8 +507,10 @@ enum k1_ustawienie {
     K1_UST_ZDJECIE = 6,       /* 0/1: ekran keeps a wallpaper photo (0.8.0 step 4) — sent by ekran, nobody sets it */
     K1_UST_OTWIERANIE = 7,    /* 7..6+K1_TYPY_MAKS: the default application of file type (key - 6) — one that opens it
                                * (k1_dok_otwiera; 0.8.0, ADR 0030) */
+    K1_UST_OPIS = K1_UST_OTWIERANIE + K1_TYPY_MAKS, /* 0/1 (0.10.2 step 2, ADR 0045): a test client is connected —
+                               * send ekran your elements (K1_KOM_OPIS); sent by ekran, nobody sets it, never saved */
 };
-#define K1_UST_MAKS (K1_UST_OTWIERANIE + K1_TYPY_MAKS - 1)
+#define K1_UST_MAKS K1_UST_OPIS
 
 /* Wallpaper variants: one palette each in k1_grafika.c, names in Ustawienia (docs/WYGLAD.md). */
 #define K1_TAPETY 5

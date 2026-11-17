@@ -96,6 +96,7 @@ void rysuj_dok(void)
     int i;
     if (o == NULL)
         return;
+    k1_el_od_nowa(&dok, "Pasek"); /* 0.10.2 step 2: the screen's description for the tests */
     k1_wyczysc(o, 0);
     k1_cien(o, MARG + ox, MARG, (float)szer_paska(), DOK_WYS, 16, 4, 16, 60);
     k1_zaokraglony(o, MARG + ox, MARG, (float)szer_paska(), DOK_WYS, 16, k1_kolor(m->tlo, m->panel_alfa));
@@ -104,6 +105,8 @@ void rysuj_dok(void)
         float x = MARG + ox + (float)element_x(i), y = MARG + DOK_PAD;
         if (i == hover_dok || (i == 0 && menu_otwarte) || (wcisk.ciagnie && i == wcisk.el))
             k1_zaokraglony(o, x, y, EL, EL, 10, k1_kolor(m->najechanie, 255));
+        k1_el(K1_EL_IKONA, i == 0 ? "Start" : aplikacje[el[i]].nazwa, (int32_t)x, (int32_t)y, EL, EL,
+              i > 0 && okno_aplikacji(el[i]) != NULL ? K1_EL_WYBRANY : 0); /* chosen: it has a window */
         if (i == 0) {
             k1_rysuj_znak(o, x + EL / 2.0f, y + EL / 2.0f, 26);
         } else {

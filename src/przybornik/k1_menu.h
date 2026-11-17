@@ -56,6 +56,9 @@ int32_t k1_menu_y(const struct k1_menu *m, int i); /* the top of row i in the bo
 /* Draws the body with its top left at (x, y); the shadow needs K1_MENU_MARG around it. `najechana`: -1 none. */
 void k1_menu_rysuj(struct k1_obraz *o, const struct k1_motyw *mt, const struct k1_menu *m, int32_t x, int32_t y,
                    int najechana);
+/* Its rows as elements of the screen's description (0.10.2 step 2; k1_menu_rysuj does it — a caller whose rows hold
+ * the user's text, a session's name, draws the menu and then gives a copy with neutral names). */
+void k1_menu_el(const struct k1_menu *m, int32_t x, int32_t y);
 /* The row to click under (x, y) relative to the body (not a hairline, text, nor a muted row), or -1. */
 int k1_menu_pod(const struct k1_menu *m, int32_t x, int32_t y);
 /* "Otwórz 120,300; Usuń 120,336": the centre of every row to click, the body at (x, y) — the tests click by it. */
