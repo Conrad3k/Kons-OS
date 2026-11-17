@@ -312,6 +312,8 @@ $(OBJ)/test_lacznik: testy/host/test_lacznik.c src/strefa/lacznik.c src/strefa/l
 # 0.10.1 step 2 (ADR 0044): the balloon's lists, blocks and statistics (fuzzing: fuzz_balon)
 $(OBJ)/test_palce: testy/host/test_palce.c src/strefa/kompozytor/palce.c src/strefa/kompozytor/palce.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa/kompozytor -o $@ testy/host/test_palce.c src/strefa/kompozytor/palce.c
+$(OBJ)/test_tlo: testy/host/test_tlo.c src/strefa/tlo.c src/strefa/tlo.h src/strefa/virtq.h testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_tlo.c src/strefa/tlo.c
 $(OBJ)/test_balon: testy/host/test_balon.c src/strefa/strony.c src/strefa/strony.h src/strefa/virtq.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_balon.c src/strefa/strony.c
 $(OBJ)/test_strefa_start: testy/host/test_strefa_start.c src/strefa/start.c $(wildcard src/strefa/*.h) testy/host/k1_test_host.h | $(OBJ)
@@ -421,7 +423,7 @@ TESTY_HOST := test_odcinki test_odcinki_pelny test_dokumenty test_indeks test_wp
 	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
-	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_balon test_palce \
+	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_balon test_tlo test_palce \
 	test_opis
 TESTY_HOST_PLIKI := test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
 

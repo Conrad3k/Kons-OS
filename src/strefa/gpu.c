@@ -12,6 +12,7 @@
 
 #include "okno.h"
 #include "strefa.h"
+#include "tlo.h"
 
 #define ZASOBY 16
 #define BOK_MAKS 4096u
@@ -69,30 +70,10 @@ const uint32_t *gpu_obraz(uint32_t *w, uint32_t *h)
     return z->px;
 }
 
-/* Bytes [od, od + n) of the resource's backing into dst: 0, or -1 when they are not all inside it. */
+/* Bytes [od, od + n) of the resource's backing into dst: 0, or -1 when they are not all inside it (tlo.c). */
 static int z_tla(const struct zasob *z, uint64_t od, uint8_t *dst, uint64_t n)
 {
-    uint32_t lo = 0, hi = z->n_tla;
-    while (hi - lo > 1) { /* the entry holding byte `od` */
-        uint32_t m = (lo + hi) / 2;
-        if (z->od[m] <= od)
-            lo = m;
-        else
-            hi = m;
-    }
-    for (; n > 0 && lo < z->n_tla; lo++) {
-        uint64_t w_wpisie = od - z->od[lo], ile;
-        if (w_wpisie >= z->tlo[lo].length)
-            continue;
-        ile = z->tlo[lo].length - w_wpisie;
-        if (ile > n)
-            ile = n;
-        memcpy(dst, mz.pamiec.baza + z->tlo[lo].addr + w_wpisie, (size_t)ile); /* addr checked at attach */
-        dst += ile;
-        od += ile;
-        n -= ile;
-    }
-    return n == 0 ? 0 : -1;
+    return tlo_czytaj(&mz.pamiec, z->tlo, z->od, z->n_tla, od, dst, n);
 }
 
 static int prostokat_w(const struct virtio_gpu_rect *r, const struct zasob *z)
