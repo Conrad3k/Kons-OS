@@ -76,9 +76,9 @@ Testy (kroki 2–3) — tego nie zobaczysz w systemie, ale zobaczysz w spokojnie
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
+[x]  1  Przeglądarka: ekran startu, zamykanie w tle         S1–S5            0.10.1      D1, D2, T1, T2   M        —   PR #144
 [w toku: Claude, gałąź claude/magical-knuth-g7qpxl]
-     1  Przeglądarka: ekran startu, zamykanie w tle         S1–S5            0.10.1      D1, D2, T1, T2   M        —
-[ ]  2  Opis ekranu dla testów; testy klikają po nazwach    S6–S8            0.10.1      T3, T4           M        0045
+     2  Opis ekranu dla testów; testy klikają po nazwach    S6–S8            0.10.1      T3, T4           M        0045
 [ ]  3  Zrzuty wzorcowe; wydanie 0.10.2                       S9               2           D3, D4           M        —
 (ADR 0045 — następny wolny po 0044 z 0.10.1; plany 0.10.3 i 0.10.5 biorą numery po tym.)
 
@@ -131,23 +131,38 @@ KROK 2 — Opis ekranu dla testów (ADR 0045); testy klikają po nazwach        
   (aplikacja, tytuł, prostokąt, fokus, zminimalizowane), elementy (przyciski, wiersze menu, kafelki, pola: nazwa,
   prostokąt, stan); testy QEMU używają tego zamiast położeń z logu i kolorów pikseli.
   Zadania:
-  [ ] ADR 0045 „Opis ekranu dla testów” (T3): kanał tylko w obrazie testowym (przez program testowy — wzór TEST_POLACZ,
+  [x] ADR 0045 „Opis ekranu dla testów” (T3): kanał tylko w obrazie testowym (przez program testowy — wzór TEST_POLACZ,
       S7), nowy komunikat i format odpowiedzi (memfd ze stałym układem, sprawdzany pole po polu), kto odpowiada (ekran —
       okna; każdy klient ekranu — swoje elementy, przez przybornik), co NIE może w nim być (treść plików, wpisany tekst,
       nazwy sesji — niezmiennik 8 obowiązuje też tu); dlaczego obraz produkcyjny go nie ma i jak tego pilnować.
-  [ ] Przybornik: elementy rysowane przez k1_przycisk, k1_menu, kafelki i pola zgłaszają się do jednej tabeli elementów
+  [x] Przybornik: elementy rysowane przez k1_przycisk, k1_menu, kafelki i pola zgłaszają się do jednej tabeli elementów
       okna (nazwa, prostokąt) — jedno miejsce, z którego czyta i rysowanie, i opis (zasada czytelności 5).
-  [ ] Ekran: odpowiedź „co jest na ekranie” (okna w kolejności, fokus, elementy od klientów).
-  [ ] testy/qemu/k1qemu.py: `q.ekran()` (opis), `q.klik_w("Pliki", "Nowy folder")`, `q.czekaj_na_element(...)`;
+  [x] Ekran: odpowiedź „co jest na ekranie” (okna w kolejności, fokus, elementy od klientów).
+  [x] testy/qemu/k1qemu.py: `q.ekran()` (opis), `q.klik_w("Pliki", "Nowy folder")`, `q.czekaj_na_element(...)`;
       przepisać na nie test-m4 (menu Start, pulpit, Ustawienia) — położenia z logu zostają tylko tam, gdzie opis ich nie
       daje (zapisane w TESTY.md).
-  [ ] Test negatywny: obraz produkcyjny nie odpowiada na pytanie (brak kanału/typu — sprawdzenie w test-m1 i w
+  [x] Test negatywny: obraz produkcyjny nie odpowiada na pytanie (brak kanału/typu — sprawdzenie w test-m1 i w
       scripts/sprawdz-binaria.sh albo sprawdz-czytelnosc: ślad kodu tylko w programie testowym).
   Testy i dowód: test_komunikat i fuzzing nowego formatu; test-m4 po przepisaniu zielony; czas test-m4 przed i po.
   Dokumenty: ADR 0045, ekran.md, gui.md, aplikacje.md (przybornik), TESTY.md (jak pisać testy po nazwach), skill
   (przepis „Nowa aplikacja” — elementy w opisie), SLOWNIK („opis ekranu”).
   Gotowe, gdy: CI zielone, test-m4 klika po nazwach.
-  Ustalenia z wykonania: (pusto)
+  Ustalenia z wykonania (2026-11-17):
+    - T3: rola K1_ROLA_TEST (6) — tylko przez TEST_POLACZ; ekran włącza ustawienie K1_UST_OPIS (nie zapisywane, nikt go
+      nie ustawia), gdy klient TEST się połączy. Klienci wysyłają tabelę z zatwierdzeniem powierzchni, tylko gdy się
+      zmieniła (skrót tabeli). Format: memfd, nagłówek 16 B + rekordy 64 B (k1_opis.h; test_opis, fuzz_opis).
+    - T4: tabela na powierzchnię w przyborniku (k1_opis_klient.c); same zgłaszają się k1_przycisk, wiersze k1_menu,
+      k1_segment, przyciski ramki; panele gui i sekcje Ustawień — k1_el. Menu z nazwą sesji: k1_menu_el z kopii z „sesja N”.
+    - Program testowy: tryb opisu (dysk „k1-test-opis”) — opis do logu przy każdej zmianie, w częściach ≤ 380 B;
+      t_opis w testach w systemie (klient TEST dostaje opis; NEGATYWNY: rola aplikacji nie dostaje). Pierwsza odpowiedź
+      bywa na pełny kanał (ustawienia klienta testowego czekają) — klient pyta jeszcze raz; to nie jest „odrzucony”.
+    - Pulpit (warstwa ikon rysowana częściami) zgłasza ikony przy każdym rysowaniu, nie tylko przy zmianie układu — inaczej
+      po włączeniu opisu ikon w nim nie było (pierwszy lokalny przebieg test-m4).
+    - test-m4 (przebieg „pulpit” na obrazie testowym) klika po nazwach: pasek, ikony pulpitu, menu Start, menu pod prawym
+      przyciskiem, okienko sesji, sekcje i motyw w Ustawieniach, Start → Wyłącz; lokalnie 86/86. Położenia z logu zostały:
+      Notatki, karty tapet, tryby ekranu, Kalkulator, przesuwanie okien, pasek okna strefy (TESTY.md).
+    - Negatywny „ślad kodu”: sprawdz-czytelnosc.py (punkt 7) — K1_ROLA_TEST i K1_KOM_OPIS_PYTANIE tylko w src/ekran,
+      src/wspolne i testy/.
 
 KROK 3 — Zrzuty wzorcowe; wydanie 0.10.2                                        M · D3, D4 · bez ADR
   Cel: wygląd okien K1 sprawdzany co do piksela z zatwierdzonymi obrazami. Zrzut z QEMU, z niego wycięte okno według
