@@ -87,6 +87,15 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `OKNO` | ekran → powłoka | — | okno aplikacji powstało / zmieniło stan / zniknęło (dolny pasek); okno strefy (0.10.0): `a` = 0, `c` = numer strefy |
 | `USTAWIENIE` | ekran → wszyscy | — | nowa wartość ustawienia (motyw, tapeta, mysz, sekundy, rozdzielczość, czy jest zdjęcie na tapetę, domyślne aplikacje) |
 | `TRYB` | ekran → Ustawienia | — | jeden z trybów ekranu (rozmiar, Hz, czy zalecany) |
+| `OPIS` (0.10.2 krok 2, ADR 0045) | klient → ekran, tylko gdy `K1_UST_OPIS` = 1 | memfd (`k1_opis.h`) | elementy jednej powierzchni (obiekt), `a` = liczba rekordów 0…`K1_OPIS_MAKS`; sprawdzane pole po polu (rodzaj, stan, prostokąt w powierzchni, nazwa UTF-8 bez znaków sterujących); bez włączonego opisu — odrzucone |
+| `OPIS_PYTANIE` | klient roli `TEST` → ekran | — | co jest na ekranie? Od innej roli — odrzucone |
+| `OPIS_EKRANU` | ekran → klient roli `TEST` | memfd | widoczne powierzchnie od dołu (okno albo panel, potem jego elementy) we współrzędnych ekranu; `a` = rekordy, `b`, `c` = rozmiar ekranu |
+
+**Opis ekranu dla testów (0.10.2 krok 2, ADR 0045; `opis.c`).** Rola `TEST` (`K1_ROLA_TEST`) — tylko program testowy
+obrazu testowego (nadzorca daje ją przez `TEST_POLACZ`): bez powierzchni, wolno jej tylko pytać. Gdy taki klient jest
+połączony, ekran wysyła wszystkim `USTAWIENIE` `K1_UST_OPIS` = 1 (nie zapisywane; nikt go nie ustawia) i trzyma tabele
+elementów od klientów; gdy odejdzie — 0 i tabele znikają. W obrazie produkcyjnym nikt tej roli nie dostanie: opis jest
+wyłączony, klienci nic nie wysyłają. Pełny kanał klienta testowego przy odpowiedzi nie jest błędem — klient zapyta znowu.
 
 **Rola `STREFA` (0.10.0, ADR 0042; `strefy.c`).** VMM strefy jest klientem z jednym oknem (bez paneli, ustawień,
 tapety). Ekran rysuje mu **ramkę** (0.10.0 krok 3, zmiana D1: szkic A — `docs/WYGLAD.md`): **pasek tytułu** 40 px

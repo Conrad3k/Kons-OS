@@ -83,7 +83,7 @@ X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt. Stero
 | `src/init/` | `/rdzen/init` | PID 1 |
 | `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` usługi z tabel `K1_SYSTEM`/`K1_APLIKACJE` (start, kanały, restarty); `kanaly.h` nazwy kanałów `KANAL_*`; `logi.c` logi usług; `profile.c` klatki (`KLATKA_<NAZWA>`); `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c`, `rozruch.c`, `efi.c`, `pendrive.c`, `dekoder.c`, `powieksz.c` (K1-DANE do końca pendrive'a), `siec*.c` (karty sieciowe, adres, stan dla ikony i Ustawień, zegar z internetu; 0.9.0), `wifi.c`, `wifi_nl.c` (karta Wi-Fi, przełącznik radia przez `/dev/rfkill`, szukanie sieci nl80211, lista dla Ustawień; 0.9.1), `wifi_polacz.c` (łączenie na prośbę siec: CONNECT, gniazdo EAPOL, klucze NEW_KEY, SET_STATION; kanał Ustawienia → siec `KN_SIEC`; 0.9.1 krok 2), `test.c` |
 | `src/wejscie/` | `system/wejscie` | klawiatura, mysz, kółko (evdev, EVIOCGRAB); `touchpad.c` — touchpad we własnym trybie (palce → ruch, przewijanie dwoma palcami w kierunku naturalnym D8, stuknięcia, przycisk touchpada; czysty, `test_touchpad`; 0.10.0 krok 4) |
-| `src/ekran/`, `src/grafika/` | `system/ekran` | DRM/KMS, składanie okien, kursor, tapety, znak K1; `zalegle.c` — to, czego pełny kanał klienta nie przyjął, czeka w ekranie (RAMKA nigdy nie przepada, ruchy się scalają; 0.8.5) |
+| `src/ekran/`, `src/grafika/` | `system/ekran` | DRM/KMS, składanie okien, kursor, tapety, znak K1; `zalegle.c` — to, czego pełny kanał klienta nie przyjął, czeka w ekranie (RAMKA nigdy nie przepada, ruchy się scalają; 0.8.5); `opis.c` — opis ekranu dla testów (0.10.2, ADR 0045: tylko rola `TEST`) |
 | `src/gui/` | `system/gui` | pulpit w modułach (`gui.h`): warstwa ikon, paski, menu Start, menu kontekstowe, rozmieszczenie w skarbcu (fd 6); `sesje.c` okienko „Którą sesję otworzyć?” (0.10.1 krok 4), `pamiec.c` fokus do nadzorcy i okienko „Mało pamięci” (krok 3) |
 | `src/logowanie/` | `system/logowanie` | ekran hasła przy starcie |
 | `src/skarbiec/` | `system/skarbiec` | `magazyn.c` format i szyfrowanie, `main.c` usługa, `obiekty.c`, `haslo.c`, `dokumenty.c` + `dok_*.c` pliki, foldery, Kosz, naprawa przy starcie, granica czasu, prawa, zapis w toku kawałkami (0.8.0–0.8.1, `dok_wew.h`); limity, indeks, kompaktowanie, rezerwa, kawałki — ADR 0034; `miejsce.c` miejsce na pliki i powiększenie K1-DANE (ADR 0033); format 2 (0.8.2, ADR 0036): `odcinki.c`, `spis.c`, `przerwy.c` (kompaktowanie krokami między prośbami); format 1 i jego przejście — usunięte w 0.10.0 (nagłówek formatu 1 tylko rozpoznany: `K1_MAG_STARY`, nietknięty); `strefy.c` dyski stref (0.10.0 krok 5: obiekty `K1_OB_DYSK` + kawałek tylko dla właściciela-strefy, bez rezerwy plików, `SKARB_WYCZYSC`, część „Strefy”) |
@@ -163,8 +163,10 @@ Komentarze i commity po angielsku; nazwy w kodzie po polsku, zgodnie ze słownik
 2. Katalog `src/aplikacje/<program>/`: `main.c` ze `struct k1_apl` + funkcje zwrotne i `k1_apl_uruchom()`;
    każdy `.c` w katalogu się kompiluje.
 3. Z listy wynika samo: usługa i klatka w nadzorcy, menu i pasek, nazwa okna, Zasoby, obraz, spis w testach.
-4. Ręcznie: ikona `K1_IK_*` w `k1_rysuj.c`, scenariusz w `test-m4.sh` (położenia elementów loguj — test klika
-   według logu), opis w `docs/komponenty/aplikacje.md`, pojęcia w słowniku.
+4. Ręcznie: ikona `K1_IK_*` w `k1_rysuj.c`, scenariusz w `test-m4.sh`, opis w `docs/komponenty/aplikacje.md`, pojęcia
+   w słowniku. **Opis ekranu** (0.10.2, ADR 0045): przyciski, menu i segmenty przybornika trafiają do opisu same; własne
+   elementy (sekcje, kafelki) zgłoś `k1_el(K1_EL_…, "nazwa K1", x, y, w, h, stan)` tam, gdzie je rysujesz — test klika
+   `q.klik_w("<tytuł okna>", "<nazwa>")`. Nigdy tekst użytkownika, nazwa pliku ani sesji (wtedy „plik N”, „sesja N”).
 5. Dane spoza okna — kanał w ostatniej kolumnie wiersza (`(KANAL_ZASOBOW)`; nazwy w `src/nadzorca/kanaly.h`, nowy
    kanał = linia tam + moduł nadzorcy, który go obsługuje; wzór: Zasoby, fd 4). Nigdy ścieżki.
 Gotowe części przybornika: `k1_przycisk`, `k1_pole_klawisz`, `k1_menu` (menu pod prawym przyciskiem), `k1_przeciaganie`
@@ -214,6 +216,9 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 | QEMU z zewnątrz | `scripts/test-m1/m4/m5/m5f/m6.sh`, `test-pliki.sh`, `test-pendrive.sh`, `test-skarbiec.sh`, `test-strefa.sh` (0.10.0: strefa próbna w emulacji AMD SVM, okno w ramce z paskiem tytułu K1, złośliwy gość, brak wirtualizacji) na `testy/qemu/k1qemu.py` | start i błędy startu, kursor, pulpit i aplikacje (zrzuty po kolorach), USB, instalator, aktualizacje i Secure Boot, Pliki, wirtualny pendrive ze zdjęciami (mtools + Pillow, `device_add`/`device_del`); `test-wifi.sh` (0.9.1): obraz testowy z `mac80211_hwsim.radios=7` — program testowy robi punkty dostępu testowe (`t_wifi.c`) |
 | wszystko | `scripts/testy.sh` | to samo uruchamia CI (z KVM równolegle) — przed scaleniem: CI na PR-ze (§9) |
 
+- **Po nazwach (0.10.2, ADR 0045):** pulpit i okna K1 — obraz testowy z dyskiem `k1-test-opis` (wzór: `test-m4`, przebieg
+  `pulpit`), `q.klik_w("Menu Start", "Notatki")`, `q.czekaj_na_element(okno, nazwa)`; położenia z logu tylko tam, gdzie
+  opisu nie ma (`docs/TESTY.md`). Rola `TEST` i `OPIS_PYTANIE` tylko w ekranie i testach (pilnuje `sprawdz-czytelnosc`).
 - **Bez stałych pauz:** `Maszyna.czekaj`/`czekaj_na` na log, `klik` czeka na potwierdzenie ekranu, `przeciagnij`
   (wciśnięcie, kilka ruchów, puszczenie), `klik_z("ctrl", x, y)` (QEMU `sendkey ctrl 1500` + klik),
   `zrzut(nazwa, gdy=…)` na stan ekranu, `cisza(wzór, s)` na „nic się nie dzieje”. Żadnego `time.sleep`.

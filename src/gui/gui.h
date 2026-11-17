@@ -22,6 +22,7 @@
 #include "k1_klient.h"
 #include "k1_menu.h"
 #include "k1_okno.h"
+#include "k1_opis_klient.h"
 #include "k1_uslugi.h"
 #include "rozmieszczenie.h"
 

@@ -6,6 +6,7 @@
  * Modules: ustawienia.h. Documentation: docs/komponenty/aplikacje.md. */
 #include <stdio.h>
 
+#include "k1_opis_klient.h"
 #include "k1_log.h"
 #include "k1_uslugi.h"
 #include "ustawienia.h"
@@ -233,6 +234,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         k1_ikona(o, sekcje[i].ikona, 18, (float)y + 7, 18, k1_kolor(i == sekcja ? m->tekst : m->tekst2, 255));
         k1_tekst(o, i == sekcja ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, 46, y + 21, sekcje[i].nazwa,
                  k1_kolor(i == sekcja ? m->tekst : m->tekst2, 255), 0);
+        k1_el(K1_EL_ZAKLADKA, sekcje[i].nazwa, 8, y, BOK - 16, NAV_WIERSZ - 4, i == sekcja ? K1_EL_WYBRANY : 0);
     }
     switch (sekcja) {
     case S_WYGLAD:

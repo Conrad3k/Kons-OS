@@ -62,6 +62,8 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            ((typ == K1_KOM_DOK_LISTA || typ == K1_KOM_DOK_TRESC) && kierunek == K1_KIER_OD_SKARBCA) ||
            ((typ == K1_KOM_PENDRIVE_KANAL || typ == K1_KOM_DEKODER_KANAL) && kierunek == K1_KIER_OD_NADZORCY) ||
            (typ == K1_KOM_TAPETA_ZDJECIE && kierunek == K1_KIER_DO_EKRANU) ||
+           (typ == K1_KOM_OPIS && kierunek == K1_KIER_DO_EKRANU) ||       /* 0.10.2 step 2: the elements, memfd */
+           (typ == K1_KOM_OPIS_EKRANU && kierunek == K1_KIER_OD_EKRANU) || /* …and the whole screen's */
            (typ == K1_KOM_DEK_KAWALEK && kierunek == K1_KIER_DO_DEKODERA) ||
            (typ == K1_KOM_DEK_PIKSELE && kierunek == K1_KIER_OD_DEKODERA) ||
            ((typ == K1_KOM_PEN_LISTA || typ == K1_KOM_PEN_PLIK) && kierunek == K1_KIER_OD_CZYTNIKA) ||

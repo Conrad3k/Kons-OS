@@ -22,6 +22,8 @@ int main(int argc, char **argv)
         return proba(argv[2]);
     if (tryb_strefy()) /* 0.10.0: the zones' scenario of scripts/test-strefa.sh, not the checks */
         return t_strefy_scenariusz();
+    if (tryb_opisu()) /* 0.10.2 step 2: the screen's description for scripts/test-m4.sh, not the checks */
+        return t_opis_scenariusz();
     if (tryb_wifi()) /* 0.9.1: simulated Wi-Fi cards — the test access points of scripts/test-wifi.sh, not the checks */
         return t_wifi_punkty_dostepu();
     k1_log(TAG, "start testów M1–M5a (pid %d)", (int)getpid());
@@ -53,6 +55,7 @@ int main(int argc, char **argv)
     t_okna_ochrona();
     t_okna_zalegle();
     t_okna_przewijanie();
+    t_opis();
     t_skarb_zalegle();
     t_skarb_strefy();
     t_gui_crash();

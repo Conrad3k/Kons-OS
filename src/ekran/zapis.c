@@ -152,7 +152,7 @@ static void spoznione(const struct zapis *z, int n)
     if (ust[K1_UST_TAPETA] == K1_TAPETA_ZDJECIE && !s.ust[K1_UST_ZDJECIE])
         ust[K1_UST_TAPETA] = s.ust[K1_UST_TAPETA];
     for (int k = 1; k <= K1_UST_MAKS; k++)
-        if (k != K1_UST_ROZDZIELCZOSC && k != K1_UST_ZDJECIE && ust[k] != s.ust[k])
+        if (k != K1_UST_ROZDZIELCZOSC && k != K1_UST_ZDJECIE && k != K1_UST_OPIS && ust[k] != s.ust[k])
             ustawienie(k, ust[k]);
     if (n > 0)
         ustawienia_po_starcie();

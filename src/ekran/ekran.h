@@ -152,6 +152,11 @@ void ustaw_fokus(int i);
 void minimalizuj(int i);
 void zamknij_okno(int i); /* asks its client to close it (K1_KOM_ZAMKNIJ) */
 
+/* opis.c — the screen's description for the tests (0.10.2 step 2, ADR 0045) */
+const char *opis_komunikat(int kl, const struct k1_komunikat *m, int fd); /* OPIS / OPIS_PYTANIE: NULL or why refused */
+void opis_klienci(void);   /* a client came or went: K1_UST_OPIS = 1 while a test client is connected */
+void opis_pow_koniec(int i); /* surface i is gone: its elements too */
+
 /* strefy.c — the frame of a zone's window (0.10.0, ADR 0042); the sessions from nadzorca (0.10.0 step 5) */
 void strefy_sesje(const struct k1_komunikat *k);              /* STREFY_STAN, STREFA_NAZWA on the control channel */
 int strefa_pamieta(int nr);                                   /* zone nr remembers (as nadzorca said last) */

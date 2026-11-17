@@ -1,4 +1,5 @@
 #include "k1_aplikacja.h"
+#include "k1_opis_klient.h"
 
 #include <errno.h>
 #include <poll.h>
@@ -27,6 +28,7 @@ static void rysuj(struct k1_apl *a)
     const struct k1_motyw *m = k1_apl_motyw(a);
     if (o == NULL)
         return;
+    k1_el_od_nowa(&a->okno, a->tytul); /* 0.10.2 step 2: the window's elements, drawn below */
     k1_ramka_okna(o, m, a->tytul, a->aktywne, a->najechany);
     if (a->rysuj)
         a->rysuj(o, m);

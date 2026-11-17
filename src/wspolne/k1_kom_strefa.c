@@ -33,15 +33,10 @@ static int zly_znak(uint32_t k)
            (k >= 0xe000 && k <= 0xf8ff) || k >= 0xf0000;
 }
 
-int k1_strefa_nazwa_dobra(const char n[K1_STREFA_NAZWA_MAKS])
+int k1_napis_dobry(const char *n, size_t dl)
 {
     const unsigned char *u = (const unsigned char *)n;
-    size_t dl = strnlen(n, K1_STREFA_NAZWA_MAKS), i = 0;
-    if (dl == 0 || u[0] == ' ' || u[dl - 1] == ' ')
-        return 0;
-    for (size_t j = dl; j < K1_STREFA_NAZWA_MAKS; j++)
-        if (u[j] != 0)
-            return 0;
+    size_t i = 0;
     while (i < dl) {
         uint32_t k = 0;
         size_t d = utf8(u + i, dl - i, &k);
@@ -50,6 +45,18 @@ int k1_strefa_nazwa_dobra(const char n[K1_STREFA_NAZWA_MAKS])
         i += d;
     }
     return 1;
+}
+
+int k1_strefa_nazwa_dobra(const char n[K1_STREFA_NAZWA_MAKS])
+{
+    const unsigned char *u = (const unsigned char *)n;
+    size_t dl = strnlen(n, K1_STREFA_NAZWA_MAKS);
+    if (dl == 0 || u[0] == ' ' || u[dl - 1] == ' ')
+        return 0;
+    for (size_t j = dl; j < K1_STREFA_NAZWA_MAKS; j++)
+        if (u[j] != 0)
+            return 0;
+    return k1_napis_dobry(n, dl);
 }
 
 static int strefa(uint32_t obiekt)

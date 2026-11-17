@@ -103,22 +103,29 @@ static void uloz(void)
 
 /* The tests click by these lines: the centre of every row on the screen. A session's name is the user's text: in the
  * log it is "sesja <zone>" (invariant 8). */
-static void loguj(void)
+/* The menu with neutral names in place of a session's (the log and the screen's description). */
+static const struct k1_menu *bez_nazw(void)
 {
-    static const char *const cele[] = { "", "pulpit", "ikona", "pasek", "menu Start", "komunikat" };
     static struct k1_menu kopia;
-    char buf[400];
     kopia = glowne;
     for (int i = 0; i < kopia.n; i++)
         if (kopia.p[i].akcja > A_SESJA && kopia.p[i].akcja <= A_SESJA + K1_STREFY_MAKS)
             snprintf(kopia.p[i].tekst, sizeof kopia.p[i].tekst, "sesja %d", kopia.p[i].akcja - A_SESJA);
         else if (kopia.p[i].akcja == K1_MA_OTWORZ && cel == K_PASEK && apl > K1_APL_MAKS) /* "Przeglądarka · <name>" */
             snprintf(kopia.p[i].tekst, sizeof kopia.p[i].tekst, "%s", aplikacje[apl].nazwa);
+    return &kopia;
+}
+
+static void loguj(void)
+{
+    static const char *const cele[] = { "", "pulpit", "ikona", "pasek", "menu Start", "komunikat" };
+    const struct k1_menu *kopia = bez_nazw();
+    char buf[400];
     if (cel == K_WLASNE) {
         wlasne->loguj(gx, gy);
         return;
     }
-    k1_menu_opis(&kopia, gx, gy, buf, sizeof buf);
+    k1_menu_opis(kopia, gx, gy, buf, sizeof buf);
     if (cel == K_OKIENKO) {
         k1_log(TAG, "okienko (%s): %s", okienko_rodzaj, buf);
         return;
@@ -218,11 +225,16 @@ void rysuj_kontekst(void)
     struct k1_obraz *o = k1_pow_rysuj(&kontekst);
     if (o == NULL)
         return;
+    k1_el_od_nowa(&kontekst, cel == K_WLASNE || cel == K_OKIENKO ? "Okienko" : "Menu"); /* 0.10.2 step 2 */
     k1_wyczysc(o, 0);
     if (cel == K_WLASNE)
         wlasne->rysuj(o, m, gx - ox, gy - oy);
     else
         k1_menu_rysuj(o, m, &glowne, gx - ox, gy - oy, hover >= 0 ? hover : pod_wiersz);
+    if (cel != K_WLASNE) { /* the rows again, without a session's name (invariant 8) */
+        k1_el_od_nowa(&kontekst, cel == K_OKIENKO ? "Okienko" : "Menu");
+        k1_menu_el(bez_nazw(), gx - ox, gy - oy);
+    }
     if (pod_wiersz >= 0)
         k1_menu_rysuj(o, m, &pod, px - ox, py - oy, hover_pod);
     k1_pow_zatwierdz(&k, &kontekst);

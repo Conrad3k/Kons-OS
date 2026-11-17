@@ -6,6 +6,12 @@
 | **Kod** | `src/aplikacje/*/main.c`, szkielet `src/przybornik/k1_aplikacja.c` |
 | **Decyzje** | ADR 0008; do 0.12 aplikacje leżą w obrazie rdzenia (`/rdzen/aplikacje`), potem podpisane obrazy w `/aplikacje` |
 
+**Opis ekranu dla testów (0.10.2 krok 2, ADR 0045).** Każde okno aplikacji ma w obrazie testowym tabelę elementów
+(`src/przybornik/k1_opis_klient.c`): `k1_aplikacja` nazywa okno jego tytułem, a przybornik sam zgłasza to, co rysuje —
+przyciski `k1_przycisk`, wiersze `k1_menu`, segmenty `k1_segment`, „Minimalizuj” i „Zamknij” ramki. Własne elementy
+(sekcje Ustawień, kafelki, listy) aplikacja zgłasza `k1_el(rodzaj, nazwa, x, y, w, h, stan)` tam, gdzie je rysuje — tylko
+z nazwą K1 (etykieta, tytuł), nigdy z tekstem użytkownika, nazwą pliku ani sesji. Bez klienta testowego nic się nie dzieje.
+
 ## Cel
 Każda aplikacja to jeden wiersz w `K1_APLIKACJE` (`src/wspolne/k1_uslugi.h`) i katalog
 `src/aplikacje/<program>/`; każda ma tu swój rozdział (sprawdza `scripts/sprawdz-czytelnosc.py`).

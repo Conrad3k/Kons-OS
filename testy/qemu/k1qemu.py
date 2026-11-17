@@ -329,6 +329,75 @@ class Maszyna:
     def pisz(self, *klawisze):
         self.monitor(*[f"sendkey {k}" for k in klawisze])
 
+    # ---- 0.10.2 step 2 (ADR 0045): the screen's description — the tests click by names, not by log positions ----
+    # The test program (test image, a disk with the serial number "k1-test-opis") logs what is on the screen whenever it
+    # changes: "K1-TEST: ekran <n> <part>/<parts>: <record> | …", record "<kind> <window> <x>,<y>,<w>,<h> <state> <name>".
+
+    OPIS = re.compile(r"K1-TEST: ekran (\d+) (\d+)/(\d+): (.*)")
+    REKORD = re.compile(r"([OPBWKIZF]) (\d+) (-?\d+),(-?\d+),(\d+),(\d+) (\d+) (.+)")
+    RODZAJE = {"O": "okno", "P": "panel", "B": "przycisk", "W": "wiersz", "K": "kafelek", "I": "ikona", "Z": "zakladka",
+               "F": "pole"}
+
+    def ekran(self):
+        """The newest whole description: a list of windows and panels bottom to top, each a dict (rodzaj, okno, x, y, w,
+        h, stan, nazwa, elementy: the same dicts) — or [] before the first one."""
+        czesci = {}
+        for m in self.OPIS.finditer(self.tekst()):
+            czesci.setdefault(int(m.group(1)), {})[int(m.group(2))] = (int(m.group(3)), m.group(4))
+        for nr in sorted(czesci, reverse=True):
+            c = czesci[nr]
+            n = next(iter(c.values()))[0]
+            if len(c) == n and all(i in c for i in range(1, n + 1)):
+                return self._opis(" | ".join(c[i][1] for i in range(1, n + 1)))
+        return []
+
+    def _opis(self, tekst):
+        okna = []
+        for r in tekst.split(" | "):
+            m = self.REKORD.fullmatch(r.strip())
+            if not m:
+                continue
+            e = {"rodzaj": self.RODZAJE[m.group(1)], "okno": int(m.group(2)), "x": int(m.group(3)), "y": int(m.group(4)),
+                 "w": int(m.group(5)), "h": int(m.group(6)), "stan": int(m.group(7)), "nazwa": m.group(8)}
+            if e["rodzaj"] in ("okno", "panel"):
+                e["elementy"] = []
+                okna.append(e)
+            elif okna:
+                okna[-1]["elementy"].append(e)
+        return okna
+
+    def element(self, okno, nazwa=None, rodzaj=None):
+        """The topmost element `nazwa` (kind `rodzaj`, any when None) of the window or panel named `okno` — or that window
+        itself when `nazwa` is None; None when the newest description has none."""
+        for o in reversed(self.ekran()):
+            if o["nazwa"] != okno:
+                continue
+            if nazwa is None:
+                return o
+            for e in o["elementy"]:
+                if e["nazwa"] == nazwa and (rodzaj is None or e["rodzaj"] == rodzaj):
+                    return e
+        return None
+
+    def czekaj_na_element(self, okno, nazwa=None, rodzaj=None, czas=30):
+        """The element as soon as the description has it; None after `czas` s."""
+        wynik = []
+        self.czekaj_na(lambda: wynik.append(self.element(okno, nazwa, rodzaj)) or wynik[-1] is not None, czas)
+        return wynik[-1] if wynik else None
+
+    @staticmethod
+    def srodek(e):
+        return e["x"] + e["w"] // 2, e["y"] + e["h"] // 2
+
+    def klik_w(self, okno, nazwa, rodzaj=None, czas=30):
+        """A click in the middle of element `nazwa` of window or panel `okno` (waits for it); the element or None."""
+        e = self.czekaj_na_element(okno, nazwa, rodzaj, czas)
+        if e is None:
+            print(f"  [uwaga] brak elementu „{nazwa}” w „{okno}” w opisie ekranu", flush=True)
+            return None
+        self.klik(*self.srodek(e))
+        return e
+
 
 def zamknij(gniazdo):
     """Quits a QEMU by its monitor socket (shell scripts: python3 -I testy/qemu/k1qemu.py zamknij GNIAZDO)."""

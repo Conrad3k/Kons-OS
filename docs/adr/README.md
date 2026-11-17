@@ -72,3 +72,4 @@ Krótko, dlaczego nie.
 | [0042](0042-strefy-w-k1.md) | Strefy w K1 (0.10.0): KVM w jądrze, własny VMM „strefa” w klatce, jądro i obrazy stref w rdzeniu, virtio-mmio, zaufana ramka, testy w emulacji | Przyjęty, krok 1 wdrożony (0.10.0) |
 | [0043](0043-przegladarka-w-strefie.md) | Przeglądarka w strefie (0.10.0): Firefox ESR z pakietów Debiana 13, własny kompozytor Wayland, połączenia stref przez łącznik w VMM i gniazda od nadzorcy (D3) | Przyjęty, krok 2 wdrożony (0.10.0) |
 | [0044](0044-pamiec-stref-balon.md) | Pamięć stref: balon (0.10.1) — virtio-balloon, zgłaszanie wolnych stron, granica = pamięć komputera minus rezerwa K1, twarda granica klatki, pamięć gościa ponad 4 GiB | Przyjęty, wdrożony (0.10.1) |
+| [0045](0045-opis-ekranu-dla-testow.md) | Opis ekranu dla testów (0.10.2) — okna i elementy po nazwach, tylko dla roli TEST z obrazu testowego, bez treści użytkownika | Przyjęty, wdrożony (0.10.2) |

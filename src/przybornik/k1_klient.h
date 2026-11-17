@@ -26,6 +26,7 @@ struct k1_klient {
     int nowy_rozmiar;           /* WITAJ with a new screen size arrived (cleared by the client) */
 };
 
+struct k1_el_tab; /* k1_opis_klient.c (0.10.2 step 2): its elements for the screen's description, NULL: none */
 struct k1_powierzchnia {
     uint32_t id;
     int32_t szer, wys;
@@ -34,6 +35,7 @@ struct k1_powierzchnia {
     int czeka;          /* commit sent, waiting for RAMKA */
     int brudna;         /* needs redrawing */
     struct k1_obraz obraz; /* the half to draw into (valid after k1_pow_rysuj) */
+    struct k1_el_tab *el;
 };
 
 /* Waits for WITAJ and the initial settings (≤ 10 s). Ends the program on failure. */

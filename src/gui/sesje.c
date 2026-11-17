@@ -96,13 +96,18 @@ static void sesje_rysuj(struct k1_obraz *o, const struct k1_motyw *m, int32_t x,
     k1_obrys(o, (float)x, (float)y, (float)w, (float)h, 16, 1.0f, k1_kolor(m->tekst, 22));
     k1_ikona(o, K1_IK_PRZEGLADARKA, (float)x + PAD, (float)y + 20, 20, k1_kolor(m->tekst2, 255));
     k1_tekst(o, K1_CZ_TEKST_MOCNA, x + PAD + 30, y + 36, "Którą sesję otworzyć?", k1_kolor(m->tekst, 255), w - PAD * 2 - 30);
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++) {
+        char nazwa[16]; /* "sesja 2": the user's name of a session never goes to the screen's description */
         kafelek(o, m, x + PAD + i * (KAF_W + KAF_ODST), y + KAF_Y, i);
+        snprintf(nazwa, sizeof nazwa, "sesja %d", nr[i]);
+        k1_el(K1_EL_KAFELEK, nazwa, x + PAD + i * (KAF_W + KAF_ODST), y + KAF_Y, KAF_W, KAF_H, 0);
+    }
     k1_prostokat(o, x + 16, y + h - DOL, w - 32, 1, k1_kolor(m->tekst, 22));
     anuluj(&ax, &ay, &aw, &ah);
     if (hover == SESJE_ANULUJ)
         k1_zaokraglony(o, (float)(x + ax), (float)(y + ay), (float)aw, (float)ah, 8, k1_kolor(m->najechanie, 255));
     k1_tekst(o, K1_CZ_TEKST, x + ax + 12, y + ay + 22, "Anuluj", k1_kolor(m->tekst2, 255), 0);
+    k1_el(K1_EL_PRZYCISK, "Anuluj", x + ax, y + ay, aw, ah, 0);
 }
 
 /* The tests click by this line: the centre of every tile and of "Anuluj" on the screen. */

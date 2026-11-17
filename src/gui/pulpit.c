@@ -189,6 +189,8 @@ static void duch(struct k1_obraz *o, int32_t ox, int32_t oy)
     k1_prz_znak_rysuj(o, (int32_t)x, (int32_t)y + KAFEL + 8, &upusc.oc);
 }
 
+static void elementy(void);
+
 void rysuj_pulpit(void)
 {
     struct k1_obraz *o = k1_pow_rysuj(&pulpit), cz;
@@ -197,6 +199,7 @@ void rysuj_pulpit(void)
     int i, kol, wiersz;
     if (o == NULL)
         return;
+    elementy(); /* 0.10.2 step 2 */
     dodaj_brud(brud_poprz); /* this half has not seen the previous frame's change yet */
     r = brud;
     x1 = r.x + r.w < e.w ? r.x + r.w : e.w;
@@ -228,6 +231,28 @@ void rysuj_pulpit(void)
     k1_pow_zatwierdz_obszar(&k, &pulpit, r.x, r.y, r.w, r.h);
 }
 
+/* The icons as elements of the screen's description (0.10.2 step 2, ADR 0045): the names of the log below; sent now
+ * (a commit of the desktop layer may be far away). Every drawing too: the description may have just been switched on. */
+static void elementy(void)
+{
+    char nazwa[24];
+    int i, kol, wiersz;
+    if (!k1_opis_wlaczony())
+        return;
+    k1_el_od_nowa(&pulpit, "Pulpit");
+    for (i = 0; i < rozm.n_ikon; i++) {
+        struct prost c = komorka(rozm.ikony[i].kol, rozm.ikony[i].wiersz);
+        uint32_t kl = rozm.ikony[i].klucz;
+        snprintf(nazwa, sizeof nazwa, "plik %d", rozm_plik(kl));
+        k1_el(K1_EL_IKONA, rozm_plik(kl) ? nazwa : ikona_nazwa(kl), c.x, c.y, KOM_W, KOM_H, 0);
+    }
+    if (komorka_klucza(KLUCZ_WIECEJ, &kol, &wiersz) == 0) {
+        struct prost c = komorka(kol, wiersz);
+        k1_el(K1_EL_IKONA, ikona_nazwa(KLUCZ_WIECEJ), c.x, c.y, KOM_W, KOM_H, 0);
+    }
+    k1_opis_wyslij(&k, &pulpit);
+}
+
 /* The positions of the icons on the screen (centres of the tiles), for the tests: applications and Kosz by name,
  * files by number ("plik 104") — a file's name never goes to the log. */
 void pulpit_loguj(void)
@@ -236,6 +261,7 @@ void pulpit_loguj(void)
     char buf[1200], nazwa[24], linia[sizeof ostatni];
     size_t n = 0;
     int i, kol, wiersz;
+    elementy();
     for (i = 0; i < rozm.n_ikon && n < sizeof buf - 48; i++) {
         struct prost c = komorka(rozm.ikony[i].kol, rozm.ikony[i].wiersz);
         uint32_t kl = rozm.ikony[i].klucz;

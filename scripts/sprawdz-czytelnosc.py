@@ -13,7 +13,9 @@
   5. każdy ADR (docs/adr/NNNN-*.md) jest w spisie docs/adr/README.md (ADR 0035);
   6. każda ścieżka docs/… wymieniona w żywych dokumentach (AGENTS.md, CLAUDE.md, README.md, docs/*.md,
      docs/*.txt, docs/komponenty/, skill kons-dev) istnieje — bez docs/adr/, docs/archiwum/ i CHANGELOG.md
-     (historia) i bez wzorów (`<wersja>`, `*`, `NNNN`).
+     (historia) i bez wzorów (`<wersja>`, `*`, `NNNN`);
+  7. (0.10.2, ADR 0045) opis ekranu tylko dla testów: rolę `K1_ROLA_TEST` i pytanie `K1_KOM_OPIS_PYTANIE` zna tylko
+     ekran (src/ekran/), wspólny protokół (src/wspolne/) i testy (testy/) — żaden inny program K1 nie może o nie pytać.
 
 Użycie: python3 -I scripts/sprawdz-czytelnosc.py [KATALOG_REPO]. Kod wyjścia 0 = wszystko w porządku.
 """
@@ -171,6 +173,20 @@ def sprawdz_tymczasowe(repo, bledy):
                         bledy.append(f"{wzgl}:{nr}: tymczasowe (do {termin}) bez wpisu w DO_ZROBIENIA.txt (Tymczasowe)")
 
 
+def sprawdz_opis_ekranu(repo, bledy):
+    wolno = ("src/ekran/", "src/wspolne/", "testy/")
+    for sciezka in list(pliki_c(repo)) + [os.path.join(d, f) for d, _, fs in os.walk(os.path.join(repo, "src")) for f in fs
+                                     if f.endswith(".h")]:
+        wzgl = os.path.relpath(sciezka, repo)
+        if wzgl.startswith(wolno):
+            continue
+        with open(sciezka, encoding="utf-8") as f:
+            tekst = f.read()
+        for nazwa in ("K1_ROLA_TEST", "K1_KOM_OPIS_PYTANIE"):
+            if nazwa in tekst:
+                bledy.append(f"{wzgl}: {nazwa} poza ekranem i testami (opis ekranu tylko dla testów, ADR 0045)")
+
+
 def sprawdz_adr(repo, bledy):
     kat = os.path.join(repo, "docs", "adr")
     with open(os.path.join(kat, "README.md"), encoding="utf-8") as f:
@@ -233,6 +249,7 @@ def main():
     sprawdz_tymczasowe(repo, bledy)
     sprawdz_adr(repo, bledy)
     sprawdz_sciezki(repo, bledy)
+    sprawdz_opis_ekranu(repo, bledy)
     for b in bledy:
         print("  " + b)
     if bledy:

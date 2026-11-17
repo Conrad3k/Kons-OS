@@ -91,8 +91,10 @@ enum k1_rola {
     K1_ROLA_APLIKACJA = 3, /* a native application: windows only */
     K1_ROLA_LOGOWANIE = 4, /* the boot password screen (M5e): one full-screen panel, gets every key */
     K1_ROLA_STREFA = 5,    /* the VMM of a zone (0.10.0, ADR 0042): one window, its frame and mark drawn by ekran */
+    K1_ROLA_TEST = 6,      /* 0.10.2 step 2 (ADR 0045): the test program (test image only, through TEST_POLACZ) — no
+                            * surfaces; asks what is on the screen (OPIS_PYTANIE) */
 };
-#define K1_ROLA_MAKS 5
+#define K1_ROLA_MAKS 6
 
 /* Native applications: only the number travels between gui, nadzorca and ekran. */
 #define K1_X_APL(n, apl, ...) K1_APL_##n = apl,

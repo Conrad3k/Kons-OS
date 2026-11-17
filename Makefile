@@ -43,7 +43,7 @@ NAGL    := $(wildcard src/wspolne/*.h)
 # The message of the services and its checks, one file per group of channels (0.9.0 step 2).
 KOMUNIKAT := src/wspolne/k1_komunikat.c src/wspolne/k1_kom_ekran.c src/wspolne/k1_kom_skarb.c \
              src/wspolne/k1_kom_nadzorca.c src/wspolne/k1_kom_pliki.c src/wspolne/k1_kom_siec.c src/wspolne/k1_siec.c \
-             src/wspolne/k1_kom_wifi.c src/wspolne/k1_wifi.c src/wspolne/k1_kom_strefa.c
+             src/wspolne/k1_kom_wifi.c src/wspolne/k1_wifi.c src/wspolne/k1_kom_strefa.c src/wspolne/k1_opis.c
 # Services (M3): protocol, channels, sandbox.
 USLUGI  := src/wspolne/k1_uslugi.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
            src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c \
@@ -56,13 +56,13 @@ MAGAZYN := $(MAGAZYN_C) src/wspolne/k1_indeks.c $(MONOCYPHER)
 GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 # GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
 PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_wachlarz.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
-           src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_aplikacja.c \
+           src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/przybornik/k1_aplikacja.c \
            src/przybornik/k1_dekodowanie.c src/przybornik/k1_menu.c src/przybornik/k1_przeciaganie.c \
            src/przybornik/k1_zaznaczenie.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
            $(GEN)/k1_czcionki_dane.c
 # Host: without the sandbox, the app skeleton and what uses it (they need our kernel's headers).
 HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c src/przybornik/k1_dekodowanie.c,$(PRZYB)) $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c \
-              src/wspolne/k1_log.c src/wspolne/k1_uslugi.c
+              src/wspolne/k1_log.c src/wspolne/k1_uslugi.c src/wspolne/k1_memfd.c
 NAGL_P  := $(wildcard src/przybornik/*.h) src/grafika/k1_grafika.h src/grafika/k1_czcionka.h VERSION
 # Native applications: every directory src/aplikacje/<program> (its line in k1_uslugi.h K1_APLIKACJE names it).
 APLIKACJE := $(patsubst src/aplikacje/%/main.c,$(BIN)/%,$(wildcard src/aplikacje/*/main.c))
@@ -161,7 +161,7 @@ $(BIN)/siec: $(SIEC) $(wildcard src/siec/*.h) src/wspolne/k1_sha1.c src/wspolne/
 # fuzzing: fuzz_virtq), its window drawn with a part of przybornik; gosc — /init of the test zone's image (it runs inside
 # the machine, not in K1; our flags all the same)
 STREFA := $(sort $(wildcard src/strefa/*.c))
-STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/grafika/k1_grafika.c \
+STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/grafika/k1_grafika.c \
                 $(GEN)/k1_czcionki_dane.c
 $(BIN)/strefa: $(STREFA) $(wildcard src/strefa/*.h) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(STREFA) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
@@ -181,8 +181,8 @@ $(BIN)/wejscie: src/wejscie/main.c src/wejscie/touchpad.c src/wejscie/touchpad.h
 
 # 0.10.0 (ADR 0042): the frame of the zones' windows (strefy.c) is drawn with przybornik's shapes, icons and text
 EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/powierzchnie.c src/ekran/wskaznik.c src/ekran/drm.c src/ekran/zapis.c \
-         src/ekran/zdjecie.c src/ekran/zalegle.c src/ekran/strefy.c src/wspolne/k1_skaluj.c
-EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c $(GEN)/k1_czcionki_dane.c
+         src/ekran/zdjecie.c src/ekran/zalegle.c src/ekran/strefy.c src/ekran/opis.c src/wspolne/k1_skaluj.c
+EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_opis_klient.c $(GEN)/k1_czcionki_dane.c
 $(BIN)/ekran: $(EKRAN) src/ekran/ekran.h src/ekran/zalegle.h $(EKRAN_PRZYB) $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(EKRAN) $(EKRAN_PRZYB) src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
@@ -398,6 +398,10 @@ $(OBJ)/test_notatki: testy/host/test_notatki.c $(NOTATKI_TEST) $(wildcard src/sk
 $(OBJ)/magazyn_testowy: testy/host/magazyn_testowy.c $(MAGAZYN) src/skarbiec/magazyn.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ testy/host/magazyn_testowy.c $(MAGAZYN)
 
+# 0.10.2 step 2 (ADR 0045): the screen's description for the tests
+$(OBJ)/test_opis: testy/host/test_opis.c $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_opis.h testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_opis.c $(KOMUNIKAT) $(DOK_C)
+
 # 0.8.1 (ADR 0034): the index by key
 $(OBJ)/test_indeks: testy/host/test_indeks.c src/wspolne/k1_indeks.c src/wspolne/k1_indeks.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_indeks.c src/wspolne/k1_indeks.c
@@ -415,7 +419,8 @@ TESTY_HOST := test_odcinki test_dokumenty test_indeks test_wpa test_krypto test_
 	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
-	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_balon test_palce
+	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_balon test_palce \
+	test_opis
 TESTY_HOST_PLIKI := test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
 
 # notatki_w_plikach and magazyn_testowy are not run here: scripts/test-*.sh use them
@@ -460,12 +465,14 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon
+        lacznik balon opis
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
 FUZZ_DL_zdarzenie := 64
 FUZZ_ZR_komunikat := $(KOMUNIKAT) $(DOK_C)
+FUZZ_ZR_opis      := $(KOMUNIKAT) $(DOK_C)
+FUZZ_DL_opis      := 4200
 FUZZ_DL_komunikat := 64
 FUZZ_ZR_magazyn   := $(MAGAZYN)
 FUZZ_DL_magazyn   := 16384

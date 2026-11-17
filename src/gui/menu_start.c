@@ -37,6 +37,7 @@ static void rysuj_stopke(struct k1_obraz *o, const struct k1_motyw *m, int32_t y
         if (hover_menu == STOPKA + b)
             k1_zaokraglony(o, (float)x, (float)y, (float)bw, 36, 10, k1_kolor(m->najechanie, 255));
         k1_ikona(o, stopka_ikony[b], (float)x + 12, (float)y + 10, 16, k1_kolor(m->tekst2, 255));
+        k1_el(K1_EL_PRZYCISK, stopka_etykiety[b], x, y, bw, 36, 0);
         k1_tekst(o, K1_CZ_TEKST, x + 34, y + 23, stopka_etykiety[b], k1_kolor(m->tekst, 255), 0);
         x -= 4;
     }
@@ -51,6 +52,7 @@ void rysuj_menu(void)
     int32_t y;
     if (o == NULL)
         return;
+    k1_el_od_nowa(&menu, "Menu Start"); /* 0.10.2 step 2: the screen's description for the tests */
     tlo_panelu(o, MENU_SZER, MENU_WYS);
     k1_rysuj_znak(o, MARG + 34, MARG + 36, 30);
     k1_tekst(o, K1_CZ_TYTUL, MARG + 60, MARG + 44, "Kons K1", k1_kolor(m->tekst, 255), 0);
@@ -63,6 +65,7 @@ void rysuj_menu(void)
         if (hover_menu == a)
             k1_zaokraglony(o, MARG + 8, (float)y, MENU_SZER - 16, MENU_WIERSZ - 4, 10, k1_kolor(m->najechanie, 255));
         k1_ikona(o, aplikacje[a].ikona, MARG + 20, (float)y + 14, 24, k1_kolor(m->tekst, 255));
+        k1_el(K1_EL_WIERSZ, aplikacje[a].nazwa, MARG + 8, y, MENU_SZER - 16, MENU_WIERSZ - 4, 0);
         k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG + 60, y + 22, aplikacje[a].nazwa, k1_kolor(m->tekst, 255), 0);
         k1_tekst(o, K1_CZ_MALA, MARG + 60, y + 41, aplikacje[a].opis, k1_kolor(m->tekst2, 255), MENU_SZER - 80);
     }

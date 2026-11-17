@@ -45,6 +45,10 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   właściciela (przeciągnięcie zmienia kolejność), a za kreską uruchomione aplikacje spoza paska (dopóki
   działają); kropka = uruchomiona, kreska w kolorze akcentu = aktywna; kliknięcie: uruchom / pokaż /
   zminimalizuj; szerokość paska zależy od liczby aplikacji,
+- **opis ekranu dla testów** (0.10.2 krok 2, ADR 0045): panele zgłaszają swoje elementy przez przybornik (`k1_el`) —
+  „Pasek” (ikona „Start” i aplikacje po nazwach; wybrana = ma okno), „Menu Start” (wiersze aplikacji, „Wyloguj”,
+  „Uruchom ponownie”, „Wyłącz”), „Pulpit” (ikony: aplikacje, „Kosz”, pliki jako „plik N”), „Menu” (wiersze menu pod prawym
+  przyciskiem; nazwy sesji jako „sesja N” — `k1_menu_el` z kopii menu), „Okienko” (kafelki „sesja N”, „Anuluj”).
 - **menu Start**: aplikacje z opisami (bez okien samego K1 — „Wybór pliku”, kolumna -1 listy aplikacji), „Wyloguj” (0.6.3; od 0.7.2 tylko w K1 zainstalowanym na dysku — `SESJA`), „Uruchom ponownie”, „Wyłącz”; klawisz Super otwiera/zamyka.
 
 ## Granica zaufania
