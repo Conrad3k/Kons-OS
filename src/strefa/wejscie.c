@@ -4,8 +4,10 @@
  * held is released in the guest (no key stays pressed in a window the user left). Key codes never go to the log
  * (invariant 8): only counts. The guest gives buffers on its event queue; with none free an event is dropped (counted).
  * 0.10.0 step 4: the pointer has a wheel — REL_WHEEL / REL_HWHEEL and their 1/120 forms (*_HI_RES). From the wheel come
- * both (a notch when the parts make one); from a touchpad only the 1/120 parts, so the zone's compositor can tell the
- * fingers from a wheel (smooth scrolling in the browser). Scrolling goes to the window under the pointer, like K1's. */
+ * both (a notch when the parts make one); from a touchpad only the 1/120 parts. 0.10.1 step 5: a touchpad's frame is
+ * marked — BTN_TOOL_FINGER down and up again in it — so the zone's compositor tells the fingers from a wheel for sure
+ * (a precise wheel too sends parts with no notch) and ends their gesture when they stop (kompozytor/palce.c).
+ * Scrolling goes to the window under the pointer, like K1's. */
 #include <string.h>
 
 #include <linux/input-event-codes.h>
@@ -68,7 +70,8 @@ static void wypelnij(const struct wejscie *w, struct virtio_input_config *c)
             bit(c->u.bitmap, BTN_LEFT);
             bit(c->u.bitmap, BTN_RIGHT);
             bit(c->u.bitmap, BTN_MIDDLE);
-            c->size = BTN_MIDDLE / 8 + 1;
+            bit(c->u.bitmap, BTN_TOOL_FINGER); /* the mark of a touchpad's scrolling (wejscie_przewin) */
+            c->size = BTN_TOOL_FINGER / 8 + 1;
         } else if (w->subsel == EV_ABS && !w->klawiatura) {
             bit(c->u.bitmap, ABS_X);
             bit(c->u.bitmap, ABS_Y);
@@ -208,6 +211,8 @@ void wejscie_przewin(int32_t x, int32_t y, uint32_t w, uint32_t h, int32_t dx, i
     wejscie_wskaznik(x, y, w, h, K1_WSK_RUCH, K1_PRZYCISK_BRAK); /* where: the guest scrolls what is under it */
     ny = zabki(&mysz.reszta_y, -dy); /* Linux: REL_WHEEL > 0 is up; K1: dy > 0 is further down */
     nx = zabki(&mysz.reszta_x, dx);
+    if (zrodlo == K1_PRZEWIN_TOUCHPAD) /* down and up in the same frame: the guest's input core passes both */
+        zdarzenie(&mysz, EV_KEY, BTN_TOOL_FINGER, 1);
     if (dy != 0)
         zdarzenie(&mysz, EV_REL, REL_WHEEL_HI_RES, -dy);
     if (dx != 0)
@@ -216,6 +221,8 @@ void wejscie_przewin(int32_t x, int32_t y, uint32_t w, uint32_t h, int32_t dx, i
         zdarzenie(&mysz, EV_REL, REL_WHEEL, ny);
     if (zrodlo == K1_PRZEWIN_KOLKO && nx != 0)
         zdarzenie(&mysz, EV_REL, REL_HWHEEL, nx);
+    if (zrodlo == K1_PRZEWIN_TOUCHPAD)
+        zdarzenie(&mysz, EV_KEY, BTN_TOOL_FINGER, 0);
     mysz.przewiniecia++;
     synchronizuj(&mysz);
 }

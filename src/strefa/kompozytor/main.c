@@ -116,6 +116,8 @@ static void petla(int g, int sfd)
         } else {
             czekaj = (int)(KLATKA_MS - (t - ostatnia));
         }
+        if (wejscie_czekaj() >= 0 && (czekaj < 0 || wejscie_czekaj() < czekaj))
+            czekaj = wejscie_czekaj(); /* the fingers' gesture ends on time, also with nothing else going on */
         p[0] = (struct pollfd){ g, POLLIN, 0 };
         for (i = 0; i < KLIENCI_MAKS; i++)
             if (klienci[i] != NULL) {
@@ -132,6 +134,7 @@ static void petla(int g, int sfd)
         p[n++] = (struct pollfd){ sfd, POLLIN, 0 }; /* negative: ignored */
         if (poll(p, n, czekaj) < 0 && errno != EINTR)
             return;
+        wejscie_czas();
         if (p[n - 1].revents & POLLIN)
             prosba_zamkniecia(sfd);
         if (p[0].revents & POLLIN)

@@ -14,6 +14,7 @@
 #include <linux/input.h>
 
 #include "kompozytor.h"
+#include "palce.h"
 
 #define URZADZENIA_MAKS 4
 #define KLAWISZE_MAKS 0x300
@@ -32,6 +33,8 @@ static int32_t kx, ky;                     /* the pointer on the display */
 static struct powierzchnia *pod_kursorem, *z_klawiatura;
 static int mapa_fd = -1;
 static uint32_t mapa_rozmiar;
+static struct palce gest;  /* the fingers' scrolling to pod_kursorem (palce.c) */
+static int palce_w_ramce;  /* this evdev frame's scrolling came from the fingers (the VMM's BTN_TOOL_FINGER) */
 
 /* musl: ioctl(int, int, ...); glibc (host tests): ioctl(int, unsigned long, ...) */
 #ifdef __GLIBC__
@@ -148,16 +151,20 @@ void wejscie_okno_zmiana(void)
 
 void wejscie_zapomnij(struct powierzchnia *p)
 {
-    if (pod_kursorem == p)
+    if (pod_kursorem == p) {
         pod_kursorem = NULL;
+        palce_koniec(&gest, 0, 1); /* gone with its surface: nothing to tell */
+    }
     if (z_klawiatura == p)
         z_klawiatura = NULL;
 }
 
 void wejscie_klient_koniec(struct klient *k)
 {
-    if (pod_kursorem != NULL && pod_kursorem->o->klient == k)
+    if (pod_kursorem != NULL && pod_kursorem->o->klient == k) {
         pod_kursorem = NULL;
+        palce_koniec(&gest, 0, 1);
+    }
     if (z_klawiatura != NULL && z_klawiatura->o->klient == k)
         z_klawiatura = NULL;
 }
@@ -192,6 +199,36 @@ static void ramka(struct powierzchnia *p)
             zdarzenie(w, 5, "");
 }
 
+/* The fingers' gesture ends (zaraz, or after PALCE_CISZA_MS of nothing): axis_source "finger" and axis_stop of each
+ * of its axes in one frame — GTK ends the browser's touchpad gesture only so (palce.c: why). */
+static void palce_stop(int zaraz)
+{
+    unsigned osie = palce_koniec(&gest, teraz_ms(), zaraz), i;
+    struct obiekt *w;
+    if (osie == 0)
+        return;
+    KAZDY(wskazniki, pod_kursorem, i, w) {
+        if (w->wersja < 5)
+            continue;
+        zdarzenie(w, 6, "u", 1u); /* axis_source: finger — without it GTK takes the stop for a wheel's */
+        if (osie & PALCE_PION)
+            zdarzenie(w, 7, "uu", teraz_ms(), 0u); /* axis_stop: vertical */
+        if (osie & PALCE_POZIOM)
+            zdarzenie(w, 7, "uu", teraz_ms(), 1u);
+    }
+    ramka(pod_kursorem);
+}
+
+int wejscie_czekaj(void)
+{
+    return palce_za_ile(&gest, teraz_ms());
+}
+
+void wejscie_czas(void)
+{
+    palce_stop(0);
+}
+
 static void ruch(void)
 {
     int32_t lx = 0, ly = 0;
@@ -205,6 +242,7 @@ static void ruch(void)
             lx = kx - sx, ly = ky - sy;
     }
     if (p != pod_kursorem) {
+        palce_stop(1); /* before the surface the gesture went to leaves */
         s = kolejny_serial();
         KAZDY(wskazniki, pod_kursorem, i, w)
             zdarzenie(w, 1, "uo", s, pod_kursorem->o);
@@ -236,6 +274,8 @@ static void przycisk(int kod, int wartosc)
     unsigned i;
     if (bit == 0 || ((przyciski & bit) != 0) == (wartosc != 0))
         return;
+    if (wartosc)
+        palce_stop(1);
     if (wartosc && !przyciski && !w_wyskakujacym(pod_kursorem))
         xdg_wyskakujace_zamknij();
     przyciski = wartosc ? przyciski | bit : przyciski & ~bit;
@@ -248,8 +288,9 @@ static void przycisk(int kod, int wartosc)
 }
 
 /* The wheel of one frame of a device (0.10.0 step 4): notches (REL_WHEEL, REL_HWHEEL: > 0 up / right) and 1/120 parts
- * (*_HI_RES). Only parts, no notches: the fingers on a touchpad (the VMM sends no notches for them) — axis_source
- * "finger", so the browser scrolls smoothly; otherwise "wheel" with axis_discrete. */
+ * (*_HI_RES). The fingers on a touchpad: the VMM marks their frame with BTN_TOOL_FINGER (0.10.1 step 5 — before, "parts
+ * and no notch" stood for the fingers, and so did a precise wheel's part of a notch) — axis_source "finger", so the
+ * browser scrolls smoothly, and axis_stop when they stop (palce_stop); otherwise "wheel" with axis_discrete. */
 static int32_t kolko_v, kolko_h, dokladne_v, dokladne_h;
 static uint32_t kolko_t; /* the time of the last wheel frame: each one later than the one before */
 
@@ -262,6 +303,10 @@ static void kolko_ramka(int palce, int32_t v, int32_t h)
     unsigned i;
     uint32_t t = teraz_ms();
     kolko_t = t > kolko_t ? t : kolko_t + 1; /* Firefox drops a wheel event with the time of the one before */
+    if (!palce)
+        palce_stop(1); /* the wheel after the fingers: their gesture is over */
+    else if (pod_kursorem != NULL)
+        palce_ruch(&gest, t, (v != 0 ? PALCE_PION : 0u) | (h != 0 ? PALCE_POZIOM : 0u));
     KAZDY(wskazniki, pod_kursorem, i, w) {
         if (w->wersja >= 5) {
             zdarzenie(w, 6, "u", palce ? 1u : 0u); /* axis_source: finger / wheel */
@@ -284,9 +329,10 @@ static void kolko_ramka(int palce, int32_t v, int32_t h)
  * gives them; what is left of a hi-res wheel (parts of a notch) goes last. */
 static void kolko_wyslij(void)
 {
-    int palce = (dokladne_v || dokladne_h) && !kolko_v && !kolko_h, k;
+    int palce = palce_w_ramce, k;
     int32_t v = dokladne_v ? dokladne_v : kolko_v * 120, h = dokladne_h ? dokladne_h : kolko_h * 120;
     kolko_v = kolko_h = dokladne_v = dokladne_h = 0;
+    palce_w_ramce = 0;
     for (k = 0; !palce && k < ZABKI_OSOBNO && (v / 120 != 0 || h / 120 != 0); k++) {
         int32_t zv = v >= 120 ? 120 : (v <= -120 ? -120 : 0), zh = h >= 120 ? 120 : (h <= -120 ? -120 : 0);
         kolko_ramka(0, zv, zh);
@@ -320,7 +366,9 @@ void wejscie_czytaj(unsigned i)
         return;
     n = read(urz[i], e, sizeof e);
     for (j = 0; n > 0 && j < (int)((size_t)n / sizeof e[0]); j++) {
-        if (e[j].type == EV_KEY && e[j].code < BTN_MISC)
+        if (e[j].type == EV_KEY && e[j].code == BTN_TOOL_FINGER)
+            palce_w_ramce |= e[j].value == 1;
+        else if (e[j].type == EV_KEY && e[j].code < BTN_MISC)
             klawisz(e[j].code, e[j].value);
         else if (e[j].type == EV_KEY)
             przycisk(e[j].code, e[j].value);
