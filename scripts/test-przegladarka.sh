@@ -40,7 +40,7 @@
 # Dowody: build/testy/przegladarka.log, zrzuty build/testy/przegladarka-*.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
-CZAS=${K1_TEST_CZAS:-2100} # the whole test, both starts of K1 together (35 min — the owner, 2026-11-16)
+CZAS=${K1_TEST_CZAS:-3000} # the whole test, both starts of K1 together (50 min — the owner, 2026-11-17; 35 min cut CI run 156)
 mkdir -p "$TESTY"; rm -f "$TESTY"/przegladarka*
 CMDLINE="$(cat "$K1_REPO/jadro/cmdline")"
 # KVM with nested virtualization (CI): the full scenario; otherwise (the container: no KVM at all) — emulated, shortened
