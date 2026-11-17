@@ -89,6 +89,10 @@ Po drugiej stronie robot na GitHubie codziennie sprawdza, czy jest poprawione j�
 po zielonych wydaje ją, podpisaną. Od poprawki u Mozilli albo w jądrze do pytania na Twoim laptopie: ok. 1–2 dni.
 Robot przechodzi też na nowe linie jądra (np. 7.x — Twoja decyzja z 2026-11-14), gdy kernel.org ogłosi je jako
 długoterminowe. Gdy nowe jądro nie pasuje do konfiguracji K1, robot nie zgaduje, tylko prosi Claude'a albo Codexa.
+Przy nowej linii robot porównuje też całą konfigurację starego i nowego jądra (T19, Twoja prośba z 2026-11-17): każdą
+nową opcję, która mogłaby być potrzebna, rozstrzyga raz człowiek — „chcemy” albo „świadomie nie chcemy” — i robot nie
+pyta o nią już nigdy. Poprawki w ramach linii robot robi więc sam, a przy zmianie linii (ok. raz w roku) zatrzymuje się
+tylko na naprawdę nowych pytaniach.
 Gdyby nowa wersja na Twoim laptopie coś zepsuła (np. Wi-Fi), w Ustawieniach → Aktualizacje jest „Wróć do poprzedniej
 wersji” (D7).
 
@@ -268,6 +272,16 @@ KROK 3 — Robot na GitHubie                                              M · d
       jądra, których dotąd nie było (lista z Kconfig przed/po), rozmiar k1.efi przed/po, wynik sprawdz-kspp.sh; po
       wydaniu Issue „przejrzyj nowe opcje jądra 7.x” dla Claude'a/Codexa (nie wstrzymuje wydania); w ogłoszeniu flaga
       „nowa linia jądra” (T3); w CHANGELOG „Jądro Linux 7.1 — nowa linia długoterminowa”.
+  [ ] Porównanie konfiguracji przy nowej linii (T19, S51; prośba właściciela z 2026-11-17) — osobny skrypt
+      scripts/porownaj-jadro.sh (robot go uruchamia, człowiek też może), dla obu jąder (K1 i strefa):
+      (1) każda opcja włączona w starym .config jest włączona w nowym — zniknęła albo zmieniła nazwę → Issue, bez PR-a;
+      (2) nowe opcje, które w nowej linii byłyby włączone same (domyślnie tak, przy naszych opcjach), a allnoconfig je
+      wyłącza — przypadek KVM_IOAPIC z 6.18; każda musi być w liście „chcemy” (fragment) albo w liście „świadomie nie
+      chcemy” (nowe pliki jadro/k1-odrzucone.txt i jadro/strefa-odrzucone.txt: jedna opcja w wierszu, każda z powodem);
+      choć jedna nierozstrzygnięta → Issue z gotową listą (opcja, opis z Kconfig, od czego zależy), bez PR-a.
+      Rozstrzyga Claude albo Codex zwykłym PR-em (dopisuje opcję do fragmentu albo do listy odrzuconych); następny bieg
+      robota rusza dalej. Obie listy zmienia tylko człowiek — nie ma ich na liście plików robota (T8).
+      Pierwsze wypełnienie list odrzuconych: przy budowie skryptu, z opcji „domyślnie tak” w 6.18, które dziś wyłączamy.
   [ ] Gdy coś nowego: gałąź robot/<co>-<wersja>, VERSION +1 PATCH, wpis w CHANGELOG (gotowy tekst po polsku: „Jądro
       Linux 6.18.61 — poprawki bezpieczeństwa” / „Przeglądarka: Firefox ESR …”; bez „Opis w K1:” i ze znacznikiem
       wpisu robota — w ogłoszeniu rodzaj „poprawki”, K1 pokazuje swoje stałe zdanie, D13, T18), PR, pełne testy (T9), po zielonych
@@ -308,14 +322,18 @@ KROK 3 — Robot na GitHubie                                              M · d
   testy idą, scalenie wyłączone w trybie próbnym — S21); próbny przebieg „nic nowego” (koniec bez PR-a); robot
   z niedozwoloną zmianą (inny plik) → przerwanie; zły podpis sha256sums.asc (podmieniony plik w próbie) → Issue,
   bez PR-a; próba nowej linii: gałąź z jądrem starszej linii długoterminowej (np. 6.12.x) → robot proponuje 6.18.x
-  z listą nowych opcji (gdy fragment nie wchodzi — Issue zamiast PR-a, i to też jest wynik próby); zderzenia (S33):
+  z listą nowych opcji (gdy fragment nie wchodzi — Issue zamiast PR-a, i to też jest wynik próby); porównanie
+  konfiguracji (T19): próba z KVM_IOAPIC usuniętym z fragmentu → skrypt wskazuje KVM_IOAPIC jako nierozstrzygniętą, Issue
+  bez PR-a; ta sama opcja w liście odrzuconych → robot idzie dalej (a test strefy pada — to dowód, że lista jest
+  potrzebna i że decyzja należy do człowieka); opcja włączona wcześniej, a w nowej linii nieistniejąca → Issue; zderzenia (S33):
   otwarty PR człowieka ze zmianą VERSION → robot nie zaczyna (log „czekam na wydanie ludzi”); VERSION na main zmienione
   po otwarciu PR-a robota → robot zamyka PR i otwiera nowy z następnym numerem; dwa wydania na main jedno po drugim →
   oba tagi i oba wydania istnieją, żadne nie zostało anulowane. Pełne testy wydania [OK].
   Właściciel (po wydaniu 0.10.5 w kroku 7): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem
   poczekać na pierwszą wersję od robota i zainstalować ją przez sieć (lista w DO_ZROBIENIA).
   Dokumenty: ADR 0047, AGENTS.md (robot), nowy opis w docs/komponenty/ (robot.md: co sprawdza, czego nie rusza,
-  jak go zatrzymać — wyłączenie workflow), jadro/README.md (procedura: robot robi kroki 1–6, także dla nowej linii),
+  jak go zatrzymać — wyłączenie workflow), jadro/README.md (procedura: robot robi kroki 1–6, także dla nowej linii;
+  porównanie konfiguracji i listy odrzuconych — T19), SLOWNIK (lista odrzuconych opcji jądra), docs/komponenty/jadro.md,
   ADR 0003 (dopisek: linię jądra wybiera robot — najnowsza długoterminowa),
   TESTY.md, RYZYKA (przejęte konto GitHub albo archiwum Debiana = podpisana wersja na wszystkich komputerach — S22),
   README, skill kons-dev i AGENTS.md (zadanie wyżej).
@@ -612,7 +630,8 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        wydania) → po zielonych squash do main → workflow_dispatch k1.yml na main (budowa, testy, tag, wydanie). Bez
        osobnego tokenu ani nowego sekretu.
     T10 Kiedy robot przestaje (krok 3): konfiguracja nie wchodzi (zbuduj-jadro.sh przerywa, gdy opcja z fragmentu
-       nie weszła), czerwone testy, zła suma albo podpis źródła, otwarty PR ze zmianą VERSION — za każdym razem Issue
+       nie weszła), porównanie konfiguracji przy nowej linii znalazło coś nierozstrzygniętego (T19), czerwone testy,
+       zła suma albo podpis źródła, otwarty PR ze zmianą VERSION — za każdym razem Issue
        z etykietą „robot” i log, bez scalania. Nowe zalecenia KSPP — Issue, ale wydanie idzie.
     T11 Nowe linie jądra (krok 3; Twoja decyzja z 2026-11-14: robot przechodzi też na 7.x). Zasada Linusa „nie psujemy
        przestrzeni użytkownika” chroni wywołania systemowe i ioctl, których używają programy K1 — więc nowe jądro nie
@@ -622,8 +641,9 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        przerwań — plan 0.10.0 S1); (2) zachowania sterowników na prawdziwym sprzęcie (Wi-Fi, grafika, karta
        sieciowa) — testy w QEMU go nie widzą; (3) części sysfs i uevent, które K1 czyta (nie wszystkie są stałym ABI).
        Dlatego: tylko linie „longterm” z releases.json (poprawki przez lata; linie krótkie kończą się po ok. 3
-       miesiącach i wymuszałyby skok co kwartał); fragment musi wejść w całości (inaczej Issue); pełne testy; nowe
-       opcje na liście do przejrzenia po wydaniu; dopisek w pytaniu na laptopie i „Wróć do poprzedniej wersji” (D7).
+       miesiącach i wymuszałyby skok co kwartał); fragment musi wejść w całości (inaczej Issue); porównanie
+       konfiguracji (T19) — nowe opcje „domyślnie tak” rozstrzyga człowiek przed wydaniem, reszta nowych opcji na
+       liście do przejrzenia po wydaniu; pełne testy; dopisek w pytaniu na laptopie i „Wróć do poprzedniej wersji” (D7).
     T12 Kto zmienia rozmiar (krok 4): tylko ekran K1 — na gest użytkownika na ramce lub przycisku, które rysuje ekran.
        Strefa nie ma komunikatu „zmień mój rozmiar” ani „przesuń mnie”: dostaje rozmiar i może go tylko przyjąć. Tak
        złośliwa strona nie powiększy okna na cały ekran, nie zasłoni pasków i nie udaje okna K1 (R26). Do strefy idzie
@@ -646,6 +666,17 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        Nowy komunikat ani kanał nie jest potrzebny (KLAWISZ do powłoki już jest). Strefa z fokusem nie dostaje Tab
        przy Alt i dostaje puszczenie Alt, zanim fokus odejdzie. Rozważone: przełącznik rysowany przez ekran — ekran
        nie zna nazw sesji ani ikon aplikacji (to gui), a panel gui i tak jest rysowany przez K1, nad oknami (R26).
+    T19 Porównanie konfiguracji przy nowej linii jądra (krok 3; prośba właściciela z 2026-11-17). K1 już „zaznacza
+       tylko to, co chce”: allnoconfig + fragment. Właśnie dlatego nowa linia jest groźna — gdy jądro wydzieli coś,
+       co działało samo, do nowej opcji „domyślnie tak” (KVM_IOAPIC w 6.18), K1 jej nie dostaje, bo na liście jej nie
+       ma. Robot nie zgadnie, czy to potrzebne, ale umie to WYKRYĆ: (A) nowe jądro z allnoconfig + fragment, (B) stary
+       pełny .config przeniesiony na nowe jądro z wartościami domyślnymi dla nowych opcji (make olddefconfig — S51);
+       opcja włączona w B, a wyłączona w A, której nie było w starym jądrze = pytanie. Każde pytanie rozstrzyga raz
+       człowiek: do fragmentu („chcemy”, z komentarzem — jak dziś) albo do listy odrzuconych („świadomie nie chcemy”,
+       z powodem). Tak każda opcja jest rozstrzygnięta jeden raz na zawsze, a robot przy kolejnych liniach pyta tylko
+       o nowe. Czego to nie da: gwarancji, że nowe jądro tak samo obsłuży prawdziwy sprzęt (Wi-Fi, grafika — T11 (2)) —
+       na to D7 i 7 dni spokoju przed zmianą linii. Rozważone: zaczynać od konfiguracji domyślnej i wyłączać to, czego
+       nie chcemy — każda nowa opcja weszłaby sama, bez decyzji (więcej kodu w jądrze, łamie niezmiennik 3).
     T18 Opis wersji (kroki 2–3, D13). Skąd: wiersz „Opis w K1:” we wpisie CHANGELOG — pisze go ten, kto robi wydanie,
        prostym językiem, bez numerów kroków i ADR. W ogłoszeniu: do 8 ostatnich wersji, każda z rodzajem („opis” albo
        „poprawki”) i tekstem (tylko przy „opis”); K1 pokazuje wersje nowsze od działającej, najnowszą u góry, kilka
@@ -753,6 +784,11 @@ Krok 3
       ma”). Dziś nowsza budowa na main anuluje starszą — scalenie człowieka w trakcie budowy wydania robota
       przerwałoby je (wersja robota bez tagu i wydania, choć VERSION na main ją ma); zmienić: anulowanie tylko dla PR-ów,
       na main kolejka. Tag dziś pomija istniejący — dwa commity z tym samym VERSION dałyby jeden tag na starszym.
+  S51 NIEPEWNE (dodane 2026-11-17, T19). Czy make olddefconfig na starym .config w nowym drzewie daje nowym opcjom ich
+      wartości domyślne (z warunkami „default … if …”) i czy opcje bez pytania (bez „prompt”, ustawiane tylko przez
+      select) nie dają fałszywych pytań — sprawdzić w źródłach Kconfig (scripts/kconfig/) i próbą 6.12 → 6.18 (czy
+      wynik zawiera KVM_IOAPIC, gdy nie ma go we fragmencie). Ile pytań daje dziś 6.18 sama z sobą (powinno 0 po
+      pierwszym wypełnieniu list odrzuconych).
 
 Krok 4
   S26 Z KODU (src/ekran/okna.c). Ekran umie dziś przesuwać panele przeciąganiem (s.ciagniete) — zmiany rozmiaru ani
