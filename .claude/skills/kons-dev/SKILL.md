@@ -231,11 +231,12 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   Potem nie szukaj dalej kolejnymi przebiegami CI — **oddaj test właścicielowi**: link do obrazu USB z artefaktu PR-a
   (`k1-<wersja>-obraz`, przebieg CI) i krótka lista „co kliknąć, co powinno się stać”; właściciel uruchamia go
   z pendrive'a na X230 / IdeaPadzie. Działa na sprzęcie → test w CI omija to zachowanie, z notatką w skrypcie i w
-  `docs/TESTY.md` (wzór: `test-przegladarka.sh` bez Entera — przebiegi 95–103 PR-a #119, cały dzień szukania).
+  `docs/TESTY.md` (wzór: dawny `test-przegladarka.sh` bez Entera — przebiegi 95–103 PR-a #119, cały dzień szukania;
+  od 0.10.1 testu przeglądarki w CI nie ma wcale — decyzja właściciela 2026-11-17, niżej §9).
 
 **Pułapki, które już wystąpiły:**
 - *Dysk strefy (0.10.0 krok 5):* gość w trybie testowym 5 (`TRYB_DYSK`) jest uczciwy — VMM traktuje jako złośliwe tylko
-  tryby 1–4 (`zlosliwy_gosc()`); strefa pamięta tylko z danymi na dysku (test-strefa i test-przegladarka dodają K1-DANE),
+  tryby 1–4 (`zlosliwy_gosc()`); strefa pamięta tylko z danymi na dysku (test-strefa dodaje K1-DANE),
   a nadzorca daje dysk dopiero po wczytaniu sesji ze skarbca; nazwy sesji to tekst użytkownika — nigdy w logu (menu gui
   loguje „sesja N”); `mke2fs` bez `MKE2FS_CONFIG=/dev/null` bierze cechy z konfiguracji komputera budowy (niepowtarzalnie).
 - *Strefy (0.10.0, ADR 0042 T10):* QEMU 8.2 w TCG udaje AMD SVM z NPT, ale gość **bez stronicowania** (tryb rzeczywisty,
@@ -252,6 +253,12 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   użytkownik 1000, środowisko jak w `gosc/przegladarka.c`) i kompozytor zbudowany na hoście z ASan: `drm.c` zastąpiony
   wyświetlaczem w pamięci (zrzut PPM), `/dev/input/eventN` — kolejka FIFO, do której skrypt pisze `struct input_event`
   (EV_ABS 0…32767). Tak znaleziono regułę 28 (podgląd karty). Rola powierzchni: ta sama rola drugi raz jest dozwolona.
+  Od 0.10.1 krok 5 gotowe narzędzie: `scripts/stanowisko.sh [scenariusz]` (`testy/stanowisko/`, opis w TESTY.md).
+- *Przewijanie w strefie (0.10.1 krok 5):* GTK kończy gest touchpada przeglądarki tylko ramką z `axis_stop` — i tylko
+  z `axis_source` „finger” w tej samej ramce (bez niego bierze koniec za kółko); Firefox (APZ) wysyła każdą ramkę
+  niezakończonego gestu do celu z jego początku — bez `axis_stop` po nowej karcie nic się nie przewijało, w żadnej karcie.
+  Ramkę palców oznacza VMM (`BTN_TOOL_FINGER`), nie „same części ząbka” — tak wygląda też precyzyjne kółko. QEMU nie
+  udaje touchpada ani precyzyjnego kółka: palce w Firefoksie sprawdza stanowisko.
 - *Balon (0.10.1 krok 2):* bez FREE_PAGE_HINT zgłaszanie to kolejka 3; zgłaszane bloki to bufory do zapisu; pamięć
   wraca przez `fallocate(PUNCH_HOLE)` (nie `MADV_DONTNEED` — memfd współdzielony); gość ponad 3 GiB ma drugą część od
   4 GiB (`gosc_pamiec.dol`) — adres gościa zawsze przez `gp_wsk`. W emulacji (kontener) bezczynny gość bywa budzony
@@ -298,20 +305,19 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 - *GRUB i ekran startowy:* `background_image` rysuje się po wypisaniu czegoś (`echo ""`); `set color_normal=
   black/black` **po** `terminal_output gfxterm`; `quiet` wycisza „EFI stub”; w QEMU fazę GRUB-a widać na
   zrzutach dopiero z `sleep` w kopii `grub.cfg` (`mcopy -i obraz@@1M`).
-- *Przeglądarka w CI (0.10.0 krok 2):* Enter w pasku adresu i w polu formularza Firefoksa w strefie bywał bez skutku tylko
-  w testach (CI z KVM), na prawdziwym sprzęcie działał zawsze — `test-przegladarka.sh` nie naciska Entera nigdzie
-  (stronę otwiera strzałka „→” w pasku adresu — lista podpowiedzi w CI bywa niewidoczna, przebieg 109; formularz wysyła
-  się sam, D3 — obrazek z sieci domowej na stronie testowej). Nie wracaj do Entera bez decyzji właściciela. Firefox w strefie ocenia sieć po kartach systemu (strefa ich nie ma) —
-  `network.manage-offline-status` wyłączone w `strefy/przegladarka/k1.js`. Pełny Firefox w emulacji zagnieżdżonej
-  (kontener bez KVM) nie rysuje okna — do szukania błędów: obraz strefy wprost w QEMU z jednorazowym przekaźnikiem
-  albo sonda zamiast Firefoksa w K1 (tak znaleziono zamykanie fd 0 w VMM).
+- *Przeglądarka w CI (0.10.0–0.10.1):* test z prawdziwym Firefoksem w strefie (CI z KVM) przez wiele dni padał na
+  zachowaniu Firefoksa (Enter bez skutku, lista podpowiedzi niewidoczna, limity czasu), którego na sprzęcie nie było —
+  od 0.10.1 go nie ma (decyzja właściciela 2026-11-17). Firefox w strefie ocenia sieć po kartach systemu (strefa ich nie
+  ma) — `network.manage-offline-status` wyłączone w `strefy/przegladarka/k1.js`. Pełny Firefox w emulacji zagnieżdżonej
+  (kontener bez KVM) nie rysuje okna — do szukania błędów: stanowisko (`scripts/stanowisko.sh`), obraz strefy wprost
+  w QEMU z jednorazowym przekaźnikiem albo sonda zamiast Firefoksa w K1 (tak znaleziono zamykanie fd 0 w VMM).
 
 ## 8. Plan i zasady etapu
 
 **Plan — jedno miejsce (ADR 0035):** stan, mapa drogi i otwarte decyzje — `docs/DO_ZROBIENIA.txt`; kroki bieżącej
 wersji — `docs/PLAN-<wersja>.txt` (samodzielny: luki, kroki, decyzje; zakres zamrożony, nowe pomysły → „Później”;
 numery kroków się nie zmieniają; zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
-Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (0.10.0 gotowe — plan w `docs/archiwum/PLAN-0.10.0.txt`: strefa próbna, przeglądarka, poprawki, przewijanie, sesje, które pamiętają; teraz 0.10.1 Balon (pamięć strefy według potrzeby, `docs/PLAN-0.10.1.txt`; kroki 1–4 zrobione) , 0.10.3 Filmy (sprzętowe dekodowanie filmów dla stref, `docs/PLAN-0.10.3.txt`) i 0.10.5 Aktualizacje przez sieć (`docs/PLAN-0.10.5.txt`) (mikro-maszyny, ramka,
+Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (0.10.0 gotowe — plan w `docs/archiwum/PLAN-0.10.0.txt`: strefa próbna, przeglądarka, poprawki, przewijanie, sesje, które pamiętają; 0.10.1 Balon gotowe — pamięć strefy według potrzeby, `docs/archiwum/PLAN-0.10.1.txt`; teraz 0.10.2 Testy (opis ekranu dla testów, zrzuty wzorcowe, dwa błędy przeglądarki, `docs/PLAN-0.10.2.txt`), potem 0.10.3 Filmy (sprzętowe dekodowanie filmów dla stref, `docs/PLAN-0.10.3.txt`) i 0.10.5 Aktualizacje przez sieć (`docs/PLAN-0.10.5.txt`) (mikro-maszyny, ramka,
 przeglądarka; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery, TPM)
 → **0.13 Audyt** → 1.0. Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11,
 M10 = 0.12, M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).
@@ -329,9 +335,9 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
 - **Przed scaleniem zmian w systemie** (decyzja właściciela 2026-11-14): lokalnie `make` bez ostrzeżeń, `sh -n` na
   skryptach, `scripts/test-m1.sh` i skrypty QEMU zmienianej części (mapa „która część — który skrypt” w `docs/TESTY.md`),
   przy zmianach w budowie `scripts/sprawdz-powtarzalnosc.sh` (nie commituj w trakcie — data commita wchodzi do buildu);
-  potem **pełny komplet w CI na PR-ze** (etykieta `testy`) — scalasz dopiero przy zielonym. `test-przegladarka` jest
-  informacyjny (decyzja właściciela 2026-11-16, `docs/TESTY.md`): jego błąd nie blokuje — przeczytaj go i opisz w raporcie
-  (właściciel sprawdza przeglądarkę na sprzęcie), nie stroj go kolejnymi przebiegami przed wydaniem. Pełny `scripts/testy.sh`
+  potem **pełny komplet w CI na PR-ze** (etykieta `testy`) — scalasz dopiero przy zielonym. Przeglądarki
+  CI nie testuje (decyzja właściciela 2026-11-17, `docs/TESTY.md`): w raporcie wydania daj właścicielowi listę „co
+  sprawdzić w przeglądarce” (DO_ZROBIENIA, punkt 4); jego zgłoszenia odtwarzaj na stanowisku. Pełny `scripts/testy.sh`
   w kontenerze tylko, gdy CI nie działa. Sama dokumentacja — bez testów.
 - **Wersja** (`VERSION`, raz na paczkę; ADR 0035): nowy temat z mapy drogi → MINOR (0.9, 0.10…), kroki planu
   wersji, poprawki i jądro → PATCH, docs/CI → bez zmiany; wpis

@@ -104,7 +104,8 @@ rysuje ekran (`docs/komponenty/ekran.md`); wysokość obrazu jest o pasek (`K1_S
 
 ## Przeglądarka (0.10.0 krok 2, ADR 0043)
 Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka”), „Bank” (łupek), „Prywatna” (wrzos): obraz
-`/rdzen/strefy/przegladarka.img`, 1536 MiB, 2 procesory (w emulacji QEMU — 1), jednorazowe (krok 3: pamiętają).
+`/rdzen/strefy/przegladarka.img`, 1536 MiB na start (od 0.10.1 górna granica: pamięć komputera minus rezerwa K1, balon —
+ADR 0044), 2 procesory (w emulacji QEMU — 1); Ogólna i Bank pamiętają (krok 5), Prywatna zapomina.
 - **Obraz** (`scripts/zbuduj-strefe.sh`): pakiety Debiana 13 z tabeli `strefy/przegladarka.txt` (wersje i sumy;
   odświeżenie `scripts/odswiez-strefe.py` — podpisy Debiana sprawdzane kluczami z `strefy/klucze/`), rozpakowane bez
   skryptów pakietów, bez powłoki; nasze: `/init` (`gosc`), `/usr/lib/k1/kompozytor`, `/usr/lib/k1/przekaznik`, mapa
@@ -137,7 +138,14 @@ Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka�
   wyskakujące menu z pozycjonerem; zdarzenia wejścia do każdego `wl_pointer`/`wl_keyboard` klienta (Firefox ma po dwa);
   „klatka gotowa” także po zatwierdzeniu bez zmian (inaczej GTK przestaje rysować). Kółko (krok 4): jedna ramka
   zdarzeń urządzenia = jedno przewinięcie `wl_pointer.axis` (10 jednostek na ząbek, jak weston); z ząbkami —
-  `axis_source` „wheel” i `axis_discrete`, same części ząbka (touchpad) — „finger”, więc Firefox przewija płynnie. Od
+  `axis_source` „wheel” i `axis_discrete`, palce na touchpadzie — „finger”, więc Firefox przewija płynnie. **Palce**
+  (0.10.1 krok 5, D6): ramkę z touchpada VMM oznacza `BTN_TOOL_FINGER` (wciśnięty i puszczony w tej samej ramce;
+  urządzenie wskazujące ma ten bit) — wcześniej „same części ząbka” znaczyły palce, a tak wygląda też precyzyjne kółko.
+  Gest palców kończy się ramką z `axis_source` „finger” i `axis_stop` (`palce.c`, czyste — `test_palce`): po 200 ms
+  bez ramki palców (K1 nie wysyła chwili podniesienia palców) albo od razu przed kółkiem, wciśnięciem przycisku
+  i zmianą powierzchni pod kursorem. Bez `axis_stop` gest w Firefoksie (APZ: blok gestu przesuwania) nie kończył się
+  nigdy i każde dalsze przewijanie szło do strony karty, w której palce przewinęły pierwszy raz — po nowej karcie nic
+  się nie przewijało, w żadnej karcie, aż do zamknięcia przeglądarki. Od
   kroku 5: **jeden ząbek = jedna ramka** `wl_pointer` (do 16, reszta w ostatniej), każda z późniejszym czasem — GTK robi
   z `axis_discrete` jednej ramki jeden krok bez względu na liczbę (przebieg CI 134: 5 ząbków w górę, 2 kroki), a Firefox
   pomija zdarzenie kółka z czasem poprzedniego. Ząbki skleja QEMU w teście i ekran, gdy klient nie nadąża.
@@ -234,5 +242,4 @@ krok 2 tryby 6–8 — VMM wkłada tam balon: strona poza pamięcią (pompowanie
 | `t_proby` (profil strefy): bez `open` (także `/dev/kvm`), `socket`, procesów, pamięci wykonywalnej | negatywny |
 | `test_lacznik`: SOCKS5 (powitanie, prośby, odmowy: BIND, UDP, IPv6, port 0, zła nazwa, 0.0.0.0, pętla zwrotna), DNS (pytanie; odpowiedzi: inny identyfikator, inne pytanie, ucięte, NXDOMAIN, CNAME, adres prywatny, wskaźniki), reguła D3, komunikaty `STREFA_*` | funkcjonalny, negatywny |
 | `fuzz_lacznik`: dowolna prośba SOCKS5 i odpowiedź DNS | fuzzing |
-| `scripts/test-przegladarka.sh` | QEMU: przeglądarka, strona przez łącznik, formularz, odmowa D3, strona zajmująca 1400 MiB (strefa żyje), bez przycisków okna Firefoksa, logi bez adresów (opis w `docs/TESTY.md`) |
 | `scripts/test-strefa.sh` | QEMU, funkcjonalny i negatywny (opis w `docs/TESTY.md`) |

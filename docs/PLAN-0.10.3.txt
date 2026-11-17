@@ -32,7 +32,7 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
 Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3.
-Cała wersja zaczyna się po wydaniu 0.10.1 (Balon, docs/PLAN-0.10.1.txt — zmienia VMM, pamięć stref i Ustawienia →
+Cała wersja zaczyna się po wydaniu 0.10.2 (Testy, docs/PLAN-0.10.2.txt — wstawione przez właściciela 2026-11-17) i 0.10.1 (Balon, docs/archiwum/PLAN-0.10.1.txt — zmienia VMM, pamięć stref i Ustawienia →
 Przeglądarka, na których ten plan stoi). Krok 1 to głównie próby i ADR — można go zrobić wcześniej, równolegle
 z 0.10.1, jeśli nie dotyka tych samych plików (próby na osobnej gałęzi, do main tylko ADR i ustalenia).
 
@@ -45,7 +45,7 @@ i krótka lista „co kliknąć, co powinno się stać”) — karty Intela nie 
 Nowy czat — przebieg każdego kroku:
   1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
   2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2 i 3 — także „Ustalenia
-     z wykonania” kroków wcześniejszych i ADR z kroku 1. Przeczytaj też ustalenia planu 0.10.1 (docs/PLAN-0.10.1.txt
+     z wykonania” kroków wcześniejszych i ADR z kroku 1. Przeczytaj też ustalenia planu 0.10.1 (docs/archiwum/PLAN-0.10.1.txt
      albo docs/archiwum/) — balon, podział pamięci i nowy układ Ustawień → Przeglądarka mogły wyjść inaczej.
   3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
   4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
@@ -114,7 +114,7 @@ Trzy kroki:
 [ ]  1  Próba i pomiar: i915, VA-API, Firefox; ADR         S1–S9, S26–S30   0.10.0      T1–T5, T9        M        nowy
 [ ]  2  K1: i915 w jądrze, usługa „dekoder filmów”          S10–S17, S26     1, 0.10.1   T1–T3, T6–T8     L        z kr. 1
 [ ]  3  Strefa: przełącznik, Firefox z dekoderem; wydanie   S18–S25, S29     2           D1–D4, T4, T5, T9 L        z kr. 1
-(Numer ADR — następny wolny w chwili kroku 1. Jeśli 0.10.5 jeszcze nie zaczęte, to 0045, a plan 0.10.5 bierze kolejne
+(Numer ADR — następny wolny w chwili kroku 1 (0.10.2 zajmuje 0045, więc zwykle 0046), a plan 0.10.5 bierze kolejne
 wolne, jak przewiduje jego punkt 2.)
 
 Dlaczego tyle: krok 1 rozstrzyga trzy rzeczy, których nie da się sprawdzić z kodu (i915 na sprzęcie właściciela,
@@ -233,12 +233,12 @@ KROK 3 — Strefa: przełącznik w Ustawieniach, Firefox z dekoderem filmów; wy
   Testy i dowód: test-strefa.sh — strefa próbna z dekoderem testowym (S17: program testowy albo tryb testowy usługi
   podaje szare klatki bez karty) przechodzi całą drogę gość → VMM → dekoder filmów → klatka w gościu; złośliwy gość;
   przełącznik wyłączony = żadnego dekodera filmów (log nadzorcy). test-m4.sh — zrzut Ustawień → Przeglądarka
-  (oba motywy). test-przegladarka (informacyjny) — bez zmian albo z filmem testowym, jeśli krok 1 pokazał, że Firefox
-  w CI to zniesie. Na sprzęcie — właściciel: lista niżej.
+  (oba motywy). Przeglądarki CI nie testuje (decyzja właściciela 2026-11-17) — film w Firefoksie: stanowisko, jeśli
+  się da, i właściciel. Na sprzęcie — właściciel: lista niżej.
   Lista dla właściciela (X230 i IdeaPad): Ustawienia → Przeglądarka → Ogólna → włącz → otwórz Przeglądarkę → YouTube,
   film 1080p → płynny? Zasoby: procesor sesji mniejszy niż z wyłączonym przełącznikiem (porównaj ten sam film)?
   znak na ramce? Bank z wyłączonym — bez znaku, film działa (procesorem).
-  Gotowe, gdy: CI zielone (test-przegladarka — informacyjny), właściciel potwierdził na sprzęcie albo dostał listę
+  Gotowe, gdy: CI zielone, właściciel potwierdził na sprzęcie albo dostał listę
   przy wydaniu, wydanie 0.10.3 istnieje (linki ISO i USB w raporcie).
   Ustalenia z wykonania: (pusto — wypełnia krok 3)
 

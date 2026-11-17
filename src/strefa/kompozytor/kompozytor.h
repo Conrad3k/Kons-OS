@@ -10,8 +10,8 @@
  * client (wl_display.error), never the compositor. The whole zone is in turn hostile to K1 — K1 never runs this code.
  *
  * Parts: main.c (socket, loop), protokol.c (wire, objects), interfejsy.c (the table of interfaces), powierzchnia.c
- * (surfaces, regions, subsurfaces), bufory.c (wl_shm, pools, buffers), xdg.c (xdg-shell), wejscie.c (seat, pointer, keyboard, evdev), scena.c
- * (composition), drm.c (the display). */
+ * (surfaces, regions, subsurfaces), bufory.c (wl_shm, pools, buffers), xdg.c (xdg-shell), wejscie.c (seat, pointer,
+ * keyboard, evdev), palce.c (the fingers' scrolling as one gesture, pure), scena.c (composition), drm.c (the display). */
 #ifndef K1_KOMPOZYTOR_H
 #define K1_KOMPOZYTOR_H
 
@@ -282,6 +282,8 @@ void wejscie_czytaj(unsigned i);
 void wejscie_zapomnij(struct powierzchnia *p);
 void wejscie_klient_koniec(struct klient *k);
 void wejscie_okno_zmiana(void);               /* the toplevel or the popups changed: keyboard focus anew */
+int wejscie_czekaj(void);                     /* ms until wejscie_czas has something to do; -1: nothing */
+void wejscie_czas(void);                      /* the fingers stopped a while ago: their gesture ends (palce.c) */
 extern const char *mapa_klawiatury;           /* the XKB keymap file (argv) */
 
 /* scena.c */

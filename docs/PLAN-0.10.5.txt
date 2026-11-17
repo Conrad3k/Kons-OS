@@ -8,9 +8,10 @@ aktualizacje, A/B) zostają — zmienia się tylko to, skąd przychodzi nowa wer
 ją przygotowuje (robot na GitHubie) i gdzie użytkownik nią steruje (Ustawienia → Aktualizacje).
 Numer 0.10.5 wybrał właściciel: 0.10.1–0.10.4 zostają na resztę tematu 0.10 (plan 0.10.0, punkt 6). Jeśli tamte
 wersje nie powstaną wcześniej, ta i tak nazywa się 0.10.5. 2026-11-16 właściciel wstawił przed nią 0.10.1 „Balon”
-(pamięć strefy według potrzeby, docs/PLAN-0.10.1.txt) — ta wersja zaczyna się po wydaniu 0.10.1.
+(pamięć strefy według potrzeby, docs/archiwum/PLAN-0.10.1.txt) — ta wersja zaczyna się po wydaniu 0.10.1.
 Tego samego dnia doszło 0.10.3 „Filmy” (docs/PLAN-0.10.3.txt) — numer mniejszy, więc jego wydanie wychodzi przed
-0.10.5; jego ADR może zająć numer 0045 (wtedy ta wersja bierze kolejne wolne — punkt 2).
+0.10.5. 2026-11-17 doszło jeszcze 0.10.2 „Testy” (docs/PLAN-0.10.2.txt) — wychodzi przed 0.10.3; zajmuje ADR 0045,
+0.10.3 bierze następny wolny, ta wersja — kolejne (punkt 2).
 Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
 Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR (krok 2 ma swój ADR, krok 3 — swój).
 
@@ -32,7 +33,7 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
 Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4, krok 5, krok 6.
-Cała wersja zaczyna się po wydaniu 0.10.1 (Balon, docs/PLAN-0.10.1.txt — decyzja właściciela z 2026-11-16; tamten plan
+Cała wersja zaczyna się po wydaniu 0.10.1 (Balon, docs/archiwum/PLAN-0.10.1.txt — decyzja właściciela z 2026-11-16; tamten plan
 zmienia VMM, nadzorcę i Zasoby). Krok 1 zależy od Ustawień po 0.10.0 krok 5; krok 2 potrzebuje stref
 i łącznika z 0.10.0; krok 4 zależy tylko od 0.10.0 (okno strefy w zaufanej ramce); krok 5 (Raptor Bridge) zależy tylko
 od 0.10.0 — można go zrobić wcześniej, zalecane przed krokiem 2 (krok 2 buduje na tym moście); krok 6 idzie ostatni,
@@ -331,8 +332,8 @@ KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja              M �
   rogu → gość dostaje nowy rozmiar (log), zrzut: ramka i wzór w nowym rozmiarze; „maksymalizuj” → prostokąt okna =
   obszar roboczy (log ekranu), zrzut: górny i dolny pasek widoczne nad oknem, wzór między nimi; „przywróć” i podwójne
   kliknięcie → poprzedni prostokąt; zmiana rozdzielczości przy zmaksymalizowanym oknie → nowy obszar roboczy; ciągnięcie
-  poniżej najmniejszego rozmiaru → najmniejszy. Przeglądarka (test-przegladarka.sh z 0.10.0): maksymalizacja → strona
-  testowa w nowym rozmiarze (zrzut). Negatywne: strefa daje powierzchnię innego rozmiaru niż ostatnio zgłoszony →
+  poniżej najmniejszego rozmiaru → najmniejszy. Przeglądarka: maksymalizacja → Firefox w nowym rozmiarze — właściciel na sprzęcie
+  (od 0.10.1 bez testu przeglądarki w CI, decyzja właściciela 2026-11-17). Negatywne: strefa daje powierzchnię innego rozmiaru niż ostatnio zgłoszony →
   odrzucona (ekran rysuje dalej poprzednią), strefa nie może sama zmienić rozmiaru ani położenia okna (nie ma takiego
   komunikatu — test złośliwego gościa), powierzchnia ponad limit pamięci klienta → odrzucona, gość w trybie „pełny
   ekran” nie zasłania pasków (zrzut); złośliwe komunikaty rozmiaru do VMM (zakresy) → odrzucone.
@@ -534,7 +535,7 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
 
     T15 Test mostu w strefie (krok 5): program testowy w obrazie strefy próbnej (nasz kod, statycznie z musl — jak
        gosc), sterowany numerem trybu z linii poleceń gościa jak tryby złośliwe; serwer po stronie „routera” QEMU
-       w Pythonie (jak w test-przegladarka.sh). Powód: Firefox w emulacji (kontener bez KVM) nie rusza, a sonda —
+       w Pythonie (jak w dawnym test-przegladarka.sh, usuniętym w 0.10.1). Powód: Firefox w emulacji (kontener bez KVM) nie rusza, a sonda —
        tak, więc most da się sprawdzać lokalnie i w CI tym samym testem (wzór: sonda z PR #119, która znalazła błąd
        fd 0, gdy testy na hoście były zielone).
 

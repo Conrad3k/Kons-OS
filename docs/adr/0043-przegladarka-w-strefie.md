@@ -81,7 +81,8 @@ liczniki połączeń, nazw i odmów oraz powód pierwszej odmowy — nigdy adres
 - Rdzeń (z obrazem przeglądarki) jest w pamięci — +104 MB RAM na stałe; k1.efi 121 MiB z 128 MiB miejsca (R81).
 - DNS bez szyfrowania (router widzi nazwy stron, jak w każdym systemie bez DoH) — R83.
 - VMM ma w sobie łącznik — R84. Kompozytor w strefie jest nasz, ale działa po stronie gościa (jego błąd = koniec strefy).
-- Test: `scripts/test-przegladarka.sh` (strona przez łącznik, formularz, odmowa D3, logi bez adresów); nazwy (DNS) —
+- Test: `scripts/test-przegladarka.sh` (strona przez łącznik, formularz, odmowa D3, logi bez adresów) — usunięty w 0.10.1
+  (decyzja właściciela 2026-11-17: przeglądarkę sprawdza właściciel na sprzęcie; reguła D3 — `test_lacznik`); nazwy (DNS) —
   testy na hoście (S17).
 
 ## Odrzucone
