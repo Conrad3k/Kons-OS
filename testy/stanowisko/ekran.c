@@ -6,7 +6,7 @@
 
 #include "kompozytor.h"
 
-#define SZER 1024 /* the browser zone's window in the tests (test-przegladarka: 1024 wide) */
+#define SZER 1024 /* the zone's window in the QEMU tests (test-strefa: 1024 wide) */
 #define WYS 700
 
 struct wyswietlacz ekran;

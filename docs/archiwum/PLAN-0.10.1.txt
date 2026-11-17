@@ -431,8 +431,7 @@ KROK 5 — Przewijanie po otwarciu nowej karty; wydanie 0.10.1                  
   - ODTWORZENIE: na hoście (stanowisko — `scripts/stanowisko.sh`, scenariusz `testy/stanowisko/palce.py`; Firefox z obrazu
     strefy w chroot i nasz kompozytor z ASan): na main po nowej karcie palce i precyzyjne kółko — y=0, także po ruchu,
     kliknięciu i powrocie do pierwszej karty (5 błędów); po poprawce — wszystko przewija. QEMU nie udaje touchpada ani
-    precyzyjnego kółka (ząbki po 120), więc w CI ten przypadek nie wychodzi; test-przegladarka dostał scenariusz kółka po
-    nowej karcie (Ctrl+T, „+”, powrót) jako ochronę przed innym błędem tego miejsca. Przebieg 150 (w dół 228, w górę
+    precyzyjnego kółka (ząbki po 120), więc w CI ten przypadek nie wychodzi. Przebieg 150 (w dół 228, w górę
     tylko do 114) — nie odtworzony na stanowisku; po kroku 2 i 3 nie powtórzył się (158, 159, 162).
   - POPRAWKA: VMM oznacza ramkę touchpada (`BTN_TOOL_FINGER` wciśnięty i puszczony w niej; bit w urządzeniu
     wskazującym; rdzeń wejścia gościa przepuszcza obie zmiany — drivers/input/input.c). Kompozytor: palce tylko po tym
@@ -441,8 +440,9 @@ KROK 5 — Przewijanie po otwarciu nowej karty; wydanie 0.10.1                  
     `axis_source` „finger” (GTK zeruje źródło po każdej ramce — bez tego koniec byłby „kółkiem” i gest dalej trwałby).
   - Druga obsługa kółka w Firefoksie (nsWaylandDisplay: własny wl_pointer, axis_value120) działa dopiero od wersji 8
     wl_pointer — nasz kompozytor ogłasza 5, więc jej nie dotyczy.
-  - Porządki: martwego kodu stałej pamięci nie było (kolumna `K1_STREFY` = pamięć na start); test przeglądarki zostaje
-    informacyjny do 0.10.5 (decyzja właściciela 2026-11-17).
+  - Porządki: martwego kodu stałej pamięci nie było (kolumna `K1_STREFY` = pamięć na start); test przeglądarki usunięty
+    z CI (decyzja właściciela 2026-11-17: przeglądarkę sprawdza właściciel na sprzęcie; przebiegi 163–166 — przebieg
+    zawieszony zaraz po starcie 11 testów naraz, kod 143, bez logu; testy części K1 pod przeglądarką zostają).
 
 UWAGI Z DRUGIEJ OPINII (właściciel, 2026-11-16: uwagi Gemini o balonach w mikro-maszynach) — co z nich wynika w planie:
   - „Brak autopilota: sterownik w gościu to tylko mięśnie, decyduje demon na hoście” — tak; w K1 tym demonem jest

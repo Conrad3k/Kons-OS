@@ -6,7 +6,7 @@
 # Użycie: scripts/stanowisko.sh [scenariusz] — domyślnie testy/stanowisko/palce.py (przewijanie dwoma palcami po nowej
 # karcie, plan 0.10.1 krok 5). Wynik: build/stanowisko/{firefox,kompozytor}.log, zrzuty *.ppm. Wymaga: root (unshare -m,
 # chroot), scripts/zbuduj.sh (obraz strefy). Narzędzie do szukania błędów — nie wchodzi do scripts/testy.sh (Firefox
-# na hoście zależy od komputera budowy; w CI przeglądarkę sprawdza test-przegladarka w prawdziwej strefie).
+# na hoście zależy od komputera budowy; od 0.10.1 przeglądarkę sprawdza tylko właściciel na sprzęcie — AGENTS.md).
 . "$(dirname "$0")/wspolne.sh"
 SCEN=${1:-$K1_REPO/testy/stanowisko/palce.py}
 WYNIK=$K1_BUDOWA/stanowisko

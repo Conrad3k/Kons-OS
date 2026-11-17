@@ -242,5 +242,4 @@ krok 2 tryby 6–8 — VMM wkłada tam balon: strona poza pamięcią (pompowanie
 | `t_proby` (profil strefy): bez `open` (także `/dev/kvm`), `socket`, procesów, pamięci wykonywalnej | negatywny |
 | `test_lacznik`: SOCKS5 (powitanie, prośby, odmowy: BIND, UDP, IPv6, port 0, zła nazwa, 0.0.0.0, pętla zwrotna), DNS (pytanie; odpowiedzi: inny identyfikator, inne pytanie, ucięte, NXDOMAIN, CNAME, adres prywatny, wskaźniki), reguła D3, komunikaty `STREFA_*` | funkcjonalny, negatywny |
 | `fuzz_lacznik`: dowolna prośba SOCKS5 i odpowiedź DNS | fuzzing |
-| `scripts/test-przegladarka.sh` | QEMU: przeglądarka, strona przez łącznik, formularz, odmowa D3, strona zajmująca 1400 MiB (strefa żyje), bez przycisków okna Firefoksa, logi bez adresów (opis w `docs/TESTY.md`) |
 | `scripts/test-strefa.sh` | QEMU, funkcjonalny i negatywny (opis w `docs/TESTY.md`) |

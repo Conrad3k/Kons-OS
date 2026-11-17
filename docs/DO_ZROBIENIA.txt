@@ -193,7 +193,9 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
   - foldery jak w Windows (Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane); Kosz: 30 dni albo ręcznie;
   - najpierw pliki i izolacja, potem internet (ADR 0026); strefy: każda obca aplikacja w swojej mikro-maszynie,
     stała/jednorazowa, pełna izolacja/szybka grafika (ADR 0020); wspólna strefa na drobne aplikacje (ADR 0024);
-  - kolejność techniczną planu ustala Claude (ADR 0011, 0035); decyzje produktowe (wygląd, zachowanie) — Ty.
+  - kolejność techniczną planu ustala Claude (ADR 0011, 0035); decyzje produktowe (wygląd, zachowanie) — Ty;
+  - przeglądarkę (Firefox w strefie) sprawdzasz Ty na sprzęcie — CI jej nie testuje (2026-11-17); Twoje zgłoszenia Claude
+    odtwarza na stanowisku na hoście (scripts/stanowisko.sh) i poprawia; lista „co sprawdzić” — punkt 4 przy każdym wydaniu.
 
 
 6. TYMCZASOWE (zasada czytelności 3 — każde z terminem; przegląd przy porządkach każdej wersji MINOR)
@@ -215,12 +217,10 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         rozwiązań tymczasowych 0.9.0 nie dodało
     [x] 0.9.1: nowych rozwiązań tymczasowych nie dodało (0.9.1 to PATCH — porządki MINOR przy 0.10)
     [x] przegląd 0.10.0 (krok 5): termin 0.10.0 dotrzymany (format 1 skarbca); nowe tymczasowe — K1U1–K1U3 (0.11.0)
-    [ ] test przeglądarki informacyjny (Twoja decyzja 2026-11-16, scripts/testy.sh: INFORMACYJNE) — jego błąd nie
-        blokuje scalenia ani wydania; termin 0.10.5 (Twoja decyzja z 2026-11-17 przy wydaniu 0.10.1 — przebiegi 158,
-        159, 162 przeszły w całości, ale dawniej Firefox w CI bywał kapryśny): wraca jako blokujący albo dzieli się na
-        część stałą (K1: strefa, łącznik, zamykanie, dysk sesji — po logach) i część na sprzęcie
-    [x] przegląd 0.10.1 (krok 5): termin 0.10.1 przesunięty na 0.10.5 (wyżej, Twoja decyzja); K1U1–K1U3 — 0.11.0 bez
-        zmian; nowych rozwiązań tymczasowych 0.10.1 nie dodało
+    [x] test przeglądarki informacyjny (Twoja decyzja 2026-11-16) — usunięty razem z testem w 0.10.1 (Twoja decyzja
+        z 2026-11-17: przeglądarkę sprawdzasz Ty na sprzęcie, CI jej nie testuje)
+    [x] przegląd 0.10.1 (krok 5): termin 0.10.1 zamknięty (wyżej); K1U1–K1U3 — 0.11.0 bez zmian; nowych rozwiązań
+        tymczasowych 0.10.1 nie dodało
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)

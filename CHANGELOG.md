@@ -41,13 +41,18 @@ otwieraniu wybierasz sesję, a kółko i dwa palce przewijają strony także po 
   razu przed kółkiem, kliknięciem i zmianą okna pod kursorem.
 - Statystyki pamięci gościa nie docierały do K1 (krok 3): sterownik balonu powiadamia przed `DRIVER_OK`, VMM to
   odrzucał.
-- Testy: test przeglądarki z dłuższym limitem (50 min, Twoja decyzja z 2026-11-17).
 
 ### Porządki
 - Martwego kodu stałej pamięci strefy nie ma — kolumna pamięci `K1_STREFY` zostaje jako „pamięć na start” (słownik);
   liczby w dokumentach (1,5 GB, „na 4 GB jedna sesja”) poprawione w README, `strefa.md` i słowniku.
-- Tymczasowe: test przeglądarki informacyjny — nowy termin 0.10.5 (Twoja decyzja z 2026-11-17); K1U1–K1U3 — 0.11.0 bez
-  zmian. Nowych rozwiązań tymczasowych 0.10.1 nie dodało.
+- **Test przeglądarki usunięty z CI** (Twoja decyzja z 2026-11-17): `test-przegladarka.sh` przez wiele dni padał na
+  zachowaniu Firefoksa w CI, a ważne błędy (przewijanie po nowej karcie) i tak znajdowałeś Ty na sprzęcie. Przeglądarkę
+  sprawdzasz Ty (lista w DO_ZROBIENIA), Claude odtwarza zgłoszenia na stanowisku. W CI zostają części K1 pod nią: strefa
+  (`test-strefa`), łącznik i reguła sieci D3 (`test_lacznik`), dysk sesji, balon, kompozytor (`test_palce`). Limity CI
+  wracają do 80 min (zadanie) i 45 min (krok testów); znika mechanizm „testów informacyjnych” (`testy.sh`) i etykieta
+  `testy-przegladarka`.
+- Tymczasowe: test przeglądarki informacyjny — zamknięty (test usunięty); K1U1–K1U3 — 0.11.0 bez zmian. Nowych rozwiązań
+  tymczasowych 0.10.1 nie dodało.
 - Nowe narzędzie: **stanowisko na hoście** (`scripts/stanowisko.sh`) — kompozytor strefy i prawdziwy Firefox z obrazu
   strefy bez maszyny wirtualnej; tak znaleziono oba błędy przeglądarki tej wersji.
 - Blisko limitu 600 wierszy (dzielić przed następną rozbudową): `test_odcinki.c` (599), `k1_rysuj.c` (542), `uslugi.c`

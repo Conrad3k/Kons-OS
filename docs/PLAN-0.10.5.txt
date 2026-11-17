@@ -331,8 +331,8 @@ KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja              M �
   rogu → gość dostaje nowy rozmiar (log), zrzut: ramka i wzór w nowym rozmiarze; „maksymalizuj” → prostokąt okna =
   obszar roboczy (log ekranu), zrzut: górny i dolny pasek widoczne nad oknem, wzór między nimi; „przywróć” i podwójne
   kliknięcie → poprzedni prostokąt; zmiana rozdzielczości przy zmaksymalizowanym oknie → nowy obszar roboczy; ciągnięcie
-  poniżej najmniejszego rozmiaru → najmniejszy. Przeglądarka (test-przegladarka.sh z 0.10.0): maksymalizacja → strona
-  testowa w nowym rozmiarze (zrzut). Negatywne: strefa daje powierzchnię innego rozmiaru niż ostatnio zgłoszony →
+  poniżej najmniejszego rozmiaru → najmniejszy. Przeglądarka: maksymalizacja → Firefox w nowym rozmiarze — właściciel na sprzęcie
+  (od 0.10.1 bez testu przeglądarki w CI, decyzja właściciela 2026-11-17). Negatywne: strefa daje powierzchnię innego rozmiaru niż ostatnio zgłoszony →
   odrzucona (ekran rysuje dalej poprzednią), strefa nie może sama zmienić rozmiaru ani położenia okna (nie ma takiego
   komunikatu — test złośliwego gościa), powierzchnia ponad limit pamięci klienta → odrzucona, gość w trybie „pełny
   ekran” nie zasłania pasków (zrzut); złośliwe komunikaty rozmiaru do VMM (zakresy) → odrzucone.
@@ -534,7 +534,7 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
 
     T15 Test mostu w strefie (krok 5): program testowy w obrazie strefy próbnej (nasz kod, statycznie z musl — jak
        gosc), sterowany numerem trybu z linii poleceń gościa jak tryby złośliwe; serwer po stronie „routera” QEMU
-       w Pythonie (jak w test-przegladarka.sh). Powód: Firefox w emulacji (kontener bez KVM) nie rusza, a sonda —
+       w Pythonie (jak w dawnym test-przegladarka.sh, usuniętym w 0.10.1). Powód: Firefox w emulacji (kontener bez KVM) nie rusza, a sonda —
        tak, więc most da się sprawdzać lokalnie i w CI tym samym testem (wzór: sonda z PR #119, która znalazła błąd
        fd 0, gdy testy na hoście były zielone).
 

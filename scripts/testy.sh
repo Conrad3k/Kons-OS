@@ -4,8 +4,10 @@
 # i instalatora. Te ostatnie są od siebie niezależne (osobne logi, gniazda i obrazy dysków): z KVM
 # (CI) idą równolegle, bez KVM (emulacja zajmuje cały procesor) — po kolei. Ręcznie:
 #   K1_TESTY_ROWNOLEGLE=1 scripts/testy.sh    (wymuś równolegle)   =0 (wymuś po kolei)
-#   K1_TESTY_TYLKO="test-przegladarka" scripts/testy.sh   (tylko te, bez test-m1 — szukanie błędu; CI: etykieta
-#   „testy-przegladarka”; przed scaleniem zawsze pełny komplet)
+#   K1_TESTY_TYLKO="test-strefa" scripts/testy.sh   (tylko te, bez test-m1 — szukanie błędu; przed scaleniem zawsze
+#   pełny komplet)
+# Przeglądarki (Firefox w strefie) nie testuje żaden test QEMU — od 0.10.1 sprawdza ją właściciel na sprzęcie (jego
+# decyzja z 2026-11-17, AGENTS.md); jej części K1 — test-strefa i testy na hoście, Firefox na hoście — scripts/stanowisko.sh.
 . "$(dirname "$0")/wspolne.sh"
 r=0
 [ -n "${K1_TESTY_TYLKO:-}" ] || "$K1_REPO/scripts/test-m1.sh" || r=1
@@ -14,17 +16,8 @@ ROWNOLEGLE=${K1_TESTY_ROWNOLEGLE:-}
 if [ -z "$ROWNOLEGLE" ]; then
     if [ -w /dev/kvm ]; then ROWNOLEGLE=1; else ROWNOLEGLE=0; fi
 fi
-TESTY="test-m4 test-pliki test-pendrive test-skarbiec test-siec test-wifi test-strefa test-przegladarka test-m5 test-m5f test-m6"
+TESTY="test-m4 test-pliki test-pendrive test-skarbiec test-siec test-wifi test-strefa test-m5 test-m5f test-m6"
 [ -z "${K1_TESTY_TYLKO:-}" ] || TESTY=$K1_TESTY_TYLKO
-# Informational tests (the owner, 2026-11-16): they run every time and their result is in the log, but their failure
-# does not fail the set — the browser test (Firefox in the zone) failed in CI each time on something else for three days
-# while K1 worked on the owner's laptops; the browser is checked on hardware. Asked for alone (K1_TESTY_TYLKO), it counts.
-INFORMACYJNE="test-przegladarka" # k1: tymczasowe — usunąć w 0.10.5 (the owner, 2026-11-17: informational until then)
-[ -z "${K1_TESTY_TYLKO:-}" ] || INFORMACYJNE=
-informacyjny() {
-    case " $INFORMACYJNE " in *" $1 "*) echo "[k1] UWAGA: $1 niezaliczony — test informacyjny, nie blokuje (decyzja właściciela 2026-11-16)"; return 0 ;; esac
-    return 1
-}
 WYJ=$K1_BUDOWA/testy/rownolegle
 mkdir -p "$WYJ"
 if [ "$ROWNOLEGLE" = 1 ]; then
@@ -59,13 +52,13 @@ if [ "$ROWNOLEGLE" = 1 ]; then
         ok=1
         wait "$p" || ok=0
         cat "$WYJ/$t.txt"
-        [ $ok = 1 ] || informacyjny "$t" || r=1
+        [ $ok = 1 ] || r=1
     done
     kill "$zycie" 2>/dev/null || true
     wait "$zycie" 2>/dev/null || true
 else
     for t in $TESTY; do
-        "$K1_REPO/scripts/$t.sh" || informacyjny "$t" || r=1
+        "$K1_REPO/scripts/$t.sh" || r=1
     done
 fi
 [ $r -eq 0 ] && info "wszystkie testy zaliczone" || echo "[k1] BŁĄD: część testów nie przeszła"

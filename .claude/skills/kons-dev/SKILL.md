@@ -231,11 +231,12 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   Potem nie szukaj dalej kolejnymi przebiegami CI — **oddaj test właścicielowi**: link do obrazu USB z artefaktu PR-a
   (`k1-<wersja>-obraz`, przebieg CI) i krótka lista „co kliknąć, co powinno się stać”; właściciel uruchamia go
   z pendrive'a na X230 / IdeaPadzie. Działa na sprzęcie → test w CI omija to zachowanie, z notatką w skrypcie i w
-  `docs/TESTY.md` (wzór: `test-przegladarka.sh` bez Entera — przebiegi 95–103 PR-a #119, cały dzień szukania).
+  `docs/TESTY.md` (wzór: dawny `test-przegladarka.sh` bez Entera — przebiegi 95–103 PR-a #119, cały dzień szukania;
+  od 0.10.1 testu przeglądarki w CI nie ma wcale — decyzja właściciela 2026-11-17, niżej §9).
 
 **Pułapki, które już wystąpiły:**
 - *Dysk strefy (0.10.0 krok 5):* gość w trybie testowym 5 (`TRYB_DYSK`) jest uczciwy — VMM traktuje jako złośliwe tylko
-  tryby 1–4 (`zlosliwy_gosc()`); strefa pamięta tylko z danymi na dysku (test-strefa i test-przegladarka dodają K1-DANE),
+  tryby 1–4 (`zlosliwy_gosc()`); strefa pamięta tylko z danymi na dysku (test-strefa dodaje K1-DANE),
   a nadzorca daje dysk dopiero po wczytaniu sesji ze skarbca; nazwy sesji to tekst użytkownika — nigdy w logu (menu gui
   loguje „sesja N”); `mke2fs` bez `MKE2FS_CONFIG=/dev/null` bierze cechy z konfiguracji komputera budowy (niepowtarzalnie).
 - *Strefy (0.10.0, ADR 0042 T10):* QEMU 8.2 w TCG udaje AMD SVM z NPT, ale gość **bez stronicowania** (tryb rzeczywisty,
@@ -304,13 +305,12 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 - *GRUB i ekran startowy:* `background_image` rysuje się po wypisaniu czegoś (`echo ""`); `set color_normal=
   black/black` **po** `terminal_output gfxterm`; `quiet` wycisza „EFI stub”; w QEMU fazę GRUB-a widać na
   zrzutach dopiero z `sleep` w kopii `grub.cfg` (`mcopy -i obraz@@1M`).
-- *Przeglądarka w CI (0.10.0 krok 2):* Enter w pasku adresu i w polu formularza Firefoksa w strefie bywał bez skutku tylko
-  w testach (CI z KVM), na prawdziwym sprzęcie działał zawsze — `test-przegladarka.sh` nie naciska Entera nigdzie
-  (stronę otwiera strzałka „→” w pasku adresu — lista podpowiedzi w CI bywa niewidoczna, przebieg 109; formularz wysyła
-  się sam, D3 — obrazek z sieci domowej na stronie testowej). Nie wracaj do Entera bez decyzji właściciela. Firefox w strefie ocenia sieć po kartach systemu (strefa ich nie ma) —
-  `network.manage-offline-status` wyłączone w `strefy/przegladarka/k1.js`. Pełny Firefox w emulacji zagnieżdżonej
-  (kontener bez KVM) nie rysuje okna — do szukania błędów: obraz strefy wprost w QEMU z jednorazowym przekaźnikiem
-  albo sonda zamiast Firefoksa w K1 (tak znaleziono zamykanie fd 0 w VMM).
+- *Przeglądarka w CI (0.10.0–0.10.1):* test z prawdziwym Firefoksem w strefie (CI z KVM) przez wiele dni padał na
+  zachowaniu Firefoksa (Enter bez skutku, lista podpowiedzi niewidoczna, limity czasu), którego na sprzęcie nie było —
+  od 0.10.1 go nie ma (decyzja właściciela 2026-11-17). Firefox w strefie ocenia sieć po kartach systemu (strefa ich nie
+  ma) — `network.manage-offline-status` wyłączone w `strefy/przegladarka/k1.js`. Pełny Firefox w emulacji zagnieżdżonej
+  (kontener bez KVM) nie rysuje okna — do szukania błędów: stanowisko (`scripts/stanowisko.sh`), obraz strefy wprost
+  w QEMU z jednorazowym przekaźnikiem albo sonda zamiast Firefoksa w K1 (tak znaleziono zamykanie fd 0 w VMM).
 
 ## 8. Plan i zasady etapu
 
@@ -335,9 +335,9 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
 - **Przed scaleniem zmian w systemie** (decyzja właściciela 2026-11-14): lokalnie `make` bez ostrzeżeń, `sh -n` na
   skryptach, `scripts/test-m1.sh` i skrypty QEMU zmienianej części (mapa „która część — który skrypt” w `docs/TESTY.md`),
   przy zmianach w budowie `scripts/sprawdz-powtarzalnosc.sh` (nie commituj w trakcie — data commita wchodzi do buildu);
-  potem **pełny komplet w CI na PR-ze** (etykieta `testy`) — scalasz dopiero przy zielonym. `test-przegladarka` jest
-  informacyjny (decyzja właściciela 2026-11-16, `docs/TESTY.md`): jego błąd nie blokuje — przeczytaj go i opisz w raporcie
-  (właściciel sprawdza przeglądarkę na sprzęcie), nie stroj go kolejnymi przebiegami przed wydaniem. Pełny `scripts/testy.sh`
+  potem **pełny komplet w CI na PR-ze** (etykieta `testy`) — scalasz dopiero przy zielonym. Przeglądarki
+  CI nie testuje (decyzja właściciela 2026-11-17, `docs/TESTY.md`): w raporcie wydania daj właścicielowi listę „co
+  sprawdzić w przeglądarce” (DO_ZROBIENIA, punkt 4); jego zgłoszenia odtwarzaj na stanowisku. Pełny `scripts/testy.sh`
   w kontenerze tylko, gdy CI nie działa. Sama dokumentacja — bez testów.
 - **Wersja** (`VERSION`, raz na paczkę; ADR 0035): nowy temat z mapy drogi → MINOR (0.9, 0.10…), kroki planu
   wersji, poprawki i jądro → PATCH, docs/CI → bez zmiany; wpis

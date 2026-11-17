@@ -233,12 +233,12 @@ KROK 3 — Strefa: przełącznik w Ustawieniach, Firefox z dekoderem filmów; wy
   Testy i dowód: test-strefa.sh — strefa próbna z dekoderem testowym (S17: program testowy albo tryb testowy usługi
   podaje szare klatki bez karty) przechodzi całą drogę gość → VMM → dekoder filmów → klatka w gościu; złośliwy gość;
   przełącznik wyłączony = żadnego dekodera filmów (log nadzorcy). test-m4.sh — zrzut Ustawień → Przeglądarka
-  (oba motywy). test-przegladarka (informacyjny) — bez zmian albo z filmem testowym, jeśli krok 1 pokazał, że Firefox
-  w CI to zniesie. Na sprzęcie — właściciel: lista niżej.
+  (oba motywy). Przeglądarki CI nie testuje (decyzja właściciela 2026-11-17) — film w Firefoksie: stanowisko, jeśli
+  się da, i właściciel. Na sprzęcie — właściciel: lista niżej.
   Lista dla właściciela (X230 i IdeaPad): Ustawienia → Przeglądarka → Ogólna → włącz → otwórz Przeglądarkę → YouTube,
   film 1080p → płynny? Zasoby: procesor sesji mniejszy niż z wyłączonym przełącznikiem (porównaj ten sam film)?
   znak na ramce? Bank z wyłączonym — bez znaku, film działa (procesorem).
-  Gotowe, gdy: CI zielone (test-przegladarka — informacyjny), właściciel potwierdził na sprzęcie albo dostał listę
+  Gotowe, gdy: CI zielone, właściciel potwierdził na sprzęcie albo dostał listę
   przy wydaniu, wydanie 0.10.3 istnieje (linki ISO i USB w raporcie).
   Ustalenia z wykonania: (pusto — wypełnia krok 3)
 
