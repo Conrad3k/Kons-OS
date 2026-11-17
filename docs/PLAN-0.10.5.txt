@@ -18,14 +18,15 @@ Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR (krok 2 
 Mało kroków (prośba właściciela z 2026-11-14): były CZTERY kroki (krok 4 — okno przeglądarki: zmiana rozmiaru
 i maksymalizacja — dodany na prośbę właściciela tego samego dnia). 2026-11-15 właściciel dodał krok 5 (Raptor Bridge —
 weryfikacja mostu między strefami a K1 i jego dokumentacja) i krok 6 (przegląd całej dokumentacji repozytorium);
-wydanie przeszło z kroku 4 do kroku 6. 2026-11-17 właściciel dodał krok 7 (Alt+Tab — przełączanie okien — oraz
-przeglądarka przypinana do paska i kładziona na pulpit jak inne aplikacje); krok 7 idzie PRZED krokiem 6 (numery się nie
-zmieniają, a krok 6 przegląda dokumentację po wszystkich krokach i wydaje). Każdy krok daje coś, co widać; krok 6 kończy
-się wydaniem 0.10.5 — bez osobnego kroku wydania.
+wydanie przeszło z kroku 4 do kroku 6. 2026-11-17 właściciel dodał krok „Alt+Tab — przełączanie okien — oraz
+przeglądarka przypinana do paska i kładziona na pulpit jak inne aplikacje” i zdecydował, że wydanie jest zawsze ostatnim
+krokiem: nowy krok dostał numer 6, a przegląd dokumentacji z wydaniem przeszedł z kroku 6 do kroku 7 (zmiana numeru
+możliwa, bo żaden z nich się nie zaczął). Każdy krok daje coś, co widać; krok 7 kończy się wydaniem 0.10.5 — bez
+osobnego kroku wydania.
 
 ZAKRES ZAMROŻONY (ADR 0035): poniższe 7 kroków i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
-zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b, 3a/3b 4a/4b, 5a/5b 7a/7b albo 6a/6b (wydanie zawsze w ostatniej części kroku 6).
+zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b, 3a/3b 4a/4b, 5a/5b, 6a/6b albo 7a/7b (wydanie zawsze w ostatniej części kroku 7).
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
 Statusy wiedzy: Z KODU (z czytania kodu K1 0.9.1 — przed 0.10.0; krok 1 sprawdza jeszcze raz na kodzie po 0.10.0),
@@ -34,14 +35,14 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
-Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4, krok 5, krok 7,
-krok 6 (krok 7 dodany później — przed wydaniem).
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4, krok 5, krok 6,
+krok 7 (wydanie zawsze ostatnie).
 Cała wersja zaczyna się po wydaniu 0.10.1 (Balon, docs/archiwum/PLAN-0.10.1.txt — decyzja właściciela z 2026-11-16; tamten plan
 zmienia VMM, nadzorcę i Zasoby). Krok 1 zależy od Ustawień po 0.10.0 krok 5; krok 2 potrzebuje stref
 i łącznika z 0.10.0; krok 4 zależy tylko od 0.10.0 (okno strefy w zaufanej ramce); krok 5 (Raptor Bridge) zależy tylko
-od 0.10.0 — można go zrobić wcześniej, zalecane przed krokiem 2 (krok 2 buduje na tym moście); krok 7 (Alt+Tab,
+od 0.10.0 — można go zrobić wcześniej, zalecane przed krokiem 2 (krok 2 buduje na tym moście); krok 6 (Alt+Tab,
 przeglądarka na pasku i pulpicie) zależy tylko od 0.10.2 (opis ekranu — testy klikają po nazwach), zalecany po kroku 4
-(oba zmieniają ekran i okna stref — mniej zderzeń); krok 6 idzie ostatni, bo przegląda dokumentację po wszystkich
+(oba zmieniają ekran i okna stref — mniej zderzeń); krok 7 idzie ostatni, bo przegląda dokumentację po wszystkich
 krokach i kończy się wydaniem.
 
 Właściciel — co wpisać w nowym czacie (podmień N):
@@ -63,7 +64,7 @@ Nowy czat — przebieg każdego kroku:
      lokalnie (wszystko [OK]); przy zmianach w budowie także scripts/sprawdz-powtarzalnosc.sh. Czekaj poleceniem,
      nie rób w tym czasie innych wywołań (CLAUDE.md).
   8. Dokumenty w tym samym PR-ze: docs/komponenty/*, SLOWNIK, RYZYKA, ZALEZNOSCI, WYGLAD, TESTY.md, SPEC (dopiski
-     [korekta: ADR …]), README. VERSION i CHANGELOG zmienia krok 6 (wydanie); kroki 1–5 zapisują „co widzi
+     [korekta: ADR …]), README. VERSION i CHANGELOG zmienia krok 7 (wydanie); kroki 1–6 zapisują „co widzi
      użytkownik” w opisie PR-a.
   9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”), po scaleniu: w tabeli „[x] PR #n”, nowe
      ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co widać, dowody, co zostało.
@@ -95,7 +96,7 @@ paska do górnej krawędzi dolnego paska, więc oba paski K1 zawsze zostają wid
 I dwie wygody z Windowsa: Alt+Tab przełącza między otwartymi oknami (aplikacji K1 i sesji przeglądarki), a Przeglądarkę
 przypinasz do dolnego paska i kładziesz na pulpit tak samo jak Notatki czy Pliki.
 
-Siedem kroków (kolejność: 1–5, 7, 6):
+Siedem kroków:
   1. Ustawienia → Aktualizacje: nowy panel (wersja, stan miejsc A/B, aktualizacja z pendrive'a — przeniesiona
      z Instalatora); okno Ustawień trochę większe, żeby zmieściła się nowa sekcja.
   2. Aktualizacje przez sieć: strefa do pobierania (HTTPS), sprawdzanie i pobieranie, pytanie przed instalacją.
@@ -103,8 +104,8 @@ Siedem kroków (kolejność: 1–5, 7, 6):
   4. Okno przeglądarki: zmiana rozmiaru i maksymalizacja między paskami.
   5. Raptor Bridge: sprawdzenie mostu, którym strefy (przeglądarka, a później inne aplikacje) łączą się ze światem przez
      K1 — próby obciążenia i ataku, poprawki — i porządna dokumentacja tego mostu.
-  6. Przegląd całej dokumentacji repozytorium: usunięcie powtórzeń i rzeczy zbędnych — i wydanie 0.10.5.
-  7. Alt+Tab (przełączanie okien) i Przeglądarka na pasku i pulpicie jak inne aplikacje (przed krokiem 6).
+  6. Alt+Tab (przełączanie okien) i Przeglądarka na pasku i pulpicie jak inne aplikacje.
+  7. Przegląd całej dokumentacji repozytorium: usunięcie powtórzeń i rzeczy zbędnych — i wydanie 0.10.5 (zawsze ostatni).
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
@@ -115,19 +116,20 @@ Siedem kroków (kolejność: 1–5, 7, 6):
 [ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11       M        0046
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
 [ ]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
-[ ]  6  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–5, 7      D10              M        —
-[ ]  7  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
+[ ]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
+[ ]  7  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–6         D10              M        —
 (Numery ADR — następne wolne po ADR 0045 z 0.10.2; jeśli zajmą więcej, krok bierze kolejne wolne.)
 
 Dlaczego tyle: krok 1 to sama aplikacja (bez sieci) — panel, okno i przeniesienie, łatwe do przetestowania osobno;
 krok 2 to nowa droga danych (strefa, łącznik, zapis do wolnego miejsca A/B) i własny ADR; krok 3 to CI (robot); krok 4
 to ekran i strefa (inna część systemu niż kroki 1–3); krok 5 to przegląd i testy jednej części, na której stoją
-przeglądarka, aktualizacje (krok 2) i przyszłe aplikacje w strefach; krok 6 to sama dokumentacja i wydanie; krok 7
-(dodany 2026-11-17) to pulpit i ekran — klawiatura i pasek, bez sieci i bez strefy w środku.
+przeglądarka, aktualizacje (krok 2) i przyszłe aplikacje w strefach; krok 6
+(dodany 2026-11-17) to pulpit i ekran — klawiatura i pasek, bez sieci i bez strefy w środku; krok 7 to sama
+dokumentacja i wydanie.
 Dlaczego robot po krokach 1–2: jego pierwsze wydanie przechodzi już przez aktualizację sieciową z kroku 2 — to jest jej
 pierwszy prawdziwy test. Robot nie zmienia systemu, więc nie blokuje niczego w krokach 1–2. Robot scalony w kroku 3
 działa do wydania 0.10.5 tylko w trybie próbnym (bez scalania i wydań) — inaczej wydałby 0.10.x przed 0.10.5; pełny
-tryb włącza krok 6 po wydaniu.
+tryb włącza krok 7 po wydaniu.
 
 
 3. KROKI
@@ -233,7 +235,7 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · 
 KROK 3 — Robot na GitHubie                                              M · decyzje D6, T8–T11 · ADR 0047
   Cel: poprawki jądra Linux i przeglądarki trafiają do wydania K1 same: robot raz dziennie sprawdza, przygotowuje
   zmianę, puszcza pełne testy i po zielonych wydaje nową wersję PATCH — także z nową linią jądra (np. 7.x), gdy
-  konfiguracja K1 na nią wchodzi (T11). Do wydania 0.10.5 (krok 6) robot działa w trybie próbnym.
+  konfiguracja K1 na nią wchodzi (T11). Do wydania 0.10.5 (krok 7) robot działa w trybie próbnym.
   Na początku: S17 (uprawnienia GITHUB_TOKEN — POMIAR na próbnym przebiegu), D6.
   Co widzi użytkownik: na GitHubie raz na jakiś czas PR „Robot: jądro 6.18.61”, „Robot: jądro 7.1 (nowa linia)”
   albo „Robot: Firefox ESR …”, który sam przechodzi testy, scala się i daje wydanie; na laptopie po 1–2 dniach pytanie
@@ -263,7 +265,7 @@ KROK 3 — Robot na GitHubie                                              M · d
       jedno wydanie robota na dobę; nowa linia jądra — najwyżej jedna zmiana linii naraz i dopiero gdy poprzednie
       wydanie robota stoi co najmniej 7 dni bez Issue „błąd” (S24).
   [ ] Tryb próbny do wydania 0.10.5: harmonogram działa, robot otwiera PR i puszcza testy, ale nie scala i nie wydaje
-      (przełącznik w robot.yml — jedna zmienna, którą krok 6 przestawia po wydaniu).
+      (przełącznik w robot.yml — jedna zmienna, którą krok 7 przestawia po wydaniu).
   [ ] Robot i wydania ludzi — nigdy dwa wydania naraz (prośba właściciela z 2026-11-14: „żeby nie było tak, że my
       wydajemy 1.2.4, a robot też”; S19, S33). Po stronie robota: tuż przed scaleniem pobiera świeży main — gdy VERSION
       na main zmieniło się od chwili, w której robot zaczął, zamyka swój PR i zaczyna od nowa od świeżego main (nowy
@@ -296,7 +298,7 @@ KROK 3 — Robot na GitHubie                                              M · d
   otwarty PR człowieka ze zmianą VERSION → robot nie zaczyna (log „czekam na wydanie ludzi”); VERSION na main zmienione
   po otwarciu PR-a robota → robot zamyka PR i otwiera nowy z następnym numerem; dwa wydania na main jedno po drugim →
   oba tagi i oba wydania istnieją, żadne nie zostało anulowane. Pełne testy wydania [OK].
-  Właściciel (po wydaniu 0.10.5 w kroku 6): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem
+  Właściciel (po wydaniu 0.10.5 w kroku 7): zainstalować 0.10.5 z pendrive'a przez Ustawienia → Aktualizacje; potem
   poczekać na pierwszą wersję od robota i zainstalować ją przez sieć (lista w DO_ZROBIENIA).
   Dokumenty: ADR 0047, AGENTS.md (robot), nowy opis w docs/komponenty/ (robot.md: co sprawdza, czego nie rusza,
   jak go zatrzymać — wyłączenie workflow), jadro/README.md (procedura: robot robi kroki 1–6, także dla nowej linii),
@@ -310,7 +312,7 @@ KROK 3 — Robot na GitHubie                                              M · d
 KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja              M · decyzje D8, T12–T14 · bez ADR
   Cel (prośba właściciela z 2026-11-14): okno przeglądarki (i każde okno strefy) można rozciągnąć i zmniejszyć za
   brzeg albo róg zaufanej ramki oraz zmaksymalizować — na całą szerokość ekranu, od dolnej krawędzi górnego paska do
-  górnej krawędzi dolnego paska (nigdy pod paski); przeglądarka w środku dopasowuje się do nowego rozmiaru (wydanie przeszło do kroku 6).
+  górnej krawędzi dolnego paska (nigdy pod paski); przeglądarka w środku dopasowuje się do nowego rozmiaru (wydanie przeszło do kroku 7).
   Na początku: D8 (szkice); przeczytaj „Ustalenia z wykonania” 0.10.0 krok 1 (rola STREFA, ramka, zmiana wyświetlacza
   w virtio-gpu) i krok 2 (kompozytor strefy).
   Co widzi użytkownik: kursor nad brzegiem albo rogiem ramki okna przeglądarki zmienia się na strzałki; przeciągnięcie
@@ -398,40 +400,9 @@ KROK 5 — Raptor Bridge: weryfikacja mostu stref i jego dokumentacja        M �
   do „Później”, dokument jest i inne dokumenty do niego odsyłają.
   Ustalenia z wykonania: (pusto — wypełnia krok 5)
 
-KROK 6 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M · decyzja D10 · bez ADR
-  Dodany przez właściciela 2026-11-15: na koniec wersji — weryfikacja całej dokumentacji repozytorium i usunięcie
-  informacji powtarzających się albo zbędnych.
-  Cel: każda informacja jest w jednym miejscu (inne miejsca odsyłają), nic nie jest nieaktualne, nic zbędnego; nowa
-  osoba (albo nowy czat) znajduje drogę od README do szczegółu bez sprzecznych wersji tej samej rzeczy. Potem wydanie.
-  Co widzi użytkownik: krótsza, spójna dokumentacja (README, docs/); wydanie 0.10.5.
-  Zadania:
-  [ ] Przegląd (S39): README, AGENTS.md, CLAUDE.md, skill kons-dev, docs/SPEC.md, ARCHITEKTURA.md, TESTY.md,
-      SLOWNIK.md, RYZYKA.md, ZALEZNOSCI.md, WYGLAD.md, DO_ZROBIENIA.txt, docs/komponenty/*, spis ADR (statusy),
-      archiwum (czy wszystko, co zamknięte, jest w archiwum) — dla każdego faktu: gdzie jest jego „jedno miejsce”;
-      lista powtórzeń, sprzeczności, nieaktualnych zdań (stare numery etapów M, wersje, liczby testów, ścieżki).
-  [ ] Porządki (D10): powtórzenia zamienione na odesłania, nieaktualne poprawione albo usunięte, zbędne usunięte;
-      ADR-y i CHANGELOG nie są przepisywane (to historia) — najwyżej status i odesłanie; lista zmian w opisie PR-a
-      (co usunięto, skąd, dokąd odsyła).
-  [ ] Sprawdzanie na stałe (S40): czego się da — w scripts/sprawdz-czytelnosc.py (np. istniejące ścieżki i odesłania,
-      spis komponentów, słowa ze słownika w nagłówkach), żeby dokumenty nie rozjeżdżały się znowu.
-  [ ] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki); porządki wersji PATCH: przegląd tego, co
-      zostało po przeniesieniu z Instalatora (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–5;
-      DO_ZROBIENIA.txt — „Teraz” → następna wersja, lista testów na X230 i IdeaPadzie dla 0.10.5 (Ustawienia →
-      Aktualizacje, aktualizacja z pendrive'a z Ustawień, „Sprawdź teraz”, pierwsza aktualizacja przez sieć, gdy robot
-      wyda następną wersję, zmiana rozmiaru i maksymalizacja przeglądarki na obu ekranach, Alt+Tab z Firefoksa i do
-      niego, Przeglądarka przypięta do paska i na pulpicie — krok 7); ten plik → docs/archiwum/.
-      Po scaleniu: CI, tag k1-v0.10.5, wydanie z ogłoszeniem i paczką; potem robot w pełny tryb (krok 3: jedna zmiana
-      w robot.yml, osobny commit po wydaniu); raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
-      0.10.5 instaluje się jeszcze z pendrive'a — kolejne już przez sieć.
-  Testy i dowód: sprawdz-czytelnosc.py (z nowymi sprawdzeniami) zielone; pełne testy wydania [OK].
-  Dokumenty: wszystkie (przegląd), CHANGELOG, README.
-  Gotowe, gdy: przegląd zamknięty (lista w opisie PR-a), sprawdzenia zielone, wydanie k1-v0.10.5 istnieje
-  z ogłoszeniem i paczką, robot w pełnym trybie, raport z linkami.
-  Ustalenia z wykonania: (pusto — wypełnia krok 6)
-
-KROK 7 — Alt+Tab; Przeglądarka na pasku i pulpicie                         M · decyzje D11 D12, T16 T17 · bez ADR
-  Dodany przez właściciela 2026-11-17; idzie PRZED krokiem 6 (wydanie). Dwie wygody pulpitu, które dziś mają inne
-  systemy, a K1 nie: przełączanie okien klawiaturą i Przeglądarka traktowana jak każda inna aplikacja.
+KROK 6 — Alt+Tab; Przeglądarka na pasku i pulpicie                         M · decyzje D11 D12, T16 T17 · bez ADR
+  Dodany przez właściciela 2026-11-17 (przed krokiem 7 — wydanie zawsze ostatnie). Dwie wygody pulpitu, które
+  dziś mają inne systemy, a K1 nie: przełączanie okien klawiaturą i Przeglądarka traktowana jak każda inna aplikacja.
   Cel: (a) Alt+Tab przełącza między otwartymi oknami — aplikacji K1 i sesji przeglądarki (stref) — także wtedy, gdy
   fokus ma przeglądarka; (b) Przeglądarkę da się przypiąć do dolnego paska i położyć na pulpicie (i odpiąć, usunąć
   z pulpitu) tak samo jak Notatki czy Pliki; po ponownym starcie wraca na swoje miejsce.
@@ -482,7 +453,38 @@ KROK 7 — Alt+Tab; Przeglądarka na pasku i pulpicie                         M 
   SLOWNIK (przełącznik okien), TESTY.md, RYZYKA (R26 — przełącznik rysuje K1, strefa go nie podrobi ani nie zablokuje),
   README (skróty klawiszowe, jeśli są opisane).
   Gotowe, gdy: Alt+Tab przełącza okna aplikacji i stref, Przeglądarka przypina się i leży na pulpicie, wraca po
-  ponownym starcie; testy [OK]; w kroku 6 lista testów właściciela ma Alt+Tab i przypiętą Przeglądarkę.
+  ponownym starcie; testy [OK]; w kroku 7 lista testów właściciela ma Alt+Tab i przypiętą Przeglądarkę.
+  Ustalenia z wykonania: (pusto — wypełnia krok 6)
+
+KROK 7 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M · decyzja D10 · bez ADR
+  Dodany przez właściciela 2026-11-15 (jako krok 6; od 2026-11-17 krok 7 — wydanie zawsze ostatnie): na koniec
+  wersji — weryfikacja całej dokumentacji repozytorium i usunięcie informacji powtarzających się albo zbędnych.
+  Cel: każda informacja jest w jednym miejscu (inne miejsca odsyłają), nic nie jest nieaktualne, nic zbędnego; nowa
+  osoba (albo nowy czat) znajduje drogę od README do szczegółu bez sprzecznych wersji tej samej rzeczy. Potem wydanie.
+  Co widzi użytkownik: krótsza, spójna dokumentacja (README, docs/); wydanie 0.10.5.
+  Zadania:
+  [ ] Przegląd (S39): README, AGENTS.md, CLAUDE.md, skill kons-dev, docs/SPEC.md, ARCHITEKTURA.md, TESTY.md,
+      SLOWNIK.md, RYZYKA.md, ZALEZNOSCI.md, WYGLAD.md, DO_ZROBIENIA.txt, docs/komponenty/*, spis ADR (statusy),
+      archiwum (czy wszystko, co zamknięte, jest w archiwum) — dla każdego faktu: gdzie jest jego „jedno miejsce”;
+      lista powtórzeń, sprzeczności, nieaktualnych zdań (stare numery etapów M, wersje, liczby testów, ścieżki).
+  [ ] Porządki (D10): powtórzenia zamienione na odesłania, nieaktualne poprawione albo usunięte, zbędne usunięte;
+      ADR-y i CHANGELOG nie są przepisywane (to historia) — najwyżej status i odesłanie; lista zmian w opisie PR-a
+      (co usunięto, skąd, dokąd odsyła).
+  [ ] Sprawdzanie na stałe (S40): czego się da — w scripts/sprawdz-czytelnosc.py (np. istniejące ścieżki i odesłania,
+      spis komponentów, słowa ze słownika w nagłówkach), żeby dokumenty nie rozjeżdżały się znowu.
+  [ ] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki); porządki wersji PATCH: przegląd tego, co
+      zostało po przeniesieniu z Instalatora (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–6;
+      DO_ZROBIENIA.txt — „Teraz” → następna wersja, lista testów na X230 i IdeaPadzie dla 0.10.5 (Ustawienia →
+      Aktualizacje, aktualizacja z pendrive'a z Ustawień, „Sprawdź teraz”, pierwsza aktualizacja przez sieć, gdy robot
+      wyda następną wersję, zmiana rozmiaru i maksymalizacja przeglądarki na obu ekranach, Alt+Tab z Firefoksa i do
+      niego, Przeglądarka przypięta do paska i na pulpicie — krok 6); ten plik → docs/archiwum/.
+      Po scaleniu: CI, tag k1-v0.10.5, wydanie z ogłoszeniem i paczką; potem robot w pełny tryb (krok 3: jedna zmiana
+      w robot.yml, osobny commit po wydaniu); raport z linkami do ISO i obrazu USB (dopiero gdy wydanie istnieje).
+      0.10.5 instaluje się jeszcze z pendrive'a — kolejne już przez sieć.
+  Testy i dowód: sprawdz-czytelnosc.py (z nowymi sprawdzeniami) zielone; pełne testy wydania [OK].
+  Dokumenty: wszystkie (przegląd), CHANGELOG, README.
+  Gotowe, gdy: przegląd zamknięty (lista w opisie PR-a), sprawdzenia zielone, wydanie k1-v0.10.5 istnieje
+  z ogłoszeniem i paczką, robot w pełnym trybie, raport z linkami.
   Ustalenia z wykonania: (pusto — wypełnia krok 7)
 
 
@@ -533,17 +535,17 @@ Twoje (produkt):
        (przekaźnik, vsock, łącznik, nadzorca) w dokumentacji i w rozmowie; części w kodzie zachowują swoje polskie
        nazwy ze słownika (przekaźnik, łącznik). Zakres: weryfikacja i dokumentacja, dla przeglądarki i przyszłych
        aplikacji w strefach.
-[!] D10 (krok 6) Co wolno usunąć przy przeglądzie dokumentacji. Rekomendacja: powtórzenia (zostaje jedno miejsce,
+[!] D10 (krok 7) Co wolno usunąć przy przeglądzie dokumentacji. Rekomendacja: powtórzenia (zostaje jedno miejsce,
        reszta odsyła), nieaktualne zdania i zamknięte listy „do zrobienia”; NIE usuwamy historii (ADR, CHANGELOG,
        archiwum planów) — najwyżej status i odesłanie; pełna lista usuniętego w opisie PR-a, żebyś widział, co znikło.
 
-[!] D11 (krok 7) Wygląd i zachowanie przełącznika okien (Alt+Tab) — szkice do wyboru NA POCZĄTKU KROKU 7 (oba motywy).
+[!] D11 (krok 6) Wygląd i zachowanie przełącznika okien (Alt+Tab) — szkice do wyboru NA POCZĄTKU KROKU 6 (oba motywy).
        Rekomendacja: jak w Windows 11, w stylu K1 — panel na środku ekranu (tło `pole`, zaokrąglenie 12, włoskowaty
        obrys), w rzędzie kafelki 120 × 96: ikona aplikacji 40 px i nazwa pod nią (Plex Sans 13), sesja przeglądarki —
        ikona globusa z kropką w kolorze sesji i nazwą sesji; wybrany kafelek z obwódką w kolorze akcentu; bez podglądu
        treści okien (podgląd okna strefy pokazywałby jej treść poza oknem — i kosztuje pamięć na X230). Kolejność:
        ostatnio używane najpierw; szybkie Alt+Tab — poprzednie okno; Shift — wstecz; Esc — anuluj; zminimalizowane też.
-[!] D12 (krok 7) Jak Przeglądarka wygląda na pasku i pulpicie. Rekomendacja: JEDNA ikona „Przeglądarka” (jak w menu
+[!] D12 (krok 6) Jak Przeglądarka wygląda na pasku i pulpicie. Rekomendacja: JEDNA ikona „Przeglądarka” (jak w menu
        Start), nie osobna na każdą sesję — kliknięcie otwiera okienko „Którą sesję otworzyć?”; okna otwartych sesji
        zostają na pasku jak dziś (po kresce, ikona z kropką w kolorze sesji), a przypięta ikona ma kropkę
        „uruchomiona”, gdy któraś sesja ma okno. Przy pierwszym starcie (nowa instalacja) Przeglądarka przypięta i na
@@ -619,12 +621,12 @@ Techniczne (decyduje Claude w ADR kroku — Ty dostajesz krótkie wyjaśnienie):
        w Pythonie (jak w dawnym test-przegladarka.sh, usuniętym w 0.10.1). Powód: Firefox w emulacji (kontener bez KVM) nie rusza, a sonda —
        tak, więc most da się sprawdzać lokalnie i w CI tym samym testem (wzór: sonda z PR #119, która znalazła błąd
        fd 0, gdy testy na hoście były zielone).
-    T16 Kto obsługuje Alt+Tab (krok 7): ekran rozpoznaje skrót (jak dziś klawisz Super — wskaznik.c) i oddaje go tylko
+    T16 Kto obsługuje Alt+Tab (krok 6): ekran rozpoznaje skrót (jak dziś klawisz Super — wskaznik.c) i oddaje go tylko
        powłoce (gui); gui zna listę okien (OKNO), rysuje przełącznik na swoim panelu i wybiera okno przez AKTYWUJ_OKNO.
        Nowy komunikat ani kanał nie jest potrzebny (KLAWISZ do powłoki już jest). Strefa z fokusem nie dostaje Tab
        przy Alt i dostaje puszczenie Alt, zanim fokus odejdzie. Rozważone: przełącznik rysowany przez ekran — ekran
        nie zna nazw sesji ani ikon aplikacji (to gui), a panel gui i tak jest rysowany przez K1, nad oknami (R26).
-    T17 Przeglądarka w rozmieszczeniu (krok 7): klucz na całą Przeglądarkę (wszystkie wiersze K1_STREFY z linią menu),
+    T17 Przeglądarka w rozmieszczeniu (krok 6): klucz na całą Przeglądarkę (wszystkie wiersze K1_STREFY z linią menu),
        nie na sesję — nowa sesja w tabeli nie zmienia zapisu; pasek zapisany kluczami u32 jak ikony (format „K1R3”),
        stare formaty czytane; bez zmian w skarbcu (ten sam obiekt K1_OB_ROZMIESZCZENIE, ADR 0028) — bez ADR.
 
@@ -754,14 +756,7 @@ Krok 5 (dodany 2026-11-15)
   S38 Z KODU. Opis mostu jest dziś rozrzucony: strefa.md, nadzorca.md, ADR 0043, plan 0.10.0 — krok 5 zbiera go
       w jednym dokumencie, reszta odsyła.
 
-Krok 6 (dodany 2026-11-15)
-  S39 Z PRZEGLĄDU. Dokumentacja rosła z każdą wersją; te same fakty bywają w kilku miejscach (np. mapa kodu w skillu
-      i w ARCHITEKTURA.md, zasady w AGENTS.md i w skillu, stan w DO_ZROBIENIA i w planach) — lista w kroku.
-  S40 Z KODU. scripts/sprawdz-czytelnosc.py sprawdza dziś istniejące ścieżki docs/, opisy usług i komunikatów, spis
-      ADR — nie sprawdza powtórzeń ani odesłań między dokumentami.
-  S41 Wydanie 0.10.5 przeszło z kroku 4 do kroku 6 (2026-11-15) — robot (krok 3) czeka w trybie próbnym do kroku 6.
-
-Krok 7 (dodany 2026-11-17, z czytania kodu po 0.10.2 krok 2)
+Krok 6 (dodany 2026-11-17, z czytania kodu po 0.10.2 krok 2)
   S42 Z KODU (src/ekran/wskaznik.c). Ekran śledzi Alt (K1_MOD_ALT w s.mody) i oddaje powłoce tylko Super; Tab idzie
       do okna z fokusem — Alt+Tab trzeba przechwycić przed tym (także gdy fokus ma strefa).
   S43 Z KODU (src/ekran/wskaznik.c). Strefie z fokusem ekran wysyła wciśnięcia i puszczenia Shift, Ctrl i Alt (gość ma
@@ -784,6 +779,14 @@ Krok 7 (dodany 2026-11-17, z czytania kodu po 0.10.2 krok 2)
   S49 Z KODU (src/wspolne/k1_uslugi.h). „Na pasku i pulpicie przy pierwszym starcie” to kolumna K1_APLIKACJE —
       K1_STREFY jej nie ma; Przeglądarka przy pierwszym starcie (D12) — kolumna w K1_STREFY albo stała w gui (wybór
       w kroku, jedna tabela).
+
+Krok 7 (dodany 2026-11-15 jako krok 6)
+  S39 Z PRZEGLĄDU. Dokumentacja rosła z każdą wersją; te same fakty bywają w kilku miejscach (np. mapa kodu w skillu
+      i w ARCHITEKTURA.md, zasady w AGENTS.md i w skillu, stan w DO_ZROBIENIA i w planach) — lista w kroku.
+  S40 Z KODU. scripts/sprawdz-czytelnosc.py sprawdza dziś istniejące ścieżki docs/, opisy usług i komunikatów, spis
+      ADR — nie sprawdza powtórzeń ani odesłań między dokumentami.
+  S41 Wydanie 0.10.5 przeszło z kroku 4 do kroku 6 (2026-11-15), potem do kroku 7 (2026-11-17) — robot (krok 3) czeka
+      w trybie próbnym do kroku 7.
 
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
 -----------------------------------------------------------------------------------
