@@ -19,7 +19,7 @@ TESTY="test-m4 test-pliki test-pendrive test-skarbiec test-siec test-wifi test-s
 # Informational tests (the owner, 2026-11-16): they run every time and their result is in the log, but their failure
 # does not fail the set — the browser test (Firefox in the zone) failed in CI each time on something else for three days
 # while K1 worked on the owner's laptops; the browser is checked on hardware. Asked for alone (K1_TESTY_TYLKO), it counts.
-INFORMACYJNE="test-przegladarka" # k1: tymczasowe — usunąć w 0.10.1
+INFORMACYJNE="test-przegladarka" # k1: tymczasowe — usunąć w 0.10.5 (the owner, 2026-11-17: informational until then)
 [ -z "${K1_TESTY_TYLKO:-}" ] || INFORMACYJNE=
 informacyjny() {
     case " $INFORMACYJNE " in *" $1 "*) echo "[k1] UWAGA: $1 niezaliczony — test informacyjny, nie blokuje (decyzja właściciela 2026-11-16)"; return 0 ;; esac

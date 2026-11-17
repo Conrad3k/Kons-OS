@@ -1,9 +1,9 @@
 # 0044. Pamięć stref: balon
 
-- Status: Przyjęty; wdrożony w 0.10.1 krok 2 (mechanika); zasada podziału pamięci komputera — krok 3
+- Status: Przyjęty; wdrożony w 0.10.1 (krok 2: mechanika; krok 3: podział pamięci komputera)
 - Data: 2026-11-16
 - Dotyczy: ADR 0042 T4 (pamięć strefy z wiersza `K1_STREFY`, memfd bez prawa wykonania), SPEC §8 (dopisek
-  [korekta: ADR 0044]); plan `docs/PLAN-0.10.1.txt`: T1–T6, S7–S11, decyzja właściciela D2; RYZYKA R88, R89
+  [korekta: ADR 0044]); plan `docs/archiwum/PLAN-0.10.1.txt`: T1–T6, S7–S11, decyzja właściciela D2; RYZYKA R88, R89
 
 ## Kontekst
 Do 0.10.0 każda sesja przeglądarki dostawała przy starcie stały kawałek pamięci komputera (1536 MiB) i ani bajta więcej,

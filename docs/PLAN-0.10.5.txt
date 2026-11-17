@@ -8,7 +8,7 @@ aktualizacje, A/B) zostają — zmienia się tylko to, skąd przychodzi nowa wer
 ją przygotowuje (robot na GitHubie) i gdzie użytkownik nią steruje (Ustawienia → Aktualizacje).
 Numer 0.10.5 wybrał właściciel: 0.10.1–0.10.4 zostają na resztę tematu 0.10 (plan 0.10.0, punkt 6). Jeśli tamte
 wersje nie powstaną wcześniej, ta i tak nazywa się 0.10.5. 2026-11-16 właściciel wstawił przed nią 0.10.1 „Balon”
-(pamięć strefy według potrzeby, docs/PLAN-0.10.1.txt) — ta wersja zaczyna się po wydaniu 0.10.1.
+(pamięć strefy według potrzeby, docs/archiwum/PLAN-0.10.1.txt) — ta wersja zaczyna się po wydaniu 0.10.1.
 Tego samego dnia doszło 0.10.3 „Filmy” (docs/PLAN-0.10.3.txt) — numer mniejszy, więc jego wydanie wychodzi przed
 0.10.5; jego ADR może zająć numer 0045 (wtedy ta wersja bierze kolejne wolne — punkt 2).
 Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
@@ -32,7 +32,7 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
 Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3, krok 4, krok 5, krok 6.
-Cała wersja zaczyna się po wydaniu 0.10.1 (Balon, docs/PLAN-0.10.1.txt — decyzja właściciela z 2026-11-16; tamten plan
+Cała wersja zaczyna się po wydaniu 0.10.1 (Balon, docs/archiwum/PLAN-0.10.1.txt — decyzja właściciela z 2026-11-16; tamten plan
 zmienia VMM, nadzorcę i Zasoby). Krok 1 zależy od Ustawień po 0.10.0 krok 5; krok 2 potrzebuje stref
 i łącznika z 0.10.0; krok 4 zależy tylko od 0.10.0 (okno strefy w zaufanej ramce); krok 5 (Raptor Bridge) zależy tylko
 od 0.10.0 — można go zrobić wcześniej, zalecane przed krokiem 2 (krok 2 buduje na tym moście); krok 6 idzie ostatni,

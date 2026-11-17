@@ -1,6 +1,8 @@
 K1 — PLAN WERSJI 0.10.1 „BALON” (wersja tematu 0.10 Strefy)
 ===========================================================
 
+PLAN ZAMKNIĘTY 2026-11-17: wszystkie kroki zrobione, wydanie 0.10.1 (CHANGELOG.md); dalej docs/PLAN-0.10.3.txt.
+
 Data: 2026-11-16 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-16), w czasie
 pracy nad 0.10.0 krok 4. Powód: przeglądarka w strefie wysypuje się na OBU laptopach — ThinkPad X230 (8 GB) i IdeaPad
 110 (4 GB) — po otwarciu zaledwie dwóch kart i odczekaniu chwili albo po zminimalizowaniu i przywróceniu okna
@@ -110,12 +112,12 @@ Pięć kroków:
      PR #134
 [x]  2  Balon: virtio-balloon, wolne strony wracają do K1   S7–S11           1           D2, T1–T5        L        0044
      PR #137
-[ ]  3  Pamięć komputera dla wszystkich                     S5, S14          2           D3, T6           M        —
-     [w toku: Claude, gałąź claude/focused-galileo-cdf7um]
+[x]  3  Pamięć komputera dla wszystkich                     S5, S14          2           D3, T6           M        —
+     PR #140
 [x]  4  Wybór sesji przeglądarki; Ustawienia → Przeglądarka S16–S19          0.10.0      D4, D5, T8       S        —
      PR #139
-[ ]  5  Przewijanie po nowej karcie; wydanie 0.10.1         S20–S22          1, 3, 4     D6               S        —
-     [w toku: Claude, gałąź claude/intelligent-franklin-4wqxt1]
+[x]  5  Przewijanie po nowej karcie; wydanie 0.10.1         S20–S22          1, 3, 4     D6               S        —
+     PR #NUMER_PR
 (ADR 0044 — następny wolny po ADR-ach 0.10.0; jeśli 0.10.0 zajmie więcej, krok bierze kolejny wolny. Plan 0.10.5 bierze
 numery po tym.)
 
@@ -388,19 +390,19 @@ KROK 5 — Przewijanie po otwarciu nowej karty; wydanie 0.10.1                  
   Co widzi użytkownik: otwierasz nową kartę (Ctrl+T albo „+”), wchodzisz na stronę — kółko i dwa palce przewijają ją
   od razu, bez ruszania myszą, klikania czy przełączania kart; tak samo po powrocie do starej karty.
   Zadania:
-  [ ] Odtworzenie (S20, D6): test-przegladarka.sh — scenariusz: długa strona testowa (ta z 0.10.0 krok 4) przewija się
+  [x] Odtworzenie (S20, D6): test-przegladarka.sh — scenariusz: długa strona testowa (ta z 0.10.0 krok 4) przewija się
       → nowa karta (Ctrl+T i „+”) → ta sama długa strona w nowej karcie → kółko bez ruchu myszy, potem po ruchu →
       strona przewinięta (strona sama mówi, jak daleko — jak dziś); powrót do pierwszej karty i to samo. Przed poprawką
       czerwony (jeśli zielony w CI, a u właściciela błąd jest — skill §7: 1–2 próby, potem obraz z artefaktu PR-a).
-  [ ] Przyczyna (S21, S22): kolejno — (1) dokąd kompozytor wysyła przewijanie po nowej karcie (log kompozytora w
+  [x] Przyczyna (S21, S22): kolejno — (1) dokąd kompozytor wysyła przewijanie po nowej karcie (log kompozytora w
       strefie próbnej / liczniki: która powierzchnia jest „pod kursorem”, czy dostała wl_pointer.enter); (2) czy VMM
       i gość w ogóle dostają zdarzenia kółka (licznik „przewijanie” w linii K1-STREFA wejścia do gościa); (3) Firefox
       (APZ, fokus treści) — dopiero gdy (1) i (2) są w porządku. Wpis w „Ustaleniach z wykonania” z dowodem z logu.
-  [ ] Poprawka u źródła: w kompozytorze zgodnie z protokołem (wl_pointer: enter/leave po zmianie sceny pod nieruchomym
+  [x] Poprawka u źródła: w kompozytorze zgodnie z protokołem (wl_pointer: enter/leave po zmianie sceny pod nieruchomym
       kursorem — jak inne kompozytory, gdy powierzchnia pod kursorem znika albo się zmienia), bez luzowania sprawdzeń
       bezpieczeństwa; test na hoście tej części, jeśli da się ją wydzielić jako czystą (wybór powierzchni pod
       kursorem po zmianie sceny).
-  [ ] Wydanie: VERSION 0.10.1; CHANGELOG (Dodane / Zmienione / Poprawione — wszystkie kroki 1–5, z opisów PR-ów);
+  [x] Wydanie: VERSION 0.10.1; CHANGELOG (Dodane / Zmienione / Poprawione — wszystkie kroki 1–5, z opisów PR-ów);
       porządki wersji PATCH: martwy kod stałej pamięci, kolumna K1_STREFY, liczby w docs (D6 planu 0.10.0: „ok. 1,5 GB,
       na 4 GB jedna sesja” — już nieaktualne), pliki blisko limitu; DO_ZROBIENIA.txt — „Teraz” → 0.10.5
       (docs/PLAN-0.10.5.txt), lista testów na X230 i IdeaPadzie dla 0.10.1 (wiersz „Właściciel” niżej, z list w
@@ -413,7 +415,31 @@ KROK 5 — Przewijanie po otwarciu nowej karty; wydanie 0.10.1                  
   Dokumenty: strefa.md (kompozytor: wskaźnik po zmianie sceny), TESTY.md (nowy scenariusz), CHANGELOG, skill kons-dev
   (pułapka, jeśli przyczyna okaże się nieoczywista), DO_ZROBIENIA.
   Gotowe, gdy: przewijanie po nowej karcie działa w CI, wydanie k1-v0.10.1 istnieje, raport z linkami.
-  Ustalenia z wykonania: (pusto — wypełnia krok 5)
+  Ustalenia z wykonania (2026-11-17; D6 właściciela: kółko i dwa palce, także w starych kartach, wraca dopiero po
+  zamknięciu przeglądarki, IdeaPad):
+  - PRZYCZYNA (POTWIERDZONE próbą): kompozytor strefy wysyłał ramki palców z `axis_source` „finger”, ale NIGDY
+    `axis_stop`. GTK 3.24 (gdkdevice-wayland.c, flush_scroll_event) kończy gest touchpada tylko ramką stop; Firefox
+    (nsWindow::OnScrollEvent: mPanInProgress) wysyła wtedy PANGESTURE_END. Bez niego APZ (InputQueue: aktywny blok gestu
+    przesuwania, MustStayActive do końca gestu) kieruje każdy następny ruch palców do celu z początku gestu — strony karty,
+    w której palce przewinęły pierwszy raz. Po nowej karcie ten cel jest niewidoczny (a po powrocie do starej karty już
+    nie istnieje) — palce nie przewijają nic, w żadnej karcie, do końca przeglądarki. Precyzyjne kółko (części ząbka bez
+    ząbka) kompozytor też brał za palce — stąd „kółko też”. Hipoteza S21 (wybór powierzchni pod kursorem) — nie ta: ruch
+    myszą nie pomagał (D6 d), a na stanowisku powierzchnia pod kursorem była cały czas dobra (jedno wl_pointer.enter).
+  - ODTWORZENIE: na hoście (stanowisko — `scripts/stanowisko.sh`, scenariusz `testy/stanowisko/palce.py`; Firefox z obrazu
+    strefy w chroot i nasz kompozytor z ASan): na main po nowej karcie palce i precyzyjne kółko — y=0, także po ruchu,
+    kliknięciu i powrocie do pierwszej karty (5 błędów); po poprawce — wszystko przewija. QEMU nie udaje touchpada ani
+    precyzyjnego kółka (ząbki po 120), więc w CI ten przypadek nie wychodzi; test-przegladarka dostał scenariusz kółka po
+    nowej karcie (Ctrl+T, „+”, powrót) jako ochronę przed innym błędem tego miejsca. Przebieg 150 (w dół 228, w górę
+    tylko do 114) — nie odtworzony na stanowisku; po kroku 2 i 3 nie powtórzył się (158, 159, 162).
+  - POPRAWKA: VMM oznacza ramkę touchpada (`BTN_TOOL_FINGER` wciśnięty i puszczony w niej; bit w urządzeniu
+    wskazującym; rdzeń wejścia gościa przepuszcza obie zmiany — drivers/input/input.c). Kompozytor: palce tylko po tym
+    znaku; gest kończy `palce.c` (czyste, `test_palce`) — po 200 ms bez ramki palców (K1 nie wysyła podniesienia palców)
+    albo od razu przed kółkiem, wciśnięciem przycisku i zmianą powierzchni pod kursorem; ramka stop MUSI mieć
+    `axis_source` „finger” (GTK zeruje źródło po każdej ramce — bez tego koniec byłby „kółkiem” i gest dalej trwałby).
+  - Druga obsługa kółka w Firefoksie (nsWaylandDisplay: własny wl_pointer, axis_value120) działa dopiero od wersji 8
+    wl_pointer — nasz kompozytor ogłasza 5, więc jej nie dotyczy.
+  - Porządki: martwego kodu stałej pamięci nie było (kolumna `K1_STREFY` = pamięć na start); test przeglądarki zostaje
+    informacyjny do 0.10.5 (decyzja właściciela 2026-11-17).
 
 UWAGI Z DRUGIEJ OPINII (właściciel, 2026-11-16: uwagi Gemini o balonach w mikro-maszynach) — co z nich wynika w planie:
   - „Brak autopilota: sterownik w gościu to tylko mięśnie, decyduje demon na hoście” — tak; w K1 tym demonem jest
@@ -489,7 +515,8 @@ Twoje (produkt):
        w okienku, bez czerwieni); uwaga o braku K1-DANE i o wirtualizacji — jedna spokojna linia nad listą, tylko
        gdy dotyczy.
 
-[!] D6 (krok 5) Twoje obserwacje przewijania (czat zada je na początku kroku 5; możesz dopisać od razu): (a) kółko,
+[x] D6 (krok 5) Odpowiedź właściciela z 2026-11-17: (a) kółko i dwa palce; (b) — (nie wybrał); (c) także w starych
+       kartach; (d) wraca dopiero po zamknięciu przeglądarki; (e) IdeaPad 110. Pytanie z planu: (a) kółko,
        dwa palce czy oba; (b) nowa karta przez Ctrl+T, „+”, czy link w nowej karcie; (c) psuje się tylko w nowej karcie,
        czy potem także w starych; (d) wraca po ruszeniu myszą, po kliknięciu w stronę, po przełączeniu kart — czy
        dopiero po zamknięciu przeglądarki; (e) X230, IdeaPad, czy oba.

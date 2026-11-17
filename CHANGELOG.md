@@ -3,6 +3,61 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.10.1] — 2026-11-17
+
+**Balon: pamięć strefy według potrzeby** (plan 0.10.1, kroki 1–5; ADR 0044). Przeglądarka nie wysypuje się już przy
+przełączaniu kart ani po minimalizacji, bierze tyle pamięci, ile potrzebuje, i oddaje K1 to, czego nie używa; przy
+otwieraniu wybierasz sesję, a kółko i dwa palce przewijają strony także po otwarciu nowej karty.
+
+### Dodane
+- **Balon** (krok 2, ADR 0044, Twoja decyzja D2): sesja przeglądarki bierze tyle pamięci, ile w tej chwili potrzebuje —
+  najwyżej pamięć komputera minus rezerwa K1 (768 MB na 4 GB, 1 GB od 8 GB; IdeaPad ok. 2,9 GB, X230 ok. 6,6 GB; dotąd
+  na sztywno 1,5 GB). Zwolniona pamięć (zamknięta karta) wraca do K1 sama w kilka sekund.
+- **Pamięć komputera dla wszystkich** (krok 3, Twoja decyzja D3): gdy K1 brakuje pamięci, najpierw po cichu zabiera
+  nieużywaną pamięć sesjom w tle (sesji, w której pracujesz — na końcu); gdy to nie wystarcza — okienko **„Mało
+  pamięci”** z listą sesji, ich pamięcią i „Zamknij” przy każdej; w krytycznym braku K1 sam zamyka sesję w tle z największą
+  pamięcią i mówi o tym. **Zasoby → „Sesje przeglądarki”**: pasek w kolorze sesji, „1,1 GB z 2,8 GB”. Na 4 GB zmieszczą się
+  dwie lekkie sesje naraz.
+- **Okienko „Którą sesję otworzyć?”** (krok 4, Twoja decyzja D4): Przeglądarka w menu Start pokazuje na środku ekranu
+  kafelki sesji (kolor, nazwa, „pamięta / zapomina”, „otwarta”); otwarta sesja wychodzi na wierzch, nie startuje drugi raz.
+- **Prawdziwy powód końca strefy** (krok 1): nowe zdanie „Strefa zużyła całą pamięć, którą K1 jej daje”; w logu liczniki
+  strefy co 5 s (pamięć, zram, grafika, połączenia) i to, który program w strefie się skończył — same liczby.
+
+### Zmienione
+- **Ustawienia → Przeglądarka** (krok 4, Twoja decyzja D5): każda sesja w swojej karcie; nic już nie nachodzi na sąsiednią
+  sesję; „Wyczyść dane…” pyta w okienku; uwagi (bez K1-DANE, bez wirtualizacji) — jedna spokojna linia nad listą.
+- Pamięć sesji z wiersza `K1_STREFY` (1536 MiB) to teraz „pamięć na start” — ile musi być wolne, żeby sesja ruszyła;
+  procesy VMM stref mają `oom_score_adj` (w tle 800, w oknie 500) — przy braku pamięci jądro zatrzyma przeglądarkę, nie
+  usługę K1.
+
+### Naprawione
+- **Przeglądarka wysypywała się przy przełączaniu kart, po minimalizacji i „później, bez minimalizacji”** (krok 1, D1):
+  przyczyną był nasz kompozytor w strefie, nie pamięć — odrzucał podgląd karty pokazany drugi raz (Firefox tworzy jego
+  część od nowa na tym samym miejscu, protokół Wayland na to pozwala) i odłączał przeglądarkę.
+- **Przewijanie po otwarciu nowej karty** (krok 5, D6 — IdeaPad): po nowej karcie dwa palce (i precyzyjne kółko) nie
+  przewijały już niczego, w żadnej karcie, aż do zamknięcia przeglądarki. Kompozytor strefy nigdy nie kończył gestu palców
+  (`axis_stop`), a Firefox wysyła dalsze ruchy niezakończonego gestu do strony, na której się zaczął; precyzyjne kółko
+  (części ząbka) brał za palce. Teraz VMM oznacza ramki z touchpada, a gest kończy się po 200 ms bez ruchu palców albo od
+  razu przed kółkiem, kliknięciem i zmianą okna pod kursorem.
+- Statystyki pamięci gościa nie docierały do K1 (krok 3): sterownik balonu powiadamia przed `DRIVER_OK`, VMM to
+  odrzucał.
+- Testy: test przeglądarki z dłuższym limitem (50 min, Twoja decyzja z 2026-11-17).
+
+### Porządki
+- Martwego kodu stałej pamięci strefy nie ma — kolumna pamięci `K1_STREFY` zostaje jako „pamięć na start” (słownik);
+  liczby w dokumentach (1,5 GB, „na 4 GB jedna sesja”) poprawione w README, `strefa.md` i słowniku.
+- Tymczasowe: test przeglądarki informacyjny — nowy termin 0.10.5 (Twoja decyzja z 2026-11-17); K1U1–K1U3 — 0.11.0 bez
+  zmian. Nowych rozwiązań tymczasowych 0.10.1 nie dodało.
+- Nowe narzędzie: **stanowisko na hoście** (`scripts/stanowisko.sh`) — kompozytor strefy i prawdziwy Firefox z obrazu
+  strefy bez maszyny wirtualnej; tak znaleziono oba błędy przeglądarki tej wersji.
+- Blisko limitu 600 wierszy (dzielić przed następną rozbudową): `test_odcinki.c` (599), `k1_rysuj.c` (542), `uslugi.c`
+  (540), `t_wifi_ap.c` (528), `powierzchnia.c` (527).
+
+### Bezpieczeństwo
+- Balon: każdy numer strony, blok i statystyka od gościa sprawdzane przed dotknięciem pamięci (`test_balon`,
+  `fuzz_balon`); złośliwy gość kończy tylko swoją strefę; twarda granica pamięci w klatce VMM (memory.max). Nowe komunikaty
+  stref sprawdzane pole po polu (`test_komunikat`, fuzzing). RYZYKA R88–R90.
+
 ## [0.10.0] — 2026-11-16
 
 **Strefy: pierwsza strefa i przeglądarka** (plan 0.10.0, kroki 1–5; ADR 0042, 0043) — pierwsza wersja tematu 0.10 Strefy.

@@ -317,7 +317,7 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 **Plan — jedno miejsce (ADR 0035):** stan, mapa drogi i otwarte decyzje — `docs/DO_ZROBIENIA.txt`; kroki bieżącej
 wersji — `docs/PLAN-<wersja>.txt` (samodzielny: luki, kroki, decyzje; zakres zamrożony, nowe pomysły → „Później”;
 numery kroków się nie zmieniają; zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
-Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (0.10.0 gotowe — plan w `docs/archiwum/PLAN-0.10.0.txt`: strefa próbna, przeglądarka, poprawki, przewijanie, sesje, które pamiętają; teraz 0.10.1 Balon (pamięć strefy według potrzeby, `docs/PLAN-0.10.1.txt`; kroki 1–4 zrobione) , 0.10.3 Filmy (sprzętowe dekodowanie filmów dla stref, `docs/PLAN-0.10.3.txt`) i 0.10.5 Aktualizacje przez sieć (`docs/PLAN-0.10.5.txt`) (mikro-maszyny, ramka,
+Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (0.10.0 gotowe — plan w `docs/archiwum/PLAN-0.10.0.txt`: strefa próbna, przeglądarka, poprawki, przewijanie, sesje, które pamiętają; 0.10.1 Balon gotowe — pamięć strefy według potrzeby, `docs/archiwum/PLAN-0.10.1.txt`; teraz 0.10.3 Filmy (sprzętowe dekodowanie filmów dla stref, `docs/PLAN-0.10.3.txt`), potem 0.10.5 Aktualizacje przez sieć (`docs/PLAN-0.10.5.txt`) (mikro-maszyny, ramka,
 przeglądarka; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery, TPM)
 → **0.13 Audyt** → 1.0. Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11,
 M10 = 0.12, M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).

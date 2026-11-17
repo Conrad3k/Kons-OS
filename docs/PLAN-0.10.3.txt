@@ -32,7 +32,7 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
 Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, krok 2, krok 3.
-Cała wersja zaczyna się po wydaniu 0.10.1 (Balon, docs/PLAN-0.10.1.txt — zmienia VMM, pamięć stref i Ustawienia →
+Cała wersja zaczyna się po wydaniu 0.10.1 (Balon, docs/archiwum/PLAN-0.10.1.txt — zmienia VMM, pamięć stref i Ustawienia →
 Przeglądarka, na których ten plan stoi). Krok 1 to głównie próby i ADR — można go zrobić wcześniej, równolegle
 z 0.10.1, jeśli nie dotyka tych samych plików (próby na osobnej gałęzi, do main tylko ADR i ustalenia).
 
@@ -45,7 +45,7 @@ i krótka lista „co kliknąć, co powinno się stać”) — karty Intela nie 
 Nowy czat — przebieg każdego kroku:
   1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
   2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2 i 3 — także „Ustalenia
-     z wykonania” kroków wcześniejszych i ADR z kroku 1. Przeczytaj też ustalenia planu 0.10.1 (docs/PLAN-0.10.1.txt
+     z wykonania” kroków wcześniejszych i ADR z kroku 1. Przeczytaj też ustalenia planu 0.10.1 (docs/archiwum/PLAN-0.10.1.txt
      albo docs/archiwum/) — balon, podział pamięci i nowy układ Ustawień → Przeglądarka mogły wyjść inaczej.
   3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
   4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.

@@ -28,7 +28,9 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.8.2 Pliki — dopracowanie, część 2 | skarbiec na duże dane (szybki start, prawie cały pendrive na pliki), pendrive z telefonu, duże zdjęcia, aplikacja Podgląd, „Otwórz za pomocą”, przeciąganie | PRZETESTOWANE w QEMU (ADR 0036, 0037) |
 | 0.9.0 Sieć — kabel | adres od routera, nic w K1 nie odpowiada z zewnątrz, ikona sieci, Ustawienia → Sieć, zegar z internetu | PRZETESTOWANE w QEMU (ADR 0038, 0039) |
 | 0.9.1 Sieć — Wi-Fi | Wi-Fi na laptopach (sterowniki z jądra, pliki od producentów kart), lista sieci, łączenie z hasłem i z siecią otwartą, zapamiętane sieci | PRZETESTOWANE w QEMU z udawanymi kartami (ADR 0041) i na laptopach właściciela (2026-11-14; IdeaPad: Qualcomm) |
-| 0.10 Strefy | każda obca aplikacja (przeglądarka, Discord…) w swojej mikro-maszynie; kolorowa ramka; stała/jednorazowa; pełna izolacja/szybka grafika | PLANOWANE (ADR 0020) |
+| 0.10.0 Strefy — przeglądarka | Firefox w osobnej mikro-maszynie (strefie) z własnym jądrem, zaufana ramka w kolorze sesji, sesje Ogólna / Bank / Prywatna, które pamiętają albo zapominają, przewijanie kółkiem i touchpadem | PRZETESTOWANE w QEMU z KVM (ADR 0042, 0043); na sprzęcie — lista w `docs/DO_ZROBIENIA.txt` |
+| 0.10.1 Strefy — balon | pamięć sesji według potrzeby (wolna wraca do K1), „Mało pamięci” i sesje w Zasobach, okienko „Którą sesję otworzyć?”, przeglądarka nie wysypuje się przy kartach, przewijanie po nowej karcie | PRZETESTOWANE w QEMU z KVM (ADR 0044); palce w Firefoksie — na stanowisku na hoście |
+| 0.10 Strefy (dalej) | filmy dekodowane kartą graficzną (0.10.3), aktualizacje przez sieć (0.10.5), inne obce aplikacje, wspólna strefa, pełna izolacja/szybka grafika | PLANOWANE (ADR 0020, 0024, 0025) |
 | 0.11 Pliki ze stref | przenoszenie plików ze stref i do stref przez okno K1, schowek między strefami | PLANOWANE |
 | 0.12–0.13 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |
 
