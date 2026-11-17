@@ -70,20 +70,50 @@ void pamiec_zram(void)
     loguj("pamięć kompresowana: %llu MiB", (unsigned long long)(ram >> 20));
 }
 
+/* A small file of the guest's kernel, as text; the length, or -1. */
+static ssize_t czytaj(const char *plik, char *b, size_t n)
+{
+    int fd = open(plik, O_RDONLY | O_CLOEXEC);
+    ssize_t r = fd >= 0 ? read(fd, b, n - 1) : -1;
+    if (fd >= 0)
+        close(fd);
+    if (r >= 0)
+        b[r] = '\0';
+    return r;
+}
+
 /* The kernel's count of processes killed for lack of memory, or 0. */
 unsigned long pamiec_zabite(void)
 {
     char b[8192];
     const char *p;
-    int fd = open("/proc/vmstat", O_RDONLY | O_CLOEXEC);
-    ssize_t n = fd >= 0 ? read(fd, b, sizeof b - 1) : -1;
-    if (fd >= 0)
-        close(fd);
-    if (n <= 0)
+    if (czytaj("/proc/vmstat", b, sizeof b) <= 0)
         return 0;
-    b[n] = '\0';
     p = strstr(b, "\noom_kill ");
     return p != NULL ? strtoul(p + 10, NULL, 10) : 0;
+}
+
+/* The counters for the VMM (0.10.1 step 1, S13), every few seconds: "liczniki <available MiB> <zram MiB> <OOM kills>"
+ * — numbers only; the VMM checks each and logs them in one line with its own. */
+void pamiec_liczniki(int ster)
+{
+    char b[2048], l[64];
+    const char *p;
+    unsigned long dostepna = 0, zram = 0;
+    int n;
+    if (ster < 0)
+        return;
+    if (czytaj("/proc/meminfo", b, sizeof b) > 0 && (p = strstr(b, "MemAvailable:")) != NULL)
+        dostepna = strtoul(p + 13, NULL, 10) >> 10; /* kB */
+    if (czytaj("/sys/block/zram0/mm_stat", b, sizeof b) > 0) { /* orig_data_size compr_data_size mem_used_total … */
+        char *k;
+        strtoull(b, &k, 10);
+        strtoull(k, &k, 10);
+        zram = (unsigned long)(strtoull(k, NULL, 10) >> 20);
+    }
+    n = snprintf(l, sizeof l, "liczniki %lu %lu %lu\n", dostepna, zram, pamiec_zabite());
+    if (n > 0 && n < (int)sizeof l && write(ster, l, (size_t)n) != n)
+        loguj("kanał sterujący: zapis nieudany");
 }
 
 void pamiec_chron(pid_t glowny)

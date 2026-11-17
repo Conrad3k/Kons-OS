@@ -14,6 +14,9 @@
 #   5. w logu K1 żadnego adresu strony ani wpisanego tekstu (niezmiennik 8) — tylko liczniki
 #   5a. PRZEWIJANIE (0.10.0 krok 4): długa strona testowa przewijana kółkiem — w dół i z powrotem; strona sama mówi
 #      serwerowi, jak daleko ją przewinięto (zrzut przegladarka-6-dluga)
+#   5b. KARTY, MINIMALIZACJA, CZEKANIE (0.10.1 krok 1, D1 właściciela): druga karta, 20 przełączeń kart z kursorem nad
+#      kartą (jej podgląd); 10 × minimalizuj na pasku K1 i przywróć z paska zadań; 1 min bez ruchu — przeglądarka żyje;
+#      przed poprawką kompozytora strefy (0.10.1) drugi podgląd karty kończył przeglądarkę (reguła 28)
 #   6. PAMIĘĆ (0.10.0 krok 3, S26; od przebiegu 142 na samym końcu, we własnej strefie): strona testowa zajmuje 1400 MiB w strefie, która ma 1536 MiB (jak ciężkie strony,
 #      po których na IdeaPadzie z 4 GB okno przeglądarki znikało) — strona dochodzi do końca, przeglądarka i strefa żyją
 #   7. zamknięcie okna: maszyna kończy się, liczniki połączeń w logu
@@ -235,6 +238,83 @@ def pokaz(w, h, px):  # on failure: what the zone and nadzorca said (counts only
     print(f"            | obrazek okno {w_ // 2}x150 " + base64.b64encode(zlib.compress(b, 9)).decode(), flush=True)
 
 
+def zyje():  # the zone still runs (no end, no program of the guest ended by itself)
+    t_ = q.tekst()
+    return f"strefa {STREFA}: koniec" not in t_ and "K1-STREFA: gość: program strefy zakończył się sam" not in t_
+
+
+def kto_skonczyl():  # 0.10.1 step 1 (S15): who of the guest's programs ended, numbers only (the VMM's line)
+    k = re.findall(r"K1-STREFA: gość: (?:przeglądarka|kompozytor) zakończony[^\n]*", q.tekst())
+    return k[-1][:200] if k else "nikt"
+
+
+KARTA1, KARTA2 = (150, 22), (380, 22)  # the tabs in a 1024-wide window (Firefox's tab bar: 225 px a tab)
+
+
+def karty():  # 0.10.1 step 1 (D1 f, S15): the owner's test — two tabs, switching every 1–2 s, the pointer stays over
+    # the tab (Firefox shows the tab's preview after about a second). Before the fix of 0.10.1 the second preview
+    # ended the browser: our compositor refused a subsurface made again on the same surface (rule 28).
+    q.pisz("ctrl-t")  # a new, empty tab
+    time.sleep(3)
+    for i in range(20):
+        kx, ky = KARTA1 if i % 2 == 0 else KARTA2
+        q.klik(x + kx, y + ky)
+        time.sleep(1.5)  # over the tab: its preview comes
+        if not zyje():
+            print(f"            | karty: strefa skończyła się po {i + 1} przełączeniach — {kto_skonczyl()}", flush=True)
+            return False
+    q.zrzut("9-karty")
+    return zyje()
+
+
+def pasek_zadan():  # where the zone's item is on the bottom bar (gui logs the bar); None: not found
+    pk = re.findall(r"K1-GUI: pasek zmieniony: Start \d+,\d+, aplikacje od (\d+),(\d+) co (\d+), dźwięk \d+,\d+ "
+                    r"\(pasek: ([^)]*)\)", q.tekst())
+    if not pk:
+        return None
+    ax, ay, co, el = int(pk[-1][0]), int(pk[-1][1]), int(pk[-1][2]), pk[-1][3].split(", ")
+    i = max((j for j, e in enumerate(el) if "Przeglądarka" in e), default=None)
+    przypiete = next((j for j, e in enumerate(el) if e.startswith("| ")), len(el))
+    return None if i is None else (ax + i * co + (9 if przypiete <= i else 0), ay)
+
+
+def minimalizacja():  # 0.10.1 step 1 (D1 d, S12): minimise from K1's title bar, back from the bottom bar, 10 times —
+    # the pointer leaves the picture over its top edge (the tab bar) on the way to the bar's button
+    pasek = r"K1-EKRAN: strefa: pasek okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr)
+    for i in range(10):
+        n, nz, np_ = q.ile(pasek), q.ile(rf"K1-EKRAN: okno {nr} zminimalizowane"), q.ile(rf"K1-EKRAN: okno {nr} przywrócone")
+        q.idz(x + w_ // 2, y + 60)
+        q.idz(x + w_ // 2, y - 20)  # onto the bar: ekran logs its buttons
+        p = czekaj(pasek, od=n, czas=30)
+        if not p:
+            return False
+        q.klik(int(p.group(1)), int(p.group(2)))
+        if not czekaj(rf"K1-EKRAN: okno {nr} zminimalizowane", od=nz, czas=30):
+            return False
+        time.sleep(1)
+        e = pasek_zadan()
+        if e is None:
+            return False
+        q.klik(*e)
+        if not czekaj(rf"K1-EKRAN: okno {nr} przywrócone", od=np_, czas=30):
+            return False
+        q.idz(x + KARTA1[0], y + KARTA1[1] + 4)  # back over the tabs, as a hand would
+        time.sleep(1.5)  # long enough for the tab's preview (about a second)
+        if not zyje():
+            print(f"            | minimalizacja: strefa skończyła się po {i + 1} razach — {kto_skonczyl()}", flush=True)
+            return False
+    return zyje()
+
+
+def czekanie(s):  # 0.10.1 step 1 (D1 e): two tabs and nothing done — the zone lives; the counters every 5 s (S13)
+    n = q.ile(r"K1-STREFA: liczniki: gość")
+    q.idz(x + w_ // 2, y + h_ // 2)
+    q.cisza(rf"strefa {STREFA}: koniec|program strefy zakończył się sam", s)
+    for l_ in re.findall(r"K1-STREFA: liczniki: gość[^\n]*", q.tekst())[-2:]:
+        print("            | " + l_[:240], flush=True)
+    return zyje() and q.ile(r"K1-STREFA: liczniki: gość — dostępna \d+ MiB, zram \d+ MiB, zabite \d+") > n
+
+
 def przewiniecia():  # 0.10.0 step 4: how far the long page said it was scrolled, in order
     return [int(p.split("=", 1)[1]) for p in odebrane if p.startswith("/przewinieto?y=")]
 
@@ -430,6 +510,12 @@ t_ = q.tekst()
 sprawdz("w logu K1 żadnego adresu strony ani wpisanego tekstu — tylko liczniki (niezmiennik 8)",
         TEKST not in t_ and f"10.0.2.2:{port}" not in t_ and "10.0.2.3" not in t_ and "wyslij" not in t_)
 
+sprawdz("KARTY: dwie karty, przełączanie co 1,5 s z kursorem nad kartą (jej podgląd), 20 razy — przeglądarka żyje "
+        "(0.10.1 krok 1, D1 f; zrzut przegladarka-9-karty)", karty())
+sprawdz("MINIMALIZACJA: 10 × minimalizuj na pasku K1 i przywróć z paska zadań — przeglądarka żyje (0.10.1 krok 1, D1 d)",
+        minimalizacja())
+sprawdz("CZEKANIE: dwie karty, 1 min bez ruchu — przeglądarka żyje, liczniki strefy co 5 s w logu (0.10.1 krok 1, D1 e)",
+        czekanie(60))
 sprawdz("PRZEWIJANIE: kółko nad długą stroną przewija ją w dół, potem z powrotem na górę (0.10.0 krok 4; zrzut "
         "przegladarka-6-dluga-przewinieta)", przewijanie())
 sprawdz("SESJE: strona ustawia ciasteczko (serwer: pierwsze wejście bez niego)", ciastko() == "brak")
@@ -456,6 +542,9 @@ PY
 
 echo "[k1] test przeglądarki (0.10.0 krok 2): strefa „Ogólna”, Firefox, strona przez łącznik, formularz, odmowa D3"
 r=0
-K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I "$K1_BUDOWA/przegladarka.py" "$K1_REPO" "$TESTY" "$CZAS" "$CMDLINE" $EMULACJA || r=1
+# The whole test within its limit (+2 min to close): on a slow CI day it ends as a failed test — informational
+# (testy.sh) — instead of running past the limit of the whole tests step (CI run 146 of PR #134: 44 min, all killed).
+K1_TESTY_PY="$K1_REPO/testy/qemu" timeout --kill-after=10 $((CZAS + 120)) \
+    python3 -I "$K1_BUDOWA/przegladarka.py" "$K1_REPO" "$TESTY" "$CZAS" "$CMDLINE" $EMULACJA || r=1
 if [ $r -eq 0 ]; then info "przeglądarka: wszystko zaliczone"; else echo "[k1] przeglądarka: BŁĄD (log: $TESTY/przegladarka.log)"; fi
 exit $r

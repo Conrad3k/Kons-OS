@@ -84,7 +84,7 @@ static void k_utworz_pow(struct klient *k, struct obiekt *o, union arg *a)
         return;
     p = calloc(1, sizeof *p);
     if (p == NULL) {
-        blad(k, o, BLAD_PAMIEC, "brak pamięci");
+        blad(k, o, BLAD_PAMIEC, R_PAMIEC);
         return;
     }
     p->o = n;
@@ -102,7 +102,7 @@ static void k_utworz_region(struct klient *k, struct obiekt *o, union arg *a)
         return;
     r = calloc(1, sizeof *r);
     if (r == NULL) {
-        blad(k, o, BLAD_PAMIEC, "brak pamięci");
+        blad(k, o, BLAD_PAMIEC, R_PAMIEC);
         return;
     }
     r->pusty = 1;
@@ -176,7 +176,7 @@ static void w_klatka(struct klient *k, struct obiekt *o, union arg *a)
     struct stan_pow *s = &((struct powierzchnia *)o->dane)->nowy;
     struct obiekt *n;
     if (s->n_wywolan >= WYWOLANIA_MAKS) {
-        blad(k, o, BLAD_PAMIEC, "za dużo wywołań klatki");
+        blad(k, o, BLAD_PAMIEC, R_WYWOLANIA);
         return;
     }
     n = obiekt_nowy(k, a[0].u, IF_CALLBACK, 1);
@@ -299,7 +299,7 @@ static void zastosuj(struct powierzchnia *p, struct stan_pow *s)
         p->szer = p->wys = 0;
     } else if (s->dolaczono && s->bufor != NULL && s->bufor->typ == IF_BUFFER) {
         if (kopiuj(p, s->bufor->dane, s) != 0)
-            blad(p->o->klient, s->bufor, BLAD_PAMIEC, "bufor nie do odczytu");
+            blad(p->o->klient, s->bufor, BLAD_PAMIEC, R_BUFOR_ODCZYT);
         zdarzenie(s->bufor, 0, ""); /* wl_buffer.release: we have our copy */
     }
     if (s->wej_jest) {
@@ -401,11 +401,19 @@ static void sc_podpow(struct klient *k, struct obiekt *o, union arg *a)
     r = a[2].o->dane;
     for (x = r; x != NULL; x = x->rodzic)
         if (x == p) {
-            blad(k, o, SUB_ZLA_POWIERZCHNIA, "pętla podpowierzchni");
+            blad(k, o, SUB_ZLA_POWIERZCHNIA, R_PODPOW_PETLA);
             return;
         }
-    if (p->rola != ROLA_BRAK || r->n_stos > DZIECI_MAKS) {
-        blad(k, o, SUB_ZLA_POWIERZCHNIA, "powierzchnia ma już rolę");
+    /* A role is the surface's for good, but the same role may be given again (wayland.xml: "must not already have
+     * another role, and it must not have an existing wl_subsurface object"): Firefox destroys the subsurface of a tab's
+     * preview when it hides and makes it again on the same surface — refused, that ended the browser (0.10.1 step 1,
+     * S15). */
+    if ((p->rola != ROLA_BRAK && p->rola != ROLA_PODPOW) || p->podpow != NULL) {
+        blad(k, o, SUB_ZLA_POWIERZCHNIA, R_PODPOW_ROLA);
+        return;
+    }
+    if (r->n_stos > DZIECI_MAKS) {
+        blad(k, o, BLAD_PAMIEC, R_PODPOW_ZA_DUZO);
         return;
     }
     n = obiekt_nowy(k, a[0].u, IF_SUBSURFACE, 1);
@@ -416,6 +424,7 @@ static void sc_podpow(struct klient *k, struct obiekt *o, union arg *a)
     p->rola = ROLA_PODPOW;
     p->rodzic = r;
     p->sync = 1;
+    p->px = p->py = p->px_nowy = p->py_nowy = 0; /* a new subsurface starts at its parent's corner */
     r->stos[r->n_stos++] = p;
 }
 
@@ -427,6 +436,13 @@ static void pp_zwolnij(struct obiekt *o)
     scena_zmiana_powierzchni(p);
     wyjmij(p);
     p->podpow = NULL;
+    if (p->czekajacy_jest) { /* a subsurface's cached state goes with it; its frame callbacks are done */
+        unsigned i;
+        for (i = 0; i < p->czekajacy.n_wywolan; i++)
+            wywolanie_gotowe(p->czekajacy.wywolania[i], teraz_ms());
+        memset(&p->czekajacy, 0, sizeof p->czekajacy);
+        p->czekajacy_jest = 0;
+    }
     o->dane = NULL;
 }
 
@@ -447,7 +463,7 @@ static void pp_umiesc(struct klient *k, struct obiekt *o, struct obiekt *s, int 
         return;
     sib = s->dane;
     if (sib == p || (sib != r && sib->rodzic != r)) {
-        blad(k, o, SUB_ZLA_POWIERZCHNIA, "zły sąsiad");
+        blad(k, o, SUB_ZLA_POWIERZCHNIA, R_PODPOW_SASIAD);
         return;
     }
     wyjmij(p);

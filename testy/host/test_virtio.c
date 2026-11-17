@@ -11,6 +11,7 @@
 #include <linux/virtio_ring.h>
 
 #include "k1_test_host.h"
+#include "linia.h"
 #include "mmio.h"
 #include "virtq.h"
 
@@ -316,8 +317,30 @@ static void t_transport(void)
     EXPECT(pisz(&u, VIRTIO_MMIO_QUEUE_READY, 1) == -1);
 }
 
+/* 0.10.1 step 1: the guest's lines with numbers on the control channel (linia.c) — only the exact form passes */
+static void t_linie(void)
+{
+    uint32_t w[3];
+    EXPECT(linia_liczby("liczniki 812 3 0", "liczniki", w, 3, 1u << 24) == 1 && w[0] == 812 && w[1] == 3 && w[2] == 0);
+    EXPECT(linia_liczby("kto 1 128 28", "kto", w, 3, 999) == 1 && w[1] == 128 && w[2] == 28);
+    EXPECT(linia_liczby("kto 1 2", "kto", w, 3, 999) == 0);            /* too few */
+    EXPECT(linia_liczby("kto 1 2 3 4", "kto", w, 3, 999) == 0);        /* too many */
+    EXPECT(linia_liczby("kto 1 2 1000", "kto", w, 3, 999) == 0);       /* above the limit */
+    EXPECT(linia_liczby("kto 1 2 99999999999999999999", "kto", w, 3, 999) == 0); /* no overflow */
+    EXPECT(linia_liczby("kto 1  2 3", "kto", w, 3, 999) == 0);         /* two spaces */
+    EXPECT(linia_liczby("kto 1 -2 3", "kto", w, 3, 999) == 0);         /* a sign */
+    EXPECT(linia_liczby("kto 1 02 3", "kto", w, 3, 999) == 0);         /* a leading zero */
+    EXPECT(linia_liczby("kto 1 2 3 ", "kto", w, 3, 999) == 0);         /* trailing */
+    EXPECT(linia_liczby("kto 1 2 3x", "kto", w, 3, 999) == 0);
+    EXPECT(linia_liczby("ktoś 1 2 3", "kto", w, 3, 999) == 0);         /* another word */
+    EXPECT(linia_liczby("kto", "kto", w, 3, 999) == 0);
+    EXPECT(linia_liczby("kto 4294967295", "kto", w, 1, 0xffffffffu) == 1 && w[0] == 0xffffffffu);
+    EXPECT(linia_liczby("kto 4294967296", "kto", w, 1, 0xffffffffu) == 0);
+}
+
 int main(void)
 {
+    t_linie();
     t_lancuchy();
     t_wrogie();
     t_sprawdz();

@@ -26,6 +26,7 @@ void przegladarka(int ster);            /* returns when the machine should end *
 /* pamiec.c — the zone's memory (0.10.0 step 3): compressed swap, who goes first when memory runs out */
 void pamiec_zram(void);                 /* logged either way */
 unsigned long pamiec_zabite(void);      /* the guest kernel's count of OOM kills */
+void pamiec_liczniki(int ster);         /* "liczniki …" to the VMM (0.10.1 step 1): memory, zram, OOM kills */
 void pamiec_chron(pid_t glowny);        /* the browser's main process goes last */
 void pamiec_kolejnosc(uid_t uid, pid_t glowny); /* every other process of uid goes first */
 

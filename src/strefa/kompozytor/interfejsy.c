@@ -43,7 +43,7 @@ static void r_przywiaz(struct klient *k, struct obiekt *o, union arg *a)
     struct obiekt *n;
     if (nazwa == 0 || nazwa >= IF_LICZBA || !interfejsy[nazwa].globalny ||
         strcmp(a[1].s, interfejsy[nazwa].nazwa) != 0 || wersja == 0 || wersja > interfejsy[nazwa].wersja) {
-        blad(k, o, BLAD_ZLY_OBIEKT, "zły obiekt globalny");
+        blad(k, o, BLAD_ZLY_OBIEKT, R_GLOBALNY);
         return;
     }
     n = obiekt_nowy(k, a[3].u, (int)nazwa, wersja);

@@ -7,6 +7,7 @@
 #      w środku wzór gościa (zrzut)
 #   3. kliknięcie i klawisz docierają do gościa (licznik w logu gościa, zmiana wzoru); bez fokusu klawisz nie dociera;
 #      kółko (0.10.0 krok 4) dociera — z fokusem i bez niego (okno pod kursorem)
+#   (0.10.1 krok 1) linia liczników strefy co kilka sekund i przy końcu, szczyt pamięci klatki u nadzorcy
 #   4. kursor na pasku: przyciski K1 (zrzut); przeciągnięcie paska przesuwa okno; „minimalizuj” chowa okno
 #   5. okno K1 (Zegar) na wierzchu zasłania strefę, ramka strefy zostaje tam, gdzie jej nie zasłania; ciemny motyw
 #   6. „zamknij” na pasku: gość dostaje „zamknij” (vsock), kończy się, maszyna znika, okno też
@@ -215,6 +216,15 @@ sprawdz("„zamknij” na pasku: VMM prosi gościa (vsock), gość się zamyka, 
         czekaj(r"K1-STREFA: strefa 1: koniec — gość zakończył pracę \(reset\)", czas=60) and
         czekaj(r"K1-EKRAN: okno {} zamknięte".format(nr), czas=30) and
         czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 0\)", czas=30))
+
+sprawdz("LICZNIKI (0.10.1 krok 1): co kilka sekund linia liczników — pamięć gościa, zram, grafika, połączenia; przy końcu "
+        "jeszcze raz; nadzorca: szczyt pamięci klatki i zdarzenia jej limitu",
+        czekaj(r"K1-STREFA: liczniki: gość — dostępna [1-9]\d* MiB, zram \d+ MiB, zabite 0; grafika: zasoby [1-9]",
+               czas=10) and czekaj(r"K1-STREFA: liczniki przy końcu: gość — dostępna", czas=10) and
+        czekaj(r"K1-NADZORCA: strefa 1: pamięć klatki — szczyt [1-9]\d* MiB \(od startu K1\), limit osiągnięty 0, zabite 0",
+               czas=10))
+for l_ in re.findall(r"K1-STREFA: liczniki[^\n]*", q.tekst())[-2:]:
+    print("            | " + l_[:240], flush=True)
 
 POWODY = {1: "deskryptor poza pamięcią gościa", 2: r"pętla deskryptorów \(łańcuch dłuższy niż kolejka\)",
           3: "virtio-blk: odczyt dłuższy niż limit", 4: "virtio-blk: zapis do obrazu tylko do odczytu"}

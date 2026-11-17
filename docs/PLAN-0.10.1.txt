@@ -106,7 +106,8 @@ Pięć kroków:
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
-[ ]  1  Awaria kart; pomiar i przyczyna, liczniki, powody   S1–S6, S12–S15  0.10.0      D1, T7           M        —
+[x]  1  Awaria kart; pomiar i przyczyna, liczniki, powody   S1–S6, S12–S15  0.10.0      D1, T7           M        —
+     PR #134
 [ ]  2  Balon: virtio-balloon, wolne strony wracają do K1   S7–S11           1           D2, T1–T5        L        0044
 [ ]  3  Pamięć komputera dla wszystkich                     S5, S14          2           D3, T6           M        —
 [ ]  4  Wybór sesji przeglądarki; Ustawienia → Przeglądarka S16–S19          0.10.0      D4, D5, T8       S        —
@@ -165,7 +166,34 @@ KROK 1 — Pomiar i przyczyna: odtworzenie, liczniki, prawdziwy powód końca   
   TESTY.md (scenariusze a, b).
   Gotowe, gdy: przyczyna wpisana w „Ustaleniach z wykonania” (z liczbami), okienko mówi prawdziwy powód, scenariusze
   (a) i (b) są stałą częścią test-przegladarka.sh.
-  Ustalenia z wykonania: (pusto — wypełnia krok 1)
+  Ustalenia z wykonania (2026-11-16/17, PR #134):
+  - S15 POTWIERDZONE — przyczyna awarii przy przełączaniu kart to NASZ KOMPOZYTOR, nie pamięć ani Firefox. Firefox ESR
+    pokazuje po ok. 1 s trzymania kursora nad kartą jej PODGLĄD (xdg_popup z podpowierzchnią). Chowając podgląd, niszczy
+    wl_subsurface, a przy następnym tworzy nową na TEJ SAMEJ wl_surface. wayland.xml na to pozwala („must not already
+    have another role, and it must not have an existing wl_subsurface object”), a kompozytor odrzucał każdą powierzchnię
+    z rolą → wl_display.error → GTK kończy Firefoksa (kod 1) → gosc „koniec awaria” → okienko „Program w strefie uległ
+    awarii”. Poprawka: ta sama rola drugi raz (podpowierzchnia bez wl_subsurface: pozycja 0,0, stan czekający odrzucony,
+    jego wywołania klatki „gotowe”; xdg_surface po zniszczeniu poprzedniej). Odtworzone W KONTENERZE, bez maszyny: Firefox
+    z obrazu strefy (chroot w kopii build/strefa-przegladarka) + nasz kompozytor zbudowany na hoście z ASan/UBSan
+    (wyświetlacz w pamięci z zrzutem PPM, wejście z kolejki FIFO zamiast /dev/input — narzędzie tylko w notatkach
+    sesji, nie w repo). Przed: po 3–4 przełączeniach z najechaniem „błąd protokołu (powierzchnia ma już rolę)”.
+    Po: 20 przełączeń, menu ☰, menu pod prawym przyciskiem, lista paska adresu — żyje, bez błędów ASan. CI z KVM (przebieg
+    146): pierwsza sesja przeżyła 1025 s — 20 przełączeń, 10 minimalizacji, 2 min czekania, przewijanie — bez awarii
+    i bez żadnej reguły w logu.
+  - D1 d, e (minimalizacja, „później bez minimalizacji”) — TEN SAM BŁĄD, nie pamięć (Z KODU + próba): kursor wychodzi
+    z okna strefy górną krawędzią (pasek tytułu K1, przycisk minimalizuj); ekran nie wysyła ruchów spoza okna, więc gość
+    ma kursor dalej nad paskiem kart → podgląd karty; drugi podgląd kończył przeglądarkę. „Później” — każde dłuższe
+    najechanie na kartę. D1 b, c (puste karty, < 1 min) zgodne. Balon (krok 2) nie był potrzebny do tych awarii.
+  - S1–S4 (pamięć): w CI 146 pamięć dostępna w gościu ok. 1,3–1,45 GiB przy pustych kartach, zabite 0, zram 0, szczyt
+    klatki VMM 765–1068 MiB z 1720 — żaden limit nie pękł. Zapas klatki 184 MiB wystarcza (bez zmiany).
+  - S3: memory.events — „oom_kill” liczy zabicia przez KAŻDY OOM (także całego komputera; cgroup-v2.rst), o limicie
+    klatki mówi tylko „oom” → nowy powód K1_STREFA_KONIEC_LIMIT (8). NIEPEWNE z planu POTWIERDZONE: liczniki zostają po
+    końcu procesów (klatka trwa), nadzorca pamięta wartości ze startu; przed pierwszym startem klatki nie ma (= 0).
+  - S13, S15: liczniki co 5 s i „kto P K R” — same liczby, sprawdzane w linia.c (test_virtio). Reguły kompozytora mają
+    numery (K1_REGULY); błąd podglądu karty to reguła 28.
+  - CI: test przeglądarki z nowymi scenariuszami i wolnym startem Firefoksa (do 201 s) przekroczył limit całego kroku
+    testów (44 min, przebieg 146) — test pilnuje teraz swojego limitu (`timeout`), czekanie 60 s.
+  - (c) ciężkie strony i tryb „pamięć” strefy próbnej — przeniesione do kroku 2 (tam są potrzebne).
 
 KROK 2 — Balon: virtio-balloon, wolne strony wracają do K1                   L · decyzje D2, T1–T5 · ADR 0044
   Cel: pamięć strefy nie jest już stała. Strefa startuje z górną granicą zależną od pamięci komputera (D2), ale K1

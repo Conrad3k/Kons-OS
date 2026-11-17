@@ -2,8 +2,10 @@
  *   VSOCK_STEROWANIE (1): one connection, the guest's control channel — text lines "gotowa" (the guest is up) and
  *     "zamykam"; the VMM sends "zamknij" when ekran asks to close the zone (0.10.0 step 1); since step 3 (S26) also
  *     "koniec pamiec|awaria|sam" (why the browser ended by itself: K1 tells the user) and "pamiec strona" (a page
- *     killed for lack of memory), "etap okno" (the browser's first window: the time to the log, S30) — only these exact
- *     lines, anything else is counted and ignored;
+ *     killed for lack of memory), "etap okno" (the browser's first window: the time to the log, S30); since 0.10.1
+ *     step 1 "liczniki A Z K" (the guest's memory, zram, OOM kills: one line of counters with ours, S13) and "kto P K R"
+ *     (who ended and how, S15) — numbers only, checked by linia.c — only these exact lines, anything else is counted
+ *     and ignored;
  *   POL_PORT (2): the browser's connections through the relay in the zone, up to K1_STREFA_POLACZENIA_MAKS, each with
  *     its own credit; their bytes go to and from polaczenia.c (0.10.0 step 2, ADR 0043 T9).
  * Any other connection is refused (RST). Every header from the guest is checked: its CIDs, type, length within the
@@ -17,6 +19,7 @@
 #include "k1_komunikat.h"
 #include "k1_log.h"
 #include "k1_teraz.h"
+#include "linia.h"
 #include "polaczenia.h"
 #include "strefa.h"
 
@@ -173,10 +176,62 @@ void vsock_wyslij(void)
         mmio_uzyte(u);
 }
 
+/* The counters (0.10.1 step 1, S13): the guest's numbers from "liczniki" and ours, one line every few seconds — at
+ * most one every LICZNIKI_ODSTEP s, whatever the guest sends — and once more at the machine's end (vsock_podsumowanie). */
+#define LICZNIKI_ODSTEP 4.0
+static struct {
+    uint32_t g[3];   /* the guest's: available MiB, zram MiB, OOM kills */
+    int sa;          /* the guest sent them at least once */
+    double t;        /* the last line (k1_teraz) */
+} lz;
+
+static void liczniki_loguj(const char *kiedy)
+{
+    unsigned zasoby, mib;
+    gpu_liczniki(&zasoby, &mib);
+    if (lz.sa)
+        k1_log(TAG, "liczniki%s: gość — dostępna %u MiB, zram %u MiB, zabite %u; grafika: zasoby %u, %u MiB; "
+                    "połączenia %u; vsock czeka %d, odrzucone %lu", kiedy, lz.g[0], lz.g[1], lz.g[2], zasoby, mib,
+               pol_zajete(), v.n_czeka, v.odrzucone);
+    else
+        k1_log(TAG, "liczniki%s: gość — brak; grafika: zasoby %u, %u MiB; połączenia %u; vsock czeka %d, odrzucone %lu",
+               kiedy, zasoby, mib, pol_zajete(), v.n_czeka, v.odrzucone);
+}
+
+void vsock_podsumowanie(void)
+{
+    liczniki_loguj(" przy końcu");
+}
+
+/* "kto <1 browser|2 compositor> <code> <rule>" (0.10.1 step 1, S15): who of the guest's programs ended by itself —
+ * numbers only, logged once (the first one counts, as "koniec"). */
+static void kto(const uint32_t *w)
+{
+    static int byl;
+    if (byl || w[0] < 1 || w[0] > 2)
+        return;
+    byl = 1;
+    if (w[2] > 0)
+        k1_log(TAG, "gość: %s zakończony (kod %u) — kompozytor odrzucił przeglądarkę (reguła %u)",
+               w[0] == 1 ? "przeglądarka" : "kompozytor", w[1], w[2]);
+    else
+        k1_log(TAG, "gość: %s zakończony (kod %u)", w[0] == 1 ? "przeglądarka" : "kompozytor", w[1]);
+}
+
 static void linia_od_goscia(void)
 {
+    uint32_t w[3];
     v.linia[v.dl] = '\0';
-    if (strcmp(v.linia, "gotowa") == 0)
+    if (linia_liczby(v.linia, "liczniki", w, 3, 1u << 24)) {
+        memcpy(lz.g, w, sizeof lz.g);
+        lz.sa = 1;
+        if (k1_teraz() - lz.t >= LICZNIKI_ODSTEP) {
+            lz.t = k1_teraz();
+            liczniki_loguj("");
+        }
+    } else if (linia_liczby(v.linia, "kto", w, 3, 999))
+        kto(w);
+    else if (strcmp(v.linia, "gotowa") == 0)
         k1_log(TAG, "gość gotowy (kanał sterujący) po %.1f s", k1_teraz() - mz.start_t);
     else if (strcmp(v.linia, "etap okno") == 0) /* S30: how long the browser takes to start */
         k1_log(TAG, "gość: okno przeglądarki po %.1f s od startu maszyny", k1_teraz() - mz.start_t);

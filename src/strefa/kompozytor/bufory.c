@@ -37,13 +37,13 @@ static void s_utworz_pule(struct klient *k, struct obiekt *o, union arg *a)
     void *m;
     if (a[2].i <= 0) {
         close(a[1].h);
-        blad(k, o, SHM_ZLY_FD, "zły rozmiar puli");
+        blad(k, o, SHM_ZLY_FD, R_PULA_ROZMIAR);
         return;
     }
     m = mmap(NULL, (size_t)a[2].i, PROT_READ, MAP_SHARED, a[1].h, 0);
     close(a[1].h);
     if (m == MAP_FAILED) {
-        blad(k, o, SHM_ZLY_FD, "pula nie do zmapowania");
+        blad(k, o, SHM_ZLY_FD, R_PULA_MAPA);
         return;
     }
     n = obiekt_nowy(k, a[0].u, IF_SHM_POOL, 1);
@@ -63,12 +63,12 @@ static void p_utworz_bufor(struct klient *k, struct obiekt *o, union arg *a)
     struct obiekt *n;
     struct bufor *b;
     if (a[5].u > 1) {
-        blad(k, o, SHM_ZLY_FORMAT, "nieobsługiwany format");
+        blad(k, o, SHM_ZLY_FORMAT, R_BUFOR_FORMAT);
         return;
     }
     if (w <= 0 || h <= 0 || w > POWIERZCHNIA_MAKS || h > POWIERZCHNIA_MAKS || przes < 0 || krok < w * 4 ||
         (uint64_t)przes + (uint64_t)krok * (uint64_t)h > p->rozmiar) {
-        blad(k, o, SHM_ZLY_KROK, "bufor poza pulą");
+        blad(k, o, SHM_ZLY_KROK, R_BUFOR_POZA_PULA);
         return;
     }
     n = obiekt_nowy(k, a[0].u, IF_BUFFER, 1);
@@ -85,12 +85,12 @@ static void p_zmien(struct klient *k, struct obiekt *o, union arg *a)
     struct pula *p = o->dane;
     void *m;
     if (a[0].i <= 0 || (size_t)a[0].i < p->rozmiar) {
-        blad(k, o, SHM_ZLY_FD, "pula nie może zmaleć");
+        blad(k, o, SHM_ZLY_FD, R_PULA_MALEJE);
         return;
     }
     m = mremap(p->mapa, p->rozmiar, (size_t)a[0].i, MREMAP_MAYMOVE);
     if (m == MAP_FAILED) {
-        blad(k, o, SHM_ZLY_FD, "pula nie do powiększenia");
+        blad(k, o, SHM_ZLY_FD, R_PULA_POWIEKSZENIE);
         return;
     }
     p->mapa = m;

@@ -55,19 +55,25 @@ void klient_koniec(struct klient *k)
     free(k);
 }
 
-void blad(struct klient *k, const struct obiekt *o, uint32_t kod, const char *opis)
+#define X_T(n, t) t,
+static const char *const reguly[R_LICZBA] = { "", K1_REGULY(X_T) };
+#undef X_T
+
+void blad(struct klient *k, const struct obiekt *o, uint32_t kod, int regula)
 {
+    const char *opis = regula > R_BRAK && regula < R_LICZBA ? reguly[regula] : "?";
     if (k->zly)
         return;
-    kloguj("klient: błąd protokołu (%s)", opis);
+    kloguj("klient: błąd protokołu (reguła %d: %s)", regula, opis);
     zdarzenie(&k->obiekty[1], 0, "ous", o != NULL ? (struct obiekt *)o : &k->obiekty[1], kod, opis);
+    zglos_regule(regula);
     k->zly = 1;
 }
 
 struct obiekt *obiekt_nowy(struct klient *k, uint32_t id, int typ, uint32_t wersja)
 {
     if (id == 0 || id >= OBIEKTY_MAKS || k->obiekty[id].typ != IF_BRAK) {
-        blad(k, NULL, BLAD_ZLY_OBIEKT, "zły nowy identyfikator");
+        blad(k, NULL, BLAD_ZLY_OBIEKT, R_NOWY_ID);
         return NULL;
     }
     k->obiekty[id] = (struct obiekt){ id, typ, wersja, k, NULL };
@@ -90,11 +96,11 @@ struct obiekt *obiekt_typu(struct klient *k, struct obiekt *o, int typ, int moze
 {
     if (o == NULL) {
         if (!moze_null)
-            blad(k, NULL, BLAD_ZLY_OBIEKT, "brak obiektu");
+            blad(k, NULL, BLAD_ZLY_OBIEKT, R_BRAK_OBIEKTU);
         return NULL;
     }
     if (o->typ != typ) {
-        blad(k, o, BLAD_ZLY_OBIEKT, "obiekt innego rodzaju");
+        blad(k, o, BLAD_ZLY_OBIEKT, R_RODZAJ_OBIEKTU);
         return NULL;
     }
     return o;
@@ -112,7 +118,7 @@ static int argument(struct klient *k, char c, int nullable, const uint8_t *p, si
 {
     uint32_t v, dl;
     if (*i + 4 > koniec)
-        return blad(k, NULL, BLAD_ZLA_METODA, "wiadomość za krótka"), -1;
+        return blad(k, NULL, BLAD_ZLA_METODA, R_KROTKA), -1;
     v = slowo(p + *i);
     *i += 4;
     switch (c) {
@@ -120,38 +126,38 @@ static int argument(struct klient *k, char c, int nullable, const uint8_t *p, si
     case 'u': a->u = v; return 0;
     case 'n':
         if (v == 0 || v >= OBIEKTY_MAKS || k->obiekty[v].typ != IF_BRAK)
-            return blad(k, NULL, BLAD_ZLY_OBIEKT, "zły nowy identyfikator"), -1;
+            return blad(k, NULL, BLAD_ZLY_OBIEKT, R_NOWY_ID), -1;
         a->u = v;
         return 0;
     case 'o':
         if (v == 0) {
             a->o = NULL;
-            return nullable ? 0 : (blad(k, NULL, BLAD_ZLY_OBIEKT, "brak obiektu"), -1);
+            return nullable ? 0 : (blad(k, NULL, BLAD_ZLY_OBIEKT, R_BRAK_OBIEKTU), -1);
         }
         if (v >= OBIEKTY_MAKS || k->obiekty[v].typ == IF_BRAK)
-            return blad(k, NULL, BLAD_ZLY_OBIEKT, "nieznany obiekt"), -1;
+            return blad(k, NULL, BLAD_ZLY_OBIEKT, R_NIEZNANY_OBIEKT), -1;
         a->o = &k->obiekty[v];
         return 0;
     case 's': case 'a':
         dl = v;
         if (dl > koniec - *i || ((dl + 3u) & ~3u) > koniec - *i)
-            return blad(k, NULL, BLAD_ZLA_METODA, "długość poza wiadomością"), -1;
+            return blad(k, NULL, BLAD_ZLA_METODA, R_DLUGOSC), -1;
         if (c == 'a') {
             a->a.p = p + *i;
             a->a.n = dl;
         } else if (dl == 0) {
             if (!nullable)
-                return blad(k, NULL, BLAD_ZLA_METODA, "brak napisu"), -1;
+                return blad(k, NULL, BLAD_ZLA_METODA, R_BRAK_NAPISU), -1;
             a->s = NULL;
         } else {
             if (p[*i + dl - 1] != '\0' || memchr(p + *i, '\0', dl - 1) != NULL)
-                return blad(k, NULL, BLAD_ZLA_METODA, "napis bez końca"), -1;
+                return blad(k, NULL, BLAD_ZLA_METODA, R_NAPIS_KONIEC), -1;
             a->s = (const char *)(p + *i);
         }
         *i += (dl + 3u) & ~3u;
         return 0;
     default:
-        return blad(k, NULL, BLAD_WEWNETRZNY, "zła sygnatura"), -1;
+        return blad(k, NULL, BLAD_WEWNETRZNY, R_SYGNATURA), -1;
     }
 }
 
@@ -167,12 +173,12 @@ static void wiadomosc(struct klient *k, const uint8_t *p, size_t rozmiar)
     const struct zadanie *z;
     const char *s;
     if (id == 0 || id >= OBIEKTY_MAKS || k->obiekty[id].typ == IF_BRAK) {
-        blad(k, NULL, BLAD_ZLY_OBIEKT, "nieznany obiekt");
+        blad(k, NULL, BLAD_ZLY_OBIEKT, R_NIEZNANY_OBIEKT);
         return;
     }
     o = &k->obiekty[id];
     if (op >= interfejsy[o->typ].ob->n_zadan) {
-        blad(k, o, BLAD_ZLA_METODA, "nieznane polecenie");
+        blad(k, o, BLAD_ZLA_METODA, R_POLECENIE);
         return;
     }
     z = &interfejsy[o->typ].ob->zadania[op];
@@ -182,12 +188,12 @@ static void wiadomosc(struct klient *k, const uint8_t *p, size_t rozmiar)
             continue;
         }
         if (n >= ARGUMENTY_MAKS) {
-            blad(k, o, BLAD_WEWNETRZNY, "za dużo argumentów");
+            blad(k, o, BLAD_WEWNETRZNY, R_ARGUMENTY);
             break;
         }
         if (*s == 'h') {
             if (k->fd_we_n == 0) {
-                blad(k, o, BLAD_ZLA_METODA, "brak deskryptora");
+                blad(k, o, BLAD_ZLA_METODA, R_BRAK_FD);
                 break;
             }
             a[n].h = k->fd_we[0];
@@ -200,7 +206,7 @@ static void wiadomosc(struct klient *k, const uint8_t *p, size_t rozmiar)
         nullable = 0;
     }
     if (!k->zly && i != rozmiar)
-        blad(k, o, BLAD_ZLA_METODA, "wiadomość za długa");
+        blad(k, o, BLAD_ZLA_METODA, R_DLUGA);
     if (k->zly) {
         for (j = 0; j < n_fd; j++)
             close(fds[j]);
@@ -229,7 +235,7 @@ static void deskryptory(struct klient *k, struct msghdr *m)
                 k->fd_we[k->fd_we_n++] = fd;
             } else {
                 close(fd);
-                blad(k, NULL, BLAD_PAMIEC, "za dużo deskryptorów");
+                blad(k, NULL, BLAD_PAMIEC, R_ZA_DUZO_FD);
             }
         }
     }
@@ -248,12 +254,12 @@ int klient_czytaj(struct klient *k)
         return -1;
     deskryptory(k, &m);
     if (m.msg_flags & MSG_CTRUNC)
-        blad(k, NULL, BLAD_PAMIEC, "obcięte deskryptory");
+        blad(k, NULL, BLAD_PAMIEC, R_OBCIETE_FD);
     k->we_n += (size_t)r;
     while (!k->zly && k->we_n >= 8) {
         uint32_t rozmiar = slowo(k->we + 4) >> 16;
         if (rozmiar < 8 || rozmiar > WIADOMOSC_MAKS || rozmiar % 4 != 0) {
-            blad(k, NULL, BLAD_ZLA_METODA, "zły rozmiar wiadomości");
+            blad(k, NULL, BLAD_ZLA_METODA, R_ROZMIAR_WIAD);
             break;
         }
         if (k->we_n < rozmiar)

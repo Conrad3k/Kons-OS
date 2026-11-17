@@ -298,6 +298,9 @@ void sb_przygotuj_klucz(void);
 
 /* zasoby.c */
 extern int zasoby_kanal;
+/* A number in a cgroup file: the value of `klucz` ("oom", "usage_usec") in a key-value file, or the file's single number
+ * (klucz NULL); -1 if missing. */
+long long cgroup_liczba(const char *sciezka, const char *klucz);
 extern int bateria_kanal;
 extern int ustaw_kanal;
 extern int plik_kanal[K1_APL_MAKS + 1]; /* uslugi.c: an application's fd 5 — a file to open (Pliki: a place; 0.8.0) */
