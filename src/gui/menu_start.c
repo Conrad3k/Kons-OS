@@ -59,6 +59,7 @@ void rysuj_menu(void)
     snprintf(wersja, sizeof wersja, "wersja %s", K1_WERSJA);
     k1_tekst(o, K1_CZ_MALA, MARG + MENU_SZER - 20 - k1_tekst_szer(K1_CZ_MALA, wersja), MARG + 42, wersja,
              k1_kolor(m->tekst3, 255), 0);
+    k1_el(K1_EL_ZMIENNE, "Wersja", MARG + MENU_SZER - 140, MARG + 26, 128, 24, 0); /* 0.10.2 step 3: a new one each release */
     for (i = 1; i <= MENU_APL; i++) {
         int a = aplikacja_wiersza(i);
         y = MARG + MENU_NAGL + (i - 1) * MENU_WIERSZ;

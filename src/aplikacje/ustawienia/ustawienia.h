@@ -9,6 +9,7 @@
 #define K1_USTAWIENIA_H
 
 #include "k1_aplikacja.h"
+#include "k1_opis_klient.h"
 #include "k1_wifi.h"
 
 #define TAG "K1-USTAWIENIA"
@@ -33,6 +34,14 @@ static inline int seg_y(void)
 {
     return K1_OKNO_TYTUL + 104;
 }
+
+/* A changing place of the content (0.10.2 step 3, k1_opis.h K1_EL_ZMIENNE): rows y .. y + h, the content's whole width —
+ * the reference screenshots leave it out. */
+static inline void zmienne(const char *nazwa, int32_t y, int32_t h)
+{
+    k1_el(K1_EL_ZMIENNE, nazwa, TRESC_X - 4, y, apl.szer - TRESC_X - 12, h, 0);
+}
+
 /* Title and one-line description of a section. */
 void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul, const char *opis);
 

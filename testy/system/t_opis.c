@@ -95,7 +95,7 @@ int tryb_opisu(void)
 
 static size_t rekord(char *b, size_t n, const struct k1_opis_el *e)
 {
-    static const char kody[] = "?.OPBWKIZF";
+    static const char kody[] = "?.OPBWKIZFM";
     char nazwa[K1_OPIS_NAZWA];
     int w;
     memcpy(nazwa, e->nazwa, sizeof nazwa);

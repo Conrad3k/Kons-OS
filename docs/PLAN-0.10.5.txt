@@ -10,7 +10,7 @@ Numer 0.10.5 wybrał właściciel: 0.10.1–0.10.4 zostają na resztę tematu 0.
 wersje nie powstaną wcześniej, ta i tak nazywa się 0.10.5. 2026-11-16 właściciel wstawił przed nią 0.10.1 „Balon”
 (pamięć strefy według potrzeby, docs/archiwum/PLAN-0.10.1.txt) — ta wersja zaczyna się po wydaniu 0.10.1.
 Tego samego dnia doszło „Filmy” (wtedy 0.10.3); 2026-11-17 właściciel przesunął je na 0.10.7 — PO tej wersji
-(docs/PLAN-0.10.7.txt). 2026-11-17 doszło też 0.10.2 „Testy” (docs/PLAN-0.10.2.txt, ADR 0045) — wychodzi przed tą
+(docs/PLAN-0.10.7.txt). 2026-11-17 doszło też 0.10.2 „Testy” (docs/archiwum/PLAN-0.10.2.txt, ADR 0045) — wychodzi przed tą
 wersją; ta wersja bierze następne wolne numery ADR: 0046 (krok 2) i 0047 (krok 3).
 Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
 Plik jest planem, nie specyfikacją: zmiany architektury idą przez ADR (krok 2 ma swój ADR, krok 3 — swój).

@@ -34,8 +34,10 @@ enum k1_el_rodzaj {
     K1_EL_IKONA = 7,        /* an icon on the desktop or the bar */
     K1_EL_ZAKLADKA = 8,     /* a section or a segment to choose */
     K1_EL_POLE = 9,         /* a text field (its label — never what is in it) */
+    K1_EL_ZMIENNE = 10,     /* a changing place (0.10.2 step 3): what K1 draws there changes by itself — the clock, numbers,
+                             * charts, the version; the reference screenshots leave it out of the comparison */
 };
-#define K1_EL_MAKS 9
+#define K1_EL_MAKS 10
 
 /* State bits. */
 #define K1_EL_WYBRANY 1u     /* selected, on, the current section */

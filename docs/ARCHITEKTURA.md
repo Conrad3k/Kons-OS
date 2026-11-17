@@ -37,7 +37,8 @@ Uruchamiane w QEMU i (obraz ISO) w maszynach wirtualnych. Nie ma dystrybucji, po
 | `musl/` | biblioteka C programów K1 (0.9.0): wersja, SHA-256 i źródła (`wersja.env`), klucz PGP wydań musl (`klucze/`), łatki (`latki/`: CVE-2025-26519, `-static-pie`) — budowa `scripts/zbuduj-musl.sh` → `build/musl` (`musl/README.md`) |
 | `testy/system/` | program testowy uruchamiany wewnątrz K1 (obraz testowy) |
 | `testy/host/` | testy jednostkowe (ASan/UBSan), fuzzing (`fuzz_*.c` + korpusy), podgląd grafiki i narzędzia testowe na hoście (`magazyn_testowy`, `notatki_w_plikach`, `pomiar_magazynu`; obrazy z mtools: `obrazy_fat.sh`, `obrazy_efi.sh`) |
-| `testy/qemu/` | `k1qemu.py` — biblioteka testów w QEMU (klasa `Maszyna`: log, monitor, klik, przeciąganie, zrzuty); `k1siec.py` — sieć testowa (drugi koniec kabla karty sieciowej, ramki Ethernet) |
+| `testy/qemu/` | `k1qemu.py` — biblioteka testów w QEMU (klasa `Maszyna`: log, monitor, klik, przeciąganie, zrzuty); `k1siec.py` — sieć testowa (drugi koniec kabla karty sieciowej, ramki Ethernet); `k1wzorce.py` — zrzuty wzorcowe (0.10.2) |
+| `testy/wzorce/` | zrzuty wzorcowe okien K1 (PNG, oba motywy; 0.10.2) — zmienia je `scripts/przyjmij-wzorce.sh` po akceptacji właściciela |
 | `testy/acpi/` | sztuczna bateria laptopa dla QEMU (`bateria.asl`) |
 | `scripts/` | budowa, QEMU, zrzuty ekranu, testy, kontrole (opis niżej) |
 | `docs/` | SPEC, ADR, ten plik, `DO_ZROBIENIA.txt` (plan), TESTY, SLOWNIK, WYGLAD, ZALEZNOSCI, RYZYKA, `komponenty/` (opis każdego komponentu), `archiwum/` (zamknięte plany wersji) |

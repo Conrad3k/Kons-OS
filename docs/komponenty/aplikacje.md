@@ -11,6 +11,10 @@
 przyciski `k1_przycisk`, wiersze `k1_menu`, segmenty `k1_segment`, „Minimalizuj” i „Zamknij” ramki. Własne elementy
 (sekcje Ustawień, kafelki, listy) aplikacja zgłasza `k1_el(rodzaj, nazwa, x, y, w, h, stan)` tam, gdzie je rysuje — tylko
 z nazwą K1 (etykieta, tytuł), nigdy z tekstem użytkownika, nazwą pliku ani sesji. Bez klienta testowego nic się nie dzieje.
+**Miejsca zmienne (0.10.2 krok 3):** to, co w oknie zmienia się samo, aplikacja zgłasza `k1_el(K1_EL_ZMIENNE, …)` —
+zrzuty wzorcowe (`docs/TESTY.md`) tego nie porównują. Dziś: Ustawienia — zegar (Data i czas), numer wersji
+(Informacje), bateria, miejsce na pliki, karty sieciowe (`zmienne()` w `ustawienia.h`); Zasoby — liczby, wykresy, sesje,
+usługi i czas pracy. Nowa liczba albo czas w oknie, które ma zrzut wzorcowy = nowe miejsce zmienne.
 
 ## Cel
 Każda aplikacja to jeden wiersz w `K1_APLIKACJE` (`src/wspolne/k1_uslugi.h`) i katalog

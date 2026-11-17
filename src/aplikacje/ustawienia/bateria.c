@@ -184,6 +184,7 @@ void bateria_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
                  k1_kolor(m->tekst2, 255), 0);
         return;
     }
+    zmienne("Bateria", seg_y() - 8, apl.wys - seg_y()); /* the level, the chart, the times */
     if (bat.procent >= 0)
         snprintf(buf, sizeof buf, "%d %%", bat.procent);
     else

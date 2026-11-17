@@ -77,5 +77,7 @@ wymaga), ale każda jest mała, robi jedną rzecz i wygląda jak pozostałe.
   dysk sesji, kompozytor) zostają w CI. Nie dodawaj z powrotem testu QEMU z Firefoksem bez decyzji właściciela. Pełny
   `scripts/testy.sh` w kontenerze (bez KVM ok. 40 min) — tylko gdy CI nie działa. Sama dokumentacja — bez testów.
 - Nie edytuj skryptów ani kodu, gdy budowanie albo testy działają w tle.
+- **Zrzuty wzorcowe** (0.10.2, decyzja właściciela D3): wygląd okien K1 pilnuje `scripts/test-wzorce.sh` (`testy/wzorce/`).
+  Wzorce zmienia się dopiero po „OK” właściciela na obrazy „przed / po” (`scripts/przyjmij-wzorce.sh`, `docs/TESTY.md`).
 - Zrzuty ekranu z testów: `build/testy/m4-*.png` (pulpit i aplikacje) i `build/testy/<część>-*.png`. Obraz do maszyny wirtualnej:
   `build/wynik/k1-<wersja>.iso` (CI: Releases).

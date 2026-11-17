@@ -30,6 +30,11 @@ Podgląd tapety bez QEMU: `make build/obj/podglad_grafiki && build/obj/podglad_g
   i menu kontekstowe w kolorach motywu (jasny / ciemny). Na pulpicie przy pierwszym starcie: wszystkie
   aplikacje oprócz Instalatora.
 
+- 2026-11-17 (plan 0.10.2 krok 3, decyzje D3 i D4): **zatwierdzony wygląd pilnują zrzuty wzorcowe**
+  (`testy/wzorce/`, `docs/TESTY.md`) — pulpit z paskami, menu Start, okienko sesji, Ustawienia (każda sekcja), Pliki,
+  Zasoby, Kalkulator i ramka strefy, w obu motywach. **Zmianę wyglądu zatwierdza właściciel (D3):** PR, który ją
+  wprowadza, pokazuje obrazy „przed / po” z testu; wzorce w repo zmieniają się dopiero po jego „OK”.
+
 ## Kierunek (M4)
 - **Charakter:** spokojny, rzeczowy, lekko ciepły.
 - **Świat:** papier i glina — kremowy papier okien, terakota, ciemny brąz wieczoru.

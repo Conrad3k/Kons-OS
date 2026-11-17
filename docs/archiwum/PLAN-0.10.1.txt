@@ -1,7 +1,7 @@
 K1 — PLAN WERSJI 0.10.1 „BALON” (wersja tematu 0.10 Strefy)
 ===========================================================
 
-PLAN ZAMKNIĘTY 2026-11-17: wszystkie kroki zrobione, wydanie 0.10.1 (CHANGELOG.md); dalej docs/PLAN-0.10.2.txt.
+PLAN ZAMKNIĘTY 2026-11-17: wszystkie kroki zrobione, wydanie 0.10.1 (CHANGELOG.md); dalej docs/archiwum/PLAN-0.10.2.txt.
 
 Data: 2026-11-16 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-16), w czasie
 pracy nad 0.10.0 krok 4. Powód: przeglądarka w strefie wysypuje się na OBU laptopach — ThinkPad X230 (8 GB) i IdeaPad

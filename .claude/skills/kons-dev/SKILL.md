@@ -167,6 +167,9 @@ Komentarze i commity po angielsku; nazwy w kodzie po polsku, zgodnie ze słownik
    w słowniku. **Opis ekranu** (0.10.2, ADR 0045): przyciski, menu i segmenty przybornika trafiają do opisu same; własne
    elementy (sekcje, kafelki) zgłoś `k1_el(K1_EL_…, "nazwa K1", x, y, w, h, stan)` tam, gdzie je rysujesz — test klika
    `q.klik_w("<tytuł okna>", "<nazwa>")`. Nigdy tekst użytkownika, nazwa pliku ani sesji (wtedy „plik N”, „sesja N”).
+   **Zrzut wzorcowy** (0.10.2 krok 3): `q.wzorzec("<okno>-jasny", "<tytuł>")` i `-ciemny` w `test-wzorce.sh`; liczby, czas,
+   wykresy — `k1_el(K1_EL_ZMIENNE, "nazwa K1", …)`; pierwszy przebieg daje obraz „po” — właściciel go ogląda, potem
+   `scripts/przyjmij-wzorce.sh` (D3).
 5. Dane spoza okna — kanał w ostatniej kolumnie wiersza (`(KANAL_ZASOBOW)`; nazwy w `src/nadzorca/kanaly.h`, nowy
    kanał = linia tam + moduł nadzorcy, który go obsługuje; wzór: Zasoby, fd 4). Nigdy ścieżki.
 Gotowe części przybornika: `k1_przycisk`, `k1_pole_klawisz`, `k1_menu` (menu pod prawym przyciskiem), `k1_przeciaganie`
@@ -213,12 +216,16 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 |---|---|---|
 | host | `make testy-host`, `make fuzz` | parsery, formaty, logika (ASan/UBSan, libFuzzer); sprawdzaj zachowanie, nie powtarzaj wzorów z kodu |
 | w systemie | `testy/system/` → `/rdzen/system/test-systemu` | obraz testowy = produkcyjny + program testowy; wynik `K1-TEST: WYNIK: OK (n/n)`; klatki, próby, złośliwe komunikaty |
-| QEMU z zewnątrz | `scripts/test-m1/m4/m5/m5f/m6.sh`, `test-pliki.sh`, `test-pendrive.sh`, `test-skarbiec.sh`, `test-strefa.sh` (0.10.0: strefa próbna w emulacji AMD SVM, okno w ramce z paskiem tytułu K1, złośliwy gość, brak wirtualizacji) na `testy/qemu/k1qemu.py` | start i błędy startu, kursor, pulpit i aplikacje (zrzuty po kolorach), USB, instalator, aktualizacje i Secure Boot, Pliki, wirtualny pendrive ze zdjęciami (mtools + Pillow, `device_add`/`device_del`); `test-wifi.sh` (0.9.1): obraz testowy z `mac80211_hwsim.radios=7` — program testowy robi punkty dostępu testowe (`t_wifi.c`) |
+| QEMU z zewnątrz | `scripts/test-m1/m4/m5/m5f/m6.sh`, `test-wzorce.sh` (0.10.2: zrzuty wzorcowe), `test-pliki.sh`, `test-pendrive.sh`, `test-skarbiec.sh`, `test-strefa.sh` (0.10.0: strefa próbna w emulacji AMD SVM, okno w ramce z paskiem tytułu K1, złośliwy gość, brak wirtualizacji) na `testy/qemu/k1qemu.py` | start i błędy startu, kursor, pulpit i aplikacje (zrzuty po kolorach), USB, instalator, aktualizacje i Secure Boot, Pliki, wirtualny pendrive ze zdjęciami (mtools + Pillow, `device_add`/`device_del`); `test-wifi.sh` (0.9.1): obraz testowy z `mac80211_hwsim.radios=7` — program testowy robi punkty dostępu testowe (`t_wifi.c`) |
 | wszystko | `scripts/testy.sh` | to samo uruchamia CI (z KVM równolegle) — przed scaleniem: CI na PR-ze (§9) |
 
 - **Po nazwach (0.10.2, ADR 0045):** pulpit i okna K1 — obraz testowy z dyskiem `k1-test-opis` (wzór: `test-m4`, przebieg
   `pulpit`), `q.klik_w("Menu Start", "Notatki")`, `q.czekaj_na_element(okno, nazwa)`; położenia z logu tylko tam, gdzie
   opisu nie ma (`docs/TESTY.md`). Rola `TEST` i `OPIS_PYTANIE` tylko w ekranie i testach (pilnuje `sprawdz-czytelnosc`).
+- **Zrzuty wzorcowe (0.10.2 krok 3, D3/D4):** `test-wzorce.sh` porównuje okna K1 co do piksela z `testy/wzorce/*.png`
+  (`q.wzorzec(...)`, `testy/qemu/k1wzorce.py`); różnica → `build/testy/wzorce/<nazwa>-przed/-po/-roznica.png` (w CI:
+  artefakt z logami). **Wzorce zmieniasz tylko po „OK” właściciela** na obrazy „przed / po” (`SendUserFile`), skryptem
+  `scripts/przyjmij-wzorce.sh`, osobnym commitem. Zmienne miejsca (czas, liczby, wersja) — `K1_EL_ZMIENNE` w programie.
 - **Bez stałych pauz:** `Maszyna.czekaj`/`czekaj_na` na log, `klik` czeka na potwierdzenie ekranu, `przeciagnij`
   (wciśnięcie, kilka ruchów, puszczenie), `klik_z("ctrl", x, y)` (QEMU `sendkey ctrl 1500` + klik),
   `zrzut(nazwa, gdy=…)` na stan ekranu, `cisza(wzór, s)` na „nic się nie dzieje”. Żadnego `time.sleep`.
@@ -290,7 +297,8 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   znaku UTF-8 — `k1qemu.py` usuwa je z bajtów przed dekodowaniem; bez `MAC80211_RC_MINSTREL` (za EXPERT) mac80211 nie rejestruje kart bez własnego doboru prędkości
   („Failed to select rate control algorithm”: ath9k, rtw88, hwsim); `Maszyna.czekaj(wzor, od=n)` — `n` to liczba
   wcześniejszych dopasowań (`q.ile(wzor)`), nie długość logu; pętla `timeout … until grep KONIEC` mogła skończyć się
-  limitem — przed nowym przebiegiem testu sprawdź `pgrep -af wifi.py|qemu`, inaczej dwa przebiegi mieszają log.
+  limitem — przed nowym przebiegiem testu sprawdź `pgrep -af wifi.py|qemu`, inaczej dwa przebiegi mieszają log (0.10.2: to
+  samo z `test-wzorce` — koniec starego przebiegu zamknął gniazdem monitora maszynę nowego).
 - *Jądro i procesy:* `/proc/cmdline` nie istnieje dla usług (`subset=pid`) — o nośniku czytaj z sysfs;
   `hidepid` daje ENOENT zamiast EACCES; rodzicem usług jest nadzorca, nie init; filtr seccomp działa od
   `execve`, więc obejmuje start musl; `RLIMIT_FSIZE` ogranicza też `ftruncate` memfd (SIGXFSZ = 25).
@@ -322,7 +330,7 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 **Plan — jedno miejsce (ADR 0035):** stan, mapa drogi i otwarte decyzje — `docs/DO_ZROBIENIA.txt`; kroki bieżącej
 wersji — `docs/PLAN-<wersja>.txt` (samodzielny: luki, kroki, decyzje; zakres zamrożony, nowe pomysły → „Później”;
 numery kroków się nie zmieniają; zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
-Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (0.10.0 gotowe — plan w `docs/archiwum/PLAN-0.10.0.txt`: strefa próbna, przeglądarka, poprawki, przewijanie, sesje, które pamiętają; 0.10.1 Balon gotowe — pamięć strefy według potrzeby, `docs/archiwum/PLAN-0.10.1.txt`; teraz 0.10.2 Testy (opis ekranu dla testów, zrzuty wzorcowe, dwa błędy przeglądarki, `docs/PLAN-0.10.2.txt`), potem 0.10.5 Aktualizacje przez sieć (`docs/PLAN-0.10.5.txt`) i 0.10.7 Filmy (sprzętowe dekodowanie filmów dla stref, `docs/PLAN-0.10.7.txt`; do 2026-11-17 „0.10.3”) (mikro-maszyny, ramka,
+Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (0.10.0 gotowe — plan w `docs/archiwum/PLAN-0.10.0.txt`: strefa próbna, przeglądarka, poprawki, przewijanie, sesje, które pamiętają; 0.10.1 Balon gotowe — pamięć strefy według potrzeby, `docs/archiwum/PLAN-0.10.1.txt`; 0.10.2 Testy gotowe — opis ekranu dla testów, zrzuty wzorcowe, dwa błędy przeglądarki, `docs/archiwum/PLAN-0.10.2.txt`; teraz 0.10.5 Aktualizacje przez sieć (`docs/PLAN-0.10.5.txt`) i 0.10.7 Filmy (sprzętowe dekodowanie filmów dla stref, `docs/PLAN-0.10.7.txt`; do 2026-11-17 „0.10.3”) (mikro-maszyny, ramka,
 przeglądarka; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery, TPM)
 → **0.13 Audyt** → 1.0. Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11,
 M10 = 0.12, M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).

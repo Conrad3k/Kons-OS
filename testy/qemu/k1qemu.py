@@ -20,6 +20,9 @@ import sys
 import time
 import zlib
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # also when run as a script with -I (zamknij)
+import k1wzorce  # noqa: E402
+
 KURSOR = re.compile(r"K1-EKRAN: kursor (\d+),(\d+) ")
 PRZYCISK = r"K1-EKRAN: kursor \d+,\d+ przycisk "
 # A kernel message printed in the middle of one of our lines on the shared serial console
@@ -334,9 +337,9 @@ class Maszyna:
     # changes: "K1-TEST: ekran <n> <part>/<parts>: <record> | …", record "<kind> <window> <x>,<y>,<w>,<h> <state> <name>".
 
     OPIS = re.compile(r"K1-TEST: ekran (\d+) (\d+)/(\d+): (.*)")
-    REKORD = re.compile(r"([OPBWKIZF]) (\d+) (-?\d+),(-?\d+),(\d+),(\d+) (\d+) (.+)")
+    REKORD = re.compile(r"([OPBWKIZFM]) (\d+) (-?\d+),(-?\d+),(\d+),(\d+) (\d+) (.+)")
     RODZAJE = {"O": "okno", "P": "panel", "B": "przycisk", "W": "wiersz", "K": "kafelek", "I": "ikona", "Z": "zakladka",
-               "F": "pole"}
+               "F": "pole", "M": "zmienne"}
 
     def ekran(self):
         """The newest whole description: a list of windows and panels bottom to top, each a dict (rodzaj, okno, x, y, w,
@@ -397,6 +400,97 @@ class Maszyna:
             return None
         self.klik(*self.srodek(e))
         return e
+
+    # ---- 0.10.2 step 3: reference screenshots (k1wzorce.py) ----
+
+    def tryb_ekranu(self):
+        """(W, H) of the screen's newest mode from ekran's log, or (0, 0)."""
+        m = re.findall(r"K1-EKRAN: tryb (\d+)x(\d+)", self.tekst())
+        return (int(m[-1][0]), int(m[-1][1])) if m else (0, 0)
+
+    def _wycinek(self, okno, elementy, prostokat):
+        """The rectangle (screen) and the changing places in it (its coordinates) — from the newest description."""
+        o = self.element(okno) if okno else None
+        if prostokat:
+            r = prostokat
+        elif o and elementy:
+            el = [e for e in o["elementy"] if e["rodzaj"] != "zmienne"]
+            if not el:
+                return None, []
+            x0, y0 = min(e["x"] for e in el), min(e["y"] for e in el)
+            r = (x0, y0, max(e["x"] + e["w"] for e in el) - x0, max(e["y"] + e["h"] for e in el) - y0)
+        elif o:
+            r = (o["x"], o["y"], o["w"], o["h"])
+        else:
+            return None, []
+        maski = [(e["x"] - r[0], e["y"] - r[1], e["w"], e["h"]) for e in (o["elementy"] if o else [])
+                 if e["rodzaj"] == "zmienne"]
+        return r, maski
+
+    def _poza(self, r):
+        """The pointer out of rectangle r (the cursor is about 16 × 24 px from its tip): where it is, when it is out
+        already; otherwise the nearest point beside r (short moves: the pointer's position in ekran's log lags)."""
+        W, H = self.tryb_ekranu()
+        poza = lambda x, y: not (r[0] - 24 <= x < r[0] + r[2] + 4 and r[1] - 32 <= y < r[1] + r[3] + 4)
+        k = self.kursor_teraz() or tuple(self.kursor)
+        if poza(*k):
+            return
+        kandydaci = [(k[0], r[1] - 40), (k[0], r[1] + r[3] + 12), (r[0] - 32, k[1]), (r[0] + r[2] + 12, k[1])]
+        kandydaci = [(x, y) for x, y in kandydaci if 4 <= x < W - 24 and 4 <= y < H - 32 and poza(x, y)]
+        if kandydaci:
+            self.idz(*min(kandydaci, key=lambda p: abs(p[0] - k[0]) + abs(p[1] - k[1])))
+
+    def wzorzec(self, nazwa, okno=None, elementy=False, prostokat=None, pomin=(), czas=30):
+        """Window or panel `okno` (whole; with `elementy`: the box of its elements; or `prostokat` on the screen) equal
+        to testy/wzorce/<nazwa>.png pixel by pixel, the changing places and `pomin` (rectangles in the cut-out) left out.
+        Waits up to `czas` s for the window to look so; then the check fails with before / after / difference pictures
+        in <out>/wzorce/. Without a reference picture: fails too, with the "after" (D3 — the owner approves it)."""
+        if okno and not prostokat:
+            self.czekaj_na_element(okno, czas=czas)
+        r, _ = self._wycinek(okno, elementy, prostokat)
+        if r is None:
+            return self.sprawdz(f"wzorzec {nazwa}: „{okno}” na ekranie", False, "brak w opisie ekranu")
+        self._poza(r)
+        katalog = os.path.join(self.out, "wzorce")
+        for przyrostek in ("-przed", "-po", "-roznica"):  # of an earlier run (tests run in parallel: only its own)
+            try:
+                os.unlink(os.path.join(katalog, nazwa + przyrostek + ".png"))
+            except OSError:
+                pass
+        sciezka = os.path.join(k1wzorce.KATALOG, nazwa + ".png")
+        wzor = k1wzorce.wczytaj(sciezka)
+        ppm = f"{self.out}/.{self.przedrostek}-wzorzec-{os.getpid()}.ppm"
+        koniec = time.time() + czas
+        ost, takie_same, wynik = None, 0, None
+        while True:
+            e = ekran(self.mon, ppm)
+            r, maski = self._wycinek(okno, elementy, prostokat)
+            if e and r and r[0] >= 0 and r[1] >= 0 and r[0] + r[2] <= e[0] and r[1] + r[3] <= e[1]:
+                teraz = k1wzorce.zamaskuj(r[2], r[3], k1wzorce.wytnij(e[0], e[1], e[2], *r), maski + list(pomin))
+                takie_same = takie_same + 1 if ost == (r[2], r[3], teraz) else 0
+                ost = (r[2], r[3], teraz)
+                if wzor and wzor[:2] == ost[:2]:
+                    wynik = k1wzorce.rozne(r[2], r[3], wzor[2], teraz)
+                    if wynik[0] == 0:
+                        return self.sprawdz(f"wzorzec {nazwa}: zgodny co do piksela ({r[2]}x{r[3]})", True)
+                elif not wzor and takie_same >= 2:
+                    break
+            if time.time() >= koniec:
+                break
+            time.sleep(0.2)
+        if ost:
+            k1wzorce.zapisz(os.path.join(katalog, nazwa + "-po.png"), *ost)
+        if not wzor:
+            return self.sprawdz(f"wzorzec {nazwa}: brak obrazu wzorcowego", False,
+                                f"nowy: wzorce/{nazwa}-po.png — po akceptacji właściciela scripts/przyjmij-wzorce.sh")
+        k1wzorce.zapisz(os.path.join(katalog, nazwa + "-przed.png"), *wzor)
+        if not ost or wzor[:2] != ost[:2]:
+            return self.sprawdz(f"wzorzec {nazwa}: zgodny co do piksela", False,
+                                f"inny rozmiar: wzorzec {wzor[0]}x{wzor[1]}, teraz " + (f"{ost[0]}x{ost[1]}" if ost else "brak"))
+        k1wzorce.zapisz(os.path.join(katalog, nazwa + "-roznica.png"), ost[0], ost[1],
+                        k1wzorce.obraz_roznicy(ost[0], ost[1], wzor[2], ost[2]))
+        return self.sprawdz(f"wzorzec {nazwa}: zgodny co do piksela", False,
+                            f"{wynik[0]} różnych pikseli w {wynik[1]} — wzorce/{nazwa}-przed/-po/-roznica.png")
 
 
 def zamknij(gniazdo):

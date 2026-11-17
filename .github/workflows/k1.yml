@@ -213,7 +213,7 @@ jobs:
         if: always() && github.event_name == 'pull_request'
         run: |
           tar -czf "build/k1-${K1_WERSJA}-logi.tar.gz" --ignore-failed-read \
-            build/testy/*.log build/testy/*.png build/testy/wynik.txt build/wynik/SHA256SUMS \
+            build/testy/*.log build/testy/*.png build/testy/wzorce/*.png build/testy/wynik.txt build/wynik/SHA256SUMS \
             build/wynik/srodowisko.txt 2>/dev/null || true
           ls -l "build/k1-${K1_WERSJA}-logi.tar.gz" || true
 

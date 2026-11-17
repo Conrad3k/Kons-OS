@@ -4,20 +4,24 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.10.1 „Balon” — przeglądarka w strefie bierze pamięć według potrzeby i oddaje ją K1, okienko „Mało pamięci”,
-wybór sesji przy otwieraniu, przewijanie po nowej karcie (plany zamknięte: docs/archiwum/PLAN-0.10.0.txt, PLAN-0.10.1.txt);
-teraz 0.10.2 „Testy” (plan: docs/PLAN-0.10.2.txt), potem 0.10.5 i 0.10.7 Filmy.
+Stan: 0.10.2 „Testy” — ekran startu przeglądarki do jej okna, zamykanie w tle, opis ekranu dla testów i zrzuty wzorcowe
+(plany zamknięte: docs/archiwum/PLAN-0.10.0.txt, PLAN-0.10.1.txt, PLAN-0.10.2.txt); teraz 0.10.5 Aktualizacje przez sieć
+(plan: docs/PLAN-0.10.5.txt), potem 0.10.7 Filmy.
 Data: 2026-11-17.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — 0.10.2 „Testy”: opis ekranu dla testów, zrzuty wzorcowe, dwa błędy przeglądarki (plan: docs/PLAN-0.10.2.txt)
----------------------------------------------------------------------------------------------------------------------
-Kroki i decyzje — w planie 0.10.2 (trzy kroki: ekran startu i zamykanie przeglądarki w tle, opis ekranu dla testów,
-zrzuty wzorcowe z wydaniem; Twoja prośba z 2026-11-17). Potem 0.10.5 Aktualizacje przez sieć (docs/PLAN-0.10.5.txt)
-i 0.10.7 Filmy (docs/PLAN-0.10.7.txt — do 2026-11-17 „0.10.3”; przesunięte na Twoją prośbę: grafika po fundamentach).
+1. TERAZ — 0.10.5 Aktualizacje przez sieć (plan: docs/PLAN-0.10.5.txt)
+---------------------------------------------------------------------
+Kroki i decyzje — w planie 0.10.5. Potem 0.10.7 Filmy (docs/PLAN-0.10.7.txt — do 2026-11-17 „0.10.3”; przesunięte na
+Twoją prośbę: grafika po fundamentach).
+0.10.2 Testy — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.2.txt; ADR 0045):
+    [x] 0.10.2 krok 1 — ekran startu przeglądarki do jej okna, okno znika od razu po „zamknij”, wyłączanie czeka na
+        sesje — PR #144
+    [x] 0.10.2 krok 2 — opis ekranu dla testów (ADR 0045), test-m4 klika po nazwach — PR #145
+    [x] 0.10.2 krok 3 — zrzuty wzorcowe (40 obrazów, oba motywy), porządki, wydanie 0.10.2 — PR #147
 0.10.1 Balon — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.1.txt; ADR 0044):
     [x] 0.10.1 krok 1 — awaria przy przełączaniu kart naprawiona (kompozytor strefy), liczniki strefy, prawdziwy powód
         końca — PR #134
@@ -33,7 +37,7 @@ i 0.10.7 Filmy (docs/PLAN-0.10.7.txt — do 2026-11-17 „0.10.3”; przesunięt
     0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
     0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
-    0.10     Strefy — 0.10.0 (przeglądarka w strefie) i 0.10.1 Balon gotowe; teraz 0.10.2 Testy, potem 0.10.5, 0.10.7 Filmy
+    0.10     Strefy — 0.10.0 (przeglądarka w strefie), 0.10.1 Balon i 0.10.2 Testy gotowe; teraz 0.10.5, potem 0.10.7 Filmy
              (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
@@ -61,7 +65,7 @@ Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kro
     [ ] sesja, która pamięta: pierwsza strona tuż po starcie przeglądarki bywa wysłana dwa razy, raz bez ciasteczka (CI
         0.10.0, przebieg 138: serwer dostał „brak”, zaraz potem „jest”) — sprawdzić na sprzęcie, czy po otwarciu
         przeglądarki strona, na której byłeś zalogowany, pokazuje się od razu jako zalogowana
-    [ ] okno sesji znika od razu po „zamknij” — w 0.10.2 krok 1 (wyszło w CI 0.10.0, 2026-11-16; Twoje zgłoszenie z 2026-11-17): przeglądarka ma teraz do 20 s na zapisanie
+    [x] okno sesji znika od razu po „zamknij” — 0.10.2 krok 1 (wyszło w CI 0.10.0, 2026-11-16; Twoje zgłoszenie z 2026-11-17): przeglądarka ma teraz do 20 s na zapisanie
         danych sesji, a maszyna do 40 s na koniec — przez ten czas okno zostaje na ekranie (zwykle 1–2 s)
     [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna)
     [ ] Przeglądarka K1 (po pierwszej przeglądarce w strefie): okno, karty i pasek adresu jako aplikacja K1, silnik
@@ -119,9 +123,15 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.10.1). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
-z 2026-11-11). Najlepiej najpierw aktualizacja K1 na dysku przez Instalator z pendrive'a 0.10.1 — dane zostają.
-Nowe w 0.10.1 (Balon; X230 i IdeaPad):
+Jedna lista — dla ostatniego wydania (0.10.2). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+z 2026-11-11). Najlepiej najpierw aktualizacja K1 na dysku przez Instalator z pendrive'a 0.10.2 — dane zostają.
+Nowe w 0.10.2 (Testy; X230 i IdeaPad — przeglądarka, plan 0.10.2 krok 1):
+    [ ] Start → Przeglądarka: „Uruchamiam: Przeglądarka · Ogólna…” z ruchomym odcinkiem w kolorze sesji zostaje, aż pokaże
+        się okno Firefoksa (nie znika po sekundzie)
+    [ ] zamknij okno przeglądarki — znika od razu; kafelek sesji w okienku „Którą sesję otworzyć?” mówi „zamyka się…”
+    [ ] zamknij i od razu otwórz tę samą sesję — otwiera się sama, gdy poprzednia skończy (najwyżej ok. 40 s)
+    [ ] w Ogólnej zaloguj się na jakiejś stronie, zamknij okno i od razu Start → Wyłącz — po starcie dalej zalogowany
+Z 0.10.1 (Balon; niesprawdzone):
     [ ] przewijanie po nowej karcie (krok 5): przewiń stronę dwoma palcami, otwórz nową kartę (Ctrl+T albo „+”), wejdź na
         stronę — dwa palce i kółko przewijają od razu; wróć do pierwszej karty — też; to samo po kilku nowych kartach
     [ ] przełączanie kart (krok 1): Ctrl+T, przełączaj karty co 1–2 s z kursorem nad kartą (podgląd) ok. 20 razy;
@@ -182,7 +192,8 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
     (włączenie — punkt 4).
 [x] 0.10.0 — decyzje D1–D8 podjęte (docs/archiwum/PLAN-0.10.0.txt, punkt 4).
 [x] 0.10.1 — decyzje D1–D6 podjęte (docs/archiwum/PLAN-0.10.1.txt, punkt 4).
-[!] 0.10.2 — decyzje D1–D4 w docs/PLAN-0.10.2.txt (punkt 4); czat zada je na początku swojego kroku.
+[x] 0.10.2 — decyzje D1–D4 podjęte (docs/archiwum/PLAN-0.10.2.txt, punkt 4); D3: zmianę wyglądu zatwierdzasz Ty —
+    PR pokazuje obrazy „przed / po”, wzorce zmieniają się po Twoim „OK”.
 [!] 0.10.7 — decyzje w docs/PLAN-0.10.7.txt (punkt 4); czat zada je na początku swojego kroku.
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
 
@@ -225,6 +236,8 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         z 2026-11-17: przeglądarkę sprawdzasz Ty na sprzęcie, CI jej nie testuje)
     [x] przegląd 0.10.1 (krok 5): termin 0.10.1 zamknięty (wyżej); K1U1–K1U3 — 0.11.0 bez zmian; nowych rozwiązań
         tymczasowych 0.10.1 nie dodało
+    [x] przegląd 0.10.2 (krok 3): terminów na 0.10.2 nie było; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych
+        rozwiązań tymczasowych 0.10.2 nie dodało
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)

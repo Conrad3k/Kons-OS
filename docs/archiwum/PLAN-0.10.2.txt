@@ -1,6 +1,8 @@
 K1 — PLAN WERSJI 0.10.2 „TESTY” (wersja tematu 0.10 Strefy)
 ==========================================================
 
+PLAN ZAMKNIĘTY 2026-11-17: wszystkie kroki zrobione, wydanie 0.10.2 (CHANGELOG.md); dalej docs/PLAN-0.10.5.txt.
+
 Data: 2026-11-17 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-17, przy wydaniu
 0.10.1). Dwa tematy:
   (1) TESTY, które sprawdzają pulpit pewniej: K1 sam mówi testom, co ma na ekranie (zamiast kolorów pikseli), a wygląd
@@ -78,7 +80,7 @@ Testy (kroki 2–3) — tego nie zobaczysz w systemie, ale zobaczysz w spokojnie
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [x]  1  Przeglądarka: ekran startu, zamykanie w tle         S1–S5            0.10.1      D1, D2, T1, T2   M        —   PR #144
 [x]  2  Opis ekranu dla testów; testy klikają po nazwach    S6–S8            0.10.1      T3, T4           M        0045 PR #145
-[w toku: Claude, gałąź claude/stoic-shannon-9iasoo]  3  Zrzuty wzorcowe; wydanie 0.10.2   S9   2   D3, D4   M   —
+[x]  3  Zrzuty wzorcowe; wydanie 0.10.2                     S9               2           D3, D4           M        —   PR #147
 (ADR 0045 — następny wolny po 0044 z 0.10.1; plany 0.10.5 i 0.10.7 biorą numery po tym.)
 
 
@@ -167,18 +169,32 @@ KROK 3 — Zrzuty wzorcowe; wydanie 0.10.2                                      
   Cel: wygląd okien K1 sprawdzany co do piksela z zatwierdzonymi obrazami. Zrzut z QEMU, z niego wycięte okno według
   opisu ekranu (krok 2) — bez kursora i zegara; K1 rysuje sam, więc ten sam kod daje ten sam piksel (S9).
   Zadania:
-  [ ] Zrzuty wzorcowe (D3, D4): testy/wzorce/*.png (małe, oba motywy) dla okien z D4; porównanie w testach QEMU
+  [x] Zrzuty wzorcowe (D3, D4): testy/wzorce/*.png (małe, oba motywy) dla okien z D4; porównanie w testach QEMU
       (k1qemu.py: `q.wzorzec("pliki-jasny", okno="Pliki")`); różnica = błąd testu z obrazami „przed / po / różnica” w
       build/testy/ i w artefakcie CI; zatwierdzenie zmiany wyglądu — wg D3; kursor odsunięty poza okno przed zrzutem,
       zegar i inne zmienne miejsca (czas, liczby z Zasobów) wyłączone z porównania według opisu ekranu.
-  [ ] Porządki wersji PATCH: martwe pomocniki testów (położenia z logu, kolory pikseli) po przepisaniu na opis ekranu;
+  [x] Porządki wersji PATCH: martwe pomocniki testów (położenia z logu, kolory pikseli) po przepisaniu na opis ekranu;
       pliki blisko limitu (0.10.1: test_odcinki.c 599, k1_rysuj.c 542, uslugi.c 540, t_wifi_ap.c 528, powierzchnia.c
       527); Tymczasowe; DO_ZROBIENIA.
-  [ ] Wydanie: VERSION 0.10.2; CHANGELOG (kroki 1–3); DO_ZROBIENIA — „Teraz” → 0.10.5 (docs/PLAN-0.10.5.txt), lista
+  [x] Wydanie: VERSION 0.10.2; CHANGELOG (kroki 1–3); DO_ZROBIENIA — „Teraz” → 0.10.5 (docs/PLAN-0.10.5.txt), lista
       dla właściciela (z kroku 1); ten plik → docs/archiwum/. Po scaleniu: CI, tag k1-v0.10.2, wydanie, raport z linkami.
   Testy i dowód: pełny komplet w CI; celowo zmieniony kolor w jednym oknie (lokalnie) → test pokazuje „przed / po”.
   Gotowe, gdy: wydanie k1-v0.10.2 istnieje, raport z linkami.
-  Ustalenia z wykonania: (pusto)
+  Ustalenia z wykonania (2026-11-17, PR #147):
+    - S9 POTWIERDZONE: ten sam obraz w każdym uruchomieniu — 38 wzorców zgodnych co do piksela w kolejnych przebiegach
+      lokalnie (emulacja); QEMU (VGA std, screendump) pikseli nie zmienia. Wycinek: okno albo panel z opisu ekranu.
+    - Miejsca zmienne — nowy rodzaj elementu opisu K1_EL_ZMIENNE (10; uzupełnienie ADR 0045): górny pasek („Stan i zegar”
+      — przesuwa się z szerokością zegara), „Wersja” w menu Start i w Informacjach, zegar (Data i czas), bateria, miejsce
+      na pliki, karty sieciowe; Zasoby — liczby, wykresy, sesje i usługi. We wzorcu zamalowane #FF00FF.
+    - Górny pasek jest teraz panelem opisu („Pasek górny”, przycisk „Dźwięk”).
+    - Osobny test scripts/test-wzorce.sh (świeży K1, pusty dysk danych) zamiast dopisywania do test-m4 — stan pulpitu
+      zawsze ten sam; ramka strefy w test-strefa (obraz gościa pominięty). Rogi okien pokazują tło — to samo co przebieg.
+    - Kursor przed zrzutem: najbliższy punkt obok wycinka (długie ruchy myszy w emulacji gubiły położenie — idz()).
+    - Dowód „celowo zmieniony kolor”: wzorzec Kalkulatora z przyciemnionym fragmentem → test: 3200 różnych pikseli,
+      obrazy przed / po / różnica; wzorzec przywrócony.
+    - D3: brak wzorca też jest błędem (obraz „po”); scripts/przyjmij-wzorce.sh przyjmuje „po” (także z artefaktu CI).
+    - Porządki: test_odcinki.c (599 wierszy) podzielony — test_odcinki_pelny.c (pełny magazyn, kroki, powiększenie,
+      70 000 obiektów); pomocniki położeń z logu zostają tam, gdzie opisu nie ma (TESTY.md); Tymczasowe bez zmian.
 
 
 4. DECYZJE
@@ -191,10 +207,10 @@ Twoje (produkt):
 [x] D2 (krok 1; właściciel 2026-11-17: rekomendacja — K1 czeka sam) Otwierasz tę samą sesję, która jeszcze się zamyka w tle. Rekomendacja: kafelek w okienku „Którą sesję
        otworzyć?” mówi „zamyka się…”; kliknięcie go przyjmuje — okno sesji pokazuje „Uruchamiam…” od razu, a maszyna
        startuje sama, gdy poprzednia skończy (najwyżej 40 s). Inne: kafelek nieaktywny do końca zamykania.
-[!] D3 (krok 3) Jak zatwierdzasz zmianę wyglądu. Rekomendacja: PR, który zmienia wygląd, ma w opisie obrazy „przed / po”
+[x] D3 (krok 3; właściciel 2026-11-17: rekomendacja — Ty w czacie) Jak zatwierdzasz zmianę wyglądu. Rekomendacja: PR, który zmienia wygląd, ma w opisie obrazy „przed / po”
        (z CI); piszesz w czacie „OK” albo uwagi — czat dopiero wtedy podmienia wzorce w repo. Inne: wzorce zmienia czat
        sam, a Ty oglądasz je po wydaniu.
-[!] D4 (krok 3) Które okna dostają zrzuty wzorcowe najpierw. Rekomendacja: pulpit z paskami, menu Start, okienko
+[x] D4 (krok 3; właściciel 2026-11-17: rekomendacja) Które okna dostają zrzuty wzorcowe najpierw. Rekomendacja: pulpit z paskami, menu Start, okienko
        „Którą sesję otworzyć?”, Ustawienia (wszystkie sekcje), Pliki, Zasoby, Kalkulator — w obu motywach; ramka strefy
        (strefa próbna). Bez Firefoksa (CI go nie testuje) i bez Podglądu ze zdjęciem (dekoder — osobno, później).
 
