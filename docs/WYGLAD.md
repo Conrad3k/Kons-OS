@@ -286,6 +286,29 @@ C „Słupki”; sekcja A „Zakładki, wiersz się rozwija”, B „Lista i oki
 - Zakładka „Karty sieciowe”: kafelki z 0.9.0 bez zmian; kafelek karty Wi-Fi, której K1 używa: „Wi-Fi · radio włączone”,
   plakietka „Włączone” (kropka w akcencie) albo „Wyłączone”.
 
+## Aktualizacje (0.10.5 krok 1, decyzje właściciela D1, D2, D3 z 2026-11-17)
+Szkice narysowane częściami K1 na hoście (2026-11-17), wszystkie widoki naraz — także kroku 2 (sprawdzanie, pobieranie,
+gotowa wersja z opisem D13, brak sieci, pendrive przy nowszej wersji w sieci): układ sekcji A „Kafel wersji”, B „Wiersze”,
+C „Dwa miejsca”; ikona A (dwie strzałki), B (strzałka w górę w kółku), C (dwa miejsca dysku); znak czekającej wersji A
+(kropka przy Start), B (ikona na górnym pasku), C (bez znaku). Właściciel wybrał **wszystkie rekomendacje: układ A, ikona B,
+znak A**, okno 720 × 520 (D2) i Instalator tylko do instalacji (D3).
+- **Ustawienia → Aktualizacje:** w bocznej liście przed „Informacje”, ikona strzałki w kółku (`K1_IK_AKTUALIZACJE`) — **w dół** (uwaga właściciela 2026-11-17: w górę „dziwnie wygląda”; tak samo w kafelku, okienkach i przy wersjach pobieranych w kroku 2).
+  Pod tytułem kafel wersji: `pole`, zaokrąglenie 10, obrys `tekst` 24, wysokość 72; po lewej kwadrat 40 × 40 w kolorze akcentu
+  z ikoną (`na_akcencie`); obok **sam numer wersji** („0.10.5”, Plex Sans Medium 15 — uwaga właściciela 2026-11-17: bez
+  „Kons K1”), pod nim mała linia „Zweryfikowano · działa z miejsca A na dysku” (uwaga właściciela 2026-11-17: „Zweryfikowano”
+  zamiast „podpisana kluczem K1”; bez podpisu „wersja deweloperska”). Pod kafelkiem jedno zdanie (Medium 15; nieudana próba —
+  `akcent_tekst`), jedna–dwie małe linie (`tekst2`) i najwyżej jeden przycisk: główny (terakota) dla „Zaktualizuj K1 na
+  dysku do X” i „Uruchom ponownie”, zwykły dla „Rozumiem” i „Sprawdź jeszcze raz”. Postęp: pasek 8 px jak w Instalatorze.
+  Krok 2 doda pod spodem „Sprawdzaj sam” z przełącznikiem.
+- **Okno Ustawień 720 × 520** (D2; wcześniej 680 × 480): dwanaście sekcji w bocznej liście (od y = 52 co 36 px).
+- **Okienko „Nowa wersja K1 nie uruchomiła się”** (pulpit, S5): jak okienko „Jest nowa wersja” ze szkicu (krok 2) —
+  440 × 196 na panelu menu kontekstowego, ikona aktualizacji w `akcent_tekst`, tytuł Medium 15, zdanie, dwie małe linie,
+  kreska, „Pokaż w Ustawieniach” (cichy) i „Rozumiem” (główny).
+- **Instalator:** przy dysku z K1 karta `pole` 92 px — ikona aktualizacji, „Aktualizacja jest teraz w Ustawieniach.”, mała
+  linia i link „Otwórz Ustawienia → Aktualizacje” (Medium 13, `akcent_tekst`); „Zainstaluj od nowa” zwykłym przyciskiem.
+- Na krok 2 (już wybrane): okienko „Jest nowa wersja K1” na środku ekranu (opis wersji: D13), „Później” (cichy) i
+  „Zainstaluj” (główny); kropka w kolorze akcentu przy przycisku Start, dopóki wersja czeka, i wiersz w menu Start.
+
 ## Ustawienia → Ekran (M4.1)
 Rozdzielczości jako przyciski w trzech kolumnach (136×32): wybrana — wypełnienie akcentem, pozostałe
 — `pole` z obrysem; pod listą „Zalecana: …” (tryb preferowany przez monitor/kartę). Przy jednym trybie (obraz z firmware) — wyjaśnienie

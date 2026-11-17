@@ -1,11 +1,28 @@
-/* K1 nadzorca — the installer (M5f, ADR 0018): disk list, starting the writing program, progress. Part of nadzorca (see main.c). */
+/* K1 nadzorca — the installer (M5f, ADR 0018): disk list, starting the writing program, progress. Part of nadzorca (see main.c).
+ * Two windows ask for it (0.10.5 step 1, plan T1): Instalator (UID 204) installs on a disk and turns on Secure Boot,
+ * Ustawienia → Aktualizacje (UID 202, its own channel) updates K1 on a disk — each only its own job, one job at a time. */
 #include "nadzorca.h"
+#include "inst_prawa.h"
 
 int inst_kanal = -1;   /* our end of the Instalator window's channel (its fd 4) — M5f */
+int akt_kanal = -1;    /* our end of Ustawienia's channel of updates (its fd 7) — 0.10.5 step 1 */
 int inst_ster = -1;    /* our end of the writing program's channel (its fd 3) */
-int inst_tryb, inst_wynik_wyslany;
-static int inst_sukces;
-static struct k1_dyski inst_lista; /* the list the window saw (INST_START refers to it) */
+static int inst_tryb, inst_wynik_wyslany;
+
+/* The windows: their channel, the sender's UID, the only job they may ask for. */
+static const struct {
+    int *kanal;
+    uid_t uid;
+    int tryb;
+    const char *nazwa;
+} okna[OKIEN] = {
+    [OKNO_INSTALATOR] = { &inst_kanal, K1_UID_INSTALACJA, K1_INST_INSTALUJ, "Instalator" },
+    [OKNO_USTAWIENIA] = { &akt_kanal, K1_UID_USTAWIENIA, K1_INST_AKTUALIZUJ, "Ustawienia" },
+};
+static struct k1_dyski listy[OKIEN]; /* the list each window saw (INST_START refers to it) */
+static int sukces[OKIEN];            /* a finished job of this window: it may ask for a restart */
+static int zadanie = -1;             /* the window whose job runs (progress and result go to it) */
+
 struct usluga *instalator(void)
 {
     return usluga_profilu(K1_PROFIL_INSTALATOR);
@@ -13,13 +30,18 @@ struct usluga *instalator(void)
 
 void inst_nowy_kanal(void)
 {
-    inst_sukces = 0; /* a new window: a restart needs a new finished job */
+    sukces[OKNO_INSTALATOR] = 0; /* a new window: a restart needs a new finished job */
 }
 
-static void inst_wyslij(struct k1_komunikat k)
+void akt_nowy_kanal(void)
 {
-    if (inst_kanal >= 0 && k1_kanal_wyslij(inst_kanal, &k, sizeof k, -1) != 0)
-        k1_log(TAG, "instalator: wysłanie do okna nieudane");
+    sukces[OKNO_USTAWIENIA] = 0;
+}
+
+static void wyslij(int okno, struct k1_komunikat k)
+{
+    if (okno >= 0 && *okna[okno].kanal >= 0 && k1_kanal_wyslij(*okna[okno].kanal, &k, sizeof k, -1) != 0)
+        k1_log(TAG, "instalator: wysłanie do okna (%s) nieudane", okna[okno].nazwa);
 }
 
 /* The version a K1-EFI partition runs (k1_efi_dziala), 0 when none; *podpis = its manifest is signed. Format 2
@@ -43,17 +65,18 @@ static uint32_t wersja_partycji(const char *nazwa, int *podpis, struct k1_komuni
         *ab = k1_komunikat_nowy(K1_KOM_INST_AB, 0, (int32_t)m->wersja, (int32_t)p.slot[1 - p.dziala].wersja, p.dziala + 1,
                                 (k1_slot_nr(p.env.nowy) >= 0 ? K1_AB_FL_NOWY : 0) |
                                     (strcmp(nazwa, ab_nieudana) == 0 ? K1_AB_FL_NIEUDANA : 0),
-                                0);
+                                *podpis);
     return m->wersja;
 }
 
-static void inst_lista_dyskow(void)
+static void lista_dyskow(int okno)
 {
+    struct k1_dyski *l = &listy[okno];
     int i;
-    if (k1_dyski_skanuj(SYS, &inst_lista) != 0)
-        inst_lista.n = 0;
-    for (i = 0; i < inst_lista.n; i++) {
-        const struct k1_dysk *d = &inst_lista.d[i];
+    if (k1_dyski_skanuj(SYS, l) != 0)
+        l->n = 0;
+    for (i = 0; i < l->n; i++) {
+        const struct k1_dysk *d = &l->d[i];
         long long mib = (long long)(d->bajty >> 20);
         struct k1_komunikat ab;
         int podpis, k1 = 0;
@@ -62,25 +85,24 @@ static void inst_lista_dyskow(void)
             uint32_t w = wersja_partycji(d->efi, &podpis, &ab);
             k1 = w ? (int)(K1_INST_WERSJA | w) : 1;
         }
-        inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_DYSK, (uint32_t)i + 1, (int32_t)(mib > 0x7fffffff ? 0x7fffffff : mib),
-                                      d->rodzaj, k1, d->sektor,
-                                      d->dane[0] && strcmp(d->dane, skarb_dane) == 0));
+        wyslij(okno, k1_komunikat_nowy(K1_KOM_INST_DYSK, (uint32_t)i + 1, (int32_t)(mib > 0x7fffffff ? 0x7fffffff : mib),
+                                       d->rodzaj, k1, d->sektor, d->dane[0] && strcmp(d->dane, skarb_dane) == 0));
         if (ab.c != 0) { /* A/B: what runs, what is in the other slot (0.7.0) */
             ab.obiekt = (uint32_t)i + 1;
-            inst_wyslij(ab);
+            wyslij(okno, ab);
         }
     }
-    inst_wyslij(sb_komunikat());
+    if (okno == OKNO_INSTALATOR)
+        wyslij(okno, sb_komunikat());
     {
         struct k1_komunikat ab;
         int podpis;
-        uint32_t w = inst_lista.zrodlo[0] ? wersja_partycji(inst_lista.zrodlo, &podpis, &ab) : 0;
-        inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_LISTA, 0, inst_lista.n,
-                                      inst_lista.zrodlo[0] ? 1 : (inst_lista.zrodel > 1 ? 2 : 0), (int32_t)w,
-                                      w ? podpis : 0, 0));
+        uint32_t w = l->zrodlo[0] ? wersja_partycji(l->zrodlo, &podpis, &ab) : 0;
+        wyslij(okno, k1_komunikat_nowy(K1_KOM_INST_LISTA, 0, l->n, l->zrodlo[0] ? 1 : (l->zrodel > 1 ? 2 : 0), (int32_t)w,
+                                       w ? podpis : 0, 0));
     }
-    k1_log(TAG, "instalator: dysków %d, system do skopiowania: %s", inst_lista.n,
-           inst_lista.zrodlo[0] ? inst_lista.zrodlo : "brak (nie z pendrive'a K1)");
+    k1_log(TAG, "instalator: dysków %d, system do skopiowania: %s (okno: %s)", l->n,
+           l->zrodlo[0] ? l->zrodlo : "brak (nie z pendrive'a K1)", okna[okno].nazwa);
 }
 
 int otworz_urzadzenie(const char *nazwa, int flagi)
@@ -90,19 +112,21 @@ int otworz_urzadzenie(const char *nazwa, int flagi)
     return open(sciezka, flagi | O_CLOEXEC | O_NOFOLLOW);
 }
 
-/* Starts the writing program for disk `nr` (1-based, from the list the window saw). The disk must
+/* Starts the writing program for disk `nr` (1-based, from the list window `okno` saw). The disk must
  * still be there with the same size; install opens the whole disk exclusively (fails while anything
  * on it is open — the data partition of the running system too), update only its K1-EFI. */
-static int inst_zapis(int nr, int tryb)
+static int inst_zapis(int okno, int nr, int tryb)
 {
     struct k1_dyski teraz_l;
     const struct k1_dysk *d;
     struct k1_komunikat k;
     char cel[32];
     int fds[3], para[2], tak = 1, i;
-    if (nr < 1 || nr > inst_lista.n || instalator()->pid > 0)
+    if (instalator()->pid > 0)
+        return K1_INST_BLAD_TRWA; /* the other window's job (or this one's) still runs */
+    if (nr < 1 || nr > listy[okno].n)
         return K1_INST_BLAD_ARG;
-    d = &inst_lista.d[nr - 1];
+    d = &listy[okno].d[nr - 1];
     if (k1_dyski_skanuj(SYS, &teraz_l) != 0)
         return K1_INST_BLAD_ARG;
     for (i = 0; i < teraz_l.n; i++)
@@ -133,7 +157,7 @@ static int inst_zapis(int nr, int tryb)
     fds[0] = para[0];
     inst_tryb = tryb;
     inst_wynik_wyslany = 0;
-    inst_sukces = 0;
+    sukces[okno] = 0;
     if (uruchom(instalator(), &profile[K1_PROFIL_INSTALATOR], fds, 3) <= 0) {
         for (i = 0; i < 3; i++)
             close(fds[i]);
@@ -145,45 +169,58 @@ static int inst_zapis(int nr, int tryb)
     if (inst_ster >= 0)
         close(inst_ster);
     inst_ster = para[1];
+    zadanie = okno;
     k = k1_komunikat_nowy(K1_KOM_INST_ZADANIE, 0, tryb, d->sektor, 0, 0, 0);
     k1_kanal_wyslij(inst_ster, &k, sizeof k, -1);
-    k1_log(TAG, "instalator: %s — %s (z %s), pid %d, uid %d", tryb == K1_INST_INSTALUJ ? "instalacja na dysku" : "aktualizacja",
-           cel, teraz_l.zrodlo, (int)instalator()->pid, (int)profile[K1_PROFIL_INSTALATOR].uid);
+    k1_log(TAG, "instalator: %s — %s (z %s, okno: %s), pid %d, uid %d",
+           tryb == K1_INST_INSTALUJ ? "instalacja na dysku" : "aktualizacja", cel, teraz_l.zrodlo, okna[okno].nazwa,
+           (int)instalator()->pid, (int)profile[K1_PROFIL_INSTALATOR].uid);
     return 0;
 }
 
-/* Requests from the Instalator window (UID 204): the list, start, and — after a finished job only —
- * power off / restart. */
-void obsluz_instalacje(void)
+/* Opens Ustawienia on Aktualizacje (0.10.5 step 1, S4: the Instalator's link; gui's window of a failed try): started if
+ * needed, the section shown, its window brought up by gui. */
+void otworz_aktualizacje(void)
 {
-    int i;
-    for (i = 0; i < 8 && inst_kanal >= 0; i++) {
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_AKT_POKAZ, 0, 0, 0, 0, 0, 0);
+    uruchom_aplikacje(K1_APL_USTAWIENIA);
+    wyslij(OKNO_USTAWIENIA, k);
+    if (bateria_kanal >= 0) {
+        k = k1_komunikat_nowy(K1_KOM_POKAZ_APL, 0, K1_APL_USTAWIENIA, 0, 0, 0, 0);
+        k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1);
+    }
+    k1_log(TAG, "otwieram Ustawienia → Aktualizacje");
+}
+
+static void obsluz_okno(int okno)
+{
+    int i, *kanal = okna[okno].kanal;
+    for (i = 0; i < 8 && *kanal >= 0; i++) {
         struct k1_komunikat k;
-        enum k1_odbior_wynik w = k1_odbierz_komunikat(inst_kanal, K1_UID_INSTALACJA, K1_KIER_DO_NADZORCY, &k, NULL);
+        enum k1_odbior_wynik w = k1_odbierz_komunikat(*kanal, okna[okno].uid, K1_KIER_DO_NADZORCY, &k, NULL);
         if (w == K1_ODB_PUSTO)
             return;
         if (w == K1_ODB_KONIEC) {
-            close(inst_kanal);
-            inst_kanal = -1;
+            close(*kanal);
+            *kanal = -1;
             return;
         }
-        /* WYLACZ: only after a finished job, or (restart) when the K1 key waits for MokManager */
-        if (w != K1_ODB_JEST ||
-            (k.typ != K1_KOM_INST_DYSKI && k.typ != K1_KOM_INST_START && k.typ != K1_KOM_WYLACZ && k.typ != K1_KOM_SB_KLUCZ) ||
-            (k.typ == K1_KOM_WYLACZ && (k.a > 1 || !(inst_sukces || (sb_czeka && k.a == 1))))) {
-            k1_log(TAG, "odrzucono prośbę od Instalatora");
+        if (w != K1_ODB_JEST || !inst_dozwolone(okno, &k, sukces[okno], sb_czeka)) {
+            k1_log(TAG, "odrzucono prośbę od okna (%s)", okna[okno].nazwa);
             continue;
         }
         if (k.typ == K1_KOM_INST_DYSKI) {
-            inst_lista_dyskow();
+            lista_dyskow(okno);
         } else if (k.typ == K1_KOM_SB_KLUCZ) {
             sb_przygotuj_klucz();
-            inst_wyslij(sb_komunikat());
+            wyslij(okno, sb_komunikat());
+        } else if (k.typ == K1_KOM_OTWORZ_AKTUALIZACJE) {
+            otworz_aktualizacje();
         } else if (k.typ == K1_KOM_INST_START) {
-            int r = inst_zapis((int)k.obiekt, k.a);
+            int r = inst_zapis(okno, (int)k.obiekt, k.a);
             if (r != 0) {
-                inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, r, k.a, 0, 0, 0));
-                k1_log(TAG, "instalator: odmowa (%d)", r);
+                wyslij(okno, k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, r, k.a, 0, 0, 0));
+                k1_log(TAG, "instalator: odmowa (%d, okno: %s)", r, okna[okno].nazwa);
             }
         } else {
             wylacz(k.a);
@@ -191,7 +228,19 @@ void obsluz_instalacje(void)
     }
 }
 
-/* Progress and result from the writing program (UID 105), passed on to the window. */
+/* Requests from the Instalator window (UID 204). */
+void obsluz_instalacje(void)
+{
+    obsluz_okno(OKNO_INSTALATOR);
+}
+
+/* Requests from Ustawienia → Aktualizacje (UID 202). */
+void obsluz_aktualizacje(void)
+{
+    obsluz_okno(OKNO_USTAWIENIA);
+}
+
+/* Progress and result from the writing program (UID 105), passed on to the window of the job. */
 void obsluz_zapis(void)
 {
     int i;
@@ -210,13 +259,25 @@ void obsluz_zapis(void)
             continue;
         }
         if (k.typ == K1_KOM_INST_ETAP) {
-            inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_POSTEP, 0, k.a, k.b, 0, 0, 0));
+            wyslij(zadanie, k1_komunikat_nowy(K1_KOM_INST_POSTEP, 0, k.a, k.b, 0, 0, 0));
         } else {
             inst_wynik_wyslany = 1;
-            inst_sukces = k.a == 0;
-            inst_wyslij(k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, k.a, inst_tryb, k.b, 0, 0));
+            if (zadanie >= 0)
+                sukces[zadanie] = k.a == 0;
+            wyslij(zadanie, k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, k.a, inst_tryb, k.b, 0, 0));
             k1_log(TAG, "instalator: %s", k.a == 0 ? (k.b ? "zakończono pomyślnie (nowe miejsce A/B)" : "zakończono pomyślnie")
                                                    : "błąd");
         }
     }
+}
+
+/* The writing program ended (uslugi.c po_koncu): without a result — the window learns it. */
+void inst_koniec(void)
+{
+    if (inst_ster >= 0)
+        close(inst_ster);
+    inst_ster = -1;
+    if (!inst_wynik_wyslany)
+        wyslij(zadanie, k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, K1_INST_BLAD_PRZERWANE, inst_tryb, 0, 0, 0));
+    inst_wynik_wyslany = 1;
 }

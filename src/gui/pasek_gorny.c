@@ -108,6 +108,10 @@ void odbierz_baterie(void)
             pamiec_malo(&m);
             continue;
         }
+        if (w == K1_ODB_JEST && m.typ == K1_KOM_AB_NIEUDANA) { /* 0.10.5 step 1: a new version did not start */
+            wersja_nieudana(&m);
+            continue;
+        }
         if (w == K1_ODB_JEST && m.typ == K1_KOM_POKAZ_APL) { /* an application got a file to open (ADR 0030) */
             pokaz_aplikacje(m.a);
             continue;

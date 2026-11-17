@@ -114,11 +114,12 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    F12 → dysk), a Twoje zaszyfrowane dane mają cały dysk. Dane z pendrive'a nie są przenoszone (nowe
    konto). **Ustaw hasło** (punkt 6) — bez niego złodziej laptopa może odczytać dane.
    **Aktualizacja:** nagraj nowszy `k1-…-usb.img.xz` na pendrive, **uruchom K1 z dysku** (bez F12),
-   podłącz pendrive, Instalator → *Zaktualizuj system* → *Zaktualizuj*. Wymienia tylko system — Twoje
+   podłącz pendrive, **Ustawienia → Aktualizacje** → *Zaktualizuj K1 na dysku do …* (od 0.10.5; wcześniej
+   Instalator → *Zaktualizuj system*). Wymienia tylko system — Twoje
    dane zostają. Od 0.6.2 Instalator sprawdza odcisk i podpis systemu i nie pozwoli wrócić do starszej
    wersji (dlatego lepiej startować z dysku: wtedy sprawdza Twój system, a nie kod z pendrive'a).
    Od 0.7.0 nowa wersja trafia **obok** obecnej (A/B): po restarcie startuje na próbę, a gdyby nie
-   wystartowała — wraca poprzednia, a Instalator o tym napisze. Od 0.9.0 aktualizacja wymienia też pliki
+   wystartowała — wraca poprzednia, a K1 napisze o tym w okienku na pulpicie i w Ustawieniach → Aktualizacje. Od 0.9.0 aktualizacja wymienia też pliki
    startowe (shim, GRUB) — bezpiecznie, nawet gdy w trakcie zabraknie prądu. K1 starszy niż 0.7.0 na dysku:
    najpierw zaktualizuj go do 0.8.x albo zainstaluj od nowa. **Od 0.10.0** dane zapisane przez 0.5.6–0.8.1, których od
    tamtej pory nie otworzyła żadna wersja 0.8.2–0.9.1, się nie otworzą (K1 ich nie rusza) — uruchom taki nośnik najpierw

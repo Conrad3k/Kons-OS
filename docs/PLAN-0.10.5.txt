@@ -126,6 +126,7 @@ Osiem kroków:
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [ ]  1  Ustawienia → Aktualizacje (z Instalatora)           S1–S6            0.10.0      D1 D2 D3, T1     M        —
+     [w toku: Claude, gałąź claude/nice-albattani-aqqb0y]
 [ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16, S25, S50 1           D4 D5 D7 D13,    L        0046
                                                                                          T2–T7, T18
 [ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11, T18  M        0047
@@ -187,7 +188,29 @@ KROK 1 — Ustawienia → Aktualizacje (przeniesienie z Instalatora)            
   Dokumenty: aplikacje.md (Ustawienia → Aktualizacje, Instalator), instalator.md, nadzorca.md (kanał), WYGLAD (D1,
   D2), SLOWNIK (Aktualizacje — sekcja), TESTY.md, README (aktualizacja z pendrive'a — nowe miejsce), skill (mapa kodu).
   Gotowe, gdy: aktualizacja z pendrive'a działa z Ustawień, testy [OK], Instalator nie ma już ekranu aktualizacji.
-  Ustalenia z wykonania: (pusto — wypełnia krok 1)
+  Ustalenia z wykonania (krok 1, 2026-11-17):
+  - Decyzje: D1 — wszystkie rekomendacje (układ A, ikona B, znak A); w kafelku sam numer wersji i „Zweryfikowano”
+    (dwie uwagi właściciela w trakcie); D2 — 720 × 520; D3 — rekomendacja (szkice: docs/WYGLAD.md, „Aktualizacje”).
+  - S1: po 0.10.0 okno miało już 680 × 480 i 11 sekcji (Przeglądarka); Aktualizacje weszły przed Informacje
+    (S_AKTUALIZACJE = 10, Informacje 11) — testy klikające sekcje 0–9 bez zmian. S2: 520 + górny pasek (32) + dolny
+    (ok. 72) mieści się w 768 px.
+  - T1 / S3: kanał KANAL_AKTUALIZACJI (Ustawienia fd 7; K1_KANALY_MAKS 3 → 4). Nadzorca (instalacja.c) obsługuje dwa okna
+    — tabela okien (kanał, UID, tryb), osobna lista dysków każdego, postęp i wynik do okna, które zaczęło zadanie; zapis
+    naraz jeden — drugie okno dostaje INST_WYNIK z nowym K1_INST_BLAD_TRWA (-10). Kto o co może prosić — czysta funkcja
+    inst_dozwolone (src/nadzorca/inst_prawa.c, test_inst_prawa — testy negatywne zamiast t_malicious_ipc: kanałów aplikacji
+    program testowy w systemie nie ma; złośliwe bajty na każdym kanale i tak odrzuca k1_odbierz_komunikat, sprawdzany
+    w test_komunikat/fuzz_komunikat). INST_AB e = 1: manifest działającego miejsca podpisany („Zweryfikowano”).
+  - S4: gui nie umiało otworzyć aplikacji na sekcji — nowe OTWORZ_AKTUALIZACJE (Instalator i gui → nadzorca): nadzorca
+    uruchamia Ustawienia, wysyła im AKT_POKAZ (pokaż sekcję) i gui POKAZ_APL (okno na wierzch).
+  - S5: nieudana próba — nadzorca (rozruch.c) wysyła raz AB_NIEUDANA do gui (fd 5; tylko gui, nie ekran hasła) → okienko
+    „Nowa wersja K1 nie uruchomiła się” (gui/wersja.c) z „Pokaż w Ustawieniach” i „Rozumiem”; w sekcji stan „nieudana próba”.
+  - Teksty etapów i błędów zapisu — jedna tabela dla obu okien (src/wspolne/k1_inst_teksty.h).
+  - Test: aktualizacja z pendrive'a w test-m5f idzie przez Ustawienia → Aktualizacje (także przerwana, zmienione pliki
+    startowe, dysk nowszy); z dysku — karta i link w Instalatorze; wycofanie — okienko na pulpicie i sekcja. Zrzuty wzorcowe
+    Ustawień zmienione (okno 720 × 520, nowa sekcja) i menu Start (opis Instalatora) — przyjęte po „OK” właściciela.
+  - Poza planem, na prośbę właściciela (2026-11-17, zgłoszenie z X230): czarne okno przeglądarki przy pamięci strefy
+    ponad 3 GiB (od 0.10.1) — gpu.c kopiował obraz z górnej części pamięci gościa spod adresu gościa zamiast przez gp_wsk;
+    poprawka w src/strefa/tlo.c (czyste, test_tlo). Na sprzęcie sprawdza właściciel (X230, 8 GB).
 
 KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · decyzje D4 D5 D7, T2–T7 · ADR 0046
   Cel: K1 na dysku sam sprawdza, czy jest nowsza podpisana wersja, pobiera ją przez strefę z HTTPS prosto do wolnego
@@ -565,18 +588,21 @@ KROK 8 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M �
 4. DECYZJE
 ----------
 Twoje (produkt):
-[!] D1 (krok 1) Wygląd aktualizacji — szkice do wyboru NA POCZĄTKU KROKU 1, wszystkie naraz (narysowane częściami K1,
+[x] D1 (krok 1; właściciel 2026-11-17: układ A „kafel wersji”, ikona B — strzałka w kółku, na prośbę właściciela
+       skierowana w dół, znak A — kropka przy
+       Start; w kafelku sam numer wersji, bez „Kons K1”, i „Zweryfikowano” zamiast „podpisana kluczem K1” — docs/WYGLAD.md)
+       Wygląd aktualizacji — szkice do wyboru NA POCZĄTKU KROKU 1, wszystkie naraz (narysowane częściami K1,
        oba motywy): sekcja „Aktualizacje” w Ustawieniach (wszystkie stany: najnowsza, sprawdzam, pobieram, gotowa,
        nieudana próba, brak sieci, z pendrive'a), okienko „Jest nowa wersja”, znak na górnym pasku, ikona sekcji.
        Rekomendacja: sekcja jak Sieć — u góry duży wiersz „K1 0.10.5 · podpisana” i stan jednym zdaniem, pod nim
        jeden główny przycisk (terakota) dla tego, co teraz można zrobić; okienko — wyśrodkowane, „K1 0.10.6 jest
        gotowa do instalacji. Komputer uruchomi się ponownie (ok. 30 s).” i dwa przyciski; na pasku mała kropka
        w kolorze akcentu przy ikonie Startu, dopóki wersja czeka.
-[!] D2 (krok 1) Nowa sekcja w Ustawieniach: większe okno czy przewijanie. Z KODU (S1): lewy pasek mieści dokładnie 10
+[x] D2 (krok 1; właściciel 2026-11-17: okno 720 × 520) Nowa sekcja w Ustawieniach: większe okno czy przewijanie. Z KODU (S1): lewy pasek mieści dokładnie 10
        sekcji, jedenasta się nie zmieści. Przewijanie wymaga kółka myszy, którego K1 jeszcze nie obsługuje (S6).
        Rekomendacja: okno lekko większe — 720 × 520 (dziś 680 × 440): mieści 12 sekcji, czyli jeszcze jedną na
        przyszłość, i więcej miejsca w Sieci i Miejscu. Przewijanie — razem z kółkiem myszy, później.
-[!] D3 (krok 1) Co zostaje w Instalatorze. Rekomendacja: instalacja na dysk i Secure Boot (to rzeczy „raz na
+[x] D3 (krok 1; właściciel 2026-11-17: instalacja na dysk i Secure Boot; przy dysku z K1 odsyła do Ustawień) Co zostaje w Instalatorze. Rekomendacja: instalacja na dysk i Secure Boot (to rzeczy „raz na
        komputer”, robione z pendrive'a); wszystko o wersjach — w Ustawieniach → Aktualizacje.
 [!] D4 (krok 2) Kiedy K1 sprawdza i pobiera. Twoje ustalenie: o instalację zawsze pyta; wielkość pobierania nie gra
        roli. Rekomendacja: sprawdza sam po połączeniu z siecią i co 6 godzin, nową wersję pobiera sam od razu (żeby

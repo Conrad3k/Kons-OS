@@ -32,6 +32,9 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **podpis** | Dowód, że wydanie pochodzi od właściciela projektu (klucz w sekrecie CI). Instalator odmawia niepodpisanych i starszych. |
 | **miejsce A / B** | Dwa miejsca na system w partycji K1-EFI: aktualizacja trafia do wolnego, stare zostaje na wypadek błędu. |
 | **K1-EFI** | Partycja startowa: pliki startowe i miejsca A/B. |
+| **aktualizacja** | Nowsza wersja K1 zapisana do wolnego miejsca A/B dysku; dane zostają; nowa wersja startuje raz na próbę (nie wystartuje — K1 wraca do poprzedniej). Od 0.10.5 robi się ją w **Ustawieniach → Aktualizacje** (sekcja; do 0.10.2 w Instalatorze): na razie z pendrive'a z nowszą wersją, od kroku 2 też przez sieć. **Instalator** tylko instaluje K1 na dysku (i włącza Secure Boot). |
+| **nieudana próba** | Nowa wersja po aktualizacji nie wystartowała, więc GRUB uruchomił poprzednią; K1 mówi to raz okienkiem na pulpicie i w Ustawieniach → Aktualizacje (0.10.5). |
+| **Zweryfikowano** | Napis przy wersji w Ustawieniach → Aktualizacje: system, który działa, ma ważny podpis K1 (manifest miejsca). Bez podpisu — „wersja deweloperska” (słowa właściciela, 2026-11-17). |
 | **pliki startowe** | Wszystko w K1-EFI poza miejscami A/B i grubenv: shim, GRUB, MokManager, `grub.cfg`, ekran startowy, certyfikat K1, `.disk/info`. Od 0.9.0 aktualizacja wymienia je, gdy się zmieniły (ADR 0038). |
 | **manifest** | Podpisany opis części wydania (512 B): wersja, identyfikator wydania, skrót. **Manifest miejsca** — system w miejscu A/B; **manifest plików startowych** (0.9.0) — skrót drzewa plików startowych, niezależny od tego, gdzie leżą. |
 | **wymiana plików startowych** (0.9.0) | Nowe pliki startowe zapisane obok starych, sprawdzone z manifestem, przełączone jednym zapisem sektora startowego FAT; przerwanie zostawia stare albo nowe (`src/instalator/start.c`, ADR 0038). |

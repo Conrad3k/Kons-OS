@@ -18,6 +18,8 @@
 #define KANAL_USTAWIEN { KN_OD, &ustaw_kanal, NULL, ustawienia_nowy_kanal }
 #define KANAL_ZASOBOW { KN_DO, &zasoby_kanal, NULL, zasoby_nowy_kanal }        /* Zasoby: the statistics */
 #define KANAL_INSTALACJI { KN_OD, &inst_kanal, NULL, inst_nowy_kanal }        /* Instalator: disks, progress */
+/* 0.10.5 step 1: Ustawienia → Aktualizacje — the same INST_* as Instalator, only an update (instalacja.c) */
+#define KANAL_AKTUALIZACJI { KN_OD, &akt_kanal, NULL, akt_nowy_kanal }
 #define KANAL_PENDRIVE { KN_OD, &pen_kanal, NULL, pendrive_nowy_kanal } /* Pliki: the USB stick, a picture decoder */
 #define KANAL_DEKODERA { KN_OD, &podglad_kanal, NULL, NULL } /* Podgląd: a picture decoder (dekoder.c; Podgląd only) */
 #define KANAL_SIECI { KN_OD, &siec_kanal, NULL, siec_nowy_kanal } /* siec: the card with a cable, its address (siec.c) */

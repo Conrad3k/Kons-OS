@@ -419,6 +419,10 @@ static const struct prym ik_wifi[] = { { P_LUK, 12, 19, 4.5f, -45, 45 }, { P_LUK
 static const struct prym ik_przegladarka[] = { { P_OKRAG, 12, 12, 8.5f, 0, 0 }, { P_KRESKA, 3.5f, 12, 20.5f, 12, 0 },
                                                { P_LUK, 19, 12, 9, -140, -40 }, { P_LUK, 5, 12, 9, 40, 140 } };
 
+/* 0.10.5 step 1 (D1: icon B, the arrow turned down — the owner 2026-11-17): an arrow down in a circle — a version to get */
+static const struct prym ik_aktualizacje[] = { { P_OKRAG, 12, 12, 8.5f, 0, 0 }, { P_KRESKA, 12, 7.5f, 12, 16.5f, 0 },
+                                               { P_KRESKA, 8.5f, 13, 12, 16.5f, 0 }, { P_KRESKA, 12, 16.5f, 15.5f, 13, 0 } };
+
 static const struct prym ik_kalkulator[] = {
     { P_PROST, 5.5f, 3, 13, 18, 2.5f }, { P_KRESKA, 8.5f, 7.5f, 15.5f, 7.5f, 0 }, { P_KOLO, 9, 12, 1.2f, 0, 0 },
     { P_KOLO, 12, 12, 1.2f, 0, 0 },     { P_KOLO, 15, 12, 1.2f, 0, 0 },          { P_KOLO, 9, 15.5f, 1.2f, 0, 0 },
@@ -507,7 +511,7 @@ void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozm
         [K1_IK_WIDEO] = IK(ik_wideo),       [K1_IK_POBRANE] = IK(ik_pobrane),
         [K1_IK_W_GORE] = IK(ik_w_gore),     [K1_IK_SIEC] = IK(ik_siec),
         [K1_IK_SIEC_BEZ_KABLA] = IK(ik_siec_bez), [K1_IK_WIFI] = IK(ik_wifi),
-        [K1_IK_PRZEGLADARKA] = IK(ik_przegladarka),
+        [K1_IK_PRZEGLADARKA] = IK(ik_przegladarka), [K1_IK_AKTUALIZACJE] = IK(ik_aktualizacje),
     };
     float s = rozmiar / 24.0f, g = 1.6f;
     int32_t x0, y0, x1, y1, i, j;

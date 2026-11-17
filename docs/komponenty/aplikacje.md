@@ -120,13 +120,31 @@ każda sesja zapomni po zamknięciu.” (przełącznik wyciszony na „Zapomina�
 „Wirtualizacja wyłączona — sesje nie ruszą. Włącz ją w BIOS-ie.”. Jeden układ (`uklad()`) dla rysowania, kliknięć i logu.
 Log „przeglądarka: sesje 3 (dane na dysku 1, wirtualizacja 1): 2 pamięta, karta x,y wxh, przełącznik x,y, Zmień nazwę x,y,
 Wyczyść x,y; …” i „przeglądarka: pytanie o sesję N: Wyczyść dane x,y; Anuluj x,y” — numery stref, nigdy nazwy (tekst
-użytkownika). Okno Ustawień od 0.10.0 krok 5 ma 680 × 480 (o jedną sekcję więcej). Informacje (`informacje.c`): wersja,
-ekran, jądro, gdzie są dane i odesłanie do sekcji Miejsce.
+użytkownika). Aktualizacje (0.10.5 krok 1, `aktualizacje.c`; decyzja właściciela D1: szkic A „kafel wersji”, ikona B —
+strzałka w kółku skierowana w dół (uwaga właściciela); sekcja przed Informacjami): u góry kafel z samym numerem wersji, która działa (np. „0.10.5” —
+uwaga właściciela 2026-11-17: bez „Kons K1”), i pod nim „Zweryfikowano” (manifest działającego miejsca podpisany kluczem K1;
+bez podpisu „wersja deweloperska”) · skąd działa: „działa z miejsca A/B na dysku”, „działa z pendrive'a”, „działa bez
+instalacji”. Pod kafelkiem jedno zdanie stanu i jeden przycisk: K1 z dysku — „Aktualizacja: z pendrive'a z nowszą wersją K1.”
+i co jest w drugim miejscu; nieudana próba — „Nowa wersja X nie uruchomiła się — działa poprzednia.” (terakota) i
+„Rozumiem”; czekająca nowa wersja — „wystartuje na próbę przy następnym uruchomieniu”; pendrive K1 z nowszą wersją niż
+dysk — „Na dysku tego komputera jest starsza wersja: X.” i **„Zaktualizuj K1 na dysku do Y”** (przeniesione z Instalatora,
+D3; dane zostają, bez wpisywania), w trakcie „Aktualizuję K1 na dysku… <etap>” z paskiem postępu, potem „Gotowe — Y czeka na
+dysku obok X.” i „Uruchom ponownie”; ta sama wersja na dysku — „Zapisz K1 na dysku jeszcze raz” (zwykły przycisk: wersja
+deweloperska ma za każdym razem ten sam numer — tak pozwalał Instalator); nowsza wersja na dysku, dysk bez K1, dwa pendrive'y K1 — zdanie bez
+przycisku; błąd — tekst z `k1_inst_teksty.h` i „Sprawdź jeszcze raz”. Kanał od nadzorcy fd 7 (`KANAL_AKTUALIZACJI`: te same
+`INST_*` co Instalator, ale nadzorca przyjmuje od Ustawień tylko aktualizację — `inst_prawa.c`); `AKT_POKAZ` pokazuje sekcję
+(link Instalatora, okienko pulpitu po nieudanej próbie). Log „aktualizacje: <stan> (dysk: X, pendrive: Y); przycisk x,y”
+(stany: sprawdzam, bez instalacji, na dysku, nieudana próba, dysk starszy, ta sama wersja, dysk nowszy, dysk bez K1, dwa
+pendrive'y, trwa, gotowe, błąd). Aktualizacja przez sieć — w kroku 2 tej wersji. Okno Ustawień od 0.10.5 krok 1 ma
+720 × 520 (D2: dwanaście sekcji; wcześniej 680 × 480). Informacje (`informacje.c`): wersja, ekran, jądro, gdzie są dane i
+odesłanie do sekcji Miejsce.
 
 ### Instalator
 (0.5.9, ADR 0018, `src/aplikacje/instalacja/`, UID 204) — lista dysków od nadzorcy,
-instalacja po wpisaniu „USUŃ”, aktualizacja (dane zostają), postęp, „Wyłącz komputer”. Bez dostępu do
-dysków — szczegóły: `komponenty/instalator.md`.
+instalacja po wpisaniu „USUŃ”, postęp, „Wyłącz komputer”, Secure Boot. Od 0.10.5 (krok 1, D3) bez aktualizacji: przy
+dysku z K1 karta „Aktualizacja jest teraz w Ustawieniach.” z linkiem „Otwórz Ustawienia → Aktualizacje”
+(`OTWORZ_AKTUALIZACJE`; log „aktualizacja jest w Ustawieniach; link x,y”); opis w menu Start „Instalacja na dysku, Secure
+Boot”. Bez dostępu do dysków — szczegóły: `komponenty/instalator.md`.
 
 ### Kalkulator
 (0.7.1, `src/aplikacje/kalkulator/`, UID 205) — cztery działania liczone od lewej do
