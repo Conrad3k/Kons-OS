@@ -56,6 +56,10 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
   ADR 0042 T10).
 - **Koniec:** gość sam (reset), zły dostęp, `ZAMKNIJ` od ekranu → „zamknij” przez vsock, po 40 s maszyna wyłączana (do
   0.10.0 krok 5: 10 s — za mało na przeglądarkę po ciężkiej stronie i zapis dysku strefy, przebieg CI 132).
+- **Zamykanie w tle** (0.10.2 krok 1, S3, T2): po `ZAMKNIJ` od ekranu albo `STREFA_ZAMKNIJ` od nadzorcy (K1 się wyłącza)
+  VMM od razu usuwa swoje okno u ekranu (`USUN` — „okno strefy zamknięte — maszyna kończy się w tle”), mówi nadzorcy
+  `STREFA_ZAMYKA` i prosi gościa o „zamknij”; reszta jak wyżej — maszyna kończy się w tle (przeglądarka zapisuje sesję).
+  Wcześniej okno wisiało, dopóki maszyna się nie skończyła (do 20–40 s).
 - **Powód końca** (krok 3, S26; `main.c` `kod_wyjscia`): kod wyjścia VMM — 0, gdy zamknął użytkownik (`ZAMKNIJ` od ekranu)
   albo program strefy zamknął się zwyczajnie; `K1_STREFA_KONIEC_PAMIEC` / `_AWARIA`, gdy program strefy skończył się sam
   i powiedział dlaczego („koniec …” na kanale sterującym); `_BLAD`, gdy maszyna stanęła bez słowa (jądro gościa, zły
@@ -86,7 +90,7 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 | losowość (rng) | 1 | `getrandom` do 4 KiB na prośbę | — |
 | klawiatura, wskaźnik (input) | 2 + 2 | zdarzenia `EV_KEY`, `EV_ABS` (0…32767), `EV_SYN` z ekranu; od 0.10.0 krok 4 wskaźnik z kółkiem: `REL_WHEEL`, `REL_HWHEEL` i `*_HI_RES` (1/120 ząbka) z `PRZEWIN` — z kółka oba, z touchpada tylko `*_HI_RES`; bez wolnego bufora — zdarzenie przepada (licznik) | — |
 | ekran (gpu 2D) | 2 | zasoby ≤ 4096 × 4096 (razem ≤ 96 MiB), tło z pamięci gościa (sprawdzone przy dołączeniu), przeniesienie, pokazanie, odświeżenie → okno | polecenie krótsze niż jego struktura, brak miejsca na odpowiedź |
-| vsock | 3 | kanał sterujący (port 1 hosta): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30); od 0.10.1 krok 1 „liczniki A Z K” i „kto P K R” (same liczby, `linia.c`); od kroku 5 „zamykanie gotowe\|sygnal\|po czasie” (jak przeglądarka skończyła się po „zamknij” — czas w logu); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
+| vsock | 3 | kanał sterujący (port 1 hosta): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30; od 0.10.2 koniec ekranu startu), od 0.10.2 krok 1 „etap start” (program strefy pokaże okno — ekran startu zostaje do „etap okno”); od 0.10.1 krok 1 „liczniki A Z K” i „kto P K R” (same liczby, `linia.c`); od kroku 5 „zamykanie gotowe\|sygnal\|po czasie” (jak przeglądarka skończyła się po „zamknij” — czas w logu); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
 
 | balon (0.10.1 krok 2, ADR 0044) | 4 | `balon.c`: cechy `STATS_VQ`, `DEFLATE_ON_OOM`, `REPORTING`; kolejki 0 pompowanie, 1 spuszczanie (listy le32 numerów stron 4 KiB, najwyżej 256), 2 statystyki (VMM trzyma bufor i co 5 s oddaje go po świeże — `AVAIL` do `STREFA_PAMIEC`), 3 zgłaszanie wolnych bloków (bufory do zapisu, każdy blok z całych stron); strony z balonu i zgłoszone bloki → `fallocate(PUNCH_HOLE \| KEEP_SIZE)` na memfd — wracają do K1; konfiguracja: `num_pages` (cel od nadzorcy, `STREFA_BALON` → zmiana konfiguracji), `actual` (pisze gość; log, gdy dojdzie do celu); balon domyślnie pusty. Czyste części: `strony.c` | strona poza RAM gościa albo w dziurze, lista nie z całych numerów albo dłuższa niż 256, blok nie z całych stron, statystyki złej długości albo o nieznanym/powtórzonym znaczniku, zapis konfiguracji poza `actual` albo `actual` ponad pamięć gościa, zgłoszenie z częścią do odczytu |
 | dysk strefy (blk, krok 5) | 1 | drugi dysk gościa (`/dev/vdb`) do zapisu i odczytu, `FLUSH`, `SEG_MAX`; 2 GiB w kawałkach po 64 KiB przez pamięć podręczną `dysk.c`; strefa, która zapomina: 0 sektorów | prośba bez nagłówka, odczyt albo zapis > 4 MiB |
@@ -95,8 +99,12 @@ Wspólne dla wszystkich (`virtq.c`, `mmio.c`): deskryptor poza pamięcią, pętl
 odczytu po do zapisu, skok indeksu, kolejka poza pamięcią albo niewyrównana, rejestr czytany nie po 4 bajty — koniec.
 
 ## Okno
-Klient ekranu z rolą `STREFA`, jedno okno (≤ 1024 × 720, z rozmiaru ekranu; tyle widzi gość jako wyświetlacz). Przed
-pierwszym obrazem gościa: „Uruchamiam: <tytuł>…” z ikoną strefy i paskiem w jej kolorze (D1: S1). Obraz gościa — zmienione
+Klient ekranu z rolą `STREFA`, jedno okno (≤ 1024 × 720, z rozmiaru ekranu; tyle widzi gość jako wyświetlacz). Na
+początku **ekran startu**: „Uruchamiam: <tytuł> · <sesja>…” z ikoną strefy i paskiem, po którym przesuwa się odcinek w
+kolorze strefy (0.10.2 krok 1, D1 właściciela: szkic A; VMM rysuje go co 100 ms, nazwę sesji dostaje od nadzorcy jako
+`argv[4]` i sprawdza jak każdą nazwę — `k1_strefa_nazwa_dobra`). Zostaje do „etap okno” od gościa, który powiedział „etap
+start” (przeglądarka: jej pierwsze okno — kompozytor pokazuje swoje tło kilkadziesiąt sekund wcześniej, S1, T1), a gość
+bez „etap start” (strefa próbna) — do swojego pierwszego obrazu; najwyżej 5 min, potem obraz gościa. Obraz gościa — zmienione
 prostokąty kopiowane do wolnej połówki powierzchni (nieprzezroczyste). Klawisze i wskaźnik od ekranu (tylko przy fokusie)
 → urządzenia wejścia; utrata fokusu puszcza wszystko. Przewijanie (`PRZEWIN`, krok 4) przychodzi do okna pod kursorem,
 także bez fokusu: VMM ustawia najpierw położenie wskaźnika (gość przewija to, co jest pod nim), potem kółko. Ramkę — pasek tytułu nad obrazem i obwódkę (krok 3, szkic A) —
@@ -201,10 +209,12 @@ ADR 0044), 2 procesory (w emulacji QEMU — 1); Ogólna i Bank pamiętają (krok
 | `STREFA_PRZYDZIAL` (0.10.1 krok 3) | nadzorca → Zasoby (fd 4, co sekundę), gui (fd 5, tuż przed `MALO_PAMIECI`) | obiekt = działająca strefa, a = ile używa (pamięć gościa w K1), b = ile może dostać (górna granica minus cel balonu), MiB 0…`K1_STREFA_PAMIEC_MAKS`; c = 1 jej okno ma fokus; d = e = 0 |
 | `MALO_PAMIECI` (0.10.1 krok 3) | nadzorca → gui (fd 5) | obiekt 0, a = ile K1 ma wolnej pamięci (MiB, 0…`K1_PAMIEC_MAKS_MIB`), b = bit nr−1: strefa nr w okienku (tylko bity stref, nie 0), reszta 0 |
 | `STREFA_ODMOWA` | nadzorca → VMM | obiekt = połączenie, a = `K1_STREFA_ODM_*` (adres poza D3, brak sieci albo DNS, limit, błąd gniazda), reszta 0 |
-| `URUCHOM_STREFE` | gui → nadzorca (fd 4); program testowy → nadzorca | `a` strefa 1…`K1_STREFY_MAKS`, `b` tryb gościa testowego 0…`K1_STREFA_TRYB_MAKS` (≠ 0 tylko od programu testowego; gui — odrzucone; 10 od 0.10.1 krok 3: zwykły gość, którego balonem rządzi rozdzielacz), reszta 0 |
+| `URUCHOM_STREFE` | gui → nadzorca (fd 4); program testowy → nadzorca | `a` strefa 1…`K1_STREFY_MAKS`, `b` tryb gościa testowego 0…`K1_STREFA_TRYB_MAKS` (≠ 0 tylko od programu testowego; gui — odrzucone; 10 od 0.10.1 krok 3: zwykły gość, którego balonem rządzi rozdzielacz; 11 od 0.10.2 krok 1: gość z „oknem” jak przeglądarka — „etap start”, pierwszy obraz od razu, „etap okno” 8 s później, zamyka się 6 s), reszta 0; prośba o strefę, która **zamyka się** w tle (0.10.2, D2): nadzorca otwiera ją sam, gdy stara maszyna skończy |
 | `STREFA_STAN` | nadzorca → gui (fd 5) | `a` strefa, `b` powód: nie ruszyła — `K1_STREFA_BEZ_WIRTUALIZACJI`, `_ZA_MALO_PAMIECI`, `_BRAK_OBRAZU`; zamknęła się sama (krok 3) — `K1_STREFA_KONIEC_PAMIEC` (pamięć strefy), `_PAMIEC_K1` (pamięć komputera), `_AWARIA`, `_BLAD`; od 0.10.1 krok 1 `_LIMIT` (8: strefa zużyła całą pamięć, którą K1 jej daje — limit klatki) (1…`K1_STREFA_STAN_MAKS`); reszta 0 |
 | `KLIENT` (rola `STREFA`) | nadzorca → ekran | `b` = numer strefy (1…`K1_STREFY_MAKS`) |
-| `STREFY_STAN` | nadzorca → gui (fd 5), Ustawienia (fd 4), ekran (kanał sterujący) | krok 5: `a` bity stref, które pamiętają (bit nr−1), `b` = 1 komputer ma wirtualizację, `c` = 1 dane K1 na dysku (bez tego `a` = 0), `d` bity stref, które działają, `e` = 0 |
+| `STREFY_STAN` | nadzorca → gui (fd 5), Ustawienia (fd 4), ekran (kanał sterujący) | krok 5: `a` bity stref, które pamiętają (bit nr−1), `b` = 1 komputer ma wirtualizację, `c` = 1 dane K1 na dysku (bez tego `a` = 0), `d` bity stref, które działają, `e` (0.10.2 krok 1) bity stref, które **zamykają się** w tle (tylko działające: `e` ⊆ `d`) |
+| `STREFA_ZAMYKA` (0.10.2 krok 1) | VMM → nadzorca (fd 7) | obiekt 0, reszta 0 — użytkownik zamknął strefę: okna już nie ma, maszyna kończy się w tle |
+| `STREFA_ZAMKNIJ` (0.10.2 krok 1) | nadzorca → VMM (fd 7) | obiekt = strefa, reszta 0 — zamknij się jak po „zamknij” na pasku (K1 się wyłącza albo uruchamia ponownie: nadzorca czeka na strefy) |
 | `STREFA_NAZWA` | nadzorca → gui, Ustawienia, ekran; Ustawienia → nadzorca (nowa nazwa) | krok 5: obiekt = strefa, `a`…`e` = nazwa sesji, 20 bajtów UTF-8 dopełnione zerami (`k1_strefa_nazwa_dobra`: bez znaków sterujących, niewidocznych i zmieniających kierunek, bez spacji na brzegach); nigdy w logu |
 | `STREFA_TRWALOSC` | Ustawienia → nadzorca | krok 5: obiekt = strefa, `a` = `K1_STALA` / `K1_JEDNORAZOWA` (od następnego otwarcia), reszta 0 |
 | `STREFA_WYCZYSC` | Ustawienia → nadzorca; program testowy → nadzorca | krok 5: obiekt = strefa, reszta 0 — „Wyczyść dane sesji” |

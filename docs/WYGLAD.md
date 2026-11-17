@@ -187,8 +187,10 @@ wybrany **A**. Znaczek i plakietka B2 zniknęły.
   przyciski w kolorze strefy przyciemnionym w stronę tekstu.
 - **Przeglądarka bez własnych przycisków okna** (S28): Firefox w strefie nie rysuje minimalizuj / powiększ / zamknij
   (ustawienie GTK w obrazie strefy) — robi to tylko pasek K1.
-- **Start (S1):** okno w ramce od razu; w środku tło motywu, ikona strefy 40 px (`tekst3`), „Uruchamiam: <tytuł>…”
-  (Plex Sans 15) i pasek 160 × 4 z odcinkiem w kolorze strefy — do pierwszego obrazu gościa.
+- **Start (S1):** okno w ramce od razu; w środku tło motywu, ikona strefy 40 px (`tekst3`), „Uruchamiam: <tytuł> ·
+  <sesja>…” (Plex Sans 15) i pasek 160 × 4 (`tekst` 24/255), po którym odcinek 48 px w kolorze strefy przesuwa się tam i z
+  powrotem (1,6 s, co 100 ms) — 0.10.2 krok 1, D1 właściciela 2026-11-17: szkic A (inne: kropki, zdanie po 20 s). Do okna
+  programu strefy (przeglądarka: okno Firefoksa), bez procentów — nie wiadomo, ile zostało.
 - **Kolory:** strefa próbna — piasek `#A8834A`; sesje przeglądarki (krok 2, ze szkicu): Ogólna — szałwia `#5F8A6A`, Bank —
   łupek `#4A6FA5`, Prywatna — wrzos `#8B6AA8`.
 - **„Nie może ruszyć”** (brak wirtualizacji, pamięci, obrazu): okienko odmowy pulpitu (to samo co przy przeciąganiu

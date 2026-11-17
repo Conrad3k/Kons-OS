@@ -343,6 +343,10 @@ static void od_nadzorcy(void)
             balon_cel((uint32_t)k.a);
             continue;
         }
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFA_ZAMKNIJ) { /* 0.10.2 step 1: K1 powers off (main.c closes) */
+            mz.prosba_nadzorcy = 1;
+            continue;
+        }
         if (w != K1_ODB_JEST || (p = nr(k.obiekt)) == NULL) {
             if (fd >= 0)
                 close(fd);

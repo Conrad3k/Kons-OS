@@ -2,7 +2,8 @@
  * the Start menu or its "Otwórz", and wherever it can be opened later (the desktop) — first asks which session: a tile
  * for every zone with the same image (K1_STREFY: a new session is a new row, nothing here changes), each with its
  * colour, its name and whether it remembers, or "otwarta" when its window is there (a click brings that window to the
- * front: nadzorca never starts a zone twice). It is drawn on the panel of the right-click menu (kontekst.c: K_WLASNE),
+ * front: nadzorca never starts a zone twice), or "zamyka się…" when it was closed and its machine still ends in the
+ * background (0.10.2 step 1; a click is taken — nadzorca opens it again once the old machine ended, the owner's D2). It is drawn on the panel of the right-click menu (kontekst.c: K_WLASNE),
  * in the middle of the screen; a press outside it or "Anuluj" closes it. A session's name is the user's text: the log
  * says "sesja <zone>" (invariant 8). */
 #include <stdio.h>
@@ -73,6 +74,7 @@ static void kafelek(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int
 {
     const struct k1_strefa_opis *z = k1_strefa(nr[i]);
     const char *stan = okno_aplikacji(POZYCJA_STREFY(nr[i])) != NULL ? "otwarta"
+                       : sesja_zamyka_sie(nr[i])                      ? "zamyka się…"
                        : sesja_pamieta(nr[i])                         ? "pamięta"
                                                                       : "zapomina";
     const char *nazwa = nazwa_sesji(nr[i]);

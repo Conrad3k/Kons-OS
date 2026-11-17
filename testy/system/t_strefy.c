@@ -198,8 +198,8 @@ static int czekaj_strefa(int dziala, int sekundy)
     return 0;
 }
 
-/* Zone 1 with the guest's test mode `tryb`: started (logged), then waited for until it ends; 1 when it did. */
-static int strefa_raz(int tryb, int sekundy)
+/* Zone 1 with the guest's test mode `tryb` started (logged); 1 when it did. */
+static int strefa_raz_start(int tryb)
 {
     if (zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, tryb, 0, 0, 0), NULL, 10) != 0 ||
         !czekaj_strefa(1, 30)) {
@@ -207,6 +207,14 @@ static int strefa_raz(int tryb, int sekundy)
         return 0;
     }
     k1_log(TAG, "strefy: strefa próbna uruchomiona (tryb %d)", tryb);
+    return 1;
+}
+
+/* Zone 1 with the guest's test mode `tryb`: started (logged), then waited for until it ends; 1 when it did. */
+static int strefa_raz(int tryb, int sekundy)
+{
+    if (!strefa_raz_start(tryb))
+        return 0;
     if (!czekaj_strefa(0, sekundy)) {
         k1_log(TAG, "strefy: strefa (tryb %d) nie skończyła się", tryb);
         return 0;
@@ -262,11 +270,35 @@ static void rozdzielacz(void)
         munmap(p, ile);
 }
 
+/* 0.10.2 step 1: a guest with a "window" like the browser's (TRYB_OKNO: the start screen stays until it); the script
+ * closes it — its window must go at once, its machine end in the background. Meanwhile the test program asks for the
+ * same zone again (as the user clicking "zamyka się…", the owner's D2), every 3 s while that machine runs (before the
+ * close nadzorca says "już działa"); nadzorca must open it by itself once the old one ended. */
+static void okno_i_zamykanie(void)
+{
+    long stary;
+    int i;
+    if (!strefa_raz_start(K1_STREFA_TRYB_OKNO))
+        return;
+    stary = find_process("strefa");
+    for (i = 0; i < 400 && find_process("strefa") == stary; i++) {
+        zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_DYSK, 0, 0, 0), NULL, 10);
+        msleep(3000);
+    }
+    k1_log(TAG, "strefy: strefa skończyła się (tryb %d)", K1_STREFA_TRYB_OKNO);
+    if (czekaj_strefa(1, 30) && find_process("strefa") != stary)
+        k1_log(TAG, "strefy: strefa otwarta ponownie po zamknięciu (tryb %d)", K1_STREFA_TRYB_DYSK);
+    k1_log(TAG, "strefy: strefa %s (tryb %d)", czekaj_strefa(0, 240) ? "skończyła się" : "nie skończyła się",
+           K1_STREFA_TRYB_DYSK);
+}
+
 /* The scenario's guest side: the test zone with an honest guest — the script clicks, types, closes it through its
  * bar; then one hostile guest after another (gosc/zlosliwy.c), each must end only its own machine — since 0.10.1 also
  * those hostile to the balloon, then the balloon's mechanics (balon()); then (0.10.0 step 5)
  * the zone remembers: an honest guest counts its start on the zone's disk (2: the first run counted 1), "Wyczyść dane
- * sesji", and the count starts again from 1; then the rozdzielacz (0.10.1 step 3). */
+ * sesji", and the count starts again from 1; then the rozdzielacz (0.10.1 step 3); then (0.10.2 step 1) the start screen
+ * until the guest's "window", closing in the background, opening while closing, and a zone left running for the power
+ * off the script asks for. */
 int t_strefy_scenariusz(void)
 {
     int tryb, i;
@@ -289,6 +321,8 @@ int t_strefy_scenariusz(void)
         msleep(2000);
         strefa_raz(K1_STREFA_TRYB_DYSK, 240); /* after "Wyczyść dane sesji": 1 */
         rozdzielacz();
+        okno_i_zamykanie(); /* 0.10.2 step 1 */
+        strefa_raz_start(0); /* S5: it runs when the script powers K1 off — it must close and save first */
     }
     k1_log(TAG, "strefy: koniec scenariusza");
     for (;;)

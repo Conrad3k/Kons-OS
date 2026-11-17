@@ -65,3 +65,15 @@ int dysk_licznik(const char *gdzie)
     loguj("dysk: uruchomienie %d", n);
     return n;
 }
+
+void dysk_zamkniecie(const char *gdzie)
+{
+    char sciezka[64];
+    int fd, ok;
+    snprintf(sciezka, sizeof sciezka, "%s/zamkniecie", gdzie);
+    fd = open(sciezka, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
+    ok = fd >= 0 && write(fd, "tak\n", 4) == 4 && fsync(fd) == 0;
+    if (fd >= 0)
+        close(fd);
+    loguj("dysk: zamknięcie zapisane: %s", ok ? "tak" : "nie");
+}

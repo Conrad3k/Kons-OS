@@ -5,7 +5,7 @@
  *   fd 7 = its channel to us for the browser's connections (strefy_siec.c; 0.10.0 step 2, ADR 0043 T9),
  *   fd 8, 9 = a zone that remembers (strefy_ust.c; 0.10.0 step 5, T11): a channel to skarbiec with the zone's profile as
  *   the owner (its disk's pieces) and the zone's empty disk (/rdzen/strefy/dysk.img, read only) — else neither.
- * One machine per row at a time. Without virtualization (no /dev/kvm: the processor has none, or it is off in the
+ * One machine per row at a time (one that is closing: strefy_zamyk.c). Without virtualization (no /dev/kvm: the processor has none, or it is off in the
  * BIOS), without the zone's image or without enough free memory gui is told why (STREFA_STAN) and nothing starts.
  * The VMM's end is an ordinary end of a service started on request (uslugi.c): no restart. When the user did not
  * close it, gui says why it ended (0.10.0 step 3, S26: before, the window was simply gone). Part of nadzorca. */
@@ -123,7 +123,8 @@ void strefa_uruchom(int nr, int tryb, int z_testu)
     if (u == NULL)
         return;
     if (u->pid > 0) {
-        k1_log(TAG, "strefa %d już działa", nr);
+        if (!strefa_otworz_po_zamknieciu(nr, tryb, z_testu)) /* 0.10.2 step 1 (D2): it waits for the old machine */
+            k1_log(TAG, "strefa %d już działa", nr);
         return;
     }
     powod = otworz(z, fd);
@@ -137,6 +138,7 @@ void strefa_uruchom(int nr, int tryb, int z_testu)
         snprintf(u->argument, sizeof u->argument, "%d", nr);
         snprintf(u->argument2, sizeof u->argument2, "%d", tryb);
         snprintf(u->argument3, sizeof u->argument3, "%u", granica);
+        snprintf(u->argument4, sizeof u->argument4, "%s", sesja_nazwa(nr)); /* the start screen says it (D1) */
         d = dysk(z, fd);
         zdarzenia_start(nr);
         if (fd[0] >= 0 && fd[4] >= 0 && uruchom(u, &p, fd, 5 + d) > 0 &&

@@ -71,7 +71,8 @@ pid_t uruchom(struct usluga *u, const struct k1_profil *p, const int *fds, int n
     char *const argv_usl[] = { (char *)u->program, u->argument[0] != '\0' ? u->argument : NULL,
                                u->argument[0] != '\0' && u->argument2[0] != '\0' ? u->argument2 : NULL,
                                u->argument[0] != '\0' && u->argument2[0] != '\0' && u->argument3[0] != '\0'
-                                   ? u->argument3 : NULL, NULL };
+                                   ? u->argument3 : NULL,
+                               u->argument3[0] != '\0' && u->argument4[0] != '\0' ? u->argument4 : NULL, NULL };
     char *const argv_proba[] = { (char *)u->program, (char *)"--proba", (char *)p->nazwa, NULL };
 
     if (k1_klatka_grupa(p) != 0) {
@@ -490,6 +491,12 @@ void uruchom_aplikacje(int apl)
 void wylacz(int restart)
 {
     k1_log(TAG, "%s na prośbę pulpitu", restart ? "ponowne uruchamianie" : "wyłączanie");
+    if (!strefy_przed_wylaczeniem(restart))
+        wylacz_teraz(restart);
+}
+
+void wylacz_teraz(int restart)
+{
     kill(1, restart ? SIGINT : SIGTERM); /* init: SIGTERM = power off, SIGINT = restart */
 }
 

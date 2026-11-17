@@ -126,12 +126,15 @@ void zamknij_aplikacje(int apl)
 
 static char sesje[K1_STREFY_MAKS + 1][K1_STREFA_NAZWA_MAKS + 1];
 static int32_t pamietaja; /* STREFY_STAN a: bit nr-1 — zone nr remembers */
+static int32_t zamykane;  /* STREFY_STAN e: bit nr-1 — zone nr is closing in the background (0.10.2 step 1) */
 
 void strefy_sesje(const struct k1_komunikat *m)
 {
     const int32_t p[5] = { m->a, m->b, m->c, m->d, m->e }; /* checked: k1_strefa_nazwa_dobra */
-    if (m->typ == K1_KOM_STREFY_STAN)
+    if (m->typ == K1_KOM_STREFY_STAN) {
         pamietaja = m->a;
+        zamykane = m->e;
+    }
     if (m->typ != K1_KOM_STREFA_NAZWA)
         return;
     memcpy(sesje[m->obiekt], p, K1_STREFA_NAZWA_MAKS);
@@ -143,6 +146,11 @@ const char *nazwa_sesji(int nr)
     if (nr < 1 || nr > K1_STREFY_MAKS)
         return "";
     return sesje[nr][0] ? sesje[nr] : k1_strefa(nr)->sesja;
+}
+
+int sesja_zamyka_sie(int nr)
+{
+    return nr >= 1 && nr <= K1_STREFY_MAKS && ((zamykane >> (nr - 1)) & 1);
 }
 
 int sesja_pamieta(int nr)

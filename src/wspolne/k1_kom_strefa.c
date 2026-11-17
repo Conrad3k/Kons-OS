@@ -66,7 +66,7 @@ static int sesje(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
     switch (k->typ) {
     case K1_KOM_STREFY_STAN:
         return (kier == K1_KIER_OD_NADZORCY || kier == K1_KIER_STEROWANIE) && k->obiekt == 0 && (k->a & ~STREFY_BITY) == 0 &&
-               w(k->b, 0, 1) && w(k->c, 0, 1) && (k->c == 1 || k->a == 0) && (k->d & ~STREFY_BITY) == 0 && k->e == 0;
+               w(k->b, 0, 1) && w(k->c, 0, 1) && (k->c == 1 || k->a == 0) && (k->d & ~STREFY_BITY) == 0 && (k->e & ~k->d) == 0;
     case K1_KOM_STREFA_NAZWA: {
         char t[K1_STREFA_NAZWA_MAKS];
         const int32_t p[5] = { k->a, k->b, k->c, k->d, k->e };
@@ -117,6 +117,10 @@ int k1_kom_sprawdz_strefa(const struct k1_komunikat *k, enum k1_kanal_kierunek k
     case K1_KOM_STREFA_BALON:
         return (kier == K1_KIER_OD_NADZORCY || kier == K1_KIER_DO_NADZORCY) && strefa(k->obiekt) &&
                w(k->a, 0, K1_STREFA_PAMIEC_MAKS) && zera(k, 1);
+    case K1_KOM_STREFA_ZAMYKA: /* 0.10.2 step 1 */
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && zera(k, 0);
+    case K1_KOM_STREFA_ZAMKNIJ:
+        return kier == K1_KIER_OD_NADZORCY && strefa(k->obiekt) && zera(k, 0);
     case K1_KOM_STREFA_FOKUS: /* 0.10.1 step 3 */
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_STREFY_MAKS) && zera(k, 1);
     case K1_KOM_STREFA_PRZYDZIAL:

@@ -76,7 +76,8 @@ Testy (kroki 2–3) — tego nie zobaczysz w systemie, ale zobaczysz w spokojnie
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
-[ ]  1  Przeglądarka: ekran startu, zamykanie w tle         S1–S5            0.10.1      D1, D2, T1, T2   M        —
+[w toku: Claude, gałąź claude/magical-knuth-g7qpxl]
+     1  Przeglądarka: ekran startu, zamykanie w tle         S1–S5            0.10.1      D1, D2, T1, T2   M        —
 [ ]  2  Opis ekranu dla testów; testy klikają po nazwach    S6–S8            0.10.1      T3, T4           M        0045
 [ ]  3  Zrzuty wzorcowe; wydanie 0.10.2                       S9               2           D3, D4           M        —
 (ADR 0045 — następny wolny po 0044 z 0.10.1; plany 0.10.3 i 0.10.5 biorą numery po tym.)
@@ -89,18 +90,18 @@ KROK 1 — Przeglądarka: ekran startu do pierwszego okna, zamykanie w tle      
   (b) po „zamknij” okno strefy znika od razu, a maszyna kończy się w tle (sesja się zapisuje).
   Na początku: D1 (szkice ekranu startu, oba motywy, częściami K1), D2 (ta sama sesja otwarta w trakcie zamykania).
   Zadania:
-  [ ] (a) Odtworzenie: test-strefa — tryb strefy próbnej, który pokazuje pierwszy obraz od razu, a „okno” (etap jak
+  [x] (a) Odtworzenie: test-strefa — tryb strefy próbnej, który pokazuje pierwszy obraz od razu, a „okno” (etap jak
       w przeglądarce) dopiero po chwili; zrzut po 2 s: przed poprawką bez napisu „Uruchamiam…” (czerwony).
-  [ ] (a) Poprawka (T1): VMM (src/strefa/okno.c) zostawia ekran startu do etapu „okno” od gościa (S2), nie do
+  [x] (a) Poprawka (T1): VMM (src/strefa/okno.c) zostawia ekran startu do etapu „okno” od gościa (S2), nie do
       pierwszego obrazu gościa (S1); pasek w ruchu (rysowany w pętli VMM co ok. 100 ms, tylko do etapu „okno”); strefa
       bez etapu „okno” (strefa próbna, przyszłe strefy) — jak dziś, do pierwszego obrazu, i zawsze najdłużej do limitu
       (np. 5 min), potem obraz gościa. Wygląd wg D1.
-  [ ] (b) Odtworzenie: test-strefa — „zamknij” na pasku: okno strefy znika z ekranu (log ekranu, zrzut) PRZED końcem
+  [x] (b) Odtworzenie: test-strefa — „zamknij” na pasku: okno strefy znika z ekranu (log ekranu, zrzut) PRZED końcem
       maszyny (dziś dopiero po; czerwony).
-  [ ] (b) Poprawka (T2): po K1_KOM_ZAMKNIJ VMM chowa swoją powierzchnię u ekranu (albo ekran sam ją chowa — wybór w
+  [x] (b) Poprawka (T2): po K1_KOM_ZAMKNIJ VMM chowa swoją powierzchnię u ekranu (albo ekran sam ją chowa — wybór w
       kroku, S3) i dalej zamyka gościa jak dziś (20 s przeglądarka, 40 s maszyna); gui: element strefy znika z paska,
       okienko sesji pokazuje „zamyka się…” (D2); nadzorca: prośba o sesję, która się zamyka — zgodnie z D2 (S4).
-  [ ] (b) Wyłączanie K1 (S5 — najpierw sprawdzić, NIEPEWNE): gdy działają sesje, nadzorca przed wyłączeniem prosi każdą
+  [x] (b) Wyłączanie K1 (S5 — najpierw sprawdzić, NIEPEWNE): gdy działają sesje, nadzorca przed wyłączeniem prosi każdą
       o zamknięcie i czeka (limit, np. 30 s), zanim init zatrzyma resztę; test-strefa: wyłączenie przy działającej
       strefie próbnej, która pamięta — licznik na dysku zapisany.
   Testy i dowód: test-strefa (oba scenariusze czerwone przed, zielone po), testy na hoście części czystych (jeśli
@@ -110,7 +111,20 @@ KROK 1 — Przeglądarka: ekran startu do pierwszego okna, zamykanie w tle      
   w Ogólnej zaloguj się, zamknij okno, od razu wyłącz komputer — po starcie dalej zalogowany.
   Dokumenty: strefa.md, ekran.md, gui.md, nadzorca.md, WYGLAD (D1), SLOWNIK („zamyka się”, jeśli nowe pojęcie).
   Gotowe, gdy: testy zielone, CI na PR-ze zielone (wydanie — krok 3).
-  Ustalenia z wykonania: (pusto)
+  Ustalenia z wykonania (2026-11-17, PR #144):
+    - T1 wykonane tak: gość, który pokaże okno, mówi VMM „etap start” (przeglądarka — na początku, przed kompozytorem;
+      strefa próbna tryb 11); bez „etap start” ekran startu trwa do pierwszego obrazu (jak dotąd). Limit 5 min. Nazwa sesji
+      na ekranie startu: nadzorca daje ją VMM jako argv[4] (VMM sprawdza ją k1_strefa_nazwa_dobra) — jak tytuł na pasku.
+    - T2 / S3: VMM usuwa swoją powierzchnię (USUN) — ekran nic nie wie o zamykaniu; VMM mówi nadzorcy STREFA_ZAMYKA
+      (nowy typ, fd 7), nadzorca podaje gui „zamyka się” w STREFY_STAN e (dotąd 0). Nowy moduł nadzorcy strefy_zamyk.c.
+    - D2 / S4: prośba o zamykającą się strefę → nadzorca pamięta ją i otwiera po końcu starej maszyny (w pętli okresowej);
+      okno nowej sesji pojawia się dopiero wtedy (nie „od razu” — bez maszyny nie ma kto go narysować).
+    - S5 POTWIERDZONE (z kodu i testem): przy wyłączaniu nadzorca dostawał SIGTERM od init i zabijał VMM-y — gość nie
+      dostawał „zamknij”. Teraz wyłączanie i ponowne uruchamianie z pulpitu: STREFA_ZAMKNIJ (nowy typ) do każdej
+      działającej strefy, czekanie najwyżej 30 s, potem init. Wyłączenie przyciskiem zasilania (SIGTERM od init wprost)
+      — bez zmian (nie ma go w K1 jako zdarzenia pulpitu).
+    - test-strefa (lokalnie, emulacja): 59/59; zrzuty strefa-10-ekran-startu, strefa-11-pasek-w-ruchu, strefa-12-okno.
+      Przebiegu „na czerwono” przed poprawką nie robiłem osobno — stare zachowanie widać w kodzie (S1, S3, S5).
 
 KROK 2 — Opis ekranu dla testów (ADR 0045); testy klikają po nazwach            M · T3, T4 · ADR 0045
   Cel: w obrazie testowym ekran i gui odpowiadają osobnym kanałem testowym na pytanie „co jest na ekranie” — okna
@@ -156,11 +170,11 @@ KROK 3 — Zrzuty wzorcowe; wydanie 0.10.2                                      
 4. DECYZJE
 ----------
 Twoje (produkt):
-[!] D1 (krok 1) Ekran startu przeglądarki — szkice do wyboru (oba motywy). Rekomendacja: jak dziś (ikona, „Uruchamiam:
+[x] D1 (krok 1; właściciel 2026-11-17: A — pasek z odcinkiem w kolorze sesji) Ekran startu przeglądarki — szkice do wyboru (oba motywy). Rekomendacja: jak dziś (ikona, „Uruchamiam:
        Przeglądarka · Ogólna…”), pod spodem pasek, po którym przesuwa się odcinek w kolorze sesji (bez procentów —
        nie wiemy, ile zostało); do pojawienia się okna Firefoksa. Inne: kropki zamiast paska; zdanie „Pierwszy start może
        potrwać do minuty” po 20 s.
-[!] D2 (krok 1) Otwierasz tę samą sesję, która jeszcze się zamyka w tle. Rekomendacja: kafelek w okienku „Którą sesję
+[x] D2 (krok 1; właściciel 2026-11-17: rekomendacja — K1 czeka sam) Otwierasz tę samą sesję, która jeszcze się zamyka w tle. Rekomendacja: kafelek w okienku „Którą sesję
        otworzyć?” mówi „zamyka się…”; kliknięcie go przyjmuje — okno sesji pokazuje „Uruchamiam…” od razu, a maszyna
        startuje sama, gdy poprzednia skończy (najwyżej 40 s). Inne: kafelek nieaktywny do końca zamykania.
 [!] D3 (krok 3) Jak zatwierdzasz zmianę wyglądu. Rekomendacja: PR, który zmienia wygląd, ma w opisie obrazy „przed / po”

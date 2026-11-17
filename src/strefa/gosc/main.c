@@ -155,6 +155,27 @@ static void petla(int ster, const int *wej, int n)
     }
 }
 
+/* TRYB_OKNO: its "window" OKNO_PO_S after its first picture (the browser's comes tens of seconds after the compositor's
+ * first picture). Waits actively: an idle guest under emulation may be woken late (0.10.1, S11). */
+static void okno_pozniej(int ster)
+{
+    time_t od = time(NULL);
+    while (time(NULL) - od < OKNO_PO_S)
+        poll(NULL, 0, 200);
+    if (ster >= 0 && write(ster, "etap okno\n", 10) != 10)
+        loguj("kanał sterujący: zapis nieudany");
+    loguj("okno po %d s", OKNO_PO_S);
+}
+
+/* TRYB_OKNO: it closes slowly, as the browser saving its session — the window must be gone long before. */
+static void zamykanie_powoli(void)
+{
+    time_t od = time(NULL);
+    while (time(NULL) - od < ZAMYKANIE_S)
+        poll(NULL, 0, 200);
+    loguj("zamknięty po %d s", ZAMYKANIE_S);
+}
+
 int main(void)
 {
     int wej[WEJSCIA], n = 0, i, t, ster, dysk;
@@ -180,7 +201,7 @@ int main(void)
         pamiec_proba();
         wylacz();
     }
-    if (t > TRYB_ZWYKLY && t != TRYB_ROZDZIELACZ) { /* 10 (0.10.1 step 3): the ordinary zone, its balloon K1's */
+    if (t > TRYB_ZWYKLY && t != TRYB_ROZDZIELACZ && t != TRYB_OKNO) { /* 10 (0.10.1 step 3): the ordinary zone, its balloon K1's */
         zlosliwy(t);
         loguj("tryb %d: VMM nie zatrzymał maszyny", t);
         wylacz();
@@ -191,6 +212,9 @@ int main(void)
         przegladarka(ster);
         wylacz();
     }
+    ster = t == TRYB_OKNO ? sterowanie() : -1; /* 0.10.2 step 1: "etap start" before the first picture */
+    if (ster >= 0 && write(ster, "etap start\n", 11) != 11)
+        loguj("kanał sterujący: zapis nieudany");
     if (obraz_start() == 0)
         obraz_rysuj(0, 0, -1, -1);
     for (i = 0; i < WEJSCIA; i++) {
@@ -205,10 +229,17 @@ int main(void)
         dysk_licznik("/dane");
     if (t == TRYB_ROZDZIELACZ)
         pamiec_podreczna();
-    ster = sterowanie();
+    if (t != TRYB_OKNO)
+        ster = sterowanie();
     loguj("gotowa: urządzenia wejścia %d, kanał sterujący %s", n, ster >= 0 ? "jest" : "brak");
+    if (t == TRYB_OKNO)
+        okno_pozniej(ster);
     petla(ster, wej, n);
-    if (dysk)
+    if (dysk) {
+        dysk_zamkniecie("/dane"); /* 0.10.2 step 1: proof that the guest closed before K1 powered off */
         dysk_odmontuj("/dane");
+    }
+    if (t == TRYB_OKNO)
+        zamykanie_powoli();
     wylacz();
 }
