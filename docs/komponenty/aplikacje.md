@@ -97,15 +97,19 @@ spróbuj jeszcze raz.” pod nim; Esc zamyka wiersz, wyjście z sekcji czyści w
 siec (fd 6, `KANAL_DO_SIECI`: `WIFI_HASLO`, `WIFI_WYBRANA`, `WIFI_POLACZ`, `WIFI_ZAPOMNIJ`) — nie przez nadzorcę; stan wraca
 w `WIFI_POLACZENIE`. Log „wifi: rząd i otwarty (rodzaj r); pole x,y; Połącz x,y; Zapomnij x,y”. Karty sieciowe — kafelki
 jak wyżej, karta Wi-Fi z plakietką Włączone/Wyłączone. Przeglądarka (0.10.0 krok 5, `przegladarka.c`; ADR 0020 p. 2, D2;
-sekcja przed Informacjami — testy klikają sekcje po numerach): wiersz na każdą sesję przeglądarki (od nadzorcy:
-`STREFA_NAZWA`, `STREFY_STAN`) — kropka w kolorze sesji, nazwa, przełącznik „Pamięta | Zapomina” (`STREFA_TRWALOSC`; bez
-K1-DANE nieczynny: „Dane K1 są tylko w pamięci — sesje zapominają po zamknięciu”), opis („Pamięta zalogowania, zakładki
-i historię.” / „Zapomina wszystko po zamknięciu.” / „Otwarta — zmiana działa od następnego otwarcia.”), „Zmień nazwę”
-(pole tekstu, Enter albo „Zapisz”, Esc albo „Anuluj”; nazwa sprawdzana jak u nadzorcy — `k1_strefa_nazwa_dobra`, do 20
-bajtów; `STREFA_NAZWA`), „Wyczyść dane” (pierwsze kliknięcie pyta „Na pewno? Wyczyść”, drugie wysyła `STREFA_WYCZYSC`;
-nieczynne, gdy sesja jest otwarta; wynik `STREFA_WYCZYSZCZONO` jako napis na dole). Na dole stan wirtualizacji: „włączona”
-albo „wyłączona — włącz ją w BIOS-ie (F1 albo F2 przy starcie komputera)”. Log „przeglądarka: sesje 3 (dane na dysku 1,
-wirtualizacja 1): 2 pamięta, przełącznik x,y, Zmień nazwę x,y, Wyczyść x,y; …” — numery stref, nigdy nazwy (tekst
+sekcja przed Informacjami — testy klikają sekcje po numerach; od 0.10.1 krok 4 wygląd wg D5 właściciela — szkic A „karta
+na sesję”): karta na każdą sesję przeglądarki (od nadzorcy: `STREFA_NAZWA`, `STREFY_STAN`; `pole`, zaokrąglenie 10, jak
+karty w Sieci) — kropka w kolorze sesji, nazwa, pod nią jedno zdanie stanu („Pamięta zalogowania, zakładki i historię.” /
+„Zapomina wszystko po zamknięciu.” / „Otwarta teraz — zmiana zadziała od następnego otwarcia.”), w dolnym rzędzie ciche
+„Zmień nazwę” (pole tekstu w miejscu nazwy, Enter albo „Zapisz”, Esc albo „Anuluj”; nazwa sprawdzana jak u nadzorcy —
+`k1_strefa_nazwa_dobra`, do 20 bajtów; `STREFA_NAZWA`) i „Wyczyść dane…” (pytanie w okienku przybornika „Wyczyścić dane
+sesji <nazwa>?” — „Wyczyść dane” wysyła `STREFA_WYCZYSC`, „Anuluj”, Esc albo kliknięcie obok zamyka; nieczynne, gdy sesja
+jest otwarta; wynik `STREFA_WYCZYSZCZONO` jako napis pod listą), po prawej przełącznik „Pamięta | Zapomina”
+(`STREFA_TRWALOSC`). Uwagi tylko, gdy dotyczą — jedna spokojna linia nad listą: bez K1-DANE „K1 działa bez dysku danych —
+każda sesja zapomni po zamknięciu.” (przełącznik wyciszony na „Zapomina”, bez „Wyczyść dane…”), bez wirtualizacji
+„Wirtualizacja wyłączona — sesje nie ruszą. Włącz ją w BIOS-ie.”. Jeden układ (`uklad()`) dla rysowania, kliknięć i logu.
+Log „przeglądarka: sesje 3 (dane na dysku 1, wirtualizacja 1): 2 pamięta, karta x,y wxh, przełącznik x,y, Zmień nazwę x,y,
+Wyczyść x,y; …” i „przeglądarka: pytanie o sesję N: Wyczyść dane x,y; Anuluj x,y” — numery stref, nigdy nazwy (tekst
 użytkownika). Okno Ustawień od 0.10.0 krok 5 ma 680 × 480 (o jedną sekcję więcej). Informacje (`informacje.c`): wersja,
 ekran, jądro, gdzie są dane i odesłanie do sekcji Miejsce.
 

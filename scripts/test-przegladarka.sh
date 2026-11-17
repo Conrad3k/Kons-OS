@@ -1,7 +1,8 @@
 #!/bin/sh
 # Test przeglądarki w strefie (0.10.0 krok 2, ADR 0043; powtarzalny): obraz produkcyjny, K1 z kartą sieciową w sieci QEMU
 # (-netdev user: router 10.0.2.2 = ten komputer, adres od DHCP), na „routerze” serwer strony testowej w Pythonie:
-#   1. Start → Przeglądarka: nadzorca uruchamia strefę „Ogólna” (VMM w klatce), w oknie w ramce koloru sesji Firefox
+#   1. Start → Przeglądarka → okienko „Którą sesję otworzyć?” (0.10.1 krok 4) → Ogólna: nadzorca uruchamia strefę
+#      „Ogólna” (VMM w klatce), w oknie w ramce koloru sesji Firefox
 #      (zrzut przegladarka-1-okno: pasek kart i adresu)
 #   2. adres strony testowej wpisany z klawiatury (virtio-input → kompozytor → Firefox), kliknięcie strzałki „→” na
 #      końcu paska adresu (ponowienie: adres jeszcze raz, strzałka i podpowiedź „otwórz stronę”) → serwer ją wysyła
@@ -22,8 +23,8 @@
 #   7. zamknięcie okna: maszyna kończy się, liczniki połączeń w logu
 #   8. SESJE (0.10.0 krok 5): K1 z dyskiem danych (K1-DANE) — „Ogólna” pamięta: strona testowa ustawia ciasteczko,
 #      po zamknięciu i ponownym otwarciu serwer je dostaje; po ponownym starcie K1 (ten sam K1-DANE) — dalej; „Prywatna”
-#      (prawy przycisk na Przeglądarce w menu Start) go nie ma; Ustawienia → Przeglądarka: „Wyczyść dane” dla Ogólnej
-#      (dwa kliknięcia) i „Zapomina” — następne otwarcie bez ciasteczka i z jasnym paskiem, kolejne znów bez
+#      (okienko „Którą sesję otworzyć?”) go nie ma; Ustawienia → Przeglądarka: „Wyczyść dane…” dla Ogólnej
+#      (pytanie w okienku: „Wyczyść dane”) i „Zapomina” — następne otwarcie bez ciasteczka i z jasnym paskiem, kolejne znów bez
 # BEZ ENTERA (decyzja właściciela 2026-11-15): w CI z KVM Enter w pasku adresu i w polu formularza bywał bez skutku
 # (przebiegi 95–103 PR-a #119; klawisz dochodził do Firefoksa — „Enter pressed” w jego dzienniku), a na sprzęcie
 # (IdeaPad 110) działa zawsze. Cały dzień szukania nie dał przyczyny po stronie K1 — dlatego test nie naciska Entera
@@ -134,7 +135,13 @@ m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz
 mx, my, co, sy = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(5))
 wiersze = (sy - my + co // 2 - 2 - 36) // co  # the rows of the menu; the browser is the last one (k1_uslugi.h)
 q.klik(mx, my + (wiersze - 1) * co)
-sprawdz("menu Start → Przeglądarka: gui prosi nadzorcę o strefę „Ogólna”", czekaj(r"K1-GUI: uruchamiam: Przeglądarka"))
+o_ = czekaj(r"K1-GUI: okienko \(sesje\): (.*)", czas=30)  # 0.10.1 step 4 (D4: sketch B): which session
+p_ = o_ and re.search(r"sesja 2 (\d+),(\d+)", o_.group(1))
+sprawdz("menu Start → Przeglądarka: okienko „Którą sesję otworzyć?” z sesjami 2, 3, 4 (Ogólna, Bank, Prywatna)",
+        p_ and re.search(r"sesja 3 \d+,\d+; sesja 4 \d+,\d+; Anuluj", o_.group(1)), o_.group(1) if o_ else "brak")
+if p_:
+    q.klik(int(p_.group(1)), int(p_.group(2)))
+sprawdz("okienko → Ogólna: gui prosi nadzorcę o strefę „Ogólna”", czekaj(r"K1-GUI: uruchamiam: Przeglądarka"))
 o = czekaj(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", czas=120)
 nr, w_, h_, x, y = (int(o.group(i)) for i in range(1, 6)) if o else (0, 0, 0, 0, 0)
 sprawdz("VMM strefy 2 w klatce (uid 301, 1536 MiB na start, od 0.10.1 krok 2 górna granica: pamięć K1 minus rezerwa), "
@@ -376,7 +383,7 @@ def okno_strefy(n0):  # the zone's window after a start: its place, Firefox draw
     return firefox(w, h, px)
 
 
-def otworz_przegladarke(strefa, prawym=False):  # Start → Przeglądarka (Ogólna), or the right button → a session
+def otworz_przegladarke(strefa):  # Start → Przeglądarka → the window of the sessions (0.10.1 step 4) → a session
     global STREFA, KOLOR
     STREFA, KOLOR = strefa, (WRZOS if strefa == 4 else SZALWIA)
     n0, nm = q.ile(r"K1-EKRAN: okno (\d+) \(strefa\)"), q.ile(r"menu Start otwarte")
@@ -386,18 +393,14 @@ def otworz_przegladarke(strefa, prawym=False):  # Start → Przeglądarka (Ogól
     if not m:
         return False
     mx_, my_, co_, sy_ = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(5))
-    wiersz = (mx_, my_ + ((sy_ - my_ + co_ // 2 - 2 - 36) // co_ - 1) * co_)  # the browser: the last row
-    if not prawym:
-        q.klik(*wiersz)
-    else:
-        nk = q.ile(r"K1-GUI: menu kontekstowe \(menu Start Przeglądarka\)")
-        q.prawy_klik(*wiersz)
-        k = czekaj(r"K1-GUI: menu kontekstowe \(menu Start Przeglądarka\): (.*)", od=nk, czas=30)
-        p = k and re.search(rf"sesja {strefa} (\d+),(\d+)", k.group(1))
-        print(f"            | menu pod prawym przyciskiem: {k.group(1)[:200] if k else 'brak'}", flush=True)
-        if not p:
-            return False
-        q.klik(int(p.group(1)), int(p.group(2)))
+    nk = q.ile(r"K1-GUI: okienko \(sesje\): sesja")
+    q.klik(mx_, my_ + ((sy_ - my_ + co_ // 2 - 2 - 36) // co_ - 1) * co_)  # the browser: the last row
+    k = czekaj(r"K1-GUI: okienko \(sesje\): (sesja.*)", od=nk, czas=30)
+    p = k and re.search(rf"sesja {strefa} (\d+),(\d+)", k.group(1))
+    print(f"            | okienko sesji: {k.group(1)[:200] if k else 'brak'}", flush=True)
+    if not p:
+        return False
+    q.klik(int(p.group(1)), int(p.group(2)))
     return okno_strefy(n0)
 
 
@@ -421,7 +424,7 @@ def uruchom_ponownie_k1():  # the same K1-DANE, a new QEMU: K1 starts again (the
     return czekaj(r"K1-GUI: pulpit gotowy", czas=reszta * 0.3) and czekaj(r"K1-NADZORCA: sieć: połączono \(", czas=240)
 
 
-def ustawienia_ogolna():  # Ustawienia → Przeglądarka: "Wyczyść dane" of Ogólna (two clicks), then "Zapomina"
+def ustawienia_ogolna():  # Ustawienia → Przeglądarka: "Wyczyść dane…" of Ogólna (and the question), then "Zapomina"
     g2 = czekaj(r"K1-GUI: pulpit gotowy: Start \d+,\d+, aplikacje od (\d+),(\d+) co (\d+)")
     n0 = q.ile(r"K1-EKRAN: okno (\d+) \(ustawienia\)")
     q.klik(int(g2.group(1)) + 2 * int(g2.group(3)), int(g2.group(2)))  # the bottom bar: 0 Zegar, 1 Notatki, 2 Ustawienia
@@ -433,15 +436,19 @@ def ustawienia_ogolna():  # Ustawienia → Przeglądarka: "Wyczyść dane" of Og
     np_ = q.ile(r"K1-USTAWIENIA: przeglądarka: sesje")
     q.klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + 9 * int(sk.group(3)))  # section 9: Przeglądarka
     l_ = czekaj(r"K1-USTAWIENIA: przeglądarka: sesje \d+ \(dane na dysku 1, wirtualizacja 1\): (.*)", od=np_, czas=30)
-    p = l_ and re.search(r"2 pamięta, przełącznik (\d+),(\d+), Zmień nazwę \d+,\d+, Wyczyść (\d+),(\d+)", l_.group(1))
+    p = l_ and re.search(r"2 pamięta, karta \d+,\d+ \d+x\d+, przełącznik (\d+),(\d+), Zmień nazwę \d+,\d+, "
+                         r"Wyczyść (\d+),(\d+)", l_.group(1))
     print(f"            | Ustawienia → Przeglądarka: {l_.group(1)[:220] if l_ else 'brak'}", flush=True)
     if not p:
         return False
-    wx, wy = ux + int(p.group(3)), uy + int(p.group(4))
-    q.klik(wx, wy)
-    q.klik(wx, wy)  # "Na pewno? Wyczyść"
+    npy = q.ile(r"K1-USTAWIENIA: przeglądarka: pytanie o sesję 2")
+    q.klik(ux + int(p.group(3)), uy + int(p.group(4)))  # "Wyczyść dane…": the question in a window (0.10.1 step 4)
+    py_ = czekaj(r"K1-USTAWIENIA: przeglądarka: pytanie o sesję 2: Wyczyść dane (\d+),(\d+)", od=npy, czas=30)
+    if not py_:
+        return False
+    q.klik(ux + int(py_.group(1)), uy + int(py_.group(2)))
     ok = czekaj(r"K1-NADZORCA: strefa 2: dane sesji usunięte \(\d+ kawałków\)", czas=60)
-    q.klik(ux + int(p.group(1)) + 150, uy + int(p.group(2)) + 16)  # "Zapomina": the right half of the switch
+    q.klik(ux + int(p.group(1)) + 138, uy + int(p.group(2)) + 14)  # "Zapomina": the right half of the switch
     return ok and czekaj(r"K1-NADZORCA: strefa 2: zapomina \(od następnego otwarcia\)", czas=30)
 
 
@@ -452,16 +459,16 @@ def sesje():  # 0.10.0 step 5: the scenario of the sessions (the first page of /
     sprawdz("SESJE: po ponownym starcie K1 (ten sam K1-DANE) Ogólna dalej ma ciasteczko",
             uruchom_ponownie_k1() and otworz_przegladarke(2) and ciastko() == "jest")
     zamknij_strefe()
-    sprawdz("SESJE: Prywatna (prawy przycisk na Przeglądarce w menu Start) nie ma ciasteczka Ogólnej, jasny pasek",
-            otworz_przegladarke(4, prawym=True) and ciastko() == "brak")
+    sprawdz("SESJE: Prywatna (okienko „Którą sesję otworzyć?”) nie ma ciasteczka Ogólnej, jasny pasek",
+            otworz_przegladarke(4) and ciastko() == "brak")
     w, h, px = q.zrzut("8-prywatna")
     sprawdz("SESJE: Prywatna zapomina — jasny pasek w obwódce koloru sesji (wrzos)",
             blisko(px(x + w_ // 2, y - 42), WRZOS) and not blisko(px(x + w_ - 150, y - 20), WRZOS),
             str((px(x + w_ // 2, y - 42), px(x + w_ - 150, y - 20))))
     zamknij_strefe()
-    sprawdz("SESJE: Ustawienia → Przeglądarka — „Wyczyść dane” Ogólnej (dwa kliknięcia), potem „Zapomina”",
+    sprawdz("SESJE: Ustawienia → Przeglądarka — „Wyczyść dane…” Ogólnej (pytanie w okienku), potem „Zapomina”",
             ustawienia_ogolna())
-    sprawdz("SESJE: po „Wyczyść dane” Ogólna nie ma ciasteczka (strona ustawia je jeszcze raz)",
+    sprawdz("SESJE: po „Wyczyść dane…” Ogólna nie ma ciasteczka (strona ustawia je jeszcze raz)",
             otworz_przegladarke(2) and ciastko() == "brak" and
             czekaj(r"K1-NADZORCA: strefa 2 \(Przeglądarka\): pid \d+, .*zapomina po zamknięciu"))
     zamknij_strefe()
@@ -470,7 +477,8 @@ def sesje():  # 0.10.0 step 5: the scenario of the sessions (the first page of /
     zamknij_strefe()
     t_ = q.tekst()
     sprawdz("SESJE: w logu K1 żadnej nazwy sesji ani zawartości dysku — tylko numery stref i liczby kawałków",
-            "k1test" not in t_ and not re.search(r"menu kontekstowe \(menu Start Przeglądarka\): .*(Ogólna|Bank|Prywatna)", t_))
+            "k1test" not in t_ and not re.search(r"(menu kontekstowe \(menu Start Przeglądarka\)|okienko \(sesje\)|pytanie o sesję).*"
+                                         r"(Ogólna|Bank|Prywatna)", t_))
 
 
 if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label testy-przegladarka): only the page

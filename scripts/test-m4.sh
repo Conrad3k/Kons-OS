@@ -35,6 +35,8 @@ kursor_teraz, idz, klik, pisz, kursor, wyniki, przycisk = q.kursor_teraz, q.idz,
 jasny = lambda c: min(c) > 200
 ciemny = lambda c: max(c) < 70
 akcent = lambda c: c[0] > 170 and c[1] < 150 and c[2] < 120 and c[0] > c[1] > c[2]
+blisko = lambda c, w, tol=28: all(abs(a - b) <= tol for a, b in zip(c, w))
+SESJE_KOLORY = {2: (0x5F, 0x8A, 0x6A), 3: (0x4A, 0x6F, 0xA5), 4: (0x8B, 0x6A, 0xA8)}  # K1_STREFY: Ogólna, Bank, Prywatna
 
 if tryb == "haslo":
     # M5e: the vault has a password now — the password screen instead of the desktop
@@ -272,6 +274,27 @@ if m:
             menu_opis[0] + " | " + ostatni(r"K1-GUI: pasek zmieniony: .*"))
 klik(W // 2, H // 3)  # a click on the empty desktop closes the Start menu
 sx, sy, ax, ay, krok = pasek()
+# 0.10.1 step 4 (the owner's D4: sketch B): Start → Przeglądarka asks "Którą sesję otworzyć?"; "Anuluj" starts nothing
+nm = q.ile(r"menu Start otwarte")
+klik(sx, sy)
+m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);", od=nm)
+if m:
+    rx, ry, rk, wy_ = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(5))
+    klik(rx, ry + ((wy_ - ry + rk // 2 - 2 - 36) // rk - 1) * rk)  # the browser: the last row
+    ok_ = czekaj(r"K1-GUI: okienko \(sesje\): (sesja.*)", czas=20)
+    kaf = {int(n): (int(x), int(y)) for n, x, y in re.findall(r"sesja (\d+) (\d+),(\d+)", ok_.group(1))} if ok_ else {}
+    an = re.search(r"Anuluj (\d+),(\d+)", ok_.group(1)) if ok_ else None
+    kafelki = lambda px: all(jasny(px(x, y - 2)) and blisko(px(x, y - 24), SESJE_KOLORY[n]) for n, (x, y) in kaf.items())
+    sprawdz("menu Start → Przeglądarka: okienko „Którą sesję otworzyć?” — Ogólna, Bank, Prywatna",
+            sorted(kaf) == [2, 3, 4] and an, ok_.group(0) if ok_ else "brak")
+    if sorted(kaf) == [2, 3, 4]:
+        w, h, px = zrzut("1f-okienko-sesji", gdy=lambda w, h, px: kafelki(px))
+        sprawdz("zrzut: kafelki sesji (jasne) z kropką w kolorze sesji",
+                kafelki(px), str([(px(x, y - 2), px(x, y - 24)) for x, y in kaf.values()]))
+    if an:
+        klik(int(an.group(1)), int(an.group(2)))
+        sprawdz("okienko sesji: „Anuluj” zamyka je, żadna strefa nie rusza",
+                czekaj(r"K1-GUI: okienko \(sesje\): Anuluj") and "uruchamiam: Przeglądarka" not in tekst())
 # the bar: Notatki dragged from the end back to the second place
 idz(ax + 5 * krok, ay); przycisk(True); idz(ax + krok, ay); przycisk(False)
 sprawdz("pasek: przeciągnięcie zmienia kolejność (Notatki z powrotem na drugim miejscu)",
@@ -339,9 +362,35 @@ klik(ax + 2 * krok, ay)
 u = czekaj(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)")
 l = czekaj(r"przyciski od (\d+),(\d+) \(szer\. (\d+), wys\. (\d+)\); tapety od (\d+),(\d+) co (\d+)")
 sprawdz("Ustawienia: uruchomione z dolnego paska", u and l)
+
+
+def ust_przegladarka(ux, uy, ciemny_):
+    """Ustawienia → Przeglądarka (0.10.1 step 4, D5: sketch A): a card per session, none runs into the next one — the
+    row of pixels between two cards is the window's background all along, inside a card under its buttons the card's
+    field (S17: before, a session's description was drawn over the next one); then back to Wygląd."""
+    sk_ = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)")
+    n_ = q.ile(r"K1-USTAWIENIA: przeglądarka: sesje")
+    klik(ux + int(sk_.group(1)), uy + int(sk_.group(2)) + 9 * int(sk_.group(3)))  # section 9: Przeglądarka
+    l_ = czekaj(r"K1-USTAWIENIA: przeglądarka: sesje (\d+) \(.*?\): (.*)", od=n_, czas=30)
+    karty = [tuple(int(v) for v in k) for k in re.findall(r"karta (\d+),(\d+) (\d+)x(\d+)", l_.group(2))] if l_ else []
+    tlo, pole = ((0x26, 0x25, 0x23), (0x30, 0x2F, 0x2C)) if ciemny_ else ((0xFA, 0xF9, 0xF6), (0xFF, 0xFF, 0xFF))
+    def dobre(px):
+        for i, (x, y, w_, h_) in enumerate(karty):
+            if not blisko(px(ux + x + 12, uy + y + h_ - 4), pole, 3):
+                return False
+            if i + 1 < len(karty) and not all(blisko(px(ux + xx, uy + y + h_ + 4), tlo, 3) for xx in range(x, x + w_, 4)):
+                return False
+        return len(karty) == 3 and all(karty[i + 1][1] >= karty[i][1] + karty[i][3] + 4 for i in range(2))
+    w, h, px = zrzut(f"5c-przegladarka-{'ciemny' if ciemny_ else 'jasny'}", gdy=lambda w, h, px: dobre(px))
+    sprawdz(f"Ustawienia → Przeglądarka ({'ciemny' if ciemny_ else 'jasny'} motyw): trzy karty sesji, opis nie wchodzi "
+            "na następną (zrzut)", dobre(px), l_.group(0)[:300] if l_ else "brak linii")
+    klik(ux + int(sk_.group(1)), uy + int(sk_.group(2)))  # back to section 0: Wygląd
+
+
 if u and l:
     uid_, ux, uy = int(u.group(1)), int(u.group(4)), int(u.group(5))
     bx, by, bw, bh, tx, ty, tk = (int(l.group(i)) for i in range(1, 8))
+    ust_przegladarka(ux, uy, False)
     klik(ux + bx + bw * 3 // 4, uy + by + bh // 2)
     sprawdz("ciemny motyw: ekran przyjmuje ustawienie tylko od Ustawień", czekaj(r"K1-EKRAN: ustawienie 1=1"))
     w, h, px = zrzut("5-ciemny", gdy=lambda w, h, px: ciemny(px(ux + 600, uy + 400)))
@@ -354,6 +403,7 @@ if u and l:
     w, h, px = zrzut("6-tapeta", gdy=lambda w, h, px: px(12, H - 12)[2] > px(12, H - 12)[0])
     c = px(12, H - 12)
     sprawdz("zrzut: nowa tapeta (fiolet/niebieski w rogu)", c[2] > c[0], str(c))
+    ust_przegladarka(ux, uy, True)
     # Ustawienia → Ekran: inna rozdzielczość, pulpit układa się od nowa (karta bochs ma wiele trybów)
     sek = czekaj(r"sekcje od (\d+),(\d+) co (\d+)")
     klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + int(sek.group(3)))

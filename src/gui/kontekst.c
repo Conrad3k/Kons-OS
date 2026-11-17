@@ -9,6 +9,7 @@
  *                Przeglądarka (0.10.0 step 5, D2): Otwórz · Sesje: Ogólna, Bank, Prywatna (their names from nadzorca)
  *   message      a double click on a file no application opens: why, "Pokaż w Plikach"   (k1_menu_bez_aplikacji)
  *   window       a question or a refusal after a file is dropped (k1_przeciaganie)            (0.8.2 step 6)
+ *   sessions     "Którą sesję otworzyć?" — the browser's sessions as tiles (sesje.c)            (0.10.1 step 4)
  * "Otwórz za pomocą" opens its submenu beside it (pointing at it or clicking it), on the same panel — it moves so that
  * both fit. A row acts when the left button is released on it; a press anywhere else closes the menu. */
 #include <stdio.h>
@@ -111,6 +112,10 @@ static void loguj(void)
             snprintf(kopia.p[i].tekst, sizeof kopia.p[i].tekst, "sesja %d", kopia.p[i].akcja - A_SESJA);
         else if (kopia.p[i].akcja == K1_MA_OTWORZ && cel == K_PASEK && apl > K1_APL_MAKS) /* "Przeglądarka · <name>" */
             snprintf(kopia.p[i].tekst, sizeof kopia.p[i].tekst, "%s", aplikacje[apl].nazwa);
+    if (cel == K_SESJE) {
+        sesje_loguj(gx, gy);
+        return;
+    }
     k1_menu_opis(&kopia, gx, gy, buf, sizeof buf);
     if (cel == K_OKIENKO) {
         k1_log(TAG, "okienko (%s): %s", okienko_rodzaj, buf);
@@ -154,13 +159,18 @@ void kontekst_otworz(int nowy_cel, uint32_t nowy_klucz, int32_t x, int32_t y)
     cel = nowy_cel;
     klucz = nowy_klucz;
     /* the Start menu and the bar know the zones too (items above K1_APL_MAKS); a desktop icon is never a zone */
-    apl = (cel == K_MENU || cel == K_PASEK) && nowy_klucz >= 1 && nowy_klucz <= POZYCJE_MAKS ? (int)nowy_klucz
+    apl = (cel == K_MENU || cel == K_PASEK || cel == K_SESJE) && nowy_klucz >= 1 && nowy_klucz <= POZYCJE_MAKS ? (int)nowy_klucz
                                                                                             : rozm_aplikacja(nowy_klucz);
     hover = hover_pod = pod_wiersz = -1;
-    wiersze();
+    if (cel == K_SESJE)
+        k1_menu_zacznij(&glowne, 0); /* no rows: sesje.c draws the window, its top left at (x, y) */
+    else
+        wiersze();
     /* top left at the pointer, to the left / above it at the edges; for the bottom bar above the bar, centred */
     k1_menu_polozenie(&glowne, x, y, k.szer_ekranu, k.wys_ekranu, &gx, &gy);
-    if (cel == K_PASEK) {
+    if (cel == K_SESJE) {
+        gx = x, gy = y;
+    } else if (cel == K_PASEK) {
         gx = x - K1_MENU_SZER / 2;
         gx = gx < 8 ? 8 : (gx + K1_MENU_SZER + 8 > k.szer_ekranu ? k.szer_ekranu - K1_MENU_SZER - 8 : gx);
         gy = dok_y + MARG - 8 - k1_menu_wys(&glowne);
@@ -200,7 +210,10 @@ void rysuj_kontekst(void)
     if (o == NULL)
         return;
     k1_wyczysc(o, 0);
-    k1_menu_rysuj(o, m, &glowne, gx - ox, gy - oy, hover >= 0 ? hover : pod_wiersz);
+    if (cel == K_SESJE)
+        sesje_rysuj(o, m, gx - ox, gy - oy);
+    else
+        k1_menu_rysuj(o, m, &glowne, gx - ox, gy - oy, hover >= 0 ? hover : pod_wiersz);
     if (pod_wiersz >= 0)
         k1_menu_rysuj(o, m, &pod, px - ox, py - oy, hover_pod);
     k1_pow_zatwierdz(&k, &kontekst);
@@ -258,7 +271,9 @@ static void wykonaj(const struct k1_menu_poz *p)
     kontekst_zamknij();
     switch (akcja) {
     case K1_MA_OTWORZ:
-        if (apl > K1_APL_MAKS) /* a zone: the Start menu or the bar */
+        if (apl > K1_APL_MAKS && cel == K_MENU) /* the browser in the Start menu: which session (0.10.1 step 4) */
+            sesje_wybierz(apl);
+        else if (apl > K1_APL_MAKS) /* a session's window on the bar */
             otworz_aplikacje(apl);
         else
             ikona_otworz(klucz, gx, gy);
@@ -278,6 +293,10 @@ static void wykonaj(const struct k1_menu_poz *p)
 void wskaznik_kontekst(const struct k1_komunikat *m)
 {
     int32_t x = m->a + ox, y = m->b + oy; /* on the screen */
+    if (cel == K_SESJE) {
+        sesje_wskaznik(m->c, m->d, x - gx, y - gy);
+        return;
+    }
     int wyjscie = m->c == K1_WSK_WYJSCIE, w = wyjscie ? -1 : k1_menu_pod(&glowne, x - gx, y - gy);
     int wp = wyjscie || pod_wiersz < 0 ? -1 : k1_menu_pod(&pod, x - px, y - py);
     int w_glownym = x >= gx && x < gx + glowne.szer && y >= gy && y < gy + k1_menu_wys(&glowne);

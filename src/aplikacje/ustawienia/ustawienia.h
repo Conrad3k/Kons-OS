@@ -98,6 +98,7 @@ void wifi_lista_zmieniona(void);  /* a new list: the open network found again by
 void przegladarka_odbierz(const struct k1_komunikat *k); /* STREFY_STAN, STREFA_NAZWA, STREFA_WYCZYSZCZONO */
 void przegladarka_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 int przegladarka_klik(int32_t x, int32_t y);                  /* 1 = handled */
+int przegladarka_najechanie(int32_t x, int32_t y);            /* x < 0: the pointer left; 1 = redraw (0.10.1 step 4) */
 int przegladarka_klawisz(unsigned kod, int wartosc, unsigned mody); /* the new name being typed; 1 = handled */
 void przegladarka_zamknij(void);                              /* leaving the section */
 void przegladarka_loguj(void);                                /* the tests click by this line */

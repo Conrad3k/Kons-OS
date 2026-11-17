@@ -429,10 +429,11 @@ Twoje (produkt):
        w której pracujesz) i mówi o tym okienkiem. Rezerwa K1 (pamięć, której strefy nigdy nie dostają): 768 MiB na
        4 GB, 1 GiB na 8 GB i więcej.
 
-[x] D4 (krok 4) DECYZJA właściciela 2026-11-17: szkic A „sesje w wierszu menu” — w wierszu „Przeglądarka” menu Start
-       kolorowe pigułki sesji (kropka i nazwa), jedno kliknięcie otwiera sesję; menu tak wysokie jak dziś. Wariant
-       „rozwija pod sobą wiersze” (A z planu) nie zmieścił się na ekranie 768 px (menu Start ma już 640 px) — szkic A
-       go zastąpił. Odrzucone: C „strona sesji w menu”, B „okienko na środku ekranu”; sesja domyślna — niepotrzebna.
+[x] D4 (krok 4) DECYZJA właściciela 2026-11-17: szkic B „okienko na środku ekranu” — „Którą sesję otworzyć?” z kafelkiem
+       na sesję (kropka w kolorze, nazwa, „pamięta / zapomina”), „Anuluj”. Powód właściciela: przeglądarkę będzie się
+       dało otwierać też z innych miejsc (np. z pulpitu) — okienko działa wszędzie tak samo. Najpierw wybrał A („sesje
+       w wierszu menu”), potem zmienił na B. Odrzucone: A, C „strona sesji w menu”; sesja domyślna — niepotrzebna.
+       (Wariant „rozwija pod sobą wiersze” z planu nie mieścił się na ekranie 768 px — menu Start ma już 640 px.)
        Pytanie z planu: Jak wybierać sesję przy otwieraniu przeglądarki — szkice do wyboru (oba motywy):
        A) kliknięcie „Przeglądarka” w menu Start rozwija pod nią wiersze sesji (kropka w kolorze, nazwa, „pamięta /
           zapomina”) — jedno kliknięcie więcej, bez nowego okna;

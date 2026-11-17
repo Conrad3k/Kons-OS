@@ -8,6 +8,7 @@
  *   pulpit.c          the desktop layer: icons in a grid (select, drag, double click)
  *   pliki.c           the files of the Pulpit folder and Kosz on the desktop (skarbiec, fd 6; 0.8.0)
  *   kontekst.c        the menu under the right mouse button (desktop, icon, bottom bar, Start menu)
+ *   sesje.c           "Którą sesję otworzyć?" when the browser opens (0.10.1 step 4), on the panel of kontekst.c
  *   zapis.c           the desktop arrangement in skarbiec (fd 6)
  *   rozmieszczenie.c  the rules of the arrangement (pure, host tests)
  *
@@ -88,6 +89,7 @@ void strefa_stan(const struct k1_komunikat *m); /* fd 5 (0.10.0): a zone did not
 /* fd 5 (0.10.0 step 5): the sessions as the user set them — their names (Start menu, the zone's window on the bar) */
 void strefy_sesje(const struct k1_komunikat *m);
 const char *nazwa_sesji(int nr); /* the session's name of zone nr ("" for a zone without one) */
+int sesja_pamieta(int nr);        /* zone nr remembers (STREFY_STAN a; 0 without K1-DANE — 0.10.1 step 4) */
 /* The name of item `apl` (an application, or a zone: "Przeglądarka · Bank") into `buf`. */
 const char *nazwa_pozycji(int apl, char *buf, size_t n);
 void wskaznik_gora(const struct k1_komunikat *m);
@@ -160,7 +162,7 @@ void kosz_oproznij(void);
 int kosz_pelny(void);
 
 /* kontekst.c */
-enum { K_PULPIT = 1, K_IKONA, K_PASEK, K_MENU, K_KOMUNIKAT, K_OKIENKO };
+enum { K_PULPIT = 1, K_IKONA, K_PASEK, K_MENU, K_KOMUNIKAT, K_OKIENKO, K_SESJE };
 #define KONT_SZER (K1_MENU_SZER + K1_MENU_SZER_POD) /* the panel: the menu and its submenu side by side */
 #define KONT_WYS K1_MENU_WYS_MAKS
 extern int kontekst_otwarte;
@@ -171,6 +173,14 @@ void kontekst_zamknij(void);
 void kontekst_okienko(const struct k1_menu *m, const char *rodzaj, int32_t x, int32_t y, void (*wybrano)(int));
 void rysuj_kontekst(void);
 void wskaznik_kontekst(const struct k1_komunikat *m);
+
+/* sesje.c (0.10.1 step 4, D4: sketch B) */
+void sesje_wybierz(int apl); /* opening the browser (item apl): the window of its sessions, or the only one at once */
+int32_t sesje_szer(void);
+int32_t sesje_wys(void);
+void sesje_rysuj(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y);
+void sesje_loguj(int32_t x, int32_t y);
+int sesje_wskaznik(int rodzaj, int przycisk, int32_t x, int32_t y); /* x, y in the window; 1 = it closed */
 
 /* zapis.c */
 void rozm_wczytaj(void); /* at start: from skarbiec, else the first-start arrangement */
