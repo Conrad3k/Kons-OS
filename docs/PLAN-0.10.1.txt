@@ -108,8 +108,8 @@ Pięć kroków:
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [x]  1  Awaria kart; pomiar i przyczyna, liczniki, powody   S1–S6, S12–S15  0.10.0      D1, T7           M        —
      PR #134
-[ ]  2  Balon: virtio-balloon, wolne strony wracają do K1   S7–S11           1           D2, T1–T5        L        0044
-     [w toku: Claude, gałąź claude/trusting-mayer-xiafha]
+[x]  2  Balon: virtio-balloon, wolne strony wracają do K1   S7–S11           1           D2, T1–T5        L        0044
+     PR #137
 [ ]  3  Pamięć komputera dla wszystkich                     S5, S14          2           D3, T6           M        —
 [ ]  4  Wybór sesji przeglądarki; Ustawienia → Przeglądarka S16–S19          0.10.0      D4, D5, T8       S        —
 [ ]  5  Przewijanie po nowej karcie; wydanie 0.10.1         S20–S22          1, 3, 4     D6               S        —
@@ -167,7 +167,7 @@ KROK 1 — Pomiar i przyczyna: odtworzenie, liczniki, prawdziwy powód końca   
   TESTY.md (scenariusze a, b).
   Gotowe, gdy: przyczyna wpisana w „Ustaleniach z wykonania” (z liczbami), okienko mówi prawdziwy powód, scenariusze
   (a) i (b) są stałą częścią test-przegladarka.sh.
-  Ustalenia z wykonania (2026-11-16/17, PR #134):
+  Ustalenia z wykonania (2026-11-16/17, PR #134; CI przebieg 150 zielony):
   - S15 POTWIERDZONE — przyczyna awarii przy przełączaniu kart to NASZ KOMPOZYTOR, nie pamięć ani Firefox. Firefox ESR
     pokazuje po ok. 1 s trzymania kursora nad kartą jej PODGLĄD (xdg_popup z podpowierzchnią). Chowając podgląd, niszczy
     wl_subsurface, a przy następnym tworzy nową na TEJ SAMEJ wl_surface. wayland.xml na to pozwala („must not already
@@ -239,7 +239,7 @@ KROK 2 — Balon: virtio-balloon, wolne strony wracają do K1                   
   SLOWNIK (balon, przydział sesji, górna granica sesji), RYZYKA (gość kłamie o pamięci; strony oddane i dotknięte
   znowu), TESTY.md.
   Gotowe, gdy: scenariusze (a) i (b) zielone w CI, pamięć wraca do K1 (log), testy negatywne zielone, ADR 0044 w spisie.
-  Ustalenia z wykonania (2026-11-17):
+  Ustalenia z wykonania (2026-11-17, PR #137; CI przebieg 152 zielony — prawdziwy Firefox oddał K1 1992 MiB, trzymał 904):
   - D2 (właściciel): górna granica = pamięć komputera minus rezerwa K1 (768 MiB do 6 GiB, 1 GiB od 6 GiB — tabela
     src/nadzorca/pamiec_stref.c; IdeaPad ok. 2,9 GiB, X230 ok. 6,6 GiB, QEMU testu przeglądarki z 3 GiB ok. 2,1 GiB).
     Kolumna pamięci K1_STREFY = pamięć na start (sprawdzana przy starcie jak dotąd: jest_pamiec — krok 3 ją rozszerzy).
