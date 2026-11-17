@@ -69,7 +69,9 @@ pid_t uruchom(struct usluga *u, const struct k1_profil *p, const int *fds, int n
     int potok[2], i;
     pid_t pid;
     char *const argv_usl[] = { (char *)u->program, u->argument[0] != '\0' ? u->argument : NULL,
-                               u->argument[0] != '\0' && u->argument2[0] != '\0' ? u->argument2 : NULL, NULL };
+                               u->argument[0] != '\0' && u->argument2[0] != '\0' ? u->argument2 : NULL,
+                               u->argument[0] != '\0' && u->argument2[0] != '\0' && u->argument3[0] != '\0'
+                                   ? u->argument3 : NULL, NULL };
     char *const argv_proba[] = { (char *)u->program, (char *)"--proba", (char *)p->nazwa, NULL };
 
     if (k1_klatka_grupa(p) != 0) {

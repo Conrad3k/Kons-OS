@@ -226,6 +226,9 @@ $(OBJ)/test_zdarzenie: testy/host/test_zdarzenie.c src/wspolne/k1_zdarzenie.c sr
 # 0.10.0 step 4: a touchpad in its own mode (src/wejscie/touchpad.c — pure)
 $(OBJ)/test_dysk_strefy: testy/host/test_dysk_strefy.c src/strefa/dysk.c src/strefa/dysk.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_dysk_strefy.c src/strefa/dysk.c
+# 0.10.1 step 2 (ADR 0044, D2): the upper limit of a zone's memory
+$(OBJ)/test_pamiec_stref: testy/host/test_pamiec_stref.c src/nadzorca/pamiec_stref.c src/nadzorca/pamiec_stref.h testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_pamiec_stref.c src/nadzorca/pamiec_stref.c
 # 0.10.1 step 1 (S3): why a zone ended — the VMM's status and its sandbox's memory events
 $(OBJ)/test_powod_strefy: testy/host/test_powod_strefy.c src/nadzorca/strefy_powod.c src/nadzorca/strefy_powod.h $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_powod_strefy.c src/nadzorca/strefy_powod.c
@@ -304,6 +307,9 @@ $(OBJ)/test_virtio: testy/host/test_virtio.c src/strefa/virtq.c src/strefa/mmio.
 # 0.10.0 step 2 (ADR 0043 T9): the zones' connector — SOCKS5, DNS, the D3 rule, the messages (fuzzing: fuzz_lacznik)
 $(OBJ)/test_lacznik: testy/host/test_lacznik.c src/strefa/lacznik.c src/strefa/lacznik.h $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_lacznik.c src/strefa/lacznik.c $(KOMUNIKAT) $(DOK_C)
+# 0.10.1 step 2 (ADR 0044): the balloon's lists, blocks and statistics (fuzzing: fuzz_balon)
+$(OBJ)/test_balon: testy/host/test_balon.c src/strefa/strony.c src/strefa/strony.h src/strefa/virtq.h testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_balon.c src/strefa/strony.c
 $(OBJ)/test_strefa_start: testy/host/test_strefa_start.c src/strefa/start.c $(wildcard src/strefa/*.h) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_strefa_start.c src/strefa/start.c
 
@@ -407,7 +413,7 @@ TESTY_HOST := test_odcinki test_dokumenty test_indeks test_wpa test_krypto test_
 	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
-	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy
+	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_balon
 TESTY_HOST_PLIKI := test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
 
 # notatki_w_plikach and magazyn_testowy are not run here: scripts/test-*.sh use them
@@ -452,7 +458,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik
+        lacznik balon
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -493,6 +499,8 @@ FUZZ_ZR_virtq     := src/strefa/virtq.c src/strefa/mmio.c
 FUZZ_DL_virtq     := 40000
 FUZZ_ZR_lacznik   := src/strefa/lacznik.c src/wspolne/k1_siec.c
 FUZZ_DL_lacznik   := 700
+FUZZ_ZR_balon     := src/strefa/strony.c
+FUZZ_DL_balon     := 1100
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
               -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/strefa -Isrc/zewnetrzne/monocypher \
               -Isrc/zewnetrzne/wuffs

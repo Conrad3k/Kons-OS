@@ -135,15 +135,17 @@ static void tablice(uint8_t *baza)
     memcpy(baza + ST_GDT, gdt, sizeof gdt);
 }
 
-static void e820(struct boot_params *bp, uint64_t rozmiar)
+/* RAM below the devices (dol bytes from 0) and, when the guest has more, the rest from 4 GiB (0.10.1 step 2, T5). */
+static void e820(struct boot_params *bp, uint64_t dol, uint64_t gora)
 {
     const struct boot_e820_entry t[] = {
         { 0, ST_MP, E820_RAM },
         { ST_MP, ST_NISKA_KONIEC - ST_MP, E820_RESERVED },
-        { ST_JADRO, rozmiar - ST_JADRO, E820_RAM },
+        { ST_JADRO, dol - ST_JADRO, E820_RAM },
+        { GP_GORA, gora, E820_RAM },
     };
     memcpy(bp->e820_table, t, sizeof t);
-    bp->e820_entries = (uint8_t)(sizeof t / sizeof t[0]);
+    bp->e820_entries = (uint8_t)(sizeof t / sizeof t[0] - (gora == 0 ? 1 : 0));
 }
 
 /* Checks the bzImage header into *h: NULL, or why it is not a 64-bit kernel we can start; *od_kodu = where its
@@ -175,7 +177,9 @@ const char *st_przygotuj(const struct gosc_pamiec *m, const uint8_t *obraz, size
     size_t od_kodu, dl_linii = strlen(linia);
     uint64_t potrzeba;
     const char *powod;
-    if (m->rozmiar < ST_PAMIEC_MIN || m->rozmiar > ST_PAMIEC_MAKS || (m->rozmiar & 0xfff) != 0)
+    uint64_t dol = m->dol != 0 && m->dol < m->rozmiar ? m->dol : m->rozmiar;
+    if (m->rozmiar < ST_PAMIEC_MIN || m->rozmiar > ST_PAMIEC_CALA_MAKS || dol > ST_PAMIEC_MAKS ||
+        (dol < m->rozmiar && dol != ST_PAMIEC_MAKS) || (m->rozmiar & 0xfff) != 0)
         return "zła wielkość pamięci strefy";
     if (procesory < 1 || procesory > ST_PROCESORY_MAKS)
         return "zła liczba procesorów strefy";
@@ -187,7 +191,7 @@ const char *st_przygotuj(const struct gosc_pamiec *m, const uint8_t *obraz, size
         return powod;
     /* where the kernel decompresses itself: its preferred address + init_size, never below the load address */
     potrzeba = (bp.hdr.pref_address > ST_JADRO ? bp.hdr.pref_address : ST_JADRO) + bp.hdr.init_size;
-    if (ST_JADRO + (dl - od_kodu) > m->rozmiar || potrzeba > m->rozmiar)
+    if (ST_JADRO + (dl - od_kodu) > dol || potrzeba > dol)
         return "jądro nie mieści się w pamięci strefy";
     memcpy(m->baza + ST_JADRO, obraz + od_kodu, dl - od_kodu);
     memcpy(m->baza + ST_LINIA, linia, dl_linii + 1);
@@ -196,7 +200,7 @@ const char *st_przygotuj(const struct gosc_pamiec *m, const uint8_t *obraz, size
     bp.hdr.vid_mode = 0xffff;
     bp.hdr.cmd_line_ptr = ST_LINIA;
     bp.hdr.ramdisk_image = bp.hdr.ramdisk_size = 0;
-    e820(&bp, m->rozmiar);
+    e820(&bp, dol, m->rozmiar - dol);
     memcpy(m->baza + ST_ZERO, &bp, sizeof bp);
     tablice(m->baza);
     tablica_mp(m->baza, procesory);

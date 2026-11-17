@@ -45,7 +45,7 @@ int kvm_maszyna(uint64_t pamiec_mib, int procesory)
     struct kvm_pit_config pit = { 0 };
     uint64_t rozmiar = pamiec_mib << 20;
     int fd;
-    void *p;
+    uint8_t *p;
     if (ioctl(mz.kvm, (int)KVM_GET_API_VERSION, 0) != KVM_API_VERSION) {
         k1_log(TAG, "zła wersja KVM");
         return -1;
@@ -62,18 +62,32 @@ int kvm_maszyna(uint64_t pamiec_mib, int procesory)
         return -1;
     }
     p = mmap(NULL, rozmiar, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, fd, 0);
-    close(fd);
     if (p == MAP_FAILED) {
+        close(fd);
         k1_log(TAG, "mmap pamięci strefy: %s", strerror(errno));
         return -1;
     }
     mz.pamiec.baza = p;
     mz.pamiec.rozmiar = rozmiar;
-    r.memory_size = rozmiar;
+    mz.pamiec.dol = rozmiar > ST_PAMIEC_MAKS ? ST_PAMIEC_MAKS : rozmiar;
+    mz.pamiec_fd = fd;
+    /* slot 0: below the devices; slot 1 (0.10.1 step 2, ADR 0044 T5): the rest of a larger guest from 4 GiB — the same
+     * memfd, so one offset in it per page (the balloon gives pages back by that offset: balon.c) */
+    r.memory_size = mz.pamiec.dol;
     r.userspace_addr = (uint64_t)(uintptr_t)p;
     if (ioctl(mz.vm, (int)KVM_SET_USER_MEMORY_REGION, &r) != 0 || ioctl(mz.vm, (int)KVM_SET_TSS_ADDR, TSS) != 0) {
         k1_log(TAG, "pamięć w KVM: %s", strerror(errno));
         return -1;
+    }
+    if (rozmiar > mz.pamiec.dol) {
+        r.slot = 1;
+        r.guest_phys_addr = GP_GORA;
+        r.memory_size = rozmiar - mz.pamiec.dol;
+        r.userspace_addr = (uint64_t)(uintptr_t)(p + mz.pamiec.dol);
+        if (ioctl(mz.vm, (int)KVM_SET_USER_MEMORY_REGION, &r) != 0) {
+            k1_log(TAG, "pamięć w KVM ponad 4 GiB: %s", strerror(errno));
+            return -1;
+        }
     }
     {
         uint64_t mapa = MAPA_TOZSAMA;
@@ -114,9 +128,11 @@ int kvm_urzadzenia(void)
             k1_log(TAG, "irqfd urządzenia %d: %s", i, strerror(errno));
             return -1;
         }
-        /* the negative tests 3 and 4 (gosc/zlosliwy.c) need a read-only disk the guest's kernel does not drive */
-        mmio_start(&mz.urz[i], i == URZ_LOSOWOSC && mz.tryb >= 3 && mz.tryb <= ST_TRYB_ZLOSLIWY ? &blk_ops : ops[i], NULL,
-                   &mz.pamiec, przerwij);
+        /* the negative tests 3 and 4 (gosc/zlosliwy.c) need a read-only disk the guest's kernel does not drive, 6..8 a
+         * balloon (0.10.1 step 2) */
+        mmio_start(&mz.urz[i], i != URZ_LOSOWOSC ? ops[i] : mz.tryb >= 3 && mz.tryb <= ST_TRYB_ZLOSLIWY ? &blk_ops
+                               : zlosliwy_gosc() && mz.tryb >= K1_STREFA_TRYB_BALON_OD ? &balon_ops : ops[i],
+                   NULL, &mz.pamiec, przerwij);
     }
     return 0;
 }

@@ -137,8 +137,9 @@ q.klik(mx, my + (wiersze - 1) * co)
 sprawdz("menu Start → Przeglądarka: gui prosi nadzorcę o strefę „Ogólna”", czekaj(r"K1-GUI: uruchamiam: Przeglądarka"))
 o = czekaj(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", czas=120)
 nr, w_, h_, x, y = (int(o.group(i)) for i in range(1, 6)) if o else (0, 0, 0, 0, 0)
-sprawdz("VMM strefy 2 w klatce (uid 301, 1536 MiB), maszyna działa",
-        czekaj(r"K1-NADZORCA: strefa 2 \(Przeglądarka\): pid \d+, uid 301, pamięć 1536 MiB", czas=60) and
+sprawdz("VMM strefy 2 w klatce (uid 301, 1536 MiB na start, od 0.10.1 krok 2 górna granica: pamięć K1 minus rezerwa), "
+        "maszyna działa",
+        czekaj(r"K1-NADZORCA: strefa 2 \(Przeglądarka\): pid \d+, uid 301, pamięć 1536 MiB na start, granica (\d+) MiB", czas=60) and
         czekaj(r"K1-STREFA: strefa 2 \(Przeglądarka\): maszyna działa", czas=120))
 sprawdz("gość: kanał sterujący „gotowa” (gosc uruchomił przekaźnik, kompozytor i przeglądarkę)",
         czekaj(r"K1-STREFA: gość gotowy \(kanał sterujący\)", czas=120))
@@ -480,7 +481,7 @@ if os.environ.get("K1_PRZEGLADARKA_WASKO"):  # looking for a fault (CI label tes
     if not jest:
         pokaz(w, h, px)
     sprawdz("[WĄSKO] strona testowa otwiera się (Ctrl+L, adres, strzałka)", jest)
-    sprawdz(f"[WĄSKO] strona zajmuje {PAMIEC_MIB} MiB w strefie 1536 MiB: dochodzi do końca, strefa żyje", pamiec())
+    sprawdz(f"[WĄSKO] strona zajmuje {PAMIEC_MIB} MiB: dochodzi do końca, strefa żyje", pamiec())
     zamknij_strefe()
     q.czekaj(r"K1-NADZORCA: strefa 2: połączenia", czas=20)
     for l_ in [l for l in q.tekst().splitlines() if re.search(r"połączenia|wejście do gościa", l)][-3:]:
@@ -510,15 +511,17 @@ t_ = q.tekst()
 sprawdz("w logu K1 żadnego adresu strony ani wpisanego tekstu — tylko liczniki (niezmiennik 8)",
         TEKST not in t_ and f"10.0.2.2:{port}" not in t_ and "10.0.2.3" not in t_ and "wyslij" not in t_)
 
+sprawdz("PRZEWIJANIE: kółko nad długą stroną przewija ją w dół, potem z powrotem na górę (0.10.0 krok 4; zrzut "
+        "przegladarka-6-dluga-przewinieta)", przewijanie())
+sprawdz("SESJE: strona ustawia ciasteczko (serwer: pierwsze wejście bez niego)", ciastko() == "brak")
+# 0.10.1 step 1: the owner's cases after scrolling and the cookie — the new tab breaks scrolling (plan 0.10.1
+# step 5; CI run 150: scrolled down, not back up after the tab switches)
 sprawdz("KARTY: dwie karty, przełączanie co 1,5 s z kursorem nad kartą (jej podgląd), 20 razy — przeglądarka żyje "
         "(0.10.1 krok 1, D1 f; zrzut przegladarka-9-karty)", karty())
 sprawdz("MINIMALIZACJA: 10 × minimalizuj na pasku K1 i przywróć z paska zadań — przeglądarka żyje (0.10.1 krok 1, D1 d)",
         minimalizacja())
 sprawdz("CZEKANIE: dwie karty, 1 min bez ruchu — przeglądarka żyje, liczniki strefy co 5 s w logu (0.10.1 krok 1, D1 e)",
         czekanie(60))
-sprawdz("PRZEWIJANIE: kółko nad długą stroną przewija ją w dół, potem z powrotem na górę (0.10.0 krok 4; zrzut "
-        "przegladarka-6-dluga-przewinieta)", przewijanie())
-sprawdz("SESJE: strona ustawia ciasteczko (serwer: pierwsze wejście bez niego)", ciastko() == "brak")
 koniec_ = zamknij_strefe()
 if not koniec_:
     pokaz(*q.zrzut("4-koniec"))
@@ -530,7 +533,8 @@ sesje()
 # PAMIĘĆ last, in a fresh zone of its own (CI run 142): the page pushes the browser to the edge of the zone's memory and
 # the browser may end soon after it (on X230 and IdeaPad too: 0.10.1 Balon) — before, every check after it in the same
 # browser failed with it. Ogólna forgets by now (sesje), so nothing of this lands on the session's disk.
-sprawdz(f"PAMIĘĆ: strona zajmuje {PAMIEC_MIB} MiB w strefie 1536 MiB — dochodzi do końca, przeglądarka i strefa żyją "
+sprawdz(f"PAMIĘĆ: strona zajmuje {PAMIEC_MIB} MiB (więcej niż 1536 MiB na start minus jądro; od 0.10.1 krok 2 strefa ma "
+        "górną granicę z balonem) — dochodzi do końca, przeglądarka i strefa żyją "
         "(S26; zrzut przegladarka-5-pamiec)", otworz_przegladarke(2) and pamiec())
 zamknij_strefe()
 t_ = q.tekst()

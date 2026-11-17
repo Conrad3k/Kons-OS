@@ -17,7 +17,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 #define PAMIEC 0x8000u
 
 static uint8_t pam[PAMIEC];
-static const struct gosc_pamiec m = { pam, PAMIEC };
+static const struct gosc_pamiec m = { pam, PAMIEC, 0 };
 
 static void sprawdz(const struct virtq *q, const struct vq_lancuch *l)
 {

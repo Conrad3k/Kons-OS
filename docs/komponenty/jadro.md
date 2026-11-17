@@ -105,6 +105,9 @@ procesorze osobno (S30: szybszy start przeglądarki).
 0.10.0 krok 5: **`EXT4_FS`** — dysk sesji, która pamięta (`/dev/vdb`): ext4 z dziennikiem (przerwane wyłączenie naprawia
 jądro gościa przy montowaniu; `JBD2`, `CRC32` jako biblioteka, bez `CRYPTO`); pusty system plików robi budowa
 (`mke2fs`), w strefie nie ma `mkfs` (ADR 0042 T11).
+0.10.1 krok 2: **`VIRTIO_BALLOON`** (wybiera `MEMORY_BALLOON` i `PAGE_REPORTING`) — balon: gość zgłasza wolne bloki
+(2 MiB, ok. 2 s po zwolnieniu), VMM oddaje je K1; na prośbę K1 gość oddaje strony do balonu (ADR 0044). Bez
+`BALLOON_COMPACTION` (wymaga `COMPACTION`, której jądro strefy nie ma).
 
 ### Wi-Fi (0.9.1, ADR 0041)
 `WIRELESS`, `CFG80211` (bez `CFG80211_WEXT` i CRDA), `MAC80211` z minstrelem (bez mesh), `RFKILL` (bez `RFKILL_INPUT`),

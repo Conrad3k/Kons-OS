@@ -8,18 +8,25 @@
 
 #include <stdint.h>
 
-/* The guest's memory as the VMM sees it: one block from guest address 0 (ADR 0042: RAM below the devices). */
+/* The guest's memory as the VMM sees it: one block in the VMM (baza, rozmiar bytes — one memfd), in the guest's
+ * addresses from 0 below the devices (ADR 0042) and, when it is larger than that (0.10.1 step 2, ADR 0044 T5), the
+ * rest from GP_GORA: `dol` bytes from 0 (0: all of it), rozmiar − dol from 4 GiB. A range never crosses the two. */
+#define GP_GORA (4ull << 30)
 struct gosc_pamiec {
     uint8_t *baza;
     uint64_t rozmiar;
+    uint64_t dol;
 };
 
-/* [adres, adres + dl) of guest memory, or NULL when any byte of it is outside. */
+/* [adres, adres + dl) of guest memory, or NULL when any byte of it is outside (or in the hole below 4 GiB). */
 static inline uint8_t *gp_wsk(const struct gosc_pamiec *m, uint64_t adres, uint64_t dl)
 {
-    if (adres > m->rozmiar || dl > m->rozmiar - adres)
-        return (uint8_t *)0;
-    return m->baza + adres;
+    uint64_t dol = m->dol != 0 && m->dol < m->rozmiar ? m->dol : m->rozmiar, gora = m->rozmiar - dol;
+    if (adres <= dol && dl <= dol - adres)
+        return m->baza + adres;
+    if (adres >= GP_GORA && adres - GP_GORA <= gora && dl <= gora - (adres - GP_GORA))
+        return m->baza + dol + (adres - GP_GORA);
+    return (uint8_t *)0;
 }
 
 #define VQ_MAKS 128 /* the queue size every device offers (QueueNumMax); also the longest chain */

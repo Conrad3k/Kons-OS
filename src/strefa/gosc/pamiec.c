@@ -10,12 +10,15 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/swap.h>
 #include <sys/sysinfo.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "gosc.h"
@@ -153,4 +156,51 @@ void pamiec_kolejnosc(uid_t uid, pid_t glowny)
     }
     if (d != NULL)
         closedir(d);
+}
+
+/* TRYB_PAMIEC (0.10.1 step 2, ADR 0044; the test zone, scripts/test-strefa.sh): an honest guest that takes memory and
+ * gives it back. (1) PROBA_MIB taken and touched, then freed — the guest kernel reports the free blocks and the VMM
+ * hands them back to K1 (its log); (2) a pause while the test program inflates the balloon and lets it go (nadzorca:
+ * STREFA_BALON — the guest's kernel does it, not this program); (3) a sudden jump: almost all of its available memory at
+ * once, without waiting for anyone — the balloon is empty, the memory is there. Then the machine ends. */
+#define PROBA_MIB 64
+#define SKOK_PO_S 55
+#define SKOK_ZAPAS_MIB 24 /* left free in the jump: the kernel and this program */
+
+static int zajmij(size_t mib)
+{
+    size_t n = mib << 20, i;
+    uint8_t *p = mmap(NULL, n, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (p == MAP_FAILED)
+        return -1;
+    for (i = 0; i < n; i += STRONA) /* every page touched, and not a zero page */
+        memset(p + i, (int)(i / STRONA) | 1, 64);
+    munmap(p, n);
+    return 0;
+}
+
+static unsigned long dostepna_mib(void)
+{
+    char b[2048];
+    const char *p;
+    return czytaj("/proc/meminfo", b, sizeof b) > 0 && (p = strstr(b, "MemAvailable:")) != NULL
+               ? strtoul(p + 13, NULL, 10) >> 10 : 0;
+}
+
+void pamiec_proba(void)
+{
+    time_t t0 = time(NULL);
+    unsigned long d = dostepna_mib(), skok;
+    loguj("pamięć: dostępna %lu MiB", d);
+    loguj("pamięć: zajęte i zwolnione %d MiB: %s", PROBA_MIB, zajmij(PROBA_MIB) == 0 ? "tak" : "nie");
+    for (time_t ost = t0; time(NULL) - t0 < SKOK_PO_S;) { /* busy, not asleep: an idle guest in nested emulation (the */
+        sched_yield();                                     /* container's test, no KVM) may wait for its timer too long */
+        if (time(NULL) - ost >= 10) {
+            ost = time(NULL);
+            loguj("pamięć: czekam (%ld s)", (long)(ost - t0));
+        }
+    }
+    d = dostepna_mib();
+    skok = d > SKOK_ZAPAS_MIB ? d - SKOK_ZAPAS_MIB : 0;
+    loguj("pamięć: skok %lu MiB naraz: %s", skok, zajmij(skok) == 0 ? "żyję" : "nie dostałem");
 }

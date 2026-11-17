@@ -213,8 +213,27 @@ static int strefa_raz(int tryb, int sekundy)
     return 1;
 }
 
+/* 0.10.1 step 2 (ADR 0044): the balloon's mechanics with an honest guest (gosc TRYB_PAMIEC: takes and frees 64 MiB at
+ * once, a jump after 55 s) — 20 s after the start nadzorca asks for 32 MiB in the balloon, 15 s later for none. */
+static void balon(void)
+{
+    if (zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_PAMIEC, 0, 0, 0), NULL, 10) !=
+            0 || !czekaj_strefa(1, 30)) {
+        k1_log(TAG, "strefy: strefa (tryb %d) nie ruszyła", K1_STREFA_TRYB_PAMIEC);
+        return;
+    }
+    k1_log(TAG, "strefy: strefa próbna uruchomiona (tryb %d)", K1_STREFA_TRYB_PAMIEC);
+    msleep(20000);
+    zapytaj(k1_komunikat_nowy(K1_KOM_STREFA_BALON, K1_STREFA_PROBNA, 32, 0, 0, 0, 0), NULL, 10);
+    msleep(15000);
+    zapytaj(k1_komunikat_nowy(K1_KOM_STREFA_BALON, K1_STREFA_PROBNA, 0, 0, 0, 0, 0), NULL, 10);
+    k1_log(TAG, "strefy: strefa %s (tryb %d)", czekaj_strefa(0, 240) ? "skończyła się" : "nie skończyła się",
+           K1_STREFA_TRYB_PAMIEC);
+}
+
 /* The scenario's guest side: the test zone with an honest guest — the script clicks, types, closes it through its
- * bar; then one hostile guest after another (gosc/zlosliwy.c), each must end only its own machine; then (0.10.0 step 5)
+ * bar; then one hostile guest after another (gosc/zlosliwy.c), each must end only its own machine — since 0.10.1 also
+ * those hostile to the balloon, then the balloon's mechanics (balon()); then (0.10.0 step 5)
  * the zone remembers: an honest guest counts its start on the zone's disk (2: the first run counted 1), "Wyczyść dane
  * sesji", and the count starts again from 1. */
 int t_strefy_scenariusz(void)
@@ -228,13 +247,16 @@ int t_strefy_scenariusz(void)
         zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, 0, 0, 0, 0), NULL, 10);
         k1_log(TAG, "strefy: brak wirtualizacji — strefa %s", czekaj_strefa(1, 10) ? "BŁĘDNIE ruszyła" : "nie ruszyła");
     }
-    for (tryb = absent(DEV "/kvm") ? K1_STREFA_TRYB_MAKS + 1 : 0; tryb < K1_STREFA_TRYB_MAKS; tryb++)
+    for (tryb = absent(DEV "/kvm") ? K1_STREFA_TRYB_DYSK + 1 : 0; tryb < K1_STREFA_TRYB_DYSK; tryb++)
         strefa_raz(tryb, tryb == 0 ? 1200 : 120);
     if (!absent(DEV "/kvm")) {
-        strefa_raz(K1_STREFA_TRYB_MAKS, 240); /* the disk: 2 */
+        for (tryb = K1_STREFA_TRYB_BALON_OD; tryb <= K1_STREFA_TRYB_BALON_DO; tryb++) /* 0.10.1: hostile to the balloon */
+            strefa_raz(tryb, 120);
+        balon();
+        strefa_raz(K1_STREFA_TRYB_DYSK, 240); /* the disk: 2 */
         zapytaj(k1_komunikat_nowy(K1_KOM_STREFA_WYCZYSC, K1_STREFA_PROBNA, 0, 0, 0, 0, 0), NULL, 10);
         msleep(2000);
-        strefa_raz(K1_STREFA_TRYB_MAKS, 240); /* after "Wyczyść dane sesji": 1 */
+        strefa_raz(K1_STREFA_TRYB_DYSK, 240); /* after "Wyczyść dane sesji": 1 */
     }
     k1_log(TAG, "strefy: koniec scenariusza");
     for (;;)

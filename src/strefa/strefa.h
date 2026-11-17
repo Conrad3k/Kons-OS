@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include <stdint.h>
 
+#include "k1_komunikat.h"
 #include "k1_uslugi.h"
 #include "mmio.h"
 #include "start.h"
@@ -38,7 +39,8 @@
     X(MYSZ, mysz_ops)     \
     X(EKRAN, gpu_ops)     \
     X(VSOCK, vsock_ops)   \
-    X(DANE, dane_ops)
+    X(DANE, dane_ops)     \
+    X(BALON, balon_ops)
 #define X_URZ(n, ops) URZ_##n,
 enum { K1_URZADZENIA(X_URZ) URZ_LICZBA };
 #undef X_URZ
@@ -61,6 +63,8 @@ struct maszyna {
     const struct k1_strefa_opis *opis;   /* its row of K1_STREFY */
     int kvm, vm;
     struct gosc_pamiec pamiec;
+    int pamiec_fd;                       /* its memfd (0.10.1 step 2: the balloon punches pages out of it) */
+    uint32_t pamiec_mib;                 /* its size: the zone's upper limit (argv[3]) */
     int n_cpu;
     long rozmiar_run;
     struct procesor cpu[ST_PROCESORY_MAKS];
@@ -87,10 +91,11 @@ struct maszyna {
     const char *volatile zamek_kto;      /* who holds mz.zamek (a constant name), NULL: nobody */
 };
 extern struct maszyna mz;
-#define ST_TRYB_ZLOSLIWY 4 /* test modes 1..4: a hostile guest (gosc/zlosliwy.c) */
+#define ST_TRYB_ZLOSLIWY 4 /* test modes 1..4 and K1_STREFA_TRYB_BALON_OD..DO: a hostile guest (gosc/zlosliwy.c) */
 static inline int zlosliwy_gosc(void)
 {
-    return mz.tryb >= 1 && mz.tryb <= ST_TRYB_ZLOSLIWY;
+    return (mz.tryb >= 1 && mz.tryb <= ST_TRYB_ZLOSLIWY) ||
+           (mz.tryb >= K1_STREFA_TRYB_BALON_OD && mz.tryb <= K1_STREFA_TRYB_BALON_DO);
 }
 
 /* stroz.c: mz.zamek with its holder's name; the main thread's steps; the watchman's thread */
@@ -121,8 +126,19 @@ void wejscie_podsumowanie(void);                     /* at the end: whether inpu
 void wejscie_pusc(void);                             /* focus lost: every held key and button up */
 void vsock_zamknij(void);                            /* vsock.c: "close" to the guest */
 void vsock_podsumowanie(void);                       /* vsock.c: the last counters' line (0.10.1 step 1) */
+void vsock_liczniki(void);                           /* vsock.c: the counters' line every 5 s (main thread, under the lock) */
+/* balon.c (0.10.1 step 2, ADR 0044): the guest's memory as K1 sees it, for nadzorca (STREFA_PAMIEC) and the log */
+struct balon_stan {
+    uint32_t w_k1_mib;     /* the guest's memory K1 really holds now (the memfd's pages) */
+    int64_t dostepna_mib;  /* available in the guest, its own statistics (a hint); -1: none yet */
+    uint32_t balon_mib, cel_mib, oddane_mib; /* in the balloon, what K1 asks, handed back to K1 since the start */
+};
+void balon_cel(uint32_t mib);                /* K1 wants mib MiB in the balloon (STREFA_BALON from nadzorca) */
+void balon_krok(void);                       /* once a second: a new copy of the guest's statistics */
+void balon_stan(struct balon_stan *s);                       /* vsock.c: the last counters' line (0.10.1 step 1) */
 int dane_start(void);   /* dane.c: the disk (fd 8, 9 — or none) and its thread; 0, or -1 */
 void dane_koniec(void); /* its thread ends, the dirty pieces are saved (at most 20 s), the numbers to the log */
-extern const struct mmio_ops blk_ops, konsola_ops, rng_ops, klawiatura_ops, mysz_ops, gpu_ops, vsock_ops, dane_ops;
+extern const struct mmio_ops blk_ops, konsola_ops, rng_ops, klawiatura_ops, mysz_ops, gpu_ops, vsock_ops, dane_ops,
+    balon_ops;
 
 #endif

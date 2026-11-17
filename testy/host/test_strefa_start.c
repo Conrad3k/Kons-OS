@@ -4,6 +4,7 @@
  * (checksums, entries); every kernel and memory that cannot start is refused with a reason. */
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #include <asm/bootparam.h>
 #include <asm/e820.h>
@@ -44,7 +45,7 @@ static uint8_t suma(const uint8_t *p, size_t n)
 
 static void t_dobry(uint8_t *baza)
 {
-    const struct gosc_pamiec m = { baza, PAMIEC };
+    const struct gosc_pamiec m = { baza, PAMIEC, 0 };
     struct st_wejscie w;
     struct boot_params bp;
     uint64_t v;
@@ -81,7 +82,7 @@ static void t_dobry(uint8_t *baza)
 
 static void t_zle(uint8_t *baza)
 {
-    struct gosc_pamiec m = { baza, PAMIEC };
+    struct gosc_pamiec m = { baza, PAMIEC, 0 };
     struct st_wejscie w;
     char dluga[ST_LINIA_MAKS + 8];
     memset(dluga, 'a', sizeof dluga - 1);
@@ -113,8 +114,45 @@ static void t_zle(uint8_t *baza)
     EXPECT(st_przygotuj(&m, obraz, sizeof obraz, "", 1, &w) != NULL);
 }
 
+/* 0.10.1 step 2 (ADR 0044 T5): a guest larger than the room below the devices — the rest from 4 GiB: the memory map
+ * has it, gp_wsk finds it and never lets a range cross the hole. 6 GiB reserved, never touched but below 1 MiB. */
+static void t_gora(void)
+{
+    const uint64_t cala = 6ull << 30;
+    uint8_t *baza = mmap(NULL, cala, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+    struct gosc_pamiec m = { baza, cala, ST_PAMIEC_MAKS };
+    struct st_wejscie w;
+    struct boot_params bp;
+    if (baza == MAP_FAILED) {
+        EXPECT(0);
+        return;
+    }
+    jadro();
+    EXPECT(st_przygotuj(&m, obraz, sizeof obraz, "", 1, &w) == NULL);
+    memcpy(&bp, baza + ST_ZERO, sizeof bp);
+    EXPECT(bp.e820_entries == 4 && bp.e820_table[2].addr + bp.e820_table[2].size == ST_PAMIEC_MAKS &&
+           bp.e820_table[3].addr == GP_GORA && bp.e820_table[3].size == cala - ST_PAMIEC_MAKS &&
+           bp.e820_table[3].type == E820_RAM);
+    EXPECT(gp_wsk(&m, 0x1000, 4096) == baza + 0x1000);
+    EXPECT(gp_wsk(&m, ST_PAMIEC_MAKS - 4096, 4096) == baza + ST_PAMIEC_MAKS - 4096);
+    EXPECT(gp_wsk(&m, ST_PAMIEC_MAKS - 4096, 8192) == NULL);     /* into the hole */
+    EXPECT(gp_wsk(&m, 0xd0000000ull, 4) == NULL);                /* the devices */
+    EXPECT(gp_wsk(&m, GP_GORA - 4096, 8192) == NULL);            /* across 4 GiB */
+    EXPECT(gp_wsk(&m, GP_GORA, 4096) == baza + ST_PAMIEC_MAKS);
+    EXPECT(gp_wsk(&m, GP_GORA + (3ull << 30) - 4096, 4096) == baza + cala - 4096);
+    EXPECT(gp_wsk(&m, GP_GORA + (3ull << 30) - 4096, 8192) == NULL); /* past the end */
+    EXPECT(gp_wsk(&m, UINT64_MAX - 10, 100) == NULL);
+    m.dol = 1ull << 30; /* two parts, but the lower one not the whole room below the devices: refused */
+    EXPECT(st_przygotuj(&m, obraz, sizeof obraz, "", 1, &w) != NULL);
+    m.dol = ST_PAMIEC_MAKS;
+    m.rozmiar = ST_PAMIEC_CALA_MAKS + (2ull << 20); /* above the maximum */
+    EXPECT(st_przygotuj(&m, obraz, sizeof obraz, "", 1, &w) != NULL);
+    munmap(baza, cala);
+}
+
 int main(void)
 {
+    t_gora();
     uint8_t *baza = calloc(PAMIEC, 1);
     if (baza == NULL)
         return 2;
