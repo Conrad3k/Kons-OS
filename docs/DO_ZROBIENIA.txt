@@ -23,7 +23,7 @@ Kroki i decyzje — w planie 0.10.3 (trzy kroki: próba i ADR, strona K1, strona
     [x] 0.10.1 krok 2 — balon: pamięć strefy według potrzeby, wolna wraca do K1 (ADR 0044) — PR #137
     [x] 0.10.1 krok 3 — pamięć komputera dla K1 i wszystkich sesji („Mało pamięci”, sesje w Zasobach) — PR #140
     [x] 0.10.1 krok 4 — okienko „Którą sesję otworzyć?”, Ustawienia → Przeglądarka jako karty — PR #139
-    [x] 0.10.1 krok 5 — przewijanie po nowej karcie (gest palców kończy się), wydanie 0.10.1 — PR #NUMER_PR
+    [x] 0.10.1 krok 5 — przewijanie po nowej karcie (gest palców kończy się), wydanie 0.10.1 — PR #142
 0.10.0 Strefy — gotowe (plan: docs/archiwum/PLAN-0.10.0.txt): PR #114, #119, #126, #128, #132.
 
 
