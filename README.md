@@ -31,7 +31,8 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.10.0 Strefy — przeglądarka | Firefox w osobnej mikro-maszynie (strefie) z własnym jądrem, zaufana ramka w kolorze sesji, sesje Ogólna / Bank / Prywatna, które pamiętają albo zapominają, przewijanie kółkiem i touchpadem | PRZETESTOWANE w QEMU z KVM (ADR 0042, 0043); na sprzęcie — lista w `docs/DO_ZROBIENIA.txt` |
 | 0.10.1 Strefy — balon | pamięć sesji według potrzeby (wolna wraca do K1), „Mało pamięci” i sesje w Zasobach, okienko „Którą sesję otworzyć?”, przeglądarka nie wysypuje się przy kartach, przewijanie po nowej karcie | PRZETESTOWANE w QEMU z KVM (ADR 0044); palce w Firefoksie — na stanowisku na hoście |
 | 0.10.2 Strefy — testy | „Uruchamiam…” aż do okna przeglądarki, okno znika od razu po zamknięciu (sesja zapisuje się w tle, także przy wyłączaniu), testy klikają po nazwach (opis ekranu), zrzuty wzorcowe okien K1 | PRZETESTOWANE w QEMU (ADR 0045); przeglądarka — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
-| 0.10 Strefy (dalej) | aktualizacje przez sieć (0.10.5), poprawki wyglądu (0.10.7), filmy dekodowane kartą graficzną, szybka grafika i szybszy start przeglądarki (0.10.9), inne obce aplikacje, wspólna strefa | PLANOWANE (ADR 0020, 0024, 0025) |
+| 0.10.5 Aktualizacje przez sieć | Ustawienia → Aktualizacje, K1 na dysku sam pobiera nową wersję z wydań na GitHubie i pyta przed instalacją, robot sam wydaje poprawki jądra i przeglądarki, zmiana rozmiaru i maksymalizacja okna przeglądarki, Alt+Tab, Przeglądarka na pasku i pulpicie, jądro Linux 7.3 | PRZETESTOWANE w QEMU (ADR 0046, 0047); na sprzęcie — lista w `docs/DO_ZROBIENIA.txt` |
+| 0.10 Strefy (dalej) | poprawki wyglądu (0.10.7), filmy dekodowane kartą graficzną, szybka grafika i szybszy start przeglądarki (0.10.9), inne obce aplikacje, wspólna strefa | PLANOWANE (ADR 0020, 0024, 0025) |
 | 0.11 Pliki ze stref | przenoszenie plików ze stref i do stref przez okno K1, schowek między strefami | PLANOWANE |
 | 0.12–0.13 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |
 
@@ -39,20 +40,23 @@ Od 0.9 etapy to numery wersji (ADR 0035); wcześniejsze etapy M0–M6 zostały w
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-**Co już jest (0.9.1):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopie ThinkPad X230 (niżej), a
-Instalator zapisuje go na dysk. Pulpit jak w Windows 11, w stylu K1: ikony na pulpicie (aplikacje, Kosz, Twoje
+**Co już jest (0.10.5):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
+110), a Instalator zapisuje go na dysk. Pulpit jak w Windows 11, w stylu K1: ikony na pulpicie (aplikacje, Kosz, Twoje
 pliki i foldery z folderu Pulpit), pasek na dole z menu Start i przypiętymi aplikacjami (Zegar, Notatki, Ustawienia, Zasoby,
-Kalkulator, Pliki; w menu Start też Instalator i Podgląd), pasek na górze (sieć, dźwięk, bateria, data i godzina), okna,
-menu pod prawym przyciskiem i polska klawiatura. **Pliki**: foldery jak w Windows (Pulpit, Dokumenty, Obrazy…),
-Kosz, przeciąganie i zaznaczanie wielu, „Otwórz za pomocą”, zdjęcia z pendrive'a z aparatu albo telefonu (FAT;
-tylko odczyt i import), **Podgląd** zdjęć (PNG, JPEG, GIF, BMP, WebP, do 100 Mpx), tapeta z własnego zdjęcia.
-Zna dyski SATA/NVMe oraz klawiatury, myszy i pamięci USB. Notatki, pliki, ustawienia i hasło są zaszyfrowane na
-partycji K1-DANE (pendrive albo dysk po instalacji). **Sieć kablem** (0.9.0): adres od routera, ikona sieci,
-Ustawienia → Sieć (karty i ich szczegóły), zegar z internetu; z zewnątrz nic w K1 nie odpowiada. **Wi-Fi** (0.9.1):
-lista sieci, hasło wpisane raz, potem K1 łączy się sam. Czego jeszcze nie ma: internetu dla aplikacji, obcych aplikacji i przeglądarki (0.10), dźwięku, jasności ekranu i klawiszy Fn. Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
+Kalkulator, Pliki, Przeglądarka; w menu Start też Instalator i Podgląd), pasek na górze (sieć, dźwięk, bateria, data
+i godzina), okna, Alt+Tab, menu pod prawym przyciskiem i polska klawiatura. **Pliki**: foldery jak w Windows (Pulpit,
+Dokumenty, Obrazy…), Kosz, przeciąganie i zaznaczanie wielu, „Otwórz za pomocą”, zdjęcia z pendrive'a z aparatu albo
+telefonu (FAT; tylko odczyt i import), **Podgląd** zdjęć (PNG, JPEG, GIF, BMP, WebP, do 100 Mpx), tapeta z własnego
+zdjęcia. Zna dyski SATA/NVMe oraz klawiatury, myszy, touchpady i pamięci USB. Notatki, pliki, ustawienia i hasło są
+zaszyfrowane na partycji K1-DANE (pendrive albo dysk po instalacji). **Sieć** kablem i Wi-Fi: adres od routera, zegar
+z internetu, lista sieci, hasło wpisane raz; z zewnątrz nic w K1 nie odpowiada. **Przeglądarka**: Firefox w osobnej
+mikro-maszynie (strefie) w zaufanej ramce K1, sesje Ogólna / Bank / Prywatna, okno o dowolnym rozmiarze.
+**Aktualizacje**: K1 na dysku sam sprawdza wydania na GitHubie, pobiera nową wersję i pyta przed instalacją (Ustawienia →
+Aktualizacje). Czego jeszcze nie ma: innych obcych aplikacji, dźwięku, jasności ekranu i klawiszy Fn. Wygląd:
+[`docs/WYGLAD.md`](docs/WYGLAD.md).
 
 ## Uruchom w maszynie wirtualnej
-1. Pobierz obraz: **Releases** → najnowsze `k1-vX.Y.Z` → plik `k1-X.Y.Z.iso` (ok. 16 MB).
+1. Pobierz obraz: **Releases** → najnowsze `k1-vX.Y.Z` → plik `k1-X.Y.Z.iso` (ok. 135 MB).
    (Albo Actions → „K1 — budowa i testy” → ostatnie zielone uruchomienie → Artifacts → `k1-<wersja>-obraz`.)
 2. **VirtualBox** (zalecany): Nowa maszyna → typ *Other Linux (64-bit)*, bez dysku twardego.
    - Pamięć: **1024 MB**, procesory: **2**.
@@ -65,6 +69,8 @@ lista sieci, hasło wpisane raz, potem K1 łączy się sam. Czego jeszcze nie ma
      **VBoxSVGA** — wtedy K1 użyje obrazu z firmware (z EFI tylko 1024×768; większy:
      `"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" setextradata "NAZWA MASZYNY" VBoxInternal2/EfiGraphicsResolution 1920x1080`).
    - Pamięć masowa: napęd optyczny → wybierz pobrany plik ISO. Sieć i dźwięk można wyłączyć.
+   - Przeglądarka (strefa) potrzebuje wirtualizacji procesora także w maszynie wirtualnej (zagnieżdżonej) i więcej
+     pamięci — w maszynie wirtualnej tego nie sprawdzaliśmy; bez niej K1 pokaże okienko, że przeglądarka nie może ruszyć.
 3. Uruchom. Po kilku sekundach pojawi się pulpit. Kliknij w okno maszyny, żeby „złapać” mysz
    (prawy Ctrl ją uwalnia). Polskie znaki: prawy Alt + litera (np. prawy Alt + a = ą).
 4. Wyłączenie: znak K1 na dolnym pasku → **Wyłącz**.
@@ -72,7 +78,7 @@ lista sieci, hasło wpisane raz, potem K1 łączy się sam. Czego jeszcze nie ma
 Działa też w VMware (UEFI lub BIOS) i QEMU/virt-manager (karta `std` lub `virtio`; nie `vmware` —
 sterownik VMware nie działa z tą kartą QEMU); Hyper-V — jeszcze nie.
 
-## Uruchom na laptopie (ThinkPad X230) — z pendrive'a, z zapisem danych
+## Uruchom na laptopie (ThinkPad X230, IdeaPad 110) — z pendrive'a, z zapisem danych
 Od 0.5.6 jest osobny obraz na pendrive: **`k1-X.Y.Z-usb.img.xz`** (Releases). Ma miejsce na Twoje dane
 (ustawienia, notatki) — **zaszyfrowane, na tym samym pendrivie**. Bez Twojej decyzji K1 **niczego nie
 zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive zostanie w całości nadpisany.
@@ -81,10 +87,9 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    (Obraz `.iso` też zadziała z pendrive'a, ale bez zapisu danych — po wyłączeniu wszystko znika,
    a Ustawienia → Hasło piszą „Nie znaleziono miejsca na dane”. Sprawdzisz w Ustawieniach → Informacje:
    „Dane: zaszyfrowane na nośniku K1”.)
-   Nowy pendrive od pierwszego startu ma na dane całą swoją pojemność. **Pendrive nagrany starszą wersją
-   (0.5.6–0.7.6) ma tylko ok. 50 MB na pliki** (do 0.8.1: ok. 25 MB) — od 0.8.1: Ustawienia → Miejsce (do 0.8.3: Informacje) → **„Użyj całego
-   pendrive'a na dane”** (Twoje pliki zostają na miejscu; nie wyjmuj pendrive'a, dopóki nie zobaczysz „Gotowe”).
-   W Informacjach widać też, ile miejsca na pliki jest zajęte i ile zostało.
+   Nowy pendrive od pierwszego startu ma na dane całą swoją pojemność. Pendrive nagrany wersją 0.5.6–0.7.6 ma mało
+   miejsca na pliki — Ustawienia → Miejsce → **„Użyj całego pendrive'a na dane”** (Twoje pliki zostają na miejscu; nie
+   wyjmuj pendrive'a, dopóki nie zobaczysz „Gotowe”). Tam też widać, ile miejsca jest zajęte i ile zostało.
 2. **Najpierw wyłącz Secure Boot** — dopóki klucz K1 nie jest wpisany (sekcja „Secure Boot z kluczem K1”
    niżej; wersje deweloperskie zawsze wymagają wyłączonego Secure Boot). Bez tego laptop pokaże
    „Secure Boot Violation” / „Invalid signature”, a po „OK” uruchomi system z dysku (sprawdzone
@@ -117,13 +122,16 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    nową wersję i pyta okienkiem „Jest nowa wersja K1” — instaluje dopiero po *Zainstaluj*. Wszystko w **Ustawieniach →
    Aktualizacje**: *Sprawdź teraz*, *Sprawdzaj sam*, *Wróć do poprzedniej wersji*. K1 uruchomiony z pendrive'a powie tylko,
    że jest nowsza wersja — nagraj nowy pendrive.
-   **Aktualizacja z pendrive'a:** nagraj nowszy `k1-…-usb.img.xz` na pendrive, **uruchom K1 z dysku** (bez F12),
-   podłącz pendrive, **Ustawienia → Aktualizacje** → *Zaktualizuj K1 na dysku do …* (od 0.10.5; wcześniej
-   Instalator → *Zaktualizuj system*). Wymienia tylko system — Twoje
-   dane zostają. Od 0.6.2 Instalator sprawdza odcisk i podpis systemu i nie pozwoli wrócić do starszej
-   wersji (dlatego lepiej startować z dysku: wtedy sprawdza Twój system, a nie kod z pendrive'a).
-   Od 0.7.0 nowa wersja trafia **obok** obecnej (A/B): po restarcie startuje na próbę, a gdyby nie
-   wystartowała — wraca poprzednia, a K1 napisze o tym w okienku na pulpicie i w Ustawieniach → Aktualizacje. Od 0.9.0 aktualizacja wymienia też pliki
+   Nowe wersje wydajemy my (nowe funkcje) albo robot na GitHubie (poprawki bezpieczeństwa jądra i przeglądarki, z opisem
+   „Ta aktualizacja zawiera istotne poprawki dotyczące bezpieczeństwa i jakości.”) — każda przechodzi pełne testy
+   i jest podpisana kluczem K1; K1 przyjmie tylko taką.
+   **Aktualizacja z pendrive'a** (K1 na dysku starszy niż 0.10.5 albo bez internetu): nagraj nowszy `k1-…-usb.img.xz`
+   na pendrive, **uruchom K1 z dysku** (bez F12), podłącz pendrive, **Ustawienia → Aktualizacje** → *Zaktualizuj K1 na
+   dysku do …* (w wersjach przed 0.10.5: Instalator → *Zaktualizuj system*). Wymienia tylko system — Twoje dane zostają.
+   K1 sprawdza odcisk i podpis systemu i nie pozwoli wrócić do starszej wersji (dlatego lepiej startować z dysku: wtedy
+   sprawdza Twój system, a nie kod z pendrive'a).
+   Nowa wersja trafia **obok** obecnej (A/B): po restarcie startuje na próbę, a gdyby nie wystartowała — wraca
+   poprzednia, a K1 napisze o tym w okienku na pulpicie i w Ustawieniach → Aktualizacje. Aktualizacja wymienia też pliki
    startowe (shim, GRUB) — bezpiecznie, nawet gdy w trakcie zabraknie prądu. K1 starszy niż 0.7.0 na dysku:
    najpierw zaktualizuj go do 0.8.x albo zainstaluj od nowa. **Od 0.10.0** dane zapisane przez 0.5.6–0.8.1, których od
    tamtej pory nie otworzyła żadna wersja 0.8.2–0.9.1, się nie otworzą (K1 ich nie rusza) — uruchom taki nośnik najpierw
@@ -156,7 +164,7 @@ indziej — także w czacie.**
 Z włączonym Secure Boot laptop uruchomi tylko K1 podpisany Twoim kluczem (podmieniony albo uszkodzony
 system się nie uruchomi). Klucz wpisuje się raz:
 1. Uruchom K1 z dysku (Secure Boot jeszcze wyłączony) → menu Start → **Instalator** → na dole
-   **Secure Boot…** (od 0.8.5 także, gdy K1 działa z dysku — w 0.8.3 tego linku tam nie było) → **Przygotuj klucz K1**
+   **Secure Boot…** → **Przygotuj klucz K1**
    → **Uruchom ponownie** (bez pendrive'a).
 2. Pojawi się niebieski ekran *Shim UEFI key management* — **w ciągu 10 sekund naciśnij dowolny klawisz**
    (jeśli nie zdążysz, K1 wystartuje normalnie — wtedy powtórz punkt 1; gdy klucz dalej czeka, okno pokaże od razu
@@ -172,14 +180,16 @@ napisz, co było na ekranie.
 Napisz (Issues → „Feedback z testu” albo w czacie): czy pulpit się pojawił (jeśli ekran został czarny
 — po ilu sekundach i czy wcześniej było logo Lenovo/GRUB), czy obraz jest ostry (1366×768), co działa
 z klawiatury, TrackPointa, touchpada i myszy USB, czy bateria pokazuje sensowny procent, czy laptop
-sam się wyłączył. Wersja BIOS-u
+sam się wyłączył. Co sprawdzić w nowej wersji: lista w [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt), punkt 4. Wersja BIOS-u
 (widać w F1 → Main) też się przyda.
 
 ## Jak sprawdzić testy bez instalowania niczego
-Po każdej zmianie na `main` GitHub sam buduje system i uruchamia testy:
+Każda zmiana w systemie przechodzi pełne testy na GitHubie, zanim trafi do `main`:
 
-1. Zakładka **Actions** → workflow **„K1 — budowa i testy”** → ostatnie uruchomienie.
-2. Zielony ✔ = system się zbudował i przeszedł wszystkie testy (zrzuty ekranu w artefakcie `k1-<wersja>-logi`).
+1. Zakładka **Pull requests** → zamknięty PR → zakładka **Checks** (albo **Actions** → „K1 — budowa i testy” → przebieg
+   z gałęzi PR-a).
+2. Zielony ✔ = system się zbudował i przeszedł wszystkie testy (logi i zrzuty ekranu w artefakcie `k1-<wersja>-logi`).
+   Na `main` CI już tylko buduje i tworzy wydanie.
 
 ## Budowanie i testy (dla programisty)
 Ubuntu 24.04:

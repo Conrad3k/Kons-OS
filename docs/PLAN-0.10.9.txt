@@ -9,7 +9,7 @@ widzi karty; ryzyko dotyczy tylko tego procesu — jak przy dzisiejszym dekoderz
 ekran dotyka karty graficznej”), więc wersja ma ADR (krok 1).
 Wersja stoi na 0.10.1 (balon i podział pamięci — klatki filmu to pamięć strefy; ADR 0044) i na 0.10.0 (strefy, VMM,
 przeglądarka, sesje i Ustawienia → Przeglądarka; ADR 0042, 0043). Numer: do 2026-11-17 „0.10.3” (wybrał go właściciel);
-2026-11-17 właściciel przesunął tę wersję na 0.10.7 — PO 0.10.5 Aktualizacje przez sieć (docs/PLAN-0.10.5.txt): „lepiej
+2026-11-17 właściciel przesunął tę wersję na 0.10.7 — PO 0.10.5 Aktualizacje przez sieć (docs/archiwum/PLAN-0.10.5.txt): „lepiej
 zająć się grafiką, gdy fundamenty, które chcemy zrobić, już będą”; tego samego dnia jeszcze raz, na 0.10.9 — numer 0.10.7
 dostał plan „Wygląd” (docs/PLAN-0.10.7.txt, poprawki wyglądu po przeglądzie). Plan się nie zmienił — tylko numer i kolejność.
 2026-11-17 (rozmowa z właścicielem, przed startem wersji) plan rozszerzony o dwie rzeczy: SZYBKA GRAFIKA — przełącznik
@@ -78,6 +78,28 @@ Nowy czat — przebieg każdego kroku:
      w tabeli „[x] PR #n”, nowe ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co
      widać, dowody, co zostało.
 
+
+Robot i wydania (od 0.10.5 — ADR 0046 i 0047, docs/komponenty/robot.md i aktualizacja.md; dopisane przy wydaniu 0.10.5):
+  - Robot (.github/workflows/robot.yml) raz dziennie sam wydaje wersję PATCH z poprawionym jądrem Linux albo pakietami
+    przeglądarki — zbudowaną z tego, co jest wtedy na main. Każdy krok scalony do main trafia więc do laptopów
+    z najbliższym wydaniem robota, przed wydaniem 0.10.9, z jego stałym opisem („Ta aktualizacja zawiera istotne
+    poprawki dotyczące bezpieczeństwa i jakości.”). Kroki 1–3 i 5 dodają części K1 bez przełącznika dla użytkownika —
+    mogą tak wyjść. Krok 4 zmienia układ dysku i to, co niesie aktualizacja: wydanie robota z krokiem 4 to pierwsza
+    przeprowadzka obrazu przeglądarki na laptopach właściciela. Dlatego robot jest wyłączony od scalenia kroku 4, aż
+    właściciel potwierdzi przeprowadzkę na obu laptopach (Actions → „Robot — poprawki jądra i przeglądarki” → Disable
+    workflow; wpis „Tymczasowe” w DO_ZROBIENIA z terminem); potem włączony z powrotem. Krok 6 (przełącznik) — przez
+    wydanie 0.10.9.
+  - Numer: robot może w tym czasie wydać 0.10.8, a nawet 0.10.9. Temat i plik planu zostają („0.10.9 Filmy i szybka
+    grafika”), a wydanie bierze następny wolny numer PATCH w chwili wydania (AGENTS.md: tuż przed scaleniem zaktualizuj
+    gałąź z main i sprawdź VERSION; wpis w CHANGELOG nad wpisem robota). Otwarty PR człowieka ze zmianą VERSION
+    wstrzymuje robota.
+  - Wydanie to przebieg CI na main po scaleniu: tag, ISO, obraz USB, ogłoszenie (k1-ogloszenie.bin) i paczka
+    (k1-<wersja>.k1a). K1 zainstalowany na dysku sam je znajdzie (po połączeniu z siecią i co 6 godzin), pobierze przez
+    strefę pobierania i zapyta „Jest nowa wersja K1” z tekstem z wiersza „Opis w K1:” wpisu w CHANGELOG. Pendrive
+    (obraz USB) służy już tylko nowym instalacjom, K1 uruchamianemu z pendrive'a i obrazom próbnym z artefaktów PR-ów.
+  - Sprawdzanie na sprzęcie: obraz z artefaktu PR-a (próbny, nie wydanie — K1 na dysku o nim nie wie) właściciel
+    uruchamia z pendrive'a; po wydaniu aktualizuje laptopy przez sieć (Ustawienia → Aktualizacje → „Sprawdź teraz” →
+    „Zainstaluj”) — to też punkt listy „co sprawdzić” w DO_ZROBIENIA (punkt 4).
 
 1. W SKRÓCIE (dla właściciela)
 ------------------------------
@@ -302,7 +324,8 @@ KROK 4 — Obraz przeglądarki poza rdzeniem, szybszy start                     
   choć większy.
   Co widzi użytkownik: przeglądarka otwiera się szybciej (czas z logu „okno przeglądarki po N s” przed i po — w opisie
   PR-a i w CHANGELOG); w Zasobach K1 ma ok. 100 MB więcej wolnej pamięci; ISO i obraz USB są większe (o ile — pomiar).
-  Aktualizacja z 0.10.7 (i z 0.10.5) przez Ustawienia → Aktualizacje albo Instalator — dane zostają.
+  Aktualizacja z poprzedniej wersji przez sieć (Ustawienia → Aktualizacje, sama albo „Sprawdź teraz”) i z pendrive'a
+  (ta sama sekcja) — dane zostają, przeglądarka i strefa pobierania działają po przeprowadzce.
   Zadania:
   [ ] Pomiar formatów (S33): ten sam obraz w kilku formatach — dziś SquashFS xz z blokiem 1 MiB; SquashFS zstd i lz4
       z blokiem 128 KiB; EROFS z lz4hc — rozmiar i czas „okno przeglądarki po N s” (pierwszy start i drugi, z pamięcią
@@ -318,14 +341,23 @@ KROK 4 — Obraz przeglądarki poza rdzeniem, szybszy start                     
       dziś (bez zmian w VMM, jeśli się da); uszkodzony obraz → okienko „<tytuł> nie może ruszyć”, K1 żyje.
   [ ] Instalator i aktualizacje (S32, S35): zapis obrazu przy instalacji, wymiana przy aktualizacji, odmowa, gdy się nie
       mieści; aktualizacja z poprzedniej wersji bez utraty danych.
-  Testy i dowód: test-m1, test-m5 (instalator), test-m6 (aktualizacje i Secure Boot), test-strefa,
-  sprawdz-powtarzalnosc; NEGATYWNE: zmieniony bajt obrazu → strefa nie rusza albo kończy się z powodem, K1 i inne
+  [ ] Aktualizacja przez sieć (S46, ADR 0046): paczka (k1_paczka.h, T4) i ogłoszenie niosą też obraz strefy — sprawdzany
+      jak reszta (skrót w podpisanym manifeście albo ogłoszeniu, fail closed); narzedzia/wydanie.c i krok wydania w k1.yml
+      — nowy plik albo nowa część paczki; poczekalnia za FAT-em K1-EFI ma miejsce na większą paczkę. Strefa pobierania
+      startuje z obrazu strefy — po przeprowadzce musi ruszać i ze starego układu (aktualizacja Z poprzedniej wersji),
+      i z nowego (następne aktualizacje); inaczej K1 nie pobierze już żadnej poprawki robota.
+  [ ] Robot (punkt 0): wyłączony od scalenia tego kroku do potwierdzenia przeprowadzki na laptopach (wpis „Tymczasowe”).
+  Testy i dowód: test-m1, test-m5f (instalator, aktualizacja z pendrive'a, A/B), test-aktualizacja-siec (aktualizacja
+  przez sieć z poprzedniej wersji na nowy układ), test-m6 (Secure Boot), test-strefa, sprawdz-powtarzalnosc; NEGATYWNE: zmieniony bajt obrazu → strefa nie rusza albo kończy się z powodem, K1 i inne
   strefy żyją; obraz ze starej wersji przy nowym miejscu A/B → odmowa. Liczby: czas startu przeglądarki, rozmiar ISO,
-  rozmiar k1.efi, pamięć K1 po starcie (przed i po). Na sprzęcie — właściciel: aktualizacja z pendrive'a na X230
-  (dane zostały, Przeglądarka startuje — ile sekund).
+  rozmiar k1.efi, pamięć K1 po starcie (przed i po). Na sprzęcie — właściciel: obraz próbny z PR-a z pendrive'a (start,
+  Przeglądarka — ile sekund); przeprowadzkę na dysku sprawdza aktualizacja przez sieć po wydaniu (robot wyłączony do
+  tego czasu). NIEPEWNE: czy Ustawienia → Aktualizacje przyjmą z pendrive'a obraz próbny o tym samym numerze co na
+  dysku (program zapisujący odmawia tylko starszej wersji; sekcja pokazuje przycisk tylko przy starszym dysku).
   Dokumenty: ADR (nowy), strefa.md, jadro.md, instalator.md, ARCHITEKTURA (układ dysku, przebieg startu), RYZYKA (R81 —
   zamknięte albo zmienione), TESTY.md, SLOWNIK (jeśli nowe pojęcie, np. nazwa miejsca na obrazy stref), skill kons-dev.
-  Gotowe, gdy: CI zielone, start przeglądarki krótszy (liczby w PR-ze), właściciel potwierdził aktualizację na dysku.
+  Gotowe, gdy: CI zielone, start przeglądarki krótszy (liczby w PR-ze), właściciel uruchomił obraz próbny z pendrive'a;
+  przeprowadzkę na dysku (aktualizacja przez sieć) potwierdza po najbliższym wydaniu — dopiero wtedy robot wraca.
   Ustalenia z wykonania: (pusto — wypełnia krok 4)
 
 KROK 5 — Szybka grafika, strona K1: pośrednik grafiki                              L · T10–T15 · ADR z kr. 1
@@ -373,8 +405,11 @@ KROK 6 — Szybka grafika, strona strefy: przełącznik, Firefox rysuje kartą; 
       bez końca → odrzucone albo koniec szybkiej grafiki tej strefy; K1 i inne strefy żyją.
   [ ] Porządki tej wersji (PATCH — małe): nic tymczasowego bez terminu; „opakowanie” z T15 z terminem w RYZYKA;
       DO_ZROBIENIA → „Właściciel”: lista do sprawdzenia na sprzęcie (niżej, z kroków 3 i 6).
-  [ ] Wydanie 0.10.9: VERSION, CHANGELOG („co widzisz”, potem technika — kroki 1–6), DO_ZROBIENIA (stan, mapa,
-      punkt 4), ten plan → do archiwum planów (katalog docs/archiwum/).
+  [ ] Wydanie 0.10.9 (albo następny wolny PATCH, jeśli robot go zajął — punkt 0): VERSION, CHANGELOG („co widzisz”,
+      potem technika — kroki 1–6; wiersz „Opis w K1:” prostym językiem), DO_ZROBIENIA (stan, mapa, punkt 4 — z aktualizacją
+      przez sieć na obu laptopach), README, ten plan → do archiwum planów (katalog docs/archiwum/). Przed scaleniem:
+      gałąź z main, VERSION na main (robot); robot włączony (krok 4 — „Tymczasowe” zamknięte). Po scaleniu: CI na main,
+      tag, wydanie z ogłoszeniem i paczką, raport z linkami.
   Testy i dowód: test-strefa.sh — strefa próbna z pośrednikiem testowym (S44, tylko obraz testowy) przechodzi drogę
   gość → VMM → pośrednik → odpowiedź; złośliwy gość; przełącznik wyłączony = żadnego pośrednika (log nadzorcy).
   test-m4.sh i test-wzorce.sh — Ustawienia → Przeglądarka (oba motywy; nowe wzorce po „OK” właściciela). Przeglądarki
@@ -608,7 +643,8 @@ Krok 3
   S25 NISKA. Zasoby: dekoder filmów pokaże się sam (wiersz K1_SYSTEM); czy przypisać jego procesor i pamięć do sesji.
 
 Krok 4 (dodane 2026-11-17, z dokumentów i kodu po 0.10.2)
-  S31 WYSOKA, Z KODU (ADR 0043, RYZYKA R81, jadro/strefa.config). k1.efi ma 121 MiB w miejscu A/B 128 MiB; obraz
+  S31 WYSOKA, Z KODU (ADR 0043, RYZYKA R81, jadro/strefa.config). k1.efi ma 121 MiB w miejscu A/B 128 MiB (od 0.10.5,
+      jądro 7.3: 122,7 MiB — zapas ok. 5 MiB); obraz
       przeglądarki — 104 MB w xz; zstd daje obraz o ok. 10 % większy, czyli ok. 115 MB — już się nie mieści, lz4 tym
       bardziej. FFmpeg (krok 3, T5) i Mesa (krok 6, S43) też nie. Rdzeń z obrazem jest w pamięci: +104 MB RAM na stałe.
       Bez obrazu poza rdzeniem kroki 3, 4 (b) i 6 nie mają miejsca.
@@ -623,7 +659,11 @@ Krok 4 (dodane 2026-11-17, z dokumentów i kodu po 0.10.2)
   S34 ŚREDNIA. Obraz czytany z dysku, nie z pamięci: pierwszy start po włączeniu komputera czyta z dysku (pendrive na
       X230 bywa wolny — EHCI); drugi — z pamięci podręcznej stron K1. Zmierzyć oba.
   S35 NISKA, Z KODU. Instalator odmawia, gdy k1.efi się nie mieści (S25 planu 0.10.0) — nowy warunek dla obrazu stref;
-      test-m5 (instalator) i test-m6 (aktualizacje) — nowe przypadki.
+      test-m5f (instalator i aktualizacja z pendrive'a) i test-aktualizacja-siec — nowe przypadki.
+  S46 WYSOKA, Z KODU (dopisane przy wydaniu 0.10.5). Od 0.10.5 K1 na dysku aktualizuje się przez sieć: paczka
+      aktualizacji (k1_paczka.h) niesie dziś miejsce A/B (k1.efi z rdzeniem, w nim obraz strefy) i pliki startowe; strefa
+      pobierania używa tego samego obrazu strefy co przeglądarka (scripts/zbuduj-strefe.sh). Obraz poza rdzeniem zmienia
+      więc też format paczki i start strefy pobierania — a robot wydaje z main każdego dnia (punkt 0).
 
 Kroki 1, 5 i 6 — szybka grafika (dodane 2026-11-17; NIEPEWNE do kroku 1 f — nie zakładać)
   S36 WYSOKA, NIEPEWNE. Strona gościa native context dla kart Intela w Mesie: czy jest i dla których generacji — iris

@@ -64,6 +64,9 @@ z poprawionym jądrem Linux i pakietami przeglądarki — zmienia tylko `jadro/w
   `main` — jeśli robot wydał w tym czasie wersję, Twój numer to następny, a Twój wpis w CHANGELOG idzie nad wpisem robota.
   Nie scalaj w trakcie budowy wydania na `main`. Otwarty PR robota, który przeszkadza, możesz zamknąć — robot zrobi nowy
   następnego dnia.
+- Robot wydaje z `main` — każdy scalony krok planu trafia do laptopów z najbliższym wydaniem robota, przed wydaniem swojej
+  wersji. Krok w `main` musi więc być gotowy dla użytkownika; krok, który zostawia coś w połowie albo zmienia drogę
+  aktualizacji, idzie z wyłączonym robotem. Numer wydania z planu może zająć robot — wtedy wydanie bierze następny wolny.
 - MINOR (nowy temat) i kroki planów robią ludzie; ręczna zmiana jądra albo pakietów strefy — tylko w kroku planu albo gdy
   robot nie umie (Issue „robot”), nigdy równolegle z otwartym PR-em robota. Na czas dużych prac robota wyłącza się (Actions →
   Disable workflow) z wpisem w `docs/DO_ZROBIENIA.txt` („Tymczasowe”, z terminem).

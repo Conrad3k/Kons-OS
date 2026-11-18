@@ -5,7 +5,7 @@ testu. Każdy mechanizm bezpieczeństwa ma test negatywny (co ma się NIE udać)
 
 Ten plik opisuje, **co** sprawdza każda warstwa i każdy skrypt — krótko. Każde pojedyncze sprawdzenie ma w skrypcie
 opis, który test wypisuje (`[OK]`/`[BŁĄD]` + opis); pełna lista jest więc w wyniku testu (CI: podsumowanie zadania,
-`k1-<wersja>-logi.tar.gz` w wydaniu). Tabele kroków 0.5–0.10.0 (do 0.10.0 w tym pliku): historia git
+artefakt `k1-<wersja>-logi` przebiegu PR-a). Tabele kroków 0.5–0.10.0 (do 0.10.0 w tym pliku): historia git
 (`git log -p docs/TESTY.md`), `CHANGELOG.md`, `docs/archiwum/`.
 
 ## Jak uruchomić
@@ -30,15 +30,11 @@ niżej) i poprawia. W CI zostaje wszystko pod przeglądarką, co jest K1: strefa
 łącznik i reguła sieci D3 (`test_lacznik`, `fuzz_lacznik`), dysk sesji (`test_dysk_strefy`, `t_skarb_strefy`), balon,
 kompozytor (`test_palce`). Integracyjnie (prawdziwy Firefox, strona przez łącznik, odmowa D3 przez nadzorcę) — tylko na
 sprzęcie.
-**Scalenie przez Claude'a uruchamia CI na `main`** (sprawdzone 2026-11-16: po scaleniu #124 sam ruszył przebieg 113 —
-zdarzenie `push`, zielony). Po #119 przebiegu na liście Actions nie widać z nieznanego powodu — lista bywa niekompletna
-(przebiegów 75–106 na niej nie ma), więc brak przebiegu na liście niczego nie dowodzi. Dowodem przed scaleniem jest pełny
-przebieg na PR-ze (etykieta `testy` — liczy stan „`main` + PR”). Jeśli po scaleniu zmiany w systemie przebieg na `main`
-nie ruszy w ciągu kilku minut, Claude prosi właściciela o „Run workflow” (Actions → „K1 — budowa i testy”; Claude dostaje
-tu 403). Wydanie (tag, ISO, obraz USB) powstaje tylko z przebiegu na `main`, gdy `VERSION` ma nową wersję.
-**Na `main` testów nie ma** (decyzja właściciela 2026-11-17): przebieg na `main` tylko buduje i wydaje — pełny komplet
-idzie wcześniej, na PR-ze (przebieg 171 wydania 0.10.1 zawiesił się w test-strefa, choć ten sam kod przeszedł na PR-ze).
-Wydanie nie ma już pliku `k1-<wersja>-logi.tar.gz` — logi testów są w artefakcie przebiegu PR-a.
+**Na `main` testów nie ma** (decyzja właściciela 2026-11-17): przebieg na `main` (sam rusza po scaleniu, zdarzenie `push`)
+tylko buduje i — gdy `VERSION` ma nową wersję — tworzy wydanie (tag, ISO, obraz USB, ogłoszenie i paczka). Pełny komplet
+idzie wcześniej, na PR-ze (etykieta `testy` — liczy stan „`main` + PR”); logi testów są w artefakcie przebiegu PR-a
+(`k1-<wersja>-logi`). Gdy po scaleniu przebieg na `main` nie ruszy w ciągu kilku minut, Claude prosi właściciela
+o „Run workflow” (Actions → „K1 — budowa i testy”; Claude dostaje tu 403).
 **Pamięć podręczna na PR-ze:** PR widzi kopie zapisane na `main` i swoje własne, nie cudze. Zbudowane jądro zapisuje
 tylko przebieg na `main`, więc pierwszy PR po zmianie jądra albo tabel pobieranych plików buduje i pobiera wszystko od
 zera — dłużej niż zwykle (limit zadania: 80 min; sam krok testów: 45 min, żeby po zawieszonym teście zostały logi). Z KVM `testy.sh` co minutę pisze, które testy jeszcze trwają i od ilu minut („[k1] trwa (12 min): test-strefa”) — widać to na żywo na stronie przebiegu. Gdy `git.kernel.org` nie odpowiada, pliki kart idą z zapasu (gitlab.com)
@@ -95,8 +91,8 @@ test używa (`grub-editenv`, `sfdisk`, mtools, `fsck.fat`), to błąd, nie pomin
 
 | Obszar | Testy |
 |---|---|
-| kanały, komunikaty, logi | `test_komunikat` (każdy typ: pola, zakresy, kierunek, deskryptor), `test_odbior`, `test_zdarzenie`, `test_log` (czyszczenie, limit), `test_cmdline` (`k1.rdzen`, `k1.rdzen_skrot`: brak, „..”, powtórzony, za długi), `test_uevent` |
-| skarbiec | `test_odcinki` (format 2: spis, kompaktowanie, **przerwa prądu po każdym zapisie**, 70 000 obiektów, hasło, obce dane, magazyn formatu 1 nietknięty; `test_magazyn` i `test_przejscie` — usunięte z formatem 1 w 0.10.0), `test_indeks`, `test_dokumenty` (pliki, foldery, Kosz, prawa aplikacji przez prawdziwy kanał, nazwy, miejsce, zegar), `test_skarb_zalegle`, `test_notatki` |
+| kanały, komunikaty, logi | `test_komunikat` (każdy typ: pola, zakresy, kierunek, deskryptor), `test_opis` (opis ekranu dla testów: każde pole zepsute), `test_odbior`, `test_zdarzenie`, `test_log` (czyszczenie, limit), `test_cmdline` (`k1.rdzen`, `k1.rdzen_skrot`: brak, „..”, powtórzony, za długi), `test_uevent` |
+| skarbiec | `test_odcinki` + `test_odcinki_pelny` (format 2: spis, kompaktowanie, **przerwa prądu po każdym zapisie**, pełny magazyn, powiększanie, 70 000 obiektów, hasło, obce dane, magazyn formatu 1 nietknięty), `test_indeks`, `test_dokumenty` (pliki, foldery, Kosz, prawa aplikacji przez prawdziwy kanał, nazwy, miejsce, zegar), `test_skarb_zalegle`, `test_notatki` |
 | pulpit i aplikacje | `test_przybornik`, `test_menu`, `test_przeciaganie` (tabela reguł, zaznaczanie), `test_rozmieszczenie`, `test_kalkulator`, `test_podglad`, `test_zalegle` (kolejka ekranu), `podglad_grafiki` (renderer na brzegach obrazu) |
 | pliki z zewnątrz | `test_fat` (obrazy z mtools/sfdisk: FAT12, FAT16 w MBR, FAT32 w GPT, „mały” FAT32 z 3000 plików, NTFS, uszkodzone), `test_dekoder` (PNG, JPEG, GIF, BMP, WebP; 48/100 Mpx; odmowy przed przydziałem) |
 | start, instalator, aktualizacje | `test_uklad` (blok układu, grubenv — te same bajty co `grub-editenv`), `test_efi`, `test_manifest`, `test_sha256`, `test_instalator` (GPT czytana przez `sfdisk`), `test_start` (pliki startowe: przerwanie przed każdym z 28 zapisów, `fsck.fat`, mtools), `test_inst_prawa` (0.10.5: co może okno Instalatora, a co Ustawienia → Aktualizacje; NEGATYWNE — Ustawienia nigdy nie instalują ani nie włączają Secure Boot, Instalator nie aktualizuje) |
@@ -105,16 +101,24 @@ test używa (`grub-editenv`, `sfdisk`, mtools, `fsck.fat`), to błąd, nie pomin
 | strefy | `test_virtio` (kolejki, wrogie łańcuchy, linie z liczbami od gościa — 0.10.1), `test_strefa_start` (boot_params, tablice), `test_powod_strefy` (powód końca strefy: kod VMM i zdarzenia klatki — 0.10.1 krok 1), `test_balon` + `fuzz_balon` (listy stron, bloki, statystyki balonu — 0.10.1 krok 2), `test_tlo` (0.10.5: obraz z pamięci strefy ponad 3 GiB — górna część pamięci leży w VMM zaraz za dolną; czarne okno przeglądarki na X230 z 8 GB), `test_pamiec_stref` (górna granica: D2; od 0.10.1 krok 3 rozdzielacz — sesje w tle oddają pierwsze, sesja z fokusem ostatnia, zapas gościa i pamięć na start nietknięte, to, o co już poproszono, się liczy, histereza, „mało pamięci” tylko gdy żaden balon nie może wziąć więcej, krytycznie — do zamknięcia sesja w tle z największą pamięcią, nigdy ta z fokusem) |
 
 Pomiary (nie w `testy-host`, bez ASan, ręcznie): `make build/obj/pomiar_magazynu`, `make build/obj/pomiar_podgladu`.
-Programy pomocnicze dla skryptów QEMU: `magazyn_testowy` (dyski skarbca), `notatki_w_plikach` (magazyn formatu 1).
+Programy pomocnicze dla skryptów QEMU: `magazyn_testowy` (dyski skarbca), `notatki_w_plikach` (dysk z notatkami jako
+plikami dla `test-pliki.sh`).
 
 ### 4. Fuzzing (`make fuzz`, clang + libFuzzer, ASan/UBSan)
 Jedna reguła dla listy `FUZZ` w `Makefile` (plik `testy/host/fuzz_<nazwa>.c` + dwa wiersze: źródła i długość wejścia).
 Każdy fuzzer to osobny cel (`fuzz-<nazwa>`); `test-m1.sh` puszcza je równolegle. Korpusy startowe:
 `testy/host/korpus-<nazwa>`; zebrany korpus: `build/fuzz-korpus-<nazwa>` — w CI zachowywany między przebiegami (pamięć
 podręczna Actions), więc każdy przebieg idzie głębiej. Przypadki, które libFuzzer zapisze (błąd, „wolny”):
-`build/fuzz-wyniki/<nazwa>-…`. Parsery: linia poleceń, zdarzenia, komunikaty, magazyn (formaty 1 i 2, przejście),
-uevent, archiwum baterii, manifest, układ K1-EFI, rozmieszczenie, wpisy plików, FAT, lista pendrive'a, dekoder, drzewo
-K1-EFI, DHCP, SNTP, opisy sieci Wi-Fi, EAPOL, kolejki virtio.
+`build/fuzz-wyniki/<nazwa>-…`. Fuzzery (lista `FUZZ`; `sprawdz-czytelnosc.py` pilnuje, że każdy jest tutaj):
+
+| Obszar | Fuzzery |
+|---|---|
+| start, kanały, komunikaty | `fuzz_cmdline` (linia poleceń jądra), `fuzz_zdarzenie`, `fuzz_komunikat`, `fuzz_uevent`, `fuzz_opis` (opis ekranu) |
+| skarbiec i pliki | `fuzz_magazyn` (format 2), `fuzz_dokument` (wpisy plików), `fuzz_rozmieszczenie` (pulpit), `fuzz_bat_arch` (archiwum baterii) |
+| pliki z zewnątrz | `fuzz_fat`, `fuzz_pendrive` (lista folderu), `fuzz_dekoder` (obrazy) |
+| start i aktualizacje | `fuzz_manifest`, `fuzz_uklad` (K1-EFI), `fuzz_fat32` (drzewo plików startowych), `fuzz_ogloszenie`, `fuzz_paczka` |
+| sieć | `fuzz_dhcp`, `fuzz_sntp`, `fuzz_wifi` (opisy sieci z powietrza), `fuzz_eapol` |
+| strefy | `fuzz_virtq` (kolejki virtio), `fuzz_vsock`, `fuzz_lacznik` (SOCKS5 i DNS), `fuzz_balon` |
 
 ### 5. W systemie (`testy/system/*.c` → `/rdzen/system/test-systemu`, obraz `rdzen-test.squashfs`)
 Obraz testowy = produkcyjny + program testowy, który uruchamia nadzorca (jako root bez klatki: izolację sprawdza
@@ -130,6 +134,8 @@ baterię ACPI (`testy/acpi/bateria.asl`). NEGATYWNE = coś, co ma się nie udać
 | `t_skarbiec.c` | zaległe odpowiedzi skarbca (klient, który nie odbiera, nie blokuje innych) |
 | `t_sprzet.c` | dyski i kontrolery widoczne, K1-DANE po nazwie, MBR nieczytany, węzły dysków tylko root, brak `hidraw`/`sg`/`sr0`, nikt nie trzyma dysku; bateria |
 | `t_strefy.c` | klatka VMM strefy próbnej (UID 300, cgroup, deskryptory), zabity VMM kończy tylko strefę |
+| `t_opis.c` | opis ekranu (ADR 0045): rola `TEST` dostaje opis z paskiem i „Start”; NEGATYWNE: aplikacja pytająca o to samo — nic; przy dysku `k1-test-opis` (`test-m4`, `test-wzorce`) opis do logu przy każdej zmianie |
+| `t_most.c` | scenariusz `test-most.sh` (Raptor Bridge): czeka na adres K1 i uruchamia strefę próbną w trybach mostu po kolei — uczciwy, złośliwe wobec vsock, znów uczciwy; wynik czyta skrypt |
 | `t_wifi.c`, `t_wifi_ap.c` | nie sprawdzenia, a **punkty dostępu testowe** dla `test-wifi.sh` (obraz testowy z `mac80211_hwsim.radios=7`: beacon, uwierzytelnienie, strona routera WPA2, DHCP) |
 
 ### 6. QEMU z zewnątrz (`scripts/test-*.sh`, biblioteka `testy/qemu/k1qemu.py`)
@@ -160,17 +166,17 @@ przypiętej ikony, podwójne kliknięcie ikony pulpitu i „Otwórz” w jej men
 **Alt+Tab** (trzy okna: przytrzymany Alt i dwa Tab — przełącznik z kafelkami od ostatnio używanego, wybrane trzecie, zrzut
 `m4-4b-alt-tab` z obwódką akcentu; Shift+Tab — wstecz; Esc — bez zmiany fokusu; szybkie Alt+Tab — poprzednie okno;
 zminimalizowane okno wraca; w ciemnym motywie zrzut `m4-5c-alt-tab-ciemny`); dysk zaszyfrowany; po ponownym starcie ustawienia, rozmieszczenie (z Przeglądarką) i notatki wracają; hasło: ekran hasła, złe i dobre, Wyloguj; start z ISO przez BIOS (SeaBIOS, VESA, simpledrm) |
-| `test-wzorce.sh` | 1 (obraz testowy z opisem ekranu i pustym dyskiem danych) | **zrzuty wzorcowe** (0.10.2 krok 3, decyzja D4) w obu motywach: dolny i górny pasek, ikony pulpitu, menu Start, okienko „Którą sesję otworzyć?”, Ustawienia — każda z 12 sekcji (od 0.10.5 Aktualizacje), Pliki, Zasoby, Kalkulator, od 0.10.5 krok 6 przełącznik okien (Alt+Tab przy otwartych Plikach i Kalkulatorze) — 42 obrazy w `testy/wzorce/` co do piksela; ramkę strefy (`ramka-strefy-jasny`, `-ciemny`) sprawdza `test-strefa.sh` |
+| `test-wzorce.sh` | 1 (obraz testowy z opisem ekranu i pustym dyskiem danych) | **zrzuty wzorcowe** (0.10.2 krok 3, decyzja D4) w obu motywach: dolny i górny pasek, ikony pulpitu, menu Start, okienko „Którą sesję otworzyć?”, Ustawienia — każda z 12 sekcji (od 0.10.5 Aktualizacje), Pliki, Zasoby, Kalkulator, od 0.10.5 krok 6 przełącznik okien (Alt+Tab przy otwartych Plikach i Kalkulatorze) — 42 obrazy co do piksela (razem z ramką strefy 44 w `testy/wzorce/`); ramkę strefy (`ramka-strefy-jasny`, `-ciemny`) sprawdza `test-strefa.sh` |
 | `test-pliki.sh` | `pierwszy`, `ponownie`, `notatki` | foldery, nazwy (zajęta — odmowa), Kosz (przywróć, usuń na zawsze z pytaniem), pliki na pulpicie i ich menu, przeciąganie i Ctrl+klik, foldery stałe (odmowa), po ponownym starcie zostają; dysk formatu 1 z notatkami jako plikami: Notatki, okno wyboru pliku (Otwórz, Anuluj), „Otwórz za pomocą”, domyślna aplikacja, Ustawienia → Aplikacje |
 | `test-pendrive.sh` | `pendrive`, `ponownie` | wirtualny pendrive FAT32 (mtools, Pillow): czytnik w klatce tylko do odczytu, import (pojedynczo, wszystkie, drugi raz — pominięte), pliki 17 MB i 300 MB kawałkami, miniatury (JPEG, PNG, GIF, BMP, WebP, 48/100 Mpx), NEGATYWNE: uszkodzony JPEG, 101 Mpx, plik z pendrive'a na Kosz, plik bez aplikacji; tapeta ze zdjęcia; Podgląd (przybliżanie, obrót, ← →, Delete, Ctrl+O, płynność); Ustawienia → Miejsce; wyjęcie, NTFS (odmowa), „mały” FAT32 z 1100 zdjęciami (0.10.0 krok 4: kółko nad listą — 3 wiersze na ząbek, w górę ponad początek, NEGATYWNY: nad miejscami po lewej nic); po ponownym starcie tapeta i magazyn z filmem otwarty od razu |
-| `test-skarbiec.sh` | `dziennik` (+ponownie), `przejscie`, `pelny`, `powiekszenie` (+ponownie), `dokonczenie` | dyski z `magazyn_testowy`: długi dziennik → kompaktowanie przy otwarciu; przejście z formatu 1 na 2 dopiero po potwierdzonym starcie, krokami < 1 s; prawie pełna K1-DANE: „Nowy folder” odrzucony, ustawienie systemu się zapisuje; „Użyj całego pendrive'a na dane” → nowa tablica, import 16 zdjęć; dokończenie powiększenia po przerwie prądu; na hoście treść każdego obiektu |
+| `test-skarbiec.sh` | `stary`, `wersje`, `pelny`, `powiekszenie` (+ponownie), `dokonczenie` | dyski z `magazyn_testowy`: magazyn formatu 1 (0.5.6–0.8.1) — skarbiec go nie otwiera ani nie nadpisuje (na hoście ta sama suma), dane tylko w pamięci; jeden obiekt zapisany 20 000 razy — magazyn otwiera się od razu (spis i ogon); prawie pełna K1-DANE: „Nowy folder” odrzucony, ustawienie systemu się zapisuje; „Użyj całego pendrive'a na dane” → nowa tablica, import 16 zdjęć; dokończenie powiększenia po przerwie prądu; na hoście treść każdego obiektu |
 | `test-siec.sh` | 1 | karta e1000e kablem do sieci testowej: zanim jest adres, od K1 tylko DHCP; 5 złych odpowiedzi DHCP odrzuconych; z adresem — ARP tylko o swój adres, RST na 1034 SYN-y, żadnego ICMP; odnowienie dzierżawy; kabel wyjęty i włożony; ikona sieci, Ustawienia → Sieć; zegar z internetu (milczą, źle, niezgodnie, sprzed wydania → bez zmian; dobrze → ustawiony, Kosz przesunięty) |
 | `test-wifi.sh` | `wifi`, `wifi-2` | baza przepisów radiowych; lista sieci (złośliwe nazwy pokazane bezpiecznie, zepsuty opis pominięty), przełącznik radia (rfkill), ikona; sieć otwarta, złe i dobre hasło WPA2, NEGATYWNE: krótka i podrobiona ramka EAPOL; „Zapomnij”; ponowny start — łączy się sama |
 | `test-strefa.sh` | `strefa`, `strefa-bez-wirt` | KVM w emulacji (AMD SVM z NPT): VMM w klatce, okno strefy w ramce (pasek tytułu K1 nad obrazem i obwódka — krok 3, szkic A; przesuwanie za pasek, minimalizuj i zamknij na pasku), pamięć kompresowana w gościu (zram), linia liczników strefy co kilka sekund i przy końcu, szczyt pamięci klatki u nadzorcy (0.10.1 krok 1), **balon** (0.10.1 krok 2: złośliwi goście balonu — strona poza pamięcią, blok nie z całych stron, za długa lista — koniec tylko strefy; uczciwy gość w trybie 9: górna granica ponad pamięć na start, zwolnione 64 MiB wracają do K1 — „oddane” w liczniku, cel balonu 32 MiB i 0 na prośbę programu testowego, nagły skok prawie do granicy — żyje), wejście tylko przy fokusie, kółko (0.10.0 krok 4: `REL_WHEEL` i `REL_WHEEL_HI_RES` w gościu — także bez fokusu, do okna pod kursorem), dolny pasek; NEGATYWNE: 4 złośliwe tryby gościa — koniec tylko strefy; procesor bez wirtualizacji — okienko odmowy; obraz produkcyjny bez strefy próbnej. Krok 5: K1 z dyskiem danych (K1-DANE) — strefa próbna pamięta: gość liczy na dysku strefy swoje uruchomienia (1; po złośliwych gościach 2), program testowy prosi o „Wyczyść dane sesji” — znów 1; liczby dysku z logu VMM, bez błędów. 0.10.1 krok 3: **rozdzielacz** — strefa w trybie 10 (zwykły gość, balonem rządzi rozdzielacz), K1 w teście ma 1 GiB, czyli mniej niż rezerwa: nadzorca sam ustawia cel balonu i gość oddaje strony, gui mówi, która strefa ma fokus, Zasoby pokazują przydział strefy, okienko „Mało pamięci” (zrzut `strefa-9-malo-pamieci`) — „Zamknij” zamyka strefę bez okienka „zamknęła się”. 0.10.5 krok 4 (D8): **zmiana rozmiaru** — prawy dolny róg przeciągnięty: ekran prosi o 1088×632, VMM daje powierzchnię, gość nowy wyświetlacz (zrzut `strefa-4b-rozmiar`: wzór na całym nowym obrazie); poniżej najmniejszego — 640×480; **maksymalizacja** przyciskiem — obszar roboczy z paneli (zrzut `strefa-4c-maksymalizacja`: oba paski widoczne), NEGATYWNE: zmaksymalizowanego nie da się przesunąć; podwójne kliknięcie paska — poprzedni rozmiar; rozmiar zapamiętany dla sesji (następne okno strefy próbnej). 0.10.5 krok 6: **Alt+Tab** z Zegara do strefy i z powrotem — gość nie dostaje nic z Alt+Tab, przy strefie z fokusem ekran puszcza jej Alt (gość liczy tylko Alt, Tab do niego nie trafia), po powrocie przy literze gość trzyma tylko ten klawisz (log gościa „wciśnięte 1”) |
 | `test-most.sh` | `most` | **Raptor Bridge** (0.10.5 krok 5, T15): obraz testowy z dyskiem „k1-test-mostu” i kartą w sieci QEMU; serwer testowy w Pythonie na „routerze” (10.0.2.2:8790: „D n”, „E”, „H n”, „C n”); strefa próbna w trybie 13 (`gosc/most.c`) przez przekaźnik: 1 bajt, 3 MiB, echo 1 MiB, 48 naraz, półzamknięcia w obie strony, przerwane w połowie (klient, reset serwera, klient bez bajtu), odmowy D3 (sieć domowa — nadzorca; pętla — łącznik) obok udanych, nazwy; NEGATYWNE: zły SOCKS5 wprost do VMM (6 rodzajów), 140 połączeń na 128 miejsc, złośliwy gość vsock — 200 połączeń i pakiety bez połączenia, potem ponad kredyt (tryb 14), cudzy adres (tryb 15) — koniec tylko tej maszyny; liczniki zgodne (serwer = gość, nadzorca = odmowy D3, VMM: zajęte na końcu 0); drugi przebieg po złośliwych; żadnego adresu w logu K1; przepustowość w `[info]` |
 | `test-m5.sh` | `usb`, `pendrive1`, `pendrive2` | maszyna bez PS/2: klawiatura i mysz USB, mysz podłączana, odłączana i znów podłączana; bateria ACPI (wskaźnik, Ustawienia → Bateria, historia między startami); pendrive z K1-DANE włożony po starcie; obraz USB startuje z pendrive'a, pierwszy start tworzy magazyn, drugi otwiera |
 | `test-m5f.sh` | 11 (`0-z-iso` … `6-starsza`) | start z ISO przez UEFI (OVMF, virtio, simpledrm, rdzeń przez loop) — Instalator nie ma skąd kopiować; uszkodzony system na pendrivie — odmowa przed zapisem; instalacja (GPT, pliki startowe = pendrive'a, `fsck.fat`); start z dysku; zmienione pliki startowe — odmowa; aktualizacja przerwana (wolny dysk, `quit`) i pełna; A/B: nowe miejsce na próbę i potwierdzone, uszkodzone → wycofanie; starsza wersja odrzucona. Od 0.10.5 (krok 1) aktualizację klika w **Ustawieniach → Aktualizacje** (log „aktualizacje: dysk starszy (dysk: X, pendrive: Y); przycisk x,y”); z dysku Instalator pokazuje kartę z linkiem, który otwiera tę sekcję; wycofanie — okienko „Nowa wersja K1 nie uruchomiła się” na pulpicie i „Pokaż w Ustawieniach” → „nieudana próba”; dysk nowszy — sekcja bez przycisku |
-| `test-m6.sh` | 5 (+2 z sekretem) | OVMF z Secure Boot i kluczami Microsoftu: klucz K1 w MOK → start; bez klucza i ze zmienionym `k1.efi` → odmowa z wyjaśnieniem; z sekretem `K1_KLUCZ_PODPISU` (CI na `main`) pełna droga przez MokManagera, bez niego tylko „wpisanie niedostępne”; K1 z dysku: „Przygotuj klucz K1” |
+| `test-m6.sh` | 5 (+2 z sekretem) | OVMF z Secure Boot i kluczami Microsoftu: klucz K1 w MOK → start; bez klucza i ze zmienionym `k1.efi` → odmowa z wyjaśnieniem; z sekretem `K1_KLUCZ_PODPISU` (CI) pełna droga przez MokManagera, bez niego tylko „wpisanie niedostępne”; K1 z dysku: „Przygotuj klucz K1” |
 
 **Testy po nazwach (0.10.2 krok 2, ADR 0045).** Scenariusz, który klika w pulpit i okna K1, uruchamia obraz testowy
 z małym dyskiem o numerze seryjnym `k1-test-opis` (wzór: `test-m4.sh`, przebieg `pulpit`): program testowy pyta wtedy
@@ -200,7 +206,7 @@ z logami (`k1-<wersja>-logi`). Brak wzorca — też błąd, z obrazem „po”. 
 PR, który zmienia wygląd, pokazuje mu obrazy „przed / po” (w opisie PR-a albo przez `SendUserFile`); dopiero po jego
 „OK” `scripts/przyjmij-wzorce.sh [katalog z artefaktu] [nazwy…]` przenosi obrazy „po” do `testy/wzorce/` (osobny commit).
 Wzorców nie zmienia się „przy okazji”. Nowy wzorzec (nowe okno) — tak samo: pierwszy przebieg daje „po”, właściciel
-ogląda, skrypt przyjmuje. Okna z Firefoksem i Podgląd ze zdjęciem — bez wzorców (D4). Rozmiar: 40 obrazów ok. 1,5 MB.
+ogląda, skrypt przyjmuje. Okna z Firefoksem i Podgląd ze zdjęciem — bez wzorców (D4). Rozmiar: 44 obrazy, ok. 2 MB.
 
 Pułapki QEMU, Wi-Fi, jądra i kanałów, które już wystąpiły: skill `kons-dev`, §7.
 

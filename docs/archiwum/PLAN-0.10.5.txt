@@ -140,8 +140,8 @@ Osiem kroków:
      PR #164
 [x]  7  Jądro Linux 7.x (najnowsza linia)                  S52–S55          3           D14, T19 T20     M        —
      PR #165
-[ ]  8  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–7         D10              M        —
-     [w toku: Claude, gałąź claude/adoring-pascal-qj6hhy]
+[x]  8  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–7         D10              M        —
+     PR #NR_PR
 (Numery ADR — następne wolne po ADR 0045 z 0.10.2; jeśli zajmą więcej, krok bierze kolejne wolne.)
 
 Dlaczego tyle: krok 1 to sama aplikacja (bez sieci) — panel, okno i przeniesienie, łatwe do przetestowania osobno;
@@ -696,16 +696,16 @@ KROK 8 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M �
   osoba (albo nowy czat) znajduje drogę od README do szczegółu bez sprzecznych wersji tej samej rzeczy. Potem wydanie.
   Co widzi użytkownik: krótsza, spójna dokumentacja (README, docs/); wydanie 0.10.5.
   Zadania:
-  [ ] Przegląd (S39): README, AGENTS.md, CLAUDE.md, skill kons-dev, docs/SPEC.md, ARCHITEKTURA.md, TESTY.md,
+  [x] Przegląd (S39): README, AGENTS.md, CLAUDE.md, skill kons-dev, docs/SPEC.md, ARCHITEKTURA.md, TESTY.md,
       SLOWNIK.md, RYZYKA.md, ZALEZNOSCI.md, WYGLAD.md, DO_ZROBIENIA.txt, docs/komponenty/*, spis ADR (statusy),
       archiwum (czy wszystko, co zamknięte, jest w archiwum) — dla każdego faktu: gdzie jest jego „jedno miejsce”;
       lista powtórzeń, sprzeczności, nieaktualnych zdań (stare numery etapów M, wersje, liczby testów, ścieżki).
-  [ ] Porządki (D10): powtórzenia zamienione na odesłania, nieaktualne poprawione albo usunięte, zbędne usunięte;
+  [x] Porządki (D10): powtórzenia zamienione na odesłania, nieaktualne poprawione albo usunięte, zbędne usunięte;
       ADR-y i CHANGELOG nie są przepisywane (to historia) — najwyżej status i odesłanie; lista zmian w opisie PR-a
       (co usunięto, skąd, dokąd odsyła).
-  [ ] Sprawdzanie na stałe (S40): czego się da — w scripts/sprawdz-czytelnosc.py (np. istniejące ścieżki i odesłania,
+  [x] Sprawdzanie na stałe (S40): czego się da — w scripts/sprawdz-czytelnosc.py (np. istniejące ścieżki i odesłania,
       spis komponentów, słowa ze słownika w nagłówkach), żeby dokumenty nie rozjeżdżały się znowu.
-  [ ] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki; „Opis w K1:” — D13); porządki wersji PATCH: przegląd tego, co
+  [x] Wydanie: VERSION 0.10.5; CHANGELOG (Dodane / Zmienione / Porządki; „Opis w K1:” — D13); porządki wersji PATCH: przegląd tego, co
       zostało po przeniesieniu z Instalatora (krok 1), martwe komunikaty INST_*, pliki blisko limitu po krokach 1–7;
       DO_ZROBIENIA.txt — „Teraz” → następna wersja, lista testów na X230 i IdeaPadzie dla 0.10.5 (Ustawienia →
       Aktualizacje, aktualizacja z pendrive'a z Ustawień, „Sprawdź teraz”, pierwsza aktualizacja przez sieć, gdy robot
@@ -718,7 +718,23 @@ KROK 8 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M �
   Dokumenty: wszystkie (przegląd), CHANGELOG, README.
   Gotowe, gdy: przegląd zamknięty (lista w opisie PR-a), sprawdzenia zielone, wydanie k1-v0.10.5 istnieje
   z ogłoszeniem i paczką, robot w pełnym trybie, raport z linkami.
-  Ustalenia z wykonania: (pusto — wypełnia krok 8)
+  Ustalenia z wykonania (2026-11-18, krok 8):
+  - D10 weszło według rekomendacji (krok bez właściciela) — w DO_ZROBIENIA do potwierdzenia razem z D4, D5, D7.
+  - Przegląd (S39), najważniejsze: README mówiło „Co już jest (0.9.1)”, ISO „ok. 16 MB” (jest ok. 135 MB) i że na main
+    idą testy; ARCHITEKTURA — CI z testami na main, brak katalogu strefy/, robot.yml i 9 skryptów, test-skarbiec
+    z formatem 1; TESTY — lista fuzzerów sprzed 0.10 (bez 6 nowych, z „formatem 1 i przejściem”), brak t_opis, t_most,
+    test_opis, historia przebiegów CI zamiast zasady; skill — stan wersji powtórzony z DO_ZROBIENIA i lista testów QEMU
+    powtórzona z TESTY. Mapa repo: jedno miejsce to ARCHITEKTURA (katalogi) + docs/komponenty (moduły); skill §3 zostaje
+    skrótem dla asystentów („prawdą są dokumenty”).
+  - Na prośbę właściciela (2026-11-18): plany 0.10.7 i 0.10.9 mają w punkcie 0 „Robot i wydania” — robot wydaje z main
+    codziennie, więc każdy scalony krok trafia do laptopów przed wydaniem swojej wersji, numer z planu może zająć robot,
+    wydanie = ogłoszenie i paczka, pendrive tylko do nowych instalacji i obrazów próbnych; plan 0.10.9 krok 4 (obraz
+    przeglądarki poza rdzeniem) — z wyłączonym robotem do potwierdzenia przeprowadzki i z zadaniem dla paczki i strefy
+    pobierania (S46 planu 0.10.9). Ta sama zasada w AGENTS.md i RYZYKA R96.
+  - S40: sprawdz-czytelnosc.py dostał 3 sprawdzenia (8–10): ścieżki do plików repo w żywych dokumentach (bez planów
+    i wierszy o historii), każdy skrypt/test/fuzzer opisany, wersja w „Stan:” i „Co już jest”. Przy pierwszym
+    uruchomieniu: 26 rzeczy do poprawy — wszystkie poprawione.
+  - Porządki PATCH: komunikaty INST_* — wszystkie w użyciu; pliki .c — największe 552 i 544 wiersze.
 
 
 4. DECYZJE

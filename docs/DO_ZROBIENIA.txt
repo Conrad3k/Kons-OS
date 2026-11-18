@@ -4,34 +4,34 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.10.2 „Testy” — ekran startu przeglądarki do jej okna, zamykanie w tle, opis ekranu dla testów i zrzuty wzorcowe
-(plany zamknięte: docs/archiwum/PLAN-0.10.0.txt, PLAN-0.10.1.txt, PLAN-0.10.2.txt); teraz 0.10.5 Aktualizacje przez sieć
-(plan: docs/PLAN-0.10.5.txt), potem 0.10.7 Wygląd i 0.10.9 Filmy i szybka grafika.
-Data: 2026-11-17.
+Stan: 0.10.5 „Aktualizacje przez sieć” — Ustawienia → Aktualizacje, K1 na dysku sam pobiera nową wersję z wydań na
+GitHubie i pyta przed instalacją, robot wydaje poprawki jądra i przeglądarki, okno przeglądarki o dowolnym rozmiarze,
+Alt+Tab, jądro Linux 7.3 (plany zamknięte: docs/archiwum/); teraz 0.10.7 Wygląd (plan: docs/PLAN-0.10.7.txt), potem
+0.10.9 Filmy i szybka grafika (docs/PLAN-0.10.9.txt).
+Data: 2026-11-18.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — 0.10.5 Aktualizacje przez sieć (plan: docs/PLAN-0.10.5.txt)
----------------------------------------------------------------------
-Kroki i decyzje — w planie 0.10.5. Potem 0.10.7 Wygląd (docs/PLAN-0.10.7.txt: poprawki wyglądu po przeglądzie,
-Twoja prośba z 2026-11-17) i 0.10.9 Filmy i szybka grafika (docs/PLAN-0.10.9.txt — wcześniej „0.10.3”, potem „0.10.7”;
-przesunięte na Twoją prośbę: grafika po fundamentach, numer 0.10.7 dostał Wygląd; 2026-11-17 doszły szybka grafika
-i szybszy start przeglądarki).
-0.10.2 Testy — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.2.txt; ADR 0045):
-    [x] 0.10.2 krok 1 — ekran startu przeglądarki do jej okna, okno znika od razu po „zamknij”, wyłączanie czeka na
-        sesje — PR #144
-    [x] 0.10.2 krok 2 — opis ekranu dla testów (ADR 0045), test-m4 klika po nazwach — PR #145
-    [x] 0.10.2 krok 3 — zrzuty wzorcowe (40 obrazów, oba motywy), porządki, wydanie 0.10.2 — PR #149
-0.10.1 Balon — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.1.txt; ADR 0044):
-    [x] 0.10.1 krok 1 — awaria przy przełączaniu kart naprawiona (kompozytor strefy), liczniki strefy, prawdziwy powód
-        końca — PR #134
-    [x] 0.10.1 krok 2 — balon: pamięć strefy według potrzeby, wolna wraca do K1 (ADR 0044) — PR #137
-    [x] 0.10.1 krok 3 — pamięć komputera dla K1 i wszystkich sesji („Mało pamięci”, sesje w Zasobach) — PR #140
-    [x] 0.10.1 krok 4 — okienko „Którą sesję otworzyć?”, Ustawienia → Przeglądarka jako karty — PR #139
-    [x] 0.10.1 krok 5 — przewijanie po nowej karcie (gest palców kończy się), wydanie 0.10.1 — PR #142
-0.10.0 Strefy — gotowe (plan: docs/archiwum/PLAN-0.10.0.txt): PR #114, #119, #126, #128, #132.
+1. TERAZ — 0.10.7 Wygląd (plan: docs/PLAN-0.10.7.txt)
+-----------------------------------------------------
+Kroki i decyzje — w planie 0.10.7 (poprawki wyglądu po przeglądzie, Twoja prośba z 2026-11-17). Potem 0.10.9 Filmy
+i szybka grafika (docs/PLAN-0.10.9.txt). Od 0.10.5 w tle działa robot: sam wydaje wersje PATCH z poprawionym jądrem
+i pakietami przeglądarki, więc numer wydania „0.10.7” może zająć robot — wtedy Wygląd bierze następny wolny (plany,
+punkt 0 „Robot i wydania”).
+0.10.5 Aktualizacje przez sieć — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.5.txt; ADR 0046, 0047):
+    [x] krok 1 — Ustawienia → Aktualizacje (z Instalatora) — PR #152
+    [x] krok 2 — aktualizacje przez sieć: strefa pobierania, ogłoszenie i paczka, pytanie przed instalacją — PR #156, #157
+    [x] krok 3 — robot na GitHubie (tryb próbny do wydania) — PR #158
+    [x] krok 4 — okno przeglądarki: zmiana rozmiaru i maksymalizacja — PR #162
+    [x] krok 5 — Raptor Bridge: test mostu z wnętrza strefy, poprawki, opis — PR #161
+    [x] krok 6 — Alt+Tab, Przeglądarka na pasku i pulpicie — PR #164
+    [x] krok 7 — jądro Linux 7.3 dla K1 i stref — PR #165
+    [x] krok 8 — przegląd dokumentacji, wydanie 0.10.5 — PR #NR_PR
+    [ ] po wydaniu: robot w pełny tryb (ROBOT_PROBNY „0” w robot.yml — osobny PR)
+Wcześniej: 0.10.2 Testy (PR #144, #145, #149), 0.10.1 Balon (PR #134, #137, #139, #140, #142), 0.10.0 Strefy (PR #114,
+#119, #126, #128, #132) — plany w docs/archiwum/.
 
 
 2. MAPA DROGI (ADR 0035; dawne numery etapów M w nawiasach)
@@ -39,14 +39,16 @@ i szybszy start przeglądarki).
     0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
     0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
-    0.10     Strefy — 0.10.0 (przeglądarka w strefie), 0.10.1 Balon i 0.10.2 Testy gotowe; teraz 0.10.5, potem 0.10.7 Wygląd,
-             0.10.9 Filmy i szybka grafika
+    0.10     Strefy — 0.10.0 (przeglądarka w strefie), 0.10.1 Balon, 0.10.2 Testy, 0.10.5 Aktualizacje przez sieć
+             gotowe; teraz 0.10.7 Wygląd, potem 0.10.9 Filmy i szybka grafika
              (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
     0.13     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
-Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kroki i poprawki w temacie.
+Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kroki i poprawki w temacie. Od 0.10.5 wersje
+PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 0047), a K1 na dysku pobiera każde wydanie sam
+(ADR 0046) — pendrive tylko do nowych instalacji.
 
 
 3. NASTĘPNE WERSJE (zakres wstępny — dokładny plan pisze pierwszy czat danej wersji: docs/PLAN-<wersja>.txt)
@@ -64,7 +66,7 @@ Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kro
         pamięci komputera między K1 i sesje, Zasoby pokazują pamięć sesji
     [ ] szybszy dysk sesji, która pamięta (wyszło w CI 0.10.0, 2026-11-16): pierwsze okno Firefoksa po 156 s zamiast
         62 s — skarbiec potwierdza na dysku osobno każdy zapisany kawałek (2× fdatasync; ok. 2900 zapisów w jednej
-        sesji testu). Kierunek: wiele kawałków jednym zatwierdzeniem przy FLUSH gościa (do 0.10.1 albo 0.10.5)
+        sesji testu). Kierunek: wiele kawałków jednym zatwierdzeniem przy FLUSH gościa (wersja — przy następnym planie)
     [ ] sesja, która pamięta: pierwsza strona tuż po starcie przeglądarki bywa wysłana dwa razy, raz bez ciasteczka (CI
         0.10.0, przebieg 138: serwer dostał „brak”, zaraz potem „jest”) — sprawdzić na sprzęcie, czy po otwarciu
         przeglądarki strona, na której byłeś zalogowany, pokazuje się od razu jako zalogowana
@@ -87,12 +89,10 @@ Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kro
         (prawdziwy sterownik w strefie, pośrednik grafiki w klatce K1 sprawdza każdą prośbę; minimum zabezpieczeń teraz,
         „opakowanie” później z terminem) i szybszy start przeglądarki — obraz strefy poza rdzeniem, w formacie szybszym do
         czytania (większe ISO, ok. 100 MB więcej wolnej pamięci K1); 6 kroków, kolejność 1, 2, 4, 3, 5, 6
-    [ ] 0.10.5 Aktualizacje przez sieć (Twoja prośba z 2026-11-14; plan: docs/PLAN-0.10.5.txt, po 0.10.1): Ustawienia →
-        Aktualizacje (z Instalatora), pobieranie przez strefę z HTTPS i pytanie przed instalacją, robot na GitHubie
-        (poprawki jądra i przeglądarki same do wydania, także nowe linie jądra), zmiana rozmiaru i maksymalizacja okna
-        przeglądarki (między górnym a dolnym paskiem); od 2026-11-17 (Twoja prośba) także Alt+Tab — przełączanie okien —
-        i Przeglądarka przypinana do paska i kładziona na pulpit jak inne aplikacje (krok 6); jądro Linux 7.x — najnowsza
-        linia (krok 7, Twoja decyzja D14); opis wersji przed „Zainstaluj” (D13); wydanie — krok 8, zawsze ostatni
+    [x] 0.10.5 Aktualizacje przez sieć (Twoja prośba z 2026-11-14; plan: docs/archiwum/PLAN-0.10.5.txt): Ustawienia →
+        Aktualizacje, pobieranie przez strefę z HTTPS i pytanie przed instalacją, robot na GitHubie, zmiana rozmiaru
+        i maksymalizacja okna przeglądarki, Alt+Tab, Przeglądarka na pasku i pulpicie, jądro Linux 7.3, opis wersji przed
+        „Zainstaluj”
 
 0.11 Pliki ze stref (ADR 0027)
     [ ] pliki ze strefy („Do K1”) i do strefy („Wyślij do…”) przez Pliki (zgoda = gest w K1, pytanie tylko, gdy
@@ -118,8 +118,8 @@ Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kro
 
 Laptop (PATCH w dowolnej wersji, po Twoich zgłoszeniach)
     [ ] i915 (płynniejszy obraz, jasność) — tylko jeśli simpledrm nie wystarczy; klawisze Fn; dźwięk (ikona na
-        pasku jest, sterownika i usługi nie ma); przewijanie touchpadem (tryb rozszerzony) — w 0.10.0 krok 4; tablet USB w maszynie
-        wirtualnej (pozycja bezwzględna); I2C-HID (nowsze laptopy)
+        pasku jest, sterownika i usługi nie ma); tablet USB w maszynie wirtualnej (pozycja bezwzględna); I2C-HID (nowsze
+        laptopy)
 
 Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne)
     [ ] exFAT na pendrive'ach (karty SD i pendrive'y > 32 GB), potem NTFS — ocena: docs/archiwum/PLAN-0.8.2.txt, dodatek A
@@ -127,9 +127,14 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
     [ ] HEIC (zdjęcia z iPhone'a); odtwarzanie wideo (pliki wideo da się już przechowywać); zapis plików na pendrive
     [ ] pełne NFC i pełne porównanie wielkości liter Unicode w nazwach plików
     [ ] Podgląd: powiększanie fragmentu w pełnej rozdzielczości pliku, pełny ekran, pokaz slajdów; przybliżanie kółkiem
-        myszy i touchpadem (wejście dziś nie obsługuje kółka; poza zakresem 0.8.5)
+        myszy i touchpadem
     [ ] dopasowanie rozdzielczości do okna VirtualBoxa (wymaga dodatków gościa); VMware — nie sprawdzony
     [ ] drugi, pusty dysk (bez tablicy partycji) w maszynie wirtualnej jako miejsce na dane
+    [ ] z planu 0.10.5 („Nie w tej wersji”): aktualizacja pendrive'a przez sieć (D5); wznawianie przerwanego pobierania;
+        kompresja paczki i aktualizacja tylko zmienionych części; pełna historia zmian w K1; świeżość ogłoszenia (codziennie
+        podpisywana data) i odwoływanie starszych wersji (0.12, TPM — RYZYKA R44); robot dla musl i plików od producentów
+        kart; zmiana rozmiaru okien aplikacji K1 (Pliki, Notatki, Podgląd), przyciąganie okien do połowy ekranu, okno strefy
+        na cały ekran bez pasków; przewijanie w Ustawieniach
     [ ] Wi-Fi (z planu 0.9.1, „Nie w tej wersji”): sieci tylko WPA3 (SAE), firmowe i uczelniane z loginem (WPA2-Enterprise,
         eduroam), sieci ukryte; karty Wi-Fi na USB; losowy adres karty (prywatność w obcych sieciach); logowanie na stronie
         w sieciach otwartych (z przeglądarką, 0.10); Bluetooth (często ta sama karta i plik producenta); IPv6
@@ -137,9 +142,28 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.10.2). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
-z 2026-11-11). Najlepiej najpierw aktualizacja K1 na dysku przez Instalator z pendrive'a 0.10.2 — dane zostają.
-Nowe w 0.10.2 (Testy; X230 i IdeaPad — przeglądarka, plan 0.10.2 krok 1):
+Jedna lista — dla ostatniego wydania (0.10.5). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+z 2026-11-11).
+Nowe w 0.10.5 (Aktualizacje przez sieć; X230 i IdeaPad):
+    [ ] najpierw aktualizacja na dysku do 0.10.5 z pendrive'a — ostatni raz tą drogą: K1 z dysku → Instalator →
+        „Zaktualizuj system” (tak to się nazywa w starszej wersji, która jest na dysku); dane i ustawienia zostają
+    [ ] Ustawienia → Aktualizacje: wersja 0.10.5, „Zweryfikowano”; z siecią „Sprawdź teraz” → „masz najnowszą wersję”;
+        Instalator przy dysku z K1 odsyła do tej sekcji
+    [ ] pierwsza aktualizacja przez sieć — gdy wyjdzie następna wersja (robot albo 0.10.7): kilka godzin po połączeniu
+        z siecią (albo „Sprawdź teraz”) okienko „Jest nowa wersja K1” z opisem; „Zainstaluj” → K1 uruchamia się ponownie
+        w nowej wersji, dane zostają; potem „Wróć do poprzedniej wersji” wraca (i znów „Zainstaluj”)
+    [ ] K1 z pendrive'a (obraz USB 0.10.5): sekcja mówi o nowszej wersji tylko „nagraj nowy pendrive” (D5)
+    [ ] okno przeglądarki: przeciągnij brzeg albo róg — strona dopasowuje się po puszczeniu; przycisk maksymalizacji
+        i podwójne kliknięcie paska tytułu — między górnym a dolnym paskiem i z powrotem; po zamknięciu i otwarciu ta sama
+        sesja ma ten sam rozmiar (X230 1366×768 i IdeaPad)
+    [ ] Alt+Tab: z Firefoksa do Plików i z powrotem, Shift+Tab wstecz, Esc — bez zmiany; Firefox nie dostaje Tab (kursor
+        w polu strony nie przeskakuje)
+    [ ] Przeglądarka na pasku i pulpicie: po aktualizacji Twój pulpit zostaje jak był — dodaj ją sam (menu Start → prawy
+        przycisk na Przeglądarce → „Przypnij” i „Dodaj do pulpitu”); kliknięcie → okienko „Którą sesję otworzyć?”;
+        kropka przy ikonie, gdy któraś sesja jest otwarta
+    [ ] jądro Linux 7.3: start, obraz, klawiatura, touchpad, Wi-Fi (IdeaPad: Qualcomm), kabel, bateria, wyłączanie —
+        wszystko jak w 0.10.2; jeśli coś przestało działać — zgłoszenie z nazwą laptopa
+Z 0.10.2 (Testy; niesprawdzone):
     [ ] Start → Przeglądarka: „Uruchamiam: Przeglądarka · Ogólna…” z ruchomym odcinkiem w kolorze sesji zostaje, aż pokaże
         się okno Firefoksa (nie znika po sekundzie)
     [ ] zamknij okno przeglądarki — znika od razu; kafelek sesji w okienku „Którą sesję otworzyć?” mówi „zamyka się…”
@@ -161,7 +185,6 @@ Z 0.10.1 (Balon; niesprawdzone):
         w okienku; „Zmień nazwę” — nowa nazwa w okienku sesji i na pasku okna
 Z 0.10.0 (przeglądarka w strefie; niesprawdzone):
     [!] najpierw raz: wirtualizacja w BIOS-ie (README, punkt 8; D5 planu 0.10.0) — bez niej okienko „nie może ruszyć”
-    [ ] aktualizacja z 0.9.1 przez Instalator (Zaktualizuj system): dane i ustawienia zostają, pulpit startuje
     [ ] menu Start → Przeglądarka: okno w ramce w kolorze sesji (szałwia), Firefox po polsku; ile sekund do strony
         startowej (X230 i IdeaPad)
     [ ] strony z internetu otwierają się; pisanie w polach, kliknięcia, kółko i dwa palce na touchpadzie przewijają
@@ -208,6 +231,12 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 [x] 0.10.1 — decyzje D1–D6 podjęte (docs/archiwum/PLAN-0.10.1.txt, punkt 4).
 [x] 0.10.2 — decyzje D1–D4 podjęte (docs/archiwum/PLAN-0.10.2.txt, punkt 4); D3: zmianę wyglądu zatwierdzasz Ty —
     PR pokazuje obrazy „przed / po”, wzorce zmieniają się po Twoim „OK”.
+[x] 0.10.5 — D1–D3, D6, D8, D9, D11–D14 podjęte (docs/archiwum/PLAN-0.10.5.txt, punkt 4); D6: poprawki jądra
+    i przeglądarki wydaje robot sam, większe zmiany — my.
+[!] 0.10.5 — decyzje D4, D5, D7 i D10 (docs/archiwum/PLAN-0.10.5.txt, punkt 4) weszły jako rekomendacje (kroki szły bez
+    Ciebie) — do potwierdzenia albo zmiany: D4 K1 sprawdza sam po połączeniu i co 6 godzin, pobiera od razu, instaluje
+    po „Zainstaluj”; D5 przez sieć aktualizuje się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach;
+    D10 przegląd dokumentacji: powtórzenia → odesłania, historia (ADR, CHANGELOG, archiwum) bez zmian.
 [!] 0.10.7 Wygląd — decyzje D1–D6 w docs/PLAN-0.10.7.txt (punkt 4); czat zada je na początku swojego kroku.
 [!] 0.10.9 Filmy i szybka grafika — decyzje w docs/PLAN-0.10.9.txt (punkt 4); czat zada je na początku swojego kroku.
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
@@ -225,7 +254,9 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
   - kolejność techniczną planu ustala Claude (ADR 0011, 0035); decyzje produktowe (wygląd, zachowanie) — Ty;
   - przeglądarkę (Firefox w strefie) sprawdzasz Ty na sprzęcie — CI jej nie testuje (2026-11-17); Twoje zgłoszenia Claude
     odtwarza na stanowisku na hoście (scripts/stanowisko.sh) i poprawia; lista „co sprawdzić” — punkt 4 przy każdym wydaniu;
-  - testy idą na PR-ze przed scaleniem; na main CI tylko buduje ISO i obraz USB i tworzy wydanie (2026-11-17).
+  - testy idą na PR-ze przed scaleniem; na main CI tylko buduje ISO i obraz USB i tworzy wydanie (2026-11-17);
+  - poprawki jądra i przeglądarki wydaje robot sam, po pełnych testach; zatrzymanie: GitHub → Actions → „Robot —
+    poprawki jądra i przeglądarki” → Disable workflow (2026-11-17, D6 planu 0.10.5); o instalację K1 zawsze pyta.
 
 
 6. TYMCZASOWE (zasada czytelności 3 — każde z terminem; przegląd przy porządkach każdej wersji MINOR)
@@ -253,6 +284,10 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         tymczasowych 0.10.1 nie dodało
     [x] przegląd 0.10.2 (krok 3): terminów na 0.10.2 nie było; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych
         rozwiązań tymczasowych 0.10.2 nie dodało
+    [~] robot w trybie próbnym (ADR 0047, `ROBOT_PROBNY: "1"` w .github/workflows/robot.yml) — termin: wydanie 0.10.5;
+        przestawienie na „0” — osobny PR zaraz po wydaniu
+    [x] przegląd 0.10.5 (krok 8): terminów w kodzie na 0.10.5 nie było; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych
+        rozwiązań tymczasowych w kodzie 0.10.5 nie dodało
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
@@ -260,6 +295,7 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
     0.9    podjęte (ADR 0038, 0039, 0041 — pliki od producentów kart Wi-Fi, własne logowanie WPA2, ramki EAPOL)
     0.10   podjęte (docs/archiwum/PLAN-0.10.0.txt, T1–T11): własny VMM w C, Firefox ESR w strefie (WPE — dla Przeglądarki
            K1), sieć stref przez łącznik (SOCKS5), dysk strefy w skarbcu; ADR 0042 (z uzupełnieniem T11) i 0043;
-           0.10.1 — balon (ADR 0044, docs/archiwum/PLAN-0.10.1.txt)
+           0.10.1 — balon (ADR 0044, docs/archiwum/PLAN-0.10.1.txt); 0.10.2 — opis ekranu dla testów (ADR 0045);
+           0.10.5 — aktualizacje przez sieć (ADR 0046) i robot (ADR 0047), docs/archiwum/PLAN-0.10.5.txt
     0.12   RANDSTRUCT w jądrze; zarządzanie kluczami; ochrona jądra przez wirtualizację — tak/nie
     Podjęte wcześniej: docs/adr/README.md (spis wszystkich decyzji).
