@@ -3,7 +3,8 @@
  * connection it opens there becomes one vsock connection to the VMM (host, port 2), which hands it to the zone's
  * lacznik in K1. The relay reads nothing of what passes: SOCKS5 is checked by lacznik, the data is the browser's own
  * (mostly TLS). The zone has no network card and no address — this is its only way out. Our code, static with musl and
- * the flags of SPEC §11. */
+ * the flags of SPEC §11. Part of Raptor Bridge (docs/komponenty/raptor-bridge.md). The vsock connection is made without
+ * waiting (0.10.5 step 5, S36): a slow answer of the VMM used to stop every other connection for up to 2 s. */
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -30,7 +31,7 @@ struct kierunek {
     int koniec;          /* z gave EOF */
 };
 struct polaczenie {
-    int uzyte;
+    int uzyte, laczy;     /* laczy: the vsock connection not yet made (nothing is read or written until it is) */
     struct kierunek k[2]; /* 0: browser → VMM, 1: VMM → browser */
 };
 static struct polaczenie pol[POLACZENIA_MAKS];
@@ -62,13 +63,12 @@ static int nasluch(void)
 static int do_vmm(void)
 {
     struct sockaddr_vm a = { .svm_family = AF_VSOCK, .svm_cid = VMADDR_CID_HOST, .svm_port = PORT_POLACZEN };
-    int fd = socket(AF_VSOCK, SOCK_STREAM | SOCK_CLOEXEC, 0);
-    if (fd < 0 || connect(fd, (struct sockaddr *)&a, sizeof a) != 0) {
+    int fd = socket(AF_VSOCK, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    if (fd < 0 || (connect(fd, (struct sockaddr *)&a, sizeof a) != 0 && errno != EINPROGRESS)) {
         if (fd >= 0)
             close(fd);
         return -1;
     }
-    fcntl(fd, F_SETFL, O_NONBLOCK);
     return fd;
 }
 
@@ -92,6 +92,7 @@ static void przyjmij(int g)
     }
     memset(&pol[i], 0, sizeof pol[i]);
     pol[i].uzyte = 1;
+    pol[i].laczy = 1;
     pol[i].k[0].z = s, pol[i].k[0].do_ = v;
     pol[i].k[1].z = v, pol[i].k[1].do_ = s;
 }
@@ -134,6 +135,11 @@ int main(void)
             if (!c->uzyte)
                 continue;
             idx[i] = n;
+            if (c->laczy) { /* only the vsock connection's answer */
+                p[n++] = (struct pollfd){ c->k[0].z, 0, 0 };
+                p[n++] = (struct pollfd){ c->k[1].z, POLLOUT, 0 };
+                continue;
+            }
             p[n++] = (struct pollfd){ c->k[0].z, (short)((c->k[0].n == 0 && !c->k[0].koniec ? POLLIN : 0) |
                                                          (c->k[1].n > 0 ? POLLOUT : 0)), 0 };
             p[n++] = (struct pollfd){ c->k[1].z, (short)((c->k[1].n == 0 && !c->k[1].koniec ? POLLIN : 0) |
@@ -149,6 +155,18 @@ int main(void)
             if (!c->uzyte || idx[i] == 0)
                 continue;
             a = p[idx[i]].revents, b = p[idx[i] + 1].revents;
+            if (c->laczy) {
+                int e = 0;
+                socklen_t l = sizeof e;
+                if (!(b & (POLLOUT | POLLERR | POLLHUP)) && !(a & (POLLERR | POLLHUP)))
+                    continue;
+                if ((a & (POLLERR | POLLHUP)) || getsockopt(c->k[1].z, SOL_SOCKET, SO_ERROR, &e, &l) != 0 || e != 0) {
+                    zamknij(c); /* the VMM refused (all its places taken): the browser sees the connection end */
+                    continue;
+                }
+                c->laczy = 0;
+                continue;
+            }
             if (przepchnij(&c->k[0], a, b) != 0 || przepchnij(&c->k[1], b, a) != 0 ||
                 (c->k[0].koniec && c->k[1].koniec && c->k[0].n == 0 && c->k[1].n == 0) ||
                 ((a | b) & POLLERR))

@@ -211,7 +211,7 @@ static int strefa_raz_start(int tryb)
 }
 
 /* Zone 1 with the guest's test mode `tryb`: started (logged), then waited for until it ends; 1 when it did. */
-static int strefa_raz(int tryb, int sekundy)
+int strefa_raz(int tryb, int sekundy)
 {
     if (!strefa_raz_start(tryb))
         return 0;

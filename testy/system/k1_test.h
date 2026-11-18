@@ -120,6 +120,9 @@ void t_strefa_klatka(void);
 void t_klatka_grupy(const char *nazwa, const char *grupa, unsigned watki, int uid, const char *const *fds);
 int tryb_strefy(void);
 int t_strefy_scenariusz(void);
+int strefa_raz(int tryb, int sekundy); /* the test zone in a guest's test mode, waited for until it ends */
+/* t_most.c (0.10.5 step 5): Raptor Bridge — the scenario of scripts/test-most.sh */
+int t_most_scenariusz(void);
 void t_opis(void);              /* 0.10.2 step 2 (ADR 0045): the screen's description */
 int znak_dysku(const char *serial); /* a disk with this serial number: a test's mark (t_opis.c) */
 int tryb_opisu(void);           /* test-m4: the description for the script (t_opis_scenariusz) */

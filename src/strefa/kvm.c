@@ -131,7 +131,8 @@ int kvm_urzadzenia(void)
         /* the negative tests 3 and 4 (gosc/zlosliwy.c) need a read-only disk the guest's kernel does not drive, 6..8 a
          * balloon (0.10.1 step 2) */
         mmio_start(&mz.urz[i], i != URZ_LOSOWOSC ? ops[i] : mz.tryb >= 3 && mz.tryb <= ST_TRYB_ZLOSLIWY ? &blk_ops
-                               : zlosliwy_gosc() && mz.tryb >= K1_STREFA_TRYB_BALON_OD ? &balon_ops : ops[i],
+                               : zlosliwy_gosc() && mz.tryb >= K1_STREFA_TRYB_BALON_OD &&
+                                 mz.tryb <= K1_STREFA_TRYB_BALON_DO ? &balon_ops : ops[i],
                    NULL, &mz.pamiec, przerwij);
     }
     return 0;
@@ -143,7 +144,7 @@ void kvm_linia_urzadzen(char *buf, size_t n)
     int i;
     buf[0] = '\0';
     for (i = 0; i < URZ_LICZBA && p < n; i++)
-        if (!(zlosliwy_gosc() && i == URZ_LOSOWOSC) && /* a hostile test guest drives that one itself */
+        if (i != zlosliwy_slot() && /* a hostile test guest drives that one itself */
             (mz.opis->okno || (i != URZ_EKRAN && i != URZ_KLAWIATURA && i != URZ_MYSZ))) /* no window: none of these */
             p += (size_t)snprintf(buf + p, n - p, "%svirtio_mmio.device=4K@0x%llx:%d", p ? " " : "",
                               (unsigned long long)(MMIO_BAZA + (uint64_t)i * MMIO_ROZMIAR), PRZERWANIE_PIERWSZE + i);
