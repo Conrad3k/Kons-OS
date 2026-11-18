@@ -45,7 +45,9 @@ def koniec(czysty=True):
 def instalator_sb():
     """Opens the Instalator from the Start menu; returns (window x, y, SB_STAN line)."""
     g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+)", czas=200)
-    if not g: return None
+    # the desktop can be ready before the input service: moves sent before it grabs the mouse arrive late and the
+    # click lands elsewhere (CI run 193: Start clicked at 422 instead of 491)
+    if not g or not czekaj(r"K1-WEJSCIE: gotowe", czas=60): return None
     klik(int(g.group(1)), int(g.group(2)))
     m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+)", czas=20)
     if not m: return None
