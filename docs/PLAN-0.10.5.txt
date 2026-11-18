@@ -684,6 +684,9 @@ KROK 7 — Jądro Linux 7.x (najnowsza linia)                               M ·
     (lib/oid_registry_data.c — źródła z archiwum mają starszą datę niż on, więc make go nie odświeżył): bzImage inny niż
     od zera. scripts/zbuduj-jadro.sh zapisuje wersję w katalogu obiektów (.k1-wersja) i przy innej zaczyna od zera
     (CI: klucz pamięci podręcznej ma i tak jadro/**).
+    Po tym różnił się już tylko podpis k1.efi (niepodpisany identyczny): „faketime DATA” ustawia zegar i pozwala mu biec,
+    więc czas podpisu wypadał sekundę później w wolniejszej budowie — teraz „faketime -f” (zegar stoi); dwa podpisy tego
+    samego pliku sprawdzone: identyczne.
 
 KROK 8 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M · decyzja D10 · bez ADR
   Dodany przez właściciela 2026-11-15 (jako krok 6; od 2026-11-17 krok 7, potem krok 8 — wydanie zawsze ostatnie): na koniec
