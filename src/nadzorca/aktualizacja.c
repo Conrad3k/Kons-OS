@@ -37,6 +37,8 @@ static size_t pokaz_bajty;
 static int gniazdo = -1;           /* the zone's end of the pair, until its VMM takes it */
 static struct k1_komunikat wyslane_etap, wyslane_stan;
 static int gui_fd = -1;            /* the gui channel the state went to last */
+static int nastepna = -1;          /* a job to start once the writing program and the zone have ended (-1: none) */
+static char nastepny_cel[K1_STREFA_CEL_MAKS + 1];
 
 static int jest_znak_testu(void)
 {
@@ -110,10 +112,23 @@ static void zamknij(int *fd)
     *fd = -1;
 }
 
-/* A job of the writing program; `cel` (NULL: none) — what the download zone downloads into its fd 4. */
+static int zajete(void)
+{
+    struct usluga *z = usluga_profilu(k1_strefa(K1_STREFA_POBIERANIE)->profil);
+    return instalator()->pid > 0 || (z != NULL && z->pid > 0);
+}
+
+/* A job of the writing program; `cel` (NULL: none) — what the download zone downloads into its fd 4. While the last
+ * one's processes have not ended yet (their result comes before the end), it waits (akt_okresowe starts it). */
 static void zacznij(int tryb, const char *cel)
 {
     int para[2] = { -1, -1 }, r;
+    if (zajete()) {
+        nastepna = tryb;
+        snprintf(nastepny_cel, sizeof nastepny_cel, "%s", cel != NULL ? cel : "");
+        return;
+    }
+    nastepna = -1;
     if (cel != NULL && socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, para) != 0)
         return;
     if (tryb == K1_INST_SIEC_STAN) {
@@ -233,7 +248,7 @@ void akt_prosba(int a)
         sam = a == K1_AKT_P_SAM_WL;
         akt_zapisz_ustawienie(sam);
         k1_log(TAG, "aktualizacja: „Sprawdzaj sam” %s", sam ? "włączone" : "wyłączone");
-    } else if (praca >= 0) {
+    } else if (praca >= 0 || nastepna >= 0) {
         k1_log(TAG, "aktualizacja: prośba odrzucona — trwa inne zadanie");
     } else if (a == K1_AKT_P_SPRAWDZ) {
         z_ustawien = 1;
@@ -265,6 +280,8 @@ void akt_okresowe(double t)
         if (test)
             k1_log(TAG, "aktualizacja: test aktualizacji (dysk %s)", ZNAK_TESTU);
     }
+    if (nastepna >= 0 && praca < 0 && !zajete())
+        zacznij(nastepna, nastepny_cel[0] ? nastepny_cel : NULL);
     if (!start_zrobiony && praca < 0 && instalator()->pid <= 0) { /* what the disk holds, once after the start */
         start_zrobiony = 1;
         zacznij(K1_INST_SIEC_STAN, NULL);
@@ -275,7 +292,7 @@ void akt_okresowe(double t)
     else if (!siec)
         siec_od = -1;
     if (siec && sam && akt_ustawienie_wczytane() && (access(TEST, X_OK) != 0 || test == 1) && praca < 0 &&
-        instalator()->pid <= 0 && nastepne >= 0 && t >= nastepne) {
+        nastepna < 0 && !zajete() && nastepne >= 0 && t >= nastepne) {
         nastepne = t + CO_ILE;
         sprawdz();
     }

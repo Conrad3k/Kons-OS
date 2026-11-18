@@ -49,6 +49,7 @@ import http.server, os, re, ssl, struct, subprocess, sys, threading
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
 repo, out, limit, cmdline, dysk, znak, paczka, ogl, wersja = sys.argv[1:10]
+limit = float(limit)
 emulacja = sys.argv[10:]
 MIB = 1 << 20
 
@@ -126,7 +127,7 @@ s = czekaj(STAN, od=1, czas=60)
 sprawdz(f"jest nowsza wersja do pobrania: {wersja}", s and s.group(3) == wersja, s.group(0) if s else "brak")
 sprawdz("strefa pobierania nie ma okna (ekran jej nie zna)", "strefa bez okna" in q.tekst() or
         "bez kanału do ekranu" in q.tekst())
-if emulacja:
+if emulacja and not os.environ.get("K1_AKT_PELNY"):
     print("  [--]    pobranie paczki, okienko, „Zainstaluj”: pominięte (emulacja bez KVM — pełny scenariusz w CI)")
     q.czysty_log()
     q.koniec()
