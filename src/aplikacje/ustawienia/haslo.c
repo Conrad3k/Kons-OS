@@ -20,7 +20,12 @@ enum { F_BRAK, F_USTAW, F_ZMIEN, F_WYLACZ };
 #define POLE_X TRESC_X
 #define POLE_W 280
 #define POLE_H 36
-#define POLA_Y (seg_y() + 64) /* first field (its label is 18 px above) */
+/* 0.10.7 step 2: the switch and what it means on one card; the form under it */
+#define KARTA_X TRESC_X
+#define WIERSZ_Y (seg_y() + 12) /* the switch's row in the card (36 px) */
+#define WNETRZE (KARTA_X + 16)  /* the card's content */
+#define KARTA_MALA 60           /* the card's height with the form open: the switch only */
+#define POLA_Y (seg_y() + KARTA_MALA + 36) /* first field (its label is 18 px above) */
 #define POLA_KROK 62
 
 static struct {
@@ -203,6 +208,30 @@ static void pole_hasla(struct k1_obraz *o, const struct k1_motyw *m, int i, cons
         k1_kolo(o, (float)(POLE_X + 18 + (int32_t)j * 13), (float)y + 18, 3.6f, k1_kolor(m->tekst, 255));
 }
 
+/* The card's height: the switch, and with the form closed what the switch means (8 px under it). */
+static int32_t karta_wys(int ile)
+{
+    return ile > 0 ? KARTA_MALA : (hs.wlaczone ? 124 : 140);
+}
+
+static void karta(struct k1_obraz *o, const struct k1_motyw *m, int ile)
+{
+    int32_t w = apl.szer - TRESC_X - 24, y = WIERSZ_Y + 46; /* the first line: 8 px under the switch */
+    uint32_t kolor = k1_kolor(m->tekst2, 255);
+    k1_zaokraglony(o, KARTA_X, (float)seg_y(), (float)w, (float)karta_wys(ile), 10, k1_kolor(m->pole, 255));
+    k1_obrys(o, KARTA_X, (float)seg_y(), (float)w, (float)karta_wys(ile), 10, 1.0f, k1_kolor(m->tekst, 24));
+    if (ile > 0)
+        return;
+    k1_tekst(o, K1_CZ_MALA, WNETRZE, y, "Zapomniane hasło oznacza założenie nowego konta.", kolor, 0);
+    k1_tekst(o, K1_CZ_MALA, WNETRZE, y + 18, "Zaszyfrowanych danych nie da się odzyskać.", kolor, 0);
+    k1_tekst(o, K1_CZ_MALA, WNETRZE, y + 44,
+             hs.wlaczone ? "Dane są zaszyfrowane hasłem." : "Bez hasła dane są zaszyfrowane, ale bez ochrony przed",
+             k1_kolor(m->tekst3, 255), 0);
+    if (!hs.wlaczone)
+        k1_tekst(o, K1_CZ_MALA, WNETRZE, y + 62, hs.usb ? "kradzieżą pendrive'a." : "kradzieżą komputera.",
+                 k1_kolor(m->tekst3, 255), 0);
+}
+
 void haslo_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char buf[160];
@@ -219,11 +248,12 @@ void haslo_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 60, buf, k1_kolor(m->tekst3, 255), 0);
         return;
     }
-    k1_przelacznik(o, m, TRESC_X, seg_y() + 8, hs.wlaczone, !hs.znane || hs.czeka);
-    k1_tekst(o, K1_CZ_TEKST, TRESC_X + 48, seg_y() + 23, "Wymagaj hasła przy włączaniu", k1_kolor(m->tekst, 255), 0);
-    if (hs.wlaczone && hs.formularz == F_BRAK)
-        k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X + 300, seg_y() + 23, "Zmień hasło", k1_kolor(m->akcent_tekst, 255), 0);
     ile = pola(n);
+    karta(o, m, ile);
+    k1_przelacznik(o, m, WNETRZE, WIERSZ_Y + 8, hs.wlaczone, !hs.znane || hs.czeka);
+    k1_tekst(o, K1_CZ_TEKST, WNETRZE + 48, WIERSZ_Y + 23, "Wymagaj hasła przy włączaniu", k1_kolor(m->tekst, 255), 0);
+    if (hs.wlaczone && hs.formularz == F_BRAK)
+        k1_tekst(o, K1_CZ_TEKST_MOCNA, WNETRZE + 300, WIERSZ_Y + 23, "Zmień hasło", k1_kolor(m->akcent_tekst, 255), 0);
     for (i = 0; i < ile; i++)
         pole_hasla(o, m, i, n[i]);
     if (ile > 0) {
@@ -234,19 +264,8 @@ void haslo_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         k1_tekst(o, K1_CZ_TEKST, POLE_X + 140, y + 24, "Anuluj", k1_kolor(m->tekst2, 255), 0);
     }
     if (hs.komunikat[0])
-        k1_tekst(o, K1_CZ_MALA_MOCNA, TRESC_X, ile > 0 ? przycisk_y() + 60 : seg_y() + 64, hs.komunikat,
+        k1_tekst(o, K1_CZ_MALA_MOCNA, TRESC_X, ile > 0 ? przycisk_y() + 60 : seg_y() + karta_wys(ile) + 28, hs.komunikat,
                  k1_kolor(hs.blad ? m->akcent_tekst : m->tekst2, 255), apl.szer - TRESC_X - 24);
-    if (ile == 0) {
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 96, "Zapomniane hasło oznacza założenie nowego konta.",
-                 k1_kolor(m->tekst3, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 114, "Zaszyfrowanych danych nie da się odzyskać.", k1_kolor(m->tekst3, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 144,
-                 hs.wlaczone ? "Dane są zaszyfrowane hasłem." : "Bez hasła dane są zaszyfrowane, ale bez ochrony przed",
-                 k1_kolor(m->tekst3, 255), 0);
-        if (!hs.wlaczone)
-            k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 162, hs.usb ? "kradzieżą pendrive'a." : "kradzieżą komputera.",
-                     k1_kolor(m->tekst3, 255), 0);
-    }
 }
 
 static void hs_formularz(int f)
@@ -266,12 +285,12 @@ int haslo_klik(int32_t x, int32_t y)
     int ile = pola(n), i;
     if (skarb < 0 || !hs.znane || hs.tryb == K1_SKARB_RAM || hs.czeka)
         return 0;
-    if (x >= TRESC_X && x < TRESC_X + 280 && y >= seg_y() && y < seg_y() + 36) {
+    if (x >= WNETRZE && x < WNETRZE + 280 && y >= WIERSZ_Y && y < WIERSZ_Y + 36) {
         hs_formularz(hs.formularz != F_BRAK ? F_BRAK : (hs.wlaczone ? F_WYLACZ : F_USTAW));
         return 1;
     }
-    if (hs.wlaczone && hs.formularz == F_BRAK && x >= TRESC_X + 300 && x < TRESC_X + 420 && y >= seg_y() &&
-        y < seg_y() + 36) {
+    if (hs.wlaczone && hs.formularz == F_BRAK && x >= WNETRZE + 300 && x < WNETRZE + 420 && y >= WIERSZ_Y &&
+        y < WIERSZ_Y + 36) {
         hs_formularz(F_ZMIEN);
         return 1;
     }
@@ -320,8 +339,8 @@ void haslo_zamknij(void)
 
 void haslo_loguj(void)
 {
-    k1_log(TAG, "hasło: przełącznik %d,%d; zmień %d,%d; pola od %d,%d co %d; Zapisz %d,+%d", TRESC_X + 18, seg_y() + 18,
-           TRESC_X + 340, seg_y() + 18, POLE_X + 40, POLA_Y + 18, POLA_KROK, POLE_X + 60, 26);
+    k1_log(TAG, "hasło: przełącznik %d,%d; zmień %d,%d; pola od %d,%d co %d; Zapisz %d,+%d", WNETRZE + 18, WIERSZ_Y + 18,
+           WNETRZE + 340, WIERSZ_Y + 18, POLE_X + 40, POLA_Y + 18, POLA_KROK, POLE_X + 60, 26);
 }
 
 int haslo_tylko_pamiec(void)
@@ -336,8 +355,8 @@ int haslo_na_pendrive(void)
 
 const char *haslo_gdzie_dane(void)
 {
-    return skarb < 0 || (hs.znane && hs.tryb == K1_SKARB_RAM) ? "Dane    tylko w pamięci (brak partycji K1-DANE)"
-           : hs.znane && hs.usb                               ? "Dane    zaszyfrowane na pendrivie K1 (partycja K1-DANE)"
-           : hs.znane                                         ? "Dane    zaszyfrowane na dysku komputera (K1-DANE)"
-                                                              : "Dane    …";
+    return skarb < 0 || (hs.znane && hs.tryb == K1_SKARB_RAM) ? "tylko w pamięci (brak partycji K1-DANE)"
+           : hs.znane && hs.usb                               ? "zaszyfrowane na pendrivie K1 (partycja K1-DANE)"
+           : hs.znane                                         ? "zaszyfrowane na dysku komputera (K1-DANE)"
+                                                              : "…";
 }

@@ -187,9 +187,11 @@ Z zakładka, F pole, M miejsce zmienne — 0.10.2 krok 3). Skrypt czeka na eleme
 "Wyłącz")`, `q.klik_w("Ustawienia", "Ciemny")`. Nazwy paneli powłoki: „Pasek”, „Pasek górny” (0.10.2 krok 3: „Dźwięk”, miejsce zmienne „Stan i zegar”), „Menu Start”, „Pulpit” (ikony: nazwy
 aplikacji, „Kosz”, „plik N”), „Menu” (menu pod prawym przyciskiem), „Okienko” (okienka pulpitu: „sesja N”, „Anuluj”);
 okno aplikacji — jej tytuł (przyciski przybornika, „Minimalizuj”, „Zamknij”, sekcje i segmenty jako zakładki).
-**Położenia z logu zostają** tam, gdzie opis ich nie daje: listy plików i notatek (nazwy to treść użytkownika), karty
-tapet i lista trybów ekranu w Ustawieniach, przyciski Kalkulatora, przesuwanie okien, pasek okna strefy (rysuje go
-ekran). Zysk: nowy element nie potrzebuje nowej linii logu ani wyrażenia regularnego w teście.
+**Położenia z logu zostają** tam, gdzie opis ich nie daje: listy plików i notatek (nazwy to treść użytkownika),
+przyciski Kalkulatora, przesuwanie okien, pasek okna strefy (rysuje go ekran). Od 0.10.7 krok 2 tryby ekranu
+(„1280 × 800”, przycisk) i karty tapet („Zmierzch”, kafelek) są w opisie. Sekcje Ustawień w skryptach bez opisu: wiersz
+listy liczy `Maszyna.wiersz_sekcji(nr)` z logu „sekcje na liście: …” (bez baterii nie ma „Baterii”, więc numer sekcji
+`S_*` nie jest numerem wiersza). Zysk: nowy element nie potrzebuje nowej linii logu ani wyrażenia regularnego w teście.
 
 **Zrzuty wzorcowe (0.10.2 krok 3; decyzje właściciela D3, D4).** K1 rysuje wszystko sam, procesorem — ten sam kod daje
 ten sam piksel w każdym uruchomieniu i na każdym komputerze (sprawdzone: lokalnie w emulacji i w CI z KVM). Test wycina

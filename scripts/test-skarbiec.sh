@@ -85,7 +85,7 @@ def informacje(u0=None):
     """Ustawienia → Miejsce (0.8.5; Informacje until 0.8.3): the room for files line."""
     u0 = u0 or okno("ustawienia", lambda: klik(*pasek(2)))
     sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
-    m = u0 and sk and po(MIEJSCE, lambda: klik(u0[0] + int(sk.group(1)), u0[1] + int(sk.group(2)) + 7 * int(sk.group(3))))
+    m = u0 and sk and po(MIEJSCE, lambda: klik(u0[0] + int(sk.group(1)), u0[1] + int(sk.group(2)) + q.wiersz_sekcji(7) * int(sk.group(3))))
     return u0, m
 
 

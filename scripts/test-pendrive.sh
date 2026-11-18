@@ -173,7 +173,7 @@ def miejsce_w_ustawieniach(nazwa, ciemny=False):
     if not (u and sk):
         return None
     ux, uy = int(u.group(4)), int(u.group(5))
-    sekcja = lambda i: klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + i * int(sk.group(3)))
+    sekcja = lambda i: klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + q.wiersz_sekcji(i) * int(sk.group(3)))
     c = po(CZESCI, lambda: sekcja(7), czas=30)
     zrzut(nazwa, gdy=lambda w, h, px: True)
     if c and ciemny:  # Wygląd → "Ciemny", Miejsce again, back to "Jasny"

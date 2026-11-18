@@ -116,10 +116,10 @@ Robot i wydania (od 0.10.5: ADR 0046 i 0047, docs/komponenty/robot.md i aktualiz
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
-[w toku: Claude, gałąź claude/exciting-archimedes-7r215w]
-[ ]  1  Teksty: bez opisów i bez półpauz                  W1–W3            0.10.5      D2, T1           M        brak
-     [w toku: Claude, gałąź claude/exciting-archimedes-7r215w]
+[x]  1  Teksty: bez opisów i bez półpauz                    W1–W3            0.10.5      D2, T1           M        brak
+     PR #170
 [ ]  2  Ustawienia: sekcje w środku                         W4–W9            1           D3, T2, T3       M        brak
+     [w toku: Claude, gałąź claude/exciting-archimedes-7r215w]
 [ ]  3  Pliki: przyciski, szczegóły, pusty folder           W10–W11          1           D4, T4           M        brak
 [ ]  4  Ramka okna strefy: kolor sesji dyskretnie           W12              1           D1, T5           M        0048
 [ ]  5  Błąd: Aktualizacje po ponownym otwarciu Ustawień   W16              0.10.5      T6               S        brak
@@ -136,51 +136,71 @@ KROK 1: Teksty: bez opisów i bez półpauz                                     
   Na początku: lista wszystkich napisów do zmiany (W1, W2) w trzech kolumnach: „usuwam”, „przepisuję” (stary i nowy
   tekst), „zostaje” (z powodem); właściciel ją zatwierdza (D2), zanim zmieni się kod.
   Zadania:
-  [ ] Ustawienia: podtytuły sekcji (W1) usunięte; nagłówek sekcji (Plex Serif 24) zostaje, treść przesuwa się do góry
+  [x] Ustawienia: podtytuły sekcji (W1) usunięte; nagłówek sekcji (Plex Serif 24) zostaje, treść przesuwa się do góry
       o jeden równy odstęp (ten sam we wszystkich sekcjach, wielokrotność 4 px).
-  [ ] Menu Start: opisy pod nazwami aplikacji (kolumna opisu w K1_APLIKACJE, W2), jeśli D2 je usuwa: wiersz bez opisu,
+  [-] Menu Start: opisy pod nazwami aplikacji (kolumna opisu w K1_APLIKACJE, W2), jeśli D2 je usuwa: wiersz bez opisu,
       niższy (np. 40 px zamiast 56 px), menu krótsze.
-  [ ] Zdania-podpisy (Informacje na dole, „Ile miejsca zajmują Twoje pliki…”, „Inną aplikację: prawy przycisk…”,
+  [x] Zdania-podpisy (Informacje na dole, „Ile miejsca zajmują Twoje pliki…”, „Inną aplikację: prawy przycisk…”,
       „Zalecana: … Wybór obowiązuje…”) według listy z D2.
-  [ ] Półpauzy w napisach widocznych na ekranie (W3): przepisane. Logi (port szeregowy) i komentarze w kodzie bez zmian
+  [x] Półpauzy w napisach widocznych na ekranie (W3): przepisane. Logi (port szeregowy) i komentarze w kodzie bez zmian
       (nie widzi ich użytkownik; testy szukają w logach wzorców).
-  [ ] Kropki: zdania pełne zachowują kropkę, krótkie napisy (nagłówki, przyciski, etykiety) bez kropki.
-  [ ] Test (sprawdz-czytelnosc.py, nowy punkt): półpauza w literale napisu w src/aplikacje, src/gui, src/przybornik,
+  [x] Kropki: zdania pełne zachowują kropkę, krótkie napisy (nagłówki, przyciski, etykiety) bez kropki.
+  [x] Test (sprawdz-czytelnosc.py, nowy punkt): półpauza w literale napisu w src/aplikacje, src/gui, src/przybornik,
       src/logowanie, src/ekran poza k1_log = błąd (wyjątki tylko z komentarzem, jak limit wielkości).
   Testy i dowód: test-wzorce (obrazy „przed / po” wszystkich zmienionych okien, Z4), test-m4, test-pliki; sprawdzenie
   z sprawdz-czytelnosc „na czerwono” przed poprawką.
   Dokumenty: WYGLAD.md (zasady Z2 i Z3 w „Ustaleniach właściciela”), aplikacje.md, gui.md, dokumenty kanałów, jeśli
   zmienia się tekst komunikatu (np. okienka nadzorcy).
   Gotowe, gdy: testy zielone, wzorce przyjęte po „OK” właściciela.
-  Ustalenia z wykonania: (pusto, wypełnia krok 1)
+  Ustalenia z wykonania (2026-11-18, PR #170):
+    - D2: lista zatwierdzona; opisy w menu Start ZOSTAJĄ (właściciel: „Zostawić”), więc zadanie o menu Start odpada
+      ([-]). Zostają też ostrzeżenie przy haśle i „Pliki są tylko w pamięci…” (Miejsce bez dysku danych, teraz na dole).
+    - Treść sekcji 32 px pod tytułem (seg_y = tytuł okna + 72); w Sieci zakładki w miejscu przycisków, treść pod nimi
+      (SIEC_Y), Przeglądarka liczy od seg_y() zamiast stałych.
+    - sprawdz-czytelnosc punkt 11: 89 błędów przed, 0 po. Zakres: src/aplikacje, src/gui, src/przybornik, src/logowanie,
+      src/ekran i k1_inst_teksty.h; napis budowany dla logu poza wywołaniem *log*( — `/* k1: napis do logu */`.
+    - Pułapka: napis Zasobów „Brak baterii — zasilanie z sieci” szedł też do logu, którego szukał test-m4; inne testy
+      cytowały stare napisy tylko w opisach sprawdzeń.
 
 KROK 2: Ustawienia: sekcje w środku                                           M · D3, T2, T3 · bez ADR
   Cel: każda sekcja Ustawień ułożona równo: jeden rytm odstępów, etykiety i wartości w kolumnach, przyciski wyglądają
   na przyciski. Lista sekcji z lewej bez zmian (Z1).
   Zadania:
-  [ ] Aplikacje (W4): każdy typ pliku jako jeden wiersz 44 px z cienką linią pod spodem; z lewej typ (Plex Sans 15),
+  [x] Aplikacje (W4): każdy typ pliku jako jeden wiersz 44 px z cienką linią pod spodem; z lewej typ (Plex Sans 15),
       z prawej aplikacja (tekst2) albo wyciszone „brak aplikacji” (tekst3).
-  [ ] Informacje (W5, D3): wizytówka: znak „Warstwy” ok. 72 px, pod nim „Kons K1” (Plex Serif 24) i wersja; niżej dane
+  [x] Informacje (W5, D3): wizytówka: znak „Warstwy” ok. 72 px, pod nim „Kons K1” (Plex Serif 24) i wersja; niżej dane
       w dwóch kolumnach: etykiety w kolumnie 96 px (tekst2), wartości równo za nią (tekst). Bez zdań (Z2).
-  [ ] Hasło (W6): przełącznik i ostrzeżenie (przepisane w kroku 1) na jednej karcie, ostrzeżenie 8 px pod przełącznikiem.
-  [ ] Ekran (W7): rozdzielczości wierszami po 3, od największej; zalecana z małym dopiskiem „zalecana” w przycisku
+  [x] Hasło (W6): przełącznik i ostrzeżenie (przepisane w kroku 1) na jednej karcie, ostrzeżenie 8 px pod przełącznikiem.
+  [x] Ekran (W7): rozdzielczości wierszami po 3, od największej; zalecana z małym dopiskiem „zalecana” w przycisku
       (Plex Sans 13); wybrana jak dziś (wypełnienie akcentem).
-  [ ] Aktualizacje (W8): ikona bez kwadratu w kolorze akcentu: kolor tekstu na polu „najechanie” (40 × 40, zaokrąglenie 10).
-  [ ] Przeglądarka (W9): „Zmień nazwę” i „Wyczyść dane…” jako ciche przyciski (podświetlenie po najechaniu, k1_przycisk
+  [x] Aktualizacje (W8): ikona bez kwadratu w kolorze akcentu: kolor tekstu na polu „najechanie” (40 × 40, zaokrąglenie 10).
+  [x] Przeglądarka (W9): „Zmień nazwę” i „Wyczyść dane…” jako ciche przyciski (podświetlenie po najechaniu, k1_przycisk
       w odmianie bez obrysu, jeśli jej nie ma, to jedna nowa odmiana w przyborniku, nie rysowanie ręczne).
-  [ ] Ikona Sieci (K1_IK_SIEC, W9): trzy łuki Wi-Fi z kropką (ta sama grubość linii co reszta ikon); ikona jest też na
+  [x] Ikona Sieci (K1_IK_SIEC, W9): trzy łuki Wi-Fi z kropką (ta sama grubość linii co reszta ikon); ikona jest też na
       górnym pasku i w menu: jedna zmiana w k1_rysuj.c.
-  [ ] Bateria (prośba właściciela 2026-11-18, przy obrazach kroku 1): komputer bez baterii nie ma sekcji „Bateria” na
+  [x] Bateria (prośba właściciela 2026-11-18, przy obrazach kroku 1): komputer bez baterii nie ma sekcji „Bateria” na
       liście (znika, gdy nadzorca powie „brak baterii”, wraca, gdy bateria się pojawi). Numery S_* bez zmian (T2); testy,
       które klikają sekcje po numerze, liczą tylko widoczne.
-  [ ] Informacje: wersja jądra z jadro/wersja.env przy budowie (zgłoszenie właściciela 2026-11-18: na 0.10.5 widać
+  [x] Informacje: wersja jądra z jadro/wersja.env przy budowie (zgłoszenie właściciela 2026-11-18: na 0.10.5 widać
       „Linux 6.18”, a działa 7.3.5; napis był wpisany na sztywno).
-  [ ] Tryby ekranu i karty tapet zgłaszane do opisu ekranu (k1_el, T3): test-m4 klika „1280 × 800” po nazwie, bez
+  [x] Tryby ekranu i karty tapet zgłaszane do opisu ekranu (k1_el, T3): test-m4 klika „1280 × 800” po nazwie, bez
       położeń z logu (TESTY.md: lista wyjątków krótsza).
   Testy i dowód: test-wzorce (wszystkie sekcje Ustawień, oba motywy, „przed / po”), test-m4.
   Dokumenty: WYGLAD.md (Ustawienia: wiersze, wizytówka, ikona Sieci), aplikacje.md, TESTY.md.
   Gotowe, gdy: testy zielone, wzorce przyjęte po „OK” właściciela.
-  Ustalenia z wykonania: (pusto, wypełnia krok 2)
+  Ustalenia z wykonania (2026-11-18):
+    - D3: wizytówka przyjęta na obrazach „przed / po” razem z całym krokiem (właściciel: „OK, przyjmij”).
+    - Bateria: lista sekcji = na_liscie() w main.c. Do chwili, gdy nadzorca poda stan baterii, lista jest pełna (laptopy
+      właściciela mają baterię — bez mignięcia); komputer bez baterii widzi „Baterię” przez pierwszą klatkę. Log
+      „sekcje na liście: …” przy każdej zmianie, „układ: …” dopiero po pierwszej (testy klikają już ustaloną listę);
+      k1qemu.py: wiersz_sekcji(nr). Wzorca „ustawienia-bateria” nie ma (QEMU bez baterii); test-wzorce sprawdza, że jej
+      nie ma na liście (NEGATYWNY), test-m5 (z baterią) klika ją dalej.
+    - Ikona Sieci: tylko w liście sekcji K1_IK_WIFI (istniejące łuki z kropką); wtyczka K1_IK_SIEC zostaje na górnym
+      pasku i przy karcie przewodowej, bo tam znaczy „kabel” (plan zakładał jedną zmianę w k1_rysuj.c).
+    - Aktualizacje: pole pod ikoną `zaznaczenie`, nie `najechanie` (w ciemnym motywie `najechanie` ≈ `pole`).
+    - Przeglądarka: nowa odmiana przycisku K1_PRZ_NA_KARCIE (CICHY ma tło `pole`, czyli kolor karty — był niewidoczny).
+    - Jądro w Informacjach: K1_JADRO z jadro/wersja.env (Makefile, reguła aplikacji zależy od tego pliku), pole zmienne
+      w opisie ekranu (robot zmienia jądro).
 
 KROK 3: Pliki: przyciski, szczegóły, pusty folder                              M · D4, T4 · bez ADR
   Cel: okno Plików pokazuje tylko to, czego można teraz użyć.

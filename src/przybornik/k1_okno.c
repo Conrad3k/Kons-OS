@@ -113,6 +113,10 @@ void k1_przycisk(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_p
         k1_zaokraglony(o, x, y, w, h, r, k1_kolor(najechany && aktywny ? m->najechanie : m->pole, 255));
         tekst = aktywny ? m->tekst : m->tekst3;
         break;
+    case K1_PRZ_NA_KARCIE:
+        k1_zaokraglony(o, x, y, w, h, r, k1_kolor(m->tekst, najechany && aktywny ? 26 : 12));
+        tekst = aktywny ? m->tekst : m->tekst3;
+        break;
     default:
         if (najechany && aktywny)
             k1_zaokraglony(o, x, y, w, h, r, k1_kolor(m->najechanie, 255));

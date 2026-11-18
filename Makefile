@@ -20,6 +20,8 @@ FUZZ_CZAS ?= 30
 GEN       := $(BUDOWA)/gen
 CZCIONKI  ?= /usr/share/fonts/truetype/ibm-plex
 WERSJA    := $(shell cat VERSION)
+# The kernel's version (Ustawienia → Informacje, 0.10.7 step 2): from its one source, jadro/wersja.env.
+JADRO     := $(shell sed -n 's/^K1_JADRO_WERSJA=//p' jadro/wersja.env)
 # The build time (skarbiec's lower bound for the clock, 0.8.1): the time of the commit, as scripts/wspolne.sh sets it.
 CZAS_BUDOWY := $(or $(SOURCE_DATE_EPOCH),$(shell git log -1 --format=%ct 2>/dev/null),0)
 
@@ -205,8 +207,8 @@ $(BIN)/gui: $(GUI) src/gui/gui.h $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P)
 # an application is every .c file of its directory (the Kalkulator: main.c + its engine liczydlo.c)
 .SECONDEXPANSION:
 $(BIN)/%: src/aplikacje/%/main.c $$(wildcard src/aplikacje/$$*/*.c src/aplikacje/$$*/*.h) $(PRZYB) $(WSPOLNE) $(USLUGI) \
-          $(NAGL) $(NAGL_P) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ $(wildcard src/aplikacje/$*/*.c) $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+          $(NAGL) $(NAGL_P) jadro/wersja.env | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) '-DK1_JADRO="$(JADRO)"' -o $@ $(wildcard src/aplikacje/$*/*.c) $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # Fonts: rasterised on the host with FreeType (narzedzia/czcionki.c), compiled into the programs.
 FT_CFLAGS = $(shell pkg-config --cflags freetype2)

@@ -83,7 +83,7 @@ SIEC_NR, WYGLAD_NR = 8, 0
 
 
 def sekcja(nr):
-    q.klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + nr * int(sk.group(3)))
+    q.klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + q.wiersz_sekcji(nr) * int(sk.group(3)))
 
 
 if u and sk:
