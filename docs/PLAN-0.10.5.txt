@@ -128,6 +128,7 @@ Osiem kroków:
 [x]  1  Ustawienia → Aktualizacje (z Instalatora)           S1–S6            0.10.0      D1 D2 D3, T1     M        —
      PR #152
 [ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16, S25, S50 1           D4 D5 D7 D13,    L        0046
+     [w toku: Claude, gałąź claude/peaceful-euler-gcmcpa — 2a: formaty, podpis, program zapisujący; 2b: strefa, okna]
                                                                                          T2–T7, T18
 [ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11, T18  M        0047
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —

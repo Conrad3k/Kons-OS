@@ -15,6 +15,8 @@
  * the disk does not run, read back and compared, then GRUB's environment says "try it once" (k1_nowy) — the running
  * system is never touched, and a new system that does not start leaves GRUB on the old one. A disk without a layout
  * block (K1 older than 0.7.0) or with an unreadable grubenv gets the stick's K1-EFI as an install does.
+ * 0.10.5 step 2 (ADR 0046): the modes for updates through the network (the announcement and the package from the
+ * download zone, the waiting room, "Zainstaluj", "Wróć do poprzedniej wersji") — siec.c, siec_instaluj.c.
  * Sandbox: UID 105, seccomp = base + pread64, pwrite64, fdatasync, getrandom; Landlock without paths;
  * the only devices it has are the two above. */
 #include <errno.h>
@@ -37,18 +39,16 @@
 #include "k1_uklad.h"
 #include "k1_uslugi.h"
 #include "monocypher.h"
+#include "siec.h"
 #include "start.h"
 
 #define TAG "K1-INSTALATOR"
-#define FD_KANAL 3
-#define FD_ZRODLO 4
-#define FD_CEL 5
 #define KAWALEK K1_GPT_MIB
 
 static uint8_t bufor[KAWALEK], bufor2[KAWALEK];
 static int ostatni_procent = -1;
 
-static void etap(int procent, int nr)
+void etap(int procent, int nr)
 {
     struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_INST_ETAP, 0, procent, nr, 0, 0, 0);
     if (procent == ostatni_procent)
@@ -73,7 +73,7 @@ static uint64_t rozmiar(int fd)
 }
 
 /* The job from nadzorca: within 10 s, from UID 0, valid. */
-static int zadanie(int *tryb, int *sektor)
+static int zadanie(int *tryb, int *sektor, int *test)
 {
     struct pollfd p = { FD_KANAL, POLLIN, 0 };
     struct k1_komunikat k;
@@ -82,6 +82,7 @@ static int zadanie(int *tryb, int *sektor)
         return -1;
     *tryb = k.a;
     *sektor = k.b;
+    *test = k.c;
     return 0;
 }
 
@@ -404,12 +405,16 @@ int main(void)
     struct k1_manifest ma;
     const struct k1_manifest *stara;
     char w[16];
-    int tryb, sektor, r;
+    int tryb, sektor, test, r;
 
     k1_klatka_w_usludze(TAG);
-    if (zadanie(&tryb, &sektor) != 0) {
+    if (zadanie(&tryb, &sektor, &test) != 0) {
         k1_log(TAG, "brak poprawnego zadania od nadzorcy");
         return 1;
+    }
+    if (tryb >= K1_INST_SIEC_STAN) { /* 0.10.5 step 2 (ADR 0046): updates through the network — siec.c */
+        r = siec_zadanie(tryb, test, &nowy_slot);
+        koniec(r);
     }
     /* the source: a K1-EFI of format 2, its slot A (the system and the boot files) checked */
     if (k1_efi_czytaj(FD_ZRODLO, rozmiar(FD_ZRODLO), &zr) != 0) {

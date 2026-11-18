@@ -23,7 +23,7 @@ a dysk musi mieć ten sam rozmiar; zapis naraz najwyżej jeden (drugie okno: `K1
 | Program | UID | seccomp (poza bazą) | Landlock | cgroup | urządzenia |
 |---|---|---|---|---|---|
 | okno `instalacja` | 204 | `memfd_create`, `ftruncate` | brak ścieżek | 32 MiB, 1 proces | żadne |
-| `instalator` | 105 | `pread64`, `pwrite64`, `fdatasync`, `getrandom` | brak ścieżek | 16 MiB, 1 proces | fd 4: K1-EFI pendrive'a (odczyt), fd 5: cały dysk (instalacja) albo jego K1-EFI (aktualizacja) |
+| `instalator` | 105 | `pread64`, `pwrite64`, `fdatasync`, `getrandom` | brak ścieżek | 64 MiB, 1 proces, pliki do 16 KiB (memfd ogłoszenia) | fd 4: K1-EFI pendrive'a (odczyt) albo potok ze strefy pobierania (0.10.5), fd 5: cały dysk (instalacja) albo jego K1-EFI (aktualizacja), fd 6: memfd ogłoszenia (aktualizacja przez sieć) |
 
 ## Przebieg
 1. Okno → `INST_DYSKI`; nadzorca skanuje sysfs (`dyski.c`: dyski nie-USB ≥ 1 GiB, sektor 512/4096;
@@ -46,6 +46,30 @@ a dysk musi mieć ten sam rozmiar; zapis naraz najwyżej jeden (drugie okno: `K1
 Bez pendrive'a K1 Instalator nie ma przycisku, tylko tekst: start z ISO — jak przygotować pendrive; dwa
 pendrive'y K1 — który odłączyć; K1 zainstalowany na dysku — karta z linkiem do Ustawień → Aktualizacje (0.10.5; od 0.7.6
 do 0.10.2 jedno zdanie „Aktualizacje są możliwe poprzez nośnik USB.”).
+
+## Aktualizacja przez sieć (0.10.5 krok 2, ADR 0046)
+Tryby `K1_INST_SIEC_*` (`INST_ZADANIE` a = 3…6; o każdy prosi tylko nadzorca, żadne okno — c = 1: test aktualizacji)
+w `src/instalator/siec.c` i `siec_instaluj.c`. Program zapisujący to jedyne miejsce w K1, które czyta bajty z sieci.
+- **Poczekalnia:** część partycji K1-EFI dysku za jej FAT32 (od `k1_pocz_od(fat)`; partycja 512 MiB, FAT 280 MiB). Znak
+  (4 KiB, `k1_paczka.h`) zerowany przed pobieraniem, zapisany po sprawdzeniu; za nim ogłoszenie, od 1 MiB paczka. Nic, co
+  startuje, jej nie czyta. Pendrive jej nie ma (partycja = FAT) — K1 z pendrive'a przez sieć się nie aktualizuje.
+- **`STAN`** (fd 4: ogłoszenie ze strefy albo nic, fd 6: pusty memfd) → `INST_SIEC`: a = wersja, która działa, b = czeka
+  w poczekalni, c = nowsza do pobrania, d = `K1_SIEC_FL_*` (nowa linia jądra, ogłoszenie przyjęte / odrzucone, brak
+  poczekalni, próba w toku), e = poprzednia wersja w wolnym miejscu (dla „Wróć”). Ogłoszenie do pokazania → memfd.
+- **`POBIERZ`** (fd 4: paczka ze strefy, fd 6: ogłoszenie z `STAN`): podpis ogłoszenia jeszcze raz; nagłówek paczki,
+  podpisy obu manifestów, wersja i identyfikator wydania — **zanim cokolwiek zostanie zapisane**; potem strumieniem do
+  poczekalni z SHA-256 całości i BLAKE2b systemu; za dużo albo za mało bajtów = `K1_INST_BLAD_SIEC`; odczyt i SHA-256
+  z dysku; na końcu ogłoszenie i znak.
+- **`ZAINSTALUJ`**: wszystko jeszcze raz z dysku (znak, ogłoszenie, SHA-256, manifesty, skrót systemu, skrót plików
+  startowych z przodu i tyłu paczki w pamięci) → pliki startowe obok starych (`start.c`) → system do wolnego miejsca
+  (odczyt, porównanie) → manifesty → grubenv `k1_nowy` → znak zerami. `INST_GOTOWE` b = 1.
+- **`WROC`** („Wróć do poprzedniej wersji”, D7): wolne miejsce ma starszą wersję — podpis i skrót sprawdzone → `k1_nowy`.
+- Wersja do pobrania: nowsza od działającej i od tej w wolnym miejscu, gdy tamta jest nowsza (nie wystartowała albo z niej
+  wrócono — nie wraca). Przy próbie w toku nic się nie pobiera ani nie instaluje.
+- Podpis: z kluczem K1 — zawsze wymagany; wersja deweloperska (bez klucza) przyjmuje pliki bez podpisu tylko w teście
+  aktualizacji (c = 1).
+- Test: `test_siec_instalatora` (obrazy K1-EFI z mtools, `testy/host/obrazy_paczki.sh`, klucz testowy) — cała droga
+  i 15 przypadków negatywnych.
 
 ## Manifesty i podpis (0.6.2, ADR 0021; od 0.9.0 ADR 0038)
 Przed zapisem program zapisujący czyta dwa manifesty z miejsca A pendrive'a (`k1_manifest.h`): **manifest miejsca**

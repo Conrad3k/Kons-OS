@@ -7,6 +7,9 @@
 #          nadzorca powiększa pustą K1-DANE do końca pendrive'a (0.8.0, ADR 0033, src/nadzorca/powieksz.c).
 # Instalacja kopiuje K1-EFI na dysk (bez miejsca B); aktualizacja zapisuje nieużywane miejsce (A/B) i — gdy się
 # zmieniły — pliki startowe obok starych (0.9.0, ADR 0038). W miejscu A: manifest systemu i manifest plików startowych.
+# Aktualizacje przez sieć (0.10.5 krok 2, ADR 0046): z gotowej K1-EFI także paczka aktualizacji
+# (build/wynik/k1-<wersja>.k1a: miejsce A i pliki startowe) i jej ogłoszenie (build/wynik/k1-ogloszenie.bin: wersja,
+# skrót paczki, opisy wersji z CHANGELOG.md — scripts/opisy-wersji.py), podpisane tym samym kluczem co manifesty.
 # Wymaga: scripts/zbuduj.sh (jądro, programy, obrazy, k1.efi).
 . "$(dirname "$0")/wspolne.sh"
 
@@ -15,7 +18,8 @@ WYJSCIE=$K1_WYNIK/k1-$K1_WERSJA-usb.img
 ESP_MIB=280
 DANE_MIB=64
 PODPISZ=$K1_BUDOWA/obj/podpisz
-[ -f "$K1_WYNIK/k1.efi" ] && [ -f "$K1_WYNIK/wydanie" ] && [ -f "$K1_BUDOWA/gen/start.png" ] && [ -x "$PODPISZ" ] \
+WYDANIE=$K1_BUDOWA/obj/wydanie
+[ -f "$K1_WYNIK/k1.efi" ] && [ -f "$K1_WYNIK/wydanie" ] && [ -f "$K1_BUDOWA/gen/start.png" ] && [ -x "$PODPISZ" ] && [ -x "$WYDANIE" ] \
     || blad "najpierw zbuduj system: scripts/zbuduj.sh"
 for n in apt-get dpkg-deb mformat mmd mcopy mshowfat sfdisk xz truncate od; do command -v $n >/dev/null || blad "brak $n (scripts/przygotuj-srodowisko.sh)"; done
 
@@ -98,6 +102,14 @@ GENV=$(miejsce /boot/grub/grubenv 1024) A=$(miejsce /k1/a.img 134217728) B=$(mie
 # The manifest of the boot files (ADR 0038): the digest of every file but grubenv and the slots, signed, in slot A.
 "$PODPISZ" start "$ESP" || blad "manifest plików startowych (podpisz)"
 
+# 0.10.5 step 2 (ADR 0046): the update package and its signed announcement, from the finished K1-EFI
+PACZKA=$K1_WYNIK/k1-$K1_WERSJA.k1a
+OGL=$K1_WYNIK/k1-ogloszenie.bin
+python3 -I "$K1_REPO/scripts/opisy-wersji.py" "$K1_REPO/CHANGELOG.md" "$K1_WERSJA" > "$USB/opisy.txt" || blad "opisy wersji (CHANGELOG.md)"
+NOWA_LINIA=; python3 -I "$K1_REPO/scripts/opisy-wersji.py" --nowa-linia "$K1_REPO/CHANGELOG.md" "$K1_WERSJA" && NOWA_LINIA=nowa-linia
+"$WYDANIE" paczka "$ESP" "$PACZKA" || blad "paczka aktualizacji"
+"$WYDANIE" ogloszenie "$PACZKA" "$USB/opisy.txt" "$SOURCE_DATE_EPOCH" "$OGL" $NOWA_LINIA || blad "ogłoszenie wydania"
+
 # The disk: GPT with fixed GUIDs, the EFI partition copied in, K1-DANE left as zeros.
 rm -f "$WYJSCIE" "$WYJSCIE.xz"
 truncate -s $(((1 + ESP_MIB + DANE_MIB + 1) * 1024 * 1024)) "$WYJSCIE"
@@ -109,5 +121,6 @@ start=$(((1 + ESP_MIB) * 2048)), size=$((DANE_MIB * 2048)), type=0FC63DAF-8483-4
 TAB
 dd if="$ESP" of="$WYJSCIE" bs=1M seek=1 conv=notrunc status=none
 xz -T0 -6 -k "$WYJSCIE"
-(cd "$K1_WYNIK" && sha256sum "k1-$K1_WERSJA-usb.img.xz" > "k1-$K1_WERSJA-usb.img.xz.sha256")
+(cd "$K1_WYNIK" && sha256sum "k1-$K1_WERSJA-usb.img.xz" > "k1-$K1_WERSJA-usb.img.xz.sha256" &&
+    sed -i '/  k1-.*\.k1a$\|  k1-ogloszenie\.bin$/d' SHA256SUMS && sha256sum "k1-$K1_WERSJA.k1a" k1-ogloszenie.bin >> SHA256SUMS)
 info "gotowe: $WYJSCIE ($(du -k "$WYJSCIE" | cut -f1) KiB), do pobrania: .img.xz ($(du -k "$WYJSCIE.xz" | cut -f1) KiB)"

@@ -30,6 +30,8 @@ static inline const char *k1_inst_blad_tekst(int blad)
         { K1_INST_BLAD_STARSZA, "Na pendrivie jest starsza wersja niż na dysku — powrót do starszej wersji jest zablokowany." },
         { K1_INST_BLAD_PRZERWANE, "Program zapisujący zakończył się bez wyniku." },
         { K1_INST_BLAD_TRWA, "Trwa już zapis K1 na dysk w drugim oknie (Instalator albo Ustawienia) — poczekaj na koniec." },
+        { K1_INST_BLAD_SIEC, "Pobieranie przerwało się albo przyszło coś innego niż nowa wersja K1 — nic nie zmieniono." },
+        { K1_INST_BLAD_MIEJSCE, "Na tym dysku nie ma miejsca na pobraną wersję — zaktualizuj K1 z pendrive'a." },
     };
     unsigned i;
     for (i = 0; i < sizeof bledy / sizeof bledy[0]; i++)

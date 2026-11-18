@@ -72,7 +72,7 @@ USLUGI_SYSTEMU := $(shell sh scripts/uslugi-systemu.sh)
 PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(addprefix $(BIN)/,$(USLUGI_SYSTEMU)) $(APLIKACJE) \
             $(BIN)/strefa $(BIN)/gosc $(BIN)/kompozytor $(BIN)/przekaznik $(BIN)/k1-test-systemu
 
-all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(GEN)/sb/k1_sb_cert.h $(OBJ)/proba_fortify
+all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(OBJ)/wydanie $(GEN)/sb/k1_sb_cert.h $(OBJ)/proba_fortify
 
 # Our musl (0.9.0 step 4): built when musl/ changes; every program is built again with a new one.
 $(MUSL): musl/wersja.env $(wildcard musl/latki/*.patch) scripts/zbuduj-musl.sh
@@ -89,9 +89,17 @@ MANIFEST := src/wspolne/k1_manifest.c src/wspolne/k1_uklad.c $(MONOCYPHER)
 FAT32    := src/wspolne/k1_fat32.c
 # what nadzorca and the installer read from a K1-EFI partition (k1_efi.h)
 EFI      := $(MANIFEST) src/wspolne/k1_efi.c
-$(OBJ)/podpisz: narzedzia/podpisz.c $(MANIFEST) $(FAT32) $(NAGL) | $(OBJ)
+$(OBJ)/podpisz: narzedzia/podpisz.c narzedzia/klucz.c narzedzia/klucz.h $(MANIFEST) $(FAT32) $(NAGL) | $(OBJ)
 	$(CC_HOST) -std=c11 -O2 -D_GNU_SOURCE -Wall -Wextra -Werror -Isrc/wspolne -Isrc/zewnetrzne/monocypher \
-		-o $@ narzedzia/podpisz.c $(MANIFEST) $(FAT32)
+		-o $@ narzedzia/podpisz.c narzedzia/klucz.c $(MANIFEST) $(FAT32)
+
+# 0.10.5 step 2 (ADR 0046): the release announcement and the update package — formats in src/wspolne/, the tool that
+# makes both at build time (narzedzia/wydanie.c; the signature in k1_ogloszenie_podpis.c)
+OGLOSZENIE := src/wspolne/k1_ogloszenie.c
+PACZKA     := src/wspolne/k1_paczka.c src/wspolne/k1_ogloszenie_podpis.c $(OGLOSZENIE) src/wspolne/k1_sha256.c
+$(OBJ)/wydanie: narzedzia/wydanie.c narzedzia/klucz.c narzedzia/klucz.h $(PACZKA) $(MANIFEST) $(NAGL) | $(OBJ)
+	$(CC_HOST) -std=c11 -O2 -D_GNU_SOURCE -Wall -Wextra -Werror -Isrc/wspolne -Isrc/zewnetrzne/monocypher \
+		-o $@ narzedzia/wydanie.c narzedzia/klucz.c $(PACZKA) $(MANIFEST)
 
 # regenerated on every build, replaced only when it changed (the key may differ between builds)
 $(GEN)/k1_klucz.h: $(OBJ)/podpisz FORCE | $(GEN)
@@ -130,9 +138,9 @@ $(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) src/wspolne/k1_nl.c sr
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
 # 0.9.0 step 3 (ADR 0038): start.c — the boot files swapped beside the old ones (host test: test_start)
 INSTALATOR := $(sort $(wildcard src/instalator/*.c))
-$(BIN)/instalator: $(INSTALATOR) $(wildcard src/instalator/*.h) $(EFI) $(FAT32) $(GEN)/k1_klucz.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+$(BIN)/instalator: $(INSTALATOR) $(wildcard src/instalator/*.h) $(EFI) $(FAT32) $(PACZKA) $(GEN)/k1_klucz.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -I$(GEN) -o $@ $(INSTALATOR) \
-		$(EFI) $(FAT32) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+		$(EFI) $(FAT32) $(PACZKA) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # 0.8.0 step 3 (ADR 0031): the USB stick reader — FAT in a sandbox (host test: test_fat, fuzzing: fuzz_fat)
 # 0.8.0 step 4 (ADR 0032): the picture decoder — Wuffs (src/zewnetrzne, docs/ZALEZNOSCI.md) compiled as is inside
@@ -348,6 +356,24 @@ $(OBJ)/test_start: testy/host/test_start.c src/instalator/start.c src/instalator
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/instalator -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_start.c src/instalator/start.c \
 		$(FAT32) src/wspolne/k1_log.c $(MONOCYPHER)
 
+# 0.10.5 step 2 (ADR 0046): the release announcement and the update package
+$(OBJ)/test_ogloszenie: testy/host/test_ogloszenie.c $(OGLOSZENIE) src/wspolne/k1_ogloszenie_podpis.c $(MANIFEST) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_ogloszenie.c $(OGLOSZENIE) \
+		src/wspolne/k1_ogloszenie_podpis.c src/wspolne/k1_manifest.c $(MONOCYPHER)
+
+$(OBJ)/test_paczka: testy/host/test_paczka.c src/wspolne/k1_paczka.c $(MANIFEST) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_paczka.c src/wspolne/k1_paczka.c $(MANIFEST)
+
+# the writing program's modes for updates through the network, signed with a test key (its header made here)
+KLUCZ_TESTU := AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=
+$(OBJ)/klucz-testu/k1_klucz.h: $(OBJ)/podpisz
+	mkdir -p $(@D) && K1_KLUCZ_PODPISU=$(KLUCZ_TESTU) $(OBJ)/podpisz klucz-publiczny > $@
+$(OBJ)/test_siec_instalatora: testy/host/test_siec_instalatora.c src/instalator/siec.c src/instalator/siec_instaluj.c \
+		src/instalator/start.c $(wildcard src/instalator/*.h) $(PACZKA) $(EFI) $(FAT32) $(OBJ)/klucz-testu/k1_klucz.h $(NAGL) | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/instalator -Isrc/zewnetrzne/monocypher -I$(OBJ)/klucz-testu -o $@ \
+		testy/host/test_siec_instalatora.c src/instalator/siec.c src/instalator/siec_instaluj.c src/instalator/start.c \
+		$(PACZKA) $(EFI) $(FAT32) $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c src/wspolne/k1_log.c
+
 $(OBJ)/test_efi: testy/host/test_efi.c $(EFI) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_efi.c $(EFI)
 
@@ -421,13 +447,13 @@ $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instal
 # took most of test-m1's time); `-O` keeps the output of each one together. The slow ones come first, so they start
 # first. A plain test (no arguments, no files): its name in TESTY_HOST. One that needs files: its own rule below,
 # named host-<name>, and the name in TESTY_HOST_PLIKI.
-TESTY_HOST := test_odcinki test_odcinki_pelny test_dokumenty test_indeks test_wpa test_krypto test_virtio \
+TESTY_HOST := test_ogloszenie test_paczka test_odcinki test_odcinki_pelny test_dokumenty test_indeks test_wpa test_krypto test_virtio \
 	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_palce \
 	test_opis
-TESTY_HOST_PLIKI := test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
+TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
 
 # notatki_w_plikach and magazyn_testowy are not run here: scripts/test-*.sh use them
 testy-host: $(TESTY_HOST:%=host-%) $(TESTY_HOST_PLIKI:%=host-%) $(OBJ)/notatki_w_plikach $(OBJ)/magazyn_testowy
@@ -457,6 +483,10 @@ host-test_start: $(OBJ)/test_start
 	sh testy/host/obrazy_efi.sh $(OBJ)/efi && $(OBJ)/test_start $(OBJ)/efi && sh testy/host/obrazy_efi.sh $(OBJ)/efi sprawdz && \
 		rm -rf $(OBJ)/efi
 
+host-test_siec_instalatora: $(OBJ)/test_siec_instalatora $(OBJ)/podpisz $(OBJ)/wydanie
+	K1_KLUCZ_PODPISU=$(KLUCZ_TESTU) sh testy/host/obrazy_paczki.sh $(OBJ)/siec $(OBJ) && \
+		$(OBJ)/test_siec_instalatora $(OBJ)/siec && rm -rf $(OBJ)/siec
+
 host-test_dekoder: $(OBJ)/test_dekoder
 	rm -rf $(OBJ)/obrazy && mkdir -p $(OBJ)/obrazy && python3 -I testy/host/obrazy_dekoder.py $(OBJ)/obrazy && \
 		$(OBJ)/test_dekoder $(OBJ)/obrazy && rm -rf $(OBJ)/obrazy
@@ -471,7 +501,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis
+        lacznik balon opis ogloszenie paczka
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -486,6 +516,10 @@ FUZZ_ZR_uevent    := src/nadzorca/uevent.c
 FUZZ_DL_uevent    := 8192
 FUZZ_ZR_bat_arch  := src/wspolne/k1_bat_arch.c
 FUZZ_DL_bat_arch  := 9000
+FUZZ_ZR_ogloszenie := $(OGLOSZENIE) src/wspolne/k1_ogloszenie_podpis.c src/wspolne/k1_manifest.c $(MONOCYPHER)
+FUZZ_DL_ogloszenie := 8300
+FUZZ_ZR_paczka    := src/wspolne/k1_paczka.c $(MANIFEST)
+FUZZ_DL_paczka    := 8800
 FUZZ_ZR_manifest  := src/wspolne/k1_manifest.c $(MONOCYPHER)
 FUZZ_DL_manifest  := 512
 FUZZ_ZR_uklad     := src/wspolne/k1_uklad.c $(MONOCYPHER)

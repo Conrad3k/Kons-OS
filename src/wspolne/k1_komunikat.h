@@ -178,6 +178,9 @@ enum k1_komunikat_typ {
     K1_KOM_OTWORZ_AKTUALIZACJE = 186, /* Instalator, gui → nadzorca: obiekt=0, all 0 — open Ustawienia on Aktualizacje */
     K1_KOM_AB_NIEUDANA = 187, /* nadzorca → gui (fd 5): obiekt=0, a=the version that did not start (0: not known), b=the
                                * version that runs (0: not known) — a try A/B did not start, the previous version runs */
+    K1_KOM_INST_SIEC = 188,   /* writing program → nadzorca (0.10.5 step 2, after STAN): obiekt=0, a=the version that runs
+                               * (1..), b=the version waiting in the waiting room (0: none), c=the newer version to
+                               * download (0: none), d=K1_SIEC_FL_*, e=the previous version in the free slot (0: none) */
     /* client (Pliki, gui) → skarbiec (0.8.0, ADR 0029): files and folders; what a client may do comes from
      * the table of rights in skarbiec (dokumenty.c). Entry numbers: 1..K1_FOLDERY_MAKS standard folders,
      * K1_DOK_PIERWSZY..K1_DOK_ID_MAKS the user's. Names and content travel in a sealed memfd. Since 0.8.1 (step 4,
@@ -568,6 +571,19 @@ static inline int k1_ob_poprawny(uint32_t ob)
 /* Installer (M5f, ADR 0018) */
 #define K1_INST_DYSKI_MAKS 8
 enum { K1_INST_INSTALUJ = 1, K1_INST_AKTUALIZUJ = 2 };
+/* 0.10.5 step 2 (ADR 0046): the writing program's modes for updates through the network (INST_ZADANIE a; nadzorca
+ * only — no window asks for them by INST_START): STAN — the announcement from the zone and the disk's waiting room
+ * checked (INST_SIEC out); POBIERZ — the package from the zone into the waiting room; ZAINSTALUJ — the waiting version
+ * into the free slot, to try on the next start; WROC — the previous version (in the free slot) to try on the next start */
+enum { K1_INST_SIEC_STAN = 3, K1_INST_SIEC_POBIERZ = 4, K1_INST_SIEC_ZAINSTALUJ = 5, K1_INST_SIEC_WROC = 6 };
+#define K1_INST_TRYB_MAKS 6
+/* INST_SIEC d: what the writing program found */
+#define K1_SIEC_FL_NOWA_LINIA 1  /* the version waiting or to download has a new line of the Linux kernel (T3) */
+#define K1_SIEC_FL_OGL 2         /* a fresh announcement came and was accepted */
+#define K1_SIEC_FL_OGL_ZLE 4     /* a fresh announcement came and was refused (signature, format) */
+#define K1_SIEC_FL_BEZ_MIEJSCA 8 /* no waiting room (the K1-EFI partition too small): updates from a stick only */
+#define K1_SIEC_FL_PROBA 16      /* a new slot waits to be tried or confirmed: nothing is downloaded or installed */
+#define K1_SIEC_FL_MAKS 31
 #define K1_INST_WERSJA 0x1000000 /* INST_DYSK c: flag "version follows" (major<<16|minor<<8|patch) */
 enum { K1_DYSK_SATA = 1, K1_DYSK_NVME = 2, K1_DYSK_VIRTIO = 3, K1_DYSK_INNY = 4 };
 enum { K1_INST_ETAP_CZYSZCZENIE = 1, K1_INST_ETAP_KOPIA = 2, K1_INST_ETAP_SPRAWDZANIE = 3, K1_INST_ETAP_PARTYCJE = 4 };
@@ -582,7 +598,9 @@ enum { K1_INST_ETAP_CZYSZCZENIE = 1, K1_INST_ETAP_KOPIA = 2, K1_INST_ETAP_SPRAWD
 #define K1_INST_BLAD_PODPIS (-8)   /* M6a: no manifest, wrong checksum, or no valid K1 signature */
 #define K1_INST_BLAD_STARSZA (-9)  /* M6a: the stick has an older version than the disk */
 #define K1_INST_BLAD_TRWA (-10)    /* 0.10.5: another job runs (asked from the other window) */
-#define K1_INST_BLAD_MIN (-10)
+#define K1_INST_BLAD_SIEC (-11)    /* 0.10.5 step 2: the download ended too early, or with bytes that are not the package */
+#define K1_INST_BLAD_MIEJSCE (-12) /* 0.10.5 step 2: no waiting room on this disk (or nothing waits in it) */
+#define K1_INST_BLAD_MIN (-12)
 #define K1_AB_FL_NOWY 1        /* INST_AB d: a new slot waits to be tried on the next start */
 #define K1_AB_FL_NIEUDANA 2    /* INST_AB d: the last new slot did not start (GRUB went back) */
 enum { K1_SB_WYL = 0, K1_SB_WL = 1, K1_SB_NIEZNANY = 2 };            /* Secure Boot off / on / no UEFI variables */
