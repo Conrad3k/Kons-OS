@@ -167,7 +167,8 @@ jobs:
 
       - name: Próba — bez scalania
         if: steps.testy.outputs.wynik == 'ok' && env.PROBA == '1'
-        run: echo "Tryb próbny (ADR 0047): PR #${{ steps.pr.outputs.nr }} zostaje otwarty, bez scalania i wydania."
+        run: |
+          echo "Tryb próbny (ADR 0047): PR #${{ steps.pr.outputs.nr }} zostaje otwarty, bez scalania i wydania."
 
       - name: Błąd robota → Issue
         if: failure()
