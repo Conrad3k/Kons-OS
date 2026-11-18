@@ -244,3 +244,35 @@ int dns_odpowiedz(const uint8_t *b, size_t n, uint16_t id, const char *nazwa, ui
     }
     return 0;
 }
+
+static int nazwy_rowne(const char *a, const char *b) /* names: case does not matter */
+{
+    for (; *a != '\0' && *b != '\0'; a++, b++)
+        if ((*a | 0x20) != (*b | 0x20))
+            return 0;
+    return *a == *b;
+}
+
+int lacznik_cel(const struct socks_cel *c, int pobieranie, int test)
+{
+#define X_HOST(h) || (nazwy_rowne(c->nazwa, h) && c->port == 443)
+    if (!pobieranie)
+        return CEL_SIEC;
+    if (c->nazwa[0] != '\0' && nazwy_rowne(c->nazwa, LACZNIK_POBRANE))
+        return c->port == 1 ? CEL_POBRANE : CEL_ODMOWA;
+    if (c->nazwa[0] == '\0')
+        return test && c->adres != 0 ? CEL_SIEC : CEL_ODMOWA;
+    return 0 K1_HOSTY_POBIERANIA(X_HOST) ? CEL_SIEC : CEL_ODMOWA;
+#undef X_HOST
+}
+
+int lacznik_cel_dobry(const char *s)
+{
+    size_t i, n = strnlen(s, LACZNIK_CEL_MAKS + 1);
+    if (n == 0 || n > LACZNIK_CEL_MAKS || s[0] == '/' || strstr(s, "..") != NULL)
+        return 0;
+    for (i = 0; i < n; i++)
+        if (!((s[i] >= 'a' && s[i] <= 'z') || (s[i] >= '0' && s[i] <= '9') || s[i] == '.' || s[i] == '-' || s[i] == '/'))
+            return 0;
+    return 1;
+}

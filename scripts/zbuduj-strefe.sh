@@ -1,5 +1,6 @@
 #!/bin/sh
 # Buduje obraz strefy przeglądarki (0.10.0 krok 2, ADR 0043 T5/T8): build/wynik/strefa-przegladarka.img (SquashFS xz).
+# Od 0.10.5 (ADR 0046) ten sam obraz ma curl dla strefy pobierania aktualizacji (inny program startowy w gosc).
 #   - pakiety Debiana 13 z tabeli strefy/przegladarka.txt (wersja i suma SHA-256 każdego; odświeżenie tabeli:
 #     scripts/odswiez-strefe.py); pobrane raz do build/strefa-pakiety, sprawdzane sumą przy każdej budowie;
 #   - rozpakowane bez uruchamiania skryptów pakietów; to, co robiłyby skrypty, robimy tu (spis typów plików, moduły
@@ -49,6 +50,11 @@ w_strefie() { "$D/usr/lib64/ld-linux-x86-64.so.2" --library-path "$LIB" "$@"; }
 w_strefie "$D/usr/bin/update-mime-database" "$D/usr/share/mime" 2>/dev/null
 w_strefie "$LIB/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders" "$LIB"/gdk-pixbuf-2.0/2.10.0/loaders/*.so |
     sed "s#$D##g" > "$LIB/gdk-pixbuf-2.0/2.10.0/loaders.cache"
+# 0.10.5 (ADR 0046): the trusted certificates for curl in the download zone — what update-ca-certificates (a script of
+# ca-certificates) would make: every certificate of the package in one file, in a fixed order
+mkdir -p "$D/etc/ssl/certs"
+find "$D/usr/share/ca-certificates/mozilla" -name '*.crt' | LC_ALL=C sort | xargs cat > "$D/etc/ssl/certs/ca-certificates.crt"
+[ -s "$D/etc/ssl/certs/ca-certificates.crt" ] || blad "brak zaufanych certyfikatów (ca-certificates)"
 # Leave out what the browser never reads in K1
 rm -rf "$D/usr/share/doc" "$D/usr/share/man" "$D/usr/share/info" "$D/usr/share/lintian" "$D/usr/share/bug" \
     "$D/usr/share/doc-base" "$D/usr/share/gdb" "$D/usr/share/gcc" "$D/usr/share/bash-completion" \

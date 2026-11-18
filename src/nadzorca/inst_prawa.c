@@ -14,6 +14,8 @@ int inst_dozwolone(int okno, const struct k1_komunikat *k, int sukces, int sb_cz
         if (k->a == 1)
             return sukces || (okno == OKNO_INSTALATOR && sb_czeka);
         return k->a == 0 && okno == OKNO_INSTALATOR && sukces;
+    case K1_KOM_AKT_PROSBA: /* 0.10.5 step 2b: updates through the network — Ustawienia only (gui: obsluz_gui) */
+        return okno == OKNO_USTAWIENIA;
     case K1_KOM_SB_KLUCZ:
     case K1_KOM_OTWORZ_AKTUALIZACJE:
         return okno == OKNO_INSTALATOR;

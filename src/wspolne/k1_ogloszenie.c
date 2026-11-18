@@ -1,8 +1,11 @@
 /* K1 — the release announcement. See k1_ogloszenie.h. */
 #include "k1_ogloszenie.h"
 #include "k1_bajty.h"
+#include "k1_komunikat.h"
 
 #include <string.h>
+
+_Static_assert(K1_OGL_MAKS == K1_OGL_MAKS_BAJTOW, "AKT_OPIS: wielkość ogłoszenia");
 
 /* The characters a description may hold besides ASCII letters and digits: those the fonts of K1 draw
  * (narzedzia/czcionki.c) and a text needs — the Polish letters and plain punctuation. */

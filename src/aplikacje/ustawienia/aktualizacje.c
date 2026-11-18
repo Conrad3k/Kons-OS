@@ -5,6 +5,7 @@
  * Ustawienia) → INST_POSTEP, INST_WYNIK; WYLACZ a=1 after a finished update; AKT_POKAZ: show this section.
  * Part of Ustawienia (ustawienia.h). */
 #include <fcntl.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -82,10 +83,17 @@ static enum stan stan(void)
     return w > 0 && w == wersja_zrodla ? A_TA_SAMA : A_STARSZA;
 }
 
-static void wyslij(struct k1_komunikat k)
+void aktualizacje_wyslij(struct k1_komunikat k)
 {
     if (kanal >= 0 && k1_kanal_wyslij(kanal, &k, sizeof k, -1) != 0)
         k1_log(TAG, "aktualizacje: wysłanie do nadzorcy nieudane");
+}
+#define wyslij aktualizacje_wyslij
+
+/* 0.10.5 step 2b: on a disk with K1 the view of updates through the network (aktualizacje_siec.c) */
+static int sieciowy(void)
+{
+    return zadanie == A_SZUKAM && lista && stan() == A_NA_DYSKU && akt_siec_widok();
 }
 
 static void szukaj(void)
@@ -215,7 +223,8 @@ static void odbierz(void)
     int j;
     for (j = 0; j < 32 && kanal >= 0; j++) {
         struct k1_komunikat k;
-        enum k1_odbior_wynik w = k1_odbierz_komunikat(kanal, 0, K1_KIER_OD_NADZORCY, &k, NULL);
+        int fd = -1;
+        enum k1_odbior_wynik w = k1_odbierz_komunikat(kanal, 0, K1_KIER_OD_NADZORCY, &k, &fd);
         if (w == K1_ODB_PUSTO)
             break;
         if (w == K1_ODB_KONIEC) {
@@ -226,7 +235,10 @@ static void odbierz(void)
             k1_log(TAG, "aktualizacje: odrzucono komunikat");
             continue;
         }
-        komunikat(&k);
+        if (!akt_siec_komunikat(&k, fd)) /* 0.10.5 step 2b: AKT_STAN, AKT_ETAP, AKT_OPIS */
+            komunikat(&k);
+        if (fd >= 0)
+            close(fd);
     }
     if (sekcja == S_AKTUALIZACJE)
         k1_apl_odswiez(&apl);
@@ -345,6 +357,10 @@ void aktualizacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         break;
     case A_NA_DYSKU:
     case A_NIEUDANA:
+        if (sieciowy()) {
+            akt_siec_rysuj(o, m, ZDANIE_Y);
+            return;
+        }
         na_dysku(o, m);
         break;
     case A_STARSZA:
@@ -383,6 +399,8 @@ void aktualizacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     }
     if (przycisk(&p))
         k1_przycisk(o, m, &p, K1_CZ_TEKST_MOCNA, hover, 1);
+    if (akt_siec_pendrive(t, sizeof t)) /* D5: K1 on a stick, a newer version in the newest release */
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, PRZ_Y + PRZ_H + 32, t, k1_kolor(m->akcent_tekst, 255), apl.szer - TRESC_X - 28);
 }
 
 /* ---- input ---- */
@@ -390,6 +408,8 @@ void aktualizacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 int aktualizacje_najechanie(int32_t x, int32_t y)
 {
     struct k1_przycisk p;
+    if (sieciowy())
+        return akt_siec_najechanie(x, y);
     int h = x >= 0 && przycisk(&p) && k1_przycisk_pod(&p, 1, x, y) == 0;
     if (h == hover)
         return 0;
@@ -400,6 +420,12 @@ int aktualizacje_najechanie(int32_t x, int32_t y)
 int aktualizacje_klik(int32_t x, int32_t y)
 {
     struct k1_przycisk p;
+    if (sieciowy()) {
+        int r = akt_siec_klik(x, y);
+        if (r)
+            k1_apl_odswiez(&apl);
+        return r;
+    }
     if (!przycisk(&p) || k1_przycisk_pod(&p, 1, x, y) != 0)
         return 0;
     switch (stan()) {

@@ -109,6 +109,8 @@ void rysuj_dok(void)
               i > 0 && okno_aplikacji(el[i]) != NULL ? K1_EL_WYBRANY : 0); /* chosen: it has a window */
         if (i == 0) {
             k1_rysuj_znak(o, x + EL / 2.0f, y + EL / 2.0f, 26);
+            if (akt_czeka()) /* 0.10.5 step 2b (D1, mark A): a new version waits for "Zainstaluj" */
+                k1_kolo(o, x + EL - 7, y + 7, 4, k1_kolor(m->akcent, 255));
         } else {
             struct okno *w = okno_aplikacji(el[i]);
             k1_ikona(o, aplikacje[el[i]].ikona, x + 10, y + 9, 24, k1_kolor(m->tekst, 255));

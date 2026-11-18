@@ -59,6 +59,10 @@ static int gniazdo(int nr, const struct k1_komunikat *k, int *fd)
     uint32_t nasz, router, dns;
     int prefiks, typ = k->c == K1_STREFA_DNS ? SOCK_DGRAM : SOCK_STREAM;
     double t = k1_teraz();
+    if (k->c == K1_STREFA_POBRANE) { /* 0.10.5 step 2b: the download zone's end to the writing program, once */
+        *fd = k1_strefa(nr)->okno ? -1 : akt_gniazdo();
+        return *fd >= 0 ? 0 : K1_STREFA_ODM_BLAD;
+    }
     if (!siec_dla_stref(&nasz, &prefiks, &router, &dns) || (k->c == K1_STREFA_DNS && dns == 0))
         return K1_STREFA_ODM_SIEC;
     if (k->c == K1_STREFA_TCP && !k1_siec_dla_strefy((uint32_t)k->a, nasz, prefiks, router))

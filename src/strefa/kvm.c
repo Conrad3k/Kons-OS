@@ -143,7 +143,8 @@ void kvm_linia_urzadzen(char *buf, size_t n)
     int i;
     buf[0] = '\0';
     for (i = 0; i < URZ_LICZBA && p < n; i++)
-        if (!(zlosliwy_gosc() && i == URZ_LOSOWOSC)) /* a hostile test guest drives that one itself */
+        if (!(zlosliwy_gosc() && i == URZ_LOSOWOSC) && /* a hostile test guest drives that one itself */
+            (mz.opis->okno || (i != URZ_EKRAN && i != URZ_KLAWIATURA && i != URZ_MYSZ))) /* no window: none of these */
             p += (size_t)snprintf(buf + p, n - p, "%svirtio_mmio.device=4K@0x%llx:%d", p ? " " : "",
                               (unsigned long long)(MMIO_BAZA + (uint64_t)i * MMIO_ROZMIAR), PRZERWANIE_PIERWSZE + i);
 }

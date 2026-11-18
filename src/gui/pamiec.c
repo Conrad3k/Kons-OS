@@ -19,7 +19,7 @@
 #define DOL 52 /* the footer: a hairline and "Później" */
 #define PRZ_W 92
 #define PRZ_H 28
-_Static_assert(SZER <= KONT_SZER && LISTA_Y + K1_STREFY_MAKS * WIERSZ + 8 + DOL <= KONT_WYS, "okienko w panelu");
+_Static_assert(SZER <= KONT_SZER && LISTA_Y + K1_STREFY_Z_OKNEM * WIERSZ + 8 + DOL <= KONT_WYS, "okienko w panelu");
 
 static struct {
     int32_t uzywa, moze, fokus;
@@ -147,7 +147,7 @@ void pamiec_malo(const struct k1_komunikat *m)
 {
     n = 0;
     for (int z = 1; z <= K1_STREFY_MAKS; z++)
-        if ((m->b >> (z - 1)) & 1)
+        if (((m->b >> (z - 1)) & 1) && k1_strefa(z)->okno && n < K1_STREFY_Z_OKNEM) /* a window the user can close */
             nr[n++] = z;
     hover = -1;
     k1_log(TAG, "mało pamięci (K1 ma %d MiB): okienko", (int)m->a);

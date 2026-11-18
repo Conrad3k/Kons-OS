@@ -41,7 +41,7 @@ struct polaczenie {
 };
 static struct polaczenie pol[K1_STREFA_POLACZENIA_MAKS];
 static int dns_fd = -1, dns_prosba;   /* the DNS socket; asked for and not yet answered */
-static unsigned long l_polaczen, l_odmow, l_nazw, l_bez_miejsca, l_ten_sam_port;
+static unsigned long l_polaczen, l_odmow, l_nazw, l_bez_miejsca, l_ten_sam_port, l_poza_lista;
 static unsigned szczyt; /* the most slots taken at once */
 
 /* Every slot starts without a socket. Zeroed, it would hold fd 0, and the first use of each slot would close whatever
@@ -255,7 +255,17 @@ static void socks(struct polaczenie *p)
             zamknij(p, -w);
             return;
         }
-        if (p->cel.adres != 0) {
+        w = lacznik_cel(&p->cel, !mz.opis->okno, mz.tryb == K1_STREFA_TRYB_AKTUALIZACJA);
+        if (w == CEL_ODMOWA) { /* 0.10.5 step 2: the download zone, a host not on its list */
+            l_poza_lista++;
+            zamknij(p, SOCKS_NIE_WOLNO);
+            return;
+        }
+        if (w == CEL_POBRANE) {
+            p->stan = NADZORCA;
+            p->czeka_nadzorce = 1;
+            do_nadzorcy(numer(p), 0, 0, K1_STREFA_POBRANE);
+        } else if (p->cel.adres != 0) {
             p->stan = NADZORCA;
             p->czeka_nadzorce = 1;
             do_nadzorcy(numer(p), p->cel.adres, p->cel.port, K1_STREFA_TCP);
@@ -448,7 +458,7 @@ void pol_obsluz(const struct pollfd *p, int n)
 void pol_podsumowanie(void)
 {
     if (l_polaczen > 0)
-        k1_log(TAG, "połączenia przeglądarki: %lu, nazwy %lu, odmowy %lu; bez wolnego miejsca %lu, port w użyciu %lu; "
-               "najwięcej naraz %u, zajęte na końcu %u", l_polaczen, l_nazw, l_odmow, l_bez_miejsca, l_ten_sam_port, szczyt,
-               zajete_teraz());
+        k1_log(TAG, "połączenia przeglądarki: %lu, nazwy %lu, odmowy %lu (poza listą hostów %lu); bez wolnego miejsca %lu, "
+               "port w użyciu %lu; najwięcej naraz %u, zajęte na końcu %u", l_polaczen, l_nazw, l_odmow, l_poza_lista,
+               l_bez_miejsca, l_ten_sam_port, szczyt, zajete_teraz());
 }

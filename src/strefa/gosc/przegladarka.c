@@ -46,7 +46,7 @@ int przegladarka_jest(void)
     return access(KOMPOZYTOR, X_OK) == 0 && access(PRZEGLADARKA, X_OK) == 0;
 }
 
-static void katalog_tmpfs(const char *gdzie, const char *opcje, uid_t wlasciciel)
+void katalog_tmpfs(const char *gdzie, const char *opcje, uid_t wlasciciel)
 {
     mkdir(gdzie, 0755);
     if (mount("tmpfs", gdzie, "tmpfs", MS_NOSUID | MS_NODEV, opcje) != 0)
@@ -56,7 +56,7 @@ static void katalog_tmpfs(const char *gdzie, const char *opcje, uid_t wlasciciel
 }
 
 /* The loopback: the browser reaches the relay on 127.0.0.1 (the zone has no other interface). */
-static void petla_zwrotna(void)
+void petla_zwrotna(void)
 {
     struct ifreq r;
     int s = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);

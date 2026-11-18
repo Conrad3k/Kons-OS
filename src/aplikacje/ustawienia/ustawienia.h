@@ -123,6 +123,14 @@ void aktualizacje_pokazane(void); /* the section was opened: the disks again */
 void aktualizacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 int aktualizacje_najechanie(int32_t x, int32_t y); /* x < 0: the pointer left; 1 = redraw */
 int aktualizacje_klik(int32_t x, int32_t y);       /* 1 = handled */
+void aktualizacje_wyslij(struct k1_komunikat k); /* to nadzorca on fd 7 */
+/* aktualizacje_siec.c — updates through the network (0.10.5 step 2b) */
+int akt_siec_komunikat(const struct k1_komunikat *k, int fd); /* 1: it was AKT_STAN, AKT_ETAP or AKT_OPIS */
+int akt_siec_widok(void);           /* 1: K1 runs from a disk with K1 — the view of updates through the network */
+int akt_siec_pendrive(char *buf, size_t n); /* 1: on a stick, a newer version (D5): the line in buf */
+void akt_siec_rysuj(struct k1_obraz *o, const struct k1_motyw *m, int32_t y);
+int akt_siec_najechanie(int32_t x, int32_t y);
+int akt_siec_klik(int32_t x, int32_t y);
 
 /* informacje.c */
 void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);

@@ -190,6 +190,13 @@ int main(void)
     montuj();
     t = tryb();
     loguj("start (tryb %d)", t);
+    { /* 0.10.5 step 2: the download zone (pobieranie.c) — one file, then the end */
+        char cel[100];
+        if (pobieranie_cel(cel, sizeof cel)) {
+            pobieranie(cel, t == TRYB_AKTUALIZACJA);
+            wylacz();
+        }
+    }
     if (t == TRYB_DYSK) { /* the test zone: the counter on its disk, then the end */
         if (dysk_montuj("/dane") == 0) {
             dysk_licznik("/dane");

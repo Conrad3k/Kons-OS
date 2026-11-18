@@ -16,9 +16,13 @@
 #define STREFY "/rdzen/strefy"
 #define ZAPAS_PAMIECI (64ull << 20) /* free memory K1 keeps besides the zone's own */
 
+static char cel_pobierania[K1_STREFA_CEL_MAKS + 1]; /* 0.10.5 step 2b: what the download zone downloads (argv[4]) */
+
 static void zglos(int nr, int powod)
 {
     struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_STREFA_STAN, 0, nr, powod, 0, 0, 0);
+    if (!k1_strefa(nr)->okno) /* the download zone: no window to tell the user about (aktualizacja.c says it) */
+        return;
     if (bateria_kanal >= 0 && k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1) != 0)
         k1_log(TAG, "strefa %d: powiadomienie pulpitu nieudane", nr);
 }
@@ -129,7 +133,7 @@ void strefa_uruchom(int nr, int tryb, int z_testu)
     }
     powod = otworz(z, fd);
     if (powod == 0) {
-        fd[0] = kanal_do_ekranu(K1_ROLA_STREFA, nr, z->uid);
+        fd[0] = z->okno ? kanal_do_ekranu(K1_ROLA_STREFA, nr, z->uid) : dup(zero); /* no window: no channel to ekran */
         if (fd[0] < 0)
             k1_log(TAG, "strefa %d: ekran nie działa", nr);
         fd[4] = strefa_kanal_nowy(nr);
@@ -138,7 +142,7 @@ void strefa_uruchom(int nr, int tryb, int z_testu)
         snprintf(u->argument, sizeof u->argument, "%d", nr);
         snprintf(u->argument2, sizeof u->argument2, "%d", tryb);
         snprintf(u->argument3, sizeof u->argument3, "%u", granica);
-        snprintf(u->argument4, sizeof u->argument4, "%s", sesja_nazwa(nr)); /* the start screen says it (D1) */
+        snprintf(u->argument4, sizeof u->argument4, "%s", z->okno ? sesja_nazwa(nr) : cel_pobierania); /* D1; ADR 0046 */
         d = dysk(z, fd);
         zdarzenia_start(nr);
         if (fd[0] >= 0 && fd[4] >= 0 && uruchom(u, &p, fd, 5 + d) > 0 &&
@@ -158,6 +162,14 @@ void strefa_uruchom(int nr, int tryb, int z_testu)
 
 /* Why the VMM ended (strefy_powod.c: its exit code — src/strefa/main.c, K1_STREFA_KONIEC_* — or SIGKILL and the
  * sandbox's events: its own limit, or the computer's memory); 0: the user closed it. The log has the numbers. */
+int strefa_pobierania(const char *cel, int test)
+{
+    struct usluga *u = usluga_profilu(k1_strefa(K1_STREFA_POBIERANIE)->profil);
+    snprintf(cel_pobierania, sizeof cel_pobierania, "%s", cel);
+    strefa_uruchom(K1_STREFA_POBIERANIE, test ? K1_STREFA_TRYB_AKTUALIZACJA : 0, test);
+    return u != NULL && u->pid > 0;
+}
+
 void strefa_koniec(int nr, int status, int cicho)
 {
     struct strefa_zdarzenia d = zdarzenia(nr), r = { -1, -1 };
@@ -167,6 +179,8 @@ void strefa_koniec(int nr, int status, int cicho)
     int powod;
     if (z == NULL)
         return;
+    if (!z->okno)
+        akt_strefa_koniec(); /* 0.10.5 step 2b: the writing program sees the end of the download */
     if (d.oom >= 0 && d.oom_kill >= 0 && zdarzenia_od[nr].oom >= 0 && zdarzenia_od[nr].oom_kill >= 0)
         r = (struct strefa_zdarzenia){ d.oom - zdarzenia_od[nr].oom, d.oom_kill - zdarzenia_od[nr].oom_kill };
     snprintf(sciezka, sizeof sciezka, K1_CGROUP "/%s/memory.peak", profile[z->profil].nazwa);

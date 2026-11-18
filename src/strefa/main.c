@@ -3,7 +3,9 @@
  *   argv[1] = the zone number (its row of K1_STREFY), argv[2] = the guest's test mode (test image only; 0: none),
  *   argv[3] = the guest's memory in MiB — its upper limit (0.10.1 step 2, ADR 0044: the balloon gives back what it does
  *   not use; nadzorca's pamiec_stref.c),
- *   argv[4] = the session's name as the user set it (0.10.2 step 1: the start screen says it; none: the row's),
+ *   argv[4] = the session's name as the user set it (0.10.2 step 1: the start screen says it; none: the row's); the
+ *   download zone (0.10.5 step 2, ADR 0046: a row without a window) — what it downloads, e.g. "latest/download/
+ *   k1-ogloszenie.bin" (lacznik_cel_dobry), and fd 3 is not a channel to ekran,
  *   fd 3 = the channel to ekran (role STREFA), fd 4 = /dev/kvm, fd 5 = the zone kernel, fd 6 = the zone image,
  *   fd 7 = the channel to nadzorca for the browser's connections (polaczenia.c; 0.10.0 step 2, ADR 0043 T9),
  *   fd 8, 9 = a zone that remembers: a channel to skarbiec and its empty disk (dane.c; 0.10.0 step 5) — or neither.
@@ -91,8 +93,9 @@ static int przygotuj(void)
         return -1;
     kvm_linia_urzadzen(linia, sizeof linia);
     p = strlen(linia);
-    snprintf(linia + p, sizeof linia - p, " " LINIA_GOSCIA " k1.tryb=%d%s", mz.tryb,
-             zlosliwy_gosc() ? " memmap=1M$0x3f00000" : ""); /* the hostile test guest's queue (gosc/zlosliwy.c) */
+    snprintf(linia + p, sizeof linia - p, " " LINIA_GOSCIA " k1.tryb=%d%s%s%s", mz.tryb,
+             zlosliwy_gosc() ? " memmap=1M$0x3f00000" : "", /* the hostile test guest's queue (gosc/zlosliwy.c) */
+             mz.pobierz[0] ? " k1.pobierz=" : "", mz.pobierz); /* 0.10.5 step 2: the download zone (gosc/pobieranie.c) */
     jadro = wczytaj_jadro(&dl);
     if (jadro == NULL) {
         k1_log(TAG, "brak jądra strefy");
@@ -207,10 +210,16 @@ int main(int argc, char **argv)
     mz.pamiec_mib = argc > 3 ? (uint32_t)strtoul(argv[3], NULL, 10) : 0;
     if (mz.pamiec_mib < mz.opis->pamiec_mib || mz.pamiec_mib > K1_STREFA_PAMIEC_MAKS)
         mz.pamiec_mib = mz.opis->pamiec_mib;
+    /* 0.10.5 step 2 (ADR 0046): the download zone — argv[4] is what it downloads (a path K1 made from a version) */
+    if (!mz.opis->okno && (argc <= 4 || !lacznik_cel_dobry(argv[4])))
+        k1_koniec(TAG, "strefa pobierania bez poprawnego celu");
+    if (!mz.opis->okno)
+        snprintf(mz.pobierz, sizeof mz.pobierz, "%s", argv[4]);
     mz.budzik = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
     if (mz.budzik < 0 || przygotuj() != 0 || dane_start() != 0)
         k1_koniec(TAG, "nie można przygotować maszyny");
-    okno_sesja(argc > 4 ? argv[4] : NULL);
+    if (mz.opis->okno)
+        okno_sesja(argc > 4 ? argv[4] : NULL);
     okno_start();
     if (kvm_uruchom() != 0 || stroz_start() != 0)
         k1_koniec(TAG, "nie można uruchomić procesorów");

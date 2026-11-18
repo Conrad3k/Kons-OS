@@ -97,7 +97,8 @@ struct usluga {
     char argument[12];    /* its one argument, if any (dekoder: the application it decodes for; 0.8.2) */
     char argument2[4];    /* a second one (0.10.0: the VMM of a zone — the guest's test mode) */
     char argument3[8];    /* a third one (0.10.1 step 2: the VMM — the guest's memory, its upper limit in MiB) */
-    char argument4[K1_STREFA_NAZWA_MAKS + 1]; /* a fourth (0.10.2 step 1: the VMM — its session's name; "" none) */
+    char argument4[K1_STREFA_CEL_MAKS + 1]; /* a fourth (0.10.2 step 1: the VMM — its session's name; "" none; 0.10.5:
+                                             * the download zone — what it downloads) */
 };
 
 /* uslugi[]: the system services (K1_SYSTEM), the applications, the VMMs of the zones (K1_STREFY, 0.10.0) */
@@ -173,6 +174,20 @@ void obsluz_aktualizacje(void);
 void obsluz_zapis(void);
 void inst_koniec(void); /* the writing program ended */
 void otworz_aktualizacje(void); /* Ustawienia on Aktualizacje (Instalator's link, gui's window) */
+int inst_efi_k1(char *efi, size_t n, int *pendrive); /* the K1-EFI K1 runs from (0.10.5 step 2b) */
+int inst_siec(int tryb, int zrodlo, int ogl, int test); /* the writing program for updates through the network */
+
+/* aktualizacja.c, aktualizacja_ust.c — updates through the network (0.10.5 step 2b, ADR 0046) */
+void akt_okresowe(double t);
+void akt_od_zapisu(const struct k1_komunikat *k); /* INST_ETAP, INST_SIEC, INST_GOTOWE of its jobs */
+void akt_prosba(int a);           /* AKT_PROSBA a (Ustawienia; gui: ZAINSTALUJ only) */
+void akt_nowe_okno(void);         /* Ustawienia connected: the state again */
+int akt_gniazdo(void);            /* the download zone asks for its end (once): the fd, or -1 */
+void akt_strefa_koniec(void);     /* the download zone ended */
+void akt_ustawienie(int wlaczone); /* "Sprawdzaj sam" as read from skarbiec */
+int akt_ustawienie_wczytane(void);
+void akt_zapisz_ustawienie(int wlaczone);
+void akt_ustawienie_okresowe(void);
 
 /* pendrive.c — Pliki's requests and the USB stick (0.8.0 step 3, ADR 0031) */
 extern int pen_kanal;
@@ -191,6 +206,7 @@ void dekoder_koniec(void);
 /* strefy.c (0.10.0, ADR 0042): the VMM of zone `nr` (its row of K1_STREFY); tryb: the guest's test mode (test only);
  * z_testu: the test program asked — the test decides its balloon, not the rozdzielacz (but in test mode 10) */
 void strefa_uruchom(int nr, int tryb, int z_testu);
+int strefa_pobierania(const char *cel, int test); /* 0.10.5 step 2b: the download zone, downloading `cel`; 1 started */
 /* The VMM of zone nr ended with `status` (waitpid): unless the user closed it, gui says why (0.10.0 step 3, S26);
  * `cicho` — K1 stopped it itself, or a test's hostile guest: only the log. */
 void strefa_koniec(int nr, int status, int cicho);
