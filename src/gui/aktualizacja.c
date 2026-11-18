@@ -150,11 +150,12 @@ void akt_komunikat(const struct k1_komunikat *m, int fd)
     }
     if (m->typ != K1_KOM_AKT_STAN)
         return;
-    if (m->b != czeka)
-        rysuj_dok(); /* the dot at Start */
+    int zmiana = m->b != czeka;
     czeka = m->b;
     dziala = m->a;
     flagi = m->e;
+    if (zmiana)
+        rysuj_dok(); /* the dot at Start */
     if (czeka != 0 && czeka != pokazana && !(flagi & K1_AKT_FL_PROBA)) {
         pokazana = czeka;
         hover = -1;

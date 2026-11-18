@@ -113,7 +113,11 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    pliki). Po „Gotowe”: *Wyłącz komputer*, wyjmij pendrive, włącz laptop — K1 startuje z dysku (jeśli nie:
    F12 → dysk), a Twoje zaszyfrowane dane mają cały dysk. Dane z pendrive'a nie są przenoszone (nowe
    konto). **Ustaw hasło** (punkt 6) — bez niego złodziej laptopa może odczytać dane.
-   **Aktualizacja:** nagraj nowszy `k1-…-usb.img.xz` na pendrive, **uruchom K1 z dysku** (bez F12),
+   **Aktualizacja przez sieć (od 0.10.5):** K1 na dysku sam sprawdza (po połączeniu z internetem i co 6 godzin), pobiera
+   nową wersję i pyta okienkiem „Jest nowa wersja K1” — instaluje dopiero po *Zainstaluj*. Wszystko w **Ustawieniach →
+   Aktualizacje**: *Sprawdź teraz*, *Sprawdzaj sam*, *Wróć do poprzedniej wersji*. K1 uruchomiony z pendrive'a powie tylko,
+   że jest nowsza wersja — nagraj nowy pendrive.
+   **Aktualizacja z pendrive'a:** nagraj nowszy `k1-…-usb.img.xz` na pendrive, **uruchom K1 z dysku** (bez F12),
    podłącz pendrive, **Ustawienia → Aktualizacje** → *Zaktualizuj K1 na dysku do …* (od 0.10.5; wcześniej
    Instalator → *Zaktualizuj system*). Wymienia tylko system — Twoje
    dane zostają. Od 0.6.2 Instalator sprawdza odcisk i podpis systemu i nie pozwoli wrócić do starszej

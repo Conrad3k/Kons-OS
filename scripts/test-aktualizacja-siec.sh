@@ -13,8 +13,8 @@
 #   5. dysk po wszystkim: grubenv „spróbuj B”, w miejscu B manifest wersji tej budowy, znak poczekalni wyczyszczony
 #   6. NEGATYWNE: serwer podaje paczkę ze zmienionym bajtem — odrzucona, nic nie czeka, okienka nie ma, K1 żyje
 #   7. w logu K1 żadnego adresu (niezmiennik 8) — tylko kody i liczby
-# Bez KVM (emulacja QEMU, kontener) — scenariusz SKRÓCONY do kroków 1–2 (paczka ~130 MB przez emulowaną mikro-maszynę
-# w emulowanej maszynie trwałaby godzinę). Pełny — CI z KVM. Dowody: build/testy/akt-*.log, akt-*.png.
+# Bez KVM (emulacja QEMU, kontener) — ten sam pełny scenariusz (2026-11-18: ok. 8 min, paczka 130 MB też).
+# Dowody: build/testy/akt-*.log, akt-*.png.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
 CZAS=${K1_TEST_CZAS:-1500}
@@ -127,10 +127,6 @@ s = czekaj(STAN, od=1, czas=60)
 sprawdz(f"jest nowsza wersja do pobrania: {wersja}", s and s.group(3) == wersja, s.group(0) if s else "brak")
 sprawdz("strefa pobierania nie ma okna (ekran jej nie zna)", "strefa bez okna" in q.tekst() or
         "bez kanału do ekranu" in q.tekst())
-if emulacja and not os.environ.get("K1_AKT_PELNY"):
-    print("  [--]    pobranie paczki, okienko, „Zainstaluj”: pominięte (emulacja bez KVM — pełny scenariusz w CI)")
-    q.czysty_log()
-    q.koniec()
 p = czekaj(r"K1-INSTALATOR: gotowe: (\S+) czeka w poczekalni", czas=1200)
 sprawdz("paczka pobrana do poczekalni (skrót i podpisy sprawdzone)", p and p.group(1) == wersja, p.group(0) if p else "brak")
 b = czekaj(r"K1-GUI: okienko \(jest nowa wersja\): Zainstaluj (\d+),(\d+); Później (\d+),(\d+)", czas=120)

@@ -1,7 +1,7 @@
 # 0046. Aktualizacje przez sieć
 
-- Status: Przyjęty; krok 2a wdrożony w 0.10.5 (formaty, podpis, program zapisujący), krok 2b — strefa pobierania,
-  nadzorca, Ustawienia i gui
+- Status: Przyjęty; wdrożony w 0.10.5 (krok 2a: formaty, podpis, program zapisujący; krok 2b: strefa pobierania,
+  nadzorca, Ustawienia i gui, test `test-aktualizacja-siec.sh`)
 - Data: 2026-11-18
 - Dotyczy: ADR 0021 (bezpieczne aktualizacje — uzupełniony), ADR 0022 (A/B), ADR 0038 (pliki startowe), ADR 0042
   i 0043 (strefy, łącznik), SPEC §8 (aktualizacje); plan `docs/PLAN-0.10.5.txt`: krok 2, T2–T7, T18, S7–S16, S25, S50
@@ -78,9 +78,20 @@ nowsza od działającej (nie wystartowała albo właściciel z niej wrócił) �
 osobnego zapisu „odrzuconej wersji”: mówi to samo wolne miejsce. Przy próbie w toku (`k1_nowy` albo `k1_proba` w grubenv)
 nic się nie pobiera ani nie instaluje.
 
-**Test aktualizacji:** `INST_ZADANIE` c = 1 tylko od nadzorcy w trybie testu aktualizacji (krok 2b: włącza go program
-testowy obrazu testowego); wtedy wersja deweloperska przyjmuje ogłoszenie i paczkę bez podpisu, a strefa pobierania łączy
-się z serwerem testowym na „routerze” QEMU (krok 2b). W obrazie z kluczem (CI z sekretem) podpis sprawdzany zawsze.
+**Droga bajtów ze strefy (krok 2b):** bez nowego portu vsock — strefa łączy się przez swój przekaźnik i łącznik VMM
+z nazwą `pobrane.k1:1`; VMM prosi nadzorcę o gniazdo (`STREFA_POLACZ` c = `K1_STREFA_POBRANE`) i dostaje koniec pary
+gniazd, której drugi koniec ma program zapisujący. Kredyt, bufory i koniec połączenia — jak każde połączenie przeglądarki
+(ADR 0043). Strefa bez okna: kolumna „okno” w `K1_STREFY` (S10), VMM bez kanału do ekranu, gość bez urządzeń ekranu
+i wejścia; obraz przeglądarki z curl (S11 — jeden obraz, dwa programy startowe; +2 MiB w miejscu A/B).
+
+**„Sprawdzaj sam” (D4):** nadzorca w skarbcu (obiekt `K1_OB_AKTUALIZACJE` właściciela `K1_WL_SYSTEM`); dopóki ustawienie
+nie jest wczytane, K1 sam nie sprawdza.
+
+**Test aktualizacji:** obraz testowy z dyskiem o numerze seryjnym `k1-test-aktualizacji` (nadzorca sam go szuka; bez niego
+obraz testowy nie sprawdza sam). `INST_ZADANIE` c = 1: wersja deweloperska przyjmuje ogłoszenie i paczkę bez podpisu;
+strefa pobierania (tryb `K1_STREFA_TRYB_AKTUALIZACJA`) łączy się z serwerem testowym na „routerze” QEMU
+(`https://10.0.2.2:8443/`, adres liczbami dozwolony tylko tu, certyfikat nie sprawdzany — `-k`). W obrazie z kluczem (CI
+z sekretem) podpis sprawdzany zawsze.
 
 ## Konsekwencje
 - Wydanie ma dwa nowe pliki: `k1-<wersja>.k1a` i `k1-ogloszenie.bin` (oba w `SHA256SUMS`).

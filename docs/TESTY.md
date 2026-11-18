@@ -62,6 +62,7 @@ i `tail -f build/qemu/serial.log`; zrzut: `scripts/zrzut-ekranu.sh plik.png`.
 | skarbiec (format, kompaktowanie, miejsce, powiększenie) | `test-skarbiec.sh` (+ `test-pliki.sh`) |
 | siec, kabel, DHCP, zegar z internetu | `test-siec.sh` |
 | Wi-Fi | `test-wifi.sh` |
+| aktualizacja przez sieć (ogłoszenie, paczka, program zapisujący, strefa pobierania, nadzorca, okienko; 0.10.5 krok 2, ADR 0046) | na hoście `test_ogloszenie`, `test_paczka`, `test_siec_instalatora`, `test_lacznik`, `fuzz_ogloszenie`, `fuzz_paczka`; QEMU `test-aktualizacja-siec.sh` (serwer HTTPS na „routerze”, dysk z „zainstalowanym” K1 0.0.1: sprawdzenie, pobranie, okienko, „Zainstaluj”, dysk po wszystkim; NEGATYWNE: paczka ze zmienionym bajtem; w emulacji ok. 8 min) |
 | strefy (KVM, VMM, ramka; od 0.10.2: ekran startu do okna programu strefy, zamykanie w tle, wyłączanie przy działającej strefie) | `test-strefa.sh` |
 | przewijanie (kółko, touchpad; 0.10.0 krok 4) | na hoście `test_touchpad`, `test_zdarzenie`, `test_zalegle`, `fuzz_zdarzenie`, `test_palce` (gest palców w kompozytorze strefy, 0.10.1 krok 5); w systemie `t_okna_przewijanie`; QEMU: `test-pendrive.sh` (lista Plików), `test-strefa.sh` (gość); touchpad — tylko na sprzęcie (QEMU go nie udaje); palce w Firefoksie — `scripts/stanowisko.sh` (niżej) |
 | przeglądarka w strefie (obraz, kompozytor, łącznik, sieć stref) | na hoście `test_lacznik`, `fuzz_lacznik`, `test_palce`; `test-strefa.sh` (strefa próbna); Firefox — `scripts/stanowisko.sh` i właściciel na sprzęcie (od 0.10.1 bez testu w CI) |
