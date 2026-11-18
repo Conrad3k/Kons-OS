@@ -51,10 +51,13 @@ enum { TRYB_ZWYKLY = 0, TRYB_ZLY_ADRES = 1, TRYB_PETLA = 2, TRYB_DLUGOSC = 3, TR
        TRYB_ROZDZIELACZ = 10 /* 0.10.1 step 3: as TRYB_ZWYKLY; nadzorca's rozdzielacz decides its balloon */,
        TRYB_OKNO = 11 /* 0.10.2 step 1: as TRYB_ZWYKLY, but "etap start" first and "etap okno" OKNO_PO_S later (the
                        * start screen stays between); closing takes ZAMYKANIE_S, as a browser that saves its session */,
-       TRYB_AKTUALIZACJA = 12 /* 0.10.5 step 2: the download zone in the test of updates (pobieranie.c) */ };
+       TRYB_AKTUALIZACJA = 12 /* 0.10.5 step 2: the download zone in the test of updates (pobieranie.c) */,
+       TRYB_MOST = 13 /* 0.10.5 step 5: the test of Raptor Bridge (most.c, most_fazy.c), then the end */,
+       TRYB_VSOCK_KREDYT = 14, TRYB_VSOCK_ADRES = 15 /* 0.10.5 step 5: hostile to vsock (zlosliwy_vsock.c) */ };
 #define OKNO_PO_S 8
 #define ZAMYKANIE_S 6
 int zlosliwy(int tryb);                 /* returns only when the VMM did not stop the machine */
+void zlosliwy_vsock(int tryb);          /* TRYB_VSOCK_*: the same, for vsock (0.10.5 step 5) */
 void pamiec_proba(void);                /* TRYB_PAMIEC: takes and frees memory (pamiec.c), then ends */
 void pamiec_podreczna(void);            /* TRYB_ROZDZIELACZ: the disk read into the page cache (0.10.1 step 3) */
 

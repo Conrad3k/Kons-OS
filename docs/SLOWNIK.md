@@ -164,7 +164,7 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **pamięć na start** (strefy) | Kolumna pamięci w wierszu `K1_STREFY` (np. 1536 MiB): od 0.10.1 nie stała pamięć strefy, tylko to, ile musi być wolne, żeby strefa ruszyła, i najmniejsza górna granica. |
 | **przekaźnik** | Nasz program w strefie (`src/strefa/przekaznik`): przyjmuje połączenia przeglądarki (SOCKS5 na 127.0.0.1:1080) i każde przekazuje do VMM przez vsock. Nic nie czyta. |
 | **łącznik** | Część VMM strefy (`lacznik.c`, `polaczenia.c`): sprawdza prośby SOCKS5, zamienia nazwy stron na adresy (DNS), prosi nadzorcę o gniazdo i przesyła bajty. Strefa nie ma karty sieciowej — to jej jedyna droga do internetu (ADR 0043). |
-| **Raptor Bridge** | Nazwa całego mostu między strefą a światem przez K1 (nazwa właściciela, 2026-11-15): **przekaźnik** w strefie → vsock → **łącznik** w VMM → nadzorca (zasada D3, gniazdo). Nazwa systemu w dokumentach i rozmowie; w kodzie części mają swoje nazwy z tego słownika. Opis i weryfikacja — plan 0.10.5, krok 5. |
+| **Raptor Bridge** | Nazwa całego mostu między strefą a światem przez K1 (nazwa właściciela, 2026-11-15): **przekaźnik** w strefie → vsock → **łącznik** w VMM → nadzorca (zasada D3, gniazdo). Nazwa systemu w dokumentach i rozmowie; w kodzie części mają swoje nazwy z tego słownika. Opis: `docs/komponenty/raptor-bridge.md`; test w strefie: `scripts/test-most.sh` (0.10.5 krok 5). |
 | **reguła D3** | Dokąd strefa może się łączyć: internet i sam router, nie reszta sieci domowej (`k1_siec_dla_strefy`; decyzja właściciela D3 planu 0.10.0). |
 
 ## Plan i wersje

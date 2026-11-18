@@ -134,6 +134,7 @@ Osiem kroków:
      PR #158
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
 [ ]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
+     [w toku: Claude, gałąź claude/eloquent-darwin-sjaahj]
 [ ]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
 [ ]  7  Jądro Linux 7.x (najnowsza linia)                  S52–S55          3           D14, T19 T20     M        —
 [ ]  8  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–7         D10              M        —
@@ -495,7 +496,39 @@ KROK 5 — Raptor Bridge: weryfikacja mostu stref i jego dokumentacja        M �
   SLOWNIK, RYZYKA (most — co zamknięte, co zostaje), TESTY.md, skill kons-dev (mapa kodu: Raptor Bridge).
   Gotowe, gdy: test mostu i testy negatywne zielone (także w emulacji), przegląd zamknięty poprawkami albo wpisami
   do „Później”, dokument jest i inne dokumenty do niego odsyłają.
-  Ustalenia z wykonania: (pusto — wypełnia krok 5)
+  Ustalenia z wykonania (2026-11-18, krok 5):
+  - Test mostu jako osobny skrypt scripts/test-most.sh (nie w test-strefa.sh): potrzebuje karty w sieci QEMU, serwera na
+    „routerze” i własnego dysku-znaku (k1-test-mostu, t_most.c); test-strefa zostaje bez sieci, oba idą w testy.sh i CI.
+    Działa w emulacji (kontener bez KVM): cały skrypt ok. 3 min.
+  - S34 POTWIERDZONE: nadzorca daje kanał połączeń (fd 7) każdej strefie (strefa_kanal_nowy w strefa_uruchom). Strefa
+    próbna dostała przekaźnik w obrazie (/usr/lib/k1/przekaznik, scripts/zbuduj-obraz.sh) i tryb 13 (gosc/most.c,
+    most_fazy.c: przekaźnik + klient w jednej pętli poll, każdy bajt sprawdzany wzorem).
+  - S35: złośliwy gość vsock — tryby 14 i 15: VMM nie podaje jądru gościa urządzenia vsock (zlosliwy_slot), gość steruje
+    nim sam przez /dev/mem (zlosliwy.c): 200 połączeń, pakiety bez połączenia i nieznane — VMM odmawia i żyje (128 przyjętych,
+    72 „bez wolnego miejsca”), potem 3 × 30000 B bez czekania na kredyt — koniec maszyny; cudzy adres — koniec maszyny.
+    Zły SOCKS5 wprost do VMM (bez przekaźnika) — w trybie 13. fuzz_vsock: cała droga pakietu ze stanem połączeń (para
+    gniazd zamiast TCP, odpowiedzi nadzorcy z wejścia, reset urządzenia).
+  - S36 — znalezione i poprawione (każde z testem, który je pokazał):
+    (1) kolejka 64 małych pakietów do gościa gubiła RESPONSE i CREDIT_UPDATE, a nagłówek z kredytem liczyła przy
+        kolejkowaniu: zgubiona aktualizacja kredytu = połączenie stoi na zawsze. Teraz to stan miejsca (odpowiedz,
+        kredyt_prosba, kredyt z liczników, SHUTDOWN), nagłówek przy wysyłce; kolejka (128) tylko dla odmów — test: 140
+        połączeń naraz, każde z odpowiedzią albo odmową.
+    (2) koniec wysyłania serwera VMM zgłaszał jako SHUTDOWN w obie strony — klient nie mógł dalej wysyłać (półzamknięcie
+        serwera). Teraz SHUTDOWN tylko SEND; w obie strony przy błędzie gniazda i odmowie — test „H n” (serwer liczy bajty
+        klienta po swoim końcu).
+    (3) klient, który połączy się z przekaźnikiem i odejdzie bez bajtu: przekaźnik kończy tylko wysyłanie, łącznik czekał
+        na SOCKS5 do końca strefy — miejsce stracone (po 128 takich przeglądarka nie otworzy strony). Znalezione testem
+        („zajęte na końcu 1”: próba gotowości przekaźnika). Teraz koniec wysyłania gościa przed SOCKS5 zamyka połączenie
+        (licznik „bez SOCKS5”); przy zajętym miejscu na końcu VMM loguje jego stan.
+    (4) przekaźnik łączył się z VMM blokująco (do 2 s — wszystkie inne połączenia stały) — teraz bez czekania.
+    (5) reset urządzenia vsock w gościu zostawiał połączenia z otwartymi gniazdami — pol_wyczysc.
+    Zostaje (RYZYKA R95): łączenie TCP do adresu, który nie odpowiada, trzyma miejsce do limitu jądra (ok. 2 min); własny
+    limit — gdy będzie test, który to pokaże (sieć QEMU odpowiada na każde połączenie od razu).
+  - S37: w emulacji jedno połączenie 11–14 MiB/s, echo 6–9 MiB/s, 48 naraz 6–8 MiB/s razem, całe połączenie z 1 bajtem
+    ok. 40–50 ms; z KVM — liczby z CI PR-a w opisie PR-a i w raptor-bridge.md.
+  - S38: docs/komponenty/raptor-bridge.md (w skrócie, droga bajtu, granice, komunikaty, limity, liczniki, pomiary,
+    pułapki, przepis na nową strefę); strefa.md i nadzorca.md odsyłają tam; SLOWNIK, RYZYKA R95, TESTY, skill.
+  - 127.0.0.1 odrzuca sam łącznik (SOCKS 2, przed nadzorcą) — nadzorca liczy tylko odmowy sieci domowej.
 
 KROK 6 — Alt+Tab; Przeglądarka na pasku i pulpicie                         M · decyzje D11 D12, T16 T17 · bez ADR
   Dodany przez właściciela 2026-11-17 (przed krokiem 7 — wydanie zawsze ostatnie). Dwie wygody pulpitu, które

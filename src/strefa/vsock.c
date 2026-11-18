@@ -10,7 +10,11 @@
  *   POL_PORT (2): the browser's connections through the relay in the zone, up to K1_STREFA_POLACZENIA_MAKS, each with
  *     its own credit; their bytes go to and from polaczenia.c (0.10.0 step 2, ADR 0043 T9).
  * Any other connection is refused (RST). Every header from the guest is checked: its CIDs, type, length within the
- * chain, credit (a guest that sends more than the room we announced is hostile: the machine ends). Under mz.zamek. */
+ * chain, credit (a guest that sends more than the room we announced is hostile: the machine ends). Under mz.zamek.
+ * What the VMM owes a connection (its RESPONSE, a credit update, its SHUTDOWN) is state of that connection, sent when the
+ * guest gives a receive buffer — never dropped, and its header (our credit) made at that moment (0.10.5 step 5, S36:
+ * a queue of 64 lost RESPONSEs and credit updates under load). Only refusals (RST to a port without a connection) and
+ * "zamknij" wait in a small queue; a full one drops a refusal, counted. */
 #include <stdio.h>
 #include <string.h>
 
@@ -29,7 +33,7 @@
 #define CID_GOSCIA 3
 #define VSOCK_STEROWANIE 1
 #define NASZ_BUFOR 4096u
-#define CZEKAJACE 64
+#define CZEKAJACE 128
 #define DANE_MAKS 64u
 #define LINIA_MAKS 64u
 #define KOLEJKA_RX 0
@@ -38,13 +42,14 @@
 
 _Static_assert(sizeof(struct virtio_vsock_hdr) == 44, "vsock: nagłówek 44 B");
 
-struct pakiet {
-    struct virtio_vsock_hdr h;
+struct pakiet { /* its header is made when it goes */
+    uint32_t nasz, jego, flagi, dl;
+    uint16_t op;
     uint8_t dane[DANE_MAKS];
 };
 
 static struct {
-    int polaczony;
+    int polaczony, odpowiedz; /* the control connection; its RESPONSE owed */
     uint32_t port_goscia;
     struct pol_kredyt kr; /* the control connection (our room NASZ_BUFOR) */
     char linia[LINIA_MAKS + 1];
@@ -92,8 +97,7 @@ static void kolejkuj(uint32_t nasz, uint32_t jego, uint16_t op, uint32_t flagi, 
         return;
     }
     p = &v.czeka[v.n_czeka++];
-    naglowek(&p->h, nasz, jego, op, dl);
-    p->h.flags = flagi;
+    *p = (struct pakiet){ nasz, jego, flagi, dl, op, { 0 } };
     if (dl > 0)
         memcpy(p->dane, b, dl);
 }
@@ -116,6 +120,49 @@ static int bufor_goscia(struct mmio_urz *u, struct vq_lancuch *l)
     return w;
 }
 
+/* One small packet (its header made now, with our credit as it is now): 1 sent, 0 no buffer, -1 the end. */
+static int maly(struct mmio_urz *u, uint32_t nasz, uint32_t jego, uint16_t op, uint32_t flagi, const void *b, uint32_t dl)
+{
+    struct vq_lancuch l;
+    struct virtio_vsock_hdr h;
+    int w = bufor_goscia(u, &l);
+    if (w <= 0)
+        return w;
+    naglowek(&h, nasz, jego, op, dl);
+    h.flags = flagi;
+    vq_zapisz(&l, 0, &h, sizeof h);
+    if (dl > 0)
+        vq_zapisz(&l, sizeof h, b, dl);
+    vq_oddaj(&u->q[KOLEJKA_RX], u->pamiec, l.glowa, (uint32_t)(sizeof h + dl));
+    return 1;
+}
+
+/* What connection n is owed, the next small packet of it: its RESPONSE, a credit update (we used half of the room we
+ * last told it, or it asked), its SHUTDOWN (the socket's end, once its bytes went). 1 sent, 0 nothing (or no buffer),
+ * -1 the end. */
+static int winny_polaczeniu(struct mmio_urz *u, int n)
+{
+    struct pol_kredyt *k = pol_kredyt(n);
+    uint32_t p = pol_port(n);
+    int koniec_tcp, w = 0;
+    if (k->odpowiedz) {
+        if ((w = maly(u, POL_PORT, p, VIRTIO_VSOCK_OP_RESPONSE, 0, NULL, 0)) > 0)
+            k->odpowiedz = 0;
+        return w;
+    }
+    if (k->kredyt_prosba || k->przekazane - k->zgloszone >= POL_BUFOR / 2) {
+        if ((w = maly(u, POL_PORT, p, VIRTIO_VSOCK_OP_CREDIT_UPDATE, 0, NULL, 0)) > 0)
+            k->kredyt_prosba = 0;
+        return w;
+    }
+    if (!pol_stan_dla_vsock(n, &koniec_tcp) && koniec_tcp && !k->koniec_wyslany) {
+        if ((w = maly(u, POL_PORT, p, VIRTIO_VSOCK_OP_SHUTDOWN, (uint32_t)koniec_tcp, NULL, 0)) > 0)
+            k->koniec_wyslany = 1;
+        return w;
+    }
+    return 0;
+}
+
 /* Connection n's bytes for the guest, as many as its credit and one buffer take: 1 sent, 0 nothing, -1 the end. */
 static int dane_polaczenia(struct mmio_urz *u, int n)
 {
@@ -125,7 +172,7 @@ static int dane_polaczenia(struct mmio_urz *u, int n)
     struct virtio_vsock_hdr h;
     size_t ile;
     int koniec_tcp, w;
-    if (!pol_stan_dla_vsock(n, &koniec_tcp) || miejsce == 0 || miejsce > k->jego_bufor)
+    if (k->odpowiedz || !pol_stan_dla_vsock(n, &koniec_tcp) || miejsce == 0 || miejsce > k->jego_bufor)
         return 0;
     if ((w = bufor_goscia(u, &l)) <= 0)
         return w;
@@ -140,38 +187,41 @@ static int dane_polaczenia(struct mmio_urz *u, int n)
     return 1;
 }
 
-/* What waits — the small packets first, then the connections' bytes — into the guest's receive buffers. */
+/* The control connection's owed packets: its RESPONSE, a credit update. */
+static int winny_sterowaniu(struct mmio_urz *u)
+{
+    int w = 0;
+    if (v.polaczony && v.odpowiedz) {
+        if ((w = maly(u, VSOCK_STEROWANIE, v.port_goscia, VIRTIO_VSOCK_OP_RESPONSE, 0, NULL, 0)) > 0)
+            v.odpowiedz = 0;
+    } else if (v.polaczony && v.kr.przekazane - v.kr.zgloszone >= NASZ_BUFOR / 2) {
+        w = maly(u, VSOCK_STEROWANIE, v.port_goscia, VIRTIO_VSOCK_OP_CREDIT_UPDATE, 0, NULL, 0);
+    }
+    return w;
+}
+
+/* What waits — the small packets first (the queue, then what each connection is owed), then the connections' bytes —
+ * into the guest's receive buffers. */
 void vsock_wyslij(void)
 {
     struct mmio_urz *u = &mz.urz[URZ_VSOCK];
-    int bylo = 0, i, n, w;
-    for (n = 1; n <= K1_STREFA_POLACZENIA_MAKS; n++) { /* credit back, and the end of a socket */
-        struct pol_kredyt *k;
-        int koniec_tcp;
-        if (pol_port(n) == 0)
-            continue;
-        k = pol_kredyt(n);
-        if (k->przekazane - k->zgloszone >= POL_BUFOR / 2)
-            kolejkuj(POL_PORT, pol_port(n), VIRTIO_VSOCK_OP_CREDIT_UPDATE, 0, NULL, 0);
-        if (!pol_stan_dla_vsock(n, &koniec_tcp) && koniec_tcp && !k->koniec_wyslany) {
-            kolejkuj(POL_PORT, pol_port(n), VIRTIO_VSOCK_OP_SHUTDOWN, WSZYSTKO, NULL, 0);
-            k->koniec_wyslany = 1;
-        }
-    }
+    int bylo = 0, i, n, w = 1, male = 1;
     while (v.n_czeka > 0) {
-        struct vq_lancuch l;
         struct pakiet *p = &v.czeka[0];
-        uint64_t dl = sizeof p->h + p->h.len;
-        if ((w = bufor_goscia(u, &l)) <= 0)
+        if ((w = maly(u, p->nasz, p->jego, p->op, p->flagi, p->dane, p->dl)) <= 0)
             break;
-        vq_zapisz(&l, 0, p, dl);
-        vq_oddaj(&u->q[KOLEJKA_RX], u->pamiec, l.glowa, (uint32_t)dl);
         for (i = 1; i < v.n_czeka; i++)
             v.czeka[i - 1] = v.czeka[i];
         v.n_czeka--;
         bylo = 1;
     }
-    for (n = 1; v.n_czeka == 0 && n <= K1_STREFA_POLACZENIA_MAKS; n++)
+    while (w > 0 && v.n_czeka == 0 && (w = winny_sterowaniu(u)) > 0)
+        bylo = 1;
+    for (n = 1; w >= 0 && male && n <= K1_STREFA_POLACZENIA_MAKS; n++)
+        while (pol_port(n) != 0 && (w = winny_polaczeniu(u, n)) > 0)
+            bylo = 1;
+    male = v.n_czeka == 0 && w >= 0; /* a buffer was left, or nothing small is owed */
+    for (n = 1; male && n <= K1_STREFA_POLACZENIA_MAKS; n++)
         while (pol_port(n) != 0 && (w = dane_polaczenia(u, n)) > 0)
             bylo = 1;
     if (bylo)
@@ -285,9 +335,7 @@ static void sterowanie_dane(uint32_t dl)
             v.linia[v.dl++] = (char)dane[i];
     }
     v.kr.odebrane += dl;
-    v.kr.przekazane += dl;
-    if (v.kr.przekazane - v.kr.zgloszone >= NASZ_BUFOR / 2)
-        kolejkuj(VSOCK_STEROWANIE, v.port_goscia, VIRTIO_VSOCK_OP_CREDIT_UPDATE, 0, NULL, 0);
+    v.kr.przekazane += dl; /* the credit update: winny_sterowaniu */
 }
 
 /* A new connection from the guest to our port. */
@@ -296,12 +344,11 @@ static void prosba(const struct virtio_vsock_hdr *h)
     struct pol_kredyt k = { .jego_bufor = h->buf_alloc, .jego_fwd = h->fwd_cnt };
     int n;
     if (h->dst_port == VSOCK_STEROWANIE && !v.polaczony) {
-        v.polaczony = 1;
+        v.polaczony = 1, v.odpowiedz = 1;
         v.port_goscia = h->src_port;
         v.kr = k;
-        kolejkuj(VSOCK_STEROWANIE, h->src_port, VIRTIO_VSOCK_OP_RESPONSE, 0, NULL, 0);
     } else if (h->dst_port == POL_PORT && pol_znajdz(h->src_port) == 0 && (n = pol_nowe(h->src_port, &k)) > 0) {
-        kolejkuj(POL_PORT, h->src_port, VIRTIO_VSOCK_OP_RESPONSE, 0, NULL, 0);
+        pol_kredyt(n)->odpowiedz = 1;
     } else {
         if (h->dst_port == POL_PORT && pol_znajdz(h->src_port) != 0)
             pol_ten_sam_port();
@@ -351,8 +398,10 @@ static int pakiet(const struct vq_lancuch *l, const char **powod)
         }
         return 0;
     case VIRTIO_VSOCK_OP_CREDIT_REQUEST:
-        if (k != NULL)
-            kolejkuj(h.dst_port, h.src_port, VIRTIO_VSOCK_OP_CREDIT_UPDATE, 0, NULL, 0);
+        if (k != NULL && n > 0)
+            k->kredyt_prosba = 1;
+        else if (k != NULL)
+            v.kr.zgloszone = v.kr.przekazane - NASZ_BUFOR; /* the control connection: an update at once */
         return 0;
     case VIRTIO_VSOCK_OP_SHUTDOWN:
     case VIRTIO_VSOCK_OP_RST:
@@ -414,6 +463,7 @@ static void reset(struct mmio_urz *u)
 {
     (void)u;
     memset(&v, 0, sizeof v);
+    pol_wyczysc(); /* 0.10.5 step 5: the guest's connections end with its device (their sockets used to stay open) */
 }
 
 const struct mmio_ops vsock_ops = {

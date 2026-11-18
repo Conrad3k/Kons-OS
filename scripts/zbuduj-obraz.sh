@@ -57,12 +57,14 @@ przygotuj_rdzen() { # $1 = katalog docelowy
     for d in "$K1_REPO"/src/aplikacje/*/; do p=$(basename "$d"); install -m 0555 "$K1_BUDOWA/bin/$p" "$1/aplikacje/$p"; done
     chmod 0755 "$1" "$1/jadro" "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje" "$1/strefy"
 }
-# The image of the test zone (0.10.0 step 1): gosc as /init and the mount points it uses; SquashFS like the core.
+# The image of the test zone (0.10.0 step 1): gosc as /init and the mount points it uses (and the relay, 0.10.5 step 5);
+# SquashFS like the core.
 obraz_strefy_probnej() { # $1 = plik wynikowy
     d=$K1_BUDOWA/strefa-probna
-    rm -rf "$d"; mkdir -p "$d/dev" "$d/proc" "$d/sys" "$d/tmp" "$d/dane"
+    rm -rf "$d"; mkdir -p "$d/dev" "$d/proc" "$d/sys" "$d/tmp" "$d/dane" "$d/usr/lib/k1"
     install -m 0555 "$K1_BUDOWA/bin/gosc" "$d/init"
-    chmod 0755 "$d" "$d/dev" "$d/proc" "$d/sys" "$d/tmp" "$d/dane"
+    install -m 0555 "$K1_BUDOWA/bin/przekaznik" "$d/usr/lib/k1/" # 0.10.5 step 5: the test of Raptor Bridge (gosc/most.c)
+    chmod 0755 "$d" "$d/dev" "$d/proc" "$d/sys" "$d/tmp" "$d/dane" "$d/usr" "$d/usr/lib" "$d/usr/lib/k1"
     rm -f "$1"
     mksquashfs "$d" "$1" -quiet -no-progress -noappend -comp zstd -all-root -no-xattrs >/dev/null
     chmod 0444 "$1"

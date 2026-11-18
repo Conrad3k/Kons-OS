@@ -98,7 +98,16 @@ extern struct maszyna mz;
 static inline int zlosliwy_gosc(void)
 {
     return (mz.tryb >= 1 && mz.tryb <= ST_TRYB_ZLOSLIWY) ||
-           (mz.tryb >= K1_STREFA_TRYB_BALON_OD && mz.tryb <= K1_STREFA_TRYB_BALON_DO);
+           (mz.tryb >= K1_STREFA_TRYB_BALON_OD && mz.tryb <= K1_STREFA_TRYB_BALON_DO) ||
+           (mz.tryb >= K1_STREFA_TRYB_VSOCK_OD && mz.tryb <= K1_STREFA_TRYB_VSOCK_DO);
+}
+/* The device a hostile test guest drives itself (left out of its kernel's command line): vsock in the modes hostile to
+ * it (0.10.5 step 5), else slot LOSOWOSC; -1: an honest guest. */
+static inline int zlosliwy_slot(void)
+{
+    if (!zlosliwy_gosc())
+        return -1;
+    return mz.tryb >= K1_STREFA_TRYB_VSOCK_OD ? URZ_VSOCK : URZ_LOSOWOSC;
 }
 
 /* stroz.c: mz.zamek with its holder's name; the main thread's steps; the watchman's thread */

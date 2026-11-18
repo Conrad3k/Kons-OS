@@ -11,6 +11,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <linux/virtio_vsock.h>
+
 #include "k1_kanal.h"
 #include "k1_komunikat.h"
 #include "k1_log.h"
@@ -34,6 +36,7 @@ struct polaczenie {
     uint8_t do_[POL_BUFOR];         /* for the guest, not yet sent */
     size_t n_do;
     int tcp_koniec, gosc_koniec;    /* EOF from the socket / the guest sends no more */
+    int tcp_blad;                   /* the socket ended with an error, or K1 closed it: the guest may not send either */
     struct socks_cel cel;
     uint16_t dns_id;
     int dns_proby;
@@ -41,7 +44,7 @@ struct polaczenie {
 };
 static struct polaczenie pol[K1_STREFA_POLACZENIA_MAKS];
 static int dns_fd = -1, dns_prosba;   /* the DNS socket; asked for and not yet answered */
-static unsigned long l_polaczen, l_odmow, l_nazw, l_bez_miejsca, l_ten_sam_port, l_poza_lista;
+static unsigned long l_polaczen, l_odmow, l_nazw, l_bez_miejsca, l_ten_sam_port, l_poza_lista, l_bez_socks;
 static unsigned szczyt; /* the most slots taken at once */
 
 /* Every slot starts without a socket. Zeroed, it would hold fd 0, and the first use of each slot would close whatever
@@ -91,6 +94,7 @@ static void zamknij(struct polaczenie *p, int kod_socks)
     p->fd = -1;
     p->stan = KONIEC;
     p->tcp_koniec = 1;
+    p->tcp_blad = 1;
 }
 
 static void zwolnij(struct polaczenie *p)
@@ -101,6 +105,14 @@ static void zwolnij(struct polaczenie *p)
     memset(p, 0, sizeof *p);
     p->fd = -1;
     p->czeka_nadzorce = czeka;
+}
+
+/* Every place free, as at the start (vsock.c: the guest reset the device — its connections are gone; 0.10.5 step 5).
+ * An answer of nadzorca still to come keeps its place until it comes, as zwolnij does. */
+void pol_wyczysc(void)
+{
+    for (int i = 0; i < K1_STREFA_POLACZENIA_MAKS; i++)
+        zwolnij(&pol[i]);
 }
 
 static unsigned zajete_teraz(void)
@@ -209,6 +221,13 @@ void pol_gosc_konczy(int n, int calkiem)
         zwolnij(p); /* an answer of nadzorca still to come: the slot waits for it (czeka_nadzorce) */
         return;
     }
+    if (p->stan == POWITANIE || p->stan == PROSBA) { /* SOCKS5 not finished and it sends no more: nothing can come of
+                                                       * it — closed (0.10.5 step 5: a client that connected to the
+                                                       * relay and went away held its place until the zone ended) */
+        l_bez_socks++;
+        zamknij(p, -1);
+        return;
+    }
     do_gniazda(p);
 }
 
@@ -225,7 +244,8 @@ size_t pol_do_goscia(int n, uint8_t *b, size_t maks)
 int pol_stan_dla_vsock(int n, int *koniec)
 {
     struct polaczenie *p = &pol[n - 1];
-    *koniec = p->tcp_koniec && p->n_do == 0;
+    *koniec = !p->tcp_koniec || p->n_do > 0 ? 0 : p->tcp_blad ? VIRTIO_VSOCK_SHUTDOWN_RCV | VIRTIO_VSOCK_SHUTDOWN_SEND
+                                                              : VIRTIO_VSOCK_SHUTDOWN_SEND;
     return p->n_do > 0;
 }
 
@@ -430,8 +450,10 @@ static void gniazdo(struct polaczenie *c, short z)
         ssize_t r = read(c->fd, c->do_ + c->n_do, sizeof c->do_ - c->n_do);
         if (r > 0)
             c->n_do += (size_t)r;
-        else if (r == 0 || (errno != EAGAIN && errno != EINTR))
+        else if (r == 0) /* the server's end of sending: the guest may still send (a half-close, 0.10.5 step 5) */
             c->tcp_koniec = 1;
+        else if (errno != EAGAIN && errno != EINTR)
+            c->tcp_koniec = c->tcp_blad = 1;
     }
 }
 
@@ -457,8 +479,15 @@ void pol_obsluz(const struct pollfd *p, int n)
 
 void pol_podsumowanie(void)
 {
+    for (int i = 0; i < K1_STREFA_POLACZENIA_MAKS; i++) /* a place still taken at the end: how it was left (S36) */
+        if (pol[i].stan != WOLNE || pol[i].czeka_nadzorce) {
+            k1_log(TAG, "połączenie %d zajęte na końcu: stan %d, czeka na nadzorcę %d, koniec gniazda %d/%d, gościa %d, "
+                   "bajty do gościa %zu, od gościa %zu", i + 1, pol[i].stan, pol[i].czeka_nadzorce, pol[i].tcp_koniec,
+                   pol[i].tcp_blad, pol[i].gosc_koniec, pol[i].n_do, pol[i].n_od);
+            break;
+        }
     if (l_polaczen > 0)
         k1_log(TAG, "połączenia przeglądarki: %lu, nazwy %lu, odmowy %lu (poza listą hostów %lu); bez wolnego miejsca %lu, "
-               "port w użyciu %lu; najwięcej naraz %u, zajęte na końcu %u", l_polaczen, l_nazw, l_odmow, l_poza_lista,
-               l_bez_miejsca, l_ten_sam_port, szczyt, zajete_teraz());
+               "port w użyciu %lu, bez SOCKS5 %lu; najwięcej naraz %u, zajęte na końcu %u", l_polaczen, l_nazw, l_odmow,
+               l_poza_lista, l_bez_miejsca, l_ten_sam_port, l_bez_socks, szczyt, zajete_teraz());
 }

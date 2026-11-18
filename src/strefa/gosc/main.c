@@ -16,6 +16,7 @@
 #include <linux/vm_sockets.h>
 
 #include "gosc.h"
+#include "most.h"
 
 #define WEJSCIA 4
 #define PORT_STEROWANIA 1 /* the VMM's control port (src/strefa/vsock.c) */
@@ -176,20 +177,10 @@ static void zamykanie_powoli(void)
     loguj("zamknięty po %d s", ZAMYKANIE_S);
 }
 
-int main(void)
+/* The modes that do one thing and end the machine (they do not return): the download zone, the test zone's disk, the
+ * test of Raptor Bridge, the balloon's scenario, the hostile guests. Other modes return. */
+static void tryb_jednorazowy(int t)
 {
-    int wej[WEJSCIA], n = 0, i, t, ster, dysk;
-    if (fcntl(2, F_GETFD) < 0) {
-        int c = open("/dev/console", O_RDWR);
-        if (c >= 0) {
-            dup2(c, 0);
-            dup2(c, 1);
-            dup2(c, 2);
-        }
-    }
-    montuj();
-    t = tryb();
-    loguj("start (tryb %d)", t);
     { /* 0.10.5 step 2: the download zone (pobieranie.c) — one file, then the end */
         char cel[100];
         if (pobieranie_cel(cel, sizeof cel)) {
@@ -204,15 +195,41 @@ int main(void)
         }
         wylacz();
     }
+    if (t == TRYB_MOST) { /* 0.10.5 step 5: the test of Raptor Bridge, then the end */
+        most();
+        wylacz();
+    }
+    if (t == TRYB_VSOCK_KREDYT || t == TRYB_VSOCK_ADRES) { /* hostile to vsock: the VMM must end the machine */
+        zlosliwy_vsock(t);
+        loguj("tryb %d: VMM nie zatrzymał maszyny", t);
+        wylacz();
+    }
     if (t == TRYB_PAMIEC) { /* 0.10.1 step 2: the balloon's scenario, then the end */
         pamiec_proba();
         wylacz();
     }
-    if (t > TRYB_ZWYKLY && t != TRYB_ROZDZIELACZ && t != TRYB_OKNO) { /* 10 (0.10.1 step 3): the ordinary zone, its balloon K1's */
+    if (t > TRYB_ZWYKLY && t != TRYB_ROZDZIELACZ && t != TRYB_OKNO && t < TRYB_AKTUALIZACJA) { /* 10, 11: ordinary */
         zlosliwy(t);
         loguj("tryb %d: VMM nie zatrzymał maszyny", t);
         wylacz();
     }
+}
+
+int main(void)
+{
+    int wej[WEJSCIA], n = 0, i, t, ster, dysk;
+    if (fcntl(2, F_GETFD) < 0) {
+        int c = open("/dev/console", O_RDWR);
+        if (c >= 0) {
+            dup2(c, 0);
+            dup2(c, 1);
+            dup2(c, 2);
+        }
+    }
+    montuj();
+    t = tryb();
+    loguj("start (tryb %d)", t);
+    tryb_jednorazowy(t);
     pamiec_zram(); /* 0.10.0 step 3: compressed memory (the test zone too: test-strefa sees it in the log) */
     if (przegladarka_jest()) {
         ster = sterowanie();

@@ -497,7 +497,10 @@ enum { K1_STREFA_TRYB_OKNO = 11 };
 /* 0.10.5 step 2 (ADR 0046): the download zone in the test of updates — the test server on QEMU's "router" (an address
  * given as numbers is allowed, its certificate is not checked: the signature of K1 is) */
 enum { K1_STREFA_TRYB_AKTUALIZACJA = 12 };
-#define K1_STREFA_TRYB_MAKS 12
+/* 0.10.5 step 5 (Raptor Bridge): 13 the test of the bridge from inside the zone (gosc/most.c), 14..15 hostile to vsock —
+ * the guest speaks vsock itself (gosc/zlosliwy.c) */
+enum { K1_STREFA_TRYB_MOST = 13, K1_STREFA_TRYB_VSOCK_OD = 14, K1_STREFA_TRYB_VSOCK_DO = 15 };
+#define K1_STREFA_TRYB_MAKS 15
 #define K1_STREFA_PAMIEC_MAKS 65536 /* MiB: the largest memory of a zone (0.10.1 step 2, ADR 0044 T5) */
 /* 0.10.0 step 2 (ADR 0043 T9): the zones' connections (STREFA_POLACZ c, STREFA_GNIAZDO a, STREFA_ODMOWA a) */
 #define K1_STREFA_POLACZENIA_MAKS 128 /* at once in one zone (the relay in the zone has as many) */
