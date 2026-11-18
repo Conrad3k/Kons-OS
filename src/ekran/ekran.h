@@ -101,6 +101,7 @@ struct stan {
     float rx, ry;         /* sub-pixel motion remainder (pointer speed) */
     int przyciski;        /* bit per K1_PRZYCISK_* held */
     int wcisniety, zmiana, mody;
+    int przelaczanie;     /* Alt held since an Alt+Tab went to the shell (0.10.5 step 6): Tab, Esc, Alt's release go there */
     int pod, chwyt, ciagniete, fokus; /* surface indices or -1 */
     int strefa_okno, strefa_przycisk; /* the zone window with the pointer on its frame (-1) and the button lit
                                        * there (STREFA_MINIMALIZUJ / _ZAMKNIJ, 0: none) — strefy.c, 0.10.0 step 3 */

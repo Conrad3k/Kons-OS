@@ -10,7 +10,7 @@
 Jedyny proces z dostępem do karty graficznej (DRM/KMS) i kompozytor okien: ustawia tryb, rysuje
 tapetę (jeden z 5 wariantów), składa okna aplikacji i panele powłoki z ich pamięci współdzielonej,
 dodaje cienie okien i kursor, robi page flip. Kieruje wejście (mysz do powierzchni pod kursorem,
-klawiatura do okna z fokusem, Super do powłoki), zarządza fokusem, kolejnością, przeciąganiem
+klawiatura do okna z fokusem, Super i Alt+Tab do powłoki), zarządza fokusem, kolejnością, przeciąganiem
 i minimalizacją okien, przechowuje ustawienia i rozsyła je klientom.
 
 ## Granica zaufania
@@ -31,7 +31,13 @@ otwarcie jest DRM masterem) i przekazuje jako fd 4.
 ## Wejścia i wyjścia
 - fd 3: kanał sterujący od nadzorcy — `KLIENT(rola, aplikacja, uid)` + koniec kanału klienta.
 - Rola `LOGOWANIE` (0.5.7, ADR 0017): panele jak powłoka; dopóki taki klient jest połączony, dostaje
-  każdy klawisz (także Super).
+  każdy klawisz (także Super i Alt+Tab).
+- **Alt+Tab** (0.10.5 krok 6, T16; `wskaznik.c`): od pierwszego Tab przy wciśniętym lewym Alt aż do puszczenia Alt
+  (`s.przelaczanie`) Tab (z Shift — wstecz), Esc i puszczenie Alt idą do powłoki — nigdy do okna z fokusem; Shift w tym
+  czasie nie idzie do strefy. Strefa z fokusem dostaje najpierw puszczenie Alt (jej gość nie zostaje z „wciśniętym” Alt —
+  S43; przy zmianie fokusu VMM i tak puszcza wszystkie klawisze gościa: `FOKUS` 0 → `wejscie_pusc`). Strefa nie ma
+  komunikatu, którym przełączyłaby okna, i nie zablokuje skrótu (klawiatura idzie przez ekran). Log „Alt+Tab: przełączanie
+  okien w powłoce” (przy strefie z fokusem: „(strefa z fokusem: puszczony Alt)”) — raz na przytrzymanie Alt.
 - fd 5 (0.5.6, opcjonalny): kanał do skarbca — przy starcie odczyt `K1_OB_USTAWIENIA` (≤ 1,5 s; tapeta,
   motyw, mysz, sekundy, rozdzielczość jako szer.×wys.; każda wartość sprawdzana jak `USTAW`, zła →
   domyślna), po każdej zmianie zapis nowej wersji (`src/ekran/zapis.c`). Rozdzielczość przywracana po

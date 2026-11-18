@@ -5,14 +5,27 @@
 
 #include "k1_bajty.h"
 
-static int poprawna(int apl)
-{
-    return apl >= 1 && apl <= K1_APL_MAKS;
-}
-
 int rozm_aplikacja(uint32_t klucz)
 {
     return klucz >= 1 && klucz <= K1_APL_MAKS ? (int)klucz : 0;
+}
+
+/* the zones whose row has a Start-menu line (K1_STREFY: its `menu` column is not "") */
+#define X_MENU(n, nr, profil, uid, obraz, tytul, sesja, pamiec, procesory, kolor, trwalosc, ikona, log, menu, ...) \
+    [nr] = sizeof(menu) > 1,
+static const int8_t w_menu[K1_STREFY_MAKS + 1] = { K1_STREFY(X_MENU) };
+#undef X_MENU
+
+int rozm_strefa(uint32_t klucz)
+{
+    uint32_t nr = klucz - ROZM_STREFA;
+    return klucz > ROZM_STREFA && nr <= K1_STREFY_MAKS && w_menu[nr] ? (int)nr : 0;
+}
+
+/* what the bar holds */
+static int na_pasek(uint32_t klucz)
+{
+    return rozm_aplikacja(klucz) || rozm_strefa(klucz);
 }
 
 int rozm_plik(uint32_t klucz)
@@ -22,55 +35,54 @@ int rozm_plik(uint32_t klucz)
 
 static int klucz_dobry(uint32_t klucz)
 {
-    return rozm_aplikacja(klucz) || klucz == ROZM_KOSZ || rozm_plik(klucz);
+    return na_pasek(klucz) || klucz == ROZM_KOSZ || rozm_plik(klucz);
 }
 
 void rozm_domyslne(struct rozmieszczenie *r, const int *domyslne, int wierszy)
 {
-    int a;
     memset(r, 0, sizeof *r);
     r->ikony[r->n_ikon++].klucz = ROZM_KOSZ;
-    for (a = 1; a <= K1_APL_MAKS; a++)
-        if (domyslne[a] > 0) { /* -1: a window of K1 itself (never on the bar or the desktop) */
-            r->pasek[r->n_pasek++] = (uint8_t)a;
-            r->ikony[r->n_ikon++].klucz = (uint32_t)a;
+    for (uint32_t k = 1; k <= ROZM_STREFA + K1_STREFY_MAKS; k = k == K1_APL_MAKS ? ROZM_STREFA + 1 : k + 1)
+        if (rozm_aplikacja(k) ? domyslne[k] > 0 : rozm_strefa(k) != 0) { /* -1: a window of K1 itself (never there) */
+            r->pasek[r->n_pasek++] = k;
+            r->ikony[r->n_ikon++].klucz = k;
         }
     rozm_uloz(r, wierszy);
 }
 
-int rozm_na_pasku(const struct rozmieszczenie *r, int apl)
+int rozm_na_pasku(const struct rozmieszczenie *r, uint32_t klucz)
 {
     int i;
     for (i = 0; i < r->n_pasek; i++)
-        if (r->pasek[i] == apl)
+        if (r->pasek[i] == klucz)
             return i;
     return -1;
 }
 
-void rozm_przypnij(struct rozmieszczenie *r, int apl)
+void rozm_przypnij(struct rozmieszczenie *r, uint32_t klucz)
 {
-    if (poprawna(apl) && rozm_na_pasku(r, apl) < 0 && r->n_pasek < K1_APL_MAKS)
-        r->pasek[r->n_pasek++] = (uint8_t)apl;
+    if (na_pasek(klucz) && rozm_na_pasku(r, klucz) < 0 && r->n_pasek < ROZM_PASEK_MAKS)
+        r->pasek[r->n_pasek++] = klucz;
 }
 
-void rozm_odepnij(struct rozmieszczenie *r, int apl)
+void rozm_odepnij(struct rozmieszczenie *r, uint32_t klucz)
 {
-    int i = rozm_na_pasku(r, apl);
+    int i = rozm_na_pasku(r, klucz);
     if (i < 0)
         return;
-    memmove(&r->pasek[i], &r->pasek[i + 1], (size_t)(r->n_pasek - i - 1));
+    memmove(&r->pasek[i], &r->pasek[i + 1], (size_t)(r->n_pasek - i - 1) * sizeof r->pasek[0]);
     r->n_pasek--;
 }
 
-void rozm_przesun_na_pasku(struct rozmieszczenie *r, int apl, int nowa)
+void rozm_przesun_na_pasku(struct rozmieszczenie *r, uint32_t klucz, int nowa)
 {
-    int i = rozm_na_pasku(r, apl);
+    int i = rozm_na_pasku(r, klucz);
     if (i < 0)
         return;
     nowa = nowa < 0 ? 0 : (nowa >= r->n_pasek ? r->n_pasek - 1 : nowa);
-    rozm_odepnij(r, apl);
-    memmove(&r->pasek[nowa + 1], &r->pasek[nowa], (size_t)(r->n_pasek - nowa));
-    r->pasek[nowa] = (uint8_t)apl;
+    rozm_odepnij(r, klucz);
+    memmove(&r->pasek[nowa + 1], &r->pasek[nowa], (size_t)(r->n_pasek - nowa) * sizeof r->pasek[0]);
+    r->pasek[nowa] = klucz;
     r->n_pasek++;
 }
 
@@ -196,10 +208,11 @@ void rozm_przenies_ikone(struct rozmieszczenie *r, uint32_t klucz, int kol, int 
     r->ikony[i].wiersz = (uint8_t)wiersz;
 }
 
-/* Order of "Ułóż ikony": Kosz, applications by number, files by number (the oldest first). */
+/* Order of "Ułóż ikony": Kosz, applications by number, the zones (ROZM_STREFA + n: above every application), files by
+ * number (the oldest first). */
 static uint64_t porzadek(uint32_t klucz)
 {
-    return klucz == ROZM_KOSZ ? 0 : rozm_aplikacja(klucz) ? klucz : (1ull << 32) + klucz;
+    return klucz == ROZM_KOSZ ? 0 : na_pasek(klucz) ? klucz : (1ull << 32) + klucz;
 }
 
 void rozm_uloz(struct rozmieszczenie *r, int wierszy)
@@ -247,8 +260,8 @@ size_t rozm_zapisz(const struct rozmieszczenie *r, uint8_t *buf, size_t n)
     memcpy(buf, ROZM_ZNAK, 4);
     p = 4;
     buf[p++] = (uint8_t)r->n_pasek;
-    for (i = 0; i < r->n_pasek; i++)
-        buf[p++] = r->pasek[i];
+    for (i = 0; i < r->n_pasek; i++, p += 4)
+        k1_z32(buf + p, r->pasek[i]);
     buf[p++] = (uint8_t)r->n_ikon;
     for (i = 0; i < r->n_ikon; i++) {
         k1_z32(buf + p, r->ikony[i].klucz);
@@ -259,28 +272,36 @@ size_t rozm_zapisz(const struct rozmieszczenie *r, uint8_t *buf, size_t n)
     return p;
 }
 
+/* The format of a saved arrangement: 3 ("K1R3"), 2 ("K1R2": one byte per application on the bar), 1 ("K1R1": one byte
+ * per key everywhere, applications only), 0 unknown. */
+static int wersja(const uint8_t *buf)
+{
+    return memcmp(buf, ROZM_ZNAK, 4) == 0 ? 3 : memcmp(buf, ROZM_ZNAK_K1R2, 4) == 0 ? 2
+           : memcmp(buf, ROZM_ZNAK_STARY, 4) == 0                              ? 1
+                                                                                : 0;
+}
+
 int rozm_czytaj(const uint8_t *buf, size_t n, struct rozmieszczenie *r)
 {
     struct rozmieszczenie t;
-    size_t p = 5, dl;
-    int i, stary;
+    size_t p = 5, dl, kp;
+    int i, v = n >= 6 ? wersja(buf) : 0;
     memset(&t, 0, sizeof t);
-    if (n < 6 || buf[4] > K1_APL_MAKS || n < 6u + buf[4])
+    kp = v == 3 ? 4 : 1; /* bytes per key on the bar */
+    if (v == 0 || buf[4] > (v == 3 ? ROZM_PASEK_MAKS : K1_APL_MAKS) || n < 6u + kp * buf[4])
         return -1;
-    stary = memcmp(buf, ROZM_ZNAK_STARY, 4) == 0; /* 0.7.5: one byte per key, applications only */
-    if (!stary && memcmp(buf, ROZM_ZNAK, 4) != 0)
-        return -1;
-    dl = stary ? 3 : 6;
-    for (i = buf[4]; i > 0; i--, p++) {
-        if (!poprawna(buf[p]) || rozm_na_pasku(&t, buf[p]) >= 0)
+    dl = v == 1 ? 3 : 6;
+    for (i = buf[4]; i > 0; i--, p += kp) {
+        uint32_t kl = v == 3 ? k1_c32(buf + p) : buf[p];
+        if (!(v == 3 ? na_pasek(kl) : rozm_aplikacja(kl) != 0) || rozm_na_pasku(&t, kl) >= 0)
             return -1;
-        t.pasek[t.n_pasek++] = buf[p];
+        t.pasek[t.n_pasek++] = kl;
     }
-    if (buf[p] > (stary ? K1_APL_MAKS : ROZM_IKON_MAKS) || n != p + 1 + dl * buf[p])
+    if (buf[p] > (v == 1 ? K1_APL_MAKS : ROZM_IKON_MAKS) || n != p + 1 + dl * buf[p])
         return -1;
     for (i = buf[p++]; i > 0; i--, p += dl) {
-        struct rozm_ikona ik = { stary ? buf[p] : k1_c32(buf + p), buf[p + dl - 2], buf[p + dl - 1] };
-        if ((stary ? !poprawna((int)ik.klucz) : !klucz_dobry(ik.klucz)) || ik.kol > ROZM_KOMORKA_MAKS ||
+        struct rozm_ikona ik = { v == 1 ? buf[p] : k1_c32(buf + p), buf[p + dl - 2], buf[p + dl - 1] };
+        if ((v == 1 ? !rozm_aplikacja(ik.klucz) : !klucz_dobry(ik.klucz)) || ik.kol > ROZM_KOMORKA_MAKS ||
             ik.wiersz > ROZM_KOMORKA_MAKS || rozm_ikona(&t, ik.klucz) >= 0 || rozm_w_komorce(&t, ik.kol, ik.wiersz) != 0)
             return -1;
         t.ikony[t.n_ikon].klucz = ik.klucz; /* field by field: the padding of `t` stays zero (compared in fuzzing) */

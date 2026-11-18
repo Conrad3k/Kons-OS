@@ -1,5 +1,5 @@
 /* K1 ekran — input routing: the pointer (speed, hit testing against the pixels of the surfaces,
- * implicit grab, dragging windows), the keyboard (modifiers, focus, the Super key for the shell,
+ * implicit grab, dragging windows), the keyboard (modifiers, focus, the Super key and Alt+Tab for the shell,
  * arrows as a keyboard-only pointer). Split out of main.c in M4.1. */
 #include <string.h>
 
@@ -120,9 +120,48 @@ static void przycisk(int nr, int wcisniety)
     s.zmiana = 1;
 }
 
+/* A key for the shell (the Super key, Alt+Tab): to its first surface — never to the window with the focus. */
+static void do_powloki(const struct k1_zdarzenie *z)
+{
+    int sh = powloka();
+    for (int i = 0; i < MAKS_POW && sh >= 0; i++)
+        if (s.p[i].uzyta && s.p[i].kl == sh) {
+            wyslij(sh, k1_komunikat_nowy(K1_KOM_KLAWISZ, s.p[i].id, z->kod, z->wartosc, s.mody, 0, 0));
+            return;
+        }
+}
+
+/* Alt+Tab (0.10.5 step 6, T16): from the first Tab with Alt held until Alt goes up, Tab (with Shift: back), Esc and
+ * Alt's release go to the shell — it shows the switcher and picks the window. A zone with the focus got Alt going
+ * down: it gets Alt going up first, or its guest would keep Alt held (S43); after that nothing of the switching reaches
+ * it. A zone has no message to switch windows nor a way to keep the keys (they come through ekran). 1: taken. */
+static int przelaczanie(const struct k1_zdarzenie *z)
+{
+    struct pow *f = s.fokus >= 0 ? &s.p[s.fokus] : NULL;
+    if (z->kod == KEY_LEFTALT && z->wartosc == 0 && s.przelaczanie) {
+        s.przelaczanie = 0;
+        s.mody &= ~K1_MOD_ALT;
+        do_powloki(z);
+        return 1;
+    }
+    if (z->kod != KEY_TAB && !(z->kod == KEY_ESC && s.przelaczanie))
+        return 0;
+    if (z->kod == KEY_TAB && !s.przelaczanie) {
+        if (!(s.mody & K1_MOD_ALT) || z->wartosc == 0 || powloka() < 0)
+            return 0;
+        s.przelaczanie = 1;
+        if (f != NULL && s.kl[f->kl].rola == K1_ROLA_STREFA)
+            wyslij(f->kl, k1_komunikat_nowy(K1_KOM_KLAWISZ, f->id, KEY_LEFTALT, 0, s.mody & ~K1_MOD_ALT, 0, 0));
+        k1_log(TAG, "Alt+Tab: przełączanie okien w powłoce%s", f != NULL && s.kl[f->kl].rola == K1_ROLA_STREFA
+                                                                  ? " (strefa z fokusem: puszczony Alt)" : "");
+    }
+    do_powloki(z);
+    return 1;
+}
+
 static void klawisz(const struct k1_zdarzenie *z)
 {
-    int bit = 0, sh = powloka(), i;
+    int bit = 0, i;
     switch (z->kod) {
     case KEY_LEFTSHIFT:
     case KEY_RIGHTSHIFT:
@@ -141,8 +180,12 @@ static void klawisz(const struct k1_zdarzenie *z)
     default:
         break;
     }
+    if (bit && logowanie() < 0 && przelaczanie(z)) /* Alt let go: the shell shows the window picked */
+        return;
     if (bit) {
         s.mody = z->wartosc ? (s.mody | bit) : (s.mody & ~bit);
+        if (s.przelaczanie) /* Shift while switching: the shell reads it from Tab's message, the zone never sees it */
+            return;
         /* K1's applications read the modifiers from each key's message (c). A zone's guest has a keyboard of its own:
          * it must see Shift, Ctrl and Alt go down and up, or nothing typed there is a capital, ":" or Ctrl+C. */
         if (logowanie() < 0 && s.fokus >= 0 && s.kl[s.p[s.fokus].kl].rola == K1_ROLA_STREFA)
@@ -160,13 +203,11 @@ static void klawisz(const struct k1_zdarzenie *z)
         return;
     }
     if (z->kod == KEY_LEFTMETA || z->kod == KEY_RIGHTMETA) {
-        for (i = 0; i < MAKS_POW && sh >= 0; i++)
-            if (s.p[i].uzyta && s.p[i].kl == sh) {
-                wyslij(sh, k1_komunikat_nowy(K1_KOM_KLAWISZ, s.p[i].id, z->kod, z->wartosc, s.mody, 0, 0));
-                break;
-            }
+        do_powloki(z);
         return;
     }
+    if (przelaczanie(z))
+        return;
     if (s.fokus >= 0) {
         struct pow *p = &s.p[s.fokus];
         wyslij(p->kl, k1_komunikat_nowy(K1_KOM_KLAWISZ, p->id, z->kod, z->wartosc, s.mody, 0, 0));

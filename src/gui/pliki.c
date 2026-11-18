@@ -75,8 +75,8 @@ const char *ikona_nazwa(uint32_t klucz)
         snprintf(wiecej, sizeof wiecej, "Jeszcze %d", ukryte);
         return wiecej;
     }
-    if (rozm_aplikacja(klucz))
-        return aplikacje[klucz].nazwa;
+    if (pozycja_klucza(klucz)) /* an application, Przeglądarka */
+        return aplikacje[pozycja_klucza(klucz)].nazwa;
     return klucz == ROZM_KOSZ ? "Kosz" : p != NULL ? p->nazwa : "";
 }
 
@@ -84,8 +84,8 @@ enum k1_ikona ikona_rysunek(uint32_t klucz)
 {
 #define X_IKONA(n, nr, opis, ik, ...) case nr: return K1_IK_##ik;
     const struct plik_pulpitu *p = plik(klucz);
-    if (rozm_aplikacja(klucz))
-        return aplikacje[klucz].ikona;
+    if (pozycja_klucza(klucz))
+        return aplikacje[pozycja_klucza(klucz)].ikona;
     if (klucz == ROZM_KOSZ)
         return w_koszu ? K1_IK_KOSZ_PELNY : K1_IK_KOSZ;
     if (p == NULL || p->rodzaj == K1_DOK_FOLDER)
@@ -125,8 +125,8 @@ void ikona_otworz(uint32_t klucz, int32_t x, int32_t y)
 {
     const struct plik_pulpitu *p = plik(klucz);
     int a;
-    if (rozm_aplikacja(klucz)) {
-        otworz_aplikacje((int)klucz);
+    if (pozycja_klucza(klucz)) { /* Przeglądarka: which session (0.10.5 step 6) */
+        otworz_aplikacje(pozycja_klucza(klucz));
     } else if (klucz == KLUCZ_WIECEJ) { /* the files that did not fit: Pliki at Pulpit */
         otworz_pliki(K1_FOLDER_PULPIT, K1_PLIKI_MIEJSCE);
     } else if (klucz == ROZM_KOSZ) {

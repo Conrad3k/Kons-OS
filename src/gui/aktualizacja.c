@@ -138,7 +138,7 @@ static void wskaznik(int rodzaj, int przycisk, int32_t x, int32_t y)
         do_nadzorcy(k1_komunikat_nowy(K1_KOM_AKT_PROSBA, 0, K1_AKT_P_ZAINSTALUJ, 0, 0, 0, 0));
 }
 
-static const struct okienko_wlasne okienko = { rysuj, loguj, wskaznik };
+static const struct okienko_wlasne okienko = { rysuj, loguj, wskaznik, NULL };
 
 /* AKT_STAN and AKT_OPIS from nadzorca (pasek_gorny.c reads fd 5). */
 void akt_komunikat(const struct k1_komunikat *m, int fd)

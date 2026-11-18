@@ -141,7 +141,7 @@ static void wskaznik(int rodzaj, int przycisk, int32_t x, int32_t y)
     }
 }
 
-static const struct okienko_wlasne okienko = { rysuj, loguj, wskaznik };
+static const struct okienko_wlasne okienko = { rysuj, loguj, wskaznik, NULL };
 
 void pamiec_malo(const struct k1_komunikat *m)
 {

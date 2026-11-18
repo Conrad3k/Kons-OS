@@ -6,7 +6,8 @@
  *   file         Otwórz · Otwórz za pomocą › · Pokaż w Plikach · Zmień nazwę · Usuń       (k1_menu_pliku)
  *   bottom bar   <application> · Przypnij / Odepnij · Zamknij okno (when it runs)
  *   Start menu   Otwórz · Przypnij / Odepnij · Dodaj do pulpitu / Usuń z pulpitu
- *                Przeglądarka (0.10.0 step 5, D2): Otwórz · Sesje: Ogólna, Bank, Prywatna (their names from nadzorca)
+ *                Przeglądarka (0.10.0 step 5, D2): Otwórz · Sesje: Ogólna, Bank, Prywatna (their names from nadzorca),
+ *                then pinning and the desktop like an application (0.10.5 step 6, D12)
  *   message      a double click on a file no application opens: why, "Pokaż w Plikach"   (k1_menu_bez_aplikacji)
  *   window       a question or a refusal after a file is dropped (k1_przeciaganie)            (0.8.2 step 6)
  *   own window   a window another module draws (struct okienko_wlasne): "Którą sesję otworzyć?" (sesje.c, 0.10.1
@@ -41,7 +42,7 @@ static void dodaj(const char *tekst, int akcja)
 /* A zone in the Start menu (the browser): the sessions of the zones with its image, each opens its own (D2). */
 static void sesje(void)
 {
-    const struct k1_strefa_opis *z = k1_strefa(apl - K1_APL_MAKS);
+    const struct k1_strefa_opis *z = k1_strefa(strefa_pozycji(apl));
     k1_menu_kreska(&glowne);
     k1_menu_tekst(&glowne, "Sesje");
     for (int nr = 1; nr <= K1_STREFY_MAKS; nr++)
@@ -51,17 +52,18 @@ static void sesje(void)
 
 static void wiersze_aplikacji(void)
 {
-    int przypieta = rozm_na_pasku(&rozm, apl) >= 0, na_pulpicie = rozm_ikona(&rozm, (uint32_t)apl) >= 0;
+    uint32_t kl = klucz_pozycji(apl); /* 0: a session's window (never pinned, no icon) */
+    int przypieta = kl && rozm_na_pasku(&rozm, kl) >= 0, na_pulpicie = kl && rozm_ikona(&rozm, kl) >= 0;
     char n[64];
     k1_menu_dodaj(&glowne, cel == K_PASEK ? nazwa_pozycji(apl, n, sizeof n) : "Otwórz", K1_MA_OTWORZ, 0)->mocna = 1;
-    if (cel == K_MENU && apl > K1_APL_MAKS && aplikacje[apl].strefa_w_menu)
+    if (cel == K_MENU && menu_strefy(apl))
         sesje();
     k1_menu_kreska(&glowne);
-    if (aplikacje[apl].domyslna >= 0) /* a window of K1 itself (the file picker) is never pinned */
+    if (kl && aplikacje[apl].domyslna >= 0) /* a window of K1 itself (the file picker) is never pinned */
         dodaj(przypieta ? "Odepnij od paska" : "Przypnij do paska", przypieta ? A_ODEPNIJ : A_PRZYPNIJ);
     if (cel == K_IKONA || (cel == K_MENU && na_pulpicie))
         dodaj("Usuń z pulpitu", A_USUN_IKONE);
-    else if (cel == K_MENU && apl <= K1_APL_MAKS) /* a zone has no icon on the desktop */
+    else if (cel == K_MENU && kl)
         dodaj("Dodaj do pulpitu", A_DODAJ);
     if (cel == K_PASEK && okno_aplikacji(apl) != NULL)
         k1_menu_dodaj(&glowne, "Zamknij okno", A_ZAMKNIJ, 0)->akcent = 1;
@@ -167,9 +169,10 @@ void kontekst_otworz(int nowy_cel, uint32_t nowy_klucz, int32_t x, int32_t y)
     }
     cel = nowy_cel;
     klucz = nowy_klucz;
-    /* the Start menu and the bar know the zones too (items above K1_APL_MAKS); a desktop icon is never a zone */
+    /* the Start menu and the bar know the zones too (items above K1_APL_MAKS); a desktop icon is an application or a
+     * zone's Start-menu line (its key: ROZM_STREFA + n), never a session's window */
     apl = (cel == K_MENU || cel == K_PASEK || cel == K_WLASNE) && nowy_klucz >= 1 && nowy_klucz <= POZYCJE_MAKS ? (int)nowy_klucz
-                                                                                            : rozm_aplikacja(nowy_klucz);
+                                                                                            : pozycja_klucza(nowy_klucz);
     hover = hover_pod = pod_wiersz = -1;
     if (cel == K_WLASNE)
         k1_menu_zacznij(&glowne, 0); /* no rows: its module draws the window, its top left at (x, y) */
@@ -219,13 +222,19 @@ void kontekst_wlasne(const struct okienko_wlasne *w, uint32_t klucz_, int32_t x,
     kontekst_otworz(K_WLASNE, klucz_, x, y);
 }
 
+int kontekst_pokazuje(const struct okienko_wlasne *w)
+{
+    return kontekst_otwarte && cel == K_WLASNE && wlasne == w;
+}
+
 void rysuj_kontekst(void)
 {
     const struct k1_motyw *m = motyw();
     struct k1_obraz *o = k1_pow_rysuj(&kontekst);
     if (o == NULL)
         return;
-    k1_el_od_nowa(&kontekst, cel == K_WLASNE || cel == K_OKIENKO ? "Okienko" : "Menu"); /* 0.10.2 step 2 */
+    k1_el_od_nowa(&kontekst, cel == K_WLASNE && wlasne->nazwa ? wlasne->nazwa : cel == K_WLASNE || cel == K_OKIENKO ? "Okienko"
+                                                                                                      : "Menu"); /* 0.10.2 step 2 */
     k1_wyczysc(o, 0);
     if (cel == K_WLASNE)
         wlasne->rysuj(o, m, gx - ox, gy - oy);
@@ -245,19 +254,20 @@ static void wykonaj_pulpit(int akcja)
 {
     char co[96];
     const char *nazwa = aplikacje[apl].nazwa;
+    uint32_t kl = klucz_pozycji(apl);
     switch (akcja) {
     case A_OPROZNIJ: k1_log(TAG, "pulpit: opróżniam Kosz"); kosz_oproznij(); return;
     case A_ZAMKNIJ: zamknij_aplikacje(apl); return;
     case A_WYGLAD: otworz_aplikacje(K1_APL_USTAWIENIA); return;
-    case A_PRZYPNIJ: rozm_przypnij(&rozm, apl); snprintf(co, sizeof co, "przypięto do paska: %s", nazwa); break;
-    case A_ODEPNIJ: rozm_odepnij(&rozm, apl); snprintf(co, sizeof co, "odpięto od paska: %s", nazwa); break;
+    case A_PRZYPNIJ: rozm_przypnij(&rozm, kl); snprintf(co, sizeof co, "przypięto do paska: %s", nazwa); break;
+    case A_ODEPNIJ: rozm_odepnij(&rozm, kl); snprintf(co, sizeof co, "odpięto od paska: %s", nazwa); break;
     case A_DODAJ:
-        if (rozm_dodaj_ikone(&rozm, (uint32_t)apl, pulpit_kolumn(), pulpit_wierszy()) != 0)
+        if (rozm_dodaj_ikone(&rozm, kl, pulpit_kolumn(), pulpit_wierszy()) != 0)
             snprintf(co, sizeof co, "pulpit pełny — %s nie dodano", nazwa);
         else
             snprintf(co, sizeof co, "dodano do pulpitu: %s", nazwa);
         break;
-    case A_USUN_IKONE: rozm_usun_ikone(&rozm, (uint32_t)apl); snprintf(co, sizeof co, "usunięto z pulpitu: %s", nazwa); break;
+    case A_USUN_IKONE: rozm_usun_ikone(&rozm, kl); snprintf(co, sizeof co, "usunięto z pulpitu: %s", nazwa); break;
     case A_ULOZ: /* the files that do not fit keep the last free cell for "Jeszcze n" (L19) */
         rozm_uloz(&rozm, pulpit_wierszy());
         pliki_dopasuj();
@@ -292,9 +302,7 @@ static void wykonaj(const struct k1_menu_poz *p)
     kontekst_zamknij();
     switch (akcja) {
     case K1_MA_OTWORZ:
-        if (apl > K1_APL_MAKS && cel == K_MENU) /* the browser in the Start menu: which session (0.10.1 step 4) */
-            sesje_wybierz(apl);
-        else if (apl > K1_APL_MAKS) /* a session's window on the bar */
+        if (apl > K1_APL_MAKS) /* the browser (which session — 0.10.1 step 4), a session's window on the bar */
             otworz_aplikacje(apl);
         else
             ikona_otworz(klucz, gx, gy);

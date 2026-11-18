@@ -286,6 +286,31 @@ if wid:
 sprawdz("kółko nad widoczną częścią strefy dociera do niej bez fokusu (okno pod kursorem)",
         wid and czekaj(r"K1-GOSC: wejście: kółko -1 ząbków, -120/120", czas=60), str(wid[:1]))
 
+# 0.10.5 step 6 (T16, S43): Alt+Tab between a K1 window and the zone's. ekran gives Tab with Alt held to the shell — never
+# to the zone; a zone with the focus gets Alt going up first, so its guest does not keep Alt held ("wciśnięte": the keys
+# the guest holds when it counts a key going down).
+POKAZ = r"K1-GUI: przełącznik okien: pokazuję "
+n = q.ile(POKAZ + "Strefa próbna")  # `od`: earlier matches of the same pattern
+nk = q.ile(r"K1-GOSC: wejście: klawisze")
+q.pisz("alt-tab")
+sprawdz("Alt+Tab z Zegara: okno strefy (używane przed chwilą) na wierzchu; gość nie dostaje nic z Alt+Tab",
+        czekaj(POKAZ + "Strefa próbna", od=n, czas=60) and q.cisza(r"K1-GOSC: wejście: klawisze", 8) and
+        q.ile(r"K1-GOSC: wejście: klawisze") == nk)
+n = q.ile(POKAZ + "Zegar")
+q.pisz("alt-tab")
+sprawdz("Alt+Tab ze strefy do Zegara: ekran puszcza strefie Alt, Tab do niej nie trafia (gość: jeden klawisz — Alt)",
+        czekaj(POKAZ + "Zegar", od=n, czas=60) and
+        czekaj(r"K1-EKRAN: Alt\+Tab: przełączanie okien w powłoce \(strefa z fokusem: puszczony Alt\)", czas=10) and
+        czekaj(r"K1-GOSC: wejście: klawisze 4, kliknięcia 1", czas=60) and
+        q.cisza(r"K1-GOSC: wejście: klawisze 5", 8))
+n = q.ile(POKAZ + "Strefa próbna")
+q.pisz("alt-tab")
+sprawdz("i z powrotem do strefy", czekaj(POKAZ + "Strefa próbna", od=n, czas=60))
+q.pisz("b")
+sprawdz("po Alt+Tab gość nie trzyma Alt: przy literze wciśnięty jest tylko ten klawisz",
+        czekaj(r"K1-GOSC: wejście: klawisze 5, kliknięcia 1, wciśnięte 1\b", czas=60),
+        (re.findall(r"K1-GOSC: wejście: klawisze[^\n]*", q.tekst()) or ["brak"])[-1])
+
 # the dark theme: Ustawienia → Wygląd → Ciemny (as in the other tests)
 q.klik(ax + 2 * krok, ay)
 u = czekaj(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)", czas=60)
@@ -296,9 +321,9 @@ if u and sk:
     q.klik(ux + int(sk.group(4)) + int(sk.group(6)) * 3 // 4, uy + int(sk.group(5)) + 10)
 sprawdz("ciemny motyw", czekaj(r"K1-EKRAN: ustawienie 1=1", czas=60))
 # the zone's window to the front: a click on its content (focus), the frame then in the full colour
-n = q.ile(r"K1-GOSC: wejście: klawisze 3, kliknięcia 2")
+n = q.ile(r"K1-GOSC: wejście: klawisze 5, kliknięcia 2")
 q.klik(x + w_ - 40, y + h_ - 40)
-czekaj(r"K1-GOSC: wejście: klawisze 3, kliknięcia 2", czas=60)
+czekaj(r"K1-GOSC: wejście: klawisze 5, kliknięcia 2", czas=60)
 w, h, px = q.zrzut("6-ciemny", gdy=lambda w, h, px: blisko(px(x - 2, y + h_ // 2), PIASEK))
 sprawdz("ciemny motyw: obwódka strefy w jej kolorze, pasek tytułu nad treścią (zrzut strefa-6-ciemny)",
         blisko(px(x - 2, y + h_ // 2), PIASEK) and not blisko(px(zx, zy), TLO_GOSCIA))
