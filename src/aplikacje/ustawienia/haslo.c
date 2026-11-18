@@ -115,7 +115,7 @@ static void hs_wyslij(void)
     if (fd >= 0 && k1_kanal_wyslij(skarb, &m, sizeof m, fd) == 0) {
         hs.czeka = 1;
         hs.blad = 0;
-        snprintf(hs.komunikat, sizeof hs.komunikat, "Zapisuję… (to trwa chwilę — hasło jest wzmacniane)");
+        snprintf(hs.komunikat, sizeof hs.komunikat, "Zapisuję… (to trwa chwilę, hasło jest wzmacniane)");
         k1_log(TAG, "zmiana hasła wysłana do skarbca"); /* never the password itself */
     } else {
         snprintf(hs.komunikat, sizeof hs.komunikat, "Nie udało się wysłać");
@@ -173,12 +173,12 @@ void haslo_odbierz(void)
         if (k.b == 0) {
             snprintf(hs.komunikat, sizeof hs.komunikat, "%s",
                      hs.formularz == F_WYLACZ ? "Hasło wyłączone."
-                                              : "Hasło zapisane — będzie potrzebne przy następnym włączeniu.");
+                                              : "Hasło zapisane. Będzie potrzebne przy następnym włączeniu.");
             k1_log(TAG, "%s", hs.formularz == F_WYLACZ ? "hasło wyłączone" : "hasło zapisane");
             hs.formularz = F_BRAK;
             hs.blad = 0;
         } else if (k.b == K1_SKARB_ZLE_HASLO) {
-            snprintf(hs.komunikat, sizeof hs.komunikat, k.e > 0 ? "Złe obecne hasło — spróbuj za %d s" : "Złe obecne hasło",
+            snprintf(hs.komunikat, sizeof hs.komunikat, k.e > 0 ? "Złe obecne hasło. Spróbuj za %d s" : "Złe obecne hasło",
                      k.e);
             hs.blad = 1;
             hs.pole = 0;
@@ -208,7 +208,7 @@ void haslo_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     char buf[160];
     const char *n[3];
     int ile, i;
-    naglowek(o, m, "Hasło", "Hasło przy włączaniu komputera");
+    naglowek(o, m, "Hasło");
     if (skarb < 0 || (hs.znane && hs.tryb == K1_SKARB_RAM)) {
         k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, "Nie znaleziono miejsca na dane (partycji K1-DANE)",
                  k1_kolor(m->tekst2, 255), 0);
@@ -237,9 +237,9 @@ void haslo_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         k1_tekst(o, K1_CZ_MALA_MOCNA, TRESC_X, ile > 0 ? przycisk_y() + 60 : seg_y() + 64, hs.komunikat,
                  k1_kolor(hs.blad ? m->akcent_tekst : m->tekst2, 255), apl.szer - TRESC_X - 24);
     if (ile == 0) {
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 96, "Zapomniane hasło oznacza założenie nowego konta —",
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 96, "Zapomniane hasło oznacza założenie nowego konta.",
                  k1_kolor(m->tekst3, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 114, "zaszyfrowanych danych nie da się odzyskać.", k1_kolor(m->tekst3, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 114, "Zaszyfrowanych danych nie da się odzyskać.", k1_kolor(m->tekst3, 255), 0);
         k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 144,
                  hs.wlaczone ? "Dane są zaszyfrowane hasłem." : "Bez hasła dane są zaszyfrowane, ale bez ochrony przed",
                  k1_kolor(m->tekst3, 255), 0);

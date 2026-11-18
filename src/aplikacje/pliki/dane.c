@@ -135,9 +135,9 @@ void przywroc(uint32_t id)
     if (w != NULL && !widoczny(w->rodzic)) { /* skarbiec puts it in Dokumenty (0.8.1, plan L18) */
         przywracany = id;
         if (f != NULL && f->kosz != 0)
-            snprintf(przywrocony, sizeof przywrocony, "Folder „%s” jest w Koszu — przywrócono do Dokumentów.", f->nazwa);
+            snprintf(przywrocony, sizeof przywrocony, "Folder „%s” jest w Koszu. Przywrócono do Dokumentów.", f->nazwa);
         else
-            snprintf(przywrocony, sizeof przywrocony, "Folderu, z którego pochodzi, już nie ma — przywrócono do Dokumentów.");
+            snprintf(przywrocony, sizeof przywrocony, "Folderu, z którego pochodzi, już nie ma. Przywrócono do Dokumentów.");
     }
     do_skarbca(K1_KOM_DOK_PRZYWROC, id, 0);
 }
@@ -264,7 +264,7 @@ static void wynik(const struct k1_komunikat *k)
     case K1_DOK_BLAD_NAZWA: blad = "Tej nazwy nie można użyć."; break;
     case K1_DOK_BLAD_MIEJSCE: blad = "Tu nie można tego zrobić (za dużo folderów w folderach?)."; break;
     case K1_DOK_BLAD_PELNO: blad = "Za dużo plików i folderów."; break;
-    case K1_DOK_BLAD_OTWARTE: blad = "Ta aplikacja ma już otwartych 64 plików — zamknij ją i otwórz ponownie."; break;
+    case K1_DOK_BLAD_OTWARTE: blad = "Ta aplikacja ma już otwartych 64 plików. Zamknij ją i otwórz ponownie."; break;
     case K1_SKARB_PELNY: blad = "Brak miejsca na nośniku."; break;
     case K1_DOK_BLAD_BRAK_MIEJSCA: blad = "Brak miejsca na pliki (resztę K1 zostawia na ustawienia systemu)."; break;
     case K1_SKARB_ZLE_HASLO: blad = "Dane są zablokowane hasłem."; break;

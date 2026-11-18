@@ -1,6 +1,6 @@
 /* K1 przybornik — dragging files and folders (0.8.2 step 6, L24 phase A; owner's decisions D6, D8 and the sketch of
  * 2026-11-12): ONE table of rules for Pliki and the desktop — what is dragged (the source) onto what (the target) gives
- * an action, a question ("Czy na pewno…?") or a refusal with its text ("Możesz tylko…", "Nie możesz — …"). It is asked
+ * an action, a question ("Czy na pewno…?") or a refusal with its text ("Możesz tylko…", "Nie możesz: …"). It is asked
  * while dragging (the sign at the pointer) and once more when the files are dropped (the action, or the window with
  * the question); skarbiec's answer (K1_DOK_BLAD_*) is put in the same words (k1_prz_powod). Dragging between windows
  * (phase B) — after 0.8.2, with the zones of 0.11 (D6).
@@ -51,7 +51,7 @@ struct k1_prz_co {
 struct k1_prz_ocena {
     int dzialanie, pytaj, znak; /* K1_PD_*, 1: ask first (D8), K1_ZN_* */
     char znak_tekst[96];        /* the sign: "Przenieś do „Obrazy”", "Do Kosza", "Pendrive jest tylko do odczytu" */
-    char tekst[256];            /* the question, or the whole refusal ("Nie możesz — …") */
+    char tekst[256];            /* the question, or the whole refusal ("Nie możesz: …") */
     char opis[160];             /* small text under it (may be empty) */
 };
 
@@ -63,7 +63,7 @@ void k1_prz_okienko(struct k1_menu *m, const struct k1_prz_ocena *o);
 /* A name taken in the target (`zajetych` of `ile` entries moved): "W „Obrazy” jest już „IMG_0001.JPG”." —
  * Zachowaj oba (the one moved becomes "IMG_0001 (2).JPG") · Pomiń (the others go on) · Anuluj. */
 void k1_prz_okienko_nazwa(struct k1_menu *m, const char *cel, const char *nazwa, int zajetych, int ile);
-/* skarbiec said no (K1_DOK_BLAD_*, K1_SKARB_*): the same words as the table ("Nie możesz — …"). */
+/* skarbiec said no (K1_DOK_BLAD_*, K1_SKARB_*): the same words as the table ("Nie możesz: …"). */
 const char *k1_prz_powod(int wynik);
 
 /* Drawing: the card at the pointer (x, y) — the icon, the name, the count when more than one — and the sign under it

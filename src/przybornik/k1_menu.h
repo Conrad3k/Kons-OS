@@ -27,7 +27,7 @@
 /* A file no application opens: the message at its icon on the desktop (double click), and the short one — the
  * footer of Pliki (double click, "Otwórz") and the hint under a muted "Otwórz" in the menu. */
 #define K1_MENU_BEZ_APLIKACJI_KROTKO "K1 nie ma jeszcze aplikacji do tego typu pliku"
-#define K1_MENU_BEZ_APLIKACJI K1_MENU_BEZ_APLIKACJI_KROTKO " — możesz go przechowywać, przenosić i usuwać."
+#define K1_MENU_BEZ_APLIKACJI K1_MENU_BEZ_APLIKACJI_KROTKO ". Możesz go przechowywać, przenosić i usuwać."
 
 /* a row to click / a hairline / text only (small, wrapped; `mocna`: the title — Medium 15, wrapped too) */
 enum k1_menu_styl { K1_MS_WIERSZ = 0, K1_MS_KRESKA, K1_MS_TEKST };

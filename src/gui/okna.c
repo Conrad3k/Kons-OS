@@ -245,8 +245,8 @@ void strefa_stan(const struct k1_komunikat *m)
                                     "nie używasz.",
         [K1_STREFA_KONIEC_PAMIEC_K1] = "Komputerowi zabrakło pamięci, więc K1 ją zatrzymał. Zamknij inne okna i otwórz "
                                        "ją ponownie.",
-        [K1_STREFA_KONIEC_AWARIA] = "Program w strefie uległ awarii. Otwórz ją ponownie — reszta K1 działa normalnie.",
-        [K1_STREFA_KONIEC_BLAD] = "Strefa zatrzymała się z powodu błędu. Otwórz ją ponownie — reszta K1 działa "
+        [K1_STREFA_KONIEC_AWARIA] = "Program w strefie uległ awarii. Otwórz ją ponownie. Reszta K1 działa normalnie.",
+        [K1_STREFA_KONIEC_BLAD] = "Strefa zatrzymała się z powodu błędu. Otwórz ją ponownie. Reszta K1 działa "
                                   "normalnie.",
         [K1_STREFA_KONIEC_LIMIT] = "Strefa zużyła całą pamięć, którą K1 jej daje. Otwórz ją ponownie; zamykaj karty, "
                                    "których nie używasz.",

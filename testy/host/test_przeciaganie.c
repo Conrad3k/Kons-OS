@@ -103,7 +103,7 @@ static void t_warunki(void)
     EXPECT(ocen(c).dzialanie == K1_PD_IMPORT);
     c.bajty++;
     o = ocen(c);
-    EXPECT(o.dzialanie == K1_PD_ODMOWA && strcmp(o.tekst, "Nie możesz — brak miejsca na pliki (zostało 120 MB).") == 0);
+    EXPECT(o.dzialanie == K1_PD_ODMOWA && strcmp(o.tekst, "Nie możesz: brak miejsca na pliki (zostało 120 MB).") == 0);
     c.wolne_mb = -1; /* unknown: skarbiec says it later */
     EXPECT(ocen(c).dzialanie == K1_PD_IMPORT);
 }
@@ -172,7 +172,7 @@ static void t_powody(void)
     static const int wyniki[] = { K1_DOK_BLAD_MIEJSCE, K1_DOK_BLAD_ZAJETA, K1_DOK_BLAD_PELNO, K1_DOK_BLAD_BRAK_MIEJSCA,
                                   K1_SKARB_PELNY, K1_DOK_BLAD_BRAK, K1_SKARB_ZLE_HASLO };
     for (size_t i = 0; i < sizeof wyniki / sizeof wyniki[0]; i++)
-        EXPECT(strncmp(k1_prz_powod(wyniki[i]), "Nie możesz — ", strlen("Nie możesz — ")) == 0);
+        EXPECT(strncmp(k1_prz_powod(wyniki[i]), "Nie możesz: ", strlen("Nie możesz: ")) == 0);
     EXPECT(strcmp(k1_prz_powod(-999), "Nie udało się.") == 0);
     EXPECT(strcmp(k1_odmiana(1, "plik", "pliki", "plików"), "plik") == 0 && strcmp(k1_odmiana(22, "a", "b", "c"), "b") == 0 &&
            strcmp(k1_odmiana(12, "a", "b", "c"), "c") == 0 && strcmp(k1_odmiana(0, "a", "b", "c"), "c") == 0 &&

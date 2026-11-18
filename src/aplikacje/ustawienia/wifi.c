@@ -142,8 +142,8 @@ static void wiersz(struct k1_obraz *o, const struct k1_motyw *m, int i, int32_t 
 /* Two lines of text where the list would be. */
 static void napis(struct k1_obraz *o, const struct k1_motyw *m, const char *a, const char *b)
 {
-    k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, a, k1_kolor(m->tekst, 255), apl.szer - TRESC_X - 24);
-    k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 40, b, k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 24);
+    k1_tekst(o, K1_CZ_TEKST, TRESC_X, SIEC_Y + 16, a, k1_kolor(m->tekst, 255), apl.szer - TRESC_X - 24);
+    k1_tekst(o, K1_CZ_MALA, TRESC_X, SIEC_Y + 40, b, k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 24);
 }
 
 /* The test reads the list from this line: the state, how many networks of which kind, where the rows are. */
@@ -189,8 +189,8 @@ void wifi_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const char *karta_
     }
     loguj();
     if (wf.stan == K1_WIFI_BRAK && karta_bez_obslugi != NULL) {
-        snprintf(buf, sizeof buf, "%s — K1 nie potrafi jej jeszcze uruchomić.", karta_bez_obslugi);
-        napis(o, m, buf, "Podaj jej identyfikator (zakładka „Karty sieciowe”) — dopiszemy ją w kolejnej wersji K1.");
+        snprintf(buf, sizeof buf, "%s: K1 nie potrafi jej jeszcze uruchomić.", karta_bez_obslugi);
+        napis(o, m, buf, "Podaj jej identyfikator (zakładka „Karty sieciowe”), dopiszemy ją w kolejnej wersji K1.");
     } else if (wf.stan == K1_WIFI_BRAK) {
         napis(o, m, "Nie znaleziono karty Wi-Fi.", "Ten komputer nie ma karty Wi-Fi albo K1 jej nie widzi.");
     } else if (wf.stan == K1_WIFI_PRZELACZNIK) {
@@ -199,7 +199,7 @@ void wifi_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const char *karta_
     } else if (wf.stan == K1_WIFI_WYLACZONE) {
         napis(o, m, "Wi-Fi wyłączone.", "Włącz je przełącznikiem obok zakładek.");
     } else if (wf.n == 0) {
-        napis(o, m, wf.szukam ? "Szukam sieci…" : "Nie znaleziono sieci w pobliżu.", "Lista odświeża się co minutę.");
+        napis(o, m, wf.szukam ? "Szukam sieci…" : "Nie znaleziono sieci w pobliżu.", "");
     } else {
         int pierwszy = wifi_pierwszy_wiersz(), wiersze = wf.n - pierwszy, h, r = wifi_rozwiniety();
         if (wiersze > (r >= 0 ? WIERSZE_MAKS - 2 : WIERSZE_MAKS))

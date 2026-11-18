@@ -108,7 +108,7 @@ static void blad_dekodera(const struct k1_dek_praca *p, int kod, int mpx)
         return;
     }
     if (kod == K1_DEK_BLAD_DUZY)
-        snprintf(tapeta_tekst, sizeof tapeta_tekst, "Zdjęcie ma %d Mpx — K1 pokazuje do %d Mpx.", mpx, K1_DEK_MAKS_MPX);
+        snprintf(tapeta_tekst, sizeof tapeta_tekst, "Zdjęcie ma %d Mpx. K1 pokazuje do %d Mpx.", mpx, K1_DEK_MAKS_MPX);
     else
         snprintf(tapeta_tekst, sizeof tapeta_tekst, "%s",
                  kod == K1_DEK_BLAD_PAMIEC ? "Za mało pamięci, żeby pokazać to zdjęcie." : "Tego zdjęcia nie da się odczytać.");
@@ -160,7 +160,7 @@ int32_t obraz_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const struct k
     if (ten && min.blad == 0)
         k1_naloz_sprite(o, miniatura, min.w, min.h, x + (int32_t)(MIN_W - min.w) / 2, y + (int32_t)(MIN_H - min.h) / 2);
     else if (ten && min.blad == K1_DEK_BLAD_DUZY) {
-        snprintf(ile, sizeof ile, "Zdjęcie ma %d Mpx —", min.mpx);
+        snprintf(ile, sizeof ile, "Zdjęcie ma %d Mpx.", min.mpx);
         t = ile;
         snprintf(gran, sizeof gran, "K1 pokazuje do %d Mpx", K1_DEK_MAKS_MPX);
         t2 = gran;

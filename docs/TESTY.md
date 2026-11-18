@@ -81,7 +81,8 @@ Błąd = budowa przerwana. Powtarzalność: `scripts/sprawdz-powtarzalnosc.sh` (
 
 ### 2. Czytelność (`scripts/sprawdz-czytelnosc.py`, pierwszy krok `test-m1.sh`)
 Plik `.c` ≤ 600 wierszy, funkcja ≤ 80 (wyjątek tylko z `k1: limit`), pliki testów ≤ 600; opis każdej usługi, aplikacji
-i komunikatu; wpisy „Tymczasowe”; spis ADR; ścieżki `docs/…` w dokumentach istnieją.
+i komunikatu; wpisy „Tymczasowe”; spis ADR; ścieżki `docs/…` w dokumentach istnieją; od 0.10.7 napisy okien K1 bez
+półpauz (zasada Z3; logi nie, napis budowany dla logu — `/* k1: napis do logu */`).
 
 ### 3. Na hoście (`make testy-host`, glibc + ASan/UBSan)
 Każdy test to osobny cel (`host-<nazwa>`, lista `TESTY_HOST` / `TESTY_HOST_PLIKI` w `Makefile`), więc `make -j4 -O`

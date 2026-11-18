@@ -88,9 +88,7 @@ static int32_t rysuj_sesje(struct k1_obraz *o, const struct k1_motyw *m, int32_t
         k1_zaokraglony(o, MARG, (float)y + 22, (float)w * (float)(u < moze ? u : moze) / (float)moze, 10, 5,
                        k1_kolor(z->kolor, 255));
     }
-    k1_tekst(o, K1_CZ_MALA, MARG, y + 6, "Nieużywaną pamięć sesja oddaje K1 sama, po kilku sekundach.",
-             k1_kolor(m->tekst3, 255), w);
-    return y + 24;
+    return y;
 }
 
 /* Rows of services the sessions leave room for. */
@@ -134,7 +132,7 @@ static void bateria_opis(char *buf, size_t n)
     k1_dziesietne(w, sizeof w, ((long)bat.moc_mw + 50) / 100);
     k1_minuty(c, sizeof c, bat.minuty);
     if (!bat.obecna) {
-        snprintf(buf, n, "Brak baterii — zasilanie z sieci");
+        snprintf(buf, n, "Brak baterii, zasilanie z sieci");
     } else if ((laduje || bat.stan == K1_BAT_ROZLADOWANIE) && bat.moc_mw >= 0) {
         if (bat.minuty < 0)
             snprintf(buf, n, "%s · %s W", s, w);

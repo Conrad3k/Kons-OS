@@ -26,18 +26,18 @@ static inline const char *k1_inst_blad_tekst(int blad)
         { K1_INST_BLAD_ZAPIS, "Zapis na dysk się nie udał. Dysk może być uszkodzony." },
         { K1_INST_BLAD_SPRAWDZ, "Dysk zwrócił inne dane niż zapisane. Dysk może być uszkodzony." },
         { K1_INST_BLAD_ZRODLO, "Nie znaleziono pendrive'a z K1 (uruchom K1 z pendrive'a albo podłącz go)." },
-        { K1_INST_BLAD_PODPIS, "System na pendrivie nie jest podpisaną kopią K1 (albo jest uszkodzony) — nie zapisuję go." },
-        { K1_INST_BLAD_STARSZA, "Na pendrivie jest starsza wersja niż na dysku — powrót do starszej wersji jest zablokowany." },
+        { K1_INST_BLAD_PODPIS, "System na pendrivie nie jest podpisaną kopią K1 (albo jest uszkodzony). Nie zapisuję go." },
+        { K1_INST_BLAD_STARSZA, "Na pendrivie jest starsza wersja niż na dysku. Powrót do starszej wersji jest zablokowany." },
         { K1_INST_BLAD_PRZERWANE, "Program zapisujący zakończył się bez wyniku." },
-        { K1_INST_BLAD_TRWA, "Trwa już zapis K1 na dysk w drugim oknie (Instalator albo Ustawienia) — poczekaj na koniec." },
-        { K1_INST_BLAD_SIEC, "Pobieranie przerwało się albo przyszło coś innego niż nowa wersja K1 — nic nie zmieniono." },
-        { K1_INST_BLAD_MIEJSCE, "Na tym dysku nie ma miejsca na pobraną wersję — zaktualizuj K1 z pendrive'a." },
+        { K1_INST_BLAD_TRWA, "Trwa już zapis K1 na dysk w drugim oknie (Instalator albo Ustawienia). Poczekaj na koniec." },
+        { K1_INST_BLAD_SIEC, "Pobieranie przerwało się albo przyszło coś innego niż nowa wersja K1. Nic nie zmieniono." },
+        { K1_INST_BLAD_MIEJSCE, "Na tym dysku nie ma miejsca na pobraną wersję. Zaktualizuj K1 z pendrive'a." },
     };
     unsigned i;
     for (i = 0; i < sizeof bledy / sizeof bledy[0]; i++)
         if (bledy[i].kod == blad)
             return bledy[i].tekst;
-    return "Dysk zniknął albo się zmienił — sprawdź jeszcze raz.";
+    return "Dysk zniknął albo się zmienił. Sprawdź jeszcze raz.";
 }
 
 #endif

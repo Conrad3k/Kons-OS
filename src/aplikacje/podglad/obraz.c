@@ -106,7 +106,7 @@ static void tapeta(const struct k1_dek_wynik *w, int fd)
 static void blad_tapety(int kod, int mpx)
 {
     if (kod == K1_DEK_BLAD_DUZY)
-        snprintf(tapeta_tekst, sizeof tapeta_tekst, "Zdjęcie ma %d Mpx — K1 pokazuje do %d Mpx.", mpx, K1_DEK_MAKS_MPX);
+        snprintf(tapeta_tekst, sizeof tapeta_tekst, "Zdjęcie ma %d Mpx. K1 pokazuje do %d Mpx.", mpx, K1_DEK_MAKS_MPX);
     else
         snprintf(tapeta_tekst, sizeof tapeta_tekst, "%s",
                  kod == K1_DEK_BLAD_PAMIEC ? "Za mało pamięci, żeby pokazać to zdjęcie." : "Tego zdjęcia nie da się odczytać.");
@@ -181,9 +181,9 @@ void obraz_start(void)
 static void tekst_bledu(char *t, size_t n)
 {
     if (jest.blad == K1_DEK_BLAD_DUZY)
-        snprintf(t, n, "Zdjęcie ma %d Mpx — K1 pokazuje do %d Mpx.", jest.mpx, K1_DEK_MAKS_MPX);
+        snprintf(t, n, "Zdjęcie ma %d Mpx. K1 pokazuje do %d Mpx.", jest.mpx, K1_DEK_MAKS_MPX);
     else if (jest.blad == BLAD_PLIK)
-        snprintf(t, n, "Plik jest za duży — K1 pokazuje zdjęcia do %u MB.", (unsigned)(K1_DEK_MAKS_BAJTY >> 20));
+        snprintf(t, n, "Plik jest za duży. K1 pokazuje zdjęcia do %u MB.", (unsigned)(K1_DEK_MAKS_BAJTY >> 20));
     else if (jest.blad == K1_DEK_BLAD_PAMIEC)
         snprintf(t, n, "Za mało pamięci, żeby pokazać to zdjęcie.");
     else

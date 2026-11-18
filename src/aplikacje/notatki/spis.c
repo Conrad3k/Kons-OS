@@ -138,7 +138,7 @@ void nowa(void)
     }
     n = dodaj_notatke();
     if (n == NULL) {
-        komunikat = "Najwięcej 256 notatek — usuń którąś, żeby dodać nową";
+        komunikat = "Najwięcej 256 notatek. Usuń którąś, żeby dodać nową";
         k1_apl_odswiez(&apl);
         return;
     }

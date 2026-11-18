@@ -189,10 +189,9 @@ static void tryby(struct k1_obraz *o, const struct k1_motyw *m)
     }
 }
 
-void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul, const char *opis)
+void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul)
 {
     k1_tekst(o, K1_CZ_TYTUL, TRESC_X, K1_OKNO_TYTUL + 40, tytul, k1_kolor(m->tekst, 255), 0);
-    k1_tekst(o, K1_CZ_TEKST, TRESC_X, K1_OKNO_TYTUL + 72, opis, k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 24);
 }
 
 static void klawisz(unsigned kod, int wartosc, unsigned mody)
@@ -239,23 +238,23 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     }
     switch (sekcja) {
     case S_WYGLAD:
-        naglowek(o, m, "Wygląd", "Motyw okien i paneli, tapeta pulpitu");
+        naglowek(o, m, "Wygląd");
         k1_segment(o, m, TRESC_X, seg_y(), SEG_W, SEG_H, motywy, 2, apl.k.ustawienia[K1_UST_MOTYW], hover_seg);
         karty(o, m);
         break;
     case S_EKRAN:
-        naglowek(o, m, "Ekran", "Rozdzielczość obrazu");
+        naglowek(o, m, "Ekran");
         tryby(o, m);
         break;
     case S_BATERIA:
         bateria_rysuj(o, m);
         break;
     case S_MYSZ:
-        naglowek(o, m, "Mysz", "Prędkość wskaźnika");
+        naglowek(o, m, "Mysz");
         k1_segment(o, m, TRESC_X, seg_y(), SEG_W + 60, SEG_H, predkosci, 3, apl.k.ustawienia[K1_UST_MYSZ] - 1, hover_seg);
         break;
     case S_CZAS:
-        naglowek(o, m, "Data i czas", "Zegar na górnym pasku");
+        naglowek(o, m, "Data i czas");
         k1_segment(o, m, TRESC_X, seg_y(), SEG_W + 40, SEG_H, tak_nie, 2, apl.k.ustawienia[K1_UST_SEKUNDY], hover_seg);
         k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 64, "Strefa czasowa: Polska (czas letni ustawia się sam)",
                  k1_kolor(m->tekst3, 255), 0);

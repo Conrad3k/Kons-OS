@@ -90,8 +90,8 @@ zajętego: ustawienia, notatki systemu, stare wersje); części puste nie są po
 n z 16 384”. Liczby od skarbca: `SKARB_INFO` → `SKARB_MIEJSCE`, `SKARB_PODZIAL` → `SKARB_CZESC` (tylko liczby);
 przy wejściu do sekcji i co 3 s, gdy jest pokazana (import w Plikach widać od razu). Na pendrivie K1 z wolnym miejscem za
 K1-DANE: „Pendrive ma jeszcze X nieużywanego miejsca.” i przycisk **„Użyj całego pendrive'a na dane”** (przeniesiony
-z Informacji) — kliknięcie = zgoda, `SKARB_POWIEKSZ`, w trakcie „Powiększam… Nie wyjmuj pendrive'a.”, potem „Gotowe —
-cały pendrive jest teraz na dane.” (ADR 0033, `komponenty/skarbiec.md`). Sieć (0.9.0 krok 7, `siec.c`; decyzja D1:
+z Informacji) — kliknięcie = zgoda, `SKARB_POWIEKSZ`, w trakcie „Powiększam… Nie wyjmuj pendrive'a.”, potem „Gotowe.
+Cały pendrive jest teraz na dane.” (ADR 0033, `komponenty/skarbiec.md`). Sieć (0.9.0 krok 7, `siec.c`; decyzja D1:
 szkic B w `docs/WYGLAD.md`): kafelek na każdą kartę sieciową komputera (nazwa z tabeli `K1_KARTY_SIECIOWE` albo rodzaj
 i identyfikator, linijka opisu, plakietka stanu: Połączono / Łączę… / Brak kabla / Brak sterownika / Później — Wi-Fi /
 Nieobsługiwana), pod nimi „Szczegóły karty przewodowej” (sterownik z jądra, łącze: prędkość i dupleks, adres karty
@@ -102,8 +102,8 @@ sygnału, nazwa, kłódka, uwaga; najwyżej 6 wierszy), przy pokazaniu prośba o
 sieci 5 (z hasłem 4, otwarte 1, inne 0); wiersze od x,y co 40; przełącznik x,y; rodzaje 2,1,3,4,3; połączenie s (rząd r)” — bez
 nazw sieci. Od 0.9.1 krok 2 (`wifi_haslo.c`, D1, D2, D4): kliknięcie sieci rozwija jej wiersz — pole hasła (kropki, nigdy
 hasło), „Połącz” (sieć otwarta: napis „Sieć niezabezpieczona…”; zapamiętana: „Połącz” i „Zapomnij tę sieć”; połączona:
-„Zapomnij tę sieć”); przy wierszu „Połączono”, „Łączę…” albo „zapamiętana”; złe hasło: czerwona ramka pola i „Złe hasło —
-spróbuj jeszcze raz.” pod nim; Esc zamyka wiersz, wyjście z sekcji czyści wpisane hasło. Hasło idzie raz prosto do usługi
+„Zapomnij tę sieć”); przy wierszu „Połączono”, „Łączę…” albo „zapamiętana”; złe hasło: czerwona ramka pola i „Złe hasło.
+Spróbuj jeszcze raz.” pod nim; Esc zamyka wiersz, wyjście z sekcji czyści wpisane hasło. Hasło idzie raz prosto do usługi
 siec (fd 6, `KANAL_DO_SIECI`: `WIFI_HASLO`, `WIFI_WYBRANA`, `WIFI_POLACZ`, `WIFI_ZAPOMNIJ`) — nie przez nadzorcę; stan wraca
 w `WIFI_POLACZENIE`. Log „wifi: rząd i otwarty (rodzaj r); pole x,y; Połącz x,y; Zapomnij x,y”. Karty sieciowe — kafelki
 jak wyżej, karta Wi-Fi z plakietką Włączone/Wyłączone. Przeglądarka (0.10.0 krok 5, `przegladarka.c`; ADR 0020 p. 2, D2;
@@ -128,7 +128,7 @@ instalacji”. Pod kafelkiem jedno zdanie stanu i jeden przycisk: K1 z dysku —
 i co jest w drugim miejscu; nieudana próba — „Nowa wersja X nie uruchomiła się — działa poprzednia.” (terakota) i
 „Rozumiem”; czekająca nowa wersja — „wystartuje na próbę przy następnym uruchomieniu”; pendrive K1 z nowszą wersją niż
 dysk — „Na dysku tego komputera jest starsza wersja: X.” i **„Zaktualizuj K1 na dysku do Y”** (przeniesione z Instalatora,
-D3; dane zostają, bez wpisywania), w trakcie „Aktualizuję K1 na dysku… <etap>” z paskiem postępu, potem „Gotowe — Y czeka na
+D3; dane zostają, bez wpisywania), w trakcie „Aktualizuję K1 na dysku… <etap>” z paskiem postępu, potem „Gotowe. Y czeka na
 dysku obok X.” i „Uruchom ponownie”; ta sama wersja na dysku — „Zapisz K1 na dysku jeszcze raz” (zwykły przycisk: wersja
 deweloperska ma za każdym razem ten sam numer — tak pozwalał Instalator); nowsza wersja na dysku, dysk bez K1, dwa pendrive'y K1 — zdanie bez
 przycisku; błąd — tekst z `k1_inst_teksty.h` i „Sprawdź jeszcze raz”. Kanał od nadzorcy fd 7 (`KANAL_AKTUALIZACJI`: te same
@@ -136,8 +136,9 @@ przycisku; błąd — tekst z `k1_inst_teksty.h` i „Sprawdź jeszcze raz”. K
 (link Instalatora, okienko pulpitu po nieudanej próbie). Log „aktualizacje: <stan> (dysk: X, pendrive: Y); przycisk x,y”
 (stany: sprawdzam, bez instalacji, na dysku, nieudana próba, dysk starszy, ta sama wersja, dysk nowszy, dysk bez K1, dwa
 pendrive'y, trwa, gotowe, błąd). Aktualizacja przez sieć — w kroku 2 tej wersji. Okno Ustawień od 0.10.5 krok 1 ma
-720 × 520 (D2: dwanaście sekcji; wcześniej 680 × 480). Informacje (`informacje.c`): wersja, ekran, jądro, gdzie są dane i
-odesłanie do sekcji Miejsce.
+720 × 520 (D2: dwanaście sekcji; wcześniej 680 × 480). Informacje (`informacje.c`): wersja, ekran, jądro, gdzie są dane.
+Od 0.10.7 krok 1 sekcje mają sam tytuł, bez opisu pod nim (zasada właściciela Z2, `docs/WYGLAD.md`); treść zaczyna się
+32 px pod tytułem (`seg_y()` w `ustawienia.h`), w Sieci w tym miejscu stoją zakładki, a jej treść pod nimi (`SIEC_Y`).
 
 ### Instalator
 (0.5.9, ADR 0018, `src/aplikacje/instalacja/`, UID 204) — lista dysków od nadzorcy,
@@ -168,8 +169,7 @@ pobór; brak szacunku poniżej 0,1 W i powyżej 99 h).
 0.10.1 krok 3 (D3 właściciela: szkic B „paski sesji”): nad usługami część **„Sesje przeglądarki”** (gdy działa strefa bez
 sesji, np. strefa próbna w testach — „Strefy”): przy każdej działającej sesji kropka w jej kolorze, nazwa (od nadzorcy:
 `STREFA_NAZWA` — tekst użytkownika, nigdy w logu), „1,1 GB z 2,8 GB” i pasek 10 px — ile używa (kolor sesji) z tego, ile
-może dostać (`STREFA_PRZYDZIAL`: górna granica minus to, co K1 trzyma w jej balonie); pod nimi „Nieużywaną pamięć sesja
-oddaje K1 sama, po kilku sekundach.”. Usług jest wtedy o tyle mniej wierszy, ile zajmują sesje (najmniej 3). Log raz na
+może dostać (`STREFA_PRZYDZIAL`: górna granica minus to, co K1 trzyma w jej balonie); bez zdania pod nimi (0.10.7 krok 1). Usług jest wtedy o tyle mniej wierszy, ile zajmują sesje (najmniej 3). Log raz na
 strefę: „strefa N: używa X MiB z Y MiB”. Zapis pamięci („850 MB”, „1,2 GB”) — `k1_pamiec_tekst` przybornika (to samo
 w okienku „Mało pamięci”).
 
@@ -224,7 +224,7 @@ i liczbą, pod nią znak, co się stanie („Przenieś do „Obrazy””, „Do
 ciemnoczerwony „Nie można — …”), cel obrysowany akcentem. Decyduje **jedna tabela reguł** (źródło, cel) w przyborniku
 (`k1_przeciaganie`, ta sama na pulpicie): z folderu — przeniesienie albo Kosz, z Kosza — przywrócenie do folderu,
 z pendrive'a — import (kopia) do folderu, na Kosz — „Z pendrive'a możesz tylko skopiować pliki do K1 (import).”,
-na pendrive — „Nie możesz — pendrive jest w K1 tylko do odczytu.”, stały folder z lewej — „Nie możesz — foldery
+na pendrive — „Nie możesz: pendrive jest w K1 tylko do odczytu.”, stały folder z lewej — „Nie możesz: foldery
 Pulpit, … są stałe.”, folder w samym sobie, ponad 8 poziomów, brak miejsca na import — odmowa z powodem. Przed Koszem
 pytanie (D8), gdy elementów jest więcej niż jeden albo folder ma coś w środku: **okienko** w wyglądzie menu przy
 miejscu upuszczenia („Przenieść 12 elementów do Kosza?” — „Przenieś do Kosza” / „Anuluj”); zajęta nazwa w folderze

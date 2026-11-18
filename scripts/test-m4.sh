@@ -603,7 +603,7 @@ dane = czekaj(r"K1-ZASOBY: dane od nadzorcy: procesor (\d+)‰, pamięć (\d+) z
 sprawdz("Zasoby: uruchomione z dolnego paska, dane od nadzorcy (procesor, pamięć)", zs and dane and int(dane.group(3)) > 100,
         dane.group(0) if dane else "brak danych")
 sprawdz("Zasoby: wiersz baterii (QEMU bez baterii: zasilanie z sieci)",
-        czekaj(r"K1-ZASOBY: bateria: Brak baterii — zasilanie z sieci", czas=10))
+        czekaj(r"K1-ZASOBY: bateria: Brak baterii, zasilanie z sieci", czas=10))
 if zs:
     zx, zy = int(zs.group(4)), int(zs.group(5))
     # wykres pamięci: linia w kolorze akcentu (motyw ciemny), próbka co sekundę; ok. 7 próbek to ≈ 50 px

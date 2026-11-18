@@ -55,7 +55,7 @@ int akt_siec_pendrive(char *buf, size_t n) /* D5: the line under a stick's state
     if (st.typ != K1_KOM_AKT_STAN || !(st.e & K1_AKT_FL_PENDRIVE) || st.c == 0)
         return 0;
     k1_wersja_tekst((uint32_t)st.c, w, sizeof w);
-    snprintf(buf, n, "Jest nowsza wersja K1 %s — nagraj nowy pendrive (README).", w);
+    snprintf(buf, n, "Jest nowsza wersja K1 %s. Nagraj nowy pendrive (README).", w);
     return 1;
 }
 
@@ -183,16 +183,16 @@ static int32_t zdania(struct k1_obraz *o, const struct k1_motyw *m, int32_t y, i
     switch (v) {
     case W_SPRAWDZA: snprintf(t, sizeof t, "Sprawdzam, czy jest nowa wersja K1…"); break;
     case W_POBIERA: snprintf(t, sizeof t, "Pobieram K1 %s… %d %%", w, (int)et.b); break;
-    case W_INSTALUJE: snprintf(t, sizeof t, "Zapisuję… %d %% — potem komputer uruchomi się ponownie.", (int)et.b); break;
+    case W_INSTALUJE: snprintf(t, sizeof t, "Zapisuję… %d %%. Potem komputer uruchomi się ponownie.", (int)et.b); break;
     case W_GOTOWA: snprintf(t, sizeof t, "K1 %s jest gotowa do instalacji.", w); break;
     case W_WROC: snprintf(t, sizeof t, "Wrócić do K1 %s? Komputer uruchomi się ponownie.", d); break;
     case W_NAJNOWSZA:
         localtime_r(&kiedy, &tm);
-        snprintf(t, sizeof t, "Sprawdzono o %02d:%02d — masz najnowszą wersję.", tm.tm_hour, tm.tm_min);
+        snprintf(t, sizeof t, "Sprawdzono o %02d:%02d. Masz najnowszą wersję.", tm.tm_hour, tm.tm_min);
         break;
     case W_BRAK_SIECI: snprintf(t, sizeof t, "Nie udało się sprawdzić (brak połączenia)."); break;
     case W_NIEUDANE: snprintf(t, sizeof t, "Nie udało się sprawdzić, czy jest nowa wersja."); break;
-    case W_ODRZUCONE: snprintf(t, sizeof t, "Przyszło ogłoszenie bez podpisu K1 — odrzucone."); break;
+    case W_ODRZUCONE: snprintf(t, sizeof t, "Przyszło ogłoszenie bez podpisu K1. Odrzucone."); break;
     default: snprintf(t, sizeof t, "K1 sprawdza nowe wersje, gdy jest połączenie z internetem."); break;
     }
     k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X, y, t, k1_kolor(m->tekst, 255), szer);
@@ -205,10 +205,10 @@ static int32_t zdania(struct k1_obraz *o, const struct k1_motyw *m, int32_t y, i
     if (v == W_GOTOWA) {
         y = opisy(o, m, y, szer);
         if (st.e & K1_AKT_FL_NOWA_LINIA)
-            y = akapit(o, y, "Nowe jądro Linux — jeśli coś przestanie działać, wróć do poprzedniej wersji.",
+            y = akapit(o, y, "Nowe jądro Linux. Jeśli coś przestanie działać, wróć do poprzedniej wersji.",
                        k1_kolor(m->akcent_tekst, 255), szer);
     } else if (v == W_WROC) {
-        y = akapit(o, y, "Wersja, z której wrócisz, nie będzie proponowana ponownie — dopiero następna.",
+        y = akapit(o, y, "Wersja, z której wrócisz, nie będzie proponowana ponownie. Dopiero następna.",
                    k1_kolor(m->tekst2, 255), szer);
     } else if (v == W_NAJNOWSZA || v == W_NIGDY) {
         k1_el(K1_EL_ZMIENNE, "Czas sprawdzenia", TRESC_X - 4, y - 42, szer + 8, 24, 0);

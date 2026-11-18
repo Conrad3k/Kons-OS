@@ -6,7 +6,7 @@
 #   1. Pliki pokazują miejsce „Pendrive”; po kliknięciu nadzorca uruchamia czytnik (UID 106, pendrive tylko do
 #      odczytu), czytnik rozpoznaje FAT32, Pliki pokazują foldery (bez ukrytych plików)
 #   2. DCIM › 100K1 → „Importuj wszystkie”: dziewięć plików (zdjęcia, uszkodzony JPEG, od 0.8.2 duże zdjęcia, GIF, BMP,
-#      WebP) trafia do Obrazów, skarbiec rozpoznaje je jako obrazy; drugi raz: nic nie przybywa, „Pominięto 9 — już
+#      WebP) trafia do Obrazów, skarbiec rozpoznaje je jako obrazy; drugi raz: nic nie przybywa, „Pominięto 9, już
 #      zaimportowane” (0.8.2 krok 2, D3)
 #   3. pojedynczo: plik 17 MB (do 0.8.0 „za duży”) i film 300 MB → Dokumenty kawałkami po 1 MiB (0.8.1 krok 4: czytnik
 #      ma cgroup 32 MiB, a Pliki i skarbiec dostają najwyżej kawałek), zdjęcie z polską nazwą → Obrazy, notatka → Dokumenty
@@ -238,7 +238,7 @@ sprawdz("„Importuj wszystkie”: 9 plików → Obrazy (GIF, BMP i WebP też �
 sprawdz("skarbiec: 9 plików z pendrive'a, wszystkie rozpoznane z treści jako obrazy",
         czekaj(r"K1-PLIKI: pliki z pendrive'a: 9 \(obrazy: 9\)"))
 zrzut("4-zaimportowane", gdy=lambda w, h, px: True)
-sprawdz("(0.8.2, D3) „Importuj wszystkie” drugi raz: nic nowego — „Pominięto 9 — już zaimportowane” (ta sama nazwa, "
+sprawdz("(0.8.2, D3) „Importuj wszystkie” drugi raz: nic nowego — „Pominięto 9, już zaimportowane” (ta sama nazwa, "
         "rozmiar i czas z pendrive'a)", importuj(lambda: klik(*p["Importuj wszystkie"]), 0, 0, 0, pominiete=9))
 zrzut("4-pominiete", gdy=lambda w, h, px: True)
 # 3. one by one, from the main folder (rows: DCIM, film.mp4, notatka.txt, Wakacje…, wideo.mp4)
@@ -478,7 +478,7 @@ p = przyciski()
 sprawdz("„Importuj wszystkie”: 1100 plików → Obrazy (każdy z czasem z pendrive'a)",
         "Importuj wszystkie" in p and importuj(lambda: klik(*p["Importuj wszystkie"]), 1100, 1100, 0, czas=float(limit) * 0.4))
 zrzut("9-zaimportowane-1100", gdy=lambda w, h, px: True)
-sprawdz("drugi raz: „Pominięto 1100 — już zaimportowane”, nic nie przybywa",
+sprawdz("drugi raz: „Pominięto 1100, już zaimportowane”, nic nie przybywa",
         importuj(lambda: klik(*p["Importuj wszystkie"]), 0, 0, 0, pominiete=1100, czas=120) and
         widok(lambda: klik(*miejsce(2)), "Obrazy", 1109))  # 10 + 1100, one in Kosz (Podgląd, 4c)
 # 6. the log

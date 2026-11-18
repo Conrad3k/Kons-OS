@@ -189,7 +189,7 @@ static void import_koniec(void)
     size_t z;
     char *e = dalej_komunikat(&z);
     if (imp.pominiete > 0) {
-        snprintf(e, z, "%sPominięto %d — już zaimportowane.", komunikat[0] ? " " : "", imp.pominiete);
+        snprintf(e, z, "%sPominięto %d, już zaimportowane.", komunikat[0] ? " " : "", imp.pominiete);
         e = dalej_komunikat(&z);
     }
     if (imp.duze > 0) {
@@ -315,7 +315,7 @@ static void import_przerwany(int wynik)
     imp.bledy += imp.n - imp.i - 1;
     imp.i = imp.n;
     import_koniec();
-    snprintf(komunikat, sizeof komunikat, "%s — zaimportowano %d z %d.", dlaczego, imp.zapisane, imp.n);
+    snprintf(komunikat, sizeof komunikat, "%s. Zaimportowano %d z %d.", dlaczego, imp.zapisane, imp.n);
 }
 
 int pendrive_wynik_skarbca(const struct k1_komunikat *k)
@@ -497,8 +497,8 @@ const char *pendrive_stopka(void)
         return pen_wiecej ? "Pokazano pierwsze 16 384 elementy tego folderu." : NULL;
     case PEN_CZEKA: return "Czytanie pendrive'a…";
     case K1_PEN_BLAD_FORMAT: return "K1 jeszcze nie czyta tego pendrive'a (np. exFAT, NTFS).";
-    case K1_PEN_BLAD_USZKODZONY: return "Pendrive jest uszkodzony — sprawdź go na innym komputerze.";
+    case K1_PEN_BLAD_USZKODZONY: return "Pendrive jest uszkodzony. Sprawdź go na innym komputerze.";
     case PEN_ZAMKNIETY: return NULL;
-    default: return "Pendrive nie odpowiada — wyjmij go i włóż ponownie.";
+    default: return "Pendrive nie odpowiada. Wyjmij go i włóż ponownie.";
     }
 }

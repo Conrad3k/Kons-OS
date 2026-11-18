@@ -116,7 +116,9 @@ Robot i wydania (od 0.10.5: ADR 0046 i 0047, docs/komponenty/robot.md i aktualiz
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
-[ ]  1  Teksty: bez opisów i bez półpauz                    W1–W3            0.10.5      D2, T1           M        brak
+[w toku: Claude, gałąź claude/exciting-archimedes-7r215w]
+[ ]  1  Teksty: bez opisów i bez półpauz                  W1–W3            0.10.5      D2, T1           M        brak
+     [w toku: Claude, gałąź claude/exciting-archimedes-7r215w]
 [ ]  2  Ustawienia: sekcje w środku                         W4–W9            1           D3, T2, T3       M        brak
 [ ]  3  Pliki: przyciski, szczegóły, pusty folder           W10–W11          1           D4, T4           M        brak
 [ ]  4  Ramka okna strefy: kolor sesji dyskretnie           W12              1           D1, T5           M        0048
@@ -168,6 +170,11 @@ KROK 2: Ustawienia: sekcje w środku                                           M
       w odmianie bez obrysu, jeśli jej nie ma, to jedna nowa odmiana w przyborniku, nie rysowanie ręczne).
   [ ] Ikona Sieci (K1_IK_SIEC, W9): trzy łuki Wi-Fi z kropką (ta sama grubość linii co reszta ikon); ikona jest też na
       górnym pasku i w menu: jedna zmiana w k1_rysuj.c.
+  [ ] Bateria (prośba właściciela 2026-11-18, przy obrazach kroku 1): komputer bez baterii nie ma sekcji „Bateria” na
+      liście (znika, gdy nadzorca powie „brak baterii”, wraca, gdy bateria się pojawi). Numery S_* bez zmian (T2); testy,
+      które klikają sekcje po numerze, liczą tylko widoczne.
+  [ ] Informacje: wersja jądra z jadro/wersja.env przy budowie (zgłoszenie właściciela 2026-11-18: na 0.10.5 widać
+      „Linux 6.18”, a działa 7.3.5; napis był wpisany na sztywno).
   [ ] Tryby ekranu i karty tapet zgłaszane do opisu ekranu (k1_el, T3): test-m4 klika „1280 × 800” po nazwie, bez
       położeń z logu (TESTY.md: lista wyjątków krótsza).
   Testy i dowód: test-wzorce (wszystkie sekcje Ustawień, oba motywy, „przed / po”), test-m4.
@@ -215,6 +222,8 @@ KROK 4: Ramka okna strefy: kolor sesji dyskretnie (ADR 0048)                  M 
 KROK 5: Błąd: Aktualizacje po ponownym otwarciu Ustawień                      S · T6 · bez ADR
   Zgłoszenie właściciela (2026-11-18, na sprzęcie, 0.10.5): Ustawienia otwarte i zamknięte, potem otwarte jeszcze raz;
   kliknięcie „Aktualizacje” na liście sekcji wywala aplikację (okno Ustawień znika). Przy pierwszym otwarciu działa.
+  Drugie zgłoszenie (2026-11-18): „Sprawdź teraz” (sprawdzenie, czy są aktualizacje) też wywala Ustawienia; poprawka
+  i test obejmują oba przypadki (być może jedna przyczyna: odbiór stanu i opisu wersji w aktualizacje_siec.c).
   Cel: sekcja Aktualizacje działa przy każdym otwarciu Ustawień; ponowne otwarcie okna nie zależy od tego, co zostało
   po poprzednim.
   Zadania:
