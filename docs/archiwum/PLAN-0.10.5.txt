@@ -141,7 +141,7 @@ Osiem kroków:
 [x]  7  Jądro Linux 7.x (najnowsza linia)                  S52–S55          3           D14, T19 T20     M        —
      PR #165
 [x]  8  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–7         D10              M        —
-     PR #NR_PR
+     PR #167
 (Numery ADR — następne wolne po ADR 0045 z 0.10.2; jeśli zajmą więcej, krok bierze kolejne wolne.)
 
 Dlaczego tyle: krok 1 to sama aplikacja (bez sieci) — panel, okno i przeniesienie, łatwe do przetestowania osobno;

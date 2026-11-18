@@ -28,7 +28,7 @@ punkt 0 „Robot i wydania”).
     [x] krok 5 — Raptor Bridge: test mostu z wnętrza strefy, poprawki, opis — PR #161
     [x] krok 6 — Alt+Tab, Przeglądarka na pasku i pulpicie — PR #164
     [x] krok 7 — jądro Linux 7.3 dla K1 i stref — PR #165
-    [x] krok 8 — przegląd dokumentacji, wydanie 0.10.5 — PR #NR_PR
+    [x] krok 8 — przegląd dokumentacji, wydanie 0.10.5 — PR #167
     [ ] po wydaniu: robot w pełny tryb (ROBOT_PROBNY „0” w robot.yml — osobny PR)
 Wcześniej: 0.10.2 Testy (PR #144, #145, #149), 0.10.1 Balon (PR #134, #137, #139, #140, #142), 0.10.0 Strefy (PR #114,
 #119, #126, #128, #132) — plany w docs/archiwum/.
