@@ -220,6 +220,7 @@ static void skomponuj(void)
                 strefa_ramka(p, &r); /* before the zone's picture: outside it, never covered by it */
             k1_skladaj(&s.scena, &o, p->x, p->y, r.x, r.y, r.w, r.h);
         }
+        rozmiar_rysuj(&r); /* 0.10.5 step 4: the outline of a window being resized, over everything */
     }
     s.nowe.n = 0;
     /* The scene is our own copy now: clients may draw their other half again. */
@@ -263,9 +264,15 @@ void zapisz_klatke(struct bufor *b, struct drm_clip_rect *zmiany, unsigned *n_zm
         dodaj_zmiane(zmiany, n_zmian, r);
     }
     b->brud.n = 0;
-    b->kx = s.x - K1_KURSOR_HOT_X;
-    b->ky = s.y - K1_KURSOR_HOT_Y;
-    k1_naloz_sprite(&b->obraz, s.kursor[s.wcisniety ? 1 : 0], K1_KURSOR_SZER, K1_KURSOR_WYS, b->kx, b->ky);
+    if (s.ksztalt != K1_KURSOR_STRZALKA) { /* 0.10.5 step 4: over a grip of a zone's frame, its hotspot in the middle */
+        b->kx = s.x - K1_KURSOR_SROD_X;
+        b->ky = s.y - K1_KURSOR_SROD_Y;
+        k1_naloz_sprite(&b->obraz, s.kursor_rozm[s.ksztalt - 1], K1_KURSOR_SZER, K1_KURSOR_WYS, b->kx, b->ky);
+    } else {
+        b->kx = s.x - K1_KURSOR_HOT_X;
+        b->ky = s.y - K1_KURSOR_HOT_Y;
+        k1_naloz_sprite(&b->obraz, s.kursor[s.wcisniety ? 1 : 0], K1_KURSOR_SZER, K1_KURSOR_WYS, b->kx, b->ky);
+    }
     b->ma_kursor = 1;
     dodaj_zmiane(zmiany, n_zmian, (struct prost){ b->kx, b->ky, K1_KURSOR_SZER, K1_KURSOR_WYS });
 }

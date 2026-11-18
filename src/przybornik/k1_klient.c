@@ -105,22 +105,31 @@ void k1_klient_start(struct k1_klient *k, const char *tag)
         k1_koniec(tag, "ekran nie odpowiedział");
 }
 
+/* A sealed memfd of `rozmiar` bytes, mapped here (*mem); its descriptor. Ends the program on failure. */
+static int pamiec_powierzchni(struct k1_klient *k, size_t rozmiar, uint32_t **mem)
+{
+    int fd = (int)syscall(SYS_memfd_create, "k1-okno", MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL);
+    void *m;
+    if (fd < 0 || ftruncate(fd, (off_t)rozmiar) != 0)
+        k1_koniec(k->tag, "pamięć powierzchni: %s", strerror(errno));
+    m = mmap(NULL, rozmiar, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (m == MAP_FAILED)
+        k1_koniec(k->tag, "mmap powierzchni: %s", strerror(errno));
+    /* Sealed: ekran maps it read-only and can rely on the size never changing. */
+    if (fcntl(fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_SEAL) != 0)
+        k1_koniec(k->tag, "pieczęcie memfd: %s", strerror(errno));
+    *mem = m;
+    return fd;
+}
+
 void k1_pow_utworz(struct k1_klient *k, struct k1_powierzchnia *p, uint32_t id, int32_t szer, int32_t wys, int rodzaj,
                    int32_t x, int32_t y)
 {
     size_t rozmiar = (size_t)szer * (size_t)wys * 4u * 2u;
     struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, id, szer, wys, rodzaj,
                                               rodzaj == K1_POW_PANEL ? x : 0, rodzaj == K1_POW_PANEL ? y : 0);
-    int fd = (int)syscall(SYS_memfd_create, "k1-okno", MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL);
-    void *mem;
-    if (fd < 0 || ftruncate(fd, (off_t)rozmiar) != 0)
-        k1_koniec(k->tag, "pamięć powierzchni: %s", strerror(errno));
-    mem = mmap(NULL, rozmiar, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (mem == MAP_FAILED)
-        k1_koniec(k->tag, "mmap powierzchni: %s", strerror(errno));
-    /* Sealed: ekran maps it read-only and can rely on the size never changing. */
-    if (fcntl(fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_SEAL) != 0)
-        k1_koniec(k->tag, "pieczęcie memfd: %s", strerror(errno));
+    uint32_t *mem;
+    int fd = pamiec_powierzchni(k, rozmiar, &mem);
     memset(p, 0, sizeof *p);
     p->id = id;
     p->szer = szer;
@@ -161,6 +170,25 @@ void k1_pow_zatwierdz_obszar(struct k1_klient *k, struct k1_powierzchnia *p, int
     p->pokazywana = pol;
     p->czeka = 1;
     p->brudna = 0;
+}
+
+void k1_pow_zamien(struct k1_klient *k, struct k1_powierzchnia *p, int32_t szer, int32_t wys)
+{
+    size_t rozmiar = (size_t)szer * (size_t)wys * 4u * 2u;
+    struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, p->id, szer, wys, K1_POW_OKNO, 0, 1);
+    uint32_t *mem;
+    int fd = pamiec_powierzchni(k, rozmiar, &mem);
+    if (k1_kanal_wyslij(k->fd, &m, sizeof m, fd) != 0)
+        k1_koniec(k->tag, "nowa powierzchnia okna: %s", strerror(errno));
+    close(fd);
+    if (p->pamiec != NULL)
+        munmap(p->pamiec, (size_t)p->szer * (size_t)p->wys * 4u * 2u);
+    p->pamiec = mem;
+    p->szer = szer;
+    p->wys = wys;
+    p->pokazywana = -1;
+    p->czeka = 0; /* a RAMKA of the old one may still come: it says nothing about this one */
+    p->brudna = 1;
 }
 
 void k1_pow_usun(struct k1_klient *k, struct k1_powierzchnia *p)

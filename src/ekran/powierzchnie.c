@@ -32,7 +32,7 @@ static const char *miejsce_na_pow(int kl, const struct k1_komunikat *m, size_t r
     const struct klient *k = &s.kl[kl];
     size_t zajete = 0;
     int i, okien = 0;
-    if (znajdz_pow(kl, m->obiekt) >= 0)
+    if (znajdz_pow(kl, m->obiekt) >= 0 && !(m->c == K1_POW_OKNO && m->e == 1))
         return "powierzchnia o tym numerze już istnieje";
     if (m->c == K1_POW_PULPIT && (k->rola != K1_ROLA_POWLOKA || ma_pulpit(kl)))
         return k->rola != K1_ROLA_POWLOKA ? "pulpit tylko dla powłoki" : "drugi pulpit";
@@ -44,7 +44,7 @@ static const char *miejsce_na_pow(int kl, const struct k1_komunikat *m, size_t r
     for (i = 0; i < MAKS_POW; i++) {
         if (!s.p[i].uzyta && *wolny < 0)
             *wolny = i;
-        if (s.p[i].uzyta && s.p[i].kl == kl) {
+        if (s.p[i].uzyta && s.p[i].kl == kl && !(m->e == 1 && s.p[i].id == m->obiekt)) { /* a replaced one: not */
             okien++;
             zajete += s.p[i].rozmiar;
         }
@@ -93,6 +93,40 @@ static void polozenie_nowej(struct pow *p, const struct k1_komunikat *m)
     }
 }
 
+/* 0.10.5 step 4 (T12): a window's surface in the size ekran asked for (ROZMIAR) in place of the old one — shown from
+ * its first commit; any other size, or no request, is refused (the old picture stays). NULL: taken. */
+static const char *zamiana(int kl, const struct k1_komunikat *m, int fd)
+{
+    int i = znajdz_pow(kl, m->obiekt);
+    size_t rozmiar = (size_t)m->a * (size_t)m->b * 4u * 2u;
+    const char *powod;
+    int wolny;
+    void *mem;
+    struct pow *p;
+    if (i < 0 || s.p[i].rodzaj != K1_POW_OKNO)
+        powod = "zamiana nieznanej powierzchni";
+    else if (s.p[i].zadany_w == 0 || m->a != s.p[i].zadany_w || m->b != s.p[i].zadany_h)
+        powod = "rozmiar inny niż ten, o który prosił ekran";
+    else if ((powod = miejsce_na_pow(kl, m, rozmiar, &wolny)) == NULL)
+        powod = sprawdz_memfd(fd, rozmiar);
+    if (powod != NULL) {
+        close(fd);
+        return powod;
+    }
+    mem = mmap(NULL, rozmiar, PROT_READ, MAP_SHARED, fd, 0);
+    close(fd);
+    if (mem == MAP_FAILED)
+        return "mmap powierzchni nieudany";
+    p = &s.p[i];
+    if (p->nowa_mem != NULL) /* a newer size came before the last one was shown */
+        munmap((void *)(uintptr_t)p->nowa_mem, p->nowa_rozmiar);
+    p->nowa_mem = mem;
+    p->nowa_rozmiar = rozmiar;
+    p->nowa_w = m->a;
+    p->nowa_h = m->b;
+    return NULL;
+}
+
 void nowa_pow(int kl, const struct k1_komunikat *m, int fd)
 {
     size_t rozmiar = (size_t)m->a * (size_t)m->b * 4u * 2u;
@@ -103,6 +137,11 @@ void nowa_pow(int kl, const struct k1_komunikat *m, int fd)
 
     if (fd < 0) {
         odrzuc(kl, "powierzchnia bez deskryptora");
+        return;
+    }
+    if (m->c == K1_POW_OKNO && m->e == 1) {
+        if ((powod = zamiana(kl, m, fd)) != NULL)
+            odrzuc(kl, powod);
         return;
     }
     powod = miejsce_na_pow(kl, m, rozmiar, &wolny);
@@ -142,6 +181,18 @@ void zatwierdz(int kl, const struct k1_komunikat *m)
     if (i < 0)
         { odrzuc(kl, "zatwierdzenie nieznanej powierzchni"); return; }
     p = &s.p[i];
+    if (p->nowa_mem != NULL) { /* the first commit of the new size: it replaces the old surface now */
+        uszkodz_pow(p);
+        munmap((void *)(uintptr_t)p->mem, p->rozmiar);
+        p->mem = p->nowa_mem;
+        p->rozmiar = p->nowa_rozmiar;
+        p->w = p->nowa_w;
+        p->h = p->nowa_h;
+        p->nowa_mem = NULL;
+        p->polowa = m->a;
+        uszkodz_pow(p);
+        k1_log(TAG, "okno %u: powierzchnia %dx%d w %d,%d", p->okno, (int)p->w, (int)p->h, (int)p->x, (int)p->y);
+    }
     p->polowa = m->a;
     p->czeka_ramka = 1;
     if (!p->widoczna) {
@@ -153,6 +204,8 @@ void zatwierdz(int kl, const struct k1_komunikat *m)
                    (int)p->y);
             zglos_okno(p, K1_OKNO_NOWE);
             na_wierzch(i);
+            if (okno_strefy(p))
+                rozmiar_nowe_okno(i); /* 0.10.5 step 4: the size its session had */
             /* Focus stealing protection: a new window gets the keyboard only if nothing else has
              * it, the focused window is the client's own, or it is the first window of a client
              * that has just been started (by the user, through the shell). Otherwise it opens

@@ -11,7 +11,7 @@
 
 /* xdg_wm_base.error, xdg_surface.error (xdg-shell.xml) */
 enum { WM_ROLA = 0, WM_NIE_NAJWYZSZE = 2, WM_ZLY_POZYCJONER = 5, XS_NIESKONFIGUROWANA = 3 };
-enum { STAN_ZMAKSYMALIZOWANE = 1, STAN_AKTYWNE = 4 };
+enum { STAN_ZMAKSYMALIZOWANE = 1, STAN_PELNY = 2, STAN_AKTYWNE = 4 };
 
 static struct xdg_pow *okna[OKNA_MAKS];
 static unsigned n_okien;
@@ -84,6 +84,26 @@ static void umiesc(struct xdg_pow *x)
         x->x = (ekran.szer - gw) / 2;
         x->y = (ekran.wys - gh) / 3;
     }
+}
+
+/* The configure of a main window (a toplevel without a parent): the whole display, maximized — or full screen when it
+ * asked (0.10.5 step 4, T14: the zone's display is all it ever gets; K1's bars and frame stay), active. */
+static void konfiguruj_glowne(struct xdg_pow *x)
+{
+    uint32_t stany[2] = { x->pelny ? STAN_PELNY : STAN_ZMAKSYMALIZOWANE, STAN_AKTYWNE };
+    zdarzenie(x->rola, 0, "iia", ekran.szer, ekran.wys, stany, (uint32_t)sizeof stany);
+    zdarzenie(x->o, 0, "u", kolejny_serial());
+}
+
+void xdg_nowy_rozmiar(void)
+{
+    unsigned i;
+    for (i = 0; i < n_okien; i++)
+        if (okna[i]->okno == 1 && okna[i]->rodzic == NULL && okna[i]->rola != NULL)
+            konfiguruj_glowne(okna[i]);
+        else if (okna[i]->okno == 1)
+            umiesc(okna[i]); /* a dialog: in the middle of the new display */
+    scena_zmiana(0, 0, ekran.szer, ekran.wys);
 }
 
 void xdg_po_zatwierdzeniu(struct powierzchnia *p)
@@ -387,11 +407,28 @@ static void t_seat(struct klient *k, struct obiekt *o, union arg *a)
     obiekt_typu(k, a[0].o, IF_SEAT, 0);
 }
 
+/* set_fullscreen / unset_fullscreen (T14): the state changes, the size does not — the zone's display. */
+static void pelny(struct obiekt *o, int tak)
+{
+    struct xdg_pow *x = o->dane;
+    if (x == NULL || x->pelny == tak)
+        return;
+    x->pelny = tak;
+    if (x->skonfigurowana && x->rodzic == NULL)
+        konfiguruj_glowne(x);
+}
+
 static void t_pelny(struct klient *k, struct obiekt *o, union arg *a)
 {
-    (void)o;
-    if (a[0].o != NULL)
-        obiekt_typu(k, a[0].o, IF_OUTPUT, 0);
+    if (a[0].o != NULL && obiekt_typu(k, a[0].o, IF_OUTPUT, 0) == NULL)
+        return;
+    pelny(o, 1);
+}
+
+static void t_bez_pelnego(struct klient *k, struct obiekt *o, union arg *a)
+{
+    (void)k, (void)a;
+    pelny(o, 0);
 }
 
 static void w_chwyt(struct klient *k, struct obiekt *o, union arg *a)
@@ -422,7 +459,7 @@ static const struct zadanie z_t[] = {
     { "set_app_id", "s", t_napis, 0 },  { "show_window_menu", "ouii", t_seat, 0 }, { "move", "ou", t_seat, 0 },
     { "resize", "ouu", t_seat, 0 },     { "set_max_size", "ii", nic, 0 },     { "set_min_size", "ii", nic, 0 },
     { "set_maximized", "", nic, 0 },    { "unset_maximized", "", nic, 0 },    { "set_fullscreen", "?o", t_pelny, 0 },
-    { "unset_fullscreen", "", nic, 0 }, { "set_minimized", "", nic, 0 },
+    { "unset_fullscreen", "", t_bez_pelnego, 0 }, { "set_minimized", "", nic, 0 },
 };
 static const struct zadanie z_w[] = { { "destroy", "", nic, 1 }, { "grab", "ou", w_chwyt, 0 } };
 const struct obsluga ob_wm_base = OBSLUGA(z_wm, NULL, NULL);

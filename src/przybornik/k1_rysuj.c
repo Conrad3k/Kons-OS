@@ -380,6 +380,11 @@ static const struct prym ik_restart[] = { { P_LUK, 12, 12, 7.5f, 60, 330 },
                                           { P_KRESKA, 18.5f, 8.6f, 14.9f, 8.6f, 0 } };
 static const struct prym ik_zamknij[] = { { P_KRESKA, 7.5f, 7.5f, 16.5f, 16.5f, 0 }, { P_KRESKA, 16.5f, 7.5f, 7.5f, 16.5f, 0 } };
 static const struct prym ik_minimalizuj[] = { { P_KRESKA, 7.5f, 12, 16.5f, 12, 0 } };
+/* 0.10.5 step 4 (D8): maximize — a square; restore — two squares, the back one only where the front does not cover it */
+static const struct prym ik_maksymalizuj[] = { { P_PROST, 6.5f, 6.5f, 11, 11, 2 } };
+static const struct prym ik_przywroc[] = { { P_PROST, 5, 9, 10, 10, 2 }, { P_KRESKA, 9, 9, 9, 7, 0 },
+                                          { P_KRESKA, 10.5f, 5.5f, 17, 5.5f, 0 }, { P_KRESKA, 18.5f, 7, 18.5f, 13.5f, 0 },
+                                          { P_KRESKA, 18.5f, 15, 15, 15, 0 } };
 static const struct prym ik_klodka[] = { { P_PROST, 5.5f, 10.5f, 13, 10, 2.5f }, { P_LUK, 12, 10.5f, 4, -90, 90 },
                                          { P_KRESKA, 8, 10.5f, 8, 9, 0 }, { P_KRESKA, 16, 10.5f, 16, 9, 0 } };
 static const struct prym ik_info[] = { { P_OKRAG, 12, 12, 8.5f, 0, 0 }, { P_KOLO, 12, 8, 1.2f, 0, 0 },
@@ -500,6 +505,7 @@ void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozm
         [K1_IK_USTAWIENIA] = IK(ik_ustawienia), [K1_IK_GLOSNIK] = IK(ik_glosnik),
         [K1_IK_ZASILANIE] = IK(ik_zasilanie), [K1_IK_RESTART] = IK(ik_restart),
         [K1_IK_ZAMKNIJ] = IK(ik_zamknij),   [K1_IK_MINIMALIZUJ] = IK(ik_minimalizuj),
+        [K1_IK_MAKSYMALIZUJ] = IK(ik_maksymalizuj), [K1_IK_PRZYWROC] = IK(ik_przywroc),
         [K1_IK_KLODKA] = IK(ik_klodka),     [K1_IK_INFO] = IK(ik_info),
         [K1_IK_MYSZ] = IK(ik_mysz),         [K1_IK_WYGLAD] = IK(ik_wyglad),
         [K1_IK_ZASOBY] = IK(ik_zasoby),     [K1_IK_EKRAN] = IK(ik_ekran),

@@ -43,6 +43,8 @@ static int schowane;              /* closed by the user: the surface is gone, th
 static double anim_t;             /* the start screen's last frame (k1_teraz) */
 static unsigned anim_n;
 static char sesja[K1_STREFA_NAZWA_MAKS + 1]; /* the session's name as the user set it (argv[4]), "" none */
+static int czysta[2];         /* 0.10.5 step 4: a half of a new surface still to be cleared (opaque) before copying */
+static unsigned long zmiany_rozmiaru;
 
 static void dodaj(struct prost *p, uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1)
 {
@@ -222,7 +224,7 @@ void okno_obraz(void)
         animuj();
         return;
     }
-    r = !obraz_gosc ? (struct prost){ 0, 0, szer, wys } : brud[pol];
+    r = !obraz_gosc || czysta[pol] ? (struct prost){ 0, 0, szer, wys } : brud[pol];
     if (src == NULL || r.x1 <= r.x0 || (o = k1_pow_rysuj(&okno)) == NULL) {
         zamek_oddaj();
         return;
@@ -237,11 +239,38 @@ void okno_obraz(void)
         else
             k1_log(TAG, "pierwszy obraz gościa (%ux%u)", w, h);
     }
+    if (czysta[pol]) { /* a new size: what the guest's picture does not cover yet is black, never see-through */
+        k1_wyczysc(o, 0xff000000u);
+        czysta[pol] = 0;
+    }
     kopiuj(o, src, w, h, r);
     brud[pol] = (struct prost){ 0, 0, 0, 0 };
     zamek_oddaj();
     k1_pow_zatwierdz_obszar(&kl, &okno, (int32_t)r.x0, (int32_t)r.y0, (int32_t)(r.x1 - r.x0), (int32_t)(r.y1 - r.y0));
     klatki++;
+}
+
+/* ekran gave the window a new size (ROZMIAR, 0.10.5 step 4, T12): a new surface of exactly that size, the guest told
+ * through virtio-gpu (its kernel asks for the display again, its program draws the new size). Under mz.zamek. */
+static void nowy_rozmiar(const struct k1_komunikat *m)
+{
+    uint32_t w = (uint32_t)m->a, h = (uint32_t)m->b;
+    if (w == szer && h == wys)
+        return;
+    if (w > (uint32_t)kl.szer_ekranu || h > (uint32_t)kl.wys_ekranu) { /* ekran's own limit is the work area */
+        k1_log(TAG, "okno: rozmiar %ux%u większy niż ekran — pominięty", w, h);
+        return;
+    }
+    szer = w;
+    wys = h;
+    k1_pow_zamien(&kl, &okno, (int32_t)w, (int32_t)h);
+    czysta[0] = czysta[1] = 1;
+    brud[0] = brud[1] = (struct prost){ 0, 0, w, h };
+    anim_n = 0; /* the start screen, if it still shows: whole frames again */
+    gpu_zmiana_ekranu();
+    zmiany_rozmiaru++;
+    k1_log(TAG, "okno: nowy rozmiar %ux%u%s (zmiana %lu)", w, h, m->c ? " — zmaksymalizowane" : "", zmiany_rozmiaru);
+    obudz();
 }
 
 int okno_odbierz(void)
@@ -274,6 +303,10 @@ int okno_odbierz(void)
             break;
         case K1_KOM_ZAMKNIJ:
             wynik = OKNO_ZAMKNIJ;
+            break;
+        case K1_KOM_ROZMIAR:
+            if (m.obiekt == OKNO_ID)
+                nowy_rozmiar(&m);
             break;
         default:
             break;

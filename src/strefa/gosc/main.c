@@ -129,13 +129,16 @@ static void petla(int ster, const int *wej, int n)
     struct stan s = { 0, 0, -1, -1, 0, 0 };
     time_t liczniki = 0;
     for (;;) {
-        struct pollfd p[WEJSCIA + 1];
+        struct pollfd p[WEJSCIA + 2];
         int i;
         for (i = 0; i < n; i++)
             p[i] = (struct pollfd){ wej[i], POLLIN, 0 };
         p[n] = (struct pollfd){ ster, POLLIN, 0 };
-        if (poll(p, (nfds_t)(n + 1), 1000) < 0 && errno != EINTR)
+        p[n + 1] = (struct pollfd){ obraz_zmiany_fd(), POLLIN, 0 }; /* 0.10.5 step 4: K1 resized the window */
+        if (poll(p, (nfds_t)(n + 2), 1000) < 0 && errno != EINTR)
             return;
+        if ((p[n + 1].revents & POLLIN) && obraz_zmiana())
+            obraz_rysuj(s.klawisze, s.klikniecia, s.x, s.y);
         if (time(NULL) - liczniki >= 5) { /* 0.10.1 step 1: the counters, as the browser zone (test-strefa reads them) */
             pamiec_liczniki(ster);
             liczniki = time(NULL);

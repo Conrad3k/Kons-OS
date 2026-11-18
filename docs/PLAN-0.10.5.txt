@@ -133,8 +133,9 @@ Osiem kroków:
 [x]  3  Robot na GitHubie (tryb próbny do wydania 0.10.5)  S17–S24, S33     2           D6, T8–T11, T18  M        0047
      PR #158
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
-[ ]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
      [w toku: Claude, gałąź claude/eloquent-darwin-sjaahj]
+[x]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
+     PR #161
 [ ]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
 [ ]  7  Jądro Linux 7.x (najnowsza linia)                  S52–S55          3           D14, T19 T20     M        —
 [ ]  8  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–7         D10              M        —
@@ -454,7 +455,27 @@ KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja              M �
   wyświetlacza), gui.md (jeśli pamięć rozmiaru w gui), WYGLAD (D8), SLOWNIK (maksymalizacja, obszar roboczy, zmiana
   rozmiaru), TESTY.md, RYZYKA (R26 — chwyty i przyciski ramki rysuje tylko ekran).
   Gotowe, gdy: scenariusze zmiany rozmiaru i maksymalizacji oraz testy negatywne zielone, testy [OK].
-  Ustalenia z wykonania: (pusto — wypełnia krok 4)
+  Ustalenia z wykonania (2026-11-18, krok 4):
+  - D8: właściciel przyjął szkice z rekomendacją („Pasują mi te szkice”), potem wzorzec paska ramki „przed / po” (OK).
+  - S26 POTWIERDZONE: zmiana rozmiaru w osobnym pliku ekranu rozmiar.c; okna.c nie urósł. S27: obszar roboczy z paneli
+    powłoki — górny pasek: panel 0,0 na całą szerokość; dolny: panel sięgający dołu ekranu, jego powierzchnia razem
+    z marginesem cienia (dock pływa) — w QEMU 1280 × 800: 0,32 1280×684, okno zmaksymalizowane 1280×644.
+  - S28: nowa powierzchnia = zamiana (POWIERZCHNIA e = 1, ten sam numer okna, fokus i kolejność zostają; pokazana od
+    pierwszego zatwierdzenia), tylko w rozmiarze z ROZMIAR — inaczej odrzucona. Szerokość co 8: jądro strefy robi tryb
+    CVT (drm_cvt_mode zaokrągla szerokość do 8), więc ekran prosi tylko o takie.
+  - S29: cztery kursory (↔, ↕, ↖↘, ↗↙) z tej samej funkcji co strzałka K1 (k1_grafika.c, kursor_z), gorący punkt na środku.
+  - S30 POTWIERDZONE (źródła 6.18, virtgpu_kms.c): VIRTIO_GPU_EVENT_DISPLAY w events_read + przerwanie konfiguracji →
+    jądro gościa pyta o wyświetlacz i ogłasza hotplug (uevent); VMM czyści zdarzenie po zapisie events_clear. Programy
+    gościa słuchają NETLINK_KOBJECT_UEVENT (kms.c) — działa bez restartu strefy, w emulacji też.
+  - S31: kompozytor wysyła Firefoksowi nową konfigurację (rozmiar wyświetlacza, zmaksymalizowane); set_fullscreen daje stan
+    „pełny ekran” w tym samym rozmiarze (T14). Sam Firefox w nowym rozmiarze — właściciel na sprzęcie (CI go nie testuje).
+  - S32: scenariusz na strefie próbnej (wzór na cały wyświetlacz) — w emulacji cała zmiana (ROZMIAR → powierzchnia →
+    nowy wyświetlacz gościa) w ułamku sekundy.
+  - Zmiana rozdzielczości przy zmaksymalizowanym oknie (rozmiar_sprawdz): QEMU ma jeden tryb ekranu — bez testu QEMU;
+    na sprzęcie (lista dla właściciela).
+  - Raz na trzy przebiegi lokalne gość próbny nie odpowiedział na „zamknij” po scenariuszu zmiany rozmiaru (ostatni jego
+    wpis: kliknięcie tuż przed); dwa kolejne przebiegi — dobrze. Gość loguje teraz każde zdarzenie zmiany wyświetlacza;
+    obserwujemy w CI (opis PR-a kroku 4).
 
 KROK 5 — Raptor Bridge: weryfikacja mostu stref i jego dokumentacja        M · decyzja D9, T15 · bez ADR (chyba że
   przegląd zmieni architekturę — wtedy ADR)
@@ -691,7 +712,7 @@ Twoje (produkt):
        już tego nie naprawi. Rekomendacja: tak — przycisk w sekcji, tylko do wersji w drugim miejscu (już raz
        potwierdzonej), z pytaniem „Wrócić do K1 0.10.6? Komputer uruchomi się ponownie.”; odrzuconej wersji K1 nie
        proponuje znowu, tylko następną.
-[!] D8 (krok 4) Wygląd i zachowanie zmiany rozmiaru — szkice do wyboru NA POCZĄTKU KROKU 4 (oba motywy): przycisk
+[x] D8 (krok 4; właściciel 2026-11-18: „Pasują mi te szkice” — szkice z rekomendacją, oba motywy) Wygląd i zachowanie zmiany rozmiaru — szkice do wyboru NA POCZĄTKU KROKU 4 (oba motywy): przycisk
        „maksymalizuj/przywróć” na pasku tytułu K1, kursory strzałek, co widać w trakcie ciągnięcia, okno zmaksymalizowane
        (ramka i pasek tytułu przy górnym pasku). Rekomendacja: przycisk między „minimalizuj” a „zamknij” (kwadrat;
        zmaksymalizowane — dwa nachodzące kwadraty), chwyt 6 px na brzegach i 16 px w rogach; w trakcie — zarys

@@ -266,6 +266,7 @@ struct xdg_pow {
     struct xdg_pow *rodzic;  /* a popup: its parent xdg_surface; a toplevel: its parent toplevel's (set_parent) */
     int chwyt;               /* a popup that grabbed the input */
     int zmapowana;
+    int pelny;               /* 0.10.5 step 4 (T14): it asked for full screen — the zone's display, never more */
 };
 void xdg_wyskakujace_zamknij(void);           /* popup_done to every popup (a click outside them) */
 unsigned xdg_zamknij_okna(void);              /* xdg_toplevel.close to every window; how many */
@@ -274,6 +275,7 @@ struct xdg_pow *xdg_fokus(void);              /* the window that gets the keys: 
                                                * toplevel; NULL: none */
 void xdg_zapomnij(struct powierzchnia *p);    /* the surface is destroyed */
 void xdg_po_zatwierdzeniu(struct powierzchnia *p); /* its state was applied: the first configure, mapping */
+void xdg_nowy_rozmiar(void);                  /* 0.10.5 step 4: the display's new size — every main window again */
 
 /* wejscie.c */
 int wejscie_start(void);                      /* opens /dev/input/event*; the number of devices */
@@ -302,6 +304,8 @@ struct wyswietlacz {
 extern struct wyswietlacz ekran;
 int ekran_start(void);                        /* 0, or -1 (logged) */
 void ekran_pokaz(int32_t x, int32_t y, int32_t w, int32_t h); /* this part changed (DIRTYFB) */
+int ekran_zmiany_fd(void);                    /* 0.10.5 step 4: readable when K1 resized the zone's window (-1: none) */
+int ekran_zmiana(void);                       /* 1: `ekran` has the new size and buffer (the scene drawn again) */
 
 void kloguj(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 /* To gosc on fd 3 (a pipe, when gosc gave one): "okno" once — the browser's first window is on the display, the VMM

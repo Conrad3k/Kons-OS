@@ -71,6 +71,14 @@ struct pow {
     int polowa;           /* committed half, -1 = nothing yet */
     int czeka_ramka;      /* send RAMKA after the scene used the commit */
     unsigned z;
+    /* 0.10.5 step 4 (rozmiar.c): a zone's window — the size ekran asked for (ROZMIAR; 0: none), the surface of that
+     * size the zone gave (shown from its first commit), maximized and the picture's rectangle before it */
+    int32_t zadany_w, zadany_h;
+    const uint32_t *nowa_mem;
+    size_t nowa_rozmiar;
+    int32_t nowa_w, nowa_h;
+    int maks;
+    struct prost przed;
 };
 
 struct stan {
@@ -87,6 +95,8 @@ struct stan {
     struct k1_obraz tlo, scena;
     struct obszar nowe;   /* scene areas to recompose */
     uint32_t kursor[2][K1_KURSOR_SZER * K1_KURSOR_WYS];
+    uint32_t kursor_rozm[4][K1_KURSOR_SZER * K1_KURSOR_WYS]; /* resize shapes (0.10.5 step 4): K1_KURSOR_POZIOMO… */
+    int ksztalt;               /* the cursor's shape now: K1_KURSOR_* */
     int32_t x, y;         /* cursor hotspot */
     float rx, ry;         /* sub-pixel motion remainder (pointer speed) */
     int przyciski;        /* bit per K1_PRZYCISK_* held */
@@ -160,7 +170,8 @@ void opis_pow_koniec(int i); /* surface i is gone: its elements too */
 /* strefy.c — the frame of a zone's window (0.10.0, ADR 0042); the sessions from nadzorca (0.10.0 step 5) */
 void strefy_sesje(const struct k1_komunikat *k);              /* STREFY_STAN, STREFA_NAZWA on the control channel */
 int strefa_pamieta(int nr);                                   /* zone nr remembers (as nadzorca said last) */
-enum { STREFA_RAMKA = 1, STREFA_TYTUL, STREFA_MINIMALIZUJ, STREFA_ZAMKNIJ }; /* where on the frame */
+enum { STREFA_RAMKA = 1, STREFA_TYTUL, STREFA_MINIMALIZUJ, STREFA_ZAMKNIJ, STREFA_MAKSYMALIZUJ }; /* where on the frame */
+#define STREFA_BRZEG 16 /* | K_* edges: a grip of the frame (0.10.5 step 4, rozmiar.c) */
 int okno_strefy(const struct pow *p);
 struct prost strefa_obszar(const struct pow *p);              /* the window with K1's frame around it */
 int32_t strefa_nad(void);                                     /* how far the frame reaches above the picture */
@@ -168,6 +179,21 @@ void strefa_ramka(const struct pow *p, const struct prost *r);   /* into the sce
 int strefa_trafienie(const struct pow *p, int32_t x, int32_t y); /* STREFA_* or 0 */
 void strefa_najechanie(int i, int co);                        /* the pointer on part co of window i's frame (-1, 0) */
 void strefa_wcisniecie(int i, int co);
+
+/* rozmiar.c — resizing and maximizing a zone's window (0.10.5 step 4, T12–T14, D8) */
+enum { K_LEWA = 1, K_PRAWA = 2, K_GORA = 4, K_DOL = 8 };
+struct prost obszar_roboczy(void);          /* the screen without the top and the bottom bar (T13) */
+int rozmiar_brzeg(const struct pow *p, int32_t x, int32_t y); /* the frame's edges there: K_* bits, 0 none */
+int rozmiar_ksztalt(int kraw);              /* the cursor over those edges: K1_KURSOR_* */
+void rozmiar_przelacz(int i);               /* maximize / restore window i */
+int rozmiar_tytul(int i);                   /* a press on its title bar: 1 when a double click toggled it */
+void rozmiar_nowe_okno(int i);              /* its first commit: the session's saved size */
+void rozmiar_start(int i, int kraw);        /* a press on a grip */
+int rozmiar_trwa(void);
+void rozmiar_ruch(void);
+void rozmiar_koniec(void);                  /* released: the zone gets the size */
+void rozmiar_rysuj(const struct prost *k);  /* the outline, into the scene inside k (last) */
+void rozmiar_sprawdz(void);                 /* the work area changed: maximized windows follow */
 
 /* powierzchnie.c */
 void nowa_pow(int kl, const struct k1_komunikat *m, int fd); /* POWIERZCHNIA: checked, mapped, placed */

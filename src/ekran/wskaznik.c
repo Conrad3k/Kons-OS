@@ -48,6 +48,10 @@ static void do_wskaznika(int i, int rodzaj, int przycisk)
 static void ruch_wskaznika(void)
 {
     int cel;
+    if (rozmiar_trwa()) { /* 0.10.5 step 4: an edge of a zone's window is dragged (rozmiar.c) */
+        rozmiar_ruch();
+        return;
+    }
     if (s.ciagniete >= 0) {
         struct pow *p = &s.p[s.ciagniete];
         int32_t nx = s.x - s.ciag_dx, ny = s.y - s.ciag_dy, gora = K1_PASEK_GORNY + (okno_strefy(p) ? strefa_nad() : 0);
@@ -103,6 +107,7 @@ static void przycisk(int nr, int wcisniety)
         if (s.chwyt >= 0 && s.p[s.chwyt].uzyta)
             do_wskaznika(s.chwyt, K1_WSK_PUSZCZENIE, nr);
         if (s.przyciski == 0) {
+            rozmiar_koniec();
             if (s.ciagniete >= 0)
                 k1_log(TAG, "okno %u przesunięte do %d,%d (klatek %lu, procesor %.0f ms)", s.p[s.ciagniete].okno,
                        (int)s.p[s.ciagniete].x, (int)s.p[s.ciagniete].y, s.klatki - s.ciag_klatki,

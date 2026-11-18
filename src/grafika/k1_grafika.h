@@ -42,6 +42,12 @@ void k1_rysuj_tlo(struct k1_obraz *o, int wariant);
 
 /* Renders the cursor sprite (K1_KURSOR_SZER x K1_KURSOR_WYS). `wcisniety` = mouse button held. */
 void k1_rysuj_kursor(uint32_t *sprite, int wcisniety);
+/* 0.10.5 step 4 (D8): the cursor over a grip of a window's frame — a double-headed arrow in the same style, its hotspot
+ * in the middle of the sprite (K1_KURSOR_SROD_X, _Y). */
+enum { K1_KURSOR_STRZALKA = 0, K1_KURSOR_POZIOMO, K1_KURSOR_PIONOWO, K1_KURSOR_UKOS_LG /* ↖↘ */, K1_KURSOR_UKOS_PG /* ↗↙ */ };
+#define K1_KURSOR_SROD_X 12
+#define K1_KURSOR_SROD_Y 16
+void k1_rysuj_kursor_rozmiar(uint32_t *sprite, int ksztalt);
 
 /* Blends a premultiplied ARGB sprite onto `o` with its top-left corner at (x, y); clipped. */
 void k1_naloz_sprite(struct k1_obraz *o, const uint32_t *sprite, uint32_t sw, uint32_t sh,

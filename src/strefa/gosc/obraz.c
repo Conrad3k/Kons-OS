@@ -32,6 +32,17 @@ int obraz_start(void)
     return kms_start(&k);
 }
 
+int obraz_zmiany_fd(void)
+{
+    return k.px != NULL ? kms_zmiany_fd() : -1;
+}
+
+/* 0.10.5 step 4: K1 resized the window — the pattern on the whole new display (test-strefa checks it). */
+int obraz_zmiana(void)
+{
+    return kms_zmiana(&k);
+}
+
 static void prostokat(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t kolor)
 {
     int32_t i, j;

@@ -101,6 +101,7 @@ void t_okna_ipc(void);
 void t_okna_ochrona(void);
 void t_okna_zalegle(void);
 void t_okna_przewijanie(void);
+void t_okna_rozmiar(void); /* 0.10.5 step 4: a zone does not resize its window itself */
 void t_skarb_zalegle(void);
 void t_skarb_strefy(void); /* 0.10.0 step 5: the disks of the zones in skarbiec */
 void t_gui_crash(void);

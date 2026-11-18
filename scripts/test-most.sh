@@ -177,7 +177,8 @@ k1 = "\n".join(l for l in t_.splitlines() if re.match(r"\s*K1-(NADZORCA|STREFA|S
 sprawdz("w logu K1 żadnego adresu ani nazwy z połączeń stref (niezmiennik 8)",
         not re.search(r"10\.0\.2\.(2|77)\b|127\.0\.0\.1|invalid|zla nazwa", k1))
 for m in re.finditer(r"K1-GOSC: most: (3 MiB w dół|echo 1 MiB|48 naraz): ok \d+/\d+, ([\d.]+) s, ([\d.]+) MiB/s", t_):
-    print(f"  [info]  {m.group(1)}: {m.group(2)} s, {m.group(3)} MiB/s{' (emulacja)' if emulacja else ''}", flush=True)
+    print(f"  [info]  wynik pomiaru — {m.group(1)}: {m.group(2)} s, {m.group(3)} MiB/s{' (emulacja)' if emulacja else ''}",
+          flush=True)  # "wynik": the CI summary shows it
 q.monitor("quit")
 qemu.wait()
 sys.exit(0 if all(q.wyniki) else 1)

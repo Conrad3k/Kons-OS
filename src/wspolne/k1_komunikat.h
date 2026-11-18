@@ -63,7 +63,9 @@ enum k1_komunikat_typ {
     K1_KOM_INST_ZADANIE = 3, /* a=K1_INST_* mode, b=logical sector size (512/4096) of the target */
 
     /* client → ekran (obiekt = surface number 1..K1_POW_MAKS unless noted) */
-    K1_KOM_POWIERZCHNIA = 10, /* a=width, b=height, c=kind (K1_POW_*), d,e = x,y (panel; window, desktop: 0); + 1 fd */
+    K1_KOM_POWIERZCHNIA = 10, /* a=width, b=height, c=kind (K1_POW_*), d,e = x,y (panel; desktop: 0); a window: d=0,
+                               * e=1 — it REPLACES the window surface obiekt in the size ekran asked for (K1_KOM_ROZMIAR,
+                               * 0.10.5 step 4; the window keeps its place, number and focus), e=0 a new one; + 1 fd */
     K1_KOM_ZATWIERDZ = 11,    /* a=buffer half 0/1, b,c,d,e = damaged x,y,w,h in the surface (w=h=0: all) */
     K1_KOM_POKAZ = 12,        /* a=1 show / 0 hide (panels) */
     K1_KOM_PRZESUN = 13,      /* a,b = new x,y (panels) */
@@ -188,6 +190,11 @@ enum k1_komunikat_typ {
                                * (k1_ogloszenie.h) the writing program accepted — what Ustawienia and gui describe */
     K1_KOM_AKT_PROSBA = 192,  /* Ustawienia (fd 7), gui (fd 5: ZAINSTALUJ only) → nadzorca: obiekt=0, a=K1_AKT_P_*,
                                * b..e=0 */
+    K1_KOM_ROZMIAR = 193,     /* ekran → a zone's VMM (0.10.5 step 4, T12): obiekt=its window surface, a=width
+                               * K1_OKNO_MIN_SZER..K1_POW_MAKS_BOK (a multiple of 8), b=height K1_OKNO_MIN_WYS..K1_POW_MAKS_BOK,
+                               * c=1 maximized / 0, d=e=0 — the picture's new size: the user resized or maximized the
+                               * window on K1's frame. Only ekran says it; the zone answers with POWIERZCHNIA e=1 of exactly
+                               * that size (anything else is refused) and never asks for a size or a place itself */
     K1_KOM_INST_SIEC = 188,   /* writing program → nadzorca (0.10.5 step 2, after STAN): obiekt=0, a=the version that runs
                                * (1..), b=the version waiting in the waiting room (0: none), c=the newer version to
                                * download (0: none), d=K1_SIEC_FL_*, e=the previous version in the free slot (0: none) */
@@ -501,6 +508,9 @@ enum { K1_STREFA_TRYB_AKTUALIZACJA = 12 };
  * the guest speaks vsock itself (gosc/zlosliwy.c) */
 enum { K1_STREFA_TRYB_MOST = 13, K1_STREFA_TRYB_VSOCK_OD = 14, K1_STREFA_TRYB_VSOCK_DO = 15 };
 #define K1_STREFA_TRYB_MAKS 15
+/* 0.10.5 step 4 (D8): the smallest picture of a zone's window the user can drag it to */
+#define K1_OKNO_MIN_SZER 640
+#define K1_OKNO_MIN_WYS 480
 #define K1_STREFA_PAMIEC_MAKS 65536 /* MiB: the largest memory of a zone (0.10.1 step 2, ADR 0044 T5) */
 /* 0.10.0 step 2 (ADR 0043 T9): the zones' connections (STREFA_POLACZ c, STREFA_GNIAZDO a, STREFA_ODMOWA a) */
 #define K1_STREFA_POLACZENIA_MAKS 128 /* at once in one zone (the relay in the zone has as many) */
@@ -560,6 +570,7 @@ _Static_assert(K1_TAPETY < K1_TAPETA_ZDJECIE, "k1_komunikat: the photo wallpaper
 #define K1_OB_BATERIA 3           /* nadzorca: battery history */
 #define K1_OB_ROZMIESZCZENIE 1    /* gui (0.7.5): the desktop arrangement — icons and the bottom bar */
 #define K1_OB_ZDJECIE 9           /* ekran (0.8.0 step 4): the wallpaper photo — its size (ekran/zdjecie.c) */
+#define K1_OB_OKNA_STREF 2        /* ekran (0.10.5 step 4): each session's window size and maximized (ekran/rozmiar.c) */
 #define K1_OB_ZDJECIE_KAWALEK 10  /* ekran: its pixels, 1 MiB per object: 10..10+K1_ZDJECIE_KAWALKI-1 */
 #define K1_ZDJECIE_KAWALKI 12     /* 2560 × 1600 × 3 bytes */
 /* 0.10.0 step 5 (T11): the disk of a zone that remembers — pieces of K1_STREFA_DYSK_KAWALEK, piece i is object

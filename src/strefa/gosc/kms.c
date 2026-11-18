@@ -6,8 +6,10 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
+#include <linux/netlink.h>
 #include <drm/drm.h>
 #include <drm/drm_mode.h>
 
@@ -15,8 +17,10 @@
 
 #define TRYBY_MAKS 128
 
-static int fd = -1;
-static uint32_t fb;
+static int fd = -1, uevent = -1;
+static uint32_t fb, uchwyt, crtc_id, zlacze_id;
+static void *mapa;
+static uint64_t mapa_dl;
 
 static int io(unsigned long req, void *arg)
 {
@@ -70,23 +74,20 @@ static int wyjscie(uint32_t *crtc, uint32_t *zlacze, struct drm_mode_modeinfo *t
     return 0;
 }
 
-int kms_start(struct kms *k)
+/* A dumb buffer of mode `tryb` on the CRTC; 0 and *k, or -1 (logged). The previous buffer (if any) is let go after. */
+static int bufor(struct kms *k, const struct drm_mode_modeinfo *tryb)
 {
     struct drm_mode_create_dumb d;
     struct drm_mode_fb_cmd f;
     struct drm_mode_map_dumb m;
     struct drm_mode_crtc c;
-    struct drm_mode_modeinfo tryb;
-    uint32_t crtc, zlacze;
-    void *p;
-    fd = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
-    if (fd < 0 || wyjscie(&crtc, &zlacze, &tryb) != 0) {
-        kms_log("ekran gościa: brak karty albo trybu (%s)", strerror(errno));
-        return -1;
-    }
+    struct drm_mode_destroy_dumb z;
+    uint32_t stary_fb = fb, stary = uchwyt;
+    void *p, *stara = mapa;
+    uint64_t stara_dl = mapa_dl;
     memset(&d, 0, sizeof d);
-    d.width = tryb.hdisplay;
-    d.height = tryb.vdisplay;
+    d.width = tryb->hdisplay;
+    d.height = tryb->vdisplay;
     d.bpp = 32;
     memset(&f, 0, sizeof f);
     memset(&m, 0, sizeof m);
@@ -110,24 +111,79 @@ int kms_start(struct kms *k)
         kms_log("ekran gościa: mmap: %s", strerror(errno));
         return -1;
     }
-    k->px = p;
-    fb = f.fb_id;
-    k->szer = d.width;
-    k->wys = d.height;
-    k->krok = d.pitch / 4;
     memset(&c, 0, sizeof c);
-    c.crtc_id = crtc;
-    c.fb_id = fb;
-    c.set_connectors_ptr = wsk(&zlacze);
+    c.crtc_id = crtc_id;
+    c.fb_id = f.fb_id;
+    c.set_connectors_ptr = wsk(&zlacze_id);
     c.count_connectors = 1;
-    c.mode = tryb;
+    c.mode = *tryb;
     c.mode_valid = 1;
     if (io(DRM_IOCTL_MODE_SETCRTC, &c) < 0) {
         kms_log("ekran gościa: SETCRTC: %s", strerror(errno));
+        munmap(p, (size_t)d.size);
         return -1;
     }
-    kms_log("ekran gościa %ux%u", k->szer, k->wys);
+    fb = f.fb_id, uchwyt = d.handle, mapa = p, mapa_dl = d.size;
+    k->px = p;
+    k->szer = d.width;
+    k->wys = d.height;
+    k->krok = d.pitch / 4;
+    if (stara != NULL) { /* the old buffer: not shown any more */
+        munmap(stara, (size_t)stara_dl);
+        io(DRM_IOCTL_MODE_RMFB, &stary_fb);
+        z.handle = stary;
+        io(DRM_IOCTL_MODE_DESTROY_DUMB, &z);
+    }
     return 0;
+}
+
+int kms_start(struct kms *k)
+{
+    struct drm_mode_modeinfo tryb;
+    struct sockaddr_nl a = { .nl_family = AF_NETLINK, .nl_groups = 1 };
+    fd = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
+    if (fd < 0 || wyjscie(&crtc_id, &zlacze_id, &tryb) != 0) {
+        kms_log("ekran gościa: brak karty albo trybu (%s)", strerror(errno));
+        return -1;
+    }
+    if (bufor(k, &tryb) != 0)
+        return -1;
+    uevent = socket(AF_NETLINK, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, NETLINK_KOBJECT_UEVENT);
+    if (uevent >= 0 && bind(uevent, (struct sockaddr *)&a, sizeof a) != 0) {
+        close(uevent);
+        uevent = -1;
+    }
+    kms_log("ekran gościa %ux%u%s", k->szer, k->wys, uevent < 0 ? " (bez zmian rozmiaru: uevent niedostępny)" : "");
+    return 0;
+}
+
+int kms_zmiany_fd(void)
+{
+    return uevent;
+}
+
+int kms_zmiana(struct kms *k)
+{
+    char b[2048];
+    int hotplug = 0;
+    ssize_t n;
+    struct drm_mode_modeinfo tryb;
+    uint32_t crtc, zlacze;
+    while ((n = recv(uevent, b, sizeof b - 1, 0)) > 0) { /* "change@…/drm/card0\0…HOTPLUG=1\0…" */
+        b[n] = '\0';
+        for (ssize_t i = 0; i < n; i += (ssize_t)strlen(b + i) + 1)
+            hotplug |= strcmp(b + i, "HOTPLUG=1") == 0;
+    }
+    if (!hotplug)
+        return 0;
+    if (wyjscie(&crtc, &zlacze, &tryb) != 0 || (tryb.hdisplay == k->szer && tryb.vdisplay == k->wys)) {
+        kms_log("ekran gościa: zdarzenie zmiany, rozmiar bez zmian (%ux%u)", k->szer, k->wys);
+        return 0;
+    }
+    if (bufor(k, &tryb) != 0)
+        return 0;
+    kms_log("ekran gościa: nowy rozmiar %ux%u", k->szer, k->wys);
+    return 1;
 }
 
 void kms_pokaz(uint32_t x, uint32_t y, uint32_t w, uint32_t h)

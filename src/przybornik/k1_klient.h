@@ -50,6 +50,9 @@ void k1_pow_zatwierdz(struct k1_klient *k, struct k1_powierzchnia *p);
  * layer — a full-screen surface where an icon changes). The other half must be brought up to date by the
  * client before it is committed (k1_pow_rysuj gives it as it was two commits ago). */
 void k1_pow_zatwierdz_obszar(struct k1_klient *k, struct k1_powierzchnia *p, int32_t x, int32_t y, int32_t w, int32_t h);
+/* A window surface of a new size in place of the old one (0.10.5 step 4: the size ekran asked for in ROZMIAR): the same
+ * number, ekran keeps its place and focus; the old memory is unmapped, the new one must be drawn and committed. */
+void k1_pow_zamien(struct k1_klient *k, struct k1_powierzchnia *p, int32_t szer, int32_t wys);
 /* Destroys the surface (USUN) and unmaps its memory. */
 void k1_pow_usun(struct k1_klient *k, struct k1_powierzchnia *p);
 /* Sends one message; ends the program if ekran went away. */
