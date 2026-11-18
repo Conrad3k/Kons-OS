@@ -463,6 +463,7 @@ static void reset(struct mmio_urz *u)
 {
     (void)u;
     memset(&v, 0, sizeof v);
+    pol_wyczysc(); /* 0.10.5 step 5: the guest's connections end with its device (their sockets used to stay open) */
 }
 
 const struct mmio_ops vsock_ops = {

@@ -36,6 +36,7 @@ size_t pol_do_goscia(int n, uint8_t *b, size_t maks); /* bytes for the guest, at
 int pol_stan_dla_vsock(int n, int *koniec);          /* 1: bytes wait for the guest; *koniec: nothing more will —
                                                       * the SHUTDOWN flags: SEND (the socket's end: the guest may still
                                                       * send, a half-close), or RCV | SEND (an error, refused, closed) */
+void pol_wyczysc(void);                              /* every place free (the guest reset the vsock device) */
 void vsock_wyslij(void);                             /* vsock.c: what waits, into the guest's receive buffers */
 
 /* the main loop (main.c) */

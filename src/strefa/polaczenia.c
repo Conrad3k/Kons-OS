@@ -107,6 +107,14 @@ static void zwolnij(struct polaczenie *p)
     p->czeka_nadzorce = czeka;
 }
 
+/* Every place free, as at the start (vsock.c: the guest reset the device — its connections are gone; 0.10.5 step 5).
+ * An answer of nadzorca still to come keeps its place until it comes, as zwolnij does. */
+void pol_wyczysc(void)
+{
+    for (int i = 0; i < K1_STREFA_POLACZENIA_MAKS; i++)
+        zwolnij(&pol[i]);
+}
+
 static unsigned zajete_teraz(void)
 {
     unsigned i, n = 0;

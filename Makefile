@@ -501,7 +501,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis ogloszenie paczka
+        lacznik balon opis ogloszenie paczka vsock
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -549,6 +549,10 @@ FUZZ_DL_virtq     := 40000
 FUZZ_ZR_lacznik   := src/strefa/lacznik.c src/wspolne/k1_siec.c
 FUZZ_DL_lacznik   := 700
 FUZZ_ZR_balon     := src/strefa/strony.c
+# 0.10.5 step 5 (Raptor Bridge, S35): a packet's whole path with the connections' state
+FUZZ_ZR_vsock     := src/strefa/vsock.c src/strefa/polaczenia.c src/strefa/lacznik.c src/strefa/linia.c src/strefa/virtq.c \
+                     src/strefa/mmio.c $(KOMUNIKAT) $(DOK_C)
+FUZZ_DL_vsock     := 20000
 FUZZ_DL_balon     := 1100
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
               -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/strefa -Isrc/zewnetrzne/monocypher \
