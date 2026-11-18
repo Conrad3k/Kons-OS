@@ -24,6 +24,9 @@ int main(int argc, char **argv)
         return t_strefy_scenariusz();
     if (tryb_opisu()) /* 0.10.2 step 2: the screen's description for scripts/test-m4.sh, not the checks */
         return t_opis_scenariusz();
+    if (znak_dysku("k1-test-aktualizacji")) /* 0.10.5 step 2b: scripts/test-aktualizacja-siec.sh looks from outside; */
+        for (;;)                            /* nadzorca does the updates — no checks, no end (it would power off) */
+            pause();
     if (tryb_wifi()) /* 0.9.1: simulated Wi-Fi cards — the test access points of scripts/test-wifi.sh, not the checks */
         return t_wifi_punkty_dostepu();
     k1_log(TAG, "start testów M1–M5a (pid %d)", (int)getpid());
