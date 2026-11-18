@@ -136,9 +136,10 @@ Osiem kroków:
      PR #162
 [x]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
      PR #161
-[ ]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
-     [w toku: Claude, gałąź claude/charming-shannon-4xbnst]
+[x]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
+     PR #164
 [ ]  7  Jądro Linux 7.x (najnowsza linia)                  S52–S55          3           D14, T19 T20     M        —
+     [w toku: Claude, gałąź claude/charming-shannon-4xbnst]
 [ ]  8  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–7         D10              M        —
 (Numery ADR — następne wolne po ADR 0045 z 0.10.2; jeśli zajmą więcej, krok bierze kolejne wolne.)
 
