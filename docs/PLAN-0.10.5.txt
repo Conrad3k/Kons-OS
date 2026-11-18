@@ -132,8 +132,8 @@ Osiem kroków:
      PR #156 (2a), PR #157 (2b)
 [x]  3  Robot na GitHubie (tryb próbny do wydania 0.10.5)  S17–S24, S33     2           D6, T8–T11, T18  M        0047
      PR #158
-[ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
-     [w toku: Claude, gałąź claude/eloquent-darwin-sjaahj]
+[x]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
+     PR #162
 [x]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
      PR #161
 [ ]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
