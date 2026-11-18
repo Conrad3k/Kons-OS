@@ -123,7 +123,7 @@ static void wykres_baterii(struct k1_obraz *o, const struct k1_motyw *m)
     k1_prostokat(o, x + 8, y + h / 2, w - 16, 1, k1_kolor(m->tekst, 14));
     k1_tekst(o, K1_CZ_MALA, x + w - 8 - k1_tekst_szer(K1_CZ_MALA, "50 %"), y + h / 2 - 5, "50 %", k1_kolor(m->tekst3, 255), 0);
     if (hist_n < 2) {
-        k1_tekst(o, K1_CZ_MALA, x + 16, y + h / 2 + 20, "Zbieram dane — pomiar co pół minuty…", k1_kolor(m->tekst3, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, x + 16, y + h / 2 + 20, "Zbieram dane, pomiar co pół minuty…", k1_kolor(m->tekst3, 255), 0);
         return;
     }
     x0 = (float)x + 8;
@@ -155,7 +155,7 @@ static void poprzednie(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, 
     if (!arch_znane || arch.n == 0) {
         k1_tekst(o, K1_CZ_MALA, x, y,
                  arch_znane ? "Poprzednie uruchomienia pojawią się tutaj (zapis na dysku K1)."
-                            : "Historia z poprzednich uruchomień — gdy dane są zapisywane na dysku K1.",
+                            : "Historia z poprzednich uruchomień: gdy dane są zapisywane na dysku K1.",
                  k1_kolor(m->tekst3, 255), 0);
         return;
     }
@@ -177,7 +177,7 @@ void bateria_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char buf[96], a[32];
     int32_t x, y, w, h, i, najnizej = 100;
-    naglowek(o, m, "Bateria", "Poziom naładowania od uruchomienia systemu");
+    naglowek(o, m, "Bateria");
     if (!bat.znana || !bat.obecna) {
         k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16,
                  bat.znana ? "Ten komputer nie ma baterii (albo system jej nie widzi)." : "Czekam na dane…",
@@ -188,7 +188,7 @@ void bateria_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     if (bat.procent >= 0)
         snprintf(buf, sizeof buf, "%d %%", bat.procent);
     else
-        snprintf(buf, sizeof buf, "— %%");
+        snprintf(buf, sizeof buf, "? %%");
     k1_tekst(o, K1_CZ_TYTUL, TRESC_X, seg_y() + 18, buf, k1_kolor(m->tekst, 255), 0);
     snprintf(a, sizeof a, "%s", k1_bateria_stan(bat.stan));
     snprintf(buf, sizeof buf, "%s%s", a,

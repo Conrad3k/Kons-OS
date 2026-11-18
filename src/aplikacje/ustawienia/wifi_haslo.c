@@ -98,19 +98,19 @@ static int32_t rozwiniety_y(void)
 static const char *komunikat(int r)
 {
     if (rozwiniety == wf.indeks && wyslano && wf.polaczenie == K1_WIFI_P_ZLE_HASLO)
-        return "Złe hasło — spróbuj jeszcze raz.";
+        return "Złe hasło. Spróbuj jeszcze raz.";
     if (rozwiniety == wf.indeks && wyslano && wf.polaczenie == K1_WIFI_P_NIEUDANE)
-        return "Nie udało się połączyć — spróbuj jeszcze raz.";
+        return "Nie udało się połączyć. Spróbuj jeszcze raz.";
     if (r == R_POLACZONA)
         return wf.polaczenie == K1_WIFI_P_LACZE ? "Łączę…" : "";
     if (r == R_OTWARTA)
-        return "Sieć niezabezpieczona — inni w pobliżu mogą widzieć, co przesyłasz.";
+        return "Sieć niezabezpieczona: inni w pobliżu mogą widzieć, co przesyłasz.";
     if (r == R_HASLO)
         return dl_hasla > 0 && dl_hasla < K1_WIFI_HASLO_MIN ? "Hasło Wi-Fi ma co najmniej 8 znaków."
-                                                             : "Hasło wpisujesz raz — K1 je zapamięta.";
+                                                             : "Hasło wpisujesz raz. K1 je zapamięta.";
     if (r == R_NIE)
         return "K1 jeszcze nie łączy się z taką siecią (WPA3, logowanie loginem albo stare zabezpieczenie).";
-    return "Sieć zapamiętana — K1 łączy się z nią sam.";
+    return "Sieć zapamiętana. K1 łączy się z nią sam.";
 }
 
 void wifi_rozwiniety_rysuj(struct k1_obraz *o, const struct k1_motyw *m, int i, int32_t y, int32_t szer)

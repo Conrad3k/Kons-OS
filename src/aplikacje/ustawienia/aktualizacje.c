@@ -328,7 +328,7 @@ static void na_dysku(struct k1_obraz *o, const struct k1_motyw *m)
     wersja(dyski[d].ab_zapas, a, sizeof a);
     snprintf(c, sizeof c, "W drugim miejscu na dysku: %s.", dyski[d].ab_zapas > 0 ? a : "nic");
     if (stan() == A_NIEUDANA) {
-        snprintf(b, sizeof b, "Nowa wersja %s nie uruchomiła się — działa poprzednia.", a);
+        snprintf(b, sizeof b, "Nowa wersja %s nie uruchomiła się. Działa poprzednia.", a);
         zdanie(o, m, b, "Nic nie zginęło. Komputer sam wrócił do wersji, która działała.", NULL, 1);
     } else if (dyski[d].ab_fl & K1_AB_FL_NOWY) {
         snprintf(b, sizeof b, "Nowa wersja %s czeka na dysku.", a);
@@ -344,7 +344,7 @@ void aktualizacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     char a[16], b[16], t[160], t2[160];
     struct k1_przycisk p;
     enum stan s = stan();
-    naglowek(o, m, "Aktualizacje", "Wersja K1 na tym komputerze i jej aktualizacje");
+    naglowek(o, m, "Aktualizacje");
     kafel(o, m);
     wersja(cel >= 0 ? wersja_dysku(cel) : -1, a, sizeof a);
     wersja(wersja_zrodla, b, sizeof b);
@@ -369,7 +369,7 @@ void aktualizacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         break;
     case A_TA_SAMA:
         snprintf(t, sizeof t, "Na dysku jest ta sama wersja: %s.", a);
-        zdanie(o, m, t, "Możesz zapisać ją jeszcze raz — obok obecnej, Twoje dane zostają.", NULL, 0);
+        zdanie(o, m, t, "Możesz zapisać ją jeszcze raz, obok obecnej. Twoje dane zostają.", NULL, 0);
         break;
     case A_NOWSZA:
         snprintf(t, sizeof t, "Na dysku jest nowsza wersja (%s) niż na pendrivie (%s).", a, b);
@@ -387,9 +387,9 @@ void aktualizacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         break;
     case A_GOTOWE:
         if (nowe_miejsce)
-            snprintf(t, sizeof t, "Gotowe — %s czeka na dysku obok %s.", b, a);
+            snprintf(t, sizeof t, "Gotowe. %s czeka na dysku obok %s.", b, a);
         else
-            snprintf(t, sizeof t, "Gotowe — K1 na dysku ma wersję %s.", b);
+            snprintf(t, sizeof t, "Gotowe. K1 na dysku ma wersję %s.", b);
         snprintf(t2, sizeof t2, "Uruchom komputer ponownie%s.", zrodlo == 1 && dysk_dziala() < 0 ? ", bez pendrive'a" : "");
         zdanie(o, m, t, t2, nowe_miejsce ? "Gdyby nowa wersja nie wystartowała, K1 sam wróci do obecnej." : NULL, 0);
         break;

@@ -56,7 +56,7 @@ void przegladarka_odbierz(const struct k1_komunikat *k)
     } else if (k->typ == K1_KOM_STREFA_WYCZYSZCZONO) {
         snprintf(wiadomosc, sizeof wiadomosc, "%s",
                  k->a == K1_STREFA_WYCZ_OK      ? "Dane sesji usunięte. Przy następnym otwarciu zacznie od nowa."
-                 : k->a == K1_STREFA_WYCZ_DZIALA ? "Ta sesja jest otwarta — zamknij jej okno i spróbuj jeszcze raz."
+                 : k->a == K1_STREFA_WYCZ_DZIALA ? "Ta sesja jest otwarta. Zamknij jej okno i spróbuj jeszcze raz."
                                                  : "Nie udało się usunąć danych sesji.");
         k1_log(TAG, "przeglądarka: wyczyszczenie sesji %u — wynik %d", k->obiekt, (int)k->a);
     }
@@ -87,9 +87,9 @@ static int uwagi(const char **t)
 {
     int n = 0;
     if (pr.znane && !pr.dysk)
-        t[n++] = "K1 działa bez dysku danych — każda sesja zapomni po zamknięciu.";
+        t[n++] = "K1 działa bez dysku danych. Każda sesja zapomni po zamknięciu.";
     if (pr.znane && !pr.wirtualizacja)
-        t[n++] = "Wirtualizacja wyłączona — sesje nie ruszą. Włącz ją w BIOS-ie.";
+        t[n++] = "Wirtualizacja wyłączona, sesje nie ruszą. Włącz ją w BIOS-ie.";
     return n;
 }
 
@@ -98,7 +98,7 @@ enum { P_KARTA, P_SEGMENT, P_NAZWA, P_WYCZYSC, P_POLE, P_ZAPISZ, P_ANULUJ, P_LIC
 static void uklad(int i, struct k1_przycisk p[P_LICZBA])
 {
     const char *t[2];
-    int32_t w = apl.szer - TRESC_X - 24, y = K1_OKNO_TYTUL + 92 + uwagi(t) * UWAGA_H + i * KARTA_KROK, d = y + 54;
+    int32_t w = apl.szer - TRESC_X - 24, y = seg_y() - 12 + uwagi(t) * UWAGA_H + i * KARTA_KROK, d = y + 54;
     p[P_KARTA] = (struct k1_przycisk){ TRESC_X, y, w, KARTA_H, NULL, K1_PRZ_ZWYKLY };
     p[P_SEGMENT] = (struct k1_przycisk){ TRESC_X + w - 16 - SEG_PW, d - 2, SEG_PW, SEG_PH, NULL, K1_PRZ_ZWYKLY };
     p[P_NAZWA] = (struct k1_przycisk){ TRESC_X + 28, d, 96, PRZ_H, "Zmień nazwę", K1_PRZ_CICHY };
@@ -121,7 +121,7 @@ static const char *stan(int nr)
     if (!pr.dysk)
         return "Zapomina wszystko po zamknięciu.";
     if (dziala(nr))
-        return "Otwarta teraz — zmiana zadziała od następnego otwarcia.";
+        return "Otwarta teraz. Zmiana zadziała od następnego otwarcia.";
     return pamieta(nr) ? "Pamięta zalogowania, zakładki i historię." : "Zapomina wszystko po zamknięciu.";
 }
 
@@ -166,18 +166,18 @@ static void pytanie(struct k1_menu *q, int32_t *x, int32_t *y)
     k1_menu_dodaj(q, "Wyczyść dane", PY_WYCZYSC, 0)->mocna = 1;
     k1_menu_dodaj(q, "Anuluj", PY_ANULUJ, 0);
     *x = TRESC_X + (apl.szer - TRESC_X - 24 - K1_MENU_SZER_PYTANIE) / 2;
-    *y = K1_OKNO_TYTUL + 120;
+    *y = seg_y() + 16;
 }
 
 void przegladarka_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     int nr[K1_STREFY_MAKS], n = sesje(nr), u;
     const char *t[2];
-    naglowek(o, m, "Przeglądarka", "Każda sesja to osobna maszyna z własnym kolorem.");
+    naglowek(o, m, "Przeglądarka");
     u = uwagi(t);
     for (int i = 0; i < u; i++) {
-        k1_ikona(o, K1_IK_INFO, TRESC_X, (float)(K1_OKNO_TYTUL + 86 + i * UWAGA_H), 16, k1_kolor(m->tekst3, 255));
-        k1_tekst(o, K1_CZ_MALA, TRESC_X + 22, K1_OKNO_TYTUL + 99 + i * UWAGA_H, t[i], k1_kolor(m->tekst2, 255),
+        k1_ikona(o, K1_IK_INFO, TRESC_X, (float)(seg_y() - 18 + i * UWAGA_H), 16, k1_kolor(m->tekst3, 255));
+        k1_tekst(o, K1_CZ_MALA, TRESC_X + 22, seg_y() - 5 + i * UWAGA_H, t[i], k1_kolor(m->tekst2, 255),
                  apl.szer - TRESC_X - 46);
     }
     for (int i = 0; i < n; i++)

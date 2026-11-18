@@ -108,7 +108,7 @@ static void zapisz_kopie(struct notatka *n)
     n->zapisywana = 0;
     n->tworzona = 0;
     zapis_blad = 0;
-    komunikat = "Plik tej notatki trafił do Kosza — zapisano jej kopię.";
+    komunikat = "Plik tej notatki trafił do Kosza. Zapisano jej kopię.";
     k1_log(TAG, "plik notatki w Koszu albo usunięty — zapisuję kopię (%u B)", n->dl);
     zapisz_notatke(n);
 }
@@ -248,7 +248,7 @@ static void dopasuj(int n)
         }
     }
     if (brak_miejsca && komunikat == NULL)
-        komunikat = "Pokazano 256 najnowszych notatek — starsze są w Plikach (Dokumenty › Notatki).";
+        komunikat = "Pokazano 256 najnowszych notatek. Starsze są w Plikach (Dokumenty › Notatki).";
 }
 
 /* Newest first (the order of the window): the files with the latest change. */

@@ -79,7 +79,7 @@ static void wynik(const struct k1_komunikat *k)
     czeka = 0;
     if (k->b == 0)
         exit(0); /* skarbiec gave the file to the application (or took "Anuluj"): the window's work is done */
-    blad = k->b == K1_DOK_BLAD_OTWARTE ? "Ta aplikacja ma już otwartych 64 plików — zamknij ją i otwórz ponownie."
+    blad = k->b == K1_DOK_BLAD_OTWARTE ? "Ta aplikacja ma już otwartych 64 plików. Zamknij ją i otwórz ponownie."
                                        : "Tego pliku nie można wybrać.";
     k1_log(TAG, "skarbiec odmówił (wynik %d)", k->b);
 }

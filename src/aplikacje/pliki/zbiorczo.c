@@ -51,7 +51,7 @@ static void koniec(void)
     if (z.bledy > 0 && (z.n == 1 || z.zrobione == 0))
         snprintf(komunikat, sizeof komunikat, "%s", k1_prz_powod(z.pierwszy_blad)); /* only why */
     else if (z.bledy > 0 && (d = strlen(komunikat)) < sizeof komunikat - 1)
-        snprintf(komunikat + d, sizeof komunikat - d, " Nie udało się: %d — %s", z.bledy, k1_prz_powod(z.pierwszy_blad));
+        snprintf(komunikat + d, sizeof komunikat - d, " Nie udało się: %d. %s", z.bledy, k1_prz_powod(z.pierwszy_blad));
     blad = komunikat[0] != '\0' ? komunikat : NULL;
     k1_log(TAG, "zbiorczo: koniec (komunikat %d) — zrobione %d, błędy %d", z.typ, z.zrobione, z.bledy);
 }

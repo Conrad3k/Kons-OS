@@ -40,6 +40,17 @@ Podgląd tapety bez QEMU: `make build/obj/podglad_grafiki && build/obj/podglad_g
   użytkownik widzi** (podtytuły sekcji, zdania-podpisy) i **półpauzy**; nowych takich zdań nie dodajemy. **Kolor sesji
   nie obejmuje całego okna przeglądarki** („psuje estetykę”): ma być w jednym miejscu, dyskretnie (szkice w kroku 4).
 
+- 2026-11-18 (plan 0.10.7 krok 1, decyzja D2): **napisy bez opisów i bez półpauz.** (Z2) Sekcje Ustawień mają sam
+  tytuł (Plex Serif 24), bez podtytułu; treść każdej sekcji zaczyna się 32 px pod linią tytułu (`seg_y()`, ten sam
+  odstęp wszędzie; w Sieci w tym miejscu stoją zakładki). Znikły też zdania-podpisy: „Każda część systemu działa
+  w osobnej, zamkniętej klatce.”, „Ile miejsca zajmują Twoje pliki…” (Informacje), „Nieużywaną pamięć sesja oddaje K1
+  sama…” (Zasoby), „Lista odświeża się co minutę.” (Wi-Fi). **Zostają** opisy w menu Start (decyzja właściciela) oraz
+  informacje, których nie widać, a od nich zależą dane albo działanie: ostrzeżenie przy haśle, „Pliki są tylko
+  w pamięci do wyłączenia komputera.” (Miejsce, na dole okna), instrukcje Instalatora, Secure Boot i Aktualizacji.
+  (Z3) Zamiast półpauzy: dwa zdania („Złe hasło. Spróbuj jeszcze raz.”), przecinek albo dwukropek („Nie możesz: …”).
+  Pilnuje tego `scripts/sprawdz-czytelnosc.py` (punkt 11: napisy okien K1; logi nie). Zdania pełne mają kropkę,
+  krótkie napisy (nagłówki, przyciski, etykiety) nie.
+
 ## Kierunek (M4)
 - **Charakter:** spokojny, rzeczowy, lekko ciepły.
 - **Świat:** papier i glina — kremowy papier okien, terakota, ciemny brąz wieczoru.
@@ -88,7 +99,7 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   przyciemniona (czarny 27%), w lewym górnym rogu znak K1 22 px + „Kons K1”, z lewej na wysokości
   połowy ekranu zegar Plex Serif Light 64 i data (Serif 24), na dole pośrodku przezroczyste pole hasła
   w kształcie pigułki 340×48 (krem 18% + obrys krem 47%) z kropkami i okrągłym przyciskiem ze strzałką
-  w kolorze akcentu, nad nim „Hasło”, pod nim „Enter — odblokuj · zapomniane hasło = nowe konto”;
+  w kolorze akcentu, nad nim „Hasło”, pod nim „Enter: odblokuj · zapomniane hasło = nowe konto”;
   w prawym dolnym rogu bateria i wyłączanie. Szkice wariantów (A, B, C) były w
   `testy/host/szkice_logowania.c` do 0.7.0 (historia git).
 - **Ustawienia → Bateria** (0.5.5): „73 %” (Plex Serif 24) + stan; wykres jak w Zasobach (pole 8 px,
@@ -222,7 +233,7 @@ wybrany **A**. Znaczek i plakietka B2 zniknęły.
   zaokrąglenie 12. Bez podglądu treści okien. Kolejność: ostatnio używane najpierw; pierwsze Tab wybiera poprzednie okno.
 - **Sesje — Ustawienia → Przeglądarka (0.10.1 krok 4, decyzja właściciela D5 z 2026-11-17: szkic A „karta na sesję”;
   zastępuje wiersze co 78 px z 0.10.0 krok 5 — opis wchodził na następną sesję):** sekcja przed Informacjami (ikona globusa),
-  opis „Każda sesja to osobna maszyna z własnym kolorem.”; karta na sesję: `pole`, 440 × 88, zaokrąglenie 10, włoskowaty
+  (od 0.10.7 bez opisu pod tytułem); karta na sesję: `pole`, 440 × 88, zaokrąglenie 10, włoskowaty
   obrys, co 96 px; kropka 6 px w kolorze sesji (22, 23), nazwa Plex Sans Medium 15, pod nią jedno zdanie stanu Plex Sans 13
   `tekst2`; dolny rząd: ciche „Zmień nazwę” i „Wyczyść dane…” (Plex Sans 13), po prawej przełącznik segmentowy 184 × 28
   „Pamięta | Zapomina”. Zmiana nazwy: pole 210 × 30 z ramką w kolorze akcentu w miejscu nazwy, w dolnym rzędzie „Zapisz”
@@ -249,7 +260,7 @@ wybrany **A**. Znaczek i plakietka B2 zniknęły.
 - **Zasoby → Sesje przeglądarki (0.10.1 krok 3, D3: szkic B „paski sesji”):** część nad „Usługi i aplikacje”: tytuł
   „Sesje przeglądarki” (Medium 15), wiersz co 46 px — kropka 4 px w kolorze sesji, nazwa (Medium 13), po prawej „1,1 GB
   z 2,8 GB” (13, `tekst2`), pod nimi tor 10 px (zaokrąglenie 5, `tekst` 22/255) z wypełnieniem w kolorze sesji; pod
-  wierszami „Nieużywaną pamięć sesja oddaje K1 sama, po kilku sekundach.” (13, `tekst3`). Odrzucone: A (wiersze listy usług
+  wierszami do 0.10.7 krok 1 zdanie „Nieużywaną pamięć sesja oddaje K1 sama…” (usunięte, Z2). Odrzucone: A (wiersze listy usług
   z drugą linijką „używa … · może dostać …”).
 - **Menu sesji (0.10.0 krok 5, D2; zostaje obok okienka sesji):** prawy przycisk na „Przeglądarce” w menu Start — „Otwórz”
   (pogrubione; od 0.10.1 otwiera okienko sesji), kreska, napis „Sesje” i wiersz na sesję (jej nazwa), potem jak u aplikacji
@@ -288,7 +299,7 @@ C „Słupki”; sekcja A „Zakładki, wiersz się rozwija”, B „Lista i oki
   promień 12, wierzchołek u dołu) — `k1_wachlarz.c`. Nie połączono: wachlarz krem 90/255 i krzyżyk 4 × 4 px w ciemnym
   kółku w prawym dolnym rogu (jak „kabel odłączony”). Wyłączone: krem 46/255, ukośna kreska. W kroku 2: łączę — przygaszony
   z kropką w terakocie; połączono — wypełniona część według kresek 1–4 (promień 0,1 + 0,225·kreski), reszta przygaszona.
-- **Ustawienia → Sieć:** pod tytułem „Sieć” (zamiast opisu) zakładki „Wi-Fi | Karty sieciowe” (`k1_segment`, 260 × 32);
+- **Ustawienia → Sieć:** pod tytułem „Sieć” (od 0.10.7 tam, gdzie inne sekcje mają przyciski) zakładki „Wi-Fi | Karty sieciowe” (`k1_segment`, 260 × 32);
   zakładka Wi-Fi jest pierwsza, gdy komputer ma kartę Wi-Fi (także nieobsługiwaną). Na prawo od zakładek „Wi-Fi”
   (`tekst2`, 13 px) i przełącznik (36 × 20; nieaktywny, gdy radio wyłączone przełącznikiem w obudowie). Lista w karcie
   (`pole`, zaokrąglenie 10, włoskowaty obrys): wiersz 40 px, wachlarz 18 px (`tekst2`, tło 60/255), nazwa Plex Sans 15,
@@ -297,12 +308,12 @@ C „Słupki”; sekcja A „Zakładki, wiersz się rozwija”, B „Lista i oki
   linijki (Plex Sans 15 i 13): „Szukam sieci…”, „Nie znaleziono sieci w pobliżu.”, „Wi-Fi wyłączone.”, „Wi-Fi wyłączone
   przełącznikiem w komputerze.”, „Nie znaleziono karty Wi-Fi.”, „<karta> — K1 nie potrafi jej jeszcze uruchomić.”
   W kroku 2 kliknięcie sieci rozwija jej wiersz (tło `zaznaczenie`): „Hasło sieci”, pole 230 px, „Połącz” (przycisk
-  główny), pod spodem „Hasło wpisujesz raz — K1 je zapamięta.” albo „Złe hasło — spróbuj jeszcze raz.” (`akcent_tekst`);
+  główny), pod spodem „Hasło wpisujesz raz. K1 je zapamięta.” albo „Złe hasło. Spróbuj jeszcze raz.” (`akcent_tekst`);
   połączona sieć — plakietka „Połączono” z kropką w szałwii.
   **Wykonanie w kroku 2 (0.9.1):** rozwinięty wiersz 96 px na tle `zaznaczenie`; pole hasła 230 × 36 (tło `tlo`, obrys
   akcentem, gdy aktywne albo po złym haśle), kropki zamiast znaków; „Połącz” (`k1_przycisk`, główny, 104 px; nieaktywny,
   dopóki hasło ma < 8 znaków) na prawo od pola; pod nimi jedna linijka 13 px: „Hasło wpisujesz raz — K1 je zapamięta.”,
-  „Złe hasło — spróbuj jeszcze raz.” (pogrubiona, `akcent_tekst`), „Nie udało się połączyć — spróbuj jeszcze raz.”. Sieć
+  „Złe hasło. Spróbuj jeszcze raz.” (pogrubiona, `akcent_tekst`), „Nie udało się połączyć. Spróbuj jeszcze raz.”. Sieć
   otwarta: sam „Połącz” i „Sieć niezabezpieczona — inni w pobliżu mogą widzieć, co przesyłasz.”; zapamiętana: „Połącz”
   i „Zapomnij tę sieć” (zwykły, 160 px); połączona: „Zapomnij tę sieć”. Przy wierszu po prawej: „Połączono” (pogrubiony
   `tekst2` z kropką w szałwii `#8A9A7B`), „Łączę…” albo „zapamiętana” (`tekst3`). Z otwartym wierszem widać 4 wiersze

@@ -160,9 +160,9 @@ void miejsce_wynik(const struct k1_komunikat *k)
     in.czeka = 0;
     in.blad = k->b != 0;
     if (k->b == 0)
-        snprintf(in.komunikat, sizeof in.komunikat, "Gotowe — cały pendrive jest teraz na dane.");
+        snprintf(in.komunikat, sizeof in.komunikat, "Gotowe. Cały pendrive jest teraz na dane.");
     else
-        snprintf(in.komunikat, sizeof in.komunikat, "Nie udało się powiększyć — pliki zostały bez zmian.");
+        snprintf(in.komunikat, sizeof in.komunikat, "Nie udało się powiększyć. Pliki zostały bez zmian.");
     k1_log(TAG, "powiększenie K1-DANE: %s (wynik %d)", k->b == 0 ? "gotowe" : "nieudane", (int)k->b);
 }
 
@@ -221,7 +221,7 @@ static void liczby(struct k1_obraz *o, const struct k1_motyw *m, int32_t y_gora,
     k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X, y_gora, buf, k1_kolor(m->tekst, 255), 0);
     if (podzial_znany) {
         k1_rozmiar_tekst((uint64_t)kib[K1_CZESC_ZAPAS] << 10, c, sizeof c);
-        snprintf(buf, sizeof buf, "Zapas systemu: %s — zawsze wolny, żeby dało się zapisać zmiany.", c);
+        snprintf(buf, sizeof buf, "Zapas systemu: %s, zawsze wolny, żeby dało się zapisać zmiany.", c);
         k1_tekst(o, K1_CZ_MALA, TRESC_X, y_dol, buf, k1_kolor(m->tekst3, 255), PASEK_W);
     }
     snprintf(buf, sizeof buf, "Pliki i foldery: %d z %d %03d", (int)in.wpisy, K1_DOK_MAKS / 1000, K1_DOK_MAKS % 1000);
@@ -233,9 +233,10 @@ void miejsce_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     int64_t w[WIERSZY + 1];
     int nr[WIERSZY], n;
     char r[24], buf[128];
-    naglowek(o, m, "Miejsce", haslo_tylko_pamiec() ? "Pliki są tylko w pamięci do wyłączenia komputera"
-                              : haslo_na_pendrive()  ? "Miejsce na Twoje pliki na pendrive'ie"
-                                                     : "Miejsce na Twoje pliki na dysku");
+    naglowek(o, m, "Miejsce");
+    if (haslo_tylko_pamiec()) /* not seen anywhere else, and the files depend on it (the owner's D2b) */
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, apl.wys - 24, "Pliki są tylko w pamięci do wyłączenia komputera.",
+                 k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 24);
     if (!in.znane)
         return;
     wiersze(w);

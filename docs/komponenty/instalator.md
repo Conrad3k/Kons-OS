@@ -89,7 +89,7 @@ K1-EFI w formacie 2 (`k1_uklad.h`): FAT32 280 MiB, blok układu w zarezerwowanyc
 - **Aktualizacja (dysk w formacie 2):** grubenv dysku → działające miejsce; najpierw **wymiana plików startowych**
   (0.9.0, niżej), potem system z miejsca A pendrive'a (wewnętrzny FAT + oba manifesty) do drugiego, odczyt
   i porównanie, potem grubenv `k1_nowy` (GRUB spróbuje raz).
-  Wersja porównywana z manifestem działającego miejsca. `INST_GOTOWE` b = 1 → Ustawienia: „Gotowe — X czeka na dysku
+  Wersja porównywana z manifestem działającego miejsca. `INST_GOTOWE` b = 1 → Ustawienia: „Gotowe. X czeka na dysku
   obok Y”.
 - **Dysk bez bloku układu (K1 starszy niż 0.7.0) albo z nieczytelnym grubenv**: K1-EFI zapisana jak przy instalacji
   (bez tablicy partycji; dane nietknięte). Stary Instalator 0.6.2–0.6.3 odmówi pendrive'a 0.9.0 (nie ma już manifestu

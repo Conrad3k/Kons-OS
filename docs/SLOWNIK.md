@@ -71,7 +71,7 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **gest palców** | Jedno przewijanie dwoma palcami w oknie strefy — od pierwszego ruchu palców do ich zatrzymania (0.10.1 krok 5). Kompozytor strefy kończy go zdarzeniem `axis_stop` po 200 ms bez ruchu palców albo od razu przed kółkiem, kliknięciem i zmianą okna pod kursorem (`src/strefa/kompozytor/palce.c`); ramkę palców oznacza VMM (`BTN_TOOL_FINGER`). |
 | **touchpad** | Płytka dotykowa laptopa. K1 czyta palce sam (`src/wejscie/touchpad.c`): jeden palec — kursor, dwa — przewijanie, **stuknięcie** — kliknięcie (jeden palec lewy, dwa prawy, trzy środkowy); touchpad, który cały jest przyciskiem: prawy dolny róg albo dwa palce = prawy przycisk. |
 | **upuścić** | Puścić przeciągane pliki nad celem (folder, Kosz, pendrive). Co się stanie, mówi jedna **tabela reguł przeciągania** (źródło, cel — `k1_przeciaganie` w przyborniku, ta sama w Plikach i na pulpicie). Na razie w obrębie jednego okna albo pulpitu; między oknami — po 0.8.2 (D6). |
-| **okienko** | Mały panel w wyglądzie menu kontekstowego z pytaniem („Przenieść 12 elementów do Kosza?”) albo odmową („Nie możesz — …”) i wierszami odpowiedzi; pokazuje się w miejscu upuszczenia (0.8.2 krok 6). |
+| **okienko** | Mały panel w wyglądzie menu kontekstowego z pytaniem („Przenieść 12 elementów do Kosza?”) albo odmową („Nie możesz: …”) i wierszami odpowiedzi; pokazuje się w miejscu upuszczenia (0.8.2 krok 6). |
 | **rozmieszczenie pulpitu** | Które aplikacje są przypięte i w jakiej kolejności oraz gdzie leżą ikony; zapisane w skarbcu jako obiekt pulpitu. (Nie mylić z blokiem układu K1-EFI.) |
 | **warstwa pulpitu** | Powierzchnia pulpitu z ikonami: nad tapetą, pod oknami (ADR 0028). |
 

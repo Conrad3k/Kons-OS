@@ -64,7 +64,7 @@ void aplikacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     int typy[K1_TYPY_MAKS], n = wiersze(typy);
     char nazwa[96];
-    naglowek(o, m, "Aplikacje", "Czym otwierać pliki (podwójne kliknięcie)");
+    naglowek(o, m, "Aplikacje");
     for (int i = 0; i < n; i++) {
         int a[K1_APL_MAKS], na = k1_dok_aplikacje(typy[i], a), wybrana = 0;
         int teraz = k1_dok_czym_otworzyc(typy[i], apl.k.ustawienia[K1_UST_OTWIERANIE + typy[i] - 1]);
@@ -137,10 +137,10 @@ void aplikacje_loguj(void)
     size_t d = 0;
     for (int i = 0; i < n && d < sizeof buf - 1; i++) {
         int na = k1_dok_aplikacje(typy[i], a), w;
-        w = na >= 2 ? snprintf(buf + d, sizeof buf - d, "%s%s — %d do wyboru, przyciski od %d,%d (szer. %d, wys. %d)",
+        w = na >= 2 ? snprintf(buf + d, sizeof buf - d, "%s%s — %d do wyboru, przyciski od %d,%d (szer. %d, wys. %d)", /* k1: napis do logu */
                                d ? "; " : "", nazwa_wiersza(typy[i], nazwa, sizeof nazwa), na, TRESC_X,
                                (int)wiersz_y(typy, i) + 10, SEG_W + 60, SEG_H)
-                    : snprintf(buf + d, sizeof buf - d, "%s%s — %s", d ? "; " : "", nazwa_wiersza(typy[i], nazwa, sizeof nazwa),
+                    : snprintf(buf + d, sizeof buf - d, "%s%s — %s", d ? "; " : "", /* k1: napis do logu */ nazwa_wiersza(typy[i], nazwa, sizeof nazwa),
                                na == 1 ? k1_profil_nazwa(k1_apl_profil(a[0])) : "brak");
         if (w < 0 || (size_t)w >= sizeof buf - d)
             break;

@@ -13,8 +13,8 @@
 #define ZN_KOPIUJ 0x2f6b4fu
 #define ZN_NIE 0x7a2e1cu
 
-#define STALE "Nie możesz — foldery Pulpit, Dokumenty, Obrazy, Muzyka, Wideo i Pobrane są stałe."
-#define TYLKO_ODCZYT "Nie możesz — pendrive jest w K1 tylko do odczytu."
+#define STALE "Nie możesz: foldery Pulpit, Dokumenty, Obrazy, Muzyka, Wideo i Pobrane są stałe."
+#define TYLKO_ODCZYT "Nie możesz: pendrive jest w K1 tylko do odczytu."
 
 /* THE TABLE: (source, target) → action; a refusal has its sign and its whole text (and maybe a small text under it).
  * A pair not listed: nothing happens. An allowed action: `znak` „<the target's name>”`opis`, e.g. "Kopiuj do „Obrazy” (import)". */
@@ -31,7 +31,7 @@ static const struct regula {
     { K1_PZ_KOSZ, K1_PC_FOLDER, K1_PD_PRZYWROC, "Przywróć do", NULL, NULL },
     { K1_PZ_KOSZ, K1_PC_KOSZ, K1_PD_NIC, NULL, NULL, NULL },
     { K1_PZ_KOSZ, K1_PC_PENDRIVE, K1_PD_ODMOWA, "Z Kosza możesz tylko przywrócić",
-      "Z Kosza możesz tylko przywrócić — upuść na folder albo kliknij „Przywróć”.", NULL },
+      "Z Kosza możesz tylko przywrócić: upuść na folder albo kliknij „Przywróć”.", NULL },
     { K1_PZ_PENDRIVE, K1_PC_FOLDER, K1_PD_IMPORT, "Kopiuj do", NULL, " (import)" },
     { K1_PZ_PENDRIVE, K1_PC_KOSZ, K1_PD_ODMOWA, "Z pendrive'a tylko import",
       "Z pendrive'a możesz tylko skopiować pliki do K1 (import).", "Upuść je na folder K1 albo kliknij „Importuj”." },
@@ -59,7 +59,7 @@ static void pytanie_kosz(const struct k1_prz_co *c, struct k1_prz_ocena *o)
         return;
     if (c->ile > 1) {
         snprintf(o->tekst, sizeof o->tekst, "Przenieść %d %s do Kosza?", c->ile, k1_odmiana(c->ile, "element", "elementy", "elementów"));
-        snprintf(o->opis, sizeof o->opis, "Kosz usuwa je po %d dniach — do tego czasu możesz je przywrócić.", K1_KOSZ_DNI);
+        snprintf(o->opis, sizeof o->opis, "Kosz usuwa je po %d dniach. Do tego czasu możesz je przywrócić.", K1_KOSZ_DNI);
         return;
     }
     snprintf(o->tekst, sizeof o->tekst, "Przenieść folder „%s” do Kosza?", c->nazwa != NULL ? c->nazwa : "");
@@ -75,12 +75,12 @@ static void ograniczenia(const struct k1_prz_co *c, struct k1_prz_ocena *o)
     char t[sizeof o->tekst];
     int64_t mb = (int64_t)((c->bajty + (1u << 20) - 1) >> 20);
     if (c->w_siebie && (o->dzialanie == K1_PD_PRZENIES || o->dzialanie == K1_PD_PRZYWROC)) {
-        odmowa(o, "Folder nie może trafić do samego siebie", "Nie możesz — folder nie może trafić do samego siebie.", NULL);
+        odmowa(o, "Folder nie może trafić do samego siebie", "Nie możesz: folder nie może trafić do samego siebie.", NULL);
     } else if (c->za_gleboko && o->dzialanie != K1_PD_KOSZ) {
-        snprintf(t, sizeof t, "Nie możesz — najwyżej %d folderów w folderach.", K1_DOK_GLEBOKOSC);
+        snprintf(t, sizeof t, "Nie możesz: najwyżej %d folderów w folderach.", K1_DOK_GLEBOKOSC);
         odmowa(o, "Za dużo folderów w folderach", t, NULL);
     } else if (o->dzialanie == K1_PD_IMPORT && c->wolne_mb >= 0 && mb > c->wolne_mb) {
-        snprintf(t, sizeof t, "Nie możesz — brak miejsca na pliki (zostało %lld MB).", (long long)c->wolne_mb);
+        snprintf(t, sizeof t, "Nie możesz: brak miejsca na pliki (zostało %lld MB).", (long long)c->wolne_mb);
         odmowa(o, "Brak miejsca na pliki", t, NULL);
     }
 }
@@ -153,13 +153,13 @@ void k1_prz_okienko_nazwa(struct k1_menu *m, const char *cel, const char *nazwa,
 const char *k1_prz_powod(int wynik)
 {
     switch (wynik) {
-    case K1_DOK_BLAD_MIEJSCE: return "Nie możesz — najwyżej 8 folderów w folderach (albo folderu już nie ma).";
-    case K1_DOK_BLAD_ZAJETA: return "Nie możesz — taka nazwa już jest w tym folderze.";
-    case K1_DOK_BLAD_PELNO: return "Nie możesz — za dużo plików i folderów (K1 mieści 16 384).";
+    case K1_DOK_BLAD_MIEJSCE: return "Nie możesz: najwyżej 8 folderów w folderach (albo folderu już nie ma).";
+    case K1_DOK_BLAD_ZAJETA: return "Nie możesz: taka nazwa już jest w tym folderze.";
+    case K1_DOK_BLAD_PELNO: return "Nie możesz: za dużo plików i folderów (K1 mieści 16 384).";
     case K1_DOK_BLAD_BRAK_MIEJSCA:
-    case K1_SKARB_PELNY: return "Nie możesz — brak miejsca na pliki.";
-    case K1_DOK_BLAD_BRAK: return "Nie możesz — tego pliku już tu nie ma.";
-    case K1_SKARB_ZLE_HASLO: return "Nie możesz — dane są zablokowane hasłem.";
+    case K1_SKARB_PELNY: return "Nie możesz: brak miejsca na pliki.";
+    case K1_DOK_BLAD_BRAK: return "Nie możesz: tego pliku już tu nie ma.";
+    case K1_SKARB_ZLE_HASLO: return "Nie możesz: dane są zablokowane hasłem.";
     default: return "Nie udało się.";
     }
 }

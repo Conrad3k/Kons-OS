@@ -22,7 +22,11 @@
   9. (0.10.5 krok 8) każdy plik w scripts/ ma opis w docs/ARCHITEKTURA.md albo docs/TESTY.md, a każdy test na hoście
      i fuzzer z Makefile (TESTY_HOST, TESTY_HOST_PLIKI, FUZZ) — w docs/TESTY.md;
  10. (0.10.5 krok 8) stan nie zostaje w tyle: najnowsza wersja od ludzi w CHANGELOG.md (wpis bez znacznika robota)
-     jest w wierszu „Stan:” docs/DO_ZROBIENIA.txt i w „Co już jest (…)” README.md.
+     jest w wierszu „Stan:” docs/DO_ZROBIENIA.txt i w „Co już jest (…)” README.md;
+ 11. (0.10.7 krok 1, zasada Z3 właściciela) w napisach okien K1 nie ma półpauzy (—): literały w src/aplikacje/,
+     src/gui/, src/przybornik/, src/logowanie/, src/ekran/ i w tekstach Instalatora (src/wspolne/k1_inst_teksty.h);
+     bez komentarzy i bez napisów do logu (instrukcja z wywołaniem *log*( ); napis budowany dla logu poza nią —
+     komentarz `/* k1: napis do logu */` w jego wierszu).
 
 Użycie: python3 -I scripts/sprawdz-czytelnosc.py [KATALOG_REPO]. Kod wyjścia 0 = wszystko w porządku.
 """
@@ -195,6 +199,62 @@ def sprawdz_opis_ekranu(repo, bledy):
                 bledy.append(f"{wzgl}: {nazwa} poza ekranem i testami (opis ekranu tylko dla testów, ADR 0045)")
 
 
+POLPAUZA_GDZIE = ("src/aplikacje", "src/gui", "src/przybornik", "src/logowanie", "src/ekran",
+                  "src/wspolne/k1_inst_teksty.h")
+DO_LOGU = re.compile(r"\b\w*log\w*\s*\(")
+NAPIS_DO_LOGU = "/* k1: napis do logu */"
+
+
+def literaly(tekst):
+    """C string literals of a source: (offset, its text, the code before it with comments removed)."""
+    kod, i, n = [], 0, len(tekst)
+    while i < n:
+        if tekst.startswith("/*", i):
+            j = tekst.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            kod.append(" " * (j - i))
+            i = j
+        elif tekst.startswith("//", i):
+            j = tekst.find("\n", i)
+            j = n if j < 0 else j
+            kod.append(" " * (j - i))
+            i = j
+        elif tekst[i] in "\"'":
+            j = i + 1
+            while j < n and tekst[j] != tekst[i] and tekst[j] != "\n":
+                j += 2 if tekst[j] == "\\" else 1
+            if tekst[i] == '"':
+                yield i, tekst[i + 1:j], "".join(kod)
+            kod.append(tekst[i:j + 1])
+            i = j + 1
+        else:
+            kod.append(tekst[i])
+            i += 1
+
+
+def polpauzy(tekst):
+    """Line numbers of literals with an em dash that are not for the log."""
+    for poz, napis, przed in literaly(tekst):
+        if "—" not in napis:
+            continue
+        instrukcja = przed[max(przed.rfind(";"), przed.rfind("{"), przed.rfind("}")) + 1:]
+        wiersz = tekst[tekst.rfind("\n", 0, poz) + 1:tekst.find("\n", poz) if tekst.find("\n", poz) >= 0 else None]
+        if not DO_LOGU.search(instrukcja) and NAPIS_DO_LOGU not in wiersz:
+            yield tekst.count("\n", 0, poz) + 1
+
+
+def sprawdz_polpauzy(repo, bledy):
+    for gdzie in POLPAUZA_GDZIE:
+        sciezka = os.path.join(repo, gdzie)
+        pliki = [sciezka] if os.path.isfile(sciezka) else \
+            sorted(os.path.join(d, f) for d, _, fs in os.walk(sciezka) for f in fs if f.endswith((".c", ".h")))
+        for p in pliki:
+            with open(p, encoding="utf-8") as f:
+                for nr in polpauzy(f.read()):
+                    bledy.append(f"{os.path.relpath(p, repo)}:{nr}: półpauza w napisie na ekranie (zasada Z3: zdanie "
+                                 "podziel albo użyj przecinka, dwukropka)")
+
+
 def sprawdz_adr(repo, bledy):
     kat = os.path.join(repo, "docs", "adr")
     with open(os.path.join(kat, "README.md"), encoding="utf-8") as f:
@@ -330,6 +390,9 @@ def samotest():
                                                                      "docs/archiwum/PLAN-0.8.1.txt"]
     assert list(sciezki_repo("`scripts/test-m4.sh`, src/siec/wifi, src/wspolne/k1_kom_<kanał>.c, testy/host/fuzz_*.c\n"
                              "dawny `scripts/test-m2.sh` (historia git)")) == ["scripts/test-m4.sh", "src/siec/wifi"]
+    c = ('/* "a — b" */ k1_log(TAG, "x — %d",\n    1);\nk1_tekst(o, "Nie możesz — tak", \'"\');\n'
+         'snprintf(b, n, "%s — %s", x); /* k1: napis do logu */\n// "c — d"\nt = "e\\" — f";\n')
+    assert list(polpauzy(c)) == [3, 6], list(polpauzy(c))
     assert lista_make("A := x y \\\n\tz\nB := q\n", "A") == ["x", "y", "z"]
     assert lista_x("#define L(X) \\\n    X(A, 1, \"a\") \\\n    X(B, 2, \"b\")\n\n", "L") == [["A", "1", "a"], ["B", "2", "b"]]
 
@@ -348,13 +411,14 @@ def main():
     sprawdz_sciezki_repo(repo, bledy)
     sprawdz_spisy(repo, bledy)
     sprawdz_stan(repo, bledy)
+    sprawdz_polpauzy(repo, bledy)
     for b in bledy:
         print("  " + b)
     if bledy:
         print(f"[k1] BŁĄD: zasady czytelności — {len(bledy)} do poprawy (AGENTS.md, „Czytelność”)")
         return 1
     print("[k1] czytelność: pliki ≤ 600 wierszy, funkcje ≤ 80, opisy usług, aplikacji i komunikatów, "
-          "spis ADR, ścieżki, spisy skryptów i testów, stan wersji — OK")
+          "spis ADR, ścieżki, spisy skryptów i testów, stan wersji, napisy bez półpauz — OK")
     return 0
 
 

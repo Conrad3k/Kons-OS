@@ -130,7 +130,7 @@ static void rysuj(void)
     if (komunikat[0])
         srodek(o, K1_CZ_MALA_MOCNA, cx, py + 78, komunikat, k1_kolor(pokaz_blad ? K1_TERAKOTA : K1_KREM, 230));
     else
-        srodek(o, K1_CZ_MALA, cx, py + 78, "Enter — odblokuj   ·   zapomniane hasło = nowe konto", k1_kolor(K1_KREM, 160));
+        srodek(o, K1_CZ_MALA, cx, py + 78, "Enter: odblokuj   ·   zapomniane hasło = nowe konto", k1_kolor(K1_KREM, 160));
 
     /* battery and power off */
     if (bat.obecna && bat.procent >= 0) {
@@ -233,7 +233,7 @@ static void odbierz_wynik(void)
         if (w.b == 0) {
             odblokowano = 1;
             pokaz_blad = 0;
-            snprintf(komunikat, sizeof komunikat, "Odblokowano — uruchamiam pulpit…");
+            snprintf(komunikat, sizeof komunikat, "Odblokowano. Uruchamiam pulpit…");
             k1_log(TAG, "odblokowano");
         } else {
             pokaz_blad = 1;

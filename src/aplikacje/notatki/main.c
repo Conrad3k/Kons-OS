@@ -181,7 +181,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     if (b->dl == 0)
         k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 16,
                  b->wczytana       ? "Zacznij pisać…"
-                 : b->blad_odczytu ? "Nie udało się wczytać tej notatki — spróbuję ponownie."
+                 : b->blad_odczytu ? "Nie udało się wczytać tej notatki. Spróbuję ponownie."
                                    : "Wczytywanie…",
                  k1_kolor(m->tekst3, 255), szer_tekstu());
     for (i = pierwsza, y = GORA; i < n_linii && (int32_t)(i - pierwsza) < widoczne(); i++, y += WIERSZ) {
@@ -204,7 +204,7 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
              zapis_blad   ? "Nie udało się zapisać notatki"
              : komunikat  ? komunikat
              : zmiana > 0 ? "Zapisywanie…"
-             : skarb < 0  ? "Bez zapisu — brak usługi danych"
+             : skarb < 0  ? "Bez zapisu: brak usługi danych"
              : tryb == K1_SKARB_TRWALY ? "Zapisano (zaszyfrowane)"
                           : "Zapisano tylko do wyłączenia komputera (brak partycji K1-DANE)",
              k1_kolor(zapis_blad ? m->akcent_tekst : m->tekst3, 255), x_usun() - LEWO - 16);

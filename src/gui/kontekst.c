@@ -263,7 +263,7 @@ static void wykonaj_pulpit(int akcja)
     case A_ODEPNIJ: rozm_odepnij(&rozm, kl); snprintf(co, sizeof co, "odpięto od paska: %s", nazwa); break;
     case A_DODAJ:
         if (rozm_dodaj_ikone(&rozm, kl, pulpit_kolumn(), pulpit_wierszy()) != 0)
-            snprintf(co, sizeof co, "pulpit pełny — %s nie dodano", nazwa);
+            snprintf(co, sizeof co, "pulpit pełny — %s nie dodano", nazwa); /* k1: napis do logu */
         else
             snprintf(co, sizeof co, "dodano do pulpitu: %s", nazwa);
         break;

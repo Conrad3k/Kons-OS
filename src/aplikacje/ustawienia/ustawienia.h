@@ -33,7 +33,7 @@ extern int sekcja;
 /* The control of the current section: segmented buttons at (TRESC_X, seg_y). */
 static inline int seg_y(void)
 {
-    return K1_OKNO_TYTUL + 104;
+    return K1_OKNO_TYTUL + 72; /* 0.10.7 step 1: no description under the title (the owner's Z2) */
 }
 
 /* A changing place of the content (0.10.2 step 3, k1_opis.h K1_EL_ZMIENNE): rows y .. y + h, the content's whole width —
@@ -46,8 +46,8 @@ static inline void zmienne(const char *nazwa, int32_t y, int32_t h)
 /* Shows section `s` (as a click on its row; 0.10.5 step 1: also nadzorca's AKT_POKAZ). */
 void ustawienia_pokaz(int s);
 
-/* Title and one-line description of a section. */
-void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul, const char *opis);
+/* The title of a section (0.10.7 step 1: without a description, the owner's Z2). */
+void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul);
 
 /* bateria.c */
 int bateria_odbierz(void); /* what nadzorca sent (Sieć's messages too: siec_odbierz); 1 = redraw */
@@ -73,8 +73,10 @@ void siec_odbierz(const struct k1_komunikat *k); /* SIEC_* from nadzorca (bateri
 void siec_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 void siec_zegar_tekst(char *buf, size_t n); /* Data i czas: whether the clock came from the internet, when */
 
-/* Sieć (0.9.1, D1: sketch A): the tabs "Wi-Fi | Karty sieciowe" under the title, instead of the description */
-#define ZAKLADKI_Y (K1_OKNO_TYTUL + 54)
+/* Sieć (0.9.1, D1: sketch A): the tabs "Wi-Fi | Karty sieciowe" under the title, where other sections have their
+ * control (0.10.7 step 1); SIEC_Y: Sieć's content under them, as seg_y() is under the title elsewhere */
+#define ZAKLADKI_Y (seg_y())
+#define SIEC_Y (ZAKLADKI_Y + 50)
 #define ZAKLADKI_W 260
 #define ZAKLADKI_H 32
 int siec_klik(int32_t x, int32_t y); /* 1 = handled */
@@ -89,7 +91,7 @@ int wifi_klik(int32_t x, int32_t y);             /* the switch: 1 = handled */
 void wifi_pokazane(void);                        /* the list is shown: ask nadzorca to look for networks */
 /* what wifi.c and wifi_haslo.c share (0.9.1 step 2) */
 #define WIFI_WIERSZ_H 40
-#define WIFI_LISTA_Y (seg_y() - 8)
+#define WIFI_LISTA_Y (SIEC_Y - 8)
 #define ROZWINIETY_H 96 /* the open row: the password field, "Połącz", a line of message */
 struct wifi_ust {
     int znany, stan, n, szukam;

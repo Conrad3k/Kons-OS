@@ -32,9 +32,9 @@ static void rysuj_naglowek_listy(struct k1_obraz *o, const struct k1_motyw *m)
                  k1_kolor(m->tekst2, 255), 0);
     } else {
         k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Zainstaluj Kons K1", k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "System i Twoje zaszyfrowane dane zamieszkają na dysku tego komputera —",
+        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "System i Twoje zaszyfrowane dane zamieszkają na dysku tego komputera.",
                  k1_kolor(m->tekst2, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 68, "pendrive nie będzie już potrzebny.", k1_kolor(m->tekst2, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 68, "Pendrive nie będzie już potrzebny.", k1_kolor(m->tekst2, 255), 0);
     }
 }
 
@@ -43,14 +43,14 @@ static void rysuj_bez_zrodla(struct k1_obraz *o, const struct k1_motyw *m)
 {
     int i;
     static const char *const kroki_iso[] = {
-        "K1 działa teraz z obrazu .iso — w nim nie ma kopii systemu do instalacji.",
+        "K1 działa teraz z obrazu .iso. W nim nie ma kopii systemu do instalacji.",
         "1. Pobierz plik k1-…-usb.img.xz (Releases, obok .iso).",
         "2. Nagraj go na pendrive (Rufus albo balenaEtcher).",
         "3. Uruchom komputer z tego pendrive'a (F12) i otwórz Instalator.",
         NULL,
     };
     static const char *const kroki_dwa[] = {
-        "Podłączone są dwa pendrive'y z Kons K1 — nie wiadomo, który skopiować.",
+        "Podłączone są dwa pendrive'y z Kons K1. Nie wiadomo, który skopiować.",
         "Odłącz ten, z którego komputer nie startował, i otwórz Instalator jeszcze raz.",
         NULL,
     };
@@ -179,7 +179,7 @@ static void rysuj_sb(struct k1_obraz *o, const struct k1_motyw *m)
     int i;
     static const char *const kroki[] = {
         "1. Kliknij „Przygotuj klucz K1” i uruchom komputer ponownie (bez pendrive'a).",
-        "2. Pojawi się niebieski ekran MokManagera — w ciągu 10 sekund naciśnij dowolny klawisz.",
+        "2. Pojawi się niebieski ekran MokManagera. W ciągu 10 sekund naciśnij dowolny klawisz.",
         "3. Wybierz Enroll MOK → Continue → Yes, wpisz hasło: kons → Reboot.",
         "4. Przy starcie F1 (BIOS) → Security → Secure Boot → Enabled, zapisz (F10).",
     };
@@ -188,7 +188,7 @@ static void rysuj_sb(struct k1_obraz *o, const struct k1_motyw *m)
                          : sbk == K1_SBK_CZEKA ? "czeka na potwierdzenie przy następnym starcie"
                                                : "nie wpisany";
     k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Secure Boot", k1_kolor(m->tekst, 255), 0);
-    k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "Komputer uruchomi tylko system podpisany kluczem, który zna — podmieniony",
+    k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 50, "Komputer uruchomi tylko system podpisany kluczem, który zna. Podmieniony",
              k1_kolor(m->tekst2, 255), 0);
     k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 68, "albo uszkodzony K1 się nie uruchomi.", k1_kolor(m->tekst2, 255), 0);
     snprintf(buf, sizeof buf, "Secure Boot: %s", stan_sb);
@@ -197,7 +197,7 @@ static void rysuj_sb(struct k1_obraz *o, const struct k1_motyw *m)
     k1_tekst(o, K1_CZ_TEKST_MOCNA, LEWO, GORA + 128, buf, k1_kolor(m->tekst, 255), 0);
     y = GORA + 164;
     if (!sb_prawdziwy) {
-        k1_tekst(o, K1_CZ_TEKST, LEWO, y, "To wersja deweloperska (bez klucza wydania) — jej klucza nie wpisujemy.",
+        k1_tekst(o, K1_CZ_TEKST, LEWO, y, "To wersja deweloperska (bez klucza wydania). Jej klucza nie wpisujemy.",
                  k1_kolor(m->akcent_tekst, 255), apl.szer - 2 * LEWO);
         k1_tekst(o, K1_CZ_MALA, LEWO, y + 24, "Dodaj sekret K1_KLUCZ_PODPISU (README → „Klucz podpisu”), potem",
                  k1_kolor(m->tekst2, 255), 0);
@@ -208,7 +208,7 @@ static void rysuj_sb(struct k1_obraz *o, const struct k1_motyw *m)
         k1_tekst(o, K1_CZ_TEKST, LEWO, y, "Klucz jest wpisany. Zostało włączenie Secure Boot:", k1_kolor(m->tekst, 255), 0);
         k1_tekst(o, K1_CZ_TEKST, LEWO, y + 24, kroki[3], k1_kolor(m->tekst, 255), apl.szer - 2 * LEWO);
     } else if (sb == K1_SB_NIEZNANY) {
-        k1_tekst(o, K1_CZ_TEKST, LEWO, y, "Ten start nie ma zmiennych UEFI — uruchom K1 z dysku albo pendrive'a",
+        k1_tekst(o, K1_CZ_TEKST, LEWO, y, "Ten start nie ma zmiennych UEFI. Uruchom K1 z dysku albo pendrive'a",
                  k1_kolor(m->tekst, 255), apl.szer - 2 * LEWO);
         k1_tekst(o, K1_CZ_TEKST, LEWO, y + 22, "w trybie UEFI.", k1_kolor(m->tekst, 255), 0);
     } else {
@@ -233,7 +233,7 @@ static void rysuj_blad(struct k1_obraz *o, const struct k1_motyw *m)
     k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 64, k1_inst_blad_tekst(wynik), k1_kolor(m->tekst, 255), apl.szer - 2 * LEWO);
     if (wynik != K1_INST_BLAD_ZAJETY && wynik != K1_INST_BLAD_MALY && wynik != K1_INST_BLAD_ARG &&
         wynik != K1_INST_BLAD_ZRODLO && wynik != K1_INST_BLAD_TRWA)
-        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 92, "Dysk może być teraz pusty — spróbuj jeszcze raz.",
+        k1_tekst(o, K1_CZ_MALA, LEWO, GORA + 92, "Dysk może być teraz pusty. Spróbuj jeszcze raz.",
                  k1_kolor(m->tekst3, 255), 0);
 }
 

@@ -195,7 +195,7 @@ void rysuj_szczegoly(struct k1_obraz *o, const struct k1_motyw *m)
         cecha(o, m, &y, "Usunięcie na zawsze", buf);
     } else {
         k1_data_tekst(w->zmieniono, buf, sizeof buf);
-        cecha(o, m, &y, "Zmieniono", w->zmieniono > 0 ? buf : "—");
+        cecha(o, m, &y, "Zmieniono", w->zmieniono > 0 ? buf : "nie wiadomo");
     }
     if (!tu.pendrive) { /* a stick has no reliable creation time */
         k1_data_tekst(w->utworzono, buf, sizeof buf);

@@ -31,7 +31,7 @@
     X(0, 0x15ad, 0x07b0, "Karta wirtualna VMware (VMXNET3)")          \
     X(1, 0x0bda, 0x8153, "Realtek RTL8153 (USB)")
 
-#define KAFEL_Y (seg_y() - 8)
+#define KAFEL_Y (SIEC_Y - 8)
 #define KAFEL_H 64
 #define KAFEL_ODST 12
 #define KAFLE_MAKS 3 /* what fits in the window; 2 when the details are shown under them */
@@ -152,7 +152,7 @@ static void opis(int i, const struct k1_motyw *m, char *buf, size_t n, const cha
         *pig = r == K1_WIFI_WLACZONE ? "Włączone" : "Wyłączone";
         *kropka = r == K1_WIFI_WLACZONE ? m->akcent : m->tekst3;
     } else if (karty[i].rodzaj == K1_SIEC_WIFI) {
-        snprintf(buf, n, "Wi-Fi — K1 nie potrafi jej jeszcze uruchomić%s%s", znana ? "" : " · identyfikator ",
+        snprintf(buf, n, "Wi-Fi: K1 nie potrafi jej jeszcze uruchomić%s%s", znana ? "" : " · identyfikator ",
                  znana ? "" : id);
         *pig = f & K1_SIEC_KF_STEROWNIK ? "Nieobsługiwana" : "Brak sterownika";
     } else {
@@ -287,12 +287,12 @@ static void karty_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     char log[sizeof zalogowane] = "", buf[64];
     int i, g = glowna(), kafle = g >= 0 ? KAFLE_MAKS - 1 : KAFLE_MAKS;
     if (!s.znany) {
-        k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, "Czekam na dane…", k1_kolor(m->tekst2, 255), 0);
+        k1_tekst(o, K1_CZ_TEKST, TRESC_X, SIEC_Y + 16, "Czekam na dane…", k1_kolor(m->tekst2, 255), 0);
         return;
     }
     if (s.n == 0) {
-        k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, "Nie znaleziono karty sieciowej.", k1_kolor(m->tekst, 255), 0);
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 40, "Ten komputer nie ma karty sieciowej albo K1 jej nie widzi.",
+        k1_tekst(o, K1_CZ_TEKST, TRESC_X, SIEC_Y + 16, "Nie znaleziono karty sieciowej.", k1_kolor(m->tekst, 255), 0);
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, SIEC_Y + 40, "Ten komputer nie ma karty sieciowej albo K1 jej nie widzi.",
                  k1_kolor(m->tekst2, 255), 0);
         snprintf(log, sizeof log, "brak kart");
     }
@@ -322,7 +322,7 @@ void siec_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     static const char *const zakladki[] = { "Wi-Fi", "Karty sieciowe" };
     int z = ktora_zakladka(), b = wifi_bez_obslugi();
     char n[64];
-    k1_tekst(o, K1_CZ_TYTUL, TRESC_X, K1_OKNO_TYTUL + 40, "Sieć", k1_kolor(m->tekst, 255), 0);
+    naglowek(o, m, "Sieć");
     k1_segment(o, m, TRESC_X, ZAKLADKI_Y, ZAKLADKI_W, ZAKLADKI_H, zakladki, 2, z, -1);
     if (!zakladki_zalogowane++) /* the tests click the tabs by this line */
         k1_log(TAG, "sieć: zakładki od %d,%d (szer. %d, wys. %d)", TRESC_X, ZAKLADKI_Y, ZAKLADKI_W, ZAKLADKI_H);

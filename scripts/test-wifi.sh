@@ -13,7 +13,7 @@
 #   5. zakładka „Karty sieciowe”: kafelek karty Wi-Fi z plakietką „Włączone”
 # 0.9.1 krok 2 (łączenie; „K1-TEST” i „Kawiarnia” przyjmują komputer — punkt dostępu testowy, część 2: t_wifi_ap.c):
 #   6. „Kawiarnia” (otwarta): kliknięcie → „Połącz” → adres od routera testowego (DHCP przez Wi-Fi), ikona z kreskami
-#   7. „K1-TEST” (WPA2): złe hasło → router nie przyjmuje wiadomości 2, „Złe hasło — spróbuj jeszcze raz”
+#   7. „K1-TEST” (WPA2): złe hasło → router nie przyjmuje wiadomości 2, „Złe hasło. Spróbuj jeszcze raz”
 #   8. dobre hasło → logowanie WPA2, klucze po obu stronach, adres od routera (dane płyną zaszyfrowane), „Połączono”;
 #      ramka EAPOL za krótka i podrobiona wiadomość 3 (zły MIC) od routera testowego — odrzucone, siec działa dalej
 #   9. „Kawiarnia” → „Zapomnij tę sieć”
@@ -183,8 +183,8 @@ n = [q.ile(w) for w in ZLE] + [q.ile(PELNA.replace(r"połączenie (\d)", "połą
 h = otworz(WPA2, R_HASLO)
 if h:
     q.pisz("z", "l", "e", "h", "a", "s", "l", "o", "1", "ret")
-sprawdz("„K1-TEST” (WPA2), złe hasło: router nie przyjmuje wiadomości 2 i odłącza komputer; Ustawienia: „Złe hasło — "
-        "spróbuj jeszcze raz” (zrzut wifi-7-zle-haslo)",
+sprawdz("„K1-TEST” (WPA2), złe hasło: router nie przyjmuje wiadomości 2 i odłącza komputer; Ustawienia: „Złe hasło. "
+        "Spróbuj jeszcze raz” (zrzut wifi-7-zle-haslo)",
         h and all(czekaj(w, od=k, czas=180) for w, k in zip(ZLE, n)) and polaczenie(3, n[3], 60))
 q.zrzut("7-zle-haslo")
 
