@@ -57,7 +57,7 @@ wymaga), ale każda jest mała, robi jedną rzecz i wygląda jak pozostałe.
 ## Robot aktualizacji (od 0.10.5, ADR 0047)
 Trzeci „asystent”: `.github/workflows/robot.yml` (opis: `docs/komponenty/robot.md`). Raz dziennie wydaje sam wersje PATCH
 z poprawionym jądrem Linux i pakietami przeglądarki — zmienia tylko `jadro/wersja.env`, `strefy/przegladarka.txt`,
-`VERSION`, `CHANGELOG.md`, na gałęziach `robot/…`. Do wydania 0.10.5 działa w trybie próbnym (PR i testy, bez scalania).
+`VERSION`, `CHANGELOG.md`, na gałęziach `robot/…`. Od wydania 0.10.5 w pełnym trybie (scala i wydaje sam).
 - Na start pracy sprawdź też otwarte PR-y robota (etykieta „robot”), Issue „robot” i ostatni bieg workflow „Robot”;
   Issue robota naprawiasz jak czerwone CI.
 - Przed scaleniem PR-a, który zmienia `VERSION`: zaktualizuj gałąź z `main` tuż przed scaleniem i sprawdź `VERSION` na

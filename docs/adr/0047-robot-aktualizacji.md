@@ -1,6 +1,6 @@
 # 0047. Robot aktualizacji
 
-- Status: Przyjęty; wdrożony w 0.10.5 (krok 3) w trybie próbnym — pełny tryb włącza krok 8 po wydaniu 0.10.5
+- Status: Przyjęty; wdrożony w 0.10.5 (krok 3) w trybie próbnym, pełny tryb od wydania 0.10.5
 - Data: 2026-11-18
 - Dotyczy: ADR 0003 (wersja jądra — uzupełniony: linię wybiera robot), ADR 0043 (pakiety strefy), ADR 0046 (aktualizacje
   przez sieć), AGENTS.md (praca we dwóch — robot trzeci); plan `docs/PLAN-0.10.5.txt`: krok 3, D6, T8–T11, T18, T19, S17–S24,
