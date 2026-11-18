@@ -207,7 +207,19 @@ wybrany **A**. Znaczek i plakietka B2 zniknęły.
   plików, nie osobne okno ze szkicu): pogrubione „<tytuł> nie może ruszyć”, wyjaśnienie, kreska, „Rozumiem”.
 - **„Zamknęła się”** (krok 3, S26): to samo okienko, gdy strefa skończyła się bez zamknięcia przez użytkownika —
   „<tytuł> zamknęła się” i powód (brak pamięci w strefie, brak pamięci w komputerze, awaria programu, błąd strefy).
-- **Dolny pasek:** okno strefy wśród działających (po kresce), ikona strefy; strefy nie przypina się.
+- **Dolny pasek:** okno strefy wśród działających (po kresce), ikona strefy; okna sesji się nie przypina — przypina się
+  **Przeglądarkę** (0.10.5 krok 6, decyzja właściciela D12 z 2026-11-18: szkic A „ikona + okna sesji”): jedna ikona globusa
+  na wszystkie sesje (kliknięcie — okienko „Którą sesję otworzyć?”, kropka „uruchomiona”, gdy któraś sesja ma okno, kreska
+  akcentu, gdy aktywna); okna otwartych sesji zostają po kresce, każde z kropką w kolorze sesji na ikonie (koło 4 px na
+  krążku 5,5 px w kolorze tła paska, prawy dolny róg ikony). Na pulpicie ikona „Przeglądarka” jak aplikacja. Przy
+  pierwszym starcie (nowa instalacja) przypięta na końcu paska i na pulpicie za aplikacjami; po aktualizacji zapisane
+  rozmieszczenie zostaje — K1 nie dodaje jej sam.
+- **Przełącznik okien — Alt+Tab (0.10.5 krok 6, decyzja właściciela D11 z 2026-11-18: szkic A „kafelki”, oba motywy):**
+  panel na środku ekranu (tło paneli `tlo` z przezroczystością paneli, zaokrąglenie 16, włoskowaty obrys, cień jak panele),
+  margines 16; kafelki 120 × 104 co 8 px, najwyżej 6 w rzędzie i 3 rzędy: ikona 40 px (`tekst`), nazwa pod nią (Plex Sans
+  Medium 13, `tekst`), w oknie sesji pod nazwą nazwa sesji (Plex Sans 11, `tekst2`) i kropka w kolorze sesji przy ikonie
+  (koło 5 px na krążku 7 px w kolorze tła kafelka). Wybrany kafelek: tło `najechanie`, obwódka 2 px w kolorze akcentu,
+  zaokrąglenie 12. Bez podglądu treści okien. Kolejność: ostatnio używane najpierw; pierwsze Tab wybiera poprzednie okno.
 - **Sesje — Ustawienia → Przeglądarka (0.10.1 krok 4, decyzja właściciela D5 z 2026-11-17: szkic A „karta na sesję”;
   zastępuje wiersze co 78 px z 0.10.0 krok 5 — opis wchodził na następną sesję):** sekcja przed Informacjami (ikona globusa),
   opis „Każda sesja to osobna maszyna z własnym kolorem.”; karta na sesję: `pole`, 440 × 88, zaokrąglenie 10, włoskowaty

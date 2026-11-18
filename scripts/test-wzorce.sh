@@ -2,7 +2,8 @@
 # Test 0.10.2 krok 3 (powtarzalny): ZRZUTY WZORCOWE — wygląd okien K1 co do piksela z zatwierdzonymi obrazami
 # (testy/wzorce/*.png, testy/qemu/k1wzorce.py). Obraz testowy z opisem ekranu (dysk „k1-test-opis”, ADR 0045) i pustym
 # dyskiem danych; okna z decyzji właściciela D4, w obu motywach: dolny i górny pasek, ikony pulpitu, menu Start, okienko
-# „Którą sesję otworzyć?”, Ustawienia (każda sekcja), Pliki, Zasoby, Kalkulator. Ramkę strefy sprawdza test-strefa.
+# „Którą sesję otworzyć?”, Ustawienia (każda sekcja), Pliki, Zasoby, Kalkulator, przełącznik okien (0.10.5 krok 6).
+# Ramkę strefy sprawdza test-strefa.
 # Każde okno wycięte według opisu ekranu; miejsca zmienne (zegar, liczby, wykresy, wersja) się nie liczą; kursor poza
 # oknem. Różnica: build/testy/wzorce/<nazwa>-przed/-po/-roznica.png (w CI: artefakt z logami). Zmianę wyglądu
 # zatwierdza właściciel (D3): dopiero po jego „OK” scripts/przyjmij-wzorce.sh przenosi obrazy „po” do testy/wzorce/.
@@ -82,6 +83,18 @@ def pulpit(motyw):
             zamknij(apl)
         else:
             q.sprawdz(f"{apl} otwarte", False)
+    # 0.10.5 step 6 (D11: sketch A): the window switcher — Alt held, Tab: tiles of Kalkulator and Pliki, Pliki chosen
+    if otworz("Pliki") and otworz("Kalkulator"):
+        q.klawisze(("alt", 1), ("tab", 1), ("tab", 0))
+        if q.czekaj_na_element("Przełącznik okien", czas=30):
+            q.wzorzec(f"przelacznik-okien-{motyw}", "Przełącznik okien", elementy=True)
+        q.klawisze(("esc", 1), ("esc", 0), ("alt", 0))
+        q.czekaj_na(lambda: q.element("Przełącznik okien") is None, czas=30)
+    else:
+        q.sprawdz("Pliki i Kalkulator otwarte (przełącznik okien)", False)
+    for apl in ("Kalkulator", "Pliki"):
+        if q.element(apl):
+            zamknij(apl)
 
 
 pulpit("jasny")

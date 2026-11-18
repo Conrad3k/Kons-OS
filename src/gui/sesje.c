@@ -1,5 +1,5 @@
 /* K1 gui — the window "Którą sesję otworzyć?" (0.10.1 step 4, the owner's D4: sketch B). Opening the browser — from
- * the Start menu or its "Otwórz", and wherever it can be opened later (the desktop) — first asks which session: a tile
+ * the Start menu or its "Otwórz", the bar and the desktop (0.10.5 step 6, D12) — first asks which session: a tile
  * for every zone with the same image (K1_STREFY: a new session is a new row, nothing here changes), each with its
  * colour, its name and whether it remembers, or "otwarta" when its window is there (a click brings that window to the
  * front: nadzorca never starts a zone twice), or "zamyka się…" when it was closed and its machine still ends in the
@@ -29,7 +29,7 @@ static int nr[K1_STREFY_MAKS], n, hover = -1;
 /* The sessions of the zone of item `apl`: the zones with its image and a session's name. */
 static int zbierz(int apl)
 {
-    const struct k1_strefa_opis *z = apl > K1_APL_MAKS ? k1_strefa(apl - K1_APL_MAKS) : NULL;
+    const struct k1_strefa_opis *z = strefa_pozycji(apl) ? k1_strefa(strefa_pozycji(apl)) : NULL;
     n = 0;
     for (int s = 1; z != NULL && s <= K1_STREFY_MAKS && n < SESJE_MAKS; s++)
         if (nazwa_sesji(s)[0] && strcmp(k1_strefa(s)->obraz, z->obraz) == 0)
@@ -147,13 +147,13 @@ static void sesje_wskaznik(int rodzaj, int przycisk, int32_t x, int32_t y)
     }
 }
 
-static const struct okienko_wlasne okienko = { sesje_rysuj, sesje_loguj, sesje_wskaznik };
+static const struct okienko_wlasne okienko = { sesje_rysuj, sesje_loguj, sesje_wskaznik, NULL };
 
 void sesje_wybierz(int apl)
 {
     pokaz_menu(0);
-    if (zbierz(apl) < 2) { /* one session (or none known yet): no question */
-        otworz_aplikacje(apl);
+    if (zbierz(apl) < 2) { /* one session (or none known yet): no question — that session, or the line's own zone */
+        otworz_aplikacje(POZYCJA_STREFY(n == 1 ? nr[0] : strefa_pozycji(apl)));
         return;
     }
     hover = -1;

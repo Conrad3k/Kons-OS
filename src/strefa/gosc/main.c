@@ -88,6 +88,7 @@ static int sterowanie(void)
 
 struct stan {
     unsigned klawisze, klikniecia;
+    uint8_t wcisniete[BTN_MISC / 8]; /* the keys held now (0.10.5 step 6: Alt is let go after Alt+Tab) */
     int32_t x, y;
     int32_t kolko, dokladne; /* the wheel (0.10.0 step 4): notches (REL_WHEEL, > 0 up) and 1/120 parts (_HI_RES) */
 };
@@ -104,7 +105,10 @@ static int zdarzenia(int fd, struct stan *s)
             zmiana = 1;
         } else if (e[i].type == EV_KEY && e[i].code < BTN_MISC && e[i].value == 1) {
             s->klawisze++;
+            s->wcisniete[e[i].code / 8] = (uint8_t)(s->wcisniete[e[i].code / 8] | (1u << (e[i].code % 8)));
             zmiana = 1;
+        } else if (e[i].type == EV_KEY && e[i].code < BTN_MISC && e[i].value == 0) {
+            s->wcisniete[e[i].code / 8] = (uint8_t)(s->wcisniete[e[i].code / 8] & ~(1u << (e[i].code % 8)));
         } else if (e[i].type == EV_ABS && e[i].code == ABS_X) {
             s->x = e[i].value;
         } else if (e[i].type == EV_ABS && e[i].code == ABS_Y) {
@@ -117,8 +121,12 @@ static int zdarzenia(int fd, struct stan *s)
             przewiniecie = 1;
         }
     }
-    if (zmiana)
-        loguj("wejście: klawisze %u, kliknięcia %u", s->klawisze, s->klikniecia); /* counts only, never codes */
+    if (zmiana) { /* counts only, never codes */
+        unsigned trzyma = 0;
+        for (size_t b = 0; b < sizeof s->wcisniete; b++)
+            trzyma += (unsigned)__builtin_popcount(s->wcisniete[b]);
+        loguj("wejście: klawisze %u, kliknięcia %u, wciśnięte %u", s->klawisze, s->klikniecia, trzyma);
+    }
     if (przewiniecie) /* the sums: the test turns the wheel and reads them */
         loguj("wejście: kółko %d ząbków, %d/120", (int)s->kolko, (int)s->dokladne);
     return zmiana;
@@ -126,7 +134,7 @@ static int zdarzenia(int fd, struct stan *s)
 
 static void petla(int ster, const int *wej, int n)
 {
-    struct stan s = { 0, 0, -1, -1, 0, 0 };
+    struct stan s = { .x = -1, .y = -1 };
     time_t liczniki = 0;
     for (;;) {
         struct pollfd p[WEJSCIA + 2];

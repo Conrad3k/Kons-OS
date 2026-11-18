@@ -1,7 +1,10 @@
 /* K1 gui — the bottom bar, centred like Windows 11: the Start button (K1 mark), the pinned applications
  * in the owner's order (0.7.5: drag one to change the order), and after a hairline the running
  * applications that are not pinned (until they end). A dot under an icon = running, an accent dash =
- * active. The right button opens the menu of an application (pin / unpin, close its window). */
+ * active. The right button opens the menu of an application (pin / unpin, close its window).
+ * 0.10.5 step 6 (the owner's D12: sketch A): Przeglądarka pins like an application — one icon for all its sessions
+ * (a click asks which one; its dot: some session has a window); the sessions' windows stay after the hairline, each
+ * with a dot in its session's colour on the icon. */
 #include <stdio.h>
 #include <string.h>
 
@@ -23,10 +26,11 @@ static void zbierz(void)
     int a;
     n_el = 0;
     for (a = 0; a < rozm.n_pasek; a++)
-        el[++n_el] = rozm.pasek[a];
+        if (pozycja_klucza(rozm.pasek[a]))
+            el[++n_el] = pozycja_klucza(rozm.pasek[a]);
     n_przyp = n_el;
     for (a = 1; a <= POZYCJE_MAKS; a++) /* 0.10.0: the zones' windows too */
-        if (rozm_na_pasku(&rozm, a) < 0 && okno_aplikacji(a) != NULL)
+        if ((!klucz_pozycji(a) || rozm_na_pasku(&rozm, klucz_pozycji(a)) < 0) && okno_aplikacji(a) != NULL)
             el[++n_el] = a;
 }
 
@@ -88,11 +92,23 @@ void dok_zmiana(void)
     snprintf(ostatnia, sizeof ostatnia, "%s", l[0] ? l : " ");
 }
 
+/* An item's name in the screen's description: a session's window as "Przeglądarka · sesja 3" (its name is the
+ * user's text, invariant 8), anything else by its name. */
+static const char *nazwa_el(int apl, char *buf, size_t n)
+{
+    int z = menu_strefy(apl) ? 0 : strefa_pozycji(apl);
+    if (z == 0 || !nazwa_sesji(z)[0])
+        return aplikacje[apl].nazwa;
+    snprintf(buf, n, "%s · sesja %d", aplikacje[apl].nazwa, z);
+    return buf;
+}
+
 void rysuj_dok(void)
 {
     const struct k1_motyw *m = motyw();
     struct k1_obraz *o = k1_pow_rysuj(&dok);
     float ox = (float)od_lewej();
+    char nazwa[48];
     int i;
     if (o == NULL)
         return;
@@ -105,15 +121,20 @@ void rysuj_dok(void)
         float x = MARG + ox + (float)element_x(i), y = MARG + DOK_PAD;
         if (i == hover_dok || (i == 0 && menu_otwarte) || (wcisk.ciagnie && i == wcisk.el))
             k1_zaokraglony(o, x, y, EL, EL, 10, k1_kolor(m->najechanie, 255));
-        k1_el(K1_EL_IKONA, i == 0 ? "Start" : aplikacje[el[i]].nazwa, (int32_t)x, (int32_t)y, EL, EL,
-              i > 0 && okno_aplikacji(el[i]) != NULL ? K1_EL_WYBRANY : 0); /* chosen: it has a window */
+        k1_el(K1_EL_IKONA, i == 0 ? "Start" : nazwa_el(el[i], nazwa, sizeof nazwa), (int32_t)x, (int32_t)y, EL, EL,
+              i > 0 && okno_pozycji(el[i]) != NULL ? K1_EL_WYBRANY : 0); /* chosen: it has a window */
         if (i == 0) {
             k1_rysuj_znak(o, x + EL / 2.0f, y + EL / 2.0f, 26);
             if (akt_czeka()) /* 0.10.5 step 2b (D1, mark A): a new version waits for "Zainstaluj" */
                 k1_kolo(o, x + EL - 7, y + 7, 4, k1_kolor(m->akcent, 255));
         } else {
-            struct okno *w = okno_aplikacji(el[i]);
+            const struct okno *w = okno_pozycji(el[i]);
+            int z = menu_strefy(el[i]) ? 0 : strefa_pozycji(el[i]);
             k1_ikona(o, aplikacje[el[i]].ikona, x + 10, y + 9, 24, k1_kolor(m->tekst, 255));
+            if (z != 0) { /* a session's window: a dot in its colour on the icon (D12, sketch A) */
+                k1_kolo(o, x + 33, y + 31, 5.5f, k1_kolor(m->tlo, 255));
+                k1_kolo(o, x + 33, y + 31, 4, k1_kolor(k1_strefa(z)->kolor, 255));
+            }
             if (w != NULL && w->stan == K1_OKNO_AKTYWNE)
                 k1_zaokraglony(o, x + EL / 2.0f - 8, y + EL - 5, 16, 3, 1.5f, k1_kolor(m->akcent, 255));
             else if (w != NULL)
@@ -145,7 +166,7 @@ static void ciagnij(int32_t x)
     cel = cel < 0 ? 0 : (cel >= n_przyp ? n_przyp - 1 : cel);
     if (cel + 1 == wcisk.el)
         return;
-    rozm_przesun_na_pasku(&rozm, apl, cel);
+    rozm_przesun_na_pasku(&rozm, klucz_pozycji(apl), cel);
     zbierz();
     wcisk.el = cel + 1;
     dok.brudna = 1;

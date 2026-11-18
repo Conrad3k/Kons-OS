@@ -1,6 +1,7 @@
 #!/bin/sh
 # Uruchamia K1 w QEMU. Log z portu szeregowego trafia do pliku, monitor QEMU do gniazda unix
-# (do zrzutów ekranu: scripts/zrzut-ekranu.sh). Działa na pierwszym planie do wyłączenia maszyny.
+# (do zrzutów ekranu: scripts/zrzut-ekranu.sh), a obok niego gniazdo QMP <GNIAZDO>.qmp (0.10.5: klawisze po kolei —
+# Alt przytrzymany przy Tab, testy/qemu/k1qemu.py: klawisze). Działa na pierwszym planie do wyłączenia maszyny.
 #
 #   scripts/uruchom-qemu.sh [--obraz PLIK | --bez-dysku] [--cmdline "..."] [--log PLIK]
 #                           [--monitor GNIAZDO] [--czas SEKUNDY]
@@ -46,7 +47,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 mkdir -p "$(dirname "$LOG")" "$(dirname "$MONITOR")"
-rm -f "$LOG" "$MONITOR"
+rm -f "$LOG" "$MONITOR" "$MONITOR.qmp"
 
 # KVM, jeśli jest (np. runner CI z /dev/kvm); inaczej emulacja TCG (wolniej, ale działa wszędzie).
 if [ -w /dev/kvm ] && [ -z "$EMULACJA" ]; then AKCEL="-accel kvm -cpu host"; else AKCEL="-accel tcg -cpu max"; fi
@@ -95,6 +96,7 @@ set -- -machine "q35$MASZYNA" $AKCEL -m $P256 -smp 2 -nodefaults -no-reboot \
     -serial "file:$LOG" -monitor "unix:$MONITOR,server,nowait" \
     -kernel "$K1_WYNIK/bzImage" -initrd "$K1_WYNIK/initramfs.cpio" -append "$CMDLINE" $DYSK
 fi
+set -- "$@" -qmp "unix:$MONITOR.qmp,server,nowait"
 # shellcheck disable=SC2086
 [ -n "$DODATKI" ] && set -- "$@" $DODATKI
 if [ "$CZAS" -gt 0 ]; then

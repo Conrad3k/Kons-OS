@@ -109,6 +109,17 @@ void t_okna_rozmiar(void)
     check(ok && find_process("ekran") > 0,
           "NEGATYWNY 0.10.5: strefa nie zmienia sama rozmiaru okna — powierzchnia w rozmiarze, o który ekran nie prosił, "
           "odrzucona, okno zostaje", "ok=%d", ok);
+    /* 0.10.5 step 6 (T16): a zone does not switch windows — showing, minimising or closing any window (Alt+Tab is the
+     * shell's) is refused, and its own window is still shown */
+    for (uint32_t nr = 1; nr <= 12; nr++)
+        ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_AKTYWUJ_OKNO, nr, 0, 0, 0, 0, 0), -1) &&
+              wyslij_k(fd, k1_komunikat_nowy(K1_KOM_MINIMALIZUJ_OKNO, nr, 0, 0, 0, 0, 0), -1) &&
+              wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZAMKNIJ_OKNO, nr, 0, 0, 0, 0, 0), -1);
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 1, 0, 0, 0, 0, 0), -1);
+    ok &= czekaj_na(fd, K1_KOM_RAMKA, 1, 10000);
+    check(ok && find_process("ekran") > 0,
+          "NEGATYWNY 0.10.5: strefa nie przełącza okien — pokazanie, minimalizacja i zamknięcie okna od strefy odrzucone "
+          "(Alt+Tab ma tylko pulpit), jej okno dalej pokazane", "ok=%d", ok);
     close(fd);
     close(m1);
     close(m2);

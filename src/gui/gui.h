@@ -9,6 +9,7 @@
  *   pliki.c           the files of the Pulpit folder and Kosz on the desktop (skarbiec, fd 6; 0.8.0)
  *   kontekst.c        the menu under the right mouse button (desktop, icon, bottom bar, Start menu)
  *   sesje.c           "Którą sesję otworzyć?" when the browser opens (0.10.1 step 4), on the panel of kontekst.c
+ *   przelacznik.c     the window switcher, Alt+Tab (0.10.5 step 6), on the panel of kontekst.c
  *   zapis.c           the desktop arrangement in skarbiec (fd 6)
  *   rozmieszczenie.c  the rules of the arrangement (pure, host tests)
  *
@@ -54,11 +55,18 @@ struct aplikacja_opis {
     int strefa_w_menu;       /* a zone with a line in the Start menu (K1_STREFY, 0.10.0 step 2: the browser) */
 };
 /* The items the bar and the window list know: the applications 1..K1_APL_MAKS, then the zones (0.10.0, ADR 0042):
- * zone n is item K1_APL_MAKS + n — its title and icon from K1_STREFY, never pinned (-1); in the Start menu only when
- * its row says so (strefa_w_menu). */
+ * zone n is item K1_APL_MAKS + n — the window of one session, its title and icon from K1_STREFY, never pinned (-1);
+ * then (0.10.5 step 6, D12, T17) the Start-menu lines of the zones: item POZYCJA_MENU_STREFY(n) for a zone whose row
+ * has one (strefa_w_menu: "Przeglądarka") stands for every session with its image — in the Start menu, pinned on the
+ * bar (key ROZM_STREFA + n), an icon on the desktop; opening it asks which session (sesje.c). */
 #define POZYCJA_STREFY(n) (K1_APL_MAKS + (n))
-#define POZYCJE_MAKS (K1_APL_MAKS + K1_STREFY_MAKS)
+#define POZYCJA_MENU_STREFY(n) (K1_APL_MAKS + K1_STREFY_MAKS + (n))
+#define POZYCJE_MAKS (K1_APL_MAKS + 2 * K1_STREFY_MAKS)
 extern const struct aplikacja_opis aplikacje[POZYCJE_MAKS + 1];
+int strefa_pozycji(int apl);       /* the zone of a session's window or of a Start-menu line, else 0 */
+int menu_strefy(int apl);          /* 1: `apl` is a zone's Start-menu line (Przeglądarka) */
+uint32_t klucz_pozycji(int apl);   /* its key in rozmieszczenie.h (an application, ROZM_STREFA + n), else 0 */
+int pozycja_klucza(uint32_t klucz); /* back: the item of an application's or a Start-menu line's key, else 0 */
 
 const struct k1_motyw *motyw(void);
 /* Background of a floating panel: shadow, rounded body, hairline border (w×h inside the MARG margin). */
@@ -70,12 +78,17 @@ void rozm_zmienione(const char *co);
 struct okno {
     uint32_t id;
     int apl, stan;
+    unsigned uzyte; /* when it last became active (a counter): the order of Alt+Tab */
 };
 struct okno *okno_aplikacji(int apl);
+/* The window of item `apl`; for a Start-menu line the active one of its sessions, else any of them (0.10.5 step 6). */
+const struct okno *okno_pozycji(int apl);
+int okna_ostatnio_uzyte(struct okno *wy, int maks); /* the windows, the one used most recently first; how many */
 int aktywna_aplikacja(void);
 void zmiana_okna(const struct k1_komunikat *m); /* K1_KOM_OKNO from ekran */
 void aplikacja(int apl);                         /* the bottom bar: start it, or show / minimise its window */
-void otworz_aplikacje(int apl);                  /* the desktop and menus: start it, or show its window */
+void otworz_aplikacje(int apl);                  /* the desktop and menus: start it, or show its window
+                                                  * (a zone's Start-menu line: which session — sesje.c) */
 void pokaz_aplikacje(int apl);                    /* nadzorca (POKAZ_APL): its window to the front, if it has one */
 void otworz_pliki(uint32_t wpis, int co);         /* Pliki at a file or folder (0: none), at Kosz, a name to change:
                                                     * co = K1_PLIKI_* (0.8.0; K1_PLIKI_NAZWA 0.8.2) */
@@ -166,8 +179,19 @@ int kosz_pelny(void);
 
 /* kontekst.c */
 enum { K_PULPIT = 1, K_IKONA, K_PASEK, K_MENU, K_KOMUNIKAT, K_OKIENKO, K_WLASNE };
-#define KONT_SZER (K1_MENU_SZER + K1_MENU_SZER_POD) /* the panel: the menu and its submenu side by side */
-#define KONT_WYS K1_MENU_WYS_MAKS
+/* the panel: the menu and its submenu side by side — or the window switcher (przelacznik.c: PRZEL_KOLUMN tiles in a
+ * row, PRZEL_WIERSZY rows), whichever is larger */
+#define PRZEL_KAF_W 120
+#define PRZEL_KAF_H 104
+#define PRZEL_ODST 8
+#define PRZEL_PAD 16
+#define PRZEL_KOLUMN 6
+#define PRZEL_WIERSZY 3
+#define PRZEL_SZER (2 * PRZEL_PAD + PRZEL_KOLUMN * PRZEL_KAF_W + (PRZEL_KOLUMN - 1) * PRZEL_ODST)
+#define PRZEL_WYS (2 * PRZEL_PAD + PRZEL_WIERSZY * PRZEL_KAF_H + (PRZEL_WIERSZY - 1) * PRZEL_ODST)
+#define KONT_MAX(a, b) ((a) > (b) ? (a) : (b))
+#define KONT_SZER KONT_MAX(K1_MENU_SZER + K1_MENU_SZER_POD, PRZEL_SZER)
+#define KONT_WYS KONT_MAX(K1_MENU_WYS_MAKS, PRZEL_WYS)
 extern int kontekst_otwarte;
 void kontekst_otworz(int cel, uint32_t klucz, int32_t x, int32_t y); /* x, y: the pointer on the screen */
 void kontekst_zamknij(void);
@@ -177,16 +201,22 @@ void kontekst_okienko(const struct k1_menu *m, const char *rodzaj, int32_t x, in
 void rysuj_kontekst(void);
 void wskaznik_kontekst(const struct k1_komunikat *m);
 /* A window another module draws on this panel (0.10.1): its top left at (x, y) on the screen, what it logs for the tests,
- * the pointer in its coordinates (it closes itself: kontekst_zamknij). It must fit KONT_SZER × KONT_WYS. */
+ * the pointer in its coordinates (it closes itself: kontekst_zamknij), its name in the screen's description (NULL:
+ * "Okienko"). It must fit KONT_SZER × KONT_WYS. */
 struct okienko_wlasne {
     void (*rysuj)(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y);
     void (*loguj)(int32_t x, int32_t y);
     void (*wskaznik)(int rodzaj, int przycisk, int32_t x, int32_t y);
+    const char *nazwa;
 };
 void kontekst_wlasne(const struct okienko_wlasne *w, uint32_t klucz, int32_t x, int32_t y);
+int kontekst_pokazuje(const struct okienko_wlasne *w); /* 1: that window is on the panel now */
 
 /* sesje.c (0.10.1 step 4, D4: sketch B) */
 void sesje_wybierz(int apl); /* opening the browser (item apl): the window of its sessions, or the only one at once */
+
+/* przelacznik.c (0.10.5 step 6, D11: sketch A) — ekran gives the shell Tab while Alt is held, Esc, Alt's release */
+void przelacznik_klawisz(const struct k1_komunikat *m);
 
 /* pamiec.c (0.10.1 step 3, D3: window A) — nadzorca on fd 5 */
 void pamiec_przydzial(const struct k1_komunikat *m); /* STREFA_PRZYDZIAL: a session's share */

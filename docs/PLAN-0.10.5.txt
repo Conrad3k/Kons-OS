@@ -137,6 +137,7 @@ Osiem kroków:
 [x]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
      PR #161
 [ ]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
+     [w toku: Claude, gałąź claude/charming-shannon-4xbnst]
 [ ]  7  Jądro Linux 7.x (najnowsza linia)                  S52–S55          3           D14, T19 T20     M        —
 [ ]  8  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–7         D10              M        —
 (Numery ADR — następne wolne po ADR 0045 z 0.10.2; jeśli zajmą więcej, krok bierze kolejne wolne.)
@@ -605,7 +606,28 @@ KROK 6 — Alt+Tab; Przeglądarka na pasku i pulpicie                         M 
   README (skróty klawiszowe, jeśli są opisane).
   Gotowe, gdy: Alt+Tab przełącza okna aplikacji i stref, Przeglądarka przypina się i leży na pulpicie, wraca po
   ponownym starcie; testy [OK]; w kroku 8 lista testów właściciela ma Alt+Tab i przypiętą Przeglądarkę.
-  Ustalenia z wykonania: (pusto — wypełnia krok 6)
+  Ustalenia z wykonania (2026-11-18, krok 6):
+  - D11, D12: właściciel wybrał szkice A (kafelki; ikona + okna sesji), potem przyjął 40 obrazów wzorcowych „po” (2 nowe —
+    przełącznik okien, 38 zmienionych: pasek i pulpit z Przeglądarką oraz tło pod oknami, gdzie widać szerszy pasek).
+  - S42 POTWIERDZONE: Alt+Tab w ekranie (wskaznik.c, s.przelaczanie: od pierwszego Tab z Alt do puszczenia Alt — Tab, Esc
+    i puszczenie Alt idą do powłoki; Shift w tym czasie nie idzie do strefy). Nowy komunikat nie był potrzebny (KLAWISZ).
+  - S43 POTWIERDZONE (src/strefa/okno.c): FOKUS 0 → wejscie_pusc — VMM i tak puszcza gościowi wszystkie klawisze przy
+    zmianie fokusu (także myszą); ekran dodatkowo puszcza strefie Alt przy pierwszym Tab, bo przełącznik może się skończyć
+    Esc bez zmiany fokusu. test-strefa: gość liczy wciśnięte klawisze („wciśnięte 1” przy literze po powrocie).
+  - S45: kolejność ostatnio używanych — licznik `uzyte` przy oknie (okna.c), nie osobna lista. Panel menu kontekstowego
+    urósł do 6 × 3 kafelków przełącznika (KONT_SZER/KONT_WYS z max) — stąd większy wycinek wzorca okienka sesji.
+  - S46–S48, S49: Przeglądarka w gui to osobna pozycja POZYCJA_MENU_STREFY(n) (linia menu Start wiersza K1_STREFY), obok
+    okien sesji; klucz ROZM_STREFA + n; przy pierwszym starcie wynika z kolumny menu w K1_STREFY (bez nowej kolumny —
+    jedna tabela). Zapis „K1R3”: pasek po 4 B na klucz; „K1R2” i „K1R1” czytane bez dodawania Przeglądarki (D12).
+  - Testy QEMU: `sendkey` monitora puszcza wszystkie klawisze kombinacji naraz — przytrzymany Alt przy kilku Tab tylko
+    przez QMP (`input-send-event`, k1qemu `klawisze`; gniazdo `<monitor>.qmp` w uruchom-qemu.sh). Szybkie Alt+Tab — `sendkey
+    alt-tab`.
+  - test-m4: stare kliknięcie „w pusty pulpit” (W/2, H/3) trafiało w wiersz Notatek otwartego menu Start i otwierało je —
+    teraz klik obok menu (3W/4, H/3).
+  - Lokalnie (TCG) w test-strefa dwa razy gość próbny w trybie balonu (9, potem 10) skończył się „potrójnym błędem” po ok.
+    3 s — za każdym razem w innym trybie, kod gościa, VMM i balonu bez zmian w tym kroku; obserwujemy w CI z KVM. W jednym
+    przebiegu test-wzorce kliknięcie „Start” doszło razem z niedokończonym ruchem myszy (pakiet PS/2) i gui uznał je za
+    przeciągnięcie Notatek — wyścig w narzędziu testowym, kolejny przebieg czysty.
 
 KROK 7 — Jądro Linux 7.x (najnowsza linia)                               M · decyzje D14, T19 T20 · bez ADR
   Dodany przez właściciela 2026-11-17 (D14): 0.10.5 wychodzi na najnowszej linii jądra 7.x, nie na 6.18.
@@ -727,13 +749,13 @@ Twoje (produkt):
        reszta odsyła), nieaktualne zdania i zamknięte listy „do zrobienia”; NIE usuwamy historii (ADR, CHANGELOG,
        archiwum planów) — najwyżej status i odesłanie; pełna lista usuniętego w opisie PR-a, żebyś widział, co znikło.
 
-[!] D11 (krok 6) Wygląd i zachowanie przełącznika okien (Alt+Tab) — szkice do wyboru NA POCZĄTKU KROKU 6 (oba motywy).
+[x] D11 (krok 6; właściciel 2026-11-18: szkic A „kafelki”, oba motywy) Wygląd i zachowanie przełącznika okien (Alt+Tab) — szkice do wyboru NA POCZĄTKU KROKU 6 (oba motywy).
        Rekomendacja: jak w Windows 11, w stylu K1 — panel na środku ekranu (tło `pole`, zaokrąglenie 12, włoskowaty
        obrys), w rzędzie kafelki 120 × 96: ikona aplikacji 40 px i nazwa pod nią (Plex Sans 13), sesja przeglądarki —
        ikona globusa z kropką w kolorze sesji i nazwą sesji; wybrany kafelek z obwódką w kolorze akcentu; bez podglądu
        treści okien (podgląd okna strefy pokazywałby jej treść poza oknem — i kosztuje pamięć na X230). Kolejność:
        ostatnio używane najpierw; szybkie Alt+Tab — poprzednie okno; Shift — wstecz; Esc — anuluj; zminimalizowane też.
-[!] D12 (krok 6) Jak Przeglądarka wygląda na pasku i pulpicie. Rekomendacja: JEDNA ikona „Przeglądarka” (jak w menu
+[x] D12 (krok 6; właściciel 2026-11-18: szkic A „ikona + okna sesji”) Jak Przeglądarka wygląda na pasku i pulpicie. Rekomendacja: JEDNA ikona „Przeglądarka” (jak w menu
        Start), nie osobna na każdą sesję — kliknięcie otwiera okienko „Którą sesję otworzyć?”; okna otwartych sesji
        zostają na pasku jak dziś (po kresce, ikona z kropką w kolorze sesji), a przypięta ikona ma kropkę
        „uruchomiona”, gdy któraś sesja ma okno. Przy pierwszym starcie (nowa instalacja) Przeglądarka przypięta i na

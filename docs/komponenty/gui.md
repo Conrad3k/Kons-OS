@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M4; pulpit z ikonami 0.7.5) — `scripts/test-m4.sh` (klikanie, zrzuty), testy w systemie (klatka, próba, restart), `test_rozmieszczenie` + fuzzing |
-| **Kod** | `src/gui/` (0.7.5: moduły opisane w `gui.h`): `main.c` (start, pętla, ułożenie paneli), `okna.c` (lista okien, uruchamianie i zamykanie aplikacji), `pasek_gorny.c` (górny pasek, ikona sieci — 0.9.0, bateria, okienko dźwięku), `pasek_dolny.c`, `menu_start.c`, `pulpit.c` (warstwa ikon), `pliki.c` (Kosz i pliki folderu Pulpit, 0.8.0), `kontekst.c` (menu pod prawym przyciskiem), `wersja.c` (okienko „Nowa wersja K1 nie uruchomiła się”, 0.10.5), `aktualizacja.c` (okienko „Jest nowa wersja K1” i kropka przy Start, 0.10.5 krok 2 — `docs/komponenty/aktualizacja.md`), `zapis.c` (rozmieszczenie w skarbcu), `rozmieszczenie.c` (reguły, bez rysowania); przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
+| **Kod** | `src/gui/` (0.7.5: moduły opisane w `gui.h`): `main.c` (start, pętla, ułożenie paneli), `okna.c` (lista okien, uruchamianie i zamykanie aplikacji), `pasek_gorny.c` (górny pasek, ikona sieci — 0.9.0, bateria, okienko dźwięku), `pasek_dolny.c`, `menu_start.c`, `pulpit.c` (warstwa ikon), `pliki.c` (Kosz i pliki folderu Pulpit, 0.8.0), `kontekst.c` (menu pod prawym przyciskiem), `wersja.c` (okienko „Nowa wersja K1 nie uruchomiła się”, 0.10.5), `przelacznik.c` (przełącznik okien — Alt+Tab, 0.10.5 krok 6), `aktualizacja.c` (okienko „Jest nowa wersja K1” i kropka przy Start, 0.10.5 krok 2 — `docs/komponenty/aktualizacja.md`), `zapis.c` (rozmieszczenie w skarbcu), `rozmieszczenie.c` (reguły, bez rysowania); przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
 | **Decyzje** | ADR 0008 (pulpit), ADR 0009 (czcionki), ADR 0007 (klatka), ADR 0026 i 0028 (ikony, menu kontekstowe, rozmieszczenie); wygląd: `docs/WYGLAD.md` |
 
 ## Cel
@@ -64,11 +64,14 @@ UID/GID 102, klatka (ADR 0007): seccomp = baza + `memfd_create`, `ftruncate`; La
 ekran do 4096×2160 w dwóch połowach, 0.7.5).
 
 ## Wejścia i wyjścia
-- fd 3: kanał do ekranu — powitanie, ustawienia, wskaźnik/klawisz Super, lista okien (`OKNO`).
+- fd 3: kanał do ekranu — powitanie, ustawienia, wskaźnik/klawisz Super, od 0.10.5 krok 6 Tab przy wciśniętym Alt, Esc
+  i puszczenie Alt w trakcie przełączania (`KLAWISZ`), lista okien (`OKNO`).
 - fd 4: kanał do nadzorcy — `URUCHOM(aplikacja)` (Pliki: także miejsce — plik / folder albo Kosz), `WYLACZ(0 = wyłącz, 1 = uruchom ponownie, 2 = wyloguj)`.
 - fd 6 (0.7.5, ADR 0028): kanał do skarbca — właściciel = profil gui; jeden obiekt `K1_OB_ROZMIESZCZENIE`
-  (0.8.0: `"K1R2"`, aplikacje na pasku, ikony: klucz u32 — aplikacja, Kosz albo plik — kolumna, wiersz; zapis
-  0.7.5 `"K1R1"` dalej czytany), czytany przy starcie (≤ 1,5 s; błąd = domyślne), zapisywany po każdej zmianie.
+  (0.10.5 krok 6: `"K1R3"` — pasek: klucze u32 — aplikacja albo Przeglądarka (`ROZM_STREFA` + numer strefy z linią
+  menu Start, jeden klucz na wszystkie sesje, T17); ikony: klucz u32 — aplikacja, Przeglądarka, Kosz albo plik —
+  kolumna, wiersz; zapisy `"K1R2"` (0.8.0–0.10.4: na pasku bajt na aplikację) i `"K1R1"` (0.7.5) dalej czytane — bez
+  dodawania Przeglądarki, D12), czytany przy starcie (≤ 1,5 s; błąd = domyślne), zapisywany po każdej zmianie.
   Bez skarbca — rozmieszczenie tylko do końca działania gui. Od 0.8.0 ten sam kanał: `DOK_SPIS` → `DOK_LISTA`
   (tylko folder Pulpit — tak mówi tabela praw w skarbcu), `DOK_KOSZ`, `DOK_OPROZNIJ`, `DOK_ZMIANA`, od 0.8.2 (krok 6)
   `DOK_PRZENIES` pliku Pulpitu do folderu Pulpitu (plik upuszczony na folder); od 0.8.0
@@ -93,7 +96,8 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   stopki menu mają numery od 100 (ponad wszystkimi pozycjami). Okno strefy na pasku — jak w kroku 1.
   tylko w testach), w kroku 2 — Przeglądarka. Okno strefy (`OKNO` z `a` = 0, `c` = strefa) jest pozycją paska
   `K1_APL_MAKS + strefa` (`POZYCJA_STREFY`, tytuł i ikona z `K1_STREFY`): na dolnym pasku wśród działających, kliknięcie
-  pokazuje albo chowa okno, menu „Zamknij okno”; nie da się jej przypiąć ani położyć na pulpicie.
+  pokazuje albo chowa okno, menu „Zamknij okno”; okna sesji nie da się przypiąć ani położyć na pulpicie (przypina się
+  Przeglądarkę — niżej, 0.10.5 krok 6).
   Od kroku 5 (D2): prawy przycisk na „Przeglądarce” w menu Start — „Otwórz” i pod napisem „Sesje” każda sesja przeglądarki
   (Ogólna, Bank, Prywatna — nazwy od nadzorcy, `STREFA_NAZWA` na fd 5), kliknięcie otwiera tę sesję; w logu menu sesje
   jako „sesja N” (nazwa to tekst użytkownika).
@@ -118,6 +122,25 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   zginęło.”, przyciski „Pokaż w Ustawieniach” (`OTWORZ_AKTUALIZACJE` do nadzorcy, fd 4 — Ustawienia → Aktualizacje) i
   „Rozumiem”; kliknięcie obok zamyka. Log „okienko (nieudana próba nowej wersji): Rozumiem x,y; Pokaż w Ustawieniach x,y”. Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
   mówią „Przeglądarka · <sesja>”.
+  Od 0.10.5 krok 6 (D12 właściciela: szkic A „ikona + okna sesji”; T17): **Przeglądarka na pasku i pulpicie** — wiersz
+  `K1_STREFY` z linią menu Start to w gui osobna pozycja (`POZYCJA_MENU_STREFY`, obok okien sesji `POZYCJA_STREFY`), w
+  rozmieszczeniu klucz `ROZM_STREFA` + numer strefy: menu Start, przypięta ikona i ikona pulpitu. Prawy przycisk na niej w
+  menu Start — „Otwórz”, sesje, „Przypnij do paska” / „Odepnij od paska”, „Dodaj do pulpitu” / „Usuń z pulpitu”; ikona na
+  pulpicie — „Otwórz”, przypnij / odepnij, „Usuń z pulpitu”; kliknięcie przypiętej ikony, podwójne kliknięcie na pulpicie
+  i „Otwórz” — okienko „Którą sesję otworzyć?” (jedna sesja — bez pytania). Kropka „uruchomiona” pod przypiętą ikoną,
+  gdy któraś sesja ma okno (`okno_pozycji`); okna sesji zostają po kresce, każde z kropką w kolorze sesji. Przy pierwszym
+  starcie Przeglądarka jest na końcu paska i na pulpicie za aplikacjami (`rozm_domyslne`); stary zapis rozmieszczenia
+  (`K1R2`) zostaje bez niej. Przeciąganie na pasku i „Ułóż ikony” (za aplikacjami, przed plikami) — jak aplikacja. Opis
+  ekranu: przypięta ikona „Przeglądarka”, okno sesji na pasku „Przeglądarka · sesja N”.
+  Od 0.10.5 krok 6 (D11 właściciela: szkic A „kafelki”; T16; `przelacznik.c`): **przełącznik okien (Alt+Tab)** — ekran
+  oddaje powłoce Tab przy wciśniętym Alt (z Shift — wstecz), Esc i puszczenie Alt; pierwsze Tab pokazuje na środku
+  ekranu kafelek każdego okna (także zminimalizowanego i okna sesji — kropka w jej kolorze, nazwa sesji pod tytułem),
+  ostatnio używane najpierw (`okna_ostatnio_uzyte`: licznik przy każdym oknie, które staje się aktywne), wybrane jest
+  poprzednie; Tab / Shift+Tab — następny / poprzedni kafelek, Esc — zamyka bez zmiany, puszczenie Alt — wybrane okno na
+  wierzch (`AKTYWUJ_OKNO`; zminimalizowane wraca). Szybkie Alt+Tab = poprzednie okno; jedno okno albo żadne — nic.
+  Kliknięcie kafelka też pokazuje okno, kliknięcie obok zamyka. Rysowany na panelu menu kontekstowego (`okienko_wlasne`
+  z nazwą „Przełącznik okien” w opisie ekranu; panel ma od tego kroku co najmniej 6 × 3 kafelki). Log: „przełącznik okien:
+  Ustawienia x,y; Zegar x,y; sesja 3 x,y (wybrane: Zegar)”, „wybrane …”, „pokazuję …”, „Anuluj” — sesje jako „sesja N”.
   Log przy zmianie obecności, stanu, zasilacza lub co 5 % („bateria 73%, rozładowywanie, …”).
 - Powierzchnie: warstwa pulpitu (`K1_POW_PULPIT`, cały ekran, zatwierdzane tylko zmienione prostokąty),
   panele: górny pasek, dolny pasek, menu Start, okienko dźwięku, menu kontekstowe (memfd, ADR 0008; na nim także okienka

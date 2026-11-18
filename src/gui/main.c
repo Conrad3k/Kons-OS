@@ -33,8 +33,11 @@ int32_t dok_x, dok_y, menu_x, menu_y;
 struct rozmieszczenie rozm;
 
 #define X_APL(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek, ...) [apl] = { tytul, opis, K1_IK_##ikona, pasek },
+/* a zone: the window of its session (never pinned), and its Start-menu line when the row has one (0.10.5 step 6, D12:
+ * on the bar and the desktop at the first start, like the applications marked so) */
 #define X_ZONA(n, nr, profil, uid, obraz, tytul, sesja, pamiec, procesory, kolor, trwalosc, ikona, log, menu, ...)          \
-    [POZYCJA_STREFY(nr)] = { tytul, sizeof(menu) > 1 ? menu : "osobna maszyna", K1_IK_##ikona, -1, sizeof(menu) > 1 },
+    [POZYCJA_STREFY(nr)] = { tytul, "osobna maszyna", K1_IK_##ikona, -1, 0 },                                            \
+    [POZYCJA_MENU_STREFY(nr)] = { tytul, menu, K1_IK_##ikona, sizeof(menu) > 1 ? 1 : -1, sizeof(menu) > 1 },
 const struct aplikacja_opis aplikacje[POZYCJE_MAKS + 1] = { K1_APLIKACJE(X_APL) K1_STREFY(X_ZONA) };
 
 const struct k1_motyw *motyw(void)
@@ -166,6 +169,8 @@ static void komunikat(struct k1_komunikat *m)
         if ((m->a == KEY_LEFTMETA || m->a == KEY_RIGHTMETA) && m->b == 1) {
             kontekst_zamknij();
             pokaz_menu(!menu_otwarte);
+        } else {
+            przelacznik_klawisz(m); /* Tab with Alt held, Esc, Alt's release (0.10.5 step 6) */
         }
         break;
     case K1_KOM_OKNO:

@@ -12,6 +12,7 @@ polecenie, kliknięcie — na wiersz ekranu „przycisk wciśnięty/puszczony”
 (warunek `gdy` albo ten sam obraz kilka razy z rzędu). Wolna maszyna czeka dłużej, nie zawodzi.
 """
 import importlib.util
+import json
 import os
 import re
 import socket
@@ -331,6 +332,36 @@ class Maszyna:
 
     def pisz(self, *klawisze):
         self.monitor(*[f"sendkey {k}" for k in klawisze])
+
+    def klawisze(self, *zdarzenia):
+        """Keys going down and up one by one, in this order (0.10.5 step 6: Alt held while Tab is pressed twice — HMP's
+        sendkey lets every key of a combination go at once): ("alt", 1), ("tab", 1), ("tab", 0), … with QEMU's key names
+        (qcode). Through QMP: the socket next to the monitor's (scripts/uruchom-qemu.sh: <monitor>.qmp). True when QEMU
+        took every one."""
+        s = socket.socket(socket.AF_UNIX)
+        try:
+            s.connect(self.mon + ".qmp")
+            s.settimeout(30)
+            f = s.makefile("rwb")
+            f.readline()  # the greeting
+            polecenia = [{"execute": "qmp_capabilities"}] + [
+                {"execute": "input-send-event", "arguments": {"events": [
+                    {"type": "key", "data": {"down": bool(w), "key": {"type": "qcode", "data": k}}}]}}
+                for k, w in zdarzenia]
+            for p in polecenia:
+                f.write(json.dumps(p).encode() + b"\n")
+                f.flush()
+                while True:  # events ("event": …) may come first; the answer has "return" or "error"
+                    odp = json.loads(f.readline() or b"{}")
+                    if "return" in odp or "error" in odp or not odp:
+                        break
+                if "return" not in odp:
+                    return False
+            return True
+        except (OSError, ValueError):
+            return False
+        finally:
+            s.close()
 
     # ---- 0.10.2 step 2 (ADR 0045): the screen's description — the tests click by names, not by log positions ----
     # The test program (test image, a disk with the serial number "k1-test-opis") logs what is on the screen whenever it

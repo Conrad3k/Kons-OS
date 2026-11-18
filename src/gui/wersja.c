@@ -94,7 +94,7 @@ static void wskaznik(int rodzaj, int przycisk, int32_t x, int32_t y)
         do_nadzorcy(k1_komunikat_nowy(K1_KOM_OTWORZ_AKTUALIZACJE, 0, 0, 0, 0, 0, 0));
 }
 
-static const struct okienko_wlasne okienko = { rysuj, loguj, wskaznik };
+static const struct okienko_wlasne okienko = { rysuj, loguj, wskaznik, NULL };
 
 void wersja_nieudana(const struct k1_komunikat *m)
 {

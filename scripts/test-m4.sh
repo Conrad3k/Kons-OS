@@ -110,10 +110,11 @@ if tryb == "ponownie":
     ik = re.findall(r"K1-GUI: ikony na pulpicie \(siatka \d+x\d+, co (\d+),\d+\): (.*)", tekst())
     kal = re.search(r"Kalkulator (\d+),", ik[-1][1]) if ik else None
     zeg = re.search(r"Zegar (\d+),", ik[-1][1]) if ik else None
-    sprawdz("rozmieszczenie pulpitu wróciło ze skarbca (pasek i Kalkulator w kolumnie 3)",
-            czekaj(r"K1-GUI: rozmieszczenie pulpitu wczytane \(na pasku: 6, na pulpicie: 7\)", czas=10) and
-            "(pasek: Zegar, Notatki, Ustawienia, Zasoby, Kalkulator, Pliki)" in tekst() and kal and zeg and
-            int(kal.group(1)) == int(zeg.group(1)) + 2 * int(ik[-1][0]), ik[-1][1] if ik else "brak")
+    sprawdz("rozmieszczenie pulpitu wróciło ze skarbca (pasek z Przeglądarką, Kalkulator w kolumnie 3)",
+            czekaj(r"K1-GUI: rozmieszczenie pulpitu wczytane \(na pasku: 7, na pulpicie: 8\)", czas=10) and
+            "(pasek: Zegar, Notatki, Ustawienia, Zasoby, Kalkulator, Pliki, Przeglądarka)" in tekst() and kal and zeg and
+            int(kal.group(1)) == int(zeg.group(1)) + 2 * int(ik[-1][0]) and "Przeglądarka " in ik[-1][1],
+            ik[-1][1] if ik else "brak")
     klik(ax + krok, ay)  # Notatki
     sprawdz("notatki wróciły: 2, na górze ostatnio zmieniona „Druga” (5 B)",
             czekaj(r"K1-NOTATKI: notatki wczytane: 2 \(pierwsza: 5 B\)", czas=40))
@@ -206,14 +207,22 @@ IKONY = r"K1-GUI: ikony na pulpicie \(siatka (\d+)x(\d+), co (\d+),(\d+)\): (.*)
 ik = czekaj(IKONY)
 
 
+def ostatni_pasek():
+    m = re.findall(r"K1-GUI: (?:pulpit gotowy|pasek zmieniony): .*", tekst())
+    return m[-1] if m else "brak"
+
+
 def ikony_pulpitu():
     """{name: centre of its tile's icon} from the description (the log's point: 8 px under the cell's top + the tile)."""
     p_ = q.element("Pulpit")
     return {e["nazwa"]: (e["x"] + e["w"] // 2, e["y"] + 8 + 26) for e in p_["elementy"]} if p_ else {}  # 26: KAFEL / 2
 q.czekaj_na_element("Pulpit", "Pliki", czas=30)
 ikony = ikony_pulpitu()
-sprawdz("pulpit: Kosz i ikony aplikacji przy pierwszym starcie (bez Instalatora) — z opisu ekranu",
-        set(ikony) == {"Kosz", "Zegar", "Notatki", "Ustawienia", "Zasoby", "Kalkulator", "Pliki"}, str(sorted(ikony)))
+sprawdz("pulpit: Kosz, ikony aplikacji (bez Instalatora) i Przeglądarka przy pierwszym starcie — z opisu ekranu",
+        set(ikony) == {"Kosz", "Zegar", "Notatki", "Ustawienia", "Zasoby", "Kalkulator", "Pliki", "Przeglądarka"},
+        str(sorted(ikony)))
+sprawdz("pasek przy pierwszym starcie: aplikacje i na końcu Przeglądarka (D12)",
+        "(pasek: Zegar, Notatki, Ustawienia, Zasoby, Kalkulator, Pliki, Przeglądarka)" in tekst(), ostatni_pasek())
 if not ikony: sys.exit(1)
 kafel = lambda px, n: jasny(px(ikony[n][0] - 20, ikony[n][1]))  # a light tile left of the line icon
 w, h, px = zrzut("1b-ikony", gdy=lambda w, h, px: kafel(px, "Zegar") and kafel(px, "Kalkulator"))
@@ -287,7 +296,7 @@ sprawdz("pulpit: prawy przycisk → „Ułóż ikony”", menu_k((W // 2, H // 3
         czekaj(r"K1-GUI: ułożono ikony"), menu_opis[0])
 sprawdz("ikona: „Odepnij od paska” — Notatki znikają z paska",
         menu_k(ikony["Notatki"], "ikona Notatki", "Odepnij od paska", "1d-menu-ikony") and
-        czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki\)"),
+        czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki, Przeglądarka\)"),
         menu_opis[0] + " | " + ostatni(r"K1-GUI: pasek zmieniony: .*"))
 sprawdz("ikona: „Usuń z pulpitu” — Zasoby", menu_k(ikony["Zasoby"], "ikona Zasoby", "Usuń z pulpitu") and
         czekaj(r"K1-GUI: usunięto z pulpitu: Zasoby"), menu_opis[0])
@@ -300,9 +309,10 @@ if m:
     q.czekaj_na(lambda: q.element("Menu") is None, czas=10)  # the right-click menu closed: the Start menu again
     sprawdz("menu Start: prawy przycisk → „Przypnij do paska” — Notatki na końcu paska",
             menu_k(q.srodek(q.czekaj_na_element("Menu Start", "Notatki")), "menu Start Notatki", "Przypnij do paska") and
-            czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki, Notatki\)"),
+            czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki, Przeglądarka, "
+                   r"Notatki\)"),
             menu_opis[0] + " | " + ostatni(r"K1-GUI: pasek zmieniony: .*"))
-klik(W // 2, H // 3)  # a click on the empty desktop closes the Start menu
+klik(W * 3 // 4, H // 3)  # a click on the empty desktop (right of the Start menu, not on its rows) closes it
 sx, sy, ax, ay, krok = pasek()
 # 0.10.1 step 4 (the owner's D4: sketch B): Start → Przeglądarka asks "Którą sesję otworzyć?"; "Anuluj" starts nothing
 m = otworz_start()
@@ -324,11 +334,70 @@ if m:
         klik(*an)
         sprawdz("okienko sesji: „Anuluj” zamyka je, żadna strefa nie rusza",
                 czekaj(r"K1-GUI: okienko \(sesje\): Anuluj") and "uruchamiam: Przeglądarka" not in tekst())
+# 0.10.5 step 6 (the owner's D12: sketch A): Przeglądarka pins and lies on the desktop like an application — one icon
+# for all its sessions. Unpinned and pinned again (it goes to the end: Notatki is sixth again for the drag below),
+# removed from the desktop and added again; a click on the bar's icon, a double click on the desktop's and "Otwórz" in
+# the icon's menu ask "Którą sesję otworzyć?" like the Start menu.
+def okienko_sesji(co):
+    """The window of the sessions opened by `co` (a click): it is there, and "Anuluj" closes it — nothing starts."""
+    n_ = q.ile(r"K1-GUI: okienko \(sesje\): sesja")
+    co()
+    ok_ = czekaj(r"K1-GUI: okienko \(sesje\): sesja", od=n_, czas=20)
+    an_ = q.czekaj_na_element("Okienko", "Anuluj", "przycisk", czas=20) if ok_ else None
+    if an_:
+        n_ = q.ile(r"K1-GUI: okienko \(sesje\): Anuluj")
+        klik(*q.srodek(an_))
+        czekaj(r"K1-GUI: okienko \(sesje\): Anuluj", od=n_, czas=20)
+        q.czekaj_na(lambda: q.element("Okienko") is None, czas=10)
+    return an_ is not None and "uruchamiam: Przeglądarka" not in tekst()
+
+
+m = otworz_start()
+if m:
+    sprawdz("menu Start: Przeglądarka → „Odepnij od paska” (jak aplikacja)",
+            menu_k(q.srodek(q.czekaj_na_element("Menu Start", "Przeglądarka")), "menu Start Przeglądarka",
+                   "Odepnij od paska") and
+            czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki, Notatki\)"),
+            menu_opis[0] + " | " + ostatni(r"K1-GUI: pasek zmieniony: .*"))
+    q.czekaj_na(lambda: q.element("Menu") is None, czas=10)
+    sprawdz("menu Start: Przeglądarka → „Przypnij do paska” — wraca na koniec paska",
+            menu_k(q.srodek(q.czekaj_na_element("Menu Start", "Przeglądarka")), "menu Start Przeglądarka",
+                   "Przypnij do paska") and
+            czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki, Notatki, "
+                   r"Przeglądarka\)"), menu_opis[0] + " | " + ostatni(r"K1-GUI: pasek zmieniony: .*"))
+    q.czekaj_na(lambda: q.element("Menu") is None, czas=10)
+    sprawdz("menu Start: Przeglądarka → „Usuń z pulpitu”",
+            menu_k(q.srodek(q.czekaj_na_element("Menu Start", "Przeglądarka")), "menu Start Przeglądarka",
+                   "Usuń z pulpitu") and czekaj(r"K1-GUI: usunięto z pulpitu: Przeglądarka") and
+            q.czekaj_na(lambda: "Przeglądarka" not in ikony_pulpitu(), czas=20), menu_opis[0])
+    q.czekaj_na(lambda: q.element("Menu") is None, czas=10)
+    sprawdz("menu Start: Przeglądarka → „Dodaj do pulpitu” — ikona wraca",
+            menu_k(q.srodek(q.czekaj_na_element("Menu Start", "Przeglądarka")), "menu Start Przeglądarka",
+                   "Dodaj do pulpitu") and czekaj(r"K1-GUI: dodano do pulpitu: Przeglądarka") and
+            q.czekaj_na(lambda: "Przeglądarka" in ikony_pulpitu(), czas=20), menu_opis[0])
+klik(W * 3 // 4, H // 3)  # the Start menu closes
+q.czekaj_na(lambda: q.element("Menu Start") is None, czas=10)
+pp = na_pasku("Przeglądarka")
+pi = ikony_pulpitu().get("Przeglądarka")
+if pi:
+    kafel_p = lambda px: jasny(px(pi[0] - 20, pi[1])) and jasny(px(pp[0] + 17, pp[1]))
+    w, h, px = zrzut("1g-przegladarka", gdy=lambda w, h, px: kafel_p(px))
+    sprawdz("zrzut: Przeglądarka na pasku i na pulpicie (jasny kafelek)", kafel_p(px), str(px(pi[0] - 20, pi[1])))
+sprawdz("pasek: kliknięcie przypiętej Przeglądarki — okienko „Którą sesję otworzyć?”", pp != (0, 0) and
+        okienko_sesji(lambda: klik(*pp)))
+sprawdz("pulpit: podwójne kliknięcie ikony Przeglądarki — okienko „Którą sesję otworzyć?”", pi and
+        okienko_sesji(lambda: q.dwuklik(*pi)))
+sprawdz("ikona Przeglądarki: menu „Otwórz” / „Odepnij od paska” / „Usuń z pulpitu”, „Otwórz” pyta o sesję", pi and
+        okienko_sesji(lambda: menu_k(pi, "ikona Przeglądarka", "Otwórz")) and
+        re.search(r"menu kontekstowe \(ikona Przeglądarka\): Otwórz \d+,\d+; Odepnij od paska \d+,\d+; "
+                  r"Usuń z pulpitu \d+,\d+", tekst()), menu_opis[0])
+sx, sy, ax, ay, krok = pasek()
 # the bar: Notatki dragged from the end back to the second place
 idz(ax + 5 * krok, ay); przycisk(True); idz(ax + krok, ay); przycisk(False)
 sprawdz("pasek: przeciągnięcie zmienia kolejność (Notatki z powrotem na drugim miejscu)",
         czekaj(r"K1-GUI: pasek: Notatki na miejscu 2") and
-        czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Notatki, Ustawienia, Zasoby, Kalkulator, Pliki\)"))
+        czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Notatki, Ustawienia, Zasoby, Kalkulator, Pliki, "
+               r"Przeglądarka\)"))
 sx, sy, ax, ay, krok = pasek()
 # the desktop: Kalkulator dragged to column 3, Zegar's row — row 2 under Kosz (the next start must find it there)
 n_ik = q.ile(IKONY)
@@ -414,6 +483,73 @@ def ust_przegladarka(ux, uy, ciemny_):
     q.klik_w("Ustawienia", "Wygląd", "zakladka")
 
 
+# 0.10.5 step 6 (the owner's D11: sketch A): Alt+Tab — ekran gives Tab with Alt held to the shell, which shows the window
+# switcher (the most recently used first) and the window chosen when Alt goes up. Three windows now: Ustawienia (the
+# focus), Zegar, Notatki.
+def fokus(nazwa):
+    """`nazwa`'s window has the focus in the screen's description (waits for it)."""
+    return q.czekaj_na(lambda: ((q.element(nazwa) or {}).get("stan", 0) & 4) != 0, czas=30)
+
+
+def przelacznik(tabow, nazwa_zrzutu=None, shift=False):
+    """Alt held, Tab `tabow` times (with Shift: back): the switcher's tiles {name: element}, the one chosen (a screenshot
+    `nazwa_zrzutu` with its accent outline); Alt stays held — the caller lets it go (or presses Esc first)."""
+    n_ = q.ile(r"K1-GUI: przełącznik okien: ")
+    zd = [("alt", 1)] + ([("shift", 1)] if shift else []) + [z for _ in range(tabow) for z in (("tab", 1), ("tab", 0))]
+    q.klawisze(*(zd + ([("shift", 0)] if shift else [])))
+    czekaj(r"K1-GUI: przełącznik okien: ", od=n_ + tabow - 1, czas=20)
+    p_ = q.czekaj_na_element("Przełącznik okien", czas=20)
+    kaf = {e["nazwa"]: e for e in (p_ or {"elementy": []})["elementy"] if e["rodzaj"] == "kafelek"}
+    wyb = q.czekaj_na(lambda: [e["nazwa"] for e in (q.element("Przełącznik okien") or {"elementy": []})["elementy"]
+                               if e["stan"] & 1], czas=10)
+    wybrane = [e["nazwa"] for e in (q.element("Przełącznik okien") or {"elementy": []})["elementy"] if e["stan"] & 1]
+    if nazwa_zrzutu and wybrane:
+        e = kaf[wybrane[0]]
+        obrys = lambda px: akcent(px(e["x"] + 1, e["y"] + e["h"] // 2))
+        w, h, px = zrzut(nazwa_zrzutu, gdy=lambda w, h, px: obrys(px))
+        sprawdz(f"zrzut: przełącznik okien, wybrany kafelek z obwódką w kolorze akcentu ({nazwa_zrzutu})", obrys(px),
+                str(px(e["x"] + 1, e["y"] + e["h"] // 2)))
+    return kaf, (wybrane[0] if wyb and wybrane else None)
+
+
+def pusc_alt():
+    q.klawisze(("alt", 0))
+
+
+if u and l:
+    sprawdz("Ustawienia mają fokus (trzy okna: Ustawienia, Zegar, Notatki)", fokus("Ustawienia"))
+    kaf, wyb = przelacznik(2, "4b-alt-tab")
+    sprawdz("Alt+Tab, Tab: przełącznik okien z kafelkami od ostatnio używanego, wybrane trzecie (Notatki)",
+            list(kaf) == ["Ustawienia", "Zegar", "Notatki"] and wyb == "Notatki",
+            f"{list(kaf)}, wybrane {wyb} | {ostatni(r'K1-GUI: przełącznik okien: .*')}")
+    n_ = q.ile(r"K1-GUI: przełącznik okien: wybrane Zegar")  # `od`: earlier matches of the same pattern
+    q.klawisze(("shift", 1), ("tab", 1), ("tab", 0), ("shift", 0))
+    sprawdz("Shift+Tab: wybór wstecz (Zegar)", czekaj(r"K1-GUI: przełącznik okien: wybrane Zegar", od=n_, czas=20))
+    q.klawisze(("esc", 1), ("esc", 0))
+    pusc_alt()
+    sprawdz("Esc: przełącznik znika, fokus bez zmian (Ustawienia)",
+            czekaj(r"K1-GUI: przełącznik okien: Anuluj", czas=20) and
+            q.czekaj_na(lambda: q.element("Przełącznik okien") is None, czas=20) and fokus("Ustawienia") and
+            "pokazuję" not in ostatni(r"K1-GUI: przełącznik okien: .*"))
+    n_ = q.ile(r"K1-GUI: przełącznik okien: pokazuję Zegar")
+    pisz("alt-tab")  # a quick Alt+Tab: the window used just before
+    sprawdz("szybkie Alt+Tab: okno używane przed chwilą (Zegar) na wierzchu z fokusem",
+            czekaj(r"K1-GUI: przełącznik okien: pokazuję Zegar", od=n_, czas=20) and fokus("Zegar"))
+    zo_ = re.findall(r"K1-EKRAN: okno (\d+) \(zegar\)", tekst())
+    q.klik_w("Pasek", "Zegar", "ikona")  # the active application's icon: minimised
+    sprawdz("Zegar zminimalizowany z paska", zo_ and czekaj(rf"K1-EKRAN: okno {zo_[-1]} zminimalizowane", czas=20))
+    n_ = q.ile(r"K1-GUI: przełącznik okien: pokazuję Zegar")
+    kaf, wyb = przelacznik(1)
+    pusc_alt()
+    sprawdz("Alt+Tab do zminimalizowanego okna: wraca (Zegar przywrócony, z fokusem)",
+            wyb == "Zegar" and czekaj(r"K1-GUI: przełącznik okien: pokazuję Zegar", od=n_, czas=20) and
+            zo_ and czekaj(rf"K1-EKRAN: okno {zo_[-1]} przywrócone", czas=20) and fokus("Zegar"), str(list(kaf)))
+    n_ = q.ile(r"K1-GUI: przełącznik okien: pokazuję Ustawienia")
+    pisz("alt-tab")
+    sprawdz("szybkie Alt+Tab z powrotem: Ustawienia z fokusem (ich okno dalej w tym samym miejscu)",
+            czekaj(r"K1-GUI: przełącznik okien: pokazuję Ustawienia", od=n_, czas=20) and fokus("Ustawienia"))
+    sprawdz("ekran oddaje Tab z Alt powłoce (log ekranu), nic nie odrzucone",
+            "K1-EKRAN: Alt+Tab: przełączanie okien w powłoce" in tekst() and "odrzucono" not in tekst())
 if u and l:
     uid_, ux, uy = int(u.group(1)), int(u.group(4)), int(u.group(5))
     bx, by, bw, bh, tx, ty, tk = (int(l.group(i)) for i in range(1, 8))
@@ -425,6 +561,12 @@ if u and l:
     zx_, zy_ = ikony["Zegar"]  # 0.7.5: the tiles follow the theme too (the owner's wish)
     w, h, px = zrzut("5b-ciemne-ikony", gdy=lambda w, h, px: ciemny(px(zx_ - 20, zy_)))
     sprawdz("zrzut: kafelki ikon w ciemnym motywie", ciemny(px(zx_ - 20, zy_)), str(px(zx_ - 20, zy_)))
+    kaf, wyb = przelacznik(1, "5c-alt-tab-ciemny")  # 0.10.5 step 6: the switcher in the dark theme, then Esc
+    q.klawisze(("esc", 1), ("esc", 0))
+    pusc_alt()
+    sprawdz("ciemny motyw: przełącznik okien (Esc — fokus zostaje w Ustawieniach)",
+            wyb == "Zegar" and czekaj(r"K1-GUI: przełącznik okien: Anuluj", od=1, czas=20) and fokus("Ustawienia"),
+            f"{list(kaf)}, wybrane {wyb}")
     klik(ux + tx + tk, uy + ty)
     sprawdz("tapeta „Zmierzch” ustawiona", czekaj(r"K1-EKRAN: tapeta 1 "))
     w, h, px = zrzut("6-tapeta", gdy=lambda w, h, px: px(12, H - 12)[2] > px(12, H - 12)[0])
