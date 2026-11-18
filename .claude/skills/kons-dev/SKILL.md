@@ -221,7 +221,7 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 |---|---|---|
 | host | `make testy-host`, `make fuzz` | parsery, formaty, logika (ASan/UBSan, libFuzzer); sprawdzaj zachowanie, nie powtarzaj wzorów z kodu |
 | w systemie | `testy/system/` → `/rdzen/system/test-systemu` | obraz testowy = produkcyjny + program testowy; wynik `K1-TEST: WYNIK: OK (n/n)`; klatki, próby, złośliwe komunikaty |
-| QEMU z zewnątrz | `scripts/test-m1/m4/m5/m5f/m6.sh`, `test-wzorce.sh` (0.10.2: zrzuty wzorcowe), `test-aktualizacja-siec.sh` (0.10.5: serwer HTTPS na „routerze”, cała aktualizacja przez sieć, także w emulacji), `test-most.sh` (0.10.5 krok 5: Raptor Bridge — strefa próbna jest klientem serwera na „routerze”, złośliwy gość vsock), `test-pliki.sh`, `test-pendrive.sh`, `test-skarbiec.sh`, `test-strefa.sh` (0.10.0: strefa próbna w emulacji AMD SVM, okno w ramce z paskiem tytułu K1, złośliwy gość, brak wirtualizacji) na `testy/qemu/k1qemu.py` | start i błędy startu, kursor, pulpit i aplikacje (zrzuty po kolorach), USB, instalator, aktualizacje i Secure Boot, Pliki, wirtualny pendrive ze zdjęciami (mtools + Pillow, `device_add`/`device_del`); `test-wifi.sh` (0.9.1): obraz testowy z `mac80211_hwsim.radios=7` — program testowy robi punkty dostępu testowe (`t_wifi.c`) |
+| QEMU z zewnątrz | `scripts/test-*.sh` — jeden skrypt na część (mapa „która część — który skrypt” w `docs/TESTY.md`) na `testy/qemu/k1qemu.py` | start i błędy startu, pulpit i aplikacje, zrzuty wzorcowe, USB, instalator i aktualizacje (z pendrive'a i przez sieć), Secure Boot, Pliki, pendrive, skarbiec, sieć, Wi-Fi (`mac80211_hwsim`), strefa próbna, Raptor Bridge |
 | wszystko | `scripts/testy.sh` | to samo uruchamia CI (z KVM równolegle) — przed scaleniem: CI na PR-ze (§9) |
 
 - **Po nazwach (0.10.2, ADR 0045):** pulpit i okna K1 — obraz testowy z dyskiem `k1-test-opis` (wzór: `test-m4`, przebieg
@@ -305,7 +305,8 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   `rfkillN/soft`; typ komunikatu niesie deskryptor zawsze albo nigdy (`k1_komunikat_z_deskryptorem`, inaczej odbiorca go
   odrzuca — stąd osobny `SIEC_WIFI_EAPOL`); klatka, która pisze memfd (np. dla skarbca), potrzebuje `.rozmiar_pliku`
   (inaczej SIGXFSZ = 25); jądro potrafi wpisać swój komunikat w środek wiersza K1 na porcie szeregowym, nawet w środku
-  znaku UTF-8 — `k1qemu.py` usuwa je z bajtów przed dekodowaniem; bez `MAC80211_RC_MINSTREL` (za EXPERT) mac80211 nie rejestruje kart bez własnego doboru prędkości
+  znaku UTF-8 — `k1qemu.py` usuwa je z bajtów przed dekodowaniem, a skrypty w powłoce czytają log przez `log_k1`
+  (`scripts/wspolne.sh`; 0.10.5: `test-m5` padł w CI na „partycja danych [ 2.79] sda: sda1 sda2⏎K1-DANE otwarta”); bez `MAC80211_RC_MINSTREL` (za EXPERT) mac80211 nie rejestruje kart bez własnego doboru prędkości
   („Failed to select rate control algorithm”: ath9k, rtw88, hwsim); `Maszyna.czekaj(wzor, od=n)` — `n` to liczba
   wcześniejszych dopasowań (`q.ile(wzor)`), nie długość logu; pętla `timeout … until grep KONIEC` mogła skończyć się
   limitem — przed nowym przebiegiem testu sprawdź `pgrep -af wifi.py|qemu`, inaczej dwa przebiegi mieszają log (0.10.2: to
@@ -347,10 +348,13 @@ wersji — `docs/PLAN-<wersja>.txt` (samodzielny: luki, kroki, decyzje; zakres z
 numery kroków się nie zmieniają — wyjątek: **wydanie jest zawsze ostatnim krokiem** (decyzja właściciela 2026-11-17),
 więc nowy krok dodany do planu bierze numer kroku wydania, a wydanie przesuwa się na koniec, póki się nie zaczęło;
 zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
-Etapy to wersje MINOR z tematem: **0.8 Pliki** (gotowe: 0.8.0–0.8.7) → **0.9 Sieć** (gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi) → **0.10 Strefy** (0.10.0 gotowe — plan w `docs/archiwum/PLAN-0.10.0.txt`: strefa próbna, przeglądarka, poprawki, przewijanie, sesje, które pamiętają; 0.10.1 Balon gotowe — pamięć strefy według potrzeby, `docs/archiwum/PLAN-0.10.1.txt`; 0.10.2 Testy gotowe — opis ekranu dla testów, zrzuty wzorcowe, dwa błędy przeglądarki, `docs/archiwum/PLAN-0.10.2.txt`; teraz 0.10.5 Aktualizacje przez sieć (`docs/PLAN-0.10.5.txt`), potem 0.10.7 Wygląd (poprawki wyglądu po przeglądzie: napisy bez opisów i półpauz, Ustawienia, Pliki, ramka strefy, `docs/PLAN-0.10.7.txt`) i 0.10.9 Filmy i szybka grafika (sprzętowe dekodowanie filmów, szybka grafika przez most native context, obraz przeglądarki poza rdzeniem, `docs/PLAN-0.10.9.txt`; wcześniej „0.10.3”, „0.10.7”) (mikro-maszyny, ramka,
-przeglądarka; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery, TPM)
-→ **0.13 Audyt** → 1.0. Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11,
-M10 = 0.12, M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).
+Etapy to wersje MINOR z tematem: **0.8 Pliki** → **0.9 Sieć** → **0.10 Strefy** (mikro-maszyny, ramka, przeglądarka,
+aktualizacje przez sieć; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery,
+TPM) → **0.13 Audyt** → 1.0. Co gotowe, co teraz i który plan jest bieżący — tylko w `docs/DO_ZROBIENIA.txt` (tu tego nie
+powtarzamy). Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11, M10 = 0.12,
+M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).
+**Robot a plany (od 0.10.5):** robot wydaje z `main` codziennie — scalony krok planu musi być gotowy dla użytkownika,
+a numer wydania z planu może zająć robot (zasady: `AGENTS.md`, „Robot aktualizacji”; plany, punkt 0 „Robot i wydania”).
 
 **Przepływ plików (ADR 0027):** Pliki K1 to jedyny węzeł; oryginał zawsze w Plikach, strefy dostają kopie;
 zgoda = gest użytkownika w interfejsie rysowanym przez K1; pochodzenie zapisane przy pliku.

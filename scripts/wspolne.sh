@@ -20,6 +20,10 @@ zamknij_qemu() {
     python3 -I "$K1_REPO/testy/qemu/k1qemu.py" zamknij "$1" || kill "$2" 2>/dev/null || true
     wait "$2" 2>/dev/null || true
 }
+# log_k1 PLIK — log z portu szeregowego bez komunikatów jądra wpisanych w środek wiersza K1 (jeden strumień; jak
+# WTRACENIE w k1qemu.py): „K1-NADZORCA: partycja danych [ 2.79] sda: sda1 sda2⏎K1-DANE otwarta…” → jeden wiersz K1.
+# Skrypty, które sprawdzają log grep-em, czytają go przez tę funkcję (test-m5, CI przebieg 214).
+log_k1() { python3 -I "$K1_REPO/testy/qemu/k1qemu.py" log "$1" 2>/dev/null; }
 # M6b (ADR 0021): dm-verity hash tree appended to a SquashFS image (data padded to 4 KiB blocks, the
 # tree right after it, no superblock); the root hash goes to PLIK.skrot (k1.rdzen_skrot=… on the
 # kernel command line). Fixed salt: the same image gives the same bytes and the same root hash.

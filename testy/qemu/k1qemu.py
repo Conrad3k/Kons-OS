@@ -547,3 +547,6 @@ if __name__ == "__main__" and len(sys.argv) == 4 and sys.argv[1] == "zrzut":  # 
         sys.exit(1)
     zapisz_png(sys.argv[2], *e)
     print(f"{e[0]}x{e[1]}")
+if __name__ == "__main__" and len(sys.argv) == 3 and sys.argv[1] == "log":  # log_k1 in scripts/wspolne.sh
+    with open(sys.argv[2], "rb") as f:
+        sys.stdout.buffer.write(WTRACENIE.sub(b"", f.read()))

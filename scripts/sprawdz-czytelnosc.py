@@ -15,7 +15,14 @@
      docs/*.txt, docs/komponenty/, skill kons-dev) istnieje — bez docs/adr/, docs/archiwum/ i CHANGELOG.md
      (historia) i bez wzorów (`<wersja>`, `*`, `NNNN`);
   7. (0.10.2, ADR 0045) opis ekranu tylko dla testów: rolę `K1_ROLA_TEST` i pytanie `K1_KOM_OPIS_PYTANIE` zna tylko
-     ekran (src/ekran/), wspólny protokół (src/wspolne/) i testy (testy/) — żaden inny program K1 nie może o nie pytać.
+     ekran (src/ekran/), wspólny protokół (src/wspolne/) i testy (testy/) — żaden inny program K1 nie może o nie pytać;
+  8. (0.10.5 krok 8) każda ścieżka do pliku repo (scripts/…, src/…, testy/…, jadro/…, narzedzia/…, musl/…, strefy/…,
+     .github/…) w żywych dokumentach istnieje — także bez rozszerzenia (`src/siec/wifi` → wifi.c); bez planów
+     (docs/PLAN-*.txt nazywają pliki, które dopiero powstaną) i bez wierszy o historii („historia git”, „usunięt…”);
+  9. (0.10.5 krok 8) każdy plik w scripts/ ma opis w docs/ARCHITEKTURA.md albo docs/TESTY.md, a każdy test na hoście
+     i fuzzer z Makefile (TESTY_HOST, TESTY_HOST_PLIKI, FUZZ) — w docs/TESTY.md;
+ 10. (0.10.5 krok 8) stan nie zostaje w tyle: najnowsza wersja od ludzi w CHANGELOG.md (wpis bez znacznika robota)
+     jest w wierszu „Stan:” docs/DO_ZROBIENIA.txt i w „Co już jest (…)” README.md.
 
 Użycie: python3 -I scripts/sprawdz-czytelnosc.py [KATALOG_REPO]. Kod wyjścia 0 = wszystko w porządku.
 """
@@ -226,6 +233,81 @@ def sprawdz_sciezki(repo, bledy):
                 bledy.append(f"{wzgl}: ścieżka {s} nie istnieje")
 
 
+# a path to a file or directory of the repository: scripts/…, src/…; not a pattern (src/wspolne/k1_kom_<kanał>.c)
+SCIEZKA_REPO = re.compile(r"(?<![\w/.~-])((?:scripts|src|testy|jadro|narzedzia|musl|strefy|\.github)/[\w./+-]*[\w/])"
+                          r"(?![\w<*{…/-])")
+HISTORIA = re.compile(r"historia git|usunięt")
+
+
+def sciezki_repo(tekst):
+    """Paths to repository files in a text, without lines about history (a removed file may be named there)."""
+    for wiersz in tekst.split("\n"):
+        if not HISTORIA.search(wiersz):
+            yield from SCIEZKA_REPO.findall(wiersz)
+
+
+def istnieje(repo, s):
+    """A path names a file or directory, or a stem of one (`src/siec/wifi` for wifi.c and wifi.h)."""
+    pelna = os.path.join(repo, s)
+    if os.path.exists(pelna):
+        return True
+    katalog, nazwa = os.path.split(pelna)
+    return os.path.isdir(katalog) and any(p.startswith(nazwa + ".") for p in os.listdir(katalog))
+
+
+def sprawdz_sciezki_repo(repo, bledy):
+    for wzgl in zywe_dokumenty(repo):
+        if re.match(r"docs/PLAN-", wzgl):
+            continue
+        with open(os.path.join(repo, wzgl), encoding="utf-8") as f:
+            tekst = f.read()
+        for s in sorted(set(sciezki_repo(tekst))):
+            if not istnieje(repo, s):
+                bledy.append(f"{wzgl}: ścieżka {s} nie istnieje")
+
+
+def lista_make(makefile, nazwa):
+    """Words of a Makefile list `NAZWA := a b \\ c` (with continued lines)."""
+    m = re.search(r"^" + nazwa + r" :=((?:[^\n]*\\\n)*[^\n]*)", makefile, re.M)
+    return m.group(1).replace("\\", " ").split() if m else []
+
+
+def sprawdz_spisy(repo, bledy):
+    def czytaj(wzgl):
+        with open(os.path.join(repo, wzgl), encoding="utf-8") as f:
+            return f.read()
+    architektura, testy, makefile = czytaj("docs/ARCHITEKTURA.md"), czytaj("docs/TESTY.md"), czytaj("Makefile")
+    for p in sorted(os.listdir(os.path.join(repo, "scripts"))):
+        if not os.path.isfile(os.path.join(repo, "scripts", p)):
+            continue  # __pycache__ of a test run (ignored by git)
+        if not re.search(r"(?<![\w-])" + re.escape(p) + r"(?![\w-])", architektura + testy):
+            bledy.append(f"scripts/{p}: brak opisu w docs/ARCHITEKTURA.md (Skrypty) ani w docs/TESTY.md")
+    testy_host = lista_make(makefile, "TESTY_HOST") + lista_make(makefile, "TESTY_HOST_PLIKI")
+    fuzz = ["fuzz_" + n for n in lista_make(makefile, "FUZZ")]
+    if not testy_host or len(fuzz) < 2:
+        bledy.append("Makefile: nie odczytano list TESTY_HOST / FUZZ")
+    for t in testy_host + fuzz:
+        if not re.search(r"\b" + t + r"\b", testy):
+            bledy.append(f"{t} (Makefile): brak w docs/TESTY.md")
+
+
+def sprawdz_stan(repo, bledy):
+    """The newest human version (a CHANGELOG entry without the robot's mark) is where the state is said."""
+    with open(os.path.join(repo, "CHANGELOG.md"), encoding="utf-8") as f:
+        czesci = re.split(r"^## \[(\d+\.\d+\.\d+)\][^\n]*\n", f.read(), flags=re.M)
+    ludzie = [czesci[i] for i in range(1, len(czesci) - 1, 2) if "<!-- k1: poprawki -->" not in czesci[i + 1]]
+    if not ludzie:
+        bledy.append("CHANGELOG.md: nie odczytano wersji")
+        return
+    w = re.escape(ludzie[0])
+    with open(os.path.join(repo, "docs/DO_ZROBIENIA.txt"), encoding="utf-8") as f:
+        if not re.search(r"^Stan: " + w + r"\b", f.read(), re.M):
+            bledy.append(f"docs/DO_ZROBIENIA.txt: wiersz „Stan:” nie zaczyna się od {ludzie[0]} (CHANGELOG.md)")
+    with open(os.path.join(repo, "README.md"), encoding="utf-8") as f:
+        if not re.search(r"Co już jest \(" + w + r"\)", f.read()):
+            bledy.append(f"README.md: „Co już jest ({ludzie[0]})” — nie ta wersja co w CHANGELOG.md")
+
+
 def sprawdz_opisy_wersji(repo, bledy):
     """0.10.5 step 2 (ADR 0046, T18): every CHANGELOG entry from 0.10.5 has „Opis w K1:” (or the robot's mark)."""
     w = subprocess.run([sys.executable, "-I", os.path.join(repo, "scripts", "opisy-wersji.py"), "--sprawdz",
@@ -246,6 +328,9 @@ def samotest():
     assert list(sciezki_docs("`docs/SPEC.md`, docs/komponenty/, docs/PLAN-<wersja>.txt, docs/CI, docs/adr/NNNN-*.md "
                              "(docs/archiwum/PLAN-0.8.1.txt).")) == ["docs/SPEC.md", "docs/komponenty/",
                                                                      "docs/archiwum/PLAN-0.8.1.txt"]
+    assert list(sciezki_repo("`scripts/test-m4.sh`, src/siec/wifi, src/wspolne/k1_kom_<kanał>.c, testy/host/fuzz_*.c\n"
+                             "dawny `scripts/test-m2.sh` (historia git)")) == ["scripts/test-m4.sh", "src/siec/wifi"]
+    assert lista_make("A := x y \\\n\tz\nB := q\n", "A") == ["x", "y", "z"]
     assert lista_x("#define L(X) \\\n    X(A, 1, \"a\") \\\n    X(B, 2, \"b\")\n\n", "L") == [["A", "1", "a"], ["B", "2", "b"]]
 
 
@@ -260,13 +345,16 @@ def main():
     sprawdz_sciezki(repo, bledy)
     sprawdz_opis_ekranu(repo, bledy)
     sprawdz_opisy_wersji(repo, bledy)
+    sprawdz_sciezki_repo(repo, bledy)
+    sprawdz_spisy(repo, bledy)
+    sprawdz_stan(repo, bledy)
     for b in bledy:
         print("  " + b)
     if bledy:
         print(f"[k1] BŁĄD: zasady czytelności — {len(bledy)} do poprawy (AGENTS.md, „Czytelność”)")
         return 1
     print("[k1] czytelność: pliki ≤ 600 wierszy, funkcje ≤ 80, opisy usług, aplikacji i komunikatów, "
-          "spis ADR, ścieżki docs/ — OK")
+          "spis ADR, ścieżki, spisy skryptów i testów, stan wersji — OK")
     return 0
 
 

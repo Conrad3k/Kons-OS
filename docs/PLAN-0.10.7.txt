@@ -7,7 +7,7 @@ wyglądu K1 metodą „unslop” na zrzutach wzorcowych z testy/wzorce/). Wynik 
 („Kierunek (M4)”: spokojny, rzeczowy, lekko ciepły; papier i glina; znak „Warstwy”) zostaje.
 Numer 0.10.7 wybrał właściciel: wcześniej miały go „Filmy”, które przeszły na 0.10.9 (docs/PLAN-0.10.9.txt).
 Wersja stoi na 0.10.5 (Ustawienia 720 × 520 z sekcją Aktualizacje, okno przeglądarki: rozmiar i maksymalizacja;
-docs/PLAN-0.10.5.txt) i zaczyna się po jej wydaniu: krok 4 tego planu zmienia ramkę okna strefy, którą zmienia też
+docs/archiwum/PLAN-0.10.5.txt) i zaczyna się po jej wydaniu: krok 4 tego planu zmienia ramkę okna strefy, którą zmienia też
 0.10.5 krok 4.
 Ten plik jest SAMODZIELNY: kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
 Plik jest planem, nie specyfikacją: zmiana ramki okna strefy zmienia ADR 0020 p. 3 („obwódka w kolorze strefy”), więc
@@ -62,6 +62,26 @@ Nowy czat: przebieg każdego kroku:
      VERSION i CHANGELOG zmienia krok 5 (wydanie); kroki 1 do 4 zapisują „co widzi użytkownik” w opisie PR-a.
   9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
      w swoim kroku. Raport dla właściciela: obrazy „przed / po”, co zostało.
+
+Robot i wydania (od 0.10.5: ADR 0046 i 0047, docs/komponenty/robot.md i aktualizacja.md; dopisane przy wydaniu 0.10.5):
+  - Robot (.github/workflows/robot.yml) raz dziennie sam wydaje wersję PATCH z poprawionym jądrem Linux albo pakietami
+    przeglądarki, zbudowaną z tego, co jest wtedy na main. Każdy krok scalony do main trafia więc do laptopów
+    z najbliższym wydaniem robota, jeszcze przed wydaniem 0.10.7, i to z jego stałym opisem („Ta aktualizacja zawiera
+    istotne poprawki dotyczące bezpieczeństwa i jakości.”). Kroki tej wersji są samodzielne (każdy zmienia wygląd do
+    końca, wzorce przyjęte przez właściciela), więc robot zostaje włączony. Krok scalony do main musi być gotowy dla
+    użytkownika: bez połowy zmiany, którą widać. Gdyby któryś krok tego nie spełniał: robot wyłączony od jego scalenia do
+    wydania (Actions → „Robot — poprawki jądra i przeglądarki” → Disable workflow; wpis „Tymczasowe” w DO_ZROBIENIA).
+  - Numer: robot może w tym czasie wydać 0.10.6, a nawet 0.10.7. Temat i plik planu zostają („0.10.7 Wygląd”), a wydanie
+    bierze następny wolny numer PATCH w chwili wydania (AGENTS.md: tuż przed scaleniem zaktualizuj gałąź z main
+    i sprawdź VERSION; wpis w CHANGELOG idzie nad wpisem robota). Otwarty PR człowieka ze zmianą VERSION wstrzymuje
+    robota, więc PR wydania otwieraj dopiero, gdy jest gotowy do testów.
+  - Wydanie to przebieg CI na main po scaleniu: tag, ISO, obraz USB, ogłoszenie (k1-ogloszenie.bin) i paczka
+    (k1-<wersja>.k1a). K1 zainstalowany na dysku sam je znajdzie (po połączeniu z siecią i co 6 godzin), pobierze
+    i zapyta „Jest nowa wersja K1” z tekstem z wiersza „Opis w K1:” wpisu w CHANGELOG (pilnuje go sprawdz-czytelnosc.py).
+    Pendrive (obraz USB) służy już tylko nowym instalacjom i K1 uruchamianemu z pendrive'a.
+  - Sprawdzanie na sprzęcie: obraz z artefaktu PR-a (próbny, nie wydanie, K1 na dysku o nim nie wie) właściciel
+    uruchamia z pendrive'a; po wydaniu właściciel aktualizuje laptopy przez sieć (Ustawienia → Aktualizacje → „Sprawdź
+    teraz” → „Zainstaluj”) i to też jest punkt listy „co sprawdzić” w DO_ZROBIENIA (punkt 4).
 
 
 1. W SKRÓCIE (dla właściciela)
@@ -186,9 +206,12 @@ KROK 5: Pulpit, tapeta; porządki; wydanie 0.10.7                              M
   [ ] Napisy pod ikonami pulpitu (W13, D6).
   [ ] Tapeta (W14, D5): szkice wszystkich pięciu wariantów „dziś / matowa krawędź”; zmiana tylko po wyborze właściciela.
   [ ] Porządki wersji PATCH: pliki blisko limitu (W15), Tymczasowe, DO_ZROBIENIA.
-  [ ] Wydanie: VERSION 0.10.7; CHANGELOG (kroki 1 do 5, najpierw „co widzisz”); DO_ZROBIENIA: „Teraz” → 0.10.9 Filmy i szybka grafika
-      (docs/PLAN-0.10.9.txt), lista dla właściciela (z kroku 4); ten plik → docs/archiwum/. Po scaleniu: CI, tag
-      k1-v0.10.7, wydanie, raport z linkami.
+  [ ] Wydanie: VERSION 0.10.7 (albo następny wolny PATCH, jeśli robot go zajął: punkt 0, „Robot i wydania”); CHANGELOG
+      (kroki 1 do 5, najpierw „co widzisz”, wiersz „Opis w K1:” prostym językiem, bez numerów kroków); DO_ZROBIENIA:
+      „Teraz” → 0.10.9 Filmy i szybka grafika (docs/PLAN-0.10.9.txt), lista dla właściciela (z kroku 4; pierwsza pozycja:
+      aktualizacja przez sieć na obu laptopach, opis przed „Zainstaluj”); README („Co już jest”, tabela); ten plik →
+      docs/archiwum/. Przed scaleniem: gałąź z main, VERSION na main (robot). Po scaleniu: CI na main, tag, wydanie
+      z ogłoszeniem i paczką, raport z linkami (dopiero gdy wydanie istnieje).
   Testy i dowód: pełny komplet w CI; test-wzorce (pulpit-ikony, oba motywy; tapety: miniatury w Ustawieniach → Wygląd).
   Gotowe, gdy: wydanie k1-v0.10.7 istnieje, raport z linkami.
   Ustalenia z wykonania: (pusto, wypełnia krok 5)

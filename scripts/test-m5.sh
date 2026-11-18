@@ -172,15 +172,14 @@ if [ -f "$USBIMG" ]; then
         # 0.8.0 step 5: the first start grows the empty K1-DANE (64 MiB) by the 512 MiB the stick has more; never again
         ROS="K1-NADZORCA: K1-DANE powiększona do końca pendrive'a: 64 → 576 MiB"
         t=0
-        while [ $t -lt "$CZAS" ] && ! { grep -qF "$OCZ" "$PLOG" 2>/dev/null && grep -qF "K1-GUI: pulpit gotowy" "$PLOG" 2>/dev/null \
-            && grep -qF "$BAT" "$PLOG" 2>/dev/null; }; do
+        jest() { log_k1 "$PLOG" | grep -qF "$1"; } # a kernel message may sit in the middle of a K1 line
+        while [ $t -lt "$CZAS" ] && ! { jest "$OCZ" && jest "K1-GUI: pulpit gotowy" && jest "$BAT"; }; do
             kill -0 $PPID_ 2>/dev/null || break; sleep 1; t=$((t + 1))
         done
         zamknij_qemu "$PMON" $PPID_
-        if grep -qF "$OCZ" "$PLOG" && grep -qF "K1-GUI: pulpit gotowy" "$PLOG" && grep -qF "partycja danych K1-DANE otwarta" "$PLOG" \
-            && grep -qF "$BAT" "$PLOG" \
-            && { [ $n -eq 1 ] && grep -qF "$ROS" "$PLOG" || { [ $n -eq 2 ] && ! grep -qF "powiększona" "$PLOG"; }; } \
-            && ! grep -q "Kernel panic" "$PLOG" && ! grep -qF "BŁĄD" "$PLOG"; then
+        if jest "$OCZ" && jest "K1-GUI: pulpit gotowy" && jest "partycja danych K1-DANE otwarta" && jest "$BAT" \
+            && { [ $n -eq 1 ] && jest "$ROS" || { [ $n -eq 2 ] && ! jest "powiększona"; }; } \
+            && ! jest "Kernel panic" && ! jest "BŁĄD"; then
             echo "  [OK]    start $n z pendrive'a: pulpit, $( [ $n -eq 1 ] && echo 'K1-DANE powiększona do końca pendrive'"'"'a (64 → 576 MiB), nowy zaszyfrowany magazyn, historia baterii zapisana' || echo 'magazyn z poprzedniego startu otwarty (K1-DANE już nie rośnie), historia baterii z poprzedniego startu') (${t} s)"
         else
             echo "  [BŁĄD]  start $n z pendrive'a (log: $PLOG)"; r=1
