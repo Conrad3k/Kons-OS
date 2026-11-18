@@ -14,6 +14,7 @@
 
 #include "k1_komunikat.h"
 #include "k1_uslugi.h"
+#include "lacznik.h"
 #include "mmio.h"
 #include "start.h"
 
@@ -90,6 +91,7 @@ struct maszyna {
     volatile double petla_t;             /* the main thread's last step (stroz.c) and its name */
     const char *volatile petla_krok;
     const char *volatile zamek_kto;      /* who holds mz.zamek (a constant name), NULL: nobody */
+    char pobierz[LACZNIK_CEL_MAKS + 1];  /* 0.10.5 step 2: the download zone — what it downloads (argv[4], checked) */
 };
 extern struct maszyna mz;
 #define ST_TRYB_ZLOSLIWY 4 /* test modes 1..4 and K1_STREFA_TRYB_BALON_OD..DO: a hostile guest (gosc/zlosliwy.c) */

@@ -16,14 +16,16 @@ TABELA = os.path.join(REPO, "strefy", "przegladarka.txt")
 GALEZIE = [("debian", "https://deb.debian.org/debian", "trixie"),
            ("debian", "https://deb.debian.org/debian", "trixie-updates"),
            ("debian-security", "https://security.debian.org/debian-security", "trixie-security")]
-# Co ma być w obrazie: przeglądarka, jej polski interfejs, dane lokalizacji C.UTF-8 (libc-bin).
-KORZENIE = ["firefox-esr", "firefox-esr-l10n-pl", "libc-bin"]
+# Co ma być w obrazie: przeglądarka, jej polski interfejs, dane lokalizacji C.UTF-8 (libc-bin); od 0.10.5 (ADR 0046)
+# curl i zaufane certyfikaty — strefa pobierania aktualizacji (ten sam obraz, inny program startowy: gosc/pobieranie.c).
+KORZENIE = ["firefox-esr", "firefox-esr-l10n-pl", "libc-bin", "curl", "ca-certificates"]
 # Czego nie bierzemy, choć pakiety tego chcą: demony i narzędzia systemu (w strefie nie ma init-u Debiana ani
 # instalatora pakietów), powłoka i narzędzia, które jej używają (S14: strefa bez powłoki).
 POMIN = {"debconf", "dpkg", "perl-base", "systemd", "systemd-sysv", "dbus", "dbus-user-session", "dbus-bin",
          "dbus-daemon", "dbus-system-bus-common", "dbus-session-bus-common", "libpam-systemd", "procps", "adduser",
          "base-files", "gawk", "mawk", "debianutils", "dash", "bash", "coreutils", "libc-dev-bin", "sensible-utils",
-         "init-system-helpers", "passwd", "login"}
+         "init-system-helpers", "passwd", "login",
+         "openssl"}  # ca-certificates wants it only for its script (the bundle is made by zbuduj-strefe.sh)
 
 
 def pobierz(url):

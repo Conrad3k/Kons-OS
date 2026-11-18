@@ -107,8 +107,9 @@ extern int bat_kanal;     /* fd 5 still open */
 #define ODST 4
 #define DOK_PAD 8
 #define DOK_WYS (EL + 2 * DOK_PAD)
-/* the widest bar: every application, pinned or running (the surface; the bar itself is centred in it) */
-#define DOK_SZER (DOK_PAD + EL + 13 + POZYCJE_MAKS * (EL + ODST) + 9 + DOK_PAD)
+/* the widest bar: every application, pinned or running (the surface; the bar itself is centred in it) — zones with a
+ * window only (the download zone of 0.10.5 never has one on the bar) */
+#define DOK_SZER (DOK_PAD + EL + 13 + (K1_APL_MAKS + K1_STREFY_Z_OKNEM) * (EL + ODST) + 9 + DOK_PAD)
 void rysuj_dok(void);
 void wskaznik_dok(const struct k1_komunikat *m);
 void dok_zmiana(void); /* pinned or running applications changed: new positions, logged for the tests */
@@ -122,7 +123,7 @@ void dok_gotowy(void); /* "pulpit gotowy" with the positions of the bar (after l
 /* rows of the Start menu: every application but the windows of K1 itself (column -1 of K1_APLIKACJE, ADR 0030), then
  * the zones whose K1_STREFY row has a menu line (0.10.0 step 2: the browser) */
 #define X_W_MENU(n, apl, profil, uid, program, tag, tytul, opis, ikona, pasek, ...) +((pasek) >= 0)
-#define X_W_MENU_Z(n, nr, profil, uid, obraz, tytul, sesja, pamiec, procesory, kolor, trwalosc, ikona, log, menu) \
+#define X_W_MENU_Z(n, nr, profil, uid, obraz, tytul, sesja, pamiec, procesory, kolor, trwalosc, ikona, log, menu, ...) \
     +(sizeof(menu) > 1)
 enum { MENU_APL = 0 K1_APLIKACJE(X_W_MENU) K1_STREFY(X_W_MENU_Z) };
 #undef X_W_MENU
@@ -194,6 +195,9 @@ void pamiec_fokus(void);                             /* the windows changed: the
 
 /* wersja.c (0.10.5 step 1, S5) — nadzorca on fd 5 */
 void wersja_nieudana(const struct k1_komunikat *m); /* AB_NIEUDANA: the window "Nowa wersja K1 nie uruchomiła się" */
+/* aktualizacja.c (0.10.5 step 2b): AKT_STAN, AKT_OPIS — the window "Jest nowa wersja K1", the dot at Start */
+void akt_komunikat(const struct k1_komunikat *m, int fd);
+int akt_czeka(void); /* 1: a new version waits for "Zainstaluj" */
 
 /* zapis.c */
 void rozm_wczytaj(void); /* at start: from skarbiec, else the first-start arrangement */

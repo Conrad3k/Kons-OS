@@ -1,4 +1,5 @@
 /* K1 nadzorca — the installer (M5f, ADR 0018): disk list, starting the writing program, progress. Part of nadzorca (see main.c).
+ * 0.10.5 step 2b (ADR 0046): also its jobs for updates through the network (inst_siec, for aktualizacja.c).
  * Two windows ask for it (0.10.5 step 1, plan T1): Instalator (UID 204) installs on a disk and turns on Secure Boot,
  * Ustawienia → Aktualizacje (UID 202, its own channel) updates K1 on a disk — each only its own job, one job at a time. */
 #include "nadzorca.h"
@@ -21,7 +22,8 @@ static const struct {
 };
 static struct k1_dyski listy[OKIEN]; /* the list each window saw (INST_START refers to it) */
 static int sukces[OKIEN];            /* a finished job of this window: it may ask for a restart */
-static int zadanie = -1;             /* the window whose job runs (progress and result go to it) */
+static int zadanie = -1;             /* the window whose job runs (progress and result go to it); ZADANIE_SIEC: */
+#define ZADANIE_SIEC (-2)            /* 0.10.5 step 2b: an update through the network (aktualizacja.c) */
 
 struct usluga *instalator(void)
 {
@@ -36,6 +38,7 @@ void inst_nowy_kanal(void)
 void akt_nowy_kanal(void)
 {
     sukces[OKNO_USTAWIENIA] = 0;
+    akt_nowe_okno(); /* 0.10.5 step 2b: the state of updates through the network again */
 }
 
 static void wyslij(int okno, struct k1_komunikat k)
@@ -178,6 +181,69 @@ static int inst_zapis(int okno, int nr, int tryb)
     return 0;
 }
 
+/* The K1-EFI of the disk K1 runs from (its K1-DANE is the vault's), or — K1 runs from a stick — the stick's (*pendrive;
+ * read only: it has no waiting room). 0, or -1: neither. */
+int inst_efi_k1(char *efi, size_t n, int *pendrive)
+{
+    struct k1_dyski l;
+    int i;
+    *pendrive = 0;
+    if (k1_dyski_skanuj(SYS, &l) != 0)
+        return -1;
+    for (i = 0; i < l.n; i++)
+        if (l.d[i].efi[0] && l.d[i].dane[0] && skarb_dane[0] && strcmp(l.d[i].dane, skarb_dane) == 0) {
+            snprintf(efi, n, "%s", l.d[i].efi);
+            return 0;
+        }
+    if (l.zrodlo[0] && l.zrodel == 1) {
+        snprintf(efi, n, "%s", l.zrodlo);
+        *pendrive = 1;
+        return 0;
+    }
+    return -1;
+}
+
+/* 0.10.5 step 2b (ADR 0046): the writing program in mode `tryb` (K1_INST_SIEC_*) for aktualizacja.c — fd 4 `zrodlo`,
+ * fd 5 the K1-EFI of the disk K1 runs from (a stick's: read only, STAN only), fd 6 `ogl` (-1: /dev/null for both). */
+int inst_siec(int tryb, int zrodlo, int ogl, int test)
+{
+    struct k1_komunikat k;
+    char efi[32];
+    int fds[4], para[2], tak = 1, pendrive, i;
+    if (instalator()->pid > 0)
+        return K1_INST_BLAD_TRWA;
+    if (inst_efi_k1(efi, sizeof efi, &pendrive) != 0 || (pendrive && tryb != K1_INST_SIEC_STAN))
+        return K1_INST_BLAD_MIEJSCE;
+    fds[1] = zrodlo >= 0 ? zrodlo : zero;
+    fds[2] = otworz_urzadzenie(efi, pendrive ? O_RDONLY : O_RDWR | O_EXCL);
+    fds[3] = ogl >= 0 ? ogl : zero;
+    if (fds[2] < 0) {
+        k1_log(TAG, "aktualizacja: %s niedostępny: %s", efi, strerror(errno));
+        return K1_INST_BLAD_ZAJETY;
+    }
+    if (k1_kanal_utworz(para) != 0 || setsockopt(para[1], SOL_SOCKET, SO_PASSCRED, &tak, sizeof tak) != 0) {
+        close(fds[2]);
+        return K1_INST_BLAD_ARG;
+    }
+    fds[0] = para[0];
+    inst_tryb = tryb;
+    inst_wynik_wyslany = 0;
+    i = uruchom(instalator(), &profile[K1_PROFIL_INSTALATOR], fds, 4) > 0;
+    close(fds[0]);
+    close(fds[2]);
+    if (!i) {
+        close(para[1]);
+        return K1_INST_BLAD_ARG;
+    }
+    if (inst_ster >= 0)
+        close(inst_ster);
+    inst_ster = para[1];
+    zadanie = ZADANIE_SIEC;
+    k = k1_komunikat_nowy(K1_KOM_INST_ZADANIE, 0, tryb, 512, test, 0, 0);
+    k1_kanal_wyslij(inst_ster, &k, sizeof k, -1);
+    return 0;
+}
+
 /* Opens Ustawienia on Aktualizacje (0.10.5 step 1, S4: the Instalator's link; gui's window of a failed try): started if
  * needed, the section shown, its window brought up by gui. */
 void otworz_aktualizacje(void)
@@ -216,6 +282,8 @@ static void obsluz_okno(int okno)
             wyslij(okno, sb_komunikat());
         } else if (k.typ == K1_KOM_OTWORZ_AKTUALIZACJE) {
             otworz_aktualizacje();
+        } else if (k.typ == K1_KOM_AKT_PROSBA) { /* 0.10.5 step 2b: aktualizacja.c */
+            akt_prosba(k.a);
         } else if (k.typ == K1_KOM_INST_START) {
             int r = inst_zapis(okno, (int)k.obiekt, k.a);
             if (r != 0) {
@@ -254,11 +322,16 @@ void obsluz_zapis(void)
             inst_ster = -1;
             return;
         }
-        if (w != K1_ODB_JEST || (k.typ != K1_KOM_INST_ETAP && k.typ != K1_KOM_INST_GOTOWE) || inst_wynik_wyslany) {
+        if (w != K1_ODB_JEST ||
+            (k.typ != K1_KOM_INST_ETAP && k.typ != K1_KOM_INST_GOTOWE && (k.typ != K1_KOM_INST_SIEC || zadanie != ZADANIE_SIEC)) ||
+            inst_wynik_wyslany) {
             k1_log(TAG, "odrzucono komunikat od instalatora");
             continue;
         }
-        if (k.typ == K1_KOM_INST_ETAP) {
+        if (zadanie == ZADANIE_SIEC) { /* 0.10.5 step 2b: aktualizacja.c */
+            inst_wynik_wyslany = k.typ == K1_KOM_INST_GOTOWE;
+            akt_od_zapisu(&k);
+        } else if (k.typ == K1_KOM_INST_ETAP) {
             wyslij(zadanie, k1_komunikat_nowy(K1_KOM_INST_POSTEP, 0, k.a, k.b, 0, 0, 0));
         } else {
             inst_wynik_wyslany = 1;
@@ -277,7 +350,11 @@ void inst_koniec(void)
     if (inst_ster >= 0)
         close(inst_ster);
     inst_ster = -1;
-    if (!inst_wynik_wyslany)
+    if (!inst_wynik_wyslany && zadanie == ZADANIE_SIEC) {
+        struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_INST_GOTOWE, 0, K1_INST_BLAD_PRZERWANE, 0, 0, 0, 0);
+        akt_od_zapisu(&k);
+    } else if (!inst_wynik_wyslany) {
         wyslij(zadanie, k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, K1_INST_BLAD_PRZERWANE, inst_tryb, 0, 0, 0));
+    }
     inst_wynik_wyslany = 1;
 }

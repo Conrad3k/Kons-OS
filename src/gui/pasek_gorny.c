@@ -2,6 +2,7 @@
  * ADR 0014), sound, date and time; and the sound popover under the sound icon. The network, battery and session state
  * come from nadzorca on fd 5 (one way, sender UID 0 checked by k1_odbierz_komunikat). */
 #include <stdio.h>
+#include <unistd.h>
 #include <time.h>
 
 #include "gui.h"
@@ -74,8 +75,17 @@ void odbierz_baterie(void)
     int i;
     for (i = 0; i < 16 && bat_kanal; i++) {
         struct k1_komunikat m;
-        enum k1_odbior_wynik w = k1_odbierz_komunikat(FD_BATERIA, 0, K1_KIER_OD_NADZORCY, &m, NULL);
+        int fd = -1;
+        enum k1_odbior_wynik w = k1_odbierz_komunikat(FD_BATERIA, 0, K1_KIER_OD_NADZORCY, &m, &fd);
         int zmiana;
+        if (w == K1_ODB_JEST && (m.typ == K1_KOM_AKT_STAN || m.typ == K1_KOM_AKT_OPIS || m.typ == K1_KOM_AKT_ETAP)) {
+            akt_komunikat(&m, fd); /* 0.10.5 step 2b: a new version waits (aktualizacja.c) */
+            if (fd >= 0)
+                close(fd);
+            continue;
+        }
+        if (fd >= 0)
+            close(fd); /* no other message of this channel brings one */
         if (w == K1_ODB_PUSTO)
             return;
         if (w == K1_ODB_KONIEC) {

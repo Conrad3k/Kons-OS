@@ -65,18 +65,21 @@
  *   in MiB, processors, the frame colour 0xRRGGBB, JEDNORAZOWA (forgets everything when closed) or STALA (its disk in
  *   skarbiec — 0.10.0 step 5; the default: the user changes it in Ustawienia → Przeglądarka, nadzorca keeps the choice),
  *   icon (K1_IK_<icon>) of its mark, 1: the guest's console lines go to K1's log (the test zone only; others: counted),
- *   its line in the Start menu ("": not there; 0.10.0 step 2)).
+ *   its line in the Start menu ("": not there; 0.10.0 step 2), 1: it has a window (0: the download zone of 0.10.5 step 2,
+ *   ADR 0046 — no window, no display or input devices; it downloads updates and gives K1 the bytes)).
  * The numbers never change (a STALA zone's disk in skarbiec belongs to its profile). The test zone's image is only in
  * the test image: the production image has no file for it, nadzorca refuses to start it. 0.10.0 step 2 (ADR 0043, D2):
  * the browser's sessions — each its own zone (machine, colour, UID); since step 5 Ogólna and Bank remember, Prywatna
  * forgets (the test zone remembers: test-strefa checks the disk). */
 #define K1_STREFY(X)                                                                                                    \
-    X(PROBNA, 1, 19, 300, "probna", "Strefa próbna", "", 128, 1, 0xA8834A, STALA, EKRAN, 1, "")                       \
+    X(PROBNA, 1, 19, 300, "probna", "Strefa próbna", "", 128, 1, 0xA8834A, STALA, EKRAN, 1, "", 1)                    \
     X(OGOLNA, 2, 20, 301, "przegladarka", "Przeglądarka", "Ogólna", 1536, 2, 0x5F8A6A, STALA, PRZEGLADARKA, 0,        \
-      "Strony internetowe w osobnej maszynie")                                                                  \
-    X(BANK, 3, 21, 302, "przegladarka", "Przeglądarka", "Bank", 1536, 2, 0x4A6FA5, STALA, PRZEGLADARKA, 0, "")        \
+      "Strony internetowe w osobnej maszynie", 1)                                                               \
+    X(BANK, 3, 21, 302, "przegladarka", "Przeglądarka", "Bank", 1536, 2, 0x4A6FA5, STALA, PRZEGLADARKA, 0, "", 1)     \
     X(PRYWATNA, 4, 22, 303, "przegladarka", "Przeglądarka", "Prywatna", 1536, 2, 0x8B6AA8, JEDNORAZOWA, PRZEGLADARKA,\
-      0, "")
+      0, "", 1)                                                                                                 \
+    X(POBIERANIE, 5, 23, 304, "przegladarka", "Pobieranie aktualizacji", "", 384, 1, 0x8D8A84, JEDNORAZOWA,         \
+      AKTUALIZACJE, 0, "", 0)
 
 #define K1_X_UID_S(n, profil, uid, ...) K1_UID_##n = uid,
 #define K1_X_UID_A(n, apl, profil, uid, ...) K1_UID_##n = uid,
@@ -107,6 +110,10 @@ enum { K1_APL_MAKS = 0 K1_APLIKACJE(K1_X_LICZ) }; /* numbered 1..K1_APL_MAKS (ch
 enum k1_strefa_nr { K1_STREFY(K1_X_STREFA) };
 enum { K1_STREFY_MAKS = 0 K1_STREFY(K1_X_LICZ) }; /* numbered 1..K1_STREFY_MAKS (checked in k1_uslugi.c) */
 enum k1_trwalosc { K1_JEDNORAZOWA = 0, K1_STALA = 1 };
+#define K1_STREFA_CEL_MAKS 95 /* 0.10.5: what the download zone downloads, its VMM's argv[4] (src/strefa/lacznik.h) */
+#define K1_X_Z_OKNEM(n, nr, profil, uid, obraz, tytul, sesja, pamiec, procesory, kolor, trwalosc, ikona, log, menu, okno) \
+    +(okno)
+enum { K1_STREFY_Z_OKNEM = 0 K1_STREFY(K1_X_Z_OKNEM) }; /* the zones with a window (the others: the download zone) */
 
 /* A zone's row as a structure (k1_strefa). */
 struct k1_strefa_opis {
@@ -117,6 +124,7 @@ struct k1_strefa_opis {
     int trwalosc;            /* K1_JEDNORAZOWA / K1_STALA */
     int ikona;               /* K1_IK_* (k1_rysuj.h) */
     int log_goscia;
+    int okno;                /* 1: a window at ekran; 0: none (the download zone) */
 };
 /* 1: `profil` is the profile of a zone's VMM (the owner of its disk in skarbiec, 0.10.0 step 5). */
 #define K1_X_PROFIL_STREFY(n, nr, profil, ...) || p == (profil)

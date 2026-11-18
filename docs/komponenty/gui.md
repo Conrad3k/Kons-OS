@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M4; pulpit z ikonami 0.7.5) — `scripts/test-m4.sh` (klikanie, zrzuty), testy w systemie (klatka, próba, restart), `test_rozmieszczenie` + fuzzing |
-| **Kod** | `src/gui/` (0.7.5: moduły opisane w `gui.h`): `main.c` (start, pętla, ułożenie paneli), `okna.c` (lista okien, uruchamianie i zamykanie aplikacji), `pasek_gorny.c` (górny pasek, ikona sieci — 0.9.0, bateria, okienko dźwięku), `pasek_dolny.c`, `menu_start.c`, `pulpit.c` (warstwa ikon), `pliki.c` (Kosz i pliki folderu Pulpit, 0.8.0), `kontekst.c` (menu pod prawym przyciskiem), `wersja.c` (okienko „Nowa wersja K1 nie uruchomiła się”, 0.10.5), `zapis.c` (rozmieszczenie w skarbcu), `rozmieszczenie.c` (reguły, bez rysowania); przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
+| **Kod** | `src/gui/` (0.7.5: moduły opisane w `gui.h`): `main.c` (start, pętla, ułożenie paneli), `okna.c` (lista okien, uruchamianie i zamykanie aplikacji), `pasek_gorny.c` (górny pasek, ikona sieci — 0.9.0, bateria, okienko dźwięku), `pasek_dolny.c`, `menu_start.c`, `pulpit.c` (warstwa ikon), `pliki.c` (Kosz i pliki folderu Pulpit, 0.8.0), `kontekst.c` (menu pod prawym przyciskiem), `wersja.c` (okienko „Nowa wersja K1 nie uruchomiła się”, 0.10.5), `aktualizacja.c` (okienko „Jest nowa wersja K1” i kropka przy Start, 0.10.5 krok 2 — `docs/komponenty/aktualizacja.md`), `zapis.c` (rozmieszczenie w skarbcu), `rozmieszczenie.c` (reguły, bez rysowania); przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
 | **Decyzje** | ADR 0008 (pulpit), ADR 0009 (czcionki), ADR 0007 (klatka), ADR 0026 i 0028 (ikony, menu kontekstowe, rozmieszczenie); wygląd: `docs/WYGLAD.md` |
 
 ## Cel
@@ -127,6 +127,12 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   tworzy górny pasek na nową szerokość, przesuwa pozostałe panele i loguje nowe położenia.
 - Log: położenie przycisków, ikon i wierszy menu kontekstowego (dla testów: „pulpit gotowy”, „pasek
   zmieniony”, „ikony na pulpicie”, „menu kontekstowe”), uruchamiane aplikacje, zmiany rozmieszczenia. Bez treści.
+
+  Od 0.10.5 krok 2 (ADR 0046, D1 znak A, D13; `aktualizacja.c`): `AKT_STAN` i `AKT_OPIS` od nadzorcy (fd 5) — gdy nowa
+  wersja czeka na „Zainstaluj”, raz na start pulpitu (i po pobraniu) okienko „Jest nowa wersja K1” (wersja, najnowszy opis
+  — ogłoszenie sprawdzone jeszcze raz `k1_ogloszenie_czytaj`, „Cały opis: Ustawienia → Aktualizacje”, „Później” i
+  „Zainstaluj” → `AKT_PROSBA` a = `ZAINSTALUJ`, jedyna prośba o aktualizację, jaką nadzorca przyjmie od gui), a przy
+  przycisku Start kropka w kolorze akcentu, dopóki wersja czeka.
 
 ## Obsługa błędów
 Zamknięty kanał do ekranu → koniec (nadzorca uruchomi ponownie). Awaria → restart; okna aplikacji

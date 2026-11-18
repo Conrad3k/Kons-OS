@@ -167,7 +167,11 @@ static void t_komunikaty(void)
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 1, (int32_t)IP(1, 2, 3, 4), 80, 0, 1, 0), K1_KIER_DO_NADZORCY));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 1, (int32_t)IP(1, 2, 3, 4), 80, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_STREFA_GNIAZDO, 3, K1_STREFA_DNS, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
-    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_GNIAZDO, 3, 2, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_STREFA_GNIAZDO, 3, K1_STREFA_POBRANE, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_GNIAZDO, 3, 3, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
+    /* 0.10.5 step 2b: the download zone's way to the writing program — no address, no port */
+    EXPECT(dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 1, 0, 0, K1_STREFA_POBRANE, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_POLACZ, 1, 0, 1, K1_STREFA_POBRANE, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(dobry(k1_komunikat_nowy(K1_KOM_STREFA_ODMOWA, 3, K1_STREFA_ODM_ADRES, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_ODMOWA, 3, 0, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(!dobry(k1_komunikat_nowy(K1_KOM_STREFA_ODMOWA, 3, K1_STREFA_ODM_MAKS + 1, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
@@ -176,8 +180,58 @@ static void t_komunikaty(void)
            !k1_komunikat_z_deskryptorem(K1_KOM_STREFA_POLACZ, K1_KIER_DO_NADZORCY));
 }
 
+/* 0.10.5 step 2b (ADR 0046): what the download zone may reach, and what it may download */
+static void t_pobieranie(void)
+{
+    struct socks_cel c;
+    memset(&c, 0, sizeof c);
+    c.port = 443;
+    strcpy(c.nazwa, "github.com");
+    EXPECT(lacznik_cel(&c, 1, 0) == CEL_SIEC);
+    strcpy(c.nazwa, "Objects.GitHubUserContent.com");
+    EXPECT(lacznik_cel(&c, 1, 0) == CEL_SIEC);
+    strcpy(c.nazwa, "release-assets.githubusercontent.com");
+    EXPECT(lacznik_cel(&c, 1, 0) == CEL_SIEC);
+    strcpy(c.nazwa, "github.com.zly.example"); /* NEGATIVE: not on the list */
+    EXPECT(lacznik_cel(&c, 1, 0) == CEL_ODMOWA);
+    strcpy(c.nazwa, "evil-github.com");
+    EXPECT(lacznik_cel(&c, 1, 0) == CEL_ODMOWA);
+    strcpy(c.nazwa, "github.com");
+    c.port = 80; /* the right host, another port */
+    EXPECT(lacznik_cel(&c, 1, 0) == CEL_ODMOWA);
+    EXPECT(lacznik_cel(&c, 0, 0) == CEL_SIEC); /* the browser: everything (nadzorca checks D3) */
+    strcpy(c.nazwa, "pobrane.k1");
+    c.port = 1;
+    EXPECT(lacznik_cel(&c, 1, 0) == CEL_POBRANE);
+    EXPECT(lacznik_cel(&c, 0, 0) == CEL_SIEC); /* a browser's zone: an ordinary name (no such host) */
+    c.port = 2;
+    EXPECT(lacznik_cel(&c, 1, 0) == CEL_ODMOWA);
+    c.nazwa[0] = '\0';
+    c.adres = IP(10, 0, 2, 2);
+    c.port = 8443;
+    EXPECT(lacznik_cel(&c, 1, 0) == CEL_ODMOWA); /* NEGATIVE: an address given as numbers */
+    EXPECT(lacznik_cel(&c, 1, 1) == CEL_SIEC);   /* …in the test of updates only */
+    EXPECT(lacznik_cel_dobry("latest/download/k1-ogloszenie.bin"));
+    EXPECT(lacznik_cel_dobry("download/k1-v0.10.6/k1-0.10.6.k1a"));
+    EXPECT(!lacznik_cel_dobry(""));
+    EXPECT(!lacznik_cel_dobry("/etc/passwd"));
+    EXPECT(!lacznik_cel_dobry("download/../../x"));
+    EXPECT(!lacznik_cel_dobry("download/a b"));
+    EXPECT(!lacznik_cel_dobry("download/a?b=1"));
+    EXPECT(!lacznik_cel_dobry("Download/A"));
+    {
+        char d[LACZNIK_CEL_MAKS + 2];
+        memset(d, 'a', sizeof d - 1);
+        d[sizeof d - 1] = '\0';
+        EXPECT(!lacznik_cel_dobry(d));
+        d[LACZNIK_CEL_MAKS] = '\0';
+        EXPECT(lacznik_cel_dobry(d));
+    }
+}
+
 int main(void)
 {
+    t_pobieranie();
     t_powitanie();
     t_prosba();
     t_nazwy();

@@ -110,10 +110,10 @@ int k1_kom_sprawdz_strefa(const struct k1_komunikat *k, enum k1_kanal_kierunek k
     case K1_KOM_STREFA_POLACZ:
         return kier == K1_KIER_DO_NADZORCY && polaczenie(k->obiekt) &&
                ((k->c == K1_STREFA_TCP && k1_siec_serwer_dobry((uint32_t)k->a) && w(k->b, 1, 65535)) ||
-                (k->c == K1_STREFA_DNS && k->a == 0 && k->b == 0)) &&
+                ((k->c == K1_STREFA_DNS || k->c == K1_STREFA_POBRANE) && k->a == 0 && k->b == 0)) &&
                zera(k, 3);
     case K1_KOM_STREFA_GNIAZDO:
-        return kier == K1_KIER_OD_NADZORCY && polaczenie(k->obiekt) && w(k->a, K1_STREFA_TCP, K1_STREFA_DNS) &&
+        return kier == K1_KIER_OD_NADZORCY && polaczenie(k->obiekt) && w(k->a, K1_STREFA_TCP, K1_STREFA_POBRANE) &&
                zera(k, 1);
     case K1_KOM_STREFA_ODMOWA:
         return kier == K1_KIER_OD_NADZORCY && polaczenie(k->obiekt) && w(k->a, 1, K1_STREFA_ODM_MAKS) && zera(k, 1);

@@ -78,7 +78,7 @@ void t_opis(void)
 
 /* ---- scripts/test-m4.sh ---- */
 
-int tryb_opisu(void)
+int znak_dysku(const char *serial)
 {
     DIR *d = opendir("/rdzen/jadro/sys/block");
     struct dirent *de;
@@ -86,11 +86,16 @@ int tryb_opisu(void)
     while (d != NULL && !jest_ && (de = readdir(d)) != NULL) {
         char p[300], b[64];
         snprintf(p, sizeof p, "/rdzen/jadro/sys/block/%s/serial", de->d_name);
-        jest_ = de->d_name[0] != '.' && read_file(p, b, sizeof b) == 0 && strncmp(b, "k1-test-opis", 12) == 0;
+        jest_ = de->d_name[0] != '.' && read_file(p, b, sizeof b) == 0 && strncmp(b, serial, strlen(serial)) == 0;
     }
     if (d != NULL)
         closedir(d);
     return jest_;
+}
+
+int tryb_opisu(void)
+{
+    return znak_dysku("k1-test-opis");
 }
 
 static size_t rekord(char *b, size_t n, const struct k1_opis_el *e)

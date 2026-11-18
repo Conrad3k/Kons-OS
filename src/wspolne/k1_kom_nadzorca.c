@@ -57,6 +57,17 @@ int k1_kom_sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierun
     case K1_KOM_INST_ZADANIE:
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && w(k->a, K1_INST_INSTALUJ, K1_INST_TRYB_MAKS) &&
                (k->b == 512 || k->b == 4096) && w(k->c, 0, k->a >= K1_INST_SIEC_STAN) && zera(k, 3);
+    case K1_KOM_AKT_STAN:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_INST_WERSJA - 1) &&
+               w(k->b, 0, K1_INST_WERSJA - 1) && w(k->c, 0, K1_INST_WERSJA - 1) && w(k->d, 0, K1_INST_WERSJA - 1) &&
+               w(k->e, 0, K1_AKT_FL_MAKS);
+    case K1_KOM_AKT_ETAP:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_AKT_E_MAKS) && w(k->b, 0, 100) &&
+               w(k->c, 0, K1_AKT_W_MAKS) && k->d >= 0 && w(k->e, K1_INST_BLAD_MIN, 0);
+    case K1_KOM_AKT_OPIS:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_OGL_MAKS_BAJTOW) && zera(k, 1);
+    case K1_KOM_AKT_PROSBA:
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_AKT_P_MAKS) && zera(k, 1);
     case K1_KOM_INST_SIEC:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_INST_WERSJA - 1) &&
                w(k->b, 0, K1_INST_WERSJA - 1) && w(k->c, 0, K1_INST_WERSJA - 1) && w(k->d, 0, K1_SIEC_FL_MAKS) &&

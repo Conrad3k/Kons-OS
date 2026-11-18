@@ -22,6 +22,12 @@ void obraz_rysuj(unsigned klawisze, unsigned klikniecia, int32_t x, int32_t y); 
 /* przegladarka.c — the browser zone (0.10.0 step 2): the image has the compositor and the browser */
 int przegladarka_jest(void);
 void przegladarka(int ster);            /* returns when the machine should end */
+void katalog_tmpfs(const char *gdzie, const char *opcje, uid_t wlasciciel); /* a tmpfs mounted there */
+void petla_zwrotna(void);               /* the loopback up (the relay listens on 127.0.0.1) */
+
+/* pobieranie.c — the download zone (0.10.5 step 2, ADR 0046): one file over HTTPS (curl) to K1 */
+int pobieranie_cel(char *cel, size_t n); /* 1: k1.pobierz=<what> on the command line (copied into cel) */
+void pobieranie(const char *cel, int test); /* returns when the download ended (either way) */
 
 /* pamiec.c — the zone's memory (0.10.0 step 3): compressed swap, who goes first when memory runs out */
 void pamiec_zram(void);                 /* logged either way */
@@ -44,7 +50,8 @@ enum { TRYB_ZWYKLY = 0, TRYB_ZLY_ADRES = 1, TRYB_PETLA = 2, TRYB_DLUGOSC = 3, TR
        TRYB_DYSK = 5, TRYB_BALON_STRONA = 6, TRYB_BALON_BLOK = 7, TRYB_BALON_LISTA = 8, TRYB_PAMIEC = 9,
        TRYB_ROZDZIELACZ = 10 /* 0.10.1 step 3: as TRYB_ZWYKLY; nadzorca's rozdzielacz decides its balloon */,
        TRYB_OKNO = 11 /* 0.10.2 step 1: as TRYB_ZWYKLY, but "etap start" first and "etap okno" OKNO_PO_S later (the
-                       * start screen stays between); closing takes ZAMYKANIE_S, as a browser that saves its session */ };
+                       * start screen stays between); closing takes ZAMYKANIE_S, as a browser that saves its session */,
+       TRYB_AKTUALIZACJA = 12 /* 0.10.5 step 2: the download zone in the test of updates (pobieranie.c) */ };
 #define OKNO_PO_S 8
 #define ZAMYKANIE_S 6
 int zlosliwy(int tryb);                 /* returns only when the VMM did not stop the machine */

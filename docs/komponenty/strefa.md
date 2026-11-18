@@ -173,6 +173,17 @@ ADR 0044), 2 procesory (w emulacji QEMU — 1); Ogólna i Bank pamiętają (krok
   połączenie — `STREFA_POLACZ` do nadzorcy (reguła D3, limit), gniazdo TCP w `STREFA_GNIAZDO`, odmowa w `STREFA_ODMOWA`.
   W logu tylko liczniki: „połączenia przeglądarki: N, nazwy N, odmowy N”.
 
+## Strefa pobierania (0.10.5 krok 2, ADR 0046)
+Wiersz `POBIERANIE` w `K1_STREFY` — jedyny bez okna (kolumna „okno” = 0): VMM nie dostaje kanału do ekranu (fd 3 =
+`/dev/null`, „strefa bez okna”), gość nie widzi urządzeń ekranu, klawiatury ani wskaźnika (`kvm_linia_urzadzen`).
+Obraz przeglądarki z curl i zaufanymi certyfikatami (`strefy/przegladarka.txt`; plik certyfikatów robi
+`scripts/zbuduj-strefe.sh`); argv[4] VMM = co pobrać (`lacznik_cel_dobry`: a–z, 0–9, `.`, `-`, `/`, bez `..`) → `k1.pobierz=`
+w linii jądra → `gosc/pobieranie.c`: przekaźnik, połączenie SOCKS5 do `pobrane.k1:1` (VMM prosi nadzorcę o gniazdo
+`K1_STREFA_POBRANE` — koniec pary do programu zapisującego), curl z `--socks5-hostname` pisze plik w to połączenie. Łącznik tej
+strefy: tylko nazwy z `K1_HOSTY_POBIERANIA` na porcie 443 (`lacznik_cel`); adres liczbami — tylko w teście aktualizacji
+(tryb `K1_STREFA_TRYB_AKTUALIZACJA`, serwer testowy, curl `-k`). Odmowy liczy podsumowanie połączeń („poza listą hostów”).
+Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `docs/komponenty/aktualizacja.md`.
+
 ## Dysk strefy i sesje (0.10.0 krok 5, ADR 0042 T11)
 - **Co pamięta:** sesja, która pamięta (Ustawienia → Przeglądarka: „Pamięta”), dostaje drugi dysk virtio-blk (`/dev/vdb`,
   2 GiB). Gość montuje go jako katalog domowy przeglądarki (`gosc/dysk.c`, ext4 z dziennikiem: przerwane wyłączenie

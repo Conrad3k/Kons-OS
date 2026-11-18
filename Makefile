@@ -47,7 +47,7 @@ KOMUNIKAT := src/wspolne/k1_komunikat.c src/wspolne/k1_kom_ekran.c src/wspolne/k
 # Services (M3): protocol, channels, sandbox.
 USLUGI  := src/wspolne/k1_uslugi.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
            src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c \
-           $(DOK_C) src/wspolne/k1_pendrive.c
+           $(DOK_C) src/wspolne/k1_pendrive.c src/wspolne/k1_ogloszenie.c
 # Blob Vault (M5c, ADR 0015): format + Monocypher (src/zewnetrzne, docs/ZALEZNOSCI.md). Monocypher is
 # compiled as is; on the host (ASan build) -Wconversion warns about its code, so only there it is off.
 MONOCYPHER := src/zewnetrzne/monocypher/monocypher.c
@@ -96,10 +96,10 @@ $(OBJ)/podpisz: narzedzia/podpisz.c narzedzia/klucz.c narzedzia/klucz.h $(MANIFE
 # 0.10.5 step 2 (ADR 0046): the release announcement and the update package — formats in src/wspolne/, the tool that
 # makes both at build time (narzedzia/wydanie.c; the signature in k1_ogloszenie_podpis.c)
 OGLOSZENIE := src/wspolne/k1_ogloszenie.c
-PACZKA     := src/wspolne/k1_paczka.c src/wspolne/k1_ogloszenie_podpis.c $(OGLOSZENIE) src/wspolne/k1_sha256.c
+PACZKA     := src/wspolne/k1_paczka.c src/wspolne/k1_ogloszenie_podpis.c src/wspolne/k1_sha256.c # + $(OGLOSZENIE) (in USLUGI)
 $(OBJ)/wydanie: narzedzia/wydanie.c narzedzia/klucz.c narzedzia/klucz.h $(PACZKA) $(MANIFEST) $(NAGL) | $(OBJ)
 	$(CC_HOST) -std=c11 -O2 -D_GNU_SOURCE -Wall -Wextra -Werror -Isrc/wspolne -Isrc/zewnetrzne/monocypher \
-		-o $@ narzedzia/wydanie.c narzedzia/klucz.c $(PACZKA) $(MANIFEST)
+		-o $@ narzedzia/wydanie.c narzedzia/klucz.c $(PACZKA) $(OGLOSZENIE) $(MANIFEST)
 
 # regenerated on every build, replaced only when it changed (the key may differ between builds)
 $(GEN)/k1_klucz.h: $(OBJ)/podpisz FORCE | $(GEN)
@@ -372,7 +372,7 @@ $(OBJ)/test_siec_instalatora: testy/host/test_siec_instalatora.c src/instalator/
 		src/instalator/start.c $(wildcard src/instalator/*.h) $(PACZKA) $(EFI) $(FAT32) $(OBJ)/klucz-testu/k1_klucz.h $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/instalator -Isrc/zewnetrzne/monocypher -I$(OBJ)/klucz-testu -o $@ \
 		testy/host/test_siec_instalatora.c src/instalator/siec.c src/instalator/siec_instaluj.c src/instalator/start.c \
-		$(PACZKA) $(EFI) $(FAT32) $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c src/wspolne/k1_log.c
+		$(PACZKA) $(OGLOSZENIE) $(EFI) $(FAT32) $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c src/wspolne/k1_log.c
 
 $(OBJ)/test_efi: testy/host/test_efi.c $(EFI) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_efi.c $(EFI)

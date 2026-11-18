@@ -152,7 +152,8 @@ static void stan(void)
     EXPECT(s.c == 0 && s.b == 0 && !(s.d & (K1_SIEC_FL_OGL | K1_SIEC_FL_OGL_ZLE)));
     snprintf(b, sizeof b, "truncate -s 300M %s/d.img", dir); /* the stick's K1-EFI: no waiting room */
     powlok(b);
-    EXPECT(uruchom(K1_INST_SIEC_STAN, p("ogloszenie.bin"), p("pokaz.bin"), &s, &nowy) == 0 && (s.d & K1_SIEC_FL_BEZ_MIEJSCA));
+    EXPECT(uruchom(K1_INST_SIEC_STAN, p("ogloszenie.bin"), p("pokaz.bin"), &s, &nowy) == 0 && (s.d & K1_SIEC_FL_BEZ_MIEJSCA) &&
+           s.c == W(0, 11, 0)); /* it says there is a newer one (D5: "nagraj nowy pendrive") but cannot take it */
     EXPECT(uruchom(K1_INST_SIEC_POBIERZ, p("paczka.k1a"), p("ogloszenie.bin"), &s, &nowy) == K1_INST_BLAD_MIEJSCE);
 }
 

@@ -128,7 +128,7 @@ Osiem kroków:
 [x]  1  Ustawienia → Aktualizacje (z Instalatora)           S1–S6            0.10.0      D1 D2 D3, T1     M        —
      PR #152
 [ ]  2  Aktualizacje przez sieć: strefa HTTPS, pytanie      S7–S16, S25, S50 1           D4 D5 D7 D13,    L        0046
-     [w toku: Claude, gałąź claude/peaceful-euler-gcmcpa — 2a: formaty, podpis, program zapisujący; 2b: strefa, okna]
+     [w toku: Claude, gałąź claude/peaceful-euler-gcmcpa — 2a PR #156 scalony; 2b: strefa, nadzorca, okna, test]
                                                                                          T2–T7, T18
 [ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11, T18  M        0047
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
@@ -280,7 +280,24 @@ KROK 2 — Aktualizacje przez sieć: strefa HTTPS, sprawdzanie, pytanie    L · 
   RYZYKA (nowe: ukrywanie nowej wersji, host GitHuba, prywatność — GitHub widzi adres komputera), SLOWNIK
   (ogłoszenie wydania, paczka aktualizacji, strefa pobierania, aktualizacja przez sieć), TESTY.md, README.
   Gotowe, gdy: scenariusz aktualizacji przez sieć i testy negatywne zielone, testy [OK], obraz powtarzalny.
-  Ustalenia z wykonania: (pusto — wypełnia krok 2)
+  Ustalenia z wykonania (krok 2, 2026-11-18; podzielony na 2a — PR #156 — i 2b):
+  - Decyzje D4, D5, D7: krok szedł w nocy na zlecenie właściciela, bez możliwości pytania — w kodzie są rekomendacje
+    z punktu 4 (sprawdza sam po sieci i co 6 h, pobiera od razu, instaluje po „Zainstaluj”; pendrive — tylko „nagraj nowy
+    pendrive”; „Wróć do poprzedniej wersji” z pytaniem). Do potwierdzenia przez właściciela; zmiana każdej to mała poprawka.
+  - S7 POTWIERDZONE próbą: releases/latest/download/<plik> → 302 → github.com/…/releases/download/k1-v<w>/<plik> → 302 →
+    objects.githubusercontent.com (lista hostów ma też release-assets.githubusercontent.com). Wydanie z --latest.
+  - Korekty planu (ADR 0046): T3 — bez nazwy paczki w ogłoszeniu (adres z samego numeru wersji); T7 — paczka nie idzie
+    prosto do wolnego miejsca, tylko do POCZEKALNI (część partycji K1-EFI dysku za FAT-em: 512 − 280 MiB; poprzednia
+    wersja zostaje do „Zainstaluj”, czekająca przeżywa ponowne uruchomienie razem z opisem). S25: odrzuconej wersji K1 nie
+    pamięta osobno — nie proponuje wersji nie nowszej od tej w wolnym miejscu, gdy tamta jest nowsza od działającej.
+  - S10: kolumna „okno” w K1_STREFY; strefa pobierania bez kanału do ekranu i bez urządzeń ekranu/wejścia. S11: jeden obraz
+    (przeglądarki) z curl i ca-certificates (+12 pakietów, miejsce A/B 124 z 127 MiB). S8: lista hostów w łączniku VMM
+    (K1_HOSTY_POBIERANIA), nazwa pobrane.k1 = gniazdo do programu zapisującego (bez nowego portu vsock). S13: limit zadania
+    40 min, curl: tylko https, ≤ 600 MB, ≥ 1 KB/s. S50: opis do Ustawień i gui w zapieczętowanym memfd (AKT_OPIS), czytany
+    jeszcze raz k1_ogloszenie_czytaj.
+  - „Sprawdzaj sam” w skarbcu nadzorcy (K1_OB_AKTUALIZACJE); do wczytania ustawienia K1 sam nie sprawdza.
+  - Test: test-aktualizacja-siec.sh — cały scenariusz przechodzi też w emulacji (kontener, ok. 8 min: strefa pobierania
+    startuje w kilka sekund, paczka 130 MB też). Obraz testowy sprawdza sam tylko z dyskiem „k1-test-aktualizacji”.
 
 KROK 3 — Robot na GitHubie                                              M · decyzje D6, T8–T11 · ADR 0047
   Cel: poprawki jądra Linux i przeglądarki trafiają do wydania K1 same: robot raz dziennie sprawdza, przygotowuje
@@ -605,11 +622,11 @@ Twoje (produkt):
        przyszłość, i więcej miejsca w Sieci i Miejscu. Przewijanie — razem z kółkiem myszy, później.
 [x] D3 (krok 1; właściciel 2026-11-17: instalacja na dysk i Secure Boot; przy dysku z K1 odsyła do Ustawień) Co zostaje w Instalatorze. Rekomendacja: instalacja na dysk i Secure Boot (to rzeczy „raz na
        komputer”, robione z pendrive'a); wszystko o wersjach — w Ustawieniach → Aktualizacje.
-[!] D4 (krok 2) Kiedy K1 sprawdza i pobiera. Twoje ustalenie: o instalację zawsze pyta; wielkość pobierania nie gra
+[!] D4 (krok 2: w kodzie REKOMENDACJA — krok szedł w nocy 2026-11-18, bez właściciela; do potwierdzenia) Kiedy K1 sprawdza i pobiera. Twoje ustalenie: o instalację zawsze pyta; wielkość pobierania nie gra
        roli. Rekomendacja: sprawdza sam po połączeniu z siecią i co 6 godzin, nową wersję pobiera sam od razu (żeby
        pytanie przyszło z gotową wersją), instaluje dopiero po „Zainstaluj”. Przełącznik „Sprawdzaj sam” w sekcji —
        domyślnie włączony; wyłączony = tylko „Sprawdź teraz”.
-[!] D5 (krok 2) K1 uruchomiony z pendrive'a. Z KODU (S16): pendrive nie ma potwierdzania nowej wersji (A/B) — K1
+[!] D5 (krok 2: w kodzie REKOMENDACJA — krok szedł w nocy 2026-11-18, bez właściciela; do potwierdzenia) K1 uruchomiony z pendrive'a. Z KODU (S16): pendrive nie ma potwierdzania nowej wersji (A/B) — K1
        na pendrive'ie nigdy go nie zmienia. Rekomendacja: przez sieć aktualizuje się tylko K1 zainstalowany na
        dysku; na pendrive'ie sekcja mówi „Jest nowsza wersja K1 0.10.6 — nagraj nowy pendrive (README)”.
        Aktualizacja pendrive'a przez sieć — później.
@@ -620,7 +637,7 @@ Twoje (produkt):
        pełnych zielonych testach; wszystko inne — Issue do Ciebie i do mnie. Warunek:
        Twoje konto GitHub z logowaniem dwuetapowym (najlepiej kluczem dostępu, passkey) — od tego konta zależy klucz
        podpisu (S22). Zatrzymanie robota w każdej chwili: GitHub → Actions → „Robot” → Disable workflow.
-[!] D7 (krok 2) „Wróć do poprzedniej wersji” w Ustawieniach → Aktualizacje. Po co: testy w QEMU nie widzą Twojego
+[!] D7 (krok 2: w kodzie REKOMENDACJA — krok szedł w nocy 2026-11-18, bez właściciela; do potwierdzenia) „Wróć do poprzedniej wersji” w Ustawieniach → Aktualizacje. Po co: testy w QEMU nie widzą Twojego
        sprzętu (S24) — nowe jądro może uruchomić K1 poprawnie (więc start na próbę się uda i wersja zostanie
        potwierdzona), a mimo to zepsuć np. Wi-Fi albo obraz na jednym z laptopów; bez sieci aktualizacja przez sieć
        już tego nie naprawi. Rekomendacja: tak — przycisk w sekcji, tylko do wersji w drugim miejscu (już raz

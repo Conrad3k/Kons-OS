@@ -178,6 +178,16 @@ enum k1_komunikat_typ {
     K1_KOM_OTWORZ_AKTUALIZACJE = 186, /* Instalator, gui → nadzorca: obiekt=0, all 0 — open Ustawienia on Aktualizacje */
     K1_KOM_AB_NIEUDANA = 187, /* nadzorca → gui (fd 5): obiekt=0, a=the version that did not start (0: not known), b=the
                                * version that runs (0: not known) — a try A/B did not start, the previous version runs */
+    /* 0.10.5 step 2b (ADR 0046): updates through the network — nadzorca → Ustawienia (fd 7) and gui (fd 5) */
+    K1_KOM_AKT_STAN = 189,    /* obiekt=0, a=the version that runs (0: not known), b=waiting for "Zainstaluj" (0: none),
+                               * c=a newer one in the newest release (0: none), d=the previous one, to go back to (0:
+                               * none), e=K1_AKT_FL_* */
+    K1_KOM_AKT_ETAP = 190,    /* obiekt=0, a=K1_AKT_E_* what runs now, b=percent 0..100, c=K1_AKT_W_* the last check,
+                               * d=when it was (s since 1970, 0: never), e=the last job's result (0 or K1_INST_BLAD_*) */
+    K1_KOM_AKT_OPIS = 191,    /* obiekt=0, a=bytes 1..K1_OGL_MAKS, b..e=0; + 1 fd: a sealed memfd with the announcement
+                               * (k1_ogloszenie.h) the writing program accepted — what Ustawienia and gui describe */
+    K1_KOM_AKT_PROSBA = 192,  /* Ustawienia (fd 7), gui (fd 5: ZAINSTALUJ only) → nadzorca: obiekt=0, a=K1_AKT_P_*,
+                               * b..e=0 */
     K1_KOM_INST_SIEC = 188,   /* writing program → nadzorca (0.10.5 step 2, after STAN): obiekt=0, a=the version that runs
                                * (1..), b=the version waiting in the waiting room (0: none), c=the newer version to
                                * download (0: none), d=K1_SIEC_FL_*, e=the previous version in the free slot (0: none) */
@@ -369,9 +379,11 @@ enum k1_komunikat_typ {
      * is the zone's) */
     K1_KOM_STREFA_POLACZ = 165,   /* from the VMM: obiekt=its connection 1..K1_STREFA_POLACZENIA_MAKS; TCP: a=IPv4 address
                                    * (k1_siec_serwer_dobry), b=port 1..65535, c=K1_STREFA_TCP; the DNS server: a=b=0,
-                                   * c=K1_STREFA_DNS; d=e=0 */
-    K1_KOM_STREFA_GNIAZDO = 166,  /* to the VMM: obiekt=the connection, a=K1_STREFA_TCP/DNS, b..e=0; + 1 fd: a TCP socket
-                                   * connecting (non-blocking) or a UDP socket connected to the DNS server, port 53 */
+                                   * c=K1_STREFA_DNS; 0.10.5: the download zone's way to the writing program: a=b=0,
+                                   * c=K1_STREFA_POBRANE; d=e=0 */
+    K1_KOM_STREFA_GNIAZDO = 166,  /* to the VMM: obiekt=the connection, a=K1_STREFA_TCP/DNS/POBRANE, b..e=0; + 1 fd: a
+                                   * TCP socket connecting (non-blocking), a UDP socket connected to the DNS server, port
+                                   * 53, or (POBRANE) a stream socket to the writing program */
     K1_KOM_STREFA_ODMOWA = 167,   /* to the VMM: obiekt=the connection, a=K1_STREFA_ODM_* why not, b..e=0 (no fd) */
     /* 0.10.1 step 2 (ADR 0044 T3): the zone's memory and its balloon — on the same channel (VMM's fd 7) */
     K1_KOM_STREFA_PAMIEC = 175,   /* from the VMM, at most once a second: obiekt=0, a=the guest's memory K1 holds now (MiB),
@@ -482,11 +494,14 @@ enum { K1_STREFA_TRYB_DYSK = 5, K1_STREFA_TRYB_BALON_OD = 6, K1_STREFA_TRYB_BALO
        K1_STREFA_TRYB_ROZDZIELACZ = 10 }; /* 0.10.1 step 3: an honest guest that keeps its memory free and waits — its
                                            * balloon is the rozdzielacz's, as a session's (test-strefa) */
 enum { K1_STREFA_TRYB_OKNO = 11 };
-#define K1_STREFA_TRYB_MAKS 11
+/* 0.10.5 step 2 (ADR 0046): the download zone in the test of updates — the test server on QEMU's "router" (an address
+ * given as numbers is allowed, its certificate is not checked: the signature of K1 is) */
+enum { K1_STREFA_TRYB_AKTUALIZACJA = 12 };
+#define K1_STREFA_TRYB_MAKS 12
 #define K1_STREFA_PAMIEC_MAKS 65536 /* MiB: the largest memory of a zone (0.10.1 step 2, ADR 0044 T5) */
 /* 0.10.0 step 2 (ADR 0043 T9): the zones' connections (STREFA_POLACZ c, STREFA_GNIAZDO a, STREFA_ODMOWA a) */
 #define K1_STREFA_POLACZENIA_MAKS 128 /* at once in one zone (the relay in the zone has as many) */
-enum { K1_STREFA_TCP = 0, K1_STREFA_DNS = 1 };
+enum { K1_STREFA_TCP = 0, K1_STREFA_DNS = 1, K1_STREFA_POBRANE = 2 /* 0.10.5: the download zone's bytes to K1 */ };
 enum { K1_STREFA_ODM_ADRES = 1,  /* not allowed (D3: the home network) */
        K1_STREFA_ODM_SIEC = 2,   /* K1 has no network (or no DNS server from the router) */
        K1_STREFA_ODM_LIMIT = 3,  /* too many connections in a short time */
@@ -584,6 +599,21 @@ enum { K1_INST_SIEC_STAN = 3, K1_INST_SIEC_POBIERZ = 4, K1_INST_SIEC_ZAINSTALUJ 
 #define K1_SIEC_FL_BEZ_MIEJSCA 8 /* no waiting room (the K1-EFI partition too small): updates from a stick only */
 #define K1_SIEC_FL_PROBA 16      /* a new slot waits to be tried or confirmed: nothing is downloaded or installed */
 #define K1_SIEC_FL_MAKS 31
+/* 0.10.5 step 2b: what nadzorca says of updates through the network (AKT_STAN e, AKT_ETAP a, c; AKT_PROSBA a) */
+#define K1_AKT_FL_NOWA_LINIA 1 /* the newer version has a new line of the Linux kernel (T3) */
+#define K1_AKT_FL_PENDRIVE 2   /* K1 runs from a stick (or a disk without a waiting room): "nagraj nowy pendrive" (D5) */
+#define K1_AKT_FL_SAM 4        /* "Sprawdzaj sam" is on (D4) */
+#define K1_AKT_FL_PROBA 8      /* a new version waits to be tried or confirmed */
+#define K1_AKT_FL_DYSK 16      /* K1 runs from a disk with K1 installed */
+#define K1_AKT_FL_MAKS 31
+enum { K1_AKT_E_NIC = 0, K1_AKT_E_SPRAWDZA = 1, K1_AKT_E_POBIERA = 2, K1_AKT_E_INSTALUJE = 3, K1_AKT_E_WRACA = 4 };
+#define K1_AKT_E_MAKS 4
+enum { K1_AKT_W_NIC = 0 /* not yet */, K1_AKT_W_OK = 1, K1_AKT_W_BRAK_SIECI = 2 /* K1 has no network */,
+       K1_AKT_W_NIEUDANE = 3 /* no announcement came */, K1_AKT_W_ODRZUCONE = 4 /* it came, refused */ };
+#define K1_AKT_W_MAKS 4
+enum { K1_AKT_P_SPRAWDZ = 1, K1_AKT_P_ZAINSTALUJ = 2, K1_AKT_P_WROC = 3, K1_AKT_P_SAM_WL = 4, K1_AKT_P_SAM_WYL = 5 };
+#define K1_AKT_P_MAKS 5
+#define K1_OGL_MAKS_BAJTOW 8192 /* AKT_OPIS a: K1_OGL_MAKS (k1_ogloszenie.h; checked there) */
 #define K1_INST_WERSJA 0x1000000 /* INST_DYSK c: flag "version follows" (major<<16|minor<<8|patch) */
 enum { K1_DYSK_SATA = 1, K1_DYSK_NVME = 2, K1_DYSK_VIRTIO = 3, K1_DYSK_INNY = 4 };
 enum { K1_INST_ETAP_CZYSZCZENIE = 1, K1_INST_ETAP_KOPIA = 2, K1_INST_ETAP_SPRAWDZANIE = 3, K1_INST_ETAP_PARTYCJE = 4 };

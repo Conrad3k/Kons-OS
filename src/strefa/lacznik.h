@@ -8,6 +8,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "k1_uslugi.h"
+
 #define NAZWA_MAKS 253 /* a DNS name without its final dot */
 
 /* SOCKS5 reply codes (RFC 1928 §6) */
@@ -42,5 +44,18 @@ size_t dns_zapytanie(uint8_t *b, size_t maks, uint16_t id, const char *nazwa);
  * −1 not an answer to it or malformed (ignored: the right one may still come). Names in records are skipped with their
  * compression pointers, every pointer backwards and at most a bounded number of them. */
 int dns_odpowiedz(const uint8_t *b, size_t n, uint16_t id, const char *nazwa, uint32_t *adres);
+
+/* 0.10.5 step 2 (ADR 0046): the download zone (a row of K1_STREFY without a window) reaches only the hosts of GitHub's
+ * releases — one table — and K1 itself: the name LACZNIK_POBRANE, port 1, is the socket nadzorca gives to the writing
+ * program (the bytes downloaded go there). An address given as numbers: only in the test of updates (the test server on
+ * QEMU's "router"). Other zones: every name as before (nadzorca checks the address, D3). */
+#define K1_HOSTY_POBIERANIA(X) X("github.com") X("objects.githubusercontent.com") X("release-assets.githubusercontent.com")
+#define LACZNIK_POBRANE "pobrane.k1"
+#define LACZNIK_CEL_MAKS K1_STREFA_CEL_MAKS
+enum { CEL_ODMOWA = -1, CEL_SIEC = 0, CEL_POBRANE = 1 };
+int lacznik_cel(const struct socks_cel *c, int pobieranie, int test);
+/* What the download zone downloads, as nadzorca gives it: 1..LACZNIK_CEL_MAKS bytes of a-z, 0-9, ".", "-", "/", no "..",
+ * not starting with "/". */
+int lacznik_cel_dobry(const char *s);
 
 #endif

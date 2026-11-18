@@ -508,7 +508,8 @@ void obsluz_gui(void)
         /* gui: start an application, power off, log out; the password screen (M5e): power off only */
         if (w != K1_ODB_JEST ||
             (k.typ != K1_KOM_URUCHOM && k.typ != K1_KOM_WYLACZ && k.typ != K1_KOM_URUCHOM_STREFE &&
-             k.typ != K1_KOM_STREFA_FOKUS && k.typ != K1_KOM_OTWORZ_AKTUALIZACJE) ||
+             k.typ != K1_KOM_STREFA_FOKUS && k.typ != K1_KOM_OTWORZ_AKTUALIZACJE &&
+             (k.typ != K1_KOM_AKT_PROSBA || k.a != K1_AKT_P_ZAINSTALUJ)) || /* 0.10.5 step 2b: the window's button */
             ((k.typ != K1_KOM_WYLACZ || k.a == 2) && gui_kanal_uid != K1_UID_GUI) ||
             (k.typ == K1_KOM_URUCHOM_STREFE && k.b != 0)) { /* a hostile test guest: the test program only */
             k1_log(TAG, "odrzucono prośbę od pulpitu");
@@ -516,6 +517,8 @@ void obsluz_gui(void)
         }
         if (k.typ == K1_KOM_OTWORZ_AKTUALIZACJE) { /* 0.10.5 step 1: from the window of a failed try */
             otworz_aktualizacje();
+        } else if (k.typ == K1_KOM_AKT_PROSBA) { /* 0.10.5 step 2b: "Zainstaluj" in the window of a waiting version */
+            akt_prosba(k.a);
         } else if (k.typ == K1_KOM_STREFA_FOKUS) { /* 0.10.1 step 3: the rozdzielacz's order */
             strefa_fokus(k.a);
         } else if (k.typ == K1_KOM_URUCHOM_STREFE) {
