@@ -137,6 +137,7 @@ Osiem kroków:
 [x]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
      PR #161
 [ ]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
+     [w toku: Claude, gałąź claude/charming-shannon-4xbnst]
 [ ]  7  Jądro Linux 7.x (najnowsza linia)                  S52–S55          3           D14, T19 T20     M        —
 [ ]  8  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–7         D10              M        —
 (Numery ADR — następne wolne po ADR 0045 z 0.10.2; jeśli zajmą więcej, krok bierze kolejne wolne.)
@@ -727,13 +728,13 @@ Twoje (produkt):
        reszta odsyła), nieaktualne zdania i zamknięte listy „do zrobienia”; NIE usuwamy historii (ADR, CHANGELOG,
        archiwum planów) — najwyżej status i odesłanie; pełna lista usuniętego w opisie PR-a, żebyś widział, co znikło.
 
-[!] D11 (krok 6) Wygląd i zachowanie przełącznika okien (Alt+Tab) — szkice do wyboru NA POCZĄTKU KROKU 6 (oba motywy).
+[x] D11 (krok 6; właściciel 2026-11-18: szkic A „kafelki”, oba motywy) Wygląd i zachowanie przełącznika okien (Alt+Tab) — szkice do wyboru NA POCZĄTKU KROKU 6 (oba motywy).
        Rekomendacja: jak w Windows 11, w stylu K1 — panel na środku ekranu (tło `pole`, zaokrąglenie 12, włoskowaty
        obrys), w rzędzie kafelki 120 × 96: ikona aplikacji 40 px i nazwa pod nią (Plex Sans 13), sesja przeglądarki —
        ikona globusa z kropką w kolorze sesji i nazwą sesji; wybrany kafelek z obwódką w kolorze akcentu; bez podglądu
        treści okien (podgląd okna strefy pokazywałby jej treść poza oknem — i kosztuje pamięć na X230). Kolejność:
        ostatnio używane najpierw; szybkie Alt+Tab — poprzednie okno; Shift — wstecz; Esc — anuluj; zminimalizowane też.
-[!] D12 (krok 6) Jak Przeglądarka wygląda na pasku i pulpicie. Rekomendacja: JEDNA ikona „Przeglądarka” (jak w menu
+[x] D12 (krok 6; właściciel 2026-11-18: szkic A „ikona + okna sesji”) Jak Przeglądarka wygląda na pasku i pulpicie. Rekomendacja: JEDNA ikona „Przeglądarka” (jak w menu
        Start), nie osobna na każdą sesję — kliknięcie otwiera okienko „Którą sesję otworzyć?”; okna otwartych sesji
        zostają na pasku jak dziś (po kresce, ikona z kropką w kolorze sesji), a przypięta ikona ma kropkę
        „uruchomiona”, gdy któraś sesja ma okno. Przy pierwszym starcie (nowa instalacja) Przeglądarka przypięta i na
