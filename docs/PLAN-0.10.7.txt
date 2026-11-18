@@ -118,8 +118,8 @@ Robot i wydania (od 0.10.5: ADR 0046 i 0047, docs/komponenty/robot.md i aktualiz
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [x]  1  Teksty: bez opisów i bez półpauz                    W1–W3            0.10.5      D2, T1           M        brak
      PR #170
-[ ]  2  Ustawienia: sekcje w środku                         W4–W9            1           D3, T2, T3       M        brak
-     [w toku: Claude, gałąź claude/exciting-archimedes-7r215w]
+[x]  2  Ustawienia: sekcje w środku                         W4–W9            1           D3, T2, T3       M        brak
+     PR #171
 [ ]  3  Pliki: przyciski, szczegóły, pusty folder           W10–W11          1           D4, T4           M        brak
 [ ]  4  Ramka okna strefy: kolor sesji dyskretnie           W12              1           D1, T5           M        0048
 [ ]  5  Błąd: Aktualizacje po ponownym otwarciu Ustawień   W16              0.10.5      T6               S        brak
@@ -188,7 +188,7 @@ KROK 2: Ustawienia: sekcje w środku                                           M
   Testy i dowód: test-wzorce (wszystkie sekcje Ustawień, oba motywy, „przed / po”), test-m4.
   Dokumenty: WYGLAD.md (Ustawienia: wiersze, wizytówka, ikona Sieci), aplikacje.md, TESTY.md.
   Gotowe, gdy: testy zielone, wzorce przyjęte po „OK” właściciela.
-  Ustalenia z wykonania (2026-11-18):
+  Ustalenia z wykonania (2026-11-18, PR #171):
     - D3: wizytówka przyjęta na obrazach „przed / po” razem z całym krokiem (właściciel: „OK, przyjmij”).
     - Bateria: lista sekcji = na_liscie() w main.c. Do chwili, gdy nadzorca poda stan baterii, lista jest pełna (laptopy
       właściciela mają baterię — bez mignięcia); komputer bez baterii widzi „Baterię” przez pierwszą klatkę. Log
