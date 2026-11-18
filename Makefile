@@ -138,9 +138,9 @@ $(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) src/wspolne/k1_nl.c sr
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
 # 0.9.0 step 3 (ADR 0038): start.c — the boot files swapped beside the old ones (host test: test_start)
 INSTALATOR := $(sort $(wildcard src/instalator/*.c))
-$(BIN)/instalator: $(INSTALATOR) $(wildcard src/instalator/*.h) $(EFI) $(FAT32) $(GEN)/k1_klucz.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+$(BIN)/instalator: $(INSTALATOR) $(wildcard src/instalator/*.h) $(EFI) $(FAT32) $(PACZKA) $(GEN)/k1_klucz.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/monocypher -I$(GEN) -o $@ $(INSTALATOR) \
-		$(EFI) $(FAT32) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+		$(EFI) $(FAT32) $(PACZKA) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # 0.8.0 step 3 (ADR 0031): the USB stick reader — FAT in a sandbox (host test: test_fat, fuzzing: fuzz_fat)
 # 0.8.0 step 4 (ADR 0032): the picture decoder — Wuffs (src/zewnetrzne, docs/ZALEZNOSCI.md) compiled as is inside
@@ -364,6 +364,16 @@ $(OBJ)/test_ogloszenie: testy/host/test_ogloszenie.c $(OGLOSZENIE) src/wspolne/k
 $(OBJ)/test_paczka: testy/host/test_paczka.c src/wspolne/k1_paczka.c $(MANIFEST) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_paczka.c src/wspolne/k1_paczka.c $(MANIFEST)
 
+# the writing program's modes for updates through the network, signed with a test key (its header made here)
+KLUCZ_TESTU := AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=
+$(OBJ)/klucz-testu/k1_klucz.h: $(OBJ)/podpisz
+	mkdir -p $(@D) && K1_KLUCZ_PODPISU=$(KLUCZ_TESTU) $(OBJ)/podpisz klucz-publiczny > $@
+$(OBJ)/test_siec_instalatora: testy/host/test_siec_instalatora.c src/instalator/siec.c src/instalator/siec_instaluj.c \
+		src/instalator/start.c $(wildcard src/instalator/*.h) $(PACZKA) $(EFI) $(FAT32) $(OBJ)/klucz-testu/k1_klucz.h $(NAGL) | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/instalator -Isrc/zewnetrzne/monocypher -I$(OBJ)/klucz-testu -o $@ \
+		testy/host/test_siec_instalatora.c src/instalator/siec.c src/instalator/siec_instaluj.c src/instalator/start.c \
+		$(PACZKA) $(EFI) $(FAT32) $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c src/wspolne/k1_log.c
+
 $(OBJ)/test_efi: testy/host/test_efi.c $(EFI) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_efi.c $(EFI)
 
@@ -443,7 +453,7 @@ TESTY_HOST := test_ogloszenie test_paczka test_odcinki test_odcinki_pelny test_d
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_palce \
 	test_opis
-TESTY_HOST_PLIKI := test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
+TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
 
 # notatki_w_plikach and magazyn_testowy are not run here: scripts/test-*.sh use them
 testy-host: $(TESTY_HOST:%=host-%) $(TESTY_HOST_PLIKI:%=host-%) $(OBJ)/notatki_w_plikach $(OBJ)/magazyn_testowy
@@ -472,6 +482,10 @@ host-test_fat: $(OBJ)/test_fat
 host-test_start: $(OBJ)/test_start
 	sh testy/host/obrazy_efi.sh $(OBJ)/efi && $(OBJ)/test_start $(OBJ)/efi && sh testy/host/obrazy_efi.sh $(OBJ)/efi sprawdz && \
 		rm -rf $(OBJ)/efi
+
+host-test_siec_instalatora: $(OBJ)/test_siec_instalatora $(OBJ)/podpisz $(OBJ)/wydanie
+	K1_KLUCZ_PODPISU=$(KLUCZ_TESTU) sh testy/host/obrazy_paczki.sh $(OBJ)/siec $(OBJ) && \
+		$(OBJ)/test_siec_instalatora $(OBJ)/siec && rm -rf $(OBJ)/siec
 
 host-test_dekoder: $(OBJ)/test_dekoder
 	rm -rf $(OBJ)/obrazy && mkdir -p $(OBJ)/obrazy && python3 -I testy/host/obrazy_dekoder.py $(OBJ)/obrazy && \

@@ -21,6 +21,7 @@ Użycie: python3 -I scripts/sprawdz-czytelnosc.py [KATALOG_REPO]. Kod wyjścia 0
 """
 import os
 import re
+import subprocess
 import sys
 
 PLIK_MAKS = 600
@@ -225,6 +226,14 @@ def sprawdz_sciezki(repo, bledy):
                 bledy.append(f"{wzgl}: ścieżka {s} nie istnieje")
 
 
+def sprawdz_opisy_wersji(repo, bledy):
+    """0.10.5 step 2 (ADR 0046, T18): every CHANGELOG entry from 0.10.5 has „Opis w K1:” (or the robot's mark)."""
+    w = subprocess.run([sys.executable, "-I", os.path.join(repo, "scripts", "opisy-wersji.py"), "--sprawdz",
+                        os.path.join(repo, "CHANGELOG.md")], capture_output=True, text=True)
+    if w.returncode != 0:
+        bledy.extend([l for l in w.stdout.splitlines() if l] or ["CHANGELOG.md: opisy wersji — " + w.stderr.strip()])
+
+
 def samotest():
     """The checker itself: a too-long file and function, an exception, a test that catches nothing fails."""
     tekst = "/* top */\n" + "int a(void)\n{\n" + "    x();\n" * 90 + "}\n" + \
@@ -250,6 +259,7 @@ def main():
     sprawdz_adr(repo, bledy)
     sprawdz_sciezki(repo, bledy)
     sprawdz_opis_ekranu(repo, bledy)
+    sprawdz_opisy_wersji(repo, bledy)
     for b in bledy:
         print("  " + b)
     if bledy:

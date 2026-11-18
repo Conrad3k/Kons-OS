@@ -66,8 +66,11 @@ static const struct k1_warunek wa_strefa[] = { { SYS_ioctl, 1, 0xff00u, 0xae00u 
 #define KLATKA_GUI .wywolania = sc_okna, .n_wywolan = N(sc_okna), .pamiec = 128u << 20, .pliki = 32, \
                    .rozmiar_pliku = 72u << 20
 /* M5f (ADR 0018): the program that writes the disk — no window, no paths, only the source and the
- * target device we open for it; RLIMIT_FSIZE does not apply to block devices (see skarbiec). */
-#define KLATKA_INSTALATOR .wywolania = sc_instalator, .n_wywolan = N(sc_instalator), .pamiec = 16u << 20, .pliki = 16
+ * target device we open for it; RLIMIT_FSIZE does not apply to block devices (see skarbiec). 0.10.5 step 2 (ADR 0046):
+ * memory for the front and the back of a package (at most 8 + 24 MiB, k1_paczka.h) at "Zainstaluj"; RLIMIT_FSIZE —
+ * the announcement it writes into the memfd from nadzorca (at most 8 KiB). */
+#define KLATKA_INSTALATOR .wywolania = sc_instalator, .n_wywolan = N(sc_instalator), .pamiec = 64u << 20, .pliki = 16, \
+                          .rozmiar_pliku = 16u << 10
 /* the USB stick reader: no window, no paths, the stick read only; RLIMIT_FSIZE: since 0.8.1 one piece of 1 MiB + its
  * name (the limit of 0.8.0, one file of 16 MiB, kept: ADR 0034 supplement) */
 #define KLATKA_CZYTNIK .wywolania = sc_czytnik, .n_wywolan = N(sc_czytnik), .pamiec = 32u << 20, .pliki = 16, \

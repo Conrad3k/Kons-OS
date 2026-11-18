@@ -32,8 +32,8 @@
 
 #define K1_PACZKA_NAGLOWEK 8192u
 #define K1_PACZKA_MAN_OFF 4096u
-#define K1_PACZKA_PRZOD_MAKS (16u << 20)
-#define K1_PACZKA_TYL_MAKS (64u << 20)
+#define K1_PACZKA_PRZOD_MAKS (8u << 20)  /* both in the memory of the writing program at an install */
+#define K1_PACZKA_TYL_MAKS (24u << 20)
 #define K1_POCZ_ZNAK 4096u
 #define K1_POCZ_OGL_OFF 4096u
 #define K1_POCZ_PACZKA_OFF (1u << 20)
