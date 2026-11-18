@@ -139,6 +139,10 @@ pendrive'y, trwa, gotowe, błąd). Aktualizacja przez sieć — w kroku 2 tej we
 720 × 520 (D2: dwanaście sekcji; wcześniej 680 × 480). Informacje (`informacje.c`): wersja, ekran, jądro, gdzie są dane.
 Od 0.10.7 krok 1 sekcje mają sam tytuł, bez opisu pod nim (zasada właściciela Z2, `docs/WYGLAD.md`); treść zaczyna się
 32 px pod tytułem (`seg_y()` w `ustawienia.h`), w Sieci w tym miejscu stoją zakładki, a jej treść pod nimi (`SIEC_Y`).
+Od 0.10.7 krok 2 (`docs/WYGLAD.md`, „Ustawienia: sekcje w środku”): bez baterii sekcji „Bateria” nie ma na liście
+(`na_liscie()` w `main.c`; numery `S_*` bez zmian, log „sekcje na liście: …” dla testów); Ekran — tryby w rzędach po 3,
+od największej, „zalecana” w przycisku, tryby i karty tapet w opisie ekranu; Informacje — wizytówka, wersja jądra
+z `jadro/wersja.env` (`K1_JADRO`, Makefile); Hasło — karta z przełącznikiem i wyjaśnieniem; Aplikacje — wiersze.
 
 ### Instalator
 (0.5.9, ADR 0018, `src/aplikacje/instalacja/`, UID 204) — lista dysków od nadzorcy,

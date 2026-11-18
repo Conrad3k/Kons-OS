@@ -135,7 +135,7 @@ if tryb == "ponownie":
     sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
     if uo and sk:
         ux, uy = int(uo.group(4)), int(uo.group(5))
-        klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + 5 * int(sk.group(3)))
+        klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + q.wiersz_sekcji(5) * int(sk.group(3)))  # Hasło
         hp = czekaj(r"K1-USTAWIENIA: hasło: przełącznik (\d+),(\d+);", czas=20)
         if hp:
             klik(ux + int(hp.group(1)), uy + int(hp.group(2)))
@@ -567,7 +567,7 @@ if u and l:
     sprawdz("ciemny motyw: przełącznik okien (Esc — fokus zostaje w Ustawieniach)",
             wyb == "Zegar" and czekaj(r"K1-GUI: przełącznik okien: Anuluj", od=1, czas=20) and fokus("Ustawienia"),
             f"{list(kaf)}, wybrane {wyb}")
-    klik(ux + tx + tk, uy + ty)
+    q.klik_w("Ustawienia", "Zmierzch", "kafelek")  # 0.10.7 step 2 (T3): the wallpaper's card by its name
     sprawdz("tapeta „Zmierzch” ustawiona", czekaj(r"K1-EKRAN: tapeta 1 "))
     w, h, px = zrzut("6-tapeta", gdy=lambda w, h, px: px(12, H - 12)[2] > px(12, H - 12)[0])
     c = px(12, H - 12)
@@ -575,15 +575,14 @@ if u and l:
     ust_przegladarka(ux, uy, True)
     # Ustawienia → Ekran: inna rozdzielczość, pulpit układa się od nowa (karta bochs ma wiele trybów)
     q.klik_w("Ustawienia", "Ekran", "zakladka")
-    tr = czekaj(r"tryby ekranu: ([\dx ]+) \(przyciski od (\d+),(\d+), (\d+) w kolumnie, co (\d+) i (\d+)\)")
+    tr = czekaj(r"tryby ekranu: ([\dx ]+) \(przyciski w opisie ekranu")
     sprawdz("Ustawienia → Ekran: lista rozdzielczości od ekranu", tr and len(tr.group(1).split()) >= 2,
             tr.group(1) if tr else "brak")
     if tr:
         lista = tr.group(1).split(); cel = "1024x768" if "1024x768" in lista and f"{W}x{H}" != "1024x768" else \
             next(t for t in lista if t != f"{W}x{H}")
-        i = lista.index(cel); bx0, by0, nk, dx, dy = (int(tr.group(j)) for j in range(2, 7))
-        klik(ux + bx0 + (i // nk) * dx, uy + by0 + (i % nk) * dy)
         cw, ch = (int(v) for v in cel.split("x"))
+        q.klik_w("Ustawienia", f"{cw} × {ch}", "przycisk")  # 0.10.7 step 2 (T3): the mode by its name
         nowy = czekaj(rf"K1-EKRAN: tryb {cw}x{ch} @ \d+ Hz \(zmiana")
         g2 = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", od=1)
         sprawdz(f"zmiana rozdzielczości {W}x{H} → {cel}: ekran przełącza tryb, pulpit układa się od nowa", nowy and g2)

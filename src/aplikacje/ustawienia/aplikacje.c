@@ -12,9 +12,10 @@
 #include "k1_uslugi.h"
 #include "ustawienia.h"
 
-#define WIERSZ_H 44   /* a row: its name, under it the application */
-#define WYBOR_H 76    /* a row with a choice: its name, under it the buttons */
-#define PIERWSZY_Y 18 /* the first row's name below the section's description */
+/* 0.10.7 step 2: a row is the type on the left and its application on the right, a hairline under it */
+#define WIERSZ_H 44 /* a row */
+#define WYBOR_H 92  /* a row with a choice: its name, under it the buttons */
+#define WYBOR_Y 44  /* the buttons' top in such a row */
 
 static int najechany_typ = -1, najechany_seg = -1;
 
@@ -53,7 +54,7 @@ static const char *nazwa_wiersza(int typ, char *buf, size_t n)
 /* The top of row i (the rows with a choice are higher). */
 static int32_t wiersz_y(const int *typy, int i)
 {
-    int32_t y = seg_y() + PIERWSZY_Y;
+    int32_t y = seg_y();
     int a[K1_APL_MAKS];
     for (int j = 0; j < i; j++)
         y += k1_dok_aplikacje(typy[j], a) >= 2 ? WYBOR_H : WIERSZ_H;
@@ -63,6 +64,7 @@ static int32_t wiersz_y(const int *typy, int i)
 void aplikacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     int typy[K1_TYPY_MAKS], n = wiersze(typy);
+    int32_t prawy = apl.szer - 24; /* the right edge of the rows */
     char nazwa[96];
     naglowek(o, m, "Aplikacje");
     for (int i = 0; i < n; i++) {
@@ -70,22 +72,20 @@ void aplikacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         int teraz = k1_dok_czym_otworzyc(typy[i], apl.k.ustawienia[K1_UST_OTWIERANIE + typy[i] - 1]);
         const char *etykiety[K1_APL_MAKS];
         int32_t y = wiersz_y(typy, i);
-        k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X, y, nazwa_wiersza(typy[i], nazwa, sizeof nazwa), k1_kolor(m->tekst, 255),
-                 apl.szer - TRESC_X - 24);
-        if (na == 0) {
-            k1_tekst(o, K1_CZ_MALA, TRESC_X, y + 20, K1_MENU_BEZ_APLIKACJI_KROTKO, k1_kolor(m->tekst3, 255), 0);
+        const char *prawa = na == 0 ? "brak aplikacji" : na == 1 ? k1_profil_nazwa(k1_apl_profil(a[0])) : "";
+        k1_prostokat(o, TRESC_X, y + (na >= 2 ? WYBOR_H : WIERSZ_H) - 1, prawy - TRESC_X, 1, k1_kolor(m->tekst, 20));
+        k1_tekst(o, K1_CZ_TEKST, TRESC_X, y + 27, nazwa_wiersza(typy[i], nazwa, sizeof nazwa), k1_kolor(m->tekst, 255),
+                 prawy - TRESC_X - k1_tekst_szer(K1_CZ_TEKST, prawa) - 16);
+        k1_tekst(o, K1_CZ_TEKST, prawy - k1_tekst_szer(K1_CZ_TEKST, prawa), y + 27, prawa,
+                 k1_kolor(na == 0 ? m->tekst3 : m->tekst2, 255), 0);
+        if (na < 2)
             continue;
-        }
-        if (na == 1) {
-            k1_tekst(o, K1_CZ_MALA, TRESC_X, y + 20, k1_profil_nazwa(k1_apl_profil(a[0])), k1_kolor(m->tekst2, 255), 0);
-            continue;
-        }
         for (int j = 0; j < na; j++) {
             etykiety[j] = k1_profil_nazwa(k1_apl_profil(a[j]));
             if (a[j] == teraz)
                 wybrana = j;
         }
-        k1_segment(o, m, TRESC_X, y + 10, SEG_W + 60, SEG_H, etykiety, na, wybrana, najechany_typ == i ? najechany_seg : -1);
+        k1_segment(o, m, TRESC_X, y + WYBOR_Y, SEG_W + 60, SEG_H, etykiety, na, wybrana, najechany_typ == i ? najechany_seg : -1);
     }
     k1_tekst(o, K1_CZ_MALA, TRESC_X, apl.wys - 24, "Inną aplikację: prawy przycisk na pliku → „Otwórz za pomocą”.",
              k1_kolor(m->tekst3, 255), apl.szer - TRESC_X - 24);
@@ -97,7 +97,7 @@ static int wybor_pod(const int *typy, int n, int32_t x, int32_t y, int *seg)
     *seg = -1;
     for (int i = 0; i < n; i++) {
         int a[K1_APL_MAKS], na = k1_dok_aplikacje(typy[i], a);
-        if (na >= 2 && (*seg = k1_segment_trafienie(TRESC_X, wiersz_y(typy, i) + 10, SEG_W + 60, SEG_H, na, x, y)) >= 0)
+        if (na >= 2 && (*seg = k1_segment_trafienie(TRESC_X, wiersz_y(typy, i) + WYBOR_Y, SEG_W + 60, SEG_H, na, x, y)) >= 0)
             return i;
     }
     return -1;
@@ -139,7 +139,7 @@ void aplikacje_loguj(void)
         int na = k1_dok_aplikacje(typy[i], a), w;
         w = na >= 2 ? snprintf(buf + d, sizeof buf - d, "%s%s — %d do wyboru, przyciski od %d,%d (szer. %d, wys. %d)", /* k1: napis do logu */
                                d ? "; " : "", nazwa_wiersza(typy[i], nazwa, sizeof nazwa), na, TRESC_X,
-                               (int)wiersz_y(typy, i) + 10, SEG_W + 60, SEG_H)
+                               (int)wiersz_y(typy, i) + WYBOR_Y, SEG_W + 60, SEG_H)
                     : snprintf(buf + d, sizeof buf - d, "%s%s — %s", d ? "; " : "", /* k1: napis do logu */ nazwa_wiersza(typy[i], nazwa, sizeof nazwa),
                                na == 1 ? k1_profil_nazwa(k1_apl_profil(a[0])) : "brak");
         if (w < 0 || (size_t)w >= sizeof buf - d)

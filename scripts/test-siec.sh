@@ -175,7 +175,7 @@ SIEC_NR, WYGLAD_NR = 8, 0  # the order of sections in Ustawienia (S_SIEC, S_WYGL
 
 
 def sekcja(nr):
-    q.klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + nr * int(sk.group(3)))
+    q.klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + q.wiersz_sekcji(nr) * int(sk.group(3)))
 
 
 if u and sk:
@@ -234,7 +234,7 @@ sprawdz("czas: serwery milczą → „żadnej dobrej odpowiedzi”, zegar bez zm
         "zegar ustawiony z internetu" not in q.tekst())
 sprawdz("Ustawienia → Sieć: „Brak kabla”, łącza nie ma", m)
 if u and sk:
-    q.klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + WYGLAD_NR * int(sk.group(3)))
+    q.klik(ux + int(sk.group(1)), uy + int(sk.group(2)) + q.wiersz_sekcji(WYGLAD_NR) * int(sk.group(3)))
     q.klik(ux + int(sk.group(4)) + int(sk.group(6)) * 3 // 4, uy + int(sk.group(5)) + 10)
     czekaj(r"K1-EKRAN: ustawienie 1=1", czas=30)
     sekcja(SIEC_NR)

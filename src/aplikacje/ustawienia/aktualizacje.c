@@ -280,8 +280,9 @@ static void kafel(struct k1_obraz *o, const struct k1_motyw *m)
                                      : "działa bez instalacji";
     k1_zaokraglony(o, (float)TRESC_X, (float)KAFEL_Y, (float)szer, KAFEL_H, 10, k1_kolor(m->pole, 255));
     k1_obrys(o, (float)TRESC_X, (float)KAFEL_Y, (float)szer, KAFEL_H, 10, 1.0f, k1_kolor(m->tekst, 24));
-    k1_zaokraglony(o, (float)TRESC_X + 16, (float)KAFEL_Y + 16, 40, 40, 10, k1_kolor(m->akcent, 255));
-    k1_ikona(o, K1_IK_AKTUALIZACJE, (float)TRESC_X + 24, (float)KAFEL_Y + 24, 24, k1_kolor(m->na_akcencie, 255));
+    /* 0.10.7 step 2: no accent square — the icon in the text colour on a quiet field */
+    k1_zaokraglony(o, (float)TRESC_X + 16, (float)KAFEL_Y + 16, 40, 40, 10, k1_kolor(m->zaznaczenie, 255));
+    k1_ikona(o, K1_IK_AKTUALIZACJE, (float)TRESC_X + 24, (float)KAFEL_Y + 24, 24, k1_kolor(m->tekst, 255));
     snprintf(w, sizeof w, "%s", K1_WERSJA); /* the owner (2026-11-17): the number alone */
     k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X + 72, KAFEL_Y + 32, w, k1_kolor(m->tekst, 255), 0);
     if (lista)

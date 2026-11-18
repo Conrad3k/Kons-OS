@@ -345,10 +345,26 @@ znak A**, okno 720 × 520 (D2) i Instalator tylko do instalacji (D3).
 - Na krok 2 (już wybrane): okienko „Jest nowa wersja K1” na środku ekranu (opis wersji: D13), „Później” (cichy) i
   „Zainstaluj” (główny); kropka w kolorze akcentu przy przycisku Start, dopóki wersja czeka, i wiersz w menu Start.
 
-## Ustawienia → Ekran (M4.1)
-Rozdzielczości jako przyciski w trzech kolumnach (136×32): wybrana — wypełnienie akcentem, pozostałe
-— `pole` z obrysem; pod listą „Zalecana: …” (tryb preferowany przez monitor/kartę). Przy jednym trybie (obraz z firmware) — wyjaśnienie
-i wskazówka dla VirtualBoxa.
+## Ustawienia → Ekran (M4.1; 0.10.7 krok 2)
+Rozdzielczości jako przyciski 152 × 36 **w rzędach po 3, od największej** (odstęp 12 i 8): wybrana — wypełnienie
+akcentem, pozostałe — `pole` z obrysem; zalecana (preferowana przez monitor/kartę) ma w przycisku mały dopisek
+„zalecana” (Plex Sans 13, `tekst2`). Na dole „Wybór obowiązuje do wyłączenia komputera.”. Przy jednym trybie (obraz
+z firmware) — wyjaśnienie i wskazówka dla VirtualBoxa.
+
+## Ustawienia: sekcje w środku (0.10.7 krok 2, decyzja właściciela D3 z 2026-11-18)
+- **Lista sekcji:** bez zmian (Z1), ale komputer bez baterii nie ma „Baterii” (prośba właściciela 2026-11-18: wiersz
+  znika, gdy nadzorca powie „brak baterii”, wraca z baterią). Ikona Sieci: łuki Wi-Fi z kropką (`K1_IK_WIFI`; wtyczka
+  RJ45 `K1_IK_SIEC` zostaje tam, gdzie chodzi o kabel: górny pasek, kafelek karty przewodowej).
+- **Aplikacje:** wiersz 44 px na typ pliku, pod nim włoskowata linia (`tekst` 20/255); z lewej typ (Plex Sans 15),
+  z prawej aplikacja (`tekst2`) albo „brak aplikacji” (`tekst3`). Typ z wyborem: nazwa, pod nią segment (wiersz 92 px).
+- **Informacje — wizytówka:** znak „Warstwy” 72 px, pod nim „Kons K1” (Plex Serif 24) i „Wersja …” (`tekst2`); niżej
+  Ekran, Jądro, Dane: etykiety w kolumnie 96 px (`tekst2`), wartości za nią (`tekst`). Jądro z `jadro/wersja.env`.
+- **Hasło:** przełącznik i to, co znaczy, na jednej karcie (`pole`, obrys `tekst` 24, zaokrąglenie 10); wyjaśnienie
+  8 px pod przełącznikiem. Z otwartym formularzem karta ma sam przełącznik, pola pod nią.
+- **Aktualizacje:** ikona w kafelku bez terakotowego kwadratu — `tekst` na polu `zaznaczenie` 40 × 40 (zaokrąglenie 10;
+  plan mówił `najechanie`, ale w ciemnym motywie nie odróżnia się od `pole`).
+- **Przeglądarka:** „Zmień nazwę”, „Wyczyść dane…” — odmiana przycisku `K1_PRZ_NA_KARCIE` (przycisk na karcie:
+  lekkie tło `tekst` 12/255, pod wskaźnikiem 26/255, bez obrysu).
 
 ## Motywy okien
 

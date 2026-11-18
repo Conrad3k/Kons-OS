@@ -480,7 +480,7 @@ sprawdz("podwójne kliknięcie pliku: domyślna aplikacja (Notatki)",
 u0 = okno("ustawienia", lambda: klik(*pasek(2)))
 sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
 ap = u0 and sk and po(r"K1-USTAWIENIA: aplikacje: (.*)",
-                      lambda: klik(u0[0] + int(sk.group(1)), u0[1] + int(sk.group(2)) + 6 * int(sk.group(3))))
+                      lambda: klik(u0[0] + int(sk.group(1)), u0[1] + int(sk.group(2)) + q.wiersz_sekcji(6) * int(sk.group(3))))
 sprawdz("Ustawienia → Aplikacje: każdy typ i jego aplikacja (tekst — Notatki, obrazy — Podgląd, PDF, ZIP, „Plik” — brak)",
         ap and ap.group(1) == "Plik — brak; Dokument tekstowy — Notatki; Obrazy (PNG, JPEG, GIF, BMP, WebP) — Podgląd; "
                               "Dokument PDF — brak; Archiwum ZIP — brak", ap.group(1) if ap else "")

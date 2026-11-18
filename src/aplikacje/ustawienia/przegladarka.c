@@ -37,6 +37,7 @@ static char nowa[K1_STREFA_NAZWA_MAKS + 1];
 static size_t dl_nowej;
 static char wiadomosc[120];
 static int najechany = -1; /* a row of the question */
+static int najechany_p = -1; /* 0.10.7 step 2: the button under the pointer: card * P_LICZBA + P_* */
 
 static void do_nadzorcy(struct k1_komunikat k)
 {
@@ -101,8 +102,8 @@ static void uklad(int i, struct k1_przycisk p[P_LICZBA])
     int32_t w = apl.szer - TRESC_X - 24, y = seg_y() - 12 + uwagi(t) * UWAGA_H + i * KARTA_KROK, d = y + 54;
     p[P_KARTA] = (struct k1_przycisk){ TRESC_X, y, w, KARTA_H, NULL, K1_PRZ_ZWYKLY };
     p[P_SEGMENT] = (struct k1_przycisk){ TRESC_X + w - 16 - SEG_PW, d - 2, SEG_PW, SEG_PH, NULL, K1_PRZ_ZWYKLY };
-    p[P_NAZWA] = (struct k1_przycisk){ TRESC_X + 28, d, 96, PRZ_H, "Zmień nazwę", K1_PRZ_CICHY };
-    p[P_WYCZYSC] = (struct k1_przycisk){ TRESC_X + 126, d, 108, PRZ_H, "Wyczyść dane…", K1_PRZ_CICHY };
+    p[P_NAZWA] = (struct k1_przycisk){ TRESC_X + 28, d, 96, PRZ_H, "Zmień nazwę", K1_PRZ_NA_KARCIE };
+    p[P_WYCZYSC] = (struct k1_przycisk){ TRESC_X + 126, d, 108, PRZ_H, "Wyczyść dane…", K1_PRZ_NA_KARCIE };
     p[P_POLE] = (struct k1_przycisk){ TRESC_X + 32, y + 8, POLE_W, 30, NULL, K1_PRZ_ZWYKLY };
     p[P_ZAPISZ] = (struct k1_przycisk){ TRESC_X + 32, d, 90, PRZ_H, "Zapisz", K1_PRZ_GLOWNY };
     p[P_ANULUJ] = (struct k1_przycisk){ TRESC_X + 128, d, 90, PRZ_H, "Anuluj", K1_PRZ_ZWYKLY };
@@ -144,9 +145,9 @@ static void karta(struct k1_obraz *o, const struct k1_motyw *m, int i, int nr)
     } else {
         k1_tekst(o, K1_CZ_TEKST_MOCNA, k->x + 38, k->y + 28, pr.nazwy[nr], k1_kolor(m->tekst, 255), k->w - 60);
         k1_tekst(o, K1_CZ_MALA, k->x + 38, k->y + 47, stan(nr), k1_kolor(m->tekst2, 255), k->w - 60);
-        k1_przycisk(o, m, &p[P_NAZWA], K1_CZ_MALA, 0, 1);
+        k1_przycisk(o, m, &p[P_NAZWA], K1_CZ_MALA, najechany_p == i * P_LICZBA + P_NAZWA, 1);
         if (pr.dysk) /* without K1-DANE a session keeps nothing to clear */
-            k1_przycisk(o, m, &p[P_WYCZYSC], K1_CZ_MALA, 0, !dziala(nr));
+            k1_przycisk(o, m, &p[P_WYCZYSC], K1_CZ_MALA, najechany_p == i * P_LICZBA + P_WYCZYSC, !dziala(nr));
     }
     k1_segment(o, m, s->x, s->y, s->w, s->h, etykiety, 2, pr.dysk && pamieta(nr) ? 0 : 1, -1);
     if (!pr.dysk) /* muted: nothing to choose */
@@ -288,7 +289,22 @@ int przegladarka_klik(int32_t x, int32_t y)
     return 0;
 }
 
-/* The pointer over the question: its row lights up; 1 = redraw. */
+/* The card's quiet button under (x, y): card * P_LICZBA + P_NAZWA or P_WYCZYSC, or -1. */
+static int przycisk_pod(int32_t x, int32_t y)
+{
+    int nr[K1_STREFY_MAKS], n = sesje(nr);
+    struct k1_przycisk p[P_LICZBA];
+    for (int i = 0; i < n; i++) {
+        uklad(i, p);
+        if (k1_przycisk_pod(&p[P_NAZWA], 1, x, y) == 0)
+            return i * P_LICZBA + P_NAZWA;
+        if (pr.dysk && !dziala(nr[i]) && k1_przycisk_pod(&p[P_WYCZYSC], 1, x, y) == 0)
+            return i * P_LICZBA + P_WYCZYSC;
+    }
+    return -1;
+}
+
+/* The pointer over the question (its row lights up) or over a card's button; 1 = redraw. */
 int przegladarka_najechanie(int32_t x, int32_t y)
 {
     struct k1_menu q;
@@ -298,9 +314,11 @@ int przegladarka_najechanie(int32_t x, int32_t y)
         pytanie(&q, &qx, &qy);
         w = x < 0 ? -1 : k1_menu_pod(&q, x - qx, y - qy);
     }
-    if (w == najechany)
+    int b = pytana || edytowana || x < 0 ? -1 : przycisk_pod(x, y);
+    if (w == najechany && b == najechany_p)
         return 0;
     najechany = w;
+    najechany_p = b;
     return 1;
 }
 

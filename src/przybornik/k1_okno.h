@@ -42,7 +42,8 @@ void k1_segment(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t
 int k1_segment_trafienie(int32_t x, int32_t y, int32_t w, int32_t h, int n, int32_t px, int32_t py);
 
 /* A button: drawn and hit-tested from the same rectangle, so the two can never disagree. */
-enum k1_styl_przycisku { K1_PRZ_ZWYKLY, K1_PRZ_GLOWNY, K1_PRZ_CICHY }; /* outlined / accent fill / text on a field */
+/* outlined / accent fill / text on a field / 0.10.7: on a card (a field itself) — a light tint, stronger under the pointer */
+enum k1_styl_przycisku { K1_PRZ_ZWYKLY, K1_PRZ_GLOWNY, K1_PRZ_CICHY, K1_PRZ_NA_KARCIE };
 struct k1_przycisk {
     int32_t x, y, w, h;
     const char *etykieta;

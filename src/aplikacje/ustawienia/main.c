@@ -11,12 +11,12 @@
 #include "k1_uslugi.h"
 #include "ustawienia.h"
 
-/* screen modes: three columns of buttons */
-#define TRYB_W 136
-#define TRYB_H 32
-#define TRYB_ODST_X 8
+/* screen modes (0.10.7 step 2): rows of three buttons, the largest first */
+#define TRYB_W 152
+#define TRYB_H 36
+#define TRYB_ODST_X 12
 #define TRYB_ODST_Y 8
-#define TRYBY_W_KOLUMNIE 6
+#define TRYBY_W_RZEDZIE 3
 
 #define KARTA_W 100
 #define KARTA_H 64
@@ -37,9 +37,44 @@ static const struct {
 } sekcje[S_LICZBA] = {
     { "Wygląd", K1_IK_WYGLAD },  { "Ekran", K1_IK_EKRAN }, { "Bateria", K1_IK_BATERIA }, { "Mysz", K1_IK_MYSZ },
     { "Data i czas", K1_IK_ZEGAR }, { "Hasło", K1_IK_KLODKA }, { "Aplikacje", K1_IK_FOLDER }, { "Miejsce", K1_IK_DYSK },
-    { "Sieć", K1_IK_SIEC },      { "Przeglądarka", K1_IK_PRZEGLADARKA }, { "Aktualizacje", K1_IK_AKTUALIZACJE },
+    { "Sieć", K1_IK_WIFI },      { "Przeglądarka", K1_IK_PRZEGLADARKA }, { "Aktualizacje", K1_IK_AKTUALIZACJE },
     { "Informacje", K1_IK_INFO },
 };
+
+/* The sections on the list (0.10.7 step 2, the owner's wish): all but Bateria when nadzorca said there is no battery.
+ * The numbers S_* stay (T2); a row is a place on this list. How many; their numbers in `l`. */
+static int na_liscie(int *l)
+{
+    int n = 0;
+    for (int s = 0; s < S_LICZBA; s++)
+        if (s != S_BATERIA || !bateria_brak())
+            l[n++] = s;
+    return n;
+}
+
+static int32_t karty_y(void);
+
+/* The tests click a section by its row: the list when it changes ("sekcje na liście: 0 1 3 …"), the layout after the
+ * first one (the battery's state is known by then, so the rows stay). */
+static void loguj_liste(void)
+{
+    static int zalogowana = -1;
+    int l[S_LICZBA], n = na_liscie(l), znak = 0;
+    char buf[64];
+    size_t d = 0;
+    for (int i = 0; i < n; i++) {
+        znak |= 1 << l[i];
+        d += (size_t)snprintf(buf + d, sizeof buf - d, " %d", l[i]);
+    }
+    if (znak == zalogowana)
+        return;
+    k1_log(TAG, "sekcje na liście:%s", buf);
+    if (zalogowana < 0)
+        k1_log(TAG, "układ: sekcje od 100,%d co %d; przyciski od %d,%d (szer. %d, wys. %d); tapety od %d,%d co %d",
+               NAV_Y + 16, NAV_WIERSZ, TRESC_X, seg_y(), SEG_W, SEG_H, TRESC_X + KARTA_W / 2, karty_y() + KARTA_H / 2,
+               KARTA_W + KARTA_ODST);
+    zalogowana = znak;
+}
 
 static int32_t karty_y(void)
 {
@@ -127,6 +162,7 @@ static void karty(struct k1_obraz *o, const struct k1_motyw *m)
                      k1_kolor(m->tekst, hover_karta == i ? 70 : 24));
         k1_tekst(o, wybrana ? K1_CZ_MALA_MOCNA : K1_CZ_MALA, x, y + KARTA_H + 20, i < K1_TAPETY ? nazwy_tapet[i] : "Zdjęcie",
                  k1_kolor(wybrana ? m->tekst : m->tekst2, 255), 0);
+        k1_el(K1_EL_KAFELEK, i < K1_TAPETY ? nazwy_tapet[i] : "Zdjęcie", x, y, KARTA_W, KARTA_H, wybrana ? K1_EL_WYBRANY : 0);
     }
 }
 
@@ -141,10 +177,17 @@ static int karta_pod(int32_t x, int32_t y)
     return -1;
 }
 
+/* Where mode nr is: its place among the modes ordered from the largest (the same size: ekran's order). */
 static void tryb_pole(int nr, int32_t *x, int32_t *y)
 {
-    *x = TRESC_X + ((nr - 1) / TRYBY_W_KOLUMNIE) * (TRYB_W + TRYB_ODST_X);
-    *y = seg_y() + ((nr - 1) % TRYBY_W_KOLUMNIE) * (TRYB_H + TRYB_ODST_Y);
+    int p = 0;
+    long pole = (long)apl.k.tryby[nr].szer * apl.k.tryby[nr].wys;
+    for (int i = 1; i <= apl.k.n_trybow; i++) {
+        long q = (long)apl.k.tryby[i].szer * apl.k.tryby[i].wys;
+        p += q > pole || (q == pole && i < nr);
+    }
+    *x = TRESC_X + (p % TRYBY_W_RZEDZIE) * (TRYB_W + TRYB_ODST_X);
+    *y = seg_y() + (p / TRYBY_W_RZEDZIE) * (TRYB_H + TRYB_ODST_Y);
 }
 
 static int tryb_pod(int32_t x, int32_t y)
@@ -157,6 +200,19 @@ static int tryb_pod(int32_t x, int32_t y)
             return nr;
     }
     return -1;
+}
+
+/* A mode's label in its button, centred: "1280 × 800", the recommended one with a small "zalecana" after it. */
+static void tryb_napis(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y, const char *t, int wybrany,
+                       int zalecany)
+{
+    enum k1_cz cz = wybrany ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST;
+    int32_t w = k1_tekst_szer(cz, t), wz = zalecany ? 6 + k1_tekst_szer(K1_CZ_MALA, "zalecana") : 0;
+    int32_t tx = x + (TRYB_W - w - wz) / 2;
+    k1_tekst(o, cz, tx, y + 23, t, k1_kolor(wybrany ? m->na_akcencie : m->tekst, 255), 0);
+    if (zalecany)
+        k1_tekst(o, K1_CZ_MALA, tx + w + 6, y + 23, "zalecana", k1_kolor(wybrany ? m->na_akcencie : m->tekst2,
+                 wybrany ? 200 : 255), 0);
 }
 
 static void tryby(struct k1_obraz *o, const struct k1_motyw *m)
@@ -174,18 +230,17 @@ static void tryby(struct k1_obraz *o, const struct k1_motyw *m)
         if (!wybrany)
             k1_obrys(o, (float)x, (float)y, TRYB_W, TRYB_H, 8, 1.0f, k1_kolor(m->tekst, 24));
         snprintf(buf, sizeof buf, "%d × %d", (int)apl.k.tryby[nr].szer, (int)apl.k.tryby[nr].wys);
-        k1_tekst(o, wybrany ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, x + (TRYB_W - k1_tekst_szer(wybrany ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, buf)) / 2,
-                 y + 21, buf, k1_kolor(wybrany ? m->na_akcencie : m->tekst, 255), 0);
+        tryb_napis(o, m, x, y, buf, wybrany, nr == apl.k.zalecany);
+        k1_el(K1_EL_PRZYCISK, buf, x, y, TRYB_W, TRYB_H, wybrany ? K1_EL_WYBRANY : 0);
     }
     if (apl.k.n_trybow <= 1) {
         k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + TRYB_H + 28, "Karta graficzna podaje tylko ten jeden tryb (obraz z firmware).",
                  k1_kolor(m->tekst2, 255), 0);
         k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + TRYB_H + 48, "W VirtualBoxie wybierz kartę VMSVGA, aby mieć więcej rozdzielczości.",
                  k1_kolor(m->tekst3, 255), 0);
-    } else if (apl.k.zalecany > 0) {
-        snprintf(buf, sizeof buf, "Zalecana: %d × %d. Wybór obowiązuje do wyłączenia komputera.", (int)apl.k.tryby[apl.k.zalecany].szer,
-                 (int)apl.k.tryby[apl.k.zalecany].wys);
-        k1_tekst(o, K1_CZ_MALA, TRESC_X, apl.wys - 24, buf, k1_kolor(m->tekst3, 255), 0);
+    } else {
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, apl.wys - 24, "Wybór obowiązuje do wyłączenia komputera.", k1_kolor(m->tekst3, 255),
+                 0);
     }
 }
 
@@ -206,8 +261,14 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
 
 static void nadzorca_dane(void)
 {
+    int l[S_LICZBA], n = na_liscie(l);
     if (bateria_odbierz() && (sekcja == S_BATERIA || sekcja == S_SIEC || sekcja == S_CZAS || sekcja == S_PRZEGLADARKA))
         k1_apl_odswiez(&apl);
+    if (bateria_znana()) {
+        loguj_liste();
+        if (na_liscie(l) != n)
+            k1_apl_odswiez(&apl); /* the battery came or went: the list changed */
+    }
 }
 
 static void skarbiec_dane(void)
@@ -225,8 +286,10 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     int i;
 
     k1_prostokat(o, BOK, K1_OKNO_TYTUL, 1, apl.wys - K1_OKNO_TYTUL - 12, k1_kolor(m->tekst, 20));
-    for (i = 0; i < S_LICZBA; i++) {
-        int32_t y = NAV_Y + i * NAV_WIERSZ;
+    int l[S_LICZBA], n = na_liscie(l), r;
+    for (r = 0; r < n; r++) {
+        int32_t y = NAV_Y + r * NAV_WIERSZ;
+        i = l[r];
         if (i == sekcja)
             k1_zaokraglony(o, 8, (float)y, BOK - 16, NAV_WIERSZ - 4, 8, k1_kolor(m->zaznaczenie, 255));
         else if (i == hover_nav)
@@ -297,8 +360,7 @@ static void loguj_tryby(void)
     for (nr = 1; nr <= apl.k.n_trybow && n < sizeof buf - 16; nr++)
         n += (size_t)snprintf(buf + n, sizeof buf - n, " %dx%d", (int)apl.k.tryby[nr].szer, (int)apl.k.tryby[nr].wys);
     buf[n] = '\0';
-    k1_log(TAG, "tryby ekranu:%s (przyciski od %d,%d, %d w kolumnie, co %d i %d)", buf, TRESC_X + TRYB_W / 2,
-           seg_y() + TRYB_H / 2, TRYBY_W_KOLUMNIE, TRYB_W + TRYB_ODST_X, TRYB_H + TRYB_ODST_Y);
+    k1_log(TAG, "tryby ekranu:%s (przyciski w opisie ekranu: „<szer.> × <wys.>”)", buf);
 }
 
 void ustawienia_pokaz(int s)
@@ -341,8 +403,9 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     int32_t w;
     int n = segmenty(&w), nav = -1, seg, karta = sekcja == S_WYGLAD && rodzaj != K1_WSK_WYJSCIE ? karta_pod(x, y) : -1;
     int tryb = sekcja == S_EKRAN && rodzaj != K1_WSK_WYJSCIE ? tryb_pod(x, y) : -1;
-    if (rodzaj != K1_WSK_WYJSCIE && x >= 8 && x < BOK - 8 && y >= NAV_Y && y < NAV_Y + S_LICZBA * NAV_WIERSZ)
-        nav = (y - NAV_Y) / NAV_WIERSZ;
+    int l[S_LICZBA], nl = na_liscie(l);
+    if (rodzaj != K1_WSK_WYJSCIE && x >= 8 && x < BOK - 8 && y >= NAV_Y && y < NAV_Y + nl * NAV_WIERSZ)
+        nav = l[(y - NAV_Y) / NAV_WIERSZ];
     seg = rodzaj == K1_WSK_WYJSCIE ? -1 : k1_segment_trafienie(TRESC_X, seg_y(), w, SEG_H, n, x, y);
     if (sekcja == S_APLIKACJE && aplikacje_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
         k1_apl_odswiez(&apl);
@@ -406,8 +469,5 @@ int main(void)
     apl.kanaly[2].fd = aktualizacje_start(); /* 0.10.5 step 1: the updates */
     apl.kanaly[2].dane = aktualizacje_dane;
     przygotuj_miniatury();
-    k1_log(TAG, "układ: sekcje od 100,%d co %d; przyciski od %d,%d (szer. %d, wys. %d); tapety od %d,%d co %d", NAV_Y + 16,
-           NAV_WIERSZ, TRESC_X, seg_y(), SEG_W, SEG_H, TRESC_X + KARTA_W / 2, karty_y() + KARTA_H / 2,
-           KARTA_W + KARTA_ODST);
     k1_apl_uruchom(&apl);
 }

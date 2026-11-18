@@ -20,7 +20,8 @@ sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
 log, mon, out, limit = sys.argv[1], sys.argv[2], sys.argv[3], float(sys.argv[4])
 q = Maszyna(log, mon, out, limit, "wzorce")
-SEKCJE = {"Wygląd": "wyglad", "Ekran": "ekran", "Bateria": "bateria", "Mysz": "mysz", "Data i czas": "czas",
+# QEMU has no battery: Bateria is not on the list (0.10.7 step 2; with a battery: test-m5)
+SEKCJE = {"Wygląd": "wyglad", "Ekran": "ekran", "Mysz": "mysz", "Data i czas": "czas",
           "Hasło": "haslo", "Aplikacje": "aplikacje", "Miejsce": "miejsce", "Sieć": "siec",
           "Przeglądarka": "przegladarka", "Aktualizacje": "aktualizacje", "Informacje": "informacje"}
 
@@ -51,6 +52,10 @@ def ustawienia(motyw):
     """Every section of Ustawienia (opened when it is not: a click on a running application's icon minimises it)."""
     if not q.element("Ustawienia") and not otworz("Ustawienia"):
         return q.sprawdz("Ustawienia otwarte", False)
+    q.sprawdz("NEGATYWNY: komputer bez baterii, sekcji „Bateria” nie ma na liście Ustawień",
+              q.czekaj(r"K1-USTAWIENIA: sekcje na liście: 0 1 3 4 ", czas=30) and  # the first frame may come before it
+              q.czekaj_na(lambda: q.element("Ustawienia", "Wygląd", "zakladka") is not None
+                          and q.element("Ustawienia", "Bateria", "zakladka") is None, czas=30))
     for sekcja, krotko in SEKCJE.items():
         stan_akt = r"K1-USTAWIENIA: aktualizacje: (?!sprawdzam)"
         n = q.ile(stan_akt)

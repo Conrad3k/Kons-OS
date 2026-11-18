@@ -112,7 +112,7 @@ if g:
     sek = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
     if u and sek:
         ux, uy = int(u.group(4)), int(u.group(5))
-        klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + 2 * int(sek.group(3)))
+        klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + q.wiersz_sekcji(2) * int(sek.group(3)))
         WZB = r"K1-USTAWIENIA: bateria: jest, 73%, próbek (\d+) co 30 s; wykres (\d+),(\d+) (\d+)x(\d+)"
         b = czekaj(WZB, czas=20)
         sprawdz("Ustawienia → Bateria: stan od nadzorcy (73 %, próbki co 30 s)", b, "brak")
@@ -127,7 +127,7 @@ if g:
             sprawdz(f"zrzut: wykres naładowania na całą szerokość ({linia} pikseli linii)", linia >= (ww - 16) * 2 * 0.8,
                     str(linia))
             n_b = ile(WZB)
-            klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + 2 * int(sek.group(3)))
+            klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + q.wiersz_sekcji(2) * int(sek.group(3)))
             b = czekaj(WZB, od=n_b, czas=20)
             sprawdz("Ustawienia → Bateria: historia od nadzorcy (co najmniej 2 próbki)", b and int(b.group(1)) >= 2,
                     b.group(0) if b else "brak")

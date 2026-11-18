@@ -53,6 +53,8 @@ void naglowek(struct k1_obraz *o, const struct k1_motyw *m, const char *tytul);
 int bateria_odbierz(void); /* what nadzorca sent (Sieć's messages too: siec_odbierz); 1 = redraw */
 void bateria_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 void bateria_loguj(void); /* the tests check the chart by this line */
+int bateria_brak(void);    /* nadzorca said: no battery (0.10.7 step 2: the section is not on the list) */
+int bateria_znana(void);   /* nadzorca said whether there is one */
 
 /* haslo.c */
 int haslo_start(void);      /* fd 5 when there is a channel to skarbiec, else -1 */
@@ -63,7 +65,7 @@ int haslo_klik(int32_t x, int32_t y);                    /* 1 = handled */
 void haslo_klawisz(unsigned kod, int wartosc, unsigned mody);
 void haslo_zamknij(void);   /* leaving the section: the form closes, typed text is wiped */
 void haslo_loguj(void);     /* the tests click by this line */
-const char *haslo_gdzie_dane(void); /* the Informacje line about the data */
+const char *haslo_gdzie_dane(void); /* Informacje: where the data is (the value, without its label) */
 int skarbiec_kanal(void);   /* fd 5 while it is open, else -1 */
 int haslo_tylko_pamiec(void); /* no K1-DANE: the data only in memory */
 int haslo_na_pendrive(void);  /* K1-DANE on a USB stick */

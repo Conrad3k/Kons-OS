@@ -60,7 +60,7 @@ def aktualizacje(g):
     if not (o and sk):
         return None
     ox, oy = int(o.group(4)), int(o.group(5))
-    klik(ox + int(sk.group(1)), oy + int(sk.group(2)) + 10 * int(sk.group(3)))
+    klik(ox + int(sk.group(1)), oy + int(sk.group(2)) + q.wiersz_sekcji(10) * int(sk.group(3)))
     return ox, oy, czekaj(STAN_AKT, czas=60)
 STAN_AKT = r"K1-USTAWIENIA: aktualizacje: (?!sprawdzam)([^(]+?) \(dysk: ([^,]*), pendrive: ([^)]*)\); przycisk (-?\d+),(-?\d+)"
 
@@ -99,7 +99,7 @@ if tryb == "z-dysku":
     u = czekaj(r"K1-EKRAN: okno (\d+) \(ustawienia\) (\d+)x(\d+) w (\d+),(\d+)", czas=30)
     sk = czekaj(r"K1-USTAWIENIA: układ: sekcje od (\d+),(\d+) co (\d+)", czas=30)
     if u and sk:
-        klik(int(u.group(4)) + int(sk.group(1)), int(u.group(5)) + int(sk.group(2)) + 7 * int(sk.group(3)))
+        klik(int(u.group(4)) + int(sk.group(1)), int(u.group(5)) + int(sk.group(2)) + q.wiersz_sekcji(7) * int(sk.group(3)))
     c = czekaj(r"K1-USTAWIENIA: miejsce: części: .*; nośnik: (\w+)", czas=30)
     mj = czekaj(r"K1-USTAWIENIA: miejsce: zajęte \d+ z (\d+) MiB, .* pendrive ma więcej (\d+) MiB; przycisk (-?\d+),", czas=10)
     sprawdz("(0.8.5) start z dysku: Ustawienia → Miejsce — nośnik: dysk, bez przycisku „Użyj całego pendrive'a”",

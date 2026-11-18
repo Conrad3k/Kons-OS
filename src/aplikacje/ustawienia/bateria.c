@@ -173,6 +173,16 @@ static void poprzednie(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, 
     }
 }
 
+int bateria_znana(void)
+{
+    return bat.znana;
+}
+
+int bateria_brak(void)
+{
+    return bat.znana && !bat.obecna;
+}
+
 void bateria_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char buf[96], a[32];

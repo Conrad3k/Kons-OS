@@ -434,6 +434,13 @@ class Maszyna:
 
     # ---- 0.10.2 step 3: reference screenshots (k1wzorce.py) ----
 
+    def wiersz_sekcji(self, nr):
+        """0.10.7 step 2: the row of Ustawienia's section `nr` (S_* in src/aplikacje/ustawienia/ustawienia.h) on its list,
+        as the newest Ustawienia logged it ("sekcje na liście: 0 1 3 …") — without a battery Bateria is not there."""
+        m = re.findall(r"K1-USTAWIENIA: sekcje na liście: ([\d ]+)", self.tekst())
+        lista = [int(v) for v in m[-1].split()] if m else []
+        return lista.index(nr) if nr in lista else nr
+
     def tryb_ekranu(self):
         """(W, H) of the screen's newest mode from ekran's log, or (0, 0)."""
         m = re.findall(r"K1-EKRAN: tryb (\d+)x(\d+)", self.tekst())
