@@ -111,7 +111,7 @@ QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs) — 
   albo ISO: firmware (UEFI/BIOS) → GRUB (tryb graficzny) → k1.efi
   albo pendrive/dysk (0.7.0): UEFI → shim (MS) → GRUB (Canonical) → grubenv (miejsce A/B, próba raz) →
        loopback /k1/<miejsce>.img → k1.efi (z Secure Boot: podpis sprawdzony przez shim, klucz K1 w MOK)
- └─ jądro 6.18 ── otwiera /dev/console w initramfs, uruchamia /init
+ └─ jądro 7.3 ─── otwiera /dev/console w initramfs, uruchamia /init
      └─ k1-initramfs (PID 1)
           /proc/cmdline → k1.rdzen=/dev/vda albo =wbudowany (/rdzen.squashfs przez loop) (walidacja)
           tmpfs → nowy korzeń: aplikacje/ dane_uzytkownika/ rdzen/

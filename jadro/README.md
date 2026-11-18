@@ -24,8 +24,10 @@ procedury tylko w kroku planu albo gdy robot założył Issue „robot” — ni
 
 ## Aktualizacja jądra (procedura)
 Poprawki bezpieczeństwa jądra mają najwyższy priorytet (SPEC §10).
-1. Sprawdź najnowsze wydanie linii LTS: `curl -s https://www.kernel.org/releases.json`.
-2. Pobierz `sha256sums.asc` z `https://cdn.kernel.org/pub/linux/kernel/v6.x/`, sprawdź podpis
+1. Sprawdź najnowsze wydanie linii, na której jest K1 (od 0.10.5: 7.3 — linia „stable”, nie długoterminowa; T20 planu
+   0.10.5: zmiana linii — najnowsza długoterminowa, a gdy jej nie ma, najnowsza stabilna, nigdy rc):
+   `curl -s https://www.kernel.org/releases.json`. Nowa linia: najpierw `scripts/porownaj-jadro.sh` dla obu jąder.
+2. Pobierz `sha256sums.asc` z `https://cdn.kernel.org/pub/linux/kernel/v<N>.x/` (7.x: `v7.x`), sprawdź podpis
    (`gpg --verify`, klucz autosignera z `klucze/`) i przepisz sumę nowego `linux-X.Y.Z.tar.xz`
    do `wersja.env`.
 3. `scripts/zbuduj-jadro.sh` — sprawdzi sumę i podpis PGP wydania (klucz Grega Kroah-Hartmana)

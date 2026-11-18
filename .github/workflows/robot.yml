@@ -102,10 +102,15 @@ jobs:
         if: steps.start.outputs.stop != '1'
         run: scripts/robot.sh
 
-      - name: Issue, gdy robot nie umie (pytania o konfigurację jądra)
+      - name: Issue, gdy robot nie umie (pytania o konfigurację jądra; koniec krótkiej linii — T20)
         if: steps.co.outputs.co == 'pytanie' || steps.co.outputs.co == 'pytanie-i-zmiana'
+        env:
+          TYTUL: "${{ steps.co.outputs.pytanie_tytul || 'Robot: nowa linia jądra czeka na decyzje o konfiguracji' }}"
         run: |
-          gh issue create --label robot --title "Robot: nowa linia jądra czeka na decyzje o konfiguracji" --body-file build/robot-pytanie.md
+          # one open Issue per question: the robot runs every day
+          if [ "$(gh issue list --state open --label robot --json title --jq "[.[] | select(.title == env.TYTUL)] | length")" = 0 ]; then
+            gh issue create --label robot --title "$TYTUL" --body-file build/robot-pytanie.md
+          fi
 
       # T8: the robot changes numbers and sums only — any other file stops it
       - name: Tylko pliki z listy (T8)

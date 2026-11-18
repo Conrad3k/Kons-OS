@@ -28,9 +28,10 @@ make_jadra -j"$K1_CPU" bzImage
 cp "$K1_JADRO_OBJ/arch/x86/boot/bzImage" "$K1_WYNIK/k1.efi.niepodpisany"
 
 # Signature for Secure Boot (shim → GRUB → k1.efi): Authenticode, RSA-2048. A frozen clock makes the
-# signature (its signing time) the same in every build of the same sources.
+# signature (its signing time) the same in every build of the same sources (-f: the clock stands still; without it, it
+# starts at that time and runs — a second later in a slower build, 0.10.5 step 7).
 [ -f "$SB/k1-sb.key" ] || blad "brak klucza Secure Boot (narzedzia/klucz_sb.py — make)"
-faketime "$(date -u -d "@$SOURCE_DATE_EPOCH" '+%Y-%m-%d %H:%M:%S')" \
+faketime -f "$(date -u -d "@$SOURCE_DATE_EPOCH" '+%Y-%m-%d %H:%M:%S')" \
     sbsign --key "$SB/k1-sb.key" --cert "$SB/k1-sb.crt" --output "$K1_WYNIK/k1.efi" "$K1_WYNIK/k1.efi.niepodpisany" \
     >/dev/null 2>&1 || blad "sbsign k1.efi"
 rm -f "$SB/k1-sb.key" # never left lying around (regenerated from the secret by the next build)

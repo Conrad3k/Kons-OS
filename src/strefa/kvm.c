@@ -26,8 +26,8 @@
 
 /* K1 itself runs in QEMU's emulation (TCG: the hypervisor leaf says "TCGTCGTCGTCG") — the tests without KVM. Its
  * emulated SVM breaks a second processor of the zone (it starts in real mode, without paging: ADR 0042 T10), so a zone
- * gets one there; on a real processor (or KVM under KVM in CI) the row's number. */
-static int emulacja_qemu(void)
+ * gets one there; on a real processor (or KVM under KVM in CI) the row's number. Also main.c: highres=off. */
+int emulacja_qemu(void)
 {
     unsigned a, b, c, d;
     char p[13];

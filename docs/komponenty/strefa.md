@@ -113,7 +113,7 @@ rysuje ekran (`docs/komponenty/ekran.md`); wysokość obrazu jest o pasek (`K1_S
 ## Przeglądarka (0.10.0 krok 2, ADR 0043)
 Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka”), „Bank” (łupek), „Prywatna” (wrzos): obraz
 `/rdzen/strefy/przegladarka.img`, 1536 MiB na start (od 0.10.1 górna granica: pamięć komputera minus rezerwa K1, balon —
-ADR 0044), 2 procesory (w emulacji QEMU — 1); Ogólna i Bank pamiętają (krok 5), Prywatna zapomina.
+ADR 0044), 2 procesory (w emulacji QEMU — 1, i od 0.10.5 krok 7 gość z `highres=off`: jądro strefy 7.x odracza przestawianie zegara (`HRTIMER_REARM_DEFERRED`) i pod emulowanym SVM bezczynny gość widział klawisz po minucie; z KVM na prawdziwym procesorze bez zmian); Ogólna i Bank pamiętają (krok 5), Prywatna zapomina.
 - **Obraz** (`scripts/zbuduj-strefe.sh`): pakiety Debiana 13 z tabeli `strefy/przegladarka.txt` (wersje i sumy;
   odświeżenie `scripts/odswiez-strefe.py` — podpisy Debiana sprawdzane kluczami z `strefy/klucze/`), rozpakowane bez
   skryptów pakietów, bez powłoki; nasze: `/init` (`gosc`), `/usr/lib/k1/kompozytor`, `/usr/lib/k1/przekaznik`, mapa

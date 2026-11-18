@@ -89,6 +89,8 @@ static int sterowanie(void)
 struct stan {
     unsigned klawisze, klikniecia;
     uint8_t wcisniete[BTN_MISC / 8]; /* the keys held now (0.10.5 step 6: Alt is let go after Alt+Tab) */
+    unsigned przy_wcisnieciu;        /* how many were held when the latest key went down (it too) — not at the end of a
+                                      * read: with KVM a key's down and up come in one read */
     int32_t x, y;
     int32_t kolko, dokladne; /* the wheel (0.10.0 step 4): notches (REL_WHEEL, > 0 up) and 1/120 parts (_HI_RES) */
 };
@@ -106,6 +108,9 @@ static int zdarzenia(int fd, struct stan *s)
         } else if (e[i].type == EV_KEY && e[i].code < BTN_MISC && e[i].value == 1) {
             s->klawisze++;
             s->wcisniete[e[i].code / 8] = (uint8_t)(s->wcisniete[e[i].code / 8] | (1u << (e[i].code % 8)));
+            s->przy_wcisnieciu = 0;
+            for (size_t b = 0; b < sizeof s->wcisniete; b++)
+                s->przy_wcisnieciu += (unsigned)__builtin_popcount(s->wcisniete[b]);
             zmiana = 1;
         } else if (e[i].type == EV_KEY && e[i].code < BTN_MISC && e[i].value == 0) {
             s->wcisniete[e[i].code / 8] = (uint8_t)(s->wcisniete[e[i].code / 8] & ~(1u << (e[i].code % 8)));
@@ -121,12 +126,8 @@ static int zdarzenia(int fd, struct stan *s)
             przewiniecie = 1;
         }
     }
-    if (zmiana) { /* counts only, never codes */
-        unsigned trzyma = 0;
-        for (size_t b = 0; b < sizeof s->wcisniete; b++)
-            trzyma += (unsigned)__builtin_popcount(s->wcisniete[b]);
-        loguj("wejście: klawisze %u, kliknięcia %u, wciśnięte %u", s->klawisze, s->klikniecia, trzyma);
-    }
+    if (zmiana) /* counts only, never codes */
+        loguj("wejście: klawisze %u, kliknięcia %u, wciśnięte %u", s->klawisze, s->klikniecia, s->przy_wcisnieciu);
     if (przewiniecie) /* the sums: the test turns the wheel and reads them */
         loguj("wejście: kółko %d ząbków, %d/120", (int)s->kolko, (int)s->dokladne);
     return zmiana;

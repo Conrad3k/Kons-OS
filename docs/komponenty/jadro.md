@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M1) — start w QEMU, testy `scripts/test-m1.sh` |
-| **Wersja** | 6.18.60 LTS (`jadro/wersja.env`), decyzje: ADR 0003 |
+| **Wersja** | 7.3.5 — najnowsza linia stabilna, nie długoterminowa (`jadro/wersja.env`; od 0.10.5 krok 7, D14, T20 — wcześniej 6.18 LTS), decyzje: ADR 0003 |
 | **Pliki** | `jadro/k1.config` (fragment Kconfig), `jadro/cmdline`, `jadro/klucze/`, `scripts/zbuduj-jadro.sh`; zamknięte jądro: `jadro/k1-zamkniete.config`, `scripts/zbuduj-k1efi.sh`, klucz Secure Boot: `narzedzia/klucz_sb.py` (ADR 0022) |
 
 ## Cel
@@ -25,7 +25,7 @@ osobne jądro dla przeglądarki (0.10, strefy).
 
 ## Zabezpieczenia i odstępstwa od KSPP
 Lista KSPP: `scripts/sprawdz-kspp.sh` (dane z kernel-hardening-checker v0.6.17.1). Wynik dla
-6.18.60 i powód każdej różnicy:
+7.3.5 (0.10.5 krok 7 — ten sam co dla 6.18.60 poza jedną nową nazwą, niżej) i powód każdej różnicy:
 
 | Opcja wg KSPP | Dlaczego u nas inaczej |
 |---|---|
@@ -39,6 +39,13 @@ Lista KSPP: `scripts/sprawdz-kspp.sh` (dane z kernel-hardening-checker v0.6.17.1
 | `INTEL_IOMMU_SVM` | wymaga dodatkowych podsystemów (SVA/PASID), niepotrzebnych w M1 |
 | `AMD_IOMMU_V2`, `DEBUG_CREDENTIALS`, `GCC_PLUGIN_STRUCTLEAK*`, `PAGE_POISONING_ZERO`, `PAGE_TABLE_ISOLATION`, `SLS`, `UBSAN_SANITIZE_ALL` | nazwy ze starszych wersji jądra; w 6.18 zastąpione (`MITIGATION_PAGE_TABLE_ISOLATION`, `MITIGATION_SLS`, `INIT_STACK_ALL_ZERO`, … — wszystkie włączone) albo usunięte |
 | `ARM64_*`, `ARM_*`, `SHADOW_CALL_STACK`, `KASAN_HW_TAGS`, `HIGHMEM*`, `X86_PAE` | inne architektury / 32-bit |
+| `RANDOM_KMALLOC_CACHES` | nazwa z 6.18; w 7.x ta sama ochrona to `KMALLOC_PARTITION_CACHES` z trybem `KMALLOC_PARTITION_RANDOM` — włączone (lista KSPP zna jeszcze starą nazwę) |
+
+**Linia 7.3 (0.10.5 krok 7):** w 7.x na x86 nie ma już trybu bez wywłaszczania (`PREEMPT_NONE`) — jądro bierze tryb
+„leniwy” (`PREEMPT_LAZY`), nowy domyślny; `PROC_SYSCTL` nazywa się `SYSCTL`; wybór TSX w allnoconfig to teraz „auto”,
+więc fragment mówi wprost „off” (`X86_INTEL_TSX_MODE_OFF`). Nowe opcje „domyślnie tak”, których K1 nie chce, z powodem —
+`jadro/k1-odrzucone.txt` i `jadro/strefa-odrzucone.txt` (koniec plików). Rozmiar: jądro K1 12 972 KiB (6.18: 12 625),
+jądro stref 2 976 KiB (2 852), `k1.efi` 125 600 KiB (125 110) — w miejscu A/B 128 MiB zostaje ok. 5 MiB.
 
 Pozostałe zalecenia KSPP dla x86_64 są spełnione (np. KASLR, `STACKPROTECTOR_STRONG`,
 `HARDENED_USERCOPY`, `INIT_ON_ALLOC/FREE`, `LIST_HARDENED`, `KSTACK_ERASE`, `IOMMU_DEFAULT_DMA_STRICT`,

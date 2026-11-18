@@ -284,7 +284,8 @@ static uint32_t zdarzenia;
 
 static void konfig(struct mmio_urz *u, uint32_t od, uint8_t *dst, uint32_t n)
 {
-    struct virtio_gpu_config c = { zdarzenia, 0, 1, 0 };
+    /* by name: Linux 7.x added blob_alignment (it means something only with VIRTIO_GPU_F_BLOB_ALIGNMENT, not offered) */
+    struct virtio_gpu_config c = { .events_read = zdarzenia, .num_scanouts = 1 };
     (void)u;
     memcpy(dst, (const uint8_t *)&c + od, n);
 }

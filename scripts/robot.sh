@@ -80,6 +80,25 @@ if [ "$NOWA" != "$STARA" ] && python3 -I -c 'import sys; a,b=(tuple(map(int,x.sp
     fi
 fi
 
+# T20 (0.10.5 step 7): K1 may be on a short line (stable, not longterm — 7.3 since 0.10.5). When it ends (end of life)
+# and no longterm line as new as it exists, the robot does not pick a short line itself: an Issue for a person.
+if [ -z "$PYTANIE" ] && [ "$NOWA" = "$STARA" ] && python3 -I - "$T/releases.json" "$LINIA" <<'PY'
+import json, sys
+r = json.load(open(sys.argv[1]))["releases"]
+def w(v): return tuple(int(x) for x in v.split("."))
+linia = sys.argv[2]
+ta = [x for x in r if x["moniker"] in ("stable", "longterm") and x["version"].rsplit(".", 1)[0] == linia]
+lt = [x for x in r if x["moniker"] == "longterm" and w(x["version"].rsplit(".", 1)[0]) >= w(linia)]
+sys.exit(0 if all(x.get("iseol") for x in ta) and not lt else 1)
+PY
+then
+    PYTANIE=linia
+    wyjscie "pytanie_tytul=Robot: linia jądra $LINIA kończy wsparcie — wybór następnej linii"
+    { echo "Linia jądra Linux $LINIA, na której jest K1 ($STARA), kończy wsparcie na kernel.org, a nowszej linii"
+      echo "długoterminowej jeszcze nie ma. Robot sam linii krótkiej nie wybiera (T20, plan 0.10.5): przejście na najnowszą"
+      echo "stabilną linię robi człowiek według jadro/README.md (porównanie konfiguracji, pełne testy)."; } > build/robot-pytanie.md
+fi
+
 # --- (b) the browser's packages ---
 cp strefy/przegladarka.txt "$T/przegladarka.txt"
 python3 -I scripts/odswiez-strefe.py >/dev/null

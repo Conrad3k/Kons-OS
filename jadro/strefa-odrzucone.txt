@@ -4,7 +4,8 @@
 # ZMIENIA TYLKO CZŁOWIEK (Claude albo Codex zwykłym PR-em) — robot tego pliku nie rusza (T8). Przeniesienie opcji do
 # fragmentu („chcemy”) = usunięcie jej stąd w tym samym PR-ze.
 # Pierwsze wypełnienie (2026-11-18, Linux 6.18.60): wszystkie opcje „domyślnie tak”, które K1 wyłącza od początku
-# (allnoconfig + fragment, ADR 0003) — jeden wspólny powód; przegląd pojedynczych opcji: krok 7 planu 0.10.5 (7.x).
+# (allnoconfig + fragment, ADR 0003) — jeden wspólny powód. Linia 7.3 (0.10.5 krok 7): nowe pytania porównania —
+# każde z własnym powodem, na końcu pliku.
 CONFIG_ACPI_AC  pierwsze wypełnienie: allnoconfig — K1 tego nie używa (ADR 0003)
 CONFIG_ACPI_BATTERY  pierwsze wypełnienie: allnoconfig — K1 tego nie używa (ADR 0003)
 CONFIG_ACPI_BUTTON  pierwsze wypełnienie: allnoconfig — K1 tego nie używa (ADR 0003)
@@ -207,3 +208,8 @@ CONFIG_XZ_DEC_POWERPC  pierwsze wypełnienie: allnoconfig — K1 tego nie używa
 CONFIG_XZ_DEC_RISCV  pierwsze wypełnienie: allnoconfig — K1 tego nie używa (ADR 0003)
 CONFIG_XZ_DEC_SPARC  pierwsze wypełnienie: allnoconfig — K1 tego nie używa (ADR 0003)
 CONFIG_ZONE_DMA  pierwsze wypełnienie: allnoconfig — K1 tego nie używa (ADR 0003)
+# Linia 7.3 (0.10.5 krok 7, 2026-11-18): pytania porównania 6.18.60 → 7.3.5.
+CONFIG_BALLOON_MIGRATION  przenoszenie stron balonu (do 6.18 BALLOON_COMPACTION, też wyłączone) — strefa żyje krótko, nie kompaktuje pamięci
+CONFIG_PROC_MEM_ALWAYS_FORCE  7.x wybiera FORCE_PTRACE (nadpisanie uprawnień pamięci przez /proc/pid/mem tylko przy aktywnym ptrace) — bezpieczniej niż dawny wybór
+CONFIG_SCHED_CACHE  nowe w 7.x: planowanie według kilku pamięci L3 — strefa ma 1–2 procesory, nic nie zyskuje
+CONFIG_SYSCALL_USER_DISPATCH  przechwytywanie własnych wywołań systemowych (emulatory Windows) — przeglądarka tego nie używa
