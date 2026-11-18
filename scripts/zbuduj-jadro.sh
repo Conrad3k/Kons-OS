@@ -37,6 +37,17 @@ fi
 FRAGMENT=$K1_BUDOWA/jadro-fragment.config
 cat "$K1_REPO/jadro/k1.config" "$K1_BUDOWA/pliki-kart.config" >"$FRAGMENT"
 
+# Another kernel version in the same build directories: they start from zero. make compares times, and the sources of a
+# new version (dates from the tarball) are older than files generated for the old one — 0.10.5 step 7: 7.3.5 over
+# 6.18.60 kept 6.18's lib/oid_registry_data.c (not reproducible, a wrong table). The CI cache has the version in its key.
+for d in "$K1_JADRO_OBJ" "$K1_STREFA_OBJ"; do
+    if [ -d "$d" ] && [ "$(cat "$d/.k1-wersja" 2>/dev/null)" != "$K1_JADRO_WERSJA" ]; then
+        info "katalog budowy $(basename "$d") z innej wersji jądra — od zera"
+        rm -rf "$d"
+    fi
+    mkdir -p "$d" && echo "$K1_JADRO_WERSJA" > "$d/.k1-wersja"
+done
+
 info "konfiguracja: allnoconfig + jadro/k1.config + pliki od producentów kart"
 mkdir -p "$K1_JADRO_OBJ"
 make_jadra KCONFIG_ALLCONFIG="$FRAGMENT" allnoconfig >/dev/null

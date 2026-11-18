@@ -661,7 +661,29 @@ KROK 7 — Jądro Linux 7.x (najnowsza linia)                               M ·
   Dokumenty: jadro/README.md (wersja, linia), docs/komponenty/jadro.md (odstępstwa KSPP, nowe opcje), ADR 0003
   (dopisek: linia 7.x, T20), ZALEZNOSCI (jądro), CHANGELOG — w kroku 8.
   Gotowe, gdy: oba jądra na 7.x, porównanie bez nierozstrzygniętych pytań, testy [OK], obraz powtarzalny.
-  Ustalenia z wykonania: (pusto — wypełnia krok 7)
+  Ustalenia z wykonania (2026-11-18, krok 7):
+  - T20: www.kernel.org (releases.json) niedostępny z kontenera; listing cdn.kernel.org v7.x: najnowsza 7.3.5, 7.4 jeszcze
+    rc, długoterminowej 7.x brak — wybrana 7.3.5 (linia stabilna). Robot: poprawki 7.3.x robi sam; koniec linii 7.3 bez
+    nowszej długoterminowej → Issue (scripts/robot.sh, robot.yml — jedno otwarte naraz).
+  - S52 POTWIERDZONE: sha256sums.asc dla v7.x podpisuje autosigner kernel.org B8868C80…589DA6B1 (ten sam co v6.x).
+  - T19: porównanie 6.18.60 → 7.3.5 — jądro K1 14 pytań, jądro stref 6 (rozstrzygnięcia: opis PR #165, powody w
+    jadro/*-odrzucone.txt); „ZNIKNĘŁA”: we fragmentach tylko PROC_SYSCTL (→ SYSCTL), RANDOM_KMALLOC_CACHES (→
+    KMALLOC_PARTITION_CACHES + _RANDOM), MEMORY_BALLOON (→ BALLOON); reszta to opcje ukryte. Wybór TSX w allnoconfig
+    zmienił się z „off” na „auto” — fragment mówi wprost „off”. Na x86 w 7.x tylko PREEMPT albo PREEMPT_LAZY (domyślne).
+    7.3.5 z samym sobą: 0 pytań dla obu jąder. Przegląd pojedynczych opcji „pierwszego wypełnienia” list odrzuconych (481
+    wierszy z jednym wspólnym powodem) — nie w tym kroku: nowe pozycje mają własne powody, stare zostają (ADR 0003).
+  - S53 POTWIERDZONE: nazwy plików kart w 7.3.5 bez zmian; rtw89 8852B ma FORMAT_MAX 2, ale schodzi do formatu 1 (fw.c).
+  - S54 POTWIERDZONE: jedyna zmiana UAPI dla naszego kodu — virtio_gpu_config.blob_alignment (gpu.c po nazwach).
+  - S55 POTWIERDZONE: k1.efi 125 600 KiB (6.18: 125 110), zapas w miejscu A/B ok. 5 MiB; start (test-m1) 6 s jak dotąd.
+  - Znalezione w test-strefa (emulacja TCG): z jądrem gościa 7.3.5 pojedynczy klawisz/ząbek kółka docierał po 1–5 min.
+    Pomiar (jądro K1 7.3.5): gość 7.3.5 — 65 s i 286 s; gość 6.18 — 0,2 s; gość 7.3.5 bez HIGH_RES_TIMERS (czyli bez nowego
+    HRTIMER_REARM_DEFERRED, def_bool bez pytania) — 0,2 s. CI z KVM na PR #165 zielone z tym samym jądrem, więc to sama
+    emulacja: VMM daje gościowi „highres=off” tylko pod QEMU-TCG (emulacja_qemu, jak 1 procesor), na sprzęcie bez zmian.
+    Drzewo robocze w katalogu scratchpad dało za długie ścieżki gniazd QEMU (>108 B) — test-m1 padł w 1 s (nie jądro).
+  - sprawdz-powtarzalnosc: budowa przyrostowa 7.3.5 w katalogu po 6.18.60 zostawiła plik generowany z 6.18
+    (lib/oid_registry_data.c — źródła z archiwum mają starszą datę niż on, więc make go nie odświeżył): bzImage inny niż
+    od zera. scripts/zbuduj-jadro.sh zapisuje wersję w katalogu obiektów (.k1-wersja) i przy innej zaczyna od zera
+    (CI: klucz pamięci podręcznej ma i tak jadro/**).
 
 KROK 8 — Przegląd dokumentacji repozytorium; wydanie 0.10.5               M · decyzja D10 · bez ADR
   Dodany przez właściciela 2026-11-15 (jako krok 6; od 2026-11-17 krok 7, potem krok 8 — wydanie zawsze ostatnie): na koniec
