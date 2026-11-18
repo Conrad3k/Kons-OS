@@ -7,7 +7,7 @@ co trafia **do obrazu** (działa na komputerze użytkownika), od tego, co służ
 
 | Zależność | Wersja | Licencja | Źródło i weryfikacja | Uzasadnienie |
 |---|---|---|---|---|
-| Jądro Linux | 6.18.60 (LTS) | GPL-2.0 | cdn.kernel.org; SHA-256 przypięta w `jadro/wersja.env`, podpis PGP wydania sprawdzany przy każdym pobraniu | fundament systemu (SPEC §4) |
+| Jądro Linux | 7.3.5 (linia stabilna; od 0.10.5 — wcześniej 6.18 LTS) | GPL-2.0 | cdn.kernel.org; SHA-256 przypięta w `jadro/wersja.env`, podpis PGP wydania sprawdzany przy każdym pobraniu | fundament systemu (SPEC §4) |
 | musl libc (statycznie w każdym programie) | 1.2.5 + łatki CVE-2025-26519 (`iconv`, 2 commity musl) i `-static-pie` w `musl-gcc` (Debian) — od 0.9.0 nasz build | MIT | oryginalne wydanie `musl-1.2.5.tar.gz` z archiwum Ubuntu (pakiet źródłowy) albo musl.libc.org; SHA-256 przypięta i podpis PGP wydawcy sprawdzany przy każdym pobraniu (`musl/wersja.env`, `musl/klucze/`); łatki w `musl/latki/`; budowa `scripts/zbuduj-musl.sh` (`musl/README.md`) | mała, czytelna libc ze wsparciem statycznego linkowania (SPEC §4); ADR 0002; własny build — przypięta wersja i poprawki bezpieczeństwa (0.9.0 krok 4, RYZYKA R8). Poprawki po 1.2.5 wg Debiana/Ubuntu (do 1.2.5-3build1): tylko CVE-2025-26519 |
 | fortify-headers (nagłówki, wbudowane w kod każdego programu przy kompilacji) | 3.0.1 (tag `3.0.1`, commit `eec2b5e0`, 2025-12-30) | 0BSD (ISC bez warunku) | github.com/jvoisin/fortify-headers (kontynuacja git.2f30.org/fortify-headers, jak w Alpine); pliki `include/` i `LICENSE` w `src/zewnetrzne/fortify-headers/` bez zmian, SHA-256 w `SHA256SUMS`; pobrane przez proxy.golang.org — suma modułu `h1:mGe2tFFxzSCPFdVtQboD+FSGJZWMU3/alrUO5RMgFZ4=` potwierdzona w publicznym rejestrze sum.golang.org (`go mod download`) | `_FORTIFY_SOURCE=3` z musl (0.9.0 krok 4, korekta ADR 0007, RYZYKA R7): sprawdzenie granic w `memcpy`, `read`, `snprintf`… w czasie działania; przepełnienie = pułapka (`ud2`, SIGILL), bez biblioteki i bez `__*_chk`; mały, czytelny kod (ok. 10 nagłówków) używany w Alpine i Chimera Linux; aktualizacja: nowy tag, porównanie zmian, nowe sumy, pełne testy |
 | IBM Plex Sans / Serif — **tylko bitmapy glifów** wbudowane w `gui` i aplikacje | 6.1.1 (`fonts-ibm-plex`) | SIL OFL 1.1 | archiwum Ubuntu | tekst z polskimi znakami bez parsera czcionek w systemie (ADR 0009) |
@@ -49,7 +49,7 @@ API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybo
 | GCC (+ `gcc-13-plugin-dev`) | 13.3.0 | Ubuntu 24.04 | kompilacja jądra (z wtyczkami KSTACK_ERASE, LATENT_ENTROPY) i programów K1 |
 | `musl-gcc` | z naszego musl (wyżej) | `build/musl/bin` | wrapper kompilatora dla musl (od 0.9.0 nie z `musl-tools` Ubuntu); `gnupg` — sprawdzenie podpisu wydania musl |
 | binutils, make, flex, bison, bc, libelf, libssl, rsync, cpio, xz | Ubuntu 24.04 | Ubuntu | wymagania budowy jądra |
-| `gen_init_cpio` | z jądra 6.18.60 | źródła jądra | budowa initramfs bez uprawnień roota, deterministycznie (`-t`) |
+| `gen_init_cpio` | z jądra 7.3.5 | źródła jądra | budowa initramfs bez uprawnień roota, deterministycznie (`-t`) |
 | squashfs-tools (`mksquashfs`) | 4.6.1 | Ubuntu 24.04 | budowa obrazu `/rdzen` (zstd, `SOURCE_DATE_EPOCH`) |
 | FreeType (`libfreetype-dev`) + `pkg-config` | 2.13.2 | Ubuntu 24.04 | `narzedzia/czcionki.c`: rasteryzacja czcionek do bitmap przy budowie (ADR 0009); nie trafia do obrazu |
 | zlib (`zlib1g-dev`) | 1.3 | Ubuntu 24.04 | `narzedzia/ekran_startowy.c`: kompresja PNG logo startowego dla GRUB-a (0.5.8); nie trafia do systemu K1 |

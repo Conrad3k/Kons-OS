@@ -62,6 +62,12 @@
 - **Sprzęt w M1:** tylko to, czego potrzebuje maszyna QEMU q35 (PCI, ACPI, virtio-blk, port
   szeregowy 8250, EFI stub na przyszłość). Sterowniki prawdziwego sprzętu — od M2.
 
+- **[korekta: plan 0.10.5, krok 7 — D14, T20; 2026-11-18]** Od 0.10.5 K1 jest na linii **7.3** (7.3.5) — najnowszej
+  stabilnej w chwili zmiany; długoterminowej linii 7.x jeszcze nie było. Zasada wyboru linii (T20): najnowsza długoterminowa,
+  a gdy nowszej od obecnej nie ma — najnowsza stabilna (nigdy rc); poprawki tej linii i przejście na nową długoterminową
+  robi robot (ADR 0047), koniec krótkiej linii bez nowszej długoterminowej — Issue dla człowieka. Konfiguracja bez zmian
+  w zasadzie (allnoconfig + fragment); przy zmianie linii porównanie `scripts/porownaj-jadro.sh` (T19).
+
 ## Konsekwencje
 - Jądro ma ~3,8 MiB i buduje się w ~2–3 min na 4 rdzeniach.
 - Każda aktualizacja jądra: nowa suma w `jadro/wersja.env`, sprawdzenie podpisu, ponowne

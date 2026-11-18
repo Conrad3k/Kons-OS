@@ -28,6 +28,11 @@ Przy zmianie robot podbija `VERSION` (tylko PATCH) i dopisuje wpis w `CHANGELOG.
 ## Kiedy prosi człowieka (Issue z etykietą „robot”)
 - **Nowa linia jądra z pytaniami o konfigurację:** lista opcji z opisem z Kconfig. Każdą rozstrzyga człowiek: do fragmentu
   albo do `jadro/*-odrzucone.txt` z powodem. Następny bieg robota rusza dalej.
+- **Koniec krótkiej linii jądra (T20, 0.10.5 krok 7):** K1 może stać na linii „stable”, która nie jest długoterminowa (od
+  0.10.5: 7.3). Jej poprawki robot robi sam; gdy linia kończy wsparcie, a nowszej długoterminowej nie ma, robot nie wybiera
+  sam następnej krótkiej linii — Issue „Robot: linia jądra X kończy wsparcie — wybór następnej linii” (jedno otwarte naraz;
+  przejście robi człowiek według `jadro/README.md`). Pojawi się długoterminowa nie starsza od obecnej — robot przechodzi na
+  nią sam (7 dni spokoju, porównanie konfiguracji).
 - **Czerwone testy:** PR robota zostaje otwarty — zmianę robi Claude albo Codex zwykłym PR-em.
 - **Zła suma, zły podpis źródła, błąd przebiegu:** nic nie scalone.
 
