@@ -133,8 +133,9 @@ Osiem kroków:
 [x]  3  Robot na GitHubie (tryb próbny do wydania 0.10.5)  S17–S24, S33     2           D6, T8–T11, T18  M        0047
      PR #158
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
-[ ]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
      [w toku: Claude, gałąź claude/eloquent-darwin-sjaahj]
+[x]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
+     PR #161
 [ ]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
 [ ]  7  Jądro Linux 7.x (najnowsza linia)                  S52–S55          3           D14, T19 T20     M        —
 [ ]  8  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–7         D10              M        —
@@ -691,7 +692,7 @@ Twoje (produkt):
        już tego nie naprawi. Rekomendacja: tak — przycisk w sekcji, tylko do wersji w drugim miejscu (już raz
        potwierdzonej), z pytaniem „Wrócić do K1 0.10.6? Komputer uruchomi się ponownie.”; odrzuconej wersji K1 nie
        proponuje znowu, tylko następną.
-[!] D8 (krok 4) Wygląd i zachowanie zmiany rozmiaru — szkice do wyboru NA POCZĄTKU KROKU 4 (oba motywy): przycisk
+[x] D8 (krok 4; właściciel 2026-11-18: „Pasują mi te szkice” — szkice z rekomendacją, oba motywy) Wygląd i zachowanie zmiany rozmiaru — szkice do wyboru NA POCZĄTKU KROKU 4 (oba motywy): przycisk
        „maksymalizuj/przywróć” na pasku tytułu K1, kursory strzałek, co widać w trakcie ciągnięcia, okno zmaksymalizowane
        (ramka i pasek tytułu przy górnym pasku). Rekomendacja: przycisk między „minimalizuj” a „zamknij” (kwadrat;
        zmaksymalizowane — dwa nachodzące kwadraty), chwyt 6 px na brzegach i 16 px w rogach; w trakcie — zarys
