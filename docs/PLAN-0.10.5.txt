@@ -131,6 +131,7 @@ Osiem kroków:
      [w toku: Claude, gałąź claude/peaceful-euler-gcmcpa — 2a PR #156 scalony; 2b: strefa, nadzorca, okna, test]
                                                                                          T2–T7, T18
 [ ]  3  Robot na GitHubie                                   S17–S24, S33     2           D6, T8–T11, T18  M        0047
+     [w toku: Claude, gałąź claude/peaceful-euler-gcmcpa — po kroku 2]
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
 [ ]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
 [ ]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
@@ -389,7 +390,21 @@ KROK 3 — Robot na GitHubie                                              M · d
   README, skill kons-dev i AGENTS.md (zadanie wyżej).
   Gotowe, gdy: robot przeszedł przebiegi próbne (także zderzenia), jest scalony w trybie próbnym, skill i AGENTS.md
   mówią o nim, testy zielone.
-  Ustalenia z wykonania: (pusto — wypełnia krok 3)
+  Ustalenia z wykonania (krok 3, 2026-11-18):
+  - Logika w scripts/robot.sh (człowiek też może uruchomić), przebieg w .github/workflows/robot.yml; tryb próbny jedną
+    zmienną ROBOT_PROBNY w robot.yml (krok 8 → "0").
+  - S18 POTWIERDZONE próbą: sha256sums.asc kernel.org podpisuje autosigner (B8868C80…, jest w jadro/klucze/); bez niego
+    robot kończy się kodem 3 i niczego nie zmienia. Próba lokalna 2026-11-18: 6.18.60 → 6.18.64 (K1 0.10.3) przygotowane;
+    pakiety przeglądarki bez zmian.
+  - T19/S51: porownaj-jadro.sh — B = dzisiejsza konfiguracja bez „is not set” + olddefconfig (bez starego drzewa
+    źródeł); pytania tylko o opcje z pytaniem w Kconfig (opcje włączane przez select — fałszywe). Pierwsze wypełnienie list
+    odrzuconych: 265 (K1) + 202 (strefa) opcji „domyślnie tak” z 6.18, jeden wspólny powód — przegląd pojedynczych opcji
+    w kroku 7. Próba: KVM_IOAPIC bez fragmentu → pytanie (kod 1); pełne listy → 0 pytań.
+  - S17: uprawnienia robot.yml contents/pull-requests/actions/issues: write; testy przez workflow_dispatch k1.yml
+    (nowe wejście testy: true). NIEPEWNE do pierwszego biegu na GitHubie: Claude nie może uruchomić workflow_dispatch
+    (403) — pierwsza próba robota to bieg z harmonogramu po scaleniu albo „Run workflow” właściciela.
+  - S33: k1.yml — na main kolejka (cancel-in-progress tylko dla PR-ów), tag i wydanie tylko dla VERSION, które main
+    wciąż ma.
 
 KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja              M · decyzje D8, T12–T14 · bez ADR
   Cel (prośba właściciela z 2026-11-14): okno przeglądarki (i każde okno strefy) można rozciągnąć i zmniejszyć za

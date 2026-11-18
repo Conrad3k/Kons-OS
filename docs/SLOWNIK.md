@@ -170,5 +170,7 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 ## Plan i wersje
 | Pojęcie | Znaczenie |
 |---|---|
+| **robot** (0.10.5) | Workflow `robot.yml` na GitHubie, który sam wydaje wersje PATCH z poprawionym jądrem Linux i pakietami przeglądarki (ADR 0047). Zmienia tylko numery i sumy; gdy nie umie — zakłada Issue „robot”. |
+| **lista odrzuconych opcji jądra** (0.10.5) | `jadro/k1-odrzucone.txt`, `jadro/strefa-odrzucone.txt`: opcje, które nowe jądro włączyłoby samo, a K1 świadomie ich nie chce (każda z powodem). Robot pyta tylko o opcje spoza fragmentu i spoza tej listy (T19). |
 | **mapa drogi** | Kolejność wersji MINOR z tematami: 0.9 Sieć, 0.10 Strefy, 0.11 Pliki ze stref… (ADR 0035, `docs/DO_ZROBIENIA.txt`). Zastępuje dawne „etapy M” (M7 = 0.9 itd.). |
 | **plan wersji** | `docs/PLAN-<wersja>.txt`: kroki jednej wersji, luki, decyzje; jeden krok = jeden czat = jeden PR; zakres zamrożony. Zamknięty plan — `docs/archiwum/`. |

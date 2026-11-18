@@ -54,6 +54,21 @@ wymaga), ale każda jest mała, robi jedną rzecz i wygląda jak pozostałe.
 - Niezmienniki z `SKILL.md` (klatki usług, kanały, brak ścieżek dla aplikacji, dm-verity, podpisy) zmienia
   się tylko przez ADR.
 
+## Robot aktualizacji (od 0.10.5, ADR 0047)
+Trzeci „asystent”: `.github/workflows/robot.yml` (opis: `docs/komponenty/robot.md`). Raz dziennie wydaje sam wersje PATCH
+z poprawionym jądrem Linux i pakietami przeglądarki — zmienia tylko `jadro/wersja.env`, `strefy/przegladarka.txt`,
+`VERSION`, `CHANGELOG.md`, na gałęziach `robot/…`. Do wydania 0.10.5 działa w trybie próbnym (PR i testy, bez scalania).
+- Na start pracy sprawdź też otwarte PR-y robota (etykieta „robot”), Issue „robot” i ostatni bieg workflow „Robot”;
+  Issue robota naprawiasz jak czerwone CI.
+- Przed scaleniem PR-a, który zmienia `VERSION`: zaktualizuj gałąź z `main` tuż przed scaleniem i sprawdź `VERSION` na
+  `main` — jeśli robot wydał w tym czasie wersję, Twój numer to następny, a Twój wpis w CHANGELOG idzie nad wpisem robota.
+  Nie scalaj w trakcie budowy wydania na `main`. Otwarty PR robota, który przeszkadza, możesz zamknąć — robot zrobi nowy
+  następnego dnia.
+- MINOR (nowy temat) i kroki planów robią ludzie; ręczna zmiana jądra albo pakietów strefy — tylko w kroku planu albo gdy
+  robot nie umie (Issue „robot”), nigdy równolegle z otwartym PR-em robota. Na czas dużych prac robota wyłącza się (Actions →
+  Disable workflow) z wpisem w `docs/DO_ZROBIENIA.txt` („Tymczasowe”, z terminem).
+- Listy odrzuconych opcji jądra (`jadro/k1-odrzucone.txt`, `jadro/strefa-odrzucone.txt`) zmienia tylko człowiek.
+
 ## Praca we dwóch (Claude i Codex)
 - **Jedno zadanie — jeden asystent.** Zanim zaczniesz punkt z `docs/DO_ZROBIENIA.txt`, sprawdź otwarte
   PR-y i oznacz punkt `[w toku: Claude|Codex, gałąź …]` w tym samym pierwszym commicie; po scaleniu zmień na `[x]`. Nie ruszaj punktu oznaczonego przez drugiego.

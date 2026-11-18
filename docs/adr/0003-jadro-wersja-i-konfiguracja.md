@@ -1,6 +1,6 @@
 # 0003. Jądro: wersja, źródło, konfiguracja, wzmocnienia
 
-- Status: Przyjęty
+- Status: Przyjęty; uzupełniony przez ADR 0047 (0.10.5): linię i wersję jądra prowadzi robot — najnowsza długoterminowa, ta sama linia sam, nowsza po porównaniu konfiguracji
 - Data: 2026-11-06
 - Dotyczy: SPEC §6 (swap, hibernacja), §7 (LSM, seccomp, brak TTY), §10 (jądro), M1
 

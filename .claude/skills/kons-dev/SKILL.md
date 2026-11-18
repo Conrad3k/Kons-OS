@@ -25,7 +25,9 @@ wygrywają dokumenty, a skill poprawiasz w tym samym PR-ze.
    origin/main`; wypychanie z nadpisaniem jest zablokowane → `git merge -s ours origin/<gałąź>` i zwykły push).
 2. Otwarte PR-y i zgłoszenia (`list_pull_requests`, `list_issues`: etykiety `feedback`, `błąd`, `pomysł`).
    Punkt z `DO_ZROBIENIA.txt` oznacz `[w toku: Claude, gałąź …]` w pierwszym commicie; punktów Codexa nie ruszaj.
-3. Ostatni run „K1 — budowa i testy” na `main` (od 2026-11-17 sama budowa) — czerwony naprawiasz najpierw.
+3. Ostatni run „K1 — budowa i testy” na `main` (od 2026-11-17 sama budowa) — czerwony naprawiasz najpierw. **Robot**
+   (0.10.5, ADR 0047): otwarte PR-y robota (gałęzie `robot/…`, etykieta „robot”), Issue „robot”, ostatni bieg workflow
+   „Robot — poprawki jądra i przeglądarki” — Issue robota naprawiasz jak czerwone CI.
 4. Środowisko: `scripts/przygotuj-srodowisko.sh && scripts/zbuduj.sh` (szybko: `make && make -j4 -O testy-host`).
    Kontener nie ma KVM — QEMU w emulacji; pełny komplet testów robi CI na PR-ze (§9).
 
@@ -97,7 +99,7 @@ X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt. Stero
 | `src/wspolne/` | (linkowane) | `k1_uslugi.h` **listy usług i aplikacji**, `k1_komunikat` (32 B), `k1_kanal`, `k1_odbior`, `k1_klatka`, `k1_log`, `k1_skarb_klient`, `k1_memfd`, `k1_indeks` (indeks po kluczu, 0.8.1), `k1_dokument` (foldery, **typy plików `K1_TYPY`** i ich rodziny, wpis pliku) + `k1_nazwy.c` (zasady nazw), `k1_pendrive` (lista folderu z pendrive'a), `k1_dekoder.h` (limity dekodera), `k1_skaluj`, `k1_efi`, `k1_uklad`, `k1_manifest`, `k1_fat32` (drzewo plików K1-EFI, 0.9.0), `k1_wifi` (nazwy sieci, kreski, format wyników szukania; 0.9.1), `k1_nl` (generic netlink — tylko nadzorca i program testowy; 0.9.1), `k1_sha256`, `k1_bajty.h`, `k1_io.h`, `k1_teraz.h` |
 | `src/zewnetrzne/` | (linkowane) | Monocypher (skarbiec) i Wuffs (dekoder, 0.8.0) — jedyne obce biblioteki w systemie |
 | `narzedzia/` | (host) | czcionki IBM Plex → bitmapy, ekran startowy GRUB-a, podpis, klucz Secure Boot |
-| `jadro/` | `k1.efi`, `bzImage` | `k1.config`, `k1-zamkniete.config`, `README.md` (zmiana wersji jądra), `oprogramowanie-kart.txt` (pliki od producentów kart Wi-Fi wbudowane w jądro — jedna tabela z sumami; 0.9.1, ADR 0041) |
+| `jadro/` | `k1.efi`, `bzImage` | `k1.config`, `k1-zamkniete.config`, `k1-odrzucone.txt` + `strefa-odrzucone.txt` (opcje „domyślnie tak”, których świadomie nie chcemy — robot pyta o resztę, `scripts/porownaj-jadro.sh`, ADR 0047), `README.md` (zmiana wersji jądra; robot: `scripts/robot.sh`, `.github/workflows/robot.yml`), `oprogramowanie-kart.txt` (pliki od producentów kart Wi-Fi wbudowane w jądro — jedna tabela z sumami; 0.9.1, ADR 0041) |
 | `musl/` | (w każdym programie) | biblioteka C: `wersja.env`, `klucze/`, `latki/`, `README.md` (zmiana wersji, łatki) |
 | `testy/host/`, `testy/system/`, `testy/qemu/` | — | testy na hoście i fuzzing; program testowy w systemie; biblioteka `k1qemu.py` |
 | `scripts/` | — | budowa (`zbuduj*.sh`), testy (`testy.sh`, `test-m*.sh`, `test-pliki.sh`, `test-pendrive.sh`), sprawdzenia (`sprawdz-*.sh`), `wspolne.sh` |
@@ -200,7 +202,9 @@ założeń o wyrównaniu (`memcpy`), test `testy/host/test_*.c` (ASan/UBSan), fu
 (lista `FUZZ` w `Makefile`) i test negatywny w systemie (jak `t_malicious_ipc`). Opis w dokumencie komponentu.
 
 **Opcja jądra:** znajdź w `build/zrodla/linux-*/**/Kconfig*` (`depends on`, `select`), dopisz do
-`jadro/k1.config` z komentarzem po co; `scripts/zbuduj-jadro.sh` przerwie, jeśli nie weszła; przy
+`jadro/k1.config` z komentarzem po co (i usuń ją z `jadro/k1-odrzucone.txt`, jeśli tam jest — listy „świadomie nie chcemy”
+dla robota, T19 ADR 0047; zmienia je tylko człowiek); ręczna zmiana `jadro/wersja.env` tylko w kroku planu albo gdy robot
+nie umie (Issue „robot”); `scripts/zbuduj-jadro.sh` przerwie, jeśli nie weszła; przy
 wzmocnieniach `scripts/sprawdz-kspp.sh`; odstępstwa w `docs/komponenty/jadro.md`. Nowa wersja jądra:
 `jadro/README.md`. Pamiętaj: `allnoconfig` wyłącza też opcje „default y” za `if EXPERT` (MTRR, PAT, ACPI_EC).
 
@@ -318,6 +322,10 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 - *GRUB i ekran startowy:* `background_image` rysuje się po wypisaniu czegoś (`echo ""`); `set color_normal=
   black/black` **po** `terminal_output gfxterm`; `quiet` wycisza „EFI stub”; w QEMU fazę GRUB-a widać na
   zrzutach dopiero z `sleep` w kopii `grub.cfg` (`mcopy -i obraz@@1M`).
+- *Robot i numery wersji (0.10.5, ADR 0047, S19, S33):* robot i człowiek mogą podbić `VERSION` do tego samego numeru — git
+  połączy dwie takie same zmiany bez konfliktu, a CHANGELOG dostanie dwa wpisy; dlatego obie strony sprawdzają `VERSION`
+  na `main` tuż przed scaleniem. `k1.yml` na `main` nie anuluje trwającej budowy (kolejka) i taguje tylko `VERSION`, który
+  `main` wciąż ma. Zdarzenia `GITHUB_TOKEN` nie uruchamiają workflow — robot woła `k1.yml` przez `workflow_dispatch`.
 - *Przeglądarka w CI (0.10.0–0.10.1):* test z prawdziwym Firefoksem w strefie (CI z KVM) przez wiele dni padał na
   zachowaniu Firefoksa (Enter bez skutku, lista podpowiedzi niewidoczna, limity czasu), którego na sprzęcie nie było —
   od 0.10.1 go nie ma (decyzja właściciela 2026-11-17). Firefox w strefie ocenia sieć po kartach systemu (strefa ich nie
@@ -355,7 +363,12 @@ Konflikt SPEC z Linuksem → najmniejsza bezpieczna korekta, ADR, dopisek w SPEC
   sprawdzić w przeglądarce” (DO_ZROBIENIA, punkt 4); jego zgłoszenia odtwarzaj na stanowisku. Pełny `scripts/testy.sh`
   w kontenerze tylko, gdy CI nie działa. Sama dokumentacja — bez testów.
 - **Wersja** (`VERSION`, raz na paczkę; ADR 0035): nowy temat z mapy drogi → MINOR (0.9, 0.10…), kroki planu
-  wersji, poprawki i jądro → PATCH, docs/CI → bez zmiany; wpis
+  wersji, poprawki i jądro → PATCH, docs/CI → bez zmiany; **robot** (ADR 0047) wydaje sam tylko PATCH z poprawionym jądrem
+  i pakietami przeglądarki — MINOR i kroki planów robią ludzie. Przed scaleniem PR-a ze zmianą `VERSION` zaktualizuj gałąź
+  z `main` tuż przed scaleniem: robot wydał w tym czasie → Twój numer to następny, wpis CHANGELOG nad wpisem robota; nie
+  scalaj, gdy na `main` trwa budowa wydania; przeszkadzający PR robota możesz zamknąć (zrobi nowy jutro); robota wyłącza
+  się na czas dużych prac (Actions → Disable workflow + wpis „Tymczasowe” w DO_ZROBIENIA). Wpis od 0.10.5 ma wiersz
+  „Opis w K1:” (ADR 0046, `scripts/opisy-wersji.py`, pilnuje `sprawdz-czytelnosc`); wpis
   w `CHANGELOG.md`. `VERSION`, `CHANGELOG.md` i `DO_ZROBIENIA.txt` zmienia ten, kto robi wydanie. CI trwa ok. 25 min
   (budowa ~11, na PR-ze z jądrem z pamięci podręcznej mniej; testy ~12); repo jest publiczne, więc minuty CI są bezpłatne.
   Pobrane pliki (`build/pobrane`, `build/strefa-pakiety`) są w pamięci podręcznej Actions (klucz: tabele pobieranych
