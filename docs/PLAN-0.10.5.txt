@@ -455,7 +455,27 @@ KROK 4 — Okno przeglądarki: zmiana rozmiaru i maksymalizacja              M �
   wyświetlacza), gui.md (jeśli pamięć rozmiaru w gui), WYGLAD (D8), SLOWNIK (maksymalizacja, obszar roboczy, zmiana
   rozmiaru), TESTY.md, RYZYKA (R26 — chwyty i przyciski ramki rysuje tylko ekran).
   Gotowe, gdy: scenariusze zmiany rozmiaru i maksymalizacji oraz testy negatywne zielone, testy [OK].
-  Ustalenia z wykonania: (pusto — wypełnia krok 4)
+  Ustalenia z wykonania (2026-11-18, krok 4):
+  - D8: właściciel przyjął szkice z rekomendacją („Pasują mi te szkice”), potem wzorzec paska ramki „przed / po” (OK).
+  - S26 POTWIERDZONE: zmiana rozmiaru w osobnym pliku ekranu rozmiar.c; okna.c nie urósł. S27: obszar roboczy z paneli
+    powłoki — górny pasek: panel 0,0 na całą szerokość; dolny: panel sięgający dołu ekranu, jego powierzchnia razem
+    z marginesem cienia (dock pływa) — w QEMU 1280 × 800: 0,32 1280×684, okno zmaksymalizowane 1280×644.
+  - S28: nowa powierzchnia = zamiana (POWIERZCHNIA e = 1, ten sam numer okna, fokus i kolejność zostają; pokazana od
+    pierwszego zatwierdzenia), tylko w rozmiarze z ROZMIAR — inaczej odrzucona. Szerokość co 8: jądro strefy robi tryb
+    CVT (drm_cvt_mode zaokrągla szerokość do 8), więc ekran prosi tylko o takie.
+  - S29: cztery kursory (↔, ↕, ↖↘, ↗↙) z tej samej funkcji co strzałka K1 (k1_grafika.c, kursor_z), gorący punkt na środku.
+  - S30 POTWIERDZONE (źródła 6.18, virtgpu_kms.c): VIRTIO_GPU_EVENT_DISPLAY w events_read + przerwanie konfiguracji →
+    jądro gościa pyta o wyświetlacz i ogłasza hotplug (uevent); VMM czyści zdarzenie po zapisie events_clear. Programy
+    gościa słuchają NETLINK_KOBJECT_UEVENT (kms.c) — działa bez restartu strefy, w emulacji też.
+  - S31: kompozytor wysyła Firefoksowi nową konfigurację (rozmiar wyświetlacza, zmaksymalizowane); set_fullscreen daje stan
+    „pełny ekran” w tym samym rozmiarze (T14). Sam Firefox w nowym rozmiarze — właściciel na sprzęcie (CI go nie testuje).
+  - S32: scenariusz na strefie próbnej (wzór na cały wyświetlacz) — w emulacji cała zmiana (ROZMIAR → powierzchnia →
+    nowy wyświetlacz gościa) w ułamku sekundy.
+  - Zmiana rozdzielczości przy zmaksymalizowanym oknie (rozmiar_sprawdz): QEMU ma jeden tryb ekranu — bez testu QEMU;
+    na sprzęcie (lista dla właściciela).
+  - Raz na trzy przebiegi lokalne gość próbny nie odpowiedział na „zamknij” po scenariuszu zmiany rozmiaru (ostatni jego
+    wpis: kliknięcie tuż przed); dwa kolejne przebiegi — dobrze. Gość loguje teraz każde zdarzenie zmiany wyświetlacza;
+    obserwujemy w CI (opis PR-a kroku 4).
 
 KROK 5 — Raptor Bridge: weryfikacja mostu stref i jego dokumentacja        M · decyzja D9, T15 · bez ADR (chyba że
   przegląd zmieni architekturę — wtedy ADR)
