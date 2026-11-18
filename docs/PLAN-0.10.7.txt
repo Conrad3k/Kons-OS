@@ -22,12 +22,15 @@ Zasady właściciela dla tej wersji (2026-11-17), obowiązują w każdym kroku:
   Z4 Każda zmiana wyglądu: szkice albo obrazy „przed / po” najpierw, wzorce w repo dopiero po „OK” właściciela
      (decyzja D3 z 0.10.2, docs/TESTY.md, scripts/przyjmij-wzorce.sh, osobny commit).
 
-PIĘĆ kroków. Krok 1: teksty w całym systemie (Z2, Z3). Krok 2: Ustawienia. Krok 3: Pliki. Krok 4: ramka okna strefy
-(ADR 0048). Krok 5: pulpit, tapeta, porządki i wydanie 0.10.7.
+SIEDEM kroków. Krok 1: teksty w całym systemie (Z2, Z3). Krok 2: Ustawienia. Krok 3: Pliki. Krok 4: ramka okna strefy
+(ADR 0048). Krok 5: błąd „Aktualizacje po ponownym otwarciu Ustawień”. Krok 6: wyłączanie do końca, z ekranem
+„Wyłączanie”. Krok 7: pulpit, tapeta, porządki i wydanie 0.10.7.
+Kroki 5 i 6 dopisane na prośbę właściciela 2026-11-18 (dwa błędy zgłoszone ze sprzętu); dawny krok 5 (pulpit, tapeta,
+wydanie) to teraz krok 7, bo wydanie jest zawsze ostatnie.
 
-ZAKRES ZAMROŻONY (ADR 0035): poniższe 5 kroków i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”);
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 7 kroków i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; wydanie jest zawsze
-ostatnim krokiem; jeśli krok nie zmieści się w jednym czacie, dzieli się na 1a/1b … (wydanie w ostatniej części kroku 5).
+ostatnim krokiem; jeśli krok nie zmieści się w jednym czacie, dzieli się na 1a/1b … (wydanie w ostatniej części kroku 7).
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
 Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.10.5 krok 1, 2026-11-17), Z ZRZUTU (ze zrzutów wzorcowych testy/wzorce/),
@@ -36,8 +39,10 @@ POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku, nie zakładać).
 
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
-Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, 2, 3, 4, 5. Krok 1 najpierw, bo zmienia napisy
-prawie w każdym oknie, a kolejne kroki rysują już bez nich.
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, 2, 3, 4, 5, 6, 7. Krok 1 najpierw, bo zmienia
+napisy prawie w każdym oknie, a kolejne kroki rysują już bez nich. Kroki 5 i 6 (błędy) nie zależą od kroków 1 do 4: można
+je zrobić wcześniej, w dowolnej kolejności, jeśli właściciel o to poprosi (ekran „Wyłączanie” z kroku 6 pisze napisy
+już według Z2 i Z3).
 
 Właściciel: co wpisać w nowym czacie (podmień N):
     „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.7.txt.”
@@ -45,7 +50,7 @@ Decyzje [!] (punkt 4) czat zada na początku kroku. Przy wyglądzie czat najpier
 
 Nowy czat: przebieg każdego kroku:
   1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
-  2. Przeczytaj zasady Z1 do Z4 (wyżej), swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2 do 5 także
+  2. Przeczytaj zasady Z1 do Z4 (wyżej), swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2 do 7 także
      „Ustalenia z wykonania” kroków wcześniejszych. Zmiany z 0.10.5 (okno przeglądarki, Ustawienia → Aktualizacje) mogły
      przesunąć to, co opisują luki: sprawdź kod jeszcze raz.
   3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
@@ -59,7 +64,7 @@ Nowy czat: przebieg każdego kroku:
      zielonym (AGENTS.md). Czekaj poleceniem, nie rób w tym czasie innych wywołań (CLAUDE.md).
   8. Dokumenty w tym samym PR-ze: docs/WYGLAD.md (każde ustalenie), docs/komponenty/* (aplikacje.md, gui.md, ekran.md,
      strefa.md), dokumenty kanałów, gdy zmienia się tekst komunikatu, SLOWNIK (bez nowych synonimów), RYZYKA (krok 4).
-     VERSION i CHANGELOG zmienia krok 5 (wydanie); kroki 1 do 4 zapisują „co widzi użytkownik” w opisie PR-a.
+     VERSION i CHANGELOG zmienia krok 7 (wydanie); kroki 1 do 6 zapisują „co widzi użytkownik” w opisie PR-a.
   9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
      w swoim kroku. Raport dla właściciela: obrazy „przed / po”, co zostało.
 
@@ -99,7 +104,12 @@ Robot i wydania (od 0.10.5: ADR 0046 i 0047, docs/komponenty/robot.md i aktualiz
     i przycisk „Nowy folder”. Bez uciętych napisów.
   - Krok 4: okno przeglądarki bez kolorowej obwódki dookoła. Kolor sesji zostaje, ale dyskretnie, w jednym miejscu
     paska tytułu (szkice do wyboru, D1). Pasek dalej rysuje K1, więc strona nie podszyje się pod okno systemu.
-  - Krok 5: napisy pod ikonami na pulpicie czytelne na każdej tapecie; wariant tapety z matową krawędzią łuków do
+  - Krok 5: błąd: Ustawienia zamknięte, otwarte jeszcze raz, klik „Aktualizacje”, okno Ustawień się zamyka (wywala).
+    Po poprawce sekcja Aktualizacje działa przy każdym otwarciu Ustawień, ile razy by ich nie zamykać.
+  - Krok 6: błąd: Start → Wyłącz zamyka przeglądarkę, ale komputer się nie wyłącza. Po poprawce po kliknięciu „Wyłącz”
+    od razu widać ekran „Wyłączanie” z animacją (wygląd do wyboru, D7), przeglądarka zapisuje sesję w tle, a potem
+    komputer naprawdę się wyłącza. To samo przy „Uruchom ponownie” (napis „Ponowne uruchamianie”).
+  - Krok 7: napisy pod ikonami na pulpicie czytelne na każdej tapecie; wariant tapety z matową krawędzią łuków do
     porównania (D5); porządki i wydanie 0.10.7.
 
 
@@ -110,7 +120,9 @@ Robot i wydania (od 0.10.5: ADR 0046 i 0047, docs/komponenty/robot.md i aktualiz
 [ ]  2  Ustawienia: sekcje w środku                         W4–W9            1           D3, T2, T3       M        brak
 [ ]  3  Pliki: przyciski, szczegóły, pusty folder           W10–W11          1           D4, T4           M        brak
 [ ]  4  Ramka okna strefy: kolor sesji dyskretnie           W12              1           D1, T5           M        0048
-[ ]  5  Pulpit, tapeta; porządki; wydanie 0.10.7            W13–W15          1–4         D5, D6           M        brak
+[ ]  5  Błąd: Aktualizacje po ponownym otwarciu Ustawień   W16              0.10.5      T6               S        brak
+[ ]  6  Błąd: wyłączanie do końca, ekran „Wyłączanie”       W17–W18          0.10.5      D7, T7, T8       M        brak
+[ ]  7  Pulpit, tapeta; porządki; wydanie 0.10.7            W13–W15          1–6         D5, D6           M        brak
 (ADR 0048: następny wolny po 0046 i 0047 z 0.10.5; 0.10.9 Filmy i szybka grafika bierze następne.)
 
 
@@ -200,21 +212,77 @@ KROK 4: Ramka okna strefy: kolor sesji dyskretnie (ADR 0048)                  M 
   Gotowe, gdy: testy zielone, wzorce przyjęte po „OK” właściciela.
   Ustalenia z wykonania: (pusto, wypełnia krok 4)
 
-KROK 5: Pulpit, tapeta; porządki; wydanie 0.10.7                              M · D5, D6 · bez ADR
+KROK 5: Błąd: Aktualizacje po ponownym otwarciu Ustawień                      S · T6 · bez ADR
+  Zgłoszenie właściciela (2026-11-18, na sprzęcie, 0.10.5): Ustawienia otwarte i zamknięte, potem otwarte jeszcze raz;
+  kliknięcie „Aktualizacje” na liście sekcji wywala aplikację (okno Ustawień znika). Przy pierwszym otwarciu działa.
+  Cel: sekcja Aktualizacje działa przy każdym otwarciu Ustawień; ponowne otwarcie okna nie zależy od tego, co zostało
+  po poprzednim.
+  Zadania:
+  [ ] Odtworzyć w QEMU (test-m4 albo test-aktualizacji: otwórz Ustawienia, zamknij, otwórz, klik „Aktualizacje”
+      po nazwie) i z logu ustalić przyczynę: kod wyjścia aplikacji (159 = zabronione wywołanie w klatce, 25 = SIGXFSZ,
+      SIGILL = przepełnienie z fortify, SIGSEGV), ostatni wpis K1-USTAWIENIA i nadzorcy. Hipotezy w W16 (NIEPEWNE).
+  [ ] Poprawka u źródła (nie omijanie w oknie). Jeśli winny jest stan w nadzorcy po końcu poprzedniego okna: sprzątanie
+      w jednym miejscu (koniec kanału / akt_nowy_kanal), nie warunki rozsiane po kodzie.
+  [ ] Test, który pada przed poprawką: scenariusz QEMU „Ustawienia dwa razy” (otwórz, zamknij, otwórz, Aktualizacje,
+      okno dalej jest, sekcja narysowana). Jeśli przyczyna jest w czystym kodzie (np. odbiór AKT_OPIS), także test na
+      hoście.
+  Testy i dowód: test-m1, nowy scenariusz (z logiem „przed” na czerwono i „po” na zielono), test-m4, test-aktualizacji
+  (docs/TESTY.md: skrypt części aktualizacji).
+  Właściciel (lista do DO_ZROBIENIA przy wydaniu): otwórz Ustawienia, zamknij, otwórz, kliknij „Aktualizacje”; powtórz
+  kilka razy, także po „Sprawdź teraz”.
+  Dokumenty: aplikacje.md (Ustawienia → Aktualizacje), aktualizacja.md, jeśli zmienia się kanał; RYZYKA, jeśli przyczyna
+  to klatka.
+  Gotowe, gdy: testy zielone, nowy scenariusz w test-m4 albo w skrypcie aktualizacji.
+  Ustalenia z wykonania: (pusto, wypełnia krok 5)
+
+KROK 6: Błąd: wyłączanie do końca, ekran „Wyłączanie”                         M · D7, T7, T8 · bez ADR
+  Zgłoszenie właściciela (2026-11-18, na sprzęcie, 0.10.5): po Start → Wyłącz przy otwartej przeglądarce zamyka się
+  przeglądarka i na tym koniec: komputer się nie wyłącza. Właściciel chce też widzieć, że system się wyłącza.
+  Cel: po „Wyłącz” (i „Uruchom ponownie”) od razu ekran „Wyłączanie” z animacją, przeglądarka zapisuje sesję w tle
+  (jak dziś, do 30 s, S5 z 0.10.2), potem komputer NAPRAWDĘ się wyłącza (albo uruchamia ponownie). Bez przeglądarki tak
+  samo, tylko krócej.
+  Na początku: D7 (szkice ekranu „Wyłączanie” w obu motywach, kodem K1 na hoście, jak szkice z 0.10.0).
+  Zadania:
+  [ ] Odtworzyć w QEMU: strefa otwarta (strefa próbna w test-strefa; przeglądarki CI nie testuje, a błąd dotyczy
+      zamykania strefy, nie Firefoksa), Start → Wyłącz, czy QEMU kończy pracę. Z logu: czy nadzorca doczekał końca
+      stref („strefy zamknięte — wyłączam resztę”), czy init dostał sygnał i co robił potem (W17, NIEPEWNE). Gdy QEMU
+      kończy pracę, a sprzęt nie: 1 do 2 próby wyjaśnienia, potem obraz z artefaktu PR-a do sprawdzenia przez właściciela
+      na X230 i IdeaPadzie (SKILL, „dziwny błąd testu”).
+  [ ] Poprawka u źródła: po zamknięciu stref (albo po WYLACZ_CZEKAJ_S) wyłączenie zawsze dochodzi do końca; gdy coś się
+      nie uda, init i tak wyłącza po swoim limicie czasu (fail closed: nie zostaje „żywy pulpit bez niczego”).
+  [ ] Ekran „Wyłączanie” (D7, T7): pokazuje się od razu po kliknięciu, przykrywa pulpit i wszystkie okna (także okno
+      strefy), zostaje do końca; napis „Wyłączanie” albo „Ponowne uruchamianie”, bez dodatkowych zdań (Z2);
+      animacja spokojna, bez paska postępu z liczbami (czasu i tak nie znamy).
+  [ ] Wylogowanie (Start → Wyloguj) bez zmian: nie pokazuje tego ekranu.
+  [ ] Testy: scenariusz QEMU „wyłącz ze strefą”: QEMU kończy pracę przed limitem czasu, w logu kolejność: prośba
+      o wyłączenie, ekran „Wyłączanie”, strefa zapisała sesję, strefy zamknięte, init wyłącza; ten sam bez strefy
+      i dla „Uruchom ponownie”. Zrzut wzorcowy ekranu „Wyłączanie” (oba motywy; animację zatrzymuje opis ekranu jako
+      K1_EL_ZMIENNE albo stała klatka w trybie testu, T8).
+  Testy i dowód: test-m1, test-strefa (wyłączanie ze strefą), test-m4 (wyłączanie z pulpitu), test-wzorce
+  (wylaczanie-jasny, wylaczanie-ciemny, „przed / po” = szkic / wynik).
+  Właściciel (lista do DO_ZROBIENIA przy wydaniu): otwórz przeglądarkę, zaloguj się na stronie, Start → Wyłącz: od razu
+  ekran „Wyłączanie”, po kilku sekundach komputer wyłączony; po włączeniu dalej zalogowany; to samo z „Uruchom
+  ponownie”; bez przeglądarki wyłącza się od razu.
+  Dokumenty: WYGLAD.md (ekran „Wyłączanie”), gui.md albo ekran.md (kto rysuje, T7), init.md i nadzorca.md (przebieg
+  wyłączania), dokument kanału, jeśli dochodzi komunikat, SLOWNIK („ekran wyłączania”, jeśli nowe pojęcie).
+  Gotowe, gdy: testy zielone, wzorce przyjęte po „OK” właściciela, właściciel potwierdził na sprzęcie (obraz z PR-a).
+  Ustalenia z wykonania: (pusto, wypełnia krok 6)
+
+KROK 7: Pulpit, tapeta; porządki; wydanie 0.10.7                              M · D5, D6 · bez ADR
   Cel: napisy pod ikonami pulpitu czytelne na każdej tapecie; tapeta według D5; wydanie.
   Zadania:
   [ ] Napisy pod ikonami pulpitu (W13, D6).
   [ ] Tapeta (W14, D5): szkice wszystkich pięciu wariantów „dziś / matowa krawędź”; zmiana tylko po wyborze właściciela.
   [ ] Porządki wersji PATCH: pliki blisko limitu (W15), Tymczasowe, DO_ZROBIENIA.
   [ ] Wydanie: VERSION 0.10.7 (albo następny wolny PATCH, jeśli robot go zajął: punkt 0, „Robot i wydania”); CHANGELOG
-      (kroki 1 do 5, najpierw „co widzisz”, wiersz „Opis w K1:” prostym językiem, bez numerów kroków); DO_ZROBIENIA:
-      „Teraz” → 0.10.9 Filmy i szybka grafika (docs/PLAN-0.10.9.txt), lista dla właściciela (z kroku 4; pierwsza pozycja:
+      (kroki 1 do 7, najpierw „co widzisz”, wiersz „Opis w K1:” prostym językiem, bez numerów kroków); DO_ZROBIENIA:
+      „Teraz” → 0.10.9 Filmy i szybka grafika (docs/PLAN-0.10.9.txt), lista dla właściciela (z kroków 4 do 6; pierwsza pozycja:
       aktualizacja przez sieć na obu laptopach, opis przed „Zainstaluj”); README („Co już jest”, tabela); ten plik →
       docs/archiwum/. Przed scaleniem: gałąź z main, VERSION na main (robot). Po scaleniu: CI na main, tag, wydanie
       z ogłoszeniem i paczką, raport z linkami (dopiero gdy wydanie istnieje).
   Testy i dowód: pełny komplet w CI; test-wzorce (pulpit-ikony, oba motywy; tapety: miniatury w Ustawieniach → Wygląd).
   Gotowe, gdy: wydanie k1-v0.10.7 istnieje, raport z linkami.
-  Ustalenia z wykonania: (pusto, wypełnia krok 5)
+  Ustalenia z wykonania: (pusto, wypełnia krok 7)
 
 
 4. DECYZJE
@@ -234,10 +302,15 @@ Twoje (produkt):
 [!] D3 (krok 2) Informacje: szkic wizytówki (znak, nazwa, wersja, dane w kolumnie) obok dzisiejszego widoku.
 [!] D4 (krok 3) Pliki: rekomendacja jak w kroku 3 (przyciski i panel po zaznaczeniu). Inne: wszystkie przyciski zawsze,
        tylko wyraźniej nieaktywne (tekst3, bez obrysu).
-[!] D5 (krok 5) Tapeta: matowa krawędź łuków (ciepło oświetlona ścianka bez jasnej, „świecącej” linii) czy jak dziś.
+[!] D5 (krok 7) Tapeta: matowa krawędź łuków (ciepło oświetlona ścianka bez jasnej, „świecącej” linii) czy jak dziś.
        Rekomendacja: obejrzeć szkic; bez wyraźnej poprawy zostaje jak dziś.
-[!] D6 (krok 5) Napisy pod ikonami pulpitu. Rekomendacja: miękka ciemna pigułka pod napisem (czarny ok. 35 %,
+[!] D6 (krok 7) Napisy pod ikonami pulpitu. Rekomendacja: miękka ciemna pigułka pod napisem (czarny ok. 35 %,
        zaokrąglenie 6). Inne: mocniejszy, rozmyty cień zamiast pigułki.
+[!] D7 (krok 6) Ekran „Wyłączanie”. Szkice w obu motywach:
+       A „Znak” (rekomendacja): tło okna K1 (papier / noc) na cały ekran, na środku znak „Warstwy” ok. 72 px, którego
+         warstwy po kolei powoli przygasają i wracają (ok. 1,5 s na obieg), pod nim „Wyłączanie” (Plex Serif 24).
+       B „Kropki”: to samo tło i napis, zamiast znaku trzy kropki w kolorze akcentu, które po kolei się rozjaśniają.
+       C „Przygaszenie”: pulpit zostaje widoczny, ale ciemnieje do czerni, na środku karta z napisem i kropkami.
 
 Techniczne (moje, z uzasadnieniem; krok może je poprawić w „Ustaleniach z wykonania”):
     T1 Półpauzy pilnuje test (sprawdz-czytelnosc.py), nie pamięć: inaczej wrócą z następnym oknem. Zakres: literały
@@ -252,6 +325,17 @@ Techniczne (moje, z uzasadnieniem; krok może je poprawić w „Ustaleniach z wy
        na pasku, który rysuje ekran poza obrazem strefy; strefa nie może narysować nic poza swoim prostokątem (test
        negatywny w test-strefa). Wysokość paska K1_STREFA_TYTUL (40 px) zostaje: VMM i gość liczą na nią rozmiar obrazu
        (0.10.5 krok 4: rozmiar i maksymalizacja).
+    T6 Krok 5: najpierw przyczyna z logu i test, który ją pokazuje, potem poprawka. Okno, które zamknięto, nie może
+       zostawić w nadzorcy stanu, który psuje następne okno tej samej aplikacji (każde otwarcie zaczyna od czystego
+       kanału); jeśli przyczyna leży w oknie (odbiór AKT_OPIS), poprawka tam, z testem na hoście.
+    T7 Ekran „Wyłączanie” rysuje ekran (jedyny właściciel karty graficznej, ten sam, który rysuje ramkę strefy), nie gui:
+       tylko ekran może przykryć okno strefy, a gui i aplikacje kończą się przed nim. Nadzorca, gdy przyjmie WYLACZ,
+       wysyła ekranowi jeden komunikat (nowy typ w k1_komunikat.h, sprawdzany pole po polu, z testem negatywnym: tylko od
+       nadzorcy); od tej chwili ekran nie przyjmuje wejścia dla okien. NIEPEWNE: czy ekran dożyje do końca wyłączania
+       (kolejność w init: najpierw nadzorca, usługi giną z nim, PR_SET_PDEATHSIG); jeśli nie, ostatnia klatka zostaje na
+       ekranie (KMS jej nie czyści) i to wystarczy, sprawdzić na sprzęcie.
+    T8 Animacja na ekranie wyłączania z zegara ekranu (nie z liczby klatek), w trybie testu opisu ekranu stała klatka,
+       żeby zrzut wzorcowy był powtarzalny.
 
 
 5. LUKI (z czytania kodu i zrzutów wzorcowych, 2026-11-17)
@@ -294,6 +378,24 @@ Krok 4
       w kolorze strefy i etykieta”) i ADR 0042 („Zaufana ramka”); RYZYKA R80 i R50 opisują ramkę. 0.10.5 krok 4
       (rozmiar, maksymalizacja) zmienia ten sam plik: krok 4 tego planu stoi na jego wyniku.
 Krok 5
+  W16 NIEPEWNE (z czytania kodu 2026-11-18, bez odtworzenia): sekcja Aktualizacje ma własny kanał od nadzorcy (fd 7,
+      KANAL_AKTUALIZACJI, akt_kanal w src/nadzorca/instalacja.c). Przy nowym oknie nadzorca woła akt_nowy_kanal() →
+      akt_nowe_okno() (src/nadzorca/aktualizacja.c): wysyła AKT_STAN, AKT_ETAP i AKT_OPIS z tym samym memfd opisu
+      wersji (pokaz), co poprzedniemu oknu. Okno czyta go w akt_siec_komunikat (ustawienia/aktualizacje_siec.c,
+      k1_memfd_czytaj + k1_ogloszenie_czytaj). Do sprawdzenia: czy drugi odbiór tego samego memfd (wspólne przesunięcie
+      w pliku po pierwszym czytaniu, pieczęcie) albo stan kanału po końcu poprzedniego okna (sukces[], zadanie,
+      listy[] w instalacja.c) nie kończy się błędem, który zamyka aplikację; także klatka Ustawień (kod 159).
+Krok 6
+  W17 NIEPEWNE (z czytania kodu 2026-11-18, bez odtworzenia): przebieg dziś: gui (menu_start.c) wysyła WYLACZ →
+      nadzorca wylacz() (uslugi.c) → strefy_przed_wylaczeniem() (strefy_zamyk.c) prosi każdą strefę o zamknięcie
+      (STREFA_ZAMKNIJ) i czeka najwyżej 30 s (WYLACZ_CZEKAJ_S); strefy_zamykanie() woła wylacz_teraz() (SIGTERM do
+      init), gdy stref już nie ma albo czas minął. strefy_zamykanie() biegnie w pętli nadzorcy (main.c), więc gdy pętla
+      nie budzi się po końcu strefy (limit poll, zegar czekania), nic dalej się nie dzieje. Do sprawdzenia też: czy
+      strefa zamknięta wcześniej „w tle” (zamykana[]) liczy się dobrze, czy init po SIGTERM kończy wyłączenie na obu
+      laptopach (bez przeglądarki wyłącza się? zapytać właściciela) i czy przyczyną nie jest ACPI na sprzęcie.
+  W18 Z KODU: dziś nie ma żadnego ekranu wyłączania: między kliknięciem a wyłączeniem widać pulpit (do 30 s, gdy
+      przeglądarka zapisuje sesję). Okno strefy rysuje ekran (src/ekran/strefy.c), więc przykryć je może tylko ekran (T7).
+Krok 7
   W13 Z KODU: gui/pulpit.c: nazwa pod kafelkiem: krem z cieniem 1 px (K1_NOC, krycie 150), bez tła; Z ZRZUTU: na jasnych
       łukach Gliny (i na całej tapecie Świt) słabo czytelna.
   W14 Z KODU: k1_rysuj_tlo (src/grafika/k1_grafika.c): krawędzie arkuszy z ciepło oświetloną ścianką. NIEPEWNE: który
@@ -306,4 +408,4 @@ Krok 5
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później”)
 --------------------------------------------------------
     grupy, kreski albo nagłówki w liście sekcji Ustawień (Z1: właściciel 2026-11-17, nie); animacje (otwieranie menu,
-    najechanie); wyszukiwanie w menu Start; nowe tapety i nowe kolory motywów; zmiana czcionek; kolorowe ikony aplikacji.
+    najechanie; wyjątek: ekran „Wyłączanie” z kroku 6, prośba właściciela 2026-11-18); wyszukiwanie w menu Start; nowe tapety i nowe kolory motywów; zmiana czcionek; kolorowe ikony aplikacji.

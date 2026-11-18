@@ -78,7 +78,9 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
     [ ] 0.10.7 Wygląd (Twoja prośba z 2026-11-17; plan: docs/PLAN-0.10.7.txt, po 0.10.5): poprawki wyglądu po przeglądzie:
         napisy bez opisów tego, co widać, i bez półpauz; sekcje Ustawień w środku (lista sekcji bez zmian); Pliki
         (przyciski i szczegóły po zaznaczeniu, pusty folder); okno przeglądarki bez kolorowej obwódki, kolor sesji
-        dyskretnie na pasku (ADR 0048); napisy pod ikonami pulpitu, tapeta z matową krawędzią do porównania
+        dyskretnie na pasku (ADR 0048); od 2026-11-18 (Twoja prośba) także dwa błędy: Ustawienia → Aktualizacje po
+        ponownym otwarciu Ustawień zamyka okno; Start → Wyłącz zamyka przeglądarkę, ale nie wyłącza komputera (po
+        poprawce ekran „Wyłączanie” z animacją); napisy pod ikonami pulpitu, tapeta z matową krawędzią do porównania
     [ ] 0.10.9 Filmy i szybka grafika (Twoja prośba z 2026-11-16; plan: docs/PLAN-0.10.9.txt; wcześniej „0.10.3”, potem
         „0.10.7” — przesunięte PO 0.10.5 na Twoją prośbę z 2026-11-17: grafika, gdy fundamenty już będą; numer 0.10.7
         dostał Wygląd): przełącznik
