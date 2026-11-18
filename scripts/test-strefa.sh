@@ -307,7 +307,7 @@ n = q.ile(POKAZ + "Strefa próbna")
 q.pisz("alt-tab")
 sprawdz("i z powrotem do strefy", czekaj(POKAZ + "Strefa próbna", od=n, czas=60))
 q.pisz("b")
-sprawdz("po Alt+Tab gość nie trzyma Alt: przy literze wciśnięty jest tylko ten klawisz",
+sprawdz("po Alt+Tab gość nie trzyma Alt: przy wciśnięciu litery wciśnięty jest tylko ten klawisz",
         czekaj(r"K1-GOSC: wejście: klawisze 5, kliknięcia 1, wciśnięte 1\b", czas=60),
         (re.findall(r"K1-GOSC: wejście: klawisze[^\n]*", q.tekst()) or ["brak"])[-1])
 
