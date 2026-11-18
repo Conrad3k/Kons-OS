@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | ZAIMPLEMENTOWANE (0.10.0 krok 1: strefa próbna, tylko w obrazie testowym; krok 2: przeglądarka — sesje Ogólna, Bank, Prywatna, ADR 0043; krok 5: sesje, które pamiętają — dysk strefy w skarbcu); PRZETESTOWANE na hoście (`test_virtio`, `test_strefa_start`, `fuzz_virtq`), w systemie (`t_kvm`, `t_strefa_klatka`, próba w klatce `t_proby`) i w QEMU (`scripts/test-strefa.sh`: okno w ramce, wejście, pasek tytułu K1, zamykanie, 4 złośliwe tryby gościa, komputer bez wirtualizacji) — w emulacji AMD SVM; na prawdziwym sprzęcie — po wydaniu (krok 3) |
-| **Pliki** | `src/strefa/`: `main.c` (start, pętla wątku głównego, koniec), `kvm.c` (maszyna, procesory, wyjścia), `start.{c,h}` (start jądra bez firmware: strona zerowa, e820, tablice stron, GDT, tablica MP), `virtq.{c,h}` (kolejka virtio), `mmio.{c,h}` (rejestry virtio-mmio), stróż `stroz.c`, urządzenia `blk.c`, `konsola.c`, `rng.c`, `wejscie.c`, `gpu.c` (obraz gościa z pamięci przez czyste `tlo.{c,h}` — każdy adres przez `gp_wsk`, także ponad 4 GiB; do 0.10.5 kopia z górnej części pamięci szła spod złego adresu: czarne okno przeglądarki na X230 z 8 GB, test `test_tlo`), `vsock.c`, dysk strefy `dane.c` + `dysk.{c,h}` (0.10.0 krok 5), okno `okno.{c,h}`; wspólne `strefa.h` (tabela urządzeń `K1_URZADZENIA`); gość `src/strefa/gosc/` (`main.c`, `obraz.c`, `zlosliwy.c`, `przegladarka.c`, `pamiec.c`, `dysk.c`); nadzorca `src/nadzorca/strefy.c`, `profile.c` (`KLATKA_STREFA`), sesje `strefy_ust.c` + `sesje.{c,h}`; ekran `src/ekran/strefy.c` (ramka); tabela stref `K1_STREFY` w `src/wspolne/k1_uslugi.h`; jądro strefy `jadro/strefa.config` |
+| **Pliki** | `src/strefa/`: `main.c` (start, pętla wątku głównego, koniec), `kvm.c` (maszyna, procesory, wyjścia), `start.{c,h}` (start jądra bez firmware: strona zerowa, e820, tablice stron, GDT, tablica MP), `virtq.{c,h}` (kolejka virtio), `mmio.{c,h}` (rejestry virtio-mmio), stróż `stroz.c`, urządzenia `blk.c`, `konsola.c`, `rng.c`, `wejscie.c`, `gpu.c` (obraz gościa z pamięci przez czyste `tlo.{c,h}` — każdy adres przez `gp_wsk`, także ponad 4 GiB; do 0.10.5 kopia z górnej części pamięci szła spod złego adresu: czarne okno przeglądarki na X230 z 8 GB, test `test_tlo`), `vsock.c`, dysk strefy `dane.c` + `dysk.{c,h}` (0.10.0 krok 5), okno `okno.{c,h}`; wspólne `strefa.h` (tabela urządzeń `K1_URZADZENIA`); gość `src/strefa/gosc/` (`main.c`, `obraz.c`, `zlosliwy.c`, `przegladarka.c`, `pamiec.c`, `dysk.c`; 0.10.5 krok 5: test Raptor Bridge `most.{c,h}`, `most_fazy.c`); nadzorca `src/nadzorca/strefy.c`, `profile.c` (`KLATKA_STREFA`), sesje `strefy_ust.c` + `sesje.{c,h}`; ekran `src/ekran/strefy.c` (ramka); tabela stref `K1_STREFY` w `src/wspolne/k1_uslugi.h`; jądro strefy `jadro/strefa.config` |
 | **Decyzje** | ADR 0042 (T1–T6, T10, zaufana ramka), ADR 0020 (kierunek), decyzje właściciela D1 (szkic B2, S1; krok 3: szkic A — pełny pasek tytułu), D4 (testy w emulacji) |
 
 ## Cel
@@ -33,7 +33,7 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 | seccomp (poza bazą) | `ioctl` tylko typu KVM (0xAE), `memfd_create`, `ftruncate`, `eventfd2`, `futex`, `getrandom`, `pread64`, `clone` tylko z `CLONE_THREAD`; od kroku 2: `shutdown`, `getsockopt` tylko `SO_ERROR` (gniazda od nadzorcy; VMM nie otwiera gniazd); od 0.10.1 krok 2: `fallocate` tylko z `PUNCH_HOLE \| KEEP_SIZE` (balon oddaje strony K1, ADR 0044 T2) |
 | cgroup | pamięć gościa (od 0.10.1 krok 2: jej górna granica — ADR 0044 T4, stała przez całe życie strefy) + 184 MiB (od kroku 5: + pamięć podręczna dysku 16 MiB i bufor prośby 4 MiB); `pids.max` = 1 + procesory + 1 (stróż) + 1 (wątek dysku, krok 5) + 1 (zadanie KVM w procesie maszyny) |
 | `RLIMIT_FSIZE` | pamięć gościa (memfd jej pamięci; od 0.10.1 krok 2 — górna granica) |
-| argumenty | numer strefy, tryb gościa testowego (0; 1–4 złośliwy, 5 licznik na dysku; od 0.10.1 krok 2: 6–8 złośliwy dla balonu, 9 pamięć — tylko od programu testowego), od 0.10.1 krok 2 pamięć gościa w MiB (górna granica od nadzorcy: `pamiec_stref.c`) |
+| argumenty | numer strefy, tryb gościa testowego (0; 1–4 złośliwy, 5 licznik na dysku; od 0.10.1 krok 2: 6–8 złośliwy dla balonu, 9 pamięć; od 0.10.5 krok 5: 13 test Raptor Bridge, 14–15 złośliwy dla vsock — gość sam steruje urządzeniem vsock, którego jego jądro nie dostaje; tylko od programu testowego), od 0.10.1 krok 2 pamięć gościa w MiB (górna granica od nadzorcy: `pamiec_stref.c`) |
 
 ## Maszyna
 - **Pamięć:** memfd z `MFD_NOEXEC_SEAL`; nigdy wykonywana przez K1. Od adresu 0 gościa do 3 GiB (poniżej urządzeń), od
@@ -167,11 +167,8 @@ ADR 0044), 2 procesory (w emulacji QEMU — 1); Ogólna i Bank pamiętają (krok
   minimalizacji”. Teraz: podpowierzchnia — ponownie, gdy nie ma już `wl_subsurface` (pozycja od 0,0, stan czekający
   starej znika, jej wywołania klatki „gotowe”); `xdg_surface` — ponownie, gdy poprzednia zniszczona (to, co pokazywała,
   znika razem z nią). Za dużo podpowierzchni ma osobną regułę (29).
-- **Przekaźnik** (`src/strefa/przekaznik/`): SOCKS5 na 127.0.0.1:1080 → jedno połączenie vsock (port 2) na każde.
-- **Łącznik** (moduł VMM: `lacznik.c` czyste protokoły, `polaczenia.c` stan połączeń): SOCKS5 — tylko CONNECT, IPv4 albo
-  nazwa (BIND, UDP, IPv6 — odmowa kodem SOCKS); nazwy — DNS (rekord A) przez gniazdo UDP od nadzorcy do serwera z DHCP;
-  połączenie — `STREFA_POLACZ` do nadzorcy (reguła D3, limit), gniazdo TCP w `STREFA_GNIAZDO`, odmowa w `STREFA_ODMOWA`.
-  W logu tylko liczniki: „połączenia przeglądarki: N, nazwy N, odmowy N”.
+- **Przekaźnik** i **łącznik** — części **Raptor Bridge**, mostu strefy do świata przez K1: droga bajtu, granice zaufania,
+  limity, liczniki, pomiary, pułapki i przepis na nową strefę — `docs/komponenty/raptor-bridge.md` (0.10.5 krok 5).
 
 ## Strefa pobierania (0.10.5 krok 2, ADR 0046)
 Wiersz `POBIERANIE` w `K1_STREFY` — jedyny bez okna (kolumna „okno” = 0): VMM nie dostaje kanału do ekranu (fd 3 =
