@@ -1,0 +1,177 @@
+name: Robot — poprawki jądra i przeglądarki
+
+# 0.10.5 krok 3 (ADR 0047; plan 0.10.5 T8–T11, D6). Raz dziennie: nowe jądro Linux (ta sama linia długoterminowa albo —
+# po 7 dniach spokoju — nowsza, T11) i nowe pakiety przeglądarki strefy (Debian 13) → gałąź robot/…, VERSION +1 PATCH,
+# wpis w CHANGELOG ze znacznikiem robota, PR z etykietą „robot”, pełne testy (k1.yml na tej gałęzi), po zielonych:
+# squash do main i budowa wydania na main (tag, ISO, obraz USB, ogłoszenie, paczka). Czerwone, zły podpis źródła,
+# porównanie konfiguracji z pytaniami (T19) → Issue z etykietą „robot” zamiast wydania.
+# TRYB PRÓBNY (do wydania 0.10.5): ROBOT_PROBNY = "1" — PR i testy, bez scalania i wydania. Krok 8 planu przestawia na
+# "0" po wydaniu 0.10.5. Zatrzymanie robota w każdej chwili: Actions → „Robot — poprawki jądra i przeglądarki” → ⋯ →
+# Disable workflow (docs/komponenty/robot.md).
+
+on:
+  schedule:
+    - cron: "41 2 * * *" # 02:41 UTC, raz dziennie
+  workflow_dispatch:
+    inputs:
+      proba:
+        description: "Próba: PR i testy, bez scalania i wydania"
+        type: boolean
+        default: true
+      start:
+        description: "Gałąź, od której zacząć (próba: np. gałąź z celowo starszym jądrem)"
+        type: string
+        default: main
+
+permissions:
+  contents: write      # gałąź robota, scalenie
+  pull-requests: write # PR robota
+  actions: write       # workflow_dispatch k1.yml (T9)
+  issues: write        # Issue „robot”, gdy robot nie umie
+
+concurrency:
+  group: robot
+  cancel-in-progress: false
+
+env:
+  ROBOT_PROBNY: "1" # ADR 0047: do wydania 0.10.5; krok 8 → "0"
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  robot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - name: Pobierz kod
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.start || 'main' }}
+          fetch-depth: 0
+
+      - name: Tryb i stan startu
+        run: |
+          if [ "$ROBOT_PROBNY" = 1 ] || [ "${{ inputs.proba }}" = true ]; then echo "PROBA=1" >> "$GITHUB_ENV"; else echo "PROBA=0" >> "$GITHUB_ENV"; fi
+          git fetch -q origin main
+          echo "WERSJA_MAIN=$(git show origin/main:VERSION)" >> "$GITHUB_ENV"
+          gh label create robot --color 8D8A84 --description "Robot aktualizacji (ADR 0047)" 2>/dev/null || true
+          git config user.name "K1 robot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # S19, S33: never two releases at once — people first; one robot PR at a time; not while main builds a release
+      - name: Czy robot może zacząć
+        id: start
+        run: |
+          stop() { echo "$1"; echo "stop=1" >> "$GITHUB_OUTPUT"; exit 0; }
+          for n in $(gh pr list --state open --json number,headRefName --jq '.[] | select(.headRefName | startswith("robot/") | not) | .number'); do
+            if gh pr diff "$n" --name-only | grep -qxE 'VERSION|jadro/wersja.env|strefy/przegladarka.txt'; then
+              stop "czekam na wydanie ludzi (PR #$n zmienia VERSION, jądro albo pakiety strefy)"
+            fi
+          done
+          [ "$(gh pr list --state open --label robot --json number --jq length)" = 0 ] || stop "otwarty PR robota — jeden naraz"
+          [ "$(gh run list --workflow k1.yml --branch main --json status --jq '[.[] | select(.status != "completed")] | length')" = 0 ] ||
+            stop "na main trwa budowa — następnym razem"
+          # T11: a new line of the kernel only after 7 days of the last robot release without an Issue "błąd"
+          ostatni=$(gh release list --limit 20 --json tagName,publishedAt --jq '.[0].publishedAt' 2>/dev/null || echo "")
+          bledy=$(gh issue list --state open --label "błąd" --json number --jq length 2>/dev/null || echo 1)
+          if [ -n "$ostatni" ] && [ $(( $(date +%s) - $(date -d "$ostatni" +%s) )) -ge $((7 * 86400)) ] && [ "$bledy" = 0 ]; then
+            echo "ROBOT_NOWA_LINIA=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Narzędzia
+        if: steps.start.outputs.stop != '1'
+        run: sudo apt-get install -y -qq gnupg gpgv xz-utils make gcc flex bison bc libelf-dev >/dev/null
+
+      # A new line needs the configuration of the kernel as K1 builds it today (scripts/porownaj-jadro.sh)
+      - name: Konfiguracja obecnego jądra (tylko dla nowej linii)
+        if: steps.start.outputs.stop != '1' && env.ROBOT_NOWA_LINIA == '1'
+        run: |
+          . jadro/wersja.env
+          mkdir -p build/zrodla build/wynik
+          curl -fsSL --retry 3 -o /tmp/linux.tar.xz "$K1_JADRO_URL/linux-$K1_JADRO_WERSJA.tar.xz"
+          echo "$K1_JADRO_SHA256  /tmp/linux.tar.xz" | sha256sum -c --quiet -
+          tar -C build/zrodla -xf /tmp/linux.tar.xz
+          scripts/oprogramowanie-kart.sh
+          cat jadro/k1.config build/pliki-kart.config > build/jadro-fragment.config
+          make -s -C "build/zrodla/linux-$K1_JADRO_WERSJA" O="$PWD/build/k" ARCH=x86_64 KCONFIG_ALLCONFIG="$PWD/build/jadro-fragment.config" allnoconfig
+          make -s -C "build/zrodla/linux-$K1_JADRO_WERSJA" O="$PWD/build/s" ARCH=x86_64 KCONFIG_ALLCONFIG="$PWD/jadro/strefa.config" allnoconfig
+          cp build/k/.config build/wynik/jadro.config
+          cp build/s/.config build/wynik/strefa-jadro.config
+
+      - name: Co nowego (jądro, przeglądarka)
+        id: co
+        if: steps.start.outputs.stop != '1'
+        run: scripts/robot.sh
+
+      - name: Issue, gdy robot nie umie (pytania o konfigurację jądra)
+        if: steps.co.outputs.co == 'pytanie' || steps.co.outputs.co == 'pytanie-i-zmiana'
+        run: |
+          gh issue create --label robot --title "Robot: nowa linia jądra czeka na decyzje o konfiguracji" --body-file build/robot-pytanie.md
+
+      # T8: the robot changes numbers and sums only — any other file stops it
+      - name: Tylko pliki z listy (T8)
+        if: steps.co.outputs.co == 'zmiana' || steps.co.outputs.co == 'pytanie-i-zmiana'
+        run: |
+          inne=$(git status --porcelain | awk '{print $2}' | grep -vxE 'jadro/wersja.env|strefy/przegladarka.txt|VERSION|CHANGELOG.md' || true)
+          if [ -n "$inne" ]; then echo "robot zmienił pliki spoza listy: $inne"; exit 1; fi
+
+      - name: PR robota
+        id: pr
+        if: steps.co.outputs.co == 'zmiana' || steps.co.outputs.co == 'pytanie-i-zmiana'
+        env:
+          GALAZ: ${{ steps.co.outputs.galaz }}
+          TYTUL: ${{ steps.co.outputs.tytul }}
+        run: |
+          git checkout -b "$GALAZ"
+          git commit -qam "$TYTUL"
+          git push -q -f origin "$GALAZ"
+          {
+            echo "Robot aktualizacji (ADR 0047) — bez zmian w kodzie K1, tylko numery wersji i sumy (T8)."
+            echo; git show --stat --format= HEAD; echo
+            echo "Tryb: $([ "$PROBA" = 1 ] && echo 'PRÓBA — bez scalania i wydania' || echo 'po zielonych testach: scalenie i wydanie')."
+            echo; echo "Testy: k1.yml na tej gałęzi (workflow_dispatch, testy: true)."
+          } > /tmp/opis.md
+          gh pr create --base main --head "$GALAZ" --title "$TYTUL" --label robot --body-file /tmp/opis.md
+          echo "nr=$(gh pr view "$GALAZ" --json number --jq .number)" >> "$GITHUB_OUTPUT"
+
+      - name: Pełne testy na gałęzi robota (T9)
+        id: testy
+        if: steps.pr.outputs.nr != ''
+        env:
+          GALAZ: ${{ steps.co.outputs.galaz }}
+        run: |
+          gh workflow run k1.yml --ref "$GALAZ" -f testy=true
+          for i in $(seq 1 30); do
+            id=$(gh run list --workflow k1.yml --branch "$GALAZ" --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')
+            [ -n "$id" ] && break
+            sleep 10
+          done
+          if gh run watch "$id" --exit-status --interval 60 >/dev/null; then echo "wynik=ok" >> "$GITHUB_OUTPUT"; else echo "wynik=zle" >> "$GITHUB_OUTPUT"; fi
+          echo "przebieg=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Czerwone testy → Issue
+        if: steps.testy.outputs.wynik == 'zle'
+        run: |
+          gh issue create --label robot --title "Robot: testy czerwone — ${{ steps.co.outputs.tytul }}" \
+            --body "PR #${{ steps.pr.outputs.nr }} zostaje otwarty. Przebieg k1.yml: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ steps.testy.outputs.przebieg }}. Zmianę robi człowiek (Claude albo Codex) zwykłym PR-em."
+
+      - name: Scal i wydaj (nie w próbie)
+        if: steps.testy.outputs.wynik == 'ok' && env.PROBA == '0'
+        run: |
+          git fetch -q origin main
+          if [ "$(git show origin/main:VERSION)" != "$WERSJA_MAIN" ]; then # S19: people released meanwhile
+            gh pr close "${{ steps.pr.outputs.nr }}" --delete-branch --comment "VERSION na main zmieniło się w trakcie — robot zacznie od nowa od świeżego main."
+            exit 0
+          fi
+          gh pr merge "${{ steps.pr.outputs.nr }}" --squash --delete-branch
+          gh workflow run k1.yml --ref main
+
+      - name: Próba — bez scalania
+        if: steps.testy.outputs.wynik == 'ok' && env.PROBA == '1'
+        run: |
+          echo "Tryb próbny (ADR 0047): PR #${{ steps.pr.outputs.nr }} zostaje otwarty, bez scalania i wydania."
+
+      - name: Błąd robota → Issue
+        if: failure()
+        run: |
+          gh issue create --label robot --title "Robot: przebieg nie skończył się (zła suma, podpis albo błąd)" \
+            --body "Przebieg: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} — nic nie zostało scalone ani wydane."

@@ -11,6 +11,17 @@ Budowa: `scripts/zbuduj-jadro.sh` (pobiera, sprawdza sumę i podpis, konfiguruje
 kompiluje). Decyzje i uzasadnienia: `docs/adr/0003-jadro-wersja-i-konfiguracja.md`,
 `docs/komponenty/jadro.md`.
 
+## Robot (od 0.10.5, ADR 0047)
+Kroki 1–2 i 6 poniżej robi codziennie **robot** (`scripts/robot.sh` w `.github/workflows/robot.yml`; opis
+`docs/komponenty/robot.md`): ta sama linia — sam; nowsza linia długoterminowa — po 7 dniach spokoju i tylko gdy
+`scripts/porownaj-jadro.sh` nie ma pytań (opcje, które nowe jądro włączyłoby samo, a fragment nie: każda musi być we
+fragmencie albo w `k1-odrzucone.txt` / `strefa-odrzucone.txt` z powodem — rozstrzyga człowiek, raz). Ręcznie według tej
+procedury tylko w kroku planu albo gdy robot założył Issue „robot” — nigdy równolegle z otwartym PR-em robota.
+
+| Plik | Co to |
+|---|---|
+| `k1-odrzucone.txt`, `strefa-odrzucone.txt` | opcje „domyślnie tak”, których K1 świadomie nie chce (CONFIG_X, dwie spacje, powód); zmienia tylko człowiek |
+
 ## Aktualizacja jądra (procedura)
 Poprawki bezpieczeństwa jądra mają najwyższy priorytet (SPEC §10).
 1. Sprawdź najnowsze wydanie linii LTS: `curl -s https://www.kernel.org/releases.json`.

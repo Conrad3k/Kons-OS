@@ -12,14 +12,22 @@ on:
       - "VERSION"
       - ".github/workflows/k1.yml"
   workflow_dispatch:
+    # 0.10.5 step 3 (ADR 0047, T9): the robot's PR — events of GITHUB_TOKEN start no workflow but this one, so the robot
+    # asks for the tests on its branch here (testy: true) and, after the merge, for the release build on main.
+    inputs:
+      testy:
+        description: "Pełne testy (gałąź robota) — jak etykieta „testy” na PR-ze"
+        type: boolean
+        default: false
   # Claude cannot call workflow_dispatch (403): it starts a PR build by adding the label "testy".
   pull_request:
     types: [labeled]
 
-# Nowszy build na main anuluje starszy, który jeszcze trwa (oszczędza minuty).
+# Nowszy przebieg PR-a anuluje starszy (oszczędza minuty); na main — kolejka: budowa wydania (także robota, ADR 0047,
+# S33) nigdy nie jest przerywana przez następną.
 concurrency:
   group: k1-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   k1:
@@ -152,7 +160,7 @@ jobs:
       # 0.10.0: the fuzzers' corpus (inputs that reach new code) is kept between runs in the Actions cache, so each
       # run goes deeper instead of starting from nothing. Only generated test inputs, nothing secret.
       - name: Przywróć korpus fuzzingu (pamięć podręczna)
-        if: github.event_name == 'pull_request'
+        if: (github.event_name == 'pull_request' || inputs.testy)
         continue-on-error: true
         uses: actions/cache/restore@v4
         with:
@@ -165,7 +173,7 @@ jobs:
       # Tests only on a PR (label "testy" — before every merge); main only builds and releases (the owner,
       # 2026-11-17: run 171 of the 0.10.1 release hung in test-strefa although the PR's run 170 had passed).
       - name: Testy (host + QEMU, także negatywne; M1–M6, start z ISO)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || inputs.testy
         timeout-minutes: 45
         run: |
           set -o pipefail
@@ -173,7 +181,7 @@ jobs:
           K1_FUZZ_CZAS=30 scripts/testy.sh 2>&1 | tee build/testy/wynik.txt
 
       - name: Zapisz korpus fuzzingu (pamięć podręczna)
-        if: always() && github.event_name == 'pull_request'
+        if: always() && (github.event_name == 'pull_request' || inputs.testy)
         continue-on-error: true
         uses: actions/cache/save@v4
         with:
@@ -183,7 +191,7 @@ jobs:
       # The tests' logs (PR only) are kept in places that do not depend on the artifact quota: the job console and the
       # job summary; and as an artifact.
       - name: Logi testów — podsumowanie i konsola (zawsze)
-        if: always() && github.event_name == 'pull_request'
+        if: always() && (github.event_name == 'pull_request' || inputs.testy)
         run: |
           {
             echo "## K1 ${K1_WERSJA} — wynik testów"
@@ -210,7 +218,7 @@ jobs:
           fi
 
       - name: Spakuj logi testów (zawsze)
-        if: always() && github.event_name == 'pull_request'
+        if: always() && (github.event_name == 'pull_request' || inputs.testy)
         run: |
           tar -czf "build/k1-${K1_WERSJA}-logi.tar.gz" --ignore-failed-read \
             build/testy/*.log build/testy/*.png build/testy/wzorce/*.png build/testy/wynik.txt build/wynik/SHA256SUMS \
@@ -218,10 +226,17 @@ jobs:
           ls -l "build/k1-${K1_WERSJA}-logi.tar.gz" || true
 
       - name: Oznacz wersję tagiem (jeśli tagu jeszcze nie ma)
+        id: tag
         if: github.ref == 'refs/heads/main'
         run: |
           TAG="k1-v${K1_WERSJA}"
-          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null; then
+          # S33 (ADR 0047): a tag only for the VERSION that main still has — an older build in the queue (main moved on)
+          # does not tag or release a version a newer commit carries too
+          git fetch -q origin main
+          if [ "$(git show origin/main:VERSION)" != "${K1_WERSJA}" ]; then
+            echo "VERSION na main to już $(git show origin/main:VERSION) — ta budowa nie oznacza ani nie wydaje ${K1_WERSJA}"
+            echo "pomin=1" >> "$GITHUB_OUTPUT"
+          elif git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null; then
             echo "Tag ${TAG} już istnieje — pomijam (czy podbito VERSION?)"
           else
             git tag "${TAG}" "${GITHUB_SHA}"
@@ -232,7 +247,7 @@ jobs:
         # Wydanie nie zajmuje limitu artefaktów i ma stały adres do pobrania. 0.10.5 krok 2 (ADR 0046): także paczka
         # aktualizacji (k1-X.Y.Z.k1a) i ogłoszenie (k1-ogloszenie.bin) — K1 czyta ogłoszenie najnowszego wydania
         # (releases/latest/download/k1-ogloszenie.bin), dlatego --latest.
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.tag.outputs.pomin != '1'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
