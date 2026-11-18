@@ -245,6 +245,14 @@ wybrany **A**. Znaczek i plakietka B2 zniknęły.
 - **Sesja, która pamięta / zapomina (krok 5):** pasek w pełnym kolorze sesji = pamięta; jasny pasek i „· zapomina po
   zamknięciu” = zapomina (według tego, jak strefa ruszyła). Ustawienia → Miejsce: część „Strefy” w szałwii `#5F8A6A`.
 
+- **Rozmiar okna strefy (0.10.5 krok 4, decyzja właściciela D8 z 2026-11-18: szkice z rekomendacji):** na pasku tytułu
+  trzy przyciski: minimalizuj, **maksymalizuj** (kwadrat 11 px, linia jak inne ikony; okno zmaksymalizowane — „przywróć”,
+  dwa nachodzące kwadraty), zamknij. Kursor nad chwytem brzegu albo rogu — podwójna strzałka w stylu kursora K1 (kremowa,
+  ciemny obrys, cień): ↔, ↕, ↖↘, ↗↙. W trakcie ciągnięcia — zarys nowego rozmiaru: obwódka 3 px w kolorze sesji i cienka
+  biała w środku, w prawym dolnym rogu plakietka „W × H” (ciemna, biały tekst); strona dostaje rozmiar po puszczeniu.
+  Najmniejszy obraz 640 × 480. Zmaksymalizowane — od dolnej krawędzi górnego paska do górnej krawędzi dolnego, bez
+  bocznej obwódki i zaokrągleń, pasek tytułu tuż pod górnym paskiem. Rozmiar i maksymalizacja zapamiętane dla każdej sesji.
+
 ## Sieć (0.9.0 krok 7, decyzja właściciela D1: ikona C, sekcja B)
 Trzy szkice ikony (A — monitor z kablem, B — trzy połączone węzły, C — wtyczka sieciowa) i trzy układy sekcji (A — jak
 Bateria, B — kafelki kart, C — stan na karcie); wybrane **ikona C** i **sekcja B** (2026-11-13).
@@ -341,4 +349,5 @@ informacja, mysz, wygląd (obrazek), zasoby (ramka z pulsem), ekran (monitor).
 
 ## Kursor
 Klasyczna strzałka: kremowe wypełnienie, ciemny obrys, lekki cień; przy wciśniętym przycisku —
-wypełnienie w kolorze akcentu.
+wypełnienie w kolorze akcentu. Od 0.10.5 krok 4 nad chwytami ramki okna strefy — podwójna strzałka tego samego stylu
+(↔, ↕, ↖↘, ↗↙).

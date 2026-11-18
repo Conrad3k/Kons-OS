@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M2–M4) — `scripts/test-m4.sh` (zrzuty), testy w systemie (klatka, złośliwe IPC, restart) |
-| **Kod** | `src/ekran/main.c` (start, kanał sterujący, pętla, zmiana trybu), `scena.c` (składanie, wyjście), `okna.c` (klienci, okna, fokus, komunikaty), `powierzchnie.c` (pamięć, nowa powierzchnia, zatwierdzanie; 0.9.0), `wskaznik.c` (mysz, klawiatura), `drm.c` (KMS, lista trybów), renderer `src/grafika/k1_grafika.c`, protokoły `src/wspolne/k1_zdarzenie.c`, `k1_komunikat.c` |
+| **Kod** | `src/ekran/main.c` (start, kanał sterujący, pętla, zmiana trybu), `scena.c` (składanie, wyjście), `okna.c` (klienci, okna, fokus, komunikaty), `powierzchnie.c` (pamięć, nowa powierzchnia, zatwierdzanie; 0.9.0; od 0.10.5 krok 4 zamiana powierzchni okna strefy w nowym rozmiarze), `rozmiar.c` (0.10.5 krok 4: zmiana rozmiaru i maksymalizacja okna strefy, obszar roboczy, zapamiętany rozmiar sesji), `wskaznik.c` (mysz, klawiatura), `drm.c` (KMS, lista trybów), renderer `src/grafika/k1_grafika.c`, protokoły `src/wspolne/k1_zdarzenie.c`, `k1_komunikat.c` |
 | **Decyzje** | ADR 0006, ADR 0007 (klatka, kanały), ADR 0008 (okna), ADR 0010 (simpledrm), ADR 0012 (przegląd, tryby); wygląd: `docs/WYGLAD.md` |
 
 ## Cel
@@ -65,7 +65,7 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 
 | Komunikat | Kierunek | Kto może | Znaczenie |
 |---|---|---|---|
-| `POWIERZCHNIA` | klient → ekran | okno: aplikacja; panel: powłoka i logowanie; pulpit: tylko powłoka, jeden | nowe okno, panel albo warstwa pulpitu (0.7.5): szerokość, wysokość, rodzaj, położenie panelu; + memfd z pieczęciami |
+| `POWIERZCHNIA` | klient → ekran | okno: aplikacja; panel: powłoka i logowanie; pulpit: tylko powłoka, jeden | nowe okno, panel albo warstwa pulpitu (0.7.5): szerokość, wysokość, rodzaj, położenie panelu; + memfd z pieczęciami. Okno z `e` = 1 (0.10.5 krok 4): zamienia powierzchnię okna `obiekt` — tylko w rozmiarze z ostatniego `ROZMIAR` |
 | `ZATWIERDZ` | klient → ekran | właściciel powierzchni | gotowa połowa bufora i zmieniony prostokąt |
 | `POKAZ` | klient → ekran | powłoka, logowanie | pokaż / ukryj panel |
 | `PRZESUN` | klient → ekran | powłoka, logowanie | nowe położenie panelu |
@@ -84,6 +84,7 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `FOKUS` | ekran → klient | — | okno dostało / straciło klawiaturę |
 | `RAMKA` | ekran → klient | — | ostatnie zatwierdzenie jest na ekranie, można rysować drugą połowę |
 | `ZAMKNIJ` | ekran → aplikacja | — | zamknij to okno — jak przycisk × (0.7.5; Notatki najpierw zapisują) |
+| `ROZMIAR` (0.10.5 krok 4) | ekran → strefa (VMM) | — | nowy rozmiar obrazu okna strefy po geście użytkownika na ramce K1: `a` = szerokość `K1_OKNO_MIN_SZER`…`K1_POW_MAKS_BOK`, wielokrotność 8, `b` = wysokość `K1_OKNO_MIN_WYS`…`K1_POW_MAKS_BOK`, `c` = 1 zmaksymalizowane, reszta 0; strefa odpowiada `POWIERZCHNIA` z `e` = 1 dokładnie w tym rozmiarze |
 | `OKNO` | ekran → powłoka | — | okno aplikacji powstało / zmieniło stan / zniknęło (dolny pasek); okno strefy (0.10.0): `a` = 0, `c` = numer strefy |
 | `USTAWIENIE` | ekran → wszyscy | — | nowa wartość ustawienia (motyw, tapeta, mysz, sekundy, rozdzielczość, czy jest zdjęcie na tapetę, domyślne aplikacje) |
 | `TRYB` | ekran → Ustawienia | — | jeden z trybów ekranu (rozmiar, Hz, czy zalecany) |
@@ -105,7 +106,26 @@ strefy i jest rysowana przed jej obrazem, więc strefa nie może jej zasłonić 
 z ramką. Wskaźnik na ramce nie trafia do strefy: chwycenie paska przesuwa okno (pasek nie wyżej niż górny pasek K1),
 minimalizuj chowa okno, zamknij wysyła VMM `ZAMKNIJ`; kursor nad przyciskiem go podświetla. VMM odejmuje wysokość paska
 od wysokości obrazu (`src/strefa/okno.c`). Log, gdy kursor wchodzi na pasek okna: `strefa: pasek okna N (minimalizuj X,Y,
-zamknij X,Y)` (testy klikają według niego). Do 0.10.0 krok 2 ramką była obwódka ze znaczkiem i plakietką (szkic B2).
+maksymalizuj X,Y, zamknij X,Y)` (testy klikają według niego). Do 0.10.0 krok 2 ramką była obwódka ze znaczkiem i plakietką (szkic B2).
+
+**Rozmiar okna strefy (0.10.5 krok 4, T12–T14, D8 — `rozmiar.c`).** Zmienia go tylko ekran, na gest użytkownika na
+ramce K1: **chwyty** brzegów (6 px: 3 w obwódce, 3 na zewnątrz) i rogów (16 px wzdłuż brzegu od rogu) — kursor zmienia się
+w podwójną strzałkę (↔, ↕, dwie ukośne; `k1_rysuj_kursor_rozmiar`, gorący punkt na środku); w trakcie ciągnięcia **zarys**
+w kolorze strefy z wymiarami „W × H” (rysowany na wierzchu sceny), okno się nie zmienia; po puszczeniu ekran wysyła strefie
+**`ROZMIAR`** (obraz: szerokość co 8 — jądro strefy liczy tryby CVT po 8 pikseli — od `K1_OKNO_MIN_SZER` × `K1_OKNO_MIN_WYS`
+= 640 × 480 do obszaru roboczego), okno od razu staje w nowym miejscu (ciągnięcie lewego / górnego brzegu), a strefa
+odpowiada `POWIERZCHNIA` z `e` = 1 — **zamianą** powierzchni okna dokładnie w tym rozmiarze (numer, fokus, kolejność
+zostają; nowa pokazana od pierwszego zatwierdzenia, do tego czasu stara). Powierzchnia innego rozmiaru albo bez prośby
+ekranu — odrzucona („rozmiar inny niż ten, o który prosił ekran”), okno zostaje. Strefa nie ma komunikatu „zmień mój
+rozmiar” ani „przesuń mnie”. **Maksymalizacja:** przycisk między „minimalizuj” a „zamknij” (kwadrat; zmaksymalizowane —
+dwa kwadraty „przywróć”) albo podwójne kliknięcie paska (< 0,45 s): okno na cały **obszar roboczy** — ekran bez górnego
+i dolnego paska, liczony z paneli powłoki, które ekran składa (T13: górny pasek — panel na całą szerokość od góry; dolny —
+panel, który sięga dołu ekranu; nie z liczb od gui), bez obwódki, pasek tytułu tuż pod górnym paskiem; nie da się go
+przesunąć ani ciągnąć za brzegi. „Przywróć” i podwójne kliknięcie — poprzedni prostokąt. Zmiana obszaru roboczego
+(rozdzielczość, paski) — zmaksymalizowane okna idą za nią. **Pamięć:** rozmiar i maksymalizacja każdej sesji w skarbcu
+(obiekt ekranu `K1_OB_OKNA_STREF`, „K1O1”, wiersz na strefę, każdy sprawdzany przy odczycie); nowe okno strefy dostaje
+rozmiar swojej sesji (log `okno N: rozmiar sesji W×H`). Log: `okno N: nowy rozmiar W×H[ (zmaksymalizowane)]`,
+`obszar roboczy X,Y W×H`, `okno N: powierzchnia W×H w X,Y` (zamiana pokazana).
 Od 0.10.0 krok 5 nazwa sesji na pasku to nazwa od nadzorcy (`STREFA_NAZWA` — użytkownik może ją zmienić; do pierwszej
 wiadomości — z `K1_STREFY`), a „· zapomina po zamknięciu” i jasny pasek — według tego, czy strefa dostała dysk, gdy
 ruszyła (`STREFY_STAN` a w chwili `KLIENT`; zmiana w Ustawieniach działa od następnego otwarcia, więc otwarte okno jej nie

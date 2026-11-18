@@ -170,6 +170,18 @@ ADR 0044), 2 procesory (w emulacji QEMU — 1); Ogólna i Bank pamiętają (krok
 - **Przekaźnik** i **łącznik** — części **Raptor Bridge**, mostu strefy do świata przez K1: droga bajtu, granice zaufania,
   limity, liczniki, pomiary, pułapki i przepis na nową strefę — `docs/komponenty/raptor-bridge.md` (0.10.5 krok 5).
 
+## Rozmiar okna (0.10.5 krok 4, T12–T14)
+Rozmiar okna strefy zmienia tylko ekran (ramka K1, `ekran.md`); VMM dostaje `ROZMIAR` (`okno.c`): nowa powierzchnia
+dokładnie tego rozmiaru (`k1_pow_zamien`), obie jej połowy najpierw czarne (nigdy przezroczyste), potem obraz gościa;
+virtio-gpu zgłasza gościowi zmianę wyświetlacza (`gpu_zmiana_ekranu`: `events_read` = `VIRTIO_GPU_EVENT_DISPLAY`
+i przerwanie konfiguracji; gość czyści je przez `events_clear`) — jądro strefy pyta o wyświetlacz znowu i ogłasza
+„hotplug” (uevent). Programy gościa (`gosc/kms.c`, wspólny dla `gosc` i kompozytora) słuchają uevent (gniazdo
+`NETLINK_KOBJECT_UEVENT`), czytają nowy tryb złącza i przełączają się na nowy bufor „dumb” (stary zwolniony); log
+`ekran gościa: nowy rozmiar W×H`. Kompozytor wysyła wtedy oknu głównemu (Firefox) nową konfigurację `xdg_toplevel`
+(rozmiar wyświetlacza, zmaksymalizowane, aktywne); **pełny ekran** Firefoksa (F11, film) to stan „pełny ekran” w tym samym
+rozmiarze — okno strefy, nigdy paski ani ramka K1 (T14). Strefa nie ma komunikatu, którym zmieniłaby swój rozmiar
+albo położenie.
+
 ## Strefa pobierania (0.10.5 krok 2, ADR 0046)
 Wiersz `POBIERANIE` w `K1_STREFY` — jedyny bez okna (kolumna „okno” = 0): VMM nie dostaje kanału do ekranu (fd 3 =
 `/dev/null`, „strefa bez okna”), gość nie widzi urządzeń ekranu, klawiatury ani wskaźnika (`kvm_linia_urzadzen`).
@@ -209,6 +221,7 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
 ## Komunikaty
 | Komunikat | Kierunek | Pola |
 |---|---|---|
+| `ROZMIAR` (0.10.5 krok 4) | ekran → VMM (fd 3) | obiekt = okno, a, b = nowy rozmiar obrazu (szerokość co 8, od 640 × 480), c = zmaksymalizowane; odpowiedź: `POWIERZCHNIA` e = 1 tego rozmiaru (`ekran.md`) |
 | `STREFA_POLACZ` | VMM → nadzorca (fd 7) | obiekt = połączenie 1…128; TCP: a = adres IPv4 (`k1_siec_serwer_dobry`), b = port 1…65535, c = `K1_STREFA_TCP`; DNS: a = b = 0, c = `K1_STREFA_DNS`; d = e = 0 |
 | `STREFA_GNIAZDO` | nadzorca → VMM (+ 1 deskryptor) | obiekt = połączenie, a = `K1_STREFA_TCP` (gniazdo TCP w trakcie łączenia) / `K1_STREFA_DNS` (gniazdo UDP do serwera DNS, port 53), reszta 0 |
 | `STREFA_PAMIEC` (0.10.1 krok 2, ADR 0044) | VMM → nadzorca, najwyżej raz na sekundę | obiekt 0, a = pamięć gościa trzymana w K1 (MiB — strony memfd), b = dostępna w gościu wg jego statystyk (−1: jeszcze brak; podpowiedź), c = w balonie, d = cel balonu, e = oddane K1 od startu (a–d: 0…`K1_STREFA_PAMIEC_MAKS`, e: 0…`INT32_MAX`) |

@@ -79,6 +79,8 @@ enum k1_ikona {
     K1_IK_WIFI,
     K1_IK_PRZEGLADARKA, /* 0.10.0 step 2 (D1: icon A): a globe — the browser in its zone */
     K1_IK_AKTUALIZACJE, /* 0.10.5 step 1 (D1: icon B, turned down): an arrow down in a circle — Ustawienia → Aktualizacje */
+    K1_IK_MAKSYMALIZUJ, /* 0.10.5 step 4 (D8): a square — the frame of a zone's window */
+    K1_IK_PRZYWROC,     /* two squares: a maximized window back to its size */
 };
 void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozmiar, uint32_t kolor);
 

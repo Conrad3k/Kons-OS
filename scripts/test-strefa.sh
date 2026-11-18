@@ -14,6 +14,9 @@
 #   (0.10.1 krok 3) ROZDZIELACZ: K1 (1 GiB) poniżej rezerwy — nadzorca sam bierze balonem wolną pamięć strefy (tryb 10),
 #      fokus od gui, Zasoby z przydziałem sesji, okienko „Mało pamięci” z „Zamknij” — zamyka strefę
 #   4. kursor na pasku: przyciski K1 (zrzut); przeciągnięcie paska przesuwa okno; „minimalizuj” chowa okno
+#      (0.10.5 krok 4, D8) ZMIANA ROZMIARU za róg ramki (ekran → ROZMIAR → nowa powierzchnia VMM → nowy wyświetlacz gościa),
+#      najmniejszy 640×480, MAKSYMALIZACJA przyciskiem (obszar roboczy z paneli, oba paski widoczne — zrzut), zmaksymalizowane
+#      nie przesuwa się, podwójne kliknięcie paska przywraca; rozmiar zapamiętany dla sesji (następne okno strefy)
 #   5. okno K1 (Zegar) na wierzchu zasłania strefę, ramka strefy zostaje tam, gdzie jej nie zasłania; ciemny motyw
 #   6. „zamknij” na pasku: gość dostaje „zamknij” (vsock), kończy się, maszyna znika, okno też
 #   (krok 3, S26: gość włącza pamięć kompresowaną — zram w jądrze strefy; wpis w logu gościa)
@@ -137,7 +140,8 @@ q.kolko(kx, ky, w_dol=2)  # 0.10.0 step 4: the pointer's wheel (virtio-input REL
 sprawdz("kółko dociera do gościa: 2 ząbki do siebie = REL_WHEEL −2 i REL_WHEEL_HI_RES −240",
         czekaj(r"K1-GOSC: wejście: kółko -2 ząbków, -240/120", czas=60))
 
-PASEK = r"K1-EKRAN: strefa: pasek okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr)
+PASEK = (r"K1-EKRAN: strefa: pasek okna {} \(minimalizuj (\d+),(\d+), maksymalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)"
+         .format(nr))
 
 
 def na_pasek():  # the pointer into the zone's picture, then onto its bar: ekran logs where the bar's buttons are
@@ -149,11 +153,11 @@ def na_pasek():  # the pointer into the zone's picture, then onto its bar: ekran
 
 p = na_pasek()
 if p:
-    q.idz(int(p.group(3)), int(p.group(4)))  # "zamknij" lights up (not clicked)
+    q.idz(int(p.group(5)), int(p.group(6)))  # "zamknij" lights up (not clicked)
 w, h, px = q.zrzut("4-pasek", gdy=lambda w, h, px: p and not blisko(px(zx, zy), TLO_GOSCIA))
-sprawdz("kursor na pasku: przyciski K1 (minimalizuj, zamknij) w pasku nad obrazem strefy (zrzut strefa-4-pasek)",
-        p and int(p.group(4)) < y and int(p.group(3)) > int(p.group(1)) and not blisko(px(zx, zy), TLO_GOSCIA),
-        p.group(0) if p else "")
+sprawdz("kursor na pasku: przyciski K1 (minimalizuj, maksymalizuj, zamknij) w pasku nad obrazem strefy (zrzut "
+        "strefa-4-pasek)", p and int(p.group(6)) < y and int(p.group(5)) > int(p.group(3)) > int(p.group(1)) and
+        not blisko(px(zx, zy), TLO_GOSCIA), p.group(0) if p else "")
 PRZES = r"K1-EKRAN: okno {} przesunięte do (\d+),(\d+)".format(nr)
 q.przeciagnij(zx, zy, zx + 60, zy + 40)
 m = czekaj(PRZES, czas=30)
@@ -162,6 +166,79 @@ sprawdz("przeciągnięcie paska tytułu przesuwa okno strefy", m and int(m.group
 if m:
     x, y = int(m.group(1)), int(m.group(2))
     zx, zy = x + w_ // 2, y - TYTUL // 2
+
+# 0.10.5 step 4 (D8, T12): the size of the window — only on K1's frame; the zone gets the final size and draws it
+ROZ = r"K1-EKRAN: okno {}: nowy rozmiar (\d+)x(\d+)( \(zmaksymalizowane\))?".format(nr)
+POW = r"K1-EKRAN: okno {}: powierzchnia (\d+)x(\d+) w (\d+),(\d+)".format(nr)
+GOSC = r"K1-GOSC: ekran gościa: nowy rozmiar (\d+)x(\d+)"
+
+
+def rozmiar(opis, ruch, oczekiwany, maks=False):
+    """One change: `ruch` does it; then ekran's request, the VMM's surface, the guest's display — all of that size."""
+    n = (q.ile(ROZ), q.ile(POW), q.ile(GOSC))
+    ruch()
+    r = czekaj(ROZ, od=n[0], czas=30)
+    pw = czekaj(POW, od=n[1], czas=60)
+    g = czekaj(GOSC, od=n[2], czas=120)
+    oczekiwany = oczekiwany() if callable(oczekiwany) else oczekiwany
+    jest = tuple(int(v) for v in r.groups()[:2]) if r else None
+    sprawdz(opis, r and jest == oczekiwany and bool(r.group(3)) == maks and pw and g and
+            (int(g.group(1)), int(g.group(2))) == oczekiwany == (int(pw.group(1)), int(pw.group(2))),
+            f"{r.group(0) if r else 'brak'} / {pw.group(0) if pw else 'brak'} / {g.group(0) if g else 'brak'}")
+    return (int(pw.group(3)), int(pw.group(4))) if pw else (x, y)
+
+
+w0, h0 = w_, h_
+rozmiar("zmiana rozmiaru: prawy dolny róg przeciągnięty o 64×24 — ekran prosi strefę o 1088×632 (szerokość co 8), VMM "
+        "daje okno tego rozmiaru, gość dostaje nowy wyświetlacz",
+        lambda: q.przeciagnij(x + w_ + 1, y + h_ + 1, x + w_ + 65, y + h_ + 25), ((w0 + 64) & ~7, h0 + 24))
+w_, h_ = (w0 + 64) & ~7, h0 + 24
+
+
+def wzor_caly(w, h, px):  # the guest's pattern on its whole new display: the yellow corners at the new size
+    return all(blisko(px(a, b), (0xFF, 0xD7, 0x00)) for a, b in ((x + w_ - 6, y + 6), (x + w_ - 6, y + h_ - 6)))
+
+
+w, h, px = q.zrzut("4b-rozmiar", gdy=wzor_caly)
+sprawdz("po zmianie rozmiaru: ramka K1 i wzór gościa w nowym rozmiarze (zrzut strefa-4b-rozmiar)", wzor_caly(w, h, px))
+rozmiar("NEGATYWNY: ciągnięcie poniżej najmniejszego rozmiaru — 640×480",
+        lambda: q.przeciagnij(x + w_ + 1, y + h_ + 1, x + 400, y + 300), (640, 480))
+w_, h_ = 640, 480
+p = na_pasek()
+OBSZAR = r"K1-EKRAN: obszar roboczy (\d+),(\d+) (\d+)x(\d+)"
+n_ob = q.ile(OBSZAR)
+
+
+def obszar():
+    ob = czekaj(OBSZAR, od=n_ob, czas=30)
+    return tuple(int(v) for v in ob.groups()) if ob else (0, 0, 0, 0)
+
+
+rozmiar("„maksymalizuj” na pasku: okno na cały obszar roboczy (szerokość ekranu, od górnego do dolnego paska)",
+        lambda: p and q.klik(int(p.group(3)), int(p.group(4))), lambda: (obszar()[2] & ~7, obszar()[3] - TYTUL), maks=True)
+ax_, ay_, aw_, ah_ = obszar()
+sprawdz("obszar roboczy z paneli powłoki: pod górnym paskiem (32 px), nad dolnym paskiem, cała szerokość ekranu",
+        ay_ == 32 and aw_ == 1280 and 600 < ay_ + ah_ < 800, str((ax_, ay_, aw_, ah_)))
+
+
+def maks_widac(w, h, px):  # the top bar and the bottom bar seen, the zone's bar right under the top one, its pattern
+    return (not blisko(px(640, 12), PIASEK) and blisko(px(320, 32 + TYTUL // 2), PIASEK) and
+            blisko(px(640, 32 + TYTUL + 30), TLO_GOSCIA) and not blisko(px(640, 790), TLO_GOSCIA) and
+            blisko(px(1280 - 6, 32 + TYTUL + 6), (0xFF, 0xD7, 0x00)))
+
+
+w, h, px = q.zrzut("4c-maksymalizacja", gdy=maks_widac)
+sprawdz("zmaksymalizowane: górny i dolny pasek widoczne, pasek tytułu strefy tuż pod górnym, wzór między paskami "
+        "(zrzut strefa-4c-maksymalizacja)", maks_widac(w, h, px))
+n = q.ile(PRZES)
+q.przeciagnij(640, 32 + TYTUL // 2, 700, 32 + TYTUL // 2 + 60)
+sprawdz("NEGATYWNY: zmaksymalizowanego okna nie da się przesunąć za pasek", q.cisza(PRZES, 5) and q.ile(PRZES) == n)
+rozmiar("podwójne kliknięcie paska tytułu: okno wraca do poprzedniego rozmiaru i miejsca",
+        lambda: q.dwuklik(640, 32 + TYTUL // 2), (640, 480))
+rozmiar("i z powrotem do pierwszego rozmiaru (lewy górny róg tam, gdzie był)",
+        lambda: q.przeciagnij(x + w_ + 1, y + h_ + 1, x + w0 + 1, y + h0 + 1), (w0, h0))
+w_, h_ = w0, h0
+zx, zy = x + w_ // 2, y - TYTUL // 2
 
 # the bottom bar: the zone's window among the running ones; minimise from the title bar, back from the bottom bar
 pk = czekaj(r"K1-GUI: pasek zmieniony: Start \d+,\d+, aplikacje od (\d+),(\d+) co (\d+), dźwięk \d+,\d+ \(pasek: ([^)]*)\)",
@@ -231,7 +308,8 @@ if o:
 # closing from the title bar
 p = na_pasek()
 if p:
-    q.klik(int(p.group(3)), int(p.group(4)))
+    q.klik(int(p.group(5)), int(p.group(6)))
+n_ses = q.ile(r"K1-EKRAN: okno \d+: rozmiar sesji")
 sprawdz("„zamknij” na pasku: VMM prosi gościa (vsock), gość się zamyka, maszyna kończy się, okno znika",
         p and czekaj(r"K1-STREFA: zamykam strefę na prośbę ekranu", czas=30) and
         czekaj(r"K1-STREFA: gość się zamyka", czas=60) and
@@ -239,6 +317,9 @@ sprawdz("„zamknij” na pasku: VMM prosi gościa (vsock), gość się zamyka, 
         czekaj(r"K1-EKRAN: okno {} zamknięte".format(nr), czas=30) and
         czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 0\)", czas=30))
 
+ses = czekaj(r"K1-EKRAN: okno \d+: rozmiar sesji (\d+)x(\d+)", od=n_ses, czas=600)
+sprawdz("rozmiar okna zapamiętany dla sesji: następne okno strefy próbnej dostaje ostatni rozmiar (skarbiec)",
+        ses and (int(ses.group(1)), int(ses.group(2))) == (w0, h0), ses.group(0) if ses else "brak")
 sprawdz("LICZNIKI (0.10.1 krok 1): co kilka sekund linia liczników — pamięć gościa, zram, grafika, połączenia; przy końcu "
         "jeszcze raz; nadzorca: szczyt pamięci klatki i zdarzenia jej limitu",
         czekaj(r"K1-STREFA: liczniki: gość — dostępna [1-9]\d* MiB, zram \d+ MiB, zabite 0; pamięć w K1 [1-9]\d* MiB, "

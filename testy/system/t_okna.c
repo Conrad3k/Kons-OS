@@ -88,6 +88,32 @@ void t_okna_ipc(void)
     close(m5);
 }
 
+/* 0.10.5 step 4 (T12): a zone's window changes its size only when ekran asks (ROZMIAR, after the user's gesture on K1's
+ * frame): a zone that gives a surface of another size by itself is refused and its window stays as it was. */
+void t_okna_rozmiar(void)
+{
+    const int32_t w = 800, h = 600, w2 = 1024, h2 = 704;
+    int fd = polacz(K1_ROLA_STREFA, K1_STREFA_PROBNA, 0), m1 = memfd((size_t)w * (size_t)h * 8u, 1),
+        m2 = memfd((size_t)w2 * (size_t)h2 * 8u, 1), ok;
+    if (fd < 0 || m1 < 0 || m2 < 0) {
+        check(0, "NEGATYWNY 0.10.5: strefa nie zmienia sama rozmiaru okna", "przygotowanie: %d %d %d", fd, m1, m2);
+        return;
+    }
+    ok = czekaj_na(fd, K1_KOM_WITAJ, 0, 5000);
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 1, w, h, K1_POW_OKNO, 0, 0), m1);
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 1, 0, 0, 0, 0, 0), -1);
+    ok &= czekaj_na(fd, K1_KOM_RAMKA, 1, 10000);
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_POWIERZCHNIA, 1, w2, h2, K1_POW_OKNO, 0, 1), m2); /* not asked for */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 1, 0, 0, 0, 0, 0), -1);
+    ok &= czekaj_na(fd, K1_KOM_RAMKA, 1, 10000); /* the old surface is still there: its commit is taken */
+    check(ok && find_process("ekran") > 0,
+          "NEGATYWNY 0.10.5: strefa nie zmienia sama rozmiaru okna — powierzchnia w rozmiarze, o który ekran nie prosił, "
+          "odrzucona, okno zostaje", "ok=%d", ok);
+    close(fd);
+    close(m1);
+    close(m2);
+}
+
 /* Next message of type `typ` (any object) from ekran within `ms`, copied to *m; 0 if none. */
 static int odbierz_typ(int fd, int typ, int ms, struct k1_komunikat *m)
 {

@@ -4,6 +4,7 @@
  * Limits: K1_GPU_ZASOBY resources, each at most 4096 × 4096, all together GPU_PAMIEC; every rectangle inside its
  * resource and every byte read inside the backing the guest gave (ERR_INVALID_PARAMETER otherwise); a command shorter
  * than its structure or without room for the answer ends the machine. */
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -277,11 +278,32 @@ static int powiadom(struct mmio_urz *u, int k, const char **powod)
     return w;
 }
 
+/* 0.10.5 step 4: events_read — VIRTIO_GPU_EVENT_DISPLAY after ekran gave the window a new size (gpu_zmiana_ekranu);
+ * the guest's kernel asks for the display again and tells its programs (a hotplug event), then clears it. */
+static uint32_t zdarzenia;
+
 static void konfig(struct mmio_urz *u, uint32_t od, uint8_t *dst, uint32_t n)
 {
-    struct virtio_gpu_config c = { 0, 0, 1, 0 };
+    struct virtio_gpu_config c = { zdarzenia, 0, 1, 0 };
     (void)u;
     memcpy(dst, (const uint8_t *)&c + od, n);
+}
+
+static int konfig_pisz(struct mmio_urz *u, uint32_t od, const uint8_t *src, uint32_t n, const char **powod)
+{
+    uint32_t v = 0;
+    (void)u, (void)powod;
+    if (od == offsetof(struct virtio_gpu_config, events_clear) && n == sizeof v) {
+        memcpy(&v, src, sizeof v);
+        zdarzenia &= ~v;
+    }
+    return 0; /* anything else there is read-only: ignored */
+}
+
+void gpu_zmiana_ekranu(void)
+{
+    zdarzenia |= VIRTIO_GPU_EVENT_DISPLAY;
+    mmio_konfig_zmiana(&mz.urz[URZ_EKRAN]);
 }
 
 /* The counters for the log (0.10.1 step 1, S13): resources now and their MiB (GPU_PAMIEC at most). */
@@ -309,6 +331,7 @@ const struct mmio_ops gpu_ops = {
     .n_kolejek = 2, /* control, cursor */
     .rozmiar_konfig = sizeof(struct virtio_gpu_config),
     .konfig_czytaj = konfig,
+    .konfig_pisz = konfig_pisz,
     .powiadom = powiadom,
     .reset = reset,
 };

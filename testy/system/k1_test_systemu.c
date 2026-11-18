@@ -60,6 +60,7 @@ int main(int argc, char **argv)
     t_okna_ochrona();
     t_okna_zalegle();
     t_okna_przewijanie();
+    t_okna_rozmiar();
     t_opis();
     t_skarb_zalegle();
     t_skarb_strefy();

@@ -211,6 +211,8 @@ static void usun_pow(int i)
     }
     if (p->mem != NULL)
         munmap((void *)(uintptr_t)p->mem, p->rozmiar);
+    if (p->nowa_mem != NULL) /* 0.10.5 step 4: a new size not shown yet */
+        munmap((void *)(uintptr_t)p->nowa_mem, p->nowa_rozmiar);
     p->uzyta = 0;
     if (s.pod == i)
         s.pod = -1;

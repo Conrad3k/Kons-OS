@@ -129,7 +129,8 @@ void kvm_linia_urzadzen(char *buf, size_t n);        /* "virtio_mmio.device=4K@0
 
 /* the devices (each its file) */
 const uint32_t *gpu_obraz(uint32_t *w, uint32_t *h); /* gpu.c: the shown resource (under mz.zamek), NULL: none yet */
-void gpu_liczniki(unsigned *n, unsigned *mib);        /* gpu.c: resources now and their MiB (the counters' line) */
+void gpu_liczniki(unsigned *n, unsigned *mib);
+void gpu_zmiana_ekranu(void);  /* gpu.c, under mz.zamek: the display's size changed (okno.c) — the guest is told */        /* gpu.c: resources now and their MiB (the counters' line) */
 void wejscie_klawisz(int kod, int wartosc);          /* wejscie.c: a Linux key code, 0 up / 1 down / 2 repeat */
 void wejscie_wskaznik(int32_t x, int32_t y, uint32_t w, uint32_t h, int rodzaj, int przycisk); /* K1_WSK_* in a w×h window */
 /* the wheel or two fingers at x, y (K1_KOM_PRZEWIN: c, d in 1/120 of a notch, d > 0 further down; e = source) */

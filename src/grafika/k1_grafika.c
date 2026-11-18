@@ -270,28 +270,17 @@ void k1_rysuj_tlo(struct k1_obraz *o, int wariant)
     }
 }
 
-void k1_rysuj_kursor(uint32_t *sprite, int wcisniety)
+/* One cursor sprite from polygon pts (already in sprite pixels): fill, 1.3 px dark outline, a soft shadow. */
+static void kursor_z(uint32_t *sprite, const struct v2 *pts, size_t n, struct rgb wypelnienie)
 {
-    /* Classic arrow, tip at the hotspot (2, 2). */
-    static const struct v2 strzalka[] = {
-        { 0.0f, 0.0f }, { 0.0f, 20.0f }, { 5.0f, 15.6f }, { 8.5f, 23.6f },
-        { 11.5f, 22.4f }, { 8.1f, 14.5f }, { 14.4f, 14.5f },
-    };
-    struct v2 pts[sizeof strzalka / sizeof strzalka[0]];
-    struct rgb wypelnienie = hex(wcisniety ? K1_TERAKOTA : K1_KREM), obrys = hex(0x141110u);
-    size_t i;
+    struct rgb obrys = hex(0x141110u);
     uint32_t x, y;
-
-    for (i = 0; i < sizeof pts / sizeof pts[0]; i++) {
-        pts[i].x = strzalka[i].x + (float)K1_KURSOR_HOT_X;
-        pts[i].y = strzalka[i].y + (float)K1_KURSOR_HOT_Y;
-    }
     for (y = 0; y < K1_KURSOR_WYS; y++) {
         for (x = 0; x < K1_KURSOR_SZER; x++) {
             struct v2 p = { (float)x + 0.5f, (float)y + 0.5f };
             struct v2 ps = { p.x - 1.2f, p.y - 1.8f };
-            float d = sd_polygon(p, pts, sizeof pts / sizeof pts[0]);
-            float cien = 0.35f * (1.0f - smoothstep(-0.5f, 2.5f, sd_polygon(ps, pts, sizeof pts / sizeof pts[0])));
+            float d = sd_polygon(p, pts, n);
+            float cien = 0.35f * (1.0f - smoothstep(-0.5f, 2.5f, sd_polygon(ps, pts, n)));
             float a_obrys = pokrycie(d - 1.3f); /* fill + 1.3 px outline */
             float a_wyp = pokrycie(d + 0.2f);
             /* premultiplied: start with shadow, put outline over it, then fill */
@@ -309,6 +298,38 @@ void k1_rysuj_kursor(uint32_t *sprite, int wcisniety)
                                              ((uint32_t)(g * 255.0f + 0.5f) << 8) | (uint32_t)(b * 255.0f + 0.5f);
         }
     }
+}
+
+void k1_rysuj_kursor(uint32_t *sprite, int wcisniety)
+{
+    /* Classic arrow, tip at the hotspot (2, 2). */
+    static const struct v2 strzalka[] = {
+        { 0.0f, 0.0f }, { 0.0f, 20.0f }, { 5.0f, 15.6f }, { 8.5f, 23.6f },
+        { 11.5f, 22.4f }, { 8.1f, 14.5f }, { 14.4f, 14.5f },
+    };
+    struct v2 pts[sizeof strzalka / sizeof strzalka[0]];
+    size_t i;
+    for (i = 0; i < sizeof pts / sizeof pts[0]; i++) {
+        pts[i].x = strzalka[i].x + (float)K1_KURSOR_HOT_X;
+        pts[i].y = strzalka[i].y + (float)K1_KURSOR_HOT_Y;
+    }
+    kursor_z(sprite, pts, sizeof pts / sizeof pts[0], hex(wcisniety ? K1_TERAKOTA : K1_KREM));
+}
+
+void k1_rysuj_kursor_rozmiar(uint32_t *sprite, int ksztalt)
+{
+    /* A double-headed arrow along x, turned by the shape's angle around the middle of the sprite. */
+    static const struct v2 dwie[] = { { -10.5f, 0 }, { -5, -5.5f }, { -5, -2 }, { 5, -2 }, { 5, -5.5f },
+                                      { 10.5f, 0 },  { 5, 5.5f },   { 5, 2 },   { -5, 2 }, { -5, 5.5f } };
+    static const float katy[] = { 0, 0, 90, 45, -45 }; /* K1_KURSOR_*: ↔, ↕, ↖↘, ↗↙ (y grows down) */
+    struct v2 pts[sizeof dwie / sizeof dwie[0]];
+    float k = katy[ksztalt >= 1 && ksztalt <= 4 ? ksztalt : 1] * 3.14159265f / 180.0f, c = cosf(k), sn = sinf(k);
+    size_t i;
+    for (i = 0; i < sizeof pts / sizeof pts[0]; i++) {
+        pts[i].x = dwie[i].x * c - dwie[i].y * sn + (float)K1_KURSOR_SROD_X;
+        pts[i].y = dwie[i].x * sn + dwie[i].y * c + (float)K1_KURSOR_SROD_Y;
+    }
+    kursor_z(sprite, pts, sizeof pts / sizeof pts[0], hex(K1_KREM));
 }
 
 /* Clips rectangle (x, y, w, h) to the image; returns 0 if nothing is left. */

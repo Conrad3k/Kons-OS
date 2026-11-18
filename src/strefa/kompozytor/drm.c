@@ -26,6 +26,21 @@ int ekran_start(void)
     return 0;
 }
 
+int ekran_zmiany_fd(void)
+{
+    return kms_zmiany_fd();
+}
+
+int ekran_zmiana(void)
+{
+    struct kms k = { ekran.px, (uint32_t)ekran.szer, (uint32_t)ekran.wys, (uint32_t)ekran.krok };
+    if (!kms_zmiana(&k))
+        return 0;
+    ekran = (struct wyswietlacz){ k.px, (int32_t)k.szer, (int32_t)k.wys, (int32_t)k.krok };
+    scena_zmiana(0, 0, ekran.szer, ekran.wys);
+    return 1;
+}
+
 void ekran_pokaz(int32_t x, int32_t y, int32_t w, int32_t h)
 {
     kms_pokaz((uint32_t)x, (uint32_t)y, (uint32_t)w, (uint32_t)h);

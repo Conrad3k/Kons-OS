@@ -37,7 +37,9 @@ int k1_kom_sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
         if (kier != K1_KIER_DO_EKRANU || !powierzchnia(k->obiekt) || !w(k->a, 1, K1_POW_MAKS_BOK) ||
             !w(k->b, 1, K1_POW_MAKS_BOK))
             return 0;
-        if (k->c == K1_POW_OKNO || k->c == K1_POW_PULPIT)
+        if (k->c == K1_POW_OKNO) /* e: 1 replaces the window surface obiekt (0.10.5 step 4) */
+            return k->d == 0 && w(k->e, 0, 1);
+        if (k->c == K1_POW_PULPIT)
             return k->d == 0 && k->e == 0;
         return k->c == K1_POW_PANEL && w(k->d, K1_POZ_MIN, K1_POZ_MAKS) && w(k->e, K1_POZ_MIN, K1_POZ_MAKS);
     case K1_KOM_ZATWIERDZ:
@@ -87,6 +89,9 @@ int k1_kom_sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
                w(k->c, 0, K1_MOD_MASKA) && zera(k, 3);
     case K1_KOM_FOKUS:
         return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && w(k->a, 0, 1) && zera(k, 1);
+    case K1_KOM_ROZMIAR: /* 0.10.5 step 4 */
+        return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && w(k->a, K1_OKNO_MIN_SZER, K1_POW_MAKS_BOK) &&
+               k->a % 8 == 0 && w(k->b, K1_OKNO_MIN_WYS, K1_POW_MAKS_BOK) && w(k->c, 0, 1) && zera(k, 3);
     case K1_KOM_RAMKA:
     case K1_KOM_ZAMKNIJ:
         return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && zera(k, 0);

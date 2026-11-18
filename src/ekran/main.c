@@ -201,6 +201,8 @@ static void start(void)
         k1_koniec(TAG, "brak pamięci na tło");
     k1_rysuj_kursor(s.kursor[0], 0);
     k1_rysuj_kursor(s.kursor[1], 1);
+    for (i = 0; i < 4; i++) /* 0.10.5 step 4: the grips of a zone's frame */
+        k1_rysuj_kursor_rozmiar(s.kursor_rozm[i], K1_KURSOR_POZIOMO + i);
     for (i = 0; i < 2; i++) {
         if (utworz_bufor(&s.buf[i], s.tryb.hdisplay, s.tryb.vdisplay) != 0)
             k1_koniec(TAG, "nie można utworzyć bufora obrazu");
@@ -289,6 +291,7 @@ int main(void)
             }
         if (s.nowy_tryb && !s.flip_w_toku)
             przestaw_tryb();
+        rozmiar_sprawdz(); /* 0.10.5 step 4: a new work area — maximized zone windows follow it */
         if (s.zmiana && !s.flip_w_toku && (!s.brak_flip || k1_teraz() - s.ost_klatka >= 1.0 / 60.0)) {
             s.zmiana = 0;
             s.ost_klatka = k1_teraz();

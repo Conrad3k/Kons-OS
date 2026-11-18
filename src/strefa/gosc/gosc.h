@@ -18,6 +18,8 @@ void loguj(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 /* obraz.c — the display */
 int obraz_start(void);                  /* 0, or -1 (logged) */
 void obraz_rysuj(unsigned klawisze, unsigned klikniecia, int32_t x, int32_t y); /* pointer x, y in 0..32767 */
+int obraz_zmiany_fd(void);              /* 0.10.5 step 4: readable when K1 gave the display a new size (-1: none) */
+int obraz_zmiana(void);                 /* 1: a new size (draw again) */
 
 /* przegladarka.c — the browser zone (0.10.0 step 2): the image has the compositor and the browser */
 int przegladarka_jest(void);
