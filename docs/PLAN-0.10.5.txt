@@ -134,6 +134,7 @@ Osiem kroków:
      PR #158
 [ ]  4  Okno przeglądarki: rozmiar, maksymalizacja         S26–S32          0.10.0      D8, T12–T14      M        —
 [ ]  5  Raptor Bridge: weryfikacja mostu, dokumentacja      S34–S38          0.10.0      D9, T15          M        —
+     [w toku: Claude, gałąź claude/eloquent-darwin-sjaahj]
 [ ]  6  Alt+Tab; Przeglądarka na pasku i pulpicie           S42–S49          0.10.2      D11 D12, T16 T17 M        —
 [ ]  7  Jądro Linux 7.x (najnowsza linia)                  S52–S55          3           D14, T19 T20     M        —
 [ ]  8  Przegląd dokumentacji repozytorium; wydanie         S39–S41          1–7         D10              M        —
