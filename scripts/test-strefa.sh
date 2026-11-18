@@ -446,7 +446,8 @@ sprawdz("…ekran startu znika dopiero przy „etap okno” (8 s po pierwszym ob
             x2 + w2 // 2, y2 + h2 // 6), TLO_GOSCIA))
 # 0.10.2 step 1 (S3, T2): "zamknij" — the window goes at once, the machine ends in the background (the guest takes 6 s,
 # as the browser saving its session); meanwhile the test program asks for the same zone again (D2: it opens after)
-PASEK2 = r"K1-EKRAN: strefa: pasek okna {} \(minimalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)".format(nr2)
+PASEK2 = (r"K1-EKRAN: strefa: pasek okna {} \(minimalizuj (\d+),(\d+), maksymalizuj (\d+),(\d+), zamknij (\d+),(\d+)\)"
+          .format(nr2))
 n_ = q.ile(PASEK2)
 q.idz(x2 + w2 // 2, y2 + 60)
 q.idz(x2 + w2 // 2, y2 - TYTUL // 2)
@@ -454,7 +455,7 @@ p2 = czekaj(PASEK2, od=n_, czas=30)
 KONIEC1 = r"K1-STREFA: strefa 1: koniec — gość zakończył pracę"
 n_kon = q.ile(KONIEC1)
 if p2:
-    q.klik(int(p2.group(3)), int(p2.group(4)))
+    q.klik(int(p2.group(5)), int(p2.group(6)))
 zamk = p2 and czekaj(r"K1-EKRAN: okno {} zamknięte".format(nr2), czas=30)
 sprawdz("ZAMYKANIE W TLE: po „zamknij” okno strefy znika od razu — maszyna jeszcze działa (gość zapisuje sesję)",
         zamk and q.ile(KONIEC1) == n_kon and
