@@ -606,7 +606,28 @@ KROK 6 — Alt+Tab; Przeglądarka na pasku i pulpicie                         M 
   README (skróty klawiszowe, jeśli są opisane).
   Gotowe, gdy: Alt+Tab przełącza okna aplikacji i stref, Przeglądarka przypina się i leży na pulpicie, wraca po
   ponownym starcie; testy [OK]; w kroku 8 lista testów właściciela ma Alt+Tab i przypiętą Przeglądarkę.
-  Ustalenia z wykonania: (pusto — wypełnia krok 6)
+  Ustalenia z wykonania (2026-11-18, krok 6):
+  - D11, D12: właściciel wybrał szkice A (kafelki; ikona + okna sesji), potem przyjął 40 obrazów wzorcowych „po” (2 nowe —
+    przełącznik okien, 38 zmienionych: pasek i pulpit z Przeglądarką oraz tło pod oknami, gdzie widać szerszy pasek).
+  - S42 POTWIERDZONE: Alt+Tab w ekranie (wskaznik.c, s.przelaczanie: od pierwszego Tab z Alt do puszczenia Alt — Tab, Esc
+    i puszczenie Alt idą do powłoki; Shift w tym czasie nie idzie do strefy). Nowy komunikat nie był potrzebny (KLAWISZ).
+  - S43 POTWIERDZONE (src/strefa/okno.c): FOKUS 0 → wejscie_pusc — VMM i tak puszcza gościowi wszystkie klawisze przy
+    zmianie fokusu (także myszą); ekran dodatkowo puszcza strefie Alt przy pierwszym Tab, bo przełącznik może się skończyć
+    Esc bez zmiany fokusu. test-strefa: gość liczy wciśnięte klawisze („wciśnięte 1” przy literze po powrocie).
+  - S45: kolejność ostatnio używanych — licznik `uzyte` przy oknie (okna.c), nie osobna lista. Panel menu kontekstowego
+    urósł do 6 × 3 kafelków przełącznika (KONT_SZER/KONT_WYS z max) — stąd większy wycinek wzorca okienka sesji.
+  - S46–S48, S49: Przeglądarka w gui to osobna pozycja POZYCJA_MENU_STREFY(n) (linia menu Start wiersza K1_STREFY), obok
+    okien sesji; klucz ROZM_STREFA + n; przy pierwszym starcie wynika z kolumny menu w K1_STREFY (bez nowej kolumny —
+    jedna tabela). Zapis „K1R3”: pasek po 4 B na klucz; „K1R2” i „K1R1” czytane bez dodawania Przeglądarki (D12).
+  - Testy QEMU: `sendkey` monitora puszcza wszystkie klawisze kombinacji naraz — przytrzymany Alt przy kilku Tab tylko
+    przez QMP (`input-send-event`, k1qemu `klawisze`; gniazdo `<monitor>.qmp` w uruchom-qemu.sh). Szybkie Alt+Tab — `sendkey
+    alt-tab`.
+  - test-m4: stare kliknięcie „w pusty pulpit” (W/2, H/3) trafiało w wiersz Notatek otwartego menu Start i otwierało je —
+    teraz klik obok menu (3W/4, H/3).
+  - Lokalnie (TCG) w test-strefa dwa razy gość próbny w trybie balonu (9, potem 10) skończył się „potrójnym błędem” po ok.
+    3 s — za każdym razem w innym trybie, kod gościa, VMM i balonu bez zmian w tym kroku; obserwujemy w CI z KVM. W jednym
+    przebiegu test-wzorce kliknięcie „Start” doszło razem z niedokończonym ruchem myszy (pakiet PS/2) i gui uznał je za
+    przeciągnięcie Notatek — wyścig w narzędziu testowym, kolejny przebieg czysty.
 
 KROK 7 — Jądro Linux 7.x (najnowsza linia)                               M · decyzje D14, T19 T20 · bez ADR
   Dodany przez właściciela 2026-11-17 (D14): 0.10.5 wychodzi na najnowszej linii jądra 7.x, nie na 6.18.
