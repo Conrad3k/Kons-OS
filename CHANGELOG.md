@@ -3,6 +3,71 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.10.5] — 2026-11-18
+
+**Aktualizacje przez sieć** (plan 0.10.5, kroki 1–8; ADR 0046, 0047). K1 zainstalowany na dysku sam sprawdza wydania na
+GitHubie, pobiera nową wersję i pyta, zanim ją zainstaluje; wszystko o wersjach jest w Ustawieniach → Aktualizacje.
+Poprawki jądra i przeglądarki wydaje odtąd sam robot. Okno przeglądarki można powiększać i maksymalizować, Alt+Tab
+przełącza okna, a Przeglądarka przypina się do paska jak inne aplikacje. System działa na jądrze Linux 7.3.
+
+Opis w K1: K1 sam sprawdza, czy jest nowa wersja, pobiera ją i pyta, zanim ją zainstaluje. Wszystko o wersjach
+znajdziesz w Ustawieniach, w sekcji Aktualizacje, także powrót do poprzedniej wersji. Okno przeglądarki możesz
+powiększyć, zmniejszyć i zmaksymalizować, Alt+Tab przełącza okna, a Przeglądarkę możesz przypiąć do paska i położyć
+na pulpicie. K1 działa na nowym jądrze Linux 7.3.
+
+### Dodane
+- **Aktualizacje przez sieć** (krok 2, ADR 0046; Twoje decyzje D4, D5, D7 — na razie według rekomendacji): K1 na dysku
+  sprawdza 30 s po połączeniu z siecią i potem co 6 godzin („Sprawdzaj sam”, domyślnie włączone), nową wersję pobiera od
+  razu i pokazuje okienko **„Jest nowa wersja K1”** z opisem; instaluje dopiero po „Zainstaluj”. W Ustawieniach →
+  Aktualizacje: „Sprawdź teraz”, postęp, **„Wróć do poprzedniej wersji”**. Pobiera **strefa pobierania** — mikro-maszyna
+  bez okna, która łączy się tylko z serwerami wydań GitHuba; K1 ufa podpisowi kluczem K1, nie GitHubowi. Każde wydanie ma
+  teraz **ogłoszenie** (`k1-ogloszenie.bin`) i **paczkę** (`k1-<wersja>.k1a`); paczka czeka w poczekalni na dysku i jest
+  sprawdzana przed zapisem. K1 z pendrive'a mówi tylko, że jest nowsza wersja — nagraj nowy pendrive.
+- **Robot aktualizacji** (krok 3, ADR 0047, Twoja decyzja D6): raz dziennie sprawdza nowe jądro Linux (ta sama linia,
+  nowsza linia długoterminowa po 7 dniach spokoju) i poprawione pakiety przeglądarki z Debiana, a przy zmianie sam robi
+  wersję PATCH, puszcza pełne testy i po zielonych ją wydaje — z opisem „Ta aktualizacja zawiera istotne poprawki
+  dotyczące bezpieczeństwa i jakości.”. Zmienia tylko numery i sumy w czterech plikach. Do tego wydania działał w trybie
+  próbnym; pełny tryb — osobny PR zaraz po wydaniu.
+- **Okno przeglądarki: rozmiar i maksymalizacja** (krok 4, Twoja decyzja D8): brzegi i rogi ramki K1 z kursorem
+  strzałek, zarys z rozmiarem w trakcie, przeglądarka dopasowuje się po puszczeniu (najmniej 640 × 480); przycisk
+  maksymalizacji i podwójne kliknięcie paska tytułu — okno między górnym a dolnym paskiem; rozmiar zapamiętany dla każdej
+  sesji.
+- **Alt+Tab** (krok 6, Twoja decyzja D11 — szkic A): przełącznik okien z kafelkami (także zminimalizowane okna i sesje
+  przeglądarki), ostatnio używane najpierw; Shift+Tab wstecz, Esc anuluje. Strefa nie dostaje Tab ani Alt z tego skrótu.
+- **Przeglądarka na pasku i pulpicie** (krok 6, Twoja decyzja D12 — szkic A): jedna ikona dla wszystkich sesji,
+  kliknięcie pyta o sesję, kropka „uruchomiona”; przy nowej instalacji przypięta i na pulpicie, po aktualizacji Twój
+  pulpit zostaje bez zmian.
+- **Raptor Bridge** (krok 5, Twoja decyzja D9): most między strefami a internetem sprawdzony od środka strefy
+  (`scripts/test-most.sh`: wiele połączeń naraz, półzamknięcia, odmowy, złośliwy gość vsock) i opisany
+  (`docs/komponenty/raptor-bridge.md`).
+
+### Zmienione
+- **Ustawienia → Aktualizacje** (krok 1, Twoje decyzje D1–D3): kafel wersji z „Zweryfikowano”, aktualizacja z pendrive'a,
+  nieudana próba nowej wersji; okno Ustawień 720 × 520. **Instalator tylko instaluje** (i włącza Secure Boot) — przy dysku
+  z K1 odsyła do Ustawień. Nieudana próba nowej wersji pokazuje okienko także na pulpicie.
+- **Jądro Linux 7.3.5** dla K1 i stref (krok 7, Twoja decyzja D14) — dotąd 6.18. Nowe nazwy opcji przeniesione,
+  świadomie odrzucone opcje z powodem w `jadro/*-odrzucone.txt`; `k1.efi` 125 600 KiB (zapas w miejscu A/B ok. 5 MiB).
+- Budowa: inna wersja jądra buduje się od zera, `k1.efi` podpisywane przy zatrzymanym zegarze (powtarzalność).
+
+### Naprawione
+- Czarne okno przeglądarki na X230 z 8 GB (od 0.10.1): obraz z pamięci strefy powyżej 3 GiB był czytany z innego miejsca
+  (krok 1).
+- Raptor Bridge: zgubione odpowiedzi i kredyt połączeń, półzamknięcia, miejsce trzymane przez klienta bez bajtu,
+  połączenia po resecie urządzenia (krok 5).
+
+### Porządki
+- **Przegląd dokumentacji** (krok 8, D10 — według rekomendacji): README (stan 0.10.5, rozmiar ISO, testy na PR-ze),
+  ARCHITEKTURA (mapa repo — jeden wiersz na katalog z odesłaniem do opisu części, brakujące katalogi i skrypty, CI bez
+  testów na `main`), TESTY (wszystkie fuzzery, `test-skarbiec` po usunięciu formatu 1, `t_opis`, `t_most`, CI), skill
+  (stan wersji tylko w DO_ZROBIENIA, testy QEMU — odesłanie do TESTY), plany 0.10.7 i 0.10.9 (robot i wydania przez sieć:
+  punkt 0 „Robot i wydania”, krok 4 planu 0.10.9 z wyłączonym robotem), AGENTS (scalony krok trafia do laptopów
+  z wydaniem robota), RYZYKA R96. ADR-y, CHANGELOG i archiwum bez zmian (historia).
+- `scripts/sprawdz-czytelnosc.py` pilnuje na stałe: ścieżek do plików repo w dokumentach, opisu każdego skryptu, testu
+  na hoście i fuzzera, wersji w „Stan:” DO_ZROBIENIA i „Co już jest” README.
+- Komunikaty `INST_*` po przeniesieniu aktualizacji do Ustawień — wszystkie w użyciu; pliki `.c` blisko limitu — żaden
+  powyżej 560 wierszy. Tymczasowe: terminów na 0.10.5 w kodzie nie było, nowych nie dodano; tryb próbny robota kończy
+  się z tym wydaniem. Plan 0.10.5 — w archiwum.
+
 ## [0.10.2] — 2026-11-17
 
 **Testy** (plan 0.10.2, kroki 1–3; ADR 0045). Przeglądarka pokazuje „Uruchamiam…” aż do swojego okna i znika od razu po
