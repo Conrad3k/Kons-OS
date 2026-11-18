@@ -278,6 +278,8 @@ def sprawdz_spisy(repo, bledy):
             return f.read()
     architektura, testy, makefile = czytaj("docs/ARCHITEKTURA.md"), czytaj("docs/TESTY.md"), czytaj("Makefile")
     for p in sorted(os.listdir(os.path.join(repo, "scripts"))):
+        if not os.path.isfile(os.path.join(repo, "scripts", p)):
+            continue  # __pycache__ of a test run (ignored by git)
         if not re.search(r"(?<![\w-])" + re.escape(p) + r"(?![\w-])", architektura + testy):
             bledy.append(f"scripts/{p}: brak opisu w docs/ARCHITEKTURA.md (Skrypty) ani w docs/TESTY.md")
     testy_host = lista_make(makefile, "TESTY_HOST") + lista_make(makefile, "TESTY_HOST_PLIKI")

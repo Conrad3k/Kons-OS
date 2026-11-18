@@ -54,6 +54,8 @@ na pulpicie. K1 działa na nowym jądrze Linux 7.3.
   (krok 1).
 - Raptor Bridge: zgubione odpowiedzi i kredyt połączeń, półzamknięcia, miejsce trzymane przez klienta bez bajtu,
   połączenia po resecie urządzenia (krok 5).
+- `test-m5`: komunikat jądra wpisany na porcie szeregowym w środek wiersza K1 dawał fałszywy błąd („start 2 z
+  pendrive'a”, CI na PR-ze kroku 8) — skrypty w powłoce czytają log przez `log_k1` (`scripts/wspolne.sh`), jak `k1qemu.py`.
 
 ### Porządki
 - **Przegląd dokumentacji** (krok 8, D10 — według rekomendacji): README (stan 0.10.5, rozmiar ISO, testy na PR-ze),

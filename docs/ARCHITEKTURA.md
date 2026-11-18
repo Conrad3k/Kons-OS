@@ -69,7 +69,7 @@ asystentów — skill `kons-dev`, §3.
 | `sprawdz-binaria.sh`, `sprawdz-konfiguracje-jadra.sh`, `sprawdz-kspp.sh` | kontrole bezpieczeństwa |
 | `sprawdz-powtarzalnosc.sh` | drugi build w osobnym katalogu i porównanie sum (powtarzalność) |
 | `sprawdz-czytelnosc.py` | zasady czytelności (`AGENTS.md`): limity wielkości plików i funkcji, opis każdej usługi, aplikacji i komunikatu, wpisy „Tymczasowe”, spis ADR, istniejące ścieżki w dokumentach, każdy skrypt, test i fuzzer opisany, stan wersji w README i planie — pierwszy krok `test-m1.sh` |
-| `wspolne.sh` | wspólne funkcje skryptów: `make_jadra` (make w katalogu jądra), `grub_poczatek` (początek każdego grub.cfg), `verity`, `obraz_fat`, `efi_podpisane`, `bateria_aml`, `zamknij_qemu` (koniec maszyny testowej) |
+| `wspolne.sh` | wspólne funkcje skryptów: `make_jadra` (make w katalogu jądra), `grub_poczatek` (początek każdego grub.cfg), `verity`, `obraz_fat`, `efi_podpisane`, `bateria_aml`, `zamknij_qemu` (koniec maszyny testowej), `log_k1` (log bez komunikatów jądra wpisanych w środek wiersza K1) |
 
 ## Jak powstaje obraz
 

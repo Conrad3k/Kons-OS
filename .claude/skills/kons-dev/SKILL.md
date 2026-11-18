@@ -305,7 +305,8 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   `rfkillN/soft`; typ komunikatu niesie deskryptor zawsze albo nigdy (`k1_komunikat_z_deskryptorem`, inaczej odbiorca go
   odrzuca — stąd osobny `SIEC_WIFI_EAPOL`); klatka, która pisze memfd (np. dla skarbca), potrzebuje `.rozmiar_pliku`
   (inaczej SIGXFSZ = 25); jądro potrafi wpisać swój komunikat w środek wiersza K1 na porcie szeregowym, nawet w środku
-  znaku UTF-8 — `k1qemu.py` usuwa je z bajtów przed dekodowaniem; bez `MAC80211_RC_MINSTREL` (za EXPERT) mac80211 nie rejestruje kart bez własnego doboru prędkości
+  znaku UTF-8 — `k1qemu.py` usuwa je z bajtów przed dekodowaniem, a skrypty w powłoce czytają log przez `log_k1`
+  (`scripts/wspolne.sh`; 0.10.5: `test-m5` padł w CI na „partycja danych [ 2.79] sda: sda1 sda2⏎K1-DANE otwarta”); bez `MAC80211_RC_MINSTREL` (za EXPERT) mac80211 nie rejestruje kart bez własnego doboru prędkości
   („Failed to select rate control algorithm”: ath9k, rtw88, hwsim); `Maszyna.czekaj(wzor, od=n)` — `n` to liczba
   wcześniejszych dopasowań (`q.ile(wzor)`), nie długość logu; pętla `timeout … until grep KONIEC` mogła skończyć się
   limitem — przed nowym przebiegiem testu sprawdź `pgrep -af wifi.py|qemu`, inaczej dwa przebiegi mieszają log (0.10.2: to
