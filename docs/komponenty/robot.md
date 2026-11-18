@@ -3,7 +3,7 @@
 **Co to:** workflow GitHub Actions `.github/workflows/robot.yml`, który raz dziennie (02:41 UTC) sprawdza, czy jest
 poprawione jądro Linux albo poprawione pakiety przeglądarki strefy. Jeśli tak — przygotowuje nową wersję K1 (PATCH), puszcza
 pełne testy i po zielonych sam ją wydaje. Wtedy laptop po 1–2 dniach pyta „Jest nowa wersja K1” (ADR 0046).
-**Do wydania 0.10.5 działa w trybie próbnym:** robi PR i testy, bez scalania i wydania.
+**Od wydania 0.10.5 działa w pełnym trybie** (do niego — próbnym: PR i testy, bez scalania i wydania).
 
 ## Co sprawdza
 | Co | Skąd | Jak sprawdza źródło | Plik, który zmienia |
@@ -41,7 +41,7 @@ Przy zmianie robot podbija `VERSION` (tylko PATCH) i dopisuje wpis w `CHANGELOG.
   miejsce.
 - **Na czas dużych prac** (np. ręczna zmiana jądra w kroku planu): wyłącz workflow i dopisz to w `docs/DO_ZROBIENIA.txt`
   („Tymczasowe”, z terminem), żeby robot nie został wyłączony na zawsze.
-- **Tryb próbny:** `ROBOT_PROBNY: "1"` w `robot.yml`.
+- **Tryb próbny:** `ROBOT_PROBNY: "1"` w `robot.yml` (do wydania 0.10.5; teraz `"0"`) albo ręczne uruchomienie z `proba`.
 
 ## Jak przetestować
 - **Ręcznie:** Actions → „Robot — poprawki jądra i przeglądarki” → Run workflow (`proba` = tak, `start` = gałąź startowa —

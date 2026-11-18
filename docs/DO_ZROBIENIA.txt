@@ -29,7 +29,7 @@ punkt 0 „Robot i wydania”).
     [x] krok 6 — Alt+Tab, Przeglądarka na pasku i pulpicie — PR #164
     [x] krok 7 — jądro Linux 7.3 dla K1 i stref — PR #165
     [x] krok 8 — przegląd dokumentacji, wydanie 0.10.5 — PR #167
-    [ ] po wydaniu: robot w pełny tryb (ROBOT_PROBNY „0” w robot.yml — osobny PR)
+    [x] po wydaniu: robot w pełny tryb (ROBOT_PROBNY „0” w robot.yml) — PR #168
 Wcześniej: 0.10.2 Testy (PR #144, #145, #149), 0.10.1 Balon (PR #134, #137, #139, #140, #142), 0.10.0 Strefy (PR #114,
 #119, #126, #128, #132) — plany w docs/archiwum/.
 
@@ -284,8 +284,7 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         tymczasowych 0.10.1 nie dodało
     [x] przegląd 0.10.2 (krok 3): terminów na 0.10.2 nie było; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych
         rozwiązań tymczasowych 0.10.2 nie dodało
-    [~] robot w trybie próbnym (ADR 0047, `ROBOT_PROBNY: "1"` w .github/workflows/robot.yml) — termin: wydanie 0.10.5;
-        przestawienie na „0” — osobny PR zaraz po wydaniu
+    [x] robot w trybie próbnym (ADR 0047) — termin dotrzymany: od wydania 0.10.5 `ROBOT_PROBNY: "0"` (pełny tryb)
     [x] przegląd 0.10.5 (krok 8): terminów w kodzie na 0.10.5 nie było; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych
         rozwiązań tymczasowych w kodzie 0.10.5 nie dodało
 
