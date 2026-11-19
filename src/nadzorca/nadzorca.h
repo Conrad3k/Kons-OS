@@ -214,7 +214,9 @@ void strefa_koniec(int nr, int status, int cicho);
 void strefa_zamyka(int nr);       /* the VMM said STREFA_ZAMYKA: its window is gone, its machine ends */
 int strefa_otworz_po_zamknieciu(int nr, int tryb, int z_testu); /* 1: it is closing — it opens when it ended */
 int32_t strefy_zamykane(void);    /* bit nr-1: zone nr is closing (STREFY_STAN e) */
-int strefy_przed_wylaczeniem(int restart); /* 1: zones run — asked to close, wylacz_teraz follows (strefy_zamykanie) */
+void strefy_przed_wylaczeniem(int restart); /* asks the zones to close; wylacz_teraz follows from strefy_zamykanie
+                                             * (zones closed — or 30 s — and the screen "Wyłączanie" shown long enough) */
+double strefy_wylaczanie_kiedy(void); /* when the screen "Wyłączanie" has been shown long enough (-1: no power off) */
 void strefy_zamykanie(void);      /* every loop: a zone that waited opens; the power off once the zones ended */
 /* strefy_siec.c (0.10.0 step 2, ADR 0043 T9): the browser's connections — each running zone's channel (VMM's fd 7) */
 /* strefy_ust.c (0.10.0 step 5): the sessions as the user set them — kept in skarbiec, sent to gui, ekran, Ustawienia */
@@ -330,6 +332,10 @@ int siec_trasa(int nr, uint32_t router);                     /* the default rout
 extern char ab_nieudana[32];
 void rozruch_wydanie(void);
 void rozruch_po_starcie(double t);
+/* obraz_strefy.c (0.10.9 step 4, ADR 0050): a zone image for the VMM (fd, read only), from the core or from the slot of
+ * this build under dm-verity; -1 when there is none that verifies */
+int obraz_strefy_otworz(const char *nazwa);
+void obrazy_stref_po_starcie(void);
 
 /* efi.c — Secure Boot and the K1 key (0.7.0, ADR 0022) */
 extern int sb_czeka;

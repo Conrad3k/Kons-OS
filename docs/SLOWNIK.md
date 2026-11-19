@@ -147,7 +147,8 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **VMM** (strefa) | Program K1 `strefa`, który prowadzi jedną mikro-maszynę: jej pamięć, procesory, urządzenia, okno. Jeden proces na strefę, w klatce. (Virtual Machine Monitor.) |
 | **gość** | To, co działa wewnątrz strefy: jądro strefy i jej programy. Dla K1 zawsze wrogi — wszystko od gościa sprawdzane pole po polu. |
 | **jądro strefy** | Drugie jądro Linux z tych samych źródeł, z własną konfiguracją (`jadro/strefa.config`), działające wewnątrz stref; w rdzeniu jako `/rdzen/strefy/jadro`. |
-| **obraz strefy** | Pliki strefy (SquashFS tylko do odczytu) w rdzeniu: `/rdzen/strefy/<nazwa>.img`; gość widzi go jako dysk `/dev/vda`. |
+| **obraz strefy** | Pliki strefy (SquashFS tylko do odczytu); gość widzi go jako dysk `/dev/vda`. Strefa próbna (obraz testowy): w rdzeniu, `/rdzen/strefy/<nazwa>.img`; przeglądarka od 0.10.9 (ADR 0050): w miejscu A/B zaraz za k1.efi, z drzewem dm-verity. |
+| **skrót obrazu strefy** | Jedna linia w rdzeniu (`/rdzen/strefy/<nazwa>.skrot`, 0.10.9, ADR 0050): skrót główny dm-verity obrazu strefy, liczba bloków danych, rozmiar całości. Nadzorca bierze tylko obraz zgodny z tym skrótem (`src/nadzorca/obraz_strefy.c`). |
 | **strefa próbna** (0.10.0) | Strefa testowa z naszym małym programem `gosc` w środku (wzór na ekranie, liczniki klawiszy i kliknięć, tryby złośliwego gościa) — tylko w obrazie testowym. |
 | **stanowisko** (0.10.1) | Narzędzie testowe na komputerze budowy, bez maszyny wirtualnej: kompozytor strefy z ekranem w pamięci i prawdziwy Firefox z obrazu strefy w chroot (`scripts/stanowisko.sh`, `testy/stanowisko/`). Do szukania błędów przeglądarki w strefie; nie wchodzi do pełnego kompletu testów. |
 | **urządzenie virtio** | Udawane urządzenie maszyny (dysk, konsola, losowość, klawiatura, wskaźnik, ekran, vsock), przez które gość rozmawia z VMM kolejkami w swojej pamięci. |

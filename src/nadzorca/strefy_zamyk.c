@@ -7,18 +7,22 @@
  *   - K1 powers off or restarts: first every running zone is asked to close as the user would (STREFA_ZAMKNIJ) and
  *     nadzorca waits for them — up to WYLACZ_CZEKAJ_S — before init stops the rest (S5: before, the zones were killed
  *     with nadzorca and the browser never saved its session).
+ *   - with or without zones, the screen "Wyłączanie" stays at least one round of its dots (POKAZ_S) before init stops
+ *     the rest (the owner's report of 2026-11-19: on the X230, with no zone open, K1 powered off before ekran drew it).
  * Part of nadzorca (see main.c). */
 #include "nadzorca.h"
+#include "k1_wylaczanie.h"
 
 #define WYLACZ_CZEKAJ_S 30.0 /* the browser gets 20 s from its guest, then the guest syncs its disk */
+#define POKAZ_S K1_WYLACZANIE_OBIEG /* the screen "Wyłączanie" at least this long (one round of the dots) */
 
 static int zamykana[K1_STREFY_MAKS + 1];
 static struct {
     int tryb, z_testu; /* tryb + 1: the zone was opened again while it was closing (0: not) */
 } czeka[K1_STREFY_MAKS + 1];
 static struct {
-    int trwa, restart;
-    double koniec, log;
+    int trwa, restart, strefy; /* strefy: how many zones were asked to close */
+    double koniec, log, pokaz;
 } wyl;
 
 static int dziala(int nr)
@@ -55,11 +59,11 @@ int32_t strefy_zamykane(void)
     return b;
 }
 
-int strefy_przed_wylaczeniem(int restart)
+void strefy_przed_wylaczeniem(int restart)
 {
     int n = 0;
     if (wyl.trwa)
-        return 1;
+        return;
     for (int nr = 1; nr <= K1_STREFY_MAKS; nr++) {
         struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_STREFA_ZAMKNIJ, (uint32_t)nr, 0, 0, 0, 0, 0);
         czeka[nr].tryb = 0; /* nothing opens again now */
@@ -69,15 +73,15 @@ int strefy_przed_wylaczeniem(int restart)
         if (!zamykana[nr] && k1_kanal_wyslij(strefa_kanal[nr], &k, sizeof k, -1) != 0)
             k1_log(TAG, "strefa %d: prośba o zamknięcie nieudana", nr);
     }
-    if (n == 0)
-        return 0;
     wyl.trwa = 1;
     wyl.restart = restart;
     wyl.koniec = k1_teraz() + WYLACZ_CZEKAJ_S;
     wyl.log = k1_teraz();
-    k1_log(TAG, "%s: najpierw zamykam strefy (%d, najwyżej %.0f s) — zapiszą swoje sesje",
-           restart ? "ponowne uruchamianie" : "wyłączanie", n, WYLACZ_CZEKAJ_S);
-    return 1;
+    wyl.pokaz = k1_teraz() + POKAZ_S;
+    wyl.strefy = n;
+    if (n > 0)
+        k1_log(TAG, "%s: najpierw zamykam strefy (%d, najwyżej %.0f s) — zapiszą swoje sesje",
+               restart ? "ponowne uruchamianie" : "wyłączanie", n, WYLACZ_CZEKAJ_S);
 }
 
 void strefy_zamykanie(void)
@@ -98,9 +102,16 @@ void strefy_zamykanie(void)
         wyl.log = k1_teraz();
         k1_log(TAG, "wyłączanie: czekam na strefy (%d), najwyżej jeszcze %.0f s", ile, wyl.koniec - k1_teraz());
     }
-    if (wyl.trwa != 1 || (ile > 0 && k1_teraz() < wyl.koniec))
+    if (wyl.trwa != 1 || (ile > 0 && k1_teraz() < wyl.koniec) || k1_teraz() < wyl.pokaz)
         return;
     wyl.trwa = 2;
-    k1_log(TAG, "%s", ile == 0 ? "strefy zamknięte — wyłączam resztę" : "strefy nie zamknęły się w czasie — wyłączam resztę");
+    k1_log(TAG, "%s", wyl.strefy == 0 ? "ekran wyłączania pokazany — wyłączam resztę"
+                      : ile == 0      ? "strefy zamknięte — wyłączam resztę"
+                                      : "strefy nie zamknęły się w czasie — wyłączam resztę");
     wylacz_teraz(wyl.restart);
+}
+
+double strefy_wylaczanie_kiedy(void)
+{
+    return wyl.trwa == 1 ? wyl.pokaz : -1;
 }

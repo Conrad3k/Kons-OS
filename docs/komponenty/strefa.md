@@ -112,7 +112,10 @@ rysuje ekran (`docs/komponenty/ekran.md`); wysokość obrazu jest o pasek (`K1_S
 
 ## Przeglądarka (0.10.0 krok 2, ADR 0043)
 Wiersze `K1_STREFY` „Ogólna” (szałwia, w menu Start jako „Przeglądarka”), „Bank” (łupek), „Prywatna” (wrzos): obraz
-`/rdzen/strefy/przegladarka.img`, 1536 MiB na start (od 0.10.1 górna granica: pamięć komputera minus rezerwa K1, balon —
+przeglądarki — od 0.10.9 krok 4 poza rdzeniem (ADR 0050): w miejscu A/B zaraz za k1.efi, z drzewem dm-verity; w rdzeniu
+tylko jego skrót `/rdzen/strefy/przegladarka.skrot`; nadzorca (`obraz_strefy.c`) zakłada dm-verity i daje VMM-owi
+urządzenie jako fd 6 (VMM bierze rozmiar przez `lseek`); w testach QEMU z rdzeniem na `/dev/vda` obraz to drugi dysk
+virtio (`scripts/uruchom-qemu.sh`, `--obraz-strefy`); 1536 MiB na start (od 0.10.1 górna granica: pamięć komputera minus rezerwa K1, balon —
 ADR 0044), 2 procesory (w emulacji QEMU — 1, i od 0.10.5 krok 7 gość z `highres=off`: jądro strefy 7.x odracza przestawianie zegara (`HRTIMER_REARM_DEFERRED`) i pod emulowanym SVM bezczynny gość widział klawisz po minucie; z KVM na prawdziwym procesorze bez zmian); Ogólna i Bank pamiętają (krok 5), Prywatna zapomina.
 - **Obraz** (`scripts/zbuduj-strefe.sh`): pakiety Debiana 13 z tabeli `strefy/przegladarka.txt` (wersje i sumy;
   odświeżenie `scripts/odswiez-strefe.py` — podpisy Debiana sprawdzane kluczami z `strefy/klucze/`), rozpakowane bez
@@ -269,6 +272,8 @@ krok 2 tryby 6–8 — VMM wkłada tam balon: strona poza pamięcią (pompowanie
 | `test_komunikat` (krok 5): `STREFY_STAN`, `STREFA_*`, `SKARB_WYCZYSC`/`_WYCZYSZCZONO`, nazwy sesji (znaki sterujące, niewidoczne, kierunek, zły UTF-8), zakres obiektów dysku | negatywny |
 | `t_skarb_strefy` (krok 5, w systemie): sesja zapisuje i czyta swój kawałek; NEGATYWNE: inna sesja go nie widzi, aplikacja nie nazwie obiektu dysku; „Wyczyść dane sesji” | funkcjonalny, negatywny |
 | `t_kvm`: `/dev/kvm` tylko root, maszyna z pamięcią z memfd bez prawa wykonania wykonuje kod gościa | funkcjonalny |
+| `test_obraz_strefy` (0.10.9 krok 4): linia skrótu obrazu strefy (kształt, liczby, rozmiary drzewa) i miejsce obrazu w miejscu A/B (koniec obrazu miejsca, wyrównanie, FAT przed nim, manifesty) | funkcjonalny, negatywny |
+| `test-strefa.sh` (0.10.9 krok 4): obraz przeglądarki znaleziony i sprawdzony (dm-verity); NEGATYWNY — obraz ze zmienionym bajtem: nadzorca go nie bierze, sesja Ogólna „nie może ruszyć”, K1 żyje; `test-m5`, `test-m5f`: obraz z miejsca A pendrive'a i dysku, po aktualizacji z miejsca B; `t_sprzet`: nadzorca trzyma tylko obraz strefy pod dm-verity, do odczytu | funkcjonalny, negatywny |
 | `t_strefa_klatka`: klatka VMM (UID, capabilities, seccomp, cgroup z wątkami, tylko przekazane deskryptory); zabity VMM — koniec tylko strefy | funkcjonalny, negatywny |
 | `t_proby` (profil strefy): bez `open` (także `/dev/kvm`), `socket`, procesów, pamięci wykonywalnej | negatywny |
 | `test_lacznik`: SOCKS5 (powitanie, prośby, odmowy: BIND, UDP, IPv6, port 0, zła nazwa, 0.0.0.0, pętla zwrotna), DNS (pytanie; odpowiedzi: inny identyfikator, inne pytanie, ucięte, NXDOMAIN, CNAME, adres prywatny, wskaźniki), reguła D3, komunikaty `STREFA_*` | funkcjonalny, negatywny |

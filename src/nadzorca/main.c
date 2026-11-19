@@ -133,6 +133,7 @@ static void okresowe(void)
     strefy_zamykanie(); /* 0.10.2 step 1 */
     bateria_archiwum(t);
     rozruch_po_starcie(t);
+    obrazy_stref_po_starcie();
     akt_ustawienie_okresowe(); /* 0.10.5 step 2b: updates through the network */
     akt_okresowe(t);
     if (zasoby_kanal >= 0 && t >= nastepny_raport) {
@@ -192,6 +193,8 @@ int main(void)
         zrodla[n++] = &proba;
         if (zasoby_kanal >= 0 && (najblizszy < 0 || nastepny_raport < najblizszy))
             najblizszy = nastepny_raport;
+        if (strefy_wylaczanie_kiedy() > 0 && (najblizszy < 0 || strefy_wylaczanie_kiedy() < najblizszy))
+            najblizszy = strefy_wylaczanie_kiedy(); /* the power off right after the screen "Wyłączanie" was shown */
         czas = najblizszy < 0 ? 1000 : (najblizszy <= t ? 0 : (int)((najblizszy - t) * 1000.0) + 1);
         if (poll(pfd, n, czas) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));

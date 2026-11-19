@@ -54,7 +54,10 @@ firmware UEFI → shim (Microsoft) → GRUB (Canonical) → k1.efi z miejsca A a
      strefa (300+, na prośbę gui; 0.10.0, ADR 0042): VMM jednej mikro-maszyny KVM — /dev/kvm, jądro i obraz strefy od
        nadzorcy, jądro strefy (jadro/strefa.config) startuje bez firmware, urządzenia virtio-mmio, okno w ramce ekranu
 ```
-Testy QEMU startują też `bzImage` + `initramfs.cpio` (tylko `test-m1`). ISO/USB mają GRUB-a do 0.12 (ADR 0010; dawne M10).
+Testy QEMU startują też `bzImage` + `initramfs.cpio` (tylko `test-m1`). Obraz przeglądarki (0.10.9 krok 4, ADR 0050) nie
+jest w rdzeniu: leży w miejscu A/B zaraz za k1.efi (na końcu obrazu miejsca, manifest go obejmuje), w rdzeniu tylko jego
+skrót; nadzorca zakłada dm-verity i daje go VMM-owi (fd 6). W testach z rdzeniem na `/dev/vda` — drugi dysk virtio
+(`uruchom-qemu.sh --obraz-strefy`). ISO nie ma obrazu przeglądarki (jądro bez napędu CD). ISO/USB mają GRUB-a do 0.12 (ADR 0010; dawne M10).
 
 **System plików po starcie** (ADR 0004): `/` — tmpfs tylko do odczytu z trzema katalogami: `rdzen`
 (SquashFS ro, nosuid, nodev; w nim `init`, `system/`, `aplikacje/`, `jadro/{dev,proc,sys}`), `aplikacje`
@@ -83,7 +86,7 @@ X230 to maszyna testowa — szybka grafika i gry celują w nowszy sprzęt. Stero
 |---|---|---|
 | `src/initramfs/` | `/init` | montuje rdzeń (dm-verity), przełącza korzeń |
 | `src/init/` | `/rdzen/init` | PID 1 |
-| `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` usługi z tabel `K1_SYSTEM`/`K1_APLIKACJE` (start, kanały, restarty); `kanaly.h` nazwy kanałów `KANAL_*`; `logi.c` logi usług; `profile.c` klatki (`KLATKA_<NAZWA>`); `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c` (dwa okna: Instalator i Ustawienia → Aktualizacje; prawa — czyste `inst_prawa.c`, 0.10.5), `aktualizacja.c` + `aktualizacja_ust.c` (aktualizacja przez sieć, 0.10.5 krok 2, ADR 0046: kiedy sprawdzać, strefa pobierania, program zapisujący, stan dla Ustawień i gui — `docs/komponenty/aktualizacja.md`), `rozruch.c` (nieudana próba → `AB_NIEUDANA` do gui), `efi.c`, `pendrive.c`, `dekoder.c`, `powieksz.c` (K1-DANE do końca pendrive'a), `siec*.c` (karty sieciowe, adres, stan dla ikony i Ustawień, zegar z internetu; 0.9.0), `wifi.c`, `wifi_nl.c` (karta Wi-Fi, przełącznik radia przez `/dev/rfkill`, szukanie sieci nl80211, lista dla Ustawień; 0.9.1), `wifi_polacz.c` (łączenie na prośbę siec: CONNECT, gniazdo EAPOL, klucze NEW_KEY, SET_STATION; kanał Ustawienia → siec `KN_SIEC`; 0.9.1 krok 2), `test.c` |
+| `src/nadzorca/` | `system/nadzorca` | `main.c` pętla; `uslugi.c` usługi z tabel `K1_SYSTEM`/`K1_APLIKACJE` (start, kanały, restarty); `kanaly.h` nazwy kanałów `KANAL_*`; `logi.c` logi usług; `profile.c` klatki (`KLATKA_<NAZWA>`); `skarb.c` etapy startu; `urzadzenia.c`, `uevent.c`, `dyski.c`, `bateria.c`, `zasoby.c`, `instalacja.c` (dwa okna: Instalator i Ustawienia → Aktualizacje; prawa — czyste `inst_prawa.c`, 0.10.5), `aktualizacja.c` + `aktualizacja_ust.c` (aktualizacja przez sieć, 0.10.5 krok 2, ADR 0046: kiedy sprawdzać, strefa pobierania, program zapisujący, stan dla Ustawień i gui — `docs/komponenty/aktualizacja.md`), `rozruch.c` (nieudana próba → `AB_NIEUDANA` do gui), `obraz_strefy.c` (0.10.9 krok 4, ADR 0050: obraz przeglądarki z miejsca A/B tego wydania pod dm-verity, skrót z rdzenia `/rdzen/strefy/<obraz>.skrot`; loop + dm-verity wspólne z initramfs — `src/wspolne/k1_verity.c`), `efi.c`, `pendrive.c`, `dekoder.c`, `powieksz.c` (K1-DANE do końca pendrive'a), `siec*.c` (karty sieciowe, adres, stan dla ikony i Ustawień, zegar z internetu; 0.9.0), `wifi.c`, `wifi_nl.c` (karta Wi-Fi, przełącznik radia przez `/dev/rfkill`, szukanie sieci nl80211, lista dla Ustawień; 0.9.1), `wifi_polacz.c` (łączenie na prośbę siec: CONNECT, gniazdo EAPOL, klucze NEW_KEY, SET_STATION; kanał Ustawienia → siec `KN_SIEC`; 0.9.1 krok 2), `test.c` |
 | `src/wejscie/` | `system/wejscie` | klawiatura, mysz, kółko (evdev, EVIOCGRAB); `touchpad.c` — touchpad we własnym trybie (palce → ruch, przewijanie dwoma palcami w kierunku naturalnym D8, stuknięcia, przycisk touchpada; czysty, `test_touchpad`; 0.10.0 krok 4) |
 | `src/ekran/`, `src/grafika/` | `system/ekran` | DRM/KMS, składanie okien, kursor, tapety, znak K1; `zalegle.c` — to, czego pełny kanał klienta nie przyjął, czeka w ekranie (RAMKA nigdy nie przepada, ruchy się scalają; 0.8.5); `opis.c` — opis ekranu dla testów (0.10.2, ADR 0045: tylko rola `TEST`); `rozmiar.c` — zmiana rozmiaru i maksymalizacja okna strefy, obszar roboczy z paneli, rozmiar sesji w skarbcu (0.10.5 krok 4: `ROZMIAR` do VMM, zamiana powierzchni `POWIERZCHNIA` e = 1 tylko w rozmiarze, o który prosił ekran) |
 | `src/gui/` | `system/gui` | pulpit w modułach (`gui.h`): warstwa ikon, paski, menu Start, menu kontekstowe, rozmieszczenie w skarbcu (fd 6); `sesje.c` okienko „Którą sesję otworzyć?” (0.10.1 krok 4), `pamiec.c` fokus do nadzorcy i okienko „Mało pamięci” (krok 3); `wersja.c` okienko „Nowa wersja K1 nie uruchomiła się” (0.10.5 krok 1); `przelacznik.c` przełącznik okien Alt+Tab (0.10.5 krok 6: skrót rozpoznaje ekran — `wskaznik.c`, strefa go nie dostaje); Przeglądarka na pasku i pulpicie — pozycja `POZYCJA_MENU_STREFY`, klucz `ROZM_STREFA`, zapis `K1R3` |
@@ -311,6 +314,11 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   wcześniejszych dopasowań (`q.ile(wzor)`), nie długość logu; pętla `timeout … until grep KONIEC` mogła skończyć się
   limitem — przed nowym przebiegiem testu sprawdź `pgrep -af wifi.py|qemu`, inaczej dwa przebiegi mieszają log (0.10.2: to
   samo z `test-wzorce` — koniec starego przebiegu zamknął gniazdem monitora maszynę nowego).
+- *Obraz przeglądarki poza rdzeniem (0.10.9 krok 4):* miejsce A/B 128 MiB mieści k1.efi i obraz w xz z zapasem ok. 2,5 MiB
+  — zstd (+11 %) się nie mieści; `zbuduj-usb.sh` przerywa z „brakuje N KiB”. Urządzenie blokowe nie ma `st_size` — rozmiar
+  przez `lseek(SEEK_END)`. Test w systemie `t_sprzet` liczy deskryptory urządzeń blokowych: nadzorca może trzymać tylko
+  obraz strefy `k1-strefa-*` pod dm-verity, do odczytu. Wyłączanie: nadzorca czeka co najmniej obieg kropek (1,5 s) — bez
+  tego init kończył ekran, zanim narysował „Wyłączanie” (X230, 2026-11-19).
 - *Czas lokalny (0.10.7 krok 5):* `localtime_r`, `mktime`, `strftime` z musl czytają strefę z `/etc/localtime` (`open`) —
   w klatce to kod 159 (Ustawienia → Aktualizacje padały dopiero w widoku „Sprawdzono o …”); czas polski tylko
   `k1_czas_warszawa` (`src/przybornik/k1_czas.h`), pilnuje `sprawdz-czytelnosc` (punkt 12).

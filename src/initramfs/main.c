@@ -4,9 +4,8 @@
  * as /rdzen inside a new, read-only root (tmpfs with exactly three directories), delete itself
  * from the initramfs and hand over to /rdzen/init. Nothing else: no shell, no modules, no
  * configuration beyond one kernel command line parameter (k1.rdzen=/dev/XXX).
- * k1.rdzen=wbudowany (ADR 0010, ISO image): the core image is the file /rdzen.squashfs inside the
- * initramfs itself (second cpio archive loaded by the boot loader) and is mounted through a
- * read-only loop device — no storage drivers needed, works in any virtual machine.
+ * k1.rdzen=wbudowany (k1.efi, 0.7.0): the core image is the file /rdzen.squashfs inside the initramfs
+ * built into the kernel and is mounted through a read-only loop device — no storage drivers needed.
  * M6b (ADR 0021): the image is mounted through dm-verity — its hash tree follows the SquashFS data,
  * the root hash is k1.rdzen_skrot= (signed with the kernel in M6d). The whole device is read once
  * before the mount: one changed byte stops the boot here, before the kernel parses anything of it.
@@ -19,17 +18,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/mount.h>
-#include <sys/ioctl.h>
 #include <sys/stat.h>
-#include <time.h>
 #include <unistd.h>
 
-#include <linux/dm-ioctl.h>
-#include <linux/loop.h>
-#include <sys/sysmacros.h>
 
 #include "k1_cmdline.h"
 #include "k1_log.h"
+#include "k1_verity.h"
 
 #define TAG "K1-INITRAMFS"
 
@@ -41,9 +36,6 @@
 #define BUILTIN "wbudowany"
 #define BUILTIN_IMAGE "/rdzen.squashfs"
 #define VERITY_NAME "k1-rdzen"
-#define VERITY_BLOCK 4096u
-/* the build's fixed salt (scripts/wspolne.sh: K1_VERITY_SOL) */
-#define VERITY_SALT "4b31207264657a656e2056657269747920736f6c00000000000000000000000000"
 
 /* Reads /proc/cmdline into buf (NUL-terminated). Mounts proc only for the duration of the read. */
 static void read_cmdline(char *buf, size_t size)
@@ -75,18 +67,10 @@ static void read_cmdline(char *buf, size_t size)
 
 static void wait_for_block_device(const char *path)
 {
-    struct stat st;
-    struct timespec step = { .tv_sec = 0, .tv_nsec = 100 * 1000 * 1000 };
-    int i;
-
-    for (i = 0; i < DEVICE_WAIT_STEPS; i++) {
-        if (stat(path, &st) == 0) {
-            if (!S_ISBLK(st.st_mode))
-                k1_awaria(TAG, "%s nie jest urządzeniem blokowym", path);
-            return;
-        }
-        nanosleep(&step, NULL);
-    }
+    if (k1_czekaj_na_wezel(path, DEVICE_WAIT_STEPS) == 0)
+        return;
+    if (errno == ENOTBLK)
+        k1_awaria(TAG, "%s nie jest urządzeniem blokowym", path);
     k1_awaria(TAG, "nie znaleziono urządzenia z obrazem rdzenia: %s", path);
 }
 
@@ -95,102 +79,53 @@ static void wait_for_block_device(const char *path)
  * image is mounted (LO_FLAGS_AUTOCLEAR detaches the device when the last user closes it). */
 static int attach_builtin(char *device, size_t size)
 {
-    struct loop_config cfg;
-    int ctl, img, loop, n;
+    int img, loop;
     img = open(BUILTIN_IMAGE, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
     if (img < 0)
         k1_awaria(TAG, "brak wbudowanego obrazu rdzenia %s: %s", BUILTIN_IMAGE, strerror(errno));
-    ctl = open("/dev/loop-control", O_RDWR | O_CLOEXEC);
-    if (ctl < 0)
-        k1_awaria(TAG, "brak /dev/loop-control: %s", strerror(errno));
-    n = ioctl(ctl, (int)LOOP_CTL_GET_FREE);
-    if (n < 0)
-        k1_awaria(TAG, "LOOP_CTL_GET_FREE: %s", strerror(errno));
-    close(ctl);
-    snprintf(device, size, "/dev/loop%d", n);
-    wait_for_block_device(device);
-    loop = open(device, O_RDONLY | O_CLOEXEC);
+    loop = k1_loop_podlacz("/dev", img, 0, 0, device, size);
     if (loop < 0)
-        k1_awaria(TAG, "%s: %s", device, strerror(errno));
-    memset(&cfg, 0, sizeof cfg);
-    cfg.fd = (unsigned)img;
-    cfg.info.lo_flags = LO_FLAGS_READ_ONLY | LO_FLAGS_AUTOCLEAR;
-    if (ioctl(loop, (int)LOOP_CONFIGURE, &cfg) != 0)
-        k1_awaria(TAG, "LOOP_CONFIGURE: %s", strerror(errno));
+        k1_awaria(TAG, "%s: %s", loop == -K1_VERITY_WEZEL ? "brak urządzenia loop" : "LOOP_CONFIGURE", strerror(errno));
     close(img);
     return loop;
-}
-
-static void dm_init(struct dm_ioctl *io, size_t size)
-{
-    memset(io, 0, size);
-    io->version[0] = DM_VERSION_MAJOR;
-    io->data_size = (uint32_t)size;
-    io->data_start = sizeof *io;
-    snprintf(io->name, sizeof io->name, "%s", VERITY_NAME);
 }
 
 /* M6b: puts a dm-verity device over `device` (data: the SquashFS rounded up to 4 KiB, then the hash
  * tree; no superblock), reads it all once and writes its path ("/dev/dm-N") into `out`. */
 static void verity(const char *device, const char *skrot, char *out, size_t outsz)
 {
-    union {
-        struct dm_ioctl io;
-        char b[4096];
-    } u;
-    struct dm_target_spec *t;
     unsigned char sb[96];
     static char buf[65536];
     unsigned long long bajty, bloki, rozmiar, i;
-    struct stat st;
-    int fd = open(device, O_RDONLY | O_CLOEXEC), ctl, dm;
+    int fd = open(device, O_RDONLY | O_CLOEXEC), dm;
     ssize_t n;
 
-    if (fd < 0 || fstat(fd, &st) != 0 || pread(fd, sb, sizeof sb, 0) != (ssize_t)sizeof sb)
+    if (fd < 0 || pread(fd, sb, sizeof sb, 0) != (ssize_t)sizeof sb)
         k1_awaria(TAG, "nie można odczytać obrazu rdzenia z %s: %s", device, strerror(errno));
     if (sb[0] != 'h' || sb[1] != 's' || sb[2] != 'q' || sb[3] != 's')
         k1_awaria(TAG, "nie udało się zamontować obrazu rdzenia z %s: to nie jest obraz SquashFS", device);
     bajty = 0;
     for (i = 0; i < 8; i++)
         bajty |= (unsigned long long)sb[40 + i] << (8 * i); /* bytes_used */
-    bloki = (bajty + VERITY_BLOCK - 1) / VERITY_BLOCK;
+    bloki = (bajty + K1_VERITY_BLOK - 1) / K1_VERITY_BLOK;
     rozmiar = (unsigned long long)lseek(fd, 0, SEEK_END);
     close(fd);
     /* one data block: the root hash is its own hash, no tree blocks follow */
-    if (bloki == 0 || rozmiar < (bloki + (bloki > 1 ? 1 : 0)) * VERITY_BLOCK)
+    if (bloki == 0 || rozmiar < (bloki + (bloki > 1 ? 1 : 0)) * K1_VERITY_BLOK)
         k1_awaria(TAG, "obraz rdzenia bez drzewa skrótów (dm-verity) — nie może być sprawdzony");
 
-    ctl = open("/dev/mapper/control", O_RDWR | O_CLOEXEC);
-    if (ctl < 0)
-        k1_awaria(TAG, "brak /dev/mapper/control (dm-verity): %s", strerror(errno));
-    dm_init(&u.io, sizeof u);
-    if (ioctl(ctl, (int)DM_DEV_CREATE, &u.io) != 0)
-        k1_awaria(TAG, "DM_DEV_CREATE: %s", strerror(errno));
-    dm_init(&u.io, sizeof u);
-    u.io.target_count = 1;
-    u.io.flags = DM_READONLY_FLAG;
-    t = (struct dm_target_spec *)(u.b + sizeof u.io);
-    t->sector_start = 0;
-    t->length = bloki * (VERITY_BLOCK / 512);
-    snprintf(t->target_type, sizeof t->target_type, "verity");
-    snprintf((char *)(t + 1), sizeof u - sizeof u.io - sizeof *t, "1 %u:%u %u:%u %u %u %llu %llu sha256 %s %s",
-             major(st.st_rdev), minor(st.st_rdev), major(st.st_rdev), minor(st.st_rdev), VERITY_BLOCK, VERITY_BLOCK,
-             bloki, bloki, skrot, VERITY_SALT);
-    t->next = 0;
-    if (ioctl(ctl, (int)DM_TABLE_LOAD, &u.io) != 0)
-        k1_awaria(TAG, "DM_TABLE_LOAD (dm-verity): %s", strerror(errno));
-    dm_init(&u.io, sizeof u);
-    if (ioctl(ctl, (int)DM_DEV_SUSPEND, &u.io) != 0) /* no SUSPEND flag: resume = activate the table */
-        k1_awaria(TAG, "DM_DEV_SUSPEND (dm-verity): %s", strerror(errno));
-    close(ctl);
-    /* huge_encode_dev: minor = low 8 bits | bits 20.. */
-    snprintf(out, outsz, "/dev/dm-%u", (unsigned)((u.io.dev & 0xff) | ((u.io.dev >> 12) & ~0xffull)));
-    wait_for_block_device(out);
-
+    switch (k1_verity_utworz("/dev", VERITY_NAME, device, bloki, skrot, out, outsz)) {
+    case 0:
+        break;
+    case -K1_VERITY_WEZEL:
+        k1_awaria(TAG, "brak urządzenia dm-verity %s: %s", out, strerror(errno));
+    default:
+        k1_awaria(TAG, "dm-verity (/dev/mapper/control): %s", strerror(errno));
+    }
     dm = open(out, O_RDONLY | O_CLOEXEC);
     if (dm < 0)
         k1_awaria(TAG, "%s: %s", out, strerror(errno));
-    for (i = 0; i < bloki * VERITY_BLOCK; i += (unsigned long long)n) {
+    for (i = 0; i < bloki * K1_VERITY_BLOK; i += (unsigned long long)n) {
         n = read(dm, buf, sizeof buf);
         if (n < 0 && errno == EINTR) {
             n = 0;

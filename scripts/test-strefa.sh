@@ -25,6 +25,8 @@
 #      tylko do odczytu) — kończy się tylko ta strefa, z powodem w logu; K1 działa dalej
 #   8. NEGATYWNE: procesor bez wirtualizacji — nadzorca mówi „brak wirtualizacji”, nic nie startuje, nadzorca żyje
 #   9. obraz produkcyjny nie ma strefy próbnej (tylko jądro strefy)
+#  (0.10.9 krok 4, ADR 0050) OBRAZ PRZEGLĄDARKI POZA RDZENIEM: znaleziony na dysku virtio i sprawdzony (dm-verity);
+#      NEGATYWNE: ten obraz ze zmienionym bajtem — nadzorca go nie bierze, sesja Ogólna „nie może ruszyć”, K1 żyje
 #  (0.10.2 krok 1) EKRAN STARTU do okna programu strefy (gość z „oknem” — tryb 11), pasek w ruchu; ZAMYKANIE W TLE:
 #      okno znika od razu, maszyna kończy się potem; otwarcie w trakcie zamykania — nadzorca czeka i otwiera sam;
 #      WYŁĄCZANIE przy działającej strefie: najpierw strefa się zamyka i zapisuje dysk, potem reszta K1
@@ -74,6 +76,9 @@ def blisko(c, w, tol=24):
 
 
 g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", czas=limit * 0.4)
+# 0.10.9 step 4 (ADR 0050): the browser's zone image is not in the core — here a virtio disk of its size (uruchom-qemu.sh)
+sprawdz("obraz strefy przeglądarki poza rdzeniem: znaleziony i sprawdzony przez dm-verity (skrót z rdzenia)",
+        czekaj(r"K1-NADZORCA: obraz strefy przegladarka: dysk vd[a-z] \(\d+ MiB\), sprawdzony \(dm-verity\)", czas=60))
 # The proof of KVM is the zone's machine running (KVM_CREATE_VM, KVM_RUN), not a kernel line: kvm_amd prints
 # "Nested Paging enabled", but kvm_intel prints nothing when VMX works — CI runners are AMD or Intel (runs 77, 79:
 # Intel Xeon with nested VMX). The kernel lines only name the kind, from the raw bytes of the log (q.tekst() drops a
@@ -555,6 +560,41 @@ q2.zrzut("7-bez-wirtualizacji")
 q2.sprawdz("pulpit mówi, co zrobić: okienko „Strefa próbna nie może ruszyć” z radą o BIOS-ie (zrzut "
            "strefa-bez-wirt-7-bez-wirtualizacji)", ok)
 q2.monitor("quit")
+qemu.wait()
+
+# ---- 0.10.9 step 4 (ADR 0050): the browser's zone image changed (one byte of its first block) ----
+zmieniony = f"{out}/strefa-obraz-zmieniony.img"
+with open(f"{repo}/build/wynik/strefa-przegladarka.img", "rb") as f, open(zmieniony, "wb") as g_:
+    g_.write(f.read())
+with open(zmieniony, "r+b") as f:
+    f.seek(1000)
+    b = f.read(1)
+    f.seek(1000)
+    f.write(bytes([b[0] ^ 0xFF]))
+opis = (f"-drive if=none,id=znak,file={znak},format=raw,readonly=on -device virtio-blk-pci,drive=znak,serial=k1-test-opis,"
+        "addr=0x1e")
+log3, mon3 = f"{out}/strefa-obraz.log", f"{out}/strefa-obraz.sock"
+qemu = subprocess.Popen([f"{repo}/scripts/uruchom-qemu.sh", "--obraz", f"{repo}/build/wynik/rdzen-test.squashfs",
+                         "--obraz-strefy", zmieniony, "--cmdline", cmdline, "--log", log3, "--monitor", mon3,
+                         "--czas", str(int(limit)), "--pamiec", "1024", "--qemu", opis] + emulacja)
+q3 = Maszyna(log3, mon3, out, limit, "strefa-obraz")
+q3.wyniki = q.wyniki
+q3.sprawdz("NEGATYWNY: obraz strefy ze zmienionym bajtem — dm-verity go odrzuca, nadzorca go nie bierze",
+           q3.czekaj(r"K1-GUI: pulpit gotowy", czas=limit * 0.4) and
+           q3.czekaj(r"K1-NADZORCA: obraz strefy przegladarka na dysku vd[a-z] jest zmieniony albo uszkodzony", czas=60) and
+           q3.czekaj(r"K1-NADZORCA: obraz strefy przegladarka: nie znaleziono", czas=30))
+q3.klik(*q3.srodek(q3.czekaj_na_element("Pasek", "Start", czas=30) or {"x": 0, "y": 0, "w": 0, "h": 0}))
+q3.klik_w("Menu Start", "Przeglądarka", "wiersz")
+kaf = q3.czekaj_na_element("Okienko", "sesja 2", "kafelek", czas=30)
+if kaf:
+    q3.klik(*q3.srodek(kaf))
+q3.sprawdz("…sesja Ogólna nie rusza (brak obrazu), pulpit pokazuje okienko „nie może ruszyć”",
+           kaf is not None and q3.czekaj(r"K1-NADZORCA: strefa 2: brak jądra strefy albo jej obrazu", czas=60) and
+           q3.czekaj(r"K1-GUI: strefa 2 nie ruszyła \(powód 3\): okienko", czas=30))
+q3.zrzut("8-obraz-zmieniony")
+q3.sprawdz("…K1 działa dalej: bez odrzuconych komunikatów i zabronionych wywołań, nadzorca bez awarii",
+           "zabronione wywołanie" not in q3.tekst() and "odrzucono" not in q3.tekst() and "Kernel panic" not in q3.tekst())
+q3.monitor("quit")
 qemu.wait()
 sys.exit(0 if all(q.wyniki) else 1)
 PY

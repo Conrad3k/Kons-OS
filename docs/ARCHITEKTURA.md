@@ -84,13 +84,18 @@ src/ ──► build/musl/bin/musl-gcc (static-pie, flagi SPEC §11, _FORTIFY_SO
          ──► sprawdzenie ELF i pułapek fortify (sprawdz-binaria.sh)
                      initramfs.cpio  ◄── /init (k1-initramfs)
                      rdzen.squashfs  ◄── init, system/{nadzorca + usługi z K1_SYSTEM}, aplikacje/{z K1_APLIKACJE},
-                                         katalogi jadro/{dev,proc,sys}, strefy/{jadro, przegladarka.img (0.10.0),
+                                         katalogi jadro/{dev,proc,sys}, strefy/{jadro, przegladarka.skrot — skrót obrazu
+                                         przeglądarki (0.10.9 krok 4, ADR 0050; do 0.10.7 cały obraz przegladarka.img),
                                          dysk.img — pusty dysk strefy, mke2fs przy budowie (0.10.0 krok 5)}
+                     strefa-przegladarka.img ◄── pakiety Debiana + gosc, kompozytor, przekaznik (SquashFS xz) + drzewo
+                                                 dm-verity; poza rdzeniem — w miejscu A/B za k1.efi
                      rdzen-test.squashfs ◄── + system/test-systemu (+ plik ze „#!” do testu negatywnego)
                      k1.efi ◄── to samo jądro + wbudowana linia poleceń (noinitrd) + initramfs z rdzen.squashfs,
                                 podpis Secure Boot (klucz z K1_KLUCZ_PODPISU; bez niego — deweloperski)
                      k1-<wersja>.iso ◄── GRUB (UEFI + BIOS) + k1.efi
-                     k1-<wersja>-usb.img ◄── GPT: K1-EFI (shim, GRUB, MokManager, grubenv, /k1/a.img = k1.efi, /k1/b.img)
+                     k1-<wersja>.iso ◄── od 0.10.9 bez obrazu przeglądarki (jądro K1 nie ma napędu CD; ADR 0050)
+                     k1-<wersja>-usb.img ◄── GPT: K1-EFI (shim, GRUB, MokManager, grubenv, /k1/a.img = FAT z k1.efi
+                                                  + obraz przeglądarki z drzewem dm-verity, 0.10.9; /k1/b.img)
                                                   + K1-DANE
 ```
 Wynik w `build/wynik/` (+ `SHA256SUMS`, `srodowisko.txt`). Build jest powtarzalny: stały

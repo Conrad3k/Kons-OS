@@ -123,8 +123,8 @@ $(OBJ)/ekran_startowy: narzedzia/ekran_startowy.c $(HOST_PRZYB) $(NAGL_P) $(NAGL
 $(GEN)/start.png: $(OBJ)/ekran_startowy | $(GEN)
 	$(OBJ)/ekran_startowy > $@.tmp && mv $@.tmp $@
 
-$(BIN)/k1-initramfs: src/initramfs/main.c $(WSPOLNE) $(NAGL) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ src/initramfs/main.c $(WSPOLNE) $(LDFLAGS_K1)
+$(BIN)/k1-initramfs: src/initramfs/main.c src/wspolne/k1_verity.c src/wspolne/k1_verity.h $(WSPOLNE) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ src/initramfs/main.c src/wspolne/k1_verity.c $(WSPOLNE) $(LDFLAGS_K1)
 
 $(BIN)/init: src/init/main.c $(WSPOLNE) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/init/main.c $(WSPOLNE) $(LDFLAGS_K1)
@@ -132,10 +132,12 @@ $(BIN)/init: src/init/main.c $(WSPOLNE) $(NAGL) | $(BIN)
 # nadzorca in modules (0.6.0, ADR 0019): main.c (loop), uslugi, profile, urzadzenia, skarb, instalacja, zasoby,
 # test; pure parts with host tests: bateria, dyski, uevent.
 NADZORCA := $(sort $(wildcard src/nadzorca/*.c))
+# 0.10.9 step 4 (ADR 0050): the zone images outside the core (obraz_strefy.c)
+OBRAZ_STREFY := src/wspolne/k1_obraz_strefy.c src/wspolne/k1_obraz_strefy.h src/wspolne/k1_verity.c src/wspolne/k1_verity.h
 # 0.8.0 step 5: nadzorca grows an empty K1-DANE to the end of the stick with the installer's GPT code (powieksz.c)
-$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(OBRAZ_STREFY) src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -DK1_CZAS_BUDOWY=$(CZAS_BUDOWY) -Isrc/zewnetrzne/monocypher -Isrc/instalator -I$(GEN)/sb -o $@ $(NADZORCA) src/instalator/gpt.c $(EFI) \
-		src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c src/wspolne/k1_nl.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+		$(filter %.c,$(OBRAZ_STREFY)) src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c src/wspolne/k1_nl.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
 # 0.9.0 step 3 (ADR 0038): start.c — the boot files swapped beside the old ones (host test: test_start)
@@ -243,6 +245,10 @@ $(OBJ)/test_inst_prawa: testy/host/test_inst_prawa.c src/nadzorca/inst_prawa.c s
 $(OBJ)/test_pamiec_stref: testy/host/test_pamiec_stref.c src/nadzorca/pamiec_stref.c src/nadzorca/pamiec_stref.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_pamiec_stref.c src/nadzorca/pamiec_stref.c
 # 0.10.1 step 1 (S3): why a zone ended — the VMM's status and its sandbox's memory events
+# 0.10.9 step 4 (ADR 0050): the zone image outside the core
+$(OBJ)/test_obraz_strefy: testy/host/test_obraz_strefy.c src/wspolne/k1_obraz_strefy.c src/wspolne/k1_obraz_strefy.h testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_obraz_strefy.c src/wspolne/k1_obraz_strefy.c
+
 $(OBJ)/test_powod_strefy: testy/host/test_powod_strefy.c src/nadzorca/strefy_powod.c src/nadzorca/strefy_powod.h $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_powod_strefy.c src/nadzorca/strefy_powod.c
 $(OBJ)/test_sesje: testy/host/test_sesje.c src/nadzorca/sesje.c src/nadzorca/sesje.h $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
@@ -462,7 +468,7 @@ TESTY_HOST := test_ogloszenie test_paczka test_odcinki test_odcinki_pelny test_d
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_palce \
-	test_opis
+	test_opis test_obraz_strefy
 TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania
 

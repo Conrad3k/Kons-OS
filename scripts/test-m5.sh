@@ -173,14 +173,15 @@ if [ -f "$USBIMG" ]; then
         ROS="K1-NADZORCA: K1-DANE powiększona do końca pendrive'a: 64 → 576 MiB"
         t=0
         jest() { log_k1 "$PLOG" | grep -qF "$1"; } # a kernel message may sit in the middle of a K1 line
-        while [ $t -lt "$CZAS" ] && ! { jest "$OCZ" && jest "K1-GUI: pulpit gotowy" && jest "$BAT"; }; do
+        OBR="K1-NADZORCA: obraz strefy przegladarka: miejsce a na sd" # 0.10.9 step 4: the zone image from slot A of the stick
+        while [ $t -lt "$CZAS" ] && ! { jest "$OCZ" && jest "K1-GUI: pulpit gotowy" && jest "$BAT" && jest "$OBR"; }; do
             kill -0 $PPID_ 2>/dev/null || break; sleep 1; t=$((t + 1))
         done
         zamknij_qemu "$PMON" $PPID_
-        if jest "$OCZ" && jest "K1-GUI: pulpit gotowy" && jest "partycja danych K1-DANE otwarta" && jest "$BAT" \
+        if jest "$OCZ" && jest "K1-GUI: pulpit gotowy" && jest "partycja danych K1-DANE otwarta" && jest "$BAT" && jest "$OBR" \
             && { [ $n -eq 1 ] && jest "$ROS" || { [ $n -eq 2 ] && ! jest "powiększona"; }; } \
             && ! jest "Kernel panic" && ! jest "BŁĄD"; then
-            echo "  [OK]    start $n z pendrive'a: pulpit, $( [ $n -eq 1 ] && echo 'K1-DANE powiększona do końca pendrive'"'"'a (64 → 576 MiB), nowy zaszyfrowany magazyn, historia baterii zapisana' || echo 'magazyn z poprzedniego startu otwarty (K1-DANE już nie rośnie), historia baterii z poprzedniego startu') (${t} s)"
+            echo "  [OK]    start $n z pendrive'a: pulpit, $( [ $n -eq 1 ] && echo 'K1-DANE powiększona do końca pendrive'"'"'a (64 → 576 MiB), nowy zaszyfrowany magazyn, historia baterii zapisana' || echo 'magazyn z poprzedniego startu otwarty (K1-DANE już nie rośnie), historia baterii z poprzedniego startu'), obraz przeglądarki z miejsca A sprawdzony (${t} s)"
         else
             echo "  [BŁĄD]  start $n z pendrive'a (log: $PLOG)"; r=1
         fi
