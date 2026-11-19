@@ -46,6 +46,8 @@ int k1_kom_sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierun
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 &&
                (w(k->a, 1, K1_PROFIL_MAKS) || k->a == K1_WL_SYSTEM) && w(k->b, 0, 65535) && w(k->c, 0, 1) &&
                w(k->d, 0, k->c ? K1_PAMIEC_MAKS_MIB : 0) && k->e == 0;
+    case K1_KOM_WYLACZANIE: /* 0.10.7 step 6: only nadzorca, on ekran's control channel */
+        return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && w(k->a, 0, 1) && zera(k, 1);
     case K1_KOM_POWIEKSZONO:
         return kier == K1_KIER_STEROWANIE && k->obiekt == 0 && (k->a == 0 || k->a == K1_SKARB_ARG || k->a == K1_SKARB_IO) &&
                zera(k, 1);

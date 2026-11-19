@@ -168,6 +168,13 @@ const char *opis_komunikat(int kl, const struct k1_komunikat *m, int fd); /* OPI
 void opis_klienci(void);   /* a client came or went: K1_UST_OPIS = 1 while a test client is connected */
 void opis_pow_koniec(int i); /* surface i is gone: its elements too */
 
+/* wylaczanie.c — the screen "Wyłączanie" (0.10.7 step 6, T7) */
+void wylaczanie_start(int restart);         /* WYLACZANIE from nadzorca: from now on until the end */
+int wylaczanie_trwa(void);
+const char *wylaczanie_napis(void);         /* its text: the panel's name in the screen's description */
+void wylaczanie_rysuj(const struct prost *r); /* over everything in the damaged rectangle r of the scene */
+int wylaczanie_czas_ms(void);               /* ms until the dots move again (damages them when it is time); -1: none */
+
 /* strefy.c — the frame of a zone's window (0.10.0, ADR 0042); the sessions from nadzorca (0.10.0 step 5) */
 void strefy_sesje(const struct k1_komunikat *k);              /* STREFY_STAN, STREFA_NAZWA on the control channel */
 int strefa_pamieta(int nr);                                   /* zone nr remembers (as nadzorca said last) */

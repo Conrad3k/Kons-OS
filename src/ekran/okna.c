@@ -405,7 +405,7 @@ int odbierz_klienta(int kl)
                 close(o.fd); /* input messages never carry descriptors */
             if (o.fd >= 0 || o.obciete || k1_zdarzenie_sprawdz(o.dane, o.dlugosc, &z) != 0)
                 odrzuc(kl, "błędne zdarzenie wejścia");
-            else
+            else if (!wylaczanie_trwa()) /* 0.10.7 step 6: K1 powers off — no input for the windows any more */
                 zastosuj(&z);
         } else {
             struct k1_komunikat m;

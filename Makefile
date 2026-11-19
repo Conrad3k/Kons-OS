@@ -191,8 +191,9 @@ $(BIN)/wejscie: src/wejscie/main.c src/wejscie/touchpad.c src/wejscie/touchpad.h
 
 # 0.10.0 (ADR 0042): the frame of the zones' windows (strefy.c) is drawn with przybornik's shapes, icons and text
 EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/powierzchnie.c src/ekran/wskaznik.c src/ekran/drm.c src/ekran/zapis.c \
-         src/ekran/zdjecie.c src/ekran/zalegle.c src/ekran/strefy.c src/ekran/opis.c src/ekran/rozmiar.c src/wspolne/k1_skaluj.c
-EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_opis_klient.c $(GEN)/k1_czcionki_dane.c
+         src/ekran/zdjecie.c src/ekran/zalegle.c src/ekran/strefy.c src/ekran/opis.c src/ekran/rozmiar.c \
+         src/ekran/wylaczanie.c src/wspolne/k1_skaluj.c
+EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_wylaczanie.c src/przybornik/k1_opis_klient.c $(GEN)/k1_czcionki_dane.c
 $(BIN)/ekran: $(EKRAN) src/ekran/ekran.h src/ekran/zalegle.h $(EKRAN_PRZYB) $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(EKRAN) $(EKRAN_PRZYB) src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
@@ -259,6 +260,13 @@ $(OBJ)/test_log: testy/host/test_log.c src/wspolne/k1_log.c src/wspolne/k1_log.h
 $(OBJ)/test_bateria: testy/host/test_bateria.c src/nadzorca/bateria.c src/nadzorca/bateria.h $(KOMUNIKAT) src/wspolne/k1_komunikat.h \
 		src/wspolne/k1_io.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_bateria.c src/nadzorca/bateria.c $(KOMUNIKAT) $(DOK_C)
+
+# 0.10.7 step 6: the screen "Wyłączanie" as ekran draws it (test-wzorce compares it with its references)
+$(OBJ)/podglad_wylaczania: testy/host/podglad_wylaczania.c src/przybornik/k1_wylaczanie.c src/przybornik/k1_wylaczanie.h \
+		src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c $(GRAFIKA) $(NAGL_P) $(GEN)/k1_czcionki_dane.c | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -I$(GEN) -o $@ testy/host/podglad_wylaczania.c \
+		src/przybornik/k1_wylaczanie.c src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/grafika/k1_grafika.c \
+		$(GEN)/k1_czcionki_dane.c -lm
 
 $(OBJ)/podglad_grafiki: testy/host/podglad_grafiki.c $(GRAFIKA) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/podglad_grafiki.c src/grafika/k1_grafika.c -lm
@@ -455,7 +463,8 @@ TESTY_HOST := test_ogloszenie test_paczka test_odcinki test_odcinki_pelny test_d
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_palce \
 	test_opis
-TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki
+TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki \
+	podglad_wylaczania
 
 # notatki_w_plikach and magazyn_testowy are not run here: scripts/test-*.sh use them
 testy-host: $(TESTY_HOST:%=host-%) $(TESTY_HOST_PLIKI:%=host-%) $(OBJ)/notatki_w_plikach $(OBJ)/magazyn_testowy
@@ -492,6 +501,13 @@ host-test_siec_instalatora: $(OBJ)/test_siec_instalatora $(OBJ)/podpisz $(OBJ)/w
 host-test_dekoder: $(OBJ)/test_dekoder
 	rm -rf $(OBJ)/obrazy && mkdir -p $(OBJ)/obrazy && python3 -I testy/host/obrazy_dekoder.py $(OBJ)/obrazy && \
 		$(OBJ)/test_dekoder $(OBJ)/obrazy && rm -rf $(OBJ)/obrazy
+
+host-podglad_wylaczania: $(OBJ)/podglad_wylaczania
+	$(OBJ)/podglad_wylaczania 1280 800 0 0 > /dev/null
+	$(OBJ)/podglad_wylaczania 1366 768 1 1 700 > /dev/null
+	$(OBJ)/podglad_wylaczania 13 7 0 1 300 > /dev/null
+	$(OBJ)/podglad_wylaczania 1 1 1 0 0 > /dev/null
+	@echo "podglad_wylaczania: OK (ASan/UBSan; kawałkami = całość; 1280x800, 1366x768, 13x7, 1x1)"
 
 host-podglad_grafiki: $(OBJ)/podglad_grafiki
 	$(OBJ)/podglad_grafiki 1280 800 900 400 0 > $(OBJ)/podglad.ppm

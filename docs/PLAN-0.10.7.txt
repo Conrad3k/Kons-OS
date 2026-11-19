@@ -124,9 +124,10 @@ Robot i wydania (od 0.10.5: ADR 0046 i 0047, docs/komponenty/robot.md i aktualiz
      PR #173
 [x]  4  Ramka okna strefy: kolor sesji dyskretnie           W12              1           D1, T5           M        0048
      PR #174
-[ ]  5  Błąd: Aktualizacje po ponownym otwarciu Ustawień   W16              0.10.5      T6               S        brak
-     [w toku: Claude, gałąź claude/trusting-curie-oc9pv1]
+[x]  5  Błąd: Aktualizacje po ponownym otwarciu Ustawień   W16              0.10.5      T6               S        brak
+     PR #176
 [ ]  6  Błąd: wyłączanie do końca, ekran „Wyłączanie”       W17–W18          0.10.5      D7, T7, T8       M        brak
+     [w toku: Claude, gałąź claude/trusting-curie-oc9pv1]
 [ ]  7  Pulpit, tapeta; porządki; wydanie 0.10.7            W13–W15          1–6         D5, D6           M        brak
 (ADR 0048: następny wolny po 0046 i 0047 z 0.10.5; 0.10.9 Filmy i szybka grafika bierze następne.)
 
@@ -303,18 +304,18 @@ KROK 6: Błąd: wyłączanie do końca, ekran „Wyłączanie”                
   samo, tylko krócej.
   Na początku: D7 (szkice ekranu „Wyłączanie” w obu motywach, kodem K1 na hoście, jak szkice z 0.10.0).
   Zadania:
-  [ ] Odtworzyć w QEMU: strefa otwarta (strefa próbna w test-strefa; przeglądarki CI nie testuje, a błąd dotyczy
+  [x] Odtworzyć w QEMU: strefa otwarta (strefa próbna w test-strefa; przeglądarki CI nie testuje, a błąd dotyczy
       zamykania strefy, nie Firefoksa), Start → Wyłącz, czy QEMU kończy pracę. Z logu: czy nadzorca doczekał końca
       stref („strefy zamknięte — wyłączam resztę”), czy init dostał sygnał i co robił potem (W17, NIEPEWNE). Gdy QEMU
       kończy pracę, a sprzęt nie: 1 do 2 próby wyjaśnienia, potem obraz z artefaktu PR-a do sprawdzenia przez właściciela
       na X230 i IdeaPadzie (SKILL, „dziwny błąd testu”).
-  [ ] Poprawka u źródła: po zamknięciu stref (albo po WYLACZ_CZEKAJ_S) wyłączenie zawsze dochodzi do końca; gdy coś się
+  [x] Poprawka u źródła: po zamknięciu stref (albo po WYLACZ_CZEKAJ_S) wyłączenie zawsze dochodzi do końca; gdy coś się
       nie uda, init i tak wyłącza po swoim limicie czasu (fail closed: nie zostaje „żywy pulpit bez niczego”).
-  [ ] Ekran „Wyłączanie” (D7, T7): pokazuje się od razu po kliknięciu, przykrywa pulpit i wszystkie okna (także okno
+  [x] Ekran „Wyłączanie” (D7, T7): pokazuje się od razu po kliknięciu, przykrywa pulpit i wszystkie okna (także okno
       strefy), zostaje do końca; napis „Wyłączanie” albo „Ponowne uruchamianie”, bez dodatkowych zdań (Z2);
       animacja spokojna, bez paska postępu z liczbami (czasu i tak nie znamy).
-  [ ] Wylogowanie (Start → Wyloguj) bez zmian: nie pokazuje tego ekranu.
-  [ ] Testy: scenariusz QEMU „wyłącz ze strefą”: QEMU kończy pracę przed limitem czasu, w logu kolejność: prośba
+  [x] Wylogowanie (Start → Wyloguj) bez zmian: nie pokazuje tego ekranu.
+  [x] Testy: scenariusz QEMU „wyłącz ze strefą”: QEMU kończy pracę przed limitem czasu, w logu kolejność: prośba
       o wyłączenie, ekran „Wyłączanie”, strefa zapisała sesję, strefy zamknięte, init wyłącza; ten sam bez strefy
       i dla „Uruchom ponownie”. Zrzut wzorcowy ekranu „Wyłączanie” (oba motywy; animację zatrzymuje opis ekranu jako
       K1_EL_ZMIENNE albo stała klatka w trybie testu, T8).
@@ -326,7 +327,22 @@ KROK 6: Błąd: wyłączanie do końca, ekran „Wyłączanie”                
   Dokumenty: WYGLAD.md (ekran „Wyłączanie”), gui.md albo ekran.md (kto rysuje, T7), init.md i nadzorca.md (przebieg
   wyłączania), dokument kanału, jeśli dochodzi komunikat, SLOWNIK („ekran wyłączania”, jeśli nowe pojęcie).
   Gotowe, gdy: testy zielone, wzorce przyjęte po „OK” właściciela, właściciel potwierdził na sprzęcie (obraz z PR-a).
-  Ustalenia z wykonania: (pusto, wypełnia krok 6)
+  Ustalenia z wykonania (2026-11-19):
+    - D7: szkic B „Kropki” (szkice A, B, C częściami K1 na hoście, z animacją); obrazy wzorcowe przyjęte („OK, przyjmij”).
+    - Właściciel (2026-11-19): bez przeglądarki K1 wyłącza się na obu laptopach; z przeglądarką pulpit dalej działa — czyli
+      nadzorca nie dał init znaku. W QEMU nie do odtworzenia: test-strefa (strefa próbna) wyłącza się jak trzeba, a każda
+      ścieżka w kodzie ma limit (zegar monotoniczny, pętla nadzorcy co ≤ 1 s, kanały bez blokowania, WYLACZ_CZEKAJ_S 30 s).
+      Po dwóch próbach (SKILL, „dziwny błąd”): odporniejsze wyłączanie + obraz z PR-a do sprawdzenia na sprzęcie.
+      NIEPEWNE: przyczyna; możliwe, że 30 s czekania bez żadnego znaku wyglądało jak „nic się nie dzieje”.
+    - Teraz: komunikat WYLACZANIE (nadzorca → ekran, tylko kanał sterujący, test na hoście i NEGATYWNY w systemie); ekran
+      (wylaczanie.c) rysuje k1_wylaczanie nad wszystkim, bez kursora, bez wejścia dla okien; co 5 s log nadzorcy
+      „wyłączanie: czekam na strefy (n), najwyżej jeszcze x s”; init po SIGKILL czeka najwyżej okres łaski (do 0.10.7
+      waitpid bez limitu), potem i tak wyłącza. Na sprzęcie ekran mówi, gdzie stoi: kropki się ruszają = czeka nadzorca;
+      obraz stoi albo czarny = init / jądro.
+    - Wzorce (T8): bez strefy ekran „Wyłączanie” trwa w QEMU ułamek sekundy (zrzutu nie da się zrobić) — test-wzorce
+      rysuje go na hoście tą samą funkcją (podglad_wylaczania; kawałkami = całość) i porównuje z wylaczanie-jasny/-ciemny.
+    - Logi: wpis ekranu może nie dojść do logu, gdy init kończy nadzorcę od razu (bez stref) — test-m4 i test-m6 sprawdzają
+      wpis nadzorcy „ekran wyłączania: prośba wysłana do ekranu”, test-strefa wpis ekranu przed „strefy zamknięte”.
 
 KROK 7: Pulpit, tapeta; porządki; wydanie 0.10.7                              M · D5, D6 · bez ADR
   Cel: napisy pod ikonami pulpitu czytelne na każdej tapecie; tapeta według D5; wydanie.

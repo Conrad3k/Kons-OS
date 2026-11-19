@@ -133,6 +133,8 @@ static int zbierz(struct k1_opis_el *el)
                 w++;
         }
     }
+    if (wylaczanie_trwa() && w < K1_OPIS_EKRAN_MAKS && rekord(&el[w], K1_EL_PANEL, 0, 0, 0, 0, s.W, s.H, wylaczanie_napis()))
+        w++; /* 0.10.7 step 6: the screen "Wyłączanie" over everything */
     return w;
 }
 

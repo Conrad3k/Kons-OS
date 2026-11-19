@@ -524,6 +524,8 @@ m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz
 if m:
     q.klik(int(m.group(4)), int(m.group(5)))
 wyl = m and czekaj(r"K1-NADZORCA: wyłączanie: najpierw zamykam strefy \(1, najwyżej 30 s\)", czas=30)
+# 0.10.7 step 6 (T7): the screen "Wyłączanie" at once, over everything (the zone's window too), while the zone closes
+sprawdz("…ekran „Wyłączanie” od razu po kliknięciu", wyl and czekaj(r"K1-EKRAN: ekran wyłączania: wyłączanie", czas=10))
 sprawdz("…nadzorca najpierw prosi strefę o zamknięcie (jak „zamknij” na pasku), gość zapisuje dysk i kończy się",
         wyl and czekaj(r"K1-STREFA: zamykam strefę na prośbę nadzorcy \(wyłączanie K1\)", czas=30) and
         czekaj(r"K1-GOSC: dysk: zamknięcie zapisane: tak", czas=60) and
@@ -531,6 +533,9 @@ sprawdz("…nadzorca najpierw prosi strefę o zamknięcie (jak „zamknij” na 
 sprawdz("…dopiero potem K1 wyłącza resztę (skarbiec przyjął zapis) i komputer się wyłącza",
         wyl and czekaj(r"K1-NADZORCA: strefy zamknięte — wyłączam resztę", czas=60) and
         czekaj(r"K1: wyłączanie zasilania", czas=60) and czekaj(r"reboot: Power down", czas=60))
+t_ = q.tekst()  # the zone closes too fast for a picture of the screen (its look: test-wzorce, on the host)
+sprawdz("…ekran „Wyłączanie” był przez cały czas zamykania strefy (przed „strefy zamknięte”)",
+        0 <= t_.find("K1-EKRAN: ekran wyłączania: wyłączanie") < t_.find("K1-NADZORCA: strefy zamknięte — wyłączam resztę"))
 if not re.search(r"reboot: Power down", q.tekst()):
     q.monitor("quit")
 qemu.wait()

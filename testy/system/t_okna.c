@@ -120,6 +120,13 @@ void t_okna_rozmiar(void)
     check(ok && find_process("ekran") > 0,
           "NEGATYWNY 0.10.5: strefa nie przełącza okien — pokazanie, minimalizacja i zamknięcie okna od strefy odrzucone "
           "(Alt+Tab ma tylko pulpit), jej okno dalej pokazane", "ok=%d", ok);
+    /* 0.10.7 step 6: only nadzorca shows the screen "Wyłączanie" (its control channel) — from a client: refused */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_WYLACZANIE, 0, 0, 0, 0, 0, 0), -1);
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 1, 0, 0, 0, 0, 0), -1);
+    ok &= czekaj_na(fd, K1_KOM_RAMKA, 1, 10000);
+    check(ok && find_process("ekran") > 0,
+          "NEGATYWNY 0.10.7: ekranu „Wyłączanie” nie włączy klient ekranu (tylko nadzorca) — prośba odrzucona, okno dalej "
+          "pokazane", "ok=%d", ok);
     close(fd);
     close(m1);
     close(m2);

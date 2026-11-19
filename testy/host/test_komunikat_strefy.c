@@ -68,6 +68,11 @@ void strefy(void)
     EXPECT(zle(K(K1_KOM_STREFY_STAN, 0, 0, 1, 1, wszystkie, -1), K1_KIER_OD_NADZORCY));
     EXPECT(zle(K(K1_KOM_STREFY_STAN, 1, 0, 1, 1, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(zle(K(K1_KOM_STREFY_STAN, 0, 0, 1, 1, 0, 0), K1_KIER_DO_NADZORCY)); /* from nadzorca only */
+    /* 0.10.7 step 6: WYLACZANIE — nadzorca → ekran on the control channel only, a = 0 / 1, nothing else */
+    EXPECT(ok(K(K1_KOM_WYLACZANIE, 0, 0, 0, 0, 0, 0), K1_KIER_STEROWANIE) && ok(K(K1_KOM_WYLACZANIE, 0, 1, 0, 0, 0, 0), K1_KIER_STEROWANIE));
+    EXPECT(zle(K(K1_KOM_WYLACZANIE, 0, 2, 0, 0, 0, 0), K1_KIER_STEROWANIE) && zle(K(K1_KOM_WYLACZANIE, 0, -1, 0, 0, 0, 0), K1_KIER_STEROWANIE));
+    EXPECT(zle(K(K1_KOM_WYLACZANIE, 1, 0, 0, 0, 0, 0), K1_KIER_STEROWANIE) && zle(K(K1_KOM_WYLACZANIE, 0, 0, 0, 0, 0, 1), K1_KIER_STEROWANIE));
+    EXPECT(zle(K(K1_KOM_WYLACZANIE, 0, 0, 0, 0, 0, 0), K1_KIER_DO_EKRANU) && zle(K(K1_KOM_WYLACZANIE, 0, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
     /* Ustawienia → nadzorca */
     EXPECT(ok(K(K1_KOM_STREFA_TRWALOSC, 2, K1_JEDNORAZOWA, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(ok(K(K1_KOM_STREFA_TRWALOSC, 4, K1_STALA, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));

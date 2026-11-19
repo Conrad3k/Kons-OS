@@ -195,6 +195,9 @@ enum k1_komunikat_typ {
                                * c=1 maximized / 0, d=e=0 — the picture's new size: the user resized or maximized the
                                * window on K1's frame. Only ekran says it; the zone answers with POWIERZCHNIA e=1 of exactly
                                * that size (anything else is refused) and never asks for a size or a place itself */
+    K1_KOM_WYLACZANIE = 194,  /* nadzorca → ekran (its control channel; 0.10.7 step 6, T7): obiekt=0, a=0 power off / 1 restart,
+                               * b..e=0 — K1 is powering off: ekran covers everything with the screen "Wyłączanie" (or
+                               * "Ponowne uruchamianie") until the end and gives no input to the windows. Once; not on log out */
     K1_KOM_INST_SIEC = 188,   /* writing program → nadzorca (0.10.5 step 2, after STAN): obiekt=0, a=the version that runs
                                * (1..), b=the version waiting in the waiting room (0: none), c=the newer version to
                                * download (0: none), d=K1_SIEC_FL_*, e=the previous version in the free slot (0: none) */

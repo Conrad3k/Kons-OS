@@ -140,8 +140,20 @@ ruszyła (`STREFY_STAN` a w chwili `KLIENT`; zmiana w Ustawieniach działa od na
 pokazuje).
 
 Kanał sterujący (fd 3) od nadzorcy: `KLIENT` (rola `STREFA`: `b` = numer strefy); od 0.10.0 krok 5 także `STREFY_STAN` i
-`STREFA_NAZWA` (bez deskryptora; sesje — `komponenty/strefa.md`). Złe pole, zła rola albo obcy UID → komunikat odrzucony
+`STREFA_NAZWA` (bez deskryptora; sesje — `komponenty/strefa.md`); od 0.10.7 krok 6 `WYLACZANIE` (a = 0 wyłączanie,
+1 ponowne uruchamianie; reszta pól 0) — niżej „Ekran wyłączania”. Złe pole, zła rola albo obcy UID → komunikat odrzucony
 z wpisem w logu (≤ 8 na klienta), po 50 — klient rozłączony.
+
+## Ekran wyłączania (0.10.7 krok 6, T7; decyzja właściciela D7: szkic B „Kropki”)
+Nadzorca, gdy przyjmie `WYLACZ` (wyłączanie albo ponowne uruchamianie; wylogowanie nie), wysyła ekranowi `WYLACZANIE`
+na kanale sterującym — tylko on może (sprawdzane pole po polu, kierunek „sterowanie”, UID 0; od klienta ekranu odrzucone:
+test w systemie „NEGATYWNY 0.10.7”). Od tej chwili do końca `wylaczanie.c` rysuje nad wszystkim — nad oknami, także oknem
+strefy, i bez kursora — `k1_wylaczanie` (`src/przybornik/k1_wylaczanie.c`): tło okna K1 na cały ekran, trzy kropki w
+kolorze akcentu po kolei rozjaśniane (obieg 1,5 s, 15 klatek na sekundę z zegara ekranu) i „Wyłączanie” albo „Ponowne
+uruchamianie” (Plex Serif 24). Wejście nie trafia już do okien. Log „ekran wyłączania: …”. W opisie ekranu dla testów —
+panel o tej nazwie; przy kliencie testowym kropki stoją (T8). Ekran kończy się razem z nadzorcą (init); ostatnią klatkę
+do wyłączenia zasilania zostawia albo czyści sterownik grafiki (do sprawdzenia na sprzęcie). Wygląd pilnuje
+`test-wzorce` na hoście (`podglad_wylaczania`: ta sama funkcja, wzorce `wylaczanie-jasny`, `wylaczanie-ciemny`).
 
 ## Doręczanie (0.8.5 krok 1)
 Ekran nigdy nie czeka na klienta. Gdy kanał aplikacji jest pełny (aplikacja akurat długo liczy), to, co ekran

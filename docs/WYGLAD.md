@@ -402,6 +402,13 @@ Liniowe, jedna grubość (1,6 przy 24 px), kolor roli tekstu, rysowane w kodzie 
 zegar, notatki, ustawienia (suwaki), głośnik, zasilanie, restart, zamknij, minimalizuj, kłódka,
 informacja, mysz, wygląd (obrazek), zasoby (ramka z pulsem), ekran (monitor).
 
+## Ekran „Wyłączanie” (0.10.7 krok 6, decyzja właściciela D7: szkic B „Kropki”, 2026-11-19)
+Po „Wyłącz” albo „Uruchom ponownie” od razu, do końca: tło okna motywu (papier / noc) na cały ekran, na środku trzy kropki
+(promień 5 px, co 20 px, 36 px nad środkiem) w kolorze akcentu, rozjaśniane po kolei (od 25 % do 100 % akcentu, obieg
+1,5 s), pod nimi „Wyłączanie” albo „Ponowne uruchamianie” (Plex Serif 24, kolor tekstu, linia bazowa 40 px pod środkiem).
+Bez kursora, bez innych zdań (Z2), bez paska postępu (czasu i tak nie znamy). Wylogowanie go nie pokazuje. Szkice A
+„Znak” i C „Przygaszenie” odrzucone. Rysuje ekran (`k1_wylaczanie`), wzorce `wylaczanie-jasny`, `wylaczanie-ciemny`.
+
 ## Kursor
 Klasyczna strzałka: kremowe wypełnienie, ciemny obrys, lekki cień; przy wciśniętym przycisku —
 wypełnienie w kolorze akcentu. Od 0.10.5 krok 4 nad chwytami ramki okna strefy — podwójna strzałka tego samego stylu

@@ -18,7 +18,7 @@ static struct {
 } czeka[K1_STREFY_MAKS + 1];
 static struct {
     int trwa, restart;
-    double koniec;
+    double koniec, log;
 } wyl;
 
 static int dziala(int nr)
@@ -74,6 +74,7 @@ int strefy_przed_wylaczeniem(int restart)
     wyl.trwa = 1;
     wyl.restart = restart;
     wyl.koniec = k1_teraz() + WYLACZ_CZEKAJ_S;
+    wyl.log = k1_teraz();
     k1_log(TAG, "%s: najpierw zamykam strefy (%d, najwyżej %.0f s) — zapiszą swoje sesje",
            restart ? "ponowne uruchamianie" : "wyłączanie", n, WYLACZ_CZEKAJ_S);
     return 1;
@@ -92,6 +93,10 @@ void strefy_zamykanie(void)
             k1_log(TAG, "strefa %d skończyła się — otwieram ją ponownie", nr);
             strefa_uruchom(nr, tryb, czeka[nr].z_testu);
         }
+    }
+    if (wyl.trwa == 1 && ile > 0 && k1_teraz() >= wyl.log + 5.0) { /* 0.10.7 step 6: where a power off waits */
+        wyl.log = k1_teraz();
+        k1_log(TAG, "wyłączanie: czekam na strefy (%d), najwyżej jeszcze %.0f s", ile, wyl.koniec - k1_teraz());
     }
     if (wyl.trwa != 1 || (ile > 0 && k1_teraz() < wyl.koniec))
         return;
