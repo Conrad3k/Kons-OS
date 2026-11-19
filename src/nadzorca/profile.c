@@ -20,9 +20,6 @@ static const long sc_czytnik[] = { SYS_pread64, SYS_memfd_create };
 static const long sc_dekoder[] = { SYS_memfd_create };
 /* gui and applications: shared memory for their surfaces, nothing else. */
 static const long sc_okna[] = { SYS_memfd_create, SYS_ftruncate };
-/* 0.10.9 step 1, TRIAL CODE: the card probe (sonda) */
-static const long sc_sonda[] = { SYS_memfd_create, SYS_ftruncate, SYS_pread64, SYS_getrusage, SYS_futex,
-                                 SYS_sched_yield };
 /* instalator (M5f): the two devices it gets from us, randomness for the GPT GUIDs. No open. */
 static const long sc_instalator[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, SYS_getrandom };
 /* siec (0.9.0, ADR 0039): randomness for the DHCP transaction numbers. It sends and receives on the packet socket we
@@ -103,17 +100,10 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
      * channels (k1_uslugi.h, kanaly.h). 32 MiB each; Podgląd 96 MiB (0.8.2, ADR 0037): the picture from dekoder (up to 1600 × 1600,
      * 10 MiB) and the same turned, so that zooming in has pixels to show — two times what fits in 32 MiB with the list
      * of files and the window. */
-    /* 0.10.9 step 1, TRIAL CODE (never in main): the card probe (SONDA) — DRM ioctls on the render node, its battery and
-     * memory readings (pread), its processor time (getrusage), futex/sched_yield for the libraries' locks; 768 MiB for
-     * the decoders and the card's buffers (S26: counted here if the kernel charges them to the cgroup). */
 #define X_APL(n, a_, p_, uid_, program_, ...)                                                                       \
-    [K1_PROFIL_##n] = { .nazwa = program_, .uid = uid_,                                                           \
-                        .wywolania = K1_APL_##n == K1_APL_SONDA ? sc_sonda : sc_okna,                             \
-                        .n_wywolan = K1_APL_##n == K1_APL_SONDA ? N(sc_sonda) : N(sc_okna),                       \
-                        .warunki = K1_APL_##n == K1_APL_SONDA ? wa_ekran : NULL,                                  \
-                        .n_warunkow = K1_APL_##n == K1_APL_SONDA ? N(wa_ekran) : 0,                               \
-                        .pamiec = (K1_APL_##n == K1_APL_SONDA ? 768u : K1_APL_##n == K1_APL_PODGLAD ? 96u : 32u) << 20, \
-                        .pliki = 32, .rozmiar_pliku = 16u << 20 },
+    [K1_PROFIL_##n] = { .nazwa = program_, .uid = uid_, .wywolania = sc_okna, .n_wywolan = N(sc_okna),                \
+                        .pamiec = (K1_APL_##n == K1_APL_PODGLAD ? 96u : 32u) << 20, .pliki = 32,                     \
+                        .rozmiar_pliku = 16u << 20 },
     K1_APLIKACJE(X_APL)
 #undef X_APL
     /* zones (k1_uslugi.h K1_STREFY): a thread per processor, the watchman's (strefa/stroz.c), the disk's (strefa/dane.c,

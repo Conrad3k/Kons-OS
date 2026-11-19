@@ -17,7 +17,7 @@ static void test_domyslne(void)
 {
     struct rozmieszczenie r;
     rozm_domyslne(&r, domyslne, 7);
-    EXPECT(NA == K1_APL_MAKS - 4 /* TRIAL: + the hidden card probe */ && NP == NA + 1 && r.n_pasek == NP && r.n_ikon == NP + 1);
+    EXPECT(NA == K1_APL_MAKS - 3 && NP == NA + 1 && r.n_pasek == NP && r.n_ikon == NP + 1);
     EXPECT(r.pasek[NP - 1] == PRZEGLADARKA && rozm_w_komorce(&r, 1, 0) == PRZEGLADARKA);
     EXPECT(rozm_na_pasku(&r, ROZM_STREFA + K1_STREFA_BANK) < 0 && rozm_na_pasku(&r, ROZM_STREFA + K1_STREFA_PROBNA) < 0);
     EXPECT(rozm_na_pasku(&r, K1_APL_WYBOR) < 0 && rozm_ikona(&r, K1_APL_WYBOR) < 0);

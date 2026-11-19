@@ -280,16 +280,6 @@ hoście (`make build/obj/pomiar_podgladu`, zdjęcie 1600 × 1600, -O2): klatka d
 do bitu, `test_przybornik`; zyskuje każde okno). Log po każdym ruchu (najwyżej raz na ruch): „ruch: klatek n w t ms,
 najdłuższa x ms, ostra y ms”.
 
-### Sonda karty
-
-**KOD PRÓBNY — tylko gałąź próby kroku 1 planu 0.10.9, nigdy w `main`.** Okno, które nadzorca otwiera sam po starcie
-pulpitu, tylko gdy karta ma węzeł render (karta Intela z i915; w QEMU się nie pokazuje). Pokazuje: sterownik i
-urządzenie karty, oddzielenie kontekstów (PPGTT), formaty, które karta rozpakowuje (VA-API: libva + i965 wbudowane w
-program), pomiar krótkiego filmu H.264 1080p (procesor, karta z kopią klatki, karta bez kopii: klatki/s, czas procesora,
-moc z baterii, pamięć klatki), próby oddzielenia i zawieszenia karty, numery `ioctl` karty i wywołania, których klatka
-nie pozwala (łapane przez SIGSYS, zwracają ENOSYS). Kanał `KANAL_SONDY`: węzeł render, `memory.current` swojej klatki,
-odczyty baterii (`src/nadzorca/sonda.c`). Biblioteki: `scripts/zbuduj-sonde.sh`.
-
 ## Granica zaufania
 Klienci ekranu w roli **aplikacja**: tylko własne okna. Ustawienia jako jedyna mogą zmieniać
 ustawienia (ekran sprawdza rolę i UID) — poza domyślną aplikacją typu pliku, którą od 0.8.2 zmieniają też Pliki

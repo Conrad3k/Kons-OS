@@ -25,7 +25,5 @@
 #define KANAL_SIECI { KN_OD, &siec_kanal, NULL, siec_nowy_kanal } /* siec: the card with a cable, its address (siec.c) */
 /* 0.9.1 step 2: Ustawienia → siec straight (a Wi-Fi password never passes through us; wifi_polacz.c) */
 #define KANAL_DO_SIECI { KN_SIEC, NULL, NULL, NULL }
-/* 0.10.9 step 1, TRIAL CODE: the card probe — 5 fds (sonda.c) */
-#define KANAL_SONDY { KN_SONDA, NULL, NULL, NULL }
 
 #endif
