@@ -1,13 +1,13 @@
-/* K1 ekran — the trusted frame of a zone's window (0.10.0, ADR 0042 T6; ADR 0020 p. 3). Step 3, the owner's D1
- * change (sketch A, docs/WYGLAD.md): a full title bar like every K1 window, in the zone's colour — the zone's icon,
- * "<title> · <session> · osobna maszyna" (one-off: "· zapomina po zamknięciu"), minimise and close — K1_STREFA_TYTUL
- * px above the zone's picture, and a 3 px outline around both. Grabbing the bar moves the window. Everything here lies
- * OUTSIDE the zone's rectangle and is drawn before it: the zone only ever has its own rectangle, so it can neither
- * cover nor draw the frame (RYZYKA R26), and the pointer on the frame never reaches the zone. One-off zone: a light bar
- * with the zone's colour as the outline and the text. Without focus the colour is mixed with the theme's background.
- * 0.10.5 step 4 (D8): a third button between them — maximize (a square) / restore (two squares); a maximized window has
- * no outline (its bar right under the top bar, its picture to the bottom bar); the grips of the edges — rozmiar.c.
- * Part of ekran (ekran.h). */
+/* K1 ekran — the trusted frame of a zone's window (0.10.0, ADR 0042 T6; ADR 0020 p. 3). A full title bar like every
+ * K1 window — the zone's icon, "<title> · ● <session> · osobna maszyna" (one-off: "· zapomina"), minimise, maximise
+ * and close — K1_STREFA_TYTUL px above the zone's picture, and a 3 px outline around both. 0.10.7 step 4 (ADR 0048,
+ * D1: sketch A): the frame in the window's background with a hairline, the session's colour only in the dot and a
+ * 2 px line under the bar (until 0.10.7 the whole frame was in it). Grabbing the bar moves the window. Everything here
+ * lies OUTSIDE the zone's rectangle and is drawn before it: the zone only ever has its own rectangle, so it can neither
+ * cover nor draw the frame (RYZYKA R26), and the pointer on the frame never reaches the zone. Without focus the
+ * colour is mixed with the theme's background and the title is muted, as in K1 windows. 0.10.5 step 4 (D8): maximise
+ * (a square) / restore (two squares); a maximized window has no outline (its bar right under the top bar, its picture
+ * to the bottom bar); the grips of the edges: rozmiar.c. Part of ekran (ekran.h). */
 #include <stdio.h>
 #include <string.h>
 
@@ -17,7 +17,7 @@
 #include "k1_rysuj.h"
 
 #define OBWODKA 3   /* the outline */
-#define PROMIEN 10  /* the frame's corners */
+#define PROMIEN 10  /* the frame's corners: the picture's corners (3 px in) stay inside them */
 #define PRZYCISK 28 /* minimise / maximise / close */
 #define ODSTEP 32   /* from one button to the next */
 #define MARGINES 8  /* the close button from the right edge */
@@ -53,12 +53,14 @@ int strefa_pamieta(int nr)
     return nr >= 1 && nr <= K1_STREFY_MAKS && (pamietaja >> (nr - 1) & 1);
 }
 
-static void tekst(const struct pow *p, char *b, size_t n)
+/* The title in two parts around the session's dot: "<title> · " and "<session> · osobna maszyna" (one-off:
+ * "· zapomina"); without a session the dot stands before "osobna maszyna". */
+static void tekst(const struct pow *p, char *przed, size_t n1, char *po, size_t n2)
 {
     const struct k1_strefa_opis *z = opis(p);
     const char *sesja = nazwy[z->nr][0] ? nazwy[z->nr] : z->sesja;
-    snprintf(b, n, "%s%s%s · osobna maszyna%s", z->tytul, sesja[0] ? " · " : "", sesja,
-             s.kl[p->kl].pamieta ? "" : " · zapomina po zamknięciu");
+    snprintf(przed, n1, "%s · ", z->tytul);
+    snprintf(po, n2, "%s%sosobna maszyna%s", sesja, sesja[0] ? " · " : "", s.kl[p->kl].pamieta ? "" : " · zapomina");
 }
 
 static int32_t obwodka(const struct pow *p)
@@ -101,6 +103,7 @@ static uint32_t mieszaj(uint32_t a, uint32_t b, unsigned t) /* a·(255−t) + b�
     return wy;
 }
 
+/* The session's colour (the dot, the line under the bar); without focus mixed with the theme's background. */
 static uint32_t kolor(const struct pow *p)
 {
     const struct k1_motyw *m = k1_motyw(s.ust[K1_UST_MOTYW]);
@@ -115,40 +118,50 @@ static struct k1_obraz wycinek(const struct prost *r)
     return o;
 }
 
-static void rysuj_przycisk(struct k1_obraz *o, const struct pow *p, const struct prost *r, int co, uint32_t ink)
+static void rysuj_przycisk(struct k1_obraz *o, const struct pow *p, const struct prost *r, int co,
+                           const struct k1_motyw *m)
 {
     struct prost b = przycisk(p, co);
     float x = (float)(b.x - r->x), y = (float)(b.y - r->y);
     enum k1_ikona ik = co == STREFA_ZAMKNIJ ? K1_IK_ZAMKNIJ : co == STREFA_MINIMALIZUJ ? K1_IK_MINIMALIZUJ
                      : p->maks ? K1_IK_PRZYWROC : K1_IK_MAKSYMALIZUJ;
     if ((int)(p - s.p) == s.strefa_okno && s.strefa_przycisk == co)
-        k1_zaokraglony(o, x, y, PRZYCISK, PRZYCISK, 8, k1_kolor(ink, 40));
-    k1_ikona(o, ik, x + 6, y + 6, 16, k1_kolor(ink, 255));
+        k1_zaokraglony(o, x, y, PRZYCISK, PRZYCISK, 8, k1_kolor(m->najechanie, 255));
+    k1_ikona(o, ik, x + 6, y + 6, 16, k1_kolor(m->tekst2, 255));
 }
 
+/* 0.10.7 step 4 (ADR 0048, the owner's D1: sketch A): the frame of a K1 window — the theme's background, a hairline,
+ * the title in the colours of text — and the session's colour in one place: a 10 px dot before the session's name
+ * and a 2 px line under the bar, between the bar and the zone's picture. The outline keeps its 3 px, in the window's
+ * background (the edges' grips and the sizes the VMM counts on stay as they were). */
 void strefa_ramka(const struct pow *p, const struct prost *r)
 {
     const struct k1_motyw *m = k1_motyw(s.ust[K1_UST_MOTYW]);
     const struct k1_strefa_opis *z = opis(p);
     struct k1_obraz o = wycinek(r);
     struct prost f = strefa_obszar(p);
-    int jednorazowa = !s.kl[p->kl].pamieta;
-    uint32_t k = kolor(p), ink = jednorazowa ? mieszaj(k, m->tekst, 64) : 0xffffff;
-    float x = (float)(f.x - r->x), y = (float)(f.y - r->y);
-    char t[160];
-    int32_t ob = obwodka(p);
-    k1_zaokraglony(&o, x, y, (float)f.w, (float)f.h, p->maks ? 0 : PROMIEN, k1_kolor(k, 255));
-    if (jednorazowa) /* the light bar inside the outline; its lower corners hide under the zone's picture */
-        k1_zaokraglony(&o, x + (float)ob, y + (float)ob, (float)p->w, K1_STREFA_TYTUL + 8, p->maks ? 0 : PROMIEN - OBWODKA,
-                       k1_kolor(mieszaj(m->pole, k, 36), 255));
+    int fokus = (int)(p - s.p) == s.fokus;
+    uint32_t k = kolor(p), napis = k1_kolor(fokus ? m->tekst : m->tekst3, 255);
+    float x = (float)(f.x - r->x), y = (float)(f.y - r->y), promien = p->maks ? 0 : PROMIEN;
+    char przed[64], po[128];
+    int32_t ob = obwodka(p), tx, ty, szer = p->w - 36 - 3 * ODSTEP - MARGINES - 8;
+    k1_zaokraglony(&o, x, y, (float)f.w, (float)f.h, promien, k1_kolor(m->tlo, 255));
+    if (!p->maks)
+        k1_obrys(&o, x, y, (float)f.w, (float)f.h, promien, 1.0f, k1_kolor(m->tekst, 26));
+    k1_prostokat(&o, (int32_t)x + ob, (int32_t)y + ob + K1_STREFA_TYTUL - 2, p->w, 2, k1_kolor(k, 255)); /* the line */
     k1_ikona(&o, (enum k1_ikona)z->ikona, x + (float)ob + 10, y + (float)ob + (K1_STREFA_TYTUL - 18) / 2.0f, 18,
-             k1_kolor(ink, 255));
-    tekst(p, t, sizeof t);
-    k1_tekst(&o, K1_CZ_TEKST_MOCNA, (int32_t)x + ob + 36, (int32_t)y + ob + K1_STREFA_TYTUL / 2 + 6, t,
-             k1_kolor(ink, 255), p->w - 36 - 3 * ODSTEP - MARGINES - 8);
-    rysuj_przycisk(&o, p, r, STREFA_MINIMALIZUJ, ink);
-    rysuj_przycisk(&o, p, r, STREFA_MAKSYMALIZUJ, ink);
-    rysuj_przycisk(&o, p, r, STREFA_ZAMKNIJ, ink);
+             k1_kolor(fokus ? m->tekst2 : m->tekst3, 255));
+    tekst(p, przed, sizeof przed, po, sizeof po);
+    tx = (int32_t)x + ob + 36;
+    ty = (int32_t)y + ob + K1_STREFA_TYTUL / 2 + 5;
+    tx += k1_tekst(&o, K1_CZ_TEKST_MOCNA, tx, ty, przed, napis, szer);
+    if (tx + 16 < (int32_t)x + ob + 36 + szer) { /* the dot, then the session's name */
+        k1_kolo(&o, (float)tx + 5, (float)ty - 5, 5, k1_kolor(k, 255));
+        k1_tekst(&o, K1_CZ_TEKST_MOCNA, tx + 16, ty, po, napis, (int32_t)x + ob + 36 + szer - tx - 16);
+    }
+    rysuj_przycisk(&o, p, r, STREFA_MINIMALIZUJ, m);
+    rysuj_przycisk(&o, p, r, STREFA_MAKSYMALIZUJ, m);
+    rysuj_przycisk(&o, p, r, STREFA_ZAMKNIJ, m);
 }
 
 int strefa_trafienie(const struct pow *p, int32_t x, int32_t y)

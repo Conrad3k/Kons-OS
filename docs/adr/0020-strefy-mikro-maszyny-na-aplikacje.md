@@ -34,7 +34,8 @@ gościa = tylko ta maszyna.
 3. **Zaufana ramka rysowana przez ekran K1** (nie przez aplikację): każde okno strefy ma obwódkę w
    kolorze strefy i etykietę (nazwa aplikacji · „osobna maszyna”); inny odcień przy szybkiej
    grafice, inny przy maszynie jednorazowej. Aplikacja nie może narysować ramki K1 ani udawać okna
-   systemu (domyka RYZYKA R26).
+   systemu (domyka RYZYKA R26). [korekta: ADR 0048 — od 0.10.7 ramka w kolorach okna K1, kolor strefy tylko
+   w kropce przed nazwą sesji i linii pod paskiem tytułu]
 4. **Wydajność bez oddawania niezależności:** procesor przez wirtualizację sprzętową (strata ~2–5 %);
    wspólny, niezmienny obraz bazowy w pamięci tylko raz (tylko do odczytu); oddawanie nieużywanej
    pamięci (balon / free page reporting); start z zamrożonego stanu (snapshot) i — dla

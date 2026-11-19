@@ -107,7 +107,7 @@ start” (przeglądarka: jej pierwsze okno — kompozytor pokazuje swoje tło ki
 bez „etap start” (strefa próbna) — do swojego pierwszego obrazu; najwyżej 5 min, potem obraz gościa. Obraz gościa — zmienione
 prostokąty kopiowane do wolnej połówki powierzchni (nieprzezroczyste). Klawisze i wskaźnik od ekranu (tylko przy fokusie)
 → urządzenia wejścia; utrata fokusu puszcza wszystko. Przewijanie (`PRZEWIN`, krok 4) przychodzi do okna pod kursorem,
-także bez fokusu: VMM ustawia najpierw położenie wskaźnika (gość przewija to, co jest pod nim), potem kółko. Ramkę — pasek tytułu nad obrazem i obwódkę (krok 3, szkic A) —
+także bez fokusu: VMM ustawia najpierw położenie wskaźnika (gość przewija to, co jest pod nim), potem kółko. Ramkę — pasek tytułu nad obrazem i obwódkę (krok 3, szkic A; od 0.10.7 w kolorach okna K1, kolor strefy w kropce i linii pod paskiem — ADR 0048) —
 rysuje ekran (`docs/komponenty/ekran.md`); wysokość obrazu jest o pasek (`K1_STREFA_TYTUL`) mniejsza.
 
 ## Przeglądarka (0.10.0 krok 2, ADR 0043)

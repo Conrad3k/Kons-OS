@@ -120,9 +120,10 @@ Robot i wydania (od 0.10.5: ADR 0046 i 0047, docs/komponenty/robot.md i aktualiz
      PR #170
 [x]  2  Ustawienia: sekcje w środku                         W4–W9            1           D3, T2, T3       M        brak
      PR #171
-[ ]  3  Pliki: przyciski, szczegóły, pusty folder           W10–W11          1           D4, T4           M        brak
-     [w toku: Claude, gałąź claude/brave-wright-pnbsxn]
+[x]  3  Pliki: przyciski, szczegóły, pusty folder           W10–W11          1           D4, T4           M        brak
+     PR #173
 [ ]  4  Ramka okna strefy: kolor sesji dyskretnie           W12              1           D1, T5           M        0048
+     [w toku: Claude, gałąź claude/brave-wright-pnbsxn]
 [ ]  5  Błąd: Aktualizacje po ponownym otwarciu Ustawień   W16              0.10.5      T6               S        brak
 [ ]  6  Błąd: wyłączanie do końca, ekran „Wyłączanie”       W17–W18          0.10.5      D7, T7, T8       M        brak
 [ ]  7  Pulpit, tapeta; porządki; wydanie 0.10.7            W13–W15          1–6         D5, D6           M        brak
@@ -234,13 +235,13 @@ KROK 4: Ramka okna strefy: kolor sesji dyskretnie (ADR 0048)                  M 
   Pasek tytułu dalej rysuje ekran K1, na zewnątrz obrazu strefy (R80 bez zmian co do zasady).
   Na początku: D1 (szkice A, B, C w obu motywach, z fokusem i bez, sesja zwykła i jednorazowa).
   Zadania:
-  [ ] ADR 0048 „Ramka okna strefy bez kolorowej obwódki”: co się zmienia w ADR 0020 p. 3 i ADR 0042 („Zaufana ramka”),
+  [x] ADR 0048 „Ramka okna strefy bez kolorowej obwódki”: co się zmienia w ADR 0020 p. 3 i ADR 0042 („Zaufana ramka”),
       dlaczego okno strefy dalej różni się od okna K1 (T5), dopiski [korekta: ADR 0048] w ADR 0020 i ADR 0042, spis
       w docs/adr/README.md.
-  [ ] src/ekran/strefy.c (W12): ramka według D1; okno bez fokusu jak inne okna K1 (słabszy cień), kolor sesji
+  [x] src/ekran/strefy.c (W12): ramka według D1; okno bez fokusu jak inne okna K1 (słabszy cień), kolor sesji
       przygaszony jak dziś (mieszanie z tłem).
-  [ ] Strefa jednorazowa: znak różnicy według D1 (dziś jasny pasek w kolorowej obwódce).
-  [ ] Ekran startu przeglądarki (pasek z odcinkiem w kolorze sesji, D1 z 0.10.2) bez zmian.
+  [x] Strefa jednorazowa: znak różnicy według D1 (dziś jasny pasek w kolorowej obwódce).
+  [x] Ekran startu przeglądarki (pasek z odcinkiem w kolorze sesji, D1 z 0.10.2) bez zmian.
   Testy i dowód: test-strefa (pasek: przesuwanie, minimalizuj, zamknij; strefa próbna), test-wzorce (ramka-strefy,
   oba motywy, „przed / po”), test negatywny bez zmian (gość nie rysuje poza swoim prostokątem).
   Właściciel (lista do DO_ZROBIENIA przy wydaniu): otwórz Ogólną i Bank obok siebie: widać, która jest która; przesuń,
@@ -248,7 +249,16 @@ KROK 4: Ramka okna strefy: kolor sesji dyskretnie (ADR 0048)                  M 
   Dokumenty: ADR 0048, WYGLAD.md („Strefy”: nowa ramka, stara jako historia), ekran.md, strefa.md, RYZYKA (R80, R50:
   opis ramki), SLOWNIK („zaufana ramka”, jeśli zmienia się znaczenie).
   Gotowe, gdy: testy zielone, wzorce przyjęte po „OK” właściciela.
-  Ustalenia z wykonania: (pusto, wypełnia krok 4)
+  Ustalenia z wykonania (2026-11-19):
+    - D1: szkic A „Kropka i linia” (szkice A, B, C narysowane częściami K1 na hoście, oba motywy, fokus i bez); obrazy
+      „przed / po” ramki przyjęte przez właściciela („OK, przyjmij”).
+    - Obwódka zostaje 3 px, ale w tle okna: chwyty brzegów (rozmiar.c), zarys zmiany rozmiaru i rozmiary w VMM bez zmian.
+      Narożniki 10 px (nie 12 jak okna K1): przy 12 róg obrazu strefy (3 px w głąb) wychodziłby poza zaokrąglenie.
+    - Strefa bez sesji (strefa próbna): kropka przed „osobna maszyna”. Jednorazowa: „· zapomina” (dawniej „· zapomina po
+      zamknięciu” i jasny pasek).
+    - test-strefa: zamiast obwódki w kolorze strefy sprawdza tło okna wokół obrazu i linię w kolorze strefy pod paskiem
+      (też zmaksymalizowane okno i ciemny motyw); test negatywny bez zmian. Okno przeglądarki z sesjami — na sprzęcie
+      (CI nie testuje przeglądarki).
 
 KROK 5: Błąd: Aktualizacje po ponownym otwarciu Ustawień                      S · T6 · bez ADR
   Zgłoszenie właściciela (2026-11-18, na sprzęcie, 0.10.5): Ustawienia otwarte i zamknięte, potem otwarte jeszcze raz;

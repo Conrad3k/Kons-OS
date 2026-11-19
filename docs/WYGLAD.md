@@ -215,6 +215,13 @@ wybrany **A**. Znaczek i plakietka B2 zniknęły.
   zmieszany w 45 % z tłem motywu.
 - **Strefa jednorazowa:** jasny pasek — `pole` z 14 % koloru strefy — w obwódce w kolorze strefy; ikona, napis i
   przyciski w kolorze strefy przyciemnionym w stronę tekstu.
+- **Zmiana 0.10.7 (krok 4, ADR 0048, decyzja właściciela D1 z 2026-11-18: szkic A „Kropka i linia”).** Kolor na całej
+  ramce „psuł estetykę”. Od 0.10.7 ramka jak okna K1: tło okna motywu (także obwódka 3 px), włoskowaty obrys (`tekst`
+  26/255), cień ekranu; ikona strefy (`tekst2`) i napis „<tytuł> · ● <sesja> · osobna maszyna” w kolorze `tekst` (bez
+  fokusu `tekst3`); kolor strefy tylko w **kropce 10 px** przed nazwą sesji (bez sesji — przed „osobna maszyna”) i **linii
+  2 px** pod paskiem, tuż nad obrazem strefy; bez fokusu przygaszony (115/255 z tłem). Przyciski jak w oknach K1 (`tekst2`,
+  najechanie — pole `najechanie`). Strefa jednorazowa: dopisek „· zapomina” zamiast jasnego paska. Opis wyżej (pasek
+  w kolorze strefy, obwódka, jasny pasek) — historia do 0.10.5.
 - **Przeglądarka bez własnych przycisków okna** (S28): Firefox w strefie nie rysuje minimalizuj / powiększ / zamknij
   (ustawienie GTK w obrazie strefy) — robi to tylko pasek K1.
 - **Start (S1):** okno w ramce od razu; w środku tło motywu, ikona strefy 40 px (`tekst3`), „Uruchamiam: <tytuł> ·

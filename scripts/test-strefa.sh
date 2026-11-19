@@ -3,7 +3,8 @@
 # „k1-test-strefy” (znak dla programu testowego: /proc/cmdline go nie widzi) — program testowy prosi
 # nadzorcę o strefę próbną (mikro-maszyna z jądrem strefy i programem gosc), a ten skrypt patrzy z zewnątrz:
 #   1. jądro K1 ma KVM (w emulacji QEMU udaje wirtualizację AMD — ADR 0042 T10), strefa startuje, okno w ramce
-#   2. ramkę (pasek tytułu nad obrazem strefy i obwódka 3 px w kolorze strefy — krok 3, D1: szkic A) rysuje ekran K1;
+#   2. ramkę (pasek tytułu nad obrazem strefy i obwódka 3 px — krok 3, D1: szkic A; od 0.10.7 krok 4, ADR 0048: w tle okna
+#      K1, kolor strefy tylko w kropce i linii pod paskiem) rysuje ekran K1;
 #      w środku wzór gościa (zrzut)
 #   3. kliknięcie i klawisz docierają do gościa (licznik w logu gościa, zmiana wzoru); bez fokusu klawisz nie dociera;
 #      kółko (0.10.0 krok 4) dociera — z fokusem i bez niego (okno pod kursorem)
@@ -62,7 +63,8 @@ qemu = subprocess.Popen([f"{repo}/scripts/uruchom-qemu.sh", "--obraz", f"{repo}/
                          "--pamiec", "1024", "--qemu", ZNAK] + emulacja)
 q = Maszyna(log, mon, out, limit, "strefa")
 czekaj, sprawdz = q.czekaj, q.sprawdz
-PIASEK = (0xA8, 0x83, 0x4A)   # K1_STREFY: the test zone's frame
+PIASEK = (0xA8, 0x83, 0x4A)   # K1_STREFY: the test zone's colour (0.10.7 step 4: the dot and the line under the bar)
+TLO_OKNA = {"jasny": (0xFA, 0xF9, 0xF6), "ciemny": (0x26, 0x25, 0x23)}  # k1_motyw tlo: the frame around the picture
 TLO_GOSCIA = (0x20, 0x30, 0x4A)
 ZIELONY, POMARANCZOWY, BIALY = (0x2E, 0x8B, 0x57), (0xD2, 0x69, 0x1E), (0xFF, 0xFF, 0xFF)
 
@@ -99,16 +101,19 @@ TYTUL = 40  # K1_STREFA_TYTUL (k1_okno.h): the bar ekran draws above the zone's 
 
 
 def ramka_i_wzor(w, h, px):
-    return (o and blisko(px(x - 2, y + h_ // 2), PIASEK) and blisko(px(x + w_ + 1, y + h_ // 2), PIASEK) and
-            blisko(px(x + w_ // 2, y - TYTUL - 2), PIASEK) and not blisko(px(x + w_ // 2, y - TYTUL // 2), TLO_GOSCIA)
+    return (o and blisko(px(x - 2, y + h_ // 2), TLO_OKNA["jasny"], 8) and
+            blisko(px(x + w_ + 1, y + h_ // 2), TLO_OKNA["jasny"], 8) and blisko(px(x + w_ // 2, y - 1), PIASEK) and
+            blisko(px(x + w_ // 2, y - TYTUL - 2), TLO_OKNA["jasny"], 8) and
+            not blisko(px(x + w_ // 2, y - TYTUL // 2), TLO_GOSCIA)
             and blisko(px(x + w_ // 2, y + h_ // 6), TLO_GOSCIA) and blisko(px(x + w_ // 2, y + h_ // 2), ZIELONY) and
             blisko(px(x + w_ - 6, y + 6), (0xFF, 0xD7, 0x00)))
 
 
 w, h, px = q.zrzut("1-okno", gdy=ramka_i_wzor)
-sprawdz("okno strefy: pasek tytułu nad obrazem i obwódka w kolorze strefy rysowane przez ekran, w środku wzór gościa "
+sprawdz("okno strefy: ramka okna K1 (tło okna wokół obrazu, 0.10.7 krok 4) i linia w kolorze strefy pod paskiem "
+        "tytułu, rysowane przez ekran, w środku wzór gościa "
         "(zrzut strefa-1-okno)", ramka_i_wzor(w, h, px),
-        str((px(x - 2, y + h_ // 2), px(x + w_ // 2, y - TYTUL - 2), px(x + w_ // 2, y + h_ // 2))) if o else "brak okna")
+        str((px(x - 2, y + h_ // 2), px(x + w_ // 2, y - 1), px(x + w_ // 2, y + h_ // 2))) if o else "brak okna")
 zx, zy = x + w_ // 2, y - TYTUL // 2  # the bar, between the title and the buttons
 
 
@@ -222,7 +227,7 @@ sprawdz("obszar roboczy z paneli powłoki: pod górnym paskiem (32 px), nad doln
 
 
 def maks_widac(w, h, px):  # the top bar and the bottom bar seen, the zone's bar right under the top one, its pattern
-    return (not blisko(px(640, 12), PIASEK) and blisko(px(320, 32 + TYTUL // 2), PIASEK) and
+    return (not blisko(px(640, 12), PIASEK) and blisko(px(320, 32 + TYTUL - 1), PIASEK) and
             blisko(px(640, 32 + TYTUL + 30), TLO_GOSCIA) and not blisko(px(640, 790), TLO_GOSCIA) and
             blisko(px(1280 - 6, 32 + TYTUL + 6), (0xFF, 0xD7, 0x00)))
 
@@ -324,9 +329,10 @@ sprawdz("ciemny motyw", czekaj(r"K1-EKRAN: ustawienie 1=1", czas=60))
 n = q.ile(r"K1-GOSC: wejście: klawisze 5, kliknięcia 2")
 q.klik(x + w_ - 40, y + h_ - 40)
 czekaj(r"K1-GOSC: wejście: klawisze 5, kliknięcia 2", czas=60)
-w, h, px = q.zrzut("6-ciemny", gdy=lambda w, h, px: blisko(px(x - 2, y + h_ // 2), PIASEK))
-sprawdz("ciemny motyw: obwódka strefy w jej kolorze, pasek tytułu nad treścią (zrzut strefa-6-ciemny)",
-        blisko(px(x - 2, y + h_ // 2), PIASEK) and not blisko(px(zx, zy), TLO_GOSCIA))
+ciemna_ramka = lambda w, h, px: blisko(px(x - 2, y + h_ // 2), TLO_OKNA["ciemny"], 8) and blisko(px(x + w_ // 2, y - 1), PIASEK)
+w, h, px = q.zrzut("6-ciemny", gdy=ciemna_ramka)
+sprawdz("ciemny motyw: ramka w tle okna, linia pod paskiem w kolorze strefy, pasek tytułu nad treścią (zrzut strefa-6-ciemny)",
+        ciemna_ramka(w, h, px) and not blisko(px(zx, zy), TLO_GOSCIA))
 if o:
     wzorzec_ramki("ciemny")
 
