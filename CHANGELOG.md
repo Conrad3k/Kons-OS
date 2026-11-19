@@ -10,10 +10,9 @@ i Pliki ułożone porządniej, okno przeglądarki bez kolorowej obwódki, napisy
 tapecie, tapeta z matową krawędzią łuków. Do tego dwa błędy zgłoszone ze sprzętu: Ustawienia → Aktualizacje już nie
 zamykają Ustawień, a „Wyłącz” pokazuje ekran „Wyłączanie” i zawsze dochodzi do końca.
 
-Opis w K1: K1 wygląda spokojniej. Napisy są krótsze, Ustawienia i Pliki pokazują tylko to, czego możesz użyć,
-a okno przeglądarki ma ramkę jak inne okna, z kolorem sesji w jednym miejscu paska. Napisy pod ikonami na pulpicie
-czytasz na każdej tapecie. Sekcja Aktualizacje w Ustawieniach już się nie zamyka, a po kliknięciu „Wyłącz” widzisz
-ekran „Wyłączanie” aż do wyłączenia komputera.
+Opis w K1: K1 wygląda spokojniej: krótsze napisy, porządniejsze Ustawienia i Pliki, okno przeglądarki z ramką jak
+inne okna. Napisy pod ikonami pulpitu czytasz na każdej tapecie. Aktualizacje w Ustawieniach już się nie zamykają,
+a po kliknięciu „Wyłącz” widzisz ekran „Wyłączanie”.
 
 ### Zmienione
 - **Napisy** (krok 1, Twoje zasady Z2 i Z3, decyzja D2): bez podtytułów pod nazwami sekcji Ustawień i bez zdań, które
