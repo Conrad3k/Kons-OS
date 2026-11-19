@@ -27,7 +27,10 @@ zanim powstanie kod do utrzymania — także dla szybkiej grafiki). Krok 2 — s
 „dekoder filmów”. Krok 3 — strona strefy: przełącznik filmów w Ustawieniach, przeglądarka korzysta z dekodera filmów.
 Krok 4 — obraz przeglądarki poza rdzeniem, szybszy start. Krok 5 — szybka grafika, strona K1: pośrednik grafiki.
 Krok 6 — szybka grafika, strona strefy: przełącznik, Firefox rysuje kartą; wydanie 0.10.9.
-KOLEJNOŚĆ WYKONANIA: 1, 2, 4, 3, 5, 6. Krok 4 robi miejsce (S31): bez niego nie zmieszczą się ani FFmpeg z kroku 3,
+KOLEJNOŚĆ WYKONANIA (od kroku 1, ADR 0049): 1, 4, 2, 5, 6, 3 — wydanie 0.10.9 w kroku 3, ostatnim wykonanym (zasada
+„wydanie zawsze ostatnie”). Dlaczego: Firefox użyje karty do filmów tylko przy sprzętowym GL w strefie (S6), więc
+strona strefy dla filmów (krok 3) stoi na szybkiej grafice (kroki 5–6); krok 4 przed krokiem 2, bo z i915 zapas
+miejsca A/B spadł do ok. 0,7 MiB (S31). Do 2026-11-19: 1, 2, 4, 3, 5, 6. Krok 4 robi miejsce (S31): bez niego nie zmieszczą się ani FFmpeg z kroku 3,
 ani sterownik karty strefy z kroku 6 (miejsce A/B 128 MiB jest dziś prawie pełne). Krok 4 nie zależy od karty
 graficznej — można go zrobić wcześniej, nawet przed krokiem 1.
 
@@ -42,7 +45,7 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
-Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, 2, 4, 3, 5, 6 (wyżej: dlaczego 4 przed 3).
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, 4, 2, 5, 6, 3 (wyżej: dlaczego; od 2026-11-19, ADR 0049).
 Cała wersja zaczyna się po wydaniu 0.10.7 (Wygląd, docs/archiwum/PLAN-0.10.7.txt — zmienia ramkę okna strefy i wygląd Ustawień →
 Przeglądarka, na których stoi krok 3), 0.10.5 i 0.10.2 (Testy, docs/archiwum/PLAN-0.10.2.txt — wstawione przez właściciela 2026-11-17) i 0.10.1 (Balon, docs/archiwum/PLAN-0.10.1.txt — zmienia VMM, pamięć stref i Ustawienia →
 Przeglądarka, na których ten plan stoi). Krok 1 to głównie próby i ADR — można go zrobić wcześniej, równolegle
@@ -158,7 +161,7 @@ na stałe (dziś cały obraz przeglądarki siedzi w pamięci od startu komputera
 i obraz USB robią się większe (Twoja zgoda z 2026-11-17). Przy okazji krok 4 robi miejsce na FFmpeg i sterownik karty
 w strefie — bez tego nie zmieściłyby się w miejscu A/B (S31).
 
-Sześć kroków (kolejność wykonania: 1, 2, 4, 3, 5, 6):
+Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3 — filmy w przeglądarce potrzebują szybkiej grafiki):
   1. Próba: obraz testowy ze sterownikiem karty z jądra (sprawdzasz pulpit i listę formatów karty na obu laptopach),
      próba w kontenerze, czy Firefox w strefie w ogóle skorzysta z dekodera K1, i sprawdzenie, czy karty Twoich
      laptopów obsłużą szybką grafikę; potem ADR.
@@ -172,7 +175,8 @@ Sześć kroków (kolejność wykonania: 1, 2, 4, 3, 5, 6):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
-[ ]  1  Próba i pomiar: i915, VA-API, Firefox, most; ADR   S1–S9, S26–S30,  0.10.0      T1–T5, T9–T15    M        nowy
+[x]  1  Próba i pomiar: i915, VA-API, Firefox, most; ADR   S1–S9, S26–S30,  0.10.0      T1–T5, T9–T15    M        0049
+        PR #181 (pomiary ze sprzętu przeniesione do kroków 2, 3, 5 — ADR 0049)
                                                             S36–S39
 [ ]  2  K1: i915 w jądrze, usługa „dekoder filmów”          S10–S17, S26     1, 0.10.1   T1–T3, T6–T8     L        z kr. 1
 [ ]  3  Strefa: przełącznik filmów, Firefox z dekoderem     S18–S25, S29     2, 4        D1–D4, T4, T5, T9 L        z kr. 1
@@ -245,7 +249,71 @@ KROK 1 — Próba i pomiar: sterownik karty, VA-API w K1, Firefox w strefie; ADR
   sterownika gościa od zera).
   Gotowe, gdy: ADR scalony (z wyborem poziomu z T9, liczbami z pomiaru i wynikiem (f) dla obu laptopów), NIEPEWNE
   z S1–S9, S26–S30 i S36–S39 rozstrzygnięte, właściciel potwierdził pulpit z i915 na obu laptopach.
-  Ustalenia z wykonania: (pusto — wypełnia krok 1)
+  Wynik kroku (2026-11-19): ADR 0049. Właściciel: pulpit z i915 na IdeaPadzie bez czarnego ekranu, płynny. Okno sondy
+  się nie pokazało (błąd sondy: 760 px wysokości, a ekran przyjmuje najwyżej wysokość ekranu − 32 = 736 px na 1366×768;
+  poprawione w PR-ze, commit aeeb6f7). Właściciel zdecydował iść dalej bez drugiego testu: pulpit X230, formaty karty,
+  S16, S26 → krok 2; pomiar zysku → krok 3 (bramka ADR 0049 pkt 6); S38, S39 na IdeaPadzie → krok 5. Próby (c) i (e)
+  w kontenerze zastąpiło czytanie źródeł Firefoksa (S6, S7, S8, S29 niżej) — strona strefy i tak powstaje w kroku 3.
+  - S6 ZE ŹRÓDEŁ (Firefox ESR 153, widget/gtk/GfxInfo.cpp, gfx/thebes/gfxPlatformGtk.cpp): na Waylandzie Firefox ma
+    EGL, ale VA-API sprawdza (vaapitest) tylko przy udanym teście GL (glxtest) ze sterownikiem sprzętowym — bez GL,
+    z llvmpipe, softpipe albo „software rasterizer” dekodowanie kartą jest zablokowane („If glxtest failed, block most
+    features”; probeHWDecode = mIsAccelerated && …). Strefa bez szybkiej grafiki nie ma GL, więc filmy kartą tylko
+    z szybką grafiką (ADR 0049 pkt 5) — kolejność 1, 4, 2, 5, 6, 3.
+  - S29 ZE ŹRÓDEŁ: z szybką grafiką Firefox składa obraz kartą (WebRender sprzętowy), więc główny koszt poziomu 1 (T9 (3))
+    znika — w 0.10.9 poziom 1, poziom 2 → „Później” (ADR 0049 pkt 6).
+  Ustalenia z wykonania (krok 1 podzielony: 1a — ustalenia ze źródeł i obraz próbny z sondą karty, PR #181,
+  2026-11-19; 1b — wyniki właściciela ze sprzętu, próby (c) i (e) w kontenerze, ADR):
+  - Kod prób (tylko gałąź PR-a #181, nie main): CONFIG_DRM_I915=y; ukryta aplikacja „Sonda karty” (src/aplikacje/sonda,
+    UID 209, ioctl DRM 'd'), którą nadzorca otwiera sam po starcie pulpitu, tylko gdy jest węzeł render (w QEMU nigdy);
+    scripts/zbuduj-sonde.sh — libdrm 2.4.134, libva 2.24.1, intel-vaapi-driver 2.4.1+dfsg1 (łatki Debiana 0001–0004),
+    FFmpeg 8.1.2 (tylko H.264 z VA-API, --enable-small), statycznie z naszym musl, sumy z podpisanych .dsc Debiana.
+  - S1 POTWIERDZONE (budowa): i915 w jądrze K1 to +1,3 MiB bzImage (14 305 KiB z i915).
+  - S2 ZE ŹRÓDEŁ (linux 7.3.5, i915_driver.c: i915_driver_hw_probe → aperture_remove_conflicting_pci_devices, bez
+    warunku): i915 zawsze usuwa simpledrm, także z disable_display — simpledrm nie zostanie obok węzła render. T1: i915
+    przejmuje obraz (KMS), ekran dalej jedynym właścicielem węzła card. Pulpit z i915 — sprawdza właściciel (1b).
+  - S4 POTWIERDZONE (budowa): libva bez łatek; program K1 podaje własne dlopen/dlsym/dlclose/dlerror, które zwracają
+    funkcję startową i965 (__vaDriverInit_1_24) wkompilowaną w program — bez bibliotek współdzielonych. libva wybiera
+    dla „i915” najpierw iHD, potem i965 (va_drm_utils.c) — iHD dostaje NULL.
+  - S5 POTWIERDZONE (budowa): ostrzeżenia z -Wall -Wextra -Wformat=2 (nasze -Werror nie do przyjęcia dla obcego kodu):
+    libdrm 12, libdrm_intel 108, libva 254, i965 1163. Debian usunął z i965 programy karty bez źródeł (+dfsg1); jego
+    łatki 0001–0004 wyłączają kodowanie (enkodery) i część przetwarzania obrazu — dekodowanie zostaje (łatka „Disable
+    decoding” mimo nazwy wyłącza enkodery). libdrm_intel wymaga libpciaccess tylko dla drm_intel_get_aperture_sizes,
+    której i965 nie woła (zaślepka). Rozmiar: sonda 3,6 MB (i965 + libva + libdrm + FFmpeg H.264 + film 0,5 MB).
+  - S7 ZE ŹRÓDEŁ (Firefox ESR 153, security/sandbox/linux: SandboxFilter.cpp — RDDSandboxPolicy,
+    broker/SandboxBrokerPolicyFactory.cpp — GetRDDPolicy, AddGLDependencies): proces RDD nie utworzy gniazda (socket →
+    EACCES), więc droga A (vsock) wymagałaby wyłączenia piaskownicy RDD; za to otwiera /dev/dri (rdwr) i wysyła każdy
+    ioctl DRM ('d') i DMA-BUF. T4: B (węzeł /dev/dri w strefie, kontekst virtio-gpu) — zgodne z kierunkiem z 2026-11-17.
+  - S8 ZE ŹRÓDEŁ (StaticPrefList.yaml ESR 153): media.ffvpx-hw.enabled = true na GTK — wbudowane ffvpx (VP8, VP9, AV1)
+    potrafi użyć VA-API; H.264 i HEVC tylko przez systemowy FFmpeg (media.ffmpeg.enabled) — strefa go nie ma, więc T5
+    zostaje (bez FFmpeg w strefie H.264 nie gra wcale).
+  - S9 ZE ŹRÓDEŁ (i965_device_info.c): HD 4000 (Ivy Bridge) — MPEG-2, H.264, VC-1, JPEG; HD 520 (Skylake) — H.264,
+    HEVC 8-bit, VP8, JPEG, BEZ VP9 (VP9 na Skylake ma tylko sterownik iHD, C++ — T2). Wniosek: zysk dotyczy H.264;
+    YouTube daje VP9/AV1, więc D4 (prosić strony o H.264) dotyczy też IdeaPada. Lista z karty — krok 2.
+  - S26 ZE ŹRÓDEŁ (i915_gem_shmem.c → shmem_read_folio_gfp; mm/shmem.c → mem_cgroup_charge(folio, NULL, …) = cgroup
+    procesu, który wypełnia strony): bufory i915 liczą się do cgroup procesu, który ich pierwszy użył (dekoder filmów
+    sam wysyła pracę — więc do jego). Do potwierdzenia sondą (pamięć „karta bez kopii” > „procesor”).
+  - S36 ZE ŹRÓDEŁ (Mesa 26.2.6, virglrenderer 1.3.0 z Debiana): strona gościa jest — opcja Mesy
+    intel-virtio-experimental (domyślnie wyłączona) dla iris (Gen8+, IdeaPad) i crocus (Gen4–7, X230); strona
+    gospodarza w virglrenderer: drm-renderers=i915-experimental. Obie „eksperymentalne” — własna budowa Mesy z tą opcją
+    (S43) i ryzyko w RYZYKA.
+  - S37 ZE ŹRÓDEŁ (virglrenderer src/drm/i915/i915_proto.h, i915_ccmd.c): protokół ma 9 rodzajów próśb (IOCTL_SIMPLE,
+    GETPARAM, QUERYPARAM, GEM_CREATE, GEM_CREATE_EXT, GEM_CONTEXT_CREATE, GEM_EXECBUFFER2, GEM_SET_MMAP_MODE, GEM_BUSY);
+    IOCTL_SIMPLE z listą dozwolonych ioctl (REG_READ, GET_APERTURE, SET/GET_TILING, SET_DOMAIN, GET_RESET_STATS,
+    CONTEXT_CREATE/DESTROY, CONTEXT_GET/SETPARAM z czterema parametrami, VM_CREATE/DESTROY). Da się to sprawdzać
+    tabelą. virglrenderer NIE sprawdza rodzaju PPGTT — to musi zrobić pośrednik K1.
+  - S38 ZE ŹRÓDEŁ (i915_pci.c): Ivy Bridge (GEN7_FEATURES, X230) — INTEL_PPGTT_ALIASING: jedna przestrzeń adresów
+    karty dla wszystkich kontekstów, BEZ oddzielenia; Skylake (GEN8_FEATURES i dalej) — INTEL_PPGTT_FULL, 48 bitów.
+    Wniosek wg T15 i D8 (A): szybkiej grafiki na X230 nie będzie; IdeaPad — tak, jeśli potwierdzi sonda (próba
+    oddzielenia: druga przestrzeń adresów czyta adres bufora pierwszej przez MI_COPY_MEM_MEM).
+  - S39 ZE ŹRÓDEŁ (gt/intel_reset.c): od Gen7 reset samego silnika (has_reset_engine), winny kontekst oznaczony,
+    a po kilku zawieszeniach w krótkim czasie zablokowany (CONTEXT_FAST_HANG_JIFFIES); obrazu reset silnika nie dotyka.
+    Na sprzęcie — przycisk „Próba zawieszenia karty” w sondzie (tylko karty z pełnym PPGTT).
+  - S31 MOCNIEJ: z i915 i sondą k1.efi ma 128 264 KiB — mieści się w miejscu A/B z zapasem ok. 0,7 MiB (dlatego sonda
+    ma tylko H.264 i film 1 s). Dekoder filmów z kroku 2 (i965 + libva + libdrm, ok. 2–2,5 MB) w rdzeniu prawdopodobnie
+    się nie zmieści bez kroku 4 — zalecenie: kolejność 1, 4, 2, 3, 5, 6 (plan pozwala zrobić krok 4 wcześniej).
+  - Poza krokiem (zgłoszenie #182): testy/system/t_uslugi.c — opis błędu „tylko przekazane deskryptory” liczy się przed
+    sprawdzeniem (kolejność argumentów w C nieokreślona), więc przy błędzie zawsze pokazuje „OK” poprzedniej usługi.
+  - 1b (2026-11-19, ten sam PR): ADR 0049; kod prób usunięty z gałęzi przed scaleniem (do main tylko dokumenty).
 
 KROK 2 — K1: sterownik karty w jądrze, usługa „dekoder filmów”                    L · decyzje T1–T3, T6–T8 · ADR z kr. 1
   Cel: K1 ma i915 na stałe, a nowa usługa w klatce umie rozpakować film kartą graficzną na prośbę strefy — sprawdzona
@@ -441,10 +509,14 @@ Twoje (produkt) — czat kroku 3 zada je na początku (możesz odpowiedzieć wcz
 
 Szybka grafika (dodane 2026-11-17) — czat kroku 6 zada je na początku; D8 — już po kroku 1:
 
-  [!] D5 — Szybka grafika domyślnie włączona czy wyłączona?
+  [~] D5 — Szybka grafika domyślnie włączona czy wyłączona?
+      Właściciel 2026-11-19: „ta nowa grafika w przeglądarce też powinna być opcją, i w mega prywatnych sesjach, np.
+      Bank — domyślnie OFF”; „opcjonalność […] zostawi najwyższy stopień szczelności, […] umożliwi beta-testing
+      prostszym”. Bank i Prywatna — wyłączona; Ogólna — do potwierdzenia na początku kroku 6 (zalecane: też wyłączona,
+      póki szybka grafika jest w próbach).
       A (zalecane): wyłączona wszędzie — jak „pełna izolacja domyślnie” w ADR 0020; włączasz przy sesji, w której chcesz.
       B: włączona w Ogólnej, wyłączona w Banku i Prywatnej.
-  [!] D6 — Bank a szybka grafika?
+  [x] D6 — Bank a szybka grafika? Właściciel 2026-11-19: B — przełącznik jest, domyślnie wyłączony.
       A (zalecane): w Banku przełącznika nie ma — Bank zawsze w pełnej izolacji (strona banku nie potrzebuje karty,
          a sterownik karty w jądrze K1 to dodatkowe drzwi).
       B: przełącznik jak w innych sesjach (domyślnie wg D5).
@@ -452,7 +524,13 @@ Szybka grafika (dodane 2026-11-17) — czat kroku 6 zada je na początku; D8 —
       dyskretnie na pasku — ADR 0048) — szkice do wyboru, oba motywy.
       A (zalecane): mały znak na pasku tytułu przy nazwie sesji — ten sam rodzaj co znak filmów z D3.
       B: inny odcień paska tytułu.   C: nic na ramce, tylko w Ustawieniach.
-  [!] D8 — Co, jeśli krok 1 (f) pokaże, że karta laptopa nie obsłuży mostu (S36, S38)?
+  [x] D8 — Co, jeśli krok 1 (f) pokaże, że karta laptopa nie obsłuży mostu (S36, S38)? Rozstrzygnięte A (ADR 0049):
+      X230 nie ma pełnego PPGTT — szybka grafika tylko na IdeaPadzie (właściciel 2026-11-19: „na X230 ta opcja i tak
+      nie zadziała”).
+  [!] D9 — (nowe, ADR 0049 pkt 5) Filmy kartą działają tylko w sesji z szybką grafiką. Jak w Ustawieniach?
+      A (zalecane): jeden przełącznik „Szybka grafika i filmy” — mniej przełączników, nic, co nie działa samo.
+      B: dwa przełączniki; „Filmy kartą” dostępny dopiero przy włączonej szybkiej grafice.
+      Pytanie zada czat kroku 3 (D1–D4 też tam; D4 dotyczy obu laptopów — S9).
       A (zalecane): kroki 5–6 robimy dla laptopa, który obsłuży (np. tylko IdeaPad); gdy żaden — kroki 5–6 przechodzą do
          „Później” (do komputera, który obsłuży), a 0.10.9 wychodzi z filmami i szybszym startem. Bez laptopa do
          sprawdzenia szybkiej grafiki nie wydajemy.
