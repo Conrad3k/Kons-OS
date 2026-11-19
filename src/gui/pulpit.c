@@ -2,7 +2,7 @@
  * ekran puts right above the wallpaper and below the windows. Icons of applications, Kosz and the files of the
  * Pulpit folder (0.8.0, pliki.c) lie in a grid of cells
  * (rozmieszczenie.h): a tile in the colour of the windows (light / dark theme) with the line icon, the name
- * under it in cream with a soft shadow (it lies on the wallpaper). Click selects, a double click opens,
+ * under it in cream on a soft dark pill (it lies on the wallpaper; 0.10.7, D6). Click selects, a double click opens,
  * dragging moves an icon to another cell (an icon already there swaps places), the right button opens the
  * menu of the icon or of the desktop. A file dragged over Kosz or a folder of Pulpit (0.8.2 step 6): that cell is
  * outlined, a see-through tile and the sign of what a drop does follow the pointer (the table of dragging, przybornik
@@ -153,7 +153,8 @@ static void ikona(struct k1_obraz *o, int32_t ox, int32_t oy, uint32_t klucz, in
     struct prost c = komorka(kol, wiersz);
     float x = (float)(c.x - ox), y = (float)(c.y - oy), cx = x + KOM_W / 2.0f;
     const char *nazwa = ikona_nazwa(klucz);
-    int32_t sz = k1_tekst_szer(K1_CZ_MALA_MOCNA, nazwa), tx = (int32_t)cx - (sz < KOM_W - 4 ? sz : KOM_W - 4) / 2;
+    int32_t sz = k1_tekst_szer(K1_CZ_MALA_MOCNA, nazwa), szw = sz < KOM_W - 4 ? sz : KOM_W - 4, tx = (int32_t)cx - szw / 2;
+    int32_t pad = (KOM_W - szw) / 2 < 6 ? (KOM_W - szw) / 2 : 6;
     if (zazn || nad) { /* the selection follows the theme too: light — cream, dark — night */
         uint32_t tlo = ciemny ? k1_kolor(K1_NOC, zazn ? 110 : 60) : k1_kolor(K1_KREM, zazn ? 46 : 24);
         k1_zaokraglony(o, x, y, KOM_W, KOM_H - 4, 10, tlo);
@@ -175,7 +176,8 @@ static void ikona(struct k1_obraz *o, int32_t ox, int32_t oy, uint32_t klucz, in
     } else {
         k1_ikona(o, ikona_rysunek(klucz), cx - 14, y + 20, 28, k1_kolor(m->tekst, 255));
     }
-    k1_tekst(o, K1_CZ_MALA_MOCNA, tx + 1, (int32_t)y + 79, nazwa, k1_kolor(K1_NOC, 150), KOM_W - 4);
+    /* D6 (0.10.7): a soft dark pill under the name, readable on every wallpaper; it stays inside the cell */
+    k1_zaokraglony(o, cx - (float)(szw + 2 * pad) / 2.0f, y + 65, (float)(szw + 2 * pad), 19, 6, k1_kolor(0x000000u, 89));
     k1_tekst(o, K1_CZ_MALA_MOCNA, tx, (int32_t)y + 78, nazwa, k1_kolor(K1_KREM, 255), KOM_W - 4);
 }
 
