@@ -106,8 +106,10 @@ wyłączony, klienci nic nie wysyłają. Pełny kanał klienta testowego przy od
 
 **Rola `STREFA` (0.10.0, ADR 0042; `strefy.c`).** VMM strefy jest klientem z jednym oknem (bez paneli, ustawień,
 tapety). Ekran rysuje mu **ramkę** (0.10.0 krok 3, zmiana D1: szkic A — `docs/WYGLAD.md`): **pasek tytułu** 40 px
-(`K1_STREFA_TYTUL`, `k1_okno.h`) nad obrazem strefy, w kolorze strefy z `K1_STREFY` — ikona, „<tytuł> · <sesja> ·
-osobna maszyna”, minimalizuj, zamknij — i obwódkę 3 px wokół paska i obrazu. Cała ramka leży **na zewnątrz** prostokąta
+(`K1_STREFA_TYTUL`, `k1_okno.h`) nad obrazem strefy — ikona, „<tytuł> · ● <sesja> · osobna maszyna”, minimalizuj,
+maksymalizuj, zamknij — i obwódkę 3 px wokół paska i obrazu. Od 0.10.7 (krok 4, ADR 0048, D1: szkic A) ramka jest
+w kolorach okna K1 (tło, obrys, napis w kolorze tekstu), a kolor strefy z `K1_STREFY` jest tylko w kropce przed nazwą
+sesji i w linii 2 px pod paskiem; do 0.10.5 pasek i obwódka były całe w kolorze strefy. Cała ramka leży **na zewnątrz** prostokąta
 strefy i jest rysowana przed jej obrazem, więc strefa nie może jej zasłonić ani narysować (R26, R80); cień obejmuje okno
 z ramką. Wskaźnik na ramce nie trafia do strefy: chwycenie paska przesuwa okno (pasek nie wyżej niż górny pasek K1),
 minimalizuj chowa okno, zamknij wysyła VMM `ZAMKNIJ`; kursor nad przyciskiem go podświetla. VMM odejmuje wysokość paska

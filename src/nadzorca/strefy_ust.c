@@ -1,7 +1,7 @@
 /* K1 nadzorca — the sessions of the zones as the user set them (0.10.0 step 5): whether each one remembers (STALA) and
  * its name. nadzorca keeps them — it starts the zones, so it alone decides whether a zone's VMM gets its disk — in
  * skarbiec (owner K1_WL_SYSTEM, object K1_OB_STREFY, format: sesje.h) and tells gui (the names in its menus), ekran (the
- * title on the zone's bar, "zapomina po zamknięciu") and Ustawienia (Przeglądarka) whenever they change, and each of
+ * title on the zone's bar, "zapomina") and Ustawienia (Przeglądarka) whenever they change, and each of
  * them again after it started: STREFA_NAZWA for every session, then STREFY_STAN. Ustawienia asks for a change
  * (STREFA_TRWALOSC, STREFA_NAZWA — from the zone's next start) or for "Wyczyść dane sesji" (STREFA_WYCZYSC: skarbiec
  * deletes the pieces of its disk, never while it runs). A zone remembers only when the vault is on a disk (K1-DANE):
