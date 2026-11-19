@@ -324,10 +324,11 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         rozwiązań tymczasowych w kodzie 0.10.5 nie dodało
     [x] przegląd 0.10.7 (krok 7): terminów na 0.10.7 nie było; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych rozwiązań
         tymczasowych 0.10.7 nie dodało
-    [ ] robot wyłączony (plan 0.10.9, punkt 0; od scalenia kroku 4, 2026-11-19): pierwsze wydanie z krokiem 4 zmienia to,
-        co niesie aktualizacja (obraz przeglądarki w miejscu A/B) — robot wraca (Actions → „Robot — poprawki jądra
-        i przeglądarki” → Enable workflow), gdy potwierdzisz aktualizację przez sieć na obu laptopach (punkt 4); termin:
-        wydanie 0.10.9 (krok 3 planu) — najpóźniej wtedy wydanie robi człowiek i robot wraca
+    [ ] robot w trybie próbnym (.github/workflows/robot.yml: ROBOT_PROBNY "1"; plan 0.10.9, punkt 0; od scalenia kroku 4,
+        2026-11-19 — Claude nie ma przycisku „Disable workflow”, więc robot robi tylko PR i testy, nie scala i nie wydaje):
+        pierwsze wydanie z krokiem 4 zmienia to, co niesie aktualizacja (obraz przeglądarki w miejscu A/B) — robot wraca
+        ("0"), gdy potwierdzisz aktualizację przez sieć na obu laptopach (punkt 4); termin: wydanie 0.10.9 (krok 3 planu)
+        — najpóźniej wtedy wydanie robi człowiek i robot wraca
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)

@@ -41,7 +41,7 @@ Przy zmianie robot podbija `VERSION` (tylko PATCH) i dopisuje wpis w `CHANGELOG.
   miejsce.
 - **Na czas dużych prac** (np. ręczna zmiana jądra w kroku planu): wyłącz workflow i dopisz to w `docs/DO_ZROBIENIA.txt`
   („Tymczasowe”, z terminem), żeby robot nie został wyłączony na zawsze.
-- **Tryb próbny:** `ROBOT_PROBNY: "1"` w `robot.yml` (do wydania 0.10.5; teraz `"0"`) albo ręczne uruchomienie z `proba`.
+- **Tryb próbny:** `ROBOT_PROBNY: "1"` w `robot.yml` (do wydania 0.10.5; znowu od kroku 4 planu 0.10.9 do potwierdzenia aktualizacji na laptopach — DO_ZROBIENIA, „Tymczasowe”) albo ręczne uruchomienie z `proba`.
 
 ## Jak przetestować
 - **Ręcznie:** Actions → „Robot — poprawki jądra i przeglądarki” → Run workflow (`proba` = tak, `start` = gałąź startowa —
