@@ -129,6 +129,7 @@ Robot i wydania (od 0.10.5: ADR 0046 i 0047, docs/komponenty/robot.md i aktualiz
 [x]  6  Błąd: wyłączanie do końca, ekran „Wyłączanie”       W17–W18          0.10.5      D7, T7, T8       M        brak
      PR #178 (sprawdzenie na sprzęcie: po wydaniu, lista w DO_ZROBIENIA)
 [ ]  7  Pulpit, tapeta; porządki; wydanie 0.10.7            W13–W15          1–6         D5, D6           M        brak
+     [w toku: Claude, gałąź claude/optimistic-gauss-o726v2]
 (ADR 0048: następny wolny po 0046 i 0047 z 0.10.5; 0.10.9 Filmy i szybka grafika bierze następne.)
 
 
