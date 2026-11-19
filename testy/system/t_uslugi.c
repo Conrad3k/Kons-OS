@@ -193,6 +193,9 @@ void t_klatki(void)
     static const char *const fd_wejscie[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/rdzen/jadro/dev/input/event",
                                               NULL };
     static const char *const fd_okna[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/memfd:", NULL };
+    /* TRIAL (0.10.9 step 1, never in main): the card probe — render node, its memory counter, battery readings */
+    static const char *const fd_sonda[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/memfd:",
+                                            "/rdzen/jadro/dev/dri/renderD", "/rdzen/jadro/sys/", NULL };
     /* skarbiec (M5d): the K1-DANE partition (sda1 in the test machine) and nothing else */
     static const char *const fd_skarbiec[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/memfd:",
                                                "/rdzen/jadro/dev/sd", NULL };
@@ -217,7 +220,7 @@ void t_klatki(void)
         for (j = 0; j < 150 && find_process(apl[i].nazwa) == 0; j++)
             msleep(100);
         msleep(500);
-        t_klatka(apl[i].nazwa, apl[i].uid, fd_okna);
+        t_klatka(apl[i].nazwa, apl[i].uid, apl[i].apl == K1_APL_SONDA ? fd_sonda : fd_okna);
     }
 }
 
