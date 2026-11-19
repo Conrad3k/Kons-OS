@@ -133,6 +133,7 @@ static void okresowe(void)
     strefy_zamykanie(); /* 0.10.2 step 1 */
     bateria_archiwum(t);
     rozruch_po_starcie(t);
+    obrazy_stref_po_starcie();
     akt_ustawienie_okresowe(); /* 0.10.5 step 2b: updates through the network */
     akt_okresowe(t);
     if (zasoby_kanal >= 0 && t >= nastepny_raport) {

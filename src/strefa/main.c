@@ -79,16 +79,16 @@ static uint8_t *wczytaj_jadro(size_t *dl)
 static int przygotuj(void)
 {
     struct st_wejscie w;
-    struct stat st;
     char linia[ST_LINIA_MAKS];
     size_t dl = 0, p;
     uint8_t *jadro;
     const char *powod;
-    if (fstat(FD_OBRAZ, &st) != 0 || st.st_size < 4096) {
+    off_t obraz = lseek(FD_OBRAZ, 0, SEEK_END); /* a file of the core or (0.10.9 step 4) a dm-verity device */
+    if (obraz < 4096) {
         k1_log(TAG, "brak obrazu strefy");
         return -1;
     }
-    mz.obraz_sektory = (uint64_t)st.st_size / 512;
+    mz.obraz_sektory = (uint64_t)obraz / 512;
     if (kvm_maszyna(mz.pamiec_mib, (int)mz.opis->procesory) != 0 || kvm_urzadzenia() != 0)
         return -1;
     kvm_linia_urzadzen(linia, sizeof linia);

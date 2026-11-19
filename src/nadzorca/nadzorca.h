@@ -330,6 +330,10 @@ int siec_trasa(int nr, uint32_t router);                     /* the default rout
 extern char ab_nieudana[32];
 void rozruch_wydanie(void);
 void rozruch_po_starcie(double t);
+/* obraz_strefy.c (0.10.9 step 4, ADR 0050): a zone image for the VMM (fd, read only), from the core or from the slot of
+ * this build under dm-verity; -1 when there is none that verifies */
+int obraz_strefy_otworz(const char *nazwa);
+void obrazy_stref_po_starcie(void);
 
 /* efi.c — Secure Boot and the K1 key (0.7.0, ADR 0022) */
 extern int sb_czeka;

@@ -1,7 +1,8 @@
 /* K1 nadzorca — the zones (0.10.0, ADR 0042 T3): on request of gui (or the test program: with a hostile guest's test
  * mode) the VMM of a zone (program strefa, its row of K1_STREFY: profile, UID, memory) starts in its sandbox with
  *   fd 3 = a new channel to ekran (role STREFA, the zone's number), fd 4 = /dev/kvm, fd 5 = the zone kernel,
- *   fd 6 = the zone image — all opened here, read only but /dev/kvm; the VMM gets no path;
+ *   fd 6 = the zone image (since 0.10.9 step 4 the browser's under dm-verity from the system slot: obraz_strefy.c) —
+ *   all opened here, read only but /dev/kvm; the VMM gets no path;
  *   fd 7 = its channel to us for the browser's connections (strefy_siec.c; 0.10.0 step 2, ADR 0043 T9),
  *   fd 8, 9 = a zone that remembers (strefy_ust.c; 0.10.0 step 5, T11): a channel to skarbiec with the zone's profile as
  *   the owner (its disk's pieces) and the zone's empty disk (/rdzen/strefy/dysk.img, read only) — else neither.
@@ -55,17 +56,15 @@ static int jest_pamiec(const struct k1_strefa_opis *z)
 /* Opens what the VMM gets (fd[1..3]: kvm, kernel, image); 0, or the K1_STREFA_* reason. */
 static int otworz(const struct k1_strefa_opis *z, int *fd)
 {
-    char sciezka[96];
     fd[1] = open(DEV "/kvm", O_RDWR | O_CLOEXEC);
     if (fd[1] < 0) {
         k1_log(TAG, "strefa %d: brak wirtualizacji (/dev/kvm: %s) — włącz ją w BIOS-ie", z->nr, strerror(errno));
         return K1_STREFA_BEZ_WIRTUALIZACJI;
     }
-    snprintf(sciezka, sizeof sciezka, STREFY "/%s.img", z->obraz);
     fd[2] = open(STREFY "/jadro", O_RDONLY | O_CLOEXEC);
-    fd[3] = open(sciezka, O_RDONLY | O_CLOEXEC);
+    fd[3] = obraz_strefy_otworz(z->obraz); /* 0.10.9 step 4: from the slot of this build (obraz_strefy.c) */
     if (fd[2] < 0 || fd[3] < 0) {
-        k1_log(TAG, "strefa %d: brak jądra albo obrazu strefy w rdzeniu", z->nr);
+        k1_log(TAG, "strefa %d: brak jądra strefy albo jej obrazu", z->nr);
         return K1_STREFA_BRAK_OBRAZU;
     }
     if (!jest_pamiec(z)) {

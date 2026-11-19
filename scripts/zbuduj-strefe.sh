@@ -1,6 +1,9 @@
 #!/bin/sh
 # Buduje obraz strefy przeglądarki (0.10.0 krok 2, ADR 0043 T5/T8): build/wynik/strefa-przegladarka.img (SquashFS xz).
 # Od 0.10.5 (ADR 0046) ten sam obraz ma curl dla strefy pobierania aktualizacji (inny program startowy w gosc).
+# Od 0.10.9 krok 4 (ADR 0050) obraz nie jest częścią rdzenia: ma za danymi drzewo skrótów dm-verity, leży w miejscu A/B
+# zaraz za k1.efi (scripts/zbuduj-usb.sh), a do rdzenia idzie tylko jego skrót obrazu strefy —
+# build/wynik/strefa-przegladarka.skrot: „<skrót główny> <bloki danych po 4 KiB> <bajty całości>” (k1_obraz_strefy.h).
 #   - pakiety Debiana 13 z tabeli strefy/przegladarka.txt (wersja i suma SHA-256 każdego; odświeżenie tabeli:
 #     scripts/odswiez-strefe.py); pobrane raz do build/strefa-pakiety, sprawdzane sumą przy każdej budowie;
 #   - rozpakowane bez uruchamiania skryptów pakietów; to, co robiłyby skrypty, robimy tu (spis typów plików, moduły
@@ -79,8 +82,14 @@ printf 'root:x:0:\nk1:x:1000:\n' > "$D/etc/group"
 chmod 0444 "$D/etc/passwd" "$D/etc/group"
 ln -sfn /run/machine-id "$D/etc/machine-id" # gosc writes a new one for every machine
 
-rm -f "$WYNIK"
+rm -f "$WYNIK" "$WYNIK.skrot" "${WYNIK%.img}.skrot"
+# xz with 1 MiB blocks (ADR 0050, measured 2026-11-19): zstd is 11 % (1 MiB blocks) to 21 % (128 KiB) larger and no
+# longer fits in a 128 MiB slot beside k1.efi — the faster format waits for larger slots (DO_ZROBIENIA, D9)
 mksquashfs "$D" "$WYNIK" -quiet -no-progress -noappend -comp xz -Xbcj x86 -b 1M -all-root -no-xattrs \
     >/dev/null # SOURCE_DATE_EPOCH (wspolne.sh): the time of every file and of the image
-chmod 0444 "$WYNIK"
-info "gotowe: $WYNIK ($(du -k "$WYNIK" | cut -f1) KiB)"
+BLOKI=$(( ($(stat -c %s "$WYNIK") + 4095) / 4096 ))
+verity "$WYNIK" # 0.10.9 step 4: the hash tree after the data, the root hash in $WYNIK.skrot
+printf '%s %s %s\n' "$(cat "$WYNIK.skrot")" "$BLOKI" "$(stat -c %s "$WYNIK")" > "${WYNIK%.img}.skrot"
+rm -f "$WYNIK.skrot"
+chmod 0444 "$WYNIK" "${WYNIK%.img}.skrot"
+info "gotowe: $WYNIK ($(du -k "$WYNIK" | cut -f1) KiB z drzewem dm-verity)"

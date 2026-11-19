@@ -2,7 +2,8 @@
 # Składa obraz K1 na pendrive z miejscem na dane (M5d, ADR 0016; A/B od 0.7.0, ADR 0022):
 #   build/wynik/k1-<wersja>-usb.img (+ .img.xz do pobrania)
 # GPT:  1. „K1-EFI”  (FAT32, 280 MiB, format 2 — src/wspolne/k1_uklad.h): shim + GRUB (podpisane, z Ubuntu),
-#          MokManager, grub.cfg, grubenv, dwa miejsca na system: /k1/a.img (k1.efi tej wersji) i /k1/b.img
+#          MokManager, grub.cfg, grubenv, dwa miejsca na system: /k1/a.img (k1.efi tej wersji i za nim obraz strefy
+#          przeglądarki z drzewem dm-verity — 0.10.9 krok 4, ADR 0050) i /k1/b.img
 #       2. „K1-DANE” (64 MiB, same zera): zaszyfrowany magazyn tworzy skarbiec przy pierwszym starcie; wcześniej
 #          nadzorca powiększa pustą K1-DANE do końca pendrive'a (0.8.0, ADR 0033, src/nadzorca/powieksz.c).
 # Instalacja kopiuje K1-EFI na dysk (bez miejsca B); aktualizacja zapisuje nieużywane miejsce (A/B) i — gdy się
@@ -26,11 +27,20 @@ for n in apt-get dpkg-deb mformat mmd mcopy mshowfat sfdisk xz truncate od; do c
 info "obraz USB $WYJSCIE"
 rm -rf "$USB"; mkdir -p "$USB"
 
-# Slot A: an inner FAT with /k1.efi (GRUB opens it with loopback), its manifest at 127 MiB of the slot.
+# Slot A: an inner FAT with /k1.efi (GRUB opens it with loopback), right after it the browser's zone image with its
+# dm-verity tree (0.10.9 step 4, ADR 0050: it ends where the slot's image ends — k1_obraz_strefy.h), its manifest at
+# 127 MiB of the slot. The manifest's digest covers both: an update copies them together.
+STREFA=$K1_WYNIK/strefa-przegladarka.img
+[ -f "$STREFA" ] || blad "brak obrazu strefy $STREFA (scripts/zbuduj-strefe.sh)"
 EFI_MIB=$(( ($(stat -c %s "$K1_WYNIK/k1.efi") + 2 * 1048576 - 1) / 1048576 ))
 obraz_fat "$USB/slot-a.fat" "$EFI_MIB" 4b315341 "$K1_WYNIK/k1.efi:/k1.efi"
-cp "$USB/slot-a.fat" "$USB/a.img"; truncate -s 128M "$USB/a.img"
-"$PODPISZ" slot "$USB/a.img" "$K1_WERSJA" "$(cat "$K1_WYNIK/wydanie")" "$(stat -c %s "$USB/slot-a.fat")" || blad "manifest slotu A"
+cat "$USB/slot-a.fat" "$STREFA" > "$USB/a.img"
+SLOT_BAJTY=$(stat -c %s "$USB/a.img")
+[ "$SLOT_BAJTY" -le $((127 * 1048576)) ] ||
+    blad "k1.efi i obraz strefy nie mieszczą się w miejscu A/B: brakuje $(( (SLOT_BAJTY - 127 * 1048576 + 1023) / 1024 )) KiB"
+info "miejsce A: k1.efi $((EFI_MIB)) MiB + obraz strefy $(( $(stat -c %s "$STREFA") >> 20 )) MiB, zapas $(( (127 * 1048576 - SLOT_BAJTY) >> 10 )) KiB"
+truncate -s 128M "$USB/a.img"
+"$PODPISZ" slot "$USB/a.img" "$K1_WERSJA" "$(cat "$K1_WYNIK/wydanie")" "$SLOT_BAJTY" || blad "manifest slotu A"
 truncate -s 128M "$USB/b.img" # slot B: empty until the first update
 "$PODPISZ" grubenv "$USB/grubenv" || blad "grubenv"
 

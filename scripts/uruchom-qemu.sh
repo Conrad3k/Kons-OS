@@ -3,7 +3,7 @@
 # (do zrzutów ekranu: scripts/zrzut-ekranu.sh), a obok niego gniazdo QMP <GNIAZDO>.qmp (0.10.5: klawisze po kolei —
 # Alt przytrzymany przy Tab, testy/qemu/k1qemu.py: klawisze). Działa na pierwszym planie do wyłączenia maszyny.
 #
-#   scripts/uruchom-qemu.sh [--obraz PLIK | --bez-dysku] [--cmdline "..."] [--log PLIK]
+#   scripts/uruchom-qemu.sh [--obraz PLIK | --bez-dysku] [--obraz-strefy PLIK|-] [--cmdline "..."] [--log PLIK]
 #                           [--monitor GNIAZDO] [--czas SEKUNDY]
 #                           [--maszyna ",i8042=off"] [--qemu "-device ..."]   (dyski, USB — M5a)
 #                           [--pamiec MiB] [--emulacja] [--bez-wirtualizacji]   (strefy — 0.10.0: pamięć K1 w QEMU,
@@ -15,10 +15,14 @@
 #                                                 zmiennymi UEFI w PLIKU — klucze, MOK, stan SB; M6d, 0.7.0)
 #
 # Domyślnie: build/wynik/rdzen.squashfs, linia poleceń z jadro/cmdline, log build/qemu/serial.log.
+# Z --obraz (rdzeń na /dev/vda) obraz strefy przeglądarki nie leży w miejscu A/B (0.10.9 krok 4, ADR 0050): dostaje go
+# drugi dysk virtio (adres 0x1c, tylko do odczytu) — build/wynik/strefa-przegladarka.img, inny plik (--obraz-strefy PLIK)
+# albo żaden (--obraz-strefy -). Nadzorca bierze dysk virtio dokładnie wielkości obrazu, jeśli zgadza się ze skrótem w rdzeniu.
 # Podgląd na żywo: tail -f build/qemu/serial.log
 . "$(dirname "$0")/wspolne.sh"
 
 OBRAZ=$K1_WYNIK/rdzen.squashfs
+OBRAZ_STREFY=$K1_WYNIK/strefa-przegladarka.img
 CMDLINE=$(cat "$K1_REPO/jadro/cmdline")
 LOG=$K1_BUDOWA/qemu/serial.log
 MONITOR=$K1_BUDOWA/qemu/monitor.sock
@@ -28,6 +32,7 @@ while [ $# -gt 0 ]; do
     case $1 in
         --obraz) OBRAZ=$2; shift 2 ;;
         --bez-dysku) OBRAZ=; shift ;;
+        --obraz-strefy) OBRAZ_STREFY=$2; shift 2 ;;
         --cmdline) CMDLINE=$2; shift 2 ;;
         --log) LOG=$2; shift 2 ;;
         --monitor) MONITOR=$2; shift 2 ;;
@@ -58,6 +63,9 @@ if [ -w /dev/kvm ] && [ -z "$EMULACJA" ]; then AKCEL="-accel kvm -cpu host"; els
 P512=${PAMIEC:-1024}M P256=${PAMIEC:-256}M
 DYSK=
 [ -n "$OBRAZ" ] && DYSK="-drive file=$OBRAZ,if=virtio,format=raw,readonly=on"
+if [ -n "$OBRAZ" ] && [ "$OBRAZ_STREFY" != - ] && [ -f "$OBRAZ_STREFY" ]; then
+    DYSK="$DYSK -drive if=none,id=obraz-strefy,file=$OBRAZ_STREFY,format=raw,readonly=on -device virtio-blk-pci,drive=obraz-strefy,addr=0x1c"
+fi
 # M6b: the image's dm-verity root hash (OBRAZ.skrot from the build) unless the command line has one
 # already (negative tests pass their own — or none).
 if [ -n "$OBRAZ" ] && [ -f "$OBRAZ.skrot" ] && ! echo "$CMDLINE" | grep -q 'k1\.rdzen_skrot='; then

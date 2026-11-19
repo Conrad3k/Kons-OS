@@ -4,7 +4,8 @@
 #   build/wynik/rdzen.squashfs     — obraz /rdzen: init, system/ (nadzorca i usługi z K1_SYSTEM), katalogi jadro/
 #   build/wynik/rdzen-test.squashfs — to samo + program testowy jako /rdzen/system/test-systemu i obraz strefy próbnej
 #                                     (/rdzen/strefy/probna.img: /init = gosc; 0.10.0, ADR 0042)
-#   w obu: obraz strefy przeglądarki /rdzen/strefy/przegladarka.img (scripts/zbuduj-strefe.sh; 0.10.0 krok 2, ADR 0043)
+#   w obu: skrót obrazu strefy przeglądarki /rdzen/strefy/przegladarka.skrot (sam obraz od 0.10.9 krok 4 leży poza rdzeniem,
+#          w miejscu A/B za k1.efi — scripts/zbuduj-strefe.sh, zbuduj-usb.sh; ADR 0050)
 #          i pusty dysk strefy /rdzen/strefy/dysk.img (ext4 2 GiB, prawie same zera; 0.10.0 krok 5 — dysk sesji, która
 #          pamięta: kawałek, którego strefa jeszcze nie zapisała, VMM czyta stąd)
 # Wymaga zbudowanego jądra (scripts/zbuduj-jadro.sh: nagłówki i gen_init_cpio) i biblioteki C (scripts/zbuduj-musl.sh;
@@ -49,9 +50,10 @@ przygotuj_rdzen() { # $1 = katalog docelowy
     rm -rf "$1"; mkdir -p "$1/jadro/dev" "$1/jadro/proc" "$1/jadro/sys" "$1/system" "$1/aplikacje" "$1/strefy"
     install -m 0555 "$K1_BUDOWA/bin/init" "$1/init"
     for p in nadzorca strefa $(sh "$K1_REPO/scripts/uslugi-systemu.sh"); do install -m 0555 "$K1_BUDOWA/bin/$p" "$1/system/$p"; done
-    # 0.10.0 (ADR 0042 T5): the zone kernel — data for the VMM (read, never executed by K1); the zone images beside it
+    # 0.10.0 (ADR 0042 T5): the zone kernel — data for the VMM (read, never executed by K1); since 0.10.9 step 4 (ADR 0050)
+    # only the browser image's line (root hash, sizes): the image itself lies in the system slot, nadzorca finds it
     install -m 0444 "$K1_WYNIK/strefa-jadro" "$1/strefy/jadro"
-    install -m 0444 "$K1_WYNIK/strefa-przegladarka.img" "$1/strefy/przegladarka.img"
+    install -m 0444 "$K1_WYNIK/strefa-przegladarka.skrot" "$1/strefy/przegladarka.skrot"
     cp --sparse=always "$K1_WYNIK/strefa-dysk.img" "$1/strefy/dysk.img" && chmod 0444 "$1/strefy/dysk.img"
     # Built-in native applications (M4); signed application images come with M10 (/aplikacje).
     for d in "$K1_REPO"/src/aplikacje/*/; do p=$(basename "$d"); install -m 0555 "$K1_BUDOWA/bin/$p" "$1/aplikacje/$p"; done
