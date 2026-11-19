@@ -61,6 +61,7 @@ enum kanal_rodzaj {
     KN_DO,      /* one way from us: we write, the service checks that we (UID 0) send */
     KN_OD,      /* requests to us and our replies: both ends check the sender (SO_PASSCRED) */
     KN_PLIK,    /* KN_DO whose end is the application's own: plik_kanal[its number] (a file to open) */
+    KN_SONDA,   /* 0.10.9 step 1, TRIAL CODE: the card probe — render node, its memory counter, the battery (sonda.c) */
     KN_SIEC,    /* 0.9.1 step 2: from the application straight to siec (a Wi-Fi password, not through us): its other end
                  * goes to siec in SIEC_USTAWIENIA, siec checks the sender (none while siec does not run) */
 };
@@ -363,5 +364,9 @@ extern pid_t test_pid;
 void odpowiedz_testowi(int wynik, int fd);
 void obsluz_test(void);
 pid_t uruchom_test(void);
+
+/* sonda.c — 0.10.9 step 1, TRIAL CODE (the trial branch only): the card probe */
+int otworz_sonde(int *fd, int profil);
+void sonda_okresowe(double t);
 
 #endif

@@ -211,6 +211,17 @@ $(BIN)/%: src/aplikacje/%/main.c $$(wildcard src/aplikacje/$$*/*.c src/aplikacje
           $(NAGL) $(NAGL_P) jadro/wersja.env | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) '-DK1_JADRO="$(JADRO)"' -o $@ $(wildcard src/aplikacje/$*/*.c) $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
+# 0.10.9 step 1, TRIAL CODE (the trial branch only, never in main): the card probe with libva, i965, libdrm and FFmpeg
+# built statically by scripts/zbuduj-sonde.sh; ioctl wrapped (counted, src/aplikacje/sonda/obce.c).
+SONDA_PREF := $(BUDOWA)/sonda/pref
+$(BUDOWA)/sonda/gotowe: scripts/zbuduj-sonde.sh | $(MUSL)
+	scripts/zbuduj-sonde.sh
+$(BIN)/sonda: $(wildcard src/aplikacje/sonda/*) $(BUDOWA)/sonda/gotowe $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -isystem $(SONDA_PREF)/include -DK1_VA_INIT=$$(cat $(BUDOWA)/sonda/funkcja-startowa.txt) \
+		-o $@ $(wildcard src/aplikacje/sonda/*.c) src/aplikacje/sonda/klipy.S $(PRZYB) $(WSPOLNE) $(USLUGI) \
+		-L$(SONDA_PREF)/lib -Wl,--wrap=ioctl -Wl,--start-group -lavcodec -lavutil -lva -li965 -ldrm_intel -ldrm \
+		-Wl,--end-group -lm -Wl,--gc-sections $(LDFLAGS_K1)
+
 # Fonts: rasterised on the host with FreeType (narzedzia/czcionki.c), compiled into the programs.
 FT_CFLAGS = $(shell pkg-config --cflags freetype2)
 FT_LIBS = $(shell pkg-config --libs freetype2)

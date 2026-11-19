@@ -56,7 +56,9 @@
     X(WYBOR, 8, 14, 207, "wybor", "K1-WYBOR", "Wybór pliku", "Okno, w którym wybierasz plik dla aplikacji", FOLDER, -1, \
       (KANAL_SKARBCA))                                                                                          \
     X(PODGLAD, 9, 17, 208, "podglad", "K1-PODGLAD", "Podgląd", "Zdjęcia i obrazy", OBRAZ, 0,                    \
-      (KANAL_SKARBCA, KANAL_PLIKU, KANAL_DEKODERA))
+      (KANAL_SKARBCA, KANAL_PLIKU, KANAL_DEKODERA))                                                             \
+    X(SONDA, 10, 24, 209, "sonda", "K1-SONDA", "Sonda karty", "Próba karty graficznej (obraz próbny 0.10.9)",   \
+      USTAWIENIA, -1, (KANAL_SONDY)) /* 0.10.9 step 1, TRIAL CODE: never in main */
 
 /* 0.10.0 (ADR 0042): the zones — each a micro machine with its own kernel, run by its own VMM process (program
  * /rdzen/system/strefa, log tag K1-STREFA); one line each, everything else follows from it: the profile and the UID of

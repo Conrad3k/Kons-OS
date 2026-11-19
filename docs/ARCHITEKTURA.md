@@ -51,6 +51,7 @@ asystentów — skill `kons-dev`, §3.
 | `przygotuj-srodowisko.sh` | instaluje pakiety Ubuntu potrzebne do budowy i testów |
 | `zbuduj.sh` | wszystko: `zbuduj-jadro.sh`, `zbuduj-musl.sh`, `zbuduj-obraz.sh` (z nim `zbuduj-strefe.sh`), `zbuduj-k1efi.sh`, `zbuduj-iso.sh`, `zbuduj-usb.sh` |
 | `zbuduj-musl.sh` | musl dla programów K1: pobranie (suma, podpis PGP), łatki, budowa → `build/musl` |
+| `zbuduj-sonde.sh` | KOD PRÓBNY (krok 1 planu 0.10.9, tylko gałąź próby): libdrm, libva, i965 i FFmpeg statycznie z musl dla sondy karty |
 | `zbuduj-strefe.sh` | obraz strefy przeglądarki i pobierania z pakietów Debiana z `strefy/przegladarka.txt` (sumy) |
 | `odswiez-strefe.py` | odświeża tabelę pakietów strefy (`strefy/przegladarka.txt`) — najnowsze wersje z Debiana; używa go też robot |
 | `zbuduj-k1efi.sh` | zamknięte jądro `k1.efi` (linia poleceń i rdzeń w środku), podpis Secure Boot (ADR 0022) |
