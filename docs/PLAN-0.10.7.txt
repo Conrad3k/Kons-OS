@@ -206,17 +206,27 @@ KROK 2: Ustawienia: sekcje w środku                                           M
 KROK 3: Pliki: przyciski, szczegóły, pusty folder                              M · D4, T4 · bez ADR
   Cel: okno Plików pokazuje tylko to, czego można teraz użyć.
   Zadania:
-  [ ] Przyciski (W10, D4): stale tylko „Nowy folder” (w Koszu: „Opróżnij Kosz”); „Otwórz”, „Zmień nazwę”, „Usuń”
+  [x] Przyciski (W10, D4): stale tylko „Nowy folder” (w Koszu: „Opróżnij Kosz”); „Otwórz”, „Zmień nazwę”, „Usuń”
       („Przywróć”, „Usuń na zawsze” w Koszu) pojawiają się po zaznaczeniu, w tym samym miejscu, bez przesuwania listy.
-  [ ] Panel szczegółów (W11, D4): tylko przy zaznaczonym pliku; bez zaznaczenia lista zajmuje całą szerokość.
+  [x] Panel szczegółów (W11, D4): tylko przy zaznaczonym pliku; bez zaznaczenia lista zajmuje całą szerokość.
       Napisy w panelu zawijane, nigdy ucięte.
-  [ ] Pusty folder: znak „Warstwy” w odcieniach szarości (tekst3, ok. 64 px), pod nim „Ten folder jest pusty” (tekst2)
+  [x] Pusty folder: znak „Warstwy” w odcieniach szarości (tekst3, ok. 64 px), pod nim „Ten folder jest pusty” (tekst2)
       i przycisk „Nowy folder”; wyśrodkowane w liście. Kosz pusty: ten sam układ, bez przycisku.
   Testy i dowód: test-pliki i test-m4 (przyciski po zaznaczeniu, po nazwach), test-wzorce (Pliki: pusty folder,
   folder z plikami i zaznaczeniem, Kosz; oba motywy).
   Dokumenty: WYGLAD.md („Pliki i Kosz”), aplikacje.md.
   Gotowe, gdy: testy zielone, wzorce przyjęte po „OK” właściciela.
-  Ustalenia z wykonania: (pusto, wypełnia krok 3)
+  Ustalenia z wykonania (2026-11-19):
+    - D4: rekomendacja (przyciski i szczegóły po zaznaczeniu); obrazy „przed / po” przyjęte przez właściciela („OK, przyjmij”).
+    - Tabela PRZYCISKI (przyciski.c, T4): stałe najpierw (Nowy folder; Opróżnij Kosz; Importuj wszystkie), te od
+      zaznaczenia za nimi, więc stałe nie skaczą. Kolejność zmieniona: „Nowy folder” przed „Otwórz”. Nieaktywne, ale
+      widoczne przy zaznaczeniu (np. „Zmień nazwę” przy kilku) zostają wyszarzone (dostepny()).
+    - Lista bez szczegółów na całą szerokość: kolumny daty i rozmiaru przesuwają się przy zaznaczeniu (LISTA_W = lista_w()).
+    - Zawijanie: k1_zawin z k1_menu.c, teraz publiczne; słowo dłuższe niż linia łamie się między znakami (też w menu).
+      Nazwa zdjęcia pod miniaturą zostaje w jednej linii: tuż pod nią jest „Ustaw jako tapetę” (położenie w logu dla testów).
+    - Znikły napisy panelu bez zaznaczenia: „Wybierz plik…”, „Usunięte pliki leżą tu 30 dni”, wskazówka pendrive'a (Z2).
+    - Opis ekranu Plików: miejsca (zakładki), wiersze „wiersz N”, daty jako miejsca zmienne; test-wzorce ma 4 nowe wzorce
+      (pliki-zaznaczony, pliki-kosz; oba motywy). Pusty folder: drugi „Nowy folder” — w logu „w środku: Nowy folder”.
 
 KROK 4: Ramka okna strefy: kolor sesji dyskretnie (ADR 0048)                  M · D1, T5 · ADR 0048
   Cel (prośba właściciela 2026-11-17): kolor sesji nie obejmuje już całego okna („psuje estetykę”). Okno przeglądarki
