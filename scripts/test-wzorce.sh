@@ -3,7 +3,7 @@
 # (testy/wzorce/*.png, testy/qemu/k1wzorce.py). Obraz testowy z opisem ekranu (dysk „k1-test-opis”, ADR 0045) i pustym
 # dyskiem danych; okna z decyzji właściciela D4, w obu motywach: dolny i górny pasek, ikony pulpitu, menu Start, okienko
 # „Którą sesję otworzyć?”, Ustawienia (każda sekcja), Pliki (pusty folder, zaznaczony folder, Kosz — 0.10.7 krok 3), Zasoby,
-# Kalkulator, przełącznik okien (0.10.5 krok 6).
+# Kalkulator, przełącznik okien (0.10.5 krok 6); ekran „Wyłączanie” (0.10.7 krok 6, na hoście: k1_wylaczanie).
 # Ramkę strefy sprawdza test-strefa.
 # Każde okno wycięte według opisu ekranu; miejsca zmienne (zegar, liczby, wykresy, wersja) się nie liczą; kursor poza
 # oknem. Różnica: build/testy/wzorce/<nazwa>-przed/-po/-roznica.png (w CI: artefakt z logami). Zmianę wyglądu
@@ -138,6 +138,39 @@ pulpit("ciemny")
 q.czysty_log()
 q.koniec()
 PY
+
+# 0.10.7 step 6 (T8): the screen "Wyłączanie" lasts too short in QEMU for a picture (without a zone K1 powers off in a
+# moment) — the same function ekran draws it with (k1_wylaczanie) on the host, 1280 × 800, its still frame
+info "test wzorców: ekran „Wyłączanie” (k1_wylaczanie na hoście)"
+make -C "$K1_REPO" -s "$K1_BUDOWA/obj/podglad_wylaczania" >/dev/null || r=1
+for motyw in jasny ciemny; do
+    "$K1_BUDOWA/obj/podglad_wylaczania" 1280 800 "$([ $motyw = ciemny ] && echo 1 || echo 0)" 0 0 \
+        > "$TESTY/.wylaczanie-$motyw.ppm" || r=1
+    K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I - "$TESTY/.wylaczanie-$motyw.ppm" "wylaczanie-$motyw" "$TESTY/wzorce" <<'PY' || r=1
+import os, re, sys
+sys.path.insert(0, os.environ["K1_TESTY_PY"])
+import k1wzorce
+ppm, nazwa, katalog = sys.argv[1:4]
+b = open(ppm, "rb").read()
+m = re.match(rb"P6\s+(\d+)\s+(\d+)\s+255\s", b)
+w, h, teraz = int(m.group(1)), int(m.group(2)), b[m.end():]
+os.makedirs(katalog, exist_ok=True)
+for p in ("-przed", "-po", "-roznica"):
+    if os.path.exists(os.path.join(katalog, nazwa + p + ".png")):
+        os.unlink(os.path.join(katalog, nazwa + p + ".png"))
+wzor = k1wzorce.wczytaj(os.path.join(k1wzorce.KATALOG, nazwa + ".png"))
+if wzor and wzor[:2] == (w, h) and k1wzorce.rozne(w, h, wzor[2], teraz)[0] == 0:
+    print(f"  [OK]    wzorzec {nazwa}: zgodny co do piksela ({w}x{h})")
+    sys.exit(0)
+k1wzorce.zapisz(os.path.join(katalog, nazwa + "-po.png"), w, h, teraz)
+if wzor and wzor[:2] == (w, h):
+    k1wzorce.zapisz(os.path.join(katalog, nazwa + "-przed.png"), *wzor)
+    k1wzorce.zapisz(os.path.join(katalog, nazwa + "-roznica.png"), w, h, k1wzorce.obraz_roznicy(w, h, wzor[2], teraz))
+print(f"  [BŁĄD]  wzorzec {nazwa}: " + ("różny" if wzor else "brak obrazu wzorcowego") + f" — wzorce/{nazwa}-po.png")
+sys.exit(1)
+PY
+    rm -f "$TESTY/.wylaczanie-$motyw.ppm"
+done
 
 info "test wzorców: wygląd okien K1 co do piksela (obraz testowy z opisem ekranu)"
 DANE=$TESTY/wzorce-dane.img

@@ -482,7 +482,11 @@ void uruchom_aplikacje(int apl)
 
 void wylacz(int restart)
 {
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_WYLACZANIE, 0, restart ? 1 : 0, 0, 0, 0, 0);
     k1_log(TAG, "%s na prośbę pulpitu", restart ? "ponowne uruchamianie" : "wyłączanie");
+    /* 0.10.7 step 6 (T7): the screen "Wyłączanie" at once, over every window, until the end */
+    if (sterowanie < 0 || k1_kanal_wyslij(sterowanie, &k, sizeof k, -1) != 0)
+        k1_log(TAG, "ekran wyłączania: ekran nie przyjął prośby");
     if (!strefy_przed_wylaczeniem(restart))
         wylacz_teraz(restart);
 }

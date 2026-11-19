@@ -66,6 +66,10 @@ Montowanie/sysctl/`fork` nieudane → `k1_awaria()` (ADR 0005). Zakończenie nad
 kontrolowane wyłączenie. SIGTERM → wyłączenie, SIGINT → restart, inne sygnały → wpis w logu.
 
 ## Wyłączanie (kolejność od 0.8.6)
+Od 0.10.7 krok 6 init nie czeka w nieskończoność na procesy po `SIGKILL` (do tej pory `waitpid` bez limitu): najwyżej
+okres łaski po ostatnim, który się skończył, potem „nie wszystkie procesy skończyły się w czasie — mimo to dalej”, `sync`
+i wyłączenie (fail closed: proces zawieszony w jądrze nie zostawia włączonego komputera).
+
 1. `SIGTERM` tylko do nadzorcy; init czeka na jego koniec (najwyżej 3 s). Nadzorca zapisuje w tym czasie to, co
    trzyma (historię baterii — skarbiec jeszcze działa), i zatrzymuje swoje usługi.
 2. `SIGTERM` do wszystkich pozostałych procesów; init zbiera zakończone i czeka, aż nie zostanie żaden — najwyżej

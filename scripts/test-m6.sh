@@ -87,6 +87,7 @@ if tryb == "mok-1":  # release key: K1 prepares the key for MokManager
     q.zrzut("2-czeka")
     klik(w[0] + int(e.group(1)), w[1] + int(e.group(2)))
     sprawdz("„Uruchom ponownie”", czekaj(r"reboot: Restarting", czas=60))
+    sprawdz("…z ekranem „Ponowne uruchamianie” (0.10.7 krok 6)", "K1-EKRAN: ekran wyłączania: ponowne uruchamianie" in q.tekst())
     q.czysty_log(); q.koniec(wylacz=False)
 
 if tryb == "mok-2":  # MokManager: the owner's steps

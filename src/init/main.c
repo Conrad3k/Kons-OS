@@ -229,8 +229,11 @@ static _Noreturn void shutdown_system(int cmd, const char *reason, pid_t supervi
     kill(-1, SIGTERM); /* -1: every process except PID 1 */
     wait_for_end(0);
     kill(-1, SIGKILL);
-    while (waitpid(-1, NULL, 0) > 0) {
-    }
+    /* 0.10.7 step 6: at most the grace period after the last one that ended — a process stuck in the kernel must not
+     * keep the computer on (fail closed: it powers off anyway; until 0.10.7 init waited for every one of them) */
+    wait_for_end(0);
+    if (waitpid(-1, NULL, WNOHANG) == 0)
+        k1_log(TAG, "zamykanie systemu: nie wszystkie procesy skończyły się w czasie — mimo to dalej");
     sync();
     k1_log(TAG, "%s", cmd == RB_POWER_OFF ? "wyłączanie zasilania" : "ponowne uruchamianie");
     reboot(cmd);

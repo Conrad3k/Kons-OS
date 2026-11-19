@@ -524,6 +524,17 @@ m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz
 if m:
     q.klik(int(m.group(4)), int(m.group(5)))
 wyl = m and czekaj(r"K1-NADZORCA: wyłączanie: najpierw zamykam strefy \(1, najwyżej 30 s\)", czas=30)
+# 0.10.7 step 6 (T7): the screen "Wyłączanie" at once, over everything (the zone's window too), while the zone closes
+sprawdz("…ekran „Wyłączanie” od razu po kliknięciu", wyl and czekaj(r"K1-EKRAN: ekran wyłączania: wyłączanie", czas=10))
+TLA = ((250, 249, 246), (38, 37, 35))  # the window background of the light / dark theme (k1_okno.c)
+w_, h_, px_ = q.zrzut("wylaczanie", gdy=lambda w, h, px: px(w // 4, h // 4) in TLA, czas=10)
+if "strefy zamknięte" not in q.tekst():  # the picture was taken while K1 still waited for the zone
+    sprawdz("…zakrywa pulpit i okno strefy (tło okna K1 na całym ekranie, bez kursora)",
+            all(px_(x, y) == px_(w_ // 4, h_ // 4) and px_(x, y) in TLA for x, y in
+                ((w_ // 4, h_ // 4), (w_ // 2, 100), (w_ * 3 // 4, h_ * 3 // 4), (20, h_ - 20), (w_ - 20, 20))),
+            f"{px_(w_ // 4, h_ // 4)} {px_(w_ // 2, 100)} {px_(w_ - 20, 20)}")
+else:
+    print("  [info]  strefa zamknęła się przed zrzutem ekranu „Wyłączanie” — wygląd sprawdza test-wzorce", flush=True)
 sprawdz("…nadzorca najpierw prosi strefę o zamknięcie (jak „zamknij” na pasku), gość zapisuje dysk i kończy się",
         wyl and czekaj(r"K1-STREFA: zamykam strefę na prośbę nadzorcy \(wyłączanie K1\)", czas=30) and
         czekaj(r"K1-GOSC: dysk: zamknięcie zapisane: tak", czas=60) and

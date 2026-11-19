@@ -221,6 +221,7 @@ static void skomponuj(void)
             k1_skladaj(&s.scena, &o, p->x, p->y, r.x, r.y, r.w, r.h);
         }
         rozmiar_rysuj(&r); /* 0.10.5 step 4: the outline of a window being resized, over everything */
+        wylaczanie_rysuj(&r); /* 0.10.7 step 6: K1 powers off — the screen "Wyłączanie" over all of it */
     }
     s.nowe.n = 0;
     /* The scene is our own copy now: clients may draw their other half again. */
@@ -264,6 +265,10 @@ void zapisz_klatke(struct bufor *b, struct drm_clip_rect *zmiany, unsigned *n_zm
         dodaj_zmiane(zmiany, n_zmian, r);
     }
     b->brud.n = 0;
+    if (wylaczanie_trwa()) { /* 0.10.7 step 6: no cursor on the screen "Wyłączanie" */
+        b->ma_kursor = 0;
+        return;
+    }
     if (s.ksztalt != K1_KURSOR_STRZALKA) { /* 0.10.5 step 4: over a grip of a zone's frame, its hotspot in the middle */
         b->kx = s.x - K1_KURSOR_SROD_X;
         b->ky = s.y - K1_KURSOR_SROD_Y;

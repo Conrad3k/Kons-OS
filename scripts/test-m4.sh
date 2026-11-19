@@ -69,6 +69,8 @@ if tryb == "haslo":
         m = czekaj(r"menu Start otwarte \(.*; Wyloguj (\d+),(\d+)\)", czas=20)
         if m:
             klik(int(m.group(1)), int(m.group(2)))
+    sprawdz("NEGATYWNE: Wyloguj nie pokazuje ekranu „Wyłączanie” (0.10.7 krok 6)",
+            czekaj(r"K1-NADZORCA: wylogowanie", czas=30) and "ekran wyłączania" not in tekst())
     sprawdz("Start → Wyloguj: magazyn zamknięty, z powrotem ekran hasła",
             czekaj(r"K1-NADZORCA: wylogowanie", czas=30) and
             czekaj(r"K1-LOGOWANIE: ekran hasła gotowy", od=1, czas=90))
@@ -642,6 +644,9 @@ sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych k
 otworz_start()
 q.klik_w("Menu Start", "Wyłącz", "przycisk")
 sprawdz("Start → Wyłącz: system się wyłącza", czekaj(r"K1: wyłączanie zasilania") and czekaj(r"reboot: Power down"))
+t_ = tekst()  # 0.10.7 step 6: the screen "Wyłączanie" at once — before init powers off
+sprawdz("Start → Wyłącz: ekran „Wyłączanie” przed wyłączeniem zasilania", "K1-EKRAN: ekran wyłączania: wyłączanie" in t_ and
+        t_.find("K1-EKRAN: ekran wyłączania: wyłączanie") < t_.find("K1: wyłączanie zasilania"))
 sys.exit(0 if all(wyniki) else 1)
 PY
 

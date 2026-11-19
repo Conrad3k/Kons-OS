@@ -47,8 +47,11 @@ static int odbierz_sterowanie(void)
     /* Only the supervisor (root) holds the other end; check it anyway, and every field. */
     if (o.ma_nadawce && o.uid == 0 && !o.obciete && o.fd < 0 &&
         k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &k) == 0 &&
-        (k.typ == K1_KOM_STREFY_STAN || k.typ == K1_KOM_STREFA_NAZWA)) { /* the sessions (0.10.0 step 5) */
-        strefy_sesje(&k);
+        (k.typ == K1_KOM_STREFY_STAN || k.typ == K1_KOM_STREFA_NAZWA || k.typ == K1_KOM_WYLACZANIE)) {
+        if (k.typ == K1_KOM_WYLACZANIE) /* 0.10.7 step 6: K1 powers off */
+            wylaczanie_start(k.a);
+        else
+            strefy_sesje(&k); /* the sessions (0.10.0 step 5) */
         return 1;
     }
     if (!o.ma_nadawce || o.uid != 0 || o.obciete || o.fd < 0 ||
@@ -249,7 +252,7 @@ static void loguj_kursor(void)
 int main(void)
 {
     struct pollfd pfd[3 + MAKS_KLIENTOW];
-    int czekaj, i;
+    int czekaj, wyl_ms, i;
 
     k1_klatka_w_usludze(TAG);
     start();
@@ -271,6 +274,9 @@ int main(void)
             double zostalo = s.ost_klatka + 1.0 / 60.0 - k1_teraz();
             czekaj = zostalo > 0 ? (int)(zostalo * 1000.0) + 1 : 0;
         }
+        wyl_ms = wylaczanie_czas_ms(); /* 0.10.7 step 6: the dots of the screen "Wyłączanie" move */
+        if (wyl_ms >= 0 && wyl_ms < czekaj)
+            czekaj = wyl_ms;
         if (poll(pfd, 3 + MAKS_KLIENTOW, czekaj) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
         if (pfd[2 + MAKS_KLIENTOW].fd >= 0 && pfd[2 + MAKS_KLIENTOW].revents)

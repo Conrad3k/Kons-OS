@@ -118,7 +118,9 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
 - Start: skarbiec, ekran (karta `card0`…`card7`;
   gdy brak — ponowna próba za 4 s), potem jego klienci (wejscie, gui).
 - Prośby od `gui` (fd 4, nadawca UID 102): `URUCHOM` — aplikacja, jeśli jeszcze nie działa
-  (aplikacje nie są restartowane); `WYLACZ` — `SIGTERM` (wyłączenie) albo `SIGINT` (restart) do init;
+  (aplikacje nie są restartowane); `WYLACZ` — najpierw `WYLACZANIE` do ekranu (ekran „Wyłączanie” od razu, 0.10.7
+  krok 6), potem strefy (`strefy_zamyk.c`: najwyżej 30 s, co 5 s log „wyłączanie: czekam na strefy (n), najwyżej jeszcze
+  x s”), potem `SIGTERM` (wyłączenie) albo `SIGINT` (restart) do init;
   `WYLACZ` a=2 (0.6.3, tylko od UID 102) — wylogowanie `zamknij_sesje()`: aplikacje i pulpit cicho
   (`SIGTERM`), potem skarbiec (zapomina klucz); nowy skarbiec zgłasza magazyn zablokowany → ekran
   hasła, albo otwarty (bez hasła) → pulpit od nowa. Ekran logowania i Instalator a=2 nie wyślą.
