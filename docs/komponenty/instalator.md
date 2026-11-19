@@ -83,7 +83,10 @@ wersja; przy tej samej — „Zapisz K1 na dysku jeszcze raz”.
 
 ## A/B i Secure Boot (0.7.0, ADR 0022)
 K1-EFI w formacie 2 (`k1_uklad.h`): FAT32 280 MiB, blok układu w zarezerwowanych sektorach, grubenv, miejsca
-`/k1/a.img` i `/k1/b.img` (128 MiB: wewnętrzny FAT z `k1.efi` + manifest formatu 2 na 127 MiB).
+`/k1/a.img` i `/k1/b.img` (128 MiB: wewnętrzny FAT z `k1.efi`, od 0.10.9 zaraz za nim obraz przeglądarki z drzewem
+dm-verity — kończy się z końcem obrazu miejsca, ADR 0050 — + manifest formatu 2 na 127 MiB). Manifest obejmuje cały obraz
+miejsca, więc instalacja, aktualizacja z pendrive'a i przez sieć kopiują obraz przeglądarki razem z systemem — bez zmian
+w programie zapisującym (także w starszym, który instaluje nową wersję).
 - **Instalacja:** sprawdza manifesty miejsca A i plików startowych, kopiuje FAT pendrive'a bez miejsca B, sprawdza
   skrót plików startowych na dysku, GPT na końcu.
 - **Aktualizacja (dysk w formacie 2):** grubenv dysku → działające miejsce; najpierw **wymiana plików startowych**

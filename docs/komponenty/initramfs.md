@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | PRZETESTOWANE (M1, M4, M6b) — `scripts/test-m1.sh`: start + 8 scenariuszy negatywnych; `scripts/test-m4.sh`: start z ISO (UEFI, BIOS) |
 | **Kod** | `src/initramfs/main.c`, `src/wspolne/k1_cmdline.c`, `src/wspolne/k1_log.c` |
-| **Decyzje** | ADR 0004 (start, układ plików), ADR 0005 (błędy krytyczne), ADR 0010 (obraz wbudowany w ISO), ADR 0021 (dm-verity, M6b) |
+| **Decyzje** | ADR 0004 (start, układ plików), ADR 0005 (błędy krytyczne), ADR 0010 (obraz wbudowany w ISO), ADR 0021 (dm-verity, M6b); od 0.10.9 urządzenie loop i dm-verity zakłada wspólny kod `src/wspolne/k1_verity.c` (ten sam robi obraz przeglądarki w nadzorcy, ADR 0050) |
 
 ## Cel
 Jedno zadanie: znaleźć obraz rdzenia, zamontować go jako `/rdzen` w nowym, tylko-do-odczytu

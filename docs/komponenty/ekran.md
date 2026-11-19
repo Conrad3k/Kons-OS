@@ -151,7 +151,9 @@ test w systemie „NEGATYWNY 0.10.7”). Od tej chwili do końca `wylaczanie.c` 
 strefy, i bez kursora — `k1_wylaczanie` (`src/przybornik/k1_wylaczanie.c`): tło okna K1 na cały ekran, trzy kropki w
 kolorze akcentu po kolei rozjaśniane (obieg 1,5 s, 15 klatek na sekundę z zegara ekranu) i „Wyłączanie” albo „Ponowne
 uruchamianie” (Plex Serif 24). Wejście nie trafia już do okien. Log „ekran wyłączania: …”. W opisie ekranu dla testów —
-panel o tej nazwie; przy kliencie testowym kropki stoją (T8). Ekran kończy się razem z nadzorcą (init); ostatnią klatkę
+panel o tej nazwie; przy kliencie testowym kropki stoją (T8). Nadzorca oddaje sprawę do init dopiero, gdy strefy się
+zamkną i ekran był widoczny co najmniej jeden obieg kropek (1,5 s; 0.10.9 — zgłoszenie właściciela z 2026-11-19: na X230
+bez otwartej strefy K1 wyłączał się, zanim ekran go narysował; `test-m4`). Ekran kończy się razem z nadzorcą (init); ostatnią klatkę
 do wyłączenia zasilania zostawia albo czyści sterownik grafiki (do sprawdzenia na sprzęcie). Wygląd pilnuje
 `test-wzorce` na hoście (`podglad_wylaczania`: ta sama funkcja, wzorce `wylaczanie-jasny`, `wylaczanie-ciemny`).
 

@@ -84,7 +84,7 @@ ln -sfn /run/machine-id "$D/etc/machine-id" # gosc writes a new one for every ma
 
 rm -f "$WYNIK" "$WYNIK.skrot" "${WYNIK%.img}.skrot"
 # xz with 1 MiB blocks (ADR 0050, measured 2026-11-19): zstd is 11 % (1 MiB blocks) to 21 % (128 KiB) larger and no
-# longer fits in a 128 MiB slot beside k1.efi — the faster format waits for larger slots (DO_ZROBIENIA, D9)
+# longer fits in a 128 MiB slot beside k1.efi — the faster format waits for larger slots (plan 0.10.9, D10)
 mksquashfs "$D" "$WYNIK" -quiet -no-progress -noappend -comp xz -Xbcj x86 -b 1M -all-root -no-xattrs \
     >/dev/null # SOURCE_DATE_EPOCH (wspolne.sh): the time of every file and of the image
 BLOKI=$(( ($(stat -c %s "$WYNIK") + 4095) / 4096 ))

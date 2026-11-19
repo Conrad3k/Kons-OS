@@ -4,6 +4,8 @@
  * partition named "K1-DANE", an NVMe disk with an old MBR table, a USB stick on EHCI, a USB
  * keyboard on xHCI and a USB mouse on OHCI. Checks that the kernel sees all of it, that wejscie
  * uses the USB keyboard and mouse, and that nobody but root can reach disks and raw USB. */
+#include <sys/sysmacros.h>
+
 #include "k1_test.h"
 
 #define SYS "/rdzen/jadro/sys"
@@ -144,8 +146,21 @@ static int otwarte_wejscia(long pid)
     return k;
 }
 
-/* Processes (other than this test) holding an open block device. */
-static int procesy_z_dyskiem(char *opis, size_t n)
+/* 0.10.9 step 4 (ADR 0050): a block device that is a zone image under dm-verity (k1-strefa-*), read only — what nadzorca
+ * keeps for the VMMs; 1 yes, 0 anything else (a disk, a partition, a writable device). */
+static int obraz_strefy_ro(const struct stat *st)
+{
+    char p[96], nazwa[64] = "", ro[8] = "";
+    snprintf(p, sizeof p, SYS "/dev/block/%u:%u/dm/name", major(st->st_rdev), minor(st->st_rdev));
+    read_file(p, nazwa, sizeof nazwa);
+    snprintf(p, sizeof p, SYS "/dev/block/%u:%u/ro", major(st->st_rdev), minor(st->st_rdev));
+    read_file(p, ro, sizeof ro);
+    return strncmp(nazwa, "k1-strefa-", 10) == 0 && ro[0] == '1';
+}
+
+/* Processes (other than this test) holding an open block device — but a zone image under dm-verity, read only, in
+ * nadzorca (`obrazy`: how many such fds there are). */
+static int procesy_z_dyskiem(char *opis, size_t n, int *obrazy)
 {
     DIR *d = opendir("/rdzen/jadro/proc");
     struct dirent *de;
@@ -169,6 +184,10 @@ static int procesy_z_dyskiem(char *opis, size_t n)
             if (stat(p, &st) == 0 && S_ISBLK(st.st_mode)) {
                 char comm[32];
                 comm_of(pid, comm, sizeof comm);
+                if (strcmp(comm, "nadzorca") == 0 && obraz_strefy_ro(&st)) {
+                    (*obrazy)++;
+                    continue;
+                }
                 k++;
                 snprintf(opis + strlen(opis), n - strlen(opis), "%s ", comm);
             }
@@ -213,7 +232,7 @@ void t_sprzet(void)
 {
     char sata[256] = "", nvme[256] = "", usb[256] = "", etykieta[80], opis[512] = "";
     long wejscie = 0;
-    int i, n, k, wszystkie = 0, zle = 0, otwarte = 0;
+    int i, n, k, wszystkie = 0, zle = 0, otwarte = 0, obrazy = 0;
     DIR *d;
     struct dirent *de;
     struct stat st;
@@ -279,9 +298,10 @@ void t_sprzet(void)
     check(absent(DEV "/hidraw0") && absent(DEV "/usb/hiddev0") && absent(DEV "/sg0") && absent(DEV "/bsg") &&
               absent(DEV "/sr0"),
           "NEGATYWNY: brak surowego HID (hidraw, hiddev), SCSI generic (sg, bsg) i napędów CD", "%s", "");
-    k = procesy_z_dyskiem(opis, sizeof opis);
+    k = procesy_z_dyskiem(opis, sizeof opis, &obrazy);
     check(k == 1 && strcmp(opis, "skarbiec ") == 0,
-          "NEGATYWNY: dysk ma otwarty tylko skarbiec (jedna partycja K1-DANE), nikt inny", "procesy: %s", opis);
+          "NEGATYWNY: dysk ma otwarty tylko skarbiec (jedna partycja K1-DANE), nikt inny (nadzorca: tylko obraz strefy "
+          "pod dm-verity, do odczytu)", "procesy: %s, obrazy stref: %d", opis, obrazy);
 }
 
 /* 0.5.3: the battery and AC adapter from the test ACPI table (testy/acpi/bateria.asl) through the

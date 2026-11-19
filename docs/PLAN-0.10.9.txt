@@ -396,26 +396,26 @@ KROK 4 — Obraz przeglądarki poza rdzeniem, szybszy start                     
   Aktualizacja z poprzedniej wersji przez sieć (Ustawienia → Aktualizacje, sama albo „Sprawdź teraz”) i z pendrive'a
   (ta sama sekcja) — dane zostają, przeglądarka i strefa pobierania działają po przeprowadzce.
   Zadania:
-  [ ] Pomiar formatów (S33): ten sam obraz w kilku formatach — dziś SquashFS xz z blokiem 1 MiB; SquashFS zstd i lz4
+  [x] Pomiar formatów (S33): ten sam obraz w kilku formatach — dziś SquashFS xz z blokiem 1 MiB; SquashFS zstd i lz4
       z blokiem 128 KiB; EROFS z lz4hc — rozmiar i czas „okno przeglądarki po N s” (pierwszy start i drugi, z pamięcią
       podręczną K1) w CI z KVM i na laptopach; wybór w ADR. Kierunek: najkrótszy start, o ile obraz nie rośnie więcej
       niż dwa razy.
-  [ ] ADR (T16, S32): gdzie leży obraz poza rdzeniem, jak go sprawdzać (dm-verity, skrót w podpisanym manifeście
+  [x] ADR (T16, S32): gdzie leży obraz poza rdzeniem, jak go sprawdzać (dm-verity, skrót w podpisanym manifeście
       miejsca A/B — fail closed, niezmiennik 10), jak aktualizacja wymienia go razem z miejscem A/B (nowy obok starego,
       jak pliki startowe w 0.9.0), co z dyskami zainstalowanymi przez 0.10.x (układ K1-EFI, format 2 — k1_uklad.h).
-  [ ] Budowa: scripts/zbuduj-strefe.sh (format z pomiaru), jadro/strefa.config (nowe opcje z komentarzem; xz
+  [x] Budowa: scripts/zbuduj-strefe.sh (format z pomiaru), jadro/strefa.config (nowe opcje z komentarzem; xz
       i XZ_DEC_X86 usunięte, jeśli nic ich nie potrzebuje), scripts/zbuduj-obraz.sh (obraz już nie w rdzeniu),
       scripts/sprawdz-powtarzalnosc.sh (mkfs.erofs albo mksquashfs — stały czas, UUID, kolejność).
-  [ ] Start i nadzorca: obraz otwierany i sprawdzany przy starcie strefy (albo K1 — wg ADR); VMM dostaje go na fd 6 jak
+  [x] Start i nadzorca: obraz otwierany i sprawdzany przy starcie strefy (albo K1 — wg ADR); VMM dostaje go na fd 6 jak
       dziś (bez zmian w VMM, jeśli się da); uszkodzony obraz → okienko „<tytuł> nie może ruszyć”, K1 żyje.
-  [ ] Instalator i aktualizacje (S32, S35): zapis obrazu przy instalacji, wymiana przy aktualizacji, odmowa, gdy się nie
+  [x] Instalator i aktualizacje (S32, S35): zapis obrazu przy instalacji, wymiana przy aktualizacji, odmowa, gdy się nie
       mieści; aktualizacja z poprzedniej wersji bez utraty danych.
-  [ ] Aktualizacja przez sieć (S46, ADR 0046): paczka (k1_paczka.h, T4) i ogłoszenie niosą też obraz strefy — sprawdzany
+  [x] Aktualizacja przez sieć (S46, ADR 0046): paczka (k1_paczka.h, T4) i ogłoszenie niosą też obraz strefy — sprawdzany
       jak reszta (skrót w podpisanym manifeście albo ogłoszeniu, fail closed); narzedzia/wydanie.c i krok wydania w k1.yml
       — nowy plik albo nowa część paczki; poczekalnia za FAT-em K1-EFI ma miejsce na większą paczkę. Strefa pobierania
       startuje z obrazu strefy — po przeprowadzce musi ruszać i ze starego układu (aktualizacja Z poprzedniej wersji),
       i z nowego (następne aktualizacje); inaczej K1 nie pobierze już żadnej poprawki robota.
-  [ ] Robot (punkt 0): wyłączony od scalenia tego kroku do potwierdzenia przeprowadzki na laptopach (wpis „Tymczasowe”).
+  [x] Robot (punkt 0): wyłączony od scalenia tego kroku do potwierdzenia przeprowadzki na laptopach (wpis „Tymczasowe”).
   Testy i dowód: test-m1, test-m5f (instalator, aktualizacja z pendrive'a, A/B), test-aktualizacja-siec (aktualizacja
   przez sieć z poprzedniej wersji na nowy układ), test-m6 (Secure Boot), test-strefa, sprawdz-powtarzalnosc; NEGATYWNE: zmieniony bajt obrazu → strefa nie rusza albo kończy się z powodem, K1 i inne
   strefy żyją; obraz ze starej wersji przy nowym miejscu A/B → odmowa. Liczby: czas startu przeglądarki, rozmiar ISO,
@@ -427,7 +427,26 @@ KROK 4 — Obraz przeglądarki poza rdzeniem, szybszy start                     
   zamknięte albo zmienione), TESTY.md, SLOWNIK (jeśli nowe pojęcie, np. nazwa miejsca na obrazy stref), skill kons-dev.
   Gotowe, gdy: CI zielone, start przeglądarki krótszy (liczby w PR-ze), właściciel uruchomił obraz próbny z pendrive'a;
   przeprowadzkę na dysku (aktualizacja przez sieć) potwierdza po najbliższym wydaniu — dopiero wtedy robot wraca.
-  Ustalenia z wykonania: (pusto — wypełnia krok 4)
+  Ustalenia z wykonania (2026-11-19, ADR 0050):
+  - Miejsce (S31, S32 — POTWIERDZONE z kodu): dysk z 0.10.x ma K1-EFI 512 MiB = FAT 280 MiB (miejsca A i B po 128 MiB)
+    + 232 MiB poczekalni; zaraz za nią K1-DANE. Obraz poza miejscami A/B (dwie kopie) nie mieści się razem z poczekalnią
+    bez przesuwania K1-DANE. Wybrane: obraz w miejscu A/B, zaraz za wewnętrznym FAT-em z k1.efi, do końca obrazu miejsca
+    (manifest go obejmuje). Formaty manifestu, paczki i poczekalni bez zmian — aktualizacja z 0.10.7 (sieć, pendrive)
+    działa starym programem zapisującym; „Wróć” wraca też do starego obrazu; strefa pobierania rusza w obu układach (S46).
+  - Pomiar formatów (S33): xz 1 MiB 108,7 MB; zstd 1 MiB 120,3 MB (+10,6 %); zstd 128 KiB 131,3 MB (+20,8 %); lz4hc
+    128 KiB 171,8 MB (+58 %); EROFS — brak mkfs.erofs. Żaden szybszy nie mieści się w miejscu 128 MiB obok k1.efi
+    (18,2 MiB): format zostaje xz. Czasu startu nie mierzono (kontener bez KVM, CI bez przeglądarki) — szybszy start
+    i miejsce na FFmpeg / Mesę czekają na większe miejsca A/B (D10).
+  - Sprawdzanie: nadzorca (obraz_strefy.c) — dm-verity ze skrótem z rdzenia (/rdzen/strefy/przegladarka.skrot), kod
+    loop + dm-verity wspólny z initramfs (k1_verity.c); szuka na K1-EFI (wewnętrzne, potem USB; miejsce z identyfikatorem
+    wydania, najpierw uruchomione) i w testach QEMU na dysku virtio jego wielkości. VMM: rozmiar przez lseek.
+  - Liczby: rdzeń 115,3 → 5,8 MB (K1 ok. 109 MB pamięci więcej), k1.efi 122,7 → 18,2 MiB, ISO 137 → 27 MB (bez obrazu
+    przeglądarki — K1 nie ma napędu CD; „Później”), obraz USB i paczka bez zmian, zapas miejsca A 2,5 MiB.
+  - NIEPEWNE z kroku: obraz próbny z PR-a z tym samym numerem co na dysku — Ustawienia → Aktualizacje nie pokażą
+    przycisku (bez zmian; obraz próbny sprawdza się z pendrive'a, przeprowadzkę — aktualizacja przez sieć po wydaniu).
+  - Przy okazji (prośba właściciela 2026-11-19): ekran „Wyłączanie” nie pojawiał się na X230 — nie rozdzielczość: bez
+    otwartej strefy nadzorca oddawał sprawę do init od razu i ekran kończył się przed pierwszą klatką; teraz nadzorca
+    czeka co najmniej obieg kropek (1,5 s); test-m4 sprawdza kolejność w logu.
 
 KROK 5 — Szybka grafika, strona K1: pośrednik grafiki                              L · T10–T15 · ADR z kr. 1
   (Dodany 2026-11-17 na prośbę właściciela. Zaczyna się tylko, jeśli krok 1 (f) i D8 tak mówią.)
@@ -536,6 +555,16 @@ Szybka grafika (dodane 2026-11-17) — czat kroku 6 zada je na początku; D8 —
          „Później” (do komputera, który obsłuży), a 0.10.9 wychodzi z filmami i szybszym startem. Bez laptopa do
          sprawdzenia szybkiej grafiki nie wydajemy.
       B: wstrzymać 0.10.9, aż będzie sprzęt do sprawdzenia.
+  [!] D10 — (nowe, krok 4, ADR 0050) Większe miejsca A/B. Po kroku 4 obraz przeglądarki leży w miejscu A/B obok k1.efi
+      (pamięć: K1 ma ok. 109 MB więcej), ale miejsce 128 MiB jest znowu prawie pełne (zapas 2,5 MiB): nie mieści się
+      szybszy format (start przeglądarki), FFmpeg (krok 3) ani sterownik karty strefy (krok 6). Dyski z K1 0.10.x mają na
+      system tylko 512 MiB (trzy wersje naraz: działająca, poprzednia do „Wróć”, czekająca w poczekalni).
+      A (zalecane): większa partycja K1-EFI i większe miejsca w nowych instalacjach i pendrive'ach; oba laptopy
+         instalujesz od nowa z pendrive'a — dane w skarbcu laptopa przepadają (to maszyny testowe).
+      B: przeprowadzka bez utraty danych — K1 sam zmniejsza K1-DANE od końca (gdy koniec jest wolny) i robi miejsce na
+         obrazy stref; osobny, duży krok z ryzykiem dla danych.
+      C: zostać przy 128 MiB — własny, mały FFmpeg (T5 B), bez szybkiej grafiki (bez Mesy w strefie).
+      Pytanie zada czat kroku 2 albo 3 (przed FFmpeg).
 
 Techniczne (decyduje Claude w ADR kroku 1 — Ty dostajesz krótkie wyjaśnienie):
 
