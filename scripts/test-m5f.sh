@@ -93,6 +93,8 @@ if tryb == "z-dysku":
             czekaj(r"K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE", czas=10))
     sprawdz("start z dysku: pulpit wie, że K1 jest zainstalowany (Start → Wyloguj dostępne)",
             czekaj(r"K1-GUI: K1 zainstalowany na tym komputerze: Wyloguj dostępne", czas=10))
+    sprawdz("(0.10.9 krok 4) obraz przeglądarki z miejsca A dysku, sprawdzony przez dm-verity",
+            czekaj(r"K1-NADZORCA: obraz strefy przegladarka: miejsce a na sda1 \(\d+ MiB\), sprawdzony", czas=60))
     zrzut("2-z-dysku")
     # 0.8.5 step 3: Ustawienia → Miejsce knows K1 runs from the disk — no stick, no "Użyj całego pendrive'a"
     klik(int(g.group(3)) + 2 * int(g.group(5)), int(g.group(4)))
@@ -119,6 +121,8 @@ if tryb == "po-aktualizacji":
                        r"K1-NADZORCA: partycja danych K1-DANE otwarta dla skarbca \(sda2\)", czas=5))
     sprawdz("A/B: GRUB uruchomił nowe miejsce B na próbę, K1 je potwierdził po udanym starcie",
             czekaj(r"K1-NADZORCA: A/B: nowa wersja [0-9.]+ wystartowała — potwierdzona \(sda1, miejsce b\)", czas=60))
+    sprawdz("(0.10.9 krok 4) obraz przeglądarki z nowego miejsca B dysku (nie z pendrive'a z tą samą wersją)",
+            czekaj(r"K1-NADZORCA: obraz strefy przegladarka: miejsce b na sda1 \(\d+ MiB\), sprawdzony", czas=60))
     koniec()
 if tryb == "wycofanie":
     sprawdz("A/B: uszkodzone nowe miejsce A — GRUB wrócił do B, K1 zgłasza nieudaną aktualizację",
@@ -263,8 +267,9 @@ PY
 
 SATA="-drive if=none,id=dysk,file=$DYSK,format=raw -device ide-hd,bus=ide.0,drive=dysk"
 uruchom z-iso 0-z-iso --iso "$K1_WYNIK/k1-$K1_WERSJA.iso" --uefi --vga virtio --qemu "$SATA"
-# M6a: a stick whose system was changed (one byte of slot A that the checksum covers, in the free space of its
-# inner FAT after k1.efi — the stick itself still starts) — refused before any write.
+# M6a: a stick whose system was changed (one byte of slot A that the checksum covers, near the end of the slot's image:
+# since 0.10.9 step 4 the zone image's hash tree, which no start reads — the stick itself still starts) — refused before
+# any write.
 # The layout block (k1_uklad.h) at 1 KiB of K1-EFI (which starts at 1 MiB) says where the slots are.
 uklad() { # $1 = image, $2 = field offset in the block (32: slot A, 40: slot B, 16: grubenv) → bytes from the image start
     python3 -I -c 'import sys; f=open(sys.argv[1],"rb"); f.seek(1048576+1024+int(sys.argv[2])); print(1048576+int.from_bytes(f.read(8),"little"))' "$1" "$2"

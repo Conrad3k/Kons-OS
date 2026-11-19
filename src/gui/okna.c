@@ -240,7 +240,8 @@ void strefa_stan(const struct k1_komunikat *m)
         [K1_STREFA_BEZ_WIRTUALIZACJI] = "Ten komputer ma wyłączoną wirtualizację. Włącz ją raz w BIOS-ie: przy starcie "
                                         "F1 (ThinkPad) albo F2 (IdeaPad) → „Intel Virtualization Technology”: Enabled.",
         [K1_STREFA_ZA_MALO_PAMIECI] = "Za mało wolnej pamięci. Zamknij inną strefę albo aplikację.",
-        [K1_STREFA_BRAK_OBRAZU] = "Ta wersja K1 nie ma tej strefy.",
+        [K1_STREFA_BRAK_OBRAZU] = "Brak obrazu tej strefy albo jest uszkodzony. Zaktualizuj K1 (Ustawienia → "
+                                  "Aktualizacje) albo uruchom go z pendrive'a. Twoje dane zostają.", /* 0.10.9 step 4 */
         [K1_STREFA_KONIEC_PAMIEC] = "Strony zajęły całą pamięć strefy. Otwórz ją ponownie; zamykaj karty, których "
                                     "nie używasz.",
         [K1_STREFA_KONIEC_PAMIEC_K1] = "Komputerowi zabrakło pamięci, więc K1 ją zatrzymał. Zamknij inne okna i otwórz "
