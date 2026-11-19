@@ -32,7 +32,8 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.10.1 Strefy — balon | pamięć sesji według potrzeby (wolna wraca do K1), „Mało pamięci” i sesje w Zasobach, okienko „Którą sesję otworzyć?”, przeglądarka nie wysypuje się przy kartach, przewijanie po nowej karcie | PRZETESTOWANE w QEMU z KVM (ADR 0044); palce w Firefoksie — na stanowisku na hoście |
 | 0.10.2 Strefy — testy | „Uruchamiam…” aż do okna przeglądarki, okno znika od razu po zamknięciu (sesja zapisuje się w tle, także przy wyłączaniu), testy klikają po nazwach (opis ekranu), zrzuty wzorcowe okien K1 | PRZETESTOWANE w QEMU (ADR 0045); przeglądarka — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.10.5 Aktualizacje przez sieć | Ustawienia → Aktualizacje, K1 na dysku sam pobiera nową wersję z wydań na GitHubie i pyta przed instalacją, robot sam wydaje poprawki jądra i przeglądarki, zmiana rozmiaru i maksymalizacja okna przeglądarki, Alt+Tab, Przeglądarka na pasku i pulpicie, jądro Linux 7.3 | PRZETESTOWANE w QEMU (ADR 0046, 0047); na sprzęcie — lista w `docs/DO_ZROBIENIA.txt` |
-| 0.10 Strefy (dalej) | poprawki wyglądu (0.10.7), filmy dekodowane kartą graficzną, szybka grafika i szybszy start przeglądarki (0.10.9), inne obce aplikacje, wspólna strefa | PLANOWANE (ADR 0020, 0024, 0025) |
+| 0.10.7 Wygląd | krótsze napisy bez półpauz, Ustawienia i Pliki ułożone porządniej, okno przeglądarki bez kolorowej obwódki, napisy pod ikonami pulpitu na pigułce, tapeta z matową krawędzią, ekran „Wyłączanie”, Ustawienia → Aktualizacje już się nie zamykają | PRZETESTOWANE w QEMU (ADR 0048); wyłączanie z przeglądarką — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
+| 0.10 Strefy (dalej) | filmy dekodowane kartą graficzną, szybka grafika i szybszy start przeglądarki (0.10.9), inne obce aplikacje, wspólna strefa | PLANOWANE (ADR 0020, 0024, 0025) |
 | 0.11 Pliki ze stref | przenoszenie plików ze stref i do stref przez okno K1, schowek między strefami | PLANOWANE |
 | 0.12–0.13 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |
 
@@ -40,7 +41,7 @@ Od 0.9 etapy to numery wersji (ADR 0035); wcześniejsze etapy M0–M6 zostały w
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-**Co już jest (0.10.5):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
+**Co już jest (0.10.7):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
 110), a Instalator zapisuje go na dysk. Pulpit jak w Windows 11, w stylu K1: ikony na pulpicie (aplikacje, Kosz, Twoje
 pliki i foldery z folderu Pulpit), pasek na dole z menu Start i przypiętymi aplikacjami (Zegar, Notatki, Ustawienia, Zasoby,
 Kalkulator, Pliki, Przeglądarka; w menu Start też Instalator i Podgląd), pasek na górze (sieć, dźwięk, bateria, data

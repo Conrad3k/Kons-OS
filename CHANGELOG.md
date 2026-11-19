@@ -3,6 +3,55 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.10.7] — 2026-11-19
+
+**Wygląd** (plan 0.10.7, kroki 1–7; ADR 0048). Poprawki po przeglądzie wyglądu: krótsze napisy bez półpauz, Ustawienia
+i Pliki ułożone porządniej, okno przeglądarki bez kolorowej obwódki, napisy pod ikonami pulpitu czytelne na każdej
+tapecie, tapeta z matową krawędzią łuków. Do tego dwa błędy zgłoszone ze sprzętu: Ustawienia → Aktualizacje już nie
+zamykają Ustawień, a „Wyłącz” pokazuje ekran „Wyłączanie” i zawsze dochodzi do końca.
+
+Opis w K1: K1 wygląda spokojniej: krótsze napisy, porządniejsze Ustawienia i Pliki, okno przeglądarki z ramką jak
+inne okna. Napisy pod ikonami pulpitu czytasz na każdej tapecie. Aktualizacje w Ustawieniach już się nie zamykają,
+a po kliknięciu „Wyłącz” widzisz ekran „Wyłączanie”.
+
+### Zmienione
+- **Napisy** (krok 1, Twoje zasady Z2 i Z3, decyzja D2): bez podtytułów pod nazwami sekcji Ustawień i bez zdań, które
+  opisują to, co widać; ok. 80 napisów bez półpauzy (dwa zdania, przecinek albo dwukropek). Opisy w menu Start, ostrzeżenie
+  przy haśle i „Pliki są tylko w pamięci…” zostają. Półpauzę w napisie okna wyłapuje teraz `sprawdz-czytelnosc.py`.
+- **Ustawienia** (krok 2, D3): Informacje jako wizytówka (znak, „Kons K1”, wersja, dane w kolumnie; wersja jądra z budowy,
+  nie wpisana na sztywno — było „Linux 6.18”), Aplikacje wierszami, Hasło na jednej karcie, Ekran z trybami po trzy
+  w rzędzie, Aktualizacje bez terakotowego kwadratu, Przeglądarka z przyciskami, ikona Sieci jako łuki Wi-Fi. Komputer
+  bez baterii nie ma sekcji „Bateria”. Lista sekcji z lewej bez zmian (Z1).
+- **Pliki** (krok 3, D4): stale widać tylko „Nowy folder” (w Koszu „Opróżnij Kosz”), „Otwórz”, „Zmień nazwę”, „Usuń”
+  pojawiają się po zaznaczeniu; panel szczegółów tylko przy zaznaczonym pliku, napisy w nim zawijane, nie ucięte; pusty
+  folder: szary znak „Warstwy”, „Ten folder jest pusty” i „Nowy folder”.
+- **Okno przeglądarki** (krok 4, D1 — szkic A, ADR 0048): ramka jak okna K1, bez kolorowej obwódki; kolor sesji tylko
+  w kropce przed nazwą sesji i w linii pod paskiem; sesja jednorazowa: „· zapomina”. Pasek dalej rysuje K1, poza obrazem
+  strefy („osobna maszyna”).
+- **Pulpit** (krok 7, D6 — szkic A): napis pod ikoną leży na miękkiej, ciemnej pigułce — czytelny na każdej tapecie
+  i w obu motywach.
+- **Tapeta** (krok 7, D5): łuki bez jasnej, „świecącej” linii na krawędzi; ciepła ścianka zostaje. Dotyczy wszystkich
+  pięciu tapet.
+
+### Dodane
+- **Ekran „Wyłączanie”** (krok 6, D7 — szkic B „Kropki”): od kliknięcia „Wyłącz” albo „Uruchom ponownie” („Ponowne
+  uruchamianie”) do końca; przykrywa pulpit i okno przeglądarki, kropki się ruszają, póki K1 czeka na zapis sesji.
+  Rysuje go ekran K1 na prośbę nadzorcy (komunikat `WYLACZANIE`, tylko od nadzorcy). Wylogowanie bez zmian.
+
+### Naprawione
+- **Ustawienia → Aktualizacje zamykały Ustawienia** (krok 5, Twoje zgłoszenia z 2026-11-18): po ponownym otwarciu
+  Ustawień i po „Sprawdź teraz”. Godzina „Sprawdzono o …” była liczona funkcją biblioteki C, która czyta plik strefy
+  czasowej — klatka Ustawień tego zabrania. Teraz czas polski jak zegar na pasku; `sprawdz-czytelnosc.py` pilnuje, żeby
+  takie funkcje nie wróciły; test w `test-aktualizacja-siec.sh` (otwórz, zamknij, otwórz, „Sprawdź teraz”).
+- **Wyłączanie z otwartą przeglądarką nie wyłączało komputera** (krok 6, Twoje zgłoszenie z 2026-11-18): nadzorca co 5 s
+  zapisuje w logu, na co czeka (najwyżej 30 s), a init po ostatecznym zatrzymaniu procesów czeka najwyżej okres łaski
+  i i tak wyłącza. W QEMU błąd się nie powtórzył — wynik na X230 i IdeaPadzie sprawdzasz Ty (punkt 4 DO_ZROBIENIA).
+
+### Porządki
+- Tapeta: usunięty nieużywany kolor „krawędzi” z palet. Pliki `.c` — żaden powyżej 560 wierszy (najdłuższy `k1_rysuj.c`,
+  552). Tymczasowe: terminów na 0.10.7 nie było, nowych nie dodano (K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian). Plan
+  0.10.7 — w archiwum.
+
 ## [0.10.5] — 2026-11-18
 
 **Aktualizacje przez sieć** (plan 0.10.5, kroki 1–8; ADR 0046, 0047). K1 zainstalowany na dysku sam sprawdza wydania na

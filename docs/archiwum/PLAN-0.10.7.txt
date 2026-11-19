@@ -128,7 +128,8 @@ Robot i wydania (od 0.10.5: ADR 0046 i 0047, docs/komponenty/robot.md i aktualiz
      PR #176
 [x]  6  Błąd: wyłączanie do końca, ekran „Wyłączanie”       W17–W18          0.10.5      D7, T7, T8       M        brak
      PR #178 (sprawdzenie na sprzęcie: po wydaniu, lista w DO_ZROBIENIA)
-[ ]  7  Pulpit, tapeta; porządki; wydanie 0.10.7            W13–W15          1–6         D5, D6           M        brak
+[x]  7  Pulpit, tapeta; porządki; wydanie 0.10.7            W13–W15          1–6         D5, D6           M        brak
+     PR wydania 0.10.7 (gałąź claude/optimistic-gauss-o726v2)
 (ADR 0048: następny wolny po 0046 i 0047 z 0.10.5; 0.10.9 Filmy i szybka grafika bierze następne.)
 
 
@@ -350,10 +351,10 @@ KROK 6: Błąd: wyłączanie do końca, ekran „Wyłączanie”                
 KROK 7: Pulpit, tapeta; porządki; wydanie 0.10.7                              M · D5, D6 · bez ADR
   Cel: napisy pod ikonami pulpitu czytelne na każdej tapecie; tapeta według D5; wydanie.
   Zadania:
-  [ ] Napisy pod ikonami pulpitu (W13, D6).
-  [ ] Tapeta (W14, D5): szkice wszystkich pięciu wariantów „dziś / matowa krawędź”; zmiana tylko po wyborze właściciela.
-  [ ] Porządki wersji PATCH: pliki blisko limitu (W15), Tymczasowe, DO_ZROBIENIA.
-  [ ] Wydanie: VERSION 0.10.7 (albo następny wolny PATCH, jeśli robot go zajął: punkt 0, „Robot i wydania”); CHANGELOG
+  [x] Napisy pod ikonami pulpitu (W13, D6).
+  [x] Tapeta (W14, D5): szkice wszystkich pięciu wariantów „dziś / matowa krawędź”; zmiana tylko po wyborze właściciela.
+  [x] Porządki wersji PATCH: pliki blisko limitu (W15), Tymczasowe, DO_ZROBIENIA.
+  [x] Wydanie: VERSION 0.10.7 (albo następny wolny PATCH, jeśli robot go zajął: punkt 0, „Robot i wydania”); CHANGELOG
       (kroki 1 do 7, najpierw „co widzisz”, wiersz „Opis w K1:” prostym językiem, bez numerów kroków); DO_ZROBIENIA:
       „Teraz” → 0.10.9 Filmy i szybka grafika (docs/PLAN-0.10.9.txt), lista dla właściciela (z kroków 4 do 6; pierwsza pozycja:
       aktualizacja przez sieć na obu laptopach, opis przed „Zainstaluj”); README („Co już jest”, tabela); ten plik →
@@ -361,7 +362,16 @@ KROK 7: Pulpit, tapeta; porządki; wydanie 0.10.7                              M
       z ogłoszeniem i paczką, raport z linkami (dopiero gdy wydanie istnieje).
   Testy i dowód: pełny komplet w CI; test-wzorce (pulpit-ikony, oba motywy; tapety: miniatury w Ustawieniach → Wygląd).
   Gotowe, gdy: wydanie k1-v0.10.7 istnieje, raport z linkami.
-  Ustalenia z wykonania: (pusto, wypełnia krok 7)
+  Ustalenia z wykonania (2026-11-19):
+    - D6: szkic A „pigułka” (szkice „dziś / A / B” na pięciu tapetach, częściami K1 na hoście); D5: matowa krawędź (szkic
+      „dziś / matowa” każdej tapety). Obrazy „przed / po” z test-wzorce przyjęte przez właściciela („OK, przyjmij”).
+    - Pigułka: czarny 35 % (alfa 89), zaokrąglenie 6, 19 px, do 6 px z boków, zawsze w komórce (rysowanie tylko zmienionej
+      komórki zostaje poprawne); cień napisu 1 px zniknął.
+    - Tapeta: jasną linię dawał dodatek koloru `krawedz` palety tuż przy krawędzi arkusza (W14) — usunięty razem z kolorem.
+      Zmienia 34 wzorce: pulpit, paski, menu Start, okienko sesji, miniatury w Ustawieniach → Wygląd, a w innych oknach
+      kilka pikseli tapety w zaokrąglonych rogach.
+    - Porządki: żaden plik .c powyżej 560 wierszy (k1_rysuj.c 552 — dziel przed rozbudową), Tymczasowe bez zmian.
+    - Wyłączanie z przeglądarką na sprzęcie (krok 6): wynik od właściciela po wydaniu, lista w DO_ZROBIENIA (punkt 4).
 
 
 4. DECYZJE

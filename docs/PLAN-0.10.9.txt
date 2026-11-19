@@ -11,7 +11,7 @@ Wersja stoi na 0.10.1 (balon i podział pamięci — klatki filmu to pamięć st
 przeglądarka, sesje i Ustawienia → Przeglądarka; ADR 0042, 0043). Numer: do 2026-11-17 „0.10.3” (wybrał go właściciel);
 2026-11-17 właściciel przesunął tę wersję na 0.10.7 — PO 0.10.5 Aktualizacje przez sieć (docs/archiwum/PLAN-0.10.5.txt): „lepiej
 zająć się grafiką, gdy fundamenty, które chcemy zrobić, już będą”; tego samego dnia jeszcze raz, na 0.10.9 — numer 0.10.7
-dostał plan „Wygląd” (docs/PLAN-0.10.7.txt, poprawki wyglądu po przeglądzie). Plan się nie zmienił — tylko numer i kolejność.
+dostał plan „Wygląd” (docs/archiwum/PLAN-0.10.7.txt, poprawki wyglądu po przeglądzie). Plan się nie zmienił — tylko numer i kolejność.
 2026-11-17 (rozmowa z właścicielem, przed startem wersji) plan rozszerzony o dwie rzeczy: SZYBKA GRAFIKA — przełącznik
 przy sesji, z którym strefa rysuje kartą graficzną przez most „native context” (most na poziomie sterownika karty:
 strefa ma prawdziwy sterownik, K1 przepuszcza tylko proste prośby o bufory i pracę karty; T10–T15) — oraz SZYBSZY
@@ -43,7 +43,7 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
 Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, 2, 4, 3, 5, 6 (wyżej: dlaczego 4 przed 3).
-Cała wersja zaczyna się po wydaniu 0.10.7 (Wygląd, docs/PLAN-0.10.7.txt — zmienia ramkę okna strefy i wygląd Ustawień →
+Cała wersja zaczyna się po wydaniu 0.10.7 (Wygląd, docs/archiwum/PLAN-0.10.7.txt — zmienia ramkę okna strefy i wygląd Ustawień →
 Przeglądarka, na których stoi krok 3), 0.10.5 i 0.10.2 (Testy, docs/archiwum/PLAN-0.10.2.txt — wstawione przez właściciela 2026-11-17) i 0.10.1 (Balon, docs/archiwum/PLAN-0.10.1.txt — zmienia VMM, pamięć stref i Ustawienia →
 Przeglądarka, na których ten plan stoi). Krok 1 to głównie próby i ADR — można go zrobić wcześniej, równolegle
 z 0.10.1, jeśli nie dotyka tych samych plików (próby na osobnej gałęzi, do main tylko ADR i ustalenia).

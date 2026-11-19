@@ -35,7 +35,7 @@ Podgląd tapety bez QEMU: `make build/obj/podglad_grafiki && build/obj/podglad_g
   Zasoby, Kalkulator i ramka strefy, w obu motywach. **Zmianę wyglądu zatwierdza właściciel (D3):** PR, który ją
   wprowadza, pokazuje obrazy „przed / po” z testu; wzorce w repo zmieniają się dopiero po jego „OK”.
 
-- 2026-11-17 (po przeglądzie wyglądu, plan 0.10.7 „Wygląd”, `docs/PLAN-0.10.7.txt`): **lista sekcji w Ustawieniach
+- 2026-11-17 (po przeglądzie wyglądu, plan 0.10.7 „Wygląd”, `docs/archiwum/PLAN-0.10.7.txt`): **lista sekcji w Ustawieniach
   zostaje taka, jak jest** (minimalistyczna, bez grup i nagłówków); z napisów w systemie znikają **opisy tego, co
   użytkownik widzi** (podtytuły sekcji, zdania-podpisy) i **półpauzy**; nowych takich zdań nie dodajemy. **Kolor sesji
   nie obejmuje całego okna przeglądarki** („psuje estetykę”): ma być w jednym miejscu, dyskretnie (szkice w kroku 4).
@@ -77,7 +77,8 @@ Szkice kierunków: `build/podglad/logo-kierunki.png` (generowane skryptem w sesj
 ## Tapety (od M4)
 Warstwy długich, pochylonych arkuszy papieru: krawędź każdego schodzi z góry, zakręca i wychodzi
 w prawym dolnym rogu; tam, gdzie krawędź jest zwrócona do patrzącego, widać ciepło oświetloną
-ściankę i miękki cień na arkuszu niżej; powierzchnie odbijają „niebo” z delikatnymi chmurami.
+ściankę i miękki cień na arkuszu niżej; powierzchnie odbijają „niebo” z delikatnymi chmurami. Krawędź jest matowa:
+od 0.10.7 (D5) bez jasnej, „świecącej” linii, która do 0.10.5 biegła po krawędzi każdego arkusza.
 Liczone w kodzie (`k1_rysuj_tlo`), w połowie rozdzielczości i powiększane, z ditheringiem.
 Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
 
@@ -118,7 +119,9 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
 - **Siatka:** komórki 84×92 od (16, 48), kolumnami z góry na dół; dół ekranu (100 px) zostaje dla paska.
 - **Ikona:** kafelek 52×52 (zaokrąglenie 14) w kolorze tła okien (motyw: `#FAF9F6` / `#262523`, krycie
   96%), włoskowaty obrys, miękki cień 3 px w dół; ikona liniowa 28 px w kolorze tekstu. Pod kafelkiem
-  nazwa — Plex Sans Medium 13, kremowa z ciemnym cieniem 1 px (leży na tapecie w obu motywach).
+  nazwa — Plex Sans Medium 13, kremowa, na miękkiej ciemnej pigułce (czarny ok. 35 %, zaokrąglenie 6, 19 px wysokości,
+  6 px z boków, zawsze w komórce) — czytelna na każdej tapecie w obu motywach (0.10.7, D6 — szkic A; do 0.10.5 kremowa
+  z ciemnym cieniem 1 px, na jasnych łukach Gliny i na Świcie słabo czytelna).
 - **Zaznaczenie i najechanie:** prostokąt komórki z zaokrągleniem 10 — jasny motyw: krem 18% (zaznaczona)
   / 9% (najechana), ciemny motyw: noc 43% / 24%; zaznaczona ma kremowy obrys 1,25 px.
 - **Menu kontekstowe:** 232 px, zaokrąglenie 12, tło okien 98%, włoskowaty obrys, cień 6 px w dół;

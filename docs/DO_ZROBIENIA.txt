@@ -4,22 +4,29 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.10.5 „Aktualizacje przez sieć” — Ustawienia → Aktualizacje, K1 na dysku sam pobiera nową wersję z wydań na
-GitHubie i pyta przed instalacją, robot wydaje poprawki jądra i przeglądarki, okno przeglądarki o dowolnym rozmiarze,
-Alt+Tab, jądro Linux 7.3 (plany zamknięte: docs/archiwum/); teraz 0.10.7 Wygląd (plan: docs/PLAN-0.10.7.txt), potem
-0.10.9 Filmy i szybka grafika (docs/PLAN-0.10.9.txt).
-Data: 2026-11-18.
+Stan: 0.10.7 „Wygląd” — krótsze napisy bez półpauz, Ustawienia i Pliki ułożone porządniej, okno przeglądarki bez
+kolorowej obwódki, napisy pod ikonami pulpitu na pigułce, tapeta z matową krawędzią, ekran „Wyłączanie”, poprawione
+Ustawienia → Aktualizacje (plany zamknięte: docs/archiwum/); teraz 0.10.9 Filmy i szybka grafika (plan:
+docs/PLAN-0.10.9.txt).
+Data: 2026-11-19.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — 0.10.7 Wygląd (plan: docs/PLAN-0.10.7.txt)
------------------------------------------------------
-Kroki i decyzje — w planie 0.10.7 (poprawki wyglądu po przeglądzie, Twoja prośba z 2026-11-17). Potem 0.10.9 Filmy
-i szybka grafika (docs/PLAN-0.10.9.txt). Od 0.10.5 w tle działa robot: sam wydaje wersje PATCH z poprawionym jądrem
-i pakietami przeglądarki, więc numer wydania „0.10.7” może zająć robot — wtedy Wygląd bierze następny wolny (plany,
-punkt 0 „Robot i wydania”).
+1. TERAZ — 0.10.9 Filmy i szybka grafika (plan: docs/PLAN-0.10.9.txt)
+---------------------------------------------------------------------
+Kroki i decyzje — w planie 0.10.9 (Twoja prośba z 2026-11-16 i 2026-11-17). Od 0.10.5 w tle działa robot: sam wydaje
+wersje PATCH z poprawionym jądrem i pakietami przeglądarki, więc numer wydania „0.10.9” może zająć robot — wtedy wydanie
+bierze następny wolny (plan, punkt 0 „Robot i wydania”).
+0.10.7 Wygląd — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.7.txt; ADR 0048):
+    [x] krok 1 — napisy bez opisów i bez półpauz — PR #170
+    [x] krok 2 — Ustawienia: sekcje w środku — PR #171
+    [x] krok 3 — Pliki: przyciski, szczegóły, pusty folder — PR #173
+    [x] krok 4 — ramka okna strefy: kolor sesji dyskretnie (ADR 0048) — PR #174
+    [x] krok 5 — błąd: Aktualizacje po ponownym otwarciu Ustawień — PR #176
+    [x] krok 6 — błąd: wyłączanie do końca, ekran „Wyłączanie” — PR #178
+    [x] krok 7 — pulpit (napisy na pigułce), tapeta (matowa krawędź), porządki, wydanie 0.10.7
 0.10.5 Aktualizacje przez sieć — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.5.txt; ADR 0046, 0047):
     [x] krok 1 — Ustawienia → Aktualizacje (z Instalatora) — PR #152
     [x] krok 2 — aktualizacje przez sieć: strefa pobierania, ogłoszenie i paczka, pytanie przed instalacją — PR #156, #157
@@ -40,7 +47,7 @@ Wcześniej: 0.10.2 Testy (PR #144, #145, #149), 0.10.1 Balon (PR #134, #137, #13
     0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
     0.10     Strefy — 0.10.0 (przeglądarka w strefie), 0.10.1 Balon, 0.10.2 Testy, 0.10.5 Aktualizacje przez sieć
-             gotowe; teraz 0.10.7 Wygląd, potem 0.10.9 Filmy i szybka grafika
+             0.10.7 Wygląd gotowe; teraz 0.10.9 Filmy i szybka grafika
              (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
@@ -75,12 +82,12 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
     [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna)
     [ ] Przeglądarka K1 (po pierwszej przeglądarce w strefie): okno, karty i pasek adresu jako aplikacja K1, silnik
         (kierunek: WPE WebKit) w strefie; sesje = strefy
-    [ ] 0.10.7 Wygląd (Twoja prośba z 2026-11-17; plan: docs/PLAN-0.10.7.txt, po 0.10.5): poprawki wyglądu po przeglądzie:
+    [x] 0.10.7 Wygląd (Twoja prośba z 2026-11-17; plan: docs/archiwum/PLAN-0.10.7.txt, po 0.10.5): poprawki wyglądu po przeglądzie:
         napisy bez opisów tego, co widać, i bez półpauz; sekcje Ustawień w środku (lista sekcji bez zmian); Pliki
         (przyciski i szczegóły po zaznaczeniu, pusty folder); okno przeglądarki bez kolorowej obwódki, kolor sesji
         dyskretnie na pasku (ADR 0048); od 2026-11-18 (Twoja prośba) także dwa błędy: Ustawienia → Aktualizacje po
         ponownym otwarciu Ustawień zamyka okno; Start → Wyłącz zamyka przeglądarkę, ale nie wyłącza komputera (po
-        poprawce ekran „Wyłączanie” z animacją); napisy pod ikonami pulpitu, tapeta z matową krawędzią do porównania
+        poprawce ekran „Wyłączanie” z animacją); napisy pod ikonami pulpitu (na pigułce), tapeta z matową krawędzią
     [ ] 0.10.9 Filmy i szybka grafika (Twoja prośba z 2026-11-16; plan: docs/PLAN-0.10.9.txt; wcześniej „0.10.3”, potem
         „0.10.7” — przesunięte PO 0.10.5 na Twoją prośbę z 2026-11-17: grafika, gdy fundamenty już będą; numer 0.10.7
         dostał Wygląd): przełącznik
@@ -144,9 +151,22 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.10.5). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+Jedna lista — dla ostatniego wydania (0.10.7). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
 z 2026-11-11).
-Nowe w 0.10.5 (Aktualizacje przez sieć; X230 i IdeaPad):
+Nowe w 0.10.7 (Wygląd; X230 i IdeaPad):
+    [ ] najpierw aktualizacja przez sieć do 0.10.7 (pierwsza tą drogą, jeśli robot nie wydał nic wcześniej): z siecią
+        Ustawienia → Aktualizacje → „Sprawdź teraz” → okienko „Jest nowa wersja K1” z opisem „K1 wygląda spokojniej…” →
+        „Zainstaluj” → K1 uruchamia się ponownie w 0.10.7, dane zostają
+    [ ] wyłączanie z przeglądarką (krok 6): otwórz przeglądarkę, zaloguj się na stronie, Start → Wyłącz — od razu ekran
+        „Wyłączanie” z kropkami, po kilku sekundach (najwyżej ok. 30) komputer wyłączony; po włączeniu dalej zalogowany;
+        to samo z „Uruchom ponownie”; bez przeglądarki wyłącza się od razu. Jeśli nie: czy kropki się ruszają (czeka
+        nadzorca), czy obraz stoi albo jest czarny (init albo jądro) — napisz, co widać
+    [ ] Ustawienia → Aktualizacje (krok 5): otwórz Ustawienia, zamknij, otwórz, kliknij „Aktualizacje”; „Sprawdź teraz”;
+        powtórz kilka razy — okno Ustawień zostaje
+    [ ] okno przeglądarki (krok 4): otwórz Ogólną i Bank obok siebie — po kropce i linii pod paskiem widać, która jest
+        która; przesuń, zminimalizuj, zamknij z paska
+    [ ] pulpit i tapety (krok 7): napisy pod ikonami czytelne na każdej z pięciu tapet (Ustawienia → Wygląd)
+Z 0.10.5 (Aktualizacje przez sieć; X230 i IdeaPad; niesprawdzone):
     [ ] najpierw aktualizacja na dysku do 0.10.5 z pendrive'a — ostatni raz tą drogą: K1 z dysku → Instalator →
         „Zaktualizuj system” (tak to się nazywa w starszej wersji, która jest na dysku); dane i ustawienia zostają
     [ ] Ustawienia → Aktualizacje: wersja 0.10.5, „Zweryfikowano”; z siecią „Sprawdź teraz” → „masz najnowszą wersję”;
@@ -239,7 +259,7 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
     Ciebie) — do potwierdzenia albo zmiany: D4 K1 sprawdza sam po połączeniu i co 6 godzin, pobiera od razu, instaluje
     po „Zainstaluj”; D5 przez sieć aktualizuje się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach;
     D10 przegląd dokumentacji: powtórzenia → odesłania, historia (ADR, CHANGELOG, archiwum) bez zmian.
-[!] 0.10.7 Wygląd — decyzje D1–D6 w docs/PLAN-0.10.7.txt (punkt 4); czat zada je na początku swojego kroku.
+[x] 0.10.7 — decyzje D1–D7 podjęte (docs/archiwum/PLAN-0.10.7.txt, punkt 4).
 [!] 0.10.9 Filmy i szybka grafika — decyzje w docs/PLAN-0.10.9.txt (punkt 4); czat zada je na początku swojego kroku.
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
 
@@ -289,6 +309,8 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
     [x] robot w trybie próbnym (ADR 0047) — termin dotrzymany: od wydania 0.10.5 `ROBOT_PROBNY: "0"` (pełny tryb)
     [x] przegląd 0.10.5 (krok 8): terminów w kodzie na 0.10.5 nie było; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych
         rozwiązań tymczasowych w kodzie 0.10.5 nie dodało
+    [x] przegląd 0.10.7 (krok 7): terminów na 0.10.7 nie było; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych rozwiązań
+        tymczasowych 0.10.7 nie dodało
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
