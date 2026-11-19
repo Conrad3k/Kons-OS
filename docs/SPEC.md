@@ -91,7 +91,9 @@ UEFI + Secure Boot → podpisany UKI (jądro + initramfs + cmdline) → jądro L
   - ograniczony dostęp do urządzeń.
 - LSM: domyślnie Landlock + Yama + lockdown. SELinux albo AppArmor tylko przez ADR.
 - Grafika rozdzielona na procesy:
-  - ekran: jedyny proces z DRM/KMS; ustawia tryb, składa bufory, robi page flip,
+  - ekran: jedyny proces z DRM/KMS; ustawia tryb, składa bufory, robi page flip, **[korekta: ADR 0049 — od 0.10.9 jądro ma i915; obrazem (węzeł card) dalej steruje
+    tylko ekran; węzeł render karty dostają tylko dekoder filmów i pośrednik grafiki, każdy w klatce, jeden na strefę,
+    przy włączonym przełączniku sesji]**
   - gui: pulpit, okna i menu; rysuje do pamięci współdzielonej, bez dostępu do GPU,
   - wejście: czyta evdev i przekazuje zdarzenia do ekranu.
   Renderer własny, programowy, w C. LVGL dopuszczalny po uzasadnieniu. Przejęcie gui nie może dawać dostępu do danych ani systemu.
