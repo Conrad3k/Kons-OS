@@ -193,6 +193,8 @@ int main(void)
         zrodla[n++] = &proba;
         if (zasoby_kanal >= 0 && (najblizszy < 0 || nastepny_raport < najblizszy))
             najblizszy = nastepny_raport;
+        if (strefy_wylaczanie_kiedy() > 0 && (najblizszy < 0 || strefy_wylaczanie_kiedy() < najblizszy))
+            najblizszy = strefy_wylaczanie_kiedy(); /* the power off right after the screen "Wyłączanie" was shown */
         czas = najblizszy < 0 ? 1000 : (najblizszy <= t ? 0 : (int)((najblizszy - t) * 1000.0) + 1);
         if (poll(pfd, n, czas) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));

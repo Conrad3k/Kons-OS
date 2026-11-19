@@ -644,10 +644,14 @@ sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych k
 otworz_start()
 q.klik_w("Menu Start", "Wyłącz", "przycisk")
 sprawdz("Start → Wyłącz: system się wyłącza", czekaj(r"K1: wyłączanie zasilania") and czekaj(r"reboot: Power down"))
-t_ = tekst()  # 0.10.7 step 6: the screen "Wyłączanie" asked for at once — before init (ekran's own line may not reach
-# the log: without a zone init ends nadzorca at once; ekran's side: test-strefa)
+t_ = tekst()  # 0.10.7 step 6: the screen "Wyłączanie" asked for at once — before init
 sprawdz("Start → Wyłącz: prośba o ekran „Wyłączanie” przed wyłączeniem zasilania",
         0 <= t_.find("K1-NADZORCA: ekran wyłączania: prośba wysłana do ekranu") < t_.find("K1: wyłączanie zasilania"))
+# 0.10.9 (the owner's report of 2026-11-19: no dots on the X230): without a zone nadzorca used to hand over to init at
+# once and ekran was stopped before it drew the screen; now ekran shows it, then nadzorca waits one round of the dots
+sprawdz("Start → Wyłącz bez strefy: ekran pokazał „Wyłączanie”, dopiero potem reszta K1 się wyłącza",
+        0 <= t_.find("K1-EKRAN: ekran wyłączania: wyłączanie") < t_.find("K1-NADZORCA: ekran wyłączania pokazany — wyłączam resztę")
+        < t_.find("K1: wyłączanie zasilania"))
 sys.exit(0 if all(wyniki) else 1)
 PY
 

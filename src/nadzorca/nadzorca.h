@@ -214,7 +214,9 @@ void strefa_koniec(int nr, int status, int cicho);
 void strefa_zamyka(int nr);       /* the VMM said STREFA_ZAMYKA: its window is gone, its machine ends */
 int strefa_otworz_po_zamknieciu(int nr, int tryb, int z_testu); /* 1: it is closing — it opens when it ended */
 int32_t strefy_zamykane(void);    /* bit nr-1: zone nr is closing (STREFY_STAN e) */
-int strefy_przed_wylaczeniem(int restart); /* 1: zones run — asked to close, wylacz_teraz follows (strefy_zamykanie) */
+void strefy_przed_wylaczeniem(int restart); /* asks the zones to close; wylacz_teraz follows from strefy_zamykanie
+                                             * (zones closed — or 30 s — and the screen "Wyłączanie" shown long enough) */
+double strefy_wylaczanie_kiedy(void); /* when the screen "Wyłączanie" has been shown long enough (-1: no power off) */
 void strefy_zamykanie(void);      /* every loop: a zone that waited opens; the power off once the zones ended */
 /* strefy_siec.c (0.10.0 step 2, ADR 0043 T9): the browser's connections — each running zone's channel (VMM's fd 7) */
 /* strefy_ust.c (0.10.0 step 5): the sessions as the user set them — kept in skarbiec, sent to gui, ekran, Ustawienia */

@@ -489,8 +489,7 @@ void wylacz(int restart)
         k1_log(TAG, "ekran wyłączania: ekran nie przyjął prośby");
     else
         k1_log(TAG, "ekran wyłączania: prośba wysłana do ekranu");
-    if (!strefy_przed_wylaczeniem(restart))
-        wylacz_teraz(restart);
+    strefy_przed_wylaczeniem(restart); /* wylacz_teraz once the zones closed and the screen was shown (strefy_zamyk.c) */
 }
 
 void wylacz_teraz(int restart)
