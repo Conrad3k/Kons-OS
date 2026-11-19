@@ -125,6 +125,7 @@ Robot i wydania (od 0.10.5: ADR 0046 i 0047, docs/komponenty/robot.md i aktualiz
 [x]  4  Ramka okna strefy: kolor sesji dyskretnie           W12              1           D1, T5           M        0048
      PR #174
 [ ]  5  Błąd: Aktualizacje po ponownym otwarciu Ustawień   W16              0.10.5      T6               S        brak
+     [w toku: Claude, gałąź claude/trusting-curie-oc9pv1]
 [ ]  6  Błąd: wyłączanie do końca, ekran „Wyłączanie”       W17–W18          0.10.5      D7, T7, T8       M        brak
 [ ]  7  Pulpit, tapeta; porządki; wydanie 0.10.7            W13–W15          1–6         D5, D6           M        brak
 (ADR 0048: następny wolny po 0046 i 0047 z 0.10.5; 0.10.9 Filmy i szybka grafika bierze następne.)
