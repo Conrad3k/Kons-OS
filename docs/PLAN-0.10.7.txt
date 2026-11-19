@@ -125,6 +125,7 @@ Robot i wydania (od 0.10.5: ADR 0046 i 0047, docs/komponenty/robot.md i aktualiz
 [x]  4  Ramka okna strefy: kolor sesji dyskretnie           W12              1           D1, T5           M        0048
      PR #174
 [ ]  5  Błąd: Aktualizacje po ponownym otwarciu Ustawień   W16              0.10.5      T6               S        brak
+     [w toku: Claude, gałąź claude/trusting-curie-oc9pv1]
 [ ]  6  Błąd: wyłączanie do końca, ekran „Wyłączanie”       W17–W18          0.10.5      D7, T7, T8       M        brak
 [ ]  7  Pulpit, tapeta; porządki; wydanie 0.10.7            W13–W15          1–6         D5, D6           M        brak
 (ADR 0048: następny wolny po 0046 i 0047 z 0.10.5; 0.10.9 Filmy i szybka grafika bierze następne.)
@@ -268,12 +269,12 @@ KROK 5: Błąd: Aktualizacje po ponownym otwarciu Ustawień                     
   Cel: sekcja Aktualizacje działa przy każdym otwarciu Ustawień; ponowne otwarcie okna nie zależy od tego, co zostało
   po poprzednim.
   Zadania:
-  [ ] Odtworzyć w QEMU (test-m4 albo test-aktualizacji: otwórz Ustawienia, zamknij, otwórz, klik „Aktualizacje”
+  [x] Odtworzyć w QEMU (test-m4 albo test-aktualizacji: otwórz Ustawienia, zamknij, otwórz, klik „Aktualizacje”
       po nazwie) i z logu ustalić przyczynę: kod wyjścia aplikacji (159 = zabronione wywołanie w klatce, 25 = SIGXFSZ,
       SIGILL = przepełnienie z fortify, SIGSEGV), ostatni wpis K1-USTAWIENIA i nadzorcy. Hipotezy w W16 (NIEPEWNE).
-  [ ] Poprawka u źródła (nie omijanie w oknie). Jeśli winny jest stan w nadzorcy po końcu poprzedniego okna: sprzątanie
+  [x] Poprawka u źródła (nie omijanie w oknie). Jeśli winny jest stan w nadzorcy po końcu poprzedniego okna: sprzątanie
       w jednym miejscu (koniec kanału / akt_nowy_kanal), nie warunki rozsiane po kodzie.
-  [ ] Test, który pada przed poprawką: scenariusz QEMU „Ustawienia dwa razy” (otwórz, zamknij, otwórz, Aktualizacje,
+  [x] Test, który pada przed poprawką: scenariusz QEMU „Ustawienia dwa razy” (otwórz, zamknij, otwórz, Aktualizacje,
       okno dalej jest, sekcja narysowana). Jeśli przyczyna jest w czystym kodzie (np. odbiór AKT_OPIS), także test na
       hoście.
   Testy i dowód: test-m1, nowy scenariusz (z logiem „przed” na czerwono i „po” na zielono), test-m4, test-aktualizacji
@@ -283,7 +284,16 @@ KROK 5: Błąd: Aktualizacje po ponownym otwarciu Ustawień                     
   Dokumenty: aplikacje.md (Ustawienia → Aktualizacje), aktualizacja.md, jeśli zmienia się kanał; RYZYKA, jeśli przyczyna
   to klatka.
   Gotowe, gdy: testy zielone, nowy scenariusz w test-m4 albo w skrypcie aktualizacji.
-  Ustalenia z wykonania: (pusto, wypełnia krok 5)
+  Ustalenia z wykonania (2026-11-19):
+    - Przyczyna (POTWIERDZONE w QEMU): widok „Sprawdzono o 14:05. Masz najnowszą wersję.” liczył godzinę przez localtime_r
+      z musl, a ten otwiera /etc/localtime (open, nr 2); klatka Ustawień nie ma open, więc kod 159. Widok pojawia się
+      dopiero po sprawdzeniu: przy pierwszym otwarciu jeszcze go nie było („nie sprawdzano”), stąd „drugie otwarcie”,
+      a „Sprawdź teraz” kończy się tym samym widokiem. Hipoteza z W16 (memfd opisu) odpada: k1_memfd_czytaj przewija plik.
+    - Poprawka: k1_czas_warszawa (jak zegar na pasku; przy okazji godzina polska, nie UTC). sprawdz-czytelnosc punkt 12:
+      localtime, mktime, tzset, ctime, strftime w src/ = błąd (na starym kodzie 1 błąd, po poprawce 0).
+    - Test: test-aktualizacja-siec.sh, trzeci przebieg (dysk z tą samą wersją, opis ekranu: dysk „k1-test-opis” na
+      addr 0x1d obok dysku testu aktualizacji). Przed poprawką: „zabronione wywołanie systemowe nr 2”, kod 159; po: zielony.
+      Test klika sekcję do skutku (do 3 razy): lista sekcji zmienia się pod kliknięciem, gdy znika Bateria.
 
 KROK 6: Błąd: wyłączanie do końca, ekran „Wyłączanie”                         M · D7, T7, T8 · bez ADR
   Zgłoszenie właściciela (2026-11-18, na sprzęcie, 0.10.5): po Start → Wyłącz przy otwartej przeglądarce zamyka się

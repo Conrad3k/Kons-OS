@@ -13,6 +13,10 @@
 #   5. dysk po wszystkim: grubenv „spróbuj B”, w miejscu B manifest wersji tej budowy, znak poczekalni wyczyszczony
 #   6. NEGATYWNE: serwer podaje paczkę ze zmienionym bajtem — odrzucona, nic nie czeka, okienka nie ma, K1 żyje
 #   7. w logu K1 żadnego adresu (niezmiennik 8) — tylko kody i liczby
+#   8. (0.10.7 krok 5) na dysku działa już ta wersja: po sprawdzeniu „masz najnowszą wersję”; Ustawienia → Aktualizacje
+#      otwarte, zamknięte i otwarte jeszcze raz, potem „Sprawdź teraz” — okno Ustawień żyje cały czas (do 0.10.7 widok
+#      „Sprawdzono o …” kończył Ustawienia kodem 159: musl czytał strefę czasową z /etc/localtime, a klatka nie ma open);
+#      opis ekranu (dysk „k1-test-opis”) — test klika po nazwach
 # Bez KVM (emulacja QEMU, kontener) — ten sam pełny scenariusz (2026-11-18: ok. 8 min, paczka 130 MB też).
 # Dowody: build/testy/akt-*.log, akt-*.png.
 . "$(dirname "$0")/wspolne.sh"
@@ -64,6 +68,7 @@ def uklad():  # the K1-EFI partition's layout block (k1_uklad.h): grubenv, slot 
 
 GENV, SLOT_A, SLOT_B = uklad()
 GENV_PRZED = czytaj(dysk, MIB + GENV, 1024)  # for the negative run: the disk as before the update
+MANIFEST_A = czytaj(dysk, MIB + SLOT_A + 127 * MIB, 48)  # for the last run: slot A runs this build's version
 # the running slot A says 0.0.1 (k1_manifest.h: version at 8, its text at 24) — the build's version is newer
 with open(dysk, "r+b") as p:
     p.seek(MIB + SLOT_A + 127 * MIB + 8); p.write(struct.pack("<I", 1))
@@ -101,15 +106,19 @@ SIEC = "-netdev user,id=n0 -device e1000e,netdev=n0"
 DYSKI = (f"-drive if=none,id=znak,file={znak},format=raw,readonly=on -device virtio-blk-pci,drive=znak,"
          f"serial=k1-test-aktualizacji,addr=0x1e -drive if=none,id=dysk,file={dysk},format=raw -device ide-hd,drive=dysk,bus=ide.0")
 
-def uruchom(nazwa):
+def uruchom(nazwa, opis=False):
     log, mon = f"{out}/akt-{nazwa}.log", f"{out}/akt-{nazwa}.sock"
     for f in (log, mon):
         if os.path.exists(f):
             os.remove(f)
     subprocess.Popen([f"{repo}/scripts/uruchom-qemu.sh", "--obraz", f"{repo}/build/wynik/rdzen-test.squashfs",
                       "--cmdline", cmdline, "--log", log, "--monitor", mon, "--czas", str(int(limit) // 2),
-                      "--pamiec", "2048", "--qemu", SIEC + " " + DYSKI] + emulacja)
+                      "--pamiec", "2048", "--qemu", SIEC + " " + DYSKI + (OPIS if opis else "")] + emulacja)
     return Maszyna(log, mon, out, limit // 2, f"akt-{nazwa}")
+
+# 0.10.7 step 5: the screen's description too (the test program's scenario; the disk of the test of updates stays)
+OPIS = (f" -drive if=none,id=opis,file={znak},format=raw,readonly=on -device virtio-blk-pci,drive=opis,"
+        "serial=k1-test-opis,addr=0x1d")
 
 STAN = r"K1-INSTALATOR: aktualizacja przez sieć: działa (\S+), czeka (\S+), do pobrania (\S+)"
 q = uruchom("1")
@@ -166,6 +175,44 @@ q2.sprawdz("NEGATYWNE: nic nie czeka, okienka nie ma", q2.cisza(r"okienko \(jest
 q2.czysty_log()
 q.wyniki += q2.wyniki
 q2.monitor("quit")
+
+# 0.10.7 step 5: the disk runs this build's version — "masz najnowszą wersję"; Ustawienia → Aktualizacje twice and
+# "Sprawdź teraz" (before 0.10.7 the view "Sprawdzono o …" ended Ustawienia: localtime_r opened /etc/localtime, code 159)
+with open(dysk, "r+b") as p:
+    p.seek(MIB + SLOT_A + 127 * MIB); p.write(MANIFEST_A)
+dane["zla"] = False
+q3 = uruchom("3", opis=True)
+NAJNOWSZA = r"K1-USTAWIENIA: aktualizacje: sieć — najnowsza"
+KONIEC_UST = r"K1-NADZORCA: ustawienia zakończ"
+
+def ustawienia_aktualizacje(raz):
+    n = q3.ile(NAJNOWSZA)
+    q3.klik(*q3.srodek(q3.czekaj_na_element("Pasek", "Start", czas=60) or {"x": 0, "y": 0, "w": 0, "h": 0}))
+    q3.klik_w("Menu Start", "Ustawienia")
+    for _ in range(3):  # the list may still change under the click (Bateria goes when nadzorca says there is none)
+        q3.klik_w("Ustawienia", "Aktualizacje", "zakladka", czas=60)
+        if q3.czekaj_na(lambda: (q3.element("Ustawienia", "Aktualizacje", "zakladka") or {"stan": 0})["stan"] & 1, 10):
+            break
+    q3.sprawdz(f"Ustawienia → Aktualizacje ({raz}): „masz najnowszą wersję”", q3.czekaj(NAJNOWSZA, od=n, czas=60))
+    q3.sprawdz(f"…i okno Ustawień żyje ({raz})", q3.cisza(KONIEC_UST, 10) and q3.element("Ustawienia") is not None,
+               "\n".join(l for l in q3.tekst().splitlines() if "ustawienia zakończ" in l)[-300:])
+
+q3.sprawdz("na dysku ta sama wersja: K1 sprawdza i nie ma nic do pobrania", q3.czekaj(
+    r"K1-INSTALATOR: ogłoszenie wydania: \d+ B, podpis i format poprawne", czas=1200) and
+    q3.czekaj(r"K1-INSTALATOR: aktualizacja przez sieć: działa \S+, czeka \S+, do pobrania 0\.0\.0", od=1, czas=120))
+ustawienia_aktualizacje("pierwsze otwarcie")
+q3.klik_w("Ustawienia", "Zamknij", "przycisk")
+q3.sprawdz("Ustawienia zamknięte przyciskiem", q3.czekaj(KONIEC_UST + r"\S* pracę, kod 0", czas=30))
+ustawienia_aktualizacje("drugie otwarcie")
+n, ns = q3.ile(NAJNOWSZA), q3.ile(r"K1-NADZORCA: aktualizacja: sprawdzam")
+q3.klik_w("Ustawienia", "Sprawdź teraz", "przycisk")
+q3.sprawdz("„Sprawdź teraz”: K1 sprawdza jeszcze raz", q3.czekaj(r"K1-NADZORCA: aktualizacja: sprawdzam", od=ns, czas=60))
+q3.sprawdz("…potem znów „masz najnowszą wersję”, okno Ustawień żyje", q3.czekaj(NAJNOWSZA, od=n, czas=900) and
+           q3.cisza(KONIEC_UST, 10) and q3.element("Ustawienia") is not None)
+q3.zrzut("3-najnowsza")
+q3.czysty_log()
+q.wyniki += q3.wyniki
+q3.monitor("quit")
 q.koniec(wylacz=False)
 PY
 

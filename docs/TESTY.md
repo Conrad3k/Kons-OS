@@ -59,7 +59,7 @@ i `tail -f build/qemu/serial.log`; zrzut: `scripts/zrzut-ekranu.sh plik.png`.
 | siec, kabel, DHCP, zegar z internetu | `test-siec.sh` |
 | Wi-Fi | `test-wifi.sh` |
 | robot aktualizacji (0.10.5 krok 3, ADR 0047) | lokalnie `scripts/robot.sh` w kopii repo (nowe jądro, podpis kernel.org; bez klucza autosignera — odmowa, kod 3); `scripts/porownaj-jadro.sh` (KVM_IOAPIC spoza fragmentu i listy → pytanie); na GitHubie: Actions → Robot → Run workflow (`proba`, `start`) — tworzy PR i puszcza `k1.yml` z `testy: true` |
-| aktualizacja przez sieć (ogłoszenie, paczka, program zapisujący, strefa pobierania, nadzorca, okienko; 0.10.5 krok 2, ADR 0046) | na hoście `test_ogloszenie`, `test_paczka`, `test_siec_instalatora`, `test_lacznik`, `fuzz_ogloszenie`, `fuzz_paczka`; QEMU `test-aktualizacja-siec.sh` (serwer HTTPS na „routerze”, dysk z „zainstalowanym” K1 0.0.1: sprawdzenie, pobranie, okienko, „Zainstaluj”, dysk po wszystkim; NEGATYWNE: paczka ze zmienionym bajtem; w emulacji ok. 8 min) |
+| aktualizacja przez sieć (ogłoszenie, paczka, program zapisujący, strefa pobierania, nadzorca, okienko; 0.10.5 krok 2, ADR 0046) | na hoście `test_ogloszenie`, `test_paczka`, `test_siec_instalatora`, `test_lacznik`, `fuzz_ogloszenie`, `fuzz_paczka`; QEMU `test-aktualizacja-siec.sh` (serwer HTTPS na „routerze”, dysk z „zainstalowanym” K1 0.0.1: sprawdzenie, pobranie, okienko, „Zainstaluj”, dysk po wszystkim; NEGATYWNE: paczka ze zmienionym bajtem; od 0.10.7 krok 5 trzeci przebieg z opisem ekranu: na dysku ta sama wersja, Ustawienia → Aktualizacje otwarte, zamknięte, otwarte jeszcze raz i „Sprawdź teraz” — okno żyje; w emulacji ok. 12 min) |
 | strefy (KVM, VMM, ramka; od 0.10.2: ekran startu do okna programu strefy, zamykanie w tle, wyłączanie przy działającej strefie; od 0.10.5 krok 4: zmiana rozmiaru i maksymalizacja okna strefy; krok 6: Alt+Tab do strefy i ze strefy) | `test-strefa.sh`; na hoście `test_komunikat` (`ROZMIAR`, zamiana powierzchni); w systemie `t_okna_rozmiar` (strefa nie zmienia sama rozmiaru i nie przełącza okien) |
 | przewijanie (kółko, touchpad; 0.10.0 krok 4) | na hoście `test_touchpad`, `test_zdarzenie`, `test_zalegle`, `fuzz_zdarzenie`, `test_palce` (gest palców w kompozytorze strefy, 0.10.1 krok 5); w systemie `t_okna_przewijanie`; QEMU: `test-pendrive.sh` (lista Plików), `test-strefa.sh` (gość); touchpad — tylko na sprzęcie (QEMU go nie udaje); palce w Firefoksie — `scripts/stanowisko.sh` (niżej) |
 | Raptor Bridge — most strefy do świata (przekaźnik, vsock, łącznik, nadzorca; 0.10.5 krok 5) | na hoście `test_lacznik`, `fuzz_lacznik`, `fuzz_virtq`, `fuzz_vsock`; w systemie `t_most.c`; QEMU `test-most.sh` (strefa próbna jest klientem: serwer na „routerze”, wiele połączeń, półzamknięcia, odmowy, złośliwy gość vsock; w emulacji ok. 3 min) |
@@ -82,7 +82,8 @@ Błąd = budowa przerwana. Powtarzalność: `scripts/sprawdz-powtarzalnosc.sh` (
 ### 2. Czytelność (`scripts/sprawdz-czytelnosc.py`, pierwszy krok `test-m1.sh`)
 Plik `.c` ≤ 600 wierszy, funkcja ≤ 80 (wyjątek tylko z `k1: limit`), pliki testów ≤ 600; opis każdej usługi, aplikacji
 i komunikatu; wpisy „Tymczasowe”; spis ADR; ścieżki `docs/…` w dokumentach istnieją; od 0.10.7 napisy okien K1 bez
-półpauz (zasada Z3; logi nie, napis budowany dla logu — `/* k1: napis do logu */`).
+półpauz (zasada Z3; logi nie, napis budowany dla logu — `/* k1: napis do logu */`); od 0.10.7 krok 5 czas lokalny tylko
+przez `k1_czas_warszawa` (localtime, mktime, strftime… z musl czytają `/etc/localtime` — w klatce kod 159).
 
 ### 3. Na hoście (`make testy-host`, glibc + ASan/UBSan)
 Każdy test to osobny cel (`host-<nazwa>`, lista `TESTY_HOST` / `TESTY_HOST_PLIKI` w `Makefile`), więc `make -j4 -O`

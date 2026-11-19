@@ -26,7 +26,10 @@
  11. (0.10.7 krok 1, zasada Z3 właściciela) w napisach okien K1 nie ma półpauzy (—): literały w src/aplikacje/,
      src/gui/, src/przybornik/, src/logowanie/, src/ekran/ i w tekstach Instalatora (src/wspolne/k1_inst_teksty.h);
      bez komentarzy i bez napisów do logu (instrukcja z wywołaniem *log*( ); napis budowany dla logu poza nią —
-     komentarz `/* k1: napis do logu */` w jego wierszu).
+     komentarz `/* k1: napis do logu */` w jego wierszu);
+ 12. (0.10.7 krok 5) czas lokalny tylko przez k1_czas_warszawa (src/przybornik/k1_czas.h): localtime, mktime, tzset,
+     ctime, strftime z musl w kodzie src/ (bez src/zewnetrzne/) = błąd — musl czyta wtedy strefę czasową z
+     /etc/localtime, a klatki nie mają open (Ustawienia → Aktualizacje kończyły się kodem 159).
 
 Użycie: python3 -I scripts/sprawdz-czytelnosc.py [KATALOG_REPO]. Kod wyjścia 0 = wszystko w porządku.
 """
@@ -255,6 +258,33 @@ def sprawdz_polpauzy(repo, bledy):
                                  "podziel albo użyj przecinka, dwukropka)")
 
 
+CZAS_MUSL = re.compile(r"\b(localtime|localtime_r|mktime|timelocal|tzset|ctime|ctime_r|strftime)\s*\(")
+
+
+def bez_komentarzy(tekst):
+    """The code of a C source without comments and string literals (their newlines kept)."""
+    return re.sub(r'/\*.*?\*/|//[^\n]*|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'',
+                  lambda m: re.sub(r"[^\n]", " ", m.group(0)), tekst, flags=re.S)
+
+
+def czas_musl(tekst):
+    """Line numbers where musl's local time is called."""
+    kod = bez_komentarzy(tekst)
+    for m in CZAS_MUSL.finditer(kod):
+        yield kod.count("\n", 0, m.start()) + 1
+
+
+def sprawdz_czas_musl(repo, bledy):
+    for katalog, podkatalogi, pliki in os.walk(os.path.join(repo, "src")):
+        podkatalogi[:] = sorted(p for p in podkatalogi if p != "zewnetrzne")
+        for p in sorted(f for f in pliki if f.endswith((".c", ".h"))):
+            sciezka = os.path.join(katalog, p)
+            with open(sciezka, encoding="utf-8") as f:
+                for nr in czas_musl(f.read()):
+                    bledy.append(f"{os.path.relpath(sciezka, repo)}:{nr}: czas lokalny z musl (czyta /etc/localtime, "
+                                 "w klatce zabronione) — użyj k1_czas_warszawa")
+
+
 def sprawdz_adr(repo, bledy):
     kat = os.path.join(repo, "docs", "adr")
     with open(os.path.join(kat, "README.md"), encoding="utf-8") as f:
@@ -393,6 +423,9 @@ def samotest():
     c = ('/* "a — b" */ k1_log(TAG, "x — %d",\n    1);\nk1_tekst(o, "Nie możesz — tak", \'"\');\n'
          'snprintf(b, n, "%s — %s", x); /* k1: napis do logu */\n// "c — d"\nt = "e\\" — f";\n')
     assert list(polpauzy(c)) == [3, 6], list(polpauzy(c))
+    c = ('/* localtime_r(&t) */ gmtime_r(&t, &g);\nk1_log(TAG, "mktime(x)");\n  localtime_r(&t, &tm);\n'
+         'x = strftime (b, n, "%H", &tm);\n')
+    assert list(czas_musl(c)) == [3, 4], list(czas_musl(c))
     assert lista_make("A := x y \\\n\tz\nB := q\n", "A") == ["x", "y", "z"]
     assert lista_x("#define L(X) \\\n    X(A, 1, \"a\") \\\n    X(B, 2, \"b\")\n\n", "L") == [["A", "1", "a"], ["B", "2", "b"]]
 
@@ -412,13 +445,14 @@ def main():
     sprawdz_spisy(repo, bledy)
     sprawdz_stan(repo, bledy)
     sprawdz_polpauzy(repo, bledy)
+    sprawdz_czas_musl(repo, bledy)
     for b in bledy:
         print("  " + b)
     if bledy:
         print(f"[k1] BŁĄD: zasady czytelności — {len(bledy)} do poprawy (AGENTS.md, „Czytelność”)")
         return 1
     print("[k1] czytelność: pliki ≤ 600 wierszy, funkcje ≤ 80, opisy usług, aplikacji i komunikatów, "
-          "spis ADR, ścieżki, spisy skryptów i testów, stan wersji, napisy bez półpauz — OK")
+          "spis ADR, ścieżki, spisy skryptów i testów, stan wersji, napisy bez półpauz, czas lokalny bez musl — OK")
     return 0
 
 

@@ -6,9 +6,9 @@
  * k1_ogloszenie_czytaj: fail closed). To it: AKT_PROSBA. Part of Ustawienia (ustawienia.h). */
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 
+#include "k1_czas.h"
 #include "k1_log.h"
 #include "k1_manifest.h"
 #include "k1_memfd.h"
@@ -176,8 +176,7 @@ static int32_t zdania(struct k1_obraz *o, const struct k1_motyw *m, int32_t y, i
 {
     char t[160], w[16], d[16];
     enum widok v = widok();
-    time_t kiedy = (time_t)et.d;
-    struct tm tm;
+    struct k1_data kiedy;
     k1_wersja_tekst((uint32_t)(st.b ? st.b : st.c), w, sizeof w);
     k1_wersja_tekst((uint32_t)st.d, d, sizeof d);
     switch (v) {
@@ -186,9 +185,9 @@ static int32_t zdania(struct k1_obraz *o, const struct k1_motyw *m, int32_t y, i
     case W_INSTALUJE: snprintf(t, sizeof t, "Zapisuję… %d %%. Potem komputer uruchomi się ponownie.", (int)et.b); break;
     case W_GOTOWA: snprintf(t, sizeof t, "K1 %s jest gotowa do instalacji.", w); break;
     case W_WROC: snprintf(t, sizeof t, "Wrócić do K1 %s? Komputer uruchomi się ponownie.", d); break;
-    case W_NAJNOWSZA:
-        localtime_r(&kiedy, &tm);
-        snprintf(t, sizeof t, "Sprawdzono o %02d:%02d. Masz najnowszą wersję.", tm.tm_hour, tm.tm_min);
+    case W_NAJNOWSZA: /* 0.10.7 step 5: K1's own Polish time — musl's localtime_r opened /etc/localtime (code 159) */
+        k1_czas_warszawa(et.d, &kiedy);
+        snprintf(t, sizeof t, "Sprawdzono o %02d:%02d. Masz najnowszą wersję.", kiedy.godzina, kiedy.minuta);
         break;
     case W_BRAK_SIECI: snprintf(t, sizeof t, "Nie udało się sprawdzić (brak połączenia)."); break;
     case W_NIEUDANE: snprintf(t, sizeof t, "Nie udało się sprawdzić, czy jest nowa wersja."); break;

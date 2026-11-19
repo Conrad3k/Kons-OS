@@ -311,6 +311,9 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   wcześniejszych dopasowań (`q.ile(wzor)`), nie długość logu; pętla `timeout … until grep KONIEC` mogła skończyć się
   limitem — przed nowym przebiegiem testu sprawdź `pgrep -af wifi.py|qemu`, inaczej dwa przebiegi mieszają log (0.10.2: to
   samo z `test-wzorce` — koniec starego przebiegu zamknął gniazdem monitora maszynę nowego).
+- *Czas lokalny (0.10.7 krok 5):* `localtime_r`, `mktime`, `strftime` z musl czytają strefę z `/etc/localtime` (`open`) —
+  w klatce to kod 159 (Ustawienia → Aktualizacje padały dopiero w widoku „Sprawdzono o …”); czas polski tylko
+  `k1_czas_warszawa` (`src/przybornik/k1_czas.h`), pilnuje `sprawdz-czytelnosc` (punkt 12).
 - *Jądro i procesy:* `/proc/cmdline` nie istnieje dla usług (`subset=pid`) — o nośniku czytaj z sysfs;
   `hidepid` daje ENOENT zamiast EACCES; rodzicem usług jest nadzorca, nie init; filtr seccomp działa od
   `execve`, więc obejmuje start musl; `RLIMIT_FSIZE` ogranicza też `ftruncate` memfd (SIGXFSZ = 25).
