@@ -122,7 +122,8 @@ extern int bat_kanal;     /* fd 5 still open */
 #define DOK_WYS (EL + 2 * DOK_PAD)
 /* the widest bar: every application, pinned or running (the surface; the bar itself is centred in it) — zones with a
  * window only (the download zone of 0.10.5 never has one on the bar) */
-#define DOK_SZER (DOK_PAD + EL + 13 + (K1_APL_MAKS + K1_STREFY_Z_OKNEM) * (EL + ODST) + 9 + DOK_PAD)
+/* TRIAL (0.10.9 step 1, never in main): the card probe (- 1) is never pinned and the bar keeps its width */
+#define DOK_SZER (DOK_PAD + EL + 13 + (K1_APL_MAKS - 1 + K1_STREFY_Z_OKNEM) * (EL + ODST) + 9 + DOK_PAD)
 void rysuj_dok(void);
 void wskaznik_dok(const struct k1_komunikat *m);
 void dok_zmiana(void); /* pinned or running applications changed: new positions, logged for the tests */
