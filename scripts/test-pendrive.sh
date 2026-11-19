@@ -211,6 +211,11 @@ def przyciski():
     return {t.strip(): (ox + int(x), oy + int(y)) for t, x, y in re.findall(r"([^;]+?) (\d+),(\d+)", m[-1].group(1))} if m else {}
 
 
+def przycisk(nazwa, czas=20):
+    """0.10.7 step 3: "Importuj" comes only with a selection — its centre as soon as Pliki logs it."""
+    return przyciski()[nazwa] if q.czekaj_na(lambda: nazwa in przyciski(), czas) else (0, 0)
+
+
 def importuj(akcja, zapisane, obrazy, duze, bledy=0, pominiete=0, czas=90):
     wz = (rf"K1-PLIKI: import: koniec — zapisane {zapisane} \(do Obrazów {obrazy}\), za duże {duze}, błędy {bledy}, "
           rf"pominięte {pominiete}")
@@ -227,8 +232,8 @@ sprawdz("„Pendrive”: czytnik w klatce (UID 106) dostaje pendrive tylko do od
         czekaj(r"K1-CZYTNIK: pendrive: FAT32, klaster 4096 B"))
 zrzut("2-pendrive", gdy=lambda w, h, px: True)
 p = przyciski()
-sprawdz("przyciski pendrive'a: Importuj, Importuj wszystkie (bez zmiany nazwy i usuwania)",
-        {"Importuj", "Importuj wszystkie"} == set(p), str(p))
+sprawdz("przyciski pendrive'a bez zaznaczenia: tylko Importuj wszystkie (bez zmiany nazwy i usuwania; 0.10.7 krok 3)",
+        {"Importuj wszystkie"} == set(p), str(p))
 # 2. DCIM › 100K1 → "Importuj wszystkie"
 sprawdz("DCIM (1 folder)", widok(lambda: q.dwuklik(*wiersz(0)), "Pendrive", 1))
 sprawdz("DCIM › 100K1: 9 plików (bez śmieci macOS „._…”)", widok(lambda: q.dwuklik(*wiersz(0)), "Pendrive", 9))
@@ -245,11 +250,11 @@ zrzut("4-pominiete", gdy=lambda w, h, px: True)
 sprawdz("„w górę” dwa razy: główny folder pendrive'a",
         widok(lambda: klik(*w_gore), "Pendrive", 1) and widok(lambda: klik(*w_gore), "Pendrive", 5))
 klik(*wiersz(1))
-sprawdz("plik 17 MB (do 0.8.0: „za duży”) → Dokumenty, w 18 kawałkach", importuj(lambda: klik(*p["Importuj"]), 1, 0, 0) and
+sprawdz("plik 17 MB (do 0.8.0: „za duży”) → Dokumenty, w 18 kawałkach", importuj(lambda: klik(*przycisk("Importuj")), 1, 0, 0) and
         czekaj(r"K1-CZYTNIK: plik przeczytany \(17825804 B, kawałków 18\)"))
 klik(*wiersz(4))
 sprawdz("film 300 MB → Dokumenty kawałkami po 1 MiB (czytnik: cgroup 32 MiB, memfd najwyżej kawałek)",
-        po(r"K1-PLIKI: import: koniec — zapisane 1 \(do Obrazów 0\), za duże 0, błędy 0", lambda: klik(*p["Importuj"]),
+        po(r"K1-PLIKI: import: koniec — zapisane 1 \(do Obrazów 0\), za duże 0, błędy 0", lambda: klik(*przycisk("Importuj")),
            czas=float(limit) * 0.5) and czekaj(r"K1-CZYTNIK: plik przeczytany \(314572812 B, kawałków 301\)"))
 zrzut("5-duzy", gdy=lambda w, h, px: True)
 p = przyciski()
@@ -264,7 +269,7 @@ if "OK" in ok_:
 sprawdz("(krok 6) zdjęcie z polską długą nazwą przeciągnięte na „Obrazy” → kopia tam (import)",
         importuj(lambda: q.przeciagnij(*wiersz(3), *miejsce(2)), 1, 1, 0) and czekaj(r"cel folder, działanie: import"))
 klik(*wiersz(2))
-sprawdz("notatka → Dokumenty", importuj(lambda: klik(*p["Importuj"]), 1, 0, 0))
+sprawdz("notatka → Dokumenty", importuj(lambda: klik(*przycisk("Importuj")), 1, 0, 0))
 sprawdz(f"skarbiec: 13 plików z pendrive'a (10 obrazów), razem {oczekiwane} B — tyle, ile na pendrivie",
         czekaj(rf"K1-PLIKI: pliki z pendrive'a: 13 \(obrazy: 10\), razem {oczekiwane} B"))
 # 4. where they went (Obrazy by name: IMG_0001.JPG, IMG_0002.PNG, USZKODZONE.JPG, Wakacje…, ZDJ_100MPX.JPG,

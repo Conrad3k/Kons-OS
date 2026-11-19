@@ -102,4 +102,8 @@ int k1_menu_zawsze(int typ, int apl, struct k1_komunikat *ust);
 /* The message for a file no application opens: its type, K1_MENU_BEZ_APLIKACJI, on the desktop "Pokaż w Plikach". */
 void k1_menu_bez_aplikacji(struct k1_menu *m, int typ, int pokaz);
 
+/* Text wrapped at spaces to `szer` px (a word longer than the line: between characters): `linia` gets every line and
+ * its number (NULL: only counts); returns how many lines. The menu's rows and Pliki's details (0.10.7 step 3). */
+int k1_zawin(const char *t, int32_t szer, enum k1_cz cz, void (*linia)(const char *, int, void *), void *kontekst);
+
 #endif

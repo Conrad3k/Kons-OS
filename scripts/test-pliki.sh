@@ -110,6 +110,12 @@ def przyciski():
     return {t.strip(): (ox + int(x), oy + int(y)) for t, x, y in re.findall(r"([^;]+?) (\d+),(\d+)", m[-1].group(1))} if m else {}
 
 
+def przycisk(nazwa, czas=20):
+    """0.10.7 step 3: Otwórz, Zmień nazwę, Usuń (Kosz: Przywróć, Usuń na zawsze) come only with a selection — the centre
+    of button `nazwa` as soon as Pliki logs it (None: it did not come)."""
+    return przyciski()[nazwa] if q.czekaj_na(lambda: nazwa in przyciski(), czas) else None
+
+
 def ciagnij(od, do, nazwa=None, gdy=None):
     """0.8.2 step 6: drags from `od` to `do`; `nazwa`: a screenshot just before the drop (the card and the sign)."""
     if nazwa is None:
@@ -153,11 +159,14 @@ if tryb == "ponownie":
     sys.exit(0 if all(q.wyniki) else 1)
 
 sprawdz("Dokumenty: pusty folder na start", widok(lambda: klik(*miejsce(1)), "Dokumenty", 0))
+q.czekaj_na(lambda: "w środku: Nowy folder" in przyciski(), 20)
 p = przyciski()
-sprawdz("przyciski folderu: Nowy folder, Zmień nazwę, Usuń", {"Nowy folder", "Zmień nazwę", "Usuń"} <= set(p), str(p))
-# a new folder: its name is selected, typing replaces it (as in Windows)
-e = po(r"K1-PLIKI: zmiana nazwy: pole otwarte", lambda: klik(*p["Nowy folder"]))
-sprawdz("Nowy folder: powstaje i od razu ma pole nazwy", e)
+sprawdz("przyciski pustego folderu (0.10.7 krok 3): tylko „Nowy folder” u góry i „Nowy folder” w środku listy",
+        set(p) == {"Nowy folder", "w środku: Nowy folder"}, str(p))
+zrzut("0-pusty-folder")
+# a new folder from the middle of the empty folder: its name is selected, typing replaces it (as in Windows)
+e = "w środku: Nowy folder" in p and po(r"K1-PLIKI: zmiana nazwy: pole otwarte", lambda: klik(*p["w środku: Nowy folder"]))
+sprawdz("Nowy folder (przycisk w środku pustego folderu): powstaje i od razu ma pole nazwy", e)
 n_ok = q.ile(r"K1-PLIKI: skarbiec: zrobione \(komunikat 88\)")
 pisz("shift-p", "r", "o", "j", "e", "k", "t", "ret")
 sprawdz("zmiana nazwy na „Projekt” (klawiatura) zapisana w skarbcu", czekaj(r"K1-PLIKI: skarbiec: zrobione \(komunikat 88\)", od=n_ok))
@@ -173,21 +182,28 @@ zrzut("2-zajeta-nazwa")
 sprawdz("podwójne kliknięcie otwiera „Projekt” (pusty)", widok(lambda: q.dwuklik(*wiersz(1)), "folder", 0))
 sprawdz("„w górę” wraca do Dokumentów (2 foldery)", widok(lambda: klik(ox + gx, oy + gy), "Dokumenty", 2))
 # Kosz: delete, restore, delete for good
+sprawdz("bez zaznaczenia: tylko „Nowy folder” (0.10.7 krok 3)", q.czekaj_na(lambda: set(przyciski()) == {"Nowy folder"}, 20),
+        str(przyciski()))
 klik(*wiersz(0))
-sprawdz("Usuń: „Nowy folder” trafia do Kosza", widok(lambda: klik(*p["Usuń"]), "Dokumenty", 1))
+pz = przycisk("Usuń")
+sprawdz("po zaznaczeniu: Nowy folder, Otwórz, Zmień nazwę, Usuń (0.10.7 krok 3)",
+        list(przyciski()) == ["Nowy folder", "Otwórz", "Zmień nazwę", "Usuń"], str(przyciski()))
+zrzut("2a-zaznaczony")
+sprawdz("Usuń: „Nowy folder” trafia do Kosza", pz is not None and widok(lambda: klik(*pz), "Dokumenty", 1))
 sprawdz("Kosz: jeden element", widok(lambda: klik(*kosz), "Kosz", 1))
-pk = przyciski()
-sprawdz("przyciski Kosza: Przywróć, Usuń na zawsze, Opróżnij Kosz", {"Przywróć", "Usuń na zawsze", "Opróżnij Kosz"} <= set(pk),
-        str(pk))
+sprawdz("Kosz bez zaznaczenia: tylko „Opróżnij Kosz”", q.czekaj_na(lambda: set(przyciski()) == {"Opróżnij Kosz"}, 20),
+        str(przyciski()))
 klik(*wiersz(0))
+pk = {n: przycisk(n) for n in ("Przywróć", "Usuń na zawsze", "Opróżnij Kosz")}
+sprawdz("przyciski Kosza po zaznaczeniu: Opróżnij Kosz, Przywróć, Usuń na zawsze", None not in pk.values(), str(pk))
 zrzut("3-kosz")
-sprawdz("Przywróć: Kosz pusty", widok(lambda: klik(*pk["Przywróć"]), "Kosz", 0))
+sprawdz("Przywróć: Kosz pusty", pk["Przywróć"] is not None and widok(lambda: klik(*pk["Przywróć"]), "Kosz", 0))
 sprawdz("przywrócony folder znów w Dokumentach", widok(lambda: klik(*miejsce(1)), "Dokumenty", 2))
 klik(*wiersz(0))
-widok(lambda: klik(*p["Usuń"]), "Dokumenty", 1)
+widok(lambda: klik(*przycisk("Usuń")), "Dokumenty", 1)
 widok(lambda: klik(*kosz), "Kosz", 1)
 klik(*wiersz(0))
-po(r"K1-PLIKI: przyciski: Tak, usuń", lambda: klik(*pk["Usuń na zawsze"]))
+po(r"K1-PLIKI: przyciski: Tak, usuń", lambda: klik(*przycisk("Usuń na zawsze")))
 pt = przyciski()
 zrzut("4-pytanie")
 sprawdz("Usuń na zawsze: pytanie, „Tak, usuń” — Kosz pusty", "Tak, usuń" in pt and widok(lambda: klik(*pt["Tak, usuń"]), "Kosz", 0))
@@ -225,7 +241,7 @@ zrzut("10-odmowa", gdy=lambda w, h, px: True)
 if "OK" in ok_:
     klik(*ok_["OK"])
 klik(*wiersz(0))
-po(r"K1-PLIKI: przyciski: Tak, usuń", lambda: klik(*pk["Usuń na zawsze"]))
+po(r"K1-PLIKI: przyciski: Tak, usuń", lambda: klik(*przycisk("Usuń na zawsze")))
 widok(lambda: klik(*przyciski()["Tak, usuń"]), "Kosz", 0)
 sprawdz("Dokumenty: „Projekt” wrócił (z folderem w środku)", widok(lambda: klik(*miejsce(1)), "Dokumenty", 1) and
         widok(lambda: q.dwuklik(*wiersz(0)), "folder", 1))

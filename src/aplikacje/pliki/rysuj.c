@@ -6,7 +6,9 @@
 #include <time.h>
 
 #include "k1_czas.h"
+#include "k1_grafika.h"
 #include "k1_liczba.h"
+#include "k1_opis_klient.h"
 #include "pliki.h"
 
 #define KOL_DATA (LISTA_X + LISTA_W - 236) /* column x of the date */
@@ -53,7 +55,7 @@ static void wiersz(struct k1_obraz *o, const struct k1_motyw *m, const struct k1
     if (przec_cel_wiersz(nr))
         rysuj_cel(o, m, LISTA_X, y + 1, LISTA_W, WIERSZ - 2);
     else if (zazn_tu || nr == najechany)
-        k1_zaokraglony(o, LISTA_X, (float)y + 1, LISTA_W, WIERSZ - 2, 6, k1_kolor(zazn_tu ? m->zaznaczenie : m->najechanie, 255));
+        k1_zaokraglony(o, LISTA_X, (float)y + 1, (float)LISTA_W, WIERSZ - 2, 6, k1_kolor(zazn_tu ? m->zaznaczenie : m->najechanie, 255));
     if (zazn_tu && zazn.n > 1) /* many selected: a bar in the accent colour (the sketch) */
         k1_zaokraglony(o, LISTA_X, (float)y + 8, 3, WIERSZ - 16, 1.5f, k1_kolor(m->akcent, 255));
     k1_ikona(o, ikona_wpisu(w), LISTA_X + 10, (float)y + 6, 20,
@@ -62,6 +64,9 @@ static void wiersz(struct k1_obraz *o, const struct k1_motyw *m, const struct k1
         pole_nazwy(o, m, y);
     else
         k1_tekst(o, K1_CZ_TEKST, LISTA_X + 40, y + 21, w->nazwa, kolor, KOL_DATA - LISTA_X - 52);
+    snprintf(buf, sizeof buf, "wiersz %d", nr + 1); /* never the name (ADR 0045) */
+    k1_el(K1_EL_WIERSZ, buf, LISTA_X, y, LISTA_W, WIERSZ, zazn_tu ? K1_EL_WYBRANY : 0);
+    k1_el(K1_EL_ZMIENNE, "data", KOL_DATA, y, KOL_ROZM - KOL_DATA - 8, WIERSZ, 0); /* the date of today's test */
     k1_data_tekst(tu.kosz ? w->kosz : w->zmieniono, buf, sizeof buf);
     k1_tekst(o, K1_CZ_MALA, KOL_DATA, y + 20, buf, k1_kolor(m->tekst2, (uint32_t)alfa), 0);
     if (w->rodzaj == K1_DOK_PLIK) {
@@ -70,22 +75,39 @@ static void wiersz(struct k1_obraz *o, const struct k1_motyw *m, const struct k1
     }
 }
 
+static uint32_t mieszaj(uint32_t a, uint32_t b, unsigned t) /* a·(255−t) + b·t, 0xRRGGBB */
+{
+    uint32_t wy = 0;
+    for (int k = 0; k < 24; k += 8)
+        wy |= ((((a >> k) & 255) * (255 - t) + ((b >> k) & 255) * t) / 255) << k;
+    return wy;
+}
+
+/* An empty place (0.10.7 step 3): the mark „Warstwy” in greys and what it is, in the middle of the list; in a folder
+ * of the user's "Nowy folder" under them (przycisk_pustego, drawn in main.c). */
+static void pusto(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    const char *t = tu.kosz ? "Kosz jest pusty" : "Ten folder jest pusty";
+    const uint32_t szare[3] = { m->tekst3, mieszaj(m->tlo, m->tekst3, 170), mieszaj(m->tlo, m->tekst3, 100) };
+    k1_rysuj_znak_barwy(o, LISTA_X + (float)LISTA_W / 2.0f, WIERSZE_Y + 100, PUSTY_ZNAK, szare);
+    k1_tekst(o, K1_CZ_TEKST, LISTA_X + (LISTA_W - k1_tekst_szer(K1_CZ_TEKST, t)) / 2, WIERSZE_Y + 176, t,
+             k1_kolor(m->tekst2, 255), 0);
+}
+
 void rysuj_liste(struct k1_obraz *o, const struct k1_motyw *m)
 {
     int i, w = wierszy_widac();
-    const char *pusto = tu.kosz ? "Kosz jest pusty" : "Ten folder jest pusty";
     int gotowa = tu.pendrive ? pen_stan == PEN_GOTOWY : gotowe;
     k1_tekst(o, K1_CZ_MALA, LISTA_X + 40, NAGL_Y, "Nazwa", k1_kolor(m->tekst3, 255), 0);
     k1_tekst(o, K1_CZ_MALA, KOL_DATA, NAGL_Y, tu.kosz ? "Usunięto" : "Zmieniono", k1_kolor(m->tekst3, 255), 0);
     k1_tekst(o, K1_CZ_MALA, KOL_ROZM + 64 - k1_tekst_szer(K1_CZ_MALA, "Rozmiar"), NAGL_Y, "Rozmiar", k1_kolor(m->tekst3, 255), 0);
     k1_prostokat(o, LISTA_X, NAGL_Y + 6, LISTA_W, 1, k1_kolor(m->tekst, 20));
     if (gotowa && n_widok == 0)
-        k1_tekst(o, K1_CZ_TEKST, LISTA_X + (LISTA_W - k1_tekst_szer(K1_CZ_TEKST, pusto)) / 2, WIERSZE_Y + 60, pusto,
-                 k1_kolor(m->tekst3, 255), 0);
+        pusto(o, m);
     for (i = od_wiersza; i < n_widok && i < od_wiersza + w; i++)
         wiersz(o, m, wiersz_wpisu(i), WIERSZE_Y + (i - od_wiersza) * WIERSZ, i);
     if (przewijanie_potrzebne()) { /* two chevrons: up (more above) and down (more below) */
-        float cy = (float)(apl.wys - STOPKA - PRZEWIJANIE / 2), cx = LISTA_X + LISTA_W / 2.0f;
+        float cy = (float)(apl.wys - STOPKA - PRZEWIJANIE / 2), cx = LISTA_X + (float)LISTA_W / 2.0f;
         uint32_t gora = k1_kolor(m->tekst2, od_wiersza > 0 ? 255 : 60);
         uint32_t dol = k1_kolor(m->tekst2, od_wiersza + w < n_widok ? 255 : 60);
         k1_kreska(o, cx - 34, cy + 3, cx - 28, cy - 3, 1.5f, gora);
@@ -95,12 +117,38 @@ void rysuj_liste(struct k1_obraz *o, const struct k1_motyw *m)
     }
 }
 
-/* Label and value, one line each, from `*y` down. */
+/* Text in the details, wrapped to their width (0.10.7 step 3: never cut), from baseline `y`; the baseline after it. */
+struct zawijany {
+    struct k1_obraz *o;
+    enum k1_cz cz;
+    int32_t y, linia;
+    uint32_t kolor;
+};
+
+static void linia_szczegolow(const char *t, int nr, void *k)
+{
+    const struct zawijany *z = k;
+    k1_tekst(z->o, z->cz, SZCZEGOLY_X + 16, z->y + nr * z->linia, t, z->kolor, SZCZEGOLY_W - 32);
+}
+
+static int32_t zawiniety(struct k1_obraz *o, enum k1_cz cz, int32_t y, const char *t, uint32_t kolor)
+{
+    struct zawijany z = { o, cz, y, cz == K1_CZ_MALA ? 18 : 20, kolor };
+    return y + k1_zawin(t, SZCZEGOLY_W - 32, cz, linia_szczegolow, &z) * z.linia;
+}
+
+/* Label and value, from `*y` down. */
 static void cecha(struct k1_obraz *o, const struct k1_motyw *m, int32_t *y, const char *etykieta, const char *wartosc)
 {
     k1_tekst(o, K1_CZ_MALA, SZCZEGOLY_X + 16, *y, etykieta, k1_kolor(m->tekst3, 255), 0);
-    k1_tekst(o, K1_CZ_MALA, SZCZEGOLY_X + 16, *y + 18, wartosc, k1_kolor(m->tekst, 255), SZCZEGOLY_W - 32);
-    *y += 42;
+    *y = zawiniety(o, K1_CZ_MALA, *y + 18, wartosc, k1_kolor(m->tekst, 255)) + 6;
+}
+
+/* A date or a count of days: changes from one test to the next (a changing place for the reference screenshots). */
+static void cecha_czasu(struct k1_obraz *o, const struct k1_motyw *m, int32_t *y, const char *etykieta, const char *wartosc)
+{
+    k1_el(K1_EL_ZMIENNE, etykieta, SZCZEGOLY_X + 16, *y + 4, SZCZEGOLY_W - 32, 20, 0);
+    cecha(o, m, y, etykieta, wartosc);
 }
 
 /* The start of a text file: lines cut to the width, as many as fit. */
@@ -166,23 +214,15 @@ void rysuj_szczegoly(struct k1_obraz *o, const struct k1_motyw *m)
         szczegoly_wielu(o, m);
         return;
     }
-    if (w == NULL) {
-        static const char *const na_pendrivie[] = { "Pendrive jest tylko do odczytu.", "Wybierz plik i kliknij",
-                                                    "„Importuj”: zdjęcia trafią", "do Obrazów, inne pliki",
-                                                    "do Dokumentów." };
-        const char *t = tu.kosz ? "Usunięte pliki leżą tu 30 dni" : "Wybierz plik, aby zobaczyć szczegóły";
-        for (int i = 0; i < (tu.pendrive ? 5 : 1); i++)
-            k1_tekst(o, K1_CZ_MALA, SZCZEGOLY_X + 16, SCIEZKA_Y + 40 + i * 18, tu.pendrive ? na_pendrivie[i] : t,
-                     k1_kolor(m->tekst3, 255), SZCZEGOLY_W - 32);
+    if (w == NULL) /* the selection's details are on their way */
         return;
-    }
     if (obraz_rysuj(o, m, w, SZCZEGOLY_X + 16, SCIEZKA_Y + 16) > 0) { /* a picture: the name under it, then the button */
         k1_tekst(o, K1_CZ_TEKST_MOCNA, SZCZEGOLY_X + 16, SCIEZKA_Y + 16 + MIN_H + 26, w->nazwa, k1_kolor(m->tekst, 255),
-                 SZCZEGOLY_W - 32);
+                 SZCZEGOLY_W - 32); /* one line: "Ustaw jako tapetę" is right under it */
         y = tu.kosz ? SCIEZKA_Y + 16 + MIN_H + 50 : SZCZEGOLY_TAPETA_Y + PRZYCISK_H + 26;
     } else {
         k1_ikona(o, ikona_wpisu(w), SZCZEGOLY_X + 16, SCIEZKA_Y + 18, 40, k1_kolor(m->tekst2, 255));
-        k1_tekst(o, K1_CZ_TEKST_MOCNA, SZCZEGOLY_X + 16, SCIEZKA_Y + 88, w->nazwa, k1_kolor(m->tekst, 255), SZCZEGOLY_W - 32);
+        y = zawiniety(o, K1_CZ_TEKST_MOCNA, SCIEZKA_Y + 88, w->nazwa, k1_kolor(m->tekst, 255)) + 4;
     }
     cecha(o, m, &y, "Typ", w->rodzaj == K1_DOK_FOLDER ? "Folder" : k1_typ_nazwa(w->typ));
     if (w->rodzaj == K1_DOK_PLIK) {
@@ -192,14 +232,14 @@ void rysuj_szczegoly(struct k1_obraz *o, const struct k1_motyw *m)
     if (tu.kosz) {
         int64_t zostalo = (w->kosz + (int64_t)K1_KOSZ_DNI * 86400 - (int64_t)time(NULL) + 86399) / 86400; /* days begun */
         snprintf(buf, sizeof buf, "za %d dni", (int)(zostalo < 0 ? 0 : zostalo > K1_KOSZ_DNI ? K1_KOSZ_DNI : zostalo));
-        cecha(o, m, &y, "Usunięcie na zawsze", buf);
+        cecha_czasu(o, m, &y, "Usunięcie na zawsze", buf);
     } else {
         k1_data_tekst(w->zmieniono, buf, sizeof buf);
-        cecha(o, m, &y, "Zmieniono", w->zmieniono > 0 ? buf : "nie wiadomo");
+        cecha_czasu(o, m, &y, "Zmieniono", w->zmieniono > 0 ? buf : "nie wiadomo");
     }
     if (!tu.pendrive) { /* a stick has no reliable creation time */
         k1_data_tekst(w->utworzono, buf, sizeof buf);
-        cecha(o, m, &y, "Utworzono", buf);
+        cecha_czasu(o, m, &y, "Utworzono", buf);
     }
     cecha(o, m, &y, "Pochodzenie", k1_poch_nazwa(w->pochodzenie));
     if (w->typ == K1_TYP_TEKST && poczatek_id == w->id && poczatek_dl > 0)

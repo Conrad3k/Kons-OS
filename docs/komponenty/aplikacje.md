@@ -181,8 +181,12 @@ w okienku „Mało pamięci”).
 (0.8.0, ADR 0029, `src/aplikacje/pliki/`, UID 206) — pliki i foldery użytkownika, jak w Windows: z lewej
 stałe foldery (Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane) i Kosz (pełny — z kulką papieru); nad listą
 „w górę” i ścieżka („Dokumenty › Projekt”); przyciski miejsca: „Nowy folder” (od razu zmiana nazwy, jak
-w Windows), „Zmień nazwę”, „Usuń” (do Kosza); w Koszu: „Przywróć”, „Usuń na zawsze”, „Opróżnij Kosz” (oba
-ostatnie z pytaniem w stopce). Przywrócony plik, którego folder jest w Koszu (albo już nie istnieje), trafia do
+w Windows), a po zaznaczeniu także „Otwórz”, „Zmień nazwę”, „Usuń” (do Kosza); w Koszu: „Opróżnij Kosz”, a po
+zaznaczeniu „Przywróć”, „Usuń na zawsze” (oba usuwające z pytaniem w stopce). Od 0.10.7 (krok 3, D4) przyciski, które
+wymagają zaznaczenia, i szczegóły z prawej pokazują się dopiero przy zaznaczeniu (tabela `PRZYCISKI` w `przyciski.c`);
+pusty folder ma na środku szary znak „Warstwy”, „Ten folder jest pusty” i przycisk „Nowy folder” (log „przyciski: …;
+w środku: Nowy folder x,y”). Opis ekranu: miejsca z lewej (zakładki „Dokumenty”, „Kosz”…), wiersze listy („wiersz N”,
+nigdy nazwa), daty jako miejsca zmienne. Przywrócony plik, którego folder jest w Koszu (albo już nie istnieje), trafia do
 Dokumentów — stopka to mówi („Folder „Projekt” jest w Koszu — przywrócono do Dokumentów.”, 0.8.1). Gdy zostało mniej
 niż 10 % miejsca na pliki, stopka mówi „Mało miejsca na pliki: zostało X z Y” (`SKARB_MIEJSCE` po każdej liście, 0.8.1). Lista: najpierw foldery, potem pliki po nazwie; kolumny nazwa, data zmiany
 (w Koszu: usunięcia), rozmiar; podwójne kliknięcie (Enter, przycisk „Otwórz”) otwiera folder, a plik — w domyślnej

@@ -167,8 +167,8 @@ void przewin(int32_t x, int32_t y, int32_t dx, int32_t dy)
 
 void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
 {
-    struct k1_przycisk p[PRZYCISKI_MAKS], tp;
-    int n = przyciski(p), mj = -1, pr = -1, wr = -1, wg = 0, nt = 0;
+    struct k1_przycisk p[PRZYCISKI_MAKS], tp, pp;
+    int n = przyciski(p), mj = -1, pr = -1, wr = -1, wg = 0, nt = 0, np = 0;
     if (menu_wskaznik(rodzaj, x, y, przycisk))
         return;
     if (rodzaj == K1_WSK_RUCH && przec_ruch(x, y))
@@ -180,9 +180,12 @@ void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         pr = k1_przycisk_pod(p, n, x, y);
         wr = wiersz_pod(x, y);
         wg = x >= LISTA_X && x < LISTA_X + 32 && y >= SCIEZKA_Y && y < SCIEZKA_Y + 32;
-        nt = obraz_przycisk(&tp) && k1_przycisk_pod(&tp, 1, x, y) == 0;
+        nt = szczegoly_widac() && obraz_przycisk(&tp) && k1_przycisk_pod(&tp, 1, x, y) == 0;
+        np = przycisk_pustego(&pp) && k1_przycisk_pod(&pp, 1, x, y) == 0;
     }
-    if (mj != nad_miejscem || pr != nad_przyciskiem || wr != najechany || wg != nad_w_gore || nt != nad_tapeta) {
+    if (mj != nad_miejscem || pr != nad_przyciskiem || wr != najechany || wg != nad_w_gore || nt != nad_tapeta ||
+        np != nad_pustym) {
+        nad_pustym = np;
         nad_miejscem = mj;
         nad_przyciskiem = pr;
         najechany = wr;
@@ -219,6 +222,8 @@ void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
         w_gore();
     else if (nt)
         obraz_tapeta(zaznaczony);
+    else if (np)
+        wykonaj(B_NOWY);
     else if (przewijanie_potrzebne() && x >= LISTA_X && x < LISTA_X + LISTA_W && y >= apl.wys - STOPKA - PRZEWIJANIE &&
              y < apl.wys - STOPKA)
         strona(x);

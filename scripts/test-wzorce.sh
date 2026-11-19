@@ -2,7 +2,8 @@
 # Test 0.10.2 krok 3 (powtarzalny): ZRZUTY WZORCOWE — wygląd okien K1 co do piksela z zatwierdzonymi obrazami
 # (testy/wzorce/*.png, testy/qemu/k1wzorce.py). Obraz testowy z opisem ekranu (dysk „k1-test-opis”, ADR 0045) i pustym
 # dyskiem danych; okna z decyzji właściciela D4, w obu motywach: dolny i górny pasek, ikony pulpitu, menu Start, okienko
-# „Którą sesję otworzyć?”, Ustawienia (każda sekcja), Pliki, Zasoby, Kalkulator, przełącznik okien (0.10.5 krok 6).
+# „Którą sesję otworzyć?”, Ustawienia (każda sekcja), Pliki (pusty folder, zaznaczony folder, Kosz — 0.10.7 krok 3), Zasoby,
+# Kalkulator, przełącznik okien (0.10.5 krok 6).
 # Ramkę strefy sprawdza test-strefa.
 # Każde okno wycięte według opisu ekranu; miejsca zmienne (zegar, liczby, wykresy, wersja) się nie liczą; kursor poza
 # oknem. Różnica: build/testy/wzorce/<nazwa>-przed/-po/-roznica.png (w CI: artefakt z logami). Zmianę wyglądu
@@ -67,6 +68,29 @@ def ustawienia(motyw):
     q.klik_w("Ustawienia", "Wygląd", "zakladka")
 
 
+def pliki_z_folderem(motyw):
+    """0.10.7 step 3: "Nowy folder" from the middle of the empty Dokumenty; selected (the buttons that come with a
+    selection, the details); in Kosz, selected; then deleted for good (Dokumenty empty again)."""
+    n = q.ile(r"K1-PLIKI: zmiana nazwy: pole otwarte")
+    q.klik_w("Pliki", "Nowy folder", "przycisk")
+    if not q.sprawdz("Pliki: „Nowy folder” w środku pustego folderu", q.czekaj(r"K1-PLIKI: zmiana nazwy: pole otwarte", od=n, czas=30)):
+        return
+    q.pisz("ret")
+    q.klik_w("Pliki", "wiersz 1", "wiersz")
+    if q.czekaj_na_element("Pliki", "Usuń", "przycisk", czas=30):
+        q.wzorzec(f"pliki-zaznaczony-{motyw}", "Pliki")
+        q.klik_w("Pliki", "Usuń", "przycisk")  # one folder: into Kosz without a question
+    q.czekaj_na(lambda: q.element("Pliki", "wiersz 1") is None, czas=30)
+    n = q.ile(r"K1-PLIKI: widok: Kosz, 0 elementów")
+    q.klik_w("Pliki", "Kosz", "zakladka")
+    q.klik_w("Pliki", "wiersz 1", "wiersz")
+    if q.czekaj_na_element("Pliki", "Usuń na zawsze", "przycisk", czas=30):
+        q.wzorzec(f"pliki-kosz-{motyw}", "Pliki")
+        q.klik_w("Pliki", "Opróżnij Kosz", "przycisk")
+        q.klik_w("Pliki", "Tak, usuń", "przycisk")
+    q.sprawdz("Pliki: Kosz opróżniony", q.czekaj(r"K1-PLIKI: widok: Kosz, 0 elementów", od=n, czas=30))
+
+
 def pulpit(motyw):
     """The bars, the desktop's icons, the Start menu, the sessions' window, Pliki, Zasoby, Kalkulator."""
     q.wzorzec(f"pasek-dolny-{motyw}", "Pasek")
@@ -85,6 +109,8 @@ def pulpit(motyw):
     for apl in ("Pliki", "Zasoby", "Kalkulator"):
         if otworz(apl):
             q.wzorzec(f"{apl.lower()}-{motyw}", apl)
+            if apl == "Pliki":
+                pliki_z_folderem(motyw)
             zamknij(apl)
         else:
             q.sprawdz(f"{apl} otwarte", False)

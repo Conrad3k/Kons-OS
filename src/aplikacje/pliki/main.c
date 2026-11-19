@@ -1,7 +1,8 @@
 /* K1 Pliki — native application (0.8.0, ADR 0029): the user's folders and files, as in Windows — the standard
  * folders on the left (Pulpit, Dokumenty, Obrazy, Muzyka, Wideo, Pobrane) and Kosz; the path with "up", the
- * buttons of the place (Otwórz, Nowy folder, Zmień nazwę, Usuń; in Kosz: Przywróć, Usuń na zawsze, Opróżnij Kosz),
- * the list (folders first, then by name) and the details on the right; the right button opens the menu of an entry
+ * buttons of the place (Nowy folder; with a selection also Otwórz, Zmień nazwę, Usuń; in Kosz: Opróżnij Kosz, Przywróć,
+ * Usuń na zawsze), the list (folders first, then by name) and the details on the right, only with a selection (0.10.7
+ * step 3); the right button opens the menu of an entry
  * (menu.c: "Otwórz za pomocą", 0.8.2 step 5). A double click (or Enter) opens a folder, or a file in its default
  * application (Ustawienia → Aplikacje; ADR 0030) — or the footer says K1 has none for its type yet.
  * Keys: Backspace goes up, F2 renames, Delete moves to Kosz, arrows move the selection.
@@ -16,6 +17,7 @@
 
 #include "k1_log.h"
 #include "k1_menu.h"
+#include "k1_opis_klient.h"
 #include "k1_uslugi.h"
 #include "pliki.h"
 
@@ -29,7 +31,7 @@ static uint32_t kolejnosc[K1_DOK_MAKS], posortowane[K1_DOK_MAKS]; /* the ids sho
 struct edycja edycja;
 enum pytanie pytanie;
 const char *blad;
-int nad_miejscem = -1, nad_przyciskiem = -1, nad_w_gore, nad_tapeta;
+int nad_miejscem = -1, nad_przyciskiem = -1, nad_w_gore, nad_tapeta, nad_pustym;
 
 /* ---- what this place shows ---- */
 
@@ -156,6 +158,16 @@ int wiersz_zaznaczonego(void)
     return -1;
 }
 
+int szczegoly_widac(void)
+{
+    return zazn.n > 0;
+}
+
+int32_t lista_w(void)
+{
+    return szczegoly_widac() ? SZCZEGOLY_X - 12 - LISTA_X : SZER - 12 - LISTA_X;
+}
+
 int przewijanie_potrzebne(void)
 {
     return WIERSZE_Y + n_widok * WIERSZ > apl.wys - STOPKA;
@@ -258,27 +270,33 @@ static void miejsca(struct k1_obraz *o, const struct k1_motyw *m)
             rysuj_cel(o, m, 8, y, BOK - 16, NAV_WIERSZ - 4);
         else if (wybrane || i == nad_miejscem)
             k1_zaokraglony(o, 8, (float)y, BOK - 16, NAV_WIERSZ - 4, 8, k1_kolor(wybrane ? m->zaznaczenie : m->najechanie, 255));
+        const char *nazwa = pendrive ? "Pendrive" : kosz ? "Kosz" : t[i].nazwa;
         k1_ikona(o, ik, 18, (float)y + 6, 18, k1_kolor(wybrane ? m->tekst : m->tekst2, 255));
-        k1_tekst(o, wybrane ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, 46, y + 20, pendrive ? "Pendrive" : kosz ? "Kosz" : t[i].nazwa,
-                 k1_kolor(wybrane ? m->tekst : m->tekst2, 255), 0);
+        k1_tekst(o, wybrane ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, 46, y + 20, nazwa, k1_kolor(wybrane ? m->tekst : m->tekst2, 255), 0);
+        k1_el(K1_EL_ZAKLADKA, nazwa, 8, y, BOK - 16, NAV_WIERSZ - 4, wybrane ? K1_EL_WYBRANY : 0); /* 0.10.7 step 3 */
     }
     k1_prostokat(o, 18, KOSZ_Y - 8, BOK - 36, 1, k1_kolor(m->tekst, 20));
     k1_prostokat(o, BOK, K1_OKNO_TYTUL + 8, 1, apl.wys - K1_OKNO_TYTUL - 16, k1_kolor(m->tekst, 20));
 }
 
-/* The tests click by this line: the buttons of the place, logged when they change. */
+/* The tests click by this line: the buttons of the place (and "Nowy folder" in the middle of an empty folder, as
+ * "w środku: Nowy folder"), logged when they change. */
 static void loguj_przyciski(const struct k1_przycisk *p, int n)
 {
-    static int ostatni = -1;
-    char buf[200];
+    static char ostatnio[240];
+    char buf[sizeof ostatnio];
+    struct k1_przycisk s;
     size_t d = 0;
-    int i;
-    if (rodzaje[0] == ostatni)
-        return;
-    ostatni = rodzaje[0];
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
         d += (size_t)snprintf(buf + d, sizeof buf - d, "%s%s %d,%d", i ? "; " : "", p[i].etykieta, p[i].x + p[i].w / 2,
                               p[i].y + p[i].h / 2);
+    if (przycisk_pustego(&s))
+        snprintf(buf + d, sizeof buf - d, "%sw środku: %s %d,%d", n ? "; " : "", s.etykieta, s.x + s.w / 2, s.y + s.h / 2);
+    else
+        buf[d] = '\0';
+    if (strcmp(buf, ostatnio) == 0)
+        return;
+    memcpy(ostatnio, buf, sizeof ostatnio);
     k1_log(TAG, "przyciski: %s", buf);
 }
 
@@ -292,8 +310,11 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     for (i = 0; i < n; i++)
         k1_przycisk(o, m, &p[i], K1_CZ_MALA_MOCNA, i == nad_przyciskiem && dostepny(rodzaje[i]), dostepny(rodzaje[i]));
     rysuj_liste(o, m);
-    rysuj_szczegoly(o, m);
-    if (obraz_przycisk(&p[0]))
+    if (przycisk_pustego(&p[0]))
+        k1_przycisk(o, m, &p[0], K1_CZ_MALA_MOCNA, nad_pustym, dostepny(B_NOWY));
+    if (szczegoly_widac())
+        rysuj_szczegoly(o, m);
+    if (szczegoly_widac() && obraz_przycisk(&p[0]))
         k1_przycisk(o, m, &p[0], K1_CZ_MALA_MOCNA, nad_tapeta, 1);
     rysuj_stopke(o, m);
     przec_rysuj(o, m); /* what is dragged */

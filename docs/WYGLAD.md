@@ -154,6 +154,15 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   przyciski miejsca (zwykłe, z obrysem; „Tak, usuń” w kolorze akcentu), lista wierszami po 32 px (ikona folderu
   w kolorze akcentu, plików — szara), z prawej szczegóły (do 0.8.2 „podgląd”) na polu w kolorze `pole` motywu. Zmiana nazwy: pole z obrysem
   w kolorze akcentu, zaznaczona nazwa podświetlona akcentem.
+- **Tylko to, czego można teraz użyć** (0.10.7 krok 3, decyzja właściciela D4 z 2026-11-18): stale widać tylko „Nowy folder”
+  (w Koszu „Opróżnij Kosz”, na pendrivie „Importuj wszystkie”); „Otwórz”, „Zmień nazwę”, „Usuń” („Przywróć”, „Usuń na
+  zawsze”; „Importuj”) pojawiają się po zaznaczeniu, za stałymi, więc stałe się nie przesuwają (tabela `PRZYCISKI`
+  w `przyciski.c`, kolumna „zawsze”). Szczegóły z prawej tylko przy zaznaczeniu; bez niego lista zajmuje całą szerokość.
+  Napisy w szczegółach zawijane, nigdy ucięte (`k1_zawin` z przybornika; nazwa pod miniaturą zdjęcia — jedna linia, bo
+  tuż pod nią jest „Ustaw jako tapetę”). Pusty folder: znak „Warstwy” w odcieniach szarości (64 px, `tekst3` i jego dwa
+  rozjaśnienia ku tłu), pod nim „Ten folder jest pusty” (`tekst2`) i przycisk „Nowy folder”, na środku listy; pusty Kosz
+  i pusty folder na pendrivie — to samo bez przycisku. Do 0.10.7 wszystkie przyciski były zawsze, nieaktywne tylko
+  jaśniejsze, a szczegóły bez zaznaczenia mówiły „Wybierz plik, aby zobaczyć szczegóły” (ucięte).
 - Kosz na pulpicie: kafelek jak aplikacje; pusty — kosz z dwoma żebrami, pełny — z kulką papieru w środku.
 - Pliki na pulpicie: kafelek z ikoną typu (folder, tekst, obraz, inny plik), nazwa ucięta „…”, gdy za długa.
 
