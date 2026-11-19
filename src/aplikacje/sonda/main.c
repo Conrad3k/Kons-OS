@@ -19,7 +19,7 @@
 #define TAG "K1-SONDA"
 #define WIERSZ 17
 #define SZER 1100
-#define WYS 760
+#define WYS 600 /* ekran takes a window up to the screen height - 32: 736 px on 1366×768 */
 
 static struct k1_apl apl;
 static char wiersze[SONDA_WIERSZE][200];
@@ -119,8 +119,7 @@ static void nastepny_krok(void)
         break;
     case 10:
         spis();
-        wynik("Gotowe. Zrób zdjęcie tego okna. Potem możesz nacisnąć „Próba zawieszenia karty” (ok. 10 s). "
-              "Pulpit ma działać dalej.");
+        wynik("Gotowe. Zrób zdjęcie tego okna. Potem przycisk „Próba zawieszenia karty” (do 30 s, pulpit ma działać).");
         break;
     default:
         krok--;
