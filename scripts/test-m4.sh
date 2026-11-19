@@ -644,9 +644,10 @@ sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych k
 otworz_start()
 q.klik_w("Menu Start", "Wyłącz", "przycisk")
 sprawdz("Start → Wyłącz: system się wyłącza", czekaj(r"K1: wyłączanie zasilania") and czekaj(r"reboot: Power down"))
-t_ = tekst()  # 0.10.7 step 6: the screen "Wyłączanie" at once — before init powers off
-sprawdz("Start → Wyłącz: ekran „Wyłączanie” przed wyłączeniem zasilania", "K1-EKRAN: ekran wyłączania: wyłączanie" in t_ and
-        t_.find("K1-EKRAN: ekran wyłączania: wyłączanie") < t_.find("K1: wyłączanie zasilania"))
+t_ = tekst()  # 0.10.7 step 6: the screen "Wyłączanie" asked for at once — before init (ekran's own line may not reach
+# the log: without a zone init ends nadzorca at once; ekran's side: test-strefa)
+sprawdz("Start → Wyłącz: prośba o ekran „Wyłączanie” przed wyłączeniem zasilania",
+        0 <= t_.find("K1-NADZORCA: ekran wyłączania: prośba wysłana do ekranu") < t_.find("K1: wyłączanie zasilania"))
 sys.exit(0 if all(wyniki) else 1)
 PY
 

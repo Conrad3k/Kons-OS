@@ -487,6 +487,8 @@ void wylacz(int restart)
     /* 0.10.7 step 6 (T7): the screen "Wyłączanie" at once, over every window, until the end */
     if (sterowanie < 0 || k1_kanal_wyslij(sterowanie, &k, sizeof k, -1) != 0)
         k1_log(TAG, "ekran wyłączania: ekran nie przyjął prośby");
+    else
+        k1_log(TAG, "ekran wyłączania: prośba wysłana do ekranu");
     if (!strefy_przed_wylaczeniem(restart))
         wylacz_teraz(restart);
 }
