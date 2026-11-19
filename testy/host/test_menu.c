@@ -1,6 +1,7 @@
 /* Host tests of the menu under the right mouse button (0.8.2 step 5, src/przybornik/k1_menu.c): the rows of a file's
  * menu for every type and place, "Otwórz za pomocą", the message for a file no application opens, the layout and
- * hit testing, and drawing at the edges of an image. ASan/UBSan build. */
+ * hit testing, drawing at the edges of an image, and wrapping text (0.10.7 step 3: k1_zawin, also Pliki's details).
+ * ASan/UBSan build. */
 #include <stdlib.h>
 #include <string.h>
 
@@ -202,8 +203,39 @@ static void t_rysowanie(void)
     free(o.px);
 }
 
+/* Every line k1_zawin gives fits the width; what it gives, joined again, is the text (without the spaces it broke at). */
+struct linie {
+    char razem[256];
+    int za_szeroka;
+};
+
+static void linia_testu(const char *t, int nr, void *k)
+{
+    struct linie *l = k;
+    (void)nr;
+    l->za_szeroka |= k1_tekst_szer(K1_CZ_MALA, t) > 100;
+    strncat(l->razem, t, sizeof l->razem - strlen(l->razem) - 1);
+}
+
+static void t_zawijanie(void)
+{
+    struct linie l = { "", 0 };
+    EXPECT(k1_zawin("Folder", 100, K1_CZ_MALA, NULL, NULL) == 1);
+    EXPECT(k1_zawin("", 100, K1_CZ_MALA, NULL, NULL) == 0);
+    EXPECT(k1_zawin("raz dwa trzy cztery pięć sześć siedem", 100, K1_CZ_MALA, NULL, NULL) >= 3);
+    /* one word much longer than the line, Polish letters in it: broken between characters, never cut */
+    const char *dlugie = "Sprawozdanie_końcowe_źdźbło_żółć_2026_wersja_ostateczna.txt";
+    int n = k1_zawin(dlugie, 100, K1_CZ_MALA, linia_testu, &l);
+    EXPECT(n >= 3);
+    EXPECT(!l.za_szeroka);
+    EXPECT(strcmp(l.razem, dlugie) == 0);
+    l = (struct linie){ "", 0 };
+    EXPECT(k1_zawin("Usunięcie na zawsze za 30 dni", 100, K1_CZ_MALA, linia_testu, &l) == 2 && !l.za_szeroka);
+}
+
 int main(void)
 {
+    t_zawijanie();
     t_typy();
     t_miejsca();
     t_za_pomoca();

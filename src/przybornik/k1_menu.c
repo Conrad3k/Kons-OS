@@ -40,8 +40,9 @@ struct k1_menu_poz *k1_menu_tekst(struct k1_menu *m, const char *tekst)
     return p;
 }
 
-/* Small text wrapped at spaces to `szer` px: calls `linia` for every line (NULL: only counts); how many lines. */
-static int zawin(const char *t, int32_t szer, enum k1_cz cz, void (*linia)(const char *, int, void *), void *kontekst)
+/* Text wrapped at spaces to `szer` px: calls `linia` for every line (NULL: only counts); how many lines. A word longer
+ * than the line is broken between characters (0.10.7 step 3: never cut). */
+int k1_zawin(const char *t, int32_t szer, enum k1_cz cz, void (*linia)(const char *, int, void *), void *kontekst)
 {
     char buf[sizeof ((struct k1_menu_poz *)0)->tekst];
     size_t dl = 0, i = 0, n = strlen(t);
@@ -62,7 +63,17 @@ static int zawin(const char *t, int32_t szer, enum k1_cz cz, void (*linia)(const
                 break;
             ostatnia = j = k;
         }
-        if (ostatnia == 0) /* one word longer than the line: cut with "…" when drawn */
+        if (ostatnia != 0 && ostatnia - i < sizeof buf) { /* one word, maybe too long: as many characters as fit */
+            memcpy(buf, t + i, ostatnia - i);
+            buf[ostatnia - i] = '\0';
+            while (ostatnia - i > 1 && k1_tekst_szer(cz, buf) > szer) {
+                ostatnia = i + k1_utf8_poczatek(t + i, ostatnia - i - 1);
+                buf[ostatnia - i] = '\0';
+            }
+            if (ostatnia == i)
+                ostatnia = i + 1;
+        }
+        if (ostatnia == 0) /* longer than the buffer: cut with "…" when drawn */
             ostatnia = j > i ? j : n;
         dl = ostatnia - i < sizeof buf ? ostatnia - i : sizeof buf - 1;
         memcpy(buf, t + i, dl);
@@ -84,11 +95,11 @@ static int32_t wys_poz(const struct k1_menu *m, const struct k1_menu_poz *p)
     case K1_MS_KRESKA:
         return K1_MENU_KRESKA;
     case K1_MS_TEKST:
-        return p->mocna ? K1_MENU_WIERSZ - 6 + (zawin(p->tekst, szer, K1_CZ_TEKST_MOCNA, NULL, NULL) - 1) * TYTUL_LINIA
-                        : zawin(p->tekst, szer, K1_CZ_MALA, NULL, NULL) * K1_MENU_LINIA + 8;
+        return p->mocna ? K1_MENU_WIERSZ - 6 + (k1_zawin(p->tekst, szer, K1_CZ_TEKST_MOCNA, NULL, NULL) - 1) * TYTUL_LINIA
+                        : k1_zawin(p->tekst, szer, K1_CZ_MALA, NULL, NULL) * K1_MENU_LINIA + 8;
     default:
         return K1_MENU_WIERSZ +
-               (p->wyszarzona && p->podpowiedz ? zawin(p->podpowiedz, szer, K1_CZ_MALA, NULL, NULL) * K1_MENU_LINIA - 6 : 0);
+               (p->wyszarzona && p->podpowiedz ? k1_zawin(p->podpowiedz, szer, K1_CZ_MALA, NULL, NULL) * K1_MENU_LINIA - 6 : 0);
     }
 }
 
@@ -149,10 +160,10 @@ static void rysuj_poz(struct k1_obraz *o, const struct k1_motyw *mt, const struc
     }
     if (p->styl == K1_MS_TEKST) {
         if (p->mocna)
-            zawin(p->tekst, szer, K1_CZ_TEKST_MOCNA, linia_rysuj,
+            k1_zawin(p->tekst, szer, K1_CZ_TEKST_MOCNA, linia_rysuj,
                   &(struct rysowanie){ o, tx, y + 20, szer, k1_kolor(mt->tekst, 255), K1_CZ_TEKST_MOCNA, TYTUL_LINIA });
         else
-            zawin(p->tekst, szer, K1_CZ_MALA, linia_rysuj,
+            k1_zawin(p->tekst, szer, K1_CZ_MALA, linia_rysuj,
                   &(struct rysowanie){ o, tx, y + 14, szer, k1_kolor(mt->tekst2, 255), K1_CZ_MALA, K1_MENU_LINIA });
         return;
     }
@@ -172,7 +183,7 @@ static void rysuj_poz(struct k1_obraz *o, const struct k1_motyw *mt, const struc
     if (p->wyszarzona && p->podpowiedz) {
         r.y = y + 22 + K1_MENU_LINIA + 2;
         r.kolor = k1_kolor(mt->tekst3, 255);
-        zawin(p->podpowiedz, m->szer - 2 * TEKST_X, K1_CZ_MALA, linia_rysuj, &r);
+        k1_zawin(p->podpowiedz, m->szer - 2 * TEKST_X, K1_CZ_MALA, linia_rysuj, &r);
     }
 }
 

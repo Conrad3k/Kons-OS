@@ -55,6 +55,9 @@ void k1_naloz_sprite(struct k1_obraz *o, const uint32_t *sprite, uint32_t sw, ui
 
 /* The K1 mark („Warstwy”: three sheets of paper) over a premultiplied ARGB image, wys × wys px. */
 void k1_rysuj_znak(struct k1_obraz *o, float cx, float cy, float wys);
+/* The same mark in other colours: the back sheet, the middle one, the front one (0xRRGGBB; 0.10.7 step 3: grey in an
+ * empty folder of Pliki). */
+void k1_rysuj_znak_barwy(struct k1_obraz *o, float cx, float cy, float wys, const uint32_t kolory[3]);
 
 /* Blends a premultiplied ARGB image (`src`, its own size) onto `dst` at (x, y), clipped to the
  * rectangle (kx, ky, kw, kh) of `dst`. Used by the screen process to compose surfaces. */

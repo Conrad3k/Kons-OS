@@ -1,5 +1,6 @@
-/* K1 Pliki — the buttons of the place shown (Otwórz, Nowy folder, Zmień nazwę, Usuń; in Kosz: Przywróć, Usuń na
- * zawsze, Opróżnij Kosz; a question „Tak, usuń” / „Anuluj”) and what they do. Part of Pliki (pliki.h). */
+/* K1 Pliki — the buttons of the place shown (Nowy folder, and with a selection Otwórz, Zmień nazwę, Usuń; in Kosz:
+ * Opróżnij Kosz, and with a selection Przywróć, Usuń na zawsze; a question „Tak, usuń” / „Anuluj”) and what they do.
+ * Part of Pliki (pliki.h). */
 #include <string.h>
 
 #include "k1_log.h"
@@ -8,36 +9,58 @@
 
 int rodzaje[PRZYCISKI_MAKS]; /* what the buttons of przyciski() do, in order */
 
+/* Where a button is shown: a folder of the user's, Kosz, the stick, the question "for good?" in the footer. */
+enum gdzie { W_FOLDERZE, W_KOSZU, NA_PENDRIVIE, PRZY_PYTANIU };
+
+/* 0.10.7 step 3 (D4, T4): one row per button, in the order drawn. `zawsze` = shown without a selection; the others
+ * come after them when something is selected, so the ones always there never move. */
+static const struct {
+    int rodzaj;
+    enum gdzie gdzie;
+    int zawsze;
+    const char *etykieta;
+    int32_t szer;
+    enum k1_styl_przycisku styl;
+} PRZYCISKI[] = {
+    { B_NOWY, W_FOLDERZE, 1, "Nowy folder", 116, K1_PRZ_ZWYKLY },
+    { B_OTWORZ, W_FOLDERZE, 0, "Otwórz", 84, K1_PRZ_ZWYKLY },
+    { B_NAZWA, W_FOLDERZE, 0, "Zmień nazwę", 116, K1_PRZ_ZWYKLY },
+    { B_USUN, W_FOLDERZE, 0, "Usuń", 76, K1_PRZ_ZWYKLY },
+    { B_OPROZNIJ, W_KOSZU, 1, "Opróżnij Kosz", 128, K1_PRZ_ZWYKLY },
+    { B_PRZYWROC, W_KOSZU, 0, "Przywróć", 92, K1_PRZ_ZWYKLY },
+    { B_NA_ZAWSZE, W_KOSZU, 0, "Usuń na zawsze", 132, K1_PRZ_ZWYKLY },
+    { B_IMPORTUJ_WSZ, NA_PENDRIVIE, 1, "Importuj wszystkie", 160, K1_PRZ_ZWYKLY },
+    { B_IMPORTUJ, NA_PENDRIVIE, 0, "Importuj", 100, K1_PRZ_GLOWNY },
+    { B_TAK, PRZY_PYTANIU, 1, "Tak, usuń", 96, K1_PRZ_GLOWNY },
+    { B_ANULUJ, PRZY_PYTANIU, 1, "Anuluj", 84, K1_PRZ_ZWYKLY },
+};
+#define N_PRZYCISKOW (int)(sizeof PRZYCISKI / sizeof PRZYCISKI[0])
+
 int przyciski(struct k1_przycisk *p)
 {
-    static const char *const etykiety[] = { "Nowy folder", "Zmień nazwę", "Usuń", "Przywróć", "Usuń na zawsze",
-                                            "Opróżnij Kosz", "Tak, usuń", "Anuluj", "Otwórz", "Importuj",
-                                            "Importuj wszystkie" };
-    static const int32_t szer[] = { 116, 116, 76, 92, 132, 128, 96, 84, 84, 100, 160 };
-    int n = 0, i;
+    enum gdzie tutaj = pytanie != PYT_BRAK ? PRZY_PYTANIU : tu.pendrive ? NA_PENDRIVIE : tu.kosz ? W_KOSZU : W_FOLDERZE;
+    int n = 0;
     int32_t x = LISTA_X;
-    if (pytanie != PYT_BRAK) {
-        rodzaje[n++] = B_TAK;
-        rodzaje[n++] = B_ANULUJ;
-    } else if (tu.pendrive) { /* the stick: read only, files come over to K1 */
-        rodzaje[n++] = B_IMPORTUJ;
-        rodzaje[n++] = B_IMPORTUJ_WSZ;
-    } else if (tu.kosz) {
-        rodzaje[n++] = B_PRZYWROC;
-        rodzaje[n++] = B_NA_ZAWSZE;
-        rodzaje[n++] = B_OPROZNIJ;
-    } else { /* other applications: "Otwórz za pomocą" in the menu under the right button (0.8.2 step 5) */
-        rodzaje[n++] = B_OTWORZ;
-        rodzaje[n++] = B_NOWY;
-        rodzaje[n++] = B_NAZWA;
-        rodzaje[n++] = B_USUN;
-    }
-    for (i = 0; i < n; i++) {
-        p[i] = (struct k1_przycisk){ x, PRZYCISKI_Y, szer[rodzaje[i]], PRZYCISK_H, etykiety[rodzaje[i]],
-                                     rodzaje[i] == B_TAK || rodzaje[i] == B_IMPORTUJ ? K1_PRZ_GLOWNY : K1_PRZ_ZWYKLY };
-        x += szer[rodzaje[i]] + 8;
+    for (int i = 0; i < N_PRZYCISKOW && n < PRZYCISKI_MAKS; i++) {
+        if (PRZYCISKI[i].gdzie != tutaj || (!PRZYCISKI[i].zawsze && zazn.n == 0))
+            continue;
+        rodzaje[n] = PRZYCISKI[i].rodzaj;
+        p[n++] = (struct k1_przycisk){ x, PRZYCISKI_Y, PRZYCISKI[i].szer, PRZYCISK_H, PRZYCISKI[i].etykieta,
+                                       PRZYCISKI[i].styl };
+        x += PRZYCISKI[i].szer + 8;
     }
     return n;
+}
+
+/* An empty folder of the user's: the mark, "Ten folder jest pusty" and this button under them, in the middle of the
+ * list (rysuj_liste). Not in Kosz, not on the stick. */
+int przycisk_pustego(struct k1_przycisk *p)
+{
+    if (!gotowe || n_widok != 0 || tu.kosz || tu.pendrive || pytanie != PYT_BRAK)
+        return 0;
+    *p = (struct k1_przycisk){ LISTA_X + (LISTA_W - PRZYCISKI[0].szer) / 2, WIERSZE_Y + 196, PRZYCISKI[0].szer, PRZYCISK_H,
+                               PRZYCISKI[0].etykieta, K1_PRZ_ZWYKLY };
+    return 1;
 }
 
 /* Whether button `r` can do anything now (else drawn muted, clicks ignored). */

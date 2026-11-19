@@ -40,7 +40,7 @@
 #define SZCZEGOLY_X (SZER - SZCZEGOLY_W - 12)
 #define MIN_W (SZCZEGOLY_W - 32)         /* a thumbnail in the details (0.8.0 step 4) */
 #define MIN_H 150
-#define LISTA_W (SZER - LISTA_X - SZCZEGOLY_W - 24)
+#define LISTA_W lista_w()             /* 0.10.7 step 3: the whole width without the details */
 #define SCIEZKA_Y (K1_OKNO_TYTUL + 10) /* the "up" button and the path */
 #define PRZYCISKI_Y (K1_OKNO_TYTUL + 52)
 #define PRZYCISK_H 32
@@ -50,6 +50,7 @@
 #define STOPKA 40
 #define PRZEWIJANIE 26                 /* the strip with the scroll arrows (only when needed) */
 #define PRZYCISKI_MAKS 6               /* buttons of a place at most */
+#define PUSTY_ZNAK 64                  /* an empty folder: the grey mark „Warstwy” (0.10.7 step 3) */
 #define SZCZEGOLY_TAPETA_Y (SCIEZKA_Y + 16 + MIN_H + 40) /* "Ustaw jako tapetę" under the picture and its name */
 
 /* the place shown: a folder, Kosz, or a folder on the USB stick */
@@ -82,7 +83,9 @@ extern const char *blad;       /* a message for the footer (NULL: none) */
 extern int gotowe;             /* the first list has arrived */
 
 /* main.c */
-extern int nad_miejscem, nad_przyciskiem, nad_w_gore, nad_tapeta; /* under the pointer (drawn highlighted) */
+extern int nad_miejscem, nad_przyciskiem, nad_w_gore, nad_tapeta, nad_pustym; /* under the pointer (drawn highlighted) */
+int szczegoly_widac(void); /* the details on the right: only with something selected (0.10.7 step 3, D4) */
+int32_t lista_w(void);     /* the list's width: up to the details, or to the window's edge */
 int wierszy_widac(void);
 int wiersz_zaznaczonego(void);
 void zaznacz_wiersz(int i);
@@ -107,7 +110,8 @@ int wiersz_pod(int32_t x, int32_t y);  /* a row of the list shown, or -1 */
 /* przyciski.c */
 enum { B_NOWY, B_NAZWA, B_USUN, B_PRZYWROC, B_NA_ZAWSZE, B_OPROZNIJ, B_TAK, B_ANULUJ, B_OTWORZ, B_IMPORTUJ, B_IMPORTUJ_WSZ };
 extern int rodzaje[PRZYCISKI_MAKS];   /* what the buttons of przyciski() do, in order */
-int przyciski(struct k1_przycisk *p); /* the buttons of this place: how many */
+int przyciski(struct k1_przycisk *p); /* the buttons of this place now (some only with a selection): how many */
+int przycisk_pustego(struct k1_przycisk *p); /* "Nowy folder" in the middle of an empty folder: 1 when shown */
 int dostepny(int r);                  /* whether button kind `r` can do anything now */
 void wykonaj(int r);                  /* button kind `r` */
 void otworz_w(int a);                 /* the selected file in application `a` ("Otwórz za pomocą") */

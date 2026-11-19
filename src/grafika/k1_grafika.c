@@ -385,6 +385,11 @@ void k1_naloz_sprite(struct k1_obraz *o, const uint32_t *sprite, uint32_t sw, ui
 void k1_rysuj_znak(struct k1_obraz *o, float cx, float cy, float wys)
 {
     static const uint32_t kolory[3] = { K1_TERAKOTA_CIEMNA, K1_TERAKOTA, K1_TERAKOTA_JASNA };
+    k1_rysuj_znak_barwy(o, cx, cy, wys, kolory);
+}
+
+void k1_rysuj_znak_barwy(struct k1_obraz *o, float cx, float cy, float wys, const uint32_t kolory[3])
+{
     static const float promienie[3] = { 1.75f, 1.25f, 0.75f };
     const float h = wys / 2.0f, px = 2.0f / wys; /* unit square [-1, 1]; one pixel in units */
     int32_t x0 = (int32_t)floorf(cx - h), x1 = (int32_t)ceilf(cx + h), y0 = (int32_t)floorf(cy - h),
