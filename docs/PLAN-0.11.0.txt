@@ -5,12 +5,15 @@ Data: 2026-11-20 (porządek w planie: ADR 0035). Plan napisany na prośbę wła�
 0.10.10): „stwórz plan implementacji wersji 0.11.0, w krokach … nie dziel na zbyt wiele kroków”. Tego samego dnia
 właściciel dopisał: „lepszy pełen ekran przeglądarki; obecnie nie »domyka« krawędzi i zostawia ciut za dużo miejsca na
 dole” (krok 1).
+Kolejność (prośba właściciela z 2026-11-20, po napisaniu tego planu): najpierw 0.10.11 „Szybsza grafika”
+(docs/PLAN-0.10.11.txt), ta wersja zaczyna się po jej wydaniu. Krok 1 tego planu (pełny ekran) zmienia ekran i okno
+strefy, które zmienia też krok 2 planu 0.10.11 (obraz bez kopii) — czat kroku 1 czyta jego „Ustalenia z wykonania”.
 Wersja stoi na 0.10.10 (strefy, przeglądarka w strefie z sesjami Ogólna, Bank, Prywatna, Raptor Bridge, dysk sesji
 w skarbcu, okno przeglądarki ze zmianą rozmiaru i maksymalizacją, szybka grafika; plany 0.10.x w docs/archiwum/) i na
 0.8 Pliki (foldery, Kosz, pochodzenie pliku, okno wyboru pliku, „Otwórz za pomocą”, przeciąganie w Plikach; ADR 0026,
 0029, 0030). Zasady przepływu plików są od dawna ustalone w ADR 0027 — ta wersja je wdraża.
 Ten plik jest SAMODZIELNY: cel, kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
-Plik jest planem, nie specyfikacją: protokół plików strefy, schowek i przeciąganie między oknami idą przez ADR 0051
+Plik jest planem, nie specyfikacją: protokół plików strefy, schowek i przeciąganie między oknami idą przez ADR 0053
 (krok 2, uzupełniany w krokach 4 i 5).
 
 
@@ -25,7 +28,7 @@ do oryginału tylko po „Zapisać zmiany w oryginale?”. Tekst kopiuje się mi
 widzi K1. Do tego okno przeglądarki wypełnia ekran do krawędzi.
 
 Kroki: PIĘĆ. Krok 1 — okno przeglądarki do krawędzi i pełny ekran (mały, niezależny). Krok 2 — pliki ze strefy do
-Plików (fundament: ADR 0051, droga plików strefa ↔ K1, pochodzenie). Krok 3 — pliki z Plików do strefy: „Wyślij do…”,
+Plików (fundament: ADR 0053, droga plików strefa ↔ K1, pochodzenie). Krok 3 — pliki z Plików do strefy: „Wyślij do…”,
 „Otwórz w…”, zapis z powrotem. Krok 4 — przeciąganie plików między oknami, także na okno przeglądarki. Krok 5 — schowek,
 porządki i wydanie 0.11.0.
 
@@ -52,7 +55,7 @@ Decyzje [!] (punkt 4) czat zada na początku kroku. Przy wyglądzie czat najpier
 Nowy czat: przebieg każdego kroku:
   1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y i Issue robota, ostatni run CI na main).
   2. Przeczytaj CEL WERSJI, swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4), ADR 0027; kroki 3–5 także
-     „Ustalenia z wykonania” kroków wcześniejszych i ADR 0051. Kod mógł się zmienić (robot, poprawki) — luki sprawdź
+     „Ustalenia z wykonania” kroków wcześniejszych i ADR 0053. Kod mógł się zmienić (robot, poprawki) — luki sprawdź
      jeszcze raz.
   3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
   4. „Dziel przed rozbudową”: plik blisko 600 wierszy najpierw osobny commit z podziałem (dotyczy zwłaszcza
@@ -67,7 +70,7 @@ Nowy czat: przebieg każdego kroku:
   7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, scripts/test-m1.sh i skrypty QEMU
      zmienianej części (docs/TESTY.md: test-strefa, test-pliki, test-m4, test-wzorce); pełny komplet: CI na PR-ze
      (etykieta „testy”), scalasz przy zielonym (AGENTS.md). Czekaj poleceniem, bez innych wywołań (CLAUDE.md).
-  8. Dokumenty w tym samym PR-ze: ADR 0051 (krok 2, uzupełnienia w 4 i 5), docs/komponenty/ (strefa.md, skarbiec.md,
+  8. Dokumenty w tym samym PR-ze: ADR 0053 (krok 2, uzupełnienia w 4 i 5), docs/komponenty/ (strefa.md, skarbiec.md,
      aplikacje.md, ekran.md, gui.md, raptor-bridge.md — gdy zmienia się vsock), SLOWNIK (nowe pojęcia: „Do K1”,
      „schowek”…), RYZYKA, WYGLAD. VERSION i CHANGELOG zmienia krok 5 (wydanie); kroki 1–4 zapisują „co widzi
      użytkownik” w opisie PR-a.
@@ -76,7 +79,7 @@ Nowy czat: przebieg każdego kroku:
 
 Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
   - Robot raz dziennie wydaje sam PATCH z poprawionym jądrem i pakietami przeglądarki — z tego, co jest wtedy na main.
-    Każdy scalony krok trafia więc do laptopów z najbliższym wydaniem robota (np. 0.10.11), przed wydaniem 0.11.0. Kroki
+    Każdy scalony krok trafia więc do laptopów z najbliższym wydaniem robota (np. 0.10.12), przed wydaniem 0.11.0. Kroki
     tej wersji są samodzielne (każdy daje gotową rzecz), więc robot zostaje włączony. Krok w main musi być gotowy dla
     użytkownika: bez przycisku, który nic nie robi. Gdyby któryś krok tego nie spełniał — robot wyłączony od jego
     scalenia do wydania (Actions → Disable workflow; wpis „Tymczasowe” w DO_ZROBIENIA).
@@ -115,7 +118,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [ ]  3  Pliki do strefy: Wyślij do, Otwórz w, zapis z powr.   P15–P18          2           D4, T5       M–L      0051
 [ ]  4  Przeciąganie między oknami, też na okno przeglądarki  P19–P22          2 (i 3)     D6, T6, T7   M        0051 (uzup.)
 [ ]  5  Schowek; porządki; wydanie 0.11.0                     P23–P26          2           D5, T8       M        0051 (uzup.)
-(ADR 0051: następny wolny po 0050 z 0.10.9.)
+(ADR 0053: następny wolny po 0051 i 0052, które bierze 0.10.11 — docs/PLAN-0.10.11.txt.)
 
 
 3. KROKI
@@ -147,16 +150,16 @@ KROK 1: Okno przeglądarki do krawędzi, pełny ekran                         S�
   ogranicza), SLOWNIK („pełny ekran”, jeśli nowe).
   Gotowe, gdy: CI zielone, właściciel potwierdził zrzuty; na laptopie: lista w raporcie.
 
-KROK 2: Pliki ze strefy do Plików („Do K1”), pochodzenie                  L · D2, D3, T1–T4 · ADR 0051
+KROK 2: Pliki ze strefy do Plików („Do K1”), pochodzenie                  L · D2, D3, T1–T4 · ADR 0053
   Cel: plik pobrany w sesji przeglądarki trafia — za zgodą — do Plików K1 jako kopia, z zapisanym pochodzeniem.
   Strefa nie dostaje przy tym nic z K1 (żadnej listy plików, żadnej ścieżki).
-  Na początku: D2, D3 (szkice okienka i szczegółów pliku, oba motywy). Potem ADR 0051 (T1–T4) — pierwszy commit po
+  Na początku: D2, D3 (szkice okienka i szczegółów pliku, oba motywy). Potem ADR 0053 (T1–T4) — pierwszy commit po
   oznaczeniu kroku.
   Co widzi użytkownik: pobierasz plik w przeglądarce → po zakończeniu okienko K1 (wg D2) z nazwą, rozmiarem i sesją →
   „Zapisz w Pobranych” → plik w Plikach → Pobrane; szczegóły pliku: „Z przeglądarki · Ogólna”, strona (wg D3, T4),
   data. Za duży plik albo brak miejsca: jasny komunikat K1 („Za mało miejsca: …”), plik zostaje w przeglądarce.
   Zadania:
-   a) ADR 0051 „Droga plików strefa ↔ K1”: kanał (T1), agent w strefie (T2), przekazanie do skarbca (T3), pochodzenie
+   a) ADR 0053 „Droga plików strefa ↔ K1”: kanał (T1), agent w strefie (T2), przekazanie do skarbca (T3), pochodzenie
       (T4), limity (rozmiar, liczba naraz, zalew), co jest gestem, a co pytaniem (ADR 0027 p. 2), co robi Prywatna
       (pobrane w pamięci strefy — P11).
    b) Strona strefy: agent (nasz program w gosc/, statycznie) pilnuje folderu pobranych Firefoksa (prefy w
@@ -176,11 +179,11 @@ KROK 2: Pliki ze strefy do Plików („Do K1”), pochodzenie                  L
   bez pliku; zamknięcie strefy w środku przesyłania; test-pliki (pochodzenie w szczegółach); test negatywny w systemie
   (VMM nie dostaje kanału do skarbca innego niż swój). Firefox: stanowisko (pobranie kończy się zgłoszeniem); właściciel
   na laptopach.
-  Dokumenty: ADR 0051, strefa.md, raptor-bridge.md (nowy port obok portów 1 i 2), skarbiec.md, aplikacje.md (Pliki),
+  Dokumenty: ADR 0053, strefa.md, raptor-bridge.md (nowy port obok portów 1 i 2), skarbiec.md, aplikacje.md (Pliki),
   gui.md (okienko), SLOWNIK, RYZYKA (nowa droga ze strefy — R-nowe).
   Gotowe, gdy: CI zielone; właściciel pobrał plik na laptopie i widzi go w Pobranych z pochodzeniem.
 
-KROK 3: Pliki do strefy: „Wyślij do…”, „Otwórz w…”, zapis z powrotem     M–L · D4, T5 · ADR 0051
+KROK 3: Pliki do strefy: „Wyślij do…”, „Otwórz w…”, zapis z powrotem     M–L · D4, T5 · ADR 0053
   Cel: kopia pliku z Plików trafia do wybranej sesji przeglądarki; zmieniona kopia wraca do oryginału tylko za zgodą.
   Na początku: D4.
   Co widzi użytkownik: Pliki (i pulpit) → prawy przycisk na pliku → „Wyślij do…” → lista sesji (z kolorem sesji) →
@@ -202,10 +205,10 @@ KROK 3: Pliki do strefy: „Wyślij do…”, „Otwórz w…”, zapis z powrot
   wersja w Koszu; tryby złośliwe: zgłoszenie zmiany pliku, którego K1 nie wysłał, albo z innej sesji — odrzucone);
   test-pliki (menu „Wyślij do…”, po nazwach); wzorce menu po „OK” właściciela. Firefox: stanowisko (plik w „Z K1”,
   otwarcie w karcie); właściciel na laptopach.
-  Dokumenty: ADR 0051 (uzupełnienie: powiązanie, zapis z powrotem), aplikacje.md, gui.md, strefa.md, SLOWNIK.
+  Dokumenty: ADR 0053 (uzupełnienie: powiązanie, zapis z powrotem), aplikacje.md, gui.md, strefa.md, SLOWNIK.
   Gotowe, gdy: CI zielone; właściciel wysłał plik ze strony w przeglądarce i odebrał zmieniony PDF.
 
-KROK 4: Przeciąganie między oknami, też na okno przeglądarki            M · D6, T6, T7 · ADR 0051 (uzupełnienie)
+KROK 4: Przeciąganie między oknami, też na okno przeglądarki            M · D6, T6, T7 · ADR 0053 (uzupełnienie)
   Cel: przeciągnięcie pliku z Plików albo z pulpitu na inne okno to gest zgody (ADR 0027 p. 2): na okno przeglądarki —
   strefa dostaje kopię i upuszczenie na stronie (np. pole „Prześlij plik”); między Plikami a pulpitem — przeniesienie
   jak w Plikach (D6 z docs/archiwum/PLAN-0.8.2.txt).
@@ -221,16 +224,16 @@ KROK 4: Przeciąganie między oknami, też na okno przeglądarki            M ·
       wejście, ruch, upuszczenie z text/uri-list wskazującym kopię w folderze sesji (droga z kroku 3). Kopia trafia do
       strefy dopiero przy upuszczeniu, nie przy najechaniu.
    c) Próba (T7): czy „Prześlij plik” na stronie może otworzyć okno wyboru pliku K1 (Wybór pliku, 0.8.0) zamiast okna
-      GTK w strefie. Wynik próby w ADR 0051; jeśli się nie da w rozsądnym rozmiarze — „Później” (ADR 0027 p. 4 to
+      GTK w strefie. Wynik próby w ADR 0053; jeśli się nie da w rozsądnym rozmiarze — „Później” (ADR 0027 p. 4 to
       dopuszcza: plik wysyłasz „Wyślij do…” albo przeciągasz).
   Testy i dowód: test-pliki i test-m4 (Pliki → pulpit, pulpit → Pliki, po nazwach), test-strefa (upuszczenie na okno
   strefy próbnej: agent dostaje kopię i zdarzenie upuszczenia; najechanie bez upuszczenia — strefa nic nie dostaje);
   test kompozytora na hoście (przeciąganie w kompozytorze — wzór: testy kompozytora z 0.10.1). Firefox: stanowisko
   (upuszczenie pliku na stronę z polem przesyłania); właściciel na laptopach.
-  Dokumenty: ADR 0051 (uzupełnienie), ekran.md, gui.md, aplikacje.md, strefa.md, WYGLAD (znak przy kursorze).
+  Dokumenty: ADR 0053 (uzupełnienie), ekran.md, gui.md, aplikacje.md, strefa.md, WYGLAD (znak przy kursorze).
   Gotowe, gdy: CI zielone; właściciel przeciągnął plik na stronę w przeglądarce.
 
-KROK 5: Schowek; porządki; wydanie 0.11.0 (OSTATNI)                      M · D5, T8 · ADR 0051 (uzupełnienie)
+KROK 5: Schowek; porządki; wydanie 0.11.0 (OSTATNI)                      M · D5, T8 · ADR 0053 (uzupełnienie)
   Cel: tekst kopiuje się i wkleja w K1 i między K1 a sesjami przeglądarki, a każde wklejenie do sesji przechodzi przez
   K1 (ADR 0020: schowek między strefami za każdym wklejeniem); potem porządki wersji MINOR i wydanie.
   Na początku: D5.
@@ -250,7 +253,7 @@ KROK 5: Schowek; porządki; wydanie 0.11.0 (OSTATNI)                      M · D
   Testy i dowód: test na hoście i fuzzing formatu schowka; test-m4 (Notatki: kopiuj / wklej), test-strefa (strefa
   próbna kopiuje tekst → Notatki; wkleja z K1; tryby złośliwe: za długi tekst, zalew, wklejenie bez Ctrl+V — nic nie
   przychodzi); pełny komplet w CI na PR-ze wydania.
-  Dokumenty: ADR 0051 (uzupełnienie), ekran.md, aplikacje.md, strefa.md, SLOWNIK („schowek”), RYZYKA, CHANGELOG.
+  Dokumenty: ADR 0053 (uzupełnienie), ekran.md, aplikacje.md, strefa.md, SLOWNIK („schowek”), RYZYKA, CHANGELOG.
   Gotowe, gdy: CI zielone, wydanie 0.11.0 istnieje (linki ISO i USB w raporcie), lista „co sprawdzić” w DO_ZROBIENIA.
 
 
@@ -285,7 +288,7 @@ Twoje (produkt) — czat kroku zada je na początku:
       A (zalecane): przenieść (jak w Windows w obrębie jednego dysku i jak dziś w Plikach); z Ctrl — kopia.
       B: zawsze kopia.
 
-Techniczne (decyduje Claude, z krótkim uzasadnieniem w ADR 0051):
+Techniczne (decyduje Claude, z krótkim uzasadnieniem w ADR 0053):
 
   T1 Kanał plików strefy: nowy port vsock (obok 1 — sterowanie, 2 — połączenia przeglądarki), z kredytem jak port 2.
      Bez wspólnego systemu plików (virtio-fs / 9p — duża powierzchnia po stronie K1, FUSE w gościu, demon na hoście).
@@ -336,11 +339,11 @@ Krok 2
   P10 ŚREDNIA, NIEPEWNE. Firefox pisze pobranie do pliku `.part` i na końcu zmienia nazwę — agent czeka na zmianę nazwy
      (inotify IN_MOVED_TO), nie na pierwszy zapis. Sprawdzić na stanowisku.
   P11 ŚREDNIA, Z KODU. Prywatna ma /home w pamięci (gosc/przegladarka.c: bez dysku sesji) — duże pobranie zjada pamięć
-     strefy; limit pobrania w Prywatnej = część pamięci strefy (ADR 0051).
+     strefy; limit pobrania w Prywatnej = część pamięci strefy (ADR 0053).
   P12 ŚREDNIA, NIEPEWNE. Skąd adres strony: Firefox na Linuksie zapisuje adres pobrania w atrybucie pliku
      (user.xdg.origin.url) — czy w ESR ze strefy i na ext4 / tmpfs strefy (xattr w jądrze strefy?). Jeśli nie — bez adresu.
   P13 ŚREDNIA, Z KODU. Wpis pliku (k1_dokument.h, 32 B) ma bajt „pochodzenie”, ale nie ma miejsca na adres strony —
-     adres jako osobny obiekt w skarbcu albo rozszerzenie wpisu (zmiana formatu → ADR 0051, test przejścia).
+     adres jako osobny obiekt w skarbcu albo rozszerzenie wpisu (zmiana formatu → ADR 0053, test przejścia).
   P14 NISKA, Z KODU. Starsza wersja (po „Wróć”) czyta nieznane pochodzenie jako „utworzony w K1” (src/skarbiec/
      dok_wczytaj.c) — Pliki działają; test w test-m5f / test-aktualizacja-siec, że tak zostaje.
 
@@ -352,7 +355,7 @@ Krok 3
      upuszczenie pliku na okno przez nasz kompozytor (krok 4, wl_data_device) — wybór w kroku, próba na stanowisku.
      Jeśli żadne — „Otwórz w…” = „Wyślij do…” + karta „Z K1” (plik://) otwarta przez nas przy starcie sesji.
   P17 ŚREDNIA, NIEPEWNE. Firefox zapisuje edytowany PDF jako nowe pobranie (okno zapisu), nie w miejscu oryginału —
-     agent rozpoznaje „to jest plik N” po nazwie i folderze; reguła w ADR 0051.
+     agent rozpoznaje „to jest plik N” po nazwie i folderze; reguła w ADR 0053.
   P18 NISKA, Z KODU. Kosz (30 dni) i przywracanie są w skarbcu (dok_*.c) — stara wersja oryginału do Kosza to istniejąca
      operacja.
 
