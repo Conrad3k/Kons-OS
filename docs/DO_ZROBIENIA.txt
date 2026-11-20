@@ -17,15 +17,12 @@ Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Cl
 
 1. TERAZ — plan 0.10.11 „Szybsza grafika” (docs/PLAN-0.10.11.txt), potem 0.11.0 „Pliki ze stref”
 --------------------------------------------------------------
-Twoja prośba z 2026-11-20 (po planie 0.11.0): najpierw 0.10.11 — szybka grafika ma mniej się zacinać, i karty NVIDIA RTX
-oraz AMD. Cel: obraz z karty na ekran K1 bez kopiowania procesorem (najpierw pomiar), szybka grafika na kartach AMD
-(Mesa ma gotową stronę strefy), NVIDIA: sterownik z jądra i laptopy z dwiema kartami (szybka grafika na samej RTX — Twoja
-decyzja D3; dla NVIDII nikt jeszcze nie napisał strony strefy). Cztery kroki; decyzje D1–D4 czat zada na początku kroku —
-D2 (komputer z AMD albo RTX do sprawdzenia) przyda się wcześniej:
+Twoja prośba z 2026-11-20 (po planie 0.11.0): najpierw 0.10.11 — szybka grafika ma mniej się zacinać. Cel: obraz z karty
+na ekran K1 bez kopiowania procesorem, najpierw pomiar. Karty AMD i NVIDIA RTX — wypadły (Twoja decyzja z tego samego dnia:
+„zostaje tylko optymalizacja”). Dwa kroki; decyzje D1 i D4 czat zada na początku kroku:
     [ ] krok 1 — pomiar i szybkie poprawki szybkiej grafiki (D1)
-    [ ] krok 2 — obraz strefy bez kopii: bufor karty prosto do ekranu; ADR 0051 (D4)
-    [ ] krok 3 — karty AMD: sterownik amdgpu w K1, szybka grafika na AMD; ADR 0052 (D2)
-    [ ] krok 4 — karty NVIDIA RTX (D3); porządki; wydanie (numer: następny wolny PATCH — robot może zająć 0.10.11)
+    [ ] krok 2 — obraz strefy bez kopii: bufor karty prosto do ekranu; ADR 0051 (D4); porządki; wydanie (numer: następny
+        wolny PATCH — robot może zająć 0.10.11)
 Co wpisać w nowym czacie: „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.11.txt.”
 Po wydaniu 0.10.11 — plan 0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt):
 Twoja prośba z 2026-11-20: plan wersji 0.11.0 w niewielu krokach, z ogólnym celem, i do tego lepszy pełny ekran
@@ -33,7 +30,7 @@ przeglądarki (okno nie domyka krawędzi i zostawia za dużo miejsca na dole). C
 a Plikami K1 — zawsze przez Pliki, jako kopia, za zgodą gestem w oknie K1 (ADR 0027); schowek między oknami; okno
 przeglądarki do krawędzi. Pięć kroków (jeden krok = jeden czat = jeden PR; decyzje D1–D6 czat zada na początku kroku):
     [ ] krok 1 — okno przeglądarki do krawędzi, pełny ekran (D1)
-    [ ] krok 2 — pliki ze strefy do Plików („Do K1”), pochodzenie pliku; ADR 0053 (D2, D3)
+    [ ] krok 2 — pliki ze strefy do Plików („Do K1”), pochodzenie pliku; ADR 0052 (D2, D3)
     [ ] krok 3 — pliki do strefy: „Wyślij do…”, „Otwórz w…”, „Zapisać zmiany w oryginale?” (D4)
     [ ] krok 4 — przeciąganie plików między oknami, też na okno przeglądarki (D6)
     [ ] krok 5 — schowek (D5); porządki; wydanie 0.11.0
@@ -85,7 +82,7 @@ Wcześniej: 0.10.2 Testy (PR #144, #145, #149), 0.10.1 Balon (PR #134, #137, #13
     0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
     0.10     Strefy — 0.10.0 (przeglądarka w strefie), 0.10.1 Balon, 0.10.2 Testy, 0.10.5 Aktualizacje przez sieć
-             0.10.7 Wygląd, 0.10.9 Szybka grafika gotowe; 0.10.11 Szybsza grafika (NVIDIA, AMD) — plan gotowy
+             0.10.7 Wygląd, 0.10.9 Szybka grafika gotowe; 0.10.11 Szybsza grafika — plan gotowy
              (M8, z dawnym M11)
     0.11     Pliki ze stref — plan 0.11.0 gotowy (docs/PLAN-0.11.0.txt)              (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
@@ -132,9 +129,8 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
         w miejscu A/B zamiast w pamięci, miejsca A/B 768 MiB. Grubsze „opakowanie” pośrednika (węższe listy, limity czasu
         pracy karty, audyt) — RYZYKA R100, z terminem
     [ ] 0.10.11 Szybsza grafika (Twoja prośba z 2026-11-20; plan: docs/PLAN-0.10.11.txt): mniej zacinania przy szybkiej
-        grafice (pomiar, obraz z karty prosto na ekran K1 — ADR 0051), karty AMD (sterownik amdgpu, szybka grafika przez
-        most native context — ADR 0052), karty NVIDIA RTX (sterownik nouveau, laptopy z dwiema kartami; szybka grafika na
-        samej RTX — Twoja decyzja D3)
+        grafice (pomiar, obraz z karty prosto na ekran K1 — ADR 0051); karty AMD i NVIDIA RTX wypadły (Twoja decyzja
+        z 2026-11-20) — ustalenia w planie, punkt 6
     [ ] może: filmy kartą (dawny krok 3 planu 0.10.9 — wypadł z wersji, Twoja decyzja z 2026-11-20: „zostaw w planach na
         »może«”): film w sesji z szybką grafiką rozpakowuje dekoder filmów K1 (jest w systemie od 0.10.9, uśpiony) —
         sterownik VA w strefie, FFmpeg w strefie z H.264, droga VMM → dekoder filmów, prefy Firefoksa, prośba do stron
@@ -173,7 +169,7 @@ Laptop (PATCH w dowolnej wersji, po Twoich zgłoszeniach)
 
 Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne)
     [ ] exFAT na pendrive'ach (karty SD i pendrive'y > 32 GB), potem NTFS — ocena: docs/archiwum/PLAN-0.8.2.txt, dodatek A
-    [ ] przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) — weszło do planu 0.11.0 (krok 4, ADR 0053)
+    [ ] przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) — weszło do planu 0.11.0 (krok 4, ADR 0052)
     [ ] HEIC (zdjęcia z iPhone'a); odtwarzanie wideo (pliki wideo da się już przechowywać); zapis plików na pendrive
     [ ] pełne NFC i pełne porównanie wielkości liter Unicode w nazwach plików
     [ ] Podgląd: powiększanie fragmentu w pełnej rozdzielczości pliku, pełny ekran, pokaz slajdów; przybliżanie kółkiem
@@ -333,8 +329,7 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 [x] 0.10.9 — decyzje podjęte (docs/archiwum/PLAN-0.10.9.txt, punkt 4): D5 szybka grafika włączona w Ogólnej, D7 znak
     „układ scalony”, D9 jeden przełącznik (po wypadnięciu filmów — „Szybka grafika”), D10 „A” (miejsca 768 MiB; laptopy
     instalujesz od nowa); D4 i filmy kartą — wypadły z wersji (2026-11-20, „może”).
-[!] 0.10.11 — decyzje D1–D4 (docs/PLAN-0.10.11.txt, punkt 4): klatki na sekundę w Zasobach, komputer z AMD albo RTX
-    do sprawdzenia (D2 — najlepiej wcześniej), szybka grafika na samej RTX, okno częściowo zasłonięte.
+[!] 0.10.11 — decyzje D1 i D4 (docs/PLAN-0.10.11.txt, punkt 4): klatki na sekundę w Zasobach, okno częściowo zasłonięte.
 [!] 0.11.0 — decyzje D1–D6 (docs/PLAN-0.11.0.txt, punkt 4): pełny ekran, pytanie po pobraniu, znak pliku z internetu,
     wysyłanie do zamkniętej sesji, wklejanie do sesji, przeciąganie na pulpit — czat zada każdą na początku swojego kroku.
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).

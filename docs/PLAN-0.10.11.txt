@@ -3,14 +3,17 @@ K1 — PLAN WERSJI 0.10.11 „SZYBSZA GRAFIKA” (wersja tematu 0.10 Strefy, prz
 
 Data: 2026-11-20 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-20, zaraz po
 planie 0.11.0): „plan na wcześniej, na 0.10.11, którego celem będzie optymalizacja opcji »Szybka grafika«, bo obecnie
-laguje wciąż trochę za bardzo, i dodanie wsparcia dla NVIDII RTX i AMD”. Ta wersja idzie PRZED 0.11.0 „Pliki ze stref”
-(docs/PLAN-0.11.0.txt — zaczyna się po wydaniu tej).
+laguje wciąż trochę za bardzo”. Ta wersja idzie PRZED 0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt — zaczyna się po
+wydaniu tej).
+Zakres zmieniony tego samego dnia (decyzja właściciela 2026-11-20, po scaleniu pierwszej wersji planu — PR #195):
+„wywal cały punkt z tym wsparciem dla tych kart. Zostaje tylko optymalizacja”. Karty AMD i NVIDIA RTX (dawne kroki 3
+i 4) wypadły z wersji; ustalenia ze źródeł — punkt 6.
 Wersja stoi na 0.10.9 „Szybka grafika” (ADR 0049: i915 w jądrze K1, pośrednik grafiki, most native context, Mesa
 z intel-virtio w strefie, przełącznik przy sesji; plan: docs/archiwum/PLAN-0.10.9.txt) i 0.10.10 (Zasoby → „Karta
 graficzna”: obciążenie, taktowanie, pobór mocy — przyda się do pomiaru).
 Ten plik jest SAMODZIELNY: cel, kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
 Plik jest planem, nie specyfikacją: obraz strefy prosto na ekran (bufor karty u ekranu) zmienia drogę obrazu z ADR 0042
-i 0049 — ADR 0051 (krok 2); karty AMD i NVIDIA w jądrze K1 i w pośredniku — ADR 0052 (krok 3, uzupełniany w kroku 4).
+i 0049 — ADR 0051 (krok 2).
 Numer: robot wydaje PATCH codziennie i może zająć 0.10.11 — temat i plik planu zostają, wydanie bierze następny wolny
 numer PATCH w chwili wydania (punkt 0).
 
@@ -19,70 +22,55 @@ CEL WERSJI (jednym akapitem)
 ----------------------------
 Szybka grafika ma być naprawdę szybka: dziś przeglądarka rysuje stronę kartą, ale gotowy obraz przechodzi do ekranu
 przez kilka pełnych kopii robionych procesorem (luki P1–P6) — stąd przycięcia przy przewijaniu i filmach. Po 0.10.11
-obraz z karty trafia na ekran K1 bez kopiowania wszędzie tam, gdzie się da (najpierw pomiar, potem poprawki z liczbami
-„przed / po”), a szybka grafika działa też na komputerach z kartą AMD (Mesa ma gotową stronę strefy dla AMD — P13).
-Karty NVIDIA RTX: K1 dostaje sterownik z jądra (obraz, oszczędzanie energii karty w laptopach z dwiema kartami),
-laptop z dwiema kartami rysuje strefy kartą zintegrowaną, a szybka grafika na samej RTX — według Twojej decyzji D3
-(dla NVIDII Mesa nie ma strony strefy, P17). Zasady bezpieczeństwa z ADR 0049 zostają: strefa nigdy nie dostaje karty,
-każdą prośbę sprawdza pośrednik w klatce, karta bez oddzielenia pracy stref = brak szybkiej grafiki.
+obraz z karty trafia na ekran K1 bez kopiowania wszędzie tam, gdzie się da — najpierw pomiar, potem poprawki z liczbami
+„przed / po” z IdeaPada. Zasady bezpieczeństwa z ADR 0049 zostają: strefa nigdy nie dostaje karty, każdą prośbę
+sprawdza pośrednik w klatce, ekran tylko pokazuje gotowy bufor (nie zleca karcie pracy).
 
-Kroki: CZTERY. Krok 1 — pomiar i szybkie poprawki (gdzie ginie czas, poprawki bez zmiany architektury). Krok 2 — obraz
-strefy bez kopii: bufor karty prosto do ekranu K1 (ADR 0051). Krok 3 — karty AMD (ADR 0052). Krok 4 — karty NVIDIA RTX,
-porządki i wydanie.
+Kroki: DWA. Krok 1 — pomiar i szybkie poprawki (gdzie ginie czas, poprawki bez zmiany architektury). Krok 2 — obraz
+strefy bez kopii: bufor karty prosto do ekranu K1 (ADR 0051); porządki i wydanie.
 
-ZAKRES ZAMROŻONY (ADR 0035): poniższe 4 kroki i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”);
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 2 kroki i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; wydanie jest zawsze
-ostatnim krokiem; jeśli krok nie zmieści się w jednym czacie, dzieli się na 2a/2b … (wydanie w ostatniej części kroku 4).
+ostatnim krokiem; jeśli krok nie zmieści się w jednym czacie, dzieli się na 2a/2b … (wydanie w ostatniej części kroku 2).
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
-Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.10.10, 2026-11-20), ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą;
-Mesa 26.2.6 z Debiana, sprawdzona 2026-11-20 przy pisaniu planu), POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku).
+Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.10.10, 2026-11-20), ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą),
+POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku).
 
 
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
-Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: 1, 2, 3, 4. Krok 1 najpierw: bez liczb z pomiaru nie
-wiadomo, które poprawki dają najwięcej (wynik może zmienić zadania kroku 2 — wtedy w „Ustaleniach z wykonania” kroku 1).
-Krok 2 przed AMD, bo droga bez kopii ma działać dla każdej karty (dma-buf), a krok 3 ją tylko wykorzystuje. Krok 4 nie
-zależy od 2 i 3 poza wspólnymi zmianami w jądrze i w Ustawieniach.
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: 1, 2. Krok 1 najpierw: bez liczb z pomiaru nie wiadomo,
+które poprawki dają najwięcej (wynik może zmienić zadania kroku 2 — wtedy w „Ustaleniach z wykonania” kroku 1).
 
 Właściciel: co wpisać w nowym czacie (podmień N):
     „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.11.txt.”
-Decyzje [!] (punkt 4) czat zada na początku kroku. D2 (sprzęt do testów AMD i NVIDIA) najlepiej rozstrzygnąć wcześniej —
-od niej zależy, czy kroki 3 i 4 dadzą coś sprawdzonego na prawdziwej karcie.
+Decyzje [!] (punkt 4) czat zada na początku kroku.
 
 Nowy czat: przebieg każdego kroku:
   1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y i Issue robota, ostatni run CI na main).
   2. Przeczytaj CEL WERSJI, swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4), ADR 0049, docs/komponenty/
-     posrednik.md i strefa.md; kroki 2–4 także „Ustalenia z wykonania” kroków wcześniejszych.
+     posrednik.md i strefa.md; krok 2 także „Ustalenia z wykonania” kroku 1.
   3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
   4. „Dziel przed rozbudową”: plik blisko 600 wierszy najpierw osobny commit z podziałem (src/strefa/gpu*.c,
-     src/strefa/okno.c, src/strefa/kompozytor/, src/ekran/, src/posrednik/, src/wspolne/k1_posrednik.c).
+     src/strefa/okno.c, src/strefa/kompozytor/, src/ekran/, src/posrednik/).
   5. Wydajności nie widać w TCG (SKILL, pułapki QEMU): liczby tylko ze sprzętu (właściciel, IdeaPad; obraz USB z artefaktu
      PR-a i krótka lista „co zrobić, co odczytać”) i ze stanowiska na hoście z kartą, jeśli jest. W CI — tylko poprawność
      (testy strefy próbnej z pośrednikiem testowym, test na hoście, fuzzing).
   6. Każda zmiana formatu albo komunikatu: przepis z SKILL (pole po polu, test na hoście, fuzzing, test negatywny w systemie).
-  7. Jądro (kroki 3, 4): opcje do jadro/k1.config z komentarzem, pliki od producentów kart do jadro/oprogramowanie-kart.txt
-     (jedna tabela z sumami), scripts/sprawdz-kspp.sh, scripts/porownaj-jadro.sh; nigdy równolegle z otwartym PR-em robota
-     (AGENTS.md). Listy odrzuconych opcji zmienia tylko człowiek.
-  8. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, scripts/test-m1.sh, test-strefa,
-     test-m4 (ekran), test-wzorce; przy jądrze i budowie także scripts/sprawdz-powtarzalnosc.sh; pełny komplet: CI na PR-ze
-     (etykieta „testy”), scalasz przy zielonym. Czekaj poleceniem, bez innych wywołań (CLAUDE.md).
-  9. Dokumenty w tym samym PR-ze: ADR 0051 (krok 2), ADR 0052 (kroki 3–4), posrednik.md, strefa.md, ekran.md, jadro.md,
-     nadzorca.md, ZALEZNOSCI (Mesa: nowe sterowniki), RYZYKA (R100, R101 — nowe karty), SLOWNIK. VERSION i CHANGELOG
-     zmienia krok 4 (wydanie); kroki 1–3 zapisują „co widzi użytkownik” i liczby w opisie PR-a.
- 10. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
+  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, scripts/test-m1.sh, test-strefa,
+     test-m4 (ekran), test-wzorce; pełny komplet: CI na PR-ze (etykieta „testy”), scalasz przy zielonym. Czekaj poleceniem,
+     bez innych wywołań (CLAUDE.md).
+  8. Dokumenty w tym samym PR-ze: ADR 0051 (krok 2), posrednik.md, strefa.md, ekran.md, RYZYKA (R100), SLOWNIK.
+     VERSION i CHANGELOG zmienia krok 2 (wydanie); krok 1 zapisuje „co widzi użytkownik” i liczby w opisie PR-a.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
      w swoim kroku. Raport: liczby „przed / po”, co sprawdzić na laptopie.
 
 Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
-  - Robot wydaje codziennie PATCH z main, więc każdy scalony krok jedzie do laptopów przed wydaniem tej wersji. Kroki są
-    samodzielne: krok 1 i 2 przyspieszają to, co już jest (z drogą zapasową — stara droga kopii zostaje, gdy nowa się nie
-    da: P8); kroki 3 i 4 dodają karty, których właściciel nie ma — nic się nie zmienia na X230 i IdeaPadzie. Robot zostaje
+  - Robot wydaje codziennie PATCH z main, więc każdy scalony krok jedzie do laptopów przed wydaniem tej wersji. Oba kroki
+    przyspieszają to, co już jest, z drogą zapasową (stara droga kopii zostaje, gdy nowa się nie da: P8) — robot zostaje
     włączony. Wyjątek: gdyby krok 2 zmieniał zachowanie bez drogi zapasowej — robot wyłączony od scalenia do wydania
     (Actions → Disable workflow, wpis „Tymczasowe” w DO_ZROBIENIA).
-  - Kroki 3 i 4 zmieniają jądro K1 (nowe sterowniki kart). Komputer z kartą AMD albo NVIDIA, który dostanie wersję z nowym
-    sterownikiem przez aktualizację, chroni zatwierdzanie A/B: wersja z czarnym ekranem nie zostaje zatwierdzona i GRUB
-    wraca do poprzedniej (src/nadzorca/rozruch.c — od 0.10.9 liczy od pierwszej klatki na ekranie, P21).
   - Numer: robot może wydać 0.10.11 wcześniej — wtedy wydanie tej wersji bierze następny wolny PATCH (0.10.12…); temat
     i plik planu zostają. Tuż przed scaleniem wydania: gałąź z main, sprawdź VERSION, wpis CHANGELOG nad wpisem robota.
 
@@ -95,22 +83,16 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
     z liczbami „przed / po” do sprawdzenia na IdeaPadzie.
   - Krok 2: obraz z karty idzie prosto na ekran, bez kopiowania procesorem (ekran K1 pokazuje bufor karty jako osobną
     warstwę). Największy zysk przy oknie przeglądarki zmaksymalizowanym i przy przewijaniu; gdy okno jest częściowo
-    zasłonięte, K1 wraca do kopii (D4 — jak to ma wyglądać nie zmienia się). Ramka okna dalej rysuje K1.
-  - Krok 3: karty AMD (Radeon, także zintegrowane w procesorach Ryzen): sterownik z jądra Linux w K1 i szybka grafika w
-    przeglądarce na tych kartach — tak samo jak na IdeaPadzie (przełącznik przy sesji). Sprawdzenie na sprzęcie wg D2.
-  - Krok 4: karty NVIDIA RTX: sterownik z jądra Linux (nouveau) — obraz i oszczędzanie energii karty; laptop z RTX i kartą
-    Intela albo AMD rysuje przeglądarkę kartą zintegrowaną (szybka grafika działa). Szybka grafika na samej karcie RTX —
-    wg D3 (zalecane: osobna wersja później, bo nikt jeszcze nie napisał strony strefy dla NVIDII). Porządki i wydanie.
+    zasłonięte — wg D4. Ramka okna dalej rysuje K1. Potem porządki i wydanie.
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                     Luki (punkt 5)   Zależy od   Decyzje      Rozmiar  ADR
 [ ]  1  Pomiar i szybkie poprawki szybkiej grafiki            P1–P7            0.10.10     D1, T1, T2   M        brak
-[ ]  2  Obraz strefy bez kopii: bufor karty prosto do ekranu  P8–P12           1           D4, T3, T4   L        0051
-[ ]  3  Karty AMD: amdgpu w K1, szybka grafika na AMD         P13–P16, P21     2           D2, T5–T7    L        0052
-[ ]  4  Karty NVIDIA RTX; porządki; wydanie (OSTATNI)         P17–P22          3           D2, D3, T8   M (D3 B: XL) 0052
-(ADR 0051, 0052: następne wolne po 0050 z 0.10.9; plan 0.11.0 bierze następne po nich.)
+[ ]  2  Obraz strefy bez kopii; porządki; wydanie (OSTATNI)   P8–P12           1           D4, T3, T4   L        0051
+(ADR 0051: następny wolny po 0050 z 0.10.9; plan 0.11.0 bierze następny po nim. Decyzje D2 i D3 i dawne kroki 3–4 —
+karty AMD i NVIDIA — wypadły 2026-11-20; numery D1 i D4 zostają.)
 
 
 3. KROKI
@@ -141,9 +123,9 @@ KROK 1: Pomiar i szybkie poprawki szybkiej grafiki                          M ·
   Gotowe, gdy: CI zielone; liczby „przed / po” z IdeaPada w PR-ze; w „Ustaleniach z wykonania” — które ogniwa zostają
   dla kroku 2.
 
-KROK 2: Obraz strefy bez kopii — bufor karty prosto do ekranu               L · D4, T3, T4 · ADR 0051
+KROK 2: Obraz strefy bez kopii — bufor karty prosto do ekranu; porządki; wydanie (OSTATNI)   L · D4, T3, T4 · ADR 0051
   Cel: gotowa klatka przeglądarki (bufor karty) trafia na ekran K1 bez kopiowania procesorem — ekran pokazuje ją jako
-  warstwę sprzętową karty (plane) pod ramką, którą dalej rysuje K1.
+  warstwę sprzętową karty (plane) pod ramką, którą dalej rysuje K1. Potem porządki i wydanie.
   Na początku: D4. Potem ADR 0051 (T3, T4) — pierwszy commit po oznaczeniu kroku.
   Co widzi użytkownik: przeglądarka z szybką grafiką płynna jak program na zwykłym systemie, zwłaszcza zmaksymalizowana;
   zachowanie przy zasłoniętym oknie wg D4. Bez szybkiej grafiki (Bank, Prywatna, X230) — jak dziś.
@@ -160,68 +142,18 @@ KROK 2: Obraz strefy bez kopii — bufor karty prosto do ekranu               L 
       (niezmiennik 7 bez zmian — tylko pokazuje gotowy bufor).
    d) Pamięć: bufor liczy się do pośrednika strefy (cgroup, ADR 0044), ekran trzyma tylko odwołanie — limit liczby
       buforów na strefę (T4).
+   e) Porządki (wersja PATCH — porządki MINOR przy 0.11.0, ale terminy „Tymczasowe” sprawdzamy); pliki blisko limitu po
+      zmianach; opisy bez powtórzeń.
+   f) Wydanie: VERSION (następny wolny PATCH), CHANGELOG z „Opis w K1:”, DO_ZROBIENIA (punkt 1 i 4: co sprawdzić na
+      IdeaPadzie i X230 — na X230 nic się nie zmienia), plan → docs/archiwum/.
   Testy i dowód: test-strefa (pośrednik testowy daje dma-buf z memfd — P12; ekran pokazuje go jako warstwę albo drogą
   zapasową; złe bufory: za mały, zły format, zły krok wiersza, za dużo buforów — odrzucone, ekran żyje), test na hoście
-  i fuzzing nowego komunikatu, test-m4 i test-wzorce (ramka bez zmian), liczby „przed / po” z IdeaPada.
+  i fuzzing nowego komunikatu, test-m4 i test-wzorce (ramka bez zmian), liczby „przed / po” z IdeaPada; pełny komplet
+  w CI na PR-ze wydania.
   Dokumenty: ADR 0051, ekran.md, strefa.md, posrednik.md, RYZYKA (R100: ekran dostaje bufor ze strefy — co go chroni),
-  SLOWNIK („warstwa sprzętowa”, jeśli nowe), WYGLAD (D4).
+  SLOWNIK („warstwa sprzętowa”, jeśli nowe), WYGLAD (D4), CHANGELOG.
   Gotowe, gdy: CI zielone; IdeaPad: liczby lepsze niż po kroku 1, obraz bez błędów przy przesuwaniu, minimalizacji
-  i Alt+Tab.
-
-KROK 3: Karty AMD — amdgpu w K1, szybka grafika na AMD                      L · D2, T5–T7 · ADR 0052
-  Cel: K1 działa na komputerach z kartą AMD (Radeon, Ryzen ze zintegrowaną kartą) ze sterownikiem z jądra, a szybka
-  grafika przeglądarki działa na nich tak jak na Intelu — przez most native context dla AMD.
-  Na początku: D2 (sprzęt). Potem ADR 0052 (T5–T7).
-  Co widzi użytkownik (komputer z AMD): pulpit przez sterownik karty (zamiast obrazu z firmware), Ustawienia →
-  Przeglądarka: „obsługuje szybką grafikę”, przełącznik przy sesjach jak na IdeaPadzie (domyślnie jak D5 z 0.10.9:
-  Ogólna włączona), znak na ramce, Zasoby → „Karta graficzna” z obciążeniem karty AMD (co karta podaje — P16). Na X230
-  i IdeaPadzie nic się nie zmienia.
-  Zadania:
-   a) Jądro: amdgpu (DRM_AMDGPU + DC — obraz) w jadro/k1.config z komentarzami; pliki od producenta (firmware) dla
-      wybranych rodzin kart (T5) w jadro/oprogramowanie-kart.txt; rozmiar k1.efi i czas startu przed / po (P14).
-   b) Pośrednik: drugi „silnik” obok i915 — protokół native context dla amdgpu (wzór: virglrenderer src/drm/amdgpu, nie
-      biblioteka; strona gościa w Mesie: src/amd/common/virtio, amdgpu_virtio_proto.h — ZE ŹRÓDEŁ). Prośby AMD jako
-      wiersze tabel (K1_POSR_PROSBY / K1_POSR_IOCTLE dla każdej rodziny kart — zasada 5: nowa karta = nowe wiersze, nie
-      nowy plik sprawdzania wszystkiego), sprawdzanie pole po polu, test i fuzzing. Warunek oddzielenia pracy stref
-      (jak pełne PPGTT na Intelu): na AMD — własna przestrzeń adresów karty (GPUVM) na każdy klient węzła render (T6).
-   c) Nadzorca: węzeł render karty AMD tak samo jak i915 (karta.c — tabela kart: sterownik, co umie, liczniki dla Zasobów).
-   d) Strefa: Mesa z radeonsi i opcją amdgpu-virtio (meson.options: „use experimental virtio backend for radeonsi/radv”
-      — ZE ŹRÓDEŁ), bez LLVM (radeonsi z kompilatorem ACO — T7, NIEPEWNE czy wszystkie funkcje), w tym samym obrazie
-      przeglądarki co iris (Mesa wybiera sterownik według karty).
-  Testy i dowód: test na hoście i fuzzing protokołu AMD; test w systemie t_posrednik dla silnika testowego „jak AMD”
-  (prośby z tabeli, złe ioctl, złe rozmiary — odrzucone); budowa jądra i sprawdz-kspp; sprzęt wg D2.
-  Dokumenty: ADR 0052, posrednik.md, jadro.md, nadzorca.md, ZALEZNOSCI (Mesa: radeonsi), RYZYKA (R100 — amdgpu w jądrze
-  K1 to duży sterownik w zasięgu strefy; R101 — Mesa amdgpu-virtio „experimental”), SLOWNIK.
-  Gotowe, gdy: CI zielone; sprzęt wg D2 (sprawdzony albo oznaczony „niesprawdzone na sprzęcie” wg D2).
-
-KROK 4: Karty NVIDIA RTX; porządki; wydanie (OSTATNI)                       M (przy D3 „B”: XL) · D2, D3, T8 · ADR 0052
-  Cel: K1 na komputerach z kartą NVIDIA RTX ma sterownik karty z jądra (obraz, oszczędzanie energii), laptop z dwiema
-  kartami rysuje strefy kartą zintegrowaną, a szybka grafika na samej RTX — wg D3. Potem porządki i wydanie.
-  Na początku: D3 (i D2, jeśli nie rozstrzygnięta w kroku 3).
-  Co widzi użytkownik (komputer z RTX): pulpit przez sterownik karty (komputer stacjonarny: tryby i rozdzielczości
-  monitora); laptop z RTX i kartą Intela albo AMD — szybka grafika przeglądarki przez kartę zintegrowaną (jak IdeaPad /
-  krok 3), karta RTX uśpiona, gdy nic na niej nie pracuje (bateria — P19); Ustawienia → Przeglądarka przy samej RTX —
-  wg D3 (przy „A”: „Karta NVIDIA: szybka grafika jeszcze nie — strony rysuje procesor”).
-  Zadania:
-   a) Jądro: nouveau (DRM_NOUVEAU) z firmware GSP dla rodzin RTX (Turing, Ampere, Ada, Blackwell — T8, rozmiary P18)
-      w jadro/oprogramowanie-kart.txt. Sterowniki zawsze z jądra (D0): zamkniętego sterownika NVIDIA ani jego modułów
-      K1 nie ma (bez modułów — niezmiennik 3).
-   b) Nadzorca: wybór karty dla stref, gdy są dwie (laptop hybrydowy) — karta, która ma oddzielenie pracy stref
-      i stronę gościa w Mesie (tabela kart z kroku 3); ekran zostaje na karcie, do której podłączony jest ekran laptopa.
-   c) Wg D3: „A” — szybka grafika na samej RTX „Później” (wpis w DO_ZROBIENIA z kierunkiem: własny most native context dla
-      nouveau — nowe, proste UAPI nouveau: VM_BIND, EXEC — i strona gościa dla NVK w Mesie; OpenGL przez Zink); „B” —
-      ten most w tej wersji: krok dzieli się na 4a (jądro, wybór karty), 4b (próba: strona gościa NVK + pośrednik),
-      4c (porządki i wydanie).
-   d) Porządki (wersja PATCH — porządki MINOR przy 0.11.0, ale terminy „Tymczasowe” sprawdzamy); przegląd
-      „Tymczasowe”; opisy (posrednik.md, jadro.md) bez powtórzeń.
-   e) Wydanie: VERSION (następny wolny PATCH), CHANGELOG z „Opis w K1:”, DO_ZROBIENIA (punkt 1 i 4: co sprawdzić na
-      IdeaPadzie i — wg D2 — na komputerach z AMD i NVIDIA), plan → docs/archiwum/.
-  Testy i dowód: budowa jądra, sprawdz-kspp, porownaj-jadro, test-m1 (start z nowymi sterownikami na QEMU — bez kart,
-  nic nie psują), test-m5f / test-aktualizacja-siec (rozmiar miejsca A/B z firmware), sprzęt wg D2; pełny komplet w CI na
-  PR-ze wydania.
-  Dokumenty: ADR 0052 (uzupełnienie: NVIDIA, laptopy z dwiema kartami), jadro.md, nadzorca.md, posrednik.md, RYZYKA
-  (nouveau w jądrze), CHANGELOG.
-  Gotowe, gdy: CI zielone, wydanie istnieje (linki ISO i USB w raporcie), lista „co sprawdzić” w DO_ZROBIENIA.
+  i Alt+Tab; wydanie istnieje (linki ISO i USB w raporcie), lista „co sprawdzić” w DO_ZROBIENIA.
 
 
 4. DECYZJE
@@ -232,21 +164,7 @@ Twoje (produkt) — czat kroku zada je na początku:
       A (zalecane): tak — Zasoby → „Karta graficzna” przy każdej sesji z szybką grafiką „klatki na sekundę” (liczba, bez
          wykresu); łatwo porównasz przed i po aktualizacji.
       B: nie — liczby tylko w logu i w raportach z testów.
-  [!] D2 (krok 3, 4) — Sprzęt z kartą AMD i NVIDIA do sprawdzenia. Twoje laptopy mają tylko karty Intela, a CI nie ma
-      żadnej karty — kodu dla AMD i NVIDIA nikt nie sprawdzi na prawdziwym sprzęcie bez komputera z taką kartą.
-      A (zalecane): napisz, jaki komputer z AMD albo RTX możesz pożyczyć lub masz (model) — kroki 3 i 4 celują w niego
-         (rodzina kart i firmware), a Ty uruchamiasz obraz USB z PR-a; reszta rodzin kart jako „niesprawdzone”.
-      B: bez sprzętu: sterowniki i most AMD wchodzą, ale szybka grafika na AMD jest domyślnie WYŁĄCZONA we wszystkich
-         sesjach i opisana „wersja próbna” w Ustawieniach, dopóki ktoś nie potwierdzi jej na sprzęcie.
-      C: kroki 3 i 4 czekają na sprzęt (wersja kończy się na krokach 1, 2 i wydaniu; AMD i NVIDIA — następna wersja).
-  [!] D3 (krok 4) — Szybka grafika na samej karcie NVIDIA RTX. Dla AMD i Intela Mesa ma gotową „stronę strefy” mostu
-      native context (P13); dla NVIDII jej nie ma (P17) — trzeba by ją napisać od zera po obu stronach.
-      A (zalecane): w 0.10.11 NVIDIA = sterownik z jądra (obraz, oszczędzanie energii) i laptopy z dwiema kartami (strefy
-         rysuje karta zintegrowana — szybka grafika działa); szybka grafika na samej RTX — osobna wersja później (wpis
-         w DO_ZROBIENIA z kierunkiem), gdy będzie sprzęt i więcej czasu.
-      B: most dla NVIDII w tej wersji (duża praca: nowa strona gościa w Mesie dla NVK + pośrednik; tylko Vulkan, OpenGL
-         przez Zink; ryzyko, że nie zadziała) — krok 4 dzieli się na 4a/4b/4c.
-      C: NVIDIA w ogóle później (krok 4 = tylko porządki i wydanie).
+  [x] D2, D3 — wypadły razem z kartami AMD i NVIDIA (decyzja właściciela 2026-11-20).
   [!] D4 (krok 2) — Okno przeglądarki częściowo zasłonięte (inne okno albo menu na nim):
       A (zalecane): K1 sam przełącza się między warstwą karty (gdy okno widać w całości — najszybciej) a kopią (gdy coś
          je zasłania) — nie widać różnicy poza płynnością.
@@ -263,19 +181,10 @@ Techniczne (decyduje Claude, z krótkim uzasadnieniem w ADR albo w „Ustaleniac
      pracę karcie — zmiana niezmiennika 7 większa niż potrzeba).
   T4 Limity: bufory pokazywane na strefę (np. 3 — podwójne/potrójne buforowanie), rozmiar ≤ ekran, formaty i modyfikatory
      tylko z listy ekranu; zły bufor = droga zapasowa i licznik, nie koniec strefy.
-  T5 Rodziny kart AMD i firmware: tylko rodziny z oddzieleniem pracy (GPUVM) i ze wsparciem w Mesie amdgpu-virtio; wybór
-     według sprzętu z D2 (laptopy: zintegrowane Ryzen RDNA2/RDNA3 — Rembrandt, Phoenix, NIEPEWNE nazwy plików), reszta
-     rodzin „Później” — firmware zwiększa k1.efi.
-  T6 Warunek oddzielenia pracy stref na AMD (odpowiednik pełnego PPGTT): sprawdzić w źródłach amdgpu (amdgpu_vm.c), że
-     każdy plik węzła render ma własną przestrzeń adresów karty; pośrednik pyta kartę przy starcie i odmawia, gdy nie.
-  T7 radeonsi bez LLVM: meson.build Mesy 26.2.6 pozwala (wymóg LLVM tylko przy „amd-use-llvm”), kompilator ACO —
-     sprawdzić, że WebGL i WebRender działają (stanowisko z kartą AMD, jeśli będzie — D2).
-  T8 NVIDIA: nouveau z GSP (Turing i nowsze — wszystkie RTX); firmware GSP jest duży (P18) — tylko rodziny z D2/T5,
-     reszta „Później”; laptop hybrydowy: nouveau usypia kartę (runtime PM), gdy nic na niej nie pracuje.
 
 
-5. LUKI (z czytania kodu po 0.10.10 i źródeł Mesy 26.2.6, 2026-11-20)
----------------------------------------------------------------------
+5. LUKI (z czytania kodu po 0.10.10, 2026-11-20)
+-----------------------------------------------
 Waga: WYSOKA (blokuje krok), ŚREDNIA, NISKA.
 
 Krok 1 — droga obrazu dziś (Z KODU): Firefox rysuje kartą do bufora → kompozytor strefy mapuje go (dmabuf.c, VIRTGPU_MAP)
@@ -313,39 +222,15 @@ Krok 2
   P12 NISKA, Z KODU. Pośrednik testowy (testowy.c) ma „pamięć karty” z memfd — dma-buf w teście z udmabuf albo droga
      testowa ekranu z memfd (bez karty w QEMU).
 
-Krok 3
-  P13 WYSOKA → ZE ŹRÓDEŁ. Mesa 26.2.6 ma stronę gościa native context dla AMD: src/amd/common/virtio (amdgpu_virtio*.c,
-     amdgpu_virtio_proto.h, AMD 2024), opcja „amdgpu-virtio” (radeonsi i radv). Protokół po stronie K1 — wzór
-     virglrenderer src/drm/amdgpu (sprawdzić w źródłach virglrenderer 1.3.0 w kroku).
-  P14 ŚREDNIA, NIEPEWNE. amdgpu to duży sterownik (z DC) — przyrost k1.efi i czasu startu; firmware per rodzina kart
-     (T5). Miejsce A/B 768 MiB ma zapas (ok. 620 MiB, 0.10.9 krok 4b) — dla k1.efi i obrazu przeglądarki z radeonsi.
-  P15 ŚREDNIA, Z KODU. Pośrednik zna tylko i915 (src/posrednik/karta.c, prosby.c: układ virglrenderera src/drm/i915);
-     nadzorca karta.c otwiera węzeł render tylko i915. Tabele próśb i ioctl (K1_POSR_PROSBY, K1_POSR_IOCTLE) — dziś jedne.
-  P16 NISKA, NIEPEWNE. Zasoby → „Karta graficzna” na AMD: obciążenie i taktowanie z sysfs amdgpu (gpu_busy_percent,
-     pp_dpm_sclk), pobór mocy z hwmon — co nadzorca czyta dla i915 (0.10.10) — odpowiednik w tabeli kart.
-
-Krok 4
-  P17 WYSOKA → ZE ŹRÓDEŁ. Mesa 26.2.6 ma strony gościa native context tylko dla AMD (amd/common/virtio), Intela
-     (intel/dev/virtio), Qualcomma (freedreno/drm/virtio) i Apple (asahi) — dla NVIDII (nouveau, NVK) nie ma; jedyna inna
-     droga to Venus (Vulkan na poziomie poleceń) — odrzucona w ADR 0049 (K1 musiałby rozumieć cały Vulkan).
-  P18 ŚREDNIA, NIEPEWNE. Firmware GSP dla RTX jest duży (dziesiątki MB na rodzinę) — rozmiar k1.efi i start; tylko
-     wybrane rodziny (T8).
-  P19 ŚREDNIA, NIEPEWNE. Laptop z RTX bez sterownika: karta może zostać włączona i zjadać baterię — nouveau usypia ją
-     (runtime PM); sprawdzić, czy K1 ma potrzebne opcje (PM, ACPI — VGA_SWITCHEROO?).
-  P20 ŚREDNIA, Z KODU. Nadzorca zakłada jedną kartę z węzłem render (karta.c); dwie karty (Intel + NVIDIA, AMD + NVIDIA)
-     — wybór w tabeli kart, ekran zostaje na karcie z panelem laptopa.
-  P21 NISKA, Z KODU. Zatwierdzanie A/B liczy od pierwszej klatki na ekranie (rozruch.c, 0.10.9 S3) — chroni komputery
-     z nową kartą przed wersją z czarnym ekranem przy aktualizacji; nowa instalacja z pendrive'a — bez tej ochrony.
-  P22 NISKA. Robot porównuje opcje jądra (porownaj-jadro.sh) — nowe sterowniki to dużo nowych opcji „PYTANIE”; listy
-     odrzuconych (jadro/k1-odrzucone.txt) uzupełnia człowiek w tym samym kroku.
-
 
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później”)
 --------------------------------------------------------
-  - Szybka grafika na samej karcie NVIDIA (przy D3 „A” albo „C”): własny most native context dla nouveau / NVK.
-  - Nowsze karty Intela ze sterownikiem Xe (Lunar Lake i nowsze) — i915 obsługuje Intela do Meteor Lake; Xe razem
-    z pierwszym takim komputerem.
+  - Karty AMD i NVIDIA RTX (dawne kroki 3 i 4 — wypadły, decyzja właściciela 2026-11-20). Ustalenia ze źródeł na
+    przyszłość (Mesa 26.2.6 z Debiana, sprawdzona 2026-11-20): strona gościa mostu native context jest dla AMD
+    (src/amd/common/virtio, opcja meson „amdgpu-virtio” — radeonsi i radv; radeonsi da się zbudować bez LLVM), Intela,
+    Qualcomma i Apple — dla NVIDII (nouveau, NVK) nie ma; jedyna inna droga to Venus, odrzucona w ADR 0049. Bez komputera
+    z taką kartą nie da się tego sprawdzić na sprzęcie (laptopy właściciela mają karty Intela).
+  - Nowsze karty Intela ze sterownikiem Xe (Lunar Lake i nowsze).
   - Filmy kartą („może” z 0.10.9) — bez zmian; droga bez kopii z kroku 2 je ułatwi.
   - Ekran K1 składający cały pulpit kartą (T3 — odrzucone w tej wersji).
-  - Gry i Vulkan w strefach (radv jest w Mesie, ale K1 nie ma jeszcze aplikacji w strefie, która by go używała).
-  - „Opakowanie” pośrednika (R100, najpóźniej 0.13) — bez zmian, teraz dla trzech rodzin kart.
+  - „Opakowanie” pośrednika (R100, najpóźniej 0.13) — bez zmian.
