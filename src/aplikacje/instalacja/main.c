@@ -99,8 +99,8 @@ void przyciski(struct k1_przycisk p[2])
     case S_LISTA:
         if (zrodlo != 1)
             break; /* nothing to install from: no button (0.6.1) */
-        if (wybrany >= 0 && dyski[wybrany].k1) /* 0.10.5 step 1: the update is in Ustawienia */
-            e1 = dyski[wybrany].zajety ? NULL : "Zainstaluj od nowa";
+        if (wybrany >= 0 && dyski[wybrany].k1) /* 0.10.5 step 1: the update is in Ustawienia; 0.10.10 step 1: anew */
+            e1 = "Zainstaluj od nowa";              /* also with the data in use (nadzorca: od_nowa.c) */
         else
             e1 = "Zainstaluj";
         break;
@@ -256,7 +256,7 @@ static void glowny(void)
 {
     switch (stan) {
     case S_LISTA:
-        if (wybrany < 0 || zrodlo != 1 || (dyski[wybrany].k1 && dyski[wybrany].zajety))
+        if (wybrany < 0 || zrodlo != 1)
             return; /* a disk with K1 only "od nowa" — its update is in Ustawienia */
         pole_dl = 0;
         stan = S_POTWIERDZ;

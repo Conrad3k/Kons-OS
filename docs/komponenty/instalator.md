@@ -30,17 +30,26 @@ a dysk musi mieć ten sam rozmiar; zapis naraz najwyżej jeden (drugie okno: `K1
    partycje „K1-EFI”/„K1-DANE”; źródło = jedyna „K1-EFI” na USB) → `INST_DYSK` × n + `INST_LISTA`.
 2. Instalator: dysk bez K1 → „Zainstaluj” → wpisanie „USUŃ” → `INST_START(dysk, INSTALUJ)`. Dysk z K1 → karta
    „Aktualizacja jest teraz w Ustawieniach” z linkiem „Otwórz Ustawienia → Aktualizacje” (`OTWORZ_AKTUALIZACJE`) i
-   „Zainstaluj od nowa”, gdy jego dane nie są otwarte. Ustawienia → Aktualizacje: pierwszy dysk z K1 starszym niż
+   „Zainstaluj od nowa” — od 0.10.10 (krok 1, decyzja właściciela z 2026-11-20) także wtedy, gdy na tym dysku są otwarte
+   dane (K1 z pendrive'a przy K1 na dysku bierze dane z dysku — ADR 0018; K1 0.10.7 na dysku nie da się zaktualizować do
+   nowego układu): potwierdzenie mówi, że zginą też pliki, hasło i sesje przeglądarki. Bez pendrive'a K1 (K1 z dysku):
+   „Instalacja od nowa: podłącz pendrive z Kons K1 i otwórz Instalator jeszcze raz.” Ustawienia → Aktualizacje: pierwszy dysk z K1 starszym niż
    pendrive → „Zaktualizuj K1 na dysku do X” → `INST_START(dysk, AKTUALIZUJ)` (bez wpisywania — dane zostają).
-3. Nadzorca otwiera urządzenia (`O_EXCL` — zajęty dysk = odmowa), uruchamia `instalator`, wysyła
+3. Dysk z otwartymi danymi (0.10.10 krok 1, `nadzorca/od_nowa.c`): nadzorca kończy każdą strefę (VMM, dekoder filmów,
+   pośrednik grafiki), puszcza obrazy stref (urządzenia dm-verity znikają z ostatnim VMM-em), prosi skarbiec o oddanie
+   partycji (`SKARB_ZWOLNIJ` → `SKARB_ZWOLNIONO`; skarbiec zostaje, obiekty w pamięci — pulpit i okno Instalatora działają
+   dalej) i od tej chwili nie daje skarbcowi żadnej K1-DANE; potem instalacja jak niżej, próbowana co 0,5 s, aż cały
+   dysk otworzy się na wyłączność (najwyżej 30 s). Działający system jest w pamięci, więc to działa także z K1
+   uruchomionym z tego dysku.
+4. Nadzorca otwiera urządzenia (`O_EXCL` — zajęty dysk = odmowa), uruchamia `instalator`, wysyła
    `INST_ZADANIE(tryb, sektor)`. Postęp `INST_ETAP` → `INST_POSTEP` do okna; wynik `INST_GOTOWE` →
    `INST_WYNIK`. Koniec programu bez wyniku → „przerwane”.
-4. Najpierw pendrive: manifest miejsca A (system) i manifest plików startowych (0.9.0), podpisy, skróty — przed
+5. Najpierw pendrive: manifest miejsca A (system) i manifest plików startowych (0.9.0), podpisy, skróty — przed
    jakimkolwiek zapisem. Instalacja: zera w pierwszym i ostatnim MiB dysku i w pierwszym MiB „K1-DANE” → kopia K1-EFI
    bez miejsca B (1 MiB na raz) → `fdatasync` → odczyt i porównanie → grubenv od nowa, manifesty miejsca B zerami →
    skrót drzewa plików na dysku = manifest → GPT (wpisy zapasowe, nagłówek zapasowy, wpisy, nagłówek główny, ochronny
    MBR) → `fdatasync`. Aktualizacja: pliki startowe (gdy się różnią), potem miejsce A/B (niżej).
-5. Po instalacji: „Wyłącz komputer”; po aktualizacji (Ustawienia): „Uruchom ponownie” — jedyne prośby o zasilanie,
+6. Po instalacji: „Wyłącz komputer”; po aktualizacji (Ustawienia): „Uruchom ponownie” — jedyne prośby o zasilanie,
    jakie nadzorca przyjmie od tych okien.
 
 Bez pendrive'a K1 Instalator nie ma przycisku, tylko tekst: start z ISO — jak przygotować pendrive; dwa

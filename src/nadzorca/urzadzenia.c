@@ -61,6 +61,10 @@ int otworz_partycje_danych(int *ile)
     struct dirent *de;
     *ile = 0;
     skarb_dane[0] = '\0';
+    if (od_nowa_bez_danych()) { /* 0.10.10 step 1: the disk is being installed anew — skarbiec keeps memory only */
+        errno = ENOENT;
+        return -1;
+    }
     while (d != NULL && (de = readdir(d)) != NULL) {
         char sciezka[320], buf[512];
         const char *p;

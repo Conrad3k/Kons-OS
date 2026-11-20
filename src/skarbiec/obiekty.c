@@ -116,6 +116,22 @@ void ob_po_otwarciu(void)
         ob_powieksz(dysk.bajty, "dokończenie po starcie");
 }
 
+/* 0.10.10 step 1 (nadzorca's SKARB_ZWOLNIJ): the Instalator installs anew on the disk of this K1-DANE — the vault is
+ * closed without another write (its key wiped) and the partition given back; from now on the objects are in memory, until
+ * the computer is switched off. The disk's data are not read again: the owner typed USUŃ. */
+void ob_zwolnij(int fd_dysk)
+{
+    if (trwaly)
+        k1_mag_zamknij(&mag);
+    if (fcntl(fd_dysk, F_GETFD) >= 0)
+        close(fd_dysk);
+    memset(&dysk, 0, sizeof dysk);
+    dysk.fd = -1;
+    k1_log(TAG, "partycja K1-DANE zwolniona dla Instalatora (%s) — dane tylko w pamięci",
+           trwaly ? "magazyn zamknięty" : zablokowany ? "magazyn był zablokowany" : "bez magazynu");
+    trwaly = 0, zablokowany = 0;
+}
+
 uint64_t ob_wolne(void)
 {
     return trwaly ? k1_mag_wolne(&mag) : RAM_BAJTY - ram_bajty;

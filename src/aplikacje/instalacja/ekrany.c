@@ -55,8 +55,12 @@ static void rysuj_bez_zrodla(struct k1_obraz *o, const struct k1_motyw *m)
         NULL,
     };
     const char *const *t = zrodlo == 2 ? kroki_dwa : kroki_iso;
-    if (zrodlo != 2 && zainstalowany())
-        return; /* K1 runs from this disk: the card about Ustawienia (karta) */
+    if (zrodlo != 2 && zainstalowany()) { /* K1 runs from this disk: the card about Ustawienia (karta) */
+        k1_tekst(o, K1_CZ_TEKST, LEWO, DYSKI_Y + KARTA_H + 32, /* 0.10.10 step 1 */
+                 "Instalacja od nowa: podłącz pendrive z Kons K1 i otwórz Instalator jeszcze raz.",
+                 k1_kolor(m->tekst2, 255), apl.szer - 2 * LEWO);
+        return;
+    }
     for (i = 0; t[i]; i++)
         k1_tekst(o, i == 0 ? K1_CZ_TEKST_MOCNA : K1_CZ_TEKST, LEWO, DYSKI_Y + 20 + i * 26 + (i > 0 ? 8 : 0), t[i],
                  k1_kolor(i == 0 ? m->tekst : m->tekst2, 255), apl.szer - 2 * LEWO);
@@ -134,9 +138,14 @@ static void rysuj_potwierdz(struct k1_obraz *o, const struct k1_motyw *m)
     opis_dysku(wybrany, buf, sizeof buf);
     k1_tekst(o, K1_CZ_TYTUL, LEWO, GORA + 26, "Na pewno?", k1_kolor(m->tekst, 255), 0);
     k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 58, buf, k1_kolor(m->tekst, 255), 0);
-    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 84, "Wszystko na tym dysku zostanie usunięte: pliki, inne systemy,",
+    /* 0.10.10 step 1: K1 with the data in use on it — they go too */
+    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 84,
+             dyski[wybrany].zajety ? "Wszystko na tym dysku zostanie usunięte: Kons K1, Twoje pliki,"
+                                   : "Wszystko na tym dysku zostanie usunięte: pliki, inne systemy,",
              k1_kolor(m->akcent_tekst, 255), 0);
-    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 104, "partycje. Tego nie da się cofnąć.", k1_kolor(m->akcent_tekst, 255), 0);
+    k1_tekst(o, K1_CZ_TEKST, LEWO, GORA + 104,
+             dyski[wybrany].zajety ? "hasło i sesje przeglądarki. Tego nie da się cofnąć." : "partycje. Tego nie da się cofnąć.",
+             k1_kolor(m->akcent_tekst, 255), 0);
     k1_tekst(o, K1_CZ_MALA, LEWO, pole_y() - 8, "Wpisz USUŃ, aby potwierdzić", k1_kolor(m->tekst2, 255), 0);
     k1_zaokraglony(o, LEWO, (float)pole_y(), POLE_W, POLE_H, 8, k1_kolor(m->pole, 255));
     k1_obrys(o, LEWO, (float)pole_y(), POLE_W, POLE_H, 8, 1.5f, k1_kolor(m->akcent, 255));

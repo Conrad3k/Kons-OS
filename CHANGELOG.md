@@ -3,6 +3,36 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.10.10] — 2026-11-20
+
+**Poprawka po 0.10.9** (Twoje zgłoszenie i prośba z 2026-11-20). Instalator umie zainstalować K1 od nowa na dysku, na
+którym już jest K1 z Twoimi danymi — tego brakowało przy przejściu z 0.10.7 na nowy układ dysku. Zasoby mają zakładkę
+„Karta graficzna”: obciążenie karty, taktowanie i pobór mocy karty oraz całego laptopa.
+
+Opis w K1: Instalator z pendrive'a zainstaluje K1 od nowa także na dysku, na którym już jest K1, po wpisaniu USUŃ.
+W Zasobach jest nowa zakładka Karta graficzna: obciążenie karty, taktowanie i pobór mocy karty oraz całego laptopa.
+
+### Dodane
+- **Zasoby → „Karta graficzna”** (krok 2, Twoje decyzje: zakładki z wykresami, pobór mocy karty i laptopa): u góry dwie
+  zakładki; w nowej — obciążenie karty (liczba i wykres z ostatniej minuty: część czasu, w której karta nie spała),
+  taktowanie („650 z 1050 MHz”), wykres poboru mocy z dwiema liniami — karta (licznik energii procesora, RAPL) i cały
+  laptop (gdy działa na baterii) — i sesje, które rysują kartą. Dane czyta nadzorca (sterownik i915, RAPL); jądro K1
+  dostało `POWERCAP` i `INTEL_RAPL`. W maszynie wirtualnej karta „nie podaje” — liczby są na laptopach.
+
+### Naprawione
+- **Nie dało się zainstalować K1 od nowa na dysku z K1** (krok 1, Twoje zgłoszenie): K1 uruchomiony z pendrive'a bierze
+  dane z dysku, więc Instalator widział dysk jako „używany” i nie dawał przycisku, a K1 0.10.7 nie zaktualizuje się do
+  nowego układu. Teraz przy pendrivie z K1 Instalator → dysk → „Zainstaluj od nowa” → „USUŃ” działa także dla takiego
+  dysku: K1 zamyka sesje przeglądarki i dane z dysku (pulpit działa dalej, dane w pamięci), czyści cały dysk i instaluje
+  się od zera. Bez pendrive'a Instalator mówi, żeby go podłączyć.
+
+### Zmienione
+- Zasoby: lista usług ma najwyżej 12 wierszy (było 14) — okno tej samej wysokości mieści zakładki.
+
+### Porządki
+- PATCH bez osobnego planu (dwa kroki w DO_ZROBIENIA). Tymczasowe: bez zmian (K1U1–K1U3 — 0.11.0, GRUB — 0.12), nowych
+  nie dodano. Pliki `.c` — żaden powyżej 600 wierszy.
+
 ## [0.10.9] — 2026-11-20
 
 **Szybka grafika** (plan 0.10.9 „Filmy i szybka grafika”, kroki 1–6; ADR 0049, 0050). Przy każdej sesji przeglądarki jest

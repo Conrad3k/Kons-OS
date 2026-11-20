@@ -26,6 +26,7 @@ int k1_kom_sprawdz_skarb(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
         return kier == K1_KIER_OD_SKARBCA && k->obiekt >= 1 && k->obiekt <= K1_CZESCI_MAKS &&
                k->a >= 0 && w(k->b, 0, k->obiekt >= K1_CZESC_STREFY ? 0 : K1_DOK_MAKS) &&
                zera(k, 2);
+    case K1_KOM_SKARB_ZWOLNIONO: /* 0.10.10 step 1 */
     case K1_KOM_POWIEKSZ_DANE:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && zera(k, 0);
     case K1_KOM_SKARB_MIEJSCE:

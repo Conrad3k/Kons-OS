@@ -66,6 +66,10 @@ enum k1_komunikat_typ {
                                  * row of K1_STREFY), b..e=0 — delete every piece of its disk ("Wyczyść dane sesji") */
     K1_KOM_SKARB_WYCZYSZCZONO = 169, /* skarbiec → nadzorca (K1_KIER_DO_NADZORCY): obiekt=0, a=that owner, b=0 or
                                       * K1_MAG_* < 0, c=pieces deleted 0..K1_STREFA_DYSK_KAWALKI, d=e=0 */
+    K1_KOM_SKARB_ZWOLNIJ = 222, /* nadzorca → skarbiec (0.10.10 step 1): obiekt=0, a..e=0 — the Instalator installs anew
+                                 * on the disk of K1-DANE (the owner typed USUŃ): close the vault and the partition; from
+                                 * now on objects only in memory, until the computer is switched off */
+    K1_KOM_SKARB_ZWOLNIONO = 223, /* skarbiec → nadzorca (K1_KIER_DO_NADZORCY): obiekt=0, a..e=0 — the partition is closed */
     /* nadzorca → instalator (M5f, ADR 0018; same direction K1_KIER_STEROWANIE): the job, once */
     K1_KOM_INST_ZADANIE = 3, /* a=K1_INST_* mode, b=logical sector size (512/4096) of the target */
 
@@ -129,6 +133,10 @@ enum k1_komunikat_typ {
     K1_KOM_ZASOBY_SYSTEM = 62, /* obiekt=0, a=CPU ‰ (all CPUs), b,c = memory used,total MiB, d=CPUs, e=uptime s */
     K1_KOM_ZASOBY_BATERIA = 59, /* obiekt=0, a=1 battery present, b=percent (-1 unknown), c=K1_BAT_*, d=power draw
                                  * mW (-1 unknown, ≤ K1_MOC_MAKS_MW), e=minutes until empty/full (-1 unknown, ≤ 99 h) */
+    K1_KOM_ZASOBY_KARTA = 224, /* 0.10.10 step 2 (k1_karta_pomiar.h): obiekt=0, a=how busy the card was ‰ (-1 unknown),
+                                * b=its clock now MHz, c=its highest clock MHz (-1 unknown, ≤ K1_KARTA_MHZ_MAKS), d=the
+                                * card's power draw mW (RAPL "uncore"; -1 unknown, ≤ K1_MOC_MAKS_MW), e=bit nr-1: zone nr
+                                * draws with the card (its graphics broker runs) */
     K1_KOM_ZASOBY_USLUGA = 63, /* obiekt=K1_PROFIL_* of a service, a=CPU ‰ (of all CPUs), b=memory KiB, c=1 running */
     K1_KOM_BATERIA = 64,       /* to gui: obiekt=0, a=1 battery present, b=percent 0..100 (-1 unknown), c=K1_BAT_*,
                                 * d=1 on mains power; no battery: a=0, b=-1, c=0 (also to Ustawienia) */
@@ -751,6 +759,7 @@ static inline int k1_bateria_niska(int32_t procent, int32_t stan)
     return procent >= 0 && procent <= 15 && stan == K1_BAT_ROZLADOWANIE;
 }
 #define K1_MOC_MAKS_MW 1000000  /* 1 kW: anything above is a firmware error */
+#define K1_KARTA_MHZ_MAKS 5000  /* 0.10.10 step 2: a card's clock above it is a driver's error (ZASOBY_KARTA) */
 #define K1_BAT_MINUT_MAKS (99 * 60)
 #define K1_BAT_HIST_MAKS 1440   /* samples of the battery history (nadzorca halves it when full) */
 #define K1_BAT_HIST_W_KOM 16    /* samples per K1_KOM_BATERIA_HIST */

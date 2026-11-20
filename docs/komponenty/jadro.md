@@ -102,6 +102,8 @@ tak”, żeby porównanie jądra o nie nie pytało): `DRM_I915_CAPTURE_ERROR` i 
 po zawieszeniu — K1 nie ma debugfs), `DRM_I915_USERPTR` (bufory z pamięci procesu — i965 ich nie używa, mniej kodu
 w zasięgu strefy), `WMI_BMOF`. Plik DMC dla Skylake (`i915/skl_dmc_ver1_27.bin`, głębokie stany oszczędzania obrazu, S10)
 w `jadro/oprogramowanie-kart.txt`; Ivy Bridge go nie ma. bzImage: +1,3 MiB.
+0.10.10 krok 2: `POWERCAP` i `INTEL_RAPL` — licznik energii procesora (domena „uncore”: karta graficzna) dla Zasobów
+(`aplikacje.md`); czyta tylko nadzorca, K1 nie ustawia ograniczeń mocy. `IOSF_MBI` był już włączony.
 
 ### Strefy (0.10.0, ADR 0042)
 `VIRTUALIZATION`, `KVM` (wbudowany), `KVM_INTEL`, `KVM_AMD`, `KVM_IOAPIC` (kontroler przerwań i PIT w jądrze — „default y”,

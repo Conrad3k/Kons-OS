@@ -1,6 +1,8 @@
 /* K1 Zasoby — native application: processor and memory use of the whole system over the last
  * minute and of every service (M4.1); the battery with the power draw and the time left (0.6.3); every running
  * session's memory — what it uses of what it may get (0.10.1 step 3, the owner's D3: sketch B "paski sesji").
+ * 0.10.10 step 2 (the owner's choice of 2026-11-20): two tabs — "Procesor i pamięć" (all the above) and "Karta
+ * graficzna" (karta.c: how busy the card is, its clock, the power draw of the card and of the laptop).
  *
  * The numbers come from the supervisor once a second on fd 4 (k1_komunikat ZASOBY_SYSTEM and
  * ZASOBY_USLUGA, from the cgroup statistics and sysinfo): the application reads no files and
@@ -12,23 +14,24 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "k1_aplikacja.h"
 #include "k1_liczba.h"
 #include "k1_kanal.h"
 #include "k1_log.h"
+#include "k1_okno.h"
 #include "k1_opis_klient.h"
 #include "k1_odbior.h"
-#include "k1_uslugi.h"
+#include "zasoby.h"
 
-#define TAG "K1-ZASOBY"
 #define FD_NADZORCA 4
-#define PROBKI 60          /* one a second: the last minute */
-#define MARG 24
-#define WYKRES_H 76
 #define WIERSZ 22
-#define WIERSZE_MAKS 14 /* rows of services at most (0.8.2: with Podgląd a row for each would not fit 1024 × 768) */
+/* rows of services at most (0.8.2: with Podgląd a row for each would not fit 1024 × 768; 0.10.10: 12 — the tabs) */
+#define WIERSZE_MAKS 12
+#define ZAKL_Y (K1_OKNO_TYTUL + 10)
+#define ZAKL_H 32
 
-static struct k1_apl apl;
+struct k1_apl apl;
+static int zakladka, najechana = -1; /* 0: Procesor i pamięć, 1: Karta graficzna */
+static const char *const zakladki[] = { "Procesor i pamięć", "Karta graficzna" };
 static int32_t cpu[PROBKI], pam[PROBKI]; /* ‰ of all CPUs, ‰ of the memory */
 static int probek;                        /* how many are valid (≤ PROBKI) */
 static int32_t pam_uzyta, pam_calk, procesory, czas_pracy;
@@ -38,10 +41,7 @@ static struct {
 static struct {
     int32_t znana, obecna, procent, stan, moc_mw, minuty;
 } bat;
-static struct {
-    int32_t uzywa, moze, znana;
-    char nazwa[K1_STREFA_NAZWA_MAKS + 1]; /* the session's name from nadzorca (the user's text: never in the log) */
-} strefy[K1_STREFY_MAKS + 1];
+struct zasoby_strefa strefy[K1_STREFY_MAKS + 1];
 static unsigned long odrzucone;
 static int pierwsze = 1;
 #define SESJA_H 46
@@ -57,7 +57,7 @@ static int sesje(int *nr)
 }
 
 /* A changing place (0.10.2 step 3, k1_opis.h K1_EL_ZMIENNE): the reference screenshots leave it out. */
-static void zmienna(int32_t x, int32_t y, int32_t w, int32_t h, const char *nazwa)
+void zmienna(int32_t x, int32_t y, int32_t w, int32_t h, const char *nazwa)
 {
     k1_el(K1_EL_ZMIENNE, nazwa, x, y, w, h, 0);
 }
@@ -99,15 +99,20 @@ static int wiersze_uslug(void)
 }
 
 
+void ramka_wykresu(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y, int32_t w, int32_t h)
+{
+    k1_zaokraglony(o, (float)x, (float)y, (float)w, (float)h, 8, k1_kolor(m->pole, 255));
+    k1_obrys(o, (float)x, (float)y, (float)w, (float)h, 8, 1.0f, k1_kolor(m->tekst, 20));
+    k1_prostokat(o, x + 8, y + h / 2, w - 16, 1, k1_kolor(m->tekst, 14));
+}
+
 /* One series, one hue: a soft area under a 2-px line, a hairline grid at 50 %. */
 static void wykres(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y, int32_t w, int32_t h,
                    const int32_t *v)
 {
     int i;
     float krok = (float)(w - 16) / (float)(PROBKI - 1), x0 = (float)x + 8, y0 = (float)y + 8, wys = (float)(h - 16);
-    k1_zaokraglony(o, (float)x, (float)y, (float)w, (float)h, 8, k1_kolor(m->pole, 255));
-    k1_obrys(o, (float)x, (float)y, (float)w, (float)h, 8, 1.0f, k1_kolor(m->tekst, 20));
-    k1_prostokat(o, x + 8, y + h / 2, w - 16, 1, k1_kolor(m->tekst, 14));
+    ramka_wykresu(o, m, x, y, w, h);
     if (probek < 2) {
         k1_tekst(o, K1_CZ_MALA, x + 16, y + h / 2 + 5, "Zbieram dane…", k1_kolor(m->tekst3, 255), 0);
         return;
@@ -143,11 +148,25 @@ static void bateria_opis(char *buf, size_t n)
     }
 }
 
+static void rysuj_uslugi(struct k1_obraz *o, const struct k1_motyw *m, int32_t y);
+
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char a[40], b[40], buf[96];
-    int32_t y = K1_OKNO_TYTUL + 12, w = apl.szer - 2 * MARG, p, dzialaja, wiersz, maks;
+    int32_t y = ZAKL_Y + ZAKL_H + 10, w = apl.szer - 2 * MARG;
     int32_t ostatni_cpu = probek ? cpu[PROBKI - 1] : 0;
+    static int zalogowane;
+
+    /* 0.10.10 step 2: the tabs */
+    k1_segment(o, m, MARG, ZAKL_Y, w, ZAKL_H, zakladki, 2, zakladka, najechana);
+    if (!zalogowane) { /* the tests click the tabs by this line */
+        zalogowane = 1;
+        k1_log(TAG, "zakładki: %d,%d i %d,%d", MARG + w / 4, ZAKL_Y + ZAKL_H / 2, MARG + 3 * w / 4, ZAKL_Y + ZAKL_H / 2);
+    }
+    if (zakladka == 1) {
+        rysuj_karte(o, m, y);
+        return;
+    }
 
     /* Processor: a headline number, then the last minute */
     k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG, y + 16, "Procesor", k1_kolor(m->tekst, 255), 0);
@@ -189,9 +208,14 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         y += 36;
     }
 
-    y = rysuj_sesje(o, m, y, w); /* 0.10.1 step 3 */
+    rysuj_uslugi(o, m, rysuj_sesje(o, m, y, w)); /* 0.10.1 step 3: the sessions above the services */
+}
 
-    /* Services: name, processor, memory */
+/* Services: name, processor, memory; the time since start at the bottom. */
+static void rysuj_uslugi(struct k1_obraz *o, const struct k1_motyw *m, int32_t y)
+{
+    char a[40], buf[96];
+    int32_t w = apl.szer - 2 * MARG, p, dzialaja, wiersz, maks;
     k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG, y + 16, "Usługi i aplikacje", k1_kolor(m->tekst, 255), 0);
     k1_tekst(o, K1_CZ_MALA, MARG + w - 200, y + 16, "procesor", k1_kolor(m->tekst3, 255), 0);
     k1_tekst(o, K1_CZ_MALA, MARG + w - 72, y + 16, "pamięć", k1_kolor(m->tekst3, 255), 0);
@@ -240,6 +264,11 @@ static void odbierz(void)
             k1_koniec(TAG, "nadzorca zamknął kanał");
         if (w == K1_ODB_JEST && (k.typ == K1_KOM_STREFY_STAN || k.typ == K1_KOM_STREFY_GRAFIKA))
             continue; /* after the names: nothing Zasoby shows */
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_ZASOBY_KARTA) { /* 0.10.10 step 2: the laptop's draw on the battery */
+            karta_dane(&k, bat.obecna && bat.stan == K1_BAT_ROZLADOWANIE ? bat.moc_mw : -1);
+            zmiana = 1;
+            continue;
+        }
         if (w != K1_ODB_JEST ||
             (k.typ != K1_KOM_ZASOBY_SYSTEM && k.typ != K1_KOM_ZASOBY_USLUGA && k.typ != K1_KOM_ZASOBY_BATERIA &&
              k.typ != K1_KOM_STREFA_PRZYDZIAL && k.typ != K1_KOM_STREFA_NAZWA)) {
@@ -291,15 +320,31 @@ static void odbierz(void)
         k1_apl_odswiez(&apl);
 }
 
+/* 0.10.10 step 2: the tabs under the pointer and their click. */
+static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
+{
+    int s = rodzaj == K1_WSK_WYJSCIE ? -1 : k1_segment_trafienie(MARG, ZAKL_Y, apl.szer - 2 * MARG, ZAKL_H, 2, x, y);
+    if (s != najechana) {
+        najechana = s;
+        k1_apl_odswiez(&apl);
+    }
+    if (rodzaj != K1_WSK_PUSZCZENIE || przycisk != K1_PRZYCISK_LEWY || s < 0 || s == zakladka)
+        return;
+    zakladka = s;
+    k1_log(TAG, "zakładka: %s", zakladki[s]);
+    k1_apl_odswiez(&apl);
+}
+
 int main(void)
 {
     apl.tag = TAG;
     apl.numer = K1_APL_ZASOBY;
     apl.szer = 560;
-    /* charts and the battery (356 px), a row per service running (at most WIERSZE_MAKS: the window fits a screen of
-     * 1024 × 768 below the top bar), the footer */
-    apl.wys = 356 + WIERSZE_MAKS * WIERSZ + 34;
+    /* the tabs (40 px), charts and the battery (356 px), a row per service running (at most WIERSZE_MAKS: the window
+     * fits a screen of 1024 × 768 below the top bar), the footer */
+    apl.wys = 40 + 356 + WIERSZE_MAKS * WIERSZ + 34;
     apl.rysuj = rysuj;
+    apl.wskaznik = wskaznik;
     apl.kanaly[0].fd = FD_NADZORCA;
     apl.kanaly[0].dane = odbierz;
     k1_apl_uruchom(&apl);

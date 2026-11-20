@@ -177,6 +177,13 @@ void obsluz_zapis(void);
 void inst_koniec(void); /* the writing program ended */
 void otworz_aktualizacje(void); /* Ustawienia on Aktualizacje (Instalator's link, gui's window) */
 int inst_efi_k1(char *efi, size_t n, int *pendrive); /* the K1-EFI K1 runs from (0.10.5 step 2b) */
+int inst_zapis(int okno, int nr, int tryb);         /* the writing program for disk nr of the window's list */
+void inst_odmowa(int okno, int tryb, int r);        /* a refused job: its result to the window */
+/* od_nowa.c (0.10.10 step 1): the Instalator installs anew on the disk of the data in use */
+int od_nowa_start(int okno, int nr);
+void od_nowa_zwolnione(void); /* skarbiec's SKARB_ZWOLNIONO */
+void od_nowa_krok(double t);  /* from the main loop */
+int od_nowa_bez_danych(void); /* 1: no K1-DANE for skarbiec any more */
 int inst_siec(int tryb, int zrodlo, int ogl, int test); /* the writing program for updates through the network */
 
 /* aktualizacja.c, aktualizacja_ust.c — updates through the network (0.10.5 step 2b, ADR 0046) */
@@ -363,7 +370,8 @@ int posrednik_dla_strefy(int nr, int test); /* the client's end of a new broker 
 void posrednik_strefa_koniec(int nr);       /* the zone's VMM ended: its broker too */
 int32_t posrednik_pamiec_mib(int nr);       /* T14: its broker's memory, MiB */
 int posrednik_dziala(int nr);               /* 0.10.9 step 6: zone nr's broker runs (the mark on its frame) */
-int posrednik_karta_umie(void);             /* the question said: the card serves fast graphics */
+int posrednik_karta_umie(void);
+void raport_karty(int kanal); /* karta_pomiar.c (0.10.10 step 2): ZASOBY_KARTA to Zasoby */             /* the question said: the card serves fast graphics */
 
 /* rozruch.c — A/B after a start (0.7.0, ADR 0022) */
 extern char ab_nieudana[32];
@@ -374,6 +382,7 @@ void rozruch_po_starcie(double t);
  * this build under dm-verity; -1 when there is none that verifies */
 int obraz_strefy_otworz(const char *nazwa);
 void obrazy_stref_po_starcie(void);
+void obrazy_stref_zwolnij(void); /* 0.10.10 step 1: the devices let go (od_nowa.c) */
 
 /* efi.c — Secure Boot and the K1 key (0.7.0, ADR 0022) */
 extern int sb_czeka;
