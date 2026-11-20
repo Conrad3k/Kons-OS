@@ -55,8 +55,8 @@ otwarcie jest DRM masterem) i przekazuje jako fd 4.
   klientom, czy zdjęcie jest — ustawia go tylko ekran; `USTAW` tapety = zdjęcie bez zdjęcia jest odrzucany.
 - Kanały klientów: wejście (`k1_zdarzenie` 16 B, do 4 źródeł), powłoka i aplikacje (`k1_komunikat`
   32 B, ADR 0008), razem do 12.
-- Karta: dwa bufory „dumb” XRGB8888 w trybie preferowanym (QEMU `bochs` 1280×800; simpledrm — tryb
-  z firmware; vmwgfx — VirtualBox VMSVGA/VMware), scena i tapeta w RAM. Przy `simpledrm` (0.5.4,
+- Karta: dwa bufory „dumb” XRGB8888 w trybie preferowanym (QEMU `bochs` 1280×800; laptopy właściciela od 0.10.9
+  krok 2 — `i915`, page flip jak bochs; simpledrm — tryb z firmware; vmwgfx — VirtualBox VMSVGA/VMware), scena i tapeta w RAM. Przy `simpledrm` (0.5.4,
   rozpoznany przez `DRM_IOCTL_VERSION`): jeden bufor i `DIRTYFB` tylko ze zmienionymi prostokątami
   (≤ 17) — page flip w simpledrm kopiuje cały ekran do pamięci firmware, co na prawdziwym sprzęcie
   (ThinkPad X230) zacinało pulpit. Lista trybów (różne

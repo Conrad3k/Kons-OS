@@ -130,9 +130,9 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    Nowe wersje wydajemy my (nowe funkcje) albo robot na GitHubie (poprawki bezpieczeństwa jądra i przeglądarki, z opisem
    „Ta aktualizacja zawiera istotne poprawki dotyczące bezpieczeństwa i jakości.”) — każda przechodzi pełne testy
    i jest podpisana kluczem K1; K1 przyjmie tylko taką.
-   **Aktualizacja z pendrive'a** (K1 na dysku starszy niż 0.10.5 albo bez internetu): nagraj nowszy `k1-…-usb.img.xz`
-   na pendrive, **uruchom K1 z dysku** (bez F12), podłącz pendrive, **Ustawienia → Aktualizacje** → *Zaktualizuj K1 na
-   dysku do …* (w wersjach przed 0.10.5: Instalator → *Zaktualizuj system*). Wymienia tylko system — Twoje dane zostają.
+   **Aktualizacja z pendrive'a** (K1 na dysku bez internetu): nagraj nowszy `k1-…-usb.img.xz` na pendrive, **uruchom K1
+   z dysku** (bez F12), podłącz pendrive, **Ustawienia → Aktualizacje** → *Zaktualizuj K1 na dysku do …*. Wymienia tylko
+   system — Twoje dane zostają.
    K1 sprawdza odcisk i podpis systemu i nie pozwoli wrócić do starszej wersji (dlatego lepiej startować z dysku: wtedy
    sprawdza Twój system, a nie kod z pendrive'a).
    Nowa wersja trafia **obok** obecnej (A/B): po restarcie startuje na próbę, a gdyby nie wystartowała — wraca

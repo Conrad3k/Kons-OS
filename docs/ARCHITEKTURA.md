@@ -32,7 +32,7 @@ asystentów — skill `kons-dev`, §3.
 | `src/czytnik/`, `src/dekoder/` | pendrive dla Plików (FAT, tylko odczyt) i jeden obraz → piksele, oba w klatce (`czytnik.md`, `dekoder.md`) |
 | `src/filmy/` | dekoder filmów (0.10.9 krok 2): film ze strefy → karta graficzna (VA-API, i965) → klatki NV12, jeden na strefę, w klatce (`filmy.md`) |
 | `src/posrednik/` | pośrednik grafiki (0.10.9 krok 5): prośby mostu native context ze strefy → sprawdzone pole po polu → karta graficzna (i915), jeden na strefę, w klatce (`posrednik.md`) |
-| `src/zewnetrzne/` | Monocypher, Wuffs i fortify-headers — jedyny obcy kod w programach K1 (`docs/ZALEZNOSCI.md`) |
+| `src/zewnetrzne/` | Monocypher, Wuffs i fortify-headers, a od 0.10.9 sumy źródeł bibliotek dekodera filmów (`va/zrodla.txt`: libva, i965, libdrm — budowane przez `zbuduj-va.sh`) — jedyny obcy kod w programach K1 (`docs/ZALEZNOSCI.md`) |
 | `jadro/` | wersja jądra (`wersja.env`, zmienia ją też robot), fragmenty konfiguracji (`k1.config`, `k1-zamkniete.config`, `strefa.config`), listy opcji świadomie odrzuconych, pliki od producentów kart, klucze PGP (`jadro/README.md`, `docs/komponenty/jadro.md`) |
 | `musl/` | biblioteka C programów K1: wersja i suma, klucz PGP, łatki (`musl/README.md`) |
 | `strefy/` | obraz strefy przeglądarki i pobierania: tabela pakietów Debiana z sumami (`przegladarka.txt`, zmienia ją też robot), ustawienia Firefoksa, klucze archiwum (`strefy/README.md`) |
@@ -90,13 +90,14 @@ src/ ──► build/musl/bin/musl-gcc (static-pie, flagi SPEC §11, _FORTIFY_SO
                                          katalogi jadro/{dev,proc,sys}, strefy/{jadro, przegladarka.skrot — skrót obrazu
                                          przeglądarki (0.10.9 krok 4, ADR 0050; do 0.10.7 cały obraz przegladarka.img),
                                          dysk.img — pusty dysk strefy, mke2fs przy budowie (0.10.0 krok 5)}
-                     strefa-przegladarka.img ◄── pakiety Debiana + gosc, kompozytor, przekaznik (SquashFS xz) + drzewo
+                     strefa-przegladarka.img ◄── pakiety Debiana + gosc, kompozytor, przekaznik (SquashFS zstd,
+                                                 bloki 128 KiB — od 0.10.9 krok 4b; wcześniej xz) + drzewo
                                                  dm-verity; poza rdzeniem — w miejscu A/B za k1.efi
                      rdzen-test.squashfs ◄── + system/test-systemu (+ plik ze „#!” do testu negatywnego)
                      k1.efi ◄── to samo jądro + wbudowana linia poleceń (noinitrd) + initramfs z rdzen.squashfs,
                                 podpis Secure Boot (klucz z K1_KLUCZ_PODPISU; bez niego — deweloperski)
-                     k1-<wersja>.iso ◄── GRUB (UEFI + BIOS) + k1.efi
-                     k1-<wersja>.iso ◄── od 0.10.9 bez obrazu przeglądarki (jądro K1 nie ma napędu CD; ADR 0050)
+                     k1-<wersja>.iso ◄── GRUB (UEFI + BIOS) + k1.efi; od 0.10.9 bez obrazu przeglądarki (jądro K1 nie ma
+                                         napędu CD; ADR 0050)
                      k1-<wersja>-usb.img ◄── GPT: K1-EFI 1600 MiB (shim, GRUB, MokManager, grubenv, /k1/a.img = FAT z k1.efi
                                                   + obraz przeglądarki z drzewem dm-verity, 0.10.9; /k1/b.img; miejsca
                                                   po 768 MiB od kroku 4b) + K1-DANE; na dysku K1-EFI 3 GiB (z poczekalnią)
@@ -133,8 +134,12 @@ QEMU (-kernel bzImage -initrd initramfs.cpio, dysk virtio = rdzen.squashfs) — 
           │  instalator (105) na prośbę okna Instalatora albo Ustawień → Aktualizacje (też po pobraniu wersji z sieci);
           │  czytnik (106, pendrive) na prośbę Plików; dekoder (107, jeden obraz) na prośbę Plików albo Podglądu;
           │  strefa pobierania (bez okna) — sprawdzanie i pobieranie aktualizacji (aktualizacja.c, ADR 0046)
+          ├─ filmy (109) i posrednik (110) przy starcie: jednorazowe pytanie, co umie karta (Ustawienia); przy strefie
+          │  z przełącznikiem — dekoder filmów (400 + nr) i pośrednik grafiki (410 + nr) tej strefy, jedyne z węzłem
+          │  render karty (0.10.9, ADR 0049)
           restart po awarii (0,2/1/2/4/4 s, maks. 5 na minutę); koniec ekranu → restart klientów;
-          15 s po pulpicie: potwierdzenie startu A/B (rozruch.c), potem skarbiec może przejść na format 2
+          potwierdzenie startu A/B (rozruch.c): 15 s pulpitu albo ekranu hasła, liczone od pierwszego obrazu na ekranie
+          (EKRAN_OBRAZ, 0.10.9 krok 2)
           szczegóły (kanały, deskryptory, etapy startu): docs/komponenty/nadzorca.md
           [obraz testowy: test-systemu (root, fd 3: kanał testowy) → po jego końcu nadzorca kończy się]
 ```
