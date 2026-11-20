@@ -224,9 +224,10 @@ void strefy_zamykanie(void);      /* every loop: a zone that waited opens; the p
 /* strefy_ust.c (0.10.0 step 5): the sessions as the user set them — kept in skarbiec, sent to gui, ekran, Ustawienia */
 int sesja_pamieta(int nr);        /* 1: zone nr gets its disk (it remembers, the vault is on a disk, they were read) */
 const char *sesja_nazwa(int nr);  /* its session's name ("" for a zone without a session) */
+int sesja_grafika(int nr);        /* 0.10.9 step 6: 1 — fast graphics and films with the card on in its session */
 void sesje_okresowe(void);        /* every loop: read them, send what changed */
 void sesje_nowy_kanal(int kto); /* a new channel of gui (0), Ustawienia (1) or Zasoby (2): send everything again */
-void sesje_prosba(const struct k1_komunikat *k, int z_testu); /* STREFA_TRWALOSC / _NAZWA / _WYCZYSC */
+void sesje_prosba(const struct k1_komunikat *k, int z_testu); /* STREFA_TRWALOSC / _NAZWA / _WYCZYSC / _GRAFIKA */
 void sesje_wyczyszczono(const struct k1_komunikat *k);        /* skarbiec's SKARB_WYCZYSZCZONO */
 int do_ekranu_fd(void);           /* uslugi.c: our end of ekran's control channel (-1: none) */
 extern int strefa_kanal[K1_STREFY_MAKS + 1];
@@ -357,9 +358,12 @@ void obsluz_posrednika(void);
 void posrednik_koniec(const struct usluga *u, int status); /* a broker ended: why, in the log */
 void posrednik_wyslij_ustawieniom(void);
 void posrednik_nowy_kanal_ustawien(void);
-int posrednik_dla_strefy(int nr, int test); /* the client's end of a new broker of zone nr, or -1 */
+int posrednik_dla_strefy(int nr, int test); /* the client's end of a new broker of zone nr, or -1; test: 1 the test
+                                             * engine for the test program, 2 for the test zone's VMM */
 void posrednik_strefa_koniec(int nr);       /* the zone's VMM ended: its broker too */
 int32_t posrednik_pamiec_mib(int nr);       /* T14: its broker's memory, MiB */
+int posrednik_dziala(int nr);               /* 0.10.9 step 6: zone nr's broker runs (the mark on its frame) */
+int posrednik_karta_umie(void);             /* the question said: the card serves fast graphics */
 
 /* rozruch.c — A/B after a start (0.7.0, ADR 0022) */
 extern char ab_nieudana[32];

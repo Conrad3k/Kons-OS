@@ -32,6 +32,9 @@ static uint8_t *strumien;                     /* our copy of the stream */
 static uint8_t odp[16 + K1_POSR_QUERY_MAKS];  /* the reply being built */
 static struct drm_i915_gem_exec_object2 bufory[K1_POSR_EXEC_BUFORY_MAKS];
 static uint32_t konteksty, przestrzenie;      /* T15: a zone's contexts and address spaces are limited */
+static uint32_t biezacy;                      /* the guest context of the stream being done (step 6) */
+/* whose (the guest context) is each context and address space of the card: destroyed when it ends */
+static uint8_t wlasciciel_ctx[K1_POSR_ID_MAKS], wlasciciel_vm[K1_POSR_ID_MAKS];
 
 static void zapisz32(volatile uint8_t *gdzie, uint32_t v)
 {
@@ -47,7 +50,7 @@ static uint32_t czytaj32(const volatile uint8_t *skad)
 /* The reply into the shared memory at its place: at most what the guest's `len` there allows (it may be smaller). */
 static void odpowiedz(const struct k1_posr_prosba_ok *ok)
 {
-    volatile uint8_t *cel = wspolna + sizeof(struct k1_posr_wspolna) + ok->rsp_off;
+    volatile uint8_t *cel = wspolna[biezacy] + sizeof(struct k1_posr_wspolna) + ok->rsp_off;
     uint32_t n = czytaj32(cel);
     n = n < ok->odp ? n : ok->odp;
     zapisz32(odp, n);
@@ -56,28 +59,65 @@ static void odpowiedz(const struct k1_posr_prosba_ok *ok)
     zapisz32(cel, n);
 }
 
-void posr_ban(uint32_t ctx)
+/* Bit ctx of the banned mask in the shared memory of the guest context that made ctx: set (ban) or cleared. */
+static void maska(uint32_t ctx, int ban)
 {
+    volatile uint8_t *w = ctx < 64 ? wspolna[wlasciciel_ctx[ctx]] : NULL;
     uint64_t m = 0;
-    if (wspolna == NULL || ctx >= 64)
+    if (w == NULL)
         return;
     for (int i = 0; i < 8; i++)
-        m |= (uint64_t)wspolna[8 + i] << (8 * i);
-    m |= 1ull << ctx;
+        m |= (uint64_t)w[8 + i] << (8 * i);
+    m = ban ? m | 1ull << ctx : m & ~(1ull << ctx);
     for (int i = 0; i < 8; i++)
-        wspolna[8 + i] = (uint8_t)(m >> (8 * i));
+        w[8 + i] = (uint8_t)(m >> (8 * i));
 }
 
-static void odbanuj(uint32_t ctx)
+void posr_ban(uint32_t ctx)
 {
-    uint64_t m = 0;
-    if (wspolna == NULL || ctx >= 64)
-        return;
-    for (int i = 0; i < 8; i++)
-        m |= (uint64_t)wspolna[8 + i] << (8 * i);
-    m &= ~(1ull << ctx);
-    for (int i = 0; i < 8; i++)
-        wspolna[8 + i] = (uint8_t)(m >> (8 * i));
+    maska(ctx, 1);
+}
+
+/* A new context or address space `id` of the current guest context: 0, or ENOSPC when K1 cannot follow its number (it
+ * is destroyed at once — the card gives the lowest free number, so this never happens with honest limits). */
+static int32_t nowy_id(uint8_t *wlasciciele, uint32_t id, unsigned long zniszcz)
+{
+    if (id < K1_POSR_ID_MAKS) {
+        wlasciciele[id] = (uint8_t)biezacy;
+        return 0;
+    }
+    if (zniszcz == DRM_IOCTL_I915_GEM_CONTEXT_DESTROY) {
+        struct drm_i915_gem_context_destroy d = { .ctx_id = id };
+        silnik->ioctl(zniszcz, &d);
+    } else {
+        struct drm_i915_gem_vm_control v = { .vm_id = id };
+        silnik->ioctl(zniszcz, &v);
+    }
+    return ENOSPC;
+}
+
+void posr_gosc_koniec(uint32_t g)
+{
+    uint32_t u;
+    for (uint32_t id = 0; id < K1_POSR_ID_MAKS; id++) {
+        if (wlasciciel_ctx[id] == g) {
+            struct drm_i915_gem_context_destroy d = { .ctx_id = id };
+            maska(id, 0);
+            silnik->ioctl(DRM_IOCTL_I915_GEM_CONTEXT_DESTROY, &d);
+            wlasciciel_ctx[id] = 0;
+            konteksty -= konteksty > 0;
+        }
+        if (wlasciciel_vm[id] == g) {
+            struct drm_i915_gem_vm_control v = { .vm_id = id };
+            silnik->ioctl(DRM_IOCTL_I915_GEM_VM_DESTROY, &v);
+            wlasciciel_vm[id] = 0;
+            przestrzenie -= przestrzenie > 0;
+        }
+    }
+    while ((u = k1_posr_ob_usun_czekajacy(&obiekty, g)) != 0) {
+        struct drm_gem_close z = { .handle = u };
+        silnik->ioctl(DRM_IOCTL_GEM_CLOSE, &z);
+    }
 }
 
 static int32_t ioctl_prosty(const struct k1_posr_prosba_ok *ok, const uint8_t *p)
@@ -100,13 +140,25 @@ static int32_t ioctl_prosty(const struct k1_posr_prosba_ok *ok, const uint8_t *p
     ret = silnik->ioctl(ok->ioctl, arg);
     if (ret == 0) {
         uint32_t id;
-        memcpy(&id, ok->ioctl == K1_POSR_IOCTL_GEM_VM_CREATE ? arg + 12 : arg, 4);
-        konteksty += ok->ioctl == K1_POSR_IOCTL_GEM_CONTEXT_CREATE;
-        konteksty -= ok->ioctl == K1_POSR_IOCTL_GEM_CONTEXT_DESTROY && konteksty > 0;
-        przestrzenie += ok->ioctl == K1_POSR_IOCTL_GEM_VM_CREATE;
-        przestrzenie -= ok->ioctl == K1_POSR_IOCTL_GEM_VM_DESTROY && przestrzenie > 0;
-        if (ok->ioctl == K1_POSR_IOCTL_GEM_CONTEXT_DESTROY)
-            odbanuj(id);
+        memcpy(&id, ok->ioctl == K1_POSR_IOCTL_GEM_VM_CREATE || ok->ioctl == K1_POSR_IOCTL_GEM_VM_DESTROY ? arg + 12 : arg,
+               4);
+        if (ok->ioctl == K1_POSR_IOCTL_GEM_CONTEXT_CREATE && (ret = nowy_id(wlasciciel_ctx, id,
+                                                                            DRM_IOCTL_I915_GEM_CONTEXT_DESTROY)) == 0)
+            konteksty++;
+        if (ok->ioctl == K1_POSR_IOCTL_GEM_VM_CREATE &&
+            (ret = nowy_id(wlasciciel_vm, id, DRM_IOCTL_I915_GEM_VM_DESTROY)) == 0)
+            przestrzenie++;
+        if (ok->ioctl == K1_POSR_IOCTL_GEM_CONTEXT_DESTROY) {
+            konteksty -= konteksty > 0;
+            maska(id, 0);
+            if (id < K1_POSR_ID_MAKS)
+                wlasciciel_ctx[id] = 0;
+        }
+        if (ok->ioctl == K1_POSR_IOCTL_GEM_VM_DESTROY) {
+            przestrzenie -= przestrzenie > 0;
+            if (id < K1_POSR_ID_MAKS)
+                wlasciciel_vm[id] = 0;
+        }
     }
     if (ok->uchwyt)
         memcpy(arg, &res, 4); /* the card's handle never goes back to the guest */
@@ -158,7 +210,7 @@ static int nowy_bufor(const uint8_t *p, int ext)
     memcpy(&c, p, ext ? sizeof c : sizeof(struct k1_posr_gem_create));
     if (!ext)
         c.gem_flags = 0, c.ext_size = 0;
-    w = k1_posr_ob_moze(&obiekty, c.blob_id, c.size);
+    w = k1_posr_ob_moze(&obiekty, biezacy, c.blob_id, c.size);
     if (w != 0)
         return w;
     n.size = c.size, n.flags = c.gem_flags;
@@ -174,7 +226,7 @@ static int nowy_bufor(const uint8_t *p, int ext)
     }
     if (silnik->ioctl(DRM_IOCTL_I915_GEM_CREATE_EXT, &n) != 0)
         return K1_POSR_BLAD_KARTA; /* the bridge has no reply for it: the stream stops (virglrenderer: the same) */
-    w = k1_posr_ob_dodaj(&obiekty, c.blob_id, n.handle, c.size, mapa);
+    w = k1_posr_ob_dodaj(&obiekty, biezacy, c.blob_id, n.handle, c.size, mapa);
     if (w != 0) {
         struct drm_gem_close z = { .handle = n.handle };
         silnik->ioctl(DRM_IOCTL_GEM_CLOSE, &z);
@@ -211,7 +263,8 @@ static int32_t kontekst(const uint8_t *p, uint32_t len)
         return ENOSPC;
     c.flags = k.flags, c.extensions = i > 0 ? (uintptr_t)&param[0] : 0;
     ret = silnik->ioctl(DRM_IOCTL_I915_GEM_CONTEXT_CREATE_EXT, &c);
-    konteksty += ret == 0;
+    if (ret == 0 && (ret = nowy_id(wlasciciel_ctx, c.ctx_id, DRM_IOCTL_I915_GEM_CONTEXT_DESTROY)) == 0)
+        konteksty++;
     memcpy(odp + 12, &c.ctx_id, 4);
     return ret;
 }
@@ -234,7 +287,8 @@ static int32_t execbuffer(const uint8_t *p)
     x.flags = e.flags | I915_EXEC_FENCE_OUT, x.rsvd1 = e.context_id;
     ret = silnik->ioctl(DRM_IOCTL_I915_GEM_EXECBUFFER2_WR, &x);
     if (ret == 0)
-        plot_nowy(1 + (uint32_t)(e.flags & I915_EXEC_RING_MASK), (int)(int32_t)(x.rsvd2 >> 32), (uint32_t)e.context_id);
+        plot_nowy(biezacy, 1 + (uint32_t)(e.flags & I915_EXEC_RING_MASK), (int)(int32_t)(x.rsvd2 >> 32),
+                  (uint32_t)e.context_id);
     if (ret == EIO) { /* T15, S39: the context was banned after it hung the card — fast graphics of this zone ends */
         posr_ban((uint32_t)e.context_id);
         zawieszona = 1;
@@ -307,23 +361,24 @@ static int wykonaj(const struct k1_posr_prosba_ok *ok, const uint8_t *p)
     return 0;
 }
 
-int posr_prosby(const volatile uint8_t *okno, uint32_t dl, int32_t *zrobione)
+int posr_prosby(const volatile uint8_t *okno, uint32_t dl, uint32_t gosc, int32_t *zrobione)
 {
     uint32_t o = 0;
+    biezacy = gosc; /* checked: 1..K1_POSR_GOSCIE */
     if (strumien == NULL && (strumien = malloc(K1_POSR_PROSBY_BAJTY)) == NULL)
         return K1_POSR_BLAD_PAMIEC;
     for (uint32_t i = 0; i < dl; i++)
         strumien[i] = okno[i]; /* first a copy: the client may change the window while we look */
     while (o < dl) {
         struct k1_posr_prosba_ok ok;
-        uint32_t miejsce = wspolna != NULL ? wspolna_rozmiar - (uint32_t)sizeof(struct k1_posr_wspolna) : 0;
+        uint32_t miejsce = wspolna[gosc] != NULL ? wspolna_rozmiar[gosc] - (uint32_t)sizeof(struct k1_posr_wspolna) : 0;
         int r = k1_posr_sprawdz(strumien + o, dl - o, miejsce, &ok);
         if (r == 0)
             r = wykonaj(&ok, strumien + o);
         if (r != 0)
             return r;
-        if (wspolna != NULL)
-            zapisz32(wspolna, ok.seqno); /* the last request done */
+        if (wspolna[gosc] != NULL)
+            zapisz32(wspolna[gosc], ok.seqno); /* the last request done */
         o += ok.len;
         (*zrobione)++;
         if (zawieszona)

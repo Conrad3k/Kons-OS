@@ -425,6 +425,41 @@ sprawdz("„Wyczyść dane sesji”: skarbiec usuwa kawałki dysku strefy, nast�
 z = re.findall(r"K1-STREFA: dysk strefy: kawałki wczytane (\d+), zapisane (\d+), błędy (\d+)", q.tekst())
 print(f"  [info]  dysk strefy na końcu każdego uruchomienia (wczytane, zapisane, błędy): {z}", flush=True)
 sprawdz("dysk strefy bez błędów zapisu i odczytu", z and all(b == "0" for _, _, b in z), str(z))
+# 0.10.9 step 6: fast graphics — the test zone's VMM gets a graphics broker with the test engine (QEMU has no Intel
+# card); the guest speaks to it as Mesa's iris with intel-virtio does (gosc/grafika.c)
+sprawdz("SZYBKA GRAFIKA (0.10.9 krok 6): VMM strefy dostaje pośrednika grafiki (silnik testowy) i daje gościowi "
+        "virtio-gpu z kontekstami DRM",
+        czekaj(r"K1-TEST: strefy: strefa próbna uruchomiona \(tryb 16\)", czas=300) and
+        czekaj(r"K1-NADZORCA: strefa 1 \(Strefa próbna\): pid \d+, uid 300, .*szybka grafika, gość testowy", czas=60) and
+        czekaj(r"K1-STREFA: szybka grafika: most do karty 0x1916", czas=60))
+sprawdz("SZYBKA GRAFIKA: gość widzi zbiór możliwości DRM karty (i915, 0x1916) i mapuje pamięć wspólną mostu",
+        czekaj(r"K1-GOSC: grafika: zbiór możliwości DRM — kontekst 3, karta 0x1916", czas=240) and
+        czekaj(r"K1-GOSC: grafika: pamięć wspólna zmapowana, odpowiedzi od 16", czas=60))
+sprawdz("SZYBKA GRAFIKA: prośba mostu (GETPARAM) z płotem — odpowiedź w pamięci wspólnej",
+        czekaj(r"K1-GOSC: grafika: prośba GETPARAM przez most — karta 0x1916", czas=120))
+sprawdz("SZYBKA GRAFIKA: bufor karty zmapowany w pamięci gościa (miejsce pamięci KVM) — zapis i odczyt zgodne; "
+        "paczka pracy z nim przyjęta",
+        czekaj(r"K1-GOSC: grafika: bufor \d+ \(zasób \d+\) zmapowany w pamięci gościa, zapis i odczyt zgodne", czas=120)
+        and czekaj(r"K1-GOSC: grafika: paczka pracy z buforem — ret 0", czas=60) and czekaj(r"K1-GOSC: grafika: ok", czas=30))
+sprawdz("SZYBKA GRAFIKA: koniec strefy — VMM liczy polecenia 3D i mapowania, pośrednik kończy się razem z nią",
+        czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 16\)", czas=300) and
+        czekaj(r"K1-STREFA: szybka grafika: polecenia 3D \d+ \(błędy \d+\), płoty [1-9]\d*, mapowania [1-9]", czas=30)
+        and czekaj(r"K1-NADZORCA: pośrednik grafiki strefy 1 zakończył się", czas=60))
+sprawdz("NEGATYWNY: złośliwy gość mostu — nieznana prośba odrzucona (pośrednik żyje, następna działa)",
+        czekaj(r"K1-TEST: strefy: strefa próbna uruchomiona \(tryb 17\)", czas=300) and
+        czekaj(r"K1-GOSC: grafika \(zła\): nieznana prośba odrzucona, następna działa: tak", czas=240))
+sprawdz("NEGATYWNY: złośliwy gość mostu — zalew prośbami (wszystkie z odpowiedzią), bufory ponad limit odrzucone",
+        czekaj(r"K1-GOSC: grafika \(zła\): zalew 500 prośbami — odpowiedzi wszystkie", czas=600) and
+        czekaj(r"K1-GOSC: grafika \(zła\): bufory ponad limit — pierwszy przyjęty, drugi odrzucony", czas=60),
+        "; ".join(re.findall(r"K1-GOSC: grafika \(zła\)[^\n]*", q.tekst())))
+sprawdz("NEGATYWNY: „zawieszenie karty” przez strefę — koniec jej pośrednika (kod 3), strefa żyje i rysuje dalej, "
+        "K1 działa",
+        czekaj(r"K1-NADZORCA: pośrednik grafiki strefy 1 zakończył się \(kod 3\)", czas=120) and
+        czekaj(r"K1-STREFA: szybka grafika: pośrednik grafiki się zakończył", czas=60) and
+        czekaj(r"K1-GOSC: grafika \(zła\): po zawieszeniu karty most nieczynny, strefa żyje", czas=120) and
+        czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 17\)", czas=300),
+        "; ".join(re.findall(r"K1-(?:NADZORCA: pośrednik grafiki|STREFA: szybka grafika|GOSC: grafika \(zła\): po)[^\n]*",
+                             q.tekst())[-4:]))
 # 0.10.1 step 3 (T6, D3): the rozdzielacz — K1 here has 1 GiB, below its reserve (768 MiB): nadzorca takes the guest's
 # free memory by its balloon itself; when no more can be taken, gui shows "Mało pamięci" with the zone and "Zamknij"
 sprawdz("ROZDZIELACZ (0.10.1 krok 3): K1 poniżej rezerwy — nadzorca sam bierze balonem wolną pamięć strefy (cel od "

@@ -166,6 +166,7 @@ Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3):
 [x]  5  Szybka grafika, K1: pośrednik grafiki               S37–S41, S44     1, 2        T10–T15          L        0049
         PR #188 (pośrednik grafiki; sprzęt — linia w Ustawieniach i zawieszenie karty — właściciel przy wersji końcowej)
 [ ]  6  Szybka grafika, strefa: przełącznik (NASTĘPNY)     S40–S45, S47     4, 5        D5, D7, D9       L        0049
+        [w toku: Claude, gałąź claude/pensive-bardeen-g1lj56]
 (ADR: 0049 z kroku 1, 0050 z kroku 4. Kroki 6 i 3 stoją na ADR 0049; nowy ADR — tylko jeśli zmieniają architekturę
 poza nim, z następnym wolnym numerem.)
 
@@ -360,6 +361,12 @@ KROK 2 — K1: sterownik karty w jądrze, usługa „dekoder filmów”         
     na obu laptopach (oczekiwane: H.264), pobór mocy.
 
 KROK 3 — Strefa: filmy kartą; porządki i wydanie 0.10.9 (OSTATNI)      L · D4 (D1–D3 przy D9 „B”), T5 · ADR 0049
+  DECYZJA WŁAŚCICIELA 2026-11-20 (w czasie kroku 6): filmy kartą WYPADAJĄ z 0.10.9 — „wypierdol na razie filmy, zostaw
+  w planach na »może«”. Krok 3 to tylko porządki i wydanie (jak przy niezdanej bramce zysku, ADR 0049 pkt 6). Strona
+  strefy dla filmów (sterownik VA gościa, FFmpeg w strefie, droga VMM → dekoder filmów, prefy, D4) — „może” w
+  docs/DO_ZROBIENIA.txt. Usługa „dekoder filmów” z kroku 2 zostaje w systemie (pytanie przy starcie, tylko log); linia
+  o filmach w Ustawieniach zniknęła, przełącznik nazywa się „Szybka grafika”. Zadania niżej — historyczne, poza porządkami
+  i wydaniem.
   (Wykonywany ostatni, po kroku 6: Firefox użyje karty do filmów tylko przy sprzętowym GL, czyli w sesji z szybką
   grafiką — ADR 0049 pkt 5. Do 2026-11-20 porządki, wydanie i lista dla właściciela były w kroku 6.)
   Cel: film w sesji z szybką grafiką rozpakowuje dekoder filmów K1 (karta), a strefa nadal nie steruje kartą; potem
@@ -579,7 +586,32 @@ KROK 6 — Szybka grafika, strona strefy: przełącznik, Firefox rysuje kartą (
   szybką grafikę (S38, S39). Czego właściciel nie sprawdzi teraz — idzie na listę wydania (krok 3).
   Gotowe, gdy: CI zielone, właściciel potwierdził na IdeaPadzie (albo punkty są na liście kroku 3); przełącznik w main
   gotowy dla użytkownika (domyślnie wg D5) — robot jest w trybie próbnym, więc do laptopów przyjdzie z wydaniem.
-  Ustalenia z wykonania: (pusto — wypełnia krok 6)
+  Ustalenia z wykonania (2026-11-20, gałąź claude/pensive-bardeen-g1lj56):
+  - Decyzje właściciela na początku: D5 „B” (szybka grafika domyślnie włączona w Ogólnej, Bank i Prywatna — wyłączona),
+    D9 „A” (jeden przełącznik „Szybka grafika i filmy”), D7 „A” — szkice dwóch znaków (układ scalony, błyskawica), wybrany
+    układ scalony (`K1_IK_KARTA`, za nazwą sesji, póki strefa działa ze swoim pośrednikiem), D4 „A” (dla kroku 3).
+  - S40, S42, S47 ZE ŹRÓDEŁ (Mesa 26.2.6: src/virtio/vdrm/vdrm_virtgpu.c, src/intel/dev/virtio,
+    src/egl/drivers/dri2/platform_wayland.c; Linux 7.3.5 drivers/gpu/drm/virtio): iris z intel-virtio otwiera kontekst
+    virtio-gpu z capsetem DRM i 64 osiami, pamięć wspólną jako blob 0 (16 KiB), bufory jako bloby HOST3D „do mapowania”
+    tworzone razem z prośbą GEM_CREATE, płoty na osi 1 + silnik. Jądro gościa robi kontekst bez capsetu każdemu, kto
+    otworzy kartę (z CONTEXT_INIT — nie przy samym imporcie). Każdy proces strefy z kartą = osobny kontekst gościa, z
+    własnymi numerami blobów — pośrednik z kroku 5 zakładał jeden: dodane konteksty gościa (1…8, `POSR_GOSC_KONIEC`).
+    EGL Mesy na Waylandzie bez wl_drm potrzebuje linux-dmabuf w wersji ≥ 4 (urządzenie z „feedbacku”) — kompozytor strefy
+    ma go (`dmabuf.c`), tylko liniowe XR24/AR24, kopia procesorem po `VIRTGPU_WAIT`; obraz okna dalej idzie drogą 2D.
+    Mesa wybiera iris sama (pipe_loader_drm.c: capset DRM z kontekstem i915).
+  - S43 POTWIERDZONE (budowa): Mesa 26 kompiluje programy karty Intela z OpenCL C (`mesa_clc`, wymaga LLVM) — budowa
+    w dwóch etapach: narzędzia z LLVM 18 Ubuntu tylko na komputerze budowy, Mesa dla strefy bez LLVM (iris, EGL, GBM,
+    OpenGL, GLES 2). Wynik okrojony: 33 MiB (libgallium ok. 28 MiB); obraz strefy 126 → 134 MiB, zapas miejsca A 610 MiB.
+    Meson z PyPI (Ubuntu 24.04 ma 1.3, Mesa chce ≥ 1.4). W strefie brakowało tylko libdrm2 (dopisane do tabeli). CI na
+    PR-ze trzyma build/mesa w pamięci podręcznej (ok. 15 min mniej), wydanie buduje od zera.
+  - S40 POTWIERDZONE w QEMU (strefa próbna, silnik testowy): bufor „karty” (memfd od nadzorcy zamiast dma-bufa) zmapowany
+    przez VMM jako miejsce pamięci KVM w obszarze 32 GiB + 1 GiB; gość pisze i czyta — wymaga CI z KVM (w kontenerze
+    test-strefa stanął na zwykłych krokach strefy: gość budzony z wielominutowym opóźnieniem, skill §7).
+  - Firefox: prefy z rysowaniem kartą przez `user.js` profilu sesji (tylko gfx.webrender.software i
+    widget.dmabuf.force-enabled — nazwy z k1.js, sprawdzone w kroku 1), pisane przy każdym starcie w obie strony.
+    Firefoksa z kartą CI nie testuje — sprawdza właściciel na IdeaPadzie (lista niżej i w kroku 3).
+  - NIEPEWNE do sprzętu: czy Firefox ESR 153 przejdzie swój test GL (glxtest) z iris przez intel-virtio i włączy WebRender
+    sprzętowy; wydajność kopii klatki procesorem w kompozytorze (S41); działanie zawieszenia karty (S39) z prawdziwą kartą.
 
 
 4. DECYZJE
@@ -595,14 +627,15 @@ Twoje (produkt) — filmy: czat kroku 3 zada D4; D1–D3 tylko przy D9 „B” (
   [!] D3 — Czy widać na oknie, że sesja używa karty? (ADR 0020: słabsza izolacja = widoczna na ramce)
       A (zalecane): mały znak na pasku tytułu ramki (np. ikonka filmu przy nazwie sesji) — szkice do wyboru.
       B: inny odcień ramki.   C: nic na ramce, tylko w Ustawieniach.
-  [!] D4 — Obie karty rozpakowują z popularnych formatów tylko H.264 (S9; filmy kartą działają tylko na IdeaPadzie —
+  [x] D4 — ROZSTRZYGNIĘTE 2026-11-20: A (przeglądarka prosi strony o H.264). Obie karty rozpakowują z popularnych formatów tylko H.264 (S9; filmy kartą działają tylko na IdeaPadzie —
       ADR 0049 pkt 5): czy przeglądarka ma prosić strony o H.264, gdy filmy kartą są włączone?
       A (zalecane): tak, sama — inaczej YouTube wyśle VP9/AV1 i karta nic nie pomoże; czasem najwyżej 1080p.
       B: nie — zostaje, co wybierze strona.
 
 Szybka grafika (dodane 2026-11-17) — czat kroku 6 zada D5, D7 i D9 na początku; D6 i D8 rozstrzygnięte:
 
-  [~] D5 — Szybka grafika domyślnie włączona czy wyłączona?
+  [x] D5 — Szybka grafika domyślnie włączona czy wyłączona? ROZSTRZYGNIĘTE 2026-11-20 (początek kroku 6): B — włączona
+      w Ogólnej, wyłączona w Banku i Prywatnej.
       Właściciel 2026-11-19: „ta nowa grafika w przeglądarce też powinna być opcją, i w mega prywatnych sesjach, np.
       Bank — domyślnie OFF”; „opcjonalność […] zostawi najwyższy stopień szczelności, […] umożliwi beta-testing
       prostszym”. Bank i Prywatna — wyłączona; Ogólna — do potwierdzenia na początku kroku 6 (zalecane: też wyłączona,
@@ -613,14 +646,16 @@ Szybka grafika (dodane 2026-11-17) — czat kroku 6 zada D5, D7 i D9 na początk
       A (zalecane): w Banku przełącznika nie ma — Bank zawsze w pełnej izolacji (strona banku nie potrzebuje karty,
          a sterownik karty w jądrze K1 to dodatkowe drzwi).
       B: przełącznik jak w innych sesjach (domyślnie wg D5).
-  [!] D7 — Jak widać na oknie, że sesja rysuje kartą? (ADR 0020: inny wygląd ramki; od 0.10.7 kolor sesji jest
+  [x] D7 — Jak widać na oknie, że sesja rysuje kartą? ROZSTRZYGNIĘTE 2026-11-20: A — mały znak przy nazwie sesji
+      (szkice — w kroku 6). (ADR 0020: inny wygląd ramki; od 0.10.7 kolor sesji jest
       dyskretnie na pasku — ADR 0048) — szkice do wyboru, oba motywy.
       A (zalecane): mały znak na pasku tytułu przy nazwie sesji (przy D9 „B” znak filmów z D3 — ten sam rodzaj).
       B: inny odcień paska tytułu.   C: nic na ramce, tylko w Ustawieniach.
   [x] D8 — Co, jeśli krok 1 (f) pokaże, że karta laptopa nie obsłuży mostu (S36, S38)? Rozstrzygnięte A (ADR 0049):
       X230 nie ma pełnego PPGTT — szybka grafika tylko na IdeaPadzie (właściciel 2026-11-19: „na X230 ta opcja i tak
       nie zadziała”). (Warianty były: A — kroki 5–6 dla laptopa, który obsłuży; B — wstrzymać 0.10.9 do sprzętu.)
-  [!] D9 — (nowe, ADR 0049 pkt 5) Filmy kartą działają tylko w sesji z szybką grafiką. Jak w Ustawieniach?
+  [x] D9 — (nowe, ADR 0049 pkt 5) Filmy kartą działają tylko w sesji z szybką grafiką. Jak w Ustawieniach?
+      ROZSTRZYGNIĘTE 2026-11-20: A — jeden przełącznik „Szybka grafika i filmy”.
       A (zalecane): jeden przełącznik (np. „Szybka grafika i filmy”) — mniej przełączników, nic, co nie działa samo;
          D1–D3 rozstrzygają wtedy D5–D7 (przy sesji, domyślnie wyłączony, jeden znak na ramce).
       B: dwa przełączniki; „Filmy kartą” dostępny dopiero przy włączonej szybkiej grafice (D1–D3 w kroku 3).

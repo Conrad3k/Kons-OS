@@ -17,8 +17,9 @@ GALEZIE = [("debian", "https://deb.debian.org/debian", "trixie"),
            ("debian", "https://deb.debian.org/debian", "trixie-updates"),
            ("debian-security", "https://security.debian.org/debian-security", "trixie-security")]
 # Co ma być w obrazie: przeglądarka, jej polski interfejs, dane lokalizacji C.UTF-8 (libc-bin); od 0.10.5 (ADR 0046)
-# curl i zaufane certyfikaty — strefa pobierania aktualizacji (ten sam obraz, inny program startowy: gosc/pobieranie.c).
-KORZENIE = ["firefox-esr", "firefox-esr-l10n-pl", "libc-bin", "curl", "ca-certificates"]
+# curl i zaufane certyfikaty — strefa pobierania aktualizacji (ten sam obraz, inny program startowy: gosc/pobieranie.c);
+# od 0.10.9 krok 6 libdrm2 — dla naszej Mesy (szybka grafika: scripts/zbuduj-mese.sh; sama Mesa nie jest z Debiana).
+KORZENIE = ["firefox-esr", "firefox-esr-l10n-pl", "libc-bin", "curl", "ca-certificates", "libdrm2"]
 # Czego nie bierzemy, choć pakiety tego chcą: demony i narzędzia systemu (w strefie nie ma init-u Debiana ani
 # instalatora pakietów), powłoka i narzędzia, które jej używają (S14: strefa bez powłoki).
 POMIN = {"debconf", "dpkg", "perl-base", "systemd", "systemd-sysv", "dbus", "dbus-user-session", "dbus-bin",

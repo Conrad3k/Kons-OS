@@ -480,32 +480,44 @@ enum k1_komunikat_typ {
      * answer: POSR_WYNIK, or POSR_DMABUF for POSR_BUFOR done; POSR_PLOT is answered when its fence is done. */
     K1_KOM_POSR_OKNO = 206,        /* obiekt=0, all 0; + 1 fd: the window, a memfd of K1_POSR_OKNO bytes sealed against
                                     * shrinking and growing (once) */
-    K1_KOM_POSR_WSPOLNA = 207,     /* obiekt=0, a=its size K1_POSR_WSPOLNA_MIN..MAKS (a multiple of 4096), b..e=0; + 1 fd: the
-                                    * shared memory of the bridge (the guest's blob 0), sealed the same way (once) */
-    K1_KOM_POSR_PROSBY = 208,      /* obiekt=0, a=the stream's length in the window 16..K1_POSR_PROSBY_BAJTY (a multiple of
-                                    * 4), b..e=0: do the requests one by one (the answer: c = how many were done) */
-    K1_KOM_POSR_BLOB = 209,        /* obiekt=res_id, a=blob 1.., b,c=the size (k1_kom_u64) 1..K1_POSR_BUFOR_MAKS, d=e=0: the
-                                    * buffer the guest created as blob a becomes resource obiekt */
+    K1_KOM_POSR_WSPOLNA = 207,     /* obiekt=the guest context 1..K1_POSR_GOSCIE (step 6), a=its size K1_POSR_WSPOLNA_MIN..
+                                    * MAKS (a multiple of 4096), b..e=0; + 1 fd: the shared memory of that context's bridge
+                                    * (its blob 0), sealed the same way (once per guest context, until POSR_GOSC_KONIEC) */
+    K1_KOM_POSR_PROSBY = 208,      /* obiekt=the guest context, a=the stream's length in the window 16..K1_POSR_PROSBY_BAJTY
+                                    * (a multiple of 4), b..e=0: do the requests one by one (the answer: c = how many) */
+    K1_KOM_POSR_BLOB = 209,        /* obiekt=res_id, a=blob 1.., b,c=the size (k1_kom_u64) 1..K1_POSR_BUFOR_MAKS, d=the guest
+                                    * context 1..K1_POSR_GOSCIE, e=0: the buffer that context created as blob a becomes
+                                    * resource obiekt */
     K1_KOM_POSR_BUFOR = 210,       /* obiekt=res_id, all 0: share the buffer (answer POSR_DMABUF) */
     K1_KOM_POSR_ZWOLNIJ = 211,     /* obiekt=res_id, all 0: the resource goes, its buffer too */
     K1_KOM_POSR_PLOT = 212,        /* obiekt=the timeline 0..K1_POSR_PIERSCIENIE-1, a,b=the fence's number (k1_kom_u64),
-                                    * c..e=0: answer POSR_PLOT_GOTOWY when the last batch of that timeline is done */
+                                    * c=the guest context, d=e=0: answer POSR_PLOT_GOTOWY when the last batch of that
+                                    * context's timeline is done */
     /* posrednik → its client (K1_KIER_OD_POSREDNIKA) */
     K1_KOM_POSR_UMIE = 213,        /* first, once: obiekt=0, a=K1_POSR_KARTA_BRAK/NIE/UMIE, b=K1_POSR_NIE_* (NIE; else 0),
                                     * c=the card's PCI id 1..0xffff, d=its revision 0..255, e=the driver's version
                                     * major << 16 | minor << 8 | patch (c..e: UMIE only; else 0) */
-    K1_KOM_POSR_WYNIK = 214,       /* obiekt=res_id or 0 (as the request), a=the request's type (POSR_OKNO..POSR_ZWOLNIJ), b=0
+    K1_KOM_POSR_WYNIK = 214,       /* obiekt=as the request, a=the request's type (POSR_OKNO..POSR_ZWOLNIJ, GOSC_KONIEC), b=0
                                     * or K1_POSR_BLAD_*, c=PROSBY: the requests done 0..K1_POSR_PROSBY_BAJTY/16 (else 0),
                                     * d=e=0 */
     K1_KOM_POSR_DMABUF = 215,      /* obiekt=res_id, a=K1_POSR_MAPA_*, b,c=the size (k1_kom_u64), d=e=0; + 1 fd: the buffer
                                     * (dma-buf: the VMM maps it into the guest — never executable) */
-    K1_KOM_POSR_PLOT_GOTOWY = 216, /* obiekt=the timeline, a,b=the fence's number, c..e=0 */
+    K1_KOM_POSR_PLOT_GOTOWY = 216, /* obiekt=the timeline, a,b=the fence's number, c=the guest context, d=e=0 */
     /* nadzorca → Ustawienia (fd 4): whether this computer's card serves fast graphics (Ustawienia → Przeglądarka) */
     K1_KOM_POSR_KARTA = 217,       /* obiekt=0, a=K1_POSR_KARTA_*, b=the code (NIE: K1_POSR_NIE_*; BLAD: exit code or 128 +
                                     * signal 0..255; else 0), c..e=0 */
     /* the test program → nadzorca (test image only) */
     K1_KOM_TEST_POSREDNIK = 218,   /* obiekt=0, a=zone 1..K1_STREFY_MAKS, b=0 the card / 1 the test engine (no card), c..e=0
                                     * → TEST_GNIAZDO + 1 fd: the client's end of a new broker of that zone */
+    /* 0.10.9 step 6: its client → posrednik */
+    K1_KOM_POSR_GOSC_KONIEC = 219, /* obiekt=the guest context 1..K1_POSR_GOSCIE, all 0: that process of the zone closed the
+                                    * card — its contexts, address spaces, shared memory and unnamed buffers go */
+    /* 0.10.9 step 6 (D5, D7, D9 „A”): fast graphics and films with the card, a switch of each session (strefy_ust.c) —
+     * nadzorca → gui, Ustawienia, Zasoby (K1_KIER_OD_NADZORCY) and ekran (K1_KIER_STEROWANIE), after STREFY_STAN */
+    K1_KOM_STREFY_GRAFIKA = 220,   /* obiekt=0, a=bit nr-1: the switch of zone nr's session is on, b=bit nr-1: zone nr runs
+                                    * with its graphics broker now (the mark on its frame — D7), c..e=0 */
+    /* Ustawienia → nadzorca (fd 4) */
+    K1_KOM_STREFA_GRAFIKA = 221,   /* obiekt=zone, a=1 on / 0 off (from its next start), b..e=0 */
 };
 
 /* What happened to the connection (SIEC_WIFI_ZDARZENIE a). */
@@ -575,7 +587,11 @@ enum { K1_STREFA_TRYB_AKTUALIZACJA = 12 };
 /* 0.10.5 step 5 (Raptor Bridge): 13 the test of the bridge from inside the zone (gosc/most.c), 14..15 hostile to vsock —
  * the guest speaks vsock itself (gosc/zlosliwy.c) */
 enum { K1_STREFA_TRYB_MOST = 13, K1_STREFA_TRYB_VSOCK_OD = 14, K1_STREFA_TRYB_VSOCK_DO = 15 };
-#define K1_STREFA_TRYB_MAKS 15
+/* 0.10.9 step 6: fast graphics in the test zone — nadzorca gives its VMM a graphics broker with the test engine (no
+ * card): 16 an honest guest drives the bridge (gosc/grafika.c), 17 a hostile one (bad requests, a flood, too much
+ * memory, a hang of the "card") — the broker refuses or ends, the zone and K1 live */
+enum { K1_STREFA_TRYB_GRAFIKA = 16, K1_STREFA_TRYB_GRAFIKA_ZLA = 17 };
+#define K1_STREFA_TRYB_MAKS 17
 /* 0.10.5 step 4 (D8): the smallest picture of a zone's window the user can drag it to */
 #define K1_OKNO_MIN_SZER 640
 #define K1_OKNO_MIN_WYS 480

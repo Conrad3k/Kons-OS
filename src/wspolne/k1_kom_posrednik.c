@@ -17,24 +17,31 @@ static int rozmiar(int32_t lo, int32_t hi)
     return r >= 1 && r <= K1_POSR_BUFOR_MAKS;
 }
 
+static int gosc(uint32_t g)
+{
+    return g >= 1 && g <= K1_POSR_GOSCIE;
+}
+
 static int do_posrednika(const struct k1_komunikat *k)
 {
     switch (k->typ) {
     case K1_KOM_POSR_OKNO:
         return k->obiekt == 0 && zera(k, 0);
     case K1_KOM_POSR_WSPOLNA:
-        return k->obiekt == 0 && w(k->a, (int32_t)K1_POSR_WSPOLNA_MIN, (int32_t)K1_POSR_WSPOLNA_MAKS) && k->a % 4096 == 0 &&
-               zera(k, 1);
+        return gosc(k->obiekt) && w(k->a, (int32_t)K1_POSR_WSPOLNA_MIN, (int32_t)K1_POSR_WSPOLNA_MAKS) &&
+               k->a % 4096 == 0 && zera(k, 1);
     case K1_KOM_POSR_PROSBY:
-        return k->obiekt == 0 && w(k->a, (int32_t)sizeof(struct k1_posr_naglowek), (int32_t)K1_POSR_PROSBY_BAJTY) &&
+        return gosc(k->obiekt) && w(k->a, (int32_t)sizeof(struct k1_posr_naglowek), (int32_t)K1_POSR_PROSBY_BAJTY) &&
                k->a % 4 == 0 && zera(k, 1);
     case K1_KOM_POSR_BLOB:
-        return zasob(k->obiekt) && k->a >= 1 && rozmiar(k->b, k->c) && zera(k, 3);
+        return zasob(k->obiekt) && k->a >= 1 && rozmiar(k->b, k->c) && gosc((uint32_t)k->d) && zera(k, 4);
     case K1_KOM_POSR_BUFOR:
     case K1_KOM_POSR_ZWOLNIJ:
         return zasob(k->obiekt) && zera(k, 0);
     case K1_KOM_POSR_PLOT:
-        return k->obiekt < K1_POSR_PIERSCIENIE && zera(k, 2);
+        return k->obiekt < K1_POSR_PIERSCIENIE && gosc((uint32_t)k->c) && zera(k, 3);
+    case K1_KOM_POSR_GOSC_KONIEC:
+        return gosc(k->obiekt) && zera(k, 0);
     default:
         return 0;
     }
@@ -58,13 +65,14 @@ static int od_posrednika(const struct k1_komunikat *k)
     case K1_KOM_POSR_UMIE:
         return umie(k);
     case K1_KOM_POSR_WYNIK:
-        return (k->obiekt == 0 || zasob(k->obiekt)) && w(k->a, K1_KOM_POSR_OKNO, K1_KOM_POSR_ZWOLNIJ) &&
+        return (k->obiekt == 0 || zasob(k->obiekt)) &&
+               (w(k->a, K1_KOM_POSR_OKNO, K1_KOM_POSR_ZWOLNIJ) || k->a == K1_KOM_POSR_GOSC_KONIEC) &&
                w(k->b, K1_POSR_BLAD_MIN, 0) &&
                (k->a == K1_KOM_POSR_PROSBY ? w(k->c, 0, (int32_t)(K1_POSR_PROSBY_BAJTY / 16)) : k->c == 0) && zera(k, 3);
     case K1_KOM_POSR_DMABUF:
         return zasob(k->obiekt) && w(k->a, K1_POSR_MAPA_CACHED, K1_POSR_MAPA_WC) && rozmiar(k->b, k->c) && zera(k, 3);
     case K1_KOM_POSR_PLOT_GOTOWY:
-        return k->obiekt < K1_POSR_PIERSCIENIE && zera(k, 2);
+        return k->obiekt < K1_POSR_PIERSCIENIE && gosc((uint32_t)k->c) && zera(k, 3);
     default:
         return 0;
     }
@@ -90,6 +98,7 @@ int k1_kom_sprawdz_posrednik(const struct k1_komunikat *k, enum k1_kanal_kierune
     case K1_KOM_POSR_BUFOR:
     case K1_KOM_POSR_ZWOLNIJ:
     case K1_KOM_POSR_PLOT:
+    case K1_KOM_POSR_GOSC_KONIEC:
         return kier == K1_KIER_DO_POSREDNIKA && do_posrednika(k);
     case K1_KOM_POSR_UMIE:
     case K1_KOM_POSR_WYNIK:

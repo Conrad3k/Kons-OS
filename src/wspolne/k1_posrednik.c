@@ -327,18 +327,23 @@ int k1_posr_sprawdz(const uint8_t *p, size_t n, uint32_t odp_miejsce, struct k1_
 }
 
 /* --- The buffers' table ------------------------------------------------------------------------------------------- */
-static int czekajacy(const struct k1_posr_obiekty *t, uint32_t blob)
+static int czekajacy(const struct k1_posr_obiekty *t, uint32_t gosc, uint32_t blob)
 {
     for (uint32_t i = 0; i < K1_POSR_CZEKAJACE_MAKS; i++)
-        if (t->czekajace[i].uchwyt != 0 && t->czekajace[i].blob == blob)
+        if (t->czekajace[i].uchwyt != 0 && t->czekajace[i].gosc == gosc && t->czekajace[i].blob == blob)
             return (int)i;
     return -1;
 }
 
-int k1_posr_ob_moze(const struct k1_posr_obiekty *t, uint32_t blob, uint64_t rozmiar)
+static int gosc_dobry(uint32_t g)
+{
+    return g >= 1 && g <= K1_POSR_GOSCIE;
+}
+
+int k1_posr_ob_moze(const struct k1_posr_obiekty *t, uint32_t gosc, uint32_t blob, uint64_t rozmiar)
 {
     uint32_t wolne = 0;
-    if (blob == 0 || czekajacy(t, blob) >= 0)
+    if (!gosc_dobry(gosc) || blob == 0 || czekajacy(t, gosc, blob) >= 0)
         return K1_POSR_BLAD_ZASOB;
     for (uint32_t i = 0; i < K1_POSR_CZEKAJACE_MAKS; i++)
         wolne += t->czekajace[i].uchwyt == 0;
@@ -349,23 +354,24 @@ int k1_posr_ob_moze(const struct k1_posr_obiekty *t, uint32_t blob, uint64_t roz
     return 0;
 }
 
-int k1_posr_ob_dodaj(struct k1_posr_obiekty *t, uint32_t blob, uint32_t uchwyt, uint64_t rozmiar, uint8_t mapa)
+int k1_posr_ob_dodaj(struct k1_posr_obiekty *t, uint32_t gosc, uint32_t blob, uint32_t uchwyt, uint64_t rozmiar,
+                     uint8_t mapa)
 {
-    int r = k1_posr_ob_moze(t, blob, rozmiar);
+    int r = k1_posr_ob_moze(t, gosc, blob, rozmiar);
     if (r != 0 || uchwyt == 0)
         return r != 0 ? r : K1_POSR_BLAD_KARTA;
     for (uint32_t i = 0; i < K1_POSR_CZEKAJACE_MAKS; i++)
         if (t->czekajace[i].uchwyt == 0) {
-            t->czekajace[i] = (struct k1_posr_obiekt){ rozmiar, uchwyt, blob, mapa };
+            t->czekajace[i] = (struct k1_posr_obiekt){ rozmiar, uchwyt, blob, mapa, (uint8_t)gosc };
             t->pamiec += rozmiar;
             return 0;
         }
     return K1_POSR_BLAD_LIMIT;
 }
 
-int k1_posr_ob_przypnij(struct k1_posr_obiekty *t, uint32_t blob, uint32_t res, uint64_t rozmiar)
+int k1_posr_ob_przypnij(struct k1_posr_obiekty *t, uint32_t gosc, uint32_t blob, uint32_t res, uint64_t rozmiar)
 {
-    int i = blob == 0 ? -1 : czekajacy(t, blob);
+    int i = blob == 0 || !gosc_dobry(gosc) ? -1 : czekajacy(t, gosc, blob);
     if (i < 0 || !res_dobry(res) || t->zasoby[res].uchwyt != 0 || t->czekajace[i].rozmiar != rozmiar)
         return K1_POSR_BLAD_ZASOB;
     t->zasoby[res] = t->czekajace[i];
@@ -388,4 +394,16 @@ uint32_t k1_posr_ob_usun(struct k1_posr_obiekty *t, uint32_t res)
     t->pamiec -= o->rozmiar;
     memset(o, 0, sizeof *o);
     return u;
+}
+
+uint32_t k1_posr_ob_usun_czekajacy(struct k1_posr_obiekty *t, uint32_t gosc)
+{
+    for (uint32_t i = 0; i < K1_POSR_CZEKAJACE_MAKS; i++)
+        if (t->czekajace[i].uchwyt != 0 && t->czekajace[i].gosc == gosc) {
+            uint32_t u = t->czekajace[i].uchwyt;
+            t->pamiec -= t->czekajace[i].rozmiar;
+            memset(&t->czekajace[i], 0, sizeof t->czekajace[i]);
+            return u;
+        }
+    return 0;
 }

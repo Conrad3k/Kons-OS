@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | ZAIMPLEMENTOWANE (0.10.9 krok 2: usługa, format próśb, pytanie przy starcie, linia w Ustawieniach); PRZETESTOWANE na hoście (`test_filmy`, `fuzz_filmy`) i w systemie w QEMU (`t_filmy`: dekoder testowy, klatka, złośliwe prośby, pamięć). Rozpakowanie na prawdziwej karcie Intela — PLANOWANE do sprawdzenia przez właściciela na sprzęcie (QEMU nie udaje karty Intela). Strona strefy (VMM, Firefox) — krok 3 |
+| **Status** | ZAIMPLEMENTOWANE (0.10.9 krok 2: usługa, format próśb, pytanie przy starcie; linia w Ustawieniach usunięta w kroku 6 — filmy kartą nie w 0.10.9, decyzja właściciela 2026-11-20: „może” później); PRZETESTOWANE na hoście (`test_filmy`, `fuzz_filmy`) i w systemie w QEMU (`t_filmy`: dekoder testowy, klatka, złośliwe prośby, pamięć). Rozpakowanie na prawdziwej karcie Intela — PLANOWANE do sprawdzenia przez właściciela na sprzęcie (QEMU nie udaje karty Intela). Strona strefy (VMM, Firefox) — krok 3 |
 | **Pliki** | `src/filmy/main.c` (kanał, okno, prośby), `karta.c` + `karta_h264.c` (karta przez VA-API: libva + i965), `testowy.c` (dekoder testowy: szare klatki), `obce.c` + `obce.txt` (co obce biblioteki dostają od programu K1 bez ścieżek i bibliotek współdzielonych), `filmy.h`, `karta.h`; `src/wspolne/k1_filmy.{h,c}` (format próśb, tabela `K1_KODEKI`, sprawdzanie pole po polu), `k1_kom_filmy.c` (komunikaty); `src/nadzorca/filmy.c` (węzeł render, pytanie przy starcie, dekoder strefy), `profile.c` (`KLATKA_FILMY`); `src/zewnetrzne/va/zrodla.txt` + `scripts/zbuduj-va.sh` (biblioteki); Ustawienia `przegladarka.c` (linia o karcie) |
 | **Decyzje** | ADR 0049 (pkt 1–3; plan 0.10.9 T1–T3, T6–T8, S10–S17, S26) |
 
@@ -103,10 +103,10 @@ sprawdzenia, jest odrzucany bez odpowiedzi (liczony w logu).
 | `TEST_FILMY` | program testowy → nadzorca | a = strefa, b = 0 karta / 1 dekoder testowy → `TEST_GNIAZDO` + kanał klienta |
 
 ## Ustawienia → Przeglądarka
-Jedna cicha linia pod listą sesji (ikona „i”): „Karta graficzna tego komputera rozpakowuje filmy: H.264”, „Ten komputer
-nie rozpakowuje filmów kartą graficzną.” (maszyna wirtualna, inna karta, karta bez naszych formatów — z kodem VA, gdy
-karta odmówiła), „Dekoder filmów nie uruchomił się (kod N). Filmy rozpakowuje procesor.” albo, przez pierwsze sekundy
-po starcie, „Sprawdzam, co potrafi karta graficzna…”. Przełącznika jeszcze nie ma (krok 3).
+Do 0.10.9 krok 5 jedna cicha linia pod listą sesji mówiła, co rozpakowuje karta („Karta graficzna tego komputera
+rozpakowuje filmy: H.264” / „Ten komputer nie rozpakowuje filmów kartą graficzną.” …). **Od kroku 6 jej nie ma** — decyzja
+właściciela 2026-11-20: filmy kartą nie wchodzą do 0.10.9 (strona strefy dla filmów — „może”, `docs/DO_ZROBIENIA.txt`).
+Usługa i pytanie przy starcie zostają (gotowe na później); Ustawienia tylko logują `FILMY_KARTA` (test-m4).
 
 ## Dekoder testowy (T7, S17)
 QEMU nie udaje karty Intela, więc drogę dekodera (okno, sprawdzanie, pamięć, klatka) testuje `testowy.c`: bez karty,

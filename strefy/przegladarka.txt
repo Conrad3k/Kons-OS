@@ -1,6 +1,6 @@
 # Pakiety Debiana 13 obrazu strefy przeglądarki (0.10.0 krok 2, ADR 0043). Nie edytuj ręcznie:
 # python3 -I scripts/odswiez-strefe.py. Budowa: scripts/zbuduj-strefe.sh (suma każdego pliku).
-# migawka 20261118T002940Z (zapasowe źródło: snapshot.debian.org/archive/<archiwum>/20261118T002940Z/)
+# migawka 20261120T161619Z (zapasowe źródło: snapshot.debian.org/archive/<archiwum>/20261120T161619Z/)
 # pakiet wersja archiwum sha256 plik
 adwaita-icon-theme 48.1-1 debian f60b0577aee314d43d6908ca7f0b8f07dc48e2bb766e7e25035330817e0e827c pool/main/a/adwaita-icon-theme/adwaita-icon-theme_48.1-1_all.deb
 at-spi2-common 2.56.2-1+deb13u2 debian a2a7b53c9925ec33a471d56dd60f5effe35cece109ec4296cc8d98a1250213b4 pool/main/a/at-spi2-core/at-spi2-common_2.56.2-1+deb13u2_all.deb
@@ -44,6 +44,8 @@ libdb5.3t64 5.3.28+dfsg2-9 debian 18d02510ee78b67e4504ba050176797a200ff24214a7cd
 libdbus-1-3 1.16.2-2 debian bbcb711daff7e104b5f80f9b05475b6142674bfe65518a36a56e96a91068a3f5 pool/main/d/dbus/libdbus-1-3_1.16.2-2_amd64.deb
 libdconf1 0.40.0-5 debian 6e7f670e1cf493ae8f60dea52f5a4aef56605d5b06d921113d7c2a2800ff5af1 pool/main/d/dconf/libdconf1_0.40.0-5_amd64.deb
 libdeflate0 1.23-2 debian 5fe37fb79d53f5c91da6ba3ac4c1a8453e1f2b1ff0e0ea45189c5338bbfdbf82 pool/main/libd/libdeflate/libdeflate0_1.23-2_amd64.deb
+libdrm-common 2.4.124-2 debian 9a8a6c65c165e9964f106fb4ac710959b5d33e0790227e3ab6b27c4742d1254a pool/main/libd/libdrm/libdrm-common_2.4.124-2_all.deb
+libdrm2 2.4.124-2 debian fe2276901c7cd7b8079de63072d37fe1cbeb4eb001a3bc1f1d662ad89aa0890e pool/main/libd/libdrm/libdrm2_2.4.124-2_amd64.deb
 libepoxy0 1.5.10-2 debian 4c4c8024f2175086de65bca9fdc3fbb967f2863ebf249d489c66d0c8103dd3a3 pool/main/libe/libepoxy/libepoxy0_1.5.10-2_amd64.deb
 libevent-2.1-7t64 2.1.13-stable-1~deb13u1 debian-security 9a2a9a6c4ceaafe280f8f39ffa217bb50719c5e79feb75f412755c4036a76ca0 pool/updates/main/libe/libevent/libevent-2.1-7t64_2.1.13-stable-1~deb13u1_amd64.deb
 libexpat1 2.9.0-1~deb13u1 debian-security feff874772cae904ae4d24e917b35664952bec4b4ae9100a4edda5a7fa746832 pool/updates/main/e/expat/libexpat1_2.9.0-1~deb13u1_amd64.deb

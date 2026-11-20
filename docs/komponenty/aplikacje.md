@@ -106,10 +106,9 @@ hasło), „Połącz” (sieć otwarta: napis „Sieć niezabezpieczona…”; z
 Spróbuj jeszcze raz.” pod nim; Esc zamyka wiersz, wyjście z sekcji czyści wpisane hasło. Hasło idzie raz prosto do usługi
 siec (fd 6, `KANAL_DO_SIECI`: `WIFI_HASLO`, `WIFI_WYBRANA`, `WIFI_POLACZ`, `WIFI_ZAPOMNIJ`) — nie przez nadzorcę; stan wraca
 w `WIFI_POLACZENIE`. Log „wifi: rząd i otwarty (rodzaj r); pole x,y; Połącz x,y; Zapomnij x,y”. Karty sieciowe — kafelki
-jak wyżej, karta Wi-Fi z plakietką Włączone/Wyłączone. Przeglądarka (0.10.0 krok 5, `przegladarka.c`; ADR 0020 p. 2, D2; od 0.10.9 krok 2 pod listą sesji cicha linia
-o karcie graficznej — `FILMY_KARTA` od nadzorcy: „Karta graficzna tego komputera rozpakowuje filmy: H.264” / „Ten
-komputer nie rozpakowuje filmów kartą graficzną.” / „Dekoder filmów nie uruchomił się (kod N)…”, `filmy.md`; od kroku 5
-pod nią druga — `POSR_KARTA`: „Karta graficzna tego komputera obsługuje szybką grafikę.” / „Ten komputer nie obsługuje
+jak wyżej, karta Wi-Fi z plakietką Włączone/Wyłączone. Przeglądarka (0.10.0 krok 5, `przegladarka.c`; ADR 0020 p. 2, D2; od 0.10.9 krok 2 do kroku 5 pod listą sesji cicha linia
+o filmach kartą (`FILMY_KARTA` — od kroku 6 tylko w logu: filmy kartą nie w 0.10.9, `filmy.md`); od kroku 5
+pod listą linia — `POSR_KARTA`: „Karta graficzna tego komputera obsługuje szybką grafikę.” / „Ten komputer nie obsługuje
 szybkiej grafiki: karta nie oddziela pracy stref.” / „Ten komputer nie obsługuje szybkiej grafiki.” / „Pośrednik grafiki
 nie uruchomił się (kod N)…”, `posrednik.md`;
 sekcja przed Informacjami — testy klikają sekcje po numerach; od 0.10.1 krok 4 wygląd wg D5 właściciela — szkic A „karta
@@ -120,11 +119,14 @@ karty w Sieci) — kropka w kolorze sesji, nazwa, pod nią jedno zdanie stanu (�
 `k1_strefa_nazwa_dobra`, do 20 bajtów; `STREFA_NAZWA`) i „Wyczyść dane…” (pytanie w okienku przybornika „Wyczyścić dane
 sesji <nazwa>?” — „Wyczyść dane” wysyła `STREFA_WYCZYSC`, „Anuluj”, Esc albo kliknięcie obok zamyka; nieczynne, gdy sesja
 jest otwarta; wynik `STREFA_WYCZYSZCZONO` jako napis pod listą), po prawej przełącznik „Pamięta | Zapomina”
-(`STREFA_TRWALOSC`). Uwagi tylko, gdy dotyczą — jedna spokojna linia nad listą: bez K1-DANE „K1 działa bez dysku danych —
+(`STREFA_TRWALOSC`); od 0.10.9 krok 6 (D5, D9 „A”) w prawym górnym rogu karty przełącznik „Szybka grafika”
+(`STREFY_GRAFIKA` od nadzorcy, `STREFA_GRAFIKA` do niego; od następnego otwarcia sesji; domyślnie włączony tylko w Ogólnej;
+wyciszony, gdy karta komputera nie obsługuje szybkiej grafiki — dlaczego, mówi linia pod listą; w opisie ekranu przycisk
+„Szybka grafika N”, N = numer strefy; w logu przy każdej karcie „grafika 0|1”). Uwagi tylko, gdy dotyczą — jedna spokojna linia nad listą: bez K1-DANE „K1 działa bez dysku danych —
 każda sesja zapomni po zamknięciu.” (przełącznik wyciszony na „Zapomina”, bez „Wyczyść dane…”), bez wirtualizacji
 „Wirtualizacja wyłączona — sesje nie ruszą. Włącz ją w BIOS-ie.”. Jeden układ (`uklad()`) dla rysowania, kliknięć i logu.
-Log „przeglądarka: sesje 3 (dane na dysku 1, wirtualizacja 1): 2 pamięta, karta x,y wxh, przełącznik x,y, Zmień nazwę x,y,
-Wyczyść x,y; …” i „przeglądarka: pytanie o sesję N: Wyczyść dane x,y; Anuluj x,y” — numery stref, nigdy nazwy (tekst
+Log „przeglądarka: sesje 3 (dane na dysku 1, wirtualizacja 1): 2 pamięta, karta x,y wxh, grafika 1; …”
+(od 0.10.9 krok 6 bez położeń przycisków — ma je opis ekranu) i „przeglądarka: pytanie o sesję N: Wyczyść dane x,y; Anuluj x,y” — numery stref, nigdy nazwy (tekst
 użytkownika). Aktualizacje przez sieć (0.10.5 krok 2, `aktualizacje_siec.c`, ADR 0046 — `docs/komponenty/aktualizacja.md`): na dysku z K1 zamiast zdania o pendrivie — „Sprawdzono o 14:05. Masz najnowszą wersję.” (czas polski z `k1_czas_warszawa`; do 0.10.7 `localtime_r` z musl otwierał `/etc/localtime` i klatka kończyła Ustawienia kodem 159 — krok 5) / „Pobieram K1 X… 45 %” / „K1 X jest gotowa do instalacji.” z opisem każdej nowszej wersji (D13) i „Zainstaluj i uruchom ponownie”; „Sprawdź teraz”; „Wróć do poprzedniej wersji (X)” z pytaniem (D7); u dołu przełącznik „Sprawdzaj sam” (D4). Na pendrivie przy nowszej wersji w wydaniu: „Jest nowsza wersja K1 X — nagraj nowy pendrive (README).” (D5). Aktualizacje (0.10.5 krok 1, `aktualizacje.c`; decyzja właściciela D1: szkic A „kafel wersji”, ikona B —
 strzałka w kółku skierowana w dół (uwaga właściciela); sekcja przed Informacjami): u góry kafel z samym numerem wersji, która działa (np. „0.10.5” —
 uwaga właściciela 2026-11-17: bez „Kons K1”), i pod nim „Zweryfikowano” (manifest działającego miejsca podpisany kluczem K1;

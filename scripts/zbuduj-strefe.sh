@@ -11,7 +11,8 @@
 #     obrazków GTK) — programami z tych samych pakietów, przez ich własny ld.so (bez chroot, bez roota);
 #   - bez dokumentacji, podręczników, tłumaczeń poza polskim, raportów awarii Firefoksa;
 #   - nasze programy: /init (gosc), /usr/lib/k1/{kompozytor,przekaznik}, mapa klawiatury, ustawienia przeglądarki
-#     i GTK (bez przycisków okna Firefoksa — okno strefy zamyka i minimalizuje pasek K1).
+#     i GTK (bez przycisków okna Firefoksa — okno strefy zamyka i minimalizuje pasek K1);
+#   - od 0.10.9 krok 6 nasza Mesa (build/mesa — scripts/zbuduj-mese.sh: iris z intel-virtio, EGL, GBM; szybka grafika).
 # Powtarzalnie: stała kolejność i czas plików (SOURCE_DATE_EPOCH), właściciel root.
 . "$(dirname "$0")/wspolne.sh"
 
@@ -20,6 +21,7 @@ PAKIETY=$K1_BUDOWA/strefa-pakiety
 D=$K1_BUDOWA/strefa-przegladarka
 WYNIK=$K1_WYNIK/strefa-przegladarka.img
 for p in kompozytor przekaznik gosc; do [ -x "$K1_BUDOWA/bin/$p" ] || blad "brak $p — najpierw make"; done
+[ -f "$K1_BUDOWA/mesa/gotowe" ] || blad "brak Mesy — najpierw scripts/zbuduj-mese.sh"
 
 info "pakiety strefy przeglądarki ($(grep -vc '^#' "$TABELA") z tabeli)"
 mkdir -p "$PAKIETY"
@@ -82,6 +84,9 @@ printf 'root:x:0:0::/:/nonexistent\nk1:x:1000:1000::/home/k1:/nonexistent\n' > "
 printf 'root:x:0:\nk1:x:1000:\n' > "$D/etc/group"
 chmod 0444 "$D/etc/passwd" "$D/etc/group"
 ln -sfn /run/machine-id "$D/etc/machine-id" # gosc writes a new one for every machine
+# 0.10.9 step 6: our Mesa — the card through the graphics broker in a session with fast graphics (Debian has no Mesa
+# with intel-virtio, and its own pulls in LLVM); without the broker iris finds no card and Firefox draws with the processor
+cp -a "$K1_BUDOWA/mesa/inst/usr/lib/x86_64-linux-gnu/." "$LIB/"
 
 rm -f "$WYNIK" "$WYNIK.skrot" "${WYNIK%.img}.skrot"
 # zstd with 128 KiB blocks (ADR 0050, step 4b, measured 2026-11-19): about 21 % larger than xz with 1 MiB blocks, but a

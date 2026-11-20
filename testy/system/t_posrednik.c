@@ -79,11 +79,16 @@ static void dalej(void)
     dl += h.len;
 }
 
-static int strumien(int *zrobione)
+static int strumien_g(int gosc, int *zrobione)
 {
-    int r = wynik_c(k1_komunikat_nowy(K1_KOM_POSR_PROSBY, 0, (int32_t)dl, 0, 0, 0, 0), -1, zrobione);
+    int r = wynik_c(k1_komunikat_nowy(K1_KOM_POSR_PROSBY, (uint32_t)gosc, (int32_t)dl, 0, 0, 0, 0), -1, zrobione);
     dl = 0;
     return r;
+}
+
+static int strumien(int *zrobione) /* guest context 1 (step 6: each process of the zone with the card has its own) */
+{
+    return strumien_g(1, zrobione);
 }
 
 static uint32_t odp32(uint32_t o) /* the replies' area of the shared memory */
@@ -114,7 +119,7 @@ static void droga(void)
     okno = dobre >= 0 ? mmap(NULL, K1_POSR_OKNO, PROT_READ | PROT_WRITE, MAP_SHARED, dobre, 0) : MAP_FAILED;
     wsp = wspolna >= 0 ? mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_SHARED, wspolna, 0) : MAP_FAILED;
     check(okno != MAP_FAILED && wsp != MAP_FAILED && wynik(k1_komunikat_nowy(K1_KOM_POSR_OKNO, 0, 0, 0, 0, 0, 0), dobre) == 0 &&
-              wynik(k1_komunikat_nowy(K1_KOM_POSR_WSPOLNA, 0, 4096, 0, 0, 0, 0), wspolna) == 0,
+              wynik(k1_komunikat_nowy(K1_KOM_POSR_WSPOLNA, 1, 4096, 0, 0, 0, 0), wspolna) == 0,
           "posrednik: okno i pamięć wspólna mostu przyjęte (memfd z pieczęciami)", "%u + 4096 B", K1_POSR_OKNO);
     close(zle), close(dobre), close(wspolna);
     if (okno == MAP_FAILED || wsp == MAP_FAILED) {
@@ -132,17 +137,20 @@ static void droga(void)
               seqno == seq,
           "posrednik: strumień trzech próśb wykonany, odpowiedzi w pamięci wspólnej (silnik testowy)",
           "zrobione %d, karta 0x%x, kontekst %u, numer %u", n, odp32(12), odp32(28), seqno);
-    check(wynik(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 5, 1, 65536, 0, 0, 0), -1) == 0,
+    check(wynik(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 5, 1, 65536, 0, 1, 0), -1) == 0,
           "posrednik: bufor (blob 1) dostaje numer zasobu 5", "64 KiB");
-    check(wynik(k1_komunikat_nowy(K1_KOM_POSR_BUFOR, 5, 0, 0, 0, 0, 0), -1) == K1_POSR_BLAD_KARTA,
-          "posrednik: bez karty bufora nie da się udostępnić (silnik testowy)", "zasób 5");
+    wyslij(k1_komunikat_nowy(K1_KOM_POSR_BUFOR, 5, 0, 0, 0, 0, 0), -1);
+    r = odbierz(&w, 5000);
+    check(r && w.typ == K1_KOM_POSR_DMABUF && w.obiekt == 5 && k1_kom_u64(w.b, w.c) == 65536,
+          "posrednik: bufor 5 udostępniony klientowi (silnik testowy: „pamięć karty” od nadzorcy)", "typ %d",
+          r ? w.typ : -1);
     exec(5, 4096, 32);
     r = strumien(&n);
     check(r == 0 && n == 1 && odp32(32) == 8 && odp32(36) == 0, "posrednik: paczka pracy z buforem 5 przyjęta",
           "wynik %d, ret %u", r, odp32(36));
-    wyslij(k1_komunikat_nowy(K1_KOM_POSR_PLOT, 1, 77, 0, 0, 0, 0), -1);
+    wyslij(k1_komunikat_nowy(K1_KOM_POSR_PLOT, 1, 77, 0, 1, 0, 0), -1);
     r = odbierz(&w, 5000);
-    check(r && w.typ == K1_KOM_POSR_PLOT_GOTOWY && w.obiekt == 1 && w.a == 77,
+    check(r && w.typ == K1_KOM_POSR_PLOT_GOTOWY && w.obiekt == 1 && w.a == 77 && w.c == 1,
           "posrednik: płot osi 1 zgłoszony jako gotowy", "typ %d", r ? w.typ : -1);
 }
 
@@ -181,14 +189,15 @@ static void wrogie(void)
     r = strumien(&n);
     check(r == 0 && odp32(36) == 22, "NEGATYWNY: paczka z nieznanym zasobem — EINVAL dla gościa", "wynik %d, ret %u", r,
           odp32(36));
-    check(wynik(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 6, 99, 4096, 0, 0, 0), -1) == K1_POSR_BLAD_ZASOB &&
+    check(wynik(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 6, 99, 4096, 0, 1, 0), -1) == K1_POSR_BLAD_ZASOB &&
               wynik(k1_komunikat_nowy(K1_KOM_POSR_ZWOLNIJ, 6, 0, 0, 0, 0, 0), -1) == K1_POSR_BLAD_ZASOB &&
-              wynik(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 7, 1, 4096, 0, 0, 0), -1) == K1_POSR_BLAD_ZASOB,
+              wynik(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 7, 1, 4096, 0, 1, 0), -1) == K1_POSR_BLAD_ZASOB,
           "NEGATYWNY: nieznany blob, nieznany zasób, blob już przypięty — odrzucone", "zasoby 6, 7");
     /* messages out of range: dropped by the checks (no answer), the next one is answered */
-    wyslij(k1_komunikat_nowy(K1_KOM_POSR_PROSBY, 0, 13, 0, 0, 0, 0), -1);
-    wyslij(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 0, 1, 4096, 0, 0, 0), -1);
-    wyslij(k1_komunikat_nowy(K1_KOM_POSR_PLOT, K1_POSR_PIERSCIENIE, 0, 0, 0, 0, 0), -1);
+    wyslij(k1_komunikat_nowy(K1_KOM_POSR_PROSBY, 1, 13, 0, 0, 0, 0), -1);
+    wyslij(k1_komunikat_nowy(K1_KOM_POSR_PROSBY, 0, 24, 0, 0, 0, 0), -1); /* no guest context */
+    wyslij(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 0, 1, 4096, 0, 1, 0), -1);
+    wyslij(k1_komunikat_nowy(K1_KOM_POSR_PLOT, K1_POSR_PIERSCIENIE, 0, 0, 1, 0, 0), -1);
     r = wynik(k1_komunikat_nowy(K1_KOM_POSR_ZWOLNIJ, 5, 0, 0, 0, 0, 0), -1);
     check(r == 0, "NEGATYWNY: komunikaty poza zakresem odrzucone, pośrednik żyje (zasób 5 zwolniony)", "wynik %d", r);
 }
@@ -207,6 +216,31 @@ static void pamiec(void)
           "pierwszy %d, drugi %d", r1, r2);
 }
 
+/* Step 6: a second guest context (another process of the zone) — its own shared memory and blob numbers; its end
+ * takes what it made (its buffer without a resource number: its blob number is free again). */
+static void drugi_gosc(void)
+{
+    int fd = memfd(4096, 1), n = -1, r1, r2, r3, r4;
+    uint8_t *w2 = fd >= 0 ? mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0) : MAP_FAILED;
+    uint32_t v = 0;
+    if (okno == NULL || w2 == MAP_FAILED) {
+        check(0, "posrednik: drugi kontekst gościa", "brak pamięci wspólnej");
+        return;
+    }
+    r1 = wynik(k1_komunikat_nowy(K1_KOM_POSR_WSPOLNA, 2, 4096, 0, 0, 0, 0), fd);
+    memcpy(w2 + 16, &(uint32_t){ 16 }, 4);
+    prosba(K1_POSR_GETPARAM, 24, 0), pole32(16, 4), dalej();
+    prosba(K1_POSR_GEM_CREATE, 32, 0), pole64(16, 4096), pole32(24, 1), dalej(); /* blob 1 — context 1 has one too */
+    r2 = strumien_g(2, &n);
+    memcpy(&v, w2 + 16 + 12, 4);
+    r3 = wynik(k1_komunikat_nowy(K1_KOM_POSR_GOSC_KONIEC, 2, 0, 0, 0, 0, 0), -1);
+    r4 = wynik(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 9, 1, 4096, 0, 2, 0), -1); /* its blob 1 went with it */
+    check(r1 == 0 && r2 == 0 && n == 2 && v == 0x1916 && r3 == 0 && r4 == K1_POSR_BLAD_ZASOB,
+          "posrednik: drugi kontekst gościa — własna pamięć wspólna i numery blobów, koniec zabiera jego bufory",
+          "wspólna %d, strumień %d (%d), karta 0x%x, koniec %d, blob po końcu %d", r1, r2, n, v, r3, r4);
+    munmap(w2, 4096), close(fd);
+}
+
 /* T15, S39: a context that hangs the card ends the broker — fast graphics of the zone ends, K1 lives. */
 static void zawieszenie(void)
 {
@@ -216,10 +250,10 @@ static void zawieszenie(void)
         return;
     prosba(K1_POSR_KONTEKST, 24, 16), dalej();
     (void)strumien(NULL);
-    (void)wynik(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 8, 10, (int32_t)K1_POSR_BUFOR_MAKS, 0, 0, 0), -1); /* pamiec() */
+    (void)wynik(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 8, 10, (int32_t)K1_POSR_BUFOR_MAKS, 0, 1, 0), -1); /* pamiec() */
     exec(8, K1_POSR_TEST_ZAWIESZENIE, 32);
     memcpy(okno + 24, &(uint64_t){ odp32(16 + 12) }, 8); /* the context just made */
-    wyslij(k1_komunikat_nowy(K1_KOM_POSR_PROSBY, 0, (int32_t)dl, 0, 0, 0, 0), -1);
+    wyslij(k1_komunikat_nowy(K1_KOM_POSR_PROSBY, 1, (int32_t)dl, 0, 0, 0, 0), -1);
     dl = 0;
     for (i = 0; i < 100 && find_process("posrednik") > 0; i++)
         msleep(50);
@@ -251,6 +285,7 @@ void t_posrednik(void)
     t_klatka_grupy("posrednik", "posrednik-1", 0, K1_UID_POSREDNIK_PROBNA, fd_posr);
     droga();
     wrogie();
+    drugi_gosc();
     pamiec();
     zawieszenie();
     close(kanal);

@@ -34,7 +34,9 @@ int karta_uruchom(struct usluga *u, int strefa, int test, int karta_fd)
     fds[0] = para[0];
     fds[1] = karta_fd >= 0 ? karta_fd : zero;
     snprintf(u->argument, sizeof u->argument, "%d", strefa);
-    snprintf(u->argument2, sizeof u->argument2, "%s", test ? "t" : "k");
+    /* "k" the card; "t" the test engine for the test program (its client: UID 0); "s" (0.10.9 step 6, the broker only)
+     * the test engine for the test zone's VMM (its client: the zone's UID) */
+    snprintf(u->argument2, sizeof u->argument2, "%s", test == 2 ? "s" : test ? "t" : "k");
     if (setsockopt(para[1], SOL_SOCKET, SO_PASSCRED, &tak, sizeof tak) != 0 ||
         uruchom(u, &profile[u->profil], fds, 2) <= 0) {
         close(para[0]);

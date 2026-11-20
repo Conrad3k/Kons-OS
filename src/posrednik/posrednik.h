@@ -32,18 +32,23 @@ int posr_karta(int *powod, int *pci, int *rewizja, int *wersja);
 /* main.c */
 void wyslij(struct k1_komunikat k, int fd);
 extern struct k1_posr_obiekty obiekty;
-extern volatile uint8_t *wspolna; /* the shared memory of the bridge (NULL: not yet) */
-extern uint32_t wspolna_rozmiar;
+/* The shared memory of each guest context's bridge (step 6: one per process of the zone with the card open); [0] unused,
+ * NULL: not yet. */
+extern volatile uint8_t *wspolna[K1_POSR_GOSCIE + 1];
+extern uint32_t wspolna_rozmiar[K1_POSR_GOSCIE + 1];
 extern int zawieszona;            /* a context of ours hung the card: the broker ends (K1_POSR_KONIEC_ZAWIESZENIE) */
 
-/* prosby.c: the stream of `dl` bytes in the window `okno` — copied, then checked and done request by request. Returns 0
- * or the K1_POSR_BLAD_* of the first request that failed; *zrobione: how many were done before it. */
-int posr_prosby(const volatile uint8_t *okno, uint32_t dl, int32_t *zrobione);
-void posr_ban(uint32_t ctx); /* the card banned context ctx: its bit in the shared memory */
+/* prosby.c: the stream of `dl` bytes in the window `okno` of guest context `gosc` — copied, then checked and done
+ * request by request. Returns 0 or the K1_POSR_BLAD_* of the first request that failed; *zrobione: how many were done. */
+int posr_prosby(const volatile uint8_t *okno, uint32_t dl, uint32_t gosc, int32_t *zrobione);
+void posr_ban(uint32_t ctx); /* the card banned context ctx: its bit in its guest context's shared memory */
+/* Guest context `gosc` ended: the card's contexts and address spaces it made are destroyed, its unnamed buffers closed. */
+void posr_gosc_koniec(uint32_t gosc);
 
-/* plot.c: the fences. */
-void plot_nowy(uint32_t pierscien, int fd, uint32_t ctx); /* a batch's out-fence (fd: ours from now on) */
-int plot_czekaj(uint32_t pierscien, uint64_t nr);         /* POSR_PLOT: 0 or K1_POSR_BLAD_LIMIT */
+/* plot.c: the fences (each guest context has its own timelines). */
+void plot_nowy(uint32_t gosc, uint32_t pierscien, int fd, uint32_t ctx); /* a batch's out-fence (fd: ours from now on) */
+int plot_czekaj(uint32_t gosc, uint32_t pierscien, uint64_t nr);         /* POSR_PLOT: 0 or K1_POSR_BLAD_LIMIT */
+void plot_gosc_koniec(uint32_t gosc);                                    /* its last fences go (waiting ones answered) */
 int plot_deskryptory(struct pollfd *p, int maks);         /* the waiting fences for poll() */
 void plot_gotowe(const struct pollfd *p, int n);          /* after poll(): the done ones answered */
 

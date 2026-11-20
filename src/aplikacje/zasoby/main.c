@@ -238,7 +238,7 @@ static void odbierz(void)
             break;
         if (w == K1_ODB_KONIEC)
             k1_koniec(TAG, "nadzorca zamknął kanał");
-        if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFY_STAN)
+        if (w == K1_ODB_JEST && (k.typ == K1_KOM_STREFY_STAN || k.typ == K1_KOM_STREFY_GRAFIKA))
             continue; /* after the names: nothing Zasoby shows */
         if (w != K1_ODB_JEST ||
             (k.typ != K1_KOM_ZASOBY_SYSTEM && k.typ != K1_KOM_ZASOBY_USLUGA && k.typ != K1_KOM_ZASOBY_BATERIA &&

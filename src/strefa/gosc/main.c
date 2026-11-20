@@ -216,6 +216,10 @@ static void tryb_jednorazowy(int t)
         loguj("tryb %d: VMM nie zatrzymał maszyny", t);
         wylacz();
     }
+    if (t == TRYB_GRAFIKA || t == TRYB_GRAFIKA_ZLA) { /* 0.10.9 step 6: fast graphics, then the end */
+        grafika(t == TRYB_GRAFIKA_ZLA);
+        wylacz();
+    }
     if (t == TRYB_PAMIEC) { /* 0.10.1 step 2: the balloon's scenario, then the end */
         pamiec_proba();
         wylacz();

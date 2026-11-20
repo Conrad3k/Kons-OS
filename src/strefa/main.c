@@ -8,7 +8,9 @@
  *   k1-ogloszenie.bin" (lacznik_cel_dobry), and fd 3 is not a channel to ekran,
  *   fd 3 = the channel to ekran (role STREFA), fd 4 = /dev/kvm, fd 5 = the zone kernel, fd 6 = the zone image,
  *   fd 7 = the channel to nadzorca for the browser's connections (polaczenia.c; 0.10.0 step 2, ADR 0043 T9),
- *   fd 8, 9 = a zone that remembers: a channel to skarbiec and its empty disk (dane.c; 0.10.0 step 5) — or neither.
+ *   fd 8, 9 = a zone that remembers: a channel to skarbiec and its empty disk (dane.c; 0.10.0 step 5) — or neither,
+ *   fd 10 = a session with fast graphics on (0.10.9 step 6): the channel to its graphics broker (gpu_lacze.c) — or none
+ *   (fd 8, 9 then hold /dev/null when the zone forgets).
  * Trust boundary: the guest is hostile (strefa.h); ekran and nadzorca are trusted. The machine ends when the guest
  * ends, when it does something only a hostile guest does (the reason in the log), or ZAMKNIJ_S after "close" (K1_KOM_ZAMKNIJ
  * from ekran, or STREFA_ZAMKNIJ from nadzorca when K1 powers off) when the guest has not ended by itself. Since 0.10.2
@@ -96,8 +98,9 @@ static int przygotuj(void)
     /* highres=off only in QEMU's emulation (the tests without KVM; 0.10.5 step 7): the zone's Linux 7.x rearms its
      * timer late (HRTIMER_REARM_DEFERRED, with high resolution timers), and under emulated SVM an idle guest then saw a
      * single key a minute or more later; with KVM on a real processor (and in CI) the zone keeps them */
-    snprintf(linia + p, sizeof linia - p, " " LINIA_GOSCIA "%s k1.tryb=%d%s%s%s", emulacja_qemu() ? " highres=off" : "",
+    snprintf(linia + p, sizeof linia - p, " " LINIA_GOSCIA "%s k1.tryb=%d%s%s%s%s", emulacja_qemu() ? " highres=off" : "",
              mz.tryb, zlosliwy_gosc() ? " memmap=1M$0x3f00000" : "", /* the hostile test guest's queue (gosc/zlosliwy.c) */
+             gpu_lacze_jest() ? " k1.grafika=1" : "", /* 0.10.9 step 6: the guest's browser draws with the card */
              mz.pobierz[0] ? " k1.pobierz=" : "", mz.pobierz); /* 0.10.5 step 2: the download zone (gosc/pobieranie.c) */
     jadro = wczytaj_jadro(&dl);
     if (jadro == NULL) {
@@ -218,6 +221,9 @@ int main(int argc, char **argv)
         k1_koniec(TAG, "strefa pobierania bez poprawnego celu");
     if (!mz.opis->okno)
         snprintf(mz.pobierz, sizeof mz.pobierz, "%s", argv[4]);
+    /* 0.10.9 step 6: fast graphics first — fd 10 is the broker's only while the VMM has opened nothing itself */
+    if (gpu_lacze_start() != 0)
+        k1_koniec(TAG, "nie można przygotować maszyny");
     mz.budzik = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
     if (mz.budzik < 0 || przygotuj() != 0 || dane_start() != 0)
         k1_koniec(TAG, "nie można przygotować maszyny");
@@ -230,6 +236,7 @@ int main(int argc, char **argv)
            mz.pamiec_mib, mz.n_cpu, URZ_LICZBA, k1_teraz() - od);
     petla();
     dane_koniec();
+    gpu_lacze_koniec();
     pol_podsumowanie();
     wejscie_podsumowanie();
     vsock_podsumowanie();

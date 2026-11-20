@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | ZAIMPLEMENTOWANE (0.10.9 krok 5: usługa, format próśb mostu, pytanie przy starcie, linia w Ustawieniach); PRZETESTOWANE na hoście (`test_posrednik`, `fuzz_posrednik`) i w systemie w QEMU (`t_posrednik`: silnik testowy, prośby i odpowiedzi, złośliwe prośby, pamięć, zawieszenie). Praca na prawdziwej karcie Intela — PLANOWANE do sprawdzenia przez właściciela na sprzęcie (QEMU nie udaje karty Intela). Strona strefy (VMM: kontekst virtio-gpu, zasoby blob, mapowanie buforów; Mesa w strefie; przełącznik) — krok 6 |
+| **Status** | ZAIMPLEMENTOWANE (0.10.9 krok 5: usługa, format próśb mostu, pytanie przy starcie, linia w Ustawieniach; krok 6: konteksty gościa, pośrednik strefy uruchamiany z jej VMM-em przy włączonym przełączniku, strona strefy — `docs/komponenty/strefa.md`, „Szybka grafika”); PRZETESTOWANE na hoście (`test_posrednik`, `fuzz_posrednik`, `test_gpu_most`, `fuzz_gpu_most`), w systemie w QEMU (`t_posrednik`: silnik testowy, prośby i odpowiedzi, złośliwe prośby, drugi kontekst gościa, pamięć, zawieszenie) i z wnętrza strefy próbnej (`test-strefa.sh`, tryby 16 i 17). Praca na prawdziwej karcie Intela (Firefox rysuje kartą) — do sprawdzenia przez właściciela na IdeaPadzie (QEMU nie udaje karty Intela) |
 | **Pliki** | `src/posrednik/main.c` (kanał, okno, pamięć wspólna, udostępnianie i zwalnianie buforów), `prosby.c` (prośby mostu: kopia, sprawdzenie, wykonanie, odpowiedzi), `plot.c` (płoty: kiedy karta skończyła paczkę pracy, zawieszenie), `karta.c` (karta przez węzeł render; co umie karta), `testowy.c` (silnik testowy: karty nie ma), `posrednik.h`; `src/wspolne/k1_posrednik.{h,c}` (format próśb, tabele `K1_POSR_PROSBY` i `K1_POSR_IOCTLE`, sprawdzanie pole po polu, tabela buforów), `k1_kom_posrednik.c` (komunikaty); `src/nadzorca/posrednik.c` (pytanie przy starcie, pośrednik strefy), `karta.c` (węzeł render — wspólne z dekoderem filmów), `profile.c` (`KLATKA_POSREDNIK`); Ustawienia `przegladarka.c` (linia o szybkiej grafice) |
 | **Decyzje** | ADR 0049 (pkt 2, 7; plan 0.10.9 T10–T15, S36–S41, S44) |
 
@@ -102,32 +102,45 @@ pulpitu (sekundę po dekoderze filmów) nadzorca uruchamia pośrednika `POSREDNI
 i kończy. Nadzorca podaje wynik Ustawieniom (`POSR_KARTA`); pośrednik zakończony bez odpowiedzi → stan „błąd” z kodem.
 
 **Pośrednik strefy** (`posrednik_dla_strefy`): nadzorca uruchamia go dla strefy *nr* (karta: tylko gdy pytanie dało
-„umie”), klient dostaje drugi koniec kanału. Krok 6: razem z VMM-em strefy przy włączonym przełączniku, koniec z VMM-em
-(`posrednik_strefa_koniec`). Krok 5: prosi o niego tylko program testowy (`TEST_POSREDNIK`). Pośrednik kończy się, gdy
-klient zamknie kanał (bufory wracają do karty z zamknięciem węzła render).
+„umie”), klient dostaje drugi koniec kanału. Od kroku 6 razem z VMM-em strefy, gdy jej sesja ma włączony przełącznik
+„Szybka grafika” (VMM: fd 10), koniec z VMM-em (`posrednik_strefa_koniec`); prosi o niego też program testowy
+(`TEST_POSREDNIK`; strefa próbna w trybach 16 i 17 — silnik testowy). Pośrednik kończy się, gdy klient zamknie kanał
+(bufory wracają do karty z zamknięciem węzła render).
+
+**Konteksty gościa** (krok 6): każdy proces strefy, który otworzy kartę (Firefox: test GL przy starcie, proces GPU; Mesa:
+jeden kontekst virtio-gpu na otwarcie), to po stronie gościa osobny kontekst — VMM numeruje je 1…`K1_POSR_GOSCIE` (8).
+Każdy ma swoją pamięć wspólną mostu (`POSR_WSPOLNA` obiekt = kontekst gościa), swoje numery blobów (każdy proces liczy od 1),
+swoje osie płotów; strumień próśb mówi, którego jest (`POSR_PROSBY` obiekt). Konteksty i przestrzenie adresów karty
+pamiętają, który kontekst gościa je utworzył; `POSR_GOSC_KONIEC` (proces zamknął kartę) niszczy je, zamyka jego bufory
+bez numeru zasobu i jego płoty (czekające — od razu „gotowe”), odmapowuje jego pamięć wspólną. Zasoby są strefy (numeruje
+je jądro gościa dla całego urządzenia) — zostają do `POSR_ZWOLNIJ`.
 
 1. Pośrednik → klient: `POSR_UMIE` (czy karta oddziela strefy; numer karty i wersja sterownika — VMM poda je gościowi
    w zbiorze możliwości DRM virtio-gpu, krok 6). Karta, która nie oddziela — pośrednik kończy się zaraz po nim.
-2. Klient → pośrednik: `POSR_OKNO` + memfd dokładnie `K1_POSR_OKNO` (1 MiB) i `POSR_WSPOLNA` + memfd pamięci wspólnej
-   mostu (blob 0 gościa, 4 KiB…1 MiB) — oba z pieczęciami „bez zmniejszania i powiększania”.
-3. `POSR_PROSBY` (długość strumienia w oknie) → `POSR_WYNIK` (c = ile zrobiono); odpowiedzi w pamięci wspólnej.
-4. `POSR_BLOB`, `POSR_BUFOR` (→ `POSR_DMABUF` + dma-buf), `POSR_ZWOLNIJ`, `POSR_PLOT` (→ `POSR_PLOT_GOTOWY`).
+2. Klient → pośrednik: `POSR_OKNO` + memfd dokładnie `K1_POSR_OKNO` (1 MiB) i dla każdego kontekstu gościa
+   `POSR_WSPOLNA` + memfd pamięci wspólnej mostu (jego blob 0, 4 KiB…1 MiB) — wszystkie z pieczęciami „bez zmniejszania
+   i powiększania”.
+3. `POSR_PROSBY` (kontekst gościa, długość strumienia w oknie) → `POSR_WYNIK` (c = ile zrobiono); odpowiedzi w pamięci
+   wspólnej tego kontekstu.
+4. `POSR_BLOB`, `POSR_BUFOR` (→ `POSR_DMABUF` + dma-buf), `POSR_ZWOLNIJ`, `POSR_PLOT` (→ `POSR_PLOT_GOTOWY`),
+   `POSR_GOSC_KONIEC`.
 Komunikat, który nie przejdzie sprawdzenia, jest odrzucany bez odpowiedzi (liczony w logu, najwyżej linia na 100).
 
 ## Komunikaty
 | Typ | Kierunek | Pola |
 |---|---|---|
 | `POSR_OKNO` | klient → posrednik | wszystko 0; + memfd okna |
-| `POSR_WSPOLNA` | klient → posrednik | a = rozmiar 4096…1 MiB (wielokrotność 4096); + memfd pamięci wspólnej |
-| `POSR_PROSBY` | klient → posrednik | a = długość strumienia 16 B…1 MiB (wielokrotność 4) |
-| `POSR_BLOB` | klient → posrednik | obiekt = zasób 1…16383, a = blob ≥ 1, b, c = rozmiar 1 B…512 MiB |
+| `POSR_WSPOLNA` | klient → posrednik | obiekt = kontekst gościa 1…8 (krok 6), a = rozmiar 4096…1 MiB (wielokrotność 4096); + memfd pamięci wspólnej |
+| `POSR_PROSBY` | klient → posrednik | obiekt = kontekst gościa, a = długość strumienia 16 B…1 MiB (wielokrotność 4) |
+| `POSR_BLOB` | klient → posrednik | obiekt = zasób 1…16383, a = blob ≥ 1 (numer kontekstu gościa d), b, c = rozmiar 1 B…512 MiB, d = kontekst gościa |
 | `POSR_BUFOR` | klient → posrednik | obiekt = zasób |
 | `POSR_ZWOLNIJ` | klient → posrednik | obiekt = zasób |
-| `POSR_PLOT` | klient → posrednik | obiekt = oś 0…64, a, b = numer płotu |
+| `POSR_PLOT` | klient → posrednik | obiekt = oś 0…64, a, b = numer płotu, c = kontekst gościa (jego osie) |
+| `POSR_GOSC_KONIEC` | klient → posrednik | obiekt = kontekst gościa, reszta 0 — proces strefy zamknął kartę (odpowiedź `POSR_WYNIK`) |
 | `POSR_UMIE` | posrednik → klient | a = `K1_POSR_KARTA_BRAK`/`NIE`/`UMIE`, b = powód (`K1_POSR_NIE_*`, tylko NIE), c = numer karty PCI, d = rewizja, e = wersja sterownika (c–e tylko UMIE) |
 | `POSR_WYNIK` | posrednik → klient | obiekt = zasób albo 0, a = typ prośby, b = 0 albo `K1_POSR_BLAD_*`, c = ile próśb zrobiono (`POSR_PROSBY`) |
 | `POSR_DMABUF` | posrednik → klient | obiekt = zasób, a = `K1_POSR_MAPA_*`, b, c = rozmiar; + dma-buf |
-| `POSR_PLOT_GOTOWY` | posrednik → klient | obiekt = oś, a, b = numer płotu |
+| `POSR_PLOT_GOTOWY` | posrednik → klient | obiekt = oś, a, b = numer płotu, c = kontekst gościa |
 | `POSR_KARTA` | nadzorca → Ustawienia (fd 4) | a = `K1_POSR_KARTA_*` (też `SPRAWDZA`, `BLAD`), b = kod (NIE: powód; BLAD: kod wyjścia albo 128 + sygnał) |
 | `TEST_POSREDNIK` | program testowy → nadzorca | a = strefa, b = 0 karta / 1 silnik testowy → `TEST_GNIAZDO` + kanał klienta |
 
@@ -140,11 +153,12 @@ jeszcze nie ma (krok 6).
 
 ## Silnik testowy (S44)
 QEMU nie udaje karty Intela, więc drogę pośrednika (okno, pamięć wspólna, sprawdzanie, odpowiedzi, pamięć, koniec po
-zawieszeniu) testuje `testowy.c`: odpowiada jak karta Skylake, która oddziela strefy; bufor to tylko numer (bez pamięci
-i dma-bufa — `POSR_BUFOR` kończy się `K1_POSR_BLAD_KARTA`), paczka nie daje płotu, a paczka o długości
-`K1_POSR_TEST_ZAWIESZENIE` „zawiesza kartę” (`EIO`). Wybiera go nadzorca tylko na prośbę programu testowego
-(`TEST_POSREDNIK` b = 1 — kanał testowy jest tylko w obrazie testowym), nigdy dla VMM-a: niczego nie rysuje, więc i tak
-nie zastąpiłby karty.
+zawieszeniu) testuje `testowy.c`: odpowiada jak karta Skylake, która oddziela strefy; bufor to tylko numer, a „pamięć
+karty” to jeden rzadki memfd od nadzorcy (512 MiB, na fd 4 zamiast węzła render) — `POSR_BUFOR` daje go jako każdy bufor
+(krok 6: VMM strefy próbnej mapuje go jak dma-buf, gość pisze i czyta „swój bufor”); paczka nie daje płotu, a paczka
+o długości `K1_POSR_TEST_ZAWIESZENIE` „zawiesza kartę” (`EIO`). Wybiera go nadzorca tylko na prośbę programu testowego
+(`TEST_POSREDNIK` b = 1, strefa próbna w trybach 16 i 17 — kanał testowy i strefa próbna są tylko w obrazie testowym),
+nigdy dla sesji przeglądarki: niczego nie rysuje, więc i tak nie zastąpiłby karty.
 
 ## Testy
 | Test | Rodzaj |

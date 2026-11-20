@@ -7,9 +7,11 @@
  * Look (0.10.1 step 4, the owner's D5: sketch A): a card per session, like the cards of Sieć. uklad() is the only
  * place that says where things are — drawing, clicks and the log line all take it from there (S17: before, a card's
  * description ran into the next session and Zapisz/Anuluj were moved in two places).
- * 0.10.9 step 2 (ADR 0049): one line under the list — what the graphics card of this computer decodes (FILMY_KARTA from
- * nadzorca: its question to the film decoder at boot). No switch yet (step 3). Step 5: a second line — whether the card
- * serves fast graphics (POSR_KARTA: nadzorca's question to the graphics broker). No switch yet (step 6).
+ * 0.10.9 step 2 (ADR 0049): one line under the list said what the graphics card decodes (FILMY_KARTA) — gone again with
+ * films with the card (the owner's decision 2026-11-20: not in 0.10.9, „może” later; FILMY_KARTA only logged). Step 5:
+ * a line — whether the card serves fast graphics (POSR_KARTA: nadzorca's question to the graphics broker). Step 6 (the owner's D5, D9 „A”): on
+ * each card a switch „Szybka grafika” (the owner: films with the card come in a later version; STREFY_GRAFIKA in, STREFA_GRAFIKA out; from the session's next start) —
+ * muted where the card cannot (the line under the list says why).
  * The names are the user's text: never in the log. Part of Ustawienia (ustawienia.h). */
 #include <linux/input-event-codes.h>
 #include <stdio.h>
@@ -29,10 +31,13 @@
 #define SEG_PH 28
 #define PRZ_H 26
 #define POLE_W 210
+#define PRZEL_W 36 /* the switch of fast graphics (k1_przelacznik) */
+#define PRZEL_H 20
+#define GRAFIKA_NAPIS "Szybka grafika"
 
 static struct {
     int znane;
-    int32_t pamietaja, wirtualizacja, dysk, dzialaja;
+    int32_t pamietaja, wirtualizacja, dysk, dzialaja, grafika; /* grafika: STREFY_GRAFIKA a */
     char nazwy[K1_STREFY_MAKS + 1][K1_STREFA_NAZWA_MAKS + 1];
 } pr;
 static int edytowana, pytana; /* the session being renamed; the one "Wyczyść dane…" asks about */
@@ -59,6 +64,8 @@ void przegladarka_odbierz(const struct k1_komunikat *k)
         const int32_t p[5] = { k->a, k->b, k->c, k->d, k->e }; /* checked: k1_strefa_nazwa_dobra */
         memcpy(pr.nazwy[k->obiekt], p, K1_STREFA_NAZWA_MAKS);
         pr.nazwy[k->obiekt][K1_STREFA_NAZWA_MAKS] = '\0';
+    } else if (k->typ == K1_KOM_STREFY_GRAFIKA) {
+        pr.grafika = k->a;
     } else if (k->typ == K1_KOM_FILMY_KARTA) {
         filmy = *k;
     } else if (k->typ == K1_KOM_POSR_KARTA) {
@@ -92,6 +99,16 @@ static int dziala(int nr)
     return (pr.dzialaja >> (nr - 1)) & 1;
 }
 
+static int z_grafika(int nr)
+{
+    return (pr.grafika >> (nr - 1)) & 1;
+}
+
+static int karta_umie(void) /* the switch works only where the card serves fast graphics (POSR_KARTA) */
+{
+    return grafika.typ != 0 && grafika.a == K1_POSR_KARTA_UMIE;
+}
+
 /* The quiet lines above the list (only when they apply). */
 static int uwagi(const char **t)
 {
@@ -104,7 +121,7 @@ static int uwagi(const char **t)
 }
 
 /* Where everything of card i is (P_*): the only layout of the section. */
-enum { P_KARTA, P_SEGMENT, P_NAZWA, P_WYCZYSC, P_POLE, P_ZAPISZ, P_ANULUJ, P_LICZBA };
+enum { P_KARTA, P_SEGMENT, P_NAZWA, P_WYCZYSC, P_POLE, P_ZAPISZ, P_ANULUJ, P_GRAFIKA, P_LICZBA };
 static void uklad(int i, struct k1_przycisk p[P_LICZBA])
 {
     const char *t[2];
@@ -116,6 +133,8 @@ static void uklad(int i, struct k1_przycisk p[P_LICZBA])
     p[P_POLE] = (struct k1_przycisk){ TRESC_X + 32, y + 8, POLE_W, 30, NULL, K1_PRZ_ZWYKLY };
     p[P_ZAPISZ] = (struct k1_przycisk){ TRESC_X + 32, d, 90, PRZ_H, "Zapisz", K1_PRZ_GLOWNY };
     p[P_ANULUJ] = (struct k1_przycisk){ TRESC_X + 128, d, 90, PRZ_H, "Anuluj", K1_PRZ_ZWYKLY };
+    /* 0.10.9 step 6: the switch in the card's upper right corner, its label to the left (the click takes both) */
+    p[P_GRAFIKA] = (struct k1_przycisk){ TRESC_X + w - 16 - PRZEL_W, y + 14, PRZEL_W, PRZEL_H, NULL, K1_PRZ_ZWYKLY };
 }
 
 /* The y of the line under the list (the result of "Wyczyść dane"). */
@@ -152,31 +171,26 @@ static void karta(struct k1_obraz *o, const struct k1_motyw *m, int i, int nr)
         k1_przycisk(o, m, &p[P_ZAPISZ], K1_CZ_MALA_MOCNA, 0, dl_nowej > 0);
         k1_przycisk(o, m, &p[P_ANULUJ], K1_CZ_MALA, 0, 1);
     } else {
-        k1_tekst(o, K1_CZ_TEKST_MOCNA, k->x + 38, k->y + 28, pr.nazwy[nr], k1_kolor(m->tekst, 255), k->w - 60);
+        k1_tekst(o, K1_CZ_TEKST_MOCNA, k->x + 38, k->y + 28, pr.nazwy[nr], k1_kolor(m->tekst, 255), k->w - 260);
         k1_tekst(o, K1_CZ_MALA, k->x + 38, k->y + 47, stan(nr), k1_kolor(m->tekst2, 255), k->w - 60);
         k1_przycisk(o, m, &p[P_NAZWA], K1_CZ_MALA, najechany_p == i * P_LICZBA + P_NAZWA, 1);
         if (pr.dysk) /* without K1-DANE a session keeps nothing to clear */
             k1_przycisk(o, m, &p[P_WYCZYSC], K1_CZ_MALA, najechany_p == i * P_LICZBA + P_WYCZYSC, !dziala(nr));
     }
+    {
+        const struct k1_przycisk *g = &p[P_GRAFIKA];
+        int32_t tw = k1_tekst_szer(K1_CZ_MALA, GRAFIKA_NAPIS);
+        char el[40];
+        k1_tekst(o, K1_CZ_MALA, g->x - 10 - tw, g->y + 15, GRAFIKA_NAPIS,
+                 k1_kolor(karta_umie() ? m->tekst2 : m->tekst3, 255), 0);
+        k1_przelacznik(o, m, g->x, g->y, karta_umie() && z_grafika(nr), !karta_umie());
+        snprintf(el, sizeof el, "Szybka grafika %d", nr); /* the zone's number: never the session's name */
+        k1_el(K1_EL_PRZYCISK, el, g->x - 10 - tw, g->y, tw + 10 + g->w, g->h,
+              (karta_umie() && z_grafika(nr) ? K1_EL_WYBRANY : 0) | (karta_umie() ? 0 : K1_EL_NIEDOSTEPNY));
+    }
     k1_segment(o, m, s->x, s->y, s->w, s->h, etykiety, 2, pr.dysk && pamieta(nr) ? 0 : 1, -1);
     if (!pr.dysk) /* muted: nothing to choose */
         k1_zaokraglony(o, (float)s->x, (float)s->y, (float)s->w, (float)s->h, 8, k1_kolor(m->pole, 130));
-}
-
-/* The line about the card (0.10.9 step 2): what it decodes, or that it does not (and the code when something failed). */
-static void linia_filmow(char *t, size_t n)
-{
-    char nazwy[64];
-    if (filmy.typ == 0 || filmy.b == K1_FILMY_KARTA_SPRAWDZA)
-        snprintf(t, n, "Sprawdzam, co potrafi karta graficzna…");
-    else if (filmy.b == K1_FILMY_KARTA_UMIE && k1_filmy_nazwy(filmy.a, nazwy, sizeof nazwy) > 0)
-        snprintf(t, n, "Karta graficzna tego komputera rozpakowuje filmy: %s", nazwy);
-    else if (filmy.b == K1_FILMY_KARTA_BLAD)
-        snprintf(t, n, "Dekoder filmów nie uruchomił się (kod %d). Filmy rozpakowuje procesor.", (int)filmy.c);
-    else if (filmy.b == K1_FILMY_KARTA_NIC && filmy.c != 0)
-        snprintf(t, n, "Ten komputer nie rozpakowuje filmów kartą graficzną (kod %d).", (int)filmy.c);
-    else
-        snprintf(t, n, "Ten komputer nie rozpakowuje filmów kartą graficzną.");
 }
 
 /* The line about fast graphics (0.10.9 step 5): whether the card can keep the zones' work apart (ADR 0049 pkt 7). */
@@ -226,18 +240,15 @@ void przegladarka_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     if (n == 0)
         k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, pr.znane ? "Ta wersja K1 nie ma przeglądarki." : "Czekam na K1…",
                  k1_kolor(m->tekst2, 255), 0);
-    if (n > 0) { /* 0.10.9 step 2: what the card decodes, step 5: fast graphics — quiet lines like those above the list */
-        char f[2][120];
-        linia_filmow(f[0], sizeof f[0]);
-        linia_grafiki(f[1], sizeof f[1]);
-        for (int i = 0; i < 2; i++) {
-            k1_ikona(o, K1_IK_INFO, TRESC_X, (float)(pod_lista(n) - 1 + i * UWAGA_H), 16, k1_kolor(m->tekst3, 255));
-            k1_tekst(o, K1_CZ_MALA, TRESC_X + 22, pod_lista(n) + 12 + i * UWAGA_H, f[i], k1_kolor(m->tekst2, 255),
-                     apl.szer - TRESC_X - 46);
-        }
+    if (n > 0) { /* 0.10.9 step 5: fast graphics — a quiet line like those above the list (the line about films of step 2
+                  * is gone with films with the card: the owner's decision 2026-11-20, „może” later; FILMY_KARTA is logged) */
+        char f[120];
+        linia_grafiki(f, sizeof f);
+        k1_ikona(o, K1_IK_INFO, TRESC_X, (float)(pod_lista(n) - 1), 16, k1_kolor(m->tekst3, 255));
+        k1_tekst(o, K1_CZ_MALA, TRESC_X + 22, pod_lista(n) + 12, f, k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 46);
     }
     if (wiadomosc[0])
-        k1_tekst(o, K1_CZ_MALA_MOCNA, TRESC_X, pod_lista(n) + 12 + (n > 0 ? 2 * UWAGA_H + 4 : 0), wiadomosc,
+        k1_tekst(o, K1_CZ_MALA_MOCNA, TRESC_X, pod_lista(n) + 12 + (n > 0 ? UWAGA_H + 4 : 0), wiadomosc,
                  k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 24);
     if (pytana) {
         struct k1_menu q;
@@ -316,6 +327,14 @@ static int klik_karty(int i, int z, int32_t x, int32_t y)
         wiadomosc[0] = '\0';
         k1_apl_odswiez(&apl);
         loguj_pytanie();
+        return 1;
+    }
+    if (karta_umie() && x >= p[P_GRAFIKA].x - 10 - k1_tekst_szer(K1_CZ_MALA, GRAFIKA_NAPIS) &&
+        x < p[P_GRAFIKA].x + p[P_GRAFIKA].w && y >= p[P_GRAFIKA].y && y < p[P_GRAFIKA].y + p[P_GRAFIKA].h) {
+        int g = !z_grafika(z);
+        k1_log(TAG, "przeglądarka: sesja %d — szybka grafika %s", z, g ? "włączona" : "wyłączona");
+        do_nadzorcy(k1_komunikat_nowy(K1_KOM_STREFA_GRAFIKA, (uint32_t)z, g, 0, 0, 0, 0));
+        pr.grafika = g ? pr.grafika | 1 << (z - 1) : pr.grafika & ~(1 << (z - 1)); /* at once; nadzorca sends it back */
         return 1;
     }
     if ((s = k1_segment_trafienie(p[P_SEGMENT].x, p[P_SEGMENT].y, SEG_PW, SEG_PH, 2, x, y)) >= 0 && pr.dysk) {
@@ -404,14 +423,13 @@ void przegladarka_loguj(void)
     int nr[K1_STREFY_MAKS], n = sesje(nr);
     char buf[400];
     size_t d = 0;
-    for (int i = 0; i < n && d < sizeof buf - 96; i++) {
+    for (int i = 0; i < n && d < sizeof buf - 80; i++) {
         struct k1_przycisk p[P_LICZBA];
         uklad(i, p);
         d += (size_t)snprintf(buf + d, sizeof buf - d,
-                              "%s%d %s, karta %d,%d %dx%d, przełącznik %d,%d, Zmień nazwę %d,%d, Wyczyść %d,%d", i ? "; " : "",
-                              nr[i], pamieta(nr[i]) ? "pamięta" : "zapomina", p[P_KARTA].x, p[P_KARTA].y, p[P_KARTA].w,
-                              p[P_KARTA].h, p[P_SEGMENT].x, p[P_SEGMENT].y, p[P_NAZWA].x + p[P_NAZWA].w / 2,
-                              p[P_NAZWA].y + PRZ_H / 2, p[P_WYCZYSC].x + p[P_WYCZYSC].w / 2, p[P_WYCZYSC].y + PRZ_H / 2);
+                              "%s%d %s, karta %d,%d %dx%d, grafika %d", i ? "; " : "", nr[i],
+                              pamieta(nr[i]) ? "pamięta" : "zapomina", p[P_KARTA].x, p[P_KARTA].y, p[P_KARTA].w,
+                              p[P_KARTA].h, z_grafika(nr[i])); /* the buttons: the screen's description (0.10.2) */
     }
     k1_log(TAG,
            "przeglądarka: sesje %d (dane na dysku %d, wirtualizacja %d, karta a filmy: stan %d, kodeki 0x%x, kod %d, "

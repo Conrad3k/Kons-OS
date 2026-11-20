@@ -482,13 +482,24 @@ def ust_przegladarka(ux, uy, ciemny_):
     w, h, px = zrzut(f"5c-przegladarka-{'ciemny' if ciemny_ else 'jasny'}", gdy=lambda w, h, px: dobre(px))
     sprawdz(f"Ustawienia → Przeglądarka ({'ciemny' if ciemny_ else 'jasny'} motyw): trzy karty sesji, opis nie wchodzi "
             "na następną (zrzut)", dobre(px), l_.group(0)[:300] if l_ else "brak linii")
-    # 0.10.9 step 2 (ADR 0049): QEMU has no Intel card — the line under the list says the computer does not decode films
-    # with its graphics card (state 1 = K1_FILMY_KARTA_BRAK; nadzorca knows it at once, without a decoder)
-    sprawdz("Ustawienia → Przeglądarka: bez karty Intela linia „nie rozpakowuje filmów kartą graficzną”",
+    # 0.10.9 step 2 (ADR 0049): QEMU has no Intel card — Ustawienia hear that the computer does not decode films with its
+    # card (state 1 = K1_FILMY_KARTA_BRAK; nadzorca knows it at once, without a decoder). The line about it is not drawn
+    # since step 6 (films with the card not in 0.10.9 — the owner's decision): only the log says it
+    sprawdz("Ustawienia → Przeglądarka: bez karty Intela stan „nie rozpakowuje filmów kartą graficzną” (w logu)",
             l_ is not None and "karta a filmy: stan 1," in l_.group(0), l_.group(0)[:200] if l_ else "brak linii")
     # 0.10.9 step 5 (ADR 0049 pkt 7): …and the second line, no fast graphics (state 1 = K1_POSR_KARTA_BRAK)
     sprawdz("Ustawienia → Przeglądarka: bez karty Intela linia „nie obsługuje szybkiej grafiki”",
             l_ is not None and "szybka grafika: stan 1," in l_.group(0), l_.group(0)[:240] if l_ else "brak linii")
+    # 0.10.9 step 6 (D5, D9 „A”): the switch „Szybka grafika” on each card — Ogólna (zone 2) on by default, Bank
+    # (3) and Prywatna (4) off; muted here (no Intel card), so a click changes nothing
+    g_ = dict(re.findall(r"(\d) \w+, karta [^;]*?grafika (\d)", l_.group(2))) if l_ else {}
+    sprawdz("Ustawienia → Przeglądarka: przełącznik „Szybka grafika” przy każdej sesji — domyślnie tylko Ogólna; "
+            "bez karty wyciszony", g_ == {"2": "1", "3": "0", "4": "0"} and
+            q.czekaj_na_element("Ustawienia", "Szybka grafika 3", czas=10), str(g_))
+    q.klik_w("Ustawienia", "Szybka grafika 3", "przycisk")
+    sprawdz("NEGATYWNY: wyciszony przełącznik (karta nie obsługuje szybkiej grafiki) — kliknięcie nic nie zmienia",
+            q.cisza(r"K1-USTAWIENIA: przeglądarka: sesja 3 — szybka grafika", 5) and
+            q.cisza(r"K1-NADZORCA: strefa 3: szybka grafika", 2))
     q.klik_w("Ustawienia", "Wygląd", "zakladka")
 
 

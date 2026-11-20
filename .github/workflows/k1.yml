@@ -34,8 +34,8 @@ jobs:
     # "testy": the full set (before every merge).
     if: github.event_name != 'pull_request' || github.event.label.name == 'testy'
     runs-on: ubuntu-24.04
-    # Room for a build with no cache (the first one after the kernel or the download tables change) plus the tests.
-    timeout-minutes: 80
+    # Room for a build with no cache (the first one after the kernel, Mesa or the download tables change) plus the tests.
+    timeout-minutes: 110
     permissions:
       contents: write   # tag k1-vX.Y.Z po udanym buildzie i testach
     steps:
@@ -121,8 +121,23 @@ jobs:
           key: ${{ steps.klucz-pobranych.outputs.klucz }}
           restore-keys: k1-pobrane-
 
+      # 0.10.9 step 6: our Mesa for the browser zone (scripts/zbuduj-mese.sh, about 15 minutes) — as the kernel: PRs restore
+      # it, a release builds it from zero. The key: its table of sources and its script.
+      - name: Klucz pamięci podręcznej Mesy
+        id: klucz-mesy
+        run: echo "klucz=k1-mesa-${{ hashFiles('src/zewnetrzne/mesa/**', 'scripts/zbuduj-mese.sh', 'scripts/wspolne.sh') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Przywróć zbudowaną Mesę (tylko PR — wydanie zawsze od zera)
+        id: mesa
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: build/mesa
+          key: ${{ steps.klucz-mesy.outputs.klucz }}
+
       - name: Zbuduj jądro, programy, obrazy i ISO
-        timeout-minutes: 50
+        timeout-minutes: 75
         # M6a (ADR 0021): the signing key (32 bytes, base64) — a secret the owner adds once in
         # Settings → Secrets and variables → Actions. Without it: an unsigned developer build.
         env:
@@ -146,6 +161,14 @@ jobs:
             build/pobrane
             build/strefa-pakiety
           key: ${{ steps.klucz-pobranych.outputs.klucz }}
+
+      - name: Zapisz zbudowaną Mesę
+        if: steps.mesa.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: build/mesa
+          key: ${{ steps.klucz-mesy.outputs.klucz }}
 
       - name: Zapisz zbudowane jądro dla PR-ów (tylko main)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

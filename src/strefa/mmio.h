@@ -25,6 +25,11 @@ struct mmio_ops {
     int (*konfig_pisz)(struct mmio_urz *u, uint32_t od, const uint8_t *src, uint32_t n, const char **powod);
     int (*powiadom)(struct mmio_urz *u, int kolejka, const char **powod); /* the driver notified queue `kolejka` */
     void (*reset)(struct mmio_urz *u);                                     /* status 0, or the start */
+    /* optional (0.10.9 step 6): feature bits offered on top of `cechy` only in this machine (virtio-gpu with the
+     * graphics broker), and the device's shared memory region `id` (virtio 1.2, 2.10): 0 and its guest address and
+     * length, or -1 (none) */
+    uint64_t (*cechy_dodatkowe)(const struct mmio_urz *u);
+    int (*pamiec_dzielona)(const struct mmio_urz *u, uint32_t id, uint64_t *baza, uint64_t *dl);
 };
 
 struct mmio_urz {
@@ -33,7 +38,7 @@ struct mmio_urz {
     const struct gosc_pamiec *pamiec;
     void (*przerwij)(struct mmio_urz *u); /* raise the device's interrupt line (kvm.c: its irqfd) */
     uint32_t status, przerwanie;   /* Status, InterruptStatus */
-    uint32_t cechy_sel, cechy_ster_sel, kolejka_sel, konfig_gen;
+    uint32_t cechy_sel, cechy_ster_sel, kolejka_sel, konfig_gen, shm_sel;
     uint64_t cechy_ster;           /* what the driver accepted */
     struct virtq q[MMIO_KOLEJKI_MAKS];
     unsigned long powiadomienia;   /* notifications handled (Zasoby/log) */

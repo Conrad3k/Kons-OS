@@ -305,30 +305,42 @@ static struct k1_posr_obiekty t;
 static void t_obiekty(void)
 {
     memset(&t, 0, sizeof t);
-    EXPECT(k1_posr_ob_moze(&t, 0, 4096) == K1_POSR_BLAD_ZASOB);
-    EXPECT(k1_posr_ob_dodaj(&t, 5, 11, 4096, K1_POSR_MAPA_CACHED) == 0 && t.pamiec == 4096);
-    EXPECT(k1_posr_ob_moze(&t, 5, 4096) == K1_POSR_BLAD_ZASOB); /* the blob number is taken */
+    EXPECT(k1_posr_ob_moze(&t, 1, 0, 4096) == K1_POSR_BLAD_ZASOB);
+    EXPECT(k1_posr_ob_moze(&t, 0, 5, 4096) == K1_POSR_BLAD_ZASOB);                   /* no guest context 0 */
+    EXPECT(k1_posr_ob_moze(&t, K1_POSR_GOSCIE + 1, 5, 4096) == K1_POSR_BLAD_ZASOB);
+    EXPECT(k1_posr_ob_dodaj(&t, 1, 5, 11, 4096, K1_POSR_MAPA_CACHED) == 0 && t.pamiec == 4096);
+    EXPECT(k1_posr_ob_moze(&t, 1, 5, 4096) == K1_POSR_BLAD_ZASOB); /* the blob number is taken */
+    EXPECT(k1_posr_ob_moze(&t, 2, 5, 4096) == 0);                  /* …in context 1 only: each counts its own */
     EXPECT(k1_posr_ob(&t, 3) == NULL);
-    EXPECT(k1_posr_ob_przypnij(&t, 5, 3, 8192) == K1_POSR_BLAD_ZASOB); /* the guest's size differs */
-    EXPECT(k1_posr_ob_przypnij(&t, 6, 3, 4096) == K1_POSR_BLAD_ZASOB); /* no such blob */
-    EXPECT(k1_posr_ob_przypnij(&t, 5, 0, 4096) == K1_POSR_BLAD_ZASOB);
-    EXPECT(k1_posr_ob_przypnij(&t, 5, K1_POSR_ZASOBY_MAKS, 4096) == K1_POSR_BLAD_ZASOB);
-    EXPECT(k1_posr_ob_przypnij(&t, 5, 3, 4096) == 0 && k1_posr_ob(&t, 3) != NULL && k1_posr_ob(&t, 3)->uchwyt == 11);
-    EXPECT(k1_posr_ob_moze(&t, 5, 4096) == 0); /* the blob number is free again */
-    EXPECT(k1_posr_ob_dodaj(&t, 5, 12, 4096, K1_POSR_MAPA_WC) == 0);
-    EXPECT(k1_posr_ob_przypnij(&t, 5, 3, 4096) == K1_POSR_BLAD_ZASOB); /* resource 3 is taken */
+    EXPECT(k1_posr_ob_przypnij(&t, 1, 5, 3, 8192) == K1_POSR_BLAD_ZASOB); /* the guest's size differs */
+    EXPECT(k1_posr_ob_przypnij(&t, 1, 6, 3, 4096) == K1_POSR_BLAD_ZASOB); /* no such blob */
+    EXPECT(k1_posr_ob_przypnij(&t, 2, 5, 3, 4096) == K1_POSR_BLAD_ZASOB); /* not that context's blob */
+    EXPECT(k1_posr_ob_przypnij(&t, 1, 5, 0, 4096) == K1_POSR_BLAD_ZASOB);
+    EXPECT(k1_posr_ob_przypnij(&t, 1, 5, K1_POSR_ZASOBY_MAKS, 4096) == K1_POSR_BLAD_ZASOB);
+    EXPECT(k1_posr_ob_przypnij(&t, 1, 5, 3, 4096) == 0 && k1_posr_ob(&t, 3) != NULL && k1_posr_ob(&t, 3)->uchwyt == 11);
+    EXPECT(k1_posr_ob_moze(&t, 1, 5, 4096) == 0); /* the blob number is free again */
+    EXPECT(k1_posr_ob_dodaj(&t, 1, 5, 12, 4096, K1_POSR_MAPA_WC) == 0);
+    EXPECT(k1_posr_ob_przypnij(&t, 1, 5, 3, 4096) == K1_POSR_BLAD_ZASOB); /* resource 3 is taken */
     EXPECT(k1_posr_ob_usun(&t, 3) == 11 && k1_posr_ob(&t, 3) == NULL && t.pamiec == 4096);
     EXPECT(k1_posr_ob_usun(&t, 3) == 0);
+    /* a guest context ends: its unnamed buffers go (handles to close), the others' stay */
+    EXPECT(k1_posr_ob_dodaj(&t, 2, 5, 13, 4096, K1_POSR_MAPA_WC) == 0 && t.pamiec == 8192);
+    EXPECT(k1_posr_ob_usun_czekajacy(&t, 1) == 12 && k1_posr_ob_usun_czekajacy(&t, 1) == 0 && t.pamiec == 4096);
+    EXPECT(k1_posr_ob_przypnij(&t, 2, 5, 4, 4096) == 0 && k1_posr_ob_usun_czekajacy(&t, 2) == 0);
+    EXPECT(k1_posr_ob_usun(&t, 4) == 13 && t.pamiec == 0);
     /* T14: the memory of every buffer together */
-    EXPECT(k1_posr_ob_moze(&t, 7, K1_POSR_PAMIEC) == K1_POSR_BLAD_PAMIEC);
-    EXPECT(k1_posr_ob_moze(&t, 7, K1_POSR_PAMIEC - 4096) == 0);
-    EXPECT(k1_posr_ob_moze(&t, 7, UINT64_MAX) == K1_POSR_BLAD_PAMIEC);
-    EXPECT(k1_posr_ob_dodaj(&t, 7, 0, 4096, 1) == K1_POSR_BLAD_KARTA); /* no handle */
-    /* the waiting ones are limited */
+    EXPECT(k1_posr_ob_moze(&t, 1, 7, K1_POSR_PAMIEC + 1) == K1_POSR_BLAD_PAMIEC);
+    EXPECT(k1_posr_ob_moze(&t, 1, 7, K1_POSR_PAMIEC) == 0);
+    EXPECT(k1_posr_ob_dodaj(&t, 1, 8, 14, 4096, 1) == 0);
+    EXPECT(k1_posr_ob_moze(&t, 1, 7, K1_POSR_PAMIEC) == K1_POSR_BLAD_PAMIEC);
+    EXPECT(k1_posr_ob_moze(&t, 1, 7, K1_POSR_PAMIEC - 4096) == 0);
+    EXPECT(k1_posr_ob_moze(&t, 1, 7, UINT64_MAX) == K1_POSR_BLAD_PAMIEC);
+    EXPECT(k1_posr_ob_dodaj(&t, 1, 7, 0, 4096, 1) == K1_POSR_BLAD_KARTA); /* no handle */
+    /* the waiting ones are limited (all guest contexts together) */
     memset(&t, 0, sizeof t);
     for (uint32_t i = 0; i < K1_POSR_CZEKAJACE_MAKS; i++)
-        EXPECT(k1_posr_ob_dodaj(&t, 100 + i, 1 + i, 4096, 1) == 0);
-    EXPECT(k1_posr_ob_moze(&t, 99, 4096) == K1_POSR_BLAD_LIMIT);
+        EXPECT(k1_posr_ob_dodaj(&t, 1 + i % K1_POSR_GOSCIE, 100 + i, 1 + i, 4096, 1) == 0);
+    EXPECT(k1_posr_ob_moze(&t, 1, 99, 4096) == K1_POSR_BLAD_LIMIT);
 }
 
 static int ok_k(struct k1_komunikat k, enum k1_kanal_kierunek kier)
@@ -343,22 +355,32 @@ static void t_komunikaty(void)
     EXPECT(ok_k(K(K1_KOM_POSR_OKNO, 0, 0, 0, 0, 0, 0), DO));
     EXPECT(!ok_k(K(K1_KOM_POSR_OKNO, 0, 0, 0, 0, 0, 0), OD));
     EXPECT(!ok_k(K(K1_KOM_POSR_OKNO, 1, 0, 0, 0, 0, 0), DO));
-    EXPECT(ok_k(K(K1_KOM_POSR_WSPOLNA, 0, 16384, 0, 0, 0, 0), DO));
-    EXPECT(!ok_k(K(K1_KOM_POSR_WSPOLNA, 0, 16000, 0, 0, 0, 0), DO));
-    EXPECT(!ok_k(K(K1_KOM_POSR_WSPOLNA, 0, 2 << 20, 0, 0, 0, 0), DO));
-    EXPECT(ok_k(K(K1_KOM_POSR_PROSBY, 0, 24, 0, 0, 0, 0), DO));
-    EXPECT(!ok_k(K(K1_KOM_POSR_PROSBY, 0, 12, 0, 0, 0, 0), DO));
-    EXPECT(!ok_k(K(K1_KOM_POSR_PROSBY, 0, 26, 0, 0, 0, 0), DO));
-    EXPECT(!ok_k(K(K1_KOM_POSR_PROSBY, 0, (int32_t)K1_POSR_PROSBY_BAJTY + 4, 0, 0, 0, 0), DO));
-    EXPECT(ok_k(K(K1_KOM_POSR_BLOB, 3, 9, 4096, 0, 0, 0), DO));
-    EXPECT(!ok_k(K(K1_KOM_POSR_BLOB, 0, 9, 4096, 0, 0, 0), DO));
-    EXPECT(!ok_k(K(K1_KOM_POSR_BLOB, 3, 0, 4096, 0, 0, 0), DO));
-    EXPECT(!ok_k(K(K1_KOM_POSR_BLOB, 3, 9, 0, 0, 0, 0), DO));
-    EXPECT(!ok_k(K(K1_KOM_POSR_BLOB, 3, 9, 0, 1, 0, 0), DO)); /* 4 GiB: more than one buffer may take */
+    EXPECT(ok_k(K(K1_KOM_POSR_WSPOLNA, 1, 16384, 0, 0, 0, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_WSPOLNA, 0, 16384, 0, 0, 0, 0), DO)); /* step 6: the guest context 1..K1_POSR_GOSCIE */
+    EXPECT(!ok_k(K(K1_KOM_POSR_WSPOLNA, K1_POSR_GOSCIE + 1, 16384, 0, 0, 0, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_WSPOLNA, 1, 16000, 0, 0, 0, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_WSPOLNA, 1, 2 << 20, 0, 0, 0, 0), DO));
+    EXPECT(ok_k(K(K1_KOM_POSR_PROSBY, K1_POSR_GOSCIE, 24, 0, 0, 0, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_PROSBY, 0, 24, 0, 0, 0, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_PROSBY, 1, 12, 0, 0, 0, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_PROSBY, 1, 26, 0, 0, 0, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_PROSBY, 1, (int32_t)K1_POSR_PROSBY_BAJTY + 4, 0, 0, 0, 0), DO));
+    EXPECT(ok_k(K(K1_KOM_POSR_BLOB, 3, 9, 4096, 0, 1, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_BLOB, 3, 9, 4096, 0, 0, 0), DO)); /* no guest context */
+    EXPECT(!ok_k(K(K1_KOM_POSR_BLOB, 3, 9, 4096, 0, 1, 1), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_BLOB, 0, 9, 4096, 0, 1, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_BLOB, 3, 0, 4096, 0, 1, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_BLOB, 3, 9, 0, 0, 1, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_BLOB, 3, 9, 0, 1, 1, 0), DO)); /* 4 GiB: more than one buffer may take */
     EXPECT(ok_k(K(K1_KOM_POSR_BUFOR, 16383, 0, 0, 0, 0, 0), DO));
     EXPECT(!ok_k(K(K1_KOM_POSR_ZWOLNIJ, 16384, 0, 0, 0, 0, 0), DO));
-    EXPECT(ok_k(K(K1_KOM_POSR_PLOT, 64, 5, 1, 0, 0, 0), DO));
-    EXPECT(!ok_k(K(K1_KOM_POSR_PLOT, 65, 5, 1, 0, 0, 0), DO));
+    EXPECT(ok_k(K(K1_KOM_POSR_PLOT, 64, 5, 1, 2, 0, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_PLOT, 64, 5, 1, 0, 0, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_PLOT, 65, 5, 1, 2, 0, 0), DO));
+    EXPECT(ok_k(K(K1_KOM_POSR_GOSC_KONIEC, 3, 0, 0, 0, 0, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_GOSC_KONIEC, 0, 0, 0, 0, 0, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_GOSC_KONIEC, 3, 1, 0, 0, 0, 0), DO));
+    EXPECT(!ok_k(K(K1_KOM_POSR_GOSC_KONIEC, 3, 0, 0, 0, 0, 0), OD));
     EXPECT(ok_k(K(K1_KOM_POSR_UMIE, 0, K1_POSR_KARTA_UMIE, 0, 0x1916, 7, 0x010600), OD));
     EXPECT(!ok_k(K(K1_KOM_POSR_UMIE, 0, K1_POSR_KARTA_UMIE, 0, 0, 7, 0x010600), OD));
     EXPECT(ok_k(K(K1_KOM_POSR_UMIE, 0, K1_POSR_KARTA_NIE, K1_POSR_NIE_PPGTT, 0, 0, 0), OD));
@@ -369,10 +391,12 @@ static void t_komunikaty(void)
     EXPECT(ok_k(K(K1_KOM_POSR_WYNIK, 0, K1_KOM_POSR_PROSBY, K1_POSR_BLAD_POLE, 3, 0, 0), OD));
     EXPECT(!ok_k(K(K1_KOM_POSR_WYNIK, 0, K1_KOM_POSR_BLOB, 0, 3, 0, 0), OD));
     EXPECT(!ok_k(K(K1_KOM_POSR_WYNIK, 0, K1_KOM_POSR_PLOT, 0, 0, 0, 0), OD));
+    EXPECT(ok_k(K(K1_KOM_POSR_WYNIK, 2, K1_KOM_POSR_GOSC_KONIEC, 0, 0, 0, 0), OD));
     EXPECT(!ok_k(K(K1_KOM_POSR_WYNIK, 0, K1_KOM_POSR_OKNO, K1_POSR_BLAD_MIN - 1, 0, 0, 0), OD));
     EXPECT(ok_k(K(K1_KOM_POSR_DMABUF, 3, K1_POSR_MAPA_WC, 4096, 0, 0, 0), OD));
     EXPECT(!ok_k(K(K1_KOM_POSR_DMABUF, 3, 0, 4096, 0, 0, 0), OD));
-    EXPECT(ok_k(K(K1_KOM_POSR_PLOT_GOTOWY, 2, -1, -1, 0, 0, 0), OD));
+    EXPECT(ok_k(K(K1_KOM_POSR_PLOT_GOTOWY, 2, -1, -1, 1, 0, 0), OD));
+    EXPECT(!ok_k(K(K1_KOM_POSR_PLOT_GOTOWY, 2, -1, -1, 0, 0, 0), OD));
     EXPECT(ok_k(K(K1_KOM_POSR_KARTA, 0, K1_POSR_KARTA_BLAD, 159, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(!ok_k(K(K1_KOM_POSR_KARTA, 0, K1_POSR_KARTA_BLAD, 256, 0, 0, 0), K1_KIER_OD_NADZORCY));
     EXPECT(!ok_k(K(K1_KOM_POSR_KARTA, 0, K1_POSR_KARTA_UMIE, 1, 0, 0, 0), K1_KIER_OD_NADZORCY));
