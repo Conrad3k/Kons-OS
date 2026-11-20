@@ -186,6 +186,7 @@ Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3 — filmy
 [x]  4b Większe miejsca A/B (768 MiB), obraz w zstd (D10 „A”) S31, S33        4           D10              M        0050
         PR #185 (miejsca 768 MiB, K1-EFI 1600 MiB, na dysku 3 GiB; zapas 620 MiB)
 [ ]  5  Szybka grafika, K1: pośrednik grafiki               S37–S41, S44     1, 2        T10–T15          L        z kr. 1
+        [w toku: Claude, gałąź claude/plan-0-10-9-step-5-ws3u2o]
 [ ]  6  Szybka grafika, strefa: przełącznik; wydanie        S40–S45          4, 5        D5–D8, T12–T15   L        z kr. 1
 (Numery ADR — następne wolne w chwili kroku: 0.10.5 bierze 0046 i 0047, 0.10.7 — 0048, więc krok 1 zwykle 0049,
 krok 4 — następny wolny po nim; jeśli krok 4 idzie przed krokiem 1, bierze numer pierwszy.)
@@ -508,7 +509,29 @@ KROK 5 — Szybka grafika, strona K1: pośrednik grafiki                        
   context”), RYZYKA (nowy wiersz: sterownik karty w zasięgu strefy; lista „opakowania” z T15 z terminem), ZALEZNOSCI
   (jeśli coś obcego — S37), TESTY.md, SPEC [korekta: ADR …], skill kons-dev (niezmiennik 7, mapa kodu).
   Gotowe, gdy: CI zielone, właściciel potwierdził linię w Ustawieniach i próbę zawieszenia karty.
-  Ustalenia z wykonania: (pusto — wypełnia krok 5)
+  Ustalenia z wykonania (2026-11-20, gałąź claude/plan-0-10-9-step-5-ws3u2o):
+  - Usługa posrednik: wiersz K1_SYSTEM POSREDNIK (profil 30, UID 110 — pytanie przy starcie), pośrednik strefy z wiersza
+    strefy (profil 30 + nr, UID 410 + nr, cgroup posrednik-<nr>); wspólne z dekoderem filmów w nadzorca/karta.c (węzeł
+    render i915, uruchomienie, oom, pamięć — osobny commit „dziel przed rozbudową”). Klatka KLATKA_POSREDNIK: nic poza
+    bazą + ioctl typu 'd' (okno i pamięć wspólna od klienta, kopie płotów przez fcntl, dma-buf przez sendmsg).
+  - S37 POTWIERDZONE (kod K1, wzór virglrenderer 1.3.0 src/drm/i915): 9 rodzajów próśb (tabela K1_POSR_PROSBY), 12 prostych
+    ioctl (K1_POSR_IOCTLE, numery sprawdzone _Static_assert z i915_drm.h). K1 przepuszcza mniej niż virglrenderer: bez
+    relokacji (virglrenderer nie tłumaczy nawet ich uchwytów), bez płotów i wskaźników gościa (FENCE_IN/ARRAY,
+    USE_EXTENSIONS, rozszerzenia VM_CREATE), parametry kontekstu z rozmiarem 0 i zakresami (priorytet −1023…0, BANNABLE
+    tylko 1), bez SSEU, PROTECTED_CONTENT, SET_PAT, PERF_CONFIG; REG_READ tylko zegar karty (lista jądra: jeden rejestr).
+    Uchwyty karty nie wracają do gościa (virglrenderer oddaje je w odpowiedzi GET_TILING).
+  - Karta „umie” (karta.c): sterownik i915, I915_PARAM_HAS_ALIASING_PPGTT ≥ 2, HAS_CONTEXT_ISOLATION, HAS_EXEC_SOFTPIN,
+    HAS_EXEC_FENCE; inaczej „nie obsługuje” z powodem (X230: PPGTT — sprawdza właściciel).
+  - T14: K1_POSR_PAMIEC 768 MiB na strefę (liczone przed GEM_CREATE), jeden bufor ≤ 512 MiB, ≤ 512 buforów nieprzypiętych;
+    pamięć pośrednika w rozdzielaczu (posrednik_pamiec_mib). Bufory wypełnia też VMM przez mapowanie — to jego cgroup,
+    czyli strefa (S26); pomiar — krok 6.
+  - T15, S39: zawieszenie = EIO z paczki albo batch_active > 0 w GET_RESET_STATS po płocie → bit w banned_ctx_mask, koniec
+    pośrednika kodem 3, nadzorca loguje powód; bez restartu. Na sprzęcie — patrz niżej.
+  - S40 Z KODU: mapowanie dma-bufa w VMM-ie (mmap bez PROT_EXEC — baza klatki) i miejsce pamięci KVM
+    (KVM_SET_USER_MEMORY_REGION — ioctl typu 0xAE) mieści się w dzisiejszej KLATKA_STREFA: nowych wywołań nie trzeba.
+    Samo mapowanie w VMM-ie przechodzi do kroku 6 (zasoby blob virtio-gpu — bez strony gościa nie ma go czym sprawdzić).
+  - S44: silnik testowy (testowy.c, tylko TEST_POSREDNIK b=1): odpowiada jak HD 520, bufor bez pamięci, paczka bez płotu,
+    paczka o długości K1_POSR_TEST_ZAWIESZENIE „zawiesza kartę”. t_posrednik w test-m1: 254/254.
 
 KROK 6 — Szybka grafika, strona strefy: przełącznik, Firefox rysuje kartą; wydanie 0.10.9   L · D5–D8, T12–T15
   Cel: sesja z włączoną szybką grafiką rysuje kartą, a strefa widzi tylko wirtualną kartę z mostem; wydanie wersji.

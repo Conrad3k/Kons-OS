@@ -1,0 +1,94 @@
+/* K1 posrednik — the fences (0.10.9 step 5): when the card finished the work of the guest. Each batch gives an out-fence
+ * (a sync_file the kernel signals when the batch is done); the last one of each timeline (1 + the batch's engine — as
+ * virglrenderer's drm_timeline) is kept. POSR_PLOT asks "tell me when the last batch of this timeline is done": the
+ * broker waits on a copy of that fence and answers POSR_PLOT_GOTOWY. When a fence is done, the card is asked whether
+ * the context of that batch hung it (GET_RESET_STATS: batch_active) — a hang ends fast graphics of the zone (T15, S39).
+ * The test engine gives no fences: every POSR_PLOT is answered at once. */
+#include <errno.h>
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
+
+#include <drm/i915_drm.h>
+
+#include "k1_log.h"
+#include "posrednik.h"
+
+static struct {
+    int fd;
+    uint32_t ctx;
+} ostatni[K1_POSR_PIERSCIENIE] = { [0 ... K1_POSR_PIERSCIENIE - 1] = { -1, 0 } };
+static struct {
+    int fd; /* -1: a free place */
+    uint32_t pierscien, ctx;
+    uint64_t nr;
+} czeka[K1_POSR_PLOTY_MAKS] = { [0 ... K1_POSR_PLOTY_MAKS - 1] = { -1, 0, 0, 0 } };
+
+void plot_nowy(uint32_t pierscien, int fd, uint32_t ctx)
+{
+    if (pierscien >= K1_POSR_PIERSCIENIE) {
+        if (fd >= 0)
+            close(fd);
+        return;
+    }
+    if (ostatni[pierscien].fd >= 0)
+        close(ostatni[pierscien].fd);
+    ostatni[pierscien].fd = fd, ostatni[pierscien].ctx = ctx;
+}
+
+static void gotowy(uint32_t pierscien, uint64_t nr)
+{
+    wyslij(k1_komunikat_nowy(K1_KOM_POSR_PLOT_GOTOWY, pierscien, k1_kom_niskie(nr), k1_kom_wysokie(nr), 0, 0, 0), -1);
+}
+
+int plot_czekaj(uint32_t pierscien, uint64_t nr)
+{
+    if (ostatni[pierscien].fd < 0) { /* nothing on this timeline: done (virglrenderer: the same) */
+        gotowy(pierscien, nr);
+        return 0;
+    }
+    for (uint32_t i = 0; i < K1_POSR_PLOTY_MAKS; i++)
+        if (czeka[i].fd < 0) {
+            czeka[i].fd = fcntl(ostatni[pierscien].fd, F_DUPFD_CLOEXEC, 0);
+            if (czeka[i].fd < 0)
+                return K1_POSR_BLAD_LIMIT;
+            czeka[i].pierscien = pierscien, czeka[i].ctx = ostatni[pierscien].ctx, czeka[i].nr = nr;
+            return 0;
+        }
+    return K1_POSR_BLAD_LIMIT;
+}
+
+int plot_deskryptory(struct pollfd *p, int maks)
+{
+    int n = 0;
+    for (uint32_t i = 0; i < K1_POSR_PLOTY_MAKS && n < maks; i++)
+        if (czeka[i].fd >= 0)
+            p[n++] = (struct pollfd){ czeka[i].fd, POLLIN, 0 };
+    return n;
+}
+
+/* Did context ctx hang the card (it was guilty in a reset)? */
+static int winny(uint32_t ctx)
+{
+    struct drm_i915_reset_stats s = { .ctx_id = ctx };
+    return silnik->ioctl(DRM_IOCTL_I915_GET_RESET_STATS, &s) == 0 && s.batch_active > 0;
+}
+
+void plot_gotowe(const struct pollfd *p, int n)
+{
+    for (int j = 0; j < n; j++) {
+        if (!(p[j].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL)))
+            continue;
+        for (uint32_t i = 0; i < K1_POSR_PLOTY_MAKS; i++)
+            if (czeka[i].fd == p[j].fd) {
+                if (winny(czeka[i].ctx)) {
+                    posr_ban(czeka[i].ctx);
+                    zawieszona = 1;
+                }
+                gotowy(czeka[i].pierscien, czeka[i].nr);
+                close(czeka[i].fd);
+                czeka[i].fd = -1;
+                break;
+            }
+    }
+}

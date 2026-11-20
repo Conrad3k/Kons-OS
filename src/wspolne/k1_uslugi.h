@@ -33,7 +33,11 @@
     X(SIEC, 18, 108, "siec", "Sieć (adres od routera, Wi-Fi)", PRZY_STARCIE, BRAK, (KANAL_SIECI, KANAL_SKARBCA))      \
     /* 0.10.9 step 2 (ADR 0049 pkt 2, 3): the film decoder — this row: nadzorca's question at boot, what the card      \
      * decodes (then it ends); the decoder of each zone follows from the zone's row (K1_PROFIL_FILMY_<ZONE>, below) */ \
-    X(FILMY, 24, 109, "filmy", "Dekoder filmów (karta graficzna)", NA_PROSBE, BRAK, ())
+    X(FILMY, 24, 109, "filmy", "Dekoder filmów (karta graficzna)", NA_PROSBE, BRAK, ())                            \
+    /* 0.10.9 step 5 (ADR 0049 pkt 7): the graphics broker — this row: nadzorca's question at boot, whether the card    \
+     * can serve fast graphics (then it ends); the broker of each zone follows from the zone's row, as for FILMY. Its    \
+     * profile comes right after those of the zones' film decoders (k1_uslugi.c checks it). */                        \
+    X(POSREDNIK, 30, 110, "posrednik", "Pośrednik grafiki (karta graficzna)", NA_PROSBE, BRAK, ())
 
 /* The native applications: one line each — everything else (UIDs, profiles, the Start menu, window names,
  * Zasoby, the sandbox profile, the image contents, the tests) follows from it.
@@ -89,11 +93,16 @@
  * cgroup filmy-<nr>, the zone's memory counts it), program filmy; nadzorca starts it with its zone (filmy.c). It owns no
  * data in skarbiec, so its profile number may move when a zone is added. */
 #define K1_UID_FILMY_STREF 400
+/* 0.10.9 step 5 (ADR 0049 pkt 7): the graphics broker of each zone — the same way: UID K1_UID_POSREDNIK_STREF + the
+ * number, profile K1_PROFIL_POSREDNIK + the number (KLATKA_POSREDNIK, cgroup posrednik-<nr>), program posrednik. */
+#define K1_UID_POSREDNIK_STREF 410
 #define K1_X_UID_S(n, profil, uid, ...) K1_UID_##n = uid,
 #define K1_X_UID_A(n, apl, profil, uid, ...) K1_UID_##n = uid,
 #define K1_X_UID_Z(n, nr, profil, uid, ...) K1_UID_STREFA_##n = uid,
 #define K1_X_UID_F(n, nr, ...) K1_UID_FILMY_##n = K1_UID_FILMY_STREF + nr,
-enum k1_uid { K1_SYSTEM(K1_X_UID_S) K1_APLIKACJE(K1_X_UID_A) K1_STREFY(K1_X_UID_Z) K1_STREFY(K1_X_UID_F) };
+#define K1_X_UID_P(n, nr, ...) K1_UID_POSREDNIK_##n = K1_UID_POSREDNIK_STREF + nr,
+enum k1_uid { K1_SYSTEM(K1_X_UID_S) K1_APLIKACJE(K1_X_UID_A) K1_STREFY(K1_X_UID_Z) K1_STREFY(K1_X_UID_F)
+                  K1_STREFY(K1_X_UID_P) };
 
 /* Roles of clients of the screen process (who is on the other end of a channel). */
 enum k1_rola {
@@ -151,12 +160,20 @@ const struct k1_strefa_opis *k1_strefa_profilu(int profil);
 #define K1_X_PROFIL_A(n, apl, profil, ...) K1_PROFIL_##n = profil,
 #define K1_X_PROFIL_Z(n, nr, profil, ...) K1_PROFIL_STREFA_##n = profil,
 #define K1_X_PROFIL_F(n, nr, ...) K1_PROFIL_FILMY_##n = K1_PROFIL_FILMY + nr, /* 0.10.9 step 2: the zone's film decoder */
-enum k1_profil_nr { K1_SYSTEM(K1_X_PROFIL_S) K1_APLIKACJE(K1_X_PROFIL_A) K1_STREFY(K1_X_PROFIL_Z) K1_STREFY(K1_X_PROFIL_F) };
-enum { K1_PROFIL_MAKS = 0 K1_SYSTEM(K1_X_LICZ) K1_APLIKACJE(K1_X_LICZ) K1_STREFY(K1_X_LICZ) K1_STREFY(K1_X_LICZ) }; /* 1..MAKS */
+#define K1_X_PROFIL_P(n, nr, ...) K1_PROFIL_POSREDNIK_##n = K1_PROFIL_POSREDNIK + nr, /* 0.10.9 step 5: its broker */
+enum k1_profil_nr { K1_SYSTEM(K1_X_PROFIL_S) K1_APLIKACJE(K1_X_PROFIL_A) K1_STREFY(K1_X_PROFIL_Z) K1_STREFY(K1_X_PROFIL_F)
+                        K1_STREFY(K1_X_PROFIL_P) };
+enum { K1_PROFIL_MAKS = 0 K1_SYSTEM(K1_X_LICZ) K1_APLIKACJE(K1_X_LICZ) K1_STREFY(K1_X_LICZ) K1_STREFY(K1_X_LICZ)
+                           K1_STREFY(K1_X_LICZ) }; /* 1..MAKS */
 /* The zone whose film decoder has profile `p` (1..K1_STREFY_MAKS), or 0. */
 static inline int k1_profil_filmow(int p)
 {
     return p > K1_PROFIL_FILMY && p <= K1_PROFIL_FILMY + K1_STREFY_MAKS ? p - K1_PROFIL_FILMY : 0;
+}
+/* The zone whose graphics broker has profile `p` (1..K1_STREFY_MAKS), or 0 (0.10.9 step 5). */
+static inline int k1_profil_posrednika(int p)
+{
+    return p > K1_PROFIL_POSREDNIK && p <= K1_PROFIL_POSREDNIK + K1_STREFY_MAKS ? p - K1_PROFIL_POSREDNIK : 0;
 }
 
 /* A profile's program name ("zegar") and the name Zasoby shows for it; NULL outside 1..K1_PROFIL_MAKS. */

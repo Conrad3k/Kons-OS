@@ -102,8 +102,8 @@ struct usluga {
 };
 
 /* uslugi[]: the system services (K1_SYSTEM), the applications, the VMMs of the zones (K1_STREFY, 0.10.0), the zones'
- * film decoders (0.10.9 step 2) */
-#define N_USLUG (0 K1_SYSTEM(K1_X_LICZ) + K1_APL_MAKS + 2 * K1_STREFY_MAKS)
+ * film decoders (0.10.9 step 2) and graphics brokers (step 5) */
+#define N_USLUG (0 K1_SYSTEM(K1_X_LICZ) + K1_APL_MAKS + 3 * K1_STREFY_MAKS) /* + step 5: their graphics brokers */
 struct usluga *usluga_profilu(int profil);
 
 #define BATERIA_CO 15.0     /* s between reads (ACPI: the embedded controller) */
@@ -330,6 +330,15 @@ int siec_trasa(int nr, uint32_t router);                     /* the default rout
 
 /* skarb.c: the start is confirmed — skarbiec may move its vault to format 2 (0.8.2, ADR 0036) */
 
+/* karta.c — the services of the graphics card (0.10.9): the film decoder and the graphics broker */
+int karta_render(void); /* the render node of the i915 driver (read-write), or -1 */
+/* Starts `u` (argument: the zone, 0 for the question at boot; test: the test engine, test image only) with fd 3 = a new
+ * channel, fd 4 = the render node `karta_fd` or /dev/null. Returns our end of the channel (the client's), or -1. */
+int karta_uruchom(struct usluga *u, int strefa, int test, int karta_fd);
+void karta_oom_tlo(pid_t pid);                        /* the kernel takes it before a K1 service */
+int32_t karta_pamiec_mib(const struct usluga *u);     /* its cgroup's memory, MiB; 0 when it does not run */
+struct usluga *karta_usluga_strefy(int baza, int nr); /* the service of zone nr: profile baza + nr, or NULL */
+
 /* filmy.c — the film decoder (0.10.9 step 2, ADR 0049): the render node of the i915 card for it alone */
 extern int filmy_kanal;            /* our end of the question's channel (what the card decodes) */
 void filmy_po_starcie(double t);   /* every loop: the question once, after the desktop */
@@ -340,6 +349,17 @@ void filmy_nowy_kanal_ustawien(void);
 int filmy_dla_strefy(int nr, int test); /* the client's end of a new decoder of zone nr, or -1 */
 void filmy_strefa_koniec(int nr);       /* the zone's VMM ended: its decoder too */
 int32_t filmy_pamiec_mib(int nr);       /* T8: its decoder's memory, MiB */
+
+/* posrednik.c — the graphics broker (0.10.9 step 5, ADR 0049 pkt 7): the render node of the i915 card for it */
+extern int posrednik_kanal;          /* our end of the question's channel (can the card serve fast graphics) */
+void posrednik_po_starcie(double t); /* every loop: the question once, after the desktop */
+void obsluz_posrednika(void);
+void posrednik_koniec(const struct usluga *u, int status); /* a broker ended: why, in the log */
+void posrednik_wyslij_ustawieniom(void);
+void posrednik_nowy_kanal_ustawien(void);
+int posrednik_dla_strefy(int nr, int test); /* the client's end of a new broker of zone nr, or -1 */
+void posrednik_strefa_koniec(int nr);       /* the zone's VMM ended: its broker too */
+int32_t posrednik_pamiec_mib(int nr);       /* T14: its broker's memory, MiB */
 
 /* rozruch.c — A/B after a start (0.7.0, ADR 0022) */
 extern char ab_nieudana[32];

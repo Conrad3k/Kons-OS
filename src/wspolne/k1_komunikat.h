@@ -19,6 +19,7 @@
 #include "k1_dokument.h"
 #include "k1_filmy.h"
 #include "k1_pendrive.h"
+#include "k1_posrednik.h"
 #include "k1_siec.h"
 #include "k1_wifi.h"
 
@@ -41,8 +42,11 @@ enum k1_kanal_kierunek {
                               * nadzorca; one way — siec answers in the list of networks nadzorca passes on) */
     K1_KIER_DO_FILMOW = 13,  /* the client (a zone's VMM, nadzorca's question, the test program) → filmy (0.10.9 step 2) */
     K1_KIER_OD_FILMOW = 14,  /* filmy → its client */
+    K1_KIER_DO_POSREDNIKA = 15, /* the client (a zone's VMM, nadzorca's question, the test program) → posrednik (0.10.9
+                                 * step 5) */
+    K1_KIER_OD_POSREDNIKA = 16, /* posrednik → its client */
 };
-#define K1_KIER_MAKS 14
+#define K1_KIER_MAKS 16
 
 enum k1_komunikat_typ {
     /* nadzorca → ekran */
@@ -471,6 +475,37 @@ enum k1_komunikat_typ {
     /* the test program → nadzorca (test image only) */
     K1_KOM_TEST_FILMY = 204,       /* obiekt=0, a=zone 1..K1_STREFY_MAKS, b=0 the card / 1 the test decoder (grey frames,
                                     * no card), c..e=0 → TEST_GNIAZDO + 1 fd: the client's end of a new decoder of that zone */
+    /* 0.10.9 step 5 (ADR 0049 pkt 7): the graphics broker — its client → posrednik (K1_KIER_DO_POSREDNIKA; formats and
+     * limits: k1_posrednik.h). res_id: the guest's resource number 1..K1_POSR_ZASOBY_MAKS-1. Every request has one
+     * answer: POSR_WYNIK, or POSR_DMABUF for POSR_BUFOR done; POSR_PLOT is answered when its fence is done. */
+    K1_KOM_POSR_OKNO = 206,        /* obiekt=0, all 0; + 1 fd: the window, a memfd of K1_POSR_OKNO bytes sealed against
+                                    * shrinking and growing (once) */
+    K1_KOM_POSR_WSPOLNA = 207,     /* obiekt=0, a=its size K1_POSR_WSPOLNA_MIN..MAKS (a multiple of 4096), b..e=0; + 1 fd: the
+                                    * shared memory of the bridge (the guest's blob 0), sealed the same way (once) */
+    K1_KOM_POSR_PROSBY = 208,      /* obiekt=0, a=the stream's length in the window 16..K1_POSR_PROSBY_BAJTY (a multiple of
+                                    * 4), b..e=0: do the requests one by one (the answer: c = how many were done) */
+    K1_KOM_POSR_BLOB = 209,        /* obiekt=res_id, a=blob 1.., b,c=the size (k1_kom_u64) 1..K1_POSR_BUFOR_MAKS, d=e=0: the
+                                    * buffer the guest created as blob a becomes resource obiekt */
+    K1_KOM_POSR_BUFOR = 210,       /* obiekt=res_id, all 0: share the buffer (answer POSR_DMABUF) */
+    K1_KOM_POSR_ZWOLNIJ = 211,     /* obiekt=res_id, all 0: the resource goes, its buffer too */
+    K1_KOM_POSR_PLOT = 212,        /* obiekt=the timeline 0..K1_POSR_PIERSCIENIE-1, a,b=the fence's number (k1_kom_u64),
+                                    * c..e=0: answer POSR_PLOT_GOTOWY when the last batch of that timeline is done */
+    /* posrednik → its client (K1_KIER_OD_POSREDNIKA) */
+    K1_KOM_POSR_UMIE = 213,        /* first, once: obiekt=0, a=K1_POSR_KARTA_BRAK/NIE/UMIE, b=K1_POSR_NIE_* (NIE; else 0),
+                                    * c=the card's PCI id 1..0xffff, d=its revision 0..255, e=the driver's version
+                                    * major << 16 | minor << 8 | patch (c..e: UMIE only; else 0) */
+    K1_KOM_POSR_WYNIK = 214,       /* obiekt=res_id or 0 (as the request), a=the request's type (POSR_OKNO..POSR_ZWOLNIJ), b=0
+                                    * or K1_POSR_BLAD_*, c=PROSBY: the requests done 0..K1_POSR_PROSBY_BAJTY/16 (else 0),
+                                    * d=e=0 */
+    K1_KOM_POSR_DMABUF = 215,      /* obiekt=res_id, a=K1_POSR_MAPA_*, b,c=the size (k1_kom_u64), d=e=0; + 1 fd: the buffer
+                                    * (dma-buf: the VMM maps it into the guest — never executable) */
+    K1_KOM_POSR_PLOT_GOTOWY = 216, /* obiekt=the timeline, a,b=the fence's number, c..e=0 */
+    /* nadzorca → Ustawienia (fd 4): whether this computer's card serves fast graphics (Ustawienia → Przeglądarka) */
+    K1_KOM_POSR_KARTA = 217,       /* obiekt=0, a=K1_POSR_KARTA_*, b=the code (NIE: K1_POSR_NIE_*; BLAD: exit code or 128 +
+                                    * signal 0..255; else 0), c..e=0 */
+    /* the test program → nadzorca (test image only) */
+    K1_KOM_TEST_POSREDNIK = 218,   /* obiekt=0, a=zone 1..K1_STREFY_MAKS, b=0 the card / 1 the test engine (no card), c..e=0
+                                    * → TEST_GNIAZDO + 1 fd: the client's end of a new broker of that zone */
 };
 
 /* What happened to the connection (SIEC_WIFI_ZDARZENIE a). */

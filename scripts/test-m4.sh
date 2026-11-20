@@ -486,6 +486,9 @@ def ust_przegladarka(ux, uy, ciemny_):
     # with its graphics card (state 1 = K1_FILMY_KARTA_BRAK; nadzorca knows it at once, without a decoder)
     sprawdz("Ustawienia → Przeglądarka: bez karty Intela linia „nie rozpakowuje filmów kartą graficzną”",
             l_ is not None and "karta a filmy: stan 1," in l_.group(0), l_.group(0)[:200] if l_ else "brak linii")
+    # 0.10.9 step 5 (ADR 0049 pkt 7): …and the second line, no fast graphics (state 1 = K1_POSR_KARTA_BRAK)
+    sprawdz("Ustawienia → Przeglądarka: bez karty Intela linia „nie obsługuje szybkiej grafiki”",
+            l_ is not None and "szybka grafika: stan 1," in l_.group(0), l_.group(0)[:240] if l_ else "brak linii")
     q.klik_w("Ustawienia", "Wygląd", "zakladka")
 
 

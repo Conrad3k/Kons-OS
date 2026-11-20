@@ -46,7 +46,7 @@ NAGL    := $(wildcard src/wspolne/*.h)
 KOMUNIKAT := src/wspolne/k1_komunikat.c src/wspolne/k1_kom_ekran.c src/wspolne/k1_kom_skarb.c \
              src/wspolne/k1_kom_nadzorca.c src/wspolne/k1_kom_pliki.c src/wspolne/k1_kom_siec.c src/wspolne/k1_siec.c \
              src/wspolne/k1_kom_wifi.c src/wspolne/k1_wifi.c src/wspolne/k1_kom_strefa.c src/wspolne/k1_opis.c \
-             src/wspolne/k1_kom_filmy.c src/wspolne/k1_filmy.c
+             src/wspolne/k1_kom_filmy.c src/wspolne/k1_filmy.c src/wspolne/k1_kom_posrednik.c src/wspolne/k1_posrednik.c
 # Services (M3): protocol, channels, sandbox.
 USLUGI  := src/wspolne/k1_uslugi.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
            src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c \
@@ -168,6 +168,12 @@ $(BIN)/filmy: $(FILMY) $(wildcard src/filmy/*.h) src/filmy/obce.txt $(VA)/gotowe
 	$(CC_K1) $(CFLAGS_K1) -isystem $(VA)/pref/include -DK1_VA_INIT=$$(cat $(VA)/funkcja-startowa.txt) -o $@ $(FILMY) \
 		$(WSPOLNE) $(USLUGI) $(FILMY_LD) $(LDFLAGS_K1)
 
+# 0.10.9 step 5 (ADR 0049 pkt 7): the graphics broker — our code only (virglrenderer's i915 bridge is the pattern, not a
+# library); the kernel's i915 layouts from the UAPI headers (build/naglowki)
+POSREDNIK := $(sort $(wildcard src/posrednik/*.c))
+$(BIN)/posrednik: $(POSREDNIK) $(wildcard src/posrednik/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(POSREDNIK) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+
 CZYTNIK := $(sort $(wildcard src/czytnik/*.c))
 CZYTNIK_FAT := src/czytnik/fat.c src/czytnik/nazwy.c
 $(BIN)/czytnik: $(CZYTNIK) src/czytnik/fat.h src/przybornik/k1_czas.c src/wspolne/k1_indeks.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
@@ -266,6 +272,9 @@ $(OBJ)/test_obraz_strefy: testy/host/test_obraz_strefy.c src/wspolne/k1_obraz_st
 # 0.10.9 step 2 (ADR 0049 pkt 3): the film decoder's requests and messages
 $(OBJ)/test_filmy: testy/host/test_filmy.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_filmy.c $(KOMUNIKAT) $(DOK_C)
+# 0.10.9 step 5: the graphics broker's requests, buffers and messages
+$(OBJ)/test_posrednik: testy/host/test_posrednik.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_posrednik.c $(KOMUNIKAT) $(DOK_C)
 
 $(OBJ)/test_powod_strefy: testy/host/test_powod_strefy.c src/nadzorca/strefy_powod.c src/nadzorca/strefy_powod.h $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_powod_strefy.c src/nadzorca/strefy_powod.c
@@ -486,7 +495,7 @@ TESTY_HOST := test_ogloszenie test_paczka test_odcinki test_odcinki_pelny test_d
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_palce \
-	test_opis test_obraz_strefy test_filmy
+	test_opis test_obraz_strefy test_filmy test_posrednik
 TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania
 
@@ -543,7 +552,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis ogloszenie paczka vsock filmy
+        lacznik balon opis ogloszenie paczka vsock filmy posrednik
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -598,6 +607,8 @@ FUZZ_DL_vsock     := 20000
 FUZZ_DL_balon     := 1100
 FUZZ_ZR_filmy     := src/wspolne/k1_filmy.c
 FUZZ_DL_filmy     := 4500
+FUZZ_ZR_posrednik := src/wspolne/k1_posrednik.c
+FUZZ_DL_posrednik := 4200
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
               -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/strefa -Isrc/zewnetrzne/monocypher \
               -Isrc/zewnetrzne/wuffs

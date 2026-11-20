@@ -62,6 +62,7 @@ void ustawienia_nowy_kanal(void)
     siec_stan_nowy_kanal_ustawien();
     sesje_nowy_kanal(1);
     filmy_nowy_kanal_ustawien(); /* 0.10.9 step 2: what the card decodes */
+    posrednik_nowy_kanal_ustawien(); /* step 5: whether it serves fast graphics */
 }
 
 /* gui's top bar: the state when it changed (the first time after gui started: always). Also on this
