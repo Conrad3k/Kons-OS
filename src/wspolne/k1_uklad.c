@@ -40,7 +40,8 @@ int k1_uklad_czytaj(const uint8_t *buf, uint64_t partycja, struct k1_uklad *u)
     u->slot_bajty = k1_c64(buf + 24);
     u->slot_off[0] = k1_c64(buf + 32);
     u->slot_off[1] = k1_c64(buf + 40);
-    if (u->fat_bajty == 0 || u->fat_bajty > partycja || u->slot_bajty != K1_SLOT_BAJTY ||
+    if (u->fat_bajty == 0 || u->fat_bajty > partycja || u->slot_bajty < K1_SLOT_MIN ||
+        u->slot_bajty > K1_SLOT_MAKS || u->slot_bajty % K1_SLOT_MIB != 0 ||
         !miejsce(u->grubenv_off, K1_GRUBENV_BAJTY, u->fat_bajty) || !miejsce(u->slot_off[0], u->slot_bajty, u->fat_bajty) ||
         !miejsce(u->slot_off[1], u->slot_bajty, u->fat_bajty) ||
         zachodza(u->slot_off[0], u->slot_bajty, u->slot_off[1], u->slot_bajty) ||

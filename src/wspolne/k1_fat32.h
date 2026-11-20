@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 #define K1_FAT32_WEZLY 128                      /* files and folders at most (a K1-EFI holds about 20) */
-#define K1_FAT32_KLASTRY (1u << 18)             /* clusters at most (1 GiB in 4 KiB clusters; a K1-EFI: 71 680) */
+#define K1_FAT32_KLASTRY (1u << 19)             /* clusters at most (2 GiB in 4 KiB clusters; a K1-EFI: 409 600 since 0.10.9 step 4b, 71 680 before) */
 #define K1_FAT32_MAPA ((K1_FAT32_KLASTRY + 2 + 7) / 8) /* bytes of a map of clusters (one bit each) */
 #define K1_FAT32_KLASTER_MAKS (64u << 10)
 #define K1_FAT32_KONIEC 0x0FFFFFFFu             /* the value that ends a chain */

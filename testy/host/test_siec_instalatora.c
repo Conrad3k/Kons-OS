@@ -25,6 +25,8 @@
 #include "k1_test_host.h"
 #include "siec.h"
 
+#define SLOT (128ull << 20) /* the slots of these images: the size up to 0.10.9 step 4 (still read) */
+
 #define W(a, b, c) ((int32_t)((a) << 16 | (b) << 8 | (c)))
 
 static const char *dir;
@@ -211,7 +213,7 @@ static int pliki_startowe_wydania(void)
     int fd = open(p("nowa.img"), O_RDONLY), fd_d = open(p("d.img"), O_RDONLY), ok;
     uint64_t bez[3] = { e.uklad.grubenv_off, e.uklad.slot_off[0], e.uklad.slot_off[1] };
     struct k1_fat32_we we = { czytaj_fd, &fd_d, e.uklad.fat_bajty };
-    ok = fd >= 0 && fd_d >= 0 && k1_czytaj_calosc(fd, man, sizeof man, e.uklad.slot_off[0] + K1_SLOT_START_OFF) == 0 &&
+    ok = fd >= 0 && fd_d >= 0 && k1_czytaj_calosc(fd, man, sizeof man, e.uklad.slot_off[0] + k1_slot_start_off(SLOT)) == 0 &&
          k1_manifest_czytaj(man, &m) == 0;
     if (ok)
         ok = k1_fat32_otworz(&f, &we) == 0 && k1_fat32_drzewo(&f, &t, zajete) == 0 && k1_fat32_skrot(&f, &t, bez, 3, s) == 0 &&
@@ -263,6 +265,20 @@ static void instalacja(void)
     EXPECT(uruchom(K1_INST_SIEC_WROC, "/dev/null", "/dev/null", &s, &nowy) == K1_INST_BLAD_ARG);
 }
 
+/* 0.10.9 step 4b: a release whose slots are not the disk's (129 MiB on a disk of 128 MiB — as 768 MiB on a disk of an
+ * older K1): downloaded, but "Zainstaluj" refuses before anything is written. */
+static void inny_uklad(void)
+{
+    struct k1_komunikat s;
+    struct k1_efi e;
+    int nowy;
+    nowy_dysk();
+    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, p("inna.k1a"), p("inna.bin"), &s, &nowy) == 0);
+    EXPECT(uruchom(K1_INST_SIEC_ZAINSTALUJ, "/dev/null", "/dev/null", &s, &nowy) == K1_INST_BLAD_UKLAD && !nowy);
+    e = czytaj_dysk();
+    EXPECT(e.env.nowy == 0 && e.slot[1].wersja == (uint32_t)W(0, 10, 8) && e.slot[0].wersja == (uint32_t)W(0, 10, 9));
+}
+
 static void powrot(void)
 {
     struct k1_komunikat s;
@@ -287,6 +303,7 @@ int main(int argc, char **argv)
     stan();
     pobieranie();
     instalacja();
+    inny_uklad();
     powrot();
     return K1_TEST_KONIEC("test_siec_instalatora");
 }

@@ -24,7 +24,7 @@ USBIMG=$K1_WYNIK/k1-$K1_WERSJA-usb.img
 DYSK=$TESTY/m5f-dysk.img PEN=$TESTY/m5f-pendrive.img
 mkdir -p "$TESTY"; rm -f "$TESTY"/m5f-*
 [ -f "$USBIMG" ] || blad "brak obrazu USB $USBIMG (scripts/zbuduj-usb.sh)"
-cp "$USBIMG" "$PEN"
+cp --sparse=always "$USBIMG" "$PEN"
 truncate -s 4G "$DYSK"
 r=0
 
@@ -274,9 +274,12 @@ uruchom z-iso 0-z-iso --iso "$K1_WYNIK/k1-$K1_WERSJA.iso" --uefi --vga virtio --
 uklad() { # $1 = image, $2 = field offset in the block (32: slot A, 40: slot B, 16: grubenv) → bytes from the image start
     python3 -I -c 'import sys; f=open(sys.argv[1],"rb"); f.seek(1048576+1024+int(sys.argv[2])); print(1048576+int.from_bytes(f.read(8),"little"))' "$1" "$2"
 }
-cp "$PEN" "$TESTY/m5f-uszkodzony.img"
-python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); a=int(sys.argv[2]); f.seek(a+127*1048576+16); n=int.from_bytes(f.read(8),"little"); f.seek(a+n-100); b=f.read(1); f.seek(-1,1); f.write(bytes([b[0]^0xff])); f.close()' \
-    "$TESTY/m5f-uszkodzony.img" "$(uklad "$TESTY/m5f-uszkodzony.img" 32)"
+slot_bajty() { # $1 = image → the size of its slots (the layout block's field 24; 768 MiB since 0.10.9 step 4b)
+    python3 -I -c 'import sys; f=open(sys.argv[1],"rb"); f.seek(1048576+1024+24); print(int.from_bytes(f.read(8),"little"))' "$1"
+}
+cp --sparse=always "$PEN" "$TESTY/m5f-uszkodzony.img"
+python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); a=int(sys.argv[2]); f.seek(a+int(sys.argv[3])-1048576+16); n=int.from_bytes(f.read(8),"little"); f.seek(a+n-100); b=f.read(1); f.seek(-1,1); f.write(bytes([b[0]^0xff])); f.close()' \
+    "$TESTY/m5f-uszkodzony.img" "$(uklad "$TESTY/m5f-uszkodzony.img" 32)" "$(slot_bajty "$TESTY/m5f-uszkodzony.img")"
 uruchom uszkodzony 0-uszkodzony --pendrive "$TESTY/m5f-uszkodzony.img" --qemu "$SATA"
 if sfdisk -d "$DYSK" >/dev/null 2>&1; then echo "  [BŁĄD]  po odmowie na dysku jest tablica partycji"; r=1
 else echo "  [OK]    po odmowie dysk nietknięty (bez tablicy partycji)"; fi
@@ -299,7 +302,7 @@ pliki_startowe() { # 0: the disk's boot files are the stick's (and nothing else)
             && cmp -s "$TESTY/m5f-p1" "$TESTY/m5f-p2" || return 1
     done
     ! mcopy -n -i "$EFI_DYSK" ::/EFI/BOOT/stary.txt "$TESTY/m5f-p1" 2>/dev/null || return 1
-    dd if="$DYSK" of="$TESTY/m5f-efi.img" bs=1M skip=1 count=280 status=none && fsck.fat -n "$TESTY/m5f-efi.img" >/dev/null 2>&1
+    dd if="$DYSK" of="$TESTY/m5f-efi.img" bs=1M skip=1 count=1600 conv=sparse status=none && fsck.fat -n "$TESTY/m5f-efi.img" >/dev/null 2>&1
 }
 # every file of the disk's K1-EFI with its content, but NvVars: OVMF without a variables file keeps its variables there
 # and writes it at every start (a real laptop does not)
@@ -318,7 +321,7 @@ mcopy -o -i "$EFI_DYSK" "$TESTY/m5f-grub.cfg" ::/boot/grub/grub.cfg && mcopy -o 
     && mcopy -i "$EFI_DYSK" "$TESTY/m5f-info" ::/EFI/BOOT/stary.txt || blad "mtools: stare pliki startowe na dysku"
 if pliki_startowe; then echo "  [BŁĄD]  „stare” pliki startowe na dysku nie różnią się od pendrive'a"; r=1; fi
 # a stick whose grub.cfg was changed (it still starts): its boot files no longer match their manifest
-cp "$PEN" "$TESTY/m5f-zly.img"
+cp --sparse=always "$PEN" "$TESTY/m5f-zly.img"
 mcopy -n -i "$PEN@@1M" ::/boot/grub/grub.cfg "$TESTY/m5f-grub.cfg" && printf '# zmieniony\n' >> "$TESTY/m5f-grub.cfg" \
     && mcopy -o -i "$TESTY/m5f-zly.img@@1M" "$TESTY/m5f-grub.cfg" ::/boot/grub/grub.cfg || blad "mtools: zmieniony pendrive"
 przed=$(efi_suma)
@@ -352,8 +355,8 @@ PY
 uruchom wycofanie 5-wycofanie --dysk-uefi "$DYSK"
 if env_dysku | grep -q 'k1_slot=b k1_start=b k1_nowy= k1_proba=$'; then echo "  [OK]    grubenv dysku po wycofaniu: działa B, próba wyczyszczona"
 else echo "  [BŁĄD]  grubenv dysku po wycofaniu: $(env_dysku)"; r=1; fi
-# M6a: pretend the disk runs 99.0.0 (the manifest of its confirmed slot B, 127 MiB into the slot)
-python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); o=int(sys.argv[2])+127*1048576; f.seek(o+8); f.write((99<<16).to_bytes(4,"little")); f.seek(o+24); f.write(b"99.0.0".ljust(24,b"\0")); f.close()' "$DYSK" "$(uklad "$DYSK" 40)"
+# M6a: pretend the disk runs 99.0.0 (the manifest of its confirmed slot B, in the slot's last MiB)
+python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); o=int(sys.argv[2])+int(sys.argv[3])-1048576; f.seek(o+8); f.write((99<<16).to_bytes(4,"little")); f.seek(o+24); f.write(b"99.0.0".ljust(24,b"\0")); f.close()' "$DYSK" "$(uklad "$DYSK" 40)" "$(slot_bajty "$DYSK")"
 uruchom starsza 6-starsza --pendrive "$PEN" --qemu "$SATA"
 rm -f "$DYSK" "$PEN" "$TESTY"/m5f-p1 "$TESTY"/m5f-p2 "$TESTY"/m5f-efi.img "$TESTY"/m5f-grub.cfg "$TESTY"/m5f-info
 if [ $r -eq 0 ]; then info "M5f: wszystko zaliczone (zrzuty: $TESTY/m5f-*.png)"; else echo "[k1] M5f: BŁĄD (logi: $TESTY/m5f-*.log)"; fi

@@ -70,7 +70,7 @@ int main(void)
                r.wydanie[15] == 0xaf && k1_manifest_sprawdz_podpis(kopia, pub) == 0);
         kopia[90] ^= 1; /* the build id is signed too */
         EXPECT(k1_manifest_sprawdz_podpis(kopia, pub) == -1);
-        s.fat_bajty = K1_SLOT_MANIFEST_OFF + 1u;
+        s.fat_bajty = k1_slot_man_off(K1_SLOT_MAKS) + 1u; /* the largest slot's (each slot checks its own: k1_efi.c) */
         k1_manifest_zbuduj(&s, NULL, NULL, kopia);
         EXPECT(k1_manifest_czytaj(kopia, &r) == -1); /* beyond its own manifest */
         s.fat_bajty = 1u << 20;
@@ -96,7 +96,7 @@ int main(void)
     kopia[110] = 1; /* reserved bytes */
     EXPECT(k1_manifest_czytaj(kopia, &r) == -1);
     memcpy(kopia, buf, sizeof kopia);
-    kopia[20] = 0x01; /* fat_bajty > K1_MANIFEST_EFI_MAKS */
+    kopia[20] = 0x03; /* fat_bajty > K1_MANIFEST_EFI_MAKS (8 GiB since 0.10.9 step 4b) */
     EXPECT(k1_manifest_czytaj(kopia, &r) == -1);
     memcpy(kopia, buf, sizeof kopia);
     kopia[12] = 2; /* unknown flag */

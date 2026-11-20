@@ -12,6 +12,8 @@
 #include "k1_test_host.h"
 #include "monocypher.h"
 
+#define SLOT (128ull << 20) /* the slots of these images: the size up to 0.10.9 step 4 (still read) */
+
 #define MIB (1ull << 20)
 #define PARTYCJA (300 * MIB)
 
@@ -22,7 +24,7 @@ static void manifest(int fd, uint64_t off, uint32_t format, uint32_t wersja, int
     memset(&m, 0, sizeof m);
     m.format = format;
     m.wersja = wersja;
-    m.fat_bajty = K1_SLOT_MANIFEST_OFF;
+    m.fat_bajty = k1_slot_man_off(SLOT);
     k1_wersja_tekst(wersja, m.tekst, sizeof m.tekst);
     m.wydanie[0] = (uint8_t)wersja;
     if (podpisany)
@@ -52,7 +54,7 @@ static int nowy_plik(char *sciezka)
 
 int main(void)
 {
-    struct k1_uklad u = { 280 * MIB, 1 * MIB, K1_SLOT_BAJTY, { 4 * MIB, 132 * MIB } };
+    struct k1_uklad u = { 280 * MIB, 1 * MIB, SLOT, { 4 * MIB, 132 * MIB } };
     uint8_t b[K1_UKLAD_BAJTY];
     struct k1_efi e;
     char sciezka[] = "/tmp/k1-test-efi-XXXXXX", w[16];
@@ -72,8 +74,8 @@ int main(void)
     k1_uklad_zbuduj(&u, b);
     if (k1_pisz_calosc(fd, b, sizeof b, K1_UKLAD_OFF) != 0)
         abort();
-    manifest(fd, u.slot_off[0] + K1_SLOT_MANIFEST_OFF, 2, 0x000700, 0);
-    manifest(fd, u.slot_off[1] + K1_SLOT_MANIFEST_OFF, 2, 0x000701, 1);
+    manifest(fd, u.slot_off[0] + k1_slot_man_off(SLOT), 2, 0x000700, 0);
+    manifest(fd, u.slot_off[1] + k1_slot_man_off(SLOT), 2, 0x000701, 1);
     grubenv(fd, u.grubenv_off, "# GRUB Environment Block\nk1_slot=b\nk1_nowy=\nk1_start=b\nk1_proba=\n");
     EXPECT(k1_efi_czytaj(fd, PARTYCJA, &e) == 0 && e.format == 2 && e.env_ok && e.env.slot == 'b' && e.dziala == 1);
     EXPECT(e.uklad.slot_off[1] == 132 * MIB && e.slot[0].wersja == 0x000700 && e.slot[1].wersja == 0x000701 &&
@@ -95,13 +97,13 @@ int main(void)
     /* a slot without a manifest (never written) reads as version 0 */
     {
         uint8_t zera[K1_MANIFEST_BAJTY] = { 0 };
-        if (k1_pisz_calosc(fd, zera, sizeof zera, u.slot_off[1] + K1_SLOT_MANIFEST_OFF) != 0)
+        if (k1_pisz_calosc(fd, zera, sizeof zera, u.slot_off[1] + k1_slot_man_off(SLOT)) != 0)
             abort();
     }
     EXPECT(k1_efi_czytaj(fd, PARTYCJA, &e) == 0 && e.slot[1].wersja == 0 && e.slot[0].wersja == 0x000700);
 
     /* a manifest of the boot files (format 3) in place of a slot manifest is not one */
-    manifest(fd, u.slot_off[1] + K1_SLOT_MANIFEST_OFF, K1_MANIFEST_START, 0x000701, 0);
+    manifest(fd, u.slot_off[1] + k1_slot_man_off(SLOT), K1_MANIFEST_START, 0x000701, 0);
     EXPECT(k1_efi_czytaj(fd, PARTYCJA, &e) == 0 && e.slot[1].wersja == 0);
 
     /* the whole-buffer reader: past the end is an error (EIO), not a short read */

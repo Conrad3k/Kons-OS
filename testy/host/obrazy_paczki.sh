@@ -6,6 +6,7 @@
 #                partycja 512 MiB (FAT 300 MiB — za nią poczekalnia)
 #   paczka.k1a, ogloszenie.bin   wydanie 0.11.0 (narzedzia/wydanie), podpisane kluczem testowym (K1_KLUCZ_PODPISU)
 #   obcy.bin     to samo ogłoszenie podpisane innym kluczem; stare.bin — ogłoszenie wersji 0.10.8
+#   inna.k1a, inna.bin   wydanie 0.11.0 z miejscami po 129 MiB (0.10.9 krok 4b: inny układ niż dysk — odmowa)
 # Użycie: obrazy_paczki.sh KATALOG BUDOWA_OBJ (podpisz i wydanie są w BUDOWA_OBJ)
 set -eu
 OUT=$1 OBJ=$2
@@ -17,8 +18,8 @@ wzor() { # wzor PLIK BAJTÓW ZIARNO
     python3 -I -c 'import sys; n,z=int(sys.argv[2]),int(sys.argv[3]); open(sys.argv[1],"wb").write(bytes((i*z+7)%251 for i in range(n)))' "$1" "$2" "$3"
 }
 
-slot() { # slot PLIK WERSJA ZIARNO — a slot of 128 MiB with a "system" of 1 MiB and its signed manifest
-    rm -f "$1"; wzor "$1" 1048576 "$3"; truncate -s 128M "$1"
+slot() { # slot PLIK WERSJA ZIARNO [MiB] — a slot (128 MiB) with a "system" of 1 MiB and its signed manifest
+    rm -f "$1"; wzor "$1" 1048576 "$3"; truncate -s "${4:-128}M" "$1"
     "$OBJ/podpisz" slot "$1" "$2" "$(printf '%032x' "$3")" 1048576 >/dev/null
 }
 
@@ -49,7 +50,7 @@ efi() { # efi PLIK A.img B.img ZIARNO_PLIKÓW — the K1-EFI image (300 MiB) wit
     mcopy -i "$plik" "$Z/grub" ::/EFI/BOOT/grubx64.efi
     mcopy -i "$plik" "$Z/info" ::/.disk/info
     "$OBJ/podpisz" uklad "$plik" "$(miejsce "$plik" /boot/grub/grubenv)" "$(miejsce "$plik" /k1/a.img)" \
-        "$(miejsce "$plik" /k1/b.img)" >/dev/null
+        "$(miejsce "$plik" /k1/b.img)" "$(stat -c %s "$a")" >/dev/null
     "$OBJ/podpisz" start "$plik" >/dev/null
 }
 
@@ -66,6 +67,10 @@ K1_KLUCZ_PODPISU=AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI= "$OBJ/wydanie" ogl
 # an announcement of 0.10.8: the package's header names another version — built from a slot of that version
 slot "$Z/stara-a.img" 0.10.8 8; efi "$Z/stara.img" "$Z/stara-a.img" "$Z/pusty.img" 3
 "$OBJ/wydanie" paczka "$Z/stara.img" "$Z/stara.k1a" >/dev/null
+# 0.10.9 step 4b: the same version with slots of 129 MiB — a layout the disk does not have
+slot "$Z/inna-a.img" 0.11.0 11 129; truncate -s 129M "$Z/pusty129.img"; efi "$Z/inna.img" "$Z/inna-a.img" "$Z/pusty129.img" 5
+"$OBJ/wydanie" paczka "$Z/inna.img" "$OUT/inna.k1a" >/dev/null
+"$OBJ/wydanie" ogloszenie "$OUT/inna.k1a" "$Z/opisy" 1763400000 "$OUT/inna.bin" >/dev/null
 printf '' > "$Z/bez"
 "$OBJ/wydanie" ogloszenie "$Z/stara.k1a" "$Z/bez" 1763300000 "$OUT/stare.bin" >/dev/null
 rm -rf "$Z"

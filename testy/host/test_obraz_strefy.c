@@ -7,6 +7,7 @@
 #include "k1_test_host.h"
 #include "k1_uklad.h"
 
+#define S (128ull << 20) /* a slot of K1 up to 0.10.9 step 4 */
 #define H "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 static int czytaj(const char *t, struct k1_obraz_strefy *o)
@@ -49,15 +50,20 @@ int main(void)
     EXPECT(czytaj(t, &o) == 0);                          /* exactly 1 GiB */
     /* where it lies in a slot: right before the end of the slot's image */
     EXPECT(czytaj(H " 26530 109522944\n", &o) == 0);
-    EXPECT(k1_obraz_strefy_w_miejscu(&o, (22ull << 20) + 109522944ull) == (int64_t)(22ull << 20));
-    EXPECT(k1_obraz_strefy_w_miejscu(&o, (1ull << 20) + 109522944ull) == (int64_t)(1ull << 20)); /* the least FAT */
-    EXPECT(k1_obraz_strefy_w_miejscu(&o, (1ull << 20) - 4096 + 109522944ull) == -1); /* no room for the inner FAT */
-    EXPECT(k1_obraz_strefy_w_miejscu(&o, 109522944ull) == -1);
-    EXPECT(k1_obraz_strefy_w_miejscu(&o, 4096) == -1);       /* smaller than the image */
-    EXPECT(k1_obraz_strefy_w_miejscu(&o, (22ull << 20) + 109522944ull + 512) == -1); /* not 4 KiB aligned */
-    EXPECT(k1_obraz_strefy_w_miejscu(&o, K1_SLOT_MANIFEST_OFF) == (int64_t)(K1_SLOT_MANIFEST_OFF - 109522944ull));
-    EXPECT(k1_obraz_strefy_w_miejscu(&o, K1_SLOT_MANIFEST_OFF + 4096) == -1); /* over the slot's manifests */
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, (22ull << 20) + 109522944ull, S) == (int64_t)(22ull << 20));
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, (1ull << 20) + 109522944ull, S) == (int64_t)(1ull << 20)); /* the least FAT */
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, (1ull << 20) - 4096 + 109522944ull, S) == -1); /* no room for the inner FAT */
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, 109522944ull, S) == -1);
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, 4096, S) == -1);       /* smaller than the image */
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, (22ull << 20) + 109522944ull + 512, S) == -1); /* not 4 KiB aligned */
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, k1_slot_man_off(S), S) == (int64_t)(k1_slot_man_off(S) - 109522944ull));
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, k1_slot_man_off(S) + 4096, S) == -1); /* over the slot's manifests */
+    /* 0.10.9 step 4b: the slots of new sticks (768 MiB) — and the old ones (128 MiB) still read */
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, 700ull << 20, K1_SLOT_NOWY) == (int64_t)((700ull << 20) - 109522944ull));
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, 700ull << 20, S) == -1);                  /* bigger than an old slot */
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, 100ull << 20, K1_SLOT_MIN - K1_SLOT_MIB) == -1); /* no such slot */
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, 100ull << 20, K1_SLOT_MAKS + K1_SLOT_MIB) == -1);
     o.bajty = 0;
-    EXPECT(k1_obraz_strefy_w_miejscu(&o, 22ull << 20) == -1);
+    EXPECT(k1_obraz_strefy_w_miejscu(&o, 22ull << 20, S) == -1);
     return K1_TEST_KONIEC("test_obraz_strefy");
 }

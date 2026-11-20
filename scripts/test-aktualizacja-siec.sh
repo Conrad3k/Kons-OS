@@ -34,15 +34,16 @@ if [ -w /dev/kvm ] && grep -qsE '^(1|Y)$' /sys/module/kvm_intel/parameters/neste
     EMULACJA=
 fi
 
-# The disk: GPT as the Instalator writes it (src/instalator/gpt.c): K1-EFI 512 MiB at 1 MiB, K1-DANE after it
+# The disk: GPT as the Instalator writes it (src/instalator/gpt.c): K1-EFI 3 GiB at 1 MiB (since 0.10.9 step 4b), K1-DANE
+# after it (sparse: only what is written takes room)
 DYSK=$TESTY/akt-dysk.img
-rm -f "$DYSK"; truncate -s 1100M "$DYSK"
+rm -f "$DYSK"; truncate -s 3700M "$DYSK"
 sfdisk -q "$DYSK" >/dev/null <<TAB || blad "sfdisk"
 label: gpt
-start=2048, size=1048576, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, name="K1-EFI"
-start=1050624, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="K1-DANE"
+start=2048, size=6291456, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, name="K1-EFI"
+start=6293504, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="K1-DANE"
 TAB
-dd if="$ESP" of="$DYSK" bs=1M seek=1 conv=notrunc status=none
+dd if="$ESP" of="$DYSK" bs=1M seek=1 conv=notrunc,sparse status=none
 ZNAK=$TESTY/akt-znak.img
 dd if=/dev/zero of="$ZNAK" bs=1M count=1 status=none
 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -subj /CN=k1-test -days 2 \
@@ -62,17 +63,19 @@ def czytaj(f, od, n):
         p.seek(od)
         return p.read(n)
 
-def uklad():  # the K1-EFI partition's layout block (k1_uklad.h): grubenv, slot A, slot B
+def uklad():  # the K1-EFI partition's layout block (k1_uklad.h): FAT bytes, grubenv, slot bytes, slot A, slot B
     b = czytaj(dysk, MIB + 1024, 512)
-    return struct.unpack_from("<Q", b, 16)[0], struct.unpack_from("<Q", b, 32)[0], struct.unpack_from("<Q", b, 40)[0]
+    return [struct.unpack_from("<Q", b, o)[0] for o in (8, 16, 24, 32, 40)]
 
-GENV, SLOT_A, SLOT_B = uklad()
+FAT, GENV, SLOT, SLOT_A, SLOT_B = uklad()
+MAN = SLOT - MIB  # the slot manifest: in the slot's last MiB (k1_slot_man_off)
+POCZ = (FAT + MIB - 1) // MIB * MIB  # the waiting room: right after the FAT (k1_pocz_od)
 GENV_PRZED = czytaj(dysk, MIB + GENV, 1024)  # for the negative run: the disk as before the update
-MANIFEST_A = czytaj(dysk, MIB + SLOT_A + 127 * MIB, 48)  # for the last run: slot A runs this build's version
+MANIFEST_A = czytaj(dysk, MIB + SLOT_A + MAN, 48)  # for the last run: slot A runs this build's version
 # the running slot A says 0.0.1 (k1_manifest.h: version at 8, its text at 24) — the build's version is newer
 with open(dysk, "r+b") as p:
-    p.seek(MIB + SLOT_A + 127 * MIB + 8); p.write(struct.pack("<I", 1))
-    p.seek(MIB + SLOT_A + 127 * MIB + 24); p.write(b"0.0.1".ljust(24, b"\0"))
+    p.seek(MIB + SLOT_A + MAN + 8); p.write(struct.pack("<I", 1))
+    p.seek(MIB + SLOT_A + MAN + 24); p.write(b"0.0.1".ljust(24, b"\0"))
 
 dane = {"zla": False, "zapytania": []}
 class Serwer(http.server.BaseHTTPRequestHandler):
@@ -153,8 +156,8 @@ q.czysty_log()
 q.czekaj(r"K1-INIT: (wyłączam|uruchamiam ponownie)", czas=120)
 # the disk after it all
 env = czytaj(dysk, MIB + GENV, 1024).decode("ascii", "replace")
-man_b = czytaj(dysk, MIB + SLOT_B + 127 * MIB, 48)
-znak_p = czytaj(dysk, MIB + 280 * MIB, 4)
+man_b = czytaj(dysk, MIB + SLOT_B + MAN, 48)
+znak_p = czytaj(dysk, MIB + POCZ, 4)
 sprawdz("dysk: grubenv „spróbuj miejsca B raz”", "k1_nowy=b" in env, env.split("\n")[1:5])
 sprawdz(f"dysk: w miejscu B manifest wersji {wersja}", man_b[:4] == b"K1M1" and man_b[24:24 + len(wersja)] == wersja.encode(),
         man_b[24:40])
@@ -165,7 +168,7 @@ sprawdz("serwer: pytano tylko o ogłoszenie i paczkę", all(z.startswith(("/late
 # NEGATIVE: a changed byte in the package — refused, nothing waits, no window
 with open(dysk, "r+b") as p:  # back to "0.0.1 runs, nothing tried"
     p.seek(MIB + GENV); p.write(GENV_PRZED)
-    p.seek(MIB + SLOT_B + 127 * MIB); p.write(b"\0" * 1024)
+    p.seek(MIB + SLOT_B + MAN); p.write(b"\0" * 1024)
 dane["zla"] = True
 q2 = uruchom("2")
 q2.sprawdz("NEGATYWNE: paczka ze zmienionym bajtem odrzucona", q2.czekaj(
@@ -179,7 +182,7 @@ q2.monitor("quit")
 # 0.10.7 step 5: the disk runs this build's version — "masz najnowszą wersję"; Ustawienia → Aktualizacje twice and
 # "Sprawdź teraz" (before 0.10.7 the view "Sprawdzono o …" ended Ustawienia: localtime_r opened /etc/localtime, code 159)
 with open(dysk, "r+b") as p:
-    p.seek(MIB + SLOT_A + 127 * MIB); p.write(MANIFEST_A)
+    p.seek(MIB + SLOT_A + MAN); p.write(MANIFEST_A)
 dane["zla"] = False
 q3 = uruchom("3", opis=True)
 NAJNOWSZA = r"K1-USTAWIENIA: aktualizacje: sieć — najnowsza"

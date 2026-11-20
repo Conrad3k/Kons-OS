@@ -3,7 +3,8 @@
  *   podpisz klucz-publiczny          > k1_klucz.h     the public key for the programs of K1
  *   podpisz slot PLIK WERSJA WYDANIE FAT_BAJTY        slot manifest (format 2, ADR 0022) into the slot file PLIK
  *   podpisz grubenv PLIK                              GRUB's environment block for a fresh K1-EFI (slot a)
- *   podpisz uklad PLIK GRUBENV_OFF A_OFF B_OFF        the layout block into the K1-EFI image PLIK (checked)
+ *   podpisz uklad PLIK GRUBENV_OFF A_OFF B_OFF SLOT_BAJTY  the layout block into the K1-EFI image PLIK (checked; the
+ *                                                     slots' size since 0.10.9 step 4b — 768 MiB, 128 MiB before)
  *   podpisz start PLIK                                the manifest of the boot files (format 3, ADR 0038) of the
  *                                                     K1-EFI image PLIK into its slot A, beside the slot manifest
  *
@@ -84,9 +85,11 @@ static int slot(const char *plik, const char *wersja, const char *wydanie, const
     int32_t w = k1_wersja_z_tekstu(wersja);
     unsigned long long fat_bajty = strtoull(fat, NULL, 10);
     int fd = open(plik, O_RDWR), jest;
+    off_t rozm = fd < 0 ? -1 : lseek(fd, 0, SEEK_END); /* the slot's size (0.10.9 step 4b: not fixed any more) */
     memset(&m, 0, sizeof m);
     if (fd < 0 || w < 0 || strlen(wersja) >= sizeof m.tekst || hex16(wydanie, m.wydanie) != 0 || fat_bajty == 0 ||
-        fat_bajty > K1_SLOT_MANIFEST_OFF || lseek(fd, 0, SEEK_END) != (off_t)K1_SLOT_BAJTY) {
+        rozm < (off_t)K1_SLOT_MIN || rozm > (off_t)K1_SLOT_MAKS || (uint64_t)rozm % K1_SLOT_MIB != 0 ||
+        fat_bajty > k1_slot_man_off((uint64_t)rozm)) {
         fprintf(stderr, "podpisz slot: %s / wersja %s / wydanie %s / %s B\n", plik, wersja, wydanie, fat);
         return 1;
     }
@@ -99,7 +102,7 @@ static int slot(const char *plik, const char *wersja, const char *wydanie, const
     jest = klucze(tajny, pub);
     k1_manifest_zbuduj(&m, jest ? tajny : NULL, pub, man);
     crypto_wipe(tajny, sizeof tajny);
-    if (pwrite(fd, man, sizeof man, K1_SLOT_MANIFEST_OFF) != (ssize_t)sizeof man || close(fd) != 0 ||
+    if (pwrite(fd, man, sizeof man, (off_t)k1_slot_man_off((uint64_t)rozm)) != (ssize_t)sizeof man || close(fd) != 0 ||
         k1_manifest_czytaj(man, &r) != 0 || (jest && k1_manifest_sprawdz_podpis(man, pub) != 0))
         return 1;
     printf("%s: manifest slotu %s (%llu MiB), %s\n", plik, wersja, fat_bajty >> 20, jest ? "podpisany" : "BEZ podpisu");
@@ -117,7 +120,7 @@ static int grubenv(const char *plik)
     return 0;
 }
 
-static int uklad(const char *plik, const char *genv, const char *a, const char *b)
+static int uklad(const char *plik, const char *genv, const char *a, const char *b, const char *slot)
 {
     uint8_t blok[K1_UKLAD_BAJTY], stary[K1_UKLAD_BAJTY], e[K1_GRUBENV_BAJTY], man[K1_MANIFEST_BAJTY];
     struct k1_uklad u, r;
@@ -128,18 +131,18 @@ static int uklad(const char *plik, const char *genv, const char *a, const char *
     size_t i;
     u.fat_bajty = (uint64_t)rozm;
     u.grubenv_off = strtoull(genv, NULL, 10);
-    u.slot_bajty = K1_SLOT_BAJTY;
+    u.slot_bajty = strtoull(slot, NULL, 10);
     u.slot_off[0] = strtoull(a, NULL, 10);
     u.slot_off[1] = strtoull(b, NULL, 10);
     k1_uklad_zbuduj(&u, blok);
     if (rozm <= 0 || k1_uklad_czytaj(blok, (uint64_t)rozm, &r) != 0) {
-        fprintf(stderr, "podpisz uklad: niepoprawny układ (grubenv %s, a %s, b %s)\n", genv, a, b);
+        fprintf(stderr, "podpisz uklad: niepoprawny układ (grubenv %s, a %s, b %s, miejsca %s B)\n", genv, a, b, slot);
         return 1;
     }
     /* the place must be unused (FAT32: sector 2 of the reserved area), grubenv and slot A where we say */
     if (pread(fd, stary, sizeof stary, K1_UKLAD_OFF) != (ssize_t)sizeof stary ||
         pread(fd, e, sizeof e, (off_t)u.grubenv_off) != (ssize_t)sizeof e ||
-        pread(fd, man, sizeof man, (off_t)(u.slot_off[0] + K1_SLOT_MANIFEST_OFF)) != (ssize_t)sizeof man)
+        pread(fd, man, sizeof man, (off_t)(u.slot_off[0] + k1_slot_man_off(u.slot_bajty))) != (ssize_t)sizeof man)
         return 1;
     for (i = 0; i < sizeof stary; i++)
         if (stary[i] != 0) {
@@ -152,9 +155,9 @@ static int uklad(const char *plik, const char *genv, const char *a, const char *
     }
     if (pwrite(fd, blok, sizeof blok, K1_UKLAD_OFF) != (ssize_t)sizeof blok || close(fd) != 0)
         return 1;
-    printf("%s: układ — grubenv %llu, slot A %llu MiB, slot B %llu MiB (system %s)\n", plik,
+    printf("%s: układ — grubenv %llu, slot A %llu MiB, slot B %llu MiB, po %llu MiB (system %s)\n", plik,
            (unsigned long long)u.grubenv_off, (unsigned long long)(u.slot_off[0] >> 20),
-           (unsigned long long)(u.slot_off[1] >> 20), m.tekst);
+           (unsigned long long)(u.slot_off[1] >> 20), (unsigned long long)(u.slot_bajty >> 20), m.tekst);
     return 0;
 }
 
@@ -179,7 +182,7 @@ static int start(const char *plik)
     off_t rozm = fd < 0 ? -1 : lseek(fd, 0, SEEK_END);
     if (rozm <= 0 || pread(fd, blok, sizeof blok, K1_UKLAD_OFF) != (ssize_t)sizeof blok ||
         k1_uklad_czytaj(blok, (uint64_t)rozm, &u) != 0 ||
-        pread(fd, man, sizeof man, (off_t)(u.slot_off[0] + K1_SLOT_MANIFEST_OFF)) != (ssize_t)sizeof man ||
+        pread(fd, man, sizeof man, (off_t)(u.slot_off[0] + k1_slot_man_off(u.slot_bajty))) != (ssize_t)sizeof man ||
         k1_manifest_czytaj(man, &a) != 0 || a.format != K1_MANIFEST_SLOT) {
         fprintf(stderr, "podpisz start: %s bez bloku układu albo manifestu miejsca A\n", plik);
         return 1;
@@ -203,7 +206,7 @@ static int start(const char *plik)
     jest = klucze(tajny, pub);
     k1_manifest_zbuduj(&m, jest ? tajny : NULL, pub, man);
     crypto_wipe(tajny, sizeof tajny);
-    if (pwrite(fd, man, sizeof man, (off_t)(u.slot_off[0] + K1_SLOT_START_OFF)) != (ssize_t)sizeof man || close(fd) != 0 ||
+    if (pwrite(fd, man, sizeof man, (off_t)(u.slot_off[0] + k1_slot_start_off(u.slot_bajty))) != (ssize_t)sizeof man || close(fd) != 0 ||
         k1_manifest_czytaj(man, &r) != 0 || (jest && k1_manifest_sprawdz_podpis(man, pub) != 0))
         return 1;
     printf("%s: manifest plików startowych %s (%d plików i folderów), %s\n", plik, m.tekst, d.n,
@@ -221,8 +224,8 @@ int main(int argc, char **argv)
         return slot(argv[2], argv[3], argv[4], argv[5]);
     if (argc == 3 && strcmp(argv[1], "grubenv") == 0)
         return grubenv(argv[2]);
-    if (argc == 6 && strcmp(argv[1], "uklad") == 0)
-        return uklad(argv[2], argv[3], argv[4], argv[5]);
+    if (argc == 7 && strcmp(argv[1], "uklad") == 0)
+        return uklad(argv[2], argv[3], argv[4], argv[5], argv[6]);
     fprintf(stderr, "użycie: podpisz klucz-publiczny | slot PLIK WERSJA WYDANIE FAT_BAJTY | "
                     "grubenv PLIK | uklad PLIK GRUBENV_OFF A_OFF B_OFF | start PLIK\n");
     return 2;

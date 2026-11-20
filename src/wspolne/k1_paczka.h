@@ -9,7 +9,8 @@
  *  8192 the slot's inner image, zeros up to a multiple of 4096
  *       the front of the release's K1-EFI: bytes 0 .. (the first slot) — boot sector, FATs, folders, grubenv
  *       its back: from the end of the second slot, `back bytes` of it (the boot files; what follows is zeros)
- * The two slots of the K1-EFI (A and B, one after the other) are not in it: the system goes into the disk's free slot,
+ * The two slots of the K1-EFI (A and B, one after the other: their size is half of what lies between the front and the
+ * back — 128 MiB up to 0.10.9 step 4, 768 MiB since step 4b) are not in it: the system goes into the disk's free slot,
  * and the boot files are read from the front and the back (start.c, ADR 0038). The package has no signature of its
  * own: the announcement signs its SHA-256, the manifests in it sign the system and the boot files.
  *
@@ -53,6 +54,8 @@ static inline uint64_t k1_paczka_przod_od(const struct k1_paczka *p)
 }
 static inline uint64_t k1_paczka_tyl_od(const struct k1_paczka *p) { return k1_paczka_przod_od(p) + p->przod_bajty; }
 static inline uint64_t k1_paczka_bajty(const struct k1_paczka *p) { return k1_paczka_tyl_od(p) + p->tyl_bajty; }
+/* The size of the release's slots (checked by k1_paczka_czytaj). */
+static inline uint64_t k1_paczka_slot(const struct k1_paczka *p) { return (p->tyl_od - p->przod_bajty) / 2; }
 
 /* Parses the header (K1_PACZKA_NAGLOWEK bytes): the fields, both manifests (formats 2 and 3, one release: the same
  * version, build id, the package's version), the sizes against them. 0 or -1. */

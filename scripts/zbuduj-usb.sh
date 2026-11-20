@@ -1,9 +1,9 @@
 #!/bin/sh
 # Składa obraz K1 na pendrive z miejscem na dane (M5d, ADR 0016; A/B od 0.7.0, ADR 0022):
 #   build/wynik/k1-<wersja>-usb.img (+ .img.xz do pobrania)
-# GPT:  1. „K1-EFI”  (FAT32, 280 MiB, format 2 — src/wspolne/k1_uklad.h): shim + GRUB (podpisane, z Ubuntu),
+# GPT:  1. „K1-EFI”  (FAT32, 1600 MiB — do 0.10.9 krok 4 280 MiB; format 2 — src/wspolne/k1_uklad.h): shim + GRUB (z Ubuntu),
 #          MokManager, grub.cfg, grubenv, dwa miejsca na system: /k1/a.img (k1.efi tej wersji i za nim obraz strefy
-#          przeglądarki z drzewem dm-verity — 0.10.9 krok 4, ADR 0050) i /k1/b.img
+#          przeglądarki z drzewem dm-verity — 0.10.9 krok 4, ADR 0050) i /k1/b.img, po 768 MiB (do kroku 4b po 128 MiB)
 #       2. „K1-DANE” (64 MiB, same zera): zaszyfrowany magazyn tworzy skarbiec przy pierwszym starcie; wcześniej
 #          nadzorca powiększa pustą K1-DANE do końca pendrive'a (0.8.0, ADR 0033, src/nadzorca/powieksz.c).
 # Instalacja kopiuje K1-EFI na dysk (bez miejsca B); aktualizacja zapisuje nieużywane miejsce (A/B) i — gdy się
@@ -16,7 +16,10 @@
 
 USB=$K1_BUDOWA/usb
 WYJSCIE=$K1_WYNIK/k1-$K1_WERSJA-usb.img
-ESP_MIB=280
+# 0.10.9 step 4b (ADR 0050, the owner's D10 "A": more room, with a reserve): slots of 768 MiB (128 MiB before), the
+# K1-EFI 1600 MiB = two slots + 64 MiB for the boot files (an update writes the new ones beside the old ones)
+SLOT_MIB=768
+ESP_MIB=1600
 DANE_MIB=64
 PODPISZ=$K1_BUDOWA/obj/podpisz
 WYDANIE=$K1_BUDOWA/obj/wydanie
@@ -28,20 +31,21 @@ info "obraz USB $WYJSCIE"
 rm -rf "$USB"; mkdir -p "$USB"
 
 # Slot A: an inner FAT with /k1.efi (GRUB opens it with loopback), right after it the browser's zone image with its
-# dm-verity tree (0.10.9 step 4, ADR 0050: it ends where the slot's image ends — k1_obraz_strefy.h), its manifest at
-# 127 MiB of the slot. The manifest's digest covers both: an update copies them together.
+# dm-verity tree (0.10.9 step 4, ADR 0050: it ends where the slot's image ends — k1_obraz_strefy.h), its manifest in
+# the slot's last MiB. The manifest's digest covers both: an update copies them together.
 STREFA=$K1_WYNIK/strefa-przegladarka.img
 [ -f "$STREFA" ] || blad "brak obrazu strefy $STREFA (scripts/zbuduj-strefe.sh)"
 EFI_MIB=$(( ($(stat -c %s "$K1_WYNIK/k1.efi") + 2 * 1048576 - 1) / 1048576 ))
 obraz_fat "$USB/slot-a.fat" "$EFI_MIB" 4b315341 "$K1_WYNIK/k1.efi:/k1.efi"
 cat "$USB/slot-a.fat" "$STREFA" > "$USB/a.img"
 SLOT_BAJTY=$(stat -c %s "$USB/a.img")
-[ "$SLOT_BAJTY" -le $((127 * 1048576)) ] ||
-    blad "k1.efi i obraz strefy nie mieszczą się w miejscu A/B: brakuje $(( (SLOT_BAJTY - 127 * 1048576 + 1023) / 1024 )) KiB"
-info "miejsce A: k1.efi $((EFI_MIB)) MiB + obraz strefy $(( $(stat -c %s "$STREFA") >> 20 )) MiB, zapas $(( (127 * 1048576 - SLOT_BAJTY) >> 10 )) KiB"
-truncate -s 128M "$USB/a.img"
+MIEJSCE=$(( (SLOT_MIB - 1) * 1048576 )) # up to the manifests in the slot's last MiB
+[ "$SLOT_BAJTY" -le "$MIEJSCE" ] ||
+    blad "k1.efi i obraz strefy nie mieszczą się w miejscu A/B: brakuje $(( (SLOT_BAJTY - MIEJSCE + 1023) / 1024 )) KiB"
+info "miejsce A ($SLOT_MIB MiB): k1.efi $((EFI_MIB)) MiB + obraz strefy $(( $(stat -c %s "$STREFA") >> 20 )) MiB, zapas $(( (MIEJSCE - SLOT_BAJTY) >> 20 )) MiB"
+truncate -s ${SLOT_MIB}M "$USB/a.img"
 "$PODPISZ" slot "$USB/a.img" "$K1_WERSJA" "$(cat "$K1_WYNIK/wydanie")" "$SLOT_BAJTY" || blad "manifest slotu A"
-truncate -s 128M "$USB/b.img" # slot B: empty until the first update
+truncate -s ${SLOT_MIB}M "$USB/b.img" # slot B: empty until the first update
 "$PODPISZ" grubenv "$USB/grubenv" || blad "grubenv"
 
 { grub_poczatek; cat <<CFG; } > "$USB/grub.cfg"
@@ -107,8 +111,8 @@ miejsce() { # $1 = path in the image, $2 = expected size → byte offset
     [ $(( ($4 - $3 + 1) * SPC * BPS )) -ge "$2" ] || blad "$1: zły rozmiar w K1-EFI"
     echo $(( (RES + NFAT * FATSZ + ($3 - 2) * SPC) * BPS ))
 }
-GENV=$(miejsce /boot/grub/grubenv 1024) A=$(miejsce /k1/a.img 134217728) B=$(miejsce /k1/b.img 134217728)
-"$PODPISZ" uklad "$ESP" "$GENV" "$A" "$B" || blad "blok układu K1-EFI"
+GENV=$(miejsce /boot/grub/grubenv 1024) A=$(miejsce /k1/a.img $((SLOT_MIB << 20))) B=$(miejsce /k1/b.img $((SLOT_MIB << 20)))
+"$PODPISZ" uklad "$ESP" "$GENV" "$A" "$B" $((SLOT_MIB << 20)) || blad "blok układu K1-EFI"
 # The manifest of the boot files (ADR 0038): the digest of every file but grubenv and the slots, signed, in slot A.
 "$PODPISZ" start "$ESP" || blad "manifest plików startowych (podpisz)"
 
@@ -129,7 +133,7 @@ label-id: 4B310000-0000-4000-8000-000000000001
 start=2048, size=$((ESP_MIB * 2048)), type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=4B310000-0000-4000-8000-0000000000E1, name="K1-EFI"
 start=$(((1 + ESP_MIB) * 2048)), size=$((DANE_MIB * 2048)), type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, uuid=4B310000-0000-4000-8000-0000000000D1, name="K1-DANE"
 TAB
-dd if="$ESP" of="$WYJSCIE" bs=1M seek=1 conv=notrunc status=none
+dd if="$ESP" of="$WYJSCIE" bs=1M seek=1 conv=notrunc,sparse status=none # the empty slot B: no room taken
 xz -T0 -6 -k "$WYJSCIE"
 (cd "$K1_WYNIK" && sha256sum "k1-$K1_WERSJA-usb.img.xz" > "k1-$K1_WERSJA-usb.img.xz.sha256" &&
     sed -i '/  k1-.*\.k1a$\|  k1-ogloszenie\.bin$/d' SHA256SUMS && sha256sum "k1-$K1_WERSJA.k1a" k1-ogloszenie.bin >> SHA256SUMS)

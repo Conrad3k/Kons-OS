@@ -46,7 +46,7 @@ int k1_manifest_czytaj(const uint8_t *buf, struct k1_manifest *m)
     m->flagi = k1_c32(buf + 12);
     m->fat_bajty = (uint64_t)k1_c32(buf + 16) | (uint64_t)k1_c32(buf + 20) << 32;
     if (m->wersja > 0xffffffu || (m->flagi & ~K1_MANIFEST_PODPISANY) != 0 || m->fat_bajty == 0 ||
-        m->fat_bajty > (m->format == K1_MANIFEST_SLOT ? K1_SLOT_MANIFEST_OFF : K1_MANIFEST_EFI_MAKS))
+        m->fat_bajty > (m->format == K1_MANIFEST_SLOT ? k1_slot_man_off(K1_SLOT_MAKS) : K1_MANIFEST_EFI_MAKS))
         goto zle;
     memcpy(m->tekst, buf + 24, sizeof m->tekst);
     if (m->tekst[sizeof m->tekst - 1] != '\0' || k1_wersja_z_tekstu(m->tekst) != (int32_t)m->wersja)

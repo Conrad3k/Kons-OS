@@ -163,7 +163,7 @@ static int stan(int test)
         flagi |= swieze ? K1_SIEC_FL_OGL : K1_SIEC_FL_OGL_ZLE;
         k1_log(TAG, "ogłoszenie wydania: %zd B, %s", n, swieze ? "podpis i format poprawne" : "ODRZUCONE (podpis albo format)");
     }
-    if (!miesci(&d, swieze ? o.paczka_bajty : K1_SLOT_BAJTY)) /* a stick's K1-EFI: K1 says "nagraj nowy pendrive" (D5) */
+    if (!miesci(&d, swieze ? o.paczka_bajty : d.e.uklad.slot_bajty)) /* a stick's K1-EFI: K1 says "nagraj nowy pendrive" (D5) */
         flagi |= K1_SIEC_FL_BEZ_MIEJSCA;
     if (swieze && nowsza(&d, o.wersja) && o.wersja > czeka)
         nowa = o.wersja;

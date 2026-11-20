@@ -24,8 +24,11 @@ int k1_efi_czytaj(int fd, uint64_t rozmiar, struct k1_efi *e)
         if (!e->env_ok)
             memset(&e->env, 0, sizeof e->env);
         e->dziala = e->env.slot == 'b' ? 1 : 0; /* GRUB: anything but "b" is "a" */
-        for (i = 0; i < 2; i++)
-            manifest(fd, e->uklad.slot_off[i] + K1_SLOT_MANIFEST_OFF, K1_MANIFEST_SLOT, &e->slot[i]);
+        for (i = 0; i < 2; i++) {
+            manifest(fd, e->uklad.slot_off[i] + k1_slot_man_off(e->uklad.slot_bajty), K1_MANIFEST_SLOT, &e->slot[i]);
+            if (e->slot[i].fat_bajty > k1_slot_man_off(e->uklad.slot_bajty)) /* an image over its own manifest */
+                memset(&e->slot[i], 0, sizeof e->slot[i]);
+        }
         return 0;
     }
     return -1;

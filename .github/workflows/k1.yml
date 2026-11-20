@@ -260,7 +260,7 @@ jobs:
               "build/wynik/k1-${K1_WERSJA}-usb.img.xz" "build/wynik/k1-${K1_WERSJA}-usb.img.xz.sha256" \
               "build/wynik/k1-${K1_WERSJA}.k1a" build/wynik/k1-ogloszenie.bin \
               build/wynik/SHA256SUMS --title "Kons K1 ${K1_WERSJA}" --latest \
-              --notes "k1-${K1_WERSJA}-usb.img.xz — na pendrive ≥ 512 MB (laptop, UEFI): system i zaszyfrowane miejsce na dane (Rufus/balenaEtcher). k1-${K1_WERSJA}.iso — do maszyny wirtualnej (UEFI albo BIOS), bez zapisu danych. Instrukcja: README.md. Zmiany: CHANGELOG.md. System: ${K1_PODPIS}."
+              --notes "k1-${K1_WERSJA}-usb.img.xz — na pendrive ≥ 2 GB (laptop, UEFI): system i zaszyfrowane miejsce na dane (Rufus/balenaEtcher). k1-${K1_WERSJA}.iso — do maszyny wirtualnej (UEFI albo BIOS), bez zapisu danych. Instrukcja: README.md. Zmiany: CHANGELOG.md. System: ${K1_PODPIS}."
           fi
 
       - name: Wyślij obrazy jako artefakt (tylko PR — na main obraz jest w wydaniu)

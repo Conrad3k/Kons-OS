@@ -55,7 +55,7 @@ static void gpt(uint64_t bajty, uint32_t sektor)
     for (i = 0; i < 48; i++)
         losowe[i] = (uint8_t)(i * 37 + 11);
     EXPECT(k1_gpt_uklad(bajty, sektor, &u) == 0);
-    EXPECT(u.efi_od == mib && u.efi_do - u.efi_od + 1 == 512 * mib); /* K1-EFI: 512 MiB from 1 MiB (ADR 0018) */
+    EXPECT(u.efi_od == mib && u.efi_do - u.efi_od + 1 == 3072 * mib); /* K1-EFI: 3 GiB from 1 MiB (ADR 0018; 0.10.9 4b) */
     EXPECT(u.dane_od == u.efi_do + 1 && u.dane_do <= u.ostatni && (u.dane_do + 1) % mib == 0);
     EXPECT(u.ostatni + 1 + u.wpisy_sektory + 1 == u.sektory);
     EXPECT(u.pierwszy == 2 + 16384 / sektor); /* MBR, header, 128 entries of 128 B (UEFI spec) */
@@ -96,7 +96,7 @@ static void powieksz(uint32_t sektor)
     uint8_t losowe[48] = { 7, 7, 7 };
     struct k1_gpt_uklad u, v;
     uint64_t koniec = 0, mib = K1_GPT_MIB / sektor, wieksze = (16ull << 30) / sektor;
-    EXPECT(k1_gpt_uklad(1ull << 30, sektor, &u) == 0);
+    EXPECT(k1_gpt_uklad(4ull << 30, sektor, &u) == 0);
     k1_gpt_zbuduj(&u, losowe, mbr, g, z, w);
     EXPECT(k1_gpt_powieksz(sektor, wieksze, u.dane_od, mbr, g, z, w, &koniec) == 0);
     v = u;
@@ -271,7 +271,8 @@ int main(int argc, char **argv)
     gpt(3ull << 40, 512);        /* > 2 TiB: the protective MBR stops at 2^32-1 sectors */
     powieksz(512);
     powieksz(4096);
-    EXPECT(k1_gpt_uklad(700ull << 20, 512, &u) == -1); /* too small for 512 MiB + 256 MiB */
+    EXPECT(k1_gpt_uklad(700ull << 20, 512, &u) == -1); /* too small for 3 GiB + 256 MiB */
+    EXPECT(k1_gpt_uklad(3ull << 30, 512, &u) == -1);   /* 0.10.9 step 4b: 3 GiB is too small now too */
     EXPECT(k1_gpt_uklad(4ull << 30, 1024, &u) == -1);
     EXPECT(k1_crc32("123456789", 9) == 0xcbf43926u); /* the standard check value */
     EXPECT(argc == 2); /* the image for sfdisk to read back (make testy-host): without it, a failure */

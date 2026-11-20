@@ -199,6 +199,11 @@ int siec_zainstaluj(const struct siec_dysk *d, int test)
     int r = sprawdz_paczke(d, test, &p);
     if (r != 0)
         return r;
+    if (k1_paczka_slot(&p) != d->e.uklad.slot_bajty) { /* 0.10.9 step 4b: an older K1's slots — nothing written */
+        k1_log(TAG, "zainstaluj: odmowa — na dysku miejsca A/B po %llu MiB, wersja ma po %llu MiB; zainstaluj K1 od nowa",
+               (unsigned long long)(d->e.uklad.slot_bajty >> 20), (unsigned long long)(k1_paczka_slot(&p) >> 20));
+        return K1_INST_BLAD_UKLAD;
+    }
     if (blake_dysku(od + k1_paczka_slot_od(), p.slot_bajty, s) != 0 || crypto_verify32(s, p.slot.skrot) != 0) {
         k1_log(TAG, "zainstaluj: system w paczce niezgodny z manifestem — nic nie zmieniono");
         return K1_INST_BLAD_PODPIS;
@@ -209,14 +214,14 @@ int siec_zainstaluj(const struct siec_dysk *d, int test)
         return r;
     k1_log(TAG, "zainstaluj: system %s do miejsca %c; działający system i dane nietknięte", p.slot.tekst, "ab"[d->wolne]);
     memset(man, 0, sizeof man); /* the slot names no system while it is written */
-    if (k1_pisz_calosc(FD_CEL, man, sizeof man, slot + K1_SLOT_MANIFEST_OFF) != 0)
+    if (k1_pisz_calosc(FD_CEL, man, sizeof man, slot + k1_slot_man_off(d->e.uklad.slot_bajty)) != 0)
         return K1_INST_BLAD_ZAPIS;
     r = kopiuj(od + k1_paczka_slot_od(), p.slot_bajty, slot, 40, 94);
     if (r != 0)
         return r;
     memcpy(man, p.man_slot, K1_MANIFEST_BAJTY);
     memcpy(man + K1_MANIFEST_BAJTY, p.man_start, K1_MANIFEST_BAJTY);
-    if (k1_pisz_calosc(FD_CEL, man, sizeof man, slot + K1_SLOT_MANIFEST_OFF) != 0 || fdatasync(FD_CEL) != 0)
+    if (k1_pisz_calosc(FD_CEL, man, sizeof man, slot + k1_slot_man_off(d->e.uklad.slot_bajty)) != 0 || fdatasync(FD_CEL) != 0)
         return K1_INST_BLAD_ZAPIS;
     r = sprobuj(d, d->wolne);
     if (r != 0)
@@ -238,7 +243,7 @@ int siec_wroc(const struct siec_dysk *d, int test)
         k1_log(TAG, "wróć: w drugim miejscu nie ma poprzedniej (starszej) wersji");
         return K1_INST_BLAD_ARG;
     }
-    if (k1_czytaj_calosc(FD_CEL, man, sizeof man, slot + K1_SLOT_MANIFEST_OFF) != 0 || !siec_man_dobry(man, test) ||
+    if (k1_czytaj_calosc(FD_CEL, man, sizeof man, slot + k1_slot_man_off(d->e.uklad.slot_bajty)) != 0 || !siec_man_dobry(man, test) ||
         blake_dysku(slot, m->fat_bajty, s) != 0 || crypto_verify32(s, m->skrot) != 0) {
         k1_log(TAG, "wróć: poprzednia wersja %s uszkodzona albo bez podpisu — zostaje ta, która działa", m->tekst);
         return K1_INST_BLAD_PODPIS;

@@ -8,6 +8,8 @@
 #include "k1_uklad.h"
 #include "k1_test_host.h"
 
+#define SLOT (128ull << 20) /* the slots of these images: the size up to 0.10.9 step 4 (still read) */
+
 #define MIB (1ull << 20)
 
 static uint64_t le64(const uint8_t *p)
@@ -36,7 +38,7 @@ static void env(const char *tekst, uint8_t *b)
 
 int main(int argc, char **argv)
 {
-    struct k1_uklad u = { 280 * MIB, 1 * MIB, K1_SLOT_BAJTY, { 132 * MIB, 4 * MIB } }, z;
+    struct k1_uklad u = { 280 * MIB, 1 * MIB, SLOT, { 132 * MIB, 4 * MIB } }, z;
     uint8_t b[K1_UKLAD_BAJTY], e[K1_GRUBENV_BAJTY];
     struct k1_grubenv g, h;
 
@@ -57,6 +59,12 @@ int main(int argc, char **argv)
     z = u; z.grubenv_off = K1_UKLAD_OFF; EXPECT(!uklad_ok(&z, 512 * MIB));                       /* in the FAT reserved area */
     z = u; z.slot_off[0] = 132 * MIB + 100; EXPECT(!uklad_ok(&z, 512 * MIB));                    /* not sector aligned */
     z = u; z.slot_bajty = 64 * MIB; EXPECT(!uklad_ok(&z, 512 * MIB));                            /* other slot size */
+    /* 0.10.9 step 4b: the slots of new sticks (768 MiB), not whole MiB, over 2 GiB */
+    z = u; z.fat_bajty = 1600 * MIB; z.slot_bajty = K1_SLOT_NOWY; z.slot_off[1] = 4 * MIB; z.slot_off[0] = 772 * MIB;
+    EXPECT(uklad_ok(&z, 3072 * MIB) && !uklad_ok(&z, 1599 * MIB));
+    z.slot_bajty = K1_SLOT_NOWY + 512; EXPECT(!uklad_ok(&z, 3072 * MIB));
+    z = u; z.fat_bajty = 4200 * MIB; z.slot_bajty = K1_SLOT_MAKS + MIB; z.slot_off[1] = 4 * MIB; z.slot_off[0] = 2054 * MIB;
+    EXPECT(!uklad_ok(&z, 4200 * MIB));
     z = u; z.slot_off[0] = 200 * MIB; EXPECT(!uklad_ok(&z, 512 * MIB));                          /* past the FAT */
     z = u; z.slot_off[1] = ~0ull - 4095; EXPECT(!uklad_ok(&z, 512 * MIB));                       /* overflow */
     z = u; z.fat_bajty = 0; EXPECT(!uklad_ok(&z, 512 * MIB));

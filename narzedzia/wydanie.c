@@ -78,18 +78,18 @@ static int paczka(const char *esp, const char *wyjscie)
     }
     a = u.slot_off[0] < u.slot_off[1] ? u.slot_off[0] : u.slot_off[1];
     b = u.slot_off[0] < u.slot_off[1] ? u.slot_off[1] : u.slot_off[0];
-    if (czytaj(fd, p.man_slot, K1_MANIFEST_BAJTY, u.slot_off[0] + K1_SLOT_MANIFEST_OFF) != 0 ||
-        czytaj(fd, p.man_start, K1_MANIFEST_BAJTY, u.slot_off[0] + K1_SLOT_START_OFF) != 0 ||
+    if (czytaj(fd, p.man_slot, K1_MANIFEST_BAJTY, u.slot_off[0] + k1_slot_man_off(u.slot_bajty)) != 0 ||
+        czytaj(fd, p.man_start, K1_MANIFEST_BAJTY, u.slot_off[0] + k1_slot_start_off(u.slot_bajty)) != 0 ||
         k1_manifest_czytaj(p.man_slot, &p.slot) != 0 || a > sizeof przod || czytaj(fd, przod, (size_t)a, 0) != 0) {
         fprintf(stderr, "wydanie paczka: %s — manifesty miejsca A albo początek nieczytelne\n", esp);
         return 1;
     }
-    tyl_do = koniec_danych(fd, b + K1_SLOT_BAJTY, (uint64_t)rozm);
+    tyl_do = koniec_danych(fd, b + u.slot_bajty, (uint64_t)rozm);
     p.wersja = p.slot.wersja;
     p.slot_bajty = p.slot.fat_bajty;
     p.efi_bajty = (uint64_t)rozm;
     p.przod_bajty = a;
-    p.tyl_od = b + K1_SLOT_BAJTY;
+    p.tyl_od = b + u.slot_bajty;
     p.tyl_bajty = tyl_do - p.tyl_od;
     if (k1_paczka_zbuduj(&p, naglowek) != 0 || k1_paczka_uklad(&p, przod, &u) != 0) {
         fprintf(stderr, "wydanie paczka: %s — układ K1-EFI albo manifesty nie pasują do formatu paczki\n", esp);

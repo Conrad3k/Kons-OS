@@ -148,7 +148,7 @@ PY
     zamknij_qemu "$MON" $QPID
 }
 
-cp "$USBIMG" "$PEN"
+cp --sparse=always "$USBIMG" "$PEN"
 virt-fw-vars --input "$MS" --output "$TESTY/m6-zmienne-mok.fd" --add-mok 4b310000-0000-4000-8000-0000000000aa "$TESTY/m6-k1.pem" \
     --secure-boot >/dev/null 2>&1 || blad "virt-fw-vars (MOK)"
 uruchom sb-z-kluczem 1-z-kluczem "$TESTY/m6-zmienne-mok.fd" "$PEN"
@@ -156,7 +156,7 @@ virt-fw-vars --input "$MS" --output "$TESTY/m6-zmienne-bez.fd" --secure-boot >/d
 uruchom sb-bez-klucza 2-bez-klucza "$TESTY/m6-zmienne-bez.fd" "$PEN"
 # one byte of the kernel inside k1.efi (slot A: the layout block at 1 KiB of K1-EFI says where; k1.efi starts
 # in the first MiB of the slot's inner FAT, its kernel code well before 2 MiB) — the signature no longer matches
-cp "$PEN" "$TESTY/m6-zmieniony.img"
+cp --sparse=always "$PEN" "$TESTY/m6-zmieniony.img"
 python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); f.seek(1048576+1024+32); a=1048576+int.from_bytes(f.read(8),"little"); f.seek(a+2*1048576); b=f.read(1); f.seek(-1,1); f.write(bytes([b[0]^0xff])); f.close()' "$TESTY/m6-zmieniony.img"
 virt-fw-vars --input "$MS" --output "$TESTY/m6-zmienne-mok2.fd" --add-mok 4b310000-0000-4000-8000-0000000000aa "$TESTY/m6-k1.pem" \
     --secure-boot >/dev/null 2>&1
@@ -176,7 +176,7 @@ else
     uruchom deweloperska 4-deweloperska "$TESTY/m6-zmienne.fd" "$PEN"
 fi
 # 0.8.5 step 4: the same image as an installed disk (SATA, 2 GiB — a disk the Instalator lists), no stick
-cp "$USBIMG" "$TESTY/m6-dysk.img" && truncate -s 2G "$TESTY/m6-dysk.img"
+cp --sparse=always "$USBIMG" "$TESTY/m6-dysk.img" && truncate -s 2G "$TESTY/m6-dysk.img"
 virt-fw-vars --input "$MS" --output "$TESTY/m6-zmienne-dysk.fd" --set-false SecureBootEnable >/dev/null 2>&1
 uruchom z-dysku 7-z-dysku "$TESTY/m6-zmienne-dysk.fd" "$TESTY/m6-dysk.img" dysk
 rm -f "$PEN" "$TESTY/m6-dysk.img" "$TESTY"/m6-zmienne*.fd
