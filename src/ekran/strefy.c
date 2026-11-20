@@ -5,7 +5,9 @@
  * 2 px line under the bar (until 0.10.7 the whole frame was in it). Grabbing the bar moves the window. Everything here
  * lies OUTSIDE the zone's rectangle and is drawn before it: the zone only ever has its own rectangle, so it can neither
  * cover nor draw the frame (RYZYKA R26), and the pointer on the frame never reaches the zone. Without focus the
- * colour is mixed with the theme's background and the title is muted, as in K1 windows. 0.10.5 step 4 (D8): maximise
+ * colour is mixed with the theme's background and the title is muted, as in K1 windows. 0.10.9 step 6 (D7, the owner's
+ * choice: a chip): a zone that runs with its graphics broker (STREFY_GRAFIKA b from nadzorca — weaker isolation, so it
+ * shows: ADR 0020 p. 3) has a small chip right after its session's name. 0.10.5 step 4 (D8): maximise
  * (a square) / restore (two squares); a maximized window has no outline (its bar right under the top bar, its picture
  * to the bottom bar); the grips of the edges: rozmiar.c. Part of ekran (ekran.h). */
 #include <stdio.h>
@@ -35,12 +37,18 @@ static const struct k1_strefa_opis *opis(const struct pow *p)
 /* The sessions as the user set them (nadzorca, 0.10.0 step 5): the names, which zones remember. Until nadzorca says,
  * the names of the rows. */
 static char nazwy[K1_STREFY_MAKS + 1][K1_STREFA_NAZWA_MAKS + 1];
-static int32_t pamietaja;
+static int32_t pamietaja, z_karta;
 
 void strefy_sesje(const struct k1_komunikat *k)
 {
     if (k->typ == K1_KOM_STREFY_STAN) {
         pamietaja = k->a;
+        return;
+    }
+    if (k->typ == K1_KOM_STREFY_GRAFIKA) { /* 0.10.9 step 6: which zones run with their graphics broker */
+        if (k->b != z_karta)
+            uszkodz(0, 0, s.W, s.H);
+        z_karta = k->b;
         return;
     }
     const int32_t p[5] = { k->a, k->b, k->c, k->d, k->e }; /* checked: k1_strefa_nazwa_dobra */
@@ -53,14 +61,21 @@ int strefa_pamieta(int nr)
     return nr >= 1 && nr <= K1_STREFY_MAKS && (pamietaja >> (nr - 1) & 1);
 }
 
-/* The title in two parts around the session's dot: "<title> · " and "<session> · osobna maszyna" (one-off:
- * "· zapomina"); without a session the dot stands before "osobna maszyna". */
-static void tekst(const struct pow *p, char *przed, size_t n1, char *po, size_t n2)
+/* The title in three parts around the session's dot and the mark of fast graphics: "<title> · ", "<session>" and
+ * " · osobna maszyna" (one-off: "· zapomina"); without a session the dot stands before "osobna maszyna". */
+static void tekst(const struct pow *p, char *przed, size_t n1, char *sesja_t, size_t n2, char *po, size_t n3)
 {
     const struct k1_strefa_opis *z = opis(p);
     const char *sesja = nazwy[z->nr][0] ? nazwy[z->nr] : z->sesja;
     snprintf(przed, n1, "%s · ", z->tytul);
-    snprintf(po, n2, "%s%sosobna maszyna%s", sesja, sesja[0] ? " · " : "", s.kl[p->kl].pamieta ? "" : " · zapomina");
+    snprintf(sesja_t, n2, "%s", sesja);
+    snprintf(po, n3, "%sosobna maszyna%s", sesja[0] ? " · " : "", s.kl[p->kl].pamieta ? "" : " · zapomina");
+}
+
+static int z_karta_strefa(const struct pow *p)
+{
+    int nr = opis(p)->nr;
+    return nr >= 1 && nr <= K1_STREFY_MAKS && (z_karta >> (nr - 1) & 1);
 }
 
 static int32_t obwodka(const struct pow *p)
@@ -143,21 +158,29 @@ void strefa_ramka(const struct pow *p, const struct prost *r)
     int fokus = (int)(p - s.p) == s.fokus;
     uint32_t k = kolor(p), napis = k1_kolor(fokus ? m->tekst : m->tekst3, 255);
     float x = (float)(f.x - r->x), y = (float)(f.y - r->y), promien = p->maks ? 0 : PROMIEN;
-    char przed[64], po[128];
-    int32_t ob = obwodka(p), tx, ty, szer = p->w - 36 - 3 * ODSTEP - MARGINES - 8;
+    char przed[64], sesja[K1_STREFA_NAZWA_MAKS + 1], po[64];
+    int32_t ob = obwodka(p), tx, ty, szer = p->w - 36 - 3 * ODSTEP - MARGINES - 8, kon;
     k1_zaokraglony(&o, x, y, (float)f.w, (float)f.h, promien, k1_kolor(m->tlo, 255));
     if (!p->maks)
         k1_obrys(&o, x, y, (float)f.w, (float)f.h, promien, 1.0f, k1_kolor(m->tekst, 26));
     k1_prostokat(&o, (int32_t)x + ob, (int32_t)y + ob + K1_STREFA_TYTUL - 2, p->w, 2, k1_kolor(k, 255)); /* the line */
     k1_ikona(&o, (enum k1_ikona)z->ikona, x + (float)ob + 10, y + (float)ob + (K1_STREFA_TYTUL - 18) / 2.0f, 18,
              k1_kolor(fokus ? m->tekst2 : m->tekst3, 255));
-    tekst(p, przed, sizeof przed, po, sizeof po);
+    tekst(p, przed, sizeof przed, sesja, sizeof sesja, po, sizeof po);
     tx = (int32_t)x + ob + 36;
     ty = (int32_t)y + ob + K1_STREFA_TYTUL / 2 + 5;
+    kon = (int32_t)x + ob + 36 + szer;
     tx += k1_tekst(&o, K1_CZ_TEKST_MOCNA, tx, ty, przed, napis, szer);
-    if (tx + 16 < (int32_t)x + ob + 36 + szer) { /* the dot, then the session's name */
+    if (tx + 16 < kon) { /* the dot, the session's name, the mark of fast graphics (D7), the rest */
         k1_kolo(&o, (float)tx + 5, (float)ty - 5, 5, k1_kolor(k, 255));
-        k1_tekst(&o, K1_CZ_TEKST_MOCNA, tx + 16, ty, po, napis, (int32_t)x + ob + 36 + szer - tx - 16);
+        tx += 16;
+        tx += k1_tekst(&o, K1_CZ_TEKST_MOCNA, tx, ty, sesja, napis, kon - tx);
+        if (z_karta_strefa(p) && tx + 22 < kon) {
+            k1_ikona(&o, K1_IK_KARTA, (float)tx + 5, (float)ty - 13, 16, k1_kolor(fokus ? m->tekst2 : m->tekst3, 255));
+            tx += 22;
+        }
+        if (tx < kon)
+            k1_tekst(&o, K1_CZ_TEKST_MOCNA, tx, ty, po, napis, kon - tx);
     }
     rysuj_przycisk(&o, p, r, STREFA_MINIMALIZUJ, m);
     rysuj_przycisk(&o, p, r, STREFA_MAKSYMALIZUJ, m);

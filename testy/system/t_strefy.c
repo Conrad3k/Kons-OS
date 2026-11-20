@@ -151,7 +151,7 @@ void t_strefa_klatka(void)
     for (i = 0; i < 300 && (pid = find_process("strefa")) <= 0; i++)
         msleep(100);
     msleep(3000); /* its processor thread is up */
-    t_klatka_grupy("strefa", "strefa-1", z->procesory + 3, z->uid, fds); /* + the watchman (stroz.c), the disk (dane.c) */
+    t_klatka_grupy("strefa", "strefa-1", z->procesory + 4, z->uid, fds); /* + the watchman, the disk, the bridge, KVM */
     pid = find_process("strefa");
     check(pid > 0 && kill((pid_t)pid, SIGKILL) == 0, "strefa: VMM strefy próbnej działał w klatce", "pid %ld", pid);
     for (i = 0; i < 100 && find_process("strefa") > 0; i++)
@@ -320,6 +320,8 @@ int t_strefy_scenariusz(void)
         zapytaj(k1_komunikat_nowy(K1_KOM_STREFA_WYCZYSC, K1_STREFA_PROBNA, 0, 0, 0, 0, 0), NULL, 10);
         msleep(2000);
         strefa_raz(K1_STREFA_TRYB_DYSK, 240); /* after "Wyczyść dane sesji": 1 */
+        strefa_raz(K1_STREFA_TRYB_GRAFIKA, 300);     /* 0.10.9 step 6: the bridge of fast graphics (test engine) */
+        strefa_raz(K1_STREFA_TRYB_GRAFIKA_ZLA, 400); /* …and a guest hostile to it */
         rozdzielacz();
         okno_i_zamykanie(); /* 0.10.2 step 1 */
         strefa_raz_start(0); /* S5: it runs when the script powers K1 off — it must close and save first */

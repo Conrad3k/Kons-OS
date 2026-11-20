@@ -28,6 +28,8 @@
 /* fd 7: the channel to nadzorca for the browser's connections (polaczenia.h) */
 #define FD_SKARB 8   /* 0.10.0 step 5: a zone that remembers — a channel to skarbiec (the owner: the zone's profile) */
 #define FD_WZOR 9    /* …and its empty disk (/rdzen/strefy/dysk.img), read only; a zone that forgets: neither */
+#define FD_POSREDNIK 10 /* 0.10.9 step 6: a session with fast graphics on — the channel to its graphics broker; else none
+                         * (fd 8, 9 are then placeholders when the zone forgets: dane.c sees no disk) */
 
 /* The devices of every zone: one row each (readability rule 5) — its MMIO window is MMIO_BAZA + i × MMIO_ROZMIAR and
  * its interrupt line PRZERWANIE_PIERWSZE + i, in this order; the command line of the guest names them in this order
@@ -131,7 +133,20 @@ void kvm_linia_urzadzen(char *buf, size_t n);        /* "virtio_mmio.device=4K@0
 /* the devices (each its file) */
 const uint32_t *gpu_obraz(uint32_t *w, uint32_t *h); /* gpu.c: the shown resource (under mz.zamek), NULL: none yet */
 void gpu_liczniki(unsigned *n, unsigned *mib);
-void gpu_zmiana_ekranu(void);  /* gpu.c, under mz.zamek: the display's size changed (okno.c) — the guest is told */        /* gpu.c: resources now and their MiB (the counters' line) */
+void gpu_zmiana_ekranu(void);  /* gpu.c, under mz.zamek: the display's size changed (okno.c) — the guest is told */
+struct virtio_gpu_resp_display_info;
+/* gpu.c: a 2D command of the control queue (gpu_lacze.c: under mz.zamek): 0, or -1 when shorter than its structure */
+int gpu_2d(const struct vq_lancuch *l, uint32_t typ, uint32_t *wynik, struct virtio_gpu_resp_display_info *info);
+int gpu_jest_2d(uint32_t typ, uint32_t id);
+/* gpu_lacze.c (0.10.9 step 6): fast graphics — the bridge to the graphics broker (fd 10), its thread, KVM's slots */
+int gpu_lacze_start(void);      /* 0 (with or without a broker), -1: the machine cannot start */
+int gpu_lacze_jest(void);       /* the device offers 3D (the broker said the card can) */
+int gpu_lacze_zasob(uint32_t id); /* a blob resource id exists */
+void gpu_lacze_obudz(struct mmio_urz *u);
+void gpu_lacze_reset(struct mmio_urz *u);
+uint64_t gpu_lacze_cechy(const struct mmio_urz *u);
+int gpu_lacze_okno(const struct mmio_urz *u, uint32_t id, uint64_t *baza, uint64_t *dl);
+void gpu_lacze_koniec(void);    /* at the end: the numbers to the log */
 void wejscie_klawisz(int kod, int wartosc);          /* wejscie.c: a Linux key code, 0 up / 1 down / 2 repeat */
 void wejscie_wskaznik(int32_t x, int32_t y, uint32_t w, uint32_t h, int rodzaj, int przycisk); /* K1_WSK_* in a w×h window */
 /* the wheel or two fingers at x, y (K1_KOM_PRZEWIN: c, d in 1/120 of a notch, d > 0 further down; e = source) */

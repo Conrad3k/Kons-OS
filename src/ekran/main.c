@@ -62,7 +62,8 @@ static int odbierz_sterowanie(void)
     /* Only the supervisor (root) holds the other end; check it anyway, and every field. */
     if (o.ma_nadawce && o.uid == 0 && !o.obciete && o.fd < 0 &&
         k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &k) == 0 &&
-        (k.typ == K1_KOM_STREFY_STAN || k.typ == K1_KOM_STREFA_NAZWA || k.typ == K1_KOM_WYLACZANIE)) {
+        (k.typ == K1_KOM_STREFY_STAN || k.typ == K1_KOM_STREFA_NAZWA || k.typ == K1_KOM_STREFY_GRAFIKA ||
+         k.typ == K1_KOM_WYLACZANIE)) {
         if (k.typ == K1_KOM_WYLACZANIE) /* 0.10.7 step 6: K1 powers off */
             wylaczanie_start(k.a);
         else

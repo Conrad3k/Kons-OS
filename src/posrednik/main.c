@@ -8,8 +8,9 @@
  * program). fd 3 = the channel to the client (its UID checked: the zone's VMM, or UID 0 for nadzorca and the test
  * program), fd 4 = the render node of the card (i915; nadzorca gives it only to the card's services) or /dev/null.
  * First message: POSR_UMIE — whether the card can keep the zones apart (full PPGTT, context isolation, pinned
- * addresses, out-fences); without it the broker ends (no fast graphics on that computer — X230). Then: the window and
- * the shared memory (once each), streams of requests, buffers given resource numbers, shared (dma-buf for the VMM),
+ * addresses, out-fences); without it the broker ends (no fast graphics on that computer — X230). Then: the window
+ * (once), the shared memory of each guest context (step 6: one per process of the zone with the card open), streams of
+ * requests, buffers given resource numbers, shared (dma-buf for the VMM),
  * released, fences waited for.
  * Trust boundary: the client is hostile (the zone); the card's driver in the kernel is within its reach only through
  * the checked requests, and the card keeps each client's work in its own address space. A context of ours that hangs
@@ -37,8 +38,8 @@
 
 const struct silnik *silnik;
 struct k1_posr_obiekty obiekty;
-volatile uint8_t *wspolna;
-uint32_t wspolna_rozmiar;
+volatile uint8_t *wspolna[K1_POSR_GOSCIE + 1];
+uint32_t wspolna_rozmiar[K1_POSR_GOSCIE + 1];
 int zawieszona;
 static uid_t klient;
 static volatile uint8_t *okno;
@@ -63,14 +64,26 @@ static volatile uint8_t *mapuj(int fd, uint32_t rozmiar)
     return m == MAP_FAILED ? NULL : m;
 }
 
-static int przyjmij_wspolna(int fd, uint32_t rozmiar)
+static int przyjmij_wspolna(uint32_t g, int fd, uint32_t rozmiar)
 {
     struct k1_posr_wspolna w = { 0, sizeof w, 0 };
-    if (wspolna != NULL || (wspolna = mapuj(fd, rozmiar)) == NULL)
+    if (wspolna[g] != NULL || (wspolna[g] = mapuj(fd, rozmiar)) == NULL)
         return K1_POSR_BLAD_OKNO;
-    wspolna_rozmiar = rozmiar;
+    wspolna_rozmiar[g] = rozmiar;
     for (size_t i = 0; i < sizeof w; i++)
-        wspolna[i] = ((const uint8_t *)&w)[i];
+        wspolna[g][i] = ((const uint8_t *)&w)[i];
+    return 0;
+}
+
+/* POSR_GOSC_KONIEC: a process of the zone closed the card — what its guest context made goes (its resources stay: they
+ * are the zone's until POSR_ZWOLNIJ). */
+static int gosc_koniec(uint32_t g)
+{
+    posr_gosc_koniec(g);
+    plot_gosc_koniec(g);
+    if (wspolna[g] != NULL)
+        munmap((void *)wspolna[g], wspolna_rozmiar[g]);
+    wspolna[g] = NULL, wspolna_rozmiar[g] = 0;
     return 0;
 }
 
@@ -109,13 +122,16 @@ static void obsluz(const struct k1_komunikat *k, int fd)
         r = okno != NULL || (okno = mapuj(fd, K1_POSR_OKNO)) == NULL ? K1_POSR_BLAD_OKNO : 0;
         break;
     case K1_KOM_POSR_WSPOLNA:
-        r = przyjmij_wspolna(fd, (uint32_t)k->a);
+        r = przyjmij_wspolna(k->obiekt, fd, (uint32_t)k->a);
         break;
     case K1_KOM_POSR_PROSBY:
-        r = okno == NULL ? K1_POSR_BLAD_OKNO : posr_prosby(okno, (uint32_t)k->a, &zrobione);
+        r = okno == NULL ? K1_POSR_BLAD_OKNO : posr_prosby(okno, (uint32_t)k->a, k->obiekt, &zrobione);
         break;
     case K1_KOM_POSR_BLOB:
-        r = k1_posr_ob_przypnij(&obiekty, (uint32_t)k->a, k->obiekt, k1_kom_u64(k->b, k->c));
+        r = k1_posr_ob_przypnij(&obiekty, (uint32_t)k->d, (uint32_t)k->a, k->obiekt, k1_kom_u64(k->b, k->c));
+        break;
+    case K1_KOM_POSR_GOSC_KONIEC:
+        r = gosc_koniec(k->obiekt);
         break;
     case K1_KOM_POSR_BUFOR:
         r = bufor(k->obiekt);
@@ -126,7 +142,7 @@ static void obsluz(const struct k1_komunikat *k, int fd)
         r = zwolnij(k->obiekt);
         break;
     default: /* POSR_PLOT (the checks let no other type of K1_KIER_DO_POSREDNIKA through): answered when done */
-        r = plot_czekaj(k->obiekt, k1_kom_u64(k->a, k->b));
+        r = plot_czekaj((uint32_t)k->c, k->obiekt, k1_kom_u64(k->a, k->b));
         if (r == 0)
             return;
         k1_log(TAG, "za dużo płotów naraz — koniec");

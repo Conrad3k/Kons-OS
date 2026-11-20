@@ -2,11 +2,14 @@
  * broker's way (the window, the shared memory, the checks, the replies, the memory limit, the end after a hang) run with
  * this engine; only the card is missing. Chosen by nadzorca only on request of the test program (TEST_POSREDNIK b=1 —
  * the test image), never for a zone's VMM: it draws nothing, so it could not stand in for the card anyway.
- * It answers like a card of Skylake that keeps the zones apart; a buffer is a number (no memory, no dma-buf: POSR_BUFOR
- * fails with K1_POSR_BLAD_KARTA), a batch gives no fence, and a batch of length K1_POSR_TEST_ZAWIESZENIE "hangs the card"
+ * It answers like a card of Skylake that keeps the zones apart; a buffer is a number, and "the card's memory" is one
+ * memfd from nadzorca on fd 4 (0.10.9 step 6: every buffer shared is it — the VMM maps it like a dma-buf, so the test
+ * zone's guest reads and writes "its buffer"; without it POSR_BUFOR fails with K1_POSR_BLAD_KARTA), a batch gives no fence, and a batch of length K1_POSR_TEST_ZAWIESZENIE "hangs the card"
  * (EIO: the context is banned) — the test sees the broker end with K1_POSR_KONIEC_ZAWIESZENIE. */
 #include <errno.h>
+#include <fcntl.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include <drm/drm.h>
 #include <drm/i915_drm.h>
@@ -71,8 +74,14 @@ static int testowy_ioctl(unsigned long nr, void *arg)
         x->rsvd2 = (uint64_t)(uint32_t)-1 << 32; /* no out-fence */
         return 0;
     }
-    case DRM_IOCTL_PRIME_HANDLE_TO_FD:
-        return ENODEV;
+    case DRM_IOCTL_PRIME_HANDLE_TO_FD: {
+        struct stat st;
+        struct drm_prime_handle *p = arg;
+        if (fstat(FD_KARTA, &st) != 0 || !S_ISREG(st.st_mode) || st.st_size < (off_t)K1_POSR_BUFOR_MAKS)
+            return ENODEV;
+        p->fd = fcntl(FD_KARTA, F_DUPFD_CLOEXEC, 0);
+        return p->fd < 0 ? errno : 0;
+    }
     default: /* GEM_CLOSE, BUSY, the simple ioctls: done, nothing to say */
         return 0;
     }

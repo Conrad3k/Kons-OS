@@ -13,7 +13,26 @@
 
 static uint64_t cechy_urzadzenia(const struct mmio_urz *u)
 {
-    return u->ops->cechy | (1ull << VIRTIO_F_VERSION_1);
+    return u->ops->cechy | (u->ops->cechy_dodatkowe != NULL ? u->ops->cechy_dodatkowe(u) : 0) |
+           (1ull << VIRTIO_F_VERSION_1);
+}
+
+/* SHMLenLow/High, SHMBaseLow/High of the region SHMSel names: all ones when there is none (virtio 1.2, 4.2.2). */
+static uint32_t pamiec_dzielona(const struct mmio_urz *u, uint64_t od)
+{
+    uint64_t baza = 0, dl = 0;
+    if (u->ops->pamiec_dzielona == NULL || u->ops->pamiec_dzielona(u, u->shm_sel, &baza, &dl) != 0)
+        return BRAK_PAMIECI_DZIELONEJ;
+    switch (od) {
+    case VIRTIO_MMIO_SHM_LEN_LOW:
+        return (uint32_t)dl;
+    case VIRTIO_MMIO_SHM_LEN_HIGH:
+        return (uint32_t)(dl >> 32);
+    case VIRTIO_MMIO_SHM_BASE_LOW:
+        return (uint32_t)baza;
+    default:
+        return (uint32_t)(baza >> 32);
+    }
 }
 
 static void reset(struct mmio_urz *u)
@@ -90,7 +109,7 @@ static uint32_t rejestr(struct mmio_urz *u, uint64_t od)
     case VIRTIO_MMIO_SHM_LEN_HIGH:
     case VIRTIO_MMIO_SHM_BASE_LOW:
     case VIRTIO_MMIO_SHM_BASE_HIGH:
-        return BRAK_PAMIECI_DZIELONEJ; /* no shared memory regions */
+        return pamiec_dzielona(u, od);
     default:
         return 0;
     }
@@ -192,6 +211,9 @@ static int zapisz_rejestr(struct mmio_urz *u, uint64_t od, uint32_t v, const cha
         return 0;
     case VIRTIO_MMIO_DRIVER_FEATURES_SEL:
         u->cechy_ster_sel = v;
+        return 0;
+    case VIRTIO_MMIO_SHM_SEL:
+        u->shm_sel = v;
         return 0;
     case VIRTIO_MMIO_QUEUE_SEL:
         u->kolejka_sel = v;

@@ -386,7 +386,8 @@ void obsluz_ustawienia(void)
             return;
         }
         if (w == K1_ODB_JEST && (k.typ == K1_KOM_STREFA_TRWALOSC || k.typ == K1_KOM_STREFA_NAZWA ||
-                                 k.typ == K1_KOM_STREFA_WYCZYSC)) { /* 0.10.0 step 5: Przeglądarka (strefy_ust.c) */
+                                 k.typ == K1_KOM_STREFA_WYCZYSC || k.typ == K1_KOM_STREFA_GRAFIKA)) {
+            /* 0.10.0 step 5: Przeglądarka (strefy_ust.c); 0.10.9 step 6: fast graphics */
             sesje_prosba(&k, 0);
             continue;
         }

@@ -1,4 +1,5 @@
-/* K1 nadzorca — the sessions of the zones as the user set them (0.10.0 step 5): whether each one remembers (STALA) and
+/* K1 nadzorca — the sessions of the zones as the user set them (0.10.0 step 5): whether each one remembers (STALA),
+ * whether it draws and plays films with the card (0.10.9 step 6: STREFA_GRAFIKA, STREFY_GRAFIKA — D5, D9) and
  * its name. nadzorca keeps them — it starts the zones, so it alone decides whether a zone's VMM gets its disk — in
  * skarbiec (owner K1_WL_SYSTEM, object K1_OB_STREFY, format: sesje.h) and tells gui (the names in its menus), ekran (the
  * title on the zone's bar, "zapomina") and Ustawienia (Przeglądarka) whenever they change, and each of
@@ -17,7 +18,7 @@ static int kanal = -1, wczytane, czyta; /* our channel to skarbiec (owner K1_WL_
 static unsigned wersja = 1;
 static struct {
     unsigned wersja;
-    int32_t a, b, c, d, e;
+    int32_t a, b, c, d, e, ga, gb; /* ga, gb: STREFY_GRAFIKA */
     pid_t ekran;
 } wyslane[CELE];
 static int czyszczenie[K1_STREFY_MAKS + 1]; /* 1: Ustawienia asked, 2: the test program */
@@ -40,15 +41,25 @@ int sesja_pamieta(int nr)
     return nr >= 1 && nr <= K1_STREFY_MAKS && wczytane && dysk() && ses[nr].trwalosc == K1_STALA;
 }
 
-static int32_t bity(int dzialajace)
+enum { BITY_PAMIETA, BITY_DZIALA, BITY_GRAFIKA, BITY_Z_KARTA };
+static int32_t bity(int jakie)
 {
     int32_t b = 0;
     for (int nr = 1; nr <= K1_STREFY_MAKS; nr++) {
         struct usluga *u = usluga_profilu(k1_strefa(nr)->profil);
-        if (dzialajace ? u != NULL && u->pid > 0 : sesja_pamieta(nr))
+        int jest = jakie == BITY_DZIALA    ? u != NULL && u->pid > 0
+                   : jakie == BITY_PAMIETA ? sesja_pamieta(nr)
+                   : jakie == BITY_GRAFIKA ? sesja_grafika(nr)
+                                           : posrednik_dziala(nr);
+        if (jest)
             b |= 1 << (nr - 1);
     }
     return b;
+}
+
+int sesja_grafika(int nr)
+{
+    return nr >= 1 && nr <= K1_STREFY_MAKS && ses[nr].nazwa[0] != '\0' && ses[nr].grafika;
 }
 
 static void zapisz(void)
@@ -95,12 +106,13 @@ static void odbierz(void)
 /* The sessions to one of them: the names, then the state — when something changed or it is new. */
 static void wyslij(int cel, int fd, pid_t ekr)
 {
-    struct k1_komunikat s = k1_komunikat_nowy(K1_KOM_STREFY_STAN, 0, bity(0), access(DEV "/kvm", F_OK) == 0, dysk(),
-                                              bity(1), 0);
+    struct k1_komunikat s = k1_komunikat_nowy(K1_KOM_STREFY_STAN, 0, bity(BITY_PAMIETA), access(DEV "/kvm", F_OK) == 0,
+                                              dysk(), bity(BITY_DZIALA), 0);
+    struct k1_komunikat g = k1_komunikat_nowy(K1_KOM_STREFY_GRAFIKA, 0, bity(BITY_GRAFIKA), bity(BITY_Z_KARTA), 0, 0, 0);
     int nowy = wyslane[cel].wersja != wersja || wyslane[cel].ekran != ekr;
     s.e = strefy_zamykane() & s.d; /* 0.10.2 step 1: closing in the background */
     if (fd < 0 || (!nowy && s.a == wyslane[cel].a && s.b == wyslane[cel].b && s.c == wyslane[cel].c &&
-                   s.d == wyslane[cel].d && s.e == wyslane[cel].e))
+                   s.d == wyslane[cel].d && s.e == wyslane[cel].e && g.a == wyslane[cel].ga && g.b == wyslane[cel].gb))
         return;
     for (int nr = 1; nr <= K1_STREFY_MAKS && nowy; nr++)
         if (ses[nr].nazwa[0] != '\0') {
@@ -111,8 +123,9 @@ static void wyslij(int cel, int fd, pid_t ekr)
             if (k1_kanal_wyslij(fd, &n, sizeof n, -1) != 0)
                 return;
         }
-    if (k1_kanal_wyslij(fd, &s, sizeof s, -1) != 0)
+    if (k1_kanal_wyslij(fd, &s, sizeof s, -1) != 0 || k1_kanal_wyslij(fd, &g, sizeof g, -1) != 0)
         return;
+    wyslane[cel].ga = g.a, wyslane[cel].gb = g.b;
     wyslane[cel].wersja = wersja;
     wyslane[cel].ekran = ekr;
     wyslane[cel].a = s.a, wyslane[cel].b = s.b, wyslane[cel].c = s.c, wyslane[cel].d = s.d;
@@ -186,6 +199,10 @@ void sesje_prosba(const struct k1_komunikat *k, int z_testu)
     if (k->typ == K1_KOM_STREFA_TRWALOSC) {
         ses[nr].trwalosc = k->a;
         k1_log(TAG, "strefa %d: %s (od następnego otwarcia)", nr, k->a == K1_STALA ? "pamięta" : "zapomina");
+    } else if (k->typ == K1_KOM_STREFA_GRAFIKA) {
+        ses[nr].grafika = k->a;
+        k1_log(TAG, "strefa %d: szybka grafika i filmy kartą %s (od następnego otwarcia)", nr,
+               k->a ? "włączone" : "wyłączone");
     } else if (k->typ == K1_KOM_STREFA_NAZWA) {
         const int32_t p[5] = { k->a, k->b, k->c, k->d, k->e }; /* checked: k1_strefa_nazwa_dobra */
         memcpy(ses[nr].nazwa, p, K1_STREFA_NAZWA_MAKS);

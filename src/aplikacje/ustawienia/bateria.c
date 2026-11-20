@@ -64,7 +64,7 @@ int bateria_odbierz(void)
         }
         if (w == K1_ODB_JEST && (k.typ == K1_KOM_STREFY_STAN || k.typ == K1_KOM_STREFA_NAZWA ||
                                  k.typ == K1_KOM_STREFA_WYCZYSZCZONO || k.typ == K1_KOM_FILMY_KARTA ||
-                                 k.typ == K1_KOM_POSR_KARTA)) {
+                                 k.typ == K1_KOM_POSR_KARTA || k.typ == K1_KOM_STREFY_GRAFIKA)) {
             przegladarka_odbierz(&k); /* 0.10.0 step 5: the browser's sessions (przegladarka.c) */
             zmiana = 1;
             continue;

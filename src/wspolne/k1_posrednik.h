@@ -14,10 +14,15 @@
  * no pointers of the guest anywhere (every pointer the kernel needs is ours), no extension the laptops' cards lack, only
  * the listed parameters with their ranges, and the memory of one zone's buffers is limited (T14).
  *
- * Transport: k1_komunikat (POSR_* types, directions K1_KIER_DO_POSREDNIKA / K1_KIER_OD_POSREDNIKA) + two memfd from the
+ * Transport: k1_komunikat (POSR_* types, directions K1_KIER_DO_POSREDNIKA / K1_KIER_OD_POSREDNIKA) + memfd from the
  * client: the window (POSR_OKNO, K1_POSR_OKNO bytes) into which the client copies a stream of requests (the guest's
  * submit), and the shared memory of the bridge (POSR_WSPOLNA — the blob 0 of the guest: the last request done and the
- * replies), both sealed against shrinking and growing. The broker COPIES the stream out of the window before it checks a
+ * replies), all sealed against shrinking and growing.
+ * Guest contexts (0.10.9 step 6): every process of the zone that opens the card (Firefox: its GL test at the start, its
+ * GPU process; Mesa: one virtio-gpu context per open) is a context of its own on the guest's side — its shared memory,
+ * its blob numbers, its timelines of fences. The VMM numbers them 1..K1_POSR_GOSCIE (the "gosc" of the messages) and
+ * says when one ends (POSR_GOSC_KONIEC: its contexts and address spaces of the card go, its buffers not yet given a
+ * resource number too). Resources are the zone's (the guest kernel numbers them for the whole device). The broker COPIES the stream out of the window before it checks a
  * single byte; into the shared memory it only writes (a reply is built in its own memory first). Every structure has a
  * fixed layout (no bit fields, no pointers of K1; _Static_assert) and is read with memcpy (no alignment assumed). Native
  * byte order (one machine). */
@@ -175,6 +180,8 @@ enum k1_posr_ioctl_nr { K1_POSR_IOCTLE(K1_X_POSR_IOCTL) };
 #define K1_POSR_SILNIKI_MAKS 8            /* engines of one context (I915_CONTEXT_PARAM_ENGINES) */
 #define K1_POSR_PIERSCIENIE 65            /* the timelines of fences: 0 (none) and 1 + the batch's engine 0..63 */
 #define K1_POSR_PLOTY_MAKS 256u           /* fences waiting at once */
+#define K1_POSR_GOSCIE 8                  /* guest contexts at once (processes of the zone with the card open) */
+#define K1_POSR_ID_MAKS 256u              /* the card's context and address space numbers K1 follows (whose they are) */
 
 /* The values the checks know (i915_drm.h, Linux 7.3.5 — karta.c checks them). */
 enum {
@@ -238,6 +245,7 @@ struct k1_posr_obiekt {
     uint32_t uchwyt; /* the card's GEM handle (0: no buffer) */
     uint32_t blob;
     uint8_t mapa;    /* K1_POSR_MAPA_*: how the guest maps it */
+    uint8_t gosc;    /* the guest context whose blob number it is (1..K1_POSR_GOSCIE) */
 };
 enum { K1_POSR_MAPA_CACHED = 1, K1_POSR_MAPA_UNCACHED = 2, K1_POSR_MAPA_WC = 3 }; /* VIRGL_RENDERER_MAP_CACHE_* */
 struct k1_posr_obiekty {
@@ -245,11 +253,16 @@ struct k1_posr_obiekty {
     struct k1_posr_obiekt czekajace[K1_POSR_CZEKAJACE_MAKS]; /* created, not yet given a res_id */
     uint64_t pamiec;
 };
-/* May a buffer of `rozmiar` with blob number `blob` be created: 0 or K1_POSR_BLAD_* (before the card is asked). */
-int k1_posr_ob_moze(const struct k1_posr_obiekty *t, uint32_t blob, uint64_t rozmiar);
-int k1_posr_ob_dodaj(struct k1_posr_obiekty *t, uint32_t blob, uint32_t uchwyt, uint64_t rozmiar, uint8_t mapa);
-/* The buffer of blob `blob` becomes resource `res` (the guest's size must agree): 0 or K1_POSR_BLAD_ZASOB. */
-int k1_posr_ob_przypnij(struct k1_posr_obiekty *t, uint32_t blob, uint32_t res, uint64_t rozmiar);
+/* May guest context `gosc` create a buffer of `rozmiar` with its blob number `blob`: 0 or K1_POSR_BLAD_* (before the
+ * card is asked). Blob numbers are per guest context (each process of the zone counts its own from 1). */
+int k1_posr_ob_moze(const struct k1_posr_obiekty *t, uint32_t gosc, uint32_t blob, uint64_t rozmiar);
+int k1_posr_ob_dodaj(struct k1_posr_obiekty *t, uint32_t gosc, uint32_t blob, uint32_t uchwyt, uint64_t rozmiar,
+                     uint8_t mapa);
+/* The buffer of blob `blob` of `gosc` becomes resource `res` (the guest's size must agree): 0 or K1_POSR_BLAD_ZASOB. */
+int k1_posr_ob_przypnij(struct k1_posr_obiekty *t, uint32_t gosc, uint32_t blob, uint32_t res, uint64_t rozmiar);
+/* Guest context `gosc` ended: one of its buffers not yet given a resource number goes — its handle (to close), or 0
+ * when none is left (call until 0). */
+uint32_t k1_posr_ob_usun_czekajacy(struct k1_posr_obiekty *t, uint32_t gosc);
 struct k1_posr_obiekt *k1_posr_ob(struct k1_posr_obiekty *t, uint32_t res); /* NULL: no such resource */
 /* Resource `res` goes: its handle (to close), or 0. */
 uint32_t k1_posr_ob_usun(struct k1_posr_obiekty *t, uint32_t res);

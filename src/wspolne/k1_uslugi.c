@@ -63,10 +63,10 @@ int k1_apl_uid(int apl)
 }
 
 #define X_OPIS(n, nr_, profil_, uid_, obraz_, tytul_, sesja_, pamiec_, procesory_, kolor_, trwalosc_, ikona_, log_, menu_, \
-               okno_)                                                                                                \
+               okno_, grafika_)                                                                                      \
     [nr_] = { .nr = nr_, .profil = profil_, .uid = uid_, .obraz = obraz_, .tytul = tytul_, .sesja = sesja_,          \
               .pamiec_mib = pamiec_, .procesory = procesory_, .kolor = kolor_, .trwalosc = K1_##trwalosc_,           \
-              .ikona = K1_IK_##ikona_, .log_goscia = log_, .okno = okno_ },
+              .ikona = K1_IK_##ikona_, .log_goscia = log_, .okno = okno_, .grafika = grafika_ },
 static const struct k1_strefa_opis strefy[K1_STREFY_MAKS + 1] = { K1_STREFY(X_OPIS) };
 
 const struct k1_strefa_opis *k1_strefa(int nr)

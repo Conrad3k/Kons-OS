@@ -112,11 +112,20 @@ void posrednik_nowy_kanal_ustawien(void)
 }
 
 /* The broker of zone nr: the client's end of its channel (the VMM's, or the test program's), or -1. The card's broker
- * only where the card serves fast graphics; the test engine (test) always. */
+ * only where the card serves fast graphics; the test engine (test) always — with "the card's memory": a sparse memfd
+ * of K1_POSR_BUFOR_MAKS bytes it shares as every buffer (step 6: the VMM maps it like a dma-buf; test image only). */
+static int pamiec_testowa(void)
+{
+    int fd = k1_memfd_nowy("posrednik-testowy");
+    if (fd >= 0 && ftruncate(fd, (off_t)K1_POSR_BUFOR_MAKS) != 0)
+        close(fd), fd = -1;
+    return fd;
+}
+
 int posrednik_dla_strefy(int nr, int test)
 {
     struct usluga *u = karta_usluga_strefy(K1_PROFIL_POSREDNIK, nr);
-    int fd = test ? -1 : karta_render(), klient;
+    int fd = test ? pamiec_testowa() : karta_render(), klient;
     if (u == NULL || (!test && (fd < 0 || karta.stan != K1_POSR_KARTA_UMIE))) {
         if (fd >= 0)
             close(fd);
@@ -140,4 +149,15 @@ void posrednik_strefa_koniec(int nr)
 int32_t posrednik_pamiec_mib(int nr)
 {
     return karta_pamiec_mib(karta_usluga_strefy(K1_PROFIL_POSREDNIK, nr));
+}
+
+int posrednik_dziala(int nr)
+{
+    struct usluga *u = karta_usluga_strefy(K1_PROFIL_POSREDNIK, nr);
+    return u != NULL && u->pid > 0;
+}
+
+int posrednik_karta_umie(void)
+{
+    return karta.stan == K1_POSR_KARTA_UMIE;
 }

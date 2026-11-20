@@ -357,6 +357,10 @@ $(OBJ)/test_wpa: testy/host/test_wpa.c src/siec/wpa.c src/siec/eapol.c src/siec/
 $(OBJ)/test_wifi_polacz: testy/host/test_wifi_polacz.c src/siec/wifi.c src/siec/pamiec.c src/siec/wifi.h src/siec/pamiec.h $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/siec -o $@ testy/host/test_wifi_polacz.c src/siec/wifi.c src/siec/pamiec.c $(KOMUNIKAT) $(DOK_C)
 # 0.10.0 step 1 (ADR 0042): the zones' virtqueues and virtio-mmio, the start of the zone kernel (fuzzing: fuzz_virtq)
+# 0.10.9 step 6: the bridge of fast graphics in the VMM (fuzzing: fuzz_gpu_most)
+$(OBJ)/test_gpu_most: testy/host/test_gpu_most.c testy/host/gpu_most_falszywy.h src/strefa/gpu_most.c src/strefa/gpu_most.h \
+	$(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_gpu_most.c src/strefa/gpu_most.c
 $(OBJ)/test_virtio: testy/host/test_virtio.c src/strefa/virtq.c src/strefa/mmio.c src/strefa/linia.c $(wildcard src/strefa/*.h) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_virtio.c src/strefa/virtq.c src/strefa/mmio.c src/strefa/linia.c
 # 0.10.0 step 2 (ADR 0043 T9): the zones' connector — SOCKS5, DNS, the D3 rule, the messages (fuzzing: fuzz_lacznik)
@@ -490,7 +494,7 @@ $(addprefix $(OBJ)/,test_bat_arch test_bateria test_cmdline test_efi test_instal
 # took most of test-m1's time); `-O` keeps the output of each one together. The slow ones come first, so they start
 # first. A plain test (no arguments, no files): its name in TESTY_HOST. One that needs files: its own rule below,
 # named host-<name>, and the name in TESTY_HOST_PLIKI.
-TESTY_HOST := test_ogloszenie test_paczka test_odcinki test_odcinki_pelny test_dokumenty test_indeks test_wpa test_krypto test_virtio \
+TESTY_HOST := test_gpu_most test_ogloszenie test_paczka test_odcinki test_odcinki_pelny test_dokumenty test_indeks test_wpa test_krypto test_virtio \
 	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
@@ -552,7 +556,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis ogloszenie paczka vsock filmy posrednik
+        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -609,6 +613,8 @@ FUZZ_ZR_filmy     := src/wspolne/k1_filmy.c
 FUZZ_DL_filmy     := 4500
 FUZZ_ZR_posrednik := src/wspolne/k1_posrednik.c
 FUZZ_DL_posrednik := 4200
+FUZZ_ZR_gpu_most  := src/strefa/gpu_most.c
+FUZZ_DL_gpu_most  := 8192
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
               -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/strefa -Isrc/zewnetrzne/monocypher \
               -Isrc/zewnetrzne/wuffs

@@ -17,45 +17,63 @@
 static struct {
     int fd;
     uint32_t ctx;
-} ostatni[K1_POSR_PIERSCIENIE] = { [0 ... K1_POSR_PIERSCIENIE - 1] = { -1, 0 } };
+} ostatni[K1_POSR_GOSCIE + 1][K1_POSR_PIERSCIENIE] = {
+    [0 ... K1_POSR_GOSCIE] = { [0 ... K1_POSR_PIERSCIENIE - 1] = { -1, 0 } }
+};
 static struct {
     int fd; /* -1: a free place */
-    uint32_t pierscien, ctx;
+    uint32_t gosc, pierscien, ctx;
     uint64_t nr;
-} czeka[K1_POSR_PLOTY_MAKS] = { [0 ... K1_POSR_PLOTY_MAKS - 1] = { -1, 0, 0, 0 } };
+} czeka[K1_POSR_PLOTY_MAKS] = { [0 ... K1_POSR_PLOTY_MAKS - 1] = { -1, 0, 0, 0, 0 } };
 
-void plot_nowy(uint32_t pierscien, int fd, uint32_t ctx)
+void plot_nowy(uint32_t gosc, uint32_t pierscien, int fd, uint32_t ctx)
 {
-    if (pierscien >= K1_POSR_PIERSCIENIE) {
+    if (gosc < 1 || gosc > K1_POSR_GOSCIE || pierscien >= K1_POSR_PIERSCIENIE) {
         if (fd >= 0)
             close(fd);
         return;
     }
-    if (ostatni[pierscien].fd >= 0)
-        close(ostatni[pierscien].fd);
-    ostatni[pierscien].fd = fd, ostatni[pierscien].ctx = ctx;
+    if (ostatni[gosc][pierscien].fd >= 0)
+        close(ostatni[gosc][pierscien].fd);
+    ostatni[gosc][pierscien].fd = fd, ostatni[gosc][pierscien].ctx = ctx;
 }
 
-static void gotowy(uint32_t pierscien, uint64_t nr)
+static void gotowy(uint32_t gosc, uint32_t pierscien, uint64_t nr)
 {
-    wyslij(k1_komunikat_nowy(K1_KOM_POSR_PLOT_GOTOWY, pierscien, k1_kom_niskie(nr), k1_kom_wysokie(nr), 0, 0, 0), -1);
+    wyslij(k1_komunikat_nowy(K1_KOM_POSR_PLOT_GOTOWY, pierscien, k1_kom_niskie(nr), k1_kom_wysokie(nr), (int32_t)gosc, 0,
+                             0),
+           -1);
 }
 
-int plot_czekaj(uint32_t pierscien, uint64_t nr)
+int plot_czekaj(uint32_t gosc, uint32_t pierscien, uint64_t nr)
 {
-    if (ostatni[pierscien].fd < 0) { /* nothing on this timeline: done (virglrenderer: the same) */
-        gotowy(pierscien, nr);
+    if (ostatni[gosc][pierscien].fd < 0) { /* nothing on this timeline: done (virglrenderer: the same) */
+        gotowy(gosc, pierscien, nr);
         return 0;
     }
     for (uint32_t i = 0; i < K1_POSR_PLOTY_MAKS; i++)
         if (czeka[i].fd < 0) {
-            czeka[i].fd = fcntl(ostatni[pierscien].fd, F_DUPFD_CLOEXEC, 0);
+            czeka[i].fd = fcntl(ostatni[gosc][pierscien].fd, F_DUPFD_CLOEXEC, 0);
             if (czeka[i].fd < 0)
                 return K1_POSR_BLAD_LIMIT;
-            czeka[i].pierscien = pierscien, czeka[i].ctx = ostatni[pierscien].ctx, czeka[i].nr = nr;
+            czeka[i].gosc = gosc, czeka[i].pierscien = pierscien, czeka[i].ctx = ostatni[gosc][pierscien].ctx;
+            czeka[i].nr = nr;
             return 0;
         }
     return K1_POSR_BLAD_LIMIT;
+}
+
+void plot_gosc_koniec(uint32_t gosc)
+{
+    for (uint32_t p = 0; p < K1_POSR_PIERSCIENIE; p++)
+        if (ostatni[gosc][p].fd >= 0)
+            close(ostatni[gosc][p].fd), ostatni[gosc][p].fd = -1;
+    for (uint32_t i = 0; i < K1_POSR_PLOTY_MAKS; i++)
+        if (czeka[i].fd >= 0 && czeka[i].gosc == gosc) { /* nobody waits for them any more: answered, as done */
+            gotowy(gosc, czeka[i].pierscien, czeka[i].nr);
+            close(czeka[i].fd);
+            czeka[i].fd = -1;
+        }
 }
 
 int plot_deskryptory(struct pollfd *p, int maks)
@@ -85,7 +103,7 @@ void plot_gotowe(const struct pollfd *p, int n)
                     posr_ban(czeka[i].ctx);
                     zawieszona = 1;
                 }
-                gotowy(czeka[i].pierscien, czeka[i].nr);
+                gotowy(czeka[i].gosc, czeka[i].pierscien, czeka[i].nr);
                 close(czeka[i].fd);
                 czeka[i].fd = -1;
                 break;

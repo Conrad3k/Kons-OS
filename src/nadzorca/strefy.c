@@ -5,7 +5,10 @@
  *   all opened here, read only but /dev/kvm; the VMM gets no path;
  *   fd 7 = its channel to us for the browser's connections (strefy_siec.c; 0.10.0 step 2, ADR 0043 T9),
  *   fd 8, 9 = a zone that remembers (strefy_ust.c; 0.10.0 step 5, T11): a channel to skarbiec with the zone's profile as
- *   the owner (its disk's pieces) and the zone's empty disk (/rdzen/strefy/dysk.img, read only) — else neither.
+ *   the owner (its disk's pieces) and the zone's empty disk (/rdzen/strefy/dysk.img, read only) — else neither;
+ *   fd 10 = 0.10.9 step 6: a session with fast graphics on, on a card that can (posrednik.c) — the channel to the zone's
+ *   graphics broker (fd 8, 9 then /dev/null when it forgets); its VMM may take K1_POSR_PAMIEC more (the card's buffers
+ *   it maps). The test program's modes K1_STREFA_TRYB_GRAFIKA*: a broker with the test engine.
  * One machine per row at a time (one that is closing: strefy_zamyk.c). Without virtualization (no /dev/kvm: the processor has none, or it is off in the
  * BIOS), without the zone's image or without enough free memory gui is told why (STREFA_STAN) and nothing starts.
  * The VMM's end is an ordinary end of a service started on request (uslugi.c): no restart. When the user did not
@@ -120,7 +123,7 @@ void strefa_uruchom(int nr, int tryb, int z_testu)
 {
     const struct k1_strefa_opis *z = k1_strefa(nr);
     struct usluga *u = z != NULL ? usluga_profilu(z->profil) : NULL;
-    int fd[7] = { -1, -1, -1, -1, -1, -1, -1 }, powod, i, d;
+    int fd[8] = { -1, -1, -1, -1, -1, -1, -1, -1 }, powod, i, d, test_grafiki;
     struct k1_profil p;
     uint32_t granica;
     if (u == NULL)
@@ -143,18 +146,27 @@ void strefa_uruchom(int nr, int tryb, int z_testu)
         snprintf(u->argument3, sizeof u->argument3, "%u", granica);
         snprintf(u->argument4, sizeof u->argument4, "%s", z->okno ? sesja_nazwa(nr) : cel_pobierania); /* D1; ADR 0046 */
         d = dysk(z, fd);
+        test_grafiki = z_testu && (tryb == K1_STREFA_TRYB_GRAFIKA || tryb == K1_STREFA_TRYB_GRAFIKA_ZLA);
+        if (test_grafiki || (z->okno && sesja_grafika(nr) && posrednik_karta_umie())) /* 0.10.9 step 6 */
+            fd[7] = posrednik_dla_strefy(nr, test_grafiki);
+        if (fd[7] >= 0) {
+            if (d == 0)
+                fd[5] = dup(zero), fd[6] = dup(zero), d = -2; /* places of the disk: none (dane.c sees /dev/null) */
+            p.pamiec += K1_POSR_PAMIEC;
+        }
         zdarzenia_start(nr);
-        if (fd[0] >= 0 && fd[4] >= 0 && uruchom(u, &p, fd, 5 + d) > 0 &&
+        if (fd[0] >= 0 && fd[4] >= 0 && uruchom(u, &p, fd, fd[7] >= 0 ? 8 : 5 + d) > 0 &&
             (strefa_pamiec_start(nr, granica, z->pamiec_mib, !z_testu || tryb == K1_STREFA_TRYB_ROZDZIELACZ), 1))
-            k1_log(TAG, "strefa %d (%s): pid %d, uid %d, pamięć %u MiB na start, granica %u MiB, procesory %u, %s%s", nr,
+            k1_log(TAG, "strefa %d (%s): pid %d, uid %d, pamięć %u MiB na start, granica %u MiB, procesory %u, %s%s%s", nr,
                    z->tytul, (int)u->pid, z->uid, z->pamiec_mib, granica, z->procesory,
-                   d ? "pamięta (dysk w skarbcu)" : "zapomina po zamknięciu", tryb ? ", gość testowy" : "");
+                   d > 0 ? "pamięta (dysk w skarbcu)" : "zapomina po zamknięciu", fd[7] >= 0 ? ", szybka grafika" : "",
+                   tryb ? ", gość testowy" : "");
         else
-            k1_log(TAG, "strefa %d: uruchomienie nieudane", nr), strefa_kanal_koniec(nr);
+            k1_log(TAG, "strefa %d: uruchomienie nieudane", nr), strefa_kanal_koniec(nr), posrednik_strefa_koniec(nr);
     } else {
         zglos(nr, powod);
     }
-    for (i = 0; i < 7; i++)
+    for (i = 0; i < 8; i++)
         if (fd[i] >= 0)
             close(fd[i]);
 }

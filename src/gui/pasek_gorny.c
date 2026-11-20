@@ -110,6 +110,8 @@ void odbierz_baterie(void)
             strefy_sesje(&m);
             continue;
         }
+        if (w == K1_ODB_JEST && m.typ == K1_KOM_STREFY_GRAFIKA) /* 0.10.9 step 6: the frame shows it (ekran) */
+            continue;
         if (w == K1_ODB_JEST && m.typ == K1_KOM_STREFA_PRZYDZIAL) { /* 0.10.1 step 3 (pamiec.c) */
             pamiec_przydzial(&m);
             continue;

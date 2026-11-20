@@ -1,6 +1,9 @@
-/* K1 strefa — virtio-gpu, 2D only (virtio 1.2, section 5.7; ADR 0042 T6): the guest draws with its processor into its
+/* K1 strefa — virtio-gpu, 2D (virtio 1.2, section 5.7; ADR 0042 T6): the guest draws with its processor into its
  * own memory ("backing" pages), TRANSFER_TO_HOST_2D copies a rectangle into our copy of the resource, RESOURCE_FLUSH of
- * the shown resource tells the window (okno.c) which part changed. No 3D, no blob resources, no EDID (none offered).
+ * the shown resource tells the window (okno.c) which part changed. No EDID (none offered). The picture always comes this
+ * way. With a graphics broker (0.10.9 step 6, fast graphics: gpu_lacze.c) the device also offers 3D — contexts with the
+ * capset DRM, blob resources, the host-visible region — and the control queue is done by a thread of its own (the
+ * broker answers in milliseconds); the 2D commands it does here, under the VMM's lock, the 3D ones gpu_most.c.
  * Limits: K1_GPU_ZASOBY resources, each at most 4096 × 4096, all together GPU_PAMIEC; every rectangle inside its
  * resource and every byte read inside the backing the guest gave (ERR_INVALID_PARAMETER otherwise); a command shorter
  * than its structure or without room for the answer ends the machine. */
@@ -11,6 +14,7 @@
 #include <linux/virtio_gpu.h>
 #include <linux/virtio_ids.h>
 
+#include "gpu_most.h"
 #include "okno.h"
 #include "strefa.h"
 #include "tlo.h"
@@ -88,7 +92,8 @@ static uint32_t utworz(const struct virtio_gpu_resource_create_2d *c)
     struct zasob *z = NULL;
     uint64_t bajty = (uint64_t)c->width * c->height * 4;
     int i;
-    if (c->resource_id == 0 || znajdz(c->resource_id) != NULL || c->width == 0 || c->height == 0 ||
+    if (c->resource_id == 0 || znajdz(c->resource_id) != NULL || gpu_lacze_zasob(c->resource_id) || c->width == 0 ||
+        c->height == 0 ||
         c->width > BOK_MAKS || c->height > BOK_MAKS ||
         (c->format != VIRTIO_GPU_FORMAT_B8G8R8X8_UNORM && c->format != VIRTIO_GPU_FORMAT_B8G8R8A8_UNORM))
         return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
@@ -179,7 +184,7 @@ static uint32_t splucz(const struct virtio_gpu_resource_flush *f)
     if (vq_czytaj(l, 0, &zm, sizeof zm) != sizeof zm)                                                               \
         return -1;
 
-static int wykonaj(const struct vq_lancuch *l, uint32_t typ, uint32_t *wynik, struct virtio_gpu_resp_display_info *info)
+int gpu_2d(const struct vq_lancuch *l, uint32_t typ, uint32_t *wynik, struct virtio_gpu_resp_display_info *info)
 {
     uint32_t w, h;
     switch (typ) {
@@ -240,17 +245,30 @@ static int wykonaj(const struct vq_lancuch *l, uint32_t typ, uint32_t *wynik, st
     }
 }
 
+/* Is the command of type `typ` (resource `id`) one of 2D (this file) — else 3D (gpu_most.c)? Under mz.zamek. */
+int gpu_jest_2d(uint32_t typ, uint32_t id)
+{
+    return (typ >= VIRTIO_GPU_CMD_GET_DISPLAY_INFO && typ <= VIRTIO_GPU_CMD_RESOURCE_DETACH_BACKING &&
+            typ != VIRTIO_GPU_CMD_RESOURCE_UNREF) ||
+           (typ == VIRTIO_GPU_CMD_RESOURCE_UNREF && znajdz(id) != NULL) || typ == VIRTIO_GPU_CMD_UPDATE_CURSOR ||
+           typ == VIRTIO_GPU_CMD_MOVE_CURSOR;
+}
+
 static int powiadom(struct mmio_urz *u, int k, const char **powod)
 {
     struct vq_lancuch l;
     int w, bylo = 0;
+    if (k == 0 && gpu_lacze_jest()) { /* fast graphics: the control queue is the bridge's thread's */
+        gpu_lacze_obudz(u);
+        return 0;
+    }
     while ((w = vq_wez(&u->q[k], u->pamiec, &l, powod)) > 0) {
         struct virtio_gpu_ctrl_hdr h;
         struct virtio_gpu_resp_display_info odp;
         uint32_t wynik = VIRTIO_GPU_RESP_OK_NODATA;
         uint64_t dl;
         memset(&odp, 0, sizeof odp);
-        if (vq_czytaj(&l, 0, &h, sizeof h) != sizeof h || wykonaj(&l, h.type, &wynik, &odp) != 0) {
+        if (vq_czytaj(&l, 0, &h, sizeof h) != sizeof h || gpu_2d(&l, h.type, &wynik, &odp) != 0) {
             *powod = "virtio-gpu: polecenie krótsze niż jego struktura";
             return -1;
         }
@@ -285,7 +303,7 @@ static uint32_t zdarzenia;
 static void konfig(struct mmio_urz *u, uint32_t od, uint8_t *dst, uint32_t n)
 {
     /* by name: Linux 7.x added blob_alignment (it means something only with VIRTIO_GPU_F_BLOB_ALIGNMENT, not offered) */
-    struct virtio_gpu_config c = { .events_read = zdarzenia, .num_scanouts = 1 };
+    struct virtio_gpu_config c = { .events_read = zdarzenia, .num_scanouts = 1, .num_capsets = gpu_lacze_jest() ? 1u : 0u };
     (void)u;
     memcpy(dst, (const uint8_t *)&c + od, n);
 }
@@ -320,11 +338,11 @@ void gpu_liczniki(unsigned *n, unsigned *mib)
 static void reset(struct mmio_urz *u)
 {
     int i;
-    (void)u;
     for (i = 0; i < ZASOBY; i++)
         if (zasoby[i].id != 0)
             usun(&zasoby[i]);
     pokazany = 0;
+    gpu_lacze_reset(u);
 }
 
 const struct mmio_ops gpu_ops = {
@@ -335,4 +353,6 @@ const struct mmio_ops gpu_ops = {
     .konfig_pisz = konfig_pisz,
     .powiadom = powiadom,
     .reset = reset,
+    .cechy_dodatkowe = gpu_lacze_cechy,
+    .pamiec_dzielona = gpu_lacze_okno,
 };

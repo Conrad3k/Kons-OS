@@ -385,6 +385,13 @@ static const struct prym ik_maksymalizuj[] = { { P_PROST, 6.5f, 6.5f, 11, 11, 2 
 static const struct prym ik_przywroc[] = { { P_PROST, 5, 9, 10, 10, 2 }, { P_KRESKA, 9, 9, 9, 7, 0 },
                                           { P_KRESKA, 10.5f, 5.5f, 17, 5.5f, 0 }, { P_KRESKA, 18.5f, 7, 18.5f, 13.5f, 0 },
                                           { P_KRESKA, 18.5f, 15, 15, 15, 0 } };
+/* 0.10.9 step 6 (D7): the mark of fast graphics — a chip with its pins */
+static const struct prym ik_karta[] = {
+    { P_PROST, 6.5f, 6.5f, 11, 11, 2 },     { P_PROST, 9.5f, 9.5f, 5, 5, 1 },       { P_KRESKA, 9.5f, 3.5f, 9.5f, 6.5f, 0 },
+    { P_KRESKA, 14.5f, 3.5f, 14.5f, 6.5f, 0 }, { P_KRESKA, 9.5f, 17.5f, 9.5f, 20.5f, 0 }, { P_KRESKA, 14.5f, 17.5f, 14.5f, 20.5f, 0 },
+    { P_KRESKA, 3.5f, 9.5f, 6.5f, 9.5f, 0 },  { P_KRESKA, 3.5f, 14.5f, 6.5f, 14.5f, 0 }, { P_KRESKA, 17.5f, 9.5f, 20.5f, 9.5f, 0 },
+    { P_KRESKA, 17.5f, 14.5f, 20.5f, 14.5f, 0 },
+};
 static const struct prym ik_klodka[] = { { P_PROST, 5.5f, 10.5f, 13, 10, 2.5f }, { P_LUK, 12, 10.5f, 4, -90, 90 },
                                          { P_KRESKA, 8, 10.5f, 8, 9, 0 }, { P_KRESKA, 16, 10.5f, 16, 9, 0 } };
 static const struct prym ik_info[] = { { P_OKRAG, 12, 12, 8.5f, 0, 0 }, { P_KOLO, 12, 8, 1.2f, 0, 0 },
@@ -518,6 +525,7 @@ void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozm
         [K1_IK_W_GORE] = IK(ik_w_gore),     [K1_IK_SIEC] = IK(ik_siec),
         [K1_IK_SIEC_BEZ_KABLA] = IK(ik_siec_bez), [K1_IK_WIFI] = IK(ik_wifi),
         [K1_IK_PRZEGLADARKA] = IK(ik_przegladarka), [K1_IK_AKTUALIZACJE] = IK(ik_aktualizacje),
+        [K1_IK_KARTA] = IK(ik_karta),
     };
     float s = rozmiar / 24.0f, g = 1.6f;
     int32_t x0, y0, x1, y1, i, j;
