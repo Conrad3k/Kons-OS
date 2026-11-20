@@ -52,9 +52,10 @@ int k1_obraz_strefy_czytaj(const char *t, size_t n, struct k1_obraz_strefy *o)
     return 0;
 }
 
-int64_t k1_obraz_strefy_w_miejscu(const struct k1_obraz_strefy *o, uint64_t fat_bajty)
+int64_t k1_obraz_strefy_w_miejscu(const struct k1_obraz_strefy *o, uint64_t fat_bajty, uint64_t slot_bajty)
 {
-    if (o->bajty == 0 || fat_bajty > K1_SLOT_MANIFEST_OFF || fat_bajty < o->bajty ||
+    if (o->bajty == 0 || slot_bajty < K1_SLOT_MIN || slot_bajty > K1_SLOT_MAKS || fat_bajty > k1_slot_man_off(slot_bajty) ||
+        fat_bajty < o->bajty ||
         fat_bajty - o->bajty < K1_OBRAZ_STREFY_FAT_MIN || (fat_bajty - o->bajty) % BLOK != 0)
         return -1;
     return (int64_t)(fat_bajty - o->bajty);

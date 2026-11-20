@@ -7,9 +7,9 @@
  *   12  flags (bit 0: signed)        88  the build id (16 bytes: what the running system finds in
  *   16  fat_bajty (u64)                  /rdzen/system/wydanie), zeros 104..447
  *   24  version text (24, NUL padded) 448  EdDSA signature (Monocypher, BLAKE2b) over bytes 0..447 (zeros if unsigned)
- * Format 2 — the manifest of a system slot (k1_uklad.h), at K1_SLOT_MANIFEST_OFF of the slot: fat_bajty up to
- * K1_SLOT_MANIFEST_OFF bytes of the slot are its inner image.
- * Format 3 — the manifest of the boot files, right after it (K1_SLOT_START_OFF): fat_bajty = the K1-EFI file
+ * Format 2 — the manifest of a system slot (k1_uklad.h), in the slot's last MiB (k1_slot_man_off): the first fat_bajty
+ * bytes of the slot are its image (up to the manifest: the caller checks it against its slot's size).
+ * Format 3 — the manifest of the boot files, right after it (k1_slot_start_off): fat_bajty = the K1-EFI file
  * system it was made for, the digest = k1_fat32_skrot of its files (shim, GRUB, grub.cfg … — everything but
  * grubenv and the slots). The same version and build id as the slot manifest beside it.
  * (Format 1, the manifest of a whole K1-EFI at 47 MiB for K1 0.6.2–0.6.3, is gone since 0.9.0.)
@@ -25,7 +25,7 @@
 #define K1_MANIFEST_PODPISANY 1u
 #define K1_MANIFEST_SLOT 2u  /* format: a system slot */
 #define K1_MANIFEST_START 3u /* format: the boot files */
-#define K1_MANIFEST_EFI_MAKS (1ull << 30) /* format 3: fat_bajty at most */
+#define K1_MANIFEST_EFI_MAKS (8ull << 30) /* format 3: fat_bajty at most (1 GiB up to 0.10.9 step 4: K1-EFI of 280 MiB) */
 
 struct k1_manifest {
     uint32_t format; /* K1_MANIFEST_SLOT or K1_MANIFEST_START */

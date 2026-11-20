@@ -16,8 +16,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (size < K1_GRUBENV_BAJTY)
         return 0;
     memcpy(b, data, sizeof b);
-    if (k1_uklad_czytaj(b, 512u << 20, &u) == 0 &&
-        (u.slot_bajty != K1_SLOT_BAJTY || u.slot_off[0] + u.slot_bajty > u.fat_bajty ||
+    if (k1_uklad_czytaj(b, 4096ull << 20, &u) == 0 &&
+        (u.slot_bajty < K1_SLOT_MIN || u.slot_bajty > K1_SLOT_MAKS || u.slot_bajty % K1_SLOT_MIB != 0 || u.slot_off[0] + u.slot_bajty > u.fat_bajty ||
          u.slot_off[1] + u.slot_bajty > u.fat_bajty || u.grubenv_off + K1_GRUBENV_BAJTY > u.fat_bajty))
         abort();
     memcpy(e, data, sizeof e);

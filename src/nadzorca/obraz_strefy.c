@@ -88,7 +88,7 @@ static int z_k1_efi(const char *nazwa, const struct k1_obraz_strefy *o, const ui
     for (int k = 0; k < 2; k++) {
         int i = kolejnosc[k];
         const struct k1_manifest *m = &e.slot[i];
-        int64_t od = m->wersja != 0 && memcmp(m->wydanie, wydanie, 16) == 0 ? k1_obraz_strefy_w_miejscu(o, m->fat_bajty) : -1;
+        int64_t od = m->wersja != 0 && memcmp(m->wydanie, wydanie, 16) == 0 ? k1_obraz_strefy_w_miejscu(o, m->fat_bajty, e.uklad.slot_bajty) : -1;
         if (od < 0)
             continue;
         *fd = ustaw(nazwa, o, czesc, e.uklad.slot_off[i] + (uint64_t)od);

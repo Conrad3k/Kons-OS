@@ -14,15 +14,18 @@ static int zera(const uint8_t *b, size_t od, size_t do_)
     return 1;
 }
 
-/* The sizes and the two manifests agree with each other and with the version. */
+/* The sizes and the two manifests agree with each other and with the version; the slots (between the front and the
+ * back) a whole number of MiB from K1_SLOT_MIN to K1_SLOT_MAKS, the system before its slot's manifests (0.10.9 step 4b). */
 static int zgodne(const struct k1_paczka *p)
 {
     const struct k1_manifest *s = &p->slot, *t = &p->start;
-    return p->wersja != 0 && s->format == K1_MANIFEST_SLOT && t->format == K1_MANIFEST_START && s->wersja == p->wersja &&
+    uint64_t slot = p->tyl_od > p->przod_bajty ? (p->tyl_od - p->przod_bajty) / 2 : 0;
+    return p->wersja != 0 && p->tyl_od > p->przod_bajty && (p->tyl_od - p->przod_bajty) % 2 == 0 && slot >= K1_SLOT_MIN &&
+           slot <= K1_SLOT_MAKS && slot % K1_SLOT_MIB == 0 && p->slot_bajty <= k1_slot_man_off(slot) && s->format == K1_MANIFEST_SLOT && t->format == K1_MANIFEST_START && s->wersja == p->wersja &&
            t->wersja == p->wersja && memcmp(s->wydanie, t->wydanie, sizeof s->wydanie) == 0 &&
            p->slot_bajty == s->fat_bajty && p->efi_bajty == t->fat_bajty && p->przod_bajty >= K1_UKLAD_OFF + K1_UKLAD_BAJTY &&
            p->przod_bajty <= K1_PACZKA_PRZOD_MAKS && p->przod_bajty % 512 == 0 && p->tyl_od % 512 == 0 &&
-           p->tyl_od == p->przod_bajty + 2ull * K1_SLOT_BAJTY && p->tyl_od <= p->efi_bajty &&
+           p->tyl_od <= p->efi_bajty &&
            p->tyl_bajty <= p->efi_bajty - p->tyl_od && p->tyl_bajty <= K1_PACZKA_TYL_MAKS;
 }
 
@@ -55,7 +58,7 @@ int k1_paczka_uklad(const struct k1_paczka *p, const uint8_t *przod, struct k1_u
         return -1;
     a = u->slot_off[0] < u->slot_off[1] ? u->slot_off[0] : u->slot_off[1];
     b = u->slot_off[0] < u->slot_off[1] ? u->slot_off[1] : u->slot_off[0];
-    if (u->fat_bajty != p->efi_bajty || a != p->przod_bajty || b != a + K1_SLOT_BAJTY || b + K1_SLOT_BAJTY != p->tyl_od ||
+    if (u->fat_bajty != p->efi_bajty || a != p->przod_bajty || b != a + u->slot_bajty || b + u->slot_bajty != p->tyl_od ||
         u->grubenv_off + K1_GRUBENV_BAJTY > p->przod_bajty)
         return -1;
     return 0;

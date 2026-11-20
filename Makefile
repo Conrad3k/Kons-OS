@@ -485,10 +485,10 @@ host-test_uklad: $(OBJ)/test_uklad
 
 host-test_instalator: $(OBJ)/test_instalator
 	$(OBJ)/test_instalator $(OBJ)/gpt.img
-	sfdisk -d $(OBJ)/gpt.img | grep -q 'start=        2048, size=     1048576, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B.*name="K1-EFI"'
-	sfdisk -d $(OBJ)/gpt.img | grep -q 'start=     1050624, size=     7335936, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4.*name="K1-DANE"'
+	sfdisk -d $(OBJ)/gpt.img | grep -q 'start=        2048, size=     6291456, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B.*name="K1-EFI"'
+	sfdisk -d $(OBJ)/gpt.img | grep -q 'start=     6293504, size=     2093056, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4.*name="K1-DANE"'
 	sfdisk --verify $(OBJ)/gpt.img >/dev/null
-	sfdisk -d $(OBJ)/gpt.img-wiekszy | grep -q 'start=     1050624, size=    32501760, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4.*name="K1-DANE"'
+	sfdisk -d $(OBJ)/gpt.img-wiekszy | grep -q 'start=     6293504, size=    27258880, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4.*name="K1-DANE"'
 	sfdisk --verify $(OBJ)/gpt.img-wiekszy >/dev/null
 	rm -f $(OBJ)/gpt.img $(OBJ)/gpt.img-wiekszy
 	@echo "test_instalator: tablica GPT odczytana przez sfdisk (K1-EFI, K1-DANE; K1-DANE powiększona do 16 GiB)"

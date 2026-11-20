@@ -1,7 +1,8 @@
 /* K1 instalator — the partition table of an installed K1 (M5f, ADR 0018).
  *
  * Layout on the target disk (1 MiB alignment):
- *   1 MiB … +512 MiB   "K1-EFI"  (EFI system partition: the K1 stick's partition copied byte for byte)
+ *   1 MiB … +3 GiB     "K1-EFI"  (EFI system partition: the K1 stick's partition copied byte for byte, then the
+ *                                waiting room of updates through the network; 512 MiB up to 0.10.9 step 4)
  *   then … end-1 MiB    "K1-DANE" (the encrypted vault; skarbiec formats it: first MiB zeros)
  * GPT with a protective MBR, both copies of the header and the entries (UEFI 2.x, 128 entries of
  * 128 bytes). Pure functions without system calls — tested on the host (testy/host/test_gpt.c),
@@ -13,7 +14,8 @@
 #include <stdint.h>
 
 #define K1_GPT_MIB (1024u * 1024u)
-#define K1_GPT_EFI_MIB 512u           /* room for larger systems later (A/B, M10) */
+#define K1_GPT_EFI_MIB 3072u          /* the K1-EFI of a stick (1600 MiB: slots of 768 MiB) and the waiting room behind it;
+                                       * 512 MiB up to 0.10.9 step 4 (ADR 0050, the owner's D10) */
 #define K1_GPT_DANE_MIN_MIB 256u      /* smallest data partition we accept */
 #define K1_GPT_WPISY 128u
 #define K1_GPT_WPIS 128u

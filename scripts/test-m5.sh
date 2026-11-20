@@ -158,7 +158,7 @@ zamknij_qemu "$MON" $QPID
 echo "[k1] test M5d: obraz na pendrive — start przez UEFI, magazyn na partycji K1-DANE, ponowny start"
 USBIMG=$K1_WYNIK/k1-$K1_WERSJA-usb.img
 if [ -f "$USBIMG" ]; then
-    cp "$USBIMG" "$TESTY/m5-pendrive.img"
+    cp --sparse=always "$USBIMG" "$TESTY/m5-pendrive.img"
     truncate -s +512M "$TESTY/m5-pendrive.img" # 0.8.0 step 5: a stick larger than the image
     for n in 1 2; do
         PLOG=$TESTY/m5-pendrive$n.log PMON=$TESTY/m5-pendrive$n.sock
@@ -188,7 +188,7 @@ if [ -f "$USBIMG" ]; then
     done
     # the table K1 wrote, read by another program: valid, K1-DANE up to the last MiB of the stick
     if sfdisk --verify "$TESTY/m5-pendrive.img" >/dev/null 2>&1 &&
-        sfdisk -d "$TESTY/m5-pendrive.img" | grep -q 'start=      575488, size=     1179648, .*name="K1-DANE"'; then
+        sfdisk -d "$TESTY/m5-pendrive.img" | grep -q 'start=     3278848, size=     1179648, .*name="K1-DANE"'; then
         echo "  [OK]    tablica partycji po powiększeniu poprawna (sfdisk): K1-DANE do ostatniego MiB pendrive'a"
     else
         echo "  [BŁĄD]  tablica partycji po powiększeniu:"; sfdisk -d "$TESTY/m5-pendrive.img" 2>&1 | sed 's/^/            | /'; r=1

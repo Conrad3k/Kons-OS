@@ -45,7 +45,8 @@ Lista KSPP: `scripts/sprawdz-kspp.sh` (dane z kernel-hardening-checker v0.6.17.1
 „leniwy” (`PREEMPT_LAZY`), nowy domyślny; `PROC_SYSCTL` nazywa się `SYSCTL`; wybór TSX w allnoconfig to teraz „auto”,
 więc fragment mówi wprost „off” (`X86_INTEL_TSX_MODE_OFF`). Nowe opcje „domyślnie tak”, których K1 nie chce, z powodem —
 `jadro/k1-odrzucone.txt` i `jadro/strefa-odrzucone.txt` (koniec plików). Rozmiar: jądro K1 12 972 KiB (6.18: 12 625),
-jądro stref 2 976 KiB (2 852), `k1.efi` 125 600 KiB (125 110) — w miejscu A/B 128 MiB zostaje ok. 5 MiB.
+jądro stref 2 976 KiB (2 852), `k1.efi` 125 600 KiB (125 110) — w miejscu A/B 128 MiB zostaje ok. 5 MiB. (Od 0.10.9 krok 4 obraz przeglądarki jest poza
+rdzeniem: `k1.efi` 18,2 MiB; od kroku 4b miejsce A/B ma 768 MiB, a jądro strefy nie ma XZ — obraz jest w zstd, ADR 0050.)
 
 Pozostałe zalecenia KSPP dla x86_64 są spełnione (np. KASLR, `STACKPROTECTOR_STRONG`,
 `HARDENED_USERCOPY`, `INIT_ON_ALLOC/FREE`, `LIST_HARDENED`, `KSTACK_ERASE`, `IOMMU_DEFAULT_DMA_STRICT`,

@@ -31,7 +31,7 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **wydanie** | Jedna wersja K1 (`k1-vX.Y.Z`): podpisany plik `k1.efi` z jądrem i rdzeniem, ISO i obraz na pendrive. |
 | **podpis** | Dowód, że wydanie pochodzi od właściciela projektu (klucz w sekrecie CI). Instalator odmawia niepodpisanych i starszych. |
 | **miejsce A / B** | Dwa miejsca na system w partycji K1-EFI: aktualizacja trafia do wolnego, stare zostaje na wypadek błędu. |
-| **K1-EFI** | Partycja startowa: pliki startowe i miejsca A/B. |
+| **K1-EFI** | Partycja startowa: pliki startowe i miejsca A/B (od 0.10.9 krok 4b po 768 MiB; na dysku partycja 3 GiB z poczekalnią). |
 | **aktualizacja** | Nowsza wersja K1 zapisana do wolnego miejsca A/B dysku; dane zostają; nowa wersja startuje raz na próbę (nie wystartuje — K1 wraca do poprzedniej). Od 0.10.5 robi się ją w **Ustawieniach → Aktualizacje** (sekcja; do 0.10.2 w Instalatorze): z pendrive'a z nowszą wersją albo **przez sieć**. **Instalator** tylko instaluje K1 na dysku (i włącza Secure Boot). |
 | **nieudana próba** | Nowa wersja po aktualizacji nie wystartowała, więc GRUB uruchomił poprzednią; K1 mówi to raz okienkiem na pulpicie i w Ustawieniach → Aktualizacje (0.10.5). |
 | **aktualizacja przez sieć** (0.10.5) | Aktualizacja, której nowa wersja przychodzi z wydania na GitHubie zamiast z pendrive'a: K1 sam sprawdza i pobiera, instaluje dopiero po „Zainstaluj” (ADR 0046). Tylko K1 zainstalowany na dysku. |

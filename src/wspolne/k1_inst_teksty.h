@@ -22,7 +22,7 @@ static inline const char *k1_inst_blad_tekst(int blad)
         const char *tekst;
     } bledy[] = {
         { K1_INST_BLAD_ZAJETY, "Dysk jest teraz używany przez system (jego dane są otwarte)." },
-        { K1_INST_BLAD_MALY, "Dysk jest za mały (potrzeba co najmniej 1 GB)." },
+        { K1_INST_BLAD_MALY, "Dysk jest za mały (potrzeba co najmniej 4 GB)." },
         { K1_INST_BLAD_ZAPIS, "Zapis na dysk się nie udał. Dysk może być uszkodzony." },
         { K1_INST_BLAD_SPRAWDZ, "Dysk zwrócił inne dane niż zapisane. Dysk może być uszkodzony." },
         { K1_INST_BLAD_ZRODLO, "Nie znaleziono pendrive'a z K1 (uruchom K1 z pendrive'a albo podłącz go)." },
@@ -32,6 +32,8 @@ static inline const char *k1_inst_blad_tekst(int blad)
         { K1_INST_BLAD_TRWA, "Trwa już zapis K1 na dysk w drugim oknie (Instalator albo Ustawienia). Poczekaj na koniec." },
         { K1_INST_BLAD_SIEC, "Pobieranie przerwało się albo przyszło coś innego niż nowa wersja K1. Nic nie zmieniono." },
         { K1_INST_BLAD_MIEJSCE, "Na tym dysku nie ma miejsca na pobraną wersję. Zaktualizuj K1 z pendrive'a." },
+        { K1_INST_BLAD_UKLAD, "Na dysku jest starszy układ K1 (mniej miejsca na system). Zainstaluj K1 od nowa z pendrive'a "
+                              "(Instalator). Dane z tego dysku przepadną." },
     };
     unsigned i;
     for (i = 0; i < sizeof bledy / sizeof bledy[0]; i++)

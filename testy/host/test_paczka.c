@@ -10,6 +10,8 @@
 #include "k1_test_host.h"
 #include "k1_uklad.h"
 
+#define SLOT (128ull << 20) /* the slots of these images: the size up to 0.10.9 step 4 (still read) */
+
 #define W ((uint32_t)(0 << 16 | 11 << 8 | 0))
 #define PRZOD (600u << 10)
 #define EFI (280ull << 20)
@@ -34,7 +36,7 @@ static void wzor(struct k1_paczka *p)
     p->slot_bajty = 122u << 20;
     p->efi_bajty = EFI;
     p->przod_bajty = PRZOD;
-    p->tyl_od = PRZOD + 2ull * K1_SLOT_BAJTY;
+    p->tyl_od = PRZOD + 2ull * SLOT;
     p->tyl_bajty = 4u << 20;
     manifest(p->man_slot, K1_MANIFEST_SLOT, W, p->slot_bajty, 0x22);
     manifest(p->man_start, K1_MANIFEST_START, W, EFI, 0x22);
@@ -86,11 +88,23 @@ static void naglowek(void)
     EXPECT(k1_paczka_zbuduj(&p, b) != 0);
     wzor(&p); /* a front without room for the layout block */
     p.przod_bajty = 1024;
-    p.tyl_od = 1024 + 2ull * K1_SLOT_BAJTY;
+    p.tyl_od = 1024 + 2ull * SLOT;
+    EXPECT(k1_paczka_zbuduj(&p, b) != 0);
+    wzor(&p); /* 0.10.9 step 4b: the slots' size comes from between the front and the back — not half a MiB */
+    p.tyl_od = PRZOD + 2ull * SLOT + 2 * 512;
+    EXPECT(k1_paczka_zbuduj(&p, b) != 0);
+    wzor(&p); /* slots smaller than the smallest */
+    p.tyl_od = PRZOD + 2ull * (K1_SLOT_MIN - K1_SLOT_MIB);
+    p.slot_bajty = 1u << 20;
+    manifest(p.man_slot, K1_MANIFEST_SLOT, W, p.slot_bajty, 0x22);
+    EXPECT(k1_paczka_zbuduj(&p, b) != 0);
+    wzor(&p); /* the system over its slot's manifests */
+    p.slot_bajty = k1_slot_man_off(SLOT) + 4096;
+    manifest(p.man_slot, K1_MANIFEST_SLOT, W, p.slot_bajty, 0x22);
     EXPECT(k1_paczka_zbuduj(&p, b) != 0);
     wzor(&p); /* a front larger than any K1-EFI's */
     p.przod_bajty = K1_PACZKA_PRZOD_MAKS + 512;
-    p.tyl_od = p.przod_bajty + 2ull * K1_SLOT_BAJTY;
+    p.tyl_od = p.przod_bajty + 2ull * SLOT;
     EXPECT(k1_paczka_zbuduj(&p, b) != 0);
 }
 
@@ -103,20 +117,20 @@ static void uklad(void)
     memset(przod, 0, sizeof przod);
     u.fat_bajty = EFI;
     u.grubenv_off = PRZOD - 8192;
-    u.slot_bajty = K1_SLOT_BAJTY;
+    u.slot_bajty = SLOT;
     u.slot_off[1] = PRZOD; /* as zbuduj-usb.sh lays it out: grubenv, B, A */
-    u.slot_off[0] = PRZOD + K1_SLOT_BAJTY;
+    u.slot_off[0] = PRZOD + SLOT;
     k1_uklad_zbuduj(&u, przod + K1_UKLAD_OFF);
     EXPECT(k1_paczka_uklad(&p, przod, &r) == 0 && r.slot_off[0] == u.slot_off[0]);
     u.slot_off[0] = PRZOD; /* A first: as good */
-    u.slot_off[1] = PRZOD + K1_SLOT_BAJTY;
+    u.slot_off[1] = PRZOD + SLOT;
     k1_uklad_zbuduj(&u, przod + K1_UKLAD_OFF);
     EXPECT(k1_paczka_uklad(&p, przod, &r) == 0);
-    u.slot_off[1] = PRZOD + K1_SLOT_BAJTY + 4096; /* a gap between the slots */
+    u.slot_off[1] = PRZOD + SLOT + 4096; /* a gap between the slots */
     k1_uklad_zbuduj(&u, przod + K1_UKLAD_OFF);
     EXPECT(k1_paczka_uklad(&p, przod, &r) != 0);
-    u.slot_off[1] = PRZOD + K1_SLOT_BAJTY;
-    u.grubenv_off = PRZOD + 2ull * K1_SLOT_BAJTY; /* grubenv in the back */
+    u.slot_off[1] = PRZOD + SLOT;
+    u.grubenv_off = PRZOD + 2ull * SLOT; /* grubenv in the back */
     k1_uklad_zbuduj(&u, przod + K1_UKLAD_OFF);
     EXPECT(k1_paczka_uklad(&p, przod, &r) != 0);
     u.grubenv_off = PRZOD - 8192;

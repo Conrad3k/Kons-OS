@@ -155,15 +155,17 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 -------------------------------------------------------------------------
 Jedna lista — dla ostatniego wydania (0.10.7). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
 z 2026-11-11).
-Nowe na main po 0.10.7 (0.10.9 krok 4 — przyjdzie z najbliższym wydaniem; robot do tego czasu wyłączony):
-    [ ] obraz próbny z PR-a kroku 4 z pendrive'a (X230 i IdeaPad): pulpit, Przeglądarka → Ogólna otwiera się (ile
-        sekund do okna — pierwszy raz po włączeniu i drugi raz), strona się ładuje; Zasoby: pamięć K1 po starcie
-        mniejsza o ok. 100 MB niż w 0.10.7
+Nowe na main po 0.10.7 (0.10.9 kroki 4 i 4b — przyjdą z najbliższym wydaniem; robot do tego czasu w trybie próbnym):
+    [ ] obraz próbny z PR-a kroku 4b z pendrive'a (≥ 2 GB; X230 i IdeaPad): pulpit, Przeglądarka → Ogólna otwiera się (ile
+        sekund do okna — pierwszy raz po włączeniu i drugi raz; dla porównania to samo na 0.10.7), strona się ładuje;
+        Zasoby: pamięć K1 po starcie mniejsza o ok. 100 MB niż w 0.10.7
+    [ ] instalacja od nowa na obu laptopach z tego pendrive'a (Instalator → dysk → USUŃ) — K1 0.10.7 na dysku nie
+        zaktualizuje się do nowego układu (D10 „A”; dane z dysku przepadają); po instalacji start z dysku, przeglądarka
     [ ] Start → Wyłącz bez otwartej przeglądarki: na obu laptopach chwilę widać ekran „Wyłączanie” z kropkami (X230 —
         Twoje zgłoszenie z 2026-11-19)
-    [ ] po wydaniu: aktualizacja przez sieć na dysku obu laptopów (Ustawienia → Aktualizacje → „Sprawdź teraz” →
-        „Zainstaluj”) — po ponownym uruchomieniu przeglądarka działa, dane zostają, a „Sprawdź teraz” dalej działa (strefa
-        pobierania z nowego miejsca); dopiero po tym robot wraca (punkt 6)
+    [ ] po najbliższym wydaniu: aktualizacja przez sieć na dysku obu laptopów (już w nowym układzie; Ustawienia →
+        Aktualizacje → „Sprawdź teraz” → „Zainstaluj”) — po ponownym uruchomieniu przeglądarka działa, dane zostają,
+        a „Sprawdź teraz” dalej działa (strefa pobierania z nowego miejsca); dopiero po tym robot wraca (punkt 6)
 Nowe w 0.10.7 (Wygląd; X230 i IdeaPad):
     [ ] najpierw aktualizacja przez sieć do 0.10.7 (pierwsza tą drogą, jeśli robot nie wydał nic wcześniej): z siecią
         Ustawienia → Aktualizacje → „Sprawdź teraz” → okienko „Jest nowa wersja K1” z opisem „K1 wygląda spokojniej…” →
@@ -272,8 +274,8 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
     D10 przegląd dokumentacji: powtórzenia → odesłania, historia (ADR, CHANGELOG, archiwum) bez zmian.
 [x] 0.10.7 — decyzje D1–D7 podjęte (docs/archiwum/PLAN-0.10.7.txt, punkt 4).
 [!] 0.10.9 Filmy i szybka grafika — decyzje w docs/PLAN-0.10.9.txt (punkt 4); czat zada je na początku swojego kroku.
-    Nowa po kroku 4 — D10 (większe miejsca A/B: laptopy od nowa / przeprowadzka K1-DANE / zostać przy 128 MiB): bez niej
-    nie ma szybszego startu przeglądarki ani miejsca na FFmpeg i sterownik karty w strefie (ADR 0050).
+    D10 (większe miejsca A/B) — rozstrzygnięta 2026-11-20: A, z zapasem (krok 4b: miejsca 768 MiB); laptopy instalujesz
+    od nowa (punkt 4).
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
 
 Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):

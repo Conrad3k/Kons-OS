@@ -1,6 +1,6 @@
 # 0050. Obraz przeglądarki poza rdzeniem, w miejscu A/B obok k1.efi
 
-- Status: Przyjęty; wdrożony w 0.10.9 (krok 4)
+- Status: Przyjęty; wdrożony w 0.10.9 (krok 4); uzupełniony 2026-11-20 — krok 4b: większe miejsca A/B (decyzja właściciela D10 „A”)
 - Data: 2026-11-19
 - Dotyczy: ADR 0042 (obrazy stref w rdzeniu), ADR 0043 (obraz przeglądarki), ADR 0022 (A/B, miejsce 128 MiB), ADR 0046
   (paczka i poczekalnia), ADR 0021 (dm-verity); plan `docs/PLAN-0.10.9.txt`: krok 4, T16, luki S31–S35, S46; RYZYKA R81
@@ -70,7 +70,7 @@ to wolna część miejsc A/B, które po wyjęciu obrazu z rdzenia mają ok. 108 
 - Urządzenie dm-verity obrazu trzyma nadzorca (do odczytu); test w systemie tego pilnuje (`t_sprzet`: dyski i partycje
   ma otwarte tylko skarbiec, nadzorca — tylko obraz strefy `k1-strefa-*`, tylko do odczytu).
 
-## Czego ta decyzja nie daje (decyzja właściciela D10 planu 0.10.9 — przed krokiem 3)
+## Czego ta decyzja nie daje (decyzja właściciela D10 planu 0.10.9 — podjęta 2026-11-20: „A”, niżej „Uzupełnienie”)
 Miejsce A/B 128 MiB jest znowu prawie pełne: nie ma w nim miejsca na szybszy format ani na FFmpeg (krok 3) i sterownik
 karty w strefie (krok 6). Potrzebne są większe miejsca A/B, a dyski z 0.10.x mają na K1 tylko 512 MiB. Możliwości:
 (a) większa partycja K1-EFI i większe miejsca dla nowych instalacji i pendrive'ów (pole „slot bytes” bloku układu już
@@ -85,3 +85,24 @@ danych; (c) zostać przy 128 MiB: własny, mały FFmpeg (T5 B), bez Mesy — bez
   poprzednią wersję („Wróć”); zysk wobec miejsca A/B — kilka MiB.
 - Obraz z GRUB-a jako drugi initramfs: znowu w pamięci, a dołączany initramfs mógłby podmienić `/init` przed sprawdzeniem
   rdzenia.
+
+## Uzupełnienie (2026-11-20): krok 4b — większe miejsca A/B
+Właściciel wybrał D10 „A”: więcej miejsca na system, z zapasem („zajmij sobie więcej miejsca, na zapas”); laptopy instaluje
+od nowa. Wdrożone w tym samym planie (krok 4b):
+1. **Rozmiar miejsca czytany z bloku układu** (pole „slot bytes” było w formacie od 0.7.0): każdy pełny MiB od 128 MiB
+   do 2 GiB; manifest miejsca w jego ostatnim MiB (`k1_slot_man_off`, `k1_slot_start_off` zamiast stałego 127. MiB).
+   Stare dyski (128 MiB) dalej są rozpoznawane — Instalator i nadzorca widzą na nich K1.
+2. **Nowe pendrive'y i instalacje: miejsca po 768 MiB**, K1-EFI 1600 MiB (dwa miejsca + 64 MiB na pliki startowe, bo
+   aktualizacja pisze nowe obok starych), partycja K1-EFI na dysku 3 GiB (za FAT-em poczekalnia na paczkę do ok. 800 MiB).
+   Dysk do instalacji: co najmniej 4 GB; pendrive: co najmniej 2 GB (obraz `.img` ma 1,7 GB, `.img.xz` do pobrania ok.
+   146 MB — puste miejsce B to zera).
+3. **Aktualizacja wymaga tego samego rozmiaru miejsc na dysku i w wydaniu**: inaczej program zapisujący odmawia przed
+   jakimkolwiek zapisem (`K1_INST_BLAD_UKLAD`: „Na dysku jest starszy układ K1 … Zainstaluj K1 od nowa”). K1 0.10.7
+   i starsze odrzucają paczkę nowego układu same (ich parser zna tylko 128 MiB) — fail closed, nic się nie zmienia.
+   Paczka nie dostała nowego pola: rozmiar miejsc to połowa odstępu między przodem a tyłem (sprawdzany).
+4. **Szybszy format obrazu przeglądarki: SquashFS zstd z blokami 128 KiB** (126 MiB z drzewem; xz 1 MiB — 104 MiB). Do
+   przeczytania 4 KiB biblioteki strefa rozpakowuje 128 KiB szybkim dekoderem zamiast 1 MiB wolnym xz. lz4 odrzucony:
+   o 58 % większy, a na pendrivie USB 2.0 (X230) pierwszy start jest ograniczony odczytem z nośnika. Jądro strefy bez XZ.
+5. Miejsce A: zajęte 146 MiB (k1.efi 20 + obraz 126), **wolne 620 MiB** — na FFmpeg (krok 3), sterownik karty w strefie
+   (krok 6) i wzrost Firefoksa. Czasu startu przeglądarki dalej nie da się zmierzyć w kontenerze ani w CI — mierzy
+   właściciel na laptopach (DO_ZROBIENIA, punkt 4).

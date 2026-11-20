@@ -83,7 +83,7 @@ sterownik VMware nie działa z tą kartą QEMU); Hyper-V — jeszcze nie.
 Od 0.5.6 jest osobny obraz na pendrive: **`k1-X.Y.Z-usb.img.xz`** (Releases). Ma miejsce na Twoje dane
 (ustawienia, notatki) — **zaszyfrowane, na tym samym pendrivie**. Bez Twojej decyzji K1 **niczego nie
 zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive zostanie w całości nadpisany.
-1. Nagraj `k1-X.Y.Z-usb.img.xz` na pendrive (≥ 512 MB): w Windowsie **Rufus** → wybierz plik
+1. Nagraj `k1-X.Y.Z-usb.img.xz` na pendrive (≥ 2 GB): w Windowsie **Rufus** → wybierz plik
    (Rufus sam rozpakuje .xz; jeśli zapyta — tryb obrazu DD) → Start. Albo balenaEtcher.
    (Obraz `.iso` też zadziała z pendrive'a, ale bez zapisu danych — po wyłączeniu wszystko znika,
    a Ustawienia → Hasło piszą „Nie znaleziono miejsca na dane”. Sprawdzisz w Ustawieniach → Informacje:
@@ -118,7 +118,11 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    wpisz **USUŃ** → *Usuń wszystko i zainstaluj*. **Wszystko na tym dysku zostanie usunięte** (Windows,
    pliki). Po „Gotowe”: *Wyłącz komputer*, wyjmij pendrive, włącz laptop — K1 startuje z dysku (jeśli nie:
    F12 → dysk), a Twoje zaszyfrowane dane mają cały dysk. Dane z pendrive'a nie są przenoszone (nowe
-   konto). **Ustaw hasło** (punkt 6) — bez niego złodziej laptopa może odczytać dane.
+   konto). **Ustaw hasło** (punkt 6) — bez niego złodziej laptopa może odczytać dane. Dysk: co najmniej 4 GB (K1 zajmuje
+   3 GB na system i jego aktualizacje, reszta to dane).
+   **K1 zainstalowany wersją 0.10.7 albo starszą** (mniejsze miejsce na system) nie zaktualizuje się do nowszych wersji — ani przez
+   sieć, ani z pendrive'a (Ustawienia → Aktualizacje pokażą błąd). Zainstaluj go od nowa z pendrive'a
+   (Instalator) — dane z tego dysku przepadną.
    **Aktualizacja przez sieć (od 0.10.5):** K1 na dysku sam sprawdza (po połączeniu z internetem i co 6 godzin), pobiera
    nową wersję i pyta okienkiem „Jest nowa wersja K1” — instaluje dopiero po *Zainstaluj*. Wszystko w **Ustawieniach →
    Aktualizacje**: *Sprawdź teraz*, *Sprawdzaj sam*, *Wróć do poprzedniej wersji*. K1 uruchomiony z pendrive'a powie tylko,

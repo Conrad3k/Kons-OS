@@ -1,5 +1,6 @@
 #!/bin/sh
-# Buduje obraz strefy przeglądarki (0.10.0 krok 2, ADR 0043 T5/T8): build/wynik/strefa-przegladarka.img (SquashFS xz).
+# Buduje obraz strefy przeglądarki (0.10.0 krok 2, ADR 0043 T5/T8): build/wynik/strefa-przegladarka.img (SquashFS; od
+# 0.10.9 krok 4b zstd z blokami 128 KiB — do kroku 4 xz z blokami 1 MiB).
 # Od 0.10.5 (ADR 0046) ten sam obraz ma curl dla strefy pobierania aktualizacji (inny program startowy w gosc).
 # Od 0.10.9 krok 4 (ADR 0050) obraz nie jest częścią rdzenia: ma za danymi drzewo skrótów dm-verity, leży w miejscu A/B
 # zaraz za k1.efi (scripts/zbuduj-usb.sh), a do rdzenia idzie tylko jego skrót obrazu strefy —
@@ -83,9 +84,10 @@ chmod 0444 "$D/etc/passwd" "$D/etc/group"
 ln -sfn /run/machine-id "$D/etc/machine-id" # gosc writes a new one for every machine
 
 rm -f "$WYNIK" "$WYNIK.skrot" "${WYNIK%.img}.skrot"
-# xz with 1 MiB blocks (ADR 0050, measured 2026-11-19): zstd is 11 % (1 MiB blocks) to 21 % (128 KiB) larger and no
-# longer fits in a 128 MiB slot beside k1.efi — the faster format waits for larger slots (plan 0.10.9, D10)
-mksquashfs "$D" "$WYNIK" -quiet -no-progress -noappend -comp xz -Xbcj x86 -b 1M -all-root -no-xattrs \
+# zstd with 128 KiB blocks (ADR 0050, step 4b, measured 2026-11-19): about 21 % larger than xz with 1 MiB blocks, but a
+# 4 KiB read of the browser's libraries decompresses 128 KiB with a fast decoder instead of 1 MiB with xz; on a slow USB 2.0
+# stick lz4 (58 % larger) would read longer than it saves. The slots of 768 MiB (step 4b) have the room.
+mksquashfs "$D" "$WYNIK" -quiet -no-progress -noappend -comp zstd -Xcompression-level 22 -b 128K -all-root -no-xattrs \
     >/dev/null # SOURCE_DATE_EPOCH (wspolne.sh): the time of every file and of the image
 BLOKI=$(( ($(stat -c %s "$WYNIK") + 4095) / 4096 ))
 verity "$WYNIK" # 0.10.9 step 4: the hash tree after the data, the root hash in $WYNIK.skrot

@@ -647,7 +647,8 @@ enum { K1_INST_ETAP_CZYSZCZENIE = 1, K1_INST_ETAP_KOPIA = 2, K1_INST_ETAP_SPRAWD
 #define K1_INST_BLAD_TRWA (-10)    /* 0.10.5: another job runs (asked from the other window) */
 #define K1_INST_BLAD_SIEC (-11)    /* 0.10.5 step 2: the download ended too early, or with bytes that are not the package */
 #define K1_INST_BLAD_MIEJSCE (-12) /* 0.10.5 step 2: no waiting room on this disk (or nothing waits in it) */
-#define K1_INST_BLAD_MIN (-12)
+#define K1_INST_BLAD_UKLAD (-13)   /* 0.10.9 step 4b: the disk's K1-EFI has other slots (older K1) — install anew */
+#define K1_INST_BLAD_MIN (-13)
 #define K1_AB_FL_NOWY 1        /* INST_AB d: a new slot waits to be tried on the next start */
 #define K1_AB_FL_NIEUDANA 2    /* INST_AB d: the last new slot did not start (GRUB went back) */
 enum { K1_SB_WYL = 0, K1_SB_WL = 1, K1_SB_NIEZNANY = 2 };            /* Secure Boot off / on / no UEFI variables */

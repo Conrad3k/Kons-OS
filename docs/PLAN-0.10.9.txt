@@ -182,6 +182,8 @@ Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3 — filmy
 [ ]  3  Strefa: przełącznik filmów, Firefox z dekoderem     S18–S25, S29     2, 4        D1–D4, T4, T5, T9 L        z kr. 1
 [x]  4  Obraz przeglądarki poza rdzeniem, szybszy start     S31–S35          0.10.7      T16              M        0050
         PR #183 (obraz w miejscu A/B obok k1.efi, format bez zmian — szybszy start i miejsce: D10)
+[x]  4b Większe miejsca A/B (768 MiB), obraz w zstd (D10 „A”) S31, S33        4           D10              M        0050
+        PR #185 (miejsca 768 MiB, K1-EFI 1600 MiB, na dysku 3 GiB; zapas 620 MiB)
 [ ]  5  Szybka grafika, K1: pośrednik grafiki               S37–S41, S44     1, 2        T10–T15          L        z kr. 1
 [ ]  6  Szybka grafika, strefa: przełącznik; wydanie        S40–S45          4, 5        D5–D8, T12–T15   L        z kr. 1
 (Numery ADR — następne wolne w chwili kroku: 0.10.5 bierze 0046 i 0047, 0.10.7 — 0048, więc krok 1 zwykle 0049,
@@ -447,6 +449,13 @@ KROK 4 — Obraz przeglądarki poza rdzeniem, szybszy start                     
   - Przy okazji (prośba właściciela 2026-11-19): ekran „Wyłączanie” nie pojawiał się na X230 — nie rozdzielczość: bez
     otwartej strefy nadzorca oddawał sprawę do init od razu i ekran kończył się przed pierwszą klatką; teraz nadzorca
     czeka co najmniej obieg kropek (1,5 s); test-m4 sprawdza kolejność w logu.
+  Krok 4b (2026-11-20, decyzja D10 „A”; ten sam czat; ADR 0050, „Uzupełnienie”):
+  - Rozmiar miejsca czytany z bloku układu (128 MiB – 2 GiB, pełne MiB), manifest w ostatnim MiB miejsca; nowe pendrive'y
+    i instalacje: miejsca 768 MiB, K1-EFI 1600 MiB, partycja na dysku 3 GiB (z poczekalnią); dysk ≥ 4 GB, pendrive ≥ 2 GB.
+  - Aktualizacja dysku z innymi miejscami (K1 0.10.7 i starsze) — odmowa przed zapisem (K1_INST_BLAD_UKLAD, „zainstaluj od
+    nowa”); stary program zapisujący odrzuca paczkę nowego układu sam. Paczka bez nowego pola (rozmiar z przodu i tyłu).
+  - Obraz przeglądarki w zstd z blokami 128 KiB (126 MiB), jądro strefy bez XZ. Miejsce A: zajęte 146 MiB, wolne 620 MiB.
+  - Przy okazji: K1_FAT32_KLASTRY 2^19 (FAT 1600 MiB ma 409 600 klastrów), K1_MANIFEST_EFI_MAKS 8 GiB.
 
 KROK 5 — Szybka grafika, strona K1: pośrednik grafiki                              L · T10–T15 · ADR z kr. 1
   (Dodany 2026-11-17 na prośbę właściciela. Zaczyna się tylko, jeśli krok 1 (f) i D8 tak mówią.)
@@ -555,7 +564,8 @@ Szybka grafika (dodane 2026-11-17) — czat kroku 6 zada je na początku; D8 —
          „Później” (do komputera, który obsłuży), a 0.10.9 wychodzi z filmami i szybszym startem. Bez laptopa do
          sprawdzenia szybkiej grafiki nie wydajemy.
       B: wstrzymać 0.10.9, aż będzie sprzęt do sprawdzenia.
-  [!] D10 — (nowe, krok 4, ADR 0050) Większe miejsca A/B. Po kroku 4 obraz przeglądarki leży w miejscu A/B obok k1.efi
+  [x] D10 — (nowe, krok 4, ADR 0050) Większe miejsca A/B. ROZSTRZYGNIĘTE 2026-11-20: A („robimy więcej miejsca … zajmij
+      sobie więcej miejsca nawet, na zapas”) — krok 4b w tym samym czacie: miejsca 768 MiB, K1-EFI 1600 MiB, na dysku 3 GiB. Po kroku 4 obraz przeglądarki leży w miejscu A/B obok k1.efi
       (pamięć: K1 ma ok. 109 MB więcej), ale miejsce 128 MiB jest znowu prawie pełne (zapas 2,5 MiB): nie mieści się
       szybszy format (start przeglądarki), FFmpeg (krok 3) ani sterownik karty strefy (krok 6). Dyski z K1 0.10.x mają na
       system tylko 512 MiB (trzy wersje naraz: działająca, poprzednia do „Wróć”, czekająca w poczekalni).

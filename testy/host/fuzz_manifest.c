@@ -18,7 +18,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         return 0;
     memcpy(buf, data, sizeof buf);
     if (k1_manifest_czytaj(buf, &m) == 0) {
-        if (m.fat_bajty == 0 || m.fat_bajty > (m.format == K1_MANIFEST_SLOT ? K1_SLOT_MANIFEST_OFF : K1_MANIFEST_EFI_MAKS) ||
+        if (m.fat_bajty == 0 || m.fat_bajty > (m.format == K1_MANIFEST_SLOT ? k1_slot_man_off(K1_SLOT_MAKS) : K1_MANIFEST_EFI_MAKS) ||
             (m.format != K1_MANIFEST_SLOT && m.format != K1_MANIFEST_START) || m.wersja > 0xffffff ||
             strnlen(m.tekst, sizeof m.tekst) >= sizeof m.tekst)
             abort();

@@ -178,8 +178,8 @@ static int zapisz_efi(const struct k1_uklad *zr, uint64_t cel_off, int od, int d
 {
     static uint8_t env[K1_GRUBENV_BAJTY], zera[2 * K1_MANIFEST_BAJTY];
     struct k1_grubenv g = { 'a', 0, 0, 0 };
-    uint64_t b = zr->slot_off[1], za_b = b + K1_SLOT_BAJTY;
-    int p = od + (int)((uint64_t)(do_ - 2 - od) * b / (zr->fat_bajty - K1_SLOT_BAJTY)), r;
+    uint64_t b = zr->slot_off[1], za_b = b + zr->slot_bajty;
+    int p = od + (int)((uint64_t)(do_ - 2 - od) * b / (zr->fat_bajty - zr->slot_bajty)), r;
     r = kopiuj(0, b, cel_off, od, od + (p - od) * 2 / 3, p);
     if (r == 0)
         r = kopiuj(za_b, zr->fat_bajty - za_b, cel_off + za_b, p, p + (do_ - 2 - p) * 2 / 3, do_ - 2);
@@ -187,7 +187,7 @@ static int zapisz_efi(const struct k1_uklad *zr, uint64_t cel_off, int od, int d
         return r;
     k1_grubenv_zbuduj(&g, env);
     if (k1_pisz_calosc(FD_CEL, env, sizeof env, cel_off + zr->grubenv_off) != 0 ||
-        k1_pisz_calosc(FD_CEL, zera, sizeof zera, cel_off + b + K1_SLOT_MANIFEST_OFF) != 0 || fdatasync(FD_CEL) != 0) {
+        k1_pisz_calosc(FD_CEL, zera, sizeof zera, cel_off + b + k1_slot_man_off(zr->slot_bajty)) != 0 || fdatasync(FD_CEL) != 0) {
         k1_log(TAG, "zapis grubenv nieudany: %s", strerror(errno));
         return K1_INST_BLAD_ZAPIS;
     }
@@ -307,14 +307,21 @@ static int aktualizuj_slot(const struct k1_uklad *zr, const struct k1_manifest *
     static uint8_t env[K1_GRUBENV_BAJTY], env2[K1_GRUBENV_BAJTY];
     struct k1_grubenv nowe = *e;
     uint64_t do_ = dysk->slot_off[cel];
-    int r = wymien_pliki_startowe(zr, dysk);
+    int r;
+    if (zr->slot_bajty != dysk->slot_bajty) { /* 0.10.9 step 4b: 128 MiB slots of an older K1 — nothing written */
+        k1_log(TAG, "odmowa: na dysku miejsca A/B po %llu MiB, na pendrivie po %llu MiB — zainstaluj K1 od nowa",
+               (unsigned long long)(dysk->slot_bajty >> 20), (unsigned long long)(zr->slot_bajty >> 20));
+        return K1_INST_BLAD_UKLAD;
+    }
+    r = wymien_pliki_startowe(zr, dysk);
     if (r != 0)
         return r;
     k1_log(TAG, "aktualizacja A/B: system %s (%llu MiB) do miejsca %c; działający system i dane nietknięte", mz->tekst,
            (unsigned long long)(mz->fat_bajty >> 20), "ab"[cel]);
     r = kopiuj(zr->slot_off[0], mz->fat_bajty, do_, 8, 50, 90);
     if (r == 0)
-        r = kopiuj(zr->slot_off[0] + K1_SLOT_MANIFEST_OFF, 2 * K1_MANIFEST_BAJTY, do_ + K1_SLOT_MANIFEST_OFF, 90, 92, 94);
+        r = kopiuj(zr->slot_off[0] + k1_slot_man_off(zr->slot_bajty), 2 * K1_MANIFEST_BAJTY, do_ + k1_slot_man_off(zr->slot_bajty),
+                   90, 92, 94);
     if (r != 0)
         return r;
     nowe.nowy = "ab"[cel];
@@ -373,11 +380,15 @@ static int manifest_zrodla(uint64_t man_off, uint32_t format, struct k1_manifest
 static int sprawdz_zrodlo(const struct k1_uklad *u, struct k1_manifest *m)
 {
     uint8_t s[32];
-    int r = manifest_zrodla(u->slot_off[0] + K1_SLOT_MANIFEST_OFF, K1_MANIFEST_SLOT, m);
+    int r = manifest_zrodla(u->slot_off[0] + k1_slot_man_off(u->slot_bajty), K1_MANIFEST_SLOT, m);
     if (r == 0)
-        r = manifest_zrodla(u->slot_off[0] + K1_SLOT_START_OFF, K1_MANIFEST_START, &man_startu);
+        r = manifest_zrodla(u->slot_off[0] + k1_slot_start_off(u->slot_bajty), K1_MANIFEST_START, &man_startu);
     if (r != 0)
         return r;
+    if (m->fat_bajty > k1_slot_man_off(u->slot_bajty)) {
+        k1_log(TAG, "źródło %s: system większy niż jego miejsce", m->tekst);
+        return K1_INST_BLAD_PODPIS;
+    }
     if (man_startu.wersja != m->wersja || memcmp(man_startu.wydanie, m->wydanie, sizeof m->wydanie) != 0 ||
         man_startu.fat_bajty != u->fat_bajty) {
         k1_log(TAG, "źródło %s: manifest plików startowych z innego wydania", m->tekst);

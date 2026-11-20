@@ -28,9 +28,9 @@ struct k1_obraz_strefy {
  * block when there is more than one data block), the whole a multiple of 4 KiB, at most K1_OBRAZ_STREFY_MAKS. 0 or -1. */
 int k1_obraz_strefy_czytaj(const char *t, size_t n, struct k1_obraz_strefy *o);
 
-/* Where the image begins in a slot whose image has `fat_bajty` bytes (its manifest): it ends there, a 4 KiB aligned
- * start with at least K1_OBRAZ_STREFY_FAT_MIN before it (the inner FAT), the whole inside the slot's image room. The
- * offset from the slot's start, or -1 when it cannot lie there. */
-int64_t k1_obraz_strefy_w_miejscu(const struct k1_obraz_strefy *o, uint64_t fat_bajty);
+/* Where the image begins in a slot of `slot_bajty` whose image has `fat_bajty` bytes (its manifest): it ends there, a
+ * 4 KiB aligned start with at least K1_OBRAZ_STREFY_FAT_MIN before it (the inner FAT), the whole before the slot's
+ * manifests. The offset from the slot's start, or -1 when it cannot lie there. */
+int64_t k1_obraz_strefy_w_miejscu(const struct k1_obraz_strefy *o, uint64_t fat_bajty, uint64_t slot_bajty);
 
 #endif
