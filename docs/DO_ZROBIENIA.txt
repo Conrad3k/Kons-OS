@@ -4,23 +4,29 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.10.7 „Wygląd” — krótsze napisy bez półpauz, Ustawienia i Pliki ułożone porządniej, okno przeglądarki bez
-kolorowej obwódki, napisy pod ikonami pulpitu na pigułce, tapeta z matową krawędzią, ekran „Wyłączanie”, poprawione
-Ustawienia → Aktualizacje (plany zamknięte: docs/archiwum/); teraz 0.10.9 Filmy i szybka grafika (plan:
-docs/PLAN-0.10.9.txt) — gotowe kroki 1, 4, 4b, 2 i 5, zostały krok 6 i krok 3 z wydaniem.
+Stan: 0.10.9 „Szybka grafika” — przełącznik „Szybka grafika” przy sesji przeglądarki (strony rysuje karta, każdą prośbę
+strefy sprawdza pośrednik grafiki K1; IdeaPad), sterownik karty Intela w jądrze, obraz przeglądarki poza pamięcią K1,
+większe miejsca na system (plany zamknięte: docs/archiwum/); filmy kartą — „może” (punkt 3). Następna wersja — do
+ustalenia z Tobą (mapa, punkt 2).
 Data: 2026-11-20.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — 0.10.9 Filmy i szybka grafika (plan: docs/PLAN-0.10.9.txt)
----------------------------------------------------------------------
-Kroki i decyzje — w planie 0.10.9 (Twoja prośba z 2026-11-16 i 2026-11-17). Od 0.10.5 w tle działa robot: sam wydaje
-wersje PATCH z poprawionym jądrem i pakietami przeglądarki, więc numer wydania „0.10.9” może zająć robot — wtedy wydanie
-bierze następny wolny (plan, punkt 0 „Robot i wydania”).
-Stan 0.10.9 (kolejność 1, 4, 2, 5, 6, 3 — ADR 0049): gotowe kroki 1 (PR #181), 4 i 4b (PR #183, #185), 2 (PR #186),
-5 (PR #188); następny krok 6 (szybka grafika w strefie), potem krok 3 (filmy kartą, porządki i wydanie).
+1. TERAZ — po wydaniu 0.10.9 Szybka grafika
+------------------------------------------
+Następny temat wybierasz Ty (mapa, punkt 2); pierwszy czat nowej wersji pisze jej plan (docs/PLAN-<wersja>.txt). Od 0.10.5
+w tle działa robot: sam wydaje wersje PATCH z poprawionym jądrem i pakietami przeglądarki (od wydania 0.10.9 znowu
+w pełnym trybie). Do sprawdzenia na laptopach — punkt 4.
+0.10.9 Szybka grafika — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.9.txt; ADR 0049, 0050; kolejność
+kroków 1, 4, 2, 5, 6, 3):
+    [x] krok 1 — próba ze źródeł i obraz próbny z i915; ADR 0049 — PR #181
+    [x] krok 4 — obraz przeglądarki poza rdzeniem (ADR 0050) — PR #183; 4b — większe miejsca A/B — PR #185
+    [x] krok 2 — i915 w jądrze, dekoder filmów (uśpiony) — PR #186
+    [x] krok 5 — pośrednik grafiki — PR #188
+    [x] krok 6 — szybka grafika w strefie: przełącznik, Mesa w strefie, znak na ramce — PR #191
+    [x] krok 3 — filmy kartą wypadły (Twoja decyzja z 2026-11-20, „może”); porządki i wydanie 0.10.9
 0.10.7 Wygląd — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.7.txt; ADR 0048):
     [x] krok 1 — napisy bez opisów i bez półpauz — PR #170
     [x] krok 2 — Ustawienia: sekcje w środku — PR #171
@@ -49,7 +55,7 @@ Wcześniej: 0.10.2 Testy (PR #144, #145, #149), 0.10.1 Balon (PR #134, #137, #13
     0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
     0.10     Strefy — 0.10.0 (przeglądarka w strefie), 0.10.1 Balon, 0.10.2 Testy, 0.10.5 Aktualizacje przez sieć
-             0.10.7 Wygląd gotowe; teraz 0.10.9 Filmy i szybka grafika
+             0.10.7 Wygląd, 0.10.9 Szybka grafika gotowe
              (M8, z dawnym M11)
     0.11     Pliki ze stref                                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
@@ -65,7 +71,7 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
 0.10 Strefy (ADR 0020, 0024, 0025)
     [x] pierwsza mikro-maszyna (KVM; X230: włącz VT-x i VT-d w BIOS-ie) i okno z niej na ekranie K1 (0.10.0)
     [x] zaufana ramka w kolorze strefy rysowana przez ekran K1 (RYZYKA R26 domknięte dla stref, R80; 0.10.0)
-    [~] przełączniki przy aplikacji: stała / jednorazowa — 0.10.0 (Ustawienia → Przeglądarka); pełna izolacja / szybka
+    [x] przełączniki przy aplikacji: stała / jednorazowa — 0.10.0 (Ustawienia → Przeglądarka); pełna izolacja / szybka
         grafika (znak na ramce) — 0.10.9 (most native context przez pośrednika grafiki; Twoja decyzja z 2026-11-17)
     [x] przeglądarka jako pierwsza aplikacja (Firefox ESR w strefie, ADR 0043), sesje Ogólna, Bank, Prywatna (0.10.0)
     [ ] szybki start (zamrożony stan, zapasowa czysta maszyna), wspólny obraz bazowy
@@ -90,17 +96,15 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
         dyskretnie na pasku (ADR 0048); od 2026-11-18 (Twoja prośba) także dwa błędy: Ustawienia → Aktualizacje po
         ponownym otwarciu Ustawień zamyka okno; Start → Wyłącz zamyka przeglądarkę, ale nie wyłącza komputera (po
         poprawce ekran „Wyłączanie” z animacją); napisy pod ikonami pulpitu (na pigułce), tapeta z matową krawędzią
-    [~] 0.10.9 Filmy i szybka grafika (Twoja prośba z 2026-11-16; plan: docs/PLAN-0.10.9.txt; wcześniej „0.10.3”, potem
-        „0.10.7” — przesunięte PO 0.10.5 na Twoją prośbę z 2026-11-17: grafika, gdy fundamenty już będą; numer 0.10.7
-        dostał Wygląd): przełącznik
-        „Sprzętowe dekodowanie filmów” przy sesji przeglądarki — film rozpakowuje karta graficzna przez osobny proces K1
-        w klatce (sterownik i915 z jądra, VA-API), strefa nie widzi karty; pamięć karty liczy się do pamięci sesji
-        w balonie z 0.10.1 (karty laptopów nie mają osobnej pamięci); ADR (zmienia zasadę „tylko ekran dotyka karty”).
-        Od 2026-11-17 (Twoja prośba) także: przełącznik „Szybka grafika” — strefa rysuje kartą przez most native context
-        (prawdziwy sterownik w strefie, pośrednik grafiki w klatce K1 sprawdza każdą prośbę; minimum zabezpieczeń teraz,
-        „opakowanie” później z terminem) i szybszy start przeglądarki — obraz strefy poza rdzeniem, w formacie szybszym do
-        czytania (ok. 100 MB więcej wolnej pamięci K1); 6 kroków, kolejność 1, 4, 2, 5, 6, 3 (ADR 0049: filmy kartą
-        tylko z szybką grafiką, więc i one, i szybka grafika — tylko na IdeaPadzie); gotowe 1, 4, 4b, 2, 5
+    [x] 0.10.9 Szybka grafika (Twoja prośba z 2026-11-16 i 2026-11-17; plan: docs/archiwum/PLAN-0.10.9.txt; ADR 0049,
+        0050): przełącznik „Szybka grafika” przy sesji — strefa rysuje kartą przez most native context, pośrednik grafiki
+        w klatce K1 sprawdza każdą prośbę (IdeaPad; X230 — wyciszony), sterownik i915 w jądrze K1, obraz przeglądarki
+        w miejscu A/B zamiast w pamięci, miejsca A/B 768 MiB. Grubsze „opakowanie” pośrednika (węższe listy, limity czasu
+        pracy karty, audyt) — RYZYKA R100, z terminem
+    [ ] może: filmy kartą (dawny krok 3 planu 0.10.9 — wypadł z wersji, Twoja decyzja z 2026-11-20: „zostaw w planach na
+        »może«”): film w sesji z szybką grafiką rozpakowuje dekoder filmów K1 (jest w systemie od 0.10.9, uśpiony) —
+        sterownik VA w strefie, FFmpeg w strefie z H.264, droga VMM → dekoder filmów, prefy Firefoksa, prośba do stron
+        o H.264; najpierw pomiar zysku na IdeaPadzie (ADR 0049 pkt 6). Szczegóły: docs/archiwum/PLAN-0.10.9.txt, krok 3
     [x] 0.10.5 Aktualizacje przez sieć (Twoja prośba z 2026-11-14; plan: docs/archiwum/PLAN-0.10.5.txt): Ustawienia →
         Aktualizacje, pobieranie przez strefę z HTTPS i pytanie przed instalacją, robot na GitHubie, zmiana rozmiaru
         i maksymalizacja okna przeglądarki, Alt+Tab, Przeglądarka na pasku i pulpicie, jądro Linux 7.3, opis wersji przed
@@ -156,23 +160,29 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.10.7). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+Jedna lista — dla ostatniego wydania (0.10.9). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
 z 2026-11-11).
-Nowe na main po 0.10.7 (0.10.9 kroki 4, 4b, 2 i 5 — przyjdą z wydaniem 0.10.9; robot do tego czasu w trybie próbnym):
-    [x] krok 2: pulpit z i915 i linia o filmach w Ustawieniach → Przeglądarka — X230 i IdeaPad, potwierdzone 2026-11-20
-    [ ] krok 5: linia o szybkiej grafice (IdeaPad „obsługuje”, X230 „karta nie oddziela pracy stref”) i zawieszenie karty
-        bez skutków dla pulpitu — Twoja decyzja z 2026-11-20: sprawdzasz na obrazie kroku 6 albo przy wydaniu (plan, krok 3)
-    [ ] obraz próbny z PR-a kroku 4b z pendrive'a (≥ 2 GB; X230 i IdeaPad): pulpit, Przeglądarka → Ogólna otwiera się (ile
-        sekund do okna — pierwszy raz po włączeniu i drugi raz; dla porównania to samo na 0.10.7), strona się ładuje;
-        Zasoby: pamięć K1 po starcie mniejsza o ok. 100 MB niż w 0.10.7
-    [ ] instalacja od nowa na obu laptopach z tego pendrive'a (Instalator → dysk → USUŃ) — K1 0.10.7 na dysku nie
-        zaktualizuje się do nowego układu (D10 „A”; dane z dysku przepadają); po instalacji start z dysku, przeglądarka
-    [ ] Start → Wyłącz bez otwartej przeglądarki: na obu laptopach chwilę widać ekran „Wyłączanie” z kropkami (X230 —
-        Twoje zgłoszenie z 2026-11-19)
-    [ ] po najbliższym wydaniu: aktualizacja przez sieć na dysku obu laptopów (już w nowym układzie; Ustawienia →
-        Aktualizacje → „Sprawdź teraz” → „Zainstaluj”) — po ponownym uruchomieniu przeglądarka działa, dane zostają,
-        a „Sprawdź teraz” dalej działa (strefa pobierania z nowego miejsca); robot wraca najpóźniej z wydaniem 0.10.9
-        (punkt 6)
+Nowe w 0.10.9 (Szybka grafika; pendrive co najmniej 2 GB):
+    [ ] najpierw: instalacja od nowa na obu laptopach z pendrive'a 0.10.9 (Instalator → dysk → USUŃ) — K1 0.10.7 na dysku
+        nie zaktualizuje się do nowego układu (D10 „A”; Ustawienia → Aktualizacje mówią „zainstaluj od nowa”; dane
+        z dysku przepadają); po instalacji start z dysku, pulpit, Przeglądarka → Ogólna otwiera się, strona się ładuje
+    [ ] IdeaPad — Ustawienia → Przeglądarka: „obsługuje szybką grafikę”; przy Ogólnej przełącznik „Szybka grafika”
+        włączony, przy Banku i Prywatnej wyłączony
+    [ ] IdeaPad — Ogólna: na ramce okna za nazwą sesji znak „układ scalony”; długa strona przewija się płynniej niż
+        w Banku (bez przełącznika); strona z WebGL (np. mapa 3D, get.webgl.org — kręcący się sześcian) działa; w Zasobach
+        procesor sesji mniej zajęty przy przewijaniu niż w Banku. Jeśli Ogólna nie ma znaku albo WebGL nie działa —
+        napisz, co widać (Firefox w strefie mógł nie przyjąć karty: wtedy rysuje procesorem, jak w 0.10.7)
+    [ ] IdeaPad — przełącznik: wyłącz przy Ogólnej, zamknij i otwórz sesję — bez znaku na ramce, strony działają; włącz
+        z powrotem — znak wraca od następnego otwarcia
+    [ ] X230 — Ustawienia → Przeglądarka: „karta nie oddziela pracy stref”, przełącznik wyciszony z wyjaśnieniem;
+        przeglądarka działa jak w 0.10.7, bez znaku na ramce
+    [ ] obie: Start → Wyłącz bez otwartej przeglądarki — chwilę widać ekran „Wyłączanie” z kropkami (X230 — Twoje
+        zgłoszenie z 2026-11-19); Zasoby: pamięć K1 po starcie mniejsza o ok. 100 MB niż w 0.10.7; ile sekund do okna
+        przeglądarki (pierwszy raz po włączeniu i drugi raz)
+    [ ] po najbliższym wydaniu robota: aktualizacja przez sieć na dysku obu laptopów (pierwsza w nowym układzie;
+        Ustawienia → Aktualizacje → „Sprawdź teraz” → „Zainstaluj”) — po ponownym uruchomieniu przeglądarka działa, dane
+        zostają, „Sprawdź teraz” dalej działa (strefa pobierania z nowego miejsca)
+    [x] krok 2 (przed wydaniem): pulpit z i915 — X230 i IdeaPad, potwierdzone 2026-11-20
 Nowe w 0.10.7 (Wygląd; X230 i IdeaPad):
     [ ] najpierw aktualizacja przez sieć do 0.10.7 (pierwsza tą drogą, jeśli robot nie wydał nic wcześniej): z siecią
         Ustawienia → Aktualizacje → „Sprawdź teraz” → okienko „Jest nowa wersja K1” z opisem „K1 wygląda spokojniej…” →
@@ -280,10 +290,9 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
     po „Zainstaluj”; D5 przez sieć aktualizuje się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach;
     D10 przegląd dokumentacji: powtórzenia → odesłania, historia (ADR, CHANGELOG, archiwum) bez zmian.
 [x] 0.10.7 — decyzje D1–D7 podjęte (docs/archiwum/PLAN-0.10.7.txt, punkt 4).
-[!] 0.10.9 Filmy i szybka grafika — decyzje w docs/PLAN-0.10.9.txt (punkt 4); czat zada je na początku swojego kroku:
-    krok 6 — D5 (szybka grafika domyślnie wyłączona?), D7 (znak na ramce), D9 (jeden przełącznik czy dwa); krok 3 — D4.
-    D10 (większe miejsca A/B) — rozstrzygnięta 2026-11-20: A, z zapasem (krok 4b: miejsca 768 MiB); laptopy instalujesz
-    od nowa (punkt 4).
+[x] 0.10.9 — decyzje podjęte (docs/archiwum/PLAN-0.10.9.txt, punkt 4): D5 szybka grafika włączona w Ogólnej, D7 znak
+    „układ scalony”, D9 jeden przełącznik (po wypadnięciu filmów — „Szybka grafika”), D10 „A” (miejsca 768 MiB; laptopy
+    instalujesz od nowa); D4 i filmy kartą — wypadły z wersji (2026-11-20, „może”).
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
 
 Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
@@ -334,11 +343,10 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         rozwiązań tymczasowych w kodzie 0.10.5 nie dodało
     [x] przegląd 0.10.7 (krok 7): terminów na 0.10.7 nie było; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych rozwiązań
         tymczasowych 0.10.7 nie dodało
-    [ ] robot w trybie próbnym (.github/workflows/robot.yml: ROBOT_PROBNY "1"; plan 0.10.9, punkt 0; od scalenia kroku 4,
-        2026-11-19 — Claude nie ma przycisku „Disable workflow”, więc robot robi tylko PR i testy, nie scala i nie wydaje):
-        pierwsze wydanie z krokiem 4 zmienia to, co niesie aktualizacja (obraz przeglądarki w miejscu A/B) — robot wraca
-        ("0"), gdy potwierdzisz aktualizację przez sieć na obu laptopach (punkt 4); termin: wydanie 0.10.9 (krok 3 planu,
-        ostatni wykonany) — najpóźniej wtedy wydanie robi człowiek i w tym samym PR-ze robot wraca
+    [x] robot w trybie próbnym od kroku 4 planu 0.10.9 (2026-11-19) — termin dotrzymany: od wydania 0.10.9
+        `ROBOT_PROBNY: "0"` (pełny tryb); pierwszą aktualizację przez sieć w nowym układzie przyniesie robot (punkt 4)
+    [x] przegląd 0.10.9 (krok 3): termin 0.10.9 zamknięty (wyżej); K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych
+        rozwiązań tymczasowych 0.10.9 nie dodało
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)

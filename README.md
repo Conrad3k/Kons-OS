@@ -33,7 +33,8 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.10.2 Strefy — testy | „Uruchamiam…” aż do okna przeglądarki, okno znika od razu po zamknięciu (sesja zapisuje się w tle, także przy wyłączaniu), testy klikają po nazwach (opis ekranu), zrzuty wzorcowe okien K1 | PRZETESTOWANE w QEMU (ADR 0045); przeglądarka — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.10.5 Aktualizacje przez sieć | Ustawienia → Aktualizacje, K1 na dysku sam pobiera nową wersję z wydań na GitHubie i pyta przed instalacją, robot sam wydaje poprawki jądra i przeglądarki, zmiana rozmiaru i maksymalizacja okna przeglądarki, Alt+Tab, Przeglądarka na pasku i pulpicie, jądro Linux 7.3 | PRZETESTOWANE w QEMU (ADR 0046, 0047); na sprzęcie — lista w `docs/DO_ZROBIENIA.txt` |
 | 0.10.7 Wygląd | krótsze napisy bez półpauz, Ustawienia i Pliki ułożone porządniej, okno przeglądarki bez kolorowej obwódki, napisy pod ikonami pulpitu na pigułce, tapeta z matową krawędzią, ekran „Wyłączanie”, Ustawienia → Aktualizacje już się nie zamykają | PRZETESTOWANE w QEMU (ADR 0048); wyłączanie z przeglądarką — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
-| 0.10 Strefy (dalej) | filmy dekodowane kartą graficzną, szybka grafika i szybszy start przeglądarki (0.10.9), inne obce aplikacje, wspólna strefa | PLANOWANE (ADR 0020, 0024, 0025) |
+| 0.10.9 Szybka grafika | przełącznik „Szybka grafika” przy sesji: przeglądarka rysuje kartą przez pośrednika grafiki K1 (IdeaPad; X230 — wyciszony), sterownik karty Intela w jądrze, obraz przeglądarki poza pamięcią K1, większe miejsca na system | PRZETESTOWANE w QEMU z KVM (ADR 0049, 0050; silnik testowy zamiast karty); Firefox z kartą — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
+| 0.10 Strefy (dalej) | może: filmy rozpakowywane kartą graficzną; inne obce aplikacje, wspólna strefa | PLANOWANE (ADR 0020, 0024, 0025) |
 | 0.11 Pliki ze stref | przenoszenie plików ze stref i do stref przez okno K1, schowek między strefami | PLANOWANE |
 | 0.12–0.13 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |
 
@@ -41,7 +42,7 @@ Od 0.9 etapy to numery wersji (ADR 0035); wcześniejsze etapy M0–M6 zostały w
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-**Co już jest (0.10.7):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
+**Co już jest (0.10.9):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
 110), a Instalator zapisuje go na dysk. Pulpit jak w Windows 11, w stylu K1: ikony na pulpicie (aplikacje, Kosz, Twoje
 pliki i foldery z folderu Pulpit), pasek na dole z menu Start i przypiętymi aplikacjami (Zegar, Notatki, Ustawienia, Zasoby,
 Kalkulator, Pliki, Przeglądarka; w menu Start też Instalator i Podgląd), pasek na górze (sieć, dźwięk, bateria, data
@@ -51,13 +52,15 @@ telefonu (FAT; tylko odczyt i import), **Podgląd** zdjęć (PNG, JPEG, GIF, BMP
 zdjęcia. Zna dyski SATA/NVMe oraz klawiatury, myszy, touchpady i pamięci USB. Notatki, pliki, ustawienia i hasło są
 zaszyfrowane na partycji K1-DANE (pendrive albo dysk po instalacji). **Sieć** kablem i Wi-Fi: adres od routera, zegar
 z internetu, lista sieci, hasło wpisane raz; z zewnątrz nic w K1 nie odpowiada. **Przeglądarka**: Firefox w osobnej
-mikro-maszynie (strefie) w zaufanej ramce K1, sesje Ogólna / Bank / Prywatna, okno o dowolnym rozmiarze.
+mikro-maszynie (strefie) w zaufanej ramce K1, sesje Ogólna / Bank / Prywatna, okno o dowolnym rozmiarze, **szybka
+grafika** (strony rysuje karta, każdą prośbę strefy sprawdza K1; IdeaPad — na X230 karta nie oddziela pracy stref).
 **Aktualizacje**: K1 na dysku sam sprawdza wydania na GitHubie, pobiera nową wersję i pyta przed instalacją (Ustawienia →
 Aktualizacje). Czego jeszcze nie ma: innych obcych aplikacji, dźwięku, jasności ekranu i klawiszy Fn. Wygląd:
 [`docs/WYGLAD.md`](docs/WYGLAD.md).
 
 ## Uruchom w maszynie wirtualnej
-1. Pobierz obraz: **Releases** → najnowsze `k1-vX.Y.Z` → plik `k1-X.Y.Z.iso` (ok. 135 MB).
+1. Pobierz obraz: **Releases** → najnowsze `k1-vX.Y.Z` → plik `k1-X.Y.Z.iso` (ok. 27 MB; od 0.10.9 bez przeglądarki — K1 nie ma
+   napędu CD; przeglądarka jest na pendrive'ie i dysku).
    (Albo Actions → „K1 — budowa i testy” → ostatnie zielone uruchomienie → Artifacts → `k1-<wersja>-obraz`.)
 2. **VirtualBox** (zalecany): Nowa maszyna → typ *Other Linux (64-bit)*, bez dysku twardego.
    - Pamięć: **1024 MB**, procesory: **2**.
@@ -70,8 +73,8 @@ Aktualizacje). Czego jeszcze nie ma: innych obcych aplikacji, dźwięku, jasnoś
      **VBoxSVGA** — wtedy K1 użyje obrazu z firmware (z EFI tylko 1024×768; większy:
      `"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" setextradata "NAZWA MASZYNY" VBoxInternal2/EfiGraphicsResolution 1920x1080`).
    - Pamięć masowa: napęd optyczny → wybierz pobrany plik ISO. Sieć i dźwięk można wyłączyć.
-   - Przeglądarka (strefa) potrzebuje wirtualizacji procesora także w maszynie wirtualnej (zagnieżdżonej) i więcej
-     pamięci — w maszynie wirtualnej tego nie sprawdzaliśmy; bez niej K1 pokaże okienko, że przeglądarka nie może ruszyć.
+   - Przeglądarki z ISO nie ma (od 0.10.9 jej obraz leży obok systemu na pendrive'ie albo dysku, a K1 nie czyta płyt) —
+     K1 pokaże okienko, że przeglądarka nie może ruszyć.
 3. Uruchom. Po kilku sekundach pojawi się pulpit. Kliknij w okno maszyny, żeby „złapać” mysz
    (prawy Ctrl ją uwalnia). Polskie znaki: prawy Alt + litera (np. prawy Alt + a = ą).
 4. Wyłączenie: znak K1 na dolnym pasku → **Wyłącz**.

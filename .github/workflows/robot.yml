@@ -35,10 +35,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # ADR 0047: pełny tryb od wydania 0.10.5 (do niego "1"). k1: tymczasowe — usunąć w 0.10.9 (krok 3, wydanie): znowu "1"
-  # od scalenia kroku 4 planu 0.10.9 (obraz przeglądarki w miejscu A/B) do potwierdzenia aktualizacji na laptopach
-  # (docs/DO_ZROBIENIA.txt, „Tymczasowe”) — robot robi PR i testy, nie scala i nie wydaje
-  ROBOT_PROBNY: "1"
+  # ADR 0047: pełny tryb ("0") od wydania 0.10.5 (do niego "1"; znowu "1" od kroku 4 planu 0.10.9 do wydania 0.10.9).
+  # "1": robot robi PR i testy, nie scala i nie wydaje
+  ROBOT_PROBNY: "0"
   GH_TOKEN: ${{ github.token }}
 
 jobs:

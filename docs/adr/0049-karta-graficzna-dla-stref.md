@@ -1,6 +1,7 @@
 # 0049. Karta graficzna dla stref: i915 w K1, filmy kartą i szybka grafika przez most „native context”
 
-- Status: Przyjęty; wdrożenie: kroki 2–6 planu `docs/PLAN-0.10.9.txt`
+- Status: Przyjęty; wdrożony w 0.10.9 (kroki 2, 5, 6 planu `docs/archiwum/PLAN-0.10.9.txt`); filmy kartą po stronie
+  strefy (pkt 4–6) — nie wdrożone: wypadły z wersji (decyzja właściciela 2026-11-20, „może” w `docs/DO_ZROBIENIA.txt`)
 - Data: 2026-11-19
 - Dotyczy: SPEC (grafika rozdzielona na procesy; niezmiennik „jeden właściciel zasobu” — skill kons-dev §4 p. 7),
   ADR 0020 p. 2 (strefy rysują procesorem), ADR 0042, ADR 0043 (Firefox w strefie, rysowanie procesorem); plan 0.10.9:

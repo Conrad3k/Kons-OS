@@ -3,6 +3,56 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.10.9] — 2026-11-20
+
+**Szybka grafika** (plan 0.10.9 „Filmy i szybka grafika”, kroki 1–6; ADR 0049, 0050). Przy każdej sesji przeglądarki jest
+przełącznik „Szybka grafika”: przeglądarka w tej sesji rysuje strony kartą graficzną — płynniej, z WebGL, przy mniejszym
+zajęciu procesora — a strefa dalej nie steruje kartą: każdą jej prośbę sprawdza osobny proces K1 w klatce. Działa na
+IdeaPadzie; karta X230 nie oddziela pracy stref, więc tam przełącznik jest wyciszony. Do tego: K1 ma sterownik karty
+Intela z jądra, obraz przeglądarki leży obok systemu, nie w pamięci (ok. 109 MB więcej wolnej pamięci), a miejsce na
+system jest większe. Filmy kartą wypadły z tej wersji (Twoja decyzja z 2026-11-20) — zostają w planie jako „może”.
+
+Opis w K1: Na nowszych kartach Intela przeglądarka może rysować strony kartą graficzną: płynniej, z WebGL i mniejszym
+zajęciem procesora. Przełącznik „Szybka grafika” znajdziesz przy każdej sesji w Ustawieniach, w sekcji Przeglądarka; w Ogólnej jest włączony.
+K1 ma też więcej wolnej pamięci, bo obraz przeglądarki nie leży już w pamięci.
+
+### Dodane
+- **Szybka grafika** (kroki 5 i 6; Twoje decyzje D5, D7, D9): przełącznik przy każdej sesji w Ustawieniach →
+  Przeglądarka, domyślnie włączony w Ogólnej, wyłączony w Banku i Prywatnej; działa od następnego otwarcia sesji.
+  W sesji z przełącznikiem strefa ma prawdziwy sterownik karty (Mesa 26.2 z iris, w obrazie strefy), a jego prośby idą
+  mostem „native context” do **pośrednika grafiki** — małej usługi K1 w klatce, osobnej dla każdej strefy, która sprawdza
+  każdą prośbę pole po polu i dopiero wtedy daje ją karcie. Bufory karty strefa widzi w swojej pamięci (nigdy jako kod),
+  pamięć karty sesji ma limit 768 MiB. Na ramce okna — znak „układ scalony” za nazwą sesji, póki sesja rysuje kartą.
+  Gdy strona zawiesi kartę albo pośrednik się zakończy, tylko ta sesja wraca do rysowania procesorem; K1 i inne sesje
+  działają. Na X230 przełącznik jest wyciszony z wyjaśnieniem („karta nie oddziela pracy stref”).
+- **Sterownik karty Intela w jądrze** (krok 2): K1 rysuje pulpit przez i915 zamiast obrazu z firmware (X230 i IdeaPad
+  — sprawdziłeś 2026-11-20). Ustawienia → Przeglądarka mówią, czy karta obsługuje szybką grafikę.
+- **Dekoder filmów** (krok 2): usługa K1 w klatce, która umie rozpakowywać filmy H.264 kartą. W tej wersji tylko
+  sprawdza przy starcie, co umie karta (log) — przeglądarka z niej nie korzysta (filmy kartą: „może”, punkt 3
+  DO_ZROBIENIA).
+
+### Zmienione
+- **Obraz przeglądarki poza rdzeniem** (krok 4, ADR 0050): leży w miejscu A/B obok systemu i jest sprawdzany
+  dm-verity, zamiast siedzieć w pamięci przez cały czas — K1 ma ok. 109 MB pamięci więcej (rdzeń 115 → 6 MB).
+- **Większe miejsca na system** (krok 4b, Twoja decyzja D10 „A”): 768 MiB na wersję (było 128 MiB), K1-EFI 1600 MiB,
+  na dysku 3 GiB z poczekalnią; dysk co najmniej 4 GB, pendrive co najmniej 2 GB. Obraz przeglądarki w zstd.
+  **K1 zainstalowany wersją 0.10.7 albo starszą nie zaktualizuje się** — ani przez sieć, ani z pendrive'a (Ustawienia →
+  Aktualizacje mówią „zainstaluj od nowa”); zainstaluj go od nowa z pendrive'a 0.10.9 — dane z dysku przepadną.
+- **Format sesji K1Z2** (krok 6): sesja pamięta przełącznik szybkiej grafiki; sesje zapisane wcześniej (K1Z1) czyta bez
+  zmian.
+- **ISO** (krok 4): ok. 27 MB, bez przeglądarki — K1 nie ma napędu CD, więc w maszynie wirtualnej z ISO przeglądarki nie
+  ma (pendrive i dysk — bez zmian).
+
+### Naprawione
+- **Ekran „Wyłączanie” nie pojawiał się na X230** bez otwartej przeglądarki (Twoje zgłoszenie z 2026-11-19, przy kroku
+  4): nadzorca czeka teraz co najmniej jeden obieg kropek (1,5 s), zanim przekaże wyłączanie dalej.
+
+### Porządki
+- Filmy kartą (strona strefy dawnego kroku 3) — wypadły przed napisaniem kodu; dekoder filmów z kroku 2 zostaje uśpiony,
+  linia o filmach zniknęła z Ustawień, przełącznik nazywa się „Szybka grafika”. Tymczasowe: robot w trybie próbnym
+  (od kroku 4) — termin dotrzymany, od tego wydania znowu pełny tryb; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych
+  nie dodano. Pliki `.c` — żaden powyżej 600 wierszy. Plan 0.10.9 — w archiwum.
+
 ## [0.10.7] — 2026-11-19
 
 **Wygląd** (plan 0.10.7, kroki 1–7; ADR 0048). Poprawki po przeglądzie wyglądu: krótsze napisy bez półpauz, Ustawienia

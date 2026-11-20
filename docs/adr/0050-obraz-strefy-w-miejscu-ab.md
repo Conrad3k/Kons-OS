@@ -3,7 +3,7 @@
 - Status: Przyjęty; wdrożony w 0.10.9 (krok 4); uzupełniony 2026-11-20 — krok 4b: większe miejsca A/B (decyzja właściciela D10 „A”)
 - Data: 2026-11-19
 - Dotyczy: ADR 0042 (obrazy stref w rdzeniu), ADR 0043 (obraz przeglądarki), ADR 0022 (A/B, miejsce 128 MiB), ADR 0046
-  (paczka i poczekalnia), ADR 0021 (dm-verity); plan `docs/PLAN-0.10.9.txt`: krok 4, T16, luki S31–S35, S46; RYZYKA R81
+  (paczka i poczekalnia), ADR 0021 (dm-verity); plan `docs/archiwum/PLAN-0.10.9.txt`: krok 4, T16, luki S31–S35, S46; RYZYKA R81
 
 ## Kontekst
 Od 0.10.0 obraz strefy przeglądarki (SquashFS, xz, 104 MiB) był plikiem rdzenia (`/rdzen/strefy/przegladarka.img`).
