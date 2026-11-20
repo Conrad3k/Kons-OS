@@ -147,7 +147,8 @@ static int zbierz(struct pamiec_strefy *s, int *nr)
         const struct k1_komunikat *k = &st[z].pamiec;
         if (!st[z].rozdzielacz || k->typ == 0 || pid_strefy(z) <= 0)
             continue;
-        s[n] = (struct pamiec_strefy){ z == fokus, st[z].granica, st[z].start, k->a, k->b, k->c, st[z].cel };
+        s[n] = (struct pamiec_strefy){ z == fokus, st[z].granica, st[z].start, k->a, k->b, k->c, st[z].cel,
+                                       filmy_pamiec_mib(z) /* 0.10.9 step 2 (T8) */ };
         nr[n++] = z;
     }
     return n;

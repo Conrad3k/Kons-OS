@@ -135,7 +135,7 @@ int pamiec_rozdziel(int64_t dostepna_mib, uint32_t rezerwa_mib, struct pamiec_st
     if (dostepna_mib >= (int64_t)rezerwa_mib / PROGI.krytyczna_z)
         return PAMIEC_MALO;
     for (i = 0; i < n; i++) /* D3 (3): never the session the user works in */
-        if (!s[i].fokus && (*zamknij < 0 || s[i].w_k1 > s[*zamknij].w_k1))
+        if (!s[i].fokus && (*zamknij < 0 || s[i].w_k1 + s[i].filmy > s[*zamknij].w_k1 + s[*zamknij].filmy))
             *zamknij = i;
     return PAMIEC_KRYTYCZNIE;
 }

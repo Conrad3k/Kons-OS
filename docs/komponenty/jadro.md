@@ -91,7 +91,17 @@ Wymuszone przez architekturę mimo naszego wyboru: `PERF_EVENTS` (x86 `select PE
   `USB_NET_CDC_NCM`). `IGC` wymaga `ETHTOOL_NETLINK`; `IGB` wybiera `I2C`; `R8169` wybiera `FW_LOADER` (K1 nie ma
   plików od producenta — karta działa bez nich). Nie dają się wyłączyć (`def_bool`): `NET_DEVMEM`, `NET_SELFTESTS`.
   Jądro: bzImage 5,0 → 6,3 MiB, `k1.efi` 7,1 → 8,4 MiB. ICMP i ARP ograniczają sysctl w init (`init.md`).
-  Brak VT, IPv6, I2C-HID, `i915`.
+  Brak VT, IPv6, I2C-HID.
+
+### Karta graficzna Intela (0.10.9 krok 2, ADR 0049 pkt 1)
+`DRM_I915` (X230: HD 4000, Ivy Bridge; IdeaPad: HD 520, Skylake): przejmuje obraz od simpledrm (zawsze —
+`aperture_remove_conflicting_pci_devices` w `i915_driver.c`), węzeł card dalej tylko dla ekranu, węzeł render tylko dla
+dekodera filmów (`filmy.md`). Wybiera sam m.in. `SHMEM`/`TMPFS` (bufory karty), `I2C` (DDC monitora), `ACPI_VIDEO` z
+`BACKLIGHT_CLASS_DEVICE` i `ACPI_WMI`, `RELAY`, `DRM_TTM`, `DRM_BUDDY`. Wyłączone wprost w `k1.config` (opcje „domyślnie
+tak”, żeby porównanie jądra o nie nie pytało): `DRM_I915_CAPTURE_ERROR` i `DRM_I915_COMPRESS_ERROR` (zrzut stanu karty
+po zawieszeniu — K1 nie ma debugfs), `DRM_I915_USERPTR` (bufory z pamięci procesu — i965 ich nie używa, mniej kodu
+w zasięgu strefy), `WMI_BMOF`. Plik DMC dla Skylake (`i915/skl_dmc_ver1_27.bin`, głębokie stany oszczędzania obrazu, S10)
+w `jadro/oprogramowanie-kart.txt`; Ivy Bridge go nie ma. bzImage: +1,3 MiB.
 
 ### Strefy (0.10.0, ADR 0042)
 `VIRTUALIZATION`, `KVM` (wbudowany), `KVM_INTEL`, `KVM_AMD`, `KVM_IOAPIC` (kontroler przerwań i PIT w jądrze — „default y”,

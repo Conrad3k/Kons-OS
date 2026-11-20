@@ -10,9 +10,10 @@
 #define X_S(n, profil, uid, program, nazwa, ...) [profil] = { program, nazwa },
 #define X_A(n, apl, profil, uid, program, tag, tytul, ...) [profil] = { program, tytul },
 #define X_Z(n, nr, profil, uid, obraz, tytul, ...) [profil] = { "strefa", tytul },
+#define X_F(n, nr, ...) [K1_PROFIL_FILMY + nr] = { "filmy", "Dekoder filmów" }, /* 0.10.9 step 2 */
 static const struct {
     const char *program, *nazwa;
-} profile[K1_PROFIL_MAKS + 1] = { K1_SYSTEM(X_S) K1_APLIKACJE(X_A) K1_STREFY(X_Z) };
+} profile[K1_PROFIL_MAKS + 1] = { K1_SYSTEM(X_S) K1_APLIKACJE(X_A) K1_STREFY(X_Z) K1_STREFY(X_F) };
 
 #define X_APL(n, apl, profil, ...) [apl] = profil,
 static const int profil_apl[K1_APL_MAKS + 1] = { K1_APLIKACJE(X_APL) };
@@ -28,9 +29,13 @@ static const int uid_apl[K1_APL_MAKS + 1] = { K1_APLIKACJE(X_UID) };
     _Static_assert(nr >= 1 && nr <= K1_STREFY_MAKS, #n ": numer strefy poza 1..MAKS");                 \
     _Static_assert(profil >= 1 && profil <= K1_PROFIL_MAKS, #n ": profil poza 1..MAKS");               \
     _Static_assert(pamiec >= 64 && pamiec <= 3072 && procesory >= 1 && procesory <= 8, #n ": pamięć 64..3072 MiB, 1..8 procesorów");
+#define X_SPR_F(n, nr, ...) _Static_assert(K1_PROFIL_FILMY + nr <= K1_PROFIL_MAKS, #n ": profil dekodera filmów poza 1..MAKS");
 K1_SYSTEM(X_SPR_S)
 K1_APLIKACJE(X_SPR_A)
 K1_STREFY(X_SPR_Z)
+K1_STREFY(X_SPR_F)
+/* the zones' film decoders come right after the profile of FILMY, at the end of the numbers */
+_Static_assert(K1_PROFIL_FILMY + K1_STREFY_MAKS == K1_PROFIL_MAKS, "profile dekoderów filmów: na końcu numerów");
 _Static_assert(K1_WL_SYSTEM > K1_PROFIL_MAKS, "właściciel K1_WL_SYSTEM musi być poza numerami profili");
 
 const char *k1_profil_program(int profil)

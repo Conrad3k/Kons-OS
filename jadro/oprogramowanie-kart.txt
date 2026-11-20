@@ -1,4 +1,5 @@
-# Pliki od producentów kart Wi-Fi wbudowane w jądro K1 (decyzja D3 planu 0.9.1, ADR 0041) — jedna tabela.
+# Pliki od producentów kart Wi-Fi i kart graficznych wbudowane w jądro K1 (decyzja D3 planu 0.9.1, ADR 0041; karta
+# graficzna: 0.10.9 krok 2, ADR 0049) — jedna tabela.
 # Z niej scripts/oprogramowanie-kart.sh pobiera pliki z linux-firmware (wersja i adres: jadro/wersja.env), sprawdza
 # sumy i składa EXTRA_FIRMWARE dla jądra; podpis K1 obejmuje je razem z jądrem (k1.efi). Kodu tych plików nie widać —
 # działają w karcie (RYZYKA). Nowa karta = wiersz tutaj (i sterownik w jadro/k1.config).
@@ -47,3 +48,8 @@ rtw89/rtw8852b_fw-1.bin                      rtw89/rtw8852b_fw-1.bin            
 # MediaTek MT7921E
 mediatek/WIFI_MT7961_patch_mcu_1_2_hdr.bin   mediatek/WIFI_MT7961_patch_mcu_1_2_hdr.bin           a276c06c2b772adb50b86639d33c82824ff4c21d617feb78caea74c040b873f6
 mediatek/WIFI_RAM_CODE_MT7961_1.bin          mediatek/WIFI_RAM_CODE_MT7961_1.bin                  b94217a951518a9c14095765f367bc5dd7698f2dc033941d6f18fc2ebd6a2ab9
+
+# Intel i915 — DMC (oszczędzanie energii obrazu) dla Skylake: IdeaPad 110-15ISK (HD 520); bez niego i915 działa, ale bez
+# głębokich stanów oszczędzania obrazu (0.10.9 krok 2, S10); nazwa z drivers/gpu/drm/i915/display/intel_dmc.c (SKL_DMC_PATH).
+# Ivy Bridge (X230) nie ma DMC.
+i915/skl_dmc_ver1_27.bin                     i915/skl_dmc_ver1_27.bin                             d3b6dc1a39bb2aeb37a1179f2b4e8145c24986da78c533571a5712dc91ec3f61

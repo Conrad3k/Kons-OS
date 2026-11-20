@@ -45,7 +45,8 @@ NAGL    := $(wildcard src/wspolne/*.h)
 # The message of the services and its checks, one file per group of channels (0.9.0 step 2).
 KOMUNIKAT := src/wspolne/k1_komunikat.c src/wspolne/k1_kom_ekran.c src/wspolne/k1_kom_skarb.c \
              src/wspolne/k1_kom_nadzorca.c src/wspolne/k1_kom_pliki.c src/wspolne/k1_kom_siec.c src/wspolne/k1_siec.c \
-             src/wspolne/k1_kom_wifi.c src/wspolne/k1_wifi.c src/wspolne/k1_kom_strefa.c src/wspolne/k1_opis.c
+             src/wspolne/k1_kom_wifi.c src/wspolne/k1_wifi.c src/wspolne/k1_kom_strefa.c src/wspolne/k1_opis.c \
+             src/wspolne/k1_kom_filmy.c src/wspolne/k1_filmy.c
 # Services (M3): protocol, channels, sandbox.
 USLUGI  := src/wspolne/k1_uslugi.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
            src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c \
@@ -154,6 +155,19 @@ DEKODER_OBRAZ := src/dekoder/obraz.c src/dekoder/wuffs.c src/wspolne/k1_skaluj.c
 $(BIN)/dekoder: src/dekoder/main.c $(DEKODER_OBRAZ) src/dekoder/obraz.h $(WUFFS) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -Isrc/zewnetrzne/wuffs -o $@ src/dekoder/main.c $(DEKODER_OBRAZ) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
+# 0.10.9 step 2 (ADR 0049 pkt 3): the film decoder — libva + i965 + libdrm built statically by scripts/zbuduj-va.sh
+# (src/zewnetrzne/va/zrodla.txt, docs/ZALEZNOSCI.md); the file functions of those libraries fail without a system call and
+# their dlopen gives i965 linked in (src/filmy/obce.c, --wrap: the list in src/filmy/obce.txt).
+VA       := $(BUDOWA)/va
+FILMY    := $(sort $(wildcard src/filmy/*.c))
+FILMY_LD := $(foreach f,$(shell cat src/filmy/obce.txt),-Wl,--wrap=$(f)) -L$(VA)/pref/lib \
+            -Wl,--start-group -lva -li965 -ldrm_intel -ldrm -Wl,--end-group -lm -Wl,--gc-sections
+$(VA)/gotowe: scripts/zbuduj-va.sh src/zewnetrzne/va/zrodla.txt $(MUSL)
+	K1_BUDOWA=$(abspath $(BUDOWA)) sh scripts/zbuduj-va.sh
+$(BIN)/filmy: $(FILMY) $(wildcard src/filmy/*.h) src/filmy/obce.txt $(VA)/gotowe $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -isystem $(VA)/pref/include -DK1_VA_INIT=$$(cat $(VA)/funkcja-startowa.txt) -o $@ $(FILMY) \
+		$(WSPOLNE) $(USLUGI) $(FILMY_LD) $(LDFLAGS_K1)
+
 CZYTNIK := $(sort $(wildcard src/czytnik/*.c))
 CZYTNIK_FAT := src/czytnik/fat.c src/czytnik/nazwy.c
 $(BIN)/czytnik: $(CZYTNIK) src/czytnik/fat.h src/przybornik/k1_czas.c src/wspolne/k1_indeks.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
@@ -248,6 +262,10 @@ $(OBJ)/test_pamiec_stref: testy/host/test_pamiec_stref.c src/nadzorca/pamiec_str
 # 0.10.9 step 4 (ADR 0050): the zone image outside the core
 $(OBJ)/test_obraz_strefy: testy/host/test_obraz_strefy.c src/wspolne/k1_obraz_strefy.c src/wspolne/k1_obraz_strefy.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_obraz_strefy.c src/wspolne/k1_obraz_strefy.c
+
+# 0.10.9 step 2 (ADR 0049 pkt 3): the film decoder's requests and messages
+$(OBJ)/test_filmy: testy/host/test_filmy.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_filmy.c $(KOMUNIKAT) $(DOK_C)
 
 $(OBJ)/test_powod_strefy: testy/host/test_powod_strefy.c src/nadzorca/strefy_powod.c src/nadzorca/strefy_powod.h $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/nadzorca -o $@ testy/host/test_powod_strefy.c src/nadzorca/strefy_powod.c
@@ -468,7 +486,7 @@ TESTY_HOST := test_ogloszenie test_paczka test_odcinki test_odcinki_pelny test_d
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_palce \
-	test_opis test_obraz_strefy
+	test_opis test_obraz_strefy test_filmy
 TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania
 
@@ -525,7 +543,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis ogloszenie paczka vsock
+        lacznik balon opis ogloszenie paczka vsock filmy
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -578,6 +596,8 @@ FUZZ_ZR_vsock     := src/strefa/vsock.c src/strefa/polaczenia.c src/strefa/laczn
                      src/strefa/mmio.c $(KOMUNIKAT) $(DOK_C)
 FUZZ_DL_vsock     := 20000
 FUZZ_DL_balon     := 1100
+FUZZ_ZR_filmy     := src/wspolne/k1_filmy.c
+FUZZ_DL_filmy     := 4500
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
               -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/strefa -Isrc/zewnetrzne/monocypher \
               -Isrc/zewnetrzne/wuffs

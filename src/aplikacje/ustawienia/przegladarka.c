@@ -7,6 +7,8 @@
  * Look (0.10.1 step 4, the owner's D5: sketch A): a card per session, like the cards of Sieć. uklad() is the only
  * place that says where things are — drawing, clicks and the log line all take it from there (S17: before, a card's
  * description ran into the next session and Zapisz/Anuluj were moved in two places).
+ * 0.10.9 step 2 (ADR 0049): one line under the list — what the graphics card of this computer decodes (FILMY_KARTA from
+ * nadzorca: its question to the film decoder at boot). No switch yet (step 3).
  * The names are the user's text: never in the log. Part of Ustawienia (ustawienia.h). */
 #include <linux/input-event-codes.h>
 #include <stdio.h>
@@ -38,6 +40,7 @@ static size_t dl_nowej;
 static char wiadomosc[120];
 static int najechany = -1; /* a row of the question */
 static int najechany_p = -1; /* 0.10.7 step 2: the button under the pointer: card * P_LICZBA + P_* */
+static struct k1_komunikat filmy; /* the last FILMY_KARTA (typ 0: not yet) */
 
 static void do_nadzorcy(struct k1_komunikat k)
 {
@@ -54,6 +57,8 @@ void przegladarka_odbierz(const struct k1_komunikat *k)
         const int32_t p[5] = { k->a, k->b, k->c, k->d, k->e }; /* checked: k1_strefa_nazwa_dobra */
         memcpy(pr.nazwy[k->obiekt], p, K1_STREFA_NAZWA_MAKS);
         pr.nazwy[k->obiekt][K1_STREFA_NAZWA_MAKS] = '\0';
+    } else if (k->typ == K1_KOM_FILMY_KARTA) {
+        filmy = *k;
     } else if (k->typ == K1_KOM_STREFA_WYCZYSZCZONO) {
         snprintf(wiadomosc, sizeof wiadomosc, "%s",
                  k->a == K1_STREFA_WYCZ_OK      ? "Dane sesji usunięte. Przy następnym otwarciu zacznie od nowa."
@@ -154,6 +159,22 @@ static void karta(struct k1_obraz *o, const struct k1_motyw *m, int i, int nr)
         k1_zaokraglony(o, (float)s->x, (float)s->y, (float)s->w, (float)s->h, 8, k1_kolor(m->pole, 130));
 }
 
+/* The line about the card (0.10.9 step 2): what it decodes, or that it does not (and the code when something failed). */
+static void linia_filmow(char *t, size_t n)
+{
+    char nazwy[64];
+    if (filmy.typ == 0 || filmy.b == K1_FILMY_KARTA_SPRAWDZA)
+        snprintf(t, n, "Sprawdzam, co potrafi karta graficzna…");
+    else if (filmy.b == K1_FILMY_KARTA_UMIE && k1_filmy_nazwy(filmy.a, nazwy, sizeof nazwy) > 0)
+        snprintf(t, n, "Karta graficzna tego komputera rozpakowuje filmy: %s", nazwy);
+    else if (filmy.b == K1_FILMY_KARTA_BLAD)
+        snprintf(t, n, "Dekoder filmów nie uruchomił się (kod %d). Filmy rozpakowuje procesor.", (int)filmy.c);
+    else if (filmy.b == K1_FILMY_KARTA_NIC && filmy.c != 0)
+        snprintf(t, n, "Ten komputer nie rozpakowuje filmów kartą graficzną (kod %d).", (int)filmy.c);
+    else
+        snprintf(t, n, "Ten komputer nie rozpakowuje filmów kartą graficzną.");
+}
+
 /* "Wyczyść dane…": the question in a window of przybornik (the one of dragging files), in the middle of the list. */
 enum { PY_WYCZYSC = 1, PY_ANULUJ };
 static void pytanie(struct k1_menu *q, int32_t *x, int32_t *y)
@@ -186,9 +207,15 @@ void przegladarka_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     if (n == 0)
         k1_tekst(o, K1_CZ_TEKST, TRESC_X, seg_y() + 16, pr.znane ? "Ta wersja K1 nie ma przeglądarki." : "Czekam na K1…",
                  k1_kolor(m->tekst2, 255), 0);
+    if (n > 0) { /* 0.10.9 step 2: what the card decodes, a quiet line like those above the list */
+        char f[120];
+        linia_filmow(f, sizeof f);
+        k1_ikona(o, K1_IK_INFO, TRESC_X, (float)(pod_lista(n) - 1), 16, k1_kolor(m->tekst3, 255));
+        k1_tekst(o, K1_CZ_MALA, TRESC_X + 22, pod_lista(n) + 12, f, k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 46);
+    }
     if (wiadomosc[0])
-        k1_tekst(o, K1_CZ_MALA_MOCNA, TRESC_X, pod_lista(n) + 12, wiadomosc, k1_kolor(m->tekst2, 255),
-                 apl.szer - TRESC_X - 24);
+        k1_tekst(o, K1_CZ_MALA_MOCNA, TRESC_X, pod_lista(n) + 12 + (n > 0 ? UWAGA_H + 4 : 0), wiadomosc,
+                 k1_kolor(m->tekst2, 255), apl.szer - TRESC_X - 24);
     if (pytana) {
         struct k1_menu q;
         int32_t x, y;
@@ -363,6 +390,7 @@ void przegladarka_loguj(void)
                               p[P_KARTA].h, p[P_SEGMENT].x, p[P_SEGMENT].y, p[P_NAZWA].x + p[P_NAZWA].w / 2,
                               p[P_NAZWA].y + PRZ_H / 2, p[P_WYCZYSC].x + p[P_WYCZYSC].w / 2, p[P_WYCZYSC].y + PRZ_H / 2);
     }
-    k1_log(TAG, "przeglądarka: sesje %d (dane na dysku %d, wirtualizacja %d): %s", n, (int)pr.dysk, (int)pr.wirtualizacja,
+    k1_log(TAG, "przeglądarka: sesje %d (dane na dysku %d, wirtualizacja %d, karta a filmy: stan %d, kodeki 0x%x, kod %d): %s",
+           n, (int)pr.dysk, (int)pr.wirtualizacja, filmy.typ ? (int)filmy.b : -1, (unsigned)filmy.a, (int)filmy.c,
            n ? buf : "brak");
 }

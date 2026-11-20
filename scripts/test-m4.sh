@@ -482,6 +482,10 @@ def ust_przegladarka(ux, uy, ciemny_):
     w, h, px = zrzut(f"5c-przegladarka-{'ciemny' if ciemny_ else 'jasny'}", gdy=lambda w, h, px: dobre(px))
     sprawdz(f"Ustawienia → Przeglądarka ({'ciemny' if ciemny_ else 'jasny'} motyw): trzy karty sesji, opis nie wchodzi "
             "na następną (zrzut)", dobre(px), l_.group(0)[:300] if l_ else "brak linii")
+    # 0.10.9 step 2 (ADR 0049): QEMU has no Intel card — the line under the list says the computer does not decode films
+    # with its graphics card (state 1 = K1_FILMY_KARTA_BRAK; nadzorca knows it at once, without a decoder)
+    sprawdz("Ustawienia → Przeglądarka: bez karty Intela linia „nie rozpakowuje filmów kartą graficzną”",
+            l_ is not None and "karta a filmy: stan 1," in l_.group(0), l_.group(0)[:200] if l_ else "brak linii")
     q.klik_w("Ustawienia", "Wygląd", "zakladka")
 
 

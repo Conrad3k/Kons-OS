@@ -25,6 +25,12 @@ struct usluga uslugi[] = {
       .kiedy = START_NA_PROSBE, .rola = K1_ROLA_BRAK, .log = -1 },
     K1_STREFY(X_Z)
 #undef X_Z
+/* 0.10.9 step 2 (ADR 0049): the film decoder of each zone — started by filmy.c with its zone, never again by itself */
+#define X_F(n, nr_, ...)                                                                                     \
+    { .nazwa = "filmy-" #nr_, .program = "/rdzen/system/filmy", .tag = "K1-FILMY", .profil = K1_PROFIL_FILMY + nr_, \
+      .kiedy = START_NA_PROSBE, .rola = K1_ROLA_BRAK, .log = -1 },
+    K1_STREFY(X_F)
+#undef X_F
 };
 
 struct usluga *usluga_profilu(int profil)
@@ -39,7 +45,7 @@ struct usluga *usluga_profilu(int profil)
 /* Test probes: one at a time. */
 struct usluga proba = { .nazwa = "proba", .program = TEST, .tag = "K1-PROBA", .kiedy = START_NA_PROSBE, .log = -1 };
 
-static int sterowanie = -1; /* our end of ekran's control channel */
+int sterowanie = -1; /* our end of ekran's control channel (0.10.9 step 2: ekran answers on it — rozruch.c) */
 int zero = -1;        /* /dev/null for fds 0 and 1 of services */
 int gui_kanal = -1;     /* our end of gui's request channel (gui's fd 4) */
 int gui_kanal_uid = -1; /* who is on the other end of it: gui, or the password screen */
@@ -304,7 +310,11 @@ static void start_ekran(struct usluga *u, const struct k1_profil *p)
         u->nastepny = k1_teraz() + 1.0;
         return;
     }
-    fds[0] = para[0]; /* ekran: fd 3 = control channel (its end has SO_PASSCRED: it checks us) */
+    fds[0] = para[0]; /* ekran: fd 3 = control channel (its end has SO_PASSCRED: it checks us; ours too: S3) */
+    {
+        int tak = 1; /* we check that EKRAN_OBRAZ comes from ekran (0.10.9 step 2) */
+        setsockopt(para[1], SOL_SOCKET, SO_PASSCRED, &tak, sizeof tak);
+    }
     fds[1] = karta;   /* fd 4 = card (we opened it first: this file is the DRM master) */
     n = 2;
     skarb = kanal_do_skarbca(K1_PROFIL_EKRAN, (int)p->uid);
@@ -411,10 +421,13 @@ static void po_koncu(const struct usluga *u, int status)
         pendrive_koniec();
     if (k1_strefa_profilu(u->profil) != NULL) { /* 0.10.0 step 2: a zone's channel; step 3: why it ended */
         strefa_kanal_koniec(k1_strefa_profilu(u->profil)->nr);
+        filmy_strefa_koniec(k1_strefa_profilu(u->profil)->nr); /* 0.10.9 step 2: its film decoder ends with it */
         strefa_koniec(k1_strefa_profilu(u->profil)->nr, status, u->bez_liczenia || atoi(u->argument2) != 0);
     }
     if (u->profil == K1_PROFIL_DEKODER)
         dekoder_koniec();
+    if (u->profil == K1_PROFIL_FILMY || k1_profil_filmow(u->profil)) /* 0.10.9 step 2 */
+        filmy_koniec(u, status);
     if (u->profil == K1_PROFIL_SKARBIEC) {
         if (skarb_ster >= 0)
             close(skarb_ster);

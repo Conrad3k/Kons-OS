@@ -30,7 +30,10 @@
     X(DEKODER, 16, 107, "dekoder", "Dekoder obrazów", NA_PROSBE, BRAK, ())    /* 0.8.0: one picture, then it ends */ \
     /* 0.9.0 (ADR 0039): the address from the router (DHCP) for the card with a cable; nadzorca sets it */          \
     /* 0.9.1 (ADR 0041): + Wi-Fi — the networks around, logging in with a password; the remembered networks in skarbiec */ \
-    X(SIEC, 18, 108, "siec", "Sieć (adres od routera, Wi-Fi)", PRZY_STARCIE, BRAK, (KANAL_SIECI, KANAL_SKARBCA))
+    X(SIEC, 18, 108, "siec", "Sieć (adres od routera, Wi-Fi)", PRZY_STARCIE, BRAK, (KANAL_SIECI, KANAL_SKARBCA))      \
+    /* 0.10.9 step 2 (ADR 0049 pkt 2, 3): the film decoder — this row: nadzorca's question at boot, what the card      \
+     * decodes (then it ends); the decoder of each zone follows from the zone's row (K1_PROFIL_FILMY_<ZONE>, below) */ \
+    X(FILMY, 24, 109, "filmy", "Dekoder filmów (karta graficzna)", NA_PROSBE, BRAK, ())
 
 /* The native applications: one line each — everything else (UIDs, profiles, the Start menu, window names,
  * Zasoby, the sandbox profile, the image contents, the tests) follows from it.
@@ -81,10 +84,16 @@
     X(POBIERANIE, 5, 23, 304, "przegladarka", "Pobieranie aktualizacji", "", 384, 1, 0x8D8A84, JEDNORAZOWA,         \
       AKTUALIZACJE, 0, "", 0)
 
+/* 0.10.9 step 2 (ADR 0049 pkt 2): the film decoder of each zone — derived from the zone's row: its own UID
+ * (K1_UID_FILMY_STREF + the zone's number) and profile (K1_PROFIL_FILMY + the number: its sandbox KLATKA_FILMY, its own
+ * cgroup filmy-<nr>, the zone's memory counts it), program filmy; nadzorca starts it with its zone (filmy.c). It owns no
+ * data in skarbiec, so its profile number may move when a zone is added. */
+#define K1_UID_FILMY_STREF 400
 #define K1_X_UID_S(n, profil, uid, ...) K1_UID_##n = uid,
 #define K1_X_UID_A(n, apl, profil, uid, ...) K1_UID_##n = uid,
 #define K1_X_UID_Z(n, nr, profil, uid, ...) K1_UID_STREFA_##n = uid,
-enum k1_uid { K1_SYSTEM(K1_X_UID_S) K1_APLIKACJE(K1_X_UID_A) K1_STREFY(K1_X_UID_Z) };
+#define K1_X_UID_F(n, nr, ...) K1_UID_FILMY_##n = K1_UID_FILMY_STREF + nr,
+enum k1_uid { K1_SYSTEM(K1_X_UID_S) K1_APLIKACJE(K1_X_UID_A) K1_STREFY(K1_X_UID_Z) K1_STREFY(K1_X_UID_F) };
 
 /* Roles of clients of the screen process (who is on the other end of a channel). */
 enum k1_rola {
@@ -141,8 +150,14 @@ const struct k1_strefa_opis *k1_strefa_profilu(int profil);
 #define K1_X_PROFIL_S(n, profil, ...) K1_PROFIL_##n = profil,
 #define K1_X_PROFIL_A(n, apl, profil, ...) K1_PROFIL_##n = profil,
 #define K1_X_PROFIL_Z(n, nr, profil, ...) K1_PROFIL_STREFA_##n = profil,
-enum k1_profil_nr { K1_SYSTEM(K1_X_PROFIL_S) K1_APLIKACJE(K1_X_PROFIL_A) K1_STREFY(K1_X_PROFIL_Z) };
-enum { K1_PROFIL_MAKS = 0 K1_SYSTEM(K1_X_LICZ) K1_APLIKACJE(K1_X_LICZ) K1_STREFY(K1_X_LICZ) }; /* 1..MAKS (checked) */
+#define K1_X_PROFIL_F(n, nr, ...) K1_PROFIL_FILMY_##n = K1_PROFIL_FILMY + nr, /* 0.10.9 step 2: the zone's film decoder */
+enum k1_profil_nr { K1_SYSTEM(K1_X_PROFIL_S) K1_APLIKACJE(K1_X_PROFIL_A) K1_STREFY(K1_X_PROFIL_Z) K1_STREFY(K1_X_PROFIL_F) };
+enum { K1_PROFIL_MAKS = 0 K1_SYSTEM(K1_X_LICZ) K1_APLIKACJE(K1_X_LICZ) K1_STREFY(K1_X_LICZ) K1_STREFY(K1_X_LICZ) }; /* 1..MAKS */
+/* The zone whose film decoder has profile `p` (1..K1_STREFY_MAKS), or 0. */
+static inline int k1_profil_filmow(int p)
+{
+    return p > K1_PROFIL_FILMY && p <= K1_PROFIL_FILMY + K1_STREFY_MAKS ? p - K1_PROFIL_FILMY : 0;
+}
 
 /* A profile's program name ("zegar") and the name Zasoby shows for it; NULL outside 1..K1_PROFIL_MAKS. */
 const char *k1_profil_program(int profil);

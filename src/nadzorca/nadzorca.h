@@ -101,8 +101,9 @@ struct usluga {
                                              * the download zone — what it downloads) */
 };
 
-/* uslugi[]: the system services (K1_SYSTEM), the applications, the VMMs of the zones (K1_STREFY, 0.10.0) */
-#define N_USLUG (0 K1_SYSTEM(K1_X_LICZ) + K1_APL_MAKS + K1_STREFY_MAKS)
+/* uslugi[]: the system services (K1_SYSTEM), the applications, the VMMs of the zones (K1_STREFY, 0.10.0), the zones'
+ * film decoders (0.10.9 step 2) */
+#define N_USLUG (0 K1_SYSTEM(K1_X_LICZ) + K1_APL_MAKS + 2 * K1_STREFY_MAKS)
 struct usluga *usluga_profilu(int profil);
 
 #define BATERIA_CO 15.0     /* s between reads (ACPI: the embedded controller) */
@@ -114,6 +115,7 @@ extern const struct k1_profil profile[K1_PROFIL_MAKS + 1];
 /* uslugi.c */
 extern struct usluga uslugi[N_USLUG];
 extern struct usluga proba;
+extern int sterowanie; /* our end of ekran's control channel */
 extern int zero;
 extern int gui_kanal;
 extern int gui_kanal_uid;
@@ -328,8 +330,20 @@ int siec_trasa(int nr, uint32_t router);                     /* the default rout
 
 /* skarb.c: the start is confirmed — skarbiec may move its vault to format 2 (0.8.2, ADR 0036) */
 
+/* filmy.c — the film decoder (0.10.9 step 2, ADR 0049): the render node of the i915 card for it alone */
+extern int filmy_kanal;            /* our end of the question's channel (what the card decodes) */
+void filmy_po_starcie(double t);   /* every loop: the question once, after the desktop */
+void obsluz_filmy(void);
+void filmy_koniec(const struct usluga *u, int status); /* a decoder ended */
+void filmy_wyslij_ustawieniom(void);
+void filmy_nowy_kanal_ustawien(void);
+int filmy_dla_strefy(int nr, int test); /* the client's end of a new decoder of zone nr, or -1 */
+void filmy_strefa_koniec(int nr);       /* the zone's VMM ended: its decoder too */
+int32_t filmy_pamiec_mib(int nr);       /* T8: its decoder's memory, MiB */
+
 /* rozruch.c — A/B after a start (0.7.0, ADR 0022) */
 extern char ab_nieudana[32];
+void obsluz_ekran(void); /* 0.10.9 step 2 (S3): EKRAN_OBRAZ on ekran's control channel */
 void rozruch_wydanie(void);
 void rozruch_po_starcie(double t);
 /* obraz_strefy.c (0.10.9 step 4, ADR 0050): a zone image for the VMM (fd, read only), from the core or from the slot of

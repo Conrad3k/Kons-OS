@@ -137,6 +137,7 @@ void ustawienia_odbierz(void);
 int ustawienia_czeka(void); /* the settings of the start have not come yet (0.8.1) */
 void pokaz(void);
 void odbierz_drm(void);
+void zglos_obraz(void); /* main.c (0.10.9 step 2, S3): the first frame is on the screen — to nadzorca, once */
 
 /* zdjecie.c — the wallpaper photo (0.8.0 step 4, ADR 0032) */
 void zdjecie_wczytaj(void);

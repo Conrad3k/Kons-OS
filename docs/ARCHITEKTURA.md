@@ -30,6 +30,7 @@ asystentów — skill `kons-dev`, §3.
 | `src/siec/` | `/rdzen/system/siec` — DHCP, zegar z internetu, Wi-Fi (opisy sieci, logowanie WPA2, zapamiętane sieci); gniazda i karty — nadzorca (`siec.md`) |
 | `src/strefa/` | `/rdzen/system/strefa` — VMM jednej strefy (KVM, virtio, okno, łącznik) i `gosc/` — nasze programy w strefie: `/init`, kompozytor Wayland, przekaźnik, pobieranie aktualizacji (`strefa.md`, `raptor-bridge.md`) |
 | `src/czytnik/`, `src/dekoder/` | pendrive dla Plików (FAT, tylko odczyt) i jeden obraz → piksele, oba w klatce (`czytnik.md`, `dekoder.md`) |
+| `src/filmy/` | dekoder filmów (0.10.9 krok 2): film ze strefy → karta graficzna (VA-API, i965) → klatki NV12, jeden na strefę, w klatce (`filmy.md`) |
 | `src/zewnetrzne/` | Monocypher, Wuffs i fortify-headers — jedyny obcy kod w programach K1 (`docs/ZALEZNOSCI.md`) |
 | `jadro/` | wersja jądra (`wersja.env`, zmienia ją też robot), fragmenty konfiguracji (`k1.config`, `k1-zamkniete.config`, `strefa.config`), listy opcji świadomie odrzuconych, pliki od producentów kart, klucze PGP (`jadro/README.md`, `docs/komponenty/jadro.md`) |
 | `musl/` | biblioteka C programów K1: wersja i suma, klucz PGP, łatki (`musl/README.md`) |
@@ -51,6 +52,7 @@ asystentów — skill `kons-dev`, §3.
 | `przygotuj-srodowisko.sh` | instaluje pakiety Ubuntu potrzebne do budowy i testów |
 | `zbuduj.sh` | wszystko: `zbuduj-jadro.sh`, `zbuduj-musl.sh`, `zbuduj-obraz.sh` (z nim `zbuduj-strefe.sh`), `zbuduj-k1efi.sh`, `zbuduj-iso.sh`, `zbuduj-usb.sh` |
 | `zbuduj-musl.sh` | musl dla programów K1: pobranie (suma, podpis PGP), łatki, budowa → `build/musl` |
+| `zbuduj-va.sh` | biblioteki dekodera filmów (0.10.9 krok 2): libdrm, libva, i965 z pakietów Debiana (sumy w `src/zewnetrzne/va/zrodla.txt`), statycznie z naszym musl → `build/va`; woła go `make` |
 | `zbuduj-strefe.sh` | obraz strefy przeglądarki i pobierania z pakietów Debiana z `strefy/przegladarka.txt` (sumy) |
 | `odswiez-strefe.py` | odświeża tabelę pakietów strefy (`strefy/przegladarka.txt`) — najnowsze wersje z Debiana; używa go też robot |
 | `zbuduj-k1efi.sh` | zamknięte jądro `k1.efi` (linia poleceń i rdzeń w środku), podpis Secure Boot (ADR 0022) |

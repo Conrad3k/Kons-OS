@@ -51,5 +51,6 @@ int k1_kom_sprawdz_dekoder(const struct k1_komunikat *k, enum k1_kanal_kierunek 
 int k1_kom_sprawdz_siec(const struct k1_komunikat *k, enum k1_kanal_kierunek kier);       /* k1_kom_siec.c */
 int k1_kom_sprawdz_wifi(const struct k1_komunikat *k, enum k1_kanal_kierunek kier);       /* k1_kom_wifi.c */
 int k1_kom_sprawdz_strefa(const struct k1_komunikat *k, enum k1_kanal_kierunek kier);     /* k1_kom_strefa.c */
+int k1_kom_sprawdz_filmy(const struct k1_komunikat *k, enum k1_kanal_kierunek kier);      /* k1_kom_filmy.c */
 
 #endif

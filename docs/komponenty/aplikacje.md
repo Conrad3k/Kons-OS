@@ -106,7 +106,9 @@ hasło), „Połącz” (sieć otwarta: napis „Sieć niezabezpieczona…”; z
 Spróbuj jeszcze raz.” pod nim; Esc zamyka wiersz, wyjście z sekcji czyści wpisane hasło. Hasło idzie raz prosto do usługi
 siec (fd 6, `KANAL_DO_SIECI`: `WIFI_HASLO`, `WIFI_WYBRANA`, `WIFI_POLACZ`, `WIFI_ZAPOMNIJ`) — nie przez nadzorcę; stan wraca
 w `WIFI_POLACZENIE`. Log „wifi: rząd i otwarty (rodzaj r); pole x,y; Połącz x,y; Zapomnij x,y”. Karty sieciowe — kafelki
-jak wyżej, karta Wi-Fi z plakietką Włączone/Wyłączone. Przeglądarka (0.10.0 krok 5, `przegladarka.c`; ADR 0020 p. 2, D2;
+jak wyżej, karta Wi-Fi z plakietką Włączone/Wyłączone. Przeglądarka (0.10.0 krok 5, `przegladarka.c`; ADR 0020 p. 2, D2; od 0.10.9 krok 2 pod listą sesji cicha linia
+o karcie graficznej — `FILMY_KARTA` od nadzorcy: „Karta graficzna tego komputera rozpakowuje filmy: H.264” / „Ten
+komputer nie rozpakowuje filmów kartą graficzną.” / „Dekoder filmów nie uruchomił się (kod N)…”, `filmy.md`;
 sekcja przed Informacjami — testy klikają sekcje po numerach; od 0.10.1 krok 4 wygląd wg D5 właściciela — szkic A „karta
 na sesję”): karta na każdą sesję przeglądarki (od nadzorcy: `STREFA_NAZWA`, `STREFY_STAN`; `pole`, zaokrąglenie 10, jak
 karty w Sieci) — kropka w kolorze sesji, nazwa, pod nią jedno zdanie stanu („Pamięta zalogowania, zakładki i historię.” /

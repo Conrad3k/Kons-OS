@@ -27,6 +27,11 @@ static const long sc_instalator[] = { SYS_pread64, SYS_pwrite64, SYS_fdatasync, 
  * change the filter on this one (SO_LOCK_FILTER), nor set an address (nadzorca does, on its request). */
 static const long sc_siec[] = { SYS_getrandom, SYS_memfd_create }; /* 0.9.1: memfd for its data in skarbiec */
 
+/* filmy (0.10.9 step 2, ADR 0049 pkt 3): the card through DRM ioctls on its render node (the only device it gets — the type
+ * 'd' is enough, as for ekran; a render node takes no ioctl of the display); getuid/geteuid — libva compares them before
+ * it reads its environment (va.c). Its window from the client (mmap, base). No open, no memfd, no socket. */
+static const long sc_filmy[] = { SYS_getuid, SYS_geteuid };
+
 /* the VMM of a zone (0.10.0, ADR 0042 T1, T3): the machine through KVM ioctls only (type 0xAE: on /dev/kvm, the machine
  * and its processors — nadzorca gives it no other device, so the type is enough: S2); guest memory and its window from
  * memfd (ftruncate: RLIMIT_FSIZE is the guest's memory); eventfd for the interrupts (irqfd) and to wake its main
@@ -92,6 +97,12 @@ static const struct k1_warunek wa_strefa[] = { { SYS_ioctl, 1, 0xff00u, 0xae00u 
 #define KLATKA_SIEC .wywolania = sc_siec, .n_wywolan = N(sc_siec), .pamiec = 8u << 20, .pliki = 24, \
                     .rozmiar_pliku = 64u << 10
 
+/* the film decoder (k1_filmy.h, T8): the card's buffers up to K1_FILMY_PAMIEC (counted in its cgroup: i915 charges them
+ * to the process that fills them, mm/shmem.c — S26) + 96 MiB: the code with i965 and libva, the window (25 MiB), its copy
+ * of a request (9 MiB), the driver's own buffers. RLIMIT_FSIZE 0: it grows no file. */
+#define KLATKA_FILMY .wywolania = sc_filmy, .n_wywolan = N(sc_filmy), .warunki = wa_ekran, .n_warunkow = N(wa_ekran), \
+                     .pamiec = K1_FILMY_PAMIEC + (96u << 20), .pliki = 16, .rozmiar_pliku = 0
+
 const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
 #define X_S(n, profil_, uid_, program_, ...) [K1_PROFIL_##n] = { .nazwa = program_, .uid = uid_, KLATKA_##n },
     K1_SYSTEM(X_S)
@@ -118,4 +129,8 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
                   .rozmiar_pliku = (uint64_t)(pamiec_) << 20 },
     K1_STREFY(X_Z)
 #undef X_Z
+    /* 0.10.9 step 2: the film decoder of each zone — the sandbox of FILMY, its own UID and cgroup */
+#define X_F(n, nr_, ...) [K1_PROFIL_FILMY + nr_] = { .nazwa = "filmy-" #nr_, .uid = K1_UID_FILMY_STREF + nr_, KLATKA_FILMY },
+    K1_STREFY(X_F)
+#undef X_F
 };
