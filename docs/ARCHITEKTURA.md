@@ -31,6 +31,7 @@ asystentów — skill `kons-dev`, §3.
 | `src/strefa/` | `/rdzen/system/strefa` — VMM jednej strefy (KVM, virtio, okno, łącznik) i `gosc/` — nasze programy w strefie: `/init`, kompozytor Wayland, przekaźnik, pobieranie aktualizacji (`strefa.md`, `raptor-bridge.md`) |
 | `src/czytnik/`, `src/dekoder/` | pendrive dla Plików (FAT, tylko odczyt) i jeden obraz → piksele, oba w klatce (`czytnik.md`, `dekoder.md`) |
 | `src/filmy/` | dekoder filmów (0.10.9 krok 2): film ze strefy → karta graficzna (VA-API, i965) → klatki NV12, jeden na strefę, w klatce (`filmy.md`) |
+| `src/posrednik/` | pośrednik grafiki (0.10.9 krok 5): prośby mostu native context ze strefy → sprawdzone pole po polu → karta graficzna (i915), jeden na strefę, w klatce (`posrednik.md`) |
 | `src/zewnetrzne/` | Monocypher, Wuffs i fortify-headers — jedyny obcy kod w programach K1 (`docs/ZALEZNOSCI.md`) |
 | `jadro/` | wersja jądra (`wersja.env`, zmienia ją też robot), fragmenty konfiguracji (`k1.config`, `k1-zamkniete.config`, `strefa.config`), listy opcji świadomie odrzuconych, pliki od producentów kart, klucze PGP (`jadro/README.md`, `docs/komponenty/jadro.md`) |
 | `musl/` | biblioteka C programów K1: wersja i suma, klucz PGP, łatki (`musl/README.md`) |

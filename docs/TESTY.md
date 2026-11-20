@@ -104,6 +104,7 @@ test używa (`grub-editenv`, `sfdisk`, mtools, `fsck.fat`), to błąd, nie pomin
 | bateria | `test_bateria`, `test_bat_arch` |
 | sieć | `test_siec` (DHCP, stan, komunikaty), `test_czas` (SNTP, runda), `test_wifi`, `test_wifi_polacz`, `test_wpa` (router w teście, KRACK), `test_krypto` (wektory FIPS/RFC/IEEE) |
 | filmy | `test_filmy` (0.10.9 krok 2, ADR 0049: prośby dekodera filmów pole po polu — każde pole poza zakresem, złe długości, odniesienie do nierozpakowanej klatki; komunikaty `FILMY_*`, `TEST_FILMY`; pamięć filmów, nazwy dla Ustawień) |
+| szybka grafika | `test_posrednik` (0.10.9 krok 5, ADR 0049 pkt 7: prośby mostu „native context” pośrednika grafiki — każda, jak pisze ją Mesa, przechodzi; relokacje, płoty gościa, wskaźniki, ioctl, parametry, rozszerzenia i zapytania spoza listy, złe długości, odpowiedź poza miejscem — odmowa; każdy ucięty kawałek prośby bez czytania poza nim; tabela buforów i pamięć strefy; komunikaty `POSR_*`, `TEST_POSREDNIK`) |
 | strefy | `test_obraz_strefy` (0.10.9 krok 4, ADR 0050: linia skrótu obrazu strefy w rdzeniu i miejsce obrazu przeglądarki w miejscu A/B), `test_virtio` (kolejki, wrogie łańcuchy, linie z liczbami od gościa — 0.10.1), `test_strefa_start` (boot_params, tablice), `test_powod_strefy` (powód końca strefy: kod VMM i zdarzenia klatki — 0.10.1 krok 1), `test_balon` + `fuzz_balon` (listy stron, bloki, statystyki balonu — 0.10.1 krok 2), `test_tlo` (0.10.5: obraz z pamięci strefy ponad 3 GiB — górna część pamięci leży w VMM zaraz za dolną; czarne okno przeglądarki na X230 z 8 GB), `test_pamiec_stref` (górna granica: D2; od 0.10.1 krok 3 rozdzielacz — sesje w tle oddają pierwsze, sesja z fokusem ostatnia, zapas gościa i pamięć na start nietknięte, to, o co już poproszono, się liczy, histereza, „mało pamięci” tylko gdy żaden balon nie może wziąć więcej, krytycznie — do zamknięcia sesja w tle z największą pamięcią, nigdy ta z fokusem) |
 
 Pomiary (nie w `testy-host`, bez ASan, ręcznie): `make build/obj/pomiar_magazynu`, `make build/obj/pomiar_podgladu`.
@@ -126,6 +127,7 @@ podręczna Actions), więc każdy przebieg idzie głębiej. Przypadki, które li
 | sieć | `fuzz_dhcp`, `fuzz_sntp`, `fuzz_wifi` (opisy sieci z powietrza), `fuzz_eapol` |
 | strefy | `fuzz_virtq` (kolejki virtio), `fuzz_vsock`, `fuzz_lacznik` (SOCKS5 i DNS), `fuzz_balon` |
 | filmy | `fuzz_filmy` (prośba do dekodera filmów ze stanem filmu; 0.10.9 krok 2) |
+| szybka grafika | `fuzz_posrednik` (strumień próśb mostu z rozmiarem miejsca na odpowiedzi; 0.10.9 krok 5) |
 
 ### 5. W systemie (`testy/system/*.c` → `/rdzen/system/test-systemu`, obraz `rdzen-test.squashfs`)
 Obraz testowy = produkcyjny + program testowy, który uruchamia nadzorca (jako root bez klatki: izolację sprawdza
@@ -140,6 +142,8 @@ baterię ACPI (`testy/acpi/bateria.asl`). NEGATYWNE = coś, co ma się nie udać
 | `t_okna.c` | złośliwe okna (bez deskryptora, memfd bez pieczęci, za mały, panel i ustawienie od aplikacji, cudze okno, obcy UID), ochrona fokusu, limit pamięci powierzchni, zaległe komunikaty ekranu; awaria gui → okna zostają |
 | `t_skarbiec.c` | zaległe odpowiedzi skarbca (klient, który nie odbiera, nie blokuje innych) |
 | `t_sprzet.c` | dyski i kontrolery widoczne, K1-DANE po nazwie, MBR nieczytany, węzły dysków tylko root, brak `hidraw`/`sg`/`sr0`, nikt nie trzyma dysku; bateria |
+| `t_filmy.c` | dekoder filmów (0.10.9 krok 2): bez karty Intela nadzorca nie daje dekodera z kartą; dekoder testowy strefy próbnej — klatka, okno, film, obraz, złośliwe prośby, pamięć (`filmy.md`) |
+| `t_posrednik.c` | pośrednik grafiki (0.10.9 krok 5): bez karty Intela nadzorca nie daje pośrednika z kartą; silnik testowy strefy próbnej — klatka, okno i pamięć wspólna, strumień próśb z odpowiedziami, bufor → zasób, paczka pracy i płot; NEGATYWNE: relokacje, ioctl spoza listy, płot gościa, wskaźnik w rozszerzeniu, ucięty strumień, komunikaty poza zakresem, bufory ponad limit; „zawieszenie karty” kończy pośrednika, ekran żyje (`posrednik.md`) |
 | `t_strefy.c` | klatka VMM strefy próbnej (UID 300, cgroup, deskryptory), zabity VMM kończy tylko strefę |
 | `t_opis.c` | opis ekranu (ADR 0045): rola `TEST` dostaje opis z paskiem i „Start”; NEGATYWNE: aplikacja pytająca o to samo — nic; przy dysku `k1-test-opis` (`test-m4`, `test-wzorce`) opis do logu przy każdej zmianie |
 | `t_most.c` | scenariusz `test-most.sh` (Raptor Bridge): czeka na adres K1 i uruchamia strefę próbną w trybach mostu po kolei — uczciwy, złośliwe wobec vsock, znów uczciwy; wynik czyta skrypt |

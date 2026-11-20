@@ -31,6 +31,11 @@ static const long sc_siec[] = { SYS_getrandom, SYS_memfd_create }; /* 0.9.1: mem
  * 'd' is enough, as for ekran; a render node takes no ioctl of the display); getuid/geteuid — libva compares them before
  * it reads its environment (va.c). Its window from the client (mmap, base). No open, no memfd, no socket. */
 static const long sc_filmy[] = { SYS_getuid, SYS_geteuid };
+/* posrednik (0.10.9 step 5, ADR 0049 pkt 7): the card through DRM ioctls on its render node (type 'd', as filmy: wa_ekran;
+ * the narrower list of numbers — the "wrapping" of T15, RYZYKA R100). Its window and the shared memory from the client
+ * (mmap, base), the copies of fences (fcntl F_DUPFD_CLOEXEC, base), the dma-buf for the VMM (sendmsg, base). Nothing
+ * beyond the base: no open, no memfd, no socket. */
+static const long sc_posrednik[] = { 0 };
 
 /* the VMM of a zone (0.10.0, ADR 0042 T1, T3): the machine through KVM ioctls only (type 0xAE: on /dev/kvm, the machine
  * and its processors — nadzorca gives it no other device, so the type is enough: S2); guest memory and its window from
@@ -103,6 +108,13 @@ static const struct k1_warunek wa_strefa[] = { { SYS_ioctl, 1, 0xff00u, 0xae00u 
 #define KLATKA_FILMY .wywolania = sc_filmy, .n_wywolan = N(sc_filmy), .warunki = wa_ekran, .n_warunkow = N(wa_ekran), \
                      .pamiec = K1_FILMY_PAMIEC + (96u << 20), .pliki = 16, .rozmiar_pliku = 0
 
+/* the graphics broker (k1_posrednik.h, T14): the card's buffers up to K1_POSR_PAMIEC (charged to the cgroup of the
+ * process that fills them — the broker when the card binds them, the VMM when the guest touches them through its mapping:
+ * S26, plan T14) + 32 MiB: the code, its copy of a stream (1 MiB), the window and the shared memory (2 MiB), the table of
+ * buffers. RLIMIT_FSIZE 0: it grows no file. 16 descriptors + K1_POSR_PLOTY_MAKS copies of fences. */
+#define KLATKA_POSREDNIK .wywolania = sc_posrednik, .warunki = wa_ekran, .n_warunkow = N(wa_ekran), \
+                         .pamiec = K1_POSR_PAMIEC + (32u << 20), .pliki = 16 + K1_POSR_PLOTY_MAKS, .rozmiar_pliku = 0
+
 const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
 #define X_S(n, profil_, uid_, program_, ...) [K1_PROFIL_##n] = { .nazwa = program_, .uid = uid_, KLATKA_##n },
     K1_SYSTEM(X_S)
@@ -133,4 +145,9 @@ const struct k1_profil profile[K1_PROFIL_MAKS + 1] = {
 #define X_F(n, nr_, ...) [K1_PROFIL_FILMY + nr_] = { .nazwa = "filmy-" #nr_, .uid = K1_UID_FILMY_STREF + nr_, KLATKA_FILMY },
     K1_STREFY(X_F)
 #undef X_F
+    /* 0.10.9 step 5: the graphics broker of each zone — the sandbox of POSREDNIK, its own UID and cgroup */
+#define X_P(n, nr_, ...) \
+    [K1_PROFIL_POSREDNIK + nr_] = { .nazwa = "posrednik-" #nr_, .uid = K1_UID_POSREDNIK_STREF + nr_, KLATKA_POSREDNIK },
+    K1_STREFY(X_P)
+#undef X_P
 };

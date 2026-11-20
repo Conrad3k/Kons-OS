@@ -31,6 +31,12 @@ struct usluga uslugi[] = {
       .kiedy = START_NA_PROSBE, .rola = K1_ROLA_BRAK, .log = -1 },
     K1_STREFY(X_F)
 #undef X_F
+/* 0.10.9 step 5 (ADR 0049 pkt 7): the graphics broker of each zone — the same way (posrednik.c) */
+#define X_P(n, nr_, ...)                                                                                          \
+    { .nazwa = "posrednik-" #nr_, .program = "/rdzen/system/posrednik", .tag = "K1-POSREDNIK",                     \
+      .profil = K1_PROFIL_POSREDNIK + nr_, .kiedy = START_NA_PROSBE, .rola = K1_ROLA_BRAK, .log = -1 },
+    K1_STREFY(X_P)
+#undef X_P
 };
 
 struct usluga *usluga_profilu(int profil)
@@ -422,12 +428,15 @@ static void po_koncu(const struct usluga *u, int status)
     if (k1_strefa_profilu(u->profil) != NULL) { /* 0.10.0 step 2: a zone's channel; step 3: why it ended */
         strefa_kanal_koniec(k1_strefa_profilu(u->profil)->nr);
         filmy_strefa_koniec(k1_strefa_profilu(u->profil)->nr); /* 0.10.9 step 2: its film decoder ends with it */
+        posrednik_strefa_koniec(k1_strefa_profilu(u->profil)->nr); /* step 5: its graphics broker too */
         strefa_koniec(k1_strefa_profilu(u->profil)->nr, status, u->bez_liczenia || atoi(u->argument2) != 0);
     }
     if (u->profil == K1_PROFIL_DEKODER)
         dekoder_koniec();
     if (u->profil == K1_PROFIL_FILMY || k1_profil_filmow(u->profil)) /* 0.10.9 step 2 */
         filmy_koniec(u, status);
+    if (u->profil == K1_PROFIL_POSREDNIK || k1_profil_posrednika(u->profil)) /* 0.10.9 step 5 */
+        posrednik_koniec(u, status);
     if (u->profil == K1_PROFIL_SKARBIEC) {
         if (skarb_ster >= 0)
             close(skarb_ster);

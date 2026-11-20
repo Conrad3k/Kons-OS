@@ -108,7 +108,10 @@ siec (fd 6, `KANAL_DO_SIECI`: `WIFI_HASLO`, `WIFI_WYBRANA`, `WIFI_POLACZ`, `WIFI
 w `WIFI_POLACZENIE`. Log „wifi: rząd i otwarty (rodzaj r); pole x,y; Połącz x,y; Zapomnij x,y”. Karty sieciowe — kafelki
 jak wyżej, karta Wi-Fi z plakietką Włączone/Wyłączone. Przeglądarka (0.10.0 krok 5, `przegladarka.c`; ADR 0020 p. 2, D2; od 0.10.9 krok 2 pod listą sesji cicha linia
 o karcie graficznej — `FILMY_KARTA` od nadzorcy: „Karta graficzna tego komputera rozpakowuje filmy: H.264” / „Ten
-komputer nie rozpakowuje filmów kartą graficzną.” / „Dekoder filmów nie uruchomił się (kod N)…”, `filmy.md`;
+komputer nie rozpakowuje filmów kartą graficzną.” / „Dekoder filmów nie uruchomił się (kod N)…”, `filmy.md`; od kroku 5
+pod nią druga — `POSR_KARTA`: „Karta graficzna tego komputera obsługuje szybką grafikę.” / „Ten komputer nie obsługuje
+szybkiej grafiki: karta nie oddziela pracy stref.” / „Ten komputer nie obsługuje szybkiej grafiki.” / „Pośrednik grafiki
+nie uruchomił się (kod N)…”, `posrednik.md`;
 sekcja przed Informacjami — testy klikają sekcje po numerach; od 0.10.1 krok 4 wygląd wg D5 właściciela — szkic A „karta
 na sesję”): karta na każdą sesję przeglądarki (od nadzorcy: `STREFA_NAZWA`, `STREFY_STAN`; `pole`, zaokrąglenie 10, jak
 karty w Sieci) — kropka w kolorze sesji, nazwa, pod nią jedno zdanie stanu („Pamięta zalogowania, zakładki i historię.” /

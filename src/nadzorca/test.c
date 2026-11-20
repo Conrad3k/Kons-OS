@@ -36,8 +36,9 @@ void obsluz_test(void)
             odpowiedz_testowi(0, fd);
             close(fd);
         }
-    } else if (k.typ == K1_KOM_TEST_FILMY) { /* 0.10.9 step 2: the test program as the zone's VMM (b=1: test decoder) */
-        int fd = filmy_dla_strefy(k.a, k.b);
+    } else if (k.typ == K1_KOM_TEST_FILMY || k.typ == K1_KOM_TEST_POSREDNIK) {
+        /* 0.10.9 steps 2 and 5: the test program as the zone's VMM (b=1: the test decoder / engine — no card) */
+        int fd = k.typ == K1_KOM_TEST_FILMY ? filmy_dla_strefy(k.a, k.b) : posrednik_dla_strefy(k.a, k.b);
         odpowiedz_testowi(-1, fd);
         if (fd >= 0)
             close(fd);
