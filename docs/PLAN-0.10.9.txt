@@ -166,6 +166,7 @@ Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3):
 [x]  5  Szybka grafika, K1: pośrednik grafiki               S37–S41, S44     1, 2        T10–T15          L        0049
         PR #188 (pośrednik grafiki; sprzęt — linia w Ustawieniach i zawieszenie karty — właściciel przy wersji końcowej)
 [ ]  6  Szybka grafika, strefa: przełącznik (NASTĘPNY)     S40–S45, S47     4, 5        D5, D7, D9       L        0049
+        [w toku: Claude, gałąź claude/pensive-bardeen-g1lj56]
 (ADR: 0049 z kroku 1, 0050 z kroku 4. Kroki 6 i 3 stoją na ADR 0049; nowy ADR — tylko jeśli zmieniają architekturę
 poza nim, z następnym wolnym numerem.)
 
@@ -595,14 +596,15 @@ Twoje (produkt) — filmy: czat kroku 3 zada D4; D1–D3 tylko przy D9 „B” (
   [!] D3 — Czy widać na oknie, że sesja używa karty? (ADR 0020: słabsza izolacja = widoczna na ramce)
       A (zalecane): mały znak na pasku tytułu ramki (np. ikonka filmu przy nazwie sesji) — szkice do wyboru.
       B: inny odcień ramki.   C: nic na ramce, tylko w Ustawieniach.
-  [!] D4 — Obie karty rozpakowują z popularnych formatów tylko H.264 (S9; filmy kartą działają tylko na IdeaPadzie —
+  [x] D4 — ROZSTRZYGNIĘTE 2026-11-20: A (przeglądarka prosi strony o H.264). Obie karty rozpakowują z popularnych formatów tylko H.264 (S9; filmy kartą działają tylko na IdeaPadzie —
       ADR 0049 pkt 5): czy przeglądarka ma prosić strony o H.264, gdy filmy kartą są włączone?
       A (zalecane): tak, sama — inaczej YouTube wyśle VP9/AV1 i karta nic nie pomoże; czasem najwyżej 1080p.
       B: nie — zostaje, co wybierze strona.
 
 Szybka grafika (dodane 2026-11-17) — czat kroku 6 zada D5, D7 i D9 na początku; D6 i D8 rozstrzygnięte:
 
-  [~] D5 — Szybka grafika domyślnie włączona czy wyłączona?
+  [x] D5 — Szybka grafika domyślnie włączona czy wyłączona? ROZSTRZYGNIĘTE 2026-11-20 (początek kroku 6): B — włączona
+      w Ogólnej, wyłączona w Banku i Prywatnej.
       Właściciel 2026-11-19: „ta nowa grafika w przeglądarce też powinna być opcją, i w mega prywatnych sesjach, np.
       Bank — domyślnie OFF”; „opcjonalność […] zostawi najwyższy stopień szczelności, […] umożliwi beta-testing
       prostszym”. Bank i Prywatna — wyłączona; Ogólna — do potwierdzenia na początku kroku 6 (zalecane: też wyłączona,
@@ -613,14 +615,16 @@ Szybka grafika (dodane 2026-11-17) — czat kroku 6 zada D5, D7 i D9 na początk
       A (zalecane): w Banku przełącznika nie ma — Bank zawsze w pełnej izolacji (strona banku nie potrzebuje karty,
          a sterownik karty w jądrze K1 to dodatkowe drzwi).
       B: przełącznik jak w innych sesjach (domyślnie wg D5).
-  [!] D7 — Jak widać na oknie, że sesja rysuje kartą? (ADR 0020: inny wygląd ramki; od 0.10.7 kolor sesji jest
+  [x] D7 — Jak widać na oknie, że sesja rysuje kartą? ROZSTRZYGNIĘTE 2026-11-20: A — mały znak przy nazwie sesji
+      (szkice — w kroku 6). (ADR 0020: inny wygląd ramki; od 0.10.7 kolor sesji jest
       dyskretnie na pasku — ADR 0048) — szkice do wyboru, oba motywy.
       A (zalecane): mały znak na pasku tytułu przy nazwie sesji (przy D9 „B” znak filmów z D3 — ten sam rodzaj).
       B: inny odcień paska tytułu.   C: nic na ramce, tylko w Ustawieniach.
   [x] D8 — Co, jeśli krok 1 (f) pokaże, że karta laptopa nie obsłuży mostu (S36, S38)? Rozstrzygnięte A (ADR 0049):
       X230 nie ma pełnego PPGTT — szybka grafika tylko na IdeaPadzie (właściciel 2026-11-19: „na X230 ta opcja i tak
       nie zadziała”). (Warianty były: A — kroki 5–6 dla laptopa, który obsłuży; B — wstrzymać 0.10.9 do sprzętu.)
-  [!] D9 — (nowe, ADR 0049 pkt 5) Filmy kartą działają tylko w sesji z szybką grafiką. Jak w Ustawieniach?
+  [x] D9 — (nowe, ADR 0049 pkt 5) Filmy kartą działają tylko w sesji z szybką grafiką. Jak w Ustawieniach?
+      ROZSTRZYGNIĘTE 2026-11-20: A — jeden przełącznik „Szybka grafika i filmy”.
       A (zalecane): jeden przełącznik (np. „Szybka grafika i filmy”) — mniej przełączników, nic, co nie działa samo;
          D1–D3 rozstrzygają wtedy D5–D7 (przy sesji, domyślnie wyłączony, jeden znak na ramce).
       B: dwa przełączniki; „Filmy kartą” dostępny dopiero przy włączonej szybkiej grafice (D1–D3 w kroku 3).
