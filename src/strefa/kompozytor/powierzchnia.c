@@ -298,7 +298,9 @@ static void zastosuj(struct powierzchnia *p, struct stan_pow *s)
         p->piksele = NULL;
         p->szer = p->wys = 0;
     } else if (s->dolaczono && s->bufor != NULL && s->bufor->typ == IF_BUFFER) {
-        if (kopiuj(p, s->bufor->dane, s) != 0)
+        const struct bufor *b = s->bufor->dane;
+        dmabuf_czekaj(b->uchwyt); /* a buffer of the card: drawn to the end (0.10.9 step 6) */
+        if (b->pula != NULL && kopiuj(p, b, s) != 0)
             blad(p->o->klient, s->bufor, BLAD_PAMIEC, R_BUFOR_ODCZYT);
         zdarzenie(s->bufor, 0, ""); /* wl_buffer.release: we have our copy */
     }

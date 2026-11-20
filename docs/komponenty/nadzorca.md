@@ -159,6 +159,13 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   w skarbcu (właściciel `K1_WL_SYSTEM`, obiekt 4); do gui, ekranu i Ustawień `STREFA_NAZWA` i `STREFY_STAN`, od Ustawień
   `STREFA_TRWALOSC`, `STREFA_NAZWA`, `STREFA_WYCZYSC` (do skarbca `SKARB_WYCZYSC`). Strefa, która pamięta, dostaje od
   `strefy.c` fd 8 (kanał do skarbca, właściciel = jej profil) i fd 9 (pusty dysk strefy) — `komponenty/strefa.md`.
+  Od 0.10.9 krok 6 każda sesja ma też przełącznik „Szybka grafika i filmy” (format `K1Z2`: pole cech, `K1Z1` czytany —
+  domyślne z wiersza `K1_STREFY`: Ogólna włączona, D5): `STREFA_GRAFIKA` od Ustawień, `STREFY_GRAFIKA` do gui, ekranu,
+  Ustawień i Zasobów (a — przełączniki, b — strefy działające teraz ze swoim pośrednikiem: znak na ramce). Gdy przełącznik
+  jest włączony, a pytanie przy starcie mówi, że karta obsługuje szybką grafikę (`posrednik_karta_umie`), `strefy.c`
+  uruchamia z VMM-em pośrednika grafiki tej strefy (`posrednik_dla_strefy`) i daje VMM-owi jego kanał na fd 10 (fd 8, 9
+  — `/dev/null`, gdy strefa zapomina) oraz `K1_POSR_PAMIEC` więcej pamięci (bufory karty zmapowane w VMM-ie);
+  program testowy — strefa próbna w trybach 16 i 17 z silnikiem testowym („pamięć karty”: rzadki memfd od nadzorcy).
 - Dekoder (0.8.0 krok 4, ADR 0032, `dekoder.c`): na `DEKODER` od klienta z tabeli klientów (0.8.2: Pliki — ten sam
   fd 6 co pendrive; Podgląd — jego fd 6, `podglad_kanal`, tylko `DEKODER`, nadawca UID 208; ADR 0037) — nowy proces `dekoder` w klatce (fd 3: kanał do klienta, obie strony z `SO_PASSCRED`; argument: numer
   aplikacji klienta), drugi koniec klientowi w `DEKODER_KANAL`. Jeden obraz na proces, jeden proces naraz, najwyżej

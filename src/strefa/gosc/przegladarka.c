@@ -9,6 +9,10 @@
  * and when a page ended for lack of memory ("pamiec strona"); the browser goes last when memory runs out (pamiec.c).
  * 0.10.1 step 1 (S13, S15): every 5 s the counters ("liczniki", pamiec.c) and, when the browser or the compositor ends
  * by itself, who it was ("kto": numbers only, with the compositor's rule the browser broke, if any).
+ * 0.10.9 step 6: a session with fast graphics (k1.grafika=1 from the VMM — it has a graphics broker) — the compositor
+ * takes the card's buffers (K1_GRAFIKA=1: linux-dmabuf) and the profile's user.js lets Firefox draw with the card
+ * (Mesa's iris with intel-virtio in the image); without it user.js keeps drawing with the processor. user.js is written
+ * at every start (its values outlive it in prefs.js, so both ways are written, never just removed).
  * Paths here are the zone image's (Debian's tree), never K1's. */
 #include <errno.h>
 #include <fcntl.h>
@@ -236,16 +240,50 @@ static void zamykanie_koniec(const struct zamykanie *z, int koniec)
         loguj("kanał sterujący: zapis nieudany");
 }
 
+static int z_grafika(void) /* k1.grafika=1 on the command line (the VMM, src/strefa/main.c) */
+{
+    char b[2048];
+    ssize_t n;
+    int fd = open("/proc/cmdline", O_RDONLY | O_CLOEXEC);
+    if (fd < 0)
+        return 0;
+    n = read(fd, b, sizeof b - 1);
+    close(fd);
+    if (n <= 0)
+        return 0;
+    b[n] = '\0';
+    return strstr(b, " k1.grafika=1") != NULL;
+}
+
+/* The profile's user.js: how Firefox draws in this session (Firefox ESR 153, modules/libpref/init/StaticPrefList.yaml:
+ * gfx.webrender.software — the processor; widget.dmabuf.force-enabled — the card's buffers on Wayland). */
+static void prefy(int grafika)
+{
+    const char *t = grafika ? "// K1: szybka grafika (0.10.9) — rysuje karta\n"
+                              "user_pref(\"gfx.webrender.software\", false);\n"
+                              "user_pref(\"widget.dmabuf.force-enabled\", true);\n"
+                            : "// K1: rysuje procesor\n"
+                              "user_pref(\"gfx.webrender.software\", true);\n"
+                              "user_pref(\"widget.dmabuf.force-enabled\", false);\n";
+    int fd = open("/home/k1/profil/user.js", O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC | O_NOFOLLOW, 0644);
+    if (fd < 0 || write(fd, t, strlen(t)) != (ssize_t)strlen(t) || fchown(fd, UZYTKOWNIK, UZYTKOWNIK) != 0)
+        loguj("user.js: %s", strerror(errno));
+    if (fd >= 0)
+        close(fd);
+    loguj("przeglądarka: %s", grafika ? "szybka grafika — rysuje karta" : "rysuje procesor");
+}
+
 void przegladarka(int ster)
 {
     static char *const env_k1[] = { "PATH=/usr/bin", NULL };
+    static char *const env_karta[] = { "PATH=/usr/bin", "K1_GRAFIKA=1", NULL };
     static char *const env_p[] = { "PATH=/usr/bin", "HOME=/home/k1", "XDG_RUNTIME_DIR=/run/k1",
                                    "WAYLAND_DISPLAY=wayland-0", "MOZ_ENABLE_WAYLAND=1", "LANG=C.UTF-8",
                                    "MOZ_CRASHREPORTER_DISABLE=1", "MOZ_DISABLE_WAYLAND_PROXY=1", NULL };
     char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;
-    int koniec = 0, krok = 0, okno[2], dysk, regula = 0; /* koniec 2: the browser out of time */
+    int koniec = 0, krok = 0, okno[2], dysk, regula = 0, grafika; /* koniec 2: the browser out of time */
     struct zamykanie z = { 0, 0, -1, 0 };
     unsigned long zabite = pamiec_zabite(), zabite_od = zabite;
     if (ster >= 0 && write(ster, "etap start\n", 11) != 11) /* 0.10.2 step 1: the start screen until "etap okno" */
@@ -265,10 +303,12 @@ void przegladarka(int ster)
         (mkdir("/home/k1/profil", 0700) != 0 && errno != EEXIST) || chown("/home/k1/profil", UZYTKOWNIK, UZYTKOWNIK) != 0)
         loguj("katalog domowy: %s", strerror(errno));
     petla_zwrotna();
+    grafika = z_grafika();
+    prefy(grafika);
     uruchom(PRZEKAZNIK, a_prze, env_k1, UZYTKOWNIK, -1);
     if (pipe2(okno, O_CLOEXEC | O_NONBLOCK) != 0)
         okno[0] = okno[1] = -1;
-    komp = uruchom(KOMPOZYTOR, a_komp, env_k1, 0, okno[1]);
+    komp = uruchom(KOMPOZYTOR, a_komp, grafika ? env_karta : env_k1, 0, okno[1]);
     if (okno[1] >= 0)
         close(okno[1]);
     czekaj_na_gniazdo();

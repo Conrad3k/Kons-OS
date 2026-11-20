@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/signalfd.h>
 #include <sys/socket.h>
@@ -168,6 +169,9 @@ int main(int argc, char **argv)
         kloguj("signalfd nieudane — zamknięcie okien tylko sygnałem dla przeglądarki");
     if (argc > 2)
         mapa_klawiatury = argv[2];
+    dmabuf_wlaczony = getenv("K1_GRAFIKA") != NULL && strcmp(getenv("K1_GRAFIKA"), "1") == 0; /* 0.10.9 step 6 */
+    if (dmabuf_wlaczony)
+        kloguj("szybka grafika: bufory karty (linux-dmabuf) %s", dmabuf_dostepny() ? "przyjmowane" : "NIEDOSTĘPNE");
     if (ekran_start() != 0)
         return 1;
     kloguj("urządzenia wejścia: %d", wejscie_start());

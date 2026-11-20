@@ -1,0 +1,7 @@
+# Mesa dla strefy przeglądarki — szybka grafika (0.10.9 krok 6, ADR 0049 pkt 7; docs/ZALEZNOSCI.md) — jedna tabela.
+# scripts/zbuduj-mese.sh pobiera każdy plik raz, sprawdza sumę i buduje Mesę tylko ze sterownikiem iris i opcją
+# intel-virtio-experimental (most native context do pośrednika grafiki K1), EGL na Waylandzie, GBM, bez LLVM w strefie.
+# Sumy: Mesa — jak w podpisanym pliku .dsc Debiana (mesa_26.2.6-1); meson — PyPI (Ubuntu 24.04 ma za starego).
+# Kolumny: adres | SHA-256. Nowa wersja: nowy wiersz (stary usunąć), nowa suma, zbuduj-mese.sh (opcje), testy, sprzęt.
+https://deb.debian.org/debian/pool/main/m/mesa/mesa_26.2.6.orig.tar.xz                                                            b9436b3e1a8be76fbd4823dc884f90596ab7c6ac5e1867a305e66ffccfb31a92
+https://files.pythonhosted.org/packages/e5/2b/46bda4ef5a7ae4135dbfe27fc0368c44e5a349a897a54fdf2cedb8dcb66e/meson-1.7.2-py3-none-any.whl 82c6818dc81743c96de3a458f06175776ebfde4081195ea31ea6971838f25e38

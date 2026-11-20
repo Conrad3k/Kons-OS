@@ -98,8 +98,9 @@ static int przygotuj(void)
     /* highres=off only in QEMU's emulation (the tests without KVM; 0.10.5 step 7): the zone's Linux 7.x rearms its
      * timer late (HRTIMER_REARM_DEFERRED, with high resolution timers), and under emulated SVM an idle guest then saw a
      * single key a minute or more later; with KVM on a real processor (and in CI) the zone keeps them */
-    snprintf(linia + p, sizeof linia - p, " " LINIA_GOSCIA "%s k1.tryb=%d%s%s%s", emulacja_qemu() ? " highres=off" : "",
+    snprintf(linia + p, sizeof linia - p, " " LINIA_GOSCIA "%s k1.tryb=%d%s%s%s%s", emulacja_qemu() ? " highres=off" : "",
              mz.tryb, zlosliwy_gosc() ? " memmap=1M$0x3f00000" : "", /* the hostile test guest's queue (gosc/zlosliwy.c) */
+             gpu_lacze_jest() ? " k1.grafika=1" : "", /* 0.10.9 step 6: the guest's browser draws with the card */
              mz.pobierz[0] ? " k1.pobierz=" : "", mz.pobierz); /* 0.10.5 step 2: the download zone (gosc/pobieranie.c) */
     jadro = wczytaj_jadro(&dl);
     if (jadro == NULL) {
@@ -221,7 +222,7 @@ int main(int argc, char **argv)
     if (!mz.opis->okno)
         snprintf(mz.pobierz, sizeof mz.pobierz, "%s", argv[4]);
     mz.budzik = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
-    if (mz.budzik < 0 || przygotuj() != 0 || dane_start() != 0 || gpu_lacze_start() != 0)
+    if (mz.budzik < 0 || gpu_lacze_start() != 0 || przygotuj() != 0 || dane_start() != 0)
         k1_koniec(TAG, "nie można przygotować maszyny");
     if (mz.opis->okno)
         okno_sesja(argc > 4 ? argv[4] : NULL);

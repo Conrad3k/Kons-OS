@@ -137,10 +137,12 @@ rozmiar swojej sesji (log `okno N: rozmiar sesji W×H`). Log: `okno N: nowy rozm
 Od 0.10.0 krok 5 nazwa sesji na pasku to nazwa od nadzorcy (`STREFA_NAZWA` — użytkownik może ją zmienić; do pierwszej
 wiadomości — z `K1_STREFY`), a „· zapomina po zamknięciu” i jasny pasek — według tego, czy strefa dostała dysk, gdy
 ruszyła (`STREFY_STAN` a w chwili `KLIENT`; zmiana w Ustawieniach działa od następnego otwarcia, więc otwarte okno jej nie
-pokazuje).
+pokazuje). Od 0.10.9 krok 6 (D7 właściciela: szkic „układ scalony”) tuż za nazwą sesji mały znak — ikona `K1_IK_KARTA`,
+16 px, w kolorze drugiego tekstu — póki strefa działa ze swoim pośrednikiem grafiki (`STREFY_GRAFIKA` b: szybka grafika,
+słabsza izolacja — ADR 0020 p. 3); gdy pośrednik się skończy (zawieszenie karty), znak znika.
 
 Kanał sterujący (fd 3) od nadzorcy: `KLIENT` (rola `STREFA`: `b` = numer strefy); od 0.10.0 krok 5 także `STREFY_STAN` i
-`STREFA_NAZWA` (bez deskryptora; sesje — `komponenty/strefa.md`); od 0.10.7 krok 6 `WYLACZANIE` (a = 0 wyłączanie,
+`STREFA_NAZWA` (bez deskryptora; sesje — `komponenty/strefa.md`), od 0.10.9 krok 6 `STREFY_GRAFIKA`; od 0.10.7 krok 6 `WYLACZANIE` (a = 0 wyłączanie,
 1 ponowne uruchamianie; reszta pól 0) — niżej „Ekran wyłączania”. Złe pole, zła rola albo obcy UID → komunikat odrzucony
 z wpisem w logu (≤ 8 na klienta), po 50 — klient rozłączony.
 

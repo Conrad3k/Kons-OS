@@ -120,7 +120,10 @@ karty w Sieci) — kropka w kolorze sesji, nazwa, pod nią jedno zdanie stanu (�
 `k1_strefa_nazwa_dobra`, do 20 bajtów; `STREFA_NAZWA`) i „Wyczyść dane…” (pytanie w okienku przybornika „Wyczyścić dane
 sesji <nazwa>?” — „Wyczyść dane” wysyła `STREFA_WYCZYSC`, „Anuluj”, Esc albo kliknięcie obok zamyka; nieczynne, gdy sesja
 jest otwarta; wynik `STREFA_WYCZYSZCZONO` jako napis pod listą), po prawej przełącznik „Pamięta | Zapomina”
-(`STREFA_TRWALOSC`). Uwagi tylko, gdy dotyczą — jedna spokojna linia nad listą: bez K1-DANE „K1 działa bez dysku danych —
+(`STREFA_TRWALOSC`); od 0.10.9 krok 6 (D5, D9 „A”) w prawym górnym rogu karty przełącznik „Szybka grafika i filmy”
+(`STREFY_GRAFIKA` od nadzorcy, `STREFA_GRAFIKA` do niego; od następnego otwarcia sesji; domyślnie włączony tylko w Ogólnej;
+wyciszony, gdy karta komputera nie obsługuje szybkiej grafiki — dlaczego, mówi linia pod listą; w opisie ekranu przycisk
+„Szybka grafika N”, N = numer strefy; w logu przy każdej karcie „szybka grafika 0|1 x,y”). Uwagi tylko, gdy dotyczą — jedna spokojna linia nad listą: bez K1-DANE „K1 działa bez dysku danych —
 każda sesja zapomni po zamknięciu.” (przełącznik wyciszony na „Zapomina”, bez „Wyczyść dane…”), bez wirtualizacji
 „Wirtualizacja wyłączona — sesje nie ruszą. Włącz ją w BIOS-ie.”. Jeden układ (`uklad()`) dla rysowania, kliknięć i logu.
 Log „przeglądarka: sesje 3 (dane na dysku 1, wirtualizacja 1): 2 pamięta, karta x,y wxh, przełącznik x,y, Zmień nazwę x,y,

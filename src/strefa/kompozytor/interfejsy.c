@@ -32,7 +32,7 @@ static void d_rejestr(struct klient *k, struct obiekt *o, union arg *a)
     uint32_t i;
     (void)o;
     for (i = 1; r != NULL && i < IF_LICZBA; i++)
-        if (interfejsy[i].globalny)
+        if (interfejsy[i].globalny && (i != IF_DMABUF || dmabuf_dostepny())) /* the card's: fast graphics only */
             zdarzenie(r, 0, "usu", i, interfejsy[i].nazwa, interfejsy[i].wersja);
 }
 
@@ -41,7 +41,7 @@ static void r_przywiaz(struct klient *k, struct obiekt *o, union arg *a)
 {
     uint32_t nazwa = a[0].u, wersja = a[2].u;
     struct obiekt *n;
-    if (nazwa == 0 || nazwa >= IF_LICZBA || !interfejsy[nazwa].globalny ||
+    if (nazwa == 0 || nazwa >= IF_LICZBA || !interfejsy[nazwa].globalny || (nazwa == IF_DMABUF && !dmabuf_dostepny()) ||
         strcmp(a[1].s, interfejsy[nazwa].nazwa) != 0 || wersja == 0 || wersja > interfejsy[nazwa].wersja) {
         blad(k, o, BLAD_ZLY_OBIEKT, R_GLOBALNY);
         return;

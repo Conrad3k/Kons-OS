@@ -79,7 +79,8 @@ enum { BLAD_ZLY_OBIEKT = 0, BLAD_ZLA_METODA = 1, BLAD_PAMIEC = 2, BLAD_WEWNETRZN
     X(POZ_GRAWITACJA, "zła grawitacja") \
     X(WYSKAKUJACE, "wyskakujące bez rodzica albo rozmiaru") \
     X(GEOMETRIA, "zła geometria okna") \
-    X(CHWYT, "chwyt po pokazaniu")
+    X(CHWYT, "chwyt po pokazaniu") \
+    X(DMABUF, "zły bufor karty")
 #define X_R(n, t) R_##n,
 enum { R_BRAK = 0, K1_REGULY(X_R) R_LICZBA };
 #undef X_R
@@ -109,7 +110,10 @@ enum { R_BRAK = 0, K1_REGULY(X_R) R_LICZBA };
     X(POSITIONER, positioner, "xdg_positioner", 2, 0)                     \
     X(XDG_SURFACE, xdg_surface, "xdg_surface", 2, 0)                      \
     X(TOPLEVEL, toplevel, "xdg_toplevel", 2, 0)                           \
-    X(POPUP, popup, "xdg_popup", 2, 0)
+    X(POPUP, popup, "xdg_popup", 2, 0)                                    \
+    X(DMABUF, dmabuf, "zwp_linux_dmabuf_v1", 4, 1)                        \
+    X(DMABUF_PARAMS, dmabuf_params, "zwp_linux_buffer_params_v1", 4, 0)   \
+    X(DMABUF_FEEDBACK, dmabuf_feedback, "zwp_linux_dmabuf_feedback_v1", 4, 0)
 #define X_IF(n, ...) IF_##n,
 enum { IF_BRAK = 0, K1_INTERFEJSY(X_IF) IF_LICZBA };
 #undef X_IF
@@ -206,6 +210,8 @@ struct bufor {
     int32_t przes, szer, wys, krok;
     uint32_t format;         /* 0 argb8888, 1 xrgb8888 */
     struct obiekt *o;
+    uint32_t uchwyt;         /* 0.10.9 step 6: a buffer of the card — its GEM handle in our render node (0: wl_shm; a
+                              * buffer of the card that could not be imported: pula NULL) */
 };
 struct pula {
     uint8_t *mapa;
@@ -295,6 +301,13 @@ void scena_klatka(void);                      /* frame callbacks were committed:
 int scena_rysuj(void);                        /* 1 when something was drawn */
 int scena_pozycja(const struct powierzchnia *p, int32_t *x, int32_t *y); /* its place on the display; 0: not shown */
 struct powierzchnia *scena_pod(int32_t x, int32_t y, int32_t *lx, int32_t *ly); /* the surface under a point */
+
+/* dmabuf.c (0.10.9 step 6): buffers of the card in a session with fast graphics */
+extern int dmabuf_wlaczony;          /* K1_GRAFIKA=1 in its environment (gosc) */
+int dmabuf_dostepny(void);           /* the global is offered (the render node opened) */
+void dmabuf_zamknij(uint32_t uchwyt);
+void dmabuf_czekaj(uint32_t uchwyt);
+void pula_pusc(struct pula *p);      /* bufory.c */
 
 /* drm.c (in the zone) or the host test's display: the guest's display */
 struct wyswietlacz {

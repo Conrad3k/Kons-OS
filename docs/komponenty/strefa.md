@@ -89,7 +89,7 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 | konsola | 2 | wiersze gościa do logu (strefa próbna) albo licznik | — |
 | losowość (rng) | 1 | `getrandom` do 4 KiB na prośbę | — |
 | klawiatura, wskaźnik (input) | 2 + 2 | zdarzenia `EV_KEY`, `EV_ABS` (0…32767), `EV_SYN` z ekranu; od 0.10.0 krok 4 wskaźnik z kółkiem: `REL_WHEEL`, `REL_HWHEEL` i `*_HI_RES` (1/120 ząbka) z `PRZEWIN` — z kółka oba, z touchpada tylko `*_HI_RES`; bez wolnego bufora — zdarzenie przepada (licznik) | — |
-| ekran (gpu 2D) | 2 | zasoby ≤ 4096 × 4096 (razem ≤ 96 MiB), tło z pamięci gościa (sprawdzone przy dołączeniu), przeniesienie, pokazanie, odświeżenie → okno | polecenie krótsze niż jego struktura, brak miejsca na odpowiedź |
+| ekran (gpu 2D) | 2 | zasoby ≤ 4096 × 4096 (razem ≤ 96 MiB), tło z pamięci gościa (sprawdzone przy dołączeniu), przeniesienie, pokazanie, odświeżenie → okno; od 0.10.9 krok 6 z pośrednikiem grafiki także 3D — niżej „Szybka grafika” | polecenie krótsze niż jego struktura, brak miejsca na odpowiedź; z pośrednikiem: polecenie dłuższe niż 1 MiB + 32 B, strumień `SUBMIT_3D` dłuższy niż polecenie, więcej czekających na kartę niż mieści kolejka |
 | vsock | 3 | kanał sterujący (port 1 hosta): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30; od 0.10.2 koniec ekranu startu), od 0.10.2 krok 1 „etap start” (program strefy pokaże okno — ekran startu zostaje do „etap okno”); od 0.10.1 krok 1 „liczniki A Z K” i „kto P K R” (same liczby, `linia.c`); od kroku 5 „zamykanie gotowe\|sygnal\|po czasie” (jak przeglądarka skończyła się po „zamknij” — czas w logu); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
 
 | balon (0.10.1 krok 2, ADR 0044) | 4 | `balon.c`: cechy `STATS_VQ`, `DEFLATE_ON_OOM`, `REPORTING`; kolejki 0 pompowanie, 1 spuszczanie (listy le32 numerów stron 4 KiB, najwyżej 256), 2 statystyki (VMM trzyma bufor i co 5 s oddaje go po świeże — `AVAIL` do `STREFA_PAMIEC`), 3 zgłaszanie wolnych bloków (bufory do zapisu, każdy blok z całych stron); strony z balonu i zgłoszone bloki → `fallocate(PUNCH_HOLE \| KEEP_SIZE)` na memfd — wracają do K1; konfiguracja: `num_pages` (cel od nadzorcy, `STREFA_BALON` → zmiana konfiguracji), `actual` (pisze gość; log, gdy dojdzie do celu); balon domyślnie pusty. Czyste części: `strony.c` | strona poza RAM gościa albo w dziurze, lista nie z całych numerów albo dłuższa niż 256, blok nie z całych stron, statystyki złej długości albo o nieznanym/powtórzonym znaczniku, zapis konfiguracji poza `actual` albo `actual` ponad pamięć gościa, zgłoszenie z częścią do odczytu |
@@ -97,6 +97,41 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 
 Wspólne dla wszystkich (`virtq.c`, `mmio.c`): deskryptor poza pamięcią, pętla deskryptorów, deskryptor pośredni, do
 odczytu po do zapisu, skok indeksu, kolejka poza pamięcią albo niewyrównana, rejestr czytany nie po 4 bajty — koniec.
+
+## Szybka grafika (0.10.9 krok 6, ADR 0049 pkt 4, 7; plan T12, S40–S47)
+Sesja z włączonym przełącznikiem „Szybka grafika i filmy” (Ustawienia → Przeglądarka; domyślnie tylko Ogólna — D5),
+na komputerze, którego karta oddziela pracę stref (pośrednik grafiki: „umie” — IdeaPad; X230 nie), dostaje od nadzorcy
+na **fd 10** kanał do swojego **pośrednika grafiki** (`docs/komponenty/posrednik.md`), a VMM pamięć większą
+o `K1_POSR_PAMIEC` (bufory karty zmapowane w VMM-ie liczą się do jego klatki). Bez tego virtio-gpu zostaje 2D, a
+przeglądarka rysuje procesorem.
+- **Start** (`gpu_lacze.c`): pierwsze słowo pośrednika (`POSR_UMIE`: numer karty PCI, rewizja, wersja sterownika),
+  okno strumienia (memfd 1 MiB z pieczęciami) → `POSR_OKNO`; dopiero wtedy virtio-gpu ma cechy `VIRGL`, `RESOURCE_BLOB`,
+  `CONTEXT_INIT`, jeden zbiór możliwości (capset `DRM`, 160 bajtów jak `virgl_renderer_capset_drm` Mesy: kontekst i915,
+  numer karty), obszar pamięci widocznej dla gościa (rejestry pamięci dzielonej virtio-mmio: 1 GiB od 32 GiB adresów
+  gościa) i linia poleceń gościa `k1.grafika=1`. Pośrednik mówi „nie” albo milczy 10 s → strefa rysuje procesorem.
+- **Polecenia 3D** (`gpu_most.c`, czyste — `test_gpu_most`, `fuzz_gpu_most`): kontekst z capsetem `DRM` (każdy proces
+  strefy z otwartą kartą: najwyżej `K1_POSR_GOSCIE` = 8; kontekst bez capsetu — jądro gościa robi go każdemu, kto otworzy
+  kartę — nic nie znaczy), zasoby blob tylko z pamięci karty (`HOST3D`, bez stron gościa, całe strony, ≤ 512 MiB; blob 0 =
+  pamięć wspólna mostu tego kontekstu, 4 KiB…1 MiB — memfd VMM-a → `POSR_WSPOLNA`; inne → `POSR_BLOB`), mapowanie
+  (`MAP_BLOB`: tylko zasób oznaczony do mapowania, całe strony, w obszarze, nigdy na innym mapowaniu; bufor karty jako
+  dma-buf od pośrednika — `POSR_BUFOR` — zmapowany do odczytu i zapisu, **nigdy wykonywalnie**, jako miejsce pamięci KVM;
+  odpowiedź mówi, jak gość ma go mapować: z pamięcią podręczną albo write-combining), `SUBMIT_3D` (strumień ≤ 1 MiB,
+  wielokrotność 4 → okno → `POSR_PROSBY` z numerem kontekstu gościa; z płotem odpowiedź czeka na `POSR_PLOT_GOTOWY` —
+  virtio pozwala odpowiadać nie po kolei), `UNMAP`, `UNREF` (`POSR_ZWOLNIJ`), koniec kontekstu (`POSR_GOSC_KONIEC`).
+  Polecenia 3D virgl, `SET_SCANOUT_BLOB`, EDID — błąd. Obraz okna dalej idzie drogą 2D (kompozytor strefy kopiuje klatkę
+  z bufora karty do swojego bufora „dumb”).
+- **Wątek mostu**: kolejkę sterującą virtio-gpu obsługuje wtedy osobny wątek (pośrednik odpowiada w milisekundach,
+  płot czeka na kartę) — wątek procesora tylko go budzi; polecenia 2D wykonuje pod zamkiem VMM-a, 3D bez niego.
+- **Koniec pośrednika** (awaria, zawieszenie karty — T15): każde polecenie 3D dostaje błąd, czekające płoty od razu
+  „gotowe”, mapowania zostają (trzymają swoje bufory) — Mesa w strefie dostaje błędy, Firefox rysuje dalej procesorem,
+  strefa i K1 żyją. Licznik w logu na końcu: „szybka grafika: polecenia 3D …, płoty …, mapowania …”.
+- **W strefie**: nasza Mesa (`scripts/zbuduj-mese.sh`, ADR 0049 pkt 7 — iris z `intel-virtio-experimental`, bez LLVM),
+  kompozytor przyjmuje bufory karty (`zwp_linux_dmabuf_v1` w wersji 4, tylko z `K1_GRAFIKA=1`: liniowe XRGB8888 i
+  ARGB8888, urządzenie z „feedbacku” — `/dev/dri/renderD128`; przed kopią czeka, aż karta skończy — `VIRTGPU_WAIT`),
+  a `gosc` pisze w profilu `user.js` z rysowaniem kartą (bez `gfx.webrender.software`) — przy każdym starcie, w obie
+  strony.
+- **Ramka**: ekran rysuje mały znak — układ scalony — tuż za nazwą sesji, póki strefa działa ze swoim pośrednikiem
+  (`STREFY_GRAFIKA` b; D7 właściciela). Gdy pośrednik się skończy, znak znika.
 
 ## Okno
 Klient ekranu z rolą `STREFA`, jedno okno (≤ 1024 × 720, z rozmiaru ekranu; tyle widzi gość jako wyświetlacz). Na
@@ -241,6 +276,8 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
 | `STREFA_ZAMKNIJ` (0.10.2 krok 1) | nadzorca → VMM (fd 7) | obiekt = strefa, reszta 0 — zamknij się jak po „zamknij” na pasku (K1 się wyłącza albo uruchamia ponownie: nadzorca czeka na strefy) |
 | `STREFA_NAZWA` | nadzorca → gui, Ustawienia, ekran; Ustawienia → nadzorca (nowa nazwa) | krok 5: obiekt = strefa, `a`…`e` = nazwa sesji, 20 bajtów UTF-8 dopełnione zerami (`k1_strefa_nazwa_dobra`: bez znaków sterujących, niewidocznych i zmieniających kierunek, bez spacji na brzegach); nigdy w logu |
 | `STREFA_TRWALOSC` | Ustawienia → nadzorca | krok 5: obiekt = strefa, `a` = `K1_STALA` / `K1_JEDNORAZOWA` (od następnego otwarcia), reszta 0 |
+| `STREFY_GRAFIKA` (0.10.9 krok 6) | nadzorca → gui (fd 5), Ustawienia (fd 4), Zasoby, ekran (kanał sterujący), po `STREFY_STAN` | `a` bity sesji z włączonym przełącznikiem „Szybka grafika i filmy”, `b` bity stref, które działają teraz ze swoim pośrednikiem grafiki (znak na ramce), reszta 0 |
+| `STREFA_GRAFIKA` (0.10.9 krok 6) | Ustawienia → nadzorca | obiekt = strefa, `a` = 1 włącz / 0 wyłącz (od następnego otwarcia), reszta 0 |
 | `STREFA_WYCZYSC` | Ustawienia → nadzorca; program testowy → nadzorca | krok 5: obiekt = strefa, reszta 0 — „Wyczyść dane sesji” |
 | `STREFA_WYCZYSZCZONO` | nadzorca → Ustawienia | krok 5: obiekt = strefa, `a` = `K1_STREFA_WYCZ_OK` / `_DZIALA` (otwarta — najpierw zamknij) / `_BLAD`, `b` = usunięte kawałki, reszta 0 |
 | `SKARB_WYCZYSC` | nadzorca → skarbiec (kanał sterujący) | krok 5: `a` = właściciel — profil strefy (inny — odrzucony), reszta 0 |
@@ -268,7 +305,9 @@ krok 2 tryby 6–8 — VMM wkłada tam balon: strona poza pamięcią (pompowanie
 | `test_balon` (0.10.1 krok 2): listy stron (łączenie sąsiednich, pamięć ponad 4 GiB, dziura, koniec, nie z całych numerów, ponad 256), bloki zgłaszania, statystyki (długość, znacznik nieznany i powtórzony); `test_strefa_start` — e820 z drugą częścią, `gp_wsk` przez dziurę; `test_pamiec_stref` — górna granica (D2) | funkcjonalny, negatywny |
 | `fuzz_balon`: dowolna lista, blok, statystyki od gościa | fuzzing |
 | `test_dysk_strefy` (krok 5): losowe odczyty i zapisy na 64 MiB z pamięcią 16 MiB, `FLUSH` zapisuje wszystko, cały kawałek bez odczytu, granice dysku, źródło z błędem (błąd, nigdy inne dane; kawałek zostaje), kolejność zapisu, pełna pamięć podręczna bez możliwości zapisu | funkcjonalny, negatywny |
-| `test_sesje` (krok 5): format sesji w skarbcu — domyślne, zapis i odczyt, złe pole zostawia domyślne, nieznana strefa, uszkodzony obiekt | funkcjonalny, negatywny |
+| `test_sesje` (krok 5): format sesji w skarbcu — domyślne, zapis i odczyt, złe pole zostawia domyślne, nieznana strefa, uszkodzony obiekt; 0.10.9 krok 6: przełącznik szybkiej grafiki (domyślnie Ogólna), format `K1Z2`, stary `K1Z1` czytany, nieznane cechy zostawiają domyślne | funkcjonalny, negatywny |
+| `test_gpu_most` (0.10.9 krok 6): capset, konteksty (DRM, bez capsetu, za dużo), zasoby blob (pamięć wspólna, bufor, strony gościa, rozmiary, cechy), mapowanie (w obszarze, na innym mapowaniu, bez prawa mapowania), `SUBMIT_3D` (okno, płot, oś, długości), koniec zasobu i kontekstu, pośrednik zakończony, polecenie krótsze niż struktura — koniec maszyny | funkcjonalny, negatywny |
+| `fuzz_gpu_most`: dowolny ciąg poleceń 3D z każdą odpowiedzią pośrednika; mapowanie zawsze w obszarze | fuzzing |
 | `test_komunikat` (krok 5): `STREFY_STAN`, `STREFA_*`, `SKARB_WYCZYSC`/`_WYCZYSZCZONO`, nazwy sesji (znaki sterujące, niewidoczne, kierunek, zły UTF-8), zakres obiektów dysku | negatywny |
 | `t_skarb_strefy` (krok 5, w systemie): sesja zapisuje i czyta swój kawałek; NEGATYWNE: inna sesja go nie widzi, aplikacja nie nazwie obiektu dysku; „Wyczyść dane sesji” | funkcjonalny, negatywny |
 | `t_kvm`: `/dev/kvm` tylko root, maszyna z pamięcią z memfd bez prawa wykonania wykonuje kod gościa | funkcjonalny |
@@ -278,4 +317,4 @@ krok 2 tryby 6–8 — VMM wkłada tam balon: strona poza pamięcią (pompowanie
 | `t_proby` (profil strefy): bez `open` (także `/dev/kvm`), `socket`, procesów, pamięci wykonywalnej | negatywny |
 | `test_lacznik`: SOCKS5 (powitanie, prośby, odmowy: BIND, UDP, IPv6, port 0, zła nazwa, 0.0.0.0, pętla zwrotna), DNS (pytanie; odpowiedzi: inny identyfikator, inne pytanie, ucięte, NXDOMAIN, CNAME, adres prywatny, wskaźniki), reguła D3, komunikaty `STREFA_*` | funkcjonalny, negatywny |
 | `fuzz_lacznik`: dowolna prośba SOCKS5 i odpowiedź DNS | fuzzing |
-| `scripts/test-strefa.sh` | QEMU, funkcjonalny i negatywny (opis w `docs/TESTY.md`) |
+| `scripts/test-strefa.sh` | QEMU, funkcjonalny i negatywny (opis w `docs/TESTY.md`); od 0.10.9 krok 6: tryby 16 i 17 gościa próbnego (`gosc/grafika.c`) — most szybkiej grafiki z silnikiem testowym pośrednika („pamięć karty” od nadzorcy): capset, kontekst, pamięć wspólna, prośba z płotem, bufor zmapowany w pamięci gościa (zapis i odczyt), paczka pracy; złośliwy gość: nieznana prośba, relokacje, zalew, bufory ponad limit, „zawieszenie karty” — koniec pośrednika, strefa żyje |

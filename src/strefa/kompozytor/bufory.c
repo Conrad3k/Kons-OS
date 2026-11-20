@@ -22,7 +22,7 @@ static void s_przywiaz(struct obiekt *o)
     zdarzenie(o, 0, "u", 1u); /* xrgb8888 */
 }
 
-static void pula_pusc(struct pula *p)
+void pula_pusc(struct pula *p)
 {
     if (--p->odwolania > 0)
         return;
@@ -75,7 +75,7 @@ static void p_utworz_bufor(struct klient *k, struct obiekt *o, union arg *a)
     b = n != NULL ? calloc(1, sizeof *b) : NULL;
     if (b == NULL)
         return;
-    *b = (struct bufor){ p, przes, w, h, krok, a[5].u, n };
+    *b = (struct bufor){ p, przes, w, h, krok, a[5].u, n, 0 };
     p->odwolania++;
     n->dane = b;
 }
@@ -117,8 +117,10 @@ static void zwolnij_bufor(struct obiekt *o)
         if (p != NULL && p->czekajacy.bufor == o)
             p->czekajacy.bufor = NULL;
     }
-    if (b != NULL)
+    if (b != NULL && b->pula != NULL)
         pula_pusc(b->pula);
+    if (b != NULL)
+        dmabuf_zamknij(b->uchwyt); /* 0.10.9 step 6: a buffer of the card */
     free(b);
     o->dane = NULL;
 }

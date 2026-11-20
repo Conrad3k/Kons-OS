@@ -18,7 +18,9 @@ GEN_CPIO=$K1_JADRO_OBJ/usr/gen_init_cpio
 info "programy K1 (musl, statycznie)"
 make -s -C "$K1_REPO" BUDOWA="$K1_BUDOWA" NAGLOWKI="$K1_NAGLOWKI/include"
 "$K1_REPO/scripts/sprawdz-binaria.sh" --fortify "$K1_BUDOWA/obj/proba_fortify" "$K1_BUDOWA"/bin/*
-# 0.10.0 step 2 (ADR 0043): the browser zone's image (Debian's packages + our gosc, kompozytor, przekaznik)
+# 0.10.0 step 2 (ADR 0043): the browser zone's image (Debian's packages + our gosc, kompozytor, przekaznik); 0.10.9 step 6:
+# with our Mesa (fast graphics — scripts/zbuduj-mese.sh)
+"$K1_REPO/scripts/zbuduj-mese.sh"
 "$K1_REPO/scripts/zbuduj-strefe.sh"
 
 info "initramfs.cpio"
