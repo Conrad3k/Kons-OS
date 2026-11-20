@@ -111,6 +111,11 @@ def pulpit(motyw):
             q.wzorzec(f"{apl.lower()}-{motyw}", apl)
             if apl == "Pliki":
                 pliki_z_folderem(motyw)
+            if apl == "Zasoby":  # 0.10.10 step 2: the tab "Karta graficzna" (QEMU: no i915 card — "nie podaje")
+                n = q.ile(r"K1-ZASOBY: zakładka: Karta graficzna")
+                q.klik_w("Zasoby", "Karta graficzna", "zakladka")
+                if q.czekaj(r"K1-ZASOBY: zakładka: Karta graficzna", od=n, czas=30):
+                    q.wzorzec(f"zasoby-karta-{motyw}", "Zasoby")
             zamknij(apl)
         else:
             q.sprawdz(f"{apl} otwarte", False)

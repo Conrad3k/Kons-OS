@@ -148,10 +148,12 @@ static void bateria_opis(char *buf, size_t n)
     }
 }
 
+static void rysuj_uslugi(struct k1_obraz *o, const struct k1_motyw *m, int32_t y);
+
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
     char a[40], b[40], buf[96];
-    int32_t y = ZAKL_Y + ZAKL_H + 10, w = apl.szer - 2 * MARG, p, dzialaja, wiersz, maks;
+    int32_t y = ZAKL_Y + ZAKL_H + 10, w = apl.szer - 2 * MARG;
     int32_t ostatni_cpu = probek ? cpu[PROBKI - 1] : 0;
     static int zalogowane;
 
@@ -206,9 +208,14 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         y += 36;
     }
 
-    y = rysuj_sesje(o, m, y, w); /* 0.10.1 step 3 */
+    rysuj_uslugi(o, m, rysuj_sesje(o, m, y, w)); /* 0.10.1 step 3: the sessions above the services */
+}
 
-    /* Services: name, processor, memory */
+/* Services: name, processor, memory; the time since start at the bottom. */
+static void rysuj_uslugi(struct k1_obraz *o, const struct k1_motyw *m, int32_t y)
+{
+    char a[40], buf[96];
+    int32_t w = apl.szer - 2 * MARG, p, dzialaja, wiersz, maks;
     k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG, y + 16, "Usługi i aplikacje", k1_kolor(m->tekst, 255), 0);
     k1_tekst(o, K1_CZ_MALA, MARG + w - 200, y + 16, "procesor", k1_kolor(m->tekst3, 255), 0);
     k1_tekst(o, K1_CZ_MALA, MARG + w - 72, y + 16, "pamięć", k1_kolor(m->tekst3, 255), 0);

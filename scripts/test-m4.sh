@@ -627,10 +627,20 @@ if zs:
     zx, zy = int(zs.group(4)), int(zs.group(5))
     # wykres pamięci: linia w kolorze akcentu (motyw ciemny), próbka co sekundę; ok. 7 próbek to ≈ 50 px
     # szerokości przy prawej krawędzi — liczymy każdą kolumnę, bo linia jest płaska i cienka
-    linia_w = lambda px: sum(1 for x in range(zx + 32, zx + 536) for y in range(zy + 200, zy + 276) if akcent(px(x, y)))
+    # (0.10.10 step 2: 40 px lower — the tabs above)
+    linia_w = lambda px: sum(1 for x in range(zx + 32, zx + 536) for y in range(zy + 240, zy + 316) if akcent(px(x, y)))
     w, h, px = zrzut("8-zasoby", gdy=lambda w, h, px: linia_w(px) >= 30, czas=60)
     linia = linia_w(px)
     sprawdz("zrzut: wykres pamięci w oknie Zasobów", linia >= 30, f"pikseli linii: {linia}")
+    # 0.10.10 step 2: the tab "Karta graficzna" — QEMU has no i915 card and no RAPL: everything "unknown"
+    zk = czekaj(r"K1-ZASOBY: zakładki: (\d+),(\d+) i (\d+),(\d+)", czas=10)
+    if zk:
+        klik(zx + int(zk.group(3)), zy + int(zk.group(4)))
+    sprawdz("Zasoby → „Karta graficzna”: zakładka przełączona, dane od nadzorcy (QEMU: karta i moc nieznane)",
+            zk and czekaj(r"K1-ZASOBY: zakładka: Karta graficzna", czas=20)
+            and czekaj(r"K1-ZASOBY: karta: zajętość -1‰, taktowanie -1 z -1 MHz, moc karty -1 mW, laptop -1 mW", czas=10)
+            and czekaj(r"K1-NADZORCA: zasoby: karta graficzna — brak karty i915; pobór mocy karty: nieznany", czas=10))
+    zrzut("8-zasoby-karta")
 
 # 0.7.1: Kalkulator z dolnego paska (piąta ikona): klawiatura, mysz, dzielenie przez zero
 klik(ax + 4 * krok, ay)
