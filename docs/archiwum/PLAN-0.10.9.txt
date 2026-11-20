@@ -32,8 +32,8 @@ KOLEJNOŚĆ WYKONANIA (od kroku 1, ADR 0049): 1, 4, 2, 5, 6, 3 — wydanie 0.10.
 z 2026-11-20). Dlaczego: Firefox użyje karty do filmów tylko przy sprzętowym GL w strefie (S6), więc strona strefy dla
 filmów (krok 3) stoi na szybkiej grafice (kroki 5–6); krok 4 przed krokiem 2, bo z i915 zapas miejsca A/B spadł do
 ok. 0,7 MiB (S31). Do 2026-11-19: 1, 2, 4, 3, 5, 6.
-STAN (2026-11-20): scalone kroki 1, 4, 4b, 2 i 5 (punkt 2). Zostały: KROK 6 (szybka grafika w strefie), potem KROK 3
-(filmy kartą w strefie, porządki i wydanie 0.10.9). Robot do wydania w trybie próbnym (punkt 0, „Robot i wydania”).
+STAN (2026-11-20): WERSJA ZAMKNIĘTA — scalone kroki 1, 4, 4b, 2, 5, 6 i 3 (punkt 2); filmy kartą wypadły (decyzja
+właściciela 2026-11-20, „może” w docs/DO_ZROBIENIA.txt), wydanie 0.10.9 „Szybka grafika”; robot znowu w pełnym trybie.
 
 ZAKRES ZAMROŻONY (ADR 0035): poniższe 6 kroków i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
@@ -145,8 +145,8 @@ Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3):
   4. [x] Obraz przeglądarki poza rdzeniem; 4b — większe miejsca A/B (ADR 0050).
   2. [x] K1: sterownik karty w jądrze, dekoder filmów; Ustawienia pokazują, co karta rozpakowuje.
   5. [x] Szybka grafika, K1: pośrednik grafiki; Ustawienia pokazują, czy karta obsługuje szybką grafikę.
-  6. [ ] Szybka grafika, strefa: przełącznik przy sesji, Firefox rysuje kartą.
-  3. [ ] Filmy kartą w strefie; porządki i wydanie 0.10.9.
+  6. [x] Szybka grafika, strefa: przełącznik przy sesji, Firefox rysuje kartą.
+  3. [x] Filmy kartą wypadły (Twoja decyzja z 2026-11-20); porządki i wydanie 0.10.9.
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
@@ -157,16 +157,16 @@ Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3):
         PR #181 (pomiary ze sprzętu przeniesione do kroków 2, 3, 5 — ADR 0049)
 [x]  2  K1: i915 w jądrze, usługa „dekoder filmów”          S10–S17, S26     1, 0.10.1   T1–T3, T6–T8     L        0049
         PR #186 (i915 i dekoder filmów; X230 i IdeaPad: pulpit i linia w Ustawieniach potwierdzone 2026-11-20)
-[ ]  3  Strefa: filmy kartą; porządki i WYDANIE 0.10.9    S18–S25, S29     2, 4, 6     D4 (D1–D3), T5   L        0049
-        (ostatni wykonany — po kroku 6)
+[x]  3  Strefa: filmy kartą; porządki i WYDANIE 0.10.9    S18–S25, S29     2, 4, 6     D4 (D1–D3), T5   L        0049
+        filmy kartą wypadły (właściciel, 2026-11-20); porządki i wydanie 0.10.9 — PR wydania
 [x]  4  Obraz przeglądarki poza rdzeniem, szybszy start     S31–S35          0.10.7      T16              M        0050
         PR #183 (obraz w miejscu A/B obok k1.efi, format bez zmian — szybszy start i miejsce: D10)
 [x]  4b Większe miejsca A/B (768 MiB), obraz w zstd (D10 „A”) S31, S33        4           D10              M        0050
         PR #185 (miejsca 768 MiB, K1-EFI 1600 MiB, na dysku 3 GiB; zapas 620 MiB)
 [x]  5  Szybka grafika, K1: pośrednik grafiki               S37–S41, S44     1, 2        T10–T15          L        0049
         PR #188 (pośrednik grafiki; sprzęt — linia w Ustawieniach i zawieszenie karty — właściciel przy wersji końcowej)
-[ ]  6  Szybka grafika, strefa: przełącznik (NASTĘPNY)     S40–S45, S47     4, 5        D5, D7, D9       L        0049
-        [w toku: Claude, gałąź claude/pensive-bardeen-g1lj56]
+[x]  6  Szybka grafika, strefa: przełącznik                S40–S45, S47     4, 5        D5, D7, D9       L        0049
+        PR #191 (przełącznik, most w VMM-ie, Mesa w strefie, znak na ramce; Firefox z kartą — właściciel na IdeaPadzie)
 (ADR: 0049 z kroku 1, 0050 z kroku 4. Kroki 6 i 3 stoją na ADR 0049; nowy ADR — tylko jeśli zmieniają architekturę
 poza nim, z następnym wolnym numerem.)
 
@@ -422,7 +422,16 @@ KROK 3 — Strefa: filmy kartą; porządki i wydanie 0.10.9 (OSTATNI)      L · 
     Oba — aktualizacja przez sieć w nowym układzie (DO_ZROBIENIA, punkt 4).
   Gotowe, gdy: CI zielone, bramka zysku rozstrzygnięta, wydanie 0.10.9 istnieje (linki ISO i USB w raporcie), lista
   w DO_ZROBIENIA.
-  Ustalenia z wykonania: (pusto — wypełnia krok 3)
+  Ustalenia z wykonania (2026-11-20, gałąź claude/pensive-bardeen-g1lj56 — ten sam czat co krok 6):
+  - Filmy kartą: nic z zadań strony strefy nie powstało (decyzja właściciela przed kodem); bramka zysku niepotrzebna.
+    Dekoder filmów z kroku 2 zostaje w systemie (pytanie przy starcie, tylko log), linia o filmach zniknęła z Ustawień
+    w kroku 6; „może” — docs/DO_ZROBIENIA.txt, punkt 3.
+  - Porządki: tymczasowe — robot w trybie próbnym zamknięty (ROBOT_PROBNY "0", robot.md); K1U1–K1U3 (0.11.0) i GRUB (0.12)
+    bez zmian; „opakowanie” T15 z terminem w RYZYKA R100 (najpóźniej 0.13). Pliki .c — najdłuższy src/nadzorca/uslugi.c
+    (571 wierszy). Numer: VERSION na main 0.10.7, robot w trybie próbnym nic nie wydał — wydanie 0.10.9.
+  - Lista dla właściciela: docs/DO_ZROBIENIA.txt, punkt 4 („Nowe w 0.10.9”) — przed scaleniem wydania właściciel
+    sprawdza obraz USB z PR-a wydania na IdeaPadzie (jego wybór z 2026-11-20: „wydać po zielonym CI i teście na
+    IdeaPadzie”).
 
 KROK 4 — Obraz przeglądarki poza rdzeniem, szybszy start                          M · T16 · ADR (nowy)
   (Dodany 2026-11-17 na prośbę właściciela. Robi się przed krokiem 3 — S31; nie zależy od karty, więc można go zrobić

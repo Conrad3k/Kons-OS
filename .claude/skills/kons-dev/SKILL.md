@@ -52,7 +52,7 @@ firmware UEFI → shim (Microsoft) → GRUB (Canonical) → k1.efi z miejsca A a
        potem zegar z internetu (kilka serwerów, większość zgodna), zegar ustawia nadzorca; Wi-Fi (0.9.1, ADR 0041): kartę,
        radio (rfkill) i szukanie sieci (nl80211) obsługuje nadzorca, opisy sieci z powietrza czyta siec w klatce
      filmy (109: pytanie przy starcie, co karta rozpakowuje → Ustawienia; 400 + nr: dekoder filmów strefy nr — węzeł render
-       i915, prośby ze strefy pole po polu, klatki NV12 w oknie; 0.10.9 krok 2, ADR 0049; strona strefy — krok 3)
+       i915, prośby ze strefy pole po polu, klatki NV12 w oknie; 0.10.9 krok 2, ADR 0049; strona strefy — „może”: wypadła z 0.10.9)
      posrednik (110: pytanie przy starcie, czy karta obsługuje szybką grafikę → Ustawienia; 410 + nr: pośrednik grafiki
        strefy nr — most native context, prośby ze strefy pole po polu, bufory jako dma-buf dla VMM-a; 0.10.9 krok 5,
        ADR 0049 pkt 7; strona strefy — krok 6)
