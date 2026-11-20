@@ -185,8 +185,8 @@ Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3 — filmy
         PR #183 (obraz w miejscu A/B obok k1.efi, format bez zmian — szybszy start i miejsce: D10)
 [x]  4b Większe miejsca A/B (768 MiB), obraz w zstd (D10 „A”) S31, S33        4           D10              M        0050
         PR #185 (miejsca 768 MiB, K1-EFI 1600 MiB, na dysku 3 GiB; zapas 620 MiB)
-[ ]  5  Szybka grafika, K1: pośrednik grafiki               S37–S41, S44     1, 2        T10–T15          L        z kr. 1
-        [w toku: Claude, gałąź claude/plan-0-10-9-step-5-ws3u2o]
+[x]  5  Szybka grafika, K1: pośrednik grafiki               S37–S41, S44     1, 2        T10–T15          L        z kr. 1
+        PR #188 (pośrednik grafiki; sprzęt — linia w Ustawieniach i zawieszenie karty — właściciel przy wersji końcowej)
 [ ]  6  Szybka grafika, strefa: przełącznik; wydanie        S40–S45          4, 5        D5–D8, T12–T15   L        z kr. 1
 (Numery ADR — następne wolne w chwili kroku: 0.10.5 bierze 0046 i 0047, 0.10.7 — 0048, więc krok 1 zwykle 0049,
 krok 4 — następny wolny po nim; jeśli krok 4 idzie przed krokiem 1, bierze numer pierwszy.)
@@ -532,6 +532,9 @@ KROK 5 — Szybka grafika, strona K1: pośrednik grafiki                        
     Samo mapowanie w VMM-ie przechodzi do kroku 6 (zasoby blob virtio-gpu — bez strony gościa nie ma go czym sprawdzić).
   - S44: silnik testowy (testowy.c, tylko TEST_POSREDNIK b=1): odpowiada jak HD 520, bufor bez pamięci, paczka bez płotu,
     paczka o długości K1_POSR_TEST_ZAWIESZENIE „zawiesza kartę”. t_posrednik w test-m1: 254/254.
+  - Sprzęt (decyzja właściciela 2026-11-20): linię w Ustawieniach (IdeaPad „obsługuje”, X230 „karta nie oddziela pracy
+    stref”) i zawieszenie karty (S38, S39) właściciel sprawdzi na wersji końcowej — w kroku 6 stroną WebGL, która
+    zawiesza kartę, w sesji z szybką grafiką (pulpit działa, sesja kończy szybką grafikę). Lista dla właściciela w kroku 6.
 
 KROK 6 — Szybka grafika, strona strefy: przełącznik, Firefox rysuje kartą; wydanie 0.10.9   L · D5–D8, T12–T15
   Cel: sesja z włączoną szybką grafiką rysuje kartą, a strefa widzi tylko wirtualną kartę z mostem; wydanie wersji.
@@ -564,7 +567,9 @@ KROK 6 — Szybka grafika, strona strefy: przełącznik, Firefox rysuje kartą; 
   CI nie testuje (decyzja właściciela 2026-11-17) — Firefox z kartą: stanowisko, jeśli się da, i właściciel.
   Lista dla właściciela (laptop z D8): Ustawienia → Przeglądarka → Ogólna → „Szybka grafika” włącz → otwórz
   Przeglądarkę → długa strona, przewijanie płynne? mapa 3D albo strona z WebGL działa? Zasoby: procesor sesji mniejszy
-  niż z wyłączonym przełącznikiem? znak na ramce? Bank wg D6. Do tego lista filmów z kroku 3.
+  niż z wyłączonym przełącznikiem? znak na ramce? Bank wg D6. Z kroku 5: Ustawienia → Przeglądarka — linia o szybkiej
+  grafice (IdeaPad „obsługuje”, X230 „nie oddziela pracy stref”); strona WebGL, która zawiesza kartę → pulpit działa, tylko
+  ta sesja traci szybką grafikę. Do tego lista filmów z kroku 3.
   Gotowe, gdy: CI zielone, właściciel potwierdził na sprzęcie albo dostał listę przy wydaniu, wydanie 0.10.9 istnieje
   (linki ISO i USB w raporcie).
   Ustalenia z wykonania: (pusto — wypełnia krok 6)
