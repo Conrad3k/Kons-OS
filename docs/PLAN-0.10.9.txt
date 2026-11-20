@@ -179,6 +179,7 @@ Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3 — filmy
         PR #181 (pomiary ze sprzętu przeniesione do kroków 2, 3, 5 — ADR 0049)
                                                             S36–S39
 [ ]  2  K1: i915 w jądrze, usługa „dekoder filmów”          S10–S17, S26     1, 0.10.1   T1–T3, T6–T8     L        z kr. 1
+        [w toku: Claude, gałąź claude/admiring-cerf-wbk4l0]
 [ ]  3  Strefa: przełącznik filmów, Firefox z dekoderem     S18–S25, S29     2, 4        D1–D4, T4, T5, T9 L        z kr. 1
 [x]  4  Obraz przeglądarki poza rdzeniem, szybszy start     S31–S35          0.10.7      T16              M        0050
         PR #183 (obraz w miejscu A/B obok k1.efi, format bez zmian — szybszy start i miejsce: D10)
