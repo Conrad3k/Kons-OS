@@ -370,7 +370,8 @@ int posrednik_dla_strefy(int nr, int test); /* the client's end of a new broker 
 void posrednik_strefa_koniec(int nr);       /* the zone's VMM ended: its broker too */
 int32_t posrednik_pamiec_mib(int nr);       /* T14: its broker's memory, MiB */
 int posrednik_dziala(int nr);               /* 0.10.9 step 6: zone nr's broker runs (the mark on its frame) */
-int posrednik_karta_umie(void);             /* the question said: the card serves fast graphics */
+int posrednik_karta_umie(void);
+void raport_karty(int kanal); /* karta_pomiar.c (0.10.10 step 2): ZASOBY_KARTA to Zasoby */             /* the question said: the card serves fast graphics */
 
 /* rozruch.c — A/B after a start (0.7.0, ADR 0022) */
 extern char ab_nieudana[32];

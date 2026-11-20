@@ -204,6 +204,7 @@ void raport_zasobow(void)
         k1_kanal_wyslij(zasoby_kanal, &k, sizeof k, -1);
     }
     strefy_przydzial(zasoby_kanal); /* 0.10.1 step 3: the sessions' shares */
+    raport_karty(zasoby_kanal);     /* 0.10.10 step 2: the graphics card (karta_pomiar.c) */
     poprz_sys = uz;
     poprz_t = t;
 }

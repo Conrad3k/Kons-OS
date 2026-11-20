@@ -215,6 +215,11 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   `cpu.stat` korzenia cgroup, pamięć: `sysinfo` minus odzyskiwalna pamięć podręczna z `memory.stat`,
   liczba CPU, czas pracy) i `ZASOBY_USLUGA` dla każdej usługi (`cpu.stat`, `memory.current` jej
   cgroup). Kanał jednokierunkowy: po stronie nadzorcy `shutdown(SHUT_RD)` — nic od aplikacji nie czyta.
+  Od 0.10.10 (krok 2, `karta_pomiar.c`) także `ZASOBY_KARTA`: karta i915 (`drm/cardN`, sterownik i915) —
+  `power/rc6_residency_ms` (czas snu karty → zajętość, czyste `k1_karta_pomiar.c`), `gt_act_freq_mhz`, `gt_RP0_freq_mhz`;
+  RAPL (`powercap/intel-rapl:0:K` o nazwie „uncore”) — `energy_uj` z zawinięciem przy `max_energy_range_uj` (plik tylko dla
+  root — nadzorca daje Zasobom średnią z sekundy); sesje z działającym pośrednikiem grafiki. Raz w logu: „zasoby: karta
+  graficzna — cardN; pobór mocy karty: RAPL uncore”.
 - Logi usług: wiersz oczyszczany przez `k1_log_oczysc` (znaki sterujące C0/DEL/C1, błędne UTF-8 → `?`),
   sprawdzany prefiks usługi, limit 20 wierszy/s.
 - Zakończenie usługi → wpis w logu (kod 159 = zabronione wywołanie systemowe) → restart po

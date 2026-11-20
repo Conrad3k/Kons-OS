@@ -183,6 +183,15 @@ sesji, np. strefa próbna w testach — „Strefy”): przy każdej działające
 może dostać (`STREFA_PRZYDZIAL`: górna granica minus to, co K1 trzyma w jej balonie); bez zdania pod nimi (0.10.7 krok 1). Usług jest wtedy o tyle mniej wierszy, ile zajmują sesje (najmniej 3). Log raz na
 strefę: „strefa N: używa X MiB z Y MiB”. Zapis pamięci („850 MB”, „1,2 GB”) — `k1_pamiec_tekst` przybornika (to samo
 w okienku „Mało pamięci”).
+0.10.10 krok 2 (decyzja właściciela z 2026-11-20: zakładki z wykresami, pobór mocy karty i całego laptopa): u góry
+przełącznik dwóch **zakładek** — „Procesor i pamięć” (wszystko wyżej; usług najwyżej 12 wierszy, okno tej samej wysokości)
+i „Karta graficzna” (`karta.c`, z `ZASOBY_KARTA`): **zajętość karty** — liczba i wykres z ostatniej minuty (część czasu,
+w której karta nie spała: i915 RC6), **taktowanie** („650 z 1050 MHz”), **pobór mocy** — wykres dwóch linii: karta
+(kolor akcentu, licznik RAPL „uncore”) i cały laptop (szara, z baterii — tylko gdy laptop działa na baterii), skala od
+5 W w górę; **sesje rysujące kartą** (kropka w kolorze sesji i jej nazwa — te, którym działa pośrednik grafiki) albo
+„Żadna sesja nie rysuje teraz kartą.”. Bez karty i915 (QEMU, inna karta) albo bez RAPL: „Ta karta graficzna nie podaje
+swojej zajętości” / „Pobór mocy nieznany…”. Log: „zakładki: x,y i x,y” (raz), „zakładka: …” przy przełączeniu,
+„karta: zajętość …‰, taktowanie … z … MHz, moc karty … mW…” (raz).
 
 ### Pliki
 (0.8.0, ADR 0029, `src/aplikacje/pliki/`, UID 206) — pliki i foldery użytkownika, jak w Windows: z lewej
@@ -311,7 +320,9 @@ własne pliki i pliki dane przez użytkownika (tabela praw w skarbcu), `DOK_WYBI
 1–33 tylko do przeniesienia (`SKARB_CZYTAJ`, `SKARB_USUN`); fd 5 — od nadzorcy, jednokierunkowo: `PLIK_OTWORZ`
 (obiekt = plik otwarty w Notatkach z Plików albo z pulpitu). Wybór pliku: fd 4 — kanał do skarbca (lista nazw,
 `DOK_PROSBA`, `DOK_WYBRANO`). Zasoby: fd 4 —
-kanał od nadzorcy (`ZASOBY_SYSTEM`, `ZASOBY_USLUGA`, od 0.6.3 `ZASOBY_BATERIA`), aplikacja nie może do niego pisać.
+kanał od nadzorcy (`ZASOBY_SYSTEM`, `ZASOBY_USLUGA`, od 0.6.3 `ZASOBY_BATERIA`, od 0.10.10 `ZASOBY_KARTA`: a = zajętość
+karty ‰, b = taktowanie MHz, c = najwyższe MHz, d = pobór mocy karty mW — każde −1, gdy nieznane; e = bity sesji rysujących
+kartą), aplikacja nie może do niego pisać.
 Ustawienia: lista trybów ekranu (`K1_KOM_TRYB`) dostaje tylko ona; od 0.5.5 fd 4 — kanał od nadzorcy
 (`BATERIA`, `BATERIA_HIST`: do 16 próbek po 1 bajcie w komunikacie), jednokierunkowy, nadawca UID 0; od 0.9.0 ten sam
 kanał: `SIEC_STAN`, `SIEC_KARTA`, `SIEC_SZCZEGOLY`, `SIEC_STEROWNIK`, `SIEC_ADRESY` (sekcja Sieć; `komponenty/siec.md`); od

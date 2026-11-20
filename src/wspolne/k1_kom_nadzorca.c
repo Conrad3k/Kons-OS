@@ -157,6 +157,9 @@ int k1_kom_sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
     case K1_KOM_ZASOBY_SYSTEM:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, 1000) && w(k->b, 0, K1_PAMIEC_MAKS_MIB) &&
                w(k->c, 1, K1_PAMIEC_MAKS_MIB) && k->b <= k->c && w(k->d, 1, 4096) && k->e >= 0;
+    case K1_KOM_ZASOBY_KARTA: /* 0.10.10 step 2 */
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, -1, 1000) && w(k->b, -1, K1_KARTA_MHZ_MAKS) &&
+               w(k->c, -1, K1_KARTA_MHZ_MAKS) && w(k->d, -1, K1_MOC_MAKS_MW) && w(k->e, 0, (1 << K1_STREFY_MAKS) - 1);
     case K1_KOM_ZASOBY_USLUGA:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt >= 1 && k->obiekt <= K1_PROFIL_MAKS && w(k->a, 0, 1000) &&
                k->b >= 0 && w(k->c, 0, 1) && zera(k, 3);
