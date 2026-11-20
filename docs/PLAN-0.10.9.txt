@@ -178,8 +178,8 @@ Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3 — filmy
 [x]  1  Próba i pomiar: i915, VA-API, Firefox, most; ADR   S1–S9, S26–S30,  0.10.0      T1–T5, T9–T15    M        0049
         PR #181 (pomiary ze sprzętu przeniesione do kroków 2, 3, 5 — ADR 0049)
                                                             S36–S39
-[ ]  2  K1: i915 w jądrze, usługa „dekoder filmów”          S10–S17, S26     1, 0.10.1   T1–T3, T6–T8     L        z kr. 1
-        [w toku: Claude, gałąź claude/admiring-cerf-wbk4l0]
+[x]  2  K1: i915 w jądrze, usługa „dekoder filmów”          S10–S17, S26     1, 0.10.1   T1–T3, T6–T8     L        0049
+        PR #186 (i915 i dekoder filmów; X230 i IdeaPad: pulpit i linia w Ustawieniach potwierdzone 2026-11-20)
 [ ]  3  Strefa: przełącznik filmów, Firefox z dekoderem     S18–S25, S29     2, 4        D1–D4, T4, T5, T9 L        z kr. 1
 [x]  4  Obraz przeglądarki poza rdzeniem, szybszy start     S31–S35          0.10.7      T16              M        0050
         PR #183 (obraz w miejscu A/B obok k1.efi, format bez zmian — szybszy start i miejsce: D10)
@@ -326,24 +326,24 @@ KROK 2 — K1: sterownik karty w jądrze, usługa „dekoder filmów”         
   0.10.1 krok 4) — jedna linia pod listą sesji: „Karta graficzna tego komputera rozpakowuje filmy: H.264, HEVC, VP9”
   albo „Ten komputer nie rozpakowuje filmów kartą graficzną” (maszyna wirtualna, brak i915). Przełącznika jeszcze nie ma.
   Zadania:
-  [ ] Jądro (T1, S10–S12): opcje i915 w jadro/k1.config z komentarzem, jadro/k1-zamkniete.config, sprawdz-kspp,
+  [x] Jądro (T1, S10–S12): opcje i915 w jadro/k1.config z komentarzem, jadro/k1-zamkniete.config, sprawdz-kspp,
       plik DMC dla Skylake w tabeli plików od producentów (jeśli krok 1 tak ustalił), docs/komponenty/jadro.md
       (odstępstwo „bez i915” znika). Ekran: tylko jeśli krok 1 wykazał zmiany. Zatwierdzenie A/B dopiero, gdy ekran
       pokazał obraz (S3) — inaczej wersja z czarnym ekranem zostałaby zatwierdzona.
-  [ ] Nadzorca (S13, T6): węzeł render otwiera nadzorca (urzadzenia.c — jak inne urządzenia) i daje go tylko usłudze
+  [x] Nadzorca (S13, T6): węzeł render otwiera nadzorca (urzadzenia.c — jak inne urządzenia) i daje go tylko usłudze
       „dekoder filmów”; ekran dalej jedynym właścicielem węzła karty (card0, DRM master). Usługa NA_PROSBE — jedna na
       strefę (start z VMM-em strefy, koniec z nim); wiersz w K1_SYSTEM (przepis „Nowa usługa systemowa”), klatka
       KLATKA_FILMY z listą ioctl węzła render (S16) i limitem pamięci, nowy kanał KANAL_* VMM ↔ dekoder filmów.
-  [ ] Usługa src/filmy/ (T2, T3): VA-API (libva + i965 statycznie, src/zewnetrzne/ z sumami, wpis w docs/ZALEZNOSCI.md),
+  [x] Usługa src/filmy/ (T2, T3): VA-API (libva + i965 statycznie, src/zewnetrzne/ z sumami, wpis w docs/ZALEZNOSCI.md),
       prośby od VMM-a wg formatu z T3, klatki do pamięci współdzielonej (memfd od nadzorcy), pytanie „co umiesz” (lista
       formatów dla Ustawień — przez nadzorcę, tylko liczby/flagi).
-  [ ] Pamięć karty w balonie (T8, S15, S26): limit buforów z K1_KODEKI sprawdzany przed przydziałem, bufory oddane po
+  [x] Pamięć karty w balonie (T8, S15, S26): limit buforów z K1_KODEKI sprawdzany przed przydziałem, bufory oddane po
       końcu filmu; pamięć dekodera filmów doliczona do strefy w podziale pamięci z 0.10.1 i w Zasobach; brak pamięci =
       odmowa nowego filmu (film na procesorze). Test: zalew prośbami o nowe filmy → pamięć usługi nie rośnie ponad limit.
-  [ ] Format komunikatów (T3, S14): src/wspolne/k1_filmy.h (stały układ, _Static_assert), tabela K1_KODEKI (kodek,
+  [x] Format komunikatów (T3, S14): src/wspolne/k1_filmy.h (stały układ, _Static_assert), tabela K1_KODEKI (kodek,
       profil VA, największy rozmiar, klatki odniesienia, największy kawałek danych) — sprawdzanie pole po polu
       w src/wspolne/k1_kom_filmy.c; test_filmy (ASan/UBSan) i fuzz_filmy.
-  [ ] Testy bez karty Intela (T7, S17): w systemie — klatka (t_klatki), próba w klatce (t_proby), złośliwe prośby
+  [x] Testy bez karty Intela (T7, S17): w systemie — klatka (t_klatki), próba w klatce (t_proby), złośliwe prośby
       (zły kodek, rozmiar ponad tabelę, dane dłuższe niż kawałek, brak klatek odniesienia) → odrzucone, usługa żyje;
       „brak karty” w QEMU → Ustawienia mówią „nie rozpakowuje”. Na sprzęcie — właściciel: obraz USB z PR-a, linia
       w Ustawieniach na obu laptopach, pulpit płynny, Ustawienia → Bateria (pobór mocy nie gorszy niż w 0.10.1).
