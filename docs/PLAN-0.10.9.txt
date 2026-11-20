@@ -580,7 +580,32 @@ KROK 6 — Szybka grafika, strona strefy: przełącznik, Firefox rysuje kartą (
   szybką grafikę (S38, S39). Czego właściciel nie sprawdzi teraz — idzie na listę wydania (krok 3).
   Gotowe, gdy: CI zielone, właściciel potwierdził na IdeaPadzie (albo punkty są na liście kroku 3); przełącznik w main
   gotowy dla użytkownika (domyślnie wg D5) — robot jest w trybie próbnym, więc do laptopów przyjdzie z wydaniem.
-  Ustalenia z wykonania: (pusto — wypełnia krok 6)
+  Ustalenia z wykonania (2026-11-20, gałąź claude/pensive-bardeen-g1lj56):
+  - Decyzje właściciela na początku: D5 „B” (szybka grafika domyślnie włączona w Ogólnej, Bank i Prywatna — wyłączona),
+    D9 „A” (jeden przełącznik „Szybka grafika i filmy”), D7 „A” — szkice dwóch znaków (układ scalony, błyskawica), wybrany
+    układ scalony (`K1_IK_KARTA`, za nazwą sesji, póki strefa działa ze swoim pośrednikiem), D4 „A” (dla kroku 3).
+  - S40, S42, S47 ZE ŹRÓDEŁ (Mesa 26.2.6: src/virtio/vdrm/vdrm_virtgpu.c, src/intel/dev/virtio,
+    src/egl/drivers/dri2/platform_wayland.c; Linux 7.3.5 drivers/gpu/drm/virtio): iris z intel-virtio otwiera kontekst
+    virtio-gpu z capsetem DRM i 64 osiami, pamięć wspólną jako blob 0 (16 KiB), bufory jako bloby HOST3D „do mapowania”
+    tworzone razem z prośbą GEM_CREATE, płoty na osi 1 + silnik. Jądro gościa robi kontekst bez capsetu każdemu, kto
+    otworzy kartę (z CONTEXT_INIT — nie przy samym imporcie). Każdy proces strefy z kartą = osobny kontekst gościa, z
+    własnymi numerami blobów — pośrednik z kroku 5 zakładał jeden: dodane konteksty gościa (1…8, `POSR_GOSC_KONIEC`).
+    EGL Mesy na Waylandzie bez wl_drm potrzebuje linux-dmabuf w wersji ≥ 4 (urządzenie z „feedbacku”) — kompozytor strefy
+    ma go (`dmabuf.c`), tylko liniowe XR24/AR24, kopia procesorem po `VIRTGPU_WAIT`; obraz okna dalej idzie drogą 2D.
+    Mesa wybiera iris sama (pipe_loader_drm.c: capset DRM z kontekstem i915).
+  - S43 POTWIERDZONE (budowa): Mesa 26 kompiluje programy karty Intela z OpenCL C (`mesa_clc`, wymaga LLVM) — budowa
+    w dwóch etapach: narzędzia z LLVM 18 Ubuntu tylko na komputerze budowy, Mesa dla strefy bez LLVM (iris, EGL, GBM,
+    OpenGL, GLES 2). Wynik okrojony: 33 MiB (libgallium ok. 28 MiB); obraz strefy 126 → 134 MiB, zapas miejsca A 610 MiB.
+    Meson z PyPI (Ubuntu 24.04 ma 1.3, Mesa chce ≥ 1.4). W strefie brakowało tylko libdrm2 (dopisane do tabeli). CI na
+    PR-ze trzyma build/mesa w pamięci podręcznej (ok. 15 min mniej), wydanie buduje od zera.
+  - S40 POTWIERDZONE w QEMU (strefa próbna, silnik testowy): bufor „karty” (memfd od nadzorcy zamiast dma-bufa) zmapowany
+    przez VMM jako miejsce pamięci KVM w obszarze 32 GiB + 1 GiB; gość pisze i czyta — wymaga CI z KVM (w kontenerze
+    test-strefa stanął na zwykłych krokach strefy: gość budzony z wielominutowym opóźnieniem, skill §7).
+  - Firefox: prefy z rysowaniem kartą przez `user.js` profilu sesji (tylko gfx.webrender.software i
+    widget.dmabuf.force-enabled — nazwy z k1.js, sprawdzone w kroku 1), pisane przy każdym starcie w obie strony.
+    Firefoksa z kartą CI nie testuje — sprawdza właściciel na IdeaPadzie (lista niżej i w kroku 3).
+  - NIEPEWNE do sprzętu: czy Firefox ESR 153 przejdzie swój test GL (glxtest) z iris przez intel-virtio i włączy WebRender
+    sprzętowy; wydajność kopii klatki procesorem w kompozytorze (S41); działanie zawieszenia karty (S39) z prawdziwą kartą.
 
 
 4. DECYZJE
