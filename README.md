@@ -34,6 +34,7 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.10.5 Aktualizacje przez sieć | Ustawienia → Aktualizacje, K1 na dysku sam pobiera nową wersję z wydań na GitHubie i pyta przed instalacją, robot sam wydaje poprawki jądra i przeglądarki, zmiana rozmiaru i maksymalizacja okna przeglądarki, Alt+Tab, Przeglądarka na pasku i pulpicie, jądro Linux 7.3 | PRZETESTOWANE w QEMU (ADR 0046, 0047); na sprzęcie — lista w `docs/DO_ZROBIENIA.txt` |
 | 0.10.7 Wygląd | krótsze napisy bez półpauz, Ustawienia i Pliki ułożone porządniej, okno przeglądarki bez kolorowej obwódki, napisy pod ikonami pulpitu na pigułce, tapeta z matową krawędzią, ekran „Wyłączanie”, Ustawienia → Aktualizacje już się nie zamykają | PRZETESTOWANE w QEMU (ADR 0048); wyłączanie z przeglądarką — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.10.9 Szybka grafika | przełącznik „Szybka grafika” przy sesji: przeglądarka rysuje kartą przez pośrednika grafiki K1 (IdeaPad; X230 — wyciszony), sterownik karty Intela w jądrze, obraz przeglądarki poza pamięcią K1, większe miejsca na system | PRZETESTOWANE w QEMU z KVM (ADR 0049, 0050; silnik testowy zamiast karty); Firefox z kartą — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
+| 0.10.10 Poprawka | Instalator z pendrive'a instaluje od nowa także na dysku z K1 i danymi; Zasoby → „Karta graficzna” (obciążenie, taktowanie, pobór mocy karty i laptopa) | PRZETESTOWANE w QEMU (bez karty Intela: „nie podaje”); karta — na sprzęcie |
 | 0.10 Strefy (dalej) | może: filmy rozpakowywane kartą graficzną; inne obce aplikacje, wspólna strefa | PLANOWANE (ADR 0020, 0024, 0025) |
 | 0.11 Pliki ze stref | przenoszenie plików ze stref i do stref przez okno K1, schowek między strefami | PLANOWANE |
 | 0.12–0.13 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |
@@ -42,7 +43,7 @@ Od 0.9 etapy to numery wersji (ADR 0035); wcześniejsze etapy M0–M6 zostały w
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-**Co już jest (0.10.9):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
+**Co już jest (0.10.10):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
 110), a Instalator zapisuje go na dysk. Pulpit jak w Windows 11, w stylu K1: ikony na pulpicie (aplikacje, Kosz, Twoje
 pliki i foldery z folderu Pulpit), pasek na dole z menu Start i przypiętymi aplikacjami (Zegar, Notatki, Ustawienia, Zasoby,
 Kalkulator, Pliki, Przeglądarka; w menu Start też Instalator i Podgląd), pasek na górze (sieć, dźwięk, bateria, data

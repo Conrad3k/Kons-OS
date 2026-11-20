@@ -10,7 +10,7 @@
 #include "k1_log.h"
 #include "zasoby.h"
 
-static int32_t zajetosc[PROBKI], moc_karty[PROBKI], moc_laptopa[PROBKI]; /* ‰, mW; -1: unknown */
+static int32_t obciazenie[PROBKI], moc_karty[PROBKI], moc_laptopa[PROBKI]; /* ‰, mW; -1: unknown */
 static int32_t mhz = -1, mhz_maks = -1, rysuja;
 static int probek, znana, zalogowane;
 
@@ -22,7 +22,7 @@ static void probka(int32_t *tab, int32_t v)
 
 void karta_dane(const struct k1_komunikat *k, int32_t laptop_mw)
 {
-    probka(zajetosc, k->a);
+    probka(obciazenie, k->a);
     probka(moc_karty, k->d);
     probka(moc_laptopa, laptop_mw);
     if (probek < PROBKI)
@@ -30,7 +30,7 @@ void karta_dane(const struct k1_komunikat *k, int32_t laptop_mw)
     mhz = k->b, mhz_maks = k->c, rysuja = k->e, znana = 1;
     if (!zalogowane) { /* once: the tests read it */
         zalogowane = 1;
-        k1_log(TAG, "karta: zajętość %d‰, taktowanie %d z %d MHz, moc karty %d mW, laptop %d mW, sesje kartą 0x%x",
+        k1_log(TAG, "karta: obciążenie %d‰, taktowanie %d z %d MHz, moc karty %d mW, laptop %d mW, sesje kartą 0x%x",
                (int)k->a, (int)k->b, (int)k->c, (int)k->d, (int)laptop_mw, (unsigned)k->e);
     }
 }
@@ -137,18 +137,18 @@ static void rysuj_sesje_karta(struct k1_obraz *o, const struct k1_motyw *m, int3
 void rysuj_karte(struct k1_obraz *o, const struct k1_motyw *m, int32_t y)
 {
     char a[24], buf[64];
-    int32_t w = apl.szer - 2 * MARG, z = zajetosc[PROBKI - 1];
+    int32_t w = apl.szer - 2 * MARG, z = obciazenie[PROBKI - 1];
     k1_dziesietne(a, sizeof a, z);
     snprintf(buf, sizeof buf, "%s %%", a);
-    naglowek(o, m, y, w, "Zajętość karty", probek && z >= 0 ? buf : "");
+    naglowek(o, m, y, w, "Obciążenie karty", probek && z >= 0 ? buf : "");
     k1_tekst(o, K1_CZ_MALA, MARG + 138, y + 16, "ostatnia minuta", k1_kolor(m->tekst3, 255), 0);
-    zmienna(MARG + 260, y, w - 260, 22, "Zajętość karty teraz");
+    zmienna(MARG + 260, y, w - 260, 22, "Obciążenie karty teraz");
     ramka_wykresu(o, m, MARG, y + 26, w, WYKRES_H);
-    zmienna(MARG, y + 24, w, WYKRES_H + 4, "Wykres zajętości karty");
-    if (!jest(zajetosc))
-        brak(o, m, MARG, y + 26, WYKRES_H, znana ? "Ta karta graficzna nie podaje swojej zajętości" : "Zbieram dane…");
+    zmienna(MARG, y + 24, w, WYKRES_H + 4, "Wykres obciążenia karty");
+    if (!jest(obciazenie))
+        brak(o, m, MARG, y + 26, WYKRES_H, znana ? "Ta karta graficzna nie podaje swojego obciążenia" : "Zbieram dane…");
     else
-        linia(o, MARG, y + 26, w, WYKRES_H, zajetosc, 1000, m->akcent, 1);
+        linia(o, MARG, y + 26, w, WYKRES_H, obciazenie, 1000, m->akcent, 1);
     y += 26 + WYKRES_H + 16;
 
     if (mhz < 0)

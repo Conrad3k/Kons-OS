@@ -1,7 +1,7 @@
 /* K1 — the numbers of the graphics card in Zasoby (k1_karta_pomiar.h). */
 #include "k1_karta_pomiar.h"
 
-int32_t k1_karta_zajetosc(uint64_t rc6_ms0, uint64_t rc6_ms1, double dt_s)
+int32_t k1_karta_obciazenie(uint64_t rc6_ms0, uint64_t rc6_ms1, double dt_s)
 {
     double spi, ms = dt_s * 1000.0;
     if (!(ms >= 1.0) || rc6_ms1 < rc6_ms0)

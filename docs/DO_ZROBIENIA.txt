@@ -4,7 +4,8 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.10.9 „Szybka grafika” — przełącznik „Szybka grafika” przy sesji przeglądarki (strony rysuje karta, każdą prośbę
+Stan: 0.10.10 — poprawka: Instalator instaluje od nowa także na dysku z K1, Zasoby → „Karta graficzna”. Przed nią 0.10.9
+„Szybka grafika” — przełącznik „Szybka grafika” przy sesji przeglądarki (strony rysuje karta, każdą prośbę
 strefy sprawdza pośrednik grafiki K1; IdeaPad), sterownik karty Intela w jądrze, obraz przeglądarki poza pamięcią K1,
 większe miejsca na system (plany zamknięte: docs/archiwum/); filmy kartą — „może” (punkt 3). Następna wersja — do
 ustalenia z Tobą (mapa, punkt 2).
@@ -14,16 +15,16 @@ Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] części
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — poprawka 0.10.10 (po wydaniu 0.10.9 Szybka grafika)
+1. TERAZ — po poprawce 0.10.10 (wydanie 0.10.9 Szybka grafika i jego poprawka)
 --------------------------------------------------------------
 Twoja prośba z 2026-11-20 (po instalacji 0.10.9): czysta instalacja na dysku, na którym już jest K1, i karta graficzna
 w Zasobach. Twoje decyzje z tego dnia: przycisk w Instalatorze z pendrive'a (dane z dysku zamknięte, cały dysk
 wyczyszczony), w Zasobach zakładki z wykresami, pobór mocy karty i całego laptopa. Dwa PR-y, wydanie w drugim (numer:
 następny wolny PATCH — robot może wydać coś wcześniej):
-    [w toku: Claude, gałąź claude/pensive-bardeen-g1lj56] krok 1 — Instalator: „Zainstaluj od nowa” także dla dysku
-        z otwartymi danymi (nadzorca kończy strefy, skarbiec oddaje partycję — SKARB_ZWOLNIJ; od_nowa.c), test-m5f krok 7
-    [ ] krok 2 — Zasoby: zakładka „Karta graficzna” (zajętość karty, taktowanie, pobór mocy karty i laptopa, sesje
-        z szybką grafiką); porządki i wydanie
+    [x] krok 1 — Instalator: „Zainstaluj od nowa” także dla dysku z otwartymi danymi (nadzorca kończy strefy, skarbiec
+        oddaje partycję — SKARB_ZWOLNIJ; od_nowa.c), test-m5f krok 7 — PR #193
+    [x] krok 2 — Zasoby: zakładka „Karta graficzna” (obciążenie karty, taktowanie, pobór mocy karty i laptopa, sesje
+        z szybką grafiką; Twoje „OK” dla wzorców — „Zajętość” zmieniona na „Obciążenie”); porządki i wydanie — PR #193
 Potem następny temat wybierasz Ty (mapa, punkt 2); pierwszy czat nowej wersji pisze jej plan (docs/PLAN-<wersja>.txt). Od
 0.10.5 w tle działa robot: sam wydaje wersje PATCH z poprawionym jądrem i pakietami przeglądarki (od wydania 0.10.9 znowu
 w pełnym trybie). Do sprawdzenia na laptopach — punkt 4.
@@ -168,8 +169,14 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.10.9). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+Jedna lista — dla ostatniego wydania (0.10.10). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
 z 2026-11-11).
+Nowe w 0.10.10 (poprawka):
+    [ ] Instalator od nowa: K1 z dysku + pendrive 0.10.10 → Instalator → dysk z K1 („z Twoimi danymi”) → „Zainstaluj od
+        nowa” → USUŃ → „Gotowe” → Wyłącz → start z dysku: pusty K1 0.10.10 (nowe konto)
+    [ ] Zasoby → „Karta graficzna” (oba laptopy): obciążenie karty rośnie przy przewijaniu strony, taktowanie zmienia się;
+        pobór mocy karty (linia w kolorze akcentu) i — na baterii — całego laptopa (szara); w Ogólnej z szybką grafiką
+        (IdeaPad) sesja na liście „Sesje rysujące kartą”
 Nowe w 0.10.9 (Szybka grafika; pendrive co najmniej 2 GB):
     [ ] najpierw: instalacja od nowa na obu laptopach z pendrive'a 0.10.9 (Instalator → dysk → USUŃ) — K1 0.10.7 na dysku
         nie zaktualizuje się do nowego układu (D10 „A”; Ustawienia → Aktualizacje mówią „zainstaluj od nowa”; dane

@@ -638,7 +638,7 @@ if zs:
         klik(zx + int(zk.group(3)), zy + int(zk.group(4)))
     sprawdz("Zasoby → „Karta graficzna”: zakładka przełączona, dane od nadzorcy (QEMU: karta i moc nieznane)",
             zk and czekaj(r"K1-ZASOBY: zakładka: Karta graficzna", czas=20)
-            and czekaj(r"K1-ZASOBY: karta: zajętość -1‰, taktowanie -1 z -1 MHz, moc karty -1 mW, laptop -1 mW", czas=10)
+            and czekaj(r"K1-ZASOBY: karta: obciążenie -1‰, taktowanie -1 z -1 MHz, moc karty -1 mW, laptop -1 mW", czas=10)
             and czekaj(r"K1-NADZORCA: zasoby: karta graficzna — brak karty i915; pobór mocy karty: nieznany", czas=10))
     zrzut("8-zasoby-karta")
 

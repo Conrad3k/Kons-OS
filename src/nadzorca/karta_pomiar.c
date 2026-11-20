@@ -69,14 +69,14 @@ void raport_karty(int kanal)
     static double t0;
     uint64_t rc6 = 0, e = 0, akt = 0, rp0 = 0;
     double t = k1_teraz();
-    int32_t zajetosc = -1, moc = -1, strefy = 0;
+    int32_t obciazenie = -1, moc = -1, strefy = 0;
     int ma_rc6, ma_e;
     if (!szukano)
         znajdz();
     ma_rc6 = liczba(karta, "power/rc6_residency_ms", &rc6) == 0;
     ma_e = liczba(rapl, "energy_uj", &e) == 0;
     if (ma_rc6 && jest_rc6)
-        zajetosc = k1_karta_zajetosc(rc6_0, rc6, t - t0);
+        obciazenie = k1_karta_obciazenie(rc6_0, rc6, t - t0);
     if (ma_e && jest_e)
         moc = k1_karta_moc_mw(e_0, e, rapl_zakres, t - t0);
     if (liczba(karta, "gt_act_freq_mhz", &akt) != 0 || akt > K1_KARTA_MHZ_MAKS)
@@ -88,7 +88,7 @@ void raport_karty(int kanal)
             strefy |= 1 << (nr - 1);
     rc6_0 = rc6, e_0 = e, jest_rc6 = ma_rc6, jest_e = ma_e, t0 = t;
     {
-        struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_ZASOBY_KARTA, 0, zajetosc, akt == UINT64_MAX ? -1 : (int32_t)akt,
+        struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_ZASOBY_KARTA, 0, obciazenie, akt == UINT64_MAX ? -1 : (int32_t)akt,
                                                   rp0 == UINT64_MAX ? -1 : (int32_t)rp0, moc, strefy);
         k1_kanal_wyslij(kanal, &k, sizeof k, -1);
     }
