@@ -7,8 +7,8 @@ Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ 
 Stan: 0.10.7 „Wygląd” — krótsze napisy bez półpauz, Ustawienia i Pliki ułożone porządniej, okno przeglądarki bez
 kolorowej obwódki, napisy pod ikonami pulpitu na pigułce, tapeta z matową krawędzią, ekran „Wyłączanie”, poprawione
 Ustawienia → Aktualizacje (plany zamknięte: docs/archiwum/); teraz 0.10.9 Filmy i szybka grafika (plan:
-docs/PLAN-0.10.9.txt).
-Data: 2026-11-19.
+docs/PLAN-0.10.9.txt) — gotowe kroki 1, 4, 4b, 2 i 5, zostały krok 6 i krok 3 z wydaniem.
+Data: 2026-11-20.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
@@ -19,6 +19,8 @@ Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Cl
 Kroki i decyzje — w planie 0.10.9 (Twoja prośba z 2026-11-16 i 2026-11-17). Od 0.10.5 w tle działa robot: sam wydaje
 wersje PATCH z poprawionym jądrem i pakietami przeglądarki, więc numer wydania „0.10.9” może zająć robot — wtedy wydanie
 bierze następny wolny (plan, punkt 0 „Robot i wydania”).
+Stan 0.10.9 (kolejność 1, 4, 2, 5, 6, 3 — ADR 0049): gotowe kroki 1 (PR #181), 4 i 4b (PR #183, #185), 2 (PR #186),
+5 (PR #188); następny krok 6 (szybka grafika w strefie), potem krok 3 (filmy kartą, porządki i wydanie).
 0.10.7 Wygląd — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.7.txt; ADR 0048):
     [x] krok 1 — napisy bez opisów i bez półpauz — PR #170
     [x] krok 2 — Ustawienia: sekcje w środku — PR #171
@@ -88,7 +90,7 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
         dyskretnie na pasku (ADR 0048); od 2026-11-18 (Twoja prośba) także dwa błędy: Ustawienia → Aktualizacje po
         ponownym otwarciu Ustawień zamyka okno; Start → Wyłącz zamyka przeglądarkę, ale nie wyłącza komputera (po
         poprawce ekran „Wyłączanie” z animacją); napisy pod ikonami pulpitu (na pigułce), tapeta z matową krawędzią
-    [ ] 0.10.9 Filmy i szybka grafika (Twoja prośba z 2026-11-16; plan: docs/PLAN-0.10.9.txt; wcześniej „0.10.3”, potem
+    [~] 0.10.9 Filmy i szybka grafika (Twoja prośba z 2026-11-16; plan: docs/PLAN-0.10.9.txt; wcześniej „0.10.3”, potem
         „0.10.7” — przesunięte PO 0.10.5 na Twoją prośbę z 2026-11-17: grafika, gdy fundamenty już będą; numer 0.10.7
         dostał Wygląd): przełącznik
         „Sprzętowe dekodowanie filmów” przy sesji przeglądarki — film rozpakowuje karta graficzna przez osobny proces K1
@@ -97,7 +99,8 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
         Od 2026-11-17 (Twoja prośba) także: przełącznik „Szybka grafika” — strefa rysuje kartą przez most native context
         (prawdziwy sterownik w strefie, pośrednik grafiki w klatce K1 sprawdza każdą prośbę; minimum zabezpieczeń teraz,
         „opakowanie” później z terminem) i szybszy start przeglądarki — obraz strefy poza rdzeniem, w formacie szybszym do
-        czytania (większe ISO, ok. 100 MB więcej wolnej pamięci K1); 6 kroków, kolejność 1, 2, 4, 3, 5, 6
+        czytania (ok. 100 MB więcej wolnej pamięci K1); 6 kroków, kolejność 1, 4, 2, 5, 6, 3 (ADR 0049: filmy kartą
+        tylko z szybką grafiką, więc i one, i szybka grafika — tylko na IdeaPadzie); gotowe 1, 4, 4b, 2, 5
     [x] 0.10.5 Aktualizacje przez sieć (Twoja prośba z 2026-11-14; plan: docs/archiwum/PLAN-0.10.5.txt): Ustawienia →
         Aktualizacje, pobieranie przez strefę z HTTPS i pytanie przed instalacją, robot na GitHubie, zmiana rozmiaru
         i maksymalizacja okna przeglądarki, Alt+Tab, Przeglądarka na pasku i pulpicie, jądro Linux 7.3, opis wersji przed
@@ -126,7 +129,7 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
     [ ] fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa
 
 Laptop (PATCH w dowolnej wersji, po Twoich zgłoszeniach)
-    [ ] i915 (płynniejszy obraz, jasność) — tylko jeśli simpledrm nie wystarczy; klawisze Fn; dźwięk (ikona na
+    [ ] jasność ekranu i klawisze Fn (sterownik i915 jest od 0.10.9 krok 2 — to go otwiera); dźwięk (ikona na
         pasku jest, sterownika i usługi nie ma); tablet USB w maszynie wirtualnej (pozycja bezwzględna); I2C-HID (nowsze
         laptopy)
 
@@ -155,7 +158,10 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 -------------------------------------------------------------------------
 Jedna lista — dla ostatniego wydania (0.10.7). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
 z 2026-11-11).
-Nowe na main po 0.10.7 (0.10.9 kroki 4 i 4b — przyjdą z najbliższym wydaniem; robot do tego czasu w trybie próbnym):
+Nowe na main po 0.10.7 (0.10.9 kroki 4, 4b, 2 i 5 — przyjdą z wydaniem 0.10.9; robot do tego czasu w trybie próbnym):
+    [x] krok 2: pulpit z i915 i linia o filmach w Ustawieniach → Przeglądarka — X230 i IdeaPad, potwierdzone 2026-11-20
+    [ ] krok 5: linia o szybkiej grafice (IdeaPad „obsługuje”, X230 „karta nie oddziela pracy stref”) i zawieszenie karty
+        bez skutków dla pulpitu — Twoja decyzja z 2026-11-20: sprawdzasz na obrazie kroku 6 albo przy wydaniu (plan, krok 3)
     [ ] obraz próbny z PR-a kroku 4b z pendrive'a (≥ 2 GB; X230 i IdeaPad): pulpit, Przeglądarka → Ogólna otwiera się (ile
         sekund do okna — pierwszy raz po włączeniu i drugi raz; dla porównania to samo na 0.10.7), strona się ładuje;
         Zasoby: pamięć K1 po starcie mniejsza o ok. 100 MB niż w 0.10.7
@@ -165,7 +171,8 @@ Nowe na main po 0.10.7 (0.10.9 kroki 4 i 4b — przyjdą z najbliższym wydaniem
         Twoje zgłoszenie z 2026-11-19)
     [ ] po najbliższym wydaniu: aktualizacja przez sieć na dysku obu laptopów (już w nowym układzie; Ustawienia →
         Aktualizacje → „Sprawdź teraz” → „Zainstaluj”) — po ponownym uruchomieniu przeglądarka działa, dane zostają,
-        a „Sprawdź teraz” dalej działa (strefa pobierania z nowego miejsca); dopiero po tym robot wraca (punkt 6)
+        a „Sprawdź teraz” dalej działa (strefa pobierania z nowego miejsca); robot wraca najpóźniej z wydaniem 0.10.9
+        (punkt 6)
 Nowe w 0.10.7 (Wygląd; X230 i IdeaPad):
     [ ] najpierw aktualizacja przez sieć do 0.10.7 (pierwsza tą drogą, jeśli robot nie wydał nic wcześniej): z siecią
         Ustawienia → Aktualizacje → „Sprawdź teraz” → okienko „Jest nowa wersja K1” z opisem „K1 wygląda spokojniej…” →
@@ -273,7 +280,8 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
     po „Zainstaluj”; D5 przez sieć aktualizuje się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach;
     D10 przegląd dokumentacji: powtórzenia → odesłania, historia (ADR, CHANGELOG, archiwum) bez zmian.
 [x] 0.10.7 — decyzje D1–D7 podjęte (docs/archiwum/PLAN-0.10.7.txt, punkt 4).
-[!] 0.10.9 Filmy i szybka grafika — decyzje w docs/PLAN-0.10.9.txt (punkt 4); czat zada je na początku swojego kroku.
+[!] 0.10.9 Filmy i szybka grafika — decyzje w docs/PLAN-0.10.9.txt (punkt 4); czat zada je na początku swojego kroku:
+    krok 6 — D5 (szybka grafika domyślnie wyłączona?), D7 (znak na ramce), D9 (jeden przełącznik czy dwa); krok 3 — D4.
     D10 (większe miejsca A/B) — rozstrzygnięta 2026-11-20: A, z zapasem (krok 4b: miejsca 768 MiB); laptopy instalujesz
     od nowa (punkt 4).
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
@@ -329,8 +337,8 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
     [ ] robot w trybie próbnym (.github/workflows/robot.yml: ROBOT_PROBNY "1"; plan 0.10.9, punkt 0; od scalenia kroku 4,
         2026-11-19 — Claude nie ma przycisku „Disable workflow”, więc robot robi tylko PR i testy, nie scala i nie wydaje):
         pierwsze wydanie z krokiem 4 zmienia to, co niesie aktualizacja (obraz przeglądarki w miejscu A/B) — robot wraca
-        ("0"), gdy potwierdzisz aktualizację przez sieć na obu laptopach (punkt 4); termin: wydanie 0.10.9 (krok 3 planu)
-        — najpóźniej wtedy wydanie robi człowiek i robot wraca
+        ("0"), gdy potwierdzisz aktualizację przez sieć na obu laptopach (punkt 4); termin: wydanie 0.10.9 (krok 3 planu,
+        ostatni wykonany) — najpóźniej wtedy wydanie robi człowiek i w tym samym PR-ze robot wraca
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)

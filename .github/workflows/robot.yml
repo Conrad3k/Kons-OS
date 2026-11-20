@@ -5,7 +5,8 @@ name: Robot — poprawki jądra i przeglądarki
 # wpis w CHANGELOG ze znacznikiem robota, PR z etykietą „robot”, pełne testy (k1.yml na tej gałęzi), po zielonych:
 # squash do main i budowa wydania na main (tag, ISO, obraz USB, ogłoszenie, paczka). Czerwone, zły podpis źródła,
 # porównanie konfiguracji z pytaniami (T19) → Issue z etykietą „robot” zamiast wydania.
-# TRYB PEŁNY od wydania 0.10.5 (ROBOT_PROBNY = "0"; do 0.10.5 był "1" — PR i testy, bez scalania i wydania). Ręczne
+# TRYB PEŁNY od wydania 0.10.5 (ROBOT_PROBNY = "0"; do 0.10.5 był "1" — PR i testy, bez scalania i wydania; znowu "1"
+# od kroku 4 planu 0.10.9 do wydania 0.10.9 — env niżej). Ręczne
 # uruchomienie z „proba” nadal robi tylko PR i testy. Zatrzymanie robota w każdej chwili: Actions → „Robot — poprawki jądra i przeglądarki” → ⋯ →
 # Disable workflow (docs/komponenty/robot.md).
 

@@ -26,17 +26,18 @@ grafikę i szybszy start). Krok 1 — próba na sprzęcie i w kontenerze, potem 
 zanim powstanie kod do utrzymania — także dla szybkiej grafiki). Krok 2 — strona K1: sterownik karty w jądrze i usługa
 „dekoder filmów”. Krok 3 — strona strefy: przełącznik filmów w Ustawieniach, przeglądarka korzysta z dekodera filmów.
 Krok 4 — obraz przeglądarki poza rdzeniem, szybszy start. Krok 5 — szybka grafika, strona K1: pośrednik grafiki.
-Krok 6 — szybka grafika, strona strefy: przełącznik, Firefox rysuje kartą; wydanie 0.10.9.
+Krok 6 — szybka grafika, strona strefy: przełącznik, Firefox rysuje kartą.
 KOLEJNOŚĆ WYKONANIA (od kroku 1, ADR 0049): 1, 4, 2, 5, 6, 3 — wydanie 0.10.9 w kroku 3, ostatnim wykonanym (zasada
-„wydanie zawsze ostatnie”). Dlaczego: Firefox użyje karty do filmów tylko przy sprzętowym GL w strefie (S6), więc
-strona strefy dla filmów (krok 3) stoi na szybkiej grafice (kroki 5–6); krok 4 przed krokiem 2, bo z i915 zapas
-miejsca A/B spadł do ok. 0,7 MiB (S31). Do 2026-11-19: 1, 2, 4, 3, 5, 6. Krok 4 robi miejsce (S31): bez niego nie zmieszczą się ani FFmpeg z kroku 3,
-ani sterownik karty strefy z kroku 6 (miejsce A/B 128 MiB jest dziś prawie pełne). Krok 4 nie zależy od karty
-graficznej — można go zrobić wcześniej, nawet przed krokiem 1.
+„wydanie zawsze ostatnie”; porządki, wydanie i lista dla właściciela przeszły z kroku 6 do kroku 3 — porządek planu
+z 2026-11-20). Dlaczego: Firefox użyje karty do filmów tylko przy sprzętowym GL w strefie (S6), więc strona strefy dla
+filmów (krok 3) stoi na szybkiej grafice (kroki 5–6); krok 4 przed krokiem 2, bo z i915 zapas miejsca A/B spadł do
+ok. 0,7 MiB (S31). Do 2026-11-19: 1, 2, 4, 3, 5, 6.
+STAN (2026-11-20): scalone kroki 1, 4, 4b, 2 i 5 (punkt 2). Zostały: KROK 6 (szybka grafika w strefie), potem KROK 3
+(filmy kartą w strefie, porządki i wydanie 0.10.9). Robot do wydania w trybie próbnym (punkt 0, „Robot i wydania”).
 
 ZAKRES ZAMROŻONY (ADR 0035): poniższe 6 kroków i nic więcej. Nowy pomysł — do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; jeśli krok nie
-zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b… (wydanie zawsze w ostatniej części kroku 6).
+zmieści się w jednym czacie, dzieli się na 1a/1b, 2a/2b… (wydanie zawsze w ostatniej części kroku 3 — ostatniego wykonanego).
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
 Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.10.0, 2026-11-16 — krok 1 sprawdza jeszcze raz po 0.10.1),
@@ -46,23 +47,23 @@ ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą), POTWIERDZONE (próbą
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
 Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: krok 1, 4, 2, 5, 6, 3 (wyżej: dlaczego; od 2026-11-19, ADR 0049).
-Cała wersja zaczyna się po wydaniu 0.10.7 (Wygląd, docs/archiwum/PLAN-0.10.7.txt — zmienia ramkę okna strefy i wygląd Ustawień →
-Przeglądarka, na których stoi krok 3), 0.10.5 i 0.10.2 (Testy, docs/archiwum/PLAN-0.10.2.txt — wstawione przez właściciela 2026-11-17) i 0.10.1 (Balon, docs/archiwum/PLAN-0.10.1.txt — zmienia VMM, pamięć stref i Ustawienia →
-Przeglądarka, na których ten plan stoi). Krok 1 to głównie próby i ADR — można go zrobić wcześniej, równolegle
-z 0.10.1, jeśli nie dotyka tych samych plików (próby na osobnej gałęzi, do main tylko ADR i ustalenia).
+Zostały kroki 6 i 3, w tej kolejności — krok 3 zaczyna się dopiero po scaleniu kroku 6 (filmy kartą działają tylko
+w sesji z szybką grafiką, ADR 0049 pkt 5). Oba są duże (L): jeśli krok nie zmieści się w jednym czacie, dzieli się na
+6a/6b albo 3a/3b (podział podpowiedziany przy kroku); wydanie zawsze w ostatniej części kroku 3.
 
-Właściciel — co wpisać w nowym czacie (podmień N):
+Właściciel — co wpisać w nowym czacie (najpierw N = 6, potem N = 3):
     „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.9.txt.”
-Decyzje [!] (punkt 4) czat zada na początku kroku — możesz też od razu dopisać odpowiedź.
-W krokach 1, 2, 4 i 5 czat poprosi Cię o uruchomienie obrazu z pendrive'a na X230 i IdeaPadzie (link do obrazu USB
-z PR-a i krótka lista „co kliknąć, co powinno się stać”) — karty Intela nie da się udać w QEMU ani w CI (w kroku 4:
-aktualizacja z poprzedniej wersji na prawdziwym dysku).
+Decyzje [!] (punkt 4) czat zada na początku kroku — możesz też od razu dopisać odpowiedź: krok 6 — D5, D7, D9;
+krok 3 — D4 (D1–D3 tylko przy D9 „B”).
+W krokach 6 i 3 czat poprosi Cię o uruchomienie obrazu z pendrive'a — szybka grafika i filmy kartą działają tylko na
+IdeaPadzie (ADR 0049; na X230 sprawdzasz tylko, że przełącznik jest nieaktywny z wyjaśnieniem): link do obrazu USB
+z PR-a i krótka lista „co kliknąć, co powinno się stać” — karty Intela nie da się udać w QEMU ani w CI.
 
 Nowy czat — przebieg każdego kroku:
   1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y, ostatni run CI na main).
-  2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2 i 3 — także „Ustalenia
-     z wykonania” kroków wcześniejszych i ADR z kroku 1. Przeczytaj też ustalenia planu 0.10.1 (docs/archiwum/PLAN-0.10.1.txt
-     albo docs/archiwum/) — balon, podział pamięci i nowy układ Ustawień → Przeglądarka mogły wyjść inaczej.
+  2. Przeczytaj swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4), „Ustalenia z wykonania” kroków
+     wcześniejszych (szczególnie 2 i 5 — dekoder filmów i pośrednik grafiki, na których stoją kroki 6 i 3), ADR 0049
+     i 0050 oraz opisy docs/komponenty/filmy.md i posrednik.md.
   3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
   4. „Dziel przed rozbudową”: plik blisko 600 wierszy — najpierw osobny commit z podziałem.
   5. Najpierw test, który pokazuje lukę, potem zmiana, potem ten sam test na zielono.
@@ -73,10 +74,10 @@ Nowy czat — przebieg każdego kroku:
      QEMU zmienianej części (docs/TESTY.md), przy zmianach w budowie scripts/sprawdz-powtarzalnosc.sh; pełny komplet —
      CI na PR-ze (etykieta „testy”), scalasz przy zielonym (AGENTS.md). Czekaj poleceniem, nie rób w tym czasie
      innych wywołań (CLAUDE.md).
-  8. Dokumenty w tym samym PR-ze: docs/komponenty/* (nowe filmy.md i posrednik.md, ekran.md, jadro.md, strefa.md,
-     nadzorca.md, aplikacje.md, instalator.md), SLOWNIK, RYZYKA, ZALEZNOSCI, TESTY.md, ARCHITEKTURA (krok 4: układ
-     dysku), SPEC (dopiski [korekta: ADR …]), skill kons-dev (niezmiennik 7, mapa kodu). VERSION i CHANGELOG zmienia
-     krok 6 (wydanie); kroki 1–5 zapisują „co widzi użytkownik” w opisie PR-a.
+  8. Dokumenty w tym samym PR-ze: docs/komponenty/* (filmy.md, posrednik.md, strefa.md, ekran.md, nadzorca.md,
+     aplikacje.md), SLOWNIK, RYZYKA, ZALEZNOSCI, TESTY.md, ARCHITEKTURA, SPEC (dopiski [korekta: ADR …]), skill kons-dev
+     (mapa kodu). VERSION i CHANGELOG zmienia krok 3 (wydanie, ostatni wykonany); krok 6 zapisuje „co widzi użytkownik”
+     w opisie PR-a, a krok 3 przenosi to do CHANGELOG.
   9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”, chyba że PR to sama dokumentacja), po scaleniu:
      w tabeli „[x] PR #n”, nowe ustalenia dopisz w swoim kroku („Ustalenia z wykonania”). Raport dla właściciela: co
      widać, dowody, co zostało.
@@ -86,12 +87,13 @@ Robot i wydania (od 0.10.5 — ADR 0046 i 0047, docs/komponenty/robot.md i aktua
   - Robot (.github/workflows/robot.yml) raz dziennie sam wydaje wersję PATCH z poprawionym jądrem Linux albo pakietami
     przeglądarki — zbudowaną z tego, co jest wtedy na main. Każdy krok scalony do main trafia więc do laptopów
     z najbliższym wydaniem robota, przed wydaniem 0.10.9, z jego stałym opisem („Ta aktualizacja zawiera istotne
-    poprawki dotyczące bezpieczeństwa i jakości.”). Kroki 1–3 i 5 dodają części K1 bez przełącznika dla użytkownika —
-    mogą tak wyjść. Krok 4 zmienia układ dysku i to, co niesie aktualizacja: wydanie robota z krokiem 4 to pierwsza
-    przeprowadzka obrazu przeglądarki na laptopach właściciela. Dlatego robot jest wyłączony od scalenia kroku 4, aż
-    właściciel potwierdzi przeprowadzkę na obu laptopach (Actions → „Robot — poprawki jądra i przeglądarki” → Disable
-    workflow; wpis „Tymczasowe” w DO_ZROBIENIA z terminem); potem włączony z powrotem. Krok 6 (przełącznik) — przez
-    wydanie 0.10.9.
+    poprawki dotyczące bezpieczeństwa i jakości.”). W 0.10.9: krok 4 (i 4b) zmienia układ dysku i to, co niesie
+    aktualizacja, więc od scalenia kroku 4 (2026-11-19) robot jest w TRYBIE PRÓBNYM (ROBOT_PROBNY "1" w robot.yml — robi
+    PR i testy, nie scala i nie wydaje; wpis „Tymczasowe” w DO_ZROBIENIA). Do wydania 0.10.9 nic z main nie trafia więc
+    do laptopów samo — także przełącznik z kroku 6. Laptopy z K1 0.10.7 na dysku instalujesz od nowa (D10 „A”: stary
+    układ się nie zaktualizuje). Wydanie 0.10.9 robi człowiek (krok 3) i w tym samym PR-ze przywraca robota ("0") —
+    termin wpisu „Tymczasowe”; pierwszą aktualizację przez sieć w nowym układzie sprawdzasz na wydaniu 0.10.9 (dysk
+    zainstalowany z obrazu próbnego) albo na najbliższym wydaniu robota (dysk z 0.10.9).
   - Numer: robot może w tym czasie wydać 0.10.8, a nawet 0.10.9. Temat i plik planu zostają („0.10.9 Filmy i szybka
     grafika”), a wydanie bierze następny wolny numer PATCH w chwili wydania (AGENTS.md: tuż przed scaleniem zaktualizuj
     gałąź z main i sprawdź VERSION; wpis w CHANGELOG nad wpisem robota). Otwarty PR człowieka ze zmianą VERSION
@@ -104,92 +106,68 @@ Robot i wydania (od 0.10.5 — ADR 0046 i 0047, docs/komponenty/robot.md i aktua
     uruchamia z pendrive'a; po wydaniu aktualizuje laptopy przez sieć (Ustawienia → Aktualizacje → „Sprawdź teraz” →
     „Zainstaluj”) — to też punkt listy „co sprawdzić” w DO_ZROBIENIA (punkt 4).
 
-1. W SKRÓCIE (dla właściciela)
-------------------------------
-Po 0.10.9 w Ustawieniach → Przeglądarka przy sesji (Ogólna, Bank, Prywatna — D1) jest przełącznik „Sprzętowe
-dekodowanie filmów”. Włączony: filmy w tej sesji (np. YouTube) rozpakowuje karta graficzna laptopa, nie procesor —
-obraz płynniejszy, wentylator ciszej, bateria wytrzymuje dłużej. Zmiana działa od następnego otwarcia sesji (jak
-„Pamięta / Zapomina”).
+1. W SKRÓCIE (dla właściciela; stan po kroku 5, 2026-11-20)
+-------------------------------------------------------------
+Już w main (przyjdzie z wydaniem 0.10.9): K1 ma sterownik karty Intela z jądra (i915) zamiast obrazu z firmware —
+pulpit na obu laptopach sprawdziłeś (krok 2); obraz przeglądarki leży obok systemu, nie w pamięci (K1 ma ok. 109 MB
+więcej), a miejsce na system jest większe (768 MiB na wersję — laptopy instalujesz od nowa; kroki 4 i 4b); dekoder
+filmów i pośrednik grafiki — dwa małe procesy K1 w klatkach, które jako jedyne dostają kartę dla stref (kroki 2 i 5).
+Ustawienia → Przeglądarka mówią, co umie karta: jakie filmy rozpakowuje i czy obsługuje szybką grafikę.
 
-Co umie Twoja karta (sprawdzi krok 1): HD 4000 w X230 — H.264; HD 520 w IdeaPadzie — H.264, HEVC i częściowo VP9.
-Filmów w innych formatach dalej pilnuje procesor, sam, bez Twojego udziału. YouTube wysyła zwykle VP9 albo AV1, których
-karta X230 nie umie — dlatego na X230 przeglądarka z włączoną opcją poprosi strony o H.264 (D4).
+Zostało — krok 6, potem krok 3 (z wydaniem):
+  - Szybka grafika (krok 6): przełącznik przy sesji. Włączony: przeglądarka w tej sesji rysuje strony kartą —
+    płynniejsze przewijanie i duże okno, działa WebGL (mapy 3D, gry w przeglądarce), procesor mniej zajęty. W strefie
+    jest prawdziwy sterownik karty, ale każda jego prośba przechodzi przez pośrednika grafiki, który ją sprawdza. Tylko
+    IdeaPad: karta X230 nie oddziela pracy stref od reszty (ADR 0049) — tam przełącznik jest nieaktywny z wyjaśnieniem.
+    Domyślnie wyłączony w Banku i Prywatnej (Twoja decyzja z 2026-11-19), w Ogólnej — D5 (zalecane: też wyłączony);
+    widoczny na ramce (D7).
+  - Filmy kartą (krok 3): film w sesji z szybką grafiką rozpakowuje karta (dekoder filmów K1), nie procesor — płynniej,
+    ciszej, dłużej na baterii. Firefox użyje karty do filmów tylko razem z szybką grafiką, więc to też tylko IdeaPad.
+    Karta umie z popularnych formatów tylko H.264, a YouTube wysyła zwykle VP9 albo AV1 — dlatego zalecam, by
+    przeglądarka sama prosiła strony o H.264 (D4). Krok 3 najpierw mierzy zysk na IdeaPadzie: jeśli procesor nie
+    odpocznie wyraźnie (co najmniej o połowę), filmy kartą wypadają z wersji, a szybka grafika zostaje (ADR 0049 pkt 6).
+    Jeden przełącznik „Szybka grafika i filmy” czy dwa — D9 (pyta krok 6).
+  - Wydanie 0.10.9 (krok 3): porządki, lista „co sprawdzić” na obu laptopach, robot wraca do pełnego trybu.
 
-Bezpieczeństwo: strefa nadal nie dotyka karty. Wysyła tylko skompresowany film i jego opis; K1 sprawdza każde pole
-i dopiero wtedy przekazuje go karcie przez osobny, mały proces w klatce — jeden na sesję, więc Bank nie dzieli go
-z Ogólną. Złośliwa strona może co najwyżej zepsuć ten jeden proces: film przechodzi wtedy na procesor, przeglądarka
-działa dalej. Słabsza izolacja niż bez przełącznika — dlatego domyślnie wyłączony (D2) i widoczny na ramce okna (D3).
+Bezpieczeństwo: strefa dalej nie steruje kartą ani obrazem. Złośliwa strona może co najwyżej zepsuć pośrednika albo
+dekoder swojej sesji: sesja traci szybką grafikę albo film idzie na procesor, K1 i inne sesje działają. Izolacja jest
+słabsza niż bez przełącznika (sterownik karty w jądrze K1 jest w zasięgu strefy — RYZYKA R98, R100), dlatego
+przełącznik jest domyślnie wyłączony i widoczny na ramce. Minimum zabezpieczeń jest w tej wersji; grubsze „opakowanie”
+(węższe listy, limity czasu pracy karty, audyt) — później, z terminem w RYZYKA (T15).
 
-Przy okazji: K1 dostaje własny sterownik karty Intela z jądra (i915) zamiast prostego „obrazu z firmware” (simpledrm).
-To osobna, widoczna zmiana: obraz może być płynniejszy, a karta lepiej oszczędza energię (punkt „Laptop” w
-DO_ZROBIENIA — dotąd „tylko jeśli simpledrm nie wystarczy”). Dlatego krok 1 i krok 2 proszą Cię o sprawdzenie pulpitu
-na obu laptopach.
+Pamięć: karty laptopów nie mają osobnej pamięci — biorą ją ze zwykłej RAM; pamięć karty liczy się do pamięci sesji
+(balon i podział z 0.10.1; T8, T14). Gdy pamięci brak, film idzie na procesor, a strona rysuje procesorem.
+Dźwięku K1 jeszcze nie ma — filmy w 0.10.9 będą płynne, ale bez dźwięku. Z ISO (maszyna wirtualna) przeglądarki od
+0.10.9 nie ma (K1 nie ma napędu CD — „Później”).
 
-Pamięć karty: karty Twoich laptopów nie mają osobnej pamięci („VRAM”) — biorą ją ze zwykłej pamięci RAM. Dlatego
-nie trzeba drugiego balona: pamięć, której karta używa na filmy sesji, liczy się do pamięci tej sesji w balonie
-i podziale z 0.10.1 (T8). Gdy pamięci brak, film idzie na procesor — nic się nie wysypuje.
-
-Droga gotowej klatki (T9, uwaga właściciela z 2026-11-16: „oddawanie gotowych klatek strefie zjada zysk”): są dwa
-poziomy. Poziom 1 — klatka wraca do strefy (prostszy, pewny): karta sama kopiuje klatkę do zwykłej pamięci, strefa ją
-pokazuje; kopia kosztuje mało, ale przeglądarka w strefie dalej składa obraz filmu procesorem. Poziom 2 — klatka nie
-wraca do strefy: dekoder filmów oddaje ją wprost ekranowi K1, który rysuje ją w oknie strefy (w ramce, w miejscu, które
-wskaże strefa); strefa dostaje tylko „klatka nr n gotowa”. Poziom 2 daje pełny zysk, ale zależy od rzeczy, których dziś
-nie wiemy (czy Firefox bez karty w strefie odda film osobną warstwą). Krok 1 MIERZY na Twoich laptopach i wybiera:
-poziom 2, jeśli się da; poziom 1, jeśli daje wyraźny zysk; inaczej wersja się zatrzymuje.
-
-Uwaga: K1 nie ma jeszcze dźwięku (punkt „Laptop” w DO_ZROBIENIA) — filmy w 0.10.9 będą płynne, ale bez dźwięku.
-
-Szybka grafika (dodana 2026-11-17): drugi przełącznik przy sesji — „Szybka grafika”. Włączony: przeglądarka w tej
-sesji rysuje strony kartą graficzną, nie procesorem — płynniejsze przewijanie i duże okno, działa WebGL (mapy 3D, gry
-w przeglądarce), procesor mniej zajęty. Jak to działa: w strefie jest prawdziwy sterownik karty, więc przeglądarka
-„myśli”, że ma kartę — i naprawdę jej używa — ale nie dotyka jej wprost. Każda jego prośba („przydziel bufor”, „wykonaj
-tę paczkę pracy”) idzie przez mały, zamknięty w klatce proces K1 (pośrednik grafiki), który ją sprawdza i dopiero
-przekazuje karcie. Karta sama oddziela pracę każdej strefy od reszty. To most „native context” — wybrany spośród trzech
-wysokości mostu (T10). Słabsza izolacja niż bez przełącznika (sterownik karty w jądrze K1 jest w zasięgu strefy) —
-dlatego domyślnie wyłączony (D5) i widoczny na ramce (D7). Czy Twoje laptopy to obsłużą, sprawdzi krok 1 (S36, S38):
-IdeaPad (HD 520) — prawdopodobnie tak, X230 (HD 4000, starsza generacja) — raczej nie. Co wtedy — D8.
-
-Bezpieczeństwo szybkiej grafiki teraz i później (Twoja uwaga z 2026-11-17: „będziemy później opakowywać
-zabezpieczeniami”): tak — ale nie wszystko da się odłożyć. W 0.10.9 jest minimum, bez którego K1 przestałby być sobą:
-pośrednik w klatce, jeden na sesję, sprawdzanie każdej prośby, test i fuzzing, przełącznik domyślnie wyłączony, znak
-na ramce; awaria albo zawieszenie karty kończy szybką grafikę tej sesji, nie K1. Grubsze „opakowanie” (węższe listy,
-limity czasu pracy karty, audyt) — potem, z terminem w RYZYKA (T15).
-
-Szybszy start przeglądarki (dodany 2026-11-17): obraz przeglądarki przestaje być częścią rdzenia K1 i dostaje format
-szybszy do czytania. Przeglądarka otwiera się szybciej (ile — zmierzy krok 4), K1 zyskuje ok. 100 MB wolnej pamięci
-na stałe (dziś cały obraz przeglądarki siedzi w pamięci od startu komputera — ważne na IdeaPadzie z 4 GB), a plik ISO
-i obraz USB robią się większe (Twoja zgoda z 2026-11-17). Przy okazji krok 4 robi miejsce na FFmpeg i sterownik karty
-w strefie — bez tego nie zmieściłyby się w miejscu A/B (S31).
-
-Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3 — filmy w przeglądarce potrzebują szybkiej grafiki):
-  1. Próba: obraz testowy ze sterownikiem karty z jądra (sprawdzasz pulpit i listę formatów karty na obu laptopach),
-     próba w kontenerze, czy Firefox w strefie w ogóle skorzysta z dekodera K1, i sprawdzenie, czy karty Twoich
-     laptopów obsłużą szybką grafikę; potem ADR.
-  2. K1: sterownik karty w jądrze, usługa „dekoder filmów” w klatce; Ustawienia → Przeglądarka pokazują, co umie karta.
-  3. Strefa: przełącznik filmów przy sesji, przeglądarka oddaje filmy dekoderowi K1.
-  4. Obraz przeglądarki poza rdzeniem, szybszy start (sprawdzasz aktualizację na dysku — dane zostają).
-  5. Szybka grafika, K1: pośrednik grafiki w klatce; Ustawienia pokazują, czy karta obsługuje szybką grafikę.
-  6. Szybka grafika, strefa: przełącznik „Szybka grafika” przy sesji, Firefox rysuje kartą; wydanie 0.10.9.
+Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3):
+  1. [x] Próba ze źródeł i obraz próbny z i915; ADR 0049.
+  4. [x] Obraz przeglądarki poza rdzeniem; 4b — większe miejsca A/B (ADR 0050).
+  2. [x] K1: sterownik karty w jądrze, dekoder filmów; Ustawienia pokazują, co karta rozpakowuje.
+  5. [x] Szybka grafika, K1: pośrednik grafiki; Ustawienia pokazują, czy karta obsługuje szybką grafikę.
+  6. [ ] Szybka grafika, strefa: przełącznik przy sesji, Firefox rysuje kartą.
+  3. [ ] Filmy kartą w strefie; porządki i wydanie 0.10.9.
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                   Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
 [x]  1  Próba i pomiar: i915, VA-API, Firefox, most; ADR   S1–S9, S26–S30,  0.10.0      T1–T5, T9–T15    M        0049
-        PR #181 (pomiary ze sprzętu przeniesione do kroków 2, 3, 5 — ADR 0049)
                                                             S36–S39
+        PR #181 (pomiary ze sprzętu przeniesione do kroków 2, 3, 5 — ADR 0049)
 [x]  2  K1: i915 w jądrze, usługa „dekoder filmów”          S10–S17, S26     1, 0.10.1   T1–T3, T6–T8     L        0049
         PR #186 (i915 i dekoder filmów; X230 i IdeaPad: pulpit i linia w Ustawieniach potwierdzone 2026-11-20)
-[ ]  3  Strefa: przełącznik filmów, Firefox z dekoderem     S18–S25, S29     2, 4        D1–D4, T4, T5, T9 L        z kr. 1
+[ ]  3  Strefa: filmy kartą; porządki i WYDANIE 0.10.9    S18–S25, S29     2, 4, 6     D4 (D1–D3), T5   L        0049
+        (ostatni wykonany — po kroku 6)
 [x]  4  Obraz przeglądarki poza rdzeniem, szybszy start     S31–S35          0.10.7      T16              M        0050
         PR #183 (obraz w miejscu A/B obok k1.efi, format bez zmian — szybszy start i miejsce: D10)
 [x]  4b Większe miejsca A/B (768 MiB), obraz w zstd (D10 „A”) S31, S33        4           D10              M        0050
         PR #185 (miejsca 768 MiB, K1-EFI 1600 MiB, na dysku 3 GiB; zapas 620 MiB)
-[x]  5  Szybka grafika, K1: pośrednik grafiki               S37–S41, S44     1, 2        T10–T15          L        z kr. 1
+[x]  5  Szybka grafika, K1: pośrednik grafiki               S37–S41, S44     1, 2        T10–T15          L        0049
         PR #188 (pośrednik grafiki; sprzęt — linia w Ustawieniach i zawieszenie karty — właściciel przy wersji końcowej)
-[ ]  6  Szybka grafika, strefa: przełącznik; wydanie        S40–S45          4, 5        D5–D8, T12–T15   L        z kr. 1
-(Numery ADR — następne wolne w chwili kroku: 0.10.5 bierze 0046 i 0047, 0.10.7 — 0048, więc krok 1 zwykle 0049,
-krok 4 — następny wolny po nim; jeśli krok 4 idzie przed krokiem 1, bierze numer pierwszy.)
+[ ]  6  Szybka grafika, strefa: przełącznik (NASTĘPNY)     S40–S45, S47     4, 5        D5, D7, D9       L        0049
+(ADR: 0049 z kroku 1, 0050 z kroku 4. Kroki 6 i 3 stoją na ADR 0049; nowy ADR — tylko jeśli zmieniają architekturę
+poza nim, z następnym wolnym numerem.)
 
 Dlaczego tyle: krok 1 rozstrzyga rzeczy, których nie da się sprawdzić z kodu (i915 na sprzęcie właściciela,
 sterownik VA-API zbudowany statycznie z musl, Firefox w piaskownicy z obcym sterownikiem VA, most native context na
@@ -211,37 +189,37 @@ KROK 1 — Próba i pomiar: sterownik karty, VA-API w K1, Firefox w strefie; ADR
   uruchom z pendrive'a na X230 i IdeaPadzie → pulpit wygląda jak zwykle (bez czarnego ekranu, migania), mysz i okna
   płynne → w logu (Ustawienia albo port szeregowy — wg tego, co czat przygotuje) lista formatów karty.
   Zadania:
-  [ ] (a) i915 (S1–S3, T1): opcje w jadro/k1.config (DRM_I915 i to, czego wymaga — z Kconfig w build/zrodla), ekran
+  [x] (a) i915 (S1–S3, T1): opcje w jadro/k1.config (DRM_I915 i to, czego wymaga — z Kconfig w build/zrodla), ekran
       na i915 (KMS, dumb buffers — sprawdzić, że src/ekran działa bez zmian albo co trzeba); czy simpledrm może zostać
       (S2); węzeł render (/dev/dri/renderD128) — kto go tworzy, jakie ma ioctl (S16). Obraz próbny dla właściciela.
-  [ ] (b) VA-API w K1 (S4, S5, T2): libva + intel-vaapi-driver (i965) + libdrm zbudowane statycznie z naszym musl,
+  [x] (b) VA-API w K1 (S4, S5, T2): libva + intel-vaapi-driver (i965) + libdrm zbudowane statycznie z naszym musl,
       bez dlopen (sterownik wołany wprost) — mały program próbny (sonda) na obrazie próbnym: otwiera węzeł render,
       wypisuje profile i największe rozmiary (vaQueryConfigProfiles, vaGetConfigAttributes) i rozpakowuje jedną
       klatkę H.264 z wbudowanego w sondę krótkiego filmu (suma klatki w logu); melduje pamięć swojej cgroup przed
       i po (S26 — czy bufory karty liczą się do procesu; T8). Rozmiar programu, czas budowy,
       ostrzeżenia z naszymi flagami (SPEC §11).
-  [ ] (c) Firefox w strefie (S6–S8, T4, T5): w kontenerze, Firefox z obrazu strefy pod Xvfb (skill kons-dev §7 —
+  [x] (c) Firefox w strefie (S6–S8, T4, T5; zastąpione czytaniem źródeł — wynik niżej): w kontenerze, Firefox z obrazu strefy pod Xvfb (skill kons-dev §7 —
       chroot w kopię build/strefa-przegladarka) z próbnym sterownikiem VA (zwraca szare klatki) i prefami VA-API
       włączonymi: czy proces dekodowania (RDD) ładuje sterownik, czy działa bez EGL i dmabuf (klatki kopiowane do
       pamięci), czy jego piaskownica pozwala na vsock albo tylko na węzeł /dev/dri (T4), czy potrzebny jest FFmpeg
       w strefie i jaki (T5: pakiet Debiana libavcodec — rozmiar z zależnościami — albo własna, mała budowa).
       about:support → „Media” pokazuje dekodowanie sprzętowe? Zrzut i log w opisie PR-a.
-  [ ] (d) Pomiar na sprzęcie (T9, S27, S28): sonda z (b) na obu laptopach — ten sam film 1080p (H.264; na IdeaPadzie
+  [x] (d) PRZENIESIONE do kroku 3 (bramka zysku, ADR 0049 pkt 6). Pomiar na sprzęcie (T9, S27, S28): sonda z (b) na obu laptopach — ten sam film 1080p (H.264; na IdeaPadzie
       też HEVC/VP9) rozpakowany (1) procesorem (Wuffs nie ma filmów — sonda z FFmpeg programowym albo libavcodec
       tylko na obrazie próbnym), (2) kartą z kopią klatki do zwykłej pamięci (karta kopiuje do bufora liniowego,
       procesor czyta — nie wprost z bufora karty), (3) kartą bez kopii; dla każdego: czas procesora na sekundę filmu,
       klatki/s, pobór mocy (Ustawienia → Bateria / log baterii). Do tego w kontenerze: ile procesora kosztuje Firefox
       w strefie samo pokazanie filmu 1080p (składanie obrazu procesorem — S29).
-  [ ] (e) Poziom 2 (T9, S29, S30): czy Firefox ESR 153 z rysowaniem procesorem potrafi oddać film osobną podpowierzchnią
+  [x] (e) Poziom 2 (T9, S29, S30; ze źródeł — poziom 2 → „Później”): czy Firefox ESR 153 z rysowaniem procesorem potrafi oddać film osobną podpowierzchnią
       Waylanda z buforem dmabuf (natywny kompozytor WebRender, linux-dmabuf) — próba w kontenerze z kompozytorem strefy
       i próbnym sterownikiem VA; jeśli tak — jak ekran K1 narysuje klatkę NV12 (S30).
-  [ ] (f) Szybka grafika — czy most się da (S36–S39, T10–T15; dodane 2026-11-17): ze źródeł Mesy, virglrenderera
+  [x] (f) Szybka grafika — czy most się da (S36–S39, T10–T15; dodane 2026-11-17): ze źródeł Mesy, virglrenderera
       i i915 (build/zrodla) — czy jest strona gościa native context dla kart Intela i dla których generacji (S36), ile
       rodzajów próśb ma protokół i czy da się je sprawdzić tabelą (S37), czy obie karty mają pełne oddzielenie
       kontekstów (S38), co robi i915, gdy kontekst zawiesi kartę (S39). Na sprzęcie (sonda z b, obraz próbny): dwa
       konteksty karty — drugi próbuje czytać bufor pierwszego → odmowa; paczka pracy bez końca → reset tylko tego
       kontekstu, pulpit działa (właściciel patrzy, log). Wynik: na którym laptopie szybka grafika jest możliwa (D8).
-  [ ] ADR: właściciel karty (niezmiennik 7 → „obrazem steruje tylko ekran; węzeł render karty dostaje tylko dekoder
+  [x] ADR 0049: właściciel karty (niezmiennik 7 → „obrazem steruje tylko ekran; węzeł render karty dostaje tylko dekoder
       filmów i pośrednik grafiki, każdy jeden na strefę”), wybory T1–T5 i T9–T15 z uzasadnieniem, odrzucone warianty
       (most na poleceniach rysowania — virgl, Venus; przekazanie karty — VFIO; T10); minimum bezpieczeństwa szybkiej
       grafiki i lista „opakowania” na później (T15); dopisek w ADR 0020 p. 2 (szybka grafika = most native context
@@ -381,39 +359,62 @@ KROK 2 — K1: sterownik karty w jądrze, usługa „dekoder filmów”         
   - Sprawdzenia na sprzęcie (właściciel): pulpit z i915 na X230 (IdeaPad — potwierdzony w kroku 1), linia w Ustawieniach
     na obu laptopach (oczekiwane: H.264), pobór mocy.
 
-KROK 3 — Strefa: przełącznik filmów w Ustawieniach, Firefox z dekoderem filmów   L · D1–D4, T4, T5 · ADR z kr. 1
-  (Do 2026-11-17 ten krok kończył wersję — wydanie, porządki i lista dla właściciela przeszły do kroku 6. Zaczyna się
-  po kroku 4: FFmpeg w obrazie strefy potrzebuje miejsca, które robi krok 4 — S31.)
-  Cel: film w sesji z włączonym przełącznikiem rozpakowuje karta, a strefa nadal nie widzi karty.
-  Na początku: D1–D4 (D3 — szkice do wyboru, oba motywy).
-  Co widzi użytkownik: Ustawienia → Przeglądarka — przy sesji przełącznik „Sprzętowe dekodowanie filmów” (wg D1, D2;
-  nieaktywny z krótkim wyjaśnieniem, gdy karta nie umie); po ponownym otwarciu sesji filmy płynniejsze, procesor
-  mniej zajęty (Zasoby), znak na ramce okna wg D3; na X230 strony dostają prośbę o H.264 (D4).
+KROK 3 — Strefa: filmy kartą; porządki i wydanie 0.10.9 (OSTATNI)      L · D4 (D1–D3 przy D9 „B”), T5 · ADR 0049
+  (Wykonywany ostatni, po kroku 6: Firefox użyje karty do filmów tylko przy sprzętowym GL, czyli w sesji z szybką
+  grafiką — ADR 0049 pkt 5. Do 2026-11-20 porządki, wydanie i lista dla właściciela były w kroku 6.)
+  Cel: film w sesji z szybką grafiką rozpakowuje dekoder filmów K1 (karta), a strefa nadal nie steruje kartą; potem
+  porządki i wydanie 0.10.9.
+  Na początku: D4; D1–D3 tylko, jeśli krok 6 przyjął D9 „B” (dwa przełączniki; D3 — szkice do wyboru, oba motywy).
+  Najpierw BRAMKA ZYSKU (ADR 0049 pkt 6; dawny krok 1 d): obraz próbny z PR-a na IdeaPadzie — ten sam film 1080p H.264
+  w sesji z szybką grafiką, z filmami kartą i bez nich; procesor sesji (Zasoby) co najmniej o połowę mniejszy → filmy
+  zostają; inaczej przełącznik filmów wypada z wersji (strona strefy dla filmów nie wchodzi do main), a krok 3 to tylko
+  porządki i wydanie. Przy okazji S26 na sprzęcie: Zasoby — wiersz „Dekoder filmów” w czasie filmu.
+  Co widzi użytkownik (IdeaPad): przy D9 „A” przełącznik z kroku 6 obejmuje też filmy (nazwa z D9), przy „B” drugi
+  przełącznik „Filmy kartą”, aktywny tylko przy włączonej szybkiej grafice; po ponownym otwarciu sesji filmy H.264
+  rozpakowuje karta (procesor mniej zajęty — Zasoby), znak na ramce wg D7 (przy „B” także D3); strony dostają prośbę
+  o H.264 (D4). X230: przełącznik nieaktywny z wyjaśnieniem (bez szybkiej grafiki — ADR 0049 pkt 5).
   Zadania:
-  [ ] Ustawienie przy sesji (D1, D2, S18): w skarbcu obok nazw i „Pamięta / Zapomina” (strefy_ust.c, format sesje.c —
-      nowe pole, sprawdzane pole po polu, test na hoście, fuzzing); Ustawienia → Przeglądarka (przybornik), zmiana od
-      następnego otwarcia sesji; nadzorca uruchamia dekoder filmów dla strefy tylko przy włączonym i działającej karcie.
-  [ ] VMM (T4, T9, S19, S20): poziom drogi klatki i droga wybrane w kroku 1 — port vsock albo kontekst virtio-gpu (gpu.c ma dziś tylko 2D —
-      najpierw podział pliku, jeśli rośnie); VMM przekazuje prośby do dekodera filmów i kopiuje klatki do pamięci
-      gościa (sprawdza adresy jak w virtq.c); awaria dekodera filmów = błąd dla gościa, strefa żyje.
-  [ ] Gość (T4, T5, S21, S22): nasz sterownik VA w obrazie strefy (src/strefa/gosc/ — w C, budowany dla glibc strefy,
-      S21), FFmpeg w strefie wg T5 (scripts/odswiez-strefe.py, strefy/przegladarka.txt, suma każdego pliku); prefy
-      w k1.js tylko dla sesji z włączonym przełącznikiem (dziś: media.hardware-video-decoding.enabled i
-      media.ffmpeg.vaapi.enabled wyłączone na stałe) — gość dostaje ustawienie od VMM-a jak tryb sesji (S22).
-  [ ] X230 i formaty (D4, S23): przy włączonym przełączniku i karcie bez VP9/AV1 przeglądarka nie zgłasza stronom VP9
-      i AV1 (prefy media.* — sprawdzić nazwy w Firefoksie ESR 153), więc YouTube wysyła H.264.
-  [ ] Ramka (D3): znak przy sesji z dekodowaniem filmów — ekran (src/ekran/strefy.c), z tabeli, nie z kodu strefy.
-  [ ] Złośliwy gość (S24): nowy tryb złośliwy gościa (gosc/zlosliwy.c, tryby 1–4 → kolejny) — prośby z błędnymi polami,
-      zalew prośbami, adresy klatek poza pamięcią gościa → odrzucone, K1 i inne strefy żyją.
-  Testy i dowód: test-strefa.sh — strefa próbna z dekoderem testowym (S17: program testowy albo tryb testowy usługi
-  podaje szare klatki bez karty) przechodzi całą drogę gość → VMM → dekoder filmów → klatka w gościu; złośliwy gość;
-  przełącznik wyłączony = żadnego dekodera filmów (log nadzorcy). test-m4.sh — zrzut Ustawień → Przeglądarka
-  (oba motywy). Przeglądarki CI nie testuje (decyzja właściciela 2026-11-17) — film w Firefoksie: stanowisko, jeśli
-  się da, i właściciel. Na sprzęcie — właściciel: lista niżej.
-  Lista dla właściciela (X230 i IdeaPad): Ustawienia → Przeglądarka → Ogólna → włącz → otwórz Przeglądarkę → YouTube,
-  film 1080p → płynny? Zasoby: procesor sesji mniejszy niż z wyłączonym przełącznikiem (porównaj ten sam film)?
-  znak na ramce? Bank z wyłączonym — bez znaku, film działa (procesorem).
-  Gotowe, gdy: CI zielone, właściciel potwierdził na sprzęcie (obraz USB z PR-a) albo dostał listę na wydanie (krok 6).
+  [ ] Ustawienie przy sesji (S18): przy D9 „A” bez nowego pola (filmy idą za przełącznikiem z kroku 6), przy „B” — drugie
+      pole w formacie sesje.c (sprawdzane pole po polu, test na hoście, fuzzing); nadzorca uruchamia dekoder filmów
+      strefy (filmy_dla_strefy) tylko przy włączonym przełączniku, działającej szybkiej grafice i karcie, która
+      rozpakowuje.
+  [ ] VMM (T4 B, S19, S20; ADR 0049 pkt 4): prośby do dekodera filmów jadą tym samym mostem virtio-gpu co szybka grafika
+      z kroku 6 (jak je rozróżnić — wg tego, co zbudował krok 6); VMM przekazuje prośby do dekodera filmów i kopiuje
+      klatki NV12 do pamięci gościa (poziom 1, ADR 0049 pkt 6; adresy sprawdzane jak w virtq.c); awaria dekodera filmów
+      = błąd dla gościa, film na procesorze, strefa żyje.
+  [ ] Gość (T5, S21, S22): nasz sterownik VA w obrazie strefy (src/strefa/gosc/ — w C, budowany dla glibc strefy, S21)
+      mówi przez /dev/dri strefy; FFmpeg w strefie — własna budowa tylko z H.264 i VA-API (T5 B, ADR 0049 pkt 8; tabela
+      strefy, sumy, powtarzalność); prefy media.hardware-video-decoding.enabled i media.ffmpeg.vaapi.enabled tylko
+      w sesji z filmami kartą (dziś wyłączone na stałe w k1.js) — ustawienie od VMM-a jak przełącznik z kroku 6.
+  [ ] Formaty (D4, S23): przy filmach kartą przeglądarka nie zgłasza stronom VP9 i AV1 (obie karty umieją z popularnych
+      formatów tylko H.264 — S9; nazwy prefów sprawdzić w StaticPrefList.yaml ESR 153), więc YouTube wysyła H.264.
+  [ ] Ramka (D3 — tylko przy D9 „B”): znak filmów — ekran (src/ekran/strefy.c), z tabeli, obok znaku z D7.
+  [ ] Złośliwy gość (S24): nowy tryb w gosc/zlosliwy.c — prośby dekodera z błędnymi polami, zalew prośbami, adresy
+      klatek poza pamięcią gościa → odrzucone, K1 i inne strefy żyją.
+  [ ] Porządki tej wersji (PATCH — małe): nic tymczasowego bez terminu (DO_ZROBIENIA punkt 6 — termin robota mija w tym
+      kroku); „opakowanie” z T15 z terminem w RYZYKA (R100); RYZYKA, ZALEZNOSCI, SLOWNIK, TESTY, skill zgodne z kodem.
+  [ ] Wydanie 0.10.9 (albo następny wolny PATCH, jeśli robot go zajął — punkt 0): VERSION, CHANGELOG („co widzisz”,
+      potem technika — kroki 1–6; wiersz „Opis w K1:” prostym językiem), DO_ZROBIENIA (stan, mapa, punkt 4 — lista
+      niżej, z aktualizacją przez sieć w nowym układzie), README (stan 0.10.9; ISO ok. 27 MB i bez przeglądarki — K1 nie
+      ma napędu CD), robot.yml ROBOT_PROBNY "0" (wpis „Tymczasowe” zamknięty, robot.md), ten plan → docs/archiwum/.
+      Przed scaleniem: gałąź z main, VERSION na main (robot). Po scaleniu: CI na main, tag, wydanie z ogłoszeniem
+      i paczką (get_release_by_tag), raport z linkami.
+  Testy i dowód: test-strefa.sh — strefa próbna z dekoderem testowym (S17: TEST_FILMY, szare klatki bez karty)
+  przechodzi drogę gość → VMM → dekoder filmów → klatka w gościu; złośliwy gość; przełącznik wyłączony = żadnego dekodera
+  filmów (log nadzorcy). Przy D9 „B”: test-m4.sh i test-wzorce.sh — Ustawienia → Przeglądarka (oba motywy, wzorce po
+  „OK” właściciela). Przeglądarki CI nie testuje (decyzja właściciela 2026-11-17) — film w Firefoksie: stanowisko, jeśli
+  się da, i właściciel.
+  Lista dla właściciela przy wydaniu (do DO_ZROBIENIA, punkt 4; z kroku 6 — to, czego nie sprawdził na obrazie próbnym):
+    IdeaPad — Ustawienia → Przeglądarka: linie „rozpakowuje filmy: H.264” i „obsługuje szybką grafikę”; Ogólna →
+    przełącznik włącz → otwórz Przeglądarkę → długa strona: przewijanie płynne? strona z WebGL (mapa 3D) działa? YouTube
+    1080p: płynny, procesor sesji w Zasobach mniejszy niż z wyłączonym przełącznikiem? znak na ramce? Bank z wyłączonym —
+    bez znaku, strony i filmy działają procesorem. Strona WebGL, która zawiesza kartę → pulpit działa, tylko ta sesja
+    traci szybką grafikę (S38, S39).
+    X230 — Ustawienia → Przeglądarka: „karta nie oddziela pracy stref”, przełącznik nieaktywny z wyjaśnieniem;
+    przeglądarka działa jak w 0.10.7.
+    Oba — aktualizacja przez sieć w nowym układzie (DO_ZROBIENIA, punkt 4).
+  Gotowe, gdy: CI zielone, bramka zysku rozstrzygnięta, wydanie 0.10.9 istnieje (linki ISO i USB w raporcie), lista
+  w DO_ZROBIENIA.
   Ustalenia z wykonania: (pusto — wypełnia krok 3)
 
 KROK 4 — Obraz przeglądarki poza rdzeniem, szybszy start                          M · T16 · ADR (nowy)
@@ -493,16 +494,16 @@ KROK 5 — Szybka grafika, strona K1: pośrednik grafiki                        
   Co widzi użytkownik: Ustawienia → Przeglądarka — pod linią o filmach z kroku 2 druga: „Karta graficzna tego komputera
   obsługuje szybką grafikę” albo „Ten komputer nie obsługuje szybkiej grafiki”. Przełącznika jeszcze nie ma.
   Zadania:
-  [ ] Usługa src/posrednik/ (T11): wiersz w K1_SYSTEM (przepis „Nowa usługa systemowa”), NA_PROSBE, jedna na strefę
+  [x] Usługa src/posrednik/ (T11): wiersz w K1_SYSTEM (przepis „Nowa usługa systemowa”), NA_PROSBE, jedna na strefę
       (start z VMM-em strefy, koniec z nim), klatka KLATKA_POSREDNIK z listą ioctl węzła render (S37) i limitem pamięci
       (T14); węzeł render od nadzorcy (jak dla dekodera filmów — S13), nowy kanał KANAL_* VMM ↔ pośrednik grafiki.
-  [ ] Protokół (T11, S37): src/wspolne/k1_posrednik.h (stały układ, _Static_assert), tabela dozwolonych próśb z ich
+  [x] Protokół (T11, S37): src/wspolne/k1_posrednik.h (stały układ, _Static_assert), tabela dozwolonych próśb z ich
       zakresami — sprawdzanie pole po polu w src/wspolne/k1_kom_posrednik.c; test_posrednik (ASan/UBSan), fuzz_posrednik.
-  [ ] Bufory karty dla VMM-a (T12, S40): pośrednik oddaje VMM-owi deskryptor bufora, VMM mapuje go do pamięci gościa
+  [x] Bufory karty dla VMM-a (T12, S40; samo mapowanie w VMM-ie przeszło do kroku 6): pośrednik oddaje VMM-owi deskryptor bufora, VMM mapuje go do pamięci gościa
       (miejsce pamięci KVM) — nigdy wykonywalnie w K1 (niezmiennik 1); nowe wywołania w KLATKA_STREFA z uzasadnieniem.
-  [ ] Zawieszenie i awaria (T15, S39): paczka pracy bez końca albo awaria pośrednika → koniec szybkiej grafiki tej
+  [x] Zawieszenie i awaria (T15, S39): paczka pracy bez końca albo awaria pośrednika → koniec szybkiej grafiki tej
       strefy z powodem w logu; ekran K1 i inne strefy działają.
-  [ ] Testy bez karty Intela (S44): w systemie — klatka (t_klatki), próba w klatce (t_proby), złośliwe prośby → odrzucone,
+  [x] Testy bez karty Intela (S44): w systemie — klatka (t_klatki), próba w klatce (t_proby), złośliwe prośby → odrzucone,
       usługa żyje; „brak karty” w QEMU → Ustawienia mówią „nie obsługuje”. Na sprzęcie — właściciel (laptop z D8):
       obraz USB z PR-a, linia w Ustawieniach; program testowy w roli strefy zawiesza kartę → pulpit działa.
   Dokumenty: nowy opis usługi posrednik w docs/komponenty/, nadzorca.md, jadro.md, SLOWNIK („pośrednik grafiki”, „most native
@@ -536,48 +537,54 @@ KROK 5 — Szybka grafika, strona K1: pośrednik grafiki                        
     stref”) i zawieszenie karty (S38, S39) właściciel sprawdzi na wersji końcowej — w kroku 6 stroną WebGL, która
     zawiesza kartę, w sesji z szybką grafiką (pulpit działa, sesja kończy szybką grafikę). Lista dla właściciela w kroku 6.
 
-KROK 6 — Szybka grafika, strona strefy: przełącznik, Firefox rysuje kartą; wydanie 0.10.9   L · D5–D8, T12–T15
-  Cel: sesja z włączoną szybką grafiką rysuje kartą, a strefa widzi tylko wirtualną kartę z mostem; wydanie wersji.
-  Na początku: D5–D8 (D7 — szkice do wyboru, oba motywy; musi pasować do ramki z 0.10.7 — ADR 0048).
-  Co widzi użytkownik: Ustawienia → Przeglądarka — przy sesji przełącznik „Szybka grafika” (wg D5, D6; nieaktywny
-  z krótkim wyjaśnieniem, gdy karta nie obsługuje); po ponownym otwarciu sesji przewijanie i duże okno płynniejsze, WebGL
-  działa, procesor mniej zajęty (Zasoby), znak na ramce wg D7.
+KROK 6 — Szybka grafika, strona strefy: przełącznik, Firefox rysuje kartą (NASTĘPNY)       L · D5, D7, D9 · ADR 0049
+  (Wykonywany przed krokiem 3. Do 2026-11-20 ten krok kończył wersję — porządki, wydanie i lista dla właściciela
+  przeszły do kroku 3, ostatniego wykonanego.)
+  Cel: sesja z włączoną szybką grafiką rysuje kartą przez most native context i pośrednika grafiki z kroku 5, a strefa
+  widzi tylko wirtualną kartę (virtio-gpu); X230 — przełącznik nieaktywny z wyjaśnieniem.
+  Na początku: D5, D7 (szkice do wyboru, oba motywy; musi pasować do ramki z 0.10.7 — ADR 0048) i D9 (jeden przełącznik
+  na grafikę i filmy czy dwa — od niej zależą nazwa przełącznika i to, czy krok 3 doda drugi). D6 i D8 — rozstrzygnięte.
+  Co widzi użytkownik: Ustawienia → Przeglądarka — przy sesji przełącznik „Szybka grafika” (nazwa wg D9, domyślnie
+  wg D5; nieaktywny z krótkim wyjaśnieniem, gdy karta nie obsługuje — X230); po ponownym otwarciu sesji przewijanie
+  i duże okno płynniejsze, WebGL działa, procesor mniej zajęty (Zasoby), znak na ramce wg D7.
   Zadania:
-  [ ] Ustawienie przy sesji (D5, D6): to samo miejsce co przełącznik filmów z kroku 3 (format sesje.c — nowe pole,
-      test, fuzzing); nadzorca uruchamia pośrednika grafiki tylko przy włączonym i karcie, która obsługuje.
-  [ ] VMM (T12, S40): src/strefa/gpu.c — kontekst virtio-gpu z mostem native context, zasoby blob, pamięć widoczna dla
-      gościa (najpierw podział pliku — S19); prośby do pośrednika; awaria pośrednika → gość traci kartę (w najgorszym
-      razie koniec tej strefy z powodem), K1 żyje.
-  [ ] Obraz strefy (S43): sterownik karty gościa (Mesa) tylko z potrzebnym sterownikiem, bez LLVM, jeśli pakiet Debiana
-      jest za duży — tabela strefy, sumy, powtarzalność; prefy Firefoksa z rysowaniem kartą tylko w sesji
+  [ ] Ustawienie przy sesji (D5, D6, D9, S18): nowe pole w formacie sesje.c (strefy_ust.c; sprawdzane pole po polu,
+      test, fuzzing) — tak, by krok 3 przy D9 „B” dodał drugie bez kolejnej zmiany formatu; Ustawienia → Przeglądarka
+      (przybornik; zmiana od następnego otwarcia sesji); nadzorca uruchamia pośrednika grafiki (posrednik_dla_strefy)
+      tylko przy włączonym i karcie, która obsługuje; ustawienie dochodzi do gościa jak tryb sesji (S22, S42).
+  [ ] VMM (T12, S40): src/strefa/gpu.c (najpierw podział pliku — S19) — kontekst virtio-gpu z mostem native context
+      (capset DRM, zasoby blob, pamięć widoczna dla gościa: dma-buf od pośrednika zmapowany bez PROT_EXEC jako miejsce
+      pamięci KVM — S40 Z KODU: bez nowych wywołań w KLATKA_STREFA); prośby do pośrednika wg k1_posrednik.h; awaria
+      pośrednika → gość traci kartę (w najgorszym razie koniec tej strefy z powodem), K1 żyje.
+  [ ] Obraz strefy (S43, ADR 0049 pkt 7): własna budowa Mesy tylko z iris i opcją intel-virtio-experimental, bez LLVM —
+      tabela strefy, sumy, powtarzalność; jądro strefy — virtio-gpu z kontekstami i zasobami blob (sprawdzić
+      jadro/strefa.config); prefy Firefoksa z rysowaniem kartą (bez gfx.webrender.software) tylko w sesji
       z przełącznikiem (S42, jak S22).
-  [ ] Ekran (T13, S41): obraz strefy z bufora karty; ramka i znak wg D7 — z tabeli, nie z kodu strefy.
+  [ ] Kompozytor strefy (S47): linux-dmabuf, bez którego Firefox nie dostanie EGL na Waylandzie, i obraz z bufora karty
+      do wyświetlacza gościa.
+  [ ] Ekran (T13, S41): obraz strefy z bufora karty (bufor liniowy albo kopia); ramka i znak wg D7 — z tabeli, nie
+      z kodu strefy.
   [ ] Złośliwy gość: nowy tryb w gosc/zlosliwy.c — złe prośby mostu, zalew prośbami, bufor poza zakresem, paczka pracy
       bez końca → odrzucone albo koniec szybkiej grafiki tej strefy; K1 i inne strefy żyją.
-  [ ] Porządki tej wersji (PATCH — małe): nic tymczasowego bez terminu; „opakowanie” z T15 z terminem w RYZYKA;
-      DO_ZROBIENIA → „Właściciel”: lista do sprawdzenia na sprzęcie (niżej, z kroków 3 i 6).
-  [ ] Wydanie 0.10.9 (albo następny wolny PATCH, jeśli robot go zajął — punkt 0): VERSION, CHANGELOG („co widzisz”,
-      potem technika — kroki 1–6; wiersz „Opis w K1:” prostym językiem), DO_ZROBIENIA (stan, mapa, punkt 4 — z aktualizacją
-      przez sieć na obu laptopach), README, ten plan → do archiwum planów (katalog docs/archiwum/). Przed scaleniem:
-      gałąź z main, VERSION na main (robot); robot włączony (krok 4 — „Tymczasowe” zamknięte). Po scaleniu: CI na main,
-      tag, wydanie z ogłoszeniem i paczką, raport z linkami.
-  Testy i dowód: test-strefa.sh — strefa próbna z pośrednikiem testowym (S44, tylko obraz testowy) przechodzi drogę
-  gość → VMM → pośrednik → odpowiedź; złośliwy gość; przełącznik wyłączony = żadnego pośrednika (log nadzorcy).
-  test-m4.sh i test-wzorce.sh — Ustawienia → Przeglądarka (oba motywy; nowe wzorce po „OK” właściciela). Przeglądarki
-  CI nie testuje (decyzja właściciela 2026-11-17) — Firefox z kartą: stanowisko, jeśli się da, i właściciel.
-  Lista dla właściciela (laptop z D8): Ustawienia → Przeglądarka → Ogólna → „Szybka grafika” włącz → otwórz
-  Przeglądarkę → długa strona, przewijanie płynne? mapa 3D albo strona z WebGL działa? Zasoby: procesor sesji mniejszy
-  niż z wyłączonym przełącznikiem? znak na ramce? Bank wg D6. Z kroku 5: Ustawienia → Przeglądarka — linia o szybkiej
-  grafice (IdeaPad „obsługuje”, X230 „nie oddziela pracy stref”); strona WebGL, która zawiesza kartę → pulpit działa, tylko
-  ta sesja traci szybką grafikę. Do tego lista filmów z kroku 3.
-  Gotowe, gdy: CI zielone, właściciel potwierdził na sprzęcie albo dostał listę przy wydaniu, wydanie 0.10.9 istnieje
-  (linki ISO i USB w raporcie).
+  Podział, jeśli krok nie zmieści się w jednym czacie: 6a — droga (VMM, Mesa, kompozytor, ekran) z testem w strefie
+  próbnej; 6b — przełącznik, Ustawienia, ramka, prefy Firefoksa, obraz próbny dla właściciela.
+  Testy i dowód: test-strefa.sh — strefa próbna z pośrednikiem testowym (S44, TEST_POSREDNIK, tylko obraz testowy)
+  przechodzi drogę gość → VMM → pośrednik → odpowiedź; złośliwy gość; przełącznik wyłączony = żadnego pośrednika (log
+  nadzorcy). test-m4.sh i test-wzorce.sh — Ustawienia → Przeglądarka (oba motywy; nowe wzorce po „OK” właściciela).
+  Przeglądarki CI nie testuje (decyzja właściciela 2026-11-17) — Firefox z kartą: stanowisko, jeśli się da, i właściciel.
+  Na sprzęcie — właściciel, obraz próbny z PR-a (IdeaPad): Ustawienia → Przeglądarka → Ogólna → „Szybka grafika” włącz →
+  otwórz Przeglądarkę → długa strona: przewijanie płynne? strona z WebGL działa? Zasoby: procesor sesji mniejszy niż
+  z wyłączonym przełącznikiem? znak na ramce? Bank wg D6. Z kroku 5: linia o szybkiej grafice (IdeaPad „obsługuje”,
+  X230 „karta nie oddziela pracy stref”); strona WebGL, która zawiesza kartę → pulpit działa, tylko ta sesja traci
+  szybką grafikę (S38, S39). Czego właściciel nie sprawdzi teraz — idzie na listę wydania (krok 3).
+  Gotowe, gdy: CI zielone, właściciel potwierdził na IdeaPadzie (albo punkty są na liście kroku 3); przełącznik w main
+  gotowy dla użytkownika (domyślnie wg D5) — robot jest w trybie próbnym, więc do laptopów przyjdzie z wydaniem.
   Ustalenia z wykonania: (pusto — wypełnia krok 6)
 
 
 4. DECYZJE
 ----------
-Twoje (produkt) — czat kroku 3 zada je na początku (możesz odpowiedzieć wcześniej):
+Twoje (produkt) — filmy: czat kroku 3 zada D4; D1–D3 tylko przy D9 „B” (przy „A” odpowiadają na nie D5–D7):
 
   [!] D1 — Przełącznik osobno dla każdej sesji czy jeden dla całej przeglądarki?
       A (zalecane): osobno przy każdej sesji (Ogólna, Bank, Prywatna) — np. Bank bez, Ogólna z.
@@ -588,11 +595,12 @@ Twoje (produkt) — czat kroku 3 zada je na początku (możesz odpowiedzieć wcz
   [!] D3 — Czy widać na oknie, że sesja używa karty? (ADR 0020: słabsza izolacja = widoczna na ramce)
       A (zalecane): mały znak na pasku tytułu ramki (np. ikonka filmu przy nazwie sesji) — szkice do wyboru.
       B: inny odcień ramki.   C: nic na ramce, tylko w Ustawieniach.
-  [!] D4 — X230 (karta umie tylko H.264): czy przeglądarka ma prosić strony o H.264, gdy przełącznik jest włączony?
+  [!] D4 — Obie karty rozpakowują z popularnych formatów tylko H.264 (S9; filmy kartą działają tylko na IdeaPadzie —
+      ADR 0049 pkt 5): czy przeglądarka ma prosić strony o H.264, gdy filmy kartą są włączone?
       A (zalecane): tak, sama — inaczej YouTube wyśle VP9/AV1 i karta nic nie pomoże; czasem najwyżej 1080p.
       B: nie — zostaje, co wybierze strona.
 
-Szybka grafika (dodane 2026-11-17) — czat kroku 6 zada je na początku; D8 — już po kroku 1:
+Szybka grafika (dodane 2026-11-17) — czat kroku 6 zada D5, D7 i D9 na początku; D6 i D8 rozstrzygnięte:
 
   [~] D5 — Szybka grafika domyślnie włączona czy wyłączona?
       Właściciel 2026-11-19: „ta nowa grafika w przeglądarce też powinna być opcją, i w mega prywatnych sesjach, np.
@@ -607,19 +615,17 @@ Szybka grafika (dodane 2026-11-17) — czat kroku 6 zada je na początku; D8 —
       B: przełącznik jak w innych sesjach (domyślnie wg D5).
   [!] D7 — Jak widać na oknie, że sesja rysuje kartą? (ADR 0020: inny wygląd ramki; od 0.10.7 kolor sesji jest
       dyskretnie na pasku — ADR 0048) — szkice do wyboru, oba motywy.
-      A (zalecane): mały znak na pasku tytułu przy nazwie sesji — ten sam rodzaj co znak filmów z D3.
+      A (zalecane): mały znak na pasku tytułu przy nazwie sesji (przy D9 „B” znak filmów z D3 — ten sam rodzaj).
       B: inny odcień paska tytułu.   C: nic na ramce, tylko w Ustawieniach.
   [x] D8 — Co, jeśli krok 1 (f) pokaże, że karta laptopa nie obsłuży mostu (S36, S38)? Rozstrzygnięte A (ADR 0049):
       X230 nie ma pełnego PPGTT — szybka grafika tylko na IdeaPadzie (właściciel 2026-11-19: „na X230 ta opcja i tak
-      nie zadziała”).
+      nie zadziała”). (Warianty były: A — kroki 5–6 dla laptopa, który obsłuży; B — wstrzymać 0.10.9 do sprzętu.)
   [!] D9 — (nowe, ADR 0049 pkt 5) Filmy kartą działają tylko w sesji z szybką grafiką. Jak w Ustawieniach?
-      A (zalecane): jeden przełącznik „Szybka grafika i filmy” — mniej przełączników, nic, co nie działa samo.
-      B: dwa przełączniki; „Filmy kartą” dostępny dopiero przy włączonej szybkiej grafice.
-      Pytanie zada czat kroku 3 (D1–D4 też tam; D4 dotyczy obu laptopów — S9).
-      A (zalecane): kroki 5–6 robimy dla laptopa, który obsłuży (np. tylko IdeaPad); gdy żaden — kroki 5–6 przechodzą do
-         „Później” (do komputera, który obsłuży), a 0.10.9 wychodzi z filmami i szybszym startem. Bez laptopa do
-         sprawdzenia szybkiej grafiki nie wydajemy.
-      B: wstrzymać 0.10.9, aż będzie sprzęt do sprawdzenia.
+      A (zalecane): jeden przełącznik (np. „Szybka grafika i filmy”) — mniej przełączników, nic, co nie działa samo;
+         D1–D3 rozstrzygają wtedy D5–D7 (przy sesji, domyślnie wyłączony, jeden znak na ramce).
+      B: dwa przełączniki; „Filmy kartą” dostępny dopiero przy włączonej szybkiej grafice (D1–D3 w kroku 3).
+      Pytanie zada czat kroku 6 — pierwszego z przełącznikiem (do 2026-11-20: krok 3; ADR 0049 pkt 5 mówi jeszcze
+      „krok 3”).
   [x] D10 — (nowe, krok 4, ADR 0050) Większe miejsca A/B. ROZSTRZYGNIĘTE 2026-11-20: A („robimy więcej miejsca … zajmij
       sobie więcej miejsca nawet, na zapas”) — krok 4b w tym samym czacie: miejsca 768 MiB, K1-EFI 1600 MiB, na dysku 3 GiB. Po kroku 4 obraz przeglądarki leży w miejscu A/B obok k1.efi
       (pamięć: K1 ma ok. 109 MB więcej), ale miejsce 128 MiB jest znowu prawie pełne (zapas 2,5 MiB): nie mieści się
@@ -630,7 +636,6 @@ Szybka grafika (dodane 2026-11-17) — czat kroku 6 zada je na początku; D8 —
       B: przeprowadzka bez utraty danych — K1 sam zmniejsza K1-DANE od końca (gdy koniec jest wolny) i robi miejsce na
          obrazy stref; osobny, duży krok z ryzykiem dla danych.
       C: zostać przy 128 MiB — własny, mały FFmpeg (T5 B), bez szybkiej grafiki (bez Mesy w strefie).
-      Pytanie zada czat kroku 2 albo 3 (przed FFmpeg).
 
 Techniczne (decyduje Claude w ADR kroku 1 — Ty dostajesz krótkie wyjaśnienie):
 
@@ -653,10 +658,11 @@ Techniczne (decyduje Claude w ADR kroku 1 — Ty dostajesz krótkie wyjaśnienie
        szybka grafika (kroki 5–6, T12) jedzie tą samą drogą (kontekst virtio-gpu), więc filmy i grafika mają jeden most
        w VMM-ie, a nie dwa do zabezpieczania. A — tylko jeśli B nie działa z piaskownicą RDD.
        Wyłączanie piaskownicy RDD — tylko jako ostateczność, z wpisem w RYZYKA.
+       ROZSTRZYGNIĘTE (ADR 0049 pkt 4): B — proces RDD Firefoksa nie tworzy gniazd, a otwiera /dev/dri.
   T5 — FFmpeg w strefie: dziś obraz strefy go nie ma (S8 — Firefox w strefie nie odtwarza H.264 wcale; VP9/AV1 rozpakowuje
        procesorem własną biblioteką). A: pakiet Debiana (libavcodec + zależności — zmierzyć rozmiar obrazu), B: własna
        budowa FFmpeg tylko z potrzebnymi częściami (powtarzalność). Kierunek: B, jeśli A powiększa obraz strefy o więcej
-       niż ok. 50 MB.
+       niż ok. 50 MB. ROZSTRZYGNIĘTE (ADR 0049 pkt 8): B.
   T6 — Jeden dekoder filmów na strefę, na czas jej życia, startowany przez nadzorcę razem z VMM-em tylko przy włączonym
        przełączniku i karcie, która umie; awaria = film na procesorze, strefa i inne strefy żyją; restartu nie ma
        (do następnego otwarcia sesji).
@@ -686,6 +692,7 @@ Techniczne (decyduje Claude w ADR kroku 1 — Ty dostajesz krótkie wyjaśnienie
        podpowierzchnią; jeśli nie — poziom 1, o ile pomiar (d) pokaże wyraźny zysk (kierunek: co najmniej połowa mniej
        procesora niż rozpakowanie programowe, na obu laptopach); jeśli i to nie — wersja się zatrzymuje (raport, nie
        zgadujemy dalej). Poziom 2 przy poziomie 1 w 0.10.9 → „Później”.
+       ROZSTRZYGNIĘTE (ADR 0049 pkt 6): poziom 1; bramka zysku — krok 3.
   T8 — Pamięć karty („VRAM”) a balon z 0.10.1 (pytanie właściciela z 2026-11-16: czy pamięć karty też potrzebuje
        balona). Karty obu laptopów (HD 4000, HD 520) są zintegrowane — NIE MAJĄ osobnej pamięci; bufory karty (klatki
        filmu, klatki odniesienia) i915 bierze ze zwykłej pamięci RAM. Dlatego nie ma drugiego balona — jest JEDNA
@@ -869,6 +876,12 @@ Kroki 1, 5 i 6 — szybka grafika (dodane 2026-11-17; NIEPEWNE do kroku 1 f — 
       trafić do produkcyjnego jako droga obejścia, jak S17); rysowanie kartą — właściciel na sprzęcie.
   S45 NISKA. Zasoby: pośrednik grafiki pokaże się sam (wiersz K1_SYSTEM); czy przypisać jego procesor i pamięć do sesji
       (jak S25).
+  S47 WYSOKA, Z KODU + NIEPEWNE (dopisane 2026-11-20). Kompozytor strefy (src/strefa/kompozytor, tabela K1_INTERFEJSY)
+      nie ma linux-dmabuf ani wl_drm. Firefox z rysowaniem kartą na Waylandzie potrzebuje EGL, a Mesa na Waylandzie
+      dostaje bufory karty przez zwp_linux_dmabuf_v1 — sprawdzić w źródłach Mesy (src/egl/drivers/dri2/platform_wayland.c),
+      czy bez niego EGL w ogóle wstaje. Kompozytor musi przyjąć dmabuf i pokazać go: odczyt procesorem z zasobu blob
+      (koszt — pomiar) albo wyświetlenie bufora wprost (virtio-gpu SET_SCANOUT_BLOB, gdy okno to jedna powierzchnia).
+      Łączy się z S41 (ekran K1) i S42.
 
 
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.10.x przy wydaniu)
@@ -878,6 +891,7 @@ Kroki 1, 5 i 6 — szybka grafika (dodane 2026-11-17; NIEPEWNE do kroku 1 f — 
     „opakowanie” szybkiej grafiki z T15 (termin w RYZYKA); wspólny obraz bazowy w pamięci raz dla wielu stref (ADR 0020
     p. 4, T16); nowsze karty Intela (Xe, sterownik iHD) i AMD; AV1 kartą (HD 4000 i HD 520
     go nie mają); kodowanie kartą (wideorozmowy — WebRTC w strefie i tak wyłączone); odtwarzacz filmów w Plikach K1
-    (pliki wideo da się już przechowywać — „Później”); poziom 2 drogi klatki, jeśli krok 1 wybierze poziom 1 (T9);
+    (pliki wideo da się już przechowywać — „Później”); poziom 2 drogi klatki (T9 — krok 1 wybrał poziom 1); filmy kartą bez szybkiej grafiki (własny
+    glxtest w strefie — odrzucone w ADR 0049); obraz przeglądarki na ISO (napęd CD w jądrze — ADR 0050);
     warstwy sprzętowe karty w ekranie K1 (S30);
     jasność ekranu i klawisze Fn przez i915 (punkt „Laptop” — osobny PATCH, choć i915 to otwiera).
