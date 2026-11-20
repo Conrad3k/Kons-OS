@@ -450,13 +450,16 @@ sprawdz("NEGATYWNY: złośliwy gość mostu — nieznana prośba odrzucona (poś
         czekaj(r"K1-GOSC: grafika \(zła\): nieznana prośba odrzucona, następna działa: tak", czas=240))
 sprawdz("NEGATYWNY: złośliwy gość mostu — zalew prośbami (wszystkie z odpowiedzią), bufory ponad limit odrzucone",
         czekaj(r"K1-GOSC: grafika \(zła\): zalew 500 prośbami — odpowiedzi wszystkie", czas=600) and
-        czekaj(r"K1-GOSC: grafika \(zła\): bufory ponad limit — drugi odrzucony", czas=60))
+        czekaj(r"K1-GOSC: grafika \(zła\): bufory ponad limit — pierwszy przyjęty, drugi odrzucony", czas=60),
+        "; ".join(re.findall(r"K1-GOSC: grafika \(zła\)[^\n]*", q.tekst())))
 sprawdz("NEGATYWNY: „zawieszenie karty” przez strefę — koniec jej pośrednika (kod 3), strefa żyje i rysuje dalej, "
         "K1 działa",
         czekaj(r"K1-NADZORCA: pośrednik grafiki strefy 1 zakończył się \(kod 3\)", czas=120) and
         czekaj(r"K1-STREFA: szybka grafika: pośrednik grafiki się zakończył", czas=60) and
         czekaj(r"K1-GOSC: grafika \(zła\): po zawieszeniu karty most nieczynny, strefa żyje", czas=120) and
-        czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 17\)", czas=300))
+        czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 17\)", czas=300),
+        "; ".join(re.findall(r"K1-(?:NADZORCA: pośrednik grafiki|STREFA: szybka grafika|GOSC: grafika \(zła\): po)[^\n]*",
+                             q.tekst())[-4:]))
 # 0.10.1 step 3 (T6, D3): the rozdzielacz — K1 here has 1 GiB, below its reserve (768 MiB): nadzorca takes the guest's
 # free memory by its balloon itself; when no more can be taken, gui shows "Mało pamięci" with the zone and "Zamknij"
 sprawdz("ROZDZIELACZ (0.10.1 krok 3): K1 poniżej rezerwy — nadzorca sam bierze balonem wolną pamięć strefy (cel od "

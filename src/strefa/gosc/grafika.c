@@ -27,6 +27,7 @@
 #define KONTEKST_I915 3u        /* VIRTGPU_DRM_CONTEXT_I915 */
 #define ZAWIESZENIE 0x7fff0000u /* K1_POSR_TEST_ZAWIESZENIE: the test engine's "hang" */
 #define BUFOR_DL 65536u
+#define DUZY (400u << 20)       /* a big buffer: two are more than K1_POSR_PAMIEC (768 MiB) */
 
 struct capset { /* Mesa's virgl_renderer_capset_drm (its first 48 bytes; the VMM gives 160) */
     uint32_t wire, major, minor, patch, typ, pad, bus, dev, func, rewizja, domena, pci;
@@ -216,6 +217,7 @@ static void wrogo(void)
 {
     uint8_t b[48 + 56];
     uint32_t res = 0, res2 = 0, res3 = 0, u1, u2, u3;
+    void *p1, *p2;
     long r;
     int i;
     naglowek(b, 99, 24, 0); /* a request that does not exist */
@@ -228,9 +230,18 @@ static void wrogo(void)
     for (i = 0; i < 500 && getparam(4) == 0x1916; i++)
         ;
     loguj("grafika (zła): zalew %d prośbami — odpowiedzi %s", i, i == 500 ? "wszystkie" : "nie wszystkie");
-    u1 = bufor(10, 512u << 20, &res);
-    u2 = bufor(11, 512u << 20, &res2); /* together more than K1_POSR_PAMIEC */
-    loguj("grafika (zła): bufory ponad limit — drugi %s", u2 != 0 && mapuj(u2, 512u << 20) == NULL ? "odrzucony" : "PRZYJĘTY");
+    /* two of 400 MiB: both fit the host-visible region (1 GiB — the guest kernel gives the places), together more than
+     * K1_POSR_PAMIEC: the broker refuses the second, so its mapping fails */
+    u1 = bufor(10, DUZY, &res);
+    p1 = u1 ? mapuj(u1, DUZY) : NULL;
+    u2 = bufor(11, DUZY, &res2);
+    p2 = u2 ? mapuj(u2, DUZY) : NULL;
+    loguj("grafika (zła): bufory ponad limit — pierwszy %s, drugi %s", p1 != NULL ? "przyjęty" : "ODRZUCONY",
+          p2 == NULL ? "odrzucony" : "PRZYJĘTY");
+    if (p1)
+        munmap(p1, DUZY);
+    if (p2)
+        munmap(p2, DUZY);
     if (u1)
         zamknij_uchwyt(u1);
     if (u2)

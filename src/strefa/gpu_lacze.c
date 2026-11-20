@@ -49,6 +49,7 @@ struct czeka { /* a chain whose answer waits for a fence */
 static struct {
     int jest;              /* the broker said UMIE: the device offers 3D */
     int budzik;            /* eventfd: the queue was notified, or the end */
+    int padl_w_logu;       /* the broker's end is in the log */
     pthread_t watek;
     volatile int koniec;
     unsigned gen;          /* resets of the device */
@@ -259,8 +260,9 @@ static void gotowy(uint32_t g, uint32_t pierscien, uint64_t nr)
 /* The broker is gone: every waiting fence is done (the guest must not wait for a card that will not answer). */
 static void padl(void)
 {
-    if (!gl.m.padl)
+    if (!gl.padl_w_logu) /* once — also when a request saw it first (most_padl in gpu_most.c, l_plot) */
         k1_log(TAG, "szybka grafika: pośrednik grafiki się zakończył — strefa rysuje dalej procesorem");
+    gl.padl_w_logu = 1;
     most_padl(&gl.m);
     for (int i = 0; i < CZEKAJACE; i++)
         if (gl.czeka[i].jest) {
