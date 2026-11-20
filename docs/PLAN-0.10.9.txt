@@ -186,6 +186,7 @@ Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3 — filmy
 [x]  4b Większe miejsca A/B (768 MiB), obraz w zstd (D10 „A”) S31, S33        4           D10              M        0050
         PR #185 (miejsca 768 MiB, K1-EFI 1600 MiB, na dysku 3 GiB; zapas 620 MiB)
 [ ]  5  Szybka grafika, K1: pośrednik grafiki               S37–S41, S44     1, 2        T10–T15          L        z kr. 1
+        [w toku: Claude, gałąź claude/plan-0-10-9-step-5-ws3u2o]
 [ ]  6  Szybka grafika, strefa: przełącznik; wydanie        S40–S45          4, 5        D5–D8, T12–T15   L        z kr. 1
 (Numery ADR — następne wolne w chwili kroku: 0.10.5 bierze 0046 i 0047, 0.10.7 — 0048, więc krok 1 zwykle 0049,
 krok 4 — następny wolny po nim; jeśli krok 4 idzie przed krokiem 1, bierze numer pierwszy.)
