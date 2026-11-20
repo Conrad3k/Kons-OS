@@ -107,7 +107,7 @@ static void exec(uint32_t res, uint32_t batch_len, uint32_t rsp_off)
 static void droga(void)
 {
     struct k1_komunikat w;
-    int zle = memfd(4096, 1), dobre = memfd(K1_POSR_OKNO, 1), wspolna = memfd(4096, 1), n = -1;
+    int zle = memfd(4096, 1), dobre = memfd(K1_POSR_OKNO, 1), wspolna = memfd(4096, 1), n = -1, r;
     uint32_t seqno;
     check(wynik(k1_komunikat_nowy(K1_KOM_POSR_OKNO, 0, 0, 0, 0, 0, 0), zle) == K1_POSR_BLAD_OKNO,
           "NEGATYWNY: pośrednik grafiki nie przyjmuje okna innej wielkości", "4096 B");
@@ -126,9 +126,10 @@ static void droga(void)
     prosba(K1_POSR_GETPARAM, 24, 0), pole32(16, 4), dalej();
     prosba(K1_POSR_GEM_CREATE, 32, 0), pole64(16, 65536), pole32(24, 1), dalej();
     prosba(K1_POSR_KONTEKST, 24, 16), dalej();
+    r = strumien(&n); /* the details are read before check() (the order of its arguments is not fixed — #182) */
     memcpy(&seqno, wsp, 4);
-    check(strumien(&n) == 0 && n == 3 && odp32(0) == 16 && odp32(12) == 0x1916 && odp32(16 + 8) == 0 &&
-              odp32(16 + 12) >= 1 && (memcpy(&seqno, wsp, 4), seqno == seq),
+    check(r == 0 && n == 3 && odp32(0) == 16 && odp32(12) == 0x1916 && odp32(16 + 8) == 0 && odp32(16 + 12) >= 1 &&
+              seqno == seq,
           "posrednik: strumień trzech próśb wykonany, odpowiedzi w pamięci wspólnej (silnik testowy)",
           "zrobione %d, karta 0x%x, kontekst %u, numer %u", n, odp32(12), odp32(28), seqno);
     check(wynik(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 5, 1, 65536, 0, 0, 0), -1) == 0,
@@ -136,11 +137,13 @@ static void droga(void)
     check(wynik(k1_komunikat_nowy(K1_KOM_POSR_BUFOR, 5, 0, 0, 0, 0, 0), -1) == K1_POSR_BLAD_KARTA,
           "posrednik: bez karty bufora nie da się udostępnić (silnik testowy)", "zasób 5");
     exec(5, 4096, 32);
-    check(strumien(&n) == 0 && n == 1 && odp32(32) == 8 && odp32(36) == 0, "posrednik: paczka pracy z buforem 5 przyjęta",
-          "ret %u", odp32(36));
+    r = strumien(&n);
+    check(r == 0 && n == 1 && odp32(32) == 8 && odp32(36) == 0, "posrednik: paczka pracy z buforem 5 przyjęta",
+          "wynik %d, ret %u", r, odp32(36));
     wyslij(k1_komunikat_nowy(K1_KOM_POSR_PLOT, 1, 77, 0, 0, 0, 0), -1);
-    check(odbierz(&w, 5000) && w.typ == K1_KOM_POSR_PLOT_GOTOWY && w.obiekt == 1 && w.a == 77,
-          "posrednik: płot osi 1 zgłoszony jako gotowy", "typ %d", w.typ);
+    r = odbierz(&w, 5000);
+    check(r && w.typ == K1_KOM_POSR_PLOT_GOTOWY && w.obiekt == 1 && w.a == 77,
+          "posrednik: płot osi 1 zgłoszony jako gotowy", "typ %d", r ? w.typ : -1);
 }
 
 /* Hostile requests: refused, the broker lives. */
@@ -175,8 +178,9 @@ static void wrogie(void)
     check(r == K1_POSR_BLAD_FORMAT, "NEGATYWNY: strumień ucięty w środku prośby — odrzucony", "wynik %d", r);
     /* a batch with a resource that is not there: the card's error in the reply, not the broker's end */
     exec(77, 4096, 32);
-    check(strumien(&n) == 0 && odp32(36) == 22, "NEGATYWNY: paczka z nieznanym zasobem — EINVAL dla gościa",
-          "ret %u", odp32(36));
+    r = strumien(&n);
+    check(r == 0 && odp32(36) == 22, "NEGATYWNY: paczka z nieznanym zasobem — EINVAL dla gościa", "wynik %d, ret %u", r,
+          odp32(36));
     check(wynik(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 6, 99, 4096, 0, 0, 0), -1) == K1_POSR_BLAD_ZASOB &&
               wynik(k1_komunikat_nowy(K1_KOM_POSR_ZWOLNIJ, 6, 0, 0, 0, 0, 0), -1) == K1_POSR_BLAD_ZASOB &&
               wynik(k1_komunikat_nowy(K1_KOM_POSR_BLOB, 7, 1, 4096, 0, 0, 0), -1) == K1_POSR_BLAD_ZASOB,
@@ -231,15 +235,17 @@ void t_posrednik(void)
 {
     static const char *const fd_posr[] = { "/rdzen/jadro/dev/null", "pipe:", "socket:", "/memfd:", NULL };
     struct k1_komunikat w;
-    int r = zapytaj(k1_komunikat_nowy(K1_KOM_TEST_POSREDNIK, 0, K1_STREFA_PROBNA, 0, 0, 0, 0), &kanal, 10);
+    int jest, r = zapytaj(k1_komunikat_nowy(K1_KOM_TEST_POSREDNIK, 0, K1_STREFA_PROBNA, 0, 0, 0, 0), &kanal, 10);
     check(r != 0 && kanal < 0 && find_process("posrednik") <= 0,
           "NEGATYWNY: bez karty Intela nadzorca nie uruchamia pośrednika grafiki z kartą (QEMU)", "wynik %d", r);
     if (kanal >= 0)
         close(kanal);
     r = zapytaj(k1_komunikat_nowy(K1_KOM_TEST_POSREDNIK, 0, K1_STREFA_PROBNA, 1, 0, 0, 0), &kanal, 10);
-    check(r == 0 && kanal >= 0 && odbierz(&w, 10000) && w.typ == K1_KOM_POSR_UMIE && w.a == K1_POSR_KARTA_UMIE &&
-              w.c == 0x1916,
-          "posrednik: silnik testowy strefy próbnej mówi, co umie karta (POSR_UMIE)", "wynik %d, typ %d", r, w.typ);
+    memset(&w, 0, sizeof w);
+    jest = r == 0 && kanal >= 0 && odbierz(&w, 10000);
+    check(jest && w.typ == K1_KOM_POSR_UMIE && w.a == K1_POSR_KARTA_UMIE && w.c == 0x1916,
+          "posrednik: silnik testowy strefy próbnej mówi, co umie karta (POSR_UMIE)", "wynik %d, typ %d, karta 0x%x", r,
+          w.typ, (unsigned)w.c);
     if (kanal < 0)
         return;
     t_klatka_grupy("posrednik", "posrednik-1", 0, K1_UID_POSREDNIK_PROBNA, fd_posr);
