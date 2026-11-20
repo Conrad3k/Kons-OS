@@ -358,7 +358,8 @@ void obsluz_posrednika(void);
 void posrednik_koniec(const struct usluga *u, int status); /* a broker ended: why, in the log */
 void posrednik_wyslij_ustawieniom(void);
 void posrednik_nowy_kanal_ustawien(void);
-int posrednik_dla_strefy(int nr, int test); /* the client's end of a new broker of zone nr, or -1 */
+int posrednik_dla_strefy(int nr, int test); /* the client's end of a new broker of zone nr, or -1; test: 1 the test
+                                             * engine for the test program, 2 for the test zone's VMM */
 void posrednik_strefa_koniec(int nr);       /* the zone's VMM ended: its broker too */
 int32_t posrednik_pamiec_mib(int nr);       /* T14: its broker's memory, MiB */
 int posrednik_dziala(int nr);               /* 0.10.9 step 6: zone nr's broker runs (the mark on its frame) */

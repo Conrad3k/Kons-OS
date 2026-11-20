@@ -4,7 +4,8 @@
  * "native context" from ONE client — the VMM of its zone (one broker per zone, started and ended with it — nadzorca
  * posrednik.c; step 6), nadzorca's question at boot ("can the card do it?" — the answer, then the end) or the test
  * program — checks each field by field (k1_posrednik.c) and only then gives it to the card.
- * Arguments: the zone (0: nadzorca's question), "t": the test engine (no card; test image only, on request of the test
+ * Arguments: the zone (0: nadzorca's question), "t" / "s": the test engine (no card; test image only — for the test
+ * program, or "s" for the test zone's VMM, 0.10.9 step 6), "k": the card (on request of the test
  * program). fd 3 = the channel to the client (its UID checked: the zone's VMM, or UID 0 for nadzorca and the test
  * program), fd 4 = the render node of the card (i915; nadzorca gives it only to the card's services) or /dev/null.
  * First message: POSR_UMIE — whether the card can keep the zones apart (full PPGTT, context isolation, pinned
@@ -190,10 +191,10 @@ int main(int argc, char **argv)
     int strefa, test, stan, powod = 0, pci = 0, rewizja = 0, wersja = 0;
     k1_klatka_w_usludze(TAG);
     strefa = argc > 1 ? atoi(argv[1]) : -1;
-    test = argc > 2 && strcmp(argv[2], "t") == 0;
+    test = argc > 2 && (strcmp(argv[2], "t") == 0 || strcmp(argv[2], "s") == 0); /* "s": for the test zone's VMM */
     if (strefa < 0 || strefa > K1_STREFY_MAKS || (strefa == 0 && test))
         k1_koniec(TAG, "złe argumenty");
-    klient = strefa == 0 || test ? 0 : (uid_t)k1_strefa(strefa)->uid;
+    klient = strefa == 0 || (argc > 2 && strcmp(argv[2], "t") == 0) ? 0 : (uid_t)k1_strefa(strefa)->uid;
     silnik = test ? &silnik_testowy : &silnik_karty;
     stan = posr_karta(&powod, &pci, &rewizja, &wersja);
     k1_log(TAG, "%s, strefa %d: %s (powód %d, karta 0x%04x rewizja %d, i915 %d.%d.%d)", silnik->nazwa, strefa,

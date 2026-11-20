@@ -159,7 +159,7 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   w skarbcu (właściciel `K1_WL_SYSTEM`, obiekt 4); do gui, ekranu i Ustawień `STREFA_NAZWA` i `STREFY_STAN`, od Ustawień
   `STREFA_TRWALOSC`, `STREFA_NAZWA`, `STREFA_WYCZYSC` (do skarbca `SKARB_WYCZYSC`). Strefa, która pamięta, dostaje od
   `strefy.c` fd 8 (kanał do skarbca, właściciel = jej profil) i fd 9 (pusty dysk strefy) — `komponenty/strefa.md`.
-  Od 0.10.9 krok 6 każda sesja ma też przełącznik „Szybka grafika i filmy” (format `K1Z2`: pole cech, `K1Z1` czytany —
+  Od 0.10.9 krok 6 każda sesja ma też przełącznik „Szybka grafika” (format `K1Z2`: pole cech, `K1Z1` czytany —
   domyślne z wiersza `K1_STREFY`: Ogólna włączona, D5): `STREFA_GRAFIKA` od Ustawień, `STREFY_GRAFIKA` do gui, ekranu,
   Ustawień i Zasobów (a — przełączniki, b — strefy działające teraz ze swoim pośrednikiem: znak na ramce). Gdy przełącznik
   jest włączony, a pytanie przy starcie mówi, że karta obsługuje szybką grafikę (`posrednik_karta_umie`), `strefy.c`

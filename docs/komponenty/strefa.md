@@ -99,7 +99,7 @@ Wspólne dla wszystkich (`virtq.c`, `mmio.c`): deskryptor poza pamięcią, pętl
 odczytu po do zapisu, skok indeksu, kolejka poza pamięcią albo niewyrównana, rejestr czytany nie po 4 bajty — koniec.
 
 ## Szybka grafika (0.10.9 krok 6, ADR 0049 pkt 4, 7; plan T12, S40–S47)
-Sesja z włączonym przełącznikiem „Szybka grafika i filmy” (Ustawienia → Przeglądarka; domyślnie tylko Ogólna — D5),
+Sesja z włączonym przełącznikiem „Szybka grafika” (Ustawienia → Przeglądarka; domyślnie tylko Ogólna — D5),
 na komputerze, którego karta oddziela pracę stref (pośrednik grafiki: „umie” — IdeaPad; X230 nie), dostaje od nadzorcy
 na **fd 10** kanał do swojego **pośrednika grafiki** (`docs/komponenty/posrednik.md`), a VMM pamięć większą
 o `K1_POSR_PAMIEC` (bufory karty zmapowane w VMM-ie liczą się do jego klatki). Bez tego virtio-gpu zostaje 2D, a
@@ -276,7 +276,7 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
 | `STREFA_ZAMKNIJ` (0.10.2 krok 1) | nadzorca → VMM (fd 7) | obiekt = strefa, reszta 0 — zamknij się jak po „zamknij” na pasku (K1 się wyłącza albo uruchamia ponownie: nadzorca czeka na strefy) |
 | `STREFA_NAZWA` | nadzorca → gui, Ustawienia, ekran; Ustawienia → nadzorca (nowa nazwa) | krok 5: obiekt = strefa, `a`…`e` = nazwa sesji, 20 bajtów UTF-8 dopełnione zerami (`k1_strefa_nazwa_dobra`: bez znaków sterujących, niewidocznych i zmieniających kierunek, bez spacji na brzegach); nigdy w logu |
 | `STREFA_TRWALOSC` | Ustawienia → nadzorca | krok 5: obiekt = strefa, `a` = `K1_STALA` / `K1_JEDNORAZOWA` (od następnego otwarcia), reszta 0 |
-| `STREFY_GRAFIKA` (0.10.9 krok 6) | nadzorca → gui (fd 5), Ustawienia (fd 4), Zasoby, ekran (kanał sterujący), po `STREFY_STAN` | `a` bity sesji z włączonym przełącznikiem „Szybka grafika i filmy”, `b` bity stref, które działają teraz ze swoim pośrednikiem grafiki (znak na ramce), reszta 0 |
+| `STREFY_GRAFIKA` (0.10.9 krok 6) | nadzorca → gui (fd 5), Ustawienia (fd 4), Zasoby, ekran (kanał sterujący), po `STREFY_STAN` | `a` bity sesji z włączonym przełącznikiem „Szybka grafika”, `b` bity stref, które działają teraz ze swoim pośrednikiem grafiki (znak na ramce), reszta 0 |
 | `STREFA_GRAFIKA` (0.10.9 krok 6) | Ustawienia → nadzorca | obiekt = strefa, `a` = 1 włącz / 0 wyłącz (od następnego otwarcia), reszta 0 |
 | `STREFA_WYCZYSC` | Ustawienia → nadzorca; program testowy → nadzorca | krok 5: obiekt = strefa, reszta 0 — „Wyczyść dane sesji” |
 | `STREFA_WYCZYSZCZONO` | nadzorca → Ustawienia | krok 5: obiekt = strefa, `a` = `K1_STREFA_WYCZ_OK` / `_DZIALA` (otwarta — najpierw zamknij) / `_BLAD`, `b` = usunięte kawałki, reszta 0 |

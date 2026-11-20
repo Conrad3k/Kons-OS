@@ -201,8 +201,8 @@ void sesje_prosba(const struct k1_komunikat *k, int z_testu)
         k1_log(TAG, "strefa %d: %s (od następnego otwarcia)", nr, k->a == K1_STALA ? "pamięta" : "zapomina");
     } else if (k->typ == K1_KOM_STREFA_GRAFIKA) {
         ses[nr].grafika = k->a;
-        k1_log(TAG, "strefa %d: szybka grafika i filmy kartą %s (od następnego otwarcia)", nr,
-               k->a ? "włączone" : "wyłączone");
+        k1_log(TAG, "strefa %d: szybka grafika %s (od następnego otwarcia)", nr,
+               k->a ? "włączona" : "wyłączona");
     } else if (k->typ == K1_KOM_STREFA_NAZWA) {
         const int32_t p[5] = { k->a, k->b, k->c, k->d, k->e }; /* checked: k1_strefa_nazwa_dobra */
         memcpy(ses[nr].nazwa, p, K1_STREFA_NAZWA_MAKS);

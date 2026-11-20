@@ -148,7 +148,7 @@ void strefa_uruchom(int nr, int tryb, int z_testu)
         d = dysk(z, fd);
         test_grafiki = z_testu && (tryb == K1_STREFA_TRYB_GRAFIKA || tryb == K1_STREFA_TRYB_GRAFIKA_ZLA);
         if (test_grafiki || (z->okno && sesja_grafika(nr) && posrednik_karta_umie())) /* 0.10.9 step 6 */
-            fd[7] = posrednik_dla_strefy(nr, test_grafiki);
+            fd[7] = posrednik_dla_strefy(nr, test_grafiki ? 2 : 0); /* 2: the test engine for the VMM */
         if (fd[7] >= 0) {
             if (d == 0)
                 fd[5] = dup(zero), fd[6] = dup(zero), d = -2; /* places of the disk: none (dane.c sees /dev/null) */

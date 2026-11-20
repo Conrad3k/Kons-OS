@@ -20,6 +20,7 @@
 #include <sys/eventfd.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <linux/kvm.h>
@@ -441,8 +442,9 @@ int gpu_lacze_start(void)
     double do_kiedy = k1_teraz() + CZEKAJ_S;
     static const struct most_lacze l = { NULL, NULL, l_prosby, l_wspolna, l_blob, l_bufor, l_zwolnij, l_plot,
                                          l_gosc_koniec, l_zamknij, l_mapuj, l_odmapuj };
-    if (fcntl(FD_POSREDNIK, F_GETFD) < 0)
-        return 0; /* the session draws with the processor */
+    struct stat st;
+    if (fstat(FD_POSREDNIK, &st) != 0 || !S_ISSOCK(st.st_mode))
+        return 0; /* the session draws with the processor (main.c calls this before it opens a descriptor itself) */
     gl.uid = (uid_t)(K1_UID_POSREDNIK_STREF + mz.opis->nr);
     while (r == 0 && k1_teraz() < do_kiedy)
         r = odbierz(&k, &fd, 200);

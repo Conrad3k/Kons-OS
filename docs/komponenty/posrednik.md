@@ -103,7 +103,7 @@ i kończy. Nadzorca podaje wynik Ustawieniom (`POSR_KARTA`); pośrednik zakończ
 
 **Pośrednik strefy** (`posrednik_dla_strefy`): nadzorca uruchamia go dla strefy *nr* (karta: tylko gdy pytanie dało
 „umie”), klient dostaje drugi koniec kanału. Od kroku 6 razem z VMM-em strefy, gdy jej sesja ma włączony przełącznik
-„Szybka grafika i filmy” (VMM: fd 10), koniec z VMM-em (`posrednik_strefa_koniec`); prosi o niego też program testowy
+„Szybka grafika” (VMM: fd 10), koniec z VMM-em (`posrednik_strefa_koniec`); prosi o niego też program testowy
 (`TEST_POSREDNIK`; strefa próbna w trybach 16 i 17 — silnik testowy). Pośrednik kończy się, gdy klient zamknie kanał
 (bufory wracają do karty z zamknięciem węzła render).
 

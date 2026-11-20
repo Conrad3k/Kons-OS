@@ -221,8 +221,11 @@ int main(int argc, char **argv)
         k1_koniec(TAG, "strefa pobierania bez poprawnego celu");
     if (!mz.opis->okno)
         snprintf(mz.pobierz, sizeof mz.pobierz, "%s", argv[4]);
+    /* 0.10.9 step 6: fast graphics first — fd 10 is the broker's only while the VMM has opened nothing itself */
+    if (gpu_lacze_start() != 0)
+        k1_koniec(TAG, "nie można przygotować maszyny");
     mz.budzik = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
-    if (mz.budzik < 0 || gpu_lacze_start() != 0 || przygotuj() != 0 || dane_start() != 0)
+    if (mz.budzik < 0 || przygotuj() != 0 || dane_start() != 0)
         k1_koniec(TAG, "nie można przygotować maszyny");
     if (mz.opis->okno)
         okno_sesja(argc > 4 ? argv[4] : NULL);

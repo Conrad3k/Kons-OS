@@ -361,6 +361,12 @@ KROK 2 — K1: sterownik karty w jądrze, usługa „dekoder filmów”         
     na obu laptopach (oczekiwane: H.264), pobór mocy.
 
 KROK 3 — Strefa: filmy kartą; porządki i wydanie 0.10.9 (OSTATNI)      L · D4 (D1–D3 przy D9 „B”), T5 · ADR 0049
+  DECYZJA WŁAŚCICIELA 2026-11-20 (w czasie kroku 6): filmy kartą WYPADAJĄ z 0.10.9 — „wypierdol na razie filmy, zostaw
+  w planach na »może«”. Krok 3 to tylko porządki i wydanie (jak przy niezdanej bramce zysku, ADR 0049 pkt 6). Strona
+  strefy dla filmów (sterownik VA gościa, FFmpeg w strefie, droga VMM → dekoder filmów, prefy, D4) — „może” w
+  docs/DO_ZROBIENIA.txt. Usługa „dekoder filmów” z kroku 2 zostaje w systemie (pytanie przy starcie, tylko log); linia
+  o filmach w Ustawieniach zniknęła, przełącznik nazywa się „Szybka grafika”. Zadania niżej — historyczne, poza porządkami
+  i wydaniem.
   (Wykonywany ostatni, po kroku 6: Firefox użyje karty do filmów tylko przy sprzętowym GL, czyli w sesji z szybką
   grafiką — ADR 0049 pkt 5. Do 2026-11-20 porządki, wydanie i lista dla właściciela były w kroku 6.)
   Cel: film w sesji z szybką grafiką rozpakowuje dekoder filmów K1 (karta), a strefa nadal nie steruje kartą; potem
