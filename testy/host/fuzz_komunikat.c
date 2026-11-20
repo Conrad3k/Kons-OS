@@ -16,7 +16,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     enum k1_kanal_kierunek kier;
     if (size < 1)
         return 0;
-    kier = (enum k1_kanal_kierunek)(data[0] % 9); /* includes invalid 0 and 8 */
+    kier = (enum k1_kanal_kierunek)(data[0] % (K1_KIER_MAKS + 2)); /* includes invalid 0 and K1_KIER_MAKS + 1 */
     memset(&zero, 0, sizeof zero);
     if (k1_komunikat_sprawdz(data + 1, size - 1, kier, &k) != 0) {
         if (memcmp(&k, &zero, sizeof k) != 0)

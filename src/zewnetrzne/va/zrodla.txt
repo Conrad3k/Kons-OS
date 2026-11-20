@@ -1,0 +1,9 @@
+# Biblioteki dekodera filmów (usługa filmy, 0.10.9 krok 2, ADR 0049 pkt 3; docs/ZALEZNOSCI.md) — jedna tabela.
+# scripts/zbuduj-va.sh pobiera każde archiwum raz z deb.debian.org (pakiety źródłowe Debiana 13 „trixie”), sprawdza
+# sumę i buduje biblioteki statycznie z naszym musl (build/va). Sumy jak w podpisanych plikach .dsc Debiana.
+# Kolumny: ścieżka w puli Debiana (https://deb.debian.org/debian/pool/main/) | SHA-256.
+# Nowa wersja: nowy wiersz (stary usunąć), nowa suma z .dsc, zbuduj-va.sh (katalogi i lista plików), pełne testy.
+libd/libdrm/libdrm_2.4.134.orig.tar.xz                                ac5e74d157830eb8bee44c6a6bf3ad49774ef0dd2a72bdad74a8f20308b52a95
+libv/libva/libva_2.24.1.orig.tar.gz                                   ed24e260a46bb669660b7b5ee993fe17dd436f7874f17de5620305dd69ced8b1
+i/intel-vaapi-driver/intel-vaapi-driver_2.4.1+dfsg1.orig.tar.xz       c684a2190d826b032b58743a563af385c906be6d79c74aac629274cf180fd558
+i/intel-vaapi-driver/intel-vaapi-driver_2.4.1+dfsg1-2.debian.tar.xz   b17a409a1ee0f154c114b030ab377a47c2f2098dc3f823408f7a3db9bb32cf45

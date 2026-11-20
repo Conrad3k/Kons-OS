@@ -6,7 +6,7 @@
 /* a zone with a 2900 MiB limit, 1536 at the start, K1 holding `w_k1`, `dostepna` free in the guest */
 static struct pamiec_strefy strefa(int fokus, int32_t w_k1, int32_t dostepna)
 {
-    return (struct pamiec_strefy){ fokus, 2900, 1536, w_k1, dostepna, 0, 0 };
+    return (struct pamiec_strefy){ fokus, 2900, 1536, w_k1, dostepna, 0, 0, 0 };
 }
 
 static void granica(void)
@@ -92,6 +92,9 @@ static void rozdzielacz(void)
     EXPECT(pamiec_rozdziel(500, 768, s, 3, &z) == PAMIEC_MALO && z == -1);
     EXPECT(pamiec_rozdziel(150, 768, s, 3, &z) == PAMIEC_KRYTYCZNIE && z == 2);
     EXPECT(pamiec_rozdziel(150, 768, s, 1, &z) == PAMIEC_KRYTYCZNIE && z == -1); /* only the focused one */
+    /* 0.10.9 step 2 (T8): the buffers of a zone's film decoder count — zone 1 with its films has more than zone 2 */
+    s[0] = strefa(1, 2500, 100), s[1] = strefa(0, 600, 150), s[2] = strefa(0, 900, 120), s[1].filmy = 400;
+    EXPECT(pamiec_rozdziel(150, 768, s, 3, &z) == PAMIEC_KRYTYCZNIE && z == 1);
     /* short, but a balloon can still give more next second (the step): not the window yet */
     s[0] = strefa(0, 2400, 1200);
     EXPECT(pamiec_rozdziel(100, 768, s, 1, &z) == PAMIEC_DOBRZE && s[0].cel == 756);

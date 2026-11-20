@@ -118,6 +118,10 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **zasady nazw** | Co może być nazwą pliku lub folderu w K1 (`k1_nazwy.c`, 0.8.2): 1–127 bajtów, bez `\ / : * ? " < > |`, znaków niewidocznych i zmieniających kierunek, bez spacji (każdej szerokości) na brzegach i kropki na końcu, litera ze znakiem diakrytycznym jako jedna litera. Te same w skarbcu i czytniku. |
 | **Gatekeeper** | Część K1, która przyjmuje pliki z zewnątrz (strefy, pendrive): czeka na zgodę, czyta z limitami, zapisuje do Plików z pochodzeniem. |
 | **dekoder** | Jednorazowy program w klatce, który czyta jeden ryzykowny plik (obraz, PDF) i oddaje tylko obraz; potem znika. Od 0.8.0 usługa `dekoder` (PNG, JPEG; ADR 0032). |
+| **dekoder filmów** | Usługa `filmy` (0.10.9, ADR 0049): rozpakowuje film kartą graficzną na prośbę jednej strefy — jeden na strefę, w klatce, z węzłem render karty; prośby ze strefy sprawdza pole po polu. Nie mylić z **dekoderem** (zdjęcia). |
+| **sprzętowe dekodowanie filmów** | Rozpakowywanie filmu przez kartę graficzną (VA-API), nie procesor — w K1 przez dekoder filmów; w Ustawieniach → Przeglądarka linia „Karta graficzna tego komputera rozpakowuje filmy: …” (0.10.9). |
+| **węzeł render** | Plik urządzenia karty graficznej (`/dev/dri/renderD*`) do rysowania i rozpakowywania bez sterowania obrazem; w K1 otwiera go nadzorca i daje tylko dekoderowi filmów (od kroku 5 też pośrednikowi grafiki). Obrazem steruje węzeł card — tylko ekran (ADR 0049). |
+| **okno dekodera** | Pamięć wspólna klienta i dekodera filmów (memfd z pieczęciami, `K1_FILMY_OKNO`): prośba (skopiowana przed sprawdzeniem), potem klatka NV12. |
 | **Podgląd** | Aplikacja, która pokazuje zdjęcie w osobnym oknie: ← / →, obrót widoku, do Kosza, tapeta (0.8.2, ADR 0037). Do 0.8.2 „podgląd” znaczył panel po prawej w Plikach — dziś to **szczegóły** (decyzja D1). |
 | **szczegóły** | Panel po prawej w Plikach: ikona, nazwa, typ, rozmiar, daty, pochodzenie zaznaczonego pliku, początek tekstu albo miniatura zdjęcia. |
 | **miniatura** | Zdjęcie zmniejszone do 200 × 150 w szczegółach w Plikach (od dekodera). |

@@ -112,7 +112,7 @@ void wifi_zamknij(void);          /* leaving the section: the row closes, a type
 void wifi_lista_zmieniona(void);  /* a new list: the open network found again by its name */
 
 /* przegladarka.c (0.10.0 step 5): the browser's sessions */
-void przegladarka_odbierz(const struct k1_komunikat *k); /* STREFY_STAN, STREFA_NAZWA, STREFA_WYCZYSZCZONO */
+void przegladarka_odbierz(const struct k1_komunikat *k); /* STREFY_STAN, STREFA_NAZWA, STREFA_WYCZYSZCZONO, FILMY_KARTA */
 void przegladarka_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 int przegladarka_klik(int32_t x, int32_t y);                  /* 1 = handled */
 int przegladarka_najechanie(int32_t x, int32_t y);            /* x < 0: the pointer left; 1 = redraw (0.10.1 step 4) */

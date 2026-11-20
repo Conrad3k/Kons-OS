@@ -488,9 +488,10 @@ sprawdz("drugi raz: „Pominięto 1100, już zaimportowane”, nic nie przybywa"
         widok(lambda: klik(*miejsce(2)), "Obrazy", 1109))  # 10 + 1100, one in Kosz (Podgląd, 4c)
 # 6. the log
 t_ = tekst()
+# "film" (film.mp4) as a word: since 0.10.9 step 2 K1's own log speaks of the film decoder ("filmy", K1-FILMY)
 sprawdz("nazwy i treść plików z pendrive'a nie trafiają do logu",
-        all(s not in t_ for s in ("IMG_0001", "IMG_0002", "USZKODZONE", "Wakacje", "Łódź", "notatka", "film", "wideo", "ukryty", "Zakupy",
-                                  "DCIM", "100K1", "telefon", "Telefon", "ZDJ_")))
+        all(s not in t_ for s in ("IMG_0001", "IMG_0002", "USZKODZONE", "Wakacje", "Łódź", "notatka", "wideo", "ukryty", "Zakupy",
+                                  "DCIM", "100K1", "telefon", "Telefon", "ZDJ_")) and not re.search(r"\bfilm\b", t_))
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów", "Kernel panic" not in t_ and
         "BŁĄD" not in t_ and "zabronione wywołanie" not in t_ and "odrzucono" not in t_)
 sys.exit(0 if all(q.wyniki) else 1)

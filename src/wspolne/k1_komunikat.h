@@ -17,6 +17,7 @@
 
 #include "k1_dekoder.h"
 #include "k1_dokument.h"
+#include "k1_filmy.h"
 #include "k1_pendrive.h"
 #include "k1_siec.h"
 #include "k1_wifi.h"
@@ -38,8 +39,10 @@ enum k1_kanal_kierunek {
     K1_KIER_OD_DEKODERA = 11, /* dekoder → Pliki */
     K1_KIER_DO_SIECI = 12,   /* Ustawienia → siec (0.9.1 step 2: a Wi-Fi password goes straight to siec, not through
                               * nadzorca; one way — siec answers in the list of networks nadzorca passes on) */
+    K1_KIER_DO_FILMOW = 13,  /* the client (a zone's VMM, nadzorca's question, the test program) → filmy (0.10.9 step 2) */
+    K1_KIER_OD_FILMOW = 14,  /* filmy → its client */
 };
-#define K1_KIER_MAKS 12
+#define K1_KIER_MAKS 14
 
 enum k1_komunikat_typ {
     /* nadzorca → ekran */
@@ -441,6 +444,33 @@ enum k1_komunikat_typ {
                                     * also when it is not in the list), c=the remembered networks of the list (bit i: network i) */
     /* nadzorca → siec: the end of Ustawienia's channel (when Ustawienia start) */
     K1_KOM_SIEC_USTAWIENIA = 161,  /* obiekt=0, all 0; + 1 fd (siec's end of K1_KIER_DO_SIECI, sender UID checked) */
+    /* 0.10.9 step 2 (ADR 0049 pkt 3): the film decoder — its client → filmy (K1_KIER_DO_FILMOW; formats: k1_filmy.h) */
+    K1_KOM_FILMY_OKNO = 195,       /* obiekt=0, all 0; + 1 fd: the window, a memfd of K1_FILMY_OKNO bytes sealed against
+                                    * shrinking and growing (once; the decoder checks size and seals) */
+    K1_KOM_FILMY_OTWORZ = 196,     /* obiekt=film 1..K1_FILMY_FILMOW_MAKS, a=codec 1..K1_KODEKI_MAKS, b,c=width, height
+                                    * K1_FILMY_MIN_WH..K1_FILMY_MAKS_W/_H, d=surfaces 1..K1_FILMY_KLATEK_MAKS, e=0 */
+    K1_KOM_FILMY_KLATKA = 197,     /* obiekt=film, a=its surface to decode into 0..K1_FILMY_KLATEK_MAKS-1, b=the request's
+                                    * length in the window sizeof(k1_filmy_naglowek)..K1_FILMY_PROSBA_MAKS, c..e=0 */
+    K1_KOM_FILMY_POBIERZ = 198,    /* obiekt=film, a=surface: its picture into the window (reply FILMY_OBRAZ), b..e=0 */
+    K1_KOM_FILMY_ZAMKNIJ = 199,    /* obiekt=film, all 0: the film ends, its buffers go back */
+    /* filmy → its client (K1_KIER_OD_FILMOW) */
+    K1_KOM_FILMY_UMIE = 200,       /* first, once: obiekt=0, a=bit k-1: codec k of K1_KODEKI the card decodes (only with
+                                    * b=UMIE, then not 0), b=K1_FILMY_KARTA_BRAK/NIC/UMIE, c=VA status 0..255 (NIC; else 0),
+                                    * d,e=the largest width, height of the card and K1 (UMIE; else 0) */
+    K1_KOM_FILMY_WYNIK = 201,      /* obiekt=film 0..K1_FILMY_FILMOW_MAKS (OKNO: 0), a=the request's type (FILMY_OKNO..
+                                    * ZAMKNIJ), b=0 or K1_FILMY_BLAD_*, c..e=0 */
+    K1_KOM_FILMY_OBRAZ = 202,      /* obiekt=film, a=surface, b,c=width, height (the film's), d=k1_filmy_rzad(b), e=0: the
+                                    * frame (NV12) at K1_FILMY_PROSBA_MAKS in the window */
+    /* nadzorca → Ustawienia (fd 4): what the card of this computer decodes (Ustawienia → Przeglądarka) */
+    K1_KOM_FILMY_KARTA = 203,      /* obiekt=0, a=bits as FILMY_UMIE (only with b=UMIE), b=K1_FILMY_KARTA_*, c=the code
+                                    * 0..255 (BLAD: exit code or 128+signal; NIC: VA status; else 0), d=e=0 */
+    /* ekran → nadzorca (its control channel, K1_KIER_DO_NADZORCY; 0.10.9 step 2, S3: a new version is confirmed only
+     * after its picture showed — with i915 a black screen would otherwise be confirmed) */
+    K1_KOM_EKRAN_OBRAZ = 205,      /* obiekt=0, a=1: the first frame is on the screen (a page flip completed; simpledrm:
+                                    * the mode set), b..e=0 — once after every start of ekran */
+    /* the test program → nadzorca (test image only) */
+    K1_KOM_TEST_FILMY = 204,       /* obiekt=0, a=zone 1..K1_STREFY_MAKS, b=0 the card / 1 the test decoder (grey frames,
+                                    * no card), c..e=0 → TEST_GNIAZDO + 1 fd: the client's end of a new decoder of that zone */
 };
 
 /* What happened to the connection (SIEC_WIFI_ZDARZENIE a). */

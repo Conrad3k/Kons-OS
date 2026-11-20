@@ -56,6 +56,7 @@ int main(int argc, char **argv)
     t_strefa_klatka();
     t_malicious_ipc();
     t_proby();
+    t_filmy();
     t_okna_ipc();
     t_okna_ochrona();
     t_okna_zalegle();

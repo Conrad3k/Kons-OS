@@ -55,9 +55,10 @@ int proba(const char *profil)
     long r;
     void *m;
     int e;
-    /* memfd (surfaces, data) for everyone but wejscie and the disk writer (nadzorca/profile.c); siec since 0.9.1 step 2
-     * (the remembered Wi-Fi networks it writes for skarbiec) */
-    int okna = strstr(profil, "wejscie") == NULL && strstr(profil, "instalator") == NULL;
+    /* memfd (surfaces, data) for everyone but wejscie, the disk writer and the film decoder (its window comes from its
+     * client — 0.10.9 step 2) (nadzorca/profile.c); siec since 0.9.1 step 2 (the remembered Wi-Fi networks it writes for
+     * skarbiec) */
+    int okna = strstr(profil, "wejscie") == NULL && strstr(profil, "instalator") == NULL && strstr(profil, "filmy") == NULL;
 
     memset(&sa, 0, sizeof sa);
     sa.sa_sigaction = proba_sigsys;

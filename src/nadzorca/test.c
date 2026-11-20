@@ -36,6 +36,11 @@ void obsluz_test(void)
             odpowiedz_testowi(0, fd);
             close(fd);
         }
+    } else if (k.typ == K1_KOM_TEST_FILMY) { /* 0.10.9 step 2: the test program as the zone's VMM (b=1: test decoder) */
+        int fd = filmy_dla_strefy(k.a, k.b);
+        odpowiedz_testowi(-1, fd);
+        if (fd >= 0)
+            close(fd);
     } else if (k.typ == K1_KOM_URUCHOM) {
         uruchom_aplikacje(k.a);
         odpowiedz_testowi(0, -1);

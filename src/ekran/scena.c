@@ -340,6 +340,7 @@ void odbierz_drm(void)
                 s.przedni = (int)v.user_data;
                 s.flip_w_toku = 0;
                 s.klatki++;
+                zglos_obraz(); /* the card shows our frames (0.10.9 step 2, S3) */
             }
         }
         off += e.length;

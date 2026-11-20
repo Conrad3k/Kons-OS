@@ -179,6 +179,7 @@ Sześć kroków (kolejność wykonania od 2026-11-19: 1, 4, 2, 5, 6, 3 — filmy
         PR #181 (pomiary ze sprzętu przeniesione do kroków 2, 3, 5 — ADR 0049)
                                                             S36–S39
 [ ]  2  K1: i915 w jądrze, usługa „dekoder filmów”          S10–S17, S26     1, 0.10.1   T1–T3, T6–T8     L        z kr. 1
+        [w toku: Claude, gałąź claude/admiring-cerf-wbk4l0]
 [ ]  3  Strefa: przełącznik filmów, Firefox z dekoderem     S18–S25, S29     2, 4        D1–D4, T4, T5, T9 L        z kr. 1
 [x]  4  Obraz przeglądarki poza rdzeniem, szybszy start     S31–S35          0.10.7      T16              M        0050
         PR #183 (obraz w miejscu A/B obok k1.efi, format bez zmian — szybszy start i miejsce: D10)
@@ -350,7 +351,34 @@ KROK 2 — K1: sterownik karty w jądrze, usługa „dekoder filmów”         
   filmów”, „sprzętowe dekodowanie filmów”, „węzeł render”), RYZYKA (nowe: sterownik karty i i965 w zasięgu danych ze
   strefy; i965 w trybie utrzymania), ZALEZNOSCI, TESTY.md, SPEC [korekta: ADR …], skill kons-dev (niezmiennik 7, mapa).
   Gotowe, gdy: CI zielone, właściciel potwierdził linię w Ustawieniach i pulpit na obu laptopach.
-  Ustalenia z wykonania: (pusto — wypełnia krok 2)
+  Ustalenia z wykonania (2026-11-20, gałąź claude/admiring-cerf-wbk4l0):
+  - Jądro: CONFIG_DRM_I915=y (bzImage 14 312 KiB) i plik DMC Skylake (i915/skl_dmc_ver1_27.bin — S10 ZE ŹRÓDEŁ:
+    intel_dmc.c SKL_DMC_PATH; tabela jadro/oprogramowanie-kart.txt, teraz też karty graficzne). i915 wybiera ACPI_WMI, a ten
+    włącza WMI_BMOF; razem z DRM_I915_CAPTURE_ERROR, _COMPRESS_ERROR, _USERPTR to cztery nowe pytania porównania jądra —
+    wyłączone wprost w jadro/k1.config (# … is not set, z powodem); jadro/k1-odrzucone.txt bez zmian (zmienia go
+    człowiek). Porównanie: „nic do rozstrzygnięcia”. S11: k1-zamkniete.config nie dotyczy i915.
+  - S3 ZAMKNIĘTE: ekran wysyła EKRAN_OBRAZ na kanale sterującym po pierwszym zakończonym page flipie (simpledrm: po
+    ustawieniu trybu); rozruch.c liczy 15 s dopiero od niego. Czarnego ekranu przy „udanym” KMS nie da się wykryć
+    programem — to sprawdza właściciel.
+  - S4/S5 POTWIERDZONE (budowa w kroku 2): libva, libdrm, i965 statycznie (scripts/zbuduj-va.sh, 28 s); ostrzeżenia
+    libdrm 12, libdrm_intel 108, libva 254, i965 1177. Obce biblioteki wołają funkcje plikowe (fopen libva.conf,
+    access sterownika, /sys dla rewizji karty, access /dev/dri w drmGetNodeTypeFromFd) i getuid/geteuid — bez seccomp
+    kończyłyby dekoder kodem 159: funkcje plikowe zastępuje --wrap (src/filmy/obce.c: błąd bez wywołania jądra),
+    getuid/geteuid w klatce. Program filmy: 2,0 MB.
+  - S13, T6: dekoder strefy = wiersz strefy (profil K1_PROFIL_FILMY + nr, UID 400 + nr, cgroup filmy-<nr>) — osobny
+    UID i cgroup na strefę; wiersz K1_SYSTEM FILMY (UID 109) to pytanie przy starcie. Węzeł render tylko sterownika i915
+    (sysfs device/driver), bez niego „brak karty” od razu (Ustawienia nie czekają).
+  - S14: format k1_filmy.h — H.264 jak struktury VA z klatkami jako indeksami powierzchni filmu, pola bitowe jako osobne
+    pola; sprawdzane wszystkie pola (zakresy H.264), nie tylko te od pamięci; odniesienia tylko do rozpakowanych klatek.
+    K1_KODEKI: tylko H.264 (trzy profile) — jedyny wspólny format obu laptopów (S9); HEVC i VP8 — wiersz, gdy krok 3
+    pokaże, że Firefox ich użyje.
+  - T8, S15: K1_FILMY_PAMIEC 512 MiB na dekoder (1080p × 20 klatek ≈ 78 MB, 4K ≈ 354 MB), odmowa przed przydziałem;
+    w rozdzielaczu pamięć dekodera liczy się przy wyborze sesji do zamknięcia (nie w celu balonu — tej pamięci balon nie
+    odda). S26 — do potwierdzenia na sprzęcie (Zasoby: wiersz „Dekoder filmów” podczas filmu, krok 3).
+  - T7, S17: dekoder testowy (szare klatki, 32 MiB) tylko na prośbę programu testowego (TEST_FILMY b=1).
+  - S16 (lista ioctl): seccomp przepuszcza typ 'd' (jak ekran); węższa lista z pomiaru na sprzęcie — T15 „opakowanie”.
+  - Sprawdzenia na sprzęcie (właściciel): pulpit z i915 na X230 (IdeaPad — potwierdzony w kroku 1), linia w Ustawieniach
+    na obu laptopach (oczekiwane: H.264), pobór mocy.
 
 KROK 3 — Strefa: przełącznik filmów w Ustawieniach, Firefox z dekoderem filmów   L · D1–D4, T4, T5 · ADR z kr. 1
   (Do 2026-11-17 ten krok kończył wersję — wydanie, porządki i lista dla właściciela przeszły do kroku 6. Zaczyna się

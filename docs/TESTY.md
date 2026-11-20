@@ -78,7 +78,8 @@ PLIK` — inny plik (test negatywny), `--obraz-strefy -` — żaden; z pendrive'
 Zabezpieczenia programów (static-pie, RELRO, BIND_NOW, NX, brak RWX, pułapki fortify — `scripts/sprawdz-binaria.sh`,
 próbka `testy/host/proba_fortify.c`: w granicach działa, przepełnienie — SIGILL), konfiguracja jądra (każda linia
 `jadro/k1.config` w `.config`, `scripts/sprawdz-konfiguracje-jadra.sh`; KSPP — `scripts/sprawdz-kspp.sh`), musl (suma,
-podpis PGP, łatki — `scripts/zbuduj-musl.sh`), pliki od producentów kart (sumy — `scripts/oprogramowanie-kart.sh`).
+podpis PGP, łatki — `scripts/zbuduj-musl.sh`), pliki od producentów kart (sumy — `scripts/oprogramowanie-kart.sh`), biblioteki dekodera filmów (sumy —
+`scripts/zbuduj-va.sh`, 0.10.9 krok 2).
 Błąd = budowa przerwana. Powtarzalność: `scripts/sprawdz-powtarzalnosc.sh` (dwie budowy → te same bajty).
 
 ### 2. Czytelność (`scripts/sprawdz-czytelnosc.py`, pierwszy krok `test-m1.sh`)
@@ -102,6 +103,7 @@ test używa (`grub-editenv`, `sfdisk`, mtools, `fsck.fat`), to błąd, nie pomin
 | start, instalator, aktualizacje | `test_uklad` (blok układu, grubenv — te same bajty co `grub-editenv`), `test_efi`, `test_manifest`, `test_sha256`, `test_instalator` (GPT czytana przez `sfdisk`), `test_start` (pliki startowe: przerwanie przed każdym z 28 zapisów, `fsck.fat`, mtools), `test_inst_prawa` (0.10.5: co może okno Instalatora, a co Ustawienia → Aktualizacje; NEGATYWNE — Ustawienia nigdy nie instalują ani nie włączają Secure Boot, Instalator nie aktualizuje) |
 | bateria | `test_bateria`, `test_bat_arch` |
 | sieć | `test_siec` (DHCP, stan, komunikaty), `test_czas` (SNTP, runda), `test_wifi`, `test_wifi_polacz`, `test_wpa` (router w teście, KRACK), `test_krypto` (wektory FIPS/RFC/IEEE) |
+| filmy | `test_filmy` (0.10.9 krok 2, ADR 0049: prośby dekodera filmów pole po polu — każde pole poza zakresem, złe długości, odniesienie do nierozpakowanej klatki; komunikaty `FILMY_*`, `TEST_FILMY`; pamięć filmów, nazwy dla Ustawień) |
 | strefy | `test_obraz_strefy` (0.10.9 krok 4, ADR 0050: linia skrótu obrazu strefy w rdzeniu i miejsce obrazu przeglądarki w miejscu A/B), `test_virtio` (kolejki, wrogie łańcuchy, linie z liczbami od gościa — 0.10.1), `test_strefa_start` (boot_params, tablice), `test_powod_strefy` (powód końca strefy: kod VMM i zdarzenia klatki — 0.10.1 krok 1), `test_balon` + `fuzz_balon` (listy stron, bloki, statystyki balonu — 0.10.1 krok 2), `test_tlo` (0.10.5: obraz z pamięci strefy ponad 3 GiB — górna część pamięci leży w VMM zaraz za dolną; czarne okno przeglądarki na X230 z 8 GB), `test_pamiec_stref` (górna granica: D2; od 0.10.1 krok 3 rozdzielacz — sesje w tle oddają pierwsze, sesja z fokusem ostatnia, zapas gościa i pamięć na start nietknięte, to, o co już poproszono, się liczy, histereza, „mało pamięci” tylko gdy żaden balon nie może wziąć więcej, krytycznie — do zamknięcia sesja w tle z największą pamięcią, nigdy ta z fokusem) |
 
 Pomiary (nie w `testy-host`, bez ASan, ręcznie): `make build/obj/pomiar_magazynu`, `make build/obj/pomiar_podgladu`.
@@ -123,6 +125,7 @@ podręczna Actions), więc każdy przebieg idzie głębiej. Przypadki, które li
 | start i aktualizacje | `fuzz_manifest`, `fuzz_uklad` (K1-EFI), `fuzz_fat32` (drzewo plików startowych), `fuzz_ogloszenie`, `fuzz_paczka` |
 | sieć | `fuzz_dhcp`, `fuzz_sntp`, `fuzz_wifi` (opisy sieci z powietrza), `fuzz_eapol` |
 | strefy | `fuzz_virtq` (kolejki virtio), `fuzz_vsock`, `fuzz_lacznik` (SOCKS5 i DNS), `fuzz_balon` |
+| filmy | `fuzz_filmy` (prośba do dekodera filmów ze stanem filmu; 0.10.9 krok 2) |
 
 ### 5. W systemie (`testy/system/*.c` → `/rdzen/system/test-systemu`, obraz `rdzen-test.squashfs`)
 Obraz testowy = produkcyjny + program testowy, który uruchamia nadzorca (jako root bez klatki: izolację sprawdza

@@ -190,7 +190,13 @@ potem działa kolejka w ekranie.
 - Zmiana tapety: ponowne liczenie (ok. 2 s w emulacji TCG) i przerysowanie.
 
 ## Zależności
-musl (statycznie, w tym libm), jądro: DRM + `bochs` (QEMU) albo `simpledrm` (firmware). Bez libdrm.
+musl (statycznie, w tym libm), jądro: DRM + `bochs` (QEMU), `i915` (karty Intela — od 0.10.9 krok 2, ADR 0049; page flip
+jak bochs), `vmwgfx` albo `simpledrm` (firmware). Bez libdrm.
+
+Od 0.10.9 krok 2 (S3) ekran mówi nadzorcy na kanale sterującym (fd 3), że jego obraz jest na ekranie: `EKRAN_OBRAZ`
+(a = 1) raz po każdym starcie — po pierwszym zakończonym page flipie (silnik obrazu pokazuje nasze klatki), przy
+simpledrm po ustawieniu trybu. Nadzorca dopiero od tej chwili liczy 15 s do potwierdzenia nowej wersji (A/B). Log
+„obraz na ekranie — zgłoszony nadzorcy”.
 
 ## Wywołania systemowe
 `ioctl` (DRM: GET_CAP, MODE_GETRESOURCES/GETCONNECTOR/GETENCODER, CREATE_DUMB, ADDFB, MAP_DUMB,

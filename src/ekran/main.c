@@ -32,6 +32,21 @@
 
 struct stan s;
 
+/* 0.10.9 step 2 (S3): nadzorca confirms a new version (A/B) only once ekran saw its picture on the screen — a completed
+ * page flip (the display engine runs our frames), or the mode set for simpledrm (no flips). Once per start of ekran. */
+void zglos_obraz(void)
+{
+    static int zgloszony;
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_EKRAN_OBRAZ, 0, 1, 0, 0, 0, 0);
+    if (zgloszony)
+        return;
+    zgloszony = 1;
+    if (k1_kanal_wyslij(FD_STEROWANIE, &k, sizeof k, -1) != 0)
+        k1_log(TAG, "zgłoszenie obrazu do nadzorcy: %s", strerror(errno));
+    else
+        k1_log(TAG, "obraz na ekranie — zgłoszony nadzorcy");
+}
+
 /* Control channel from the supervisor: new clients. Returns 0 when it is closed. */
 static int odbierz_sterowanie(void)
 {
@@ -221,6 +236,8 @@ static void start(void)
         k1_koniec(TAG, "SETCRTC: %s", strerror(errno));
     s.przedni = 0;
     k1_log(TAG, "pierwsza klatka: tapeta (%.1f s)", k1_teraz() - t0);
+    if (s.brak_flip)
+        zglos_obraz(); /* simpledrm: no flip will come, the mode set is the proof */
     ustawienia_po_starcie();
 }
 

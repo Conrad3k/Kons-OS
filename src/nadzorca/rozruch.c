@@ -1,7 +1,8 @@
 /* K1 nadzorca — A/B after a start (M6c, ADR 0022). Part of nadzorca (see main.c).
  *
  * After an update GRUB starts the new slot once (grubenv: k1_proba = k1_start). When the system came up
- * (the desktop or the password screen for ROZRUCH_OK seconds), nadzorca looks at the K1-EFI of every
+ * (the desktop or the password screen for ROZRUCH_OK seconds, counted from the moment ekran said its picture is on the
+ * screen — 0.10.9 step 2, S3: with i915 a version with a black screen must not be confirmed), nadzorca looks at the K1-EFI of every
  * internal disk: a try that started — and holds the very build that runs now (the build id of the slot
  * manifest = /rdzen/system/wydanie) — becomes the confirmed slot; a try GRUB went back from (k1_start is
  * not k1_proba) is cleared and reported in Ustawienia → Aktualizacje (INST_AB) and, once, in a window of gui (AB_NIEUDANA,
@@ -15,7 +16,7 @@
 #define ROZRUCH_OK 15.0
 
 static uint8_t wydanie[16];
-static int wydanie_jest, ab_zrobione;
+static int wydanie_jest, ab_zrobione, obraz; /* obraz: ekran said its first frame is on the screen (S3) */
 static double ab_od;
 static struct k1_komunikat ab_do_gui; /* AB_NIEUDANA waiting for gui (typ 0: none) */
 char ab_nieudana[32]; /* the K1-EFI whose last try did not start (this session; for Ustawienia → Aktualizacje) */
@@ -74,6 +75,24 @@ static int sprawdz_dysk(const char *efi)
     return d == K1_AB_NIC && k1_slot_nr(e.proba) >= 0;
 }
 
+/* ekran's control channel: EKRAN_OBRAZ only (sender: ekran). It may come again after a restart of ekran. */
+void obsluz_ekran(void)
+{
+    for (int i = 0; i < 4 && sterowanie >= 0; i++) {
+        struct k1_komunikat k;
+        enum k1_odbior_wynik w = k1_odbierz_komunikat(sterowanie, K1_UID_EKRAN, K1_KIER_DO_NADZORCY, &k, NULL);
+        if (w == K1_ODB_PUSTO || w == K1_ODB_KONIEC) /* its end: the restart of ekran closes ours (uslugi.c) */
+            return;
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_EKRAN_OBRAZ) {
+            if (!obraz)
+                k1_log(TAG, "ekran pokazuje obraz — od teraz liczy się czas do potwierdzenia nowej wersji (A/B)");
+            obraz = 1;
+        } else {
+            k1_log(TAG, "odrzucono komunikat od ekranu");
+        }
+    }
+}
+
 void rozruch_po_starcie(double t)
 {
     struct k1_dyski l;
@@ -84,7 +103,7 @@ void rozruch_po_starcie(double t)
             k1_log(TAG, "A/B: okienko o nieudanej próbie — do pulpitu");
         ab_do_gui.typ = 0;
     }
-    if (ab_zrobione || (e != E_PULPIT && e != E_HASLO))
+    if (ab_zrobione || (e != E_PULPIT && e != E_HASLO) || !obraz)
         return;
     if (ab_od == 0) {
         ab_od = t;

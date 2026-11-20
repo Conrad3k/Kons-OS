@@ -21,6 +21,8 @@ struct pamiec_strefy {
     int32_t w_k1;           /* the guest's memory K1 holds now */
     int32_t dostepna;       /* available in the guest by its own statistics; -1: not known yet */
     int32_t balon, cel;     /* in the balloon now; K1's target (the rozdzielacz changes it) */
+    int32_t filmy;          /* 0.10.9 step 2 (T8): the buffers of its film decoder — no balloon gives them back, but they
+                             * count when K1 chooses the zone to close */
 };
 #define PAMIEC_STREF_MAKS 8 /* zones at once (≥ K1_STREFY_MAKS) */
 
@@ -35,7 +37,8 @@ int32_t pamiec_moze_oddac(const struct pamiec_strefy *z);
  * most; never into a guest's zapas): the target makes the guest as big as what K1 should hold of it; with the reserve and
  * some more again they shrink (the focused one first). Returns PAMIEC_DOBRZE; PAMIEC_MALO
  * when K1 stays below its reserve and no balloon can take more (D3 (2): the window); PAMIEC_KRYTYCZNIE when it has also
- * less than a quarter of the reserve — *zamknij is then the zone in the background with the most memory (D3 (3)), -1:
+ * less than a quarter of the reserve — *zamknij is then the zone in the background with the most memory (its guest and its
+ * film decoder; D3 (3)), -1:
  * none (only the focused one: the kernel's OOM killer decides). */
 enum { PAMIEC_DOBRZE = 0, PAMIEC_MALO = 1, PAMIEC_KRYTYCZNIE = 2 };
 int pamiec_rozdziel(int64_t dostepna_mib, uint32_t rezerwa_mib, struct pamiec_strefy *s, int n, int *zamknij);

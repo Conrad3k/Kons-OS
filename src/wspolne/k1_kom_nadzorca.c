@@ -140,6 +140,8 @@ int k1_kom_sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
                miejsce_plikow(k->a, k->b) && zera(k, 2);
     case K1_KOM_WYLACZ:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 0, 2) && zera(k, 1);
+    case K1_KOM_EKRAN_OBRAZ: /* 0.10.9 step 2 (S3) */
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && k->a == 1 && zera(k, 1);
     case K1_KOM_TEST_POLACZ:
         return kier == K1_KIER_DO_NADZORCY && klient(k);
     case K1_KOM_TEST_PROBA:
