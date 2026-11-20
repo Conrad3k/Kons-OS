@@ -94,8 +94,9 @@ src/ ──► build/musl/bin/musl-gcc (static-pie, flagi SPEC §11, _FORTIFY_SO
                                 podpis Secure Boot (klucz z K1_KLUCZ_PODPISU; bez niego — deweloperski)
                      k1-<wersja>.iso ◄── GRUB (UEFI + BIOS) + k1.efi
                      k1-<wersja>.iso ◄── od 0.10.9 bez obrazu przeglądarki (jądro K1 nie ma napędu CD; ADR 0050)
-                     k1-<wersja>-usb.img ◄── GPT: K1-EFI (shim, GRUB, MokManager, grubenv, /k1/a.img = FAT z k1.efi
-                                                  + obraz przeglądarki z drzewem dm-verity, 0.10.9; /k1/b.img)
+                     k1-<wersja>-usb.img ◄── GPT: K1-EFI 1600 MiB (shim, GRUB, MokManager, grubenv, /k1/a.img = FAT z k1.efi
+                                                  + obraz przeglądarki z drzewem dm-verity, 0.10.9; /k1/b.img; miejsca
+                                                  po 768 MiB od kroku 4b) + K1-DANE; na dysku K1-EFI 3 GiB (z poczekalnią)
                                                   + K1-DANE
 ```
 Wynik w `build/wynik/` (+ `SHA256SUMS`, `srodowisko.txt`). Build jest powtarzalny: stały

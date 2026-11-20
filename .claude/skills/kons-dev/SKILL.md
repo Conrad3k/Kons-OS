@@ -67,8 +67,10 @@ skrót; nadzorca zakłada dm-verity i daje go VMM-owi (fd 6). W testach z rdzeni
 
 **Aktualizacje (M6, ADR 0021, 0022):** wydanie ma manifest z podpisem EdDSA (`narzedzia/podpisz.c`, sekret CI
 `K1_KLUCZ_PODPISU`; bez sekretu = wersja deweloperska, `K1_KLUCZ_JEST 0`). K1-EFI (format 2, `k1_uklad.h`):
-FAT32 280 MiB, blok układu, grubenv (`k1_slot/k1_nowy/k1_start/k1_proba`), `/k1/a.img` i `/k1/b.img`
-(128 MiB: k1.efi + manifest z identyfikatorem wydania). Aktualizacja idzie do wolnego miejsca, nowa wersja
+FAT32 1600 MiB, blok układu, grubenv (`k1_slot/k1_nowy/k1_start/k1_proba`), `/k1/a.img` i `/k1/b.img`
+(768 MiB od 0.10.9 krok 4b — rozmiar w bloku układu, do kroku 4 128 MiB: k1.efi + obraz przeglądarki + manifest
+z identyfikatorem wydania w ostatnim MiB; partycja na dysku 3 GiB z poczekalnią; inny rozmiar dysku i wydania →
+`K1_INST_BLAD_UKLAD`, instalacja od nowa). Aktualizacja idzie do wolnego miejsca, nowa wersja
 startuje raz na próbę, `rozruch.c` w nadzorcy zatwierdza ją po 15 s albo zgłasza wycofanie. Instalator
 odmawia niepodpisanych i starszych wersji. Klucz Secure Boot K1 wpisuje się przez MokManagera (`efi.c`:
 `MokNew`/`MokAuth`). Pliki startowe (shim, GRUB, `grub.cfg`…) sprawdza **manifest plików startowych** (format 3, obok
@@ -314,8 +316,10 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   wcześniejszych dopasowań (`q.ile(wzor)`), nie długość logu; pętla `timeout … until grep KONIEC` mogła skończyć się
   limitem — przed nowym przebiegiem testu sprawdź `pgrep -af wifi.py|qemu`, inaczej dwa przebiegi mieszają log (0.10.2: to
   samo z `test-wzorce` — koniec starego przebiegu zamknął gniazdem monitora maszynę nowego).
-- *Obraz przeglądarki poza rdzeniem (0.10.9 krok 4):* miejsce A/B 128 MiB mieści k1.efi i obraz w xz z zapasem ok. 2,5 MiB
-  — zstd (+11 %) się nie mieści; `zbuduj-usb.sh` przerywa z „brakuje N KiB”. Urządzenie blokowe nie ma `st_size` — rozmiar
+- *Obraz przeglądarki poza rdzeniem (0.10.9 krok 4, 4b):* miejsce A/B 768 MiB (k1.efi 20 MiB + obraz zstd 126 MiB, zapas
+  620 MiB); `zbuduj-usb.sh` przerywa z „brakuje N KiB”. Obrazy testów na hoście zostają przy miejscach 128 MiB (format czyta
+  każdy rozmiar od 128 MiB do 2 GiB) — nie powiększaj ich: `mcopy` pisze zera całego miejsca. Pendrive 1,6 GB: kopiuj go
+  `cp --sparse=always`, `dd … conv=sparse`. Urządzenie blokowe nie ma `st_size` — rozmiar
   przez `lseek(SEEK_END)`. Test w systemie `t_sprzet` liczy deskryptory urządzeń blokowych: nadzorca może trzymać tylko
   obraz strefy `k1-strefa-*` pod dm-verity, do odczytu. Wyłączanie: nadzorca czeka co najmniej obieg kropek (1,5 s) — bez
   tego init kończył ekran, zanim narysował „Wyłączanie” (X230, 2026-11-19).

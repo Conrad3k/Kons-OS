@@ -50,7 +50,7 @@ do 0.10.2 jedno zdanie „Aktualizacje są możliwe poprzez nośnik USB.”).
 ## Aktualizacja przez sieć (0.10.5 krok 2, ADR 0046)
 Tryby `K1_INST_SIEC_*` (`INST_ZADANIE` a = 3…6; o każdy prosi tylko nadzorca, żadne okno — c = 1: test aktualizacji)
 w `src/instalator/siec.c` i `siec_instaluj.c`. Program zapisujący to jedyne miejsce w K1, które czyta bajty z sieci.
-- **Poczekalnia:** część partycji K1-EFI dysku za jej FAT32 (od `k1_pocz_od(fat)`; partycja 512 MiB, FAT 280 MiB). Znak
+- **Poczekalnia:** część partycji K1-EFI dysku za jej FAT32 (od `k1_pocz_od(fat)`; partycja 3 GiB, FAT 1600 MiB — od 0.10.9 krok 4b; wcześniej 512 i 280 MiB). Znak
   (4 KiB, `k1_paczka.h`) zerowany przed pobieraniem, zapisany po sprawdzeniu; za nim ogłoszenie, od 1 MiB paczka. Nic, co
   startuje, jej nie czyta. Pendrive jej nie ma (partycja = FAT) — K1 z pendrive'a przez sieć się nie aktualizuje.
 - **`STAN`** (fd 4: ogłoszenie ze strefy albo nic, fd 6: pusty memfd) → `INST_SIEC`: a = wersja, która działa, b = czeka
@@ -73,7 +73,7 @@ w `src/instalator/siec.c` i `siec_instaluj.c`. Program zapisujący to jedyne mie
 
 ## Manifesty i podpis (0.6.2, ADR 0021; od 0.9.0 ADR 0038)
 Przed zapisem program zapisujący czyta dwa manifesty z miejsca A pendrive'a (`k1_manifest.h`): **manifest miejsca**
-(127 MiB: BLAKE2b-256 wewnętrznego FAT z `k1.efi`) i **manifest plików startowych** (zaraz za nim: skrót drzewa plików
+(ostatni MiB miejsca: BLAKE2b-256 obrazu miejsca — FAT z `k1.efi` i obraz przeglądarki) i **manifest plików startowych** (zaraz za nim: skrót drzewa plików
 K1-EFI bez grubenv i miejsc, `k1_fat32_skrot`); oba z tą samą wersją i identyfikatorem wydania. Gdy K1 ma wbudowany
 klucz (`build/gen/k1_klucz.h` z sekretu CI) — wymaga ważnych podpisów EdDSA. Przy aktualizacji czyta manifest
 działającego miejsca na dysku i odmawia starszej wersji (dysk bez bloku układu = 0). Manifest formatu 1 (47 MiB, dla
@@ -82,9 +82,12 @@ K1 0.6.2–0.6.3) zniknął w 0.9.0. Nadzorca czyta oba manifesty do listy (wers
 wersja; przy tej samej — „Zapisz K1 na dysku jeszcze raz”.
 
 ## A/B i Secure Boot (0.7.0, ADR 0022)
-K1-EFI w formacie 2 (`k1_uklad.h`): FAT32 280 MiB, blok układu w zarezerwowanych sektorach, grubenv, miejsca
-`/k1/a.img` i `/k1/b.img` (128 MiB: wewnętrzny FAT z `k1.efi`, od 0.10.9 zaraz za nim obraz przeglądarki z drzewem
-dm-verity — kończy się z końcem obrazu miejsca, ADR 0050 — + manifest formatu 2 na 127 MiB). Manifest obejmuje cały obraz
+K1-EFI w formacie 2 (`k1_uklad.h`): FAT32 1600 MiB (do 0.10.9 krok 4 — 280 MiB), blok układu w zarezerwowanych sektorach,
+grubenv, miejsca `/k1/a.img` i `/k1/b.img` (768 MiB, do kroku 4b 128 MiB — rozmiar w bloku układu: wewnętrzny FAT
+z `k1.efi`, od 0.10.9 zaraz za nim obraz przeglądarki z drzewem dm-verity — kończy się z końcem obrazu miejsca, ADR 0050 —
++ manifest formatu 2 w ostatnim MiB miejsca). **Inny rozmiar miejsc na dysku niż w wydaniu** (K1 zainstalowany 0.10.7
+lub starszym): aktualizacja z pendrive'a i przez sieć odmawia przed zapisem (`K1_INST_BLAD_UKLAD`, „zainstaluj od
+nowa”; test `test_siec_instalatora`). Dysk do instalacji: co najmniej 4 GB (partycja K1-EFI 3 GiB + K1-DANE ≥ 256 MiB). Manifest obejmuje cały obraz
 miejsca, więc instalacja, aktualizacja z pendrive'a i przez sieć kopiują obraz przeglądarki razem z systemem — bez zmian
 w programie zapisującym (także w starszym, który instaluje nową wersję).
 - **Instalacja:** sprawdza manifesty miejsca A i plików startowych, kopiuje FAT pendrive'a bez miejsca B, sprawdza
