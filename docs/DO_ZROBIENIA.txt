@@ -7,16 +7,27 @@ Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ 
 Stan: 0.10.10 — poprawka: Instalator instaluje od nowa także na dysku z K1, Zasoby → „Karta graficzna”. Przed nią 0.10.9
 „Szybka grafika” — przełącznik „Szybka grafika” przy sesji przeglądarki (strony rysuje karta, każdą prośbę
 strefy sprawdza pośrednik grafiki K1; IdeaPad), sterownik karty Intela w jądrze, obraz przeglądarki poza pamięcią K1,
-większe miejsca na system (plany zamknięte: docs/archiwum/); filmy kartą — „może” (punkt 3). Następna wersja — do
-ustalenia z Tobą (mapa, punkt 2).
+większe miejsca na system (plany zamknięte: docs/archiwum/); filmy kartą — „może” (punkt 3). Następna wersja — 0.11.0
+„Pliki ze stref”: plan gotowy (docs/PLAN-0.11.0.txt, punkt 1).
 Data: 2026-11-20.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — po poprawce 0.10.10 (wydanie 0.10.9 Szybka grafika i jego poprawka)
+1. TERAZ — plan 0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt)
 --------------------------------------------------------------
+Twoja prośba z 2026-11-20: plan wersji 0.11.0 w niewielu krokach, z ogólnym celem, i do tego lepszy pełny ekran
+przeglądarki (okno nie domyka krawędzi i zostawia za dużo miejsca na dole). Cel: pliki przechodzą między przeglądarką
+a Plikami K1 — zawsze przez Pliki, jako kopia, za zgodą gestem w oknie K1 (ADR 0027); schowek między oknami; okno
+przeglądarki do krawędzi. Pięć kroków (jeden krok = jeden czat = jeden PR; decyzje D1–D6 czat zada na początku kroku):
+    [ ] krok 1 — okno przeglądarki do krawędzi, pełny ekran (D1)
+    [ ] krok 2 — pliki ze strefy do Plików („Do K1”), pochodzenie pliku; ADR 0051 (D2, D3)
+    [ ] krok 3 — pliki do strefy: „Wyślij do…”, „Otwórz w…”, „Zapisać zmiany w oryginale?” (D4)
+    [ ] krok 4 — przeciąganie plików między oknami, też na okno przeglądarki (D6)
+    [ ] krok 5 — schowek (D5); porządki; wydanie 0.11.0
+Co wpisać w nowym czacie: „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.11.0.txt.”
+0.10.10 (poprawka po 0.10.9) — gotowe:
 Twoja prośba z 2026-11-20 (po instalacji 0.10.9): czysta instalacja na dysku, na którym już jest K1, i karta graficzna
 w Zasobach. Twoje decyzje z tego dnia: przycisk w Instalatorze z pendrive'a (dane z dysku zamknięte, cały dysk
 wyczyszczony), w Zasobach zakładki z wykresami, pobór mocy karty i całego laptopa. Dwa PR-y, wydanie w drugim (numer:
@@ -25,8 +36,7 @@ następny wolny PATCH — robot może wydać coś wcześniej):
         oddaje partycję — SKARB_ZWOLNIJ; od_nowa.c), test-m5f krok 7 — PR #193
     [x] krok 2 — Zasoby: zakładka „Karta graficzna” (obciążenie karty, taktowanie, pobór mocy karty i laptopa, sesje
         z szybką grafiką; Twoje „OK” dla wzorców — „Zajętość” zmieniona na „Obciążenie”); porządki i wydanie — PR #193
-Potem następny temat wybierasz Ty (mapa, punkt 2); pierwszy czat nowej wersji pisze jej plan (docs/PLAN-<wersja>.txt). Od
-0.10.5 w tle działa robot: sam wydaje wersje PATCH z poprawionym jądrem i pakietami przeglądarki (od wydania 0.10.9 znowu
+Od 0.10.5 w tle działa robot: sam wydaje wersje PATCH z poprawionym jądrem i pakietami przeglądarki (od wydania 0.10.9 znowu
 w pełnym trybie). Do sprawdzenia na laptopach — punkt 4.
 0.10.9 Szybka grafika — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.9.txt; ADR 0049, 0050; kolejność
 kroków 1, 4, 2, 5, 6, 3):
@@ -66,7 +76,7 @@ Wcześniej: 0.10.2 Testy (PR #144, #145, #149), 0.10.1 Balon (PR #134, #137, #13
     0.10     Strefy — 0.10.0 (przeglądarka w strefie), 0.10.1 Balon, 0.10.2 Testy, 0.10.5 Aktualizacje przez sieć
              0.10.7 Wygląd, 0.10.9 Szybka grafika gotowe
              (M8, z dawnym M11)
-    0.11     Pliki ze stref                                                        (M9)
+    0.11     Pliki ze stref — plan 0.11.0 gotowy (docs/PLAN-0.11.0.txt)              (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
     0.13     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
@@ -119,7 +129,7 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
         i maksymalizacja okna przeglądarki, Alt+Tab, Przeglądarka na pasku i pulpicie, jądro Linux 7.3, opis wersji przed
         „Zainstaluj”
 
-0.11 Pliki ze stref (ADR 0027)
+0.11 Pliki ze stref (ADR 0027) — plan 0.11.0: docs/PLAN-0.11.0.txt (kroki 1–5; PDF K1 i wspólna strefa — poza nim)
     [ ] pliki ze strefy („Do K1”) i do strefy („Wyślij do…”) przez Pliki (zgoda = gest w K1, pytanie tylko, gdy
         zaczyna sama strefa); schowek między strefami za każdym wklejeniem
     [ ] „Otwórz w…” z zapisem z powrotem: K1 pyta „Zapisać zmiany w oryginale?”, stara wersja do Kosza
@@ -148,7 +158,7 @@ Laptop (PATCH w dowolnej wersji, po Twoich zgłoszeniach)
 
 Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne)
     [ ] exFAT na pendrive'ach (karty SD i pendrive'y > 32 GB), potem NTFS — ocena: docs/archiwum/PLAN-0.8.2.txt, dodatek A
-    [ ] przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) — jeden ADR z planem 0.11 (D6 z 0.8.2)
+    [ ] przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) — weszło do planu 0.11.0 (krok 4, ADR 0051)
     [ ] HEIC (zdjęcia z iPhone'a); odtwarzanie wideo (pliki wideo da się już przechowywać); zapis plików na pendrive
     [ ] pełne NFC i pełne porównanie wielkości liter Unicode w nazwach plików
     [ ] Podgląd: powiększanie fragmentu w pełnej rozdzielczości pliku, pełny ekran, pokaz slajdów; przybliżanie kółkiem
@@ -158,8 +168,8 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
     [ ] z planu 0.10.5 („Nie w tej wersji”): aktualizacja pendrive'a przez sieć (D5); wznawianie przerwanego pobierania;
         kompresja paczki i aktualizacja tylko zmienionych części; pełna historia zmian w K1; świeżość ogłoszenia (codziennie
         podpisywana data) i odwoływanie starszych wersji (0.12, TPM — RYZYKA R44); robot dla musl i plików od producentów
-        kart; zmiana rozmiaru okien aplikacji K1 (Pliki, Notatki, Podgląd), przyciąganie okien do połowy ekranu, okno strefy
-        na cały ekran bez pasków; przewijanie w Ustawieniach
+        kart; zmiana rozmiaru okien aplikacji K1 (Pliki, Notatki, Podgląd), przyciąganie okien do połowy ekranu; przewijanie
+        w Ustawieniach (okno strefy na cały ekran bez pasków — weszło do planu 0.11.0, krok 1)
     [ ] obraz przeglądarki na ISO (0.10.9 krok 4, ADR 0050): K1 z ISO (maszyna wirtualna) nie ma przeglądarki — jądro
         K1 nie ma napędu CD; potrzebny napęd CD w jądrze (sr) i odczyt miejsca obrazu z płyty
     [ ] Wi-Fi (z planu 0.9.1, „Nie w tej wersji”): sieci tylko WPA3 (SAE), firmowe i uczelniane z loginem (WPA2-Enterprise,
@@ -308,6 +318,8 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 [x] 0.10.9 — decyzje podjęte (docs/archiwum/PLAN-0.10.9.txt, punkt 4): D5 szybka grafika włączona w Ogólnej, D7 znak
     „układ scalony”, D9 jeden przełącznik (po wypadnięciu filmów — „Szybka grafika”), D10 „A” (miejsca 768 MiB; laptopy
     instalujesz od nowa); D4 i filmy kartą — wypadły z wersji (2026-11-20, „może”).
+[!] 0.11.0 — decyzje D1–D6 (docs/PLAN-0.11.0.txt, punkt 4): pełny ekran, pytanie po pobraniu, znak pliku z internetu,
+    wysyłanie do zamkniętej sesji, wklejanie do sesji, przeciąganie na pulpit — czat zada każdą na początku swojego kroku.
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
 
 Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):

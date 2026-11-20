@@ -1,0 +1,388 @@
+K1 — PLAN WERSJI 0.11.0 „PLIKI ZE STREF” (nowy temat z mapy drogi: 0.11, dawne M9)
+================================================================================
+
+Data: 2026-11-20 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-20, po wydaniu
+0.10.10): „stwórz plan implementacji wersji 0.11.0, w krokach … nie dziel na zbyt wiele kroków”. Tego samego dnia
+właściciel dopisał: „lepszy pełen ekran przeglądarki; obecnie nie »domyka« krawędzi i zostawia ciut za dużo miejsca na
+dole” (krok 1).
+Wersja stoi na 0.10.10 (strefy, przeglądarka w strefie z sesjami Ogólna, Bank, Prywatna, Raptor Bridge, dysk sesji
+w skarbcu, okno przeglądarki ze zmianą rozmiaru i maksymalizacją, szybka grafika; plany 0.10.x w docs/archiwum/) i na
+0.8 Pliki (foldery, Kosz, pochodzenie pliku, okno wyboru pliku, „Otwórz za pomocą”, przeciąganie w Plikach; ADR 0026,
+0029, 0030). Zasady przepływu plików są od dawna ustalone w ADR 0027 — ta wersja je wdraża.
+Ten plik jest SAMODZIELNY: cel, kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+Plik jest planem, nie specyfikacją: protokół plików strefy, schowek i przeciąganie między oknami idą przez ADR 0051
+(krok 2, uzupełniany w krokach 4 i 5).
+
+
+CEL WERSJI (jednym akapitem)
+----------------------------
+Dziś przeglądarka w strefie jest szczelna, ale zamknięta też dla użytkownika: plik pobrany ze strony zostaje w sesji,
+a pliku z Plików nie da się wysłać na stronę. Po 0.11.0 pliki przechodzą między przeglądarką a Plikami K1 — zawsze przez
+Pliki (jedyny węzeł, ADR 0027), zawsze jako kopia, zawsze za zgodą wyrażoną gestem w oknie, które rysuje K1 (strona tego
+nie podrobi). Pobrany plik ląduje w Plikach → Pobrane z zapisanym pochodzeniem („z przeglądarki · Ogólna, z example.com”);
+plik z Plików wysyłasz do sesji („Wyślij do…”, „Otwórz w…”) albo przeciągasz na okno przeglądarki; zmieniony plik wraca
+do oryginału tylko po „Zapisać zmiany w oryginale?”. Tekst kopiuje się między oknami (schowek) — każde wklejenie
+widzi K1. Do tego okno przeglądarki wypełnia ekran do krawędzi.
+
+Kroki: PIĘĆ. Krok 1 — okno przeglądarki do krawędzi i pełny ekran (mały, niezależny). Krok 2 — pliki ze strefy do
+Plików (fundament: ADR 0051, droga plików strefa ↔ K1, pochodzenie). Krok 3 — pliki z Plików do strefy: „Wyślij do…”,
+„Otwórz w…”, zapis z powrotem. Krok 4 — przeciąganie plików między oknami, także na okno przeglądarki. Krok 5 — schowek,
+porządki i wydanie 0.11.0.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 5 kroków i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”);
+wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; wydanie jest zawsze
+ostatnim krokiem (nowy krok bierze numer kroku wydania, wydanie przesuwa się na koniec, póki się nie zaczęło); jeśli krok
+nie zmieści się w jednym czacie, dzieli się na 2a/2b … (wydanie w ostatniej części kroku 5).
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.10.10, 2026-11-20), ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą),
+POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku — nie zakładać).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: 1, 2, 3, 4, 5. Krok 1 nie zależy od innych (można go
+zrobić w dowolnej chwili); kroki 3 i 4 stoją na drodze plików z kroku 2; krok 5 (schowek) używa tego samego kanału
+strefy co krok 2.
+
+Właściciel: co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.11.0.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku. Przy wyglądzie czat najpierw pokaże szkice albo obrazy „przed / po”.
+
+Nowy czat: przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y i Issue robota, ostatni run CI na main).
+  2. Przeczytaj CEL WERSJI, swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4), ADR 0027; kroki 3–5 także
+     „Ustalenia z wykonania” kroków wcześniejszych i ADR 0051. Kod mógł się zmienić (robot, poprawki) — luki sprawdź
+     jeszcze raz.
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy najpierw osobny commit z podziałem (dotyczy zwłaszcza
+     src/aplikacje/pliki/, src/strefa/vsock.c, src/strefa/kompozytor/, src/ekran/).
+  5. Nowy komunikat albo format: przepis z SKILL (sprawdzanie pole po polu, test na hoście, fuzzing, test negatywny
+     w systemie). Strefa jest NIEZAUFANA: wszystko, co z niej przychodzi (nazwa pliku, adres strony, bajty, tekst
+     schowka), sprawdza K1, nigdy w logu (najwyżej liczniki i „plik N”, „sesja N”).
+  6. Testy: strefa próbna (test-strefa.sh) dostaje tryby, które udają przeglądarkę (pobranie, odbiór pliku, schowek)
+     i tryby złośliwe (za duży plik, zła nazwa, zalew komunikatami); okna K1 — po nazwach (ADR 0045), wzorce po „OK”
+     właściciela (D3 z 0.10.2). Firefoksa CI nie testuje (decyzja właściciela 2026-11-17): zachowanie Firefoksa sprawdza
+     stanowisko (scripts/stanowisko.sh), a właściciel — na laptopach (lista „co sprawdzić” w raporcie kroku).
+  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, scripts/test-m1.sh i skrypty QEMU
+     zmienianej części (docs/TESTY.md: test-strefa, test-pliki, test-m4, test-wzorce); pełny komplet: CI na PR-ze
+     (etykieta „testy”), scalasz przy zielonym (AGENTS.md). Czekaj poleceniem, bez innych wywołań (CLAUDE.md).
+  8. Dokumenty w tym samym PR-ze: ADR 0051 (krok 2, uzupełnienia w 4 i 5), docs/komponenty/ (strefa.md, skarbiec.md,
+     aplikacje.md, ekran.md, gui.md, raptor-bridge.md — gdy zmienia się vsock), SLOWNIK (nowe pojęcia: „Do K1”,
+     „schowek”…), RYZYKA, WYGLAD. VERSION i CHANGELOG zmienia krok 5 (wydanie); kroki 1–4 zapisują „co widzi
+     użytkownik” w opisie PR-a.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
+     w swoim kroku. Raport dla właściciela: co widać, obrazy „przed / po”, co sprawdzić na laptopie.
+
+Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
+  - Robot raz dziennie wydaje sam PATCH z poprawionym jądrem i pakietami przeglądarki — z tego, co jest wtedy na main.
+    Każdy scalony krok trafia więc do laptopów z najbliższym wydaniem robota (np. 0.10.11), przed wydaniem 0.11.0. Kroki
+    tej wersji są samodzielne (każdy daje gotową rzecz), więc robot zostaje włączony. Krok w main musi być gotowy dla
+    użytkownika: bez przycisku, który nic nie robi. Gdyby któryś krok tego nie spełniał — robot wyłączony od jego
+    scalenia do wydania (Actions → Disable workflow; wpis „Tymczasowe” w DO_ZROBIENIA).
+  - Numer: 0.11.0 to MINOR — robot go nie zajmie (wydaje tylko PATCH 0.10.x). Tuż przed scaleniem wydania: gałąź
+    z main, sprawdź VERSION; wpis 0.11.0 w CHANGELOG nad ostatnim wpisem robota.
+  - Krok 2 zmienia to, co zapisuje skarbiec (nowe pochodzenia plików) — wersja po „Wróć do poprzedniej wersji” musi
+    nadal czytać Pliki (luka P14: dziś skarbiec nieznane pochodzenie pokazuje jako „utworzony w K1” — sprawdzić testem).
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+  - Krok 1: okno przeglądarki zmaksymalizowane sięga do samych krawędzi ekranu i do górnej krawędzi dolnego paska — bez
+    szpar po bokach i bez paska pustego miejsca na dole. Pełny ekran (F11 albo przycisk w filmie na stronie) naprawdę
+    zajmuje cały ekran (jak — D1), a K1 zawsze daje drogę powrotu, której strona nie zablokuje.
+  - Krok 2: plik pobrany w przeglądarce trafia do Plików → Pobrane. Po zakończonym pobraniu K1 pyta w swoim okienku
+    (D2), a w szczegółach pliku widać, skąd jest: sesja, strona, data (D3). To fundament: „droga plików” między strefą
+    a K1, którą używają kroki 3–5.
+  - Krok 3: w Plikach prawy przycisk na pliku → „Wyślij do…” → Przeglądarka · Ogólna (Bank, Prywatna): przeglądarka
+    dostaje kopię i może ją wysłać na stronę. „Otwórz w…” → Przeglądarka · sesja otwiera np. PDF w przeglądarce;
+    gdy zapiszesz go tam ze zmianami (np. wypełniony formularz), K1 pyta „Zapisać zmiany w oryginale?” — stara wersja
+    idzie do Kosza.
+  - Krok 4: plik przeciągasz z Plików albo z pulpitu na okno przeglądarki (np. na pole „Prześlij plik” na stronie) — to
+    jest zgoda. Przy okazji przeciąganie między oknami K1: z Plików na pulpit i z pulpitu do Plików. Jeśli się da
+    (próba, T7): „Prześlij plik” na stronie otwiera okno wyboru pliku K1 zamiast okna przeglądarki.
+  - Krok 5: schowek — Ctrl+C / Ctrl+V tekstu w Notatkach, w polach K1 i między K1 a przeglądarką (także między
+    sesjami); każde wklejenie do sesji przechodzi przez K1 (D5). Porządki (usunięcie rozwiązań tymczasowych z terminem
+    0.11.0) i wydanie 0.11.0.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                     Luki (punkt 5)   Zależy od   Decyzje      Rozmiar  ADR
+[ ]  1  Okno przeglądarki do krawędzi, pełny ekran            P1–P4            0.10.10     D1, T9       S–M      brak
+[ ]  2  Pliki ze strefy do Plików (Do K1), pochodzenie        P5–P14           0.10.10     D2, D3,      L        0051
+                                                                                           T1–T4
+[ ]  3  Pliki do strefy: Wyślij do, Otwórz w, zapis z powr.   P15–P18          2           D4, T5       M–L      0051
+[ ]  4  Przeciąganie między oknami, też na okno przeglądarki  P19–P22          2 (i 3)     D6, T6, T7   M        0051 (uzup.)
+[ ]  5  Schowek; porządki; wydanie 0.11.0                     P23–P26          2           D5, T8       M        0051 (uzup.)
+(ADR 0051: następny wolny po 0050 z 0.10.9.)
+
+
+3. KROKI
+--------
+KROK 1: Okno przeglądarki do krawędzi, pełny ekran                         S–M · D1, T9 · bez ADR
+  Cel: zmaksymalizowane okno sesji wypełnia cały obszar między paskami, co do piksela; pełny ekran strony zajmuje ekran
+  według D1, a wyjście z niego zawsze daje K1.
+  Na początku: D1 (szkice albo obrazy „przed / po”, oba motywy, X230 1366×768 i 1920×1080).
+  Co widzi użytkownik: przycisk maksymalizacji i podwójne kliknięcie paska tytułu → okno od lewej do prawej krawędzi,
+  od górnego paska do dolnego, bez szpar. F11 w przeglądarce albo „pełny ekran” w filmie → wg D1. Wyjście: Esc w
+  przeglądarce jak dziś, a niezależnie od strony — droga K1 z D1 (strona jej nie przechwyci).
+  Zadania:
+   a) Szerokość i wysokość: dziś ekran i VMM zaokrąglają rozmiar okna strefy w dół do wielokrotności 8 (P1, P2). Usuń
+      to ograniczenie tam, gdzie nie jest potrzebne, albo (gdy jest — T9) wypełnij resztę obrazem strefy przesuniętym
+      do krawędzi / tłem paska tytułu tak, żeby szpary nie było widać. Komunikat ROZMIAR (k1_kom_ekran.c: w % 8) — zmiana
+      zakresu = zmiana sprawdzania po obu stronach z testem i fuzzingiem.
+   b) Dół: obszar roboczy liczony od powierzchni dolnego paska razem z marginesem na cień (P3) — liczyć od widocznej
+      krawędzi paska (wartość z jednej stałej gui/ekranu, nie z ręcznie wpisanej liczby).
+   c) Pełny ekran (P4): kompozytor strefy zmienia dziś tylko stan, nie rozmiar. Wg D1: ekran K1 dostaje od VMM
+      „pełny ekran: tak / nie”, rozmiar sesji = cały ekran (albo obszar wg D1), ramka i paski chowają się; ROZMIAR do
+      VMM jak przy maksymalizacji. Droga powrotu rysowana przez K1 (wg D1) i rozpoznawana przez ekran (jak Alt+Tab,
+      `wskaznik.c`), zanim klawisz trafi do strefy. Alt+Tab działa też w pełnym ekranie.
+   d) Zapis rozmiaru sesji w skarbcu (rozmiar.c) — pełny ekran się nie zapamiętuje (sesja otwiera się w ostatnim
+      zwykłym albo zmaksymalizowanym rozmiarze).
+  Testy i dowód: test-strefa (strefa próbna: maksymalizacja — rozmiar w logu równy obszarowi roboczemu co do piksela
+  dla 1366 i 1920 szerokości; tryb próbny „pełny ekran” — rozmiar = ekran, ramki nie ma, droga powrotu działa, gość nie
+  może jej przechwycić); test-wzorce (pasek tytułu po zmianie), zrzuty „przed / po” dla właściciela.
+  Dokumenty: ekran.md, strefa.md, WYGLAD (pełny ekran), RYZYKA (R26 — podszywanie się pod K1 w pełnym ekranie: co go
+  ogranicza), SLOWNIK („pełny ekran”, jeśli nowe).
+  Gotowe, gdy: CI zielone, właściciel potwierdził zrzuty; na laptopie: lista w raporcie.
+
+KROK 2: Pliki ze strefy do Plików („Do K1”), pochodzenie                  L · D2, D3, T1–T4 · ADR 0051
+  Cel: plik pobrany w sesji przeglądarki trafia — za zgodą — do Plików K1 jako kopia, z zapisanym pochodzeniem.
+  Strefa nie dostaje przy tym nic z K1 (żadnej listy plików, żadnej ścieżki).
+  Na początku: D2, D3 (szkice okienka i szczegółów pliku, oba motywy). Potem ADR 0051 (T1–T4) — pierwszy commit po
+  oznaczeniu kroku.
+  Co widzi użytkownik: pobierasz plik w przeglądarce → po zakończeniu okienko K1 (wg D2) z nazwą, rozmiarem i sesją →
+  „Zapisz w Pobranych” → plik w Plikach → Pobrane; szczegóły pliku: „Z przeglądarki · Ogólna”, strona (wg D3, T4),
+  data. Za duży plik albo brak miejsca: jasny komunikat K1 („Za mało miejsca: …”), plik zostaje w przeglądarce.
+  Zadania:
+   a) ADR 0051 „Droga plików strefa ↔ K1”: kanał (T1), agent w strefie (T2), przekazanie do skarbca (T3), pochodzenie
+      (T4), limity (rozmiar, liczba naraz, zalew), co jest gestem, a co pytaniem (ADR 0027 p. 2), co robi Prywatna
+      (pobrane w pamięci strefy — P11).
+   b) Strona strefy: agent (nasz program w gosc/, statycznie) pilnuje folderu pobranych Firefoksa (prefy w
+      strefy/przegladarka/k1.js: stały folder, bez pytania Firefoksa o miejsce — P9), widzi skończone pobranie (Firefox
+      pisze `.part` i zmienia nazwę — P10) i zgłasza je K1: nazwa, rozmiar, adres strony (T4). Bajty wysyła dopiero na
+      prośbę K1, po zgodzie.
+   c) VMM: nowy port vsock „pliki” (T1) — tylko przekazuje, z limitami; nic nie interpretuje poza nagłówkiem.
+   d) K1: nadzorca → gui okienko (D2) → po zgodzie strumień kawałkami do skarbca (folder Pobrane, właściciel Pliki,
+      pochodzenie strefy); typ pliku rozpoznany z zawartości (K1_TYPY), nazwa przez zasady nazw K1 (k1_nazwy.c; zajęta
+      nazwa → „nazwa (2)”). Przerwanie (strefa zamknięta w trakcie, brak miejsca) — nic połowicznego w Plikach (zapis
+      w toku skarbca, 0.8.1).
+   e) Pochodzenie: tabela K1_POCHODZENIA wyprowadzona z wiersza strefy (jeden wiersz w K1_STREFY = jedno pochodzenie),
+      adres strony wg T4; Pliki pokazują je w szczegółach (wg D3).
+  Testy i dowód: test na hoście i fuzzing nowego formatu (zgłoszenie pobrania, kawałki); test-strefa — strefa próbna
+  w trybie „pobrała plik”: okienko, zgoda, plik w Pobranych z pochodzeniem; „Nie” — nic w Plikach; tryby złośliwe:
+  nazwa z ukośnikiem i znakami sterującymi, rozmiar inny niż zgłoszony, za duży plik, zalew zgłoszeniami, zgłoszenie
+  bez pliku; zamknięcie strefy w środku przesyłania; test-pliki (pochodzenie w szczegółach); test negatywny w systemie
+  (VMM nie dostaje kanału do skarbca innego niż swój). Firefox: stanowisko (pobranie kończy się zgłoszeniem); właściciel
+  na laptopach.
+  Dokumenty: ADR 0051, strefa.md, raptor-bridge.md (nowy port obok portów 1 i 2), skarbiec.md, aplikacje.md (Pliki),
+  gui.md (okienko), SLOWNIK, RYZYKA (nowa droga ze strefy — R-nowe).
+  Gotowe, gdy: CI zielone; właściciel pobrał plik na laptopie i widzi go w Pobranych z pochodzeniem.
+
+KROK 3: Pliki do strefy: „Wyślij do…”, „Otwórz w…”, zapis z powrotem     M–L · D4, T5 · ADR 0051
+  Cel: kopia pliku z Plików trafia do wybranej sesji przeglądarki; zmieniona kopia wraca do oryginału tylko za zgodą.
+  Na początku: D4.
+  Co widzi użytkownik: Pliki (i pulpit) → prawy przycisk na pliku → „Wyślij do…” → lista sesji (z kolorem sesji) →
+  przeglądarka tej sesji ma plik w swoim folderze (np. „Z K1”) i można go wybrać w „Prześlij plik” na stronie. „Otwórz
+  w…” → sesja przeglądarki otwiera plik (PDF, obraz, tekst) w nowej karcie. Gdy w przeglądarce zapiszesz ten plik
+  ze zmianami (np. wypełniony PDF), K1 pyta „Zapisać zmiany w oryginale?” — „Zapisz” (stara wersja do Kosza, 30 dni),
+  „Zapisz jako nowy plik”, „Nie”. Zamknięta sesja: K1 ją otwiera (wg D4).
+  Zadania:
+   a) Menu pliku (k1_menu — jedno dla Plików i pulpitu): „Wyślij do…” i sesje w „Otwórz w…” obok aplikacji K1 (P15:
+      dziś tylko K1_OTWIERANIE). Sesje — z tabeli K1_STREFY (wiersze z linią w menu), nie wpisane ręcznie.
+   b) Ta sama droga co w kroku 2, w drugą stronę: K1 → VMM → agent zapisuje kopię w folderze sesji (T5), nazwa
+      sprawdzona po stronie strefy też (agent nie wychodzi poza swój folder: openat + O_NOFOLLOW, bez „..”).
+   c) „Otwórz w…”: agent prosi Firefoksa o otwarcie pliku w nowej karcie (P16 — NIEPEWNE, jak; T5).
+   d) Powiązanie „ten plik ↔ ta sesja” w nadzorcy (pamięć, do zamknięcia sesji albo do wyłączenia — ADR 0027 p. 5);
+      zapis ze zmianami rozpoznaje agent (folder pobranych albo plik w „Z K1” zmieniony — P17) i zgłasza jako „nowa
+      wersja pliku N”, nie jako zwykłe pobranie; okienko K1 „Zapisać zmiany w oryginale?”; skarbiec: stara wersja do
+      Kosza, nowa pod nazwą i w folderze oryginału (jedna operacja, nic połowicznego).
+  Testy i dowód: test-strefa (strefa próbna odbiera plik, zgłasza „zmieniony” — „Zapisz” / „Jako nowy” / „Nie”; stara
+  wersja w Koszu; tryby złośliwe: zgłoszenie zmiany pliku, którego K1 nie wysłał, albo z innej sesji — odrzucone);
+  test-pliki (menu „Wyślij do…”, po nazwach); wzorce menu po „OK” właściciela. Firefox: stanowisko (plik w „Z K1”,
+  otwarcie w karcie); właściciel na laptopach.
+  Dokumenty: ADR 0051 (uzupełnienie: powiązanie, zapis z powrotem), aplikacje.md, gui.md, strefa.md, SLOWNIK.
+  Gotowe, gdy: CI zielone; właściciel wysłał plik ze strony w przeglądarce i odebrał zmieniony PDF.
+
+KROK 4: Przeciąganie między oknami, też na okno przeglądarki            M · D6, T6, T7 · ADR 0051 (uzupełnienie)
+  Cel: przeciągnięcie pliku z Plików albo z pulpitu na inne okno to gest zgody (ADR 0027 p. 2): na okno przeglądarki —
+  strefa dostaje kopię i upuszczenie na stronie (np. pole „Prześlij plik”); między Plikami a pulpitem — przeniesienie
+  jak w Plikach (D6 z docs/archiwum/PLAN-0.8.2.txt).
+  Na początku: D6.
+  Co widzi użytkownik: chwytasz plik w Plikach, przeciągasz nad okno przeglądarki — przy kursorze znak „kopia do
+  sesji Ogólna” (rysuje K1), puszczasz nad polem na stronie — strona dostaje plik. Z Plików na pulpit i z powrotem —
+  działa jak przeciąganie w Plikach (karteczka przy kursorze, pytanie, gdy reguła tego wymaga).
+  Zadania:
+   a) Przeciąganie poza okno aplikacji prowadzi ekran (T6): on wie, nad którym oknem jest kursor; aplikacja mówi tylko
+      „przeciągam plik N” (P19: dziś k1_przeciaganie działa w jednym oknie). Reguły źródło/cel — ta sama tabela
+      k1_przeciaganie (P20), nowe cele: pulpit z Plików, Pliki z pulpitu, okno strefy.
+   b) Strefa: kompozytor dostaje obsługę przeciągania wl_data_device (P21: dziś przyjmuje, nigdy nic nie oferuje):
+      wejście, ruch, upuszczenie z text/uri-list wskazującym kopię w folderze sesji (droga z kroku 3). Kopia trafia do
+      strefy dopiero przy upuszczeniu, nie przy najechaniu.
+   c) Próba (T7): czy „Prześlij plik” na stronie może otworzyć okno wyboru pliku K1 (Wybór pliku, 0.8.0) zamiast okna
+      GTK w strefie. Wynik próby w ADR 0051; jeśli się nie da w rozsądnym rozmiarze — „Później” (ADR 0027 p. 4 to
+      dopuszcza: plik wysyłasz „Wyślij do…” albo przeciągasz).
+  Testy i dowód: test-pliki i test-m4 (Pliki → pulpit, pulpit → Pliki, po nazwach), test-strefa (upuszczenie na okno
+  strefy próbnej: agent dostaje kopię i zdarzenie upuszczenia; najechanie bez upuszczenia — strefa nic nie dostaje);
+  test kompozytora na hoście (przeciąganie w kompozytorze — wzór: testy kompozytora z 0.10.1). Firefox: stanowisko
+  (upuszczenie pliku na stronę z polem przesyłania); właściciel na laptopach.
+  Dokumenty: ADR 0051 (uzupełnienie), ekran.md, gui.md, aplikacje.md, strefa.md, WYGLAD (znak przy kursorze).
+  Gotowe, gdy: CI zielone; właściciel przeciągnął plik na stronę w przeglądarce.
+
+KROK 5: Schowek; porządki; wydanie 0.11.0 (OSTATNI)                      M · D5, T8 · ADR 0051 (uzupełnienie)
+  Cel: tekst kopiuje się i wkleja w K1 i między K1 a sesjami przeglądarki, a każde wklejenie do sesji przechodzi przez
+  K1 (ADR 0020: schowek między strefami za każdym wklejeniem); potem porządki wersji MINOR i wydanie.
+  Na początku: D5.
+  Co widzi użytkownik: Ctrl+C / Ctrl+V (i „Kopiuj” / „Wklej” w menu pod prawym przyciskiem) w Notatkach i polach
+  tekstowych K1; tekst skopiowany w przeglądarce wkleja się w Notatkach i w innej sesji; wklejenie do sesji wg D5.
+  Zadania:
+   a) Schowek K1 (T8): jeden właściciel (ekran — on widzi Ctrl+C / Ctrl+V i wie, które okno ma fokus), tylko tekst
+      UTF-8 do limitu z ADR, tylko w pamięci, czyszczony przy blokadzie i wyłączaniu; nigdy w logu.
+   b) Przybornik: Ctrl+C / Ctrl+V w polach (k1_pole) i w Notatkach (P23: dziś w K1 nie ma schowka wcale).
+   c) Strefa: kompozytor oferuje i przyjmuje zaznaczenie (wl_data_device selection, P21) — kopiowanie w strefie idzie do
+      K1 (ekran), wklejenie w strefie dostaje tekst dopiero po Ctrl+V rozpoznanym przez ekran (wg D5).
+   d) Porządki (zasada czytelności 2): rozwiązanie tymczasowe z terminem 0.11.0 — odczyt K1U1–K1U3 w src/ekran/zapis.c
+      (P25); przegląd „Tymczasowe” w DO_ZROBIENIA; pliki blisko limitu; co usunąć, scalić, uprościć — CHANGELOG
+      „Porządki”.
+   e) Wydanie 0.11.0: VERSION, CHANGELOG (z „Opis w K1:”), DO_ZROBIENIA (punkt 1, 3, 4 — lista „co sprawdzić” na obu
+      laptopach), plan → docs/archiwum/.
+  Testy i dowód: test na hoście i fuzzing formatu schowka; test-m4 (Notatki: kopiuj / wklej), test-strefa (strefa
+  próbna kopiuje tekst → Notatki; wkleja z K1; tryby złośliwe: za długi tekst, zalew, wklejenie bez Ctrl+V — nic nie
+  przychodzi); pełny komplet w CI na PR-ze wydania.
+  Dokumenty: ADR 0051 (uzupełnienie), ekran.md, aplikacje.md, strefa.md, SLOWNIK („schowek”), RYZYKA, CHANGELOG.
+  Gotowe, gdy: CI zielone, wydanie 0.11.0 istnieje (linki ISO i USB w raporcie), lista „co sprawdzić” w DO_ZROBIENIA.
+
+
+4. DECYZJE
+----------
+Twoje (produkt) — czat kroku zada je na początku:
+
+  [!] D1 (krok 1) — Pełny ekran w przeglądarce (F11, film na cały ekran): co z paskami K1?
+      A (zalecane): cały ekran, bez pasków K1 i bez paska tytułu — jak w Windows. Po wejściu K1 pokazuje na kilka sekund
+         u góry swoją pigułkę „Przeglądarka · Ogólna · pełny ekran — Esc, aby wyjść” w kolorze sesji; kursor przy górnej
+         krawędzi wysuwa pasek tytułu K1 z przyciskiem wyjścia. Strona nie może tego zasłonić (rysuje K1).
+      B: pełny ekran tylko między paskami K1 (paski zostają, znika pasek tytułu okna).
+      C: bez zmian w pełnym ekranie — tylko poprawka maksymalizacji (do krawędzi, bez miejsca na dole).
+  [!] D2 (krok 2) — Co po zakończonym pobraniu w przeglądarce?
+      A (zalecane): okienko K1 przy każdym pobraniu: nazwa, rozmiar, sesja; „Zapisz w Pobranych” / „Zostaw w
+         przeglądarce” (ADR 0027 p. 2: przeniesienie zaczyna strefa, więc pyta K1).
+      B: bez pytania — każde pobranie od razu w Plikach → Pobrane (z pochodzeniem); usuwasz, czego nie chcesz.
+      C: jak A, z polem „Nie pytaj więcej dla tej sesji” (zmiana w Ustawieniach → Przeglądarka).
+  [!] D3 (krok 2) — Jak widać, że plik jest z internetu?
+      A (zalecane): w szczegółach pliku w Plikach: „Z przeglądarki · Ogólna”, strona, data — i nic więcej.
+      B: jak A i mały znak na ikonie pliku (np. kropka w kolorze sesji) w Plikach i na pulpicie.
+  [!] D4 (krok 3) — „Wyślij do…” / „Otwórz w…” do sesji, która jest zamknięta?
+      A (zalecane): K1 otwiera sesję i wysyła plik, gdy przeglądarka gotowa (pasek „Uruchamiam…” jak dziś).
+      B: w menu tylko otwarte sesje.
+  [!] D5 (krok 5) — Wklejenie tekstu do sesji przeglądarki („za każdym wklejeniem” z ADR 0020):
+      A (zalecane): Ctrl+V w oknie sesji (albo „Wklej” na stronie po Ctrl+V) wkleja bez okienka — gestem jest samo
+         Ctrl+V, które widzi K1; strona nigdy nie odczyta schowka sama. Gdy tekst pochodzi z innej sesji, na pasku
+         tytułu na chwilę „Wklejono z: Bank”.
+      B: przy wklejeniu tekstu z innej sesji okienko K1 „Wkleić tekst z sesji Bank?”.
+      C: schowek tylko w obrębie K1 i w obrębie jednej sesji (bez przenoszenia między sesjami).
+  [!] D6 (krok 4) — Przeciągnięcie pliku z Plików na pulpit: przenieść czy skopiować?
+      A (zalecane): przenieść (jak w Windows w obrębie jednego dysku i jak dziś w Plikach); z Ctrl — kopia.
+      B: zawsze kopia.
+
+Techniczne (decyduje Claude, z krótkim uzasadnieniem w ADR 0051):
+
+  T1 Kanał plików strefy: nowy port vsock (obok 1 — sterowanie, 2 — połączenia przeglądarki), z kredytem jak port 2.
+     Bez wspólnego systemu plików (virtio-fs / 9p — duża powierzchnia po stronie K1, FUSE w gościu, demon na hoście).
+  T2 Agent w strefie: nasz program w gosc/ (statycznie, jak przekaźnik), jedyny w strefie, który zna port plików; pilnuje
+     folderu pobranych (inotify) i folderu „Z K1”; uruchamia go /init strefy obok przeglądarki.
+  T3 Do skarbca idzie przez nadzorcę (VMM nie dostaje kanału do Plików): VMM → nadzorca → skarbiec, kawałkami
+     (K1_DOK_KAWALEK), z limitem pliku K1_DOK_MAKS_BAJTY i rezerwą miejsca (ADR 0034); właściciel pliku: Pliki;
+     liczba przesyłań naraz — 1 na sesję.
+  T4 Pochodzenie: numer pochodzenia z wiersza strefy (K1_POCHODZENIA wyprowadzone z K1_STREFY); adres strony — z tego,
+     co zapisze Firefox (P12), tylko nazwa hosta, sprawdzona jak nazwa sieci (znaki, długość), opisana jako „podana
+     przez przeglądarkę” (strefa może kłamać); miejsce na nią w skarbcu — P13.
+  T5 Folder „Z K1” w sesji (w katalogu domowym przeglądarki; w Prywatnej — w pamięci); otwarcie w karcie — P16.
+  T6 Przeciąganie między oknami prowadzi ekran (wie, gdzie są okna); aplikacje i strefa dostają tylko „wejście / ruch /
+     upuszczenie” dla swojego okna; plik przekazuje nadzorca (jak w krokach 2–3), nigdy aplikacja aplikacji.
+  T7 Okno wyboru pliku K1 dla strony: próba z portalem wyboru pliku (Firefox: widget.use-xdg-desktop-portal.file-picker
+     — wymaga D-Bus w strefie — NIEPEWNE); granica: jeśli trzeba wnieść do strefy D-Bus i duży kod — „Później”.
+  T8 Schowek u ekranu (fokus i klawisze są u niego); format: tekst UTF-8, limit (np. 1 MiB) w jednej stałej; obrazy
+     w schowku — „Później”.
+  T9 Rozmiar okna strefy nie musi być wielokrotnością 8 — sprawdzić, skąd ten warunek (P2: wyrównanie wiersza obrazu
+     w VMM / virtio-gpu?) i zostawić go tylko tam, gdzie jest potrzebny.
+
+
+5. LUKI (z czytania kodu po 0.10.10, 2026-11-20)
+-----------------------------------------------
+Waga: WYSOKA (blokuje krok), ŚREDNIA, NISKA.
+
+Krok 1
+  P1 ŚREDNIA, Z KODU. src/ekran/rozmiar.c (maksymalizuj): szerokość `a.w & ~7`, okno wyśrodkowane — na X230 (1366 px)
+     1360 px, po 3 px szpary z każdej strony („nie domyka krawędzi”).
+  P2 ŚREDNIA, Z KODU. src/strefa/okno.c: VMM zaokrągla w dół do 8 także szerokość i wysokość (`& ~7u`), a komunikat
+     ROZMIAR wymaga szerokości podzielnej przez 8 (src/wspolne/k1_kom_ekran.c) — wysokość okna traci do 7 px na dole.
+     Po co ten warunek — NIEPEWNE (T9).
+  P3 ŚREDNIA, Z KODU. rozmiar.c (obszar_roboczy): dół obszaru = górna krawędź powierzchni dolnego paska „razem z
+     marginesem na cień” — nad widocznym paskiem zostaje pusty pas („ciut za dużo miejsca na dole”).
+  P4 ŚREDNIA, Z KODU. src/strefa/kompozytor/xdg.c (set_fullscreen): stan się zmienia, rozmiar nie — Firefox chowa
+     swoje paski, ale okno zostaje w ramce K1 między paskami. Ekran nie wie o pełnym ekranie (brak komunikatu).
+
+Krok 2
+  P5 WYSOKA, Z KODU. Między strefą a K1 nie ma drogi plików: vsock ma port 1 (sterowanie) i 2 (połączenia przeglądarki,
+     polaczenia.h POL_PORT); dysk sesji (dane.c, dysk.c) to obraz ext4 w kawałkach skarbca — K1 nie czyta z niego plików
+     (i nie powinien: ext4 ze strefy to niezaufany format).
+  P6 ŚREDNIA, Z KODU. VMM nie ma kanału do skarbca poza kawałkami dysku sesji (fd 8) — droga plików przez nadzorcę (T3).
+  P7 ŚREDNIA, Z KODU. Okienka gui spoza menu rysuje się na panelu menu kontekstowego (struct okienko_wlasne, 0.10.1) —
+     wzór dla okienka pobrania.
+  P8 NISKA, Z KODU. Pliki → Pobrane to folder standardowy (K1-DANE); nazwa zajęta → zasady nazw (k1_nazwy.c).
+  P9 ŚREDNIA, NIEPEWNE. Prefy Firefoksa: stały folder pobranych bez pytania (browser.download.dir,
+     browser.download.folderList, browser.download.useDownloadDir) — sprawdzić w ESR ze strefy (strefy/przegladarka/k1.js).
+  P10 ŚREDNIA, NIEPEWNE. Firefox pisze pobranie do pliku `.part` i na końcu zmienia nazwę — agent czeka na zmianę nazwy
+     (inotify IN_MOVED_TO), nie na pierwszy zapis. Sprawdzić na stanowisku.
+  P11 ŚREDNIA, Z KODU. Prywatna ma /home w pamięci (gosc/przegladarka.c: bez dysku sesji) — duże pobranie zjada pamięć
+     strefy; limit pobrania w Prywatnej = część pamięci strefy (ADR 0051).
+  P12 ŚREDNIA, NIEPEWNE. Skąd adres strony: Firefox na Linuksie zapisuje adres pobrania w atrybucie pliku
+     (user.xdg.origin.url) — czy w ESR ze strefy i na ext4 / tmpfs strefy (xattr w jądrze strefy?). Jeśli nie — bez adresu.
+  P13 ŚREDNIA, Z KODU. Wpis pliku (k1_dokument.h, 32 B) ma bajt „pochodzenie”, ale nie ma miejsca na adres strony —
+     adres jako osobny obiekt w skarbcu albo rozszerzenie wpisu (zmiana formatu → ADR 0051, test przejścia).
+  P14 NISKA, Z KODU. Starsza wersja (po „Wróć”) czyta nieznane pochodzenie jako „utworzony w K1” (src/skarbiec/
+     dok_wczytaj.c) — Pliki działają; test w test-m5f / test-aktualizacja-siec, że tak zostaje.
+
+Krok 3
+  P15 ŚREDNIA, Z KODU. „Otwórz za pomocą” w Plikach (otworz_w, src/aplikacje/pliki/przyciski.c) zna tylko aplikacje K1
+     z K1_OTWIERANIE; menu pliku jest wspólne dla Plików i pulpitu (k1_menu).
+  P16 WYSOKA, NIEPEWNE. Jak kazać Firefoksowi w strefie otworzyć plik w nowej karcie: przeglądarka startuje z
+     --no-remote, w strefie nie ma D-Bus. Kandydaci: zdalne sterowanie Firefoksa przez gniazdo (bez --no-remote) albo
+     upuszczenie pliku na okno przez nasz kompozytor (krok 4, wl_data_device) — wybór w kroku, próba na stanowisku.
+     Jeśli żadne — „Otwórz w…” = „Wyślij do…” + karta „Z K1” (plik://) otwarta przez nas przy starcie sesji.
+  P17 ŚREDNIA, NIEPEWNE. Firefox zapisuje edytowany PDF jako nowe pobranie (okno zapisu), nie w miejscu oryginału —
+     agent rozpoznaje „to jest plik N” po nazwie i folderze; reguła w ADR 0051.
+  P18 NISKA, Z KODU. Kosz (30 dni) i przywracanie są w skarbcu (dok_*.c) — stara wersja oryginału do Kosza to istniejąca
+     operacja.
+
+Krok 4
+  P19 ŚREDNIA, Z KODU. k1_przeciaganie (przybornik) działa w obrębie jednego okna; źródła K1_PZ_* (folder, pulpit, Kosz,
+     pendrive, stały) już są — brak przeciągania między oknami (D6 z 0.8.2).
+  P20 NISKA, Z KODU. Reguły źródło/cel w jednej tabeli — nowe cele = nowe wiersze (zasada 5).
+  P21 WYSOKA, Z KODU. src/strefa/kompozytor/interfejsy.c: wl_data_device_manager przyjęty, nic nigdy nie oferowane,
+     wl_data_source od razu „cancelled” — w strefie nie ma ani przeciągania, ani schowka.
+  P22 ŚREDNIA, NIEPEWNE. Czy Firefox przyjmuje upuszczenie pliku z text/uri-list od kompozytora bez portalu (Wayland, GTK)
+     — stanowisko.
+
+Krok 5
+  P23 ŚREDNIA, Z KODU. W K1 nie ma schowka: przybornik (k1_pole, k1_klawiatura) i Notatki nie znają Ctrl+C / Ctrl+V.
+  P24 ŚREDNIA, Z KODU. Ekran rozpoznaje skróty przed oknem (Alt+Tab — wskaznik.c, 0.10.5 krok 6) — wzór dla Ctrl+V
+     w oknie sesji (klawisz trafia do strefy dopiero po podaniu tekstu).
+  P25 NISKA, Z KODU. Tymczasowe z terminem 0.11.0: odczyt ustawień ekranu K1U1–K1U3 (src/ekran/zapis.c; DO_ZROBIENIA,
+     „Tymczasowe”).
+  P26 NISKA. Porządki: pliki blisko 600 wierszy po krokach 2–4 (kompozytor, Pliki, ekran) — podział przed wydaniem.
+
+
+6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później” albo do 0.11.x)
+-----------------------------------------------------------------------
+  - Przeglądarka PDF K1 (jednorazowy proces w klatce, silnik — ADR; ADR 0027 p. 7): osobna wersja. Do tego czasu PDF
+    otwiera się „Otwórz w…” w sesji przeglądarki (krok 3) — w strefie, więc bezpiecznie.
+  - Przypomnienie przy wysyłaniu pliku z internetu do wspólnej strefy (ADR 0024, 0027 p. 3): wspólnej strefy jeszcze
+    nie ma — razem z nią.
+  - Domyślna aplikacja dla typu pliku w strefie (ADR 0027 p. 6: Ustawienia → Aplikacje) — dziś w strefie jest tylko
+    przeglądarka; razem z pierwszą inną aplikacją w strefie.
+  - Obrazy i pliki w schowku; schowek z historią.
+  - Pliki z pendrive'a wprost do strefy (najpierw do Plików, potem „Wyślij do…” — tak zostaje).
+  - Okno wyboru pliku K1 dla strony, jeśli próba T7 wyjdzie za duża.
+  - Przeglądarka K1 (ADR 0025) — wąski protokół plików zamiast agenta.
