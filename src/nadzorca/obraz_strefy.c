@@ -199,6 +199,17 @@ int obraz_strefy_otworz(const char *nazwa)
     return fcntl(obrazy[wolne].fd, F_DUPFD_CLOEXEC, 0);
 }
 
+/* 0.10.10 step 1 (od_nowa.c): every device let go — it goes when the last VMM lets go of it (DM_DEFERRED_REMOVE). */
+void obrazy_stref_zwolnij(void)
+{
+    for (int i = 0; i < OBRAZY_MAKS; i++) {
+        if (obrazy[i].fd >= 0 && obrazy[i].nazwa[0])
+            close(obrazy[i].fd);
+        obrazy[i].fd = -1;
+        obrazy[i].nazwa[0] = '\0';
+    }
+}
+
 static void przygotuj(const char *nazwa)
 {
     char sciezka[96];

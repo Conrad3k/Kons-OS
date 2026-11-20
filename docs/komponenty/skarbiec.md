@@ -216,6 +216,8 @@ wyboru („zamknij ją i otwórz ponownie”); wcześniej najstarszy znikał po 
 | `POWIEKSZONO` | nadzorca → | kanał sterujący: a = 0 albo `K1_SKARB_ARG` / `K1_SKARB_IO` |
 | `SKARB_WYCZYSC` | nadzorca → | kanał sterujący (0.10.0 krok 5): a = właściciel — profil strefy; każdy kawałek dysku tej strefy usunięty („Wyczyść dane sesji”) |
 | `SKARB_WYCZYSZCZONO` | → nadzorca | kanał sterujący (0.10.0 krok 5): a = ten właściciel, b = 0 albo `K1_MAG_*`, c = usunięte kawałki |
+| `SKARB_ZWOLNIJ` | nadzorca → | kanał sterujący (0.10.10 krok 1), pola zerowe: Instalator instaluje od nowa na dysku tej K1-DANE (użytkownik wpisał „USUŃ”) — magazyn zamknięty bez zapisu (klucz wymazany), partycja oddana, od teraz obiekty tylko w pamięci (do wyłączenia komputera) |
+| `SKARB_ZWOLNIONO` | → nadzorca | kanał sterujący (0.10.10 krok 1), pola zerowe: partycja zamknięta |
 | `ZEGAR_PRZESUNIETY` | nadzorca → | kanał sterujący (0.9.0 krok 8): a, b = o ile sekund nadzorca przestawił zegar z internetu (ze znakiem, 64 bity, najwyżej ±200 lat). Skarbiec: najpóźniejszy widziany zegar = teraz (także gdy zegar cofnięto), a czas każdego pliku w Koszu przesuwa się o tyle, o ile przesunął się czas zapisywany we wpisach (`dok_zegar_przesuniety`) — plik leżący w Koszu 2 dni ma dalej 28 dni, także gdy zegar skoczył z 2000 r. na dziś |
 
 Zablokowany magazyn (hasło) — każda prośba `DOK_*` dostaje „złe hasło”. W logu tylko numery komunikatów, liczby

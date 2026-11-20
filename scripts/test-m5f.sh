@@ -14,7 +14,9 @@
 #    magazyn z kroku 2 otwarty (dane przetrwały);
 # 5. wycofanie (A/B): „nowe” miejsce A jest uszkodzone — GRUB wraca do B, K1 zgłasza nieudaną aktualizację: okienko na
 #    pulpicie (0.10.5 krok 1), „Pokaż w Ustawieniach” otwiera Ustawienia → Aktualizacje z „nieudaną próbą”;
-# 6. (M6a) na dysku nowsza wersja niż na pendrivie — Ustawienia → Aktualizacje bez przycisku, nic się nie zaczyna.
+# 6. (M6a) na dysku nowsza wersja niż na pendrivie — Ustawienia → Aktualizacje bez przycisku, nic się nie zaczyna;
+# 7. (0.10.10 krok 1) ten sam dysk z danymi: Instalator z pendrive'a → „Zainstaluj od nowa” → „USUŃ” — skarbiec oddaje
+#    partycję, instalacja na cały dysk; start z dysku: nowy pusty magazyn.
 # Z dysku (bez pendrive'a) Instalator nie ma ekranu aktualizacji: karta z linkiem do Ustawień → Aktualizacje.
 # Zrzuty: build/testy/m5f-*.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
@@ -111,6 +113,11 @@ if tryb == "z-dysku":
     if u:
         klik(int(u.group(4)) + 720 - 8 - 14, int(u.group(5)) + 22)  # × of Ustawienia (720 wide since 0.10.5)
         czekaj(r"K1-USTAWIENIA: okno zamknięte przez użytkownika", czas=20)
+if tryb == "po-od-nowa":  # 0.10.10 step 1: the disk installed anew — the data of the earlier K1 are gone
+    sprawdz("(0.10.10) po instalacji od nowa: start z dysku, nowy pusty magazyn (dane poprzedniego K1 usunięte)",
+            czekaj(r"K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE", czas=10)
+            and "K1-SKARBIEC: magazyn otwarty" not in tekst())
+    koniec()
 if tryb == "po-przerwaniu":
     sprawdz("po przerwanej aktualizacji dysk dalej startuje (pulpit)", g)
     koniec()
@@ -261,6 +268,33 @@ if tryb == "instaluj":
     q.czysty_log()
     q.koniec(wylacz=False)
 
+if tryb == "od-nowa":  # 0.10.10 step 1 (the owner's choice of 2026-11-20): anew on the disk whose data are open
+    sprawdz("pendrive + dysk z K1: dane z dysku otwarte, Instalator: dysk z K1 „używany teraz”",
+            czekaj(r"K1-NADZORCA: partycja danych K1-DANE otwarta dla skarbca \(sda2\)", czas=5)
+            and czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: tak \(dane otwarte\)", czas=5))
+    klik(ox + int(d.group(3)), oy + int(d.group(4)))  # the disk
+    zrzut("7-od-nowa-lista")
+    klik(px, py)                                      # Zainstaluj od nowa
+    monitor("sendkey u", "sendkey s", "sendkey u", "sendkey alt_r-n")  # usuń
+    zrzut("7-od-nowa-potwierdzenie")
+    klik(px, py)
+    sprawdz("„Zainstaluj od nowa” przy dysku z otwartymi danymi, potwierdzone po „usuń”",
+            czekaj(r"K1-INSTALACJA: potwierdzono: instalacja na dysku 1", czas=10))
+    sprawdz("nadzorca zamyka dane: skarbiec oddaje partycję, dane dalej tylko w pamięci",
+            czekaj(r"K1-NADZORCA: instalator: instalacja od nowa na dysku z danymi \(sda2\)", czas=10)
+            and czekaj(r"K1-SKARBIEC: partycja K1-DANE zwolniona dla Instalatora \(magazyn zamknięty\)", czas=10)
+            and czekaj(r"K1-NADZORCA: instalator: skarbiec oddał partycję sda2", czas=10))
+    sprawdz("potem zwykła instalacja na cały dysk (wyłączność po puszczeniu obrazu strefy)",
+            czekaj(r"K1-NADZORCA: instalator: instalacja na dysku — sda \(z sd\w+, okno: Instalator\)", czas=40)
+            and czekaj(r"K1-INSTALATOR: gotowe: K1 zainstalowany", czas=200)
+            and czekaj(r"K1-INSTALACJA: zainstalowano", czas=20))
+    zrzut("7-od-nowa-gotowe")
+    sprawdz("pulpit działa dalej (skarbiec nie uruchamiany od nowa)", "skarbiec uruchamiany ponownie" not in tekst())
+    klik(px, py)  # Wyłącz komputer
+    sprawdz("„Wyłącz komputer” wyłącza system", czekaj(r"K1: wyłączanie zasilania|reboot: Power down", czas=60))
+    q.czysty_log()
+    q.koniec(wylacz=False)
+
 PY
     zamknij_qemu "$MON" $QPID
 }
@@ -358,6 +392,9 @@ else echo "  [BŁĄD]  grubenv dysku po wycofaniu: $(env_dysku)"; r=1; fi
 # M6a: pretend the disk runs 99.0.0 (the manifest of its confirmed slot B, in the slot's last MiB)
 python3 -I -c 'import sys; f=open(sys.argv[1],"r+b"); o=int(sys.argv[2])+int(sys.argv[3])-1048576; f.seek(o+8); f.write((99<<16).to_bytes(4,"little")); f.seek(o+24); f.write(b"99.0.0".ljust(24,b"\0")); f.close()' "$DYSK" "$(uklad "$DYSK" 40)" "$(slot_bajty "$DYSK")"
 uruchom starsza 6-starsza --pendrive "$PEN" --qemu "$SATA"
+# 0.10.10 step 1: the same disk (K1 "99.0.0" with the data of step 2) installed anew from the stick
+uruchom od-nowa 7-od-nowa --pendrive "$PEN" --qemu "$SATA"
+uruchom po-od-nowa 7-po-od-nowa --dysk-uefi "$DYSK"
 rm -f "$DYSK" "$PEN" "$TESTY"/m5f-p1 "$TESTY"/m5f-p2 "$TESTY"/m5f-efi.img "$TESTY"/m5f-grub.cfg "$TESTY"/m5f-info
 if [ $r -eq 0 ]; then info "M5f: wszystko zaliczone (zrzuty: $TESTY/m5f-*.png)"; else echo "[k1] M5f: BŁĄD (logi: $TESTY/m5f-*.log)"; fi
 exit $r

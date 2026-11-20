@@ -160,7 +160,7 @@ static void obsluz_sterowanie(void)
         if (o.obciete || !o.ma_nadawce || o.uid != 0 ||
             k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &m) != 0 ||
             (m.typ != K1_KOM_SKARB_KLIENT && m.typ != K1_KOM_POWIEKSZONO &&
-             m.typ != K1_KOM_ZEGAR_PRZESUNIETY && m.typ != K1_KOM_SKARB_WYCZYSC) ||
+             m.typ != K1_KOM_ZEGAR_PRZESUNIETY && m.typ != K1_KOM_SKARB_WYCZYSC && m.typ != K1_KOM_SKARB_ZWOLNIJ) ||
             (o.fd >= 0) != k1_komunikat_z_deskryptorem(m.typ, K1_KIER_STEROWANIE)) {
             if (o.fd >= 0)
                 close(o.fd);
@@ -173,6 +173,8 @@ static void obsluz_sterowanie(void)
             dok_zegar_z_internetu((int64_t)k1_kom_u64(m.a, m.b));
         else if (m.typ == K1_KOM_SKARB_WYCZYSC) /* 0.10.0 step 5: "Wyczyść dane sesji" */
             strefy_wyczysc(m.a);
+        else if (m.typ == K1_KOM_SKARB_ZWOLNIJ) /* 0.10.10 step 1: the Instalator installs anew on this disk */
+            ob_zwolnij(FD_DYSK), do_nadzorcy(k1_komunikat_nowy(K1_KOM_SKARB_ZWOLNIONO, 0, 0, 0, 0, 0, 0));
         else
             nowy_klient(&m, o.fd);
     }

@@ -118,7 +118,7 @@ int otworz_urzadzenie(const char *nazwa, int flagi)
 /* Starts the writing program for disk `nr` (1-based, from the list window `okno` saw). The disk must
  * still be there with the same size; install opens the whole disk exclusively (fails while anything
  * on it is open — the data partition of the running system too), update only its K1-EFI. */
-static int inst_zapis(int okno, int nr, int tryb)
+int inst_zapis(int okno, int nr, int tryb)
 {
     struct k1_dyski teraz_l;
     const struct k1_dysk *d;
@@ -141,6 +141,8 @@ static int inst_zapis(int okno, int nr, int tryb)
         return K1_INST_BLAD_ZRODLO;
     if (tryb == K1_INST_AKTUALIZUJ && !(teraz_l.d[i].efi[0] && teraz_l.d[i].dane[0]))
         return K1_INST_BLAD_ARG;
+    if (tryb == K1_INST_INSTALUJ && teraz_l.d[i].dane[0] && skarb_dane[0] && strcmp(teraz_l.d[i].dane, skarb_dane) == 0)
+        return od_nowa_start(okno, nr); /* 0.10.10 step 1: its data first closed (od_nowa.c) */
     snprintf(cel, sizeof cel, "%s", tryb == K1_INST_INSTALUJ ? d->nazwa : teraz_l.d[i].efi);
     fds[1] = otworz_urzadzenie(teraz_l.zrodlo, O_RDONLY);
     if (fds[1] < 0)
@@ -286,14 +288,19 @@ static void obsluz_okno(int okno)
             akt_prosba(k.a);
         } else if (k.typ == K1_KOM_INST_START) {
             int r = inst_zapis(okno, (int)k.obiekt, k.a);
-            if (r != 0) {
-                wyslij(okno, k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, r, k.a, 0, 0, 0));
-                k1_log(TAG, "instalator: odmowa (%d, okno: %s)", r, okna[okno].nazwa);
-            }
+            if (r != 0)
+                inst_odmowa(okno, k.a, r);
         } else {
             wylacz(k.a);
         }
     }
+}
+
+/* A job refused: the window gets its result (it waits in "Instaluję"). */
+void inst_odmowa(int okno, int tryb, int r)
+{
+    wyslij(okno, k1_komunikat_nowy(K1_KOM_INST_WYNIK, 0, r, tryb, 0, 0, 0));
+    k1_log(TAG, "instalator: odmowa (%d, okno: %s)", r, okna[okno].nazwa);
 }
 
 /* Requests from the Instalator window (UID 204). */

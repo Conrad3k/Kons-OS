@@ -66,6 +66,10 @@ enum k1_komunikat_typ {
                                  * row of K1_STREFY), b..e=0 — delete every piece of its disk ("Wyczyść dane sesji") */
     K1_KOM_SKARB_WYCZYSZCZONO = 169, /* skarbiec → nadzorca (K1_KIER_DO_NADZORCY): obiekt=0, a=that owner, b=0 or
                                       * K1_MAG_* < 0, c=pieces deleted 0..K1_STREFA_DYSK_KAWALKI, d=e=0 */
+    K1_KOM_SKARB_ZWOLNIJ = 222, /* nadzorca → skarbiec (0.10.10 step 1): obiekt=0, a..e=0 — the Instalator installs anew
+                                 * on the disk of K1-DANE (the owner typed USUŃ): close the vault and the partition; from
+                                 * now on objects only in memory, until the computer is switched off */
+    K1_KOM_SKARB_ZWOLNIONO = 223, /* skarbiec → nadzorca (K1_KIER_DO_NADZORCY): obiekt=0, a..e=0 — the partition is closed */
     /* nadzorca → instalator (M5f, ADR 0018; same direction K1_KIER_STEROWANIE): the job, once */
     K1_KOM_INST_ZADANIE = 3, /* a=K1_INST_* mode, b=logical sector size (512/4096) of the target */
 

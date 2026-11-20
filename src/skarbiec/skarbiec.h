@@ -47,6 +47,7 @@ uint64_t ob_pojemnosc(void);
 int ob_powieksz(uint64_t bajty, const char *kiedy);
 /* Right after the vault opened or was unlocked: a grow cut off is finished. */
 void ob_po_otwarciu(void);
+void ob_zwolnij(int fd_dysk); /* SKARB_ZWOLNIJ (0.10.10 step 1): the vault and the partition closed, objects in memory */
 
 /* przerwy.c: work in the quiet moments of the loop (0.8.2, ADR 0036) — compaction in steps of 4 MiB */
 double przerwa_czeka(void);    /* seconds without a request before the next piece of work; < 0: none (0: now) */

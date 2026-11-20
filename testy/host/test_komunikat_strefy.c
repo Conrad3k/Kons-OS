@@ -152,6 +152,14 @@ void strefy(void)
     EXPECT(ok(K(K1_KOM_SKARB_WYCZYSZCZONO, 0, K1_PROFIL_STREFA_OGOLNA, K1_SKARB_IO, 0, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(zle(K(K1_KOM_SKARB_WYCZYSZCZONO, 0, K1_PROFIL_STREFA_OGOLNA, 1, 0, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(zle(K(K1_KOM_SKARB_WYCZYSZCZONO, 0, K1_PROFIL_PLIKI, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    /* 0.10.10 step 1: the Instalator installs anew on the disk of the data — skarbiec gives the partition back */
+    EXPECT(ok(K(K1_KOM_SKARB_ZWOLNIJ, 0, 0, 0, 0, 0, 0), K1_KIER_STEROWANIE));
+    EXPECT(zle(K(K1_KOM_SKARB_ZWOLNIJ, 1, 0, 0, 0, 0, 0), K1_KIER_STEROWANIE));
+    EXPECT(zle(K(K1_KOM_SKARB_ZWOLNIJ, 0, 0, 0, 0, 0, 1), K1_KIER_STEROWANIE));
+    EXPECT(zle(K(K1_KOM_SKARB_ZWOLNIJ, 0, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_ZWOLNIONO, 0, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(zle(K(K1_KOM_SKARB_ZWOLNIONO, 0, 1, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
+    EXPECT(zle(K(K1_KOM_SKARB_ZWOLNIONO, 0, 0, 0, 0, 0, 0), K1_KIER_OD_SKARBCA));
     /* the pieces of a zone's disk: object ids past K1_OB_MAKS, one piece at most; nothing between */
     EXPECT(ok(K(K1_KOM_SKARB_CZYTAJ, K1_OB_DYSK, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
     EXPECT(ok(K(K1_KOM_SKARB_USUN, K1_OB_DYSK + K1_STREFA_DYSK_KAWALKI - 1, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));

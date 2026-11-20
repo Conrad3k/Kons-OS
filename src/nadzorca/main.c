@@ -138,6 +138,7 @@ static void okresowe(void)
     bateria_archiwum(t);
     rozruch_po_starcie(t);
     obrazy_stref_po_starcie();
+    od_nowa_krok(t); /* 0.10.10 step 1: the Instalator installs anew on the disk of the data */
     akt_ustawienie_okresowe(); /* 0.10.5 step 2b: updates through the network */
     akt_okresowe(t);
     if (zasoby_kanal >= 0 && t >= nastepny_raport) {

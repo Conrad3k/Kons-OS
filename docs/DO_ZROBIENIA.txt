@@ -14,10 +14,18 @@ Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] części
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — po wydaniu 0.10.9 Szybka grafika
-------------------------------------------
-Następny temat wybierasz Ty (mapa, punkt 2); pierwszy czat nowej wersji pisze jej plan (docs/PLAN-<wersja>.txt). Od 0.10.5
-w tle działa robot: sam wydaje wersje PATCH z poprawionym jądrem i pakietami przeglądarki (od wydania 0.10.9 znowu
+1. TERAZ — poprawka 0.10.10 (po wydaniu 0.10.9 Szybka grafika)
+--------------------------------------------------------------
+Twoja prośba z 2026-11-20 (po instalacji 0.10.9): czysta instalacja na dysku, na którym już jest K1, i karta graficzna
+w Zasobach. Twoje decyzje z tego dnia: przycisk w Instalatorze z pendrive'a (dane z dysku zamknięte, cały dysk
+wyczyszczony), w Zasobach zakładki z wykresami, pobór mocy karty i całego laptopa. Dwa PR-y, wydanie w drugim (numer:
+następny wolny PATCH — robot może wydać coś wcześniej):
+    [w toku: Claude, gałąź claude/pensive-bardeen-g1lj56] krok 1 — Instalator: „Zainstaluj od nowa” także dla dysku
+        z otwartymi danymi (nadzorca kończy strefy, skarbiec oddaje partycję — SKARB_ZWOLNIJ; od_nowa.c), test-m5f krok 7
+    [ ] krok 2 — Zasoby: zakładka „Karta graficzna” (zajętość karty, taktowanie, pobór mocy karty i laptopa, sesje
+        z szybką grafiką); porządki i wydanie
+Potem następny temat wybierasz Ty (mapa, punkt 2); pierwszy czat nowej wersji pisze jej plan (docs/PLAN-<wersja>.txt). Od
+0.10.5 w tle działa robot: sam wydaje wersje PATCH z poprawionym jądrem i pakietami przeglądarki (od wydania 0.10.9 znowu
 w pełnym trybie). Do sprawdzenia na laptopach — punkt 4.
 0.10.9 Szybka grafika — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.9.txt; ADR 0049, 0050; kolejność
 kroków 1, 4, 2, 5, 6, 3):
