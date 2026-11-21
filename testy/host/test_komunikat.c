@@ -519,5 +519,6 @@ int main(void)
     dekoder();
     kanal();
     strefy();
+    pobrane();
     return K1_TEST_KONIEC("test_komunikat");
 }

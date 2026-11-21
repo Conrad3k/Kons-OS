@@ -229,3 +229,54 @@ void strefy(void)
     EXPECT(zle(K(K1_KOM_STREFA_OBRAZ, 1, 1, 0, 0, K1_POW_MAKS_BOK + 1, 0), K1_KIER_DO_EKRANU));
     EXPECT(zle(K(K1_KOM_STREFA_OBRAZ, 1, 1, 0, 0, 0, 0), K1_KIER_OD_EKRANU));
 }
+
+/* 0.11.0 step 2 (ADR 0052): a file from a zone into Pliki — VMM ↔ nadzorca, nadzorca ↔ gui (k1_kom_pobrane.c). */
+void pobrane(void)
+{
+    const int32_t kaw = (int32_t)K1_DOK_KAWALEK, d = K1_KIER_DO_NADZORCY, o = K1_KIER_OD_NADZORCY;
+    EXPECT(ok(K(K1_KOM_STREFA_PLIK, 1, 2101473, 0, 17, 0, 0), d));
+    EXPECT(ok(K(K1_KOM_STREFA_PLIK, 7, 0, 256, 127, 0, 0), d)); /* 1 TiB: told, too big for Pliki */
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK, 7, 1, 256, 127, 0, 0), d)); /* over K1_PS_ROZMIAR_MAKS */
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK, 0, 10, 0, 5, 0, 0), d));    /* number 0 */
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK, 1, 10, 0, 0, 0, 0), d));    /* no name */
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK, 1, 10, 0, K1_DOK_NAZWA, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK, 1, 10, 0, 5, 1, 0), d));    /* reserved */
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK, 1, 10, 0, 5, 0, 0), o));    /* from the VMM only */
+    EXPECT(ok(K(K1_KOM_STREFA_PLIK_KAWALEK, 1, kaw, 0, 0, 0, 0), d));
+    EXPECT(ok(K(K1_KOM_STREFA_PLIK_KAWALEK, 1, 4321, 2, 1, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK_KAWALEK, 1, 4321, 2, 0, 0, 0), d)); /* a short piece that is not the last */
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK_KAWALEK, 1, 0, 2, 1, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK_KAWALEK, 1, kaw + 1, 2, 1, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK_KAWALEK, 1, 5, (int32_t)K1_DOK_KAWALKI_MAKS, 1, 0, 0), d));
+    EXPECT(ok(K(K1_KOM_STREFA_PLIK_KONIEC, 3, K1_PS_W_BLAD, 0, 0, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK_KONIEC, 3, K1_PS_W_ZAPISANY, 0, 0, 0, 0), d)); /* the VMM never says "saved" */
+    EXPECT(ok(K(K1_KOM_STREFA_PLIK_ODP, 3, K1_PLIK_WYSLIJ, 0, 0, 0, 0), o));
+    EXPECT(ok(K(K1_KOM_STREFA_PLIK_ODP, 3, K1_PLIK_GOTOWE, K1_PS_W_ODMOWA, 0, 0, 0), o));
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK_ODP, 3, K1_PLIK_DALEJ, 1, 0, 0, 0), o));
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK_ODP, 3, K1_PLIK_GOTOWE, K1_PS_W_MAKS + 1, 0, 0, 0), o));
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK_ODP, 3, 4, 0, 0, 0, 0), o));
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK_ODP, 3, K1_PLIK_WYSLIJ, 0, 0, 0, 0), d));
+    EXPECT(ok(K(K1_KOM_POBRANIE, K1_STREFA_OGOLNA, 2, 300, 0, 13, 0), o));
+    EXPECT(zle(K(K1_KOM_POBRANIE, 0, 2, 300, 0, 13, 0), o)); /* no zone */
+    EXPECT(zle(K(K1_KOM_POBRANIE, K1_STREFY_MAKS + 1, 2, 300, 0, 13, 0), o));
+    EXPECT(zle(K(K1_KOM_POBRANIE, 2, 0, 300, 0, 13, 0), o));
+    EXPECT(zle(K(K1_KOM_POBRANIE, 2, 2, 300, 0, 13, 1), o));
+    EXPECT(ok(K(K1_KOM_POBRANIE_DECYZJA, 2, 5, 1, 0, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_POBRANIE_DECYZJA, 2, 5, 2, 0, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_POBRANIE_DECYZJA, 2, 5, 1, 0, 0, 0), o));
+    EXPECT(ok(K(K1_KOM_POBRANIE_WYNIK, 2, 5, K1_PS_W_MIEJSCE, 0, 0, 0), o));
+    EXPECT(zle(K(K1_KOM_POBRANIE_WYNIK, 2, 5, -1, 0, 0, 0), o));
+    EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_STREFA_PLIK, K1_KIER_DO_NADZORCY) &&
+           k1_komunikat_z_deskryptorem(K1_KOM_STREFA_PLIK_KAWALEK, K1_KIER_DO_NADZORCY) &&
+           k1_komunikat_z_deskryptorem(K1_KOM_POBRANIE, K1_KIER_OD_NADZORCY) &&
+           !k1_komunikat_z_deskryptorem(K1_KOM_STREFA_PLIK_ODP, K1_KIER_OD_NADZORCY));
+    /* DOK_NOWY: the origin of a zone (K1_POCH_STREFA_OD + its number) for a file — no other number past K1's own */
+    EXPECT(ok(K(K1_KOM_DOK_NOWY, K1_FOLDER_POBRANE, K1_DOK_PLIK, 8, 100, K1_POCH_STREFA_OD + 2, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_POBRANE, K1_DOK_PLIK, 8, 100, K1_POCH_STREFA_OD, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_POBRANE, K1_DOK_PLIK, 8, 100, K1_POCH_STREFA_OD + K1_STREFY_MAKS + 1, 0),
+               K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_POBRANE, K1_DOK_FOLDER, 8, 0, K1_POCH_STREFA_OD + 2, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(strcmp(k1_poch_nazwa(K1_POCH_STREFA_OD + K1_STREFA_OGOLNA), "z przeglądarki · Ogólna") == 0 &&
+           strcmp(k1_poch_nazwa(K1_POCH_STREFA_OD + K1_STREFA_PROBNA), "ze strefy próbnej") == 0 &&
+           k1_poch_dobre(K1_POCH_STREFA_OD + 1) && !k1_poch_dobre(K1_POCH_MAKS + 1) && !k1_poch_dobre(0));
+}
