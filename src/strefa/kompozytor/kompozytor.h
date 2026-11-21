@@ -310,6 +310,11 @@ void wejscie_klient_koniec(struct klient *k);
 void wejscie_okno_zmiana(void);               /* the toplevel or the popups changed: keyboard focus anew */
 int wejscie_czekaj(void);                     /* ms until wejscie_czas has something to do; -1: nothing */
 void wejscie_czas(void);                      /* the fingers stopped a while ago: their gesture ends (palce.c) */
+void wejscie_wpisz(const char *adres);        /* 0.11.0 step 3: Ctrl+L, the address, Alt+Enter — to the focused window */
+/* otworz.c (0.11.0 step 3, P16): "Otwórz w…" — the agent's FIFO next to the socket */
+void otworz_start(const char *gniazdo);
+int otworz_fd(void);
+void otworz_czytaj(void);
 extern const char *mapa_klawiatury;           /* the XKB keymap file (argv) */
 
 /* scena.c */

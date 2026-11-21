@@ -21,7 +21,18 @@
 #define KOLEJKA 8
 _Static_assert(SZER <= KONT_SZER && WYS <= KONT_WYS, "okienko w panelu");
 
-enum { O_PYTANIE = 0, O_ZA_DUZY, O_BLAD }; /* what the window says */
+enum { O_PYTANIE = 0, O_ZA_DUZY, O_BLAD, O_ZMIANA }; /* what the window says (O_ZMIANA: 0.11.0 step 3, a changed
+                                                     * version of a file K1 sent: "Zapisać zmiany w oryginale?") */
+/* The buttons of each kind, the main one first (at the right) — its label and the answer to nadzorca (K1_POB_*). */
+static const struct {
+    const char *etykieta;
+    int odp;
+} przyciski_rodzaju[][3] = {
+    [O_PYTANIE] = { { "Zapisz w Pobranych", K1_POB_ZAPISZ }, { "Zostaw w przeglądarce", K1_POB_ZOSTAW } },
+    [O_ZA_DUZY] = { { "OK", K1_POB_ZOSTAW } },
+    [O_BLAD] = { { "OK", -1 } },
+    [O_ZMIANA] = { { "Zapisz", K1_POB_ZAPISZ }, { "Zapisz jako nowy plik", K1_POB_JAKO_NOWY }, { "Nie", K1_POB_ZOSTAW } },
+};
 
 static struct plik {
     int strefa, rodzaj, wynik; /* rodzaj: O_*; wynik: K1_PS_W_* of O_BLAD */
@@ -39,21 +50,18 @@ static const char *nazwa_okna(int z) /* "Przeglądarka · Ogólna": the title an
     return b;
 }
 
-/* [0] the main one at the right ("Zapisz w Pobranych" / "OK"), [1] "Zostaw w przeglądarce" (a question only). */
-static int przyciski(struct k1_przycisk p[2])
+/* The buttons of the window shown (przyciski_rodzaju), from the right; how many. */
+static int przyciski(struct k1_przycisk p[3])
 {
-    static const char *const e[2] = { "Zapisz w Pobranych", "Zostaw w przeglądarce" };
-    int ile = n > 0 && kol[0].rodzaj == O_PYTANIE ? 2 : 1, i;
-    for (i = 0; i < ile; i++) {
-        p[i].etykieta = ile == 1 ? "OK" : e[i];
-        p[i].w = k1_tekst_szer(K1_CZ_TEKST_MOCNA, p[i].etykieta) + 40;
+    int r = n > 0 ? kol[0].rodzaj : O_BLAD, ile = 0;
+    for (int i = 0; i < 3 && przyciski_rodzaju[r][i].etykieta != NULL; i++, ile++) {
+        p[i].etykieta = przyciski_rodzaju[r][i].etykieta;
+        p[i].w = k1_tekst_szer(K1_CZ_TEKST_MOCNA, p[i].etykieta) + 32;
         p[i].h = 36;
         p[i].y = PRZ_Y;
         p[i].styl = i == 0 ? K1_PRZ_GLOWNY : K1_PRZ_CICHY;
+        p[i].x = i == 0 ? SZER - PAD - p[i].w : p[i - 1].x - 8 - p[i].w;
     }
-    p[0].x = SZER - PAD - p[0].w;
-    if (ile == 2)
-        p[1].x = p[0].x - 12 - p[1].w;
     return ile;
 }
 
@@ -63,6 +71,10 @@ static const char *pytanie(const struct plik *f, const char **dalej)
     *dalej = f->rodzaj == O_PYTANIE ? NULL : "Plik zostaje w przeglądarce.";
     if (f->rodzaj == O_PYTANIE)
         return "Zapisać go w Plikach → Pobrane?";
+    if (f->rodzaj == O_ZMIANA) {
+        *dalej = "„Zapisz”: poprzednia wersja trafi do Kosza.";
+        return "Zapisać zmiany w oryginale?";
+    }
     if (f->rodzaj == O_ZA_DUZY)
         return "Jest za duży dla Plików (najwyżej 4 GB).";
     return f->wynik == K1_PS_W_MIEJSCE ? "Za mało miejsca na dysku." : "Zapis się nie udał.";
@@ -71,7 +83,7 @@ static const char *pytanie(const struct plik *f, const char **dalej)
 static void rysuj(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y)
 {
     const struct plik *f = &kol[0];
-    struct k1_przycisk p[2];
+    struct k1_przycisk p[3];
     char t[96], r[24];
     const char *dalej;
     int ile, i;
@@ -81,7 +93,8 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32
     k1_zaokraglony(o, (float)x, (float)y, SZER, WYS, 16, k1_kolor(m->tlo, m->panel_alfa));
     k1_obrys(o, (float)x, (float)y, SZER, WYS, 16, 1.0f, k1_kolor(m->tekst, 22));
     k1_kolo(o, (float)x + PAD + 5, (float)y + 29, 5, k1_kolor(k1_strefa(f->strefa)->kolor, 255));
-    snprintf(t, sizeof t, "%s %s", nazwa_okna(f->strefa), f->rodzaj == O_BLAD ? "· nie zapisano pliku" : "pobrała plik");
+    snprintf(t, sizeof t, "%s %s", nazwa_okna(f->strefa),
+             f->rodzaj == O_BLAD ? "· nie zapisano pliku" : f->rodzaj == O_ZMIANA ? "zmieniła plik" : "pobrała plik");
     k1_tekst(o, K1_CZ_TEKST_MOCNA, x + PAD + 18, y + 34, t, k1_kolor(m->tekst, 255), SZER - 2 * PAD - 18);
     k1_tekst(o, K1_CZ_TEKST, x + PAD, y + 72, f->nazwa, k1_kolor(m->tekst, 255), SZER - 2 * PAD);
     k1_rozmiar_tekst(f->rozmiar, r, sizeof r);
@@ -99,21 +112,22 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32
 
 static const char *rodzaj_logu(void)
 {
-    return kol[0].rodzaj == O_PYTANIE ? "pobranie" : kol[0].rodzaj == O_ZA_DUZY ? "pobranie za duże" : "nie zapisano";
+    static const char *const r[] = { [O_PYTANIE] = "pobranie", [O_ZA_DUZY] = "pobranie za duże", [O_BLAD] = "nie zapisano",
+                                     [O_ZMIANA] = "zmiana pliku" };
+    return r[kol[0].rodzaj];
 }
 
 /* The tests click by this line. */
 static void loguj(int32_t x, int32_t y)
 {
-    struct k1_przycisk p[2];
+    struct k1_przycisk p[3];
+    char b[200];
+    size_t d = 0;
     int ile = przyciski(p);
-    if (ile == 2)
-        k1_log(TAG, "okienko (%s): sesja %d, plik %d; %s %d,%d; %s %d,%d", rodzaj_logu(), kol[0].strefa, (int)kol[0].nr,
-               p[0].etykieta, x + p[0].x + p[0].w / 2, y + p[0].y + p[0].h / 2, p[1].etykieta, x + p[1].x + p[1].w / 2,
-               y + p[1].y + p[1].h / 2);
-    else
-        k1_log(TAG, "okienko (%s): sesja %d, plik %d; OK %d,%d", rodzaj_logu(), kol[0].strefa, (int)kol[0].nr,
-               x + p[0].x + p[0].w / 2, y + p[0].y + p[0].h / 2);
+    for (int i = 0; i < ile && d < sizeof b; i++)
+        d += (size_t)snprintf(b + d, sizeof b - d, "; %s %d,%d", p[i].etykieta, x + p[i].x + p[i].w / 2,
+                              y + p[i].y + p[i].h / 2);
+    k1_log(TAG, "okienko (%s): sesja %d, plik %d%s", rodzaj_logu(), kol[0].strefa, (int)kol[0].nr, b);
 }
 
 static void pokaz(void);
@@ -130,7 +144,7 @@ static void usun_pierwszy(void)
 
 static void wskaznik(int rodzaj, int przycisk, int32_t x, int32_t y)
 {
-    struct k1_przycisk p[2];
+    struct k1_przycisk p[3];
     int ile = przyciski(p), w = rodzaj == K1_WSK_WYJSCIE ? -1 : k1_przycisk_pod(p, ile, x, y);
     if (w != hover) {
         hover = w;
@@ -140,8 +154,8 @@ static void wskaznik(int rodzaj, int przycisk, int32_t x, int32_t y)
         return; /* a click beside the window: it stays (the answer is the user's) */
     k1_log(TAG, "okienko (%s): sesja %d, plik %d: %s", rodzaj_logu(), kol[0].strefa, (int)kol[0].nr, p[w].etykieta);
     if (kol[0].rodzaj != O_BLAD) {
-        int zapisz = kol[0].rodzaj == O_PYTANIE && w == 0;
-        do_nadzorcy(k1_komunikat_nowy(K1_KOM_POBRANIE_DECYZJA, (uint32_t)kol[0].strefa, kol[0].nr, zapisz, 0, 0, 0));
+        int odp = przyciski_rodzaju[kol[0].rodzaj][w].odp, zapisz = odp != K1_POB_ZOSTAW;
+        do_nadzorcy(k1_komunikat_nowy(K1_KOM_POBRANIE_DECYZJA, (uint32_t)kol[0].strefa, kol[0].nr, odp, 0, 0, 0));
         for (int i = 0; zapisz && i < KOLEJKA; i++)
             if (zapisywane[i].strefa == 0) {
                 zapisywane[i] = kol[0];
@@ -168,7 +182,7 @@ void pobranie_komunikat(const struct k1_komunikat *m, int fd)
     f.strefa = (int)m->obiekt, f.nr = m->a;
     if (m->typ == K1_KOM_POBRANIE) {
         f.rozmiar = k1_kom_u64(m->b, m->c);
-        f.rodzaj = f.rozmiar > K1_DOK_MAKS_BAJTY ? O_ZA_DUZY : O_PYTANIE;
+        f.rodzaj = f.rozmiar > K1_DOK_MAKS_BAJTY ? O_ZA_DUZY : m->e ? O_ZMIANA : O_PYTANIE;
         if (fd < 0 || k1_memfd_czytaj(fd, f.nazwa, (size_t)m->d) != 0 || !k1_dok_nazwa_poprawna(f.nazwa, (size_t)m->d) ||
             !k1_strefa(f.strefa)->okno || n == KOLEJKA) {
             k1_log(TAG, "pobranie: sesja %d, plik %d odrzucony", f.strefa, (int)f.nr);
