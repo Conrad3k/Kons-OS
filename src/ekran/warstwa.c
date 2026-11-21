@@ -132,19 +132,19 @@ static void kursor_bufor(void)
 
 void warstwa_start(void)
 {
-    struct drm_set_client_cap c = { DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1 };
+    struct drm_set_client_cap c = { DRM_CLIENT_CAP_ATOMIC, 1 }; /* first: the planes' FB_ID, CRTC_ID… are atomic-only
+                                                                 * properties (drm_mode_object_get_properties) */
     struct drm_version v = { 0 };
     struct drm_mode_get_plane_res r = { 0 };
     uint32_t id[PLASZCZYZNY_MAKS], bit;
     char nazwa[16] = { 0 };
     v.name_len = sizeof nazwa - 1, v.name = nazwa;
     if (s.brak_flip || drm(s.fd, DRM_IOCTL_VERSION, &v) != 0 || strcmp(nazwa, "i915") != 0 ||
-        drm(s.fd, DRM_IOCTL_SET_CLIENT_CAP, &c) != 0 || (bit = bit_crtc()) == 0 ||
-        drm(s.fd, DRM_IOCTL_MODE_GETPLANERESOURCES, &r) != 0 || r.count_planes > PLASZCZYZNY_MAKS)
+        drm(s.fd, DRM_IOCTL_SET_CLIENT_CAP, &c) != 0)
         return;
-    r.plane_id_ptr = wsk(id);
-    if (drm(s.fd, DRM_IOCTL_MODE_GETPLANERESOURCES, &r) != 0)
-        return;
+    if ((bit = bit_crtc()) == 0 || drm(s.fd, DRM_IOCTL_MODE_GETPLANERESOURCES, &r) != 0 ||
+        r.count_planes > PLASZCZYZNY_MAKS || (r.plane_id_ptr = wsk(id), drm(s.fd, DRM_IOCTL_MODE_GETPLANERESOURCES, &r)) != 0)
+        r.count_planes = 0; /* nothing found: below, back to the plain interface */
     for (uint32_t i = 0; i < r.count_planes && i < PLASZCZYZNY_MAKS; i++) {
         struct drm_mode_get_plane g = { .plane_id = id[i] };
         struct plaszczyzna pl = { .id = id[i] };
@@ -156,8 +156,10 @@ void warstwa_start(void)
         if (k >= 0 && w.pl[k].id == 0 && (k != W_NAKLADKA || bierze_xrgb(id[i])))
             w.pl[k] = pl;
     }
-    c.capability = DRM_CLIENT_CAP_ATOMIC;
-    if (w.pl[W_GLOWNA].id == 0 || w.pl[W_NAKLADKA].id == 0 || drm(s.fd, DRM_IOCTL_SET_CLIENT_CAP, &c) != 0) {
+    if (w.pl[W_GLOWNA].id == 0 || w.pl[W_NAKLADKA].id == 0) {
+        c.value = 0; /* back to the plain interface (also universal planes off) */
+        drm(s.fd, DRM_IOCTL_SET_CLIENT_CAP, &c);
+        memset(w.pl, 0, sizeof w.pl);
         k1_log(TAG, "warstwa karty niedostępna — okna stref składane procesorem");
         return;
     }
