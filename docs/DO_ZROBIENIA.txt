@@ -32,7 +32,7 @@ Twoja prośba z 2026-11-20: szybka grafika ma mniej się zacinać, i nowsze kart
 wypadły (Twoja decyzja z tego samego dnia). Decyzje: D1 „B”, D4 „A”, D5 — bez sprawdzenia na sprzęcie, D6 „A” — bez xe.
     [x] krok 1 — pomiar i szybkie poprawki szybkiej grafiki (D1) — PR #199
     [x] krok 2 — obraz strefy bez kopii: bufor karty prosto do ekranu; ADR 0051 (D4) — PR #200
-    [x] krok 3 — nowsze karty zintegrowane Intela (D6); porządki; wydanie 0.10.11
+    [x] krok 3 — nowsze karty zintegrowane Intela (D6); porządki; wydanie 0.10.11 — PR #201
 0.10.10 (poprawka po 0.10.9) — gotowe:
 Twoja prośba z 2026-11-20 (po instalacji 0.10.9): czysta instalacja na dysku, na którym już jest K1, i karta graficzna
 w Zasobach. Twoje decyzje z tego dnia: przycisk w Instalatorze z pendrive'a (dane z dysku zamknięte, cały dysk

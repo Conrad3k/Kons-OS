@@ -111,7 +111,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [x]  2  Obraz strefy bez kopii: bufor karty prosto do ekranu  P8–P12           1           D4, T3, T4   L        0051
         (PR #200)
 [x]  3  Nowsze karty Intela; porządki; wydanie (OSTATNI)      P13–P20          2           D6, T5,      M        0051
-        (PR #PRNR, wydanie 0.10.11)
+        (PR #201, wydanie 0.10.11)
                                                                                            T6                    (uzup.)
 (ADR 0051: następny wolny po 0050 z 0.10.9; plan 0.11.0 bierze następny po nim. Decyzje D2 i D3 i dawne kroki 3–4 —
 karty AMD i NVIDIA — wypadły 2026-11-20; nowy krok 3 to nowsze karty Intela, numery D1 i D4 zostają.)
@@ -238,7 +238,7 @@ KROK 3: Nowsze karty zintegrowane Intela; porządki; wydanie (OSTATNI)     M · 
   Dokumenty: ADR 0051 (uzupełnienie: generacje i warstwy), jadro.md (tabela generacji), posrednik.md, nadzorca.md,
   RYZYKA (R100 — więcej generacji i915 w zasięgu strefy; R101 — Mesa intel-virtio na Gen12), CHANGELOG.
   Gotowe, gdy: CI zielone, wydanie istnieje (linki ISO i USB w raporcie), lista „co sprawdzić” w DO_ZROBIENIA.
-  Ustalenia z wykonania (2026-11-21, PR #PRNR; D6 = A, D5 — bez sprzętu):
+  Ustalenia z wykonania (2026-11-21, PR #201; D6 = A, D5 — bez sprzętu):
    - Zakres (T5, ZE ŹRÓDEŁ — i915_pci.c jądra 7.3.5): bez force_probe są wszystkie zintegrowane do Meteor / Arrow Lake
      (ARL używa mtl_info); Lunar Lake w i915 nie ma. Tabela generacji: docs/komponenty/jadro.md.
    - P15 → ZE ŹRÓDEŁ: gt/uc/intel_uc.c (uc_expand_default_options) — GuC wyłączony przed Gen12 i na Tiger / Rocket Lake,
