@@ -112,7 +112,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                     Luki (punkt 5)   Zależy od   Decyzje      Rozmiar  ADR
-[ ]  1  Okno przeglądarki do krawędzi, pełny ekran            P1–P4            0.10.10     D1, T9       S–M      brak
+[w toku: Claude, gałąź claude/wizardly-franklin-9frfth]
+     1  Okno przeglądarki do krawędzi, pełny ekran            P1–P4            0.10.10     D1, T9       S–M      brak
 [ ]  2  Pliki ze strefy do Plików (Do K1), pochodzenie        P5–P14           0.10.10     D2, D3,      L        0051
                                                                                            T1–T4
 [ ]  3  Pliki do strefy: Wyślij do, Otwórz w, zapis z powr.   P15–P18          2           D4, T5       M–L      0051
@@ -261,7 +262,8 @@ KROK 5: Schowek; porządki; wydanie 0.11.0 (OSTATNI)                      M · D
 ----------
 Twoje (produkt) — czat kroku zada je na początku:
 
-  [!] D1 (krok 1) — Pełny ekran w przeglądarce (F11, film na cały ekran): co z paskami K1?
+  [x] D1 (krok 1; właściciel 2026-11-21: „A” — szkice A/B, oba motywy) — Pełny ekran w przeglądarce (F11, film na
+      cały ekran): co z paskami K1?
       A (zalecane): cały ekran, bez pasków K1 i bez paska tytułu — jak w Windows. Po wejściu K1 pokazuje na kilka sekund
          u góry swoją pigułkę „Przeglądarka · Ogólna · pełny ekran — Esc, aby wyjść” w kolorze sesji; kursor przy górnej
          krawędzi wysuwa pasek tytułu K1 z przyciskiem wyjścia. Strona nie może tego zasłonić (rysuje K1).
