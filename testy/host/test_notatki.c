@@ -41,6 +41,7 @@ size_t k1_utf8_znaki(const char *s, size_t n)
 }
 /* skarbiec's main.c */
 void do_nadzorcy(struct k1_komunikat m) { (void)m; }
+void do_nadzorcy_z(struct k1_komunikat m, int fd) { (void)m, (void)fd; } /* 0.11.0 step 3 (dostep.c) */
 void do_klienta(int fd, struct k1_komunikat m, int przekaz) { k1_kanal_wyslij(fd, &m, sizeof m, przekaz); }
 
 enum k1_odbior_wynik k1_odbierz_komunikat(int gniazdo, uid_t uid, enum k1_kanal_kierunek kier, struct k1_komunikat *k, int *fd)

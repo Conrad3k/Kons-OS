@@ -619,7 +619,7 @@ FUZZ_ZR_lacznik   := src/strefa/lacznik.c src/wspolne/k1_siec.c
 FUZZ_DL_lacznik   := 700
 FUZZ_ZR_balon     := src/strefa/strony.c
 # 0.10.5 step 5 (Raptor Bridge, S35): a packet's whole path with the connections' state
-FUZZ_ZR_vsock     := src/strefa/vsock.c src/strefa/sterowanie.c src/strefa/pliki.c src/strefa/polaczenia.c src/strefa/lacznik.c src/strefa/linia.c src/strefa/virtq.c \
+FUZZ_ZR_vsock     := src/strefa/vsock.c src/strefa/sterowanie.c src/strefa/pliki.c src/strefa/pliki_do.c src/strefa/polaczenia.c src/strefa/lacznik.c src/strefa/linia.c src/strefa/virtq.c \
                      src/strefa/mmio.c src/wspolne/k1_memfd.c $(KOMUNIKAT) $(DOK_C)
 FUZZ_DL_vsock     := 20000
 FUZZ_DL_balon     := 1100

@@ -23,6 +23,11 @@ void do_nadzorcy(struct k1_komunikat m)
     (void)m;
 }
 
+void do_nadzorcy_z(struct k1_komunikat m, int fd) /* 0.11.0 step 3 (dostep.c) */
+{
+    (void)m, (void)fd;
+}
+
 void do_klienta(int fd, struct k1_komunikat m, int przekaz)
 {
     (void)fd, (void)m, (void)przekaz;
