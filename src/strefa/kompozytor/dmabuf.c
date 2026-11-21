@@ -5,8 +5,9 @@
  * One format table: XRGB8888 and ARGB8888, linear only — a frame the processor of the guest can read as it is. A
  * buffer (create_immed, or create with "created") is imported into our own render node, mapped (VIRTGPU_MAP: the
  * card's buffer in the host-visible region, which the VMM maps from the graphics broker) and then is a wl_buffer like
- * one of wl_shm (bufory.c: a pool that is that mapping) — powierzchnia.c copies it on commit, after VIRTGPU_WAIT (the
- * card finished drawing it). One plane, offset and stride inside the buffer, sizes up to POWIERZCHNIA_MAKS.
+ * one of wl_shm (bufory.c: a pool that is that mapping) — after VIRTGPU_WAIT (the card finished drawing it) the scene
+ * reads it where it is, held until another buffer replaces it (zawartosc.c, 0.10.11 step 1). One plane, offset and
+ * stride inside the buffer, sizes up to POWIERZCHNIA_MAKS.
  * The browser is not trusted more than the zone: every field is checked; a bad one is the protocol's error. */
 #include <errno.h>
 #include <fcntl.h>

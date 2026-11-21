@@ -96,7 +96,7 @@ test używa (`grub-editenv`, `sfdisk`, mtools, `fsck.fat`), to błąd, nie pomin
 
 | Obszar | Testy |
 |---|---|
-| kanały, komunikaty, logi | `test_komunikat` (każdy typ: pola, zakresy, kierunek, deskryptor), `test_opis` (opis ekranu dla testów: każde pole zepsute), `test_odbior`, `test_zdarzenie`, `test_log` (czyszczenie, limit), `test_cmdline` (`k1.rdzen`, `k1.rdzen_skrot`: brak, „..”, powtórzony, za długi), `test_uevent`; od 0.10.10 `test_karta_pomiar` (obciążenie karty z czasu snu RC6, pobór mocy z licznika RAPL z zawinięciem, wartości poza zakresem → nieznane) |
+| kanały, komunikaty, logi | `test_komunikat` (każdy typ: pola, zakresy, kierunek, deskryptor), `test_opis` (opis ekranu dla testów: każde pole zepsute), `test_odbior`, `test_zdarzenie`, `test_log` (czyszczenie, limit), `test_cmdline` (`k1.rdzen`, `k1.rdzen_skrot`: brak, „..”, powtórzony, za długi), `test_uevent`; od 0.10.10 `test_karta_pomiar` (obciążenie karty z czasu snu RC6, pobór mocy z licznika RAPL z zawinięciem, wartości poza zakresem → nieznane); od 0.10.11 `test_pomiar` (pomiar drogi obrazu: średnia, 95. percentyl z koszyków — nigdy poniżej prawdziwego, najwyżej ćwierć oktawy wyżej — i tekst do logu) |
 | skarbiec | `test_odcinki` + `test_odcinki_pelny` (format 2: spis, kompaktowanie, **przerwa prądu po każdym zapisie**, pełny magazyn, powiększanie, 70 000 obiektów, hasło, obce dane, magazyn formatu 1 nietknięty), `test_indeks`, `test_dokumenty` (pliki, foldery, Kosz, prawa aplikacji przez prawdziwy kanał, nazwy, miejsce, zegar), `test_skarb_zalegle`, `test_notatki` |
 | pulpit i aplikacje | `test_przybornik`, `test_menu`, `test_przeciaganie` (tabela reguł, zaznaczanie), `test_rozmieszczenie`, `test_kalkulator`, `test_podglad`, `test_zalegle` (kolejka ekranu), `podglad_grafiki` (renderer na brzegach obrazu), `podglad_wylaczania` (ekran „Wyłączanie”: rysowany kawałkami, jak robi to ekran, = całość; obrazy dla `test-wzorce`, 0.10.7 krok 6) |
 | pliki z zewnątrz | `test_fat` (obrazy z mtools/sfdisk: FAT12, FAT16 w MBR, FAT32 w GPT, „mały” FAT32 z 3000 plików, NTFS, uszkodzone), `test_dekoder` (PNG, JPEG, GIF, BMP, WebP; 48/100 Mpx; odmowy przed przydziałem) |
@@ -222,6 +222,16 @@ Wzorców nie zmienia się „przy okazji”. Nowy wzorzec (nowe okno) — tak sa
 ogląda, skrypt przyjmuje. Okna z Firefoksem i Podgląd ze zdjęciem — bez wzorców (D4). Rozmiar: 44 obrazy, ok. 2 MB.
 
 Pułapki QEMU, Wi-Fi, jądra i kanałów, które już wystąpiły: skill `kons-dev`, §7.
+
+## Pomiar szybkiej grafiki (0.10.11 krok 1)
+Wydajności nie widać w QEMU (TCG), a log K1 idzie tylko na port szeregowy (niezmiennik 2) — laptop go nie ma, więc liczb
+z logu na laptopie nie odczytamy (D1 właściciela: B — bez liczb w Zasobach). Wiersze `pomiar strefy`, `pomiar VMM` (strefa)
+i `pomiar ekranu` co 10 s — średnia i 95. percentyl każdego ogniwa (ms), liczba klatek, bufory karty (> 0: przeglądarka
+rysuje kartą), rodzaje mapowań (WB / UC / WC) — czyta się w logu QEMU (`build/testy/*.log`), w CI (artefakt z logami) i na
+komputerze z portem szeregowym albo kablem szeregowym USB. Na laptopie właściciel ocenia płynność sam, za każdym razem tak
+samo: długa strona przewijana kółkiem i touchpadem (1 min), film (1 min), mapa z WebGL (1 min), `about:support` (czy jest
+„WebRender”, nie „WebRender (Software)”); Zasoby → „Karta graficzna” (obciążenie karty). W CI wiersz `pomiar VMM` sprawdza
+`test-strefa.sh` (strefa próbna: same liczby, bez znaczenia dla wydajności).
 
 ## Stanowisko na hoście (`scripts/stanowisko.sh`, 0.10.1 krok 5)
 

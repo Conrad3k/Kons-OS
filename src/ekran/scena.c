@@ -9,6 +9,7 @@
 #include "ekran.h"
 #include "k1_kanal.h"
 #include "k1_log.h"
+#include "k1_pomiar.h"
 
 /* ---- damage ---- */
 
@@ -284,13 +285,17 @@ void zapisz_klatke(struct bufor *b, struct drm_clip_rect *zmiany, unsigned *n_zm
 
 void pokaz(void)
 {
+    uint64_t t0 = k1_pomiar_teraz_us(), t1;
     skomponuj();
+    t1 = k1_pomiar_teraz_us();
+    pomiar_skladanie(t1 - t0); /* 0.10.11 step 1 */
     if (s.brak_flip) {
         struct bufor *b = &s.buf[s.przedni];
         struct drm_mode_fb_dirty_cmd dc;
         struct drm_clip_rect zmiany[MAKS_PROST + 1];
         unsigned n = 0;
         zapisz_klatke(b, zmiany, &n);
+        pomiar_zapis(k1_pomiar_teraz_us() - t1);
         if (n == 0)
             return;
         memset(&dc, 0, sizeof dc);
@@ -305,6 +310,7 @@ void pokaz(void)
         int tylny = 1 - s.przedni;
         struct drm_mode_crtc_page_flip pf;
         zapisz_klatke(&s.buf[tylny], NULL, NULL);
+        pomiar_zapis(k1_pomiar_teraz_us() - t1);
         memset(&pf, 0, sizeof pf);
         pf.crtc_id = s.crtc;
         pf.fb_id = s.buf[tylny].fb;
@@ -318,6 +324,7 @@ void pokaz(void)
             return;
         }
         s.flip_w_toku = 1;
+        pomiar_wymiana(0);
     }
 }
 
@@ -340,6 +347,7 @@ void odbierz_drm(void)
                 s.przedni = (int)v.user_data;
                 s.flip_w_toku = 0;
                 s.klatki++;
+                pomiar_wymiana(1);
                 zglos_obraz(); /* the card shows our frames (0.10.9 step 2, S3) */
             }
         }

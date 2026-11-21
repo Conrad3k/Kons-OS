@@ -190,6 +190,9 @@ potem działa kolejka w ekranie.
   i wierzch; okno nie wchodzi pod górny pasek, pasek tytułu zostaje w zasięgu.
 - Prędkość myszy: 0,5× / 1× / 2× (ustawienie). Bez okna z fokusem strzałki przesuwają kursor o 20 px.
 - Zmiana tapety: ponowne liczenie (ok. 2 s w emulacji TCG) i przerysowanie.
+- Pomiar (0.10.11 krok 1, `pomiar.c`): czas składania sceny, zapisu do bufora karty i wymiany na karcie (od `PAGE_FLIP`
+  do `FLIP_COMPLETE`); co 10 s, gdy jest otwarte okno strefy: `pomiar ekranu (10 s, średnio/95%): klatki N, składanie
+  A/B ms, zapis do karty …, wymiana na karcie …` (same liczby).
 
 ## Zależności
 musl (statycznie, w tym libm), jądro: DRM + `bochs` (QEMU), `i915` (karty Intela — od 0.10.9 krok 2, ADR 0049; page flip

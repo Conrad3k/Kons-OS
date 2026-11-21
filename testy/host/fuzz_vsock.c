@@ -50,6 +50,7 @@ void zamek_wez(const char *kto) { (void)kto; }
 void zamek_oddaj(void) {}
 void okno_etap(int etap) { (void)etap; }
 void gpu_liczniki(unsigned *n, unsigned *mib) { *n = 0, *mib = 0; }
+void pomiar_gosc(const uint32_t *w) { (void)w; } /* 0.10.11 step 1: the guest's measurement line */
 void balon_cel(uint32_t mib) { (void)mib; }
 void balon_stan(struct balon_stan *s) { memset(s, 0, sizeof *s); }
 void k1_log(const char *tag, const char *fmt, ...) { (void)tag, (void)fmt; }

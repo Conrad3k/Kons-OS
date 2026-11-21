@@ -106,7 +106,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                     Luki (punkt 5)   Zależy od   Decyzje      Rozmiar  ADR
-[ ]  1  Pomiar i szybkie poprawki szybkiej grafiki            P1–P7            0.10.10     D1, T1, T2   M        brak
+[w toku: Claude, gałąź claude/magical-cerf-mnymh9]
+     1  Pomiar i szybkie poprawki szybkiej grafiki            P1–P7            0.10.10     D1, T1, T2   M        brak
 [ ]  2  Obraz strefy bez kopii: bufor karty prosto do ekranu  P8–P12           1           D4, T3, T4   L        0051
 [ ]  3  Nowsze karty Intela; porządki; wydanie (OSTATNI)      P13–P20          2           D6, T5,      M        0051
                                                                                            T6                    (uzup.)
@@ -212,7 +213,8 @@ KROK 3: Nowsze karty zintegrowane Intela; porządki; wydanie (OSTATNI)     M · 
 ----------
 Twoje (produkt) — czat kroku zada je na początku:
 
-  [!] D1 (krok 1) — Pokazać płynność w Zasobach?
+  [x] D1 (krok 1) — ROZSTRZYGNIĘTE 2026-11-21: B — liczby tylko w logu i w raportach z testów (Zasoby bez zmian).
+      Pytanie było: Pokazać płynność w Zasobach?
       A (zalecane): tak — Zasoby → „Karta graficzna” przy każdej sesji z szybką grafiką „klatki na sekundę” (liczba, bez
          wykresu); łatwo porównasz przed i po aktualizacji.
       B: nie — liczby tylko w logu i w raportach z testów.
@@ -236,7 +238,8 @@ Twoje (produkt) — czat kroku zada je na początku:
          laptopem do sprawdzenia („Później”).
       B: xe w jądrze K1 już teraz, tylko dla obrazu i oszczędzania energii (bez szybkiej grafiki) — większe jądro,
          nieprzetestowane na sprzęcie.
-  [!] D4 (krok 2) — Okno przeglądarki częściowo zasłonięte (inne okno albo menu na nim):
+  [x] D4 (krok 2) — ROZSTRZYGNIĘTE 2026-11-21: A — K1 sam przełącza się między warstwą karty a kopią.
+      Pytanie było: Okno przeglądarki częściowo zasłonięte (inne okno albo menu na nim):
       A (zalecane): K1 sam przełącza się między warstwą karty (gdy okno widać w całości — najszybciej) a kopią (gdy coś
          je zasłania) — nie widać różnicy poza płynnością.
       B: zawsze kopia, a warstwa karty tylko przy oknie zmaksymalizowanym (prościej, mniej zysku).
