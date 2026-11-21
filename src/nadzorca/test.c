@@ -51,6 +51,9 @@ void obsluz_test(void)
     } else if (k.typ == K1_KOM_STREFA_BALON) { /* 0.10.1 step 2: the balloon's mechanics (test-strefa) */
         strefa_balon((int)k.obiekt, k.a);
         odpowiedz_testowi(0, -1);
+    } else if (k.typ == K1_KOM_POBRANIE_DECYZJA) { /* 0.11.0 step 2: a hostile zone's file, decided by the test */
+        pobranie_decyzja(&k);
+        odpowiedz_testowi(0, -1);
     } else if (k.typ == K1_KOM_STREFA_WYCZYSC) { /* 0.10.0 step 5: "Wyczyść dane sesji" of the test zone */
         sesje_prosba(&k, 1);
         odpowiedz_testowi(0, -1);

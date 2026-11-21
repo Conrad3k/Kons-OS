@@ -222,6 +222,7 @@ int main(void)
             sek = (int32_t)t.tv_sec;
             gora.brudna = 1;
         }
+        pobranie_okresowe(); /* 0.11.0 step 2 */
         odswiez();
     }
 }

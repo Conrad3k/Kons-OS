@@ -15,6 +15,8 @@
  * at every start (its values outlive it in prefs.js, so both ways are written, never just removed).
  * 0.11.0 step 1 (D1): the compositor's "pelny 1/0" (a window asks for full screen / none any more) go to the VMM as they
  * are; "pelny 0" from the VMM (K1 ended the full screen: the user's way out) — SIGUSR2 to the compositor.
+ * 0.11.0 step 2 (ADR 0052): the agent (/usr/lib/k1/agent) watches the folder of downloads and tells the VMM of a finished
+ * one on the files port — K1 asks the user whether to save it in Pliki.
  * Paths here are the zone image's (Debian's tree), never K1's. */
 #include <errno.h>
 #include <fcntl.h>
@@ -38,6 +40,8 @@
 
 #define KOMPOZYTOR "/usr/lib/k1/kompozytor"
 #define PRZEKAZNIK "/usr/lib/k1/przekaznik"
+#define AGENT "/usr/lib/k1/agent"           /* 0.11.0 step 2 (ADR 0052): the files of the session into Pliki */
+#define POBRANE "/home/k1/Pobrane"          /* the browser's folder of downloads (strefy/przegladarka/k1.js) */
 #define PRZEGLADARKA "/usr/lib/firefox-esr/firefox-esr"
 #define WAYLAND "/run/k1/wayland-0"
 #define UZYTKOWNIK 1000
@@ -294,7 +298,7 @@ void przegladarka(int ster)
     static char *const env_p[] = { "PATH=/usr/bin", "HOME=/home/k1", "XDG_RUNTIME_DIR=/run/k1",
                                    "WAYLAND_DISPLAY=wayland-0", "MOZ_ENABLE_WAYLAND=1", "LANG=C.UTF-8",
                                    "MOZ_CRASHREPORTER_DISABLE=1", "MOZ_DISABLE_WAYLAND_PROXY=1", NULL };
-    char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL };
+    char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL }, *a_agent[] = { "agent", POBRANE, NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;
     int koniec = 0, krok = 0, okno[2], dysk, regula = 0, grafika; /* koniec 2: the browser out of time */
@@ -314,12 +318,14 @@ void przegladarka(int ster)
         loguj("/run/k1: %s", strerror(errno));
     id_maszyny();
     if ((mkdir("/home/k1", 0700) != 0 && errno != EEXIST) || chown("/home/k1", UZYTKOWNIK, UZYTKOWNIK) != 0 ||
-        (mkdir("/home/k1/profil", 0700) != 0 && errno != EEXIST) || chown("/home/k1/profil", UZYTKOWNIK, UZYTKOWNIK) != 0)
+        (mkdir("/home/k1/profil", 0700) != 0 && errno != EEXIST) || chown("/home/k1/profil", UZYTKOWNIK, UZYTKOWNIK) != 0 ||
+        (mkdir(POBRANE, 0700) != 0 && errno != EEXIST) || chown(POBRANE, UZYTKOWNIK, UZYTKOWNIK) != 0)
         loguj("katalog domowy: %s", strerror(errno));
     petla_zwrotna();
     grafika = z_grafika();
     prefy(grafika);
     uruchom(PRZEKAZNIK, a_prze, env_k1, UZYTKOWNIK, -1);
+    uruchom(AGENT, a_agent, env_k1, UZYTKOWNIK, -1); /* 0.11.0 step 2: a finished download → K1 asks the user */
     if (pipe2(okno, O_CLOEXEC | O_NONBLOCK) != 0)
         okno[0] = okno[1] = -1;
     komp = uruchom(KOMPOZYTOR, a_komp, grafika ? env_karta : env_k1, 0, okno[1]);

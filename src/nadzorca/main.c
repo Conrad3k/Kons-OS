@@ -169,6 +169,7 @@ int main(void)
             { &filmy_kanal, obsluz_filmy },      /* 0.10.9 step 2: what the card decodes */
             { &posrednik_kanal, obsluz_posrednika }, /* step 5: whether the card serves fast graphics */
             { &sterowanie, obsluz_ekran },       /* 0.10.9 step 2 (S3): ekran's picture is on the screen */
+            { &pob_skarb, obsluz_pobrania_skarb }, /* 0.11.0 step 2: files from the zones into Pobrane */
 #define X_KANAL_STREFY(n, nr, ...) { &strefa_kanal[nr], obsluz_strefe_##n },
             K1_STREFY(X_KANAL_STREFY) /* 0.10.0 step 2: each zone's connections (strefy_siec.c) */
 #undef X_KANAL_STREFY

@@ -73,7 +73,7 @@ APLIKACJE := $(patsubst src/aplikacje/%/main.c,$(BIN)/%,$(wildcard src/aplikacje
 # System services: one line each in K1_SYSTEM (src/wspolne/k1_uslugi.h, the only list): scripts/uslugi-systemu.sh.
 USLUGI_SYSTEMU := $(shell sh scripts/uslugi-systemu.sh)
 PROGRAMY := $(BIN)/k1-initramfs $(BIN)/init $(BIN)/nadzorca $(addprefix $(BIN)/,$(USLUGI_SYSTEMU)) $(APLIKACJE) \
-            $(BIN)/strefa $(BIN)/gosc $(BIN)/kompozytor $(BIN)/przekaznik $(BIN)/k1-test-systemu
+            $(BIN)/strefa $(BIN)/gosc $(BIN)/kompozytor $(BIN)/przekaznik $(BIN)/agent $(BIN)/k1-test-systemu
 
 all: $(PROGRAMY) $(GEN)/start.png $(OBJ)/podpisz $(OBJ)/wydanie $(GEN)/sb/k1_sb_cert.h $(OBJ)/proba_fortify
 
@@ -197,8 +197,8 @@ STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przyborni
                 $(GEN)/k1_czcionki_dane.c
 $(BIN)/strefa: $(STREFA) $(wildcard src/strefa/*.h) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(STREFA) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
-GOSC := $(sort $(wildcard src/strefa/gosc/*.c))
-$(BIN)/gosc: $(GOSC) $(wildcard src/strefa/gosc/*.h) | $(BIN)
+GOSC := $(sort $(wildcard src/strefa/gosc/*.c)) src/wspolne/k1_pliki_strefy.c
+$(BIN)/gosc: $(GOSC) $(wildcard src/strefa/gosc/*.h) src/wspolne/k1_pliki_strefy.h | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(GOSC) $(LDFLAGS_K1)
 # 0.10.0 step 2 (ADR 0043): the browser zone's own programs — the Wayland compositor (with gosc's display, kms.c) and
 # the relay of the browser's connections; they run inside the machine, built like gosc
@@ -207,6 +207,9 @@ $(BIN)/kompozytor: $(KOMPOZYTOR) $(wildcard src/strefa/kompozytor/*.h) src/stref
 	$(CC_K1) $(CFLAGS_K1) -Isrc/strefa/gosc -o $@ $(KOMPOZYTOR) $(LDFLAGS_K1)
 $(BIN)/przekaznik: src/strefa/przekaznik/main.c | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/strefa/przekaznik/main.c $(LDFLAGS_K1)
+# 0.11.0 step 2 (ADR 0052): the agent of the zone's files (in the browser zone, like the relay)
+$(BIN)/agent: src/strefa/agent/main.c src/wspolne/k1_pliki_strefy.c src/wspolne/k1_pliki_strefy.h | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ src/strefa/agent/main.c src/wspolne/k1_pliki_strefy.c $(LDFLAGS_K1)
 
 $(BIN)/wejscie: src/wejscie/main.c src/wejscie/touchpad.c src/wejscie/touchpad.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c src/wejscie/touchpad.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)

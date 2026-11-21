@@ -84,6 +84,12 @@ void odbierz_baterie(void)
                 close(fd);
             continue;
         }
+        if (w == K1_ODB_JEST && (m.typ == K1_KOM_POBRANIE || m.typ == K1_KOM_POBRANIE_WYNIK)) {
+            pobranie_komunikat(&m, fd); /* 0.11.0 step 2: a file from a session of the browser (pobranie.c) */
+            if (fd >= 0)
+                close(fd);
+            continue;
+        }
         if (fd >= 0)
             close(fd); /* no other message of this channel brings one */
         if (w == K1_ODB_PUSTO)

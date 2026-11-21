@@ -10,7 +10,7 @@
 #   - rozpakowane bez uruchamiania skryptów pakietów; to, co robiłyby skrypty, robimy tu (spis typów plików, moduły
 #     obrazków GTK) — programami z tych samych pakietów, przez ich własny ld.so (bez chroot, bez roota);
 #   - bez dokumentacji, podręczników, tłumaczeń poza polskim, raportów awarii Firefoksa;
-#   - nasze programy: /init (gosc), /usr/lib/k1/{kompozytor,przekaznik}, mapa klawiatury, ustawienia przeglądarki
+#   - nasze programy: /init (gosc), /usr/lib/k1/{kompozytor,przekaznik,agent}, mapa klawiatury, ustawienia przeglądarki
 #     i GTK (bez przycisków okna Firefoksa — okno strefy zamyka i minimalizuje pasek K1);
 #   - od 0.10.9 krok 6 nasza Mesa (build/mesa — scripts/zbuduj-mese.sh: iris z intel-virtio, EGL, GBM; szybka grafika).
 # Powtarzalnie: stała kolejność i czas plików (SOURCE_DATE_EPOCH), właściciel root.
@@ -20,7 +20,7 @@ TABELA=$K1_REPO/strefy/przegladarka.txt
 PAKIETY=$K1_BUDOWA/strefa-pakiety
 D=$K1_BUDOWA/strefa-przegladarka
 WYNIK=$K1_WYNIK/strefa-przegladarka.img
-for p in kompozytor przekaznik gosc; do [ -x "$K1_BUDOWA/bin/$p" ] || blad "brak $p — najpierw make"; done
+for p in kompozytor przekaznik agent gosc; do [ -x "$K1_BUDOWA/bin/$p" ] || blad "brak $p — najpierw make"; done
 [ -f "$K1_BUDOWA/mesa/gotowe" ] || blad "brak Mesy — najpierw scripts/zbuduj-mese.sh"
 
 info "pakiety strefy przeglądarki ($(grep -vc '^#' "$TABELA") z tabeli)"
@@ -75,7 +75,7 @@ for s in sh bash dash; do [ ! -e "$D/usr/bin/$s" ] || blad "powłoka w obrazie s
 mkdir -p "$D/usr/lib/k1" "$D/usr/share/k1" "$D/etc/firefox-esr" "$D/usr/share/firefox-esr/distribution" \
     "$D/dev" "$D/proc" "$D/sys" "$D/tmp" "$D/run" "$D/home"
 install -m 0555 "$K1_BUDOWA/bin/gosc" "$D/init"
-install -m 0555 "$K1_BUDOWA/bin/kompozytor" "$K1_BUDOWA/bin/przekaznik" "$D/usr/lib/k1/"
+install -m 0555 "$K1_BUDOWA/bin/kompozytor" "$K1_BUDOWA/bin/przekaznik" "$K1_BUDOWA/bin/agent" "$D/usr/lib/k1/" # 0.11.0: agent
 install -m 0444 "$K1_REPO/strefy/klawiatura-pl.xkb" "$D/usr/share/k1/klawiatura.xkb"
 install -m 0444 "$K1_REPO/strefy/przegladarka/k1.js" "$D/etc/firefox-esr/k1.js"
 install -m 0444 "$K1_REPO/strefy/przegladarka/policies.json" "$D/usr/share/firefox-esr/distribution/policies.json"
