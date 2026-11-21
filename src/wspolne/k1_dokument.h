@@ -86,6 +86,20 @@ enum { K1_TYPY_MAKS = 0 K1_TYPY(K1_X_JEDEN) };
 #define K1_X_POCH(n, nr, ...) K1_POCH_##n = nr,
 enum { K1_POCHODZENIA(K1_X_POCH) };
 enum { K1_POCH_MAKS = 0 K1_POCHODZENIA(K1_X_JEDEN) };
+/* 0.11.0 step 2 (ADR 0052, D3: A): a file from zone nr (moved into Pobrane after the user's yes) has the origin
+ * K1_POCH_STREFA_OD + nr — one per row of K1_STREFY, its text from the row ("z przeglądarki · Ogólna"). */
+#define K1_POCH_STREFA_OD 16
+_Static_assert(K1_POCH_MAKS < K1_POCH_STREFA_OD && K1_POCH_STREFA_OD + K1_STREFY_MAKS <= 255, "pochodzenie: jeden bajt");
+/* The zone of origin `p`, or 0 (an origin of K1, a stick, none). */
+static inline int k1_poch_strefy(int p)
+{
+    return p > K1_POCH_STREFA_OD && p <= K1_POCH_STREFA_OD + K1_STREFY_MAKS ? p - K1_POCH_STREFA_OD : 0;
+}
+/* 1 when `p` is an origin of K1 (K1_POCHODZENIA or of a zone). */
+static inline int k1_poch_dobre(int p)
+{
+    return (p >= 1 && p <= K1_POCH_MAKS) || k1_poch_strefy(p) != 0;
+}
 
 /* Results of K1_KOM_DOK_* requests besides 0 and K1_MAG_* (k1_komunikat.h). */
 #define K1_DOK_BLAD_NAZWA (-20)   /* the name is not allowed */

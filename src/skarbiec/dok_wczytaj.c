@@ -74,7 +74,7 @@ static int napraw_wpis(const uint8_t b[K1_DOK_WPIS_BAJTY], uint32_t id, struct k
     }
     if (s.rodzic < 1 || s.rodzic > K1_DOK_ID_MAKS || s.rodzic == id || (s.rodzic > K1_FOLDERY_MAKS && s.rodzic < K1_DOK_PIERWSZY))
         s.rodzic = K1_FOLDER_DOKUMENTY;
-    s.pochodzenie = b[10] >= 1 && b[10] <= K1_POCH_MAKS ? b[10] : K1_POCH_K1;
+    s.pochodzenie = k1_poch_dobre(b[10]) ? b[10] : K1_POCH_K1;
     s.tworca = b[11] >= 1 && b[11] <= K1_PROFIL_MAKS ? b[11] : K1_PROFIL_PLIKI;
     s.utworzono = (int64_t)k1_c64(b + 24) < 0 ? 0 : (int64_t)k1_c64(b + 24);
     s.zmieniono = (int64_t)k1_c64(b + 32) < 0 ? 0 : (int64_t)k1_c64(b + 32);

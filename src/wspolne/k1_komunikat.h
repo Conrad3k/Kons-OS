@@ -19,6 +19,7 @@
 #include "k1_dokument.h"
 #include "k1_filmy.h"
 #include "k1_pendrive.h"
+#include "k1_pliki_strefy.h"
 #include "k1_posrednik.h"
 #include "k1_siec.h"
 #include "k1_wifi.h"
@@ -149,6 +150,25 @@ enum k1_komunikat_typ {
     K1_KOM_PELNY_EKRAN = 227,  /* 0.11.0 step 1 (D1): a zone's VMM → ekran (role STREFA only): obiekt=its window surface,
                                 * a=1 its guest asks for full screen / 0 it left it, b..e=0 — ekran decides (only right
                                 * after the user's gesture in that window, with the focus); its answer is ROZMIAR */
+    /* 0.11.0 step 2 (ADR 0052): a file from a zone into Pliki — its VMM ↔ nadzorca (the VMM's fd 7), nadzorca ↔ gui (fd 5
+     * and its channel to nadzorca); obiekt of STREFA_PLIK*: the VMM's number of the file 1..K1_PS_NR_MAKS */
+    K1_KOM_STREFA_PLIK = 228,         /* VMM → nadzorca: a=b=its size (low, high: 0..K1_PS_ROZMIAR_MAKS), c=the name's length
+                                       * 1..K1_DOK_NAZWA-1, d=e=0; + 1 fd: a sealed memfd of exactly c bytes, a name of K1
+                                       * (the VMM made it one: k1_dok_nazwa_popraw) — the zone has a file to move */
+    K1_KOM_STREFA_PLIK_KAWALEK = 229, /* VMM → nadzorca: a=bytes 1..K1_DOK_KAWALEK (all but the last: K1_DOK_KAWALEK), b=its
+                                       * number 0..K1_DOK_KAWALKI_MAKS-1, c=1 the last / 0, d=e=0; + 1 fd: a sealed memfd of
+                                       * a bytes — only after K1_PLIK_WYSLIJ, the next one only after K1_PLIK_DALEJ */
+    K1_KOM_STREFA_PLIK_KONIEC = 230,  /* VMM → nadzorca: a=K1_PS_W_BLAD (the zone broke the rules, its files port closed)
+                                       * or K1_PS_W_ZOSTAWIONY (the zone took it back: gone, changed), b..e=0 */
+    K1_KOM_STREFA_PLIK_ODP = 231,     /* nadzorca → VMM: a=K1_PLIK_WYSLIJ (send its bytes), K1_PLIK_DALEJ (the next piece),
+                                       * K1_PLIK_GOTOWE (its end: b=K1_PS_W_*; b=0 otherwise), c..e=0 */
+    K1_KOM_POBRANIE = 232,            /* nadzorca → gui (fd 5): obiekt=zone, a=the file 1..K1_PS_NR_MAKS, b=c=its size
+                                       * (low, high: 0..K1_PS_ROZMIAR_MAKS), d=the name's length 1..K1_DOK_NAZWA-1, e=0; + 1
+                                       * fd (as STREFA_PLIK's) — the window asks the user (D2: A) */
+    K1_KOM_POBRANIE_DECYZJA = 233,    /* gui (and the test program) → nadzorca: obiekt=zone, a=the file, b=1 "Zapisz
+                                       * w Pobranych" / 0 "Zostaw w przeglądarce" (and "OK" of a file too big), c..e=0 */
+    K1_KOM_POBRANIE_WYNIK = 234,      /* nadzorca → gui (fd 5): obiekt=zone, a=the file, b=K1_PS_W_*, c..e=0 — its window
+                                       * goes; when the user chose "Zapisz", gui says why it was not saved */
     K1_KOM_ZASOBY_USLUGA = 63, /* obiekt=K1_PROFIL_* of a service, a=CPU ‰ (of all CPUs), b=memory KiB, c=1 running */
     K1_KOM_BATERIA = 64,       /* to gui: obiekt=0, a=1 battery present, b=percent 0..100 (-1 unknown), c=K1_BAT_*,
                                 * d=1 on mains power; no battery: a=0, b=-1, c=0 (also to Ustawienia) */
@@ -570,6 +590,8 @@ enum { K1_ROZMIAR_ZWYKLY = 0, K1_ROZMIAR_ZMAKSYMALIZOWANY = 1, K1_ROZMIAR_PELNY 
 #define K1_STREFA_BUFORY 4
 #define K1_STREFA_KROK_MAKS (4 * K1_POW_MAKS_BOK * 2)
 #define K1_STREFA_PRZES_MAKS (1 << 29)
+/* 0.11.0 step 2 (ADR 0052): nadzorca's answers to a zone's VMM about a file (STREFA_PLIK_ODP a) */
+enum { K1_PLIK_WYSLIJ = 1, K1_PLIK_DALEJ = 2, K1_PLIK_GOTOWE = 3 };
 
 /* Pointer events */
 /* What Pliki show when the desktop opens them (URUCHOM c, PLIKI_POKAZ b): the entry's place, Kosz, the entry with its
@@ -676,6 +698,7 @@ _Static_assert(K1_TAPETY < K1_TAPETA_ZDJECIE, "k1_komunikat: the photo wallpaper
 
 /* skarbiec (M5d): owners (K1_WL_*: K1_PROFIL_* of the client, or the system) and object ids */
 #define K1_WL_SYSTEM 100          /* nadzorca itself */
+#define K1_WL_POBRANIA 102        /* nadzorca's channel for files from the zones into Pobrane (0.11.0 step 2, ADR 0052) */
 #define K1_OB_MAKS 64             /* object ids 1..64 per owner */
 #define K1_OB_USTAWIENIA 1        /* ekran: the settings */
 #define K1_OB_NOTATKA 2           /* Notatki: the first note (0.5.8: 1 = the list, 2..33 = notes) */

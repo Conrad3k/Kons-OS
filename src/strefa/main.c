@@ -31,6 +31,7 @@
 #include "k1_log.h"
 #include "k1_teraz.h"
 #include "okno.h"
+#include "pliki.h"
 #include "polaczenia.h"
 #include "pomiar.h"
 #include "strefa.h"
@@ -240,6 +241,7 @@ int main(int argc, char **argv)
     dane_koniec();
     gpu_lacze_koniec();
     pol_podsumowanie();
+    pliki_podsumowanie();
     wejscie_podsumowanie();
     vsock_podsumowanie();
     k1_log(TAG, "strefa %d: koniec — %s (po %.1f s; wyjścia: io %lu, mmio %lu, nieznane %lu)", nr, mz.powod,

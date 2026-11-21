@@ -24,7 +24,8 @@ enum {
 /* Which entries the client sees: all (with Kosz), the Pulpit folder, the visible ones (no Kosz), its own files
  * (made by it) and the files it was given (ADR 0030), or the pictures of the folders of the files it was given
  * (0.8.2 step 4, Podgląd: ← / → through a folder; ADR 0037). */
-enum { Z_WSZYSTKO = 1, Z_PULPIT, Z_WIDOCZNE, Z_WLASNE, Z_OBRAZY_FOLDERU };
+enum { Z_WSZYSTKO = 1, Z_PULPIT, Z_WIDOCZNE, Z_WLASNE, Z_OBRAZY_FOLDERU,
+       Z_POBRANE }; /* 0.11.0 step 2: nothing to see — only a new file from a zone, into Pobrane (ADR 0052) */
 
 /* The table of rights: a client not listed may do nothing with files. */
 static const struct prawa {
@@ -41,6 +42,9 @@ static const struct prawa {
     { K1_PROFIL_WYBOR, P_LISTA | P_WYBRANO, Z_WIDOCZNE, NULL },
     /* Podgląd: the pictures of the folders the user opened a picture of in it — read, and into Kosz (D2) — nothing else */
     { K1_PROFIL_PODGLAD, P_LISTA | P_CZYTAJ | P_KOSZ | P_WYBIERZ, Z_OBRAZY_FOLDERU, NULL },
+    /* nadzorca's channel for a file from a zone the user chose to save (0.11.0 step 2, ADR 0052): a new file in Pobrane with
+     * the zone's origin — it reads, lists and changes nothing */
+    { K1_WL_POBRANIA, P_NOWY | P_POCHODZENIE, Z_POBRANE, NULL },
 };
 
 static uint8_t lista[K1_DOK_LISTA_MAKS];
@@ -140,6 +144,12 @@ static int dla_wlasnych(const struct k1_dok_wpis *w)
     return w->rodzaj == K1_DOK_PLIK && dok_widoczny(w->id) && (w->tworca == wl_filtra || dostep_ma(wl_filtra, w->id));
 }
 
+static int zaden(const struct k1_dok_wpis *w)
+{
+    (void)w;
+    return 0;
+}
+
 static int obrazy_folderu(const struct k1_dok_wpis *w)
 {
     return w->rodzaj == K1_DOK_PLIK && k1_typ_rodzina(w->typ) == K1_RODZINA_OBRAZY && dok_widoczny(w->id) &&
@@ -148,7 +158,7 @@ static int obrazy_folderu(const struct k1_dok_wpis *w)
 
 static int (*const filtry[])(const struct k1_dok_wpis *) = {
     [Z_WSZYSTKO] = dla_plikow, [Z_PULPIT] = dla_pulpitu, [Z_WIDOCZNE] = widoczny, [Z_WLASNE] = dla_wlasnych,
-    [Z_OBRAZY_FOLDERU] = obrazy_folderu
+    [Z_OBRAZY_FOLDERU] = obrazy_folderu, [Z_POBRANE] = zaden
 };
 
 static int w_zakresie(const struct prawa *p, uint32_t id)
@@ -242,6 +252,12 @@ static int pierwszy(struct dok_zapis *z, int fd_in, size_t od, size_t dl)
     return r;
 }
 
+/* Who made a new file: the client — a file from a zone: the zone (its VMM's profile, 0.11.0 step 2). */
+static int tworca(const struct prawa *p, int pochodzenie)
+{
+    return p->zakres == Z_POBRANE ? k1_strefa(k1_poch_strefy(pochodzenie))->profil : p->wlasciciel;
+}
+
 /* NOWY: obiekt=folder, a=kind, b=name length, c=content length, e=1 more pieces follow (a write in progress). A client
  * with its own folder: files go there. */
 static int nowy(int fd, const struct prawa *p, const struct k1_komunikat *m, int fd_in, uint32_t *id)
@@ -260,7 +276,7 @@ static int nowy(int fd, const struct prawa *p, const struct k1_komunikat *m, int
         return K1_DOK_BLAD_ZAPIS; /* this channel has a write in progress already */
     if (!dok_miejsce_na((uint64_t)m->c))
         return K1_DOK_BLAD_BRAK_MIEJSCA;
-    if ((r = dok_zapis_nowy(z, folder, nazwa, (size_t)m->b, p->wlasciciel, m->d != 0 ? m->d : K1_POCH_K1)) != 0 ||
+    if ((r = dok_zapis_nowy(z, folder, nazwa, (size_t)m->b, tworca(p, m->d), m->d != 0 ? m->d : K1_POCH_K1)) != 0 ||
         (r = pierwszy(z, fd_in, (size_t)m->b, (size_t)m->c)) != 0)
         return r;
     return m->e ? 0 : dok_zapis_koniec(z, teraz(), id);
@@ -367,6 +383,11 @@ static int potrzebne_prawo(const struct k1_komunikat *m)
 static int widzi(const struct prawa *p, const struct k1_komunikat *m)
 {
     const struct k1_dok_wpis *w = dok_wpis(m->obiekt);
+    if (m->typ == K1_KOM_DOK_NOWY && (p->zakres == Z_POBRANE) != (k1_poch_strefy(m->d) != 0))
+        return 0; /* the origin of a zone only from nadzorca's channel for it (ADR 0052), and only that from it */
+    if (p->zakres == Z_POBRANE)
+        return m->typ == K1_KOM_DOK_KAWALEK || m->typ == K1_KOM_DOK_KONIEC ||
+               (m->typ == K1_KOM_DOK_NOWY && m->obiekt == K1_FOLDER_POBRANE && m->a == K1_DOK_PLIK);
     if (p->zakres == Z_WSZYSTKO)
         return 1;
     switch (m->typ) {

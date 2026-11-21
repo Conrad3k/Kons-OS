@@ -93,7 +93,7 @@ int k1_dok_wpis_czytaj(const uint8_t b[K1_DOK_WPIS_BAJTY], struct k1_dok_wpis *w
             n = K1_DOK_NAZWA; /* bytes after the NUL: refused below */
     if (w->id < K1_DOK_PIERWSZY || w->id > K1_DOK_ID_MAKS || w->rodzic < 1 || w->rodzic > K1_DOK_ID_MAKS ||
         w->rodzic == w->id || (w->rodzic < K1_DOK_PIERWSZY && w->rodzic > K1_FOLDERY_MAKS) ||
-        (w->rodzaj != K1_DOK_PLIK && w->rodzaj != K1_DOK_FOLDER) || w->pochodzenie < 1 || w->pochodzenie > K1_POCH_MAKS ||
+        (w->rodzaj != K1_DOK_PLIK && w->rodzaj != K1_DOK_FOLDER) || !k1_poch_dobre(w->pochodzenie) ||
         w->tworca < 1 || w->tworca > K1_PROFIL_MAKS || w->rozmiar > K1_DOK_MAKS_BAJTY || w->utworzono < 0 ||
         w->zmieniono < 0 || w->kosz < 0 || n >= K1_DOK_NAZWA || !k1_dok_nazwa_poprawna((const char *)b + 48, n) ||
         (w->rodzaj == K1_DOK_PLIK ? w->typ < 1 || w->typ > K1_TYPY_MAKS
@@ -206,13 +206,20 @@ const char *k1_typ_nazwa(int typ)
 #undef X_NAZWA
 }
 
+/* 0.11.0 step 2 (D3: A): the origin of a zone — the row's "skąd" and its session's name as K1 gives it. */
+#define X_POCH_STREFY(n, nr_, profil, uid, obraz, tytul, sesja, pamiec, procesory, kolor, trwalosc, ikona, log, menu, okno, \
+                      grafika, skad)                                                                                     \
+    [nr_] = sizeof(sesja) > 1 ? skad " · " sesja : skad,
+static const char *const poch_stref[K1_STREFY_MAKS + 1] = { K1_STREFY(X_POCH_STREFY) };
+#undef X_POCH_STREFY
+
 const char *k1_poch_nazwa(int poch)
 {
 #define X_NAZWA(n, nr_, nazwa) case nr_: return nazwa;
     switch (poch) {
         K1_POCHODZENIA(X_NAZWA)
     default:
-        return "";
+        return k1_poch_strefy(poch) ? poch_stref[k1_poch_strefy(poch)] : "";
     }
 #undef X_NAZWA
 }

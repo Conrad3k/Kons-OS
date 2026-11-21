@@ -26,6 +26,7 @@
 #include "k1_komunikat.h"
 #include "k1_log.h"
 #include "sterowanie.h"
+#include "pliki.h"
 #include "polaczenia.h"
 #include "strefa.h"
 
@@ -68,7 +69,15 @@ static struct pol_kredyt *kredyt(uint32_t nasz, uint32_t jego, int *n)
         return v.polaczony && jego == v.port_goscia ? &v.kr : NULL;
     if (nasz == POL_PORT && (*n = pol_znajdz(jego)) > 0)
         return pol_kredyt(*n);
+    if (nasz == K1_PS_PORT) /* 0.11.0 step 2: the files port (pliki.c) */
+        return pliki_kredyt(jego);
     return NULL;
+}
+
+/* The room we announce on port `nasz` (buf_alloc). */
+static uint32_t bufor_portu(uint32_t nasz)
+{
+    return nasz == VSOCK_STEROWANIE ? NASZ_BUFOR : nasz == K1_PS_PORT ? K1_PS_BUFOR : POL_BUFOR;
 }
 
 static void naglowek(struct virtio_vsock_hdr *h, uint32_t nasz, uint32_t jego, uint16_t op, uint32_t dl)
@@ -83,7 +92,7 @@ static void naglowek(struct virtio_vsock_hdr *h, uint32_t nasz, uint32_t jego, u
     h->len = dl;
     h->type = VIRTIO_VSOCK_TYPE_STREAM;
     h->op = op;
-    h->buf_alloc = nasz == VSOCK_STEROWANIE ? NASZ_BUFOR : POL_BUFOR;
+    h->buf_alloc = bufor_portu(nasz);
     h->fwd_cnt = k != NULL ? k->przekazane : 0;
     if (k != NULL)
         k->zgloszone = k->przekazane;
@@ -187,6 +196,37 @@ static int dane_polaczenia(struct mmio_urz *u, int n)
     return 1;
 }
 
+/* The files port (0.11.0 step 2, pliki.c): its RESPONSE or our RST, a credit update, then our frames as its credit
+ * allows: 1 sent, 0 nothing, -1 the end. */
+static int plikom(struct mmio_urz *u)
+{
+    uint32_t port;
+    int rst, w;
+    struct pol_kredyt *k;
+    if (pliki_odpowiedz(&port, &rst))
+        return maly(u, K1_PS_PORT, port, rst ? VIRTIO_VSOCK_OP_RST : VIRTIO_VSOCK_OP_RESPONSE, 0, NULL, 0);
+    if ((k = pliki_kredyt(port)) == NULL)
+        return 0;
+    if (k->kredyt_prosba || k->przekazane - k->zgloszone >= K1_PS_BUFOR / 2) {
+        if ((w = maly(u, K1_PS_PORT, port, VIRTIO_VSOCK_OP_CREDIT_UPDATE, 0, NULL, 0)) > 0)
+            k->kredyt_prosba = 0;
+        return w;
+    }
+    {
+        uint32_t miejsce = k->jego_bufor - (k->wyslane - k->jego_fwd);
+        uint8_t b[DANE_MAKS];
+        size_t n;
+        if (miejsce == 0 || miejsce > k->jego_bufor)
+            return 0;
+        n = pliki_do_goscia(b, miejsce < sizeof b ? miejsce : sizeof b);
+        if (n == 0)
+            return 0;
+        if ((w = maly(u, K1_PS_PORT, port, VIRTIO_VSOCK_OP_RW, 0, b, (uint32_t)n)) > 0)
+            k->wyslane += (uint32_t)n;
+        return w; /* no buffer: the frames are lost — but the guest gives buffers before it reads (the agent waits) */
+    }
+}
+
 /* The control connection's owed packets: its RESPONSE, a credit update. */
 static int winny_sterowaniu(struct mmio_urz *u)
 {
@@ -216,6 +256,8 @@ void vsock_wyslij(void)
         bylo = 1;
     }
     while (w > 0 && v.n_czeka == 0 && (w = winny_sterowaniu(u)) > 0)
+        bylo = 1;
+    while (w > 0 && v.n_czeka == 0 && (w = plikom(u)) > 0)
         bylo = 1;
     for (n = 1; w >= 0 && male && n <= K1_STREFA_POLACZENIA_MAKS; n++)
         while (pol_port(n) != 0 && (w = winny_polaczeniu(u, n)) > 0)
@@ -254,6 +296,8 @@ static void prosba(const struct virtio_vsock_hdr *h)
         v.polaczony = 1, v.odpowiedz = 1;
         v.port_goscia = h->src_port;
         v.kr = k;
+    } else if (h->dst_port == K1_PS_PORT && pliki_polacz(h->src_port, &k)) {
+        /* 0.11.0 step 2: the agent's files port — its RESPONSE is owed (plikom) */
     } else if (h->dst_port == POL_PORT && pol_znajdz(h->src_port) == 0 && (n = pol_nowe(h->src_port, &k)) > 0) {
         pol_kredyt(n)->odpowiedz = 1;
     } else {
@@ -292,12 +336,17 @@ static int pakiet(const struct vq_lancuch *l, const char **powod)
             kolejkuj(h.dst_port, h.src_port, VIRTIO_VSOCK_OP_RST, 0, NULL, 0);
             return 0;
         }
-        if (h.len > (n ? POL_BUFOR : NASZ_BUFOR) - (k->odebrane - k->zgloszone)) { /* the room the guest was told */
+        if (h.len > bufor_portu(h.dst_port) - (k->odebrane - k->zgloszone)) { /* the room the guest was told */
             *powod = "vsock: gość przekroczył kredyt";
             return -1;
         }
         vq_czytaj(l, sizeof h, dane, h.len);
-        if (n == 0)
+        if (h.dst_port == K1_PS_PORT) {
+            if (pliki_od_goscia(dane, h.len) != 0) {
+                *powod = "vsock: gość przekroczył kredyt";
+                return -1;
+            }
+        } else if (n == 0)
             sterowanie_dane(h.len);
         else if (pol_od_goscia(n, dane, h.len) != 0) {
             *powod = "vsock: gość przekroczył kredyt";
@@ -305,14 +354,16 @@ static int pakiet(const struct vq_lancuch *l, const char **powod)
         }
         return 0;
     case VIRTIO_VSOCK_OP_CREDIT_REQUEST:
-        if (k != NULL && n > 0)
+        if (k != NULL && (n > 0 || h.dst_port == K1_PS_PORT))
             k->kredyt_prosba = 1;
         else if (k != NULL)
             v.kr.zgloszone = v.kr.przekazane - NASZ_BUFOR; /* the control connection: an update at once */
         return 0;
     case VIRTIO_VSOCK_OP_SHUTDOWN:
     case VIRTIO_VSOCK_OP_RST:
-        if (k != NULL && n == 0) {
+        if (k != NULL && h.dst_port == K1_PS_PORT) {
+            pliki_rozlacz();
+        } else if (k != NULL && n == 0) {
             v.polaczony = 0;
         } else if (k != NULL) {
             int calkiem = h.op == VIRTIO_VSOCK_OP_RST || (h.flags & WSZYSTKO) == WSZYSTKO;
@@ -381,6 +432,7 @@ static void reset(struct mmio_urz *u)
 {
     (void)u;
     memset(&v, 0, sizeof v);
+    pliki_wyczysc();
     pol_wyczysc(); /* 0.10.5 step 5: the guest's connections end with its device (their sockets used to stay open) */
 }
 
