@@ -1,9 +1,5 @@
 /* K1 kompozytor — surfaces (kompozytor.h): wl_compositor, wl_surface, wl_region, wl_subcompositor and wl_subsurface,
- * wl_callback (the buffers they show: bufory.c). A committed buffer is copied at once into the surface's own pixels
- * (only its damage when the size is the same) and released, so the scene never reads the client's memory later; a pool
- * the client shrinks under us (SIGBUS) ends that client. */
-#include <setjmp.h>
-#include <signal.h>
+ * wl_callback (the buffers they show: bufory.c; what a committed buffer becomes of the surface's picture: zawartosc.c). */
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -13,29 +9,6 @@
 
 /* wl_subcompositor.error (wayland.xml) */
 enum { SUB_ZLA_POWIERZCHNIA = 0 };
-
-static sigjmp_buf skok;
-static volatile sig_atomic_t kopiuje;
-
-static void sigbus(int s)
-{
-    (void)s;
-    if (kopiuje)
-        siglongjmp(skok, 1);
-    _exit(1);
-}
-
-static void nasluch_sigbus(void)
-{
-    static int jest;
-    struct sigaction a;
-    if (jest)
-        return;
-    memset(&a, 0, sizeof a);
-    a.sa_handler = sigbus;
-    sigaction(SIGBUS, &a, NULL);
-    jest = 1;
-}
 
 struct powierzchnia *powierzchnia_z(struct obiekt *o)
 {
@@ -208,56 +181,6 @@ static void w_liczba(struct klient *k, struct obiekt *o, union arg *a)
     (void)k, (void)o, (void)a; /* transform, scale: the zone shows 1:1 (GTK sends 0 and 1) */
 }
 
-/* Rows from the client's pool into our copy; -1 when the pool went away under us (SIGBUS). */
-static int wiersze(uint32_t *d, size_t d_krok, const uint8_t *z, size_t z_krok, size_t bajty, size_t n)
-{
-    size_t y;
-    nasluch_sigbus();
-    if (sigsetjmp(skok, 1) != 0) {
-        kopiuje = 0;
-        return -1;
-    }
-    kopiuje = 1;
-    for (y = 0; y < n; y++)
-        memcpy(d + y * d_krok, z + y * z_krok, bajty);
-    kopiuje = 0;
-    return 0;
-}
-
-/* Copies the buffer's pixels (the damage only, unless the size changed); 0, or -1 (the pool went away: SIGBUS). */
-static int kopiuj(struct powierzchnia *p, const struct bufor *b, const struct stan_pow *s)
-{
-    int32_t x0 = 0, y0 = 0, x1 = b->szer, y1 = b->wys;
-    if (p->piksele == NULL || p->szer != b->szer || p->wys != b->wys) {
-        uint32_t *n = malloc((size_t)b->szer * (size_t)b->wys * 4u);
-        if (n == NULL)
-            return -1;
-        free(p->piksele);
-        p->piksele = n;
-        scena_zmiana_powierzchni(p); /* the old size */
-        p->szer = b->szer;
-        p->wys = b->wys;
-    } else if (s->ux1 > s->ux0) {
-        x0 = s->ux0 < b->szer ? s->ux0 : b->szer;
-        y0 = s->uy0 < b->wys ? s->uy0 : b->wys;
-        x1 = s->ux1 < b->szer ? s->ux1 : b->szer;
-        y1 = s->uy1 < b->wys ? s->uy1 : b->wys;
-    } else {
-        return 0;
-    }
-    if (wiersze(p->piksele + (size_t)y0 * (size_t)p->szer + (size_t)x0, (size_t)p->szer,
-                b->pula->mapa + (size_t)b->przes + (size_t)y0 * (size_t)b->krok + (size_t)x0 * 4u, (size_t)b->krok,
-                (size_t)(x1 - x0) * 4u, (size_t)(y1 - y0)) != 0)
-        return -1;
-    p->alfa = b->format == 0;
-    {
-        int32_t sx, sy;
-        if (scena_pozycja(p, &sx, &sy))
-            scena_zmiana(sx + x0, sy + y0, x1 - x0, y1 - y0);
-    }
-    return 0;
-}
-
 static void zastosuj(struct powierzchnia *p, struct stan_pow *s);
 
 /* A subsurface's state waits for its parent's commit while it, or any parent of it, is synchronized. */
@@ -300,7 +223,7 @@ static void zastosuj(struct powierzchnia *p, struct stan_pow *s)
     } else if (s->dolaczono && s->bufor != NULL && s->bufor->typ == IF_BUFFER) {
         const struct bufor *b = s->bufor->dane;
         dmabuf_czekaj(b->uchwyt); /* a buffer of the card: drawn to the end (0.10.9 step 6) */
-        if (b->pula != NULL && kopiuj(p, b, s) != 0)
+        if (b->pula != NULL && zawartosc_kopiuj(p, b, s->ux0, s->uy0, s->ux1, s->uy1) != 0)
             blad(p->o->klient, s->bufor, BLAD_PAMIEC, R_BUFOR_ODCZYT);
         zdarzenie(s->bufor, 0, ""); /* wl_buffer.release: we have our copy */
     }

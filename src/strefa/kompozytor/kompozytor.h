@@ -10,7 +10,7 @@
  * client (wl_display.error), never the compositor. The whole zone is in turn hostile to K1 — K1 never runs this code.
  *
  * Parts: main.c (socket, loop), protokol.c (wire, objects), interfejsy.c (the table of interfaces), powierzchnia.c
- * (surfaces, regions, subsurfaces), bufory.c (wl_shm, pools, buffers), xdg.c (xdg-shell), wejscie.c (seat, pointer,
+ * (surfaces, regions, subsurfaces), zawartosc.c (a surface's picture), bufory.c (wl_shm, pools, buffers), xdg.c (xdg-shell), wejscie.c (seat, pointer,
  * keyboard, evdev), palce.c (the fingers' scrolling as one gesture, pure), scena.c (composition), drm.c (the display). */
 #ifndef K1_KOMPOZYTOR_H
 #define K1_KOMPOZYTOR_H
@@ -255,6 +255,9 @@ struct powierzchnia *powierzchnia_z(struct obiekt *o); /* NULL for a destroyed o
 int powierzchnia_widoczna(const struct powierzchnia *p);
 void powierzchnia_klatka_gotowa(struct powierzchnia *p, uint32_t ms); /* frame callbacks done */
 void powierzchnie_klatka_gotowa(uint32_t ms);  /* every surface */
+/* zawartosc.c: buffer b into the surface's picture (the damage box ux0..uy1 when the size is the same); 0, or -1 (the
+ * client's pool went away: SIGBUS, or no memory) */
+int zawartosc_kopiuj(struct powierzchnia *p, const struct bufor *b, int32_t ux0, int32_t uy0, int32_t ux1, int32_t uy1);
 
 /* xdg.c */
 struct pozycjoner {
