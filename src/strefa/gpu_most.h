@@ -16,6 +16,7 @@
 
 #include <linux/virtio_gpu.h>
 
+#include "k1_komunikat.h" /* K1_POW_MAKS_BOK, K1_STREFA_* (0.10.11 step 2) */
 #include "k1_posrednik.h"
 
 #define MOST_OKNO_BAZA (32ull << 30) /* the host-visible region (virtio-gpu shm id 1) in guest addresses: above any
@@ -41,6 +42,12 @@ _Static_assert(sizeof(struct most_capset) == 160, "most_capset: Mesa's virgl_ren
 #define VIRTIO_GPU_CAPSET_DRM 6 /* linux/virtio_gpu.h since Linux 6.12; the host tests may build with older headers */
 #endif
 
+/* A buffer of the card the guest shows as its display (SET_SCANOUT_BLOB, 0.10.11 step 2, ADR 0051): its resource, the
+ * picture's size, the bytes of a row and where the picture starts in it. */
+struct most_obraz {
+    uint32_t res, szer, wys, krok, przes;
+};
+
 /* What the bridge needs from outside (each returns 0 or a K1_POSR_BLAD_*; MOST_PADL — the broker is gone). */
 #define MOST_PADL (-100)
 struct most_lacze {
@@ -56,6 +63,10 @@ struct most_lacze {
     void (*zamknij)(void *ja, int fd);                                       /* a descriptor of ours goes */
     int (*mapuj)(void *ja, uint32_t slot, uint64_t gpa, int fd, uint64_t rozmiar); /* 0, or -1: not mapped */
     void (*odmapuj)(void *ja, uint32_t slot, uint64_t gpa, uint64_t rozmiar);
+    /* 0.10.11 step 2: the guest shows buffer o (its dma-buf fd, ours: borrowed for the call) — 0, or -1: the window
+     * cannot (bigger than it); o NULL: the guest shows no buffer of the card any more. obraz_koniec: buffer res is gone. */
+    int (*obraz)(void *ja, const struct most_obraz *o, int fd);
+    void (*obraz_koniec)(void *ja, uint32_t res);
 };
 
 enum { MOST_BRAK = 0, MOST_WSPOLNA = 1, MOST_BUFOR = 2 };
@@ -64,7 +75,7 @@ struct most_zasob {
     uint8_t gosc;     /* the guest context that created it */
     uint8_t mapa;     /* VIRTIO_GPU_MAP_CACHE_* of its mapping */
     uint8_t mapowalny;
-    int fd;           /* MOST_WSPOLNA: the memfd (ours) */
+    int fd;           /* MOST_WSPOLNA: the memfd (ours); MOST_BUFOR: its dma-buf once the guest showed it (0.10.11) */
     uint32_t slot;    /* mapped: its KVM slot (0: not mapped) */
     uint64_t rozmiar, gpa;
 };
@@ -82,7 +93,7 @@ struct most {
     struct most_zasob zasoby[K1_POSR_ZASOBY_MAKS];
     uint8_t sloty[MOST_MAPY_MAKS];
     int padl;                         /* the broker ended (a crash, a hang): every 3D command fails, fences are done */
-    unsigned long polecenia, bledy;
+    unsigned long polecenia, bledy, obrazy; /* obrazy: SET_SCANOUT_BLOB accepted (0.10.11 step 2) */
 };
 
 /* The bridge with the card the broker described (POSR_UMIE: PCI id, revision, the driver's version). */

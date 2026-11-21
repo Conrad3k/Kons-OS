@@ -58,3 +58,20 @@ int ekran_zmiana(void)
 {
     return 0;
 }
+
+/* 0.10.11 step 2: no buffers of the card on the host (Firefox draws with the processor there) */
+int ekran_pokaz_bufor(int dmabuf, int32_t w, int32_t h, int32_t krok, int32_t przes)
+{
+    (void)dmabuf, (void)w, (void)h, (void)krok, (void)przes;
+    return -1;
+}
+
+int ekran_pokaz_swoj(void)
+{
+    return 0;
+}
+
+void ekran_zapomnij(int dmabuf)
+{
+    (void)dmabuf;
+}

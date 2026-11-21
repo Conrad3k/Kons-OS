@@ -207,7 +207,7 @@ static void p_utworz_teraz(struct klient *k, struct obiekt *o, union arg *a)
         return;
     }
     *b = (struct bufor){ pula, (int32_t)p->przes, a[1].i, a[2].i, (int32_t)p->krok, a[3].u == AR24 ? 0u : 1u, n,
-                         uchwyt };
+                         uchwyt, pula != NULL ? fcntl(p->fd, F_DUPFD_CLOEXEC, 0) : -1, 0 };
     n->dane = b;
 }
 

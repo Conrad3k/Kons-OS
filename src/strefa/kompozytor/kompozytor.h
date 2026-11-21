@@ -212,6 +212,8 @@ struct bufor {
     struct obiekt *o;
     uint32_t uchwyt;         /* 0.10.9 step 6: a buffer of the card — its GEM handle in our render node (0: wl_shm; a
                               * buffer of the card that could not be imported: pula NULL) */
+    int dmabuf;              /* 0.10.11 step 2: our copy of its dma-buf (-1: none) — to show it as the display */
+    int bez_ekranu;          /* the display refused it: the scene draws it */
 };
 struct pula {
     uint8_t *mapa;
@@ -241,6 +243,8 @@ struct powierzchnia {
     struct obiekt *trzymany; /* the held buffer's wl_buffer, released when another one replaces it (NULL: none, or the
                               * client destroyed it — its mapping stays ours in `pula` until then) */
     struct pula *pula;       /* the held buffer's mapping (a reference) */
+    struct obiekt *poprzedni;   /* 0.10.11 step 2: the one before it, released one frame later (the display may still */
+    struct pula *pula_poprz;    /* show it while the next one goes to K1's screen) */
     int32_t szer, wys;
     int alfa;                /* argb8888: blend; xrgb8888: copy */
     int wej_jest;
@@ -331,12 +335,18 @@ extern struct wyswietlacz ekran;
 int ekran_start(void);                        /* 0, or -1 (logged) */
 void ekran_pokaz(int32_t x, int32_t y, int32_t w, int32_t h); /* this part changed (DIRTYFB) */
 int ekran_zmiany_fd(void);                    /* 0.10.5 step 4: readable when K1 resized the zone's window (-1: none) */
+/* 0.10.11 step 2 (ADR 0051): a buffer of the card as the display itself (0, or -1: draw the scene), our own again, a
+ * dma-buf that goes */
+int ekran_pokaz_bufor(int dmabuf, int32_t w, int32_t h, int32_t krok, int32_t przes);
+int ekran_pokaz_swoj(void);
+void ekran_zapomnij(int dmabuf);
+int bezposredni_rysuj(void); /* bezposredni.c: 1 — this frame the browser's buffer is the display (no scene) */
 int ekran_zmiana(void);                       /* 1: `ekran` has the new size and buffer (the scene drawn again) */
 
 /* pomiar.c (0.10.11 step 1, plan T1): the links of the picture's way in the zone — to gosc every 10 s */
 #include "k1_pomiar.h"
 extern struct k1_pomiar pomiar_czekanie, pomiar_kopia, pomiar_scena, pomiar_pokaz;
-extern unsigned long pomiar_klatki, pomiar_bufory_karty, pomiar_bufory_pamieci;
+extern unsigned long pomiar_klatki, pomiar_bufory_karty, pomiar_bufory_pamieci, pomiar_bezposrednie;
 void pomiar_zglos(void); /* the loop: the line "pomiar …" to gosc when POMIAR_MS passed and something was drawn */
 
 void kloguj(const char *fmt, ...) __attribute__((format(printf, 1, 2)));

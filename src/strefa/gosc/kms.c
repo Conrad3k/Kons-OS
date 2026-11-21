@@ -21,6 +21,12 @@ static int fd = -1, uevent = -1;
 static uint32_t fb, uchwyt, crtc_id, zlacze_id;
 static void *mapa;
 static uint64_t mapa_dl;
+static struct drm_mode_modeinfo tryb_teraz;
+/* 0.10.11 step 2 (ADR 0051): buffers of the card shown as the display — their framebuffers, by the dma-buf's descriptor
+ * of the program (it says when one goes: kms_zapomnij) */
+#define BUFORY_FB 8
+static struct { int dmabuf; uint32_t w, h, krok, przes, fb, uchwyt; } fbs[BUFORY_FB];
+static uint32_t fb_teraz; /* the framebuffer on the CRTC: fb (the dumb buffer) or one of fbs */
 
 static int io(unsigned long req, void *arg)
 {
@@ -34,6 +40,14 @@ static int io(unsigned long req, void *arg)
 static uint64_t wsk(const void *p)
 {
     return (uint64_t)(uintptr_t)p;
+}
+
+static void usun_fb(int i)
+{
+    struct drm_gem_close z = { .handle = fbs[i].uchwyt };
+    io(DRM_IOCTL_MODE_RMFB, &fbs[i].fb);
+    io(DRM_IOCTL_GEM_CLOSE, &z);
+    memset(&fbs[i], 0, sizeof fbs[i]);
 }
 
 /* The first connector, its first mode, a CRTC for it. */
@@ -124,10 +138,14 @@ static int bufor(struct kms *k, const struct drm_mode_modeinfo *tryb)
         return -1;
     }
     fb = f.fb_id, uchwyt = d.handle, mapa = p, mapa_dl = d.size;
+    fb_teraz = fb, tryb_teraz = *tryb;
     k->px = p;
     k->szer = d.width;
     k->wys = d.height;
     k->krok = d.pitch / 4;
+    for (int i = 0; i < BUFORY_FB; i++) /* the buffers of the old size: never again */
+        if (fbs[i].fb != 0)
+            usun_fb(i);
     if (stara != NULL) { /* the old buffer: not shown any more */
         munmap(stara, (size_t)stara_dl);
         io(DRM_IOCTL_MODE_RMFB, &stary_fb);
@@ -184,6 +202,83 @@ int kms_zmiana(struct kms *k)
         return 0;
     kms_log("ekran gościa: nowy rozmiar %ux%u", k->szer, k->wys);
     return 1;
+}
+
+static int na_crtc(uint32_t f)
+{
+    struct drm_mode_crtc c;
+    memset(&c, 0, sizeof c);
+    c.crtc_id = crtc_id;
+    c.fb_id = f;
+    c.set_connectors_ptr = wsk(&zlacze_id);
+    c.count_connectors = 1;
+    c.mode = tryb_teraz;
+    c.mode_valid = 1;
+    if (io(DRM_IOCTL_MODE_SETCRTC, &c) < 0)
+        return -1;
+    fb_teraz = f;
+    return 0;
+}
+
+/* The dma-buf's framebuffer (made the first time: the same buffer in card0 — never a copy), 0: the card refused it. */
+static uint32_t fb_bufora(int dmabuf, uint32_t w, uint32_t h, uint32_t krok, uint32_t przes)
+{
+    struct drm_prime_handle p = { .fd = dmabuf };
+    struct drm_mode_fb_cmd2 f;
+    int i, wolny = 0;
+    for (i = 0; i < BUFORY_FB; i++)
+        if (fbs[i].fb != 0 && fbs[i].dmabuf == dmabuf && fbs[i].w == w && fbs[i].h == h && fbs[i].krok == krok &&
+            fbs[i].przes == przes)
+            return fbs[i].fb;
+    for (i = 0; i < BUFORY_FB; i++)
+        if (fbs[i].fb == 0)
+            wolny = i;
+    if (fbs[wolny].fb != 0) {
+        if (fbs[wolny].fb == fb_teraz)
+            na_crtc(fb);
+        usun_fb(wolny);
+    }
+    memset(&f, 0, sizeof f);
+    f.width = w, f.height = h, f.pixel_format = 0x34325258u; /* DRM_FORMAT_XRGB8888: opaque, as K1's window */
+    f.pitches[0] = krok, f.offsets[0] = przes;
+    if (io(DRM_IOCTL_PRIME_FD_TO_HANDLE, &p) < 0)
+        return 0;
+    f.handles[0] = p.handle;
+    if (io(DRM_IOCTL_MODE_ADDFB2, &f) < 0) {
+        struct drm_gem_close z = { .handle = p.handle };
+        io(DRM_IOCTL_GEM_CLOSE, &z);
+        return 0;
+    }
+    fbs[wolny].dmabuf = dmabuf, fbs[wolny].w = w, fbs[wolny].h = h, fbs[wolny].krok = krok, fbs[wolny].przes = przes;
+    fbs[wolny].fb = f.fb_id, fbs[wolny].uchwyt = p.handle;
+    return f.fb_id;
+}
+
+int kms_pokaz_bufor(int dmabuf, uint32_t w, uint32_t h, uint32_t krok, uint32_t przes)
+{
+    uint32_t f;
+    if (fd < 0 || w != tryb_teraz.hdisplay || h != tryb_teraz.vdisplay || (f = fb_bufora(dmabuf, w, h, krok, przes)) == 0)
+        return -1;
+    if (na_crtc(f) != 0) {
+        kms_log("ekran gościa: bufor karty jako wyświetlacz: SETCRTC: %s", strerror(errno));
+        return -1;
+    }
+    return 0;
+}
+
+int kms_pokaz_swoj(void)
+{
+    return fd < 0 || fb_teraz == fb || na_crtc(fb) == 0 ? 0 : -1;
+}
+
+void kms_zapomnij(int dmabuf)
+{
+    for (int i = 0; i < BUFORY_FB; i++)
+        if (fbs[i].fb != 0 && fbs[i].dmabuf == dmabuf) {
+            if (fbs[i].fb == fb_teraz)
+                na_crtc(fb);
+            usun_fb(i);
+        }
 }
 
 void kms_pokaz(uint32_t x, uint32_t y, uint32_t w, uint32_t h)

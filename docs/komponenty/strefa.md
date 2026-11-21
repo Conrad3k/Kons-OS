@@ -82,7 +82,8 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
   (`linia.c`). VMM (`pomiar.c`) dokłada swoje: przeniesienie z pamięci gościa (`TRANSFER_TO_HOST_2D`), kopia do okna, czekanie
   na ekran (od zatwierdzenia do `RAMKA`), prośby mostu do pośrednika (tam i z powrotem), od klawisza / ruchu / kółka do
   następnego obrazu gościa (do 1 s), rodzaje mapowań buforów karty (WB / UC / WC — plan P3). Co 10 s, gdy są obrazy, dwa
-  wiersze: `pomiar strefy (10 s, średnio/95%): klatki …, bufory karty …, pamięci …; czekanie na kartę A/B ms, kopia …, scena
+  wiersze (od kroku 2 w wierszu gościa 12. liczba — klatki prosto z bufora przeglądarki, „bez sceny”): `pomiar strefy (10 s,
+  średnio/95%): klatki … (bez sceny …), bufory karty …, pamięci …; czekanie na kartę A/B ms, kopia …, scena
   …, wysłanie …` i `pomiar VMM (10 s, średnio/95%): obrazy gościa …, przeniesienie …; okno … klatek, kopia …, ekran …; most N
   próśb, …; wejście→obraz …; mapy karty WB …, UC …, WC …`. Same liczby (niezmiennik 8); jak mierzyć na laptopie — `docs/TESTY.md`.
 - **Kto się skończył** (0.10.1 krok 1, S15): gdy przeglądarka albo kompozytor skończy się sam, `gosc` wysyła przed
@@ -127,8 +128,11 @@ przeglądarka rysuje procesorem.
   odpowiedź mówi, jak gość ma go mapować: z pamięcią podręczną albo write-combining), `SUBMIT_3D` (strumień ≤ 1 MiB,
   wielokrotność 4 → okno → `POSR_PROSBY` z numerem kontekstu gościa; z płotem odpowiedź czeka na `POSR_PLOT_GOTOWY` —
   virtio pozwala odpowiadać nie po kolei), `UNMAP`, `UNREF` (`POSR_ZWOLNIJ`), koniec kontekstu (`POSR_GOSC_KONIEC`).
-  Polecenia 3D virgl, `SET_SCANOUT_BLOB`, EDID — błąd. Obraz okna dalej idzie drogą 2D (kompozytor strefy kopiuje klatkę
-  z bufora karty do swojego bufora „dumb”).
+  Polecenia 3D virgl, EDID — błąd. **`SET_SCANOUT_BLOB`** (0.10.11 krok 2, ADR 0051): bufor karty jako wyświetlacz gościa —
+  sprawdzony pole po polu (bufor karty tej strefy, XRGB8888/ARGB8888, jedna płaszczyzna, cały obraz, wiersz i początek
+  w buforze, nie większy niż okno), jego dma-buf wzięty raz od pośrednika; okno (`okno_bufor.c`) nic nie kopiuje — daje go
+  ekranowi (`STREFA_BUFOR` raz, `STREFA_OBRAZ` co klatkę, numery 1…4 dla ostatnio pokazanych buforów; `RESOURCE_FLUSH`
+  pokazanego bufora = nowa klatka). `SET_SCANOUT` zasobu 2D wraca do kopii (droga 2D).
 - **Wątek mostu**: kolejkę sterującą virtio-gpu obsługuje wtedy osobny wątek (pośrednik odpowiada w milisekundach,
   płot czeka na kartę) — wątek procesora tylko go budzi; polecenia 2D wykonuje pod zamkiem VMM-a, 3D bez niego.
 - **Koniec pośrednika** (awaria, zawieszenie karty — T15): każde polecenie 3D dostaje błąd, czekające płoty od razu
@@ -138,7 +142,10 @@ przeglądarka rysuje procesorem.
   kompozytor przyjmuje bufory karty (`zwp_linux_dmabuf_v1` w wersji 4, tylko z `K1_GRAFIKA=1`: liniowe XRGB8888 i
   ARGB8888, urządzenie z „feedbacku” — `/dev/dri/renderD128`; czeka, aż karta skończy — `VIRTGPU_WAIT`; od 0.10.11
   krok 1 bufora karty nie kopiuje: scena czyta go tam, gdzie jest, a kompozytor oddaje go przeglądarce dopiero, gdy
-  przyjdzie następny — `zawartosc.c`; jedna kopia każdej klatki mniej),
+  przyjdzie następny — `zawartosc.c`; jedna kopia każdej klatki mniej; od kroku 2 trzyma dwa ostatnie — poprzedni oddaje
+  klatkę później, bo ekran może go jeszcze pokazywać); od 0.10.11 krok 2, gdy na wierzchu jest bufor karty na cały
+  wyświetlacz (okno przeglądarki bez menu i podpowiedzi nad nim), nie rysuje sceny — ten bufor jest wyświetlaczem gościa
+  (`bezposredni.c`, `gosc/kms.c`: framebuffer z dma-bufa, `SETCRTC`; jądro strefy wysyła `SET_SCANOUT_BLOB`),
   a `gosc` pisze w profilu `user.js` z rysowaniem kartą (bez `gfx.webrender.software`) — przy każdym starcie, w obie
   strony.
 - **Ramka**: ekran rysuje mały znak — układ scalony — tuż za nazwą sesji, póki strefa działa ze swoim pośrednikiem

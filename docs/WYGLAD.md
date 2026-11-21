@@ -416,3 +416,6 @@ Bez kursora, bez innych zdań (Z2), bez paska postępu (czasu i tak nie znamy). 
 Klasyczna strzałka: kremowe wypełnienie, ciemny obrys, lekki cień; przy wciśniętym przycisku —
 wypełnienie w kolorze akcentu. Od 0.10.5 krok 4 nad chwytami ramki okna strefy — podwójna strzałka tego samego stylu
 (↔, ↕, ↖↘, ↗↙).
+Od 0.10.11 krok 2 (ADR 0051, decyzja D4 właściciela: A): gdy okno strefy jest na warstwie karty, kursor rysuje płaszczyzna
+kursora karty — ten sam obraz kursora (strzałka, wciśnięta, podwójne strzałki), w tym samym miejscu; nie ma być widać
+różnicy poza płynnością. Okno częściowo zasłonięte — K1 sam wraca do składania obrazu.

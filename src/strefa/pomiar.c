@@ -115,9 +115,10 @@ void pomiar_loguj(void)
     pthread_mutex_lock(&zamek);
     pz.t = t;
     if (pz.gosc_jest)
-        k1_log(TAG, "pomiar strefy (10 s, średnio/95%%): klatki %u, bufory karty %u, pamięci %u; czekanie na kartę %s, "
-                    "kopia %s, scena %s, wysłanie %s", pz.gosc[0], pz.gosc[1], pz.gosc[2], para(a, sizeof a, pz.gosc, 3),
-               para(b, sizeof b, pz.gosc, 5), para(c, sizeof c, pz.gosc, 7), para(d, sizeof d, pz.gosc, 9));
+        k1_log(TAG, "pomiar strefy (10 s, średnio/95%%): klatki %u (bez sceny %u), bufory karty %u, pamięci %u; czekanie "
+                    "na kartę %s, kopia %s, scena %s, wysłanie %s", pz.gosc[0], pz.gosc[11], pz.gosc[1], pz.gosc[2],
+               para(a, sizeof a, pz.gosc, 3), para(b, sizeof b, pz.gosc, 5), para(c, sizeof c, pz.gosc, 7),
+               para(d, sizeof d, pz.gosc, 9));
     if (pz.obrazy > 0 || pz.klatki > 0)
         k1_log(TAG, "pomiar VMM (10 s, średnio/95%%): obrazy gościa %lu, przeniesienie %s; okno %lu klatek, kopia %s, "
                     "ekran %s; most %u próśb, %s; wejście→obraz %s; mapy karty WB %lu, UC %lu, WC %lu", pz.obrazy,

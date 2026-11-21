@@ -31,6 +31,8 @@
 #  (0.10.2 krok 1) EKRAN STARTU do okna programu strefy (gość z „oknem” — tryb 11), pasek w ruchu; ZAMYKANIE W TLE:
 #      okno znika od razu, maszyna kończy się potem; otwarcie w trakcie zamykania — nadzorca czeka i otwiera sam;
 #      WYŁĄCZANIE przy działającej strefie: najpierw strefa się zamyka i zapisuje dysk, potem reszta K1
+#  (0.10.11 krok 2, ADR 0051) OBRAZ BEZ KOPII: gość z mostem (tryb 16) pokazuje bufor karty jako wyświetlacz — VMM daje go
+#      ekranowi, ekran składa okno z bufora (QEMU nie ma warstw karty), kolor na zrzucie; potem znów własny bufor gościa
 #  (0.10.2 krok 3) ZRZUT WZORCOWY ramki strefy w obu motywach (testy/wzorce/ramka-strefy-*.png, obraz gościa pominięty)
 #  10. (0.10.0 krok 5) strefa pamięta: K1 z dyskiem danych (K1-DANE), strefa próbna dostaje dysk w skarbcu (/dev/vdb,
 #      ext4 z pustego dysku strefy) — gość liczy na nim swoje uruchomienia: pierwsze 1, po złośliwych gościach 2; po
@@ -448,6 +450,34 @@ sprawdz("SZYBKA GRAFIKA: bufor karty zmapowany w pamięci gościa (miejsce pami�
         "paczka pracy z nim przyjęta",
         czekaj(r"K1-GOSC: grafika: bufor \d+ \(zasób \d+\) zmapowany w pamięci gościa, zapis i odczyt zgodne", czas=120)
         and czekaj(r"K1-GOSC: grafika: paczka pracy z buforem — ret 0", czas=60) and czekaj(r"K1-GOSC: grafika: ok", czas=30))
+# 0.10.11 step 2 (ADR 0051): a buffer of the card as the guest's display — the VMM hands its dma-buf (here the test
+# engine's memfd) to ekran without a copy; QEMU's card has no layers, so ekran composes it from the buffer (the fallback)
+KARTA = (0x60, 0xA0, 0xC0)
+sprawdz("OBRAZ BEZ KOPII (0.10.11 krok 2): gość pokazuje bufor karty jako wyświetlacz (SET_SCANOUT_BLOB) — VMM daje go "
+        "ekranowi bez kopii, ekran składa okno z bufora (w QEMU bez warstwy karty)",
+        czekaj(r"K1-GOSC: grafika: bufor karty \d+x\d+ \(zasób \d+\) jako wyświetlacz — pokazany", czas=120) and
+        czekaj(r"K1-STREFA: okno: obraz gościa prosto z bufora karty \(\d+x\d+\) — bez kopii w VMM", czas=60) and
+        czekaj(r"K1-EKRAN: okno \d+: obraz strefy z bufora karty \d+x\d+ \(bez kopii w VMM\)", czas=60),
+        "; ".join(re.findall(r"K1-(?:GOSC: grafika: bufor karty|STREFA: okno: obraz|EKRAN: okno \d+: obraz strefy)[^\n]*",
+                             q.tekst())))
+# the zone's window of mode 16: the last one opened before the buffer was shown (with KVM ekran logs it before the test
+# program's "(tryb 16)"), and its picture's size of now (the session's remembered size may have come after)
+t_ = q.tekst()
+t_ = t_[:t_.find("jako wyświetlacz — pokazany")]
+o16 = re.findall(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", t_)
+nr16, w16, h16, x16, y16 = (int(v) for v in o16[-1]) if o16 else (0, 0, 0, 0, 0)
+n16 = re.findall(r"K1-EKRAN: okno %d: powierzchnia (\d+)x(\d+) w (\d+),(\d+)" % nr16,
+                 t_[t_.rfind("K1-EKRAN: okno %d (strefa)" % nr16):])
+if o16 and n16:
+    w16, h16, x16, y16 = (int(v) for v in n16[-1])
+w, h, px = q.zrzut("13-bufor-karty", gdy=lambda w, h, px: o16 and blisko(px(x16 + w16 // 2, y16 + h16 // 2), KARTA), czas=60)
+sprawdz("…na zrzucie okno strefy w kolorze bufora karty, nieprzezroczyste (zrzut strefa-13-bufor-karty)",
+        o16 and blisko(px(x16 + w16 // 2, y16 + h16 // 2), KARTA) and blisko(px(x16 + 4, y16 + 4), KARTA),
+        str(px(x16 + w16 // 2, y16 + h16 // 2)) if o16 else "brak okna")
+sprawdz("…i z powrotem: gość pokazuje własny bufor — okno znów z jego pikseli (wzór 2D)",
+        czekaj(r"K1-GOSC: grafika: znów własny bufor wyświetlacza", czas=120) and
+        blisko(q.zrzut("14-wlasny-bufor", gdy=lambda w, h, px: blisko(px(x16 + w16 // 2, y16 + h16 // 6), TLO_GOSCIA),
+                       czas=60)[2](x16 + w16 // 2, y16 + h16 // 6), TLO_GOSCIA))
 sprawdz("SZYBKA GRAFIKA: koniec strefy — VMM liczy polecenia 3D i mapowania, pośrednik kończy się razem z nią",
         czekaj(r"K1-TEST: strefy: strefa skończyła się \(tryb 16\)", czas=300) and
         czekaj(r"K1-STREFA: szybka grafika: polecenia 3D \d+ \(błędy \d+\), płoty [1-9]\d*, mapowania [1-9]", czas=30)

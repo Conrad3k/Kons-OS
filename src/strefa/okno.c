@@ -178,6 +178,7 @@ void okno_start(void)
         return;
     }
     kl.fd = FD_EKRAN;
+    okno_bufor_start();
     k1_klient_start(&kl, TAG);
     w = kl.szer_ekranu - 160 < OKNO_MAKS_W ? kl.szer_ekranu - 160 : OKNO_MAKS_W;
     /* 0.10.0 step 3: K1's title bar (strefy.c in ekran) above the picture — the picture as high as before (576 px on
@@ -207,6 +208,29 @@ static void kopiuj(struct k1_obraz *o, const uint32_t *src, uint32_t w, uint32_t
     }
 }
 
+/* 0.10.11 step 2 (ADR 0051): the guest shows a buffer of the card — ekran gets it (once) and what changed; nothing is
+ * copied here. Under mz.zamek (released at the end). */
+static void obraz_z_karty(void)
+{
+    struct prost r = brud[0];
+    if (brud[1].x1 > brud[1].x0) /* after a new size one half was committed black: what either half lacks */
+        dodaj(&r, brud[1].x0, brud[1].y0, brud[1].x1, brud[1].y1);
+    if (!obraz_gosc) {
+        obraz_gosc = 1;
+        r = (struct prost){ 0, 0, szer, wys };
+        k1_log(TAG, "%s z bufora karty", obraz_przed_oknem ? "ekran startu zniknął: obraz gościa" : "pierwszy obraz gościa");
+    }
+    if (r.x1 <= r.x0 || okno_bufor_wyslij(kl.fd, OKNO_ID, r.x0, r.y0, r.x1, r.y1) != 0) {
+        zamek_oddaj();
+        return;
+    }
+    brud[0] = brud[1] = (struct prost){ 0, 0, 0, 0 };
+    okno.czeka = 1; /* until RAMKA, as after a commit */
+    zamek_oddaj();
+    pomiar_zatwierdzone();
+    klatki++;
+}
+
 void okno_obraz(void)
 {
     struct k1_obraz *o;
@@ -220,15 +244,21 @@ void okno_obraz(void)
     pol = okno.pokazywana == 0 ? 1 : 0;
     zamek_wez("okno: obraz");
     src = gpu_obraz(&w, &h);
-    if (!obraz_gosc && start_trwa(src != NULL)) {
+    if (!obraz_gosc && start_trwa(src != NULL || okno_bufor_pokazany())) {
         if (src != NULL && !obraz_przed_oknem++)
             k1_log(TAG, "pierwszy obraz gościa (%ux%u) — ekran startu zostaje do okna programu strefy", w, h);
         zamek_oddaj();
         animuj();
         return;
     }
+    if (okno_bufor_pokazany() && !czysta[0] && !czysta[1]) {
+        obraz_z_karty();
+        return;
+    }
     r = !obraz_gosc || czysta[pol] ? (struct prost){ 0, 0, szer, wys } : brud[pol];
-    if (src == NULL || r.x1 <= r.x0 || (o = k1_pow_rysuj(&okno)) == NULL) {
+    if (okno_bufor_pokazany()) /* a new size: one commit of the new surface (black) first, ekran takes it then */
+        src = NULL, w = h = 0, r = (struct prost){ 0, 0, szer, wys };
+    if ((src == NULL && !okno_bufor_pokazany()) || r.x1 <= r.x0 || (o = k1_pow_rysuj(&okno)) == NULL) {
         zamek_oddaj();
         return;
     }
@@ -245,9 +275,12 @@ void okno_obraz(void)
     if (czysta[pol]) { /* a new size: what the guest's picture does not cover yet is black, never see-through */
         k1_wyczysc(o, 0xff000000u);
         czysta[pol] = 0;
+        if (okno_bufor_pokazany())
+            czysta[1 - pol] = 0, brud[1 - pol] = (struct prost){ 0, 0, szer, wys };
     }
     t0 = k1_pomiar_teraz_us();
-    kopiuj(o, src, w, h, r);
+    if (src != NULL)
+        kopiuj(o, src, w, h, r);
     pomiar_okno(k1_pomiar_teraz_us() - t0); /* 0.10.11 step 1 */
     brud[pol] = (struct prost){ 0, 0, 0, 0 };
     zamek_oddaj();

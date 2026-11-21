@@ -79,6 +79,23 @@ struct pow {
     int32_t nowa_w, nowa_h;
     int maks;
     struct prost przed;
+    int bufor;            /* 0.10.11 step 2 (strefa_bufor.c): a zone's window shows its buffer of the card 1..
+                           * K1_STREFA_BUFORY, 0: its own pixels */
+};
+
+/* A buffer of the card of a zone's window (0.10.11 step 2, ADR 0051): the dma-buf from its VMM, mapped read only from
+ * mapa_od (whole pages) — the picture at mapa + przes, w × h, krok bytes a row; for the layer of the card a framebuffer
+ * of it (warstwa.c). */
+struct bufor_strefy {
+    int fd;
+    const uint8_t *mapa;
+    size_t mapa_dl;
+    off_t mapa_od;
+    int32_t w, h, krok, przes;
+    int bez_sync;         /* DMA_BUF_IOCTL_SYNC not known to it (the test broker's memfd) */
+    uint32_t fb, uchwyt;  /* its framebuffer and handle in our card (0: none yet) */
+    int bez_warstwy;      /* the card refused it as a layer: always composed */
+    int sprawdzony;       /* a commit with it was tested (TEST_ONLY) */
 };
 
 struct stan {
@@ -211,6 +228,25 @@ void zatwierdz(int kl, const struct k1_komunikat *m);        /* ZATWIERDZ: the d
 /* wskaznik.c */
 struct k1_zdarzenie;
 void zastosuj(const struct k1_zdarzenie *z);
+
+/* strefa_bufor.c — a zone's window from buffers of the card (0.10.11 step 2, ADR 0051) */
+void strefa_bufory_start(void);
+void strefa_bufory_zwolnij(int i);                    /* surface i is gone */
+struct bufor_strefy *strefa_bufor(int i);             /* the buffer surface i shows, NULL: its own pixels */
+const char *strefa_bufor_przyjmij(int kl, const struct k1_komunikat *m, int fd); /* STREFA_BUFOR: NULL or why refused */
+const char *strefa_obraz(int kl, const struct k1_komunikat *m);                  /* STREFA_OBRAZ */
+void strefa_bufor_skladaj(const struct pow *p, const struct bufor_strefy *b, const struct prost *k);
+void strefa_bufory_liczniki(unsigned long *przyjete, unsigned long *odrzucone);
+
+/* warstwa.c — the layer of the card for a zone's window seen whole (0.10.11 step 2, ADR 0051 T3, D4: A) */
+void warstwa_start(void);           /* after the output is chosen: atomic, an overlay plane and the cursor's */
+int warstwa_pokazuje(int i);        /* surface i's picture is on the layer now (the scene does not compose it) */
+void warstwa_zmiana(void);          /* a new frame is needed (a buffer changed while on the layer) */
+void warstwa_zapomnij(struct bufor_strefy *b); /* its framebuffer goes (off the layer first) */
+void warstwa_przed_klatka(void);    /* pokaz: what goes on the layer this frame — damages what leaves it */
+int warstwa_kursor(void);           /* the cursor is on the cursor's plane this frame (not drawn in the buffer) */
+int warstwa_wymiana(int tylny);     /* the page flip with the layers (atomic): 0 done, -1 use the plain PAGE_FLIP */
+void warstwa_wylacz(void);          /* before a mode set: every layer off (waits) */
 
 /* pomiar.c — the measurement (0.10.11 step 1, plan T1) */
 void pomiar_skladanie(uint64_t us); /* one composition of the scene */

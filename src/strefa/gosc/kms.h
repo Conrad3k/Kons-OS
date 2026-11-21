@@ -15,6 +15,12 @@ int kms_start(struct kms *k);                                  /* 0, or -1 (logg
 int kms_zmiany_fd(void);
 int kms_zmiana(struct kms *k);
 void kms_pokaz(uint32_t x, uint32_t y, uint32_t w, uint32_t h); /* this rectangle changed */
+/* 0.10.11 step 2 (ADR 0051): a buffer of the card (its dma-buf, of the display's size) shown as the display itself — the
+ * zone kernel sends SET_SCANOUT_BLOB, the VMM hands it to ekran; 0, or -1 (the card refused it: draw into our own). Back
+ * to our own buffer (before kms_pokaz of it): kms_pokaz_swoj. kms_zapomnij: that dma-buf goes. */
+int kms_pokaz_bufor(int dmabuf, uint32_t w, uint32_t h, uint32_t krok, uint32_t przes);
+int kms_pokaz_swoj(void);
+void kms_zapomnij(int dmabuf);
 void kms_log(const char *fmt, ...) __attribute__((format(printf, 1, 2))); /* each program its own */
 
 #endif

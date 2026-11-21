@@ -10,7 +10,8 @@
 
 #include <stdint.h>
 
-#define POMIAR_GOSC_LICZB 11 /* "pomiar" from the guest: frames, buffers of the card, of memory, 4 × (mean, 95 %) µs */
+#define POMIAR_GOSC_LICZB 12 /* "pomiar" from the guest: frames, buffers of the card, of memory, 4 × (mean, 95 %) µs,
+                              * frames straight from the browser's buffer (0.10.11 step 2) */
 
 void pomiar_gosc(const uint32_t *w);    /* the guest's numbers (vsock.c, checked by linia.c) */
 void pomiar_przeniesienie(uint64_t us); /* gpu.c: one TRANSFER_TO_HOST_2D */

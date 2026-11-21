@@ -88,7 +88,9 @@ static void usun(struct most *m, uint32_t res)
 {
     struct most_zasob *z = &m->zasoby[res];
     odmapuj(m, z);
-    if (z->rodzaj == MOST_WSPOLNA && z->fd >= 0)
+    if (z->rodzaj == MOST_BUFOR && z->fd >= 0)
+        m->l->obraz_koniec(m->l->ja, res); /* 0.10.11 step 2: it was shown — the window forgets it */
+    if (z->fd >= 0)
         m->l->zamknij(m->l->ja, z->fd);
     if (z->rodzaj == MOST_BUFOR && !m->padl)
         m->l->zwolnij(m->l->ja, res);
@@ -218,6 +220,49 @@ static uint32_t mapuj(struct most *m, const struct virtio_gpu_resource_map_blob 
     return (uint32_t)sizeof info;
 }
 
+/* SET_SCANOUT_BLOB (0.10.11 step 2, ADR 0051 T3, T4): the guest's display shows buffer res of the card — XRGB8888 or
+ * ARGB8888 (the window is opaque), one plane, the whole picture (no part of it), inside the buffer. Its dma-buf is asked
+ * for once (POSR_BUFOR) and kept until the resource goes; the window (okno.c) hands it to ekran. Resource 0: no buffer. */
+static uint32_t pokaz_blob(struct most *m, const struct virtio_gpu_set_scanout_blob *b, uint8_t *odp)
+{
+    struct most_zasob *z = b->resource_id >= 1 && b->resource_id < K1_POSR_ZASOBY_MAKS ? &m->zasoby[b->resource_id] : NULL;
+    struct most_obraz o = { b->resource_id, b->width, b->height, b->strides[0], b->offsets[0] };
+    uint32_t mapa;
+    if (b->scanout_id != 0)
+        return blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_SCANOUT_ID);
+    if (b->resource_id == 0) {
+        m->l->obraz(m->l->ja, NULL, -1);
+        naglowek(odp, VIRTIO_GPU_RESP_OK_NODATA);
+        return (uint32_t)sizeof(struct virtio_gpu_ctrl_hdr);
+    }
+    if (z == NULL || z->rodzaj != MOST_BUFOR)
+        return blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_RESOURCE_ID);
+    if ((b->format != VIRTIO_GPU_FORMAT_B8G8R8X8_UNORM && b->format != VIRTIO_GPU_FORMAT_B8G8R8A8_UNORM) ||
+        b->width == 0 || b->height == 0 || b->width > K1_POW_MAKS_BOK || b->height > K1_POW_MAKS_BOK ||
+        b->r.x != 0 || b->r.y != 0 || b->r.width != b->width || b->r.height != b->height || b->strides[0] % 4 != 0 ||
+        b->strides[0] < 4 * b->width || b->strides[0] > K1_STREFA_KROK_MAKS || b->offsets[0] % 4 != 0 ||
+        b->offsets[0] > K1_STREFA_PRZES_MAKS ||
+        (uint64_t)b->offsets[0] + (uint64_t)b->strides[0] * (b->height - 1) + 4u * (uint64_t)b->width > z->rozmiar)
+        return blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    for (int i = 1; i < 4; i++)
+        if (b->strides[i] != 0 || b->offsets[i] != 0)
+            return blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    if (z->fd < 0) {
+        int r = m->padl ? MOST_PADL : m->l->bufor(m->l->ja, b->resource_id, &z->fd, &mapa);
+        if (r == MOST_PADL)
+            most_padl(m);
+        if (r != 0) {
+            z->fd = -1;
+            return blad(m, odp, VIRTIO_GPU_RESP_ERR_UNSPEC);
+        }
+    }
+    if (m->l->obraz(m->l->ja, &o, z->fd) != 0)
+        return blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    m->obrazy++;
+    naglowek(odp, VIRTIO_GPU_RESP_OK_NODATA);
+    return (uint32_t)sizeof(struct virtio_gpu_ctrl_hdr);
+}
+
 static uint32_t capset(struct most *m, const uint8_t *p, uint8_t *odp, uint32_t typ)
 {
     struct virtio_gpu_get_capset_info i;
@@ -307,7 +352,12 @@ int most_polecenie(struct most *m, const uint8_t *p, uint64_t n, uint8_t *odp, u
         *odp_dl = mapuj(m, &b, odp);
         return 0;
     }
-    default: /* 3D of virgl (CREATE_3D, TRANSFER_*_3D), SET_SCANOUT_BLOB, EDID, UUID: not offered */
+    case VIRTIO_GPU_CMD_SET_SCANOUT_BLOB: {
+        STRUKTURA(struct virtio_gpu_set_scanout_blob, b)
+        *odp_dl = pokaz_blob(m, &b, odp);
+        return 0;
+    }
+    default: /* 3D of virgl (CREATE_3D, TRANSFER_*_3D), EDID, UUID: not offered */
         *odp_dl = blad(m, odp, VIRTIO_GPU_RESP_ERR_UNSPEC);
         return 0;
     }

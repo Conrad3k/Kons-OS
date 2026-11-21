@@ -106,9 +106,10 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                     Luki (punkt 5)   Zależy od   Decyzje      Rozmiar  ADR
-[w toku: Claude, gałąź claude/magical-cerf-mnymh9]
-     1  Pomiar i szybkie poprawki szybkiej grafiki            P1–P7            0.10.10     D1, T1, T2   M        brak
-[ ]  2  Obraz strefy bez kopii: bufor karty prosto do ekranu  P8–P12           1           D4, T3, T4   L        0051
+[x]  1  Pomiar i szybkie poprawki szybkiej grafiki            P1–P7            0.10.10     D1, T1, T2   M        brak
+        (PR #199)
+[x]  2  Obraz strefy bez kopii: bufor karty prosto do ekranu  P8–P12           1           D4, T3, T4   L        0051
+        (PR #200)
 [ ]  3  Nowsze karty Intela; porządki; wydanie (OSTATNI)      P13–P20          2           D6, T5,      M        0051
                                                                                            T6                    (uzup.)
 (ADR 0051: następny wolny po 0050 z 0.10.9; plan 0.11.0 bierze następny po nim. Decyzje D2 i D3 i dawne kroki 3–4 —
@@ -142,6 +143,18 @@ KROK 1: Pomiar i szybkie poprawki szybkiej grafiki                          M ·
   Dokumenty: posrednik.md, strefa.md, ekran.md (liczniki), TESTY (jak mierzyć na sprzęcie), aplikacje.md (Zasoby, D1).
   Gotowe, gdy: CI zielone; liczby „przed / po” z IdeaPada w PR-ze; w „Ustaleniach z wykonania” — które ogniwa zostają
   dla kroku 2.
+  Ustalenia z wykonania (2026-11-21, PR #199; właściciel: „oba kroki, pomiar potem”):
+   - Pomiar (T1): k1_pomiar (średnia, 95. percentyl z koszyków ćwierć oktawy); wiersze co 10 s „pomiar strefy” (kompozytor
+     → gosc → kanał sterujący → VMM), „pomiar VMM”, „pomiar ekranu” — same liczby. D1 = B: bez liczb w Zasobach.
+   - WAŻNE: log K1 idzie tylko na port szeregowy (niezmiennik 2) — laptop go nie ma, więc liczb „przed / po” z IdeaPada
+     z logu nie ma; liczby z QEMU/CI (bez znaczenia dla wydajności) i ocena płynności przez właściciela (docs/TESTY.md,
+     „Pomiar szybkiej grafiki”). Liczby ze sprzętu — gdy właściciel zdecyduje, jak je pokazać (np. D1 = A później).
+   - Poprawka (P1, T2): kompozytor nie kopiuje bufora karty — scena czyta go na miejscu, oddawany przy następnym
+     (zawartosc.c). Bez liczb ze sprzętu poprawki „z pomiaru” nie było jak wybrać; ta jest pewna z kodu (jedna pełna kopia
+     klatki mniej, bez zmiany architektury).
+   - Dla kroku 2 zostają wszystkie ogniwa za kompozytorem: virtio-gpu 2D (TRANSFER), kopia VMM do okna, składanie ekranu
+     — krok 2 usuwa je razem (obraz z bufora karty prosto do ekranu).
+   - Przy okazji: stanowisko (scripts/stanowisko.sh) znów się buduje (brak dwóch funkcji od 0.10.5 krok 4).
 
 KROK 2: Obraz strefy bez kopii — bufor karty prosto do ekranu                L · D4, T3, T4 · ADR 0051
   Cel: gotowa klatka przeglądarki (bufor karty) trafia na ekran K1 bez kopiowania procesorem — ekran pokazuje ją jako
@@ -169,6 +182,23 @@ KROK 2: Obraz strefy bez kopii — bufor karty prosto do ekranu                L
   SLOWNIK („warstwa sprzętowa”, jeśli nowe), WYGLAD (D4).
   Gotowe, gdy: CI zielone; IdeaPad: liczby lepsze niż po kroku 1, obraz bez błędów przy przesuwaniu, minimalizacji
   i Alt+Tab.
+  Ustalenia z wykonania (2026-11-21, PR #200; D4 = A):
+   - Droga: kompozytor strefy (bezposredni.c) — bufor karty na wierzchu i na cały wyświetlacz = wyświetlacz gościa
+     (SETCRTC, jądro strefy: SET_SCANOUT_BLOB); VMM (gpu_most.c czyste, okno_bufor.c) — dma-buf od pośrednika raz na bufor,
+     do ekranu STREFA_BUFOR (fd, numery 1–4) i STREFA_OBRAZ (co klatkę); ekran (strefa_bufor.c, warstwa.c) — warstwa karty
+     (nakładka i915 + płaszczyzna kursora, zatwierdzenie atomowe, TEST_ONLY nowego bufora) albo składanie z bufora.
+   - P11 (płot): bez osobnego płotu — kompozytor czeka na kartę (VIRTGPU_WAIT) przed pokazaniem bufora, więc do VMM i ekranu
+     trafia tylko gotowa klatka. Kompozytor trzyma dwa ostatnie bufory (poprzedni może być jeszcze na ekranie).
+   - P12 (test): silnik testowy pośrednika daje jako dma-buf swój memfd — ekran mapuje go jak dma-buf, DMA_BUF_IOCTL_SYNC
+     na nim nic nie robi (ENOTTY, pomijany). Warstwy karty nie sprawdzi CI ani kontener (QEMU nie ma nakładki).
+   - Klatka ekranu: warunki profilu na jedno wywołanie mogą być alternatywami (bazowe zostają bezwzględne) — ekran może
+     wołać tylko DMA_BUF_IOCTL_SYNC poza DRM.
+   - Pułapki: właściwości płaszczyzn (FB_ID, CRTC_ID, SRC_*, CRTC_*) jądro pokazuje dopiero klientowi atomowemu (najpierw
+     DRM_CLIENT_CAP_ATOMIC); klatka z bufora, którego ekran nie mógł przyjąć, nie może liczyć się jako błędny komunikat
+     (po 50 ekran rozłącza klienta — okno strefy by zniknęło).
+   - NIEPEWNE (sprzęt): czy i915 przyjmie bufory Mesy na nakładkę (wiersz co 64 B — przy szerokości okna co 16 px tak),
+     czy Firefox na wierzchu ma jeden bufor karty na całe okno (podpowierzchnia treści) — inaczej kompozytor składa scenę
+     jak po kroku 1. Do sprawdzenia przez właściciela na IdeaPadzie; liczby — patrz krok 1 (log tylko na porcie szeregowym).
 
 KROK 3: Nowsze karty zintegrowane Intela; porządki; wydanie (OSTATNI)     M · D6, T5, T6 · ADR 0051 (uzupełnienie)
   Cel: K1 działa na laptopach z nowszymi kartami zintegrowanymi Intela tak samo jak na IdeaPadzie: pulpit przez i915,

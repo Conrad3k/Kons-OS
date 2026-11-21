@@ -219,7 +219,15 @@ static void skomponuj(void)
                 cien(p, &r);
             if (okno_strefy(p))
                 strefa_ramka(p, &r); /* before the zone's picture: outside it, never covered by it */
-            k1_skladaj(&s.scena, &o, p->x, p->y, r.x, r.y, r.w, r.h);
+            if (strefa_bufor(idx[i]) != NULL) { /* 0.10.11 step 2: from its buffer of the card, or on the layer */
+                const struct bufor_strefy *b = strefa_bufor(idx[i]);
+                if (b->w < p->w || b->h < p->h) /* smaller than the window (a new size coming): the rest its own */
+                    k1_skladaj(&s.scena, &o, p->x, p->y, r.x, r.y, r.w, r.h);
+                if (!warstwa_pokazuje(idx[i]))
+                    strefa_bufor_skladaj(p, b, &r);
+            } else {
+                k1_skladaj(&s.scena, &o, p->x, p->y, r.x, r.y, r.w, r.h);
+            }
         }
         rozmiar_rysuj(&r); /* 0.10.5 step 4: the outline of a window being resized, over everything */
         wylaczanie_rysuj(&r); /* 0.10.7 step 6: K1 powers off — the screen "Wyłączanie" over all of it */
@@ -266,7 +274,8 @@ void zapisz_klatke(struct bufor *b, struct drm_clip_rect *zmiany, unsigned *n_zm
         dodaj_zmiane(zmiany, n_zmian, r);
     }
     b->brud.n = 0;
-    if (wylaczanie_trwa()) { /* 0.10.7 step 6: no cursor on the screen "Wyłączanie" */
+    if (wylaczanie_trwa() || warstwa_kursor()) { /* 0.10.7 step 6: no cursor on the screen "Wyłączanie"; 0.10.11
+                                                 * step 2: the cursor on its own plane of the card */
         b->ma_kursor = 0;
         return;
     }
@@ -286,6 +295,7 @@ void zapisz_klatke(struct bufor *b, struct drm_clip_rect *zmiany, unsigned *n_zm
 void pokaz(void)
 {
     uint64_t t0 = k1_pomiar_teraz_us(), t1;
+    warstwa_przed_klatka(); /* 0.10.11 step 2: what the layer of the card shows this frame */
     skomponuj();
     t1 = k1_pomiar_teraz_us();
     pomiar_skladanie(t1 - t0); /* 0.10.11 step 1 */
@@ -311,6 +321,11 @@ void pokaz(void)
         struct drm_mode_crtc_page_flip pf;
         zapisz_klatke(&s.buf[tylny], NULL, NULL);
         pomiar_zapis(k1_pomiar_teraz_us() - t1);
+        if (warstwa_wymiana(tylny) == 0) { /* with the layers: one atomic commit, the same flip event */
+            s.flip_w_toku = 1;
+            pomiar_wymiana(0);
+            return;
+        }
         memset(&pf, 0, sizeof pf);
         pf.crtc_id = s.crtc;
         pf.fb_id = s.buf[tylny].fb;

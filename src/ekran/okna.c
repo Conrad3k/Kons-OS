@@ -213,6 +213,7 @@ static void usun_pow(int i)
         munmap((void *)(uintptr_t)p->mem, p->rozmiar);
     if (p->nowa_mem != NULL) /* 0.10.5 step 4: a new size not shown yet */
         munmap((void *)(uintptr_t)p->nowa_mem, p->nowa_rozmiar);
+    strefa_bufory_zwolnij(i); /* 0.10.11 step 2: its buffers of the card (off the layer first) */
     p->uzyta = 0;
     if (s.pod == i)
         s.pod = -1;
@@ -292,7 +293,8 @@ static int opis_albo_test(int kl, const struct k1_komunikat *m, int fd)
         if (fd >= 0)
             close(fd);
         powod = "klient testowy tylko pyta o opis ekranu";
-    } else if (m->typ != K1_KOM_POWIERZCHNIA && m->typ != K1_KOM_TAPETA_ZDJECIE && fd >= 0) {
+    } else if (m->typ != K1_KOM_POWIERZCHNIA && m->typ != K1_KOM_TAPETA_ZDJECIE && m->typ != K1_KOM_STREFA_BUFOR &&
+               fd >= 0) {
         close(fd);
         powod = "niespodziewany deskryptor";
     } else {
@@ -303,18 +305,30 @@ static int opis_albo_test(int kl, const struct k1_komunikat *m, int fd)
     return 1;
 }
 
+/* The wallpaper photo (0.8.0 step 4: zdjecie.c) and a zone's picture from buffers of the card (0.10.11 step 2:
+ * strefa_bufor.c). 1: handled (refused or done). */
+static int obraz_albo_tapeta(int kl, const struct k1_komunikat *m, int fd)
+{
+    const char *powod;
+    if (m->typ == K1_KOM_TAPETA_ZDJECIE)
+        powod = zdjecie_przyjmij(kl, m, fd);
+    else if (m->typ == K1_KOM_STREFA_BUFOR)
+        powod = strefa_bufor_przyjmij(kl, m, fd);
+    else if (m->typ == K1_KOM_STREFA_OBRAZ)
+        powod = strefa_obraz(kl, m);
+    else
+        return 0;
+    if (powod != NULL)
+        odrzuc(kl, powod);
+    return 1;
+}
+
 static void komunikat(int kl, const struct k1_komunikat *m, int fd)
 {
     struct klient *k = &s.kl[kl];
     int i = -1;
-    if (opis_albo_test(kl, m, fd))
+    if (opis_albo_test(kl, m, fd) || obraz_albo_tapeta(kl, m, fd))
         return;
-    if (m->typ == K1_KOM_TAPETA_ZDJECIE) { /* 0.8.0 step 4: zdjecie.c */
-        const char *powod = zdjecie_przyjmij(kl, m, fd);
-        if (powod != NULL)
-            odrzuc(kl, powod);
-        return;
-    }
     if (m->typ == K1_KOM_POWIERZCHNIA)
         { nowa_pow(kl, m, fd); return; }
     if (m->typ == K1_KOM_ZATWIERDZ)

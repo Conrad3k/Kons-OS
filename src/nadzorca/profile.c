@@ -1,6 +1,7 @@
 /* K1 nadzorca — sandbox profiles of the services (ADR 0007). Part of nadzorca (see main.c). */
 #include "nadzorca.h"
 
+#include <linux/dma-buf.h>
 #include <linux/falloc.h>
 #include <sched.h>
 
@@ -9,6 +10,10 @@ static const struct k1_warunek wa_wejscie[] = { { SYS_ioctl, 1, 0xff00u, 'E' << 
 /* ekran: + memfd for the settings it saves in skarbiec (M5d) */
 static const long sc_ekran[] = { SYS_memfd_create };
 static const struct k1_warunek wa_ekran[] = { { SYS_ioctl, 1, 0xff00u, 'd' << 8 } };   /* DRM only */
+/* ekran since 0.10.11 step 2 (ADR 0051): + DMA_BUF_IOCTL_SYNC alone — before and after it reads a zone's buffer of the
+ * card (strefa_bufor.c: the card's caches written back before the processor reads) */
+static const struct k1_warunek wa_ekranu[] = { { SYS_ioctl, 1, 0xff00u, 'd' << 8 },
+                                                { SYS_ioctl, 1, 0xffffffffu, (uint32_t)DMA_BUF_IOCTL_SYNC } };
 
 /* skarbiec (M5d): reads/writes its partition (fd from us), randomness for keys, memfd for data,
  * sysinfo for the Argon2 memory size. No open: Landlock without paths. */
@@ -59,7 +64,7 @@ static const struct k1_warunek wa_strefa[] = { { SYS_ioctl, 1, 0xff00u, 0xae00u 
 #define KLATKA_WEJSCIE .wywolania = sc_wejscie, .warunki = wa_wejscie, .n_warunkow = N(wa_wejscie), .pamiec = 8u << 20, \
                        .pliki = 32
 /* ekran: + the wallpaper photo (0.8.0: up to 16 MiB, saved in skarbiec in memfd of 1 MiB) */
-#define KLATKA_EKRAN .wywolania = sc_ekran, .n_wywolan = N(sc_ekran), .warunki = wa_ekran, .n_warunkow = N(wa_ekran), \
+#define KLATKA_EKRAN .wywolania = sc_ekran, .n_wywolan = N(sc_ekran), .warunki = wa_ekranu, .n_warunkow = N(wa_ekranu), \
                      .pamiec = 176u << 20, .pliki = 64, .rozmiar_pliku = 2u << 20
 /* the boot password screen (M5e): like the shell, no files; password → skarbiec on fd 6. One full-screen
  * panel: RLIMIT_FSIZE (it limits memfd_create+ftruncate too) fits two halves of 4096×2160 (0.7.5). */

@@ -195,6 +195,10 @@ void zatwierdz(int kl, const struct k1_komunikat *m)
     }
     p->polowa = m->a;
     p->czeka_ramka = 1;
+    if (p->bufor != 0) { /* 0.10.11 step 2: its own pixels again, not a buffer of the card */
+        p->bufor = 0;
+        uszkodz_pow(p);
+    }
     if (!p->widoczna) {
         p->widoczna = p->pokaz;
         uszkodz_pow(p);

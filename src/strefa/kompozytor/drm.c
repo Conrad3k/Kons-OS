@@ -45,3 +45,18 @@ void ekran_pokaz(int32_t x, int32_t y, int32_t w, int32_t h)
 {
     kms_pokaz((uint32_t)x, (uint32_t)y, (uint32_t)w, (uint32_t)h);
 }
+
+int ekran_pokaz_bufor(int dmabuf, int32_t w, int32_t h, int32_t krok, int32_t przes)
+{
+    return kms_pokaz_bufor(dmabuf, (uint32_t)w, (uint32_t)h, (uint32_t)krok, (uint32_t)przes);
+}
+
+int ekran_pokaz_swoj(void)
+{
+    return kms_pokaz_swoj();
+}
+
+void ekran_zapomnij(int dmabuf)
+{
+    kms_zapomnij(dmabuf);
+}

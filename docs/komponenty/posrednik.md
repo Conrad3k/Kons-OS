@@ -161,7 +161,8 @@ o długości `K1_POSR_TEST_ZAWIESZENIE` „zawiesza kartę” (`EIO`). Wybiera g
 nigdy dla sesji przeglądarki: niczego nie rysuje, więc i tak nie zastąpiłby karty.
 
 ## Pomiar (0.10.11 krok 1)
-VMM mierzy każdą prośbę mostu (`POSR_PROSBY`) tam i z powrotem i liczy rodzaje mapowań buforów (`POSR_DMABUF` a: WB,
+Od 0.10.11 krok 2 (ADR 0051) dma-buf bufora (`POSR_BUFOR`) VMM bierze też, gdy strefa pokaże bufor jako swój wyświetlacz
+(`SET_SCANOUT_BLOB`) — i podaje go ekranowi K1 (nigdy strefie); pośrednik nie robi nic nowego. VMM mierzy każdą prośbę mostu (`POSR_PROSBY`) tam i z powrotem i liczy rodzaje mapowań buforów (`POSR_DMABUF` a: WB,
 UC, WC) — wiersz `pomiar VMM` co 10 s (`docs/komponenty/strefa.md`, „Pomiar drogi obrazu”). Pośrednik sam nic nie loguje
 więcej.
 

@@ -9,6 +9,18 @@ static int powierzchnia(uint32_t obiekt)
     return obiekt >= 1 && obiekt <= K1_POW_MAKS;
 }
 
+/* 0.10.11 step 2 (ADR 0051): a zone's VMM → ekran — a buffer of the card for its window, and "show it" with the damage */
+static int bufor_strefy(const struct k1_komunikat *k)
+{
+    if (!powierzchnia(k->obiekt) || !w(k->a, 1, K1_STREFA_BUFORY))
+        return 0;
+    if (k->typ == K1_KOM_STREFA_OBRAZ)
+        return w(k->b, 0, K1_POW_MAKS_BOK) && w(k->c, 0, K1_POW_MAKS_BOK) && w(k->d, 0, K1_POW_MAKS_BOK) &&
+               w(k->e, 0, K1_POW_MAKS_BOK);
+    return w(k->b, 1, K1_POW_MAKS_BOK) && w(k->c, 1, K1_POW_MAKS_BOK) && w(k->d, 4, K1_STREFA_KROK_MAKS) && k->d % 4 == 0 &&
+           (int64_t)k->d >= 4 * (int64_t)k->b && w(k->e, 0, K1_STREFA_PRZES_MAKS) && k->e % 4 == 0;
+}
+
 int k1_ustawienie_poprawne(int32_t klucz, int32_t wartosc)
 {
     switch (klucz) {
@@ -47,6 +59,8 @@ int k1_kom_sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
                w(k->c, 0, K1_POW_MAKS_BOK) && w(k->d, 0, K1_POW_MAKS_BOK) && w(k->e, 0, K1_POW_MAKS_BOK);
     case K1_KOM_POKAZ:
         return kier == K1_KIER_DO_EKRANU && powierzchnia(k->obiekt) && w(k->a, 0, 1) && zera(k, 1);
+    case K1_KOM_STREFA_BUFOR: case K1_KOM_STREFA_OBRAZ: /* 0.10.11 step 2 */
+        return kier == K1_KIER_DO_EKRANU && bufor_strefy(k);
     case K1_KOM_PRZESUN:
         return kier == K1_KIER_DO_EKRANU && powierzchnia(k->obiekt) && w(k->a, K1_POZ_MIN, K1_POZ_MAKS) &&
                w(k->b, K1_POZ_MIN, K1_POZ_MAKS) && zera(k, 2);
