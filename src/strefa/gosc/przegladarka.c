@@ -13,6 +13,8 @@
  * takes the card's buffers (K1_GRAFIKA=1: linux-dmabuf) and the profile's user.js lets Firefox draw with the card
  * (Mesa's iris with intel-virtio in the image); without it user.js keeps drawing with the processor. user.js is written
  * at every start (its values outlive it in prefs.js, so both ways are written, never just removed).
+ * 0.11.0 step 1 (D1): the compositor's "pelny 1/0" (a window asks for full screen / none any more) go to the VMM as they
+ * are; "pelny 0" from the VMM (K1 ended the full screen: the user's way out) — SIGUSR2 to the compositor.
  * Paths here are the zone image's (Debian's tree), never K1's. */
 #include <errno.h>
 #include <fcntl.h>
@@ -174,7 +176,8 @@ static void pilnuj(pid_t przegl, int ster, unsigned long *zabite, int krok)
 
 /* A line of the compositor on its pipe: "okno" — its first window (0.10.0 step 3, S30): "etap okno" to the VMM, which
  * logs the time; "regula N" — it disconnected the browser for breaking its rule N (0.10.1 step 1): kept for "kto";
- * "pomiar …" — its measurement every 10 s (0.10.11 step 1): to the VMM as it is (the VMM checks the numbers). */
+ * "pomiar …" — its measurement every 10 s (0.10.11 step 1): to the VMM as it is (the VMM checks the numbers); "pelny 1"
+ * and "pelny 0" (0.11.0 step 1): to the VMM as they are. */
 static void przekaz(int ster, const char *l)
 {
     char w[200];
@@ -201,7 +204,7 @@ static void od_kompozytora(int *okno, int ster, int *regula)
             loguj("kanał sterujący: zapis nieudany");
         else if (strncmp(l, "regula ", 7) == 0)
             *regula = atoi(l + 7) > 0 && atoi(l + 7) < 1000 ? atoi(l + 7) : 0;
-        else if (strncmp(l, "pomiar ", 7) == 0 && ster >= 0)
+        else if ((strncmp(l, "pomiar ", 7) == 0 || strcmp(l, "pelny 1") == 0 || strcmp(l, "pelny 0") == 0) && ster >= 0)
             przekaz(ster, l);
 }
 
@@ -337,7 +340,9 @@ void przegladarka(int ster)
         if (r > 0 && (p[0].revents & (POLLIN | POLLHUP)) && !z.trwa) {
             char b[64];
             ssize_t n = read(ster, b, sizeof b - 1);
-            if (n <= 0 || (b[n] = '\0', strstr(b, "zamknij") != NULL))
+            if (n > 0 && (b[n] = '\0', strstr(b, "pelny 0") != NULL)) /* 0.11.0 step 1: K1 ended the full screen */
+                kill(komp, SIGUSR2);
+            if (n <= 0 || strstr(b, "zamknij") != NULL)
                 zamykanie_start(&z, komp, ster, n > 0);
         }
         zamykanie_krok(&z, przegl, &koniec);

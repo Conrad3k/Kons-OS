@@ -15,6 +15,22 @@ enum { STAN_ZMAKSYMALIZOWANE = 1, STAN_PELNY = 2, STAN_AKTYWNE = 4 };
 
 static struct xdg_pow *okna[OKNA_MAKS];
 static unsigned n_okien;
+static int pelny_zgloszony; /* 0.11.0 step 1: what gosc heard last — a main window full screen (1) or none (0) */
+
+/* 0.11.0 step 1 (D1): "pelny 1" to gosc when a shown main window asks for full screen, "pelny 0" when none does any
+ * more (unset_fullscreen, the window gone); gosc tells the VMM, ekran decides. Only changes. */
+static void pelny_zglos(void)
+{
+    unsigned i;
+    int jest = 0;
+    for (i = 0; i < n_okien; i++)
+        jest |= okna[i]->okno == 1 && okna[i]->rodzic == NULL && okna[i]->pelny;
+    if (jest == pelny_zgloszony)
+        return;
+    pelny_zgloszony = jest;
+    zglos(jest ? "pelny 1\n" : "pelny 0\n", 8);
+    kloguj("pełny ekran: %s", jest ? "okno prosi" : "koniec");
+}
 
 struct xdg_pow *xdg_okno(unsigned i)
 {
@@ -46,6 +62,7 @@ static void schowaj(struct xdg_pow *x)
         scena_zmiana_powierzchni(x->pow);
     scena_zmiana(0, 0, ekran.szer, ekran.wys);
     wejscie_okno_zmiana();
+    pelny_zglos();
 }
 
 /* xdg_toplevel.close to every window (gosc asks, when the VMM says "zamknij"): the browser quits as if its window
@@ -137,6 +154,7 @@ void xdg_po_zatwierdzeniu(struct powierzchnia *p)
         if (x->okno == 1)
             zglos_okno();
         wejscie_okno_zmiana();
+        pelny_zglos();
     } else if (x->zmapowana && x->okno == 1) {
         umiesc(x);
     }
@@ -405,7 +423,9 @@ static void t_seat(struct klient *k, struct obiekt *o, union arg *a)
     obiekt_typu(k, a[0].o, IF_SEAT, 0);
 }
 
-/* set_fullscreen / unset_fullscreen (T14): the state changes, the size does not — the zone's display. */
+/* set_fullscreen / unset_fullscreen (T14): the state changes, the size does not — the zone's display. Since 0.11.0
+ * step 1 (D1) gosc hears it ("pelny 1/0"): when K1's ekran agrees, the display becomes the whole screen (a new size
+ * from the VMM, xdg_nowy_rozmiar). */
 static void pelny(struct obiekt *o, int tak)
 {
     struct xdg_pow *x = o->dane;
@@ -414,6 +434,23 @@ static void pelny(struct obiekt *o, int tak)
     x->pelny = tak;
     if (x->skonfigurowana && x->rodzic == NULL)
         konfiguruj_glowne(x);
+    pelny_zglos();
+}
+
+/* K1 ended the full screen (gosc: SIGUSR2 after "pelny 0" from the VMM — the user's way out, drawn by K1): every main
+ * window leaves it, as after unset_fullscreen. How many. */
+unsigned xdg_bez_pelnego(void)
+{
+    unsigned i, n = 0;
+    for (i = 0; i < n_okien; i++)
+        if (okna[i]->okno == 1 && okna[i]->rodzic == NULL && okna[i]->pelny) {
+            okna[i]->pelny = 0;
+            if (okna[i]->skonfigurowana)
+                konfiguruj_glowne(okna[i]);
+            n++;
+        }
+    pelny_zgloszony = 0; /* K1 knows: nothing to tell */
+    return n;
 }
 
 static void t_pelny(struct klient *k, struct obiekt *o, union arg *a)

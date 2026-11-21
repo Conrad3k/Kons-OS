@@ -40,7 +40,7 @@
 #define P_PULPIT 5    /* the desktop layer (K1_POW_PULPIT) */
 #define P_KONTEKST 6  /* the right-click menu, above every other panel (created last) */
 
-#define MARG 16 /* shadow margin inside panel surfaces */
+#define MARG K1_PANEL_MARGINES /* shadow margin inside panel surfaces (k1_okno.h: ekran's work area too) */
 
 extern struct k1_klient k;
 extern struct k1_powierzchnia gora, dok, menu, dzwiek, pulpit, kontekst;

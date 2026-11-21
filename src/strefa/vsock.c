@@ -5,7 +5,9 @@
  *     killed for lack of memory), "etap okno" (the browser's first window: the time to the log, S30; since 0.10.2 the
  *     end of the start screen after "etap start" — okno.c); since 0.10.1
  *     step 1 "liczniki A Z K" (the guest's memory, zram, OOM kills: one line of counters with ours, S13) and "kto P K R"
- *     (who ended and how, S15); since 0.10.11 step 1 "pomiar" and 11 numbers (the compositor's measurement, pomiar.c)
+ *     (who ended and how, S15); since 0.10.11 step 1 "pomiar" and 11 numbers (the compositor's measurement, pomiar.c);
+ *     since 0.11.0 step 1 "pelny 1" / "pelny 0" (a window of the guest asks for full screen / leaves it — okno.c, at most
+ *     4 changes a second) and from the VMM "pelny 0" (K1 ended the full screen)
  *     — numbers only, checked by linia.c — only these exact lines, anything else is counted and ignored;
  *   POL_PORT (2): the browser's connections through the relay in the zone, up to K1_STREFA_POLACZENIA_MAKS, each with
  *     its own credit; their bytes go to and from polaczenia.c (0.10.0 step 2, ADR 0043 T9).
@@ -301,6 +303,8 @@ static void linia_od_goscia(void)
     else if (strcmp(v.linia, "etap start") == 0) { /* 0.10.2 step 1: the start screen stays until "etap okno" */
         okno_etap(OKNO_ETAP_START);
         k1_log(TAG, "gość: program strefy startuje — ekran startu do jego okna");
+    } else if (strcmp(v.linia, "pelny 1") == 0 || strcmp(v.linia, "pelny 0") == 0) { /* 0.11.0 step 1: full screen */
+        okno_pelny(v.linia[6] == '1');
     } else if (strcmp(v.linia, "etap okno") == 0) { /* S30: how long the browser takes to start */
         okno_etap(OKNO_ETAP_OKNO);
         k1_log(TAG, "gość: okno przeglądarki po %.1f s od startu maszyny", k1_teraz() - mz.start_t);
@@ -424,16 +428,21 @@ static int pakiet(const struct vq_lancuch *l, const char **powod)
     }
 }
 
-void vsock_zamknij(void)
+void vsock_linia(const char *l)
 {
-    static const char z[] = "zamknij\n";
-    if (!v.polaczony || v.kr.jego_bufor - (v.kr.wyslane - v.kr.jego_fwd) < sizeof z - 1) {
-        k1_log(TAG, "vsock: gość nie słucha — „zamknij” niewysłane");
+    uint32_t n = (uint32_t)strlen(l);
+    if (!v.polaczony || v.kr.jego_bufor - (v.kr.wyslane - v.kr.jego_fwd) < n) {
+        k1_log(TAG, "vsock: gość nie słucha — linia „%.*s” niewysłana", (int)(n > 0 ? n - 1 : 0), l);
         return;
     }
-    kolejkuj(VSOCK_STEROWANIE, v.port_goscia, VIRTIO_VSOCK_OP_RW, 0, z, sizeof z - 1);
-    v.kr.wyslane += sizeof z - 1;
+    kolejkuj(VSOCK_STEROWANIE, v.port_goscia, VIRTIO_VSOCK_OP_RW, 0, l, n);
+    v.kr.wyslane += n;
     vsock_wyslij();
+}
+
+void vsock_zamknij(void)
+{
+    vsock_linia("zamknij\n");
 }
 
 static int powiadom(struct mmio_urz *u, int k, const char **powod)

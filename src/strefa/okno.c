@@ -47,6 +47,15 @@ static unsigned anim_n;
 static char sesja[K1_STREFA_NAZWA_MAKS + 1]; /* the session's name as the user set it (argv[4]), "" none */
 static int czysta[2];         /* 0.10.5 step 4: a half of a new surface still to be cleared (opaque) before copying */
 static unsigned long zmiany_rozmiaru;
+/* 0.11.0 step 1 (D1): full screen. The guest says "pelny 1/0" (vsock.c); only changes go to ekran (PELNY_EKRAN, sent by
+ * the main thread), at most PELNY_NA_S a second — a guest that flips it faster is counted, not heard. ekran decides
+ * (only after the user's gesture in the window); when K1 ends it (ROZMIAR not of the full screen while the guest is in
+ * it) the guest hears "pelny 0". Under mz.zamek. */
+#define PELNY_NA_S 4
+static int gosc_pelny, pelny_czeka; /* the guest is in full screen (as last heard); 1 + what ekran must hear, 0 none */
+static double pelny_t;
+static unsigned pelny_n;
+static unsigned long pelny_pominiete;
 
 static void dodaj(struct prost *p, uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1)
 {
@@ -185,8 +194,8 @@ void okno_start(void)
      * the IdeaPad's 1366 × 768): 40 px less of the margin for the bars */
     h = kl.wys_ekranu - K1_PASEK_GORNY - K1_STREFA_TYTUL - 120;
     h = h < OKNO_MAKS_H ? h : OKNO_MAKS_H;
-    szer = (uint32_t)(w < OKNO_MIN_W ? OKNO_MIN_W : w) & ~7u;
-    wys = (uint32_t)(h < OKNO_MIN_H ? OKNO_MIN_H : h) & ~7u;
+    szer = (uint32_t)(w < OKNO_MIN_W ? OKNO_MIN_W : w); /* 0.11.0 step 1: any size — the guest's mode from the EDID */
+    wys = (uint32_t)(h < OKNO_MIN_H ? OKNO_MIN_H : h);
     k1_pow_utworz(&kl, &okno, OKNO_ID, (int32_t)szer, (int32_t)wys, K1_POW_OKNO, 0, 0);
     anim_t = k1_teraz();
     rysuj_start(0);
@@ -231,6 +240,36 @@ static void obraz_z_karty(void)
     klatki++;
 }
 
+void okno_pelny(int tak)
+{
+    double t = k1_teraz();
+    if (tak == gosc_pelny || kl.fd < 0 || schowane)
+        return;
+    if (t - pelny_t >= 1.0)
+        pelny_t = t, pelny_n = 0;
+    if (pelny_n >= PELNY_NA_S) {
+        if (pelny_pominiete++ % 64 == 0)
+            k1_log(TAG, "gość: pełny ekran zmieniany za często — pominięte %lu", pelny_pominiete);
+        return;
+    }
+    pelny_n++;
+    gosc_pelny = tak;
+    pelny_czeka = 1 + tak;
+    k1_log(TAG, "gość: pełny ekran — %s", tak ? "prośba do ekranu" : "koniec");
+    obudz();
+}
+
+static void pelny_do_ekranu(void)
+{
+    int c;
+    zamek_wez("okno: pełny ekran");
+    c = pelny_czeka;
+    pelny_czeka = 0;
+    zamek_oddaj();
+    if (c != 0 && kl.fd >= 0 && !schowane)
+        k1_wyslij(&kl, k1_komunikat_nowy(K1_KOM_PELNY_EKRAN, OKNO_ID, c - 1, 0, 0, 0, 0));
+}
+
 void okno_obraz(void)
 {
     struct k1_obraz *o;
@@ -239,6 +278,7 @@ void okno_obraz(void)
     uint64_t t0;
     int pol;
     struct prost r;
+    pelny_do_ekranu();
     if (kl.fd < 0 || schowane || okno.czeka)
         return;
     pol = okno.pokazywana == 0 ? 1 : 0;
@@ -294,6 +334,11 @@ void okno_obraz(void)
 static void nowy_rozmiar(const struct k1_komunikat *m)
 {
     uint32_t w = (uint32_t)m->a, h = (uint32_t)m->b;
+    if (gosc_pelny && m->c != K1_ROZMIAR_PELNY) { /* 0.11.0 step 1: K1 ended the full screen — the guest leaves it */
+        gosc_pelny = 0;
+        vsock_linia("pelny 0\n");
+        k1_log(TAG, "okno: K1 zakończył pełny ekran — gość powiadomiony");
+    }
     if (w == szer && h == wys)
         return;
     if (w > (uint32_t)kl.szer_ekranu || h > (uint32_t)kl.wys_ekranu) { /* ekran's own limit is the work area */
@@ -308,7 +353,8 @@ static void nowy_rozmiar(const struct k1_komunikat *m)
     anim_n = 0; /* the start screen, if it still shows: whole frames again */
     gpu_zmiana_ekranu();
     zmiany_rozmiaru++;
-    k1_log(TAG, "okno: nowy rozmiar %ux%u%s (zmiana %lu)", w, h, m->c ? " — zmaksymalizowane" : "", zmiany_rozmiaru);
+    k1_log(TAG, "okno: nowy rozmiar %ux%u%s (zmiana %lu)", w, h,
+           m->c == K1_ROZMIAR_PELNY ? " — pełny ekran" : m->c ? " — zmaksymalizowane" : "", zmiany_rozmiaru);
     obudz();
 }
 

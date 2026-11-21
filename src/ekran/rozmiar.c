@@ -50,8 +50,8 @@ struct prost obszar_roboczy(void)
             continue;
         if (p->x == 0 && p->y == 0 && p->w == s.W && p->h < s.H / 4)
             gora = p->h; /* the top bar */
-        else if (p->y > s.H / 2 && p->y + p->h >= s.H - 16 && p->y < dol)
-            dol = p->y; /* the bottom bar (its surface with its shadow's margin) */
+        else if (p->y > s.H / 2 && p->y + p->h >= s.H - K1_PANEL_MARGINES && p->y + K1_PANEL_MARGINES < dol)
+            dol = p->y + K1_PANEL_MARGINES; /* the bottom bar: its visible edge (inside its shadow's margin, P3) */
     }
     return (struct prost){ 0, gora, s.W, dol - gora };
 }
@@ -100,7 +100,7 @@ static void zapisz(void)
 static int dobre(const struct okno_sesji *o)
 {
     return (o->w == 0 && o->h == 0 && o->maks == 0) ||
-           (o->w >= K1_OKNO_MIN_SZER && o->w <= K1_POW_MAKS_BOK && o->w % 8 == 0 && o->h >= K1_OKNO_MIN_WYS &&
+           (o->w >= K1_OKNO_MIN_SZER && o->w <= K1_POW_MAKS_BOK && o->h >= K1_OKNO_MIN_WYS &&
             o->h <= K1_POW_MAKS_BOK && (o->maks == 0 || o->maks == 1));
 }
 
@@ -132,11 +132,13 @@ static void wyslij_rozmiar(int i, int32_t w, int32_t h)
 {
     struct pow *p = &s.p[i];
     struct okno_sesji *z = sesja(p);
+    int pelny = pelny_jest(p);
     p->zadany_w = w;
     p->zadany_h = h;
-    wyslij(p->kl, k1_komunikat_nowy(K1_KOM_ROZMIAR, p->id, w, h, p->maks, 0, 0));
-    k1_log(TAG, "okno %u: nowy rozmiar %dx%d%s", p->okno, (int)w, (int)h, p->maks ? " (zmaksymalizowane)" : "");
-    if (z != NULL && (z->w != w || z->h != h || z->maks != p->maks)) {
+    wyslij(p->kl, k1_komunikat_nowy(K1_KOM_ROZMIAR, p->id, w, h, pelny ? K1_ROZMIAR_PELNY : p->maks, 0, 0));
+    k1_log(TAG, "okno %u: nowy rozmiar %dx%d%s", p->okno, (int)w, (int)h,
+           pelny ? " (pełny ekran)" : p->maks ? " (zmaksymalizowane)" : "");
+    if (z != NULL && !pelny && (z->w != w || z->h != h || z->maks != p->maks)) { /* the full screen is never saved */
         *z = (struct okno_sesji){ p->maks ? z->w : w, p->maks ? z->h : h, p->maks };
         if (z->w == 0) /* maximized before it was ever resized: restored to its first size */
             z->w = p->przed.w, z->h = p->przed.h;
@@ -144,12 +146,13 @@ static void wyslij_rozmiar(int i, int32_t w, int32_t h)
     }
 }
 
-/* Window i maximized: the work area, its title bar right under the top bar, no side outline. */
+/* Window i maximized: the work area to the pixel (0.11.0 step 1: any width — the zone's mode comes from the EDID,
+ * edid.c in the VMM), its title bar right under the top bar, no side outline. */
 static void maksymalizuj(int i)
 {
     struct pow *p = &s.p[i];
     struct prost a = obszar_roboczy();
-    int32_t w = a.w & ~7, h = a.h - K1_STREFA_TYTUL;
+    int32_t w = a.w, h = a.h - K1_STREFA_TYTUL;
     uszkodz_pow(p);
     if (!p->maks)
         p->przed = (struct prost){ p->x, p->y, p->zadany_w ? p->zadany_w : p->w, p->zadany_h ? p->zadany_h : p->h };
@@ -250,7 +253,7 @@ void rozmiar_ruch(void)
         n.h = r.start.h + dy;
     if (r.kraw & K_GORA)
         n.h = r.start.h - dy;
-    n.w = (n.w < K1_OKNO_MIN_SZER ? K1_OKNO_MIN_SZER : n.w > maks_w ? maks_w : n.w) & ~7;
+    n.w = n.w < K1_OKNO_MIN_SZER ? K1_OKNO_MIN_SZER : n.w > maks_w ? maks_w : n.w;
     n.h = n.h < K1_OKNO_MIN_WYS ? K1_OKNO_MIN_WYS : n.h > maks_h ? maks_h : n.h;
     if (r.kraw & K_LEWA)
         n.x = r.start.x + r.start.w - n.w;
@@ -309,11 +312,41 @@ void rozmiar_rysuj(const struct prost *k)
     k1_tekst(&o, K1_CZ_TEKST, f.x + f.w - tw - 34 - c.x, f.y + f.h - 27 - c.y, t, k1_kolor(0xffffff, 255), 0);
 }
 
-/* Each frame: the work area changed (the resolution, the bars): maximized windows follow it. */
+/* 0.11.0 step 1 (pelny.c): window i into the full screen — the whole screen, its rectangle and maximization kept — or
+ * back to them. */
+void rozmiar_pelny(int i, int tak)
+{
+    struct pow *p = &s.p[i];
+    uszkodz_pow(p);
+    if (tak) {
+        p->przed_pelny = (struct prost){ p->x, p->y, p->zadany_w ? p->zadany_w : p->w, p->zadany_h ? p->zadany_h : p->h };
+        p->pelny_maks = p->maks;
+        p->maks = 0;
+        p->x = 0;
+        p->y = 0;
+        wyslij_rozmiar(i, s.W, s.H);
+        return;
+    }
+    if (p->pelny_maks) { /* maximized again; p->przed still holds its size from before the maximization */
+        p->maks = 1;
+        maksymalizuj(i);
+        return;
+    }
+    p->x = p->przed_pelny.x;
+    p->y = p->przed_pelny.y;
+    uszkodz_pow(p);
+    wyslij_rozmiar(i, p->przed_pelny.w, p->przed_pelny.h);
+}
+
+/* Each frame: the work area changed (the resolution, the bars): maximized windows follow it; a window in full screen
+ * follows the screen's size. */
 void rozmiar_sprawdz(void)
 {
     struct prost a = obszar_roboczy();
     int i;
+    for (i = 0; i < MAKS_POW; i++)
+        if (s.p[i].uzyta && pelny_jest(&s.p[i]) && (s.p[i].zadany_w != s.W || s.p[i].zadany_h != s.H))
+            wyslij_rozmiar(i, s.W, s.H);
     if (a.x == obszar.x && a.y == obszar.y && a.w == obszar.w && a.h == obszar.h)
         return;
     obszar = a;

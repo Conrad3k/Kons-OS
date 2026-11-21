@@ -38,8 +38,10 @@ static const char *miejsce_na_pow(int kl, const struct k1_komunikat *m, size_t r
         return k->rola != K1_ROLA_POWLOKA ? "pulpit tylko dla powłoki" : "drugi pulpit";
     if (m->c != K1_POW_PULPIT && (m->c == K1_POW_PANEL) != panele(k))
         return m->c == K1_POW_PANEL ? "panele tylko dla powłoki" : "okna tylko dla aplikacji";
-    if (m->a > s.W || m->b > s.H || (m->c == K1_POW_OKNO && m->b > s.H - K1_PASEK_GORNY))
-        return "powierzchnia większa niż ekran";
+    i = znajdz_pow(kl, m->obiekt);
+    if (m->a > s.W || m->b > s.H ||
+        (m->c == K1_POW_OKNO && m->b > s.H - K1_PASEK_GORNY && !(m->e == 1 && i >= 0 && pelny_jest(&s.p[i]))))
+        return "powierzchnia większa niż ekran"; /* 0.11.0 step 1: a zone's window in full screen — the whole screen */
     *wolny = -1;
     for (i = 0; i < MAKS_POW; i++) {
         if (!s.p[i].uzyta && *wolny < 0)
