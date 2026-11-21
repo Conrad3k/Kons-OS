@@ -21,9 +21,9 @@ Twoja prośba z 2026-11-20: plan wersji 0.11.0 w niewielu krokach, z ogólnym ce
 przeglądarki (okno nie domyka krawędzi i zostawia za dużo miejsca na dole). Cel: pliki przechodzą między przeglądarką
 a Plikami K1 — zawsze przez Pliki, jako kopia, za zgodą gestem w oknie K1 (ADR 0027); schowek między oknami; okno
 przeglądarki do krawędzi. Pięć kroków (jeden krok = jeden czat = jeden PR; decyzje D1–D6 czat zada na początku kroku):
-    [ ] krok 1 — okno przeglądarki do krawędzi, pełny ekran (D1)
+    [x] krok 1 — okno przeglądarki do krawędzi, pełny ekran (D1: A) — PR #202
     [ ] krok 2 — pliki ze strefy do Plików („Do K1”), pochodzenie pliku; ADR 0052 (D2, D3)
-    [ ] krok 3 — pliki do strefy: „Wyślij do…”, „Otwórz w…”, „Zapisać zmiany w oryginale?” (D4)
+    [ ] krok 3 — pliki do strefy: „Wyślij do…”, „Otwórz w…”, „Zapisać zmiany w oryginale?” (D4: A)
     [ ] krok 4 — przeciąganie plików między oknami, też na okno przeglądarki (D6)
     [ ] krok 5 — schowek (D5); porządki; wydanie 0.11.0
 Co wpisać w nowym czacie: „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.11.0.txt.”
