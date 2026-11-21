@@ -165,6 +165,19 @@ static void komunikat(struct k1_komunikat *m)
     case K1_KOM_WSKAZNIK:
         wskaznik(m);
         break;
+    case K1_KOM_UPUSZCZANIE_CO: /* 0.11.0 step 4: dragging between windows (ekran leads it) */
+    case K1_KOM_UPUSZCZANIE:
+        if (m->obiekt == P_PULPIT)
+            pulpit_upuszczanie(m);
+        break;
+    case K1_KOM_PRZECIAGANIE_GDZIE:
+        if (m->obiekt == P_PULPIT)
+            pulpit_gdzie(m->a);
+        break;
+    case K1_KOM_PRZECIAGANIE_KONIEC:
+        if (m->obiekt == P_PULPIT)
+            pulpit_koniec(m->a, (uint32_t)m->b);
+        break;
     case K1_KOM_KLAWISZ:
         if ((m->a == KEY_LEFTMETA || m->a == KEY_RIGHTMETA) && m->b == 1) {
             kontekst_zamknij();

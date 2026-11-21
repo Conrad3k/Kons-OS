@@ -4,17 +4,26 @@
  * rules in przybornik decides it (k1_przeciaganie: move, into Kosz, back from Kosz, an import from the stick, or why
  * not). After the drop: the action (zbiorczo.c, pendrive.c), or first the window of a question (D8: more than one
  * entry, a folder with something inside; a name taken in the target) or of a refusal. The Delete key and "Usuń" ask
- * the same table (usun_zaznaczone). Within this window only (D6: between windows after 0.8.2).
- * Names never reach the log — only counts and kinds. Part of Pliki (pliki.h). */
+ * the same table (usun_zaznaczone). Between windows (0.11.0 step 4, ADR 0052; D6: A): ekran leads it — out of this
+ * window ekran tells where it was dropped (the desktop, Kosz on it, a browser session: przec_koniec) and Pliki does it;
+ * a file of the desktop dragged over this window comes as UPUSZCZANIE (przec_obcy): Pliki draws it and does it. With
+ * Ctrl: a copy (kopia.c). Names never reach the log — only counts and kinds. Part of Pliki (pliki.h). */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "k1_log.h"
 #include "k1_przeciaganie.h"
+#include "k1_teraz.h"
 #include "pliki.h"
 
 static struct {
     int wcisniety, ciagnie, wiersz, miejsce, zrodlo, n;
+    int obcy;                 /* 0.11.0 step 4: a file of the desktop over this window (ekran's UPUSZCZANIE) */
+    int poza;                 /* the pointer is over another window or the desktop (ekran's GDZIE): that one draws */
+    int kopia;                /* Ctrl held: a copy (D6: A) */
+    double czeka_koniec;      /* dropped outside: ekran says where (przec_koniec) until then (k1_teraz, 0: no) */
+    uint32_t skad;            /* the folder what is dragged lies in */
     int32_t x, y, px, py;     /* where it was pressed; the pointer now */
     uint32_t glowny;          /* the entry the card shows (the one pressed) */
     uint32_t id[K1_DOK_MAKS]; /* what is dragged */
@@ -27,10 +36,13 @@ static struct { /* the action waiting for the answer of the window */
     int dzialanie, n;
     uint32_t folder, id[K1_DOK_MAKS];
 } czeka;
+static int przeciagane_foldery(void);
 static uint32_t posortowane[K1_DOK_MAKS];
 static int n_posortowanych;
 
-static const char *const dzialania[] = { "nic", "przenieś", "do Kosza", "przywróć", "import", "odmowa" };
+static const char *const dzialania[] = { "nic", "przenieś", "do Kosza", "przywróć", "import", "odmowa", "kopiuj",
+                                         "do sesji" };
+#define KONIEC_S 3.0 /* ekran tells where a drop outside went within this long */
 
 int przec_trwa(void)
 {
@@ -101,7 +113,8 @@ static void ocen(const uint32_t *id, int n, int zrodlo, int cel, uint32_t folder
 {
     struct k1_prz_co c;
     int wysokosc = 0;
-    const struct k1_dok_wpis *g = wpis_tu(id[0]);
+    const struct k1_dok_wpis *(*jaki)(uint32_t) = zrodlo == K1_PZ_PENDRIVE ? wpis_tu : wpis; /* the desktop's: not here */
+    const struct k1_dok_wpis *g = jaki(id[0]);
     memset(&c, 0, sizeof c);
     c.zrodlo = zrodlo;
     c.cel = cel;
@@ -109,19 +122,21 @@ static void ocen(const uint32_t *id, int n, int zrodlo, int cel, uint32_t folder
     c.cel_nazwa = cel == K1_PC_FOLDER ? nazwa : NULL;
     c.nazwa = zrodlo == K1_PZ_STALY ? k1_folder_nazwa(id[0]) : g != NULL ? g->nazwa : "";
     c.wolne_mb = miejsce_calosc > 0 ? miejsce_calosc - miejsce_zajete : -1;
+    c.kopia = p.kopia;
     n_posortowanych = n;
     memcpy(posortowane, id, (size_t)n * sizeof id[0]);
     qsort(posortowane, (size_t)n, sizeof posortowane[0], porownaj);
     for (int i = 0; i < n; i++) {
-        const struct k1_dok_wpis *w = wpis_tu(id[i]);
+        const struct k1_dok_wpis *w = jaki(id[i]);
         c.folderow += w != NULL && w->rodzaj == K1_DOK_FOLDER;
         c.bajty += w != NULL && w->rodzaj == K1_DOK_PLIK ? w->rozmiar : 0;
     }
-    if (zrodlo == K1_PZ_FOLDER || zrodlo == K1_PZ_KOSZ) {
+    if (zrodlo == K1_PZ_FOLDER || zrodlo == K1_PZ_KOSZ || zrodlo == K1_PZ_PULPIT) {
         drzewo(&c, &wysokosc);
         c.w_siebie = cel == K1_PC_FOLDER && w_ciagnietym(folder, 0) != 0;
         c.za_gleboko = cel == K1_PC_FOLDER && glebokosc(folder) + wysokosc > K1_DOK_GLEBOKOSC;
-        c.ten_sam = zrodlo == K1_PZ_FOLDER && cel == K1_PC_FOLDER && folder == tu.folder;
+        c.ten_sam = cel == K1_PC_FOLDER && ((zrodlo == K1_PZ_FOLDER && folder == p.skad) ||
+                                            (zrodlo == K1_PZ_PULPIT && folder == K1_FOLDER_PULPIT));
     }
     k1_prz_ocen(&c, o);
 }
@@ -157,12 +172,30 @@ static void zacznij(void)
     }
     p.ciagnie = 1;
     p.cel = 0;
+    p.poza = p.obcy = 0;
+    p.skad = tu.folder; /* where they lie (also for a drop outside: przec_koniec) */
     klik_zapomnij();
+    /* 0.11.0 step 4: ekran may lead it out of the window (the stick's and the standard folders' only to be refused) */
+    k1_wyslij(&apl.k, k1_komunikat_nowy(K1_KOM_PRZECIAGANIE, apl.okno.id, p.zrodlo, p.n, przeciagane_foldery(),
+                                        p.zrodlo == K1_PZ_FOLDER || p.zrodlo == K1_PZ_KOSZ ? (int32_t)p.glowny : 0,
+                                        p.zrodlo == K1_PZ_FOLDER ? (int32_t)tu.folder : 0));
     k1_log(TAG, "przeciąganie: start — %d elementów (%s)", p.n,
            p.zrodlo == K1_PZ_STALY ? "folder stały" : p.zrodlo == K1_PZ_KOSZ ? "Kosz" : p.zrodlo == K1_PZ_PENDRIVE ? "Pendrive" : "folder");
 }
 
-/* What lies under (x, y): a place on the left, or a folder of the list that is not dragged itself. */
+/* Folders among what is dragged (the stick's are counted too). */
+static int przeciagane_foldery(void)
+{
+    int f = 0;
+    for (int i = 0; i < p.n; i++) {
+        const struct k1_dok_wpis *w = p.zrodlo == K1_PZ_STALY ? NULL : p.zrodlo == K1_PZ_PENDRIVE ? wpis_tu(p.id[i]) : wpis(p.id[i]);
+        f += p.zrodlo == K1_PZ_STALY || (w != NULL && w->rodzaj == K1_DOK_FOLDER);
+    }
+    return f;
+}
+
+/* What lies under (x, y): a place on the left, or a folder of the list that is not dragged itself; for a file of the
+ * desktop (0.11.0 step 4) also the list itself — the folder shown. */
 static void cel_pod(int32_t x, int32_t y)
 {
     int mj = miejsce_pod(x, y), wr = wiersz_pod(x, y), cel = 0;
@@ -179,8 +212,13 @@ static void cel_pod(int32_t x, int32_t y)
         cel = tu.pendrive ? K1_PC_PENDRIVE : K1_PC_FOLDER;
         f = w->id;
         nazwa = w->nazwa;
+    } else if (p.obcy && mj < 0 && x >= LISTA_X && y >= WIERSZE_Y - 40) { /* the list: the place shown */
+        cel = tu.pendrive ? K1_PC_PENDRIVE : tu.kosz ? K1_PC_KOSZ : K1_PC_FOLDER;
+        f = tu.pendrive || tu.kosz ? 0 : tu.folder;
+        nazwa = f <= K1_FOLDERY_MAKS ? k1_folder_nazwa(f) : wpis(f) != NULL ? wpis(f)->nazwa : "";
     }
-    if (cel == p.cel && f == p.cel_folder)
+    p.kopia = (apl.mody & K1_MOD_CTRL) != 0;
+    if (cel == p.cel && f == p.cel_folder && p.kopia == (p.oc.dzialanie == K1_PD_KOPIUJ))
         return;
     p.cel = cel;
     p.cel_folder = f;
@@ -211,8 +249,8 @@ int przec_ruch(int32_t x, int32_t y)
 
 void przec_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
 {
-    const struct k1_dok_wpis *w = p.zrodlo == K1_PZ_STALY ? NULL : wpis_tu(p.glowny);
-    if (!p.ciagnie)
+    const struct k1_dok_wpis *w = p.zrodlo == K1_PZ_STALY ? NULL : p.obcy ? wpis(p.glowny) : wpis_tu(p.glowny);
+    if (!p.ciagnie || p.poza)
         return;
     k1_prz_rysuj(o, m, p.px, p.py, w != NULL ? ikona_wpisu(w) : K1_IK_FOLDER,
                  w != NULL ? w->nazwa : k1_folder_nazwa(p.glowny), p.n, &p.oc);
@@ -298,6 +336,7 @@ static void upusc(int32_t x, int32_t y)
         okienko_otworz(&m, "nazwa zajęta", x, y, przenies);
         break;
     case K1_PD_PRZYWROC: zbiorczo(K1_KOM_DOK_PRZYWROC, czeka.id, czeka.n, czeka.folder, 0); break;
+    case K1_PD_KOPIUJ: kopia_start(czeka.id, czeka.n, czeka.folder); break; /* 0.11.0 step 4 (D6: A) */
     case K1_PD_IMPORT: pendrive_importuj(0, czeka.folder); break;
     default: break;
     }
@@ -310,6 +349,12 @@ int przec_puszczenie(int32_t x, int32_t y)
     p.ciagnie = 0;
     if (!bylo)
         return 0;
+    if (p.poza) { /* dropped on another window or the desktop: ekran says where (przec_koniec) */
+        p.poza = 0;
+        p.czeka_koniec = k1_teraz();
+        k1_apl_odswiez(&apl);
+        return 1;
+    }
     blad = NULL;
     upusc(x, y);
     p.cel = 0;
@@ -333,4 +378,83 @@ void usun_zaznaczone(int32_t x, int32_t y)
     }
     k1_prz_okienko(&m, &p.oc);
     okienko_otworz(&m, "pytanie", x, y, do_kosza);
+}
+
+/* ---- between windows (0.11.0 step 4, ADR 0052) ---- */
+
+void przec_gdzie(int poza)
+{
+    if (p.ciagnie && !p.obcy && p.poza != poza) {
+        p.poza = poza;
+        k1_apl_odswiez(&apl);
+    }
+}
+
+static void bez_celu(void)
+{
+    p.cel = 0;
+    p.cel_folder = 0;
+    p.cel_wiersz = p.cel_miejsce = -1;
+}
+
+/* Dropped outside this window: ekran says where — the desktop's folder or Kosz (the same table and windows as here),
+ * or a browser session (a copy of each file: DOK_DO_STREFY "upuść"; the table refused folders before). */
+void przec_koniec(int cel, uint32_t b, unsigned mody)
+{
+    const char *nazwa;
+    if (p.czeka_koniec <= 0 || k1_teraz() - p.czeka_koniec > KONIEC_S)
+        return;
+    p.czeka_koniec = 0;
+    if (cel == K1_PC_STREFA) {
+        int n = 0;
+        for (int i = 0; i < p.n && p.zrodlo == K1_PZ_FOLDER; i++) {
+            const struct k1_dok_wpis *w = wpis(p.id[i]);
+            if (w != NULL && w->rodzaj == K1_DOK_PLIK && n++ < K1_PRZ_DO_STREFY_MAKS)
+                do_skarbca_z_fd(k1_komunikat_nowy(K1_KOM_DOK_DO_STREFY, w->id, (int32_t)b, K1_PS_TRYB_UPUSC, 0, 0, 0), -1);
+        }
+        k1_log(TAG, "przeciąganie: %d plików do sesji %u (upuszczone na okno)", n, b);
+        return;
+    }
+    p.kopia = (mody & K1_MOD_CTRL) != 0;
+    p.cel = cel;
+    p.cel_folder = cel == K1_PC_FOLDER ? b : 0;
+    nazwa = cel != K1_PC_FOLDER ? "" : b <= K1_FOLDERY_MAKS ? k1_folder_nazwa(b) : wpis(b) != NULL ? wpis(b)->nazwa : "";
+    snprintf(p.cel_nazwa, sizeof p.cel_nazwa, "%s", nazwa);
+    ocen(p.id, p.n, p.zrodlo, cel, p.cel_folder, p.cel_nazwa, &p.oc);
+    blad = NULL;
+    k1_log(TAG, "przeciąganie: upuszczone na pulpicie");
+    upusc(apl.szer / 2 - K1_MENU_SZER_PYTANIE / 2, K1_OKNO_TYTUL + 60); /* a question: in this window */
+    bez_celu();
+    k1_apl_odswiez(&apl);
+}
+
+/* A file of the desktop dragged over this window (ekran's UPUSZCZANIE_CO, UPUSZCZANIE): drawn and done as here. */
+void przec_obcy(const struct k1_komunikat *m)
+{
+    if (m->typ == K1_KOM_UPUSZCZANIE_CO) {
+        p.obcy = m->a == K1_PZ_PULPIT && m->d != 0 && wpis((uint32_t)m->d) != NULL && !p.ciagnie && !zbiorczo_trwa() &&
+                 !kopia_trwa() && !importuje && edycja.id == 0;
+        if (p.obcy) {
+            p.zrodlo = K1_PZ_PULPIT, p.n = 1, p.glowny = p.id[0] = (uint32_t)m->d, p.skad = K1_FOLDER_PULPIT;
+            bez_celu();
+            memset(&p.oc, 0, sizeof p.oc);
+        }
+        return;
+    }
+    if (!p.obcy)
+        return;
+    apl.mody = (unsigned)m->d; /* Ctrl: a copy */
+    if (m->c != K1_UP_WYJSCIE) {
+        p.ciagnie = 1, p.px = m->a, p.py = m->b;
+        cel_pod(m->a, m->b);
+    }
+    if (m->c == K1_UP_UPUSC) {
+        blad = NULL;
+        upusc(m->a, m->b);
+    }
+    if (m->c != K1_UP_RUCH) {
+        p.obcy = p.ciagnie = 0;
+        bez_celu();
+    }
+    k1_apl_odswiez(&apl);
 }

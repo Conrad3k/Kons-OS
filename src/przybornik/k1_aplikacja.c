@@ -133,6 +133,8 @@ void k1_apl_uruchom(struct k1_apl *a)
                 k1_apl_odswiez(a);
                 break;
             default:
+                if (a->inne != NULL && m.obiekt == a->okno.id)
+                    a->inne(&m);
                 break;
             }
         }

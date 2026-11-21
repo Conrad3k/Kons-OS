@@ -3,22 +3,28 @@
  * (made here: the browser's group may write, nobody else reads). Firefox in the zone runs with --no-remote and has no
  * D-Bus, so no other program can tell it to open a tab: the compositor types it — Ctrl+L, the address, Alt+Enter (a new
  * tab) — into the window with the keyboard focus, as keys of its keymap. Only that folder, only a name of plain
- * characters (the agent encodes the rest), at most one a second. */
+ * characters (the agent encodes the rest), at most one a second. 0.11.0 step 4: "upusc X Y <address> …" — files the
+ * user dropped on the window in K1 (the agent put them in "Z K1"): the same addresses only, at most
+ * K1_PRZ_DO_STREFY_MAKS, X and Y inside the display — the drop is played there (dane.c). */
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "k1_dokument.h"
 #include "kompozytor.h"
 
 #define PRZEDROSTEK "file:///home/k1/Z%20K1/"
 #define ADRES_MAKS 900
 #define UZYTKOWNIK 1000 /* the browser's (gosc/przegladarka.c) */
 
+#define LINIA_MAKS (32 + K1_PRZ_DO_STREFY_MAKS * (ADRES_MAKS + 1))
+
 static int fifo = -1;
-static char linia[ADRES_MAKS + 2];
+static char linia[LINIA_MAKS + 2];
 static size_t dl;
 static uint32_t ostatni;
 
@@ -62,18 +68,51 @@ static int dobry(const char *a)
     return 1;
 }
 
+/* "upusc X Y a1 a2 …": the addresses as text/uri-list for dane.c; 0, or -1 (not one we take). */
+static int upusc(char *l)
+{
+    static char lista[LINIA_MAKS + 2 * K1_PRZ_DO_STREFY_MAKS];
+    char *k, *a;
+    long x = strtol(l + 6, &k, 10), y;
+    size_t n = 0, ile = 0;
+    if (k == l + 6 || *k != ' ' || x < 0 || x >= ekran.szer)
+        return -1;
+    y = strtol(k + 1, &a, 10);
+    if (a == k + 1 || *a != ' ' || y < 0 || y >= ekran.wys)
+        return -1;
+    for (char *t = strtok(a + 1, " "); t != NULL; t = strtok(NULL, " ")) {
+        size_t d = strlen(t);
+        if (++ile > K1_PRZ_DO_STREFY_MAKS || !dobry(t) || n + d + 2 >= sizeof lista)
+            return -1;
+        memcpy(lista + n, t, d);
+        memcpy(lista + n + d, "\r\n", 2);
+        n += d + 2;
+    }
+    if (ile == 0)
+        return -1;
+    lista[n] = '\0';
+    kloguj("upuszczenie: %zu plików z K1 w punkcie okna", ile);
+    dane_upusc((int32_t)x, (int32_t)y, lista);
+    return 0;
+}
+
 void otworz_czytaj(void)
 {
     char b[256];
     ssize_t n = read(fifo, b, sizeof b);
     for (ssize_t i = 0; i < n; i++) {
         if (b[i] != '\n') {
-            if (dl <= ADRES_MAKS)
+            if (dl <= LINIA_MAKS)
                 linia[dl++] = b[i];
             continue;
         }
-        linia[dl <= ADRES_MAKS ? dl : 0] = '\0';
-        if (!dobry(linia) || teraz_ms() - ostatni < 1000) {
+        linia[dl <= LINIA_MAKS ? dl : 0] = '\0';
+        if (strncmp(linia, "upusc ", 6) == 0) {
+            if (teraz_ms() - ostatni < 1000 || upusc(linia) != 0)
+                kloguj("upuszczenie: prośba odrzucona");
+            else
+                ostatni = teraz_ms();
+        } else if (!dobry(linia) || teraz_ms() - ostatni < 1000) {
             kloguj("otwórz w: prośba odrzucona");
         } else {
             ostatni = teraz_ms();

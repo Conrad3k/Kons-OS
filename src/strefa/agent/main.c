@@ -189,7 +189,8 @@ static void od_vmm(void)
             rozlacz();
             return;
         }
-        if (w > 0 && (r.typ == K1_PS_PLIK || r.typ == K1_PS_BAJTY)) { /* 0.11.0 step 3: a file from K1 (odbior.c) */
+        /* 0.11.0 steps 3, 4: a file from K1, a drop on the window (odbior.c) */
+        if (w > 0 && (r.typ == K1_PS_PLIK || r.typ == K1_PS_BAJTY || r.typ == K1_PS_UPUSC)) {
             odbior_ramka(&r);
             if (vs < 0)
                 return;

@@ -241,12 +241,21 @@ void pelny_klik(void);                      /* a press on K1's bar */
 int pelny_czas_ms(void);                    /* how soon the loop must come back, -1: no need */
 void pelny_rysuj(const struct prost *k);    /* the pill or K1's bar, into the scene inside k */
 
+/* przeciaganie.c — dragging files between windows (0.11.0 step 4, ADR 0052 T6) */
+const char *przeciaganie_komunikat(int kl, int i, const struct k1_komunikat *m); /* PRZECIAGANIE, _CEL: NULL or why */
+void przeciaganie_ruch(void);               /* the pointer moved while a client holds it */
+void przeciaganie_puszczenie(void);         /* the left button went up (after PUSZCZENIE to the holder) */
+void przeciaganie_usun(int i);              /* surface i is gone */
+int przeciaganie_rysuje(void);              /* ekran draws the sign at the pointer now */
+void przeciaganie_rysuj(const struct prost *k); /* the sign, into the scene inside k */
+
 /* powierzchnie.c */
 void nowa_pow(int kl, const struct k1_komunikat *m, int fd); /* POWIERZCHNIA: checked, mapped, placed */
 void zatwierdz(int kl, const struct k1_komunikat *m);        /* ZATWIERDZ: the damaged part to compose */
 
 /* wskaznik.c */
 struct k1_zdarzenie;
+int pod_kursorem(int *ramka); /* the surface under the pointer (-1); *ramka: STREFA_* on a zone's frame, else 0 */
 void zastosuj(const struct k1_zdarzenie *z);
 
 /* strefa_bufor.c — a zone's window from buffers of the card (0.10.11 step 2, ADR 0051) */

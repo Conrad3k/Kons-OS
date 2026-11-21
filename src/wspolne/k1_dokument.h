@@ -28,6 +28,14 @@
 #define K1_DOK_POCZATEK (64u << 10)     /* Pliki read at most this much of a text for its details */
 #define K1_DOK_DOSTEP_APL 64            /* files one application may be given after a gesture (until it closes) */
 
+/* Dragging (k1_przeciaganie.h; between windows since 0.11.0 step 4 — the messages PRZECIAGANIE*, UPUSZCZANIE* carry
+ * these numbers). What is dragged: entries of a user folder (Pliki), files of Pulpit (the desktop), entries in Kosz,
+ * files on the USB stick, a standard folder (the places on the left of Pliki). Where it is dropped: a folder (standard
+ * or the user's), Kosz, the USB stick (the place or its folder), the window of a browser session (a copy of files). */
+enum k1_prz_zrodlo { K1_PZ_FOLDER = 1, K1_PZ_PULPIT, K1_PZ_KOSZ, K1_PZ_PENDRIVE, K1_PZ_STALY, K1_PZ_MAKS = K1_PZ_STALY };
+enum k1_prz_cel { K1_PC_FOLDER = 1, K1_PC_KOSZ, K1_PC_PENDRIVE, K1_PC_STREFA, K1_PC_MAKS = K1_PC_STREFA };
+#define K1_PRZ_DO_STREFY_MAKS 8         /* files dropped on a session's window at once (0.11.0 step 4) */
+
 enum { K1_DOK_PLIK = 1, K1_DOK_FOLDER = 2 };
 
 /* The standard folders (as in Windows): X(NAME, number, name, icon K1_IK_<icon>). They always exist, cannot be

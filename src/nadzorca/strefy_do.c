@@ -110,7 +110,7 @@ void strefa_do(const struct k1_komunikat *k, int fd)
     memcpy(p->nazwa, wpis.nazwa, sizeof p->nazwa);
     kol[n_kol++] = (struct wysylka){ strefa, k->b, nastepny_nr, wpis.id, wpis.rozmiar, 0, 0, 0 };
     k1_log(TAG, "plik %u do strefy %d (nr %u, %llu B)%s", wpis.id, strefa, nastepny_nr, (unsigned long long)wpis.rozmiar,
-           k->b ? " — otworzyć" : "");
+           k->b == K1_PS_TRYB_OTWORZ ? " — otworzyć" : k->b == K1_PS_TRYB_UPUSC ? " — upuszczony na okno" : "");
     if (usluga_profilu(k1_strefa(strefa)->profil)->pid <= 0)
         strefa_uruchom(strefa, 0, 0); /* D4: A — a closed session is opened for it */
     if (n_kol == 1)

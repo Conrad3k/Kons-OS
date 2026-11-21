@@ -520,5 +520,6 @@ int main(void)
     kanal();
     strefy();
     pobrane();
+    przeciaganie();
     return K1_TEST_KONIEC("test_komunikat");
 }

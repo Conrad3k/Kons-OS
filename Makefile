@@ -60,7 +60,7 @@ GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 # GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
 PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_wachlarz.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/przybornik/k1_aplikacja.c \
-           src/przybornik/k1_dekodowanie.c src/przybornik/k1_menu.c src/przybornik/k1_przeciaganie.c \
+           src/przybornik/k1_dekodowanie.c src/przybornik/k1_menu.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_prz_okienko.c \
            src/przybornik/k1_zaznaczenie.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
            $(GEN)/k1_czcionki_dane.c
 # Host: without the sandbox, the app skeleton and what uses it (they need our kernel's headers).
@@ -218,9 +218,9 @@ $(BIN)/wejscie: src/wejscie/main.c src/wejscie/touchpad.c src/wejscie/touchpad.h
 # 0.10.0 (ADR 0042): the frame of the zones' windows (strefy.c) is drawn with przybornik's shapes, icons and text
 EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/powierzchnie.c src/ekran/wskaznik.c src/ekran/drm.c src/ekran/zapis.c \
          src/ekran/zdjecie.c src/ekran/zalegle.c src/ekran/strefy.c src/ekran/opis.c src/ekran/rozmiar.c \
-         src/ekran/wylaczanie.c src/ekran/pelny.c src/ekran/pomiar.c src/ekran/strefa_bufor.c src/ekran/warstwa.c src/wspolne/k1_skaluj.c \
+         src/ekran/wylaczanie.c src/ekran/pelny.c src/ekran/przeciaganie.c src/ekran/pomiar.c src/ekran/strefa_bufor.c src/ekran/warstwa.c src/wspolne/k1_skaluj.c \
          src/wspolne/k1_pomiar.c
-EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_wylaczanie.c src/przybornik/k1_opis_klient.c $(GEN)/k1_czcionki_dane.c
+EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_liczba.c src/przybornik/k1_wylaczanie.c src/przybornik/k1_opis_klient.c $(GEN)/k1_czcionki_dane.c
 $(BIN)/ekran: $(EKRAN) src/ekran/ekran.h src/ekran/zalegle.h $(EKRAN_PRZYB) $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(EKRAN) $(EKRAN_PRZYB) src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 

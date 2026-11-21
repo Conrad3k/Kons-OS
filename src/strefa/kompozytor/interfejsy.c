@@ -1,6 +1,5 @@
 /* K1 kompozytor — the table of interfaces (K1_INTERFEJSY in kompozytor.h) and the small ones: wl_display,
- * wl_registry, wl_output, the clipboard objects (wl_data_device_manager: accepted, nothing is ever offered — the zone
- * shares no clipboard; 0.11, ADR 0027). */
+ * wl_registry, wl_output (the data objects: dane.c, 0.11.0 step 4). */
 #include <string.h>
 #include <unistd.h>
 
@@ -69,50 +68,9 @@ static void w_zwolnij(struct obiekt *o)
         o->klient->wyjscie = NULL;
 }
 
-/* --- wl_data_device_manager, wl_data_source, wl_data_device --- */
-static void dm_zrodlo(struct klient *k, struct obiekt *o, union arg *a)
-{
-    obiekt_nowy(k, a[0].u, IF_DATA_SOURCE, o->wersja);
-}
-
-static void dm_urzadzenie(struct klient *k, struct obiekt *o, union arg *a)
-{
-    if (obiekt_typu(k, a[1].o, IF_SEAT, 0) != NULL)
-        obiekt_nowy(k, a[0].u, IF_DATA_DEVICE, o->wersja);
-}
-
-static void dd_zaznacz(struct klient *k, struct obiekt *o, union arg *a)
-{
-    (void)o;
-    if (a[0].o != NULL)
-        obiekt_typu(k, a[0].o, IF_DATA_SOURCE, 0);
-}
-
-static void dd_przeciagnij(struct klient *k, struct obiekt *o, union arg *a)
-{
-    (void)o;
-    if (a[0].o != NULL && obiekt_typu(k, a[0].o, IF_DATA_SOURCE, 0) == NULL)
-        return;
-    if (obiekt_typu(k, a[1].o, IF_SURFACE, 0) == NULL)
-        return;
-    if (a[2].o != NULL)
-        obiekt_typu(k, a[2].o, IF_SURFACE, 0);
-    if (a[0].o != NULL)
-        zdarzenie(a[0].o, 2, ""); /* wl_data_source.cancelled: no drag and drop in the zone */
-}
-
 static const struct zadanie z_display[] = { { "sync", "n", d_sync, 0 }, { "get_registry", "n", d_rejestr, 0 } };
 static const struct zadanie z_registry[] = { { "bind", "usun", r_przywiaz, 0 } };
 static const struct zadanie z_output[] = { { "release", "", nic, 1 } };
-static const struct zadanie z_dm[] = { { "create_data_source", "n", dm_zrodlo, 0 },
-                                       { "get_data_device", "no", dm_urzadzenie, 0 } };
-static const struct zadanie z_ds[] = { { "offer", "s", nic, 0 }, { "destroy", "", nic, 1 },
-                                       { "set_actions", "u", nic, 0 } };
-static const struct zadanie z_dd[] = { { "start_drag", "?oo?ou", dd_przeciagnij, 0 },
-                                       { "set_selection", "?ou", dd_zaznacz, 0 }, { "release", "", nic, 1 } };
 const struct obsluga ob_display = OBSLUGA(z_display, NULL, NULL);
 const struct obsluga ob_registry = OBSLUGA(z_registry, NULL, NULL);
 const struct obsluga ob_output = OBSLUGA(z_output, w_zwolnij, w_przywiaz);
-const struct obsluga ob_data_manager = OBSLUGA(z_dm, NULL, NULL);
-const struct obsluga ob_data_source = OBSLUGA(z_ds, NULL, NULL);
-const struct obsluga ob_data_device = OBSLUGA(z_dd, NULL, NULL);

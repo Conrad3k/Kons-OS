@@ -25,7 +25,7 @@ static int trafia(const struct pow *p, int32_t x, int32_t y)
 
 /* The surface under the pointer, or -1; *ramka = STREFA_* when it is the frame of a zone's window (K1's, not the
  * zone's: its title bar and outline lie outside the zone's picture), else 0. */
-static int pod_kursorem_r(int *ramka)
+int pod_kursorem(int *ramka)
 {
     int idx[MAKS_POW], n = kolejnosc(idx), i;
     *ramka = 0;
@@ -67,11 +67,12 @@ static void ruch_wskaznika(void)
     }
     if (s.chwyt >= 0) {
         cel = s.chwyt;
+        przeciaganie_ruch(); /* 0.11.0 step 4: files dragged out of that window */
     } else if (pelny_wskaznik()) { /* 0.11.0 step 1: K1's bar over the full screen — nothing goes to the zone */
         cel = -1;
     } else {
         int ramka;
-        cel = pod_kursorem_r(&ramka);
+        cel = pod_kursorem(&ramka);
         strefa_najechanie(ramka != 0 ? cel : -1, ramka);
         if (ramka != 0)
             cel = -1; /* K1's frame of a zone: nothing goes to the zone */
@@ -96,7 +97,7 @@ static void przycisk(int nr, int wcisniety)
         return;
     }
     if (wcisniety) {
-        int ramka, cel = pod_kursorem_r(&ramka);
+        int ramka, cel = pod_kursorem(&ramka);
         s.przyciski |= 1 << nr;
         if (s.chwyt < 0 && ramka == 0)
             s.chwyt = cel;
@@ -117,6 +118,8 @@ static void przycisk(int nr, int wcisniety)
         s.przyciski &= ~(1 << nr);
         if (s.chwyt >= 0 && s.p[s.chwyt].uzyta)
             do_wskaznika(s.chwyt, K1_WSK_PUSZCZENIE, nr);
+        if (nr == K1_PRZYCISK_LEWY)
+            przeciaganie_puszczenie(); /* 0.11.0 step 4: files dropped on another window */
         if (s.przyciski == 0) {
             rozmiar_koniec();
             if (s.ciagniete >= 0)
@@ -253,7 +256,7 @@ static void klawisz(const struct k1_zdarzenie *z)
  * K1's frame of its window. The direction is already K1's (wejscie: the touchpad's natural one, D8). */
 static void przewin(const struct k1_zdarzenie *z)
 {
-    int ramka = 0, cel = s.chwyt >= 0 ? s.chwyt : pod_kursorem_r(&ramka);
+    int ramka = 0, cel = s.chwyt >= 0 ? s.chwyt : pod_kursorem(&ramka);
     struct pow *p;
     if (cel < 0 || ramka != 0)
         return;

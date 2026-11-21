@@ -109,7 +109,7 @@ void do_sesji(int strefa, int otworz)
     struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_DOK_DO_STREFY, zaznaczony, strefa, otworz, 0, 0, 0);
     if (zaznaczony == 0)
         return;
-    k1_log(TAG, "plik do sesji %d (%s)", strefa, otworz ? "otwórz" : "wyślij");
+    k1_log(TAG, "plik do sesji %d (%s)", strefa, otworz == K1_PS_TRYB_OTWORZ ? "otwórz" : "wyślij");
     do_skarbca_z_fd(m, -1);
 }
 

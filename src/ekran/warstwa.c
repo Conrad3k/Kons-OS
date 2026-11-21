@@ -326,7 +326,7 @@ void warstwa_przed_klatka(void)
     struct bufor_strefy *b;
     if (!w.jest)
         return;
-    c = rozmiar_trwa() || wylaczanie_trwa() ? -1 : kandydat();
+    c = rozmiar_trwa() || wylaczanie_trwa() || przeciaganie_rysuje() ? -1 : kandydat(); /* the sign: never under it */
     b = c >= 0 ? strefa_bufor(c) : NULL;
     if (b != NULL && b->fb == 0 && importuj(b) != 0) {
         k1_log(TAG, "okno %u: bufor karty nie nadaje się na warstwę — składany procesorem", s.p[c].okno);

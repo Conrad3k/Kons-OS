@@ -23,6 +23,8 @@ struct k1_apl {
     void (*przewin)(int32_t x, int32_t y, int32_t dx, int32_t dy);
     /* called once every loop; returns the time in ms until it wants to be called again (-1: no timer) */
     int (*zegar)(void);
+    /* 0.11.0 step 4: any other message from ekran for this window (UPUSZCZANIE*, PRZECIAGANIE_*); NULL: ignored */
+    void (*inne)(const struct k1_komunikat *m);
     /* called right before the window closes (its × button, or "Zamknij okno" on the bottom bar — 0.7.5) */
     void (*zamykanie)(void);
     /* channels from nadzorca (fd 4, 5 …): called when there is something to read; fd -1 = none. The skeleton

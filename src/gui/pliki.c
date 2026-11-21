@@ -120,7 +120,8 @@ void plik_do_sesji(uint32_t klucz, int strefa, int otworz)
     struct k1_komunikat m;
     if (p == NULL || p->rodzaj != K1_DOK_PLIK || skarb_fd < 0)
         return;
-    k1_log(TAG, "pulpit: plik %u do sesji %d (%s)", p->id, strefa, otworz ? "otwórz" : "wyślij");
+    k1_log(TAG, "pulpit: plik %u do sesji %d (%s)", p->id, strefa,
+           otworz == K1_PS_TRYB_OTWORZ ? "otwórz" : otworz == K1_PS_TRYB_UPUSC ? "upuszczony na okno" : "wyślij");
     m = k1_komunikat_nowy(K1_KOM_DOK_DO_STREFY, p->id, strefa, otworz, 0, 0, 0);
     k1_kanal_wyslij(skarb_fd, &m, sizeof m, -1);
 }

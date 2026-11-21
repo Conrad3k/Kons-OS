@@ -15,6 +15,7 @@
 
 #define STALE "Nie możesz: foldery Pulpit, Dokumenty, Obrazy, Muzyka, Wideo i Pobrane są stałe."
 #define TYLKO_ODCZYT "Nie możesz: pendrive jest w K1 tylko do odczytu."
+#define Z_KOSZA "Z Kosza możesz tylko przywrócić"
 
 /* THE TABLE: (source, target) → action; a refusal has its sign and its whole text (and maybe a small text under it).
  * A pair not listed: nothing happens. An allowed action: `znak` „<the target's name>”`opis`, e.g. "Kopiuj do „Obrazy” (import)". */
@@ -30,8 +31,7 @@ static const struct regula {
     { K1_PZ_PULPIT, K1_PC_PENDRIVE, K1_PD_ODMOWA, "Pendrive jest tylko do odczytu", TYLKO_ODCZYT, NULL },
     { K1_PZ_KOSZ, K1_PC_FOLDER, K1_PD_PRZYWROC, "Przywróć do", NULL, NULL },
     { K1_PZ_KOSZ, K1_PC_KOSZ, K1_PD_NIC, NULL, NULL, NULL },
-    { K1_PZ_KOSZ, K1_PC_PENDRIVE, K1_PD_ODMOWA, "Z Kosza możesz tylko przywrócić",
-      "Z Kosza możesz tylko przywrócić: upuść na folder albo kliknij „Przywróć”.", NULL },
+    { K1_PZ_KOSZ, K1_PC_PENDRIVE, K1_PD_ODMOWA, Z_KOSZA, Z_KOSZA ": upuść na folder albo kliknij „Przywróć”.", NULL },
     { K1_PZ_PENDRIVE, K1_PC_FOLDER, K1_PD_IMPORT, "Kopiuj do", NULL, " (import)" },
     { K1_PZ_PENDRIVE, K1_PC_KOSZ, K1_PD_ODMOWA, "Z pendrive'a tylko import",
       "Z pendrive'a możesz tylko skopiować pliki do K1 (import).", "Upuść je na folder K1 albo kliknij „Importuj”." },
@@ -39,6 +39,13 @@ static const struct regula {
     { K1_PZ_STALY, K1_PC_FOLDER, K1_PD_ODMOWA, "Ten folder jest stały", STALE, NULL },
     { K1_PZ_STALY, K1_PC_KOSZ, K1_PD_ODMOWA, "Ten folder jest stały", STALE, NULL },
     { K1_PZ_STALY, K1_PC_PENDRIVE, K1_PD_ODMOWA, "Ten folder jest stały", STALE, NULL },
+    /* 0.11.0 step 4 (ADR 0052): onto a browser session's window — the session gets a copy, the files stay in Pliki */
+    { K1_PZ_FOLDER, K1_PC_STREFA, K1_PD_DO_STREFY, "Kopia do sesji", NULL, NULL },
+    { K1_PZ_PULPIT, K1_PC_STREFA, K1_PD_DO_STREFY, "Kopia do sesji", NULL, NULL },
+    { K1_PZ_KOSZ, K1_PC_STREFA, K1_PD_ODMOWA, Z_KOSZA, Z_KOSZA ": upuść na folder albo kliknij „Przywróć”.", NULL },
+    { K1_PZ_PENDRIVE, K1_PC_STREFA, K1_PD_ODMOWA, "Najpierw zaimportuj do K1",
+      "Pliki z pendrive'a najpierw zaimportuj do K1, potem przeciągnij je z folderu K1.", NULL },
+    { K1_PZ_STALY, K1_PC_STREFA, K1_PD_ODMOWA, "Ten folder jest stały", STALE, NULL },
 };
 
 static void odmowa(struct k1_prz_ocena *o, const char *znak, const char *tekst, const char *opis)
@@ -69,17 +76,24 @@ static void pytanie_kosz(const struct k1_prz_co *c, struct k1_prz_ocena *o)
         snprintf(o->opis, sizeof o->opis, "Razem z tym, co jest w środku. Kosz usuwa je po %d dniach.", K1_KOSZ_DNI);
 }
 
-/* What every allowed action still has to pass: not into itself, not too deep, room for an import. */
+/* What every allowed action still has to pass: not into itself, not too deep, room for an import or a copy, only files
+ * for a copy and a session (0.11.0 step 4). */
 static void ograniczenia(const struct k1_prz_co *c, struct k1_prz_ocena *o)
 {
     char t[sizeof o->tekst];
     int64_t mb = (int64_t)((c->bajty + (1u << 20) - 1) >> 20);
-    if (c->w_siebie && (o->dzialanie == K1_PD_PRZENIES || o->dzialanie == K1_PD_PRZYWROC)) {
+    if ((o->dzialanie == K1_PD_KOPIUJ || o->dzialanie == K1_PD_DO_STREFY) && c->folderow > 0) {
+        odmowa(o, "Tylko pliki, bez folderów", o->dzialanie == K1_PD_KOPIUJ
+                   ? "Nie możesz: kopiować możesz tylko pliki, bez folderów." : "Nie możesz: do przeglądarki tylko pliki, bez folderów.", NULL);
+    } else if (o->dzialanie == K1_PD_DO_STREFY && c->ile > K1_PRZ_DO_STREFY_MAKS) {
+        snprintf(t, sizeof t, "Nie możesz: najwyżej %d plików naraz.", K1_PRZ_DO_STREFY_MAKS);
+        odmowa(o, "Za dużo plików naraz", t, NULL);
+    } else if (c->w_siebie && (o->dzialanie == K1_PD_PRZENIES || o->dzialanie == K1_PD_PRZYWROC)) {
         odmowa(o, "Folder nie może trafić do samego siebie", "Nie możesz: folder nie może trafić do samego siebie.", NULL);
     } else if (c->za_gleboko && o->dzialanie != K1_PD_KOSZ) {
         snprintf(t, sizeof t, "Nie możesz: najwyżej %d folderów w folderach.", K1_DOK_GLEBOKOSC);
         odmowa(o, "Za dużo folderów w folderach", t, NULL);
-    } else if (o->dzialanie == K1_PD_IMPORT && c->wolne_mb >= 0 && mb > c->wolne_mb) {
+    } else if ((o->dzialanie == K1_PD_IMPORT || o->dzialanie == K1_PD_KOPIUJ) && c->wolne_mb >= 0 && mb > c->wolne_mb) {
         snprintf(t, sizeof t, "Nie możesz: brak miejsca na pliki (zostało %lld MB).", (long long)c->wolne_mb);
         odmowa(o, "Brak miejsca na pliki", t, NULL);
     }
@@ -98,12 +112,18 @@ void k1_prz_ocen(const struct k1_prz_co *c, struct k1_prz_ocena *o)
         odmowa(o, r->znak, r->tekst, r->opis);
         return;
     }
-    if (c->ten_sam) /* the folder they lie in already */
-        return;
     o->dzialanie = r->dzialanie;
-    o->znak = r->dzialanie == K1_PD_IMPORT ? K1_ZN_KOPIUJ : K1_ZN_PRZENIES;
+    if (o->dzialanie == K1_PD_PRZENIES && c->kopia) /* D6: A — Ctrl: a copy (also into the folder they lie in) */
+        o->dzialanie = K1_PD_KOPIUJ;
+    else if (c->ten_sam && o->dzialanie != K1_PD_DO_STREFY) { /* the folder they lie in already */
+        o->dzialanie = K1_PD_NIC;
+        return;
+    }
+    o->znak = o->dzialanie == K1_PD_IMPORT || o->dzialanie == K1_PD_KOPIUJ || o->dzialanie == K1_PD_DO_STREFY ? K1_ZN_KOPIUJ
+                                                                                                         : K1_ZN_PRZENIES;
     if (c->cel_nazwa != NULL)
-        snprintf(o->znak_tekst, sizeof o->znak_tekst, "%s „%s”%s", r->znak, c->cel_nazwa, r->opis != NULL ? r->opis : "");
+        snprintf(o->znak_tekst, sizeof o->znak_tekst, "%s „%s”%s", o->dzialanie == K1_PD_KOPIUJ ? "Kopiuj do" : r->znak,
+                 c->cel_nazwa, r->opis != NULL ? r->opis : "");
     else
         snprintf(o->znak_tekst, sizeof o->znak_tekst, "%s", r->znak);
     if (o->dzialanie == K1_PD_KOSZ)
@@ -111,43 +131,6 @@ void k1_prz_ocen(const struct k1_prz_co *c, struct k1_prz_ocena *o)
     ograniczenia(c, o);
     if (o->dzialanie == K1_PD_ODMOWA)
         o->pytaj = 0;
-}
-
-void k1_prz_okienko(struct k1_menu *m, const struct k1_prz_ocena *o)
-{
-    k1_menu_zacznij(m, K1_MENU_SZER_PYTANIE);
-    k1_menu_tekst(m, o->tekst)->mocna = 1;
-    if (o->opis[0] != '\0')
-        k1_menu_tekst(m, o->opis);
-    k1_menu_kreska(m);
-    if (o->dzialanie != K1_PD_ODMOWA) {
-        k1_menu_dodaj(m, "Przenieś do Kosza", K1_PO_TAK, 0)->mocna = 1;
-        k1_menu_dodaj(m, "Anuluj", K1_PO_ANULUJ, 0);
-    } else {
-        k1_menu_dodaj(m, "OK", K1_PO_OK, 0)->mocna = 1;
-    }
-}
-
-void k1_prz_okienko_nazwa(struct k1_menu *m, const char *cel, const char *nazwa, int zajetych, int ile)
-{
-    char t[256];
-    k1_menu_zacznij(m, K1_MENU_SZER_PYTANIE);
-    if (zajetych == 1)
-        snprintf(t, sizeof t, "W „%s” jest już „%s”.", cel, nazwa);
-    else
-        snprintf(t, sizeof t, "W „%s” %s już %d %s o tych samych nazwach.", cel, k1_odmiana(zajetych, "jest", "są", "jest"),
-                 zajetych, k1_odmiana(zajetych, "element", "elementy", "elementów"));
-    k1_menu_tekst(m, t)->mocna = 1;
-    k1_menu_tekst(m, zajetych == 1 ? "„Zachowaj oba”: przenoszony dostanie numer, np. „nazwa (2)”."
-                                   : "„Zachowaj oba”: przenoszone dostaną numery, np. „nazwa (2)”.");
-    k1_menu_kreska(m);
-    k1_menu_dodaj(m, "Zachowaj oba", K1_PO_ZACHOWAJ, 0)->mocna = 1;
-    if (ile > zajetych) /* the others go on */
-        snprintf(t, sizeof t, zajetych == 1 ? "Pomiń ten" : "Pomiń te %d", zajetych);
-    else
-        snprintf(t, sizeof t, "Pomiń");
-    k1_menu_dodaj(m, t, K1_PO_POMIN, 0);
-    k1_menu_dodaj(m, "Anuluj", K1_PO_ANULUJ, 0);
 }
 
 const char *k1_prz_powod(int wynik)

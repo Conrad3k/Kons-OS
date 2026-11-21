@@ -38,13 +38,13 @@ int k1_kom_sprawdz_pobrane(const struct k1_komunikat *k, enum k1_kanal_kierunek 
                w(k->b, K1_POB_ZOSTAW, K1_POB_JAKO_NOWY) && zera(k, 2);
     case K1_KOM_DOK_DO_STREFY:
         return kier == K1_KIER_DO_SKARBCA && k->obiekt >= K1_DOK_PIERWSZY && k->obiekt <= K1_DOK_ID_MAKS &&
-               w(k->a, 1, K1_STREFY_MAKS) && w(k->b, 0, 1) && zera(k, 2);
+               w(k->a, 1, K1_STREFY_MAKS) && w(k->b, 0, K1_PS_TRYB_MAKS) && zera(k, 2);
     case K1_KOM_SKARB_DO_STREFY:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt >= K1_DOK_PIERWSZY && k->obiekt <= K1_DOK_ID_MAKS &&
-               w(k->a, 1, K1_STREFY_MAKS) && w(k->b, 0, 1) && zera(k, 2);
+               w(k->a, 1, K1_STREFY_MAKS) && w(k->b, 0, K1_PS_TRYB_MAKS) && zera(k, 2);
     case K1_KOM_STREFA_DO_PLIK:
         return kier == K1_KIER_OD_NADZORCY && plik(k->obiekt) && k1_kom_u64(k->a, k->b) <= K1_DOK_MAKS_BAJTY &&
-               w(k->c, 1, K1_DOK_NAZWA - 1) && w(k->d, 0, 1) && k->e == 0;
+               w(k->c, 1, K1_DOK_NAZWA - 1) && w(k->d, 0, K1_PS_TRYB_MAKS) && k->e == 0;
     case K1_KOM_STREFA_DO_KAWALEK:
         return kier == K1_KIER_OD_NADZORCY && plik(k->obiekt) && w(k->a, 1, (int32_t)K1_DOK_KAWALEK) &&
                w(k->b, 0, (int32_t)K1_DOK_KAWALKI_MAKS - 1) && zera(k, 2);

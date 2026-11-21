@@ -44,6 +44,13 @@ int k1_ustawienie_poprawne(int32_t klucz, int32_t wartosc)
     }
 }
 
+/* 0.11.0 step 4: what is dragged (PRZECIAGANIE, UPUSZCZANIE_CO: a..e) */
+static int przeciagane(const struct k1_komunikat *k)
+{
+    return powierzchnia(k->obiekt) && w(k->a, 1, K1_PZ_MAKS) && w(k->b, 1, K1_DOK_MAKS) && w(k->c, 0, k->b) &&
+           (k->d == 0 || wpis((uint32_t)k->d)) && w(k->e, 0, K1_DOK_ID_MAKS);
+}
+
 /* Messages of ekran and its clients (ADR 0008); 0 also for a type of another group. */
 int k1_kom_sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
@@ -89,6 +96,26 @@ int k1_kom_sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
         return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && w(k->a, 1, K1_DEK_MAKS_W) && w(k->b, 1, K1_DEK_MAKS_H) &&
                zera(k, 2);
 
+    case K1_KOM_PRZECIAGANIE: /* 0.11.0 step 4 */
+        return kier == K1_KIER_DO_EKRANU && przeciagane(k);
+    case K1_KOM_UPUSZCZANIE_CO:
+        return kier == K1_KIER_OD_EKRANU && przeciagane(k);
+    case K1_KOM_PRZECIAGANIE_CEL:
+        return kier == K1_KIER_DO_EKRANU && powierzchnia(k->obiekt) &&
+               ((k->a == 0 && k->b == 0) || (k->a == K1_PC_FOLDER && w(k->b, 1, K1_DOK_ID_MAKS)) ||
+                (k->a == K1_PC_KOSZ && k->b == 0)) && zera(k, 2);
+    case K1_KOM_UPUSZCZANIE:
+        return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && w(k->a, -K1_POZ_MAKS, K1_POZ_MAKS) &&
+               w(k->b, -K1_POZ_MAKS, K1_POZ_MAKS) && w(k->c, K1_UP_RUCH, K1_UP_UPUSC) && w(k->d, 0, K1_MOD_MASKA) && k->e == 0;
+    case K1_KOM_PRZECIAGANIE_GDZIE:
+        return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && w(k->a, 0, 1) && zera(k, 1);
+    case K1_KOM_PRZECIAGANIE_KONIEC:
+        return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) &&
+               ((k->a == K1_PC_FOLDER && w(k->b, 1, K1_DOK_ID_MAKS)) || (k->a == K1_PC_KOSZ && k->b == 0) ||
+                (k->a == K1_PC_STREFA && w(k->b, 1, K1_STREFY_MAKS))) && w(k->c, 0, K1_MOD_MASKA) && zera(k, 3);
+    case K1_KOM_UPUSC_STREFA:
+        return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && w(k->a, 0, (int32_t)K1_PS_POZ_MAKS) &&
+               w(k->b, 0, (int32_t)K1_PS_POZ_MAKS) && w(k->c, 1, K1_PRZ_DO_STREFY_MAKS) && zera(k, 3);
     case K1_KOM_WITAJ:
         return kier == K1_KIER_OD_EKRANU && k->obiekt == 0 && w(k->a, 1, K1_POZ_MAKS) && w(k->b, 1, K1_POZ_MAKS) &&
                w(k->c, 1, K1_ROLA_MAKS) && w(k->d, 0, K1_KLIENT_NR_MAKS) && k->e == 0;

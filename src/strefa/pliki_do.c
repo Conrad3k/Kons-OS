@@ -4,7 +4,9 @@
  * agent gets PLIK and BAJTY frames on the files port (k1_pliki_strefy.h), as its credit allows; it answers ODEBRANY
  * (saved in the session's folder "Z K1", or not) — STREFA_DO_ODP GOTOWE to nadzorca. One file at a time; a file waits
  * up to CZEKAJ_S for the agent (a session that just started: its agent connects a few seconds after the machine).
- * Under mz.zamek: pliki_do_* are called by pliki.c (the processor threads and the main thread). */
+ * 0.11.0 step 4: files dropped on the window — ekran's UPUSC_STREFA becomes the agent's UPUSC frame (how many, where),
+ * ahead of their PLIK frames (tryb UPUSC); it waits for the agent as a file does.
+ * Under mz.zamek: pliki_do_* are called by pliki.c (the processor threads and the main thread) and okno.c. */
 #include <string.h>
 #include <unistd.h>
 
@@ -27,6 +29,11 @@ static struct {
     double od;
     char nazwa[K1_DOK_NAZWA];
 } d;
+static struct {
+    int jest;
+    uint32_t x, y, n;
+    double od;
+} up;                               /* a drop for the agent (0.11.0 step 4) */
 static uint8_t kaw[K1_DOK_KAWALEK]; /* the piece from nadzorca, sent from kaw_od on */
 static uint32_t kaw_n, kaw_od;
 static unsigned long l_wyslane, l_nieudane;
@@ -58,7 +65,8 @@ void pliki_do_plik(const struct k1_komunikat *k, int fd)
     d.otworz = k->d;
     d.od = k1_teraz();
     kaw_n = kaw_od = 0;
-    k1_log(TAG, "pliki: plik %u z K1 do strefy (%llu B)%s", d.nr, (unsigned long long)d.rozmiar, d.otworz ? ", otworzyć" : "");
+    k1_log(TAG, "pliki: plik %u z K1 do strefy (%llu B)%s", d.nr, (unsigned long long)d.rozmiar,
+           d.otworz == K1_PS_TRYB_OTWORZ ? ", otworzyć" : d.otworz == K1_PS_TRYB_UPUSC ? ", upuszczony na okno" : "");
 }
 
 void pliki_do_kawalek(const struct k1_komunikat *k, int fd)
@@ -74,9 +82,23 @@ void pliki_do_kawalek(const struct k1_komunikat *k, int fd)
     kaw_n = (uint32_t)k->a, kaw_od = 0;
 }
 
+void pliki_do_upusc(uint32_t x, uint32_t y, uint32_t n)
+{
+    up.jest = 1, up.x = x, up.y = y, up.n = n, up.od = k1_teraz();
+    k1_log(TAG, "pliki: upuszczono %u plików na okno", n);
+    obudz();
+}
+
 void pliki_do_dalej(void)
 {
     struct k1_ps_ramka r;
+    if (up.jest && k1_teraz() - up.od > CZEKAJ_S)
+        up.jest = 0;
+    if (up.jest && pliki_polaczony() && !(d.jest && d.naglowek)) { /* never in the middle of a file's frames */
+        r = (struct k1_ps_ramka){ .typ = K1_PS_UPUSC, .nr = up.n, .x = up.x, .y = up.y };
+        if (pliki_dopisz(&r) == 0)
+            up.jest = 0;
+    }
     if (!d.jest || !pliki_polaczony())
         return;
     if (!d.naglowek) {
