@@ -111,7 +111,7 @@ static void petla(int g, int sfd)
 {
     uint32_t ostatnia = 0;
     for (;;) {
-        struct pollfd p[1 + KLIENCI_MAKS + 4 + 2];
+        struct pollfd p[1 + KLIENCI_MAKS + 4 + 3];
         struct klient *kl[KLIENCI_MAKS];
         unsigned n = 1, nk = 0, i, nw;
         int czekaj = -1;
@@ -138,6 +138,7 @@ static void petla(int g, int sfd)
             }
         for (nw = 0; wejscie_fd(nw) >= 0 && nw < 4; nw++)
             p[n++] = (struct pollfd){ wejscie_fd(nw), POLLIN, 0 };
+        p[n++] = (struct pollfd){ otworz_fd(), POLLIN, 0 };      /* 0.11.0 step 3: "Otwórz w…" from the agent */
         p[n++] = (struct pollfd){ ekran_zmiany_fd(), POLLIN, 0 }; /* 0.10.5 step 4: K1 resized the window */
         p[n++] = (struct pollfd){ sfd, POLLIN, 0 }; /* negative: ignored */
         if (poll(p, n, czekaj) < 0 && errno != EINTR)
@@ -147,6 +148,8 @@ static void petla(int g, int sfd)
             xdg_nowy_rozmiar();
         }
         wejscie_czas();
+        if (p[n - 3].revents & POLLIN)
+            otworz_czytaj();
         if (p[n - 1].revents & POLLIN)
             prosba_zamkniecia(sfd);
         if (p[0].revents & POLLIN)
@@ -185,6 +188,7 @@ int main(int argc, char **argv)
     g = gniazdo(argc > 1 ? argv[1] : "/run/k1/wayland-0");
     if (g < 0)
         return 1;
+    otworz_start(argc > 1 ? argv[1] : "/run/k1/wayland-0");
     scena_zmiana(0, 0, ekran.szer, ekran.wys);
     kloguj("gotowy %dx%d", ekran.szer, ekran.wys);
     petla(g, sfd);

@@ -19,7 +19,7 @@ static void znowu(const struct k1_ps_ramka *r, int od_strefy)
     memset(&c2, 0, sizeof c2);
     c2.od_strefy = od_strefy;
     if (n == 0 || k1_ps_czytaj(&c2, b, n, &u, &o) != 1 || u != n || o.typ != r->typ || o.nr != r->nr ||
-        o.rozmiar != r->rozmiar || o.wynik != r->wynik || o.nl != r->nl || strcmp(o.nazwa, r->nazwa) != 0 || o.dl != r->dl)
+        o.rozmiar != r->rozmiar || o.dodatek != r->dodatek || o.wynik != r->wynik || o.nl != r->nl || strcmp(o.nazwa, r->nazwa) != 0 || o.dl != r->dl)
         abort();
 }
 
@@ -44,9 +44,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                 return 0;
             if (w == 0)
                 break;
-            if (r.nr < 1 || r.nr > K1_PS_NR_MAKS ||
-                (c.od_strefy && r.typ == K1_PS_ZGLOS && (r.nl < 1 || strlen(r.nazwa) != r.nl)) ||
-                (c.od_strefy && r.typ == K1_PS_DANE && (r.dl < 1 || r.dl > K1_PS_DANE_MAKS)) || r.wynik > K1_PS_W_MAKS)
+            int u = k1_ps_uklad(r.typ, c.od_strefy);
+            if (r.nr < 1 || r.nr > K1_PS_NR_MAKS || u == 0 ||
+                (u == K1_PS_U_NAZWA && (r.nl < 1 || strlen(r.nazwa) != r.nl || r.dodatek > K1_PS_NR_MAKS)) ||
+                (u == K1_PS_U_BAJTY && (r.dl < 1 || r.dl > K1_PS_DANE_MAKS)) || r.wynik > K1_PS_W_MAKS)
                 abort();
             znowu(&r, c.od_strefy);
         }

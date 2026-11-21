@@ -55,7 +55,8 @@ int k1_kom_sprawdz_skarb(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
 int k1_kom_dok_prosba(int typ)
 {
     return (typ >= K1_KOM_DOK_SPIS && typ <= K1_KOM_DOK_OPROZNIJ) || (typ >= K1_KOM_DOK_OTWORZ && typ <= K1_KOM_DOK_WYBRANO) ||
-           typ == K1_KOM_DOK_KAWALEK || typ == K1_KOM_DOK_KONIEC || typ == K1_KOM_DOK_CZAS;
+           typ == K1_KOM_DOK_KAWALEK || typ == K1_KOM_DOK_KONIEC || typ == K1_KOM_DOK_CZAS ||
+           typ == K1_KOM_DOK_DO_STREFY; /* 0.11.0 step 3 */
 }
 
 /* Opening a file for an application, the file picker (0.8.0 step 2, ADR 0030); 0 also for another type. */

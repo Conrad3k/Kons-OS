@@ -113,12 +113,11 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 --------------------------------------------------------------------------------------------------
      Krok                                                     Luki (punkt 5)   Zależy od   Decyzje      Rozmiar  ADR
 [x]  1  Okno przeglądarki do krawędzi, pełny ekran (PR #202)  P1–P4            0.10.10     D1, T9       S–M      brak
-[~]  2  Pliki ze strefy do Plików (Do K1), pochodzenie        P5–P14           0.10.10     D2, D3,      L        0051
+[x]  2  Pliki ze strefy do Plików (PR #203)                   P5–P14           0.10.10     D2, D3,      L        0052
                                                                                            T1–T4
-[ ]  3  Pliki do strefy: Wyślij do, Otwórz w, zapis z powr.   P15–P18          2           D4, T5       M–L      0051
-[ ]  4  Przeciąganie między oknami, też na okno przeglądarki  P19–P22          2 (i 3)     D6, T6, T7   M        0051 (uzup.)
-[ ]  5  Schowek; porządki; wydanie 0.11.0                     P23–P26          2           D5, T8       M        0051 (uzup.)
-Krok 2: [w toku: Claude, gałąź claude/plan-0-11-0-steps-2-3-9zz51i]
+[x]  3  Pliki do strefy (PR #204)                             P15–P18          2           D4, T5       M–L      0052
+[ ]  4  Przeciąganie między oknami, też na okno przeglądarki  P19–P22          2 (i 3)     D6, T6, T7   M        0052 (uzup.)
+[ ]  5  Schowek; porządki; wydanie 0.11.0                     P23–P26          2           D5, T8       M        0052 (uzup.)
 (ADR 0052: następny wolny po 0051, który bierze 0.10.11 — docs/archiwum/PLAN-0.10.11.txt.)
 
 
@@ -249,6 +248,26 @@ KROK 3: Pliki do strefy: „Wyślij do…”, „Otwórz w…”, zapis z powrot
   otwarcie w karcie); właściciel na laptopach.
   Dokumenty: ADR 0052 (uzupełnienie: powiązanie, zapis z powrotem), aplikacje.md, gui.md, strefa.md, SLOWNIK.
   Gotowe, gdy: CI zielone; właściciel wysłał plik ze strony w przeglądarce i odebrał zmieniony PDF.
+  Ustalenia z wykonania (2026-11-21, krok 3; D4 właściciela: A):
+    - P16 (ZE ŹRÓDEŁ + POTWIERDZONE): Firefox ESR 153 ma zdalne sterowanie tylko przez D-Bus (libxul: nsDBusRemoteServer),
+      w strefie D-Bus nie ma, a przeglądarka startuje z --no-remote. „Otwórz w…”: agent pisze adres pliku do kolejki FIFO
+      kompozytora strefy, kompozytor wpisuje go w okno z fokusem (Ctrl+L, adres, Alt+Enter = nowa karta) — klawisze rozłożone
+      w czasie (600 ms po Ctrl+L, 15 ms na znak), bo pasek adresu dostaje fokus z opóźnieniem; wszystkie naraz trafiały do
+      strony. Sprawdzone na stanowisku (testy/stanowisko/otworz.py). Plik tekstowy nie zmienia tytułu okna Firefoksa
+      (zostaje „Mozilla Firefox”) — test używa strony HTML.
+    - T5: folder sesji „Z K1” (/home/k1/Z K1, w Prywatnej — w pamięci jak cały katalog domowy); agent pisze do ukrytego
+      „.k1-<nr>” (O_EXCL, O_NOFOLLOW) i na końcu zmienia nazwę na wolną („nazwa (2).ext”).
+    - P17: zmieniona wersja = pobranie o nazwie pliku z K1 albo „nazwa(N).ext” (tak Firefox nazywa kolejną kopię), albo
+      ponowny zapis w „Z K1”; ZGLOS dostał pole dotyczy (numer K1) — format ramek przepisany na tabelę rodzajów (oba kierunki).
+      Nadzorca przyjmuje zmianę tylko pliku, który dał tej sesji (powiązania do wyłączenia K1, 64 ostatnie).
+    - „Zapisz” = nowa treść jako nowy plik obok oryginału, oryginał do Kosza, nowy dostaje jego nazwę (zapis w toku, DOK_KOSZ,
+      DOK_NAZWA — przerwa zostawia oba pliki); skarbiec: drugi kanał nadzorcy K1_WL_DO_STREF (czyta tylko pliki dane strefom).
+    - Menu (k1_menu, Pliki i pulpit): „Otwórz za pomocą” zawsze czynne (sesje otwierają każdy typ), „Wyślij do” z sesjami
+      (wiersze K1_STREFY z oknem i nazwą sesji — strefa próbna i pobierania nie). Nazwy sesji w menu Plików to nazwy domyślne
+      (Pliki nie dostają STREFA_NAZWA).
+    - Błąd z pierwszego przebiegu: plik wysłany zanim agent podłączył port plików ginął przy resecie vsock gościa w czasie
+      startu maszyny — teraz czeka na agenta (do 120 s).
+    - Lokalnie: test-pobrane (kroki 2 i 3) — wszystko zaliczone w emulacji; stanowisko otworz.py — zaliczone.
 
 KROK 4: Przeciąganie między oknami, też na okno przeglądarki            M · D6, T6, T7 · ADR 0052 (uzupełnienie)
   Cel: przeciągnięcie pliku z Plików albo z pulpitu na inne okno to gest zgody (ADR 0027 p. 2): na okno przeglądarki —

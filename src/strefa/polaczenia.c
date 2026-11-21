@@ -378,6 +378,17 @@ static void od_nadzorcy(void)
             pliki_odp(&k);
             continue;
         }
+        if (w == K1_ODB_JEST && (k.typ == K1_KOM_STREFA_DO_PLIK || k.typ == K1_KOM_STREFA_DO_KAWALEK)) { /* step 3 */
+            if (k.typ == K1_KOM_STREFA_DO_PLIK)
+                pliki_do_plik(&k, fd);
+            else
+                pliki_do_kawalek(&k, fd);
+            if (fd >= 0)
+                close(fd);
+            fd = -1;
+            vsock_wyslij();
+            continue;
+        }
         if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFA_ZAMKNIJ) { /* 0.10.2 step 1: K1 powers off (main.c closes) */
             mz.prosba_nadzorcy = 1;
             continue;

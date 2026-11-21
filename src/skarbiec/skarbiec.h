@@ -64,6 +64,7 @@ void zglos_stan(void);                  /* SKARB_STAN to nadzorca (main.c) */
  * goes later in order (zalegle.h, 0.9.0 step 2); the only way anything goes to a client */
 void do_klienta(int fd, struct k1_komunikat m, int przekaz);
 void do_nadzorcy(struct k1_komunikat m); /* main.c: a message on the control channel */
+void do_nadzorcy_z(struct k1_komunikat m, int fd); /* …with a descriptor */
 
 /* dok_kanal.c */
 /* A K1_KOM_DOK_* request of a client (owner `wl`) on channel `fd`; `fd_in` = attached memfd or -1 (closed here).
@@ -93,6 +94,7 @@ uint64_t strefy_bajty(uint32_t *kawalki);            /* what the disks of all zo
 int dostep_daj(int wl, uint32_t id); /* 0, or K1_DOK_BLAD_OTWARTE: it has K1_DOK_DOSTEP_APL files already */
 int dostep_ma(int wl, uint32_t id);
 int dostep_folder(int wl, uint32_t folder); /* a file of that folder was given to it (0.8.2 step 4: Podgląd, ADR 0037) */
+int dostep_do_strefy(uint32_t id, int strefa, int otworz); /* DOK_DO_STREFY (allowed already): 0 / K1_DOK_BLAD_* */
 int dostep_otworz(uint32_t id, int apl);          /* DOK_OTWORZ (allowed already): results 0 / K1_DOK_BLAD_* */
 int dostep_wybierz(int fd, int wl, int typ, int rodzina); /* DOK_WYBIERZ of the client on channel `fd` */
 int dostep_wybrano(uint32_t id);                  /* DOK_WYBRANO of the file picker */

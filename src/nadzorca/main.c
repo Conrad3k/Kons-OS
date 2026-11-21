@@ -135,6 +135,7 @@ static void okresowe(void)
     sesje_okresowe();
     strefy_rozdziel(); /* 0.10.1 step 3 */
     strefy_zamykanie(); /* 0.10.2 step 1 */
+    strefy_do_okresowe(); /* 0.11.0 step 3: a file waiting for its zone's VMM */
     bateria_archiwum(t);
     rozruch_po_starcie(t);
     obrazy_stref_po_starcie();
@@ -170,6 +171,7 @@ int main(void)
             { &posrednik_kanal, obsluz_posrednika }, /* step 5: whether the card serves fast graphics */
             { &sterowanie, obsluz_ekran },       /* 0.10.9 step 2 (S3): ekran's picture is on the screen */
             { &pob_skarb, obsluz_pobrania_skarb }, /* 0.11.0 step 2: files from the zones into Pobrane */
+            { &do_skarb, obsluz_do_skarb },        /* step 3: files to the zones, their changed versions */
 #define X_KANAL_STREFY(n, nr, ...) { &strefa_kanal[nr], obsluz_strefe_##n },
             K1_STREFY(X_KANAL_STREFY) /* 0.10.0 step 2: each zone's connections (strefy_siec.c) */
 #undef X_KANAL_STREFY

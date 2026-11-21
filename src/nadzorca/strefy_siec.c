@@ -49,6 +49,7 @@ void strefa_kanal_koniec(int nr)
     close(strefa_kanal[nr]);
     strefa_kanal[nr] = -1;
     strefa_pliki_koniec(nr); /* 0.11.0 step 2: its files waiting or being written */
+    strefa_do_koniec(nr);    /* step 3: a file being sent to it */
     if (licznik[nr].wszystkie > 0)
         k1_log(TAG, "strefa %d: połączenia %u, odmowy %u", nr, licznik[nr].wszystkie, licznik[nr].odmowy);
 }
@@ -97,8 +98,11 @@ static void obsluz(int nr)
         int z_fd = -1;
         enum k1_odbior_wynik w = k1_odbierz_komunikat(strefa_kanal[nr], (uid_t)z->uid, K1_KIER_DO_NADZORCY, &k, &z_fd);
         if (w == K1_ODB_JEST && (k.typ == K1_KOM_STREFA_PLIK || k.typ == K1_KOM_STREFA_PLIK_KAWALEK ||
-                                 k.typ == K1_KOM_STREFA_PLIK_KONIEC)) { /* 0.11.0 step 2: strefy_pliki.c */
-            if (k.typ == K1_KOM_STREFA_PLIK)
+                                 k.typ == K1_KOM_STREFA_PLIK_KONIEC || k.typ == K1_KOM_STREFA_DO_ODP)) {
+            /* 0.11.0 steps 2, 3: strefy_pliki.c, strefy_do.c */
+            if (k.typ == K1_KOM_STREFA_DO_ODP)
+                strefa_do_odp(nr, &k);
+            else if (k.typ == K1_KOM_STREFA_PLIK)
                 strefa_plik(nr, &k, z_fd);
             else
                 strefa_plik_dalej(nr, &k, z_fd);

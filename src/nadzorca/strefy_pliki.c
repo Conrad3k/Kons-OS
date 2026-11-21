@@ -22,10 +22,20 @@ static struct pobranie {
     int ostatni;          /* the last piece went to skarbiec (DOK_KONIEC next) */
     size_t nl;
     char nazwa[K1_DOK_NAZWA];
+    /* 0.11.0 step 3: a changed version of K1's file nr `dotyczy` sent to this zone — the original (orig), its folder; its
+     * name is the original's. krok: after the new file is written for "Zapisz" — 1 the original into Kosz, 2 the name */
+    uint32_t dotyczy, orig, folder, nowy;
+    int jako_nowy, krok;
 } pob[CZEKA_MAKS];
 
 int pob_skarb = -1; /* our channel to skarbiec, opened at the first save */
 static unsigned long l_zapisane, l_odrzucone;
+
+/* The channel to skarbiec for file p: downloads K1_WL_POBRANIA, changed versions K1_WL_DO_STREF (strefy_do.c). */
+static int kanal(const struct pobranie *p)
+{
+    return p->dotyczy ? do_skarb : pob_skarb;
+}
 
 static void do_vmm(int nr, uint32_t id, int co, int wynik)
 {
@@ -54,9 +64,9 @@ static void nastepny_zapis(void);
 static void koniec(struct pobranie *p, int wynik, int do_strefy)
 {
     struct k1_komunikat k;
-    if (p->zapis == 2 && wynik != K1_PS_W_ZAPISANY && pob_skarb >= 0) {
+    if (p->zapis == 2 && wynik != K1_PS_W_ZAPISANY && p->krok == 0 && kanal(p) >= 0) {
         k = k1_komunikat_nowy(K1_KOM_DOK_KONIEC, 0, 1, 0, 0, 0, 0); /* abandoned: its pieces deleted */
-        if (k1_kanal_wyslij(pob_skarb, &k, sizeof k, -1) != 0)
+        if (k1_kanal_wyslij(kanal(p), &k, sizeof k, -1) != 0)
             k1_log(TAG, "pobranie: porzucenie zapisu nieudane");
     }
     if (do_strefy)
@@ -70,6 +80,19 @@ static void koniec(struct pobranie *p, int wynik, int do_strefy)
            (unsigned long long)p->rozmiar);
     memset(p, 0, sizeof *p);
     nastepny_zapis();
+}
+
+/* A changed version of K1's file nr `dotyczy` (0.11.0 step 3): only of a file K1 gave this zone; it takes the original's
+ * name and folder. 1, or 0 (refused). */
+static int zmiana(struct pobranie *p, uint32_t dotyczy)
+{
+    const char *nazwa;
+    if (!strefa_powiazanie(p->strefa, dotyczy, &p->orig, &p->folder, &nazwa) || kanal_do_stref() < 0)
+        return 0;
+    p->dotyczy = dotyczy;
+    snprintf(p->nazwa, sizeof p->nazwa, "%s", nazwa);
+    p->nl = strlen(p->nazwa);
+    return 1;
 }
 
 /* STREFA_PLIK from zone nr's VMM: the name checked, then gui asks the user. */
@@ -96,13 +119,28 @@ void strefa_plik(int nr, const struct k1_komunikat *k, int fd)
     p->id = k->obiekt;
     p->nl = (size_t)k->c;
     p->rozmiar = k1_kom_u64(k->a, k->b);
-    k1_log(TAG, "strefa %d: plik %u (%llu B) — okienko pulpitu", nr, p->id, (unsigned long long)p->rozmiar);
+    p->folder = K1_FOLDER_POBRANE;
+    if (k->d != 0 && !zmiana(p, (uint32_t)k->d)) {
+        memset(p, 0, sizeof p[0]);
+        k1_log(TAG, "strefa %d: plik %u — zmiana pliku, którego K1 tej strefie nie dał — odrzucona", nr, k->obiekt);
+        do_vmm(nr, k->obiekt, K1_PLIK_GOTOWE, K1_PS_W_BLAD);
+        return;
+    }
+    k1_log(TAG, "strefa %d: plik %u (%llu B)%s — okienko pulpitu", nr, p->id, (unsigned long long)p->rozmiar,
+           p->dotyczy ? ", zmieniona wersja" : "");
+    if (p->dotyczy) { /* the window shows the original's name */
+        int nfd = k1_memfd_z_danymi("k1-nazwa", p->nazwa, p->nl);
+        do_gui(k1_komunikat_nowy(K1_KOM_POBRANIE, (uint32_t)nr, (int32_t)p->id, k->a, k->b, (int32_t)p->nl, 1), nfd);
+        if (nfd >= 0)
+            close(nfd);
+        return;
+    }
     do_gui(k1_komunikat_nowy(K1_KOM_POBRANIE, (uint32_t)nr, (int32_t)p->id, k->a, k->b, k->c, 0), fd);
 }
 
 static int skarb_wyslij(struct pobranie *p, struct k1_komunikat k, int fd)
 {
-    if (k1_kanal_wyslij(pob_skarb, &k, sizeof k, fd) != 0) {
+    if (k1_kanal_wyslij(kanal(p), &k, sizeof k, fd) != 0) {
         koniec(p, K1_PS_W_BLAD, 1);
         return -1;
     }
@@ -114,7 +152,9 @@ static int skarb_wyslij(struct pobranie *p, struct k1_komunikat k, int fd)
 static void zacznij(struct pobranie *p)
 {
     p->zapis = 2;
-    if (pob_skarb < 0 && (pob_skarb = kanal_do_skarbca(K1_WL_POBRANIA, 0)) < 0) {
+    if (!p->dotyczy && pob_skarb < 0)
+        pob_skarb = kanal_do_skarbca(K1_WL_POBRANIA, 0);
+    if (kanal(p) < 0) {
         koniec(p, K1_PS_W_BLAD, 1);
         return;
     }
@@ -124,7 +164,7 @@ static void zacznij(struct pobranie *p)
             koniec(p, K1_PS_W_BLAD, 1);
             return;
         }
-        skarb_wyslij(p, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_POBRANE, K1_DOK_PLIK, (int32_t)p->nl, 0,
+        skarb_wyslij(p, k1_komunikat_nowy(K1_KOM_DOK_NOWY, p->folder, K1_DOK_PLIK, (int32_t)p->nl, 0,
                                           K1_POCH_STREFA_OD + p->strefa, 0), fd);
         close(fd);
         p->ostatni = 2; /* nothing more to write */
@@ -151,10 +191,11 @@ void pobranie_decyzja(const struct k1_komunikat *k)
     struct pobranie *p = znajdz((int)k->obiekt, (uint32_t)k->a);
     if (p == NULL || p->zapis != 0)
         return; /* the file ended meanwhile (its window went with POBRANIE_WYNIK) */
-    if (k->b == 0) {
+    if (k->b == K1_POB_ZOSTAW) {
         koniec(p, K1_PS_W_ZOSTAWIONY, 1);
         return;
     }
+    p->jako_nowy = k->b == K1_POB_JAKO_NOWY;
     if (p->rozmiar > K1_DOK_MAKS_BAJTY) {
         koniec(p, K1_PS_W_ZA_DUZY, 1);
         return;
@@ -185,7 +226,7 @@ static void kawalek(struct pobranie *p, const struct k1_komunikat *k, int fd)
         koniec(p, K1_PS_W_BLAD, 1);
         return;
     }
-    skarb_wyslij(p, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_POBRANE, K1_DOK_PLIK, (int32_t)p->nl, k->a,
+    skarb_wyslij(p, k1_komunikat_nowy(K1_KOM_DOK_NOWY, p->folder, K1_DOK_PLIK, (int32_t)p->nl, k->a,
                                       K1_POCH_STREFA_OD + p->strefa, !ostatni), nowy);
     close(nowy);
 }
@@ -211,7 +252,31 @@ void strefa_pliki_koniec(int nr)
 }
 
 /* skarbiec's answer on our channel. */
-static void wynik_skarbca(const struct k1_komunikat *k)
+/* "Zapisz" of a changed version, after the new file is written (its number p->nowy): the original into Kosz, then the
+ * new one gets its name (0.11.0 step 3). A failed step leaves both files (nothing is lost). 1: still going. */
+static int w_oryginale(struct pobranie *p, const struct k1_komunikat *k)
+{
+    int fd;
+    if (p->krok == 0) {
+        if (!p->dotyczy || p->jako_nowy || k->c < K1_DOK_PIERWSZY)
+            return 0;
+        p->nowy = (uint32_t)k->c, p->krok = 1;
+        skarb_wyslij(p, k1_komunikat_nowy(K1_KOM_DOK_KOSZ, p->orig, 0, 0, 0, 0, 0), -1);
+        return 1;
+    }
+    if (p->krok == 1 && k->b == 0 && (fd = k1_memfd_z_danymi("k1-nazwa", p->nazwa, p->nl)) >= 0) {
+        p->krok = 2;
+        skarb_wyslij(p, k1_komunikat_nowy(K1_KOM_DOK_NAZWA, p->nowy, (int32_t)p->nl, 0, 0, 0, 0), fd);
+        close(fd);
+        return 1;
+    }
+    if (k->b != 0)
+        k1_log(TAG, "strefa %d: plik %u — nowa wersja obok oryginału (krok %d: %d)", p->strefa, p->id, p->krok, k->b);
+    strefa_powiazanie_nowe_id(p->strefa, p->dotyczy, p->nowy); /* the next change goes to the new version */
+    return 0;
+}
+
+void pobranie_wynik_skarbca(const struct k1_komunikat *k)
 {
     struct pobranie *p = NULL;
     for (int i = 0; i < CZEKA_MAKS; i++)
@@ -220,18 +285,32 @@ static void wynik_skarbca(const struct k1_komunikat *k)
     if (p == NULL)
         return; /* the answer to an abandonment */
     p->skarb_czeka = 0;
+    if (p->krok > 0) {
+        if (!w_oryginale(p, k))
+            koniec(p, K1_PS_W_ZAPISANY, 1);
+        return;
+    }
     if (k->b != 0) {
         koniec(p, k->b == K1_DOK_BLAD_BRAK_MIEJSCA ? K1_PS_W_MIEJSCE : K1_PS_W_BLAD, 1);
         return;
     }
     if (k->a == K1_KOM_DOK_KONIEC || (k->a == K1_KOM_DOK_NOWY && p->ostatni && p->nastepny <= 1) || p->ostatni == 2) {
-        koniec(p, K1_PS_W_ZAPISANY, 1); /* the entry is written: the file is in Pobrane */
+        if (!w_oryginale(p, k))
+            koniec(p, K1_PS_W_ZAPISANY, 1); /* the entry is written: the file is in Pobrane (or next to its original) */
         return;
     }
     if (p->ostatni) /* the last piece is in: the entry now */
         skarb_wyslij(p, k1_komunikat_nowy(K1_KOM_DOK_KONIEC, 0, 0, 0, 0, 0, 0), -1);
     else
         do_vmm(p->strefa, p->id, K1_PLIK_DALEJ, 0);
+}
+
+/* The channel K1_WL_DO_STREF closed (strefy_do.c): a changed version being written ends. */
+void pobranie_skarb_koniec(void)
+{
+    for (int j = 0; j < CZEKA_MAKS; j++)
+        if (pob[j].zapis == 2 && pob[j].dotyczy)
+            koniec(&pob[j], K1_PS_W_BLAD, 1);
 }
 
 void obsluz_pobrania_skarb(void)
@@ -253,6 +332,6 @@ void obsluz_pobrania_skarb(void)
             return;
         }
         if (w == K1_ODB_JEST && k.typ == K1_KOM_DOK_WYNIK)
-            wynik_skarbca(&k);
+            pobranie_wynik_skarbca(&k);
     }
 }

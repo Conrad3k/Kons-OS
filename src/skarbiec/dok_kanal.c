@@ -20,22 +20,24 @@ enum {
     P_WYBIERZ = 1 << 11, P_WYBRANO = 1 << 12, P_WSZYSTKO = (1 << 11) - 1, /* all but the file picker's */
     P_POCHODZENIE = 1 << 13, /* a new file with an origin other than K1: an import from a USB stick (ADR 0031), and
                               * the time it came with (DOK_CZAS, 0.8.2) */
+    P_STREFA = 1 << 14,      /* "Wyślij do…", "Otwórz w…" a session of the browser (DOK_DO_STREFY; 0.11.0 step 3) */
 };
 /* Which entries the client sees: all (with Kosz), the Pulpit folder, the visible ones (no Kosz), its own files
  * (made by it) and the files it was given (ADR 0030), or the pictures of the folders of the files it was given
  * (0.8.2 step 4, Podgląd: ← / → through a folder; ADR 0037). */
 enum { Z_WSZYSTKO = 1, Z_PULPIT, Z_WIDOCZNE, Z_WLASNE, Z_OBRAZY_FOLDERU,
-       Z_POBRANE }; /* 0.11.0 step 2: nothing to see — only a new file from a zone, into Pobrane (ADR 0052) */
+       Z_POBRANE, /* 0.11.0 step 2: nothing to see — only a new file from a zone, into Pobrane (ADR 0052) */
+       Z_STREFA }; /* step 3: the files given to the zones (DOK_DO_STREFY), new ones of a zone next to them */
 
 /* The table of rights: a client not listed may do nothing with files. */
 static const struct prawa {
     int wlasciciel, prawa, zakres;
     const char *folder; /* Z_WLASNE: its folder in Dokumenty, where its new files go */
 } prawa[] = {
-    { K1_PROFIL_PLIKI, P_WSZYSTKO | P_POCHODZENIE, Z_WSZYSTKO, NULL },
+    { K1_PROFIL_PLIKI, P_WSZYSTKO | P_POCHODZENIE | P_STREFA, Z_WSZYSTKO, NULL },
     /* the desktop: the files of the Pulpit folder (names, to draw them), into its folders (dropped on one, 0.8.2 step 6)
      * and Kosz — no content */
-    { K1_PROFIL_GUI, P_LISTA | P_PRZENIES | P_KOSZ | P_OPROZNIJ | P_OTWORZ, Z_PULPIT, NULL },
+    { K1_PROFIL_GUI, P_LISTA | P_PRZENIES | P_KOSZ | P_OPROZNIJ | P_OTWORZ | P_STREFA, Z_PULPIT, NULL },
     /* Notatki: its notes and the text files the user opened in it; Kosz only for its own */
     { K1_PROFIL_NOTATKI, P_LISTA | P_CZYTAJ | P_NOWY | P_ZAPISZ | P_NAZWA | P_KOSZ | P_WYBIERZ, Z_WLASNE, "Notatki" },
     /* the file picker: names to choose from (no content), the user's choice */
@@ -45,6 +47,10 @@ static const struct prawa {
     /* nadzorca's channel for a file from a zone the user chose to save (0.11.0 step 2, ADR 0052): a new file in Pobrane with
      * the zone's origin — it reads, lists and changes nothing */
     { K1_WL_POBRANIA, P_NOWY | P_POCHODZENIE, Z_POBRANE, NULL },
+    /* nadzorca's channel for files sent to a zone (0.11.0 step 3): read a file the user gave a zone; a changed version
+     * from the zone as a new file next to it (the zone's origin), the old one into Kosz and the new one its name
+     * ("Zapisać zmiany w oryginale?" — after the user's yes in K1's window) — nothing else */
+    { K1_WL_DO_STREF, P_CZYTAJ | P_NOWY | P_POCHODZENIE | P_KOSZ | P_NAZWA, Z_STREFA, NULL },
 };
 
 static uint8_t lista[K1_DOK_LISTA_MAKS];
@@ -150,6 +156,11 @@ static int zaden(const struct k1_dok_wpis *w)
     return 0;
 }
 
+static int dane_strefom(const struct k1_dok_wpis *w)
+{
+    return w->rodzaj == K1_DOK_PLIK && dok_widoczny(w->id) && dostep_ma(wl_filtra, w->id);
+}
+
 static int obrazy_folderu(const struct k1_dok_wpis *w)
 {
     return w->rodzaj == K1_DOK_PLIK && k1_typ_rodzina(w->typ) == K1_RODZINA_OBRAZY && dok_widoczny(w->id) &&
@@ -158,7 +169,7 @@ static int obrazy_folderu(const struct k1_dok_wpis *w)
 
 static int (*const filtry[])(const struct k1_dok_wpis *) = {
     [Z_WSZYSTKO] = dla_plikow, [Z_PULPIT] = dla_pulpitu, [Z_WIDOCZNE] = widoczny, [Z_WLASNE] = dla_wlasnych,
-    [Z_OBRAZY_FOLDERU] = obrazy_folderu, [Z_POBRANE] = zaden
+    [Z_OBRAZY_FOLDERU] = obrazy_folderu, [Z_POBRANE] = zaden, [Z_STREFA] = dane_strefom
 };
 
 static int w_zakresie(const struct prawa *p, uint32_t id)
@@ -255,7 +266,7 @@ static int pierwszy(struct dok_zapis *z, int fd_in, size_t od, size_t dl)
 /* Who made a new file: the client — a file from a zone: the zone (its VMM's profile, 0.11.0 step 2). */
 static int tworca(const struct prawa *p, int pochodzenie)
 {
-    return p->zakres == Z_POBRANE ? k1_strefa(k1_poch_strefy(pochodzenie))->profil : p->wlasciciel;
+    return p->zakres == Z_POBRANE || p->zakres == Z_STREFA ? k1_strefa(k1_poch_strefy(pochodzenie))->profil : p->wlasciciel;
 }
 
 /* NOWY: obiekt=folder, a=kind, b=name length, c=content length, e=1 more pieces follow (a write in progress). A client
@@ -374,6 +385,7 @@ static int potrzebne_prawo(const struct k1_komunikat *m)
     case K1_KOM_DOK_WYBIERZ: return P_WYBIERZ;
     case K1_KOM_DOK_KAWALEK:
     case K1_KOM_DOK_KONIEC: return 0; /* the rights were checked when the write started (NOWY, ZAPISZ) */
+    case K1_KOM_DOK_DO_STREFY: return P_STREFA;
     case K1_KOM_DOK_CZAS: return P_POCHODZENIE;
     default: return P_WYBRANO;
     }
@@ -383,8 +395,11 @@ static int potrzebne_prawo(const struct k1_komunikat *m)
 static int widzi(const struct prawa *p, const struct k1_komunikat *m)
 {
     const struct k1_dok_wpis *w = dok_wpis(m->obiekt);
-    if (m->typ == K1_KOM_DOK_NOWY && (p->zakres == Z_POBRANE) != (k1_poch_strefy(m->d) != 0))
-        return 0; /* the origin of a zone only from nadzorca's channel for it (ADR 0052), and only that from it */
+    int strefowy = p->zakres == Z_POBRANE || p->zakres == Z_STREFA;
+    if (m->typ == K1_KOM_DOK_NOWY && strefowy != (k1_poch_strefy(m->d) != 0))
+        return 0; /* the origin of a zone only from nadzorca's channels for them (ADR 0052), and only that from them */
+    if (p->zakres == Z_STREFA && m->typ == K1_KOM_DOK_NOWY) /* a changed version: next to a file given to a zone */
+        return m->a == K1_DOK_PLIK && dostep_folder(p->wlasciciel, m->obiekt);
     if (p->zakres == Z_POBRANE)
         return m->typ == K1_KOM_DOK_KAWALEK || m->typ == K1_KOM_DOK_KONIEC ||
                (m->typ == K1_KOM_DOK_NOWY && m->obiekt == K1_FOLDER_POBRANE && m->a == K1_DOK_PLIK);
@@ -440,6 +455,10 @@ int dok_obsluz(int fd, int wl, const struct k1_komunikat *m, int fd_in)
     } else if (m->typ == K1_KOM_DOK_CZYTAJ) {
         wyslij_tresc(fd, m->obiekt, (uint32_t)m->b, (uint64_t)m->a);
         r = 1;
+    } else if (m->typ == K1_KOM_DOK_DO_STREFY) { /* 0.11.0 step 3: dostep.c */
+        r = dostep_do_strefy(m->obiekt, m->a, m->b);
+        wynik(fd, m->obiekt, m->typ, r, 0);
+        r = 1;
     } else if (m->typ >= K1_KOM_DOK_OTWORZ && m->typ <= K1_KOM_DOK_WYBRANO) {
         r = wybor(fd, p, m);
         if (r != 0 || m->typ != K1_KOM_DOK_WYBIERZ) /* WYBIERZ: the answer is DOK_WYBRANY, later */
@@ -449,6 +468,8 @@ int dok_obsluz(int fd, int wl, const struct k1_komunikat *m, int fd_in)
         r = 1; /* no file changed */
     } else {
         r = zmiana(fd, p, m, fd_in, &nowy_id);
+        if (r == 0 && nowy_id != 0 && p->zakres == Z_STREFA)
+            dostep_daj(p->wlasciciel, nowy_id); /* the new version: its name next (DOK_NAZWA, "Zapisz") */
         wynik(fd, m->obiekt, m->typ, r, r == 0 ? nowy_id : 0);
         if (r != 0)
             k1_log(TAG, "pliki: komunikat %d (właściciel %d): %s", m->typ, wl, r <= K1_DOK_BLAD_NAZWA ? "odmowa" : k1_mag_opis(r));

@@ -380,6 +380,10 @@ znak A**, okno 720 × 520 (D2) i Instalator tylko do instalacji (D3).
   Plik za duży (> 4 GB): „Jest za duży dla Plików (najwyżej 4 GB).” / „Plik zostaje w przeglądarce.”, tylko „OK”.
   Nie zapisano: „… · nie zapisano pliku”, powód („Za mało miejsca na dysku.”, „Zapis się nie udał.”), „OK”.
 - D3 „A”: w Plikach pochodzenie tylko w szczegółach pliku („z przeglądarki · Ogólna”), bez znaku na ikonie.
+- Krok 3 (D4 „A”): to samo okienko dla zmienionej wersji — „<sesja> zmieniła plik”, nazwa oryginału, „Zapisać zmiany
+  w oryginale?”, „„Zapisz”: poprzednia wersja trafi do Kosza.”, trzy przyciski: „Zapisz” (główny), „Zapisz jako nowy plik”,
+  „Nie” (ciche). Menu pliku: „Wyślij do” ze strzałką podmenu (sesje „Przeglądarka · Ogólna”…), w „Otwórz za pomocą” sesje
+  pod kreską po aplikacjach K1.
 
 ## Ustawienia → Ekran (M4.1; 0.10.7 krok 2)
 Rozdzielczości jako przyciski 152 × 36 **w rzędach po 3, od największej** (odstęp 12 i 8): wybrana — wypełnienie

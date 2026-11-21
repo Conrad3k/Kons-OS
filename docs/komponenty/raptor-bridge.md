@@ -60,7 +60,7 @@ VMM nie otwiera gniazd (klatka: `shutdown`, `getsockopt SO_ERROR` — nic więce
 |---|---|---|
 | vsock port 1 | gość ↔ VMM | kanał sterujący (`strefa.md`; od 0.11.0 także „pelny 1/0” — pełny ekran), nie część mostu |
 | vsock port 2 | gość → VMM | połączenia mostu, do 128 naraz (`K1_STREFA_POLACZENIA_MAKS`), kredyt 64 KiB (`POL_BUFOR`) |
-| vsock port 3 (0.11.0 krok 2, ADR 0052) | gość ↔ VMM | **port plików**, nie część mostu: jedno połączenie agenta strefy, ramki `k1_pliki_strefy.h` (zgłoszenie pliku, bajty po zgodzie, wynik), kredyt 64 KiB (`K1_PS_BUFOR`) — `strefa.md`, „Droga plików” |
+| vsock port 3 (0.11.0 kroki 2, 3, ADR 0052) | gość ↔ VMM | **port plików**, nie część mostu: jedno połączenie agenta strefy, ramki `k1_pliki_strefy.h` (zgłoszenie pliku, bajty po zgodzie, wynik; od kroku 3 też plik z K1 do „Z K1” i jego zmieniona wersja), kredyt 64 KiB (`K1_PS_BUFOR`) — `strefa.md`, „Droga plików” |
 | `STREFA_POLACZ` | VMM → nadzorca (fd 7) | obiekt = miejsce 1…128; TCP: a = adres, b = port, c = `K1_STREFA_TCP`; DNS: c = `K1_STREFA_DNS`; pobieranie: c = `K1_STREFA_POBRANE` |
 | `STREFA_GNIAZDO` | nadzorca → VMM (+ deskryptor) | obiekt = miejsce, a = rodzaj (TCP, DNS, POBRANE) |
 | `STREFA_ODMOWA` | nadzorca → VMM | obiekt = miejsce, a = `K1_STREFA_ODM_*` (adres poza D3 → SOCKS 2, brak sieci → 3, limit, błąd → 1) |

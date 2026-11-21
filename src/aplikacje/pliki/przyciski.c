@@ -102,6 +102,17 @@ void otworz_w(int a)
     do_skarbca(K1_KOM_DOK_OTWORZ, zaznaczony, a);
 }
 
+/* 0.11.0 step 3 (ADR 0052, D4: A): a copy of the selected file to the session of zone `strefa` ("Wyślij do"), opened
+ * in a new tab ("Otwórz za pomocą"); skarbiec lets nadzorca read it, nadzorca opens a closed session. */
+void do_sesji(int strefa, int otworz)
+{
+    struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_DOK_DO_STREFY, zaznaczony, strefa, otworz, 0, 0, 0);
+    if (zaznaczony == 0)
+        return;
+    k1_log(TAG, "plik do sesji %d (%s)", strefa, otworz ? "otwórz" : "wyślij");
+    do_skarbca_z_fd(m, -1);
+}
+
 void zacznij_edycje(void)
 {
     const struct k1_dok_wpis *w = wpis(zaznaczony);

@@ -19,7 +19,7 @@ int k1_kom_sprawdz_pobrane(const struct k1_komunikat *k, enum k1_kanal_kierunek 
     switch (k->typ) {
     case K1_KOM_STREFA_PLIK:
         return kier == K1_KIER_DO_NADZORCY && plik(k->obiekt) && rozmiar(k->a, k->b) && w(k->c, 1, K1_DOK_NAZWA - 1) &&
-               zera(k, 3);
+               (k->d == 0 || plik((uint32_t)k->d)) && k->e == 0;
     case K1_KOM_STREFA_PLIK_KAWALEK:
         return kier == K1_KIER_DO_NADZORCY && plik(k->obiekt) && w(k->a, 1, (int32_t)K1_DOK_KAWALEK) &&
                w(k->b, 0, (int32_t)K1_DOK_KAWALKI_MAKS - 1) && w(k->c, 0, 1) && (k->c == 1 || k->a == (int32_t)K1_DOK_KAWALEK) &&
@@ -32,10 +32,25 @@ int k1_kom_sprawdz_pobrane(const struct k1_komunikat *k, enum k1_kanal_kierunek 
                w(k->b, 0, k->a == K1_PLIK_GOTOWE ? K1_PS_W_MAKS : 0) && zera(k, 2);
     case K1_KOM_POBRANIE:
         return kier == K1_KIER_OD_NADZORCY && w((int32_t)k->obiekt, 1, K1_STREFY_MAKS) && plik((uint32_t)k->a) &&
-               k->a > 0 && rozmiar(k->b, k->c) && w(k->d, 1, K1_DOK_NAZWA - 1) && k->e == 0;
+               k->a > 0 && rozmiar(k->b, k->c) && w(k->d, 1, K1_DOK_NAZWA - 1) && w(k->e, 0, 1);
     case K1_KOM_POBRANIE_DECYZJA:
-        return kier == K1_KIER_DO_NADZORCY && w((int32_t)k->obiekt, 1, K1_STREFY_MAKS) && k->a > 0 && w(k->b, 0, 1) &&
-               zera(k, 2);
+        return kier == K1_KIER_DO_NADZORCY && w((int32_t)k->obiekt, 1, K1_STREFY_MAKS) && k->a > 0 &&
+               w(k->b, K1_POB_ZOSTAW, K1_POB_JAKO_NOWY) && zera(k, 2);
+    case K1_KOM_DOK_DO_STREFY:
+        return kier == K1_KIER_DO_SKARBCA && k->obiekt >= K1_DOK_PIERWSZY && k->obiekt <= K1_DOK_ID_MAKS &&
+               w(k->a, 1, K1_STREFY_MAKS) && w(k->b, 0, 1) && zera(k, 2);
+    case K1_KOM_SKARB_DO_STREFY:
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt >= K1_DOK_PIERWSZY && k->obiekt <= K1_DOK_ID_MAKS &&
+               w(k->a, 1, K1_STREFY_MAKS) && w(k->b, 0, 1) && zera(k, 2);
+    case K1_KOM_STREFA_DO_PLIK:
+        return kier == K1_KIER_OD_NADZORCY && plik(k->obiekt) && k1_kom_u64(k->a, k->b) <= K1_DOK_MAKS_BAJTY &&
+               w(k->c, 1, K1_DOK_NAZWA - 1) && w(k->d, 0, 1) && k->e == 0;
+    case K1_KOM_STREFA_DO_KAWALEK:
+        return kier == K1_KIER_OD_NADZORCY && plik(k->obiekt) && w(k->a, 1, (int32_t)K1_DOK_KAWALEK) &&
+               w(k->b, 0, (int32_t)K1_DOK_KAWALKI_MAKS - 1) && zera(k, 2);
+    case K1_KOM_STREFA_DO_ODP:
+        return kier == K1_KIER_DO_NADZORCY && plik(k->obiekt) && w(k->a, K1_PLIK_DALEJ, K1_PLIK_GOTOWE) &&
+               w(k->b, 0, k->a == K1_PLIK_GOTOWE ? 1 : 0) && zera(k, 2);
     case K1_KOM_POBRANIE_WYNIK:
         return kier == K1_KIER_OD_NADZORCY && w((int32_t)k->obiekt, 1, K1_STREFY_MAKS) && k->a > 0 &&
                w(k->b, 0, K1_PS_W_MAKS) && zera(k, 2);

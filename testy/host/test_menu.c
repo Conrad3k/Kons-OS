@@ -34,7 +34,8 @@ static void t_typy(void)
         for (int gdzie = K1_MM_PLIKI; gdzie <= K1_MM_PULPIT; gdzie++) {
             k1_menu_pliku(&m, (enum k1_menu_miejsce)gdzie, 0, typ);
             EXPECT(wiersz(&m, K1_MA_OTWORZ) == 0 && m.p[0].mocna);
-            EXPECT(czynne(&m, K1_MA_OTWORZ) == ma && czynne(&m, K1_MA_ZA_POMOCA) == ma);
+            EXPECT(czynne(&m, K1_MA_OTWORZ) == ma && czynne(&m, K1_MA_ZA_POMOCA)); /* 0.11.0: the sessions open any type */
+            EXPECT(czynne(&m, K1_MA_WYSLIJ_DO) && m.p[wiersz(&m, K1_MA_WYSLIJ_DO)].podmenu);
             EXPECT(wiersz(&m, K1_MA_ZA_POMOCA) == 1 && m.p[1].podmenu);
             EXPECT(ma || (m.p[0].podpowiedz != NULL && strstr(m.p[0].podpowiedz, "nie ma jeszcze aplikacji") != NULL));
             EXPECT(czynne(&m, K1_MA_NAZWA) && czynne(&m, K1_MA_USUN));
@@ -48,7 +49,7 @@ static void t_typy(void)
     k1_menu_pliku(&m, K1_MM_PLIKI, 0, K1_TYP_WEBP);
     EXPECT(czynne(&m, K1_MA_OTWORZ));
     k1_menu_pliku(&m, K1_MM_PULPIT, 0, K1_TYP_ZIP);
-    EXPECT(!czynne(&m, K1_MA_OTWORZ) && !czynne(&m, K1_MA_ZA_POMOCA) && czynne(&m, K1_MA_POKAZ));
+    EXPECT(!czynne(&m, K1_MA_OTWORZ) && czynne(&m, K1_MA_ZA_POMOCA) && czynne(&m, K1_MA_POKAZ));
 }
 
 static void t_miejsca(void)
@@ -64,6 +65,7 @@ static void t_miejsca(void)
     EXPECT(czynne(&m, K1_MA_IMPORTUJ) && m.n == 3);
     k1_menu_pliku(&m, K1_MM_PLIKI, 1, 0); /* a folder: into it, no applications */
     EXPECT(czynne(&m, K1_MA_OTWORZ) && wiersz(&m, K1_MA_ZA_POMOCA) < 0 && czynne(&m, K1_MA_NAZWA) && czynne(&m, K1_MA_USUN));
+    EXPECT(wiersz(&m, K1_MA_WYSLIJ_DO) < 0); /* a folder does not go to a session */
     k1_menu_pliku(&m, K1_MM_PULPIT, 1, 0);
     EXPECT(wiersz(&m, K1_MA_POKAZ) >= 0 && wiersz(&m, K1_MA_ZA_POMOCA) < 0);
     k1_menu_pliku(&m, K1_MM_KOSZ, 0, K1_TYP_TEKST); /* Kosz: back, or for good */
@@ -86,13 +88,20 @@ static void t_za_pomoca(void)
     EXPECT(k1_dok_czym_otworzyc(K1_TYP_JPEG, K1_APL_NOTATKI) == K1_APL_PODGLAD); /* Notatki does not open pictures */
     EXPECT(k1_dok_czym_otworzyc(K1_TYP_PDF, K1_APL_PLIKI) == 0 && k1_dok_czym_otworzyc(K1_TYP_INNY, 0) == 0);
     EXPECT(k1_dok_czym_otworzyc(0, K1_APL_NOTATKI) == 0 && k1_dok_czym_otworzyc(K1_TYPY_MAKS + 1, K1_APL_PLIKI) == 0);
-    k1_menu_za_pomoca(&m, K1_TYP_TEKST, K1_APL_PLIKI, 0);
-    EXPECT(m.n == 1 && m.p[0].akcja == K1_MA_APLIKACJA && m.p[0].arg == K1_APL_NOTATKI && m.p[0].zaznaczona);
-    EXPECT(strcmp(m.p[0].tekst, "Notatki") == 0 && wiersz(&m, K1_MA_ZAWSZE) < 0);
+    k1_menu_za_pomoca(&m, K1_TYP_TEKST, K1_APL_PLIKI, 0); /* Notatki, a hairline, the three sessions (0.11.0 step 3) */
+    EXPECT(m.n == 5 && m.p[0].akcja == K1_MA_APLIKACJA && m.p[0].arg == K1_APL_NOTATKI && m.p[0].zaznaczona);
+    EXPECT(strcmp(m.p[0].tekst, "Notatki") == 0 && wiersz(&m, K1_MA_ZAWSZE) < 0 && m.p[1].styl == K1_MS_KRESKA);
+    EXPECT(m.p[2].akcja == K1_MA_W_SESJI && m.p[2].arg == K1_STREFA_OGOLNA && strcmp(m.p[2].tekst, "Przeglądarka · Ogólna") == 0);
+    EXPECT(m.p[3].arg == K1_STREFA_BANK && m.p[4].arg == K1_STREFA_PRYWATNA && czynne(&m, K1_MA_W_SESJI));
     k1_menu_za_pomoca(&m, K1_TYP_PNG, K1_APL_PODGLAD, 0);
-    EXPECT(m.n == 1 && m.p[0].arg == K1_APL_PODGLAD && strcmp(m.p[0].tekst, "Podgląd") == 0);
-    k1_menu_za_pomoca(&m, K1_TYP_PDF, K1_APL_PLIKI, 0);
-    EXPECT(m.n == 0);
+    EXPECT(m.n == 5 && m.p[0].arg == K1_APL_PODGLAD && strcmp(m.p[0].tekst, "Podgląd") == 0);
+    k1_menu_za_pomoca(&m, K1_TYP_PDF, K1_APL_PLIKI, 0); /* no application of K1: the sessions only */
+    EXPECT(m.n == 3 && m.p[0].akcja == K1_MA_W_SESJI);
+    k1_menu_podmenu(&m, K1_MA_WYSLIJ_DO, K1_TYP_PDF, K1_APL_PLIKI, 0); /* "Wyślij do": the sessions, not the test zone */
+    EXPECT(m.n == 3 && m.p[0].akcja == K1_MA_DO_SESJI && m.p[0].arg == K1_STREFA_OGOLNA && wiersz(&m, K1_MA_APLIKACJA) < 0);
+    for (int i = 0; i < m.n; i++)
+        EXPECT(m.p[i].arg != K1_STREFA_PROBNA && m.p[i].arg != K1_STREFA_POBIERANIE);
+    EXPECT(k1_menu_wys(&m) <= K1_MENU_WYS_MAKS);
     for (int t = 1; t <= K1_TYPY_MAKS; t++) { /* never Pliki itself */
         k1_menu_za_pomoca(&m, t, K1_APL_PLIKI, 0);
         for (int i = 0; i < m.n; i++)
@@ -151,17 +160,17 @@ static void t_uklad(void)
     int32_t x, y, px, py;
     char opis[400];
     k1_menu_pliku(&m, K1_MM_PULPIT, 0, K1_TYP_TEKST);
-    EXPECT(k1_menu_wys(&m) == 6 + 5 * K1_MENU_WIERSZ + K1_MENU_KRESKA + 6 && k1_menu_wys(&m) <= K1_MENU_WYS_MAKS);
+    EXPECT(k1_menu_wys(&m) == 6 + 6 * K1_MENU_WIERSZ + K1_MENU_KRESKA + 6 && k1_menu_wys(&m) <= K1_MENU_WYS_MAKS); /* + Wyślij do */
     /* rows: the one under a point; not the hairline */
     EXPECT(k1_menu_pod(&m, 50, k1_menu_y(&m, 0) + 2) == 0 && k1_menu_pod(&m, 50, k1_menu_y(&m, 2) + 10) == 2);
-    EXPECT(k1_menu_pod(&m, 50, k1_menu_y(&m, 3) + 2) == -1 && k1_menu_pod(&m, 2, k1_menu_y(&m, 0) + 2) == -1);
+    EXPECT(k1_menu_pod(&m, 50, k1_menu_y(&m, 4) + 2) == -1 && k1_menu_pod(&m, 2, k1_menu_y(&m, 0) + 2) == -1);
     EXPECT(k1_menu_pod(&m, K1_MENU_SZER - 3, k1_menu_y(&m, 0) + 2) == -1 && k1_menu_pod(&m, 50, -5) == -1);
     k1_menu_opis(&m, 100, 200, opis, sizeof opis);
     EXPECT(strncmp(opis, "Otwórz 216,", 12) == 0 && strstr(opis, "; Usuń 216,") != NULL && strstr(opis, "Pokaż w Plikach") != NULL);
     k1_menu_pliku(&m, K1_MM_PLIKI, 0, K1_TYP_PDF); /* muted rows are not clicked and not logged */
-    EXPECT(k1_menu_pod(&m, 50, k1_menu_y(&m, 0) + 2) == -1 && k1_menu_pod(&m, 50, k1_menu_y(&m, 1) + 2) == -1);
+    EXPECT(k1_menu_pod(&m, 50, k1_menu_y(&m, 0) + 2) == -1 && k1_menu_pod(&m, 50, k1_menu_y(&m, 1) + 2) == 1);
     k1_menu_opis(&m, 0, 0, opis, sizeof opis);
-    EXPECT(strstr(opis, "Otwórz") == NULL && strncmp(opis, "Zmień nazwę ", 13) == 0);
+    EXPECT(strncmp(opis, "Otwórz za pomocą ", 18) == 0 && strstr(opis, "Otwórz ") == opis && strstr(opis, "Wyślij do ") != NULL);
     k1_menu_opis(&m, 0, 0, opis, 8); /* too small: cut at a whole row (here none) */
     EXPECT(opis[0] == '\0');
     /* at the pointer; to the left of it / above it near the edges */
