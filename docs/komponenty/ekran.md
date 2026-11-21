@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M2–M4) — `scripts/test-m4.sh` (zrzuty), testy w systemie (klatka, złośliwe IPC, restart) |
-| **Kod** | `src/ekran/main.c` (start, kanał sterujący, pętla, zmiana trybu), `scena.c` (składanie, wyjście), `okna.c` (klienci, okna, fokus, komunikaty), `powierzchnie.c` (pamięć, nowa powierzchnia, zatwierdzanie; 0.9.0; od 0.10.5 krok 4 zamiana powierzchni okna strefy w nowym rozmiarze), `rozmiar.c` (0.10.5 krok 4: zmiana rozmiaru i maksymalizacja okna strefy, obszar roboczy, zapamiętany rozmiar sesji), `wskaznik.c` (mysz, klawiatura), `drm.c` (KMS, lista trybów), renderer `src/grafika/k1_grafika.c`, protokoły `src/wspolne/k1_zdarzenie.c`, `k1_komunikat.c` |
+| **Kod** | `src/ekran/main.c` (start, kanał sterujący, pętla, zmiana trybu), `scena.c` (składanie, wyjście), `okna.c` (klienci, okna, fokus, komunikaty), `pelny.c` (pełny ekran okna strefy, 0.11.0), `powierzchnie.c` (pamięć, nowa powierzchnia, zatwierdzanie; 0.9.0; od 0.10.5 krok 4 zamiana powierzchni okna strefy w nowym rozmiarze), `rozmiar.c` (0.10.5 krok 4: zmiana rozmiaru i maksymalizacja okna strefy, obszar roboczy, zapamiętany rozmiar sesji), `wskaznik.c` (mysz, klawiatura), `drm.c` (KMS, lista trybów), renderer `src/grafika/k1_grafika.c`, protokoły `src/wspolne/k1_zdarzenie.c`, `k1_komunikat.c` |
 | **Decyzje** | ADR 0006, ADR 0007 (klatka, kanały), ADR 0008 (okna), ADR 0010 (simpledrm), ADR 0012 (przegląd, tryby); wygląd: `docs/WYGLAD.md` |
 
 ## Cel
@@ -75,6 +75,7 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `ZATWIERDZ` | klient → ekran | właściciel powierzchni | gotowa połowa bufora i zmieniony prostokąt; okno strefy wraca nim do własnych pikseli (0.10.11) |
 | `STREFA_BUFOR` (0.10.11 krok 2, ADR 0051) | strefa (VMM) → ekran | rola `STREFA`, jej okno | bufor karty przeglądarki: `a` = numer 1…`K1_STREFA_BUFORY` (4), `b`, `c` = szerokość, wysokość, `d` = bajty wiersza (≥ 4·`b`, wielokrotność 4), `e` = początek obrazu w buforze (wielokrotność 4); + dma-buf (w teście memfd silnika testowego pośrednika). Ekran sprawdza rozmiar bufora (`lseek`), mapuje tylko do odczytu część z obrazem; numer zastępuje wcześniejszy bufor o tym numerze |
 | `STREFA_OBRAZ` (0.10.11 krok 2) | strefa (VMM) → ekran | rola `STREFA`, jej okno | okno pokazuje bufor `a` (wysłany wcześniej, nie większy niż okno), `b`…`e` = zmieniony prostokąt (`d` = `e` = 0: całość); `RAMKA` jak po `ZATWIERDZ` |
+| `PELNY_EKRAN` (0.11.0 krok 1, D1) | strefa (VMM) → ekran | rola `STREFA`, jej okno | `a` = 1: gość prosi o **pełny ekran** (F11, film „na cały ekran”), `a` = 0: wyszedł z niego sam (Esc); reszta 0. Ekran zgadza się tylko dla okna z fokusem i tylko w `GEST_S` (10 s) po geście użytkownika w tym oknie (wciśnięcie przycisku albo klawisz, które ekran temu oknu dał); po wejściu gest się zużywa. Odmowa — tylko wpis w logu (strefa nie dostaje odpowiedzi); zgoda — `ROZMIAR` z `c` = `K1_ROZMIAR_PELNY` |
 | `POKAZ` | klient → ekran | powłoka, logowanie | pokaż / ukryj panel |
 | `PRZESUN` | klient → ekran | powłoka, logowanie | nowe położenie panelu |
 | `PRZECIAGNIJ` | klient → ekran | właściciel okna | zacznij przesuwać okno wciśniętym przyciskiem myszy |
@@ -92,7 +93,7 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `FOKUS` | ekran → klient | — | okno dostało / straciło klawiaturę |
 | `RAMKA` | ekran → klient | — | ostatnie zatwierdzenie jest na ekranie, można rysować drugą połowę |
 | `ZAMKNIJ` | ekran → aplikacja | — | zamknij to okno — jak przycisk × (0.7.5; Notatki najpierw zapisują) |
-| `ROZMIAR` (0.10.5 krok 4) | ekran → strefa (VMM) | — | nowy rozmiar obrazu okna strefy po geście użytkownika na ramce K1: `a` = szerokość `K1_OKNO_MIN_SZER`…`K1_POW_MAKS_BOK`, wielokrotność 8, `b` = wysokość `K1_OKNO_MIN_WYS`…`K1_POW_MAKS_BOK`, `c` = 1 zmaksymalizowane, reszta 0; strefa odpowiada `POWIERZCHNIA` z `e` = 1 dokładnie w tym rozmiarze |
+| `ROZMIAR` (0.10.5 krok 4) | ekran → strefa (VMM) | — | nowy rozmiar obrazu okna strefy po geście użytkownika na ramce K1: `a` = szerokość `K1_OKNO_MIN_SZER`…`K1_POW_MAKS_BOK` (do 0.11.0 wielokrotność 8; od 0.11.0 dowolna — tryb gościa z EDID od VMM), `b` = wysokość `K1_OKNO_MIN_WYS`…`K1_POW_MAKS_BOK`, `c` = `K1_ROZMIAR_*`: 0 zwykłe, 1 zmaksymalizowane, 2 pełny ekran (0.11.0: cały ekran, bez ramki K1), reszta 0; strefa odpowiada `POWIERZCHNIA` z `e` = 1 dokładnie w tym rozmiarze. VMM, którego gość jest w pełnym ekranie, a dostaje `c` ≠ 2, mówi gościowi „pelny 0” (K1 zakończył pełny ekran) |
 | `OKNO` | ekran → powłoka | — | okno aplikacji powstało / zmieniło stan / zniknęło (dolny pasek); okno strefy (0.10.0): `a` = 0, `c` = numer strefy |
 | `USTAWIENIE` | ekran → wszyscy | — | nowa wartość ustawienia (motyw, tapeta, mysz, sekundy, rozdzielczość, czy jest zdjęcie na tapetę, domyślne aplikacje) |
 | `TRYB` | ekran → Ustawienia | — | jeden z trybów ekranu (rozmiar, Hz, czy zalecany) |
@@ -122,20 +123,40 @@ maksymalizuj X,Y, zamknij X,Y)` (testy klikają według niego). Do 0.10.0 krok 2
 ramce K1: **chwyty** brzegów (6 px: 3 w obwódce, 3 na zewnątrz) i rogów (16 px wzdłuż brzegu od rogu) — kursor zmienia się
 w podwójną strzałkę (↔, ↕, dwie ukośne; `k1_rysuj_kursor_rozmiar`, gorący punkt na środku); w trakcie ciągnięcia **zarys**
 w kolorze strefy z wymiarami „W × H” (rysowany na wierzchu sceny), okno się nie zmienia; po puszczeniu ekran wysyła strefie
-**`ROZMIAR`** (obraz: szerokość co 8 — jądro strefy liczy tryby CVT po 8 pikseli — od `K1_OKNO_MIN_SZER` × `K1_OKNO_MIN_WYS`
-= 640 × 480 do obszaru roboczego), okno od razu staje w nowym miejscu (ciągnięcie lewego / górnego brzegu), a strefa
+**`ROZMIAR`** (obraz od `K1_OKNO_MIN_SZER` × `K1_OKNO_MIN_WYS` = 640 × 480 do obszaru roboczego; do 0.11.0 szerokość co 8 —
+jądro strefy liczyło tryb CVT po 8 pikseli; od 0.11.0 krok 1 VMM daje gościowi EDID z dokładnym rozmiarem, T9), okno od razu staje w nowym miejscu (ciągnięcie lewego / górnego brzegu), a strefa
 odpowiada `POWIERZCHNIA` z `e` = 1 — **zamianą** powierzchni okna dokładnie w tym rozmiarze (numer, fokus, kolejność
 zostają; nowa pokazana od pierwszego zatwierdzenia, do tego czasu stara). Powierzchnia innego rozmiaru albo bez prośby
 ekranu — odrzucona („rozmiar inny niż ten, o który prosił ekran”), okno zostaje. Strefa nie ma komunikatu „zmień mój
 rozmiar” ani „przesuń mnie”. **Maksymalizacja:** przycisk między „minimalizuj” a „zamknij” (kwadrat; zmaksymalizowane —
 dwa kwadraty „przywróć”) albo podwójne kliknięcie paska (< 0,45 s): okno na cały **obszar roboczy** — ekran bez górnego
 i dolnego paska, liczony z paneli powłoki, które ekran składa (T13: górny pasek — panel na całą szerokość od góry; dolny —
-panel, który sięga dołu ekranu; nie z liczb od gui), bez obwódki, pasek tytułu tuż pod górnym paskiem; nie da się go
+panel, który sięga dołu ekranu; nie z liczb od gui; od 0.11.0 krok 1 do **widocznej** krawędzi dolnego paska — powierzchnia
+panelu ma margines cienia `K1_PANEL_MARGINES` = 16 px, wspólny z gui; szerokość co do piksela, np. 1366), bez obwódki, pasek tytułu tuż pod górnym paskiem; nie da się go
 przesunąć ani ciągnąć za brzegi. „Przywróć” i podwójne kliknięcie — poprzedni prostokąt. Zmiana obszaru roboczego
 (rozdzielczość, paski) — zmaksymalizowane okna idą za nią. **Pamięć:** rozmiar i maksymalizacja każdej sesji w skarbcu
 (obiekt ekranu `K1_OB_OKNA_STREF`, „K1O1”, wiersz na strefę, każdy sprawdzany przy odczycie); nowe okno strefy dostaje
 rozmiar swojej sesji (log `okno N: rozmiar sesji W×H`). Log: `okno N: nowy rozmiar W×H[ (zmaksymalizowane)]`,
 `obszar roboczy X,Y W×H`, `okno N: powierzchnia W×H w X,Y` (zamiana pokazana).
+
+**Pełny ekran okna strefy (0.11.0 krok 1, D1 właściciela: szkic A — `pelny.c`).** Przeglądarka w strefie prosi o pełny
+ekran (F11, film „na cały ekran”): kompozytor strefy → `gosc` → VMM (linia „pelny 1” kanału sterującego) → ekran
+(`PELNY_EKRAN` a = 1). Ekran zgadza się tylko dla okna z fokusem, niezminimalizowanego, i tylko w `GEST_S` = 10 s po
+**geście użytkownika** w tym oknie (wciśnięcie przycisku albo klawisz, które ekran temu oknu dał — `pelny_gest`); gest się
+zużywa przy wejściu, więc strefa sama, bez nowego gestu, nie wróci do pełnego ekranu, gdy K1 go zakończył (odmowa: log
+`pełny ekran: okno N — odmowa (bez gestu użytkownika)`, strefa nie dostaje odpowiedzi). Po zgodzie: okno w (0, 0),
+`ROZMIAR` z `c` = `K1_ROZMIAR_PELNY` i rozmiarem ekranu, okno w warstwie **nad panelami** (`scena.c`: górny i dolny pasek
+schowane pod nim), bez ramki K1, cienia i chwytów; ekran przyjmuje wtedy zamianę powierzchni na cały ekran (zwykle okno
+najwyżej do górnego paska). Co rysuje K1 nad nim (strefa tego nie zasłoni — rysowane w scenie po oknie; warstwa karty
+wyłączona, póki to widać): **pigułka** u góry na środku przez `PIGULKA_S` = 4 s — kropka w kolorze sesji, „<tytuł> · <sesja>
+· pełny ekran: Esc, aby wyjść”, obwódka 2 px w kolorze sesji; **pasek K1** (40 px, tło okna, linia w kolorze sesji, przycisk
+„Zakończ pełny ekran”), gdy kursor dotknie górnej krawędzi (chowa się, gdy zejdzie niżej niż 64 px); kursor na nim nic nie
+daje strefie. **Koniec:** ten przycisk, strefa sama (Esc w przeglądarce — `PELNY_EKRAN` a = 0), Alt+Tab i klawisz Start
+(przełącznik i menu to panele — pod pełnym ekranem byłyby niewidoczne), fokus w innym oknie, panel powłoki pokazany
+(`POKAZ` — np. „Mało pamięci”), minimalizacja, zamknięcie okna. Potem okno wraca do prostokąta sprzed (zwykłe albo
+zmaksymalizowane); pełny ekran nigdy nie trafia do skarbca. Zmiana rozdzielczości w pełnym ekranie — nowy `ROZMIAR`
+ekranu. Log: `pełny ekran: okno N — wejście (W×H)`, `… — koniec (powód)`, `pigułka schowana po S s`, `pasek K1 (zakończ
+X,Y)` (testy klikają według niego).
 Od 0.10.0 krok 5 nazwa sesji na pasku to nazwa od nadzorcy (`STREFA_NAZWA` — użytkownik może ją zmienić; do pierwszej
 wiadomości — z `K1_STREFY`), a „· zapomina po zamknięciu” i jasny pasek — według tego, czy strefa dostała dysk, gdy
 ruszyła (`STREFY_STAN` a w chwili `KLIENT`; zmiana w Ustawieniach działa od następnego otwarcia, więc otwarte okno jej nie

@@ -298,6 +298,9 @@ int main(void)
         wyl_ms = wylaczanie_czas_ms(); /* 0.10.7 step 6: the dots of the screen "Wyłączanie" move */
         if (wyl_ms >= 0 && wyl_ms < czekaj)
             czekaj = wyl_ms;
+        wyl_ms = pelny_czas_ms(); /* 0.11.0 step 1: the pill over the full screen goes */
+        if (wyl_ms >= 0 && wyl_ms < czekaj)
+            czekaj = wyl_ms;
         if (poll(pfd, 3 + MAKS_KLIENTOW, czekaj) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
         if (pfd[2 + MAKS_KLIENTOW].fd >= 0 && pfd[2 + MAKS_KLIENTOW].revents)

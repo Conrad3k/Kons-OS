@@ -131,6 +131,7 @@ void ustaw_fokus(int i)
 {
     if (i == s.fokus)
         return;
+    pelny_fokus(i); /* 0.11.0 step 1: another window — the full screen ends */
     if (s.fokus >= 0 && s.p[s.fokus].uzyta) {
         struct pow *p = &s.p[s.fokus];
         wyslij(p->kl, k1_komunikat_nowy(K1_KOM_FOKUS, p->id, 0, 0, 0, 0, 0));
@@ -179,6 +180,8 @@ void minimalizuj(int i)
     struct pow *p = &s.p[i];
     if (p->zmin)
         return;
+    if (pelny_jest(p))
+        pelny_koniec("minimalizacja");
     uszkodz_pow(p);
     p->zmin = 1;
     if (s.chwyt == i)
@@ -214,6 +217,7 @@ static void usun_pow(int i)
     if (p->nowa_mem != NULL) /* 0.10.5 step 4: a new size not shown yet */
         munmap((void *)(uintptr_t)p->nowa_mem, p->nowa_rozmiar);
     strefa_bufory_zwolnij(i); /* 0.10.11 step 2: its buffers of the card (off the layer first) */
+    pelny_usun(i);
     p->uzyta = 0;
     if (s.pod == i)
         s.pod = -1;
@@ -366,6 +370,8 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
         if (s.p[i].rodzaj != K1_POW_PANEL)
             { odrzuc(kl, "pokazywanie i przesuwanie tylko dla paneli"); return; }
         uszkodz_pow(&s.p[i]);
+        if (m->typ == K1_KOM_POKAZ && m->a && !s.p[i].pokaz)
+            pelny_koniec("panel powłoki"); /* 0.11.0 step 1: the shell shows something — over the full screen */
         if (m->typ == K1_KOM_POKAZ) {
             s.p[i].pokaz = m->a;
             s.p[i].widoczna = m->a && s.p[i].polowa >= 0;
@@ -390,6 +396,10 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
         { minimalizuj(i); return; }
     case K1_KOM_USUN:
         { usun_pow(i); return; }
+    case K1_KOM_PELNY_EKRAN: /* 0.11.0 step 1 */
+        if (!okno_strefy(&s.p[i]))
+            { odrzuc(kl, "pełny ekran tylko dla okna strefy"); return; }
+        { pelny_prosba(i, m->a); return; }
     default:
         { odrzuc(kl, "nieobsługiwany typ"); return; }
     }

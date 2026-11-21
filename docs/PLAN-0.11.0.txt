@@ -112,7 +112,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                     Luki (punkt 5)   Zależy od   Decyzje      Rozmiar  ADR
-[ ]  1  Okno przeglądarki do krawędzi, pełny ekran            P1–P4            0.10.10     D1, T9       S–M      brak
+[x]  1  Okno przeglądarki do krawędzi, pełny ekran (PR #202)  P1–P4            0.10.10     D1, T9       S–M      brak
 [ ]  2  Pliki ze strefy do Plików (Do K1), pochodzenie        P5–P14           0.10.10     D2, D3,      L        0051
                                                                                            T1–T4
 [ ]  3  Pliki do strefy: Wyślij do, Otwórz w, zapis z powr.   P15–P18          2           D4, T5       M–L      0051
@@ -149,6 +149,31 @@ KROK 1: Okno przeglądarki do krawędzi, pełny ekran                         S�
   Dokumenty: ekran.md, strefa.md, WYGLAD (pełny ekran), RYZYKA (R26 — podszywanie się pod K1 w pełnym ekranie: co go
   ogranicza), SLOWNIK („pełny ekran”, jeśli nowe).
   Gotowe, gdy: CI zielone, właściciel potwierdził zrzuty; na laptopie: lista w raporcie.
+  Ustalenia z wykonania (2026-11-21, krok 1; D1 właściciela: A):
+    - T9 (P2): warunek „szerokość co 8” był potrzebny tylko przez jądro strefy — virtio-gpu bez EDID robi tryb przez
+      drm_cvt_mode, które zaokrągla szerokość w dół do 8 (drivers/gpu/drm/virtio/virtgpu_display.c, drm_modes.c
+      CVT_H_GRANULARITY). Rozwiązanie: VMM oferuje VIRTIO_GPU_F_EDID i na GET_EDID daje EDID 1.4 z jednym trybem
+      szczegółowym dokładnie w rozmiarze okna (src/strefa/edid.c, czyste, test_edid); jądro bierze wtedy tylko tryby z EDID
+      (drm_edid_connector_add_modes), a tryb szczegółowy zachowuje szerokość (drm_mode_detailed). ROZMIAR bez warunku % 8,
+      ekran i VMM bez „& ~7”. Szerokość niepodzielna przez 8 sprawdzona w test-strefa (przeciągnięcie do 1089 px); samej
+      rozdzielczości 1366 QEMU testów nie ma (karta bochs 1280 × 800) — 1366 sprawdza właściciel na laptopach.
+    - P3: dół obszaru roboczego = widoczna krawędź dolnego paska (powierzchnia panelu + K1_PANEL_MARGINES = 16 px, wspólne
+      z gui: MARG). Test: 800 − 8 − 60 = 732 co do piksela.
+    - P4 / D1 A: pełny ekran przez kanał sterujący strefy („pelny 1/0”: kompozytor → gosc → VMM → ekran PELNY_EKRAN;
+      z powrotem ROZMIAR c = K1_ROZMIAR_PELNY, a przy końcu przez K1 — „pelny 0” do gościa, SIGUSR2 dla kompozytora).
+      Zasady ekranu (pelny.c): wejście tylko dla okna z fokusem i do 10 s po geście użytkownika w nim (gest się zużywa —
+      strefa bez nowego gestu nie wróci); okno nad panelami; pigułka 4 s, pasek K1 przy górnej krawędzi; koniec: przycisk
+      K1, strefa sama, Alt+Tab, klawisz Start, inny fokus, panel powłoki pokazany, minimalizacja. VMM przepuszcza najwyżej
+      4 zmiany na sekundę. Pełny ekran nie trafia do skarbca (d).
+    - Napis pigułki: „… · pełny ekran: Esc, aby wyjść” — w szkicu była półpauza, zasada Z3 (sprawdz-czytelnosc) jej nie
+      dopuszcza.
+    - Ekran przyjmuje zamianę powierzchni okna strefy na cały ekran tylko w pełnym ekranie (zwykle okno najwyżej do
+      górnego paska — tak padł pierwszy przebieg test-strefa).
+    - Lokalnie (kontener, emulacja zagnieżdżona): test-m1 12/12; test-strefa — wszystko o rozmiarze i pełnym ekranie OK,
+      wzorce ramki zgodne; przebiegi padały gdzie indziej na emulacji (raz gość trybu 17 stanął po starcie, raz gość
+      trybu 10 „potrójny błąd” po 0,3 s, bez wyjść MMIO) — pełny komplet: CI z KVM.
+    - CI na PR-ze #202 (przebieg 285, KVM): budowa i wszystkie testy zaliczone. Stanowisko (testy/stanowisko/pelny.py):
+      prawdziwy Firefox — F11, koniec przez K1, F11 znowu, wyjście przez stronę.
 
 KROK 2: Pliki ze strefy do Plików („Do K1”), pochodzenie                  L · D2, D3, T1–T4 · ADR 0052
   Cel: plik pobrany w sesji przeglądarki trafia — za zgodą — do Plików K1 jako kopia, z zapisanym pochodzeniem.
@@ -261,7 +286,8 @@ KROK 5: Schowek; porządki; wydanie 0.11.0 (OSTATNI)                      M · D
 ----------
 Twoje (produkt) — czat kroku zada je na początku:
 
-  [!] D1 (krok 1) — Pełny ekran w przeglądarce (F11, film na cały ekran): co z paskami K1?
+  [x] D1 (krok 1; właściciel 2026-11-21: „A” — szkice A/B, oba motywy) — Pełny ekran w przeglądarce (F11, film na
+      cały ekran): co z paskami K1?
       A (zalecane): cały ekran, bez pasków K1 i bez paska tytułu — jak w Windows. Po wejściu K1 pokazuje na kilka sekund
          u góry swoją pigułkę „Przeglądarka · Ogólna · pełny ekran — Esc, aby wyjść” w kolorze sesji; kursor przy górnej
          krawędzi wysuwa pasek tytułu K1 z przyciskiem wyjścia. Strona nie może tego zasłonić (rysuje K1).

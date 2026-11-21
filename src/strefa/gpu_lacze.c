@@ -305,8 +305,8 @@ static void padl(void)
 static int jeden(const struct vq_lancuch *l, unsigned gen, const char **powod)
 {
     struct virtio_gpu_ctrl_hdr h;
-    struct virtio_gpu_resp_display_info info;
-    uint8_t odp[MOST_ODP_MAKS];
+    union gpu_odp info;
+    uint8_t odp[MOST_ODP_MAKS > sizeof(union gpu_odp) ? MOST_ODP_MAKS : sizeof(union gpu_odp)];
     struct most_czeka c;
     uint32_t dl = sizeof h, wynik = VIRTIO_GPU_RESP_OK_NODATA, id = 0;
     uint64_t n = l->dl_odczyt;
@@ -326,7 +326,7 @@ static int jeden(const struct vq_lancuch *l, unsigned gen, const char **powod)
             return -1;
         }
         info.hdr.type = wynik;
-        dl = wynik == VIRTIO_GPU_RESP_OK_DISPLAY_INFO ? sizeof info : sizeof info.hdr;
+        dl = gpu_odp_dl(wynik);
         memcpy(odp, &info, dl);
     } else {
         zamek_oddaj();

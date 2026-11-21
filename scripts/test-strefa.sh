@@ -19,6 +19,9 @@
 #      (0.10.5 krok 4, D8) ZMIANA ROZMIARU za róg ramki (ekran → ROZMIAR → nowa powierzchnia VMM → nowy wyświetlacz gościa),
 #      najmniejszy 640×480, MAKSYMALIZACJA przyciskiem (obszar roboczy z paneli, oba paski widoczne — zrzut), zmaksymalizowane
 #      nie przesuwa się, podwójne kliknięcie paska przywraca; rozmiar zapamiętany dla sesji (następne okno strefy)
+#      (0.11.0 krok 1) co do piksela: szerokość niepodzielna przez 8 (EDID od VMM), dół = widoczna krawędź dolnego paska;
+#      PEŁNY EKRAN (D1: szkic A): F11 w strefie — cały ekran bez pasków i ramki, pigułka K1, pasek K1 przy górnej krawędzi
+#      z „Zakończ pełny ekran”; NEGATYWNE: strefa prosi sama bez gestu — odmowa, zalew zmian — limit VMM
 #   5. okno K1 (Zegar) na wierzchu zasłania strefę, ramka strefy zostaje tam, gdzie jej nie zasłania; ciemny motyw
 #   6. „zamknij” na pasku: gość dostaje „zamknij” (vsock), kończy się, maszyna znika, okno też
 #   (krok 3, S26: gość włącza pamięć kompresowaną — zram w jądrze strefy; wpis w logu gościa)
@@ -202,10 +205,10 @@ def rozmiar(opis, ruch, oczekiwany, maks=False):
 
 
 w0, h0 = w_, h_
-rozmiar("zmiana rozmiaru: prawy dolny róg przeciągnięty o 64×24 — ekran prosi strefę o 1088×632 (szerokość co 8), VMM "
-        "daje okno tego rozmiaru, gość dostaje nowy wyświetlacz",
-        lambda: q.przeciagnij(x + w_ + 1, y + h_ + 1, x + w_ + 65, y + h_ + 25), ((w0 + 64) & ~7, h0 + 24))
-w_, h_ = (w0 + 64) & ~7, h0 + 24
+rozmiar("zmiana rozmiaru: prawy dolny róg przeciągnięty o 65×25 — ekran prosi strefę o dokładnie ten rozmiar (0.11.0 "
+        "krok 1: szerokość niepodzielna przez 8 — tryb gościa z EDID od VMM), VMM daje okno, gość dostaje taki wyświetlacz",
+        lambda: q.przeciagnij(x + w_ + 1, y + h_ + 1, x + w_ + 66, y + h_ + 26), (w0 + 65, h0 + 25))
+w_, h_ = w0 + 65, h0 + 25
 
 
 def wzor_caly(w, h, px):  # the guest's pattern on its whole new display: the yellow corners at the new size
@@ -227,11 +230,13 @@ def obszar():
     return tuple(int(v) for v in ob.groups()) if ob else (0, 0, 0, 0)
 
 
-rozmiar("„maksymalizuj” na pasku: okno na cały obszar roboczy (szerokość ekranu, od górnego do dolnego paska)",
-        lambda: p and q.klik(int(p.group(3)), int(p.group(4))), lambda: (obszar()[2] & ~7, obszar()[3] - TYTUL), maks=True)
+rozmiar("„maksymalizuj” na pasku: okno na cały obszar roboczy co do piksela (cała szerokość ekranu, od górnego do "
+        "dolnego paska)", lambda: p and q.klik(int(p.group(3)), int(p.group(4))),
+        lambda: (obszar()[2], obszar()[3] - TYTUL), maks=True)
 ax_, ay_, aw_, ah_ = obszar()
-sprawdz("obszar roboczy z paneli powłoki: pod górnym paskiem (32 px), nad dolnym paskiem, cała szerokość ekranu",
-        ay_ == 32 and aw_ == 1280 and 600 < ay_ + ah_ < 800, str((ax_, ay_, aw_, ah_)))
+sprawdz("obszar roboczy z paneli powłoki: pod górnym paskiem (32 px), do widocznej krawędzi dolnego paska (0.11.0 krok 1: "
+        "800 − 8 − 60 = 732, bez marginesu cienia), cała szerokość ekranu",
+        ay_ == 32 and aw_ == 1280 and ay_ + ah_ == 800 - 8 - 60, str((ax_, ay_, aw_, ah_)))
 
 
 def maks_widac(w, h, px):  # the top bar and the bottom bar seen, the zone's bar right under the top one, its pattern
@@ -343,6 +348,70 @@ sprawdz("ciemny motyw: ramka w tle okna, linia pod paskiem w kolorze strefy, pas
         ciemna_ramka(w, h, px) and not blisko(px(zx, zy), TLO_GOSCIA))
 if o:
     wzorzec_ramki("ciemny")
+
+# 0.11.0 step 1 (the owner's D1: sketch A): FULL SCREEN. F11 in the zone (the user's gesture: a key ekran gave it) — the
+# guest asks, its VMM tells ekran, ekran agrees: the whole screen, no K1 bars or frame; K1's bar at the top edge with
+# "Zakończ pełny ekran" (the zone cannot cover it); after K1 ended it the zone asks again by itself — refused (no
+# gesture), its flood limited by the VMM; F11 again: in, F11 once more: the zone leaves by itself.
+PEL = r"K1-EKRAN: pełny ekran: okno {} — ".format(nr)
+PEL_ROZ = r"K1-EKRAN: okno {}: nowy rozmiar (\d+)x(\d+)( \((?:pełny ekran|zmaksymalizowane)\))?".format(nr)
+n = (q.ile(PEL_ROZ), q.ile(GOSC))
+q.pisz("f11")
+r_ = czekaj(PEL_ROZ, od=n[0], czas=60)
+g_ = czekaj(GOSC, od=n[1], czas=120)
+sprawdz("PEŁNY EKRAN: F11 w strefie — gość prosi, VMM przekazuje, ekran wchodzi (gest użytkownika): wyświetlacz gościa "
+        "to cały ekran 1280×800", czekaj(r"K1-GOSC: pełny ekran: F11 — proszę", czas=60) and
+        czekaj(r"K1-STREFA: gość: pełny ekran — prośba do ekranu", czas=30) and czekaj(PEL + r"wejście \(1280x800\)", czas=30)
+        and czekaj(r"K1-EKRAN: okno {}: powierzchnia 1280x800 w 0,0".format(nr), czas=60) and r_ and r_.group(3) == " (pełny ekran)" and (int(r_.group(1)), int(r_.group(2))) == (1280, 800) and g_ and
+        (int(g_.group(1)), int(g_.group(2))) == (1280, 800), f"{r_.group(0) if r_ else 'brak'} / {g_.group(0) if g_ else 'brak'}")
+sprawdz("pełny ekran: pigułka K1 u góry przez kilka sekund, potem znika", czekaj(r"K1-EKRAN: pełny ekran: pigułka schowana po [3-9]", czas=60))
+ZOLTY = (0xFF, 0xD7, 0x00)
+
+
+def pelny_widac(w, h, px):  # the guest's yellow corners in the screen's corners, its background where the bars were
+    return (blisko(px(1280 - 6, 6), ZOLTY) and blisko(px(1280 - 6, 800 - 6), ZOLTY) and blisko(px(640, 60), TLO_GOSCIA)
+            and not blisko(px(640, 12), TLO_OKNA["ciemny"], 8))
+
+
+w, h, px = q.zrzut("7-pelny-ekran", gdy=pelny_widac)
+sprawdz("pełny ekran: obraz strefy od rogu do rogu ekranu, bez górnego i dolnego paska i bez ramki K1 (zrzut "
+        "strefa-7-pelny-ekran)", pelny_widac(w, h, px))
+n = q.ile(r"K1-EKRAN: pełny ekran: pasek K1")
+q.idz(640, 300)
+q.idz(640, 0)
+pk_ = czekaj(r"K1-EKRAN: pełny ekran: pasek K1 \(zakończ (\d+),(\d+)\)", od=n, czas=30)
+
+
+def pasek_widac(w, h, px):  # K1's bar: the theme's background over the zone's picture at the top, the line below
+    return blisko(px(300, 4), TLO_OKNA["ciemny"], 8) and blisko(px(300, TYTUL - 1), PIASEK) and \
+        blisko(px(640, TYTUL + 30), TLO_GOSCIA)
+
+
+w, h, px = q.zrzut("7b-pelny-ekran-pasek", gdy=pasek_widac)
+sprawdz("kursor przy górnej krawędzi: pasek K1 z „Zakończ pełny ekran” nad obrazem strefy (zrzut strefa-7b-pelny-ekran-pasek)",
+        pk_ and pasek_widac(w, h, px), pk_.group(0) if pk_ else "brak paska")
+n = (q.ile(PEL_ROZ), q.ile(r"K1-GOSC: wejście: klawisze"))
+if pk_:
+    q.klik(int(pk_.group(1)), int(pk_.group(2)))
+r_ = czekaj(PEL_ROZ, od=n[0], czas=60)
+sprawdz("„Zakończ pełny ekran” (K1): okno wraca do rozmiaru sprzed pełnego ekranu, VMM mówi gościowi „pelny 0”, "
+        "kliknięcie na pasku K1 nie trafia do strefy", pk_ and czekaj(PEL + r"koniec \(przycisk K1\)", czas=30) and r_ and
+        (int(r_.group(1)), int(r_.group(2))) == (w0, h0) and not r_.group(3) and
+        czekaj(r"K1-STREFA: okno: K1 zakończył pełny ekran — gość powiadomiony", czas=30) and
+        czekaj(r"K1-GOSC: pełny ekran: K1 zakończył", czas=60) and q.ile(r"K1-GOSC: wejście: klawisze") == n[1],
+        r_.group(0) if r_ else "brak")
+sprawdz("NEGATYWNY: strefa od razu prosi o pełny ekran sama (bez gestu) — ekran odmawia; zalew zmian VMM ogranicza "
+        "(najwyżej 4 na sekundę)", czekaj(PEL + r"odmowa \(bez gestu użytkownika\)", czas=60) and
+        czekaj(r"K1-STREFA: gość: pełny ekran zmieniany za często — pominięte", czas=30) and
+        q.cisza(PEL + "wejście", 8) and q.ile(PEL + "wejście") == 1)
+q.pisz("f11")
+sprawdz("F11 jeszcze raz (nowy gest): pełny ekran znowu", czekaj(PEL + r"wejście", od=1, czas=60))
+n = q.ile(PEL_ROZ)
+q.pisz("f11")
+r_ = czekaj(PEL_ROZ, od=n, czas=60)
+sprawdz("F11 w pełnym ekranie: strefa wychodzi sama (jak Esc w przeglądarce) — okno wraca do swojego rozmiaru",
+        czekaj(PEL + r"koniec \(strefa wyszła sama\)", czas=60) and r_ and (int(r_.group(1)), int(r_.group(2))) == (w0, h0),
+        r_.group(0) if r_ else "brak")
 
 # closing from the title bar
 p = na_pasek()

@@ -49,6 +49,7 @@ void obudz(void) {}
 void zamek_wez(const char *kto) { (void)kto; }
 void zamek_oddaj(void) {}
 void okno_etap(int etap) { (void)etap; }
+void okno_pelny(int tak) { (void)tak; } /* 0.11.0 step 1 */
 void gpu_liczniki(unsigned *n, unsigned *mib) { *n = 0, *mib = 0; }
 void pomiar_gosc(const uint32_t *w) { (void)w; } /* 0.10.11 step 1: the guest's measurement line */
 void balon_cel(uint32_t mib) { (void)mib; }

@@ -93,6 +93,7 @@ struct stan {
                                       * read: with KVM a key's down and up come in one read */
     int32_t x, y;
     int32_t kolko, dokladne; /* the wheel (0.10.0 step 4): notches (REL_WHEEL, > 0 up) and 1/120 parts (_HI_RES) */
+    int f11, pelny;          /* 0.11.0 step 1: F11 went down (asks for full screen / leaves it), what it asked last */
 };
 
 /* Events of one input device; 1 when the picture should change. */
@@ -107,6 +108,7 @@ static int zdarzenia(int fd, struct stan *s)
             zmiana = 1;
         } else if (e[i].type == EV_KEY && e[i].code < BTN_MISC && e[i].value == 1) {
             s->klawisze++;
+            s->f11 |= e[i].code == KEY_F11;
             s->wcisniete[e[i].code / 8] = (uint8_t)(s->wcisniete[e[i].code / 8] | (1u << (e[i].code % 8)));
             s->przy_wcisnieciu = 0;
             for (size_t b = 0; b < sizeof s->wcisniete; b++)
@@ -133,6 +135,28 @@ static int zdarzenia(int fd, struct stan *s)
     return zmiana;
 }
 
+/* 0.11.0 step 1 (D1): F11 — as in the browser: "pelny 1" (full screen, please) or "pelny 0" (leave it). */
+static void klawisz_f11(int ster, struct stan *s)
+{
+    s->f11 = 0;
+    s->pelny = !s->pelny;
+    if (ster >= 0 && write(ster, s->pelny ? "pelny 1\n" : "pelny 0\n", 8) != 8)
+        loguj("kanał sterujący: zapis nieudany");
+    loguj("pełny ekran: F11 — %s", s->pelny ? "proszę" : "koniec");
+}
+
+/* "pelny 0" from the VMM: K1 ended the full screen (its own way out). The test zone then asks again at once, as a hostile
+ * page would — without the user's gesture ekran must refuse (test-strefa), and many changes at once the VMM limits. */
+static void pelny_od_k1(int ster, struct stan *s)
+{
+    int i;
+    s->pelny = 0;
+    loguj("pełny ekran: K1 zakończył — proszę znowu bez gestu");
+    for (i = 0; i < 6 && ster >= 0; i++)
+        if (write(ster, i % 2 ? "pelny 0\n" : "pelny 1\n", 8) != 8)
+            loguj("kanał sterujący: zapis nieudany");
+}
+
 static void petla(int ster, const int *wej, int n)
 {
     struct stan s = { .x = -1, .y = -1 };
@@ -155,10 +179,14 @@ static void petla(int ster, const int *wej, int n)
         for (i = 0; i < n; i++)
             if ((p[i].revents & POLLIN) && zdarzenia(wej[i], &s))
                 obraz_rysuj(s.klawisze, s.klikniecia, s.x, s.y);
+        if (s.f11)
+            klawisz_f11(ster, &s);
         if (ster >= 0 && (p[n].revents & (POLLIN | POLLHUP))) {
             char b[64];
             ssize_t r = read(ster, b, sizeof b - 1);
-            if (r <= 0 || (b[r] = '\0', strstr(b, "zamknij") != NULL)) {
+            if (r > 0 && (b[r] = '\0', strstr(b, "pelny 0") != NULL))
+                pelny_od_k1(ster, &s);
+            if (r <= 0 || strstr(b, "zamknij") != NULL) {
                 loguj("zamykam (prośba VMM)");
                 if (r > 0 && write(ster, "zamykam\n", 8) != 8)
                     loguj("kanał sterujący: zapis nieudany");

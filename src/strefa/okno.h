@@ -17,6 +17,7 @@ void okno_obraz(void);          /* the guest's changed picture into the window, 
 void okno_zamknij_goscia(void); /* asks the guest to end (vsock) */
 void okno_schowaj(void);        /* the user closed the zone: its window goes now, the machine ends in the background */
 void okno_etap(int etap);       /* OKNO_ETAP_* from the guest (under mz.zamek) */
+void okno_pelny(int tak);       /* 0.11.0 step 1: the guest's "pelny 1/0" (under mz.zamek): to ekran, the changes only */
 int okno_czas_ms(void);         /* how soon the main loop must come back for the start screen's next frame, -1: no need */
 void okno_sesja(const char *nazwa); /* the session's name for the start screen (argv[4]; checked here), before okno_start */
 /* The guest showed rectangle (x, y, w, h) of its display (under mz.zamek). */

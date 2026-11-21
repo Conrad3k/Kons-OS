@@ -294,6 +294,15 @@ wybrany **A**. Znaczek i plakietka B2 zniknęły.
   biała w środku, w prawym dolnym rogu plakietka „W × H” (ciemna, biały tekst); strona dostaje rozmiar po puszczeniu.
   Najmniejszy obraz 640 × 480. Zmaksymalizowane — od dolnej krawędzi górnego paska do górnej krawędzi dolnego, bez
   bocznej obwódki i zaokrągleń, pasek tytułu tuż pod górnym paskiem. Rozmiar i maksymalizacja zapamiętane dla każdej sesji.
+  Od 0.11.0 krok 1 (prośba właściciela z 2026-11-20: „nie domyka krawędzi i zostawia ciut za dużo miejsca na dole”):
+  zmaksymalizowane co do piksela od lewej do prawej krawędzi (1366 na X230 i IdeaPadzie, nie 1360) i do **widocznej** górnej
+  krawędzi dolnego paska (bez 16 px marginesu cienia jego powierzchni).
+- **Pełny ekran przeglądarki (0.11.0 krok 1, decyzja właściciela D1 z 2026-11-21: szkic A, szkice A/B w obu motywach):** cały
+  ekran, bez górnego i dolnego paska i bez paska tytułu K1. Przez 4 s u góry na środku **pigułka** K1: tło okna (alfa 245),
+  obwódka 2 px i kropka 10 px w kolorze sesji, tekst „Przeglądarka · Ogólna · pełny ekran: Esc, aby wyjść” (IBM Plex Sans 15;
+  w szkicu była półpauza — zasada Z3: dwukropek). Kursor przy górnej krawędzi wysuwa **pasek K1** 40 px jak pasek tytułu okna
+  strefy: tło okna, linia 2 px w kolorze sesji na dole, kropka i „<tytuł> · <sesja>”, po prawej przycisk „Zakończ pełny
+  ekran” (zaokrąglony 8 px, tło „najechanie”, przy kursorze „zaznaczenie”); chowa się, gdy kursor zjedzie niżej niż 64 px.
 
 ## Sieć (0.9.0 krok 7, decyzja właściciela D1: ikona C, sekcja B)
 Trzy szkice ikony (A — monitor z kablem, B — trzy połączone węzły, C — wtyczka sieciowa) i trzy układy sekcji (A — jak

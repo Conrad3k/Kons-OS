@@ -146,6 +146,9 @@ enum k1_komunikat_typ {
     K1_KOM_STREFA_OBRAZ = 226, /* obiekt=its window surface, a=buffer 1..K1_STREFA_BUFORY (sent before), b,c,d,e = damaged
                                 * x,y,w,h (w=h=0: all) — the window shows that buffer now, until the next STREFA_OBRAZ or
                                 * ZATWIERDZ (its own pixels again); RAMKA when it is on the screen, as after ZATWIERDZ */
+    K1_KOM_PELNY_EKRAN = 227,  /* 0.11.0 step 1 (D1): a zone's VMM → ekran (role STREFA only): obiekt=its window surface,
+                                * a=1 its guest asks for full screen / 0 it left it, b..e=0 — ekran decides (only right
+                                * after the user's gesture in that window, with the focus); its answer is ROZMIAR */
     K1_KOM_ZASOBY_USLUGA = 63, /* obiekt=K1_PROFIL_* of a service, a=CPU ‰ (of all CPUs), b=memory KiB, c=1 running */
     K1_KOM_BATERIA = 64,       /* to gui: obiekt=0, a=1 battery present, b=percent 0..100 (-1 unknown), c=K1_BAT_*,
                                 * d=1 on mains power; no battery: a=0, b=-1, c=0 (also to Ustawienia) */
@@ -215,10 +218,11 @@ enum k1_komunikat_typ {
     K1_KOM_AKT_PROSBA = 192,  /* Ustawienia (fd 7), gui (fd 5: ZAINSTALUJ only) → nadzorca: obiekt=0, a=K1_AKT_P_*,
                                * b..e=0 */
     K1_KOM_ROZMIAR = 193,     /* ekran → a zone's VMM (0.10.5 step 4, T12): obiekt=its window surface, a=width
-                               * K1_OKNO_MIN_SZER..K1_POW_MAKS_BOK (a multiple of 8), b=height K1_OKNO_MIN_WYS..K1_POW_MAKS_BOK,
-                               * c=1 maximized / 0, d=e=0 — the picture's new size: the user resized or maximized the
-                               * window on K1's frame. Only ekran says it; the zone answers with POWIERZCHNIA e=1 of exactly
-                               * that size (anything else is refused) and never asks for a size or a place itself */
+                               * K1_OKNO_MIN_SZER..K1_POW_MAKS_BOK (until 0.11.0 a multiple of 8), b=height
+                               * K1_OKNO_MIN_WYS..K1_POW_MAKS_BOK, c=K1_ROZMIAR_* (0.11.0: also the full screen), d=e=0 —
+                               * the picture's new size: the user resized or maximized the window on K1's frame. Only
+                               * ekran says it; the zone answers with POWIERZCHNIA e=1 of exactly that size (anything else
+                               * is refused) and never asks for a size or a place itself (full screen: PELNY_EKRAN) */
     K1_KOM_WYLACZANIE = 194,  /* nadzorca → ekran (its control channel; 0.10.7 step 6, T7): obiekt=0, a=0 power off / 1 restart,
                                * b..e=0 — K1 is powering off: ekran covers everything with the screen "Wyłączanie" (or
                                * "Ponowne uruchamianie") until the end and gives no input to the windows. Once; not on log out */
@@ -559,6 +563,8 @@ enum k1_wifi_zdarzenie {
  * PULPIT (0.7.5): the shell's desktop layer (icons) — one, at 0,0, right above the wallpaper and below the
  * windows, catching the pointer in every pixel. */
 enum { K1_POW_OKNO = 1, K1_POW_PANEL = 2, K1_POW_PULPIT = 3 };
+/* ROZMIAR c: how the zone's window shows (0.10.5 step 4; 0.11.0 step 1: full screen — the whole screen, no K1 frame) */
+enum { K1_ROZMIAR_ZWYKLY = 0, K1_ROZMIAR_ZMAKSYMALIZOWANY = 1, K1_ROZMIAR_PELNY = 2 };
 /* A zone's window shown from buffers of the card (0.10.11 step 2, ADR 0051 T4): at most this many per window (double or
  * triple buffering of the browser), a row and the start inside a buffer within these limits. */
 #define K1_STREFA_BUFORY 4

@@ -170,16 +170,30 @@ void strefy(void)
     EXPECT(zle(K(K1_KOM_SKARB_DANE, K1_OB_DYSK + 5, (int32_t)K1_STREFA_DYSK_KAWALEK + 1, 0, 0, 0, 0), K1_KIER_OD_SKARBCA));
     EXPECT(ok(K(K1_KOM_SKARB_DANE, K1_OB_DYSK + 5, (int32_t)K1_STREFA_DYSK_KAWALEK, 0, 0, 0, 0), K1_KIER_OD_SKARBCA));
     EXPECT(ok(K(K1_KOM_SKARB_WYNIK, K1_OB_DYSK + 5, K1_KOM_SKARB_CZYTAJ, K1_SKARB_BRAK, 0, 0, 0), K1_KIER_OD_SKARBCA));
-    /* 0.10.5 step 4 (T12): ROZMIAR only from ekran — the smallest size up to a surface's largest, width a multiple of 8,
-     * c 0/1, the rest 0; a window surface that replaces the old one (e=1), never a panel or the desktop */
+    /* 0.10.5 step 4 (T12): ROZMIAR only from ekran — the smallest size up to a surface's largest (0.11.0 step 1: any
+     * width — the zone's mode from the EDID), c 0/1/2 (2: full screen), the rest 0; a window surface that replaces the
+     * old one (e=1), never a panel or the desktop */
     EXPECT(ok(K(K1_KOM_ROZMIAR, 1, K1_OKNO_MIN_SZER, K1_OKNO_MIN_WYS, 0, 0, 0), K1_KIER_OD_EKRANU));
     EXPECT(ok(K(K1_KOM_ROZMIAR, 1, 1360, 680, 1, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(ok(K(K1_KOM_ROZMIAR, 1, 1366, 696, K1_ROZMIAR_ZMAKSYMALIZOWANY, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(ok(K(K1_KOM_ROZMIAR, 1, 1089, 601, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(ok(K(K1_KOM_ROZMIAR, 1, 1366, 768, K1_ROZMIAR_PELNY, 0, 0), K1_KIER_OD_EKRANU));
     EXPECT(zle(K(K1_KOM_ROZMIAR, 1, 1360, 680, 0, 0, 0), K1_KIER_DO_EKRANU));
-    EXPECT(zle(K(K1_KOM_ROZMIAR, 1, K1_OKNO_MIN_SZER - 8, 600, 0, 0, 0), K1_KIER_OD_EKRANU));
-    EXPECT(zle(K(K1_KOM_ROZMIAR, 1, 1366, 600, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(zle(K(K1_KOM_ROZMIAR, 1, K1_OKNO_MIN_SZER - 1, 600, 0, 0, 0), K1_KIER_OD_EKRANU));
     EXPECT(zle(K(K1_KOM_ROZMIAR, 1, 800, K1_OKNO_MIN_WYS - 1, 0, 0, 0), K1_KIER_OD_EKRANU));
-    EXPECT(zle(K(K1_KOM_ROZMIAR, 1, K1_POW_MAKS_BOK + 8, 600, 0, 0, 0), K1_KIER_OD_EKRANU));
-    EXPECT(zle(K(K1_KOM_ROZMIAR, 1, 800, 600, 2, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(zle(K(K1_KOM_ROZMIAR, 1, K1_POW_MAKS_BOK + 1, 600, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(zle(K(K1_KOM_ROZMIAR, 1, 800, 600, 3, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(zle(K(K1_KOM_ROZMIAR, 1, 800, 600, -1, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(zle(K(K1_KOM_ROZMIAR, 1, 800, 600, 2, 1, 0), K1_KIER_OD_EKRANU));
+    /* 0.11.0 step 1 (D1): PELNY_EKRAN only to ekran — a surface, a 0/1, the rest 0 */
+    EXPECT(ok(K(K1_KOM_PELNY_EKRAN, 1, 1, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(ok(K(K1_KOM_PELNY_EKRAN, 1, 0, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_PELNY_EKRAN, 1, 1, 0, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(zle(K(K1_KOM_PELNY_EKRAN, 0, 1, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_PELNY_EKRAN, K1_POW_MAKS + 1, 1, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_PELNY_EKRAN, 1, 2, 0, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_PELNY_EKRAN, 1, 1, 1, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(zle(K(K1_KOM_PELNY_EKRAN, 1, 1, 0, 0, 0, 1), K1_KIER_DO_EKRANU));
     EXPECT(zle(K(K1_KOM_ROZMIAR, 1, 800, 600, 0, 1, 0), K1_KIER_OD_EKRANU));
     EXPECT(zle(K(K1_KOM_ROZMIAR, 0, 800, 600, 0, 0, 0), K1_KIER_OD_EKRANU));
     EXPECT(ok(K(K1_KOM_POWIERZCHNIA, 1, 1360, 680, K1_POW_OKNO, 0, 1), K1_KIER_DO_EKRANU));

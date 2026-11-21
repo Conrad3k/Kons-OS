@@ -1,7 +1,8 @@
 /* K1 kompozytor — start and the loop (kompozytor.h). Arguments: [socket path [keymap path]]; by default
  * /run/k1/wayland-0 (gosc gives the browser XDG_RUNTIME_DIR=/run/k1, WAYLAND_DISPLAY=wayland-0) and the keymap of
  * the zone image. Draws at most every 16 ms, only when something changed. SIGUSR1 (from gosc, when the zone closes):
- * every window gets xdg_toplevel.close, so the browser quits by itself and saves its profile (0.10.0 step 5). */
+ * every window gets xdg_toplevel.close, so the browser quits by itself and saves its profile (0.10.0 step 5). SIGUSR2
+ * (from gosc, 0.11.0 step 1): K1 ended the full screen — the windows leave it. */
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -94,11 +95,15 @@ static void przyjmij(int g)
     kloguj("klient połączony");
 }
 
-/* gosc asks to close the windows (SIGUSR1, read from the signalfd) */
+/* gosc asks to close the windows (SIGUSR1) or tells that K1 ended the full screen (SIGUSR2), read from the signalfd */
 static void prosba_zamkniecia(int sfd)
 {
     struct signalfd_siginfo si;
-    if (read(sfd, &si, sizeof si) == (ssize_t)sizeof si)
+    if (read(sfd, &si, sizeof si) != (ssize_t)sizeof si)
+        return;
+    if (si.ssi_signo == SIGUSR2)
+        kloguj("K1 zakończył pełny ekran: okien %u", xdg_bez_pelnego());
+    else
         kloguj("prośba o zamknięcie okien: %u", xdg_zamknij_okna());
 }
 
@@ -165,6 +170,7 @@ int main(int argc, char **argv)
     signal(SIGPIPE, SIG_IGN);
     sigemptyset(&m);
     sigaddset(&m, SIGUSR1);
+    sigaddset(&m, SIGUSR2);
     sfd = sigprocmask(SIG_BLOCK, &m, NULL) == 0 ? signalfd(-1, &m, SFD_CLOEXEC | SFD_NONBLOCK) : -1;
     if (sfd < 0)
         kloguj("signalfd nieudane — zamknięcie okien tylko sygnałem dla przeglądarki");

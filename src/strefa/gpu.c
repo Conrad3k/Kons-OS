@@ -1,6 +1,8 @@
 /* K1 strefa — virtio-gpu, 2D (virtio 1.2, section 5.7; ADR 0042 T6): the guest draws with its processor into its
  * own memory ("backing" pages), TRANSFER_TO_HOST_2D copies a rectangle into our copy of the resource, RESOURCE_FLUSH of
- * the shown resource tells the window (okno.c) which part changed. No EDID (none offered). The picture always comes this
+ * the shown resource tells the window (okno.c) which part changed. Since 0.11.0 step 1 (T9) also an EDID with one
+ * mode of exactly the window's size (edid.c: without it the zone's kernel rounded the width down to a multiple of 8).
+ * The picture always comes this
  * way. With a graphics broker (0.10.9 step 6, fast graphics: gpu_lacze.c) the device also offers 3D — contexts with the
  * capset DRM, blob resources, the host-visible region — and the control queue is done by a thread of its own (the
  * broker answers in milliseconds); the 2D commands it does here, under the VMM's lock, the 3D ones gpu_most.c.
@@ -14,6 +16,7 @@
 #include <linux/virtio_gpu.h>
 #include <linux/virtio_ids.h>
 
+#include "edid.h"
 #include "gpu_most.h"
 #include "k1_pomiar.h"
 #include "okno.h"
@@ -199,17 +202,41 @@ static uint32_t splucz(const struct virtio_gpu_resource_flush *f)
     if (vq_czytaj(l, 0, &zm, sizeof zm) != sizeof zm)                                                               \
         return -1;
 
-int gpu_2d(const struct vq_lancuch *l, uint32_t typ, uint32_t *wynik, struct virtio_gpu_resp_display_info *info)
+uint32_t gpu_odp_dl(uint32_t wynik)
+{
+    return wynik == VIRTIO_GPU_RESP_OK_DISPLAY_INFO ? (uint32_t)sizeof(struct virtio_gpu_resp_display_info)
+           : wynik == VIRTIO_GPU_RESP_OK_EDID       ? (uint32_t)sizeof(struct virtio_gpu_resp_edid)
+                                                    : (uint32_t)sizeof(struct virtio_gpu_ctrl_hdr);
+}
+
+/* GET_EDID of scanout 0 (the only one): the EDID of the window's size now; another scanout or a size the EDID cannot
+ * hold — an error, and the zone's kernel makes its mode from the display info. */
+static uint32_t edid(const struct virtio_gpu_cmd_get_edid *g, struct virtio_gpu_resp_edid *e)
+{
+    uint32_t w, h;
+    okno_rozmiar(&w, &h);
+    if (g->scanout != 0 || edid_zbuduj(e->edid, w, h) != 0)
+        return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
+    e->size = EDID_DL;
+    return VIRTIO_GPU_RESP_OK_EDID;
+}
+
+int gpu_2d(const struct vq_lancuch *l, uint32_t typ, uint32_t *wynik, union gpu_odp *odp)
 {
     uint32_t w, h;
     switch (typ) {
     case VIRTIO_GPU_CMD_GET_DISPLAY_INFO:
         okno_rozmiar(&w, &h);
-        info->pmodes[0].r.width = w;
-        info->pmodes[0].r.height = h;
-        info->pmodes[0].enabled = 1;
+        odp->info.pmodes[0].r.width = w;
+        odp->info.pmodes[0].r.height = h;
+        odp->info.pmodes[0].enabled = 1;
         *wynik = VIRTIO_GPU_RESP_OK_DISPLAY_INFO;
         return 0;
+    case VIRTIO_GPU_CMD_GET_EDID: {
+        POLECENIE(struct virtio_gpu_cmd_get_edid, g)
+        *wynik = edid(&g, &odp->edid);
+        return 0;
+    }
     case VIRTIO_GPU_CMD_RESOURCE_CREATE_2D: {
         POLECENIE(struct virtio_gpu_resource_create_2d, c)
         *wynik = utworz(&c);
@@ -266,7 +293,7 @@ int gpu_jest_2d(uint32_t typ, uint32_t id)
     return (typ >= VIRTIO_GPU_CMD_GET_DISPLAY_INFO && typ <= VIRTIO_GPU_CMD_RESOURCE_DETACH_BACKING &&
             typ != VIRTIO_GPU_CMD_RESOURCE_UNREF) ||
            (typ == VIRTIO_GPU_CMD_RESOURCE_UNREF && znajdz(id) != NULL) || typ == VIRTIO_GPU_CMD_UPDATE_CURSOR ||
-           typ == VIRTIO_GPU_CMD_MOVE_CURSOR;
+           typ == VIRTIO_GPU_CMD_MOVE_CURSOR || typ == VIRTIO_GPU_CMD_GET_EDID;
 }
 
 static int powiadom(struct mmio_urz *u, int k, const char **powod)
@@ -279,7 +306,7 @@ static int powiadom(struct mmio_urz *u, int k, const char **powod)
     }
     while ((w = vq_wez(&u->q[k], u->pamiec, &l, powod)) > 0) {
         struct virtio_gpu_ctrl_hdr h;
-        struct virtio_gpu_resp_display_info odp;
+        union gpu_odp odp;
         uint32_t wynik = VIRTIO_GPU_RESP_OK_NODATA;
         uint64_t dl;
         memset(&odp, 0, sizeof odp);
@@ -298,7 +325,7 @@ static int powiadom(struct mmio_urz *u, int k, const char **powod)
         odp.hdr.flags = h.flags & VIRTIO_GPU_FLAG_FENCE;
         odp.hdr.fence_id = h.fence_id;
         odp.hdr.ctx_id = h.ctx_id;
-        dl = wynik == VIRTIO_GPU_RESP_OK_DISPLAY_INFO ? sizeof odp : sizeof odp.hdr;
+        dl = gpu_odp_dl(wynik);
         if (l.dl_zapis < dl) {
             *powod = "virtio-gpu: brak miejsca na odpowiedź";
             return -1;
@@ -364,6 +391,7 @@ static void reset(struct mmio_urz *u)
 const struct mmio_ops gpu_ops = {
     .id = VIRTIO_ID_GPU,
     .n_kolejek = 2, /* control, cursor */
+    .cechy = 1ull << VIRTIO_GPU_F_EDID, /* 0.11.0 step 1 */
     .rozmiar_konfig = sizeof(struct virtio_gpu_config),
     .konfig_czytaj = konfig,
     .konfig_pisz = konfig_pisz,

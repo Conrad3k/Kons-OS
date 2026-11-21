@@ -81,6 +81,11 @@ struct pow {
     struct prost przed;
     int bufor;            /* 0.10.11 step 2 (strefa_bufor.c): a zone's window shows its buffer of the card 1..
                            * K1_STREFA_BUFORY, 0: its own pixels */
+    /* 0.11.0 step 1 (pelny.c): the user's last gesture in a zone's window (k1_teraz, 0: none since its full screen);
+     * in full screen: the picture's rectangle and maximization from before */
+    double gest_t;
+    int pelny_maks;
+    struct prost przed_pelny;
 };
 
 /* A buffer of the card of a zone's window (0.10.11 step 2, ADR 0051): the dma-buf from its VMM, mapped read only from
@@ -203,6 +208,7 @@ struct prost strefa_obszar(const struct pow *p);              /* the window with
 int32_t strefa_nad(void);                                     /* how far the frame reaches above the picture */
 void strefa_ramka(const struct pow *p, const struct prost *r);   /* into the scene inside r, before the window */
 int strefa_trafienie(const struct pow *p, int32_t x, int32_t y); /* STREFA_* or 0 */
+const char *strefa_sesja(const struct pow *p);                /* the session's name of zone window p ("" none) */
 void strefa_najechanie(int i, int co);                        /* the pointer on part co of window i's frame (-1, 0) */
 void strefa_wcisniecie(int i, int co);
 
@@ -220,6 +226,20 @@ void rozmiar_ruch(void);
 void rozmiar_koniec(void);                  /* released: the zone gets the size */
 void rozmiar_rysuj(const struct prost *k);  /* the outline, into the scene inside k (last) */
 void rozmiar_sprawdz(void);                 /* the work area changed: maximized windows follow */
+void rozmiar_pelny(int i, int tak);         /* 0.11.0 step 1: window i into the full screen / back to its size */
+
+/* pelny.c — the full screen of a zone's window (0.11.0 step 1, D1: sketch A) */
+int pelny_jest(const struct pow *p);        /* p is the window in full screen */
+int pelny_rysuje(void);                     /* K1 draws over it now (the pill or its bar) */
+void pelny_prosba(int i, int a);            /* PELNY_EKRAN a of window i (from its VMM) */
+void pelny_koniec(const char *powod);       /* K1 ends the full screen (the window back to its size) */
+void pelny_gest(int i);                     /* a press or a key went to window i */
+void pelny_fokus(int i);                    /* the focus goes to window i (-1) */
+void pelny_usun(int i);                     /* surface i is gone */
+int pelny_wskaznik(void);                   /* the pointer moved: 1 when it is on K1's bar */
+void pelny_klik(void);                      /* a press on K1's bar */
+int pelny_czas_ms(void);                    /* how soon the loop must come back, -1: no need */
+void pelny_rysuj(const struct prost *k);    /* the pill or K1's bar, into the scene inside k */
 
 /* powierzchnie.c */
 void nowa_pow(int kl, const struct k1_komunikat *m, int fd); /* POWIERZCHNIA: checked, mapped, placed */

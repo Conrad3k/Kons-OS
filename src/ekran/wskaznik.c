@@ -67,6 +67,8 @@ static void ruch_wskaznika(void)
     }
     if (s.chwyt >= 0) {
         cel = s.chwyt;
+    } else if (pelny_wskaznik()) { /* 0.11.0 step 1: K1's bar over the full screen — nothing goes to the zone */
+        cel = -1;
     } else {
         int ramka;
         cel = pod_kursorem_r(&ramka);
@@ -86,6 +88,13 @@ static void przycisk(int nr, int wcisniety)
     int sh = powloka();
     if (nr == K1_PRZYCISK_LEWY)
         s.wcisniety = wcisniety;
+    if (wcisniety && s.chwyt < 0 && pelny_wskaznik()) { /* 0.11.0 step 1: a press on K1's bar over the full screen */
+        s.przyciski |= 1 << nr;
+        if (nr == K1_PRZYCISK_LEWY)
+            pelny_klik();
+        s.zmiana = 1;
+        return;
+    }
     if (wcisniety) {
         int ramka, cel = pod_kursorem_r(&ramka);
         s.przyciski |= 1 << nr;
@@ -100,8 +109,10 @@ static void przycisk(int nr, int wcisniety)
         /* The shell closes its menus when the user clicks anywhere else. */
         if (sh >= 0 && (cel < 0 || s.p[cel].kl != sh))
             wyslij(sh, k1_komunikat_nowy(K1_KOM_WSKAZNIK, 0, s.x, s.y, K1_WSK_WCISNIECIE, nr, (int32_t)s.mody));
-        if (s.chwyt >= 0)
+        if (s.chwyt >= 0) {
             do_wskaznika(s.chwyt, K1_WSK_WCISNIECIE, nr);
+            pelny_gest(s.chwyt); /* 0.11.0 step 1: the user's gesture in that window */
+        }
     } else {
         s.przyciski &= ~(1 << nr);
         if (s.chwyt >= 0 && s.p[s.chwyt].uzyta)
@@ -150,6 +161,7 @@ static int przelaczanie(const struct k1_zdarzenie *z)
         if (!(s.mody & K1_MOD_ALT) || z->wartosc == 0 || powloka() < 0)
             return 0;
         s.przelaczanie = 1;
+        pelny_koniec("Alt+Tab"); /* 0.11.0 step 1: the switcher is a panel of the shell — never under the full screen */
         if (f != NULL && s.kl[f->kl].rola == K1_ROLA_STREFA)
             wyslij(f->kl, k1_komunikat_nowy(K1_KOM_KLAWISZ, f->id, KEY_LEFTALT, 0, s.mody & ~K1_MOD_ALT, 0, 0));
         k1_log(TAG, "Alt+Tab: przełączanie okien w powłoce%s", f != NULL && s.kl[f->kl].rola == K1_ROLA_STREFA
@@ -203,6 +215,8 @@ static void klawisz(const struct k1_zdarzenie *z)
         return;
     }
     if (z->kod == KEY_LEFTMETA || z->kod == KEY_RIGHTMETA) {
+        if (z->wartosc)
+            pelny_koniec("klawisz Start"); /* 0.11.0 step 1: the Start menu, never under the full screen */
         do_powloki(z);
         return;
     }
@@ -211,6 +225,8 @@ static void klawisz(const struct k1_zdarzenie *z)
     if (s.fokus >= 0) {
         struct pow *p = &s.p[s.fokus];
         wyslij(p->kl, k1_komunikat_nowy(K1_KOM_KLAWISZ, p->id, z->kod, z->wartosc, s.mody, 0, 0));
+        if (z->wartosc == 1)
+            pelny_gest(s.fokus); /* 0.11.0 step 1: the user's gesture in that window */
         return;
     }
     /* No focused window: the arrows move the pointer (keyboard-only fallback). */

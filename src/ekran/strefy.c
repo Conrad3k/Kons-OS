@@ -63,10 +63,16 @@ int strefa_pamieta(int nr)
 
 /* The title in three parts around the session's dot and the mark of fast graphics: "<title> · ", "<session>" and
  * " · osobna maszyna" (one-off: "· zapomina"); without a session the dot stands before "osobna maszyna". */
+const char *strefa_sesja(const struct pow *p)
+{
+    const struct k1_strefa_opis *z = opis(p);
+    return nazwy[z->nr][0] ? nazwy[z->nr] : z->sesja;
+}
+
 static void tekst(const struct pow *p, char *przed, size_t n1, char *sesja_t, size_t n2, char *po, size_t n3)
 {
     const struct k1_strefa_opis *z = opis(p);
-    const char *sesja = nazwy[z->nr][0] ? nazwy[z->nr] : z->sesja;
+    const char *sesja = strefa_sesja(p);
     snprintf(przed, n1, "%s · ", z->tytul);
     snprintf(sesja_t, n2, "%s", sesja);
     snprintf(po, n3, "%sosobna maszyna%s", sesja[0] ? " · " : "", s.kl[p->kl].pamieta ? "" : " · zapomina");
@@ -86,6 +92,8 @@ static int32_t obwodka(const struct pow *p)
 struct prost strefa_obszar(const struct pow *p)
 {
     int32_t o = obwodka(p);
+    if (pelny_jest(p)) /* 0.11.0 step 1: full screen — the picture only, no K1 frame */
+        return (struct prost){ p->x, p->y, p->w, p->h };
     struct prost r = { p->x - o, p->y - K1_STREFA_TYTUL - o, p->w + 2 * o, p->h + K1_STREFA_TYTUL + 2 * o };
     return r;
 }
@@ -160,6 +168,8 @@ void strefa_ramka(const struct pow *p, const struct prost *r)
     float x = (float)(f.x - r->x), y = (float)(f.y - r->y), promien = p->maks ? 0 : PROMIEN;
     char przed[64], sesja[K1_STREFA_NAZWA_MAKS + 1], po[64];
     int32_t ob = obwodka(p), tx, ty, szer = p->w - 36 - 3 * ODSTEP - MARGINES - 8, kon;
+    if (pelny_jest(p)) /* 0.11.0 step 1: full screen — K1's pill and bar instead (pelny.c) */
+        return;
     k1_zaokraglony(&o, x, y, (float)f.w, (float)f.h, promien, k1_kolor(m->tlo, 255));
     if (!p->maks)
         k1_obrys(&o, x, y, (float)f.w, (float)f.h, promien, 1.0f, k1_kolor(m->tekst, 26));
@@ -191,7 +201,9 @@ int strefa_trafienie(const struct pow *p, int32_t x, int32_t y)
 {
     static const int przyciski[] = { STREFA_ZAMKNIJ, STREFA_MAKSYMALIZUJ, STREFA_MINIMALIZUJ };
     struct prost f = strefa_obszar(p), tresc = { p->x, p->y, p->w, p->h }, b;
-    int kraw = rozmiar_brzeg(p, x, y); /* 0.10.5 step 4: a grip — also 3 px outside the frame */
+    int kraw = pelny_jest(p) ? 0 : rozmiar_brzeg(p, x, y); /* 0.10.5 step 4: a grip — also 3 px outside the frame */
+    if (pelny_jest(p))
+        return 0;
     if (kraw != 0)
         return STREFA_BRZEG | kraw;
     if (!w(&f, x, y) || w(&tresc, x, y))

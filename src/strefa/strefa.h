@@ -12,6 +12,8 @@
 #include <pthread.h>
 #include <stdint.h>
 
+#include <linux/virtio_gpu.h>
+
 #include "k1_komunikat.h"
 #include "k1_uslugi.h"
 #include "lacznik.h"
@@ -134,9 +136,15 @@ void kvm_linia_urzadzen(char *buf, size_t n);        /* "virtio_mmio.device=4K@0
 const uint32_t *gpu_obraz(uint32_t *w, uint32_t *h); /* gpu.c: the shown resource (under mz.zamek), NULL: none yet */
 void gpu_liczniki(unsigned *n, unsigned *mib);
 void gpu_zmiana_ekranu(void);  /* gpu.c, under mz.zamek: the display's size changed (okno.c) — the guest is told */
-struct virtio_gpu_resp_display_info;
+/* The answer to a 2D command: the header, the display (DISPLAY_INFO) or its EDID (0.11.0 step 1, edid.c). */
+union gpu_odp {
+    struct virtio_gpu_ctrl_hdr hdr;
+    struct virtio_gpu_resp_display_info info;
+    struct virtio_gpu_resp_edid edid;
+};
 /* gpu.c: a 2D command of the control queue (gpu_lacze.c: under mz.zamek): 0, or -1 when shorter than its structure */
-int gpu_2d(const struct vq_lancuch *l, uint32_t typ, uint32_t *wynik, struct virtio_gpu_resp_display_info *info);
+int gpu_2d(const struct vq_lancuch *l, uint32_t typ, uint32_t *wynik, union gpu_odp *odp);
+uint32_t gpu_odp_dl(uint32_t wynik); /* the bytes of the answer of result `wynik` */
 int gpu_jest_2d(uint32_t typ, uint32_t id);
 /* gpu_lacze.c (0.10.9 step 6): fast graphics — the bridge to the graphics broker (fd 10), its thread, KVM's slots */
 int gpu_lacze_start(void);      /* 0 (with or without a broker), -1: the machine cannot start */
@@ -154,6 +162,7 @@ void wejscie_przewin(int32_t x, int32_t y, uint32_t w, uint32_t h, int32_t dx, i
 void wejscie_podsumowanie(void);                     /* at the end: whether input reached the guest, in the log */
 void wejscie_pusc(void);                             /* focus lost: every held key and button up */
 void vsock_zamknij(void);                            /* vsock.c: "close" to the guest */
+void vsock_linia(const char *l);                     /* vsock.c: a line to the guest's control channel ("…\n") */
 void vsock_podsumowanie(void);                       /* vsock.c: the last counters' line (0.10.1 step 1) */
 void vsock_liczniki(void);                           /* vsock.c: the counters' line every 5 s (main thread, under the lock) */
 /* balon.c (0.10.1 step 2, ADR 0044): the guest's memory as K1 sees it, for nadzorca (STREFA_PAMIEC) and the log */

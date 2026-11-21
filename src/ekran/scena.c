@@ -99,10 +99,10 @@ int widac(const struct pow *p)
     return p->uzyta && p->widoczna && !p->zmin && p->polowa >= 0;
 }
 
-/* Order: the desktop layer, windows by z, then panels by z. */
+/* Order: the desktop layer, windows by z, then panels by z; a zone's window in full screen above all (0.11.0 step 1). */
 static int warstwa(const struct pow *p)
 {
-    return p->rodzaj == K1_POW_PULPIT ? 0 : p->rodzaj == K1_POW_OKNO ? 1 : 2;
+    return pelny_jest(p) ? 3 : p->rodzaj == K1_POW_PULPIT ? 0 : p->rodzaj == K1_POW_OKNO ? 1 : 2;
 }
 
 static int przed(const struct pow *a, const struct pow *b)
@@ -215,7 +215,7 @@ static void skomponuj(void)
             const struct pow *p = &s.p[idx[i]];
             struct k1_obraz o = { (uint32_t *)(uintptr_t)(p->mem + (size_t)p->polowa * (size_t)p->w * (size_t)p->h),
                                   (uint32_t)p->w, (uint32_t)p->h, (uint32_t)p->w };
-            if (p->rodzaj == K1_POW_OKNO)
+            if (p->rodzaj == K1_POW_OKNO && !pelny_jest(p))
                 cien(p, &r);
             if (okno_strefy(p))
                 strefa_ramka(p, &r); /* before the zone's picture: outside it, never covered by it */
@@ -229,6 +229,7 @@ static void skomponuj(void)
                 k1_skladaj(&s.scena, &o, p->x, p->y, r.x, r.y, r.w, r.h);
             }
         }
+        pelny_rysuj(&r); /* 0.11.0 step 1: K1's pill or bar over a window in full screen */
         rozmiar_rysuj(&r); /* 0.10.5 step 4: the outline of a window being resized, over everything */
         wylaczanie_rysuj(&r); /* 0.10.7 step 6: K1 powers off — the screen "Wyłączanie" over all of it */
     }

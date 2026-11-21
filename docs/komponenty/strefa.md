@@ -100,7 +100,7 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 | losowość (rng) | 1 | `getrandom` do 4 KiB na prośbę | — |
 | klawiatura, wskaźnik (input) | 2 + 2 | zdarzenia `EV_KEY`, `EV_ABS` (0…32767), `EV_SYN` z ekranu; od 0.10.0 krok 4 wskaźnik z kółkiem: `REL_WHEEL`, `REL_HWHEEL` i `*_HI_RES` (1/120 ząbka) z `PRZEWIN` — z kółka oba, z touchpada tylko `*_HI_RES`; bez wolnego bufora — zdarzenie przepada (licznik) | — |
 | ekran (gpu 2D) | 2 | zasoby ≤ 4096 × 4096 (razem ≤ 96 MiB), tło z pamięci gościa (sprawdzone przy dołączeniu), przeniesienie, pokazanie, odświeżenie → okno; od 0.10.9 krok 6 z pośrednikiem grafiki także 3D — niżej „Szybka grafika” | polecenie krótsze niż jego struktura, brak miejsca na odpowiedź; z pośrednikiem: polecenie dłuższe niż 1 MiB + 32 B, strumień `SUBMIT_3D` dłuższy niż polecenie, więcej czekających na kartę niż mieści kolejka |
-| vsock | 3 | kanał sterujący (port 1 hosta; od 0.10.11 wiersz do 160 znaków): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30; od 0.10.2 koniec ekranu startu), od 0.10.2 krok 1 „etap start” (program strefy pokaże okno — ekran startu zostaje do „etap okno”); od 0.10.1 krok 1 „liczniki A Z K” i „kto P K R” (same liczby, `linia.c`); od 0.10.11 krok 1 „pomiar” i 11 liczb (pomiar kompozytora); od kroku 5 „zamykanie gotowe\|sygnal\|po czasie” (jak przeglądarka skończyła się po „zamknij” — czas w logu); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
+| vsock | 3 | kanał sterujący (port 1 hosta; od 0.10.11 wiersz do 160 znaków): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30; od 0.10.2 koniec ekranu startu), od 0.10.2 krok 1 „etap start” (program strefy pokaże okno — ekran startu zostaje do „etap okno”); od 0.10.1 krok 1 „liczniki A Z K” i „kto P K R” (same liczby, `linia.c`); od 0.10.11 krok 1 „pomiar” i 11 liczb (pomiar kompozytora); od 0.11.0 krok 1 „pelny 1” / „pelny 0” od gościa (okno prosi o pełny ekran / wyszło z niego — do ekranu, najwyżej 4 zmiany na sekundę) i „pelny 0” do gościa (K1 zakończył pełny ekran); od kroku 5 „zamykanie gotowe\|sygnal\|po czasie” (jak przeglądarka skończyła się po „zamknij” — czas w logu); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
 
 | balon (0.10.1 krok 2, ADR 0044) | 4 | `balon.c`: cechy `STATS_VQ`, `DEFLATE_ON_OOM`, `REPORTING`; kolejki 0 pompowanie, 1 spuszczanie (listy le32 numerów stron 4 KiB, najwyżej 256), 2 statystyki (VMM trzyma bufor i co 5 s oddaje go po świeże — `AVAIL` do `STREFA_PAMIEC`), 3 zgłaszanie wolnych bloków (bufory do zapisu, każdy blok z całych stron); strony z balonu i zgłoszone bloki → `fallocate(PUNCH_HOLE \| KEEP_SIZE)` na memfd — wracają do K1; konfiguracja: `num_pages` (cel od nadzorcy, `STREFA_BALON` → zmiana konfiguracji), `actual` (pisze gość; log, gdy dojdzie do celu); balon domyślnie pusty. Czyste części: `strony.c` | strona poza RAM gościa albo w dziurze, lista nie z całych numerów albo dłuższa niż 256, blok nie z całych stron, statystyki złej długości albo o nieznanym/powtórzonym znaczniku, zapis konfiguracji poza `actual` albo `actual` ponad pamięć gościa, zgłoszenie z częścią do odczytu |
 | dysk strefy (blk, krok 5) | 1 | drugi dysk gościa (`/dev/vdb`) do zapisu i odczytu, `FLUSH`, `SEG_MAX`; 2 GiB w kawałkach po 64 KiB przez pamięć podręczną `dysk.c`; strefa, która zapomina: 0 sektorów | prośba bez nagłówka, odczyt albo zapis > 4 MiB |
@@ -234,9 +234,17 @@ i przerwanie konfiguracji; gość czyści je przez `events_clear`) — jądro st
 „hotplug” (uevent). Programy gościa (`gosc/kms.c`, wspólny dla `gosc` i kompozytora) słuchają uevent (gniazdo
 `NETLINK_KOBJECT_UEVENT`), czytają nowy tryb złącza i przełączają się na nowy bufor „dumb” (stary zwolniony); log
 `ekran gościa: nowy rozmiar W×H`. Kompozytor wysyła wtedy oknu głównemu (Firefox) nową konfigurację `xdg_toplevel`
-(rozmiar wyświetlacza, zmaksymalizowane, aktywne); **pełny ekran** Firefoksa (F11, film) to stan „pełny ekran” w tym samym
-rozmiarze — okno strefy, nigdy paski ani ramka K1 (T14). Strefa nie ma komunikatu, którym zmieniłaby swój rozmiar
-albo położenie.
+(rozmiar wyświetlacza, zmaksymalizowane, aktywne). **EDID (0.11.0 krok 1, T9, `edid.c`):** virtio-gpu oferuje
+`VIRTIO_GPU_F_EDID` i na `GET_EDID` daje EDID 1.4 z jednym trybem dokładnie w rozmiarze okna — bez niego jądro strefy robi tryb
+z `drm_cvt_mode`, który zaokrągla szerokość w dół do 8 (1366 → 1360: szpary po bokach zmaksymalizowanej przeglądarki);
+rozmiar poza 64…4095 — błąd i dawny tryb z informacji o wyświetlaczu. **Pełny ekran (0.11.0 krok 1, D1):** Firefox prosi
+`set_fullscreen` → kompozytor (`xdg.c`) zgłasza `gosc` „pelny 1” (okno główne w pełnym ekranie) / „pelny 0” (żadne), `gosc`
+przekazuje VMM-owi, a VMM (`okno.c`) ekranowi `PELNY_EKRAN` — tylko zmiany, najwyżej 4 na sekundę (więcej — liczone,
+pominięte). Decyduje ekran (`ekran.md`): gdy się zgodzi, `ROZMIAR` z `c` = `K1_ROZMIAR_PELNY` daje cały ekran; gdy K1
+zakończy pełny ekran (`ROZMIAR` z innym `c`, póki gość w nim jest), VMM mówi gościowi „pelny 0”, `gosc` daje kompozytorowi
+SIGUSR2, a ten zdejmuje oknom stan pełnego ekranu. Strefa nie ma komunikatu, którym zmieniłaby swój rozmiar albo
+położenie. Strefa próbna: F11 prosi o pełny ekran / kończy go, a po „pelny 0” od K1 od razu prosi znowu sama (jak
+złośliwa strona — ekran musi odmówić, test-strefa).
 
 ## Strefa pobierania (0.10.5 krok 2, ADR 0046)
 Wiersz `POBIERANIE` w `K1_STREFY` — jedyny bez okna (kolumna „okno” = 0): VMM nie dostaje kanału do ekranu (fd 3 =
@@ -277,7 +285,8 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
 ## Komunikaty
 | Komunikat | Kierunek | Pola |
 |---|---|---|
-| `ROZMIAR` (0.10.5 krok 4) | ekran → VMM (fd 3) | obiekt = okno, a, b = nowy rozmiar obrazu (szerokość co 8, od 640 × 480), c = zmaksymalizowane; odpowiedź: `POWIERZCHNIA` e = 1 tego rozmiaru (`ekran.md`) |
+| `ROZMIAR` (0.10.5 krok 4) | ekran → VMM (fd 3) | obiekt = okno, a, b = nowy rozmiar obrazu (od 640 × 480; do 0.11.0 szerokość co 8), c = `K1_ROZMIAR_*` (0 zwykłe, 1 zmaksymalizowane, 2 pełny ekran — 0.11.0); odpowiedź: `POWIERZCHNIA` e = 1 tego rozmiaru (`ekran.md`) |
+| `PELNY_EKRAN` (0.11.0 krok 1) | VMM → ekran (fd 3) | obiekt = okno, a = 1 gość prosi o pełny ekran / 0 wyszedł z niego; tylko zmiany, najwyżej 4 na sekundę (`ekran.md`) |
 | `STREFA_POLACZ` | VMM → nadzorca (fd 7) | obiekt = połączenie 1…128; TCP: a = adres IPv4 (`k1_siec_serwer_dobry`), b = port 1…65535, c = `K1_STREFA_TCP`; DNS: a = b = 0, c = `K1_STREFA_DNS`; d = e = 0 |
 | `STREFA_GNIAZDO` | nadzorca → VMM (+ 1 deskryptor) | obiekt = połączenie, a = `K1_STREFA_TCP` (gniazdo TCP w trakcie łączenia) / `K1_STREFA_DNS` (gniazdo UDP do serwera DNS, port 53), reszta 0 |
 | `STREFA_PAMIEC` (0.10.1 krok 2, ADR 0044) | VMM → nadzorca, najwyżej raz na sekundę | obiekt 0, a = pamięć gościa trzymana w K1 (MiB — strony memfd), b = dostępna w gościu wg jego statystyk (−1: jeszcze brak; podpowiedź), c = w balonie, d = cel balonu, e = oddane K1 od startu (a–d: 0…`K1_STREFA_PAMIEC_MAKS`, e: 0…`INT32_MAX`) |
