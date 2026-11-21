@@ -4,7 +4,7 @@
 - Data: 2026-11-21
 - Dotyczy: ADR 0027 (przepływ plików: Pliki jedynym węzłem, zgoda = gest w K1), ADR 0042 (strefy, VMM), ADR 0043
   (przeglądarka w strefie, Raptor Bridge), ADR 0029 (pliki w skarbcu), ADR 0034 (limity, zapis w toku kawałkami);
-  plan `docs/PLAN-0.11.0.txt`: krok 2, T1–T4, luki P5–P14, decyzje właściciela D2 „A”, D3 „A”; RYZYKA R102
+  plan `docs/PLAN-0.11.0.txt`: krok 2, T1–T4, luki P5–P14, decyzje właściciela D2 „A”, D3 „A”; RYZYKA R103
 
 ## Kontekst
 Do 0.10.11 przeglądarka w strefie była szczelna w obie strony: plik pobrany ze strony zostawał w sesji. Strefa ma tylko
@@ -65,6 +65,6 @@ zaczyna sama strefa); brakowało drogi bajtów i formatu.
   memfd, a skarbiec — tylko nowy plik w Pobranych. Niezaufany jest format ramek (VMM), nazwa (VMM, nadzorca, skarbiec)
   i treść (skarbiec rozpoznaje typ; pliki z internetu otwiera K1 w klatkach jak każde inne — dekoder, Notatki).
 - Ryzyko: użytkownik zapisze w Plikach złośliwy plik. Ogranicza je to, że pliki K1 czytają programy w klatkach (dekoder
-  obrazów, Notatki tylko tekst), a PDF i inne pliki otwiera się w strefie (krok 3) — RYZYKA R102.
+  obrazów, Notatki tylko tekst), a PDF i inne pliki otwiera się w strefie (krok 3) — RYZYKA R103.
 - Kroki 3–5 tego planu używają tej samej drogi w drugą stronę (pliki do strefy), dla przeciągania i schowka —
   uzupełnienia tego ADR.

@@ -91,7 +91,7 @@ src/ ──► build/musl/bin/musl-gcc (static-pie, flagi SPEC §11, _FORTIFY_SO
                                          katalogi jadro/{dev,proc,sys}, strefy/{jadro, przegladarka.skrot — skrót obrazu
                                          przeglądarki (0.10.9 krok 4, ADR 0050; do 0.10.7 cały obraz przegladarka.img),
                                          dysk.img — pusty dysk strefy, mke2fs przy budowie (0.10.0 krok 5)}
-                     strefa-przegladarka.img ◄── pakiety Debiana + gosc, kompozytor, przekaznik + nasza Mesa (SquashFS zstd,
+                     strefa-przegladarka.img ◄── pakiety Debiana + gosc, kompozytor, przekaznik, agent + nasza Mesa (SquashFS zstd,
                                                  bloki 128 KiB — od 0.10.9 krok 4b; wcześniej xz) + drzewo
                                                  dm-verity; poza rdzeniem — w miejscu A/B za k1.efi
                      rdzen-test.squashfs ◄── + system/test-systemu (+ plik ze „#!” do testu negatywnego)

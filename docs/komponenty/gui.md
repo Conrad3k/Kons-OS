@@ -157,6 +157,14 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   „Zainstaluj” → `AKT_PROSBA` a = `ZAINSTALUJ`, jedyna prośba o aktualizację, jaką nadzorca przyjmie od gui), a przy
   przycisku Start kropka w kolorze akcentu, dopóki wersja czeka.
 
+  Od 0.11.0 krok 2 (ADR 0052, D2 „A”; `pobranie.c`): `POBRANIE` od nadzorcy (fd 5, z nazwą w memfd — sprawdzoną jeszcze
+  raz) — okienko „<sesja> pobrała plik” (kropka w kolorze sesji, nazwa, rozmiar, „Zapisać go w Plikach → Pobrane?”,
+  „Zostaw w przeglądarce” / „Zapisz w Pobranych” → `POBRANIE_DECYZJA`); plik ponad 4 GB — „Jest za duży dla Plików”, tylko
+  „OK”; po „Zapisz” bez zapisu (`POBRANIE_WYNIK`: za mało miejsca, przerwane) — „<sesja> · nie zapisano pliku” z powodem.
+  Kilka plików — po kolei (do 8). Kliknięcie obok nie zamyka okienka (odpowiedź jest gestem użytkownika w oknie K1, ADR 0027
+  p. 2); menu otwarte nad nim — okienko wraca, gdy menu się zamknie. Log: „okienko (pobranie): sesja N, plik M; Zapisz
+  w Pobranych x,y; Zostaw w przeglądarce x,y” — nigdy nazwa pliku.
+
 ## Obsługa błędów
 Zamknięty kanał do ekranu → koniec (nadzorca uruchomi ponownie). Awaria → restart; okna aplikacji
 zostają, nowa powłoka dostaje ich listę (test).

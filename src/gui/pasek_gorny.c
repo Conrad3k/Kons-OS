@@ -70,6 +70,18 @@ static void sesja(int zainstalowany) /* 0.7.2: "Wyloguj" only when K1 is install
     menu.brudna = 1;
 }
 
+/* The messages of fd 5 that may bring a descriptor: 1 when `m` was one of them (handled). */
+static int z_deskryptorem(const struct k1_komunikat *m, int fd)
+{
+    if (m->typ == K1_KOM_AKT_STAN || m->typ == K1_KOM_AKT_OPIS || m->typ == K1_KOM_AKT_ETAP)
+        akt_komunikat(m, fd); /* 0.10.5 step 2b: a new version waits (aktualizacja.c) */
+    else if (m->typ == K1_KOM_POBRANIE || m->typ == K1_KOM_POBRANIE_WYNIK)
+        pobranie_komunikat(m, fd); /* 0.11.0 step 2: a file from a session of the browser (pobranie.c) */
+    else
+        return 0;
+    return 1;
+}
+
 void odbierz_baterie(void)
 {
     int i;
@@ -78,14 +90,7 @@ void odbierz_baterie(void)
         int fd = -1;
         enum k1_odbior_wynik w = k1_odbierz_komunikat(FD_BATERIA, 0, K1_KIER_OD_NADZORCY, &m, &fd);
         int zmiana;
-        if (w == K1_ODB_JEST && (m.typ == K1_KOM_AKT_STAN || m.typ == K1_KOM_AKT_OPIS || m.typ == K1_KOM_AKT_ETAP)) {
-            akt_komunikat(&m, fd); /* 0.10.5 step 2b: a new version waits (aktualizacja.c) */
-            if (fd >= 0)
-                close(fd);
-            continue;
-        }
-        if (w == K1_ODB_JEST && (m.typ == K1_KOM_POBRANIE || m.typ == K1_KOM_POBRANIE_WYNIK)) {
-            pobranie_komunikat(&m, fd); /* 0.11.0 step 2: a file from a session of the browser (pobranie.c) */
+        if (w == K1_ODB_JEST && z_deskryptorem(&m, fd)) {
             if (fd >= 0)
                 close(fd);
             continue;
