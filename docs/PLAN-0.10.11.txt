@@ -98,7 +98,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
   - Krok 3: K1 na laptopach z nowszą kartą Intela (mniej więcej od 2017 do 2024 roku: Kaby Lake, Coffee Lake, Ice Lake,
     Tiger Lake, Alder / Raptor Lake, Meteor / Arrow Lake): pulpit przez sterownik karty, oszczędzanie energii obrazu,
     Zasoby → „Karta graficzna” i szybka grafika jak na IdeaPadzie. Najnowsze karty (Lunar Lake i nowsze) używają innego
-    sterownika, dla którego szybkiej grafiki nie ma jeszcze nigdzie — wg D6. Sprawdzenie na sprzęcie — wg D5. Potem
+    sterownika, dla którego szybkiej grafiki nie ma jeszcze nigdzie — wg D6. Bez sprawdzenia na sprzęcie (D5: takiego
+    laptopa nie masz — funkcja wchodzi do systemu na podstawie źródeł i testów). Potem
     porządki i wydanie.
 
 
@@ -107,7 +108,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
      Krok                                                     Luki (punkt 5)   Zależy od   Decyzje      Rozmiar  ADR
 [ ]  1  Pomiar i szybkie poprawki szybkiej grafiki            P1–P7            0.10.10     D1, T1, T2   M        brak
 [ ]  2  Obraz strefy bez kopii: bufor karty prosto do ekranu  P8–P12           1           D4, T3, T4   L        0051
-[ ]  3  Nowsze karty Intela; porządki; wydanie (OSTATNI)      P13–P20          2           D5, D6, T5,  M        0051
+[ ]  3  Nowsze karty Intela; porządki; wydanie (OSTATNI)      P13–P20          2           D6, T5,      M        0051
                                                                                            T6                    (uzup.)
 (ADR 0051: następny wolny po 0050 z 0.10.9; plan 0.11.0 bierze następny po nim. Decyzje D2 i D3 i dawne kroki 3–4 —
 karty AMD i NVIDIA — wypadły 2026-11-20; nowy krok 3 to nowsze karty Intela, numery D1 i D4 zostają.)
@@ -168,13 +169,13 @@ KROK 2: Obraz strefy bez kopii — bufor karty prosto do ekranu                L
   Gotowe, gdy: CI zielone; IdeaPad: liczby lepsze niż po kroku 1, obraz bez błędów przy przesuwaniu, minimalizacji
   i Alt+Tab.
 
-KROK 3: Nowsze karty zintegrowane Intela; porządki; wydanie (OSTATNI)     M · D5, D6, T5, T6 · ADR 0051 (uzupełnienie)
+KROK 3: Nowsze karty zintegrowane Intela; porządki; wydanie (OSTATNI)     M · D6, T5, T6 · ADR 0051 (uzupełnienie)
   Cel: K1 działa na laptopach z nowszymi kartami zintegrowanymi Intela tak samo jak na IdeaPadzie: pulpit przez i915,
   oszczędzanie energii obrazu, Zasoby → „Karta graficzna”, szybka grafika (gdy karta spełnia warunki pośrednika) i droga
   obrazu bez kopii z kroku 2. Potem porządki i wydanie.
-  Na początku: D5, D6.
+  Na początku: D6 (D5 rozstrzygnięta: bez sprzętu, funkcja w systemie).
   Co widzi użytkownik (laptop z nowszym Intelem): pulpit bez czarnego ekranu, jasne stany oszczędzania (bateria),
-  Ustawienia → Przeglądarka: „obsługuje szybką grafikę”, przełącznik przy sesjach jak na IdeaPadzie (domyślnie wg D5),
+  Ustawienia → Przeglądarka: „obsługuje szybką grafikę”, przełącznik przy sesjach jak na IdeaPadzie (domyślnie Ogólna włączona — D5),
   Zasoby z obciążeniem i taktowaniem karty. Najnowsze karty (Lunar Lake i nowsze) — wg D6. Na X230 i IdeaPadzie — bez zmian.
   Zadania:
    a) Przegląd generacji (T5): tabela w jadro/ albo w docs/komponenty/jadro.md — generacja, sterownik (i915 / xe), pliki
@@ -197,10 +198,10 @@ KROK 3: Nowsze karty zintegrowane Intela; porządki; wydanie (OSTATNI)     M · 
    h) Porządki (wersja PATCH — porządki MINOR przy 0.11.0, ale terminy „Tymczasowe” sprawdzamy); pliki blisko limitu po
       zmianach; opisy bez powtórzeń.
    i) Wydanie: VERSION (następny wolny PATCH), CHANGELOG z „Opis w K1:”, DO_ZROBIENIA (punkt 1 i 4: co sprawdzić na
-      IdeaPadzie, X230 i — wg D5 — na laptopie z nowszym Intelem), plan → docs/archiwum/.
+      IdeaPadzie i X230 — nowszego Intela nikt nie sprawdza, D5), plan → docs/archiwum/.
   Testy i dowód: budowa jądra, sprawdz-kspp, porownaj-jadro (nowe opcje — ręcznie w k1-odrzucone.txt, jeśli niepotrzebne),
   test-m1 i test-m4 (start i pulpit w QEMU bez zmian), test-m5f / test-aktualizacja-siec (rozmiar k1.efi w miejscu A/B),
-  test na hoście dla nowych odczytów Zasobów (pliki sysfs Meteor Lake jako dane testowe), sprzęt wg D5; pełny komplet
+  test na hoście dla nowych odczytów Zasobów (pliki sysfs Meteor Lake jako dane testowe), bez sprzętu (D5); pełny komplet
   w CI na PR-ze wydania.
   Dokumenty: ADR 0051 (uzupełnienie: generacje i warstwy), jadro.md (tabela generacji), posrednik.md, nadzorca.md,
   RYZYKA (R100 — więcej generacji i915 w zasięgu strefy; R101 — Mesa intel-virtio na Gen12), CHANGELOG.
@@ -216,8 +217,12 @@ Twoje (produkt) — czat kroku zada je na początku:
          wykresu); łatwo porównasz przed i po aktualizacji.
       B: nie — liczby tylko w logu i w raportach z testów.
   [x] D2, D3 — wypadły razem z kartami AMD i NVIDIA (decyzja właściciela 2026-11-20).
-  [!] D5 (krok 3) — Sprawdzenie na nowszym Intelu. Twoje laptopy mają starsze karty (X230 — Ivy Bridge, IdeaPad —
-      Skylake), a CI nie ma żadnej karty.
+  [x] D5 (krok 3) — ROZSTRZYGNIĘTE 2026-11-21: właściciel nie ma laptopa z nowszym Intelem — „Po prostu niech taka
+      funkcjonalność będzie w systemie”. Czyli A bez sprawdzenia na sprzęcie: obsługa nowszych kart wchodzi do systemu,
+      szybka grafika na nich działa jak na IdeaPadzie (przełącznik przy sesji, Ogólna włączona); dowodem są źródła i915
+      i Mesy, testy na hoście i w CI; w CHANGELOG i docs/komponenty/jadro.md opisane jako „niesprawdzone na sprzęcie”
+      (bez takiego napisu w samym systemie). Pytanie było: Sprawdzenie na nowszym Intelu. Twoje laptopy mają starsze karty
+      (X230 — Ivy Bridge, IdeaPad — Skylake), a CI nie ma żadnej karty.
       A (zalecane): napisz, czy możesz pożyczyć albo masz laptop z nowszym Intelem (model) — uruchomisz obraz USB z PR-a
          (pulpit, Zasoby, przeglądarka); szybka grafika na nowszych kartach działa jak na IdeaPadzie (przełącznik przy
          sesji, Ogólna włączona), a karty, których nikt nie sprawdził, są w raporcie opisane jako niesprawdzone. Ochrona:
