@@ -31,7 +31,9 @@
 #include "k1_log.h"
 #include "k1_memfd.h"
 #include "k1_odbior.h"
+#include "k1_pomiar.h"
 #include "k1_teraz.h"
+#include "pomiar.h"
 #include "strefa.h"
 
 #define CZEKAJ_S 10.0 /* one answer of the broker, at most (then: it is gone) */
@@ -127,8 +129,12 @@ static int wynik(struct k1_komunikat k, int fd)
 
 static int l_prosby(void *ja, uint32_t g, uint32_t dl)
 {
+    uint64_t t0 = k1_pomiar_teraz_us();
+    int r;
     (void)ja;
-    return wynik(k1_komunikat_nowy(K1_KOM_POSR_PROSBY, g, (int32_t)dl, 0, 0, 0, 0), -1);
+    r = wynik(k1_komunikat_nowy(K1_KOM_POSR_PROSBY, g, (int32_t)dl, 0, 0, 0, 0), -1);
+    pomiar_most(k1_pomiar_teraz_us() - t0); /* 0.10.11 step 1: there and back (plan P6) */
+    return r;
 }
 
 /* A memfd of `rozmiar` bytes sealed against shrinking and growing (the broker maps it: a shrunk one would end it). */
@@ -171,8 +177,10 @@ static int l_bufor(void *ja, uint32_t res, int *fd, uint32_t *mapa)
             close(*fd), *fd = -1;
         return K1_POSR_BLAD_KARTA;
     }
-    if (r == 0)
+    if (r == 0) {
         *mapa = (uint32_t)o.a; /* K1_POSR_MAPA_* = VIRTIO_GPU_MAP_CACHE_* (checked: 1..3) */
+        pomiar_mapa(*mapa);    /* 0.10.11 step 1, plan P3: how the guest maps the card's buffers */
+    }
     return r;
 }
 

@@ -32,6 +32,7 @@
 #include "k1_teraz.h"
 #include "okno.h"
 #include "polaczenia.h"
+#include "pomiar.h"
 #include "strefa.h"
 
 #define JADRO_MAKS (64u << 20)
@@ -131,6 +132,7 @@ static void pamiec_krok(void)
     balon_stan(&b);
     vsock_liczniki();
     zamek_oddaj();
+    pomiar_loguj(); /* 0.10.11 step 1: the picture's way, every 10 s (its own lock) */
     k = k1_komunikat_nowy(K1_KOM_STREFA_PAMIEC, 0, (int32_t)b.w_k1_mib, (int32_t)b.dostepna_mib, (int32_t)b.balon_mib,
                           (int32_t)b.cel_mib, (int32_t)(b.oddane_mib > INT32_MAX ? INT32_MAX : b.oddane_mib));
     if (k1_kanal_wyslij(FD_NADZORCA, &k, sizeof k, -1) != 0)

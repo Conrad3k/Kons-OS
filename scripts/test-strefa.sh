@@ -9,6 +9,7 @@
 #   3. kliknięcie i klawisz docierają do gościa (licznik w logu gościa, zmiana wzoru); bez fokusu klawisz nie dociera;
 #      kółko (0.10.0 krok 4) dociera — z fokusem i bez niego (okno pod kursorem)
 #   (0.10.1 krok 1) linia liczników strefy co kilka sekund i przy końcu, szczyt pamięci klatki u nadzorcy
+#   (0.10.11 krok 1) linia pomiaru drogi obrazu w VMM co 10 s (same liczby)
 #   (0.10.1 krok 2) BALON: złośliwi goście balonu (strona poza pamięcią, blok nie z całych stron, za długa lista) — koniec
 #      tylko strefy; uczciwy gość (tryb 9): górna granica ponad pamięć na start, zwolnione 64 MiB wracają do K1, cel
 #      balonu 32 MiB i z powrotem 0 (prośby programu testowego przez nadzorcę), nagły skok prawie do granicy — żyje
@@ -365,6 +366,12 @@ sprawdz("LICZNIKI (0.10.1 krok 1): co kilka sekund linia liczników — pamięć
                czas=10))
 for l_ in re.findall(r"K1-STREFA: liczniki[^\n]*", q.tekst())[-2:]:
     print("            | " + l_[:240], flush=True)
+sprawdz("POMIAR (0.10.11 krok 1): co 10 s linia pomiaru drogi obrazu w VMM — obrazy gościa, przeniesienie, kopia do okna, "
+        "czekanie na ekran (średnio/95%, same liczby)",
+        czekaj(r"K1-STREFA: pomiar VMM \(10 s, średnio/95%\): obrazy gościa [1-9]\d*, przeniesienie \d+,\d/\d+,\d ms; "
+               r"okno [1-9]\d* klatek, kopia \d+,\d/\d+,\d ms, ekran (?:\d+,\d/\d+,\d ms|brak)", czas=10))
+for l_ in re.findall(r"K1-STREFA: pomiar VMM[^\n]*", q.tekst())[-1:]:
+    print("            | " + l_[:300], flush=True)
 
 POWODY = {1: "deskryptor poza pamięcią gościa", 2: r"pętla deskryptorów \(łańcuch dłuższy niż kolejka\)",
           3: "virtio-blk: odczyt dłuższy niż limit", 4: "virtio-blk: zapis do obrazu tylko do odczytu"}

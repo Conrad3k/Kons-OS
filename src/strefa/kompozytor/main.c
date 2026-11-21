@@ -35,7 +35,7 @@ void kloguj(const char *fmt, ...)
     dprintf(2, KTAG ": %.*s\n", n >= (int)sizeof b ? (int)sizeof b - 1 : n, b);
 }
 
-static void zglos(const char *linia, size_t n)
+void zglos(const char *linia, size_t n)
 {
     if (fcntl(FD_ZGLOSZEN, F_GETFD) >= 0 && write(FD_ZGLOSZEN, linia, n) != (ssize_t)n)
         kloguj("zgłoszenie dla gosc: %s", strerror(errno));
@@ -111,6 +111,7 @@ static void petla(int g, int sfd)
         unsigned n = 1, nk = 0, i, nw;
         int czekaj = -1;
         uint32_t t = teraz_ms();
+        pomiar_zglos();
         if (t - ostatnia >= KLATKA_MS) {
             if (scena_rysuj())
                 ostatnia = t;

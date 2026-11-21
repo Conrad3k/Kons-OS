@@ -92,7 +92,7 @@ static void wklej(const struct powierzchnia *p, int32_t ox, int32_t oy)
     int32_t x0 = ox > z0 ? ox : z0, y0 = oy > zy0 ? oy : zy0;
     int32_t x1 = ox + p->szer < z1 ? ox + p->szer : z1, y1 = oy + p->wys < zy1 ? oy + p->wys : zy1, x, y;
     for (y = y0; y < y1; y++) {
-        const uint32_t *s = p->piksele + (size_t)(y - oy) * (size_t)p->szer + (size_t)(x0 - ox);
+        const uint32_t *s = p->obraz + (size_t)(y - oy) * (size_t)p->krok + (size_t)(x0 - ox);
         uint32_t *d = ekran.px + (size_t)y * (size_t)ekran.krok + (size_t)x0;
         if (!p->alfa) {
             for (x = 0; x < x1 - x0; x++)
@@ -123,6 +123,7 @@ static void drzewo(const struct powierzchnia *p, int32_t ox, int32_t oy, int gle
 int scena_rysuj(void)
 {
     struct xdg_pow *x;
+    uint64_t t0, t1;
     unsigned i;
     if (z1 <= z0 || ekran.px == NULL) {
         if (!wywolania)
@@ -132,11 +133,16 @@ int scena_rysuj(void)
         return 1;
     }
     wywolania = 0;
+    t0 = k1_pomiar_teraz_us();
     prostokat(z0, zy0, z1, zy1, TLO);
     for (i = 0; (x = xdg_okno(i)) != NULL; i++)
         if (x->pow != NULL && powierzchnia_widoczna(x->pow))
             drzewo(x->pow, x->x - x->gx, x->y - x->gy, 0);
+    t1 = k1_pomiar_teraz_us();
     ekran_pokaz(z0, zy0, z1 - z0, zy1 - zy0);
+    k1_pomiar_dodaj(&pomiar_scena, t1 - t0); /* 0.10.11 step 1: drawing the scene, then sending it (DIRTYFB) */
+    k1_pomiar_dodaj(&pomiar_pokaz, k1_pomiar_teraz_us() - t1);
+    pomiar_klatki++;
     z0 = zy0 = z1 = zy1 = 0;
     powierzchnie_klatka_gotowa(teraz_ms());
     return 1;

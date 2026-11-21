@@ -15,7 +15,9 @@
 #include <linux/virtio_ids.h>
 
 #include "gpu_most.h"
+#include "k1_pomiar.h"
 #include "okno.h"
+#include "pomiar.h"
 #include "strefa.h"
 #include "tlo.h"
 
@@ -143,7 +145,7 @@ static uint32_t dolacz(const struct vq_lancuch *l, const struct virtio_gpu_resou
 static uint32_t przenies(const struct virtio_gpu_transfer_to_host_2d *t)
 {
     struct zasob *z = znajdz(t->resource_id);
-    uint64_t krok;
+    uint64_t krok, t0 = k1_pomiar_teraz_us();
     uint32_t y;
     if (z == NULL || z->tlo == NULL || !prostokat_w(&t->r, z))
         return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
@@ -152,6 +154,7 @@ static uint32_t przenies(const struct virtio_gpu_transfer_to_host_2d *t)
         if (z_tla(z, t->offset + krok * y, (uint8_t *)(z->px + (size_t)(t->r.y + y) * z->w + t->r.x),
                   (uint64_t)t->r.width * 4) != 0)
             return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
+    pomiar_przeniesienie(k1_pomiar_teraz_us() - t0); /* 0.10.11 step 1 */
     return VIRTIO_GPU_RESP_OK_NODATA;
 }
 
@@ -173,8 +176,10 @@ static uint32_t splucz(const struct virtio_gpu_resource_flush *f)
     struct zasob *z = znajdz(f->resource_id);
     if (z == NULL || !prostokat_w(&f->r, z))
         return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
-    if (f->resource_id == pokazany)
+    if (f->resource_id == pokazany) {
         okno_zmiana(f->r.x, f->r.y, f->r.width, f->r.height);
+        pomiar_obraz();
+    }
     return VIRTIO_GPU_RESP_OK_NODATA;
 }
 

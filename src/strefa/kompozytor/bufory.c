@@ -1,5 +1,5 @@
 /* K1 kompozytor — the buffers (kompozytor.h): wl_shm, its pools (the client's memory, mapped read only) and wl_buffer
- * (a rectangle of a pool, checked to lie inside it). A surface copies a committed buffer at once (powierzchnia.c). */
+ * (a rectangle of a pool, checked to lie inside it). What a committed buffer becomes of a surface: zawartosc.c. */
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -117,6 +117,7 @@ static void zwolnij_bufor(struct obiekt *o)
         if (p != NULL && p->czekajacy.bufor == o)
             p->czekajacy.bufor = NULL;
     }
+    zawartosc_bufor_znika(o); /* a held buffer of the card: its picture stays until another one comes */
     if (b != NULL && b->pula != NULL)
         pula_pusc(b->pula);
     if (b != NULL)

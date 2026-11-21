@@ -323,5 +323,6 @@ int main(void)
         }
         loguj_kursor();
         loguj_zalegle();
+        pomiar_loguj();
     }
 }

@@ -160,6 +160,11 @@ o długości `K1_POSR_TEST_ZAWIESZENIE` „zawiesza kartę” (`EIO`). Wybiera g
 (`TEST_POSREDNIK` b = 1, strefa próbna w trybach 16 i 17 — kanał testowy i strefa próbna są tylko w obrazie testowym),
 nigdy dla sesji przeglądarki: niczego nie rysuje, więc i tak nie zastąpiłby karty.
 
+## Pomiar (0.10.11 krok 1)
+VMM mierzy każdą prośbę mostu (`POSR_PROSBY`) tam i z powrotem i liczy rodzaje mapowań buforów (`POSR_DMABUF` a: WB,
+UC, WC) — wiersz `pomiar VMM` co 10 s (`docs/komponenty/strefa.md`, „Pomiar drogi obrazu”). Pośrednik sam nic nie loguje
+więcej.
+
 ## Testy
 | Test | Rodzaj |
 |---|---|

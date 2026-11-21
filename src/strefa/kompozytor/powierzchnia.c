@@ -17,7 +17,7 @@ struct powierzchnia *powierzchnia_z(struct obiekt *o)
 
 int powierzchnia_widoczna(const struct powierzchnia *p)
 {
-    return p->piksele != NULL && p->szer > 0 && p->wys > 0;
+    return p->obraz != NULL && p->szer > 0 && p->wys > 0;
 }
 
 /* --- wl_callback --- */
@@ -215,17 +215,22 @@ static void dzieci_zatwierdz(struct powierzchnia *p)
 static void zastosuj(struct powierzchnia *p, struct stan_pow *s)
 {
     unsigned i;
-    if (s->dolaczono && s->bufor == NULL && p->piksele != NULL) {
+    if (s->dolaczono && s->bufor == NULL && p->obraz != NULL) {
         scena_zmiana_powierzchni(p);
-        free(p->piksele);
-        p->piksele = NULL;
-        p->szer = p->wys = 0;
+        zawartosc_pusc(p, 1);
     } else if (s->dolaczono && s->bufor != NULL && s->bufor->typ == IF_BUFFER) {
         const struct bufor *b = s->bufor->dane;
-        dmabuf_czekaj(b->uchwyt); /* a buffer of the card: drawn to the end (0.10.9 step 6) */
-        if (b->pula != NULL && zawartosc_kopiuj(p, b, s->ux0, s->uy0, s->ux1, s->uy1) != 0)
+        int r;
+        if (b->uchwyt != 0) { /* a buffer of the card: drawn to the end (0.10.9 step 6) */
+            uint64_t t0 = k1_pomiar_teraz_us();
+            dmabuf_czekaj(b->uchwyt);
+            k1_pomiar_dodaj(&pomiar_czekanie, k1_pomiar_teraz_us() - t0);
+        }
+        r = zawartosc_pokaz(p, s->bufor, s->ux0, s->uy0, s->ux1, s->uy1);
+        if (r < 0)
             blad(p->o->klient, s->bufor, BLAD_PAMIEC, R_BUFOR_ODCZYT);
-        zdarzenie(s->bufor, 0, ""); /* wl_buffer.release: we have our copy */
+        if (r == 0)
+            zdarzenie(s->bufor, 0, ""); /* wl_buffer.release: we have our copy */
     }
     if (s->wej_jest) {
         p->wej_jest = s->wej.pusty != 2;
@@ -310,7 +315,7 @@ static void zwolnij_pow(struct obiekt *o)
         obiekt_usun(p->nowy.wywolania[i]);
     for (i = 0; i < p->czekajacy.n_wywolan; i++)
         obiekt_usun(p->czekajacy.wywolania[i]);
-    free(p->piksele);
+    zawartosc_pusc(p, 0); /* the held buffer is not released: the surface is gone (its client may be ending too) */
     free(p);
     o->dane = NULL;
 }

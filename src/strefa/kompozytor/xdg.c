@@ -111,7 +111,7 @@ void xdg_po_zatwierdzeniu(struct powierzchnia *p)
     struct xdg_pow *x = p->xdg;
     if (x == NULL || x->rola == NULL)
         return;
-    if (!x->skonfigurowana && x->okno != 0 && !x->zmapowana && p->piksele == NULL) {
+    if (!x->skonfigurowana && x->okno != 0 && !x->zmapowana && p->obraz == NULL) {
         uint32_t s = kolejny_serial();
         if (x->okno == 1) {
             uint32_t stany[2] = { STAN_ZMAKSYMALIZOWANE, STAN_AKTYWNE };
@@ -126,7 +126,7 @@ void xdg_po_zatwierdzeniu(struct powierzchnia *p)
         zdarzenie(x->o, 0, "u", s);
         return;
     }
-    if (p->piksele == NULL) {
+    if (p->obraz == NULL) {
         schowaj(x);
         return;
     }
@@ -182,7 +182,7 @@ static void wm_powierzchnia(struct klient *k, struct obiekt *o, union arg *a)
     if (obiekt_typu(k, a[1].o, IF_SURFACE, 0) == NULL)
         return;
     p = a[1].o->dane;
-    if ((p->rola != ROLA_BRAK && p->rola != ROLA_XDG) || p->xdg != NULL || p->piksele != NULL) {
+    if ((p->rola != ROLA_BRAK && p->rola != ROLA_XDG) || p->xdg != NULL || p->obraz != NULL) {
         blad(k, o, WM_ROLA, R_XDG_ROLA); /* the same role again is allowed, as for a subsurface (powierzchnia.c) */
         return;
     }
@@ -357,9 +357,7 @@ static void xs_zwolnij(struct obiekt *o)
         x->rola->dane = NULL;
     if (x->pow != NULL) { /* unmapped: what it showed is gone, a new xdg_surface may come on it */
         x->pow->xdg = NULL;
-        free(x->pow->piksele);
-        x->pow->piksele = NULL;
-        x->pow->szer = x->pow->wys = 0;
+        zawartosc_pusc(x->pow, 1);
     }
     for (i = 0; i < n_okien; i++)
         if (okna[i]->rodzic == x)

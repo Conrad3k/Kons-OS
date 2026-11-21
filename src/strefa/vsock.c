@@ -5,8 +5,8 @@
  *     killed for lack of memory), "etap okno" (the browser's first window: the time to the log, S30; since 0.10.2 the
  *     end of the start screen after "etap start" — okno.c); since 0.10.1
  *     step 1 "liczniki A Z K" (the guest's memory, zram, OOM kills: one line of counters with ours, S13) and "kto P K R"
- *     (who ended and how, S15) — numbers only, checked by linia.c — only these exact lines, anything else is counted
- *     and ignored;
+ *     (who ended and how, S15); since 0.10.11 step 1 "pomiar" and 11 numbers (the compositor's measurement, pomiar.c)
+ *     — numbers only, checked by linia.c — only these exact lines, anything else is counted and ignored;
  *   POL_PORT (2): the browser's connections through the relay in the zone, up to K1_STREFA_POLACZENIA_MAKS, each with
  *     its own credit; their bytes go to and from polaczenia.c (0.10.0 step 2, ADR 0043 T9).
  * Any other connection is refused (RST). Every header from the guest is checked: its CIDs, type, length within the
@@ -27,6 +27,7 @@
 #include "linia.h"
 #include "okno.h"
 #include "polaczenia.h"
+#include "pomiar.h"
 #include "strefa.h"
 
 #define CID_HOSTA 2
@@ -35,7 +36,7 @@
 #define NASZ_BUFOR 4096u
 #define CZEKAJACE 128
 #define DANE_MAKS 64u
-#define LINIA_MAKS 64u
+#define LINIA_MAKS 160u /* 0.10.11 step 1: "pomiar" with 11 numbers */
 #define KOLEJKA_RX 0
 #define KOLEJKA_TX 1
 #define WSZYSTKO (VIRTIO_VSOCK_SHUTDOWN_RCV | VIRTIO_VSOCK_SHUTDOWN_SEND)
@@ -286,9 +287,11 @@ static void kto(const uint32_t *w)
 
 static void linia_od_goscia(void)
 {
-    uint32_t w[3];
+    uint32_t w[POMIAR_GOSC_LICZB];
     v.linia[v.dl] = '\0';
-    if (linia_liczby(v.linia, "liczniki", w, 3, 1u << 24)) {
+    if (linia_liczby(v.linia, "pomiar", w, POMIAR_GOSC_LICZB, 1u << 24)) /* 0.10.11 step 1: the compositor's links */
+        pomiar_gosc(w);
+    else if (linia_liczby(v.linia, "liczniki", w, 3, 1u << 24)) {
         memcpy(lz.g, w, sizeof lz.g);
         lz.sa = 1;
     } else if (linia_liczby(v.linia, "kto", w, 3, 999))

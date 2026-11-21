@@ -9,7 +9,9 @@
 #include "k1_teraz.h"
 #include "k1_okno.h"
 #include "k1_rysuj.h"
+#include "k1_pomiar.h"
 #include "okno.h"
+#include "pomiar.h"
 #include "strefa.h"
 
 #define OKNO_MAKS_W 1024
@@ -210,6 +212,7 @@ void okno_obraz(void)
     struct k1_obraz *o;
     const uint32_t *src;
     uint32_t w = 0, h = 0;
+    uint64_t t0;
     int pol;
     struct prost r;
     if (kl.fd < 0 || schowane || okno.czeka)
@@ -243,10 +246,13 @@ void okno_obraz(void)
         k1_wyczysc(o, 0xff000000u);
         czysta[pol] = 0;
     }
+    t0 = k1_pomiar_teraz_us();
     kopiuj(o, src, w, h, r);
+    pomiar_okno(k1_pomiar_teraz_us() - t0); /* 0.10.11 step 1 */
     brud[pol] = (struct prost){ 0, 0, 0, 0 };
     zamek_oddaj();
     k1_pow_zatwierdz_obszar(&kl, &okno, (int32_t)r.x0, (int32_t)r.y0, (int32_t)(r.x1 - r.x0), (int32_t)(r.y1 - r.y0));
+    pomiar_zatwierdzone();
     klatki++;
 }
 
@@ -288,14 +294,17 @@ int okno_odbierz(void)
         switch (m.typ) {
         case K1_KOM_KLAWISZ:
             wejscie_klawisz(m.a, m.b);
+            pomiar_wejscie();
             break;
         case K1_KOM_WSKAZNIK:
             if (m.obiekt == OKNO_ID || m.c == K1_WSK_PUSZCZENIE)
                 wejscie_wskaznik(m.a, m.b, szer, wys, m.c, m.d);
+            pomiar_wejscie();
             break;
         case K1_KOM_PRZEWIN:
             if (m.obiekt == OKNO_ID)
                 wejscie_przewin(m.a, m.b, szer, wys, m.c, m.d, m.e);
+            pomiar_wejscie();
             break;
         case K1_KOM_FOKUS:
             if (m.a == 0)
@@ -313,6 +322,8 @@ int okno_odbierz(void)
         }
         zamek_oddaj();
     }
+    if (!okno.czeka) /* ekran took the last frame (RAMKA): the wait for it measured */
+        pomiar_ramka();
     return wynik;
 }
 

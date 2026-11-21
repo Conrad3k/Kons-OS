@@ -212,6 +212,12 @@ void zatwierdz(int kl, const struct k1_komunikat *m);        /* ZATWIERDZ: the d
 struct k1_zdarzenie;
 void zastosuj(const struct k1_zdarzenie *z);
 
+/* pomiar.c — the measurement (0.10.11 step 1, plan T1) */
+void pomiar_skladanie(uint64_t us); /* one composition of the scene */
+void pomiar_zapis(uint64_t us);     /* the scene into the card's buffer */
+void pomiar_wymiana(int koniec);    /* the page flip asked (0) / done (1) */
+void pomiar_loguj(void);            /* the loop: the line every 10 s while a zone's window is open */
+
 /* drm.c */
 int drm(int fd, unsigned long req, void *arg);
 double czas_procesora(void); /* CPU time of this process, s */

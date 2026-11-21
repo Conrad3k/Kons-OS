@@ -173,10 +173,19 @@ static void pilnuj(pid_t przegl, int ster, unsigned long *zabite, int krok)
 }
 
 /* A line of the compositor on its pipe: "okno" — its first window (0.10.0 step 3, S30): "etap okno" to the VMM, which
- * logs the time; "regula N" — it disconnected the browser for breaking its rule N (0.10.1 step 1): kept for "kto". */
+ * logs the time; "regula N" — it disconnected the browser for breaking its rule N (0.10.1 step 1): kept for "kto";
+ * "pomiar …" — its measurement every 10 s (0.10.11 step 1): to the VMM as it is (the VMM checks the numbers). */
+static void przekaz(int ster, const char *l)
+{
+    char w[200];
+    int n = snprintf(w, sizeof w, "%s\n", l);
+    if (n > 0 && n < (int)sizeof w && write(ster, w, (size_t)n) != n)
+        loguj("kanał sterujący: zapis nieudany");
+}
+
 static void od_kompozytora(int *okno, int ster, int *regula)
 {
-    char b[128];
+    char b[512];
     ssize_t n = read(okno[0], b, sizeof b - 1);
     char *l, *z;
     if (n < 0 && errno == EAGAIN)
@@ -192,6 +201,8 @@ static void od_kompozytora(int *okno, int ster, int *regula)
             loguj("kanał sterujący: zapis nieudany");
         else if (strncmp(l, "regula ", 7) == 0)
             *regula = atoi(l + 7) > 0 && atoi(l + 7) < 1000 ? atoi(l + 7) : 0;
+        else if (strncmp(l, "pomiar ", 7) == 0 && ster >= 0)
+            przekaz(ster, l);
 }
 
 struct zamykanie {

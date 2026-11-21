@@ -10,7 +10,7 @@
  * client (wl_display.error), never the compositor. The whole zone is in turn hostile to K1 — K1 never runs this code.
  *
  * Parts: main.c (socket, loop), protokol.c (wire, objects), interfejsy.c (the table of interfaces), powierzchnia.c
- * (surfaces, regions, subsurfaces), zawartosc.c (a surface's picture), bufory.c (wl_shm, pools, buffers), xdg.c (xdg-shell), wejscie.c (seat, pointer,
+ * (surfaces, regions, subsurfaces), zawartosc.c (a surface's picture), pomiar.c (the measurement), bufory.c (wl_shm, pools, buffers), xdg.c (xdg-shell), wejscie.c (seat, pointer,
  * keyboard, evdev), palce.c (the fingers' scrolling as one gesture, pure), scena.c (composition), drm.c (the display). */
 #ifndef K1_KOMPOZYTOR_H
 #define K1_KOMPOZYTOR_H
@@ -235,7 +235,12 @@ struct powierzchnia {
     int rola;
     struct stan_pow nowy, czekajacy;  /* pending; for a synchronized subsurface: cached until its parent commits */
     int czekajacy_jest;
-    uint32_t *piksele;       /* our copy of the last committed buffer (the client's buffer is released at once) */
+    uint32_t *piksele;       /* our copy of the last committed wl_shm buffer (that buffer is released at once) */
+    const uint32_t *obraz;   /* what the scene shows: piksele, or the card's buffer held (0.10.11 step 1, zawartosc.c) */
+    int32_t krok;            /* of obraz, in pixels */
+    struct obiekt *trzymany; /* the held buffer's wl_buffer, released when another one replaces it (NULL: none, or the
+                              * client destroyed it — its mapping stays ours in `pula` until then) */
+    struct pula *pula;       /* the held buffer's mapping (a reference) */
     int32_t szer, wys;
     int alfa;                /* argb8888: blend; xrgb8888: copy */
     int wej_jest;
@@ -257,7 +262,12 @@ void powierzchnia_klatka_gotowa(struct powierzchnia *p, uint32_t ms); /* frame c
 void powierzchnie_klatka_gotowa(uint32_t ms);  /* every surface */
 /* zawartosc.c: buffer b into the surface's picture (the damage box ux0..uy1 when the size is the same); 0, or -1 (the
  * client's pool went away: SIGBUS, or no memory) */
-int zawartosc_kopiuj(struct powierzchnia *p, const struct bufor *b, int32_t ux0, int32_t uy0, int32_t ux1, int32_t uy1);
+/* zawartosc.c: buffer `bo` committed with the damage box ux0..uy1 into the surface's picture — a wl_shm buffer copied
+ * (returns 0: release it now), a buffer of the card held and shown as it is (1: released later, by another buffer);
+ * -1: the client's pool went away (SIGBUS) or no memory */
+int zawartosc_pokaz(struct powierzchnia *p, struct obiekt *bo, int32_t ux0, int32_t uy0, int32_t ux1, int32_t uy1);
+void zawartosc_pusc(struct powierzchnia *p, int zwolnij); /* no picture any more; zwolnij: release the held buffer */
+void zawartosc_bufor_znika(struct obiekt *bo);           /* the client destroyed wl_buffer bo (bufory.c) */
 
 /* xdg.c */
 struct pozycjoner {
@@ -323,12 +333,19 @@ void ekran_pokaz(int32_t x, int32_t y, int32_t w, int32_t h); /* this part chang
 int ekran_zmiany_fd(void);                    /* 0.10.5 step 4: readable when K1 resized the zone's window (-1: none) */
 int ekran_zmiana(void);                       /* 1: `ekran` has the new size and buffer (the scene drawn again) */
 
+/* pomiar.c (0.10.11 step 1, plan T1): the links of the picture's way in the zone — to gosc every 10 s */
+#include "k1_pomiar.h"
+extern struct k1_pomiar pomiar_czekanie, pomiar_kopia, pomiar_scena, pomiar_pokaz;
+extern unsigned long pomiar_klatki, pomiar_bufory_karty, pomiar_bufory_pamieci;
+void pomiar_zglos(void); /* the loop: the line "pomiar …" to gosc when POMIAR_MS passed and something was drawn */
+
 void kloguj(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 /* To gosc on fd 3 (a pipe, when gosc gave one): "okno" once — the browser's first window is on the display, the VMM
  * logs how long it took to start (0.10.0 step 3, S30); "regula N" — a client broke rule N and was disconnected
  * (0.10.1 step 1, S15). */
 void zglos_okno(void);
 void zglos_regule(int regula);
+void zglos(const char *linia, size_t n);
 uint32_t teraz_ms(void);
 
 #endif

@@ -76,6 +76,15 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
   ile przyśle gość): `liczniki: gość — dostępna A MiB, zram Z MiB, zabite K; pamięć w K1 W MiB, oddane O MiB, balon B
   MiB; grafika: zasoby N, M MiB; połączenia P; vsock czeka Q, odrzucone R` (pamięć w K1, oddane, balon — od 0.10.1 krok
   2); przy końcu maszyny jeszcze raz (`liczniki przy końcu`). Same liczby (niezmiennik 8).
+- **Pomiar drogi obrazu** (0.10.11 krok 1, plan T1): kompozytor strefy mierzy swoje ogniwa (czekanie na kartę —
+  `VIRTGPU_WAIT`, kopia bufora `wl_shm`, składanie sceny, wysłanie do jądra strefy — `DIRTYFB`) i liczy klatki oraz bufory
+  karty i pamięci (czy przeglądarka rysuje kartą); co 10 s wiersz „pomiar” z 11 liczbami (µs, liczby) przez `gosc` do VMM-a
+  (`linia.c`). VMM (`pomiar.c`) dokłada swoje: przeniesienie z pamięci gościa (`TRANSFER_TO_HOST_2D`), kopia do okna, czekanie
+  na ekran (od zatwierdzenia do `RAMKA`), prośby mostu do pośrednika (tam i z powrotem), od klawisza / ruchu / kółka do
+  następnego obrazu gościa (do 1 s), rodzaje mapowań buforów karty (WB / UC / WC — plan P3). Co 10 s, gdy są obrazy, dwa
+  wiersze: `pomiar strefy (10 s, średnio/95%): klatki …, bufory karty …, pamięci …; czekanie na kartę A/B ms, kopia …, scena
+  …, wysłanie …` i `pomiar VMM (10 s, średnio/95%): obrazy gościa …, przeniesienie …; okno … klatek, kopia …, ekran …; most N
+  próśb, …; wejście→obraz …; mapy karty WB …, UC …, WC …`. Same liczby (niezmiennik 8); jak mierzyć na laptopie — `docs/TESTY.md`.
 - **Kto się skończył** (0.10.1 krok 1, S15): gdy przeglądarka albo kompozytor skończy się sam, `gosc` wysyła przed
   „koniec …” linię „kto P K R” — P 1 przeglądarka / 2 kompozytor, K kod wyjścia albo 128 + sygnał, R numer reguły
   kompozytora, którą przeglądarka złamała ostatnio (0: żadnej). VMM loguje `gość: przeglądarka zakończony (kod 1) —
@@ -90,7 +99,7 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 | losowość (rng) | 1 | `getrandom` do 4 KiB na prośbę | — |
 | klawiatura, wskaźnik (input) | 2 + 2 | zdarzenia `EV_KEY`, `EV_ABS` (0…32767), `EV_SYN` z ekranu; od 0.10.0 krok 4 wskaźnik z kółkiem: `REL_WHEEL`, `REL_HWHEEL` i `*_HI_RES` (1/120 ząbka) z `PRZEWIN` — z kółka oba, z touchpada tylko `*_HI_RES`; bez wolnego bufora — zdarzenie przepada (licznik) | — |
 | ekran (gpu 2D) | 2 | zasoby ≤ 4096 × 4096 (razem ≤ 96 MiB), tło z pamięci gościa (sprawdzone przy dołączeniu), przeniesienie, pokazanie, odświeżenie → okno; od 0.10.9 krok 6 z pośrednikiem grafiki także 3D — niżej „Szybka grafika” | polecenie krótsze niż jego struktura, brak miejsca na odpowiedź; z pośrednikiem: polecenie dłuższe niż 1 MiB + 32 B, strumień `SUBMIT_3D` dłuższy niż polecenie, więcej czekających na kartę niż mieści kolejka |
-| vsock | 3 | kanał sterujący (port 1 hosta): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30; od 0.10.2 koniec ekranu startu), od 0.10.2 krok 1 „etap start” (program strefy pokaże okno — ekran startu zostaje do „etap okno”); od 0.10.1 krok 1 „liczniki A Z K” i „kto P K R” (same liczby, `linia.c`); od kroku 5 „zamykanie gotowe\|sygnal\|po czasie” (jak przeglądarka skończyła się po „zamknij” — czas w logu); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
+| vsock | 3 | kanał sterujący (port 1 hosta; od 0.10.11 wiersz do 160 znaków): „gotowa”, „zamykam” od gościa, „zamknij” do gościa; od kroku 3 od gościa także „koniec pamiec\|awaria\|sam” (dlaczego program strefy skończył się sam), „pamiec strona” (strona zakończona z braku pamięci — licznik w logu), „etap okno” (pierwsze okno przeglądarki — czas od startu maszyny w logu, S30; od 0.10.2 koniec ekranu startu), od 0.10.2 krok 1 „etap start” (program strefy pokaże okno — ekran startu zostaje do „etap okno”); od 0.10.1 krok 1 „liczniki A Z K” i „kto P K R” (same liczby, `linia.c`); od 0.10.11 krok 1 „pomiar” i 11 liczb (pomiar kompozytora); od kroku 5 „zamykanie gotowe\|sygnal\|po czasie” (jak przeglądarka skończyła się po „zamknij” — czas w logu); każdy inny wiersz — tylko licznik; port 2 (krok 2): połączenia przeglądarki od przekaźnika — do 128 naraz, każde z kredytem 64 KiB w obie strony, bajty do łącznika (`polaczenia.c`); inne porty — RST | zły adres albo typ, przekroczony kredyt, za mały bufor gościa |
 
 | balon (0.10.1 krok 2, ADR 0044) | 4 | `balon.c`: cechy `STATS_VQ`, `DEFLATE_ON_OOM`, `REPORTING`; kolejki 0 pompowanie, 1 spuszczanie (listy le32 numerów stron 4 KiB, najwyżej 256), 2 statystyki (VMM trzyma bufor i co 5 s oddaje go po świeże — `AVAIL` do `STREFA_PAMIEC`), 3 zgłaszanie wolnych bloków (bufory do zapisu, każdy blok z całych stron); strony z balonu i zgłoszone bloki → `fallocate(PUNCH_HOLE \| KEEP_SIZE)` na memfd — wracają do K1; konfiguracja: `num_pages` (cel od nadzorcy, `STREFA_BALON` → zmiana konfiguracji), `actual` (pisze gość; log, gdy dojdzie do celu); balon domyślnie pusty. Czyste części: `strony.c` | strona poza RAM gościa albo w dziurze, lista nie z całych numerów albo dłuższa niż 256, blok nie z całych stron, statystyki złej długości albo o nieznanym/powtórzonym znaczniku, zapis konfiguracji poza `actual` albo `actual` ponad pamięć gościa, zgłoszenie z częścią do odczytu |
 | dysk strefy (blk, krok 5) | 1 | drugi dysk gościa (`/dev/vdb`) do zapisu i odczytu, `FLUSH`, `SEG_MAX`; 2 GiB w kawałkach po 64 KiB przez pamięć podręczną `dysk.c`; strefa, która zapomina: 0 sektorów | prośba bez nagłówka, odczyt albo zapis > 4 MiB |
@@ -127,7 +136,9 @@ przeglądarka rysuje procesorem.
   strefa i K1 żyją. Licznik w logu na końcu: „szybka grafika: polecenia 3D …, płoty …, mapowania …”.
 - **W strefie**: nasza Mesa (`scripts/zbuduj-mese.sh`, ADR 0049 pkt 7 — iris z `intel-virtio-experimental`, bez LLVM),
   kompozytor przyjmuje bufory karty (`zwp_linux_dmabuf_v1` w wersji 4, tylko z `K1_GRAFIKA=1`: liniowe XRGB8888 i
-  ARGB8888, urządzenie z „feedbacku” — `/dev/dri/renderD128`; przed kopią czeka, aż karta skończy — `VIRTGPU_WAIT`),
+  ARGB8888, urządzenie z „feedbacku” — `/dev/dri/renderD128`; czeka, aż karta skończy — `VIRTGPU_WAIT`; od 0.10.11
+  krok 1 bufora karty nie kopiuje: scena czyta go tam, gdzie jest, a kompozytor oddaje go przeglądarce dopiero, gdy
+  przyjdzie następny — `zawartosc.c`; jedna kopia każdej klatki mniej),
   a `gosc` pisze w profilu `user.js` z rysowaniem kartą (bez `gfx.webrender.software`) — przy każdym starcie, w obie
   strony.
 - **Ramka**: ekran rysuje mały znak — układ scalony — tuż za nazwą sesji, póki strefa działa ze swoim pośrednikiem
