@@ -20,10 +20,11 @@ Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Cl
 Twoja prośba z 2026-11-20 (po planie 0.11.0): najpierw 0.10.11 — szybka grafika ma mniej się zacinać. Cel: obraz z karty
 na ekran K1 bez kopiowania procesorem, najpierw pomiar. Karty AMD i NVIDIA RTX — wypadły (Twoja decyzja z tego samego dnia:
 „zostaje tylko optymalizacja”), a doszły nowsze karty zintegrowane Intela (Twoja prośba, także 2026-11-20). Trzy kroki;
-decyzje czat zada na początku kroku — D5 (laptop z nowszym Intelem do sprawdzenia) przyda się wcześniej:
+decyzje czat zada na początku kroku (D5 rozstrzygnięta 2026-11-21: laptopa z nowszym Intelem nie masz — „niech taka
+funkcjonalność będzie w systemie”; wchodzi bez sprawdzenia na sprzęcie):
     [ ] krok 1 — pomiar i szybkie poprawki szybkiej grafiki (D1)
     [ ] krok 2 — obraz strefy bez kopii: bufor karty prosto do ekranu; ADR 0051 (D4)
-    [ ] krok 3 — nowsze karty zintegrowane Intela (D5, D6); porządki; wydanie (numer: następny wolny PATCH — robot może
+    [ ] krok 3 — nowsze karty zintegrowane Intela (D6); porządki; wydanie (numer: następny wolny PATCH — robot może
         zająć 0.10.11)
 Co wpisać w nowym czacie: „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.11.txt.”
 Po wydaniu 0.10.11 — plan 0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt):
@@ -331,8 +332,8 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 [x] 0.10.9 — decyzje podjęte (docs/archiwum/PLAN-0.10.9.txt, punkt 4): D5 szybka grafika włączona w Ogólnej, D7 znak
     „układ scalony”, D9 jeden przełącznik (po wypadnięciu filmów — „Szybka grafika”), D10 „A” (miejsca 768 MiB; laptopy
     instalujesz od nowa); D4 i filmy kartą — wypadły z wersji (2026-11-20, „może”).
-[!] 0.10.11 — decyzje D1, D4, D5, D6 (docs/PLAN-0.10.11.txt, punkt 4): klatki na sekundę w Zasobach, okno częściowo
-    zasłonięte, laptop z nowszym Intelem do sprawdzenia (D5 — najlepiej wcześniej), najnowsze karty Intela (sterownik xe).
+[!] 0.10.11 — decyzje D1, D4, D6 (docs/PLAN-0.10.11.txt, punkt 4): klatki na sekundę w Zasobach, okno częściowo
+    zasłonięte, najnowsze karty Intela (sterownik xe); D5 rozstrzygnięta 2026-11-21 (bez sprzętu, funkcja w systemie).
 [!] 0.11.0 — decyzje D1–D6 (docs/PLAN-0.11.0.txt, punkt 4): pełny ekran, pytanie po pobraniu, znak pliku z internetu,
     wysyłanie do zamkniętej sesji, wklejanie do sesji, przeciąganie na pulpit — czat zada każdą na początku swojego kroku.
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
