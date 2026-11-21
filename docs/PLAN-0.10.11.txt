@@ -111,6 +111,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [x]  2  Obraz strefy bez kopii: bufor karty prosto do ekranu  P8–P12           1           D4, T3, T4   L        0051
         (PR #200)
 [ ]  3  Nowsze karty Intela; porządki; wydanie (OSTATNI)      P13–P20          2           D6, T5,      M        0051
+        [w toku: Claude, gałąź claude/jolly-goodall-je3psr]
                                                                                            T6                    (uzup.)
 (ADR 0051: następny wolny po 0050 z 0.10.9; plan 0.11.0 bierze następny po nim. Decyzje D2 i D3 i dawne kroki 3–4 —
 karty AMD i NVIDIA — wypadły 2026-11-20; nowy krok 3 to nowsze karty Intela, numery D1 i D4 zostają.)
@@ -261,7 +262,8 @@ Twoje (produkt) — czat kroku zada je na początku:
          pośrednik odmawia, gdy karta nie spełnia warunków, a wersję z czarnym ekranem cofa zatwierdzanie A/B.
       B: bez sprzętu i ostrożniej — na kartach, których nikt nie sprawdził, przełącznik „Szybka grafika” domyślnie
          wyłączony we wszystkich sesjach (włączasz sam).
-  [!] D6 (krok 3) — Najnowsze karty Intela (Lunar Lake z 2024 i nowsze) używają nowego sterownika „xe”; dla niego Mesa nie
+  [x] D6 (krok 3) — ROZSTRZYGNIĘTE 2026-11-21: A — w tej wersji bez xe, tylko karty sterownika i915 (do Meteor / Arrow
+      Lake); xe razem z pierwszym takim laptopem do sprawdzenia („Później”). Pytanie było: Najnowsze karty Intela (Lunar Lake z 2024 i nowsze) używają nowego sterownika „xe”; dla niego Mesa nie
       ma strony strefy szybkiej grafiki (P13), więc szybkiej grafiki na nich nie będzie, a pulpit już dziś działa przez
       obraz z firmware (bez oszczędzania energii obrazu i bez Zasobów karty).
       A (zalecane): w tej wersji bez xe — tylko karty sterownika i915 (do Meteor / Arrow Lake); xe razem z pierwszym takim

@@ -22,10 +22,10 @@ na ekran K1 bez kopiowania procesorem, najpierw pomiar. Karty AMD i NVIDIA RTX �
 „zostaje tylko optymalizacja”), a doszły nowsze karty zintegrowane Intela (Twoja prośba, także 2026-11-20). Trzy kroki;
 decyzje czat zada na początku kroku (D5 rozstrzygnięta 2026-11-21: laptopa z nowszym Intelem nie masz — „niech taka
 funkcjonalność będzie w systemie”; wchodzi bez sprawdzenia na sprzęcie):
-    [ ] krok 1 — pomiar i szybkie poprawki szybkiej grafiki (D1)
-    [ ] krok 2 — obraz strefy bez kopii: bufor karty prosto do ekranu; ADR 0051 (D4)
-    [ ] krok 3 — nowsze karty zintegrowane Intela (D6); porządki; wydanie (numer: następny wolny PATCH — robot może
-        zająć 0.10.11)
+    [x] krok 1 — pomiar i szybkie poprawki szybkiej grafiki (D1) — PR #199
+    [x] krok 2 — obraz strefy bez kopii: bufor karty prosto do ekranu; ADR 0051 (D4) — PR #200
+    [ ] krok 3 — nowsze karty zintegrowane Intela (D6: A); porządki; wydanie (numer: następny wolny PATCH — robot może
+        zająć 0.10.11) [w toku: Claude, gałąź claude/jolly-goodall-je3psr]
 Co wpisać w nowym czacie: „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.11.txt.”
 Po wydaniu 0.10.11 — plan 0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt):
 Twoja prośba z 2026-11-20: plan wersji 0.11.0 w niewielu krokach, z ogólnym celem, i do tego lepszy pełny ekran
