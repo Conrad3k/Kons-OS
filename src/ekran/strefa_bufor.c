@@ -96,8 +96,15 @@ const char *strefa_obraz(int kl, const struct k1_komunikat *m)
     p = &s.p[i];
     b = &bs[i][m->a - 1];
     if (b->mapa == NULL || p->nowa_mem != NULL || b->w > p->w || b->h > p->h || p->polowa < 0) {
-        odrzucone++;
-        return "obraz z nieznanego bufora albo większego niż okno";
+        /* not a broken message: a buffer ekran could not take, or one of the old size while the window changes it —
+         * this frame is skipped quietly (counting it as an error would disconnect the zone after MAKS_BLEDOW frames) */
+        if (odrzucone++ < 3)
+            k1_log(TAG, "okno %u: obraz z bufora karty pominięty (nieznany albo większy niż okno)", p->okno);
+        if (p->bufor != 0)
+            uszkodz_pow(p);
+        p->bufor = 0;
+        p->czeka_ramka = 1; /* RAMKA all the same: the VMM goes on */
+        return NULL;
     }
     if (p->bufor != m->a)
         warstwa_zmiana();
