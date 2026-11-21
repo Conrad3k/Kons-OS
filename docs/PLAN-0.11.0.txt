@@ -116,8 +116,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [x]  2  Pliki ze strefy do Plików (PR #203)                   P5–P14           0.10.10     D2, D3,      L        0052
                                                                                            T1–T4
 [x]  3  Pliki do strefy (PR #204)                             P15–P18          2           D4, T5       M–L      0052
-[ ]  4  Przeciąganie między oknami, też na okno przeglądarki  P19–P22          2 (i 3)     D6, T6, T7   M        0052 (uzup.)
-[ ]  5  Schowek; porządki; wydanie 0.11.0                     P23–P26          2           D5, T8       M        0052 (uzup.)
+[ ]  4  Przeciąganie między oknami, też na okno przeglądarki [w toku: Claude, gałąź claude/hopeful-euler-sq078s]  P19–P22          2 (i 3)     D6, T6, T7   M        0052 (uzup.)
+[ ]  5  Schowek; porządki; wydanie 0.11.0 [w toku: Claude, gałąź claude/hopeful-euler-sq078s]                     P23–P26          2           D5, T8       M        0052 (uzup.)
 (ADR 0052: następny wolny po 0051, który bierze 0.10.11 — docs/archiwum/PLAN-0.10.11.txt.)
 
 
@@ -340,13 +340,13 @@ Twoje (produkt) — czat kroku zada je na początku:
   [x] D4 (krok 3; właściciel 2026-11-21: „A”) — „Wyślij do…” / „Otwórz w…” do sesji, która jest zamknięta?
       A (zalecane): K1 otwiera sesję i wysyła plik, gdy przeglądarka gotowa (pasek „Uruchamiam…” jak dziś).
       B: w menu tylko otwarte sesje.
-  [!] D5 (krok 5) — Wklejenie tekstu do sesji przeglądarki („za każdym wklejeniem” z ADR 0020):
+  [x] D5 (krok 5; właściciel 2026-11-21: „A”) — Wklejenie tekstu do sesji przeglądarki („za każdym wklejeniem” z ADR 0020):
       A (zalecane): Ctrl+V w oknie sesji (albo „Wklej” na stronie po Ctrl+V) wkleja bez okienka — gestem jest samo
          Ctrl+V, które widzi K1; strona nigdy nie odczyta schowka sama. Gdy tekst pochodzi z innej sesji, na pasku
          tytułu na chwilę „Wklejono z: Bank”.
       B: przy wklejeniu tekstu z innej sesji okienko K1 „Wkleić tekst z sesji Bank?”.
       C: schowek tylko w obrębie K1 i w obrębie jednej sesji (bez przenoszenia między sesjami).
-  [!] D6 (krok 4) — Przeciągnięcie pliku z Plików na pulpit: przenieść czy skopiować?
+  [x] D6 (krok 4; właściciel 2026-11-21: „A”) — Przeciągnięcie pliku z Plików na pulpit: przenieść czy skopiować?
       A (zalecane): przenieść (jak w Windows w obrębie jednego dysku i jak dziś w Plikach); z Ctrl — kopia.
       B: zawsze kopia.
 

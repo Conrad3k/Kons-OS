@@ -24,8 +24,8 @@ przeglądarki do krawędzi. Pięć kroków (jeden krok = jeden czat = jeden PR; 
     [x] krok 1 — okno przeglądarki do krawędzi, pełny ekran (D1: A) — PR #202
     [x] krok 2 — pliki ze strefy do Plików („Zapisz w Pobranych”), pochodzenie pliku; ADR 0052 (D2: A, D3: A) — PR #203
     [x] krok 3 — pliki do strefy: „Wyślij do…”, „Otwórz w…”, „Zapisać zmiany w oryginale?” (D4: A) — PR #204
-    [ ] krok 4 — przeciąganie plików między oknami, też na okno przeglądarki (D6)
-    [ ] krok 5 — schowek (D5); porządki; wydanie 0.11.0
+    [ ] krok 4 — przeciąganie plików między oknami, też na okno przeglądarki (D6: A) [w toku: Claude, gałąź claude/hopeful-euler-sq078s]
+    [ ] krok 5 — schowek (D5: A); porządki; wydanie 0.11.0 [w toku: Claude, gałąź claude/hopeful-euler-sq078s]
 Co wpisać w nowym czacie: „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.11.0.txt.”
 0.10.11 Szybsza grafika — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.11.txt; ADR 0051):
 Twoja prośba z 2026-11-20: szybka grafika ma mniej się zacinać, i nowsze karty zintegrowane Intela. Karty AMD i NVIDIA RTX
