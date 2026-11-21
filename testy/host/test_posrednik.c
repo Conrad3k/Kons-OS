@@ -141,8 +141,12 @@ static void t_ioctl(void)
     EXPECT(spr() == K1_POSR_BLAD_POLE);
     pole64(32, K1_POSR_PARAM_GTT_SIZE);
     EXPECT(spr() == K1_POSR_BLAD_POLE); /* only read */
+    pole64(32, K1_POSR_PARAM_PROTECTED);
+    EXPECT(spr() == K1_POSR_BLAD_POLE); /* only read: a zone never turns protected content on */
     ioctl_prosba(K1_POSR_IOCTL_GEM_CONTEXT_GETPARAM, 24);
     pole64(32, K1_POSR_PARAM_GTT_SIZE);
+    EXPECT(spr() == 0);
+    pole64(32, K1_POSR_PARAM_PROTECTED); /* iris after a hang (0.10.11 step 3) */
     EXPECT(spr() == 0);
     pole64(32, 0x7); /* SSEU */
     EXPECT(spr() == K1_POSR_BLAD_POLE);
@@ -200,6 +204,38 @@ static void t_query_create(void)
     EXPECT(spr() == K1_POSR_BLAD_POLE);
     pole32(40 + 12, 0), pole32(32, 52);
     EXPECT(spr() == K1_POSR_BLAD_FORMAT); /* ext_size and the request's length disagree */
+
+    /* Meteor / Arrow Lake (0.10.11 step 3): "memory regions" (one: system), then "PAT" — as Mesa sends it */
+    naglowek(K1_POSR_GEM_CREATE_EXT, 40 + 52 + 40);
+    pole64(16, 4096), pole32(24, 2), pole32(32, 92);
+    pole32(40 + 8, K1_POSR_EXT_REGIONY), pole32(40 + 36, 1), pole32(40 + 48, K1_POSR_REGION_SYSTEM);
+    pole32(92 + 8, K1_POSR_EXT_PAT), pole32(92 + 32, 3); /* PAT 3: write-back, coherent one way */
+    pole64(92, 0xdead0000); /* the guest's pointer: never used */
+    EXPECT(spr() == 0);
+    pole32(92 + 32, K1_POSR_PAT_MAKS);
+    EXPECT(spr() == 0);
+    pole32(92 + 32, K1_POSR_PAT_MAKS + 1);
+    EXPECT(spr() == K1_POSR_BLAD_POLE);
+    pole32(92 + 32, 0), pole32(92 + 36, 1); /* rsvd */
+    EXPECT(spr() == K1_POSR_BLAD_POLE);
+    pole32(92 + 36, 0), pole32(92 + 12, 1); /* the extension's flags */
+    EXPECT(spr() == K1_POSR_BLAD_POLE);
+    pole32(92 + 12, 0), pole32(92 + 28, 1); /* the extension's rsvd */
+    EXPECT(spr() == K1_POSR_BLAD_POLE);
+    pole32(92 + 28, 0), pole32(92 + 8, 1); /* PROTECTED_CONTENT in its place */
+    EXPECT(spr() == K1_POSR_BLAD_POLE);
+    pole32(92 + 8, K1_POSR_EXT_REGIONY); /* "memory regions" twice */
+    EXPECT(spr() == K1_POSR_BLAD_POLE);
+    pole32(92 + 8, K1_POSR_EXT_PAT);
+    EXPECT(spr() == 0);
+    naglowek(K1_POSR_GEM_CREATE_EXT, 40 + 52 + 36); /* "PAT" cut short */
+    pole64(16, 4096), pole32(24, 2), pole32(32, 88);
+    pole32(40 + 8, K1_POSR_EXT_REGIONY), pole32(40 + 36, 1);
+    EXPECT(spr() == K1_POSR_BLAD_FORMAT);
+    naglowek(K1_POSR_GEM_CREATE_EXT, 40 + 48); /* "PAT" first (and 8 bytes more): "memory regions" come first */
+    pole64(16, 4096), pole32(24, 2), pole32(32, 48);
+    pole32(40 + 8, K1_POSR_EXT_PAT);
+    EXPECT(spr() == K1_POSR_BLAD_POLE);
 }
 
 /* A new context with parameters, as Mesa makes them. */

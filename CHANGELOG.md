@@ -3,6 +3,49 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.10.11] — 2026-11-21
+
+**Szybsza grafika** (plan 0.10.11, kroki 1–3; ADR 0051). Przeglądarka z szybką grafiką zacina się mniej: gotowy obraz
+strony nie jest już kopiowany procesorem po drodze z karty na ekran — gdy okno przeglądarki widać w całości, karta sama
+pokazuje jej obraz jako osobną warstwę. Do tego K1 obsługuje nowsze karty zintegrowane Intela (laptopy mniej więcej
+z lat 2017–2024, do Meteor / Arrow Lake) tak jak IdeaPad — **niesprawdzone na sprzęcie** (Twoja decyzja D5: takiego
+laptopa nie masz). Na X230 i IdeaPadzie poza płynnością przeglądarki nic się nie zmienia.
+
+Opis w K1: Przeglądarka z szybką grafiką działa płynniej: obraz strony idzie z karty graficznej prosto na ekran, bez
+kopiowania procesorem. K1 obsługuje też nowsze karty zintegrowane Intela, z laptopów z lat 2017–2024: oszczędzanie energii
+obrazu, szybka grafika i Zasoby, zakładka Karta graficzna.
+
+### Dodane
+- **Obraz strefy bez kopii** (krok 2, ADR 0051, Twoja decyzja D4 „A”): w sesji z szybką grafiką bufor karty z gotową
+  klatką strony idzie ze strefy do ekranu K1 bez kopiowania — strefa i VMM go nie kopiują, a gdy nic nie zasłania okna
+  przeglądarki, karta pokazuje go jako warstwę (nakładkę) pod ramką K1, z kursorem na własnej płaszczyźnie. Gdy coś
+  zasłania okno (inne okno, menu, panel, zmiana rozmiaru) — ekran składa okno z bufora sam. Strefa nigdy nie dostaje
+  deskryptora bufora, ekran tylko pokazuje gotowy obraz (nie zleca karcie pracy).
+- **Nowsze karty zintegrowane Intela** (krok 3, Twoje decyzje D5 i D6 „A”): w jądrze K1 pliki od producenta karty — DMC
+  (oszczędzanie energii obrazu) od Apollo Lake po Meteor / Arrow Lake i GuC (bez niego i915 na Alder Lake P, Raptor Lake
+  i Meteor / Arrow Lake uznaje kartę za zawieszoną: obraz działa, rysowanie nie). Pośrednik grafiki przyjmuje
+  rozszerzenie „PAT” przy nowym buforze, które Mesa dodaje na Meteor / Arrow Lake (bez niego szybka grafika by tam nie
+  wstała), i odczyt „protected content” kontekstu (iris po zawieszeniu karty). Zasoby → „Karta graficzna” czytają część
+  graficzną karty (`gt/gt0`) — Meteor Lake ma drugą część (media). Tabela generacji: `docs/komponenty/jadro.md`.
+  Najnowszych kart (Lunar Lake i nowsze, sterownik xe) dalej nie ma — pulpit działa na nich przez obraz z firmware.
+- **Pomiar drogi obrazu** (krok 1, plan T1): co 10 s wiersze „pomiar strefy”, „pomiar VMM”, „pomiar ekranu” w logu
+  (same liczby: średnia i 95. percentyl). Log K1 idzie tylko na port szeregowy — liczb z laptopa nie ma (Twoja decyzja
+  D1 „B”: bez liczb w Zasobach); na laptopie ocena płynności według listy w `docs/TESTY.md`.
+
+### Zmienione
+- Kompozytor strefy nie kopiuje bufora karty przeglądarki do swojej pamięci — scena czyta go na miejscu (krok 1; jedna
+  pełna kopia klatki mniej).
+- Klatka (seccomp): warunki profilu na jedno wywołanie mogą być alternatywami (bazowe zostają bezwzględne); ekran może
+  wołać `DMA_BUF_IOCTL_SYNC` (krok 2).
+- Jądro K1 (k1.efi) większe o ok. 1,3 MB — pliki kart Intela.
+
+### Naprawione
+- Stanowisko (`scripts/stanowisko.sh`) znów się buduje (krok 1; brakowały dwie funkcje od 0.10.5).
+
+### Porządki
+- PATCH (porządki MINOR przy 0.11.0). Tymczasowe: bez zmian (K1U1–K1U3 — 0.11.0, GRUB — 0.12), nowych nie dodano.
+  Pliki `.c` — żaden powyżej 600 wierszy. Plan 0.10.11 → `docs/archiwum/`.
+
 ## [0.10.10] — 2026-11-20
 
 **Poprawka po 0.10.9** (Twoje zgłoszenie i prośba z 2026-11-20). Instalator umie zainstalować K1 od nowa na dysku, na

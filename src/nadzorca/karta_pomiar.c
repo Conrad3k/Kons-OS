@@ -1,8 +1,9 @@
 /* K1 nadzorca — the graphics card in Zasoby (0.10.10 step 2; the owner's choice of 2026-11-20: a tab "Karta graficzna"
  * with how busy the card is, its clock, the power draw of the card and of the whole laptop). Once a second while Zasoby
  * runs (raport_zasobow), from sysfs:
- *   - the i915 card (drm/cardN whose device's driver is i915): power/rc6_residency_ms — the time the card slept (RC6);
- *     busy = the rest of the time (k1_karta_pomiar.c); gt_act_freq_mhz, gt_RP0_freq_mhz — its clock now and its highest;
+ *   - the i915 card (drm/cardN whose device's driver is i915): the time the card slept (RC6) — busy = the rest of the
+ *     time; its clock now and its highest — each from gt/gt0/ or the card's own file (k1_karta_pomiar.c, K1_KARTA_PLIKI:
+ *     Meteor Lake has two parts of the card, 0.10.11 step 3);
  *   - RAPL (powercap, CONFIG_INTEL_RAPL): the domain "uncore" of the processor (the card of Intel's laptop processors) —
  *     energy_uj, which wraps at max_energy_range_uj; only root reads it (the kernel: 0400), nadzorca sends 1 s averages.
  * Without an i915 card (QEMU, another card) or without RAPL: -1, Zasoby say "unknown". Part of nadzorca. */
@@ -14,6 +15,7 @@
 #include "k1_karta_pomiar.h"
 
 static char karta[64]; /* SYS "/class/drm/cardN" of the i915 card, "" none */
+static int karta_fd = -1; /* that directory, open */
 static char rapl[96];  /* SYS "/class/powercap/intel-rapl:0:K" whose name is "uncore", "" none */
 static uint64_t rapl_zakres;
 static int szukano;
@@ -47,6 +49,8 @@ static void znajdz(void)
         if (strcmp(basename(cel), "i915") == 0)
             snprintf(karta, sizeof karta, SYS "/class/drm/card%d", i);
     }
+    if (karta[0])
+        karta_fd = open(karta, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
     for (int i = 0; i < 8 && !rapl[0]; i++) {
         char nazwa[16] = "";
         ssize_t n;
@@ -73,15 +77,15 @@ void raport_karty(int kanal)
     int ma_rc6, ma_e;
     if (!szukano)
         znajdz();
-    ma_rc6 = liczba(karta, "power/rc6_residency_ms", &rc6) == 0;
+    ma_rc6 = k1_karta_czytaj(karta_fd, K1_KARTA_SEN, &rc6) == 0;
     ma_e = liczba(rapl, "energy_uj", &e) == 0;
     if (ma_rc6 && jest_rc6)
         obciazenie = k1_karta_obciazenie(rc6_0, rc6, t - t0);
     if (ma_e && jest_e)
         moc = k1_karta_moc_mw(e_0, e, rapl_zakres, t - t0);
-    if (liczba(karta, "gt_act_freq_mhz", &akt) != 0 || akt > K1_KARTA_MHZ_MAKS)
+    if (k1_karta_czytaj(karta_fd, K1_KARTA_TAKT, &akt) != 0 || akt > K1_KARTA_MHZ_MAKS)
         akt = UINT64_MAX;
-    if (liczba(karta, "gt_RP0_freq_mhz", &rp0) != 0 || rp0 > K1_KARTA_MHZ_MAKS)
+    if (k1_karta_czytaj(karta_fd, K1_KARTA_TAKT_NAJW, &rp0) != 0 || rp0 > K1_KARTA_MHZ_MAKS)
         rp0 = UINT64_MAX;
     for (int nr = 1; nr <= K1_STREFY_MAKS; nr++)
         if (posrednik_dziala(nr))

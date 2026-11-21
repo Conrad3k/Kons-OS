@@ -40,7 +40,7 @@
     X(GETPARAM, 2, 24, 0, 16)      /* one parameter of the card (K1_POSR_PARAM_MAKS) */                    \
     X(QUERY, 3, 32, 0, 16)         /* one query of the card (DRM_I915_QUERY, the listed ones), up to 64 KiB */ \
     X(GEM_CREATE, 4, 32, 0, 0)     /* a buffer, named by the guest's blob number */                         \
-    X(GEM_CREATE_EXT, 5, 40, 1, 0) /* … with the extension "memory regions" */                               \
+    X(GEM_CREATE_EXT, 5, 40, 1, 0) /* … with the extensions "memory regions" and "PAT" (Meteor Lake) */      \
     X(KONTEKST, 6, 24, 1, 16)      /* a context of the card with its parameters (K1_POSR_KONTEKST_*) */      \
     X(EXECBUFFER, 7, 48, 1, 8)     /* a batch of work: its buffers (pinned addresses), no relocations */     \
     X(MMAP_MODE, 8, 24, 0, 0)      /* how the guest maps a buffer (caching) */                               \
@@ -85,7 +85,7 @@ struct k1_posr_gem_create {
     uint64_t size;
     uint32_t blob_id, pad;
 };
-struct k1_posr_gem_create_ext { /* + ext_size bytes: one extension "memory regions" (k1_posr_regiony + its regions) */
+struct k1_posr_gem_create_ext { /* + ext_size bytes: "memory regions" (k1_posr_regiony + its regions), then "PAT" */
     struct k1_posr_naglowek h;
     uint64_t size;
     uint32_t blob_id, gem_flags, ext_size, pad;
@@ -121,6 +121,11 @@ struct k1_posr_regiony {        /* drm_i915_gem_create_ext_memory_regions, then 
 };
 struct k1_posr_region {         /* drm_i915_gem_memory_class_instance */
     uint16_t memory_class, memory_instance;
+};
+struct k1_posr_pat {            /* drm_i915_gem_create_ext_set_pat (0.10.11 step 3: Mesa adds it to every buffer on Meteor /
+                                 * Arrow Lake — intel_device_info.c: has_set_pat_uapi; the caching of the card's access) */
+    struct k1_posr_rozszerzenie base;
+    uint32_t pat_index, rsvd;
 };
 struct k1_posr_param {          /* drm_i915_gem_context_param */
     uint32_t ctx_id, size;
@@ -189,11 +194,13 @@ enum {
     K1_POSR_KONTEKST_JEDNA_OS = 1u << 1, /* …_SINGLE_TIMELINE */
     K1_POSR_PARAM_GTT_SIZE = 0x3, K1_POSR_PARAM_NO_ERROR_CAPTURE = 0x4, K1_POSR_PARAM_BANNABLE = 0x5,
     K1_POSR_PARAM_PRIORITY = 0x6, K1_POSR_PARAM_RECOVERABLE = 0x8, K1_POSR_PARAM_VM = 0x9, K1_POSR_PARAM_ENGINES = 0xa,
-    K1_POSR_PARAM_PERSISTENCE = 0xb,
+    K1_POSR_PARAM_PERSISTENCE = 0xb, K1_POSR_PARAM_PROTECTED = 0xd, /* PROTECTED_CONTENT: only read (iris after a hang) */
     K1_POSR_PRIORYTET_MIN = -1023,   /* I915_CONTEXT_MIN_USER_PRIORITY .. I915_CONTEXT_DEFAULT_PRIORITY (0) */
     K1_POSR_REGION_SYSTEM = 0, K1_POSR_REGION_DEVICE = 1,
     K1_POSR_EXT_REGIONY = 0,         /* I915_GEM_CREATE_EXT_MEMORY_REGIONS */
     K1_POSR_REGIONY_MAKS = 4,
+    K1_POSR_EXT_PAT = 2,             /* I915_GEM_CREATE_EXT_SET_PAT */
+    K1_POSR_PAT_MAKS = 4,            /* the highest PAT index of i915 (i915_pci.c: mtl_info.max_pat_index) */
     K1_POSR_GEM_POTRZEBA_CPU = 1u << 0, /* I915_GEM_CREATE_EXT_FLAG_NEEDS_CPU_ACCESS */
     K1_POSR_SILNIK_MAKS_KLASA = 4,   /* I915_ENGINE_CLASS_RENDER .. _COMPUTE */
     K1_POSR_REG_ZEGAR = 0x2358,      /* RING_TIMESTAMP(RENDER_RING_BASE) (| 1: I915_REG_READ_8B_WA) */

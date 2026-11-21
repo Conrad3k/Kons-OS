@@ -4,12 +4,12 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.10.10 — poprawka: Instalator instaluje od nowa także na dysku z K1, Zasoby → „Karta graficzna”. Przed nią 0.10.9
-„Szybka grafika” — przełącznik „Szybka grafika” przy sesji przeglądarki (strony rysuje karta, każdą prośbę
-strefy sprawdza pośrednik grafiki K1; IdeaPad), sterownik karty Intela w jądrze, obraz przeglądarki poza pamięcią K1,
-większe miejsca na system (plany zamknięte: docs/archiwum/); filmy kartą — „może” (punkt 3). Następne wersje — 0.10.11
-„Szybsza grafika” (docs/PLAN-0.10.11.txt), potem 0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt) — punkt 1.
-Data: 2026-11-20.
+Stan: 0.10.11 „Szybsza grafika” — obraz przeglądarki z szybką grafiką idzie z karty na ekran bez kopiowania procesorem
+(warstwa karty, gdy okno widać w całości), pomiar drogi obrazu w logu, nowsze karty zintegrowane Intela do Meteor / Arrow
+Lake (pliki DMC i GuC, pośrednik grafiki i Zasoby — niesprawdzone na sprzęcie; plan zamknięty: docs/archiwum/). Przed nią
+0.10.10 (Instalator od nowa na dysku z K1, Zasoby → „Karta graficzna”) i 0.10.9 „Szybka grafika”. Następna wersja —
+0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt) — punkt 1.
+Data: 2026-11-21.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
