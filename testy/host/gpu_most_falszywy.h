@@ -12,6 +12,9 @@ static struct {
     uint64_t ost_blob, ost_gpa;
     uint32_t ost_slot;
     int fd;
+    int obraz_odp, obraz_fd;           /* 0.10.11 step 2: what the window answers; the fd it was given last */
+    uint32_t obrazy, obrazy_brak, obrazy_koniec, ost_obraz_res;
+    struct most_obraz ost_obraz;
 } f;
 
 static int f_prosby(void *ja, uint32_t g, uint32_t dl)
@@ -71,7 +74,22 @@ static void f_odmapuj(void *ja, uint32_t slot, uint64_t gpa, uint64_t rozmiar)
     (void)ja, (void)slot, (void)gpa, (void)rozmiar;
     f.odmapy++;
 }
+static int f_obraz(void *ja, const struct most_obraz *o, int fd)
+{
+    (void)ja;
+    if (o == NULL) {
+        f.obrazy_brak++;
+        return 0;
+    }
+    f.obrazy++, f.ost_obraz = *o, f.obraz_fd = fd;
+    return f.obraz_odp;
+}
+static void f_obraz_koniec(void *ja, uint32_t res)
+{
+    (void)ja;
+    f.obrazy_koniec++, f.ost_obraz_res = res;
+}
 static const struct most_lacze f_lacze = { NULL, f.okno, f_prosby, f_wspolna, f_blob, f_bufor, f_zwolnij, f_plot, f_koniec,
-                                           f_zamknij, f_mapuj, f_odmapuj };
+                                           f_zamknij, f_mapuj, f_odmapuj, f_obraz, f_obraz_koniec };
 
 #endif

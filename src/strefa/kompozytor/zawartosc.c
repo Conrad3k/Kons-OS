@@ -90,15 +90,21 @@ static int kopiuj(struct powierzchnia *p, const struct bufor *b, int32_t ux0, in
 }
 
 
-/* The held buffer goes: released (zwolnij, when it still exists), our mapping's reference dropped. */
+/* A held buffer goes: released (zwolnij, when it still exists), our mapping's reference dropped. */
+static void pusc(struct obiekt **bo, struct pula **pula, int zwolnij)
+{
+    if (*bo != NULL && zwolnij)
+        zdarzenie(*bo, 0, ""); /* wl_buffer.release */
+    *bo = NULL;
+    if (*pula != NULL)
+        pula_pusc(*pula);
+    *pula = NULL;
+}
+
 static void pusc_trzymany(struct powierzchnia *p, int zwolnij)
 {
-    if (p->trzymany != NULL && zwolnij)
-        zdarzenie(p->trzymany, 0, ""); /* wl_buffer.release */
-    p->trzymany = NULL;
-    if (p->pula != NULL)
-        pula_pusc(p->pula);
-    p->pula = NULL;
+    pusc(&p->poprzedni, &p->pula_poprz, zwolnij);
+    pusc(&p->trzymany, &p->pula, zwolnij);
 }
 
 void zawartosc_pusc(struct powierzchnia *p, int zwolnij)
@@ -118,6 +124,8 @@ void zawartosc_bufor_znika(struct obiekt *bo)
         struct powierzchnia *p = x->typ == IF_SURFACE ? x->dane : NULL;
         if (p != NULL && p->trzymany == bo)
             p->trzymany = NULL; /* nothing to release; the mapping (p->pula) stays until another buffer */
+        if (p != NULL && p->poprzedni == bo)
+            p->poprzedni = NULL;
     }
 }
 
@@ -129,8 +137,9 @@ static void trzymaj(struct powierzchnia *p, struct obiekt *bo, const struct bufo
     int caly = p->obraz == NULL || p->szer != b->szer || p->wys != b->wys;
     if (caly)
         scena_zmiana_powierzchni(p); /* the old size */
-    if (p->trzymany != bo || p->pula != b->pula) {
-        pusc_trzymany(p, 1);
+    if (p->trzymany != bo || p->pula != b->pula) { /* 0.10.11 step 2: the one before stays one frame more */
+        pusc(&p->poprzedni, &p->pula_poprz, 1);
+        p->poprzedni = p->trzymany, p->pula_poprz = p->pula;
         p->trzymany = bo;
         p->pula = b->pula;
         b->pula->odwolania++;

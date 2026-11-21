@@ -133,6 +133,13 @@ int scena_rysuj(void)
         return 1;
     }
     wywolania = 0;
+    if (dmabuf_wlaczony && bezposredni_rysuj()) { /* 0.10.11 step 2: the browser's buffer is the display */
+        z0 = zy0 = z1 = zy1 = 0;
+        pomiar_klatki++;
+        pomiar_bezposrednie++;
+        powierzchnie_klatka_gotowa(teraz_ms());
+        return 1;
+    }
     t0 = k1_pomiar_teraz_us();
     prostokat(z0, zy0, z1, zy1, TLO);
     for (i = 0; (x = xdg_okno(i)) != NULL; i++)

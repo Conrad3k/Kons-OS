@@ -121,16 +121,22 @@ static void pozwol(struct filtr *f, long nr)
     emituj(f, BPF_RET | BPF_K, 0, 0, SECCOMP_RET_ALLOW);
 }
 
-/* nr matches → check (args[arg] & maska) == wartosc → allow, else trap. A keeps the number on
- * the "no match" path, so blocks can follow each other. */
-static void pozwol_warunkowo(struct filtr *f, const struct k1_warunek *w)
+/* nr matches → check (args[arg] & maska) == wartosc → allow, else trap — or, for a profile's condition (alternatywa:
+ * 0.10.11 step 2, ekran's DRM ioctls or DMA_BUF_IOCTL_SYNC), on to the next block with A = the number again; the filter
+ * ends in a trap, so a call no block allows is still refused. The base's conditions (no executable memory) come first
+ * and stay absolute: no profile can allow what they refuse. A keeps the number on the "no match" path, so blocks can
+ * follow each other. */
+static void pozwol_warunkowo(struct filtr *f, const struct k1_warunek *w, int alternatywa)
 {
     emituj(f, BPF_JMP | BPF_JEQ | BPF_K, 0, 5, (uint32_t)w->nr);
     emituj(f, BPF_LD | BPF_W | BPF_ABS, 0, 0, (uint32_t)(offsetof(struct seccomp_data, args) + 8u * w->arg));
     emituj(f, BPF_ALU | BPF_AND | BPF_K, 0, 0, w->maska);
     emituj(f, BPF_JMP | BPF_JEQ | BPF_K, 0, 1, w->wartosc);
     emituj(f, BPF_RET | BPF_K, 0, 0, SECCOMP_RET_ALLOW);
-    emituj(f, BPF_RET | BPF_K, 0, 0, SECCOMP_RET_TRAP);
+    if (alternatywa)
+        emituj(f, BPF_LD | BPF_W | BPF_ABS, 0, 0, offsetof(struct seccomp_data, nr));
+    else
+        emituj(f, BPF_RET | BPF_K, 0, 0, SECCOMP_RET_TRAP);
 }
 
 static int zaladuj(struct filtr *f)
@@ -150,9 +156,9 @@ static void seccomp_profil(const struct k1_profil *p)
     for (i = 0; i < p->n_wywolan; i++)
         pozwol(&f, p->wywolania[i]);
     for (i = 0; i < sizeof baza_warunki / sizeof baza_warunki[0]; i++)
-        pozwol_warunkowo(&f, &baza_warunki[i]);
+        pozwol_warunkowo(&f, &baza_warunki[i], 0);
     for (i = 0; i < p->n_warunkow; i++)
-        pozwol_warunkowo(&f, &p->warunki[i]);
+        pozwol_warunkowo(&f, &p->warunki[i], 1);
     emituj(&f, BPF_RET | BPF_K, 0, 0, SECCOMP_RET_TRAP);
     if (zaladuj(&f) != 0) {
         k1_log(TAG, "%s: seccomp: %s", p->nazwa, strerror(errno));

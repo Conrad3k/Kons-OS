@@ -74,6 +74,8 @@ Nowe pojęcie = nowy wiersz tutaj (zasada czytelności, `AGENTS.md`). Kod używa
 | **okienko** | Mały panel w wyglądzie menu kontekstowego z pytaniem („Przenieść 12 elementów do Kosza?”) albo odmową („Nie możesz: …”) i wierszami odpowiedzi; pokazuje się w miejscu upuszczenia (0.8.2 krok 6). |
 | **rozmieszczenie pulpitu** | Które aplikacje są przypięte i w jakiej kolejności oraz gdzie leżą ikony; zapisane w skarbcu jako obiekt pulpitu. (Nie mylić z blokiem układu K1-EFI.) |
 | **warstwa pulpitu** | Powierzchnia pulpitu z ikonami: nad tapetą, pod oknami (ADR 0028). |
+| **warstwa karty** | Płaszczyzna karty graficznej (nakładka) nad obrazem pulpitu, która sama pokazuje bufor karty okna strefy — bez kopii procesorem; tylko gdy okno widać w całości, kursor wtedy na płaszczyźnie kursora (0.10.11 krok 2, ADR 0051). Nie mylić z **warstwą pulpitu**. |
+| **obraz bez kopii** | Okno strefy z szybką grafiką pokazane prosto z bufora karty przeglądarki: strefa i VMM nic nie kopiują, ekran pokazuje bufor warstwą karty albo składa go sam (0.10.11 krok 2, ADR 0051). |
 
 ## Dane i pliki
 | Pojęcie | Znaczenie |

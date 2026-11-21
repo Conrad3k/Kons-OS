@@ -72,7 +72,9 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | Komunikat | Kierunek | Kto może | Znaczenie |
 |---|---|---|---|
 | `POWIERZCHNIA` | klient → ekran | okno: aplikacja; panel: powłoka i logowanie; pulpit: tylko powłoka, jeden | nowe okno, panel albo warstwa pulpitu (0.7.5): szerokość, wysokość, rodzaj, położenie panelu; + memfd z pieczęciami. Okno z `e` = 1 (0.10.5 krok 4): zamienia powierzchnię okna `obiekt` — tylko w rozmiarze z ostatniego `ROZMIAR` |
-| `ZATWIERDZ` | klient → ekran | właściciel powierzchni | gotowa połowa bufora i zmieniony prostokąt |
+| `ZATWIERDZ` | klient → ekran | właściciel powierzchni | gotowa połowa bufora i zmieniony prostokąt; okno strefy wraca nim do własnych pikseli (0.10.11) |
+| `STREFA_BUFOR` (0.10.11 krok 2, ADR 0051) | strefa (VMM) → ekran | rola `STREFA`, jej okno | bufor karty przeglądarki: `a` = numer 1…`K1_STREFA_BUFORY` (4), `b`, `c` = szerokość, wysokość, `d` = bajty wiersza (≥ 4·`b`, wielokrotność 4), `e` = początek obrazu w buforze (wielokrotność 4); + dma-buf (w teście memfd silnika testowego pośrednika). Ekran sprawdza rozmiar bufora (`lseek`), mapuje tylko do odczytu część z obrazem; numer zastępuje wcześniejszy bufor o tym numerze |
+| `STREFA_OBRAZ` (0.10.11 krok 2) | strefa (VMM) → ekran | rola `STREFA`, jej okno | okno pokazuje bufor `a` (wysłany wcześniej, nie większy niż okno), `b`…`e` = zmieniony prostokąt (`d` = `e` = 0: całość); `RAMKA` jak po `ZATWIERDZ` |
 | `POKAZ` | klient → ekran | powłoka, logowanie | pokaż / ukryj panel |
 | `PRZESUN` | klient → ekran | powłoka, logowanie | nowe położenie panelu |
 | `PRZECIAGNIJ` | klient → ekran | właściciel okna | zacznij przesuwać okno wciśniętym przyciskiem myszy |
@@ -190,6 +192,13 @@ potem działa kolejka w ekranie.
   i wierzch; okno nie wchodzi pod górny pasek, pasek tytułu zostaje w zasięgu.
 - Prędkość myszy: 0,5× / 1× / 2× (ustawienie). Bez okna z fokusem strzałki przesuwają kursor o 20 px.
 - Zmiana tapety: ponowne liczenie (ok. 2 s w emulacji TCG) i przerysowanie.
+- **Obraz bez kopii** (0.10.11 krok 2, ADR 0051; `strefa_bufor.c`, `warstwa.c`): okno strefy z szybką grafiką pokazuje bufor
+  karty przeglądarki (`STREFA_BUFOR`, `STREFA_OBRAZ`). Gdy okno widać w całości (nic nad obrazem: okno z cieniem, panel,
+  menu, obrys zmiany rozmiaru, „Wyłączanie”; obraz cały na ekranie) i karta ma nakładkę (i915) — **warstwa karty**: nakładka
+  pokazuje bufor bez kopii, kursor na płaszczyźnie kursora, jedno zatwierdzenie atomowe na klatkę (bufor pulpitu, nakładka,
+  kursor) ze zdarzeniem wymiany; nowy bufor najpierw próbą `TEST_ONLY`, odmowa = składanie. Inaczej (D4 „A”) ekran składa
+  okno z bufora sam, nieprzezroczyście, z `DMA_BUF_IOCTL_SYNC` przed odczytem i po nim. Log: „warstwa karty: płaszczyzna …”
+  przy starcie (albo „niedostępna”), „okno N: obraz strefy z bufora karty …”, „okno N na warstwie karty …”.
 - Pomiar (0.10.11 krok 1, `pomiar.c`): czas składania sceny, zapisu do bufora karty i wymiany na karcie (od `PAGE_FLIP`
   do `FLIP_COMPLETE`); co 10 s, gdy jest otwarte okno strefy: `pomiar ekranu (10 s, średnio/95%): klatki N, składanie
   A/B ms, zapis do karty …, wymiana na karcie …` (same liczby).
@@ -205,7 +214,9 @@ simpledrm po ustawieniu trybu. Nadzorca dopiero od tej chwili liczy 15 s do potw
 
 ## Wywołania systemowe
 `ioctl` (DRM: GET_CAP, MODE_GETRESOURCES/GETCONNECTOR/GETENCODER, CREATE_DUMB, ADDFB, MAP_DUMB,
-SETCRTC, PAGE_FLIP, DIRTYFB, RMFB, DESTROY_DUMB, VERSION), `memfd_create` (zapis ustawień, 0.5.6), `mmap` (bufory, powierzchnie — bez `PROT_EXEC`), `munmap`, `fcntl`
+SETCRTC, PAGE_FLIP, DIRTYFB, RMFB, DESTROY_DUMB, VERSION; od 0.10.11 krok 2: SET_CLIENT_CAP, GETPLANERESOURCES, GETPLANE,
+OBJ_GETPROPERTIES, GETPROPERTY, PRIME_FD_TO_HANDLE, ADDFB2, ATOMIC, GEM_CLOSE — i jako jedyne spoza DRM `DMA_BUF_IOCTL_SYNC`;
+`lseek` — rozmiar bufora strefy), `memfd_create` (zapis ustawień, 0.5.6), `mmap` (bufory, powierzchnie — bez `PROT_EXEC`), `munmap`, `fcntl`
 (`F_GET_SEALS`), `fstat`, `recvmsg`/`sendmsg`, `read`, `poll`, `close`, `clock_gettime`, `write` (log).
 
 ## Obsługa błędów
@@ -221,6 +232,7 @@ w jądrze (ioctl).
 | Test | Rodzaj |
 |---|---|
 | `test-m4.sh` (początek): tryb, pierwsza klatka, mysz, strzałki, przycisk — log + zrzuty | funkcjonalny |
+| `test-strefa.sh` (0.10.11 krok 2): okno strefy z bufora karty (strefa próbna, silnik testowy pośrednika) — kolor na zrzucie, powrót do własnych pikseli; na hoście `test_komunikat` (`STREFA_BUFOR`, `STREFA_OBRAZ` — każde pole poza zakresem) | funkcjonalny, negatywny (IPC) |
 | `test-m4.sh`: okna, przeciąganie, fokus, minimalizacja, motyw, tapeta — log + zrzuty | funkcjonalny |
 | w systemie: drugi proces nie przejmie ekranu (`SET_MASTER` → EBUSY) | negatywny |
 | w systemie: złośliwe zdarzenia wejścia i obcy nadawca (`odrzucone 5`) | negatywny (IPC) |

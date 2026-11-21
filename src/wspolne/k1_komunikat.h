@@ -137,6 +137,15 @@ enum k1_komunikat_typ {
                                 * b=its clock now MHz, c=its highest clock MHz (-1 unknown, ≤ K1_KARTA_MHZ_MAKS), d=the
                                 * card's power draw mW (RAPL "uncore"; -1 unknown, ≤ K1_MOC_MAKS_MW), e=bit nr-1: zone nr
                                 * draws with the card (its graphics broker runs) */
+    /* 0.10.11 step 2 (ADR 0051): the zone's picture without a copy — a zone's VMM → ekran (role STREFA only) */
+    K1_KOM_STREFA_BUFOR = 225, /* obiekt=its window surface, a=the buffer's number 1..K1_STREFA_BUFORY, b=width, c=height
+                                * (1..K1_POW_MAKS_BOK), d=bytes of a row 4·b..K1_STREFA_KROK_MAKS (a multiple of 4), e=where
+                                * the picture starts in the buffer 0..K1_STREFA_PRZES_MAKS (a multiple of 4); + 1 fd: the
+                                * buffer of the card (a dma-buf from the zone's graphics broker), XRGB8888 linear — number a
+                                * is that buffer from now on (an earlier one with the number goes) */
+    K1_KOM_STREFA_OBRAZ = 226, /* obiekt=its window surface, a=buffer 1..K1_STREFA_BUFORY (sent before), b,c,d,e = damaged
+                                * x,y,w,h (w=h=0: all) — the window shows that buffer now, until the next STREFA_OBRAZ or
+                                * ZATWIERDZ (its own pixels again); RAMKA when it is on the screen, as after ZATWIERDZ */
     K1_KOM_ZASOBY_USLUGA = 63, /* obiekt=K1_PROFIL_* of a service, a=CPU ‰ (of all CPUs), b=memory KiB, c=1 running */
     K1_KOM_BATERIA = 64,       /* to gui: obiekt=0, a=1 battery present, b=percent 0..100 (-1 unknown), c=K1_BAT_*,
                                 * d=1 on mains power; no battery: a=0, b=-1, c=0 (also to Ustawienia) */
@@ -550,6 +559,11 @@ enum k1_wifi_zdarzenie {
  * PULPIT (0.7.5): the shell's desktop layer (icons) — one, at 0,0, right above the wallpaper and below the
  * windows, catching the pointer in every pixel. */
 enum { K1_POW_OKNO = 1, K1_POW_PANEL = 2, K1_POW_PULPIT = 3 };
+/* A zone's window shown from buffers of the card (0.10.11 step 2, ADR 0051 T4): at most this many per window (double or
+ * triple buffering of the browser), a row and the start inside a buffer within these limits. */
+#define K1_STREFA_BUFORY 4
+#define K1_STREFA_KROK_MAKS (4 * K1_POW_MAKS_BOK * 2)
+#define K1_STREFA_PRZES_MAKS (1 << 29)
 
 /* Pointer events */
 /* What Pliki show when the desktop opens them (URUCHOM c, PLIKI_POKAZ b): the entry's place, Kosz, the entry with its

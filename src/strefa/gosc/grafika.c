@@ -7,6 +7,8 @@
  * TRYB_GRAFIKA_ZLA (hostile): requests K1 does not let through, a flood, buffers beyond the zone's limit, a batch that
  * "hangs the card" — each refused or the broker ends; the guest must still live (its next request is answered, or,
  * after the hang, answered with nothing: the bridge is gone, the zone draws with its processor).
+ * Since 0.10.11 step 2 (ADR 0051) the honest way ends with a buffer of the card as the display (SET_SCANOUT_BLOB): one
+ * colour no 2D picture of the test zone has — test-strefa.sh looks for it on K1's screen — then our own buffer again.
  * Lines "grafika: …" go to K1's log (the test zone's console); test-strefa.sh reads them. */
 #include <errno.h>
 #include <fcntl.h>
@@ -21,6 +23,7 @@
 #include <drm/virtgpu_drm.h>
 
 #include "gosc.h"
+#include "kms.h"
 
 #define WSPOLNA_DL 0x4000u      /* Mesa's SHMEM_SZ */
 #define CAPSET_DRM 6u           /* VIRTGPU_DRM_CAPSET_DRM */
@@ -28,6 +31,8 @@
 #define ZAWIESZENIE 0x7fff0000u /* K1_POSR_TEST_ZAWIESZENIE: the test engine's "hang" */
 #define BUFOR_DL 65536u
 #define DUZY (400u << 20)       /* a big buffer: two are more than K1_POSR_PAMIEC (768 MiB) */
+#define KOLOR_KARTY 0x0060a0c0u /* the display from a buffer of the card: alpha 0 on purpose — K1 shows it opaque */
+#define WYSWIETLACZ_MS 15000    /* how long it stays (the test takes its screenshot meanwhile) */
 
 struct capset { /* Mesa's virgl_renderer_capset_drm (its first 48 bytes; the VMM gives 160) */
     uint32_t wire, major, minor, patch, typ, pad, bus, dev, func, rewizja, domena, pci;
@@ -184,6 +189,48 @@ static void zamknij_uchwyt(uint32_t u)
     io(DRM_IOCTL_GEM_CLOSE, &z);
 }
 
+/* 0.10.11 step 2: a buffer of the card filled with one colour, as the display for WYSWIETLACZ_MS, then our own again. */
+static void wyswietlacz(void)
+{
+    uint32_t w, h, res = 0, u, *p;
+    size_t dl;
+    struct drm_prime_handle e = { .flags = DRM_CLOEXEC | DRM_RDWR };
+    int r;
+    if (obraz_rozmiar(&w, &h) != 0) { /* this mode ends before the display starts (main.c): start it now */
+        if (obraz_start() != 0)
+            return;
+        obraz_rysuj(0, 0, -1, -1);
+    }
+    for (int i = 0; i < 20; i++) { /* a new size from K1 (the session's remembered one) first: the display of now */
+        struct pollfd z = { obraz_zmiany_fd(), POLLIN, 0 };
+        if (z.fd >= 0 && poll(&z, 1, 100) == 1 && obraz_zmiana())
+            obraz_rysuj(0, 0, -1, -1);
+    }
+    if (obraz_rozmiar(&w, &h) != 0)
+        return;
+    dl = ((size_t)w * h * 4u + 4095u) & ~(size_t)4095u;
+    u = bufor(2, dl, &res);
+    p = u ? mapuj(u, dl) : NULL;
+    e.handle = u;
+    if (p == NULL || io(DRM_IOCTL_PRIME_HANDLE_TO_FD, &e) != 0) {
+        loguj("grafika: bufor karty na wyświetlacz nieudany (%s)", strerror(errno));
+        return;
+    }
+    for (size_t i = 0; i < (size_t)w * h; i++)
+        p[i] = KOLOR_KARTY;
+    r = kms_pokaz_bufor(e.fd, w, h, w * 4u, 0);
+    loguj("grafika: bufor karty %ux%u (zasób %u) jako wyświetlacz — %s", w, h, res, r == 0 ? "pokazany" : "NIEUDANY");
+    for (int i = 0; r == 0 && i < WYSWIETLACZ_MS / 100; i++)
+        poll(NULL, 0, 100); /* awake every 0.1 s (an idle guest is woken late in emulation) */
+    kms_pokaz_swoj();
+    obraz_rysuj(0, 0, -1, -1);
+    loguj("grafika: znów własny bufor wyświetlacza");
+    kms_zapomnij(e.fd);
+    close(e.fd);
+    munmap(p, dl);
+    zamknij_uchwyt(u);
+}
+
 /* The honest way, step by step — every step in the log; "grafika: ok" at the end. */
 static void uczciwie(void)
 {
@@ -210,6 +257,7 @@ static void uczciwie(void)
     zamknij_uchwyt(u);
     if (karta == 0x1916 && zgodne && ret == 0)
         loguj("grafika: ok");
+    wyswietlacz();
 }
 
 /* The hostile way: each step must be refused (or end the broker) — and the guest lives. */

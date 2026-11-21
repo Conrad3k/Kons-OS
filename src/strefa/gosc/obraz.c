@@ -43,6 +43,14 @@ int obraz_zmiana(void)
     return kms_zmiana(&k);
 }
 
+int obraz_rozmiar(uint32_t *w, uint32_t *h)
+{
+    if (k.px == NULL)
+        return -1;
+    *w = k.szer, *h = k.wys;
+    return 0;
+}
+
 static void prostokat(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t kolor)
 {
     int32_t i, j;

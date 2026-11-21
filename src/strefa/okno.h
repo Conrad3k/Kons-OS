@@ -24,4 +24,15 @@ void okno_zmiana(uint32_t x, uint32_t y, uint32_t w, uint32_t h);
 /* The window's size: the guest's display (gpu.c: GET_DISPLAY_INFO). */
 void okno_rozmiar(uint32_t *w, uint32_t *h);
 
+/* okno_bufor.c (0.10.11 step 2, ADR 0051): the picture from buffers of the card, without a copy; under mz.zamek */
+#include "gpu_most.h"
+int okno_bufor_obraz(const struct most_obraz *o, int fd, uint32_t szer, uint32_t wys); /* SET_SCANOUT_BLOB; fd borrowed */
+void okno_bufor_koniec(uint32_t res);              /* the buffer is gone */
+int okno_bufor_jest(uint32_t res, uint32_t *w, uint32_t *h); /* res is the shown buffer: its size */
+int okno_bufor_pokazany(void);                     /* the number of the shown one, 0: own pixels */
+void okno_bufor_wylacz(void);                      /* SET_SCANOUT of a 2D resource: own pixels again */
+int okno_bufor_wyslij(int fd, uint32_t id, uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1); /* to ekran */
+void okno_bufor_liczniki(unsigned long *wyslane, unsigned long *odrzucone);
+void okno_bufor_start(void);
+
 #endif

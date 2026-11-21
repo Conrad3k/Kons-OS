@@ -166,6 +166,7 @@ static uint32_t pokaz(const struct virtio_gpu_set_scanout *s)
     if (s->resource_id != 0 && z == NULL)
         return VIRTIO_GPU_RESP_ERR_INVALID_RESOURCE_ID;
     pokazany = s->resource_id;
+    okno_bufor_wylacz(); /* 0.10.11 step 2: a buffer of the card is not the display any more */
     if (z != NULL)
         okno_zmiana(0, 0, z->w, z->h);
     return VIRTIO_GPU_RESP_OK_NODATA;
@@ -174,6 +175,15 @@ static uint32_t pokaz(const struct virtio_gpu_set_scanout *s)
 static uint32_t splucz(const struct virtio_gpu_resource_flush *f)
 {
     struct zasob *z = znajdz(f->resource_id);
+    uint32_t w, h;
+    if (z == NULL && okno_bufor_jest(f->resource_id, &w, &h)) { /* 0.10.11 step 2: the shown buffer of the card */
+        struct zasob b = { .w = w, .h = h };
+        if (!prostokat_w(&f->r, &b))
+            return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
+        okno_zmiana(f->r.x, f->r.y, f->r.width, f->r.height);
+        pomiar_obraz();
+        return VIRTIO_GPU_RESP_OK_NODATA;
+    }
     if (z == NULL || !prostokat_w(&f->r, z))
         return VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER;
     if (f->resource_id == pokazany) {
@@ -347,6 +357,7 @@ static void reset(struct mmio_urz *u)
         if (zasoby[i].id != 0)
             usun(&zasoby[i]);
     pokazany = 0;
+    okno_bufor_wylacz(); /* 0.10.11 step 2: no buffer of the card shown after a reset */
     gpu_lacze_reset(u);
 }
 

@@ -153,6 +153,7 @@ static void przestaw_tryb(void)
     int nr = s.nowy_tryb, i, stary = s.tryb_nr;
     double t0 = k1_teraz();
     s.nowy_tryb = 0;
+    warstwa_wylacz(); /* 0.10.11 step 2: no layer over a mode set */
     if (zmien_tryb(nr) != 0) {
         k1_log(TAG, "nie udało się przełączyć na tryb %d — zostaje poprzedni", nr);
         ustawienie(K1_UST_ROZDZIELCZOSC, stary);
@@ -237,6 +238,8 @@ static void start(void)
         k1_koniec(TAG, "SETCRTC: %s", strerror(errno));
     s.przedni = 0;
     k1_log(TAG, "pierwsza klatka: tapeta (%.1f s)", k1_teraz() - t0);
+    strefa_bufory_start(); /* 0.10.11 step 2 (ADR 0051): zones' windows from buffers of the card, the layer */
+    warstwa_start();
     if (s.brak_flip)
         zglos_obraz(); /* simpledrm: no flip will come, the mode set is the proof */
     ustawienia_po_starcie();

@@ -75,7 +75,7 @@ static void p_utworz_bufor(struct klient *k, struct obiekt *o, union arg *a)
     b = n != NULL ? calloc(1, sizeof *b) : NULL;
     if (b == NULL)
         return;
-    *b = (struct bufor){ p, przes, w, h, krok, a[5].u, n, 0 };
+    *b = (struct bufor){ p, przes, w, h, krok, a[5].u, n, 0, -1, 0 };
     p->odwolania++;
     n->dane = b;
 }
@@ -122,6 +122,10 @@ static void zwolnij_bufor(struct obiekt *o)
         pula_pusc(b->pula);
     if (b != NULL)
         dmabuf_zamknij(b->uchwyt); /* 0.10.9 step 6: a buffer of the card */
+    if (b != NULL && b->dmabuf >= 0) { /* 0.10.11 step 2: off the display (if it shows it), then closed */
+        ekran_zapomnij(b->dmabuf);
+        close(b->dmabuf);
+    }
     free(b);
     o->dane = NULL;
 }

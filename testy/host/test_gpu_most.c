@@ -179,6 +179,69 @@ static void t_mapowanie(void)
     EXPECT(mapuj(2, 0x20000) == VIRTIO_GPU_RESP_OK_MAP_INFO && f.ost_slot == MOST_SLOT_PIERWSZY + 1); /* slot again */
 }
 
+/* 0.10.11 step 2 (ADR 0051): SET_SCANOUT_BLOB — a buffer of the card as the guest's display, its dma-buf asked for once */
+static uint32_t pokaz(uint32_t res, uint32_t w, uint32_t h, uint32_t krok, uint32_t przes, uint32_t format)
+{
+    struct virtio_gpu_set_scanout_blob c = { .hdr = { .type = VIRTIO_GPU_CMD_SET_SCANOUT_BLOB }, .r = { 0, 0, w, h },
+                                             .resource_id = res, .width = w, .height = h, .format = format,
+                                             .strides = { krok }, .offsets = { przes } };
+    wykonaj(&c, sizeof c);
+    return typ();
+}
+
+static void t_obraz(void)
+{
+    const uint32_t X = VIRTIO_GPU_FORMAT_B8G8R8X8_UNORM;
+    uint32_t b0 = f.bufory, z0;
+    EXPECT(nowy(3, 7, 4, 65536, VIRTIO_GPU_BLOB_FLAG_USE_SHAREABLE) == VIRTIO_GPU_RESP_OK_NODATA);
+    z0 = f.zamkniete;
+    EXPECT(pokaz(7, 128, 128, 512, 0, X) == VIRTIO_GPU_RESP_OK_NODATA); /* 65536 bytes: the whole buffer */
+    EXPECT(f.obrazy == 1 && f.ost_obraz.res == 7 && f.ost_obraz.szer == 128 && f.ost_obraz.krok == 512);
+    EXPECT(f.bufory == b0 + 1 && f.obraz_fd == m.zasoby[7].fd && m.zasoby[7].fd >= 2000);
+    EXPECT(pokaz(7, 64, 64, 256, 4096, VIRTIO_GPU_FORMAT_B8G8R8A8_UNORM) == VIRTIO_GPU_RESP_OK_NODATA);
+    EXPECT(f.bufory == b0 + 1 && f.obrazy == 2 && f.ost_obraz.przes == 4096); /* the dma-buf is kept: not asked again */
+    /* refused: not a buffer of the card, an unknown one, outside the buffer, another format, a part of the picture, a
+     * second plane, a row too short or not of whole pixels */
+    EXPECT(pokaz(1, 64, 64, 256, 0, X) == VIRTIO_GPU_RESP_ERR_INVALID_RESOURCE_ID); /* the shared memory */
+    EXPECT(pokaz(9, 64, 64, 256, 0, X) == VIRTIO_GPU_RESP_ERR_INVALID_RESOURCE_ID);
+    EXPECT(pokaz(K1_POSR_ZASOBY_MAKS, 64, 64, 256, 0, X) == VIRTIO_GPU_RESP_ERR_INVALID_RESOURCE_ID);
+    EXPECT(pokaz(7, 128, 129, 512, 0, X) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(pokaz(7, 128, 128, 512, 4, X) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(pokaz(7, 64, 64, 252, 0, X) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(pokaz(7, 64, 64, 258, 0, X) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(pokaz(7, 64, 64, 256, 2, X) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(pokaz(7, 0, 64, 256, 0, X) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(pokaz(7, 64, 64, 256, 0, VIRTIO_GPU_FORMAT_R8G8B8A8_UNORM) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(pokaz(7, 64, 64, 256, 0xfffffffcu, X) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    EXPECT(pokaz(7, 1, 0x40000000u, 4, 0, X) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    {
+        struct virtio_gpu_set_scanout_blob c = { .hdr = { .type = VIRTIO_GPU_CMD_SET_SCANOUT_BLOB }, .r = { 0, 0, 32, 32 },
+                                                 .resource_id = 7, .width = 64, .height = 64, .format = X,
+                                                 .strides = { 256 } };
+        EXPECT(wykonaj(&c, sizeof c) == 0 && typ() == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER); /* a part only */
+        c.r = (struct virtio_gpu_rect){ 0, 0, 64, 64 }, c.strides[1] = 256;
+        EXPECT(wykonaj(&c, sizeof c) == 0 && typ() == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER); /* a second plane */
+        c.strides[1] = 0, c.scanout_id = 1;
+        EXPECT(wykonaj(&c, sizeof c) == 0 && typ() == VIRTIO_GPU_RESP_ERR_INVALID_SCANOUT_ID);
+        EXPECT(wykonaj(&c, sizeof c - 1) == -1 && powod != NULL); /* shorter than its structure: the machine ends */
+    }
+    f.obraz_odp = -1; /* the window cannot (bigger than it) */
+    EXPECT(pokaz(7, 64, 64, 256, 0, X) == VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
+    f.obraz_odp = 0;
+    EXPECT(f.obrazy == 3);
+    EXPECT(pokaz(0, 0, 0, 0, 0, 0) == VIRTIO_GPU_RESP_OK_NODATA && f.obrazy_brak == 1); /* no buffer shown */
+    /* the broker refuses the dma-buf: an error, nothing kept */
+    EXPECT(nowy(3, 6, 3, 65536, VIRTIO_GPU_BLOB_FLAG_USE_SHAREABLE) == VIRTIO_GPU_RESP_OK_NODATA);
+    f.odp = K1_POSR_BLAD_KARTA;
+    EXPECT(pokaz(6, 64, 64, 256, 0, X) == VIRTIO_GPU_RESP_ERR_UNSPEC && m.zasoby[6].fd == -1);
+    f.odp = 0;
+    /* the shown buffer goes: the window forgets it, its dma-buf is closed */
+    EXPECT(zasob(VIRTIO_GPU_CMD_RESOURCE_UNREF, 7) == VIRTIO_GPU_RESP_OK_NODATA);
+    EXPECT(f.obrazy_koniec == 1 && f.ost_obraz_res == 7 && f.zamkniete >= z0 + 1);
+    EXPECT(zasob(VIRTIO_GPU_CMD_RESOURCE_UNREF, 6) == VIRTIO_GPU_RESP_OK_NODATA && f.obrazy_koniec == 1);
+    EXPECT(m.obrazy == 2);
+}
+
 static void t_submit(void)
 {
     uint32_t p = f.prosby, pl = f.ploty;
@@ -235,6 +298,7 @@ int main(void)
     t_konteksty();
     t_zasoby();
     t_mapowanie();
+    t_obraz();
     t_submit();
     t_koniec();
     return K1_TEST_KONIEC("test_gpu_most");

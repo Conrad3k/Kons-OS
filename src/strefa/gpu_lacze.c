@@ -33,6 +33,7 @@
 #include "k1_odbior.h"
 #include "k1_pomiar.h"
 #include "k1_teraz.h"
+#include "okno.h"
 #include "pomiar.h"
 #include "strefa.h"
 
@@ -228,6 +229,27 @@ static int l_mapuj(void *ja, uint32_t slot, uint64_t gpa, int fd, uint64_t rozmi
     gl.mapy[slot - MOST_SLOT_PIERWSZY] = p;
     gl.mapowania++;
     return 0;
+}
+
+/* 0.10.11 step 2: the guest's display is a buffer of the card — the window hands it to ekran (okno_bufor.c) */
+static int l_obraz(void *ja, const struct most_obraz *o, int fd)
+{
+    uint32_t w, h;
+    int r;
+    (void)ja;
+    zamek_wez("szybka grafika: obraz");
+    okno_rozmiar(&w, &h);
+    r = okno_bufor_obraz(o, fd, w, h);
+    zamek_oddaj();
+    return r;
+}
+
+static void l_obraz_koniec(void *ja, uint32_t res)
+{
+    (void)ja;
+    zamek_wez("szybka grafika: obraz koniec");
+    okno_bufor_koniec(res);
+    zamek_oddaj();
 }
 
 static void l_odmapuj(void *ja, uint32_t slot, uint64_t gpa, uint64_t rozmiar)
@@ -451,7 +473,8 @@ int gpu_lacze_start(void)
     int fd = -1, r = 0, okno;
     double do_kiedy = k1_teraz() + CZEKAJ_S;
     static const struct most_lacze l = { NULL, NULL, l_prosby, l_wspolna, l_blob, l_bufor, l_zwolnij, l_plot,
-                                         l_gosc_koniec, l_zamknij, l_mapuj, l_odmapuj };
+                                         l_gosc_koniec, l_zamknij, l_mapuj, l_odmapuj, l_obraz,
+                                         l_obraz_koniec };
     struct stat st;
     if (fstat(FD_POSREDNIK, &st) != 0 || !S_ISSOCK(st.st_mode))
         return 0; /* the session draws with the processor (main.c calls this before it opens a descriptor itself) */
