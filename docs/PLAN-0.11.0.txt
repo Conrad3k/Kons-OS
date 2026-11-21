@@ -115,7 +115,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [x]  1  Okno przeglądarki do krawędzi, pełny ekran (PR #202)  P1–P4            0.10.10     D1, T9       S–M      brak
 [x]  2  Pliki ze strefy do Plików (PR #203)                   P5–P14           0.10.10     D2, D3,      L        0052
                                                                                            T1–T4
-[x]  3  Pliki do strefy (PR #204)                            P15–P18          2           D4, T5       M–L      0052
+[x]  3  Pliki do strefy (PR #204)                             P15–P18          2           D4, T5       M–L      0052
 [ ]  4  Przeciąganie między oknami, też na okno przeglądarki  P19–P22          2 (i 3)     D6, T6, T7   M        0052 (uzup.)
 [ ]  5  Schowek; porządki; wydanie 0.11.0                     P23–P26          2           D5, T8       M        0052 (uzup.)
 (ADR 0052: następny wolny po 0051, który bierze 0.10.11 — docs/archiwum/PLAN-0.10.11.txt.)
