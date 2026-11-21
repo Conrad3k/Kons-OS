@@ -175,7 +175,10 @@ pliku z rodziną „obrazy” (`DOK_WYBIERZ` b; `DOK_PROSBA` c; skarbiec odrzuca
 — kanałem z właścicielem `K1_WL_POBRANIA` (0.11.0 krok 2, ADR 0052, zakres `Z_POBRANE`) — tylko nowy plik w folderze
 Pobrane z pochodzeniem strefy (`K1_POCH_STREFA_OD` + numer; twórca = profil strefy), zapisem w toku (`DOK_NOWY` z pierwszym
 kawałkiem, `DOK_KAWALEK`, `DOK_KONIEC`), bez listy i treści; pochodzenia strefy nie może nadać nikt inny (też Pliki);
-starsza wersja K1 czyta je jako „utworzony w K1” (`dok_wczytaj.c`, P14); inni — nic
+starsza wersja K1 czyta je jako „utworzony w K1” (`dok_wczytaj.c`, P14); od kroku 3 drugi kanał nadzorcy — właściciel
+`K1_WL_DO_STREF` (zakres `Z_STREFA`): czyta tylko pliki dane strefom (`DOK_DO_STREFY` od Plików i pulpitu, prawo `P_STREFA`;
+dostęp w `dostep.c` jak przy „Otwórz za pomocą”), kładzie nowy plik z pochodzeniem strefy tylko w folderze takiego pliku
+(i dostaje do niego dostęp), dany plik do Kosza, nowemu nazwę — „Zapisać zmiany w oryginale?”; inni — nic
 (`K1_DOK_BLAD_PRAWA`). Wpis spoza zasięgu klienta = „nie ma” (`K1_DOK_BLAD_BRAK`).
 
 **Dostęp do pliku po geście** (0.8.0, ADR 0030, `dostep.c`): „Otwórz za pomocą” albo podwójne kliknięcie w Plikach albo na pulpicie

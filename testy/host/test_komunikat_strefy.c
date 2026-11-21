@@ -240,7 +240,7 @@ void pobrane(void)
     EXPECT(zle(K(K1_KOM_STREFA_PLIK, 0, 10, 0, 5, 0, 0), d));    /* number 0 */
     EXPECT(zle(K(K1_KOM_STREFA_PLIK, 1, 10, 0, 0, 0, 0), d));    /* no name */
     EXPECT(zle(K(K1_KOM_STREFA_PLIK, 1, 10, 0, K1_DOK_NAZWA, 0, 0), d));
-    EXPECT(zle(K(K1_KOM_STREFA_PLIK, 1, 10, 0, 5, 1, 0), d));    /* reserved */
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK, 1, 10, 0, 5, 0, 1), d));    /* reserved */
     EXPECT(zle(K(K1_KOM_STREFA_PLIK, 1, 10, 0, 5, 0, 0), o));    /* from the VMM only */
     EXPECT(ok(K(K1_KOM_STREFA_PLIK_KAWALEK, 1, kaw, 0, 0, 0, 0), d));
     EXPECT(ok(K(K1_KOM_STREFA_PLIK_KAWALEK, 1, 4321, 2, 1, 0, 0), d));
@@ -260,9 +260,9 @@ void pobrane(void)
     EXPECT(zle(K(K1_KOM_POBRANIE, 0, 2, 300, 0, 13, 0), o)); /* no zone */
     EXPECT(zle(K(K1_KOM_POBRANIE, K1_STREFY_MAKS + 1, 2, 300, 0, 13, 0), o));
     EXPECT(zle(K(K1_KOM_POBRANIE, 2, 0, 300, 0, 13, 0), o));
-    EXPECT(zle(K(K1_KOM_POBRANIE, 2, 2, 300, 0, 13, 1), o));
+    EXPECT(zle(K(K1_KOM_POBRANIE, 2, 2, 300, 0, 13, -1), o));
     EXPECT(ok(K(K1_KOM_POBRANIE_DECYZJA, 2, 5, 1, 0, 0, 0), d));
-    EXPECT(zle(K(K1_KOM_POBRANIE_DECYZJA, 2, 5, 2, 0, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_POBRANIE_DECYZJA, 2, 5, 3, 0, 0, 0), d));
     EXPECT(zle(K(K1_KOM_POBRANIE_DECYZJA, 2, 5, 1, 0, 0, 0), o));
     EXPECT(ok(K(K1_KOM_POBRANIE_WYNIK, 2, 5, K1_PS_W_MIEJSCE, 0, 0, 0), o));
     EXPECT(zle(K(K1_KOM_POBRANIE_WYNIK, 2, 5, -1, 0, 0, 0), o));
@@ -270,6 +270,31 @@ void pobrane(void)
            k1_komunikat_z_deskryptorem(K1_KOM_STREFA_PLIK_KAWALEK, K1_KIER_DO_NADZORCY) &&
            k1_komunikat_z_deskryptorem(K1_KOM_POBRANIE, K1_KIER_OD_NADZORCY) &&
            !k1_komunikat_z_deskryptorem(K1_KOM_STREFA_PLIK_ODP, K1_KIER_OD_NADZORCY));
+    /* 0.11.0 step 3: a file to a zone and its changed version back */
+    EXPECT(ok(K(K1_KOM_STREFA_PLIK, 1, 777, 0, 5, 3, 0), d));         /* d = K1's number of a file it sent */
+    EXPECT(zle(K(K1_KOM_STREFA_PLIK, 1, 777, 0, 5, -1, 0), d));
+    EXPECT(ok(K(K1_KOM_POBRANIE, 2, 2, 300, 0, 13, 1), o));            /* e = 1: a changed version */
+    EXPECT(zle(K(K1_KOM_POBRANIE, 2, 2, 300, 0, 13, 2), o));
+    EXPECT(ok(K(K1_KOM_POBRANIE_DECYZJA, 2, 5, K1_POB_JAKO_NOWY, 0, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_POBRANIE_DECYZJA, 2, 5, K1_POB_JAKO_NOWY + 1, 0, 0, 0), d));
+    EXPECT(ok(K(K1_KOM_DOK_DO_STREFY, K1_DOK_PIERWSZY, K1_STREFA_OGOLNA, 1, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_DOK_DO_STREFY, K1_FOLDER_POBRANE, K1_STREFA_OGOLNA, 0, 0, 0, 0), K1_KIER_DO_SKARBCA)); /* a folder */
+    EXPECT(zle(K(K1_KOM_DOK_DO_STREFY, K1_DOK_PIERWSZY, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_DOK_DO_STREFY, K1_DOK_PIERWSZY, K1_STREFA_OGOLNA, 2, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_DO_STREFY, K1_DOK_PIERWSZY, K1_STREFA_BANK, 0, 0, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_SKARB_DO_STREFY, K1_DOK_PIERWSZY, K1_STREFA_BANK, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(ok(K(K1_KOM_STREFA_DO_PLIK, 4, 1000, 0, 9, 1, 0), o));
+    EXPECT(zle(K(K1_KOM_STREFA_DO_PLIK, 4, 0, 2, 9, 1, 0), o));        /* over 4 GiB */
+    EXPECT(zle(K(K1_KOM_STREFA_DO_PLIK, 4, 1000, 0, 9, 2, 0), o));
+    EXPECT(ok(K(K1_KOM_STREFA_DO_KAWALEK, 4, kaw, 3, 0, 0, 0), o));
+    EXPECT(zle(K(K1_KOM_STREFA_DO_KAWALEK, 4, 0, 3, 0, 0, 0), o));
+    EXPECT(ok(K(K1_KOM_STREFA_DO_ODP, 4, K1_PLIK_DALEJ, 0, 0, 0, 0), d));
+    EXPECT(ok(K(K1_KOM_STREFA_DO_ODP, 4, K1_PLIK_GOTOWE, 1, 0, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_STREFA_DO_ODP, 4, K1_PLIK_GOTOWE, 2, 0, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_STREFA_DO_ODP, 4, K1_PLIK_WYSLIJ, 0, 0, 0, 0), d));
+    EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_STREFA_DO_PLIK, K1_KIER_OD_NADZORCY) &&
+           k1_komunikat_z_deskryptorem(K1_KOM_SKARB_DO_STREFY, K1_KIER_DO_NADZORCY) &&
+           !k1_komunikat_z_deskryptorem(K1_KOM_DOK_DO_STREFY, K1_KIER_DO_SKARBCA) && k1_kom_dok_prosba(K1_KOM_DOK_DO_STREFY));
     /* DOK_NOWY: the origin of a zone (K1_POCH_STREFA_OD + its number) for a file — no other number past K1's own */
     EXPECT(ok(K(K1_KOM_DOK_NOWY, K1_FOLDER_POBRANE, K1_DOK_PLIK, 8, 100, K1_POCH_STREFA_OD + 2, 0), K1_KIER_DO_SKARBCA));
     EXPECT(zle(K(K1_KOM_DOK_NOWY, K1_FOLDER_POBRANE, K1_DOK_PLIK, 8, 100, K1_POCH_STREFA_OD, 0), K1_KIER_DO_SKARBCA));

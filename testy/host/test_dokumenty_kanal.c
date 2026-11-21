@@ -146,6 +146,52 @@ void test_prawa(void)
         EXPECT(k.b == K1_DOK_BLAD_BRAK && !zm);
         EXPECT(!dok_moze_listowac(K1_WL_POBRANIA));
     }
+    { /* 0.11.0 step 3: "Wyślij do" a session — K1_WL_DO_STREF may read that file, put a new version next to it */
+        extern struct k1_komunikat do_nadz;
+        extern int do_nadz_fd;
+        uint8_t wb[K1_DOK_WPIS_BAJTY];
+        struct k1_dok_wpis wd;
+        const int z = K1_POCH_STREFA_OD + K1_STREFA_BANK;
+        uint32_t nowa;
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_DO_STREFY, plik, K1_STREFA_BANK, 1, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == 0 && !zm && do_nadz.typ == K1_KOM_SKARB_DO_STREFY && do_nadz.obiekt == plik && do_nadz.a == K1_STREFA_BANK &&
+               do_nadz.b == 1 && do_nadz_fd >= 0 && k1_memfd_czytaj(do_nadz_fd, wb, sizeof wb) == 0 &&
+               k1_dok_wpis_czytaj(wb, &wd) == 0 && wd.id == plik && strcmp(wd.nazwa, "tajne.txt") == 0);
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_DO_STREFY, plik, K1_STREFA_POBIERANIE, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_PRAWA); /* a zone without a window */
+        k = zapytaj(K1_PROFIL_GUI, k1_komunikat_nowy(K1_KOM_DOK_DO_STREFY, plik, K1_STREFA_BANK, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_BRAK); /* the desktop: only files of Pulpit */
+        k = zapytaj(K1_PROFIL_NOTATKI, k1_komunikat_nowy(K1_KOM_DOK_DO_STREFY, plik, K1_STREFA_BANK, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_PRAWA);
+        k = zapytaj(K1_WL_DO_STREF, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, plik, 100, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.typ == K1_KOM_DOK_TRESC && k.a == 6 && fd >= 0);
+        if (fd >= 0)
+            close(fd);
+        k = zapytaj(K1_WL_DO_STREF, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, pulpit, 100, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_BRAK && fd < 0); /* not given to a zone */
+        mfd = k1_memfd_z_danymi("t", "tajne.txtZMIANA", 15);
+        k = zapytaj(K1_WL_DO_STREF, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, 9, 6, z, 0), mfd, &zm, &fd);
+        nowa = (uint32_t)k.c;
+        EXPECT(k.b == 0 && zm && dok_wpis(nowa) != NULL && strcmp(dok_wpis(nowa)->nazwa, "tajne (3).txt") == 0 &&
+               dok_wpis(nowa)->pochodzenie == z && dok_wpis(nowa)->tworca == k1_strefa(K1_STREFA_BANK)->profil);
+        mfd = k1_memfd_z_danymi("t", "x.txtZMIANA", 11);
+        k = zapytaj(K1_WL_DO_STREF, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_OBRAZY, K1_DOK_PLIK, 5, 6, z, 0), mfd, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_BRAK && !zm); /* not next to a file given to a zone */
+        mfd = k1_memfd_z_danymi("t", "x.txtZMIANA", 11);
+        k = zapytaj(K1_WL_DO_STREF, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, 5, 6, 0, 0), mfd, &zm, &fd);
+        EXPECT(k.b != 0 && !zm); /* only with a zone's origin */
+        k = zapytaj(K1_WL_DO_STREF, k1_komunikat_nowy(K1_KOM_DOK_KOSZ, pulpit, 0, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_BRAK && !zm);
+        k = zapytaj(K1_WL_DO_STREF, k1_komunikat_nowy(K1_KOM_DOK_KOSZ, plik, 0, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == 0 && zm && dok_wpis(plik)->kosz != 0); /* "Zapisz": the original into Kosz… */
+        mfd = k1_memfd_z_danymi("t", "tajne.txt", 9);
+        k = zapytaj(K1_WL_DO_STREF, k1_komunikat_nowy(K1_KOM_DOK_NAZWA, nowa, 9, 0, 0, 0, 0), mfd, &zm, &fd);
+        EXPECT(k.b == 0 && zm && strcmp(dok_wpis(nowa)->nazwa, "tajne.txt") == 0); /* …and the new one its name */
+        k = zapytaj(K1_WL_DO_STREF, k1_komunikat_nowy(K1_KOM_DOK_SPIS, 0, 0, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_PRAWA && fd < 0);
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_PRZYWROC, plik, 0, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == 0); /* the original back (as Pliki would), for the checks below */
+    }
     /* anyone else: nothing at all */
     k = zapytaj(K1_PROFIL_KALKULATOR, k1_komunikat_nowy(K1_KOM_DOK_SPIS, 0, 0, 0, 0, 0, 0), -1, &zm, &fd);
     EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == K1_DOK_BLAD_PRAWA && fd < 0);

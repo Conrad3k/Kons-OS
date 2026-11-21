@@ -1,6 +1,7 @@
 # 0052. Droga plików strefa ↔ K1: port plików, agent w strefie, zgoda w oknie K1, zapis przez nadzorcę
 
-- Status: Przyjęty; wdrożenie w 0.11.0 — krok 2 (pliki ze strefy do Plików), uzupełniany w krokach 3–5
+- Status: Przyjęty; wdrożenie w 0.11.0 — krok 2 (pliki ze strefy do Plików), krok 3 (pliki do strefy, uzupełnienie niżej),
+  uzupełniany w krokach 4–5
 - Data: 2026-11-21
 - Dotyczy: ADR 0027 (przepływ plików: Pliki jedynym węzłem, zgoda = gest w K1), ADR 0042 (strefy, VMM), ADR 0043
   (przeglądarka w strefie, Raptor Bridge), ADR 0029 (pliki w skarbcu), ADR 0034 (limity, zapis w toku kawałkami);
@@ -59,6 +60,35 @@ zaczyna sama strefa); brakowało drogi bajtów i formatu.
    pochodzenie jako „utworzony w K1” (P14) — plik zostaje.
 6. **Sesja Prywatna** (zapomina) trzyma pobrane w pamięci strefy (P11): ogranicza je pamięć sesji; po „Zapisz w Pobranych”
    plik jest w Plikach jak z każdej sesji.
+
+## Uzupełnienie — krok 3: pliki z Plików do strefy, zapis z powrotem (2026-11-21; D4 właściciela: A)
+7. **Gest i dostęp.** „Wyślij do” (podmenu sesji) i sesje w „Otwórz za pomocą” — w menu pliku Plików i pulpitu
+   (`k1_menu`, jedna lista; sesje z wierszy `K1_STREFY` z oknem i nazwą sesji). Pliki / pulpit → skarbiec `DOK_DO_STREFY`
+   (prawo `P_STREFA`) → skarbiec daje kanałowi nadzorcy `K1_WL_DO_STREF` (103) dostęp do **tego jednego pliku** (`dostep.c`,
+   jak przy „Otwórz za pomocą”) i mówi nadzorcy `SKARB_DO_STREFY` (z wpisem pliku w memfd). Kanał 103 w tabeli praw: czyta
+   tylko dane mu pliki, kładzie nowy plik (pochodzenie strefy) tylko w folderze takiego pliku, ten plik do Kosza, nowemu
+   nazwę — nic więcej (`test_dokumenty`).
+8. **Droga do strefy.** Zamkniętą sesję nadzorca otwiera (D4 „A”, `strefy_do.c`); VMM dostaje `STREFA_DO_PLIK` (nazwa,
+   rozmiar, „otwórz”) i kawałki 1 MiB (`STREFA_DO_KAWALEK`) na swoje `STREFA_DO_ODP DALEJ`; plik czeka na agenta do 120 s
+   (agent łączy się kilka sekund po starcie maszyny, także po resecie vsock gościa). Ramki `PLIK` i `BAJTY` idą jednym
+   strumieniem z resztą ramek K1 (całe ramki, po kolei, `pliki_do.c`). Agent zapisuje kopię w folderze sesji **„Z K1”**
+   (`/home/k1/Z K1`: ukryty plik `.k1-<nr>` z `O_EXCL`, `O_NOFOLLOW`, na końcu zmiana nazwy na wolną — „nazwa (2).ext”…)
+   i odpowiada `ODEBRANY`. Jeden plik naraz w całym K1.
+9. **„Otwórz w…” bez D-Bus (P16, T5).** Firefox w strefie działa z `--no-remote`, zdalne sterowanie ma tylko przez D-Bus
+   (sprawdzone w `libxul.so`: `nsDBusRemoteServer`), a w strefie D-Bus nie ma. Agent pisze jedną linię z adresem pliku
+   (`file:///home/k1/Z%20K1/<nazwa w %XX>`) do kolejki FIFO kompozytora strefy (`/run/k1/otworz`, zapis tylko dla grupy
+   przeglądarki); kompozytor (nasz, `kompozytor/otworz.c`) przyjmuje tylko adresy folderu „Z K1” ze zwykłych znaków,
+   najwyżej jeden na sekundę, i **wpisuje** go w okno z fokusem klawiatury: Ctrl+L, adres, Alt+Enter (nowa karta) — klawisze
+   rozłożone w czasie (pasek adresu dostaje fokus z opóźnieniem). Sprawdzone na stanowisku z prawdziwym Firefoksem
+   (`testy/stanowisko/otworz.py`). To mechanizm wewnątrz strefy: K1 nic nie wpisuje w swoje okna.
+10. **Zmieniona wersja z powrotem (ADR 0027 p. 5).** Nadzorca pamięta powiązanie *sesja + numer K1 → plik* (do wyłączenia
+    K1; 64 ostatnie). Agent zgłasza `ZGLOS` z polem **dotyczy** = numer K1, gdy pobranie ma nazwę pliku z K1 albo nazwę, którą
+    Firefox nadaje kolejnej kopii („nazwa(1).pdf” — tak zapisuje zmieniony PDF), albo gdy plik w „Z K1” zostanie zapisany
+    jeszcze raz (P17). Nadzorca przyjmuje taką zmianę tylko dla pliku, który K1 dał **tej** sesji (inaczej odmowa bez
+    okienka); okienko K1 „<sesja> zmieniła plik — Zapisać zmiany w oryginale?”: **„Zapisz”** — nowa treść jako nowy plik obok
+    oryginału, oryginał do Kosza (30 dni), nowy dostaje jego nazwę (kolejne kroki: zapis w toku, `DOK_KOSZ`, `DOK_NAZWA`;
+    przerwa między nimi zostawia oba pliki — nic nie ginie); **„Zapisz jako nowy plik”** — „nazwa (2).ext” obok; **„Nie”** —
+    nic. Następna zmiana idzie do nowej wersji.
 
 ## Konsekwencje
 - Pierwsza droga bajtów ze strefy do danych użytkownika: nadzorca dostaje od VMM tylko komunikaty 32 B i zapieczętowane

@@ -164,6 +164,10 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   Kilka plików — po kolei (do 8). Kliknięcie obok nie zamyka okienka (odpowiedź jest gestem użytkownika w oknie K1, ADR 0027
   p. 2); menu otwarte nad nim — okienko wraca, gdy menu się zamknie. Log: „okienko (pobranie): sesja N, plik M; Zapisz
   w Pobranych x,y; Zostaw w przeglądarce x,y” — nigdy nazwa pliku.
+  Od 0.11.0 krok 3 (ADR 0052): `POBRANIE` z e = 1 — zmieniona wersja pliku, który K1 dał sesji: „<sesja> zmieniła plik”, nazwa
+  oryginału, „Zapisać zmiany w oryginale?” / „„Zapisz”: poprzednia wersja trafi do Kosza.”, przyciski „Zapisz”, „Zapisz jako
+  nowy plik”, „Nie” (`POBRANIE_DECYZJA` b = `K1_POB_*`); przyciski każdego rodzaju okienka z jednej tabeli. Menu pliku na
+  pulpicie: „Wyślij do” i sesje w „Otwórz za pomocą” → `DOK_DO_STREFY` do skarbca.
 
 ## Obsługa błędów
 Zamknięty kanał do ekranu → koniec (nadzorca uruchomi ponownie). Awaria → restart; okna aplikacji
