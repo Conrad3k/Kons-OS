@@ -187,7 +187,7 @@ static int strefa_dziala(void)
 }
 
 /* Waits up to `sekundy` until the zone's VMM runs (1) or no longer runs (0); 1 when it did. */
-static int czekaj_strefa(int dziala, int sekundy)
+int czekaj_strefa(int dziala, int sekundy)
 {
     int i;
     for (i = 0; i < sekundy * 10; i++) {
@@ -199,7 +199,7 @@ static int czekaj_strefa(int dziala, int sekundy)
 }
 
 /* Zone 1 with the guest's test mode `tryb` started (logged); 1 when it did. */
-static int strefa_raz_start(int tryb)
+int strefa_raz_start(int tryb)
 {
     if (zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, tryb, 0, 0, 0), NULL, 10) != 0 ||
         !czekaj_strefa(1, 30)) {

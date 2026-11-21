@@ -59,7 +59,9 @@ void k1_log(const char *tag, const char *fmt, ...) { (void)tag, (void)fmt; }
 /* nadzorca: the requests the VMM sent, answered by the input's steps */
 static uint32_t prosby[64];
 static int n_prosb;
-static int odp_obiekt = -1, odp_typ, odp_fd = -1;
+static int odp_obiekt = -1, odp_typ, odp_fd = -1, odp_a, odp_b;
+static uint32_t pliki[16]; /* 0.11.0 step 2: files the VMM told of (STREFA_PLIK, its pieces) */
+static int n_plikow;
 static int serwer[K1_STREFA_POLACZENIA_MAKS + 2], n_serwer; /* our ends of the socket pairs */
 
 int k1_kanal_wyslij(int gniazdo, const void *buf, size_t len, int fd_przekaz)
@@ -71,6 +73,10 @@ int k1_kanal_wyslij(int gniazdo, const void *buf, size_t len, int fd_przekaz)
     memcpy(&k, buf, sizeof k);
     if (k.typ == K1_KOM_STREFA_POLACZ && n_prosb < 64)
         prosby[n_prosb++] = k.obiekt;
+    if ((k.typ == K1_KOM_STREFA_PLIK || k.typ == K1_KOM_STREFA_PLIK_KAWALEK) && n_plikow < 16)
+        pliki[n_plikow++] = k.obiekt;
+    if (k1_komunikat_sprawdz(&k, sizeof k, K1_KIER_DO_NADZORCY, &k) != 0) /* every message of the VMM must pass */
+        abort();
     return 0;
 }
 
@@ -80,7 +86,8 @@ enum k1_odbior_wynik k1_odbierz_komunikat(int gniazdo, uid_t uid, enum k1_kanal_
     (void)gniazdo, (void)uid, (void)kier;
     if (odp_obiekt < 0)
         return K1_ODB_PUSTO;
-    *k = k1_komunikat_nowy(odp_typ, (uint32_t)odp_obiekt, odp_typ == K1_KOM_STREFA_GNIAZDO ? K1_STREFA_TCP : 1, 0, 0, 0, 0);
+    *k = k1_komunikat_nowy(odp_typ, (uint32_t)odp_obiekt, odp_typ == K1_KOM_STREFA_PLIK_ODP ? odp_a :
+                           odp_typ == K1_KOM_STREFA_GNIAZDO ? K1_STREFA_TCP : 1, odp_b, 0, 0, 0);
     *fd = odp_fd;
     odp_obiekt = -1, odp_fd = -1;
     return K1_ODB_JEST;
@@ -176,6 +183,14 @@ static size_t pakiet(const uint8_t *d, size_t n)
 static void odpowiedz(uint8_t b)
 {
     int para[2];
+    if ((b & 2) && n_plikow > 0) { /* nadzorca about a file: send it, the next piece, or its end */
+        odp_obiekt = (int)pliki[0];
+        memmove(pliki, pliki + 1, (size_t)--n_plikow * sizeof pliki[0]);
+        odp_typ = K1_KOM_STREFA_PLIK_ODP;
+        odp_a = 1 + (b >> 2) % 3;
+        odp_b = odp_a == K1_PLIK_GOTOWE ? (b >> 4) % (K1_PS_W_MAKS + 1) : 0;
+        return;
+    }
     if (n_prosb == 0)
         return;
     odp_obiekt = (int)prosby[0];

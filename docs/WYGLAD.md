@@ -373,6 +373,14 @@ znak A**, okno 720 × 520 (D2) i Instalator tylko do instalacji (D3).
 - Na krok 2 (już wybrane): okienko „Jest nowa wersja K1” na środku ekranu (opis wersji: D13), „Później” (cichy) i
   „Zainstaluj” (główny); kropka w kolorze akcentu przy przycisku Start, dopóki wersja czeka, i wiersz w menu Start.
 
+## Okienko pobranego pliku (0.11.0 krok 2, decyzje właściciela D2 „A”, D3 „A” z 2026-11-21)
+- Na środku ekranu, w stylu okienka „Jest nowa wersja K1” (panel 440 × 212, cień, obrys): kropka w kolorze sesji i
+  „Przeglądarka · Ogólna pobrała plik” (pogrubione), nazwa pliku, rozmiar (mała, drugi kolor tekstu), „Zapisać go
+  w Plikach → Pobrane?”, linia, przyciski „Zostaw w przeglądarce” (cichy) i „Zapisz w Pobranych” (główny, terakota).
+  Plik za duży (> 4 GB): „Jest za duży dla Plików (najwyżej 4 GB).” / „Plik zostaje w przeglądarce.”, tylko „OK”.
+  Nie zapisano: „… · nie zapisano pliku”, powód („Za mało miejsca na dysku.”, „Zapis się nie udał.”), „OK”.
+- D3 „A”: w Plikach pochodzenie tylko w szczegółach pliku („z przeglądarki · Ogólna”), bez znaku na ikonie.
+
 ## Ustawienia → Ekran (M4.1; 0.10.7 krok 2)
 Rozdzielczości jako przyciski 152 × 36 **w rzędach po 3, od największej** (odstęp 12 i 8): wybrana — wypełnienie
 akcentem, pozostałe — `pole` z obrysem; zalecana (preferowana przez monitor/kartę) ma w przycisku mały dopisek

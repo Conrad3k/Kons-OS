@@ -25,11 +25,9 @@
 
 #include "k1_komunikat.h"
 #include "k1_log.h"
-#include "k1_teraz.h"
-#include "linia.h"
-#include "okno.h"
+#include "sterowanie.h"
+#include "pliki.h"
 #include "polaczenia.h"
-#include "pomiar.h"
 #include "strefa.h"
 
 #define CID_HOSTA 2
@@ -71,7 +69,15 @@ static struct pol_kredyt *kredyt(uint32_t nasz, uint32_t jego, int *n)
         return v.polaczony && jego == v.port_goscia ? &v.kr : NULL;
     if (nasz == POL_PORT && (*n = pol_znajdz(jego)) > 0)
         return pol_kredyt(*n);
+    if (nasz == K1_PS_PORT) /* 0.11.0 step 2: the files port (pliki.c) */
+        return pliki_kredyt(jego);
     return NULL;
+}
+
+/* The room we announce on port `nasz` (buf_alloc). */
+static uint32_t bufor_portu(uint32_t nasz)
+{
+    return nasz == VSOCK_STEROWANIE ? NASZ_BUFOR : nasz == K1_PS_PORT ? K1_PS_BUFOR : POL_BUFOR;
 }
 
 static void naglowek(struct virtio_vsock_hdr *h, uint32_t nasz, uint32_t jego, uint16_t op, uint32_t dl)
@@ -86,7 +92,7 @@ static void naglowek(struct virtio_vsock_hdr *h, uint32_t nasz, uint32_t jego, u
     h->len = dl;
     h->type = VIRTIO_VSOCK_TYPE_STREAM;
     h->op = op;
-    h->buf_alloc = nasz == VSOCK_STEROWANIE ? NASZ_BUFOR : POL_BUFOR;
+    h->buf_alloc = bufor_portu(nasz);
     h->fwd_cnt = k != NULL ? k->przekazane : 0;
     if (k != NULL)
         k->zgloszone = k->przekazane;
@@ -190,6 +196,42 @@ static int dane_polaczenia(struct mmio_urz *u, int n)
     return 1;
 }
 
+/* The files port (0.11.0 step 2, pliki.c): its RESPONSE or our RST, a credit update, then our frames as its credit
+ * allows: 1 sent, 0 nothing, -1 the end. */
+static int plikom(struct mmio_urz *u)
+{
+    uint32_t port;
+    int rst, w;
+    struct pol_kredyt *k;
+    if (pliki_odpowiedz(&port, &rst)) {
+        if ((w = maly(u, K1_PS_PORT, port, rst ? VIRTIO_VSOCK_OP_RST : VIRTIO_VSOCK_OP_RESPONSE, 0, NULL, 0)) > 0)
+            pliki_odpowiedziano(rst);
+        return w;
+    }
+    if ((k = pliki_kredyt(port)) == NULL)
+        return 0;
+    if (k->kredyt_prosba || k->przekazane - k->zgloszone >= K1_PS_BUFOR / 2) {
+        if ((w = maly(u, K1_PS_PORT, port, VIRTIO_VSOCK_OP_CREDIT_UPDATE, 0, NULL, 0)) > 0)
+            k->kredyt_prosba = 0;
+        return w;
+    }
+    {
+        uint32_t miejsce = k->jego_bufor - (k->wyslane - k->jego_fwd);
+        uint8_t b[DANE_MAKS];
+        size_t n;
+        if (miejsce == 0 || miejsce > k->jego_bufor)
+            return 0;
+        n = pliki_do_goscia(b, miejsce < sizeof b ? miejsce : sizeof b);
+        if (n == 0)
+            return 0;
+        if ((w = maly(u, K1_PS_PORT, port, VIRTIO_VSOCK_OP_RW, 0, b, (uint32_t)n)) > 0) {
+            k->wyslane += (uint32_t)n;
+            pliki_wyslane(n);
+        }
+        return w; /* no buffer now: the frames wait for the next one */
+    }
+}
+
 /* The control connection's owed packets: its RESPONSE, a credit update. */
 static int winny_sterowaniu(struct mmio_urz *u)
 {
@@ -220,6 +262,10 @@ void vsock_wyslij(void)
     }
     while (w > 0 && v.n_czeka == 0 && (w = winny_sterowaniu(u)) > 0)
         bylo = 1;
+    if (w == 0 && v.n_czeka == 0)
+        w = 1; /* the control connection owed nothing: the files port's turn */
+    while (w > 0 && v.n_czeka == 0 && (w = plikom(u)) > 0)
+        bylo = 1;
     for (n = 1; w >= 0 && male && n <= K1_STREFA_POLACZENIA_MAKS; n++)
         while (pol_port(n) != 0 && (w = winny_polaczeniu(u, n)) > 0)
             bylo = 1;
@@ -231,113 +277,16 @@ void vsock_wyslij(void)
         mmio_uzyte(u);
 }
 
-/* The counters (0.10.1 step 1, S13): the guest's numbers from "liczniki" and ours, one line every LICZNIKI_ODSTEP s
- * (the main thread: vsock_liczniki — whatever the guest sends, or does not) and once more at the machine's end
- * (vsock_podsumowanie). */
-#define LICZNIKI_ODSTEP 5.0
-static struct {
-    uint32_t g[3];   /* the guest's: available MiB, zram MiB, OOM kills */
-    int sa;          /* the guest sent them at least once */
-    double t;        /* the last line (k1_teraz) */
-} lz;
-
-static void liczniki_loguj(const char *kiedy)
-{
-    unsigned zasoby, mib;
-    struct balon_stan b;
-    char g[80];
-    gpu_liczniki(&zasoby, &mib);
-    balon_stan(&b); /* 0.10.1 step 2: what K1 holds of the guest's memory, the balloon */
-    if (lz.sa)
-        snprintf(g, sizeof g, "dostępna %u MiB, zram %u MiB, zabite %u", lz.g[0], lz.g[1], lz.g[2]);
-    else
-        snprintf(g, sizeof g, "brak");
-    k1_log(TAG, "liczniki%s: gość — %s; pamięć w K1 %u MiB, oddane %u MiB, balon %u MiB; grafika: zasoby %u, %u MiB; "
-                "połączenia %u; vsock czeka %d, odrzucone %lu", kiedy, g, b.w_k1_mib, b.oddane_mib, b.balon_mib, zasoby,
-           mib, pol_zajete(), v.n_czeka, v.odrzucone);
-}
-
-/* The main thread, once a second (main.c): the counters' line every LICZNIKI_ODSTEP s — also when the guest sends no
- * numbers of its own (a guest that is busy, a hostile one). */
-void vsock_liczniki(void)
-{
-    if (k1_teraz() - lz.t < LICZNIKI_ODSTEP)
-        return;
-    lz.t = k1_teraz();
-    liczniki_loguj("");
-}
-
-void vsock_podsumowanie(void)
-{
-    liczniki_loguj(" przy końcu");
-}
-
-/* "kto <1 browser|2 compositor> <code> <rule>" (0.10.1 step 1, S15): who of the guest's programs ended by itself —
- * numbers only, logged once (the first one counts, as "koniec"). */
-static void kto(const uint32_t *w)
-{
-    static int byl;
-    if (byl || w[0] < 1 || w[0] > 2)
-        return;
-    byl = 1;
-    if (w[2] > 0)
-        k1_log(TAG, "gość: %s zakończony (kod %u) — kompozytor odrzucił przeglądarkę (reguła %u)",
-               w[0] == 1 ? "przeglądarka" : "kompozytor", w[1], w[2]);
-    else
-        k1_log(TAG, "gość: %s zakończony (kod %u)", w[0] == 1 ? "przeglądarka" : "kompozytor", w[1]);
-}
-
-static void linia_od_goscia(void)
-{
-    uint32_t w[POMIAR_GOSC_LICZB];
-    v.linia[v.dl] = '\0';
-    if (linia_liczby(v.linia, "pomiar", w, POMIAR_GOSC_LICZB, 1u << 24)) /* 0.10.11 step 1: the compositor's links */
-        pomiar_gosc(w);
-    else if (linia_liczby(v.linia, "liczniki", w, 3, 1u << 24)) {
-        memcpy(lz.g, w, sizeof lz.g);
-        lz.sa = 1;
-    } else if (linia_liczby(v.linia, "kto", w, 3, 999))
-        kto(w);
-    else if (strcmp(v.linia, "gotowa") == 0)
-        k1_log(TAG, "gość gotowy (kanał sterujący) po %.1f s", k1_teraz() - mz.start_t);
-    else if (strcmp(v.linia, "etap start") == 0) { /* 0.10.2 step 1: the start screen stays until "etap okno" */
-        okno_etap(OKNO_ETAP_START);
-        k1_log(TAG, "gość: program strefy startuje — ekran startu do jego okna");
-    } else if (strcmp(v.linia, "pelny 1") == 0 || strcmp(v.linia, "pelny 0") == 0) { /* 0.11.0 step 1: full screen */
-        okno_pelny(v.linia[6] == '1');
-    } else if (strcmp(v.linia, "etap okno") == 0) { /* S30: how long the browser takes to start */
-        okno_etap(OKNO_ETAP_OKNO);
-        k1_log(TAG, "gość: okno przeglądarki po %.1f s od startu maszyny", k1_teraz() - mz.start_t);
-    }
-    else if (strcmp(v.linia, "zamykam") == 0)
-        k1_log(TAG, "gość się zamyka");
-    else if (strcmp(v.linia, "zamykanie gotowe") == 0 || strcmp(v.linia, "zamykanie sygnal") == 0 ||
-             strcmp(v.linia, "zamykanie po czasie") == 0)
-        k1_log(TAG, "gość: przeglądarka %s po %.1f s",
-               v.linia[10] == 'g' ? "zamknęła się sama (dane sesji zapisane)" :
-               v.linia[10] == 's' ? "zamknięta sygnałem (bez zapisu danych sesji)" : "nie zamknęła się w czasie — zatrzymana",
-               mz.zamykana_t > 0 ? k1_teraz() - mz.zamykana_t : 0.0);
-    else if (strcmp(v.linia, "koniec pamiec") == 0 || strcmp(v.linia, "koniec awaria") == 0 ||
-             strcmp(v.linia, "koniec sam") == 0) {
-        int kod = v.linia[7] == 'p' ? K1_STREFA_KONIEC_PAMIEC : v.linia[7] == 'a' ? K1_STREFA_KONIEC_AWARIA : 0;
-        if (!mz.gosc_powiedzial)
-            mz.kod_goscia = kod;
-        mz.gosc_powiedzial = 1;
-        k1_log(TAG, "gość: program strefy zakończył się sam (%s)",
-               kod == K1_STREFA_KONIEC_PAMIEC ? "brak pamięci" : kod == K1_STREFA_KONIEC_AWARIA ? "awaria" : "zamknięty");
-    } else if (strcmp(v.linia, "pamiec strona") == 0)
-        k1_log(TAG, "gość: strona zakończona — brak pamięci w strefie (%u)", ++mz.strony_bez_pamieci);
-    else
-        v.odrzucone++;
-    v.dl = 0;
-}
-
 static void sterowanie_dane(uint32_t dl)
 {
     uint32_t i;
     for (i = 0; i < dl; i++) {
-        if (dane[i] == '\n')
-            linia_od_goscia();
+        if (dane[i] == '\n') {
+            v.linia[v.dl] = '\0';
+            if (!sterowanie_linia(v.linia))
+                v.odrzucone++;
+            v.dl = 0;
+        }
         else if (v.dl < LINIA_MAKS)
             v.linia[v.dl++] = (char)dane[i];
     }
@@ -354,6 +303,8 @@ static void prosba(const struct virtio_vsock_hdr *h)
         v.polaczony = 1, v.odpowiedz = 1;
         v.port_goscia = h->src_port;
         v.kr = k;
+    } else if (h->dst_port == K1_PS_PORT && pliki_polacz(h->src_port, &k)) {
+        /* 0.11.0 step 2: the agent's files port — its RESPONSE is owed (plikom) */
     } else if (h->dst_port == POL_PORT && pol_znajdz(h->src_port) == 0 && (n = pol_nowe(h->src_port, &k)) > 0) {
         pol_kredyt(n)->odpowiedz = 1;
     } else {
@@ -392,12 +343,17 @@ static int pakiet(const struct vq_lancuch *l, const char **powod)
             kolejkuj(h.dst_port, h.src_port, VIRTIO_VSOCK_OP_RST, 0, NULL, 0);
             return 0;
         }
-        if (h.len > (n ? POL_BUFOR : NASZ_BUFOR) - (k->odebrane - k->zgloszone)) { /* the room the guest was told */
+        if (h.len > bufor_portu(h.dst_port) - (k->odebrane - k->zgloszone)) { /* the room the guest was told */
             *powod = "vsock: gość przekroczył kredyt";
             return -1;
         }
         vq_czytaj(l, sizeof h, dane, h.len);
-        if (n == 0)
+        if (h.dst_port == K1_PS_PORT) {
+            if (pliki_od_goscia(dane, h.len) != 0) {
+                *powod = "vsock: gość przekroczył kredyt";
+                return -1;
+            }
+        } else if (n == 0)
             sterowanie_dane(h.len);
         else if (pol_od_goscia(n, dane, h.len) != 0) {
             *powod = "vsock: gość przekroczył kredyt";
@@ -405,14 +361,16 @@ static int pakiet(const struct vq_lancuch *l, const char **powod)
         }
         return 0;
     case VIRTIO_VSOCK_OP_CREDIT_REQUEST:
-        if (k != NULL && n > 0)
+        if (k != NULL && (n > 0 || h.dst_port == K1_PS_PORT))
             k->kredyt_prosba = 1;
         else if (k != NULL)
             v.kr.zgloszone = v.kr.przekazane - NASZ_BUFOR; /* the control connection: an update at once */
         return 0;
     case VIRTIO_VSOCK_OP_SHUTDOWN:
     case VIRTIO_VSOCK_OP_RST:
-        if (k != NULL && n == 0) {
+        if (k != NULL && h.dst_port == K1_PS_PORT) {
+            pliki_rozlacz();
+        } else if (k != NULL && n == 0) {
             v.polaczony = 0;
         } else if (k != NULL) {
             int calkiem = h.op == VIRTIO_VSOCK_OP_RST || (h.flags & WSZYSTKO) == WSZYSTKO;
@@ -426,6 +384,12 @@ static int pakiet(const struct vq_lancuch *l, const char **powod)
     default:
         return 0; /* RESPONSE, CREDIT_UPDATE (its credit is taken above), unknown: nothing to do */
     }
+}
+
+void vsock_kolejka(int *czeka, unsigned long *odrzucone)
+{
+    *czeka = v.n_czeka;
+    *odrzucone = v.odrzucone;
 }
 
 void vsock_linia(const char *l)
@@ -475,6 +439,7 @@ static void reset(struct mmio_urz *u)
 {
     (void)u;
     memset(&v, 0, sizeof v);
+    pliki_wyczysc();
     pol_wyczysc(); /* 0.10.5 step 5: the guest's connections end with its device (their sockets used to stay open) */
 }
 

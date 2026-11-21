@@ -214,7 +214,9 @@ z ✓; przy co najmniej dwóch także „Zawsze otwieraj tą aplikacją”), „
 nazwę”, „Usuń”; w Koszu — „Przywróć”, „Usuń na zawsze”; na pendrivie — „Importuj” (folder: „Otwórz”). Typ bez aplikacji:
 „Otwórz” i „Otwórz za pomocą” wyszarzone, pod nimi powód. Wybrana aplikacja dostaje ten jeden plik (`DOK_OTWORZ`, ADR
 0030). Do 0.8.1 był przycisk „Otwórz w…”, który podmieniał rząd przycisków. Z prawej **szczegóły** zaznaczonego (do 0.8.2 „podgląd” — decyzja D1): ikona,
-nazwa, typ (rozpoznany z zawartości), rozmiar, daty, pochodzenie („utworzony w K1”), w Koszu — za ile dni
+nazwa, typ (rozpoznany z zawartości), rozmiar, daty, pochodzenie („utworzony w K1”, „z pendrive'a”, od 0.11.0 krok 2 —
+ADR 0052, D3 „A” — „z przeglądarki · Ogólna”: plik pobrany w sesji przeglądarki i zapisany w Pobranych po „Zapisz
+w Pobranych” w okienku K1; tekst z kolumny „skąd” wiersza strefy), w Koszu — za ile dni
 zniknie; plik tekstowy — początek treści (do 64 KiB, `DOK_CZYTAJ`); **zdjęcie** (0.8.0 krok 4, ADR 0032; PNG i JPEG,
 od 0.8.2 także GIF, BMP, WebP — rodzina „obrazy”) — zmniejszone do 200×150 przez usługę `dekoder`
 (`komponenty/dekoder.md`; plik idzie do niego kawałkami prosto od skarbca — **miniatura**; uszkodzone: „Miniatura

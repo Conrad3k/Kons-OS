@@ -40,6 +40,7 @@ K1_STREFY(X_SPR_F)
  * end of the numbers (0.10.9 steps 2 and 5) */
 _Static_assert(K1_PROFIL_FILMY + K1_STREFY_MAKS + 1 == K1_PROFIL_POSREDNIK, "profil POSREDNIK: zaraz po dekoderach filmów");
 _Static_assert(K1_PROFIL_POSREDNIK + K1_STREFY_MAKS == K1_PROFIL_MAKS, "profile pośredników grafiki: na końcu numerów");
+_Static_assert(K1_WL_POBRANIA > K1_PROFIL_MAKS && K1_WL_POBRANIA != K1_WL_DOKUMENTY, "K1_WL_POBRANIA: poza profilami");
 _Static_assert(K1_WL_SYSTEM > K1_PROFIL_MAKS, "właściciel K1_WL_SYSTEM musi być poza numerami profili");
 
 const char *k1_profil_program(int profil)
@@ -63,7 +64,7 @@ int k1_apl_uid(int apl)
 }
 
 #define X_OPIS(n, nr_, profil_, uid_, obraz_, tytul_, sesja_, pamiec_, procesory_, kolor_, trwalosc_, ikona_, log_, menu_, \
-               okno_, grafika_)                                                                                      \
+               okno_, grafika_, ...)                                                                                    \
     [nr_] = { .nr = nr_, .profil = profil_, .uid = uid_, .obraz = obraz_, .tytul = tytul_, .sesja = sesja_,          \
               .pamiec_mib = pamiec_, .procesory = procesory_, .kolor = kolor_, .trwalosc = K1_##trwalosc_,           \
               .ikona = K1_IK_##ikona_, .log_goscia = log_, .okno = okno_, .grafika = grafika_ },

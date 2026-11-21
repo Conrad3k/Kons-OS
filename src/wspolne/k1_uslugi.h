@@ -75,20 +75,23 @@
  *   its line in the Start menu ("": not there; 0.10.0 step 2), 1: it has a window (0: the download zone of 0.10.5 step 2,
  *   ADR 0046 — no window, no display or input devices; it downloads updates and gives K1 the bytes), 1: fast graphics
  *   and films with the card on by default in its session (0.10.9 step 6, the owner's D5: Ogólna yes, Bank and Prywatna
- *   no; the user changes it in Ustawienia → Przeglądarka; only where the card can — ADR 0049)).
+ *   no; the user changes it in Ustawienia → Przeglądarka; only where the card can — ADR 0049), where its files come from
+ *   in Pliki (0.11.0 step 2, ADR 0052: "z przeglądarki", with the session's name after " · ")).
  * The numbers never change (a STALA zone's disk in skarbiec belongs to its profile). The test zone's image is only in
  * the test image: the production image has no file for it, nadzorca refuses to start it. 0.10.0 step 2 (ADR 0043, D2):
  * the browser's sessions — each its own zone (machine, colour, UID); since step 5 Ogólna and Bank remember, Prywatna
  * forgets (the test zone remembers: test-strefa checks the disk). */
 #define K1_STREFY(X)                                                                                                    \
-    X(PROBNA, 1, 19, 300, "probna", "Strefa próbna", "", 128, 1, 0xA8834A, STALA, EKRAN, 1, "", 1, 0)                 \
+    X(PROBNA, 1, 19, 300, "probna", "Strefa próbna", "", 128, 1, 0xA8834A, STALA, EKRAN, 1, "", 1, 0,                \
+      "ze strefy próbnej")                                                                                      \
     X(OGOLNA, 2, 20, 301, "przegladarka", "Przeglądarka", "Ogólna", 1536, 2, 0x5F8A6A, STALA, PRZEGLADARKA, 0,        \
-      "Strony internetowe w osobnej maszynie", 1, 1)                                                            \
-    X(BANK, 3, 21, 302, "przegladarka", "Przeglądarka", "Bank", 1536, 2, 0x4A6FA5, STALA, PRZEGLADARKA, 0, "", 1, 0)  \
+      "Strony internetowe w osobnej maszynie", 1, 1, "z przeglądarki")                                          \
+    X(BANK, 3, 21, 302, "przegladarka", "Przeglądarka", "Bank", 1536, 2, 0x4A6FA5, STALA, PRZEGLADARKA, 0, "", 1, 0,  \
+      "z przeglądarki")                                                                                         \
     X(PRYWATNA, 4, 22, 303, "przegladarka", "Przeglądarka", "Prywatna", 1536, 2, 0x8B6AA8, JEDNORAZOWA, PRZEGLADARKA,\
-      0, "", 1, 0)                                                                                              \
+      0, "", 1, 0, "z przeglądarki")                                                                            \
     X(POBIERANIE, 5, 23, 304, "przegladarka", "Pobieranie aktualizacji", "", 384, 1, 0x8D8A84, JEDNORAZOWA,         \
-      AKTUALIZACJE, 0, "", 0, 0)
+      AKTUALIZACJE, 0, "", 0, 0, "ze strefy pobierania")
 
 /* 0.10.9 step 2 (ADR 0049 pkt 2): the film decoder of each zone — derived from the zone's row: its own UID
  * (K1_UID_FILMY_STREF + the zone's number) and profile (K1_PROFIL_FILMY + the number: its sandbox KLATKA_FILMY, its own

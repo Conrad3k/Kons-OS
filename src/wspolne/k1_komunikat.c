@@ -30,7 +30,7 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
            k1_kom_sprawdz_ekran(k, kier) || k1_kom_sprawdz_nadzorca(k, kier) || k1_kom_sprawdz_pendrive(k, kier) ||
            k1_kom_sprawdz_dekoder(k, kier) || k1_kom_sprawdz_siec(k, kier) || k1_kom_sprawdz_wifi(k, kier) ||
            k1_kom_sprawdz_strefa(k, kier) || k1_kom_sprawdz_filmy(k, kier) ||
-           k1_kom_sprawdz_posrednik(k, kier);
+           k1_kom_sprawdz_posrednik(k, kier) || k1_kom_sprawdz_pobrane(k, kier);
 }
 
 int k1_komunikat_sprawdz(const void *buf, size_t len, enum k1_kanal_kierunek kierunek, struct k1_komunikat *out)
@@ -72,6 +72,8 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            ((typ == K1_KOM_POSR_OKNO || typ == K1_KOM_POSR_WSPOLNA) && kierunek == K1_KIER_DO_POSREDNIKA) || /* step 5 */
            (typ == K1_KOM_POSR_DMABUF && kierunek == K1_KIER_OD_POSREDNIKA) || /* …and a buffer for the VMM */
            (typ == K1_KOM_DEK_PIKSELE && kierunek == K1_KIER_OD_DEKODERA) ||
+           ((typ == K1_KOM_STREFA_PLIK || typ == K1_KOM_STREFA_PLIK_KAWALEK) && kierunek == K1_KIER_DO_NADZORCY) || /* 0.11.0 */
+           (typ == K1_KOM_POBRANIE && kierunek == K1_KIER_OD_NADZORCY) || /* step 2: the name of a file from a zone */
            ((typ == K1_KOM_PEN_LISTA || typ == K1_KOM_PEN_PLIK) && kierunek == K1_KIER_OD_CZYTNIKA) ||
            ((typ == K1_KOM_SIEC_KABEL || typ == K1_KOM_SIEC_GNIAZDO || typ == K1_KOM_SIEC_WIFI_WYNIKI ||
              typ == K1_KOM_SIEC_WIFI_EAPOL || typ == K1_KOM_SIEC_USTAWIENIA || /* 0.9.1 step 2: EAPOL, Ustawienia */

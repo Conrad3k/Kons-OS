@@ -250,6 +250,13 @@ void strefa_fokus(int nr);                    /* gui: the zone whose window has 
 int64_t strefy_moga_oddac(void);              /* MiB the running sessions' balloons may still give */
 void strefy_przydzial(int fd);                /* every running zone's share (STREFA_PRZYDZIAL) */
 void strefy_rozdziel(void);                   /* every loop; works once a second while a zone runs */
+/* strefy_pliki.c (0.11.0 step 2, ADR 0052): a file from a zone into Pliki — the VMM, gui's window, skarbiec */
+extern int pob_skarb; /* our channel to skarbiec for them (owner K1_WL_POBRANIA), -1 until the first */
+void strefa_plik(int nr, const struct k1_komunikat *k, int fd);       /* STREFA_PLIK */
+void strefa_plik_dalej(int nr, const struct k1_komunikat *k, int fd); /* STREFA_PLIK_KAWALEK, STREFA_PLIK_KONIEC */
+void strefa_pliki_koniec(int nr);                                     /* the zone ended */
+void pobranie_decyzja(const struct k1_komunikat *k);                  /* POBRANIE_DECYZJA (gui, the test program) */
+void obsluz_pobrania_skarb(void);
 #define X_OBSLUZ_STREFE(n, nr, ...) void obsluz_strefe_##n(void);
 K1_STREFY(X_OBSLUZ_STREFE)
 #undef X_OBSLUZ_STREFE

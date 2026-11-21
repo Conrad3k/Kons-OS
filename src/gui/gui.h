@@ -229,6 +229,10 @@ void wersja_nieudana(const struct k1_komunikat *m); /* AB_NIEUDANA: the window "
 void akt_komunikat(const struct k1_komunikat *m, int fd);
 int akt_czeka(void); /* 1: a new version waits for "Zainstaluj" */
 
+/* pobranie.c (0.11.0 step 2, ADR 0052, D2: A) — nadzorca on fd 5: a file from a session, the window that asks */
+void pobranie_komunikat(const struct k1_komunikat *m, int fd); /* POBRANIE (with the name's memfd), POBRANIE_WYNIK */
+void pobranie_okresowe(void);                                  /* every loop: a window covered by a menu comes back */
+
 /* zapis.c */
 void rozm_wczytaj(void); /* at start: from skarbiec, else the first-start arrangement */
 void rozm_zapisz_teraz(void);

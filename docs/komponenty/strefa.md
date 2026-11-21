@@ -282,6 +282,24 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
   `SKARB_WYCZYSC` — wszystkie kawałki tego właściciela znikają, następne otwarcie zaczyna od pustego dysku.
 - **Ustawienia → Miejsce:** część „Strefy” — ile zajmują dyski wszystkich sesji (`K1_CZESC_STREFY`).
 
+## Droga plików: plik ze strefy do Plików (0.11.0 krok 2, ADR 0052)
+- **Port plików** — vsock port 3 (`K1_PS_PORT`), jedno połączenie naraz, kredyt 64 KiB; ramki `src/wspolne/k1_pliki_strefy.h`
+  (`ZGLOS`, `DANE`, `BRAK` od strefy; `WYSLIJ`, `WYNIK` od K1; czyste: `test_pliki_strefy`, `fuzz_pliki_strefy`). VMM
+  (`pliki.c`) sprawdza ramki i kolejność, zamienia je na `STREFA_PLIK` (nazwa naprawiona zasadami nazw K1 w memfd),
+  `STREFA_PLIK_KAWALEK` (1 MiB w memfd), `STREFA_PLIK_KONIEC` na fd 7; odpowiedzi `STREFA_PLIK_ODP`. Najwyżej 4 pliki czekają
+  naraz (reszta — „odmowa”), bajty tylko po `WYSLIJ` i nie ponad rozmiar, jeden kawałek czeka na skarbiec (kredyt strefy
+  wstrzymany). Złamanie zasad zamyka **tylko połączenie plików** (RST), maszyna żyje; w logu liczby, nigdy nazwa.
+- **Agent** (`src/strefa/agent/`, `/usr/lib/k1/agent` w obrazie przeglądarki, uruchamia go `gosc` jako użytkownik
+  przeglądarki): inotify na folderze pobranych `/home/k1/Pobrane` (zablokowany w `k1.js`; Firefox nie pyta, gdzie zapisać,
+  ani „co zrobić z plikiem”) — zgłasza plik po zmianie nazwy `.part` (`IN_MOVED_TO`) albo po zapisie niepustego pliku,
+  który nie jest `.part`; bajty dopiero na `WYSLIJ`, ten sam plik (i-węzeł) tego samego rozmiaru, inaczej `BRAK`. Pliki,
+  które były w folderze przed startem, nie są zgłaszane. Sprawdzone na stanowisku (`testy/stanowisko/pobrane.py`).
+- **Zgoda i zapis:** nadzorca (`strefy_pliki.c`) → gui (okienko, `POBRANIE`) → „Zapisz w Pobranych” → nadzorca zapisuje
+  plik w skarbcu swoim kanałem `K1_WL_POBRANIA` (tylko nowy plik w Pobranych z pochodzeniem strefy) jako zapis w toku:
+  przerwanie nie zostawia nic. Pochodzenie: `K1_POCH_STREFA_OD` + numer strefy, tekst z kolumny „skąd” `K1_STREFY`
+  („z przeglądarki · Ogólna”); twórca pliku — profil strefy.
+- Gość próbny: tryby 18 (uczciwe pobranie) i 19 (złośliwe) — `scripts/test-pobrane.sh`.
+
 ## Komunikaty
 | Komunikat | Kierunek | Pola |
 |---|---|---|
@@ -307,6 +325,13 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
 | `STREFA_GRAFIKA` (0.10.9 krok 6) | Ustawienia → nadzorca | obiekt = strefa, `a` = 1 włącz / 0 wyłącz (od następnego otwarcia), reszta 0 |
 | `STREFA_WYCZYSC` | Ustawienia → nadzorca; program testowy → nadzorca | krok 5: obiekt = strefa, reszta 0 — „Wyczyść dane sesji” |
 | `STREFA_WYCZYSZCZONO` | nadzorca → Ustawienia | krok 5: obiekt = strefa, `a` = `K1_STREFA_WYCZ_OK` / `_DZIALA` (otwarta — najpierw zamknij) / `_BLAD`, `b` = usunięte kawałki, reszta 0 |
+| `STREFA_PLIK` (0.11.0 krok 2, ADR 0052) | VMM → nadzorca (fd 7, + memfd) | obiekt = numer pliku u VMM 1…`K1_PS_NR_MAKS`, a, b = rozmiar (niskie, wysokie; 0…`K1_PS_ROZMIAR_MAKS`), c = długość nazwy 1…127, d = e = 0; memfd zapieczętowany, dokładnie c bajtów — nazwa K1 (VMM naprawił ją `k1_dok_nazwa_popraw`, nadzorca sprawdza `k1_dok_nazwa_poprawna`) |
+| `STREFA_PLIK_KAWALEK` (0.11.0 krok 2) | VMM → nadzorca (fd 7, + memfd) | obiekt = plik, a = bajty 1…`K1_DOK_KAWALEK` (każdy kawałek prócz ostatniego: cały), b = numer kawałka 0…4095, c = 1 ostatni / 0, d = e = 0; tylko po `K1_PLIK_WYSLIJ`, następny dopiero po `K1_PLIK_DALEJ` |
+| `STREFA_PLIK_KONIEC` (0.11.0 krok 2) | VMM → nadzorca (fd 7) | obiekt = plik, a = `K1_PS_W_BLAD` (strefa złamała zasady portu plików — połączenie zamknięte) albo `K1_PS_W_ZOSTAWIONY` (strefa go wycofała: zniknął, zmienił się, agent odszedł), reszta 0 |
+| `STREFA_PLIK_ODP` (0.11.0 krok 2) | nadzorca → VMM (fd 7) | obiekt = plik, a = `K1_PLIK_WYSLIJ` (użytkownik powiedział „Zapisz”) / `K1_PLIK_DALEJ` (skarbiec ma kawałek) / `K1_PLIK_GOTOWE` (koniec: b = `K1_PS_W_*` — zapisany, zostaje, za mało miejsca, za duży, błąd, odmowa), b poza `GOTOWE` 0, reszta 0 |
+| `POBRANIE` (0.11.0 krok 2, D2: A) | nadzorca → gui (fd 5, + memfd) | obiekt = strefa, a = plik, b, c = rozmiar, d = długość nazwy 1…127, e = 0; memfd jak w `STREFA_PLIK` (gui czyta i sprawdza nazwę jeszcze raz) — okienko „<sesja> pobrała plik” |
+| `POBRANIE_DECYZJA` (0.11.0 krok 2) | gui → nadzorca (fd 4); program testowy → nadzorca | obiekt = strefa, a = plik, b = 1 „Zapisz w Pobranych” / 0 „Zostaw w przeglądarce” (albo „OK” pliku za dużego), reszta 0 |
+| `POBRANIE_WYNIK` (0.11.0 krok 2) | nadzorca → gui (fd 5) | obiekt = strefa, a = plik, b = `K1_PS_W_*`, reszta 0 — jego okienko znika; po „Zapisz” bez zapisu gui mówi dlaczego |
 | `SKARB_WYCZYSC` | nadzorca → skarbiec (kanał sterujący) | krok 5: `a` = właściciel — profil strefy (inny — odrzucony), reszta 0 |
 | `SKARB_WYCZYSZCZONO` | skarbiec → nadzorca | krok 5: `a` = ten właściciel, `b` = 0 albo `K1_MAG_*`, `c` = usunięte kawałki, reszta 0 |
 | `SKARB_CZYTAJ`, `SKARB_ZAPISZ`, `SKARB_USUN`, `SKARB_DANE`, `SKARB_WYNIK` (dysk strefy) | VMM ↔ skarbiec (fd 8) | krok 5: obiekt = `K1_OB_DYSK` + kawałek (0…32 767), zapis i dane — najwyżej 64 KiB; brak kawałka: `WYNIK` b = `K1_SKARB_BRAK` (VMM czyta wtedy pusty dysk) |
@@ -335,6 +360,8 @@ krok 2 tryby 6–8 — VMM wkłada tam balon: strona poza pamięcią (pompowanie
 | `test_sesje` (krok 5): format sesji w skarbcu — domyślne, zapis i odczyt, złe pole zostawia domyślne, nieznana strefa, uszkodzony obiekt; 0.10.9 krok 6: przełącznik szybkiej grafiki (domyślnie Ogólna), format `K1Z2`, stary `K1Z1` czytany, nieznane cechy zostawiają domyślne | funkcjonalny, negatywny |
 | `test_gpu_most` (0.10.9 krok 6): capset, konteksty (DRM, bez capsetu, za dużo), zasoby blob (pamięć wspólna, bufor, strony gościa, rozmiary, cechy), mapowanie (w obszarze, na innym mapowaniu, bez prawa mapowania), `SUBMIT_3D` (okno, płot, oś, długości), koniec zasobu i kontekstu, pośrednik zakończony, polecenie krótsze niż struktura — koniec maszyny | funkcjonalny, negatywny |
 | `fuzz_gpu_most`: dowolny ciąg poleceń 3D z każdą odpowiedzią pośrednika; mapowanie zawsze w obszarze | fuzzing |
+| `test_pliki_strefy` (0.11.0 krok 2): ramki portu plików — zapis i odczyt w kawałkach dowolnej wielkości, każde pole poza zasadami (typ drugiego kierunku, zarezerwowane, długości, numery, NUL w nazwie, wynik); `fuzz_pliki_strefy`: dowolny strumień od strefy i od K1; `fuzz_vsock` — także port 3 z odpowiedziami nadzorcy | funkcjonalny, negatywny, fuzzing |
+| `test-pobrane.sh` (0.11.0 krok 2): uczciwe pobranie 4 plików z kliknięciem okienek, zawartość bajt w bajt, nazwa naprawiona, PDF z treści, pusty; złośliwa strefa — bajty bez zgody, ponad rozmiar, zła ramka, zalew, 5 GB, `BRAK` i koniec strefy w trakcie | funkcjonalny, negatywny |
 | `test_komunikat` (krok 5): `STREFY_STAN`, `STREFA_*`, `SKARB_WYCZYSC`/`_WYCZYSZCZONO`, nazwy sesji (znaki sterujące, niewidoczne, kierunek, zły UTF-8), zakres obiektów dysku | negatywny |
 | `t_skarb_strefy` (krok 5, w systemie): sesja zapisuje i czyta swój kawałek; NEGATYWNE: inna sesja go nie widzi, aplikacja nie nazwie obiektu dysku; „Wyczyść dane sesji” | funkcjonalny, negatywny |
 | `t_kvm`: `/dev/kvm` tylko root, maszyna z pamięcią z memfd bez prawa wykonania wykonuje kod gościa | funkcjonalny |

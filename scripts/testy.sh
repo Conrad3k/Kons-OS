@@ -16,7 +16,7 @@ ROWNOLEGLE=${K1_TESTY_ROWNOLEGLE:-}
 if [ -z "$ROWNOLEGLE" ]; then
     if [ -w /dev/kvm ]; then ROWNOLEGLE=1; else ROWNOLEGLE=0; fi
 fi
-TESTY="test-m4 test-wzorce test-pliki test-pendrive test-skarbiec test-siec test-wifi test-strefa test-most test-aktualizacja-siec test-m5 test-m5f test-m6"
+TESTY="test-m4 test-wzorce test-pliki test-pendrive test-skarbiec test-siec test-wifi test-strefa test-most test-pobrane test-aktualizacja-siec test-m5 test-m5f test-m6"
 [ -z "${K1_TESTY_TYLKO:-}" ] || TESTY=$K1_TESTY_TYLKO
 WYJ=$K1_BUDOWA/testy/rownolegle
 mkdir -p "$WYJ"

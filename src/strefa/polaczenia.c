@@ -19,6 +19,7 @@
 #include "k1_odbior.h"
 #include "k1_teraz.h"
 #include "lacznik.h"
+#include "pliki.h"
 #include "polaczenia.h"
 
 #define DNS_CZEKAJ 2.5 /* s before asking again; twice, then the name is not found */
@@ -373,6 +374,10 @@ static void od_nadzorcy(void)
             balon_cel((uint32_t)k.a);
             continue;
         }
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFA_PLIK_ODP) { /* 0.11.0 step 2: a file of the zone (pliki.c) */
+            pliki_odp(&k);
+            continue;
+        }
         if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFA_ZAMKNIJ) { /* 0.10.2 step 1: K1 powers off (main.c closes) */
             mz.prosba_nadzorcy = 1;
             continue;
@@ -473,6 +478,7 @@ void pol_obsluz(const struct pollfd *p, int n)
         if (c->stan == NAZWA && c->dns_proby > 0 && t - c->dns_od > DNS_CZEKAJ)
             c->dns_proby < 2 ? nazwa_pytaj(c) : zamknij(c, SOCKS_BRAK_HOSTA);
     }
+    pliki_obsluz(); /* 0.11.0 step 2: a file of the zone, to nadzorca */
     vsock_wyslij(); /* what came from the sockets, to the guest */
     zamek_oddaj();
 }

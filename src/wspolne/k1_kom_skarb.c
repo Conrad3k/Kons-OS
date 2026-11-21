@@ -111,7 +111,7 @@ int k1_kom_sprawdz_dok(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
                w(k->b, 0, (int32_t)K1_DOK_KAWALKI_MAKS - 1) && zera(k, 2);
     case K1_KOM_DOK_NOWY:
         return wpis(k->obiekt) && w(k->a, K1_DOK_PLIK, K1_DOK_FOLDER) && w(k->b, 1, K1_DOK_NAZWA - 1) &&
-               w(k->c, 0, k->a == K1_DOK_FOLDER ? 0 : maks) && w(k->d, 0, k->a == K1_DOK_FOLDER ? 0 : K1_POCH_MAKS) &&
+               w(k->c, 0, k->a == K1_DOK_FOLDER ? 0 : maks) && (k->d == 0 || (k->a == K1_DOK_PLIK && k1_poch_dobre(k->d))) &&
                (k->a == K1_DOK_FOLDER ? k->e == 0 : dalej(k->e, k->c));
     case K1_KOM_DOK_ZAPISZ:
         return wpis_uzytkownika(k->obiekt) && w(k->a, 0, maks) && dalej(k->b, k->a) && zera(k, 2);

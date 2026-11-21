@@ -122,6 +122,10 @@ void t_klatka_grupy(const char *nazwa, const char *grupa, unsigned watki, int ui
 int tryb_strefy(void);
 int t_strefy_scenariusz(void);
 int strefa_raz(int tryb, int sekundy); /* the test zone in a guest's test mode, waited for until it ends */
+int strefa_raz_start(int tryb);        /* …only started (1: it runs) */
+int czekaj_strefa(int dziala, int sekundy); /* until the test zone's VMM runs (1) / does not (0); 1 when it did */
+/* t_pobrane.c (0.11.0 step 2, ADR 0052): files from a zone into Pliki — the scenario of scripts/test-pobrane.sh */
+int t_pobrane_scenariusz(void);
 /* t_most.c (0.10.5 step 5): Raptor Bridge — the scenario of scripts/test-most.sh */
 int t_most_scenariusz(void);
 void t_opis(void);              /* 0.10.2 step 2 (ADR 0045): the screen's description */

@@ -1,0 +1,117 @@
+/* K1 — host test of the zone's files port frames (0.11.0 step 2, ADR 0052): each frame written and read back, in parts
+ * of any size; every field against the rules refused (type of the other direction, reserved, lengths, numbers, NUL in a
+ * name, a result out of range). */
+#include <string.h>
+
+#include "k1_bajty.h"
+#include "k1_pliki_strefy.h"
+#include "k1_test_host.h"
+
+static uint8_t b[K1_PS_RAMKA_MAKS], dane[K1_PS_DANE_MAKS];
+
+/* Reads `n` bytes of `p` in parts of `po` bytes: the result of the last call, the frame in *r. */
+static int czytaj_po(int od_strefy, const uint8_t *p, size_t n, size_t po, struct k1_ps_ramka *r)
+{
+    static struct k1_ps_czytnik c;
+    size_t od = 0, u;
+    int w = 0;
+    memset(&c, 0, sizeof c);
+    c.od_strefy = od_strefy;
+    while (od < n) {
+        size_t ile = n - od < po ? n - od : po;
+        w = k1_ps_czytaj(&c, p + od, ile, &u, r);
+        if (w < 0)
+            return -1;
+        if (w > 0)
+            return od + u == n ? w : -2; /* a whole frame must take exactly its bytes */
+        od += u;
+    }
+    return w;
+}
+
+static void zgloszenie(void)
+{
+    struct k1_ps_ramka r = { .typ = K1_PS_ZGLOS, .nr = 7, .rozmiar = 5ull << 30, .nl = 9 }, o;
+    size_t n;
+    memcpy(r.nazwa, "faktura/1", 9);
+    n = k1_ps_zapisz(&r, 1, b, sizeof b);
+    EXPECT(n == 8 + 13 + 9);
+    for (size_t po = 1; po <= n; po++) {
+        EXPECT(czytaj_po(1, b, n, po, &o) == 1);
+        EXPECT(o.typ == K1_PS_ZGLOS && o.nr == 7 && o.rozmiar == (5ull << 30) && o.nl == 9 &&
+               strcmp(o.nazwa, "faktura/1") == 0);
+    }
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* K1 never gets ZGLOS */
+    b[2] = 1;
+    EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* reserved */
+    b[2] = 0, b[20] = 10;
+    EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* name length other than the frame's */
+    b[20] = 9, b[22] = 0;
+    EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* NUL in the name */
+    r.nl = 0;
+    EXPECT(k1_ps_zapisz(&r, 1, b, sizeof b) == 0);
+    r.nl = 9, r.nr = 0;
+    EXPECT(k1_ps_zapisz(&r, 1, b, sizeof b) == 0);
+    r.nr = K1_PS_NR_MAKS + 1u;
+    EXPECT(k1_ps_zapisz(&r, 1, b, sizeof b) == 0);
+    r.nr = 1;
+    n = k1_ps_zapisz(&r, 1, b, sizeof b);
+    k1_z32(b + 8, 0);
+    EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* number 0 */
+}
+
+static void bajty(void)
+{
+    struct k1_ps_ramka r = { .typ = K1_PS_DANE, .nr = 3, .dane = dane, .dl = K1_PS_DANE_MAKS }, o;
+    size_t n;
+    for (size_t i = 0; i < sizeof dane; i++)
+        dane[i] = (uint8_t)(i * 7);
+    n = k1_ps_zapisz(&r, 1, b, sizeof b);
+    EXPECT(n == K1_PS_RAMKA_MAKS);
+    EXPECT(czytaj_po(1, b, n, 4096, &o) == 1 && o.nr == 3 && o.dl == K1_PS_DANE_MAKS &&
+           memcmp(o.dane, dane, o.dl) == 0);
+    EXPECT(czytaj_po(1, b, n - 1, 4096, &o) == 0); /* not whole yet */
+    k1_z32(b + 4, 4 + K1_PS_DANE_MAKS + 1);
+    EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* too long */
+    k1_z32(b + 4, 4);
+    EXPECT(czytaj_po(1, b, 12, 12, &o) == -1); /* no bytes */
+    r.dl = 0;
+    EXPECT(k1_ps_zapisz(&r, 1, b, sizeof b) == 0);
+    r.dl = 10;
+    EXPECT(k1_ps_zapisz(&r, 1, b, 17) == 0); /* no room */
+}
+
+static void od_k1(void)
+{
+    struct k1_ps_ramka r = { .typ = K1_PS_WYNIK, .nr = 9, .wynik = K1_PS_W_MIEJSCE }, o;
+    size_t n = k1_ps_zapisz(&r, 0, b, sizeof b), n2;
+    EXPECT(n == 16 && czytaj_po(0, b, n, 1, &o) == 1 && o.nr == 9 && o.wynik == K1_PS_W_MIEJSCE);
+    k1_z32(b + 12, K1_PS_W_MAKS + 1);
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1);
+    r.wynik = K1_PS_W_MAKS + 1;
+    EXPECT(k1_ps_zapisz(&r, 0, b, sizeof b) == 0);
+    r = (struct k1_ps_ramka){ .typ = K1_PS_WYSLIJ, .nr = 2 };
+    n = k1_ps_zapisz(&r, 0, b, sizeof b);
+    r = (struct k1_ps_ramka){ .typ = K1_PS_WYNIK, .nr = 2, .wynik = K1_PS_W_ZAPISANY };
+    n2 = k1_ps_zapisz(&r, 0, b + n, sizeof b - n);
+    EXPECT(n == 12 && n2 == 16);
+    EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* WYSLIJ read as from the zone: a ZGLOS of 4 bytes */
+    { /* two frames in one part: the first takes only its own bytes */
+        struct k1_ps_czytnik c = { .od_strefy = 0 };
+        size_t u, u2;
+        EXPECT(k1_ps_czytaj(&c, b, n + n2, &u, &o) == 1 && u == n && o.typ == K1_PS_WYSLIJ);
+        EXPECT(k1_ps_czytaj(&c, b + u, n + n2 - u, &u2, &o) == 1 && u2 == n2 && o.typ == K1_PS_WYNIK);
+    }
+    k1_z16(b, 9);
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* unknown type */
+    r = (struct k1_ps_ramka){ .typ = K1_PS_BRAK, .nr = 1 };
+    EXPECT(k1_ps_zapisz(&r, 0, b, sizeof b) == 0 && k1_ps_zapisz(&r, 1, b, sizeof b) == 12);
+}
+
+int main(void)
+{
+    zgloszenie();
+    bajty();
+    od_k1();
+    return K1_TEST_KONIEC("test_pliki_strefy");
+}

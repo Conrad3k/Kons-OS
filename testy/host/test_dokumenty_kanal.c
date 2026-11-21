@@ -118,6 +118,34 @@ void test_prawa(void)
     EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == 0 && zm && !dok_widoczny(pulpit));
     k = zapytaj(K1_PROFIL_GUI, k1_komunikat_nowy(K1_KOM_DOK_PRZYWROC, pulpit, 0, 0, 0, 0, 0), -1, &zm, &fd);
     EXPECT(k.b == K1_DOK_BLAD_PRAWA && !zm);
+    { /* 0.11.0 step 2 (ADR 0052): nadzorca's channel for the zones — only a new file in Pobrane with a zone's origin */
+        const int z = K1_POCH_STREFA_OD + K1_STREFA_OGOLNA;
+        mfd = k1_memfd_z_danymi("t", "plik.pdf%PDF-1.4", 16);
+        k = zapytaj(K1_WL_POBRANIA, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_POBRANE, K1_DOK_PLIK, 8, 8, z, 0), mfd, &zm, &fd);
+        EXPECT(k.b == 0 && zm && dok_wpis((uint32_t)k.c) != NULL && dok_wpis((uint32_t)k.c)->pochodzenie == z &&
+               dok_wpis((uint32_t)k.c)->rodzic == K1_FOLDER_POBRANE && dok_wpis((uint32_t)k.c)->typ == K1_TYP_PDF &&
+               dok_wpis((uint32_t)k.c)->tworca == k1_strefa(K1_STREFA_OGOLNA)->profil &&
+               strcmp(k1_poch_nazwa(dok_wpis((uint32_t)k.c)->pochodzenie), "z przeglądarki · Ogólna") == 0);
+        mfd = k1_memfd_z_danymi("t", "plik.pdfabc", 11); /* another folder */
+        k = zapytaj(K1_WL_POBRANIA, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, 8, 3, z, 0), mfd, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_BRAK && !zm);
+        mfd = k1_memfd_z_danymi("t", "plik.pdfabc", 11); /* the origin of K1 */
+        k = zapytaj(K1_WL_POBRANIA, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_POBRANE, K1_DOK_PLIK, 8, 3, 0, 0), mfd, &zm, &fd);
+        EXPECT(k.b != 0 && !zm);
+        mfd = k1_memfd_z_danymi("t", "Folder", 6);
+        k = zapytaj(K1_WL_POBRANIA, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_POBRANE, K1_DOK_FOLDER, 6, 0, 0, 0), mfd, &zm, &fd);
+        EXPECT(k.b != 0 && !zm);
+        k = zapytaj(K1_WL_POBRANIA, k1_komunikat_nowy(K1_KOM_DOK_SPIS, 0, 0, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == K1_DOK_BLAD_PRAWA && fd < 0);
+        k = zapytaj(K1_WL_POBRANIA, k1_komunikat_nowy(K1_KOM_DOK_CZYTAJ, plik, 100, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_PRAWA && fd < 0);
+        k = zapytaj(K1_WL_POBRANIA, k1_komunikat_nowy(K1_KOM_DOK_KOSZ, plik, 0, 0, 0, 0, 0), -1, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_PRAWA && !zm);
+        mfd = k1_memfd_z_danymi("t", "plik.pdfabc", 11); /* Pliki may not give a zone's origin */
+        k = zapytaj(K1_PROFIL_PLIKI, k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_POBRANE, K1_DOK_PLIK, 8, 3, z, 0), mfd, &zm, &fd);
+        EXPECT(k.b == K1_DOK_BLAD_BRAK && !zm);
+        EXPECT(!dok_moze_listowac(K1_WL_POBRANIA));
+    }
     /* anyone else: nothing at all */
     k = zapytaj(K1_PROFIL_KALKULATOR, k1_komunikat_nowy(K1_KOM_DOK_SPIS, 0, 0, 0, 0, 0, 0), -1, &zm, &fd);
     EXPECT(k.typ == K1_KOM_DOK_WYNIK && k.b == K1_DOK_BLAD_PRAWA && fd < 0);

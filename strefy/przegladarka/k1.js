@@ -65,3 +65,12 @@ pref("browser.tabs.warnOnClose", false, locked);
 pref("browser.warnOnQuit", false, locked);
 pref("browser.warnOnQuitShortcut", false, locked);
 pref("browser.tabs.unloadOnLowMemory", true);
+// Pobrane pliki (0.11.0 krok 2, ADR 0052): zawsze do jednego folderu sesji, bez pytania, gdzie zapisać (P9) — agent K1
+// w strefie widzi tylko ten folder i po skończonym pobraniu K1 pyta w swoim okienku „Zapisz w Pobranych”. Firefox pisze
+// pobranie do „<nazwa>.part” i na końcu zmienia nazwę (P10) — nie w katalogu tymczasowym.
+pref("browser.download.dir", "/home/k1/Pobrane", locked);
+pref("browser.download.folderList", 2, locked);
+pref("browser.download.useDownloadDir", true, locked);
+pref("browser.download.start_downloads_in_tmp_dir", false, locked);
+// Bez okna „Otwieranie <plik>” (co zrobić z plikiem): w strefie nie ma innych programów — plik zawsze się zapisuje.
+pref("browser.download.always_ask_before_handling_new_types", false, locked);
