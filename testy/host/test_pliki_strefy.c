@@ -31,23 +31,26 @@ static int czytaj_po(int od_strefy, const uint8_t *p, size_t n, size_t po, struc
 
 static void zgloszenie(void)
 {
-    struct k1_ps_ramka r = { .typ = K1_PS_ZGLOS, .nr = 7, .rozmiar = 5ull << 30, .nl = 9 }, o;
+    struct k1_ps_ramka r = { .typ = K1_PS_ZGLOS, .nr = 7, .rozmiar = 5ull << 30, .dodatek = 12, .nl = 9 }, o;
     size_t n;
     memcpy(r.nazwa, "faktura/1", 9);
     n = k1_ps_zapisz(&r, 1, b, sizeof b);
-    EXPECT(n == 8 + 13 + 9);
+    EXPECT(n == 8 + 17 + 9);
     for (size_t po = 1; po <= n; po++) {
         EXPECT(czytaj_po(1, b, n, po, &o) == 1);
-        EXPECT(o.typ == K1_PS_ZGLOS && o.nr == 7 && o.rozmiar == (5ull << 30) && o.nl == 9 &&
+        EXPECT(o.typ == K1_PS_ZGLOS && o.nr == 7 && o.rozmiar == (5ull << 30) && o.dodatek == 12 && o.nl == 9 &&
                strcmp(o.nazwa, "faktura/1") == 0);
     }
-    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* K1 never gets ZGLOS */
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* 1 from K1 is WYSLIJ: 4 bytes */
     b[2] = 1;
     EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* reserved */
-    b[2] = 0, b[20] = 10;
+    b[2] = 0, b[24] = 10;
     EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* name length other than the frame's */
-    b[20] = 9, b[22] = 0;
+    b[24] = 9, b[26] = 0;
     EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* NUL in the name */
+    b[26] = 'a';
+    k1_z32(b + 20, K1_PS_NR_MAKS + 1u);
+    EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* dotyczy out of range */
     r.nl = 0;
     EXPECT(k1_ps_zapisz(&r, 1, b, sizeof b) == 0);
     r.nl = 9, r.nr = 0;
@@ -108,10 +111,36 @@ static void od_k1(void)
     EXPECT(k1_ps_zapisz(&r, 0, b, sizeof b) == 0 && k1_ps_zapisz(&r, 1, b, sizeof b) == 12);
 }
 
+/* step 3: K1 → the zone (PLIK with "otworz", BAJTY) and the zone's ODEBRANY */
+static void do_strefy(void)
+{
+    struct k1_ps_ramka r = { .typ = K1_PS_PLIK, .nr = 4, .rozmiar = 300, .dodatek = 1, .nl = 5 }, o;
+    size_t n;
+    memcpy(r.nazwa, "a.pdf", 5);
+    n = k1_ps_zapisz(&r, 0, b, sizeof b);
+    EXPECT(n == 8 + 17 + 5 && czytaj_po(0, b, n, 3, &o) == 1 && o.typ == K1_PS_PLIK && o.dodatek == 1 && o.rozmiar == 300 &&
+           strcmp(o.nazwa, "a.pdf") == 0);
+    k1_z32(b + 20, 2);
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* otworz 0/1 only */
+    r.dodatek = 2;
+    EXPECT(k1_ps_zapisz(&r, 0, b, sizeof b) == 0);
+    r = (struct k1_ps_ramka){ .typ = K1_PS_BAJTY, .nr = 4, .dane = dane, .dl = 100 };
+    n = k1_ps_zapisz(&r, 0, b, sizeof b);
+    EXPECT(n == 8 + 4 + 100 && czytaj_po(0, b, n, 7, &o) == 1 && o.typ == K1_PS_BAJTY && o.dl == 100);
+    r = (struct k1_ps_ramka){ .typ = K1_PS_ODEBRANY, .nr = 4, .wynik = 1 };
+    n = k1_ps_zapisz(&r, 1, b, sizeof b);
+    EXPECT(n == 16 && czytaj_po(1, b, n, 16, &o) == 1 && o.typ == K1_PS_ODEBRANY && o.wynik == 1);
+    k1_z32(b + 12, 2);
+    EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* ODEBRANY: 0 or 1 */
+    EXPECT(k1_ps_uklad(K1_PS_PLIK, 0) == K1_PS_U_NAZWA && k1_ps_uklad(K1_PS_PLIK, 1) == K1_PS_U_NR /* BRAK */ && k1_ps_uklad(5, 1) == 0 &&
+           k1_ps_uklad(K1_PS_ODEBRANY, 1) == K1_PS_U_WYNIK && k1_ps_uklad(K1_PS_BAJTY, 0) == K1_PS_U_BAJTY);
+}
+
 int main(void)
 {
     zgloszenie();
     bajty();
     od_k1();
+    do_strefy();
     return K1_TEST_KONIEC("test_pliki_strefy");
 }
