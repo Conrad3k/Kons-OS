@@ -208,6 +208,22 @@ KROK 2: Pliki ze strefy do Plików („Do K1”), pochodzenie                  L
   Dokumenty: ADR 0052, strefa.md, raptor-bridge.md (nowy port obok portów 1 i 2), skarbiec.md, aplikacje.md (Pliki),
   gui.md (okienko), SLOWNIK, RYZYKA (nowa droga ze strefy — R-nowe).
   Gotowe, gdy: CI zielone; właściciel pobrał plik na laptopie i widzi go w Pobranych z pochodzeniem.
+  Ustalenia z wykonania (2026-11-21, krok 2; D2 i D3 właściciela: A):
+    - P12 (ZE ŹRÓDEŁ, libxul.so Firefoksa ESR 153 z obrazu strefy): adres pobrania Firefox zapisuje tylko przez GIO
+      („metadata::download-uri”, demon gvfs — w strefie go nie ma); „user.xdg.origin.url” nie występuje. Adresu strony nie
+      ma (T4, P13 — bez zmiany formatu wpisu); pochodzenie = numer strefy, tekst z nowej kolumny „skąd” w K1_STREFY.
+    - P9, P10 (POTWIERDZONE na stanowisku, testy/stanowisko/pobrane.py — strona i załącznik przez HTTP i SOCKS5): z
+      zablokowanym folderem Firefox zapisuje bez pytania, tworzy pusty plik o docelowej nazwie, pisze do losowej nazwy
+      .part i kończy zmianą nazwy (IN_MOVED_TO) — na to czeka agent. Pobranie z file:// pokazuje własne okno „Otwieranie
+      <plik>” mimo always_ask_before_handling_new_types = false (zablokowane i tak, na każdy inny przypadek).
+    - Zgłoszenie właściciela z 2026-11-21 („otwieranie »Pobrane« wywracało przeglądarkę”): na stanowisku panel pobranych,
+      Biblioteka → Pobrane pliki, „Pokaż w folderze”, otwarcie pobranego pliku i about:downloads — Firefox i kompozytor
+      żyją (także z machine-id jak w strefie: GIO nie ma D-Bus, tylko ostrzeżenia). Nie odtworzone poza strefą —
+      właściciel sprawdza na laptopie (lista w PR-ze).
+    - T1–T3 jak w planie (ADR 0052); dodatkowo: DOK_NOWY z pierwszym kawałkiem (skarbiec chce pełnego kawałka, gdy coś
+      jeszcze idzie), jeden plik naraz w całym K1, okienko nie znika po kliknięciu obok. Błąd z pierwszego przebiegu:
+      VMM nie wysyłał RESPONSE portu 3, gdy kanał sterujący nie miał nic do wysłania (pętla vsock_wyslij).
+    - Lokalnie: test-m1 12/12, test-pobrane 22/22 (emulacja), stanowisko pobrane.py — wszystko zaliczone.
 
 KROK 3: Pliki do strefy: „Wyślij do…”, „Otwórz w…”, zapis z powrotem     M–L · D4, T5 · ADR 0052
   Cel: kopia pliku z Plików trafia do wybranej sesji przeglądarki; zmieniona kopia wraca do oryginału tylko za zgodą.
