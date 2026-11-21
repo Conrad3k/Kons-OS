@@ -212,7 +212,7 @@ przyciskiem** (0.8.2 krok 5, `menu.c`; to samo co na pulpicie — `k1_menu` w pr
 pomocą ›” (obok rozwija się lista aplikacji, które otwierają ten typ — `K1_OTWIERANIE`, ta, która otwiera go teraz,
 z ✓; przy co najmniej dwóch także „Zawsze otwieraj tą aplikacją”), „Zmień nazwę”, „Usuń”; folder — „Otwórz”, „Zmień
 nazwę”, „Usuń”; w Koszu — „Przywróć”, „Usuń na zawsze”; na pendrivie — „Importuj” (folder: „Otwórz”). Typ bez aplikacji:
-„Otwórz” i „Otwórz za pomocą” wyszarzone, pod nimi powód. Wybrana aplikacja dostaje ten jeden plik (`DOK_OTWORZ`, ADR
+„Otwórz” wyszarzone, pod nim powód (do 0.11.0 krok 3 także „Otwórz za pomocą” — teraz są w nim sesje przeglądarki). Wybrana aplikacja dostaje ten jeden plik (`DOK_OTWORZ`, ADR
 0030). Do 0.8.1 był przycisk „Otwórz w…”, który podmieniał rząd przycisków. Z prawej **szczegóły** zaznaczonego (do 0.8.2 „podgląd” — decyzja D1): ikona,
 nazwa, typ (rozpoznany z zawartości), rozmiar, daty, pochodzenie („utworzony w K1”, „z pendrive'a”, od 0.11.0 krok 2 —
 ADR 0052, D3 „A” — „z przeglądarki · Ogólna”: plik pobrany w sesji przeglądarki i zapisany w Pobranych po „Zapisz
