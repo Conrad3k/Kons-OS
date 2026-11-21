@@ -31,8 +31,10 @@ static uint8_t kaw[K1_DOK_KAWALEK]; /* the piece from nadzorca, sent from kaw_od
 static uint32_t kaw_n, kaw_od;
 static unsigned long l_wyslane, l_nieudane;
 
-static void zakoncz(int wynik)
+static void zakoncz(int wynik, const char *powod)
 {
+    if (wynik != 0)
+        k1_log(TAG, "pliki: plik %u z K1 — koniec: %s", d.nr, powod);
     d.odp = K1_PLIK_GOTOWE, d.wynik = wynik;
     kaw_n = kaw_od = 0;
     obudz();
@@ -64,8 +66,9 @@ void pliki_do_kawalek(const struct k1_komunikat *k, int fd)
     uint64_t zostalo = d.rozmiar - d.wyslane - (kaw_n - kaw_od);
     if (!d.jest || k->obiekt != d.nr || kaw_od < kaw_n || (uint64_t)k->a > zostalo || fd < 0 ||
         k1_memfd_sprawdz(fd, (size_t)k->a) != 0 || pread(fd, kaw, (size_t)k->a, 0) != (ssize_t)k->a) {
-        if (d.jest && k->obiekt == d.nr)
-            zakoncz(1);
+        if (d.jest && k->obiekt == d.nr) {
+            zakoncz(1, "zły kawałek od nadzorcy");
+        }
         return;
     }
     kaw_n = (uint32_t)k->a, kaw_od = 0;
@@ -108,24 +111,24 @@ void pliki_do_odebrany(uint32_t nr, uint32_t wynik)
     d.jest = 0;
     if (wynik == 0)
         l_wyslane++;
-    zakoncz((int)wynik);
+    zakoncz((int)wynik, "strefa nie zapisała");
 }
 
 void pliki_do_rozlacz(void)
 {
-    if (d.jest) {
+    if (d.jest && d.naglowek) { /* the agent went with the file half sent */
         d.jest = 0;
-        zakoncz(1);
+        zakoncz(1, "agent odszedł");
     }
+    /* not started yet (the guest's vsock device resets while the machine starts): it waits for the agent (CZEKAJ_S) */
 }
 
 void pliki_do_obsluz(void)
 {
     struct k1_komunikat k;
     if (d.jest && k1_teraz() - d.od > CZEKAJ_S + (double)(d.rozmiar >> 20)) { /* no agent, or it never answered */
-        k1_log(TAG, "pliki: plik %u z K1 — strefa nie odebrała", d.nr);
         d.jest = 0;
-        zakoncz(1);
+        zakoncz(1, "strefa nie odebrała w czasie");
     }
     if (!d.odp)
         return;
