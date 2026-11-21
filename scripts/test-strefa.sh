@@ -460,11 +460,15 @@ sprawdz("OBRAZ BEZ KOPII (0.10.11 krok 2): gość pokazuje bufor karty jako wyś
         czekaj(r"K1-EKRAN: okno \d+: obraz strefy z bufora karty \d+x\d+ \(bez kopii w VMM\)", czas=60),
         "; ".join(re.findall(r"K1-(?:GOSC: grafika: bufor karty|STREFA: okno: obraz|EKRAN: okno \d+: obraz strefy)[^\n]*",
                              q.tekst())))
+# the zone's window of mode 16: the last one opened before the buffer was shown (with KVM ekran logs it before the test
+# program's "(tryb 16)"), and its picture's size of now (the session's remembered size may have come after)
 t_ = q.tekst()
-o16 = re.findall(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", t_[t_.find("(tryb 16)"):])
-_, w16, h16, x16, y16 = (int(v) for v in o16[0]) if o16 else (0, 0, 0, 0, 0)
-n16 = re.findall(r"K1-EKRAN: okno \d+: powierzchnia (\d+)x(\d+) w (\d+),(\d+)", t_[t_.find("(tryb 16)"):])
-if n16:  # the session's remembered size came: the window's picture of now
+t_ = t_[:t_.find("jako wyświetlacz — pokazany")]
+o16 = re.findall(r"K1-EKRAN: okno (\d+) \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", t_)
+nr16, w16, h16, x16, y16 = (int(v) for v in o16[-1]) if o16 else (0, 0, 0, 0, 0)
+n16 = re.findall(r"K1-EKRAN: okno %d: powierzchnia (\d+)x(\d+) w (\d+),(\d+)" % nr16,
+                 t_[t_.rfind("K1-EKRAN: okno %d (strefa)" % nr16):])
+if o16 and n16:
     w16, h16, x16, y16 = (int(v) for v in n16[-1])
 w, h, px = q.zrzut("13-bufor-karty", gdy=lambda w, h, px: o16 and blisko(px(x16 + w16 // 2, y16 + h16 // 2), KARTA), czas=60)
 sprawdz("…na zrzucie okno strefy w kolorze bufora karty, nieprzezroczyste (zrzut strefa-13-bufor-karty)",
