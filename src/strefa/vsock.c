@@ -25,11 +25,8 @@
 
 #include "k1_komunikat.h"
 #include "k1_log.h"
-#include "k1_teraz.h"
-#include "linia.h"
-#include "okno.h"
+#include "sterowanie.h"
 #include "polaczenia.h"
-#include "pomiar.h"
 #include "strefa.h"
 
 #define CID_HOSTA 2
@@ -231,113 +228,16 @@ void vsock_wyslij(void)
         mmio_uzyte(u);
 }
 
-/* The counters (0.10.1 step 1, S13): the guest's numbers from "liczniki" and ours, one line every LICZNIKI_ODSTEP s
- * (the main thread: vsock_liczniki — whatever the guest sends, or does not) and once more at the machine's end
- * (vsock_podsumowanie). */
-#define LICZNIKI_ODSTEP 5.0
-static struct {
-    uint32_t g[3];   /* the guest's: available MiB, zram MiB, OOM kills */
-    int sa;          /* the guest sent them at least once */
-    double t;        /* the last line (k1_teraz) */
-} lz;
-
-static void liczniki_loguj(const char *kiedy)
-{
-    unsigned zasoby, mib;
-    struct balon_stan b;
-    char g[80];
-    gpu_liczniki(&zasoby, &mib);
-    balon_stan(&b); /* 0.10.1 step 2: what K1 holds of the guest's memory, the balloon */
-    if (lz.sa)
-        snprintf(g, sizeof g, "dostępna %u MiB, zram %u MiB, zabite %u", lz.g[0], lz.g[1], lz.g[2]);
-    else
-        snprintf(g, sizeof g, "brak");
-    k1_log(TAG, "liczniki%s: gość — %s; pamięć w K1 %u MiB, oddane %u MiB, balon %u MiB; grafika: zasoby %u, %u MiB; "
-                "połączenia %u; vsock czeka %d, odrzucone %lu", kiedy, g, b.w_k1_mib, b.oddane_mib, b.balon_mib, zasoby,
-           mib, pol_zajete(), v.n_czeka, v.odrzucone);
-}
-
-/* The main thread, once a second (main.c): the counters' line every LICZNIKI_ODSTEP s — also when the guest sends no
- * numbers of its own (a guest that is busy, a hostile one). */
-void vsock_liczniki(void)
-{
-    if (k1_teraz() - lz.t < LICZNIKI_ODSTEP)
-        return;
-    lz.t = k1_teraz();
-    liczniki_loguj("");
-}
-
-void vsock_podsumowanie(void)
-{
-    liczniki_loguj(" przy końcu");
-}
-
-/* "kto <1 browser|2 compositor> <code> <rule>" (0.10.1 step 1, S15): who of the guest's programs ended by itself —
- * numbers only, logged once (the first one counts, as "koniec"). */
-static void kto(const uint32_t *w)
-{
-    static int byl;
-    if (byl || w[0] < 1 || w[0] > 2)
-        return;
-    byl = 1;
-    if (w[2] > 0)
-        k1_log(TAG, "gość: %s zakończony (kod %u) — kompozytor odrzucił przeglądarkę (reguła %u)",
-               w[0] == 1 ? "przeglądarka" : "kompozytor", w[1], w[2]);
-    else
-        k1_log(TAG, "gość: %s zakończony (kod %u)", w[0] == 1 ? "przeglądarka" : "kompozytor", w[1]);
-}
-
-static void linia_od_goscia(void)
-{
-    uint32_t w[POMIAR_GOSC_LICZB];
-    v.linia[v.dl] = '\0';
-    if (linia_liczby(v.linia, "pomiar", w, POMIAR_GOSC_LICZB, 1u << 24)) /* 0.10.11 step 1: the compositor's links */
-        pomiar_gosc(w);
-    else if (linia_liczby(v.linia, "liczniki", w, 3, 1u << 24)) {
-        memcpy(lz.g, w, sizeof lz.g);
-        lz.sa = 1;
-    } else if (linia_liczby(v.linia, "kto", w, 3, 999))
-        kto(w);
-    else if (strcmp(v.linia, "gotowa") == 0)
-        k1_log(TAG, "gość gotowy (kanał sterujący) po %.1f s", k1_teraz() - mz.start_t);
-    else if (strcmp(v.linia, "etap start") == 0) { /* 0.10.2 step 1: the start screen stays until "etap okno" */
-        okno_etap(OKNO_ETAP_START);
-        k1_log(TAG, "gość: program strefy startuje — ekran startu do jego okna");
-    } else if (strcmp(v.linia, "pelny 1") == 0 || strcmp(v.linia, "pelny 0") == 0) { /* 0.11.0 step 1: full screen */
-        okno_pelny(v.linia[6] == '1');
-    } else if (strcmp(v.linia, "etap okno") == 0) { /* S30: how long the browser takes to start */
-        okno_etap(OKNO_ETAP_OKNO);
-        k1_log(TAG, "gość: okno przeglądarki po %.1f s od startu maszyny", k1_teraz() - mz.start_t);
-    }
-    else if (strcmp(v.linia, "zamykam") == 0)
-        k1_log(TAG, "gość się zamyka");
-    else if (strcmp(v.linia, "zamykanie gotowe") == 0 || strcmp(v.linia, "zamykanie sygnal") == 0 ||
-             strcmp(v.linia, "zamykanie po czasie") == 0)
-        k1_log(TAG, "gość: przeglądarka %s po %.1f s",
-               v.linia[10] == 'g' ? "zamknęła się sama (dane sesji zapisane)" :
-               v.linia[10] == 's' ? "zamknięta sygnałem (bez zapisu danych sesji)" : "nie zamknęła się w czasie — zatrzymana",
-               mz.zamykana_t > 0 ? k1_teraz() - mz.zamykana_t : 0.0);
-    else if (strcmp(v.linia, "koniec pamiec") == 0 || strcmp(v.linia, "koniec awaria") == 0 ||
-             strcmp(v.linia, "koniec sam") == 0) {
-        int kod = v.linia[7] == 'p' ? K1_STREFA_KONIEC_PAMIEC : v.linia[7] == 'a' ? K1_STREFA_KONIEC_AWARIA : 0;
-        if (!mz.gosc_powiedzial)
-            mz.kod_goscia = kod;
-        mz.gosc_powiedzial = 1;
-        k1_log(TAG, "gość: program strefy zakończył się sam (%s)",
-               kod == K1_STREFA_KONIEC_PAMIEC ? "brak pamięci" : kod == K1_STREFA_KONIEC_AWARIA ? "awaria" : "zamknięty");
-    } else if (strcmp(v.linia, "pamiec strona") == 0)
-        k1_log(TAG, "gość: strona zakończona — brak pamięci w strefie (%u)", ++mz.strony_bez_pamieci);
-    else
-        v.odrzucone++;
-    v.dl = 0;
-}
-
 static void sterowanie_dane(uint32_t dl)
 {
     uint32_t i;
     for (i = 0; i < dl; i++) {
-        if (dane[i] == '\n')
-            linia_od_goscia();
+        if (dane[i] == '\n') {
+            v.linia[v.dl] = '\0';
+            if (!sterowanie_linia(v.linia))
+                v.odrzucone++;
+            v.dl = 0;
+        }
         else if (v.dl < LINIA_MAKS)
             v.linia[v.dl++] = (char)dane[i];
     }
@@ -426,6 +326,12 @@ static int pakiet(const struct vq_lancuch *l, const char **powod)
     default:
         return 0; /* RESPONSE, CREDIT_UPDATE (its credit is taken above), unknown: nothing to do */
     }
+}
+
+void vsock_kolejka(int *czeka, unsigned long *odrzucone)
+{
+    *czeka = v.n_czeka;
+    *odrzucone = v.odrzucone;
 }
 
 void vsock_linia(const char *l)
