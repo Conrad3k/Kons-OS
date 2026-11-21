@@ -6,7 +6,7 @@ Data: 2026-11-20 (porządek w planie: ADR 0035). Plan napisany na prośbę wła�
 właściciel dopisał: „lepszy pełen ekran przeglądarki; obecnie nie »domyka« krawędzi i zostawia ciut za dużo miejsca na
 dole” (krok 1).
 Kolejność (prośba właściciela z 2026-11-20, po napisaniu tego planu): najpierw 0.10.11 „Szybsza grafika”
-(docs/PLAN-0.10.11.txt), ta wersja zaczyna się po jej wydaniu. Krok 1 tego planu (pełny ekran) zmienia ekran i okno
+(docs/archiwum/PLAN-0.10.11.txt), ta wersja zaczyna się po jej wydaniu. Krok 1 tego planu (pełny ekran) zmienia ekran i okno
 strefy, które zmienia też krok 2 planu 0.10.11 (obraz bez kopii) — czat kroku 1 czyta jego „Ustalenia z wykonania”.
 Wersja stoi na 0.10.10 (strefy, przeglądarka w strefie z sesjami Ogólna, Bank, Prywatna, Raptor Bridge, dysk sesji
 w skarbcu, okno przeglądarki ze zmianą rozmiaru i maksymalizacją, szybka grafika; plany 0.10.x w docs/archiwum/) i na
@@ -118,7 +118,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [ ]  3  Pliki do strefy: Wyślij do, Otwórz w, zapis z powr.   P15–P18          2           D4, T5       M–L      0051
 [ ]  4  Przeciąganie między oknami, też na okno przeglądarki  P19–P22          2 (i 3)     D6, T6, T7   M        0051 (uzup.)
 [ ]  5  Schowek; porządki; wydanie 0.11.0                     P23–P26          2           D5, T8       M        0051 (uzup.)
-(ADR 0052: następny wolny po 0051, który bierze 0.10.11 — docs/PLAN-0.10.11.txt.)
+(ADR 0052: następny wolny po 0051, który bierze 0.10.11 — docs/archiwum/PLAN-0.10.11.txt.)
 
 
 3. KROKI

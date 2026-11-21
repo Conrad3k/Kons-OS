@@ -332,6 +332,10 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   przez `lseek(SEEK_END)`. Test w systemie `t_sprzet` liczy deskryptory urządzeń blokowych: nadzorca może trzymać tylko
   obraz strefy `k1-strefa-*` pod dm-verity, do odczytu. Wyłączanie: nadzorca czeka co najmniej obieg kropek (1,5 s) — bez
   tego init kończył ekran, zanim narysował „Wyłączanie” (X230, 2026-11-19).
+- *Nowsze karty Intela (0.10.11 krok 3):* na Alder Lake P, Raptor Lake i Meteor / Arrow Lake i915 zleca pracę tylko przez
+  GuC — bez pliku GuC w `jadro/oprogramowanie-kart.txt` karta jest „zawieszona” od startu (obraz działa, rysowanie nie);
+  Mesa na Meteor / Arrow Lake dodaje do każdego bufora rozszerzenie `SET_PAT` (pośrednik je przyjmuje); pliki sysfs samej
+  karty z dwiema częściami (gt0, gt1) dają min / max obu — czytaj `gt/gt0/`. Tabela generacji: `docs/komponenty/jadro.md`.
 - *Czas lokalny (0.10.7 krok 5):* `localtime_r`, `mktime`, `strftime` z musl czytają strefę z `/etc/localtime` (`open`) —
   w klatce to kod 159 (Ustawienia → Aktualizacje padały dopiero w widoku „Sprawdzono o …”); czas polski tylko
   `k1_czas_warszawa` (`src/przybornik/k1_czas.h`), pilnuje `sprawdz-czytelnosc` (punkt 12).

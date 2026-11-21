@@ -26,8 +26,9 @@ Klient (VMM strefy — w nim działa obcy kod przeglądarki i sterownika karty g
   karty, a uchwyty nigdy nie wracają do gościa);
 - przepuszcza **mniej niż virglrenderer** (wzór, nie biblioteka — T11): bez relokacji (iris używa tylko przypiętych
   adresów), bez płotów gościa (`FENCE_IN`, `FENCE_ARRAY`, `USE_EXTENSIONS` — wskaźniki), bez `SECURE`, bez parametrów
-  kontekstu spoza listy (`SSEU`, `PROTECTED_CONTENT`…), bez kontekstu, którego nie da się zablokować (`BANNABLE` = 1),
-  bez rozszerzeń bufora, których karty laptopów nie mają (`PROTECTED_CONTENT`, `SET_PAT`), bez zapytań o liczniki
+  kontekstu spoza listy (`SSEU`, `PROTECTED_CONTENT` do ustawienia…), bez kontekstu, którego nie da się zablokować
+  (`BANNABLE` = 1), bez rozszerzenia bufora `PROTECTED_CONTENT` (`SET_PAT` — od 0.10.11 krok 3 tak, tylko po „regionach”:
+  Mesa dodaje je na Meteor / Arrow Lake; indeks ≤ 4, ADR 0051 — uzupełnienie), bez zapytań o liczniki
   wydajności (`PERF_CONFIG`), tylko jeden rejestr do odczytu (zegar karty — jak lista jądra);
 - liczy pamięć buforów strefy i odmawia, zanim zapyta kartę (T14).
 
@@ -63,7 +64,7 @@ z układami jądra (`i915_drm.h`).
 | `GETPARAM` | parametr karty | numer 1…59 | `ret`, wartość (wersja mapowania GTT ≥ 5 → 4, jak virglrenderer) |
 | `QUERY` | zapytanie o kartę (topologia, silniki, regiony pamięci…) | rodzaj z listy (bez liczników wydajności), `flags` = 0 (podplastry: silnik rysowania), ≤ 64 KiB | `ret`, długość, dane |
 | `GEM_CREATE` | bufor nazwany numerem blob gościa | rozmiar 1 B…512 MiB, blob ≥ 1, pamięć strefy (T14) | — |
-| `GEM_CREATE_EXT` | to samo z regionami pamięci | jak wyżej + jedno rozszerzenie „regiony” (1…4, system albo urządzenie) | — |
+| `GEM_CREATE_EXT` | to samo z regionami pamięci | jak wyżej + jedno rozszerzenie „regiony” (1…4, system albo urządzenie), po nim najwyżej „PAT” (indeks 0…4, zarezerwowane = 0; Meteor / Arrow Lake, 0.10.11) | — |
 | `KONTEKST` | kontekst karty z parametrami | do 8 parametrów z listy (priorytet, przechwytywanie błędów, `BANNABLE` = 1, odzyskiwalny, przestrzeń adresów, trwałość, silniki 1…8 znanych klas), `ctx_id` = 0, ≤ 64 kontekstów strefy | `ret`, numer kontekstu |
 | `EXECBUFFER` | paczka pracy | flagi z listy (silnik, `NO_RELOC`, `HANDLE_LUT`, `BATCH_FIRST`), 1…4096 buforów bez relokacji, flagi bufora z listy (bez `PAD_TO_SIZE`), `rsvd` = 0, wyrównanie potęgą 2; płot wyjścia prosi K1 | `ret` |
 | `MMAP_MODE` | jak gość mapuje bufor | tryb GTT…FIXED | — |
@@ -169,7 +170,7 @@ więcej.
 ## Testy
 | Test | Rodzaj |
 |---|---|
-| host `test_posrednik`: każda prośba, jak pisze ją Mesa, przechodzi; każde pole poza listą (relokacje, płoty gościa, wskaźniki w rozszerzeniach, ioctl i parametry spoza listy, inny rejestr, zapytania o wydajność, `BANNABLE` 0, nieznane klasy silników), złe długości, odpowiedź, która się nie mieści — odmowa; każdy ucięty kawałek prośby odrzucony bez czytania poza nim; tabela buforów (blob, zasób, rozmiar, pamięć strefy, limit czekających); komunikaty `POSR_*`, `TEST_POSREDNIK` | jednostkowy / negatywny |
+| host `test_posrednik`: każda prośba, jak pisze ją Mesa, przechodzi; każde pole poza listą (relokacje, płoty gościa, wskaźniki w rozszerzeniach, ioctl i parametry spoza listy, inny rejestr, zapytania o wydajność, `BANNABLE` 0, nieznane klasy silników), złe długości, odpowiedź, która się nie mieści — odmowa; „PAT” po „regionach” przyjęty, „PAT” bez nich, z indeksem ponad 4, z polami zarezerwowanymi albo ucięty — odmowa; odczyt `PROTECTED_CONTENT` kontekstu przyjęty, ustawienie — odmowa; każdy ucięty kawałek prośby odrzucony bez czytania poza nim; tabela buforów (blob, zasób, rozmiar, pamięć strefy, limit czekających); komunikaty `POSR_*`, `TEST_POSREDNIK` | jednostkowy / negatywny |
 | `fuzz_posrednik` (strumień próśb + rozmiar miejsca na odpowiedzi) | fuzzing |
 | w systemie `t_posrednik` (QEMU): bez karty Intela nadzorca nie daje pośrednika z kartą; silnik testowy strefy próbnej: `POSR_UMIE`, klatka (UID 411, cgroup `posrednik-1`, seccomp, tylko przekazane deskryptory), okno złej wielkości odrzucone, strumień trzech próśb z odpowiedziami w pamięci wspólnej, bufor → zasób, paczka pracy, płot; relokacje, ioctl spoza listy, płot gościa, wskaźnik w rozszerzeniu, ucięty strumień — odrzucone; nieznany zasób w paczce → `EINVAL` dla gościa; komunikaty poza zakresem — odrzucone, pośrednik żyje; bufory ponad limit — odmowa; „zawieszenie karty” kończy pośrednika, kontekst zablokowany, ekran i nadzorca żyją | funkcjonalny / negatywny |
 | w systemie `t_proby`: próby w klatkach `posrednik` i `posrednik-1`…`posrednik-5` | negatywny |

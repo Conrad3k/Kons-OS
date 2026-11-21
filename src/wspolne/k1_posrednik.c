@@ -17,6 +17,7 @@ _Static_assert(sizeof(struct k1_posr_kontekst) == 24, "gem_context_create_req");
 _Static_assert(sizeof(struct k1_posr_execbuffer) == 48 && offsetof(struct k1_posr_execbuffer, buffer_count) == 32,
                "gem_execbuffer2_req");
 _Static_assert(sizeof(struct k1_posr_mmap_mode) == 24 && sizeof(struct k1_posr_busy) == 24, "mmap_mode, busy");
+_Static_assert(sizeof(struct k1_posr_pat) == 40 && offsetof(struct k1_posr_pat, pat_index) == 32, "create_ext_set_pat");
 _Static_assert(sizeof(struct k1_posr_rozszerzenie) == 32, "i915_user_extension");
 _Static_assert(sizeof(struct k1_posr_regiony) == 48, "gem_create_ext_memory_regions");
 _Static_assert(sizeof(struct k1_posr_param) == 24 && sizeof(struct k1_posr_setparam) == 56, "context_param");
@@ -95,6 +96,7 @@ static int param_dobry(const struct k1_posr_param *p, int ustaw, int nowy)
     case K1_POSR_PARAM_VM:
         return !ustaw || (p->value >= 1 && p->value <= UINT32_MAX);
     case K1_POSR_PARAM_GTT_SIZE:
+    case K1_POSR_PARAM_PROTECTED: /* iris reads it when it replaces a context after a hang (iris_batch.c) */
         return !ustaw;
     case K1_POSR_PARAM_NO_ERROR_CAPTURE:
     case K1_POSR_PARAM_PERSISTENCE:
@@ -183,11 +185,20 @@ static int sprawdz_create(const uint8_t *p)
     return OK(c.size >= 1 && c.size <= K1_POSR_BUFOR_MAKS && c.blob_id >= 1 && c.pad == 0);
 }
 
-/* GEM_CREATE_EXT: no extension, or exactly one "memory regions" with its regions after it. */
+static int rozszerzenie_puste(const struct k1_posr_rozszerzenie *b)
+{
+    return b->flags == 0 && b->rsvd[0] == 0 && b->rsvd[1] == 0 && b->rsvd[2] == 0 && b->rsvd[3] == 0;
+}
+
+/* GEM_CREATE_EXT: no extension, or "memory regions" with its regions after it, then — Meteor / Arrow Lake (0.10.11
+ * step 3) — "PAT" (the kernel takes it only there and checks the index against the card's own highest; K1 against
+ * i915's highest). In Mesa's order (intel_i915_gem_add_ext appends); PROTECTED_CONTENT never. */
 static int sprawdz_create_ext(const uint8_t *p, uint32_t len)
 {
     struct k1_posr_gem_create_ext c;
     struct k1_posr_regiony r;
+    struct k1_posr_pat t;
+    uint32_t reg;
     memcpy(&c, p, sizeof c);
     if (c.size < 1 || c.size > K1_POSR_BUFOR_MAKS || c.blob_id < 1 || c.pad != 0 ||
         (c.gem_flags & ~(uint32_t)K1_POSR_GEM_POTRZEBA_CPU) != 0)
@@ -199,10 +210,11 @@ static int sprawdz_create_ext(const uint8_t *p, uint32_t len)
     if (c.ext_size < sizeof r)
         return K1_POSR_BLAD_FORMAT;
     memcpy(&r, p + sizeof c, sizeof r);
-    if (r.base.name != K1_POSR_EXT_REGIONY || r.base.flags != 0 || r.base.rsvd[0] || r.base.rsvd[1] || r.base.rsvd[2] ||
-        r.base.rsvd[3] || r.pad != 0 || r.num_regions < 1 || r.num_regions > K1_POSR_REGIONY_MAKS)
+    if (r.base.name != K1_POSR_EXT_REGIONY || !rozszerzenie_puste(&r.base) || r.pad != 0 || r.num_regions < 1 ||
+        r.num_regions > K1_POSR_REGIONY_MAKS)
         return K1_POSR_BLAD_POLE;
-    if (c.ext_size != sizeof r + r.num_regions * sizeof(struct k1_posr_region))
+    reg = sizeof r + r.num_regions * (uint32_t)sizeof(struct k1_posr_region);
+    if (c.ext_size != reg && c.ext_size != reg + sizeof t)
         return K1_POSR_BLAD_FORMAT;
     for (uint32_t i = 0; i < r.num_regions; i++) {
         struct k1_posr_region g;
@@ -210,7 +222,11 @@ static int sprawdz_create_ext(const uint8_t *p, uint32_t len)
         if (g.memory_class > K1_POSR_REGION_DEVICE || g.memory_instance > 15)
             return K1_POSR_BLAD_POLE;
     }
-    return 0;
+    if (c.ext_size == reg)
+        return 0;
+    memcpy(&t, p + sizeof c + reg, sizeof t);
+    return OK(t.base.name == K1_POSR_EXT_PAT && rozszerzenie_puste(&t.base) && t.pat_index <= K1_POSR_PAT_MAKS &&
+              t.rsvd == 0);
 }
 
 /* ENGINES in a new context: an empty "extensions" (a pointer), then 1..8 engines of the known classes. */

@@ -49,7 +49,27 @@ rtw89/rtw8852b_fw-1.bin                      rtw89/rtw8852b_fw-1.bin            
 mediatek/WIFI_MT7961_patch_mcu_1_2_hdr.bin   mediatek/WIFI_MT7961_patch_mcu_1_2_hdr.bin           a276c06c2b772adb50b86639d33c82824ff4c21d617feb78caea74c040b873f6
 mediatek/WIFI_RAM_CODE_MT7961_1.bin          mediatek/WIFI_RAM_CODE_MT7961_1.bin                  b94217a951518a9c14095765f367bc5dd7698f2dc033941d6f18fc2ebd6a2ab9
 
-# Intel i915 — DMC (oszczędzanie energii obrazu) dla Skylake: IdeaPad 110-15ISK (HD 520); bez niego i915 działa, ale bez
-# głębokich stanów oszczędzania obrazu (0.10.9 krok 2, S10); nazwa z drivers/gpu/drm/i915/display/intel_dmc.c (SKL_DMC_PATH).
-# Ivy Bridge (X230) nie ma DMC.
+# Intel i915 — karty zintegrowane (0.10.9 krok 2, S10; od 0.10.11 krok 3 także nowsze — ADR 0051, uzupełnienie; tabela
+# generacji: docs/komponenty/jadro.md). Nazwy z drivers/gpu/drm/i915 jądra 7.3: display/intel_dmc.c (dmc_firmware_default)
+# i gt/uc/intel_uc_fw.c (INTEL_GUC_FIRMWARE_DEFS). Ivy Bridge (X230) nie potrzebuje żadnego.
+# DMC — oszczędzanie energii obrazu (głębokie stany obrazu przy baterii); bez niego obraz działa, ale bez nich.
+# Apollo Lake (bxt), Gemini Lake (glk), Skylake (skl — IdeaPad 110-15ISK), Kaby / Coffee / Whiskey / Amber / Comet Lake
+# (kbl), Ice / Elkhart / Jasper Lake (icl), Tiger Lake (tgl), Rocket Lake (rkl), Alder / Raptor Lake S i HX (adls),
+# Alder Lake P i N, Raptor Lake P i U (adlp), Meteor / Arrow Lake (mtl).
+i915/bxt_dmc_ver1_07.bin                     i915/bxt_dmc_ver1_07.bin                             b4036e7698130c7a59637e543f6c614495c7076666104a2079d011f0923455f5
+i915/glk_dmc_ver1_04.bin                     i915/glk_dmc_ver1_04.bin                             412d3a3ed68908b983ff16cfe496e969c9fd31f94283e0872d7e5413c7bee504
 i915/skl_dmc_ver1_27.bin                     i915/skl_dmc_ver1_27.bin                             d3b6dc1a39bb2aeb37a1179f2b4e8145c24986da78c533571a5712dc91ec3f61
+i915/kbl_dmc_ver1_04.bin                     i915/kbl_dmc_ver1_04.bin                             2cde41c3e5ad181423bcc3e98ff9c49f743c88f18646af4d0b3c3a9664b831a1
+i915/icl_dmc_ver1_09.bin                     i915/icl_dmc_ver1_09.bin                             aafad1967679baa36e971e5331da73eea31c68239416432df83e71332755dc01
+i915/tgl_dmc_ver2_12.bin                     i915/tgl_dmc_ver2_12.bin                             3c013ef0ad96ba73aee8e5bd04a8e27cc9b1c6e9183b1a83ce124485f325afca
+i915/rkl_dmc_ver2_03.bin                     i915/rkl_dmc_ver2_03.bin                             139ce0eb873a13679a4685463cdacf6d247073ce286c8a5bca443ef1d17ee2ac
+i915/adls_dmc_ver2_01.bin                    i915/adls_dmc_ver2_01.bin                            96e426ed7e80f0cc6644ada1928f4d02b163ff59b14b2339aa28a374d65a5b19
+i915/adlp_dmc.bin                            i915/adlp_dmc.bin                                    3516de2e134ddcf3b319c75d2e437779fecbd58cbb77234bd6f297c544e92ccb
+i915/mtl_dmc.bin                             i915/mtl_dmc.bin                                     1b3b826195d50fae6611d29e0eb348e641a3ada3e0436ee0b987124f47a0e0db
+# GuC — mikrokontroler karty, przez który i915 zleca jej pracę na Alder Lake P i N, Raptor Lake (P, U, S, HX) i Meteor /
+# Arrow Lake (gt/uc/intel_uc.c: uc_expand_default_options — tam domyślnie zawsze). Bez niego i915 uznaje kartę za
+# zawieszoną: obraz działa, ale karta nic nie rysuje (szybka grafika, dekoder filmów). Na starszych kartach i915 GuC nie
+# używa. Raptor Lake S i HX biorą plik Tiger Lake (fw_def ALDERLAKE_S → tgl). HuC i GSC (tylko filmy kartą) — nie.
+i915/adlp_guc_70.bin                         i915/adlp_guc_70.bin                                 b7a800cbdcdf687e7b1c81f3316d040ab75fa3e5c698ebc356f077af17462ef8
+i915/tgl_guc_70.bin                          i915/tgl_guc_70.bin                                  2f1f57a1b23d186f2592318d1e07a1365968932841ccb3e7177c516ba006e2f6
+i915/mtl_guc_70.bin                          i915/mtl_guc_70.bin                                  7794f0b6abe5fcd9c6f47035dafe2199f30a6e7d230bd5a53fbf8005a60e5911

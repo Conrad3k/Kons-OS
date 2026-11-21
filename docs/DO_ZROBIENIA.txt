@@ -4,30 +4,19 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.10.10 — poprawka: Instalator instaluje od nowa także na dysku z K1, Zasoby → „Karta graficzna”. Przed nią 0.10.9
-„Szybka grafika” — przełącznik „Szybka grafika” przy sesji przeglądarki (strony rysuje karta, każdą prośbę
-strefy sprawdza pośrednik grafiki K1; IdeaPad), sterownik karty Intela w jądrze, obraz przeglądarki poza pamięcią K1,
-większe miejsca na system (plany zamknięte: docs/archiwum/); filmy kartą — „może” (punkt 3). Następne wersje — 0.10.11
-„Szybsza grafika” (docs/PLAN-0.10.11.txt), potem 0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt) — punkt 1.
-Data: 2026-11-20.
+Stan: 0.10.11 „Szybsza grafika” — obraz przeglądarki z szybką grafiką idzie z karty na ekran bez kopiowania procesorem
+(warstwa karty, gdy okno widać w całości), pomiar drogi obrazu w logu, nowsze karty zintegrowane Intela do Meteor / Arrow
+Lake (pliki DMC i GuC, pośrednik grafiki i Zasoby — niesprawdzone na sprzęcie; plan zamknięty: docs/archiwum/). Przed nią
+0.10.10 (Instalator od nowa na dysku z K1, Zasoby → „Karta graficzna”) i 0.10.9 „Szybka grafika”. Następna wersja —
+0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt) — punkt 1.
+Data: 2026-11-21.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — plan 0.10.11 „Szybsza grafika” (docs/PLAN-0.10.11.txt), potem 0.11.0 „Pliki ze stref”
+1. TERAZ — plan 0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt)
 --------------------------------------------------------------
-Twoja prośba z 2026-11-20 (po planie 0.11.0): najpierw 0.10.11 — szybka grafika ma mniej się zacinać. Cel: obraz z karty
-na ekran K1 bez kopiowania procesorem, najpierw pomiar. Karty AMD i NVIDIA RTX — wypadły (Twoja decyzja z tego samego dnia:
-„zostaje tylko optymalizacja”), a doszły nowsze karty zintegrowane Intela (Twoja prośba, także 2026-11-20). Trzy kroki;
-decyzje czat zada na początku kroku (D5 rozstrzygnięta 2026-11-21: laptopa z nowszym Intelem nie masz — „niech taka
-funkcjonalność będzie w systemie”; wchodzi bez sprawdzenia na sprzęcie):
-    [ ] krok 1 — pomiar i szybkie poprawki szybkiej grafiki (D1)
-    [ ] krok 2 — obraz strefy bez kopii: bufor karty prosto do ekranu; ADR 0051 (D4)
-    [ ] krok 3 — nowsze karty zintegrowane Intela (D6); porządki; wydanie (numer: następny wolny PATCH — robot może
-        zająć 0.10.11)
-Co wpisać w nowym czacie: „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.11.txt.”
-Po wydaniu 0.10.11 — plan 0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt):
 Twoja prośba z 2026-11-20: plan wersji 0.11.0 w niewielu krokach, z ogólnym celem, i do tego lepszy pełny ekran
 przeglądarki (okno nie domyka krawędzi i zostawia za dużo miejsca na dole). Cel: pliki przechodzą między przeglądarką
 a Plikami K1 — zawsze przez Pliki, jako kopia, za zgodą gestem w oknie K1 (ADR 0027); schowek między oknami; okno
@@ -37,7 +26,13 @@ przeglądarki do krawędzi. Pięć kroków (jeden krok = jeden czat = jeden PR; 
     [ ] krok 3 — pliki do strefy: „Wyślij do…”, „Otwórz w…”, „Zapisać zmiany w oryginale?” (D4)
     [ ] krok 4 — przeciąganie plików między oknami, też na okno przeglądarki (D6)
     [ ] krok 5 — schowek (D5); porządki; wydanie 0.11.0
-Co wpisać w nowym czacie (po 0.10.11): „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.11.0.txt.”
+Co wpisać w nowym czacie: „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.11.0.txt.”
+0.10.11 Szybsza grafika — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.11.txt; ADR 0051):
+Twoja prośba z 2026-11-20: szybka grafika ma mniej się zacinać, i nowsze karty zintegrowane Intela. Karty AMD i NVIDIA RTX
+wypadły (Twoja decyzja z tego samego dnia). Decyzje: D1 „B”, D4 „A”, D5 — bez sprawdzenia na sprzęcie, D6 „A” — bez xe.
+    [x] krok 1 — pomiar i szybkie poprawki szybkiej grafiki (D1) — PR #199
+    [x] krok 2 — obraz strefy bez kopii: bufor karty prosto do ekranu; ADR 0051 (D4) — PR #200
+    [x] krok 3 — nowsze karty zintegrowane Intela (D6); porządki; wydanie 0.10.11 — PR #201
 0.10.10 (poprawka po 0.10.9) — gotowe:
 Twoja prośba z 2026-11-20 (po instalacji 0.10.9): czysta instalacja na dysku, na którym już jest K1, i karta graficzna
 w Zasobach. Twoje decyzje z tego dnia: przycisk w Instalatorze z pendrive'a (dane z dysku zamknięte, cały dysk
@@ -85,7 +80,7 @@ Wcześniej: 0.10.2 Testy (PR #144, #145, #149), 0.10.1 Balon (PR #134, #137, #13
     0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
     0.10     Strefy — 0.10.0 (przeglądarka w strefie), 0.10.1 Balon, 0.10.2 Testy, 0.10.5 Aktualizacje przez sieć
-             0.10.7 Wygląd, 0.10.9 Szybka grafika gotowe; 0.10.11 Szybsza grafika — plan gotowy
+             0.10.7 Wygląd, 0.10.9 Szybka grafika, 0.10.11 Szybsza grafika gotowe
              (M8, z dawnym M11)
     0.11     Pliki ze stref — plan 0.11.0 gotowy (docs/PLAN-0.11.0.txt)              (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
@@ -131,9 +126,9 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
         w klatce K1 sprawdza każdą prośbę (IdeaPad; X230 — wyciszony), sterownik i915 w jądrze K1, obraz przeglądarki
         w miejscu A/B zamiast w pamięci, miejsca A/B 768 MiB. Grubsze „opakowanie” pośrednika (węższe listy, limity czasu
         pracy karty, audyt) — RYZYKA R100, z terminem
-    [ ] 0.10.11 Szybsza grafika (Twoja prośba z 2026-11-20; plan: docs/PLAN-0.10.11.txt): mniej zacinania przy szybkiej
-        grafice (pomiar, obraz z karty prosto na ekran K1 — ADR 0051), nowsze karty zintegrowane Intela (od Kaby Lake po
-        Meteor / Arrow Lake); karty AMD i NVIDIA RTX wypadły (Twoja decyzja z 2026-11-20) — ustalenia w planie, punkt 6
+    [x] 0.10.11 Szybsza grafika (Twoja prośba z 2026-11-20; plan: docs/archiwum/PLAN-0.10.11.txt; ADR 0051): obraz
+        z karty prosto na ekran K1 (warstwa karty, gdy okno widać w całości), pomiar drogi obrazu w logu, nowsze karty
+        zintegrowane Intela do Meteor / Arrow Lake (niesprawdzone na sprzęcie); karty AMD i NVIDIA RTX wypadły
     [ ] może: filmy kartą (dawny krok 3 planu 0.10.9 — wypadł z wersji, Twoja decyzja z 2026-11-20: „zostaw w planach na
         »może«”): film w sesji z szybką grafiką rozpakowuje dekoder filmów K1 (jest w systemie od 0.10.9, uśpiony) —
         sterownik VA w strefie, FFmpeg w strefie z H.264, droga VMM → dekoder filmów, prefy Firefoksa, prośba do stron
@@ -184,6 +179,11 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
         podpisywana data) i odwoływanie starszych wersji (0.12, TPM — RYZYKA R44); robot dla musl i plików od producentów
         kart; zmiana rozmiaru okien aplikacji K1 (Pliki, Notatki, Podgląd), przyciąganie okien do połowy ekranu; przewijanie
         w Ustawieniach (okno strefy na cały ekran bez pasków — weszło do planu 0.11.0, krok 1)
+    [ ] z planu 0.10.11 („Nie w tej wersji”): najnowsze karty Intela ze sterownikiem xe (Lunar Lake i nowsze; D6 „A” — razem
+        z pierwszym takim laptopem do sprawdzenia; szybkiej grafiki na nich i tak nie będzie, póki Mesa nie ma strony strefy
+        dla xe), karty dyskretne Intela (Arc), karty AMD i NVIDIA (ustalenia ze źródeł: docs/archiwum/PLAN-0.10.11.txt,
+        punkt 6), filmy kartą, ekran składający pulpit kartą, klatki na sekundę w Zasobach (D1 — później, gdyby liczby ze
+        sprzętu były potrzebne)
     [ ] obraz przeglądarki na ISO (0.10.9 krok 4, ADR 0050): K1 z ISO (maszyna wirtualna) nie ma przeglądarki — jądro
         K1 nie ma napędu CD; potrzebny napęd CD w jądrze (sr) i odczyt miejsca obrazu z płyty
     [ ] Wi-Fi (z planu 0.9.1, „Nie w tej wersji”): sieci tylko WPA3 (SAE), firmowe i uczelniane z loginem (WPA2-Enterprise,
@@ -193,8 +193,20 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.10.10). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+Jedna lista — dla ostatniego wydania (0.10.11). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
 z 2026-11-11).
+Nowe w 0.10.11 (Szybsza grafika; najpierw aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”):
+    [ ] IdeaPad — Ogólna (szybka grafika), okno zmaksymalizowane: przewijanie długiej strony i film płynniejsze niż
+        w 0.10.10; obraz bez błędów (pasy, migotanie, stara klatka) przy przewijaniu, przesuwaniu okna, minimalizacji,
+        Alt+Tab, menu Start nad oknem i zmianie rozmiaru okna; kursor nad stroną wygląda jak zwykle
+    [ ] IdeaPad — ta sama strona w oknie mniejszym i częściowo zasłoniętym innym oknem: dalej poprawny obraz (K1 składa
+        okno sam), po odsłonięciu znów płynnie
+    [ ] IdeaPad — Zasoby → „Karta graficzna”: obciążenie i taktowanie jak w 0.10.10 (odczyt idzie teraz z części graficznej
+        karty — liczby powinny być te same)
+    [ ] X230 — przeglądarka, pulpit, Zasoby jak w 0.10.10 (bez szybkiej grafiki nic się nie zmienia)
+    [ ] nowsze karty Intela (od Kaby Lake po Meteor / Arrow Lake) — niesprawdzone (D5: takiego laptopa nie masz); jeśli
+        kiedyś uruchomisz K1 na takim laptopie: pulpit, Ustawienia → Przeglądarka („obsługuje szybką grafikę”), Ogólna
+        ze znakiem na ramce, Zasoby → „Karta graficzna” — napisz model i co widać
 Nowe w 0.10.10 (poprawka):
     [ ] Instalator od nowa: K1 z dysku + pendrive 0.10.10 → Instalator → dysk z K1 („z Twoimi danymi”) → „Zainstaluj od
         nowa” → USUŃ → „Gotowe” → Wyłącz → start z dysku: pusty K1 0.10.10 (nowe konto)
@@ -332,8 +344,9 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 [x] 0.10.9 — decyzje podjęte (docs/archiwum/PLAN-0.10.9.txt, punkt 4): D5 szybka grafika włączona w Ogólnej, D7 znak
     „układ scalony”, D9 jeden przełącznik (po wypadnięciu filmów — „Szybka grafika”), D10 „A” (miejsca 768 MiB; laptopy
     instalujesz od nowa); D4 i filmy kartą — wypadły z wersji (2026-11-20, „może”).
-[!] 0.10.11 — decyzje D1, D4, D6 (docs/PLAN-0.10.11.txt, punkt 4): klatki na sekundę w Zasobach, okno częściowo
-    zasłonięte, najnowsze karty Intela (sterownik xe); D5 rozstrzygnięta 2026-11-21 (bez sprzętu, funkcja w systemie).
+[x] 0.10.11 — decyzje podjęte (docs/archiwum/PLAN-0.10.11.txt, punkt 4): D1 „B” (bez klatek na sekundę w Zasobach),
+    D4 „A” (K1 sam przełącza warstwę karty i składanie), D5 (nowsze karty Intela bez sprawdzenia na sprzęcie), D6 „A”
+    (bez sterownika xe).
 [!] 0.11.0 — decyzje D1–D6 (docs/PLAN-0.11.0.txt, punkt 4): pełny ekran, pytanie po pobraniu, znak pliku z internetu,
     wysyłanie do zamkniętej sesji, wklejanie do sesji, przeciąganie na pulpit — czat zada każdą na początku swojego kroku.
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).

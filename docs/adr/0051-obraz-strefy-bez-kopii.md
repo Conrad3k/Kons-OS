@@ -1,9 +1,9 @@
 # 0051. Obraz strefy bez kopii: bufor karty prosto do ekranu K1, warstwa karty
 
-- Status: Przyjęty; wdrożony w 0.10.11 (krok 2)
+- Status: Przyjęty; wdrożony w 0.10.11 (krok 2); uzupełnienie — nowsze karty Intela (krok 3)
 - Data: 2026-11-21
 - Dotyczy: ADR 0042 (obraz strefy przez virtio-gpu 2D do okna K1), ADR 0049 (szybka grafika: pośrednik, most native context,
-  niezmiennik 7), ADR 0044 (pamięć stref); plan `docs/PLAN-0.10.11.txt`: krok 2, T3, T4, luki P8–P12, decyzja właściciela D4;
+  niezmiennik 7), ADR 0044 (pamięć stref); plan `docs/archiwum/PLAN-0.10.11.txt`: krok 2, T3, T4, luki P8–P12, decyzja właściciela D4;
   RYZYKA R100
 
 ## Kontekst
@@ -60,3 +60,24 @@ Intela mają poza płaszczyzną pulpitu płaszczyznę nakładki i kursora (warst
   testowym pośrednika pokazuje bufor jako wyświetlacz, kolor na zrzucie); warstwę — właściciel na IdeaPadzie.
 - NIEPEWNE (z wykonania na sprzęcie): czy i915 przyjmie bufory Mesy jako nakładkę (wyrównanie wiersza do 64 B — szerokość
   okna co 8 px nie zawsze je daje; wtedy droga zapasowa), formaty i modyfikatory kafelkowe (krok 3, P10).
+
+## Uzupełnienie (0.10.11 krok 3, 2026-11-21): nowsze karty zintegrowane Intela
+Właściciel (2026-11-20): „niech ta wersja też upewni się, że kompatybilność jest z nowszymi kartami Intela
+zintegrowanymi”; D5 — bez sprawdzenia na sprzęcie (takiego laptopa nie ma), D6 „A” — bez sterownika xe.
+1. **Zakres (T5):** karty zintegrowane sterownika i915 jądra 7.3 bez `force_probe` — od Apollo Lake po Meteor / Arrow
+   Lake; tabela generacji: `docs/komponenty/jadro.md`. Lunar Lake i nowsze (xe) — nie: Mesa nie ma dla xe strony strefy
+   mostu (P13), a pulpit działa tam przez obraz z firmware.
+2. **Pliki od producenta:** DMC dla każdej generacji z tabeli, GuC tam, gdzie i915 zleca pracę tylko przez niego (Alder
+   Lake P, Raptor Lake, Meteor / Arrow Lake) — bez niego karta jest „zawieszona” od startu (`intel_uc.c`). HuC i GSC — nie.
+3. **Warunek szybkiej grafiki bez zmian (T6):** pełne PPGTT, izolacja kontekstów, przypięte adresy, płoty wyjścia —
+   każda generacja sprawdzana przy starcie tak samo jak dotąd; bez wyjątków dla nowych kart.
+4. **Pośrednik — tylko to, o co pyta Mesa na nowszych kartach (P16):** rozszerzenie `SET_PAT` przy nowym buforze (Mesa
+   dodaje je na Meteor / Arrow Lake: `has_set_pat_uapi`; indeks ≤ 4 — najwyższy w i915, jądro sprawdza go jeszcze wg karty),
+   zawsze po „memory regions”, i odczyt `PROTECTED_CONTENT` kontekstu (iris przy zastępowaniu kontekstu po zawieszeniu).
+   Zapytania (`DRM_I915_QUERY_*`), parametry i lista ioctl — bez zmian: Mesa z intel-virtio pyta na Gen11/Gen12 o te same
+   (sprawdzone w `src/intel/dev/virtio`, `src/intel/common/i915`, `src/gallium/drivers/iris/i915`). `PROTECTED_CONTENT`
+   przy nowym buforze albo kontekście — dalej odmowa.
+5. **Warstwa karty:** bez zmian w kodzie — płaszczyzna wybierana po typie i formacie, nowy bufor próbą (`TEST_ONLY`).
+6. **Skutki:** k1.efi +1,3 MiB; więcej generacji i915 w zasięgu strefy (R100), Mesa intel-virtio na Gen12 (R101);
+   niesprawdzone na sprzęcie — wersję z czarnym ekranem przy aktualizacji cofa zatwierdzanie A/B (od pierwszej klatki),
+   przy nowej instalacji z pendrive'a tej ochrony nie ma (P20).

@@ -19,13 +19,15 @@ _Static_assert(sizeof(struct drm_i915_gem_exec_object2) == sizeof(struct k1_posr
 _Static_assert(sizeof(struct drm_i915_gem_context_param) == sizeof(struct k1_posr_param), "context_param");
 _Static_assert(sizeof(struct i915_engine_class_instance) == sizeof(struct k1_posr_silnik), "engine_class_instance");
 _Static_assert(sizeof(struct drm_i915_gem_memory_class_instance) == sizeof(struct k1_posr_region), "memory_class");
+_Static_assert(sizeof(struct drm_i915_gem_create_ext_set_pat) == sizeof(struct k1_posr_pat), "create_ext_set_pat");
 #define X_IOC(n, nr, kier, rozmiar, uchwyt) _Static_assert(K1_POSR_IOCTL_##n == DRM_IOCTL_I915_##n, #n);
 K1_POSR_IOCTLE(X_IOC)
 _Static_assert(I915_PARAM_HAS_CONTEXT_FREQ_HINT == K1_POSR_PARAM_MAKS, "K1_POSR_PARAM_MAKS");
 _Static_assert(I915_CONTEXT_PARAM_ENGINES == K1_POSR_PARAM_ENGINES && I915_CONTEXT_PARAM_VM == K1_POSR_PARAM_VM &&
                    I915_CONTEXT_PARAM_PRIORITY == K1_POSR_PARAM_PRIORITY && I915_EXEC_FENCE_OUT == K1_POSR_EXEC_FENCE_OUT &&
                    I915_EXEC_RING_MASK == K1_POSR_EXEC_PIERSCIEN && I915_MMAP_OFFSET_FIXED == K1_POSR_MMAP_MAKS &&
-                   I915_CONTEXT_MIN_USER_PRIORITY == K1_POSR_PRIORYTET_MIN,
+                   I915_CONTEXT_MIN_USER_PRIORITY == K1_POSR_PRIORYTET_MIN && I915_GEM_CREATE_EXT_SET_PAT == K1_POSR_EXT_PAT &&
+                   I915_CONTEXT_PARAM_PROTECTED_CONTENT == K1_POSR_PARAM_PROTECTED,
                "k1_posrednik.h: wartości z i915_drm.h");
 
 static uint8_t *strumien;                     /* our copy of the stream */
@@ -204,6 +206,7 @@ static int nowy_bufor(const uint8_t *p, int ext)
     struct k1_posr_regiony r = { 0 };
     struct drm_i915_gem_memory_class_instance regiony[K1_POSR_REGIONY_MAKS];
     struct drm_i915_gem_create_ext_memory_regions mr = { 0 };
+    struct drm_i915_gem_create_ext_set_pat pat = { 0 };
     struct drm_i915_gem_create_ext n = { 0 };
     uint8_t mapa = K1_POSR_MAPA_CACHED;
     int w;
@@ -223,6 +226,12 @@ static int nowy_bufor(const uint8_t *p, int ext)
         for (uint32_t i = 0; i < r.num_regions; i++)
             if (regiony[i].memory_class == I915_MEMORY_CLASS_DEVICE)
                 mapa = K1_POSR_MAPA_WC;
+        if (c.ext_size > sizeof r + r.num_regions * sizeof regiony[0]) { /* "PAT" after them (checked) */
+            struct k1_posr_pat t;
+            memcpy(&t, p + sizeof c + sizeof r + r.num_regions * sizeof regiony[0], sizeof t);
+            pat.base.name = I915_GEM_CREATE_EXT_SET_PAT, pat.pat_index = t.pat_index;
+            mr.base.next_extension = (uintptr_t)&pat;
+        }
     }
     if (silnik->ioctl(DRM_IOCTL_I915_GEM_CREATE_EXT, &n) != 0)
         return K1_POSR_BLAD_KARTA; /* the bridge has no reply for it: the stream stops (virglrenderer: the same) */
