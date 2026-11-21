@@ -47,3 +47,14 @@ void ekran_pokaz(int32_t x, int32_t y, int32_t w, int32_t h)
     (void)x, (void)y, (void)w, (void)h;
     zrzut();
 }
+
+/* 0.10.5 step 4: K1 resizes the zone's window — never on the host (a fixed display) */
+int ekran_zmiany_fd(void)
+{
+    return -1;
+}
+
+int ekran_zmiana(void)
+{
+    return 0;
+}
