@@ -7,7 +7,10 @@
  * in the browser's folder either way. Firefox ESR writes a download to "<name>.part" and renames it at the end (its
  * DownloadCore.sys.mjs: IOUtils.move): IN_MOVED_TO is the end; IN_CLOSE_WRITE of a file that is not a ".part" and not
  * empty also counts ("Zapisz stronę"). Files that were there before it started are not told (a session that remembers
- * keeps its downloads). K1 trusts nothing it says. Our code, static with musl and the flags of SPEC §11. */
+ * keeps its downloads). K1 trusts nothing it says. Our code, static with musl and the flags of SPEC §11.
+ * 0.11.0 step 3: files from K1 into the session's folder "Z K1" (argv[2]; odbior.c), "Otwórz w…" through the compositor's
+ * FIFO (argv[3]); a changed version of such a file — a download of the same name (Firefox: "name(1).ext") or the file in
+ * "Z K1" written again — is told with ZGLOS dotyczy = K1's number of it ("Zapisać zmiany w oryginale?" in K1). */
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -23,25 +26,25 @@
 
 #include <linux/vm_sockets.h>
 
-#include "k1_pliki_strefy.h"
+#include "agent.h"
 
-#define TAG "K1-AGENT"
 #define PLIKOW 16
 
 static struct plik {
     int stan; /* 0: free, 1: to tell, 2: told */
-    uint32_t nr;
+    int kat;  /* its folder: katalog (downloads) or odbior_katalog() ("Z K1") */
+    uint32_t nr, dotyczy;
     uint64_t rozmiar;
     ino_t ino;
     char nazwa[K1_PS_NAZWA_MAKS + 1];
 } pl[PLIKOW];
 static uint32_t nastepny;
-static int katalog = -1, vs = -1;
+static int katalog = -1;
+int vs = -1;
 static struct k1_ps_czytnik cz;
 static uint8_t b[K1_PS_RAMKA_MAKS], we[4096];
 
-static void loguj(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
-static void loguj(const char *fmt, ...)
+void loguj(const char *fmt, ...)
 {
     char t[160];
     va_list a;
@@ -64,17 +67,18 @@ static int pisz(const uint8_t *p, size_t n)
     return 0;
 }
 
-static int ramka(const struct k1_ps_ramka *r)
+int ramka(const struct k1_ps_ramka *r)
 {
     size_t n = k1_ps_zapisz(r, 1, b, sizeof b);
     return n > 0 ? pisz(b, n) : -1;
 }
 
-static void rozlacz(void)
+void rozlacz(void)
 {
     if (vs >= 0)
         close(vs);
     vs = -1;
+    odbior_rozlacz();
     for (int i = 0; i < PLIKOW; i++)
         if (pl[i].stan == 2)
             pl[i].stan = 1; /* the VMM forgot it: tell it again */
@@ -91,14 +95,15 @@ static void polacz(void)
     memset(&cz, 0, sizeof cz);
 }
 
-/* A name in the folder as inotify gave it: a file to tell K1 of (not a ".part", a regular file, not one told yet). */
-static void nowy(const char *nazwa, int przeniesiony)
+/* A name in folder `kat` as inotify gave it: a file to tell K1 of (not a ".part", a regular file, not one told yet);
+ * `dotyczy`: K1's number of the file it is a changed version of (0: a download). */
+static void nowy(int kat, const char *nazwa, int przeniesiony, uint32_t dotyczy)
 {
     struct stat st;
     size_t dl = strlen(nazwa);
     int i, wolny = -1;
-    if (dl == 0 || dl > K1_PS_NAZWA_MAKS || (dl > 5 && strcmp(nazwa + dl - 5, ".part") == 0) ||
-        fstatat(katalog, nazwa, &st, AT_SYMLINK_NOFOLLOW) != 0 || !S_ISREG(st.st_mode) ||
+    if (dl == 0 || dl > K1_PS_NAZWA_MAKS || (dl > 5 && strcmp(nazwa + dl - 5, ".part") == 0) || nazwa[0] == '.' ||
+        fstatat(kat, nazwa, &st, AT_SYMLINK_NOFOLLOW) != 0 || !S_ISREG(st.st_mode) ||
         (!przeniesiony && st.st_size == 0))
         return;
     for (i = 0; i < PLIKOW; i++) {
@@ -111,19 +116,22 @@ static void nowy(const char *nazwa, int przeniesiony)
         loguj("za dużo plików czeka — pomijam jeden");
         return;
     }
-    pl[wolny] = (struct plik){ 1, nastepny = nastepny >= K1_PS_NR_MAKS ? 1 : nastepny + 1, (uint64_t)st.st_size,
-                               st.st_ino, { 0 } };
+    nastepny = nastepny >= K1_PS_NR_MAKS ? 1 : nastepny + 1;
+    pl[wolny] = (struct plik){ 1, kat, nastepny, dotyczy, (uint64_t)st.st_size, st.st_ino, { 0 } };
     memcpy(pl[wolny].nazwa, nazwa, dl);
 }
 
-static void zdarzenia(int in)
+/* The events of both folders (wd 1: downloads, the other: "Z K1" — only a file K1 gave, written again). */
+static void zdarzenia(int in, int wd_pobrane)
 {
     char buf[4096] __attribute__((aligned(__alignof__(struct inotify_event))));
     ssize_t n = read(in, buf, sizeof buf);
     for (ssize_t o = 0; n > 0 && o + (ssize_t)sizeof(struct inotify_event) <= n;) {
         const struct inotify_event *e = (const struct inotify_event *)(buf + o);
-        if (e->len > 0 && (e->mask & (IN_MOVED_TO | IN_CLOSE_WRITE)))
-            nowy(e->name, (e->mask & IN_MOVED_TO) != 0);
+        if (e->len > 0 && e->wd == wd_pobrane && (e->mask & (IN_MOVED_TO | IN_CLOSE_WRITE)))
+            nowy(katalog, e->name, (e->mask & IN_MOVED_TO) != 0, odbior_dotyczy(e->name, 0));
+        else if (e->len > 0 && e->wd != wd_pobrane && (e->mask & IN_CLOSE_WRITE) && odbior_dotyczy(e->name, 1) != 0)
+            nowy(odbior_katalog(), e->name, 0, odbior_dotyczy(e->name, 1));
         o += (ssize_t)sizeof *e + e->len;
     }
 }
@@ -135,7 +143,7 @@ static void wyslij(struct plik *p)
     struct k1_ps_ramka r = { .typ = K1_PS_DANE, .nr = p->nr, .dane = dane };
     struct stat st;
     uint64_t wyslane = 0;
-    int fd = openat(katalog, p->nazwa, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+    int fd = openat(p->kat, p->nazwa, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
     if (fd < 0 || fstat(fd, &st) != 0 || st.st_ino != p->ino || (uint64_t)st.st_size != p->rozmiar) {
         if (fd >= 0)
             close(fd);
@@ -181,6 +189,12 @@ static void od_vmm(void)
             rozlacz();
             return;
         }
+        if (w > 0 && (r.typ == K1_PS_PLIK || r.typ == K1_PS_BAJTY)) { /* 0.11.0 step 3: a file from K1 (odbior.c) */
+            odbior_ramka(&r);
+            if (vs < 0)
+                return;
+            continue;
+        }
         for (int i = 0; w > 0 && i < PLIKOW; i++)
             if (pl[i].stan == 2 && pl[i].nr == r.nr) {
                 if (r.typ == K1_PS_WYSLIJ) {
@@ -197,11 +211,13 @@ static void od_vmm(void)
 
 int main(int argc, char **argv)
 {
-    int in;
+    int in, wd;
     signal(SIGPIPE, SIG_IGN);
-    if (argc < 2 || (katalog = open(argv[1], O_RDONLY | O_DIRECTORY | O_CLOEXEC)) < 0 ||
-        (in = inotify_init1(IN_CLOEXEC | IN_NONBLOCK)) < 0 || inotify_add_watch(in, argv[1], IN_MOVED_TO | IN_CLOSE_WRITE) < 0) {
-        loguj("folder pobranych: %s", strerror(errno));
+    if (argc < 4 || (katalog = open(argv[1], O_RDONLY | O_DIRECTORY | O_CLOEXEC)) < 0 ||
+        (in = inotify_init1(IN_CLOEXEC | IN_NONBLOCK)) < 0 ||
+        (wd = inotify_add_watch(in, argv[1], IN_MOVED_TO | IN_CLOSE_WRITE)) < 0 || odbior_start(argv[2], argv[3]) != 0 ||
+        inotify_add_watch(in, argv[2], IN_CLOSE_WRITE) < 0) {
+        loguj("foldery: %s", strerror(errno));
         return 1;
     }
     loguj("gotowy");
@@ -212,7 +228,7 @@ int main(int argc, char **argv)
         for (int i = 0; vs >= 0 && i < PLIKOW; i++)
             if (pl[i].stan == 1) {
                 struct k1_ps_ramka r = { .typ = K1_PS_ZGLOS, .nr = pl[i].nr, .rozmiar = pl[i].rozmiar,
-                                         .nl = (uint8_t)strlen(pl[i].nazwa) };
+                                         .dodatek = pl[i].dotyczy, .nl = (uint8_t)strlen(pl[i].nazwa) };
                 memcpy(r.nazwa, pl[i].nazwa, r.nl);
                 if (ramka(&r) != 0)
                     rozlacz();
@@ -223,7 +239,7 @@ int main(int argc, char **argv)
         if (poll(p, 2, vs < 0 ? 2000 : -1) < 0 && errno != EINTR)
             return 1;
         if (p[0].revents & POLLIN)
-            zdarzenia(in);
+            zdarzenia(in, wd);
         if (vs >= 0 && (p[1].revents & (POLLIN | POLLHUP | POLLERR)))
             od_vmm();
     }

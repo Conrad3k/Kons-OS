@@ -15,7 +15,8 @@ static uint8_t wzor(uint64_t i) /* pobrane_wzor() of gosc/pobrane.c */
     return (uint8_t)((i * 7 + (i >> 9) + 13) & 255);
 }
 
-/* The next checked message from skarbiec (what else comes is skipped) of type `typ`, with its fd: 1, else 0. */
+/* The next checked message from skarbiec (what else comes is skipped) of type `typ` (or DOK_WYNIK — a refusal), with
+ * its fd: 1 when it was `typ`, else 0. */
 static int od_skarbca(int fd, int typ, struct k1_komunikat *m, int *mfd)
 {
     for (int i = 0; i < 1000; i++) {
@@ -98,6 +99,99 @@ static void sprawdz_pobrane(void)
     k1_log(TAG, "pobrane: sprawdzenie %s", z_strefy == 3 && duzy && pdf && pusty && !zostaw && tworca ? "OK" : "BŁĄD");
 }
 
+/* ---- 0.11.0 step 3: files to the zone ("Wyślij do…", "Otwórz w…") and their changed versions back ---- */
+
+static uint8_t wzor_do(uint64_t i) /* odbior_wzor() of gosc/odbior.c */
+{
+    return (uint8_t)((i * 13 + 5) & 255);
+}
+
+/* A new file in Dokumenty as Pliki (its pattern, pieces of K1_DOK_KAWALEK): its number, or 0. */
+static uint32_t plik_w_dokumentach(int fd, const char *nazwa, uint32_t rozmiar)
+{
+    static uint8_t b[K1_DOK_NAZWA + K1_DOK_KAWALEK];
+    size_t nl = strlen(nazwa);
+    uint32_t od = 0, id = 0;
+    struct k1_komunikat m;
+    memcpy(b, nazwa, nl);
+    do {
+        uint32_t ile = rozmiar - od < K1_DOK_KAWALEK ? rozmiar - od : K1_DOK_KAWALEK;
+        int pierwszy = od == 0, mfd, dalej = od + ile < rozmiar;
+        uint8_t *d = pierwszy ? b + nl : b;
+        for (uint32_t i = 0; i < ile; i++)
+            d[i] = wzor_do(od + i);
+        mfd = k1_memfd_z_danymi("k1-test", b, (pierwszy ? nl : 0) + ile);
+        m = pierwszy ? k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, (int32_t)nl, (int32_t)ile, 0, dalej)
+                     : k1_komunikat_nowy(K1_KOM_DOK_KAWALEK, 0, (int32_t)ile, 0, 0, 0, 0);
+        if (mfd < 0 || k1_kanal_wyslij(fd, &m, sizeof m, mfd) != 0 || !od_skarbca(fd, K1_KOM_DOK_WYNIK, &m, &mfd) || m.b != 0)
+            return 0;
+        id = (uint32_t)m.c;
+        od += ile;
+        if (!dalej && !pierwszy) {
+            m = k1_komunikat_nowy(K1_KOM_DOK_KONIEC, 0, 0, 0, 0, 0, 0);
+            if (k1_kanal_wyslij(fd, &m, sizeof m, -1) != 0 || !od_skarbca(fd, K1_KOM_DOK_WYNIK, &m, &mfd) || m.b != 0)
+                return 0;
+            id = (uint32_t)m.c;
+        }
+    } while (od < rozmiar);
+    return id;
+}
+
+/* The list as Pliki sees it (count, or -1). */
+static int lista_plikow(int fd, struct k1_dok_wpis *w)
+{
+    static uint8_t lista[K1_DOK_LISTA_MAKS];
+    struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_DOK_SPIS, 0, 0, 0, 0, 0, 0);
+    uint32_t kosz;
+    int mfd = -1, n = -1;
+    if (k1_kanal_wyslij(fd, &m, sizeof m, -1) == 0 && od_skarbca(fd, K1_KOM_DOK_LISTA, &m, &mfd) && mfd >= 0 &&
+        pread(mfd, lista, (size_t)m.a, 0) == m.a)
+        n = k1_dok_lista_czytaj(lista, (size_t)m.a, w, K1_DOK_MAKS, &kosz);
+    if (mfd >= 0)
+        close(mfd);
+    return n;
+}
+
+static void do_strefy(void)
+{
+    static struct k1_dok_wpis w[K1_DOK_MAKS];
+    static const char *const nazwy[3] = { "a-do-strefy.bin", "b-do-strefy.bin", "c-do-strefy.bin" };
+    static const uint32_t rozmiary[3] = { (3u << 20) / 2, 1000, 300 };
+    uint32_t id[3] = { 0 };
+    int fd = -1, n, a_kosz = 0, a_nowy = 0, b_jest = 0, b_nowy = 0, c_jest = 0, c_nowy = 0;
+    if (zapytaj(k1_komunikat_nowy(K1_KOM_TEST_SKARB, 0, K1_PROFIL_PLIKI, 0, 0, 0, 0), &fd, 10) != 0 || fd < 0)
+        return;
+    for (int i = 0; i < 3; i++)
+        id[i] = plik_w_dokumentach(fd, nazwy[i], rozmiary[i]);
+    k1_log(TAG, "pobrane: pliki do strefy w Dokumentach: %d %d %d", id[0] != 0, id[1] != 0, id[2] != 0);
+    if (strefa_raz_start(K1_STREFA_TRYB_ODBIOR)) {
+        for (int i = 0; i < 3; i++) { /* "Wyślij do…" twice, then "Otwórz w…" — as Pliki after the user's gesture */
+            struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_DOK_DO_STREFY, id[i], K1_STREFA_PROBNA, i == 2, 0, 0, 0);
+            int mfd = -1;
+            if (k1_kanal_wyslij(fd, &m, sizeof m, -1) != 0 || !od_skarbca(fd, K1_KOM_DOK_WYNIK, &m, &mfd) || m.b != 0)
+                k1_log(TAG, "pobrane: plik do strefy — odmowa skarbca (%d)", m.b);
+        }
+        czekaj_strefa(0, 900);
+        k1_log(TAG, "strefy: strefa skończyła się (tryb %d)", K1_STREFA_TRYB_ODBIOR);
+    }
+    msleep(2000);
+    n = lista_plikow(fd, w);
+    for (int i = 0; i < n; i++) {
+        int z_strefy = k1_poch_strefy(w[i].pochodzenie) == K1_STREFA_PROBNA && w[i].rozmiar == 777 &&
+                       w[i].rodzic == K1_FOLDER_DOKUMENTY && w[i].kosz == 0;
+        a_kosz |= w[i].id == id[0] && w[i].kosz != 0;
+        a_nowy |= z_strefy && strcmp(w[i].nazwa, nazwy[0]) == 0;
+        b_jest |= w[i].id == id[1] && w[i].kosz == 0;
+        b_nowy |= z_strefy && strcmp(w[i].nazwa, "b-do-strefy (2).bin") == 0;
+        c_jest |= w[i].id == id[2] && w[i].kosz == 0 && w[i].rozmiar == 300;
+        c_nowy |= z_strefy && strncmp(w[i].nazwa, "c-do-strefy", 11) == 0;
+    }
+    close(fd);
+    k1_log(TAG, "pobrane: zmiany z powrotem — a: stara w Koszu %d, nowa pod nazwą %d; b: oryginał %d, nowy obok %d; "
+                "c: oryginał %d, nowy %d", a_kosz, a_nowy, b_jest, b_nowy, c_jest, c_nowy);
+    k1_log(TAG, "pobrane: do strefy %s", a_kosz && a_nowy && b_jest && b_nowy && c_jest && !c_nowy ? "OK" : "BŁĄD");
+}
+
 int t_pobrane_scenariusz(void)
 {
     int i;
@@ -116,6 +210,7 @@ int t_pobrane_scenariusz(void)
     }
     msleep(2000);
     sprawdz_pobrane();
+    do_strefy(); /* 0.11.0 step 3 */
     k1_log(TAG, "pobrane: koniec scenariusza");
     for (;;)
         pause();

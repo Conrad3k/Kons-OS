@@ -58,7 +58,8 @@ enum { TRYB_ZWYKLY = 0, TRYB_ZLY_ADRES = 1, TRYB_PETLA = 2, TRYB_DLUGOSC = 3, TR
        TRYB_MOST = 13 /* 0.10.5 step 5: the test of Raptor Bridge (most.c, most_fazy.c), then the end */,
        TRYB_VSOCK_KREDYT = 14, TRYB_VSOCK_ADRES = 15 /* 0.10.5 step 5: hostile to vsock (zlosliwy_vsock.c) */,
        TRYB_GRAFIKA = 16, TRYB_GRAFIKA_ZLA = 17 /* 0.10.9 step 6: fast graphics, honest / hostile (grafika.c) */,
-       TRYB_POBRANIE = 18, TRYB_POBRANIE_ZLE = 19 /* 0.11.0 step 2: files into Pliki, honest / hostile (pobrane.c) */ };
+       TRYB_POBRANIE = 18, TRYB_POBRANIE_ZLE = 19 /* 0.11.0 step 2: files into Pliki, honest / hostile (pobrane.c) */,
+       TRYB_ODBIOR = 20 /* 0.11.0 step 3: files from K1 and their changed versions back (odbior.c) */ };
 #define OKNO_PO_S 8
 #define ZAMYKANIE_S 6
 int zlosliwy(int tryb);                 /* returns only when the VMM did not stop the machine */
@@ -66,6 +67,7 @@ void zlosliwy_vsock(int tryb);          /* TRYB_VSOCK_*: the same, for vsock (0.
 void grafika(int zla);                  /* TRYB_GRAFIKA*: the bridge of fast graphics (grafika.c), then the end */
 void pobrane(int zle);                  /* TRYB_POBRANIE*: the files port (pobrane.c), then the end */
 uint8_t pobrane_wzor(uint64_t i);       /* byte i of the honest file's pattern */
+void odbior(void);                      /* TRYB_ODBIOR (odbior.c), then the end */
 void pamiec_proba(void);                /* TRYB_PAMIEC: takes and frees memory (pamiec.c), then ends */
 void pamiec_podreczna(void);            /* TRYB_ROZDZIELACZ: the disk read into the page cache (0.10.1 step 3) */
 

@@ -208,8 +208,9 @@ $(BIN)/kompozytor: $(KOMPOZYTOR) $(wildcard src/strefa/kompozytor/*.h) src/stref
 $(BIN)/przekaznik: src/strefa/przekaznik/main.c | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/strefa/przekaznik/main.c $(LDFLAGS_K1)
 # 0.11.0 step 2 (ADR 0052): the agent of the zone's files (in the browser zone, like the relay)
-$(BIN)/agent: src/strefa/agent/main.c src/wspolne/k1_pliki_strefy.c src/wspolne/k1_pliki_strefy.h | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ src/strefa/agent/main.c src/wspolne/k1_pliki_strefy.c $(LDFLAGS_K1)
+AGENT := $(sort $(wildcard src/strefa/agent/*.c)) src/wspolne/k1_pliki_strefy.c
+$(BIN)/agent: $(AGENT) $(wildcard src/strefa/agent/*.h) src/wspolne/k1_pliki_strefy.h | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -Isrc/strefa/agent -o $@ $(AGENT) $(LDFLAGS_K1)
 
 $(BIN)/wejscie: src/wejscie/main.c src/wejscie/touchpad.c src/wejscie/touchpad.h $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/wejscie/main.c src/wejscie/touchpad.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)

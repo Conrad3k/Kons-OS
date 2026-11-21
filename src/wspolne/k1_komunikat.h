@@ -664,7 +664,8 @@ enum { K1_STREFA_TRYB_GRAFIKA = 16, K1_STREFA_TRYB_GRAFIKA_ZLA = 17 };
 /* 0.11.0 step 2 (ADR 0052): files from the zone into Pliki — honest (the test clicks the window) and hostile (the test
  * program says "Zapisz" to each) — scripts/test-pobrane.sh */
 enum { K1_STREFA_TRYB_POBRANIE = 18, K1_STREFA_TRYB_POBRANIE_ZLE = 19 };
-#define K1_STREFA_TRYB_MAKS 19
+enum { K1_STREFA_TRYB_ODBIOR = 20 }; /* 0.11.0 step 3: files from K1 to the zone and back changed */
+#define K1_STREFA_TRYB_MAKS 20
 /* 0.10.5 step 4 (D8): the smallest picture of a zone's window the user can drag it to */
 #define K1_OKNO_MIN_SZER 640
 #define K1_OKNO_MIN_WYS 480
