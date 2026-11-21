@@ -24,6 +24,7 @@ enum { P_WOLNE = 0, P_NOWY, P_U_NADZORCY, P_WYSYLA, P_KONIEC };
 static struct plik {
     int stan;            /* P_NOWY: STREFA_PLIK not sent yet; P_KONIEC: STREFA_PLIK_KONIEC not sent yet */
     uint32_t nr, id;     /* the zone's number of it, ours (towards nadzorca) */
+    uint32_t dotyczy;    /* 0.11.0 step 3: K1's file it is a changed version of (nadzorca checks it), 0: a download */
     uint64_t rozmiar, przyszlo;
     int powod;           /* P_KONIEC: K1_PS_W_* */
     char nazwa[K1_DOK_NAZWA];
@@ -38,9 +39,10 @@ static struct {
     uint8_t wej[K1_PS_BUFOR];      /* the zone's bytes not taken yet (a ring) */
     uint32_t wej_od, wej_n;
     struct k1_ps_czytnik cz;
-    uint8_t wyj[16 * K1_PS_CZEKA * 2]; /* our frames waiting for the zone's credit */
-    uint32_t wyj_n;
-    unsigned long zlamania, odmowy, zapisane;
+    uint8_t wyj[K1_PS_RAMKA_MAKS + 512]; /* our frames waiting for the zone's credit: whole frames, in order (0.11.0
+                                          * step 3: also BAJTY of a file to the zone — pliki_do.c) */
+    uint32_t wyj_od, wyj_n;
+    unsigned long zlamania, odmowy, zapisane, utracone;
 } ps;
 
 static uint8_t kaw[K1_DOK_KAWALEK]; /* the piece being filled (of the file in P_WYSYLA) */
@@ -54,15 +56,36 @@ struct pol_kredyt *pliki_kredyt(uint32_t port_goscia)
     return ps.polaczony && port_goscia == ps.port_goscia ? &ps.kr : NULL;
 }
 
+int pliki_polaczony(void)
+{
+    return ps.polaczony && !ps.odpowiedz;
+}
+
+size_t pliki_wolne(void)
+{
+    if (ps.wyj_od > 0) { /* what went to the guest: out of the way */
+        memmove(ps.wyj, ps.wyj + ps.wyj_od, ps.wyj_n);
+        ps.wyj_od = 0;
+    }
+    return sizeof ps.wyj - ps.wyj_n;
+}
+
+int pliki_dopisz(const struct k1_ps_ramka *r)
+{
+    size_t n;
+    if (!ps.polaczony)
+        return -1;
+    pliki_wolne();
+    n = k1_ps_zapisz(r, 0, ps.wyj + ps.wyj_n, sizeof ps.wyj - ps.wyj_n);
+    ps.wyj_n += (uint32_t)n;
+    return n > 0 ? 0 : -1;
+}
+
 static void do_goscia(uint16_t typ, uint32_t nr, uint32_t wynik)
 {
     struct k1_ps_ramka r = { .typ = typ, .nr = nr, .wynik = wynik };
-    uint8_t b[16];
-    size_t n = k1_ps_zapisz(&r, 0, b, sizeof b);
-    if (n == 0 || ps.wyj_n + n > sizeof ps.wyj || !ps.polaczony)
-        return; /* the zone is not reading: it hears nothing more (its files end at K1 anyway) */
-    memcpy(ps.wyj + ps.wyj_n, b, n);
-    ps.wyj_n += (uint32_t)n;
+    if (pliki_dopisz(&r) != 0) /* the zone is not reading (or not there): it hears nothing more of it */
+        ps.utracone++;
 }
 
 static struct plik *wedlug_nr(uint32_t nr)
@@ -104,7 +127,8 @@ static void zlamanie(const char *co)
             zakoncz(&pl[i], K1_PS_W_BLAD);
     ps.rst = 1, ps.rst_port = ps.port_goscia;
     ps.polaczony = 0;
-    ps.wej_n = ps.wyj_n = 0;
+    ps.wej_n = ps.wyj_n = ps.wyj_od = 0;
+    pliki_do_rozlacz();
 }
 
 static void zgloszenie(const struct k1_ps_ramka *r)
@@ -128,6 +152,7 @@ static void zgloszenie(const struct k1_ps_ramka *r)
     p->nr = r->nr;
     p->id = ps.nastepny_id = ps.nastepny_id >= K1_PS_NR_MAKS ? 1 : ps.nastepny_id + 1;
     p->rozmiar = r->rozmiar > K1_PS_ROZMIAR_MAKS ? K1_PS_ROZMIAR_MAKS : r->rozmiar;
+    p->dotyczy = r->dodatek;
     k1_dok_nazwa_popraw(r->nazwa, r->nl, p->nazwa); /* a name of K1: "/" and the like become "_" */
     if (strspn(p->nazwa, "_") == strlen(p->nazwa))
         strcpy(p->nazwa, "Pobrany plik");
@@ -168,6 +193,8 @@ static void ramka(const struct k1_ps_ramka *r)
         zgloszenie(r);
     else if (r->typ == K1_PS_DANE)
         bajty(r);
+    else if (r->typ == K1_PS_ODEBRANY) /* 0.11.0 step 3: the end of a file K1 sent */
+        pliki_do_odebrany(r->nr, r->wynik);
     else if ((p = wedlug_nr(r->nr)) != NULL) /* BRAK */
         zakoncz(p, K1_PS_W_ZOSTAWIONY);
 }
@@ -212,7 +239,7 @@ int pliki_polacz(uint32_t port_goscia, const struct pol_kredyt *kr)
     ps.polaczony = 1, ps.odpowiedz = 1;
     ps.port_goscia = port_goscia;
     ps.kr = *kr;
-    ps.wej_od = ps.wej_n = ps.wyj_n = 0;
+    ps.wej_od = ps.wej_n = ps.wyj_n = ps.wyj_od = 0;
     memset(&ps.cz, 0, sizeof ps.cz);
     ps.cz.od_strefy = 1;
     return 1;
@@ -224,7 +251,8 @@ void pliki_rozlacz(void)
         if (pl[i].stan != P_WOLNE && pl[i].stan != P_KONIEC)
             zakoncz(&pl[i], K1_PS_W_ZOSTAWIONY);
     ps.polaczony = 0;
-    ps.wej_n = ps.wyj_n = 0;
+    ps.wej_n = ps.wyj_n = ps.wyj_od = 0;
+    pliki_do_rozlacz();
 }
 
 int pliki_odpowiedz(uint32_t *port, int *rst)
@@ -244,17 +272,19 @@ void pliki_odpowiedziano(int rst)
 
 size_t pliki_do_goscia(uint8_t *b, size_t maks)
 {
-    size_t n = ps.wyj_n < maks ? ps.wyj_n : maks;
+    size_t n;
     if (!ps.polaczony || ps.odpowiedz)
         return 0;
-    memcpy(b, ps.wyj, n);
+    pliki_do_dalej(); /* the next BAJTY of a file to the zone, when there is room for a whole frame */
+    n = ps.wyj_n < maks ? ps.wyj_n : maks;
+    memcpy(b, ps.wyj + ps.wyj_od, n);
     return n;
 }
 
 void pliki_wyslane(size_t n)
 {
     n = n < ps.wyj_n ? n : ps.wyj_n;
-    memmove(ps.wyj, ps.wyj + n, ps.wyj_n - n);
+    ps.wyj_od += (uint32_t)n;
     ps.wyj_n -= (uint32_t)n;
 }
 
@@ -267,6 +297,7 @@ static void do_nadzorcy(struct k1_komunikat k, int fd)
 /* What waits for nadzorca: new files (with their names in a memfd), a whole piece, the ends. Main thread. */
 void pliki_obsluz(void)
 {
+    pliki_do_obsluz(); /* 0.11.0 step 3: a file to the zone */
     for (int i = 0; i < K1_PS_CZEKA; i++) {
         struct plik *p = &pl[i];
         if (p->stan == P_NOWY) {
@@ -275,7 +306,7 @@ void pliki_obsluz(void)
             if (fd < 0)
                 continue;
             do_nadzorcy(k1_komunikat_nowy(K1_KOM_STREFA_PLIK, p->id, k1_kom_niskie(p->rozmiar), k1_kom_wysokie(p->rozmiar),
-                                          (int32_t)nl, 0, 0), fd);
+                                          (int32_t)nl, (int32_t)p->dotyczy, 0), fd);
             close(fd);
             p->stan = P_U_NADZORCY;
             k1_log(TAG, "pliki: strefa ma plik %u (%llu B) — pytam K1", p->id, (unsigned long long)p->rozmiar);
@@ -334,6 +365,8 @@ void pliki_wyczysc(void)
 
 void pliki_podsumowanie(void)
 {
-    if (ps.zapisane || ps.zlamania || ps.odmowy)
-        k1_log(TAG, "pliki: zapisane w Plikach %lu, złamania zasad %lu, odmowy %lu", ps.zapisane, ps.zlamania, ps.odmowy);
+    if (ps.zapisane || ps.zlamania || ps.odmowy || ps.utracone)
+        k1_log(TAG, "pliki: zapisane w Plikach %lu, złamania zasad %lu, odmowy %lu, ramki utracone %lu", ps.zapisane,
+               ps.zlamania, ps.odmowy, ps.utracone);
+    pliki_do_podsumowanie();
 }

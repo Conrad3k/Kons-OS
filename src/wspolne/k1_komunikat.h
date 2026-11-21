@@ -153,7 +153,8 @@ enum k1_komunikat_typ {
     /* 0.11.0 step 2 (ADR 0052): a file from a zone into Pliki — its VMM ↔ nadzorca (the VMM's fd 7), nadzorca ↔ gui (fd 5
      * and its channel to nadzorca); obiekt of STREFA_PLIK*: the VMM's number of the file 1..K1_PS_NR_MAKS */
     K1_KOM_STREFA_PLIK = 228,         /* VMM → nadzorca: a=b=its size (low, high: 0..K1_PS_ROZMIAR_MAKS), c=the name's length
-                                       * 1..K1_DOK_NAZWA-1, d=e=0; + 1 fd: a sealed memfd of exactly c bytes, a name of K1
+                                       * 1..K1_DOK_NAZWA-1, d=0 a download / K1's number of a file K1 sent to this zone (a
+                                       * changed version of it, step 3), e=0; + 1 fd: a sealed memfd of exactly c bytes, a name of K1
                                        * (the VMM made it one: k1_dok_nazwa_popraw) — the zone has a file to move */
     K1_KOM_STREFA_PLIK_KAWALEK = 229, /* VMM → nadzorca: a=bytes 1..K1_DOK_KAWALEK (all but the last: K1_DOK_KAWALEK), b=its
                                        * number 0..K1_DOK_KAWALKI_MAKS-1, c=1 the last / 0, d=e=0; + 1 fd: a sealed memfd of
@@ -163,12 +164,29 @@ enum k1_komunikat_typ {
     K1_KOM_STREFA_PLIK_ODP = 231,     /* nadzorca → VMM: a=K1_PLIK_WYSLIJ (send its bytes), K1_PLIK_DALEJ (the next piece),
                                        * K1_PLIK_GOTOWE (its end: b=K1_PS_W_*; b=0 otherwise), c..e=0 */
     K1_KOM_POBRANIE = 232,            /* nadzorca → gui (fd 5): obiekt=zone, a=the file 1..K1_PS_NR_MAKS, b=c=its size
-                                       * (low, high: 0..K1_PS_ROZMIAR_MAKS), d=the name's length 1..K1_DOK_NAZWA-1, e=0; + 1
+                                       * (low, high: 0..K1_PS_ROZMIAR_MAKS), d=the name's length 1..K1_DOK_NAZWA-1, e=1 a
+                                       * changed version of a file K1 sent (step 3: "Zapisać zmiany w oryginale?") / 0; + 1
                                        * fd (as STREFA_PLIK's) — the window asks the user (D2: A) */
-    K1_KOM_POBRANIE_DECYZJA = 233,    /* gui (and the test program) → nadzorca: obiekt=zone, a=the file, b=1 "Zapisz
-                                       * w Pobranych" / 0 "Zostaw w przeglądarce" (and "OK" of a file too big), c..e=0 */
+    K1_KOM_POBRANIE_DECYZJA = 233,    /* gui (and the test program) → nadzorca: obiekt=zone, a=the file, b=K1_POB_* — "Zapisz
+                                       * w Pobranych" (a changed version: "Zapisz" in the original), "Zostaw w przeglądarce"
+                                       * / "Nie" (and "OK" of a file too big), "Zapisz jako nowy plik" (a changed one), c..e=0 */
     K1_KOM_POBRANIE_WYNIK = 234,      /* nadzorca → gui (fd 5): obiekt=zone, a=the file, b=K1_PS_W_*, c..e=0 — its window
                                        * goes; when the user chose "Zapisz", gui says why it was not saved */
+    /* 0.11.0 step 3 (ADR 0052): a file from Pliki to a zone ("Wyślij do…", "Otwórz w…"); a changed version back */
+    K1_KOM_DOK_DO_STREFY = 235,       /* Pliki, gui → skarbiec: obiekt=a visible file, a=zone with a window 1..K1_STREFY_MAKS,
+                                       * b=1 "Otwórz w…" (open it in a new tab) / 0 "Wyślij do…", c..e=0 — after the user's
+                                       * gesture in K1's menu (reply: DOK_WYNIK) */
+    K1_KOM_SKARB_DO_STREFY = 236,     /* skarbiec → nadzorca (its control channel): obiekt=the file, a=zone, b=otworz 0/1,
+                                       * c..e=0; + 1 fd: a sealed memfd of the file's entry (K1_DOK_WPIS_BAJTY) — nadzorca's
+                                       * channel K1_WL_DO_STREF may read it now */
+    K1_KOM_STREFA_DO_PLIK = 237,      /* nadzorca → VMM (fd 7): obiekt=K1's number of the file 1..K1_PS_NR_MAKS, a=b=its size
+                                       * (0..K1_DOK_MAKS_BAJTY), c=the name's length 1..K1_DOK_NAZWA-1, d=otworz 0/1, e=0;
+                                       * + 1 fd: a sealed memfd of the name */
+    K1_KOM_STREFA_DO_KAWALEK = 238,   /* nadzorca → VMM (fd 7): obiekt=the file, a=bytes 1..K1_DOK_KAWALEK, b=the piece's
+                                       * number 0..K1_DOK_KAWALKI_MAKS-1, c..e=0; + 1 fd: a sealed memfd of a bytes — only
+                                       * after STREFA_DO_ODP DALEJ */
+    K1_KOM_STREFA_DO_ODP = 239,       /* VMM → nadzorca (fd 7): obiekt=the file, a=K1_PLIK_DALEJ (the next piece) /
+                                       * K1_PLIK_GOTOWE (b=0 in the zone's folder "Z K1", 1 not), c..e=0 */
     K1_KOM_ZASOBY_USLUGA = 63, /* obiekt=K1_PROFIL_* of a service, a=CPU ‰ (of all CPUs), b=memory KiB, c=1 running */
     K1_KOM_BATERIA = 64,       /* to gui: obiekt=0, a=1 battery present, b=percent 0..100 (-1 unknown), c=K1_BAT_*,
                                 * d=1 on mains power; no battery: a=0, b=-1, c=0 (also to Ustawienia) */
@@ -592,6 +610,8 @@ enum { K1_ROZMIAR_ZWYKLY = 0, K1_ROZMIAR_ZMAKSYMALIZOWANY = 1, K1_ROZMIAR_PELNY 
 #define K1_STREFA_PRZES_MAKS (1 << 29)
 /* 0.11.0 step 2 (ADR 0052): nadzorca's answers to a zone's VMM about a file (STREFA_PLIK_ODP a) */
 enum { K1_PLIK_WYSLIJ = 1, K1_PLIK_DALEJ = 2, K1_PLIK_GOTOWE = 3 };
+/* POBRANIE_DECYZJA b (0.11.0 steps 2, 3) */
+enum { K1_POB_ZOSTAW = 0, K1_POB_ZAPISZ = 1, K1_POB_JAKO_NOWY = 2 };
 
 /* Pointer events */
 /* What Pliki show when the desktop opens them (URUCHOM c, PLIKI_POKAZ b): the entry's place, Kosz, the entry with its
@@ -702,6 +722,7 @@ _Static_assert(K1_TAPETY < K1_TAPETA_ZDJECIE, "k1_komunikat: the photo wallpaper
 /* skarbiec (M5d): owners (K1_WL_*: K1_PROFIL_* of the client, or the system) and object ids */
 #define K1_WL_SYSTEM 100          /* nadzorca itself */
 #define K1_WL_POBRANIA 102        /* nadzorca's channel for files from the zones into Pobrane (0.11.0 step 2, ADR 0052) */
+#define K1_WL_DO_STREF 103        /* nadzorca's channels for files sent to a zone and their changed versions (step 3) */
 #define K1_OB_MAKS 64             /* object ids 1..64 per owner */
 #define K1_OB_USTAWIENIA 1        /* ekran: the settings */
 #define K1_OB_NOTATKA 2           /* Notatki: the first note (0.5.8: 1 = the list, 2..33 = notes) */

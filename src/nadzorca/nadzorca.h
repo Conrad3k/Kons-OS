@@ -257,6 +257,18 @@ void strefa_plik_dalej(int nr, const struct k1_komunikat *k, int fd); /* STREFA_
 void strefa_pliki_koniec(int nr);                                     /* the zone ended */
 void pobranie_decyzja(const struct k1_komunikat *k);                  /* POBRANIE_DECYZJA (gui, the test program) */
 void obsluz_pobrania_skarb(void);
+void pobranie_wynik_skarbca(const struct k1_komunikat *k);           /* DOK_WYNIK on either channel */
+void pobranie_skarb_koniec(void);                                     /* the channel K1_WL_DO_STREF ended */
+/* strefy_do.c (0.11.0 step 3, ADR 0052, D4: A): a file from Pliki to a zone, the bindings for its changed versions */
+extern int do_skarb; /* our channel to skarbiec for them (owner K1_WL_DO_STREF), -1 until the first */
+int kanal_do_stref(void);                                             /* opened when needed */
+void strefa_do(const struct k1_komunikat *k, int fd);                 /* SKARB_DO_STREFY (the entry's memfd) */
+void strefa_do_odp(int strefa, const struct k1_komunikat *k);         /* STREFA_DO_ODP from the VMM */
+void strefa_do_koniec(int strefa);                                    /* the zone ended */
+void strefy_do_okresowe(void);
+void obsluz_do_skarb(void);
+int strefa_powiazanie(int strefa, uint32_t nr, uint32_t *id, uint32_t *folder, const char **nazwa); /* K1 gave it */
+void strefa_powiazanie_nowe_id(int strefa, uint32_t nr, uint32_t id);
 #define X_OBSLUZ_STREFE(n, nr, ...) void obsluz_strefe_##n(void);
 K1_STREFY(X_OBSLUZ_STREFE)
 #undef X_OBSLUZ_STREFE

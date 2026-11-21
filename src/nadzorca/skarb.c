@@ -132,8 +132,15 @@ void obsluz_skarbiec(void)
     int i;
     for (i = 0; i < 8 && skarb_ster >= 0; i++) {
         struct k1_komunikat k;
-        enum k1_odbior_wynik w = k1_odbierz_komunikat(skarb_ster, K1_UID_SKARBIEC, K1_KIER_DO_NADZORCY, &k, NULL);
+        int fd = -1;
+        enum k1_odbior_wynik w = k1_odbierz_komunikat(skarb_ster, K1_UID_SKARBIEC, K1_KIER_DO_NADZORCY, &k, &fd);
         int poprzedni = stan_skarbca;
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_SKARB_DO_STREFY) /* 0.11.0 step 3: strefy_do.c */
+            strefa_do(&k, fd);
+        if (fd >= 0)
+            close(fd); /* no other message of skarbiec brings one */
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_SKARB_DO_STREFY)
+            continue;
         if (w == K1_ODB_PUSTO || w == K1_ODB_KONIEC)
             return; /* empty, or skarbiec ended (handled when it exits) */
         if (w == K1_ODB_JEST && k.typ == K1_KOM_SKARB_URUCHOM) {

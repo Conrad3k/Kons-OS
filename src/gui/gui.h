@@ -165,6 +165,7 @@ void pliki_dopasuj(void); /* the icons follow the files (again after "Ułóż ik
  * of a question or a refusal at (x, y) on the screen. */
 void plik_przenies(uint32_t klucz, uint32_t folder_klucz, int32_t x, int32_t y);
 int plik_typ(uint32_t klucz, int *folder);               /* a file's type (0: not a file; *folder: 1 for a folder) */
+void plik_do_sesji(uint32_t klucz, int strefa, int otworz); /* 0.11.0 step 3: "Wyślij do", a session in "Otwórz za pomocą" */
 void plik_otworz_w(uint32_t klucz, int apl);             /* "Otwórz za pomocą": skarbiec gives it the file (ADR 0030) */
 void plik_pokaz(uint32_t klucz, int co);                 /* Pliki at this file (K1_PLIKI_MIEJSCE) or its name (_NAZWA) */
 void pliki_start(void);                                   /* asks skarbiec for the files of the Pulpit folder */

@@ -82,6 +82,9 @@ enum k1_menu_akcja {
     K1_MA_PRZYWROC,   /* Kosz */
     K1_MA_NA_ZAWSZE,  /* Kosz: "Usuń na zawsze" */
     K1_MA_IMPORTUJ,   /* the USB stick */
+    K1_MA_WYSLIJ_DO,  /* 0.11.0 step 3 (ADR 0052): the submenu of the sessions (k1_menu_sesji) */
+    K1_MA_DO_SESJI,   /* in "Wyślij do": a copy to the session of zone `arg` */
+    K1_MA_W_SESJI,    /* in "Otwórz za pomocą": a copy to the session of zone `arg`, opened in a new tab */
 };
 enum k1_menu_miejsce { K1_MM_PLIKI = 1, K1_MM_PULPIT, K1_MM_KOSZ, K1_MM_PENDRIVE };
 
@@ -91,8 +94,14 @@ void k1_menu_pliku(struct k1_menu *m, enum k1_menu_miejsce gdzie, int folder, in
  * Usuń; in Kosz Przywróć, Usuń na zawsze; on the stick Importuj. */
 void k1_menu_wielu(struct k1_menu *m, enum k1_menu_miejsce gdzie, int ile);
 /* "Otwórz za pomocą": the applications that open `typ` (K1_OTWIERANIE), the one that opens it now (`ustawienie`:
- * K1_UST_OTWIERANIE of the type) marked; with two or more, "Zawsze otwieraj tą aplikacją" (`zawsze`: ticked). */
+ * K1_UST_OTWIERANIE of the type) marked; with two or more, "Zawsze otwieraj tą aplikacją" (`zawsze`: ticked); since
+ * 0.11.0 step 3 then the sessions of the browser (K1_MA_W_SESJI) — they open any type. */
 void k1_menu_za_pomoca(struct k1_menu *m, int typ, int ustawienie, int zawsze);
+/* The sessions of the browser (rows of K1_STREFY with a window and a session: "Przeglądarka · Ogólna"), each a row of
+ * `akcja` (K1_MA_DO_SESJI / K1_MA_W_SESJI) with the zone in arg (0.11.0 step 3). The submenu of "Wyślij do". */
+void k1_menu_sesji(struct k1_menu *m, int akcja);
+/* The submenu of row `wiersz` of a file's menu: "Otwórz za pomocą" (k1_menu_za_pomoca) or "Wyślij do". */
+void k1_menu_podmenu(struct k1_menu *m, int akcja_wiersza, int typ, int ustawienie, int zawsze);
 /* The same for the applications a[0..n), `teraz` marked (k1_menu_za_pomoca: those of a type). */
 void k1_menu_aplikacji(struct k1_menu *m, const int *a, int n, int teraz, int zawsze);
 /* "Zawsze otwieraj tą aplikacją" (and Ustawienia → Aplikacje): the K1_KOM_USTAW messages that make `apl` the default

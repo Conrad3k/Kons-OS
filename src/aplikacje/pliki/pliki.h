@@ -114,6 +114,7 @@ int przyciski(struct k1_przycisk *p); /* the buttons of this place now (some onl
 int przycisk_pustego(struct k1_przycisk *p); /* "Nowy folder" in the middle of an empty folder: 1 when shown */
 int dostepny(int r);                  /* whether button kind `r` can do anything now */
 void wykonaj(int r);                  /* button kind `r` */
+void do_sesji(int strefa, int otworz);  /* "Wyślij do", "Otwórz za pomocą" a session (0.11.0 step 3) */
 void otworz_w(int a);                 /* the selected file in application `a` ("Otwórz za pomocą") */
 void zacznij_edycje(void);
 void skoncz_edycje(int zapisz);

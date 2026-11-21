@@ -285,12 +285,12 @@ void k1_menu_pliku(struct k1_menu *m, enum k1_menu_miejsce gdzie, int folder, in
         p->wyszarzona = 1;
         p->podpowiedz = K1_MENU_BEZ_APLIKACJI_KROTKO;
     }
-    if (!folder)
-        k1_menu_dodaj(m, "Otwórz za pomocą", K1_MA_ZA_POMOCA, 0)->wyszarzona = p->wyszarzona;
-    if (!folder)
-        m->p[m->n - 1].podmenu = 1;
+    if (!folder) /* a session of the browser opens any type (0.11.0 step 3) */
+        k1_menu_dodaj(m, "Otwórz za pomocą", K1_MA_ZA_POMOCA, 0)->podmenu = 1;
     if (gdzie == K1_MM_PULPIT)
         k1_menu_dodaj(m, "Pokaż w Plikach", K1_MA_POKAZ, 0);
+    if (!folder)
+        k1_menu_dodaj(m, "Wyślij do", K1_MA_WYSLIJ_DO, 0)->podmenu = 1;
     k1_menu_kreska(m);
     k1_menu_dodaj(m, "Zmień nazwę", K1_MA_NAZWA, 0);
     k1_menu_dodaj(m, "Usuń", K1_MA_USUN, 0);
@@ -317,7 +317,34 @@ void k1_menu_wielu(struct k1_menu *m, enum k1_menu_miejsce gdzie, int ile)
 void k1_menu_za_pomoca(struct k1_menu *m, int typ, int ustawienie, int zawsze)
 {
     int a[K1_APL_MAKS], n = k1_dok_aplikacje(typ, a);
+    struct k1_menu s;
     k1_menu_aplikacji(m, a, n, k1_dok_czym_otworzyc(typ, ustawienie), zawsze);
+    k1_menu_sesji(&s, K1_MA_W_SESJI);
+    if (m->n > 0 && s.n > 0)
+        k1_menu_kreska(m);
+    for (int i = 0; i < s.n; i++)
+        *k1_menu_dodaj(m, "", 0, 0) = s.p[i];
+}
+
+void k1_menu_sesji(struct k1_menu *m, int akcja)
+{
+    k1_menu_zacznij(m, K1_MENU_SZER_POD);
+    for (int z = 1; z <= K1_STREFY_MAKS; z++) {
+        const struct k1_strefa_opis *s = k1_strefa(z);
+        char t[64];
+        if (!s->okno || s->sesja[0] == '\0')
+            continue;
+        snprintf(t, sizeof t, "%s · %s", s->tytul, s->sesja);
+        k1_menu_dodaj(m, t, akcja, z);
+    }
+}
+
+void k1_menu_podmenu(struct k1_menu *m, int akcja_wiersza, int typ, int ustawienie, int zawsze)
+{
+    if (akcja_wiersza == K1_MA_WYSLIJ_DO)
+        k1_menu_sesji(m, K1_MA_DO_SESJI);
+    else
+        k1_menu_za_pomoca(m, typ, ustawienie, zawsze);
 }
 
 void k1_menu_aplikacji(struct k1_menu *m, const int *a, int n, int teraz, int zawsze)

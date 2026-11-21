@@ -114,6 +114,17 @@ void plik_otworz_w(uint32_t klucz, int apl)
     do_skarbca(K1_KOM_DOK_OTWORZ, p->id, apl);
 }
 
+void plik_do_sesji(uint32_t klucz, int strefa, int otworz)
+{
+    const struct plik_pulpitu *p = plik(klucz);
+    struct k1_komunikat m;
+    if (p == NULL || p->rodzaj != K1_DOK_PLIK || skarb_fd < 0)
+        return;
+    k1_log(TAG, "pulpit: plik %u do sesji %d (%s)", p->id, strefa, otworz ? "otwórz" : "wyślij");
+    m = k1_komunikat_nowy(K1_KOM_DOK_DO_STREFY, p->id, strefa, otworz, 0, 0, 0);
+    k1_kanal_wyslij(skarb_fd, &m, sizeof m, -1);
+}
+
 void plik_pokaz(uint32_t klucz, int co)
 {
     const struct plik_pulpitu *p = plik(klucz);

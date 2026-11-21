@@ -94,10 +94,10 @@ static void otworz_pod(int wiersz)
         return;
     pod_wiersz = wiersz;
     zawsze = 0;
-    k1_menu_za_pomoca(&pod, typ, apl.k.ustawienia[K1_UST_OTWIERANIE + typ - 1], 0);
+    k1_menu_podmenu(&pod, glowne.p[wiersz].akcja, typ, apl.k.ustawienia[K1_UST_OTWIERANIE + typ - 1], 0);
     k1_menu_podmenu_polozenie(&glowne, wiersz, &pod, gx, gy, apl.szer, apl.wys, &px, &py);
     hover_pod = -1;
-    loguj("podmenu (Otwórz za pomocą)", &pod, px, py);
+    loguj(glowne.p[wiersz].akcja == K1_MA_WYSLIJ_DO ? "podmenu (Wyślij do)" : "podmenu (Otwórz za pomocą)", &pod, px, py);
 }
 
 void menu_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
@@ -135,6 +135,8 @@ static void wykonaj_poz(const struct k1_menu_poz *p)
             k1_wyslij(&apl.k, ust[i - 1]);
         otworz_w(p->arg);
         break;
+    case K1_MA_DO_SESJI: /* 0.11.0 step 3: a copy to a session of the browser */
+    case K1_MA_W_SESJI: do_sesji(p->arg, p->akcja == K1_MA_W_SESJI); break;
     case K1_MA_NAZWA: zacznij_edycje(); break;
     case K1_MA_USUN: usun_zaznaczone(gx, gy); break;
     case K1_MA_PRZYWROC: wykonaj(B_PRZYWROC); break;

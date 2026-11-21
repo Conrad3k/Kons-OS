@@ -24,4 +24,18 @@ void pliki_obsluz(void);                       /* what waits for nadzorca */
 void pliki_odp(const struct k1_komunikat *k);  /* STREFA_PLIK_ODP from nadzorca */
 void pliki_podsumowanie(void);                 /* counts in the log, at the end */
 
+/* pliki.c for pliki_do.c (0.11.0 step 3): the connection and our stream of frames to the guest (whole frames, in order) */
+int pliki_polaczony(void);                     /* the agent is connected (its RESPONSE went) */
+size_t pliki_wolne(void);                      /* room for frames now */
+int pliki_dopisz(const struct k1_ps_ramka *r); /* a frame from K1 at the end of the stream; -1: no room or no agent */
+
+/* pliki_do.c — a file from Pliki to the zone ("Wyślij do…", "Otwórz w…"; 0.11.0 step 3, ADR 0052), under mz.zamek */
+void pliki_do_plik(const struct k1_komunikat *k, int fd);    /* STREFA_DO_PLIK from nadzorca (the name's memfd) */
+void pliki_do_kawalek(const struct k1_komunikat *k, int fd); /* STREFA_DO_KAWALEK (the piece's memfd) */
+void pliki_do_dalej(void);                    /* vsock: room in the stream — the next BAJTY frame */
+void pliki_do_odebrany(uint32_t nr, uint32_t wynik); /* ODEBRANY from the agent */
+void pliki_do_rozlacz(void);                  /* the agent went (or broke a rule) */
+void pliki_do_obsluz(void);                   /* main thread: what waits for nadzorca */
+void pliki_do_podsumowanie(void);
+
 #endif
