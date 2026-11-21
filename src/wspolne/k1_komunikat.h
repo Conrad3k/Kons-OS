@@ -641,7 +641,10 @@ enum { K1_STREFA_TRYB_MOST = 13, K1_STREFA_TRYB_VSOCK_OD = 14, K1_STREFA_TRYB_VS
  * card): 16 an honest guest drives the bridge (gosc/grafika.c), 17 a hostile one (bad requests, a flood, too much
  * memory, a hang of the "card") — the broker refuses or ends, the zone and K1 live */
 enum { K1_STREFA_TRYB_GRAFIKA = 16, K1_STREFA_TRYB_GRAFIKA_ZLA = 17 };
-#define K1_STREFA_TRYB_MAKS 17
+/* 0.11.0 step 2 (ADR 0052): files from the zone into Pliki — honest (the test clicks the window) and hostile (the test
+ * program says "Zapisz" to each) — scripts/test-pobrane.sh */
+enum { K1_STREFA_TRYB_POBRANIE = 18, K1_STREFA_TRYB_POBRANIE_ZLE = 19 };
+#define K1_STREFA_TRYB_MAKS 19
 /* 0.10.5 step 4 (D8): the smallest picture of a zone's window the user can drag it to */
 #define K1_OKNO_MIN_SZER 640
 #define K1_OKNO_MIN_WYS 480

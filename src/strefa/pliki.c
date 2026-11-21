@@ -231,15 +231,15 @@ int pliki_odpowiedz(uint32_t *port, int *rst)
 {
     *rst = ps.rst;
     *port = ps.rst ? ps.rst_port : ps.port_goscia;
-    if (ps.rst) {
+    return ps.rst || (ps.polaczony && ps.odpowiedz);
+}
+
+void pliki_odpowiedziano(int rst)
+{
+    if (rst)
         ps.rst = 0;
-        return 1;
-    }
-    if (ps.polaczony && ps.odpowiedz) {
+    else
         ps.odpowiedz = 0;
-        return 1;
-    }
-    return 0;
 }
 
 size_t pliki_do_goscia(uint8_t *b, size_t maks)
@@ -248,9 +248,14 @@ size_t pliki_do_goscia(uint8_t *b, size_t maks)
     if (!ps.polaczony || ps.odpowiedz)
         return 0;
     memcpy(b, ps.wyj, n);
+    return n;
+}
+
+void pliki_wyslane(size_t n)
+{
+    n = n < ps.wyj_n ? n : ps.wyj_n;
     memmove(ps.wyj, ps.wyj + n, ps.wyj_n - n);
     ps.wyj_n -= (uint32_t)n;
-    return n;
 }
 
 static void do_nadzorcy(struct k1_komunikat k, int fd)

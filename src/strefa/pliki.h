@@ -14,7 +14,9 @@ int pliki_polacz(uint32_t port_goscia, const struct pol_kredyt *kr); /* a new co
 void pliki_rozlacz(void);                               /* the guest closed it (SHUTDOWN, RST) */
 int pliki_od_goscia(const uint8_t *b, uint32_t dl);     /* the guest's bytes; -1: more than its credit (hostile) */
 int pliki_odpowiedz(uint32_t *port, int *rst);          /* 1: owed to the guest — its RESPONSE, or (*rst) an RST */
-size_t pliki_do_goscia(uint8_t *b, size_t maks);        /* our frames for the guest, at most maks bytes */
+void pliki_odpowiedziano(int rst);                      /* …it went into the guest's buffer */
+size_t pliki_do_goscia(uint8_t *b, size_t maks);        /* our frames for the guest, at most maks bytes (kept) */
+void pliki_wyslane(size_t n);                           /* …n of them went into the guest's buffer */
 void pliki_wyczysc(void);                               /* the guest reset the vsock device */
 
 /* the main thread (pol_obsluz), under mz.zamek */

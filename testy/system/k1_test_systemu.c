@@ -24,6 +24,8 @@ int main(int argc, char **argv)
         return t_strefy_scenariusz();
     if (znak_dysku("k1-test-mostu")) /* 0.10.5 step 5: Raptor Bridge, the scenario of scripts/test-most.sh */
         return t_most_scenariusz();
+    if (znak_dysku("k1-test-pobranych")) /* 0.11.0 step 2: files from a zone, the scenario of scripts/test-pobrane.sh */
+        return t_pobrane_scenariusz();
     if (tryb_opisu()) /* 0.10.2 step 2: the screen's description for scripts/test-m4.sh, not the checks */
         return t_opis_scenariusz();
     if (znak_dysku("k1-test-aktualizacji")) /* 0.10.5 step 2b: scripts/test-aktualizacja-siec.sh looks from outside; */

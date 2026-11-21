@@ -203,8 +203,11 @@ static int plikom(struct mmio_urz *u)
     uint32_t port;
     int rst, w;
     struct pol_kredyt *k;
-    if (pliki_odpowiedz(&port, &rst))
-        return maly(u, K1_PS_PORT, port, rst ? VIRTIO_VSOCK_OP_RST : VIRTIO_VSOCK_OP_RESPONSE, 0, NULL, 0);
+    if (pliki_odpowiedz(&port, &rst)) {
+        if ((w = maly(u, K1_PS_PORT, port, rst ? VIRTIO_VSOCK_OP_RST : VIRTIO_VSOCK_OP_RESPONSE, 0, NULL, 0)) > 0)
+            pliki_odpowiedziano(rst);
+        return w;
+    }
     if ((k = pliki_kredyt(port)) == NULL)
         return 0;
     if (k->kredyt_prosba || k->przekazane - k->zgloszone >= K1_PS_BUFOR / 2) {
@@ -221,9 +224,11 @@ static int plikom(struct mmio_urz *u)
         n = pliki_do_goscia(b, miejsce < sizeof b ? miejsce : sizeof b);
         if (n == 0)
             return 0;
-        if ((w = maly(u, K1_PS_PORT, port, VIRTIO_VSOCK_OP_RW, 0, b, (uint32_t)n)) > 0)
+        if ((w = maly(u, K1_PS_PORT, port, VIRTIO_VSOCK_OP_RW, 0, b, (uint32_t)n)) > 0) {
             k->wyslane += (uint32_t)n;
-        return w; /* no buffer: the frames are lost — but the guest gives buffers before it reads (the agent waits) */
+            pliki_wyslane(n);
+        }
+        return w; /* no buffer now: the frames wait for the next one */
     }
 }
 
@@ -257,6 +262,8 @@ void vsock_wyslij(void)
     }
     while (w > 0 && v.n_czeka == 0 && (w = winny_sterowaniu(u)) > 0)
         bylo = 1;
+    if (w == 0 && v.n_czeka == 0)
+        w = 1; /* the control connection owed nothing: the files port's turn */
     while (w > 0 && v.n_czeka == 0 && (w = plikom(u)) > 0)
         bylo = 1;
     for (n = 1; w >= 0 && male && n <= K1_STREFA_POLACZENIA_MAKS; n++)
