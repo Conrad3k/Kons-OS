@@ -7,7 +7,9 @@ laguje wciąż trochę za bardzo”. Ta wersja idzie PRZED 0.11.0 „Pliki ze st
 wydaniu tej).
 Zakres zmieniony tego samego dnia (decyzja właściciela 2026-11-20, po scaleniu pierwszej wersji planu — PR #195):
 „wywal cały punkt z tym wsparciem dla tych kart. Zostaje tylko optymalizacja”. Karty AMD i NVIDIA RTX (dawne kroki 3
-i 4) wypadły z wersji; ustalenia ze źródeł — punkt 6.
+i 4) wypadły z wersji; ustalenia ze źródeł — punkt 6. Zaraz potem właściciel dopisał: „niech ta wersja też upewni się,
+że kompatybilność jest z nowszymi kartami Intela zintegrowanymi” — nowy krok 3 (wydanie przeszło z kroku 2 na koniec
+kroku 3: zasada „wydanie zawsze ostatnie”).
 Wersja stoi na 0.10.9 „Szybka grafika” (ADR 0049: i915 w jądrze K1, pośrednik grafiki, most native context, Mesa
 z intel-virtio w strefie, przełącznik przy sesji; plan: docs/archiwum/PLAN-0.10.9.txt) i 0.10.10 (Zasoby → „Karta
 graficzna”: obciążenie, taktowanie, pobór mocy — przyda się do pomiaru).
@@ -24,14 +26,18 @@ Szybka grafika ma być naprawdę szybka: dziś przeglądarka rysuje stronę kart
 przez kilka pełnych kopii robionych procesorem (luki P1–P6) — stąd przycięcia przy przewijaniu i filmach. Po 0.10.11
 obraz z karty trafia na ekran K1 bez kopiowania wszędzie tam, gdzie się da — najpierw pomiar, potem poprawki z liczbami
 „przed / po” z IdeaPada. Zasady bezpieczeństwa z ADR 0049 zostają: strefa nigdy nie dostaje karty, każdą prośbę
-sprawdza pośrednik w klatce, ekran tylko pokazuje gotowy bufor (nie zleca karcie pracy).
+sprawdza pośrednik w klatce, ekran tylko pokazuje gotowy bufor (nie zleca karcie pracy). Do tego K1 ma działać
+z nowszymi kartami zintegrowanymi Intela (laptopy z lat 2017–2024: od Kaby Lake po Meteor / Arrow Lake), nie tylko
+z kartami laptopów właściciela (Ivy Bridge — X230, Skylake — IdeaPad): obraz, oszczędzanie energii, Zasoby i szybka
+grafika — wszędzie tam, gdzie pozwala sterownik i915 i strona strefy w Mesie (P13).
 
-Kroki: DWA. Krok 1 — pomiar i szybkie poprawki (gdzie ginie czas, poprawki bez zmiany architektury). Krok 2 — obraz
-strefy bez kopii: bufor karty prosto do ekranu K1 (ADR 0051); porządki i wydanie.
+Kroki: TRZY. Krok 1 — pomiar i szybkie poprawki (gdzie ginie czas, poprawki bez zmiany architektury). Krok 2 — obraz
+strefy bez kopii: bufor karty prosto do ekranu K1 (ADR 0051). Krok 3 — nowsze karty zintegrowane Intela; porządki
+i wydanie.
 
-ZAKRES ZAMROŻONY (ADR 0035): poniższe 2 kroki i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”);
+ZAKRES ZAMROŻONY (ADR 0035): poniższe 3 kroki i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”);
 wyjątek: błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; wydanie jest zawsze
-ostatnim krokiem; jeśli krok nie zmieści się w jednym czacie, dzieli się na 2a/2b … (wydanie w ostatniej części kroku 2).
+ostatnim krokiem; jeśli krok nie zmieści się w jednym czacie, dzieli się na 2a/2b … (wydanie w ostatniej części kroku 3).
 
 Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
 Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.10.10, 2026-11-20), ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą),
@@ -40,8 +46,10 @@ POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku).
 
 0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
 -----------------------------------------------------
-Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: 1, 2. Krok 1 najpierw: bez liczb z pomiaru nie wiadomo,
-które poprawki dają najwięcej (wynik może zmienić zadania kroku 2 — wtedy w „Ustaleniach z wykonania” kroku 1).
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: 1, 2, 3. Krok 1 najpierw: bez liczb z pomiaru nie
+wiadomo, które poprawki dają najwięcej (wynik może zmienić zadania kroku 2 — wtedy w „Ustaleniach z wykonania” kroku 1).
+Krok 3 po kroku 2, bo nowsze karty mają inne formaty warstw sprzętowych (P10) — krok 3 sprawdza drogę bez kopii także
+dla nich.
 
 Właściciel: co wpisać w nowym czacie (podmień N):
     „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.10.11.txt.”
@@ -50,7 +58,7 @@ Decyzje [!] (punkt 4) czat zada na początku kroku.
 Nowy czat: przebieg każdego kroku:
   1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y i Issue robota, ostatni run CI na main).
   2. Przeczytaj CEL WERSJI, swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4), ADR 0049, docs/komponenty/
-     posrednik.md i strefa.md; krok 2 także „Ustalenia z wykonania” kroku 1.
+     posrednik.md i strefa.md; kroki 2 i 3 także „Ustalenia z wykonania” kroków wcześniejszych.
   3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
   4. „Dziel przed rozbudową”: plik blisko 600 wierszy najpierw osobny commit z podziałem (src/strefa/gpu*.c,
      src/strefa/okno.c, src/strefa/kompozytor/, src/ekran/, src/posrednik/).
@@ -61,15 +69,18 @@ Nowy czat: przebieg każdego kroku:
   7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, scripts/test-m1.sh, test-strefa,
      test-m4 (ekran), test-wzorce; pełny komplet: CI na PR-ze (etykieta „testy”), scalasz przy zielonym. Czekaj poleceniem,
      bez innych wywołań (CLAUDE.md).
-  8. Dokumenty w tym samym PR-ze: ADR 0051 (krok 2), posrednik.md, strefa.md, ekran.md, RYZYKA (R100), SLOWNIK.
-     VERSION i CHANGELOG zmienia krok 2 (wydanie); krok 1 zapisuje „co widzi użytkownik” i liczby w opisie PR-a.
+  8. Dokumenty w tym samym PR-ze: ADR 0051 (krok 2), posrednik.md, strefa.md, ekran.md, jadro.md (krok 3), RYZYKA (R100),
+     SLOWNIK. VERSION i CHANGELOG zmienia krok 3 (wydanie); kroki 1–2 zapisują „co widzi użytkownik” i liczby w opisie
+     PR-a. Jądro (krok 3): pliki od producenta kart do jadro/oprogramowanie-kart.txt (jedna tabela z sumami),
+     scripts/sprawdz-kspp.sh, scripts/porownaj-jadro.sh; nigdy równolegle z otwartym PR-em robota (AGENTS.md).
   9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
      w swoim kroku. Raport: liczby „przed / po”, co sprawdzić na laptopie.
 
 Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
-  - Robot wydaje codziennie PATCH z main, więc każdy scalony krok jedzie do laptopów przed wydaniem tej wersji. Oba kroki
-    przyspieszają to, co już jest, z drogą zapasową (stara droga kopii zostaje, gdy nowa się nie da: P8) — robot zostaje
-    włączony. Wyjątek: gdyby krok 2 zmieniał zachowanie bez drogi zapasowej — robot wyłączony od scalenia do wydania
+  - Robot wydaje codziennie PATCH z main, więc każdy scalony krok jedzie do laptopów przed wydaniem tej wersji. Kroki 1–2
+    przyspieszają to, co już jest, z drogą zapasową (stara droga kopii zostaje, gdy nowa się nie da: P8); krok 3 zmienia
+    tylko to, co widzą komputery z nowszym Intelem (na X230 i IdeaPadzie nic), a wersję z czarnym ekranem chroni
+    zatwierdzanie A/B (rozruch.c liczy od pierwszej klatki — P20). Robot zostaje włączony. Wyjątek: gdyby krok 2 zmieniał zachowanie bez drogi zapasowej — robot wyłączony od scalenia do wydania
     (Actions → Disable workflow, wpis „Tymczasowe” w DO_ZROBIENIA).
   - Numer: robot może wydać 0.10.11 wcześniej — wtedy wydanie tej wersji bierze następny wolny PATCH (0.10.12…); temat
     i plik planu zostają. Tuż przed scaleniem wydania: gałąź z main, sprawdź VERSION, wpis CHANGELOG nad wpisem robota.
@@ -83,16 +94,23 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
     z liczbami „przed / po” do sprawdzenia na IdeaPadzie.
   - Krok 2: obraz z karty idzie prosto na ekran, bez kopiowania procesorem (ekran K1 pokazuje bufor karty jako osobną
     warstwę). Największy zysk przy oknie przeglądarki zmaksymalizowanym i przy przewijaniu; gdy okno jest częściowo
-    zasłonięte — wg D4. Ramka okna dalej rysuje K1. Potem porządki i wydanie.
+    zasłonięte — wg D4. Ramka okna dalej rysuje K1.
+  - Krok 3: K1 na laptopach z nowszą kartą Intela (mniej więcej od 2017 do 2024 roku: Kaby Lake, Coffee Lake, Ice Lake,
+    Tiger Lake, Alder / Raptor Lake, Meteor / Arrow Lake): pulpit przez sterownik karty, oszczędzanie energii obrazu,
+    Zasoby → „Karta graficzna” i szybka grafika jak na IdeaPadzie. Najnowsze karty (Lunar Lake i nowsze) używają innego
+    sterownika, dla którego szybkiej grafiki nie ma jeszcze nigdzie — wg D6. Sprawdzenie na sprzęcie — wg D5. Potem
+    porządki i wydanie.
 
 
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                     Luki (punkt 5)   Zależy od   Decyzje      Rozmiar  ADR
 [ ]  1  Pomiar i szybkie poprawki szybkiej grafiki            P1–P7            0.10.10     D1, T1, T2   M        brak
-[ ]  2  Obraz strefy bez kopii; porządki; wydanie (OSTATNI)   P8–P12           1           D4, T3, T4   L        0051
+[ ]  2  Obraz strefy bez kopii: bufor karty prosto do ekranu  P8–P12           1           D4, T3, T4   L        0051
+[ ]  3  Nowsze karty Intela; porządki; wydanie (OSTATNI)      P13–P20          2           D5, D6, T5,  M        0051
+                                                                                           T6                    (uzup.)
 (ADR 0051: następny wolny po 0050 z 0.10.9; plan 0.11.0 bierze następny po nim. Decyzje D2 i D3 i dawne kroki 3–4 —
-karty AMD i NVIDIA — wypadły 2026-11-20; numery D1 i D4 zostają.)
+karty AMD i NVIDIA — wypadły 2026-11-20; nowy krok 3 to nowsze karty Intela, numery D1 i D4 zostają.)
 
 
 3. KROKI
@@ -123,9 +141,9 @@ KROK 1: Pomiar i szybkie poprawki szybkiej grafiki                          M ·
   Gotowe, gdy: CI zielone; liczby „przed / po” z IdeaPada w PR-ze; w „Ustaleniach z wykonania” — które ogniwa zostają
   dla kroku 2.
 
-KROK 2: Obraz strefy bez kopii — bufor karty prosto do ekranu; porządki; wydanie (OSTATNI)   L · D4, T3, T4 · ADR 0051
+KROK 2: Obraz strefy bez kopii — bufor karty prosto do ekranu                L · D4, T3, T4 · ADR 0051
   Cel: gotowa klatka przeglądarki (bufor karty) trafia na ekran K1 bez kopiowania procesorem — ekran pokazuje ją jako
-  warstwę sprzętową karty (plane) pod ramką, którą dalej rysuje K1. Potem porządki i wydanie.
+  warstwę sprzętową karty (plane) pod ramką, którą dalej rysuje K1.
   Na początku: D4. Potem ADR 0051 (T3, T4) — pierwszy commit po oznaczeniu kroku.
   Co widzi użytkownik: przeglądarka z szybką grafiką płynna jak program na zwykłym systemie, zwłaszcza zmaksymalizowana;
   zachowanie przy zasłoniętym oknie wg D4. Bez szybkiej grafiki (Bank, Prywatna, X230) — jak dziś.
@@ -142,18 +160,51 @@ KROK 2: Obraz strefy bez kopii — bufor karty prosto do ekranu; porządki; wyda
       (niezmiennik 7 bez zmian — tylko pokazuje gotowy bufor).
    d) Pamięć: bufor liczy się do pośrednika strefy (cgroup, ADR 0044), ekran trzyma tylko odwołanie — limit liczby
       buforów na strefę (T4).
-   e) Porządki (wersja PATCH — porządki MINOR przy 0.11.0, ale terminy „Tymczasowe” sprawdzamy); pliki blisko limitu po
-      zmianach; opisy bez powtórzeń.
-   f) Wydanie: VERSION (następny wolny PATCH), CHANGELOG z „Opis w K1:”, DO_ZROBIENIA (punkt 1 i 4: co sprawdzić na
-      IdeaPadzie i X230 — na X230 nic się nie zmienia), plan → docs/archiwum/.
   Testy i dowód: test-strefa (pośrednik testowy daje dma-buf z memfd — P12; ekran pokazuje go jako warstwę albo drogą
   zapasową; złe bufory: za mały, zły format, zły krok wiersza, za dużo buforów — odrzucone, ekran żyje), test na hoście
-  i fuzzing nowego komunikatu, test-m4 i test-wzorce (ramka bez zmian), liczby „przed / po” z IdeaPada; pełny komplet
-  w CI na PR-ze wydania.
+  i fuzzing nowego komunikatu, test-m4 i test-wzorce (ramka bez zmian), liczby „przed / po” z IdeaPada.
   Dokumenty: ADR 0051, ekran.md, strefa.md, posrednik.md, RYZYKA (R100: ekran dostaje bufor ze strefy — co go chroni),
-  SLOWNIK („warstwa sprzętowa”, jeśli nowe), WYGLAD (D4), CHANGELOG.
+  SLOWNIK („warstwa sprzętowa”, jeśli nowe), WYGLAD (D4).
   Gotowe, gdy: CI zielone; IdeaPad: liczby lepsze niż po kroku 1, obraz bez błędów przy przesuwaniu, minimalizacji
-  i Alt+Tab; wydanie istnieje (linki ISO i USB w raporcie), lista „co sprawdzić” w DO_ZROBIENIA.
+  i Alt+Tab.
+
+KROK 3: Nowsze karty zintegrowane Intela; porządki; wydanie (OSTATNI)     M · D5, D6, T5, T6 · ADR 0051 (uzupełnienie)
+  Cel: K1 działa na laptopach z nowszymi kartami zintegrowanymi Intela tak samo jak na IdeaPadzie: pulpit przez i915,
+  oszczędzanie energii obrazu, Zasoby → „Karta graficzna”, szybka grafika (gdy karta spełnia warunki pośrednika) i droga
+  obrazu bez kopii z kroku 2. Potem porządki i wydanie.
+  Na początku: D5, D6.
+  Co widzi użytkownik (laptop z nowszym Intelem): pulpit bez czarnego ekranu, jasne stany oszczędzania (bateria),
+  Ustawienia → Przeglądarka: „obsługuje szybką grafikę”, przełącznik przy sesjach jak na IdeaPadzie (domyślnie wg D5),
+  Zasoby z obciążeniem i taktowaniem karty. Najnowsze karty (Lunar Lake i nowsze) — wg D6. Na X230 i IdeaPadzie — bez zmian.
+  Zadania:
+   a) Przegląd generacji (T5): tabela w jadro/ albo w docs/komponenty/jadro.md — generacja, sterownik (i915 / xe), pliki
+      od producenta, szybka grafika tak / nie i dlaczego; z niej wynika, czego brakuje. Źródła: build/zrodla/linux-*/
+      drivers/gpu/drm/i915 (i915_pci.c — lista kart, intel_dmc.c, intel_uc_fw.c — nazwy plików), Mesa 26.2.6
+      (src/intel/dev/virtio, P13).
+   b) Pliki od producenta (firmware) do jadro/oprogramowanie-kart.txt: DMC (obraz) dla Kaby Lake → Meteor Lake, GuC (bez
+      niego i915 na Alder Lake-P i nowszych nie zleca pracy karcie — P15, NIEPEWNE), HuC i GSC tylko jeśli potrzebne;
+      każdy z sumą i komentarzem; rozmiar k1.efi przed / po.
+   c) Pośrednik: warunki oddzielenia pracy stref (pełne PPGTT, izolacja, softpin, płoty — src/posrednik/karta.c)
+      sprawdzone w źródłach i915 dla każdej generacji; lista ioctl i parametrów (K1_POSR_IOCTLE) — czy Mesa iris na Gen11/
+      Gen12 pyta o coś, czego lista nie ma (P16: inaczej szybka grafika „nie wstaje” tylko na nowszych kartach).
+   d) Zasoby: odczyty karty (karta_pomiar.c: gt_act_freq_mhz, gt_RP0_freq_mhz, licznik zajętości) — na Meteor Lake karta
+      ma dwie części (gt0, gt1) i inne pliki w sysfs (P17); RAPL „uncore” — czy jest na nowszych (P18).
+   e) Droga bez kopii z kroku 2: formaty i modyfikatory warstw sprzętowych Gen11/Gen12 (inne kompresje CCS — P10), lista
+      z IN_FORMATS bez zmian w kodzie (tylko sprawdzenie, że nic nie zakłada Skylake).
+   f) Dekoder filmów (uśpiony, i965) obsługuje karty do Gen9.5 — na nowszych pytanie przy starcie mówi „nie obsługuje”
+      (P19; bez zmian zachowania, tylko sprawdzenie, że nie pada).
+   g) Wg D6 „B”: sterownik xe w jądrze tylko dla obrazu i oszczędzania energii najnowszych kart (bez szybkiej grafiki).
+   h) Porządki (wersja PATCH — porządki MINOR przy 0.11.0, ale terminy „Tymczasowe” sprawdzamy); pliki blisko limitu po
+      zmianach; opisy bez powtórzeń.
+   i) Wydanie: VERSION (następny wolny PATCH), CHANGELOG z „Opis w K1:”, DO_ZROBIENIA (punkt 1 i 4: co sprawdzić na
+      IdeaPadzie, X230 i — wg D5 — na laptopie z nowszym Intelem), plan → docs/archiwum/.
+  Testy i dowód: budowa jądra, sprawdz-kspp, porownaj-jadro (nowe opcje — ręcznie w k1-odrzucone.txt, jeśli niepotrzebne),
+  test-m1 i test-m4 (start i pulpit w QEMU bez zmian), test-m5f / test-aktualizacja-siec (rozmiar k1.efi w miejscu A/B),
+  test na hoście dla nowych odczytów Zasobów (pliki sysfs Meteor Lake jako dane testowe), sprzęt wg D5; pełny komplet
+  w CI na PR-ze wydania.
+  Dokumenty: ADR 0051 (uzupełnienie: generacje i warstwy), jadro.md (tabela generacji), posrednik.md, nadzorca.md,
+  RYZYKA (R100 — więcej generacji i915 w zasięgu strefy; R101 — Mesa intel-virtio na Gen12), CHANGELOG.
+  Gotowe, gdy: CI zielone, wydanie istnieje (linki ISO i USB w raporcie), lista „co sprawdzić” w DO_ZROBIENIA.
 
 
 4. DECYZJE
@@ -165,6 +216,21 @@ Twoje (produkt) — czat kroku zada je na początku:
          wykresu); łatwo porównasz przed i po aktualizacji.
       B: nie — liczby tylko w logu i w raportach z testów.
   [x] D2, D3 — wypadły razem z kartami AMD i NVIDIA (decyzja właściciela 2026-11-20).
+  [!] D5 (krok 3) — Sprawdzenie na nowszym Intelu. Twoje laptopy mają starsze karty (X230 — Ivy Bridge, IdeaPad —
+      Skylake), a CI nie ma żadnej karty.
+      A (zalecane): napisz, czy możesz pożyczyć albo masz laptop z nowszym Intelem (model) — uruchomisz obraz USB z PR-a
+         (pulpit, Zasoby, przeglądarka); szybka grafika na nowszych kartach działa jak na IdeaPadzie (przełącznik przy
+         sesji, Ogólna włączona), a karty, których nikt nie sprawdził, są w raporcie opisane jako niesprawdzone. Ochrona:
+         pośrednik odmawia, gdy karta nie spełnia warunków, a wersję z czarnym ekranem cofa zatwierdzanie A/B.
+      B: bez sprzętu i ostrożniej — na kartach, których nikt nie sprawdził, przełącznik „Szybka grafika” domyślnie
+         wyłączony we wszystkich sesjach (włączasz sam).
+  [!] D6 (krok 3) — Najnowsze karty Intela (Lunar Lake z 2024 i nowsze) używają nowego sterownika „xe”; dla niego Mesa nie
+      ma strony strefy szybkiej grafiki (P13), więc szybkiej grafiki na nich nie będzie, a pulpit już dziś działa przez
+      obraz z firmware (bez oszczędzania energii obrazu i bez Zasobów karty).
+      A (zalecane): w tej wersji bez xe — tylko karty sterownika i915 (do Meteor / Arrow Lake); xe razem z pierwszym takim
+         laptopem do sprawdzenia („Później”).
+      B: xe w jądrze K1 już teraz, tylko dla obrazu i oszczędzania energii (bez szybkiej grafiki) — większe jądro,
+         nieprzetestowane na sprzęcie.
   [!] D4 (krok 2) — Okno przeglądarki częściowo zasłonięte (inne okno albo menu na nim):
       A (zalecane): K1 sam przełącza się między warstwą karty (gdy okno widać w całości — najszybciej) a kopią (gdy coś
          je zasłania) — nie widać różnicy poza płynnością.
@@ -181,6 +247,11 @@ Techniczne (decyduje Claude, z krótkim uzasadnieniem w ADR albo w „Ustaleniac
      pracę karcie — zmiana niezmiennika 7 większa niż potrzeba).
   T4 Limity: bufory pokazywane na strefę (np. 3 — podwójne/potrójne buforowanie), rozmiar ≤ ekran, formaty i modyfikatory
      tylko z listy ekranu; zły bufor = droga zapasowa i licznik, nie koniec strefy.
+  T5 Nowsze karty Intela: zakres = karty, które i915 w jądrze K1 obsługuje bez force_probe (i915_pci.c), czyli od Kaby Lake
+     do Meteor / Arrow Lake (NIEPEWNE dokładnie — z wykonania); karty dyskretne Intela (Arc) — poza zakresem (zintegrowane
+     tylko, jak prosi właściciel). Pliki od producenta — tylko te, bez których karta nie rysuje albo nie oszczędza energii.
+  T6 Warunek szybkiej grafiki bez zmian (pełne PPGTT, izolacja, softpin, płoty); nowe generacje nie dostają wyjątków —
+     jeśli któraś nie spełnia, pośrednik mówi „nie obsługuje” jak na X230.
 
 
 5. LUKI (z czytania kodu po 0.10.10, 2026-11-20)
@@ -222,6 +293,27 @@ Krok 2
   P12 NISKA, Z KODU. Pośrednik testowy (testowy.c) ma „pamięć karty” z memfd — dma-buf w teście z udmabuf albo droga
      testowa ekranu z memfd (bez karty w QEMU).
 
+Krok 3
+  P13 WYSOKA → ZE ŹRÓDEŁ (Mesa 26.2.6, sprawdzone 2026-11-20). Strona strefy mostu dla Intela (src/intel/dev/virtio:
+     i915_proto.h, i915_virtio_ccmd*.c) mówi tylko protokołem i915 — dla sterownika xe nie ma nic. Szybka grafika na
+     nowszych Intelach jest więc możliwa tylko na kartach sterownika i915.
+  P14 ŚREDNIA, Z KODU. jadro/oprogramowanie-kart.txt ma dla Intela tylko DMC Skylake (skl_dmc_ver1_27.bin); jądro K1:
+     CONFIG_DRM_I915=y, bez xe. Nowsze generacje bez DMC — obraz działa, ale bez głębokich stanów oszczędzania (bateria).
+  P15 WYSOKA, NIEPEWNE. GuC: na Alder Lake-P i nowszych i915 domyślnie zleca pracę karcie przez GuC (intel_uc.c,
+     enable_guc) — bez pliku GuC karta może nie rysować wcale (szybka grafika, dekoder), choć obraz działa; na Meteor Lake
+     GuC jest obowiązkowy. Sprawdzić w źródłach i915 w kroku, nazwy plików z intel_uc_fw.c.
+  P16 ŚREDNIA, NIEPEWNE. Lista ioctl i parametrów pośrednika (K1_POSR_IOCTLE) powstała z Mesy iris na Skylake (0.10.9
+     krok 5) — Gen11/Gen12 mogą pytać o inne parametry (np. silniki, pamięć, zapytania DRM_I915_QUERY_*); sprawdzić
+     w źródłach Mesy (src/intel/dev/i915/intel_device_info.c, iris) i dopisać tylko odczyty.
+  P17 ŚREDNIA, NIEPEWNE. Zasoby → „Karta graficzna” (karta_pomiar.c) czyta gt_act_freq_mhz i gt_RP0_freq_mhz z katalogu
+     karty; Meteor Lake ma dwie części karty (gt0 — grafika, gt1 — media) i pliki w gt/gt0/ — odczyt może dać „brak”.
+  P18 NISKA, NIEPEWNE. Pobór mocy karty z RAPL „uncore” (0.10.10) — na części nowszych procesorów tej domeny nie ma; wtedy
+     Zasoby pokazują tylko pobór laptopa (bez błędu).
+  P19 NISKA, Z KODU. Dekoder filmów (i965, uśpiony) obsługuje karty do Gen9.5 — nowsze wymagają iHD (C++, odrzucone
+     w ADR 0049); pytanie przy starcie musi kończyć się „nie obsługuje”, nie awarią.
+  P20 NISKA, Z KODU. Zatwierdzanie A/B liczy od pierwszej klatki na ekranie (rozruch.c, 0.10.9 S3) — chroni laptopy
+     z nowszym Intelem przed wersją z czarnym ekranem przy aktualizacji; nowa instalacja z pendrive'a — bez tej ochrony.
+
 
 6. NIE W TEJ WERSJI (do docs/DO_ZROBIENIA.txt „Później”)
 --------------------------------------------------------
@@ -230,7 +322,8 @@ Krok 2
     (src/amd/common/virtio, opcja meson „amdgpu-virtio” — radeonsi i radv; radeonsi da się zbudować bez LLVM), Intela,
     Qualcomma i Apple — dla NVIDII (nouveau, NVK) nie ma; jedyna inna droga to Venus, odrzucona w ADR 0049. Bez komputera
     z taką kartą nie da się tego sprawdzić na sprzęcie (laptopy właściciela mają karty Intela).
-  - Nowsze karty Intela ze sterownikiem Xe (Lunar Lake i nowsze).
+  - Najnowsze karty Intela ze sterownikiem xe (Lunar Lake i nowsze): przy D6 „A” w ogóle, przy „B” — szybka grafika
+    (Mesa nie ma strony strefy dla xe, P13). Karty dyskretne Intela (Arc).
   - Filmy kartą („może” z 0.10.9) — bez zmian; droga bez kopii z kroku 2 je ułatwi.
   - Ekran K1 składający cały pulpit kartą (T3 — odrzucone w tej wersji).
   - „Opakowanie” pośrednika (R100, najpóźniej 0.13) — bez zmian.
