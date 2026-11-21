@@ -216,7 +216,9 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   liczba CPU, czas pracy) i `ZASOBY_USLUGA` dla każdej usługi (`cpu.stat`, `memory.current` jej
   cgroup). Kanał jednokierunkowy: po stronie nadzorcy `shutdown(SHUT_RD)` — nic od aplikacji nie czyta.
   Od 0.10.10 (krok 2, `karta_pomiar.c`) także `ZASOBY_KARTA`: karta i915 (`drm/cardN`, sterownik i915) —
-  `power/rc6_residency_ms` (czas snu karty → obciążenie, czyste `k1_karta_pomiar.c`), `gt_act_freq_mhz`, `gt_RP0_freq_mhz`;
+  czas snu karty (→ obciążenie, czyste `k1_karta_pomiar.c`), taktowanie teraz i najwyższe — od 0.10.11 (krok 3) z tabeli
+  `K1_KARTA_PLIKI`: najpierw `gt/gt0/` (część graficzna; Meteor / Arrow Lake mają też `gt1` — media — a pliki samej karty
+  łączą obie), potem `power/rc6_residency_ms`, `gt_act_freq_mhz`, `gt_RP0_freq_mhz`;
   RAPL (`powercap/intel-rapl:0:K` o nazwie „uncore”) — `energy_uj` z zawinięciem przy `max_energy_range_uj` (plik tylko dla
   root — nadzorca daje Zasobom średnią z sekundy); sesje z działającym pośrednikiem grafiki. Raz w logu: „zasoby: karta
   graficzna — cardN; pobór mocy karty: RAPL uncore”.

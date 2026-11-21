@@ -102,6 +102,41 @@ tak”, żeby porównanie jądra o nie nie pytało): `DRM_I915_CAPTURE_ERROR` i 
 po zawieszeniu — K1 nie ma debugfs), `DRM_I915_USERPTR` (bufory z pamięci procesu — i965 ich nie używa, mniej kodu
 w zasięgu strefy), `WMI_BMOF`. Plik DMC dla Skylake (`i915/skl_dmc_ver1_27.bin`, głębokie stany oszczędzania obrazu, S10)
 w `jadro/oprogramowanie-kart.txt`; Ivy Bridge go nie ma. bzImage: +1,3 MiB.
+
+**Nowsze karty zintegrowane Intela (0.10.11 krok 3, ADR 0051 — uzupełnienie; decyzje właściciela D5, D6 „A”).** Ten sam
+sterownik i915 — bez nowych opcji jądra, tylko pliki od producenta (`jadro/oprogramowanie-kart.txt`; k1.efi +1,3 MiB).
+Zakres: karty zintegrowane, które i915 jądra 7.3 obsługuje bez `force_probe` (`i915_pci.c`); karty dyskretne (Arc, DG1,
+DG2) — poza zakresem. **Niesprawdzone na sprzęcie** poza Ivy Bridge (X230) i Skylake (IdeaPad) — dowodem są źródła i915
+i Mesy 26.2.6 oraz testy na hoście i w CI.
+
+| Generacja (lata) | Przykłady | DMC (obraz, bateria) | GuC | Szybka grafika |
+|---|---|---|---|---|
+| Ivy Bridge, Haswell, Broadwell (2012–2015) | X230 | brak / niepotrzebny | nie | nie — bez pełnego PPGTT (Ivy Bridge, Haswell); Broadwell: wg sprawdzenia pośrednika |
+| Skylake (2015) | IdeaPad 110 | `skl_dmc_ver1_27` | nie | tak (sprawdzone) |
+| Apollo Lake, Gemini Lake (2016–2017) | tanie laptopy z Celeronem / Pentium | `bxt_dmc_ver1_07`, `glk_dmc_ver1_04` | nie | wg sprawdzenia pośrednika |
+| Kaby / Coffee / Whiskey / Amber / Comet Lake (2016–2020) | 7.–10. gen. Core | `kbl_dmc_ver1_04` | nie | tak — jak Skylake (Gen9) |
+| Ice Lake, Elkhart / Jasper Lake (2019–2021) | 10. gen. Core „G” | `icl_dmc_ver1_09` | nie | tak (Gen11) |
+| Tiger Lake, Rocket Lake (2020–2021) | 11. gen. Core | `tgl_dmc_ver2_12`, `rkl_dmc_ver2_03` | nie (i915: domyślnie wyłączony) | tak (Gen12) |
+| Alder Lake S / HX (2021–2022) | 12. gen. Core, komputery stacjonarne i HX | `adls_dmc_ver2_01` | tylko HuC (nie potrzebny) | tak (Gen12) |
+| Alder Lake P / N, Raptor Lake P / U (2022–2023) | 12.–13. gen. Core laptopów | `adlp_dmc` | **tak** — `adlp_guc_70` | tak (Gen12) |
+| Raptor Lake S / HX (2022–2023) | 13.–14. gen. Core | `adls_dmc_ver2_01` | **tak** — `tgl_guc_70` | tak (Gen12) |
+| Meteor / Arrow Lake (2023–2024) | Core Ultra 1. i 2. serii „H/U” | `mtl_dmc` | **tak** — `mtl_guc_70` | tak (Gen12.7; pośrednik przyjmuje „PAT”) |
+| Lunar Lake i nowsze (2024–) | Core Ultra 2. serii „V” | — | — | nie: sterownik xe (D6 „A”: nie w tej wersji); pulpit przez obraz z firmware (simpledrm) |
+
+- **GuC** (`gt/uc/intel_uc.c`: `uc_expand_default_options`): na Alder Lake P, Raptor Lake i Meteor / Arrow Lake i915
+  zleca pracę karcie tylko przez GuC; bez pliku uznaje kartę za zawieszoną — obraz działa, rysowanie nie (szybka grafika,
+  dekoder filmów). Raptor Lake S / HX biorą plik Tiger Lake (`fw_def(ALDERLAKE_S, …, tgl)`). HuC i GSC (tylko filmy kartą)
+  — nie dodane: ich brak i915 zgłasza tylko w logu.
+- **DMC** (`display/intel_dmc.c`, `dmc_firmware_default`): bez niego obraz działa, ale bez głębokich stanów oszczędzania
+  obrazu (bateria).
+- **Zasoby → „Karta graficzna”**: Meteor / Arrow Lake mają dwie części karty (`gt0` — grafika, `gt1` — media); pliki samej
+  karty łączą obie (najmniejszy czas snu, najwyższe taktowanie — `gt/intel_gt_sysfs_pm.c`), więc nadzorca czyta najpierw
+  `gt/gt0/` (`k1_karta_pomiar.c`, tabela `K1_KARTA_PLIKI`). RAPL „uncore” (pobór mocy karty) — NIEPEWNE na nowszych
+  procesorach; bez niego Zasoby pokazują tylko pobór laptopa.
+- **Dekoder filmów** (i965, uśpiony) obsługuje karty do Gen9.5 — na nowszych pytanie przy starcie kończy się „nie obsługuje”
+  (`vaInitialize` odmawia), bez awarii.
+- **Droga obrazu bez kopii** (ADR 0051): warstwa karty wybiera płaszczyznę po typie i formacie (XRGB8888, liniowy), nowy
+  bufor najpierw `TEST_ONLY` — nic nie zakłada Skylake; na nowszych kartach kompresji i kafelków (CCS) nie używa.
 0.10.10 krok 2: `POWERCAP` i `INTEL_RAPL` — licznik energii procesora (domena „uncore”: karta graficzna) dla Zasobów
 (`aplikacje.md`); czyta tylko nadzorca, K1 nie ustawia ograniczeń mocy. `IOSF_MBI` był już włączony.
 
