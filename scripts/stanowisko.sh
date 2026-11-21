@@ -17,9 +17,10 @@ gcc -std=c11 -g -O1 -D_GNU_SOURCE -fsanitize=address,undefined -fno-omit-frame-p
     -I"$K1_REPO/src/strefa/kompozytor" -I"$K1_REPO/src/strefa/gosc" -I"$K1_REPO/src/wspolne" -I"$K1_BUDOWA/naglowki/include" \
     $(ls "$K1_REPO"/src/strefa/kompozytor/*.c | grep -v '/drm\.c$') "$K1_REPO/src/wspolne/k1_pomiar.c" "$K1_REPO/testy/stanowisko/ekran.c" \
     -o "$WYNIK/kompozytor"
+gcc -std=c11 -O1 -Wall -Wextra -o "$WYNIK/patrz" "$K1_REPO/testy/stanowisko/patrz.c" # 0.11.0: inotify for pobrane.py
 echo "[k1] stanowisko: kompozytor strefy na hoście + Firefox z obrazu strefy ($(basename "$SCEN"))"
 r=0
-K1_KOMPOZYTOR="$WYNIK/kompozytor" timeout --kill-after=10 600 unshare -m --propagation private \
+K1_KOMPOZYTOR="$WYNIK/kompozytor" PATRZ="$WYNIK/patrz" timeout --kill-after=10 600 unshare -m --propagation private \
     python3 -I "$K1_REPO/testy/stanowisko/stanowisko.py" "$OBRAZ" "$WYNIK" "$SCEN" || r=1
 if [ $r -eq 0 ]; then info "stanowisko: wszystko zaliczone"; else echo "[k1] stanowisko: BŁĄD (logi: $WYNIK)"; fi
 exit $r

@@ -72,3 +72,5 @@ pref("browser.download.dir", "/home/k1/Pobrane", locked);
 pref("browser.download.folderList", 2, locked);
 pref("browser.download.useDownloadDir", true, locked);
 pref("browser.download.start_downloads_in_tmp_dir", false, locked);
+// Bez okna „Otwieranie <plik>” (co zrobić z plikiem): w strefie nie ma innych programów — plik zawsze się zapisuje.
+pref("browser.download.always_ask_before_handling_new_types", false, locked);
