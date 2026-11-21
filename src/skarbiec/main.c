@@ -64,7 +64,12 @@ void zglos_stan(void)
 
 void do_nadzorcy(struct k1_komunikat m)
 {
-    if (k1_kanal_wyslij(FD_STEROWANIE, &m, sizeof m, -1) != 0)
+    do_nadzorcy_z(m, -1);
+}
+
+void do_nadzorcy_z(struct k1_komunikat m, int fd)
+{
+    if (k1_kanal_wyslij(FD_STEROWANIE, &m, sizeof m, fd) != 0)
         k1_log(TAG, "komunikat do nadzorcy: %s", strerror(errno));
 }
 

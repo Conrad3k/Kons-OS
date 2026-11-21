@@ -72,7 +72,9 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            ((typ == K1_KOM_POSR_OKNO || typ == K1_KOM_POSR_WSPOLNA) && kierunek == K1_KIER_DO_POSREDNIKA) || /* step 5 */
            (typ == K1_KOM_POSR_DMABUF && kierunek == K1_KIER_OD_POSREDNIKA) || /* …and a buffer for the VMM */
            (typ == K1_KOM_DEK_PIKSELE && kierunek == K1_KIER_OD_DEKODERA) ||
-           ((typ == K1_KOM_STREFA_PLIK || typ == K1_KOM_STREFA_PLIK_KAWALEK) && kierunek == K1_KIER_DO_NADZORCY) || /* 0.11.0 */
+           ((typ == K1_KOM_STREFA_PLIK || typ == K1_KOM_STREFA_PLIK_KAWALEK || typ == K1_KOM_SKARB_DO_STREFY) &&
+            kierunek == K1_KIER_DO_NADZORCY) || /* 0.11.0 steps 2, 3 */
+           ((typ == K1_KOM_STREFA_DO_PLIK || typ == K1_KOM_STREFA_DO_KAWALEK) && kierunek == K1_KIER_OD_NADZORCY) ||
            (typ == K1_KOM_POBRANIE && kierunek == K1_KIER_OD_NADZORCY) || /* step 2: the name of a file from a zone */
            ((typ == K1_KOM_PEN_LISTA || typ == K1_KOM_PEN_PLIK) && kierunek == K1_KIER_OD_CZYTNIKA) ||
            ((typ == K1_KOM_SIEC_KABEL || typ == K1_KOM_SIEC_GNIAZDO || typ == K1_KOM_SIEC_WIFI_WYNIKI ||

@@ -32,6 +32,7 @@ with open(f"{ROOT}/run/machine-id", "w") as f:  # as gosc (id_maszyny): GLib loo
     f.write("%032x\n" % int.from_bytes(os.urandom(16), "big"))
 os.makedirs(f"{ROOT}/home/k1/profil")
 os.makedirs(f"{ROOT}/home/k1/Pobrane")  # 0.11.0 step 2: the folder of downloads (gosc/przegladarka.c)
+os.makedirs(f"{ROOT}/home/k1/Z K1")  # 0.11.0 step 3: files from Pliki (the agent writes there)
 sh("chown", "-R", "1000:1000", f"{ROOT}/home/k1")
 os.makedirs("/dev/input", exist_ok=True)
 sh("mount", "-t", "tmpfs", "tmpfs", "/dev/input")

@@ -40,7 +40,8 @@ K1_STREFY(X_SPR_F)
  * end of the numbers (0.10.9 steps 2 and 5) */
 _Static_assert(K1_PROFIL_FILMY + K1_STREFY_MAKS + 1 == K1_PROFIL_POSREDNIK, "profil POSREDNIK: zaraz po dekoderach filmów");
 _Static_assert(K1_PROFIL_POSREDNIK + K1_STREFY_MAKS == K1_PROFIL_MAKS, "profile pośredników grafiki: na końcu numerów");
-_Static_assert(K1_WL_POBRANIA > K1_PROFIL_MAKS && K1_WL_POBRANIA != K1_WL_DOKUMENTY, "K1_WL_POBRANIA: poza profilami");
+_Static_assert(K1_WL_POBRANIA > K1_PROFIL_MAKS && K1_WL_POBRANIA != K1_WL_DOKUMENTY && K1_WL_DO_STREF > K1_WL_POBRANIA,
+               "K1_WL_POBRANIA, K1_WL_DO_STREF: poza profilami");
 _Static_assert(K1_WL_SYSTEM > K1_PROFIL_MAKS, "właściciel K1_WL_SYSTEM musi być poza numerami profili");
 
 const char *k1_profil_program(int profil)

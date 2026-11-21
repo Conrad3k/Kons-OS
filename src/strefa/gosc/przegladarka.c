@@ -42,6 +42,8 @@
 #define PRZEKAZNIK "/usr/lib/k1/przekaznik"
 #define AGENT "/usr/lib/k1/agent"           /* 0.11.0 step 2 (ADR 0052): the files of the session into Pliki */
 #define POBRANE "/home/k1/Pobrane"          /* the browser's folder of downloads (strefy/przegladarka/k1.js) */
+#define Z_K1 "/home/k1/Z K1"                /* 0.11.0 step 3: files from Pliki ("Wyślij do…", "Otwórz w…") */
+#define OTWORZ "/run/k1/otworz"             /* …and the compositor's FIFO to open one in a new tab */
 #define PRZEGLADARKA "/usr/lib/firefox-esr/firefox-esr"
 #define WAYLAND "/run/k1/wayland-0"
 #define UZYTKOWNIK 1000
@@ -298,7 +300,7 @@ void przegladarka(int ster)
     static char *const env_p[] = { "PATH=/usr/bin", "HOME=/home/k1", "XDG_RUNTIME_DIR=/run/k1",
                                    "WAYLAND_DISPLAY=wayland-0", "MOZ_ENABLE_WAYLAND=1", "LANG=C.UTF-8",
                                    "MOZ_CRASHREPORTER_DISABLE=1", "MOZ_DISABLE_WAYLAND_PROXY=1", NULL };
-    char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL }, *a_agent[] = { "agent", POBRANE, NULL };
+    char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL }, *a_agent[] = { "agent", POBRANE, Z_K1, OTWORZ, NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;
     int koniec = 0, krok = 0, okno[2], dysk, regula = 0, grafika; /* koniec 2: the browser out of time */
@@ -319,7 +321,8 @@ void przegladarka(int ster)
     id_maszyny();
     if ((mkdir("/home/k1", 0700) != 0 && errno != EEXIST) || chown("/home/k1", UZYTKOWNIK, UZYTKOWNIK) != 0 ||
         (mkdir("/home/k1/profil", 0700) != 0 && errno != EEXIST) || chown("/home/k1/profil", UZYTKOWNIK, UZYTKOWNIK) != 0 ||
-        (mkdir(POBRANE, 0700) != 0 && errno != EEXIST) || chown(POBRANE, UZYTKOWNIK, UZYTKOWNIK) != 0)
+        (mkdir(POBRANE, 0700) != 0 && errno != EEXIST) || chown(POBRANE, UZYTKOWNIK, UZYTKOWNIK) != 0 ||
+        (mkdir(Z_K1, 0700) != 0 && errno != EEXIST) || chown(Z_K1, UZYTKOWNIK, UZYTKOWNIK) != 0)
         loguj("katalog domowy: %s", strerror(errno));
     petla_zwrotna();
     grafika = z_grafika();

@@ -144,7 +144,7 @@ static void otworz_pod(int wiersz)
         return;
     pod_wiersz = wiersz;
     zawsze = 0;
-    k1_menu_za_pomoca(&pod, typ, k.ustawienia[K1_UST_OTWIERANIE + typ - 1], 0);
+    k1_menu_podmenu(&pod, glowne.p[wiersz].akcja, typ, k.ustawienia[K1_UST_OTWIERANIE + typ - 1], 0);
     k1_menu_podmenu_polozenie(&glowne, wiersz, &pod, gx, gy, k.szer_ekranu, k.wys_ekranu, &px, &py);
     hover_pod = -1;
     uloz();
@@ -312,6 +312,8 @@ static void wykonaj(const struct k1_menu_poz *p)
             k1_wyslij(&k, ust[i - 1]);
         plik_otworz_w(klucz, arg);
         return;
+    case K1_MA_DO_SESJI: /* 0.11.0 step 3 */
+    case K1_MA_W_SESJI: plik_do_sesji(klucz, arg, akcja == K1_MA_W_SESJI); return;
     case K1_MA_POKAZ: plik_pokaz(klucz, K1_PLIKI_MIEJSCE); return;
     case K1_MA_NAZWA: plik_pokaz(klucz, K1_PLIKI_NAZWA); return;
     case K1_MA_USUN: k1_log(TAG, "pulpit: plik %d do Kosza", rozm_plik(klucz)); plik_do_kosza(klucz); return;

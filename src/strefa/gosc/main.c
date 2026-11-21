@@ -252,6 +252,10 @@ static void tryb_jednorazowy(int t)
         pobrane(t == TRYB_POBRANIE_ZLE);
         wylacz();
     }
+    if (t == TRYB_ODBIOR) { /* 0.11.0 step 3: files from K1 */
+        odbior();
+        wylacz();
+    }
     if (t == TRYB_PAMIEC) { /* 0.10.1 step 2: the balloon's scenario, then the end */
         pamiec_proba();
         wylacz();

@@ -190,6 +190,85 @@ static void klawisz(int kod, int wartosc)
         wyslij_mody(z_klawiatura);
 }
 
+/* 0.11.0 step 3 (otworz.c): the address bar (Ctrl+L), the address as keys of the keymap (US letters, digits and
+ * ".-_/:%" — what otworz.c lets through), Alt+Enter: Firefox opens it in a new tab. The keys go in time (wpis): the
+ * address bar takes the focus some time after Ctrl+L (in Firefox's main process, the page's keys go to its own). */
+#define WPIS_MAKS 4096
+static struct klawisz_wpisu {
+    uint16_t kod;
+    uint8_t wartosc;
+    uint32_t kiedy;
+} wpis[WPIS_MAKS];
+static unsigned wpis_n, wpis_od;
+
+static void wpis_klawisz(int kod, int wartosc, uint32_t kiedy)
+{
+    if (wpis_n < WPIS_MAKS)
+        wpis[wpis_n++] = (struct klawisz_wpisu){ (uint16_t)kod, (uint8_t)wartosc, kiedy };
+}
+
+static void wpisz_znak(char c, uint32_t t)
+{
+    static const char gora[] = "qwertyuiop", srodek[] = "asdfghjkl", dol[] = "zxcvbnm";
+    int kod = 0, shift = c >= 'A' && c <= 'Z';
+    char m = shift ? (char)(c - 'A' + 'a') : c;
+    const char *z;
+    if (m != '\0' && (z = strchr(gora, m)) != NULL)
+        kod = KEY_Q + (int)(z - gora);
+    else if (m != '\0' && (z = strchr(srodek, m)) != NULL)
+        kod = KEY_A + (int)(z - srodek);
+    else if (m != '\0' && (z = strchr(dol, m)) != NULL)
+        kod = KEY_Z + (int)(z - dol);
+    else if (c >= '1' && c <= '9')
+        kod = KEY_1 + (c - '1');
+    else if (c == '0')
+        kod = KEY_0;
+    else if (c == '.' || c == '/' || c == '-')
+        kod = c == '.' ? KEY_DOT : c == '/' ? KEY_SLASH : KEY_MINUS;
+    else if (c == '_' || c == ':' || c == '%')
+        shift = 1, kod = c == '_' ? KEY_MINUS : c == ':' ? KEY_SEMICOLON : KEY_5;
+    if (kod == 0)
+        return;
+    if (shift)
+        wpis_klawisz(KEY_LEFTSHIFT, 1, t);
+    wpis_klawisz(kod, 1, t);
+    wpis_klawisz(kod, 0, t);
+    if (shift)
+        wpis_klawisz(KEY_LEFTSHIFT, 0, t);
+}
+
+void wejscie_wpisz(const char *adres)
+{
+    uint32_t t = teraz_ms();
+    if (z_klawiatura == NULL || wpis_od < wpis_n)
+        return; /* nothing has the keyboard, or an address is being typed */
+    wpis_n = wpis_od = 0;
+    for (int k = 1; k < KLAWISZE_MAKS; k++) /* what the user holds now is let go first */
+        if (wcisniete[k])
+            wpis_klawisz(k, 0, t);
+    wpis_klawisz(KEY_LEFTCTRL, 1, t);
+    wpis_klawisz(KEY_L, 1, t);
+    wpis_klawisz(KEY_L, 0, t);
+    wpis_klawisz(KEY_LEFTCTRL, 0, t);
+    t += 600;
+    for (const char *c = adres; *c; c++, t += 15)
+        wpisz_znak(*c, t);
+    t += 500;
+    wpis_klawisz(KEY_LEFTALT, 1, t);
+    wpis_klawisz(KEY_ENTER, 1, t);
+    wpis_klawisz(KEY_ENTER, 0, t);
+    wpis_klawisz(KEY_LEFTALT, 0, t);
+}
+
+/* The keys of the address whose time came. */
+static void wpis_krok(void)
+{
+    while (wpis_od < wpis_n && (int32_t)(teraz_ms() - wpis[wpis_od].kiedy) >= 0) {
+        klawisz(wpis[wpis_od].kod, wpis[wpis_od].wartosc);
+        wpis_od++;
+    }
+}
+
 static void ramka(struct powierzchnia *p)
 {
     struct obiekt *w;
@@ -221,12 +300,17 @@ static void palce_stop(int zaraz)
 
 int wejscie_czekaj(void)
 {
-    return palce_za_ile(&gest, teraz_ms());
+    int p = palce_za_ile(&gest, teraz_ms()), w;
+    if (wpis_od >= wpis_n)
+        return p;
+    w = (int32_t)(wpis[wpis_od].kiedy - teraz_ms()) > 0 ? (int)(wpis[wpis_od].kiedy - teraz_ms()) : 0;
+    return p < 0 || w < p ? w : p; /* the next key of an address being typed */
 }
 
 void wejscie_czas(void)
 {
     palce_stop(0);
+    wpis_krok();
 }
 
 static void ruch(void)

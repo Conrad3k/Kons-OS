@@ -434,8 +434,9 @@ q.prawy_klik(*wiersz(0))
 mm = czekaj(r"K1-PLIKI: menu kontekstowe \(pliku\): (.*)", od=n_m, czas=20)
 wm = [t.strip() for t in re.findall(r"([^;:]+?) \d+,\d+", mm.group(1))] if mm else []
 w, h, px = zrzut("6c-menu-bez-aplikacji", gdy=lambda w, h, px: True)
-sprawdz("menu pliku bez aplikacji: „Otwórz” i „Otwórz za pomocą” wyszarzone (nie do kliknięcia), zostają „Zmień nazwę” "
-        "i „Usuń”", wm == ["Zmień nazwę", "Usuń"], str(wm))
+# 0.11.0 step 3: "Otwórz za pomocą" stays enabled for every file — the browser's sessions are in it (ADR 0052)
+sprawdz("menu pliku bez aplikacji: „Otwórz” wyszarzone (nie do kliknięcia); „Otwórz za pomocą” (sesje przeglądarki), "
+        "„Wyślij do”, „Zmień nazwę” i „Usuń”", wm == ["Otwórz za pomocą", "Wyślij do", "Zmień nazwę", "Usuń"], str(wm))
 q.pisz("esc")  # closes the menu (a click elsewhere would only close it, too)
 # 5. out and in
 n_b = q.ile(r"K1-PLIKI: pendrive: brak")

@@ -13,6 +13,15 @@ void do_nadzorcy(struct k1_komunikat m)
     do_nadz = m;
 }
 
+int do_nadz_fd = -1; /* 0.11.0 step 3: SKARB_DO_STREFY's memfd (the entry) */
+void do_nadzorcy_z(struct k1_komunikat m, int fd)
+{
+    do_nadz = m;
+    if (do_nadz_fd >= 0)
+        close(do_nadz_fd);
+    do_nadz_fd = fd >= 0 ? dup(fd) : -1;
+}
+
 /* skarbiec's main.c (its queue of what a client has not taken: test_skarb_zalegle): straight to the channel here */
 void do_klienta(int fd, struct k1_komunikat m, int przekaz)
 {

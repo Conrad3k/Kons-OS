@@ -217,18 +217,23 @@ static int plikom(struct mmio_urz *u)
     }
     {
         uint32_t miejsce = k->jego_bufor - (k->wyslane - k->jego_fwd);
-        uint8_t b[DANE_MAKS];
+        struct vq_lancuch l;
+        struct virtio_vsock_hdr h;
         size_t n;
-        if (miejsce == 0 || miejsce > k->jego_bufor)
-            return 0;
-        n = pliki_do_goscia(b, miejsce < sizeof b ? miejsce : sizeof b);
-        if (n == 0)
-            return 0;
-        if ((w = maly(u, K1_PS_PORT, port, VIRTIO_VSOCK_OP_RW, 0, b, (uint32_t)n)) > 0) {
-            k->wyslane += (uint32_t)n;
-            pliki_wyslane(n);
-        }
-        return w; /* no buffer now: the frames wait for the next one */
+        if (miejsce == 0 || miejsce > k->jego_bufor || pliki_do_goscia(dane, 1) == 0)
+            return 0; /* no credit of the guest, or nothing to send */
+        if ((w = bufor_goscia(u, &l)) <= 0)
+            return w;
+        n = l.dl_zapis - sizeof h;
+        n = n < miejsce ? n : miejsce;
+        n = pliki_do_goscia(dane, n < sizeof dane ? n : sizeof dane); /* 0.11.0 step 3: also a file's bytes */
+        naglowek(&h, K1_PS_PORT, port, VIRTIO_VSOCK_OP_RW, (uint32_t)n);
+        vq_zapisz(&l, 0, &h, sizeof h);
+        vq_zapisz(&l, sizeof h, dane, n);
+        vq_oddaj(&u->q[KOLEJKA_RX], u->pamiec, l.glowa, (uint32_t)(sizeof h + n));
+        k->wyslane += (uint32_t)n;
+        pliki_wyslane(n);
+        return 1;
     }
 }
 

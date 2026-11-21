@@ -10,7 +10,12 @@
 #   3. NEGATYWNE (program testowy mówi „Zapisz” każdemu plikowi): bajty bez zgody, więcej bajtów niż rozmiar, ramka bez
 #      typu — VMM zamyka tylko port plików, strefa żyje; zalew 20 plików — 4 przyjęte, reszta „odmowa”; plik 5 GB —
 #      „za duży”; BRAK w połowie bajtów i koniec strefy w połowie — nic połowicznego w Plikach
-#   4. K1 działa dalej; w logu K1 żadnej nazwy pliku (niezmiennik 8)
+#   4. (0.11.0 krok 3) PLIKI DO STREFY: trzy pliki z Dokumentów — „Wyślij do” dwa razy, „Otwórz za pomocą” raz (program
+#      testowy jak Pliki po geście) — strefa próbna (tryb 20, gosc/odbior.c) dostaje je bajt w bajt; każdy wraca zmieniony:
+#      okienko K1 „Zapisać zmiany w oryginale?” — skrypt klika „Zapisz” (stara wersja w Koszu, nowa pod nazwą oryginału),
+#      „Zapisz jako nowy plik” („b-do-strefy (2).bin” obok), „Nie” (nic); NEGATYWNE: zmiana pliku, którego K1 strefie nie dał
+#      — odmowa bez okienka
+#   5. K1 działa dalej; w logu K1 żadnej nazwy pliku (niezmiennik 8)
 # Dowody: build/testy/pobrane.log, build/testy/pobrane-okienko.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -91,6 +96,30 @@ sprawdz("Pliki → Pobrane: trzy pliki ze strefy (nazwa naprawiona, PDF z treśc
         "i bez niczego od złośliwej strefy", s and s.group(1) == "OK",
         (czekaj(r"K1-TEST: pobrane: w Pobranych .*", czas=5) or s).group(0) if s else "brak")
 
+# 4. step 3: files to the zone and their changed versions back
+for nr, rozmiar, otworz in ((1, 1572864, ""), (2, 1000, ""), (3, 300, ", otworzyć")):
+    sprawdz(f"plik {nr} z Dokumentów w strefie bajt w bajt ({rozmiar} B){' — „Otwórz w”' if otworz else ''}",
+            czekaj(rf"K1-GOSC: odbiór: plik {nr} z K1 \({rozmiar} B, zgodny\){otworz}", czas=600))
+ZMIANA = r"K1-GUI: okienko \(zmiana pliku\): sesja 1, plik (\d+); Zapisz (\d+),(\d+); Zapisz jako nowy plik (\d+),(\d+); Nie (\d+),(\d+)"
+for i, jak in enumerate(("Zapisz", "Zapisz jako nowy plik", "Nie")):
+    m = czekaj(ZMIANA, od=i, czas=300)
+    if not m:
+        sprawdz(f"okienko „Zapisać zmiany w oryginale?” nr {i + 1}", False, "brak")
+        break
+    if i == 0:
+        q.zrzut("pobrane-zmiana")
+    q.klik(int(m.group(2 + 2 * i)), int(m.group(3 + 2 * i)))
+    sprawdz(f"okienko zmienionego pliku {m.group(1)}: „{jak}”",
+            czekaj(rf"K1-GUI: okienko \(zmiana pliku\): sesja 1, plik {m.group(1)}: {jak}", czas=60))
+for nr, wynik in ((1, 0), (2, 0), (3, 1)):
+    sprawdz(f"gość: zmiana pliku {nr} — wynik {wynik}", czekaj(rf"K1-GOSC: odbiór: zmiana pliku {nr} — wynik {wynik}\b", czas=300))
+sprawdz("NEGATYWNY: zmiana pliku, którego K1 strefie nie dał — odmowa, bez okienka",
+        czekaj(r"K1-GOSC: odbiór zły: zmiana pliku, którego K1 nie dał — wynik 4\b", czas=300) and
+        czekaj(r"K1-NADZORCA: strefa 1: plik \d+ — zmiana pliku, którego K1 tej strefie nie dał — odrzucona", czas=30))
+d = czekaj(r"K1-TEST: pobrane: do strefy (\S+)", czas=600)
+sprawdz("w Dokumentach: „Zapisz” — stara wersja w Koszu, nowa pod nazwą oryginału; „jako nowy” — obok; „Nie” — nic",
+        d and d.group(1) == "OK", (czekaj(r"K1-TEST: pobrane: zmiany z powrotem .*", czas=5) or d).group(0) if d else "brak")
+
 t_ = q.tekst()
 sprawdz("K1 działa dalej: nadzorca, ekran i pulpit bez awarii; bez zabronionych wywołań i paniki",
         czekaj(r"K1-TEST: pobrane: koniec scenariusza", czas=120) and
@@ -98,7 +127,7 @@ sprawdz("K1 działa dalej: nadzorca, ekran i pulpit bez awarii; bez zabronionych
         "Kernel panic" not in t_)
 k1 = "\n".join(l for l in t_.splitlines() if re.match(r"\s*K1-(NADZORCA|STREFA|GUI|SKARBIEC|EKRAN)", l))
 sprawdz("w logu K1 żadnej nazwy pliku ze strefy (niezmiennik 8)",
-        not re.search(r"raport|zostaw\.bin|pusty\.txt|plik_\.pdf|zalew\.bin|duzy\.iso|przerwany\.bin", k1))
+        not re.search(r"raport|zostaw\.bin|pusty\.txt|plik_\.pdf|zalew\.bin|duzy\.iso|przerwany\.bin|do-strefy|obcy\.bin", k1))
 q.monitor("quit")
 qemu.wait()
 sys.exit(0 if all(q.wyniki) else 1)

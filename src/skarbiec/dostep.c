@@ -5,11 +5,13 @@
  * What an application was given (dostep) lives only here, in memory, until the last channel of that owner closes.
  * The rights of the client were checked already (dok_kanal.c); here: the file itself. Part of skarbiec (skarbiec.h). */
 #include <string.h>
+#include <unistd.h>
 
 #include "dokumenty.h"
 #include "k1_kanal.h"
 #include "k1_komunikat.h"
 #include "k1_log.h"
+#include "k1_memfd.h"
 #include "k1_uslugi.h"
 #include "skarbiec.h"
 
@@ -104,6 +106,29 @@ int dostep_otworz(uint32_t id, int apl)
     do_nadzorcy(k1_komunikat_nowy(K1_KOM_SKARB_URUCHOM, id, apl, 0, 0, 0, 0));
     k1_log(TAG, "pliki: plik %u otwarty w aplikacji %d (dostęp po geście)", id, apl);
     return 0;
+}
+
+/* 0.11.0 step 3 (ADR 0052): "Wyślij do…" / "Otwórz w…" in Pliki or on the desktop — nadzorca's channel for the zones
+ * (K1_WL_DO_STREF) may read this file now (and, when it comes back changed, put a new version next to it); nadzorca hears
+ * it with the file's entry (its name, size) in a sealed memfd. */
+int dostep_do_strefy(uint32_t id, int strefa, int otworz)
+{
+    const struct k1_dok_wpis *w = plik(id);
+    uint8_t b[K1_DOK_WPIS_BAJTY];
+    int r, fd;
+    if (w == NULL)
+        return K1_DOK_BLAD_BRAK;
+    if (!k1_strefa(strefa)->okno)
+        return K1_DOK_BLAD_PRAWA;
+    k1_dok_wpis_zapisz(w, b);
+    if ((fd = k1_memfd_z_danymi("k1-wpis", b, sizeof b)) < 0)
+        return K1_MAG_PAMIEC;
+    if ((r = dostep_daj(K1_WL_DO_STREF, id)) == 0) {
+        do_nadzorcy_z(k1_komunikat_nowy(K1_KOM_SKARB_DO_STREFY, id, strefa, otworz, 0, 0, 0), fd);
+        k1_log(TAG, "pliki: plik %u do strefy %d (po geście)", id, strefa);
+    }
+    close(fd);
+    return r;
 }
 
 static void pokaz_prosbe(void)

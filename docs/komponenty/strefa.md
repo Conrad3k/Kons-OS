@@ -298,7 +298,15 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
   plik w skarbcu swoim kanałem `K1_WL_POBRANIA` (tylko nowy plik w Pobranych z pochodzeniem strefy) jako zapis w toku:
   przerwanie nie zostawia nic. Pochodzenie: `K1_POCH_STREFA_OD` + numer strefy, tekst z kolumny „skąd” `K1_STREFY`
   („z przeglądarki · Ogólna”); twórca pliku — profil strefy.
-- Gość próbny: tryby 18 (uczciwe pobranie) i 19 (złośliwe) — `scripts/test-pobrane.sh`.
+- **Z Plików do strefy (0.11.0 krok 3, D4: A):** „Wyślij do” / sesja w „Otwórz za pomocą” → skarbiec daje kanałowi nadzorcy
+  `K1_WL_DO_STREF` ten plik → nadzorca otwiera zamkniętą sesję (`strefy_do.c`) → VMM (`pliki_do.c`) ramki `PLIK` i `BAJTY`
+  (kawałki na prośbę `STREFA_DO_ODP`, plik czeka na agenta do 120 s) → agent (`agent/odbior.c`) zapisuje kopię w folderze
+  sesji **„Z K1”** i odpowiada `ODEBRANY`; „Otwórz w…”: linia z adresem do kolejki FIFO kompozytora (`/run/k1/otworz`), który
+  wpisuje adres w nową kartę (`kompozytor/otworz.c`: Ctrl+L, adres, Alt+Enter — Firefox bez D-Bus i z `--no-remote` nie ma
+  innej drogi; tylko folder „Z K1”, zwykłe znaki, raz na sekundę). Zmieniona wersja (pobranie o tej samej nazwie, „nazwa(1)”
+  Firefoksa, ponowny zapis w „Z K1”) wraca jako `ZGLOS` z polem dotyczy — tylko pliku, który K1 dał tej sesji (ADR 0052 p. 10).
+- Gość próbny: tryby 18 (uczciwe pobranie), 19 (złośliwe) i 20 (odbiór z K1 i zmiany z powrotem, `gosc/odbior.c`) —
+  `scripts/test-pobrane.sh`.
 
 ## Komunikaty
 | Komunikat | Kierunek | Pola |
@@ -332,6 +340,11 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
 | `POBRANIE` (0.11.0 krok 2, D2: A) | nadzorca → gui (fd 5, + memfd) | obiekt = strefa, a = plik, b, c = rozmiar, d = długość nazwy 1…127, e = 0; memfd jak w `STREFA_PLIK` (gui czyta i sprawdza nazwę jeszcze raz) — okienko „<sesja> pobrała plik” |
 | `POBRANIE_DECYZJA` (0.11.0 krok 2) | gui → nadzorca (fd 4); program testowy → nadzorca | obiekt = strefa, a = plik, b = 1 „Zapisz w Pobranych” / 0 „Zostaw w przeglądarce” (albo „OK” pliku za dużego), reszta 0 |
 | `POBRANIE_WYNIK` (0.11.0 krok 2) | nadzorca → gui (fd 5) | obiekt = strefa, a = plik, b = `K1_PS_W_*`, reszta 0 — jego okienko znika; po „Zapisz” bez zapisu gui mówi dlaczego |
+| `DOK_DO_STREFY` (0.11.0 krok 3, ADR 0052) | Pliki, pulpit → skarbiec | obiekt = widoczny plik, a = strefa z oknem, b = 1 „Otwórz za pomocą” sesja (nowa karta) / 0 „Wyślij do”, reszta 0; tylko z prawem `P_STREFA` (Pliki, pulpit — pliki Pulpitu) — odpowiedź `DOK_WYNIK` |
+| `SKARB_DO_STREFY` (0.11.0 krok 3) | skarbiec → nadzorca (kanał sterujący, + memfd) | obiekt = plik, a = strefa, b = otworzyć, reszta 0; memfd: wpis pliku (`K1_DOK_WPIS_BAJTY`) — kanał nadzorcy `K1_WL_DO_STREF` może go teraz czytać |
+| `STREFA_DO_PLIK` (0.11.0 krok 3) | nadzorca → VMM (fd 7, + memfd) | obiekt = numer pliku u K1 1…`K1_PS_NR_MAKS`, a, b = rozmiar (≤ `K1_DOK_MAKS_BAJTY`), c = długość nazwy 1…127, d = otworzyć 0/1, e = 0; memfd z nazwą |
+| `STREFA_DO_KAWALEK` (0.11.0 krok 3) | nadzorca → VMM (fd 7, + memfd) | obiekt = plik, a = bajty 1…`K1_DOK_KAWALEK`, b = numer kawałka, reszta 0 — tylko po `STREFA_DO_ODP` DALEJ |
+| `STREFA_DO_ODP` (0.11.0 krok 3) | VMM → nadzorca (fd 7) | obiekt = plik, a = `K1_PLIK_DALEJ` (następny kawałek) / `K1_PLIK_GOTOWE` (b = 0 w „Z K1” sesji, 1 nie), reszta 0 |
 | `SKARB_WYCZYSC` | nadzorca → skarbiec (kanał sterujący) | krok 5: `a` = właściciel — profil strefy (inny — odrzucony), reszta 0 |
 | `SKARB_WYCZYSZCZONO` | skarbiec → nadzorca | krok 5: `a` = ten właściciel, `b` = 0 albo `K1_MAG_*`, `c` = usunięte kawałki, reszta 0 |
 | `SKARB_CZYTAJ`, `SKARB_ZAPISZ`, `SKARB_USUN`, `SKARB_DANE`, `SKARB_WYNIK` (dysk strefy) | VMM ↔ skarbiec (fd 8) | krok 5: obiekt = `K1_OB_DYSK` + kawałek (0…32 767), zapis i dane — najwyżej 64 KiB; brak kawałka: `WYNIK` b = `K1_SKARB_BRAK` (VMM czyta wtedy pusty dysk) |

@@ -518,6 +518,13 @@ def przelacznik(tabow, nazwa_zrzutu=None, shift=False):
     zd = [("alt", 1)] + ([("shift", 1)] if shift else []) + [z for _ in range(tabow) for z in (("tab", 1), ("tab", 0))]
     q.klawisze(*(zd + ([("shift", 0)] if shift else [])))
     czekaj(r"K1-GUI: przełącznik okien: ", od=n_ + tabow - 1, czas=20)
+    # the tiles as gui logged them when it opened: the screen's description can still name the tiles of the switcher
+    # shown before (the same panel, its next frame not described yet) — wait for one that agrees (CI, PR #204)
+    lg = list(re.finditer(r"K1-GUI: przełącznik okien: (.*) \(wybrane: [^)]*\)", tekst()))
+    nazwy = [t.strip() for t in re.findall(r"([^;]+?) \d+,\d+", lg[-1].group(1))] if lg else None
+    kafelki = lambda: [e["nazwa"] for e in (q.element("Przełącznik okien") or {"elementy": []})["elementy"]
+                       if e["rodzaj"] == "kafelek"]
+    q.czekaj_na(lambda: nazwy is None or kafelki() == nazwy, czas=20)
     p_ = q.czekaj_na_element("Przełącznik okien", czas=20)
     kaf = {e["nazwa"]: e for e in (p_ or {"elementy": []})["elementy"] if e["rodzaj"] == "kafelek"}
     wyb = q.czekaj_na(lambda: [e["nazwa"] for e in (q.element("Przełącznik okien") or {"elementy": []})["elementy"]
