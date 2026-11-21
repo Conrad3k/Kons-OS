@@ -398,12 +398,8 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
     case K1_KOM_USUN:
         { usun_pow(i); return; }
     case K1_KOM_PRZECIAGANIE: /* 0.11.0 step 4 */
-    case K1_KOM_PRZECIAGANIE_CEL: {
-        const char *powod = przeciaganie_komunikat(kl, i, m);
-        if (powod != NULL)
-            odrzuc(kl, powod);
-        return;
-    }
+    case K1_KOM_PRZECIAGANIE_CEL:
+        { przeciaganie_komunikat(kl, i, m); return; }
     case K1_KOM_PELNY_EKRAN: /* 0.11.0 step 1 */
         if (!okno_strefy(&s.p[i]))
             { odrzuc(kl, "pełny ekran tylko dla okna strefy"); return; }

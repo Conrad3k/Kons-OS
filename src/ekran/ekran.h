@@ -242,7 +242,7 @@ int pelny_czas_ms(void);                    /* how soon the loop must come back,
 void pelny_rysuj(const struct prost *k);    /* the pill or K1's bar, into the scene inside k */
 
 /* przeciaganie.c — dragging files between windows (0.11.0 step 4, ADR 0052 T6) */
-const char *przeciaganie_komunikat(int kl, int i, const struct k1_komunikat *m); /* PRZECIAGANIE, _CEL: NULL or why */
+void przeciaganie_komunikat(int kl, int i, const struct k1_komunikat *m); /* PRZECIAGANIE, _CEL (refused: odrzuc) */
 void przeciaganie_ruch(void);               /* the pointer moved while a client holds it */
 void przeciaganie_puszczenie(void);         /* the left button went up (after PUSZCZENIE to the holder) */
 void przeciaganie_usun(int i);              /* surface i is gone */

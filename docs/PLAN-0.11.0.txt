@@ -294,6 +294,20 @@ KROK 4: Przeciąganie między oknami, też na okno przeglądarki            M ·
   Dokumenty: ADR 0052 (uzupełnienie), ekran.md, gui.md, aplikacje.md, strefa.md, WYGLAD (znak przy kursorze).
   Gotowe, gdy: CI zielone; właściciel przeciągnął plik na stronę w przeglądarce.
 
+  Ustalenia z wykonania (2026-11-21, krok 4; D6 właściciela: A):
+    - T6: prowadzi ekran (src/ekran/przeciaganie.c), a robi ten, kto widzi pliki — Pliki. Pulpit jako cel tylko mówi, gdzie
+      (PRZECIAGANIE_CEL), bo widzi tylko folder Pulpit; Pliki jako cel same przenoszą plik pulpitu. Źródło i cel nigdy nie
+      rozmawiają; tabela k1_przeciaganie ma cel K1_PC_STREFA i działania kopiuj / do sesji (okienka wydzielone do
+      k1_prz_okienko.c — ekran rysuje znaki, nie menu).
+    - D6 A: Ctrl przy puszczeniu — kopia plików (Pliki: kopia.c, kawałkami jak import; skarbiec nadaje wolną nazwę); folderów
+      nie kopiujemy (odmowa z tabeli) — w Plikach dotąd nie było kopiowania wcale.
+    - P21, P22 (POTWIERDZONE na stanowisku, testy/stanowisko/upusc.py): kompozytor odgrywa upuszczenie (wl_data_offer
+      text/uri-list, enter, motion, akcja kopia, drop) — Firefox ESR 153 bierze pliki z „Z K1” jak z menedżera plików: strona
+      dostaje dataTransfer.files (nazwy, rozmiary), pole „Prześlij plik” się wypełnia (gdy strona sama nie przechwyci upuszczenia).
+      Kompozytor potrzebował obiektów, które tworzy sam (numery od 0xff000000 — jak w libwayland, bez delete_id).
+    - T7: okno wyboru pliku K1 dla strony — „Później” (portal = D-Bus w strefie; ADR 0052 p. 14).
+    - Strefa nic nie dostaje przy najechaniu: znak nad oknem sesji rysuje ekran, VMM słyszy UPUSC_STREFA dopiero po puszczeniu.
+
 KROK 5: Schowek; porządki; wydanie 0.11.0 (OSTATNI)                      M · D5, T8 · ADR 0052 (uzupełnienie)
   Cel: tekst kopiuje się i wkleja w K1 i między K1 a sesjami przeglądarki, a każde wklejenie do sesji przechodzi przez
   K1 (ADR 0020: schowek między strefami za każdym wklejeniem); potem porządki wersji MINOR i wydanie.

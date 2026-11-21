@@ -73,27 +73,30 @@ static void zakoncz(void)
     d.jest = 0, d.kl = d.zr = d.cel = -1, d.poza = d.rysuje = 0;
 }
 
-const char *przeciaganie_komunikat(int kl, int i, const struct k1_komunikat *m)
+void przeciaganie_komunikat(int kl, int i, const struct k1_komunikat *m)
 {
     int zr;
     if (m->typ == K1_KOM_PRZECIAGANIE) {
-        if (!przyjmuje(&s.p[i]) || s.chwyt != i || !(s.przyciski & (1 << K1_PRZYCISK_LEWY)))
-            return "przeciąganie plików bez wciśniętego przycisku na tej powierzchni";
+        if (!przyjmuje(&s.p[i]) || s.chwyt != i || !(s.przyciski & (1 << K1_PRZYCISK_LEWY))) {
+            odrzuc(kl, "przeciąganie plików bez wciśniętego przycisku na tej powierzchni");
+            return;
+        }
         zakoncz();
         d.jest = 1, d.kl = kl, d.zr = i, d.co = *m;
         k1_log(TAG, "przeciąganie między oknami: %d elementów (rodzaj %d)", (int)m->b, (int)m->a);
-        return NULL;
+        return;
     }
     /* PRZECIAGANIE_CEL: only the desktop asked last, only once, only soon */
-    if (kl != czeka.kl || s.p[i].rodzaj != K1_POW_PULPIT || k1_teraz() - czeka.t > CZEKA_S)
-        return "cel upuszczenia bez pytania";
+    if (kl != czeka.kl || s.p[i].rodzaj != K1_POW_PULPIT || k1_teraz() - czeka.t > CZEKA_S) {
+        odrzuc(kl, "cel upuszczenia bez pytania");
+        return;
+    }
     czeka.kl = -1;
     zr = czeka.zr_kl >= 0 && s.kl[czeka.zr_kl].fd >= 0 ? znajdz_pow(czeka.zr_kl, czeka.zr_id) : -1;
     if (m->a != 0 && zr >= 0) {
         do_pow(zr, K1_KOM_PRZECIAGANIE_KONIEC, m->a, m->b, czeka.mody, 0, 0);
         k1_log(TAG, "przeciąganie między oknami: upuszczono na pulpit (%s)", m->a == K1_PC_KOSZ ? "Kosz" : "folder");
     }
-    return NULL;
 }
 
 /* Over a session's window: what the table of dragging says (a copy, or why not) — ekran draws it. */

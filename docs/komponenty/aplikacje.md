@@ -260,9 +260,13 @@ miejscu upuszczenia („Przenieść 12 elementów do Kosza?” — „Przenieś 
 docelowym: „W „Obrazy” jest już „IMG_0001.JPG”.” — „Zachowaj oba” (przenoszony dostaje „ (2)”, `DOK_PRZENIES` b = 1),
 „Pomiń”, „Anuluj”; odmowa — okienko z „OK”. Delete i „Usuń” pytają tak samo. Prośby idą do skarbca po jednej
 (`zbiorczo.c`), a stopka mówi na końcu, jak poszło („Przeniesiono 12 elementów do „Obrazy”.”, a gdy coś się nie udało —
-powód słowami tabeli, `k1_prz_powod`). Przeciąganie między oknami (Pliki ↔ pulpit) — po 0.8.2 (D6). Moduły: `main.c`
+powód słowami tabeli, `k1_prz_powod`). **Między oknami (0.11.0 krok 4, ADR 0052, D6: A):** z Plików na pulpit (Pulpit,
+folder na pulpicie, Kosz — pulpit tylko mówi gdzie, robią Pliki), z pulpitu na Pliki (Pliki rysują kartę i przenoszą do
+folderu pod kursorem albo pokazanego) i na okno sesji przeglądarki (kopia plików, najwyżej 8, bez folderów — `DOK_DO_STREFY`
+„upuść”); prowadzi ekran. **Ctrl przy puszczeniu — kopia** plików (`kopia.c`: kawałkami przez skarbiec, wolna nazwa
+„nazwa (2)”, pochodzenie zostaje; foldery — odmowa), także w obrębie okna. Moduły: `main.c`
 (okno, miejsce, lista, zaznaczenie), `wskaznik.c` (mysz i klawisze; 0.8.2 krok 6 — wydzielone z `main.c`),
-`przeciaganie.c` (przeciąganie i jego okienka), `zbiorczo.c` (jedno działanie na wielu), `przyciski.c` (przyciski
+`przeciaganie.c` (przeciąganie i jego okienka, też między oknami), `kopia.c` (kopia plików, 0.11.0), `zbiorczo.c` (jedno działanie na wielu), `przyciski.c` (przyciski
 miejsca), `menu.c` (menu pod prawym przyciskiem i okienko), `rysuj.c` (lista, szczegóły, stopka), `dane.c` (skarbiec
 i nadzorca), `pendrive.c` (pendrive i import — od 0.8.2 krok 6 także do folderu, na który upuszczono), `obrazy.c`
 (miniatura i tapeta przez dekoder — od 0.8.2 przez wspólny `k1_dekodowanie` z przybornika; kanał do dekodera = 5. kanał

@@ -76,6 +76,13 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `STREFA_BUFOR` (0.10.11 krok 2, ADR 0051) | strefa (VMM) → ekran | rola `STREFA`, jej okno | bufor karty przeglądarki: `a` = numer 1…`K1_STREFA_BUFORY` (4), `b`, `c` = szerokość, wysokość, `d` = bajty wiersza (≥ 4·`b`, wielokrotność 4), `e` = początek obrazu w buforze (wielokrotność 4); + dma-buf (w teście memfd silnika testowego pośrednika). Ekran sprawdza rozmiar bufora (`lseek`), mapuje tylko do odczytu część z obrazem; numer zastępuje wcześniejszy bufor o tym numerze |
 | `STREFA_OBRAZ` (0.10.11 krok 2) | strefa (VMM) → ekran | rola `STREFA`, jej okno | okno pokazuje bufor `a` (wysłany wcześniej, nie większy niż okno), `b`…`e` = zmieniony prostokąt (`d` = `e` = 0: całość); `RAMKA` jak po `ZATWIERDZ` |
 | `PELNY_EKRAN` (0.11.0 krok 1, D1) | strefa (VMM) → ekran | rola `STREFA`, jej okno | `a` = 1: gość prosi o **pełny ekran** (F11, film „na cały ekran”), `a` = 0: wyszedł z niego sam (Esc); reszta 0. Ekran zgadza się tylko dla okna z fokusem i tylko w `GEST_S` (10 s) po geście użytkownika w tym oknie (wciśnięcie przycisku albo klawisz, które ekran temu oknu dał); po wejściu gest się zużywa. Odmowa — tylko wpis w logu (strefa nie dostaje odpowiedzi); zgoda — `ROZMIAR` z `c` = `K1_ROZMIAR_PELNY` |
+| `PRZECIAGANIE` (0.11.0 krok 4, ADR 0052) | klient → ekran | Pliki (okno), powłoka (pulpit); tylko powierzchnia, która trzyma wskaźnik z wciśniętym lewym przyciskiem | co jest przeciągane: `a` = źródło `K1_PZ_*`, `b` = ile (1…16 384), `c` = ile z nich folderów, `d` = pierwszy element (numer skarbca; plik z pulpitu), `e` = folder, w którym leżą — żadnych nazw. Ważne do puszczenia przycisku |
+| `UPUSZCZANIE_CO` (0.11.0 krok 4) | ekran → cel | Pliki, pulpit | to samo co `PRZECIAGANIE` (a…e) — zanim kursor z cudzym przeciąganiem pierwszy raz przyjdzie nad tę powierzchnię |
+| `UPUSZCZANIE` (0.11.0 krok 4) | ekran → cel | Pliki, pulpit | kursor z cudzym przeciąganiem nad powierzchnią: `a`, `b` = x, y, `c` = `K1_UP_RUCH` / `WYJSCIE` / `UPUSC` (puszczony), `d` = klawisze `K1_MOD_*` (Ctrl: kopia, D6) |
+| `PRZECIAGANIE_CEL` (0.11.0 krok 4) | pulpit → ekran | powłoka; tylko odpowiedź na `UPUSZCZANIE UPUSC`, raz, w ciągu 2 s | gdzie trafia upuszczenie z Plików: `a` = `K1_PC_FOLDER` (`b` = folder: Pulpit albo folder na pulpicie) / `K1_PC_KOSZ` / 0 (nic). Ekran przekazuje to Plikom (`PRZECIAGANIE_KONIEC`) |
+| `PRZECIAGANIE_GDZIE` (0.11.0 krok 4) | ekran → źródło | Pliki, pulpit | `a` = 1: kursor jest nad innym oknem albo pulpitem (tam rysuje się znak — źródło chowa swoją kartę), 0: wrócił nad źródło |
+| `PRZECIAGANIE_KONIEC` (0.11.0 krok 4) | ekran → źródło | Pliki, pulpit | upuszczone gdzie indziej: `a` = `K1_PC_FOLDER` / `K1_PC_KOSZ` (`b` = folder) albo `K1_PC_STREFA` (`b` = numer strefy), `c` = klawisze przy puszczeniu; robi to źródło (Pliki pytają, przenoszą, kopiują; do strefy — `DOK_DO_STREFY` „upuść”) |
+| `UPUSC_STREFA` (0.11.0 krok 4) | ekran → strefa (VMM) | ekran | upuszczono pliki na okno strefy: `a`, `b` = punkt w obrazie strefy, `c` = ile plików (1…8); kopie przychodzą potem przez nadzorcę. Póki kursor tylko jest nad oknem, strefa nic nie dostaje |
 | `POKAZ` | klient → ekran | powłoka, logowanie | pokaż / ukryj panel |
 | `PRZESUN` | klient → ekran | powłoka, logowanie | nowe położenie panelu |
 | `PRZECIAGNIJ` | klient → ekran | właściciel okna | zacznij przesuwać okno wciśniętym przyciskiem myszy |
@@ -168,6 +175,20 @@ Kanał sterujący (fd 3) od nadzorcy: `KLIENT` (rola `STREFA`: `b` = numer stref
 `STREFA_NAZWA` (bez deskryptora; sesje — `komponenty/strefa.md`), od 0.10.9 krok 6 `STREFY_GRAFIKA`; od 0.10.7 krok 6 `WYLACZANIE` (a = 0 wyłączanie,
 1 ponowne uruchamianie; reszta pól 0) — niżej „Ekran wyłączania”. Złe pole, zła rola albo obcy UID → komunikat odrzucony
 z wpisem w logu (≤ 8 na klienta), po 50 — klient rozłączony.
+
+**Przeciąganie plików między oknami (0.11.0 krok 4, ADR 0052 T6, D6 właściciela: A — `przeciaganie.c`).** Ekran wie, gdzie są
+okna, więc prowadzi przeciąganie, które wychodzi poza okno, w którym się zaczęło. Źródło (Pliki albo pulpit) mówi, co
+przeciąga (`PRZECIAGANIE` — rodzaj, liczba, foldery, pierwszy element; nigdy nazwy). Gdy kursor jest nad czymś innym,
+źródło słyszy `PRZECIAGANIE_GDZIE` 1 (chowa kartę, ikona pulpitu wraca na swoje miejsce), a cel — `UPUSZCZANIE_CO`
+i `UPUSZCZANIE`. **Nad Plikami** (z pulpitu): Pliki rysują kartę i znak i same to robią (widzą każdy plik). **Nad pulpitem**
+(z Plików): pulpit rysuje znak i obwódkę celu, a po puszczeniu mówi, gdzie (`PRZECIAGANIE_CEL`: Pulpit, folder na pulpicie,
+Kosz) — ekran przekazuje to Plikom (`PRZECIAGANIE_KONIEC`), które przenoszą albo kopiują (pulpit widzi tylko Pulpit). **Nad
+oknem sesji przeglądarki:** znak przy kursorze rysuje ekran — z tabeli przeciągania (`K1_PC_STREFA`: „Kopia do sesji
+„Ogólna””, albo dlaczego nie: foldery, Kosz, pendrive, więcej niż 8 plików); warstwa karty jest wtedy wyłączona, strefa
+nic nie dostaje. Po puszczeniu VMM dostaje `UPUSC_STREFA` (punkt w obrazie, liczba plików), a źródło `PRZECIAGANIE_KONIEC`
+z numerem strefy — kopie idą drogą z kroku 3 (`DOK_DO_STREFY` z trybem „upuść”). Ctrl przy puszczeniu: kopia zamiast
+przeniesienia (D6) — klawisze idą w każdym komunikacie. Źródło i cel nigdy nie rozmawiają ze sobą. Log: `przeciąganie między
+oknami: N elementów (rodzaj R)`, `upuszczono na pulpit (folder|Kosz)`, `upuszczono na Pliki`, `N plików do strefy S (okno W)`.
 
 ## Ekran wyłączania (0.10.7 krok 6, T7; decyzja właściciela D7: szkic B „Kropki”)
 Nadzorca, gdy przyjmie `WYLACZ` (wyłączanie albo ponowne uruchamianie; wylogowanie nie), wysyła ekranowi `WYLACZANIE`
@@ -264,3 +285,4 @@ w jądrze (ioctl).
 | w systemie (0.8.5): klient, który nie odbiera, gdy mysz wysyła 1500 ruchów, dostaje potem RAMKA i PUSZCZENIE; inny klient w tym czasie rysuje normalnie | negatywny |
 | `test-m4.sh` (M4.1): zmiana rozdzielczości z Ustawień — nowy tryb, zrzut w nowym rozmiarze, panele na nowych miejscach | funkcjonalny |
 | host: `test_komunikat`, `fuzz_komunikat`, `test_zdarzenie`, `fuzz_zdarzenie`, renderer z ASan/UBSan | jednostkowy / fuzzing |
+| `test-pliki.sh` (0.11.0 krok 4): folder z Plików na pulpit i z pulpitu na listę Plików (przeniesiony), Ctrl + folder na pulpit — odmowa w Plikach; `test-pobrane.sh`: plik z pulpitu na okno strefy próbnej — znak K1, nic do strefy przed puszczeniem, potem `UPUSC_STREFA` w punkcie i kopia bajt w bajt; host `test_komunikat` (`przeciaganie`: każde pole poza zakresem, zły kierunek), `test_przeciaganie` (`K1_PC_STREFA`, Ctrl) | funkcjonalny, negatywny (IPC) |

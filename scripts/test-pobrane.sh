@@ -15,7 +15,10 @@
 #      okienko K1 „Zapisać zmiany w oryginale?” — skrypt klika „Zapisz” (stara wersja w Koszu, nowa pod nazwą oryginału),
 #      „Zapisz jako nowy plik” („b-do-strefy (2).bin” obok), „Nie” (nic); NEGATYWNE: zmiana pliku, którego K1 strefie nie dał
 #      — odmowa bez okienka
-#   5. K1 działa dalej; w logu K1 żadnej nazwy pliku (niezmiennik 8)
+#   5. (0.11.0 krok 4) PRZECIĄGANIE NA OKNO STREFY: plik z pulpitu (program testowy kładzie go w Pulpicie) przeciągnięty
+#      myszą na okno strefy próbnej — przy kursorze znak K1 „Kopia do sesji…” (zrzut), strefa nic nie dostaje, póki kursor
+#      tylko jest nad oknem (NEGATYWNE); po puszczeniu: UPUSC w punkcie puszczenia i kopia bajt w bajt w trybie upuszczenia
+#   6. K1 działa dalej; w logu K1 żadnej nazwy pliku (niezmiennik 8)
 # Dowody: build/testy/pobrane.log, build/testy/pobrane-okienko.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -116,6 +119,37 @@ for nr, wynik in ((1, 0), (2, 0), (3, 1)):
 sprawdz("NEGATYWNY: zmiana pliku, którego K1 strefie nie dał — odmowa, bez okienka",
         czekaj(r"K1-GOSC: odbiór zły: zmiana pliku, którego K1 nie dał — wynik 4\b", czas=300) and
         czekaj(r"K1-NADZORCA: strefa 1: plik \d+ — zmiana pliku, którego K1 tej strefie nie dał — odrzucona", czas=30))
+# 5. step 4: a file of the desktop dragged onto the zone's window — a copy at the drop, nothing while only over it
+IKONY = r"K1-GUI: ikony na pulpicie \(siatka \d+x\d+, co \d+,\d+\): (.*)"
+sprawdz("plik na pulpicie (program testowy) i strefa czeka na upuszczenie",
+        czekaj(r"K1-TEST: pobrane: plik na pulpicie do upuszczenia: 1", czas=60) and
+        czekaj(r"K1-GOSC: odbiór: czekam na upuszczenie na okno", czas=600))
+ikony = {}
+for czesc in (re.findall(IKONY, q.tekst()) or [""])[-1].split("; "):
+    if czesc.startswith("plik "):
+        nazwa, xy = czesc.rsplit(" ", 1)
+        ikony[nazwa] = tuple(int(v) for v in xy.split(","))
+okna = re.findall(r"K1-EKRAN: okno \d+ \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", q.tekst())
+if sprawdz("ikona pliku na pulpicie i okno strefy na ekranie", ikony and okna, f"{ikony} {okna[-1:]}"):
+    ow, oh, ox, oy = (int(v) for v in okna[-1])
+    cel, start = (ox + ow // 2, oy + oh // 2), next(iter(ikony.values()))
+    q.idz(*start)
+    q.przycisk(True)
+    for i in range(1, 5):
+        q.idz(start[0] + (cel[0] - start[0]) * i // 4, start[1] + (cel[1] - start[1]) * i // 4)
+    q.zrzut("pobrane-upusc-znak", gdy=lambda w, h, px: True)
+    sprawdz("NEGATYWNY: kursor z plikiem nad oknem strefy — strefa nic nie dostaje przed puszczeniem",
+            q.cisza(r"K1-GOSC: odbiór: upuszczenie \d", 3) and q.ile(r"K1-STREFA: pliki: upuszczono") == 0)
+    q.przycisk(False)
+    sprawdz("ekran: upuszczenie na okno strefy — 1 plik do strefy 1",
+            czekaj(r"K1-EKRAN: przeciąganie między oknami: 1 plików do strefy 1 ", czas=30))
+    u = czekaj(r"K1-GOSC: odbiór: upuszczenie 1 plików w (\d+),(\d+)", czas=300)
+    sprawdz("gość: UPUSC w punkcie puszczenia (współrzędne obrazu strefy)",
+            u and abs(int(u.group(1)) - ow // 2) <= 2 and abs(int(u.group(2)) - oh // 2) <= 2, u.group(0) if u else "brak")
+    sprawdz("gość: kopia pliku z pulpitu bajt w bajt, w trybie upuszczenia",
+            czekaj(r"K1-GOSC: odbiór: plik \d+ z K1 \(2500 B, zgodny\), upuszczony", czas=300) and
+            czekaj(r"K1-GOSC: odbiór: upuszczone pliki zgodne: 1, z trybem upuszczenia: 1", czas=60))
+
 d = czekaj(r"K1-TEST: pobrane: do strefy (\S+)", czas=600)
 sprawdz("w Dokumentach: „Zapisz” — stara wersja w Koszu, nowa pod nazwą oryginału; „jako nowy” — obok; „Nie” — nic",
         d and d.group(1) == "OK", (czekaj(r"K1-TEST: pobrane: zmiany z powrotem .*", czas=5) or d).group(0) if d else "brak")
@@ -127,7 +161,7 @@ sprawdz("K1 działa dalej: nadzorca, ekran i pulpit bez awarii; bez zabronionych
         "Kernel panic" not in t_)
 k1 = "\n".join(l for l in t_.splitlines() if re.match(r"\s*K1-(NADZORCA|STREFA|GUI|SKARBIEC|EKRAN)", l))
 sprawdz("w logu K1 żadnej nazwy pliku ze strefy (niezmiennik 8)",
-        not re.search(r"raport|zostaw\.bin|pusty\.txt|plik_\.pdf|zalew\.bin|duzy\.iso|przerwany\.bin|do-strefy|obcy\.bin", k1))
+        not re.search(r"raport|zostaw\.bin|pusty\.txt|plik_\.pdf|zalew\.bin|duzy\.iso|przerwany\.bin|do-strefy|obcy\.bin|upusc\.bin", k1))
 q.monitor("quit")
 qemu.wait()
 sys.exit(0 if all(q.wyniki) else 1)

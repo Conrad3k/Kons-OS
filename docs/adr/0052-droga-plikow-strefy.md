@@ -1,7 +1,7 @@
 # 0052. Droga plików strefa ↔ K1: port plików, agent w strefie, zgoda w oknie K1, zapis przez nadzorcę
 
-- Status: Przyjęty; wdrożenie w 0.11.0 — krok 2 (pliki ze strefy do Plików), krok 3 (pliki do strefy, uzupełnienie niżej),
-  uzupełniany w krokach 4–5
+- Status: Przyjęty; wdrożenie w 0.11.0 — krok 2 (pliki ze strefy do Plików), krok 3 (pliki do strefy), krok 4 (przeciąganie
+  między oknami), krok 5 (schowek) — uzupełnienia niżej
 - Data: 2026-11-21
 - Dotyczy: ADR 0027 (przepływ plików: Pliki jedynym węzłem, zgoda = gest w K1), ADR 0042 (strefy, VMM), ADR 0043
   (przeglądarka w strefie, Raptor Bridge), ADR 0029 (pliki w skarbcu), ADR 0034 (limity, zapis w toku kawałkami);
@@ -90,6 +90,37 @@ zaczyna sama strefa); brakowało drogi bajtów i formatu.
     przerwa między nimi zostawia oba pliki — nic nie ginie); **„Zapisz jako nowy plik”** — „nazwa (2).ext” obok; **„Nie”** —
     nic. Następna zmiana idzie do nowej wersji.
 
+## Uzupełnienie — krok 4: przeciąganie między oknami, też na okno przeglądarki (2026-11-21; D6 właściciela: A)
+11. **Prowadzi ekran (T6).** Tylko ekran wie, gdzie są okna. Źródło (Pliki, pulpit) mówi mu, co przeciąga
+    (`PRZECIAGANIE`: rodzaj `K1_PZ_*`, liczba, foldery, pierwszy element, folder — bez nazw; tylko powierzchnia, która trzyma
+    wskaźnik z wciśniętym przyciskiem). Ekran mówi źródłu, że kursor jest nad czymś innym (`PRZECIAGANIE_GDZIE`), a celowi —
+    co nad nim jest (`UPUSZCZANIE_CO`, `UPUSZCZANIE`: ruch, wyjście, upuszczenie, klawisze). Źródło i cel nie rozmawiają ze
+    sobą; plik przekazuje skarbiec (i nadzorca do strefy), nigdy aplikacja aplikacji. **Robi ten, kto widzi pliki:** Pliki.
+    Z pulpitu na Pliki — Pliki (cel) przenoszą plik pulpitu do folderu pod kursorem albo pokazanego; z Plików na pulpit —
+    pulpit odpowiada tylko, gdzie (`PRZECIAGANIE_CEL`: Pulpit, folder na pulpicie, Kosz), a ekran przekazuje to Plikom
+    (`PRZECIAGANIE_KONIEC`) — pulpit widzi tylko folder Pulpit (tabela praw skarbca bez zmian). Reguły — jedna tabela
+    `k1_przeciaganie` (nowy cel `K1_PC_STREFA`, nowe działania `K1_PD_KOPIUJ`, `K1_PD_DO_STREFY`).
+12. **Ctrl — kopia (D6 „A”).** Przeciągnięcie przenosi (jak w Windows na jednym dysku i jak w Plikach od 0.8.2); z Ctrl
+    przy puszczeniu — kopia plików (`src/aplikacje/pliki/kopia.c`: kawałkami jak import — `DOK_CZYTAJ` → `DOK_NOWY` /
+    `DOK_KAWALEK` → `DOK_KONIEC`; wolna nazwa „nazwa (2)” od skarbca, pochodzenie oryginału zostaje). Folderów się nie
+    kopiuje (odmowa z tabeli: „kopiować możesz tylko pliki”).
+13. **Na okno sesji przeglądarki — zgoda gestem (ADR 0027 p. 2).** Puszczenie pliku na okno sesji jest zgodą. Póki kursor
+    tylko jest nad oknem, strefa **nic** nie dostaje — znak „Kopia do sesji „Ogólna”” rysuje ekran (z tabeli; odmowa dla
+    folderów, Kosza, pendrive'a i więcej niż `K1_PRZ_DO_STREFY_MAKS` = 8 plików). Po puszczeniu VMM dostaje `UPUSC_STREFA`
+    (punkt w obrazie, liczba plików) i robi z tego ramkę `UPUSC` dla agenta; źródło dostaje `PRZECIAGANIE_KONIEC` z numerem
+    strefy i wysyła kopie jak „Wyślij do…” (`DOK_DO_STREFY` z trybem `K1_PS_TRYB_UPUSC`; `PLIK` ma pole tryb: wyślij,
+    otwórz, upuść). Agent kładzie je w „Z K1” i, gdy przyjdzie ostatni, pisze kompozytorowi „upusc X Y <adresy>”
+    (FIFO z kroku 3); kompozytor przyjmuje tylko adresy z „Z K1”, najwyżej 8, punkt na ekranie strefy, raz na sekundę,
+    i **odgrywa upuszczenie** w swoim protokole Wayland (`kompozytor/dane.c`): `wl_data_offer` z `text/uri-list` (obiekty
+    kompozytora mają numery od `0xff000000`, jak w libwayland), `enter`, `motion`, akcja „kopia”, `drop`; na `receive`
+    pisze adresy. Sprawdzone na stanowisku z prawdziwym Firefoksem (P22, `testy/stanowisko/upusc.py`): strona dostaje
+    pliki (nazwy i rozmiary), pole „Prześlij plik” się wypełnia. Przeciąganie zaczęte w strefie (karta, link) dalej jest
+    od razu anulowane — nic nie wychodzi ze strefy tą drogą.
+14. **Okno wyboru pliku K1 dla strony (T7) — „Później”.** Firefox pokazuje okno wyboru K1 tylko przez portal
+    `xdg-desktop-portal` (`widget.use-xdg-desktop-portal.file-picker`), czyli przez D-Bus — w strefie nie ma D-Bus ani
+    portalu, a wniesienie ich to duży obcy kod w strefie i nowa droga do K1. Zostaje okno GTK w strefie, które widzi tylko
+    folder sesji („Z K1”, pobrane): plik dajesz stronie „Wyślij do…” albo przeciągając go na okno (ADR 0027 p. 4).
+
 ## Konsekwencje
 - Pierwsza droga bajtów ze strefy do danych użytkownika: nadzorca dostaje od VMM tylko komunikaty 32 B i zapieczętowane
   memfd, a skarbiec — tylko nowy plik w Pobranych. Niezaufany jest format ramek (VMM), nazwa (VMM, nadzorca, skarbiec)
@@ -98,3 +129,6 @@ zaczyna sama strefa); brakowało drogi bajtów i formatu.
   obrazów, Notatki tylko tekst), a PDF i inne pliki otwiera się w strefie (krok 3) — RYZYKA R103.
 - Kroki 3–5 tego planu używają tej samej drogi w drugą stronę (pliki do strefy), dla przeciągania i schowka —
   uzupełnienia tego ADR.
+- Krok 4: nowa droga wejścia do strefy (upuszczenie) to nadal tylko kopia w „Z K1” po geście w K1; kompozytor strefy zna
+  teraz obiekty, które sam tworzy (`wl_data_offer`) — powierzchnia w strefie, nie w K1. Pliki dostają od ekranu numery
+  folderów pulpitu (Pulpit, jego foldery) — numery, które i tak widzą; skarbiec sprawdza prawa jak przy każdym przeniesieniu.
