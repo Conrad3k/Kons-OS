@@ -112,8 +112,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                     Luki (punkt 5)   Zależy od   Decyzje      Rozmiar  ADR
-[w toku: Claude, gałąź claude/wizardly-franklin-9frfth]
-     1  Okno przeglądarki do krawędzi, pełny ekran            P1–P4            0.10.10     D1, T9       S–M      brak
+[x]  1  Okno przeglądarki do krawędzi, pełny ekran (PR #202)  P1–P4            0.10.10     D1, T9       S–M      brak
 [ ]  2  Pliki ze strefy do Plików (Do K1), pochodzenie        P5–P14           0.10.10     D2, D3,      L        0051
                                                                                            T1–T4
 [ ]  3  Pliki do strefy: Wyślij do, Otwórz w, zapis z powr.   P15–P18          2           D4, T5       M–L      0051
@@ -173,6 +172,8 @@ KROK 1: Okno przeglądarki do krawędzi, pełny ekran                         S�
     - Lokalnie (kontener, emulacja zagnieżdżona): test-m1 12/12; test-strefa — wszystko o rozmiarze i pełnym ekranie OK,
       wzorce ramki zgodne; przebiegi padały gdzie indziej na emulacji (raz gość trybu 17 stanął po starcie, raz gość
       trybu 10 „potrójny błąd” po 0,3 s, bez wyjść MMIO) — pełny komplet: CI z KVM.
+    - CI na PR-ze #202 (przebieg 285, KVM): budowa i wszystkie testy zaliczone. Stanowisko (testy/stanowisko/pelny.py):
+      prawdziwy Firefox — F11, koniec przez K1, F11 znowu, wyjście przez stronę.
 
 KROK 2: Pliki ze strefy do Plików („Do K1”), pochodzenie                  L · D2, D3, T1–T4 · ADR 0052
   Cel: plik pobrany w sesji przeglądarki trafia — za zgodą — do Plików K1 jako kopia, z zapisanym pochodzeniem.
