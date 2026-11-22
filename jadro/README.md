@@ -4,7 +4,7 @@
 |---|---|
 | `wersja.env` | wersja jądra, przypięta suma SHA-256 tarballa, adres pobierania |
 | `k1.config` | konfiguracja: fragment nakładany na `make allnoconfig` (wszystko spoza fragmentu wyłączone) |
-| `cmdline` | linia poleceń jądra (od M10 wbudowana w podpisany UKI) |
+| `cmdline` | linia poleceń jądra (od 0.7.0 wbudowana w podpisany `k1.efi`, ADR 0022) |
 | `klucze/` | publiczne klucze PGP do sprawdzania podpisów kernel.org |
 
 Budowa: `scripts/zbuduj-jadro.sh` (pobiera, sprawdza sumę i podpis, konfiguruje, sprawdza fragment,

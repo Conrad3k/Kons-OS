@@ -188,7 +188,7 @@ przeglądarki — od 0.10.9 krok 4 poza rdzeniem (ADR 0050): w miejscu A/B zaraz
 tylko jego skrót `/rdzen/strefy/przegladarka.skrot`; nadzorca (`obraz_strefy.c`) zakłada dm-verity i daje VMM-owi
 urządzenie jako fd 6 (VMM bierze rozmiar przez `lseek`); w testach QEMU z rdzeniem na `/dev/vda` obraz to drugi dysk
 virtio (`scripts/uruchom-qemu.sh`, `--obraz-strefy`); 1536 MiB na start (od 0.10.1 górna granica: pamięć komputera minus rezerwa K1, balon —
-ADR 0044), 4 procesory — najwyżej tyle, ile ma komputer (do 0.11.1: 2; w emulacji QEMU — 1, i od 0.10.5 krok 7 gość z `highres=off`: jądro strefy 7.x odracza przestawianie zegara (`HRTIMER_REARM_DEFERRED`) i pod emulowanym SVM bezczynny gość widział klawisz po minucie; z KVM na prawdziwym procesorze bez zmian); Ogólna i Bank pamiętają (krok 5), Prywatna zapomina.
+ADR 0044), wszystkie procesory komputera do `K1_STREFA_PROCESORY_MAKS` = 254 (0.11.3; 0.11.2: 4, do 0.11.1: 2; w emulacji QEMU — 1, i od 0.10.5 krok 7 gość z `highres=off`: jądro strefy 7.x odracza przestawianie zegara (`HRTIMER_REARM_DEFERRED`) i pod emulowanym SVM bezczynny gość widział klawisz po minucie; z KVM na prawdziwym procesorze bez zmian); Ogólna i Bank pamiętają (krok 5), Prywatna zapomina.
 - **Obraz** (`scripts/zbuduj-strefe.sh`): pakiety Debiana 13 z tabeli `strefy/przegladarka.txt` (wersje i sumy;
   odświeżenie `scripts/odswiez-strefe.py` — podpisy Debiana sprawdzane kluczami z `strefy/klucze/`), rozpakowane bez
   skryptów pakietów, bez powłoki; nasze: `/init` (`gosc`), `/usr/lib/k1/kompozytor`, `/usr/lib/k1/przekaznik`, mapa

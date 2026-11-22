@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | PRZETESTOWANE (M4, Zasoby i Ekran: M4.1) — `scripts/test-m4.sh`, testy w systemie (klatki, próby) |
 | **Kod** | `src/aplikacje/*/main.c`, szkielet `src/przybornik/k1_aplikacja.c` |
-| **Decyzje** | ADR 0008; do 0.12 aplikacje leżą w obrazie rdzenia (`/rdzen/aplikacje`), potem podpisane obrazy w `/aplikacje` |
+| **Decyzje** | ADR 0008; do 0.13 (Bezpieczny start, ADR 0053) aplikacje leżą w obrazie rdzenia (`/rdzen/aplikacje`), potem podpisane obrazy w `/aplikacje` |
 
 **Opis ekranu dla testów (0.10.2 krok 2, ADR 0045).** Każde okno aplikacji ma w obrazie testowym tabelę elementów
 (`src/przybornik/k1_opis_klient.c`): `k1_aplikacja` nazywa okno jego tytułem, a przybornik sam zgłasza to, co rysuje —

@@ -34,8 +34,8 @@ Lista KSPP: `scripts/sprawdz-kspp.sh` (dane z kernel-hardening-checker v0.6.17.1
 | `DEFAULT_MMAP_MIN_ADDR=32768` | mamy 65536 (silniej) |
 | `MODULE_SIG*` | nie dotyczy — brak modułów (`MODULES=n`) |
 | `CFI_CLANG`, `UBSAN_LOCAL_BOUNDS` | wymagają Clanga do budowy jądra (budujemy GCC; ADR 0002/0003) |
-| `RANDSTRUCT_FULL`, `GCC_PLUGIN_RANDSTRUCT` | losowe ziarno przy każdym buildzie kłóci się z powtarzalnym buildem; decyzja przy 0.12 |
-| `HW_RANDOM_TPM` | TPM — 0.12 |
+| `RANDSTRUCT_FULL`, `GCC_PLUGIN_RANDSTRUCT` | losowe ziarno przy każdym buildzie kłóci się z powtarzalnym buildem; decyzja przy 0.13 (Bezpieczny start) |
+| `HW_RANDOM_TPM` | TPM — 0.13 |
 | `INTEL_IOMMU_SVM` | wymaga dodatkowych podsystemów (SVA/PASID), niepotrzebnych w M1 |
 | `AMD_IOMMU_V2`, `DEBUG_CREDENTIALS`, `GCC_PLUGIN_STRUCTLEAK*`, `PAGE_POISONING_ZERO`, `PAGE_TABLE_ISOLATION`, `SLS`, `UBSAN_SANITIZE_ALL` | nazwy ze starszych wersji jądra; w 6.18 zastąpione (`MITIGATION_PAGE_TABLE_ISOLATION`, `MITIGATION_SLS`, `INIT_STACK_ALL_ZERO`, … — wszystkie włączone) albo usunięte |
 | `ARM64_*`, `ARM_*`, `SHADOW_CALL_STACK`, `KASAN_HW_TAGS`, `HIGHMEM*`, `X86_PAE` | inne architektury / 32-bit |

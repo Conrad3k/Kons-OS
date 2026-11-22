@@ -1,0 +1,345 @@
+K1 — PLAN WERSJI 0.12.0 „DŹWIĘK” (nowy temat z mapy drogi: 0.12, ADR 0053)
+===========================================================================
+
+Data: 2026-11-22 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-22, po wydaniu
+0.11.3): „myślę, by w wersji 0.12 zająć się dźwiękiem, więc też taki plan możesz stworzyć”. Tego samego dnia mapa drogi
+przesunęła się o jedną wersję: 0.12 Dźwięk, 0.13 Bezpieczny start, 0.14 Audyt → 1.0 (ADR 0053).
+Wersja stoi na 0.11.3: pulpit i aplikacje K1, Pliki, sieć (kabel, Wi-Fi), przeglądarka w strefie (sesje Ogólna, Bank,
+Prywatna, szybka grafika), pliki i schowek między przeglądarką a K1, aktualizacje przez sieć, robot. Dźwięku nie ma
+wcale: jądro K1 nie ma sterowników dźwięku, strefa nie ma urządzenia dźwięku, a ikona głośnika na górnym pasku otwiera
+okienko „ta wersja nie obsługuje jeszcze karty dźwiękowej”.
+Ten plik jest SAMODZIELNY: cel, kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+Plik jest planem, nie specyfikacją: architekturę dźwięku (usługa, kanał, urządzenie w strefie) ustala ADR 0054 w kroku 1.
+
+
+CEL WERSJI (jednym akapitem)
+----------------------------
+Po 0.12.0 laptop gra: filmy i strony w przeglądarce mają dźwięk, głośność zmienia się suwakiem na górnym pasku
+i klawiszami laptopa, słuchawki przejmują dźwięk same po podłączeniu. Tak jak obraz, kartę dźwiękową ma tylko jeden
+proces K1 — nowa usługa dźwięku w swojej klatce; aplikacje i strefy dostają tylko kanał, którym oddają dźwięk do
+zagrania. Strefa nie widzi karty: gra przez urządzenie dźwięku w swoim VMM-ie, a K1 sprawdza każdą jej prośbę. Na ramce
+okna sesji widać, która sesja gra, i jednym kliknięciem można ją wyciszyć. Mikrofon — według decyzji D1 (rekomendacja:
+nie w tej wersji).
+
+Kroki: CZTERY (pięć, jeśli D1 = B). Krok 1 — dźwięk w K1: sterowniki w jądrze, usługa dźwięku, okienko „Dźwięk” na
+górnym pasku z głośnością i próbą (fundament, ADR 0054). Krok 2 — klawisze głośności, słuchawki, Ustawienia → Dźwięk,
+oszczędzanie energii. Krok 3 — dźwięk z przeglądarki: urządzenie dźwięku w strefie, Firefox gra, znak na ramce sesji.
+Krok 4 — porządki i wydanie 0.12.0 (gdy D1 = B: krok 4 to mikrofon, a wydanie przechodzi na krok 5).
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe kroki i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”); wyjątek:
+błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; wydanie jest zawsze ostatnim
+krokiem (nowy krok bierze numer kroku wydania, wydanie przesuwa się na koniec, póki się nie zaczęło); jeśli krok nie
+zmieści się w jednym czacie, dzieli się na 3a/3b … (wydanie w ostatniej części ostatniego kroku).
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.11.3, 2026-11-22), ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą;
+źródła jądra: Linux 7.3.5, wersja z jadro/wersja.env, sprawdzone 2026-11-22), POTWIERDZONE (próbą), NIEPEWNE (do
+sprawdzenia w kroku — nie zakładać).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: 1, 2, 3, 4. Krok 1 jest fundamentem (usługa dźwięku
+i jej kanał); kroki 2 i 3 stoją na nim, ale nie na sobie nawzajem (można je zamienić); krok 4 (wydanie) — po wszystkich.
+
+Właściciel: co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.12.0.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku. D1 (mikrofon) zmienia zakres wersji — czat kroku 1 pyta o nią
+najpierw. Przy wyglądzie czat najpierw pokaże szkice albo obrazy „przed / po”.
+
+Nowy czat: przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y i Issue robota, ostatni run CI na main).
+  2. Przeczytaj CEL WERSJI, swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2–4 także ADR 0054
+     i „Ustalenia z wykonania” kroków wcześniejszych. Kod mógł się zmienić (robot, poprawki) — luki sprawdź jeszcze raz.
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy najpierw osobny commit z podziałem (z kodu 2026-11-22: gui/pulpit.c
+     588, nadzorca/uslugi.c 573, przybornik/k1_rysuj.c 560 — ikony głośnika, strefa/kompozytor/wejscie.c 578).
+  5. Nowa usługa: przepis „Nowa usługa systemowa” z SKILL (wiersz K1_SYSTEM, klatka KLATKA_DZWIEK, opis
+     dzwiek.md w docs/komponenty/). Nowy komunikat albo format: przepis z SKILL (sprawdzanie pole po polu, test na hoście,
+     fuzzing, test negatywny w systemie). Strefa jest NIEZAUFANA: każde pole od niej (formaty, rozmiary, indeksy
+     pierścienia) sprawdza K1; dźwięk to tylko liczby — nigdy w logu (najwyżej liczniki).
+  6. Opcje jądra: przepis z SKILL („Opcja jądra”) — każda linia z komentarzem, sprawdzenie w build/zrodla/; ręczna zmiana
+     jądra nigdy równolegle z otwartym PR-em robota (AGENTS.md).
+  7. Testy: QEMU z kartą dźwiękową, która zapisuje to, co zagrano, do pliku (T7) — test słucha pliku (ton, cisza,
+     głośność); okna K1 — po nazwach (ADR 0045), wzorce po „OK” właściciela (D3 z 0.10.2). Firefoksa CI nie testuje
+     (decyzja właściciela 2026-11-17): Firefox gra — stanowisko (scripts/stanowisko.sh), a na sprzęcie właściciel (lista
+     „co sprawdzić” w raporcie kroku). Prawdziwego głośnika nie słyszy żaden test: „czy gra” na X230 i IdeaPadzie sprawdza
+     właściciel.
+  8. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, scripts/test-m1.sh i skrypty QEMU
+     zmienianej części (docs/TESTY.md; od kroku 1 nowy test-dzwiek.sh); pełny komplet: CI na PR-ze (etykieta „testy”),
+     scalasz przy zielonym (AGENTS.md). Czekaj poleceniem, bez innych wywołań (CLAUDE.md).
+  9. Dokumenty w tym samym PR-ze: ADR 0054 (krok 1, uzupełnienia w 2 i 3), dzwiek.md w docs/komponenty/ (nowy),
+     nadzorca.md, gui.md, ekran.md, wejscie.md, strefa.md, aplikacje.md (Ustawienia), jadro.md; SLOWNIK (nowe pojęcia:
+     „usługa dźwięku”, „głośność”, „wyjście dźwięku”…), RYZYKA (nowe wiersze — punkt 7), WYGLAD (okienko, ikony), README
+     („Czego jeszcze nie ma”, VirtualBox: „dźwięk można wyłączyć”). VERSION i CHANGELOG zmienia krok 4 (wydanie); kroki
+     1–3 zapisują „co widzi użytkownik” w opisie PR-a.
+ 10. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
+     w swoim kroku. Raport dla właściciela: co słychać, co widać, co sprawdzić na laptopie.
+
+Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
+  - Robot raz dziennie wydaje sam PATCH z poprawionym jądrem i pakietami przeglądarki — z tego, co jest wtedy na main.
+    Każdy scalony krok trafia więc do laptopów z najbliższym wydaniem robota (np. 0.11.4), przed wydaniem 0.12.0. Kroki
+    tej wersji są samodzielne: krok 1 daje działający dźwięk w K1 (próba z okienka), krok 2 — klawisze i słuchawki,
+    krok 3 — dźwięk z przeglądarki. Robot zostaje włączony. Krok w main musi być gotowy dla użytkownika: bez suwaka,
+    który nic nie robi.
+  - Kroki 1 i 3 zmieniają konfigurację jądra (K1 i strefy): przed scaleniem — bez otwartego PR-a robota (zamknij go,
+    zrobi nowy następnego dnia); nowe opcje nie trafiają na listy odrzuconych (`jadro/*-odrzucone.txt` zmienia człowiek).
+  - Numer: 0.12.0 to MINOR — robot go nie zajmie (wydaje tylko PATCH 0.11.x). Tuż przed scaleniem wydania: gałąź z main,
+    sprawdź VERSION; wpis 0.12.0 w CHANGELOG nad ostatnim wpisem robota.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+  - Krok 1: K1 dostaje „uszy”: sterownik karty dźwiękowej w jądrze i nową usługę dźwięku, która jako jedyna w systemie
+    rozmawia z kartą. Ikona głośnika na górnym pasku otwiera okienko z suwakiem głośności, wyciszeniem i przyciskiem
+    „Odtwórz próbę” (krótki, spokojny dźwięk). Wygląd okienka — szkice do wyboru (D2).
+  - Krok 2: klawisze głośności na laptopie (X230: osobne klawisze nad klawiaturą; IdeaPad: Fn + F2 / F3, wyciszenie
+    Fn + F1) zmieniają głośność, a na ekranie na chwilę widać pasek głośności (D4). Słuchawki: po podłączeniu dźwięk idzie
+    do nich, po odłączeniu wraca do głośników. Ustawienia → nowa sekcja „Dźwięk” (wyjście, głośność, próba; D5 — czy
+    głośność zostaje po wyłączeniu). Karta śpi, gdy nic nie gra (bateria).
+  - Krok 3: przeglądarka gra: filmy (YouTube), muzyka, dźwięki stron — w każdej sesji. Na pasku okna sesji, która gra,
+    pojawia się mały głośnik; kliknięcie wycisza tę sesję (D6). Dźwięk z przeglądarki przechodzi przez K1 — strona nie
+    dostaje karty dźwiękowej ani mikrofonu.
+  - Krok 4: porządki (co usunąć, scalić, uprościć), lista „co sprawdzić” na laptopach, wydanie 0.12.0.
+  - Jeśli w D1 wybierzesz mikrofon (B): krok 4 — mikrofon dla przeglądarki za zgodą (okienko K1 przy każdej sesji, znak
+    „mikrofon” na ramce i na górnym pasku), wydanie w kroku 5.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar  ADR
+[ ]  1  Dźwięk w K1: jądro, usługa dźwięku, okienko „Dźwięk”    L1–L6            0.11.3      D1, D2, D3,    L        0054
+                                                                                            T1–T4, T7, T8
+[ ]  2  Klawisze głośności, słuchawki, Ustawienia → Dźwięk      L7–L10           1           D4, D5         M        0054 (uzup.)
+[ ]  3  Dźwięk z przeglądarki, znak na ramce sesji              L11–L15          1           D6, T5, T6     L        0054 (uzup.)
+[ ]  4  Porządki; wydanie 0.12.0                                L16              1–3         —              S–M      —
+(ADR 0054: następny wolny po 0053, który przesunął mapę drogi.)
+
+
+3. KROKI
+--------
+KROK 1: Dźwięk w K1 — jądro, usługa dźwięku, okienko „Dźwięk”              L · D1–D3, T1–T4, T7, T8 · ADR 0054
+  Cel: karta dźwiękowa laptopa (i maszyny wirtualnej z kartą Intel HD Audio) gra dźwięk z K1; ma ją tylko usługa
+  dźwięku w klatce; okienko „Dźwięk” na górnym pasku zmienia głośność i gra próbę.
+  Na początku: D1 (mikrofon — zmienia zakres i ADR), D2 (szkice okienka, oba motywy), D3 (dźwięki systemu).
+  Co widzi użytkownik: kliknięcie głośnika na górnym pasku → okienko „Dźwięk” wg D2: suwak głośności, wyciszenie,
+  „Odtwórz próbę”; ikona głośnika pokazuje stan (wyciszony / cicho / głośno). Bez karty dźwiękowej (np. maszyna wirtualna
+  bez dźwięku) okienko mówi spokojnie, że komputer nie ma karty dźwiękowej.
+  Zadania:
+   a) Jądro K1 (jadro/k1.config, każda linia z komentarzem; ZE ŹRÓDEŁ, Kconfig Linux 7.3.5): SOUND, SND, SND_HDA_INTEL
+      (wybiera SND_HDA i SND_INTEL_DSP_CONFIG), SND_HDA_CODEC_REALTEK z SND_HDA_CODEC_ALC269 (rodzina kodeków ALC2xx —
+      X230: ALC269, NIEPEWNE do odczytu z logu na sprzęcie), SND_HDA_CODEC_CONEXANT (częsty w IdeaPadach — kodek
+      IdeaPada 110: NIEPEWNE), SND_HDA_GENERIC (kodek ogólny: kodek QEMU i każdy nieznany). Uwaga: opcje kodeków Realteka
+      mają „default y”, ale mają też pytanie — allnoconfig je wyłącza, więc każda musi być w k1.config wprost (SKILL,
+      „Opcja jądra”). Bez: sekwencera i MIDI (SND_SEQUENCER), emulacji OSS, timerów ALSA, USB audio (punkt 6), SOF/SST/AVS
+      (procesory dźwięku Intela — intel-dsp-config.c: dla Skylake bez AVS wymusza zwykły sterownik HDA, ZE ŹRÓDEŁ).
+      Sprawdź w scripts/porownaj-jadro.sh, czy nic z tego nie wchodzi jako „PYTANIE” u robota.
+   b) Nadzorca: urządzenia dźwięku z uevent (SUBSYSTEM=sound, nowy rodzaj obok input/block/power_supply — L2) i z
+      przeglądu przy starcie; otwiera węzeł odtwarzania (pcmC<k>D<u>p) i kontrolki (controlC<k>) pierwszej karty
+      z wyjściem i daje je usłudze dźwięku (fd jak w wierszu K1_SYSTEM). Karta podłączona później (USB — punkt 6) —
+      ignorowana w tej wersji. Jeden właściciel zasobu (niezmiennik 7): węzłów /dev/snd nie dostaje nikt inny —
+      t_sprzet w teście w systemie.
+   c) Usługa dźwięku `dzwiek` (T1): wiersz K1_SYSTEM (UID 111, następny wolny profil, PRZY_STARCIE, rola BRAK), klatka
+      KLATKA_DZWIEK (seccomp: ioctl tylko ALSA — T2, poll, memfd od klientów; bez ścieżek, `open`, `socket`), log
+      K1-DZWIEK (liczniki: klienci, przerwy w dźwięku — nigdy treść). ALSA bez alsa-lib (T2): HW_PARAMS (48 kHz, 16 bitów,
+      stereo — T3), SW_PARAMS, PREPARE, zapis klatek, odzyskanie po „niedoborze” (underrun). Mieszanie strumieni
+      klientów i głośność w usłudze (T3).
+   d) Kanał klientów dźwięku (T4): nowy kanał KANAL_DZWIEKU, format `src/wspolne/k1_dzwiek.h` (pierścień w memfd
+      z pieczęciami, stały układ — `_Static_assert`; komunikaty 32 B: otwórz strumień, postęp, koniec), sprawdzanie
+      w `k1_kom_dzwiek.c`, `test_dzwiek`, `fuzz_dzwiek`, test negatywny w systemie (złe indeksy, za duży strumień,
+      zalew komunikatami). Klienci w tym kroku: gui (próba, głośność, stan karty do ikony). Kto jeszcze może być
+      klientem — tabela w jednym miejscu (zasada czytelności 5), krok 3 dopisze VMM strefy.
+   e) gui: okienko „Dźwięk” (pasek_gorny.c — dziś tylko napis, L4) wg D2; ikony głośnika z poziomami i wyciszeniem
+      (k1_rysuj.c — najpierw podział, plik ma 560 wierszy); próba — krótki dźwięk zapisany w programie (wygenerowany
+      przy budowie albo w kodzie, powtarzalnie — niezmiennik 9; bez pliku dźwiękowego z zewnątrz). Opis ekranu (ADR 0045):
+      „Głośność”, „Wycisz”, „Odtwórz próbę”; wzorce okienka jasny / ciemny po „OK” właściciela.
+   f) Testy (T7): QEMU z kartą Intel HD Audio i kodekiem, który zapisuje dźwięk do pliku WAV; scripts/test-dzwiek.sh:
+      próba → w pliku ton o znanej częstotliwości; wyciszenie → cisza; głośność 50 % → mniejsza amplituda; usługa padnie
+      → nadzorca ją uruchamia, okienko znów gra. Bez karty (QEMU bez dźwięku) → „komputer nie ma karty dźwiękowej”,
+      nic nie pada. W testach na hoście: mieszanie i głośność (`test_dzwiek`: obcięcie, brak przepełnienia).
+   g) ADR 0054 „Dźwięk w K1”: usługa i jej klatka, węzły /dev/snd tylko dla niej (rozszerzenie niezmiennika 7), kanał
+      i pierścień, decyzje T1–T4, T7, T8 i D1; dzwiek.md w docs/komponenty/; RYZYKA (punkt 7).
+   h) Energia (T8): karta i kodek śpią, gdy nic nie gra (usługa zamyka strumień po kilku sekundach ciszy; power_save
+      kodeka) — pomiar w Zasobach na laptopie właściciela (bez dźwięku pobór mocy jak w 0.11.3).
+  Gotowe, gdy: test-dzwiek zielony, test-m1 i test-m4 zielone, właściciel słyszy próbę na X230 i IdeaPadzie (po
+  najbliższym wydaniu robota).
+
+KROK 2: Klawisze głośności, słuchawki, Ustawienia → Dźwięk                 M · D4, D5 · ADR 0054 (uzupełnienie)
+  Cel: głośność zmieniają klawisze laptopa, słuchawki działają same, Ustawienia mają sekcję „Dźwięk”.
+  Na początku: D4 (wskaźnik głośności — szkice), D5 (głośność po włączeniu).
+  Co widzi użytkownik: klawisz głośniej / ciszej / wycisz → zmiana o krok i na chwilę pasek głośności wg D4; działa też,
+  gdy fokus ma okno przeglądarki (strefa tych klawiszy nie dostaje). Słuchawki w gnieździe → dźwięk w słuchawkach,
+  głośniki milkną; wyjęte → głośniki. Ustawienia → „Dźwięk”: wyjście (Głośniki / Słuchawki — samo, z nazwą tego, co
+  gra), suwak, „Odtwórz próbę”.
+  Zadania:
+   a) Klawisze (L7): KEY_VOLUMEUP, KEY_VOLUMEDOWN, KEY_MUTE rozpoznaje ekran jak skróty powłoki (wskaznik.c — tam jest
+      Alt+Tab) i podaje gui, nie oknu z fokusem. NIEPEWNE: skąd przychodzą na laptopach — z klawiatury (atkbd) czy
+      z osobnego urządzenia (ThinkPad: thinkpad_acpi, IdeaPad: ideapad-laptop; żadnego z nich nie ma dziś w jądrze K1).
+      wejscie bierze jako klawiaturę tylko urządzenie z KEY_A i KEY_SPACE (wejscie/main.c), więc klawisze z osobnego
+      urządzenia dziś przepadają. Najpierw: log wejścia z nazwą urządzenia i tym, czy ma klawisze głośności (nie kody
+      wciśnięć — niezmiennik 8) na obu laptopach; dopiero potem decyzja, czy potrzeba sterownika platformy w jądrze.
+      Klawisz wyciszenia mikrofonu (X230) — bez skutku, póki nie ma mikrofonu.
+   b) Wskaźnik głośności wg D4 (rysuje gui albo ekran nad wszystkimi oknami, także nad pełnym ekranem przeglądarki).
+   c) Słuchawki (L8): jądro samo przełącza wyjście (automatyczne wyciszanie głośników w ogólnym parserze HDA) — sprawdź
+      na sprzęcie; usługa czyta stan gniazda (kontrolka „Headphone Jack” — NIEPEWNE nazwy na danym kodeku) i podaje go
+      gui i Ustawieniom. Głośność osobno dla głośników i słuchawek (zapamiętana — D5).
+   d) Ustawienia → „Dźwięk” (L9): nowa sekcja w tabeli sekcje[] (main.c — 483 wiersze; sekcja w osobnym pliku `dzwiek.c`),
+      kanał od nadzorcy do usługi dźwięku albo przez gui (decyzja techniczna w kroku — jedna droga dla okienka
+      i Ustawień). Opis ekranu i wzorce.
+   e) Pamięć ustawień (D5): głośność i wyciszenie w skarbcu (jak ustawienia ekranu), czytane przy starcie usługi.
+   f) Testy: test-dzwiek — QMP send-key volumeup / volumedown / audiomute (T7) zmienia amplitudę w pliku; okno strefy
+      z fokusem nie dostaje tych klawiszy (strefa próbna liczy klawisze); gniazdo słuchawek — QEMU go nie udaje: tylko
+      test na hoście logiki i właściciel na sprzęcie.
+  Gotowe, gdy: testy zielone; właściciel: klawisze na obu laptopach, słuchawki w gnieździe.
+
+KROK 3: Dźwięk z przeglądarki, znak na ramce sesji                          L · D6, T5, T6 · ADR 0054 (uzupełnienie)
+  Cel: Firefox w każdej sesji gra przez K1; strefa ma tylko urządzenie dźwięku w VMM-ie; użytkownik widzi i wycisza
+  sesję, która gra.
+  Na początku: D6 (znak i wyciszanie na ramce — szkice); T6 sprawdzić na stanowisku NAJPIERW (od wyniku zależy reszta).
+  Co widzi użytkownik: film na YouTube gra; na pasku okna sesji mały głośnik, póki sesja gra; kliknięcie — sesja wyciszona
+  (głośnik przekreślony), drugie — znów gra. Głośność całego K1 (suwak, klawisze) działa także na przeglądarkę.
+  Zadania:
+   a) T6 na stanowisku: czy Firefox ESR z obrazu strefy gra przez ALSA (biblioteka libasound2t64 jest w obrazie —
+      strefy/przegladarka.txt; czy jego cubeb ma wkompilowany backend ALSA i co wybiera bez PulseAudio — NIEPEWNE).
+      Wynik zapisz w „Ustaleniach”; jeśli nie — plan B z T6 (najpierw zapytaj właściciela, jeśli krok rośnie do 3a/3b).
+   b) Jądro strefy (jadro/strefa.config): SND_VIRTIO (ZE ŹRÓDEŁ: zależy od VIRTIO, wybiera SND_PCM i SND_JACK).
+   c) VMM (T5): urządzenie dźwięku virtio (virtio-snd, nagłówek UAPI linux/virtio_snd.h) — wiersz DZWIEK w tabeli
+      K1_URZADZENIA (strefa.h), plik `dzwiek.c` w src/strefa/: kolejki sterująca, zdarzeń i wyjścia; tylko jeden strumień
+      wyjścia, 48 kHz / 16 bitów / stereo (inne formaty: gość dostaje „nieobsługiwane”), bez wejścia (rx) przy D1 = A.
+      Każde pole od gościa sprawdzane (`test_virtio_dzwiek`, `fuzz_virtio_dzwiek`); dane z kolejki → pierścień kanału
+      dźwięku (krok 1). Klatka VMM-a: memfd i fd kanału dźwięku; nadzorca daje VMM-owi kanał tylko dla stref z oknem
+      (strefa pobierania — bez dźwięku; kolumna w K1_STREFY albo reguła — jedna tabela).
+   d) Gość: /init przeglądarki ustawia Firefoksowi to, czego wymaga T6 (preferencje w strefy/przegladarka/k1.js,
+      zmienne środowiska w gosc/przegladarka.c); strefa próbna dostaje tryb, który gra ton (test w CI bez Firefoksa)
+      i tryby złośliwe (zły format, zły rozmiar, zalew prośbami).
+   e) Znak na ramce (D6): ekran rysuje głośnik na pasku tytułu sesji, gdy jej strumień gra (stan od usługi dźwięku
+      przez nadzorcę — nigdy od strefy), kliknięcie → wyciszenie strumienia tej sesji w usłudze; strona go nie zasłoni
+      (pasek rysuje ekran, R80). Opis ekranu: „Wycisz sesję”.
+   f) Testy: test-strefa (albo test-dzwiek z obrazem strefy próbnej): strefa gra ton → w pliku WAV ton; wyciszenie sesji
+      kliknięciem → cisza tej sesji; dwie sesje naraz → zmieszane; złośliwy gość → kończy się tylko jego maszyna;
+      RYZYKA R77 („bez dźwięku”) poprawione. Stanowisko: scenariusz „Firefox gra” (plik dźwiękowy na stronie testowej).
+  Gotowe, gdy: testy zielone; stanowisko: Firefox gra; właściciel: YouTube z dźwiękiem w Ogólnej i Banku, wyciszanie
+  na ramce, film z szybką grafiką i bez.
+
+KROK 4: Porządki; wydanie 0.12.0                                             S–M · — · bez ADR
+  (Gdy D1 = B: to jest krok „Mikrofon” — zgoda gestem w okienku K1 przy każdej sesji, wejście rx w VMM, znak „mikrofon”
+  na ramce i na górnym pasku, preferencje WebRTC tylko dla sesji ze zgodą, RYZYKA; a porządki i wydanie — krok 5.)
+  Zadania:
+   a) Porządki MINOR (zasada czytelności 2): co usunąć, scalić, uprościć; przegląd „Tymczasowe” (DO_ZROBIENIA, punkt 6);
+      pliki blisko 600 wierszy; wynik w CHANGELOG („Porządki”) — także porządki dokumentów sprzed planu (PR z planem).
+   b) Dokumenty: README („Co już jest”, „Czego jeszcze nie ma”, maszyna wirtualna z dźwiękiem), DO_ZROBIENIA (stan,
+      lista „co sprawdzić” na laptopach), skill (mapa kodu: dzwiek), dzwiek.md w docs/komponenty/ kompletny.
+   c) VERSION 0.12.0, CHANGELOG z „Opis w K1:” (ADR 0046), wydanie; plan → do docs/archiwum/ (pod tą samą nazwą).
+
+
+4. DECYZJE
+----------
+Właściciela (czat pyta na początku kroku; przy wyglądzie — szkice):
+[!] D1 (krok 1, NAJPIERW) Mikrofon w 0.12?
+      A — nie: 0.12 tylko gra (głośniki, słuchawki); mikrofon w „Później”. REKOMENDACJA: rozmowy wideo i tak nie działają
+          (WebRTC w przeglądarce wyłączony od 0.10.0 — strefy/przegladarka/k1.js), a mikrofon to osobny temat prywatności
+          (zgoda, znak, który sesja słucha) — lepiej jako osobna, dokładna praca.
+      B — tak: dodatkowy krok 4 „Mikrofon” (zgoda w okienku K1 przy każdej sesji, znak na ramce i na górnym pasku,
+          rozmowy wideo w sesji ze zgodą); wersja dłuższa o jeden krok.
+[!] D2 (krok 1) Okienko „Dźwięk” na górnym pasku (szkice A/B, jasny i ciemny):
+      A — suwak głośności, przycisk wyciszenia, nazwa wyjścia (Głośniki / Słuchawki), „Odtwórz próbę”. REKOMENDACJA.
+      B — jak A, a pod spodem lista sesji, które grają, z osobnymi suwakami (jak „mikser” w Windows); sesje dochodzą
+          w kroku 3.
+[!] D3 (krok 1) Dźwięki samego K1:
+      A — K1 nie wydaje własnych dźwięków (tylko „Odtwórz próbę”). REKOMENDACJA: styl minimalistyczny, nic nie piszczy.
+      B — kilka cichych dźwięków (podłączenie zasilacza, „Mało pamięci”, błąd) z przełącznikiem w Ustawieniach.
+[!] D4 (krok 2) Co widać po klawiszu głośności:
+      A — pigułka u góry ekranu z paskiem głośności na ok. 1,5 s (jak „pełny ekran: Esc, aby wyjść”). REKOMENDACJA.
+      B — otwiera się okienko „Dźwięk” z górnego paska.
+[!] D5 (krok 2) Głośność po włączeniu komputera:
+      A — taka, jaka była przy wyłączaniu (osobno głośniki i słuchawki). REKOMENDACJA.
+      B — zawsze ta sama, np. 40 % (nic nie huknie po starcie).
+[!] D6 (krok 3) Sesja, która gra:
+      A — mały głośnik na pasku okna sesji; kliknięcie wycisza tylko tę sesję. REKOMENDACJA (jak karta w przeglądarce).
+      B — bez znaku; sesję wycisza się tylko w okienku „Dźwięk” (wymaga D2 = B).
+
+Techniczne (decyduje czat kroku, zapis w ADR 0054; tu kierunek):
+  T1 Kto ma kartę: nowa usługa `dzwiek` w klatce, jedyna z węzłami /dev/snd (nadzorca je otwiera i przekazuje) —
+     jak `ekran` z obrazem. Nie: dźwięk w nadzorcy (root bez klatki, R23), nie: karta dla każdej aplikacji.
+  T2 ALSA bez alsa-lib: ioctl z nagłówka UAPI sound/asound.h (jak DRM bez libdrm); alsa-lib czyta pliki konfiguracji
+     z dysku i ładuje wtyczki — w klatce bez ścieżek i tak by nie działała zwyczajnie. Seccomp: ioctl tylko typów ALSA
+     (PCM i kontrolki — numery z build/naglowki, NIEPEWNE: sprawdzić w kroku), bez mmap stron stanu, jeśli zapis
+     klatek wystarczy (do sprawdzenia: opóźnienie).
+  T3 Jeden format w usłudze: 48 kHz, 16 bitów, stereo; mieszanie z obcięciem w usłudze, głośność programowa (krzywa
+     dopasowana do ucha) i — gdy karta ma — sprzętowa „Master” na 100 % albo jako zgrubna; wybór po próbie na X230
+     (szum przy małej głośności?). Klienci w innym formacie — przelicza klient (strefa: VMM odmawia innych formatów).
+  T4 Kanał dźwięku: pierścień w memfd (pieczęcie, stały rozmiar), postęp komunikatami 32 B; usługa nie ufa indeksom
+     klienta (sprawdza każdy, kopiuje próbki przed użyciem); jeden strumień na klienta, limit klientów w tabeli.
+  T5 Urządzenie dźwięku w strefie: virtio-snd w naszym VMM (nie PCI, nie emulacja karty HDA — mniej kodu, sterownik
+     gościa w jądrze strefy); tylko to, czego wymaga sterownik gościa (INFO strumieni, SET_PARAMS, PREPARE, START, STOP,
+     RELEASE; bez kontrolek i przemapowania gniazd, jeśli gość się bez nich obejdzie — sprawdzić).
+  T6 Jak Firefox w strefie oddaje dźwięk: A — ALSA wprost do virtio-snd (preferencja cubeb), jeśli backend jest
+     wkompilowany; B — mały, nasz serwer protokołu PulseAudio w strefie (jak nasz kompozytor Wayland — duży, osobna
+     część 3b); C — pakiet z Debiana, który udaje PulseAudio nad ALSA. Kolejność prób: A, C, B.
+  T7 Testy: QEMU „-device intel-hda -device hda-output,audiodev=…” z „-audiodev wav,path=…” (QEMU zapisuje zagrany dźwięk
+     do pliku) — NIEPEWNE: czy QEMU z Ubuntu 24.04 ma backend „wav” (`qemu-system-x86_64 -audiodev help`); klawisze —
+     QMP send-key z qcode volumeup / volumedown / audiomute; analiza pliku w Pythonie bez bibliotek (wave + prosta
+     transformata / liczenie przejść przez zero).
+  T8 Energia: usługa zamyka strumień po kilku sekundach ciszy; power_save kodeka (parametr na wbudowanej linii poleceń
+     albo opcja domyślnej wartości w Kconfig — NIEPEWNE nazwy, sprawdzić w sound/hda/); pomiar na laptopie.
+
+
+5. LUKI (co dziś brakuje — Z KODU, 2026-11-22, chyba że napisano inaczej)
+-------------------------------------------------------------------------
+Krok 1:
+  L1 Jądro K1 bez dźwięku: w jadro/k1.config, k1-zamkniete.config i strefa.config nie ma żadnej opcji SND/SOUND; na
+     listach odrzuconych (jadro/*-odrzucone.txt) też nie.
+  L2 Nadzorca nie zna urządzeń dźwięku: uevent.c rozpoznaje tylko SUBSYSTEM input, block i power_supply; nie ma kanału
+     ani modułu dla karty dźwiękowej (kanaly.h).
+  L3 Nie ma usługi: K1_SYSTEM ma usługi o UID 100–110 (posrednik = 110), więc dźwięk — 111; profil — następny wolny
+     (sprawdzić w k1_uslugi.h: profile usług, aplikacji, stref, dekoderów i pośredników stref).
+  L4 gui: okienko „Dźwięk” (pasek_gorny.c, rysuj_dzwiek) to ikona i napis „ta wersja nie obsługuje jeszcze karty
+     dźwiękowej”; ikona głośnika jedna (K1_IK_GLOSNIK), bez wariantów; panel P_DZWIEK ma stały rozmiar DZW_SZER × DZW_WYS.
+  L5 Testy QEMU bez karty dźwiękowej (scripts/uruchom-qemu.sh, testy/qemu/k1qemu.py: brak intel-hda/audiodev).
+  L6 Nie ma formatu ani kanału dźwięku (src/wspolne/), ani ikon poziomu głośności (k1_rysuj.c, 560 wierszy).
+Krok 2:
+  L7 Klawisze głośności (KEY_MUTE 113, KEY_VOLUMEDOWN 114, KEY_VOLUMEUP 115) przechodzą dziś jak zwykłe klawisze do okna
+     z fokusem (k1_zdarzenie: kody do 0x2ff); skróty powłoki rozpoznaje ekran (wskaznik.c, Alt+Tab). wejscie przyjmuje
+     jako klawiaturę tylko urządzenie z KEY_A i KEY_SPACE (wejscie/main.c:211); jądro K1 nie ma sterowników platformy
+     laptopów (thinkpad_acpi, ideapad-laptop) — skąd klawisze przyjdą na sprzęcie: NIEPEWNE.
+  L8 Gniazdo słuchawek: nic w K1 go nie czyta (brak usługi); zachowanie jądra (automatyczne wyciszanie) — NIEPEWNE na
+     konkretnych kodekach.
+  L9 Ustawienia: 12 sekcji w tabeli sekcje[] (main.c:37), bez „Dźwięk”; main.c ma 483 wiersze.
+  L10 Skarbiec: brak miejsca na ustawienia dźwięku (wzór: zapis ustawień ekranu K1U4).
+Krok 3:
+  L11 VMM: tabela K1_URZADZENIA (strefa.h) — obraz, konsola, losowość, klawiatura, mysz, ekran, vsock, dane, balon;
+     bez dźwięku. RYZYKA R77 wymienia „bez PCI, sieci, dźwięku, USB”.
+  L12 Jądro strefy bez SND_VIRTIO (jadro/strefa.config).
+  L13 Obraz strefy: libasound2t64 i libasound2-data są (strefy/przegladarka.txt), PulseAudio i PipeWire — nie;
+      preferencje Firefoksa (strefy/przegladarka/k1.js) nic nie mówią o dźwięku; WebRTC wyłączone
+      (media.peerconnection.enabled — dotyczy D1).
+  L14 Ramka okna strefy (src/ekran/strefy.c) — pasek tytułu bez znaku dźwięku; nie ma stanu „sesja gra”.
+  L15 Strefa próbna (gosc/) bez trybu, który gra.
+Krok 4:
+  L16 README: „Czego jeszcze nie ma: … dźwięku”, w instrukcji VirtualBoxa „Sieć i dźwięk można wyłączyć”; gui.md opisuje
+      okienko „Dźwięk — ta wersja nie obsługuje jeszcze karty dźwiękowej”.
+
+
+6. NIE W TEJ WERSJI (→ „Później” w docs/DO_ZROBIENIA.txt)
+---------------------------------------------------------
+  - mikrofon (jeśli D1 = A) i rozmowy wideo w przeglądarce (WebRTC);
+  - dźwięk przez HDMI / DisplayPort (zewnętrzny monitor) — kodek HDMI Intela w jądrze, wybór wyjścia;
+  - karty dźwiękowe i słuchawki na USB (sterownik USB audio — nowa powierzchnia ataku jak R33), Bluetooth;
+  - dźwięk w aplikacjach K1 (np. Zegar — budzik), odtwarzacz muzyki i filmów z Plików;
+  - osobna głośność dla każdej aplikacji (poza wyciszaniem sesji — D6), korektor, dźwięk przestrzenny.
+
+
+7. RYZYKA (nowe wiersze w docs/RYZYKA.md — dopisuje krok, który je wprowadza)
+-----------------------------------------------------------------------------
+  - Krok 1: sterownik HDA w jądrze K1 i usługa dźwięku z węzłami karty (ioctl ALSA) — błąd w sterowniku osiągalny z usługi
+    dźwięku; ogranicza: klatka, ioctl tylko ALSA, jeden właściciel karty, klienci tylko przez pierścień sprawdzany przez
+    usługę. Termin przeglądu: 0.14 Audyt.
+  - Krok 3: VMM rozbiera prośby dźwięku od gościa (virtio-snd) — dopisać do R77 (urządzenia VMM) i fuzzing; strona
+    może grać bez wiedzy użytkownika (reklamy) — znak na ramce (D6) i wyciszanie.
+  - Prywatność: dźwięk niczego nie zdradza na zewnątrz, póki nie ma mikrofonu (D1); przy D1 = B — osobny wiersz
+    (podsłuch przez stronę, zgoda, znak).
+
+
+USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
+-----------------------------------------------------
+(puste)

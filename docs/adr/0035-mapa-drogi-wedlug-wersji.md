@@ -1,6 +1,7 @@
 # 0035. Mapa drogi według wersji; jedno miejsce na plan
 
-- Status: Przyjęty
+- Status: Przyjęty; wiersze 0.12, 0.13 i „Laptop” mapy drogi zmienione przez ADR 0053 (0.12 Dźwięk, 0.13 Bezpieczny
+  start, 0.14 Audyt)
 - Data: 2026-11-11
 - Dotyczy: SPEC §14 (kamienie milowe — **zastępuje listę etapów M i dopiski z ADR 0011, 0019, 0020, 0024–0026**),
   `docs/ARCHITEKTURA.md` (wersjonowanie), `docs/DO_ZROBIENIA.txt`, `docs/PLAN-0.8.2.txt`, `AGENTS.md`, skill `kons-dev`
