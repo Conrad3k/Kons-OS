@@ -4,7 +4,9 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.11.2 — szybsza przeglądarka (do 4 procesorów, duże strony, powiadomienia urządzeń bez zatrzymywania strefy).
+Stan: 0.11.3 — przeglądarka bierze wszystkie procesory komputera (do 254) i do 256 GiB pamięci; duże strony, krótkie
+czekanie i zegar TSC-deadline w strefie. Przed nią 0.11.2 — szybsza przeglądarka (powiadomienia urządzeń bez
+zatrzymywania strefy).
 Przed nią 0.11.1 — poprawka „Zapisz obraz jako…” w przeglądarce. Przed nią 0.11.0 „Pliki ze stref” — pliki między
 przeglądarką a Plikami (Pobrane z pochodzeniem, „Wyślij do”, „Otwórz za pomocą” sesja, „Zapisać zmiany w oryginale?”),
 przeciąganie między oknami (Ctrl — kopia, na okno przeglądarki — kopia po puszczeniu), schowek (Notatki, pola K1,
@@ -201,8 +203,15 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.11.2; niżej starsze, jeszcze niesprawdzone). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+Jedna lista — dla ostatniego wydania (0.11.3; niżej starsze, jeszcze niesprawdzone). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
 z 2026-11-11).
+Nowe w 0.11.3 (aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”):
+    [ ] IdeaPad — Speedometer 3.1 w Ogólnej (jak przy 0.11.2; po 0.11.2: ten sam wynik z szybką grafiką i bez); dla
+        porównania, jeśli możesz: ten sam test w Firefoksie z pendrive'a z innym systemem (np. Ubuntu „bez instalacji”) —
+        wtedy wiadomo, ile w ogóle daje ten procesor
+    [ ] oba laptopy: przeglądarka otwiera się i działa jak wcześniej, dwie sesje naraz, Zasoby → pamięć sesji
+    [ ] jeśli kiedyś uruchomisz K1 na komputerze z 16 GB i więcej albo z 8 i więcej wątkami procesora: Ogólna z szybką
+        grafiką otwiera się (do 0.11.2 przy 32 GB i więcej by się nie uruchomiła)
 Nowe w 0.11.2 (szybsza przeglądarka; aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”):
     [ ] IdeaPad — Speedometer 3.1 (browserbench.org/Speedometer3.1) w Ogólnej z szybką grafiką i bez niej (przełącznik
         w Ustawieniach → Przeglądarka, sesję zamknij i otwórz), okno zmaksymalizowane, bez innych sesji: napisz oba wyniki

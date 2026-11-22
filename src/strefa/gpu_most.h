@@ -19,8 +19,9 @@
 #include "k1_komunikat.h" /* K1_POW_MAKS_BOK, K1_STREFA_* (0.10.11 step 2) */
 #include "k1_posrednik.h"
 
-#define MOST_OKNO_BAZA (32ull << 30) /* the host-visible region (virtio-gpu shm id 1) in guest addresses: above any
-                                      * guest's memory (K1_STREFA_PAMIEC_MAKS from 4 GiB), below 36 bits (X230) */
+#define MOST_OKNO_BAZA (32ull << 30) /* the host-visible region (virtio-gpu shm id 1) in guest addresses: here for a guest
+                                      * up to 28 GiB (below 36 bits: X230), else right above its memory (0.11.3:
+                                      * most_okno_baza — a guest of 32 GiB and more would overlap it) */
 #define MOST_OKNO_DL (1ull << 30)    /* its length: K1_POSR_PAMIEC of buffers + the shared memories, with room */
 #define MOST_MAPY_MAKS 2048u         /* buffers mapped at once (each a memory slot of KVM) */
 #define MOST_SLOT_PIERWSZY 2u        /* KVM's slots 0, 1: the guest's memory (kvm.c) */
@@ -92,6 +93,8 @@ struct most {
     uint32_t ctx[K1_POSR_GOSCIE + 1]; /* the guest's virtio-gpu context of each guest context (0: free) */
     struct most_zasob zasoby[K1_POSR_ZASOBY_MAKS];
     uint8_t sloty[MOST_MAPY_MAKS];
+    uint64_t okno_baza;               /* the host-visible region's guest address (most_okno_baza; most_start: the
+                                       * smallest, MOST_OKNO_BAZA) */
     int padl;                         /* the broker ended (a crash, a hang): every 3D command fails, fences are done */
     unsigned long polecenia, bledy, obrazy; /* obrazy: SET_SCANOUT_BLOB accepted (0.10.11 step 2) */
 };
@@ -104,6 +107,10 @@ void most_start(struct most *m, const struct most_lacze *l, uint32_t pci, uint32
  * when the broker says fence *c is done (gpu_lacze.c); -1: a broken guest (*powod) — the machine ends. */
 int most_polecenie(struct most *m, const uint8_t *p, uint64_t n, uint8_t *odp, uint32_t *odp_dl, struct most_czeka *c,
                    const char **powod);
+
+/* 0.11.3: where the host-visible region goes for a guest whose memory ends at guest address `koniec_pamieci`:
+ * MOST_OKNO_BAZA, or the first whole GiB above that memory when it reaches further. */
+uint64_t most_okno_baza(uint64_t koniec_pamieci);
 
 int most_zasob_jest(const struct most *m, uint32_t res); /* a blob resource res exists (2D must not take its number) */
 void most_reset(struct most *m);                         /* the device's reset: every context and resource goes */

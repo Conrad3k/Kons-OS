@@ -56,6 +56,12 @@ struct mp_przerwanie {         /* an I/O interrupt (typ 3) or a local one (typ 4
 _Static_assert(sizeof(struct mp_wskaznik) == 16 && sizeof(struct mp_naglowek) == 44 && sizeof(struct mp_procesor) == 20 &&
                    sizeof(struct mp_szyna) == 8 && sizeof(struct mp_ioapic) == 8 && sizeof(struct mp_przerwanie) == 8,
                "tablica MP: rozmiary wpisów");
+/* 0.11.3: the table for the most processors fits between ST_MP_TABELA and the pointer */
+_Static_assert(sizeof(struct mp_naglowek) + ST_PROCESORY_MAKS * sizeof(struct mp_procesor) + sizeof(struct mp_szyna) +
+                       sizeof(struct mp_ioapic) + (ST_LINIE_PRZERWAN + 2) * sizeof(struct mp_przerwanie) <=
+                   ST_MP - ST_MP_TABELA,
+               "tablica MP: za mało miejsca na ST_PROCESORY_MAKS procesorów");
+_Static_assert(ST_PROCESORY_MAKS <= 254, "tablica MP: identyfikatory APIC 0..253, I/O APIC 254, 255 = wszystkie");
 
 #define MP_PROCESOR 0
 #define MP_SZYNA 1
@@ -80,17 +86,18 @@ static size_t dodaj(uint8_t *p, size_t at, const void *wpis, size_t n)
     return at + n;
 }
 
-/* The MP table at ST_MP: `procesory` processors (APIC ids 0..n-1, the first the bootstrap one), one ISA bus, the I/O
- * APIC with id n and its ST_LINIE_PRZERWAN inputs 1:1 (edge, active high: virtio-mmio's irqfd), ExtINT and NMI. */
+/* The MP table: `procesory` processors (APIC ids 0..n-1, the first the bootstrap one), one ISA bus, the I/O APIC with
+ * id n and its ST_LINIE_PRZERWAN inputs 1:1 (edge, active high: virtio-mmio's irqfd), ExtINT and NMI. The pointer at
+ * ST_MP (where Linux looks), the table itself at ST_MP_TABELA (0.11.3: the last KiB holds only 37 processors). */
 static void tablica_mp(uint8_t *baza, int procesory)
 {
-    uint8_t *p = baza + ST_MP;
-    struct mp_wskaznik w = { { '_', 'M', 'P', '_' }, ST_MP + sizeof w, 1, 4, 0, { 0 } };
+    uint8_t *p = baza + ST_MP_TABELA;
+    struct mp_wskaznik w = { { '_', 'M', 'P', '_' }, ST_MP_TABELA, 1, 4, 0, { 0 } };
     struct mp_naglowek n = { { 'P', 'C', 'M', 'P' }, 0, 4, 0, { 'K', '1', ' ', ' ', ' ', ' ', ' ', ' ' },
                              { 'S', 'T', 'R', 'E', 'F', 'A', ' ', ' ', ' ', ' ', ' ', ' ' }, 0, 0, 0, ST_LAPIC, 0, 0, 0 };
     struct mp_szyna szyna = { MP_SZYNA, 0, { 'I', 'S', 'A', ' ', ' ', ' ' } };
     struct mp_ioapic io = { MP_IOAPIC, (uint8_t)procesory, 0x11, 1, ST_IOAPIC };
-    size_t at = sizeof w + sizeof n;
+    size_t at = sizeof n;
     int i;
     for (i = 0; i < procesory; i++) {
         struct mp_procesor c = { MP_PROCESOR, (uint8_t)i, 0x14, (uint8_t)(1 | (i == 0 ? 2 : 0)), 0x600, 0x201, { 0, 0 } };
@@ -108,12 +115,12 @@ static void tablica_mp(uint8_t *baza, int procesory)
         at = dodaj(p, at, &ext, sizeof ext);
         at = dodaj(p, at, &nmi, sizeof nmi);
     }
-    n.dlugosc = (uint16_t)(at - sizeof w);
+    n.dlugosc = (uint16_t)at;
     n.wpisy = (uint16_t)(procesory + 2 + ST_LINIE_PRZERWAN + 2);
-    memcpy(p + sizeof w, &n, sizeof n);
-    p[sizeof w + offsetof(struct mp_naglowek, suma)] = suma(p + sizeof w, n.dlugosc);
+    memcpy(p, &n, sizeof n);
+    p[offsetof(struct mp_naglowek, suma)] = suma(p, n.dlugosc);
     w.suma = suma((const uint8_t *)&w, sizeof w);
-    memcpy(p, &w, sizeof w);
+    memcpy(baza + ST_MP, &w, sizeof w);
 }
 
 /* 1:1 page tables for the first 4 GiB (2 MiB pages) and the GDT: null, null, code 0x10 (64-bit), data 0x18. */
@@ -139,8 +146,8 @@ static void tablice(uint8_t *baza)
 static void e820(struct boot_params *bp, uint64_t dol, uint64_t gora)
 {
     const struct boot_e820_entry t[] = {
-        { 0, ST_MP, E820_RAM },
-        { ST_MP, ST_NISKA_KONIEC - ST_MP, E820_RESERVED },
+        { 0, ST_MP_TABELA, E820_RAM },
+        { ST_MP_TABELA, ST_NISKA_KONIEC - ST_MP_TABELA, E820_RESERVED },
         { ST_JADRO, dol - ST_JADRO, E820_RAM },
         { GP_GORA, gora, E820_RAM },
     };

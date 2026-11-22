@@ -115,6 +115,38 @@ int kvm_maszyna(uint64_t pamiec_mib, int procesory)
     return 0;
 }
 
+/* 0.11.3: the guest address where memory of `mib` MiB ends (below the devices, the rest from 4 GiB — ADR 0044 T5). */
+static uint64_t koniec_pamieci(uint64_t mib)
+{
+    uint64_t b = mib << 20;
+    return b <= ST_PAMIEC_MAKS ? b : GP_GORA + (b - ST_PAMIEC_MAKS);
+}
+
+uint64_t strefa_koniec_pamieci(void)
+{
+    return koniec_pamieci(mz.pamiec_mib);
+}
+
+/* 0.11.3: the guest's physical addresses have as many bits as the processor gives it (CPUID 0x80000008 EAX[7:0] from
+ * KVM); its memory and, above it, the window of fast graphics (1 GiB, from a whole GiB) must fit under them. A memory
+ * that would not fit gets smaller — never on today's laptops (their RAM is far below), only as a guard. */
+uint32_t kvm_pamiec_w_granicach(uint32_t mib)
+{
+    static struct {
+        struct kvm_cpuid2 c;
+        struct kvm_cpuid_entry2 e[CPUID_WPISY];
+    } t;
+    unsigned bity = 36; /* the least of any 64-bit processor KVM runs on */
+    t.c.nent = CPUID_WPISY;
+    if (ioctl(mz.kvm, (int)KVM_GET_SUPPORTED_CPUID, &t) == 0)
+        for (uint32_t i = 0; i < t.c.nent; i++)
+            if (t.e[i].function == 0x80000008u && (t.e[i].eax & 0xff) >= 36 && (t.e[i].eax & 0xff) <= 52)
+                bity = t.e[i].eax & 0xff;
+    while (mib > 64 && koniec_pamieci(mib) + (2ull << 30) > (1ull << bity))
+        mib -= 1024 < mib - 64 ? 1024 : mib - 64;
+    return mib;
+}
+
 /* ---- devices ---- */
 
 static void przerwij(struct mmio_urz *u)
@@ -171,6 +203,10 @@ static int cpuid(int fd, int nr)
         struct kvm_cpuid_entry2 e[CPUID_WPISY];
     } t;
     uint32_t i;
+    /* 0.11.3: the TSC-deadline timer of the local APIC — KVM emulates it (KVM_CAP_TSC_DEADLINE_TIMER: the processor's
+     * own preemption timer under VT-x) but leaves the bit out of its supported list, as QEMU knows and sets it; the guest
+     * then arms its timer with one write instead of the APIC's count-down. Not in QEMU's emulation (the tests). */
+    int termin = !emulacja_qemu() && ioctl(mz.kvm, (int)KVM_CHECK_EXTENSION, KVM_CAP_TSC_DEADLINE_TIMER) > 0;
     t.c.nent = CPUID_WPISY;
     if (ioctl(mz.kvm, (int)KVM_GET_SUPPORTED_CPUID, &t) != 0)
         return -1;
@@ -179,6 +215,8 @@ static int cpuid(int fd, int nr)
         if (e->function == 1) {
             e->ebx = (e->ebx & 0x00ffffffu) | ((uint32_t)nr << 24); /* the initial APIC id */
             e->ecx |= 1u << 31;                                     /* "running under a hypervisor" */
+            if (termin)
+                e->ecx |= 1u << 24; /* TSC_DEADLINE_TIMER */
         } else if (e->function == 0xb || e->function == 0x1f) {
             e->edx = (uint32_t)nr; /* the x2APIC id */
         } else if (e->function == 7 && e->index == 0) {

@@ -171,6 +171,10 @@ multihit (X230, IdeaPad) KVM i tak dzieli wykonywalne strony gościa na małe (`
 zostają dla danych. Jądro strefy — **`PARAVIRT_SPINLOCKS`**: procesor strefy czekający na blokadę, którą trzyma
 wstrzymany procesor tej samej strefy, śpi do „kopnięcia” od KVM zamiast kręcić się w miejscu (przeglądarka ma do 4
 procesorów na komputerze, na którym pracuje też K1).
+0.11.3: jądro strefy — `NR_CPUS=256` (procesory komputera, do `K1_STREFA_PROCESORY_MAKS` = 254); **`TRANSPARENT_HUGEPAGE`**
+(`ALWAYS`, z `COMPACTION` i `MIGRATION` zdjętymi z `strefa-odrzucone.txt`) — duże strony w gościu na dużych stronach K1;
+**`CPU_IDLE` + `HALTPOLL_CPUIDLE`** (z listy odrzuconych zdjęte też `CPU_IDLE_GOV_HALTPOLL`) — bezczynny procesor strefy
+czeka chwilę czynnie przed HLT; włącza go `cpuidle_haltpoll.force=1` od VMM-a (poza emulacją QEMU).
 
 ### Wi-Fi (0.9.1, ADR 0041)
 `WIRELESS`, `CFG80211` (bez `CFG80211_WEXT` i CRDA), `MAC80211` z minstrelem (bez mesh), `RFKILL` (bez `RFKILL_INPUT`),

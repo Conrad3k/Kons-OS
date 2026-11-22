@@ -3,7 +3,46 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
-## [0.11.2] — 2026-11-22
+## [0.11.3] — 2026-11-22
+
+**Przeglądarka na mocniejszych komputerach i dalsze przyspieszenia** (Twoja prośba z 2026-11-22, po 0.11.2: Speedometer
+3.1 na IdeaPadzie — ten sam wynik co wcześniej, ale już taki sam z szybką grafiką i bez niej). Sesja przeglądarki bierze
+teraz wszystkie procesory komputera (do 254 — granica sposobu, w jaki strefa poznaje swoje procesory), a na komputerach
+z dużą pamięcią — do 256 GiB pamięci (wcześniej 64 GiB, a już od 32 GB szybka grafika by się nie uruchomiła). Do tego
+w strefie: duże strony także w samej strefie, krótkie czekanie zamiast usypiania procesora i oszczędniejszy zegar.
+
+Opis w K1: Przeglądarka bierze wszystkie procesory komputera i — na komputerach z dużą pamięcią — więcej pamięci;
+strefa przeglądarki działa sprawniej (duże strony, krótsze budzenie procesorów, oszczędniejszy zegar).
+
+### Zmienione
+- **Wszystkie procesory komputera dla sesji przeglądarki** (do 0.11.2: najwyżej 4): wiersz `K1_STREFY` ma
+  `K1_STREFA_PROCESORY_MAKS` (254 — strefa poznaje procesory z tablicy MP, gdzie każdy ma 8-bitowy identyfikator APIC;
+  255 to „wszystkie”, jeden bierze kontroler przerwań), VMM daje tyle, ile ma komputer. Tablica MP przeniesiona spod
+  ostatniego KiB pamięci (mieściła 37 procesorów) do `ST_MP_TABELA` — wskaźnik zostaje tam, gdzie szuka go Linux; jądro
+  strefy z `NR_CPUS=256`; zapas pamięci klatki VMM-a rośnie o 1 MiB na procesor i 2 MiB na GiB pamięci gościa (tablice
+  stron KVM).
+- **Do 256 GiB pamięci dla sesji** (było 64 GiB; górna granica dalej: pamięć komputera minus rezerwa K1 — na laptopie z
+  8 GB ok. 7 GiB, z 16 GB ok. 15 GiB). Naprawione przy okazji: okno szybkiej grafiki leżało na stałym adresie 32 GiB
+  i nachodziło na pamięć gościa od 28 GiB — na komputerze z 32 GB i więcej sesja z szybką grafiką by nie ruszyła. Teraz
+  okno idzie zaraz nad pamięć gościa (`most_okno_baza`, `test_gpu_most`), a VMM pilnuje, żeby całość zmieściła się
+  w adresach, które procesor daje gościowi.
+- **Duże strony w strefie** (jądro strefy `TRANSPARENT_HUGEPAGE`, zawsze): w 0.11.2 duże strony miała tylko pamięć
+  strefy po stronie K1 — teraz także sterta JavaScriptu i bufory przeglądarki w samej strefie, więc procesor trzyma
+  w TLB wpisy po 2 MiB zamiast 4 KiB.
+- **Krótkie czekanie przed uśpieniem procesora strefy** (jądro strefy `HALTPOLL_CPUIDLE`, `cpuidle_haltpoll.force=1`):
+  przeglądarka to wiele procesów i wątków, które co chwilę budzą się nawzajem — bezczynny procesor strefy czeka teraz
+  chwilę czynnie (do 200 µs, sam dopasowuje czas), zamiast od razu wychodzić z gościa i czekać na obudzenie przez K1.
+  Nie w emulacji QEMU (testy).
+- **Zegar TSC-deadline dla procesorów strefy**: KVM go obsługuje, ale sam go nie zgłasza (QEMU włącza go jawnie) — jądro
+  strefy nastawia teraz zegar jednym zapisem.
+
+### Naprawione
+- **Pełny ekran: prośba gościa mogła nie dojść do ekranu K1** (od 0.11.2, gdy powiadomienia od gościa obsługuje osobny
+  wątek): kilka szybkich zmian gościa („proszę”, „wychodzę”…) VMM sklejał w ostatnią — ekran nie
+  słyszał prośby (bezpieczeństwo bez zmian: wynik i tak „bez pełnego ekranu”, ale test negatywny tego nie widział).
+  VMM wysyła teraz ekranowi każdą zmianę od razu, po kolei (`okno.c`; najwyżej 4 na sekundę, jak dotąd).
+
+
 
 **Szybsza przeglądarka** (Twoja prośba z 2026-11-22: Speedometer 3.1 na IdeaPadzie — 5 bez szybkiej grafiki, 4 z nią).
 Przeglądarka dostaje teraz tyle procesorów, ile ma komputer (do 4; do tej pory 2 z 4 wątków X230 i IdeaPada), jej pamięć

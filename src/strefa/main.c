@@ -99,9 +99,12 @@ static int przygotuj(void)
     p = strlen(linia);
     /* highres=off only in QEMU's emulation (the tests without KVM; 0.10.5 step 7): the zone's Linux 7.x rearms its
      * timer late (HRTIMER_REARM_DEFERRED, with high resolution timers), and under emulated SVM an idle guest then saw a
-     * single key a minute or more later; with KVM on a real processor (and in CI) the zone keeps them */
-    snprintf(linia + p, sizeof linia - p, " " LINIA_GOSCIA "%s k1.tryb=%d%s%s%s%s", emulacja_qemu() ? " highres=off" : "",
-             mz.tryb, zlosliwy_gosc() ? " memmap=1M$0x3f00000" : "", /* the hostile test guest's queue (gosc/zlosliwy.c) */
+     * single key a minute or more later; with KVM on a real processor (and in CI) the zone keeps them. 0.11.3: the
+     * guest's halt polling (jadro/strefa.config: HALTPOLL_CPUIDLE) only on a real processor — in the emulation the
+     * polling processor would only take the emulator's time */
+    snprintf(linia + p, sizeof linia - p, " " LINIA_GOSCIA "%s k1.tryb=%d%s%s%s%s",
+             emulacja_qemu() ? " highres=off" : " cpuidle_haltpoll.force=1", mz.tryb,
+             zlosliwy_gosc() ? " memmap=1M$0x3f00000" : "", /* the hostile test guest's queue (gosc/zlosliwy.c) */
              gpu_lacze_jest() ? " k1.grafika=1" : "", /* 0.10.9 step 6: the guest's browser draws with the card */
              mz.pobierz[0] ? " k1.pobierz=" : "", mz.pobierz); /* 0.10.5 step 2: the download zone (gosc/pobieranie.c) */
     jadro = wczytaj_jadro(&dl);
@@ -221,6 +224,11 @@ int main(int argc, char **argv)
     mz.pamiec_mib = argc > 3 ? (uint32_t)strtoul(argv[3], NULL, 10) : 0;
     if (mz.pamiec_mib < mz.opis->pamiec_mib || mz.pamiec_mib > K1_STREFA_PAMIEC_MAKS)
         mz.pamiec_mib = mz.opis->pamiec_mib;
+    if (kvm_pamiec_w_granicach(mz.pamiec_mib) != mz.pamiec_mib) { /* 0.11.3: a guard, not on today's laptops */
+        k1_log(TAG, "pamięć strefy %u MiB nie mieści się w adresach gościa — %u MiB", mz.pamiec_mib,
+               kvm_pamiec_w_granicach(mz.pamiec_mib));
+        mz.pamiec_mib = kvm_pamiec_w_granicach(mz.pamiec_mib);
+    }
     /* 0.10.5 step 2 (ADR 0046): the download zone — argv[4] is what it downloads (a path K1 made from a version) */
     if (!mz.opis->okno && (argc <= 4 || !lacznik_cel_dobry(argv[4])))
         k1_koniec(TAG, "strefa pobierania bez poprawnego celu");

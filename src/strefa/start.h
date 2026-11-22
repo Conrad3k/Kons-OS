@@ -10,6 +10,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "k1_komunikat.h" /* K1_STREFA_PAMIEC_MAKS */
+#include "k1_uslugi.h"   /* K1_STREFA_PROCESORY_MAKS */
 #include "virtq.h"
 
 /* Guest physical layout (below 1 MiB: the boot structures; the kernel at 1 MiB) */
@@ -20,13 +22,14 @@
 #define ST_PD 0xb000u        /* 4 pages: 4 GiB in 2 MiB pages */
 #define ST_LINIA 0x20000u    /* the command line */
 #define ST_LINIA_MAKS 2048u  /* COMMAND_LINE_SIZE of x86 */
-#define ST_MP 0x9fc00u       /* the MP table: the last KiB of base memory, where Linux looks for it */
+#define ST_MP_TABELA 0x9e000u /* the MP configuration table (0.11.3: up to ST_PROCESORY_MAKS processors — 5.3 KiB) */
+#define ST_MP 0x9fc00u       /* the MP pointer: the last KiB of base memory, where Linux looks for it */
 #define ST_NISKA_KONIEC 0xa0000u
 #define ST_JADRO 0x100000u   /* the protected-mode kernel (code32_start) */
 #define ST_PAMIEC_MIN (64ull << 20)
 #define ST_PAMIEC_MAKS (3ull << 30) /* below the devices (MMIO from 0xd0000000); the rest from 4 GiB (GP_GORA) */
-#define ST_PAMIEC_CALA_MAKS (64ull << 30) /* the whole guest (0.10.1 step 2, ADR 0044 T5) */
-#define ST_PROCESORY_MAKS 8
+#define ST_PAMIEC_CALA_MAKS ((uint64_t)K1_STREFA_PAMIEC_MAKS << 20) /* the whole guest (0.10.1 step 2, ADR 0044 T5) */
+#define ST_PROCESORY_MAKS K1_STREFA_PROCESORY_MAKS /* k1_uslugi.h: the MP table's 8-bit APIC ids */
 #define ST_IOAPIC 0xfec00000u
 #define ST_LAPIC 0xfee00000u
 #define ST_LINIE_PRZERWAN 24 /* I/O APIC inputs */

@@ -158,6 +158,10 @@ static void t_zasoby(void)
 static void t_mapowanie(void)
 {
     struct virtio_gpu_resp_map_info info;
+    /* 0.11.3: the region stays at 32 GiB for a guest up to 28 GiB, else the first whole GiB above its memory */
+    EXPECT(m.okno_baza == MOST_OKNO_BAZA && most_okno_baza(7ull << 30) == MOST_OKNO_BAZA &&
+           most_okno_baza(32ull << 30) == MOST_OKNO_BAZA && most_okno_baza((32ull << 30) + 1) == (33ull << 30) &&
+           most_okno_baza((4ull << 30) + (253ull << 30)) == (257ull << 30));
     EXPECT(mapuj(1, 0) == VIRTIO_GPU_RESP_OK_MAP_INFO && f.ost_gpa == MOST_OKNO_BAZA &&
            f.ost_slot == MOST_SLOT_PIERWSZY && dl == sizeof info);
     memcpy(&info, odp, sizeof info);

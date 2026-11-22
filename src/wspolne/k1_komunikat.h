@@ -701,7 +701,8 @@ enum { K1_STREFA_TRYB_ODBIOR = 20 }; /* 0.11.0 step 3: files from K1 to the zone
 /* 0.10.5 step 4 (D8): the smallest picture of a zone's window the user can drag it to */
 #define K1_OKNO_MIN_SZER 640
 #define K1_OKNO_MIN_WYS 480
-#define K1_STREFA_PAMIEC_MAKS 65536 /* MiB: the largest memory of a zone (0.10.1 step 2, ADR 0044 T5) */
+#define K1_STREFA_PAMIEC_MAKS 262144 /* MiB: the largest memory of a zone (0.10.1 step 2, ADR 0044 T5; 0.11.3: 256 GiB,
+                                     * was 64 GiB) */
 /* 0.10.0 step 2 (ADR 0043 T9): the zones' connections (STREFA_POLACZ c, STREFA_GNIAZDO a, STREFA_ODMOWA a) */
 #define K1_STREFA_POLACZENIA_MAKS 128 /* at once in one zone (the relay in the zone has as many) */
 enum { K1_STREFA_TCP = 0, K1_STREFA_DNS = 1, K1_STREFA_POBRANE = 2 /* 0.10.5: the download zone's bytes to K1 */ };

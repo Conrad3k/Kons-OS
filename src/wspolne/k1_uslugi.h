@@ -69,7 +69,8 @@
  * /rdzen/system/strefa, log tag K1-STREFA); one line each, everything else follows from it: the profile and the UID of
  * its VMM (KLATKA_STREFA in src/nadzorca/profile.c with the row's memory), the frame ekran draws, Zasoby, the tests.
  * X(NAME, zone number, profile, UID, image (/rdzen/strefy/<obraz>.img), title, session ("": none), memory of the guest
- *   in MiB, processors (the most it gets — since 0.11.2 never more than the computer has: strefa/kvm.c), the frame
+ *   in MiB, processors (the most it gets — since 0.11.2 never more than the computer has: strefa/kvm.c; 0.11.3: the
+ *   browser's sessions K1_STREFA_PROCESORY_MAKS — every processor of the computer), the frame
  *   colour 0xRRGGBB, JEDNORAZOWA (forgets everything when closed) or STALA (its disk in skarbiec — 0.10.0 step 5; the
  *   default: the user changes it in Ustawienia → Przeglądarka, nadzorca keeps the choice),
  *   icon (K1_IK_<icon>) of its mark, 1: the guest's console lines go to K1's log (the test zone only; others: counted),
@@ -82,15 +83,18 @@
  * the test image: the production image has no file for it, nadzorca refuses to start it. 0.10.0 step 2 (ADR 0043, D2):
  * the browser's sessions — each its own zone (machine, colour, UID); since step 5 Ogólna and Bank remember, Prywatna
  * forgets (the test zone remembers: test-strefa checks the disk). */
+/* 0.11.3: the most processors of one zone — its MP table gives each an 8-bit APIC id (0..253; the I/O APIC 254, 255
+ * means "all"); the zone kernel's NR_CPUS (jadro/strefa.config) is at least this */
+#define K1_STREFA_PROCESORY_MAKS 254
 #define K1_STREFY(X)                                                                                                    \
     X(PROBNA, 1, 19, 300, "probna", "Strefa próbna", "", 128, 1, 0xA8834A, STALA, EKRAN, 1, "", 1, 0,                \
       "ze strefy próbnej")                                                                                      \
-    X(OGOLNA, 2, 20, 301, "przegladarka", "Przeglądarka", "Ogólna", 1536, 4, 0x5F8A6A, STALA, PRZEGLADARKA, 0,        \
-      "Strony internetowe w osobnej maszynie", 1, 1, "z przeglądarki")                                          \
-    X(BANK, 3, 21, 302, "przegladarka", "Przeglądarka", "Bank", 1536, 4, 0x4A6FA5, STALA, PRZEGLADARKA, 0, "", 1, 0,  \
-      "z przeglądarki")                                                                                         \
-    X(PRYWATNA, 4, 22, 303, "przegladarka", "Przeglądarka", "Prywatna", 1536, 4, 0x8B6AA8, JEDNORAZOWA, PRZEGLADARKA,\
-      0, "", 1, 0, "z przeglądarki")                                                                            \
+    X(OGOLNA, 2, 20, 301, "przegladarka", "Przeglądarka", "Ogólna", 1536, K1_STREFA_PROCESORY_MAKS, 0x5F8A6A, STALA, \
+      PRZEGLADARKA, 0, "Strony internetowe w osobnej maszynie", 1, 1, "z przeglądarki")                         \
+    X(BANK, 3, 21, 302, "przegladarka", "Przeglądarka", "Bank", 1536, K1_STREFA_PROCESORY_MAKS, 0x4A6FA5, STALA,     \
+      PRZEGLADARKA, 0, "", 1, 0, "z przeglądarki")                                                              \
+    X(PRYWATNA, 4, 22, 303, "przegladarka", "Przeglądarka", "Prywatna", 1536, K1_STREFA_PROCESORY_MAKS, 0x8B6AA8,     \
+      JEDNORAZOWA, PRZEGLADARKA, 0, "", 1, 0, "z przeglądarki")                                                 \
     X(POBIERANIE, 5, 23, 304, "przegladarka", "Pobieranie aktualizacji", "", 384, 1, 0x8D8A84, JEDNORAZOWA,         \
       AKTUALIZACJE, 0, "", 0, 0, "ze strefy pobierania")
 

@@ -30,7 +30,8 @@ static const int uid_apl[K1_APL_MAKS + 1] = { K1_APLIKACJE(X_UID) };
 #define X_SPR_Z(n, nr, profil, uid, obraz, tytul, sesja, pamiec, procesory, ...)                      \
     _Static_assert(nr >= 1 && nr <= K1_STREFY_MAKS, #n ": numer strefy poza 1..MAKS");                 \
     _Static_assert(profil >= 1 && profil <= K1_PROFIL_MAKS, #n ": profil poza 1..MAKS");               \
-    _Static_assert(pamiec >= 64 && pamiec <= 3072 && procesory >= 1 && procesory <= 8, #n ": pamięć 64..3072 MiB, 1..8 procesorów");
+    _Static_assert(pamiec >= 64 && pamiec <= 3072 && procesory >= 1 && procesory <= K1_STREFA_PROCESORY_MAKS, \
+                   #n ": pamięć 64..3072 MiB, procesory 1..K1_STREFA_PROCESORY_MAKS");
 #define X_SPR_F(n, nr, ...) _Static_assert(K1_PROFIL_FILMY + nr <= K1_PROFIL_MAKS, #n ": profil dekodera filmów poza 1..MAKS");
 K1_SYSTEM(X_SPR_S)
 K1_APLIKACJE(X_SPR_A)
