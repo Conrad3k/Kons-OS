@@ -25,7 +25,12 @@ Zapisany plik trafia do folderu pobranych sesji, a K1 pyta, czy zapisać go w Po
 - **Testy w CI:** sprawdzenie „OTWARCIE W TRAKCIE ZAMYKANIA (D2)” w `test-strefa` czasem nie przechodziło (#159), choć
   nadzorca robił wszystko dobrze — ponownie otwarta strefa testowa żyje ok. 1,5 s, a program testowy patrzył na nią co
   3 s; teraz co 50 ms. `test-most` po awarii gościa czekał po 15 min na każdą brakującą fazę i CI ucinał cały krok testów
-  bez wyniku — teraz wynik gościa kończy czekanie. Sama awaria jądra gościa przy 48 połączeniach naraz: zgłoszenie #208.
+  bez wyniku — teraz wynik gościa albo koniec jego maszyny kończy czekanie. Sama awaria jądra gościa przy 48 połączeniach
+  naraz: zgłoszenie #208.
+- **CI: testy QEMU po kilka naraz, nie wszystkie** (Twoja decyzja, na stałe): `scripts/testy.sh` puszczał wszystkie 14
+  testów z maszynami QEMU naraz na 4 procesorach runnera GitHuba — wszystko zwalniało kilkukrotnie (stąd losowe błędy
+  stref), a dwa razy padł sam runner, bez logów. Teraz po tyle naraz, ile procesorów (`K1_TESTY_NARAZ`), najdłuższe
+  pierwsze.
 
 ## [0.11.0] — 2026-11-22
 

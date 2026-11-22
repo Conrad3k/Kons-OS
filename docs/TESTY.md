@@ -16,7 +16,7 @@ scripts/zbuduj.sh                 # jądro + programy + obrazy + ISO → build/w
 make -j4 -O testy-host            # testy na hoście, równolegle (ok. 1,5 min z kompilacją)
 scripts/test-m1.sh                # czytelność, host, fuzzing, start, testy w systemie, błędy startu
 scripts/test-<część>.sh           # jedna część (mapa niżej)
-scripts/testy.sh                  # wszystko — to uruchamia CI (z KVM równolegle; bez KVM po kolei, ok. 40 min)
+scripts/testy.sh                  # wszystko — to uruchamia CI (z KVM po tyle naraz, ile procesorów; bez KVM po kolei, ok. 40 min)
 ```
 
 **Przed scaleniem** (decyzja właściciela 2026-11-14, `AGENTS.md`): lokalnie `scripts/test-m1.sh` i skrypty zmienianej
@@ -42,7 +42,11 @@ po pierwszej nieudanej próbie (przebieg 108 PR-a #123 wisiał na tym ponad 40 m
 
 Zmienne: `K1_TEST_CZAS` — limit na jedno uruchomienie QEMU (domyślnie 240 s), `K1_FUZZ_CZAS` — sekundy na fuzzer
 (domyślnie 10; CI: 30), `K1_TESTY_ROWNOLEGLE=0|1` — wymuś po kolei / równolegle (domyślnie: równolegle, gdy jest
-`/dev/kvm`), `K1_DUZE_ZDJECIA=0` — `test_dekoder` bez zdjęć 48 i 100 Mpx. Logi: `build/testy/<scenariusz>.log`,
+`/dev/kvm`), `K1_TESTY_NARAZ=N` — ile testów QEMU naraz (domyślnie tyle, ile procesorów: na runnerze GitHuba 4; najdłuższe
+idą pierwsze, następny rusza, gdy któryś się skończy). **Zasada od 0.11.1 (decyzja właściciela 2026-11-22): nigdy wszystkie
+naraz** — 14 maszyn po 2 procesory na 4 procesorach runnera spowalniało wszystko kilkukrotnie (strefy w środku nie
+zdążały, losowe błędy) i dwa razy położyło sam runner bez logów (kod 143). Nowy test QEMU dopisz do listy w
+`scripts/testy.sh` według długości, `K1_DUZE_ZDJECIA=0` — `test_dekoder` bez zdjęć 48 i 100 Mpx. Logi: `build/testy/<scenariusz>.log`,
 zrzuty `build/testy/<część>-*.png`. Ręcznie: `scripts/uruchom-qemu.sh [--obraz build/wynik/rdzen-test.squashfs]`
 i `tail -f build/qemu/serial.log`; zrzut: `scripts/zrzut-ekranu.sh plik.png`. Od 0.10.9 (krok 4, ADR 0050) obraz
 przeglądarki nie jest w rdzeniu: z `--obraz` skrypt daje go maszynie jako drugi dysk virtio (adres 0x1c), `--obraz-strefy

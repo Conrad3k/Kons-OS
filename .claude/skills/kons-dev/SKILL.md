@@ -243,7 +243,7 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
 | host | `make testy-host`, `make fuzz` | parsery, formaty, logika (ASan/UBSan, libFuzzer); sprawdzaj zachowanie, nie powtarzaj wzorów z kodu |
 | w systemie | `testy/system/` → `/rdzen/system/test-systemu` | obraz testowy = produkcyjny + program testowy; wynik `K1-TEST: WYNIK: OK (n/n)`; klatki, próby, złośliwe komunikaty |
 | QEMU z zewnątrz | `scripts/test-*.sh` — jeden skrypt na część (mapa „która część — który skrypt” w `docs/TESTY.md`) na `testy/qemu/k1qemu.py` | start i błędy startu, pulpit i aplikacje, zrzuty wzorcowe, USB, instalator i aktualizacje (z pendrive'a i przez sieć), Secure Boot, Pliki, pendrive, skarbiec, sieć, Wi-Fi (`mac80211_hwsim`), strefa próbna, Raptor Bridge |
-| wszystko | `scripts/testy.sh` | to samo uruchamia CI (z KVM równolegle) — przed scaleniem: CI na PR-ze (§9) |
+| wszystko | `scripts/testy.sh` | to samo uruchamia CI (z KVM po tyle naraz, ile procesorów — `K1_TESTY_NARAZ`; nigdy wszystkie naraz, decyzja właściciela 2026-11-22) — przed scaleniem: CI na PR-ze (§9) |
 
 - **Po nazwach (0.10.2, ADR 0045):** pulpit i okna K1 — obraz testowy z dyskiem `k1-test-opis` (wzór: `test-m4`, przebieg
   `pulpit`), `q.klik_w("Menu Start", "Notatki")`, `q.czekaj_na_element(okno, nazwa)`; położenia z logu tylko tam, gdzie
@@ -369,6 +369,12 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   połączy dwie takie same zmiany bez konfliktu, a CHANGELOG dostanie dwa wpisy; dlatego obie strony sprawdzają `VERSION`
   na `main` tuż przed scaleniem. `k1.yml` na `main` nie anuluje trwającej budowy (kolejka) i taguje tylko `VERSION`, który
   `main` wciąż ma. Zdarzenia `GITHUB_TOKEN` nie uruchamiają workflow — robot woła `k1.yml` przez `workflow_dispatch`.
+- *CI i testy naraz (0.11.1, decyzja właściciela 2026-11-22 — na stałe):* `testy.sh` puszcza testy QEMU po tyle naraz, ile
+  procesorów (najdłuższe pierwsze), nigdy wszystkie 14 — inaczej runner (4 procesory, 16 GB) dławi się: strefy w środku
+  nie zdążają (losowe „D2”, awarie jądra gościa w `test-most`, #159, #208), a runner pada bez logów (kod 143, brak
+  artefaktu, API: 404). Każde czekanie skryptu na linię gościa kończy też koniec jego maszyny (`albo_koniec` w
+  `test-most.sh`) — po awarii gościa test ma paść od razu, a nie czekać do limitu kroku. Program testowy patrzy na krótko
+  żyjące strefy co 50 ms, nie co kilka sekund.
 - *Obraz strefy bez skryptów pakietów (0.11.1):* `zbuduj-strefe.sh` rozpakowuje pakiety bez ich skryptów — to, co robią
   wyzwalacze Debiana (spis typów plików, `loaders.cache`, `gschemas.compiled`), robimy sami programem z pakietu. Brak
   `gschemas.compiled` kończył Firefoksa („GLib-GIO-ERROR: No GSettings schemas”) przy pierwszym oknie wyboru pliku
