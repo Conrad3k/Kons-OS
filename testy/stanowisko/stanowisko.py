@@ -55,7 +55,7 @@ while not os.path.exists(f"{ROOT}/run/k1/wayland-0"):
     time.sleep(0.1)
 env_p = {"PATH": "/usr/bin", "HOME": "/home/k1", "XDG_RUNTIME_DIR": "/run/k1", "WAYLAND_DISPLAY": "wayland-0",
          "MOZ_ENABLE_WAYLAND": "1", "LANG": "C.UTF-8", "MOZ_CRASHREPORTER_DISABLE": "1",
-         "MOZ_DISABLE_WAYLAND_PROXY": "1", "WAYLAND_DEBUG": "client"}
+         "MOZ_DISABLE_WAYLAND_PROXY": "1", "GSETTINGS_BACKEND": "memory", "WAYLAND_DEBUG": "client"}
 log_f = open(f"{praca}/firefox.log", "w")
 ff = subprocess.Popen(["/usr/sbin/chroot", "--userspec=1000:1000", ROOT, "/usr/bin/firefox-esr", "--no-remote",
                        "--profile", "/home/k1/profil", "file:///tmp/d.html"], stdout=log_f, stderr=log_f, env=env_p)

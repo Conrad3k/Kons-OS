@@ -8,7 +8,8 @@
 #   - pakiety Debiana 13 z tabeli strefy/przegladarka.txt (wersja i suma SHA-256 każdego; odświeżenie tabeli:
 #     scripts/odswiez-strefe.py); pobrane raz do build/strefa-pakiety, sprawdzane sumą przy każdej budowie;
 #   - rozpakowane bez uruchamiania skryptów pakietów; to, co robiłyby skrypty, robimy tu (spis typów plików, moduły
-#     obrazków GTK) — programami z tych samych pakietów, przez ich własny ld.so (bez chroot, bez roota);
+#     obrazków GTK, spis ustawień GTK — 0.11.1) — programami z tych samych pakietów, przez ich własny ld.so (bez chroot,
+#     bez roota);
 #   - bez dokumentacji, podręczników, tłumaczeń poza polskim, raportów awarii Firefoksa;
 #   - nasze programy: /init (gosc), /usr/lib/k1/{kompozytor,przekaznik,agent}, mapa klawiatury, ustawienia przeglądarki
 #     i GTK (bez przycisków okna Firefoksa — okno strefy zamyka i minimalizuje pasek K1);
@@ -56,6 +57,10 @@ w_strefie() { "$D/usr/lib64/ld-linux-x86-64.so.2" --library-path "$LIB" "$@"; }
 w_strefie "$D/usr/bin/update-mime-database" "$D/usr/share/mime" 2>/dev/null
 w_strefie "$LIB/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders" "$LIB"/gdk-pixbuf-2.0/2.10.0/loaders/*.so |
     sed "s#$D##g" > "$LIB/gdk-pixbuf-2.0/2.10.0/loaders.cache"
+# The settings of GTK (GSettings: the file chooser's, behind "Zapisz obraz jako…"): without the compiled schemas GLib ends
+# the browser at their first use (owner's report after 0.11.0: the zone closed on "Zapisz obraz jako…")
+w_strefie "$LIB/glib-2.0/glib-compile-schemas" "$D/usr/share/glib-2.0/schemas"
+[ -s "$D/usr/share/glib-2.0/schemas/gschemas.compiled" ] || blad "brak skompilowanych schematów GSettings"
 # 0.10.5 (ADR 0046): the trusted certificates for curl in the download zone — what update-ca-certificates (a script of
 # ca-certificates) would make: every certificate of the package in one file, in a fixed order
 mkdir -p "$D/etc/ssl/certs"

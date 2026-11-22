@@ -3,6 +3,35 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.11.1] — 2026-11-22
+
+**Poprawka po 0.11.0** (Twoje zgłoszenie z 2026-11-22). „Zapisz obraz jako…” (i każde inne okno zapisu pliku
+w przeglądarce, np. Ctrl+S) zamykało sesję przeglądarki. Teraz okno zapisu się otwiera, a plik trafia do folderu pobranych
+sesji — K1 pyta, jak przy pobraniu, „Zapisz w Pobranych”.
+
+Opis w K1: Poprawka: „Zapisz obraz jako…” i inne okna zapisu pliku w przeglądarce nie zamykają już sesji przeglądarki.
+Zapisany plik trafia do folderu pobranych sesji, a K1 pyta, czy zapisać go w Pobranych.
+
+### Naprawione
+- **Sesja przeglądarki zamykała się przy „Zapisz obraz jako…”** (Twoje zgłoszenie: Wikipedia, Grafika Google; IdeaPad,
+  z szybką grafiką i bez niej): okno wyboru pliku Firefoksa (GTK) czyta swoje ustawienia przez GSettings, a obraz strefy
+  miał ich opisy bez skompilowanego spisu (`gschemas.compiled` robi skrypt pakietu, a my rozpakowujemy pakiety bez
+  skryptów) — GLib od razu kończył przeglądarkę, a za nią strefę. Budowa obrazu strefy kompiluje teraz spis programem
+  z pakietu GLib (`scripts/zbuduj-strefe.sh`, powtarzalnie) i przerywa, gdy go brak; przeglądarka trzyma ustawienia GTK
+  w pamięci (`GSETTINGS_BACKEND=memory` — w strefie nie ma D-Bus, dconf tylko pisał ostrzeżenia).
+- Scenariusz stanowiska `testy/stanowisko/menu.py`: prawy przycisk na obrazach (w linku, przy krawędziach, po wklejeniu
+  tekstu z K1), „Zapisz obraz jako…” i Enter — plik w folderze pobranych, Firefox żyje; bez poprawki pada na tym samym
+  błędzie co u Ciebie.
+- **Testy w CI:** sprawdzenie „OTWARCIE W TRAKCIE ZAMYKANIA (D2)” w `test-strefa` czasem nie przechodziło (#159), choć
+  nadzorca robił wszystko dobrze — ponownie otwarta strefa testowa żyje ok. 1,5 s, a program testowy patrzył na nią co
+  3 s; teraz co 50 ms. `test-most` po awarii gościa czekał po 15 min na każdą brakującą fazę i CI ucinał cały krok testów
+  bez wyniku — teraz wynik gościa albo koniec jego maszyny kończy czekanie. Sama awaria jądra gościa przy 48 połączeniach
+  naraz: zgłoszenie #208.
+- **CI: testy QEMU po kilka naraz, nie wszystkie** (Twoja decyzja, na stałe): `scripts/testy.sh` puszczał wszystkie 14
+  testów z maszynami QEMU naraz na 4 procesorach runnera GitHuba — wszystko zwalniało kilkukrotnie (stąd losowe błędy
+  stref), a dwa razy padł sam runner, bez logów. Teraz po tyle naraz, ile procesorów (`K1_TESTY_NARAZ`), najdłuższe
+  pierwsze.
+
 ## [0.11.0] — 2026-11-22
 
 **Pliki ze stref** (plan 0.11.0, kroki 1–5; ADR 0052). Pliki i tekst przechodzą między przeglądarką a K1 — zawsze przez

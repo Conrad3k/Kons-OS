@@ -4,11 +4,12 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.11.0 „Pliki ze stref” — pliki między przeglądarką a Plikami (Pobrane z pochodzeniem, „Wyślij do”, „Otwórz za
-pomocą” sesja, „Zapisać zmiany w oryginale?”), przeciąganie między oknami (Ctrl — kopia, na okno przeglądarki — kopia po
-puszczeniu), schowek (Notatki, pola K1, przeglądarka; sesja dostaje tekst przy Ctrl+V), okno przeglądarki do krawędzi
-i pełny ekran (plan zamknięty: docs/archiwum/PLAN-0.11.0.txt; ADR 0052). Przed nią 0.10.11 „Szybsza grafika”. Następna
-wersja — 0.12 „Bezpieczny start” (punkt 1: plan do napisania).
+Stan: 0.11.1 — poprawka „Zapisz obraz jako…” w przeglądarce. Przed nią 0.11.0 „Pliki ze stref” — pliki między
+przeglądarką a Plikami (Pobrane z pochodzeniem, „Wyślij do”, „Otwórz za pomocą” sesja, „Zapisać zmiany w oryginale?”),
+przeciąganie między oknami (Ctrl — kopia, na okno przeglądarki — kopia po puszczeniu), schowek (Notatki, pola K1,
+przeglądarka; sesja dostaje tekst przy Ctrl+V), okno przeglądarki do krawędzi i pełny ekran (plan zamknięty:
+docs/archiwum/PLAN-0.11.0.txt; ADR 0052). Przed nią 0.10.11 „Szybsza grafika”. Następna wersja — 0.12 „Bezpieczny start”
+(punkt 1: plan do napisania).
 Data: 2026-11-22.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
@@ -199,8 +200,12 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.11.0; niżej starsze, jeszcze niesprawdzone). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+Jedna lista — dla ostatniego wydania (0.11.1; niżej starsze, jeszcze niesprawdzone). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
 z 2026-11-11).
+Nowe w 0.11.1 (poprawka; aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”):
+    [ ] IdeaPad (i X230): prawy przycisk na obrazku (Wikipedia, Grafika Google) → „Zapisz obraz jako…” → okno zapisu
+        się otwiera, sesja się nie zamyka; „Zapisz” → okienko K1 „Zapisz w Pobranych” → obraz w Plikach → Pobrane;
+        to samo z Ctrl+S na stronie i z szybką grafiką włączoną i wyłączoną
 Nowe w 0.11.0 (Pliki ze stref; aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”), oba laptopy:
     [ ] okno przeglądarki zmaksymalizowane: do samych krawędzi i do górnej krawędzi dolnego paska (1366 px na X230);
         F11 i film „na cały ekran” — cały ekran, pigułka „pełny ekran: Esc, aby wyjść”; wyjście: Esc, pasek K1 przy górnej

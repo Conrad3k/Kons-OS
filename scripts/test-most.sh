@@ -119,25 +119,44 @@ VMM = r"K1-STREFA: połączenia przeglądarki: (\d+), nazwy (\d+), odmowy (\d+) 
 NADZ = r"K1-NADZORCA: strefa 1: połączenia (\d+), odmowy (\d+)"
 
 
+KONIEC13 = r"K1-TEST: strefy: strefa skończyła się \(tryb 13\)"
+
+
+def albo_koniec(wzor, czas, od, kon):
+    """The guest's line `wzor` after `od` of them; None at once when the machine ends without it (a guest crash prints
+    no result, #208 — before, every missing line held CI for minutes, up to its step limit)."""
+    q.czekaj_na(lambda: q.ile(wzor) > od or q.ile(KONIEC13) > kon, czas)
+    m = list(re.finditer(wzor, q.tekst()))
+    return m[od] if len(m) > od else None
+
+
 def przebieg(nr):
     """One run of the honest bridge test (gosc TRYB_MOST); its numbers for the comparison."""
-    od_vmm, od_nadz = q.ile(VMM), q.ile(NADZ)
+    od_vmm, od_nadz, kon = q.ile(VMM), q.ile(NADZ), q.ile(KONIEC13)
+    wzory = [rf"K1-GOSC: most: {re.escape(f)}: ok (\d+)/(\d+), ([\d.]+) s, ([\d.]+) MiB/s" for f in FAZY] + [
+        r"K1-GOSC: most: zły SOCKS5 wprost do VMM: ok (\d+)/(\d+)",
+        r"K1-GOSC: most: więcej połączeń niż miejsc: odpowiedź (\d+), odmowa (\d+), inne (\d+)",
+        r"K1-GOSC: most: wynik (\S+): połączenia do serwera (\d+), odmowy D3 (\d+)"]
+    od = {w: q.ile(w) for w in wzory}  # this run's lines only (the first run's are in the log already)
+
+    def linia(w, czas):
+        return albo_koniec(w, czas, od[w], kon)
+
     sprawdz(f"[{nr}] strefa próbna w trybie mostu: przekaźnik w strefie gotowy, klient startuje",
             czekaj(r"K1-TEST: strefy: strefa próbna uruchomiona \(tryb 13\)", od=nr - 1, czas=limit * 0.3) and
             czekaj(r"K1-GOSC: most: start", od=nr - 1, czas=300))
-    for f in FAZY:
-        m = czekaj(rf"K1-GOSC: most: {re.escape(f)}: ok (\d+)/(\d+), ([\d.]+) s, ([\d.]+) MiB/s", od=nr - 1,
-                   czas=900)
+    for f, wf in zip(FAZY, wzory):
+        m = linia(wf, 900)
         sprawdz(f"[{nr}] {f}: wszystkie połączenia jak trzeba", m and m.group(1) == m.group(2),
                 m.group(0) if m else "brak")
     if nr == 1:
-        m = czekaj(r"K1-GOSC: most: zły SOCKS5 wprost do VMM: ok (\d+)/(\d+)", czas=300)
+        m = linia(wzory[-3], 300)
         sprawdz("NEGATYWNY: zły SOCKS5 wprost do VMM (SOCKS4, BIND, IPv6, port 0, zła nazwa, bajt zarezerwowany) — "
                 "łącznik odpowiada odmową i zamyka", m and m.group(1) == m.group(2) == "6", m.group(0) if m else "brak")
-        m = czekaj(r"K1-GOSC: most: więcej połączeń niż miejsc: odpowiedź (\d+), odmowa (\d+), inne (\d+)", czas=300)
+        m = linia(wzory[-2], 300)
         sprawdz("NEGATYWNY: 140 połączeń naraz — 128 miejsc dostaje odpowiedź, 12 odmowę (RST), żadne nie wisi",
                 m and m.groups() == ("128", "12", "0"), m.group(0) if m else "brak")
-    w = czekaj(r"K1-GOSC: most: wynik (\S+): połączenia do serwera (\d+), odmowy D3 (\d+)", od=nr - 1, czas=600)
+    w = linia(wzory[-1], 600)
     sprawdz(f"[{nr}] wynik gościa OK", w and w.group(1) == "OK", w.group(0) if w else "brak")
     k = czekaj(VMM, od=od_vmm, czas=120)
     sprawdz(f"[{nr}] VMM na końcu strefy: żadne miejsce połączenia nie zostało zajęte", k and k.group(4) == "0",
