@@ -300,7 +300,8 @@ void przegladarka(int ster)
     static char *const env_karta[] = { "PATH=/usr/bin", "K1_GRAFIKA=1", NULL };
     static char *const env_p[] = { "PATH=/usr/bin", "HOME=/home/k1", "XDG_RUNTIME_DIR=/run/k1",
                                    "WAYLAND_DISPLAY=wayland-0", "MOZ_ENABLE_WAYLAND=1", "LANG=C.UTF-8",
-                                   "MOZ_CRASHREPORTER_DISABLE=1", "MOZ_DISABLE_WAYLAND_PROXY=1", NULL };
+                                   "MOZ_CRASHREPORTER_DISABLE=1", "MOZ_DISABLE_WAYLAND_PROXY=1",
+                                   "GSETTINGS_BACKEND=memory", NULL }; /* no D-Bus in the zone: GSettings not in dconf */
     char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL }, *a_agent[] = { "agent", POBRANE, Z_K1, OTWORZ, SCHOWEK, NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;

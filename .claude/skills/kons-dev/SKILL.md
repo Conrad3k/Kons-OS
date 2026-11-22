@@ -369,6 +369,10 @@ Sans/Serif, ikony liniowe; pulpit jak w Windows 11 (pasek na dole, wyśrodkowany
   połączy dwie takie same zmiany bez konfliktu, a CHANGELOG dostanie dwa wpisy; dlatego obie strony sprawdzają `VERSION`
   na `main` tuż przed scaleniem. `k1.yml` na `main` nie anuluje trwającej budowy (kolejka) i taguje tylko `VERSION`, który
   `main` wciąż ma. Zdarzenia `GITHUB_TOKEN` nie uruchamiają workflow — robot woła `k1.yml` przez `workflow_dispatch`.
+- *Obraz strefy bez skryptów pakietów (0.11.1):* `zbuduj-strefe.sh` rozpakowuje pakiety bez ich skryptów — to, co robią
+  wyzwalacze Debiana (spis typów plików, `loaders.cache`, `gschemas.compiled`), robimy sami programem z pakietu. Brak
+  `gschemas.compiled` kończył Firefoksa („GLib-GIO-ERROR: No GSettings schemas”) przy pierwszym oknie wyboru pliku
+  („Zapisz obraz jako…”), a za nim strefę; GTK w strefie — `GSETTINGS_BACKEND=memory` (bez D-Bus). Scenariusz `menu.py`.
 - *Przeglądarka w CI (0.10.0–0.10.1):* test z prawdziwym Firefoksem w strefie (CI z KVM) przez wiele dni padał na
   zachowaniu Firefoksa (Enter bez skutku, lista podpowiedzi niewidoczna, limity czasu), którego na sprzęcie nie było —
   od 0.10.1 go nie ma (decyzja właściciela 2026-11-17). Firefox w strefie ocenia sieć po kartach systemu (strefa ich nie

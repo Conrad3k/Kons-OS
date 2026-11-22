@@ -3,6 +3,26 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.11.1] — 2026-11-22
+
+**Poprawka po 0.11.0** (Twoje zgłoszenie z 2026-11-22). „Zapisz obraz jako…” (i każde inne okno zapisu pliku
+w przeglądarce, np. Ctrl+S) zamykało sesję przeglądarki. Teraz okno zapisu się otwiera, a plik trafia do folderu pobranych
+sesji — K1 pyta, jak przy pobraniu, „Zapisz w Pobranych”.
+
+Opis w K1: Poprawka: „Zapisz obraz jako…” i inne okna zapisu pliku w przeglądarce nie zamykają już sesji przeglądarki.
+Zapisany plik trafia do folderu pobranych sesji, a K1 pyta, czy zapisać go w Pobranych.
+
+### Naprawione
+- **Sesja przeglądarki zamykała się przy „Zapisz obraz jako…”** (Twoje zgłoszenie: Wikipedia, Grafika Google; IdeaPad,
+  z szybką grafiką i bez niej): okno wyboru pliku Firefoksa (GTK) czyta swoje ustawienia przez GSettings, a obraz strefy
+  miał ich opisy bez skompilowanego spisu (`gschemas.compiled` robi skrypt pakietu, a my rozpakowujemy pakiety bez
+  skryptów) — GLib od razu kończył przeglądarkę, a za nią strefę. Budowa obrazu strefy kompiluje teraz spis programem
+  z pakietu GLib (`scripts/zbuduj-strefe.sh`, powtarzalnie) i przerywa, gdy go brak; przeglądarka trzyma ustawienia GTK
+  w pamięci (`GSETTINGS_BACKEND=memory` — w strefie nie ma D-Bus, dconf tylko pisał ostrzeżenia).
+- Scenariusz stanowiska `testy/stanowisko/menu.py`: prawy przycisk na obrazach (w linku, przy krawędziach, po wklejeniu
+  tekstu z K1), „Zapisz obraz jako…” i Enter — plik w folderze pobranych, Firefox żyje; bez poprawki pada na tym samym
+  błędzie co u Ciebie.
+
 ## [0.11.0] — 2026-11-22
 
 **Pliki ze stref** (plan 0.11.0, kroki 1–5; ADR 0052). Pliki i tekst przechodzą między przeglądarką a K1 — zawsze przez
