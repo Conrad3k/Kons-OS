@@ -3,6 +3,32 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.11.2] — 2026-11-22
+
+**Szybsza przeglądarka** (Twoja prośba z 2026-11-22: Speedometer 3.1 na IdeaPadzie — 5 bez szybkiej grafiki, 4 z nią).
+Przeglądarka dostaje teraz tyle procesorów, ile ma komputer (do 4; do tej pory 2 z 4 wątków X230 i IdeaPada), jej pamięć
+leży w dużych stronach, a strefa nie zatrzymuje się już na każdym znaku dla urządzeń (obraz, sieć, karta, dysk). Najwięcej
+powinno to dać przy szybkiej grafice — obsługa karty zabierała do tej pory przeglądarce jeden z jej dwóch procesorów.
+
+Opis w K1: Szybsza przeglądarka: sesja dostaje tyle procesorów, ile ma komputer (do 4), jej pamięć leży w dużych stronach,
+a obraz, sieć i karta graficzna nie zatrzymują już jej procesorów. Najwięcej zyskuje szybka grafika.
+
+### Zmienione
+- **Do 4 procesorów dla sesji przeglądarki** (Ogólna, Bank, Prywatna; wcześniej 2): liczba w wierszu `K1_STREFY` to teraz
+  najwięcej, ile strefa dostaje — VMM nigdy nie daje więcej, niż ma komputer (`KVM_CAP_NR_VCPUS`). Speedometer mierzy
+  głównie wątek strony, ale obok niego pracują rysowanie (procesorem albo — przy szybkiej grafice — sterownik karty
+  w strefie), kompilacja JavaScriptu i odśmiecanie pamięci; na dwóch procesorach odbierały czas stronie. Jądro strefy
+  z `PARAVIRT_SPINLOCKS` (procesor czekający na blokadę wstrzymanego procesora tej samej strefy śpi zamiast się kręcić).
+- **Powiadomienia kolejek bez wychodzenia z KVM** (`src/strefa/powiadomienia.c`): każde „w kolejce jest coś nowego” od
+  gościa (klatka obrazu, polecenie karty, pakiet przeglądarki, odczyt obrazu strefy) zatrzymywało dotąd procesor gościa —
+  wyjście do VMM (z ochronami procesora przy powrocie), czekanie na wspólny zamek urządzeń i cała praca urządzenia na
+  wątku tego procesora. Teraz KVM sam sygnalizuje eventfd kolejki (`KVM_IOEVENTFD`), procesor od razu wraca do strony,
+  a urządzeniem zajmuje się osobny wątek VMM-a — na innym, wolnym wątku procesora komputera. Sprawdzanie łańcuchów od
+  gościa bez zmian (to samo `mmio_powiadomienie`, test `test_virtio`).
+- **Duże strony dla pamięci strefy**: jądro K1 z `TRANSPARENT_HUGEPAGE` (tylko na prośbę — `MADVISE`, memfd
+  `SHMEM_HUGE_ADVISE`), VMM prosi o nie dla pamięci gościa (`MADV_HUGEPAGE`, jak QEMU) — mniej chybień w TLB i krótsze
+  przejścia tablic stron przy każdym dostępie strony do pamięci. Usługi K1 o nic nie proszą, więc dla nich bez zmian.
+
 ## [0.11.1] — 2026-11-22
 
 **Poprawka po 0.11.0** (Twoje zgłoszenie z 2026-11-22). „Zapisz obraz jako…” (i każde inne okno zapisu pliku

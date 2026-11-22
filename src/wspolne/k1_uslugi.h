@@ -69,8 +69,9 @@
  * /rdzen/system/strefa, log tag K1-STREFA); one line each, everything else follows from it: the profile and the UID of
  * its VMM (KLATKA_STREFA in src/nadzorca/profile.c with the row's memory), the frame ekran draws, Zasoby, the tests.
  * X(NAME, zone number, profile, UID, image (/rdzen/strefy/<obraz>.img), title, session ("": none), memory of the guest
- *   in MiB, processors, the frame colour 0xRRGGBB, JEDNORAZOWA (forgets everything when closed) or STALA (its disk in
- *   skarbiec — 0.10.0 step 5; the default: the user changes it in Ustawienia → Przeglądarka, nadzorca keeps the choice),
+ *   in MiB, processors (the most it gets — since 0.11.2 never more than the computer has: strefa/kvm.c), the frame
+ *   colour 0xRRGGBB, JEDNORAZOWA (forgets everything when closed) or STALA (its disk in skarbiec — 0.10.0 step 5; the
+ *   default: the user changes it in Ustawienia → Przeglądarka, nadzorca keeps the choice),
  *   icon (K1_IK_<icon>) of its mark, 1: the guest's console lines go to K1's log (the test zone only; others: counted),
  *   its line in the Start menu ("": not there; 0.10.0 step 2), 1: it has a window (0: the download zone of 0.10.5 step 2,
  *   ADR 0046 — no window, no display or input devices; it downloads updates and gives K1 the bytes), 1: fast graphics
@@ -84,11 +85,11 @@
 #define K1_STREFY(X)                                                                                                    \
     X(PROBNA, 1, 19, 300, "probna", "Strefa próbna", "", 128, 1, 0xA8834A, STALA, EKRAN, 1, "", 1, 0,                \
       "ze strefy próbnej")                                                                                      \
-    X(OGOLNA, 2, 20, 301, "przegladarka", "Przeglądarka", "Ogólna", 1536, 2, 0x5F8A6A, STALA, PRZEGLADARKA, 0,        \
+    X(OGOLNA, 2, 20, 301, "przegladarka", "Przeglądarka", "Ogólna", 1536, 4, 0x5F8A6A, STALA, PRZEGLADARKA, 0,        \
       "Strony internetowe w osobnej maszynie", 1, 1, "z przeglądarki")                                          \
-    X(BANK, 3, 21, 302, "przegladarka", "Przeglądarka", "Bank", 1536, 2, 0x4A6FA5, STALA, PRZEGLADARKA, 0, "", 1, 0,  \
+    X(BANK, 3, 21, 302, "przegladarka", "Przeglądarka", "Bank", 1536, 4, 0x4A6FA5, STALA, PRZEGLADARKA, 0, "", 1, 0,  \
       "z przeglądarki")                                                                                         \
-    X(PRYWATNA, 4, 22, 303, "przegladarka", "Przeglądarka", "Prywatna", 1536, 2, 0x8B6AA8, JEDNORAZOWA, PRZEGLADARKA,\
+    X(PRYWATNA, 4, 22, 303, "przegladarka", "Przeglądarka", "Prywatna", 1536, 4, 0x8B6AA8, JEDNORAZOWA, PRZEGLADARKA,\
       0, "", 1, 0, "z przeglądarki")                                                                            \
     X(POBIERANIE, 5, 23, 304, "przegladarka", "Pobieranie aktualizacji", "", 384, 1, 0x8D8A84, JEDNORAZOWA,         \
       AKTUALIZACJE, 0, "", 0, 0, "ze strefy pobierania")

@@ -196,6 +196,14 @@ static int gotowosc(struct mmio_urz *u, uint32_t v, const char **powod)
     return 0;
 }
 
+int mmio_powiadomienie(struct mmio_urz *u, uint32_t kolejka, const char **powod)
+{
+    u->powiadomienia++;
+    if (kolejka > INT32_MAX || !mmio_dziala(u, (int)kolejka))
+        return 0;
+    return u->ops->powiadom(u, (int)kolejka, powod);
+}
+
 static int zapisz_rejestr(struct mmio_urz *u, uint64_t od, uint32_t v, const char **powod)
 {
     struct virtq *q = wybrana(u);
@@ -225,10 +233,7 @@ static int zapisz_rejestr(struct mmio_urz *u, uint64_t od, uint32_t v, const cha
     case VIRTIO_MMIO_QUEUE_READY:
         return gotowosc(u, v, powod);
     case VIRTIO_MMIO_QUEUE_NOTIFY:
-        u->powiadomienia++;
-        if (v > INT32_MAX || !mmio_dziala(u, (int)v))
-            return 0;
-        return u->ops->powiadom(u, (int)v, powod);
+        return mmio_powiadomienie(u, v, powod);
     case VIRTIO_MMIO_INTERRUPT_ACK:
         u->przerwanie &= ~v;
         return 0;

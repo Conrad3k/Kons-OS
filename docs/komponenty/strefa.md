@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | ZAIMPLEMENTOWANE (0.10.0 krok 1: strefa próbna, tylko w obrazie testowym; krok 2: przeglądarka — sesje Ogólna, Bank, Prywatna, ADR 0043; krok 5: sesje, które pamiętają — dysk strefy w skarbcu); PRZETESTOWANE na hoście (`test_virtio`, `test_strefa_start`, `fuzz_virtq`), w systemie (`t_kvm`, `t_strefa_klatka`, próba w klatce `t_proby`) i w QEMU (`scripts/test-strefa.sh`: okno w ramce, wejście, pasek tytułu K1, zamykanie, 4 złośliwe tryby gościa, komputer bez wirtualizacji) — w emulacji AMD SVM; na prawdziwym sprzęcie — po wydaniu (krok 3) |
-| **Pliki** | `src/strefa/`: `main.c` (start, pętla wątku głównego, koniec), `kvm.c` (maszyna, procesory, wyjścia), `start.{c,h}` (start jądra bez firmware: strona zerowa, e820, tablice stron, GDT, tablica MP), `virtq.{c,h}` (kolejka virtio), `mmio.{c,h}` (rejestry virtio-mmio), stróż `stroz.c`, urządzenia `blk.c`, `konsola.c`, `rng.c`, `wejscie.c`, `gpu.c` (obraz gościa z pamięci przez czyste `tlo.{c,h}` — każdy adres przez `gp_wsk`, także ponad 4 GiB; do 0.10.5 kopia z górnej części pamięci szła spod złego adresu: czarne okno przeglądarki na X230 z 8 GB, test `test_tlo`), `vsock.c`, dysk strefy `dane.c` + `dysk.{c,h}` (0.10.0 krok 5), okno `okno.{c,h}`; wspólne `strefa.h` (tabela urządzeń `K1_URZADZENIA`); gość `src/strefa/gosc/` (`main.c`, `obraz.c`, `zlosliwy.c`, `przegladarka.c`, `pamiec.c`, `dysk.c`; 0.10.5 krok 5: test Raptor Bridge `most.{c,h}`, `most_fazy.c`); nadzorca `src/nadzorca/strefy.c`, `profile.c` (`KLATKA_STREFA`), sesje `strefy_ust.c` + `sesje.{c,h}`; ekran `src/ekran/strefy.c` (ramka); tabela stref `K1_STREFY` w `src/wspolne/k1_uslugi.h`; jądro strefy `jadro/strefa.config` |
+| **Pliki** | `src/strefa/`: `main.c` (start, pętla wątku głównego, koniec), `kvm.c` (maszyna, procesory, wyjścia), `start.{c,h}` (start jądra bez firmware: strona zerowa, e820, tablice stron, GDT, tablica MP), `virtq.{c,h}` (kolejka virtio), `mmio.{c,h}` (rejestry virtio-mmio), stróż `stroz.c`, powiadomienia kolejek `powiadomienia.c` (0.11.2), urządzenia `blk.c`, `konsola.c`, `rng.c`, `wejscie.c`, `gpu.c` (obraz gościa z pamięci przez czyste `tlo.{c,h}` — każdy adres przez `gp_wsk`, także ponad 4 GiB; do 0.10.5 kopia z górnej części pamięci szła spod złego adresu: czarne okno przeglądarki na X230 z 8 GB, test `test_tlo`), `vsock.c`, dysk strefy `dane.c` + `dysk.{c,h}` (0.10.0 krok 5), okno `okno.{c,h}`; wspólne `strefa.h` (tabela urządzeń `K1_URZADZENIA`); gość `src/strefa/gosc/` (`main.c`, `obraz.c`, `zlosliwy.c`, `przegladarka.c`, `pamiec.c`, `dysk.c`; 0.10.5 krok 5: test Raptor Bridge `most.{c,h}`, `most_fazy.c`); nadzorca `src/nadzorca/strefy.c`, `profile.c` (`KLATKA_STREFA`), sesje `strefy_ust.c` + `sesje.{c,h}`; ekran `src/ekran/strefy.c` (ramka); tabela stref `K1_STREFY` w `src/wspolne/k1_uslugi.h`; jądro strefy `jadro/strefa.config` |
 | **Decyzje** | ADR 0042 (T1–T6, T10, zaufana ramka), ADR 0020 (kierunek), decyzje właściciela D1 (szkic B2, S1; krok 3: szkic A — pełny pasek tytułu), D4 (testy w emulacji) |
 
 ## Cel
@@ -30,8 +30,8 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 |---|---|
 | UID | z wiersza (strefa próbna: 300), bez grup i capabilities, `NoNewPrivs`, Landlock bez ścieżek |
 | deskryptory od nadzorcy | 3: kanał do ekranu (rola `STREFA`, numer strefy), 4: `/dev/kvm`, 5: jądro strefy (tylko odczyt), 6: obraz strefy (tylko odczyt), 7: kanał do nadzorcy — połączenia przeglądarki (0.10.0 krok 2); 8, 9 (krok 5, tylko sesja, która pamięta): kanał do skarbca (właściciel = profil wiersza strefy) i pusty dysk strefy `/rdzen/strefy/dysk.img` (tylko odczyt) |
-| seccomp (poza bazą) | `ioctl` tylko typu KVM (0xAE), `memfd_create`, `ftruncate`, `eventfd2`, `futex`, `getrandom`, `pread64`, `clone` tylko z `CLONE_THREAD`; od kroku 2: `shutdown`, `getsockopt` tylko `SO_ERROR` (gniazda od nadzorcy; VMM nie otwiera gniazd); od 0.10.1 krok 2: `fallocate` tylko z `PUNCH_HOLE \| KEEP_SIZE` (balon oddaje strony K1, ADR 0044 T2) |
-| cgroup | pamięć gościa (od 0.10.1 krok 2: jej górna granica — ADR 0044 T4, stała przez całe życie strefy) + 184 MiB (od kroku 5: + pamięć podręczna dysku 16 MiB i bufor prośby 4 MiB); `pids.max` = 1 + procesory + 1 (stróż) + 1 (wątek dysku, krok 5) + 1 (wątek mostu szybkiej grafiki, 0.10.9 krok 6) + 1 (zadanie KVM w procesie maszyny); z pośrednikiem grafiki pamięć + `K1_POSR_PAMIEC` (bufory karty zmapowane w VMM-ie) |
+| seccomp (poza bazą) | `ioctl` tylko typu KVM (0xAE; od 0.11.2 też `KVM_IOEVENTFD` — powiadomienia kolejek, `KVM_CHECK_EXTENSION` — ile procesorów ma komputer), `memfd_create`, `ftruncate`, `eventfd2`, `futex`, `getrandom`, `pread64`, `clone` tylko z `CLONE_THREAD`; od kroku 2: `shutdown`, `getsockopt` tylko `SO_ERROR` (gniazda od nadzorcy; VMM nie otwiera gniazd); od 0.10.1 krok 2: `fallocate` tylko z `PUNCH_HOLE \| KEEP_SIZE` (balon oddaje strony K1, ADR 0044 T2) |
+| cgroup | pamięć gościa (od 0.10.1 krok 2: jej górna granica — ADR 0044 T4, stała przez całe życie strefy) + 184 MiB (od kroku 5: + pamięć podręczna dysku 16 MiB i bufor prośby 4 MiB); `pids.max` = 1 + procesory + 1 (stróż) + 1 (wątek dysku, krok 5) + 1 (wątek mostu szybkiej grafiki, 0.10.9 krok 6) + 1 (wątek powiadomień, 0.11.2) + 1 (zadanie KVM w procesie maszyny); deskryptorów o 36 więcej (eventfd na kolejkę każdego urządzenia, 0.11.2); z pośrednikiem grafiki pamięć + `K1_POSR_PAMIEC` (bufory karty zmapowane w VMM-ie) |
 | `RLIMIT_FSIZE` | pamięć gościa (memfd jej pamięci; od 0.10.1 krok 2 — górna granica) |
 | argumenty | numer strefy, tryb gościa testowego (0; 1–4 złośliwy, 5 licznik na dysku; od 0.10.1 krok 2: 6–8 złośliwy dla balonu, 9 pamięć; od 0.10.5 krok 5: 13 test Raptor Bridge, 14–15 złośliwy dla vsock — gość sam steruje urządzeniem vsock, którego jego jądro nie dostaje; tylko od programu testowego), od 0.10.1 krok 2 pamięć gościa w MiB (górna granica od nadzorcy: `pamiec_stref.c`) |
 
@@ -39,6 +39,11 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 - **Pamięć:** memfd z `MFD_NOEXEC_SEAL`; nigdy wykonywana przez K1. Od adresu 0 gościa do 3 GiB (poniżej urządzeń), od
   0.10.1 krok 2 (ADR 0044 T5) reszta większego gościa od 4 GiB — drugi wpis RAM w e820 i drugie miejsce pamięci KVM z tego
   samego memfd (`gosc_pamiec.dol`; `gp_wsk` nie przepuszcza zakresu przez dziurę, kolejki virtio czytane tylko przez nie).
+  Od 0.11.2 **duże strony** (2 MiB): VMM prosi o nie dla pamięci gościa (`madvise(MADV_HUGEPAGE)`, jak QEMU), jądro K1
+  daje je memfd tylko na prośbę (`TRANSPARENT_HUGEPAGE_SHMEM_HUGE_ADVISE`, `jadro/k1.config`) — jeden wpis w TLB procesora
+  i w tablicach EPT/NPT KVM obejmuje 512 stron, krótsze przejścia tablic stron przy każdym chybieniu w TLB. Gdy jądro
+  nie złoży dużej strony (pamięć pocięta), zostają małe — jak wcześniej. Balon wycina strony jak dotąd (duża strona się
+  dzieli; zgłoszenia wolnych stron i tak idą kawałkami po 2 MiB).
 - **Wielkość i balon** (0.10.1 krok 2, ADR 0044): gość dostaje swoją **górną granicę** — pamięć komputera minus rezerwa
   K1 (D2: 768 MiB do 6 GiB pamięci komputera, 1 GiB od 6 GiB; nigdy mniej niż pamięć na start z wiersza `K1_STREFY`;
   `src/nadzorca/pamiec_stref.c`) — ale K1 trzyma tylko strony, których gość dotknął; zwolnione wracają do K1 (balon,
@@ -50,7 +55,16 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
   linia poleceń), GDT, tablice stron 1:1 (4 GiB), tablica MP (procesory, I/O APIC; bez ACPI). Linia poleceń gościa:
   urządzenia virtio-mmio, `console=hvc0 root=/dev/vda ro rootfstype=squashfs init=/init reboot=k panic=-1 k1.tryb=N`.
 - **Procesory:** wątek na procesor; CPUID od KVM z identyfikatorem APIC, bitem „hiperwizor” i bez LA57 (ADR 0042 T10).
+  Liczba z wiersza `K1_STREFY` to najwięcej, ile strefa dostaje — od 0.11.2 nigdy więcej, niż ma komputer
+  (`KVM_CAP_NR_VCPUS`: procesory włączone w K1); sesje przeglądarki mają w wierszu 4 (do 0.11.1: 2 — na X230 i IdeaPadzie
+  z 4 wątkami procesora przeglądarka i jej rysowanie dzieliły tylko 2).
 - **Przerwania:** w jądrze (`KVM_CREATE_IRQCHIP`, `KVM_CREATE_PIT2`), irqfd na urządzenie (linie 5…11).
+- **Powiadomienia kolejek** (0.11.2, `powiadomienia.c`): zapis gościa „kolejka N” do `QueueNotify` nie wychodzi z KVM —
+  KVM sam sygnalizuje eventfd tej kolejki (`KVM_IOEVENTFD` z `datamatch`), procesor wraca od razu do gościa, a wątek
+  powiadomień oddaje powiadomienie urządzeniu pod zamkiem (`mmio_powiadomienie`, to samo co zapis rejestru). Wcześniej
+  każde powiadomienie (każda klatka obrazu, pakiet przeglądarki, polecenie karty, odczyt obrazu) zatrzymywało procesor
+  gościa: wyjście do VMM z ochronami procesora w drodze powrotnej, czekanie na zamek i praca urządzenia na jego wątku.
+  Zapis innej wartości wychodzi do VMM jak dotąd (nieistniejąca kolejka — pomijana).
 - **Wyjścia:** MMIO urządzeń (pod zamkiem), reset przez kontroler klawiatury (koniec gościa), potrójny błąd, inne
   nieobsługiwane — koniec; dostęp do MMIO zgłoszony jako „w trakcie przerwania” — ponawiany do 8 razy (emulacja QEMU,
   ADR 0042 T10).
@@ -169,7 +183,7 @@ przeglądarki — od 0.10.9 krok 4 poza rdzeniem (ADR 0050): w miejscu A/B zaraz
 tylko jego skrót `/rdzen/strefy/przegladarka.skrot`; nadzorca (`obraz_strefy.c`) zakłada dm-verity i daje VMM-owi
 urządzenie jako fd 6 (VMM bierze rozmiar przez `lseek`); w testach QEMU z rdzeniem na `/dev/vda` obraz to drugi dysk
 virtio (`scripts/uruchom-qemu.sh`, `--obraz-strefy`); 1536 MiB na start (od 0.10.1 górna granica: pamięć komputera minus rezerwa K1, balon —
-ADR 0044), 2 procesory (w emulacji QEMU — 1, i od 0.10.5 krok 7 gość z `highres=off`: jądro strefy 7.x odracza przestawianie zegara (`HRTIMER_REARM_DEFERRED`) i pod emulowanym SVM bezczynny gość widział klawisz po minucie; z KVM na prawdziwym procesorze bez zmian); Ogólna i Bank pamiętają (krok 5), Prywatna zapomina.
+ADR 0044), 4 procesory — najwyżej tyle, ile ma komputer (do 0.11.1: 2; w emulacji QEMU — 1, i od 0.10.5 krok 7 gość z `highres=off`: jądro strefy 7.x odracza przestawianie zegara (`HRTIMER_REARM_DEFERRED`) i pod emulowanym SVM bezczynny gość widział klawisz po minucie; z KVM na prawdziwym procesorze bez zmian); Ogólna i Bank pamiętają (krok 5), Prywatna zapomina.
 - **Obraz** (`scripts/zbuduj-strefe.sh`): pakiety Debiana 13 z tabeli `strefy/przegladarka.txt` (wersje i sumy;
   odświeżenie `scripts/odswiez-strefe.py` — podpisy Debiana sprawdzane kluczami z `strefy/klucze/`), rozpakowane bez
   skryptów pakietów, bez powłoki; nasze: `/init` (`gosc`), `/usr/lib/k1/kompozytor`, `/usr/lib/k1/przekaznik`, mapa
