@@ -18,7 +18,10 @@
 #   5. (0.11.0 krok 4) PRZECIĄGANIE NA OKNO STREFY: plik z pulpitu (program testowy kładzie go w Pulpicie) przeciągnięty
 #      myszą na okno strefy próbnej — przy kursorze znak K1 „Kopia do sesji…” (zrzut), strefa nic nie dostaje, póki kursor
 #      tylko jest nad oknem (NEGATYWNE); po puszczeniu: UPUSC w punkcie puszczenia i kopia bajt w bajt w trybie upuszczenia
-#   6. K1 działa dalej; w logu K1 żadnej nazwy pliku (niezmiennik 8)
+#   6. (0.11.0 krok 5) SCHOWEK: bez Ctrl+V strefa nic nie dostaje; kopia strefy bez gestu — K1 odmawia; Notatki: tekst,
+#      Ctrl+A, Ctrl+C → Ctrl+V w oknie strefy: strefa dostaje dokładnie ten tekst (klawisz czeka na jej potwierdzenie);
+#      kopia ze strefy → Ctrl+V w Notatkach; NEGATYWNE: zalew 20 kopii, znak sterujący, długość ponad 1 MiB (port zamknięty)
+#   7. K1 działa dalej; w logu K1 żadnej nazwy pliku ani tekstu schowka (niezmiennik 8)
 # Dowody: build/testy/pobrane.log, build/testy/pobrane-okienko.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -156,6 +159,43 @@ if sprawdz("ikona pliku na pulpicie i okno strefy na ekranie", ikony and okna, f
             czekaj(r"K1-GOSC: odbiór: plik \d+ z K1 \(2500 B, zgodny\), upuszczony", czas=300) and
             czekaj(r"K1-GOSC: odbiór: upuszczone pliki zgodne: 1, z trybem upuszczenia: 1", czas=60))
 
+# 6. step 5: the clipboard — Notatki and the zone
+sprawdz("schowek: bez Ctrl+V strefa nic nie dostaje; kopia bez gestu — ekran odmawia",
+        czekaj(r"K1-GOSC: schowek: bez Ctrl\+V nic nie przyszło", czas=300) and
+        czekaj(r"K1-EKRAN: odrzucono komunikat \(strefa\): schowek: kopia bez gestu", czas=60))
+pas = re.findall(r"K1-GUI: (?:pulpit gotowy|pasek zmieniony): Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", q.tekst())
+n_ok = q.ile(r"K1-EKRAN: okno \d+ \(notatki\)")
+if pas:
+    q.klik(int(pas[-1][2]) + int(pas[-1][4]), int(pas[-1][3]))  # Notatki: the second on the bar
+no = czekaj(r"K1-EKRAN: okno \d+ \(notatki\) (\d+)x(\d+) w (\d+),(\d+)", od=n_ok, czas=60)
+if sprawdz("Notatki otwarte z paska", no):
+    nw, nh, nx, ny = (int(v) for v in no.groups())
+    q.klik(nx + nw * 2 // 3, ny + nh // 2)  # the text of the note
+    q.pisz("k", "1", "spc", "t", "e", "s", "t", "ctrl-a", "ctrl-c")
+    sprawdz("Notatki: Ctrl+A, Ctrl+C — ekran ma 7 B z K1",
+            czekaj(r"K1-NOTATKI: schowek: skopiowano 7 B", czas=60) and czekaj(r"K1-EKRAN: schowek: skopiowano 7 B \(z K1 0\)", czas=30))
+    st = re.findall(r"K1-EKRAN: okno \d+ \(strefa\) (\d+)x(\d+) w (-?\d+),(-?\d+)", q.tekst())
+    pz = re.findall(r"K1-EKRAN: okno \d+ przesunięte do (-?\d+),(-?\d+)", q.tekst())
+    sx, sy = (int(pz[-1][0]), int(pz[-1][1])) if pz else (int(st[-1][2]), int(st[-1][3]))
+    # the zone's window, right of Notatki (they cover its left part): the focus and a gesture
+    q.klik(max(nx + nw + 50, sx + 50), ny + nh // 2)
+    q.pisz("ctrl-v")
+    sprawdz("Ctrl+V w oknie strefy: ekran daje tekst przed klawiszem, VMM czeka na gościa, gość ma dokładnie ten tekst",
+            czekaj(r"K1-EKRAN: schowek: Ctrl\+V w oknie strefy 1 — tekst dany \(7 B", czas=60) and
+            czekaj(r"K1-STREFA: schowek: tekst z K1 dla Ctrl\+V \(7 B\)", czas=60) and
+            czekaj(r"K1-GOSC: schowek: tekst z K1 7 B, zgodny", czas=120))
+    sprawdz("kopia ze strefy po geście: ekran ją bierze",
+            czekaj(r"K1-EKRAN: schowek: skopiowano 18 B \(ze strefy 1\)", czas=60))
+    q.klik(min(nx + 300, sx - 40), ny + nh // 2)  # Notatki, left of the zone's window (on top of them now)
+    q.pisz("ctrl-v")
+    sprawdz("Ctrl+V w Notatkach: tekst ze strefy", czekaj(r"K1-NOTATKI: schowek: wklejono 18 B", czas=60))
+    ZLAMANIE = r"K1-STREFA: pliki: strefa złamała zasady portu plików \((schowek|zła ramka)\)"
+    n_zl = q.ile(ZLAMANIE)
+    sprawdz("NEGATYWNE: zalew kopii i znak sterujący — VMM odrzuca; długość ponad 1 MiB — port plików zamknięty",
+            czekaj(r"K1-GOSC: schowek zły: zalew 20, znak sterujący, za długi — wysłane", czas=180) and
+            czekaj(ZLAMANIE, od=n_zl, czas=60) and
+            q.ile(r"K1-EKRAN: schowek: skopiowano 5 B") <= 2)
+
 d = czekaj(r"K1-TEST: pobrane: do strefy (\S+)", czas=600)
 sprawdz("w Dokumentach: „Zapisz” — stara wersja w Koszu, nowa pod nazwą oryginału; „jako nowy” — obok; „Nie” — nic",
         d and d.group(1) == "OK", (czekaj(r"K1-TEST: pobrane: zmiany z powrotem .*", czas=5) or d).group(0) if d else "brak")
@@ -167,7 +207,7 @@ sprawdz("K1 działa dalej: nadzorca, ekran i pulpit bez awarii; bez zabronionych
         "Kernel panic" not in t_)
 k1 = "\n".join(l for l in t_.splitlines() if re.match(r"\s*K1-(NADZORCA|STREFA|GUI|SKARBIEC|EKRAN)", l))
 sprawdz("w logu K1 żadnej nazwy pliku ze strefy (niezmiennik 8)",
-        not re.search(r"raport|zostaw\.bin|pusty\.txt|plik_\.pdf|zalew\.bin|duzy\.iso|przerwany\.bin|do-strefy|obcy\.bin|upusc\.bin", k1))
+        not re.search(r"raport|zostaw\.bin|pusty\.txt|plik_\.pdf|zalew\.bin|duzy\.iso|przerwany\.bin|do-strefy|obcy\.bin|upusc\.bin|k1 test|tekst-ze-strefy", k1))
 q.monitor("quit")
 qemu.wait()
 sys.exit(0 if all(q.wyniki) else 1)

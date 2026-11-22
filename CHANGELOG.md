@@ -3,6 +3,52 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.11.0] — 2026-11-22
+
+**Pliki ze stref** (plan 0.11.0, kroki 1–5; ADR 0052). Pliki i tekst przechodzą między przeglądarką a K1 — zawsze przez
+Pliki, zawsze jako kopia i zawsze za Twoją zgodą wyrażoną w oknie, które rysuje K1 (strona tego nie podrobi). Pobrany plik
+trafia do Plików → Pobrane, plik z Plików wysyłasz do sesji albo przeciągasz na okno przeglądarki, zmieniony plik wraca do
+oryginału tylko po „Zapisz”, a tekst kopiujesz i wklejasz między Notatkami, polami K1 i przeglądarką. Do tego okno
+przeglądarki sięga krawędzi ekranu i ma prawdziwy pełny ekran.
+
+Opis w K1: Pliki przechodzą między przeglądarką a Plikami K1: pobrany plik zapiszesz w Pobranych, plik z Plików wyślesz
+do sesji przeglądarki albo przeciągniesz na jej okno, a zmieniony wraca do oryginału tylko za Twoją zgodą. Działa schowek:
+Ctrl+C i Ctrl+V w Notatkach, polach K1 i w przeglądarce. Okno przeglądarki sięga krawędzi ekranu i ma pełny ekran.
+
+### Dodane
+- **Pełny ekran i okno do krawędzi** (krok 1, Twoja decyzja D1 „A”): zmaksymalizowane okno przeglądarki wypełnia ekran
+  między paskami co do piksela; F11 albo film „na cały ekran” zajmuje cały ekran, a K1 zawsze daje drogę powrotu (pigułka
+  „pełny ekran: Esc, aby wyjść”, pasek K1 przy górnej krawędzi, Alt+Tab, klawisz Start).
+- **Pliki ze strefy do Plików** (krok 2, D2 i D3 „A”): po zakończonym pobraniu okienko K1 „Zapisz w Pobranych” / „Zostaw
+  w przeglądarce”; w szczegółach pliku pochodzenie „z przeglądarki · Ogólna” i data.
+- **Pliki do strefy** (krok 3, D4 „A”): w menu pliku „Wyślij do” i sesje w „Otwórz za pomocą” (zamkniętą sesję K1
+  otwiera); kopia trafia do folderu sesji „Z K1”; zmieniony plik wraca tylko po „Zapisać zmiany w oryginale?” („Zapisz” —
+  stara wersja do Kosza, „Zapisz jako nowy plik”, „Nie”).
+- **Przeciąganie między oknami** (krok 4, D6 „A”): z Plików na pulpit i z pulpitu do Plików (przenosi, **z Ctrl —
+  kopiuje**, także w samych Plikach); na okno sesji przeglądarki — przy kursorze znak K1 „Kopia do sesji „Ogólna””, sesja
+  dostaje kopię dopiero po puszczeniu, a strona — plik jak z menedżera plików (pole „Prześlij plik” się wypełnia).
+- **Schowek** (krok 5, D5 „A”): Ctrl+C / Ctrl+X / Ctrl+V w Notatkach (zaznaczanie Shift ze strzałkami, Ctrl+A), Ctrl+V
+  w polach (nazwa pliku w Plikach, hasło Wi-Fi, nazwa sesji); tekst między Notatkami a przeglądarką i między sesjami.
+  Schowek trzyma ekran K1 tylko w pamięci; sesja dostaje tekst dopiero przy Twoim Ctrl+V w jej oknie (strona nie
+  przeczyta schowka sama), kopia z przeglądarki liczy się tylko tuż po Twoim kliknięciu albo klawiszu w jej oknie; tekst
+  z innej sesji — na ramce na chwilę „Wklejono z: Bank”.
+
+### Zmienione
+- Port plików strefy (ADR 0052) ma ramki upuszczenia i schowka; kompozytor strefy tworzy własne obiekty Wayland
+  (`wl_data_offer`) do upuszczenia i zaznaczenia; przeciąganie zaczęte w strefie dalej jest od razu anulowane.
+- Tabela przeciągania (`k1_przeciaganie`): cel „okno sesji”, kopiowanie z Ctrl; okienka pytań w osobnym pliku.
+
+### Porządki
+- Usunięte rozwiązanie tymczasowe z terminem 0.11.0: odczyt ustawień ekranu w starych formatach K1U1–K1U3 (od 0.10.0 każdy
+  otwarty skarbiec zapisał je w K1U4; starsze — ustawienia domyślne). Tymczasowe zostaje tylko GRUB (0.12).
+- Podzielone przed rozbudową / przy limicie: `k1_kom_ekran.c` (sprawdzanie powierzchni i komunikatów między oknami
+  osobno), `k1_aplikacja.c` (komunikat ekranu w osobnej funkcji), `ekran/wskaznik.c` (klawisz do okna z fokusem),
+  `k1_przeciaganie.c` → `k1_prz_okienko.c`; nowe części w osobnych plikach (`ekran/przeciaganie.c`, `ekran/schowek.c`,
+  `pliki/kopia.c`, `notatki/schowek.c`, `strefa/schowek.c`, `kompozytor/dane.c`, `kompozytor/schowek.c`,
+  `agent/schowek.c`). Pliki `.c` — żaden powyżej 600 wierszy (najbliżej: `gui/pulpit.c` 588, `kompozytor/wejscie.c` 578 —
+  do podziału przed następną rozbudową). Plan 0.11.0 → `docs/archiwum/`.
+- Okno wyboru pliku K1 dla stron (T7) — „Później”: wymagałoby D-Bus i portalu w strefie.
+
 ## [0.10.11] — 2026-11-21
 
 **Szybsza grafika** (plan 0.10.11, kroki 1–3; ADR 0051). Przeglądarka z szybką grafiką zacina się mniej: gotowy obraz

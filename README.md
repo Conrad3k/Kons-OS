@@ -43,7 +43,7 @@ Od 0.9 etapy to numery wersji (ADR 0035); wcześniejsze etapy M0–M6 zostały w
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-**Co już jest (0.10.11):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
+**Co już jest (0.11.0):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
 110), a Instalator zapisuje go na dysk. Pulpit jak w Windows 11, w stylu K1: ikony na pulpicie (aplikacje, Kosz, Twoje
 pliki i foldery z folderu Pulpit), pasek na dole z menu Start i przypiętymi aplikacjami (Zegar, Notatki, Ustawienia, Zasoby,
 Kalkulator, Pliki, Przeglądarka; w menu Start też Instalator i Podgląd), pasek na górze (sieć, dźwięk, bateria, data
@@ -55,7 +55,10 @@ zaszyfrowane na partycji K1-DANE (pendrive albo dysk po instalacji). **Sieć** k
 z internetu, lista sieci, hasło wpisane raz; z zewnątrz nic w K1 nie odpowiada. **Przeglądarka**: Firefox w osobnej
 mikro-maszynie (strefie) w zaufanej ramce K1, sesje Ogólna / Bank / Prywatna, okno o dowolnym rozmiarze, **szybka
 grafika** (strony rysuje karta, obraz idzie z karty na ekran bez kopiowania, każdą prośbę strefy sprawdza K1; IdeaPad
-i nowsze karty zintegrowane Intela do Meteor / Arrow Lake — na X230 karta nie oddziela pracy stref).
+i nowsze karty zintegrowane Intela do Meteor / Arrow Lake — na X230 karta nie oddziela pracy stref), okno do krawędzi
+i pełny ekran. **Pliki ze stref** (0.11.0): pobrane pliki w Plikach → Pobrane (za Twoją zgodą, z pochodzeniem),
+„Wyślij do” i „Otwórz za pomocą” sesji przeglądarki, zmieniony plik wraca tylko po „Zapisz”, przeciąganie plików między
+oknami (Ctrl — kopia) i na okno przeglądarki, schowek (Ctrl+C / Ctrl+V w Notatkach, polach K1 i przeglądarce).
 **Aktualizacje**: K1 na dysku sam sprawdza wydania na GitHubie, pobiera nową wersję i pyta przed instalacją (Ustawienia →
 Aktualizacje). Czego jeszcze nie ma: innych obcych aplikacji, dźwięku, jasności ekranu i klawiszy Fn. Wygląd:
 [`docs/WYGLAD.md`](docs/WYGLAD.md).

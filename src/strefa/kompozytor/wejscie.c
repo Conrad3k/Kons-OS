@@ -143,6 +143,11 @@ static void klawiatura_do(struct powierzchnia *p)
     wyslij_mody(p);
 }
 
+struct klient *wejscie_klient_klawiatury(void)
+{
+    return z_klawiatura != NULL ? z_klawiatura->o->klient : NULL;
+}
+
 void wejscie_okno_zmiana(void)
 {
     struct xdg_pow *x = xdg_fokus();

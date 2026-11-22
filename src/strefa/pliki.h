@@ -39,4 +39,14 @@ void pliki_do_rozlacz(void);                  /* the agent went (or broke a rule
 void pliki_do_obsluz(void);                   /* main thread: what waits for nadzorca */
 void pliki_do_podsumowanie(void);
 
+/* schowek.c (0.11.0 step 5, ADR 0052 T8): the clipboard and the zone, on the files port; under mz.zamek */
+void schowek_od_ekranu(const struct k1_komunikat *m, int fd); /* SCHOWEK: K1's text for the Ctrl+V coming */
+int schowek_klawisz(int kod, int wartosc);  /* 1: the key waits until the guest has the text */
+void schowek_do_goscia(void);               /* vsock: room in the stream — WKLEJ, WKLEJ_TEKST */
+int schowek_ramka(const struct k1_ps_ramka *r); /* KOPIA, KOPIA_TEKST, WKLEJONE: 0, or -1 (against the rules) */
+void schowek_rozlacz(void);                 /* the agent went */
+void schowek_obsluz(void);                  /* main thread: the keys held, a copy of the zone to ekran */
+int schowek_czeka_ms(void);                 /* how soon the main loop must come back (keys held), -1: no need */
+void schowek_podsumowanie(void);
+
 #endif

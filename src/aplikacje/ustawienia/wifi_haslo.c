@@ -238,3 +238,13 @@ int wifi_haslo_klawisz(unsigned kod, int wartosc, unsigned mody)
     k1_apl_odswiez(&apl);
     return 1;
 }
+
+/* 0.11.0 step 5: Ctrl+V into the password field (the clipboard's text, whole characters while they fit) */
+int wifi_haslo_wklej(const char *t, size_t n)
+{
+    if (rozwiniety < 0 || !pole_aktywne || rodzaj(rozwiniety) != R_HASLO)
+        return 0;
+    k1_pole_wklej(haslo, &dl_hasla, K1_WIFI_HASLO_MAKS, t, n);
+    k1_apl_odswiez(&apl);
+    return 1;
+}

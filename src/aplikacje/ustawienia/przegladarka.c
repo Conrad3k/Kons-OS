@@ -437,3 +437,13 @@ void przegladarka_loguj(void)
            n, (int)pr.dysk, (int)pr.wirtualizacja, filmy.typ ? (int)filmy.b : -1, (unsigned)filmy.a, (int)filmy.c,
            grafika.typ ? (int)grafika.a : -1, (int)grafika.b, n ? buf : "brak");
 }
+
+/* 0.11.0 step 5: Ctrl+V into a session's new name */
+int przegladarka_wklej(const char *t, size_t n)
+{
+    if (edytowana == 0)
+        return 0;
+    k1_pole_wklej(nowa, &dl_nowej, K1_STREFA_NAZWA_MAKS, t, n);
+    k1_apl_odswiez(&apl);
+    return 1;
+}

@@ -134,7 +134,7 @@ static void do_strefy(void)
     EXPECT(n == 16 && czytaj_po(1, b, n, 16, &o) == 1 && o.typ == K1_PS_ODEBRANY && o.wynik == 1);
     k1_z32(b + 12, 2);
     EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* ODEBRANY: 0 or 1 */
-    EXPECT(k1_ps_uklad(K1_PS_PLIK, 0) == K1_PS_U_NAZWA && k1_ps_uklad(K1_PS_PLIK, 1) == K1_PS_U_NR /* BRAK */ && k1_ps_uklad(6, 1) == 0 &&
+    EXPECT(k1_ps_uklad(K1_PS_PLIK, 0) == K1_PS_U_NAZWA && k1_ps_uklad(K1_PS_PLIK, 1) == K1_PS_U_NR /* BRAK */ && k1_ps_uklad(8, 1) == 0 &&
            k1_ps_uklad(K1_PS_ODEBRANY, 1) == K1_PS_U_WYNIK && k1_ps_uklad(K1_PS_BAJTY, 0) == K1_PS_U_BAJTY);
 }
 
@@ -160,7 +160,38 @@ static void upuszczenie(void)
     EXPECT(k1_ps_zapisz(&r, 0, b, sizeof b) == 0);
     r.nr = 1, r.x = K1_PS_POZ_MAKS + 1;
     EXPECT(k1_ps_zapisz(&r, 0, b, sizeof b) == 0 && k1_ps_zapisz(&r, 1, b, sizeof b) == 0);
-    EXPECT(k1_ps_uklad(K1_PS_UPUSC, 0) == K1_PS_U_UPUSC && k1_ps_uklad(K1_PS_UPUSC, 1) == 0);
+    EXPECT(k1_ps_uklad(K1_PS_UPUSC, 0) == K1_PS_U_TRZY && k1_ps_uklad(K1_PS_UPUSC, 1) == K1_PS_U_TRZY /* 5 from the zone: KOPIA */);
+}
+
+/* step 5: the clipboard — KOPIA / WKLEJ (nr, length, source), their texts, WKLEJONE */
+static void schowek(void)
+{
+    struct k1_ps_ramka r = { .typ = K1_PS_WKLEJ, .nr = 9, .x = 1u << 20, .y = 3 }, o;
+    size_t n = k1_ps_zapisz(&r, 0, b, sizeof b);
+    EXPECT(n == 20 && czytaj_po(0, b, n, 5, &o) == 1 && o.typ == K1_PS_WKLEJ && o.x == 1u << 20 && o.y == 3);
+    k1_z32(b + 12, (1u << 20) + 1);
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* past 1 MiB */
+    k1_z32(b + 12, 0);
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* empty */
+    k1_z32(b + 12, 5);
+    k1_z32(b + 16, K1_STREFY_MAKS + 1);
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* no such zone */
+    r = (struct k1_ps_ramka){ .typ = K1_PS_KOPIA, .nr = 2, .x = 7 };
+    n = k1_ps_zapisz(&r, 1, b, sizeof b);
+    EXPECT(n == 20 && czytaj_po(1, b, n, 20, &o) == 1 && o.typ == K1_PS_KOPIA && o.x == 7);
+    k1_z32(b + 16, 1);
+    EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* the zone does not say where it was copied */
+    r.x = 0;
+    EXPECT(k1_ps_zapisz(&r, 1, b, sizeof b) == 0);
+    r = (struct k1_ps_ramka){ .typ = K1_PS_KOPIA_TEKST, .nr = 2, .dane = dane, .dl = 7 };
+    n = k1_ps_zapisz(&r, 1, b, sizeof b);
+    EXPECT(n == 8 + 4 + 7 && czytaj_po(1, b, n, 3, &o) == 1 && o.typ == K1_PS_KOPIA_TEKST && o.dl == 7);
+    r = (struct k1_ps_ramka){ .typ = K1_PS_WKLEJONE, .nr = 9 };
+    n = k1_ps_zapisz(&r, 1, b, sizeof b);
+    EXPECT(n == 12 && czytaj_po(1, b, n, n, &o) == 1 && o.typ == K1_PS_WKLEJONE && o.nr == 9);
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* type 7 from K1 is WKLEJ_TEKST: no bytes — refused */
+    EXPECT(k1_ps_uklad(K1_PS_WKLEJ_TEKST, 0) == K1_PS_U_BAJTY && k1_ps_uklad(K1_PS_KOPIA, 1) == K1_PS_U_TRZY &&
+           k1_ps_uklad(K1_PS_WKLEJONE, 1) == K1_PS_U_NR);
 }
 
 int main(void)
@@ -170,5 +201,6 @@ int main(void)
     od_k1();
     do_strefy();
     upuszczenie();
+    schowek();
     return K1_TEST_KONIEC("test_pliki_strefy");
 }

@@ -23,6 +23,9 @@ struct k1_apl {
     void (*przewin)(int32_t x, int32_t y, int32_t dx, int32_t dy);
     /* called once every loop; returns the time in ms until it wants to be called again (-1: no timer) */
     int (*zegar)(void);
+    /* 0.11.0 step 5: the clipboard — Ctrl+V (or k1_apl_wklej) asks ekran, the text comes here (valid UTF-8, 1..1 MiB,
+     * no NUL); NULL: the window takes no text (Ctrl+V goes to klawisz) */
+    void (*wklej)(const char *t, size_t n);
     /* 0.11.0 step 4: any other message from ekran for this window (UPUSZCZANIE*, PRZECIAGANIE_*); NULL: ignored */
     void (*inne)(const struct k1_komunikat *m);
     /* called right before the window closes (its × button, or "Zamknij okno" on the bottom bar — 0.7.5) */
@@ -44,5 +47,9 @@ struct k1_apl {
 /* Starts the application: zero-initialised kanaly[] entries are ignored (fd 0 is never a channel). */
 _Noreturn void k1_apl_uruchom(struct k1_apl *a);
 void k1_apl_odswiez(struct k1_apl *a); /* redraw at the next opportunity */
+/* 0.11.0 step 5: Ctrl+C / "Kopiuj" — text t (n bytes) into the clipboard (ekran takes it only right after the user's
+ * key or press in this window); "Wklej" from a menu — as Ctrl+V. */
+void k1_apl_kopiuj(struct k1_apl *a, const char *t, size_t n);
+void k1_apl_wklej(struct k1_apl *a);
 
 #endif

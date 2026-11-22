@@ -4,19 +4,23 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.10.11 „Szybsza grafika” — obraz przeglądarki z szybką grafiką idzie z karty na ekran bez kopiowania procesorem
-(warstwa karty, gdy okno widać w całości), pomiar drogi obrazu w logu, nowsze karty zintegrowane Intela do Meteor / Arrow
-Lake (pliki DMC i GuC, pośrednik grafiki i Zasoby — niesprawdzone na sprzęcie; plan zamknięty: docs/archiwum/). Przed nią
-0.10.10 (Instalator od nowa na dysku z K1, Zasoby → „Karta graficzna”) i 0.10.9 „Szybka grafika”. Następna wersja —
-0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt) — punkt 1.
-Data: 2026-11-21.
+Stan: 0.11.0 „Pliki ze stref” — pliki między przeglądarką a Plikami (Pobrane z pochodzeniem, „Wyślij do”, „Otwórz za
+pomocą” sesja, „Zapisać zmiany w oryginale?”), przeciąganie między oknami (Ctrl — kopia, na okno przeglądarki — kopia po
+puszczeniu), schowek (Notatki, pola K1, przeglądarka; sesja dostaje tekst przy Ctrl+V), okno przeglądarki do krawędzi
+i pełny ekran (plan zamknięty: docs/archiwum/PLAN-0.11.0.txt; ADR 0052). Przed nią 0.10.11 „Szybsza grafika”. Następna
+wersja — 0.12 „Bezpieczny start” (punkt 1: plan do napisania).
+Data: 2026-11-22.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — plan 0.11.0 „Pliki ze stref” (docs/PLAN-0.11.0.txt)
---------------------------------------------------------------
+1. TERAZ — następna wersja: 0.12 „Bezpieczny start” (plan do napisania)
+--------------------------------------------------------------------
+[!] Gdy zechcesz zacząć: „Korzystając ze skilla kons-dev, napisz plan wersji 0.12.0” — czat napisze plan wersji (plik PLAN-0.12.0 w docs)
+    (tryb ratunkowy, TPM, decyzja o GRUB-ie — ADR 0010; zakres wstępny w punkcie 3). Do tego czasu robot wydaje poprawki
+    jądra i przeglądarki (0.11.x), a Twoje zgłoszenia z laptopów (punkt 4) idą jako PATCH.
+0.11.0 Pliki ze stref — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.11.0.txt; ADR 0052).
 Twoja prośba z 2026-11-20: plan wersji 0.11.0 w niewielu krokach, z ogólnym celem, i do tego lepszy pełny ekran
 przeglądarki (okno nie domyka krawędzi i zostawia za dużo miejsca na dole). Cel: pliki przechodzą między przeglądarką
 a Plikami K1 — zawsze przez Pliki, jako kopia, za zgodą gestem w oknie K1 (ADR 0027); schowek między oknami; okno
@@ -24,9 +28,8 @@ przeglądarki do krawędzi. Pięć kroków (jeden krok = jeden czat = jeden PR; 
     [x] krok 1 — okno przeglądarki do krawędzi, pełny ekran (D1: A) — PR #202
     [x] krok 2 — pliki ze strefy do Plików („Zapisz w Pobranych”), pochodzenie pliku; ADR 0052 (D2: A, D3: A) — PR #203
     [x] krok 3 — pliki do strefy: „Wyślij do…”, „Otwórz w…”, „Zapisać zmiany w oryginale?” (D4: A) — PR #204
-    [ ] krok 4 — przeciąganie plików między oknami, też na okno przeglądarki (D6: A) [w toku: Claude, gałąź claude/hopeful-euler-sq078s]
-    [ ] krok 5 — schowek (D5: A); porządki; wydanie 0.11.0 [w toku: Claude, gałąź claude/hopeful-euler-sq078s]
-Co wpisać w nowym czacie: „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.11.0.txt.”
+    [x] krok 4 — przeciąganie plików między oknami, też na okno przeglądarki (D6: A) — PR #205
+    [x] krok 5 — schowek (D5: A); porządki; wydanie 0.11.0 — PR #206
 0.10.11 Szybsza grafika — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.11.txt; ADR 0051):
 Twoja prośba z 2026-11-20: szybka grafika ma mniej się zacinać, i nowsze karty zintegrowane Intela. Karty AMD i NVIDIA RTX
 wypadły (Twoja decyzja z tego samego dnia). Decyzje: D1 „B”, D4 „A”, D5 — bez sprawdzenia na sprzęcie, D6 „A” — bez xe.
@@ -82,7 +85,7 @@ Wcześniej: 0.10.2 Testy (PR #144, #145, #149), 0.10.1 Balon (PR #134, #137, #13
     0.10     Strefy — 0.10.0 (przeglądarka w strefie), 0.10.1 Balon, 0.10.2 Testy, 0.10.5 Aktualizacje przez sieć
              0.10.7 Wygląd, 0.10.9 Szybka grafika, 0.10.11 Szybsza grafika gotowe
              (M8, z dawnym M11)
-    0.11     Pliki ze stref — plan 0.11.0 gotowy (docs/PLAN-0.11.0.txt)              (M9)
+    0.11     Pliki ze stref — 0.11.0 gotowe                                        (M9)
     0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
     0.13     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
@@ -138,11 +141,11 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
         i maksymalizacja okna przeglądarki, Alt+Tab, Przeglądarka na pasku i pulpicie, jądro Linux 7.3, opis wersji przed
         „Zainstaluj”
 
-0.11 Pliki ze stref (ADR 0027) — plan 0.11.0: docs/PLAN-0.11.0.txt (kroki 1–5; PDF K1 i wspólna strefa — poza nim)
-    [ ] pliki ze strefy („Do K1”) i do strefy („Wyślij do…”) przez Pliki (zgoda = gest w K1, pytanie tylko, gdy
-        zaczyna sama strefa); schowek między strefami za każdym wklejeniem
-    [ ] „Otwórz w…” z zapisem z powrotem: K1 pyta „Zapisać zmiany w oryginale?”, stara wersja do Kosza
-    [ ] przeciąganie pliku z Plików na okno strefy (ten sam mechanizm co przeciąganie między oknami — D6 w
+0.11 Pliki ze stref (ADR 0027, 0052) — 0.11.0 gotowe (plan: docs/archiwum/PLAN-0.11.0.txt; PDF K1 i wspólna strefa — poza nim)
+    [x] pliki ze strefy (Pobrane) i do strefy („Wyślij do…”) przez Pliki (zgoda = gest w K1, pytanie tylko, gdy
+        zaczyna sama strefa); schowek między strefami za każdym wklejeniem (Ctrl+V, D5 „A”)
+    [x] „Otwórz w…” z zapisem z powrotem: K1 pyta „Zapisać zmiany w oryginale?”, stara wersja do Kosza
+    [x] przeciąganie pliku z Plików na okno strefy (ten sam mechanizm co przeciąganie między oknami — D6 w
         docs/archiwum/PLAN-0.8.2.txt);
         prośba strony o plik → okno wyboru pliku K1
     [ ] przypomnienie przy wysyłaniu pliku z internetu do wspólnej strefy
@@ -167,7 +170,10 @@ Laptop (PATCH w dowolnej wersji, po Twoich zgłoszeniach)
 
 Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne)
     [ ] exFAT na pendrive'ach (karty SD i pendrive'y > 32 GB), potem NTFS — ocena: docs/archiwum/PLAN-0.8.2.txt, dodatek A
-    [ ] przeciąganie między oknami (Pliki ↔ pulpit, plik na okno aplikacji) — weszło do planu 0.11.0 (krok 4, ADR 0052)
+    [x] przeciąganie między oknami (Pliki ↔ pulpit, plik na okno przeglądarki) — 0.11.0 (krok 4, ADR 0052); na okno
+        aplikacji K1 (np. Notatki) — jeszcze nie
+    [ ] okno wyboru pliku K1 dla „Prześlij plik” na stronie (0.11.0 T7: portal = D-Bus w strefie; ADR 0052 p. 14)
+    [ ] obrazy i pliki w schowku, historia schowka (0.11.0: tylko tekst); kopiowanie folderów z Ctrl (0.11.0: tylko pliki)
     [ ] HEIC (zdjęcia z iPhone'a); odtwarzanie wideo (pliki wideo da się już przechowywać); zapis plików na pendrive
     [ ] pełne NFC i pełne porównanie wielkości liter Unicode w nazwach plików
     [ ] Podgląd: powiększanie fragmentu w pełnej rozdzielczości pliku, pełny ekran, pokaz slajdów; przybliżanie kółkiem
@@ -193,9 +199,23 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.10.11). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+Jedna lista — dla ostatniego wydania (0.11.0; niżej starsze, jeszcze niesprawdzone). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
 z 2026-11-11).
-Nowe w 0.10.11 (Szybsza grafika; najpierw aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”):
+Nowe w 0.11.0 (Pliki ze stref; aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”), oba laptopy:
+    [ ] okno przeglądarki zmaksymalizowane: do samych krawędzi i do górnej krawędzi dolnego paska (1366 px na X230);
+        F11 i film „na cały ekran” — cały ekran, pigułka „pełny ekran: Esc, aby wyjść”; wyjście: Esc, pasek K1 przy górnej
+        krawędzi, Alt+Tab, klawisz Start
+    [ ] pobierz plik w przeglądarce → okienko K1 → „Zapisz w Pobranych” → plik w Plikach → Pobrane, w szczegółach
+        „z przeglądarki · Ogólna”; otwieranie „Pobrane” w przeglądarce nie wywraca jej (Twoje zgłoszenie z 2026-11-21)
+    [ ] Pliki → prawy przycisk na pliku → „Wyślij do” → Ogólna: plik w „Z K1” (wybierz go w „Prześlij plik” na stronie);
+        „Otwórz za pomocą” → Ogólna: plik w nowej karcie; PDF wypełniony i zapisany w przeglądarce → „Zapisać zmiany
+        w oryginale?” → „Zapisz” (stara wersja w Koszu)
+    [ ] przeciąganie: plik z Plików na pulpit (przeniesiony), z Ctrl (kopia — w obu miejscach), z pulpitu na okno Plików;
+        plik na pole „Prześlij plik” strony w przeglądarce — znak „Kopia do sesji…”, po puszczeniu pole ma plik
+    [ ] schowek: w Notatkach zaznacz (Shift ze strzałkami albo Ctrl+A), Ctrl+C → w przeglądarce Ctrl+V w polu strony;
+        tekst skopiowany na stronie → Ctrl+V w Notatkach; Ctrl+V w haśle Wi-Fi (Ustawienia → Sieć); tekst z Banku wklejony
+        w Ogólnej — na ramce na chwilę „Wklejono z: Bank”
+Nowe w 0.10.11 (Szybsza grafika):
     [ ] IdeaPad — Ogólna (szybka grafika), okno zmaksymalizowane: przewijanie długiej strony i film płynniejsze niż
         w 0.10.10; obraz bez błędów (pasy, migotanie, stara klatka) przy przewijaniu, przesuwaniu okna, minimalizacji,
         Alt+Tab, menu Start nad oknem i zmianie rozmiaru okna; kursor nad stroną wygląda jak zwykle
@@ -347,8 +367,9 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 [x] 0.10.11 — decyzje podjęte (docs/archiwum/PLAN-0.10.11.txt, punkt 4): D1 „B” (bez klatek na sekundę w Zasobach),
     D4 „A” (K1 sam przełącza warstwę karty i składanie), D5 (nowsze karty Intela bez sprawdzenia na sprzęcie), D6 „A”
     (bez sterownika xe).
-[!] 0.11.0 — decyzje D1–D6 (docs/PLAN-0.11.0.txt, punkt 4): pełny ekran, pytanie po pobraniu, znak pliku z internetu,
-    wysyłanie do zamkniętej sesji, wklejanie do sesji, przeciąganie na pulpit — czat zada każdą na początku swojego kroku.
+[x] 0.11.0 — decyzje podjęte (docs/archiwum/PLAN-0.11.0.txt, punkt 4): D1–D6 „A” (pełny ekran bez pasków, okienko przy
+    każdym pobraniu, pochodzenie w szczegółach, K1 otwiera zamkniętą sesję, wklejanie samym Ctrl+V, przeciąganie przenosi,
+    z Ctrl kopiuje).
 [!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
 
 Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
@@ -381,8 +402,8 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         z 2026-11-12: notatki z pendrive'a zapisanego 0.5.6–0.7.6 nie przejdą już do Plików
     [x] format 1 skarbca (dwie połowy, 0.5.6–0.8.1) i przejście na format 2 — usunięte w 0.10.0 (krok 5, Twoja decyzja
         D7: takiego nośnika już nie masz); nagłówek formatu 1 jest rozpoznawany i zostawiany nietknięty
-    [ ] odczyt ustawień ekranu w starych formatach K1U1–K1U3 (src/ekran/zapis.c) — termin 0.11.0: od 0.10.0 ekran zapisuje
-        takie ustawienia od nowa jako K1U4 przy pierwszym odczycie, więc po jednym starcie z 0.10.x nie są już potrzebne
+    [x] odczyt ustawień ekranu w starych formatach K1U1–K1U3 (src/ekran/zapis.c) — usunięty w 0.11.0 (termin dotrzymany;
+        od 0.10.0 każdy otwarty skarbiec ma K1U4, starsze — ustawienia domyślne)
     [x] przegląd 0.7.5, 0.8.0 i 0.8.2: innych rozwiązań tymczasowych nie ma; terminy 0.9.0 bez zmian
     [x] przegląd 0.9.0 (krok 9): terminy 0.9.0 usunięte (krok 3), format 1 skarbca — termin 0.10.0 bez zmian; nowych
         rozwiązań tymczasowych 0.9.0 nie dodało
@@ -403,6 +424,8 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
         `ROBOT_PROBNY: "0"` (pełny tryb); pierwszą aktualizację przez sieć w nowym układzie przyniesie robot (punkt 4)
     [x] przegląd 0.10.9 (krok 3): termin 0.10.9 zamknięty (wyżej); K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych
         rozwiązań tymczasowych 0.10.9 nie dodało
+    [x] przegląd 0.10.11 i 0.11.0 (krok 5): termin 0.11.0 zamknięty (K1U1–K1U3, wyżej); GRUB — 0.12 bez zmian; nowych
+        rozwiązań tymczasowych 0.10.11 i 0.11.0 nie dodały
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)

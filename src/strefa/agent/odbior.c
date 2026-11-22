@@ -109,6 +109,27 @@ static void do_kompozytora(const char *linia, size_t d, const char *co)
         loguj("%s: kompozytor nie przyjął prośby", co);
 }
 
+/* 0.11.0 step 5: "wklej <nr> <n>" and the text — written whole (blocking: the compositor reads its FIFO all the time). */
+int odbior_tekst(uint32_t nr, const uint8_t *t, size_t n)
+{
+    char l[48];
+    size_t d = (size_t)snprintf(l, sizeof l, "wklej %u %zu\n", nr, n), o = 0;
+    if (fifo < 0)
+        fifo = open(fifo_sciezka, O_WRONLY | O_NONBLOCK | O_CLOEXEC);
+    if (fifo < 0 || fcntl(fifo, F_SETFL, 0) != 0)
+        return -1;
+    if (write(fifo, l, d) != (ssize_t)d)
+        o = n + 1;
+    while (o < n) {
+        ssize_t w = write(fifo, t + o, n - o);
+        if (w <= 0)
+            break;
+        o += (size_t)w;
+    }
+    fcntl(fifo, F_SETFL, O_NONBLOCK);
+    return o == n ? 0 : -1;
+}
+
 /* "Otwórz w…": the file's address to the compositor. */
 static void otworz(const char *nazwa)
 {

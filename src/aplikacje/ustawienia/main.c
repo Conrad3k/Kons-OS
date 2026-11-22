@@ -259,6 +259,15 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
         przegladarka_klawisz(kod, wartosc, mody); /* 0.10.0 step 5: a session's new name */
 }
 
+/* 0.11.0 step 5: Ctrl+V — the clipboard's text into the field being typed in (never into the password of K1) */
+static void wklej(const char *t, size_t n)
+{
+    if (sekcja == S_SIEC)
+        wifi_haslo_wklej(t, n);
+    else if (sekcja == S_PRZEGLADARKA)
+        przegladarka_wklej(t, n);
+}
+
 static void nadzorca_dane(void)
 {
     int l[S_LICZBA], n = na_liscie(l);
@@ -461,6 +470,7 @@ int main(void)
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
     apl.klawisz = klawisz;
+    apl.wklej = wklej;
     apl.zegar = miejsce_zegar;
     apl.kanaly[0].fd = FD_NADZORCA; /* battery state and history */
     apl.kanaly[0].dane = nadzorca_dane;

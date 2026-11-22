@@ -16,4 +16,8 @@ uint32_t k1_znak_klawisza(unsigned kod, unsigned mody);
  * (the text may stay the same: empty or full), 0 for any other key. */
 int k1_pole_klawisz(char *t, size_t *dl, size_t maks, unsigned kod, unsigned mody);
 
+/* 0.11.0 step 5: text from the clipboard (z, n bytes of valid UTF-8) appended to such a field: whole characters while
+ * they fit; tabs and new lines become spaces, other control characters are skipped. */
+void k1_pole_wklej(char *t, size_t *dl, size_t maks, const char *z, size_t n);
+
 #endif

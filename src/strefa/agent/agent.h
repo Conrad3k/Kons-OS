@@ -22,5 +22,12 @@ void odbior_rozlacz(void);                   /* the port went: a file being rece
 /* K1's number of a file K1 gave, of which `nazwa` is a changed version: in the folder of downloads (z_k1 0) the same
  * name or Firefox's "name(N).ext"; in "Z K1" (z_k1 1) the same name. 0: none. */
 uint32_t odbior_dotyczy(const char *nazwa, int z_k1);
+int odbior_tekst(uint32_t nr, const uint8_t *t, size_t n); /* 0.11.0 step 5: K1's text to the compositor; 0 or -1 */
+
+/* schowek.c — the clipboard (0.11.0 step 5, ADR 0052 T8): the compositor's copies to K1, K1's text for a Ctrl+V */
+void schowek_start(const char *fifo); /* the compositor's FIFO to us ("kopia", "wklejone") */
+int schowek_fd(void);                 /* -1: not open yet */
+void schowek_czytaj(void);
+void schowek_ramka(const struct k1_ps_ramka *r); /* WKLEJ, WKLEJ_TEKST from the VMM */
 
 #endif

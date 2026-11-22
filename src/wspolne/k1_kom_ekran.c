@@ -2,6 +2,7 @@
 #include "k1_kom_wew.h"
 
 #include "k1_opis.h"
+#include "k1_schowek.h"
 #include "k1_uslugi.h"
 
 static int powierzchnia(uint32_t obiekt)
@@ -63,10 +64,17 @@ static int nowa_powierzchnia(const struct k1_komunikat *k)
     return k->c == K1_POW_PANEL && w(k->d, K1_POZ_MIN, K1_POZ_MAKS) && w(k->e, K1_POZ_MIN, K1_POZ_MAKS);
 }
 
-/* 0.11.0 step 4 (ADR 0052, T6): dragging between windows */
-static int przeciaganie(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
+/* 0.11.0 steps 4, 5 (ADR 0052, T6, T8): between windows — dragging, the clipboard */
+static int miedzy_oknami(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
 {
     switch (k->typ) {
+    case K1_KOM_SCHOWEK_USTAW: /* 0.11.0 step 5 */
+        return kier == K1_KIER_DO_EKRANU && powierzchnia(k->obiekt) && w(k->a, 1, (int32_t)K1_SCHOWEK_MAKS) && zera(k, 1);
+    case K1_KOM_SCHOWEK_DAJ:
+        return kier == K1_KIER_DO_EKRANU && powierzchnia(k->obiekt) && zera(k, 0);
+    case K1_KOM_SCHOWEK:
+        return kier == K1_KIER_OD_EKRANU && powierzchnia(k->obiekt) && w(k->a, 1, (int32_t)K1_SCHOWEK_MAKS) &&
+               w(k->b, 0, K1_STREFY_MAKS) && zera(k, 2);
     case K1_KOM_PRZECIAGANIE:
         return kier == K1_KIER_DO_EKRANU && przeciagane(k);
     case K1_KOM_UPUSZCZANIE_CO:
@@ -132,7 +140,8 @@ int k1_kom_sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
 
     case K1_KOM_PRZECIAGANIE: case K1_KOM_UPUSZCZANIE_CO: case K1_KOM_PRZECIAGANIE_CEL: case K1_KOM_UPUSZCZANIE:
     case K1_KOM_PRZECIAGANIE_GDZIE: case K1_KOM_PRZECIAGANIE_KONIEC: case K1_KOM_UPUSC_STREFA: /* 0.11.0 step 4 */
-        return przeciaganie(k, kier);
+    case K1_KOM_SCHOWEK_USTAW: case K1_KOM_SCHOWEK_DAJ: case K1_KOM_SCHOWEK: /* step 5 */
+        return miedzy_oknami(k, kier);
     case K1_KOM_WITAJ:
         return kier == K1_KIER_OD_EKRANU && k->obiekt == 0 && w(k->a, 1, K1_POZ_MAKS) && w(k->b, 1, K1_POZ_MAKS) &&
                w(k->c, 1, K1_ROLA_MAKS) && w(k->d, 0, K1_KLIENT_NR_MAKS) && k->e == 0;

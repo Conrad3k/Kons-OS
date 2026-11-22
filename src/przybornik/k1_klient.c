@@ -45,6 +45,13 @@ static void ustaw(struct k1_klient *k, const struct k1_komunikat *m, struct k1_p
 
 int k1_odbierz(struct k1_klient *k, struct k1_powierzchnia **pow, int n, struct k1_komunikat *m)
 {
+    return k1_odbierz_fd(k, pow, n, m, NULL);
+}
+
+int k1_odbierz_fd(struct k1_klient *k, struct k1_powierzchnia **pow, int n, struct k1_komunikat *m, int *fd)
+{
+    if (fd != NULL)
+        *fd = -1;
     for (;;) {
         struct k1_odebrane o;
         enum k1_kanal_wynik w = k1_kanal_odbierz(k->fd, &o);
@@ -53,10 +60,15 @@ int k1_odbierz(struct k1_klient *k, struct k1_powierzchnia **pow, int n, struct 
             return 0;
         if (w != K1_KANAL_KOMUNIKAT)
             k1_koniec(k->tag, "ekran zamknął kanał");
+        if (o.obciete || k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_EKRANU, m) != 0 ||
+            (o.fd >= 0) != k1_komunikat_z_deskryptorem((enum k1_komunikat_typ)m->typ, K1_KIER_OD_EKRANU) ||
+            (o.fd >= 0 && fd == NULL)) {
+            if (o.fd >= 0)
+                close(o.fd); /* not trusting ekran blindly either; a text of the clipboard nobody here takes */
+            continue;
+        }
         if (o.fd >= 0)
-            close(o.fd); /* ekran never sends descriptors */
-        if (o.obciete || k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_OD_EKRANU, m) != 0)
-            continue; /* not trusting ekran blindly either */
+            *fd = o.fd; /* only SCHOWEK (0.11.0 step 5) */
         if (m->typ == K1_KOM_RAMKA)
             for (i = 0; i < n; i++)
                 if (pow[i] != NULL && pow[i]->id == m->obiekt)

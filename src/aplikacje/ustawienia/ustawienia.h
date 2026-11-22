@@ -108,6 +108,7 @@ int wifi_pierwszy_wiersz(void);   /* the first row shown (the open one must fit)
 void wifi_rozwiniety_rysuj(struct k1_obraz *o, const struct k1_motyw *m, int i, int32_t y, int32_t szer);
 int wifi_haslo_klik(int32_t x, int32_t y);      /* 1 = handled */
 int wifi_haslo_klawisz(unsigned kod, int wartosc, unsigned mody); /* 1 = handled */
+int wifi_haslo_wklej(const char *t, size_t n); /* 0.11.0 step 5: Ctrl+V into the password; 1 = taken */
 void wifi_zamknij(void);          /* leaving the section: the row closes, a typed password is wiped */
 void wifi_lista_zmieniona(void);  /* a new list: the open network found again by its name */
 
@@ -117,6 +118,7 @@ void przegladarka_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 int przegladarka_klik(int32_t x, int32_t y);                  /* 1 = handled */
 int przegladarka_najechanie(int32_t x, int32_t y);            /* x < 0: the pointer left; 1 = redraw (0.10.1 step 4) */
 int przegladarka_klawisz(unsigned kod, int wartosc, unsigned mody); /* the new name being typed; 1 = handled */
+int przegladarka_wklej(const char *t, size_t n); /* 0.11.0 step 5: Ctrl+V into the new name; 1 = taken */
 void przegladarka_zamknij(void);                              /* leaving the section */
 void przegladarka_loguj(void);                                /* the tests click by this line */
 

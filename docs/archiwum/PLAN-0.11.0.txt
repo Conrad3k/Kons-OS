@@ -116,8 +116,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [x]  2  Pliki ze strefy do Plików (PR #203)                   P5–P14           0.10.10     D2, D3,      L        0052
                                                                                            T1–T4
 [x]  3  Pliki do strefy (PR #204)                             P15–P18          2           D4, T5       M–L      0052
-[ ]  4  Przeciąganie między oknami, też na okno przeglądarki [w toku: Claude, gałąź claude/hopeful-euler-sq078s]  P19–P22          2 (i 3)     D6, T6, T7   M        0052 (uzup.)
-[ ]  5  Schowek; porządki; wydanie 0.11.0 [w toku: Claude, gałąź claude/hopeful-euler-sq078s]                     P23–P26          2           D5, T8       M        0052 (uzup.)
+[x]  4  Przeciąganie między oknami, też na okno przeglądarki (PR #205)  P19–P22          2 (i 3)     D6, T6, T7   M        0052 (uzup.)
+[x]  5  Schowek; porządki; wydanie 0.11.0 (PR #206)                     P23–P26          2           D5, T8       M        0052 (uzup.)
 (ADR 0052: następny wolny po 0051, który bierze 0.10.11 — docs/archiwum/PLAN-0.10.11.txt.)
 
 
@@ -330,6 +330,21 @@ KROK 5: Schowek; porządki; wydanie 0.11.0 (OSTATNI)                      M · D
   przychodzi); pełny komplet w CI na PR-ze wydania.
   Dokumenty: ADR 0052 (uzupełnienie), ekran.md, aplikacje.md, strefa.md, SLOWNIK („schowek”), RYZYKA, CHANGELOG.
   Gotowe, gdy: CI zielone, wydanie 0.11.0 istnieje (linki ISO i USB w raporcie), lista „co sprawdzić” w DO_ZROBIENIA.
+  Ustalenia z wykonania (2026-11-22, krok 5; D5 właściciela: A):
+    - T8: schowek u ekranu (src/ekran/schowek.c), tekst do 1 MiB (k1_schowek_dobry), tylko w pamięci; kopia tylko od okna
+      z fokusem i tuż po geście w nim (aplikacja 2 s, strefa 10 s). P23: w K1 nie było zaznaczania — Notatki dostały
+      zaznaczanie (Shift ze strzałkami, Ctrl+A) i Ctrl+C / X / V; pola K1 (k1_pole) — tylko Ctrl+V (nie mają zaznaczenia,
+      pola haseł nie kopiują).
+    - P24 / D5 A: Ctrl+V w oknie sesji rozpoznaje ekran i najpierw daje VMM-owi tekst; VMM wstrzymuje klawisze, aż agent
+      powie WKLEJONE (najwyżej 0,5 s) — bez tego Firefox wklejałby starszy tekst. Ramki schowka na porcie plików (KOPIA,
+      WKLEJ, WKLEJONE); kompozytor ↔ agent: druga kolejka FIFO /run/k1/schowek i „wklej” na kolejce „otworz”.
+    - P21 (POTWIERDZONE na stanowisku, testy/stanowisko/schowek.py): Firefox ESR 153 kopiuje przez wl_data_device.set_selection
+      (kompozytor czyta tekst przez wl_data_source.send), wkleja z naszej oferty zaznaczenia (text/plain;charset=utf-8);
+      nowy wiersz w tytule strony to spacja (tylko w teście).
+    - P25: K1U1–K1U3 usunięte. P26: żaden plik .c powyżej 600 wierszy; najbliżej gui/pulpit.c (588) i kompozytor/wejscie.c
+      (578) — do podziału przed następną rozbudową.
+    - Testy: test-pobrane część 6 (Notatki ↔ strefa próbna, negatywne), host test_schowek, fuzz_schowek, test_komunikat,
+      test_pliki_strefy; lokalnie test-m1 12/12, test-pobrane 45/45, test-pliki, stanowisko upusc.py i schowek.py.
 
 
 4. DECYZJE

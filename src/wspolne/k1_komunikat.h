@@ -209,6 +209,15 @@ enum k1_komunikat_typ {
     K1_KOM_UPUSC_STREFA = 246,        /* ekran → a zone's VMM: obiekt=its window surface, a,b = x,y in its picture
                                        * 0..K1_PS_POZ_MAKS, c=files 1..K1_PRZ_DO_STREFY_MAKS, d=e=0 — dropped there (the
                                        * copies follow from Pliki: DOK_DO_STREFY "upuść") */
+    /* 0.11.0 step 5 (ADR 0052, T8, D5: A): the clipboard — kept by ekran (k1_schowek.h), text only */
+    K1_KOM_SCHOWEK_USTAW = 247,       /* a client with the focused window → ekran: obiekt=that window, a=bytes 1..K1_SCHOWEK_MAKS,
+                                       * b..e=0; + 1 sealed memfd of them — copied (Ctrl+C in K1; a zone's VMM: copied in it),
+                                       * only soon after the user's key or press in that window */
+    K1_KOM_SCHOWEK_DAJ = 248,         /* a K1 application with the focused window → ekran: obiekt=that window, a..e=0 — Ctrl+V
+                                       * (or "Wklej") right after the user's key or press there; reply SCHOWEK (nothing: empty) */
+    K1_KOM_SCHOWEK = 249,             /* ekran → a client: obiekt=its window, a=bytes 1..K1_SCHOWEK_MAKS, b=where it was copied
+                                       * (0 K1, a zone's number), c..e=0; + 1 sealed memfd — to an application: the answer to
+                                       * SCHOWEK_DAJ; to a zone's VMM: right before Ctrl+V goes to its window (D5: A) */
     K1_KOM_ZASOBY_USLUGA = 63, /* obiekt=K1_PROFIL_* of a service, a=CPU ‰ (of all CPUs), b=memory KiB, c=1 running */
     K1_KOM_BATERIA = 64,       /* to gui: obiekt=0, a=1 battery present, b=percent 0..100 (-1 unknown), c=K1_BAT_*,
                                 * d=1 on mains power; no battery: a=0, b=-1, c=0 (also to Ustawienia) */

@@ -3,7 +3,8 @@
  *   spis.c   the notes in the window: order, opening, a new one, deleting
  *   pliki.c  skarbiec (fd 4): the list of files, their content, saving (the name follows the first line), the file
  *            picker; nadzorca (fd 5): a file to open
- *   tekst.c  line wrap and editing of the open note */
+ *   tekst.c  line wrap and editing of the open note
+ *   schowek.c selecting, Ctrl+C / Ctrl+X / Ctrl+V (0.11.0 step 5) */
 #ifndef K1_NOTATKI_H
 #define K1_NOTATKI_H
 
@@ -78,6 +79,14 @@ uint32_t linia_kursora(void);
 int32_t x_w_linii(uint32_t ln, uint32_t pos);
 uint32_t pozycja_w_linii(uint32_t ln, int32_t x);
 uint32_t poprzedni(uint32_t p);
+
+/* schowek.c (0.11.0 step 5): the selection and the clipboard */
+int zaznaczenie(uint32_t *od, uint32_t *do_); /* 1 and its bytes when something is selected */
+void zaznaczenie_zapomnij(void);
+void przed_ruchem(unsigned kod, unsigned mody); /* a move: with Shift the selection starts or goes on; else it ends */
+int usun_zaznaczenie(void);                 /* 1 when there was one (deleted now) */
+int schowek_klawisz(unsigned kod, unsigned mody); /* Ctrl+A, Ctrl+C, Ctrl+X: 1 when taken */
+void wklej(const char *t, size_t n);        /* apl.wklej: the clipboard's text at the cursor */
 uint32_t nastepny(uint32_t p);
 void wstaw(const char *s, uint32_t n);
 void usun(uint32_t od, uint32_t do_);

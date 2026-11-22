@@ -344,6 +344,7 @@ int main(void)
     apl.przewin = przewin;
     apl.zegar = przewin_zegar;
     apl.inne = inne;
+    apl.wklej = wklej_nazwe;
     apl.kanaly[0].fd = dane_start();
     apl.kanaly[0].dane = dane_odbierz;
     apl.kanaly[1].fd = FD_NADZORCA;

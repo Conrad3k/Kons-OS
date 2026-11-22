@@ -1,20 +1,35 @@
-/* K1 — the frames of a zone's files port (0.11.0 steps 2–4, ADR 0052): reading checked field by field, writing. */
+/* K1 — the frames of a zone's files port (0.11.0 steps 2–5, ADR 0052): reading checked field by field, writing. */
 #include "k1_pliki_strefy.h"
 
 #include <string.h>
 
 #include "k1_bajty.h"
+#include "k1_schowek.h"
 
 /* Every type of each direction and its layout (the readability rule 5: a new frame is a row). */
 static const struct {
     uint16_t typ;
     int od_strefy, uklad;
-    uint32_t wynik_maks; /* K1_PS_U_WYNIK: the largest result */
+    uint32_t wynik_maks;           /* K1_PS_U_WYNIK: the largest result */
+    uint32_t nr_maks, x_min, x_maks, y_maks; /* K1_PS_U_TRZY: the ranges of nr (from 1), x, y (from 0) */
 } ramki[] = {
-    { K1_PS_ZGLOS, 1, K1_PS_U_NAZWA, 0 },    { K1_PS_DANE, 1, K1_PS_U_BAJTY, 0 }, { K1_PS_BRAK, 1, K1_PS_U_NR, 0 },
-    { K1_PS_ODEBRANY, 1, K1_PS_U_WYNIK, 1 }, { K1_PS_WYSLIJ, 0, K1_PS_U_NR, 0 },  { K1_PS_WYNIK, 0, K1_PS_U_WYNIK, K1_PS_W_MAKS },
-    { K1_PS_PLIK, 0, K1_PS_U_NAZWA, 0 },     { K1_PS_BAJTY, 0, K1_PS_U_BAJTY, 0 }, { K1_PS_UPUSC, 0, K1_PS_U_UPUSC, 0 },
+    { K1_PS_ZGLOS, 1, K1_PS_U_NAZWA, 0, 0, 0, 0, 0 },    { K1_PS_DANE, 1, K1_PS_U_BAJTY, 0, 0, 0, 0, 0 },
+    { K1_PS_BRAK, 1, K1_PS_U_NR, 0, 0, 0, 0, 0 },        { K1_PS_ODEBRANY, 1, K1_PS_U_WYNIK, 1, 0, 0, 0, 0 },
+    { K1_PS_WYSLIJ, 0, K1_PS_U_NR, 0, 0, 0, 0, 0 },      { K1_PS_WYNIK, 0, K1_PS_U_WYNIK, K1_PS_W_MAKS, 0, 0, 0, 0 },
+    { K1_PS_PLIK, 0, K1_PS_U_NAZWA, 0, 0, 0, 0, 0 },     { K1_PS_BAJTY, 0, K1_PS_U_BAJTY, 0, 0, 0, 0, 0 },
+    { K1_PS_UPUSC, 0, K1_PS_U_TRZY, 0, K1_PRZ_DO_STREFY_MAKS, 0, K1_PS_POZ_MAKS, K1_PS_POZ_MAKS }, /* step 4 */
+    /* step 5: the clipboard — x = the text's length, y = where it was copied (0 K1, a zone's number) */
+    { K1_PS_KOPIA, 1, K1_PS_U_TRZY, 0, K1_PS_NR_MAKS, 1, K1_SCHOWEK_MAKS, 0 },
+    { K1_PS_KOPIA_TEKST, 1, K1_PS_U_BAJTY, 0, 0, 0, 0, 0 }, { K1_PS_WKLEJONE, 1, K1_PS_U_NR, 0, 0, 0, 0, 0 },
+    { K1_PS_WKLEJ, 0, K1_PS_U_TRZY, 0, K1_PS_NR_MAKS, 1, K1_SCHOWEK_MAKS, K1_STREFY_MAKS },
+    { K1_PS_WKLEJ_TEKST, 0, K1_PS_U_BAJTY, 0, 0, 0, 0, 0 },
 };
+
+/* The three numbers of a K1_PS_U_TRZY frame of row w within its ranges. */
+static int trzy_dobre(int w, uint32_t nr, uint32_t x, uint32_t y)
+{
+    return nr <= ramki[w].nr_maks && x >= ramki[w].x_min && x <= ramki[w].x_maks && y <= ramki[w].y_maks;
+}
 
 static int wiersz(uint16_t typ, int od_strefy)
 {
@@ -35,7 +50,7 @@ static void dlugosc(int uklad, uint32_t *min, uint32_t *maks)
 {
     static const uint32_t m[][2] = { [K1_PS_U_NAZWA] = { 17 + 1, 17 + K1_PS_NAZWA_MAKS },
                                      [K1_PS_U_BAJTY] = { 4 + 1, 4 + K1_PS_DANE_MAKS },
-                                     [K1_PS_U_NR] = { 4, 4 }, [K1_PS_U_WYNIK] = { 8, 8 }, [K1_PS_U_UPUSC] = { 12, 12 } };
+                                     [K1_PS_U_NR] = { 4, 4 }, [K1_PS_U_WYNIK] = { 8, 8 }, [K1_PS_U_TRZY] = { 12, 12 } };
     *min = m[uklad][0], *maks = m[uklad][1];
 }
 
@@ -65,10 +80,10 @@ static int pola(const struct k1_ps_czytnik *c, uint32_t dl, struct k1_ps_ramka *
         r->wynik = k1_c32(p + 4);
         if (r->wynik > ramki[w].wynik_maks)
             return -1;
-    } else if (ramki[w].uklad == K1_PS_U_UPUSC) {
+    } else if (ramki[w].uklad == K1_PS_U_TRZY) {
         r->x = k1_c32(p + 4);
         r->y = k1_c32(p + 8);
-        if (r->nr > K1_PRZ_DO_STREFY_MAKS || r->x > K1_PS_POZ_MAKS || r->y > K1_PS_POZ_MAKS)
+        if (!trzy_dobre(w, r->nr, r->x, r->y))
             return -1;
     }
     return 0;
@@ -117,7 +132,7 @@ size_t k1_ps_zapisz(const struct k1_ps_ramka *r, int od_strefy, uint8_t *b, size
     if (dl < min || dl > mx || K1_PS_NAGLOWEK + (size_t)dl > maks || (u == K1_PS_U_WYNIK && r->wynik > ramki[w].wynik_maks) ||
         (u == K1_PS_U_NAZWA && (memchr(r->nazwa, 0, r->nl) != NULL ||
                                 r->dodatek > (r->typ == K1_PS_PLIK ? (uint32_t)K1_PS_TRYB_MAKS : K1_PS_NR_MAKS))) ||
-        (u == K1_PS_U_UPUSC && (r->nr > K1_PRZ_DO_STREFY_MAKS || r->x > K1_PS_POZ_MAKS || r->y > K1_PS_POZ_MAKS)) ||
+        (u == K1_PS_U_TRZY && !trzy_dobre(w, r->nr, r->x, r->y)) ||
         (u == K1_PS_U_BAJTY && r->dane == NULL))
         return 0;
     k1_z16(b, r->typ);
@@ -133,7 +148,7 @@ size_t k1_ps_zapisz(const struct k1_ps_ramka *r, int od_strefy, uint8_t *b, size
         memmove(b + 12, r->dane, r->dl);
     } else if (u == K1_PS_U_WYNIK) {
         k1_z32(b + 12, r->wynik);
-    } else if (u == K1_PS_U_UPUSC) {
+    } else if (u == K1_PS_U_TRZY) {
         k1_z32(b + 12, r->x);
         k1_z32(b + 16, r->y);
     }

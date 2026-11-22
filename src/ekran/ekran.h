@@ -249,6 +249,15 @@ void przeciaganie_usun(int i);              /* surface i is gone */
 int przeciaganie_rysuje(void);              /* ekran draws the sign at the pointer now */
 void przeciaganie_rysuj(const struct prost *k); /* the sign, into the scene inside k */
 
+/* schowek.c — the clipboard (0.11.0 step 5, ADR 0052 T8, D5: A) */
+void schowek_gest(int i);                   /* the user's key or press went to surface i */
+void schowek_komunikat(int kl, int i, const struct k1_komunikat *m, int fd); /* SCHOWEK_USTAW (+ memfd), SCHOWEK_DAJ */
+void schowek_do_strefy(int i);              /* Ctrl+V goes to zone window i: its VMM gets the text first */
+int schowek_notka(const struct pow *p);     /* "Wklejono z: …" on its frame: the zone (0: none) */
+int schowek_czas_ms(void);                  /* how soon the note goes (-1: none) */
+void schowek_usun(int i);                   /* surface i is gone */
+void schowek_wyczysc(void);                 /* K1 powers off */
+
 /* powierzchnie.c */
 void nowa_pow(int kl, const struct k1_komunikat *m, int fd); /* POWIERZCHNIA: checked, mapped, placed */
 void zatwierdz(int kl, const struct k1_komunikat *m);        /* ZATWIERDZ: the damaged part to compose */

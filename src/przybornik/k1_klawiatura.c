@@ -45,6 +45,27 @@ uint32_t k1_znak_klawisza(unsigned kod, unsigned mody)
     return 0;
 }
 
+void k1_pole_wklej(char *t, size_t *dl, size_t maks, const char *z, size_t n)
+{
+    for (size_t i = 0; i < n;) {
+        size_t c = 1;
+        while (i + c < n && ((unsigned char)z[i + c] & 0xc0) == 0x80)
+            c++;
+        if ((unsigned char)z[i] < 0x20 && z[i] != '\t' && z[i] != '\n') {
+            i += c;
+            continue;
+        }
+        if (*dl + c > maks)
+            break;
+        if ((unsigned char)z[i] < 0x20)
+            t[(*dl)++] = ' ';
+        else
+            memcpy(t + *dl, z + i, c), *dl += c;
+        i += c;
+    }
+    t[*dl] = '\0';
+}
+
 int k1_pole_klawisz(char *t, size_t *dl, size_t maks, unsigned kod, unsigned mody)
 {
     uint32_t z;

@@ -44,6 +44,7 @@
 #define POBRANE "/home/k1/Pobrane"          /* the browser's folder of downloads (strefy/przegladarka/k1.js) */
 #define Z_K1 "/home/k1/Z K1"                /* 0.11.0 step 3: files from Pliki ("Wyślij do…", "Otwórz w…") */
 #define OTWORZ "/run/k1/otworz"             /* …and the compositor's FIFO to open one in a new tab */
+#define SCHOWEK "/run/k1/schowek"           /* 0.11.0 step 5: the compositor's FIFO to the agent (the clipboard) */
 #define PRZEGLADARKA "/usr/lib/firefox-esr/firefox-esr"
 #define WAYLAND "/run/k1/wayland-0"
 #define UZYTKOWNIK 1000
@@ -300,7 +301,7 @@ void przegladarka(int ster)
     static char *const env_p[] = { "PATH=/usr/bin", "HOME=/home/k1", "XDG_RUNTIME_DIR=/run/k1",
                                    "WAYLAND_DISPLAY=wayland-0", "MOZ_ENABLE_WAYLAND=1", "LANG=C.UTF-8",
                                    "MOZ_CRASHREPORTER_DISABLE=1", "MOZ_DISABLE_WAYLAND_PROXY=1", NULL };
-    char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL }, *a_agent[] = { "agent", POBRANE, Z_K1, OTWORZ, NULL };
+    char *a_komp[] = { "kompozytor", NULL }, *a_prze[] = { "przekaznik", NULL }, *a_agent[] = { "agent", POBRANE, Z_K1, OTWORZ, SCHOWEK, NULL };
     char *a_przegl[] = { "firefox-esr", "--no-remote", "--profile", "/home/k1/profil", NULL };
     pid_t komp, przegl;
     int koniec = 0, krok = 0, okno[2], dysk, regula = 0, grafika; /* koniec 2: the browser out of time */

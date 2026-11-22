@@ -350,4 +350,15 @@ void przeciaganie(void)
     EXPECT(zle(K(K1_KOM_UPUSC_STREFA, 1, 0, 0, K1_PRZ_DO_STREFY_MAKS + 1, 0, 0), od_e) &&
            zle(K(K1_KOM_UPUSC_STREFA, 1, 0, 0, 1, 0, 0), do_e));
     EXPECT(!k1_komunikat_z_deskryptorem(K1_KOM_PRZECIAGANIE, do_e) && !k1_komunikat_z_deskryptorem(K1_KOM_UPUSC_STREFA, od_e));
+    /* step 5: the clipboard */
+    EXPECT(ok(K(K1_KOM_SCHOWEK_USTAW, 1, 1, 0, 0, 0, 0), do_e) && ok(K(K1_KOM_SCHOWEK_USTAW, 1, 1 << 20, 0, 0, 0, 0), do_e));
+    EXPECT(zle(K(K1_KOM_SCHOWEK_USTAW, 1, 0, 0, 0, 0, 0), do_e) && zle(K(K1_KOM_SCHOWEK_USTAW, 1, (1 << 20) + 1, 0, 0, 0, 0), do_e));
+    EXPECT(zle(K(K1_KOM_SCHOWEK_USTAW, 1, 5, 1, 0, 0, 0), do_e) && zle(K(K1_KOM_SCHOWEK_USTAW, 1, 5, 0, 0, 0, 0), od_e));
+    EXPECT(ok(K(K1_KOM_SCHOWEK_DAJ, 1, 0, 0, 0, 0, 0), do_e) && zle(K(K1_KOM_SCHOWEK_DAJ, 1, 1, 0, 0, 0, 0), do_e) &&
+           zle(K(K1_KOM_SCHOWEK_DAJ, 0, 0, 0, 0, 0, 0), do_e));
+    EXPECT(ok(K(K1_KOM_SCHOWEK, 1, 9, K1_STREFA_BANK, 0, 0, 0), od_e) && ok(K(K1_KOM_SCHOWEK, 1, 9, 0, 0, 0, 0), od_e));
+    EXPECT(zle(K(K1_KOM_SCHOWEK, 1, 0, 0, 0, 0, 0), od_e) && zle(K(K1_KOM_SCHOWEK, 1, 9, K1_STREFY_MAKS + 1, 0, 0, 0), od_e) &&
+           zle(K(K1_KOM_SCHOWEK, 1, 9, 0, 0, 0, 0), do_e));
+    EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_SCHOWEK_USTAW, do_e) && k1_komunikat_z_deskryptorem(K1_KOM_SCHOWEK, od_e) &&
+           !k1_komunikat_z_deskryptorem(K1_KOM_SCHOWEK_DAJ, do_e));
 }
