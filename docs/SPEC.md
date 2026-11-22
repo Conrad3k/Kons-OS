@@ -188,8 +188,10 @@ M0–M12 i dopiski z ADR 0011, 0019, 0020, 0024, 0025, 0026 (historia: git i tab
 - 0.10 Strefy (dawne M8 z M11): każda obca aplikacja w swojej mikro-maszynie (ADR 0020), zaufana ramka, przeglądarka
   w strefie z oddzielnymi sesjami (Firefox albo WPE — ADR), wspólna strefa (ADR 0024), Przeglądarka K1 (ADR 0025).
 - 0.11 Pliki ze stref (dawne M9): Gatekeeper dla stref — pobieranie, zgoda, import do Blob Vault, sprzątanie (ADR 0027).
-- 0.12 Bezpieczny start — reszta (dawne M10): recovery, licznik wersji (TPM), odwoływanie starych wersji, los GRUB-a.
-- 0.13 Audyt (dawne M12): fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa → 1.0.
+- 0.12 Dźwięk **[korekta: ADR 0053 — nowa wersja; dalsze wersje przesunięte o jedną]**: karta dźwiękowa w usłudze
+  w klatce, głośność i klawisze, słuchawki, dźwięk ze stref.
+- 0.13 Bezpieczny start — reszta (dawne M10): recovery, licznik wersji (TPM), odwoływanie starych wersji, los GRUB-a.
+- 0.14 Audyt (dawne M12): fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa → 1.0.
 
 ## 15. Pierwsze zadanie
 1. Zapisz tę specyfikację jako docs/SPEC.md.
