@@ -113,7 +113,8 @@ static void upuszczenie(void)
     char nazwa[K1_PS_NAZWA_MAKS + 1];
     int tryb, dobre = 0, z = 0;
     loguj("odbiór: czekam na upuszczenie na okno");
-    if (czytaj(&r, CZEKAJ_MS) <= 0 || r.typ != K1_PS_UPUSC) {
+    memset(&r, 0, sizeof r);
+    if (czytaj(&r, 3 * CZEKAJ_MS) <= 0 || r.typ != K1_PS_UPUSC) { /* the script moves the window and drags first */
         loguj("odbiór: upuszczenie — BŁĄD (ramka %u zamiast UPUSC)", r.typ);
         return;
     }

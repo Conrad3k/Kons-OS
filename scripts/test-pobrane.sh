@@ -132,7 +132,13 @@ for czesc in (re.findall(IKONY, q.tekst()) or [""])[-1].split("; "):
 okna = re.findall(r"K1-EKRAN: okno \d+ \(strefa\) (\d+)x(\d+) w (\d+),(\d+)", q.tekst())
 if sprawdz("ikona pliku na pulpicie i okno strefy na ekranie", ikony and okna, f"{ikony} {okna[-1:]}"):
     ow, oh, ox, oy = (int(v) for v in okna[-1])
-    cel, start = (ox + ow // 2, oy + oh // 2), next(iter(ikony.values()))
+    # the zone's window covers the desktop's first icons: moved right by its title bar (K1's frame, 40 px above)
+    n_p = q.ile(r"K1-EKRAN: okno \d+ przesunięte do")
+    q.przeciagnij(ox + 300, oy - 20, ox + 300 + 480, oy - 20)
+    p_ = czekaj(r"K1-EKRAN: okno \d+ przesunięte do (-?\d+),(-?\d+)", od=n_p, czas=30)
+    if p_:
+        ox, oy = int(p_.group(1)), int(p_.group(2))
+    cel, start = (ox + 200, oy + 300), next(iter(ikony.values()))
     q.idz(*start)
     q.przycisk(True)
     for i in range(1, 5):
@@ -145,7 +151,7 @@ if sprawdz("ikona pliku na pulpicie i okno strefy na ekranie", ikony and okna, f
             czekaj(r"K1-EKRAN: przeciąganie między oknami: 1 plików do strefy 1 ", czas=30))
     u = czekaj(r"K1-GOSC: odbiór: upuszczenie 1 plików w (\d+),(\d+)", czas=300)
     sprawdz("gość: UPUSC w punkcie puszczenia (współrzędne obrazu strefy)",
-            u and abs(int(u.group(1)) - ow // 2) <= 2 and abs(int(u.group(2)) - oh // 2) <= 2, u.group(0) if u else "brak")
+            u and abs(int(u.group(1)) - 200) <= 2 and abs(int(u.group(2)) - 300) <= 2, u.group(0) if u else "brak")
     sprawdz("gość: kopia pliku z pulpitu bajt w bajt, w trybie upuszczenia",
             czekaj(r"K1-GOSC: odbiór: plik \d+ z K1 \(2500 B, zgodny\), upuszczony", czas=300) and
             czekaj(r"K1-GOSC: odbiór: upuszczone pliki zgodne: 1, z trybem upuszczenia: 1", czas=60))

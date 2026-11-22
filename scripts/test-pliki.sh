@@ -344,13 +344,13 @@ if plik:
             czekaj(r"K1-EKRAN: przeciąganie między oknami: upuszczono na pulpit \(folder\)") and
             czekaj(r"K1-GUI: pliki na pulpicie: 1, ", od=n_ik) and jest_widok("Dokumenty", 0))
     pl = [n for n in ikony() if n.startswith("plik ")]
-    n_ik = q.ile(r"K1-GUI: pliki na pulpicie: 0, ")
+    n_ik = q.ile(r"K1-GUI: pliki na pulpicie: dodane 0, usunięte 1")
     n_p = q.ile(r"K1-PLIKI: przeciąganie: upuszczono — 1 elementów, cel folder, działanie: przenieś")
     if pl:
         ciagnij(ikony()[pl[0]], (ox + wx, oy + wy + 2 * wk), "14-pulpit-na-pliki", gdy=lambda w, h, px: True)
     sprawdz("folder z pulpitu na listę Plików (Dokumenty): Pliki rysują kartę i przenoszą go z powrotem",
             pl and czekaj(r"K1-PLIKI: przeciąganie: upuszczono — 1 elementów, cel folder, działanie: przenieś", od=n_p) and
-            czekaj(r"K1-GUI: pliki na pulpicie: 0, ", od=n_ik) and jest_widok("Dokumenty", 1))
+            czekaj(r"K1-GUI: pliki na pulpicie: dodane 0, usunięte 1", od=n_ik) and jest_widok("Dokumenty", 1))
 
     def z_ctrl(od, do):
         """Dragging with Ctrl held from the first move to the drop (a press with Ctrl would be a Ctrl+click)."""
@@ -381,7 +381,7 @@ DANE=$TESTY/pliki-dane.img
 dd if=/dev/zero of="$DANE" bs=1M count=16 status=none
 printf 'label: gpt\nstart=2048, size=30000, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
 DYSK_DANYCH="-drive if=none,id=dane,file=$DANE,format=raw -device ide-hd,drive=dane,bus=ide.0"
-CZAS_ZW=$CZAS; CZAS=$((CZAS * 5))  # the longer scenario (0.8.2 step 5: × 3 — the menu on the desktop; step 6: × 5 — dragging)
+CZAS_ZW=$CZAS; CZAS=$((CZAS * 7))  # the longer scenario (0.8.2 step 5: × 3 — the menu on the desktop; step 6: × 5 — dragging; 0.11.0 step 4: × 7 — between windows)
 uruchom pierwszy --qemu "$DYSK_DANYCH"
 sprawdz pierwszy
 CZAS=$CZAS_ZW
