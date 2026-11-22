@@ -3,8 +3,11 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
+#include "k1_kanal.h"
 #include "k1_klient.h"
+#include "k1_memfd.h"
 #include "k1_log.h"
 #include "k1_teraz.h"
 #include "k1_okno.h"
@@ -363,17 +366,25 @@ int okno_odbierz(void)
 {
     struct k1_powierzchnia *p = &okno;
     struct k1_komunikat m;
-    int wynik = OKNO_NIC;
+    int wynik = OKNO_NIC, fd;
     if (schowane) { /* nothing is shown: what ekran says is drained, nothing more */
         while (kl.fd >= 0 && k1_odbierz(&kl, &p, 0, &m) == 1)
             ;
         return wynik;
     }
-    while (kl.fd >= 0 && k1_odbierz(&kl, &p, 1, &m) == 1) {
+    while (kl.fd >= 0 && k1_odbierz_fd(&kl, &p, 1, &m, &fd) == 1) {
         zamek_wez("okno: wejście");
+        if (fd >= 0) { /* only SCHOWEK carries one (0.11.0 step 5): K1's text, the Ctrl+V right after it */
+            if (m.obiekt == OKNO_ID)
+                schowek_od_ekranu(&m, fd);
+            close(fd);
+            zamek_oddaj();
+            continue;
+        }
         switch (m.typ) {
         case K1_KOM_KLAWISZ:
-            wejscie_klawisz(m.a, m.b);
+            if (!schowek_klawisz(m.a, m.b)) /* 0.11.0 step 5: they wait while the guest takes K1's text */
+                wejscie_klawisz(m.a, m.b);
             pomiar_wejscie();
             break;
         case K1_KOM_WSKAZNIK:
@@ -409,6 +420,17 @@ int okno_odbierz(void)
     if (!okno.czeka) /* ekran took the last frame (RAMKA): the wait for it measured */
         pomiar_ramka();
     return wynik;
+}
+
+void okno_kopia(const uint8_t *t, uint32_t n)
+{
+    struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_SCHOWEK_USTAW, OKNO_ID, (int32_t)n, 0, 0, 0, 0);
+    int fd = kl.fd >= 0 && !schowane ? k1_memfd_z_danymi("k1-schowek", t, n) : -1;
+    if (fd < 0)
+        return;
+    if (k1_kanal_wyslij(kl.fd, &m, sizeof m, fd) != 0)
+        k1_log(TAG, "schowek: ekran nie przyjął tekstu");
+    close(fd);
 }
 
 void okno_zamknij_goscia(void)

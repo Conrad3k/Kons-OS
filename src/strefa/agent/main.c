@@ -190,6 +190,10 @@ static void od_vmm(void)
             return;
         }
         /* 0.11.0 steps 3, 4: a file from K1, a drop on the window (odbior.c) */
+        if (w > 0 && (r.typ == K1_PS_WKLEJ || r.typ == K1_PS_WKLEJ_TEKST)) { /* step 5: K1's text for a Ctrl+V */
+            schowek_ramka(&r);
+            continue;
+        }
         if (w > 0 && (r.typ == K1_PS_PLIK || r.typ == K1_PS_BAJTY || r.typ == K1_PS_UPUSC)) {
             odbior_ramka(&r);
             if (vs < 0)
@@ -221,9 +225,11 @@ int main(int argc, char **argv)
         loguj("foldery: %s", strerror(errno));
         return 1;
     }
+    if (argc > 4)
+        schowek_start(argv[4]); /* 0.11.0 step 5: the compositor's FIFO to us */
     loguj("gotowy");
     for (;;) {
-        struct pollfd p[2] = { { in, POLLIN, 0 }, { vs, POLLIN, 0 } };
+        struct pollfd p[3] = { { in, POLLIN, 0 }, { vs, POLLIN, 0 }, { schowek_fd(), POLLIN, 0 } };
         if (vs < 0)
             polacz();
         for (int i = 0; vs >= 0 && i < PLIKOW; i++)
@@ -237,11 +243,13 @@ int main(int argc, char **argv)
                     pl[i].stan = 2;
             }
         p[1].fd = vs;
-        if (poll(p, 2, vs < 0 ? 2000 : -1) < 0 && errno != EINTR)
+        if (poll(p, 3, vs < 0 || p[2].fd < 0 ? 2000 : -1) < 0 && errno != EINTR)
             return 1;
         if (p[0].revents & POLLIN)
             zdarzenia(in, wd);
         if (vs >= 0 && (p[1].revents & (POLLIN | POLLHUP | POLLERR)))
             od_vmm();
+        if (p[2].fd >= 0 && (p[2].revents & POLLIN))
+            schowek_czytaj();
     }
 }

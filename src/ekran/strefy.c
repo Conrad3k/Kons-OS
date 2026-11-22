@@ -75,7 +75,11 @@ static void tekst(const struct pow *p, char *przed, size_t n1, char *sesja_t, si
     const char *sesja = strefa_sesja(p);
     snprintf(przed, n1, "%s · ", z->tytul);
     snprintf(sesja_t, n2, "%s", sesja);
-    snprintf(po, n3, "%sosobna maszyna%s", sesja[0] ? " · " : "", s.kl[p->kl].pamieta ? "" : " · zapomina");
+    int z_ = schowek_notka(p); /* 0.11.0 step 5 (D5: A): text pasted from another session */
+    if (z_ != 0)
+        snprintf(po, n3, " · Wklejono z: %s", nazwy[z_][0] ? nazwy[z_] : k1_strefa(z_)->sesja);
+    else
+        snprintf(po, n3, "%sosobna maszyna%s", sesja[0] ? " · " : "", s.kl[p->kl].pamieta ? "" : " · zapomina");
 }
 
 static int z_karta_strefa(const struct pow *p)
@@ -166,7 +170,7 @@ void strefa_ramka(const struct pow *p, const struct prost *r)
     int fokus = (int)(p - s.p) == s.fokus;
     uint32_t k = kolor(p), napis = k1_kolor(fokus ? m->tekst : m->tekst3, 255);
     float x = (float)(f.x - r->x), y = (float)(f.y - r->y), promien = p->maks ? 0 : PROMIEN;
-    char przed[64], sesja[K1_STREFA_NAZWA_MAKS + 1], po[64];
+    char przed[64], sesja[K1_STREFA_NAZWA_MAKS + 1], po[K1_STREFA_NAZWA_MAKS + 32];
     int32_t ob = obwodka(p), tx, ty, szer = p->w - 36 - 3 * ODSTEP - MARGINES - 8, kon;
     if (pelny_jest(p)) /* 0.11.0 step 1: full screen — K1's pill and bar instead (pelny.c) */
         return;

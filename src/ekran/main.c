@@ -64,9 +64,10 @@ static int odbierz_sterowanie(void)
         k1_komunikat_sprawdz(o.dane, o.dlugosc, K1_KIER_STEROWANIE, &k) == 0 &&
         (k.typ == K1_KOM_STREFY_STAN || k.typ == K1_KOM_STREFA_NAZWA || k.typ == K1_KOM_STREFY_GRAFIKA ||
          k.typ == K1_KOM_WYLACZANIE)) {
-        if (k.typ == K1_KOM_WYLACZANIE) /* 0.10.7 step 6: K1 powers off */
+        if (k.typ == K1_KOM_WYLACZANIE) { /* 0.10.7 step 6: K1 powers off */
             wylaczanie_start(k.a);
-        else
+            schowek_wyczysc(); /* 0.11.0 step 5: the clipboard never outlives K1 */
+        } else
             strefy_sesje(&k); /* the sessions (0.10.0 step 5) */
         return 1;
     }
@@ -299,6 +300,9 @@ int main(void)
         if (wyl_ms >= 0 && wyl_ms < czekaj)
             czekaj = wyl_ms;
         wyl_ms = pelny_czas_ms(); /* 0.11.0 step 1: the pill over the full screen goes */
+        if (wyl_ms >= 0 && wyl_ms < czekaj)
+            czekaj = wyl_ms;
+        wyl_ms = schowek_czas_ms(); /* step 5: "Wklejono z: …" on a zone's frame goes */
         if (wyl_ms >= 0 && wyl_ms < czekaj)
             czekaj = wyl_ms;
         if (poll(pfd, 3 + MAKS_KLIENTOW, czekaj) < 0 && errno != EINTR)

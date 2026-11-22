@@ -103,6 +103,7 @@ void otworz(uint32_t id); /* a folder: into it; a file: its default application,
 void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk);
 void klawisz(unsigned kod, int wartosc, unsigned mody);
 void przewin(int32_t x, int32_t y, int32_t dx, int32_t dy); /* the wheel or two fingers (0.10.0 step 4) */
+void wklej_nazwe(const char *t, size_t n); /* apl.wklej (0.11.0 step 5): Ctrl+V while renaming */
 int przewin_zegar(void);                                    /* apl.zegar: the scrolled list to the log */
 void klik_zapomnij(void); /* the next click is never the second of a double click */
 int miejsce_pod(int32_t x, int32_t y); /* a place on the left: 0..K1_FOLDERY_MAKS-1 a folder, then Kosz, the stick; -1 */

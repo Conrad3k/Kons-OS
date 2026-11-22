@@ -15,7 +15,7 @@ OBRAZ=$K1_BUDOWA/strefa-przegladarka
 rm -rf "$WYNIK"; mkdir -p "$WYNIK"
 gcc -std=c11 -g -O1 -D_GNU_SOURCE -fsanitize=address,undefined -fno-omit-frame-pointer \
     -I"$K1_REPO/src/strefa/kompozytor" -I"$K1_REPO/src/strefa/gosc" -I"$K1_REPO/src/wspolne" -I"$K1_BUDOWA/naglowki/include" \
-    $(ls "$K1_REPO"/src/strefa/kompozytor/*.c | grep -v '/drm\.c$') "$K1_REPO/src/wspolne/k1_pomiar.c" "$K1_REPO/testy/stanowisko/ekran.c" \
+    $(ls "$K1_REPO"/src/strefa/kompozytor/*.c | grep -v '/drm\.c$') "$K1_REPO/src/wspolne/k1_pomiar.c" "$K1_REPO/src/wspolne/k1_schowek.c" "$K1_REPO/testy/stanowisko/ekran.c" \
     -o "$WYNIK/kompozytor"
 gcc -std=c11 -O1 -Wall -Wextra -o "$WYNIK/patrz" "$K1_REPO/testy/stanowisko/patrz.c" # 0.11.0: inotify for pobrane.py
 echo "[k1] stanowisko: kompozytor strefy na hoście + Firefox z obrazu strefy ($(basename "$SCEN"))"

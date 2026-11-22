@@ -18,6 +18,7 @@ void wybierz_indeks(int i)
     biez = i;
     b = &nt[i];
     kursor = b->dl;
+    zaznaczenie_zapomnij(); /* 0.11.0 step 5 */
     pierwsza = 0;
     popraw_przewiniecie(1);
 }

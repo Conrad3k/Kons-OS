@@ -219,6 +219,7 @@ static void usun_pow(int i)
     strefa_bufory_zwolnij(i); /* 0.10.11 step 2: its buffers of the card (off the layer first) */
     pelny_usun(i);
     przeciaganie_usun(i); /* 0.11.0 step 4 */
+    schowek_usun(i);      /* step 5 */
     p->uzyta = 0;
     if (s.pod == i)
         s.pod = -1;
@@ -299,7 +300,7 @@ static int opis_albo_test(int kl, const struct k1_komunikat *m, int fd)
             close(fd);
         powod = "klient testowy tylko pyta o opis ekranu";
     } else if (m->typ != K1_KOM_POWIERZCHNIA && m->typ != K1_KOM_TAPETA_ZDJECIE && m->typ != K1_KOM_STREFA_BUFOR &&
-               fd >= 0) {
+               m->typ != K1_KOM_SCHOWEK_USTAW && fd >= 0) {
         close(fd);
         powod = "niespodziewany deskryptor";
     } else {
@@ -395,11 +396,11 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
         if (s.p[i].rodzaj != K1_POW_OKNO)
             { odrzuc(kl, "minimalizacja tylko okien"); return; }
         { minimalizuj(i); return; }
-    case K1_KOM_USUN:
-        { usun_pow(i); return; }
-    case K1_KOM_PRZECIAGANIE: /* 0.11.0 step 4 */
-    case K1_KOM_PRZECIAGANIE_CEL:
+    case K1_KOM_USUN: { usun_pow(i); return; }
+    case K1_KOM_PRZECIAGANIE: case K1_KOM_PRZECIAGANIE_CEL: /* 0.11.0 step 4 */
         { przeciaganie_komunikat(kl, i, m); return; }
+    case K1_KOM_SCHOWEK_USTAW: case K1_KOM_SCHOWEK_DAJ: /* step 5 */
+        { schowek_komunikat(kl, i, m, fd); return; }
     case K1_KOM_PELNY_EKRAN: /* 0.11.0 step 1 */
         if (!okno_strefy(&s.p[i]))
             { odrzuc(kl, "pełny ekran tylko dla okna strefy"); return; }

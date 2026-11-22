@@ -62,5 +62,8 @@ void k1_wyslij(struct k1_klient *k, struct k1_komunikat m);
  * returned. Ends the program when the
  * channel closes. `pow` (n) are the client's surfaces, for RAMKA. */
 int k1_odbierz(struct k1_klient *k, struct k1_powierzchnia **pow, int n, struct k1_komunikat *m);
+/* The same, and the descriptor of a message that carries one (0.11.0 step 5: SCHOWEK — the clipboard's text): *fd, else
+ * -1; the caller closes it. */
+int k1_odbierz_fd(struct k1_klient *k, struct k1_powierzchnia **pow, int n, struct k1_komunikat *m, int *fd);
 
 #endif

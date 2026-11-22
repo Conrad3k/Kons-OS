@@ -169,6 +169,8 @@ static void petla(void)
         int czas = zamknij_do > 0 ? 500 : 1000, n;
         if (okno_czas_ms() >= 0)
             czas = okno_czas_ms(); /* the start screen's bar moves */
+        if (schowek_czeka_ms() >= 0 && schowek_czeka_ms() < czas)
+            czas = schowek_czeka_ms(); /* 0.11.0 step 5: keys held for the clipboard go on time */
         petla_krok("deskryptory połączeń");
         n = 2 + pol_deskryptory(p + 2, 2 + K1_STREFA_POLACZENIA_MAKS);
         petla_krok("poll");

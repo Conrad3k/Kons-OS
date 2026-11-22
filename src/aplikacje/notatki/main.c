@@ -185,7 +185,13 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
                                    : "Wczytywanie…",
                  k1_kolor(m->tekst3, 255), szer_tekstu());
     for (i = pierwsza, y = GORA; i < n_linii && (int32_t)(i - pierwsza) < widoczne(); i++, y += WIERSZ) {
-        uint32_t n = linie[i].do_ - linie[i].od;
+        uint32_t n = linie[i].do_ - linie[i].od, z0, z1;
+        if (zaznaczenie(&z0, &z1) && z0 <= linie[i].do_ && z1 >= linie[i].od) { /* 0.11.0 step 5: the selection */
+            int32_t xa = x_w_linii(i, z0 > linie[i].od ? z0 : linie[i].od);
+            int32_t xb = z1 < linie[i].do_ ? x_w_linii(i, z1) : x_w_linii(i, linie[i].do_) + (z1 > linie[i].do_ ? 6 : 0);
+            if (xb > xa)
+                k1_prostokat(o, LEWO + xa, y + 1, xb - xa, 20, k1_kolor(m->zaznaczenie, 255));
+        }
         memcpy(bufor, b->tekst + linie[i].od, n);
         bufor[n] = '\0';
         k1_tekst(o, K1_CZ_TEKST, LEWO, y + 16, bufor, k1_kolor(m->tekst, 255), 0);
@@ -219,6 +225,10 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     if (wartosc == 0)
         return;
     sledz = 1;
+    if (schowek_klawisz(kod, mody)) { /* 0.11.0 step 5: Ctrl+A, Ctrl+C, Ctrl+X */
+        k1_apl_odswiez(&apl);
+        return;
+    }
     if (mody & K1_MOD_CTRL) { /* Ctrl+N: new note; Ctrl+O: a file; Ctrl+↑/↓: the previous / next note of the list */
         if (kod == KEY_N)
             nowa();
@@ -238,16 +248,18 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
     if (!b->wczytana)
         return; /* its content is not here yet */
     uloz(szer_tekstu());
+    przed_ruchem(kod, mody); /* 0.11.0 step 5: Shift with a move selects */
     switch (kod) {
     case KEY_ENTER:
+        usun_zaznaczenie();
         wstaw("\n", 1);
         break;
     case KEY_BACKSPACE:
-        if (kursor > 0)
+        if (!usun_zaznaczenie() && kursor > 0)
             usun(poprzedni(kursor), kursor);
         break;
     case KEY_DELETE:
-        if (kursor < b->dl)
+        if (!usun_zaznaczenie() && kursor < b->dl)
             usun(kursor, nastepny(kursor));
         break;
     case KEY_LEFT:
@@ -278,6 +290,7 @@ static void klawisz(unsigned kod, int wartosc, unsigned mody)
         z = k1_znak_klawisza(kod, mody);
         if (z == 0)
             return;
+        usun_zaznaczenie();
         n = k1_utf8_zapisz(z, u, sizeof u);
         wstaw(u, (uint32_t)n);
         break;
@@ -360,6 +373,7 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     if (ln >= n_linii)
         ln = n_linii - 1;
     kursor = pozycja_w_linii(ln, x - LEWO);
+    zaznaczenie_zapomnij();
     k1_apl_odswiez(&apl);
 }
 
@@ -415,6 +429,7 @@ int main(void)
     apl.przewin = przewin;
     apl.zegar = zegar;
     apl.zamykanie = zamykanie;
+    apl.wklej = wklej; /* 0.11.0 step 5: Ctrl+V */
     wczytaj();
     apl.kanaly[0].fd = skarb; /* the files, their content, the results of saving */
     apl.kanaly[0].dane = skarb_odbierz;

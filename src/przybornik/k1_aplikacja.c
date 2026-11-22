@@ -8,13 +8,46 @@
 
 #include <fcntl.h>
 
+#include <unistd.h>
+
+#include <linux/input-event-codes.h>
+
+#include "k1_kanal.h"
 #include "k1_klatka.h"
 #include "k1_log.h"
+#include "k1_memfd.h"
+#include "k1_schowek.h"
 #include "k1_uslugi.h"
 
 void k1_apl_odswiez(struct k1_apl *a)
 {
     a->okno.brudna = 1;
+}
+
+void k1_apl_kopiuj(struct k1_apl *a, const char *t, size_t n)
+{
+    struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_SCHOWEK_USTAW, a->okno.id, (int32_t)n, 0, 0, 0, 0);
+    int fd;
+    if (!k1_schowek_dobry((const uint8_t *)t, n) || (fd = k1_memfd_z_danymi("k1-schowek", t, n)) < 0)
+        return;
+    if (k1_kanal_wyslij(a->k.fd, &m, sizeof m, fd) != 0)
+        k1_log(a->tag, "schowek: ekran nie przyjął tekstu");
+    close(fd);
+}
+
+void k1_apl_wklej(struct k1_apl *a)
+{
+    k1_wyslij(&a->k, k1_komunikat_nowy(K1_KOM_SCHOWEK_DAJ, a->okno.id, 0, 0, 0, 0, 0));
+}
+
+/* SCHOWEK from ekran: the text to the window (checked again: it may have come from a zone). */
+static void schowek(struct k1_apl *a, const struct k1_komunikat *m, int fd)
+{
+    static char t[K1_SCHOWEK_MAKS];
+    if (a->wklej != NULL && m->obiekt == a->okno.id && k1_memfd_czytaj(fd, t, (size_t)m->a) == 0 &&
+        k1_schowek_dobry((const uint8_t *)t, (size_t)m->a))
+        a->wklej(t, (size_t)m->a);
+    close(fd);
 }
 
 static const struct k1_motyw *k1_apl_motyw(const struct k1_apl *a)
@@ -67,6 +100,46 @@ static void wskaznik(struct k1_apl *a, const struct k1_komunikat *m)
         a->wskaznik(m->c, m->a, m->b, m->d);
 }
 
+/* One message of ekran for the window (no descriptor). */
+static void komunikat(struct k1_apl *a, const struct k1_komunikat *m0)
+{
+    const struct k1_komunikat m = *m0;
+    switch (m.typ) {
+    case K1_KOM_WSKAZNIK:
+        if (m.obiekt == a->okno.id)
+            wskaznik(a, &m);
+        break;
+    case K1_KOM_PRZEWIN:
+        if (m.obiekt == a->okno.id && a->przewin &&
+            k1_trafienie_ramki((uint32_t)a->szer, (uint32_t)a->wys, m.a, m.b) == K1_TR_TRESC)
+            a->przewin(m.a, m.b, m.c, m.d);
+        break;
+    case K1_KOM_KLAWISZ:
+        if (a->wklej != NULL && m.a == KEY_V && m.b == 1 && (m.c & K1_MOD_CTRL) && !(m.c & K1_MOD_ALT))
+            k1_apl_wklej(a); /* 0.11.0 step 5: Ctrl+V — the text comes as SCHOWEK */
+        else if (a->klawisz)
+            a->klawisz((unsigned)m.a, m.b, (unsigned)m.c);
+        break;
+    case K1_KOM_ZAMKNIJ:
+        if (m.obiekt == a->okno.id)
+            zamknij(a, "z dolnego paska");
+        break;
+    case K1_KOM_FOKUS:
+        a->aktywne = m.a;
+        k1_apl_odswiez(a);
+        break;
+    case K1_KOM_USTAWIENIE:
+    case K1_KOM_WITAJ:
+    case K1_KOM_TRYB:
+        k1_apl_odswiez(a);
+        break;
+    default:
+        if (a->inne != NULL && m.obiekt == a->okno.id)
+            a->inne(&m);
+        break;
+    }
+}
+
 void k1_apl_uruchom(struct k1_apl *a)
 {
     struct k1_powierzchnia *pow[1] = { &a->okno };
@@ -85,7 +158,7 @@ void k1_apl_uruchom(struct k1_apl *a)
     for (;;) {
         struct pollfd p[1 + K1_APL_KANALY];
         struct k1_komunikat m;
-        int czas = a->zegar ? a->zegar() : -1;
+        int czas = a->zegar ? a->zegar() : -1, fd;
         if (a->okno.brudna)
             rysuj(a);
         p[0].fd = a->k.fd;
@@ -104,39 +177,12 @@ void k1_apl_uruchom(struct k1_apl *a)
             else if (p[1 + i].revents & (POLLIN | POLLHUP | POLLERR))
                 a->kanaly[i].dane();
         }
-        while (k1_odbierz(&a->k, pow, 1, &m)) {
-            switch (m.typ) {
-            case K1_KOM_WSKAZNIK:
-                if (m.obiekt == a->okno.id)
-                    wskaznik(a, &m);
-                break;
-            case K1_KOM_PRZEWIN:
-                if (m.obiekt == a->okno.id && a->przewin &&
-                    k1_trafienie_ramki((uint32_t)a->szer, (uint32_t)a->wys, m.a, m.b) == K1_TR_TRESC)
-                    a->przewin(m.a, m.b, m.c, m.d);
-                break;
-            case K1_KOM_KLAWISZ:
-                if (a->klawisz)
-                    a->klawisz((unsigned)m.a, m.b, (unsigned)m.c);
-                break;
-            case K1_KOM_ZAMKNIJ:
-                if (m.obiekt == a->okno.id)
-                    zamknij(a, "z dolnego paska");
-                break;
-            case K1_KOM_FOKUS:
-                a->aktywne = m.a;
-                k1_apl_odswiez(a);
-                break;
-            case K1_KOM_USTAWIENIE:
-            case K1_KOM_WITAJ:
-            case K1_KOM_TRYB:
-                k1_apl_odswiez(a);
-                break;
-            default:
-                if (a->inne != NULL && m.obiekt == a->okno.id)
-                    a->inne(&m);
-                break;
+        while (k1_odbierz_fd(&a->k, pow, 1, &m, &fd)) {
+            if (fd >= 0) { /* only SCHOWEK carries one */
+                schowek(a, &m, fd);
+                continue;
             }
+            komunikat(a, &m);
         }
         if (a->okno.brudna)
             rysuj(a);

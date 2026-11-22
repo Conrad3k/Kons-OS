@@ -285,3 +285,14 @@ void klawisz(unsigned kod, int wartosc, unsigned mody)
     }
     k1_apl_odswiez(&apl);
 }
+
+/* 0.11.0 step 5: Ctrl+V while renaming — the clipboard's text into the name (the whole name selected: replaced) */
+void wklej_nazwe(const char *t, size_t n)
+{
+    if (edycja.id == 0)
+        return;
+    if (edycja.calosc)
+        edycja.dl = 0, edycja.t[0] = '\0', edycja.calosc = 0;
+    k1_pole_wklej(edycja.t, &edycja.dl, K1_DOK_NAZWA - 1, t, n);
+    k1_apl_odswiez(&apl);
+}

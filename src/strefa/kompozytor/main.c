@@ -111,9 +111,10 @@ static void petla(int g, int sfd)
 {
     uint32_t ostatnia = 0;
     for (;;) {
-        struct pollfd p[1 + KLIENCI_MAKS + 4 + 3];
+        struct pollfd p[1 + KLIENCI_MAKS + 4 + 3 + 8];
         struct klient *kl[KLIENCI_MAKS];
-        unsigned n = 1, nk = 0, i, nw;
+        unsigned n = 1, nk = 0, i, nw, ns;
+        short zd;
         int czekaj = -1;
         uint32_t t = teraz_ms();
         pomiar_zglos();
@@ -140,6 +141,8 @@ static void petla(int g, int sfd)
             }
         for (nw = 0; wejscie_fd(nw) >= 0 && nw < 4; nw++)
             p[n++] = (struct pollfd){ wejscie_fd(nw), POLLIN, 0 };
+        for (ns = 0; schowek_fd(ns, &zd) >= -1 && ns < 8; ns++) /* 0.11.0 step 5: the clipboard's pipes */
+            p[n++] = (struct pollfd){ schowek_fd(ns, &zd), zd, 0 };
         p[n++] = (struct pollfd){ otworz_fd(), POLLIN, 0 };      /* 0.11.0 step 3: "Otwórz w…" from the agent */
         p[n++] = (struct pollfd){ ekran_zmiany_fd(), POLLIN, 0 }; /* 0.10.5 step 4: K1 resized the window */
         p[n++] = (struct pollfd){ sfd, POLLIN, 0 }; /* negative: ignored */
@@ -166,6 +169,9 @@ static void petla(int g, int sfd)
         for (i = 0; i < nw; i++)
             if (p[1 + nk + i].revents & POLLIN)
                 wejscie_czytaj(i);
+        for (i = 0; i < ns; i++)
+            if (p[1 + nk + nw + i].revents)
+                schowek_obsluz(i);
     }
 }
 
@@ -192,6 +198,7 @@ int main(int argc, char **argv)
     if (g < 0)
         return 1;
     otworz_start(argc > 1 ? argv[1] : "/run/k1/wayland-0");
+    schowek_start(argc > 1 ? argv[1] : "/run/k1/wayland-0"); /* 0.11.0 step 5 */
     scena_zmiana(0, 0, ekran.szer, ekran.wys);
     kloguj("gotowy %dx%d", ekran.szer, ekran.wys);
     petla(g, sfd);

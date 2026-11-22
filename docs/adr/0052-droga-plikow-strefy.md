@@ -5,7 +5,7 @@
 - Data: 2026-11-21
 - Dotyczy: ADR 0027 (przepływ plików: Pliki jedynym węzłem, zgoda = gest w K1), ADR 0042 (strefy, VMM), ADR 0043
   (przeglądarka w strefie, Raptor Bridge), ADR 0029 (pliki w skarbcu), ADR 0034 (limity, zapis w toku kawałkami);
-  plan `docs/PLAN-0.11.0.txt`: krok 2, T1–T4, luki P5–P14, decyzje właściciela D2 „A”, D3 „A”; RYZYKA R103
+  plan `docs/archiwum/PLAN-0.11.0.txt`: krok 2, T1–T4, luki P5–P14, decyzje właściciela D2 „A”, D3 „A”; RYZYKA R103
 
 ## Kontekst
 Do 0.10.11 przeglądarka w strefie była szczelna w obie strony: plik pobrany ze strony zostawał w sesji. Strefa ma tylko
@@ -121,6 +121,23 @@ zaczyna sama strefa); brakowało drogi bajtów i formatu.
     portalu, a wniesienie ich to duży obcy kod w strefie i nowa droga do K1. Zostaje okno GTK w strefie, które widzi tylko
     folder sesji („Z K1”, pobrane): plik dajesz stronie „Wyślij do…” albo przeciągając go na okno (ADR 0027 p. 4).
 
+## Uzupełnienie — krok 5: schowek (2026-11-22; D5 właściciela: A)
+15. **Właściciel: ekran (T8).** Jeden tekst UTF-8 (`K1_SCHOWEK_MAKS` = 1 MiB, `k1_schowek_dobry`: bez NUL i znaków
+    sterujących poza tabulatorem i nowym wierszem), tylko w pamięci ekranu — nigdy w skarbcu ani w logu (liczby bajtów
+    i skąd), czyszczony przy wyłączaniu. Obrazy w schowku — „Później”. Kopia (`SCHOWEK_USTAW`) tylko od klienta okna
+    z fokusem i tylko tuż po geście użytkownika w tym oknie (klawisz albo wciśnięcie, które ekran temu oknu dał: aplikacja
+    2 s, strefa 10 s — „Kopiuj” na stronie po kliknięciu); wklejenie w aplikacji K1 — `SCHOWEK_DAJ` po Ctrl+V (szkielet
+    aplikacji robi to sam), odpowiedź `SCHOWEK`.
+16. **Strefa — „za każdym wklejeniem” (ADR 0020, D5 „A”).** Strefa nie pyta o schowek i nie ma własnego, który strona mogłaby
+    przeczytać później. Gdy ekran daje oknu sesji Ctrl+V, najpierw wysyła jej VMM-owi tekst (`SCHOWEK`), potem klawisz;
+    VMM wysyła agentowi ramki `WKLEJ` + `WKLEJ_TEKST` i **wstrzymuje klawisze**, aż agent potwierdzi `WKLEJONE`
+    (kompozytor zrobił z tekstu zaznaczenie okna z klawiaturą i anulował źródło przeglądarki) — najwyżej 0,5 s. Gestem jest
+    samo Ctrl+V; „Wklej” z menu strony działa potem na tym samym tekście. Tekst z innej sesji: ramka okna na 3 s „Wklejono z:
+    Bank”. Kopia w strefie: przeglądarka ustawia zaznaczenie (tylko klient z klawiaturą), kompozytor czyta tekst
+    (`wl_data_source.send` do rury, do 1 MiB) i daje go agentowi (kolejka FIFO `/run/k1/schowek`), agent — `KOPIA` +
+    `KOPIA_TEKST`; VMM sprawdza całość (długość jak zapowiedziana, tekst, najwyżej jedna kopia na 0,2 s), złamanie zasad
+    zamyka port plików. Sprawdzone na stanowisku z prawdziwym Firefoksem (`testy/stanowisko/schowek.py`).
+
 ## Konsekwencje
 - Pierwsza droga bajtów ze strefy do danych użytkownika: nadzorca dostaje od VMM tylko komunikaty 32 B i zapieczętowane
   memfd, a skarbiec — tylko nowy plik w Pobranych. Niezaufany jest format ramek (VMM), nazwa (VMM, nadzorca, skarbiec)
@@ -129,6 +146,9 @@ zaczyna sama strefa); brakowało drogi bajtów i formatu.
   obrazów, Notatki tylko tekst), a PDF i inne pliki otwiera się w strefie (krok 3) — RYZYKA R103.
 - Kroki 3–5 tego planu używają tej samej drogi w drugą stronę (pliki do strefy), dla przeciągania i schowka —
   uzupełnienia tego ADR.
+- Krok 5: schowek łączy sesje — tekst skopiowany w Banku można wkleić w Ogólnej, ale tylko gestem użytkownika (Ctrl+V,
+  które widzi K1), z informacją na ramce; kopia ze strefy działa tylko tuż po geście w jej oknie, więc strona w tle nie
+  podmieni schowka. RYZYKA R106.
 - Krok 4: nowa droga wejścia do strefy (upuszczenie) to nadal tylko kopia w „Z K1” po geście w K1; kompozytor strefy zna
   teraz obiekty, które sam tworzy (`wl_data_offer`) — powierzchnia w strefie, nie w K1. Pliki dostają od ekranu numery
   folderów pulpitu (Pulpit, jego foldery) — numery, które i tak widzą; skarbiec sprawdza prawa jak przy każdym przeniesieniu.

@@ -46,7 +46,7 @@ NAGL    := $(wildcard src/wspolne/*.h)
 KOMUNIKAT := src/wspolne/k1_komunikat.c src/wspolne/k1_kom_ekran.c src/wspolne/k1_kom_skarb.c \
              src/wspolne/k1_kom_nadzorca.c src/wspolne/k1_kom_pliki.c src/wspolne/k1_kom_siec.c src/wspolne/k1_siec.c \
              src/wspolne/k1_kom_wifi.c src/wspolne/k1_wifi.c src/wspolne/k1_kom_strefa.c src/wspolne/k1_opis.c \
-             src/wspolne/k1_kom_filmy.c src/wspolne/k1_filmy.c src/wspolne/k1_kom_posrednik.c src/wspolne/k1_posrednik.c src/wspolne/k1_kom_pobrane.c src/wspolne/k1_pliki_strefy.c
+             src/wspolne/k1_kom_filmy.c src/wspolne/k1_filmy.c src/wspolne/k1_kom_posrednik.c src/wspolne/k1_posrednik.c src/wspolne/k1_kom_pobrane.c src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c
 # Services (M3): protocol, channels, sandbox.
 USLUGI  := src/wspolne/k1_uslugi.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
            src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c \
@@ -197,18 +197,18 @@ STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przyborni
                 $(GEN)/k1_czcionki_dane.c
 $(BIN)/strefa: $(STREFA) $(wildcard src/strefa/*.h) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(STREFA) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
-GOSC := $(sort $(wildcard src/strefa/gosc/*.c)) src/wspolne/k1_pliki_strefy.c
+GOSC := $(sort $(wildcard src/strefa/gosc/*.c)) src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c
 $(BIN)/gosc: $(GOSC) $(wildcard src/strefa/gosc/*.h) src/wspolne/k1_pliki_strefy.h | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(GOSC) $(LDFLAGS_K1)
 # 0.10.0 step 2 (ADR 0043): the browser zone's own programs — the Wayland compositor (with gosc's display, kms.c) and
 # the relay of the browser's connections; they run inside the machine, built like gosc
-KOMPOZYTOR := $(sort $(wildcard src/strefa/kompozytor/*.c)) src/strefa/gosc/kms.c src/wspolne/k1_pomiar.c
+KOMPOZYTOR := $(sort $(wildcard src/strefa/kompozytor/*.c)) src/strefa/gosc/kms.c src/wspolne/k1_pomiar.c src/wspolne/k1_schowek.c
 $(BIN)/kompozytor: $(KOMPOZYTOR) $(wildcard src/strefa/kompozytor/*.h) src/strefa/gosc/kms.h src/wspolne/k1_pomiar.h | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -Isrc/strefa/gosc -o $@ $(KOMPOZYTOR) $(LDFLAGS_K1)
 $(BIN)/przekaznik: src/strefa/przekaznik/main.c | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ src/strefa/przekaznik/main.c $(LDFLAGS_K1)
 # 0.11.0 step 2 (ADR 0052): the agent of the zone's files (in the browser zone, like the relay)
-AGENT := $(sort $(wildcard src/strefa/agent/*.c)) src/wspolne/k1_pliki_strefy.c
+AGENT := $(sort $(wildcard src/strefa/agent/*.c)) src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c
 $(BIN)/agent: $(AGENT) $(wildcard src/strefa/agent/*.h) src/wspolne/k1_pliki_strefy.h | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -Isrc/strefa/agent -o $@ $(AGENT) $(LDFLAGS_K1)
 
@@ -218,7 +218,7 @@ $(BIN)/wejscie: src/wejscie/main.c src/wejscie/touchpad.c src/wejscie/touchpad.h
 # 0.10.0 (ADR 0042): the frame of the zones' windows (strefy.c) is drawn with przybornik's shapes, icons and text
 EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/powierzchnie.c src/ekran/wskaznik.c src/ekran/drm.c src/ekran/zapis.c \
          src/ekran/zdjecie.c src/ekran/zalegle.c src/ekran/strefy.c src/ekran/opis.c src/ekran/rozmiar.c \
-         src/ekran/wylaczanie.c src/ekran/pelny.c src/ekran/przeciaganie.c src/ekran/pomiar.c src/ekran/strefa_bufor.c src/ekran/warstwa.c src/wspolne/k1_skaluj.c \
+         src/ekran/wylaczanie.c src/ekran/pelny.c src/ekran/przeciaganie.c src/ekran/schowek.c src/ekran/pomiar.c src/ekran/strefa_bufor.c src/ekran/warstwa.c src/wspolne/k1_skaluj.c \
          src/wspolne/k1_pomiar.c
 EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_liczba.c src/przybornik/k1_wylaczanie.c src/przybornik/k1_opis_klient.c $(GEN)/k1_czcionki_dane.c
 $(BIN)/ekran: $(EKRAN) src/ekran/ekran.h src/ekran/zalegle.h $(EKRAN_PRZYB) $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
@@ -382,7 +382,9 @@ $(OBJ)/test_palce: testy/host/test_palce.c src/strefa/kompozytor/palce.c src/str
 $(OBJ)/test_tlo: testy/host/test_tlo.c src/strefa/tlo.c src/strefa/tlo.h src/strefa/virtq.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_tlo.c src/strefa/tlo.c
 $(OBJ)/test_pliki_strefy: testy/host/test_pliki_strefy.c src/wspolne/k1_pliki_strefy.c src/wspolne/k1_pliki_strefy.h testy/host/k1_test_host.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_pliki_strefy.c src/wspolne/k1_pliki_strefy.c
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_pliki_strefy.c src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c
+$(OBJ)/test_schowek: testy/host/test_schowek.c src/wspolne/k1_schowek.c src/wspolne/k1_schowek.h testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_schowek.c src/wspolne/k1_schowek.c
 $(OBJ)/test_edid: testy/host/test_edid.c src/strefa/edid.c src/strefa/edid.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_edid.c src/strefa/edid.c
 $(OBJ)/test_balon: testy/host/test_balon.c src/strefa/strony.c src/strefa/strony.h src/strefa/virtq.h testy/host/k1_test_host.h | $(OBJ)
@@ -512,7 +514,7 @@ TESTY_HOST := test_gpu_most test_ogloszenie test_paczka test_odcinki test_odcink
 	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
-	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_edid test_pliki_strefy test_palce \
+	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_edid test_pliki_strefy test_schowek test_palce \
 	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar
 TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania
@@ -570,7 +572,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy
+        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -619,7 +621,7 @@ FUZZ_ZR_lacznik   := src/strefa/lacznik.c src/wspolne/k1_siec.c
 FUZZ_DL_lacznik   := 700
 FUZZ_ZR_balon     := src/strefa/strony.c
 # 0.10.5 step 5 (Raptor Bridge, S35): a packet's whole path with the connections' state
-FUZZ_ZR_vsock     := src/strefa/vsock.c src/strefa/sterowanie.c src/strefa/pliki.c src/strefa/pliki_do.c src/strefa/polaczenia.c src/strefa/lacznik.c src/strefa/linia.c src/strefa/virtq.c \
+FUZZ_ZR_vsock     := src/strefa/vsock.c src/strefa/sterowanie.c src/strefa/pliki.c src/strefa/pliki_do.c src/strefa/schowek.c src/strefa/polaczenia.c src/strefa/lacznik.c src/strefa/linia.c src/strefa/virtq.c \
                      src/strefa/mmio.c src/wspolne/k1_memfd.c $(KOMUNIKAT) $(DOK_C)
 FUZZ_DL_vsock     := 20000
 FUZZ_DL_balon     := 1100
@@ -628,8 +630,10 @@ FUZZ_DL_filmy     := 4500
 FUZZ_ZR_posrednik := src/wspolne/k1_posrednik.c
 FUZZ_DL_posrednik := 4200
 FUZZ_ZR_gpu_most  := src/strefa/gpu_most.c
-FUZZ_ZR_pliki_strefy := src/wspolne/k1_pliki_strefy.c
+FUZZ_ZR_pliki_strefy := src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c
 FUZZ_DL_pliki_strefy := 200000
+FUZZ_ZR_schowek   := src/wspolne/k1_schowek.c
+FUZZ_DL_schowek   := 4096
 FUZZ_DL_gpu_most  := 8192
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
               -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/strefa -Isrc/zewnetrzne/monocypher \

@@ -113,6 +113,7 @@ static void przycisk(int nr, int wcisniety)
         if (s.chwyt >= 0) {
             do_wskaznika(s.chwyt, K1_WSK_WCISNIECIE, nr);
             pelny_gest(s.chwyt); /* 0.11.0 step 1: the user's gesture in that window */
+            schowek_gest(s.chwyt); /* step 5: a copy or a paste soon after it */
         }
     } else {
         s.przyciski &= ~(1 << nr);
@@ -174,6 +175,20 @@ static int przelaczanie(const struct k1_zdarzenie *z)
     return 1;
 }
 
+/* A key to the window with the focus; 0.11.0 step 5: Ctrl+V to a zone — its text first (D5: A). */
+static void do_fokusu(const struct k1_zdarzenie *z)
+{
+    struct pow *p = &s.p[s.fokus];
+    if (z->wartosc == 1)
+        schowek_gest(s.fokus); /* Ctrl+C, Ctrl+V of the user */
+    if (z->kod == KEY_V && z->wartosc == 1 && (s.mody & K1_MOD_CTRL) && !(s.mody & K1_MOD_ALT) &&
+        s.kl[p->kl].rola == K1_ROLA_STREFA)
+        schowek_do_strefy(s.fokus);
+    wyslij(p->kl, k1_komunikat_nowy(K1_KOM_KLAWISZ, p->id, z->kod, z->wartosc, s.mody, 0, 0));
+    if (z->wartosc == 1)
+        pelny_gest(s.fokus); /* 0.11.0 step 1: the user's gesture in that window */
+}
+
 static void klawisz(const struct k1_zdarzenie *z)
 {
     int bit = 0, i;
@@ -226,10 +241,7 @@ static void klawisz(const struct k1_zdarzenie *z)
     if (przelaczanie(z))
         return;
     if (s.fokus >= 0) {
-        struct pow *p = &s.p[s.fokus];
-        wyslij(p->kl, k1_komunikat_nowy(K1_KOM_KLAWISZ, p->id, z->kod, z->wartosc, s.mody, 0, 0));
-        if (z->wartosc == 1)
-            pelny_gest(s.fokus); /* 0.11.0 step 1: the user's gesture in that window */
+        do_fokusu(z);
         return;
     }
     /* No focused window: the arrows move the pointer (keyboard-only fallback). */

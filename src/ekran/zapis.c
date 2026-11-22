@@ -20,7 +20,7 @@
 #include "k1_uslugi.h"
 
 #define FD_SKARBIEC 5
-#define MAGIA "K1U4"   /* 0.8.2: room for 32 file types (K1U3: GIF, BMP, WebP made it 9; K1U4: Podgląd, below) */
+#define MAGIA "K1U4"   /* 0.8.2: room for 32 file types (with Podgląd for pictures) */
 #define TYPY_ZAPIS 32  /* room for file types in the saved settings */
 #define ZAPIS_STARY 28 /* the settings without file types */
 
@@ -32,43 +32,21 @@ struct zapis {
 _Static_assert(sizeof(struct zapis) == ZAPIS_STARY + 4 * TYPY_ZAPIS, "zapis ustawień: unexpected size");
 _Static_assert(K1_TYPY_MAKS <= TYPY_ZAPIS, "zapis ustawień: more file types than room");
 
-/* The formats still read: the same fields, room for fewer file types (the rest keep their defaults). Before K1U4
- * (0.8.2 step 4) Pliki was the only application for pictures: what was saved for them was no choice of the user, so
- * they get the default now (Podgląd, ADR 0037). Since 0.10.0 settings of an old format are saved again as K1U4 right
- * after they are read (ekran saved only after a change: settings set long ago and never changed stayed old).
- * k1: tymczasowe — usunąć w 0.11.0 (the rows K1U1–K1U3: by then every vault opened once with 0.10.x holds K1U4) */
-static const struct {
-    char magia[5];
-    int typy, przed_podgladem;
-} formaty[] = {
-    { MAGIA, TYPY_ZAPIS, 0 },
-    { "K1U3", TYPY_ZAPIS, 1 }, /* 0.8.2 step 3 */
-    { "K1U2", 8, 1 },          /* 0.8.0–0.8.1 */
-    { "K1U1", 0, 1 },          /* 0.5.6–0.7.6 */
-};
-
+/* Only K1U4 is read (0.11.0: the older K1U1–K1U3 went — every vault opened once with 0.10.x was saved again as K1U4;
+ * older settings, never opened since, are defaults now: a fail-safe start). */
 static int skarb = -1;
 static int32_t zapisana_szer, zapisana_wys;
-static int stary_format; /* read in K1U1–K1U3: saved again as K1U4 (0.10.0) */
 static int czeka; /* 0.8.1: skarbiec was still opening a large vault at start — its answer comes later */
 
 /* The saved settings `z` (n bytes) into `ust` (a copy of s.ust), each value checked; 0, or -1 for an unknown format. */
 static int odczytaj(const struct zapis *z, int n, int ust[K1_UST_MAKS + 1])
 {
-    int typy = -1, przed = 0;
-    for (size_t f = 0; f < sizeof formaty / sizeof formaty[0]; f++)
-        if (n == ZAPIS_STARY + 4 * formaty[f].typy && memcmp(z->magia, formaty[f].magia, 4) == 0) {
-            typy = formaty[f].typy;
-            przed = formaty[f].przed_podgladem;
-            stary_format = f > 0;
-        }
-    if (typy < 0) {
+    if (n != (int)sizeof *z || memcmp(z->magia, MAGIA, 4) != 0) {
         k1_log(TAG, "zapisane ustawienia w nieznanym formacie — domyślne");
         return -1;
     }
-    for (int i = 0; i < typy && i < K1_TYPY_MAKS; i++)
-        if (k1_ustawienie_poprawne(K1_UST_OTWIERANIE + i, z->otwieranie[i]) &&
-            !(przed && k1_typ_rodzina(i + 1) == K1_RODZINA_OBRAZY))
+    for (int i = 0; i < K1_TYPY_MAKS; i++)
+        if (k1_ustawienie_poprawne(K1_UST_OTWIERANIE + i, z->otwieranie[i]))
             ust[K1_UST_OTWIERANIE + i] = z->otwieranie[i];
     if (k1_ustawienie_poprawne(K1_UST_MOTYW, z->motyw))
         ust[K1_UST_MOTYW] = z->motyw;
@@ -91,7 +69,6 @@ static int odczytaj(const struct zapis *z, int n, int ust[K1_UST_MAKS + 1])
 static void zapisz(int32_t szer, int32_t wys, const char *dlaczego)
 {
     struct zapis z;
-    stary_format = 0;
     if (skarb < 0)
         return;
     memcpy(z.magia, MAGIA, 4);
@@ -129,8 +106,7 @@ void ustawienia_wczytaj(void)
         k1_log(TAG, "brak zapisanych ustawień — domyślne (%s)", tryb == K1_SKARB_RAM ? "zapis tylko w pamięci" : "na dysku");
         return;
     }
-    if (odczytaj(&z, n, s.ust) == 0 && stary_format)
-        zapisz(zapisana_szer ? zapisana_szer : s.W, zapisana_szer ? zapisana_wys : s.H, "przepisane ze starego formatu");
+    odczytaj(&z, n, s.ust);
 }
 
 int ustawienia_czeka(void)
@@ -156,8 +132,6 @@ static void spoznione(const struct zapis *z, int n)
             ustawienie(k, ust[k]);
     if (n > 0)
         ustawienia_po_starcie();
-    if (n > 0 && stary_format)
-        zapisz(zapisana_szer ? zapisana_szer : s.W, zapisana_szer ? zapisana_wys : s.H, "przepisane ze starego formatu");
 }
 
 /* After the first frame: the saved resolution, if this card offers it. */

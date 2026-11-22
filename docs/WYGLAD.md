@@ -147,6 +147,9 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   krok 4):** ten sam znak — nad pulpitem (pliki z Plików) rysuje go pulpit, nad Plikami (plik z pulpitu) Pliki z karteczką,
   nad oknem sesji przeglądarki ekran: zielony „Kopia do sesji „Ogólna”” (albo czerwony z powodem), 16 px w prawo i 24 px
   w dół od czubka kursora; z Ctrl „Kopiuj do „…”” (zielony).
+- **Schowek (0.11.0 krok 5):** zaznaczenie w Notatkach — tło `zaznaczenie` pod zaznaczonym tekstem (wiersz po wierszu,
+  przy końcu wiersza 6 px na znak nowego wiersza); tekst wklejony w oknie sesji z innej sesji — na pasku tytułu ramki
+  zamiast „· osobna maszyna” przez 3 s „· Wklejono z: Bank” (ten sam krój i kolor co tytuł).
 - **Okienko pytania (0.8.2 krok 6):** panel menu (`k1_menu`) 300 px przy miejscu upuszczenia: pytanie Plex Sans Medium 15
   (zawijane, wiersz 21 px), pod nim zdanie Plex Sans 13 (`tekst2`), kreska, wiersze odpowiedzi — pierwszy Medium
   („Przenieś do Kosza”, „Zachowaj oba”, „OK”), „Anuluj” zwykły.

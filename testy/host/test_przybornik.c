@@ -70,6 +70,11 @@ static void t_utf8(void)
         EXPECT(k1_pole_klawisz(t, &dl, 7, KEY_BACKSPACE, 0) == 1 && dl == 1 && strcmp(t, "z") == 0); /* ó: both bytes */
         EXPECT(k1_pole_klawisz(t, &dl, 7, KEY_BACKSPACE, 0) == 1 && dl == 0 && t[0] == '\0');
         EXPECT(k1_pole_klawisz(t, &dl, 7, KEY_BACKSPACE, 0) == 1 && dl == 0); /* empty: stays empty */
+        /* 0.11.0 step 5: pasted text — whole characters while they fit, new lines and tabs as spaces, \r skipped */
+        k1_pole_wklej(t, &dl, 7, "a\r\nż\tb", 7);
+        EXPECT(dl == 6 && strcmp(t, "a ż b") == 0);
+        k1_pole_wklej(t, &dl, 7, "żż", 4);
+        EXPECT(dl == 6 && strcmp(t, "a ż b") == 0); /* "ż" (2 B) does not fit in 7 any more */
     }
     EXPECT(k1_utf8("\xff", 1, &k) == 1 && k == 0xfffd);
     EXPECT(k1_utf8("\xc0\x80", 2, &k) == 1 && k == 0xfffd);     /* overlong */

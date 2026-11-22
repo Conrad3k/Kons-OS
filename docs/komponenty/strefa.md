@@ -313,8 +313,15 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
   `receive`. Tylko adresy „Z K1”, najwyżej 8, punkt na ekranie strefy, raz na sekundę. Firefox bierze je jak pliki
   (strona: `dataTransfer.files`; pole „Prześlij plik” się wypełnia — stanowisko `upusc.py`). Przeciąganie zaczęte w strefie
   dalej anulowane od razu.
-- Gość próbny: tryby 18 (uczciwe pobranie), 19 (złośliwe) i 20 (odbiór z K1 i zmiany z powrotem, a na końcu upuszczenie
-  pliku z pulpitu — 0.11.0 krok 4; `gosc/odbior.c`) — `scripts/test-pobrane.sh`.
+- **Schowek (0.11.0 krok 5, ADR 0052 T8, D5: A):** Ctrl+V w oknie — ekran daje VMM-owi tekst (`SCHOWEK`) przed klawiszem;
+  VMM (`schowek.c`) wysyła agentowi `WKLEJ` + `WKLEJ_TEKST` i wstrzymuje klawisze (najwyżej 0,5 s), aż agent powie
+  `WKLEJONE` — kompozytor (`kompozytor/schowek.c`) zrobił z tekstu zaznaczenie okna (`wl_data_offer` tekstu,
+  `wl_data_device.selection`) i anulował własne źródło przeglądarki. Kopia w strefie: przeglądarka ustawia zaznaczenie →
+  kompozytor czyta tekst (`wl_data_source.send`, do 1 MiB, sprawdzony) → kolejka FIFO `/run/k1/schowek` → agent `KOPIA` +
+  `KOPIA_TEKST` → VMM (cały tekst, jak zapowiedziany, `k1_schowek_dobry`, najwyżej jedna kopia na 0,2 s) → ekran
+  `SCHOWEK_USTAW`. Zaznaczenie ustawia tylko klient z klawiaturą. W strefie nie ma własnego schowka do odczytu przez stronę.
+- Gość próbny: tryby 18 (uczciwe pobranie), 19 (złośliwe) i 20 (odbiór z K1 i zmiany z powrotem, upuszczenie pliku
+  z pulpitu — 0.11.0 krok 4, schowek — krok 5; `gosc/odbior.c`) — `scripts/test-pobrane.sh`.
 
 ## Komunikaty
 | Komunikat | Kierunek | Pola |
@@ -348,6 +355,8 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
 | `POBRANIE` (0.11.0 krok 2, D2: A) | nadzorca → gui (fd 5, + memfd) | obiekt = strefa, a = plik, b, c = rozmiar, d = długość nazwy 1…127, e = 0; memfd jak w `STREFA_PLIK` (gui czyta i sprawdza nazwę jeszcze raz) — okienko „<sesja> pobrała plik” |
 | `POBRANIE_DECYZJA` (0.11.0 krok 2) | gui → nadzorca (fd 4); program testowy → nadzorca | obiekt = strefa, a = plik, b = 1 „Zapisz w Pobranych” / 0 „Zostaw w przeglądarce” (albo „OK” pliku za dużego), reszta 0 |
 | `POBRANIE_WYNIK` (0.11.0 krok 2) | nadzorca → gui (fd 5) | obiekt = strefa, a = plik, b = `K1_PS_W_*`, reszta 0 — jego okienko znika; po „Zapisz” bez zapisu gui mówi dlaczego |
+| `SCHOWEK` (0.11.0 krok 5) | ekran → VMM (fd 3, + memfd) | obiekt = okno, a = bajty tekstu, b = skąd (0 K1, numer strefy) — tuż przed Ctrl+V do okna (`ekran.md`) |
+| `SCHOWEK_USTAW` (0.11.0 krok 5) | VMM → ekran (fd 3, + memfd) | obiekt = okno, a = bajty — tekst skopiowany w strefie (ekran bierze go tylko po geście w oknie) |
 | `UPUSC_STREFA` (0.11.0 krok 4) | ekran → VMM (fd 3) | obiekt = okno, a, b = punkt w obrazie, c = liczba plików 1…8, reszta 0 — upuszczono pliki na okno; VMM: ramka `UPUSC` dla agenta (`ekran.md`) |
 | `DOK_DO_STREFY` (0.11.0 krok 3, ADR 0052) | Pliki, pulpit → skarbiec | obiekt = widoczny plik, a = strefa z oknem, b = tryb `K1_PS_TRYB_*`: 1 „Otwórz za pomocą” sesja (nowa karta) / 0 „Wyślij do” / 2 upuszczony na okno (krok 4), reszta 0; tylko z prawem `P_STREFA` (Pliki, pulpit — pliki Pulpitu) — odpowiedź `DOK_WYNIK` |
 | `SKARB_DO_STREFY` (0.11.0 krok 3) | skarbiec → nadzorca (kanał sterujący, + memfd) | obiekt = plik, a = strefa, b = tryb (0…2), reszta 0; memfd: wpis pliku (`K1_DOK_WPIS_BAJTY`) — kanał nadzorcy `K1_WL_DO_STREF` może go teraz czytać |

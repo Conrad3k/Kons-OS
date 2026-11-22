@@ -129,6 +129,7 @@ static void zlamanie(const char *co)
     ps.polaczony = 0;
     ps.wej_n = ps.wyj_n = ps.wyj_od = 0;
     pliki_do_rozlacz();
+    schowek_rozlacz();
 }
 
 static void zgloszenie(const struct k1_ps_ramka *r)
@@ -195,6 +196,10 @@ static void ramka(const struct k1_ps_ramka *r)
         bajty(r);
     else if (r->typ == K1_PS_ODEBRANY) /* 0.11.0 step 3: the end of a file K1 sent */
         pliki_do_odebrany(r->nr, r->wynik);
+    else if (r->typ == K1_PS_KOPIA || r->typ == K1_PS_KOPIA_TEKST || r->typ == K1_PS_WKLEJONE) { /* step 5 */
+        if (schowek_ramka(r) != 0)
+            zlamanie("schowek");
+    }
     else if ((p = wedlug_nr(r->nr)) != NULL) /* BRAK */
         zakoncz(p, K1_PS_W_ZOSTAWIONY);
 }
@@ -253,6 +258,7 @@ void pliki_rozlacz(void)
     ps.polaczony = 0;
     ps.wej_n = ps.wyj_n = ps.wyj_od = 0;
     pliki_do_rozlacz();
+    schowek_rozlacz();
 }
 
 int pliki_odpowiedz(uint32_t *port, int *rst)
@@ -276,6 +282,7 @@ size_t pliki_do_goscia(uint8_t *b, size_t maks)
     if (!ps.polaczony || ps.odpowiedz)
         return 0;
     pliki_do_dalej(); /* the next BAJTY of a file to the zone, when there is room for a whole frame */
+    schowek_do_goscia(); /* 0.11.0 step 5: K1's text for a Ctrl+V */
     n = ps.wyj_n < maks ? ps.wyj_n : maks;
     memcpy(b, ps.wyj + ps.wyj_od, n);
     return n;
@@ -298,6 +305,7 @@ static void do_nadzorcy(struct k1_komunikat k, int fd)
 void pliki_obsluz(void)
 {
     pliki_do_obsluz(); /* 0.11.0 step 3: a file to the zone */
+    schowek_obsluz();  /* step 5: the keys held, a copy of the zone */
     for (int i = 0; i < K1_PS_CZEKA; i++) {
         struct plik *p = &pl[i];
         if (p->stan == P_NOWY) {
@@ -369,4 +377,5 @@ void pliki_podsumowanie(void)
         k1_log(TAG, "pliki: zapisane w Plikach %lu, złamania zasad %lu, odmowy %lu, ramki utracone %lu", ps.zapisane,
                ps.zlamania, ps.odmowy, ps.utracone);
     pliki_do_podsumowanie();
+    schowek_podsumowanie();
 }

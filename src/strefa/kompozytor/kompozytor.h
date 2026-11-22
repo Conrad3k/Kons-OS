@@ -31,7 +31,7 @@
 #define WYWOLANIA_MAKS 64         /* frame callbacks waiting on one surface */
 #define URZ_KLIENTA 4             /* wl_pointer, wl_keyboard and wl_data_device objects of one client */
 #define SERWEROWE_ID 0xff000000u  /* ids of the objects the compositor makes (wl_data_offer; libwayland's server range) */
-#define SERWEROWE_MAKS 4
+#define SERWEROWE_MAKS 8
 
 /* wl_display.error codes (wayland.xml) */
 enum { BLAD_ZLY_OBIEKT = 0, BLAD_ZLA_METODA = 1, BLAD_PAMIEC = 2, BLAD_WEWNETRZNY = 3 };
@@ -318,11 +318,22 @@ void wejscie_okno_zmiana(void);               /* the toplevel or the popups chan
 int wejscie_czekaj(void);                     /* ms until wejscie_czas has something to do; -1: nothing */
 void wejscie_czas(void);                      /* the fingers stopped a while ago: their gesture ends (palce.c) */
 void wejscie_wpisz(const char *adres);        /* 0.11.0 step 3: Ctrl+L, the address, Alt+Enter — to the focused window */
+struct klient *wejscie_klient_klawiatury(void); /* 0.11.0 step 5: whose window has the keys (NULL: nobody's) */
 /* dane.c (0.11.0 step 4): wl_data_device_manager, wl_data_source, wl_data_device, wl_data_offer — files dropped on the
  * window from K1 (an offer of text/uri-list at that point) */
 void dane_upusc(int32_t x, int32_t y, const char *adresy); /* adresy: "file:…\r\nfile:…\r\n" */
 int dane_czekaj(void);                        /* ms until dane_czas has something to do; -1: nothing */
 void dane_czas(void);
+int dane_zaznaczenie(const uint8_t *t, size_t n); /* 0.11.0 step 5: K1's text as the selection of the client with the keys */
+/* schowek.c (0.11.0 step 5, ADR 0052 T8): the clipboard in the zone — copies to K1, K1's text at Ctrl+V */
+void schowek_start(const char *gniazdo);     /* the FIFO to the agent next to the socket */
+int schowek_typ_tekstu(const char *mime);    /* a text type we offer and take */
+int schowek_fd(unsigned i, short *zdarzenia); /* the loop: descriptor i (-1: none now, -2: past the last) */
+void schowek_obsluz(unsigned i);
+void schowek_zrodlo(struct obiekt *src, const char *mime); /* the browser set the selection (NULL: none) */
+void schowek_zrodlo_znika(struct obiekt *src);
+void schowek_wklej(uint32_t nr, const uint8_t *t, size_t n); /* K1's text for the Ctrl+V coming (otworz.c) */
+void schowek_daj(int fd, const char *b, size_t n); /* receive of our text offer (fd: taken) */
 /* otworz.c (0.11.0 step 3, P16): "Otwórz w…" — the agent's FIFO next to the socket; step 4: "upusc X Y <adresy>" */
 void otworz_start(const char *gniazdo);
 int otworz_fd(void);

@@ -4,8 +4,11 @@
  * comes back changed (ZGLOS with dotyczy = K1's number; other bytes, a different size): the test clicks "Zapisz",
  * "Zapisz jako nowy plik", "Nie" in K1's window. Last, NEGATIVE: a changed version of a file K1 never gave (dotyczy 999)
  * — K1 refuses it. 0.11.0 step 4: then a file of the desktop dragged onto the zone's window (scripts/test-pobrane.sh
- * drags it): UPUSC (how many, where — inside the window) and that many PLIK frames with tryb UPUSC, bytes checked. Each
- * line of the log says what the guest saw. */
+ * drags it): UPUSC (how many, where — inside the window) and that many PLIK frames with tryb UPUSC, bytes checked.
+ * 0.11.0 step 5: the clipboard as the agent — nothing comes without Ctrl+V; a copy before any gesture (K1 refuses); the
+ * text Notatki copied comes at Ctrl+V in the window (checked, WKLEJONE); a copy back ("ze strefy próbnej" — the script
+ * pastes it in Notatki); NEGATIVE: a flood of copies, text with a control character, a length past 1 MiB (the port
+ * closes). Each line of the log says what the guest saw. */
 #include <errno.h>
 #include <poll.h>
 #include <stdio.h>
@@ -17,6 +20,7 @@
 
 #include "gosc.h"
 #include "k1_pliki_strefy.h"
+#include "k1_schowek.h"
 
 #define PLIKOW 3
 #define CZEKAJ_MS 300000
@@ -125,6 +129,58 @@ static void upuszczenie(void)
     loguj("odbiór: upuszczone pliki zgodne: %d, z trybem upuszczenia: %d", dobre, z);
 }
 
+/* KOPIA + KOPIA_TEKST of t (n bytes; dl: the length told, else n). */
+static int kopia(uint32_t nr, const char *t, size_t n, uint32_t dl)
+{
+    struct k1_ps_ramka r = { .typ = K1_PS_KOPIA, .nr = nr, .x = dl ? dl : (uint32_t)n };
+    if (ramka(&r) != 0)
+        return -1;
+    r = (struct k1_ps_ramka){ .typ = K1_PS_KOPIA_TEKST, .nr = nr, .dane = (const uint8_t *)t, .dl = (uint32_t)n };
+    return ramka(&r);
+}
+
+#define Z_NOTATEK "k1 test"        /* what scripts/test-pobrane.sh types in Notatki and copies */
+#define ZE_STREFY "tekst-ze-strefy 42"
+
+static void schowek_test(void)
+{
+    static uint8_t t[K1_SCHOWEK_MAKS];
+    struct k1_ps_ramka r;
+    uint32_t dl = 0, nr = 0;
+    int w = czytaj(&r, 4000);
+    loguj("schowek: bez Ctrl+V %s", w == 0 ? "nic nie przyszło" : "BŁĄD — coś przyszło");
+    kopia(1, ZE_STREFY, strlen(ZE_STREFY), 0); /* no gesture in the window yet: K1 refuses it */
+    loguj("schowek: kopia bez gestu wysłana; czekam na Ctrl+V");
+    while ((w = czytaj(&r, 3 * CZEKAJ_MS)) > 0 && r.typ != K1_PS_WKLEJ)
+        ;
+    if (w > 0) {
+        nr = r.nr, dl = r.x;
+        for (uint32_t jest = 0; jest < dl && czytaj(&r, CZEKAJ_MS) > 0 && r.typ == K1_PS_WKLEJ_TEKST;) {
+            memcpy(t + jest, r.dane, r.dl < dl - jest ? r.dl : dl - jest);
+            jest += r.dl;
+        }
+        r = (struct k1_ps_ramka){ .typ = K1_PS_WKLEJONE, .nr = nr };
+        ramka(&r);
+    }
+    loguj("schowek: tekst z K1 %u B, %s", dl, dl == strlen(Z_NOTATEK) && memcmp(t, Z_NOTATEK, dl) == 0 ? "zgodny" : "BŁĄD");
+    kopia(2, ZE_STREFY, strlen(ZE_STREFY), 0); /* right after the Ctrl+V: K1 takes it */
+    loguj("schowek: kopia ze strefy wysłana");
+    sleep(40);                                 /* the script pastes it in Notatki (slow under emulation) */
+    for (uint32_t i = 0; i < 20; i++)
+        kopia(10 + i, "zalew", 5, 0);
+    sleep(1);
+    kopia(40, "zlytekst", 9, 0);
+    sleep(1);
+    loguj("schowek zły: zalew 20, znak sterujący, za długi — wysłane");
+    { /* KOPIA with a length past 1 MiB: k1_ps_zapisz refuses it, so the bytes by hand */
+        uint8_t z[20] = { K1_PS_KOPIA, 0, 0, 0, 12, 0, 0, 0, 41, 0, 0, 0 };
+        uint32_t za = K1_SCHOWEK_MAKS + 1;
+        memcpy(z + 12, &za, 4); /* little-endian, as the guest */
+        if (write(vs, z, sizeof z) != (ssize_t)sizeof z)
+            loguj("schowek zły: za długi — nie wysłany");
+    }
+}
+
 void odbior(void)
 {
     struct sockaddr_vm a = { .svm_family = AF_VSOCK, .svm_cid = VMADDR_CID_HOST, .svm_port = K1_PS_PORT };
@@ -144,4 +200,5 @@ void odbior(void)
         loguj("odbiór: zmiana pliku %u — wynik %u", nr[j], zmiana(100 + (uint32_t)j, nr[j], nazwa[j]));
     loguj("odbiór zły: zmiana pliku, którego K1 nie dał — wynik %u", zmiana(200, 999, "obcy.bin"));
     upuszczenie();
+    schowek_test(); /* 0.11.0 step 5 */
 }

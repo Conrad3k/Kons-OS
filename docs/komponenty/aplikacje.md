@@ -38,6 +38,11 @@ górze, strzałki przewijania gdy się nie mieszczą), „Nowa notatka” (Ctrl+
 **„Otwórz…”** (Ctrl+O, 0.8.0): okno wyboru pliku K1, Ctrl+↑/↓ — poprzednia/następna, „Usuń notatkę” w stopce
 z potwierdzeniem. Pisanie z polskimi znakami (AltGr), strzałki, Home/End, Backspace, Delete, Enter, kliknięcie
 ustawia kursor, zawijanie wierszy, zapis automatyczny (0,8 s po zmianie; napis w stopce mówi, gdzie zapisano).
+**Schowek (0.11.0 krok 5, `schowek.c`):** Shift ze strzałkami, Home i End zaznacza, Ctrl+A — całość; Ctrl+C kopiuje
+zaznaczenie, Ctrl+X wycina, Ctrl+V wkleja (zastępuje zaznaczenie; „\r\n” → nowy wiersz; co się nie mieści w notatce,
+zostaje poza nią). Tekst trzyma ekran; wkleić można też tekst z przeglądarki (i odwrotnie). Ctrl+V działa też w polach
+tekstowych: nazwa pliku w Plikach, hasło sieci Wi-Fi i nazwa sesji w Ustawieniach (`k1_pole_wklej` — tabulatory i nowe
+wiersze jako spacje); hasła K1 i pola z hasłami nie da się skopiować.
 
 **Od 0.8.0 każda notatka to plik** (ADR 0030) w **Dokumenty › Notatki** (do 256 najnowszych notatek po 16 KB — przy
 większej liczbie komunikat „Pokazano 256 najnowszych notatek”, starsze są w Plikach; 0.8.1): nazwa pliku

@@ -83,6 +83,9 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `PRZECIAGANIE_GDZIE` (0.11.0 krok 4) | ekran → źródło | Pliki, pulpit | `a` = 1: kursor jest nad innym oknem albo pulpitem (tam rysuje się znak — źródło chowa swoją kartę), 0: wrócił nad źródło |
 | `PRZECIAGANIE_KONIEC` (0.11.0 krok 4) | ekran → źródło | Pliki, pulpit | upuszczone gdzie indziej: `a` = `K1_PC_FOLDER` / `K1_PC_KOSZ` (`b` = folder) albo `K1_PC_STREFA` (`b` = numer strefy), `c` = klawisze przy puszczeniu; robi to źródło (Pliki pytają, przenoszą, kopiują; do strefy — `DOK_DO_STREFY` „upuść”) |
 | `UPUSC_STREFA` (0.11.0 krok 4) | ekran → strefa (VMM) | ekran | upuszczono pliki na okno strefy: `a`, `b` = punkt w obrazie strefy, `c` = ile plików (1…8); kopie przychodzą potem przez nadzorcę. Póki kursor tylko jest nad oknem, strefa nic nie dostaje |
+| `SCHOWEK_USTAW` (0.11.0 krok 5, ADR 0052, D5: A) | klient → ekran | klient okna z fokusem, tylko do 2 s (strefa: 10 s) po klawiszu albo wciśnięciu użytkownika w tym oknie | skopiowano: `a` = bajty 1…1 MiB, reszta 0; + memfd z pieczęciami z tekstem (UTF-8 bez NUL i znaków sterujących — `k1_schowek_dobry`). Ekran trzyma tekst w pamięci (nigdy w skarbcu ani w logu) i skąd jest (K1 albo numer strefy); kopia bez gestu albo zły tekst — odrzucone |
+| `SCHOWEK_DAJ` (0.11.0 krok 5) | aplikacja → ekran | aplikacja okna z fokusem, do 2 s po geście (Ctrl+V, „Wklej”) | prośba o tekst schowka; odpowiedź `SCHOWEK` (pusty schowek: nic). Strefa nigdy nie pyta |
+| `SCHOWEK` (0.11.0 krok 5) | ekran → klient | aplikacja (odpowiedź na `SCHOWEK_DAJ`); VMM strefy — tuż przed Ctrl+V do jej okna | `a` = bajty, `b` = skąd (0 K1, numer strefy); + memfd z tekstem. Tekst z innej sesji: na ramce okna na 3 s „Wklejono z: <sesja>” |
 | `POKAZ` | klient → ekran | powłoka, logowanie | pokaż / ukryj panel |
 | `PRZESUN` | klient → ekran | powłoka, logowanie | nowe położenie panelu |
 | `PRZECIAGNIJ` | klient → ekran | właściciel okna | zacznij przesuwać okno wciśniętym przyciskiem myszy |
@@ -190,6 +193,15 @@ z numerem strefy — kopie idą drogą z kroku 3 (`DOK_DO_STREFY` z trybem „up
 przeniesienia (D6) — klawisze idą w każdym komunikacie. Źródło i cel nigdy nie rozmawiają ze sobą. Log: `przeciąganie między
 oknami: N elementów (rodzaj R)`, `upuszczono na pulpit (folder|Kosz)`, `upuszczono na Pliki`, `N plików do strefy S (okno W)`.
 
+**Schowek (0.11.0 krok 5, ADR 0052 T8, D5 właściciela: A — `schowek.c`).** Jeden tekst (UTF-8, do 1 MiB), tylko w pamięci
+ekranu, czyszczony przy wyłączaniu; w logu tylko liczba bajtów i skąd. Ekran widzi klawisze i wie, które okno ma fokus,
+więc kopię (`SCHOWEK_USTAW`) bierze tylko od klienta okna z fokusem i tylko tuż po geście użytkownika w tym oknie
+(aplikacja 2 s, strefa 10 s — przycisk „Kopiuj” na stronie po kliknięciu). Aplikacja prosi o tekst `SCHOWEK_DAJ`
+(Ctrl+V — robi to szkielet aplikacji). **Strefa nigdy nie pyta:** gdy Ctrl+V idzie do okna sesji, ekran najpierw daje VMM-owi
+tekst (`SCHOWEK`), potem klawisz — VMM wstrzymuje klawisze, aż gość potwierdzi, że tekst jest jego zaznaczeniem (najwyżej
+0,5 s). Strona nie przeczyta schowka sama. Tekst z innej sesji — na ramce na 3 s „Wklejono z: Bank”. Log: `schowek:
+skopiowano N B (z K1 0 | ze strefy S)`, `schowek: Ctrl+V w oknie strefy S — tekst dany (N B, …)`, `schowek: wklejone w oknie W`.
+
 ## Ekran wyłączania (0.10.7 krok 6, T7; decyzja właściciela D7: szkic B „Kropki”)
 Nadzorca, gdy przyjmie `WYLACZ` (wyłączanie albo ponowne uruchamianie; wylogowanie nie), wysyła ekranowi `WYLACZANIE`
 na kanale sterującym — tylko on może (sprawdzane pole po polu, kierunek „sterowanie”, UID 0; od klienta ekranu odrzucone:
@@ -285,4 +297,5 @@ w jądrze (ioctl).
 | w systemie (0.8.5): klient, który nie odbiera, gdy mysz wysyła 1500 ruchów, dostaje potem RAMKA i PUSZCZENIE; inny klient w tym czasie rysuje normalnie | negatywny |
 | `test-m4.sh` (M4.1): zmiana rozdzielczości z Ustawień — nowy tryb, zrzut w nowym rozmiarze, panele na nowych miejscach | funkcjonalny |
 | host: `test_komunikat`, `fuzz_komunikat`, `test_zdarzenie`, `fuzz_zdarzenie`, renderer z ASan/UBSan | jednostkowy / fuzzing |
+| `test-pobrane.sh` (0.11.0 krok 5): schowek — Notatki → Ctrl+V w oknie strefy (dokładnie ten tekst, klawisz po potwierdzeniu gościa), kopia strefy → Notatki; NEGATYWNE: bez Ctrl+V strefa nic nie dostaje, kopia bez gestu odrzucona; host `test_komunikat` (`SCHOWEK*`), `test_schowek`, `fuzz_schowek` | funkcjonalny, negatywny (IPC) |
 | `test-pliki.sh` (0.11.0 krok 4): folder z Plików na pulpit i z pulpitu na listę Plików (przeniesiony), Ctrl + folder na pulpit — odmowa w Plikach; `test-pobrane.sh`: plik z pulpitu na okno strefy próbnej — znak K1, nic do strefy przed puszczeniem, potem `UPUSC_STREFA` w punkcie i kopia bajt w bajt; host `test_komunikat` (`przeciaganie`: każde pole poza zakresem, zły kierunek), `test_przeciaganie` (`K1_PC_STREFA`, Ctrl) | funkcjonalny, negatywny (IPC) |

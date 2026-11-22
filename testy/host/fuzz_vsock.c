@@ -50,6 +50,8 @@ void zamek_wez(const char *kto) { (void)kto; }
 void zamek_oddaj(void) {}
 void okno_etap(int etap) { (void)etap; }
 void okno_pelny(int tak) { (void)tak; } /* 0.11.0 step 1 */
+void okno_kopia(const uint8_t *t, uint32_t n) { (void)t, (void)n; } /* step 5: the clipboard */
+void wejscie_klawisz(int kod, int wartosc) { (void)kod, (void)wartosc; }
 void gpu_liczniki(unsigned *n, unsigned *mib) { *n = 0, *mib = 0; }
 void pomiar_gosc(const uint32_t *w) { (void)w; } /* 0.10.11 step 1: the guest's measurement line */
 void balon_cel(uint32_t mib) { (void)mib; }
