@@ -276,17 +276,24 @@ static void rozdzielacz(void)
  * close nadzorca says "już działa"); nadzorca must open it by itself once the old one ended. */
 static void okno_i_zamykanie(void)
 {
-    long stary;
-    int i;
+    long stary, p = 0;
+    int i, j;
     if (!strefa_raz_start(K1_STREFA_TRYB_OKNO))
         return;
     stary = find_process("strefa");
     for (i = 0; i < 400 && find_process("strefa") == stary; i++) {
         zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_DYSK, 0, 0, 0), NULL, 10);
-        msleep(3000);
+        for (j = 0; j < 60 && find_process("strefa") == stary; j++) /* 3 s, but the end noticed within 50 ms */
+            msleep(50);
     }
     k1_log(TAG, "strefy: strefa skończyła się (tryb %d)", K1_STREFA_TRYB_OKNO);
-    if (czekaj_strefa(1, 30) && find_process("strefa") != stary)
+    /* the new machine of TRYB_DYSK lives about 1.5 s (with KVM less): looked for every 50 ms (#159: CI missed it) */
+    for (j = 0; j < 600 && (p == 0 || p == stary); j++) {
+        p = find_process("strefa");
+        if (p == 0 || p == stary)
+            msleep(50);
+    }
+    if (p != 0 && p != stary)
         k1_log(TAG, "strefy: strefa otwarta ponownie po zamknięciu (tryb %d)", K1_STREFA_TRYB_DYSK);
     k1_log(TAG, "strefy: strefa %s (tryb %d)", czekaj_strefa(0, 240) ? "skończyła się" : "nie skończyła się",
            K1_STREFA_TRYB_DYSK);

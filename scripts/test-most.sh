@@ -119,15 +119,22 @@ VMM = r"K1-STREFA: połączenia przeglądarki: (\d+), nazwy (\d+), odmowy (\d+) 
 NADZ = r"K1-NADZORCA: strefa 1: połączenia (\d+), odmowy (\d+)"
 
 
+WYNIK = r"K1-GOSC: most: wynik "
+
+
 def przebieg(nr):
     """One run of the honest bridge test (gosc TRYB_MOST); its numbers for the comparison."""
     od_vmm, od_nadz = q.ile(VMM), q.ile(NADZ)
+    wzory = {f: rf"K1-GOSC: most: {re.escape(f)}: ok (\d+)/(\d+), ([\d.]+) s, ([\d.]+) MiB/s" for f in FAZY}
+    od_f = {f: q.ile(w) for f, w in wzory.items()}  # this run's lines only (the first run's are in the log already)
+    od_wyn = q.ile(WYNIK)
     sprawdz(f"[{nr}] strefa próbna w trybie mostu: przekaźnik w strefie gotowy, klient startuje",
             czekaj(r"K1-TEST: strefy: strefa próbna uruchomiona \(tryb 13\)", od=nr - 1, czas=limit * 0.3) and
             czekaj(r"K1-GOSC: most: start", od=nr - 1, czas=300))
-    for f in FAZY:
-        m = czekaj(rf"K1-GOSC: most: {re.escape(f)}: ok (\d+)/(\d+), ([\d.]+) s, ([\d.]+) MiB/s", od=nr - 1,
-                   czas=900)
+    for f, w in wzory.items():  # the guest's result ends the wait too: a phase that never comes must not hold CI
+        czekaj(rf"{w}|{WYNIK}", od=od_f[f] + od_wyn, czas=900)
+        m = list(re.finditer(w, q.tekst()))
+        m = m[od_f[f]] if len(m) > od_f[f] else None
         sprawdz(f"[{nr}] {f}: wszystkie połączenia jak trzeba", m and m.group(1) == m.group(2),
                 m.group(0) if m else "brak")
     if nr == 1:

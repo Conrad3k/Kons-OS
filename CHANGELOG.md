@@ -22,6 +22,10 @@ Zapisany plik trafia do folderu pobranych sesji, a K1 pyta, czy zapisać go w Po
 - Scenariusz stanowiska `testy/stanowisko/menu.py`: prawy przycisk na obrazach (w linku, przy krawędziach, po wklejeniu
   tekstu z K1), „Zapisz obraz jako…” i Enter — plik w folderze pobranych, Firefox żyje; bez poprawki pada na tym samym
   błędzie co u Ciebie.
+- **Testy w CI:** sprawdzenie „OTWARCIE W TRAKCIE ZAMYKANIA (D2)” w `test-strefa` czasem nie przechodziło (#159), choć
+  nadzorca robił wszystko dobrze — ponownie otwarta strefa testowa żyje ok. 1,5 s, a program testowy patrzył na nią co
+  3 s; teraz co 50 ms. `test-most` po awarii gościa czekał po 15 min na każdą brakującą fazę i CI ucinał cały krok testów
+  bez wyniku — teraz wynik gościa kończy czekanie. Sama awaria jądra gościa przy 48 połączeniach naraz: zgłoszenie #208.
 
 ## [0.11.0] — 2026-11-22
 
