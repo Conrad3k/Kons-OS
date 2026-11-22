@@ -132,6 +132,11 @@ int kvm_procesory(const struct st_wejscie *w);
 int kvm_uruchom(void);
 void kvm_linia_urzadzen(char *buf, size_t n);        /* "virtio_mmio.device=4K@0x…:5 …" */
 
+/* powiadomienia.c (0.11.2): an eventfd per queue that KVM signals on the guest's QueueNotify, and the thread that hands
+ * them to the devices (under mz.zamek) — the processor does not leave the guest for them */
+int powiadomienia_start(void);              /* after kvm_urzadzenia, before kvm_uruchom: 0, or -1 (logged) */
+unsigned long powiadomienia_obsluzone(void); /* notifications handled (the log at the end) */
+
 /* the devices (each its file) */
 const uint32_t *gpu_obraz(uint32_t *w, uint32_t *h); /* gpu.c: the shown resource (under mz.zamek), NULL: none yet */
 void gpu_liczniki(unsigned *n, unsigned *mib);

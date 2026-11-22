@@ -67,6 +67,11 @@ int kvm_maszyna(uint64_t pamiec_mib, int procesory)
         k1_log(TAG, "mmap pamięci strefy: %s", strerror(errno));
         return -1;
     }
+    /* 0.11.2: large pages (2 MiB) for the guest's memory where K1's kernel can (shmem "advise": only memory that asks —
+     * jadro/k1.config), as QEMU does for guest RAM: one entry of the processor's TLB and of KVM's EPT/NPT tables covers
+     * 512 pages, so the guest's own page walks are shorter. Without them (not possible now): small pages as before. */
+    if (madvise(p, rozmiar, MADV_HUGEPAGE) != 0)
+        k1_log(TAG, "duże strony dla pamięci strefy niedostępne: %s", strerror(errno));
     mz.pamiec.baza = p;
     mz.pamiec.rozmiar = rozmiar;
     mz.pamiec.dol = rozmiar > ST_PAMIEC_MAKS ? ST_PAMIEC_MAKS : rozmiar;
@@ -100,6 +105,13 @@ int kvm_maszyna(uint64_t pamiec_mib, int procesory)
     mz.n_cpu = procesory > 1 && emulacja_qemu() ? 1 : procesory;
     if (mz.n_cpu != procesory)
         k1_log(TAG, "emulacja QEMU (testy): 1 procesor zamiast %d", procesory);
+    {
+        /* 0.11.2: the row's number is the most a zone gets — never more processors than the computer has (KVM's
+         * recommendation: the online ones, api.rst KVM_CAP_NR_VCPUS); more would only queue on the same ones */
+        int komputer = ioctl(mz.kvm, (int)KVM_CHECK_EXTENSION, KVM_CAP_NR_VCPUS);
+        if (komputer >= 1 && mz.n_cpu > komputer)
+            mz.n_cpu = komputer;
+    }
     return 0;
 }
 

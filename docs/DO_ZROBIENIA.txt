@@ -4,7 +4,8 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.11.1 — poprawka „Zapisz obraz jako…” w przeglądarce. Przed nią 0.11.0 „Pliki ze stref” — pliki między
+Stan: 0.11.2 — szybsza przeglądarka (do 4 procesorów, duże strony, powiadomienia urządzeń bez zatrzymywania strefy).
+Przed nią 0.11.1 — poprawka „Zapisz obraz jako…” w przeglądarce. Przed nią 0.11.0 „Pliki ze stref” — pliki między
 przeglądarką a Plikami (Pobrane z pochodzeniem, „Wyślij do”, „Otwórz za pomocą” sesja, „Zapisać zmiany w oryginale?”),
 przeciąganie między oknami (Ctrl — kopia, na okno przeglądarki — kopia po puszczeniu), schowek (Notatki, pola K1,
 przeglądarka; sesja dostaje tekst przy Ctrl+V), okno przeglądarki do krawędzi i pełny ekran (plan zamknięty:
@@ -200,8 +201,14 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.11.1; niżej starsze, jeszcze niesprawdzone). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
+Jedna lista — dla ostatniego wydania (0.11.2; niżej starsze, jeszcze niesprawdzone). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
 z 2026-11-11).
+Nowe w 0.11.2 (szybsza przeglądarka; aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”):
+    [ ] IdeaPad — Speedometer 3.1 (browserbench.org/Speedometer3.1) w Ogólnej z szybką grafiką i bez niej (przełącznik
+        w Ustawieniach → Przeglądarka, sesję zamknij i otwórz), okno zmaksymalizowane, bez innych sesji: napisz oba wyniki
+        (w 0.11.1: 4 z szybką grafiką, 5 bez); przy okazji: czy przewijanie i filmy są płynne
+    [ ] X230 — Speedometer 3.1 w Ogólnej (bez szybkiej grafiki — X230 jej nie ma); przewijanie długiej strony i film na
+        YouTube płynne jak wcześniej albo płynniej; dwie sesje naraz działają
 Nowe w 0.11.1 (poprawka; aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”):
     [ ] IdeaPad (i X230): prawy przycisk na obrazku (Wikipedia, Grafika Google) → „Zapisz obraz jako…” → okno zapisu
         się otwiera, sesja się nie zamyka; „Zapisz” → okienko K1 „Zapisz w Pobranych” → obraz w Plikach → Pobrane;

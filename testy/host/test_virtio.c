@@ -287,6 +287,12 @@ static void t_transport(void)
     EXPECT(czytaj(&u, VIRTIO_MMIO_INTERRUPT_STATUS) == 0);
     /* a queue that is not ready, a queue that does not exist: nothing */
     EXPECT(pisz(&u, VIRTIO_MMIO_QUEUE_NOTIFY, 1) == 0 && pisz(&u, VIRTIO_MMIO_QUEUE_NOTIFY, 7) == 0 && powiadomienia == 2);
+    /* 0.11.2: the eventfd KVM signals for a queue (powiadomienia.c) — the same as the register: the ready queue goes to
+     * the device, the rest (not ready, does not exist, a huge number) is ignored */
+    EXPECT(mmio_powiadomienie(&u, 0, &p) == 0 && powiadomienia == 3 && przerwania == 3);
+    pisz(&u, VIRTIO_MMIO_INTERRUPT_ACK, VIRTIO_MMIO_INT_VRING);
+    EXPECT(mmio_powiadomienie(&u, 1, &p) == 0 && mmio_powiadomienie(&u, 7, &p) == 0 &&
+           mmio_powiadomienie(&u, 0x80000000u, &p) == 0 && powiadomienia == 3);
     /* configuration: bytes, words, out of range reads zeros, writes ignored */
     EXPECT(mmio_czytaj(&u, VIRTIO_MMIO_CONFIG + 2, b, 2, &p) == 0 && b[0] == 3 && b[1] == 4);
     EXPECT(mmio_czytaj(&u, VIRTIO_MMIO_CONFIG + 6, b, 4, &p) == 0 && b[0] == 0); /* crosses the end */

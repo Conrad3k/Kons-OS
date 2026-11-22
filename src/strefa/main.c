@@ -235,7 +235,7 @@ int main(int argc, char **argv)
     if (mz.opis->okno)
         okno_sesja(argc > 4 ? argv[4] : NULL);
     okno_start();
-    if (kvm_uruchom() != 0 || stroz_start() != 0)
+    if (powiadomienia_start() != 0 || kvm_uruchom() != 0 || stroz_start() != 0)
         k1_koniec(TAG, "nie można uruchomić procesorów");
     k1_log(TAG, "strefa %d (%s): maszyna działa — %u MiB, procesory %d, urządzenia %d (%.1f s)", nr, mz.opis->tytul,
            mz.pamiec_mib, mz.n_cpu, URZ_LICZBA, k1_teraz() - od);
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
     pliki_podsumowanie();
     wejscie_podsumowanie();
     vsock_podsumowanie();
-    k1_log(TAG, "strefa %d: koniec — %s (po %.1f s; wyjścia: io %lu, mmio %lu, nieznane %lu)", nr, mz.powod,
-           k1_teraz() - od, mz.wyjscia_io, mz.wyjscia_mmio, mz.nieznane);
+    k1_log(TAG, "strefa %d: koniec — %s (po %.1f s; wyjścia: io %lu, mmio %lu, nieznane %lu; powiadomienia %lu)", nr,
+           mz.powod, k1_teraz() - od, mz.wyjscia_io, mz.wyjscia_mmio, mz.nieznane, powiadomienia_obsluzone());
     _exit(kod_wyjscia());
 }

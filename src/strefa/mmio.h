@@ -1,6 +1,6 @@
 /* K1 strefa — the virtio-mmio transport (virtio 1.2, section 4.2.2; version 2, no legacy): the registers of one device
  * at a 4 KiB window of guest addresses. The guest's reads and writes come here from the processor threads (under the
- * VMM's lock, kvm.c); a device gets "notify queue n", "config read/write" and "reset". Pure (no system calls but the
+ * VMM's lock, kvm.c), its queue notifications from the notifications' thread (0.11.2, powiadomienia.c); a device gets "notify queue n", "config read/write" and "reset". Pure (no system calls but the
  * interrupt callback), tested on the host (test_virtio.c). */
 #ifndef K1_STREFA_MMIO_H
 #define K1_STREFA_MMIO_H
@@ -51,6 +51,9 @@ void mmio_start(struct mmio_urz *u, const struct mmio_ops *ops, void *stan, cons
  * the machine ends, *powod). */
 int mmio_czytaj(struct mmio_urz *u, uint64_t od, uint8_t *dst, uint32_t dl, const char **powod);
 int mmio_pisz(struct mmio_urz *u, uint64_t od, const uint8_t *src, uint32_t dl, const char **powod);
+/* The driver notified queue `kolejka` (QueueNotify): a write of that register, or — since 0.11.2 — the eventfd KVM
+ * signals for it (powiadomienia.c). A queue that does not exist or is not ready yet: ignored (0). */
+int mmio_powiadomienie(struct mmio_urz *u, uint32_t kolejka, const char **powod);
 
 /* The device used buffers of a queue: InterruptStatus bit 0 and the interrupt. */
 void mmio_uzyte(struct mmio_urz *u);
