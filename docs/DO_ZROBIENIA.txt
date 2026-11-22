@@ -2,396 +2,207 @@ K1 — PLAN I CO DO ZROBIENIA
 ===========================
 
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
-rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
-Historia: CHANGELOG.md (co się zmieniło), docs/adr/ (decyzje), docs/archiwum/ (zamknięte plany).
-Stan: 0.11.3 — przeglądarka bierze wszystkie procesory komputera (do 254) i do 256 GiB pamięci; duże strony, krótkie
-czekanie i zegar TSC-deadline w strefie. Przed nią 0.11.2 — szybsza przeglądarka (powiadomienia urządzeń bez
-zatrzymywania strefy).
-Przed nią 0.11.1 — poprawka „Zapisz obraz jako…” w przeglądarce. Przed nią 0.11.0 „Pliki ze stref” — pliki między
-przeglądarką a Plikami (Pobrane z pochodzeniem, „Wyślij do”, „Otwórz za pomocą” sesja, „Zapisać zmiany w oryginale?”),
-przeciąganie między oknami (Ctrl — kopia, na okno przeglądarki — kopia po puszczeniu), schowek (Notatki, pola K1,
-przeglądarka; sesja dostaje tekst przy Ctrl+V), okno przeglądarki do krawędzi i pełny ekran (plan zamknięty:
-docs/archiwum/PLAN-0.11.0.txt; ADR 0052). Przed nią 0.10.11 „Szybsza grafika”. Następna wersja — 0.12 „Bezpieczny start”
-(punkt 1: plan do napisania).
+testy na laptopach, rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
+Bez historii: co się zmieniło — CHANGELOG.md, decyzje — docs/adr/, zamknięte plany — docs/archiwum/.
+Stan: 0.11.3 — przeglądarka bierze wszystkie procesory komputera (do 254) i do 256 GiB pamięci. Wersja 0.11 „Pliki ze
+stref” gotowa: pliki między przeglądarką a Plikami, przeciąganie, schowek, pełny ekran (0.11.0), poprawka „Zapisz obraz
+jako…” (0.11.1), szybsza przeglądarka (0.11.2, 0.11.3). Następna wersja — 0.12 „Dźwięk” (punkt 1).
 Data: 2026-11-22.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — następna wersja: 0.12 „Bezpieczny start” (plan do napisania)
---------------------------------------------------------------------
-[!] Gdy zechcesz zacząć: „Korzystając ze skilla kons-dev, napisz plan wersji 0.12.0” — czat napisze plan wersji (plik PLAN-0.12.0 w docs)
-    (tryb ratunkowy, TPM, decyzja o GRUB-ie — ADR 0010; zakres wstępny w punkcie 3). Do tego czasu robot wydaje poprawki
-    jądra i przeglądarki (0.11.x), a Twoje zgłoszenia z laptopów (punkt 4) idą jako PATCH.
-0.11.0 Pliki ze stref — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.11.0.txt; ADR 0052).
-Twoja prośba z 2026-11-20: plan wersji 0.11.0 w niewielu krokach, z ogólnym celem, i do tego lepszy pełny ekran
-przeglądarki (okno nie domyka krawędzi i zostawia za dużo miejsca na dole). Cel: pliki przechodzą między przeglądarką
-a Plikami K1 — zawsze przez Pliki, jako kopia, za zgodą gestem w oknie K1 (ADR 0027); schowek między oknami; okno
-przeglądarki do krawędzi. Pięć kroków (jeden krok = jeden czat = jeden PR; decyzje D1–D6 czat zada na początku kroku):
-    [x] krok 1 — okno przeglądarki do krawędzi, pełny ekran (D1: A) — PR #202
-    [x] krok 2 — pliki ze strefy do Plików („Zapisz w Pobranych”), pochodzenie pliku; ADR 0052 (D2: A, D3: A) — PR #203
-    [x] krok 3 — pliki do strefy: „Wyślij do…”, „Otwórz w…”, „Zapisać zmiany w oryginale?” (D4: A) — PR #204
-    [x] krok 4 — przeciąganie plików między oknami, też na okno przeglądarki (D6: A) — PR #205
-    [x] krok 5 — schowek (D5: A); porządki; wydanie 0.11.0 — PR #206
-0.10.11 Szybsza grafika — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.11.txt; ADR 0051):
-Twoja prośba z 2026-11-20: szybka grafika ma mniej się zacinać, i nowsze karty zintegrowane Intela. Karty AMD i NVIDIA RTX
-wypadły (Twoja decyzja z tego samego dnia). Decyzje: D1 „B”, D4 „A”, D5 — bez sprawdzenia na sprzęcie, D6 „A” — bez xe.
-    [x] krok 1 — pomiar i szybkie poprawki szybkiej grafiki (D1) — PR #199
-    [x] krok 2 — obraz strefy bez kopii: bufor karty prosto do ekranu; ADR 0051 (D4) — PR #200
-    [x] krok 3 — nowsze karty zintegrowane Intela (D6); porządki; wydanie 0.10.11 — PR #201
-0.10.10 (poprawka po 0.10.9) — gotowe:
-Twoja prośba z 2026-11-20 (po instalacji 0.10.9): czysta instalacja na dysku, na którym już jest K1, i karta graficzna
-w Zasobach. Twoje decyzje z tego dnia: przycisk w Instalatorze z pendrive'a (dane z dysku zamknięte, cały dysk
-wyczyszczony), w Zasobach zakładki z wykresami, pobór mocy karty i całego laptopa. Dwa PR-y, wydanie w drugim (numer:
-następny wolny PATCH — robot może wydać coś wcześniej):
-    [x] krok 1 — Instalator: „Zainstaluj od nowa” także dla dysku z otwartymi danymi (nadzorca kończy strefy, skarbiec
-        oddaje partycję — SKARB_ZWOLNIJ; od_nowa.c), test-m5f krok 7 — PR #193
-    [x] krok 2 — Zasoby: zakładka „Karta graficzna” (obciążenie karty, taktowanie, pobór mocy karty i laptopa, sesje
-        z szybką grafiką; Twoje „OK” dla wzorców — „Zajętość” zmieniona na „Obciążenie”); porządki i wydanie — PR #193
-Od 0.10.5 w tle działa robot: sam wydaje wersje PATCH z poprawionym jądrem i pakietami przeglądarki (od wydania 0.10.9 znowu
-w pełnym trybie). Do sprawdzenia na laptopach — punkt 4.
-0.10.9 Szybka grafika — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.9.txt; ADR 0049, 0050; kolejność
-kroków 1, 4, 2, 5, 6, 3):
-    [x] krok 1 — próba ze źródeł i obraz próbny z i915; ADR 0049 — PR #181
-    [x] krok 4 — obraz przeglądarki poza rdzeniem (ADR 0050) — PR #183; 4b — większe miejsca A/B — PR #185
-    [x] krok 2 — i915 w jądrze, dekoder filmów (uśpiony) — PR #186
-    [x] krok 5 — pośrednik grafiki — PR #188
-    [x] krok 6 — szybka grafika w strefie: przełącznik, Mesa w strefie, znak na ramce — PR #191
-    [x] krok 3 — filmy kartą wypadły (Twoja decyzja z 2026-11-20, „może”); porządki i wydanie 0.10.9
-0.10.7 Wygląd — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.7.txt; ADR 0048):
-    [x] krok 1 — napisy bez opisów i bez półpauz — PR #170
-    [x] krok 2 — Ustawienia: sekcje w środku — PR #171
-    [x] krok 3 — Pliki: przyciski, szczegóły, pusty folder — PR #173
-    [x] krok 4 — ramka okna strefy: kolor sesji dyskretnie (ADR 0048) — PR #174
-    [x] krok 5 — błąd: Aktualizacje po ponownym otwarciu Ustawień — PR #176
-    [x] krok 6 — błąd: wyłączanie do końca, ekran „Wyłączanie” — PR #178
-    [x] krok 7 — pulpit (napisy na pigułce), tapeta (matowa krawędź), porządki, wydanie 0.10.7
-0.10.5 Aktualizacje przez sieć — gotowe (zmiany w CHANGELOG.md; plan: docs/archiwum/PLAN-0.10.5.txt; ADR 0046, 0047):
-    [x] krok 1 — Ustawienia → Aktualizacje (z Instalatora) — PR #152
-    [x] krok 2 — aktualizacje przez sieć: strefa pobierania, ogłoszenie i paczka, pytanie przed instalacją — PR #156, #157
-    [x] krok 3 — robot na GitHubie (tryb próbny do wydania) — PR #158
-    [x] krok 4 — okno przeglądarki: zmiana rozmiaru i maksymalizacja — PR #162
-    [x] krok 5 — Raptor Bridge: test mostu z wnętrza strefy, poprawki, opis — PR #161
-    [x] krok 6 — Alt+Tab, Przeglądarka na pasku i pulpicie — PR #164
-    [x] krok 7 — jądro Linux 7.3 dla K1 i stref — PR #165
-    [x] krok 8 — przegląd dokumentacji, wydanie 0.10.5 — PR #167
-    [x] po wydaniu: robot w pełny tryb (ROBOT_PROBNY „0” w robot.yml) — PR #168
-Wcześniej: 0.10.2 Testy (PR #144, #145, #149), 0.10.1 Balon (PR #134, #137, #139, #140, #142), 0.10.0 Strefy (PR #114,
-#119, #126, #128, #132) — plany w docs/archiwum/.
+1. TERAZ — wersja 0.12 „Dźwięk” (plan: docs/PLAN-0.12.0.txt; ADR 0053)
+---------------------------------------------------------------------
+Twoja prośba z 2026-11-22: „w wersji 0.12 zająć się dźwiękiem”. Cel: laptop gra — filmy i strony w przeglądarce
+z dźwiękiem, głośność suwakiem na górnym pasku i klawiszami, słuchawki same; kartę dźwiękową ma tylko usługa dźwięku K1,
+przeglądarka gra przez K1. Cztery kroki (jeden krok = jeden czat = jeden PR; decyzje D1–D6 czat zada na początku kroku,
+D1 — mikrofon — najpierw):
+    [ ] krok 1 — dźwięk w K1: sterowniki w jądrze, usługa dźwięku, okienko „Dźwięk” z głośnością i próbą (ADR 0054)
+    [ ] krok 2 — klawisze głośności, słuchawki, Ustawienia → Dźwięk
+    [ ] krok 3 — dźwięk z przeglądarki, znak „gra” na ramce sesji
+    [ ] krok 4 — porządki; wydanie 0.12.0 (gdy w D1 wybierzesz mikrofon: krok 4 — mikrofon, wydanie w kroku 5)
+[!] Gdy zechcesz zacząć: „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.12.0.txt”.
+Do tego czasu robot wydaje poprawki jądra i przeglądarki (0.11.x), a Twoje zgłoszenia z laptopów (punkt 4) idą jako PATCH.
+Przed planem (2026-11-22): porządki w dokumentacji — mapa drogi przesunięta o jedną wersję (ADR 0053), ten plik bez
+historii, lista testów na laptopach ułożona tematami, README, RYZYKA, SPEC i skill zgodne z obecnym stanem.
 
 
-2. MAPA DROGI (ADR 0035; dawne numery etapów M w nawiasach)
-------------------------------------------------------------
+2. MAPA DROGI (ADR 0035, 0053; dawne numery etapów M w nawiasach)
+------------------------------------------------------------------
     0.1–0.7  gotowe: start, ekran, klatki, pulpit, aplikacje, dane, instalator, bezpieczne aktualizacje (M0–M6)
-    0.8      Pliki — gotowe (0.8.0–0.8.5)                                          (natywna część M9, dawne M6)
+    0.8      Pliki — gotowe (0.8.0–0.8.7)                                          (natywna część M9, dawne M6)
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
-    0.10     Strefy — 0.10.0 (przeglądarka w strefie), 0.10.1 Balon, 0.10.2 Testy, 0.10.5 Aktualizacje przez sieć
-             0.10.7 Wygląd, 0.10.9 Szybka grafika, 0.10.11 Szybsza grafika gotowe
-             (M8, z dawnym M11)
-    0.11     Pliki ze stref — 0.11.0 gotowe                                        (M9)
-    0.12     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
-    0.13     Audyt → 1.0                                                           (M12)
+    0.10     Strefy — gotowe: 0.10.0 przeglądarka w strefie, 0.10.1 Balon, 0.10.2 Testy, 0.10.5 Aktualizacje przez sieć,
+             0.10.7 Wygląd, 0.10.9 Szybka grafika, 0.10.11 Szybsza grafika   (M8, z dawnym M11)
+    0.11     Pliki ze stref — gotowe: 0.11.0, poprawki 0.11.1–0.11.3             (M9)
+    0.12     Dźwięk — TERAZ (punkt 1)                                              (część dawnego M5.3 Laptop)
+    0.13     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
+    0.14     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
 Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kroki i poprawki w temacie. Od 0.10.5 wersje
 PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 0047), a K1 na dysku pobiera każde wydanie sam
 (ADR 0046) — pendrive tylko do nowych instalacji.
 
 
-3. NASTĘPNE WERSJE (zakres wstępny — dokładny plan pisze pierwszy czat danej wersji: docs/PLAN-<wersja>.txt)
----------------------------------------------------------------------------------------------------------
-0.10 Strefy (ADR 0020, 0024, 0025)
-    [x] pierwsza mikro-maszyna (KVM; X230: włącz VT-x i VT-d w BIOS-ie) i okno z niej na ekranie K1 (0.10.0)
-    [x] zaufana ramka w kolorze strefy rysowana przez ekran K1 (RYZYKA R26 domknięte dla stref, R80; 0.10.0)
-    [x] przełączniki przy aplikacji: stała / jednorazowa — 0.10.0 (Ustawienia → Przeglądarka); pełna izolacja / szybka
-        grafika (znak na ramce) — 0.10.9 (most native context przez pośrednika grafiki; Twoja decyzja z 2026-11-17)
-    [x] przeglądarka jako pierwsza aplikacja (Firefox ESR w strefie, ADR 0043), sesje Ogólna, Bank, Prywatna (0.10.0)
-    [ ] szybki start (zamrożony stan, zapasowa czysta maszyna), wspólny obraz bazowy
-    [x] 0.10.1 Balon (Twoja prośba z 2026-11-16; plan: docs/archiwum/PLAN-0.10.1.txt): przeglądarka wysypywała się
-        na X230 i IdeaPadzie po dwóch kartach i chwili czekania albo po minimalizacji i przywróceniu — najpierw pomiar,
-        który limit pęka, potem balon (pamięć strefy rośnie i maleje według potrzeby, wolna wraca do K1), podział
-        pamięci komputera między K1 i sesje, Zasoby pokazują pamięć sesji
-    [ ] szybszy dysk sesji, która pamięta (wyszło w CI 0.10.0, 2026-11-16): pierwsze okno Firefoksa po 156 s zamiast
-        62 s — skarbiec potwierdza na dysku osobno każdy zapisany kawałek (2× fdatasync; ok. 2900 zapisów w jednej
-        sesji testu). Kierunek: wiele kawałków jednym zatwierdzeniem przy FLUSH gościa (wersja — przy następnym planie)
-    [ ] sesja, która pamięta: pierwsza strona tuż po starcie przeglądarki bywa wysłana dwa razy, raz bez ciasteczka (CI
-        0.10.0, przebieg 138: serwer dostał „brak”, zaraz potem „jest”) — sprawdzić na sprzęcie, czy po otwarciu
-        przeglądarki strona, na której byłeś zalogowany, pokazuje się od razu jako zalogowana
-    [x] okno sesji znika od razu po „zamknij” — 0.10.2 krok 1 (wyszło w CI 0.10.0, 2026-11-16; Twoje zgłoszenie z 2026-11-17): przeglądarka ma teraz do 20 s na zapisanie
-        danych sesji, a maszyna do 40 s na koniec — przez ten czas okno zostaje na ekranie (zwykle 1–2 s)
-    [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna)
-    [ ] Przeglądarka K1 (po pierwszej przeglądarce w strefie): okno, karty i pasek adresu jako aplikacja K1, silnik
-        (kierunek: WPE WebKit) w strefie; sesje = strefy
-    [x] 0.10.7 Wygląd (Twoja prośba z 2026-11-17; plan: docs/archiwum/PLAN-0.10.7.txt, po 0.10.5): poprawki wyglądu po przeglądzie:
-        napisy bez opisów tego, co widać, i bez półpauz; sekcje Ustawień w środku (lista sekcji bez zmian); Pliki
-        (przyciski i szczegóły po zaznaczeniu, pusty folder); okno przeglądarki bez kolorowej obwódki, kolor sesji
-        dyskretnie na pasku (ADR 0048); od 2026-11-18 (Twoja prośba) także dwa błędy: Ustawienia → Aktualizacje po
-        ponownym otwarciu Ustawień zamyka okno; Start → Wyłącz zamyka przeglądarkę, ale nie wyłącza komputera (po
-        poprawce ekran „Wyłączanie” z animacją); napisy pod ikonami pulpitu (na pigułce), tapeta z matową krawędzią
-    [x] 0.10.9 Szybka grafika (Twoja prośba z 2026-11-16 i 2026-11-17; plan: docs/archiwum/PLAN-0.10.9.txt; ADR 0049,
-        0050): przełącznik „Szybka grafika” przy sesji — strefa rysuje kartą przez most native context, pośrednik grafiki
-        w klatce K1 sprawdza każdą prośbę (IdeaPad; X230 — wyciszony), sterownik i915 w jądrze K1, obraz przeglądarki
-        w miejscu A/B zamiast w pamięci, miejsca A/B 768 MiB. Grubsze „opakowanie” pośrednika (węższe listy, limity czasu
-        pracy karty, audyt) — RYZYKA R100, z terminem
-    [x] 0.10.11 Szybsza grafika (Twoja prośba z 2026-11-20; plan: docs/archiwum/PLAN-0.10.11.txt; ADR 0051): obraz
-        z karty prosto na ekran K1 (warstwa karty, gdy okno widać w całości), pomiar drogi obrazu w logu, nowsze karty
-        zintegrowane Intela do Meteor / Arrow Lake (niesprawdzone na sprzęcie); karty AMD i NVIDIA RTX wypadły
-    [ ] może: filmy kartą (dawny krok 3 planu 0.10.9 — wypadł z wersji, Twoja decyzja z 2026-11-20: „zostaw w planach na
-        »może«”): film w sesji z szybką grafiką rozpakowuje dekoder filmów K1 (jest w systemie od 0.10.9, uśpiony) —
-        sterownik VA w strefie, FFmpeg w strefie z H.264, droga VMM → dekoder filmów, prefy Firefoksa, prośba do stron
-        o H.264; najpierw pomiar zysku na IdeaPadzie (ADR 0049 pkt 6). Szczegóły: docs/archiwum/PLAN-0.10.9.txt, krok 3
-    [x] 0.10.5 Aktualizacje przez sieć (Twoja prośba z 2026-11-14; plan: docs/archiwum/PLAN-0.10.5.txt): Ustawienia →
-        Aktualizacje, pobieranie przez strefę z HTTPS i pytanie przed instalacją, robot na GitHubie, zmiana rozmiaru
-        i maksymalizacja okna przeglądarki, Alt+Tab, Przeglądarka na pasku i pulpicie, jądro Linux 7.3, opis wersji przed
-        „Zainstaluj”
-
-0.11 Pliki ze stref (ADR 0027, 0052) — 0.11.0 gotowe (plan: docs/archiwum/PLAN-0.11.0.txt; PDF K1 i wspólna strefa — poza nim)
-    [x] pliki ze strefy (Pobrane) i do strefy („Wyślij do…”) przez Pliki (zgoda = gest w K1, pytanie tylko, gdy
-        zaczyna sama strefa); schowek między strefami za każdym wklejeniem (Ctrl+V, D5 „A”)
-    [x] „Otwórz w…” z zapisem z powrotem: K1 pyta „Zapisać zmiany w oryginale?”, stara wersja do Kosza
-    [x] przeciąganie pliku z Plików na okno strefy (ten sam mechanizm co przeciąganie między oknami — D6 w
-        docs/archiwum/PLAN-0.8.2.txt);
-        prośba strony o plik → okno wyboru pliku K1
-    [ ] przypomnienie przy wysyłaniu pliku z internetu do wspólnej strefy
-    [ ] Przeglądarka PDF K1: PDF czyta jednorazowy proces w klatce, silnik — ADR (może wcześniej)
-
-0.12 Bezpieczny start — reszta
+3. NASTĘPNE WERSJE I PÓŹNIEJ (zakres wstępny — dokładny plan pisze pierwszy czat danej wersji: docs/PLAN-<wersja>.txt)
+-------------------------------------------------------------------------------------------------------------------
+0.13 Bezpieczny start — reszta
     [ ] tryb ratunkowy (recovery); licznik wersji w TPM (X230: TPM 1.2), odwoływanie starszych podpisanych wersji
-        (RYZYKA R44)
+        (RYZYKA R44); świeżość ogłoszenia wydania (codziennie podpisywana data)
     [ ] GRUB w ISO i na pendrive'ie (ADR 0010, 0022): zostaje czy zastępujemy — ADR
     [ ] obraz produkcyjny bez logu na porcie szeregowym (RYZYKA R10, R21); komunikat o błędzie startu na ekranie
         (dziś tylko port szeregowy, RYZYKA R17)
+    [ ] klucze: podpis wydań offline (RYZYKA R91, R94), RANDSTRUCT w jądrze (punkt 7)
     [ ] do rozważenia: ochrona jądra „piętro niżej” (jak VBS/HVCI w Windows 11, pKVM w Androidzie) — Twój pomysł
-        z 2026-11-08; po działających strefach
+        z 2026-11-08
 
-0.13 Audyt → 1.0
-    [ ] fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa
+0.14 Audyt → 1.0
+    [ ] fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa; „opakowanie” pośrednika grafiki
+        (RYZYKA R100: węższe listy, limity czasu pracy karty)
 
 Laptop (PATCH w dowolnej wersji, po Twoich zgłoszeniach)
-    [ ] jasność ekranu i klawisze Fn (sterownik i915 jest od 0.10.9 krok 2 — to go otwiera); dźwięk (ikona na
-        pasku jest, sterownika i usługi nie ma); tablet USB w maszynie wirtualnej (pozycja bezwzględna); I2C-HID (nowsze
-        laptopy)
+    [ ] jasność ekranu i klawisze Fn (sterownik i915 jest od 0.10.9); tablet USB w maszynie wirtualnej (pozycja
+        bezwzględna); I2C-HID (touchpady nowszych laptopów). Dźwięk i klawisze głośności — 0.12.
 
 Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne)
-    [ ] exFAT na pendrive'ach (karty SD i pendrive'y > 32 GB), potem NTFS — ocena: docs/archiwum/PLAN-0.8.2.txt, dodatek A
-    [x] przeciąganie między oknami (Pliki ↔ pulpit, plik na okno przeglądarki) — 0.11.0 (krok 4, ADR 0052); na okno
-        aplikacji K1 (np. Notatki) — jeszcze nie
-    [ ] okno wyboru pliku K1 dla „Prześlij plik” na stronie (0.11.0 T7: portal = D-Bus w strefie; ADR 0052 p. 14)
-    [ ] obrazy i pliki w schowku, historia schowka (0.11.0: tylko tekst); kopiowanie folderów z Ctrl (0.11.0: tylko pliki)
-    [ ] HEIC (zdjęcia z iPhone'a); odtwarzanie wideo (pliki wideo da się już przechowywać); zapis plików na pendrive
+  Strefy i przeglądarka:
+    [ ] szybki start sesji (zamrożony stan, zapasowa czysta maszyna), wspólny obraz bazowy
+    [ ] szybszy dysk sesji, która pamięta (CI 0.10.0: pierwsze okno po 156 s zamiast 62 s — skarbiec potwierdza na dysku
+        osobno każdy kawałek); kierunek: wiele kawałków jednym zatwierdzeniem przy FLUSH gościa
+    [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna; ADR 0024);
+        przypomnienie przy wysyłaniu pliku z internetu do wspólnej strefy
+    [ ] Przeglądarka K1: okno, karty i pasek adresu jako aplikacja K1, silnik (kierunek: WPE WebKit) w strefie (ADR 0025)
+    [ ] może: filmy kartą (wypadły z 0.10.9, Twoja decyzja z 2026-11-20): film w sesji z szybką grafiką rozpakowuje
+        dekoder filmów K1 (jest w systemie, uśpiony); najpierw pomiar zysku na IdeaPadzie (docs/archiwum/PLAN-0.10.9.txt,
+        krok 3)
+    [ ] okno wyboru pliku K1 dla „Prześlij plik” na stronie (portal = D-Bus w strefie; ADR 0052 p. 14)
+    [ ] obraz przeglądarki na ISO (ADR 0050): jądro K1 bez napędu CD, więc K1 z ISO nie ma przeglądarki
+    [ ] z planu 0.10.11: karty Intela ze sterownikiem xe (Lunar Lake i nowsze), Arc, AMD, NVIDIA; ekran składający pulpit
+        kartą; klatki na sekundę w Zasobach (docs/archiwum/PLAN-0.10.11.txt, punkt 6)
+  Pliki:
+    [ ] Przeglądarka PDF K1: PDF czyta jednorazowy proces w klatce, silnik — ADR
+    [ ] przeciąganie na okno aplikacji K1 (np. plik na Notatki); obrazy i pliki w schowku, historia schowka; kopiowanie
+        folderów z Ctrl
+    [ ] exFAT na pendrive'ach (karty SD i pendrive'y > 32 GB), potem NTFS (ocena: docs/archiwum/PLAN-0.8.2.txt, dodatek A);
+        zapis plików na pendrive
+    [ ] HEIC (zdjęcia z iPhone'a); odtwarzanie wideo i muzyki z Plików
     [ ] pełne NFC i pełne porównanie wielkości liter Unicode w nazwach plików
-    [ ] Podgląd: powiększanie fragmentu w pełnej rozdzielczości pliku, pełny ekran, pokaz slajdów; przybliżanie kółkiem
-        myszy i touchpadem
-    [ ] dopasowanie rozdzielczości do okna VirtualBoxa (wymaga dodatków gościa); VMware — nie sprawdzony
-    [ ] drugi, pusty dysk (bez tablicy partycji) w maszynie wirtualnej jako miejsce na dane
-    [ ] z planu 0.10.5 („Nie w tej wersji”): aktualizacja pendrive'a przez sieć (D5); wznawianie przerwanego pobierania;
-        kompresja paczki i aktualizacja tylko zmienionych części; pełna historia zmian w K1; świeżość ogłoszenia (codziennie
-        podpisywana data) i odwoływanie starszych wersji (0.12, TPM — RYZYKA R44); robot dla musl i plików od producentów
-        kart; zmiana rozmiaru okien aplikacji K1 (Pliki, Notatki, Podgląd), przyciąganie okien do połowy ekranu; przewijanie
-        w Ustawieniach (okno strefy na cały ekran bez pasków — weszło do planu 0.11.0, krok 1)
-    [ ] z planu 0.10.11 („Nie w tej wersji”): najnowsze karty Intela ze sterownikiem xe (Lunar Lake i nowsze; D6 „A” — razem
-        z pierwszym takim laptopem do sprawdzenia; szybkiej grafiki na nich i tak nie będzie, póki Mesa nie ma strony strefy
-        dla xe), karty dyskretne Intela (Arc), karty AMD i NVIDIA (ustalenia ze źródeł: docs/archiwum/PLAN-0.10.11.txt,
-        punkt 6), filmy kartą, ekran składający pulpit kartą, klatki na sekundę w Zasobach (D1 — później, gdyby liczby ze
-        sprzętu były potrzebne)
-    [ ] obraz przeglądarki na ISO (0.10.9 krok 4, ADR 0050): K1 z ISO (maszyna wirtualna) nie ma przeglądarki — jądro
-        K1 nie ma napędu CD; potrzebny napęd CD w jądrze (sr) i odczyt miejsca obrazu z płyty
-    [ ] Wi-Fi (z planu 0.9.1, „Nie w tej wersji”): sieci tylko WPA3 (SAE), firmowe i uczelniane z loginem (WPA2-Enterprise,
-        eduroam), sieci ukryte; karty Wi-Fi na USB; losowy adres karty (prywatność w obcych sieciach); logowanie na stronie
-        w sieciach otwartych (z przeglądarką, 0.10); Bluetooth (często ta sama karta i plik producenta); IPv6
+    [ ] Podgląd: powiększanie fragmentu w pełnej rozdzielczości, pełny ekran, pokaz slajdów, przybliżanie kółkiem
+        i touchpadem
+  Dźwięk (z planu 0.12.0, punkt 6): mikrofon (jeśli D1 = A), HDMI, karty i słuchawki USB, Bluetooth, budzik w Zegarze.
+  Aktualizacje (z planu 0.10.5): aktualizacja pendrive'a przez sieć; wznawianie przerwanego pobierania; kompresja paczki
+    i aktualizacja tylko zmienionych części; pełna historia zmian w K1; robot dla musl i plików od producentów kart.
+  Okna: zmiana rozmiaru okien aplikacji K1 (Pliki, Notatki, Podgląd), przyciąganie okien do połowy ekranu; przewijanie
+    w Ustawieniach.
+  Maszyny wirtualne: dopasowanie rozdzielczości do okna VirtualBoxa (dodatki gościa), VMware nie sprawdzony; drugi,
+    pusty dysk jako miejsce na dane.
+  Wi-Fi (z planu 0.9.1): sieci tylko WPA3 (SAE), firmowe i uczelniane z loginem (WPA2-Enterprise, eduroam), sieci ukryte;
+    karty Wi-Fi na USB; losowy adres karty; logowanie na stronie w sieciach otwartych; Bluetooth; IPv6.
+
+Zgłoszenia na GitHubie (Issues) — naprawiać w kroku, który dotyka tej części:
+    [ ] #208 jądro strefy: awaria gościa przy 48 połączeniach naraz (test-most)
+    [ ] #182 test w systemie: przy błędzie „tylko przekazane deskryptory” opis zawsze mówi „OK”
+    [ ] #177 test-pliki zawiesił się w CI na ponad 35 min
+    [ ] #99 pomysł po 1.0: boczna wersja K1 na stare laptopy 32-bit / BIOS
 
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista — dla ostatniego wydania (0.11.3; niżej starsze, jeszcze niesprawdzone). Wydania do 0.8.1 włącznie: uznane za przetestowane (Twoja decyzja
-z 2026-11-11).
-Nowe w 0.11.3 (aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”):
-    [ ] IdeaPad — Speedometer 3.1 w Ogólnej (jak przy 0.11.2; po 0.11.2: ten sam wynik z szybką grafiką i bez); dla
-        porównania, jeśli możesz: ten sam test w Firefoksie z pendrive'a z innym systemem (np. Ubuntu „bez instalacji”) —
-        wtedy wiadomo, ile w ogóle daje ten procesor
-    [ ] oba laptopy: przeglądarka otwiera się i działa jak wcześniej, dwie sesje naraz, Zasoby → pamięć sesji
-    [ ] jeśli kiedyś uruchomisz K1 na komputerze z 16 GB i więcej albo z 8 i więcej wątkami procesora: Ogólna z szybką
-        grafiką otwiera się (do 0.11.2 przy 32 GB i więcej by się nie uruchomiła)
-Nowe w 0.11.2 (szybsza przeglądarka; aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”):
-    [ ] IdeaPad — Speedometer 3.1 (browserbench.org/Speedometer3.1) w Ogólnej z szybką grafiką i bez niej (przełącznik
-        w Ustawieniach → Przeglądarka, sesję zamknij i otwórz), okno zmaksymalizowane, bez innych sesji: napisz oba wyniki
-        (w 0.11.1: 4 z szybką grafiką, 5 bez); przy okazji: czy przewijanie i filmy są płynne
-    [ ] X230 — Speedometer 3.1 w Ogólnej (bez szybkiej grafiki — X230 jej nie ma); przewijanie długiej strony i film na
-        YouTube płynne jak wcześniej albo płynniej; dwie sesje naraz działają
-Nowe w 0.11.1 (poprawka; aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”):
-    [ ] IdeaPad (i X230): prawy przycisk na obrazku (Wikipedia, Grafika Google) → „Zapisz obraz jako…” → okno zapisu
-        się otwiera, sesja się nie zamyka; „Zapisz” → okienko K1 „Zapisz w Pobranych” → obraz w Plikach → Pobrane;
-        to samo z Ctrl+S na stronie i z szybką grafiką włączoną i wyłączoną
-Nowe w 0.11.0 (Pliki ze stref; aktualizacja przez sieć: Ustawienia → Aktualizacje → „Sprawdź teraz”), oba laptopy:
-    [ ] okno przeglądarki zmaksymalizowane: do samych krawędzi i do górnej krawędzi dolnego paska (1366 px na X230);
-        F11 i film „na cały ekran” — cały ekran, pigułka „pełny ekran: Esc, aby wyjść”; wyjście: Esc, pasek K1 przy górnej
-        krawędzi, Alt+Tab, klawisz Start
-    [ ] pobierz plik w przeglądarce → okienko K1 → „Zapisz w Pobranych” → plik w Plikach → Pobrane, w szczegółach
-        „z przeglądarki · Ogólna”; otwieranie „Pobrane” w przeglądarce nie wywraca jej (Twoje zgłoszenie z 2026-11-21)
-    [ ] Pliki → prawy przycisk na pliku → „Wyślij do” → Ogólna: plik w „Z K1” (wybierz go w „Prześlij plik” na stronie);
-        „Otwórz za pomocą” → Ogólna: plik w nowej karcie; PDF wypełniony i zapisany w przeglądarce → „Zapisać zmiany
-        w oryginale?” → „Zapisz” (stara wersja w Koszu)
-    [ ] przeciąganie: plik z Plików na pulpit (przeniesiony), z Ctrl (kopia — w obu miejscach), z pulpitu na okno Plików;
-        plik na pole „Prześlij plik” strony w przeglądarce — znak „Kopia do sesji…”, po puszczeniu pole ma plik
-    [ ] schowek: w Notatkach zaznacz (Shift ze strzałkami albo Ctrl+A), Ctrl+C → w przeglądarce Ctrl+V w polu strony;
-        tekst skopiowany na stronie → Ctrl+V w Notatkach; Ctrl+V w haśle Wi-Fi (Ustawienia → Sieć); tekst z Banku wklejony
-        w Ogólnej — na ramce na chwilę „Wklejono z: Bank”
-Nowe w 0.10.11 (Szybsza grafika):
-    [ ] IdeaPad — Ogólna (szybka grafika), okno zmaksymalizowane: przewijanie długiej strony i film płynniejsze niż
-        w 0.10.10; obraz bez błędów (pasy, migotanie, stara klatka) przy przewijaniu, przesuwaniu okna, minimalizacji,
-        Alt+Tab, menu Start nad oknem i zmianie rozmiaru okna; kursor nad stroną wygląda jak zwykle
-    [ ] IdeaPad — ta sama strona w oknie mniejszym i częściowo zasłoniętym innym oknem: dalej poprawny obraz (K1 składa
-        okno sam), po odsłonięciu znów płynnie
-    [ ] IdeaPad — Zasoby → „Karta graficzna”: obciążenie i taktowanie jak w 0.10.10 (odczyt idzie teraz z części graficznej
-        karty — liczby powinny być te same)
-    [ ] X230 — przeglądarka, pulpit, Zasoby jak w 0.10.10 (bez szybkiej grafiki nic się nie zmienia)
-    [ ] nowsze karty Intela (od Kaby Lake po Meteor / Arrow Lake) — niesprawdzone (D5: takiego laptopa nie masz); jeśli
-        kiedyś uruchomisz K1 na takim laptopie: pulpit, Ustawienia → Przeglądarka („obsługuje szybką grafikę”), Ogólna
-        ze znakiem na ramce, Zasoby → „Karta graficzna” — napisz model i co widać
-Nowe w 0.10.10 (poprawka):
-    [ ] Instalator od nowa: K1 z dysku + pendrive 0.10.10 → Instalator → dysk z K1 („z Twoimi danymi”) → „Zainstaluj od
-        nowa” → USUŃ → „Gotowe” → Wyłącz → start z dysku: pusty K1 0.10.10 (nowe konto)
-    [ ] Zasoby → „Karta graficzna” (oba laptopy): obciążenie karty rośnie przy przewijaniu strony, taktowanie zmienia się;
-        pobór mocy karty (linia w kolorze akcentu) i — na baterii — całego laptopa (szara); w Ogólnej z szybką grafiką
-        (IdeaPad) sesja na liście „Sesje rysujące kartą”
-Nowe w 0.10.9 (Szybka grafika; pendrive co najmniej 2 GB):
-    [ ] najpierw: instalacja od nowa na obu laptopach z pendrive'a 0.10.9 (Instalator → dysk → USUŃ) — K1 0.10.7 na dysku
-        nie zaktualizuje się do nowego układu (D10 „A”; Ustawienia → Aktualizacje mówią „zainstaluj od nowa”; dane
-        z dysku przepadają); po instalacji start z dysku, pulpit, Przeglądarka → Ogólna otwiera się, strona się ładuje
-    [ ] IdeaPad — Ustawienia → Przeglądarka: „obsługuje szybką grafikę”; przy Ogólnej przełącznik „Szybka grafika”
-        włączony, przy Banku i Prywatnej wyłączony
-    [ ] IdeaPad — Ogólna: na ramce okna za nazwą sesji znak „układ scalony”; długa strona przewija się płynniej niż
-        w Banku (bez przełącznika); strona z WebGL (np. mapa 3D, get.webgl.org — kręcący się sześcian) działa; w Zasobach
-        procesor sesji mniej zajęty przy przewijaniu niż w Banku. Jeśli Ogólna nie ma znaku albo WebGL nie działa —
-        napisz, co widać (Firefox w strefie mógł nie przyjąć karty: wtedy rysuje procesorem, jak w 0.10.7)
-    [ ] IdeaPad — przełącznik: wyłącz przy Ogólnej, zamknij i otwórz sesję — bez znaku na ramce, strony działają; włącz
-        z powrotem — znak wraca od następnego otwarcia
-    [ ] X230 — Ustawienia → Przeglądarka: „karta nie oddziela pracy stref”, przełącznik wyciszony z wyjaśnieniem;
-        przeglądarka działa jak w 0.10.7, bez znaku na ramce
-    [ ] obie: Start → Wyłącz bez otwartej przeglądarki — chwilę widać ekran „Wyłączanie” z kropkami (X230 — Twoje
-        zgłoszenie z 2026-11-19); Zasoby: pamięć K1 po starcie mniejsza o ok. 100 MB niż w 0.10.7; ile sekund do okna
-        przeglądarki (pierwszy raz po włączeniu i drugi raz)
-    [ ] po najbliższym wydaniu robota: aktualizacja przez sieć na dysku obu laptopów (pierwsza w nowym układzie;
-        Ustawienia → Aktualizacje → „Sprawdź teraz” → „Zainstaluj”) — po ponownym uruchomieniu przeglądarka działa, dane
-        zostają, „Sprawdź teraz” dalej działa (strefa pobierania z nowego miejsca)
-    [x] krok 2 (przed wydaniem): pulpit z i915 — X230 i IdeaPad, potwierdzone 2026-11-20
-Nowe w 0.10.7 (Wygląd; X230 i IdeaPad):
-    [ ] najpierw aktualizacja przez sieć do 0.10.7 (pierwsza tą drogą, jeśli robot nie wydał nic wcześniej): z siecią
-        Ustawienia → Aktualizacje → „Sprawdź teraz” → okienko „Jest nowa wersja K1” z opisem „K1 wygląda spokojniej…” →
-        „Zainstaluj” → K1 uruchamia się ponownie w 0.10.7, dane zostają
-    [ ] wyłączanie z przeglądarką (krok 6): otwórz przeglądarkę, zaloguj się na stronie, Start → Wyłącz — od razu ekran
-        „Wyłączanie” z kropkami, po kilku sekundach (najwyżej ok. 30) komputer wyłączony; po włączeniu dalej zalogowany;
-        to samo z „Uruchom ponownie”; bez przeglądarki wyłącza się od razu. Jeśli nie: czy kropki się ruszają (czeka
-        nadzorca), czy obraz stoi albo jest czarny (init albo jądro) — napisz, co widać
-    [ ] Ustawienia → Aktualizacje (krok 5): otwórz Ustawienia, zamknij, otwórz, kliknij „Aktualizacje”; „Sprawdź teraz”;
-        powtórz kilka razy — okno Ustawień zostaje
-    [ ] okno przeglądarki (krok 4): otwórz Ogólną i Bank obok siebie — po kropce i linii pod paskiem widać, która jest
-        która; przesuń, zminimalizuj, zamknij z paska
-    [ ] pulpit i tapety (krok 7): napisy pod ikonami czytelne na każdej z pięciu tapet (Ustawienia → Wygląd)
-Z 0.10.5 (Aktualizacje przez sieć; X230 i IdeaPad; niesprawdzone):
-    [ ] najpierw aktualizacja na dysku do 0.10.5 z pendrive'a — ostatni raz tą drogą: K1 z dysku → Instalator →
-        „Zaktualizuj system” (tak to się nazywa w starszej wersji, która jest na dysku); dane i ustawienia zostają
-    [ ] Ustawienia → Aktualizacje: wersja 0.10.5, „Zweryfikowano”; z siecią „Sprawdź teraz” → „masz najnowszą wersję”;
-        Instalator przy dysku z K1 odsyła do tej sekcji
-    [ ] pierwsza aktualizacja przez sieć — gdy wyjdzie następna wersja (robot albo 0.10.7): kilka godzin po połączeniu
-        z siecią (albo „Sprawdź teraz”) okienko „Jest nowa wersja K1” z opisem; „Zainstaluj” → K1 uruchamia się ponownie
-        w nowej wersji, dane zostają; potem „Wróć do poprzedniej wersji” wraca (i znów „Zainstaluj”)
-    [ ] K1 z pendrive'a (obraz USB 0.10.5): sekcja mówi o nowszej wersji tylko „nagraj nowy pendrive” (D5)
-    [ ] okno przeglądarki: przeciągnij brzeg albo róg — strona dopasowuje się po puszczeniu; przycisk maksymalizacji
-        i podwójne kliknięcie paska tytułu — między górnym a dolnym paskiem i z powrotem; po zamknięciu i otwarciu ta sama
-        sesja ma ten sam rozmiar (X230 1366×768 i IdeaPad)
-    [ ] Alt+Tab: z Firefoksa do Plików i z powrotem, Shift+Tab wstecz, Esc — bez zmiany; Firefox nie dostaje Tab (kursor
-        w polu strony nie przeskakuje)
-    [ ] Przeglądarka na pasku i pulpicie: po aktualizacji Twój pulpit zostaje jak był — dodaj ją sam (menu Start → prawy
-        przycisk na Przeglądarce → „Przypnij” i „Dodaj do pulpitu”); kliknięcie → okienko „Którą sesję otworzyć?”;
-        kropka przy ikonie, gdy któraś sesja jest otwarta
-    [ ] jądro Linux 7.3: start, obraz, klawiatura, touchpad, Wi-Fi (IdeaPad: Qualcomm), kabel, bateria, wyłączanie —
-        wszystko jak w 0.10.2; jeśli coś przestało działać — zgłoszenie z nazwą laptopa
-Z 0.10.2 (Testy; niesprawdzone):
-    [ ] Start → Przeglądarka: „Uruchamiam: Przeglądarka · Ogólna…” z ruchomym odcinkiem w kolorze sesji zostaje, aż pokaże
-        się okno Firefoksa (nie znika po sekundzie)
-    [ ] zamknij okno przeglądarki — znika od razu; kafelek sesji w okienku „Którą sesję otworzyć?” mówi „zamyka się…”
-    [ ] zamknij i od razu otwórz tę samą sesję — otwiera się sama, gdy poprzednia skończy (najwyżej ok. 40 s)
-    [ ] w Ogólnej zaloguj się na jakiejś stronie, zamknij okno i od razu Start → Wyłącz — po starcie dalej zalogowany
-Z 0.10.1 (Balon; niesprawdzone):
-    [ ] przewijanie po nowej karcie (krok 5): przewiń stronę dwoma palcami, otwórz nową kartę (Ctrl+T albo „+”), wejdź na
-        stronę — dwa palce i kółko przewijają od razu; wróć do pierwszej karty — też; to samo po kilku nowych kartach
-    [ ] przełączanie kart (krok 1): Ctrl+T, przełączaj karty co 1–2 s z kursorem nad kartą (podgląd) ok. 20 razy;
-        minimalizuj i przywróć okno 10 razy; dwie karty na kilka minut — przeglądarka żyje (jeśli nie: zdanie z okienka)
-    [ ] pamięć według potrzeby (krok 2): kilka stron — w Zasobach sesja rośnie, a kilka sekund po zamknięciu kart spada;
-        ciężka strona (film, długa strona ze zdjęciami) — przeglądarka żyje
-    [ ] dwie sesje naraz (krok 3, IdeaPad 4 GB): Ogólna i Bank z lekkimi stronami — obie działają; Zasoby → „Sesje
-        przeglądarki” pokazują obie; przy braku pamięci okienko „Mało pamięci” (nie ciche zniknięcie), „Zamknij” zamyka
-        wskazaną sesję; X230 — trzy sesje, okienko nie powinno pojawiać się przy zwykłym używaniu
-    [ ] okienko „Którą sesję otworzyć?” (krok 4): Start → Przeglądarka → Bank otwiera Bank; drugi raz — okno Banku wychodzi
-        na wierzch („otwarta”); „Anuluj” i kliknięcie obok — nic się nie otwiera
-    [ ] Ustawienia → Przeglądarka (krok 4), jasny i ciemny motyw: karty równe, nic nie nachodzi; „Wyczyść dane…” pyta
-        w okienku; „Zmień nazwę” — nowa nazwa w okienku sesji i na pasku okna
-Z 0.10.0 (przeglądarka w strefie; niesprawdzone):
-    [!] najpierw raz: wirtualizacja w BIOS-ie (README, punkt 8; D5 planu 0.10.0) — bez niej okienko „nie może ruszyć”
-    [ ] menu Start → Przeglądarka: okno w ramce w kolorze sesji (szałwia), Firefox po polsku; ile sekund do strony
-        startowej (X230 i IdeaPad)
-    [ ] strony z internetu otwierają się; pisanie w polach, kliknięcia, kółko i dwa palce na touchpadzie przewijają
-    [ ] sesja pamięta: zaloguj się na jakiejś stronie (albo dodaj zakładkę) w Ogólnej → zamknij okno → otwórz znów —
-        dalej zalogowany; to samo po wyłączeniu i włączeniu K1
-    [ ] Prywatna (prawy przycisk na Przeglądarce w menu Start → Prywatna): jasny pasek, po zamknięciu nic nie pamięta
-    [ ] Ustawienia → Przeglądarka: „Zmień nazwę” (np. Bank → Urzędy) — nowa nazwa na pasku okna i w menu; „Wyczyść dane”
-        (dwa kliknięcia) — Ogólna zaczyna od nowa; „Zapomina” — od następnego otwarcia
-    [ ] Ustawienia → Miejsce: część „Strefy” rośnie, gdy sesja pamięta strony
-    [ ] touchpad (krok 4): ruch, stuknięcia (1/2/3 palce), przewijanie dwoma palcami — X230 i IdeaPad; log wejścia z
-        nazwą touchpada (jeśli coś nie działa)
-    [ ] przeglądarka nie znika przy kilku kartach (jeśli zniknie — okienko „zamknęła się” z powodem: zapisz go; to temat
-        0.10.1 „Balon”)
-Z 0.9.1 (Wi-Fi): [x] Twój wynik z 2026-11-14 — Wi-Fi działa.
-Z 0.9.0 (kabel, niesprawdzone):
-    [ ] kabel do routera — X230 i IdeaPad: ikona sieci na górnym pasku (wtyczka) przechodzi z „łączę” (kropka) na
-        „połączono” (jasna) w kilka sekund; wyjęcie kabla — krzyżyk; włożenie — znów „połączono”
-    [ ] Ustawienia → Sieć → „Karty sieciowe”: kafelki kart, szczegóły (sterownik, 100 lub 1000 Mb/s, adres w sieci)
-    [ ] IdeaPad: czy połączenie kablem jest stabilne (karta Realtek działa bez pliku od producenta)
-    [ ] zegar z internetu: po połączeniu godzina i data poprawne; po wyłączeniu i włączeniu bez sieci godzina dalej dobra
-Z wcześniejszych wersji (niesprawdzone):
-    [~] energia (0.8.6): Twój wynik z 2026-11-13 — pobór mocy mniejszy: 0.8.5 stałe 11 W, 0.8.6 po minucie 9,5 W
-        i dalej spadało. Zostaje: wartość, na której się zatrzyma (3–4 min bez ruszania laptopa), i czy nic się nie
-        zacina (mysz, przesuwanie okien, Podgląd), czy przy cięższej pracy (duże zdjęcie) jest szybciej niż było
-    [ ] Zasoby (0.8.7): po zmianie obciążenia pobór mocy dogania nową wartość w kilkanaście sekund
-    [ ] wyłączanie (0.8.6): Start → Wyłącz i „Uruchom ponownie” — o ok. 3 s szybciej; po ponownym starcie
-        Ustawienia → Bateria: wykres poprzedniego uruchomienia sięga do samego wyłączenia
-    [ ] pendrive w Plikach (0.8.6): po wyjęciu znika z Plików od razu
-    [ ] Secure Boot: K1 z dysku → Instalator → „Secure Boot…” → „Przygotuj klucz K1” → „Uruchom ponownie” →
-        MokManager (Enroll MOK, hasło kons) → F1: Secure Boot Enabled → „Wszystko gotowe” (README → „Secure Boot z
-        kluczem K1”)
-    [ ] Podgląd płynny i okna nie zamarzają (0.8.5): duże zdjęcie, szybkie „+”, przesuwanie myszą i touchpadem
-    [ ] Ustawienia → Miejsce (0.8.5): na dysku i na pendrivie; po imporcie zdjęć część „Obrazy” rośnie
-    [ ] pendrive albo karta z telefonu: „Importuj wszystkie”, drugi import „Pominięto n”; duże zdjęcie i GIF/WebP;
-        menu pod prawym przyciskiem; zaznaczanie wielu i przeciąganie
+Jedna lista, ułożona tematami; w nawiasie wersja, która to wprowadziła. Sprawdzasz na najnowszym wydaniu (dziś 0.11.3;
+aktualizacja: Ustawienia → Aktualizacje → „Sprawdź teraz”). Wydania do 0.8.1 — uznane za przetestowane (Twoja decyzja
+z 2026-11-11). Potwierdzone przez Ciebie: Wi-Fi (2026-11-14), pulpit z i915 na obu laptopach (2026-11-20), instalacja
+0.10.9 od nowa (2026-11-20), przeglądarka i szybka grafika na IdeaPadzie (Speedometer, 2026-11-22).
+[!] Raz na każdym laptopie: wirtualizacja w BIOS-ie (README, punkt 8) — bez niej przeglądarka nie ruszy.
+Najpierw — nowe w 0.11.3:
+    [ ] IdeaPad — Speedometer 3.1 w Ogólnej (po 0.11.2: ten sam wynik z szybką grafiką i bez); dla porównania, jeśli
+        możesz: ten sam test w Firefoksie z pendrive'a z innym systemem (np. Ubuntu „bez instalacji”)
+    [ ] X230 — Speedometer 3.1 w Ogólnej; przewijanie długiej strony i film na YouTube płynne; dwie sesje naraz
+    [ ] komputer z 16 GB i więcej albo z 8 i więcej wątkami (jeśli kiedyś): Ogólna z szybką grafiką się otwiera
+Przeglądarka — okno i sesje:
+    [ ] menu Start → Przeglądarka → okienko „Którą sesję otworzyć?” → Ogólna: okno w ramce, Firefox po polsku; ile sekund
+        do strony startowej; „Uruchamiam…” z ruchomym odcinkiem zostaje do okna (0.10.0, 0.10.2)
+    [ ] drugi raz ta sama sesja — okno wychodzi na wierzch; „Anuluj” i kliknięcie obok — nic się nie otwiera (0.10.1)
+    [ ] okno: brzeg i róg zmieniają rozmiar, maksymalizacja do samych krawędzi i do górnej krawędzi dolnego paska
+        (1366 px na X230), po zamknięciu i otwarciu ten sam rozmiar; F11 i film „na cały ekran” — cały ekran z pigułką
+        „pełny ekran: Esc, aby wyjść”; wyjście: Esc, pasek K1 przy górnej krawędzi, Alt+Tab, klawisz Start (0.10.5, 0.11.0)
+    [ ] Ogólna i Bank obok siebie — po kropce i linii pod paskiem widać, która jest która (0.10.7)
+    [ ] zamknij okno — znika od razu; zamknij i od razu otwórz tę samą sesję — otwiera się, gdy poprzednia skończy
+        (najwyżej ok. 40 s) (0.10.2)
+    [ ] sesja pamięta: zaloguj się na stronie w Ogólnej → zamknij → otwórz — dalej zalogowany, od razu (bez drugiego
+        logowania); to samo po wyłączeniu i włączeniu, także gdy zaraz po zamknięciu okna klikniesz Start → Wyłącz (0.10.0,
+        0.10.2); Prywatna (jasny pasek) po zamknięciu nic nie pamięta
+    [ ] Ustawienia → Przeglądarka (jasny i ciemny motyw): karty równe; „Zmień nazwę” (np. Bank → Urzędy) — nowa nazwa
+        w okienku sesji i na pasku okna; „Wyczyść dane…” pyta w okienku; „Zapomina” — od następnego otwarcia; Ustawienia →
+        Miejsce: część „Strefy” rośnie (0.10.0, 0.10.1)
+    [ ] Alt+Tab: z Firefoksa do Plików i z powrotem, Shift+Tab wstecz, Esc — bez zmiany; kursor w polu strony nie
+        przeskakuje (0.10.5); Przeglądarka przypięta na pasku i na pulpicie, kropka przy ikonie, gdy sesja otwarta
+Przeglądarka — pamięć, przewijanie, grafika:
+    [ ] przełączanie kart co 1–2 s ok. 20 razy, minimalizacja i przywrócenie 10 razy, dwie karty na kilka minut — żyje;
+        jeśli zniknie: zdanie z okienka „zamknęła się” (0.10.1)
+    [ ] kilka stron — w Zasobach sesja rośnie, po zamknięciu kart spada; ciężka strona (film, zdjęcia) — żyje; IdeaPad 4 GB:
+        Ogólna i Bank naraz, przy braku pamięci okienko „Mało pamięci” z „Zamknij” (0.10.1)
+    [ ] przewijanie: kółko i dwa palce na touchpadzie od razu po nowej karcie (Ctrl+T) i po powrocie do pierwszej;
+        touchpad: ruch, stuknięcia 1/2/3 palcami (0.10.0, 0.10.1)
+    [ ] IdeaPad — Ustawienia → Przeglądarka: „obsługuje szybką grafikę”, przełącznik przy Ogólnej włączony; Ogólna ze znakiem
+        „układ scalony” na ramce; WebGL (get.webgl.org — sześcian) działa; wyłączony przełącznik → bez znaku, strony
+        działają (0.10.9)
+    [ ] IdeaPad — Ogólna zmaksymalizowana: przewijanie i film bez błędów obrazu (pasy, migotanie, stara klatka) przy
+        przesuwaniu, minimalizacji, Alt+Tab, menu Start nad oknem; okno częściowo zasłonięte — dalej poprawne (0.10.11)
+    [ ] X230 — Ustawienia → Przeglądarka: „karta nie oddziela pracy stref”, przełącznik wyciszony (0.10.9)
+    [ ] Zasoby → „Karta graficzna”: obciążenie rośnie przy przewijaniu, taktowanie się zmienia, pobór mocy karty i — na
+        baterii — laptopa; IdeaPad: Ogólna na liście „Sesje rysujące kartą” (0.10.10, 0.10.11)
+    [ ] nowsza karta Intela (Kaby Lake … Meteor / Arrow Lake), jeśli kiedyś: pulpit, szybka grafika, Zasoby — model i co
+        widać (0.10.11)
+Pliki ze stref i schowek (0.11.0, 0.11.1):
+    [ ] pobierz plik → okienko K1 „Zapisz w Pobranych” → plik w Plikach → Pobrane, w szczegółach „z przeglądarki ·
+        Ogólna”; „Pobrane” w przeglądarce nie wywraca jej; prawy przycisk na obrazku → „Zapisz obraz jako…” (i Ctrl+S) →
+        okno zapisu, sesja zostaje → obraz w Pobranych (z szybką grafiką i bez)
+    [ ] Pliki → prawy przycisk → „Wyślij do” → Ogólna: plik w „Z K1” („Prześlij plik” na stronie); „Otwórz za pomocą” →
+        Ogólna: plik w nowej karcie; PDF wypełniony i zapisany → „Zapisać zmiany w oryginale?” → „Zapisz” (stara wersja
+        w Koszu)
+    [ ] przeciąganie: z Plików na pulpit (przeniesiony), z Ctrl (kopia), z pulpitu do Plików; plik na pole „Prześlij plik”
+        strony — znak „Kopia do sesji…”, po puszczeniu pole ma plik
+    [ ] schowek: Notatki (Shift ze strzałkami albo Ctrl+A, Ctrl+C) → Ctrl+V w polu strony; ze strony → Notatki; Ctrl+V
+        w haśle Wi-Fi; tekst z Banku wklejony w Ogólnej — na ramce na chwilę „Wklejono z: Bank”
+Aktualizacje i instalacja (0.10.5, 0.10.9, 0.10.10):
+    [ ] Ustawienia → Aktualizacje: wersja, „Zweryfikowano”, „Sprawdź teraz”; okienko „Jest nowa wersja K1” z opisem →
+        „Zainstaluj” → nowa wersja, dane zostają; „Wróć do poprzedniej wersji” wraca (i znów „Zainstaluj”); otwórz,
+        zamknij i otwórz Ustawienia kilka razy — okno zostaje (0.10.7)
+    [ ] K1 z pendrive'a: Aktualizacje mówią o nowszej wersji tylko „nagraj nowy pendrive”
+    [ ] Instalator od nowa: K1 z dysku + pendrive → Instalator → dysk z K1 („z Twoimi danymi”) → „Zainstaluj od nowa” →
+        USUŃ → „Gotowe” → start z dysku: pusty K1 (nowe konto)
+    [ ] Secure Boot: K1 z dysku → Instalator → „Secure Boot…” → „Przygotuj klucz K1” → „Uruchom ponownie” → MokManager
+        (Enroll MOK, hasło kons) → F1: Secure Boot Enabled → „Wszystko gotowe” (README → „Secure Boot z kluczem K1”)
+Pulpit, wyłączanie, energia:
+    [ ] Start → Wyłącz i „Uruchom ponownie”: od razu ekran „Wyłączanie” z kropkami (także bez przeglądarki), z otwartą
+        przeglądarką wyłącza się najwyżej po ok. 30 s, po starcie dalej zalogowany; Ustawienia → Bateria: wykres sięga do
+        wyłączenia (0.8.6, 0.10.7, 0.10.9)
+    [ ] napisy pod ikonami pulpitu czytelne na każdej z pięciu tapet (0.10.7); Zasoby: pamięć K1 po starcie (0.10.9)
+    [~] energia (0.8.6): Twój wynik z 2026-11-13 — 0.8.5 stałe 11 W, 0.8.6 po minucie 9,5 W i dalej spadało. Zostaje:
+        wartość po 3–4 min bez ruszania laptopa; nic się nie zacina (mysz, okna, Podgląd); Zasoby — pobór mocy dogania
+        nową wartość w kilkanaście sekund (0.8.7)
+Sieć (0.9.0):
+    [ ] kabel — ikona sieci przechodzi z „łączę” na „połączono” w kilka sekund, wyjęcie — krzyżyk; Ustawienia → Sieć →
+        „Karty sieciowe”: sterownik, prędkość, adres; IdeaPad: kabel stabilny
+    [ ] zegar z internetu: po połączeniu godzina dobra; po wyłączeniu i włączeniu bez sieci — dalej dobra
+Pliki i pendrive (0.8.5, 0.8.6):
+    [ ] pendrive albo karta z telefonu: „Importuj wszystkie”, drugi import „Pominięto n”; duże zdjęcie, GIF/WebP; menu pod
+        prawym przyciskiem, zaznaczanie wielu i przeciąganie; po wyjęciu pendrive znika z Plików od razu
+    [ ] Podgląd płynny: duże zdjęcie, szybkie „+”, przesuwanie myszą i touchpadem; Ustawienia → Miejsce na dysku
+        i na pendrivie, po imporcie część „Obrazy” rośnie
 Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „pomysł”) albo w czacie.
 
 
-5. TWOJE OTWARTE DECYZJE I DZIAŁANIA (decyzje 0.8.5 — zamknięte: docs/archiwum/PLAN-0.8.5.txt, punkt 4)
---------------------------------------------------------
-[x] Klucz podpisu — sekret dodany 2026-11-12; od 0.8.3 wydania są podpisane, Secure Boot z kluczem K1 dostępny
-    (włączenie — punkt 4).
-[x] 0.10.0 — decyzje D1–D8 podjęte (docs/archiwum/PLAN-0.10.0.txt, punkt 4).
-[x] 0.10.1 — decyzje D1–D6 podjęte (docs/archiwum/PLAN-0.10.1.txt, punkt 4).
-[x] 0.10.2 — decyzje D1–D4 podjęte (docs/archiwum/PLAN-0.10.2.txt, punkt 4); D3: zmianę wyglądu zatwierdzasz Ty —
-    PR pokazuje obrazy „przed / po”, wzorce zmieniają się po Twoim „OK”.
-[x] 0.10.5 — D1–D3, D6, D8, D9, D11–D14 podjęte (docs/archiwum/PLAN-0.10.5.txt, punkt 4); D6: poprawki jądra
-    i przeglądarki wydaje robot sam, większe zmiany — my.
-[!] 0.10.5 — decyzje D4, D5, D7 i D10 (docs/archiwum/PLAN-0.10.5.txt, punkt 4) weszły jako rekomendacje (kroki szły bez
-    Ciebie) — do potwierdzenia albo zmiany: D4 K1 sprawdza sam po połączeniu i co 6 godzin, pobiera od razu, instaluje
-    po „Zainstaluj”; D5 przez sieć aktualizuje się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach;
-    D10 przegląd dokumentacji: powtórzenia → odesłania, historia (ADR, CHANGELOG, archiwum) bez zmian.
-[x] 0.10.7 — decyzje D1–D7 podjęte (docs/archiwum/PLAN-0.10.7.txt, punkt 4).
-[x] 0.10.9 — decyzje podjęte (docs/archiwum/PLAN-0.10.9.txt, punkt 4): D5 szybka grafika włączona w Ogólnej, D7 znak
-    „układ scalony”, D9 jeden przełącznik (po wypadnięciu filmów — „Szybka grafika”), D10 „A” (miejsca 768 MiB; laptopy
-    instalujesz od nowa); D4 i filmy kartą — wypadły z wersji (2026-11-20, „może”).
-[x] 0.10.11 — decyzje podjęte (docs/archiwum/PLAN-0.10.11.txt, punkt 4): D1 „B” (bez klatek na sekundę w Zasobach),
-    D4 „A” (K1 sam przełącza warstwę karty i składanie), D5 (nowsze karty Intela bez sprawdzenia na sprzęcie), D6 „A”
-    (bez sterownika xe).
-[x] 0.11.0 — decyzje podjęte (docs/archiwum/PLAN-0.11.0.txt, punkt 4): D1–D6 „A” (pełny ekran bez pasków, okienko przy
-    każdym pobraniu, pochodzenie w szczegółach, K1 otwiera zamkniętą sesję, wklejanie samym Ctrl+V, przeciąganie przenosi,
-    z Ctrl kopiuje).
-[!] Przed testami 0.10.0 na laptopach: włącz wirtualizację w BIOS-ie (README, punkt 8).
+5. TWOJE OTWARTE DECYZJE I DZIAŁANIA
+------------------------------------
+[!] 0.12.0 — decyzje D1–D6 (docs/PLAN-0.12.0.txt, punkt 4): czat zada je na początku kroków; D1 (mikrofon) najpierw.
+[!] 0.10.5 — decyzje D4, D5, D7 i D10 weszły jako rekomendacje (kroki szły bez Ciebie) — do potwierdzenia albo zmiany:
+    D4 K1 sprawdza sam po połączeniu i co 6 godzin, pobiera od razu, instaluje po „Zainstaluj”; D5 przez sieć aktualizuje
+    się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach; D10 przegląd dokumentacji: powtórzenia →
+    odesłania, historia (ADR, CHANGELOG, archiwum) bez zmian.
+[x] Decyzje wersji 0.10.0–0.11.0 podjęte (punkt 4 każdego planu w docs/archiwum/); klucz podpisu dodany 2026-11-12.
 
 Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
   - styl: minimalistyczno-ciepły (Claude/Anthropic); pulpit jak w Windows 11, pasek na dole, wyśrodkowany; na górze
@@ -406,55 +217,26 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
   - kolejność techniczną planu ustala Claude (ADR 0011, 0035); decyzje produktowe (wygląd, zachowanie) — Ty;
   - przeglądarkę (Firefox w strefie) sprawdzasz Ty na sprzęcie — CI jej nie testuje (2026-11-17); Twoje zgłoszenia Claude
     odtwarza na stanowisku na hoście (scripts/stanowisko.sh) i poprawia; lista „co sprawdzić” — punkt 4 przy każdym wydaniu;
-  - testy idą na PR-ze przed scaleniem; na main CI tylko buduje ISO i obraz USB i tworzy wydanie (2026-11-17);
+  - testy idą na PR-ze przed scaleniem; na main CI tylko buduje ISO i obraz USB i tworzy wydanie (2026-11-17); testy QEMU
+    w CI po kilka naraz (tyle, ile procesorów), nigdy wszystkie (2026-11-22);
   - poprawki jądra i przeglądarki wydaje robot sam, po pełnych testach; zatrzymanie: GitHub → Actions → „Robot —
-    poprawki jądra i przeglądarki” → Disable workflow (2026-11-17, D6 planu 0.10.5); o instalację K1 zawsze pyta.
+    poprawki jądra i przeglądarki” → Disable workflow (2026-11-17, D6 planu 0.10.5); o instalację K1 zawsze pyta;
+  - po 0.11 — dźwięk (0.12), potem Bezpieczny start (0.13) i Audyt (0.14) (2026-11-22, ADR 0053).
 
 
 6. TYMCZASOWE (zasada czytelności 3 — każde z terminem; przegląd przy porządkach każdej wersji MINOR)
 ---------------------------------------------------------------------------------------------------
     Każde miejsce w kodzie ma komentarz `k1: tymczasowe — usunąć w <termin>` i jest wymienione tutaj;
     scripts/sprawdz-czytelnosc.py (testy) pilnuje, żeby żadne nie zostało bez wpisu.
-    [x] manifest formatu 1 na 47 MiB (aktualizacja z 0.6.2–0.6.3 starym Instalatorem) — usunięty w 0.9.0 (krok 3):
-        pliki startowe sprawdza manifest plików startowych (ADR 0038), aktualizacja je wymienia (RYZYKA R45)
-    [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10” = 0.12); od 0.7.0 GRUB jest też częścią startu A/B
-        (grubenv, ADR 0022), więc w 0.12 decyzja: zostaje czy zastępujemy (ADR)
-    [x] przeniesienie notatek z 0.5.6–0.7.6 do plików (0.8.0, ADR 0030) — usunięte w 0.9.0 (krok 3), Twoja decyzja
-        z 2026-11-12: notatki z pendrive'a zapisanego 0.5.6–0.7.6 nie przejdą już do Plików
-    [x] format 1 skarbca (dwie połowy, 0.5.6–0.8.1) i przejście na format 2 — usunięte w 0.10.0 (krok 5, Twoja decyzja
-        D7: takiego nośnika już nie masz); nagłówek formatu 1 jest rozpoznawany i zostawiany nietknięty
-    [x] odczyt ustawień ekranu w starych formatach K1U1–K1U3 (src/ekran/zapis.c) — usunięty w 0.11.0 (termin dotrzymany;
-        od 0.10.0 każdy otwarty skarbiec ma K1U4, starsze — ustawienia domyślne)
-    [x] przegląd 0.7.5, 0.8.0 i 0.8.2: innych rozwiązań tymczasowych nie ma; terminy 0.9.0 bez zmian
-    [x] przegląd 0.9.0 (krok 9): terminy 0.9.0 usunięte (krok 3), format 1 skarbca — termin 0.10.0 bez zmian; nowych
-        rozwiązań tymczasowych 0.9.0 nie dodało
-    [x] 0.9.1: nowych rozwiązań tymczasowych nie dodało (0.9.1 to PATCH — porządki MINOR przy 0.10)
-    [x] przegląd 0.10.0 (krok 5): termin 0.10.0 dotrzymany (format 1 skarbca); nowe tymczasowe — K1U1–K1U3 (0.11.0)
-    [x] test przeglądarki informacyjny (Twoja decyzja 2026-11-16) — usunięty razem z testem w 0.10.1 (Twoja decyzja
-        z 2026-11-17: przeglądarkę sprawdzasz Ty na sprzęcie, CI jej nie testuje)
-    [x] przegląd 0.10.1 (krok 5): termin 0.10.1 zamknięty (wyżej); K1U1–K1U3 — 0.11.0 bez zmian; nowych rozwiązań
-        tymczasowych 0.10.1 nie dodało
-    [x] przegląd 0.10.2 (krok 3): terminów na 0.10.2 nie było; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych
-        rozwiązań tymczasowych 0.10.2 nie dodało
-    [x] robot w trybie próbnym (ADR 0047) — termin dotrzymany: od wydania 0.10.5 `ROBOT_PROBNY: "0"` (pełny tryb)
-    [x] przegląd 0.10.5 (krok 8): terminów w kodzie na 0.10.5 nie było; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych
-        rozwiązań tymczasowych w kodzie 0.10.5 nie dodało
-    [x] przegląd 0.10.7 (krok 7): terminów na 0.10.7 nie było; K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych rozwiązań
-        tymczasowych 0.10.7 nie dodało
-    [x] robot w trybie próbnym od kroku 4 planu 0.10.9 (2026-11-19) — termin dotrzymany: od wydania 0.10.9
-        `ROBOT_PROBNY: "0"` (pełny tryb); pierwszą aktualizację przez sieć w nowym układzie przyniesie robot (punkt 4)
-    [x] przegląd 0.10.9 (krok 3): termin 0.10.9 zamknięty (wyżej); K1U1–K1U3 — 0.11.0, GRUB — 0.12 bez zmian; nowych
-        rozwiązań tymczasowych 0.10.9 nie dodało
-    [x] przegląd 0.10.11 i 0.11.0 (krok 5): termin 0.11.0 zamknięty (K1U1–K1U3, wyżej); GRUB — 0.12 bez zmian; nowych
-        rozwiązań tymczasowych 0.10.11 i 0.11.0 nie dodały
+    [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10” = 0.13 po ADR 0053); od 0.7.0 GRUB jest też częścią
+        startu A/B (grubenv, ADR 0022), więc w 0.13 decyzja: zostaje czy zastępujemy (ADR)
+    [x] przegląd przed 0.12 (2026-11-22): w kodzie nie ma żadnego rozwiązania tymczasowego; termin GRUB-a przesunięty
+        z 0.12 na 0.13 (ADR 0053). Wcześniejsze przeglądy (0.7.5–0.11.0) i usunięte rozwiązania — CHANGELOG, „Porządki”.
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
 ---------------------------------------------------------------------------------------
-    0.9    podjęte (ADR 0038, 0039, 0041 — pliki od producentów kart Wi-Fi, własne logowanie WPA2, ramki EAPOL)
-    0.10   podjęte (docs/archiwum/PLAN-0.10.0.txt, T1–T11): własny VMM w C, Firefox ESR w strefie (WPE — dla Przeglądarki
-           K1), sieć stref przez łącznik (SOCKS5), dysk strefy w skarbcu; ADR 0042 (z uzupełnieniem T11) i 0043;
-           0.10.1 — balon (ADR 0044, docs/archiwum/PLAN-0.10.1.txt); 0.10.2 — opis ekranu dla testów (ADR 0045);
-           0.10.5 — aktualizacje przez sieć (ADR 0046) i robot (ADR 0047), docs/archiwum/PLAN-0.10.5.txt
-    0.12   RANDSTRUCT w jądrze; zarządzanie kluczami; ochrona jądra przez wirtualizację — tak/nie
+    0.12   dźwięk: usługa dźwięku i jej klatka, ALSA bez alsa-lib, kanał dźwięku, urządzenie dźwięku w strefie, Firefox
+           w strefie — ADR 0054 w kroku 1 (kierunek: T1–T8 w docs/PLAN-0.12.0.txt)
+    0.13   RANDSTRUCT w jądrze; zarządzanie kluczami (podpis offline); ochrona jądra przez wirtualizację — tak/nie
     Podjęte wcześniej: docs/adr/README.md (spis wszystkich decyzji).

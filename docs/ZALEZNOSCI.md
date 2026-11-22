@@ -27,7 +27,7 @@ API KMS jądra przez ioctl (nagłówki UAPI z naszego jądra), renderer i przybo
 | shim (UEFI, podpis Microsoftu) | 15.8 (`shim-signed` 1.58+15.8-0ubuntu1) | BSD-2-Clause | archiwum Ubuntu — pakiet tylko rozpakowany (`scripts/wspolne.sh: efi_podpisane`), wersje w `build/pobrane/efi/wersje.txt` | pierwszy program startowy z pendrive'a/płyty przez UEFI; podpisane pliki z każdej płyty Ubuntu zamiast własnego, niepodpisanego GRUB-a (Defender oznaczał go heurystyką jako trojana, 0.5.5) |
 | GRUB dla nośników wymiennych (UEFI, `gcdx64.efi`, podpis Canonical) | 2.12 (`grub-efi-amd64-signed` 1.202.5+2.12-1ubuntu7.3) | GPL-3.0 | jw. | ładuje `k1.efi` z miejsca A/B (`loopback`, `load_env`/`save_env`); z Secure Boot sprawdza jego podpis przez shim (klucz K1 w MOK, ADR 0022) |
 | MokManager (`mmx64.efi`, podpis Canonical) | 15.8 (`shim-signed`) | BSD-2-Clause | jw. | wpisanie klucza K1 do MOK przy pierwszym włączeniu Secure Boot (0.7.0, ADR 0022) |
-| GRUB BIOS (i386-pc, obraz El Torito z wbudowanymi modułami) | 2.12-1ubuntu7.3 | GPL-3.0 | archiwum Ubuntu (`grub-pc-bin`), `grub-mkimage` | start z płyty przez BIOS w maszynach wirtualnych; tymczasowo do 0.12 (ADR 0010, RYZYKA R25) |
+| GRUB BIOS (i386-pc, obraz El Torito z wbudowanymi modułami) | 2.12-1ubuntu7.3 | GPL-3.0 | archiwum Ubuntu (`grub-pc-bin`), `grub-mkimage` | start z płyty przez BIOS w maszynach wirtualnych; tymczasowo do 0.13 (ADR 0010, 0053, RYZYKA R25) |
 
 ## W obrazie strefy przeglądarki (0.10.0 krok 2, ADR 0043 — poza bazą zaufania K1: działa w mikro-maszynie)
 | Zależność | Wersja | Licencja | Źródło i weryfikacja | Uzasadnienie |
@@ -76,4 +76,5 @@ Wersje użyte w danym buildzie zapisuje `build/wynik/srodowisko.txt`.
 | kernel-hardening-checker | v0.6.17.1 (`afc376f2…`) | GitHub | **tylko dane**: lista zaleceń KSPP czytana jako tekst przez `scripts/sprawdz-kspp.sh`; kod narzędzia nie jest uruchamiany |
 
 ## Planowane (do decyzji)
-- (zrobione w 0.9.0: własny build musl 1.2.5 z poprawkami i fortify-headers — wyżej)
+- Dźwięk (0.12, `docs/PLAN-0.12.0.txt`): bez obcej biblioteki w K1 — ALSA przez ioctl z nagłówków UAPI (jak DRM bez
+  libdrm); w strefie przeglądarki biblioteka ALSA z Debiana już jest (`libasound2t64`, zależność Firefoksa).

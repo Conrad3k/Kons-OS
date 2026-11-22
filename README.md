@@ -35,11 +35,12 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.10.7 Wygląd | krótsze napisy bez półpauz, Ustawienia i Pliki ułożone porządniej, okno przeglądarki bez kolorowej obwódki, napisy pod ikonami pulpitu na pigułce, tapeta z matową krawędzią, ekran „Wyłączanie”, Ustawienia → Aktualizacje już się nie zamykają | PRZETESTOWANE w QEMU (ADR 0048); wyłączanie z przeglądarką — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.10.9 Szybka grafika | przełącznik „Szybka grafika” przy sesji: przeglądarka rysuje kartą przez pośrednika grafiki K1 (IdeaPad; X230 — wyciszony), sterownik karty Intela w jądrze, obraz przeglądarki poza pamięcią K1, większe miejsca na system | PRZETESTOWANE w QEMU z KVM (ADR 0049, 0050; silnik testowy zamiast karty); Firefox z kartą — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.10.10 Poprawka | Instalator z pendrive'a instaluje od nowa także na dysku z K1 i danymi; Zasoby → „Karta graficzna” (obciążenie, taktowanie, pobór mocy karty i laptopa) | PRZETESTOWANE w QEMU (bez karty Intela: „nie podaje”); karta — na sprzęcie |
-| 0.10 Strefy (dalej) | może: filmy rozpakowywane kartą graficzną; inne obce aplikacje, wspólna strefa | PLANOWANE (ADR 0020, 0024, 0025) |
-| 0.11 Pliki ze stref | przenoszenie plików ze stref i do stref przez okno K1, schowek między strefami | PLANOWANE |
-| 0.12–0.13 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |
+| 0.10.11 Szybsza grafika | obraz przeglądarki prosto z karty na ekran (bez kopiowania), nowsze karty zintegrowane Intela do Meteor / Arrow Lake | PRZETESTOWANE w QEMU z KVM (ADR 0051); karta — na sprzęcie |
+| 0.11 Pliki ze stref | pobrane pliki w Plikach → Pobrane (z pochodzeniem), „Wyślij do” i „Otwórz za pomocą” sesji, „Zapisać zmiany w oryginale?”, przeciąganie między oknami i na okno przeglądarki, schowek, pełny ekran; 0.11.1–0.11.3: „Zapisz obraz jako…”, szybsza przeglądarka (wszystkie procesory komputera) | PRZETESTOWANE w QEMU z KVM (ADR 0052); Firefox — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
+| 0.12 Dźwięk | karta dźwiękowa, głośność na górnym pasku i klawiszami, słuchawki, dźwięk z przeglądarki | PLANOWANE (`docs/PLAN-0.12.0.txt`, ADR 0053) |
+| 0.13–0.14 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |
 
-Od 0.9 etapy to numery wersji (ADR 0035); wcześniejsze etapy M0–M6 zostały w tabeli jako historia.
+Od 0.9 etapy to numery wersji (ADR 0035, 0053); wcześniejsze etapy M0–M6 zostały w tabeli jako historia.
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -77,7 +78,7 @@ Aktualizacje). Czego jeszcze nie ma: innych obcych aplikacji, dźwięku, jasnoś
      **Ustawienia → Ekran**. Gdyby przy VMSVGA obraz w ogóle się nie pojawił, zmień kontroler na
      **VBoxSVGA** — wtedy K1 użyje obrazu z firmware (z EFI tylko 1024×768; większy:
      `"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" setextradata "NAZWA MASZYNY" VBoxInternal2/EfiGraphicsResolution 1920x1080`).
-   - Pamięć masowa: napęd optyczny → wybierz pobrany plik ISO. Sieć i dźwięk można wyłączyć.
+   - Pamięć masowa: napęd optyczny → wybierz pobrany plik ISO. Sieć i dźwięk można wyłączyć (dźwięku K1 jeszcze nie ma — będzie w 0.12).
    - Przeglądarki z ISO nie ma (od 0.10.9 jej obraz leży obok systemu na pendrive'ie albo dysku, a K1 nie czyta płyt) —
      K1 pokaże okienko, że przeglądarka nie może ruszyć.
 3. Uruchom. Po kilku sekundach pojawi się pulpit. Kliknij w okno maszyny, żeby „złapać” mysz
@@ -96,9 +97,7 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    (Obraz `.iso` też zadziała z pendrive'a, ale bez zapisu danych — po wyłączeniu wszystko znika,
    a Ustawienia → Hasło piszą „Nie znaleziono miejsca na dane”. Sprawdzisz w Ustawieniach → Informacje:
    „Dane: zaszyfrowane na nośniku K1”.)
-   Nowy pendrive od pierwszego startu ma na dane całą swoją pojemność. Pendrive nagrany wersją 0.5.6–0.7.6 ma mało
-   miejsca na pliki — Ustawienia → Miejsce → **„Użyj całego pendrive'a na dane”** (Twoje pliki zostają na miejscu; nie
-   wyjmuj pendrive'a, dopóki nie zobaczysz „Gotowe”). Tam też widać, ile miejsca jest zajęte i ile zostało.
+   Pendrive od pierwszego startu ma na dane całą swoją pojemność (ile zajęte, ile zostało: Ustawienia → Miejsce).
 2. **Najpierw wyłącz Secure Boot** — dopóki klucz K1 nie jest wpisany (sekcja „Secure Boot z kluczem K1”
    niżej; wersje deweloperskie zawsze wymagają wyłączonego Secure Boot). Bez tego laptop pokaże
    „Secure Boot Violation” / „Invalid signature”, a po „OK” uruchomi system z dysku (sprawdzone
@@ -145,10 +144,7 @@ zapisuje na dysku laptopa** — zmienia go tylko Instalator (punkt 7). Pendrive 
    sprawdza Twój system, a nie kod z pendrive'a).
    Nowa wersja trafia **obok** obecnej (A/B): po restarcie startuje na próbę, a gdyby nie wystartowała — wraca
    poprzednia, a K1 napisze o tym w okienku na pulpicie i w Ustawieniach → Aktualizacje. Aktualizacja wymienia też pliki
-   startowe (shim, GRUB) — bezpiecznie, nawet gdy w trakcie zabraknie prądu. K1 starszy niż 0.7.0 na dysku:
-   najpierw zaktualizuj go do 0.8.x albo zainstaluj od nowa. **Od 0.10.0** dane zapisane przez 0.5.6–0.8.1, których od
-   tamtej pory nie otworzyła żadna wersja 0.8.2–0.9.1, się nie otworzą (K1 ich nie rusza) — uruchom taki nośnik najpierw
-   raz z 0.9.1.
+   startowe (shim, GRUB) — bezpiecznie, nawet gdy w trakcie zabraknie prądu.
 8. **Przeglądarka** (od 0.10.0): menu Start → **Przeglądarka** — prawdziwy Firefox w osobnej maszynie (strefie).
    **Najpierw raz włącz wirtualizację w BIOS-ie:** X230 — F1 → Security → Virtualization → „Intel Virtualization
    Technology” i „Intel VT-d Feature”: *Enabled*; IdeaPad 110 — F2 → Configuration → „Intel Virtual Technology”:

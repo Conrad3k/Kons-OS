@@ -62,11 +62,11 @@ firmware UEFI → shim (Microsoft) → GRUB (Canonical) → k1.efi z miejsca A a
 Testy QEMU startują też `bzImage` + `initramfs.cpio` (tylko `test-m1`). Obraz przeglądarki (0.10.9 krok 4, ADR 0050) nie
 jest w rdzeniu: leży w miejscu A/B zaraz za k1.efi (na końcu obrazu miejsca, manifest go obejmuje), w rdzeniu tylko jego
 skrót; nadzorca zakłada dm-verity i daje go VMM-owi (fd 6). W testach z rdzeniem na `/dev/vda` — drugi dysk virtio
-(`uruchom-qemu.sh --obraz-strefy`). ISO nie ma obrazu przeglądarki (jądro bez napędu CD). ISO/USB mają GRUB-a do 0.12 (ADR 0010; dawne M10).
+(`uruchom-qemu.sh --obraz-strefy`). ISO nie ma obrazu przeglądarki (jądro bez napędu CD). ISO/USB mają GRUB-a do 0.13 (ADR 0010, 0053; dawne M10).
 
 **System plików po starcie** (ADR 0004): `/` — tmpfs tylko do odczytu z trzema katalogami: `rdzen`
 (SquashFS ro, nosuid, nodev; w nim `init`, `system/`, `aplikacje/`, `jadro/{dev,proc,sys}`), `aplikacje`
-(pusty do 0.12), `dane_uzytkownika` (tmpfs noexec — dane tymczasowe). Trwałe dane są w **skarbcu**
+(pusty do 0.13), `dane_uzytkownika` (tmpfs noexec — dane tymczasowe). Trwałe dane są w **skarbcu**
 (partycja GPT „K1-DANE”, własny format, Monocypher; ADR 0015), nie w systemie plików. `/proc` ma
 `hidepid=invisible,subset=pid`. Nie używaj ścieżek `/dev`, `/proc`, `/sys`, `/tmp`, `/etc`.
 
@@ -394,10 +394,11 @@ numery kroków się nie zmieniają — wyjątek: **wydanie jest zawsze ostatnim 
 więc nowy krok dodany do planu bierze numer kroku wydania, a wydanie przesuwa się na koniec, póki się nie zaczęło;
 zamknięty plan → `docs/archiwum/`). Nie powtarzaj stanu w innych plikach.
 Etapy to wersje MINOR z tematem: **0.8 Pliki** → **0.9 Sieć** → **0.10 Strefy** (mikro-maszyny, ramka, przeglądarka,
-aktualizacje przez sieć; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Bezpieczny start** (recovery,
-TPM) → **0.13 Audyt** → 1.0. Co gotowe, co teraz i który plan jest bieżący — tylko w `docs/DO_ZROBIENIA.txt` (tu tego nie
-powtarzamy). Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9, M8 = 0.10, M9 = 0.11, M10 = 0.12,
-M12 = 0.13, M5.3 Laptop = PATCH w dowolnej wersji).
+aktualizacje przez sieć; ADR 0020, 0024, 0025) → **0.11 Pliki ze stref** (ADR 0027) → **0.12 Dźwięk** (ADR 0053) →
+**0.13 Bezpieczny start** (recovery, TPM) → **0.14 Audyt** → 1.0. Co gotowe, co teraz i który plan jest bieżący — tylko
+w `docs/DO_ZROBIENIA.txt` (tu tego nie powtarzamy). Stare dokumenty mówią M7…M12 — tłumaczenie: tabela w ADR 0035 (M7 = 0.9,
+M8 = 0.10, M9 = 0.11, M5.3 Laptop = PATCH w dowolnej wersji) z poprawką ADR 0053 (M10 = 0.13, M12 = 0.14; „0.12” i „0.13”
+w dokumentach sprzed 2026-11-22 to Bezpieczny start i Audyt).
 **Robot a plany (od 0.10.5):** robot wydaje z `main` codziennie — scalony krok planu musi być gotowy dla użytkownika,
 a numer wydania z planu może zająć robot (zasady: `AGENTS.md`, „Robot aktualizacji”; plany, punkt 0 „Robot i wydania”).
 
