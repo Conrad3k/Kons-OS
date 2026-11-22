@@ -280,12 +280,16 @@ void pobrane(void)
     EXPECT(ok(K(K1_KOM_DOK_DO_STREFY, K1_DOK_PIERWSZY, K1_STREFA_OGOLNA, 1, 0, 0, 0), K1_KIER_DO_SKARBCA));
     EXPECT(zle(K(K1_KOM_DOK_DO_STREFY, K1_FOLDER_POBRANE, K1_STREFA_OGOLNA, 0, 0, 0, 0), K1_KIER_DO_SKARBCA)); /* a folder */
     EXPECT(zle(K(K1_KOM_DOK_DO_STREFY, K1_DOK_PIERWSZY, 0, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
-    EXPECT(zle(K(K1_KOM_DOK_DO_STREFY, K1_DOK_PIERWSZY, K1_STREFA_OGOLNA, 2, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(ok(K(K1_KOM_DOK_DO_STREFY, K1_DOK_PIERWSZY, K1_STREFA_OGOLNA, K1_PS_TRYB_UPUSC, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(zle(K(K1_KOM_DOK_DO_STREFY, K1_DOK_PIERWSZY, K1_STREFA_OGOLNA, K1_PS_TRYB_MAKS + 1, 0, 0, 0), K1_KIER_DO_SKARBCA));
+    EXPECT(ok(K(K1_KOM_SKARB_DO_STREFY, K1_DOK_PIERWSZY, K1_STREFA_BANK, K1_PS_TRYB_UPUSC, 0, 0, 0), d));
+    EXPECT(zle(K(K1_KOM_SKARB_DO_STREFY, K1_DOK_PIERWSZY, K1_STREFA_BANK, K1_PS_TRYB_MAKS + 1, 0, 0, 0), d));
     EXPECT(ok(K(K1_KOM_SKARB_DO_STREFY, K1_DOK_PIERWSZY, K1_STREFA_BANK, 0, 0, 0, 0), d));
     EXPECT(zle(K(K1_KOM_SKARB_DO_STREFY, K1_DOK_PIERWSZY, K1_STREFA_BANK, 0, 0, 0, 0), K1_KIER_DO_SKARBCA));
     EXPECT(ok(K(K1_KOM_STREFA_DO_PLIK, 4, 1000, 0, 9, 1, 0), o));
     EXPECT(zle(K(K1_KOM_STREFA_DO_PLIK, 4, 0, 2, 9, 1, 0), o));        /* over 4 GiB */
-    EXPECT(zle(K(K1_KOM_STREFA_DO_PLIK, 4, 1000, 0, 9, 2, 0), o));
+    EXPECT(ok(K(K1_KOM_STREFA_DO_PLIK, 4, 1000, 0, 9, K1_PS_TRYB_UPUSC, 0), o));
+    EXPECT(zle(K(K1_KOM_STREFA_DO_PLIK, 4, 1000, 0, 9, K1_PS_TRYB_MAKS + 1, 0), o));
     EXPECT(ok(K(K1_KOM_STREFA_DO_KAWALEK, 4, kaw, 3, 0, 0, 0), o));
     EXPECT(zle(K(K1_KOM_STREFA_DO_KAWALEK, 4, 0, 3, 0, 0, 0), o));
     EXPECT(ok(K(K1_KOM_STREFA_DO_ODP, 4, K1_PLIK_DALEJ, 0, 0, 0, 0), d));
@@ -304,4 +308,46 @@ void pobrane(void)
     EXPECT(strcmp(k1_poch_nazwa(K1_POCH_STREFA_OD + K1_STREFA_OGOLNA), "z przeglądarki · Ogólna") == 0 &&
            strcmp(k1_poch_nazwa(K1_POCH_STREFA_OD + K1_STREFA_PROBNA), "ze strefy próbnej") == 0 &&
            k1_poch_dobre(K1_POCH_STREFA_OD + 1) && !k1_poch_dobre(K1_POCH_MAKS + 1) && !k1_poch_dobre(0));
+}
+
+/* 0.11.0 step 4 (ADR 0052, T6): dragging between windows — ekran and its clients, ekran → a zone's VMM */
+void przeciaganie(void)
+{
+    const enum k1_kanal_kierunek do_e = K1_KIER_DO_EKRANU, od_e = K1_KIER_OD_EKRANU;
+    EXPECT(ok(K(K1_KOM_PRZECIAGANIE, 1, K1_PZ_FOLDER, 3, 1, K1_DOK_PIERWSZY, K1_FOLDER_OBRAZY), do_e));
+    EXPECT(ok(K(K1_KOM_PRZECIAGANIE, 1, K1_PZ_STALY, 1, 1, K1_FOLDER_MUZYKA, 0), do_e));    /* a standard folder */
+    EXPECT(ok(K(K1_KOM_PRZECIAGANIE, 1, K1_PZ_PENDRIVE, 2, 0, 0, 0), do_e));               /* the stick's: no entry */
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE, 1, K1_PZ_FOLDER, 3, 1, 0, 0), od_e));                /* the direction */
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE, 0, K1_PZ_FOLDER, 3, 1, 0, 0), do_e));                /* no surface */
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE, 1, K1_PZ_MAKS + 1, 1, 0, 0, 0), do_e));
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE, 1, K1_PZ_FOLDER, 0, 0, 0, 0), do_e));                /* nothing dragged */
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE, 1, K1_PZ_FOLDER, K1_DOK_MAKS + 1, 0, 0, 0), do_e));
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE, 1, K1_PZ_FOLDER, 2, 3, 0, 0), do_e));                /* more folders than entries */
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE, 1, K1_PZ_FOLDER, 1, 0, K1_DOK_PIERWSZY - 1, 0), do_e)); /* not an entry */
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE, 1, K1_PZ_FOLDER, 1, 0, 0, -1), do_e));
+    EXPECT(ok(K(K1_KOM_UPUSZCZANIE_CO, 2, K1_PZ_PULPIT, 1, 0, K1_DOK_PIERWSZY, K1_FOLDER_PULPIT), od_e));
+    EXPECT(zle(K(K1_KOM_UPUSZCZANIE_CO, 2, K1_PZ_PULPIT, 1, 0, K1_DOK_PIERWSZY, K1_FOLDER_PULPIT), do_e));
+    EXPECT(ok(K(K1_KOM_PRZECIAGANIE_CEL, 1, K1_PC_FOLDER, K1_FOLDER_PULPIT, 0, 0, 0), do_e));
+    EXPECT(ok(K(K1_KOM_PRZECIAGANIE_CEL, 1, K1_PC_KOSZ, 0, 0, 0, 0), do_e));
+    EXPECT(ok(K(K1_KOM_PRZECIAGANIE_CEL, 1, 0, 0, 0, 0, 0), do_e));                       /* nothing */
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE_CEL, 1, K1_PC_FOLDER, 0, 0, 0, 0), do_e));            /* a folder without its number */
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE_CEL, 1, K1_PC_KOSZ, 5, 0, 0, 0), do_e));
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE_CEL, 1, K1_PC_STREFA, 1, 0, 0, 0), do_e));            /* a session: only ekran knows */
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE_CEL, 1, 0, 7, 0, 0, 0), do_e));
+    EXPECT(ok(K(K1_KOM_UPUSZCZANIE, 2, -40, 900, K1_UP_RUCH, K1_MOD_CTRL, 0), od_e));
+    EXPECT(ok(K(K1_KOM_UPUSZCZANIE, 2, 10, 20, K1_UP_UPUSC, 0, 0), od_e));
+    EXPECT(zle(K(K1_KOM_UPUSZCZANIE, 2, 10, 20, K1_UP_UPUSC + 1, 0, 0), od_e));
+    EXPECT(zle(K(K1_KOM_UPUSZCZANIE, 2, 10, 20, K1_UP_RUCH, K1_MOD_MASKA + 1, 0), od_e));
+    EXPECT(zle(K(K1_KOM_UPUSZCZANIE, 2, 10, 20, K1_UP_RUCH, 0, 1), od_e));
+    EXPECT(ok(K(K1_KOM_PRZECIAGANIE_GDZIE, 2, 1, 0, 0, 0, 0), od_e) && zle(K(K1_KOM_PRZECIAGANIE_GDZIE, 2, 2, 0, 0, 0, 0), od_e));
+    EXPECT(ok(K(K1_KOM_PRZECIAGANIE_KONIEC, 2, K1_PC_STREFA, K1_STREFA_BANK, K1_MOD_CTRL, 0, 0), od_e));
+    EXPECT(ok(K(K1_KOM_PRZECIAGANIE_KONIEC, 2, K1_PC_FOLDER, K1_DOK_PIERWSZY, 0, 0, 0), od_e));
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE_KONIEC, 2, K1_PC_STREFA, K1_STREFY_MAKS + 1, 0, 0, 0), od_e));
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE_KONIEC, 2, K1_PC_PENDRIVE, 0, 0, 0, 0), od_e));       /* never onto the stick */
+    EXPECT(zle(K(K1_KOM_PRZECIAGANIE_KONIEC, 2, K1_PC_KOSZ, 0, 0, 1, 0), od_e));
+    EXPECT(ok(K(K1_KOM_UPUSC_STREFA, 1, 0, 0, 1, 0, 0), od_e) && ok(K(K1_KOM_UPUSC_STREFA, 1, 1919, 1079, K1_PRZ_DO_STREFY_MAKS, 0, 0), od_e));
+    EXPECT(zle(K(K1_KOM_UPUSC_STREFA, 1, -1, 0, 1, 0, 0), od_e) && zle(K(K1_KOM_UPUSC_STREFA, 1, 0, 0, 0, 0, 0), od_e));
+    EXPECT(zle(K(K1_KOM_UPUSC_STREFA, 1, 0, 0, K1_PRZ_DO_STREFY_MAKS + 1, 0, 0), od_e) &&
+           zle(K(K1_KOM_UPUSC_STREFA, 1, 0, 0, 1, 0, 0), do_e));
+    EXPECT(!k1_komunikat_z_deskryptorem(K1_KOM_PRZECIAGANIE, do_e) && !k1_komunikat_z_deskryptorem(K1_KOM_UPUSC_STREFA, od_e));
 }

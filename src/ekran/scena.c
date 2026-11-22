@@ -230,6 +230,7 @@ static void skomponuj(void)
             }
         }
         pelny_rysuj(&r); /* 0.11.0 step 1: K1's pill or bar over a window in full screen */
+        przeciaganie_rysuj(&r); /* 0.11.0 step 4: the sign of files dragged over a session's window */
         rozmiar_rysuj(&r); /* 0.10.5 step 4: the outline of a window being resized, over everything */
         wylaczanie_rysuj(&r); /* 0.10.7 step 6: K1 powers off — the screen "Wyłączanie" over all of it */
     }

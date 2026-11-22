@@ -143,7 +143,10 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   te trzy kolory poza motywem, te same w obu motywach (znak leży na liście albo na tapecie). Cel: obrys 1,5 px i tło
   w kolorze akcentu (krycie 13 %) na wierszu albo miejscu z lewej; przeciągane wiersze przygaszone (krycie 43 %).
   Zaznaczenie wielu: tło `zaznaczenie` i pionowa kreska 3 px w kolorze akcentu. Na pulpicie: komórka celu z kremowym
-  obrysem 2 px i kremowym tłem 27 %, przy kursorze kafelek pliku z kryciem 70 % i ten sam znak.
+  obrysem 2 px i kremowym tłem 27 %, przy kursorze kafelek pliku z kryciem 70 % i ten sam znak. **Między oknami (0.11.0
+  krok 4):** ten sam znak — nad pulpitem (pliki z Plików) rysuje go pulpit, nad Plikami (plik z pulpitu) Pliki z karteczką,
+  nad oknem sesji przeglądarki ekran: zielony „Kopia do sesji „Ogólna”” (albo czerwony z powodem), 16 px w prawo i 24 px
+  w dół od czubka kursora; z Ctrl „Kopiuj do „…”” (zielony).
 - **Okienko pytania (0.8.2 krok 6):** panel menu (`k1_menu`) 300 px przy miejscu upuszczenia: pytanie Plex Sans Medium 15
   (zawijane, wiersz 21 px), pod nim zdanie Plex Sans 13 (`tekst2`), kreska, wiersze odpowiedzi — pierwszy Medium
   („Przenieś do Kosza”, „Zachowaj oba”, „OK”), „Anuluj” zwykły.

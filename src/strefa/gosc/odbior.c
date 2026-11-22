@@ -3,7 +3,9 @@
  * K1_PS_PLIK + BAJTY on the files port: the bytes checked against the pattern of K1 (odbior_wzor), ODEBRANY 0. Then each
  * comes back changed (ZGLOS with dotyczy = K1's number; other bytes, a different size): the test clicks "Zapisz",
  * "Zapisz jako nowy plik", "Nie" in K1's window. Last, NEGATIVE: a changed version of a file K1 never gave (dotyczy 999)
- * — K1 refuses it. Each line of the log says what the guest saw. */
+ * — K1 refuses it. 0.11.0 step 4: then a file of the desktop dragged onto the zone's window (scripts/test-pobrane.sh
+ * drags it): UPUSC (how many, where — inside the window) and that many PLIK frames with tryb UPUSC, bytes checked. Each
+ * line of the log says what the guest saw. */
 #include <errno.h>
 #include <poll.h>
 #include <stdio.h>
@@ -80,7 +82,7 @@ static int jeden(uint32_t *nr, int *otworz, char *nazwa, size_t nn)
     r = (struct k1_ps_ramka){ .typ = K1_PS_ODEBRANY, .nr = *nr, .wynik = !(dobre && jest == rozmiar) };
     ramka(&r);
     loguj("odbiór: plik %u z K1 (%llu B, %s)%s", *nr, (unsigned long long)jest, dobre && jest == rozmiar ? "zgodny" : "BŁĄD",
-          *otworz ? ", otworzyć" : "");
+          *otworz == K1_PS_TRYB_OTWORZ ? ", otworzyć" : *otworz == K1_PS_TRYB_UPUSC ? ", upuszczony" : "");
     return dobre && jest == rozmiar;
 }
 
@@ -103,6 +105,26 @@ static uint32_t zmiana(uint32_t nr, uint32_t dotyczy, const char *nazwa)
     return 99;
 }
 
+/* 0.11.0 step 4: UPUSC first (nothing comes while the pointer is only over the window), then its files. */
+static void upuszczenie(void)
+{
+    struct k1_ps_ramka r;
+    uint32_t nr;
+    char nazwa[K1_PS_NAZWA_MAKS + 1];
+    int tryb, dobre = 0, z = 0;
+    loguj("odbiór: czekam na upuszczenie na okno");
+    memset(&r, 0, sizeof r);
+    if (czytaj(&r, 3 * CZEKAJ_MS) <= 0 || r.typ != K1_PS_UPUSC) { /* the script moves the window and drags first */
+        loguj("odbiór: upuszczenie — BŁĄD (ramka %u zamiast UPUSC)", r.typ);
+        return;
+    }
+    loguj("odbiór: upuszczenie %u plików w %u,%u", r.nr, r.x, r.y);
+    for (uint32_t i = 0; i < r.nr; i++)
+        if (jeden(&nr, &tryb, nazwa, sizeof nazwa))
+            dobre++, z += tryb == K1_PS_TRYB_UPUSC;
+    loguj("odbiór: upuszczone pliki zgodne: %d, z trybem upuszczenia: %d", dobre, z);
+}
+
 void odbior(void)
 {
     struct sockaddr_vm a = { .svm_family = AF_VSOCK, .svm_cid = VMADDR_CID_HOST, .svm_port = K1_PS_PORT };
@@ -121,4 +143,5 @@ void odbior(void)
     for (int j = 0; j < i; j++)
         loguj("odbiór: zmiana pliku %u — wynik %u", nr[j], zmiana(100 + (uint32_t)j, nr[j], nazwa[j]));
     loguj("odbiór zły: zmiana pliku, którego K1 nie dał — wynik %u", zmiana(200, 999, "obcy.bin"));
+    upuszczenie();
 }

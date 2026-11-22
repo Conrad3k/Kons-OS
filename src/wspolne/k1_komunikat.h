@@ -174,19 +174,41 @@ enum k1_komunikat_typ {
                                        * goes; when the user chose "Zapisz", gui says why it was not saved */
     /* 0.11.0 step 3 (ADR 0052): a file from Pliki to a zone ("Wyślij do…", "Otwórz w…"); a changed version back */
     K1_KOM_DOK_DO_STREFY = 235,       /* Pliki, gui → skarbiec: obiekt=a visible file, a=zone with a window 1..K1_STREFY_MAKS,
-                                       * b=1 "Otwórz w…" (open it in a new tab) / 0 "Wyślij do…", c..e=0 — after the user's
+                                       * b=K1_PS_TRYB_* ("Wyślij do…", "Otwórz w…" in a new tab, step 4:
+                                       * dropped on its window), c..e=0 — after the user's
                                        * gesture in K1's menu (reply: DOK_WYNIK) */
-    K1_KOM_SKARB_DO_STREFY = 236,     /* skarbiec → nadzorca (its control channel): obiekt=the file, a=zone, b=otworz 0/1,
+    K1_KOM_SKARB_DO_STREFY = 236,     /* skarbiec → nadzorca (its control channel): obiekt=the file, a=zone, b=K1_PS_TRYB_*,
                                        * c..e=0; + 1 fd: a sealed memfd of the file's entry (K1_DOK_WPIS_BAJTY) — nadzorca's
                                        * channel K1_WL_DO_STREF may read it now */
     K1_KOM_STREFA_DO_PLIK = 237,      /* nadzorca → VMM (fd 7): obiekt=K1's number of the file 1..K1_PS_NR_MAKS, a=b=its size
-                                       * (0..K1_DOK_MAKS_BAJTY), c=the name's length 1..K1_DOK_NAZWA-1, d=otworz 0/1, e=0;
+                                       * (0..K1_DOK_MAKS_BAJTY), c=the name's length 1..K1_DOK_NAZWA-1, d=K1_PS_TRYB_*, e=0;
                                        * + 1 fd: a sealed memfd of the name */
     K1_KOM_STREFA_DO_KAWALEK = 238,   /* nadzorca → VMM (fd 7): obiekt=the file, a=bytes 1..K1_DOK_KAWALEK, b=the piece's
                                        * number 0..K1_DOK_KAWALKI_MAKS-1, c..e=0; + 1 fd: a sealed memfd of a bytes — only
                                        * after STREFA_DO_ODP DALEJ */
     K1_KOM_STREFA_DO_ODP = 239,       /* VMM → nadzorca (fd 7): obiekt=the file, a=K1_PLIK_DALEJ (the next piece) /
                                        * K1_PLIK_GOTOWE (b=0 in the zone's folder "Z K1", 1 not), c..e=0 */
+    /* 0.11.0 step 4 (ADR 0052, T6): dragging between windows — ekran leads it (it knows where the windows are); the
+     * source and the target never talk to each other, and the files go through skarbiec (and nadzorca to a zone) */
+    K1_KOM_PRZECIAGANIE = 240,        /* Pliki, the shell's desktop → ekran: obiekt=its surface holding the pointer (the left
+                                       * button pressed there), a=K1_PZ_* what is dragged, b=how many 1..K1_DOK_MAKS, c=of them
+                                       * folders 0..b, d=the first entry (0: none; a standard folder
+                                       * 1..K1_FOLDERY_MAKS, a user's entry), e=the folder they
+                                       * lie in 0..K1_DOK_ID_MAKS — until the button goes up */
+    K1_KOM_PRZECIAGANIE_CEL = 241,    /* the shell's desktop → ekran: obiekt=its surface, a=0 nothing / K1_PC_FOLDER (b=the
+                                       * folder 1..K1_DOK_ID_MAKS) / K1_PC_KOSZ (b=0), c..e=0 — where a drop from Pliki on it
+                                       * goes (an answer to UPUSZCZANIE UPUSC); ekran tells Pliki (PRZECIAGANIE_KONIEC) */
+    K1_KOM_UPUSZCZANIE_CO = 242,      /* ekran → the target (Pliki, the desktop): obiekt=its surface, a..e as PRZECIAGANIE's —
+                                       * what comes over it, before its first UPUSZCZANIE */
+    K1_KOM_UPUSZCZANIE = 243,         /* ekran → the target: obiekt=its surface, a,b = x,y, c=K1_UP_*, d=K1_MOD_* bits, e=0 */
+    K1_KOM_PRZECIAGANIE_GDZIE = 244,  /* ekran → the source: obiekt=its surface, a=1 the pointer is over another window or
+                                       * the desktop (the target draws, not the source) / 0 back over its own, b..e=0 */
+    K1_KOM_PRZECIAGANIE_KONIEC = 245, /* ekran → the source: obiekt=its surface, a=K1_PC_FOLDER (b=the folder) / K1_PC_KOSZ
+                                       * (b=0) / K1_PC_STREFA (b=zone 1..K1_STREFY_MAKS), c=K1_MOD_* bits at the drop, d=e=0 —
+                                       * its entries were dropped there: the source does it (Pliki asks, moves, copies) */
+    K1_KOM_UPUSC_STREFA = 246,        /* ekran → a zone's VMM: obiekt=its window surface, a,b = x,y in its picture
+                                       * 0..K1_PS_POZ_MAKS, c=files 1..K1_PRZ_DO_STREFY_MAKS, d=e=0 — dropped there (the
+                                       * copies follow from Pliki: DOK_DO_STREFY "upuść") */
     K1_KOM_ZASOBY_USLUGA = 63, /* obiekt=K1_PROFIL_* of a service, a=CPU ‰ (of all CPUs), b=memory KiB, c=1 running */
     K1_KOM_BATERIA = 64,       /* to gui: obiekt=0, a=1 battery present, b=percent 0..100 (-1 unknown), c=K1_BAT_*,
                                 * d=1 on mains power; no battery: a=0, b=-1, c=0 (also to Ustawienia) */
@@ -618,6 +640,7 @@ enum { K1_POB_ZOSTAW = 0, K1_POB_ZAPISZ = 1, K1_POB_JAKO_NOWY = 2 };
  * name field open. */
 enum { K1_PLIKI_MIEJSCE = 0, K1_PLIKI_KOSZ = 1, K1_PLIKI_NAZWA = 2 };
 enum { K1_WSK_RUCH = 1, K1_WSK_WCISNIECIE = 2, K1_WSK_PUSZCZENIE = 3, K1_WSK_WYJSCIE = 4 };
+enum { K1_UP_RUCH = 1, K1_UP_WYJSCIE = 2, K1_UP_UPUSC = 3 }; /* UPUSZCZANIE (0.11.0 step 4): over it, gone, dropped */
 enum { K1_PRZYCISK_BRAK = 0, K1_PRZYCISK_LEWY = 1, K1_PRZYCISK_PRAWY = 2, K1_PRZYCISK_SRODKOWY = 3 };
 
 /* Scrolling (K1_KOM_PRZEWIN; the same units and sources as K1_ZD_PRZEWIJANIE in k1_zdarzenie.h) */

@@ -7,7 +7,11 @@
  * menu of the icon or of the desktop. A file dragged over Kosz or a folder of Pulpit (0.8.2 step 6): that cell is
  * outlined, a see-through tile and the sign of what a drop does follow the pointer (the table of dragging, przybornik
  * k1_przeciaganie) — dropped, it goes there (pliki.c), or the window asks first (a folder into Kosz, D8). More files
- * than cells (L19): the last free cell shows "Jeszcze n".
+ * than cells (L19): the last free cell shows "Jeszcze n". Between windows (0.11.0 step 4, ADR 0052; D6: A): a file of
+ * Pulpit dragged over Pliki or a browser session's window — ekran says so (GDZIE: the icon goes back to its cell, the
+ * other window draws) and where it was dropped (KONIEC: a session — a copy of it); files of Pliki dragged over the
+ * desktop come as UPUSZCZANIE — the sign at the pointer, the target outlined, and at the drop where it goes
+ * (PRZECIAGANIE_CEL: Pulpit, one of its folders, Kosz) — Pliki does it (the desktop sees only Pulpit).
  *
  * Only what changed is drawn and committed (k1_pow_zatwierdz_obszar): the half being drawn is two commits
  * old, so a change is drawn twice — now and in the next frame (brud_poprz). */
@@ -43,6 +47,16 @@ static struct {
     uint32_t klucz;
     double t;
 } klik; /* the last click, for a double click */
+static struct {
+    int jest, zrodlo, ile, folderow; /* 0.11.0 step 4: files of Pliki over the desktop (UPUSZCZANIE_CO) */
+    uint32_t skad;                   /* the folder they lie in */
+} obcy;
+static struct {
+    int poza;           /* 0.11.0 step 4: the file dragged is over another window (ekran's GDZIE) */
+    double koniec;      /* dropped there: ekran says where (KONIEC) until KONIEC_S after (0: no) */
+    uint32_t klucz;
+} miedzy;
+#define KONIEC_S 3.0
 static struct {
     int cel;            /* K1_PC_* under a file dragged (0: none — the icon only moves) */
     uint32_t cel_klucz; /* Kosz, or the folder's icon */
@@ -161,7 +175,7 @@ static void ikona(struct k1_obraz *o, int32_t ox, int32_t oy, uint32_t klucz, in
         if (zazn)
             k1_obrys(o, x, y, KOM_W, KOM_H - 4, 10, 1.25f, k1_kolor(K1_KREM, ciemny ? 90 : 150));
     }
-    if (wcisk.ciagnie && upusc.cel != 0 && klucz == upusc.cel_klucz) { /* a drop goes here (0.8.2 step 6) */
+    if ((wcisk.ciagnie || obcy.jest) && upusc.cel != 0 && klucz == upusc.cel_klucz) { /* a drop goes here (0.8.2 step 6) */
         k1_zaokraglony(o, x, y, KOM_W, KOM_H - 4, 10, k1_kolor(K1_KREM, 70));
         k1_obrys(o, x, y, KOM_W, KOM_H - 4, 10, 2.0f, k1_kolor(K1_KREM, 255));
     }
@@ -230,6 +244,8 @@ void rysuj_pulpit(void)
         ikona(&cz, r.x, r.y, wcisk.klucz, wcisk.kol, wcisk.wiersz);
     if (wcisk.ciagnie && upusc.cel != 0) /* a see-through tile and the sign at the pointer */
         duch(&cz, r.x, r.y);
+    else if (obcy.jest && upusc.cel != 0) /* files of Pliki: the sign only (0.11.0 step 4) */
+        k1_prz_znak_rysuj(&cz, upusc.px + 6 - r.x, upusc.py + 10 - r.y, &upusc.oc);
     k1_pow_zatwierdz_obszar(&k, &pulpit, r.x, r.y, r.w, r.h);
 }
 
@@ -318,34 +334,40 @@ static uint32_t ikona_pod(int32_t x, int32_t y)
 }
 
 /* A file dragged over Kosz or a folder of Pulpit: what a drop does there (the table of dragging). */
-static void cel_upuszczenia(int32_t x, int32_t y)
+static void cel_upuszczenia(int32_t x, int32_t y, int kopia)
 {
     uint32_t kl = ikona_pod(x, y);
-    int cel = !rozm_plik(wcisk.klucz) ? 0
+    int cel = !obcy.jest && !rozm_plik(wcisk.klucz) ? 0
               : kl == ROZM_KOSZ      ? K1_PC_KOSZ
               : kl != wcisk.klucz && plik_nazwa_folderu(kl) != NULL ? K1_PC_FOLDER
-                                                                     : 0;
+              : obcy.jest            ? K1_PC_FOLDER /* files of Pliki: anywhere else — into Pulpit */
+                                     : 0;
     int folder = 0;
     struct k1_prz_co c;
-    if (wcisk.ciagnie && upusc.cel != 0)
+    if ((wcisk.ciagnie || obcy.jest) && upusc.cel != 0)
         uszkodz_ducha(); /* where it was drawn */
     upusc.px = x;
     upusc.py = y;
-    if (cel != upusc.cel || kl != upusc.cel_klucz) {
+    if (obcy.jest && cel == K1_PC_FOLDER && plik_nazwa_folderu(kl) == NULL)
+        kl = 0; /* Pulpit itself */
+    if (cel != upusc.cel || kl != upusc.cel_klucz || kopia != (upusc.oc.dzialanie == K1_PD_KOPIUJ)) {
         uszkodz_ikone(upusc.cel_klucz);
         upusc.cel = cel;
         upusc.cel_klucz = cel != 0 ? kl : 0;
         uszkodz_ikone(upusc.cel_klucz);
         memset(&c, 0, sizeof c);
-        plik_typ(wcisk.klucz, &folder);
-        c.zrodlo = K1_PZ_PULPIT;
+        if (!obcy.jest)
+            plik_typ(wcisk.klucz, &folder);
+        c.zrodlo = obcy.jest ? obcy.zrodlo : K1_PZ_PULPIT;
         c.cel = cel;
-        c.ile = 1;
-        c.folderow = folder;
+        c.ile = obcy.jest ? obcy.ile : 1;
+        c.folderow = obcy.jest ? obcy.folderow : folder;
         c.w_srodku = -1; /* the desktop does not see inside folders: it asks for every folder (D8) */
         c.wolne_mb = -1;
-        c.cel_nazwa = cel == K1_PC_FOLDER ? plik_nazwa_folderu(kl) : NULL;
-        c.nazwa = ikona_nazwa(wcisk.klucz);
+        c.cel_nazwa = cel != K1_PC_FOLDER ? NULL : kl != 0 ? plik_nazwa_folderu(kl) : k1_folder_nazwa(K1_FOLDER_PULPIT);
+        c.nazwa = obcy.jest ? "" : ikona_nazwa(wcisk.klucz);
+        c.kopia = kopia;
+        c.ten_sam = obcy.jest && cel == K1_PC_FOLDER && (kl != 0 ? (uint32_t)rozm_plik(kl) : K1_FOLDER_PULPIT) == obcy.skad;
         k1_prz_ocen(&c, &upusc.oc);
     }
     if (cel != 0)
@@ -359,6 +381,21 @@ static void zaznacz(uint32_t klucz)
     uszkodz_ikone(zaznaczona);
     zaznaczona = klucz;
     uszkodz_ikone(klucz);
+}
+
+static int wcisk_zaczete; /* ekran heard of this drag (PRZECIAGANIE) */
+
+/* 0.11.0 step 4: a file of Pulpit may leave the desktop — ekran leads it (Pliki, a browser session). */
+static void przeciaganie_zacznij(void)
+{
+    int folder = 0;
+    uint32_t id = (uint32_t)rozm_plik(wcisk.klucz);
+    miedzy.poza = 0, miedzy.koniec = 0;
+    if (id == 0)
+        return;
+    plik_typ(wcisk.klucz, &folder);
+    k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZECIAGANIE, pulpit.id, K1_PZ_PULPIT, 1, folder != 0, (int32_t)id,
+                                    K1_FOLDER_PULPIT));
 }
 
 static void ruch(int32_t x, int32_t y)
@@ -380,8 +417,14 @@ static void ruch(int32_t x, int32_t y)
         uszkodz_ikone(najechana);
         najechana = 0;
     }
+    if (wcisk.ciagnie && !wcisk_zaczete) {
+        wcisk_zaczete = 1;
+        przeciaganie_zacznij();
+    }
+    if (miedzy.poza) /* over another window: it draws (0.11.0 step 4) */
+        return;
     if (wcisk.ciagnie)
-        cel_upuszczenia(x, y);
+        cel_upuszczenia(x, y, 0);
     if (wcisk.ciagnie && upusc.cel != 0) { /* over Kosz or a folder: the icon stays in its cell */
         int i = rozm_ikona(&rozm, wcisk.klucz);
         kol = rozm.ikony[i].kol;
@@ -438,7 +481,10 @@ static void upusc_plik(void)
 static void puszczenie(void)
 {
     char co[96];
-    if (wcisk.ciagnie && upusc.cel != 0) {
+    if (wcisk.ciagnie && miedzy.poza) { /* dropped on another window: ekran says where (pulpit_koniec) */
+        miedzy.koniec = k1_teraz(), miedzy.klucz = wcisk.klucz, miedzy.poza = 0;
+        pulpit_wszystko();
+    } else if (wcisk.ciagnie && upusc.cel != 0) {
         upusc_plik();
         upusc.cel = 0;
         upusc.cel_klucz = 0;
@@ -456,6 +502,60 @@ static void puszczenie(void)
     }
     wcisk.klucz = 0;
     wcisk.ciagnie = 0;
+    wcisk_zaczete = 0;
+}
+
+/* ---- between windows (0.11.0 step 4, ADR 0052) ---- */
+
+void pulpit_gdzie(int poza)
+{
+    if (!wcisk.ciagnie || miedzy.poza == poza)
+        return;
+    miedzy.poza = poza;
+    if (poza) { /* the icon back in its cell while it is over another window */
+        int i = rozm_ikona(&rozm, wcisk.klucz);
+        uszkodz_ikone(upusc.cel_klucz);
+        if (upusc.cel != 0)
+            uszkodz_ducha();
+        upusc.cel = 0, upusc.cel_klucz = 0;
+        wcisk.kol = rozm.ikony[i].kol, wcisk.wiersz = rozm.ikony[i].wiersz;
+    }
+    pulpit_wszystko();
+}
+
+void pulpit_koniec(int cel, uint32_t b)
+{
+    if (miedzy.koniec <= 0 || k1_teraz() - miedzy.koniec > KONIEC_S || cel != K1_PC_STREFA)
+        return;
+    miedzy.koniec = 0;
+    plik_do_sesji(miedzy.klucz, (int)b, K1_PS_TRYB_UPUSC);
+}
+
+/* Files of Pliki over the desktop (UPUSZCZANIE_CO, UPUSZCZANIE): the sign, the target, and at the drop — where. */
+void pulpit_upuszczanie(const struct k1_komunikat *m)
+{
+    if (m->typ == K1_KOM_UPUSZCZANIE_CO) {
+        obcy.jest = !wcisk.ciagnie, obcy.zrodlo = m->a, obcy.ile = m->b, obcy.folderow = m->c, obcy.skad = (uint32_t)m->e;
+        upusc.cel = 0, upusc.cel_klucz = 0;
+        return;
+    }
+    if (!obcy.jest)
+        return;
+    if (m->c != K1_UP_WYJSCIE)
+        cel_upuszczenia(m->a, m->b, (m->d & K1_MOD_CTRL) != 0);
+    if (m->c == K1_UP_UPUSC) {
+        int a = upusc.oc.dzialanie == K1_PD_NIC ? 0 : upusc.cel;
+        uint32_t f = a == K1_PC_FOLDER ? (upusc.cel_klucz != 0 ? (uint32_t)rozm_plik(upusc.cel_klucz) : K1_FOLDER_PULPIT) : 0;
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZECIAGANIE_CEL, pulpit.id, a, (int32_t)f, 0, 0, 0));
+        k1_log(TAG, "pulpit: upuszczono %d elementów z Plików — %s", obcy.ile,
+               a == K1_PC_KOSZ ? "Kosz" : a == 0 ? "nic" : upusc.cel_klucz != 0 ? "folder" : "Pulpit");
+    }
+    if (m->c != K1_UP_RUCH) {
+        if (upusc.cel != 0)
+            uszkodz_ducha();
+        uszkodz_ikone(upusc.cel_klucz);
+        upusc.cel = 0, upusc.cel_klucz = 0, obcy.jest = 0;
+    }
 }
 
 void wskaznik_pulpit(const struct k1_komunikat *m)

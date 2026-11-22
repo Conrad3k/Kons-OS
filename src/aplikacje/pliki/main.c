@@ -321,6 +321,17 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     menu_rysuj(o, m);  /* above everything */
 }
 
+/* 0.11.0 step 4: dragging between windows (ekran leads it: przeciaganie.c) */
+static void inne(const struct k1_komunikat *m)
+{
+    if (m->typ == K1_KOM_UPUSZCZANIE_CO || m->typ == K1_KOM_UPUSZCZANIE)
+        przec_obcy(m);
+    else if (m->typ == K1_KOM_PRZECIAGANIE_GDZIE)
+        przec_gdzie(m->a);
+    else if (m->typ == K1_KOM_PRZECIAGANIE_KONIEC)
+        przec_koniec(m->a, (uint32_t)m->b, (unsigned)m->c);
+}
+
 int main(void)
 {
     apl.tag = TAG;
@@ -332,6 +343,7 @@ int main(void)
     apl.klawisz = klawisz;
     apl.przewin = przewin;
     apl.zegar = przewin_zegar;
+    apl.inne = inne;
     apl.kanaly[0].fd = dane_start();
     apl.kanaly[0].dane = dane_odbierz;
     apl.kanaly[1].fd = FD_NADZORCA;

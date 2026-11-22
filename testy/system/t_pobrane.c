@@ -106,8 +106,8 @@ static uint8_t wzor_do(uint64_t i) /* odbior_wzor() of gosc/odbior.c */
     return (uint8_t)((i * 13 + 5) & 255);
 }
 
-/* A new file in Dokumenty as Pliki (its pattern, pieces of K1_DOK_KAWALEK): its number, or 0. */
-static uint32_t plik_w_dokumentach(int fd, const char *nazwa, uint32_t rozmiar)
+/* A new file in `folder` as Pliki (its pattern, pieces of K1_DOK_KAWALEK): its number, or 0. */
+static uint32_t plik_w_folderze(int fd, uint32_t folder, const char *nazwa, uint32_t rozmiar)
 {
     static uint8_t b[K1_DOK_NAZWA + K1_DOK_KAWALEK];
     size_t nl = strlen(nazwa);
@@ -121,7 +121,7 @@ static uint32_t plik_w_dokumentach(int fd, const char *nazwa, uint32_t rozmiar)
         for (uint32_t i = 0; i < ile; i++)
             d[i] = wzor_do(od + i);
         mfd = k1_memfd_z_danymi("k1-test", b, (pierwszy ? nl : 0) + ile);
-        m = pierwszy ? k1_komunikat_nowy(K1_KOM_DOK_NOWY, K1_FOLDER_DOKUMENTY, K1_DOK_PLIK, (int32_t)nl, (int32_t)ile, 0, dalej)
+        m = pierwszy ? k1_komunikat_nowy(K1_KOM_DOK_NOWY, folder, K1_DOK_PLIK, (int32_t)nl, (int32_t)ile, 0, dalej)
                      : k1_komunikat_nowy(K1_KOM_DOK_KAWALEK, 0, (int32_t)ile, 0, 0, 0, 0);
         if (mfd < 0 || k1_kanal_wyslij(fd, &m, sizeof m, mfd) != 0 || !od_skarbca(fd, K1_KOM_DOK_WYNIK, &m, &mfd) || m.b != 0)
             return 0;
@@ -162,8 +162,10 @@ static void do_strefy(void)
     if (zapytaj(k1_komunikat_nowy(K1_KOM_TEST_SKARB, 0, K1_PROFIL_PLIKI, 0, 0, 0, 0), &fd, 10) != 0 || fd < 0)
         return;
     for (int i = 0; i < 3; i++)
-        id[i] = plik_w_dokumentach(fd, nazwy[i], rozmiary[i]);
+        id[i] = plik_w_folderze(fd, K1_FOLDER_DOKUMENTY, nazwy[i], rozmiary[i]);
     k1_log(TAG, "pobrane: pliki do strefy w Dokumentach: %d %d %d", id[0] != 0, id[1] != 0, id[2] != 0);
+    /* 0.11.0 step 4: a file on the desktop — the script drags it onto the zone's window */
+    k1_log(TAG, "pobrane: plik na pulpicie do upuszczenia: %d", plik_w_folderze(fd, K1_FOLDER_PULPIT, "d-upusc.bin", 2500) != 0);
     if (strefa_raz_start(K1_STREFA_TRYB_ODBIOR)) {
         for (int i = 0; i < 3; i++) { /* "Wyślij do…" twice, then "Otwórz w…" — as Pliki after the user's gesture */
             struct k1_komunikat m = k1_komunikat_nowy(K1_KOM_DOK_DO_STREFY, id[i], K1_STREFA_PROBNA, i == 2, 0, 0, 0);
@@ -171,7 +173,7 @@ static void do_strefy(void)
             if (k1_kanal_wyslij(fd, &m, sizeof m, -1) != 0 || !od_skarbca(fd, K1_KOM_DOK_WYNIK, &m, &mfd) || m.b != 0)
                 k1_log(TAG, "pobrane: plik do strefy — odmowa skarbca (%d)", m.b);
         }
-        czekaj_strefa(0, 900);
+        czekaj_strefa(0, 1500); /* step 4: the script drags a file onto its window at the end */
         k1_log(TAG, "strefy: strefa skończyła się (tryb %d)", K1_STREFA_TRYB_ODBIOR);
     }
     msleep(2000);

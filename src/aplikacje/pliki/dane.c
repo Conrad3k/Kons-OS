@@ -237,7 +237,7 @@ static void lista_przyszla(const struct k1_komunikat *k, int fd)
 
 static void tresc_przyszla(const struct k1_komunikat *k, int fd)
 {
-    if (obraz_tresc(k, fd))
+    if (kopia_tresc(k, fd) || obraz_tresc(k, fd)) /* 0.11.0 step 4: a piece of a file being copied */
         return;
     if (k->obiekt != poczatek_id || k->a > (int32_t)K1_DOK_POCZATEK || k1_memfd_czytaj(fd, poczatek, (size_t)k->a) != 0)
         return;
@@ -250,7 +250,7 @@ static void wynik(const struct k1_komunikat *k)
 {
     if (k->a == K1_KOM_DOK_SPIS) /* no list (the vault locked…): the next change asks again */
         spis_przyszedl();
-    if (pendrive_wynik_skarbca(k) || obraz_wynik(k) || zbiorczo_wynik(k))
+    if (kopia_wynik(k) || pendrive_wynik_skarbca(k) || obraz_wynik(k) || zbiorczo_wynik(k))
         return;
     if (k->b == 0) {
         if (k->a == K1_KOM_DOK_NOWY && k->c != 0)

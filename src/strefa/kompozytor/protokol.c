@@ -41,6 +41,9 @@ void klient_koniec(struct klient *k)
 {
     unsigned i;
     wejscie_klient_koniec(k);
+    for (i = 0; i < SERWEROWE_MAKS; i++)
+        if (k->serwerowe[i].typ != IF_BRAK && interfejsy[k->serwerowe[i].typ].ob->zwolnij != NULL)
+            interfejsy[k->serwerowe[i].typ].ob->zwolnij(&k->serwerowe[i]);
     for (i = OBIEKTY_MAKS; i-- > 1;) /* children (higher ids) before parents, mostly */
         if (k->obiekty[i].typ != IF_BRAK && interfejsy[k->obiekty[i].typ].ob->zwolnij != NULL)
             interfejsy[k->obiekty[i].typ].ob->zwolnij(&k->obiekty[i]);
@@ -80,6 +83,24 @@ struct obiekt *obiekt_nowy(struct klient *k, uint32_t id, int typ, uint32_t wers
     return &k->obiekty[id];
 }
 
+struct obiekt *obiekt_serwera(struct klient *k, int typ, uint32_t wersja)
+{
+    for (uint32_t i = 0; i < SERWEROWE_MAKS; i++)
+        if (k->serwerowe[i].typ == IF_BRAK) {
+            k->serwerowe[i] = (struct obiekt){ SERWEROWE_ID + i, typ, wersja, k, NULL };
+            return &k->serwerowe[i];
+        }
+    return NULL;
+}
+
+struct obiekt *obiekt_id(struct klient *k, uint32_t id)
+{
+    struct obiekt *o = id >= SERWEROWE_ID && id - SERWEROWE_ID < SERWEROWE_MAKS ? &k->serwerowe[id - SERWEROWE_ID]
+                       : id != 0 && id < OBIEKTY_MAKS                             ? &k->obiekty[id]
+                                                                                   : NULL;
+    return o != NULL && o->typ != IF_BRAK ? o : NULL;
+}
+
 void obiekt_usun(struct obiekt *o)
 {
     struct klient *k = o->klient;
@@ -89,7 +110,8 @@ void obiekt_usun(struct obiekt *o)
     if (interfejsy[o->typ].ob->zwolnij != NULL)
         interfejsy[o->typ].ob->zwolnij(o);
     memset(o, 0, sizeof *o);
-    zdarzenie(&k->obiekty[1], 1, "u", id); /* wl_display.delete_id */
+    if (id < SERWEROWE_ID) /* as libwayland: delete_id only for the client's own ids */
+        zdarzenie(&k->obiekty[1], 1, "u", id); /* wl_display.delete_id */
 }
 
 struct obiekt *obiekt_typu(struct klient *k, struct obiekt *o, int typ, int moze_null)
@@ -134,9 +156,8 @@ static int argument(struct klient *k, char c, int nullable, const uint8_t *p, si
             a->o = NULL;
             return nullable ? 0 : (blad(k, NULL, BLAD_ZLY_OBIEKT, R_BRAK_OBIEKTU), -1);
         }
-        if (v >= OBIEKTY_MAKS || k->obiekty[v].typ == IF_BRAK)
+        if ((a->o = obiekt_id(k, v)) == NULL)
             return blad(k, NULL, BLAD_ZLY_OBIEKT, R_NIEZNANY_OBIEKT), -1;
-        a->o = &k->obiekty[v];
         return 0;
     case 's': case 'a':
         dl = v;
@@ -172,11 +193,10 @@ static void wiadomosc(struct klient *k, const uint8_t *p, size_t rozmiar)
     struct obiekt *o;
     const struct zadanie *z;
     const char *s;
-    if (id == 0 || id >= OBIEKTY_MAKS || k->obiekty[id].typ == IF_BRAK) {
+    if ((o = obiekt_id(k, id)) == NULL) {
         blad(k, NULL, BLAD_ZLY_OBIEKT, R_NIEZNANY_OBIEKT);
         return;
     }
-    o = &k->obiekty[id];
     if (op >= interfejsy[o->typ].ob->n_zadan) {
         blad(k, o, BLAD_ZLA_METODA, R_POLECENIE);
         return;

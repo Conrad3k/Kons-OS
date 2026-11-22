@@ -1,4 +1,4 @@
-/* K1 — the frames of a zone's files port (0.11.0 steps 2 and 3, ADR 0052): reading checked field by field, writing. */
+/* K1 — the frames of a zone's files port (0.11.0 steps 2–4, ADR 0052): reading checked field by field, writing. */
 #include "k1_pliki_strefy.h"
 
 #include <string.h>
@@ -13,7 +13,7 @@ static const struct {
 } ramki[] = {
     { K1_PS_ZGLOS, 1, K1_PS_U_NAZWA, 0 },    { K1_PS_DANE, 1, K1_PS_U_BAJTY, 0 }, { K1_PS_BRAK, 1, K1_PS_U_NR, 0 },
     { K1_PS_ODEBRANY, 1, K1_PS_U_WYNIK, 1 }, { K1_PS_WYSLIJ, 0, K1_PS_U_NR, 0 },  { K1_PS_WYNIK, 0, K1_PS_U_WYNIK, K1_PS_W_MAKS },
-    { K1_PS_PLIK, 0, K1_PS_U_NAZWA, 0 },     { K1_PS_BAJTY, 0, K1_PS_U_BAJTY, 0 },
+    { K1_PS_PLIK, 0, K1_PS_U_NAZWA, 0 },     { K1_PS_BAJTY, 0, K1_PS_U_BAJTY, 0 }, { K1_PS_UPUSC, 0, K1_PS_U_UPUSC, 0 },
 };
 
 static int wiersz(uint16_t typ, int od_strefy)
@@ -35,7 +35,7 @@ static void dlugosc(int uklad, uint32_t *min, uint32_t *maks)
 {
     static const uint32_t m[][2] = { [K1_PS_U_NAZWA] = { 17 + 1, 17 + K1_PS_NAZWA_MAKS },
                                      [K1_PS_U_BAJTY] = { 4 + 1, 4 + K1_PS_DANE_MAKS },
-                                     [K1_PS_U_NR] = { 4, 4 }, [K1_PS_U_WYNIK] = { 8, 8 } };
+                                     [K1_PS_U_NR] = { 4, 4 }, [K1_PS_U_WYNIK] = { 8, 8 }, [K1_PS_U_UPUSC] = { 12, 12 } };
     *min = m[uklad][0], *maks = m[uklad][1];
 }
 
@@ -55,7 +55,7 @@ static int pola(const struct k1_ps_czytnik *c, uint32_t dl, struct k1_ps_ramka *
         r->dodatek = k1_c32(p + 12);
         r->nl = p[16];
         if (r->nl < 1 || dl != 17u + r->nl || memchr(p + 17, 0, r->nl) != NULL || r->dodatek > K1_PS_NR_MAKS ||
-            (r->typ == K1_PS_PLIK && r->dodatek > 1))
+            (r->typ == K1_PS_PLIK && r->dodatek > K1_PS_TRYB_MAKS))
             return -1;
         memcpy(r->nazwa, p + 17, r->nl);
     } else if (ramki[w].uklad == K1_PS_U_BAJTY) {
@@ -64,6 +64,11 @@ static int pola(const struct k1_ps_czytnik *c, uint32_t dl, struct k1_ps_ramka *
     } else if (ramki[w].uklad == K1_PS_U_WYNIK) {
         r->wynik = k1_c32(p + 4);
         if (r->wynik > ramki[w].wynik_maks)
+            return -1;
+    } else if (ramki[w].uklad == K1_PS_U_UPUSC) {
+        r->x = k1_c32(p + 4);
+        r->y = k1_c32(p + 8);
+        if (r->nr > K1_PRZ_DO_STREFY_MAKS || r->x > K1_PS_POZ_MAKS || r->y > K1_PS_POZ_MAKS)
             return -1;
     }
     return 0;
@@ -110,7 +115,9 @@ size_t k1_ps_zapisz(const struct k1_ps_ramka *r, int od_strefy, uint8_t *b, size
     dlugosc(u, &min, &mx);
     dl = u == K1_PS_U_NAZWA ? 17u + r->nl : u == K1_PS_U_BAJTY ? 4u + r->dl : min;
     if (dl < min || dl > mx || K1_PS_NAGLOWEK + (size_t)dl > maks || (u == K1_PS_U_WYNIK && r->wynik > ramki[w].wynik_maks) ||
-        (u == K1_PS_U_NAZWA && (memchr(r->nazwa, 0, r->nl) != NULL || r->dodatek > (r->typ == K1_PS_PLIK ? 1u : K1_PS_NR_MAKS))) ||
+        (u == K1_PS_U_NAZWA && (memchr(r->nazwa, 0, r->nl) != NULL ||
+                                r->dodatek > (r->typ == K1_PS_PLIK ? (uint32_t)K1_PS_TRYB_MAKS : K1_PS_NR_MAKS))) ||
+        (u == K1_PS_U_UPUSC && (r->nr > K1_PRZ_DO_STREFY_MAKS || r->x > K1_PS_POZ_MAKS || r->y > K1_PS_POZ_MAKS)) ||
         (u == K1_PS_U_BAJTY && r->dane == NULL))
         return 0;
     k1_z16(b, r->typ);
@@ -126,6 +133,9 @@ size_t k1_ps_zapisz(const struct k1_ps_ramka *r, int od_strefy, uint8_t *b, size
         memmove(b + 12, r->dane, r->dl);
     } else if (u == K1_PS_U_WYNIK) {
         k1_z32(b + 12, r->wynik);
+    } else if (u == K1_PS_U_UPUSC) {
+        k1_z32(b + 12, r->x);
+        k1_z32(b + 16, r->y);
     }
     return K1_PS_NAGLOWEK + (size_t)dl;
 }

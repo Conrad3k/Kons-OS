@@ -9,7 +9,8 @@
  *   pendrive.c the USB stick (fd 6 from nadzorca, the channel to czytnik) and the import (0.8.0 step 3)
  *   obrazy.c the thumbnail of a picture and "Ustaw jako tapetę" — through a dekoder (0.8.0 step 4)
  *   przeciaganie.c dragging onto folders, Kosz and the stick, and its windows (0.8.2 step 6)
- *   zbiorczo.c one action on many selected entries (0.8.2 step 6) */
+ *   zbiorczo.c one action on many selected entries (0.8.2 step 6)
+ *   kopia.c  a copy of files (0.11.0 step 4: dragged with Ctrl) */
 #ifndef K1_PLIKI_H
 #define K1_PLIKI_H
 
@@ -139,6 +140,16 @@ int przec_cel_wiersz(int i);   /* row i / place mj is where a drop goes now (dra
 int przec_cel_miejsca(int mj);
 void przec_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 void usun_zaznaczone(int32_t x, int32_t y); /* Delete, "Usuń": into Kosz, the window at (x, y) asks first (D8) */
+/* 0.11.0 step 4 (ADR 0052): between windows, led by ekran */
+void przec_gdzie(int poza);                            /* PRZECIAGANIE_GDZIE: the pointer over another window */
+void przec_koniec(int cel, uint32_t b, unsigned mody); /* PRZECIAGANIE_KONIEC: dropped there (K1_PC_*) */
+void przec_obcy(const struct k1_komunikat *m);         /* UPUSZCZANIE_CO, UPUSZCZANIE: a file of the desktop over us */
+
+/* kopia.c — a copy of files (0.11.0 step 4, D6: A: dragged with Ctrl) */
+void kopia_start(const uint32_t *id, int n, uint32_t folder);
+int kopia_trwa(void);
+int kopia_tresc(const struct k1_komunikat *k, int fd); /* DOK_TRESC: 1 when it was a piece of a file being copied */
+int kopia_wynik(const struct k1_komunikat *k);         /* DOK_WYNIK: 1 when it was the answer to the copy */
 
 /* zbiorczo.c — one request per entry, one after another; the footer says how it went */
 void zbiorczo(int typ, const uint32_t *id, int n, uint32_t folder, int b); /* DOK_PRZENIES (b: keep both names) … */

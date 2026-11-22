@@ -18,7 +18,7 @@ static struct k1_prz_co co(int zrodlo, int cel, int ile)
     c.cel = cel;
     c.ile = ile;
     c.wolne_mb = -1;
-    c.cel_nazwa = cel == K1_PC_FOLDER ? "Obrazy" : NULL;
+    c.cel_nazwa = cel == K1_PC_FOLDER ? "Obrazy" : cel == K1_PC_STREFA ? "Ogólna" : NULL;
     c.nazwa = "IMG_0001.JPG";
     return c;
 }
@@ -52,6 +52,12 @@ static void t_tabela(void)
         { K1_PZ_STALY, K1_PC_FOLDER, K1_PD_ODMOWA, K1_ZN_NIE, "Muzyka, Wideo i Pobrane są stałe." },
         { K1_PZ_STALY, K1_PC_KOSZ, K1_PD_ODMOWA, K1_ZN_NIE, "są stałe" },
         { K1_PZ_STALY, K1_PC_PENDRIVE, K1_PD_ODMOWA, K1_ZN_NIE, "są stałe" },
+        /* 0.11.0 step 4: onto a browser session's window — a copy */
+        { K1_PZ_FOLDER, K1_PC_STREFA, K1_PD_DO_STREFY, K1_ZN_KOPIUJ, "Kopia do sesji „Ogólna”" },
+        { K1_PZ_PULPIT, K1_PC_STREFA, K1_PD_DO_STREFY, K1_ZN_KOPIUJ, "Kopia do sesji „Ogólna”" },
+        { K1_PZ_KOSZ, K1_PC_STREFA, K1_PD_ODMOWA, K1_ZN_NIE, "Z Kosza możesz tylko przywrócić" },
+        { K1_PZ_PENDRIVE, K1_PC_STREFA, K1_PD_ODMOWA, K1_ZN_NIE, "najpierw zaimportuj do K1" },
+        { K1_PZ_STALY, K1_PC_STREFA, K1_PD_ODMOWA, K1_ZN_NIE, "są stałe" },
     };
     int sprawdzone = 0;
     for (int z = 1; z <= K1_PZ_MAKS; z++)
@@ -106,6 +112,47 @@ static void t_warunki(void)
     EXPECT(o.dzialanie == K1_PD_ODMOWA && strcmp(o.tekst, "Nie możesz: brak miejsca na pliki (zostało 120 MB).") == 0);
     c.wolne_mb = -1; /* unknown: skarbiec says it later */
     EXPECT(ocen(c).dzialanie == K1_PD_IMPORT);
+}
+
+/* 0.11.0 step 4 (D6: A): Ctrl — a copy of files (also into their own folder), never of folders; a session: only files,
+ * at most K1_PRZ_DO_STREFY_MAKS at once */
+static void t_kopia(void)
+{
+    struct k1_prz_co c = co(K1_PZ_FOLDER, K1_PC_FOLDER, 2);
+    struct k1_prz_ocena o;
+    c.kopia = 1;
+    o = ocen(c);
+    EXPECT(o.dzialanie == K1_PD_KOPIUJ && o.znak == K1_ZN_KOPIUJ && strcmp(o.znak_tekst, "Kopiuj do „Obrazy”") == 0);
+    c.ten_sam = 1; /* a copy next to them: "nazwa (2)" */
+    EXPECT(ocen(c).dzialanie == K1_PD_KOPIUJ);
+    c = co(K1_PZ_PULPIT, K1_PC_FOLDER, 1);
+    c.kopia = 1;
+    EXPECT(ocen(c).dzialanie == K1_PD_KOPIUJ);
+    c.folderow = 1;
+    o = ocen(c);
+    EXPECT(o.dzialanie == K1_PD_ODMOWA && strstr(o.tekst, "kopiować możesz tylko pliki") != NULL);
+    c = co(K1_PZ_FOLDER, K1_PC_FOLDER, 1);
+    c.kopia = 1, c.bajty = 2u << 20, c.wolne_mb = 1;
+    o = ocen(c);
+    EXPECT(o.dzialanie == K1_PD_ODMOWA && strstr(o.tekst, "brak miejsca") != NULL);
+    c = co(K1_PZ_FOLDER, K1_PC_KOSZ, 1); /* Ctrl changes nothing else */
+    c.kopia = 1;
+    EXPECT(ocen(c).dzialanie == K1_PD_KOSZ);
+    c = co(K1_PZ_PENDRIVE, K1_PC_FOLDER, 1);
+    c.kopia = 1;
+    EXPECT(ocen(c).dzialanie == K1_PD_IMPORT);
+    c = co(K1_PZ_FOLDER, K1_PC_STREFA, K1_PRZ_DO_STREFY_MAKS);
+    EXPECT(ocen(c).dzialanie == K1_PD_DO_STREFY);
+    c.ile++;
+    o = ocen(c);
+    EXPECT(o.dzialanie == K1_PD_ODMOWA && strstr(o.tekst, "najwyżej 8 plików naraz") != NULL);
+    c = co(K1_PZ_FOLDER, K1_PC_STREFA, 2);
+    c.folderow = 1;
+    o = ocen(c);
+    EXPECT(o.dzialanie == K1_PD_ODMOWA && strstr(o.tekst, "do przeglądarki tylko pliki") != NULL);
+    c = co(K1_PZ_FOLDER, K1_PC_STREFA, 1);
+    c.ten_sam = 1; /* never "the folder they lie in" */
+    EXPECT(ocen(c).dzialanie == K1_PD_DO_STREFY);
 }
 
 /* D8: one file without a question; more than one, or a folder with something inside (the desktop: any folder). */
@@ -261,6 +308,7 @@ int main(void)
 {
     t_tabela();
     t_warunki();
+    t_kopia();
     t_pytanie();
     t_nazwa();
     t_powody();

@@ -218,6 +218,7 @@ static void usun_pow(int i)
         munmap((void *)(uintptr_t)p->nowa_mem, p->nowa_rozmiar);
     strefa_bufory_zwolnij(i); /* 0.10.11 step 2: its buffers of the card (off the layer first) */
     pelny_usun(i);
+    przeciaganie_usun(i); /* 0.11.0 step 4 */
     p->uzyta = 0;
     if (s.pod == i)
         s.pod = -1;
@@ -396,6 +397,9 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
         { minimalizuj(i); return; }
     case K1_KOM_USUN:
         { usun_pow(i); return; }
+    case K1_KOM_PRZECIAGANIE: /* 0.11.0 step 4 */
+    case K1_KOM_PRZECIAGANIE_CEL:
+        { przeciaganie_komunikat(kl, i, m); return; }
     case K1_KOM_PELNY_EKRAN: /* 0.11.0 step 1 */
         if (!okno_strefy(&s.p[i]))
             { odrzuc(kl, "pełny ekran tylko dla okna strefy"); return; }

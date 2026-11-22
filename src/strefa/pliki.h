@@ -32,6 +32,7 @@ int pliki_dopisz(const struct k1_ps_ramka *r); /* a frame from K1 at the end of 
 /* pliki_do.c — a file from Pliki to the zone ("Wyślij do…", "Otwórz w…"; 0.11.0 step 3, ADR 0052), under mz.zamek */
 void pliki_do_plik(const struct k1_komunikat *k, int fd);    /* STREFA_DO_PLIK from nadzorca (the name's memfd) */
 void pliki_do_kawalek(const struct k1_komunikat *k, int fd); /* STREFA_DO_KAWALEK (the piece's memfd) */
+void pliki_do_upusc(uint32_t x, uint32_t y, uint32_t n); /* 0.11.0 step 4: UPUSC_STREFA from ekran (under mz.zamek) */
 void pliki_do_dalej(void);                    /* vsock: room in the stream — the next BAJTY frame */
 void pliki_do_odebrany(uint32_t nr, uint32_t wynik); /* ODEBRANY from the agent */
 void pliki_do_rozlacz(void);                  /* the agent went (or broke a rule) */

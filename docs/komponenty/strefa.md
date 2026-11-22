@@ -305,8 +305,16 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
   wpisuje adres w nową kartę (`kompozytor/otworz.c`: Ctrl+L, adres, Alt+Enter — Firefox bez D-Bus i z `--no-remote` nie ma
   innej drogi; tylko folder „Z K1”, zwykłe znaki, raz na sekundę). Zmieniona wersja (pobranie o tej samej nazwie, „nazwa(1)”
   Firefoksa, ponowny zapis w „Z K1”) wraca jako `ZGLOS` z polem dotyczy — tylko pliku, który K1 dał tej sesji (ADR 0052 p. 10).
-- Gość próbny: tryby 18 (uczciwe pobranie), 19 (złośliwe) i 20 (odbiór z K1 i zmiany z powrotem, `gosc/odbior.c`) —
-  `scripts/test-pobrane.sh`.
+- **Upuszczone na okno (0.11.0 krok 4):** ekran daje VMM-owi `UPUSC_STREFA` (punkt w obrazie, liczba plików — dopiero po
+  puszczeniu; póki kursor tylko jest nad oknem, strefa nic nie dostaje) → VMM ramka `UPUSC` dla agenta przed plikami
+  (`pliki_do.c`) → pliki jak „Wyślij do” z trybem upuszczenia (`PLIK` tryb 2) → agent, gdy ma wszystkie w „Z K1”, pisze
+  kompozytorowi „upusc X Y <adresy>” → kompozytor (`kompozytor/dane.c`) odgrywa upuszczenie w tym punkcie: `wl_data_offer`
+  (numer od `0xff000000` — obiekt kompozytora), `text/uri-list`, `enter`, `motion`, akcja „kopia”, `drop`, adresy na
+  `receive`. Tylko adresy „Z K1”, najwyżej 8, punkt na ekranie strefy, raz na sekundę. Firefox bierze je jak pliki
+  (strona: `dataTransfer.files`; pole „Prześlij plik” się wypełnia — stanowisko `upusc.py`). Przeciąganie zaczęte w strefie
+  dalej anulowane od razu.
+- Gość próbny: tryby 18 (uczciwe pobranie), 19 (złośliwe) i 20 (odbiór z K1 i zmiany z powrotem, a na końcu upuszczenie
+  pliku z pulpitu — 0.11.0 krok 4; `gosc/odbior.c`) — `scripts/test-pobrane.sh`.
 
 ## Komunikaty
 | Komunikat | Kierunek | Pola |
@@ -340,9 +348,10 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
 | `POBRANIE` (0.11.0 krok 2, D2: A) | nadzorca → gui (fd 5, + memfd) | obiekt = strefa, a = plik, b, c = rozmiar, d = długość nazwy 1…127, e = 0; memfd jak w `STREFA_PLIK` (gui czyta i sprawdza nazwę jeszcze raz) — okienko „<sesja> pobrała plik” |
 | `POBRANIE_DECYZJA` (0.11.0 krok 2) | gui → nadzorca (fd 4); program testowy → nadzorca | obiekt = strefa, a = plik, b = 1 „Zapisz w Pobranych” / 0 „Zostaw w przeglądarce” (albo „OK” pliku za dużego), reszta 0 |
 | `POBRANIE_WYNIK` (0.11.0 krok 2) | nadzorca → gui (fd 5) | obiekt = strefa, a = plik, b = `K1_PS_W_*`, reszta 0 — jego okienko znika; po „Zapisz” bez zapisu gui mówi dlaczego |
-| `DOK_DO_STREFY` (0.11.0 krok 3, ADR 0052) | Pliki, pulpit → skarbiec | obiekt = widoczny plik, a = strefa z oknem, b = 1 „Otwórz za pomocą” sesja (nowa karta) / 0 „Wyślij do”, reszta 0; tylko z prawem `P_STREFA` (Pliki, pulpit — pliki Pulpitu) — odpowiedź `DOK_WYNIK` |
-| `SKARB_DO_STREFY` (0.11.0 krok 3) | skarbiec → nadzorca (kanał sterujący, + memfd) | obiekt = plik, a = strefa, b = otworzyć, reszta 0; memfd: wpis pliku (`K1_DOK_WPIS_BAJTY`) — kanał nadzorcy `K1_WL_DO_STREF` może go teraz czytać |
-| `STREFA_DO_PLIK` (0.11.0 krok 3) | nadzorca → VMM (fd 7, + memfd) | obiekt = numer pliku u K1 1…`K1_PS_NR_MAKS`, a, b = rozmiar (≤ `K1_DOK_MAKS_BAJTY`), c = długość nazwy 1…127, d = otworzyć 0/1, e = 0; memfd z nazwą |
+| `UPUSC_STREFA` (0.11.0 krok 4) | ekran → VMM (fd 3) | obiekt = okno, a, b = punkt w obrazie, c = liczba plików 1…8, reszta 0 — upuszczono pliki na okno; VMM: ramka `UPUSC` dla agenta (`ekran.md`) |
+| `DOK_DO_STREFY` (0.11.0 krok 3, ADR 0052) | Pliki, pulpit → skarbiec | obiekt = widoczny plik, a = strefa z oknem, b = tryb `K1_PS_TRYB_*`: 1 „Otwórz za pomocą” sesja (nowa karta) / 0 „Wyślij do” / 2 upuszczony na okno (krok 4), reszta 0; tylko z prawem `P_STREFA` (Pliki, pulpit — pliki Pulpitu) — odpowiedź `DOK_WYNIK` |
+| `SKARB_DO_STREFY` (0.11.0 krok 3) | skarbiec → nadzorca (kanał sterujący, + memfd) | obiekt = plik, a = strefa, b = tryb (0…2), reszta 0; memfd: wpis pliku (`K1_DOK_WPIS_BAJTY`) — kanał nadzorcy `K1_WL_DO_STREF` może go teraz czytać |
+| `STREFA_DO_PLIK` (0.11.0 krok 3) | nadzorca → VMM (fd 7, + memfd) | obiekt = numer pliku u K1 1…`K1_PS_NR_MAKS`, a, b = rozmiar (≤ `K1_DOK_MAKS_BAJTY`), c = długość nazwy 1…127, d = tryb 0…2 (wyślij, otwórz, upuść), e = 0; memfd z nazwą |
 | `STREFA_DO_KAWALEK` (0.11.0 krok 3) | nadzorca → VMM (fd 7, + memfd) | obiekt = plik, a = bajty 1…`K1_DOK_KAWALEK`, b = numer kawałka, reszta 0 — tylko po `STREFA_DO_ODP` DALEJ |
 | `STREFA_DO_ODP` (0.11.0 krok 3) | VMM → nadzorca (fd 7) | obiekt = plik, a = `K1_PLIK_DALEJ` (następny kawałek) / `K1_PLIK_GOTOWE` (b = 0 w „Z K1” sesji, 1 nie), reszta 0 |
 | `SKARB_WYCZYSC` | nadzorca → skarbiec (kanał sterujący) | krok 5: `a` = właściciel — profil strefy (inny — odrzucony), reszta 0 |

@@ -33,5 +33,6 @@ void dekoder(void);
 /* test_komunikat_strefy.c (0.10.0 step 5) */
 void strefy(void);
 void pobrane(void); /* 0.11.0 step 2 (ADR 0052) */
+void przeciaganie(void); /* 0.11.0 step 4 */
 
 #endif

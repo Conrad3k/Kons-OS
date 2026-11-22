@@ -25,7 +25,11 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   idzie tam (`DOK_KOSZ`, `DOK_PRZENIES`); folder na Kosz — najpierw **okienko** z pytaniem (D8: pulpit nie widzi wnętrza
   folderów, więc pyta przy każdym folderze), zajęta nazwa w folderze — „Zachowaj oba” (`DOK_PRZENIES` b = 1) / „Pomiń” /
   „Anuluj”, inna odmowa skarbca — okienko z powodem i „OK” (`kontekst_okienko`: ten sam panel co menu). Nad pustą
-  komórką albo ikoną aplikacji — jak dotąd: ikona zmienia miejsce. Między oknami (Pliki ↔ pulpit) — po 0.8.2 (D6),
+  komórką albo ikoną aplikacji — jak dotąd: ikona zmienia miejsce. **Między oknami (0.11.0 krok 4, ADR 0052, D6: A)** —
+  prowadzi ekran: plik z pulpitu nad oknem Plików albo sesji przeglądarki — ekran mówi `PRZECIAGANIE_GDZIE` (ikona wraca
+  na swoje miejsce, rysuje tamto okno albo ekran), po puszczeniu na sesję `PRZECIAGANIE_KONIEC` → `DOK_DO_STREFY`
+  „upuść”; pliki z Plików nad pulpitem (`UPUSZCZANIE`) — znak przy kursorze i obwódka celu (Kosz, folder, a wszędzie
+  indziej Pulpit), po puszczeniu pulpit mówi tylko, gdzie (`PRZECIAGANIE_CEL`) — przenoszą albo z Ctrl kopiują Pliki,
 - **„Jeszcze n”** (0.8.2 krok 6, L19): gdy plików w folderze Pulpit jest więcej niż miejsc w siatce (albo ponad
   `ROZM_IKON_MAKS` = 96 ikon), ostatnia wolna komórka (kolumnami) pokazuje kafelek „+n” z napisem „Jeszcze n” —
   podwójne kliknięcie otwiera Pliki w folderze Pulpit; gdy żadnej komórki nie ma, ikona ostatniego pliku ją zwalnia

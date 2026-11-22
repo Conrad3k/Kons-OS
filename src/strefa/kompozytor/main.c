@@ -125,6 +125,8 @@ static void petla(int g, int sfd)
         }
         if (wejscie_czekaj() >= 0 && (czekaj < 0 || wejscie_czekaj() < czekaj))
             czekaj = wejscie_czekaj(); /* the fingers' gesture ends on time, also with nothing else going on */
+        if (dane_czekaj() >= 0 && (czekaj < 0 || dane_czekaj() < czekaj))
+            czekaj = dane_czekaj(); /* 0.11.0 step 4: the drop of files from K1 on time */
         p[0] = (struct pollfd){ g, POLLIN, 0 };
         for (i = 0; i < KLIENCI_MAKS; i++)
             if (klienci[i] != NULL) {
@@ -148,6 +150,7 @@ static void petla(int g, int sfd)
             xdg_nowy_rozmiar();
         }
         wejscie_czas();
+        dane_czas();
         if (p[n - 3].revents & POLLIN)
             otworz_czytaj();
         if (p[n - 1].revents & POLLIN)

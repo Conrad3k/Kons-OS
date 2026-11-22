@@ -2,27 +2,25 @@
  * 2026-11-12): ONE table of rules for Pliki and the desktop — what is dragged (the source) onto what (the target) gives
  * an action, a question ("Czy na pewno…?") or a refusal with its text ("Możesz tylko…", "Nie możesz: …"). It is asked
  * while dragging (the sign at the pointer) and once more when the files are dropped (the action, or the window with
- * the question); skarbiec's answer (K1_DOK_BLAD_*) is put in the same words (k1_prz_powod). Dragging between windows
- * (phase B) — after 0.8.2, with the zones of 0.11 (D6).
+ * the question); skarbiec's answer (K1_DOK_BLAD_*) is put in the same words (k1_prz_powod). Between windows (0.11.0
+ * step 4, ADR 0052): ekran leads it (src/ekran/przeciaganie.c) — Pliki onto the desktop and back, and onto a browser
+ * session's window (a copy, K1_PC_STREFA); with Ctrl a copy instead of a move (the owner's D6: A).
  *
- * Also here: the window of a question (the look of the menu, k1_menu) and the drawing of what is dragged (a card with
- * the name and a count, the sign under it). Pure functions, no system calls or allocation — host test
- * testy/host/test_przeciaganie.c (every source and target of the table). */
+ * Also here: the drawing of what is dragged (a card with the name and a count, the sign under it); the window of a
+ * question (the look of the menu, k1_menu) — k1_prz_okienko.c (ekran draws signs, never menus). Pure functions, no
+ * system calls or allocation — host test testy/host/test_przeciaganie.c (every source and target of the table). */
 #ifndef K1_PRZECIAGANIE_H
 #define K1_PRZECIAGANIE_H
 
 #include <stdint.h>
 
+#include "k1_dokument.h"
 #include "k1_menu.h"
 #include "k1_rysuj.h"
 
 #define K1_PRZ_PROG 8 /* px the pointer moves with the button held before it is dragging, not a click */
 
-/* What is dragged: entries of a user folder (Pliki), files of Pulpit (the desktop), entries in Kosz, files on the USB
- * stick, a standard folder (the places on the left of Pliki). */
-enum k1_prz_zrodlo { K1_PZ_FOLDER = 1, K1_PZ_PULPIT, K1_PZ_KOSZ, K1_PZ_PENDRIVE, K1_PZ_STALY, K1_PZ_MAKS = K1_PZ_STALY };
-/* Where it is dropped: a folder (standard or the user's), Kosz, the USB stick (the place or its folder). */
-enum k1_prz_cel { K1_PC_FOLDER = 1, K1_PC_KOSZ, K1_PC_PENDRIVE, K1_PC_MAKS = K1_PC_PENDRIVE };
+/* What is dragged (K1_PZ_*) and where it is dropped (K1_PC_*): k1_dokument.h (the messages between windows carry them). */
 enum k1_prz_dzialanie {
     K1_PD_NIC = 0,  /* nothing happens (the folder it is in already, Kosz onto Kosz) — no sign */
     K1_PD_PRZENIES, /* DOK_PRZENIES */
@@ -30,6 +28,8 @@ enum k1_prz_dzialanie {
     K1_PD_PRZYWROC, /* DOK_PRZYWROC into the folder */
     K1_PD_IMPORT,   /* a copy from the stick into the folder */
     K1_PD_ODMOWA,   /* not allowed: the text says why */
+    K1_PD_KOPIUJ,   /* 0.11.0 step 4 (D6: A): with Ctrl — a copy of the files into the folder (Pliki: kopia.c) */
+    K1_PD_DO_STREFY, /* a copy of the files to a browser session (DOK_DO_STREFY "upuść") */
 };
 enum k1_prz_znak { K1_ZN_BRAK = 0, K1_ZN_PRZENIES, K1_ZN_KOPIUJ, K1_ZN_NIE }; /* the sign at the pointer */
 
@@ -46,6 +46,7 @@ struct k1_prz_co {
     int64_t wolne_mb;      /* an import: the room for files left, MiB (-1: unknown) */
     const char *cel_nazwa; /* the target's name ("Obrazy"); NULL for Kosz and the stick */
     const char *nazwa;     /* the name of the first entry dragged (a question about one) */
+    int kopia;             /* 0.11.0 step 4 (D6: A): Ctrl held — a copy instead of a move */
 };
 
 struct k1_prz_ocena {

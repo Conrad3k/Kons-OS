@@ -11,6 +11,7 @@
 #include "k1_rysuj.h"
 #include "k1_pomiar.h"
 #include "okno.h"
+#include "pliki.h"
 #include "pomiar.h"
 #include "strefa.h"
 
@@ -395,6 +396,10 @@ int okno_odbierz(void)
         case K1_KOM_ROZMIAR:
             if (m.obiekt == OKNO_ID)
                 nowy_rozmiar(&m);
+            break;
+        case K1_KOM_UPUSC_STREFA: /* 0.11.0 step 4: files dropped on the window — the copies follow from nadzorca */
+            if (m.obiekt == OKNO_ID && (uint32_t)m.a < szer && (uint32_t)m.b < wys)
+                pliki_do_upusc((uint32_t)m.a, (uint32_t)m.b, (uint32_t)m.c);
             break;
         default:
             break;

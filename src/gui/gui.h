@@ -151,6 +151,10 @@ void pokaz_menu(int tak);
 void pulpit_utworz(int pierwszy); /* the layer in the screen's size (again after a mode change) */
 void rysuj_pulpit(void);
 void wskaznik_pulpit(const struct k1_komunikat *m);
+/* 0.11.0 step 4 (ADR 0052): dragging between windows, led by ekran */
+void pulpit_gdzie(int poza);                            /* PRZECIAGANIE_GDZIE: the file dragged is over another window */
+void pulpit_koniec(int cel, uint32_t b);                /* PRZECIAGANIE_KONIEC: dropped on a session's window */
+void pulpit_upuszczanie(const struct k1_komunikat *m); /* UPUSZCZANIE_CO, UPUSZCZANIE: files of Pliki over the desktop */
 void pulpit_wszystko(void); /* redraw every icon (theme, arrangement) */
 void pulpit_loguj(void);    /* "ikony na pulpicie": where each icon is (the tests click by it) */
 int pulpit_kolumn(void);

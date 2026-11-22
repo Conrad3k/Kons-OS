@@ -329,6 +329,46 @@ if plik:
         if poz:
             klik(*poz)
         czekaj(r"K1-GUI: pliki na pulpicie: 0, w Koszu: 0")
+    # 0.11.0 step 4 (ADR 0052, D6: A): between windows — the window of Pliki moved aside first (it covers the icons)
+    klik(*pliki_na_pasku)
+    widok(lambda: klik(*miejsce(1)), "Dokumenty", 1)  # „Projekt” (a folder inside)
+    przes = po(r"K1-EKRAN: okno \d+ przesunięte do (-?\d+),(-?\d+)",
+               lambda: q.przeciagnij(ox + 300, oy + 16, 640 + 300, oy + 16))
+    if przes:
+        ox, oy = int(przes.group(1)), int(przes.group(2))
+    wolne = (440, 500)  # a free cell of the desktop, left of the window
+    n_ik = q.ile(r"K1-GUI: pliki na pulpicie: 1, ")
+    ciagnij(wiersz(0), wolne, "13-pliki-na-pulpit", gdy=lambda w, h, px: True)
+    sprawdz("folder z Plików na pulpit: pulpit wskazuje Pulpit, Pliki przenoszą (D6: A)",
+            czekaj(r"K1-GUI: pulpit: upuszczono 1 elementów z Plików — Pulpit") and
+            czekaj(r"K1-EKRAN: przeciąganie między oknami: upuszczono na pulpit \(folder\)") and
+            czekaj(r"K1-GUI: pliki na pulpicie: 1, ", od=n_ik) and jest_widok("Dokumenty", 0))
+    pl = [n for n in ikony() if n.startswith("plik ")]
+    n_ik = q.ile(r"K1-GUI: pliki na pulpicie: dodane 0, usunięte 1")
+    n_p = q.ile(r"K1-PLIKI: przeciąganie: upuszczono — 1 elementów, cel folder, działanie: przenieś")
+    if pl:
+        ciagnij(ikony()[pl[0]], (ox + wx, oy + wy + 2 * wk), "14-pulpit-na-pliki", gdy=lambda w, h, px: True)
+    sprawdz("folder z pulpitu na listę Plików (Dokumenty): Pliki rysują kartę i przenoszą go z powrotem",
+            pl and czekaj(r"K1-PLIKI: przeciąganie: upuszczono — 1 elementów, cel folder, działanie: przenieś", od=n_p) and
+            czekaj(r"K1-GUI: pliki na pulpicie: dodane 0, usunięte 1", od=n_ik) and jest_widok("Dokumenty", 1))
+
+    def z_ctrl(od, do):
+        """Dragging with Ctrl held from the first move to the drop (a press with Ctrl would be a Ctrl+click)."""
+        q.idz(*od)
+        q.przycisk(True)
+        q.idz(od[0] - 40, od[1] + 10)
+        q.klawisze(("ctrl", 1))
+        q.idz(*do)
+        q.przycisk(False)
+        q.klawisze(("ctrl", 0))
+
+    ok_ = okienko("PLIKI", "odmowa", lambda: z_ctrl(wiersz(0), wolne))
+    sprawdz("NEGATYWNY: Ctrl + folder z Plików na pulpit — okienko w Plikach „Nie możesz: kopiować możesz tylko pliki”",
+            list(ok_) == ["OK"] and czekaj(r"K1-GUI: pulpit: upuszczono 1 elementów z Plików — Pulpit"), str(ok_))
+    if "OK" in ok_:
+        klik(*ok_["OK"])
+    sprawdz("po odmowie folder dalej w Dokumentach, pulpit bez plików", jest_widok("Dokumenty", 1) and
+            q.cisza(r"K1-GUI: pliki na pulpicie: 1, ", 3))
 t_ = tekst()
 sprawdz("nazwy plików nie trafiają do logu", "Projekt" not in t_ and "Album" not in t_)
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów", "Kernel panic" not in t_ and
@@ -341,7 +381,7 @@ DANE=$TESTY/pliki-dane.img
 dd if=/dev/zero of="$DANE" bs=1M count=16 status=none
 printf 'label: gpt\nstart=2048, size=30000, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
 DYSK_DANYCH="-drive if=none,id=dane,file=$DANE,format=raw -device ide-hd,drive=dane,bus=ide.0"
-CZAS_ZW=$CZAS; CZAS=$((CZAS * 5))  # the longer scenario (0.8.2 step 5: × 3 — the menu on the desktop; step 6: × 5 — dragging)
+CZAS_ZW=$CZAS; CZAS=$((CZAS * 7))  # the longer scenario (0.8.2 step 5: × 3 — the menu on the desktop; step 6: × 5 — dragging; 0.11.0 step 4: × 7 — between windows)
 uruchom pierwszy --qemu "$DYSK_DANYCH"
 sprawdz pierwszy
 CZAS=$CZAS_ZW
@@ -457,6 +497,21 @@ wiersz = lambda i: (p0[0] + wx, p0[1] + wy + i * wk)
 sprawdz("Dokumenty: folder Notatki", widok(lambda: klik(p0[0] + mx, p0[1] + my + mk), "Dokumenty", 1))
 sprawdz("Dokumenty › Notatki: 3 pliki", widok(lambda: q.dwuklik(*wiersz(0)), "folder", 3))
 zrzut(f"{tryb}-4-pliki", gdy=lambda w, h, px: True)
+# 0.11.0 step 4 (D6: A): with Ctrl a file dragged onto a folder is copied (kopia.c) — onto Dokumenty on the left
+n_k, n_p = q.ile(r"K1-PLIKI: kopia: koniec"), q.ile(r"działanie: kopiuj")
+q.idz(*wiersz(2))
+q.przycisk(True)
+q.idz(wiersz(2)[0] - 60, wiersz(2)[1])
+q.klawisze(("ctrl", 1))
+q.idz(p0[0] + mx, p0[1] + my + mk)
+zrzut(f"{tryb}-4a-kopia", gdy=lambda w, h, px: True)
+q.przycisk(False)
+q.klawisze(("ctrl", 0))
+sprawdz("Ctrl + plik na Dokumenty: kopia (kawałkami przez skarbiec), oryginał zostaje w Notatkach",
+        czekaj(r"K1-PLIKI: przeciąganie: upuszczono — 1 elementów, cel folder, działanie: kopiuj", od=n_p) and
+        czekaj(r"K1-PLIKI: kopia: koniec — skopiowane 1, błędy 0", od=n_k, czas=60))
+sprawdz("Dokumenty: folder Notatki i kopia pliku", widok(lambda: klik(p0[0] + mx, p0[1] + my + mk), "Dokumenty", 2))
+widok(lambda: q.dwuklik(*wiersz(0)), "folder", 3)  # back into Notatki for what follows
 
 
 

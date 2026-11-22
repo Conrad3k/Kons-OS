@@ -11,7 +11,7 @@
  *
  * Parts: main.c (socket, loop), protokol.c (wire, objects), interfejsy.c (the table of interfaces), powierzchnia.c
  * (surfaces, regions, subsurfaces), zawartosc.c (a surface's picture), pomiar.c (the measurement), bufory.c (wl_shm, pools, buffers), xdg.c (xdg-shell), wejscie.c (seat, pointer,
- * keyboard, evdev), palce.c (the fingers' scrolling as one gesture, pure), scena.c (composition), drm.c (the display). */
+ * keyboard, evdev), dane.c (the data objects: files dropped from K1, 0.11.0 step 4), otworz.c (the agent's FIFO), palce.c (the fingers' scrolling as one gesture, pure), scena.c (composition), drm.c (the display). */
 #ifndef K1_KOMPOZYTOR_H
 #define K1_KOMPOZYTOR_H
 
@@ -29,7 +29,9 @@
 #define DZIECI_MAKS 32            /* subsurfaces of one surface */
 #define WYSKAKUJACE_MAKS 8        /* popups at once */
 #define WYWOLANIA_MAKS 64         /* frame callbacks waiting on one surface */
-#define URZ_KLIENTA 4             /* wl_pointer and wl_keyboard objects of one client */
+#define URZ_KLIENTA 4             /* wl_pointer, wl_keyboard and wl_data_device objects of one client */
+#define SERWEROWE_ID 0xff000000u  /* ids of the objects the compositor makes (wl_data_offer; libwayland's server range) */
+#define SERWEROWE_MAKS 4
 
 /* wl_display.error codes (wayland.xml) */
 enum { BLAD_ZLY_OBIEKT = 0, BLAD_ZLA_METODA = 1, BLAD_PAMIEC = 2, BLAD_WEWNETRZNY = 3 };
@@ -113,7 +115,8 @@ enum { R_BRAK = 0, K1_REGULY(X_R) R_LICZBA };
     X(POPUP, popup, "xdg_popup", 2, 0)                                    \
     X(DMABUF, dmabuf, "zwp_linux_dmabuf_v1", 4, 1)                        \
     X(DMABUF_PARAMS, dmabuf_params, "zwp_linux_buffer_params_v1", 4, 0)   \
-    X(DMABUF_FEEDBACK, dmabuf_feedback, "zwp_linux_dmabuf_feedback_v1", 4, 0)
+    X(DMABUF_FEEDBACK, dmabuf_feedback, "zwp_linux_dmabuf_feedback_v1", 4, 0) \
+    X(DATA_OFFER, data_offer, "wl_data_offer", 3, 0)
 #define X_IF(n, ...) IF_##n,
 enum { IF_BRAK = 0, K1_INTERFEJSY(X_IF) IF_LICZBA };
 #undef X_IF
@@ -183,6 +186,8 @@ struct klient {
     /* every wl_pointer and wl_keyboard of this client gets the events (Firefox has two of each: GTK's and its own) */
     struct obiekt *wskazniki[URZ_KLIENTA], *klawiatury[URZ_KLIENTA];
     struct obiekt *wyjscie; /* the newest wl_output */
+    struct obiekt *urz_danych[URZ_KLIENTA]; /* 0.11.0 step 4: its wl_data_device objects (dane.c) */
+    struct obiekt serwerowe[SERWEROWE_MAKS]; /* objects we made for it: id SERWEROWE_ID + index */
 };
 
 /* protokol.c */
@@ -191,6 +196,8 @@ void klient_koniec(struct klient *k);
 int klient_czytaj(struct klient *k);                  /* 0, or -1: the client is gone or broke the protocol */
 int klient_wyslij_bufor(struct klient *k);            /* flushes events; -1: the client is gone */
 struct obiekt *obiekt_nowy(struct klient *k, uint32_t id, int typ, uint32_t wersja); /* NULL: error posted */
+struct obiekt *obiekt_serwera(struct klient *k, int typ, uint32_t wersja); /* one we make (NULL: none free) */
+struct obiekt *obiekt_id(struct klient *k, uint32_t id);                   /* the client's object id, NULL: none */
 void obiekt_usun(struct obiekt *o);                   /* frees its data, delete_id to the client */
 struct obiekt *obiekt_typu(struct klient *k, struct obiekt *o, int typ, int moze_null); /* NULL+error when wrong */
 void blad(struct klient *k, const struct obiekt *o, uint32_t kod, int regula); /* regula: R_* */
@@ -311,7 +318,12 @@ void wejscie_okno_zmiana(void);               /* the toplevel or the popups chan
 int wejscie_czekaj(void);                     /* ms until wejscie_czas has something to do; -1: nothing */
 void wejscie_czas(void);                      /* the fingers stopped a while ago: their gesture ends (palce.c) */
 void wejscie_wpisz(const char *adres);        /* 0.11.0 step 3: Ctrl+L, the address, Alt+Enter — to the focused window */
-/* otworz.c (0.11.0 step 3, P16): "Otwórz w…" — the agent's FIFO next to the socket */
+/* dane.c (0.11.0 step 4): wl_data_device_manager, wl_data_source, wl_data_device, wl_data_offer — files dropped on the
+ * window from K1 (an offer of text/uri-list at that point) */
+void dane_upusc(int32_t x, int32_t y, const char *adresy); /* adresy: "file:…\r\nfile:…\r\n" */
+int dane_czekaj(void);                        /* ms until dane_czas has something to do; -1: nothing */
+void dane_czas(void);
+/* otworz.c (0.11.0 step 3, P16): "Otwórz w…" — the agent's FIFO next to the socket; step 4: "upusc X Y <adresy>" */
 void otworz_start(const char *gniazdo);
 int otworz_fd(void);
 void otworz_czytaj(void);

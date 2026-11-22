@@ -236,7 +236,7 @@ static int juz_jest(const struct k1_dok_wpis *p, uint32_t folder)
 
 void pendrive_importuj(int wszystkie, uint32_t folder)
 {
-    if (importuje || czytnik < 0 || (wszystkie && pen_laduje))
+    if (importuje || kopia_trwa() || czytnik < 0 || (wszystkie && pen_laduje))
         return;
     memset(&imp, 0, sizeof imp);
     imp.cel = folder;

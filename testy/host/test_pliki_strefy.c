@@ -120,9 +120,11 @@ static void do_strefy(void)
     n = k1_ps_zapisz(&r, 0, b, sizeof b);
     EXPECT(n == 8 + 17 + 5 && czytaj_po(0, b, n, 3, &o) == 1 && o.typ == K1_PS_PLIK && o.dodatek == 1 && o.rozmiar == 300 &&
            strcmp(o.nazwa, "a.pdf") == 0);
-    k1_z32(b + 20, 2);
-    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* otworz 0/1 only */
-    r.dodatek = 2;
+    k1_z32(b + 20, K1_PS_TRYB_UPUSC);
+    EXPECT(czytaj_po(0, b, n, n, &o) == 1 && o.dodatek == K1_PS_TRYB_UPUSC); /* step 4: dropped on the window */
+    k1_z32(b + 20, K1_PS_TRYB_MAKS + 1);
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* tryb: K1_PS_TRYB_* only */
+    r.dodatek = K1_PS_TRYB_MAKS + 1;
     EXPECT(k1_ps_zapisz(&r, 0, b, sizeof b) == 0);
     r = (struct k1_ps_ramka){ .typ = K1_PS_BAJTY, .nr = 4, .dane = dane, .dl = 100 };
     n = k1_ps_zapisz(&r, 0, b, sizeof b);
@@ -132,8 +134,33 @@ static void do_strefy(void)
     EXPECT(n == 16 && czytaj_po(1, b, n, 16, &o) == 1 && o.typ == K1_PS_ODEBRANY && o.wynik == 1);
     k1_z32(b + 12, 2);
     EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* ODEBRANY: 0 or 1 */
-    EXPECT(k1_ps_uklad(K1_PS_PLIK, 0) == K1_PS_U_NAZWA && k1_ps_uklad(K1_PS_PLIK, 1) == K1_PS_U_NR /* BRAK */ && k1_ps_uklad(5, 1) == 0 &&
+    EXPECT(k1_ps_uklad(K1_PS_PLIK, 0) == K1_PS_U_NAZWA && k1_ps_uklad(K1_PS_PLIK, 1) == K1_PS_U_NR /* BRAK */ && k1_ps_uklad(6, 1) == 0 &&
            k1_ps_uklad(K1_PS_ODEBRANY, 1) == K1_PS_U_WYNIK && k1_ps_uklad(K1_PS_BAJTY, 0) == K1_PS_U_BAJTY);
+}
+
+/* step 4: UPUSC — how many files were dropped and where */
+static void upuszczenie(void)
+{
+    struct k1_ps_ramka r = { .typ = K1_PS_UPUSC, .nr = 3, .x = 640, .y = 12 }, o;
+    size_t n = k1_ps_zapisz(&r, 0, b, sizeof b);
+    EXPECT(n == 8 + 12);
+    for (size_t po = 1; po <= n; po++)
+        EXPECT(czytaj_po(0, b, n, po, &o) == 1 && o.typ == K1_PS_UPUSC && o.nr == 3 && o.x == 640 && o.y == 12);
+    EXPECT(czytaj_po(1, b, n, n, &o) == -1); /* not from the zone */
+    k1_z32(b + 8, K1_PRZ_DO_STREFY_MAKS + 1);
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* at most 8 files */
+    k1_z32(b + 8, 0);
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1);
+    k1_z32(b + 8, 1);
+    k1_z32(b + 16, K1_PS_POZ_MAKS + 1);
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* y outside */
+    k1_z32(b + 4, 16);
+    EXPECT(czytaj_po(0, b, n, n, &o) == -1); /* its length: exactly 12 */
+    r.nr = K1_PRZ_DO_STREFY_MAKS + 1;
+    EXPECT(k1_ps_zapisz(&r, 0, b, sizeof b) == 0);
+    r.nr = 1, r.x = K1_PS_POZ_MAKS + 1;
+    EXPECT(k1_ps_zapisz(&r, 0, b, sizeof b) == 0 && k1_ps_zapisz(&r, 1, b, sizeof b) == 0);
+    EXPECT(k1_ps_uklad(K1_PS_UPUSC, 0) == K1_PS_U_UPUSC && k1_ps_uklad(K1_PS_UPUSC, 1) == 0);
 }
 
 int main(void)
@@ -142,5 +169,6 @@ int main(void)
     bajty();
     od_k1();
     do_strefy();
+    upuszczenie();
     return K1_TEST_KONIEC("test_pliki_strefy");
 }
