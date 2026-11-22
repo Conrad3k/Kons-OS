@@ -39,6 +39,8 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
 - **Pamięć:** memfd z `MFD_NOEXEC_SEAL`; nigdy wykonywana przez K1. Od adresu 0 gościa do 3 GiB (poniżej urządzeń), od
   0.10.1 krok 2 (ADR 0044 T5) reszta większego gościa od 4 GiB — drugi wpis RAM w e820 i drugie miejsce pamięci KVM z tego
   samego memfd (`gosc_pamiec.dol`; `gp_wsk` nie przepuszcza zakresu przez dziurę, kolejki virtio czytane tylko przez nie).
+  Od 0.11.3 do 256 GiB (`K1_STREFA_PAMIEC_MAKS`; było 64 GiB); okno szybkiej grafiki (1 GiB) na 32 GiB albo zaraz nad
+  pamięcią gościa (`most_okno_baza`), a całość pod granicą adresów gościa z CPUID 0x80000008 (`kvm_pamiec_w_granicach`).
   Od 0.11.2 **duże strony** (2 MiB): VMM prosi o nie dla pamięci gościa (`madvise(MADV_HUGEPAGE)`, jak QEMU), jądro K1
   daje je memfd tylko na prośbę (`TRANSPARENT_HUGEPAGE_SHMEM_HUGE_ADVISE`, `jadro/k1.config`) — jeden wpis w TLB procesora
   i w tablicach EPT/NPT KVM obejmuje 512 stron, krótsze przejścia tablic stron przy każdym chybieniu w TLB. Gdy jądro
@@ -56,8 +58,11 @@ Kody klawiszy nigdy nie trafiają do logu: gosc loguje tylko liczniki.
   urządzenia virtio-mmio, `console=hvc0 root=/dev/vda ro rootfstype=squashfs init=/init reboot=k panic=-1 k1.tryb=N`.
 - **Procesory:** wątek na procesor; CPUID od KVM z identyfikatorem APIC, bitem „hiperwizor” i bez LA57 (ADR 0042 T10).
   Liczba z wiersza `K1_STREFY` to najwięcej, ile strefa dostaje — od 0.11.2 nigdy więcej, niż ma komputer
-  (`KVM_CAP_NR_VCPUS`: procesory włączone w K1); sesje przeglądarki mają w wierszu 4 (do 0.11.1: 2 — na X230 i IdeaPadzie
-  z 4 wątkami procesora przeglądarka i jej rysowanie dzieliły tylko 2).
+  (`KVM_CAP_NR_VCPUS`: procesory włączone w K1); sesje przeglądarki mają w wierszu od 0.11.3 `K1_STREFA_PROCESORY_MAKS`
+  (254 — wszystkie procesory komputera; 0.11.2: 4, do 0.11.1: 2). 254, bo tablica MP daje procesorowi 8-bitowy
+  identyfikator APIC (255 = wszystkie, jeden bierze I/O APIC); tablica od 0.11.3 pod `ST_MP_TABELA` (0x9e000), wskaźnik
+  `_MP_` dalej w ostatnim KiB pamięci podstawowej. CPUID od 0.11.3 z bitem TSC-deadline (`KVM_CAP_TSC_DEADLINE_TIMER`,
+  poza emulacją QEMU).
 - **Przerwania:** w jądrze (`KVM_CREATE_IRQCHIP`, `KVM_CREATE_PIT2`), irqfd na urządzenie (linie 5…11).
 - **Powiadomienia kolejek** (0.11.2, `powiadomienia.c`): zapis gościa „kolejka N” do `QueueNotify` nie wychodzi z KVM —
   KVM sam sygnalizuje eventfd tej kolejki (`KVM_IOEVENTFD` z `datamatch`), procesor wraca od razu do gościa, a wątek

@@ -127,6 +127,8 @@ void obudz(void);    /* wakes the main thread */
 /* kvm.c */
 int kvm_maszyna(uint64_t pamiec_mib, int procesory); /* 0, or -1 (logged) */
 int emulacja_qemu(void);                             /* 1: K1 runs in QEMU's emulation (TCG) — the tests only */
+uint32_t kvm_pamiec_w_granicach(uint32_t mib);      /* 0.11.3: memory that fits under the guest's address bits */
+uint64_t strefa_koniec_pamieci(void);               /* 0.11.3: the guest address where its memory ends */
 int kvm_urzadzenia(void);                            /* the devices of K1_URZADZENIA with their interrupts */
 int kvm_procesory(const struct st_wejscie *w);
 int kvm_uruchom(void);

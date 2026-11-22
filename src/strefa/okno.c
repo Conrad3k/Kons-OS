@@ -56,7 +56,7 @@ static unsigned long zmiany_rozmiaru;
  * (only after the user's gesture in the window); when K1 ends it (ROZMIAR not of the full screen while the guest is in
  * it) the guest hears "pelny 0". Under mz.zamek. */
 #define PELNY_NA_S 4
-static int gosc_pelny, pelny_czeka; /* the guest is in full screen (as last heard); 1 + what ekran must hear, 0 none */
+static int gosc_pelny; /* the guest is in full screen (as last heard) */
 static double pelny_t;
 static unsigned pelny_n;
 static unsigned long pelny_pominiete;
@@ -258,20 +258,11 @@ void okno_pelny(int tak)
     }
     pelny_n++;
     gosc_pelny = tak;
-    pelny_czeka = 1 + tak;
     k1_log(TAG, "gość: pełny ekran — %s", tak ? "prośba do ekranu" : "koniec");
-    obudz();
-}
-
-static void pelny_do_ekranu(void)
-{
-    int c;
-    zamek_wez("okno: pełny ekran");
-    c = pelny_czeka;
-    pelny_czeka = 0;
-    zamek_oddaj();
-    if (c != 0 && kl.fd >= 0 && !schowane)
-        k1_wyslij(&kl, k1_komunikat_nowy(K1_KOM_PELNY_EKRAN, OKNO_ID, c - 1, 0, 0, 0, 0));
+    /* 0.11.3: to ekran at once, each change in its order — since 0.11.2 the notifications' thread may hear several
+     * before the main thread runs, and a request the guest left at once must still reach ekran (it refuses one without
+     * the user's gesture). One message on the channel is atomic; at most PELNY_NA_S a second. */
+    k1_wyslij(&kl, k1_komunikat_nowy(K1_KOM_PELNY_EKRAN, OKNO_ID, tak, 0, 0, 0, 0));
 }
 
 void okno_obraz(void)
@@ -282,7 +273,6 @@ void okno_obraz(void)
     uint64_t t0;
     int pol;
     struct prost r;
-    pelny_do_ekranu();
     if (kl.fd < 0 || schowane || okno.czeka)
         return;
     pol = okno.pokazywana == 0 ? 1 : 0;

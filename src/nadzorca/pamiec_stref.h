@@ -10,7 +10,7 @@ uint32_t pamiec_rezerwa_k1(uint64_t ram_mib);
 
 /* A zone's upper limit in MiB (D2, the owner 2026-11-16: the computer's memory minus K1's reserve), never below its
  * memory at the start (its row of K1_STREFY), whole 2 MiB, at most PAMIEC_STREFY_MAKS. */
-#define PAMIEC_STREFY_MAKS 65536u /* = K1_STREFA_PAMIEC_MAKS (k1_komunikat.h) */
+#define PAMIEC_STREFY_MAKS 262144u /* = K1_STREFA_PAMIEC_MAKS (k1_komunikat.h) */
 uint32_t pamiec_granica(uint64_t ram_mib, uint32_t start_mib);
 
 /* One running zone as the rozdzielacz sees it (MiB). What the VMM said (STREFA_PAMIEC) is a hint, never the truth:

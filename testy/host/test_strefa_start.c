@@ -70,14 +70,37 @@ static void t_dobry(uint8_t *baza)
     EXPECT(v == ((5ull << 21) | 0x83));
     memcpy(&v, baza + ST_GDT + 16, 8);
     EXPECT(v == 0x00af9b000000ffffull);
-    /* the MP table: the pointer and the table add up to 0; 2 processors, the bus, the I/O APIC, 24 + 2 interrupts */
+    /* the MP table: the pointer and the table add up to 0; 2 processors, the bus, the I/O APIC, 24 + 2 interrupts; the
+     * pointer in the last KiB of base memory, the table (0.11.3) at ST_MP_TABELA, in memory e820 reserves */
     EXPECT(memcmp(mp, "_MP_", 4) == 0 && suma(mp, 16) == 0);
-    tab = mp + 16;
+    memcpy(&v, mp + 4, 4);
+    EXPECT((uint32_t)v == ST_MP_TABELA && bp.e820_table[1].addr == ST_MP_TABELA &&
+           bp.e820_table[1].addr + bp.e820_table[1].size == ST_NISKA_KONIEC && bp.e820_table[0].size == ST_MP_TABELA);
+    tab = baza + ST_MP_TABELA;
     memcpy(&dl_mp, tab + 4, 2);
     memcpy(&wpisy, tab + 34, 2);
     EXPECT(memcmp(tab, "PCMP", 4) == 0 && suma(tab, dl_mp) == 0 && wpisy == 2 + 1 + 1 + ST_LINIE_PRZERWAN + 2);
     EXPECT(tab[44] == 0 && tab[45] == 0 && tab[47] == 3 && tab[64] == 0 && tab[65] == 1 && tab[67] == 1); /* BSP, AP */
-    EXPECT(ST_MP + 16 + dl_mp <= ST_NISKA_KONIEC);
+    EXPECT(ST_MP_TABELA + dl_mp <= ST_MP);
+}
+
+/* 0.11.3: the most processors — APIC ids 0..253, the I/O APIC 254, the table below the pointer */
+static void t_wszystkie_procesory(uint8_t *baza)
+{
+    const struct gosc_pamiec m = { baza, PAMIEC, 0 };
+    struct st_wejscie w;
+    uint16_t dl_mp, wpisy;
+    const uint8_t *tab = baza + ST_MP_TABELA, *ost, *io;
+    memset(baza, 0, PAMIEC);
+    jadro();
+    EXPECT(st_przygotuj(&m, obraz, sizeof obraz, "", ST_PROCESORY_MAKS, &w) == NULL);
+    memcpy(&dl_mp, tab + 4, 2);
+    memcpy(&wpisy, tab + 34, 2);
+    ost = tab + 44 + (ST_PROCESORY_MAKS - 1) * 20;
+    io = tab + 44 + ST_PROCESORY_MAKS * 20 + 8;
+    EXPECT(ST_PROCESORY_MAKS == 254 && suma(tab, dl_mp) == 0 && wpisy == ST_PROCESORY_MAKS + 1 + 1 + ST_LINIE_PRZERWAN + 2);
+    EXPECT(ost[0] == 0 && ost[1] == 253 && ost[3] == 1 && io[0] == 2 && io[1] == 254);
+    EXPECT(ST_MP_TABELA + dl_mp <= ST_MP && suma(baza + ST_MP, 16) == 0);
 }
 
 static void t_zle(uint8_t *baza)
@@ -157,6 +180,7 @@ int main(void)
     if (baza == NULL)
         return 2;
     t_dobry(baza);
+    t_wszystkie_procesory(baza);
     memset(baza, 0, PAMIEC);
     t_zle(baza);
     free(baza);

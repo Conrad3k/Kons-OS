@@ -30,9 +30,16 @@ void most_start(struct most *m, const struct most_lacze *l, uint32_t pci, uint32
     m->caps.version_major = wersja >> 16, m->caps.version_minor = wersja >> 8 & 0xff;
     m->caps.version_patchlevel = wersja & 0xff;
     m->caps.context_type = MOST_KONTEKST_I915;
+    m->okno_baza = MOST_OKNO_BAZA;
     m->caps.pci_device_id = pci, m->caps.pci_revision_id = rewizja;
     for (uint32_t i = 0; i < K1_POSR_ZASOBY_MAKS; i++)
         m->zasoby[i].fd = -1;
+}
+
+uint64_t most_okno_baza(uint64_t koniec_pamieci)
+{
+    uint64_t g = (koniec_pamieci + (1ull << 30) - 1) & ~((1ull << 30) - 1);
+    return g > MOST_OKNO_BAZA ? g : MOST_OKNO_BAZA;
 }
 
 /* The guest context of the guest's virtio-gpu context ctx (capset DRM), 0: none. */
@@ -187,7 +194,7 @@ static uint32_t mapuj(struct most *m, const struct virtio_gpu_resource_map_blob 
         return blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
     for (uint32_t i = 1; i < K1_POSR_ZASOBY_MAKS; i++) {
         const struct most_zasob *o = &m->zasoby[i];
-        if (o->slot != 0 && b->offset < o->gpa - MOST_OKNO_BAZA + o->rozmiar && o->gpa - MOST_OKNO_BAZA < b->offset + z->rozmiar)
+        if (o->slot != 0 && b->offset < o->gpa - m->okno_baza + o->rozmiar && o->gpa - m->okno_baza < b->offset + z->rozmiar)
             return blad(m, odp, VIRTIO_GPU_RESP_ERR_INVALID_PARAMETER);
     }
     for (uint32_t i = 0; i < MOST_MAPY_MAKS && slot == 0; i++)
@@ -204,7 +211,7 @@ static uint32_t mapuj(struct most *m, const struct virtio_gpu_resource_map_blob 
         if (r != 0)
             return blad(m, odp, VIRTIO_GPU_RESP_ERR_UNSPEC);
     }
-    if (m->l->mapuj(m->l->ja, slot, MOST_OKNO_BAZA + b->offset, fd, z->rozmiar) != 0) {
+    if (m->l->mapuj(m->l->ja, slot, m->okno_baza + b->offset, fd, z->rozmiar) != 0) {
         if (z->rodzaj == MOST_BUFOR)
             m->l->zamknij(m->l->ja, fd);
         return blad(m, odp, VIRTIO_GPU_RESP_ERR_OUT_OF_MEMORY);
@@ -212,7 +219,7 @@ static uint32_t mapuj(struct most *m, const struct virtio_gpu_resource_map_blob 
     if (z->rodzaj == MOST_BUFOR)
         m->l->zamknij(m->l->ja, fd); /* the mapping keeps the buffer */
     m->sloty[slot - MOST_SLOT_PIERWSZY] = 1;
-    z->slot = slot, z->gpa = MOST_OKNO_BAZA + b->offset, z->mapa = (uint8_t)mapa;
+    z->slot = slot, z->gpa = m->okno_baza + b->offset, z->mapa = (uint8_t)mapa;
     memset(&info, 0, sizeof info);
     info.hdr.type = VIRTIO_GPU_RESP_OK_MAP_INFO;
     info.map_info = mapa;

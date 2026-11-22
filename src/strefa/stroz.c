@@ -12,6 +12,7 @@
 #include "strefa.h"
 
 #define STOI_S 15.0
+#define STROZ_PROCESORY 16 /* 0.11.3: a zone may have up to 254 — the line names the first 16 */
 
 static const char *const MIEJSCE[] = { [ST_W_GOSCIU] = "w gościu", [ST_WYJSCIE] = "przy wyjściu",
                                        [ST_CZEKA] = "czeka na zamek", [ST_ZAMEK] = "ma zamek" };
@@ -36,11 +37,11 @@ void petla_krok(const char *krok)
 
 static void opisz(double stoi)
 {
-    char p[ST_PROCESORY_MAKS * 64] = "";
+    char p[STROZ_PROCESORY * 64] = "";
     const char *kto = mz.zamek_kto;
     size_t n = 0;
     int i;
-    for (i = 0; i < mz.n_cpu && i < ST_PROCESORY_MAKS && n < sizeof p; i++) {
+    for (i = 0; i < mz.n_cpu && i < STROZ_PROCESORY && n < sizeof p; i++) {
         const struct procesor *c = &mz.cpu[i];
         int g = c->gdzie;
         n += (size_t)snprintf(p + n, sizeof p - n, "; procesor %d: %s (wyjście %u, urządzenie %d)", i,

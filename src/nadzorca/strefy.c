@@ -32,14 +32,18 @@ static void zglos(int nr, int powod)
 }
 
 /* The zone's upper limit (pamiec_stref.c: D2) into its sandbox's copy: memory.max = the limit + the VMM's own room
- * (VMM_ZAPAS), fixed for the zone's whole life (ADR 0044 T4); RLIMIT_FSIZE = the limit (the memfd of its memory). */
+ * (VMM_ZAPAS), fixed for the zone's whole life (ADR 0044 T4); RLIMIT_FSIZE = the limit (the memfd of its memory).
+ * 0.11.3: the room grows with the guest (KVM's page tables of its memory: at most 8 B per 4 KiB page — 2 MiB a GiB)
+ * and with its processors (KVM's per-processor structures and the VMM's thread: within 1 MiB each). */
 #define VMM_ZAPAS (184ull << 20) /* the resources of virtio-gpu (up to 96 MiB), the window, the VMM, KVM, the disk's cache */
 static uint32_t granica_strefy(const struct k1_strefa_opis *z, struct k1_profil *p)
 {
     struct sysinfo si;
     uint64_t ram = sysinfo(&si) == 0 ? ((uint64_t)si.totalram * si.mem_unit) >> 20 : 0;
     uint32_t g = pamiec_granica(ram, z->pamiec_mib);
-    p->pamiec = ((uint64_t)g << 20) + VMM_ZAPAS;
+    long komputer = sysconf(_SC_NPROCESSORS_ONLN);
+    uint64_t procesory = komputer >= 1 && (uint64_t)komputer < z->procesory ? (uint64_t)komputer : z->procesory;
+    p->pamiec = ((uint64_t)g << 20) + VMM_ZAPAS + ((uint64_t)g << 20) / 512 + (procesory << 20);
     p->rozmiar_pliku = (uint64_t)g << 20;
     return g;
 }

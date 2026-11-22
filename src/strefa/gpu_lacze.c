@@ -9,7 +9,7 @@
  *    for the broker's POSR_PLOT_GOTOWY: its chain goes back then (virtio lets the device answer out of order).
  *  - A buffer the guest maps: its dma-buf from the broker (or the memfd of a guest context's shared memory) mapped here
  *    read-write — never executable (niezmiennik 1) — and given to KVM as a memory slot at the host-visible region
- *    (MOST_OKNO_BAZA + the place the guest kernel chose).
+ *    (gl.m.okno_baza — MOST_OKNO_BAZA or right above a large guest's memory — + the place the guest kernel chose).
  *  - The broker ends (its crash, a hang of the card — T15): every 3D command fails, waiting fences are answered, the
  *    machine lives — the guest's Mesa fails and Firefox draws with the processor until the session opens again.
  * The broker's messages are checked field by field (k1_kom_posrednik.c) with its UID (K1_UID_POSREDNIK_STREF + zone). */
@@ -461,7 +461,7 @@ int gpu_lacze_okno(const struct mmio_urz *u, uint32_t id, uint64_t *baza, uint64
     (void)u;
     if (!gl.jest || id != VIRTIO_GPU_SHM_ID_HOST_VISIBLE)
         return -1;
-    *baza = MOST_OKNO_BAZA, *dl = MOST_OKNO_DL;
+    *baza = gl.m.okno_baza, *dl = MOST_OKNO_DL;
     return 0;
 }
 
@@ -502,6 +502,7 @@ int gpu_lacze_start(void)
     }
     close(okno);
     most_start(&gl.m, &gl.l, (uint32_t)k.c, (uint32_t)k.d, (uint32_t)k.e);
+    gl.m.okno_baza = most_okno_baza(strefa_koniec_pamieci()); /* 0.11.3: above a large guest's memory */
     if (pthread_create(&gl.watek, NULL, watek, NULL) != 0)
         return -1;
     gl.jest = 1;
