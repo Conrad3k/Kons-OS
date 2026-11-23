@@ -1,0 +1,291 @@
+K1 — PLAN WERSJI 0.11.8 „MENU START I GÓRNY PASEK” (poprawki pulpitu przed 0.12, PATCH w temacie 0.11)
+=========================================================================================================
+
+Data: 2026-11-23 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-23, po wydaniu
+0.11.5): „Zanim wdrożymy 0.12.0, stwórz plan na 0.11.8, w której: Menu Kons (te na dolnym pasku) będzie ciut niższe,
+i będzie można scrollować między wszystkimi aplikacjami, z czego te co się nie mieszczą znikają wyżej, i właśnie można do
+nich scrollować. Druga rzecz: ładniejszy górny pasek i małe pod-menu baterii po kliknięciu jej ikony; najlepiej ile czasu
+pozostało i pobór mocy.”
+Wersja stoi na 0.11.5. Ten plik jest SAMODZIELNY: cel, kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi:
+docs/DO_ZROBIENIA.txt. Po tej wersji — 0.12 „Dźwięk” (docs/PLAN-0.12.0.txt), bez zmian w jej zakresie.
+
+
+CEL WERSJI (jednym akapitem)
+----------------------------
+Po 0.11.8 menu Start jest niższe i nie sięga już prawie do górnej krawędzi ekranu: lista aplikacji ma stałą wysokość,
+a aplikacje, które się nie mieszczą, chowają się za jej górną krawędzią — dojeżdża się do nich kółkiem myszy albo dwoma
+palcami na touchpadzie. Górny pasek wygląda ładniej (nowy wygląd według szkiców do wyboru), a kliknięcie baterii otwiera
+małe okienko: procent, co bateria robi, ile czasu zostało (albo do pełna) i pobór mocy laptopa. Wszystkie te liczby K1 już
+mierzy (Zasoby) — okienko tylko pokazuje je w miejscu, gdzie się ich szuka.
+
+Kroki: TRZY. Krok 1 — menu Start niższe i przewijane. Krok 2 — nowy wygląd górnego paska (z miejscem na okienka pod
+ikonami: bateria teraz, dźwięk w 0.12). Krok 3 — okienko baterii; wydanie 0.11.8.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe kroki i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”); wyjątek:
+błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; wydanie jest zawsze ostatnim
+krokiem (nowy krok bierze numer kroku wydania, wydanie przesuwa się na koniec, póki się nie zaczęło); jeśli krok nie
+zmieści się w jednym czacie, dzieli się na 2a/2b … (wydanie w ostatniej części ostatniego kroku).
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.11.5, 2026-11-23), POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia
+w kroku — nie zakładać).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: 1, 2, 3. Krok 1 jest niezależny od 2 i 3 (można go
+zrobić po nich); krok 3 stoi na kroku 2 (okienko pod ikoną paska w nowym wyglądzie).
+
+Właściciel: co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.11.8.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku — przy wyglądzie najpierw pokaże szkice (jasny i ciemny motyw).
+
+Nowy czat: przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y i Issue robota, ostatni run CI na main).
+  2. Przeczytaj CEL WERSJI, swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4) oraz „Ustalenia z wykonania”
+     kroków wcześniejszych. Kod mógł się zmienić (robot, poprawki) — luki sprawdź jeszcze raz.
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. Wygląd: najpierw szkice do wyboru (SKILL, „Wygląd”) — zrzuty z QEMU (scripts/zrzut-ekranu.sh) albo obrazy z hosta,
+     pokazane właścicielowi (SendUserFile); ustalenie zapisz w docs/WYGLAD.md. Dopiero potem kod.
+  5. „Dziel przed rozbudową”: gui/pasek_gorny.c (309 wierszy) przed krokiem 3 — bateria do osobnego pliku (T4), osobny
+     commit. gui/pulpit.c (588) — nie ruszać.
+  6. Testy: okna K1 po nazwach (ADR 0045); zrzuty wzorcowe pasek-gorny-*, menu-start-* (i nowe okienko-baterii-*) zmienia
+     się dopiero po „OK” właściciela na obrazy „przed / po” (scripts/przyjmij-wzorce.sh, osobny commit; D3 z 0.10.2).
+  7. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, scripts/test-m1.sh i skrypty QEMU
+     zmienianej części (docs/TESTY.md: test-m4, test-wzorce, w kroku 3 też test-m5); pełny komplet: CI na PR-ze
+     (etykieta „testy”), scalasz przy zielonym (AGENTS.md). Czekaj poleceniem, bez innych wywołań (CLAUDE.md).
+  8. Dokumenty w tym samym PR-ze: docs/komponenty/gui.md (menu Start, górny pasek, okienka paska), nadzorca.md (krok 3:
+     co gui dostaje na fd 5), opis komunikatu (krok 3), WYGLAD (ustalenia D1–D4), SLOWNIK (nowe pojęcia — np. „okienko
+     paska” — tylko jeśli naprawdę nowe). VERSION i CHANGELOG zmienia krok 3 (wydanie); kroki 1–2 zapisują „co widzi
+     użytkownik” w opisie PR-a.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
+     w swoim kroku. Raport dla właściciela: co widać, co sprawdzić na laptopie.
+
+Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
+  - Robot raz dziennie wydaje sam PATCH z poprawionym jądrem i pakietami przeglądarki — z tego, co jest wtedy na main.
+    Scalony krok 1 albo 2 trafia więc do laptopów z najbliższym wydaniem robota, przed 0.11.8. Każdy krok jest
+    samodzielny i gotowy dla użytkownika (krok 2 nie zostawia ikony baterii, która „coś obiecuje”, a nic nie otwiera:
+    bateria staje się klikalna dopiero w kroku 3). Robot zostaje włączony; żaden krok nie zmienia jądra ani pakietów strefy.
+  - Numer: 0.11.8 to numer z prośby właściciela. Robot może w tym czasie wydać 0.11.6, 0.11.7, a nawet 0.11.8 — wtedy
+    wydanie bierze następny wolny numer (0.11.9…). Tuż przed scaleniem wydania: gałąź z main, sprawdź VERSION; wpis
+    w CHANGELOG nad ostatnim wpisem robota.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+  - Krok 1: menu Start niższe (D1) — lista aplikacji ma stałą wysokość, reszta chowa się za jej krawędzią (D2: według
+    Twojego opisu — powyżej, z miękkim zanikaniem). Kółko myszy i dwa palce na touchpadzie przewijają listę; cienki
+    pasek przewijania z boku pokazuje, gdzie jesteś. Nagłówek („Kons K1”, wersja) i przyciski na dole („Zablokuj”,
+    „Uruchom ponownie”, „Wyłącz”) stoją w miejscu. Na małym ekranie menu samo mieści się między paskami.
+  - Krok 2: nowy wygląd górnego paska — szkice do wyboru (D3). Ikony sieci, baterii i dźwięku w jednej, równej grupie,
+    każda podświetla się pod kursorem; zegar czytelniejszy. Okienko „Dźwięk” (dziś: „ta wersja nie obsługuje jeszcze
+    karty dźwiękowej”) dostaje nowy wygląd; w 0.12 wstawimy w nie suwak głośności.
+  - Krok 3: kliknięcie baterii → małe okienko (D4): „73 %”, „Rozładowywanie”, „Zostało ok. 3 godz. 20 min” (albo „Do pełna
+    ok. 45 min”), „Pobór mocy 9,4 W”. Liczby odświeżają się same, póki okienko jest otwarte. Potem wydanie 0.11.8.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar
+[ ]  1  Menu Start niższe i przewijane                          L1–L5            0.11.5      D1, D2, T3     M
+[ ]  2  Nowy wygląd górnego paska                               L6–L9            0.11.5      D3, T2         M
+[ ]  3  Okienko baterii; wydanie 0.11.8                         L10–L14          2           D4, T1, T4, T5 M
+(Bez ADR: nic nie zmienia architektury ani niezmienników; nowe pola komunikatu — opis w gui.md i k1_komunikat.h.)
+
+
+3. KROKI
+--------
+KROK 1: Menu Start niższe i przewijane                                       M · D1, D2, T3
+  Cel: menu Start ma stałą, mniejszą wysokość; wszystkie aplikacje są dostępne przez przewijanie listy.
+  Na początku: D1 (ile wierszy widać), D2 (gdzie chowają się te, które się nie mieszczą — szkice, oba motywy).
+  Co widzi użytkownik: Start (kliknięcie albo klawisz Super) → menu niższe niż dziś; lista wg D2; kółko myszy albo dwa
+  palce nad listą przesuwają ją płynnie (nie skokami po całym wierszu); przy krawędzi, za którą coś jest, wiersze miękko
+  zanikają; cienki pasek przewijania z boku listy (można go chwycić i przeciągnąć). Każde otwarcie menu zaczyna od tego
+  samego miejsca (D2). Najechanie, kliknięcie i prawy przycisk na wierszu działają jak dziś, także po przewinięciu.
+  Zadania:
+   a) gui/gui.h, gui/main.c: wysokość menu z D1 zamiast „wszystkie wiersze” (MENU_WYS, L1); na niskim ekranie mniej
+      wierszy — menu zawsze mieści się między górnym a dolnym paskiem z odstępem (najmniej 3 wiersze); przy zmianie
+      rozdzielczości (WITAJ) — od nowa (uloz).
+   b) gui/menu_start.c: przesunięcie listy w pikselach (T3), rysowanie tylko widocznej części z przycięciem do obszaru
+      listy, zanikanie przy krawędzi (D2), pasek przewijania; wiersz_menu() i przycisk_stopki() liczą z przesunięciem;
+      prawy przycisk (kontekst_otworz) — w miejscu kursora jak dziś.
+   c) gui/main.c, komunikat(): K1_KOM_PRZEWIN dla P_MENU (dziś gui go nie obsługuje — L2) → przewinięcie (kółko i touchpad:
+      ten sam kierunek co w Plikach i Notatkach; touchpad w ułamkach ząbka, K1_PRZEWIN_ZABEK). Przewijanie poza listą
+      (nagłówek, stopka) też przewija listę.
+   d) Opis ekranu (ADR 0045, L3): w „Menu Start” tylko wiersze widoczne (częściowo widoczny — z widoczną częścią albo
+      wcale, decyzja czatu); log „menu Start otwarte (…)” mówi też: obszar listy, ile wierszy widać, przesunięcie.
+      Harness: testy/qemu/k1qemu.py — „przewiń do” (q.kolko nad listą, aż element jest w opisie), żeby q.klik_w("Menu
+      Start", "<aplikacja>") działał dla każdej aplikacji; testy, które klikają menu (test-m4, test-wzorce, test-strefa,
+      test-aktualizacja-siec — przejrzyj grep „Menu Start”), dalej zielone.
+   e) Testy: test-m4 — menu otwarte → ostatnia aplikacja niewidoczna (albo pierwsza, wg D2) → kółko → widoczna →
+      kliknięcie ją uruchamia; zamknięcie i ponowne otwarcie — lista od początku (D2); prawy przycisk po przewinięciu
+      otwiera menu właściwej aplikacji. Wzorce menu-start-jasny/-ciemny — nowe, po „OK” właściciela.
+   f) Dokumenty: gui.md (menu Start), WYGLAD („Menu Start”: dziś opisuje 360 px i stopkę bez „Zablokuj” — kod ma 400 px,
+      L5; poprawić razem z ustaleniami D1, D2).
+  Gotowe, gdy: test-m4 i test-wzorce zielone, CI na PR-ze zielone; właściciel widzi niższe menu na X230 i IdeaPadzie
+  (po najbliższym wydaniu robota).
+
+KROK 2: Nowy wygląd górnego paska                                            M · D3, T2
+  Cel: górny pasek ładniejszy według wybranego szkicu; okienka pod ikonami paska mają jeden wspólny wygląd i jedno
+  miejsce w kodzie (tabela), do którego krok 3 dopisze baterię, a 0.12 — prawdziwy dźwięk.
+  Na początku: D3 (szkice paska, oba motywy, na dwóch tapetach — ciemnej i jasnej „Świt”, z otwartym okienkiem „Dźwięk”).
+  Co widzi użytkownik: nowy pasek wg D3; sieć, bateria, dźwięk i zegar w równych odstępach, każda ikona podświetla się
+  pod kursorem (dziś tylko głośnik, L7); okienko „Dźwięk” w nowym stylu (treść bez zmian do 0.12).
+  Zadania:
+   a) Szkice D3 i ich ocena: czytelność na każdej z pięciu tapet (jak napisy pod ikonami pulpitu, 0.10.7) i w obu
+      motywach; wysokość obszaru paska zostaje 32 px (K1_PASEK_GORNY) — od niej zależy obszar roboczy okien i
+      maksymalizacja okna sesji (ekran/rozmiar.c, L8); inna wysokość tylko, jeśli D3 jej wymaga — wtedy też ekran i jego
+      testy (test-strefa: maksymalizacja co do piksela).
+   b) gui/pasek_gorny.c: rysowanie wg D3; elementy po prawej z jednej tabeli (sieć, bateria, dźwięk — kolejność,
+      szerokość, czy klikalny), zamiast liczenia położeń od glosnik_x() w kilku miejscach (L6).
+   c) Okienka paska (T2): tabela okienek pod ikonami (dziś jedno — P_DZWIEK, L9): który element je otwiera, rozmiar,
+      rysowanie, wskaźnik; otwarte najwyżej jedno; zamyka je drugie kliknięcie, kliknięcie obok, menu Start i klawisz
+      Super. Okienko stoi pod swoją ikoną (dziś „Dźwięk” stoi przy prawej krawędzi — przy kilku okienkach to myli).
+   d) Ekran hasła (logowanie) ma własny wskaźnik baterii — bez zmian (inny ekran), chyba że D3 zmieni ikonę baterii
+      w przyborniku (k1_bateria) — wtedy sprawdź i ekran hasła (test-m1 „logowanie”).
+   e) Opis ekranu: „Pasek górny” — „Dźwięk”, „Sieć”, „Bateria” (tylko gdy jest) jako elementy; „Stan i zegar” zostaje
+      miejscem zmiennym dla wzorców. Wzorce pasek-gorny-*, a jeśli zmienia się dolny pasek albo ramka — też one, po
+      „OK” właściciela.
+   f) Dokumenty: gui.md (górny pasek, okienka paska), WYGLAD („Górny pasek” od nowa wg D3).
+  Gotowe, gdy: test-m4, test-m5 (bateria na pasku), test-wzorce zielone, CI na PR-ze zielone.
+
+KROK 3: Okienko baterii; wydanie 0.11.8                                      M · D4, T1, T4, T5
+  Cel: kliknięcie baterii na górnym pasku otwiera okienko z procentem, stanem, czasem i poborem mocy.
+  Na początku: D4 (treść i wygląd okienka — szkice, oba motywy, w stylu z kroku 2).
+  Co widzi użytkownik: kliknięcie baterii → okienko wg D4, na przykład:
+        73 %                                   [ikona baterii]
+        Rozładowywanie
+        Zostało          ok. 3 godz. 20 min
+        Pobór mocy       9,4 W
+  przy ładowaniu „Do pełna ok. 45 min” i pobór mocy z zasilacza do baterii (jak w Zasobach); „Pełna” / „Nie ładuje” —
+  bez czasu; przez pierwsze sekundy po starcie albo po zmianie zasilania — „Liczę…” zamiast czasu (nadzorca uśrednia
+  pomiar, 0.8.7). Liczby zmieniają się same, póki okienko jest otwarte. Komputer bez baterii — nic się nie zmienia (ikony
+  baterii nie ma).
+  Zadania:
+   a) Najpierw podział (T4, osobny commit): bateria z gui/pasek_gorny.c do gui/bateria.c (stan, log, rysowanie ikony,
+      potem okienko).
+   b) Nadzorca (T1, L10): gui dostaje na fd 5 pobór mocy i minuty — to, co Zasoby (zasoby.c: moc_srednia,
+      k1_bateria_minuty); wysyła tylko po zmianie i nie częściej niż odczyt baterii (co BATERIA_CO s), a nowy kanał gui
+      dostaje wszystko od razu (bateria_nowy_kanal). Sprawdzanie pole po polu jak dziś (k1_kom_*.c), test na hoście
+      (test_komunikat: zakresy mocy i minut, -1 = nieznane), fuzzing tego typu, jeśli to nowy typ.
+   c) gui: element „Bateria” w tabeli okienek z kroku 2; okienko wg D4; słowa stanu te same co w Zasobach i Ustawieniach
+      (k1_bateria_stan), czas — k1_minuty, moc — k1_dziesietne (jak Zasoby, L11). Log przy otwarciu (dla testów, bez
+      treści użytkownika): „okienko baterii: 73%, ładowanie, 9,0 W, do pełna 81 min” (liczby są stanem sprzętu, nie
+      sekretem). Opis ekranu: „Bateria” (przycisk), w okienku liczby jako K1_EL_ZMIENNE.
+   d) Testy (T5): test-m5 — bateria ACPI w QEMU (testy/acpi/bateria.asl, L12) → klik „Bateria” → okienko → log z procentem,
+      stanem, mocą i czasem (wartości z tablicy ACPI — wylicz w teście, nie przepisuj z kodu); drugi klik zamyka; Start
+      zamyka okienko. Rozładowywanie (test-m1: bateria_aml 1, L12) — „Zostało” (sprawdzenie logu w przebiegu startu). Wzorzec okienko-baterii-jasny/-ciemny: test-wzorce
+      dostaje tablicę ACPI baterii (zmieni też wzorzec górnego paska — razem, po „OK” właściciela; NIEPEWNE, czy
+      lepiej osobny przebieg).
+   e) Porządki (PATCH, mała dawka): przejrzyj, co kroki 1–3 zostawiły (stałe, które nic już nie znaczą, np. DZW_SZER /
+      DZW_WYS po tabeli okienek; WYGLAD i gui.md zgodne z kodem); wynik w CHANGELOG.
+   f) Dokumenty: gui.md, nadzorca.md (fd 5 do gui), WYGLAD, README („Co już jest” — jeśli wymienia pasek), DO_ZROBIENIA
+      (stan, lista „co sprawdzić” na laptopach, punkt 4: menu Start, pasek, okienko baterii — czas i moc porównaj
+      z Zasobami), skill (mapa kodu: gui/bateria.c).
+   g) VERSION 0.11.8 (albo następny wolny — punkt 0), CHANGELOG z „Opis w K1:” (ADR 0046), wydanie; plan → do
+      docs/archiwum/ (pod tą samą nazwą).
+  Gotowe, gdy: test-m5, test-m4, test-wzorce zielone, CI na PR-ze zielone, wydanie istnieje (linki do ISO i obrazu USB).
+
+
+4. DECYZJE
+----------
+Właściciela (czat pyta na początku kroku; przy wyglądzie — szkice):
+[!] D1 (krok 1) Ile wierszy listy widać (dziś wszystkie 9: menu ma 640 px i na ekranie 1366×768 kończy się ok. 20 px pod
+    górnym paskiem):
+      A — 7 wierszy: menu 528 px, ok. 110 px niżej niż dziś. REKOMENDACJA („ciut niższe”; dziś przewija się 2 aplikacje,
+          przy każdej nowej aplikacji — więcej).
+      B — 6 wierszy: menu 472 px, ok. 170 px niżej.
+      Na niskich ekranach (np. 720 px) — mniej wierszy, samo.
+[!] D2 (krok 1) Gdzie chowają się aplikacje, które się nie mieszczą (szkice A/B):
+      A — tak jak w Twojej prośbie: po otwarciu menu widać dół listy (najbliżej przycisku Start), a pozostałe aplikacje
+          chowają się za górną krawędzią listy (miękkie zanikanie); kółko „od siebie” przewija do nich w górę.
+          REKOMENDACJA — tak to opisałeś.
+      B — jak w Windows 11: po otwarciu widać początek listy (Zegar na górze), reszta chowa się pod spodem; kółko „do
+          siebie” przewija w dół.
+      W obu: kolejność aplikacji bez zmian (jak dziś), pasek przewijania z boku, każde otwarcie menu od tego samego
+      miejsca.
+[!] D3 (krok 2) Wygląd górnego paska (szkice A/B/C, jasny i ciemny motyw, ciemna i jasna tapeta):
+      A — „Spokojny”: pasek przez całą szerokość jak dziś (przyciemnienie tapety), ale równe odstępy w siatce 4 px; sieć,
+          bateria i dźwięk w jednej delikatnej „pigułce”; godzina mocniej, data lżej; z lewej mały znak K1 przed nazwą
+          aktywnej aplikacji.
+      B — „Wyspy”: bez paska przez całą szerokość — dwie zaokrąglone wyspy w kolorach motywu, unoszące się 4 px od góry,
+          jak dolny pasek (z lewej nazwa aplikacji, z prawej stan i zegar); pasek górny i dolny wyglądają jak para.
+          REKOMENDACJA: dolny pasek już „unosi się” (0.5.0) i ma kolory motywu — górny dziś jest zawsze ciemny.
+      C — „Przezroczysty”: bez tła, kremowy tekst i ikony z cieniem; najlżejszy, ale na jasnej tapecie („Świt”) gorzej
+          czytelny.
+[!] D4 (krok 3) Okienko baterii (szkice A/B):
+      A — procent (duży), stan, „Zostało” / „Do pełna” z czasem, „Pobór mocy” w watach. REKOMENDACJA (to, o co prosiłeś).
+      B — jak A, a pod spodem mały wykres poziomu baterii z ostatniej godziny (jak w Ustawieniach → Bateria); większe
+          okienko, a gui musiałby dostawać też historię.
+      W obu: przycisk „Ustawienia baterii” otwiera Ustawienia (na sekcji „Bateria” — jeśli to mała zmiana; NIEPEWNE,
+      L13; inaczej sam przycisk nie wchodzi, a wykres zostaje w Ustawieniach).
+
+Techniczne (decyduje czat kroku; tu kierunek):
+  T1 Dane dla okienka baterii: ten sam pomiar co dla Zasobów (jedno uśrednianie, jedna formuła minut — nigdy osobne
+     liczenie w gui). Kierunek: gui dostaje na fd 5 komunikat z mocą (mW, -1 nieznana, ≤ K1_MOC_MAKS_MW) i minutami
+     (-1 nieznane, ≤ K1_BAT_MINUT_MAKS) — ten sam typ co Zasoby (K1_KOM_ZASOBY_BATERIA, jedno sprawdzanie) albo nowy typ
+     o nazwie bez „Zasoby” (jeśli słownik tego wymaga); wybór i opis w gui.md. Wysyłany po zmianie, nie co sekundę.
+     Odczyt baterii (L14): póki okienko jest otwarte — co 5 s jak przy Zasobach (gui mówi nadzorcy na fd 4 „okienko
+     baterii otwarte / zamknięte”, nowy komunikat gui → nadzorca, sprawdzany UID gui); zamknięte — co 15 s jak dziś.
+  T2 Okienka paska jako wiersze tabeli (zasada czytelności 5): jedna powierzchnia panelu dla okienek paska (dziś P_DZWIEK)
+     o rozmiarze największego, położenie pod ikoną; 0.12 krok 1 zmienia tylko wiersz „Dźwięk”.
+  T3 Przewijanie menu Start: przesunięcie w pikselach w gui (nie w ekranie — powierzchnia menu ma stały rozmiar), granice
+     0…(wiersze − widoczne) × MENU_WIERSZ, przycięcie rysowania do obszaru listy (sprawdź, czy przybornik ma przycinanie
+     — NIEPEWNE; jeśli nie, mały pomocnik w przyborniku, nie w gui). Bez animacji czasowych (rysujemy po zdarzeniu).
+  T4 Podział gui/pasek_gorny.c przed dodaniem okienka baterii (zasada 7): gui/bateria.c.
+  T5 Test okienka baterii na liczbach z tablicy ACPI QEMU (_BST: moc 9000 mW, 32850 z 45000 mWh — Z KODU,
+     testy/acpi/bateria.asl); test liczy oczekiwany czas sam.
+
+
+5. LUKI (co dziś brakuje — Z KODU, 2026-11-23)
+-----------------------------------------------
+Krok 1:
+  L1 gui.h: MENU_WYS = MENU_NAGL (72) + MENU_APL × MENU_WIERSZ (9 × 56) + 8 + MENU_STOPKA (56) = 640 px — menu rośnie
+     z każdą aplikacją; main.c (uloz) stawia je nad dolnym paskiem: na 1366×768 górna krawędź ok. 52 px od góry ekranu,
+     na ekranie 720 px wchodziłoby pod górny pasek. Powierzchnia menu ma stały rozmiar z MENU_WYS.
+  L2 gui/main.c, komunikat(): brak K1_KOM_PRZEWIN — ekran wysyła go do powierzchni pod kursorem (ekran/wskaznik.c,
+     przewin()), także do paneli gui, ale gui go pomija. Wzór przewijania: przybornik k1_aplikacja.c i Pliki.
+  L3 menu_start.c: opis ekranu (k1_el) i log „menu Start otwarte (pierwszy wiersz x,y co 56; …)” zakładają, że widać
+     wszystkie wiersze; testy klikają po nich (q.klik_w("Menu Start", …)).
+  L4 menu_start.c: wiersz_menu() liczy wiersz z (y − MARG − MENU_NAGL) / MENU_WIERSZ — bez przesunięcia.
+  L5 WYGLAD.md „Menu Start” — 360 px i stopka „Uruchom ponownie”, „Wyłącz”; kod: MENU_SZER 400 i „Zablokuj” (0.11.5).
+Krok 2:
+  L6 pasek_gorny.c: położenia ikon liczone łańcuchem od glosnik_x() (zegar → głośnik → bateria → sieć); tło
+     k1_wyczysc(K1_NOC, 150) — zawsze ciemne, niezależnie od motywu.
+  L7 wskaznik_gora(): najechanie i kliknięcie tylko dla głośnika; bateria i sieć nie reagują.
+  L8 Obszar roboczy okien i maksymalizacja okna sesji zależą od K1_PASEK_GORNY (32 px, grafika/k1_grafika.h) i
+     K1_PANEL_MARGINES (ekran/rozmiar.c) — zmiana wysokości paska to zmiana w ekranie i jego testach.
+  L9 Okienko „Dźwięk”: panel P_DZWIEK DZW_SZER × DZW_WYS (300 × 84) przy prawej krawędzi (main.c: dzw_x), jedyne okienko
+     paska; pokaz_dzwiek() wołane z menu Start i kontekstu, żeby się zamykało.
+Krok 3:
+  L10 gui dostaje od nadzorcy tylko K1_KOM_BATERIA (obecna, procent, stan, zasilacz — zasoby.c, komunikat_baterii);
+      pobór mocy (moc_srednia) i minuty (k1_bateria_minuty) liczy nadzorca, ale wysyła je tylko Zasobom
+      (K1_KOM_ZASOBY_BATERIA, raz na sekundę, zasoby.c).
+  L11 Gotowe słowa i formaty: k1_bateria_stan (stan), k1_minuty (czas), k1_dziesietne (waty) — Zasoby
+      (aplikacje/zasoby/main.c, bateria_opis) już pokazują „… · 9,4 W · zostało ok. …”.
+  L12 test-m5: bateria ACPI z testy/acpi/bateria.asl (73 %, ładowanie) — log gui „bateria 73%, ładowanie, zasilacz
+      podłączony”; test-m1: ta sama tablica z rozładowywaniem; test-wzorce nie ma baterii (pasek bez niej).
+  L14 Nadzorca czyta baterię co 15 s (BATERIA_CO — oszczędzanie energii, 0.8.6), a co 5 s tylko, gdy Zasoby są otwarte
+      (BATERIA_CO_ZASOBY, nadzorca/main.c); średnia mocy dochodzi do nowej wartości po 2–3 odczytach.
+  L13 K1_KOM_URUCHOM: pole b (miejsce do pokazania) ma dziś znaczenie tylko dla Plików — otwarcie Ustawień na sekcji
+      „Bateria” wymaga nowego znaczenia pola i obsługi w Ustawieniach (NIEPEWNE, ile to kodu).
+
+
+6. NIE W TEJ WERSJI (→ „Później” w docs/DO_ZROBIENIA.txt)
+---------------------------------------------------------
+  - okienko sieci po kliknięciu jej ikony (dziś: Ustawienia → Sieć); kalendarz po kliknięciu zegara;
+  - wyszukiwanie w menu Start (pisanie nazwy aplikacji), przypięte / ostatnio używane na górze menu, foldery w menu;
+  - przewijanie menu Start klawiszami strzałek;
+  - prawdziwy dźwięk w okienku „Dźwięk” — 0.12 (docs/PLAN-0.12.0.txt).
+
+
+7. RYZYKA
+---------
+  - Brak nowych wierszy w docs/RYZYKA.md: gui dostaje dwie liczby stanu sprzętu więcej (pobór mocy, minuty) — nie są
+    sekretem, sprawdzane pole po polu jak inne komunikaty od nadzorcy.
+  - Zmiana wyglądu paska może pogorszyć czytelność na jasnej tapecie — dlatego szkice na dwóch tapetach (D3) i wzorce.
+
+
+USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
+-----------------------------------------------------
+(puste)
