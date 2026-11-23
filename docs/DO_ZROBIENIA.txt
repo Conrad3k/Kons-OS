@@ -4,10 +4,11 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 testy na laptopach, rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Bez historii: co się zmieniło — CHANGELOG.md, decyzje — docs/adr/, zamknięte plany — docs/archiwum/.
-Stan: 0.11.3 — przeglądarka bierze wszystkie procesory komputera (do 254) i do 256 GiB pamięci. Wersja 0.11 „Pliki ze
-stref” gotowa: pliki między przeglądarką a Plikami, przeciąganie, schowek, pełny ekran (0.11.0), poprawka „Zapisz obraz
-jako…” (0.11.1), szybsza przeglądarka (0.11.2, 0.11.3). Następna wersja — 0.12 „Dźwięk” (punkt 1).
-Data: 2026-11-22.
+Stan: 0.11.4 — K1 pyta o każdy zapisany plik przeglądarki (też zapisany poza folderem pobranych), okno „Zapisz obraz
+jako…” mieści się w oknie sesji. Wersja 0.11 „Pliki ze stref” gotowa: pliki między przeglądarką a Plikami, przeciąganie,
+schowek, pełny ekran (0.11.0), poprawki „Zapisz obraz jako…” (0.11.1, 0.11.4), szybsza przeglądarka (0.11.2, 0.11.3).
+Następna wersja — 0.12 „Dźwięk” (punkt 1).
+Data: 2026-11-23.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
@@ -36,7 +37,7 @@ historii, lista testów na laptopach ułożona tematami, README, RYZYKA, SPEC i 
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
     0.10     Strefy — gotowe: 0.10.0 przeglądarka w strefie, 0.10.1 Balon, 0.10.2 Testy, 0.10.5 Aktualizacje przez sieć,
              0.10.7 Wygląd, 0.10.9 Szybka grafika, 0.10.11 Szybsza grafika   (M8, z dawnym M11)
-    0.11     Pliki ze stref — gotowe: 0.11.0, poprawki 0.11.1–0.11.3             (M9)
+    0.11     Pliki ze stref — gotowe: 0.11.0, poprawki 0.11.1–0.11.4             (M9)
     0.12     Dźwięk — TERAZ (punkt 1)                                              (część dawnego M5.3 Laptop)
     0.13     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
     0.14     Audyt → 1.0                                                           (M12)
@@ -110,12 +111,17 @@ Zgłoszenia na GitHubie (Issues) — naprawiać w kroku, który dotyka tej czę�
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista, ułożona tematami; w nawiasie wersja, która to wprowadziła. Sprawdzasz na najnowszym wydaniu (dziś 0.11.3;
+Jedna lista, ułożona tematami; w nawiasie wersja, która to wprowadziła. Sprawdzasz na najnowszym wydaniu (dziś 0.11.4;
 aktualizacja: Ustawienia → Aktualizacje → „Sprawdź teraz”). Wydania do 0.8.1 — uznane za przetestowane (Twoja decyzja
 z 2026-11-11). Potwierdzone przez Ciebie: Wi-Fi (2026-11-14), pulpit z i915 na obu laptopach (2026-11-20), instalacja
 0.10.9 od nowa (2026-11-20), przeglądarka i szybka grafika na IdeaPadzie (Speedometer, 2026-11-22).
 [!] Raz na każdym laptopie: wirtualizacja w BIOS-ie (README, punkt 8) — bez niej przeglądarka nie ruszy.
-Najpierw — nowe w 0.11.3:
+Najpierw — nowe w 0.11.4:
+    [ ] prawy przycisk na obrazku → „Zapisz obraz jako…”: okno zapisu całe w oknie sesji (pole nazwy u góry, „Zapisz”
+        widoczne — bez Entera); „Zapisz” → okienko K1 „Zapisz w Pobranych”
+    [ ] to samo, ale w oknie zapisu wybierz inny folder (np. „Katalog domowy” albo nowy folder) → okienko K1 też się pokazuje
+    [ ] kilka obrazków po kolei bez odpowiadania w okienku K1 (5–6) → okienka pokazują się po kolei dla każdego
+Nowe w 0.11.3:
     [ ] IdeaPad — Speedometer 3.1 w Ogólnej (po 0.11.2: ten sam wynik z szybką grafiką i bez); dla porównania, jeśli
         możesz: ten sam test w Firefoksie z pendrive'a z innym systemem (np. Ubuntu „bez instalacji”)
     [ ] X230 — Speedometer 3.1 w Ogólnej; przewijanie długiej strony i film na YouTube płynne; dwie sesje naraz
@@ -155,7 +161,7 @@ Przeglądarka — pamięć, przewijanie, grafika:
         baterii — laptopa; IdeaPad: Ogólna na liście „Sesje rysujące kartą” (0.10.10, 0.10.11)
     [ ] nowsza karta Intela (Kaby Lake … Meteor / Arrow Lake), jeśli kiedyś: pulpit, szybka grafika, Zasoby — model i co
         widać (0.10.11)
-Pliki ze stref i schowek (0.11.0, 0.11.1):
+Pliki ze stref i schowek (0.11.0, 0.11.1, 0.11.4):
     [ ] pobierz plik → okienko K1 „Zapisz w Pobranych” → plik w Plikach → Pobrane, w szczegółach „z przeglądarki ·
         Ogólna”; „Pobrane” w przeglądarce nie wywraca jej; prawy przycisk na obrazku → „Zapisz obraz jako…” (i Ctrl+S) →
         okno zapisu, sesja zostaje → obraz w Pobranych (z szybką grafiką i bez)

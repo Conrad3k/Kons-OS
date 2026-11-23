@@ -8,7 +8,7 @@ import os, re, struct, subprocess, sys, time
 
 obraz, praca, scenariusz = sys.argv[1], sys.argv[2], sys.argv[3]
 KOMPOZYTOR = os.environ["K1_KOMPOZYTOR"]
-W, H = 1024, 700  # testy/stanowisko/ekran.c
+W, H = (int(v) for v in os.environ.get("K1_EKRAN", "1024x700").split("x"))  # testy/stanowisko/ekran.c (0.11.4: K1_EKRAN)
 ROOT = "/mnt/k1-stanowisko"  # short: the compositor's socket path must fit in sun_path
 
 

@@ -3,6 +3,44 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.11.4] — 2026-11-23
+
+**„Zapisz obraz jako…” w przeglądarce — okno zapisu się mieści, K1 pyta o każdy zapisany plik** (Twoje zgłoszenie
+z 2026-11-23, przed 0.12). Okno zapisu Firefoksa bywało wyższe niż okno sesji na laptopie i jego góra wychodziła poza
+ekran — trzeba było wcisnąć Enter na ślepo. Teraz okno zapisu zawsze mieści się w oknie sesji. A okienko K1 „Zapisz
+w Pobranych” czasem się nie pokazywało: K1 patrzył tylko na folder pobranych przeglądarki, a w oknie zapisu można wybrać
+inny folder (i przeglądarka potem otwiera je tam, gdzie poszedł ostatni zapis); piąty plik zapisany, zanim odpowiesz na
+okienka, przepadał.
+
+Opis w K1: Okno „Zapisz obraz jako…” w przeglądarce mieści się w oknie sesji; K1 pyta o każdy zapisany plik — także
+zapisany w innym folderze niż Pobrane i kilka naraz.
+
+### Naprawione
+- **Okno zapisu ucięte u góry** (kompozytor strefy, `xdg.c`): okno dialogowe stało na środku ekranu sesji także wtedy,
+  gdy było od niego wyższe — okno wyboru pliku GTK ma 1124×859 px, a okno sesji na laptopie 1366×768 ok. 640 px
+  wysokości, więc ok. 70 px góry (nazwa pliku, tytuł) i 150 px dołu („Zapisz”) były poza ekranem. Teraz lewy górny róg okna
+  dialogowego jest zawsze na ekranie, a większe niż ekran dostaje prośbę (`xdg_toplevel.configure`) o rozmiar ekranu —
+  GTK zmniejsza się do niego (raz na rozmiar, gdy nie może mniej — zostaje przy swoim minimum). Sprawdzone na
+  stanowisku z prawdziwym Firefoksem (`K1_EKRAN=1366x640 scripts/stanowisko.sh testy/stanowisko/zapis.py`).
+- **Brak okienka „Zapisz w Pobranych”** (agent plików w strefie, nowy `agent/foldery.c`):
+  - agent patrzy też na katalog domowy przeglądarki i jego foldery widoczne w oknie zapisu (do 3 poziomów, także
+    założone później „Nowym folderem”; bez ukrytych, profilu i „Z K1”) — obraz zapisany poza Pobranymi też wywołuje
+    okienko;
+  - plik, któremu K1 odmówił, bo 4 inne czekają na Twoją odpowiedź, agent zgłasza znowu, gdy któryś się skończy (albo
+    po 5 s) — do 0.11.3 o nim zapominał;
+  - plik zapisany w miejscu (bez `.part`) zgłasza dopiero po 0,7 s bez kolejnego zapisu — raz i w całości (program, który
+    pisze plik w kilku podejściach, dawał rozmiar z pierwszego, a potem „nie udało się”);
+  - po utraconych zdarzeniach jądra (przepełniona kolejka inotify) przegląda pliki zmienione w ostatnich 2 min; ten sam
+    niezmieniony plik nigdy nie wraca drugi raz.
+  Test na hoście `test_agent_foldery` (prawdziwe foldery i inotify: pobranie, zapis w domu, w nowym folderze, w kilku
+  podejściach; negatywne: pliki sprzed startu, profil, ukryte, `.part`, plik usunięty przed zgłoszeniem, za głęboko,
+  usunięty folder); stanowisko: prawdziwy agent obok Firefoksa zgłasza obraz zapisany w Pobranych i w katalogu domowym.
+  W logu strefy agent podaje tylko rozmiar zgłaszanego pliku, nigdy nazwy.
+
+### Zmienione
+- Stanowisko (`scripts/stanowisko.sh`): `K1_EKRAN=SZERxWYS` — inny rozmiar ekranu sesji; obok kompozytora z ASan także
+  nowy agent (`K1_AGENT`); scenariusz `testy/stanowisko/zapis.py`.
+
 ## [0.11.3] — 2026-11-22
 
 **Przeglądarka na mocniejszych komputerach i dalsze przyspieszenia** (Twoja prośba z 2026-11-22, po 0.11.2: Speedometer

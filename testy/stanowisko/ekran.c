@@ -6,14 +6,18 @@
 
 #include "kompozytor.h"
 
-#define SZER 1024 /* the zone's window in the QEMU tests (test-strefa: 1024 wide) */
+#define SZER 1024 /* the zone's window in the QEMU tests (test-strefa: 1024 wide); K1_EKRAN="WxH" another (0.11.4) */
 #define WYS 700
 
 struct wyswietlacz ekran;
 
 int ekran_start(void)
 {
-    ekran = (struct wyswietlacz){ calloc((size_t)SZER * WYS, 4), SZER, WYS, SZER };
+    int w = SZER, h = WYS;
+    const char *e = getenv("K1_EKRAN");
+    if (e != NULL && (sscanf(e, "%dx%d", &w, &h) != 2 || w < 320 || h < 240 || w > 4096 || h > 4096))
+        w = SZER, h = WYS;
+    ekran = (struct wyswietlacz){ calloc((size_t)w * (size_t)h, 4), w, h, w };
     return ekran.px != NULL ? 0 : -1;
 }
 

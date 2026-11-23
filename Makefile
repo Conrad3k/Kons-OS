@@ -383,6 +383,9 @@ $(OBJ)/test_tlo: testy/host/test_tlo.c src/strefa/tlo.c src/strefa/tlo.h src/str
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa -o $@ testy/host/test_tlo.c src/strefa/tlo.c
 $(OBJ)/test_pliki_strefy: testy/host/test_pliki_strefy.c src/wspolne/k1_pliki_strefy.c src/wspolne/k1_pliki_strefy.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_pliki_strefy.c src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c
+# 0.11.4: the folders the zone's agent watches (inotify on a real folder tree)
+$(OBJ)/test_agent_foldery: testy/host/test_agent_foldery.c src/strefa/agent/foldery.c src/strefa/agent/agent.h testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Isrc/strefa/agent -o $@ testy/host/test_agent_foldery.c src/strefa/agent/foldery.c
 $(OBJ)/test_schowek: testy/host/test_schowek.c src/wspolne/k1_schowek.c src/wspolne/k1_schowek.h testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_schowek.c src/wspolne/k1_schowek.c
 $(OBJ)/test_edid: testy/host/test_edid.c src/strefa/edid.c src/strefa/edid.h testy/host/k1_test_host.h | $(OBJ)
@@ -514,7 +517,7 @@ TESTY_HOST := test_gpu_most test_ogloszenie test_paczka test_odcinki test_odcink
 	test_strefa_start test_wifi_polacz test_wifi test_siec test_czas test_zalegle test_skarb_zalegle test_notatki \
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
-	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_edid test_pliki_strefy test_schowek test_palce \
+	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_edid test_pliki_strefy test_schowek test_agent_foldery test_palce \
 	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar
 TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania

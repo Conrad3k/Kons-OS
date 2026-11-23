@@ -10,9 +10,21 @@
 
 /* main.c */
 extern int vs;                               /* the files port (vsock), -1: not connected */
+uint64_t teraz_ms(void);                     /* CLOCK_MONOTONIC */
 void loguj(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 int ramka(const struct k1_ps_ramka *r);      /* a frame to the VMM; -1: the port broke */
 void rozlacz(void);
+/* A file ready to be told to K1 (foldery.c): in folder `kat` (main.c keeps its own copy of the descriptor);
+ * przeniesiony: renamed into place (may be empty); dotyczy: K1's number of the file it is a changed version of. */
+void plik_gotowy(int kat, const char *nazwa, int przeniesiony, uint32_t dotyczy);
+
+/* foldery.c — the folders watched (0.11.4): the downloads, the browser's home and the user's folders in them, "Z K1" */
+#define AGENT_PROFIL "profil" /* the browser's profile in its home (gosc/przegladarka.c): not the user's folder */
+int foldery_start(const char *pobrane, const char *z_k1); /* the home is the downloads' parent; 0 or -1 */
+int foldery_fd(void);      /* inotify */
+void foldery_czytaj(void); /* its events */
+int foldery_czekaj(void);  /* ms until foldery_czas has a file ready; -1: none waits */
+void foldery_czas(void);   /* files quiet long enough go to plik_gotowy */
 
 /* odbior.c — files from K1 into the session's folder "Z K1" (0.11.0 step 3) */
 int odbior_start(const char *z_k1, const char *fifo); /* the folder, the compositor's FIFO ("Otwórz w…"); 0 or -1 */
