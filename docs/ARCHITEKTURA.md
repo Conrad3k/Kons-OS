@@ -36,7 +36,7 @@ asystentów — skill `kons-dev`, §3.
 | `jadro/` | wersja jądra (`wersja.env`, zmienia ją też robot), fragmenty konfiguracji (`k1.config`, `k1-zamkniete.config`, `strefa.config`), listy opcji świadomie odrzuconych, pliki od producentów kart, klucze PGP (`jadro/README.md`, `docs/komponenty/jadro.md`) |
 | `musl/` | biblioteka C programów K1: wersja i suma, klucz PGP, łatki (`musl/README.md`) |
 | `strefy/` | obraz strefy przeglądarki i pobierania: tabela pakietów Debiana z sumami (`przegladarka.txt`, zmienia ją też robot), ustawienia Firefoksa, klucze archiwum (`strefy/README.md`) |
-| `narzedzia/` | narzędzia budowy na hoście: czcionki → bitmapy, ekran startowy GRUB-a, podpis manifestów i ogłoszenia wydania, klucz Secure Boot |
+| `narzedzia/` | narzędzia budowy na hoście: czcionki → bitmapy, ekran startowy GRUB-a, podpis manifestów i ogłoszenia wydania, klucz Secure Boot; poza systemem — motyw Claude Code w stylu K1 (`narzedzia/claude-motyw/`, sklepik `.claude-plugin/marketplace.json`, włączany w `.claude/settings.json`) |
 | `testy/host/`, `testy/system/`, `testy/qemu/` | testy na hoście i fuzzing; program testowy w systemie (obraz testowy); biblioteka testów QEMU `k1qemu.py` (`docs/TESTY.md`) |
 | `testy/wzorce/`, `testy/stanowisko/`, `testy/acpi/` | zrzuty wzorcowe okien K1 (zmienia je `scripts/przyjmij-wzorce.sh` po „OK” właściciela); stanowisko na hoście (Firefox z kompozytorem strefy); sztuczna bateria dla QEMU |
 | `scripts/` | budowa, QEMU, testy, kontrole, robot (niżej) |

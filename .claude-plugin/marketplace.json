@@ -1,0 +1,16 @@
+{
+  "name": "kons-os",
+  "owner": {
+    "name": "Conrad3k"
+  },
+  "metadata": {
+    "description": "Claude Code add-ons for working on Kons K1"
+  },
+  "plugins": [
+    {
+      "name": "k1-glina",
+      "source": "./narzedzia/claude-motyw",
+      "description": "Kons K1 look for the Claude apps: cream paper, terracotta accent and the layered-paper wallpaper Glina"
+    }
+  ]
+}
