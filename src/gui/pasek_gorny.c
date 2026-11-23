@@ -42,7 +42,7 @@ static struct {
 } bat = { 0, -1, K1_BAT_NIEZNANY, 0 };
 static int bat_odrzucone, bat_zalogowana;
 int bat_kanal = 1;
-int wyloguj_mozna = -1;
+int zablokuj_mozna = -1;
 static int siec = -1;             /* K1_SIEC_* from nadzorca; -1: not known yet (no icon) */
 static int kreski, kreski_zalogowane; /* 0.9.1 step 2: the bars of Wi-Fi when connected (SIEC_STAN e) */
 static int32_t siec_x_zalogowane; /* the tests find the icon by the log line */
@@ -61,12 +61,12 @@ static void zaloguj_baterie(void)
     k1_log(TAG, "bateria %s, %s, zasilacz %s", proc, stany[bat.stan], bat.zasilacz ? "podłączony" : "odłączony");
 }
 
-static void sesja(int zainstalowany) /* 0.7.2: "Wyloguj" only when K1 is installed here */
+/* 0.11.5: "Zablokuj" only with a password (0.7.2–0.11.4: "Wyloguj" only when K1 was installed here) */
+static void sesja(int haslo)
 {
-    if (zainstalowany != wyloguj_mozna)
-        k1_log(TAG, "%s", zainstalowany ? "K1 zainstalowany na tym komputerze: Wyloguj dostępne"
-                                        : "sesja z pendrive'a: bez Wyloguj");
-    wyloguj_mozna = zainstalowany;
+    if (haslo != zablokuj_mozna)
+        k1_log(TAG, "%s", haslo ? "hasło ustawione: Zablokuj dostępne" : "bez hasła: bez Zablokuj");
+    zablokuj_mozna = haslo;
     menu.brudna = 1;
 }
 

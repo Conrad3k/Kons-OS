@@ -3,6 +3,32 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.11.5] — 2026-11-23
+
+**„Wyloguj” to teraz „Zablokuj” — i tylko z hasłem** (Twoja prośba z 2026-11-23, przed 0.12). Konto w K1 jest jedno,
+więc „wylogowanie” niczego nie zmieniało poza tym, że zamykało aplikacje i — gdy jest hasło — pokazywało ekran hasła.
+Przycisk w menu Start nazywa się teraz „Zablokuj” i pokazuje się tylko wtedy, gdy masz ustawione hasło (Ustawienia →
+Hasło); bez hasła go nie ma. Po ustawieniu albo wyłączeniu hasła menu Start zmienia się od razu, bez ponownego
+uruchamiania.
+
+Opis w K1: W menu Start „Wyloguj” zmienił nazwę na „Zablokuj” i jest tylko wtedy, gdy masz ustawione hasło.
+
+### Zmienione
+- **Menu Start: „Zablokuj” zamiast „Wyloguj”** (`gui/menu_start.c`): ta sama ikona kłódki i to samo działanie —
+  aplikacje się zamykają, skarbiec zapomina klucz, wraca ekran hasła. Do 0.11.4 przycisk był w K1 zainstalowanym na
+  dysku także bez hasła (wtedy tylko zamykał aplikacje i otwierał pulpit od nowa), a w sesji z pendrive'a nie było go
+  wcale — teraz decyduje tylko hasło (także na pendrivie z K1-DANE z hasłem).
+- **Komunikat `SESJA`** (nadzorca → gui, fd 5): a=1 znaczy teraz „magazyn otwarty i ma hasło” (`blokada_mozliwa()`
+  z `SKARB_STAN` b), nie „K1 zainstalowany”. Skarbiec zgłasza stan nadzorcy także po ustawieniu i wyłączeniu hasła,
+  więc menu Start zmienia się od razu. Nadzorca odrzuca `WYLACZ` a=2 (zablokowanie) bez hasła — „zablokowanie
+  odrzucone: magazyn danych bez hasła”. Słownik: **zablokowanie**.
+- Testy: `test-m4` — bez hasła nie ma „Zablokuj”, po ustawieniu hasła w Ustawieniach jest od razu, Start → Zablokuj
+  daje ekran hasła; `test-m5f` — start z ISO, z dysku i z pendrive'a bez hasła: bez „Zablokuj”. Zrzut wzorcowy
+  menu Start bez przycisku (wzorce testów nie mają hasła).
+
+### Usunięte
+- `zainstalowany()` w nadzorcy (jedynym powodem był dawny „Wyloguj”).
+
 ## [0.11.4] — 2026-11-23
 
 **„Zapisz obraz jako…” w przeglądarce — okno zapisu się mieści, K1 pyta o każdy zapisany plik** (Twoje zgłoszenie

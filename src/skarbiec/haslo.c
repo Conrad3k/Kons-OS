@@ -97,6 +97,8 @@ int haslo_zmien(int fd, size_t dl)
         zle_proby = 0;
         r = k1_mag_zmien_haslo(&mag, n2 ? nowe : NULL);
         k1_log(TAG, "%s", r != K1_MAG_OK ? "zmiana hasła nieudana" : n2 ? "hasło ustawione" : "hasło wyłączone");
+        if (r == K1_MAG_OK)
+            zglos_stan(); /* 0.11.5: nadzorca tells gui whether the Start menu offers "Zablokuj" */
     } else if (r == K1_MAG_HASLO) {
         zla_proba();
     }

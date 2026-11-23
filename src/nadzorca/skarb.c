@@ -3,6 +3,7 @@
 
 int skarb_ster = -1;  /* our end of skarbiec's control channel (M5d) */
 int stan_skarbca = -1; /* K1_SKARB_* reported by skarbiec (-1: not yet) — M5e */
+int haslo_skarbca;     /* skarbiec reported a password set (SKARB_STAN b) — 0.11.5: "Zablokuj" only then */
 
 /* The boot sequence as explicit stages (0.6.0, ADR 0019) instead of a set of flags:
  *   DANE        skarbiec not started yet: waiting for the data partition (USB sticks come late)
@@ -38,11 +39,11 @@ enum etap_startu etap_startu(void)
 }
 int skarb_bez_dysku;   /* skarbiec runs without any K1-DANE: keep looking for a late one (0.5.8) */
 char skarb_dane[32];   /* the K1-DANE partition skarbiec has (M5f: "in use" for the installer) */
-/* K1 is installed on this computer: the K1-DANE skarbiec has is on an internal disk (0.7.2). A session
- * from a K1 stick or from the .iso is not — no "Wyloguj" there (nothing on this computer to lock). */
-int zainstalowany(void)
+/* The session can be locked (0.11.5): the vault is open and has a password — "Zablokuj" closes the applications and
+ * the password screen comes back. Without a password it would only close everything (one account per computer). */
+int blokada_mozliwa(void)
 {
-    return skarb_dane[0] != '\0' && !k1_dysk_na_usb(SYS, skarb_dane);
+    return stan_skarbca == K1_SKARB_TRWALY && haslo_skarbca;
 }
 
 /* A channel between a client and skarbiec (M5d): skarbiec gets one end with SKARB_KLIENT(owner, uid)
@@ -94,7 +95,7 @@ void szukaj_pozno(void)
 
 /* Ends the session: the desktop and the apps first (quietly, so that they do not see ekran go away),
  * then skarbiec — it forgets the key; the new one reports the vault locked (the password screen) or
- * open (no password: the desktop again). Used for "Wyloguj" (0.6.3) and for a late K1-DANE. */
+ * open (no password: the desktop again). Used for "Zablokuj" (0.6.3 "Wyloguj") and for a late K1-DANE. */
 void zamknij_sesje(void)
 {
     for (size_t i = 0; i < N_USLUG; i++)
@@ -164,6 +165,7 @@ void obsluz_skarbiec(void)
             continue;
         }
         stan_skarbca = k.a;
+        haslo_skarbca = k.b;
         if (k.a != K1_SKARB_ZABLOKOWANY && etap == E_STAN)
             przejdz(E_PULPIT, k.a == K1_SKARB_TRWALY ? "magazyn otwarty" : "dane tylko w pamięci");
         if (k.a == K1_SKARB_ZABLOKOWANY && poprzedni != K1_SKARB_ZABLOKOWANY) {

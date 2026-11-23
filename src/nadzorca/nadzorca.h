@@ -419,7 +419,7 @@ extern int plik_kanal[K1_APL_MAKS + 1]; /* uslugi.c: an application's fd 5 — a
 extern struct k1_bat_historia bat_hist;
 void odczytaj_baterie(double t);
 void wyslij_baterie(void);
-int zainstalowany(void);
+int blokada_mozliwa(void);
 void bateria_nowy_kanal(void);
 void ustawienia_nowy_kanal(void);
 void wyslij_ustawieniom(void);

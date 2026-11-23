@@ -50,12 +50,12 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   działają); kropka = uruchomiona, kreska w kolorze akcentu = aktywna; kliknięcie: uruchom / pokaż /
   zminimalizuj; szerokość paska zależy od liczby aplikacji,
 - **opis ekranu dla testów** (0.10.2 krok 2, ADR 0045): panele zgłaszają swoje elementy przez przybornik (`k1_el`) —
-  „Pasek” (ikona „Start” i aplikacje po nazwach; wybrana = ma okno), „Menu Start” (wiersze aplikacji, „Wyloguj”,
+  „Pasek” (ikona „Start” i aplikacje po nazwach; wybrana = ma okno), „Menu Start” (wiersze aplikacji, „Zablokuj”,
   „Uruchom ponownie”, „Wyłącz”), „Pulpit” (ikony: aplikacje, „Kosz”, pliki jako „plik N”), „Menu” (wiersze menu pod prawym
   przyciskiem; nazwy sesji jako „sesja N” — `k1_menu_el` z kopii menu), „Okienko” (kafelki „sesja N”, „Anuluj”);
   od 0.10.2 krok 3 „Pasek górny” („Dźwięk”) i **miejsca zmienne** (`K1_EL_ZMIENNE`) dla zrzutów wzorcowych: „Stan i
   zegar” na górnym pasku (sieć, bateria, zegar — przesuwają się z szerokością zegara), „Wersja” w menu Start.
-- **menu Start**: aplikacje z opisami (bez okien samego K1 — „Wybór pliku”, kolumna -1 listy aplikacji), „Wyloguj” (0.6.3; od 0.7.2 tylko w K1 zainstalowanym na dysku — `SESJA`), „Uruchom ponownie”, „Wyłącz”; klawisz Super otwiera/zamyka.
+- **menu Start**: aplikacje z opisami (bez okien samego K1 — „Wybór pliku”, kolumna -1 listy aplikacji), „Zablokuj” (0.6.3 jako „Wyloguj”; od 0.11.5 „Zablokuj” i tylko, gdy magazyn ma hasło — `SESJA`; bez hasła zostałoby samo zamknięcie aplikacji), „Uruchom ponownie”, „Wyłącz”; klawisz Super otwiera/zamyka.
 
 ## Granica zaufania
 Klient `ekran` w roli **powłoki**; prośby do nadzorcy wysyła kanałem fd 4. Nie widzi treści okien
@@ -70,7 +70,7 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
 ## Wejścia i wyjścia
 - fd 3: kanał do ekranu — powitanie, ustawienia, wskaźnik/klawisz Super, od 0.10.5 krok 6 Tab przy wciśniętym Alt, Esc
   i puszczenie Alt w trakcie przełączania (`KLAWISZ`), lista okien (`OKNO`).
-- fd 4: kanał do nadzorcy — `URUCHOM(aplikacja)` (Pliki: także miejsce — plik / folder albo Kosz), `WYLACZ(0 = wyłącz, 1 = uruchom ponownie, 2 = wyloguj)`.
+- fd 4: kanał do nadzorcy — `URUCHOM(aplikacja)` (Pliki: także miejsce — plik / folder albo Kosz), `WYLACZ(0 = wyłącz, 1 = uruchom ponownie, 2 = zablokuj)`.
 - fd 6 (0.7.5, ADR 0028): kanał do skarbca — właściciel = profil gui; jeden obiekt `K1_OB_ROZMIESZCZENIE`
   (0.10.5 krok 6: `"K1R3"` — pasek: klucze u32 — aplikacja albo Przeglądarka (`ROZM_STREFA` + numer strefy z linią
   menu Start, jeden klucz na wszystkie sesje, T17); ikony: klucz u32 — aplikacja, Przeglądarka, Kosz albo plik —
@@ -83,7 +83,7 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   `K1_UST_OTWIERANIE` + typ od ekranu) albo w wybranej (menu pod prawym przyciskiem: „Otwórz za pomocą ›”).
   Folder i plik do otwarcia w Plikach — jak dotąd przez `URUCHOM` z miejscem (c = `K1_PLIKI_*`: 1 Kosz, 2 pole nazwy).
   „Zawsze otwieraj tą aplikacją” (gdy typ ma co najmniej dwie) — `USTAW` do ekranu (tylko klucze `K1_UST_OTWIERANIE`).
-- fd 5 (0.5.3, ADR 0014): od nadzorcy, jednokierunkowo — `BATERIA` (jest, procent, stan, zasilacz), `SESJA` (0.7.2: a=1 — K1-DANE w użyciu na dysku wewnętrznym, czyli K1 zainstalowany; nadzorca odrzuca też wylogowanie poza nim)
+- fd 5 (0.5.3, ADR 0014): od nadzorcy, jednokierunkowo — `BATERIA` (jest, procent, stan, zasilacz), `SESJA` (0.7.2; od 0.11.5: a=1 — magazyn otwarty i ma hasło, menu Start pokazuje „Zablokuj”; przychodzi znowu po ustawieniu albo wyłączeniu hasła; nadzorca odrzuca też zablokowanie bez hasła)
   i `POKAZ_APL` (0.8.0: aplikacja dostała plik do otwarcia — jej okno na wierzch, jeśli już jest), `SIEC_STAN`
   (0.9.0: ikona sieci na górnym pasku — log „sieć: połączono (ikona w x,y)” przy zmianie; `komponenty/siec.md`; od
   0.9.1 bez kabla z kartą Wi-Fi: ikona „Wachlarz” — `k1_wachlarz.c` w przybornik, stany „Wi-Fi wyłączone”, „Wi-Fi nie
@@ -188,7 +188,7 @@ treści ani innych folderów; RYZYKA R27, R48).
 ## Testy
 | Test | Rodzaj |
 |---|---|
-| `test-m4.sh`: menu Start, uruchamianie z paska i z menu, minimalizacja, Start → Wyłącz, Start → Wyloguj (z hasłem: ekran hasła wraca), zrzuty | funkcjonalny |
+| `test-m4.sh`: menu Start, uruchamianie z paska i z menu, minimalizacja, Start → Wyłącz, Start → Zablokuj (tylko z hasłem: ekran hasła wraca; bez hasła przycisku nie ma), zrzuty | funkcjonalny |
 | w systemie: klatka (UID, capabilities, seccomp, cgroup, deskryptory) | funkcjonalny |
 | w systemie: próba w klatce `gui` (22 zabronione działania, pamięć wykonywalna) | negatywny |
 | w systemie: awaria gui → wraca, okna zostają | negatywny |

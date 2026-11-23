@@ -203,7 +203,7 @@ tekst (`SCHOWEK`), potem klawisz — VMM wstrzymuje klawisze, aż gość potwier
 skopiowano N B (z K1 0 | ze strefy S)`, `schowek: Ctrl+V w oknie strefy S — tekst dany (N B, …)`, `schowek: wklejone w oknie W`.
 
 ## Ekran wyłączania (0.10.7 krok 6, T7; decyzja właściciela D7: szkic B „Kropki”)
-Nadzorca, gdy przyjmie `WYLACZ` (wyłączanie albo ponowne uruchamianie; wylogowanie nie), wysyła ekranowi `WYLACZANIE`
+Nadzorca, gdy przyjmie `WYLACZ` (wyłączanie albo ponowne uruchamianie; zablokowanie nie), wysyła ekranowi `WYLACZANIE`
 na kanale sterującym — tylko on może (sprawdzane pole po polu, kierunek „sterowanie”, UID 0; od klienta ekranu odrzucone:
 test w systemie „NEGATYWNY 0.10.7”). Od tej chwili do końca `wylaczanie.c` rysuje nad wszystkim — nad oknami, także oknem
 strefy, i bez kursora — `k1_wylaczanie` (`src/przybornik/k1_wylaczanie.c`): tło okna K1 na cały ekran, trzy kropki w
