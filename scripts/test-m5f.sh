@@ -72,9 +72,9 @@ if not g: koniec()
 
 if tryb == "z-iso":
     # 0.10.0: also the checks of the former test-m4 start "iso-uefi" (the same ISO through UEFI with virtio): one start
-    s_ = czekaj(r"K1-GUI: (K1 zainstalowany na tym komputerze|sesja z pendrive'a)", czas=10)
-    sprawdz("iso-uefi: Wyloguj w menu Start ukryte (K1 nie jest zainstalowany)",
-            s_ and not s_.group(1).startswith("K1 zainst"), s_.group(0) if s_ else "brak")
+    s_ = czekaj(r"K1-GUI: (hasło ustawione: Zablokuj dostępne|bez hasła: bez Zablokuj)", czas=10)
+    sprawdz("iso-uefi: bez hasła w menu Start nie ma „Zablokuj”",
+            s_ and s_.group(1).startswith("bez"), s_.group(0) if s_ else "brak")
     t = czekaj(r"K1-EKRAN: tryb (\d+)x(\d+)")
     W, H, ay = int(t.group(1)), int(t.group(2)), int(g.group(4))
     jasny = lambda c: min(c) > 200
@@ -93,8 +93,8 @@ if tryb == "z-dysku":
             czekaj(r"K1-NADZORCA: partycja danych K1-DANE otwarta dla skarbca", czas=10))
     sprawdz("skarbiec: nowy zaszyfrowany magazyn na K1-DANE dysku",
             czekaj(r"K1-SKARBIEC: utworzono nowy magazyn na pustej partycji K1-DANE", czas=10))
-    sprawdz("start z dysku: pulpit wie, że K1 jest zainstalowany (Start → Wyloguj dostępne)",
-            czekaj(r"K1-GUI: K1 zainstalowany na tym komputerze: Wyloguj dostępne", czas=10))
+    sprawdz("start z dysku, bez hasła: w menu Start nie ma „Zablokuj” (0.11.5)",
+            czekaj(r"K1-GUI: bez hasła: bez Zablokuj", czas=10))
     sprawdz("(0.10.9 krok 4) obraz przeglądarki z miejsca A dysku, sprawdzony przez dm-verity",
             czekaj(r"K1-NADZORCA: obraz strefy przegladarka: miejsce a na sda1 \(\d+ MiB\), sprawdzony", czas=60))
     zrzut("2-z-dysku")
@@ -246,7 +246,7 @@ if tryb == "uszkodzony":  # M6a: one byte of the system on the stick changed
 
 if tryb == "instaluj":
     sprawdz("dysk pusty: bez Kons K1", czekaj(r"K1-INSTALACJA: dysk 1: \d+ MiB, rodzaj 1, Kons K1: nie", czas=5))
-    sprawdz("sesja z pendrive'a: w menu Start nie ma „Wyloguj”", "K1-GUI: sesja z pendrive'a: bez Wyloguj" in tekst())
+    sprawdz("sesja z pendrive'a, bez hasła: w menu Start nie ma „Zablokuj”", "K1-GUI: bez hasła: bez Zablokuj" in tekst())
     zrzut("1-lista")
     klik(ox + int(d.group(3)), oy + int(d.group(4)))  # the disk
     klik(px, py)                                      # Zainstaluj

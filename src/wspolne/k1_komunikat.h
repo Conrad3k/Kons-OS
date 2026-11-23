@@ -112,7 +112,7 @@ enum k1_komunikat_typ {
 
     /* gui / test → nadzorca */
     K1_KOM_URUCHOM = 50,      /* gui: a=aplikacja; Pliki only (0.8.0): b=entry to show (0: none), c=K1_PLIKI_* */
-    K1_KOM_WYLACZ = 51,       /* gui: a=0 power off, 1 restart, 2 log out (gui only) */
+    K1_KOM_WYLACZ = 51,       /* gui: a=0 power off, 1 restart, 2 lock — "Zablokuj", only with a password (gui only) */
     K1_KOM_TEST_POLACZ = 52,  /* test image only: a=rola, b=aplikacja, c=expected uid → reply + 1 fd */
     K1_KOM_TEST_PROBA = 53,   /* test image only: a=sandbox profile → reply when the probe ends */
     K1_KOM_TEST_SKARB = 123,  /* test image only (0.9.0): a=owner (profile 1..K1_PROFIL_MAKS) → TEST_GNIAZDO + 1 fd: a
@@ -263,8 +263,8 @@ enum k1_komunikat_typ {
     K1_KOM_INST_AB = 76,      /* obiekt=disk 1..K1_INST_DYSKI_MAKS (after its INST_DYSK), a=version it runs, b=version in the
                                * other slot (0: none), c=slot it runs (1=A, 2=B), d=K1_AB_FL_* flags, e=1 the manifest of
                                * the slot it runs is signed (0.10.5) */
-    K1_KOM_SESJA = 79,        /* to gui (fd 5, 0.7.2): obiekt=0, a=1 K1 is installed here (the K1-DANE in use is on
-                               * an internal disk: "Wyloguj" makes sense), a=0 a session from a stick or the .iso; b..e=0 */
+    K1_KOM_SESJA = 79,        /* to gui (fd 5, 0.7.2; 0.11.5): obiekt=0, a=1 the session can be locked (the vault is open
+                               * and has a password: the Start menu offers "Zablokuj"), a=0 it cannot; b..e=0 */
     K1_KOM_SB_STAN = 77,      /* obiekt=0, a=K1_SB_* Secure Boot, b=K1_SBK_* the K1 key, c=1 release key (0: developer
                                * key — never enrolled), d=K1_SBP_* result of the last SB_KLUCZ */
     /* Instalator window → nadzorca */

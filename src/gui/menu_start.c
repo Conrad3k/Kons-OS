@@ -1,6 +1,6 @@
-/* K1 gui — the Start menu: every application with its description, and the footer buttons "Wyloguj"
- * (only when K1 is installed here, 0.7.2), "Uruchom ponownie", "Wyłącz". The Super key opens it; the right
- * button on an application opens its menu (0.7.5: pin to the bar, add to the desktop). */
+/* K1 gui — the Start menu: every application with its description, and the footer buttons "Zablokuj" (only with
+ * a password, 0.11.5; before: "Wyloguj" when K1 is installed here), "Uruchom ponownie", "Wyłącz". The Super key
+ * opens it; the right button on an application opens its menu (0.7.5: pin to the bar, add to the desktop). */
 #include <stdio.h>
 
 #include "gui.h"
@@ -21,10 +21,10 @@ static int aplikacja_wiersza(int r)
     return 0;
 }
 
-/* Footer, right-aligned: STOPKA + index (+0 log out, +1 restart, +2 power off). */
+/* Footer, right-aligned: STOPKA + index (+0 lock, +1 restart, +2 power off). */
 #define STOPKA_N 3
-#define STOPKA_OD (wyloguj_mozna > 0 ? 0 : 1)
-static const char *const stopka_etykiety[STOPKA_N] = { "Wyloguj", "Uruchom ponownie", "Wyłącz" };
+#define STOPKA_OD (zablokuj_mozna > 0 ? 0 : 1)
+static const char *const stopka_etykiety[STOPKA_N] = { "Zablokuj", "Uruchom ponownie", "Wyłącz" };
 static const enum k1_ikona stopka_ikony[STOPKA_N] = { K1_IK_KLODKA, K1_IK_RESTART, K1_IK_ZASILANIE };
 
 static void rysuj_stopke(struct k1_obraz *o, const struct k1_motyw *m, int32_t y)
@@ -111,8 +111,8 @@ void pokaz_menu(int tak)
     pokaz_dzwiek(0);
     przycisk_stopki(0, 0, &wyl);
     if (przycisk_stopki(0, 0, &wyg) < 0)
-        wyg = -1; /* no "Wyloguj" (a session from a stick): the log says -1,-1 */
-    k1_log(TAG, "menu Start otwarte (pierwszy wiersz %d,%d co %d; Wyłącz %d,%d; Wyloguj %d,%d)",
+        wyg = -1; /* no "Zablokuj" (no password): the log says -1,-1 */
+    k1_log(TAG, "menu Start otwarte (pierwszy wiersz %d,%d co %d; Wyłącz %d,%d; Zablokuj %d,%d)",
            menu_x + MARG + MENU_SZER / 2, menu_y + MARG + MENU_NAGL + MENU_WIERSZ / 2 - 2, MENU_WIERSZ, menu_x + wyl,
            stopka_y, wyg < 0 ? -1 : menu_x + wyg, wyg < 0 ? -1 : stopka_y);
 }
@@ -128,7 +128,7 @@ static int wiersz_menu(int32_t x, int32_t y)
 
 void wskaznik_menu(const struct k1_komunikat *m)
 {
-    static const char *const co[] = { "wylogowanie", "ponowne uruchamianie komputera", "wyłączanie komputera" };
+    static const char *const co[] = { "zablokowanie", "ponowne uruchamianie komputera", "wyłączanie komputera" };
     int nowy = m->c == K1_WSK_WYJSCIE ? -1 : wiersz_menu(m->a, m->b);
     int puszcz = m->c == K1_WSK_PUSZCZENIE && m->d == K1_PRZYCISK_LEWY;
     if (nowy != hover_menu) {
@@ -144,7 +144,7 @@ void wskaznik_menu(const struct k1_komunikat *m)
     } else if (puszcz && nowy >= STOPKA) {
         k1_log(TAG, "%s", co[nowy - STOPKA]);
         pokaz_menu(0);
-        /* WYLACZ a: 0 power off, 1 restart, 2 log out */
+        /* WYLACZ a: 0 power off, 1 restart, 2 lock */
         do_nadzorcy(k1_komunikat_nowy(K1_KOM_WYLACZ, 0, nowy == STOPKA + 2 ? 0 : nowy == STOPKA + 1 ? 1 : 2, 0, 0, 0, 0));
     }
 }

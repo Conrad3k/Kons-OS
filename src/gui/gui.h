@@ -112,7 +112,7 @@ void pokaz_dzwiek(int tak);
 int32_t glosnik_x(void);
 #define DZW_SZER 300
 #define DZW_WYS 84
-extern int wyloguj_mozna; /* 1: K1 is installed here (K1_KOM_SESJA) — the Start menu offers "Wyloguj" */
+extern int zablokuj_mozna; /* 1: a password is set (K1_KOM_SESJA) — the Start menu offers "Zablokuj" (0.11.5) */
 extern int bat_kanal;     /* fd 5 still open */
 
 /* pasek_dolny.c */

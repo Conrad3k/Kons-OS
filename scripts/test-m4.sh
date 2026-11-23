@@ -53,9 +53,11 @@ if tryb == "haslo":
             czekaj(r"K1-EKRAN: ustawienia wczytane ze skarbca \(tapeta 1, motyw 1", czas=90) and
             czekaj(r"K1-GUI: pulpit gotowy", czas=90))
     zrzut("haslo-3-pulpit")
-    # 0.6.3: Start → Wyloguj: the apps close, the vault locks again, the password screen comes back. The saved
-    # resolution comes back a moment after the first desktop (TCG: seconds later): the Start button moves — wait for
-    # the mode, then for a desktop laid out after it.
+    sprawdz("z hasłem: w menu Start jest „Zablokuj” (0.11.5)",
+            czekaj(r"K1-GUI: hasło ustawione: Zablokuj dostępne", czas=30))
+    # 0.6.3: Start → Zablokuj (0.11.5; before: Wyloguj): the apps close, the vault locks again, the password screen
+    # comes back. The saved resolution comes back a moment after the first desktop (TCG: seconds later): the Start
+    # button moves — wait for the mode, then for a desktop laid out after it.
     u = czekaj(r"K1-EKRAN: ustawienia wczytane ze skarbca \(.*rozdzielczość (\d+)x(\d+)\)", czas=10)
     if u:
         czekaj(rf"K1-EKRAN: tryb {u.group(1)}x{u.group(2)} ", czas=30)
@@ -66,17 +68,17 @@ if tryb == "haslo":
         kursor[:] = list(kt)
     if g:
         klik(int(g.group(1)), int(g.group(2)))
-        m = czekaj(r"menu Start otwarte \(.*; Wyloguj (\d+),(\d+)\)", czas=20)
+        m = czekaj(r"menu Start otwarte \(.*; Zablokuj (\d+),(\d+)\)", czas=20)
         if m:
             klik(int(m.group(1)), int(m.group(2)))
-    sprawdz("NEGATYWNE: Wyloguj nie pokazuje ekranu „Wyłączanie” (0.10.7 krok 6)",
-            czekaj(r"K1-NADZORCA: wylogowanie", czas=30) and "ekran wyłączania" not in tekst())
-    sprawdz("Start → Wyloguj: magazyn zamknięty, z powrotem ekran hasła",
-            czekaj(r"K1-NADZORCA: wylogowanie", czas=30) and
+    sprawdz("NEGATYWNE: Zablokuj nie pokazuje ekranu „Wyłączanie” (0.10.7 krok 6)",
+            czekaj(r"K1-NADZORCA: zablokowanie na prośbę", czas=30) and "ekran wyłączania" not in tekst())
+    sprawdz("Start → Zablokuj: magazyn zamknięty, z powrotem ekran hasła",
+            czekaj(r"K1-NADZORCA: zablokowanie na prośbę", czas=30) and
             czekaj(r"K1-LOGOWANIE: ekran hasła gotowy", od=1, czas=90))
-    zrzut("haslo-4-wylogowano")
+    zrzut("haslo-4-zablokowano")
     pisz("t", "a", "j", "n", "e", "1", "ret")
-    sprawdz("po wylogowaniu hasło znów otwiera pulpit",
+    sprawdz("po zablokowaniu hasło znów otwiera pulpit",
             czekaj(r"K1-SKARBIEC: magazyn odblokowany", od=1, czas=120) and
             czekaj(r"K1-GUI: pulpit gotowy", od=1, czas=90))
     t_ = tekst()
@@ -89,11 +91,10 @@ g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) 
 k0 = czekaj(r"K1-EKRAN: kursor (\d+),(\d+) ")
 t = czekaj(r"K1-EKRAN: tryb (\d+)x(\d+)")
 if not sprawdz(f"{tryb}: pulpit gotowy (pasek, menu Start)", g and k0 and t): sys.exit(1)
-# 0.7.2: "Wyloguj" only in K1 installed on a disk (K1-DANE on an internal disk), not from the .iso
-zainst = tryb in ("pulpit", "ponownie")
-s_ = czekaj(r"K1-GUI: (K1 zainstalowany na tym komputerze|sesja z pendrive'a)", czas=10)
-sprawdz(f"{tryb}: Wyloguj w menu Start {'jest (K1-DANE na dysku)' if zainst else 'ukryte (K1 nie jest zainstalowany)'}",
-        s_ and s_.group(1).startswith("K1 zainst") == zainst, s_.group(0) if s_ else "brak")
+# 0.11.5: "Zablokuj" only with a password (0.7.2–0.11.4: "Wyloguj" when K1 was installed on a disk) — none here yet
+s_ = czekaj(r"K1-GUI: (hasło ustawione: Zablokuj dostępne|bez hasła: bez Zablokuj)", czas=10)
+sprawdz(f"{tryb}: bez hasła w menu Start nie ma „Zablokuj”", s_ and s_.group(1).startswith("bez"),
+        s_.group(0) if s_ else "brak")
 if tryb == "pulpit" and not sprawdz("wejście: mysz otwarta", czekaj(r"K1-WEJSCIE: urządzenie \d+: mysz")): sys.exit(1)
 if tryb == "ponownie":
     # M5d: the same data disk after power off — the settings and the note come back from skarbiec
@@ -143,6 +144,8 @@ if tryb == "ponownie":
             klik(ux + int(hp.group(1)), uy + int(hp.group(2)))
             pisz("t", "a", "j", "n", "e", "1", "tab", "t", "a", "j", "n", "e", "1", "ret")
     sprawdz("Ustawienia → Hasło: hasło ustawione (skarbiec)", czekaj(r"K1-SKARBIEC: hasło ustawione", czas=90))
+    sprawdz("po ustawieniu hasła w menu Start od razu jest „Zablokuj” (0.11.5)",
+            czekaj(r"K1-GUI: hasło ustawione: Zablokuj dostępne", czas=30))
     zrzut("ponownie-haslo")
     sprawdz("brak 'Kernel panic', błędów i zablokowanych wywołań", "Kernel panic" not in tekst() and "BŁĄD" not in tekst()
             and "zabronione wywołanie" not in tekst())

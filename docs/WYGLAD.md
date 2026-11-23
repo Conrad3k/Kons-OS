@@ -436,7 +436,7 @@ informacja, mysz, wygląd (obrazek), zasoby (ramka z pulsem), ekran (monitor).
 Po „Wyłącz” albo „Uruchom ponownie” od razu, do końca: tło okna motywu (papier / noc) na cały ekran, na środku trzy kropki
 (promień 5 px, co 20 px, 36 px nad środkiem) w kolorze akcentu, rozjaśniane po kolei (od 25 % do 100 % akcentu, obieg
 1,5 s), pod nimi „Wyłączanie” albo „Ponowne uruchamianie” (Plex Serif 24, kolor tekstu, linia bazowa 40 px pod środkiem).
-Bez kursora, bez innych zdań (Z2), bez paska postępu (czasu i tak nie znamy). Wylogowanie go nie pokazuje. Szkice A
+Bez kursora, bez innych zdań (Z2), bez paska postępu (czasu i tak nie znamy). Zablokowanie („Zablokuj”) go nie pokazuje. Szkice A
 „Znak” i C „Przygaszenie” odrzucone. Rysuje ekran (`k1_wylaczanie`), wzorce `wylaczanie-jasny`, `wylaczanie-ciemny`.
 
 ## Kursor

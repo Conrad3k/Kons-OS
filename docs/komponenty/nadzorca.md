@@ -131,9 +131,11 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   krok 6), potem strefy (`strefy_zamyk.c`: najwyżej 30 s, co 5 s log „wyłączanie: czekam na strefy (n), najwyżej jeszcze
   x s”) i co najmniej jeden obieg kropek ekranu „Wyłączanie” (1,5 s, także bez stref — 0.10.9), potem `SIGTERM`
   (wyłączenie) albo `SIGINT` (restart) do init;
-  `WYLACZ` a=2 (0.6.3, tylko od UID 102) — wylogowanie `zamknij_sesje()`: aplikacje i pulpit cicho
-  (`SIGTERM`), potem skarbiec (zapomina klucz); nowy skarbiec zgłasza magazyn zablokowany → ekran
-  hasła, albo otwarty (bez hasła) → pulpit od nowa. Ekran logowania i Instalator a=2 nie wyślą.
+  `WYLACZ` a=2 (0.6.3, tylko od UID 102) — zablokowanie („Zablokuj”, do 0.11.4 „Wyloguj”) `zamknij_sesje()`: aplikacje
+  i pulpit cicho (`SIGTERM`), potem skarbiec (zapomina klucz); nowy skarbiec zgłasza magazyn zablokowany → ekran
+  hasła. Od 0.11.5 tylko, gdy magazyn ma hasło (`blokada_mozliwa()`: `SKARB_STAN` b=1, skarbiec zgłasza stan też po
+  ustawieniu albo wyłączeniu hasła) — inaczej odrzucone („zablokowanie odrzucone: magazyn danych bez hasła”). Ekran
+  logowania i Instalator a=2 nie wyślą.
 - Prośby skarbca (0.8.0, ADR 0030, kanał sterujący, nadawca UID 103): `SKARB_URUCHOM` — uruchom aplikację, a gdy
   ma plik (obiekt ≠ 0; skarbiec dał jej dostęp po „Otwórz za pomocą” albo podwójnym kliknięciu) — wyślij go na jej fd 5 (`PLIK_OTWORZ`) i poproś
   pulpit (`POKAZ_APL`, fd 5 gui) o jej okno na wierzch; obiekt = 0 — okno wyboru pliku („Wybór pliku”).

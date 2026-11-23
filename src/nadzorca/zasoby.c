@@ -66,11 +66,11 @@ void ustawienia_nowy_kanal(void)
 }
 
 /* gui's top bar: the state when it changed (the first time after gui started: always). Also on this
- * channel (0.7.2): whether K1 is installed here — gui offers "Wyloguj" only then. */
+ * channel (0.7.2, 0.11.5): whether the session can be locked — gui offers "Zablokuj" only then. */
 void wyslij_baterie(void)
 {
     struct k1_komunikat k;
-    int z = zainstalowany();
+    int z = blokada_mozliwa();
     if (bateria_kanal >= 0 && gui_kanal_uid == K1_UID_GUI && z != sesja_wyslana) {
         k = k1_komunikat_nowy(K1_KOM_SESJA, 0, z, 0, 0, 0, 0);
         if (k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1) == 0)

@@ -36,7 +36,7 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.10.9 Szybka grafika | przełącznik „Szybka grafika” przy sesji: przeglądarka rysuje kartą przez pośrednika grafiki K1 (IdeaPad; X230 — wyciszony), sterownik karty Intela w jądrze, obraz przeglądarki poza pamięcią K1, większe miejsca na system | PRZETESTOWANE w QEMU z KVM (ADR 0049, 0050; silnik testowy zamiast karty); Firefox z kartą — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.10.10 Poprawka | Instalator z pendrive'a instaluje od nowa także na dysku z K1 i danymi; Zasoby → „Karta graficzna” (obciążenie, taktowanie, pobór mocy karty i laptopa) | PRZETESTOWANE w QEMU (bez karty Intela: „nie podaje”); karta — na sprzęcie |
 | 0.10.11 Szybsza grafika | obraz przeglądarki prosto z karty na ekran (bez kopiowania), nowsze karty zintegrowane Intela do Meteor / Arrow Lake | PRZETESTOWANE w QEMU z KVM (ADR 0051); karta — na sprzęcie |
-| 0.11 Pliki ze stref | pobrane pliki w Plikach → Pobrane (z pochodzeniem), „Wyślij do” i „Otwórz za pomocą” sesji, „Zapisać zmiany w oryginale?”, przeciąganie między oknami i na okno przeglądarki, schowek, pełny ekran; 0.11.1–0.11.4: „Zapisz obraz jako…” (okno zapisu w oknie sesji, pytanie o plik zapisany w dowolnym folderze), szybsza przeglądarka (wszystkie procesory komputera) | PRZETESTOWANE w QEMU z KVM (ADR 0052); Firefox — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
+| 0.11 Pliki ze stref | pobrane pliki w Plikach → Pobrane (z pochodzeniem), „Wyślij do” i „Otwórz za pomocą” sesji, „Zapisać zmiany w oryginale?”, przeciąganie między oknami i na okno przeglądarki, schowek, pełny ekran; 0.11.1–0.11.5: „Zapisz obraz jako…” (okno zapisu w oknie sesji, pytanie o plik zapisany w dowolnym folderze), szybsza przeglądarka (wszystkie procesory komputera), „Zablokuj” w menu Start tylko z hasłem | PRZETESTOWANE w QEMU z KVM (ADR 0052); Firefox — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.12 Dźwięk | karta dźwiękowa, głośność na górnym pasku i klawiszami, słuchawki, dźwięk z przeglądarki | PLANOWANE (`docs/PLAN-0.12.0.txt`, ADR 0053) |
 | 0.13–0.14 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |
 
@@ -44,7 +44,7 @@ Od 0.9 etapy to numery wersji (ADR 0035, 0053); wcześniejsze etapy M0–M6 zost
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-**Co już jest (0.11.4):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
+**Co już jest (0.11.5):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
 110), a Instalator zapisuje go na dysk. Pulpit jak w Windows 11, w stylu K1: ikony na pulpicie (aplikacje, Kosz, Twoje
 pliki i foldery z folderu Pulpit), pasek na dole z menu Start i przypiętymi aplikacjami (Zegar, Notatki, Ustawienia, Zasoby,
 Kalkulator, Pliki, Przeglądarka; w menu Start też Instalator i Podgląd), pasek na górze (sieć, dźwięk, bateria, data

@@ -6,8 +6,8 @@
  * running ones, with running/active indicators), the Start menu, the sound popover and the menu under the
  * right mouse button. It asks the supervisor to start applications (fd 4, k1_komunikat URUCHOM / WYLACZ) and
  * ekran to activate, minimise or close windows (it is the only client ekran accepts that from). The battery
- * state comes from the supervisor on fd 5 (k1_komunikat BATERIA, and SESJA: whether K1 is installed here —
- * only then the Start menu offers "Wyloguj"; one way, sender UID 0 checked). The desktop arrangement (pinned
+ * state comes from the supervisor on fd 5 (k1_komunikat BATERIA, and SESJA: whether a password is set —
+ * only then the Start menu offers "Zablokuj", 0.11.5; one way, sender UID 0 checked). The desktop arrangement (pinned
  * applications, icon cells) is gui's own object in skarbiec on fd 6.
  *
  * Trust boundary: gui never sees the content of application windows (ekran composes them) and has

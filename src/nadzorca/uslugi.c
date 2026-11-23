@@ -558,10 +558,10 @@ void obsluz_gui(void)
                 struct k1_komunikat p = k1_komunikat_nowy(K1_KOM_PLIKI_POKAZ, 0, k.b, k.c, 0, 0, 0);
                 k1_kanal_wyslij(plik_kanal[K1_APL_PLIKI], &p, sizeof p, -1);
             }
-        } else if (k.a == 2 && !zainstalowany()) {
-            k1_log(TAG, "wylogowanie odrzucone: K1 nie jest zainstalowany na tym komputerze");
+        } else if (k.a == 2 && !blokada_mozliwa()) {
+            k1_log(TAG, "zablokowanie odrzucone: magazyn danych bez hasła");
         } else if (k.a == 2) {
-            k1_log(TAG, "wylogowanie na prośbę pulpitu: zamykam aplikacje i magazyn danych");
+            k1_log(TAG, "zablokowanie na prośbę pulpitu: zamykam aplikacje i magazyn danych");
             zamknij_sesje();
             return; /* our channel to gui closes with it */
         } else {
