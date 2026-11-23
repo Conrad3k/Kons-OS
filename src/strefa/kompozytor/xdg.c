@@ -1,6 +1,7 @@
 /* K1 kompozytor — xdg-shell (kompozytor.h): xdg_wm_base, xdg_positioner, xdg_surface, xdg_toplevel, xdg_popup.
  * The zone shows one application: its first toplevel fills the display (maximized, activated); a toplevel with a
- * parent (a dialog) is centred at its own size; popups are placed by their positioner and kept on the display. The
+ * parent (a dialog) is centred at its own size — since 0.11.4 never larger than the display and never above its top
+ * (dopasuj); popups are placed by their positioner and kept on the display. The
  * windows are in `okna`, bottom to top, in the order they were mapped. */
 #include <stdlib.h>
 #include <string.h>
@@ -90,7 +91,9 @@ void xdg_wyskakujace_zamknij(void)
         }
 }
 
-/* Where the window geometry starts on the display. */
+/* Where the window geometry starts on the display: a dialog centred, but its top-left corner always on the display —
+ * GTK's window "Zapisz obraz jako…" is taller than a laptop's session window, and centred its top row with "Zapisz"
+ * was above the display (the owner's report after 0.11.3). */
 static void umiesc(struct xdg_pow *x)
 {
     int32_t gw = x->gw > 0 ? x->gw : x->pow->szer, gh = x->gh > 0 ? x->gh : x->pow->wys;
@@ -98,9 +101,25 @@ static void umiesc(struct xdg_pow *x)
         x->x = 0;
         x->y = 0;
     } else if (x->okno == 1) {
-        x->x = (ekran.szer - gw) / 2;
-        x->y = (ekran.wys - gh) / 3;
+        x->x = gw < ekran.szer ? (ekran.szer - gw) / 2 : 0;
+        x->y = gh < ekran.wys ? (ekran.wys - gh) / 3 : 0;
     }
+}
+
+/* 0.11.4: a dialog larger than the display is asked to fit it (a configure with that size; GTK takes it down to its
+ * minimum) — once for each size, so a dialog that cannot be smaller is not asked again and again. */
+static void dopasuj(struct xdg_pow *x)
+{
+    int32_t gw = x->gw > 0 ? x->gw : x->pow->szer, gh = x->gh > 0 ? x->gh : x->pow->wys;
+    int32_t w = gw < ekran.szer ? gw : ekran.szer, h = gh < ekran.wys ? gh : ekran.wys;
+    uint32_t stan = STAN_AKTYWNE;
+    if (x->okno != 1 || x->rodzic == NULL || x->rola == NULL || (w == gw && h == gh) ||
+        (w == x->prosba_w && h == x->prosba_h))
+        return;
+    x->prosba_w = w, x->prosba_h = h;
+    kloguj("okno dialogowe %d×%d większe niż ekran %d×%d — prośba o %d×%d", gw, gh, ekran.szer, ekran.wys, w, h);
+    zdarzenie(x->rola, 0, "iia", w, h, &stan, (uint32_t)sizeof stan);
+    zdarzenie(x->o, 0, "u", kolejny_serial());
 }
 
 /* The configure of a main window (a toplevel without a parent): the whole display, maximized — or full screen when it
@@ -118,8 +137,10 @@ void xdg_nowy_rozmiar(void)
     for (i = 0; i < n_okien; i++)
         if (okna[i]->okno == 1 && okna[i]->rodzic == NULL && okna[i]->rola != NULL)
             konfiguruj_glowne(okna[i]);
-        else if (okna[i]->okno == 1)
-            umiesc(okna[i]); /* a dialog: in the middle of the new display */
+        else if (okna[i]->okno == 1) {
+            umiesc(okna[i]); /* a dialog: in the middle of the new display, fitting it */
+            dopasuj(okna[i]);
+        }
     scena_zmiana(0, 0, ekran.szer, ekran.wys);
 }
 
@@ -155,8 +176,10 @@ void xdg_po_zatwierdzeniu(struct powierzchnia *p)
             zglos_okno();
         wejscie_okno_zmiana();
         pelny_zglos();
+        dopasuj(x);
     } else if (x->zmapowana && x->okno == 1) {
         umiesc(x);
+        dopasuj(x);
     }
     scena_zmiana_powierzchni(p);
 }

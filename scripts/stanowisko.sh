@@ -4,7 +4,8 @@
 # minut. Wejście kompozytora to kolejka FIFO jako /dev/input/event0 (jak virtio-input z VMM), ekran w pamięci
 # (testy/stanowisko/ekran.c). Firefox loguje protokół Wayland (WAYLAND_DEBUG) — widać, co dostaje i co wysyła.
 # Użycie: scripts/stanowisko.sh [scenariusz] — domyślnie testy/stanowisko/palce.py (przewijanie dwoma palcami po nowej
-# karcie, plan 0.10.1 krok 5). Wynik: build/stanowisko/{firefox,kompozytor}.log, zrzuty *.ppm. Wymaga: root (unshare -m,
+# karcie, plan 0.10.1 krok 5); K1_EKRAN=SZERxWYS — inny rozmiar ekranu sesji (0.11.4, np. 1366x640 jak okno sesji
+# na laptopie). Wynik: build/stanowisko/{firefox,kompozytor}.log, zrzuty *.ppm. Wymaga: root (unshare -m,
 # chroot), scripts/zbuduj.sh (obraz strefy). Narzędzie do szukania błędów — nie wchodzi do scripts/testy.sh (Firefox
 # na hoście zależy od komputera budowy; od 0.10.1 przeglądarkę sprawdza tylko właściciel na sprzęcie — AGENTS.md).
 . "$(dirname "$0")/wspolne.sh"
@@ -20,7 +21,7 @@ gcc -std=c11 -g -O1 -D_GNU_SOURCE -fsanitize=address,undefined -fno-omit-frame-p
 gcc -std=c11 -O1 -Wall -Wextra -o "$WYNIK/patrz" "$K1_REPO/testy/stanowisko/patrz.c" # 0.11.0: inotify for pobrane.py
 echo "[k1] stanowisko: kompozytor strefy na hoście + Firefox z obrazu strefy ($(basename "$SCEN"))"
 r=0
-K1_KOMPOZYTOR="$WYNIK/kompozytor" PATRZ="$WYNIK/patrz" timeout --kill-after=10 600 unshare -m --propagation private \
+K1_KOMPOZYTOR="$WYNIK/kompozytor" K1_AGENT="$K1_BUDOWA/bin/agent" PATRZ="$WYNIK/patrz" timeout --kill-after=10 600 unshare -m --propagation private \
     python3 -I "$K1_REPO/testy/stanowisko/stanowisko.py" "$OBRAZ" "$WYNIK" "$SCEN" || r=1
 if [ $r -eq 0 ]; then info "stanowisko: wszystko zaliczone"; else echo "[k1] stanowisko: BŁĄD (logi: $WYNIK)"; fi
 exit $r

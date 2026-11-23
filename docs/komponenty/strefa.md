@@ -217,7 +217,9 @@ ADR 0044), wszystkie procesory komputera do `K1_STREFA_PROCESORY_MAKS` = 254 (0.
   Jądro strefy rozpakowuje obraz wprost do pamięci podręcznej stron i na każdym procesorze osobno.
 - **Kompozytor** (`src/strefa/kompozytor/`): Wayland bez libwayland — tabela interfejsów `K1_INTERFEJSY` (`wl_compositor`,
   `wl_shm`, `wl_subcompositor`, `wl_seat`, `wl_output`, `wl_data_device_manager` bez schowka, `xdg_wm_base`), każda
-  wiadomość sprawdzana według sygnatury (zła — koniec tego klienta). Okno na cały wyświetlacz, dialogi na środku,
+  wiadomość sprawdzana według sygnatury (zła — koniec tego klienta). Okno na cały wyświetlacz, dialogi na środku (od 0.11.4
+  nigdy ponad górną krawędzią, a większe niż wyświetlacz dostają `configure` z jego rozmiarem — GTK zmniejsza się do
+  swojego minimum; okno „Zapisz obraz jako…” miało 1124×859 przy oknie sesji 640 px wysokości, góra wychodziła poza ekran),
   wyskakujące menu z pozycjonerem; zdarzenia wejścia do każdego `wl_pointer`/`wl_keyboard` klienta (Firefox ma po dwa);
   „klatka gotowa” także po zatwierdzeniu bez zmian (inaczej GTK przestaje rysować). Kółko (krok 4): jedna ramka
   zdarzeń urządzenia = jedno przewinięcie `wl_pointer.axis` (10 jednostek na ząbek, jak weston); z ząbkami —
@@ -313,6 +315,14 @@ Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `d
   ani „co zrobić z plikiem”) — zgłasza plik po zmianie nazwy `.part` (`IN_MOVED_TO`) albo po zapisie niepustego pliku,
   który nie jest `.part`; bajty dopiero na `WYSLIJ`, ten sam plik (i-węzeł) tego samego rozmiaru, inaczej `BRAK`. Pliki,
   które były w folderze przed startem, nie są zgłaszane. Sprawdzone na stanowisku (`testy/stanowisko/pobrane.py`).
+  Od 0.11.4 (`agent/foldery.c`, zgłoszenie właściciela: „czasem nie pokazuje komunikatu”): okno „Zapisz obraz jako…” GTK
+  pozwala zapisać gdziekolwiek (i otwiera się tam, gdzie poszedł ostatni zapis) — agent patrzy też na katalog domowy
+  przeglądarki i jego widoczne foldery do 3 poziomów (bez ukrytych, profilu `profil` i „Z K1”), także założone później;
+  plik zapisany w miejscu (`IN_CLOSE_WRITE`) zgłasza dopiero po 0,7 s bez kolejnego zapisu — raz, w całym rozmiarze; po
+  utraconych zdarzeniach (`IN_Q_OVERFLOW`) przegląda pliki zmienione w ostatnich 2 min; ten sam niezmieniony plik nie
+  wraca drugi raz (i-węzeł, rozmiar, czas zmiany); plik, któremu K1 odmówił (`ODMOWA`: 4 czekają na odpowiedź), zgłasza
+  znowu, gdy inny się skończy, albo po 5 s — do 0.11.3 przepadał. Test na hoście `test_agent_foldery`, stanowisko
+  `testy/stanowisko/zapis.py`.
 - **Zgoda i zapis:** nadzorca (`strefy_pliki.c`) → gui (okienko, `POBRANIE`) → „Zapisz w Pobranych” → nadzorca zapisuje
   plik w skarbcu swoim kanałem `K1_WL_POBRANIA` (tylko nowy plik w Pobranych z pochodzeniem strefy) jako zapis w toku:
   przerwanie nie zostawia nic. Pochodzenie: `K1_POCH_STREFA_OD` + numer strefy, tekst z kolumny „skąd” `K1_STREFY`

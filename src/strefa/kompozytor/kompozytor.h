@@ -297,6 +297,7 @@ struct xdg_pow {
     int chwyt;               /* a popup that grabbed the input */
     int zmapowana;
     int pelny;               /* 0.10.5 step 4 (T14): it asked for full screen — the zone's display, never more */
+    int32_t prosba_w, prosba_h; /* 0.11.4: the size a dialog larger than the display was asked to take (xdg.c) */
 };
 void xdg_wyskakujace_zamknij(void);           /* popup_done to every popup (a click outside them) */
 unsigned xdg_zamknij_okna(void);              /* xdg_toplevel.close to every window; how many */
