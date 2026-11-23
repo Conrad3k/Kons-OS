@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "kons-os": {
+      "source": { "source": "github", "repo": "Conrad3k/Kons-OS" }
+    }
+  },
+  "enabledPlugins": {
+    "k1-glina@kons-os": true
+  }
+}
