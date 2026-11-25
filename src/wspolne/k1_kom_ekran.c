@@ -1,6 +1,7 @@
 /* K1 — checking messages of ekran and its clients: windows, input, settings (ADR 0008; the split: k1_kom_wew.h). */
 #include "k1_kom_wew.h"
 
+#include "k1_dzwiek.h"
 #include "k1_opis.h"
 #include "k1_schowek.h"
 #include "k1_uslugi.h"
@@ -50,6 +51,14 @@ static int przeciagane(const struct k1_komunikat *k)
 {
     return powierzchnia(k->obiekt) && w(k->a, 1, K1_PZ_MAKS) && w(k->b, 1, K1_DOK_MAKS) && w(k->c, 0, k->b) &&
            (k->d == 0 || wpis((uint32_t)k->d)) && w(k->e, 0, K1_DOK_ID_MAKS);
+}
+
+/* 0.12.0 step 2: the pill of the volume (from the shell); without a card (c = BRAK) a and b are 0 */
+static int pigulka(const struct k1_komunikat *k)
+{
+    return k->obiekt == 0 && w(k->a, 0, K1_DZW_GLOSNOSC_MAKS) && w(k->b, 0, 1) &&
+           w(k->c, K1_DZW_WYJSCIE_BRAK, K1_DZW_WYJSCIE_MAKS) && (k->c != K1_DZW_WYJSCIE_BRAK || (k->a == 0 && k->b == 0)) &&
+           zera(k, 3);
 }
 
 /* POWIERZCHNIA: a window, the desktop or a panel */
@@ -131,6 +140,8 @@ int k1_kom_sprawdz_ekran(const struct k1_komunikat *k, enum k1_kanal_kierunek ki
         return kier == K1_KIER_DO_EKRANU && powierzchnia(k->obiekt) && w(k->a, 0, K1_OPIS_MAKS) && zera(k, 1);
     case K1_KOM_OPIS_PYTANIE:
         return kier == K1_KIER_DO_EKRANU && k->obiekt == 0 && zera(k, 0);
+    case K1_KOM_GLOSNOSC_POKAZ: /* 0.12.0 step 2 (D4: A) */
+        return kier == K1_KIER_DO_EKRANU && pigulka(k);
     case K1_KOM_OPIS_EKRANU:
         return kier == K1_KIER_OD_EKRANU && k->obiekt == 0 && w(k->a, 0, K1_OPIS_EKRAN_MAKS) &&
                w(k->b, 1, K1_POW_MAKS_BOK) && w(k->c, 1, K1_POW_MAKS_BOK) && zera(k, 3);

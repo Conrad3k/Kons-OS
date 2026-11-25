@@ -62,10 +62,11 @@ GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_wachlarz.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/przybornik/k1_aplikacja.c \
            src/przybornik/k1_dekodowanie.c src/przybornik/k1_menu.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_prz_okienko.c \
-           src/przybornik/k1_zaznaczenie.c src/przybornik/k1_wycinek.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
+           src/przybornik/k1_zaznaczenie.c src/przybornik/k1_wycinek.c src/przybornik/k1_dzwiek_klient.c src/wspolne/k1_dzwiek.c \
+           src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
            $(GEN)/k1_czcionki_dane.c
 # Host: without the sandbox, the app skeleton and what uses it (they need our kernel's headers).
-HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c src/przybornik/k1_dekodowanie.c,$(PRZYB)) $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c \
+HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c src/przybornik/k1_dekodowanie.c src/przybornik/k1_dzwiek_klient.c,$(PRZYB)) $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c \
               src/wspolne/k1_log.c src/wspolne/k1_uslugi.c src/wspolne/k1_memfd.c
 NAGL_P  := $(wildcard src/przybornik/*.h) src/grafika/k1_grafika.h src/grafika/k1_czcionka.h VERSION
 # Native applications: every directory src/aplikacje/<program> (its line in k1_uslugi.h K1_APLIKACJE names it).
@@ -226,7 +227,7 @@ $(BIN)/wejscie: src/wejscie/main.c src/wejscie/touchpad.c src/wejscie/touchpad.h
 # 0.10.0 (ADR 0042): the frame of the zones' windows (strefy.c) is drawn with przybornik's shapes, icons and text
 EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/powierzchnie.c src/ekran/wskaznik.c src/ekran/drm.c src/ekran/zapis.c \
          src/ekran/zdjecie.c src/ekran/zalegle.c src/ekran/strefy.c src/ekran/opis.c src/ekran/rozmiar.c \
-         src/ekran/wylaczanie.c src/ekran/pelny.c src/ekran/przeciaganie.c src/ekran/schowek.c src/ekran/pomiar.c src/ekran/strefa_bufor.c src/ekran/warstwa.c src/wspolne/k1_skaluj.c \
+         src/ekran/wylaczanie.c src/ekran/pelny.c src/ekran/glosnosc.c src/ekran/przeciaganie.c src/ekran/schowek.c src/ekran/pomiar.c src/ekran/strefa_bufor.c src/ekran/warstwa.c src/wspolne/k1_skaluj.c \
          src/wspolne/k1_pomiar.c
 EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_okno.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_liczba.c src/przybornik/k1_wylaczanie.c src/przybornik/k1_opis_klient.c $(GEN)/k1_czcionki_dane.c
 $(BIN)/ekran: $(EKRAN) src/ekran/ekran.h src/ekran/zalegle.h $(EKRAN_PRZYB) $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
@@ -237,8 +238,8 @@ $(BIN)/logowanie: src/logowanie/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(N
 
 # the desktop shell in modules (0.7.5): main.c (loop), okna, pasek_gorny, pasek_dolny, menu_start — gui.h
 GUI := $(sort $(wildcard src/gui/*.c))
-$(BIN)/gui: $(GUI) src/gui/gui.h src/wspolne/k1_dzwiek.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ $(GUI) src/wspolne/k1_dzwiek.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/gui: $(GUI) src/gui/gui.h $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(GUI) $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # an application is every .c file of its directory (the Kalkulator: main.c + its engine liczydlo.c)
 .SECONDEXPANSION:

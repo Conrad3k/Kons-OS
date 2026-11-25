@@ -4,7 +4,8 @@
  * what takes it, K1-DANE to the end of the stick — 0.8.5), siec.c (Sieć: the tabs and the network cards — 0.9.0),
  * wifi.c (Sieć → Wi-Fi: the radio and the networks around — 0.9.1), wifi_haslo.c (joining one: 0.9.1 step 2),
  * przegladarka.c (Przeglądarka: the browser's sessions, 0.10.0 step 5),
- * aktualizacje.c (Aktualizacje: the version, A/B, the update from a stick — 0.10.5 step 1), informacje.c (Informacje: the system). */
+ * aktualizacje.c (Aktualizacje: the version, A/B, the update from a stick — 0.10.5 step 1), dzwiek.c (Dźwięk: the output, the
+ * volume, the sample — 0.12.0 step 2), informacje.c (Informacje: the system). */
 #ifndef K1_USTAWIENIA_H
 #define K1_USTAWIENIA_H
 
@@ -25,7 +26,8 @@
 #define SEG_H 36
 
 enum { S_WYGLAD, S_EKRAN, S_BATERIA, S_MYSZ, S_CZAS, S_HASLO, S_APLIKACJE, S_MIEJSCE, S_SIEC, S_PRZEGLADARKA,
-       S_AKTUALIZACJE, S_INFO, S_LICZBA }; /* the tests click by these numbers: a new section goes before Informacje */
+       S_AKTUALIZACJE, S_DZWIEK, S_INFO, S_LICZBA }; /* the tests click by these numbers: a new section goes before
+                                                     * Informacje */
 
 extern struct k1_apl apl;
 extern int sekcja;
@@ -137,6 +139,13 @@ int akt_siec_pendrive(char *buf, size_t n); /* 1: on a stick, a newer version (D
 void akt_siec_rysuj(struct k1_obraz *o, const struct k1_motyw *m, int32_t y);
 int akt_siec_najechanie(int32_t x, int32_t y);
 int akt_siec_klik(int32_t x, int32_t y);
+
+/* dzwiek.c (0.12.0 step 2): Ustawienia → Dźwięk, a client of the sound service (its channel: kanaly[3]) */
+void dzwiek_kanal(int fd);  /* DZWIEK_KANAL from nadzorca (fd 4): the caller closes `fd` */
+void dzwiek_dane(void);     /* what the sound service said */
+void dzwiek_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
+int dzwiek_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk); /* x < 0: not on its content; 1 = redraw */
+void dzwiek_pokazany(void); /* the section was opened (the tests: its state in the log) */
 
 /* informacje.c */
 void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);

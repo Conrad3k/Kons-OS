@@ -63,6 +63,7 @@ static const struct k1_warunek wa_dzwiek[] = {
     { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_CTL_IOCTL_ELEM_READ },
     { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_CTL_IOCTL_ELEM_WRITE },
     { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_CTL_IOCTL_TLV_READ },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS }, /* step 2: the headphone jack's events */
 };
 
 /* the VMM of a zone (0.10.0, ADR 0042 T1, T3): the machine through KVM ioctls only (type 0xAE: on /dev/kvm, the machine

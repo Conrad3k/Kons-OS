@@ -329,6 +329,35 @@ static int obraz_albo_tapeta(int kl, const struct k1_komunikat *m, int fd)
     return 1;
 }
 
+/* The shell's own: other windows shown, minimised or closed (Alt+Tab, the bottom bar); 0.12.0 step 2 (D4: A): the pill
+ * of the volume. 1: handled (refused or done). */
+static int od_powloki(int kl, const struct k1_komunikat *m)
+{
+    int i;
+    if (m->typ != K1_KOM_AKTYWUJ_OKNO && m->typ != K1_KOM_MINIMALIZUJ_OKNO && m->typ != K1_KOM_ZAMKNIJ_OKNO &&
+        m->typ != K1_KOM_GLOSNOSC_POKAZ)
+        return 0;
+    if (s.kl[kl].rola != K1_ROLA_POWLOKA) {
+        odrzuc(kl, m->typ == K1_KOM_GLOSNOSC_POKAZ ? "pigułka głośności tylko od powłoki"
+                                                    : "zarządzanie cudzymi oknami tylko dla powłoki");
+        return 1;
+    }
+    if (m->typ == K1_KOM_GLOSNOSC_POKAZ) {
+        glosnosc_pokaz(m);
+        return 1;
+    }
+    i = znajdz_okno(m->obiekt);
+    if (i < 0)
+        return 1;
+    if (m->typ == K1_KOM_AKTYWUJ_OKNO)
+        aktywuj(i);
+    else if (m->typ == K1_KOM_MINIMALIZUJ_OKNO)
+        minimalizuj(i);
+    else
+        zamknij_okno(i);
+    return 1;
+}
+
 static void komunikat(int kl, const struct k1_komunikat *m, int fd)
 {
     struct klient *k = &s.kl[kl];
@@ -339,20 +368,8 @@ static void komunikat(int kl, const struct k1_komunikat *m, int fd)
         { nowa_pow(kl, m, fd); return; }
     if (m->typ == K1_KOM_ZATWIERDZ)
         { zatwierdz(kl, m); return; }
-    if (m->typ == K1_KOM_AKTYWUJ_OKNO || m->typ == K1_KOM_MINIMALIZUJ_OKNO || m->typ == K1_KOM_ZAMKNIJ_OKNO) {
-        if (k->rola != K1_ROLA_POWLOKA)
-            { odrzuc(kl, "zarządzanie cudzymi oknami tylko dla powłoki"); return; }
-        i = znajdz_okno(m->obiekt);
-        if (i < 0)
-            return;
-        if (m->typ == K1_KOM_AKTYWUJ_OKNO)
-            aktywuj(i);
-        else if (m->typ == K1_KOM_MINIMALIZUJ_OKNO)
-            minimalizuj(i);
-        else
-            zamknij_okno(i);
+    if (od_powloki(kl, m))
         return;
-    }
     if (m->typ == K1_KOM_USTAW) {
         if (!ustawia(k, m->a))
             { odrzuc(kl, "tego ustawienia ten klient nie zmienia"); return; }

@@ -1,8 +1,9 @@
 """K1 — what QEMU's sound card played (0.12.0 step 1, scripts/test-dzwiek.sh): a WAV file from -audiodev wav, 48 kHz,
 16 bits, stereo. Python only (the standard library): the loud parts ("dźwięki"), the frequency of each half by zero
-crossings, the loudest sample. The checks are those of test-dzwiek: exactly three sounds (the muted sample is silence),
+crossings, the loudest sample. The checks are those of test-dzwiek: exactly five sounds (the muted sample is silence),
 in each the notes 660 Hz then 880 Hz, the second and third at 50 % ≈ 1/8 of the first (100 %; the cubic curve of
-k1_dzw_wzmocnienie), the third (after the service restarted) as loud as the second.
+k1_dzw_wzmocnienie), the third (after the service restarted) as loud as the second; step 2: the fourth at 40 % (after the
+volume keys, from Ustawienia), the fifth at 45 % (the volume a new gui took from skarbiec) — (0.8)³ and (0.9)³ of 50 %.
 
     python3 -I testy/qemu/k1dzwiek.py PLIK.wav   — exit 0 when all hold"""
 import struct
@@ -72,21 +73,27 @@ def main():
         sprawdz("plik WAV od QEMU (48 kHz, 16 bitów)", False, sys.argv[1])
         return 1
     d = dzwieki(s)
-    sprawdz("dokładnie trzy dźwięki (100 %, 50 %, 50 % po restarcie usługi; wyciszona próba — cisza)", len(d) == 3,
+    sprawdz("dokładnie pięć dźwięków (100 %, 50 %, 50 % po restarcie usługi, 40 %, 45 %; wyciszona próba — cisza)",
+            len(d) == 5,
             f"{len(d)}: " + ", ".join(f"{a / CZESTOTLIWOSC:.2f}–{z / CZESTOTLIWOSC:.2f} s" for a, z in d))
     szczyty = []
-    for nr, (a, z) in enumerate(d[:3], 1):
+    for nr, (a, z) in enumerate(d[:5], 1):
         pol = (a + z) // 2
         f1, f2 = czestotliwosc(s[a:pol]), czestotliwosc(s[pol:z])
         szczyty.append(max(abs(v) for v in s[a:z]))
         sprawdz(f"dźwięk {nr}: nuty 660 Hz, potem 880 Hz", 630 < f1 < 690 and 840 < f2 < 920,
                 f"{f1:.0f} Hz, {f2:.0f} Hz, szczyt {szczyty[-1]}, {(z - a) / CZESTOTLIWOSC:.2f} s")
-    if len(szczyty) == 3:
+    if len(szczyty) >= 3:
         sprawdz("50 % ≈ 1/8 amplitudy 100 % (krzywa sześcienna)", 0.09 < szczyty[1] / szczyty[0] < 0.17,
                 f"{szczyty[1] / szczyty[0]:.3f}")
         sprawdz("po restarcie usługi ta sama głośność (gui podała ją nowej usłudze)", 0.8 < szczyty[2] / szczyty[1] < 1.25,
                 f"{szczyty[2] / szczyty[1]:.3f}")
         sprawdz("100 %: próba bez przesterowania (szczyt poniżej 32767)", 3000 < szczyty[0] < 32767, f"{szczyty[0]}")
+    if len(szczyty) == 5:  # step 2: the keys (40 %) and the remembered volume (45 %), against 50 %: (0.8)³ = 0.512, (0.9)³ = 0.729
+        sprawdz("40 % (klawisze, próba z Ustawień) ≈ 0,51 amplitudy 50 %", 0.42 < szczyty[3] / szczyty[1] < 0.62,
+                f"{szczyty[3] / szczyty[1]:.3f}")
+        sprawdz("45 % (nowy pulpit, głośność ze skarbca) ≈ 0,73 amplitudy 50 %", 0.62 < szczyty[4] / szczyty[1] < 0.85,
+                f"{szczyty[4] / szczyty[1]:.3f}")
     return 0 if wyniki and all(wyniki) else 1
 
 

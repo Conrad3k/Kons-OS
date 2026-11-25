@@ -25,6 +25,7 @@
 #include "gui.h"
 #include "k1_klatka.h"
 #include "k1_log.h"
+#include "k1_teraz.h"
 
 struct k1_klient k;
 struct k1_powierzchnia gora, dok, menu, okienko_paska, pulpit, kontekst;
@@ -186,6 +187,8 @@ static void komunikat(struct k1_komunikat *m)
             pulpit_koniec(m->a, (uint32_t)m->b);
         break;
     case K1_KOM_KLAWISZ:
+        if (dzwiek_klawisz(m)) /* 0.12.0 step 2: the volume keys (ekran gives them to the shell only) */
+            break;
         if ((m->a == KEY_LEFTMETA || m->a == KEY_RIGHTMETA) && m->b == 1) {
             kontekst_zamknij();
             pokaz_menu(!menu_otwarte);
@@ -220,12 +223,13 @@ int main(void)
     k1_klatka_w_usludze(TAG);
     k1_klient_start(&k, TAG);
     rozm_wczytaj();
+    dzwiek_wczytaj(); /* 0.12.0 step 2 (D5): the volume as it was */
     uloz(1);
     pliki_start(); /* the files of the Pulpit folder join the icons when skarbiec answers */
 
     for (;;) {
         struct pollfd p[4] = { { k.fd, POLLIN, 0 }, { bat_kanal ? FD_BATERIA : -1, POLLIN, 0 }, { skarb_fd, POLLIN, 0 },
-                               { dzw_fd, POLLIN, 0 } }; /* 0.12.0 step 1: the sound service */
+                               { dzwiek_fd(), POLLIN, 0 } }; /* 0.12.0 step 1: the sound service */
         struct timespec t;
         int czekaj;
         clock_gettime(CLOCK_REALTIME, &t);
@@ -246,6 +250,7 @@ int main(void)
             gora.brudna = 1;
         }
         pobranie_okresowe(); /* 0.11.0 step 2 */
+        dzwiek_okresowe(k1_teraz()); /* 0.12.0 step 2: the remembered volume written */
         odswiez();
     }
 }

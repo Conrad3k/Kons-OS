@@ -1,9 +1,12 @@
 /* K1 — sound (0.12.0 step 1, ADR 0054): the client table, a client's ring counted by the service, mixing, the volume and
- * the sample "Odtwórz próbę". Pure functions (host test test_dzwiek, fuzzing fuzz_dzwiek). See k1_dzwiek.h. */
+ * the sample "Odtwórz próbę"; step 2: the outputs, the volume keys, what gui remembers (D5). Pure functions (host test
+ * test_dzwiek, fuzzing fuzz_dzwiek). See k1_dzwiek.h. */
 #include "k1_dzwiek.h"
 
 #include <stddef.h>
 #include <string.h>
+
+#include <linux/input-event-codes.h>
 
 #define X_NAZWA(n, nr, nazwa, steruje) [nr] = nazwa,
 static const char *const nazwy[K1_DZW_KLIENCI_MAKS + 1] = { K1_DZW_KLIENCI(X_NAZWA) };
@@ -111,4 +114,72 @@ uint32_t k1_dzw_proba(int16_t *cel, uint32_t od, uint32_t ile)
         cel[2 * n] = cel[2 * n + 1] = s;
     }
     return n;
+}
+
+/* ---- step 2: the outputs, the keys, what gui remembers ---- */
+
+const char *k1_dzw_wyjscie_nazwa(int wyjscie)
+{
+    return wyjscie == K1_DZW_WYJSCIE_SLUCHAWKI ? "Słuchawki" : wyjscie == K1_DZW_WYJSCIE_GLOSNIKI ? "Głośniki" : "";
+}
+
+int k1_dzw_klawisz(unsigned kod, int wartosc, int *glosnosc, int *wyciszone)
+{
+    int v = *glosnosc;
+    if (kod != KEY_VOLUMEUP && kod != KEY_VOLUMEDOWN && kod != KEY_MUTE)
+        return 0;
+    if (wartosc != 1 && (wartosc != 2 || kod == KEY_MUTE))
+        return 1; /* a release, or the mute key held: nothing more */
+    if (kod == KEY_MUTE) {
+        *wyciszone = !*wyciszone;
+        return 1;
+    }
+    v += kod == KEY_VOLUMEUP ? K1_DZW_KROK : -K1_DZW_KROK;
+    *glosnosc = v < 0 ? 0 : v > K1_DZW_GLOSNOSC_MAKS ? K1_DZW_GLOSNOSC_MAKS : v;
+    if (kod == KEY_VOLUMEUP)
+        *wyciszone = 0;
+    return 1;
+}
+
+int k1_dzw_gniazdo_sluchawek(const char *nazwa)
+{
+    size_t n = strlen(nazwa);
+    const char *jack = " Jack", *faza = " Jack Phantom";
+    size_t nj = strlen(jack), nf = strlen(faza);
+    int koniec = (n > nj && strcmp(nazwa + n - nj, jack) == 0) || (n > nf && strcmp(nazwa + n - nf, faza) == 0);
+    return koniec && strstr(nazwa, "Headphone") != NULL && strstr(nazwa, "Mic") == NULL;
+}
+
+void k1_dzw_zapamietane_domyslne(struct k1_dzw_zapamietane *z)
+{
+    memset(z, 0, sizeof *z);
+    for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++)
+        z->glosnosc[w] = K1_DZW_GLOSNOSC_START;
+}
+
+size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *buf)
+{
+    memcpy(buf, "K1G1", 4);
+    for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
+        buf[4 + 2 * (w - 1)] = (uint8_t)z->glosnosc[w];
+        buf[5 + 2 * (w - 1)] = (uint8_t)(z->wyciszone[w] != 0);
+    }
+    return K1_DZW_ZAPIS_BAJTY;
+}
+
+int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapamietane *z)
+{
+    struct k1_dzw_zapamietane t;
+    if (n != K1_DZW_ZAPIS_BAJTY || memcmp(buf, "K1G1", 4) != 0)
+        return -1;
+    memset(&t, 0, sizeof t);
+    for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
+        uint8_t v = buf[4 + 2 * (w - 1)], m = buf[5 + 2 * (w - 1)];
+        if (v > K1_DZW_GLOSNOSC_MAKS || m > 1)
+            return -1;
+        t.glosnosc[w] = v;
+        t.wyciszone[w] = m;
+    }
+    *z = t;
+    return 0;
 }

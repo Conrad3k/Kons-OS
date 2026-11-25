@@ -12,6 +12,7 @@
 #ifndef K1_DZWIEK_H
 #define K1_DZWIEK_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #define K1_DZW_CZESTOTLIWOSC 48000
@@ -22,7 +23,8 @@
 #define K1_DZW_OKRES 1024u                  /* the service mixes and writes the card by periods (21 ms) */
 #define K1_DZW_OKRESY 4u                    /* periods in the card's buffer (85 ms ahead at most) */
 #define K1_DZW_GLOSNOSC_MAKS 100            /* the volume 0..100 % */
-#define K1_DZW_GLOSNOSC_START 50            /* until a steering client says otherwise (step 2: the remembered one, D5) */
+#define K1_DZW_GLOSNOSC_START 50            /* until a steering client says otherwise (gui: the remembered one, D5) */
+#define K1_DZW_KROK 5                       /* step 2: one press of a volume key (%) */
 #define K1_DZW_KARTA_NR_MAKS 31             /* the kernel's card and device numbers (SNDRV_CARDS = 32) */
 #define K1_DZW_CISZA_S 5                    /* after this many seconds without a stream the card stops (T8) */
 
@@ -30,7 +32,8 @@
  * X(NAME, number 1.., name in the log, 1: may steer — set the volume and the mute of all K1). */
 #define K1_DZW_KLIENCI(X)                                                                                     \
     X(GUI, 1, "pulpit", 1)            /* the popover "Dźwięk": the volume, the mute, "Odtwórz próbę" */      \
-    X(TEST, 2, "program testowy", 1)  /* the test image only (TEST_DZWIEK) */
+    X(TEST, 2, "program testowy", 1)  /* the test image only (TEST_DZWIEK) */                               \
+    X(USTAWIENIA, 3, "Ustawienia", 1) /* step 2: Ustawienia → Dźwięk (DZWIEK_KANAL on its fd 4) */
 #define K1_X_DZW_KLIENT(n, nr, ...) K1_DZW_KLIENT_##n = nr,
 enum k1_dzw_klient { K1_DZW_KLIENCI(K1_X_DZW_KLIENT) };
 #define K1_X_DZW_LICZ(...) +1
@@ -48,9 +51,12 @@ enum {
     K1_DZW_KARTA_BLAD = 3,  /* it is there, but refused our format or a write: no sound */
 };
 #define K1_DZW_KARTA_MAKS 3
-/* DZWIEK_STAN d: where the sound goes (step 2: the headphones) */
-enum { K1_DZW_WYJSCIE_BRAK = 0, K1_DZW_WYJSCIE_GLOSNIKI = 1 };
-#define K1_DZW_WYJSCIE_MAKS 1
+/* DZWIEK_STAN d: where the sound goes — the headphones when the card says something is in their jack (step 2; the kernel
+ * mutes the speakers by itself). Each output has a volume and a mute of its own (D5). DZWIEK_GLOSNOSC c: of which (BRAK:
+ * the one playing now). */
+enum { K1_DZW_WYJSCIE_BRAK = 0, K1_DZW_WYJSCIE_GLOSNIKI = 1, K1_DZW_WYJSCIE_SLUCHAWKI = 2 };
+#define K1_DZW_WYJSCIE_MAKS 2
+const char *k1_dzw_wyjscie_nazwa(int wyjscie); /* "Głośniki", "Słuchawki"; "" for BRAK */
 /* DZWIEK_ZAMKNIJ a */
 enum { K1_DZW_PO_ODEGRANIU = 0, K1_DZW_OD_RAZU = 1 };
 
@@ -81,5 +87,25 @@ uint32_t k1_dzw_wyjscie(int16_t *wyj, const int32_t *suma, uint32_t ramki, uint3
 #define K1_DZW_PROBA_RAMKI (2u * K1_DZW_PROBA_NUTA)
 #define K1_DZW_PROBA_SZCZYT 11000 /* its loudest sample at 100 % (a third of the most) */
 uint32_t k1_dzw_proba(int16_t *cel, uint32_t od, uint32_t ile);
+
+/* Step 2: a key of the volume (Linux KEY_VOLUMEUP, KEY_VOLUMEDOWN, KEY_MUTE; b of KLAWISZ: 1 down, 2 repeat) on the volume
+ * and mute of the output playing now. Up: K1_DZW_KROK louder and unmuted; down: quieter (muted stays muted); mute: on/off
+ * (only on a press, not a repeat). Returns 1 when it was such a key (the values may be unchanged: at the end of the scale). */
+int k1_dzw_klawisz(unsigned kod, int wartosc, int *glosnosc, int *wyciszone);
+
+/* Step 2: a headphone jack among the card's controls (the HDA parser's names, sound/hda/codecs/generic.c and
+ * hda_jack.c: "Headphone Jack", "Front Headphone Jack", "Headphone Jack Phantom"…): 1 for such a name. Never a
+ * microphone's ("Headset Mic Jack", "Mic Jack"). */
+int k1_dzw_gniazdo_sluchawek(const char *nazwa);
+
+/* D5: the volume and the mute of each output, remembered by gui in skarbiec (its object K1_OB_GLOSNOSC):
+ * "K1G1", then for the speakers and the headphones: the volume 0..100, muted 0/1. */
+#define K1_DZW_ZAPIS_BAJTY 8
+struct k1_dzw_zapamietane {
+    int glosnosc[K1_DZW_WYJSCIE_MAKS + 1], wyciszone[K1_DZW_WYJSCIE_MAKS + 1]; /* by output; [BRAK] unused */
+};
+void k1_dzw_zapamietane_domyslne(struct k1_dzw_zapamietane *z);
+size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *buf); /* K1_DZW_ZAPIS_BAJTY */
+int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapamietane *z); /* 0, or -1 (z unchanged) */
 
 #endif

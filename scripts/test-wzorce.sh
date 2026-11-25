@@ -26,7 +26,7 @@ q = Maszyna(log, mon, out, limit, "wzorce")
 # QEMU has no battery: Bateria is not on the list (0.10.7 step 2; with a battery: test-m5)
 SEKCJE = {"Wygląd": "wyglad", "Ekran": "ekran", "Mysz": "mysz", "Data i czas": "czas",
           "Hasło": "haslo", "Aplikacje": "aplikacje", "Miejsce": "miejsce", "Sieć": "siec",
-          "Przeglądarka": "przegladarka", "Aktualizacje": "aktualizacje", "Informacje": "informacje"}
+          "Przeglądarka": "przegladarka", "Aktualizacje": "aktualizacje", "Dźwięk": "dzwiek", "Informacje": "informacje"}
 
 if not q.sprawdz("pulpit gotowy, opis ekranu: pasek z „Start” i ikony pulpitu",
                  q.czekaj(r"K1-GUI: pulpit gotowy", czas=limit * 0.5) and q.czekaj_na_element("Pasek", "Start", czas=120)

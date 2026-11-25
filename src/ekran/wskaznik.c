@@ -232,6 +232,12 @@ static void klawisz(const struct k1_zdarzenie *z)
             }
         return;
     }
+    /* 0.12.0 step 2: the volume keys are the shell's (gui changes the volume of K1, ekran shows the pill) — never the
+     * focused window's, a zone's neither; the microphone's key (X230) too: no effect while K1 has no microphone (D1). */
+    if (z->kod == KEY_VOLUMEUP || z->kod == KEY_VOLUMEDOWN || z->kod == KEY_MUTE || z->kod == KEY_MICMUTE) {
+        do_powloki(z);
+        return;
+    }
     if (z->kod == KEY_LEFTMETA || z->kod == KEY_RIGHTMETA) {
         if (z->wartosc)
             pelny_koniec("klawisz Start"); /* 0.11.0 step 1: the Start menu, never under the full screen */

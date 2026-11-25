@@ -22,7 +22,10 @@ int karta_spi(void);
 unsigned long karta_przerwy(void);                  /* underruns since the start (the log: a number only) */
 
 /* kontrolki.c — the card's controls (controlC<k>): the outputs on, their hardware volume at 0 dB (T3: the volume is the
- * service's own); the card's name for the log. */
+ * service's own); the card's name for the log; step 2: the headphone jacks and their events. */
 void kontrolki_przyjmij(int fd);
+int kontrolki_fd(void);         /* for poll (POLLIN: an event of a control) while the card has a headphone jack, else -1 */
+int kontrolki_zdarzenia(void);  /* the events read, the jacks read again: 1 when the output changed */
+int kontrolki_wyjscie(void);    /* K1_DZW_WYJSCIE_GLOSNIKI or _SLUCHAWKI */
 
 #endif

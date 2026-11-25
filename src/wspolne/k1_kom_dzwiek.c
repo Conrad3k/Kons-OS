@@ -16,7 +16,8 @@ static int do_dzwieku(const struct k1_komunikat *k)
     case K1_KOM_DZWIEK_ZAMKNIJ:
         return w(k->a, K1_DZW_PO_ODEGRANIU, K1_DZW_OD_RAZU) && zera(k, 1);
     case K1_KOM_DZWIEK_GLOSNOSC:
-        return w(k->a, 0, K1_DZW_GLOSNOSC_MAKS) && w(k->b, 0, 1) && zera(k, 2);
+        return w(k->a, 0, K1_DZW_GLOSNOSC_MAKS) && w(k->b, 0, 1) && w(k->c, K1_DZW_WYJSCIE_BRAK, K1_DZW_WYJSCIE_MAKS) &&
+               zera(k, 3);
     default:
         return 0;
     }

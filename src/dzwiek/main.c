@@ -6,7 +6,9 @@
  * every write (DZWIEK_ZAPISANO). Every K1_DZW_OKRES frames the service copies what each stream has out of its ring, mixes
  * them, applies the volume of K1 and writes the period to the card. A steering client (gui) sets the volume and the mute
  * (DZWIEK_GLOSNOSC); every client hears the state (DZWIEK_STAN) and how much of its ring was played (DZWIEK_ODTWORZONO).
- * Nothing plays for K1_DZW_CISZA_S seconds: the card stops and frees its buffer (T8).
+ * Nothing plays for K1_DZW_CISZA_S seconds: the card stops and frees its buffer (T8). Step 2: the output — the headphones
+ * while something is in their jack (kontrolki.c; the kernel mutes the speakers itself), each output with a volume and a
+ * mute of its own (D5: gui remembers them and gives them to every new service).
  * Trust boundary: the clients are hostile (from step 3 a zone's VMM speaks for the guest): every message checked field by
  * field (k1_komunikat_sprawdz, sender UID), the frames counted by the service (k1_dzw_zapisano), the ring copied before
  * use. Sandbox: UID 111, no paths, seccomp: the base + the ALSA ioctls it uses (KLATKA_DZWIEK). The log: numbers and the
@@ -42,7 +44,9 @@ struct klient {
 };
 
 static struct klient klienci[KLIENCI_MAKS];
-static int stan_karty = K1_DZW_KARTA_SZUKA, glosnosc = K1_DZW_GLOSNOSC_START, wyciszone;
+static int stan_karty = K1_DZW_KARTA_SZUKA;
+static int glosnosc[K1_DZW_WYJSCIE_MAKS + 1] = { 0, K1_DZW_GLOSNOSC_START, K1_DZW_GLOSNOSC_START };
+static int wyciszone[K1_DZW_WYJSCIE_MAKS + 1];
 static double cisza_od;   /* CLOCK_MONOTONIC when the last stream ended */
 static unsigned long przyciete;
 
@@ -61,9 +65,8 @@ static void wyslij(struct klient *k, struct k1_komunikat m)
 
 static struct k1_komunikat stan(void)
 {
-    int jest = stan_karty == K1_DZW_KARTA_JEST;
-    return k1_komunikat_nowy(K1_KOM_DZWIEK_STAN, 0, stan_karty, glosnosc, wyciszone,
-                             jest ? K1_DZW_WYJSCIE_GLOSNIKI : K1_DZW_WYJSCIE_BRAK, 0);
+    int jest = stan_karty == K1_DZW_KARTA_JEST, w = kontrolki_wyjscie();
+    return k1_komunikat_nowy(K1_KOM_DZWIEK_STAN, 0, stan_karty, glosnosc[w], wyciszone[w], jest ? w : K1_DZW_WYJSCIE_BRAK, 0);
 }
 
 static void stan_wszystkim(void)
@@ -146,15 +149,18 @@ static int od_klienta(struct klient *k, const struct k1_komunikat *m, int fd)
         else
             k->zamyka = 1;
         break;
-    case K1_KOM_DZWIEK_GLOSNOSC:
+    case K1_KOM_DZWIEK_GLOSNOSC: {
+        int w = m->c != K1_DZW_WYJSCIE_BRAK ? m->c : kontrolki_wyjscie();
         if (!k1_dzw_klient_steruje(k->rodzaj))
             return -1;
-        if (m->a != glosnosc || m->b != wyciszone)
-            k1_log(TAG, "głośność %d%%%s", m->a, m->b ? ", wyciszone" : "");
-        glosnosc = m->a;
-        wyciszone = m->b;
+        if (m->a == glosnosc[w] && m->b == wyciszone[w])
+            break;
+        k1_log(TAG, "głośność %d%%%s (%s)", m->a, m->b ? ", wyciszone" : "", k1_dzw_wyjscie_nazwa(w));
+        glosnosc[w] = m->a;
+        wyciszone[w] = m->b;
         stan_wszystkim();
         break;
+    }
     default:
         return -1;
     }
@@ -263,7 +269,8 @@ static void okres(void)
             k->niezgloszone = 0;
         }
     }
-    przyciete += k1_dzw_wyjscie(wyj, suma, K1_DZW_OKRES, k1_dzw_wzmocnienie(glosnosc, wyciszone));
+    przyciete += k1_dzw_wyjscie(wyj, suma, K1_DZW_OKRES,
+                                k1_dzw_wzmocnienie(glosnosc[kontrolki_wyjscie()], wyciszone[kontrolki_wyjscie()]));
     r = karta_zapisz(wyj);
     if (r < 0) {
         k1_log(TAG, "karta przestała grać");
@@ -310,12 +317,13 @@ int main(void)
     k1_klatka_w_usludze(TAG);
     for (int i = 0; i < KLIENCI_MAKS; i++)
         klienci[i].fd = -1;
-    k1_log(TAG, "gotowa (48 kHz, 16 bitów, stereo; głośność %d%%)", glosnosc);
+    k1_log(TAG, "gotowa (48 kHz, 16 bitów, stereo; głośność %d%%)", glosnosc[K1_DZW_WYJSCIE_GLOSNIKI]);
     for (;;) {
-        struct pollfd pfd[2 + KLIENCI_MAKS];
+        struct pollfd pfd[3 + KLIENCI_MAKS];
         int n = 0, kfd = karta_fd(), czas = -1;
         pfd[n++] = (struct pollfd){ FD_NADZORCA, POLLIN, 0 };
         pfd[n++] = (struct pollfd){ kfd, POLLOUT, 0 };
+        pfd[n++] = (struct pollfd){ kontrolki_fd(), POLLIN, 0 };
         for (int i = 0; i < KLIENCI_MAKS; i++)
             pfd[n++] = (struct pollfd){ klienci[i].fd, POLLIN, 0 };
         if (kfd >= 0 && strumienie() == 0)
@@ -324,8 +332,12 @@ int main(void)
             k1_koniec(TAG, "poll: %s", strerror(errno));
         if (pfd[0].revents & (POLLIN | POLLHUP | POLLERR))
             od_nadzorcy();
+        if ((pfd[2].revents & (POLLIN | POLLERR)) && kontrolki_zdarzenia()) {
+            k1_log(TAG, "wyjście: %s", k1_dzw_wyjscie_nazwa(kontrolki_wyjscie()));
+            stan_wszystkim();
+        }
         for (int i = 0; i < KLIENCI_MAKS; i++)
-            if (klienci[i].fd >= 0 && (pfd[2 + i].revents & (POLLIN | POLLHUP | POLLERR)))
+            if (klienci[i].fd >= 0 && (pfd[3 + i].revents & (POLLIN | POLLHUP | POLLERR)))
                 obsluz_klienta(&klienci[i]);
         if (kfd >= 0)
             graj((pfd[1].revents & (POLLOUT | POLLERR)) != 0);

@@ -190,6 +190,10 @@ void zamknij_okno(int i); /* asks its client to close it (K1_KOM_ZAMKNIJ) */
 const char *opis_komunikat(int kl, const struct k1_komunikat *m, int fd); /* OPIS / OPIS_PYTANIE: NULL or why refused */
 void opis_klienci(void);   /* a client came or went: K1_UST_OPIS = 1 while a test client is connected */
 void opis_pow_koniec(int i); /* surface i is gone: its elements too */
+struct k1_opis_el;
+/* One record of the answer, (x, y, w, h) cut to the screen: 1, or 0 when nothing of it is on the screen. */
+int opis_rekord(struct k1_opis_el *e, int rodzaj, unsigned stan, uint32_t okno, int32_t x, int32_t y, int32_t w,
+                int32_t h, const char *nazwa);
 
 /* wylaczanie.c — the screen "Wyłączanie" (0.10.7 step 6, T7) */
 void wylaczanie_start(int restart);         /* WYLACZANIE from nadzorca: from now on until the end */
@@ -230,6 +234,7 @@ void rozmiar_pelny(int i, int tak);         /* 0.11.0 step 1: window i into the 
 
 /* pelny.c — the full screen of a zone's window (0.11.0 step 1, D1: sketch A) */
 int pelny_jest(const struct pow *p);        /* p is the window in full screen */
+int pelny_trwa(void);                       /* a window is in full screen now */
 int pelny_rysuje(void);                     /* K1 draws over it now (the pill or its bar) */
 void pelny_prosba(int i, int a);            /* PELNY_EKRAN a of window i (from its VMM) */
 void pelny_koniec(const char *powod);       /* K1 ends the full screen (the window back to its size) */
@@ -240,6 +245,13 @@ int pelny_wskaznik(void);                   /* the pointer moved: 1 when it is o
 void pelny_klik(void);                      /* a press on K1's bar */
 int pelny_czas_ms(void);                    /* how soon the loop must come back, -1: no need */
 void pelny_rysuj(const struct prost *k);    /* the pill or K1's bar, into the scene inside k */
+
+/* glosnosc.c — the pill of the volume keys (0.12.0 step 2, D4: A) */
+void glosnosc_pokaz(const struct k1_komunikat *m); /* GLOSNOSC_POKAZ from the shell */
+int glosnosc_widac(void);                   /* it shows now */
+int glosnosc_czas_ms(void);                 /* how soon the loop must come back (it goes), -1: no need */
+void glosnosc_rysuj(const struct prost *k); /* into the scene inside k, over the windows and panels */
+int glosnosc_opis(struct k1_opis_el *el, int n); /* its records for the screen's description (0..2) */
 
 /* przeciaganie.c — dragging files between windows (0.11.0 step 4, ADR 0052 T6) */
 void przeciaganie_komunikat(int kl, int i, const struct k1_komunikat *m); /* PRZECIAGANIE, _CEL (refused: odrzuc) */

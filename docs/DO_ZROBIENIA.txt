@@ -97,6 +97,8 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
     [ ] Podgląd: powiększanie fragmentu w pełnej rozdzielczości, pełny ekran, pokaz slajdów, przybliżanie kółkiem
         i touchpadem
   Dźwięk (z planu 0.12.0, punkt 6): mikrofon (jeśli D1 = A), HDMI, karty i słuchawki USB, Bluetooth, budzik w Zegarze.
+    [ ] usypianie kodeka dźwięku (PM w jądrze — zmienia też USB, i915, sieć): najpierw pomiar poboru w Zasobach na X230
+        i IdeaPadzie (plan 0.12.0 krok 2, T8; ADR 0054 pkt 12)
   Aktualizacje (z planu 0.10.5): aktualizacja pendrive'a przez sieć; wznawianie przerwanego pobierania; kompresja paczki
     i aktualizacja tylko zmienionych części; pełna historia zmian w K1; robot dla musl i plików od producentów kart.
   Okna: zmiana rozmiaru okien aplikacji K1 (Pliki, Notatki, Podgląd), przyciąganie okien do połowy ekranu; przewijanie

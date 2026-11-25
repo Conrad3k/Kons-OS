@@ -112,9 +112,12 @@ void wskaznik_gora(const struct k1_komunikat *m);
 void okienko_paska_zamknij(void); /* the popover under an icon of the bar, if one is open (0.11.8 step 2) */
 int32_t dzwiek_srodek(void);       /* the middle of the sound icon on the bar (the tests' log) */
 /* dzwiek.c — 0.12.0 step 1 (ADR 0054; D2: B): the speaker on the bar, the popover "Dźwięk", the channel to dzwiek */
-extern int dzw_fd;
+int dzwiek_fd(void);            /* the channel to the service, for poll (-1) */
 void dzwiek_kanal_nowy(int fd); /* DZWIEK_KANAL from nadzorca (fd 5): the caller closes `fd` */
 void dzwiek_odbierz(void);
+void dzwiek_wczytaj(void);      /* step 2 (D5): the remembered volume from skarbiec, at the start */
+void dzwiek_okresowe(double t); /* the remembered volume written a moment after its last change */
+int dzwiek_klawisz(const struct k1_komunikat *m); /* a volume key from ekran: 1 taken (D4: ekran's pill) */
 void dzwiek_na_pasku(struct k1_obraz *o, int32_t x, uint32_t krem);
 #define DZWIEK_OKIENKO_SZER 300
 #define DZWIEK_OKIENKO_WYS 158

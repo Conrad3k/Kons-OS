@@ -94,6 +94,7 @@ Pola: `obiekt` = numer powierzchni klienta 1…8 (o ile nie podano inaczej), `a`
 | `AKTYWUJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: pokaż, na wierzch, fokus |
 | `MINIMALIZUJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: schowaj |
 | `ZAMKNIJ_OKNO` | powłoka → ekran | tylko powłoka | `obiekt` = numer okna: ekran prosi aplikację o zamknięcie (0.7.5, „Zamknij okno” na dolnym pasku) |
+| `GLOSNOSC_POKAZ` (0.12.0 krok 2, D4: A) | powłoka → ekran | tylko powłoka | po klawiszu głośności: `obiekt` = 0, `a` = głośność 0…100, `b` = 1 wyciszone, `c` = wyjście `K1_DZW_WYJSCIE_*` (BRAK: komputer bez karty — wtedy `a` = `b` = 0). Ekran pokazuje na 1,5 s **pigułkę głośności** (`glosnosc.c`) |
 | `USTAW` | Ustawienia → ekran | Ustawienia; klucze `K1_UST_OTWIERANIE` + typ także Pliki i powłoka (0.8.2, „Zawsze otwieraj tą aplikacją”; `ustawia()` w `okna.c`) | klucz `K1_UST_*` i wartość (sprawdzana); nie `K1_UST_ZDJECIE` |
 | `TAPETA_ZDJECIE` | Pliki, Podgląd → ekran | tabela nadawców (`zdjecie.c`) | zdjęcie na tapetę (0.8.0): szerokość, wysokość; + memfd z pikselami od dekodera |
 | `WITAJ` | ekran → klient | — | rozmiar ekranu, rola, aplikacja; ponownie po zmianie rozdzielczości |
@@ -201,6 +202,16 @@ więc kopię (`SCHOWEK_USTAW`) bierze tylko od klienta okna z fokusem i tylko tu
 tekst (`SCHOWEK`), potem klawisz — VMM wstrzymuje klawisze, aż gość potwierdzi, że tekst jest jego zaznaczeniem (najwyżej
 0,5 s). Strona nie przeczyta schowka sama. Tekst z innej sesji — na ramce na 3 s „Wklejono z: Bank”. Log: `schowek:
 skopiowano N B (z K1 0 | ze strefy S)`, `schowek: Ctrl+V w oknie strefy S — tekst dany (N B, …)`, `schowek: wklejone w oknie W`.
+
+## Pigułka głośności (0.12.0 krok 2, decyzja właściciela D4: A)
+Klawisze głośności (`KEY_VOLUMEUP`, `KEY_VOLUMEDOWN`, `KEY_MUTE`) i klawisz mikrofonu (`KEY_MICMUTE`, X230 — bez skutku,
+póki K1 nie ma mikrofonu) ekran daje **tylko powłoce** (`wskaznik.c`, jak Alt+Tab) — nigdy oknu z fokusem, także oknu
+strefy. Powłoka zmienia głośność K1 (usługa dźwięku) i wysyła `GLOSNOSC_POKAZ`; ekran rysuje wtedy na 1,5 s pigułkę
+300 × 44 u góry, na środku (16 px pod górnym paskiem; przy pełnym ekranie — 16 px od krawędzi): głośnik stanu, suwak
+(`k1_suwak`, ten sam co w okienku „Dźwięk”), procenty; bez karty — „Brak karty dźwiękowej”. Rysuje ją ekran, nie gui: jest
+nad każdym oknem i panelem, także nad pełnym ekranem przeglądarki (pod nim są panele gui), i strefa jej nie zasłoni (przy
+pigułce okno strefy nie idzie na warstwę karty — `warstwa.c`). Opis ekranu: panel „Pigułka głośności” z elementem
+„Głośność” (`K1_EL_ZMIENNE`, wybrany = wyciszone). Log: „pigułka głośności: P%[, wyciszone | (brak karty)]”.
 
 ## Ekran wyłączania (0.10.7 krok 6, T7; decyzja właściciela D7: szkic B „Kropki”)
 Nadzorca, gdy przyjmie `WYLACZ` (wyłączanie albo ponowne uruchamianie; zablokowanie nie), wysyła ekranowi `WYLACZANIE`

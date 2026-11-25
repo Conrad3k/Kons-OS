@@ -60,7 +60,15 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   „Ten komputer nie ma karty dźwiękowej.” Kanał do usługi dźwięku od nadzorcy na fd 5 (`DZWIEK_KANAL`, od nowa po jej
   restarcie — gui podaje wtedy swoją głośność); gui jest klientem sterującym (`DZWIEK_GLOSNOSC`), próbę pisze do swojego
   pierścienia, gdy usługa zgłasza miejsce. Log: „dźwięk: karta N, głośność P%”, „próba: start / zagrana”, „okienko
-  dźwięku: …”. Usługa: `docs/komponenty/dzwiek.md`. Lista „Grają teraz” — krok 3.
+  dźwięku: …”. Usługa: `docs/komponenty/dzwiek.md`. Lista „Grają teraz” — krok 3. Od 0.12.0 krok 2: kanał, stan,
+  głośność i próba — wspólny `k1_dzwiek_klient` w przyborniku (także Ustawienia → Dźwięk); w okienku nazwa wyjścia, które
+  gra („Głośniki” / „Słuchawki”). **Klawisze głośności** (ekran daje je tylko powłoce): `k1_dzw_klawisz` — głośniej (+5 %,
+  zdejmuje wyciszenie), ciszej (−5 %), wycisz (włącz / wyłącz; trzymany — raz); potem `GLOSNOSC_POKAZ` do ekranu (pigułka,
+  D4: A — `ekran.md`); bez karty pigułka mówi „Brak karty dźwiękowej”. **Pamięć głośności** (D5: A): głośność i wyciszenie
+  każdego wyjścia w skarbcu (obiekt gui `K1_OB_GLOSNOSC`, rekord „K1G1”, 8 B — `k1_dzw_zapamietane_*`), zapis 2 s po
+  ostatniej zmianie (także zmianie z Ustawień — gui słyszy `DZWIEK_STAN`), odczyt przy starcie gui; każda nowa usługa
+  dźwięku (i nowe gui) dostaje obie głośności (`DZWIEK_GLOSNOSC` z `c` = wyjście). Log: „dźwięk: zapamiętana głośność —
+  głośniki P%, słuchawki P%”, „dźwięk: głośność zapamiętana”.
 - **okienko baterii** (0.11.8 krok 3, D4 właściciela: A; `bateria.c`): kliknięcie baterii na górnym pasku → procent (duży)
   i symbol baterii, stan (te same słowa co Zasoby i Ustawienia — `k1_bateria_stan`), wiersz „Zostało” / „Do pełna” z czasem
   „ok. 3 h 20 min” (`k1_minuty`; nieznany — „nieznany”; bez ładowania i rozładowywania — „Zasilacz: podłączony /
