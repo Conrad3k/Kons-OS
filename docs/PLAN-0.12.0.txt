@@ -110,7 +110,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar  ADR
-[ ]  1  Dźwięk w K1: jądro, usługa dźwięku, okienko „Dźwięk”    L1–L6            0.11.3      D1, D2, D3,    L        0054
+[w toku: Claude, gałąź claude/charming-mendel-dhengm]
+     1  Dźwięk w K1: jądro, usługa dźwięku, okienko „Dźwięk”    L1–L6            0.11.3      D1, D2, D3,    L        0054
                                                                                             T1–T4, T7, T8
 [ ]  2  Klawisze głośności, słuchawki, Ustawienia → Dźwięk      L7–L10           1           D4, D5         M        0054 (uzup.)
 [ ]  3  Dźwięk z przeglądarki, znak na ramce sesji              L11–L15          1           D6, T5, T6     L        0054 (uzup.)
@@ -237,17 +238,18 @@ KROK 4: Porządki; wydanie 0.12.0                                             S�
 4. DECYZJE
 ----------
 Właściciela (czat pyta na początku kroku; przy wyglądzie — szkice):
-[!] D1 (krok 1, NAJPIERW) Mikrofon w 0.12?
+[x] D1 (krok 1, NAJPIERW) Mikrofon w 0.12? — WYBÓR WŁAŚCICIELA (2026-11-25): A (nie w 0.12; „Później”).
       A — nie: 0.12 tylko gra (głośniki, słuchawki); mikrofon w „Później”. REKOMENDACJA: rozmowy wideo i tak nie działają
           (WebRTC w przeglądarce wyłączony od 0.10.0 — strefy/przegladarka/k1.js), a mikrofon to osobny temat prywatności
           (zgoda, znak, który sesja słucha) — lepiej jako osobna, dokładna praca.
       B — tak: dodatkowy krok 4 „Mikrofon” (zgoda w okienku K1 przy każdej sesji, znak na ramce i na górnym pasku,
           rozmowy wideo w sesji ze zgodą); wersja dłuższa o jeden krok.
-[!] D2 (krok 1) Okienko „Dźwięk” na górnym pasku (szkice A/B, jasny i ciemny):
+[x] D2 (krok 1) Okienko „Dźwięk” na górnym pasku (szkice A/B, jasny i ciemny): — WYBÓR WŁAŚCICIELA (2026-11-25, szkice
+      z hosta): B (lista „Grają teraz” z suwakami sesji; w kroku 1 górna część, lista dochodzi z sesjami w kroku 3).
       A — suwak głośności, przycisk wyciszenia, nazwa wyjścia (Głośniki / Słuchawki), „Odtwórz próbę”. REKOMENDACJA.
       B — jak A, a pod spodem lista sesji, które grają, z osobnymi suwakami (jak „mikser” w Windows); sesje dochodzą
           w kroku 3.
-[!] D3 (krok 1) Dźwięki samego K1:
+[x] D3 (krok 1) Dźwięki samego K1: — WYBÓR WŁAŚCICIELA (2026-11-25): A (bez dźwięków K1).
       A — K1 nie wydaje własnych dźwięków (tylko „Odtwórz próbę”). REKOMENDACJA: styl minimalistyczny, nic nie piszczy.
       B — kilka cichych dźwięków (podłączenie zasilacza, „Mało pamięci”, błąd) z przełącznikiem w Ustawieniach.
 [!] D4 (krok 2) Co widać po klawiszu głośności:
