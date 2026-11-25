@@ -48,7 +48,7 @@ def glosnosc(proc):
     e = q.element(OK, "Głośność")  # the element is the track itself (gui/dzwiek.c); a press 10 px past its end counts
     wzor = rf"K1-DZWIEK: głośność {proc}%(?!,)"
     n = q.ile(wzor)
-    q.klik(min(e["x"] + e["w"] * proc // 100, e["x"] + e["w"] - 1), e["y"] + e["h"] // 2)
+    q.klik(e["x"] + e["w"] * proc // 100 + (4 if proc == 100 else 0), e["y"] + e["h"] // 2)
     return q.czekaj(wzor, od=n, czas=30)
 
 

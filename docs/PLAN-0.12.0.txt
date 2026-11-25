@@ -346,4 +346,26 @@ Krok 4:
 
 USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
 -----------------------------------------------------
-(puste)
+Krok 1 (2026-11-25): D1: A, D2: B (szkice z hosta, oba motywy), D3: A. ADR 0054.
+  - L3: usługa `dzwiek` — UID 111, profil 24 (pierwszy wolny przed dekoderami filmów i pośrednikami stref: FILMY 25,
+    POSREDNIK 31 — nie mają danych w skarbcu). Kanał od nadzorcy jednokierunkowy (KN_DO); klienci dostają kanał od
+    nadzorcy z tabeli `K1_DZW_KLIENCI` (k1_dzwiek.h) — gui na fd 5 (`DZWIEK_KANAL`, od nowa po restarcie usługi albo gui),
+    program testowy `TEST_DZWIEK`. Krok 3: wiersz strefy w tej tabeli i kanał dla VMM-a.
+  - T2: numery ioctl w klatce dokładnie (13), nie cały typ 'A'/'U' — `'U'` ma ELEM_ADD (kontrolki użytkownika) i POWER.
+    Bez mmap stron stanu: zapis okresami (1024 ramek, 4 w buforze) wystarcza; jeden okres na obudzenie (POLLOUT), żeby
+    nic zabrane z pierścienia nie przepadło przy pełnej karcie.
+  - T3: kodek QEMU (`hda-output`) ma tylko „Master Playback Volume/Switch” (2 z 4 kontrolek), usługa ustawia je na 0 dB.
+    Głośność: sześcian z dokładnością 1/2²⁴ (z 1/2¹⁶ najniższe kroki suwaka byłyby równe) — w QEMU 50 % = 0,129 amplitudy
+    100 % (teoria: 0,125). Szum przy małej głośności na X230 — do sprawdzenia w kroku 2.
+  - T4: klient podaje tylko liczbę nowych ramek (`DZWIEK_ZAPISANO`), nie pozycje — usługa liczy sama (`k1_dzw_zapisano`).
+  - T7: QEMU 8.2 z Ubuntu 24.04 ma `-audiodev wav` (POTWIERDZONE); na q35 `ich9-intel-hda` + `hda-output,bus=hda.0`,
+    `out.frequency=48000` (domyślnie 44,1 kHz — przeliczałby). Próba to dwie nuty liczone w programie wielomianem
+    (bez libm: ten sam wynik na hoście, w fuzzerze i w K1).
+  - T8: K1 nie ma `PM` — bez niego nie ma `power_save` kodeka; usługa po 5 s ciszy robi DROP + HW_FREE. Włączenie PM
+    (dotyka też USB, i915, sieci) — decyzja kroku 2 z pomiarem w Zasobach.
+  - L1: `SND_HDA_I915` włącza sam i915 (select). Kodeki Realteka/Conexanta wybierają klasę LED — `INPUT_LEDS` wprost
+    wyłączone; z innymi „default y” robot miałby pytania (`porownaj-jadro.sh`: po zmianie 0).
+  - „Usługa padnie” w teście z kartą: program testowy w trybie opisu ekranu zabija usługę przy drugim zdjęciu wyciszenia
+    w okienku (stan trwały — próbkowanie opisu co 0,5 s go nie zgubi); numer dysku „k1-test-opis-dzwieku” (prefiks
+    „k1-test-opis” włącza opis ekranu).
+  - Ikony głośnika z poziomami: najpierw podział `k1_rysuj.c` (560 wierszy) → `k1_ikony.c` (osobny commit).

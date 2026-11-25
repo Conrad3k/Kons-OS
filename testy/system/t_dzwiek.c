@@ -152,7 +152,7 @@ void t_dzwiek(void)
 /* Who holds a node of /dev/snd: the number of other processes; *dzwiek = 1 when the sound service holds one. */
 static int wezly_karty(int *dzwiek)
 {
-    DIR *d = opendir("/proc");
+    DIR *d = opendir("/rdzen/jadro/proc");
     struct dirent *e;
     int inni = 0;
     *dzwiek = 0;
@@ -164,12 +164,12 @@ static int wezly_karty(int *dzwiek)
         int ma = 0;
         if (pid <= 0)
             continue;
-        snprintf(sciezka, sizeof sciezka, "/proc/%ld/fd", pid);
+        snprintf(sciezka, sizeof sciezka, "/rdzen/jadro/proc/%ld/fd", pid);
         if ((fds = opendir(sciezka)) == NULL)
             continue;
         while (!ma && (f = readdir(fds)) != NULL) {
             ssize_t n;
-            snprintf(sciezka, sizeof sciezka, "/proc/%ld/fd/%.32s", pid, f->d_name);
+            snprintf(sciezka, sizeof sciezka, "/rdzen/jadro/proc/%ld/fd/%.32s", pid, f->d_name);
             n = readlink(sciezka, cel, sizeof cel - 1);
             ma = n > 0 && (cel[n] = '\0', strncmp(cel, "/rdzen/jadro/dev/snd/", 21) == 0);
         }
