@@ -107,7 +107,7 @@ struct usluga {
 struct usluga *usluga_profilu(int profil);
 
 #define BATERIA_CO 15.0     /* s between reads (ACPI: the embedded controller) */
-#define BATERIA_CO_ZASOBY 5.0 /* while Zasoby shows the power draw */
+#define BATERIA_CO_ZASOBY 5.0 /* while Zasoby or gui's battery popover shows the power draw */
 #define BATERIA_PROBKA 30   /* s between history samples (doubles when the history is compacted) */
 /* profile.c */
 extern const struct k1_profil profile[K1_PROFIL_MAKS + 1];
@@ -419,6 +419,8 @@ extern int plik_kanal[K1_APL_MAKS + 1]; /* uslugi.c: an application's fd 5 — a
 extern struct k1_bat_historia bat_hist;
 void odczytaj_baterie(double t);
 void wyslij_baterie(void);
+extern int bateria_okienko;         /* gui's battery popover is open (0.11.8 step 3) */
+void bateria_okienko_prosba(int a); /* K1_KOM_BATERIA_OKIENKO from gui: a = K1_BOK_* */
 int blokada_mozliwa(void);
 void bateria_nowy_kanal(void);
 void ustawienia_nowy_kanal(void);

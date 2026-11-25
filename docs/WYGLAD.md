@@ -98,9 +98,15 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   zaokrąglenie 12, krem 10%) z ikonami stanu w komórkach — sieć (32 px), bateria tylko na laptopie ([błyskawica przy
   ładowaniu] „73%” + kontur baterii 22×12, zaokrąglenie 3, linia 1,25, kremowe wypełnienie; ≤ 15 % przy rozładowywaniu
   `#D97757`; 8 px z boków), dźwięk (32 px). Komórka, która coś otwiera, podświetla się pod kursorem i gdy jej okienko jest
-  otwarte (krem 16%, pełne zaokrąglenie); dziś dźwięk, od kroku 3 — bateria. **Okienka paska** (np. „Dźwięk”, 300×84)
+  otwarte (krem 16%, pełne zaokrąglenie): dźwięk i bateria. **Okienka paska** (np. „Dźwięk”, 300×84)
   w stylu paneli (tło motywu, zaokrąglenie 16, cień) stoją 4 px pod paskiem, wyśrodkowane pod swoją ikoną (przy prawej
   krawędzi przesunięte, by zostało 8 px).
+- **Okienko baterii** (0.11.8 krok 3, szkic A — decyzja właściciela D4 z 2026-11-25; 272×202, okienko paska): z lewej u góry
+  procent IBM Plex Serif 24 („73 %”), z prawej symbol baterii 30×16 (zaokrąglenie 4, linia 1,5) w kolorze tekstu motywu,
+  wypełnienie jak procent (≤ 15 % przy rozładowywaniu — terakota); pod procentem stan (Sans 13, tekst drugi: „Ładowanie”,
+  „Na baterii”…); kreska; dwa wiersze — etykieta z lewej (Sans 13, tekst drugi), wartość z prawej (Medium 13): „Zostało” /
+  „Do pełna” „ok. 3 h 20 min” (bez ładowania i rozładowywania: „Zasilacz” „podłączony”), „Pobór mocy” „9,4 W”; kreska;
+  przycisk „Ustawienia baterii” (cichy, przez całą szerokość, 36 px). Szkic B (z wykresem z ostatniej godziny) odrzucony.
 - **Ekran hasła (M5e)** — wybrany szkic B „Zegar” (2026-11-07): tapeta (w szkicu Zmierzch) lekko
   przyciemniona (czarny 27%), w lewym górnym rogu znak K1 22 px + „Kons K1”, z lewej na wysokości
   połowy ekranu zegar Plex Serif Light 64 i data (Serif 24), na dole pośrodku przezroczyste pole hasła

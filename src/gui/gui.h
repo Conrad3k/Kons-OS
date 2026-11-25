@@ -3,6 +3,7 @@
  *   main.c            start, the loop, layout of the panels on the screen
  *   okna.c            the window list from ekran, starting / showing / minimising / closing applications
  *   pasek_gorny.c     the top bar (active application; network, battery, sound in a pill; clock) and its popovers
+ *   bateria.c         the battery: its state from nadzorca, its cell on the top bar and its popover (0.11.8 step 3)
  *   pasek_dolny.c     the bottom bar: Start, the pinned applications, the running ones that are not pinned
  *   menu_start.c      the Start menu (its list scrolls, 0.11.8 step 1)
  *   pulpit.c          the desktop layer: icons in a grid (select, drag, double click)
@@ -98,7 +99,7 @@ void do_nadzorcy(struct k1_komunikat m);
 /* pasek_gorny.c */
 void rysuj_gora(void);
 void rysuj_okienko_paska(void);
-void odbierz_baterie(void); /* fd 5: battery and session state from nadzorca */
+void odbierz_od_nadzorcy(void); /* fd 5: battery, session, network, zones, updates from nadzorca */
 void strefa_stan(const struct k1_komunikat *m); /* fd 5 (0.10.0): a zone did not start — the window that says why */
 /* fd 5 (0.10.0 step 5): the sessions as the user set them — their names (Start menu, the zone's window on the bar) */
 void strefy_sesje(const struct k1_komunikat *m);
@@ -110,10 +111,24 @@ const char *nazwa_pozycji(int apl, char *buf, size_t n);
 void wskaznik_gora(const struct k1_komunikat *m);
 void okienko_paska_zamknij(void); /* the popover under an icon of the bar, if one is open (0.11.8 step 2) */
 int32_t dzwiek_srodek(void);       /* the middle of the sound icon on the bar (the tests' log) */
-#define OKIENKO_PASKA_SZER 300     /* the largest popover of the bar: the surface's size */
-#define OKIENKO_PASKA_WYS 84
+#define OKIENKO_PASKA_SZER 300     /* the largest popover of the bar: the surface's size (the sound's width, */
+#define OKIENKO_PASKA_WYS 202      /* the battery's height — bateria.c) */
+void wskaznik_okienka_paska(const struct k1_komunikat *m);
 extern int zablokuj_mozna; /* 1: a password is set (K1_KOM_SESJA) — the Start menu offers "Zablokuj" (0.11.5) */
 extern int bat_kanal;     /* fd 5 still open */
+
+/* bateria.c */
+void bateria_komunikat(const struct k1_komunikat *m); /* K1_KOM_BATERIA from nadzorca (fd 5) */
+int32_t bateria_szer(void);                           /* the battery's cell on the bar; 0: no battery */
+void bateria_na_pasku(struct k1_obraz *o, int32_t x, uint32_t krem);
+/* 0.11.8 step 3 (D4: A): the popover under the battery — percent, state, time left / to full, power draw, the button
+ * "Ustawienia baterii"; its numbers come from nadzorca (K1_KOM_BATERIA_POMIAR on fd 5) */
+#define BATERIA_OKIENKO_SZER 272
+#define BATERIA_OKIENKO_WYS 202
+void bateria_pomiar(const struct k1_komunikat *m);
+void bateria_okienko_otwarte(int tak); /* the popover opened / closed: nadzorca reads the battery more often meanwhile */
+void bateria_okienko(struct k1_obraz *o, const struct k1_motyw *m);
+void bateria_okienko_wskaznik(const struct k1_komunikat *m); /* coordinates of the popover's surface */
 
 /* pasek_dolny.c */
 #define EL 44 /* bottom bar item */

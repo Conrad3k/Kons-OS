@@ -126,6 +126,7 @@ scenariusz testy-w-systemie wylaczenie "$K1_WYNIK/rdzen-test.squashfs" "$CMDLINE
     "K1: init OK" "K1-TEST: WYNIK: OK" "odrzucone 5)" "komunikat od obcego nadawcy (uid 0, oczekiwano 100)" \
     "bez fokusu (ochrona klawiatury)" "K1-SKARBIEC: utworzono nowy magazyn na pustej partycji" \
     "K1-GUI: bateria 73%, rozładowywanie, zasilacz odłączony" \
+    "K1-GUI: pomiar baterii: 73%, rozładowywanie, 9,0 W, zostało 219 min" \
     "przekroczony limit pamięci powierzchni" "K1-ZASOBY: dane od nadzorcy" \
     "deskryptor nie jest memfd" "memfd bez pieczęci" "zły rozmiar memfd" "panele tylko dla powłoki" \
     "pulpit tylko dla powłoki" "rozmiar inny niż ten, o który prosił ekran" \

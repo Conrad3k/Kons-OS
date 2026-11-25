@@ -79,7 +79,8 @@ ekran ma zdjęcie ustawione w Plikach — bez niego podpowiedź, jak je ustawić
 zmiana w locie, ADR 0012), Bateria (0.5.5: procent, stan, wykres naładowania od uruchomienia — linia
 w kolorze akcentu z delikatnym wypełnieniem, pasek pod wykresem = zasilacz podłączony, godzina startu,
 najniższy poziom; od 0.6.0 pod wykresem ostatnie wcześniejsze uruchomienie z małym wykresem — archiwum
-od nadzorcy jako zapieczętowany memfd `BATERIA_ARCH`; bez baterii — napis), Hasło (0.5.7: włącz / zmień / wyłącz, pola z kropkami, Tab/Enter/Esc;
+od nadzorcy jako zapieczętowany memfd `BATERIA_ARCH`; bez baterii — napis; od 0.11.8 krok 3 `BATERIA_POKAZ` od nadzorcy —
+przycisk „Ustawienia baterii” w okienku baterii na górnym pasku — pokazuje tę sekcję), Hasło (0.5.7: włącz / zmień / wyłącz, pola z kropkami, Tab/Enter/Esc;
 przez skarbiec — fd 5), Mysz (prędkość),
 Data i czas (sekundy na pasku), Aplikacje (0.8.0, `aplikacje.c`; od 0.8.2 krok 5 — **każdy** typ pliku i jego
 domyślna aplikacja: „Dokument tekstowy — Notatki”, „Obrazy (PNG, JPEG, GIF, BMP, WebP) — Podgląd” (typy jednej rodziny
@@ -177,7 +178,7 @@ całego systemu: liczba + wykres z ostatniej minuty (jedna seria, kolor akcentu,
 tabela działających usług i aplikacji: procesor i pamięć każdej (z ich cgroup; od 0.8.2 najwyżej 14 wierszy,
 ostatni „… i jeszcze n” — okno mieści się na ekranie 1024 × 768); czas pracy systemu. Dane od
 nadzorcy co sekundę (fd 4), sprawdzane: nadawca UID 0, bez deskryptorów, każde pole.
-0.6.3: wiersz **Bateria** (`ZASOBY_BATERIA`): procent, pobór mocy w W (`power_now` albo prąd ×
+0.6.3: wiersz **Bateria** (`BATERIA_POMIAR`, do 0.11.8 `ZASOBY_BATERIA`): procent, pobór mocy w W (`power_now` albo prąd ×
 napięcie, uśredniony przez nadzorcę: połowa każdego nowego odczytu — od 0.8.7, wcześniej 30 %; liczba dogania
 zmianę w ok. 15 s, resztę opóźnienia daje sama bateria, która też uśrednia; od nowa przy zmianie ładowanie ↔
 rozładowanie; odczyt co 5 s, gdy Zasoby działają) i czas do rozładowania / naładowania (energia ÷
@@ -334,7 +335,7 @@ własne pliki i pliki dane przez użytkownika (tabela praw w skarbcu), `DOK_WYBI
 1–33 tylko do przeniesienia (`SKARB_CZYTAJ`, `SKARB_USUN`); fd 5 — od nadzorcy, jednokierunkowo: `PLIK_OTWORZ`
 (obiekt = plik otwarty w Notatkach z Plików albo z pulpitu). Wybór pliku: fd 4 — kanał do skarbca (lista nazw,
 `DOK_PROSBA`, `DOK_WYBRANO`). Zasoby: fd 4 —
-kanał od nadzorcy (`ZASOBY_SYSTEM`, `ZASOBY_USLUGA`, od 0.6.3 `ZASOBY_BATERIA`, od 0.10.10 `ZASOBY_KARTA`: a = obciążenie
+kanał od nadzorcy (`ZASOBY_SYSTEM`, `ZASOBY_USLUGA`, od 0.6.3 `BATERIA_POMIAR` (do 0.11.8 `ZASOBY_BATERIA`), od 0.10.10 `ZASOBY_KARTA`: a = obciążenie
 karty ‰, b = taktowanie MHz, c = najwyższe MHz, d = pobór mocy karty mW — każde −1, gdy nieznane; e = bity sesji rysujących
 kartą), aplikacja nie może do niego pisać.
 Ustawienia: lista trybów ekranu (`K1_KOM_TRYB`) dostaje tylko ona; od 0.5.5 fd 4 — kanał od nadzorcy

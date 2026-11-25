@@ -37,6 +37,12 @@ Przy zmianie robot podbija `VERSION` (tylko PATCH) i dopisuje wpis w `CHANGELOG.
 - **Czerwone testy:** PR robota zostaje otwarty — zmianę robi Claude albo Codex zwykłym PR-em.
 - **Zła suma, zły podpis źródła, błąd przebiegu:** nic nie scalone.
 
+## Wymagane ustawienie repozytorium
+Robot otwiera i scala PR-y tokenem workflow (`GITHUB_TOKEN`). GitHub pozwala na to dopiero po jednym ustawieniu:
+**Settings → Actions → General → Workflow permissions → „Allow GitHub Actions to create and approve pull requests”**.
+Bez niego bieg kończy się błędem „GitHub Actions is not permitted to create or approve pull requests” i Issue „Robot:
+przebieg nie skończył się” (tak było 2026-11-24 i 2026-11-25: Issue #216, #217). Włącza je właściciel, raz.
+
 ## Jak zatrzymać
 - **Zawsze:** GitHub → Actions → „Robot — poprawki jądra i przeglądarki” → ⋯ → **Disable workflow**. Włączenie — to samo
   miejsce.

@@ -154,6 +154,9 @@ static void wskaznik(const struct k1_komunikat *m)
     case P_KONTEKST:
         wskaznik_kontekst(m);
         break;
+    case P_OKIENKO_PASKA: /* 0.11.8 step 3: the battery's popover has a button */
+        wskaznik_okienka_paska(m);
+        break;
     default:
         break;
     }
@@ -229,7 +232,7 @@ int main(void)
         if (poll(p, 3, czekaj) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
         if (p[1].revents != 0)
-            odbierz_baterie();
+            odbierz_od_nadzorcy();
         if (p[2].revents != 0)
             odbierz_skarbiec();
         while (k1_odbierz(&k, wszystkie, 6, &m))

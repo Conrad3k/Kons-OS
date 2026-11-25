@@ -270,7 +270,7 @@ static void odbierz(void)
             continue;
         }
         if (w != K1_ODB_JEST ||
-            (k.typ != K1_KOM_ZASOBY_SYSTEM && k.typ != K1_KOM_ZASOBY_USLUGA && k.typ != K1_KOM_ZASOBY_BATERIA &&
+            (k.typ != K1_KOM_ZASOBY_SYSTEM && k.typ != K1_KOM_ZASOBY_USLUGA && k.typ != K1_KOM_BATERIA_POMIAR &&
              k.typ != K1_KOM_STREFA_PRZYDZIAL && k.typ != K1_KOM_STREFA_NAZWA)) {
             if (odrzucone++ < 3)
                 k1_log(TAG, "odrzucono komunikat od nadzorcy");
@@ -290,7 +290,7 @@ static void odbierz(void)
                 k1_log(TAG, "dane od nadzorcy: procesor %d‰, pamięć %d z %d MiB, %d CPU", (int)k.a, (int)k.b, (int)k.c,
                        (int)k.d);
             }
-        } else if (k.typ == K1_KOM_ZASOBY_BATERIA) {
+        } else if (k.typ == K1_KOM_BATERIA_POMIAR) {
             char opis[96];
             int nowa = !bat.znana || bat.obecna != k.a || bat.stan != k.c;
             bat.znana = 1;

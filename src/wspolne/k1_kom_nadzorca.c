@@ -163,7 +163,7 @@ int k1_kom_sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
     case K1_KOM_ZASOBY_USLUGA:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt >= 1 && k->obiekt <= K1_PROFIL_MAKS && w(k->a, 0, 1000) &&
                k->b >= 0 && w(k->c, 0, 1) && zera(k, 3);
-    case K1_KOM_ZASOBY_BATERIA:
+    case K1_KOM_BATERIA_POMIAR:
         if (kier != K1_KIER_OD_NADZORCY || k->obiekt != 0 || !w(k->a, 0, 1))
             return 0;
         if (k->a == 0)
@@ -176,6 +176,10 @@ int k1_kom_sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
         if (k->a == 0)
             return k->b == -1 && k->c == K1_BAT_NIEZNANY;
         return w(k->b, -1, 100) && w(k->c, K1_BAT_NIEZNANY, K1_BAT_STAN_MAKS);
+    case K1_KOM_BATERIA_OKIENKO: /* 0.11.8 step 3 */
+        return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_BOK_ZAMKNIETE, K1_BOK_USTAWIENIA) && zera(k, 1);
+    case K1_KOM_BATERIA_POKAZ:
+        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && zera(k, 0);
     case K1_KOM_SESJA:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, 1) && zera(k, 1);
     case K1_KOM_URUCHOM_STREFE:

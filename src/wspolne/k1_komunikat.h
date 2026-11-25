@@ -132,8 +132,10 @@ enum k1_komunikat_typ {
 
     /* nadzorca → Zasoby (once a second; the application never writes to this channel) */
     K1_KOM_ZASOBY_SYSTEM = 62, /* obiekt=0, a=CPU ‰ (all CPUs), b,c = memory used,total MiB, d=CPUs, e=uptime s */
-    K1_KOM_ZASOBY_BATERIA = 59, /* obiekt=0, a=1 battery present, b=percent (-1 unknown), c=K1_BAT_*, d=power draw
-                                 * mW (-1 unknown, ≤ K1_MOC_MAKS_MW), e=minutes until empty/full (-1 unknown, ≤ 99 h) */
+    K1_KOM_BATERIA_POMIAR = 59, /* also to gui (fd 5, after a change — 0.11.8 step 3: the battery's popover; until then
+                                 * ZASOBY_BATERIA): obiekt=0, a=1 battery present, b=percent (-1 unknown), c=K1_BAT_*,
+                                 * d=power draw mW (-1 unknown, ≤ K1_MOC_MAKS_MW), e=minutes until empty/full (-1 unknown,
+                                 * ≤ 99 h); no battery: a=0, b..e=-1 except c=0 */
     K1_KOM_ZASOBY_KARTA = 224, /* 0.10.10 step 2 (k1_karta_pomiar.h): obiekt=0, a=how busy the card was ‰ (-1 unknown),
                                 * b=its clock now MHz, c=its highest clock MHz (-1 unknown, ≤ K1_KARTA_MHZ_MAKS), d=the
                                 * card's power draw mW (RAPL "uncore"; -1 unknown, ≤ K1_MOC_MAKS_MW), e=bit nr-1: zone nr
@@ -215,6 +217,10 @@ enum k1_komunikat_typ {
                                        * only soon after the user's key or press in that window */
     K1_KOM_SCHOWEK_DAJ = 248,         /* a K1 application with the focused window → ekran: obiekt=that window, a..e=0 — Ctrl+V
                                        * (or "Wklej") right after the user's key or press there; reply SCHOWEK (nothing: empty) */
+    K1_KOM_BATERIA_OKIENKO = 250, /* 0.11.8 step 3: gui → nadzorca (its fd 4): obiekt=0, a=K1_BOK_* — the battery's popover
+                                   * opened / closed (nadzorca reads the battery every 5 s while it is open), or its button
+                                   * "Ustawienia baterii" (open Ustawienia on Bateria); b..e=0 */
+    K1_KOM_BATERIA_POKAZ = 251,   /* nadzorca → Ustawienia (its fd 4): obiekt=0, all 0 — show the section Bateria */
     K1_KOM_SCHOWEK = 249,             /* ekran → a client: obiekt=its window, a=bytes 1..K1_SCHOWEK_MAKS, b=where it was copied
                                        * (0 K1, a zone's number), c..e=0; + 1 sealed memfd — to an application: the answer to
                                        * SCHOWEK_DAJ; to a zone's VMM: right before Ctrl+V goes to its window (D5: A) */
@@ -859,6 +865,7 @@ static inline int k1_bateria_niska(int32_t procent, int32_t stan)
 {
     return procent >= 0 && procent <= 15 && stan == K1_BAT_ROZLADOWANIE;
 }
+enum { K1_BOK_ZAMKNIETE = 0, K1_BOK_OTWARTE = 1, K1_BOK_USTAWIENIA = 2 }; /* K1_KOM_BATERIA_OKIENKO a */
 #define K1_MOC_MAKS_MW 1000000  /* 1 kW: anything above is a firmware error */
 #define K1_KARTA_MHZ_MAKS 5000  /* 0.10.10 step 2: a card's clock above it is a driver's error (ZASOBY_KARTA) */
 #define K1_BAT_MINUT_MAKS (99 * 60)

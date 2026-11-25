@@ -51,7 +51,7 @@ Nowy czat: przebieg każdego kroku:
   1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y i Issue robota, ostatni run CI na main).
   2. Przeczytaj CEL WERSJI, swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2–4 także ADR 0054
      i „Ustalenia z wykonania” kroków wcześniejszych. Kod mógł się zmienić (robot, poprawki) — luki sprawdź jeszcze raz.
-     Przed 0.12 wchodzi 0.11.8 (docs/PLAN-0.11.8.txt, 2026-11-23): nowy górny pasek i okienka pod jego ikonami jako
+     Przed 0.12 wchodzi 0.11.8 (docs/archiwum/PLAN-0.11.8.txt, 2026-11-23): nowy górny pasek i okienka pod jego ikonami jako
      tabela (T2 tamtego planu) — okienko „Dźwięk” (krok 1 e, L4) to wtedy wiersz tej tabeli w wyglądzie z D3 tamtego planu.
   3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
   4. „Dziel przed rozbudową”: plik blisko 600 wierszy najpierw osobny commit z podziałem (z kodu 2026-11-22: gui/pulpit.c

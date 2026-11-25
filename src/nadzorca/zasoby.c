@@ -17,6 +17,10 @@ static int ustaw_arch_wyslane; /* Ustawienia has the archive (reset when it star
  * the embedded controller), a history sample every bat_hist.interwal s. */
 static long long moc_srednia = -1; /* smoothed power draw, mW (0.6.3, Zasoby) */
 static int moc_stan = -1;          /* the battery state it was measured in */
+/* 0.11.8 step 3: the power draw and the time left for gui's battery popover (the same measurement as Zasoby's) */
+static struct k1_komunikat pomiar_wyslany;
+static int pomiar_znany;
+int bateria_okienko; /* gui's battery popover is open: read every BATERIA_CO_ZASOBY s */
 
 void odczytaj_baterie(double t)
 {
@@ -40,10 +44,22 @@ static struct k1_komunikat komunikat_baterii(const struct k1_bateria *b)
                              b->zasilacz, 0);
 }
 
+/* Percent, state, the power draw now and the time left at that rate (0.6.3: Zasoby; 0.11.8 step 3: gui too) */
+static struct k1_komunikat komunikat_pomiaru(void)
+{
+    const struct k1_bateria *b = &bateria_teraz;
+    long long moc = b->obecna ? moc_srednia : -1;
+    return k1_komunikat_nowy(K1_KOM_BATERIA_POMIAR, 0, b->obecna, b->obecna ? b->procent : -1, b->obecna ? b->stan : 0,
+                             (int32_t)(moc < 0 || moc > K1_MOC_MAKS_MW ? -1 : moc),
+                             b->obecna ? k1_bateria_minuty(b, moc_srednia) : -1);
+}
+
 /* A new channel to gui / the password screen, or to Ustawienia: they get everything again. */
 void bateria_nowy_kanal(void)
 {
     bateria_znana = 0;
+    pomiar_znany = 0;
+    bateria_okienko = 0; /* a new gui has no popover open */
     sesja_wyslana = -1;
     siec_stan_nowy_kanal_gui();
     sesje_nowy_kanal(0);
@@ -76,14 +92,47 @@ void wyslij_baterie(void)
         if (k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1) == 0)
             sesja_wyslana = z;
     }
-    if (bateria_kanal < 0 || !bateria_odczytana ||
-        (bateria_znana && k1_bateria_ta_sama(&bateria_teraz, &bateria_wyslana)))
+    if (bateria_kanal < 0 || !bateria_odczytana)
         return;
-    k = komunikat_baterii(&bateria_teraz);
-    if (k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1) == 0) {
+    if (!bateria_znana || !k1_bateria_ta_sama(&bateria_teraz, &bateria_wyslana)) {
+        k = komunikat_baterii(&bateria_teraz);
+        if (k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1) != 0)
+            return;
         bateria_wyslana = bateria_teraz;
         bateria_znana = 1;
     }
+    /* 0.11.8 step 3: gui's battery popover — after a change only (it changes with a reading, not more often) */
+    k = komunikat_pomiaru();
+    if (gui_kanal_uid == K1_UID_GUI &&
+        (!pomiar_znany || k.a != pomiar_wyslany.a || k.b != pomiar_wyslany.b || k.c != pomiar_wyslany.c ||
+         k.d != pomiar_wyslany.d || k.e != pomiar_wyslany.e) &&
+        k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1) == 0) {
+        pomiar_wyslany = k;
+        pomiar_znany = 1;
+    }
+}
+
+/* gui's battery popover (0.11.8 step 3, K1_KOM_BATERIA_OKIENKO a): opened — read the battery at once and then every
+ * BATERIA_CO_ZASOBY s (fresh numbers while someone looks); closed — every BATERIA_CO s again; its button "Ustawienia
+ * baterii" (the popover closes) — Ustawienia on Bateria, as otworz_aktualizacje does for Aktualizacje. */
+void bateria_okienko_prosba(int a)
+{
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_BATERIA_POKAZ, 0, 0, 0, 0, 0, 0);
+    if (a == K1_BOK_OTWARTE && !bateria_okienko)
+        uevent_zasilanie = 1;
+    if ((a == K1_BOK_OTWARTE) != bateria_okienko)
+        k1_log(TAG, "okienko baterii %s: odczyt baterii co %d s", a == K1_BOK_OTWARTE ? "otwarte" : "zamknięte",
+               a == K1_BOK_OTWARTE ? (int)BATERIA_CO_ZASOBY : (int)BATERIA_CO);
+    bateria_okienko = a == K1_BOK_OTWARTE;
+    if (a != K1_BOK_USTAWIENIA)
+        return;
+    uruchom_aplikacje(K1_APL_USTAWIENIA);
+    if (ustaw_kanal >= 0)
+        k1_kanal_wyslij(ustaw_kanal, &k, sizeof k, -1);
+    k = k1_komunikat_nowy(K1_KOM_POKAZ_APL, 0, K1_APL_USTAWIENIA, 0, 0, 0, 0);
+    if (bateria_kanal >= 0)
+        k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1);
+    k1_log(TAG, "otwieram Ustawienia → Bateria");
 }
 
 /* Ustawienia → Bateria: the state when it changed and the history not sent yet, as long as the
@@ -180,15 +229,8 @@ void raport_zasobow(void)
     if (k.c < 1)
         k.c = 1;
     k1_kanal_wyslij(zasoby_kanal, &k, sizeof k, -1);
-    /* 0.6.3: the battery — percent, state, power draw now and the time left at that rate */
-    {
-        const struct k1_bateria *b = &bateria_teraz;
-        long long moc = b->obecna ? moc_srednia : -1;
-        k = k1_komunikat_nowy(K1_KOM_ZASOBY_BATERIA, 0, b->obecna, b->obecna ? b->procent : -1, b->obecna ? b->stan : 0,
-                              (int32_t)(moc < 0 || moc > K1_MOC_MAKS_MW ? -1 : moc),
-                              b->obecna ? k1_bateria_minuty(b, moc_srednia) : -1);
-        k1_kanal_wyslij(zasoby_kanal, &k, sizeof k, -1);
-    }
+    k = komunikat_pomiaru(); /* 0.6.3: the battery — percent, state, power draw now and the time left at that rate */
+    k1_kanal_wyslij(zasoby_kanal, &k, sizeof k, -1);
     for (i = 0; i < N_USLUG; i++) {
         const struct k1_profil *p = &profile[uslugi[i].profil];
         char sciezka[128];

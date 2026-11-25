@@ -88,9 +88,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 --------------------------------------------------------------------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar
 [x]  1  Menu Start niższe i przewijane — PR #218               L1–L5            0.11.5      D1, D2, T3     M
-[ ]  2  Nowy wygląd górnego paska                               L6–L9            0.11.5      D3, T2         M
-         [w toku: Claude, gałąź claude/hopeful-goldberg-rzhrls; D3: A — decyzja właściciela 2026-11-25]
-[ ]  3  Okienko baterii; wydanie 0.11.8                         L10–L14          2           D4, T1, T4, T5 M
+[x]  2  Nowy wygląd górnego paska — PR #219                     L6–L9            0.11.5      D3, T2         M
+[x]  3  Okienko baterii; wydanie 0.11.8 — PR #221               L10–L14          2           D4, T1, T4, T5 M
 (Bez ADR: nic nie zmienia architektury ani niezmienników; nowe pola komunikatu — opis w gui.md i k1_komunikat.h.)
 
 
@@ -302,3 +301,29 @@ Krok 1 (PR #218, 2026-11-25): D1: A (7 wierszy), D2: A (widać koniec listy, res
   - Pasek przewijania (3 px) ma pas chwytania 10 px z prawej listy; wiersze kończą się przed nim.
   - CI 334: test-m5f kliknął Start w złym miejscu (ruchy myszy przed przejęciem jej przez usługę wejścia) — m5f czeka
     teraz na „K1-WEJSCIE: gotowe” jak test-m6. Nie związane z menu.
+Krok 2 (PR #219, 2026-11-25): D3: A „Spokojny” — właściciel wybrał na szkicach (oba motywy, dwie tapety). (Ustalenia
+  odtworzone w kroku 3: PR #220, który miał je dopisać, scalił się bez zmian — gałąź nie dostała commita z dokumentami.)
+  - Ikony stanu to jedna tabela `elementy` w gui/pasek_gorny.c (nazwa w opisie ekranu, okienko, szerokość komórki,
+    rysowanie), okienka paska — tabela `okienka` (nazwa, rozmiar, rysowanie), jedna powierzchnia P_OKIENKO_PASKA
+    o rozmiarze największego (OKIENKO_PASKA_SZER × _WYS), przesuwana pod ikonę przy otwarciu. Krok 3: wiersz „Bateria”
+    w `elementy` dostaje okienko, nowy wiersz w `okienka`; większe okienko → większe OKIENKO_PASKA_*.
+  - Podświetlenie pod kursorem i przycisk w opisie ekranu — tylko ikony, które coś otwierają (sieć i bateria do kroku 3:
+    K1_EL_IKONA, bez podświetlenia — nic nie obiecują).
+  - pasek_gorny.c ma po kroku 2 431 wierszy — bateria do gui/bateria.c przed okienkiem (T4).
+  - Robot: przebiegi z 2026-11-24 i 2026-11-25 (Issue #216, #217) padły na „GitHub Actions is not permitted to create or
+    approve pull requests” — potrzebne jedno ustawienie repozytorium (docs/komponenty/robot.md).
+Krok 3 (PR #221, 2026-11-25): D4: A (bez wykresu) — właściciel wybrał na szkicach z hosta (oba motywy, ładowanie
+  i rozładowywanie). Wydanie 0.11.8 (robot nic nie wydał: od 2026-11-24 stoi na ustawieniu repozytorium).
+  - T4: najpierw gui/bateria.c (osobny commit), potem okienko w nim; pasek_gorny.c zostaje przy tabelach paska.
+  - T1: ten sam komunikat co dla Zasobów — K1_KOM_ZASOBY_BATERIA przemianowany na BATERIA_POMIAR (jedno sprawdzanie);
+    do gui tylko po zmianie i tylko do UID gui (ekran hasła go nie dostaje). gui → nadzorca BATERIA_OKIENKO (a = otwarte /
+    zamknięte / „Ustawienia baterii”): odczyt co 5 s, póki otwarte, i raz od razu przy otwarciu.
+  - L13: przycisk „Ustawienia baterii” wszedł — mała zmiana: BATERIA_POKAZ do Ustawień (fd 4), jak AKT_POKAZ.
+  - Tabela okienek paska dostała dwie kolumny: kogo powiadomić o otwarciu / zamknięciu i kto obsługuje wskaźnik nad
+    okienkiem; powierzchnia 300×202 (szerokość dźwięku, wysokość baterii). Ikona, która znikła, zamyka swoje okienko.
+  - „Liczę…” z planu nie weszło: średnia mocy startuje od pierwszego odczytu, więc czas jest znany od razu; nieznany
+    (firmware nie podaje mocy) — „nieznany” (półpauza w napisach jest zakazana, Z3).
+  - Wzorce okienko-baterii-*: osobny przebieg test-wzorce z tablicą ACPI baterii (z baterią Ustawienia dostają sekcję
+    Bateria, a Zasoby wiersz — zmieniłyby się ich wzorce); górne 12 wierszy wycinka to górny pasek z zegarem — pominięte.
+  - Porządki: gui odbierz_baterie → odbierz_od_nadzorcy (obsługuje cały fd 5, nie tylko baterię); stałe DZW_* zniknęły
+    już w kroku 2.
