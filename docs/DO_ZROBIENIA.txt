@@ -23,11 +23,12 @@ Twoja prośba z 2026-11-22: „w wersji 0.12 zająć się dźwiękiem”. Cel: l
 z dźwiękiem, głośność suwakiem na górnym pasku i klawiszami, słuchawki same; kartę dźwiękową ma tylko usługa dźwięku K1,
 przeglądarka gra przez K1. Cztery kroki (jeden krok = jeden czat = jeden PR; decyzje D1–D6 czat zada na początku kroku,
 D1 — mikrofon — najpierw):
-    [ ] krok 1 — dźwięk w K1: sterowniki w jądrze, usługa dźwięku, okienko „Dźwięk” z głośnością i próbą (ADR 0054)
+    [x] krok 1 — dźwięk w K1: sterowniki w jądrze, usługa dźwięku, okienko „Dźwięk” z głośnością i próbą (ADR 0054;
+        PR #223; Twoje D1: A, D2: B, D3: A) — sprawdź na laptopach: górny pasek → głośnik → „Odtwórz próbę”
     [ ] krok 2 — klawisze głośności, słuchawki, Ustawienia → Dźwięk
     [ ] krok 3 — dźwięk z przeglądarki, znak „gra” na ramce sesji
     [ ] krok 4 — porządki; wydanie 0.12.0 (gdy w D1 wybierzesz mikrofon: krok 4 — mikrofon, wydanie w kroku 5)
-[!] Gdy zechcesz zacząć: „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.12.0.txt”.
+[!] Następny: „Korzystając ze skilla kons-dev, wykonaj Krok 2 z docs/PLAN-0.12.0.txt”.
 Do tego czasu robot wydaje poprawki jądra i przeglądarki (0.11.x), a Twoje zgłoszenia z laptopów (punkt 4) idą jako PATCH.
 Przed planem (2026-11-22): porządki w dokumentacji — mapa drogi przesunięta o jedną wersję (ADR 0053), ten plik bez
 historii, lista testów na laptopach ułożona tematami, README, RYZYKA, SPEC i skill zgodne z obecnym stanem.
