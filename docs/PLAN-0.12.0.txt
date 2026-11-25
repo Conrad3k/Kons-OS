@@ -113,6 +113,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [x]  1  Dźwięk w K1: jądro, usługa dźwięku, okienko „Dźwięk”    L1–L6            0.11.3      D1, D2, D3,    L        0054
                                                                                             T1–T4, T7, T8
 [ ]  2  Klawisze głośności, słuchawki, Ustawienia → Dźwięk      L7–L10           1           D4, D5         M        0054 (uzup.)
+     [w toku: Claude, gałąź claude/brave-planck-26jckj]
 [ ]  3  Dźwięk z przeglądarki, znak na ramce sesji              L11–L15          1           D6, T5, T6     L        0054 (uzup.)
 [ ]  4  Porządki; wydanie 0.12.0                                L16              1–3         —              S–M      —
 (ADR 0054: następny wolny po 0053, który przesunął mapę drogi.)
@@ -251,13 +252,14 @@ Właściciela (czat pyta na początku kroku; przy wyglądzie — szkice):
 [x] D3 (krok 1) Dźwięki samego K1: — WYBÓR WŁAŚCICIELA (2026-11-25): A (bez dźwięków K1).
       A — K1 nie wydaje własnych dźwięków (tylko „Odtwórz próbę”). REKOMENDACJA: styl minimalistyczny, nic nie piszczy.
       B — kilka cichych dźwięków (podłączenie zasilacza, „Mało pamięci”, błąd) z przełącznikiem w Ustawieniach.
-[!] D4 (krok 2) Co widać po klawiszu głośności:
+[x] D4 (krok 2) Co widać po klawiszu głośności: — WYBÓR WŁAŚCICIELA (2026-11-25, szkice z hosta): A (pigułka).
       A — pigułka u góry ekranu z paskiem głośności na ok. 1,5 s (jak „pełny ekran: Esc, aby wyjść”). REKOMENDACJA.
       B — otwiera się okienko „Dźwięk” z górnego paska.
-[!] D5 (krok 2) Głośność po włączeniu komputera:
+[x] D5 (krok 2) Głośność po włączeniu komputera: — WYBÓR WŁAŚCICIELA (2026-11-25): A (jak przy wyłączaniu).
       A — taka, jaka była przy wyłączaniu (osobno głośniki i słuchawki). REKOMENDACJA.
       B — zawsze ta sama, np. 40 % (nic nie huknie po starcie).
-[!] D6 (krok 3) Sesja, która gra:
+[x] D6 (krok 3) Sesja, która gra: — WYBÓR WŁAŚCICIELA (2026-11-25, szkice z hosta): A (głośnik na ramce + lista
+      „Grają teraz” w okienku „Dźwięk” z D2 = B).
       A — mały głośnik na pasku okna sesji; kliknięcie wycisza tylko tę sesję. REKOMENDACJA (jak karta w przeglądarce).
       B — bez znaku; sesję wycisza się tylko w okienku „Dźwięk” (wymaga D2 = B).
 
