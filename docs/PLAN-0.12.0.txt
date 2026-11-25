@@ -110,7 +110,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar  ADR
-[ ]  1  Dźwięk w K1: jądro, usługa dźwięku, okienko „Dźwięk”    L1–L6            0.11.3      D1, D2, D3,    L        0054
+[w toku: Claude, gałąź claude/charming-mendel-dhengm, PR #223]
+     1  Dźwięk w K1: jądro, usługa dźwięku, okienko „Dźwięk”    L1–L6            0.11.3      D1, D2, D3,    L        0054
                                                                                             T1–T4, T7, T8
 [ ]  2  Klawisze głośności, słuchawki, Ustawienia → Dźwięk      L7–L10           1           D4, D5         M        0054 (uzup.)
 [ ]  3  Dźwięk z przeglądarki, znak na ramce sesji              L11–L15          1           D6, T5, T6     L        0054 (uzup.)
@@ -237,17 +238,18 @@ KROK 4: Porządki; wydanie 0.12.0                                             S�
 4. DECYZJE
 ----------
 Właściciela (czat pyta na początku kroku; przy wyglądzie — szkice):
-[!] D1 (krok 1, NAJPIERW) Mikrofon w 0.12?
+[x] D1 (krok 1, NAJPIERW) Mikrofon w 0.12? — WYBÓR WŁAŚCICIELA (2026-11-25): A (nie w 0.12; „Później”).
       A — nie: 0.12 tylko gra (głośniki, słuchawki); mikrofon w „Później”. REKOMENDACJA: rozmowy wideo i tak nie działają
           (WebRTC w przeglądarce wyłączony od 0.10.0 — strefy/przegladarka/k1.js), a mikrofon to osobny temat prywatności
           (zgoda, znak, który sesja słucha) — lepiej jako osobna, dokładna praca.
       B — tak: dodatkowy krok 4 „Mikrofon” (zgoda w okienku K1 przy każdej sesji, znak na ramce i na górnym pasku,
           rozmowy wideo w sesji ze zgodą); wersja dłuższa o jeden krok.
-[!] D2 (krok 1) Okienko „Dźwięk” na górnym pasku (szkice A/B, jasny i ciemny):
+[x] D2 (krok 1) Okienko „Dźwięk” na górnym pasku (szkice A/B, jasny i ciemny): — WYBÓR WŁAŚCICIELA (2026-11-25, szkice
+      z hosta): B (lista „Grają teraz” z suwakami sesji; w kroku 1 górna część, lista dochodzi z sesjami w kroku 3).
       A — suwak głośności, przycisk wyciszenia, nazwa wyjścia (Głośniki / Słuchawki), „Odtwórz próbę”. REKOMENDACJA.
       B — jak A, a pod spodem lista sesji, które grają, z osobnymi suwakami (jak „mikser” w Windows); sesje dochodzą
           w kroku 3.
-[!] D3 (krok 1) Dźwięki samego K1:
+[x] D3 (krok 1) Dźwięki samego K1: — WYBÓR WŁAŚCICIELA (2026-11-25): A (bez dźwięków K1).
       A — K1 nie wydaje własnych dźwięków (tylko „Odtwórz próbę”). REKOMENDACJA: styl minimalistyczny, nic nie piszczy.
       B — kilka cichych dźwięków (podłączenie zasilacza, „Mało pamięci”, błąd) z przełącznikiem w Ustawieniach.
 [!] D4 (krok 2) Co widać po klawiszu głośności:
@@ -344,4 +346,26 @@ Krok 4:
 
 USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
 -----------------------------------------------------
-(puste)
+Krok 1 (2026-11-25): D1: A, D2: B (szkice z hosta, oba motywy), D3: A. ADR 0054.
+  - L3: usługa `dzwiek` — UID 111, profil 24 (pierwszy wolny przed dekoderami filmów i pośrednikami stref: FILMY 25,
+    POSREDNIK 31 — nie mają danych w skarbcu). Kanał od nadzorcy jednokierunkowy (KN_DO); klienci dostają kanał od
+    nadzorcy z tabeli `K1_DZW_KLIENCI` (k1_dzwiek.h) — gui na fd 5 (`DZWIEK_KANAL`, od nowa po restarcie usługi albo gui),
+    program testowy `TEST_DZWIEK`. Krok 3: wiersz strefy w tej tabeli i kanał dla VMM-a.
+  - T2: numery ioctl w klatce dokładnie (13), nie cały typ 'A'/'U' — `'U'` ma ELEM_ADD (kontrolki użytkownika) i POWER.
+    Bez mmap stron stanu: zapis okresami (1024 ramek, 4 w buforze) wystarcza; jeden okres na obudzenie (POLLOUT), żeby
+    nic zabrane z pierścienia nie przepadło przy pełnej karcie.
+  - T3: kodek QEMU (`hda-output`) ma tylko „Master Playback Volume/Switch” (2 z 4 kontrolek), usługa ustawia je na 0 dB.
+    Głośność: sześcian z dokładnością 1/2²⁴ (z 1/2¹⁶ najniższe kroki suwaka byłyby równe) — w QEMU 50 % = 0,129 amplitudy
+    100 % (teoria: 0,125). Szum przy małej głośności na X230 — do sprawdzenia w kroku 2.
+  - T4: klient podaje tylko liczbę nowych ramek (`DZWIEK_ZAPISANO`), nie pozycje — usługa liczy sama (`k1_dzw_zapisano`).
+  - T7: QEMU 8.2 z Ubuntu 24.04 ma `-audiodev wav` (POTWIERDZONE); na q35 `ich9-intel-hda` + `hda-output,bus=hda.0`,
+    `out.frequency=48000` (domyślnie 44,1 kHz — przeliczałby). Próba to dwie nuty liczone w programie wielomianem
+    (bez libm: ten sam wynik na hoście, w fuzzerze i w K1).
+  - T8: K1 nie ma `PM` — bez niego nie ma `power_save` kodeka; usługa po 5 s ciszy robi DROP + HW_FREE. Włączenie PM
+    (dotyka też USB, i915, sieci) — decyzja kroku 2 z pomiarem w Zasobach.
+  - L1: `SND_HDA_I915` włącza sam i915 (select). Kodeki Realteka/Conexanta wybierają klasę LED — `INPUT_LEDS` wprost
+    wyłączone; z innymi „default y” robot miałby pytania (`porownaj-jadro.sh`: po zmianie 0).
+  - „Usługa padnie” w teście z kartą: program testowy w trybie opisu ekranu zabija usługę przy drugim zdjęciu wyciszenia
+    w okienku (stan trwały — próbkowanie opisu co 0,5 s go nie zgubi); numer dysku „k1-test-opis-dzwieku” (prefiks
+    „k1-test-opis” włącza opis ekranu).
+  - Ikony głośnika z poziomami: najpierw podział `k1_rysuj.c` (560 wierszy) → `k1_ikony.c` (osobny commit).

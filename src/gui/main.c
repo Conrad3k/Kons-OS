@@ -224,17 +224,20 @@ int main(void)
     pliki_start(); /* the files of the Pulpit folder join the icons when skarbiec answers */
 
     for (;;) {
-        struct pollfd p[3] = { { k.fd, POLLIN, 0 }, { bat_kanal ? FD_BATERIA : -1, POLLIN, 0 }, { skarb_fd, POLLIN, 0 } };
+        struct pollfd p[4] = { { k.fd, POLLIN, 0 }, { bat_kanal ? FD_BATERIA : -1, POLLIN, 0 }, { skarb_fd, POLLIN, 0 },
+                               { dzw_fd, POLLIN, 0 } }; /* 0.12.0 step 1: the sound service */
         struct timespec t;
         int czekaj;
         clock_gettime(CLOCK_REALTIME, &t);
         czekaj = (int)(1000 - t.tv_nsec / 1000000) + 5;
-        if (poll(p, 3, czekaj) < 0 && errno != EINTR)
+        if (poll(p, 4, czekaj) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
         if (p[1].revents != 0)
             odbierz_od_nadzorcy();
         if (p[2].revents != 0)
             odbierz_skarbiec();
+        if (p[3].revents != 0)
+            dzwiek_odbierz();
         while (k1_odbierz(&k, wszystkie, 6, &m))
             komunikat(&m);
         clock_gettime(CLOCK_REALTIME, &t);

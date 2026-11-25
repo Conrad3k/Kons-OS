@@ -56,10 +56,10 @@ int proba(const char *profil)
     void *m;
     int e;
     /* memfd (surfaces, data) for everyone but wejscie, the disk writer, the film decoder and the graphics broker (their
-     * windows come from their clients — 0.10.9 steps 2 and 5) (nadzorca/profile.c); siec since 0.9.1 step 2 (the
-     * remembered Wi-Fi networks it writes for skarbiec) */
+     * windows come from their clients — 0.10.9 steps 2 and 5) and the sound service (its clients' rings come from them —
+     * 0.12.0 step 1) (nadzorca/profile.c); siec since 0.9.1 step 2 (the remembered Wi-Fi networks it writes for skarbiec) */
     int okna = strstr(profil, "wejscie") == NULL && strstr(profil, "instalator") == NULL && strstr(profil, "filmy") == NULL &&
-               strstr(profil, "posrednik") == NULL;
+               strstr(profil, "posrednik") == NULL && strstr(profil, "dzwiek") == NULL;
 
     memset(&sa, 0, sizeof sa);
     sa.sa_sigaction = proba_sigsys;

@@ -98,9 +98,17 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   zaokrąglenie 12, krem 10%) z ikonami stanu w komórkach — sieć (32 px), bateria tylko na laptopie ([błyskawica przy
   ładowaniu] „73%” + kontur baterii 22×12, zaokrąglenie 3, linia 1,25, kremowe wypełnienie; ≤ 15 % przy rozładowywaniu
   `#D97757`; 8 px z boków), dźwięk (32 px). Komórka, która coś otwiera, podświetla się pod kursorem i gdy jej okienko jest
-  otwarte (krem 16%, pełne zaokrąglenie): dźwięk i bateria. **Okienka paska** (np. „Dźwięk”, 300×84)
+  otwarte (krem 16%, pełne zaokrąglenie): dźwięk i bateria. **Okienka paska** (np. „Dźwięk”, 300×158)
   w stylu paneli (tło motywu, zaokrąglenie 16, cień) stoją 4 px pod paskiem, wyśrodkowane pod swoją ikoną (przy prawej
   krawędzi przesunięte, by zostało 8 px).
+- **Okienko „Dźwięk”** (0.12.0 krok 1, szkic B — decyzja właściciela D2 z 2026-11-25, w kroku 1 jego górna część;
+  300×158, okienko paska): u góry „Dźwięk” (Medium 15) i z prawej nazwa wyjścia („Głośniki”, drugi kolor tekstu); pod
+  spodem okrągły przycisk wyciszenia 36 px (pole motywu z cienką obwódką; wyciszony — wypełniony akcentem, ikona w kolorze
+  „na akcencie”), suwak (tor 4 px, część do głośności w akcencie — przy wyciszeniu szara, gałka 16 px biała z cieniem)
+  i procenty z prawej (Medium 13); kreska oddzielająca; przycisk „Odtwórz próbę” (cichy, cała szerokość). Bez karty — ikona,
+  „Dźwięk” i dwa wiersze tekstu jak dawne okienko. Szkice w obu motywach z hosta (funkcje K1). Krok 3 dopisze „Grają teraz”
+  (sesje z kropką koloru i suwakiem). **Ikona głośnika** na pasku: dwie fale od 50 %, jedna poniżej, × przy wyciszeniu
+  i 0 %, blada (krem 27%) i przekreślona bez karty (jak sieć bez karty) — `K1_IK_GLOSNIK`, `_CICHO`, `_WYCISZONY`.
 - **Okienko baterii** (0.11.8 krok 3, szkic A — decyzja właściciela D4 z 2026-11-25; 272×202, okienko paska): z lewej u góry
   procent IBM Plex Serif 24 („73 %”), z prawej symbol baterii 30×16 (zaokrąglenie 4, linia 1,5) w kolorze tekstu motywu,
   wypełnienie jak procent (≤ 15 % przy rozładowywaniu — terakota); pod procentem stan (Sans 13, tekst drugi: „Ładowanie”,

@@ -131,6 +131,9 @@ int t_most_scenariusz(void);
 void t_opis(void);              /* 0.10.2 step 2 (ADR 0045): the screen's description */
 void t_filmy(void);             /* 0.10.9 step 2 (ADR 0049): the film decoder (t_filmy.c) */
 void t_posrednik(void);         /* 0.10.9 step 5 (ADR 0049): the graphics broker (t_posrednik.c) */
+struct k1_opis_el;
+void t_dzwiek(void);            /* 0.12.0 step 1 (ADR 0054): the sound service (t_dzwiek.c) */
+void t_dzwiek_opis(const struct k1_opis_el *el, int n); /* …the scenario of scripts/test-dzwiek.sh */
 int znak_dysku(const char *serial); /* a disk with this serial number: a test's mark (t_opis.c) */
 int tryb_opisu(void);           /* test-m4: the description for the script (t_opis_scenariusz) */
 int t_opis_scenariusz(void);

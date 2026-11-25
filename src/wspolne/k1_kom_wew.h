@@ -54,5 +54,6 @@ int k1_kom_sprawdz_strefa(const struct k1_komunikat *k, enum k1_kanal_kierunek k
 int k1_kom_sprawdz_filmy(const struct k1_komunikat *k, enum k1_kanal_kierunek kier);      /* k1_kom_filmy.c */
 int k1_kom_sprawdz_posrednik(const struct k1_komunikat *k, enum k1_kanal_kierunek kier);  /* k1_kom_posrednik.c */
 int k1_kom_sprawdz_pobrane(const struct k1_komunikat *k, enum k1_kanal_kierunek kier);    /* k1_kom_pobrane.c */
+int k1_kom_sprawdz_dzwiek(const struct k1_komunikat *k, enum k1_kanal_kierunek kier);     /* k1_kom_dzwiek.c */
 
 #endif

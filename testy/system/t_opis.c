@@ -137,7 +137,7 @@ static void loguj(unsigned nr, int n)
 int t_opis_scenariusz(void)
 {
     static struct k1_opis_el ostatni[K1_OPIS_EKRAN_MAKS];
-    int fd = -1, n_ost = -1, i;
+    int fd = -1, n_ost = -1, i, dzwiek = znak_dysku("k1-test-opis-dzwieku");
     unsigned nr = 0;
     for (i = 0; i < 600 && find_process("gui") <= 0; i++)
         msleep(100);
@@ -156,6 +156,8 @@ int t_opis_scenariusz(void)
             memcpy(ostatni, el, (size_t)n * sizeof el[0]);
             n_ost = n;
             loguj(++nr, n);
+            if (dzwiek)
+                t_dzwiek_opis(el, n); /* 0.12.0 step 1: scripts/test-dzwiek.sh — the service killed on cue */
         }
         msleep(500);
     }

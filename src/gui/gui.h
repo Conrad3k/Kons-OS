@@ -111,6 +111,16 @@ const char *nazwa_pozycji(int apl, char *buf, size_t n);
 void wskaznik_gora(const struct k1_komunikat *m);
 void okienko_paska_zamknij(void); /* the popover under an icon of the bar, if one is open (0.11.8 step 2) */
 int32_t dzwiek_srodek(void);       /* the middle of the sound icon on the bar (the tests' log) */
+/* dzwiek.c — 0.12.0 step 1 (ADR 0054; D2: B): the speaker on the bar, the popover "Dźwięk", the channel to dzwiek */
+extern int dzw_fd;
+void dzwiek_kanal_nowy(int fd); /* DZWIEK_KANAL from nadzorca (fd 5): the caller closes `fd` */
+void dzwiek_odbierz(void);
+void dzwiek_na_pasku(struct k1_obraz *o, int32_t x, uint32_t krem);
+#define DZWIEK_OKIENKO_SZER 300
+#define DZWIEK_OKIENKO_WYS 158
+void dzwiek_okienko(struct k1_obraz *o, const struct k1_motyw *m);
+void dzwiek_okienko_wskaznik(const struct k1_komunikat *m);
+void dzwiek_okienko_otwarte(int tak);
 #define OKIENKO_PASKA_SZER 300     /* the largest popover of the bar: the surface's size (the sound's width, */
 #define OKIENKO_PASKA_WYS 202      /* the battery's height — bateria.c) */
 void wskaznik_okienka_paska(const struct k1_komunikat *m);

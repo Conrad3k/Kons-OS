@@ -190,6 +190,18 @@ podpisów (RSA, X.509, PKCS#7, `KEYS`, `SYSTEM_TRUSTED_KEYRING`) — tylko do sp
 są w każdej klatce zablokowane (seccomp), używa ich tylko jądro. **Kompresja jądra: zstd** (od 0.9.1; bzImage
 6 595 584 B → 12 530 688 B, `k1.efi` 8 923 792 B → 14 899 856 B; z gzip byłoby 20 MB).
 
+### Dźwięk (0.12.0 krok 1, ADR 0054)
+Karta Intel HD Audio (X230: kontroler 7 Series, kodek Realtek ALC269 — do potwierdzenia w logu; IdeaPad 110: Sunrise
+Point, kodek Realtek albo Conexant — do potwierdzenia; QEMU: `ich9-intel-hda` + `hda-output`): `SOUND`, `SND`, `SND_PCI`,
+`SND_HDA_INTEL` (wybiera `SND_HDA` i `SND_INTEL_DSP_CONFIG`), `SND_HDA_GENERIC`, `SND_HDA_CODEC_REALTEK` z `ALC269`
+(rodzina ALC2xx), `SND_HDA_CODEC_CONEXANT`. `SND_HDA_I915` wybiera sam i915 (wiązanie z kartą graficzną; na Skylake
+i nowszych zasila łącze kodeka HDMI — analogowy działa i bez niego). Kodeki Realteka i Conexanta wybierają klasę LED
+(dioda wyciszenia), więc `INPUT_LEDS` wprost wyłączone. Wprost wyłączone opcje „default y” (żeby robot nie miał pytań —
+`scripts/porownaj-jadro.sh`: 0): OSS, timery ALSA, `/proc/asound`, stare ioctl, karty z `sound/drivers`, USB, FireWire,
+`sound/x86`, ASoC (SOF/AVS/SST), sekwencer, hwdep, „beep”, łatki kodeka, HDMI, pozostałe rodziny Realteka. Bez `PM`
+nie ma usypiania kodeka (`power_save`) — kartę zatrzymuje usługa dźwięku po 5 s ciszy; PM — decyzja kroku 2 z pomiarem.
+Węzły `/dev/snd` otwiera tylko nadzorca i daje tylko usłudze dźwięku (`docs/komponenty/dzwiek.md`).
+
 ## Wywołania systemowe usunięte z jądra (test: `t_syscalls`)
 `init_module`, `finit_module`, `kexec_load`, `kexec_file_load`, `io_uring_setup`, `bpf`,
 `userfaultfd`, `modify_ldt`, `iopl`, `ioperm` → `ENOSYS`. Gniazda `AF_INET6` → `EAFNOSUPPORT`; `AF_INET` (od 0.9.0) i UNIX

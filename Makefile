@@ -46,7 +46,8 @@ NAGL    := $(wildcard src/wspolne/*.h)
 KOMUNIKAT := src/wspolne/k1_komunikat.c src/wspolne/k1_kom_ekran.c src/wspolne/k1_kom_skarb.c \
              src/wspolne/k1_kom_nadzorca.c src/wspolne/k1_kom_pliki.c src/wspolne/k1_kom_siec.c src/wspolne/k1_siec.c \
              src/wspolne/k1_kom_wifi.c src/wspolne/k1_wifi.c src/wspolne/k1_kom_strefa.c src/wspolne/k1_opis.c \
-             src/wspolne/k1_kom_filmy.c src/wspolne/k1_filmy.c src/wspolne/k1_kom_posrednik.c src/wspolne/k1_posrednik.c src/wspolne/k1_kom_pobrane.c src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c
+             src/wspolne/k1_kom_filmy.c src/wspolne/k1_filmy.c src/wspolne/k1_kom_posrednik.c src/wspolne/k1_posrednik.c src/wspolne/k1_kom_pobrane.c src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c \
+             src/wspolne/k1_kom_dzwiek.c
 # Services (M3): protocol, channels, sandbox.
 USLUGI  := src/wspolne/k1_uslugi.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_klatka.c src/wspolne/k1_memfd.c \
            src/wspolne/k1_skarb_klient.c src/wspolne/k1_odbior.c src/wspolne/k1_bat_arch.c \
@@ -58,7 +59,7 @@ MAGAZYN_C := src/skarbiec/magazyn.c src/skarbiec/naglowek.c src/skarbiec/odcinki
 MAGAZYN := $(MAGAZYN_C) src/wspolne/k1_indeks.c $(MONOCYPHER)
 GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 # GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
-PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_wachlarz.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
+PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_wachlarz.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/przybornik/k1_aplikacja.c \
            src/przybornik/k1_dekodowanie.c src/przybornik/k1_menu.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_prz_okienko.c \
            src/przybornik/k1_zaznaczenie.c src/przybornik/k1_wycinek.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
@@ -136,9 +137,10 @@ NADZORCA := $(sort $(wildcard src/nadzorca/*.c))
 # 0.10.9 step 4 (ADR 0050): the zone images outside the core (obraz_strefy.c)
 OBRAZ_STREFY := src/wspolne/k1_obraz_strefy.c src/wspolne/k1_obraz_strefy.h src/wspolne/k1_verity.c src/wspolne/k1_verity.h
 # 0.8.0 step 5: nadzorca grows an empty K1-DANE to the end of the stick with the installer's GPT code (powieksz.c)
-$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(OBRAZ_STREFY) src/wspolne/k1_karta_pomiar.c src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(OBRAZ_STREFY) src/wspolne/k1_karta_pomiar.c src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c src/wspolne/k1_dzwiek.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -DK1_CZAS_BUDOWY=$(CZAS_BUDOWY) -Isrc/zewnetrzne/monocypher -Isrc/instalator -I$(GEN)/sb -o $@ $(NADZORCA) src/instalator/gpt.c $(EFI) \
-		$(filter %.c,$(OBRAZ_STREFY)) src/wspolne/k1_karta_pomiar.c src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c src/wspolne/k1_nl.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+		$(filter %.c,$(OBRAZ_STREFY)) src/wspolne/k1_karta_pomiar.c src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c src/wspolne/k1_nl.c \
+		src/wspolne/k1_dzwiek.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
 # 0.9.0 step 3 (ADR 0038): start.c — the boot files swapped beside the old ones (host test: test_start)
@@ -174,6 +176,12 @@ POSREDNIK := $(sort $(wildcard src/posrednik/*.c))
 $(BIN)/posrednik: $(POSREDNIK) $(wildcard src/posrednik/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(POSREDNIK) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
+# 0.12.0 step 1 (ADR 0054): the sound service — ALSA without alsa-lib (sound/asound.h from build/naglowki); mixing, the
+# volume and a client's ring in src/wspolne/k1_dzwiek.c (host test: test_dzwiek, fuzzing: fuzz_dzwiek)
+DZWIEK := $(sort $(wildcard src/dzwiek/*.c)) src/wspolne/k1_dzwiek.c
+$(BIN)/dzwiek: $(DZWIEK) $(wildcard src/dzwiek/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(DZWIEK) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+
 CZYTNIK := $(sort $(wildcard src/czytnik/*.c))
 CZYTNIK_FAT := src/czytnik/fat.c src/czytnik/nazwy.c
 $(BIN)/czytnik: $(CZYTNIK) src/czytnik/fat.h src/przybornik/k1_czas.c src/wspolne/k1_indeks.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
@@ -193,7 +201,7 @@ $(BIN)/siec: $(SIEC) $(wildcard src/siec/*.h) src/wspolne/k1_sha1.c src/wspolne/
 # fuzzing: fuzz_virtq), its window drawn with a part of przybornik; gosc — /init of the test zone's image (it runs inside
 # the machine, not in K1; our flags all the same)
 STREFA := $(sort $(wildcard src/strefa/*.c)) src/wspolne/k1_pomiar.c
-STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/grafika/k1_grafika.c \
+STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/grafika/k1_grafika.c \
                 $(GEN)/k1_czcionki_dane.c
 $(BIN)/strefa: $(STREFA) $(wildcard src/strefa/*.h) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(STREFA) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
@@ -220,7 +228,7 @@ EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/powierzch
          src/ekran/zdjecie.c src/ekran/zalegle.c src/ekran/strefy.c src/ekran/opis.c src/ekran/rozmiar.c \
          src/ekran/wylaczanie.c src/ekran/pelny.c src/ekran/przeciaganie.c src/ekran/schowek.c src/ekran/pomiar.c src/ekran/strefa_bufor.c src/ekran/warstwa.c src/wspolne/k1_skaluj.c \
          src/wspolne/k1_pomiar.c
-EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_liczba.c src/przybornik/k1_wylaczanie.c src/przybornik/k1_opis_klient.c $(GEN)/k1_czcionki_dane.c
+EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_okno.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_liczba.c src/przybornik/k1_wylaczanie.c src/przybornik/k1_opis_klient.c $(GEN)/k1_czcionki_dane.c
 $(BIN)/ekran: $(EKRAN) src/ekran/ekran.h src/ekran/zalegle.h $(EKRAN_PRZYB) $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(EKRAN) $(EKRAN_PRZYB) src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
@@ -229,8 +237,8 @@ $(BIN)/logowanie: src/logowanie/main.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(N
 
 # the desktop shell in modules (0.7.5): main.c (loop), okna, pasek_gorny, pasek_dolny, menu_start — gui.h
 GUI := $(sort $(wildcard src/gui/*.c))
-$(BIN)/gui: $(GUI) src/gui/gui.h $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ $(GUI) $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/gui: $(GUI) src/gui/gui.h src/wspolne/k1_dzwiek.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(GUI) src/wspolne/k1_dzwiek.c $(PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # an application is every .c file of its directory (the Kalkulator: main.c + its engine liczydlo.c)
 .SECONDEXPANSION:
@@ -275,6 +283,9 @@ $(OBJ)/test_obraz_strefy: testy/host/test_obraz_strefy.c src/wspolne/k1_obraz_st
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_obraz_strefy.c src/wspolne/k1_obraz_strefy.c
 
 # 0.10.9 step 2 (ADR 0049 pkt 3): the film decoder's requests and messages
+$(OBJ)/test_dzwiek: testy/host/test_dzwiek.c src/wspolne/k1_dzwiek.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_dzwiek.c src/wspolne/k1_dzwiek.c $(KOMUNIKAT) $(DOK_C) -lm
+
 $(OBJ)/test_filmy: testy/host/test_filmy.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_filmy.c $(KOMUNIKAT) $(DOK_C)
 # 0.10.9 step 5: the graphics broker's requests, buffers and messages
@@ -306,9 +317,9 @@ $(OBJ)/test_bateria: testy/host/test_bateria.c src/nadzorca/bateria.c src/nadzor
 
 # 0.10.7 step 6: the screen "Wyłączanie" as ekran draws it (test-wzorce compares it with its references)
 $(OBJ)/podglad_wylaczania: testy/host/podglad_wylaczania.c src/przybornik/k1_wylaczanie.c src/przybornik/k1_wylaczanie.h \
-		src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c $(GRAFIKA) $(NAGL_P) $(GEN)/k1_czcionki_dane.c | $(OBJ)
+		src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_okno.c $(GRAFIKA) $(NAGL_P) $(GEN)/k1_czcionki_dane.c | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -I$(GEN) -o $@ testy/host/podglad_wylaczania.c \
-		src/przybornik/k1_wylaczanie.c src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/grafika/k1_grafika.c \
+		src/przybornik/k1_wylaczanie.c src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_okno.c src/grafika/k1_grafika.c \
 		$(GEN)/k1_czcionki_dane.c -lm
 
 $(OBJ)/podglad_grafiki: testy/host/podglad_grafiki.c $(GRAFIKA) | $(OBJ)
@@ -460,10 +471,10 @@ $(OBJ)/test_podglad: testy/host/test_podglad.c src/aplikacje/podglad/kolejnosc.c
 
 # 0.8.5 step 2: the measurement of Podgląd's view (not in testy-host: a measurement, optimised like the image, no ASan)
 $(OBJ)/pomiar_podgladu: testy/host/pomiar_podgladu.c src/aplikacje/podglad/skala.c src/aplikacje/podglad/skala.h \
-                        src/wspolne/k1_skaluj.c src/przybornik/k1_rysuj.c $(GRAFIKA) $(GEN)/k1_czcionki_dane.c | $(OBJ)
+                        src/wspolne/k1_skaluj.c src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c $(GRAFIKA) $(GEN)/k1_czcionki_dane.c | $(OBJ)
 	gcc -std=gnu11 -O2 -D_GNU_SOURCE -Wall -Wextra -Werror -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/aplikacje/podglad \
 		'-DK1_WERSJA="$(WERSJA)"' -o $@ testy/host/pomiar_podgladu.c src/aplikacje/podglad/skala.c src/wspolne/k1_skaluj.c \
-		src/grafika/k1_grafika.c src/przybornik/k1_rysuj.c $(GEN)/k1_czcionki_dane.c -lm
+		src/grafika/k1_grafika.c src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c $(GEN)/k1_czcionki_dane.c -lm
 
 # 0.8.5 step 1: ekran's queue of what a client has not taken yet (pure functions)
 $(OBJ)/test_zalegle: testy/host/test_zalegle.c src/ekran/zalegle.c src/ekran/zalegle.h $(NAGL) testy/host/k1_test_host.h | $(OBJ)
@@ -518,7 +529,7 @@ TESTY_HOST := test_gpu_most test_ogloszenie test_paczka test_odcinki test_odcink
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_edid test_pliki_strefy test_schowek test_agent_foldery test_palce \
-	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar
+	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek
 TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania
 
@@ -575,7 +586,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek
+        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -637,6 +648,8 @@ FUZZ_ZR_pliki_strefy := src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c
 FUZZ_DL_pliki_strefy := 200000
 FUZZ_ZR_schowek   := src/wspolne/k1_schowek.c
 FUZZ_DL_schowek   := 4096
+FUZZ_ZR_dzwiek    := src/wspolne/k1_dzwiek.c
+FUZZ_DL_dzwiek    := 4096
 FUZZ_DL_gpu_most  := 8192
 FUZZ_FLAGI := -std=c11 -O1 -g -D_GNU_SOURCE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=all \
               -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/nadzorca -Isrc/skarbiec -Isrc/gui -Isrc/czytnik -Isrc/dekoder -Isrc/instalator -Isrc/siec -Isrc/strefa -Isrc/zewnetrzne/monocypher \

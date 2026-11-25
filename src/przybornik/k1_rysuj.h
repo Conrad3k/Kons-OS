@@ -82,6 +82,8 @@ enum k1_ikona {
     K1_IK_MAKSYMALIZUJ, /* 0.10.5 step 4 (D8): a square — the frame of a zone's window */
     K1_IK_PRZYWROC,     /* two squares: a maximized window back to its size */
     K1_IK_KARTA,        /* 0.10.9 step 6 (D7, the owner's choice: a chip) — a zone draws with the card (its frame's mark) */
+    K1_IK_GLOSNIK_CICHO,     /* 0.12.0 step 1: the speaker with one wave (the volume under 50 %) */
+    K1_IK_GLOSNIK_WYCISZONY, /* the speaker with a × (muted, or the volume 0) */
 };
 void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozmiar, uint32_t kolor);
 

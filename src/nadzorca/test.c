@@ -42,6 +42,11 @@ void obsluz_test(void)
         odpowiedz_testowi(-1, fd);
         if (fd >= 0)
             close(fd);
+    } else if (k.typ == K1_KOM_TEST_DZWIEK) { /* 0.12.0 step 1: the test program as a client of the sound service */
+        int fd = dzwiek_dla_testu();
+        odpowiedz_testowi(-1, fd);
+        if (fd >= 0)
+            close(fd);
     } else if (k.typ == K1_KOM_URUCHOM) {
         uruchom_aplikacje(k.a);
         odpowiedz_testowi(0, -1);

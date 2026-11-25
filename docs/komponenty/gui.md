@@ -47,12 +47,20 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   Ustawieniach). Ikony stanu to **jedna tabela** `elementy` w `pasek_gorny.c` (nazwa w opisie ekranu, okienko, które
   otwiera, szerokość komórki, rysowanie); komórka z okienkiem podświetla się pod kursorem, bez okienka — nie (nic nie
   obiecuje). **Okienka paska** (T2): tabela `okienka` (nazwa, rozmiar, rysowanie, kogo powiadomić o otwarciu i
-  zamknięciu, kto obsługuje wskaźnik nad nim) — „Dźwięk” („ta wersja nie obsługuje jeszcze karty dźwiękowej”; 0.12:
-  głośność) i od 0.11.8 krok 3 „Bateria”; jedna powierzchnia `P_OKIENKO_PASKA` w rozmiarze największego
+  zamknięciu, kto obsługuje wskaźnik nad nim) — „Dźwięk” (od 0.12.0 krok 1 — `dzwiek.c`, niżej) i od 0.11.8 krok 3
+  „Bateria”; jedna powierzchnia `P_OKIENKO_PASKA` w rozmiarze największego
   (`OKIENKO_PASKA_SZER` × `_WYS`: szerokość dźwięku, wysokość baterii), przy otwarciu przesuwana pod ikonę; otwarte
   najwyżej jedno, zamyka je drugie kliknięcie, kliknięcie obok (pasek, pulpit, okno), dolny pasek, menu Start i klawisz
   Super; ikona, która zniknęła (bateria wyjęta), zamyka swoje. Log przy otwarciu: „okienko paska: Dźwięk w x,y
   (szer×wys)”,
+- **dźwięk** (0.12.0 krok 1, ADR 0054; D2 właściciela: B — w kroku 1 część górna; `dzwiek.c`): ikona głośnika na pasku
+  pokazuje stan (dwie fale — głośno, od 50 %; jedna — ciszej; × — wyciszony albo 0 %; blada i przekreślona — brak karty);
+  okienko „Dźwięk” 300 × 158: nazwa wyjścia („Głośniki”), okrągły przycisk „Wycisz”, suwak „Głośność” z procentami
+  (przesunięcie zdejmuje wyciszenie), „Odtwórz próbę” (D3: A — jedyny dźwięk K1; dwie nuty liczone w programie); bez karty:
+  „Ten komputer nie ma karty dźwiękowej.” Kanał do usługi dźwięku od nadzorcy na fd 5 (`DZWIEK_KANAL`, od nowa po jej
+  restarcie — gui podaje wtedy swoją głośność); gui jest klientem sterującym (`DZWIEK_GLOSNOSC`), próbę pisze do swojego
+  pierścienia, gdy usługa zgłasza miejsce. Log: „dźwięk: karta N, głośność P%”, „próba: start / zagrana”, „okienko
+  dźwięku: …”. Usługa: `docs/komponenty/dzwiek.md`. Lista „Grają teraz” — krok 3.
 - **okienko baterii** (0.11.8 krok 3, D4 właściciela: A; `bateria.c`): kliknięcie baterii na górnym pasku → procent (duży)
   i symbol baterii, stan (te same słowa co Zasoby i Ustawienia — `k1_bateria_stan`), wiersz „Zostało” / „Do pełna” z czasem
   „ok. 3 h 20 min” (`k1_minuty`; nieznany — „nieznany”; bez ładowania i rozładowywania — „Zasilacz: podłączony /

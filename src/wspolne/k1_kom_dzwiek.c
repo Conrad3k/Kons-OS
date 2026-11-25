@@ -1,0 +1,79 @@
+/* K1 — checking the messages of sound (0.12.0 step 1, ADR 0054; the split: k1_kom_wew.h): nadzorca → the sound service
+ * (the card's nodes, a new client, no card), a client ↔ the service (its one stream, the volume, the state), nadzorca →
+ * gui (its channel to the service), the test program's request for one. The client's own rights (may it steer?) and the
+ * state of its stream the service checks (k1_dzwiek.h). */
+#include "k1_kom_wew.h"
+
+#include "k1_dzwiek.h"
+
+static int do_dzwieku(const struct k1_komunikat *k)
+{
+    switch (k->typ) {
+    case K1_KOM_DZWIEK_OTWORZ:
+        return zera(k, 0);
+    case K1_KOM_DZWIEK_ZAPISANO:
+        return w(k->a, 1, (int32_t)K1_DZW_PIERSCIEN) && zera(k, 1);
+    case K1_KOM_DZWIEK_ZAMKNIJ:
+        return w(k->a, K1_DZW_PO_ODEGRANIU, K1_DZW_OD_RAZU) && zera(k, 1);
+    case K1_KOM_DZWIEK_GLOSNOSC:
+        return w(k->a, 0, K1_DZW_GLOSNOSC_MAKS) && w(k->b, 0, 1) && zera(k, 2);
+    default:
+        return 0;
+    }
+}
+
+static int od_dzwieku(const struct k1_komunikat *k)
+{
+    switch (k->typ) {
+    case K1_KOM_DZWIEK_STAN: /* the output only with the card */
+        return w(k->a, K1_DZW_KARTA_SZUKA, K1_DZW_KARTA_MAKS) && w(k->b, 0, K1_DZW_GLOSNOSC_MAKS) && w(k->c, 0, 1) &&
+               (k->a == K1_DZW_KARTA_JEST ? w(k->d, K1_DZW_WYJSCIE_GLOSNIKI, K1_DZW_WYJSCIE_MAKS)
+                                          : k->d == K1_DZW_WYJSCIE_BRAK) &&
+               k->e == 0;
+    case K1_KOM_DZWIEK_ODTWORZONO: /* nothing taken only when the stream ends */
+        return w(k->a, k->b ? 0 : 1, (int32_t)K1_DZW_PIERSCIEN) && w(k->b, 0, 1) && zera(k, 2);
+    default:
+        return 0;
+    }
+}
+
+static int sterowanie(const struct k1_komunikat *k)
+{
+    switch (k->typ) {
+    case K1_KOM_DZWIEK_KARTA: /* the controls are the card's, not a device's: c = 0 */
+        return w(k->a, K1_DZW_WEZEL_ODTWARZANIE, K1_DZW_WEZEL_KONTROLKI) && w(k->b, 0, K1_DZW_KARTA_NR_MAKS) &&
+               (k->a == K1_DZW_WEZEL_ODTWARZANIE ? w(k->c, 0, K1_DZW_KARTA_NR_MAKS) : k->c == 0) && zera(k, 3);
+    case K1_KOM_DZWIEK_KLIENT:
+        return w(k->a, 1, K1_DZW_KLIENCI_MAKS) && w(k->b, 0, 65535) && zera(k, 2);
+    case K1_KOM_DZWIEK_BEZ_KARTY:
+        return zera(k, 0);
+    default:
+        return 0;
+    }
+}
+
+int k1_kom_sprawdz_dzwiek(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
+{
+    if (k->obiekt != 0)
+        return 0;
+    switch (k->typ) {
+    case K1_KOM_DZWIEK_KARTA:
+    case K1_KOM_DZWIEK_KLIENT:
+    case K1_KOM_DZWIEK_BEZ_KARTY:
+        return kier == K1_KIER_STEROWANIE && sterowanie(k);
+    case K1_KOM_DZWIEK_OTWORZ:
+    case K1_KOM_DZWIEK_ZAPISANO:
+    case K1_KOM_DZWIEK_ZAMKNIJ:
+    case K1_KOM_DZWIEK_GLOSNOSC:
+        return kier == K1_KIER_DO_DZWIEKU && do_dzwieku(k);
+    case K1_KOM_DZWIEK_STAN:
+    case K1_KOM_DZWIEK_ODTWORZONO:
+        return kier == K1_KIER_OD_DZWIEKU && od_dzwieku(k);
+    case K1_KOM_DZWIEK_KANAL:
+        return kier == K1_KIER_OD_NADZORCY && zera(k, 0);
+    case K1_KOM_TEST_DZWIEK:
+        return kier == K1_KIER_DO_NADZORCY && zera(k, 0);
+    default:
+        return 0;
+    }
+}

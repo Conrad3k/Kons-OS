@@ -3,7 +3,7 @@
 # (testy/wzorce/*.png, testy/qemu/k1wzorce.py). Obraz testowy z opisem ekranu (dysk „k1-test-opis”, ADR 0045) i pustym
 # dyskiem danych; okna z decyzji właściciela D4, w obu motywach: dolny i górny pasek, ikony pulpitu, menu Start, okienko
 # „Którą sesję otworzyć?”, Ustawienia (każda sekcja), Pliki (pusty folder, zaznaczony folder, Kosz — 0.10.7 krok 3), Zasoby,
-# Kalkulator, przełącznik okien (0.10.5 krok 6); ekran „Wyłączanie” (0.10.7 krok 6, na hoście: k1_wylaczanie); okienko
+# Kalkulator, przełącznik okien (0.10.5 krok 6), okienko „Dźwięk” (0.12.0 krok 1, z kartą dźwiękową QEMU); ekran „Wyłączanie” (0.10.7 krok 6, na hoście: k1_wylaczanie); okienko
 # baterii (0.11.8 krok 3) — w osobnym przebiegu z tablicą ACPI baterii (z baterią Ustawienia i Zasoby wyglądają inaczej).
 # Ramkę strefy sprawdza test-strefa.
 # Każde okno wycięte według opisu ekranu; miejsca zmienne (zegar, liczby, wykresy, wersja) się nie liczą; kursor poza
@@ -93,10 +93,21 @@ def pliki_z_folderem(motyw):
     q.sprawdz("Pliki: Kosz opróżniony", q.czekaj(r"K1-PLIKI: widok: Kosz, 0 elementów", od=n, czas=30))
 
 
+def okienko_dzwieku(motyw):
+    """0.12.0 step 1 (D2: B): the popover "Dźwięk" with the card of this pass (QEMU's HDA, no sound out), 50 %."""
+    q.sprawdz(f"usługa dźwięku ma kartę ({motyw})", q.czekaj(r"K1-GUI: dźwięk: karta 2,", czas=60))
+    q.klik_w("Pasek górny", "Dźwięk", "przycisk")
+    if q.sprawdz(f"okienko „Dźwięk” otwarte ({motyw})", q.czekaj_na_element("Okienko paska", "Odtwórz próbę", czas=30)):
+        q.wzorzec(f"okienko-dzwieku-{motyw}", "Okienko paska", pomin=[(0, 0, 332, 12)])  # its top: the bar (the clock)
+    q.klik_w("Pasek górny", "Dźwięk", "przycisk")
+    q.czekaj_na(lambda: q.element("Okienko paska") is None, czas=30)
+
+
 def pulpit(motyw):
     """The bars, the desktop's icons, the Start menu, the sessions' window, Pliki, Zasoby, Kalkulator."""
     q.wzorzec(f"pasek-dolny-{motyw}", "Pasek")
     q.wzorzec(f"pasek-gorny-{motyw}", "Pasek górny")
+    okienko_dzwieku(motyw)
     q.wzorzec(f"pulpit-ikony-{motyw}", "Pulpit", elementy=True)
     q.klik_w("Pasek", "Start", "ikona")
     if q.czekaj_na_element("Menu Start", "Wyłącz", czas=30):
@@ -208,9 +219,11 @@ ZNAK=$TESTY/wzorce-znak.img
 dd if=/dev/zero of="$ZNAK" bs=1M count=1 status=none
 DYSKI="-drive if=none,id=dane,file=$DANE,format=raw -device ide-hd,drive=dane,bus=ide.0"
 DYSKI="$DYSKI -drive if=none,id=znak,file=$ZNAK,format=raw,readonly=on -device virtio-blk-pci,drive=znak,serial=k1-test-opis,addr=0x1e"
+# 0.12.0 step 1: a sound card (its sound goes nowhere) — the popover "Dźwięk" with its controls
+KARTA="-audiodev none,id=dz -device ich9-intel-hda,id=hda -device hda-output,audiodev=dz,bus=hda.0"
 rm -f "$TESTY/wzorce.log" "$TESTY/wzorce.sock"
 "$K1_REPO/scripts/uruchom-qemu.sh" --log "$TESTY/wzorce.log" --monitor "$TESTY/wzorce.sock" --czas "$CZAS" \
-    --obraz "$K1_WYNIK/rdzen-test.squashfs" --qemu "$DYSKI" &
+    --obraz "$K1_WYNIK/rdzen-test.squashfs" --qemu "$DYSKI $KARTA" &
 QPID=$!
 K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I "$K1_BUDOWA/wzorce.py" "$TESTY/wzorce.log" "$TESTY/wzorce.sock" "$TESTY" "$CZAS" || r=1
 zamknij_qemu "$TESTY/wzorce.sock" $QPID
