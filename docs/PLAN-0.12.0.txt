@@ -110,8 +110,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar  ADR
-[w toku: Claude, gałąź claude/charming-mendel-dhengm, PR #223]
-     1  Dźwięk w K1: jądro, usługa dźwięku, okienko „Dźwięk”    L1–L6            0.11.3      D1, D2, D3,    L        0054
+[x]  1  Dźwięk w K1: jądro, usługa dźwięku, okienko „Dźwięk”    L1–L6            0.11.3      D1, D2, D3,    L        0054
                                                                                             T1–T4, T7, T8
 [ ]  2  Klawisze głośności, słuchawki, Ustawienia → Dźwięk      L7–L10           1           D4, D5         M        0054 (uzup.)
 [ ]  3  Dźwięk z przeglądarki, znak na ramce sesji              L11–L15          1           D6, T5, T6     L        0054 (uzup.)
@@ -346,7 +345,9 @@ Krok 4:
 
 USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
 -----------------------------------------------------
-Krok 1 (2026-11-25): D1: A, D2: B (szkice z hosta, oba motywy), D3: A. ADR 0054.
+Krok 1 (PR #223, 2026-11-25): D1: A, D2: B (szkice z hosta, oba motywy), D3: A. ADR 0054. Wzorce okienka
+  „Dźwięk” przyjęte przez właściciela. CI 344: t_dzwiek widział stary proces usługi tuż po SIGKILL (z KVM nadzorca nie
+  zdążył go zebrać) — test czeka na nowy pid; CI 348 zielone.
   - L3: usługa `dzwiek` — UID 111, profil 24 (pierwszy wolny przed dekoderami filmów i pośrednikami stref: FILMY 25,
     POSREDNIK 31 — nie mają danych w skarbcu). Kanał od nadzorcy jednokierunkowy (KN_DO); klienci dostają kanał od
     nadzorcy z tabeli `K1_DZW_KLIENCI` (k1_dzwiek.h) — gui na fd 5 (`DZWIEK_KANAL`, od nowa po restarcie usługi albo gui),
@@ -369,3 +370,5 @@ Krok 1 (2026-11-25): D1: A, D2: B (szkice z hosta, oba motywy), D3: A. ADR 0054.
     w okienku (stan trwały — próbkowanie opisu co 0,5 s go nie zgubi); numer dysku „k1-test-opis-dzwieku” (prefiks
     „k1-test-opis” włącza opis ekranu).
   - Ikony głośnika z poziomami: najpierw podział `k1_rysuj.c` (560 wierszy) → `k1_ikony.c` (osobny commit).
+  - Do sprawdzenia na sprzęcie (właściciel, po najbliższym wydaniu robota): próba słychać na X230 i IdeaPadzie; log
+    „K1-DZWIEK: karta 0: …, kodek …” — który kodek mają laptopy (L1, krok 2).
