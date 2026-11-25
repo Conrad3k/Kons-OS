@@ -138,7 +138,8 @@ void t_dzwiek(void)
     }
     wrogi_klient(pid);
     check(pid > 0 && kill((pid_t)pid, SIGKILL) == 0, "dźwięk: usługa dźwięku zabita (SIGKILL)", "pid %ld", pid);
-    for (int i = 0; i < 100 && (nowy = find_process("dzwiek")) <= 0; i++)
+    /* the old process may still be there a moment after SIGKILL (nadzorca has not collected it yet: CI with KVM) */
+    for (int i = 0; i < 100 && ((nowy = find_process("dzwiek")) <= 0 || nowy == pid); i++)
         msleep(100);
     fd = nowy > 0 && nowy != pid ? kanal() : -1;
     check(fd >= 0 && stan(fd, 15, NULL) == K1_DZW_KARTA_BRAK,
