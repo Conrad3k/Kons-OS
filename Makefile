@@ -58,7 +58,7 @@ MAGAZYN_C := src/skarbiec/magazyn.c src/skarbiec/naglowek.c src/skarbiec/odcinki
 MAGAZYN := $(MAGAZYN_C) src/wspolne/k1_indeks.c $(MONOCYPHER)
 GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 # GUI toolkit (M4): drawing, fonts (generated at build time), time, keyboard, client, windows.
-PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_wachlarz.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
+PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_wachlarz.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/przybornik/k1_aplikacja.c \
            src/przybornik/k1_dekodowanie.c src/przybornik/k1_menu.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_prz_okienko.c \
            src/przybornik/k1_zaznaczenie.c src/przybornik/k1_wycinek.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
@@ -193,7 +193,7 @@ $(BIN)/siec: $(SIEC) $(wildcard src/siec/*.h) src/wspolne/k1_sha1.c src/wspolne/
 # fuzzing: fuzz_virtq), its window drawn with a part of przybornik; gosc — /init of the test zone's image (it runs inside
 # the machine, not in K1; our flags all the same)
 STREFA := $(sort $(wildcard src/strefa/*.c)) src/wspolne/k1_pomiar.c
-STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/grafika/k1_grafika.c \
+STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/grafika/k1_grafika.c \
                 $(GEN)/k1_czcionki_dane.c
 $(BIN)/strefa: $(STREFA) $(wildcard src/strefa/*.h) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(STREFA) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
@@ -220,7 +220,7 @@ EKRAN := src/ekran/main.c src/ekran/scena.c src/ekran/okna.c src/ekran/powierzch
          src/ekran/zdjecie.c src/ekran/zalegle.c src/ekran/strefy.c src/ekran/opis.c src/ekran/rozmiar.c \
          src/ekran/wylaczanie.c src/ekran/pelny.c src/ekran/przeciaganie.c src/ekran/schowek.c src/ekran/pomiar.c src/ekran/strefa_bufor.c src/ekran/warstwa.c src/wspolne/k1_skaluj.c \
          src/wspolne/k1_pomiar.c
-EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_liczba.c src/przybornik/k1_wylaczanie.c src/przybornik/k1_opis_klient.c $(GEN)/k1_czcionki_dane.c
+EKRAN_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_okno.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_liczba.c src/przybornik/k1_wylaczanie.c src/przybornik/k1_opis_klient.c $(GEN)/k1_czcionki_dane.c
 $(BIN)/ekran: $(EKRAN) src/ekran/ekran.h src/ekran/zalegle.h $(EKRAN_PRZYB) $(GRAFIKA) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(EKRAN) $(EKRAN_PRZYB) src/grafika/k1_grafika.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
@@ -306,9 +306,9 @@ $(OBJ)/test_bateria: testy/host/test_bateria.c src/nadzorca/bateria.c src/nadzor
 
 # 0.10.7 step 6: the screen "Wyłączanie" as ekran draws it (test-wzorce compares it with its references)
 $(OBJ)/podglad_wylaczania: testy/host/podglad_wylaczania.c src/przybornik/k1_wylaczanie.c src/przybornik/k1_wylaczanie.h \
-		src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c $(GRAFIKA) $(NAGL_P) $(GEN)/k1_czcionki_dane.c | $(OBJ)
+		src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_okno.c $(GRAFIKA) $(NAGL_P) $(GEN)/k1_czcionki_dane.c | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -I$(GEN) -o $@ testy/host/podglad_wylaczania.c \
-		src/przybornik/k1_wylaczanie.c src/przybornik/k1_rysuj.c src/przybornik/k1_okno.c src/grafika/k1_grafika.c \
+		src/przybornik/k1_wylaczanie.c src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_okno.c src/grafika/k1_grafika.c \
 		$(GEN)/k1_czcionki_dane.c -lm
 
 $(OBJ)/podglad_grafiki: testy/host/podglad_grafiki.c $(GRAFIKA) | $(OBJ)
@@ -460,10 +460,10 @@ $(OBJ)/test_podglad: testy/host/test_podglad.c src/aplikacje/podglad/kolejnosc.c
 
 # 0.8.5 step 2: the measurement of Podgląd's view (not in testy-host: a measurement, optimised like the image, no ASan)
 $(OBJ)/pomiar_podgladu: testy/host/pomiar_podgladu.c src/aplikacje/podglad/skala.c src/aplikacje/podglad/skala.h \
-                        src/wspolne/k1_skaluj.c src/przybornik/k1_rysuj.c $(GRAFIKA) $(GEN)/k1_czcionki_dane.c | $(OBJ)
+                        src/wspolne/k1_skaluj.c src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c $(GRAFIKA) $(GEN)/k1_czcionki_dane.c | $(OBJ)
 	gcc -std=gnu11 -O2 -D_GNU_SOURCE -Wall -Wextra -Werror -Isrc/wspolne -Isrc/grafika -Isrc/przybornik -Isrc/aplikacje/podglad \
 		'-DK1_WERSJA="$(WERSJA)"' -o $@ testy/host/pomiar_podgladu.c src/aplikacje/podglad/skala.c src/wspolne/k1_skaluj.c \
-		src/grafika/k1_grafika.c src/przybornik/k1_rysuj.c $(GEN)/k1_czcionki_dane.c -lm
+		src/grafika/k1_grafika.c src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c $(GEN)/k1_czcionki_dane.c -lm
 
 # 0.8.5 step 1: ekran's queue of what a client has not taken yet (pure functions)
 $(OBJ)/test_zalegle: testy/host/test_zalegle.c src/ekran/zalegle.c src/ekran/zalegle.h $(NAGL) testy/host/k1_test_host.h | $(OBJ)
