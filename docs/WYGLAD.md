@@ -109,8 +109,13 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
 - **Dolny pasek** (unosi się 8 px nad krawędzią, zaokrąglenie 16, tło okien 94%, włoskowaty obrys,
   miękki cień rzucany 4 px w dół, tylko poza panelem — od 0.5.0 bez „podstawy” pod paskiem): Start (znak K1 „Warstwy”), separator, ikony aplikacji 24 px w polach 44 px. Uruchomiona —
   kropka pod ikoną, aktywna — kreska 16×3 w kolorze akcentu.
-- **Menu Start** (360 px): znak + „Kons K1” (Plex Serif 24) i wersja; wiersze aplikacji 56 px
-  (ikona, nazwa, opis); stopka: „Uruchom ponownie”, „Wyłącz”.
+- **Menu Start** (400 px; od 0.11.8 krok 1, decyzje właściciela D1: A, D2: A z 2026-11-25): znak + „Kons K1” (Plex
+  Serif 24) i wersja; lista aplikacji o stałej wysokości — 7 wierszy po 56 px (ikona, nazwa, opis; na niskim ekranie
+  mniej, najmniej 3: menu zawsze mieści się między paskami z odstępem 8 px); aplikacje, które się nie mieszczą, chowają się
+  za górną krawędzią listy — po otwarciu widać koniec listy (najbliżej przycisku Start), kółko „od siebie” albo dwa palce
+  przewijają w górę (ząbek kółka = jeden wiersz, palce płynnie); przy krawędzi, za którą coś jest, wiersze miękko
+  zanikają do tła panelu (pas 32 px); z prawej cienki pasek przewijania (3 px, kolor `tekst3`, mocniejszy pod kursorem
+  i przy przeciąganiu — można go chwycić). Stopka: „Zablokuj” (tylko z hasłem, 0.11.5), „Uruchom ponownie”, „Wyłącz”.
 - **Okna:** zaokrąglenie 12, pasek tytułu 44 px w kolorze okna (tytuł Plex Sans Medium 15,
   przyciski minimalizuj i zamknij po prawej), włoskowaty obrys, miękki cień rzucany przez ekran
   (mocniejszy dla aktywnego okna).

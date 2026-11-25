@@ -68,7 +68,7 @@ if tryb == "haslo":
         kursor[:] = list(kt)
     if g:
         klik(int(g.group(1)), int(g.group(2)))
-        m = czekaj(r"menu Start otwarte \(.*; Zablokuj (\d+),(\d+)\)", czas=20)
+        m = czekaj(r"menu Start otwarte \(.*; Zablokuj (\d+),(\d+);", czas=20)
         if m:
             klik(int(m.group(1)), int(m.group(2)))
     sprawdz("NEGATYWNE: Zablokuj nie pokazuje ekranu „Wyłączanie” (0.10.7 krok 6)",
@@ -312,8 +312,11 @@ if m:
             menu_k(q.srodek(q.element("Menu Start", "Zasoby")), "menu Start Zasoby", "Dodaj do pulpitu") and
             czekaj(r"K1-GUI: dodano do pulpitu: Zasoby"), menu_opis[0])
     q.czekaj_na(lambda: q.element("Menu") is None, czas=10)  # the right-click menu closed: the Start menu again
-    sprawdz("menu Start: prawy przycisk → „Przypnij do paska” — Notatki na końcu paska",
-            menu_k(q.srodek(q.czekaj_na_element("Menu Start", "Notatki")), "menu Start Notatki", "Przypnij do paska") and
+    # 0.11.8 step 1: Notatki hides above the list when the menu opens — the wheel first; the right button after
+    # scrolling opens the menu of the row under the pointer (gui's log names it)
+    nt = q.przewin_do("Menu Start", "Notatki")
+    sprawdz("menu Start: po przewinięciu prawy przycisk → „Przypnij do paska” — Notatki na końcu paska",
+            nt and menu_k(q.srodek(nt), "menu Start Notatki", "Przypnij do paska") and
             czekaj(r"K1-GUI: pasek zmieniony: .*\(pasek: Zegar, Ustawienia, Zasoby, Kalkulator, Pliki, Przeglądarka, "
                    r"Notatki\)"),
             menu_opis[0] + " | " + ostatni(r"K1-GUI: pasek zmieniony: .*"))
@@ -422,7 +425,24 @@ sprawdz("zrzut: kafelek Kalkulatora w nowej komórce", jasny(px(cel[0] - 20, cel
 m = otworz_start()
 sprawdz("menu Start otwiera się po kliknięciu (w opisie ekranu: panel „Menu Start” z „Wyłącz”)", m)
 if not m: sys.exit(1)
-rx, ry = q.srodek(q.element("Menu Start", "Zegar"))
+# 0.11.8 step 1 (D1: A — 7 rows; D2: A — the end of the list shows, the rest hides above it): the wheel over the menu
+# scrolls it, every opening starts from the end again
+lo = czekaj(r"K1-GUI: menu Start otwarte \(.*lista (\d+)–(\d+), widać (\d+) z (\d+), przesunięcie (\d+)\)", czas=10)
+sprawdz("(0.11.8) menu Start niższe: widać 7 z 9 aplikacji, od końca listy — Przeglądarka widać, Zegar schowany u góry",
+        lo and lo.group(3) == "7" and int(lo.group(5)) == (int(lo.group(4)) - 7) * 56 and
+        q.element("Menu Start", "Przeglądarka") and q.element("Menu Start", "Zegar") is None, lo.group(0) if lo else "")
+zg = q.przewin_do("Menu Start", "Zegar")
+sprawdz("(0.11.8) kółko nad menu Start przewija listę: Zegar widać, Przeglądarka schowała się na dole",
+        zg and q.czekaj_na(lambda: q.element("Menu Start", "Przeglądarka") is None, czas=10))
+w, h, px = zrzut("2-menu-przewiniete", gdy=lambda w, h, px: True)
+klik(W * 3 // 4, H // 3)  # closes it
+q.czekaj_na(lambda: q.element("Menu Start") is None, czas=10)
+m = otworz_start()
+sprawdz("(0.11.8) ponowne otwarcie menu Start znowu od końca listy (Zegar schowany)",
+        m and q.czekaj_na(lambda: q.element("Menu Start", "Przeglądarka") is not None, czas=10) and
+        q.element("Menu Start", "Zegar") is None)
+if not m: sys.exit(1)
+rx, ry = q.srodek(q.przewin_do("Menu Start", "Zegar") or q.element("Menu Start", "Wyłącz"))
 w, h, px = zrzut("2-menu")
 sprawdz("zrzut: menu Start widoczne (jasne tło nad paskiem)", jasny(px(rx, ry - 50)), str(px(rx, ry - 50)))
 q.klik_w("Menu Start", "Notatki", "wiersz")

@@ -95,6 +95,7 @@ static void uloz(int pierwszy)
     int32_t dzw_x = W - 16 - DZW_SZER - MARG, dzw_y = K1_PASEK_GORNY + 4 - MARG;
     dok_x = (W - DOK_SZER) / 2 - MARG;
     dok_y = H - 8 - DOK_WYS - MARG;
+    menu_dopasuj(H);
     menu_x = (W - MENU_SZER) / 2 - MARG;
     menu_y = dok_y + MARG - 8 - MENU_WYS - MARG;
     pulpit_utworz(pierwszy);
@@ -169,6 +170,10 @@ static void komunikat(struct k1_komunikat *m)
     case K1_KOM_UPUSZCZANIE:
         if (m->obiekt == P_PULPIT)
             pulpit_upuszczanie(m);
+        break;
+    case K1_KOM_PRZEWIN: /* 0.11.8 step 1: the wheel or two fingers over the Start menu */
+        if (m->obiekt == P_MENU)
+            przewin_menu(m);
         break;
     case K1_KOM_PRZECIAGANIE_GDZIE:
         if (m->obiekt == P_PULPIT)

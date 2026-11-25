@@ -15,6 +15,7 @@
 #include "k1_rysuj.h"
 #include "k1_test_host.h"
 #include "k1_wachlarz.h"
+#include "k1_wycinek.h"
 
 static int czas(int64_t utc, int r, int m, int d, int g, int mi, int s, int dt, int letni)
 {
@@ -247,6 +248,51 @@ static void t_wachlarz(void)
     k1_wachlarz(&o, 30, 30, 64, 4, 0xffffff, 60, 255);
 }
 
+/* 0.11.8 step 1: a part of an image — drawing into it never touches the rest; the faded edge of a scrolled list */
+static void t_wycinek(void)
+{
+    static uint32_t px[40 * 30];
+    struct k1_obraz o = { px, 40, 30, 40 }, w;
+    const uint32_t tlo = k1_kolor(0xfaf9f6, 240), tusz = k1_kolor(0x1f1e1c, 255);
+    int poza = 0, w_srodku = 0;
+    k1_wyczysc(&o, 0);
+    w = k1_wycinek(&o, 10, 5, 20, 12);
+    EXPECT(w.szer == 20 && w.wys == 12 && w.krok == 40 && w.px == px + 5 * 40 + 10);
+    k1_prostokat(&w, -50, -50, 200, 200, tusz);              /* far bigger than the part */
+    k1_tekst(&w, K1_CZ_TEKST, -3, 30, "Zegar", tusz, 0);       /* a row half below it */
+    k1_zaokraglony(&w, 15, -8, 30, 30, 6, tusz);
+    for (int y = 0; y < 30; y++)
+        for (int x = 0; x < 40; x++) {
+            int srodek = x >= 10 && x < 30 && y >= 5 && y < 17;
+            if (!srodek && px[y * 40 + x] != 0)
+                poza++;
+            if (srodek && px[y * 40 + x] == tusz)
+                w_srodku++;
+        }
+    EXPECT(poza == 0 && w_srodku == 20 * 12);
+    w = k1_wycinek(&o, 30, 25, 50, 50); /* clipped to the image */
+    EXPECT(w.szer == 10 && w.wys == 5);
+    w = k1_wycinek(&o, 41, 0, 5, 5);
+    EXPECT(w.szer == 0 && w.wys == 0);
+    w = k1_wycinek(&o, 0, 0, 0, 7);
+    EXPECT(w.szer == 0 && w.wys == 0);
+    k1_wyczysc(&w, tusz); /* an empty part: nothing happens */
+    k1_zanik(&w, tlo, 1, 1, 4);
+    /* fading: the edge row becomes the background, `pas` rows in keep their pixels, between — between */
+    k1_wyczysc(&o, tusz);
+    k1_zanik(&o, tlo, 1, 0, 8);
+    EXPECT(px[0] == tlo && px[39] == tlo);
+    EXPECT(px[8 * 40] == tusz && px[29 * 40] == tusz);
+    EXPECT((px[4 * 40] & 0xff) > (tusz & 0xff) && (px[4 * 40] & 0xff) < (tlo & 0xff));
+    EXPECT((px[2 * 40] & 0xff) > (px[5 * 40] & 0xff)); /* closer to the edge, closer to the background */
+    k1_wyczysc(&o, tusz);
+    k1_zanik(&o, tlo, 0, 1, 8);
+    EXPECT(px[29 * 40 + 5] == tlo && px[21 * 40] == tusz && px[0] == tusz);
+    k1_wyczysc(&o, tusz);
+    k1_zanik(&o, tlo, 1, 1, 0); /* no band: nothing */
+    EXPECT(px[0] == tusz && px[29 * 40] == tusz);
+}
+
 int main(void)
 {
     t_wachlarz();
@@ -256,5 +302,6 @@ int main(void)
     t_rysowanie();
     t_zaokraglone();
     t_okno();
+    t_wycinek();
     return K1_TEST_KONIEC("test_przybornik");
 }

@@ -55,7 +55,15 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   przyciskiem; nazwy sesji jako „sesja N” — `k1_menu_el` z kopii menu), „Okienko” (kafelki „sesja N”, „Anuluj”);
   od 0.10.2 krok 3 „Pasek górny” („Dźwięk”) i **miejsca zmienne** (`K1_EL_ZMIENNE`) dla zrzutów wzorcowych: „Stan i
   zegar” na górnym pasku (sieć, bateria, zegar — przesuwają się z szerokością zegara), „Wersja” w menu Start.
-- **menu Start**: aplikacje z opisami (bez okien samego K1 — „Wybór pliku”, kolumna -1 listy aplikacji), „Zablokuj” (0.6.3 jako „Wyloguj”; od 0.11.5 „Zablokuj” i tylko, gdy magazyn ma hasło — `SESJA`; bez hasła zostałoby samo zamknięcie aplikacji), „Uruchom ponownie”, „Wyłącz”; klawisz Super otwiera/zamyka.
+- **menu Start**: aplikacje z opisami (bez okien samego K1 — „Wybór pliku”, kolumna -1 listy aplikacji), „Zablokuj” (0.6.3 jako „Wyloguj”; od 0.11.5 „Zablokuj” i tylko, gdy magazyn ma hasło — `SESJA`; bez hasła zostałoby samo zamknięcie aplikacji), „Uruchom ponownie”, „Wyłącz”; klawisz Super otwiera/zamyka. Od 0.11.8 krok 1 (D1: A, D2: A) lista ma stałą wysokość —
+  `MENU_WIDAC` = 7 wierszy (`menu_dopasuj`: na niskim ekranie mniej, najmniej `MENU_WIDAC_MIN` = 3; powierzchnia ma rozmiar
+  najwyższego menu, niższe stoi przy jej dolnej krawędzi — przezroczyste piksele nie łapią wskaźnika); każde otwarcie
+  pokazuje koniec listy, reszta chowa się wyżej. `PRZEWIN` od ekranu nad całym menu przesuwa listę w pikselach (ząbek =
+  wiersz, touchpad — część wiersza; T3), wiersze rysuje się w wycinku panelu (`k1_wycinek`, przybornik), krawędź, za
+  którą coś jest, zanika (`k1_zanik`); pasek przewijania z prawej da się chwycić. Opis ekranu ma tylko wiersze widoczne
+  co najmniej w połowie (ich widoczna część); log „menu Start otwarte (pierwszy wiersz x,y co 56; Wyłącz …; Zablokuj …;
+  lista y0–y1, widać n z m, przesunięcie p)” — „pierwszy wiersz” to miejsce, gdzie byłby wiersz 1 (testy dodają do niego
+  wiersze; wiersze nad listą są schowane).
 
 ## Granica zaufania
 Klient `ekran` w roli **powłoki**; prośby do nadzorcy wysyła kanałem fd 4. Nie widzi treści okien
@@ -188,7 +196,7 @@ treści ani innych folderów; RYZYKA R27, R48).
 ## Testy
 | Test | Rodzaj |
 |---|---|
-| `test-m4.sh`: menu Start, uruchamianie z paska i z menu, minimalizacja, Start → Wyłącz, Start → Zablokuj (tylko z hasłem: ekran hasła wraca; bez hasła przycisku nie ma), zrzuty | funkcjonalny |
+| `test-m4.sh`: menu Start (0.11.8: 7 wierszy od końca listy, kółko przewija, ponowne otwarcie znowu od końca, prawy przycisk po przewinięciu), uruchamianie z paska i z menu, minimalizacja, Start → Wyłącz, Start → Zablokuj (tylko z hasłem: ekran hasła wraca; bez hasła przycisku nie ma), zrzuty | funkcjonalny |
 | w systemie: klatka (UID, capabilities, seccomp, cgroup, deskryptory) | funkcjonalny |
 | w systemie: próba w klatce `gui` (22 zabronione działania, pamięć wykonywalna) | negatywny |
 | w systemie: awaria gui → wraca, okna zostają | negatywny |

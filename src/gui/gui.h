@@ -4,7 +4,7 @@
  *   okna.c            the window list from ekran, starting / showing / minimising / closing applications
  *   pasek_gorny.c     the top bar (active application, battery, sound, clock) and the sound popover
  *   pasek_dolny.c     the bottom bar: Start, the pinned applications, the running ones that are not pinned
- *   menu_start.c      the Start menu
+ *   menu_start.c      the Start menu (its list scrolls, 0.11.8 step 1)
  *   pulpit.c          the desktop layer: icons in a grid (select, drag, double click)
  *   pliki.c           the files of the Pulpit folder and Kosz on the desktop (skarbiec, fd 6; 0.8.0)
  *   kontekst.c        the menu under the right mouse button (desktop, icon, bottom bar, Start menu)
@@ -141,10 +141,17 @@ void dok_gotowy(void); /* "pulpit gotowy" with the positions of the bar (after l
 enum { MENU_APL = 0 K1_APLIKACJE(X_W_MENU) K1_STREFY(X_W_MENU_Z) };
 #undef X_W_MENU
 #undef X_W_MENU_Z
-#define MENU_WYS (MENU_NAGL + MENU_APL * MENU_WIERSZ + 8 + MENU_STOPKA)
+/* 0.11.8 step 1 (D1: A): the list shows MENU_WIDAC rows, the rest scrolls; on a low screen fewer, MENU_WIDAC_MIN at least */
+#define MENU_WIDAC 7
+#define MENU_WIDAC_MIN 3
+#define MENU_LISTA_MAKS (MENU_APL < MENU_WIDAC ? MENU_APL : MENU_WIDAC)
+#define MENU_WYS (MENU_NAGL + MENU_LISTA_MAKS * MENU_WIERSZ + 8 + MENU_STOPKA) /* the surface: the tallest menu */
 extern int menu_otwarte;
+extern int menu_widac;                         /* rows of the list visible on this screen */
+void menu_dopasuj(int32_t wys_ekranu);          /* how many rows fit between the bars (again after a mode change) */
 void rysuj_menu(void);
 void wskaznik_menu(const struct k1_komunikat *m);
+void przewin_menu(const struct k1_komunikat *m); /* K1_KOM_PRZEWIN over the menu: the list scrolls */
 void pokaz_menu(int tak);
 
 /* pulpit.c */

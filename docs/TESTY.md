@@ -201,7 +201,9 @@ z małym dyskiem o numerze seryjnym `k1-test-opis` (wzór: `test-m4.sh`, przebie
 ekran co pół sekundy, co jest na ekranie, i wypisuje opis do logu, gdy się zmienił — „K1-TEST: ekran n część/części:
 rekord | …”, rekord „rodzaj okno x,y,w,h stan nazwa” (O okno, P panel, B przycisk, W wiersz, K kafelek, I ikona,
 Z zakładka, F pole, M miejsce zmienne — 0.10.2 krok 3). Skrypt czeka na element i klika jego środek: `q.klik_w("Pasek", "Start")`, `q.klik_w("Menu Start",
-"Wyłącz")`, `q.klik_w("Ustawienia", "Ciemny")`. Nazwy paneli powłoki: „Pasek”, „Pasek górny” (0.10.2 krok 3: „Dźwięk”, miejsce zmienne „Stan i zegar”), „Menu Start”, „Pulpit” (ikony: nazwy
+"Wyłącz")`, `q.klik_w("Ustawienia", "Ciemny")`. Lista menu Start przewija się (0.11.8 krok 1): `klik_w` na „Menu Start” najpierw kręci
+kółkiem nad menu, aż element jest w opisie (`q.przewin_do(okno, nazwa)` — w górę, potem w dół; opis ma tylko wiersze
+widoczne). Nazwy paneli powłoki: „Pasek”, „Pasek górny” (0.10.2 krok 3: „Dźwięk”, miejsce zmienne „Stan i zegar”), „Menu Start”, „Pulpit” (ikony: nazwy
 aplikacji, „Kosz”, „plik N”), „Menu” (menu pod prawym przyciskiem), „Okienko” (okienka pulpitu: „sesja N”, „Anuluj”);
 okno aplikacji — jej tytuł (przyciski przybornika, „Minimalizuj”, „Zamknij”, sekcje i segmenty jako zakładki).
 **Położenia z logu zostają** tam, gdzie opis ich nie daje: listy plików i notatek (nazwy to treść użytkownika),

@@ -69,6 +69,9 @@ STAN_AKT = r"K1-USTAWIENIA: aktualizacje: (?!sprawdzam)([^(]+?) \(dysk: ([^,]*),
 g = czekaj(r"K1-GUI: pulpit gotowy: Start (\d+),(\d+), aplikacje od (\d+),(\d+) co (\d+)", czas=200)
 sprawdz("pulpit gotowy", g)
 if not g: koniec()
+# the desktop can be ready before the input service: moves sent before it grabs the mouse arrive late and the click
+# lands elsewhere (as in test-m6, CI run 193; here CI run 334 of PR #218: Start pressed at 374 instead of 467)
+czekaj(r"K1-WEJSCIE: gotowe", czas=60)
 
 if tryb == "z-iso":
     # 0.10.0: also the checks of the former test-m4 start "iso-uefi" (the same ISO through UEFI with virtio): one start
