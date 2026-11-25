@@ -423,9 +423,34 @@ class Maszyna:
     def srodek(e):
         return e["x"] + e["w"] // 2, e["y"] + e["h"] // 2
 
+    # 0.11.8 step 1: panels whose list scrolls — klik_w scrolls them to the element first
+    PRZEWIJANE = ("Menu Start",)
+
+    def przewin_do(self, okno, nazwa, rodzaj=None, zabkow=6):
+        """0.11.8 step 1: element `nazwa` of a list that scrolls (the Start menu shows only part of it): while the panel is
+        there but the element is not in the description, the wheel over the panel one notch at a time — up first (the
+        Start menu opens at the end of its list, D2: A), then down. The element or None."""
+        for w_dol in (-1, 1):
+            for _ in range(zabkow):
+                e = self.element(okno, nazwa, rodzaj)
+                o = self.element(okno)
+                if e is not None or o is None:
+                    return e
+                przed = [x["nazwa"] for x in o["elementy"]]
+                self.kolko(*self.srodek(o), w_dol=w_dol)
+                if not self.czekaj_na(lambda: self.element(okno, nazwa, rodzaj) is not None or
+                                      [x["nazwa"] for x in (self.element(okno) or {"elementy": []})["elementy"]] != przed,
+                                      czas=5):
+                    break  # nothing moved: the end of the list this way
+        return self.element(okno, nazwa, rodzaj)
+
     def klik_w(self, okno, nazwa, rodzaj=None, czas=30):
-        """A click in the middle of element `nazwa` of window or panel `okno` (waits for it); the element or None."""
-        e = self.czekaj_na_element(okno, nazwa, rodzaj, czas)
+        """A click in the middle of element `nazwa` of window or panel `okno` (waits for it; a list that scrolls is
+        scrolled to it); the element or None."""
+        e = None
+        if okno in self.PRZEWIJANE and self.czekaj_na_element(okno, czas=czas) is not None:
+            e = self.czekaj_na_element(okno, nazwa, rodzaj, czas=3) or self.przewin_do(okno, nazwa, rodzaj)
+        e = e or self.czekaj_na_element(okno, nazwa, rodzaj, czas)
         if e is None:
             print(f"  [uwaga] brak elementu „{nazwa}” w „{okno}” w opisie ekranu", flush=True)
             return None

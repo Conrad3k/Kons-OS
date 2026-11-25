@@ -61,7 +61,7 @@ GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_wachlarz.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/przybornik/k1_aplikacja.c \
            src/przybornik/k1_dekodowanie.c src/przybornik/k1_menu.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_prz_okienko.c \
-           src/przybornik/k1_zaznaczenie.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
+           src/przybornik/k1_zaznaczenie.c src/przybornik/k1_wycinek.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
            $(GEN)/k1_czcionki_dane.c
 # Host: without the sandbox, the app skeleton and what uses it (they need our kernel's headers).
 HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c src/przybornik/k1_dekodowanie.c,$(PRZYB)) $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c \
