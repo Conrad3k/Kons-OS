@@ -695,6 +695,31 @@ if ko and ku:
     sprawdz("Kalkulator: dzielenie przez zero → komunikat, nie awaria",
             czekaj(r"K1-KALKULATOR: klawisz = → Nie można dzielić przez zero", czas=20))
 
+# 0.11.8 step 2 (D3: A "Spokojny"): the network and the sound in one pill on the top bar; the popover "Dźwięk" stands
+# under its icon, a second click and the Start menu close it
+dz = q.czekaj_na_element("Pasek górny", "Dźwięk", "przycisk", czas=20)
+sprawdz("(0.11.8) górny pasek: sieć i dźwięk w opisie ekranu („Sieć”, „Dźwięk”)",
+        dz and q.element("Pasek górny", "Sieć") is not None, str(q.element("Pasek górny")))
+if dz:
+    n_ok = q.ile(r"K1-GUI: okienko paska: ")
+    q.klik(*q.srodek(dz))
+    ok_ = czekaj(r"K1-GUI: okienko paska: Dźwięk w (\d+),(\d+) \((\d+)x(\d+)\)", od=n_ok, czas=20)
+    sz = int(ok_.group(3)) if ok_ else 0
+    oczek = min(max(q.srodek(dz)[0] - sz // 2, 8), W - 8 - sz)  # under the icon, inside the screen
+    sprawdz("(0.11.8) kliknięcie „Dźwięk” otwiera okienko pod ikoną (przy prawej krawędzi — przesunięte, by się zmieściło)",
+            ok_ and abs(int(ok_.group(1)) - oczek) <= 2 and
+            q.czekaj_na(lambda: (q.element("Pasek górny", "Dźwięk") or {}).get("stan", 0) & 1, czas=10),
+            (ok_.group(0) if ok_ else "") + f"; oczekiwane x {oczek}")
+    zrzut("9b-okienko-dzwieku", gdy=lambda w, h, px: True)
+    q.klik(*q.srodek(dz))
+    sprawdz("(0.11.8) drugie kliknięcie zamyka okienko", q.czekaj_na(lambda: q.element("Okienko paska") is None, czas=10))
+    q.klik(*q.srodek(dz))
+    q.czekaj_na_element("Okienko paska", czas=10)
+    otworz_start()
+    sprawdz("(0.11.8) menu Start zamyka okienko paska", q.czekaj_na(lambda: q.element("Okienko paska") is None, czas=10))
+    q.klik(*na_pasku("Start"))  # closes the menu again
+    q.czekaj_na(lambda: q.element("Menu Start") is None, czas=10)
+
 tx_ = tekst()
 sprawdz("brak 'Kernel panic', błędów, zablokowanych wywołań i odrzuconych komunikatów",
         "Kernel panic" not in tx_ and "BŁĄD" not in tx_ and "zabronione wywołanie" not in tx_ and "odrzucono" not in tx_)

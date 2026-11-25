@@ -203,7 +203,7 @@ rekord | …”, rekord „rodzaj okno x,y,w,h stan nazwa” (O okno, P panel, B
 Z zakładka, F pole, M miejsce zmienne — 0.10.2 krok 3). Skrypt czeka na element i klika jego środek: `q.klik_w("Pasek", "Start")`, `q.klik_w("Menu Start",
 "Wyłącz")`, `q.klik_w("Ustawienia", "Ciemny")`. Lista menu Start przewija się (0.11.8 krok 1): `klik_w` na „Menu Start” najpierw kręci
 kółkiem nad menu, aż element jest w opisie (`q.przewin_do(okno, nazwa)` — w górę, potem w dół; opis ma tylko wiersze
-widoczne). Nazwy paneli powłoki: „Pasek”, „Pasek górny” (0.10.2 krok 3: „Dźwięk”, miejsce zmienne „Stan i zegar”), „Menu Start”, „Pulpit” (ikony: nazwy
+widoczne). Nazwy paneli powłoki: „Pasek”, „Pasek górny” (0.10.2 krok 3: „Dźwięk”, miejsce zmienne „Stan i zegar”; 0.11.8: też „Sieć”, „Bateria”), „Okienko paska” (0.11.8), „Menu Start”, „Pulpit” (ikony: nazwy
 aplikacji, „Kosz”, „plik N”), „Menu” (menu pod prawym przyciskiem), „Okienko” (okienka pulpitu: „sesja N”, „Anuluj”);
 okno aplikacji — jej tytuł (przyciski przybornika, „Minimalizuj”, „Zamknij”, sekcje i segmenty jako zakładki).
 **Położenia z logu zostają** tam, gdzie opis ich nie daje: listy plików i notatek (nazwy to treść użytkownika),

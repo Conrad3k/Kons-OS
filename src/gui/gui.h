@@ -2,7 +2,7 @@
  *
  *   main.c            start, the loop, layout of the panels on the screen
  *   okna.c            the window list from ekran, starting / showing / minimising / closing applications
- *   pasek_gorny.c     the top bar (active application, battery, sound, clock) and the sound popover
+ *   pasek_gorny.c     the top bar (active application; network, battery, sound in a pill; clock) and its popovers
  *   pasek_dolny.c     the bottom bar: Start, the pinned applications, the running ones that are not pinned
  *   menu_start.c      the Start menu (its list scrolls, 0.11.8 step 1)
  *   pulpit.c          the desktop layer: icons in a grid (select, drag, double click)
@@ -36,14 +36,14 @@
 #define P_GORA 1
 #define P_DOK 2
 #define P_MENU 3
-#define P_DZWIEK 4
+#define P_OKIENKO_PASKA 4 /* the popovers under the top bar's icons (0.11.8 step 2; until then the sound one only) */
 #define P_PULPIT 5    /* the desktop layer (K1_POW_PULPIT) */
 #define P_KONTEKST 6  /* the right-click menu, above every other panel (created last) */
 
 #define MARG K1_PANEL_MARGINES /* shadow margin inside panel surfaces (k1_okno.h: ekran's work area too) */
 
 extern struct k1_klient k;
-extern struct k1_powierzchnia gora, dok, menu, dzwiek, pulpit, kontekst;
+extern struct k1_powierzchnia gora, dok, menu, okienko_paska, pulpit, kontekst;
 extern int32_t dok_x, dok_y, menu_x, menu_y; /* positions of the panel surfaces on the screen */
 extern struct rozmieszczenie rozm;           /* the desktop arrangement (zapis.c keeps it in skarbiec) */
 
@@ -97,7 +97,7 @@ void do_nadzorcy(struct k1_komunikat m);
 
 /* pasek_gorny.c */
 void rysuj_gora(void);
-void rysuj_dzwiek(void);
+void rysuj_okienko_paska(void);
 void odbierz_baterie(void); /* fd 5: battery and session state from nadzorca */
 void strefa_stan(const struct k1_komunikat *m); /* fd 5 (0.10.0): a zone did not start — the window that says why */
 /* fd 5 (0.10.0 step 5): the sessions as the user set them — their names (Start menu, the zone's window on the bar) */
@@ -108,10 +108,10 @@ int sesja_zamyka_sie(int nr);     /* zone nr is closing in the background (STREF
 /* The name of item `apl` (an application, or a zone: "Przeglądarka · Bank") into `buf`. */
 const char *nazwa_pozycji(int apl, char *buf, size_t n);
 void wskaznik_gora(const struct k1_komunikat *m);
-void pokaz_dzwiek(int tak);
-int32_t glosnik_x(void);
-#define DZW_SZER 300
-#define DZW_WYS 84
+void okienko_paska_zamknij(void); /* the popover under an icon of the bar, if one is open (0.11.8 step 2) */
+int32_t dzwiek_srodek(void);       /* the middle of the sound icon on the bar (the tests' log) */
+#define OKIENKO_PASKA_SZER 300     /* the largest popover of the bar: the surface's size */
+#define OKIENKO_PASKA_WYS 84
 extern int zablokuj_mozna; /* 1: a password is set (K1_KOM_SESJA) — the Start menu offers "Zablokuj" (0.11.5) */
 extern int bat_kanal;     /* fd 5 still open */
 

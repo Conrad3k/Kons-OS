@@ -91,11 +91,16 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
 | 4 | Las (0.7.6) | mech i szałwia na ciemnej sośnie, złote krawędzie |
 
 ## Pulpit (M4)
-- **Górny pasek** (32 px, cała szerokość): przyciemnienie tapety (czarny 59%), kremowy tekst
-  IBM Plex Sans Medium 13: z lewej nazwa aktywnej aplikacji (albo „Kons K1”), z prawej ikona
-  głośnika i data z godziną („pt. 6 lis   19:42”; sekundy — w Ustawieniach). Na laptopie (0.5.3)
-  przed głośnikiem bateria: [błyskawica przy ładowaniu] „73%” + kontur baterii 22×12 (zaokrąglenie 3,
-  linia 1,25) z kremowym wypełnieniem; ≤ 15 % przy rozładowywaniu wypełnienie `#D97757`.
+- **Górny pasek** (32 px, cała szerokość; od 0.11.8 krok 2 szkic A „Spokojny” — decyzja właściciela D3 z 2026-11-25):
+  przyciemnienie tapety (czarny 59%) jak dotąd, kremowy tekst IBM Plex Sans 13. Z lewej znak K1 16 px (środek 24 px od
+  krawędzi), za nim nazwa aktywnej aplikacji (Medium, od 40 px; albo „Kons K1”). Z prawej: godzina (Medium, krem) i 8 px
+  przed nią data lżej („śr. 25 lis”, krem 75%; sekundy — w Ustawieniach); 12 px przed datą **pigułka** (24 px, 4 px od góry,
+  zaokrąglenie 12, krem 10%) z ikonami stanu w komórkach — sieć (32 px), bateria tylko na laptopie ([błyskawica przy
+  ładowaniu] „73%” + kontur baterii 22×12, zaokrąglenie 3, linia 1,25, kremowe wypełnienie; ≤ 15 % przy rozładowywaniu
+  `#D97757`; 8 px z boków), dźwięk (32 px). Komórka, która coś otwiera, podświetla się pod kursorem i gdy jej okienko jest
+  otwarte (krem 16%, pełne zaokrąglenie); dziś dźwięk, od kroku 3 — bateria. **Okienka paska** (np. „Dźwięk”, 300×84)
+  w stylu paneli (tło motywu, zaokrąglenie 16, cień) stoją 4 px pod paskiem, wyśrodkowane pod swoją ikoną (przy prawej
+  krawędzi przesunięte, by zostało 8 px).
 - **Ekran hasła (M5e)** — wybrany szkic B „Zegar” (2026-11-07): tapeta (w szkicu Zmierzch) lekko
   przyciemniona (czarny 27%), w lewym górnym rogu znak K1 22 px + „Kons K1”, z lewej na wysokości
   połowy ekranu zegar Plex Serif Light 64 i data (Serif 24), na dole pośrodku przezroczyste pole hasła

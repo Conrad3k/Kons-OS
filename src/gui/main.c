@@ -27,8 +27,8 @@
 #include "k1_log.h"
 
 struct k1_klient k;
-struct k1_powierzchnia gora, dok, menu, dzwiek, pulpit, kontekst;
-static struct k1_powierzchnia *wszystkie[] = { &gora, &dok, &menu, &dzwiek, &pulpit, &kontekst };
+struct k1_powierzchnia gora, dok, menu, okienko_paska, pulpit, kontekst;
+static struct k1_powierzchnia *wszystkie[] = { &gora, &dok, &menu, &okienko_paska, &pulpit, &kontekst };
 int32_t dok_x, dok_y, menu_x, menu_y;
 struct rozmieszczenie rozm;
 
@@ -66,7 +66,7 @@ void rozm_zmienione(const char *co)
 
 static void rysuj_wszystko(void)
 {
-    gora.brudna = dok.brudna = menu.brudna = dzwiek.brudna = kontekst.brudna = 1;
+    gora.brudna = dok.brudna = menu.brudna = okienko_paska.brudna = kontekst.brudna = 1;
     pulpit_wszystko();
 }
 
@@ -80,8 +80,8 @@ static void odswiez(void)
         rysuj_dok();
     if (menu.brudna)
         rysuj_menu();
-    if (dzwiek.brudna)
-        rysuj_dzwiek();
+    if (okienko_paska.brudna)
+        rysuj_okienko_paska();
     if (kontekst.brudna)
         rysuj_kontekst();
 }
@@ -92,7 +92,6 @@ static void odswiez(void)
 static void uloz(int pierwszy)
 {
     int32_t W = k.szer_ekranu, H = k.wys_ekranu;
-    int32_t dzw_x = W - 16 - DZW_SZER - MARG, dzw_y = K1_PASEK_GORNY + 4 - MARG;
     dok_x = (W - DOK_SZER) / 2 - MARG;
     dok_y = H - 8 - DOK_WYS - MARG;
     menu_dopasuj(H);
@@ -103,20 +102,20 @@ static void uloz(int pierwszy)
         k1_pow_utworz(&k, &gora, P_GORA, W, K1_PASEK_GORNY, K1_POW_PANEL, 0, 0);
         k1_pow_utworz(&k, &dok, P_DOK, DOK_SZER + 2 * MARG, DOK_WYS + 2 * MARG, K1_POW_PANEL, dok_x, dok_y);
         k1_pow_utworz(&k, &menu, P_MENU, MENU_SZER + 2 * MARG, MENU_WYS + 2 * MARG, K1_POW_PANEL, menu_x, menu_y);
-        k1_pow_utworz(&k, &dzwiek, P_DZWIEK, DZW_SZER + 2 * MARG, DZW_WYS + 2 * MARG, K1_POW_PANEL, dzw_x, dzw_y);
+        k1_pow_utworz(&k, &okienko_paska, P_OKIENKO_PASKA, OKIENKO_PASKA_SZER + 2 * MARG, OKIENKO_PASKA_WYS + 2 * MARG,
+                      K1_POW_PANEL, 0, 0); /* moved under its icon when it opens */
         k1_pow_utworz(&k, &kontekst, P_KONTEKST, KONT_SZER + 2 * MARG, KONT_WYS + 2 * MARG, K1_POW_PANEL, 0, 0);
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_MENU, 0, 0, 0, 0, 0));
-        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_DZWIEK, 0, 0, 0, 0, 0));
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_OKIENKO_PASKA, 0, 0, 0, 0, 0));
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_KONTEKST, 0, 0, 0, 0, 0));
     } else {
         pokaz_menu(0);
-        pokaz_dzwiek(0);
+        okienko_paska_zamknij();
         kontekst_zamknij();
         k1_pow_usun(&k, &gora);
         k1_pow_utworz(&k, &gora, P_GORA, W, K1_PASEK_GORNY, K1_POW_PANEL, 0, 0);
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_DOK, dok_x, dok_y, 0, 0, 0));
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_MENU, menu_x, menu_y, 0, 0, 0));
-        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_DZWIEK, dzw_x, dzw_y, 0, 0, 0));
         rysuj_wszystko();
     }
     dok_zmiana();
@@ -133,13 +132,13 @@ static void wskaznik(const struct k1_komunikat *m)
     case 0: /* a click outside our panels */
         if (m->c == K1_WSK_WCISNIECIE) {
             pokaz_menu(0);
-            pokaz_dzwiek(0);
+            okienko_paska_zamknij();
         }
         break;
     case P_PULPIT:
         if (m->c == K1_WSK_WCISNIECIE) {
             pokaz_menu(0);
-            pokaz_dzwiek(0);
+            okienko_paska_zamknij();
         }
         wskaznik_pulpit(m);
         break;

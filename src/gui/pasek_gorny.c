@@ -1,6 +1,11 @@
-/* K1 gui — the top bar: name of the active application, the network (0.9.0 step 7), battery on laptops (0.5.3,
- * ADR 0014), sound, date and time; and the sound popover under the sound icon. The network, battery and session state
- * come from nadzorca on fd 5 (one way, sender UID 0 checked by k1_odbierz_komunikat). */
+/* K1 gui — the top bar: the K1 mark and the name of the active application, the network (0.9.0 step 7), battery on
+ * laptops (0.5.3, ADR 0014), sound, date and time; and the popovers under its icons ("okienka paska"). The network,
+ * battery and session state come from nadzorca on fd 5 (one way, sender UID 0 checked by k1_odbierz_komunikat).
+ *
+ * 0.11.8 step 2 (owner's decision D3: A "Spokojny"): the bar across the screen darkens the wallpaper as before; the
+ * network, the battery and the sound stand in one pill, each in its cell (one table: elementy — 0.11.8 step 3 gives the
+ * battery a popover, 0.12 the sound a real one), the time stronger and the date lighter; a popover (one table: okienka)
+ * stands under its icon, at most one is open. */
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
@@ -11,29 +16,23 @@
 #include "k1_log.h"
 #include "k1_odbior.h"
 
-static char zegar_tekst[64];
-static int hover_gora, dzwiek_otwarty;
+static char zegar_data[32], zegar_czas[16];
+static int hover_gora = -1, okienko_otwarte = -1; /* an element under the pointer, the popover open (OK_*): -1 none */
 
-static void tekst_zegara(char *buf, size_t n)
+static void tekst_zegara(void)
 {
     struct timespec t;
     struct k1_data d;
     clock_gettime(CLOCK_REALTIME, &t);
     k1_czas_warszawa((int64_t)t.tv_sec, &d);
+    snprintf(zegar_data, sizeof zegar_data, "%s %d %s", k1_dzien_skrot(d.dzien_tygodnia), d.dzien,
+             k1_miesiac_skrot(d.miesiac));
     if (k.ustawienia[K1_UST_SEKUNDY])
-        snprintf(buf, n, "%s %d %s   %d:%02d:%02d", k1_dzien_skrot(d.dzien_tygodnia), d.dzien, k1_miesiac_skrot(d.miesiac),
-                 d.godzina, d.minuta, d.sekunda);
+        snprintf(zegar_czas, sizeof zegar_czas, "%d:%02d:%02d", d.godzina, d.minuta, d.sekunda);
     else
-        snprintf(buf, n, "%s %d %s   %d:%02d", k1_dzien_skrot(d.dzien_tygodnia), d.dzien, k1_miesiac_skrot(d.miesiac),
-                 d.godzina, d.minuta);
+        snprintf(zegar_czas, sizeof zegar_czas, "%d:%02d", d.godzina, d.minuta);
 }
 
-int32_t glosnik_x(void)
-{
-    if (zegar_tekst[0] == '\0')
-        tekst_zegara(zegar_tekst, sizeof zegar_tekst);
-    return k.szer_ekranu - 16 - k1_tekst_szer(K1_CZ_MALA_MOCNA, zegar_tekst) - 16 - 28;
-}
 
 /* ---- battery: state from the supervisor, shown only when the computer has one ---- */
 
@@ -159,28 +158,34 @@ void odbierz_baterie(void)
     }
 }
 
-/* Draws [bolt] 73% [battery] ending just left of the sound icon; returns where it begins. */
-static int32_t rysuj_baterie(struct k1_obraz *o, uint32_t krem)
+/* The battery's cell from x: [bolt] 73% [battery], 8 px on either side (the bolt only while charging). */
+#define BAT_BLYSK 11
+static int32_t szer_baterii(void)
 {
-    const float x = (float)glosnik_x() - 4 - 26, y = 10; /* battery body 22×12 + 2 px terminal */
     char proc[16];
-    int32_t tx;
-    k1_bateria(o, x, y, bat.procent, k1_bateria_niska(bat.procent, bat.stan), 255);
-    if (bat.procent >= 0) {
-        snprintf(proc, sizeof proc, "%d%%", bat.procent);
-        tx = (int32_t)x - 6 - k1_tekst_szer(K1_CZ_MALA_MOCNA, proc);
-        k1_tekst(o, K1_CZ_MALA_MOCNA, tx, 21, proc, krem, 0);
-    } else {
-        tx = (int32_t)x - 2;
-    }
+    if (!bat.obecna)
+        return 0;
+    snprintf(proc, sizeof proc, "%d%%", bat.procent);
+    return 8 + (bat.stan == K1_BAT_LADOWANIE ? BAT_BLYSK : 0) + (bat.procent >= 0 ? k1_tekst_szer(K1_CZ_MALA_MOCNA, proc) : 0) +
+           6 + 25 + 8;
+}
+
+static void rysuj_baterie(struct k1_obraz *o, int32_t x, uint32_t krem)
+{
+    char proc[16];
+    x += 8;
     if (bat.stan == K1_BAT_LADOWANIE) { /* lightning bolt */
-        float bx = (float)tx - 11;
+        float bx = (float)x;
         k1_kreska(o, bx + 5, 9, bx + 1.5f, 16.5f, 1.5f, krem);
         k1_kreska(o, bx + 1.5f, 16.5f, bx + 6.5f, 15.5f, 1.5f, krem);
         k1_kreska(o, bx + 6.5f, 15.5f, bx + 3, 23, 1.5f, krem);
-        tx = (int32_t)bx;
+        x += BAT_BLYSK;
     }
-    return tx;
+    if (bat.procent >= 0) {
+        snprintf(proc, sizeof proc, "%d%%", bat.procent);
+        x += k1_tekst(o, K1_CZ_MALA_MOCNA, x, 21, proc, krem, 0);
+    }
+    k1_bateria(o, (float)x + 6, 10, bat.procent, k1_bateria_niska(bat.procent, bat.stan), 255); /* body 22×12 + terminal */
 }
 
 /* The network icon (D1: sketch C, the plug), 16 px at x: connected — the plug with its cable; connecting — dimmed with
@@ -242,68 +247,185 @@ static void rysuj_siec(struct k1_obraz *o, float x, uint32_t krem)
     }
 }
 
-/* ---- the bar and the popover ---- */
+/* ---- the bar: its elements and the popovers under them (0.11.8 step 2, T2) ---- */
+
+#define KOMORKA 32 /* the cell of an icon in the pill */
+#define PIG_Y 4    /* the pill: 24 px high, 4 px from the bar's top */
+#define PIG_H 24
+
+static int32_t szer_sieci(void)
+{
+    return siec >= K1_SIEC_BRAK_KARTY && siec <= K1_SIEC_STAN_MAKS ? KOMORKA : 0;
+}
+
+static int32_t szer_dzwieku(void)
+{
+    return KOMORKA;
+}
+
+static void el_siec(struct k1_obraz *o, int32_t x, uint32_t krem)
+{
+    rysuj_siec(o, (float)x + 8, krem);
+}
+
+static void el_dzwiek(struct k1_obraz *o, int32_t x, uint32_t krem)
+{
+    k1_ikona(o, K1_IK_GLOSNIK, (float)x + 8, 8, 16, krem);
+}
+
+/* The popover "Dźwięk" (0.12 step 1 puts the volume in it). */
+#define DZWIEK_SZER 300
+#define DZWIEK_WYS 84
+_Static_assert(DZWIEK_SZER <= OKIENKO_PASKA_SZER && DZWIEK_WYS <= OKIENKO_PASKA_WYS, "okienko paska w powierzchni");
+
+static void okienko_dzwieku(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    k1_ikona(o, K1_IK_GLOSNIK, MARG + 16, MARG + 16, 20, k1_kolor(m->tekst2, 255));
+    k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG + 48, MARG + 31, "Dźwięk", k1_kolor(m->tekst, 255), 0);
+    k1_tekst(o, K1_CZ_MALA, MARG + 48, MARG + 54, "Ta wersja nie obsługuje jeszcze", k1_kolor(m->tekst2, 255), 0);
+    k1_tekst(o, K1_CZ_MALA, MARG + 48, MARG + 71, "karty dźwiękowej.", k1_kolor(m->tekst2, 255), 0);
+}
+
+/* The popovers of the bar: one surface (P_OKIENKO_PASKA) the size of the largest, under the icon that opens it. */
+enum { OK_DZWIEK = 0, OK_N };
+static const struct {
+    const char *nazwa;
+    int32_t szer, wys;
+    void (*rysuj)(struct k1_obraz *o, const struct k1_motyw *m);
+} okienka[OK_N] = {
+    [OK_DZWIEK] = { "Dźwięk", DZWIEK_SZER, DZWIEK_WYS, okienko_dzwieku },
+};
+
+/* The elements at the right of the bar, left to right, in one pill. */
+enum { EL_SIEC = 0, EL_BATERIA, EL_DZWIEK, EL_N };
+static const struct {
+    const char *nazwa;     /* in the screen's description */
+    int okienko;           /* the popover it opens (OK_*); -1: none — then no hover either (nothing to promise) */
+    int32_t (*szer)(void); /* its cell now; 0: not shown */
+    void (*rysuj)(struct k1_obraz *o, int32_t x, uint32_t krem);
+} elementy[EL_N] = {
+    [EL_SIEC] = { "Sieć", -1, szer_sieci, el_siec },
+    [EL_BATERIA] = { "Bateria", -1, szer_baterii, rysuj_baterie }, /* 0.11.8 step 3: its popover */
+    [EL_DZWIEK] = { "Dźwięk", OK_DZWIEK, szer_dzwieku, el_dzwiek },
+};
+static int32_t el_x[EL_N], el_w[EL_N];
+
+/* Where each element stands now — right to left from the date, 12 px before it; the pill's left edge. */
+static int32_t uloz_elementy(void)
+{
+    int32_t x = k.szer_ekranu - 16 - k1_tekst_szer(K1_CZ_MALA_MOCNA, zegar_czas) - 8 -
+                k1_tekst_szer(K1_CZ_MALA, zegar_data) - 12 - 2;
+    for (int i = EL_N - 1; i >= 0; i--) {
+        el_w[i] = elementy[i].szer();
+        x -= el_w[i];
+        el_x[i] = x;
+    }
+    return x - 2;
+}
+
+int32_t dzwiek_srodek(void)
+{
+    tekst_zegara();
+    uloz_elementy();
+    return el_x[EL_DZWIEK] + el_w[EL_DZWIEK] / 2;
+}
 
 void rysuj_gora(void)
 {
     struct k1_obraz *o = k1_pow_rysuj(&gora);
     const uint32_t krem = k1_kolor(K1_KREM, 255);
     int apl = aktywna_aplikacja();
-    int32_t gx;
+    int32_t x, pig;
     if (o == NULL)
         return;
-    tekst_zegara(zegar_tekst, sizeof zegar_tekst);
+    tekst_zegara();
     k1_el_od_nowa(&gora, "Pasek górny"); /* 0.10.2 step 3: the screen's description for the tests */
     k1_wyczysc(o, k1_kolor(K1_NOC, 150));
-    k1_tekst(o, K1_CZ_MALA_MOCNA, 16, 21, apl ? aplikacje[apl].nazwa : "Kons K1", krem, 300);
-    k1_tekst(o, K1_CZ_MALA_MOCNA, k.szer_ekranu - 16 - k1_tekst_szer(K1_CZ_MALA_MOCNA, zegar_tekst), 21, zegar_tekst, krem, 0);
-    gx = glosnik_x();
-    if (hover_gora || dzwiek_otwarty)
-        k1_zaokraglony(o, (float)gx, 4, 28, 24, 6, k1_kolor(K1_KREM, 36));
-    k1_ikona(o, K1_IK_GLOSNIK, (float)gx + 6, 8, 16, krem);
-    gx = bat.obecna ? rysuj_baterie(o, krem) : gx;
-    if (siec >= K1_SIEC_BRAK_KARTY && siec <= K1_SIEC_STAN_MAKS) {
-        rysuj_siec(o, (float)gx - 10 - 16, krem);
-        gx -= 10 + 16;
+    k1_rysuj_znak(o, 24, 16, 16);
+    k1_tekst(o, K1_CZ_MALA_MOCNA, 40, 21, apl ? aplikacje[apl].nazwa : "Kons K1", krem, 300);
+    x = k.szer_ekranu - 16 - k1_tekst_szer(K1_CZ_MALA_MOCNA, zegar_czas);
+    k1_tekst(o, K1_CZ_MALA_MOCNA, x, 21, zegar_czas, krem, 0);
+    x -= 8 + k1_tekst_szer(K1_CZ_MALA, zegar_data);
+    k1_tekst(o, K1_CZ_MALA, x, 21, zegar_data, k1_kolor(K1_KREM, 190), 0);
+    pig = uloz_elementy();
+    k1_zaokraglony(o, (float)pig, PIG_Y, (float)(el_x[EL_N - 1] + el_w[EL_N - 1] + 2 - pig), PIG_H, PIG_H / 2.0f,
+                   k1_kolor(K1_KREM, 26));
+    for (int i = 0; i < EL_N; i++) {
+        int ok = elementy[i].okienko;
+        if (el_w[i] == 0)
+            continue;
+        if (ok >= 0 && (hover_gora == i || okienko_otwarte == ok))
+            k1_zaokraglony(o, (float)el_x[i], PIG_Y, (float)el_w[i], PIG_H, PIG_H / 2.0f, k1_kolor(K1_KREM, 40));
+        elementy[i].rysuj(o, el_x[i], krem);
     }
     /* the network, the battery and the clock change by themselves (and move with the clock's width): a changing place */
-    k1_el(K1_EL_ZMIENNE, "Stan i zegar", gx - 8, 0, k.szer_ekranu - gx + 8, gora.wys, 0);
-    k1_el(K1_EL_PRZYCISK, "Dźwięk", glosnik_x(), 4, 28, 24, dzwiek_otwarty ? K1_EL_WYBRANY : 0);
+    k1_el(K1_EL_ZMIENNE, "Stan i zegar", pig - 8, 0, k.szer_ekranu - pig + 8, gora.wys, 0);
+    for (int i = 0; i < EL_N; i++)
+        if (el_w[i] > 0)
+            k1_el(elementy[i].okienko >= 0 ? K1_EL_PRZYCISK : K1_EL_IKONA, elementy[i].nazwa, el_x[i], PIG_Y, el_w[i],
+                  PIG_H, elementy[i].okienko >= 0 && okienko_otwarte == elementy[i].okienko ? K1_EL_WYBRANY : 0);
     k1_pow_zatwierdz(&k, &gora);
 }
 
-void rysuj_dzwiek(void)
+void rysuj_okienko_paska(void)
 {
-    const struct k1_motyw *m = motyw();
-    struct k1_obraz *o = k1_pow_rysuj(&dzwiek);
+    struct k1_obraz *o = k1_pow_rysuj(&okienko_paska);
     if (o == NULL)
         return;
-    tlo_panelu(o, DZW_SZER, DZW_WYS);
-    k1_ikona(o, K1_IK_GLOSNIK, MARG + 16, MARG + 16, 20, k1_kolor(m->tekst2, 255));
-    k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG + 48, MARG + 31, "Dźwięk", k1_kolor(m->tekst, 255), 0);
-    k1_tekst(o, K1_CZ_MALA, MARG + 48, MARG + 54, "Ta wersja nie obsługuje jeszcze", k1_kolor(m->tekst2, 255), 0);
-    k1_tekst(o, K1_CZ_MALA, MARG + 48, MARG + 71, "karty dźwiękowej.", k1_kolor(m->tekst2, 255), 0);
-    k1_pow_zatwierdz(&k, &dzwiek);
+    k1_el_od_nowa(&okienko_paska, "Okienko paska");
+    k1_wyczysc(o, 0);
+    if (okienko_otwarte >= 0) {
+        tlo_panelu(o, (float)okienka[okienko_otwarte].szer, (float)okienka[okienko_otwarte].wys);
+        okienka[okienko_otwarte].rysuj(o, motyw());
+    }
+    k1_pow_zatwierdz(&k, &okienko_paska);
 }
 
-void pokaz_dzwiek(int tak)
+/* Popover `nr` (OK_*) under the icon of its element, or none (-1): at most one is open. */
+static void pokaz_okienko(int nr)
 {
-    if (tak == dzwiek_otwarty)
+    int32_t x = 0, y = K1_PASEK_GORNY + 4;
+    if (nr == okienko_otwarte)
         return;
-    dzwiek_otwarty = tak;
-    k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_DZWIEK, tak, 0, 0, 0, 0));
+    okienko_otwarte = nr;
     gora.brudna = 1;
+    if (nr < 0) {
+        k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_OKIENKO_PASKA, 0, 0, 0, 0, 0));
+        return;
+    }
+    tekst_zegara();
+    uloz_elementy();
+    for (int i = 0; i < EL_N; i++)
+        if (elementy[i].okienko == nr)
+            x = el_x[i] + el_w[i] / 2 - okienka[nr].szer / 2;
+    x = x + okienka[nr].szer > k.szer_ekranu - 8 ? k.szer_ekranu - 8 - okienka[nr].szer : x;
+    x = x < 8 ? 8 : x;
+    rysuj_okienko_paska(); /* drawn before it shows: never the previous popover for a moment */
+    k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_PRZESUN, P_OKIENKO_PASKA, x - MARG, y - MARG, 0, 0, 0));
+    k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_OKIENKO_PASKA, 1, 0, 0, 0, 0));
+    k1_log(TAG, "okienko paska: %s w %d,%d (%dx%d)", okienka[nr].nazwa, x, y, okienka[nr].szer, okienka[nr].wys);
+}
+
+void okienko_paska_zamknij(void)
+{
+    pokaz_okienko(-1);
 }
 
 void wskaznik_gora(const struct k1_komunikat *m)
 {
-    int nowy = m->c != K1_WSK_WYJSCIE && m->a >= glosnik_x() && m->a < glosnik_x() + 28;
+    int nowy = -1;
+    for (int i = 0; i < EL_N && m->c != K1_WSK_WYJSCIE; i++)
+        if (elementy[i].okienko >= 0 && el_w[i] > 0 && m->a >= el_x[i] && m->a < el_x[i] + el_w[i])
+            nowy = i;
     if (nowy != hover_gora) {
         hover_gora = nowy;
         gora.brudna = 1;
     }
-    if (m->c == K1_WSK_PUSZCZENIE && m->d == K1_PRZYCISK_LEWY && nowy)
-        pokaz_dzwiek(!dzwiek_otwarty);
-    if (m->c == K1_WSK_WCISNIECIE && m->d == K1_PRZYCISK_LEWY)
+    if (m->c == K1_WSK_WCISNIECIE && m->d == K1_PRZYCISK_LEWY) {
         pokaz_menu(0);
+        if (nowy < 0)
+            pokaz_okienko(-1); /* a click on the bar beside the icons closes the popover */
+    }
+    if (m->c == K1_WSK_PUSZCZENIE && m->d == K1_PRZYCISK_LEWY && nowy >= 0) /* a second click closes it */
+        pokaz_okienko(okienko_otwarte == elementy[nowy].okienko ? -1 : elementy[nowy].okienko);
 }
