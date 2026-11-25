@@ -88,9 +88,9 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 --------------------------------------------------------------------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar
 [x]  1  Menu Start niższe i przewijane — PR #218               L1–L5            0.11.5      D1, D2, T3     M
-[ ]  2  Nowy wygląd górnego paska                               L6–L9            0.11.5      D3, T2         M
-         [w toku: Claude, gałąź claude/hopeful-goldberg-rzhrls; D3: A — decyzja właściciela 2026-11-25]
+[x]  2  Nowy wygląd górnego paska — PR #219                     L6–L9            0.11.5      D3, T2         M
 [ ]  3  Okienko baterii; wydanie 0.11.8                         L10–L14          2           D4, T1, T4, T5 M
+         [w toku: Claude, gałąź claude/happy-noether-25kdc7]
 (Bez ADR: nic nie zmienia architektury ani niezmienników; nowe pola komunikatu — opis w gui.md i k1_komunikat.h.)
 
 
@@ -302,3 +302,14 @@ Krok 1 (PR #218, 2026-11-25): D1: A (7 wierszy), D2: A (widać koniec listy, res
   - Pasek przewijania (3 px) ma pas chwytania 10 px z prawej listy; wiersze kończą się przed nim.
   - CI 334: test-m5f kliknął Start w złym miejscu (ruchy myszy przed przejęciem jej przez usługę wejścia) — m5f czeka
     teraz na „K1-WEJSCIE: gotowe” jak test-m6. Nie związane z menu.
+Krok 2 (PR #219, 2026-11-25): D3: A „Spokojny” — właściciel wybrał na szkicach (oba motywy, dwie tapety). (Ustalenia
+  odtworzone w kroku 3: PR #220, który miał je dopisać, scalił się bez zmian — gałąź nie dostała commita z dokumentami.)
+  - Ikony stanu to jedna tabela `elementy` w gui/pasek_gorny.c (nazwa w opisie ekranu, okienko, szerokość komórki,
+    rysowanie), okienka paska — tabela `okienka` (nazwa, rozmiar, rysowanie), jedna powierzchnia P_OKIENKO_PASKA
+    o rozmiarze największego (OKIENKO_PASKA_SZER × _WYS), przesuwana pod ikonę przy otwarciu. Krok 3: wiersz „Bateria”
+    w `elementy` dostaje okienko, nowy wiersz w `okienka`; większe okienko → większe OKIENKO_PASKA_*.
+  - Podświetlenie pod kursorem i przycisk w opisie ekranu — tylko ikony, które coś otwierają (sieć i bateria do kroku 3:
+    K1_EL_IKONA, bez podświetlenia — nic nie obiecują).
+  - pasek_gorny.c ma po kroku 2 431 wierszy — bateria do gui/bateria.c przed okienkiem (T4).
+  - Robot: przebiegi z 2026-11-24 i 2026-11-25 (Issue #216, #217) padły na „GitHub Actions is not permitted to create or
+    approve pull requests” — potrzebne jedno ustawienie repozytorium (docs/komponenty/robot.md).

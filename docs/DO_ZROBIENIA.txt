@@ -19,9 +19,10 @@ Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Cl
 Twoja prośba z 2026-11-23: „zanim wdrożymy 0.12.0” — menu Start ciut niższe, z przewijaniem między wszystkimi
 aplikacjami (te, które się nie mieszczą, chowają się wyżej), ładniejszy górny pasek i małe okienko baterii po kliknięciu
 jej ikony (ile czasu zostało, pobór mocy). Trzy kroki (jeden krok = jeden czat = jeden PR; decyzje D1–D4 — ze szkicami):
-    [ ] krok 1 — menu Start niższe i przewijane
-    [ ] krok 2 — nowy wygląd górnego paska
+    [x] krok 1 — menu Start niższe i przewijane (PR #218)
+    [x] krok 2 — nowy wygląd górnego paska (PR #219)
     [ ] krok 3 — okienko baterii; wydanie 0.11.8 (albo następny wolny numer, jeśli robot go zajmie)
+        [w toku: Claude, gałąź claude/happy-noether-25kdc7]
 [!] Gdy zechcesz zacząć: „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.11.8.txt”.
 
 Potem — wersja 0.12 „Dźwięk” (plan: docs/PLAN-0.12.0.txt; ADR 0053):
