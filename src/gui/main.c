@@ -154,6 +154,9 @@ static void wskaznik(const struct k1_komunikat *m)
     case P_KONTEKST:
         wskaznik_kontekst(m);
         break;
+    case P_OKIENKO_PASKA: /* 0.11.8 step 3: the battery's popover has a button */
+        wskaznik_okienka_paska(m);
+        break;
     default:
         break;
     }

@@ -3,7 +3,8 @@
 # (testy/wzorce/*.png, testy/qemu/k1wzorce.py). Obraz testowy z opisem ekranu (dysk „k1-test-opis”, ADR 0045) i pustym
 # dyskiem danych; okna z decyzji właściciela D4, w obu motywach: dolny i górny pasek, ikony pulpitu, menu Start, okienko
 # „Którą sesję otworzyć?”, Ustawienia (każda sekcja), Pliki (pusty folder, zaznaczony folder, Kosz — 0.10.7 krok 3), Zasoby,
-# Kalkulator, przełącznik okien (0.10.5 krok 6); ekran „Wyłączanie” (0.10.7 krok 6, na hoście: k1_wylaczanie).
+# Kalkulator, przełącznik okien (0.10.5 krok 6); ekran „Wyłączanie” (0.10.7 krok 6, na hoście: k1_wylaczanie); okienko
+# baterii (0.11.8 krok 3) — w osobnym przebiegu z tablicą ACPI baterii (z baterią Ustawienia i Zasoby wyglądają inaczej).
 # Ramkę strefy sprawdza test-strefa.
 # Każde okno wycięte według opisu ekranu; miejsca zmienne (zegar, liczby, wykresy, wersja) się nie liczą; kursor poza
 # oknem. Różnica: build/testy/wzorce/<nazwa>-przed/-po/-roznica.png (w CI: artefakt z logami). Zmianę wyglądu
@@ -20,6 +21,7 @@ import os, sys
 sys.path.insert(0, os.environ["K1_TESTY_PY"])
 from k1qemu import Maszyna
 log, mon, out, limit = sys.argv[1], sys.argv[2], sys.argv[3], float(sys.argv[4])
+BATERIA = sys.argv[5:] == ["bateria"]  # 0.11.8 step 3: the pass with a battery — its popover only
 q = Maszyna(log, mon, out, limit, "wzorce")
 # QEMU has no battery: Bateria is not on the list (0.10.7 step 2; with a battery: test-m5)
 SEKCJE = {"Wygląd": "wyglad", "Ekran": "ekran", "Mysz": "mysz", "Data i czas": "czas",
@@ -133,6 +135,27 @@ def pulpit(motyw):
             zamknij(apl)
 
 
+def okienko_baterii():
+    """0.11.8 step 3 (D4: A): the battery's popover in both themes (its numbers are changing places)."""
+    for motyw in ("jasny", "ciemny"):
+        if motyw == "ciemny" and otworz("Ustawienia"):
+            q.klik_w("Ustawienia", "Ciemny", "zakladka")
+            q.sprawdz("ciemny motyw (Ustawienia → Wygląd)", q.czekaj(r"K1-EKRAN: ustawienie 1=1", czas=60))
+            zamknij("Ustawienia")
+        q.klik_w("Pasek górny", "Bateria", "przycisk")
+        if q.sprawdz(f"okienko baterii otwarte ({motyw})",
+                     q.czekaj_na_element("Okienko paska", "Ustawienia baterii", "przycisk", czas=30)):
+            # the panel's surface starts 16 px (its shadow) above the popover, which stands 4 px under the 32 px top bar:
+            # its top 12 rows are the bar with the clock — left out
+            q.wzorzec(f"okienko-baterii-{motyw}", "Okienko paska", pomin=[(0, 0, 332, 12)])
+        q.klik_w("Pasek górny", "Bateria", "przycisk")
+        q.czekaj_na(lambda: q.element("Okienko paska") is None, czas=30)
+
+
+if BATERIA:
+    okienko_baterii()
+    q.czysty_log()
+    q.koniec()
 pulpit("jasny")
 ustawienia("jasny")
 q.klik_w("Ustawienia", "Ciemny", "zakladka")
@@ -191,6 +214,18 @@ rm -f "$TESTY/wzorce.log" "$TESTY/wzorce.sock"
 QPID=$!
 K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I "$K1_BUDOWA/wzorce.py" "$TESTY/wzorce.log" "$TESTY/wzorce.sock" "$TESTY" "$CZAS" || r=1
 zamknij_qemu "$TESTY/wzorce.sock" $QPID
+
+info "test wzorców: okienko baterii (osobny przebieg z tablicą ACPI baterii: 73 %, ładowanie)"
+bateria_aml 2 1 "$TESTY/wzorce-bateria.aml"
+dd if=/dev/zero of="$DANE" bs=1M count=16 status=none  # anew: the first pass left the dark theme in it
+printf 'label: gpt\nstart=2048, size=30000, name="K1-DANE"\n' | sfdisk -q "$DANE" >/dev/null
+rm -f "$TESTY/wzorce-bateria.log" "$TESTY/wzorce-bateria.sock"
+"$K1_REPO/scripts/uruchom-qemu.sh" --log "$TESTY/wzorce-bateria.log" --monitor "$TESTY/wzorce-bateria.sock" --czas "$CZAS" \
+    --obraz "$K1_WYNIK/rdzen-test.squashfs" --qemu "$DYSKI -acpitable file=$TESTY/wzorce-bateria.aml" &
+QPID=$!
+K1_TESTY_PY="$K1_REPO/testy/qemu" python3 -I "$K1_BUDOWA/wzorce.py" "$TESTY/wzorce-bateria.log" "$TESTY/wzorce-bateria.sock" \
+    "$TESTY" "$CZAS" bateria || r=1
+zamknij_qemu "$TESTY/wzorce-bateria.sock" $QPID
 if [ $r -eq 0 ]; then
     info "wzorce: wszystko zgodne co do piksela"
 else

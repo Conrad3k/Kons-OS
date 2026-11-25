@@ -46,11 +46,24 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   procent, ikona z wypełnieniem; ≤ 15 % — akcent), dźwięk — oraz data i godzina (czas polski; z sekundami — w
   Ustawieniach). Ikony stanu to **jedna tabela** `elementy` w `pasek_gorny.c` (nazwa w opisie ekranu, okienko, które
   otwiera, szerokość komórki, rysowanie); komórka z okienkiem podświetla się pod kursorem, bez okienka — nie (nic nie
-  obiecuje). **Okienka paska** (T2): tabela `okienka` (nazwa, rozmiar, rysowanie) — dziś „Dźwięk” („ta wersja nie
-  obsługuje jeszcze karty dźwiękowej”; 0.12: głośność), od kroku 3 bateria; jedna powierzchnia `P_OKIENKO_PASKA` w
-  rozmiarze największego (`OKIENKO_PASKA_SZER` × `_WYS`), przy otwarciu przesuwana pod ikonę; otwarte najwyżej jedno,
-  zamyka je drugie kliknięcie, kliknięcie obok (pasek, pulpit, okno), dolny pasek, menu Start i klawisz Super. Log przy
-  otwarciu: „okienko paska: Dźwięk w x,y (szer×wys)”,
+  obiecuje). **Okienka paska** (T2): tabela `okienka` (nazwa, rozmiar, rysowanie, kogo powiadomić o otwarciu i
+  zamknięciu, kto obsługuje wskaźnik nad nim) — „Dźwięk” („ta wersja nie obsługuje jeszcze karty dźwiękowej”; 0.12:
+  głośność) i od 0.11.8 krok 3 „Bateria”; jedna powierzchnia `P_OKIENKO_PASKA` w rozmiarze największego
+  (`OKIENKO_PASKA_SZER` × `_WYS`: szerokość dźwięku, wysokość baterii), przy otwarciu przesuwana pod ikonę; otwarte
+  najwyżej jedno, zamyka je drugie kliknięcie, kliknięcie obok (pasek, pulpit, okno), dolny pasek, menu Start i klawisz
+  Super; ikona, która zniknęła (bateria wyjęta), zamyka swoje. Log przy otwarciu: „okienko paska: Dźwięk w x,y
+  (szer×wys)”,
+- **okienko baterii** (0.11.8 krok 3, D4 właściciela: A; `bateria.c`): kliknięcie baterii na górnym pasku → procent (duży)
+  i symbol baterii, stan (te same słowa co Zasoby i Ustawienia — `k1_bateria_stan`), wiersz „Zostało” / „Do pełna” z czasem
+  „ok. 3 h 20 min” (`k1_minuty`; nieznany — „nieznany”; bez ładowania i rozładowywania — „Zasilacz: podłączony /
+  odłączony”), „Pobór mocy” „9,4 W” (`k1_dziesietne`) i przycisk „Ustawienia baterii” (Ustawienia na sekcji Bateria). Liczby
+  liczy nadzorca — ten sam pomiar co dla Zasobów (`BATERIA_POMIAR` na fd 5), gui nic nie liczy; odświeżają się same, póki
+  okienko jest otwarte. Otwarcie i zamknięcie gui mówi nadzorcy (`BATERIA_OKIENKO` na fd 4): póki jest otwarte, nadzorca
+  czyta baterię co 5 s zamiast co 15 s (i raz od razu przy otwarciu). Log: „bateria na pasku: środek x,16 (szer w)” przy
+  zmianie miejsca, „pomiar baterii: 73%, ładowanie, 9,0 W, do pełna 81 min” przy nowym stanie albo czasie, który stał się
+  znany / nieznany, „okienko baterii: …” (te same liczby) przy otwarciu i każdej zmianie, póki jest otwarte, „okienko
+  baterii: Ustawienia baterii”. Liczby to stan sprzętu, nie treść użytkownika. Opis ekranu: „Okienko paska” z przyciskiem
+  „Ustawienia baterii”, miejsca zmienne „Stan baterii” (procent, symbol, stan) i „Liczby baterii” (wartości wierszy),
 - **dolny pasek** wyśrodkowany (jak Windows 11): przycisk Start (znak K1), przypięte aplikacje w kolejności
   właściciela (przeciągnięcie zmienia kolejność), a za kreską uruchomione aplikacje spoza paska (dopóki
   działają); kropka = uruchomiona, kreska w kolorze akcentu = aktywna; kliknięcie: uruchom / pokaż /
@@ -59,7 +72,8 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   „Pasek” (ikona „Start” i aplikacje po nazwach; wybrana = ma okno), „Menu Start” (wiersze aplikacji, „Zablokuj”,
   „Uruchom ponownie”, „Wyłącz”), „Pulpit” (ikony: aplikacje, „Kosz”, pliki jako „plik N”), „Menu” (wiersze menu pod prawym
   przyciskiem; nazwy sesji jako „sesja N” — `k1_menu_el` z kopii menu), „Okienko” (kafelki „sesja N”, „Anuluj”);
-  od 0.10.2 krok 3 „Pasek górny” („Dźwięk”; od 0.11.8 też „Sieć”, „Bateria” — ikony bez okienka jako `K1_EL_IKONA`),
+  od 0.10.2 krok 3 „Pasek górny” („Dźwięk”; od 0.11.8 też „Sieć” — ikona bez okienka jako `K1_EL_IKONA` — i „Bateria”,
+  od kroku 3 przycisk z okienkiem),
   „Okienko paska” (0.11.8) i **miejsca zmienne** (`K1_EL_ZMIENNE`) dla zrzutów wzorcowych: „Stan i
   zegar” na górnym pasku (sieć, bateria, zegar — przesuwają się z szerokością zegara), „Wersja” w menu Start.
 - **menu Start**: aplikacje z opisami (bez okien samego K1 — „Wybór pliku”, kolumna -1 listy aplikacji), „Zablokuj” (0.6.3 jako „Wyloguj”; od 0.11.5 „Zablokuj” i tylko, gdy magazyn ma hasło — `SESJA`; bez hasła zostałoby samo zamknięcie aplikacji), „Uruchom ponownie”, „Wyłącz”; klawisz Super otwiera/zamyka. Od 0.11.8 krok 1 (D1: A, D2: A) lista ma stałą wysokość —
@@ -98,7 +112,9 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   `K1_UST_OTWIERANIE` + typ od ekranu) albo w wybranej (menu pod prawym przyciskiem: „Otwórz za pomocą ›”).
   Folder i plik do otwarcia w Plikach — jak dotąd przez `URUCHOM` z miejscem (c = `K1_PLIKI_*`: 1 Kosz, 2 pole nazwy).
   „Zawsze otwieraj tą aplikacją” (gdy typ ma co najmniej dwie) — `USTAW` do ekranu (tylko klucze `K1_UST_OTWIERANIE`).
-- fd 5 (0.5.3, ADR 0014): od nadzorcy, jednokierunkowo — `BATERIA` (jest, procent, stan, zasilacz), `SESJA` (0.7.2; od 0.11.5: a=1 — magazyn otwarty i ma hasło, menu Start pokazuje „Zablokuj”; przychodzi znowu po ustawieniu albo wyłączeniu hasła; nadzorca odrzuca też zablokowanie bez hasła)
+- fd 5 (0.5.3, ADR 0014): od nadzorcy, jednokierunkowo — `BATERIA` (jest, procent, stan, zasilacz), od 0.11.8 krok 3
+  `BATERIA_POMIAR` (pobór mocy w mW i minuty do pustej / pełnej, -1 = nieznane — ten sam komunikat i to samo sprawdzanie
+  co dla Zasobów; tylko po zmianie, czyli najwyżej przy odczycie baterii; tylko do gui, nie do ekranu hasła), `SESJA` (0.7.2; od 0.11.5: a=1 — magazyn otwarty i ma hasło, menu Start pokazuje „Zablokuj”; przychodzi znowu po ustawieniu albo wyłączeniu hasła; nadzorca odrzuca też zablokowanie bez hasła)
   i `POKAZ_APL` (0.8.0: aplikacja dostała plik do otwarcia — jej okno na wierzch, jeśli już jest), `SIEC_STAN`
   (0.9.0: ikona sieci na górnym pasku — log „sieć: połączono (ikona w x,y)” przy zmianie; `komponenty/siec.md`; od
   0.9.1 bez kabla z kartą Wi-Fi: ikona „Wachlarz” — `k1_wachlarz.c` w przybornik, stany „Wi-Fi wyłączone”, „Wi-Fi nie
@@ -164,6 +180,9 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
 - Powierzchnie: warstwa pulpitu (`K1_POW_PULPIT`, cały ekran, zatwierdzane tylko zmienione prostokąty),
   panele: górny pasek, dolny pasek, menu Start, okienka paska (0.11.8; do niej okienko dźwięku), menu kontekstowe (memfd, ADR 0008; na nim także okienka
   pytań i „Którą sesję otworzyć?”).
+- Do nadzorcy (fd 4) od 0.11.8 krok 3: `BATERIA_OKIENKO` — a = 1 okienko baterii otwarte, 0 zamknięte, 2 „Ustawienia
+  baterii” (nadzorca uruchamia Ustawienia, wysyła im `BATERIA_POKAZ` i pulpitowi `POKAZ_APL`, jak `OTWORZ_AKTUALIZACJE`);
+  od ekranu hasła nadzorca go nie przyjmuje.
 - Do ekranu (0.7.5): `ZAMKNIJ_OKNO` — „Zamknij okno” z paska; ekran prosi aplikację (`ZAMKNIJ`).
 - Zmiana rozdzielczości (M4.1): ekran wysyła ponownie `WITAJ` z nowym rozmiarem → gui zamyka menu,
   tworzy górny pasek na nową szerokość, przesuwa pozostałe panele i loguje nowe położenia.
@@ -203,6 +222,7 @@ treści ani innych folderów; RYZYKA R27, R48).
 ## Testy
 | Test | Rodzaj |
 |---|---|
+| `test-m5.sh` (0.11.8 krok 3): okienko baterii — liczby wyliczone z tablicy ACPI (73 %, ładowanie, 9,0 W, do pełna 81 min), nadzorca czyta co 5 s, drugie kliknięcie i menu Start zamykają, „Ustawienia baterii” → Ustawienia na sekcji Bateria, zrzut `m5-okienko-baterii`; `test-m1.sh`: „pomiar baterii: …, zostało 219 min” przy rozładowywaniu; `test-wzorce.sh`: `okienko-baterii-jasny/-ciemny` (osobny przebieg z baterią) | funkcjonalny |
 | `test-m4.sh`: menu Start (0.11.8: 7 wierszy od końca listy, kółko przewija, ponowne otwarcie znowu od końca, prawy przycisk po przewinięciu), górny pasek (0.11.8: „Sieć” i „Dźwięk” w opisie, okienko „Dźwięk” pod ikoną, zamykane drugim kliknięciem i menu Start), uruchamianie z paska i z menu, minimalizacja, Start → Wyłącz, Start → Zablokuj (tylko z hasłem: ekran hasła wraca; bez hasła przycisku nie ma), zrzuty | funkcjonalny |
 | w systemie: klatka (UID, capabilities, seccomp, cgroup, deskryptory) | funkcjonalny |
 | w systemie: próba w klatce `gui` (22 zabronione działania, pamięć wykonywalna) | negatywny |

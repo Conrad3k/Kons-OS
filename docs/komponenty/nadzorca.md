@@ -210,6 +210,12 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
 - Bateria (0.5.3, ADR 0014): co 15 s `src/nadzorca/bateria.c` czyta `sys/class/power_supply` (baterie
   systemowe: procent z energii/ładunku/`capacity`, stan, zasilacz) i przy zmianie wysyła `BATERIA` do
   gui kanałem fd 5 (jednokierunkowo, `SHUT_RD`); test na hoście `test_bateria` (także śmieciowe dane).
+  Od 0.11.8 krok 3 także `BATERIA_POMIAR` (pobór mocy, uśredniony jak dla Zasobów, i minuty do pustej / pełnej) — po
+  zmianie, tylko do gui (UID 102), dla okienka baterii na górnym pasku. Gui mówi `BATERIA_OKIENKO` (fd 4), gdy okienko się
+  otwiera i zamyka: póki jest otwarte, odczyt co 5 s (`BATERIA_CO_ZASOBY`, jak przy otwartych Zasobach) i raz od razu przy
+  otwarciu; log „okienko baterii otwarte: odczyt baterii co 5 s” / „zamknięte: … co 15 s”. a = 2 („Ustawienia baterii”):
+  Ustawienia, `BATERIA_POKAZ` do nich (pokaż sekcję Bateria), `POKAZ_APL` do gui; log „otwieram Ustawienia → Bateria”.
+  Nowy kanał do gui: okienko uznane za zamknięte, pomiar idzie od nowa.
   Od 0.5.5: historia od uruchomienia — próbka co 30 s (procent + bit zasilacza), do 1440 próbek; po
   zapełnieniu łączy pary (odstęp ×2), więc zawsze obejmuje cały czas od startu. Ustawienia dostają stan
   i historię kanałem fd 4 (jednokierunkowo); przy pełnym buforze gniazda reszta idzie w następnej pętli.

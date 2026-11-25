@@ -69,6 +69,10 @@ int bateria_odbierz(void)
             zmiana = 1;
             continue;
         }
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_BATERIA_POKAZ) { /* 0.11.8 step 3: "Ustawienia baterii" in gui */
+            ustawienia_pokaz(S_BATERIA);
+            continue;
+        }
         if (w != K1_ODB_JEST ||
             (k.typ != K1_KOM_BATERIA && k.typ != K1_KOM_BATERIA_HIST && k.typ != K1_KOM_BATERIA_ARCH)) {
             if (fd >= 0)

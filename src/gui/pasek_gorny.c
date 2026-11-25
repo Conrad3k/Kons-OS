@@ -119,6 +119,10 @@ void odbierz_baterie(void)
             pokaz_aplikacje(m.a);
             continue;
         }
+        if (w == K1_ODB_JEST && m.typ == K1_KOM_BATERIA_POMIAR) { /* 0.11.8 step 3: the battery's popover */
+            bateria_pomiar(&m);
+            continue;
+        }
         if (w != K1_ODB_JEST || m.typ != K1_KOM_BATERIA) {
             if (odrzucone++ < 3)
                 k1_log(TAG, "kanał baterii: odrzucono komunikat");
@@ -227,14 +231,20 @@ static void okienko_dzwieku(struct k1_obraz *o, const struct k1_motyw *m)
 }
 
 /* The popovers of the bar: one surface (P_OKIENKO_PASKA) the size of the largest, under the icon that opens it. */
-enum { OK_DZWIEK = 0, OK_N };
+enum { OK_DZWIEK = 0, OK_BATERIA, OK_N };
 static const struct {
     const char *nazwa;
     int32_t szer, wys;
     void (*rysuj)(struct k1_obraz *o, const struct k1_motyw *m);
+    void (*otwarcie)(int tak);                         /* told when it opens and closes; NULL: nothing to tell */
+    void (*wskaznik)(const struct k1_komunikat *m);    /* the pointer over it (surface coordinates); NULL: nothing */
 } okienka[OK_N] = {
-    [OK_DZWIEK] = { "Dźwięk", DZWIEK_SZER, DZWIEK_WYS, okienko_dzwieku },
+    [OK_DZWIEK] = { "Dźwięk", DZWIEK_SZER, DZWIEK_WYS, okienko_dzwieku, NULL, NULL },
+    [OK_BATERIA] = { "Bateria", BATERIA_OKIENKO_SZER, BATERIA_OKIENKO_WYS, bateria_okienko, bateria_okienko_otwarte,
+                     bateria_okienko_wskaznik }, /* 0.11.8 step 3 (D4: A) */
 };
+_Static_assert(BATERIA_OKIENKO_SZER <= OKIENKO_PASKA_SZER && BATERIA_OKIENKO_WYS <= OKIENKO_PASKA_WYS,
+               "okienko baterii w powierzchni");
 
 /* The elements at the right of the bar, left to right, in one pill. */
 enum { EL_SIEC = 0, EL_BATERIA, EL_DZWIEK, EL_N };
@@ -245,10 +255,11 @@ static const struct {
     void (*rysuj)(struct k1_obraz *o, int32_t x, uint32_t krem);
 } elementy[EL_N] = {
     [EL_SIEC] = { "Sieć", -1, szer_sieci, el_siec },
-    [EL_BATERIA] = { "Bateria", -1, bateria_szer, bateria_na_pasku }, /* 0.11.8 step 3: its popover */
+    [EL_BATERIA] = { "Bateria", OK_BATERIA, bateria_szer, bateria_na_pasku }, /* 0.11.8 step 3: its popover */
     [EL_DZWIEK] = { "Dźwięk", OK_DZWIEK, szer_dzwieku, el_dzwiek },
 };
 static int32_t el_x[EL_N], el_w[EL_N];
+static void pokaz_okienko(int nr);
 
 /* Where each element stands now — right to left from the date, 12 px before it; the pill's left edge. */
 static int32_t uloz_elementy(void)
@@ -288,6 +299,9 @@ void rysuj_gora(void)
     x -= 8 + k1_tekst_szer(K1_CZ_MALA, zegar_data);
     k1_tekst(o, K1_CZ_MALA, x, 21, zegar_data, k1_kolor(K1_KREM, 190), 0);
     pig = uloz_elementy();
+    for (int i = 0; i < EL_N; i++)
+        if (el_w[i] == 0 && elementy[i].okienko >= 0 && elementy[i].okienko == okienko_otwarte)
+            pokaz_okienko(-1); /* its icon is gone (a battery taken out): so is its popover */
     k1_zaokraglony(o, (float)pig, PIG_Y, (float)(el_x[EL_N - 1] + el_w[EL_N - 1] + 2 - pig), PIG_H, PIG_H / 2.0f,
                    k1_kolor(K1_KREM, 26));
     for (int i = 0; i < EL_N; i++) {
@@ -327,8 +341,12 @@ static void pokaz_okienko(int nr)
     int32_t x = 0, y = K1_PASEK_GORNY + 4;
     if (nr == okienko_otwarte)
         return;
+    if (okienko_otwarte >= 0 && okienka[okienko_otwarte].otwarcie != NULL)
+        okienka[okienko_otwarte].otwarcie(0);
     okienko_otwarte = nr;
     gora.brudna = 1;
+    if (nr >= 0 && okienka[nr].otwarcie != NULL)
+        okienka[nr].otwarcie(1);
     if (nr < 0) {
         k1_wyslij(&k, k1_komunikat_nowy(K1_KOM_POKAZ, P_OKIENKO_PASKA, 0, 0, 0, 0, 0));
         return;
@@ -349,6 +367,12 @@ static void pokaz_okienko(int nr)
 void okienko_paska_zamknij(void)
 {
     pokaz_okienko(-1);
+}
+
+void wskaznik_okienka_paska(const struct k1_komunikat *m)
+{
+    if (okienko_otwarte >= 0 && okienka[okienko_otwarte].wskaznik != NULL)
+        okienka[okienko_otwarte].wskaznik(m);
 }
 
 void wskaznik_gora(const struct k1_komunikat *m)

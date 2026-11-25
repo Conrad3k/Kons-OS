@@ -119,7 +119,7 @@ static void okresowe(void)
     }
     if (uevent_zasilanie || t >= nastepna_bateria) {
         odczytaj_baterie(t);
-        nastepna_bateria = t + (zasoby_kanal >= 0 ? BATERIA_CO_ZASOBY : BATERIA_CO);
+        nastepna_bateria = t + (zasoby_kanal >= 0 || bateria_okienko ? BATERIA_CO_ZASOBY : BATERIA_CO);
     }
     if (t >= nastepne_skanowanie)
         nastepne_skanowanie = t + (uevent_fd >= 0 ? 10.0 : 2.0);

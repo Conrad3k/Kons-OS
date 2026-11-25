@@ -9,7 +9,10 @@
 #    (0.8.0) obraz na pendrive większym od obrazu: pusta K1-DANE rośnie przy pierwszym starcie do końca pendrive'a,
 # 6. (0.5.3) bateria laptopa (tablica ACPI z testy/acpi/bateria.asl: 73 %, ładowanie, zasilacz
 #    podłączony) — wskaźnik na górnym pasku (log powłoki + zrzut),
-# 7. (0.8.6) Start → Wyłącz na końcu: nadzorca zapisuje historię baterii, zanim init zatrzyma skarbiec.
+# 7. (0.8.6) Start → Wyłącz na końcu: nadzorca zapisuje historię baterii, zanim init zatrzyma skarbiec,
+# 8. (0.11.8 krok 3) okienko baterii: kliknięcie baterii na górnym pasku → procent, stan, czas do pełna i pobór mocy
+#    (liczby wyliczone z tablicy ACPI), drugie kliknięcie i menu Start je zamykają, przycisk „Ustawienia baterii”
+#    otwiera Ustawienia na sekcji Bateria. Zrzut: build/testy/m5-okienko-baterii.png.
 # Dyski (SATA, NVMe, pendrive) i kontrolery EHCI/OHCI sprawdza test w systemie (scripts/test-m1.sh).
 # Zrzut: build/testy/m5-usb.png. Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
@@ -91,6 +94,39 @@ if glosnik:  # battery icon, percent and bolt: left of the sound icon on the top
 else:
     sprawdz("zrzut: wskaźnik baterii na górnym pasku", False, "brak położenia dźwięku w logu")
 
+# 0.11.8 step 3 (D4: A): the battery's popover. The expected numbers come from the ACPI table itself (testy/acpi/bateria.asl):
+# _BIF's last full capacity, _BST's rate and remaining capacity — time to full = (full - remaining) / rate.
+asl = open(os.path.join(os.environ["K1_TESTY_PY"], "..", "acpi", "bateria.asl"), encoding="utf-8").read()
+pelna = int(re.search(r"_BIF.*?Package \(0x0D\) \{ \w+, \d+, (\d+),", asl, re.S).group(1))
+moc, zostalo = (int(v) for v in re.search(r"_BST.*?\{ @STAN@, (\d+), (\d+),", asl, re.S).groups())
+procent, do_pelna = round(100 * zostalo / pelna), round((pelna - zostalo) * 60 / moc)
+waty = f"{moc // 1000},{(moc % 1000 + 50) // 100}"
+OKIENKO = r"K1-GUI: okienko paska: Bateria w (\d+),(\d+) \((\d+)x(\d+)\)"
+bat = czekaj(r"K1-GUI: bateria na pasku: środek (\d+),16", czas=10)
+okienko = None
+if bat:
+    bx = int(bat.group(1))
+    klik(bx, 16)
+    okienko = czekaj(OKIENKO, czas=20)
+    o = czekaj(r"K1-GUI: okienko baterii: (\d+)%, (\S+), (\S+) W, do pełna (\d+) min", czas=20)
+    sprawdz(f"okienko baterii: {procent} %, ładowanie, {waty} W, do pełna {do_pelna} min (z tablicy ACPI)",
+            o and int(o.group(1)) == procent and o.group(2) == "ładowanie" and o.group(3) == waty
+            and int(o.group(4)) == do_pelna, o.group(0) if o else "brak")
+    sprawdz("nadzorca czyta baterię częściej, póki okienko jest otwarte",
+            czekaj(r"K1-NADZORCA: okienko baterii otwarte: odczyt baterii co 5 s", czas=10))
+    if okienko:
+        ox, oy = int(okienko.group(1)), int(okienko.group(2))
+        jasne = lambda c: min(c) > 225  # the popover's background in the light theme
+        w, h, px = q.zrzut("okienko-baterii", gdy=lambda w, h, px: jasne(px(ox + 6, oy + 100)))
+        sprawdz("zrzut: okienko baterii pod ikoną baterii", jasne(px(ox + 6, oy + 100)) and
+                ox <= bx <= ox + int(okienko.group(3)), str(px(ox + 6, oy + 100)))
+    n_z = ile(r"okienko baterii zamknięte")
+    klik(bx, 16)
+    sprawdz("drugie kliknięcie baterii zamyka okienko (nadzorca wraca do odczytu co 15 s)",
+            czekaj(r"K1-NADZORCA: okienko baterii zamknięte: odczyt baterii co 15 s", od=n_z, czas=10))
+else:
+    sprawdz("bateria na górnym pasku: położenie w logu", False)
+
 # 0.5.8: a K1-DANE that shows up late (slow stick, X230 port hand-over): skarbiec started without
 # one — nadzorca notices the stick, restarts skarbiec with it and ekran with the desktop.
 sprawdz("start bez partycji K1-DANE: dane tylko w pamięci", "K1-SKARBIEC: brak partycji K1-DANE" in tekst())
@@ -116,6 +152,16 @@ if g:
         WZB = r"K1-USTAWIENIA: bateria: jest, 73%, próbek (\d+) co 30 s; wykres (\d+),(\d+) (\d+)x(\d+)"
         b = czekaj(WZB, czas=20)
         sprawdz("Ustawienia → Bateria: stan od nadzorcy (73 %, próbki co 30 s)", b, "brak")
+        if b and bat:  # 0.11.8 step 3: the popover's button "Ustawienia baterii" (the window shows Wygląd before it)
+            klik(ux + int(sek.group(1)), uy + int(sek.group(2)) + q.wiersz_sekcji(0) * int(sek.group(3)))
+            n_o, n_b = ile(OKIENKO), ile(WZB)
+            klik(int(bat.group(1)), 16)
+            okienko = czekaj(OKIENKO, od=n_o, czas=20)
+            if okienko:
+                klik(int(okienko.group(1)) + int(okienko.group(3)) // 2, int(okienko.group(2)) + 174)
+            sprawdz("„Ustawienia baterii” w okienku → Ustawienia na sekcji Bateria",
+                    okienko and czekaj(r"K1-NADZORCA: otwieram Ustawienia → Bateria", czas=20) and czekaj(WZB, od=n_b, czas=20)
+                    and czekaj(r"K1-NADZORCA: okienko baterii zamknięte", czas=10))
         if b:
             wx, wy, ww, wh = (int(b.group(i)) for i in range(2, 6))
             akcent = lambda c: c[0] > 150 and c[1] < 140 and c[2] < 110 and c[0] > c[1] > c[2]
@@ -141,9 +187,22 @@ sprawdz("brak 'Kernel panic' i błędów usług", "Kernel panic" not in t and "B
 sprawdz("brak odrzuconych i zgubionych zdarzeń", re.findall(r"odrzucone (\d+)\)", t)[-1:] == ["0"] and "pominięto" not in t)
 # 0.8.6: Start → Wyłącz on a laptop — init stops nadzorca first, so the battery history is saved while skarbiec still
 # runs (until 0.8.5 both were stopped at the same moment and that save was lost), then the power goes off
+MENU = r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);"
+m = None
+if g and bat:  # 0.11.8 step 3: the Start menu closes the battery's popover (the menu stays open for Wyłącz below)
+    n_o, n_z, n_m = ile(OKIENKO), ile(r"okienko baterii zamknięte"), ile(MENU)
+    klik(int(bat.group(1)), 16)
+    otw = czekaj(OKIENKO, od=n_o, czas=20)
+    if otw:
+        klik(int(g.group(1)), int(g.group(2)))
+        m = czekaj(MENU, od=n_m, czas=30)
+    sprawdz("menu Start zamyka okienko baterii",
+            otw and m and czekaj(r"K1-NADZORCA: okienko baterii zamknięte", od=n_z, czas=20))
 if g:
-    klik(int(g.group(1)), int(g.group(2)))
-    m = czekaj(r"menu Start otwarte \(pierwszy wiersz (\d+),(\d+) co (\d+); Wyłącz (\d+),(\d+);", czas=30)
+    if not m:
+        n_m = ile(MENU)
+        klik(int(g.group(1)), int(g.group(2)))
+        m = czekaj(MENU, od=n_m, czas=30)
     if m:
         klik(int(m.group(4)), int(m.group(5)))
     sprawdz("Start → Wyłącz: historia baterii zapisana przed wyłączeniem, potem system się wyłącza",
