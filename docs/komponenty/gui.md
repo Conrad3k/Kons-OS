@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | PRZETESTOWANE (M4; pulpit z ikonami 0.7.5) — `scripts/test-m4.sh` (klikanie, zrzuty), testy w systemie (klatka, próba, restart), `test_rozmieszczenie` + fuzzing |
-| **Kod** | `src/gui/` (0.7.5: moduły opisane w `gui.h`): `main.c` (start, pętla, ułożenie paneli), `okna.c` (lista okien, uruchamianie i zamykanie aplikacji), `pasek_gorny.c` (górny pasek, ikona sieci — 0.9.0, bateria, okienko dźwięku), `pasek_dolny.c`, `menu_start.c`, `pulpit.c` (warstwa ikon), `pliki.c` (Kosz i pliki folderu Pulpit, 0.8.0), `kontekst.c` (menu pod prawym przyciskiem), `wersja.c` (okienko „Nowa wersja K1 nie uruchomiła się”, 0.10.5), `przelacznik.c` (przełącznik okien — Alt+Tab, 0.10.5 krok 6), `aktualizacja.c` (okienko „Jest nowa wersja K1” i kropka przy Start, 0.10.5 krok 2 — `docs/komponenty/aktualizacja.md`), `zapis.c` (rozmieszczenie w skarbcu), `rozmieszczenie.c` (reguły, bez rysowania); przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
+| **Kod** | `src/gui/` (0.7.5: moduły opisane w `gui.h`): `main.c` (start, pętla, ułożenie paneli), `okna.c` (lista okien, uruchamianie i zamykanie aplikacji), `pasek_gorny.c` (górny pasek, ikona sieci — 0.9.0, bateria, okienka paska — 0.11.8), `pasek_dolny.c`, `menu_start.c`, `pulpit.c` (warstwa ikon), `pliki.c` (Kosz i pliki folderu Pulpit, 0.8.0), `kontekst.c` (menu pod prawym przyciskiem), `wersja.c` (okienko „Nowa wersja K1 nie uruchomiła się”, 0.10.5), `przelacznik.c` (przełącznik okien — Alt+Tab, 0.10.5 krok 6), `aktualizacja.c` (okienko „Jest nowa wersja K1” i kropka przy Start, 0.10.5 krok 2 — `docs/komponenty/aktualizacja.md`), `zapis.c` (rozmieszczenie w skarbcu), `rozmieszczenie.c` (reguły, bez rysowania); przybornik `src/przybornik/`, czcionki `narzedzia/czcionki.c` |
 | **Decyzje** | ADR 0008 (pulpit), ADR 0009 (czcionki), ADR 0007 (klatka), ADR 0026 i 0028 (ikony, menu kontekstowe, rozmieszczenie); wygląd: `docs/WYGLAD.md` |
 
 ## Cel
@@ -41,10 +41,16 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   się przy pliku z polem nazwy), „Usuń” (do Kosza); folder — bez „Otwórz za pomocą”; aplikacja na pasku — jej nazwa
   (otwiera), przypnij / odepnij, „Zamknij okno” (gdy działa); aplikacja w menu Start — „Otwórz”, przypnij /
   odepnij, „Dodaj do pulpitu” / „Usuń z pulpitu”. Kolory z motywu,
-- **górny pasek** (cała szerokość, 32 px): nazwa aktywnej aplikacji, bateria (tylko na laptopie,
-  0.5.3: błyskawica przy ładowaniu, procent, ikona z wypełnieniem; ≤ 15 % — akcent), ikona dźwięku (okienko
-  „Dźwięk — ta wersja nie obsługuje jeszcze karty dźwiękowej”), data i godzina (czas polski;
-  z sekundami — w Ustawieniach),
+- **górny pasek** (cała szerokość, 32 px; wygląd od 0.11.8 krok 2 — D3: A „Spokojny”, `docs/WYGLAD.md`): znak K1 i nazwa
+  aktywnej aplikacji, pigułka z ikonami stanu — sieć, bateria (tylko na laptopie, 0.5.3: błyskawica przy ładowaniu,
+  procent, ikona z wypełnieniem; ≤ 15 % — akcent), dźwięk — oraz data i godzina (czas polski; z sekundami — w
+  Ustawieniach). Ikony stanu to **jedna tabela** `elementy` w `pasek_gorny.c` (nazwa w opisie ekranu, okienko, które
+  otwiera, szerokość komórki, rysowanie); komórka z okienkiem podświetla się pod kursorem, bez okienka — nie (nic nie
+  obiecuje). **Okienka paska** (T2): tabela `okienka` (nazwa, rozmiar, rysowanie) — dziś „Dźwięk” („ta wersja nie
+  obsługuje jeszcze karty dźwiękowej”; 0.12: głośność), od kroku 3 bateria; jedna powierzchnia `P_OKIENKO_PASKA` w
+  rozmiarze największego (`OKIENKO_PASKA_SZER` × `_WYS`), przy otwarciu przesuwana pod ikonę; otwarte najwyżej jedno,
+  zamyka je drugie kliknięcie, kliknięcie obok (pasek, pulpit, okno), dolny pasek, menu Start i klawisz Super. Log przy
+  otwarciu: „okienko paska: Dźwięk w x,y (szer×wys)”,
 - **dolny pasek** wyśrodkowany (jak Windows 11): przycisk Start (znak K1), przypięte aplikacje w kolejności
   właściciela (przeciągnięcie zmienia kolejność), a za kreską uruchomione aplikacje spoza paska (dopóki
   działają); kropka = uruchomiona, kreska w kolorze akcentu = aktywna; kliknięcie: uruchom / pokaż /
@@ -53,7 +59,8 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   „Pasek” (ikona „Start” i aplikacje po nazwach; wybrana = ma okno), „Menu Start” (wiersze aplikacji, „Zablokuj”,
   „Uruchom ponownie”, „Wyłącz”), „Pulpit” (ikony: aplikacje, „Kosz”, pliki jako „plik N”), „Menu” (wiersze menu pod prawym
   przyciskiem; nazwy sesji jako „sesja N” — `k1_menu_el` z kopii menu), „Okienko” (kafelki „sesja N”, „Anuluj”);
-  od 0.10.2 krok 3 „Pasek górny” („Dźwięk”) i **miejsca zmienne** (`K1_EL_ZMIENNE`) dla zrzutów wzorcowych: „Stan i
+  od 0.10.2 krok 3 „Pasek górny” („Dźwięk”; od 0.11.8 też „Sieć”, „Bateria” — ikony bez okienka jako `K1_EL_IKONA`),
+  „Okienko paska” (0.11.8) i **miejsca zmienne** (`K1_EL_ZMIENNE`) dla zrzutów wzorcowych: „Stan i
   zegar” na górnym pasku (sieć, bateria, zegar — przesuwają się z szerokością zegara), „Wersja” w menu Start.
 - **menu Start**: aplikacje z opisami (bez okien samego K1 — „Wybór pliku”, kolumna -1 listy aplikacji), „Zablokuj” (0.6.3 jako „Wyloguj”; od 0.11.5 „Zablokuj” i tylko, gdy magazyn ma hasło — `SESJA`; bez hasła zostałoby samo zamknięcie aplikacji), „Uruchom ponownie”, „Wyłącz”; klawisz Super otwiera/zamyka. Od 0.11.8 krok 1 (D1: A, D2: A) lista ma stałą wysokość —
   `MENU_WIDAC` = 7 wierszy (`menu_dopasuj`: na niskim ekranie mniej, najmniej `MENU_WIDAC_MIN` = 3; powierzchnia ma rozmiar
@@ -155,7 +162,7 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   Ustawienia x,y; Zegar x,y; sesja 3 x,y (wybrane: Zegar)”, „wybrane …”, „pokazuję …”, „Anuluj” — sesje jako „sesja N”.
   Log przy zmianie obecności, stanu, zasilacza lub co 5 % („bateria 73%, rozładowywanie, …”).
 - Powierzchnie: warstwa pulpitu (`K1_POW_PULPIT`, cały ekran, zatwierdzane tylko zmienione prostokąty),
-  panele: górny pasek, dolny pasek, menu Start, okienko dźwięku, menu kontekstowe (memfd, ADR 0008; na nim także okienka
+  panele: górny pasek, dolny pasek, menu Start, okienka paska (0.11.8; do niej okienko dźwięku), menu kontekstowe (memfd, ADR 0008; na nim także okienka
   pytań i „Którą sesję otworzyć?”).
 - Do ekranu (0.7.5): `ZAMKNIJ_OKNO` — „Zamknij okno” z paska; ekran prosi aplikację (`ZAMKNIJ`).
 - Zmiana rozdzielczości (M4.1): ekran wysyła ponownie `WITAJ` z nowym rozmiarem → gui zamyka menu,
@@ -196,7 +203,7 @@ treści ani innych folderów; RYZYKA R27, R48).
 ## Testy
 | Test | Rodzaj |
 |---|---|
-| `test-m4.sh`: menu Start (0.11.8: 7 wierszy od końca listy, kółko przewija, ponowne otwarcie znowu od końca, prawy przycisk po przewinięciu), uruchamianie z paska i z menu, minimalizacja, Start → Wyłącz, Start → Zablokuj (tylko z hasłem: ekran hasła wraca; bez hasła przycisku nie ma), zrzuty | funkcjonalny |
+| `test-m4.sh`: menu Start (0.11.8: 7 wierszy od końca listy, kółko przewija, ponowne otwarcie znowu od końca, prawy przycisk po przewinięciu), górny pasek (0.11.8: „Sieć” i „Dźwięk” w opisie, okienko „Dźwięk” pod ikoną, zamykane drugim kliknięciem i menu Start), uruchamianie z paska i z menu, minimalizacja, Start → Wyłącz, Start → Zablokuj (tylko z hasłem: ekran hasła wraca; bez hasła przycisku nie ma), zrzuty | funkcjonalny |
 | w systemie: klatka (UID, capabilities, seccomp, cgroup, deskryptory) | funkcjonalny |
 | w systemie: próba w klatce `gui` (22 zabronione działania, pamięć wykonywalna) | negatywny |
 | w systemie: awaria gui → wraca, okna zostają | negatywny |

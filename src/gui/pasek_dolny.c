@@ -70,7 +70,7 @@ static void loguj(const char *poczatek)
     lista(l, sizeof l);
     k1_log(TAG, "%s: Start %d,%d, aplikacje od %d,%d co %d, dźwięk %d,16 (pasek: %s)", poczatek,
            dok_x + MARG + od_lewej() + element_x(0) + EL / 2, y, dok_x + MARG + od_lewej() + element_x(1) + EL / 2, y,
-           EL + ODST, glosnik_x() + 14, l);
+           EL + ODST, dzwiek_srodek(), l);
 }
 
 void dok_gotowy(void)
@@ -198,7 +198,7 @@ void wskaznik_dok(const struct k1_komunikat *m)
         wcisk.el = nowy;
         wcisk.x = m->a;
         if (nowy != 0)
-            pokaz_dzwiek(0);
+            okienko_paska_zamknij();
     } else if (m->c == K1_WSK_WCISNIECIE && m->d == K1_PRZYCISK_PRAWY && nowy > 0) {
         pokaz_menu(0);
         kontekst_otworz(K_PASEK, (uint32_t)el[nowy], dok_x + m->a, dok_y + m->b);

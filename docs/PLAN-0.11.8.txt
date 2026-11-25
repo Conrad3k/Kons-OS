@@ -87,9 +87,9 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar
-[ ]  1  Menu Start niższe i przewijane                          L1–L5            0.11.5      D1, D2, T3     M
-         [w toku: Claude, gałąź claude/hopeful-goldberg-rzhrls; D1: A, D2: A — decyzje właściciela 2026-11-25]
+[x]  1  Menu Start niższe i przewijane — PR #218               L1–L5            0.11.5      D1, D2, T3     M
 [ ]  2  Nowy wygląd górnego paska                               L6–L9            0.11.5      D3, T2         M
+         [w toku: Claude, gałąź claude/hopeful-goldberg-rzhrls; D3: A — decyzja właściciela 2026-11-25]
 [ ]  3  Okienko baterii; wydanie 0.11.8                         L10–L14          2           D4, T1, T4, T5 M
 (Bez ADR: nic nie zmienia architektury ani niezmienników; nowe pola komunikatu — opis w gui.md i k1_komunikat.h.)
 
@@ -289,4 +289,16 @@ Krok 3:
 
 USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
 -----------------------------------------------------
-(puste)
+Krok 1 (PR #218, 2026-11-25): D1: A (7 wierszy), D2: A (widać koniec listy, reszta chowa się u góry) — właściciel wybrał
+  na szkicach z hosta (program rysujący funkcjami K1: tapeta, czcionki, ikony; pulpit 1366×768, oba motywy).
+  - Powierzchnia menu ma stały rozmiar najwyższego menu; niższe (na niskim ekranie) stoi przy jej dolnej krawędzi —
+    przezroczyste piksele nie łapią wskaźnika, więc nie trzeba tworzyć powierzchni od nowa (kolejność paneli zostaje).
+  - Ząbek kółka = 1 wiersz (56 px), touchpad — część wiersza; bez animacji (T3). Przycięcie i zanikanie: nowy mały plik
+    przybornika k1_wycinek.c (k1_rysuj.c ma 560 wierszy). Zanikanie liczy się do koloru tła panelu (próbka tła przed
+    rysowaniem wierszy) — rysowanie wierszy na przezroczystym buforze i składanie dawało wyblakły tekst.
+  - Opis ekranu: wiersz, gdy widać co najmniej połowę (jego widoczna część). Log „pierwszy wiersz” to miejsce wiersza 1
+    (nad listą, gdy jest schowany) — testy, które liczą wiersze (m5f: 3 i 5, m6: 5), działają bez zmian, bo przy 7
+    wierszach widać 3–9; na ekranie niższym niż ok. 650 px musiałyby przewijać (wszystkie testy QEMU mają 768–800 px).
+  - Pasek przewijania (3 px) ma pas chwytania 10 px z prawej listy; wiersze kończą się przed nim.
+  - CI 334: test-m5f kliknął Start w złym miejscu (ruchy myszy przed przejęciem jej przez usługę wejścia) — m5f czeka
+    teraz na „K1-WEJSCIE: gotowe” jak test-m6. Nie związane z menu.

@@ -173,7 +173,7 @@ void pokaz_menu(int tak)
     dok.brudna = 1;
     if (!tak)
         return;
-    pokaz_dzwiek(0);
+    okienko_paska_zamknij();
     przycisk_stopki(0, 0, &wyl);
     if (przycisk_stopki(0, 0, &wyg) < 0)
         wyg = -1; /* no "Zablokuj" (no password): the log says -1,-1 */
