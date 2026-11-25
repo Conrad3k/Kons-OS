@@ -232,7 +232,7 @@ int main(void)
         if (poll(p, 3, czekaj) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
         if (p[1].revents != 0)
-            odbierz_baterie();
+            odbierz_od_nadzorcy();
         if (p[2].revents != 0)
             odbierz_skarbiec();
         while (k1_odbierz(&k, wszystkie, 6, &m))

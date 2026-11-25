@@ -4,28 +4,21 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 testy na laptopach, rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Bez historii: co się zmieniło — CHANGELOG.md, decyzje — docs/adr/, zamknięte plany — docs/archiwum/.
-Stan: 0.11.5 — w menu Start „Zablokuj” zamiast „Wyloguj”, tylko z hasłem. Wersja 0.11 „Pliki ze stref” gotowa: pliki
-między przeglądarką a Plikami, przeciąganie, schowek, pełny ekran (0.11.0), poprawki „Zapisz obraz jako…” (0.11.1,
-0.11.4), szybsza przeglądarka (0.11.2, 0.11.3).
-Następna wersja — 0.11.8 „Menu Start i górny pasek”, potem 0.12 „Dźwięk” (punkt 1).
-Data: 2026-11-23.
+Stan: 0.11.8 — niższe menu Start z przewijaną listą, nowy górny pasek, okienko baterii (czas i pobór mocy). Wersja 0.11
+„Pliki ze stref” gotowa: pliki między przeglądarką a Plikami, przeciąganie, schowek, pełny ekran (0.11.0), poprawki
+„Zapisz obraz jako…” (0.11.1, 0.11.4), szybsza przeglądarka (0.11.2, 0.11.3), „Zablokuj” (0.11.5).
+Następna wersja — 0.12 „Dźwięk” (punkt 1).
+Data: 2026-11-25.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — wersja 0.11.8 „Menu Start i górny pasek” (plan: docs/PLAN-0.11.8.txt), potem 0.12 „Dźwięk”
-------------------------------------------------------------------------------------------------------
-Twoja prośba z 2026-11-23: „zanim wdrożymy 0.12.0” — menu Start ciut niższe, z przewijaniem między wszystkimi
-aplikacjami (te, które się nie mieszczą, chowają się wyżej), ładniejszy górny pasek i małe okienko baterii po kliknięciu
-jej ikony (ile czasu zostało, pobór mocy). Trzy kroki (jeden krok = jeden czat = jeden PR; decyzje D1–D4 — ze szkicami):
-    [x] krok 1 — menu Start niższe i przewijane (PR #218)
-    [x] krok 2 — nowy wygląd górnego paska (PR #219)
-    [ ] krok 3 — okienko baterii; wydanie 0.11.8 (albo następny wolny numer, jeśli robot go zajmie)
-        [w toku: Claude, gałąź claude/happy-noether-25kdc7]
-[!] Gdy zechcesz zacząć: „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.11.8.txt”.
+1. TERAZ — wersja 0.12 „Dźwięk” (plan: docs/PLAN-0.12.0.txt; ADR 0053)
+---------------------------------------------------------------------
+Zrobione przed nią: 0.11.8 „Menu Start i górny pasek” (Twoja prośba z 2026-11-23; plan w docs/archiwum/PLAN-0.11.8.txt,
+decyzje D1–D4 ze szkiców: 7 wierszy, reszta chowa się u góry, pasek „Spokojny”, okienko baterii bez wykresu).
 
-Potem — wersja 0.12 „Dźwięk” (plan: docs/PLAN-0.12.0.txt; ADR 0053):
 Twoja prośba z 2026-11-22: „w wersji 0.12 zająć się dźwiękiem”. Cel: laptop gra — filmy i strony w przeglądarce
 z dźwiękiem, głośność suwakiem na górnym pasku i klawiszami, słuchawki same; kartę dźwiękową ma tylko usługa dźwięku K1,
 przeglądarka gra przez K1. Cztery kroki (jeden krok = jeden czat = jeden PR; decyzje D1–D6 czat zada na początku kroku,
@@ -34,7 +27,7 @@ D1 — mikrofon — najpierw):
     [ ] krok 2 — klawisze głośności, słuchawki, Ustawienia → Dźwięk
     [ ] krok 3 — dźwięk z przeglądarki, znak „gra” na ramce sesji
     [ ] krok 4 — porządki; wydanie 0.12.0 (gdy w D1 wybierzesz mikrofon: krok 4 — mikrofon, wydanie w kroku 5)
-[!] Po 0.11.8: „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.12.0.txt”.
+[!] Gdy zechcesz zacząć: „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.12.0.txt”.
 Do tego czasu robot wydaje poprawki jądra i przeglądarki (0.11.x), a Twoje zgłoszenia z laptopów (punkt 4) idą jako PATCH.
 Przed planem (2026-11-22): porządki w dokumentacji — mapa drogi przesunięta o jedną wersję (ADR 0053), ten plik bez
 historii, lista testów na laptopach ułożona tematami, README, RYZYKA, SPEC i skill zgodne z obecnym stanem.
@@ -47,9 +40,8 @@ historii, lista testów na laptopach ułożona tematami, README, RYZYKA, SPEC i 
     0.9      Sieć — gotowe: 0.9.0 kabel, 0.9.1 Wi-Fi                              (M7)
     0.10     Strefy — gotowe: 0.10.0 przeglądarka w strefie, 0.10.1 Balon, 0.10.2 Testy, 0.10.5 Aktualizacje przez sieć,
              0.10.7 Wygląd, 0.10.9 Szybka grafika, 0.10.11 Szybsza grafika   (M8, z dawnym M11)
-    0.11     Pliki ze stref — gotowe: 0.11.0, poprawki 0.11.1–0.11.5             (M9)
-             0.11.8 Menu Start i górny pasek — TERAZ (punkt 1)
-    0.12     Dźwięk — następna (punkt 1)                                              (część dawnego M5.3 Laptop)
+    0.11     Pliki ze stref — gotowe: 0.11.0, poprawki 0.11.1–0.11.5, 0.11.8 Menu Start i górny pasek  (M9)
+    0.12     Dźwięk — TERAZ (punkt 1)                                              (część dawnego M5.3 Laptop)
     0.13     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
     0.14     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
@@ -122,12 +114,22 @@ Zgłoszenia na GitHubie (Issues) — naprawiać w kroku, który dotyka tej czę�
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista, ułożona tematami; w nawiasie wersja, która to wprowadziła. Sprawdzasz na najnowszym wydaniu (dziś 0.11.5;
+Jedna lista, ułożona tematami; w nawiasie wersja, która to wprowadziła. Sprawdzasz na najnowszym wydaniu (dziś 0.11.8;
 aktualizacja: Ustawienia → Aktualizacje → „Sprawdź teraz”). Wydania do 0.8.1 — uznane za przetestowane (Twoja decyzja
 z 2026-11-11). Potwierdzone przez Ciebie: Wi-Fi (2026-11-14), pulpit z i915 na obu laptopach (2026-11-20), instalacja
 0.10.9 od nowa (2026-11-20), przeglądarka i szybka grafika na IdeaPadzie (Speedometer, 2026-11-22).
 [!] Raz na każdym laptopie: wirtualizacja w BIOS-ie (README, punkt 8) — bez niej przeglądarka nie ruszy.
-Najpierw — nowe w 0.11.5:
+Najpierw — nowe w 0.11.8:
+    [ ] menu Start (kliknięcie albo klawisz Super): niższe niż dotąd, widać 7 aplikacji od dołu listy; kółko myszy i dwa
+        palce na touchpadzie przewijają w górę do reszty, wiersze miękko znikają przy krawędzi; cienki pasek z boku
+        można chwycić; każde otwarcie znowu od dołu
+    [ ] górny pasek w jasnym i ciemnym motywie, na jasnej tapecie „Świt” — czytelny; sieć, bateria i dźwięk w jednej
+        „pigułce”, znak K1 przed nazwą aplikacji; kliknięcie głośnika — okienko „Dźwięk” pod nim
+    [ ] kliknięcie baterii → okienko: procent, stan, „Zostało” / „Do pełna” z czasem, „Pobór mocy” w watach — porównaj
+        z Zasobami (te same liczby); podłącz / odłącz zasilacz przy otwartym okienku — zmienia się samo w ok. 5–15 s;
+        „Ustawienia baterii” otwiera Ustawienia na sekcji Bateria; drugie kliknięcie baterii, kliknięcie obok i Start
+        zamykają okienko
+Nowe w 0.11.5:
     [ ] bez hasła: menu Start ma tylko „Uruchom ponownie” i „Wyłącz”; Ustawienia → Hasło → ustaw hasło → menu Start
         od razu ma „Zablokuj” → kliknij: aplikacje się zamykają, wraca ekran hasła; po wyłączeniu hasła przycisk znika
 Nowe w 0.11.4:
@@ -217,14 +219,14 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 
 5. TWOJE OTWARTE DECYZJE I DZIAŁANIA
 ------------------------------------
-[!] 0.11.8 — decyzje D1–D4 (docs/PLAN-0.11.8.txt, punkt 4): ile wierszy menu Start, gdzie chowają się aplikacje,
-    wygląd górnego paska, okienko baterii — czat pokaże szkice na początku kroków.
+[!] Robot stoi od 2026-11-24 (Issue #216, #217): raz włącz Settings → Actions → General → Workflow permissions → „Allow
+    GitHub Actions to create and approve pull requests” (docs/komponenty/robot.md) — bez tego nie wyda poprawek jądra.
 [!] 0.12.0 — decyzje D1–D6 (docs/PLAN-0.12.0.txt, punkt 4): czat zada je na początku kroków; D1 (mikrofon) najpierw.
 [!] 0.10.5 — decyzje D4, D5, D7 i D10 weszły jako rekomendacje (kroki szły bez Ciebie) — do potwierdzenia albo zmiany:
     D4 K1 sprawdza sam po połączeniu i co 6 godzin, pobiera od razu, instaluje po „Zainstaluj”; D5 przez sieć aktualizuje
     się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach; D10 przegląd dokumentacji: powtórzenia →
     odesłania, historia (ADR, CHANGELOG, archiwum) bez zmian.
-[x] Decyzje wersji 0.10.0–0.11.0 podjęte (punkt 4 każdego planu w docs/archiwum/); klucz podpisu dodany 2026-11-12.
+[x] Decyzje wersji 0.10.0–0.11.8 podjęte (punkt 4 każdego planu w docs/archiwum/); klucz podpisu dodany 2026-11-12.
 
 Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
   - styl: minimalistyczno-ciepły (Claude/Anthropic); pulpit jak w Windows 11, pasek na dole, wyśrodkowany; na górze

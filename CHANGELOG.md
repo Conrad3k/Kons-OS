@@ -3,6 +3,42 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.11.8] — 2026-11-25
+
+**Menu Start i górny pasek** (Twoja prośba z 2026-11-23, przed 0.12). Menu Start jest niższe i nie sięga już prawie do
+górnej krawędzi ekranu: widać 7 aplikacji, a te, które się nie mieszczą, chowają się za górną krawędzią listy — dojeżdżasz
+do nich kółkiem myszy albo dwoma palcami. Górny pasek wygląda spokojniej: znak K1 przed nazwą aplikacji, sieć, bateria
+i dźwięk w jednej „pigułce”, godzina mocniej, data lżej. A kliknięcie baterii otwiera małe okienko: procent, co bateria
+robi, ile czasu zostało (albo do pełna) i pobór mocy laptopa — te same liczby co w Zasobach.
+
+Opis w K1: Menu Start jest niższe, a listę aplikacji przewijasz kółkiem albo dwoma palcami. Górny pasek ma nowy wygląd,
+a kliknięcie baterii pokazuje, ile czasu zostało i ile prądu bierze laptop.
+
+### Dodane
+- **Okienko baterii** (krok 3, Twoja decyzja D4: szkic A; `gui/bateria.c`): kliknięcie baterii na górnym pasku → okienko
+  pod nią: procent, stan, „Zostało” / „Do pełna” z czasem, „Pobór mocy” w watach, przycisk „Ustawienia baterii” (otwiera
+  Ustawienia na sekcji Bateria). Liczby odświeżają się same; póki okienko jest otwarte, K1 czyta baterię co 5 s zamiast co
+  15 s. Liczy je nadzorca — ten sam pomiar co dla Zasobów.
+- Komunikaty `BATERIA_OKIENKO` (gui → nadzorca: okienko otwarte, zamknięte, „Ustawienia baterii”) i `BATERIA_POKAZ`
+  (nadzorca → Ustawienia: pokaż sekcję Bateria); test na hoście `test_komunikat`.
+- Testy: `test-m5` — okienko z liczbami wyliczonymi z tablicy ACPI (73 %, ładowanie, 9,0 W, do pełna 81 min), zamykanie,
+  przycisk; `test-m1` — czas przy rozładowywaniu; `test-wzorce` — osobny przebieg z baterią, wzorce `okienko-baterii-*`
+  (zatwierdzone przez Ciebie).
+
+### Zmienione
+- **Menu Start niższe i przewijane** (krok 1, PR #218; D1: 7 wierszy, D2: reszta chowa się u góry): stała wysokość listy,
+  przewijanie kółkiem (wiersz na ząbek) i dwoma palcami (płynnie), miękkie zanikanie przy krawędzi, cienki pasek
+  przewijania; na niskim ekranie mniej wierszy (najmniej 3); każde otwarcie od końca listy.
+- **Nowy górny pasek** (krok 2, PR #219; D3: „Spokojny”): pigułka z ikonami stanu (jedna tabela w `gui/pasek_gorny.c`),
+  okienka pod swoimi ikonami (jedna tabela okienek paska, otwarte najwyżej jedno).
+- `ZASOBY_BATERIA` nazywa się `BATERIA_POMIAR` — idzie też do gui (po zmianie, tylko do pulpitu, nie do ekranu hasła).
+
+### Porządki
+- `gui`: bateria w osobnym pliku `bateria.c` (zanim urosła o okienko); `odbierz_baterie` → `odbierz_od_nadzorcy` (obsługuje
+  cały kanał od nadzorcy); stałe okienka dźwięku (`DZW_*`) zastąpiła tabela okienek paska.
+- Dokumenty: ustalenia z kroku 2 (PR #220 scalił się pusty) odtworzone w planie; `robot.md` — ustawienie repozytorium,
+  bez którego robot nie wydaje (Issue #216, #217).
+
 ## [0.11.5] — 2026-11-23
 
 **„Wyloguj” to teraz „Zablokuj” — i tylko z hasłem** (Twoja prośba z 2026-11-23, przed 0.12). Konto w K1 jest jedno,

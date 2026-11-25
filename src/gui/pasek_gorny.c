@@ -62,7 +62,7 @@ static int z_deskryptorem(const struct k1_komunikat *m, int fd)
     return 1;
 }
 
-void odbierz_baterie(void)
+void odbierz_od_nadzorcy(void)
 {
     static int odrzucone;
     int i;

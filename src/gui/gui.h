@@ -99,7 +99,7 @@ void do_nadzorcy(struct k1_komunikat m);
 /* pasek_gorny.c */
 void rysuj_gora(void);
 void rysuj_okienko_paska(void);
-void odbierz_baterie(void); /* fd 5: battery and session state from nadzorca */
+void odbierz_od_nadzorcy(void); /* fd 5: battery, session, network, zones, updates from nadzorca */
 void strefa_stan(const struct k1_komunikat *m); /* fd 5 (0.10.0): a zone did not start — the window that says why */
 /* fd 5 (0.10.0 step 5): the sessions as the user set them — their names (Start menu, the zone's window on the bar) */
 void strefy_sesje(const struct k1_komunikat *m);
