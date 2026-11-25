@@ -63,6 +63,7 @@ void bateria_nowy_kanal(void)
     sesja_wyslana = -1;
     siec_stan_nowy_kanal_gui();
     sesje_nowy_kanal(0);
+    dzwiek_nowy_gui(); /* 0.12.0 step 1: its channel to the sound service */
 }
 
 void zasoby_nowy_kanal(void)

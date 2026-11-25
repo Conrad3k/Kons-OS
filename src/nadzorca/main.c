@@ -128,6 +128,7 @@ static void okresowe(void)
     siec_stan_wyslij();
     wyslij_baterie();
     wyslij_ustawieniom();
+    dzwiek_okresowe(t);  /* 0.12.0 step 1: the sound card and the clients' channels */
     filmy_po_starcie(t); /* 0.10.9 step 2: the question, what the card decodes */
     filmy_wyslij_ustawieniom();
     posrednik_po_starcie(t); /* 0.10.9 step 5: the question, whether the card serves fast graphics */

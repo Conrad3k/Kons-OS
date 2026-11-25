@@ -57,6 +57,8 @@ static int z_deskryptorem(const struct k1_komunikat *m, int fd)
         akt_komunikat(m, fd); /* 0.10.5 step 2b: a new version waits (aktualizacja.c) */
     else if (m->typ == K1_KOM_POBRANIE || m->typ == K1_KOM_POBRANIE_WYNIK)
         pobranie_komunikat(m, fd); /* 0.11.0 step 2: a file from a session of the browser (pobranie.c) */
+    else if (m->typ == K1_KOM_DZWIEK_KANAL && fd >= 0)
+        dzwiek_kanal_nowy(fd); /* 0.12.0 step 1: the channel to the sound service (dzwiek.c) */
     else
         return 0;
     return 1;
@@ -212,23 +214,9 @@ static void el_siec(struct k1_obraz *o, int32_t x, uint32_t krem)
     rysuj_siec(o, (float)x + 8, krem);
 }
 
-static void el_dzwiek(struct k1_obraz *o, int32_t x, uint32_t krem)
-{
-    k1_ikona(o, K1_IK_GLOSNIK, (float)x + 8, 8, 16, krem);
-}
-
-/* The popover "Dźwięk" (0.12 step 1 puts the volume in it). */
-#define DZWIEK_SZER 300
-#define DZWIEK_WYS 84
-_Static_assert(DZWIEK_SZER <= OKIENKO_PASKA_SZER && DZWIEK_WYS <= OKIENKO_PASKA_WYS, "okienko paska w powierzchni");
-
-static void okienko_dzwieku(struct k1_obraz *o, const struct k1_motyw *m)
-{
-    k1_ikona(o, K1_IK_GLOSNIK, MARG + 16, MARG + 16, 20, k1_kolor(m->tekst2, 255));
-    k1_tekst(o, K1_CZ_TEKST_MOCNA, MARG + 48, MARG + 31, "Dźwięk", k1_kolor(m->tekst, 255), 0);
-    k1_tekst(o, K1_CZ_MALA, MARG + 48, MARG + 54, "Ta wersja nie obsługuje jeszcze", k1_kolor(m->tekst2, 255), 0);
-    k1_tekst(o, K1_CZ_MALA, MARG + 48, MARG + 71, "karty dźwiękowej.", k1_kolor(m->tekst2, 255), 0);
-}
+/* The popover "Dźwięk": dzwiek.c (0.12.0 step 1). */
+_Static_assert(DZWIEK_OKIENKO_SZER <= OKIENKO_PASKA_SZER && DZWIEK_OKIENKO_WYS <= OKIENKO_PASKA_WYS,
+               "okienko paska w powierzchni");
 
 /* The popovers of the bar: one surface (P_OKIENKO_PASKA) the size of the largest, under the icon that opens it. */
 enum { OK_DZWIEK = 0, OK_BATERIA, OK_N };
@@ -239,7 +227,8 @@ static const struct {
     void (*otwarcie)(int tak);                         /* told when it opens and closes; NULL: nothing to tell */
     void (*wskaznik)(const struct k1_komunikat *m);    /* the pointer over it (surface coordinates); NULL: nothing */
 } okienka[OK_N] = {
-    [OK_DZWIEK] = { "Dźwięk", DZWIEK_SZER, DZWIEK_WYS, okienko_dzwieku, NULL, NULL },
+    [OK_DZWIEK] = { "Dźwięk", DZWIEK_OKIENKO_SZER, DZWIEK_OKIENKO_WYS, dzwiek_okienko, dzwiek_okienko_otwarte,
+                    dzwiek_okienko_wskaznik }, /* 0.12.0 step 1 (D2: B) */
     [OK_BATERIA] = { "Bateria", BATERIA_OKIENKO_SZER, BATERIA_OKIENKO_WYS, bateria_okienko, bateria_okienko_otwarte,
                      bateria_okienko_wskaznik }, /* 0.11.8 step 3 (D4: A) */
 };
@@ -256,7 +245,7 @@ static const struct {
 } elementy[EL_N] = {
     [EL_SIEC] = { "Sieć", -1, szer_sieci, el_siec },
     [EL_BATERIA] = { "Bateria", OK_BATERIA, bateria_szer, bateria_na_pasku }, /* 0.11.8 step 3: its popover */
-    [EL_DZWIEK] = { "Dźwięk", OK_DZWIEK, szer_dzwieku, el_dzwiek },
+    [EL_DZWIEK] = { "Dźwięk", OK_DZWIEK, szer_dzwieku, dzwiek_na_pasku },
 };
 static int32_t el_x[EL_N], el_w[EL_N];
 static void pokaz_okienko(int nr);

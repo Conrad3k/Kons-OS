@@ -3,6 +3,7 @@
 
 #include <linux/dma-buf.h>
 #include <linux/falloc.h>
+#include <sound/asound.h>
 #include <sched.h>
 
 static const long sc_wejscie[] = { 0 };
@@ -41,6 +42,28 @@ static const long sc_filmy[] = { SYS_getuid, SYS_geteuid };
  * (mmap, base), the copies of fences (fcntl F_DUPFD_CLOEXEC, base), the dma-buf for the VMM (sendmsg, base). Nothing
  * beyond the base: no open, no memfd, no socket. */
 static const long sc_posrednik[] = { 0 };
+
+/* dzwiek (0.12.0 step 1, ADR 0054 T2): the card through the ALSA ioctls it uses, each by its number — on the playback
+ * node: its name, the format, the start values, prepare, write frames, stop and free its buffer; on the controls: the
+ * card's name, the list of controls, a control's description, value and dB scale, a new value. Not: ELEM_ADD/REPLACE/
+ * REMOVE (no controls of its own), TLV_WRITE/COMMAND, POWER, mmap of the status pages (SYNC_PTR), LINK. Its clients'
+ * rings from the clients (mmap read only, base). No open, no memfd, no socket. */
+static const long sc_dzwiek[] = { 0 };
+static const struct k1_warunek wa_dzwiek[] = {
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_INFO },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_HW_PARAMS },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_HW_FREE },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_SW_PARAMS },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_PREPARE },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_WRITEI_FRAMES },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_PCM_IOCTL_DROP },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_CTL_IOCTL_CARD_INFO },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_CTL_IOCTL_ELEM_LIST },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_CTL_IOCTL_ELEM_INFO },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_CTL_IOCTL_ELEM_READ },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_CTL_IOCTL_ELEM_WRITE },
+    { SYS_ioctl, 1, 0xffffffffu, (uint32_t)SNDRV_CTL_IOCTL_TLV_READ },
+};
 
 /* the VMM of a zone (0.10.0, ADR 0042 T1, T3): the machine through KVM ioctls only (type 0xAE: on /dev/kvm, the machine
  * and its processors — nadzorca gives it no other device, so the type is enough: S2); guest memory and its window from
@@ -106,6 +129,11 @@ static const struct k1_warunek wa_strefa[] = { { SYS_ioctl, 1, 0xff00u, 0xae00u 
  * the memfd it writes too — SIGXFSZ): the remembered networks for skarbiec, 1064 B (pamiec.h) — 64 KiB. */
 #define KLATKA_SIEC .wywolania = sc_siec, .n_wywolan = N(sc_siec), .pamiec = 8u << 20, .pliki = 24, \
                     .rozmiar_pliku = 64u << 10
+
+/* the sound service: its clients' rings (K1_DZW_PIERSCIEN_BAJTY each, 8 clients: 512 KiB mapped), its period buffers;
+ * 16 MiB. Descriptors: its channel, the card's two nodes, 8 clients and a ring each while it opens. RLIMIT_FSIZE 0. */
+#define KLATKA_DZWIEK .wywolania = sc_dzwiek, .warunki = wa_dzwiek, .n_warunkow = N(wa_dzwiek), .pamiec = 16u << 20, \
+                      .pliki = 24, .rozmiar_pliku = 0
 
 /* the film decoder (k1_filmy.h, T8): the card's buffers up to K1_FILMY_PAMIEC (counted in its cgroup: i915 charges them
  * to the process that fills them, mm/shmem.c — S26) + 96 MiB: the code with i965 and libva, the window (25 MiB), its copy

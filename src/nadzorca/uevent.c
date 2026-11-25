@@ -52,6 +52,7 @@ int k1_uevent_parsuj(const char *buf, size_t n, struct k1_uevent *u)
                 u->rodzaj = vl == 5 && memcmp(v, "input", 5) == 0           ? K1_UE_WEJSCIE
                             : vl == 5 && memcmp(v, "block", 5) == 0         ? K1_UE_DYSK
                             : vl == 12 && memcmp(v, "power_supply", 12) == 0 ? K1_UE_ZASILANIE
+                            : vl == 5 && memcmp(v, "sound", 5) == 0         ? K1_UE_DZWIEK
                                                                             : K1_UE_NIEISTOTNE;
             } else if (kl == 7 && memcmp(p, "DEVNAME", 7) == 0) {
                 if (kopiuj(u->devname, sizeof u->devname, v, vl, 1) != 0)

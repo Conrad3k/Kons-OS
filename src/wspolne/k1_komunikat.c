@@ -30,7 +30,7 @@ static int sprawdz_typ(const struct k1_komunikat *k, enum k1_kanal_kierunek kier
            k1_kom_sprawdz_ekran(k, kier) || k1_kom_sprawdz_nadzorca(k, kier) || k1_kom_sprawdz_pendrive(k, kier) ||
            k1_kom_sprawdz_dekoder(k, kier) || k1_kom_sprawdz_siec(k, kier) || k1_kom_sprawdz_wifi(k, kier) ||
            k1_kom_sprawdz_strefa(k, kier) || k1_kom_sprawdz_filmy(k, kier) ||
-           k1_kom_sprawdz_posrednik(k, kier) || k1_kom_sprawdz_pobrane(k, kier);
+           k1_kom_sprawdz_posrednik(k, kier) || k1_kom_sprawdz_pobrane(k, kier) || k1_kom_sprawdz_dzwiek(k, kier);
 }
 
 int k1_komunikat_sprawdz(const void *buf, size_t len, enum k1_kanal_kierunek kierunek, struct k1_komunikat *out)
@@ -74,6 +74,9 @@ int k1_komunikat_z_deskryptorem(uint8_t typ, enum k1_kanal_kierunek kierunek)
            ((typ == K1_KOM_POSR_OKNO || typ == K1_KOM_POSR_WSPOLNA) && kierunek == K1_KIER_DO_POSREDNIKA) || /* step 5 */
            (typ == K1_KOM_POSR_DMABUF && kierunek == K1_KIER_OD_POSREDNIKA) || /* …and a buffer for the VMM */
            (typ == K1_KOM_DEK_PIKSELE && kierunek == K1_KIER_OD_DEKODERA) ||
+           ((typ == K1_KOM_DZWIEK_KARTA || typ == K1_KOM_DZWIEK_KLIENT) && kierunek == K1_KIER_STEROWANIE) || /* 0.12.0 */
+           (typ == K1_KOM_DZWIEK_OTWORZ && kierunek == K1_KIER_DO_DZWIEKU) ||  /* …the ring of a stream */
+           (typ == K1_KOM_DZWIEK_KANAL && kierunek == K1_KIER_OD_NADZORCY) ||  /* …gui's channel to dzwiek */
            ((typ == K1_KOM_STREFA_PLIK || typ == K1_KOM_STREFA_PLIK_KAWALEK || typ == K1_KOM_SKARB_DO_STREFY) &&
             kierunek == K1_KIER_DO_NADZORCY) || /* 0.11.0 steps 2, 3 */
            ((typ == K1_KOM_STREFA_DO_PLIK || typ == K1_KOM_STREFA_DO_KAWALEK) && kierunek == K1_KIER_OD_NADZORCY) ||

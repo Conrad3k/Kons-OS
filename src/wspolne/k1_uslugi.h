@@ -31,13 +31,17 @@
     /* 0.9.0 (ADR 0039): the address from the router (DHCP) for the card with a cable; nadzorca sets it */          \
     /* 0.9.1 (ADR 0041): + Wi-Fi — the networks around, logging in with a password; the remembered networks in skarbiec */ \
     X(SIEC, 18, 108, "siec", "Sieć (adres od routera, Wi-Fi)", PRZY_STARCIE, BRAK, (KANAL_SIECI, KANAL_SKARBCA))      \
+    /* 0.12.0 step 1 (ADR 0054): sound — the only process with the sound card; its clients get a channel from nadzorca  \
+     * (nadzorca/dzwiek.c). Profile 24: the next free one before the zones' film decoders and brokers (they own no data   \
+     * in skarbiec, so theirs moved by one: FILMY 25, POSREDNIK 31). */                                                \
+    X(DZWIEK, 24, 111, "dzwiek", "Dźwięk (karta dźwiękowa)", PRZY_STARCIE, BRAK, (KANAL_DZWIEKU))                    \
     /* 0.10.9 step 2 (ADR 0049 pkt 2, 3): the film decoder — this row: nadzorca's question at boot, what the card      \
      * decodes (then it ends); the decoder of each zone follows from the zone's row (K1_PROFIL_FILMY_<ZONE>, below) */ \
-    X(FILMY, 24, 109, "filmy", "Dekoder filmów (karta graficzna)", NA_PROSBE, BRAK, ())                            \
+    X(FILMY, 25, 109, "filmy", "Dekoder filmów (karta graficzna)", NA_PROSBE, BRAK, ())                            \
     /* 0.10.9 step 5 (ADR 0049 pkt 7): the graphics broker — this row: nadzorca's question at boot, whether the card    \
      * can serve fast graphics (then it ends); the broker of each zone follows from the zone's row, as for FILMY. Its    \
      * profile comes right after those of the zones' film decoders (k1_uslugi.c checks it). */                        \
-    X(POSREDNIK, 30, 110, "posrednik", "Pośrednik grafiki (karta graficzna)", NA_PROSBE, BRAK, ())
+    X(POSREDNIK, 31, 110, "posrednik", "Pośrednik grafiki (karta graficzna)", NA_PROSBE, BRAK, ())
 
 /* The native applications: one line each — everything else (UIDs, profiles, the Start menu, window names,
  * Zasoby, the sandbox profile, the image contents, the tests) follows from it.

@@ -42,6 +42,11 @@ int main(void)
     n = pakiet(b, sizeof b, "remove@/devices/virtual/input/input9/event6|ACTION=remove|SUBSYSTEM=input|DEVNAME=input/event6");
     EXPECT(k1_uevent_parsuj(b, n, &u) == 0 && u.akcja == K1_UE_USUNIETE);
 
+    /* 0.12.0 step 1: a sound card's playback node (nadzorca/dzwiek.c) */
+    n = pakiet(b, sizeof b, "add@/devices/pci0000:00/0000:00:1b.0/sound/card0/pcmC0D0p|ACTION=add|SUBSYSTEM=sound|DEVNAME=snd/pcmC0D0p");
+    EXPECT(k1_uevent_parsuj(b, n, &u) == 0 && u.akcja == K1_UE_DODANE && u.rodzaj == K1_UE_DZWIEK &&
+           strcmp(u.devname, "snd/pcmC0D0p") == 0);
+
     n = pakiet(b, sizeof b, "bind@/devices/pci0000:00/x|ACTION=bind|SUBSYSTEM=pci");
     EXPECT(k1_uevent_parsuj(b, n, &u) == 0 && u.akcja == K1_UE_INNA && u.rodzaj == K1_UE_NIEISTOTNE);
 

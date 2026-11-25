@@ -274,6 +274,8 @@ void obsluz_uevent(void)
             uevent_dysk = 1; /* removed too (0.8.6): Pliki learn at once that the stick is gone, not at the next look */
         else if (u.rodzaj == K1_UE_ZASILANIE)
             uevent_zasilanie = 1;
+        else if (u.rodzaj == K1_UE_DZWIEK && u.akcja == K1_UE_DODANE)
+            uevent_dzwiek = 1; /* 0.12.0 step 1: a sound card's node (dzwiek.c) */
     }
 }
 

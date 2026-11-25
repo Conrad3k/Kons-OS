@@ -9,7 +9,7 @@
 #include <stddef.h>
 
 enum k1_ue_akcja { K1_UE_INNA = 0, K1_UE_DODANE, K1_UE_USUNIETE, K1_UE_ZMIANA };
-enum k1_ue_rodzaj { K1_UE_NIEISTOTNE = 0, K1_UE_WEJSCIE, K1_UE_DYSK, K1_UE_ZASILANIE };
+enum k1_ue_rodzaj { K1_UE_NIEISTOTNE = 0, K1_UE_WEJSCIE, K1_UE_DYSK, K1_UE_ZASILANIE, K1_UE_DZWIEK /* 0.12.0 */ };
 
 struct k1_uevent {
     enum k1_ue_akcja akcja;

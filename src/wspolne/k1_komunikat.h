@@ -46,8 +46,10 @@ enum k1_kanal_kierunek {
     K1_KIER_DO_POSREDNIKA = 15, /* the client (a zone's VMM, nadzorca's question, the test program) → posrednik (0.10.9
                                  * step 5) */
     K1_KIER_OD_POSREDNIKA = 16, /* posrednik → its client */
+    K1_KIER_DO_DZWIEKU = 17,    /* a client (gui, the test program) → dzwiek (0.12.0 step 1) */
+    K1_KIER_OD_DZWIEKU = 18,    /* dzwiek → its client */
 };
-#define K1_KIER_MAKS 16
+#define K1_KIER_MAKS 18
 
 enum k1_komunikat_typ {
     /* nadzorca → ekran */
@@ -221,6 +223,31 @@ enum k1_komunikat_typ {
                                    * opened / closed (nadzorca reads the battery every 5 s while it is open), or its button
                                    * "Ustawienia baterii" (open Ustawienia on Bateria); b..e=0 */
     K1_KOM_BATERIA_POKAZ = 251,   /* nadzorca → Ustawienia (its fd 4): obiekt=0, all 0 — show the section Bateria */
+    /* 0.12.0 step 1 (ADR 0054): sound — formats and limits: k1_dzwiek.h; obiekt=0 in every one. nadzorca → the sound
+     * service (its fd 3, one way: K1_KIER_STEROWANIE) */
+    K1_KOM_DZWIEK_KARTA = 4,       /* a=K1_DZW_WEZEL_* (ODTWARZANIE: b=the card, c=its device; KONTROLKI: b=the card, c=0;
+                                    * 0..K1_DZW_KARTA_NR_MAKS), d=e=0; + 1 fd: that node of /dev/snd */
+    K1_KOM_DZWIEK_KLIENT = 5,      /* a=the client's row 1..K1_DZW_KLIENCI_MAKS, b=its UID 0..65535, c..e=0; + 1 fd: the
+                                    * service's end of the client's channel (the service checks that UID as the sender) */
+    K1_KOM_DZWIEK_BEZ_KARTY = 6,   /* all 0: 5 s after the start there is no card with a playback device */
+    /* a client → dzwiek (K1_KIER_DO_DZWIEKU): one stream at a time */
+    K1_KOM_DZWIEK_OTWORZ = 7,      /* all 0; + 1 fd: the ring, a memfd of exactly K1_DZW_PIERSCIEN_BAJTY sealed against
+                                    * shrinking and growing — a new stream (refused or no card: ODTWORZONO a=0, b=1) */
+    K1_KOM_DZWIEK_ZAPISANO = 8,    /* a=new frames 1..K1_DZW_PIERSCIEN written after the previous ones (more than the ring
+                                    * holds, or no stream: the client loses its channel), b..e=0 */
+    K1_KOM_DZWIEK_ZAMKNIJ = 9,     /* a=K1_DZW_PO_ODEGRANIU (the stream ends when what was written played) / K1_DZW_OD_RAZU,
+                                    * b..e=0 */
+    K1_KOM_DZWIEK_GLOSNOSC = 41,   /* a steering client only (K1_DZW_KLIENCI): a=the volume of all K1 0..K1_DZW_GLOSNOSC_MAKS,
+                                    * b=1 muted / 0, c..e=0 */
+    /* dzwiek → its client (K1_KIER_OD_DZWIEKU) */
+    K1_KOM_DZWIEK_STAN = 42,       /* a=K1_DZW_KARTA_*, b=the volume 0..K1_DZW_GLOSNOSC_MAKS, c=1 muted, d=K1_DZW_WYJSCIE_*
+                                    * (BRAK unless a=JEST, then not BRAK), e=0 — first, and after every change */
+    K1_KOM_DZWIEK_ODTWORZONO = 43, /* a=frames taken from the client's ring since the last 0..K1_DZW_PIERSCIEN (room for as
+                                    * many new ones), b=1 its stream ended (a may be 0) / 0 (then a ≥ 1), c..e=0 */
+    /* nadzorca → gui (its fd 5) */
+    K1_KOM_DZWIEK_KANAL = 44,      /* all 0; + 1 fd: gui's end of its channel to dzwiek (again after the service restarts) */
+    /* the test program → nadzorca (test image only) */
+    K1_KOM_TEST_DZWIEK = 45,       /* all 0 → TEST_GNIAZDO + 1 fd: a channel to dzwiek as the client TEST (its UID 0) */
     K1_KOM_SCHOWEK = 249,             /* ekran → a client: obiekt=its window, a=bytes 1..K1_SCHOWEK_MAKS, b=where it was copied
                                        * (0 K1, a zone's number), c..e=0; + 1 sealed memfd — to an application: the answer to
                                        * SCHOWEK_DAJ; to a zone's VMM: right before Ctrl+V goes to its window (D5: A) */

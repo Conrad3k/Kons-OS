@@ -25,6 +25,13 @@ static const struct prym ik_glosnik[] = {
     { P_KRESKA, 12, 18.5f, 7.5f, 14.5f, 0 }, { P_KRESKA, 7.5f, 14.5f, 4, 14.5f, 0 }, { P_KRESKA, 4, 14.5f, 4, 9.5f, 0 },
     { P_LUK, 12, 12, 4, 50, 130 },        { P_LUK, 12, 12, 7.5f, 45, 135 },
 };
+/* 0.12.0 step 1: the speaker's levels — its body (the six strokes above), one wave or a × */
+#define GLOSNIK                                                                                                     \
+    { P_KRESKA, 4, 9.5f, 7.5f, 9.5f, 0 }, { P_KRESKA, 7.5f, 9.5f, 12, 5.5f, 0 }, { P_KRESKA, 12, 5.5f, 12, 18.5f, 0 }, \
+        { P_KRESKA, 12, 18.5f, 7.5f, 14.5f, 0 }, { P_KRESKA, 7.5f, 14.5f, 4, 14.5f, 0 }, { P_KRESKA, 4, 14.5f, 4, 9.5f, 0 }
+static const struct prym ik_glosnik_cicho[] = { GLOSNIK, { P_LUK, 12, 12, 4, 50, 130 } };
+static const struct prym ik_glosnik_wyciszony[] = { GLOSNIK, { P_KRESKA, 15.5f, 9.5f, 20.5f, 14.5f, 0 },
+                                                    { P_KRESKA, 20.5f, 9.5f, 15.5f, 14.5f, 0 } };
 static const struct prym ik_zasilanie[] = { { P_LUK, 12, 13, 7, 40, 320 }, { P_KRESKA, 12, 4, 12, 11, 0 } };
 static const struct prym ik_restart[] = { { P_LUK, 12, 12, 7.5f, 60, 330 },
                                           { P_KRESKA, 18.5f, 5, 18.5f, 8.6f, 0 },
@@ -177,6 +184,7 @@ void k1_ikona(struct k1_obraz *o, enum k1_ikona ik, float x, float y, float rozm
         [K1_IK_SIEC_BEZ_KABLA] = IK(ik_siec_bez), [K1_IK_WIFI] = IK(ik_wifi),
         [K1_IK_PRZEGLADARKA] = IK(ik_przegladarka), [K1_IK_AKTUALIZACJE] = IK(ik_aktualizacje),
         [K1_IK_KARTA] = IK(ik_karta),
+        [K1_IK_GLOSNIK_CICHO] = IK(ik_glosnik_cicho), [K1_IK_GLOSNIK_WYCISZONY] = IK(ik_glosnik_wyciszony),
     };
     float s = rozmiar / 24.0f, g = 1.6f;
     int32_t x0, y0, x1, y1, i, j;

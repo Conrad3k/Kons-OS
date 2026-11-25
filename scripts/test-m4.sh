@@ -711,6 +711,11 @@ if dz:
             q.czekaj_na(lambda: (q.element("Pasek górny", "Dźwięk") or {}).get("stan", 0) & 1, czas=10),
             (ok_.group(0) if ok_ else "") + f"; oczekiwane x {oczek}")
     zrzut("9b-okienko-dzwieku", gdy=lambda w, h, px: True)
+    # 0.12.0 step 1 (ADR 0054): this machine has no sound card — the service says so, the popover too (no controls)
+    sprawdz("(0.12.0) bez karty dźwiękowej: usługa dźwięku i okienko mówią „brak karty”, bez suwaka i próby",
+            czekaj(r"K1-DZWIEK: komputer nie ma karty dźwiękowej", czas=30) and
+            czekaj(r"K1-GUI: dźwięk: karta 1,", czas=10) and q.element("Okienko paska", "Odtwórz próbę") is None
+            and q.element("Okienko paska", "Głośność") is None)
     q.klik(*q.srodek(dz))
     sprawdz("(0.11.8) drugie kliknięcie zamyka okienko", q.czekaj_na(lambda: q.element("Okienko paska") is None, czas=10))
     q.klik(*q.srodek(dz))

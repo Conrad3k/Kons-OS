@@ -366,6 +366,14 @@ void karta_oom_tlo(pid_t pid);                        /* the kernel takes it bef
 int32_t karta_pamiec_mib(const struct usluga *u);     /* its cgroup's memory, MiB; 0 when it does not run */
 struct usluga *karta_usluga_strefy(int baza, int nr); /* the service of zone nr: profile baza + nr, or NULL */
 
+/* dzwiek.c — sound (0.12.0 step 1, ADR 0054): the card's nodes for the sound service alone, its clients' channels */
+extern int dzwiek_kanal;
+extern int uevent_dzwiek;
+void dzwiek_nowy_kanal(void); /* KANAL_DZWIEKU: a new service — the card and the clients again */
+void dzwiek_nowy_gui(void);   /* a new gui: its channel again */
+int dzwiek_dla_testu(void);   /* TEST_DZWIEK: the test program's channel, or -1 */
+void dzwiek_okresowe(double t);
+
 /* filmy.c — the film decoder (0.10.9 step 2, ADR 0049): the render node of the i915 card for it alone */
 extern int filmy_kanal;            /* our end of the question's channel (what the card decodes) */
 void filmy_po_starcie(double t);   /* every loop: the question once, after the desktop */
