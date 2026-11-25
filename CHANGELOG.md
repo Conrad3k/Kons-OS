@@ -3,6 +3,15 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.11.9] — 2026-11-25
+
+<!-- k1: poprawki -->
+**Poprawki** (robot, ADR 0047): nowe wersje tego, co K1 bierze z zewnątrz — bez zmian w kodzie K1.
+
+### Zmienione
+- **Jądro Linux 7.3.6** — poprawki bezpieczeństwa i błędów (było 7.3.5).
+- **Przeglądarka:** biblioteki z Debiana 13 — poprawki bezpieczeństwa (pakietów zmienionych: 7).
+
 ## [0.11.8] — 2026-11-25
 
 **Menu Start i górny pasek** (Twoja prośba z 2026-11-23, przed 0.12). Menu Start jest niższe i nie sięga już prawie do
