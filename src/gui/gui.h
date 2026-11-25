@@ -3,6 +3,7 @@
  *   main.c            start, the loop, layout of the panels on the screen
  *   okna.c            the window list from ekran, starting / showing / minimising / closing applications
  *   pasek_gorny.c     the top bar (active application; network, battery, sound in a pill; clock) and its popovers
+ *   bateria.c         the battery: its state from nadzorca, its cell on the top bar (0.11.8 step 3: and its popover)
  *   pasek_dolny.c     the bottom bar: Start, the pinned applications, the running ones that are not pinned
  *   menu_start.c      the Start menu (its list scrolls, 0.11.8 step 1)
  *   pulpit.c          the desktop layer: icons in a grid (select, drag, double click)
@@ -114,6 +115,11 @@ int32_t dzwiek_srodek(void);       /* the middle of the sound icon on the bar (t
 #define OKIENKO_PASKA_WYS 84
 extern int zablokuj_mozna; /* 1: a password is set (K1_KOM_SESJA) — the Start menu offers "Zablokuj" (0.11.5) */
 extern int bat_kanal;     /* fd 5 still open */
+
+/* bateria.c */
+void bateria_komunikat(const struct k1_komunikat *m); /* K1_KOM_BATERIA from nadzorca (fd 5) */
+int32_t bateria_szer(void);                           /* the battery's cell on the bar; 0: no battery */
+void bateria_na_pasku(struct k1_obraz *o, int32_t x, uint32_t krem);
 
 /* pasek_dolny.c */
 #define EL 44 /* bottom bar item */
