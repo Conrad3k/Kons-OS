@@ -30,12 +30,14 @@
 
 _Static_assert(K1_PRZ_OKRES == K1_DZW_OKRES, "k1_przestrzen: its period is the service's");
 
-#define K1_X_PRZ_PASMO_NAZWA(i, n, od, dd) n,
-#define K1_X_PRZ_PASMO_OD(i, n, od, dd) od,
-#define K1_X_PRZ_PASMO_DO(i, n, od, dd) dd,
+#define K1_X_PRZ_PASMO_NAZWA(i, n, od, dd, k) n,
+#define K1_X_PRZ_PASMO_OD(i, n, od, dd, k) od,
+#define K1_X_PRZ_PASMO_DO(i, n, od, dd, k) dd,
+#define K1_X_PRZ_PASMO_KOLOR(i, n, od, dd, k) k,
 static const char *const pasma_nazwy[K1_PRZ_PASMA_N] = { K1_PRZ_PASMA(K1_X_PRZ_PASMO_NAZWA) };
 static const int pasma_od[K1_PRZ_PASMA_N] = { K1_PRZ_PASMA(K1_X_PRZ_PASMO_OD) };
 static const int pasma_do[K1_PRZ_PASMA_N] = { K1_PRZ_PASMA(K1_X_PRZ_PASMO_DO) };
+static const uint32_t pasma_kolory[K1_PRZ_PASMA_N] = { K1_PRZ_PASMA(K1_X_PRZ_PASMO_KOLOR) };
 
 #define K1_X_PRZ_NAZWA(n, nazwa, ...) nazwa,
 #define K1_X_PRZ_OPIS(n, nazwa, opis, ...) opis,
@@ -65,6 +67,11 @@ int k1_prz_pasmo_od(int pasmo)
 int k1_prz_pasmo_do(int pasmo)
 {
     return pasmo >= 0 && pasmo < K1_PRZ_PASMA_N ? pasma_do[pasmo] : 0;
+}
+
+uint32_t k1_prz_pasmo_kolor(int pasmo)
+{
+    return pasmo >= 0 && pasmo < K1_PRZ_PASMA_N ? pasma_kolory[pasmo] : 0;
 }
 
 const char *k1_prz_scena_nazwa(int nr)

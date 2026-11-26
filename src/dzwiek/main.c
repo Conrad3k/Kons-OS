@@ -252,8 +252,10 @@ static int od_klienta(struct klient *k, const struct k1_komunikat *m, int fd)
         int r = k1_dzw_klient_steruje(k->rodzaj) ? przestrzen_ustaw(m, teraz()) : -1;
         if (r < 0)
             return -1;
-        if (r > 0)
+        if (r == 1)
             wyjscie_zglos(NULL, m->a, przestrzen_stan);
+        if (r == 2) /* step 4: an output's "Własna" */
+            wyjscie_zglos(NULL, m->a - K1_DZW_SCENA_WLASNA, przestrzen_wlasna_stan);
         break;
     }
     default:
@@ -300,6 +302,7 @@ static void nowy_klient(const struct k1_komunikat *m, int fd)
                 sesje_zglos(&klienci[i]);
                 wyjscie_zglos(&klienci[i], K1_DZW_WYJSCIE_BRAK, korektor_stan);
                 wyjscie_zglos(&klienci[i], K1_DZW_WYJSCIE_BRAK, przestrzen_stan);
+                wyjscie_zglos(&klienci[i], K1_DZW_WYJSCIE_BRAK, przestrzen_wlasna_stan); /* step 4 */
             }
             return;
         }

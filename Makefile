@@ -63,7 +63,7 @@ PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/przybornik/k1_aplikacja.c \
            src/przybornik/k1_dekodowanie.c src/przybornik/k1_menu.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_prz_okienko.c \
            src/przybornik/k1_zaznaczenie.c src/przybornik/k1_wycinek.c src/przybornik/k1_dzwiek_klient.c src/wspolne/k1_dzwiek.c src/wspolne/k1_korektor.c \
-           src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
+           src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c src/wspolne/k1_prz_proba.c src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
            $(GEN)/k1_czcionki_dane.c
 # Host: without the sandbox, the app skeleton and what uses it (they need our kernel's headers).
 HOST_PRZYB := $(filter-out src/przybornik/k1_aplikacja.c src/przybornik/k1_dekodowanie.c src/przybornik/k1_dzwiek_klient.c,$(PRZYB)) $(KOMUNIKAT) $(DOK_C) src/wspolne/k1_kanal.c \
@@ -181,7 +181,7 @@ $(BIN)/posrednik: $(POSREDNIK) $(wildcard src/posrednik/*.h) $(WSPOLNE) $(USLUGI
 # in src/wspolne/k1_dzwiek.c, the path (mixing, the volume, the limiter, the dither; 0.12.3, ADR 0055) in k1_dzw_tor.c
 # (host tests: test_dzwiek, test_dzw_tor; fuzzing: fuzz_dzwiek); the system equalizer (0.12.3 step 2) in k1_korektor.c
 # (test_korektor, fuzz_korektor); Kons Spatial Audio (step 3) in k1_przestrzen.c, k1_prz_licz.c (test_przestrzen,
-# fuzz_przestrzen)
+# fuzz_przestrzen); its sample "Posłuchaj" (step 4) in k1_prz_proba.c — made by the clients (przybornik), not the service
 DZWIEK := $(sort $(wildcard src/dzwiek/*.c)) src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c src/wspolne/k1_korektor.c \
           src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c
 $(BIN)/dzwiek: $(DZWIEK) $(wildcard src/dzwiek/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
@@ -300,8 +300,8 @@ $(OBJ)/test_korektor: testy/host/test_korektor.c src/wspolne/k1_korektor.c $(NAG
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_korektor.c src/wspolne/k1_korektor.c -lm
 
 # 0.12.3 step 3 (ADR 0055 points 14–19): Kons Spatial Audio — the crossovers, the head model, the speakers, the level
-$(OBJ)/test_przestrzen: testy/host/test_przestrzen.c src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przestrzen.c src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c -lm
+$(OBJ)/test_przestrzen: testy/host/test_przestrzen.c src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c src/wspolne/k1_prz_proba.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przestrzen.c src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c src/wspolne/k1_prz_proba.c -lm
 
 $(OBJ)/test_filmy: testy/host/test_filmy.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_filmy.c $(KOMUNIKAT) $(DOK_C)

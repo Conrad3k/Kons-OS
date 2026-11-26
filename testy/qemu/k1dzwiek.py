@@ -12,7 +12,10 @@ k1_dzw_proba (src/wspolne/k1_dzwiek.c, computed here in the same order: Python's
 the equalizer's curve says against the fifth (the same sample flat): its filters and the level before them computed here
 as in k1_korektor.c (660 Hz −7.0 dB, 880 Hz −1.7 dB). 0.12.3 step 3 (Kons Spatial Audio): the seventh sound is the
 sample at 45 % with every band of the speakers' scene on the left — the right channel at least 20 dB under the left, the
-left as loud as the fifth (a scene never louder than 100 %: ±1 dB); the zone's tone comes after it.
+left as loud as the fifth (a scene never louder than 100 %: ±1 dB). 0.12.3 step 4: the eighth sound is "Posłuchaj" through
+that scene — four parts, a noise in one band after another: the bass the same in both channels (the scene leaves it in the
+middle), the other three on the left (the right channel at least 20 dB under; Niski środek 12 dB — its slope below 120 Hz
+is bass), each higher than the one before (zero crossings); the zone's tone comes after it.
 
     python3 -I testy/qemu/k1dzwiek.py PLIK.wav   — exit 0 when all hold"""
 import array
@@ -155,7 +158,7 @@ def main():
         return 1
     d = dzwieki(s)
     sprawdz("siedem prób (100 %, 50 %, 50 % po restarcie usługi, 40 %, 45 %, 45 % z korektorem, 45 % ze sceną z lewej; "
-            "wyciszona — cisza), po nich ton strefy", len(d) >= 8,
+            "wyciszona — cisza), „Posłuchaj”, po nich ton strefy", len(d) >= 9,
             f"{len(d)}: " + ", ".join(f"{a / CZESTOTLIWOSC:.2f}–{z / CZESTOTLIWOSC:.2f} s" for a, z in d))
     szczyty = []
     for nr, (a, z) in enumerate(d[:7], 1):
@@ -201,8 +204,23 @@ def main():
                 20 * log(max(lewy_db[1], 1e-9) / max(lewy_db[0], 1e-9))
             sprawdz(f"scena z lewej (głośniki): nuta {hz} Hz — prawy kanał co najmniej 20 dB ciszej, lewy jak bez sceny",
                     roznica >= 20.0 and abs(wobec) < 1.0, f"lewy − prawy {roznica:+.1f} dB, lewy wobec piątej {wobec:+.2f} dB")
-    if len(d) >= 8:  # step 3 of 0.12.0: the zone's tone (in emulation it may come in pieces), one gap of the muted session
-        reszta = d[7:]
+    if len(d) >= 8:  # 0.12.3 step 4: "Posłuchaj" through the scene on the left, its four bands in quarters
+        prawy, (a, z) = probki(sys.argv[1], 1), d[7]
+        log, cz, ok_l, opis = __import__("math").log10, [], True, []
+        for k in range(4):
+            p0, p1 = a + (z - a) * k // 4, a + (z - a) * (k + 1) // 4
+            p0, p1 = p0 + (p1 - p0) // 4, p1 - (p1 - p0) // 4  # the middle of the quarter
+            roznica = 20 * log(max(rms(s[p0:p1]), 1e-9) / max(rms(prawy[p0:p1]), 1e-9))
+            cz.append(czestotliwosc(s[p0:p1]))
+            # Niski środek: its noise below 120 Hz (the crossover's slope, ~11 dB under it — test_przestrzen) is bass,
+            # which the scene leaves in the middle — the right channel 12 dB under; the higher bands 20 dB
+            ok_l &= abs(roznica) < 1.0 if k == 0 else roznica >= (12.0 if k == 1 else 20.0)
+            opis.append(f"{cz[-1]:.0f} Hz, lewy − prawy {roznica:+.1f} dB")
+        sprawdz("„Posłuchaj” przez scenę z lewej: bas w obu kanałach równo, pozostałe pasma z lewej, każde wyżej",
+                ok_l and cz[0] < cz[1] < cz[2] < cz[3] and (z - a) / CZESTOTLIWOSC > 3.0,
+                f"{(z - a) / CZESTOTLIWOSC:.1f} s; " + "; ".join(opis))
+    if len(d) >= 9:  # step 3 of 0.12.0: the zone's tone (in emulation it may come in pieces), one gap of the muted session
+        reszta = d[8:]
         ton = [v for a, z in reszta for v in s[a:z]]
         przerwa = max((reszta[i + 1][0] - reszta[i][1]) / CZESTOTLIWOSC for i in range(len(reszta) - 1)) \
             if len(reszta) > 1 else 0

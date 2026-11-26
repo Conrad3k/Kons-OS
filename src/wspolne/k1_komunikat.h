@@ -261,7 +261,8 @@ enum k1_komunikat_typ {
     K1_KOM_DZWIEK_SCENA = 255,     /* 0.12.3 step 3 (ADR 0055), a steering client only: a=the output GLOSNIKI / SLUCHAWKI,
                                     * b=1 Kons Spatial Audio on / 0 off, c=the four bands' directions, d=their widths (bytes in
                                     * steps of K1_PRZ_KROK: −90..90, 0..90), e=their distances (bytes 0..100) — k1_prz_do_pol
-                                    * — the scene of that output */
+                                    * — the scene of that output; step 4: a=the output + K1_DZW_SCENA_WLASNA — its "Własna"
+                                    * (b=1 there is one), kept, not played */
     /* dzwiek → its client (K1_KIER_OD_DZWIEKU) */
     K1_KOM_DZWIEK_KOREKTOR_STAN = 49, /* 0.12.3 step 2, to a steering client: as DZWIEK_KOREKTOR — first (both outputs), and
                                        * after every change */
@@ -926,9 +927,11 @@ static inline int k1_bateria_niska(int32_t procent, int32_t stan)
 }
 enum { K1_BOK_ZAMKNIETE = 0, K1_BOK_OTWARTE = 1, K1_BOK_USTAWIENIA = 2 }; /* K1_KOM_BATERIA_OKIENKO a */
 /* The places of Ustawienia nadzorca opens (K1_KOM_USTAWIENIA_MIEJSCE a; a popover of the top bar asks with
- * K1_KOM_POKAZ_USTAWIENIA a; rule 5: a new one is a row — plan 0.12.3 step 4 adds the scene; step 3 made the battery's and
+ * K1_KOM_POKAZ_USTAWIENIA a; rule 5: a new one is a row — 0.12.3 step 4 added the scene; step 3 made the battery's and
  * the updates' rows of their own messages). X(NAME, number 1.., the name in the log). */
-#define K1_UST_MIEJSCA(X) X(KOREKTOR, 1, "Dźwięk → Korektor") X(BATERIA, 2, "Bateria") X(AKTUALIZACJE, 3, "Aktualizacje")
+#define K1_UST_MIEJSCA(X)                                                                                \
+    X(KOREKTOR, 1, "Dźwięk → Korektor") X(BATERIA, 2, "Bateria") X(AKTUALIZACJE, 3, "Aktualizacje")          \
+    X(PRZESTRZEN, 4, "Dźwięk → Kons Spatial Audio")
 #define K1_X_UST_MIEJSCE(n, nr, ...) K1_UST_MIEJSCE_##n = nr,
 enum { K1_UST_MIEJSCA(K1_X_UST_MIEJSCE) };
 #define K1_X_UST_LICZ(...) +1

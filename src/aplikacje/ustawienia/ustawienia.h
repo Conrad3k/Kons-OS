@@ -150,6 +150,8 @@ void dzwiek_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 int dzwiek_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk); /* x < 0: not on its content; 1 = redraw */
 void dzwiek_pokazany(void); /* the section was opened (the tests: its state in the log) */
 void dzwiek_korektor_pokaz(void); /* 0.12.3 step 2: the section on its tab Korektor (nadzorca's USTAWIENIA_MIEJSCE) */
+void dzwiek_przestrzen_pokaz(void); /* step 4: … on its tab Kons Spatial Audio */
+void dzwiek_klawisz(unsigned kod, int wartosc, unsigned mody); /* step 4: the keys of the scene */
 
 /* korektor.c (0.12.3 step 2, D2: A): Dźwięk → Korektor — the ten bands of an output, the ready settings */
 struct k1_dzw_polaczenie;
@@ -157,10 +159,12 @@ void korektor_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const struct k
 int korektor_wskaznik(struct k1_dzw_polaczenie *dz, int rodzaj, int32_t x, int32_t y, int przycisk); /* 1 = redraw */
 void korektor_pokazany(const struct k1_dzw_polaczenie *dz); /* the tab opened: the output playing now, its log line */
 
-/* przestrzen.c (0.12.3 step 3, D3: A, D5, D7: A): Dźwięk → Kons Spatial Audio — the switch and the ready scenes of an
- * output */
+/* przestrzen.c (0.12.3 step 3, D3: A, D5, D7: A; step 4, D4: A, D6: A): Dźwięk → Kons Spatial Audio — the switch, the
+ * scene to drag (scena.c), the ready scenes and "Własna", the bands, "Posłuchaj" */
 void przestrzen_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_dzw_polaczenie *dz);
 int przestrzen_wskaznik(struct k1_dzw_polaczenie *dz, int rodzaj, int32_t x, int32_t y, int przycisk); /* 1 = redraw */
+int przestrzen_klawisz(struct k1_dzw_polaczenie *dz, unsigned kod, int wartosc, unsigned mody);  /* 1 = redraw */
+int przestrzen_gra(const struct k1_dzw_polaczenie *dz); /* "Posłuchaj" moved to another band: 1 = redraw */
 void przestrzen_pokazany(const struct k1_dzw_polaczenie *dz); /* the tab opened: the output playing now, its log line */
 
 /* informacje.c */

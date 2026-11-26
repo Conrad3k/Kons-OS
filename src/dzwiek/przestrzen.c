@@ -18,6 +18,7 @@
 #define LOG_CO 0.5 /* s between two lines about the scenes (invariant 8: at most 2 a second) */
 
 static struct k1_prz_scena sceny[K1_DZW_WYJSCIE_MAKS + 1]; /* by output; [BRAK] unused */
+static struct k1_prz_scena wlasne[K1_DZW_WYJSCIE_MAKS + 1]; /* step 4: each output's "Własna" (wlaczona: there is one) */
 static struct k1_przestrzen prz;
 static int zalegly;          /* an output whose change the log has not said yet (0: none) */
 static double logowano = -1.0;
@@ -28,8 +29,10 @@ static struct {
 
 void przestrzen_start(void)
 {
-    for (int w = 0; w <= K1_DZW_WYJSCIE_MAKS; w++)
+    for (int w = 0; w <= K1_DZW_WYJSCIE_MAKS; w++) {
         k1_prz_scena_start(&sceny[w]);
+        k1_prz_scena_start(&wlasne[w]); /* none yet: gui gives the remembered one */
+    }
     k1_prz_start(&prz);
 }
 
@@ -38,6 +41,14 @@ struct k1_komunikat przestrzen_stan(int wyjscie)
     int32_t pola[4];
     k1_prz_do_pol(&sceny[wyjscie], pola);
     return k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA_STAN, 0, wyjscie, pola[0], pola[1], pola[2], pola[3]);
+}
+
+struct k1_komunikat przestrzen_wlasna_stan(int wyjscie)
+{
+    int32_t pola[4];
+    k1_prz_do_pol(&wlasne[wyjscie], pola);
+    return k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA_STAN, 0, K1_DZW_SCENA_WLASNA + wyjscie, pola[0], pola[1], pola[2],
+                             pola[3]);
 }
 
 static void loguj(int w, double t)
@@ -51,6 +62,13 @@ int przestrzen_ustaw(const struct k1_komunikat *m, double t)
 {
     int32_t pola[4] = { m->b, m->c, m->d, m->e };
     struct k1_prz_scena s;
+    int wl = m->a - K1_DZW_SCENA_WLASNA;
+    if (wl >= K1_DZW_WYJSCIE_GLOSNIKI && wl <= K1_DZW_WYJSCIE_MAKS && k1_prz_z_pol(pola, &s) == 0) {
+        if (s.wlaczona == wlasne[wl].wlaczona && memcmp(s.pasma, wlasne[wl].pasma, sizeof s.pasma) == 0)
+            return 0;
+        wlasne[wl] = s; /* step 4: kept for the clients only — never played, not in the log (moved by hand often) */
+        return 2;
+    }
     if (m->a < K1_DZW_WYJSCIE_GLOSNIKI || m->a > K1_DZW_WYJSCIE_MAKS || k1_prz_z_pol(pola, &s) != 0)
         return -1;
     if (s.wlaczona == sceny[m->a].wlaczona && memcmp(s.pasma, sceny[m->a].pasma, sizeof s.pasma) == 0)
