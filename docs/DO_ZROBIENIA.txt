@@ -30,6 +30,12 @@ bezpieczeństwa (nadzorca w klatce, łącznik poza VMM-em, DNS, Firefox) — 0.1
 Co wpisać w nowym czacie:
     „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.13.0.txt.”
 
+Po 0.13.0: 0.13.2 „Filmy kartą” — docs/PLAN-0.13.2.txt (Twoja prośba z 2026-11-26: film w przeglądarce ma rozpakowywać
+karta, nie procesor). Pięć kroków: 1 — próba ze źródeł i na stanowisku, ADR (także: czy X230 może — D4), 2 — FFmpeg
+i libva w strefie (H.264 zaczyna grać), 3 — droga w K1 (VMM → dekoder filmów, dekoder przy pierwszym filmie),
+4 — sterownik VA w strefie, prośba o H.264, przełącznik „Szybka grafika i filmy”, Twój test na IdeaPadzie, 5 — porządki
+i wydanie. Zaczyna się po wydaniu 0.13.0: „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.13.2.txt.”
+
 
 2. MAPA DROGI (ADR 0035, 0053; dawne numery etapów M w nawiasach)
 ------------------------------------------------------------------
@@ -43,6 +49,7 @@ Co wpisać w nowym czacie:
              0.12.3 Dźwięk wysokiej jakości — gotowe (korektor, czystszy tor, Kons Spatial Audio)
     0.13     Bezpieczny start — NASTĘPNA (docs/PLAN-0.13.0.txt: łańcuch wydań, TPM, tryb ratunkowy, obraz wydania,
              dostęp fizyczny, zaufany ekran K1, jądro)                              (M10)
+             0.13.2 Filmy kartą — PLAN (docs/PLAN-0.13.2.txt; krok tematu 0.10 Strefy, po 0.13.0)
     0.14     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
 Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kroki i poprawki w temacie. Od 0.10.5 wersje
@@ -73,9 +80,7 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
     [ ] wspólna strefa na drobne, zaufane aplikacje (przełącznik osobna / wspólna; przeglądarka zawsze osobna; ADR 0024);
         przypomnienie przy wysyłaniu pliku z internetu do wspólnej strefy
     [ ] Przeglądarka K1: okno, karty i pasek adresu jako aplikacja K1, silnik (kierunek: WPE WebKit) w strefie (ADR 0025)
-    [ ] może: filmy kartą (wypadły z 0.10.9, Twoja decyzja z 2026-11-20): film w sesji z szybką grafiką rozpakowuje
-        dekoder filmów K1 (jest w systemie, uśpiony); najpierw pomiar zysku na IdeaPadzie (docs/archiwum/PLAN-0.10.9.txt,
-        krok 3)
+    [ ] filmy kartą (wypadły z 0.10.9, Twoja decyzja z 2026-11-20) — od 2026-11-26 w planie 0.13.2 (docs/PLAN-0.13.2.txt)
     [ ] okno wyboru pliku K1 dla „Prześlij plik” na stronie (portal = D-Bus w strefie; ADR 0052 p. 14)
     [ ] obraz przeglądarki na ISO (ADR 0050): jądro K1 bez napędu CD, więc K1 z ISO nie ma przeglądarki
     [ ] z planu 0.10.11: karty Intela ze sterownikiem xe (Lunar Lake i nowsze), Arc, AMD, NVIDIA; ekran składający pulpit
@@ -253,6 +258,8 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 [x] 0.12.3 — decyzje D1–D7 podjęte (docs/archiwum/PLAN-0.12.3.txt, punkt 4).
 [!] 0.13.0 — decyzje D1–D8 (docs/PLAN-0.13.0.txt, punkt 4): czat zada je na początku kroków. Przed krokiem 2: Secure
     Boot i TPM włączone w BIOS-ie obu laptopów (punkt 4 planu, „Działania”).
+[!] 0.13.2 — decyzje D1, D3, D4 (docs/PLAN-0.13.2.txt, punkt 4; D2 — prośba o H.264 — przyjęta z 0.10.9): czat zada
+    je na początku kroków 1 i 4.
 [!] 0.10.5 — decyzje D4, D5, D7 i D10 weszły jako rekomendacje (kroki szły bez Ciebie) — do potwierdzenia albo zmiany:
     D4 K1 sprawdza sam po połączeniu i co 6 godzin, pobiera od razu, instaluje po „Zainstaluj”; D5 przez sieć aktualizuje
     się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach; D10 przegląd dokumentacji: powtórzenia →
