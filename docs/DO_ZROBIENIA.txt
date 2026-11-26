@@ -6,7 +6,7 @@ testy na laptopach, rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki 
 Bez historii: co się zmieniło — CHANGELOG.md, decyzje — docs/adr/, zamknięte plany — docs/archiwum/.
 Stan: 0.12.0 „Dźwięk” — laptop gra: usługa dźwięku K1, okienko „Dźwięk” z głośnością i listą „Grają teraz”, klawisze
 głośności z pigułką, słuchawki, Ustawienia → Dźwięk, przeglądarka gra przez K1 (głośnik na pasku sesji). Następna —
-0.12.3 „Dźwięk wysokiej jakości” (plan do napisania, punkt 1).
+0.12.3 „Dźwięk wysokiej jakości” (docs/PLAN-0.12.3.txt, punkt 1).
 Data: 2026-11-26.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
@@ -17,11 +17,16 @@ Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Cl
 -------------------------------------------------------------------------------
 Wersja 0.12.0 „Dźwięk” wydana 2026-11-26 (plan w docs/archiwum/PLAN-0.12.0.txt, ADR 0054; Twoje decyzje D1: A — bez
 mikrofonu, D2: B — okienko z listą „Grają teraz”, D3: A — K1 nie wydaje własnych dźwięków, D4: A — pigułka po klawiszu,
-D5: A — głośność jak przy wyłączaniu, D6: A — głośnik na pasku sesji). Cztery kroki, PR #223, #225, #226 i wydanie.
+D5: A — głośność jak przy wyłączaniu, D6: A — głośnik na pasku sesji). Cztery kroki, PR #223, #225, #226 i #227.
 Sprawdź ją na laptopach — punkt 4, „Najpierw — nowe w 0.12.0”.
-[!] Następny: czat pisze plan 0.12.3 „Dźwięk wysokiej jakości” (Twoja prośba z 2026-11-26: korektor systemowy, najwyższa
-    jakość protokołu dźwięku, Kons Spatial Audio) — plan w osobnym PR-ze po wydaniu.
-Do tego czasu robot wydaje poprawki jądra i przeglądarki (0.12.x), a Twoje zgłoszenia z laptopów (punkt 4) idą jako PATCH.
+
+Plan następnej: docs/PLAN-0.12.3.txt (Twoja prośba z 2026-11-26). Pięć kroków: 1 — tor najwyższej jakości (32 bity
+w środku, dither, miękki ogranicznik, 24 bity do karty, przeglądarka we własnym formacie), 2 — korektor systemowy,
+3 — Kons Spatial Audio: silnik i gotowe sceny, 4 — Kons Spatial Audio: scena w Ustawieniach, 5 — porządki i wydanie.
+Twoje decyzje D1–D7 (punkt 4 planu) czat zada na początku kroków. Co wpisać w nowym czacie:
+    „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.12.3.txt.”
+Robot wydaje w tym czasie poprawki jądra i przeglądarki (0.12.1, 0.12.2…); jeśli zajmie też 0.12.3, wydanie planu
+bierze następny wolny numer.
 
 
 2. MAPA DROGI (ADR 0035, 0053; dawne numery etapów M w nawiasach)
@@ -33,7 +38,7 @@ Do tego czasu robot wydaje poprawki jądra i przeglądarki (0.12.x), a Twoje zg�
              0.10.7 Wygląd, 0.10.9 Szybka grafika, 0.10.11 Szybsza grafika   (M8, z dawnym M11)
     0.11     Pliki ze stref — gotowe: 0.11.0, poprawki 0.11.1–0.11.5, 0.11.8 Menu Start i górny pasek  (M9)
     0.12     Dźwięk — gotowe: 0.12.0 (głośność, klawisze, słuchawki, dźwięk z przeglądarki)  (część dawnego M5.3)
-             0.12.3 Dźwięk wysokiej jakości — NASTĘPNA (korektor, jakość, Kons Spatial Audio; plan do napisania)
+             0.12.3 Dźwięk wysokiej jakości — NASTĘPNA (korektor, jakość, Kons Spatial Audio; docs/PLAN-0.12.3.txt)
     0.13     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
     0.14     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
@@ -89,7 +94,9 @@ Później (bez wersji — wejdą do planu którejś wersji, gdy będą potrzebne
     [ ] Podgląd: powiększanie fragmentu w pełnej rozdzielczości, pełny ekran, pokaz slajdów, przybliżanie kółkiem
         i touchpadem
   Dźwięk (z planu 0.12.0, punkt 6): mikrofon (D1 = A), HDMI, karty i słuchawki USB, Bluetooth, budzik w Zegarze
-    (korektor i dźwięk przestrzenny — 0.12.3).
+    (korektor i dźwięk przestrzenny — 0.12.3). Z planu 0.12.3, punkt 6: śledzenie ruchu głowy, zbiory HRTF z pomiarów,
+    kształtowanie szumu, 96/192 kHz, korektor i scena dla każdej sesji osobno, wyrównywanie głośności, kompresor,
+    dźwięk 5.1 z filmów.
     [ ] usypianie kodeka dźwięku (PM w jądrze — zmienia też USB, i915, sieć): najpierw pomiar poboru w Zasobach na X230
         i IdeaPadzie (plan 0.12.0 krok 2, T8; ADR 0054 pkt 12)
   Aktualizacje (z planu 0.10.5): aktualizacja pendrive'a przez sieć; wznawianie przerwanego pobierania; kompresja paczki
@@ -232,6 +239,7 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 [!] Robot stoi od 2026-11-24 (Issue #216, #217): raz włącz Settings → Actions → General → Workflow permissions → „Allow
     GitHub Actions to create and approve pull requests” (docs/komponenty/robot.md) — bez tego nie wyda poprawek jądra.
 [x] 0.12.0 — decyzje D1–D6 podjęte (docs/archiwum/PLAN-0.12.0.txt, punkt 4).
+[!] 0.12.3 — decyzje D1–D7 (docs/PLAN-0.12.3.txt, punkt 4): czat zada je na początku kroków (D3, D5, D7 w kroku 3).
 [!] 0.10.5 — decyzje D4, D5, D7 i D10 weszły jako rekomendacje (kroki szły bez Ciebie) — do potwierdzenia albo zmiany:
     D4 K1 sprawdza sam po połączeniu i co 6 godzin, pobiera od razu, instaluje po „Zainstaluj”; D5 przez sieć aktualizuje
     się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach; D10 przegląd dokumentacji: powtórzenia →
