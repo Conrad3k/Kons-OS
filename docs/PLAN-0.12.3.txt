@@ -355,4 +355,33 @@ D2 = A — 10 pasm, gotowe ustawienia jak w punkcie 4; szkice A/B/C z hosta, fun
   - Co posłuchać (właściciel, X230 i IdeaPad): Ustawienia → Dźwięk → Korektor — „Więcej basu”, „Wyraźny głos”, „Laptop”
     na głośnikach; „Słuchawki” w słuchawkach (osobne ustawienie, przełącza się samo); szybkie przeciąganie suwaka w trakcie
     muzyki — bez trzasków; po wyłączeniu i włączeniu — ustawienie zostaje; log K1-DZWIEK „korektor: średnio … µs”.
+Krok 3 (2026-11-26, ADR 0055 pkt 14–19; decyzje właściciela: D3 = A — na głośnikach szerszy dźwięk, wokół głowy tylko
+w słuchawkach; D5 = cała lista — Naturalny, Kino, Koncert, Pokój, Głos; D7 = A — „Kons Spatial Audio”, pod nim „dźwięk
+przestrzenny”):
+  - Pasma: cztery (Bas do 120 Hz, Niski środek do 500 Hz, Środek do 4 kHz, Góra), zwrotnice Linkwitza-Rileya 4. rzędu
+    z filtrami wszechprzepustowymi — suma pasm najwyżej 0,0001 dB od wejścia (test_przestrzen). POTWIERDZONE.
+  - T7: model głowy Browna i Dudy liczony w programie (bez zbioru HRTF): z boku 656 µs między uszami (impuls: 667 µs),
+    źródło z lewej — 6 kHz w lewym uchu o 15,4 dB głośniej, 250 Hz o 0,7 dB; bas zostaje (−30 dB przecieku). Opóźnienie
+    ułamkowe Lagrange'a 3. rzędu. „Z tyłu” — łagodniejsza góra (do −6 dB powyżej 4 kHz). Czy słychać przód i tył — NIEPEWNE,
+    tylko odsłuch właściciela.
+  - Poziom: scena ścisza się sama, gdy granica (mono, moc dwóch kanałów) przekracza 1 — gotowe w słuchawkach −3,2…−5,4 dB
+    (każde ucho słyszy oba źródła: mono wraca do swojego poziomu), na głośnikach 0…−1,7 dB (Kino). Pomiar: granica ≤ +0,017 dB,
+    ton i szum przez scenę nie głośniej.
+  - Głośniki: pierwsza wersja krzyżowego wygaszania odejmowała drugi kanał w całości — plik WAV z QEMU pokazał głos o 3–4 dB
+    cichszy z Kino; teraz wygaszane są same boki, poszerzenie do 1,4, wygaszanie 0,2 (głos w Kino: −2,5…−3,2 dB, z tego
+    1,2 dB to odległość sceny). QEMU: pasma z lewej — prawy kanał pliku 57–58 dB ciszej, lewy jak bez sceny (±0,12 dB).
+  - T6: koszt na hoście 179 µs na okres (0,8 % rdzenia, najcięższe sceny, bez ASan); log usługi „scena: średnio …” raz na
+    minutę — X230 NIEPEWNE do logu właściciela. Wyłączona nie liczy nic (przezroczystość z kroku 1 zostaje).
+  - T4: komunikaty 32 B (DZWIEK_SCENA 255, DZWIEK_SCENA_STAN 251) — numery zwolnił porządek: BATERIA_POKAZ i AKT_POKAZ to
+    dziś wiersze K1_UST_MIEJSCA (porządek z ustaleń kroku 2 zrobiony już tutaj; 185 wolny dla kroku 4). Pamięć gui „K1G3”.
+  - Program testowy w test-dzwiek: kanał, scena i od razu zamknięcie — pierwsza próba w QEMU zgubiła scenę (usługa nie
+    przyjęła komunikatu; przyczyny nie ustaliłem, na hoście ta sama kolejność działa); teraz czeka na stan usługi i na scenę
+    powiedzianą z powrotem — przechodzi. Klienci K1 (gui, Ustawienia) tak nie robią.
+  - Wzorce: Ustawienia → Dźwięk i Korektor (trzy zakładki), Kons Spatial Audio (nowy, oba motywy) — przyjęte po „OK”
+    właściciela 2026-11-26.
+  - Co posłuchać (właściciel, X230 i IdeaPad): Ustawienia → Dźwięk → Kons Spatial Audio — w słuchawkach „Naturalny” (czy
+    dźwięk wychodzi „z głowy” do przodu), „Kino” przy filmie (czy otoczenie po bokach i z tyłu), „Koncert”, „Głos” przy
+    rozmowie; na głośnikach „Kino” i „Koncert” (szerzej?, głos nie za cicho?); przełączanie scen w trakcie muzyki — bez
+    trzasków; słuchawki włożone i wyjęte — każde wyjście ma swoją scenę; po wyłączeniu K1 scena zostaje; log K1-DZWIEK
+    „scena: średnio … µs”.
 
