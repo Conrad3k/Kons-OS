@@ -1,9 +1,12 @@
 /* K1 — host test: sound (src/wspolne/k1_dzwiek.c, k1_kom_dzwiek.c; 0.12.0 step 1, ADR 0054). The service's count of a
  * client's ring (never more than the ring, the copy wraps at its end), mixing (no overflow, clipping at 16 bits), the
  * volume curve, the sample "Odtwórz próbę" (its notes, its length, its loudest sample) and the messages of sound: what is
- * valid passes, every field out of its range and every message in the wrong direction is refused. */
+ * valid passes, every field out of its range and every message in the wrong direction is refused. Step 2: the volume keys,
+ * the names of a headphone jack, the record gui remembers (D5) and the pill's message. */
 #include <stdlib.h>
 #include <string.h>
+
+#include <linux/input-event-codes.h>
 
 #include "k1_dzwiek.h"
 #include "k1_komunikat.h"
@@ -154,6 +157,75 @@ static void komunikaty(void)
            !k1_dzw_klient_steruje(K1_DZW_KLIENCI_MAKS + 1) && k1_dzw_klient_nazwa(K1_DZW_KLIENCI_MAKS + 1) == NULL);
 }
 
+static void klawisze(void)
+{
+    int g = 50, w = 0;
+    EXPECT(k1_dzw_klawisz(KEY_VOLUMEUP, 1, &g, &w) && g == 55 && w == 0);
+    EXPECT(k1_dzw_klawisz(KEY_VOLUMEDOWN, 2, &g, &w) && g == 50); /* held: repeats */
+    EXPECT(k1_dzw_klawisz(KEY_VOLUMEUP, 0, &g, &w) && g == 50);   /* a release: nothing */
+    EXPECT(k1_dzw_klawisz(KEY_MUTE, 1, &g, &w) && w == 1 && g == 50);
+    EXPECT(k1_dzw_klawisz(KEY_MUTE, 2, &g, &w) && w == 1); /* the mute key held: once */
+    EXPECT(k1_dzw_klawisz(KEY_VOLUMEDOWN, 1, &g, &w) && g == 45 && w == 1); /* quieter: still muted */
+    EXPECT(k1_dzw_klawisz(KEY_VOLUMEUP, 1, &g, &w) && g == 50 && w == 0);   /* louder: unmuted */
+    g = 98;
+    EXPECT(k1_dzw_klawisz(KEY_VOLUMEUP, 1, &g, &w) && g == 100);
+    EXPECT(k1_dzw_klawisz(KEY_VOLUMEUP, 1, &g, &w) && g == 100); /* the end of the scale */
+    g = 3;
+    EXPECT(k1_dzw_klawisz(KEY_VOLUMEDOWN, 1, &g, &w) && g == 0);
+    EXPECT(!k1_dzw_klawisz(KEY_A, 1, &g, &w) && !k1_dzw_klawisz(KEY_MICMUTE, 1, &g, &w) && g == 0);
+    EXPECT(k1_dzw_gniazdo_sluchawek("Headphone Jack") && k1_dzw_gniazdo_sluchawek("Front Headphone Jack") &&
+           k1_dzw_gniazdo_sluchawek("Headphone Jack Phantom"));
+    EXPECT(!k1_dzw_gniazdo_sluchawek("Headset Mic Jack") && !k1_dzw_gniazdo_sluchawek("Headphone Mic Jack") &&
+           !k1_dzw_gniazdo_sluchawek("Speaker Phantom Jack") && !k1_dzw_gniazdo_sluchawek("Headphone Playback Switch") &&
+           !k1_dzw_gniazdo_sluchawek("Line Out Jack") && !k1_dzw_gniazdo_sluchawek(" Jack") && !k1_dzw_gniazdo_sluchawek(""));
+    EXPECT(strcmp(k1_dzw_wyjscie_nazwa(K1_DZW_WYJSCIE_SLUCHAWKI), "Słuchawki") == 0 &&
+           strcmp(k1_dzw_wyjscie_nazwa(K1_DZW_WYJSCIE_BRAK), "") == 0 && strcmp(k1_dzw_wyjscie_nazwa(7), "") == 0);
+}
+
+static void zapamietane(void)
+{
+    struct k1_dzw_zapamietane z, c;
+    uint8_t b[K1_DZW_ZAPIS_BAJTY];
+    k1_dzw_zapamietane_domyslne(&z);
+    EXPECT(z.glosnosc[K1_DZW_WYJSCIE_GLOSNIKI] == K1_DZW_GLOSNOSC_START && z.wyciszone[K1_DZW_WYJSCIE_SLUCHAWKI] == 0);
+    z.glosnosc[K1_DZW_WYJSCIE_GLOSNIKI] = 35;
+    z.glosnosc[K1_DZW_WYJSCIE_SLUCHAWKI] = 100;
+    z.wyciszone[K1_DZW_WYJSCIE_SLUCHAWKI] = 1;
+    EXPECT(k1_dzw_zapamietane_zapisz(&z, b) == sizeof b);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) == 0 && c.glosnosc[1] == 35 && c.wyciszone[1] == 0 &&
+           c.glosnosc[2] == 100 && c.wyciszone[2] == 1);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b - 1, &c) != 0); /* a wrong length */
+    b[4] = 101;                                                    /* the speakers over 100 % */
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0 && c.glosnosc[1] == 35); /* refused: unchanged */
+    b[4] = 35;
+    b[7] = 2; /* the mute neither 0 nor 1 */
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    b[7] = 1;
+    b[0] = 'X';
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+}
+
+/* Step 2: the volume of an output, the output in the state, the pill (the shell → ekran). */
+static void komunikaty_kroku2(void)
+{
+    EXPECT(ok(K(K1_KOM_DZWIEK_GLOSNOSC, 40, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 0, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_GLOSNOSC, 40, 0, K1_DZW_WYJSCIE_MAKS + 1, 0, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_GLOSNOSC, 40, 0, -1, 0, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_GLOSNOSC, 40, 0, 0, 1, 0), K1_KIER_DO_DZWIEKU)); /* d: 0 */
+    EXPECT(ok(K(K1_KOM_DZWIEK_STAN, K1_DZW_KARTA_JEST, 50, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 0), K1_KIER_OD_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_STAN, K1_DZW_KARTA_JEST, 50, 0, K1_DZW_WYJSCIE_MAKS + 1, 0), K1_KIER_OD_DZWIEKU));
+    EXPECT(ok(K(K1_KOM_GLOSNOSC_POKAZ, 45, 1, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(ok(K(K1_KOM_GLOSNOSC_POKAZ, 0, 0, K1_DZW_WYJSCIE_BRAK, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(!ok(K(K1_KOM_GLOSNOSC_POKAZ, 45, 0, K1_DZW_WYJSCIE_BRAK, 0, 0), K1_KIER_DO_EKRANU)); /* no card: a = 0 */
+    EXPECT(!ok(K(K1_KOM_GLOSNOSC_POKAZ, 101, 0, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(!ok(K(K1_KOM_GLOSNOSC_POKAZ, 45, 2, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(!ok(K(K1_KOM_GLOSNOSC_POKAZ, 45, 0, K1_DZW_WYJSCIE_GLOSNIKI, 0, 1), K1_KIER_DO_EKRANU));
+    EXPECT(!ok(K(K1_KOM_GLOSNOSC_POKAZ, 45, 0, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(!ok(k1_komunikat_nowy(K1_KOM_GLOSNOSC_POKAZ, 1, 45, 0, 1, 0, 0), K1_KIER_DO_EKRANU)); /* obiekt: 0 */
+    EXPECT(k1_dzw_klient_steruje(K1_DZW_KLIENT_USTAWIENIA) &&
+           strcmp(k1_dzw_klient_nazwa(K1_DZW_KLIENT_USTAWIENIA), "Ustawienia") == 0);
+}
+
 int main(void)
 {
     pierscien();
@@ -161,5 +233,8 @@ int main(void)
     glosnosc();
     proba();
     komunikaty();
+    klawisze();
+    zapamietane();
+    komunikaty_kroku2();
     return K1_TEST_KONIEC("test_dzwiek");
 }

@@ -3,7 +3,8 @@
  * client (a ring of another size, frames without a stream, a flood of bad messages) — it loses its channel, the service
  * lives; the service killed — nadzorca starts it again and gui gets a new channel. The sound itself (a tone in a WAV file,
  * the volume, the mute) is scripts/test-dzwiek.sh with QEMU's sound card. Also the scenario of test-dzwiek.sh: the test
- * program kills the service when the script unmutes for the second time (t_dzwiek_opis, from t_opis_scenariusz). */
+ * program kills the service when the script unmutes for the second time (t_dzwiek_opis, from t_opis_scenariusz), and
+ * (step 2) gui when the pill of the volume says "muted" for the second time. */
 #include "k1_test.h"
 
 #include "k1_dzwiek.h"
@@ -186,10 +187,28 @@ static int wezly_karty(int *dzwiek)
     return inni;
 }
 
+/* 0.12.0 step 2 (D5): gui killed when the pill of the volume shows "muted" for the second time — right after the mute
+ * key, before gui wrote the mute: the new gui gives the service the volume it remembers (unmuted). */
+static void pigulka(const struct k1_opis_el *el, int n)
+{
+    static int bylo, razy, zabity;
+    int wyciszona = 0;
+    for (int i = 0; i < n; i++)
+        if (el[i].rodzaj == K1_EL_ZMIENNE && strncmp(el[i].nazwa, "Głośność", sizeof el[i].nazwa) == 0)
+            wyciszona = (el[i].stan & K1_EL_WYBRANY) != 0;
+    if (wyciszona && !bylo && ++razy == 2 && !zabity) {
+        long pid = find_process("gui");
+        zabity = pid > 0 && kill((pid_t)pid, SIGKILL) == 0;
+        k1_log(TAG, "dźwięk: pulpit %s (pid %ld)", zabity ? "zabity" : "nie zabity", pid);
+    }
+    bylo = wyciszona;
+}
+
 void t_dzwiek_opis(const struct k1_opis_el *el, int n)
 {
     static int bylo_wyciszone, odciszenia, zabita, sprawdzone;
     int wyciszone = -1;
+    pigulka(el, n);
     for (int i = 0; i < n; i++)
         if (strncmp(el[i].nazwa, "Wycisz", sizeof el[i].nazwa) == 0)
             wyciszone = (el[i].stan & K1_EL_WYBRANY) != 0;

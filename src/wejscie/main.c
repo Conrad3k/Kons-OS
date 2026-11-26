@@ -10,7 +10,9 @@
  * any path. The supervisor opens the input devices and passes them as fds 4, 5, ...; devices that
  * are neither a keyboard, a mouse nor a touchpad are closed here (hotplug: nadzorca starts us again).
  * 0.10.0 step 4: the wheel (REL_WHEEL, REL_HWHEEL, their "hi-res" forms) and touchpads in their own mode
- * (touchpad.c) — K1_ZD_PRZEWIJANIE; each device's name and ids go to the log (S29: which touchpad a laptop has). */
+ * (touchpad.c) — K1_ZD_PRZEWIJANIE; each device's name and ids go to the log (S29: which touchpad a laptop has).
+ * 0.12.0 step 2: a device with only the volume keys (a laptop's "extra buttons", a USB keyboard's "Consumer Control") is
+ * kept too — only its keys of the volume go on; the log says which device has them (never a press). */
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -35,10 +37,10 @@
 #define BITY_NA_LONG (8 * sizeof(unsigned long))
 #define BIT_JEST(tab, n) (((tab)[(n) / BITY_NA_LONG] >> ((n) % BITY_NA_LONG)) & 1UL)
 
-enum { MYSZ = 1, KLAWIATURA = 2, TOUCHPAD = 4 };
+enum { MYSZ = 1, KLAWIATURA = 2, TOUCHPAD = 4, GLOSNOSC = 8 }; /* GLOSNOSC: has the volume keys (0.12.0 step 2) */
 
 struct urzadzenie {
-    int fd, rodzaj;  /* MYSZ | KLAWIATURA, or TOUCHPAD */
+    int fd, rodzaj;  /* MYSZ | KLAWIATURA (| GLOSNOSC), TOUCHPAD, or GLOSNOSC alone */
     int32_t dx, dy;  /* relative motion accumulated until SYN_REPORT */
     int32_t kx, ky;  /* the wheel (1/K1_ZD_ZABEK of a notch, K1's direction) until SYN_REPORT */
     int dokladne_x, dokladne_y; /* REL_HWHEEL_HI_RES / REL_WHEEL_HI_RES: the plain ones are ignored */
@@ -144,6 +146,8 @@ static void obsluz(struct urzadzenie *d, const struct input_event *ev)
         } else if (ev->code > 0 && ev->code <= K1_ZD_KOD_MAX && (ev->code < BTN_MISC || ev->code >= KEY_OK)) {
             if (ev->value < 0 || ev->value > 2)
                 return;
+            if (d->rodzaj == GLOSNOSC && ev->code != KEY_VOLUMEUP && ev->code != KEY_VOLUMEDOWN && ev->code != KEY_MUTE)
+                return; /* a device of the volume keys: nothing else of it (brightness, its own buttons) */
             z.typ = K1_ZD_KLAWISZ;
             if (ev->value == 1)
                 klawisz_dla_touchpadow(ev);
@@ -221,7 +225,24 @@ static int rozpoznaj(struct urzadzenie *d, int fd)
         tp_start(&d->tp, &ax, &ay, BIT_JEST(wlasc, INPUT_PROP_BUTTONPAD) != 0);
         r = TOUCHPAD;
     }
+    if (r != TOUCHPAD && r != MYSZ && BIT_JEST(typy, EV_KEY) && BIT_JEST(klawisze, KEY_VOLUMEUP) &&
+        BIT_JEST(klawisze, KEY_VOLUMEDOWN))
+        r |= GLOSNOSC;
     return r;
+}
+
+static const char *rodzaj_nazwa(const struct urzadzenie *d)
+{
+    int r = d->rodzaj & ~GLOSNOSC, g = (d->rodzaj & GLOSNOSC) != 0;
+    if (d->rodzaj == TOUCHPAD)
+        return d->tp.przyciskowy ? "touchpad (cały jest przyciskiem)" : "touchpad";
+    if (r == 0)
+        return "klawisze głośności";
+    if (r == (KLAWIATURA | MYSZ))
+        return g ? "klawiatura mysz (z klawiszami głośności)" : "klawiatura mysz";
+    if (r == KLAWIATURA)
+        return g ? "klawiatura (z klawiszami głośności)" : "klawiatura";
+    return d->dokladne_y ? "mysz (kółko dokładne)" : "mysz";
 }
 
 /* Keeps the passed descriptors (fds 4..) that are keyboards, mice or touchpads; closes the others. */
@@ -243,9 +264,7 @@ static void znajdz_urzadzenia(void)
             k1_log(TAG, "urządzenie (fd %d): EVIOCGRAB: %s", fd, strerror(errno));
         d->fd = fd;
         n_urz++;
-        loguj(n_urz, fd, d->rodzaj == TOUCHPAD ? (d->tp.przyciskowy ? "touchpad (cały jest przyciskiem)" : "touchpad")
-                         : d->rodzaj == (KLAWIATURA | MYSZ) ? "klawiatura mysz"
-                         : d->rodzaj == KLAWIATURA ? "klawiatura" : (d->dokladne_y ? "mysz (kółko dokładne)" : "mysz"));
+        loguj(n_urz, fd, rodzaj_nazwa(d));
     }
 }
 

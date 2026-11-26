@@ -101,6 +101,12 @@ static int rekord(struct k1_opis_el *e, int rodzaj, unsigned stan, uint32_t okno
     return k1_opis_nazwa_dobra(e->nazwa, sizeof e->nazwa); /* a name cut in a character: left out */
 }
 
+int opis_rekord(struct k1_opis_el *e, int rodzaj, unsigned stan, uint32_t okno, int32_t x, int32_t y, int32_t w,
+                int32_t h, const char *nazwa)
+{
+    return rekord(e, rodzaj, stan, okno, x, y, w, h, nazwa);
+}
+
 /* The surface's own name: its first record, or the application's / the zone's title. */
 static const char *nazwa_pow(int i)
 {
@@ -135,6 +141,7 @@ static int zbierz(struct k1_opis_el *el)
     }
     if (wylaczanie_trwa() && w < K1_OPIS_EKRAN_MAKS && rekord(&el[w], K1_EL_PANEL, 0, 0, 0, 0, s.W, s.H, wylaczanie_napis()))
         w++; /* 0.10.7 step 6: the screen "Wyłączanie" over everything */
+    w += glosnosc_opis(&el[w], K1_OPIS_EKRAN_MAKS - w); /* 0.12.0 step 2: the pill of the volume, over the rest */
     return w;
 }
 

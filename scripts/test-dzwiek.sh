@@ -1,11 +1,14 @@
 #!/bin/sh
-# Test 0.12.0 krok 1 (ADR 0054, T7; powtarzalny): DŹWIĘK — karta Intel HD Audio w QEMU (ich9-intel-hda) z kodekiem
+# Test 0.12.0 kroki 1–2 (ADR 0054, T7; powtarzalny): DŹWIĘK — karta Intel HD Audio w QEMU (ich9-intel-hda) z kodekiem
 # hda-output, którego dźwięk QEMU zapisuje do pliku WAV (-audiodev wav). Obraz testowy z opisem ekranu (dysk z numerem
 # „k1-test-opis-dzwieku”: opis dla skryptu i scenariusz dźwięku programu testowego — t_dzwiek_opis). Skrypt klika
 # okienko „Dźwięk” po nazwach: próba przy 100 %, wyciszona próba, próba przy 50 %, potem wyciszenie i jego zdjęcie
 # (program testowy zabija wtedy usługę dźwięku — nadzorca ją uruchamia, gui dostaje nowy kanał) i próba po restarcie.
-# Potem słucha pliku: dokładnie trzy dźwięki (wyciszona próba — cisza), w każdym nuty 660 i 880 Hz, 50 % ≈ 1/8
-# amplitudy 100 % (krzywa sześcienna), po restarcie tak samo jak przed; węzły karty ma tylko usługa dźwięku.
+# Krok 2: klawisze głośności (QEMU sendkey: ciszej ×2 → 40 %, pigułka ekranu), Ustawienia → Dźwięk (próba przy 40 %),
+# wycisz i głośniej (45 %), drugie wyciszenie — program testowy zabija wtedy pulpit, nowy pulpit bierze głośność ze skarbca
+# (45 %, bez wyciszenia, D5) i próba z Ustawień. Potem słucha pliku: dokładnie pięć dźwięków (wyciszona próba — cisza),
+# w każdym nuty 660 i 880 Hz, 50 % ≈ 1/8 amplitudy 100 % (krzywa sześcienna), po restarcie tak samo jak przed, 40 % i 45 %
+# w stosunku sześcianów do 50 %; węzły karty ma tylko usługa dźwięku.
 # Komputer bez karty: test-m4 (okienko mówi „nie ma karty dźwiękowej”). Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -83,6 +86,58 @@ q.sprawdz("nadzorca uruchamia usługę dźwięku od nowa, daje jej kartę, gui d
 n_cisza = q.ile(r"K1-DZWIEK: cisza: karta uśpiona")
 proba("po restarcie usługi, 50 %")
 q.sprawdz("5 s ciszy po próbie: karta uśpiona (T8)", q.czekaj(r"K1-DZWIEK: cisza: karta uśpiona", od=n_cisza, czas=60))
+
+# ---- 0.12.0 step 2: the volume keys (D4: A — ekran's pill), Ustawienia → Dźwięk, the remembered volume (D5: A) ----
+q.klik_w("Pasek górny", "Dźwięk")  # the popover closed: the keys go to the shell anyway
+q.czekaj_na(lambda: q.element(OK) is None, czas=30)
+
+
+def klawisz(nazwa, wzor):
+    """A key of QEMU (sendkey: down and up) and the service's line it must bring."""
+    n = q.ile(wzor)
+    q.pisz(nazwa)
+    return q.czekaj(wzor, od=n, czas=30)
+
+
+q.sprawdz("klawisz „ciszej” dwa razy: 40 % (głośniki), pigułka głośności ekranu",
+          klawisz("volumedown", r"K1-DZWIEK: głośność 45% \(Głośniki\)") and
+          klawisz("volumedown", r"K1-DZWIEK: głośność 40% \(Głośniki\)") and
+          q.czekaj(r"K1-EKRAN: pigułka głośności: 40%", czas=30) and
+          q.czekaj_na_element("Pigułka głośności", "Głośność", czas=10))
+q.zrzut("pigulka", gdy=lambda w, h, px: True)
+q.sprawdz("pigułka znika sama (ok. 1,5 s)", q.czekaj_na(lambda: q.element("Pigułka głośności") is None, czas=30))
+q.sprawdz("gui zapamiętuje głośność w skarbcu (D5)", q.czekaj(r"K1-GUI: dźwięk: głośność zapamiętana", czas=30))
+
+q.klik_w("Pasek", "Ustawienia", "ikona")
+q.sprawdz("Ustawienia → Dźwięk: wyjście „Głośniki”, wyciszenie, głośność, próba",
+          q.czekaj_na_element("Ustawienia", "Dźwięk", "zakladka", czas=120) and
+          (q.klik_w("Ustawienia", "Dźwięk", "zakladka") or True) and
+          q.czekaj_na_element("Ustawienia", "Odtwórz próbę", czas=30) and q.element("Ustawienia", "Głośność") and
+          q.czekaj(r"K1-USTAWIENIA: dźwięk: karta 2, wyjście 1, głośność 40%", czas=30))
+q.zrzut("ustawienia", gdy=lambda w, h, px: True)
+n = q.ile(r"K1-USTAWIENIA: próba: zagrana")
+q.klik_w("Ustawienia", "Odtwórz próbę")
+q.sprawdz("próba z Ustawień zagrana (40 %)", q.czekaj(r"K1-USTAWIENIA: próba: zagrana", od=n, czas=120))
+
+n_zap = q.ile(r"K1-GUI: dźwięk: głośność zapamiętana")
+PIG_WYC = lambda: bool((q.element("Pigułka głośności", "Głośność") or {}).get("stan", 0) & 1)
+q.sprawdz("klawisz „wycisz”: wyciszone; „głośniej”: 45 %, nie wyciszone; gui zapamiętuje",
+          klawisz("audiomute", r"K1-DZWIEK: głośność 40%, wyciszone \(Głośniki\)") and
+          # the test program counts the muted pills (the second one is its cue): it must see this one too — with KVM
+          # the next key came before the description showed it (CI run 352)
+          q.czekaj_na(PIG_WYC, czas=30) and
+          klawisz("volumeup", r"K1-DZWIEK: głośność 45% \(Głośniki\)") and
+          q.czekaj(r"K1-GUI: dźwięk: głośność zapamiętana", od=n_zap, czas=30))
+n_gui = q.ile(r"K1-GUI: dźwięk: zapamiętana głośność — głośniki 45%")
+n_45 = q.ile(r"K1-DZWIEK: głośność 45% \(Głośniki\)")
+q.pisz("audiomute")  # the second muted pill: the test program kills gui before it writes the mute (t_dzwiek_opis)
+q.sprawdz("pulpit zabity (program testowy, SIGKILL) i uruchomiony od nowa: głośność z skarbca (45 %, nie wyciszone)",
+          q.czekaj(r"K1-TEST: dźwięk: pulpit zabity", czas=30) and
+          q.czekaj(r"K1-GUI: dźwięk: zapamiętana głośność — głośniki 45%(?! \(wyc)", od=n_gui, czas=120) and
+          q.czekaj(r"K1-DZWIEK: głośność 45% \(Głośniki\)", od=n_45, czas=60))
+n = q.ile(r"K1-USTAWIENIA: próba: zagrana")
+q.klik_w("Ustawienia", "Odtwórz próbę")
+q.sprawdz("próba z Ustawień po nowym pulpicie (45 %)", q.czekaj(r"K1-USTAWIENIA: próba: zagrana", od=n, czas=120))
 q.czysty_log()
 q.koniec()
 PY

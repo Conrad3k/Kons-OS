@@ -38,7 +38,7 @@ static const struct {
     { "Wygląd", K1_IK_WYGLAD },  { "Ekran", K1_IK_EKRAN }, { "Bateria", K1_IK_BATERIA }, { "Mysz", K1_IK_MYSZ },
     { "Data i czas", K1_IK_ZEGAR }, { "Hasło", K1_IK_KLODKA }, { "Aplikacje", K1_IK_FOLDER }, { "Miejsce", K1_IK_DYSK },
     { "Sieć", K1_IK_WIFI },      { "Przeglądarka", K1_IK_PRZEGLADARKA }, { "Aktualizacje", K1_IK_AKTUALIZACJE },
-    { "Informacje", K1_IK_INFO },
+    { "Dźwięk", K1_IK_GLOSNIK }, { "Informacje", K1_IK_INFO },
 };
 
 /* The sections on the list (0.10.7 step 2, the owner's wish): all but Bateria when nadzorca said there is no battery.
@@ -352,6 +352,9 @@ static void rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     case S_AKTUALIZACJE:
         aktualizacje_rysuj(o, m);
         break;
+    case S_DZWIEK:
+        dzwiek_rysuj(o, m);
+        break;
     default:
         informacje_rysuj(o, m);
         break;
@@ -390,6 +393,8 @@ void ustawienia_pokaz(int s)
         haslo_loguj();
     if (sekcja == S_AKTUALIZACJE)
         aktualizacje_pokazane();
+    if (sekcja == S_DZWIEK)
+        dzwiek_pokazany();
     k1_apl_odswiez(&apl);
     if (sekcja == S_EKRAN)
         loguj_tryby();
@@ -416,6 +421,8 @@ static void wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     if (rodzaj != K1_WSK_WYJSCIE && x >= 8 && x < BOK - 8 && y >= NAV_Y && y < NAV_Y + nl * NAV_WIERSZ)
         nav = l[(y - NAV_Y) / NAV_WIERSZ];
     seg = rodzaj == K1_WSK_WYJSCIE ? -1 : k1_segment_trafienie(TRESC_X, seg_y(), w, SEG_H, n, x, y);
+    if (sekcja == S_DZWIEK && dzwiek_wskaznik(rodzaj, nav < 0 ? x : -1, y, przycisk)) /* 0.12.0 step 2 */
+        k1_apl_odswiez(&apl);
     if (sekcja == S_APLIKACJE && aplikacje_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
         k1_apl_odswiez(&apl);
     if (sekcja == S_MIEJSCE && miejsce_najechanie(rodzaj == K1_WSK_WYJSCIE ? -1 : x, y))
@@ -466,7 +473,7 @@ int main(void)
     apl.tag = TAG;
     apl.numer = K1_APL_USTAWIENIA;
     apl.szer = 720;
-    apl.wys = 520; /* 0.10.5 step 1 (D2): twelve sections (Aktualizacje) */
+    apl.wys = 520; /* 0.10.5 step 1 (D2): twelve sections (Aktualizacje); 0.12.0 step 2: thirteen (Dźwięk) fit too */
     apl.rysuj = rysuj;
     apl.wskaznik = wskaznik;
     apl.klawisz = klawisz;
@@ -478,6 +485,8 @@ int main(void)
     apl.kanaly[1].dane = skarbiec_dane;
     apl.kanaly[2].fd = aktualizacje_start(); /* 0.10.5 step 1: the updates */
     apl.kanaly[2].dane = aktualizacje_dane;
+    apl.kanaly[3].fd = -1; /* 0.12.0 step 2: the sound service (its channel comes later from nadzorca) */
+    apl.kanaly[3].dane = dzwiek_dane;
     przygotuj_miniatury();
     k1_apl_uruchom(&apl);
 }

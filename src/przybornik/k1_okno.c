@@ -147,3 +147,20 @@ int k1_przewin_wiersze(int32_t *reszta, int32_t d)
     *reszta -= r * K1_PRZEWIN_ZABEK;
     return (int)r;
 }
+
+void k1_suwak(struct k1_obraz *o, const struct k1_motyw *m, float x, float y, float w, int wartosc, int maks, int szary,
+              int najechany)
+{
+    float f = maks > 0 ? w * (float)wartosc / (float)maks : 0.0f;
+    k1_zaokraglony(o, x, y - 2, w, 4, 2, k1_kolor(m->tekst, 30));
+    k1_zaokraglony(o, x, y - 2, f, 4, 2, k1_kolor(szary ? m->tekst3 : m->akcent, 255));
+    k1_cien(o, x + f - 8, y - 8, 16, 16, 8, 1, 4, 70);
+    k1_kolo(o, x + f, y, 8, k1_kolor(0xffffff, 255));
+    k1_okrag(o, x + f, y, 8, 1.0f, k1_kolor(m->tekst, najechany ? 70 : 30));
+}
+
+int k1_suwak_wartosc(float x, float w, int32_t px, int maks)
+{
+    int v = w > 0 ? (int)(((float)px - x) * (float)maks / w + 0.5f) : 0;
+    return v < 0 ? 0 : v > maks ? maks : v;
+}

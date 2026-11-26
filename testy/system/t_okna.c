@@ -127,6 +127,13 @@ void t_okna_rozmiar(void)
     check(ok && find_process("ekran") > 0,
           "NEGATYWNY 0.10.7: ekranu „Wyłączanie” nie włączy klient ekranu (tylko nadzorca) — prośba odrzucona, okno dalej "
           "pokazane", "ok=%d", ok);
+    /* 0.12.0 step 2 (D4: A): only the shell shows the pill of the volume — from a zone: refused */
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_GLOSNOSC_POKAZ, 0, 100, 0, 1, 0, 0), -1);
+    ok &= wyslij_k(fd, k1_komunikat_nowy(K1_KOM_ZATWIERDZ, 1, 0, 0, 0, 0, 0), -1);
+    ok &= czekaj_na(fd, K1_KOM_RAMKA, 1, 10000);
+    check(ok && find_process("ekran") > 0,
+          "NEGATYWNY 0.12.0: pigułki głośności nie pokaże strefa (tylko pulpit) — prośba odrzucona, okno dalej pokazane",
+          "ok=%d", ok);
     close(fd);
     close(m1);
     close(m2);

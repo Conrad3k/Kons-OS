@@ -26,7 +26,7 @@ q = Maszyna(log, mon, out, limit, "wzorce")
 # QEMU has no battery: Bateria is not on the list (0.10.7 step 2; with a battery: test-m5)
 SEKCJE = {"Wygląd": "wyglad", "Ekran": "ekran", "Mysz": "mysz", "Data i czas": "czas",
           "Hasło": "haslo", "Aplikacje": "aplikacje", "Miejsce": "miejsce", "Sieć": "siec",
-          "Przeglądarka": "przegladarka", "Aktualizacje": "aktualizacje", "Informacje": "informacje"}
+          "Przeglądarka": "przegladarka", "Aktualizacje": "aktualizacje", "Dźwięk": "dzwiek", "Informacje": "informacje"}
 
 if not q.sprawdz("pulpit gotowy, opis ekranu: pasek z „Start” i ikony pulpitu",
                  q.czekaj(r"K1-GUI: pulpit gotowy", czas=limit * 0.5) and q.czekaj_na_element("Pasek", "Start", czas=120)
@@ -219,6 +219,10 @@ ZNAK=$TESTY/wzorce-znak.img
 dd if=/dev/zero of="$ZNAK" bs=1M count=1 status=none
 DYSKI="-drive if=none,id=dane,file=$DANE,format=raw -device ide-hd,drive=dane,bus=ide.0"
 DYSKI="$DYSKI -drive if=none,id=znak,file=$ZNAK,format=raw,readonly=on -device virtio-blk-pci,drive=znak,serial=k1-test-opis,addr=0x1e"
+# 0.12.0 step 2: one date — the top bar's date ("śr. 25 lis" / "czw. 26 lis") moves its icons, and the battery's popover
+# stands under its icon: on another day its picture (the wallpaper through it) differed (CI run 350). Wednesday, 11:00 in
+# Poland; the clock's digits keep their width.
+DYSKI="$DYSKI -rtc base=2026-11-25T10:00:00"
 # 0.12.0 step 1: a sound card (its sound goes nowhere) — the popover "Dźwięk" with its controls
 KARTA="-audiodev none,id=dz -device ich9-intel-hda,id=hda -device hda-output,audiodev=dz,bus=hda.0"
 rm -f "$TESTY/wzorce.log" "$TESTY/wzorce.sock"

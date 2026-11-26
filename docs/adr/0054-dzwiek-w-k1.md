@@ -1,6 +1,6 @@
 # 0054. Dźwięk w K1: usługa dźwięku z wyłącznym prawem do karty, ALSA bez alsa-lib, kanał z pierścieniem
 
-- Status: Przyjęty, krok 1 wdrożony (0.12.0, krok 1)
+- Status: Przyjęty, kroki 1–2 wdrożone (0.12.0)
 - Data: 2026-11-25
 - Dotyczy: SPEC §5 (usługi), §7 (klatki), niezmiennik 7 skilla (jeden właściciel zasobu — **rozszerza go o kartę
   dźwiękową**), ADR 0007 (klatki), ADR 0053 (0.12 = Dźwięk); plan `docs/PLAN-0.12.0.txt` (T1–T4, T7, T8, D1–D3);
@@ -57,6 +57,26 @@ nie wydaje własnych dźwięków; jedyny to „Odtwórz próbę”).
    `scripts/test-dzwiek.sh` klika okienko po nazwach i słucha pliku (częstotliwości obu nut, cisza po wyciszeniu, stosunek
    głośności 50 % do 100 %, gra po restarcie usługi). Test w systemie `t_dzwiek` (bez karty): klatka, stan „brak karty”,
    wrogi klient, restart usługi. Prawdziwy głośnik — właściciel na X230 i IdeaPadzie.
+
+## Uzupełnienie — krok 2 (klawisze, słuchawki, Ustawienia → Dźwięk; 2026-11-25)
+Właściciel, 2026-11-25: **D4 = A** (po klawiszu głośności pigułka u góry ekranu na ok. 1,5 s), **D5 = A** (głośność po
+włączeniu taka, jak przy wyłączaniu — osobno głośniki i słuchawki).
+8. **Klawisze głośności są powłoki:** `KEY_VOLUMEUP`, `KEY_VOLUMEDOWN`, `KEY_MUTE` (i `KEY_MICMUTE` — bez skutku, D1) ekran
+   daje tylko powłoce, jak Alt+Tab; okno z fokusem (strefa też) ich nie dostaje. gui zmienia głośność (±5 %) i prosi
+   ekran o **pigułkę** (`GLOSNOSC_POKAZ`, tylko od powłoki) — rysuje ją ekran, bo musi być nad pełnym ekranem strefy, a
+   panele gui są pod nim. `wejscie` zostawia też urządzenie z samymi klawiszami głośności (tylko te klawisze idą dalej).
+9. **Słuchawki z kontrolek karty:** usługa trzyma kontrolki otwarte i prosi o ich zdarzenia (`SUBSCRIBE_EVENTS` — 14.
+   numer ioctl w klatce); gniazdo słuchawek (kontrolka karty „… Headphone Jack”) mówi, które **wyjście** gra. Przełącza
+   samo jądro (automatyczne wyciszanie głośników w ogólnym parserze HDA) — usługa nie dotyka nic więcej. Każde wyjście ma
+   własną głośność i wyciszenie (`DZWIEK_GLOSNOSC` c = wyjście, `DZWIEK_STAN` d = to, które gra).
+10. **Jedna droga do usługi dla gui i Ustawień:** Ustawienia → Dźwięk to trzeci klient w `K1_DZW_KLIENCI` (sterujący),
+    kanał od nadzorcy w `DZWIEK_KANAL` na fd 4 Ustawień; kod klienta (kanał, stan, głośność, próba) jest jeden —
+    `src/przybornik/k1_dzwiek_klient.c`.
+11. **Pamięć głośności (D5) w gui:** gui zapisuje głośność i wyciszenie obu wyjść w swoim obiekcie skarbca
+    (`K1_OB_GLOSNOSC`, rekord „K1G1”, 8 B, sprawdzany przy odczycie) 2 s po ostatniej zmianie i daje je każdej nowej usłudze.
+    Usługa dźwięku nie dostaje skarbca (jej klatka zostaje bez kanałów poza kartą i klientami).
+12. **Energia (T8):** `PM` w jądrze — **jeszcze nie**: zmienia też USB, i915 i karty sieciowe, a pomiaru na laptopach w tym
+    kroku nie ma; karta po 5 s ciszy dalej przestaje grać (DROP + HW_FREE). Pomiar i decyzja — „Później”.
 
 ## Konsekwencje
 - Nowa powierzchnia ataku: sterownik HD Audio w jądrze, osiągalny tylko z usługi dźwięku (klatka, lista ioctl) —

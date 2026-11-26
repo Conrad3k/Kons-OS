@@ -61,4 +61,12 @@ int k1_przycisk_pod(const struct k1_przycisk *p, int n, int32_t x, int32_t y);
 void k1_przelacznik(struct k1_obraz *o, const struct k1_motyw *m, int32_t x, int32_t y, int wlaczony,
                     int niedostepny);
 
+/* A slider (0.12.0: the volume — the popover "Dźwięk", Ustawienia → Dźwięk, the pill of the volume keys): a track 4 px
+ * from x to x + w at the height y (its middle), its part up to `wartosc` of `maks` in the accent (`szary`: grey — muted),
+ * the white knob 16 px with a shadow (`najechany`: its outline stronger). */
+void k1_suwak(struct k1_obraz *o, const struct k1_motyw *m, float x, float y, float w, int wartosc, int maks, int szary,
+              int najechany);
+/* The value under the pointer's x on such a slider (rounded, 0..maks). */
+int k1_suwak_wartosc(float x, float w, int32_t px, int maks);
+
 #endif

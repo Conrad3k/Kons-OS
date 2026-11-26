@@ -109,6 +109,17 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   „Dźwięk” i dwa wiersze tekstu jak dawne okienko. Szkice w obu motywach z hosta (funkcje K1). Krok 3 dopisze „Grają teraz”
   (sesje z kropką koloru i suwakiem). **Ikona głośnika** na pasku: dwie fale od 50 %, jedna poniżej, × przy wyciszeniu
   i 0 %, blada (krem 27%) i przekreślona bez karty (jak sieć bez karty) — `K1_IK_GLOSNIK`, `_CICHO`, `_WYCISZONY`.
+  Od 0.12.0 krok 2 w prawym górnym rogu nazwa wyjścia, które gra („Głośniki” / „Słuchawki”); suwak to wspólny `k1_suwak`
+  przybornika (okienko, Ustawienia → Dźwięk, pigułka głośności).
+- **Pigułka głośności** (0.12.0 krok 2, szkic A — decyzja właściciela D4 z 2026-11-25): rysuje ekran na 1,5 s po klawiszu
+  głośności, 300 × 44, zaokrąglenie 22 (pełne), tło motywu (alfa 245), cienka obwódka (tekst 9%), cień; wyśrodkowana,
+  16 px pod górnym paskiem (przy pełnym ekranie 16 px od krawędzi). Z lewej głośnik stanu 18 px (16 px od brzegu), od 48 px
+  suwak 180 px, z prawej procenty (Medium 13, 18 px od brzegu); wyciszona — suwak szary, procenty bledsze; bez karty —
+  głośnik blady, przekreślony, „Brak karty dźwiękowej”.
+- **Ustawienia → Dźwięk** (0.12.0 krok 2; sekcja przed Informacjami, ikona głośnika): pod tytułem „Wyjście” (Sans 13, tekst
+  drugi) i nazwa wyjścia (Medium 15) z podpowiedzią obok (tekst trzeci); niżej okrągły przycisk „Wycisz” 36 px jak
+  w okienku, suwak 280 px i procenty (Medium 15); przycisk „Odtwórz próbę” (zwykły, 180 × 36); pod nim dopisek „K1 pamięta
+  głośność głośników i słuchawek osobno.”
 - **Okienko baterii** (0.11.8 krok 3, szkic A — decyzja właściciela D4 z 2026-11-25; 272×202, okienko paska): z lewej u góry
   procent IBM Plex Serif 24 („73 %”), z prawej symbol baterii 30×16 (zaokrąglenie 4, linia 1,5) w kolorze tekstu motywu,
   wypełnienie jak procent (≤ 15 % przy rozładowywaniu — terakota); pod procentem stan (Sans 13, tekst drugi: „Ładowanie”,

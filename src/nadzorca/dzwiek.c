@@ -6,8 +6,9 @@
  *    so); a card found later still goes to the service. A card that comes later than the first (USB) is ignored (plan 0.12.0,
  *    punkt 6).
  *  - The clients (k1_dzwiek.h, K1_DZW_KLIENCI): a new socketpair for each, the service's end with the client's row and UID
- *    (DZWIEK_KLIENT), the client's end: gui on its fd 5 (DZWIEK_KANAL), the test program in TEST_GNIAZDO. Both ends check
- *    the sender. A new service or a new gui: the channel again. */
+ *    (DZWIEK_KLIENT), the client's end: gui on its fd 5 (DZWIEK_KANAL), Ustawienia on its fd 4 (step 2: the section Dźwięk),
+ *    the test program in TEST_GNIAZDO. Both ends check the sender. A new service, a new gui or new Ustawienia: the channel
+ *    again. */
 #include "nadzorca.h"
 
 #include <dirent.h>
@@ -16,18 +17,24 @@
 
 int dzwiek_kanal = -1; /* our end of the service's fd 3 (KN_DO: one way) */
 int uevent_dzwiek;      /* a kernel event of "sound" since the last loop pass (urzadzenia.c) */
-static int karta_wyslana, bez_karty_wyslano, gui_wyslano;
+static int karta_wyslana, bez_karty_wyslano, gui_wyslano, ustawienia_wyslano;
 
 /* A new service: the card and the clients again (KANAL_DZWIEKU, kanaly.h). */
 void dzwiek_nowy_kanal(void)
 {
-    karta_wyslana = bez_karty_wyslano = gui_wyslano = 0;
+    karta_wyslana = bez_karty_wyslano = gui_wyslano = ustawienia_wyslano = 0;
 }
 
 /* A new gui (KANAL_BATERII's new channel): its channel to the service again. */
 void dzwiek_nowy_gui(void)
 {
     gui_wyslano = 0;
+}
+
+/* New Ustawienia (KANAL_USTAWIEN's new channel): its channel to the service again. */
+void dzwiek_nowe_ustawienia(void)
+{
+    ustawienia_wyslano = 0;
 }
 
 /* "pcmC<k>D<u>p" exactly (k, u: 0..K1_DZW_KARTA_NR_MAKS): 0 and the numbers, else -1. */
@@ -125,19 +132,20 @@ int dzwiek_dla_testu(void)
     return kanal_klienta(K1_DZW_KLIENT_TEST, 0);
 }
 
-static void dla_gui(void)
+/* A client's channel in DZWIEK_KANAL on `kanal` (ours to it): 1 when sent (or the client is not there to get one). */
+static int dla_klienta(int kanal, int rodzaj, int uid)
 {
     struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_DZWIEK_KANAL, 0, 0, 0, 0, 0, 0);
     int fd;
-    if (gui_wyslano || dzwiek_kanal < 0 || bateria_kanal < 0 || gui_kanal_uid != K1_UID_GUI) /* not the password screen */
-        return;
-    fd = kanal_klienta(K1_DZW_KLIENT_GUI, K1_UID_GUI);
+    if (kanal < 0)
+        return 0;
+    fd = kanal_klienta(rodzaj, uid);
     if (fd < 0)
-        return;
-    if (k1_kanal_wyslij(bateria_kanal, &k, sizeof k, fd) != 0)
-        k1_log(TAG, "dźwięk: kanał dla gui: %s", strerror(errno));
+        return 0;
+    if (k1_kanal_wyslij(kanal, &k, sizeof k, fd) != 0)
+        k1_log(TAG, "dźwięk: kanał dla %s: %s", k1_dzw_klient_nazwa(rodzaj), strerror(errno));
     close(fd);
-    gui_wyslano = 1;
+    return 1;
 }
 
 /* Every loop: the card (at once on a kernel event, else every 2 s until it is found), no card after 5 s, gui's channel. */
@@ -160,5 +168,8 @@ void dzwiek_okresowe(double t)
         }
     }
     uevent_dzwiek = 0;
-    dla_gui();
+    if (!gui_wyslano && gui_kanal_uid == K1_UID_GUI) /* not the password screen */
+        gui_wyslano = dla_klienta(bateria_kanal, K1_DZW_KLIENT_GUI, K1_UID_GUI);
+    if (!ustawienia_wyslano)
+        ustawienia_wyslano = dla_klienta(ustaw_kanal, K1_DZW_KLIENT_USTAWIENIA, K1_UID_USTAWIENIA);
 }

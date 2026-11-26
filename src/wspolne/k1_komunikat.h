@@ -223,6 +223,9 @@ enum k1_komunikat_typ {
                                    * opened / closed (nadzorca reads the battery every 5 s while it is open), or its button
                                    * "Ustawienia baterii" (open Ustawienia on Bateria); b..e=0 */
     K1_KOM_BATERIA_POKAZ = 251,   /* nadzorca → Ustawienia (its fd 4): obiekt=0, all 0 — show the section Bateria */
+    K1_KOM_GLOSNOSC_POKAZ = 252,  /* 0.12.0 step 2 (D4: A): the shell → ekran (K1_KIER_DO_EKRANU), after a volume key:
+                                   * obiekt=0, a=the volume 0..K1_DZW_GLOSNOSC_MAKS, b=1 muted, c=the output
+                                   * K1_DZW_WYJSCIE_* (BRAK: no card — then a=b=0), d,e=0 — ekran shows its pill */
     /* 0.12.0 step 1 (ADR 0054): sound — formats and limits: k1_dzwiek.h; obiekt=0 in every one. nadzorca → the sound
      * service (its fd 3, one way: K1_KIER_STEROWANIE) */
     K1_KOM_DZWIEK_KARTA = 4,       /* a=K1_DZW_WEZEL_* (ODTWARZANIE: b=the card, c=its device; KONTROLKI: b=the card, c=0;
@@ -238,10 +241,12 @@ enum k1_komunikat_typ {
     K1_KOM_DZWIEK_ZAMKNIJ = 9,     /* a=K1_DZW_PO_ODEGRANIU (the stream ends when what was written played) / K1_DZW_OD_RAZU,
                                     * b..e=0 */
     K1_KOM_DZWIEK_GLOSNOSC = 41,   /* a steering client only (K1_DZW_KLIENCI): a=the volume of all K1 0..K1_DZW_GLOSNOSC_MAKS,
-                                    * b=1 muted / 0, c..e=0 */
+                                    * b=1 muted / 0, c=of which output K1_DZW_WYJSCIE_* (step 2, D5; BRAK: the one
+                                    * playing now), d,e=0 */
     /* dzwiek → its client (K1_KIER_OD_DZWIEKU) */
     K1_KOM_DZWIEK_STAN = 42,       /* a=K1_DZW_KARTA_*, b=the volume 0..K1_DZW_GLOSNOSC_MAKS, c=1 muted, d=K1_DZW_WYJSCIE_*
-                                    * (BRAK unless a=JEST, then not BRAK), e=0 — first, and after every change */
+                                    * (BRAK unless a=JEST, then not BRAK; step 2: SLUCHAWKI while something is in their
+                                    * jack), e=0 — b, c of that output; first, and after every change */
     K1_KOM_DZWIEK_ODTWORZONO = 43, /* a=frames taken from the client's ring since the last 0..K1_DZW_PIERSCIEN (room for as
                                     * many new ones), b=1 its stream ended (a may be 0) / 0 (then a ≥ 1), c..e=0 */
     /* nadzorca → gui (its fd 5) */
@@ -795,6 +800,7 @@ _Static_assert(K1_TAPETY < K1_TAPETA_ZDJECIE, "k1_komunikat: the photo wallpaper
 #define K1_OB_NOTATKA 2           /* Notatki: the first note (0.5.8: 1 = the list, 2..33 = notes) */
 #define K1_OB_BATERIA 3           /* nadzorca: battery history */
 #define K1_OB_ROZMIESZCZENIE 1    /* gui (0.7.5): the desktop arrangement — icons and the bottom bar */
+#define K1_OB_GLOSNOSC 2          /* gui (0.12.0 step 2, D5): the volume and the mute of each output (k1_dzwiek.h) */
 #define K1_OB_ZDJECIE 9           /* ekran (0.8.0 step 4): the wallpaper photo — its size (ekran/zdjecie.c) */
 #define K1_OB_OKNA_STREF 2        /* ekran (0.10.5 step 4): each session's window size and maximized (ekran/rozmiar.c) */
 #define K1_OB_ZDJECIE_KAWALEK 10  /* ekran: its pixels, 1 MiB per object: 10..10+K1_ZDJECIE_KAWALKI-1 */

@@ -149,7 +149,14 @@ przycisku; błąd — tekst z `k1_inst_teksty.h` i „Sprawdź jeszcze raz”. K
 (link Instalatora, okienko pulpitu po nieudanej próbie). Log „aktualizacje: <stan> (dysk: X, pendrive: Y); przycisk x,y”
 (stany: sprawdzam, bez instalacji, na dysku, nieudana próba, dysk starszy, ta sama wersja, dysk nowszy, dysk bez K1, dwa
 pendrive'y, trwa, gotowe, błąd). Aktualizacja przez sieć — w kroku 2 tej wersji. Okno Ustawień od 0.10.5 krok 1 ma
-720 × 520 (D2: dwanaście sekcji; wcześniej 680 × 480). Informacje (`informacje.c`): wersja, ekran, jądro, gdzie są dane.
+720 × 520 (D2: dwanaście sekcji; wcześniej 680 × 480; od 0.12.0 krok 2 trzynaście — mieszczą się). Dźwięk (0.12.0 krok 2,
+`dzwiek.c`; sekcja przed Informacjami): „Wyjście” — „Głośniki” albo „Słuchawki” (samo: karta mówi, co jest w gnieździe
+słuchawek; podpowiedź „Słuchawki przejmują dźwięk same po podłączeniu.”), okrągły przycisk „Wycisz”, suwak „Głośność”
+z procentami (ten sam `k1_suwak` co w okienku „Dźwięk” i pigułce), „Odtwórz próbę”, dopisek „K1 pamięta głośność
+głośników i słuchawek osobno.”; bez karty — jedno zdanie. Ustawienia są klientem sterującym usługi dźwięku jak gui
+(wspólny `k1_dzwiek_klient` w przyborniku): kanał od nadzorcy na fd 4 (`DZWIEK_KANAL`, od nowa po restarcie usługi albo
+Ustawień), stan, głośność wyjścia, które gra, próba we własnym pierścieniu. Głośność zapamiętuje gui (słyszy każdą zmianę).
+Informacje (`informacje.c`): wersja, ekran, jądro, gdzie są dane.
 Od 0.10.7 krok 1 sekcje mają sam tytuł, bez opisu pod nim (zasada właściciela Z2, `docs/WYGLAD.md`); treść zaczyna się
 32 px pod tytułem (`seg_y()` w `ustawienia.h`), w Sieci w tym miejscu stoją zakładki, a jej treść pod nimi (`SIEC_Y`).
 Od 0.10.7 krok 2 (`docs/WYGLAD.md`, „Ustawienia: sekcje w środku”): bez baterii sekcji „Bateria” nie ma na liście

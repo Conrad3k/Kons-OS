@@ -2,9 +2,13 @@
  * them elsewhere, K1 does not have): the service switches on the playback switches of the outputs and sets their hardware
  * volume to 0 dB (no amplification: the volume of K1 is the service's own, done on the samples). Only the controls of the
  * outputs, by name (the names of the kernel's HDA parser, sound/hda/codecs/generic.c): never an input, a loopback of the
- * microphone or the beep. Reads the card's name for the log. ioctls: CARD_INFO, ELEM_LIST, ELEM_INFO, ELEM_READ,
- * ELEM_WRITE, TLV_READ — the sandbox allows no other on the controls (no ELEM_ADD: no controls of our own). */
+ * microphone or the beep. Reads the card's name for the log. Step 2: the headphones — the card's jack controls
+ * ("Headphone Jack": the kernel's HDA parser reports what is in the jack and mutes the speakers itself); the service keeps
+ * the controls open, asks for their events (SUBSCRIBE_EVENTS) and reads the jacks again on each. ioctls: CARD_INFO,
+ * ELEM_LIST, ELEM_INFO, ELEM_READ, ELEM_WRITE, TLV_READ, SUBSCRIBE_EVENTS — the sandbox allows no other on the controls (no
+ * ELEM_ADD: no controls of our own). */
 #include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -17,6 +21,11 @@
 #include "k1_log.h"
 
 #define ELEMENTY_MAKS 256
+#define GNIAZDA_MAKS 4 /* headphone jacks of one card (front and back at most, in practice) */
+
+static int kfd = -1;                      /* the controls, open while the service runs (step 2) */
+static unsigned gniazda[GNIAZDA_MAKS], n_gniazd; /* the numids of the headphone jacks */
+static int sluchawki;                     /* something is in one of them */
 
 /* The outputs: "<name> Playback Switch" / "<name> Playback Volume" (sound/hda/codecs/generic.c, the vmaster "Master"). */
 static const char *const wyjscia[] = { "Master", "PCM", "Speaker", "Headphone", "Front", "Line Out", "Bass Speaker" };
@@ -92,8 +101,58 @@ static int ustaw(int fd, const struct snd_ctl_elem_id *id)
     return wynik;
 }
 
+/* A headphone jack (step 2): a boolean control of the card (iface CARD) named as k1_dzw_gniazdo_sluchawek says. */
+static void gniazdo(int fd, const struct snd_ctl_elem_id *id)
+{
+    struct snd_ctl_elem_info in;
+    memset(&in, 0, sizeof in);
+    in.id = *id;
+    if (id->iface != SNDRV_CTL_ELEM_IFACE_CARD || n_gniazd >= GNIAZDA_MAKS ||
+        !k1_dzw_gniazdo_sluchawek((const char *)id->name) || ioctl(fd, (int)SNDRV_CTL_IOCTL_ELEM_INFO, &in) != 0 ||
+        in.type != SNDRV_CTL_ELEM_TYPE_BOOLEAN || !(in.access & SNDRV_CTL_ELEM_ACCESS_READ))
+        return;
+    gniazda[n_gniazd++] = id->numid;
+    k1_log(TAG, "gniazdo słuchawek: „%s”", (const char *)id->name);
+}
+
+/* Is something in a headphone jack now? */
+static int czytaj_gniazda(void)
+{
+    struct snd_ctl_elem_value *v = calloc(1, sizeof *v);
+    int jest = 0;
+    for (unsigned i = 0; v != NULL && i < n_gniazd; i++) {
+        memset(v, 0, sizeof *v);
+        v->id.numid = gniazda[i];
+        if (ioctl(kfd, (int)SNDRV_CTL_IOCTL_ELEM_READ, v) == 0 && v->value.integer.value[0] != 0)
+            jest = 1;
+    }
+    free(v);
+    return jest;
+}
+
+int kontrolki_fd(void)
+{
+    return n_gniazd > 0 ? kfd : -1;
+}
+
+int kontrolki_wyjscie(void)
+{
+    return sluchawki ? K1_DZW_WYJSCIE_SLUCHAWKI : K1_DZW_WYJSCIE_GLOSNIKI;
+}
+
+int kontrolki_zdarzenia(void)
+{
+    struct snd_ctl_event ev[8];
+    int bylo = sluchawki;
+    while (kfd >= 0 && read(kfd, ev, sizeof ev) > 0) /* only that something changed: the jacks are read again */
+        ;
+    sluchawki = czytaj_gniazda();
+    return sluchawki != bylo;
+}
+
 void kontrolki_przyjmij(int fd)
 {
+    int tak = 1;
     struct snd_ctl_card_info karta;
     struct snd_ctl_elem_list lista;
     struct snd_ctl_elem_id *id = calloc(ELEMENTY_MAKS, sizeof *id);
@@ -107,6 +166,11 @@ void kontrolki_przyjmij(int fd)
     }
     lista.space = ELEMENTY_MAKS;
     lista.pids = id;
+    if (kfd >= 0) { /* the controls once per service: a second card's are not ours */
+        free(id);
+        close(fd);
+        return;
+    }
     if (id == NULL || ioctl(fd, (int)SNDRV_CTL_IOCTL_ELEM_LIST, &lista) != 0) {
         k1_log(TAG, "kontrolki karty: lista niedostępna");
         free(id);
@@ -119,8 +183,17 @@ void kontrolki_przyjmij(int fd)
             ustawione++;
             k1_log(TAG, "kontrolka „%s”: włączona (0 dB)", (const char *)id[i].name);
         }
+        gniazdo(fd, &id[i]);
     }
     k1_log(TAG, "kontrolki karty: %u z %u ustawione", ustawione, lista.count);
     free(id);
-    close(fd); /* the outputs stay as set; step 2 (headphones) keeps it open */
+    if (n_gniazd == 0 || fcntl(fd, F_SETFL, O_NONBLOCK) != 0 ||
+        ioctl(fd, (int)SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS, &tak) != 0) {
+        n_gniazd = 0; /* no headphone jack (or no events of it): the speakers always */
+        close(fd);
+        return;
+    }
+    kfd = fd;
+    sluchawki = czytaj_gniazda();
+    k1_log(TAG, "słuchawki: %s", sluchawki ? "podłączone" : "nie");
 }

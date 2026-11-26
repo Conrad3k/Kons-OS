@@ -44,6 +44,12 @@ nadzorca i przekazuje jako fd 4, 5, … — wejscie samo niczego nie otwiera.
 ## Wejścia i wyjścia
 - Wejście: deskryptory 4… od nadzorcy (`event0..31`) — zostają urządzenia z klawiszami liter
   (klawiatura), osiami REL_X/REL_Y (mysz) albo touchpady, przejmowane na wyłączność (`EVIOCGRAB`); inne są zamykane.
+  Od 0.12.0 krok 2 zostaje też urządzenie z samymi **klawiszami głośności** (`KEY_VOLUMEUP` i `KEY_VOLUMEDOWN`, np.
+  „extra buttons” laptopa albo „Consumer Control” klawiatury USB) — z niego idą dalej tylko klawisze głośności i wyciszenia.
+  Log mówi, które urządzenie je ma („klawiatura (z klawiszami głośności)”, „klawisze głośności”) — nigdy wciśnięcia.
+  Ekran daje te klawisze tylko powłoce (`ekran.md`, „Pigułka głośności”). X230 i IdeaPad: klawisze głośności idą
+  przez klawiaturę (atkbd) — do sprawdzenia w logu na sprzęcie; sterowników platformy (thinkpad_acpi, ideapad-laptop)
+  jądro K1 nie ma.
 - Wyjście: fd 3 — kanał `SOCK_SEQPACKET` do ekranu (ekran sprawdza, że nadawca ma UID 100):
   `K1_ZD_KLAWISZ`, `K1_ZD_RUCH`, `K1_ZD_PRZYCISK`, `K1_ZD_PRZEWIJANIE` (0.10.0: `kod` = źródło, `dx`, `dy` w 1/120
   ząbka, |d| ≤ `K1_ZD_PRZEWIN_MAX`, nie oba 0). Gdy ekran nie nadąża — zdarzenia są pomijane

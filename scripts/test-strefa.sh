@@ -328,6 +328,13 @@ q.pisz("b")
 sprawdz("po Alt+Tab gość nie trzyma Alt: przy wciśnięciu litery wciśnięty jest tylko ten klawisz",
         czekaj(r"K1-GOSC: wejście: klawisze 5, kliknięcia 1, wciśnięte 1\b", czas=60),
         (re.findall(r"K1-GOSC: wejście: klawisze[^\n]*", q.tekst()) or ["brak"])[-1])
+# 0.12.0 step 2 (D4: A): a volume key while the zone has the focus — the shell's (the pill; this machine has no sound
+# card: "brak karty"), never the guest's
+n = q.ile(r"K1-EKRAN: pigułka głośności")
+q.pisz("volumedown")
+sprawdz("NEGATYWNY: klawisz głośności przy fokusie strefy — pigułka głośności K1, gość go nie dostaje",
+        czekaj(r"K1-EKRAN: pigułka głośności: 0% \(brak karty\)", od=n, czas=60) and
+        q.cisza(r"K1-GOSC: wejście: klawisze 6", 8))
 
 # the dark theme: Ustawienia → Wygląd → Ciemny (as in the other tests)
 q.klik(ax + 2 * krok, ay)

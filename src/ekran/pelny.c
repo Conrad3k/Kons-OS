@@ -38,6 +38,11 @@ int pelny_jest(const struct pow *p)
     return f.okno >= 0 && p == &s.p[f.okno];
 }
 
+int pelny_trwa(void)
+{
+    return f.okno >= 0;
+}
+
 int pelny_rysuje(void)
 {
     return f.okno >= 0 && (f.pigulka || f.pasek);
