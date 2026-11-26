@@ -1,8 +1,8 @@
-/* K1 strefa — the guest's sound card (0.12.0 step 3, ADR 0054 T5): virtio-snd with one output stream in K1's one format
- * (dzwiek.h), queues: control 0, events 1 (never used: no jacks), transfers 2, input 3 (none: D1 = A). The guest's
- * Firefox plays through ALSA to its kernel's virtio-snd driver; its transfers come here and their samples go — copied,
- * never converted — into this VMM's ring at K1's sound service (a client STREFA: the channel from nadzorca on fd 7,
- * DZWIEK_KANAL). A transfer goes back to the guest only when its last frame was PLAYED (the service's DZWIEK_ODTWORZONO
+/* K1 strefa — the guest's sound card (0.12.0 step 3, ADR 0054 T5): virtio-snd with one output stream (dzwiek.h), queues:
+ * control 0, events 1 (never used: no jacks), transfers 2, input 3 (none: D1 = A). The guest's Firefox plays through ALSA
+ * to its kernel's virtio-snd driver; its transfers come here and their samples go — copied, in floats without loss
+ * (0.12.3, ADR 0055: the guest's S16, S32 or FLOAT; dzw_na_f32) — into this VMM's F32 ring at K1's sound service (a
+ * client STREFA: the channel from nadzorca on fd 7, DZWIEK_KANAL). A transfer goes back to the guest only when its last frame was PLAYED (the service's DZWIEK_ODTWORZONO
  * counts them): the guest's driver moves its clock by the transfers given back, so a transfer given back early would
  * make its whole buffer "played" at once (an underrun every time — the first version did that). At most ZAPAS frames are
  * in the ring and not played yet. Without the service (no channel, no card: the stream refused) the device keeps its own
@@ -34,7 +34,7 @@
 static struct {
     struct dzw_strumien s;
     int kanal;                  /* to the sound service, -1 */
-    int16_t *pierscien;         /* our ring (a sealed memfd the service maps) */
+    float *pierscien;           /* our ring of F32 (a sealed memfd the service maps) */
     int pfd;
     int otwarty;                /* the service took our ring and plays it */
     int karta;                  /* the service's card (DZWIEK_STAN a): a ring only while it has one */
@@ -50,7 +50,11 @@ static struct {
     } cz[VQ_MAKS];
     unsigned cz_od, cz_n;
     unsigned long ramki, odrzucone, bez_uslugi, starty, stopy;
+    unsigned formaty;           /* the guest's formats said in the log (a bit each: at most three lines a machine) */
 } d = { .kanal = -1, .pfd = -1 };
+
+#define PIERSCIEN_BAJTY (K1_DZW_PIERSCIEN * K1_DZW_KANALY * sizeof(float)) /* = k1_dzw_pierscien_bajty(F32) */
+_Static_assert(K1_DZW_KANALY * sizeof(float) == 8, "ramka F32");
 
 static void konfig_czytaj(struct mmio_urz *u, uint32_t od, uint8_t *dst, uint32_t n)
 {
@@ -89,9 +93,9 @@ static void otworz(void)
     if (d.pierscien == NULL) {
         void *m;
         d.pfd = k1_memfd_nowy("k1-dzwiek-strefy");
-        if (d.pfd < 0 || ftruncate(d.pfd, K1_DZW_PIERSCIEN_BAJTY) != 0 ||
+        if (d.pfd < 0 || ftruncate(d.pfd, (off_t)PIERSCIEN_BAJTY) != 0 ||
             fcntl(d.pfd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_SEAL) != 0 ||
-            (m = mmap(NULL, K1_DZW_PIERSCIEN_BAJTY, PROT_READ | PROT_WRITE, MAP_SHARED, d.pfd, 0)) == MAP_FAILED) {
+            (m = mmap(NULL, PIERSCIEN_BAJTY, PROT_READ | PROT_WRITE, MAP_SHARED, d.pfd, 0)) == MAP_FAILED) {
             k1_log(TAG, "dźwięk: pierścień niedostępny — strefa gra bez dźwięku");
             return;
         }
@@ -100,13 +104,13 @@ static void otworz(void)
     d.otwarty = 1;
     d.w_pierscieniu = 0;
     d.zagrane = d.wpisane; /* what our clock had not played yet is dropped */
-    wyslij(k1_komunikat_nowy(K1_KOM_DZWIEK_OTWORZ, 0, 0, 0, 0, 0, 0), d.pfd);
+    wyslij(k1_komunikat_nowy(K1_KOM_DZWIEK_OTWORZ, 0, K1_DZW_FORMAT_F32, 0, 0, 0, 0), d.pfd);
 }
 
 /* A transfer back to the guest with its status (8 bytes into its writable part, checked when it was taken). */
 static void oddaj(struct mmio_urz *u, const struct vq_lancuch *l, uint32_t status)
 {
-    struct virtio_snd_pcm_status st = { status, czeka() * K1_DZW_RAMKA_BAJTY };
+    struct virtio_snd_pcm_status st = { status, czeka() * d.s.ramka };
     vq_zapisz(l, 0, &st, sizeof st);
     vq_oddaj(&u->q[Q_WYJSCIE], u->pamiec, l->glowa, sizeof st);
 }
@@ -124,17 +128,20 @@ static int zagrane(struct mmio_urz *u)
     return bylo;
 }
 
-/* `ile` frames of the held transfer from its byte d.od: into the ring (or, by our own clock, dropped). */
+/* `ile` frames of the held transfer from its byte d.od: into the ring as floats (or, by our own clock, dropped). */
 static void przepisz(uint32_t ile)
 {
     if (d.otwarty) {
+        static uint8_t kawalek[K1_DZW_OKRES * 8]; /* the guest's bytes of up to a period (8: the largest frame) */
         uint32_t zrobione = 0;
         while (zrobione < ile) {
             uint32_t poz = d.w_pierscieniu % K1_DZW_PIERSCIEN, n = ile - zrobione;
             if (n > K1_DZW_PIERSCIEN - poz)
                 n = K1_DZW_PIERSCIEN - poz;
-            vq_czytaj(&d.l, d.od + (uint64_t)zrobione * K1_DZW_RAMKA_BAJTY, d.pierscien + (size_t)poz * K1_DZW_KANALY,
-                      (uint64_t)n * K1_DZW_RAMKA_BAJTY);
+            if (n > K1_DZW_OKRES)
+                n = K1_DZW_OKRES;
+            vq_czytaj(&d.l, d.od + (uint64_t)zrobione * d.s.ramka, kawalek, (uint64_t)n * d.s.ramka);
+            dzw_na_f32(d.pierscien + (size_t)poz * K1_DZW_KANALY, kawalek, n, d.s.format);
             d.w_pierscieniu += n;
             zrobione += n;
         }
@@ -143,7 +150,7 @@ static void przepisz(uint32_t ile)
         d.bez_uslugi += ile;
     }
     d.wpisane += ile;
-    d.od += (uint64_t)ile * K1_DZW_RAMKA_BAJTY;
+    d.od += (uint64_t)ile * d.s.ramka;
     d.ramki += ile;
 }
 
@@ -159,7 +166,7 @@ static int wez(struct mmio_urz *u, const char **powod)
         return -1;
     }
     if (d.l.dl_odczyt < sizeof nagl ||
-        dzw_transfer(nagl, (uint32_t)vq_czytaj(&d.l, 0, nagl, sizeof nagl), d.l.dl_odczyt - sizeof nagl) !=
+        dzw_transfer(nagl, (uint32_t)vq_czytaj(&d.l, 0, nagl, sizeof nagl), d.l.dl_odczyt - sizeof nagl, d.s.ramka) !=
             VIRTIO_SND_S_OK) {
         d.odrzucone++;
         oddaj(u, &d.l, VIRTIO_SND_S_BAD_MSG);
@@ -186,7 +193,7 @@ static int wyjscie(struct mmio_urz *u, const char **powod)
             if (w == 2)
                 continue;
         }
-        ile = (uint32_t)((d.l.dl_odczyt - d.od) / K1_DZW_RAMKA_BAJTY);
+        ile = (uint32_t)((d.l.dl_odczyt - d.od) / d.s.ramka);
         if (ile > ZAPAS - czeka())
             ile = ZAPAS - czeka();
         if (ile > 0)
@@ -239,6 +246,10 @@ static int sterowanie(struct mmio_urz *u, const char **powod)
         vq_zapisz(&l, 0, odp, m);
         vq_oddaj(&u->q[Q_STEROWANIE], u->pamiec, l.glowa, m);
         bylo = 1;
+        if (d.s.stan == DZW_USTAWIONY && d.s.ramka != 0 && !(d.formaty & (1u << (d.s.format & 31)))) {
+            d.formaty |= 1u << (d.s.format & 31); /* only formats of DZW_FORMATY get here: three at most */
+            k1_log(TAG, "dźwięk: gość gra w formacie %s", dzw_format_nazwa(d.s.format));
+        }
         d.starty += zrob == DZW_ZROB_START;
         d.stopy += zrob == DZW_ZROB_STOP;
         if (zrob == DZW_ZROB_START)
@@ -263,7 +274,7 @@ static int powiadom(struct mmio_urz *u, int k, const char **powod)
 static void reset(struct mmio_urz *u)
 {
     (void)u;
-    d.s = (struct dzw_strumien){ DZW_NIC, 0, 0 };
+    d.s = (struct dzw_strumien){ .stan = DZW_NIC };
     d.trzymany = 0;
     d.cz_n = 0;
     d.zagrane = d.wpisane;

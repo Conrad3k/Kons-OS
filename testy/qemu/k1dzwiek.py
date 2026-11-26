@@ -5,9 +5,12 @@ in each the notes 660 Hz then 880 Hz, the second and third at 50 % ≈ 1/8 of th
 k1_dzw_wzmocnienie), the third (after the service restarted) as loud as the second; step 2: the fourth at 40 % (after the
 volume keys, from Ustawienia), the fifth at 45 % (the volume a new gui took from skarbiec) — (0.8)³ and (0.9)³ of 50 %;
 step 3: after them the test zone's tone, 480 Hz, at least a second of it, with a gap of at least 2 s (its session muted
-from the speaker on its window's bar).
+from the speaker on its window's bar). 0.12.3 step 1 (ADR 0055, "przezroczystość"): the first sound (the sample at 100 %, one
+16-bit stream; QEMU's card takes 16 bits only) is the sample itself, sample for sample — the same numbers as
+k1_dzw_proba (src/wspolne/k1_dzwiek.c, computed here in the same order: Python's floats are IEEE doubles as C's).
 
     python3 -I testy/qemu/k1dzwiek.py PLIK.wav   — exit 0 when all hold"""
+import array
 import struct
 import sys
 
@@ -58,6 +61,53 @@ def dzwieki(s):
     return [(a, z) for a, z in czesci if z - a > 0.1 * CZESTOTLIWOSC]  # a click is not a sound
 
 
+def _sinus(x):
+    """sinus() of k1_dzwiek.c, operation for operation"""
+    pi = 3.14159265358979323846
+    if x >= 0.5:
+        return -_sinus(x - 0.5)
+    t = (0.5 - x if x > 0.25 else x) * 2.0 * pi
+    t2 = t * t
+    return t * (1 - t2 / 6 * (1 - t2 / 20 * (1 - t2 / 42 * (1 - t2 / 72 * (1 - t2 / 110)))))
+
+
+def _nuta(i, hz):
+    obw = i / 480.0 if i < 480 else 1.0
+    obw *= 1.0 - i / 16800
+    v = 11000 * obw * _sinus((i * hz % CZESTOTLIWOSC) / CZESTOTLIWOSC)
+    return int(v + 0.5) if v >= 0 else int(v - 0.5)  # C's (int16_t) cuts toward zero, as int()
+
+
+def proba():
+    """k1_dzw_proba: 660 Hz, then 880 Hz, 16800 frames each"""
+    return [_nuta(i, 660) for i in range(16800)] + [_nuta(i, 880) for i in range(16800)]
+
+
+def przezroczystosc(s, a, z, wzor):
+    """How many samples of s[a:z] match the sample `wzor` exactly, in runs of at least 16 in its order (the emulation
+    may leave gaps of silence, or lose a period at an underrun — the sample goes on later), and how many loud samples
+    match nothing (each such is a sample K1 changed)."""
+    w = array.array("h", wzor).tobytes()
+    dopasowane, obce, i, p = 0, 0, a, 0
+    while i < z:
+        if s[i] == 0:
+            i += 1
+            continue
+        kawalek = array.array("h", s[i:i + 16]).tobytes()
+        k = w.find(kawalek, 2 * p)
+        while k >= 0 and k % 2:
+            k = w.find(kawalek, k + 1)
+        if k < 0 or z - i < 16:
+            obce += abs(s[i]) > PROG
+            i += 1
+            continue
+        k //= 2
+        while i < z and k < len(wzor) and s[i] == wzor[k]:
+            i, k, dopasowane = i + 1, k + 1, dopasowane + 1
+        p = k
+    return dopasowane, obce
+
+
 def czestotliwosc(s):
     przejscia = sum(1 for i in range(1, len(s)) if (s[i - 1] < 0) != (s[i] < 0))
     return przejscia / 2 * CZESTOTLIWOSC / max(len(s), 1)
@@ -91,6 +141,12 @@ def main():
         sprawdz("po restarcie usługi ta sama głośność (gui podała ją nowej usłudze)", 0.8 < szczyty[2] / szczyty[1] < 1.25,
                 f"{szczyty[2] / szczyty[1]:.3f}")
         sprawdz("100 %: próba bez przesterowania (szczyt poniżej 32767)", 3000 < szczyty[0] < 32767, f"{szczyty[0]}")
+    if d:  # 0.12.3: one stream at 100 % — K1 changes nothing
+        wzor = proba()
+        a, z = d[0]
+        dop, obce = przezroczystosc(s, max(0, a - BLOK), min(len(s), z + BLOK), wzor)
+        sprawdz("100 %: próba w pliku próbka w próbkę taka jak w programie (przezroczystość, 0.12.3)",
+                obce == 0 and dop >= 0.9 * len(wzor), f"zgodne {dop} z {len(wzor)}, inne głośne {obce}")
     if len(d) >= 6:  # step 3: the zone's tone (in emulation it may come in pieces), one gap of the muted session
         reszta = d[5:]
         ton = [v for a, z in reszta for v in s[a:z]]

@@ -131,8 +131,9 @@ static const struct k1_warunek wa_strefa[] = { { SYS_ioctl, 1, 0xff00u, 0xae00u 
 #define KLATKA_SIEC .wywolania = sc_siec, .n_wywolan = N(sc_siec), .pamiec = 8u << 20, .pliki = 24, \
                     .rozmiar_pliku = 64u << 10
 
-/* the sound service: its clients' rings (K1_DZW_PIERSCIEN_BAJTY each, 8 clients: 512 KiB mapped), its period buffers;
- * 16 MiB. Descriptors: its channel, the card's two nodes, 8 clients and a ring each while it opens. RLIMIT_FSIZE 0. */
+/* the sound service: its clients' rings (64 KiB of S16, 128 KiB of F32 — a zone's; 12 clients: 1.5 MiB mapped at most),
+ * its period buffers (0.12.3: floats, 8 KiB each); 16 MiB. Descriptors: its channel, the card's two nodes, 12 clients
+ * and a ring while it opens. RLIMIT_FSIZE 0. */
 #define KLATKA_DZWIEK .wywolania = sc_dzwiek, .warunki = wa_dzwiek, .n_warunkow = N(wa_dzwiek), .pamiec = 16u << 20, \
                       .pliki = 24, .rozmiar_pliku = 0
 

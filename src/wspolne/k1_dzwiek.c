@@ -1,6 +1,6 @@
-/* K1 — sound (0.12.0 step 1, ADR 0054): the client table, a client's ring counted by the service, mixing, the volume and
- * the sample "Odtwórz próbę"; step 2: the outputs, the volume keys, what gui remembers (D5). Pure functions (host test
- * test_dzwiek, fuzzing fuzz_dzwiek). See k1_dzwiek.h. */
+/* K1 — sound (0.12.0 step 1, ADR 0054): the client table, the ring's formats (0.12.3), a client's ring counted by the
+ * service and the sample "Odtwórz próbę"; step 2: the outputs, the volume keys, what gui remembers (D5). Pure functions
+ * (host test test_dzwiek, fuzzing fuzz_dzwiek). Mixing and the volume: k1_dzw_tor.c. See k1_dzwiek.h. */
 #include "k1_dzwiek.h"
 
 #include <stddef.h>
@@ -16,6 +16,30 @@ static const int sterujacy[K1_DZW_KLIENCI_MAKS + 1] = { K1_DZW_KLIENCI(X_STERUJE
 K1_DZW_KLIENCI(X_SPR)
 _Static_assert(K1_DZW_PIERSCIEN % K1_DZW_OKRES == 0 && (K1_DZW_PIERSCIEN & (K1_DZW_PIERSCIEN - 1)) == 0,
                "pierścień: potęga dwójki, wielokrotność okresu");
+
+#define X_FORMAT(n, nr, bajty, nazwa) [nr] = { bajty, nazwa },
+static const struct {
+    uint32_t bajty;
+    const char *nazwa;
+} formaty[K1_DZW_FORMAT_MAKS + 1] = { K1_DZW_FORMATY(X_FORMAT) };
+#define X_SPR_F(n, nr, bajty, ...)                                                                                     \
+    _Static_assert(nr >= 0 && nr <= K1_DZW_FORMAT_MAKS && bajty <= K1_DZW_RAMKA_MAKS, #n ": format poza tabelą");
+K1_DZW_FORMATY(X_SPR_F)
+
+uint32_t k1_dzw_ramka_bajty(int format)
+{
+    return format >= 0 && format <= K1_DZW_FORMAT_MAKS ? formaty[format].bajty : 0;
+}
+
+const char *k1_dzw_format_nazwa(int format)
+{
+    return format >= 0 && format <= K1_DZW_FORMAT_MAKS ? formaty[format].nazwa : NULL;
+}
+
+size_t k1_dzw_pierscien_bajty(int format)
+{
+    return (size_t)K1_DZW_PIERSCIEN * k1_dzw_ramka_bajty(format);
+}
 
 const char *k1_dzw_klient_nazwa(int nr)
 {
@@ -40,57 +64,16 @@ int k1_dzw_zapisano(struct k1_dzw_pierscien *p, uint32_t ramki)
     return 0;
 }
 
-uint32_t k1_dzw_pobierz(struct k1_dzw_pierscien *p, const int16_t *pamiec, int16_t *cel, uint32_t ile)
+uint32_t k1_dzw_pobierz(struct k1_dzw_pierscien *p, const uint8_t *pamiec, uint32_t ramka, uint8_t *cel, uint32_t ile)
 {
     uint32_t n = k1_dzw_czeka(p), od = p->pobrane % K1_DZW_PIERSCIEN, pierwsze;
     if (n > ile)
         n = ile;
     pierwsze = K1_DZW_PIERSCIEN - od < n ? K1_DZW_PIERSCIEN - od : n;
-    memcpy(cel, pamiec + (size_t)od * K1_DZW_KANALY, (size_t)pierwsze * K1_DZW_RAMKA_BAJTY);
-    memcpy(cel + (size_t)pierwsze * K1_DZW_KANALY, pamiec, (size_t)(n - pierwsze) * K1_DZW_RAMKA_BAJTY);
+    memcpy(cel, pamiec + (size_t)od * ramka, (size_t)pierwsze * ramka);
+    memcpy(cel + (size_t)pierwsze * ramka, pamiec, (size_t)(n - pierwsze) * ramka);
     p->pobrane += n;
     return n;
-}
-
-uint32_t k1_dzw_wzmocnienie(int glosnosc, int wyciszone)
-{
-    uint64_t g;
-    if (wyciszone || glosnosc <= 0)
-        return 0;
-    if (glosnosc >= K1_DZW_GLOSNOSC_MAKS)
-        return K1_DZW_JEDEN;
-    g = (uint64_t)glosnosc * (uint64_t)glosnosc * (uint64_t)glosnosc; /* < 10^6 */
-    return (uint32_t)((g * K1_DZW_JEDEN + 500000u) / 1000000u);
-}
-
-void k1_dzw_dodaj(int32_t *suma, const int16_t *probki, uint32_t ramki)
-{
-    for (size_t i = 0; i < (size_t)ramki * K1_DZW_KANALY; i++)
-        suma[i] += probki[i]; /* at most 16 streams of 32767: far from 2^31 */
-}
-
-void k1_dzw_dodaj_wzm(int32_t *suma, const int16_t *probki, uint32_t ramki, uint32_t wzmocnienie)
-{
-    if (wzmocnienie >= K1_DZW_JEDEN) {
-        k1_dzw_dodaj(suma, probki, ramki);
-        return;
-    }
-    for (size_t i = 0; i < (size_t)ramki * K1_DZW_KANALY; i++)
-        suma[i] += (int32_t)(((int64_t)probki[i] * (int64_t)wzmocnienie) / (int64_t)K1_DZW_JEDEN);
-}
-
-uint32_t k1_dzw_wyjscie(int16_t *wyj, const int32_t *suma, uint32_t ramki, uint32_t wzmocnienie)
-{
-    uint32_t przyciete = 0;
-    for (size_t i = 0; i < (size_t)ramki * K1_DZW_KANALY; i++) {
-        int64_t v = ((int64_t)suma[i] * (int64_t)wzmocnienie) / (int64_t)K1_DZW_JEDEN;
-        if (v > 32767 || v < -32768) {
-            v = v > 0 ? 32767 : -32768;
-            przyciete++;
-        }
-        wyj[i] = (int16_t)v;
-    }
-    return przyciete;
 }
 
 /* sin(2π·x) for x in [0, 1): a polynomial, no libm (the same numbers on every computer and in the fuzzer). */

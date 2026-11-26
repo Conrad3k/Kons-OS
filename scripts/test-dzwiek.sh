@@ -12,6 +12,10 @@
 # Krok 3: zamknięcie Ustawień — program testowy uruchamia strefę próbną z tonem 480 Hz (karta virtio-snd VMM-a → usługa
 # dźwięku): głośnik na pasku okna sesji i „Grają teraz” w okienku, kliknięcie głośnika — sesja wyciszona (4 s ciszy), drugie
 # — znów gra; potem gość złośliwy dla karty (VMM kończy jego maszynę). W pliku po pięciu próbach — ton 480 Hz z przerwą.
+# 0.12.3 krok 1 (ADR 0055): usługa liczy w liczbach zmiennoprzecinkowych i wybiera najlepszy format karty (karta QEMU
+# przyjmuje tylko 16 bitów — log); pierwsza próba (100 %) jest w pliku próbka w próbkę taka jak w programie
+# („przezroczystość”, k1dzwiek.py); strefa próbna gra ton w 32 bitach — VMM przelicza je do pierścienia
+# zmiennoprzecinkowego.
 # Komputer bez karty: test-m4 (okienko mówi „nie ma karty dźwiękowej”). Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -71,6 +75,8 @@ def wycisz(tak):
 
 q.sprawdz("suwak na końcu: głośność 100%", glosnosc(100))
 proba("100 %")
+q.sprawdz("0.12.3: karta QEMU przyjmuje tylko 16 bitów — usługa wybiera je sama (24 i 20 bitów odmówione)",
+          q.czekaj(r"K1-DZWIEK: karta gra 16 bitów \(2 bajty na próbkę\)", czas=30))
 q.sprawdz("„Wycisz”: wyciszone", wycisz(True) and q.czekaj(r"K1-DZWIEK: głośność 100%, wyciszone", czas=30))
 proba("wyciszona — w pliku cisza")
 q.sprawdz("„Wycisz” jeszcze raz: znów gra", wycisz(False))
@@ -149,7 +155,9 @@ q.sprawdz("strefa próbna gra ton przez kartę virtio-snd swojego VMM-a (kanał 
           q.czekaj(r"K1-TEST: dźwięk: strefa próbna gra ton — uruchomiona", czas=120) and
           q.czekaj(r"K1-STREFA: dźwięk: kanał do usługi dźwięku", czas=240) and
           q.czekaj(r"K1-GOSC: dźwięk: gram ton 480 Hz", czas=240) and
-          q.czekaj(r"K1-DZWIEK: klient strefa: strumień otwarty", czas=120))
+          q.czekaj(r"K1-DZWIEK: klient strefa: strumień otwarty \(zmiennoprzecinkowy\)", czas=120))
+q.sprawdz("0.12.3: gość gra w 32 bitach (S32) — karta virtio-snd je przyjmuje, VMM daje usłudze liczby zmiennoprzecinkowe",
+          q.czekaj(r"K1-STREFA: dźwięk: gość gra w formacie S32", czas=60))
 q.sprawdz("sesja gra: głośnik na pasku okna strefy (opis ekranu: „Wycisz sesję”), ekran wie od pulpitu",
           q.czekaj(r"K1-EKRAN: strefa 1: gra(?!,)", czas=120) and q.czekaj_na_element(SZ, "Wycisz sesję", czas=60))
 q.zrzut("strefa-gra", gdy=lambda w, h, px: True)

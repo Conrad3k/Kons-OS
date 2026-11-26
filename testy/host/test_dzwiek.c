@@ -1,13 +1,15 @@
 /* K1 — host test: sound (src/wspolne/k1_dzwiek.c, k1_kom_dzwiek.c; 0.12.0 step 1, ADR 0054). The service's count of a
- * client's ring (never more than the ring, the copy wraps at its end), mixing (no overflow, clipping at 16 bits), the
- * volume curve, the sample "Odtwórz próbę" (its notes, its length, its loudest sample) and the messages of sound: what is
+ * client's ring (never more than the ring, the copy wraps at its end; 0.12.3: frames of every format), the sample
+ * "Odtwórz próbę" (its notes, its length, its loudest sample) and the messages of sound: what is
  * valid passes, every field out of its range and every message in the wrong direction is refused. Step 2: the volume keys,
- * the names of a headphone jack, the record gui remembers (D5) and the pill's message. */
+ * the names of a headphone jack, the record gui remembers (D5) and the pill's message. Mixing, the volume, the limiter
+ * and the dither (0.12.3): test_dzw_tor. */
 #include <stdlib.h>
 #include <string.h>
 
 #include <linux/input-event-codes.h>
 
+#include "k1_dzw_tor.h"
 #include "k1_dzwiek.h"
 #include "k1_komunikat.h"
 #include "k1_test_host.h"
@@ -31,46 +33,31 @@ static void pierscien(void)
     EXPECT(k1_dzw_zapisano(&p, K1_DZW_PIERSCIEN + 1) == -1);  /* more than the ring */
     EXPECT(k1_dzw_zapisano(&p, K1_DZW_PIERSCIEN) == 0 && k1_dzw_czeka(&p) == K1_DZW_PIERSCIEN);
     EXPECT(k1_dzw_zapisano(&p, 1) == -1);                     /* full: nothing more */
-    EXPECT(k1_dzw_pobierz(&p, pamiec, cel, 100) == 100 && cel[0] == 0 && cel[199] == 199 && k1_dzw_czeka(&p) ==
+    EXPECT(k1_dzw_pobierz(&p, (const uint8_t *)pamiec, K1_DZW_RAMKA_BAJTY, (uint8_t *)cel, 100) == 100 && cel[0] == 0 && cel[199] == 199 && k1_dzw_czeka(&p) ==
            K1_DZW_PIERSCIEN - 100);
     EXPECT(k1_dzw_zapisano(&p, 100) == 0 && k1_dzw_zapisano(&p, 1) == -1);
     /* the copy wraps at the ring's end: frames 100..N-1, then 0..99 again */
-    EXPECT(k1_dzw_pobierz(&p, pamiec, cel, K1_DZW_PIERSCIEN) == K1_DZW_PIERSCIEN);
+    EXPECT(k1_dzw_pobierz(&p, (const uint8_t *)pamiec, K1_DZW_RAMKA_BAJTY, (uint8_t *)cel, K1_DZW_PIERSCIEN) == K1_DZW_PIERSCIEN);
     EXPECT(cel[0] == 200 && cel[2 * (K1_DZW_PIERSCIEN - 100) - 1] == (int16_t)(2 * K1_DZW_PIERSCIEN - 1) &&
            cel[2 * (K1_DZW_PIERSCIEN - 100)] == 0 && cel[2 * K1_DZW_PIERSCIEN - 1] == 199);
-    EXPECT(k1_dzw_czeka(&p) == 0 && k1_dzw_pobierz(&p, pamiec, cel, 10) == 0);
+    EXPECT(k1_dzw_czeka(&p) == 0 && k1_dzw_pobierz(&p, (const uint8_t *)pamiec, K1_DZW_RAMKA_BAJTY, (uint8_t *)cel, 10) == 0);
     /* the counters wrap at 2^32 without losing count */
     p.zapisane = p.pobrane = 0xffffff00u;
-    EXPECT(k1_dzw_zapisano(&p, 1000) == 0 && k1_dzw_czeka(&p) == 1000 && k1_dzw_pobierz(&p, pamiec, cel, 2000) == 1000);
+    EXPECT(k1_dzw_zapisano(&p, 1000) == 0 && k1_dzw_czeka(&p) == 1000 && k1_dzw_pobierz(&p, (const uint8_t *)pamiec, K1_DZW_RAMKA_BAJTY, (uint8_t *)cel, 2000) == 1000);
     EXPECT(k1_dzw_czeka(&p) == 0 && k1_dzw_zapisano(&p, K1_DZW_PIERSCIEN) == 0);
-}
-
-static void mieszanie(void)
-{
-    int32_t suma[2 * 4] = { 0 };
-    int16_t a[2 * 4] = { 32767, -32768, 1000, -1000, 0, 0, 20000, -20000 }, b[2 * 4] = { 32767, -32768, 1000, 1000, 0, 0, 20000, -20000 };
-    int16_t wyj[2 * 4];
-    for (int i = 0; i < 16; i++) /* 16 streams at the loudest: no overflow of the sum */
-        k1_dzw_dodaj(suma, a, 4);
-    EXPECT(suma[0] == 16 * 32767 && suma[1] == 16 * -32768);
-    memset(suma, 0, sizeof suma);
-    k1_dzw_dodaj(suma, a, 4);
-    k1_dzw_dodaj(suma, b, 4);
-    EXPECT(k1_dzw_wyjscie(wyj, suma, 4, K1_DZW_JEDEN) == 4); /* 32767+32767, -32768·2, ±20000·2: clipped */
-    EXPECT(wyj[0] == 32767 && wyj[1] == -32768 && wyj[2] == 2000 && wyj[3] == 0 && wyj[6] == 32767 && wyj[7] == -32768);
-    EXPECT(k1_dzw_wyjscie(wyj, suma, 4, K1_DZW_JEDEN / 2) == 0 && wyj[2] == 1000 && wyj[0] == 32767 && wyj[1] == -32768);
-    EXPECT(k1_dzw_wyjscie(wyj, suma, 4, 0) == 0 && wyj[0] == 0 && wyj[1] == 0); /* muted: silence */
-}
-
-static void glosnosc(void)
-{
-    uint32_t poprz = 0;
-    EXPECT(k1_dzw_wzmocnienie(0, 0) == 0 && k1_dzw_wzmocnienie(100, 0) == K1_DZW_JEDEN && k1_dzw_wzmocnienie(100, 1) == 0);
-    EXPECT(k1_dzw_wzmocnienie(-5, 0) == 0 && k1_dzw_wzmocnienie(500, 0) == K1_DZW_JEDEN);
-    EXPECT(k1_dzw_wzmocnienie(50, 0) == K1_DZW_JEDEN / 8); /* a cube: an eighth (-18 dB) at 50 % — test-dzwiek measures it */
-    for (int v = 1; v <= 100; v++) { /* every step louder than the one before */
-        EXPECT(k1_dzw_wzmocnienie(v, 0) > poprz);
-        poprz = k1_dzw_wzmocnienie(v, 0);
+    /* 0.12.3: the formats — a frame of F32 is 8 bytes, the copy wraps in whole frames of it */
+    EXPECT(k1_dzw_ramka_bajty(K1_DZW_FORMAT_S16) == 4 && k1_dzw_ramka_bajty(K1_DZW_FORMAT_F32) == 8 &&
+           k1_dzw_ramka_bajty(2) == 0 && k1_dzw_ramka_bajty(-1) == 0 && k1_dzw_format_nazwa(2) == NULL);
+    EXPECT(k1_dzw_pierscien_bajty(K1_DZW_FORMAT_S16) == K1_DZW_PIERSCIEN_BAJTY &&
+           k1_dzw_pierscien_bajty(K1_DZW_FORMAT_F32) == 2 * K1_DZW_PIERSCIEN_BAJTY && k1_dzw_pierscien_bajty(7) == 0);
+    {
+        static uint8_t f32[K1_DZW_PIERSCIEN * 8], cel8[K1_DZW_OKRES * 8];
+        for (uint32_t i = 0; i < sizeof f32; i++)
+            f32[i] = (uint8_t)(i / 8);
+        p.zapisane = p.pobrane = K1_DZW_PIERSCIEN - 2; /* the last two frames, then the first two */
+        EXPECT(k1_dzw_zapisano(&p, 4) == 0 && k1_dzw_pobierz(&p, f32, 8, cel8, K1_DZW_OKRES) == 4);
+        EXPECT(cel8[0] == (uint8_t)(K1_DZW_PIERSCIEN - 2) && cel8[15] == (uint8_t)(K1_DZW_PIERSCIEN - 1) &&
+               cel8[16] == 0 && cel8[31] == 1);
     }
 }
 
@@ -124,6 +111,10 @@ static void komunikaty(void)
     EXPECT(ok(K(K1_KOM_DZWIEK_BEZ_KARTY, 0, 0, 0, 0, 0), K1_KIER_STEROWANIE));
     EXPECT(!ok(K(K1_KOM_DZWIEK_BEZ_KARTY, 1, 0, 0, 0, 0), K1_KIER_STEROWANIE));
     EXPECT(ok(K(K1_KOM_DZWIEK_OTWORZ, 0, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(ok(K(K1_KOM_DZWIEK_OTWORZ, K1_DZW_FORMAT_F32, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU)); /* 0.12.3: the ring's format */
+    EXPECT(!ok(K(K1_KOM_DZWIEK_OTWORZ, K1_DZW_FORMAT_MAKS + 1, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_OTWORZ, -1, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_OTWORZ, 0, 1, 0, 0, 0), K1_KIER_DO_DZWIEKU));
     EXPECT(ok(K(K1_KOM_DZWIEK_ZAPISANO, (int32_t)K1_DZW_PIERSCIEN, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_ZAPISANO, 0, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_ZAPISANO, (int32_t)K1_DZW_PIERSCIEN + 1, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU));
@@ -230,8 +221,9 @@ static void komunikaty_kroku2(void)
 /* Step 3: the zones' channels, a session's volume and state, the speaker on its bar; a session's gain on its samples. */
 static void krok3(void)
 {
-    int32_t suma[4] = { 0, 0, 0, 0 };
+    float suma[4] = { 0, 0, 0, 0 };
     const int16_t pr[4] = { 32767, -32768, 1000, -3 };
+    const uint8_t *b = (const uint8_t *)pr;
     EXPECT(ok(K(K1_KOM_DZWIEK_KLIENT, K1_DZW_KLIENT_STREFA, 300, 2, 0, 0), K1_KIER_STEROWANIE));
     EXPECT(!ok(K(K1_KOM_DZWIEK_KLIENT, K1_DZW_KLIENT_STREFA, 300, 0, 0, 0), K1_KIER_STEROWANIE)); /* which zone */
     EXPECT(!ok(K(K1_KOM_DZWIEK_KLIENT, K1_DZW_KLIENT_STREFA, 300, K1_STREFY_MAKS + 1, 0, 0), K1_KIER_STEROWANIE));
@@ -252,20 +244,18 @@ static void krok3(void)
     EXPECT(ok(K(K1_KOM_STREFA_WYCISZ, 2, 0, 0, 0, 0), K1_KIER_OD_EKRANU));
     EXPECT(!ok(K(K1_KOM_STREFA_WYCISZ, 2, 0, 0, 0, 0), K1_KIER_DO_EKRANU)); /* only ekran tells the shell */
     EXPECT(!ok(K(K1_KOM_STREFA_WYCISZ, 0, 0, 0, 0, 0), K1_KIER_OD_EKRANU));
-    k1_dzw_dodaj_wzm(suma, pr, 2, k1_dzw_wzmocnienie(50, 0));
-    EXPECT(suma[0] > 4000 && suma[0] < 4300 && suma[1] < -4000 && suma[1] > -4300 && suma[3] == 0); /* ~ 1/8 */
-    k1_dzw_dodaj_wzm(suma, pr, 2, K1_DZW_JEDEN);
-    EXPECT(suma[2] > 1000 && suma[2] < 1200);
+    k1_dzw_dodaj(suma, b, K1_DZW_FORMAT_S16, 2, k1_dzw_wzmocnienie(50, 0)); /* a session at 50 %: 1/8 */
+    EXPECT(suma[0] * 32768.0f == 32767.0f / 8 && suma[1] * 32768.0f == -4096.0f && suma[3] * 32768.0f == -3.0f / 8);
+    k1_dzw_dodaj(suma, b, K1_DZW_FORMAT_S16, 2, 1.0f);
+    EXPECT(suma[2] * 32768.0f == 1125.0f);
     memset(suma, 0, sizeof suma);
-    k1_dzw_dodaj_wzm(suma, pr, 2, k1_dzw_wzmocnienie(80, 1)); /* muted: nothing */
+    k1_dzw_dodaj(suma, b, K1_DZW_FORMAT_S16, 2, k1_dzw_wzmocnienie(80, 1)); /* muted: nothing */
     EXPECT(suma[0] == 0 && suma[1] == 0 && suma[2] == 0);
 }
 
 int main(void)
 {
     pierscien();
-    mieszanie();
-    glosnosc();
     proba();
     komunikaty();
     klawisze();

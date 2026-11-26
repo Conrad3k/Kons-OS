@@ -10,8 +10,8 @@
 static int do_dzwieku(const struct k1_komunikat *k)
 {
     switch (k->typ) {
-    case K1_KOM_DZWIEK_OTWORZ:
-        return zera(k, 0);
+    case K1_KOM_DZWIEK_OTWORZ: /* a: the ring's format (0.12.3) */
+        return w(k->a, 0, K1_DZW_FORMAT_MAKS) && zera(k, 1);
     case K1_KOM_DZWIEK_ZAPISANO:
         return w(k->a, 1, (int32_t)K1_DZW_PIERSCIEN) && zera(k, 1);
     case K1_KOM_DZWIEK_ZAMKNIJ:

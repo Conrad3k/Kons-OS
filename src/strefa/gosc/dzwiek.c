@@ -1,8 +1,9 @@
 /* K1 gosc — the test zone's sound (0.12.0 step 3, TRYB_DZWIEK): a tone through the guest kernel's virtio-snd driver, as
  * the browser plays through ALSA — the VMM's sound card takes it to K1's sound service (scripts/test-dzwiek.sh hears it
  * in the WAV file of QEMU's card, clicks the speaker on the window's bar: the session muted — silence — and back). ALSA
- * without alsa-lib, as K1's sound service (src/dzwiek/karta.c): K1's one format, plain writes of periods. TON_S seconds
- * of TON_HZ, then the end of the machine. Counts in the log only. */
+ * without alsa-lib, as K1's sound service (src/dzwiek/karta.c): plain writes of periods. 0.12.3 (ADR 0055): in S32_LE —
+ * the 32 bits a browser's alsa-lib gives under dmix — so the VMM's conversion into K1's F32 ring is tested on the way.
+ * TON_S seconds of TON_HZ, then the end of the machine. Counts in the log only. */
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
@@ -56,7 +57,7 @@ static int otworz(void)
         p.intervals[i].max = ~0u;
     p.rmask = ~0u;
     maska(&p, SNDRV_PCM_HW_PARAM_ACCESS, SNDRV_PCM_ACCESS_RW_INTERLEAVED);
-    maska(&p, SNDRV_PCM_HW_PARAM_FORMAT, SNDRV_PCM_FORMAT_S16_LE);
+    maska(&p, SNDRV_PCM_HW_PARAM_FORMAT, SNDRV_PCM_FORMAT_S32_LE);
     maska(&p, SNDRV_PCM_HW_PARAM_SUBFORMAT, SNDRV_PCM_SUBFORMAT_STD);
     przedzial(&p, SNDRV_PCM_HW_PARAM_CHANNELS, 2, 2);
     przedzial(&p, SNDRV_PCM_HW_PARAM_RATE, 48000, 48000);
@@ -72,15 +73,15 @@ static int otworz(void)
 
 void dzwiek_ton(void)
 {
-    static int16_t okres[OKRES * 2], fala[48000 / TON_HZ];
+    static int32_t okres[OKRES * 2], fala[48000 / TON_HZ];
     int fd = otworz();
     unsigned long zagrane = 0, przerwy = 0, bledy = 0;
     time_t od = time(NULL);
     if (fd < 0)
         return;
     for (unsigned i = 0; i < sizeof fala / sizeof fala[0]; i++) /* one wave, once: the emulation is slow */
-        fala[i] = (int16_t)(8000.0 * sin(2.0 * M_PI * i / (sizeof fala / sizeof fala[0])));
-    loguj("dźwięk: gram ton %d Hz przez %d s", TON_HZ, TON_S);
+        fala[i] = (int32_t)(8000.0 * 65536.0 * sin(2.0 * M_PI * i / (sizeof fala / sizeof fala[0])));
+    loguj("dźwięk: gram ton %d Hz przez %d s (32 bity)", TON_HZ, TON_S);
     while (time(NULL) - od < TON_S) {
         struct snd_xferi x;
         for (int i = 0; i < OKRES; i++)

@@ -1,6 +1,10 @@
 /* K1 dzwiek — the card's playback node: ALSA without alsa-lib (ADR 0054 T2), the ioctls of the kernel's UAPI header
- * sound/asound.h, as DRM without libdrm. Only what playing needs: INFO (its name for the log), HW_PARAMS (one format, T3),
- * SW_PARAMS, PREPARE, WRITEI_FRAMES, DROP and HW_FREE — the same list the sandbox allows (KLATKA_DZWIEK). */
+ * sound/asound.h, as DRM without libdrm. Only what playing needs: INFO (its name for the log), HW_PARAMS, SW_PARAMS,
+ * PREPARE, WRITEI_FRAMES, DROP and HW_FREE — the same list the sandbox allows (KLATKA_DZWIEK). 0.12.3 (ADR 0055, T1):
+ * the format — the rows of `formaty` in order, the first the card takes (HW_PARAMS refuses the others with EINVAL; no
+ * new ioctl to ask first). HDA (sound/hda/core/device.c) offers 20 and 24 bits only as S32_LE with a subformat
+ * MSBITS_20 / MSBITS_24 (sound/core/pcm_native.c, snd_pcm_hw_rule_subformats): asked for, the card says how many bits it
+ * really plays; S32_LE without a subformat (another driver) — its msbits, at most the 24 of a float. */
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -12,8 +16,31 @@
 #include "dzwiek.h"
 #include "k1_log.h"
 
-static int pcm = -1, spi = 1;
+static int pcm = -1, spi = 1, wybrany = -1, bity_karty = 16;
 static unsigned long przerwy;
+
+/* The formats K1 tries, the best first (rule 5: a row each). bity 0: the card's msbits (at most 24). */
+static const struct {
+    unsigned format, podformat;
+    int bajty, bity;
+} formaty[] = {
+    { SNDRV_PCM_FORMAT_S32_LE, SNDRV_PCM_SUBFORMAT_MSBITS_24, 4, 24 }, /* HDA with a 24-bit converter */
+    { SNDRV_PCM_FORMAT_S32_LE, SNDRV_PCM_SUBFORMAT_MSBITS_20, 4, 20 }, /* HDA with a 20-bit one */
+    { SNDRV_PCM_FORMAT_S32_LE, SNDRV_PCM_SUBFORMAT_STD, 4, 0 },
+    { SNDRV_PCM_FORMAT_S24_3LE, SNDRV_PCM_SUBFORMAT_STD, 3, 24 },
+    { SNDRV_PCM_FORMAT_S16_LE, SNDRV_PCM_SUBFORMAT_STD, 2, 16 },      /* every card: as in 0.12.0 */
+};
+#define FORMATY ((int)(sizeof formaty / sizeof formaty[0]))
+
+int karta_bajty(void)
+{
+    return wybrany >= 0 ? formaty[wybrany].bajty : 2;
+}
+
+int karta_bity(void)
+{
+    return bity_karty;
+}
 
 int karta_jest(void)
 {
@@ -70,11 +97,10 @@ static void przedzial(struct snd_pcm_hw_params *p, int param, unsigned od, unsig
     i->integer = 1;
 }
 
-/* Every parameter open, then ours fixed: the kernel refines the rest (the sizes in bytes, the times). */
-static int parametry(void)
+/* Every parameter open, then ours fixed (format row `f`): the kernel refines the rest (the sizes in bytes, the times). */
+static int hw_parametry(int f, unsigned *msbits)
 {
     struct snd_pcm_hw_params p;
-    struct snd_pcm_sw_params s;
     memset(&p, 0, sizeof p);
     for (int i = 0; i <= SNDRV_PCM_HW_PARAM_LAST_MASK - SNDRV_PCM_HW_PARAM_FIRST_MASK; i++)
         memset(&p.masks[i], 0xff, sizeof p.masks[i]);
@@ -82,16 +108,36 @@ static int parametry(void)
         p.intervals[i].max = ~0u;
     p.rmask = ~0u;
     maska(&p, SNDRV_PCM_HW_PARAM_ACCESS, SNDRV_PCM_ACCESS_RW_INTERLEAVED);
-    maska(&p, SNDRV_PCM_HW_PARAM_FORMAT, SNDRV_PCM_FORMAT_S16_LE);
-    maska(&p, SNDRV_PCM_HW_PARAM_SUBFORMAT, SNDRV_PCM_SUBFORMAT_STD);
+    maska(&p, SNDRV_PCM_HW_PARAM_FORMAT, formaty[f].format);
+    maska(&p, SNDRV_PCM_HW_PARAM_SUBFORMAT, formaty[f].podformat);
     przedzial(&p, SNDRV_PCM_HW_PARAM_CHANNELS, K1_DZW_KANALY, K1_DZW_KANALY);
     przedzial(&p, SNDRV_PCM_HW_PARAM_RATE, K1_DZW_CZESTOTLIWOSC, K1_DZW_CZESTOTLIWOSC);
     przedzial(&p, SNDRV_PCM_HW_PARAM_PERIOD_SIZE, K1_DZW_OKRES, K1_DZW_OKRES);
     przedzial(&p, SNDRV_PCM_HW_PARAM_PERIODS, K1_DZW_OKRESY, K1_DZW_OKRESY);
-    if (ioctl(pcm, (int)SNDRV_PCM_IOCTL_HW_PARAMS, &p) != 0) {
-        k1_log(TAG, "karta nie przyjęła formatu 48 kHz, 16 bitów, stereo: %s", strerror(errno));
+    if (ioctl(pcm, (int)SNDRV_PCM_IOCTL_HW_PARAMS, &p) != 0)
+        return -1;
+    *msbits = p.msbits;
+    return 0;
+}
+
+/* The first format of the table the card takes; the log says it when it differs from the last time. */
+static int parametry(void)
+{
+    struct snd_pcm_sw_params s;
+    unsigned msbits = 0;
+    int f = 0, bylo = wybrany, bity;
+    while (f < FORMATY && hw_parametry(f, &msbits) != 0)
+        f++;
+    if (f == FORMATY) {
+        k1_log(TAG, "karta nie przyjęła formatu 48 kHz, stereo (24, 20 ani 16 bitów): %s", strerror(errno));
         return -1;
     }
+    bity = formaty[f].bity ? formaty[f].bity : (int)msbits;
+    bity_karty = bity < 16 ? 16 : bity > 24 ? 24 : bity;
+    wybrany = f;
+    if (bylo != f) /* 24 bity, 16 / 20 bitów */
+        k1_log(TAG, "karta gra %d %s (%d bajty na próbkę)", bity_karty, bity_karty % 10 >= 2 && bity_karty % 10 <= 4 ?
+               "bity" : "bitów", formaty[f].bajty);
     memset(&s, 0, sizeof s);
     s.avail_min = K1_DZW_OKRES;
     s.start_threshold = 2 * K1_DZW_OKRES; /* it starts when two periods wait */
@@ -116,7 +162,7 @@ int karta_obudz(void)
     return 0;
 }
 
-int karta_zapisz(const int16_t *ramki)
+int karta_zapisz(const uint8_t *ramki)
 {
     struct snd_xferi x;
     memset(&x, 0, sizeof x);
