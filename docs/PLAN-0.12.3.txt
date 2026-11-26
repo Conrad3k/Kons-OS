@@ -295,6 +295,8 @@ Krok 5:
   - korektor i scena osobno dla każdej sesji przeglądarki (systemowe: jedne dla wszystkiego, osobno dla wyjść);
   - wyrównywanie głośności między stronami (normalizacja), kompresor dynamiki, „tryb nocny”;
   - wielokanałowy dźwięk z filmów (5.1) — Firefox oddaje dziś stereo; mikrofon (D1 = A planu 0.12.0).
+  - (krok 1) część ściszania we wzmacniaczu kodeka (T8), opóźnienie karty w zegarze strefy (SNDRV_PCM_IOCTL_DELAY) —
+    tylko jeśli odsłuch na sprzęcie pokaże potrzebę.
 
 
 7. RYZYKA (nowe wiersze w docs/RYZYKA.md — dopisuje krok, który je wprowadza)
@@ -309,4 +311,29 @@ Krok 5:
 
 USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
 -----------------------------------------------------
-(pusto)
+Krok 1 (2026-11-26, ADR 0055):
+  - Pomiar „przed” (1a; ton 1 kHz o połowie pełnej skali, karta 16 bitów, tor z 0.12.0): błąd 0 / 0,46 / 0,53 / 0,58 kroku
+    przy 100 / 50 / 10 / 5 %; harmoniczne błędu pod tonem: — / 79 / 35 / 14 dB; ton 3 kroków przy 50 % — cisza (wyjście
+    same zera). POTWIERDZONE (program na hoście ze źródłami 0.12.0).
+  - Pomiar „po” (test_dzw_tor, te same wejścia): 16 bitów — błąd 0,50 kroku (−96 dBFS, biały szum TPDF) przy każdej
+    głośności, harmoniczne 105 / 64 / 45 dB przy 50 / 10 / 5 %, średnia ≈ 0; 24 bity — −144,5 dBFS, harmoniczne 113 / 94 dB
+    przy 10 / 5 %; 20 bitów — −120 dBFS; ton 3 kroków przy 50 % — wzmocnienie 0,124 (idealnie 0,125). Granice w teście.
+  - T1: HD Audio daje 20 i 24 bity tylko jako S32_LE z podformatem MSBITS_20 / MSBITS_24 (ZE ŹRÓDEŁ: sound/hda/core/
+    device.c, sound/core/pcm_native.c snd_pcm_hw_rule_subformats); usługa próbuje tabelą formatów, bez nowego ioctl.
+    Karta QEMU hda-output — tylko 16 bitów (POTWIERDZONE: log „karta gra 16 bitów”). X230 i IdeaPad — NIEPEWNE do logu.
+  - T2: float w całym torze (suma, głośności, ogranicznik), zaokrąglanie do karty w double; bez libm. T3: TPDF z xorshift32,
+    bez dithera w okresie, którego każda próbka jest pełnym krokiem karty. T8: głośność cała w usłudze (wzmacniacze kodeka
+    na 0 dB) — z pomiaru „po” wystarcza; przesunięcie części do kodeka → „Później”, jeśli właściciel usłyszy szum.
+  - Przezroczystość w QEMU POTWIERDZONA: pierwsza próba w pliku WAV zgodna z k1_dzw_proba w 33 599 z 33 600 próbek (pierwsza
+    jest zerem), żadnej innej głośnej (test-dzwiek.sh, k1dzwiek.py).
+  - Strefa (T4): virtio-snd ogłasza S16, S32, FLOAT (sterownik gościa ma je w sound/virtio/virtio_pcm.c — ZE ŹRÓDEŁ);
+    VMM przelicza je do jednego pierścienia F32 (zamiast pierścienia w formacie gościa — strumień nie musi się zamykać
+    przy zmianie formatu). Strefa próbna gra ton w S32 (POTWIERDZONE: „gość gra w formacie S32”). Złe liczby F32 → 0 albo
+    ±1,0 i licznik w logu; strumienia nie zamyka (odstępstwo od 1f planu: jedna zła strona nie wycisza całej przeglądarki).
+    Który format wybierze Firefox (alsa-lib: plug → FLOAT, dmix → S32) — NIEPEWNE, log VMM na stanowisku i sprzęcie.
+  - Opóźnienie (1h): zapas VMM-a (do 8192 ramek) nie przesuwa obrazu względem dźwięku (transfer wraca po zabraniu ramek);
+    przesuwa go bufor karty — 2–4 okresy, ok. 43–85 ms. Bez zmian; liczenie opóźnienia karty (SNDRV_PCM_IOCTL_DELAY,
+    nowy numer w klatce) → „Później”, jeśli właściciel zobaczy rozjazd ust i głosu.
+  - Co posłuchać (właściciel, na X230 i IdeaPadzie, najlepiej słuchawki): log K1-DZWIEK „karta gra … bity”; cicha muzyka
+    przy 5–10 % — bez „ziarna” i szumu; dwie głośne rzeczy naraz (film i próba) — bez trzasków; film w przeglądarce —
+    log K1-STREFA „gość gra w formacie …”, czy usta zgadzają się z głosem.
