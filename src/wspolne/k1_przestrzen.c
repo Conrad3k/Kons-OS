@@ -23,8 +23,8 @@
 #define ODBICIA_MAKS 0.35               /* the reflections' share at the distance 100 % */
 #define ODBICIA_HZ 5000.0               /* the reflections are softer above this (a one-pole low-pass) */
 #define SZEROKOSC_STEREO 60.0           /* the width of a normal stereo (two speakers at ±30°) */
-#define POSZERZENIE_MAKS 1.6            /* the speakers: the sides at most this much louder than the middle */
-#define KRZYZ_MAKS 0.3                  /* the speakers: the cross-cancellation at most */
+#define POSZERZENIE_MAKS 1.4            /* the speakers: the sides at most this much louder than the middle */
+#define KRZYZ_MAKS 0.2                  /* the speakers: the cross-cancellation at most */
 #define KRZYZ_RAMKI 3                   /* …this many frames late (62.5 µs: the ears ~20 cm apart, the speakers in front) */
 #define SIATKA 481                      /* the grid of the level: 20 Hz … 20 kHz */
 
@@ -227,7 +227,9 @@ static void sluchawki(struct k1_prz_ustawienie *u, int b, const struct k1_prz_mi
 }
 
 /* The speakers (D3: A): a direction behind mirrored to the front, the pair panned there (equal power, 1 in the middle),
- * the sides × w (the width against a normal stereo), a gentle cross-cancellation once wider than normal. */
+ * the sides × w (the width against a normal stereo) and, once wider than normal, a gentle cross-cancellation of the sides
+ * only — the side (L−R)/2 once more, late, with the sign of each speaker: what is the same in both channels (a voice)
+ * keeps its level. */
 static void glosniki(struct k1_prz_ustawienie *u, int b, const struct k1_prz_miejsce *m, double g)
 {
     double k = m->kierunek > 90 ? 180.0 - m->kierunek : m->kierunek < -90 ? -180.0 - m->kierunek : m->kierunek;
@@ -238,13 +240,14 @@ static void glosniki(struct k1_prz_ustawienie *u, int b, const struct k1_prz_mie
     gp *= 1.41421356237309504880;
     w = w > POSZERZENIE_MAKS ? POSZERZENIE_MAKS : w;
     krzyz = w > 1.0 ? KRZYZ_MAKS * (w - 1.0) / (POSZERZENIE_MAKS - 1.0) : 0.0;
-    /* L' = gl·((1+w)/2·L + (1−w)/2·R), R' = gp·((1−w)/2·L + (1+w)/2·R); each ear − krzyz × the other one, late */
+    /* L' = gl·(M + w·S + krzyz·w·S late), R' = gp·(M − w·S − krzyz·w·S late); M = (L+R)/2, S = (L−R)/2 */
     wl[0][0] = gl * (1.0 + w) / 2.0, wl[1][0] = gl * (1.0 - w) / 2.0;
     wl[0][1] = gp * (1.0 - w) / 2.0, wl[1][1] = gp * (1.0 + w) / 2.0;
     for (int z = 0; z < 2; z++)
         for (int e = 0; e < 2; e++) {
+            double bok = (z == e ? 1.0 : -1.0) * (e == 0 ? gl : gp) * krzyz * w / 2.0;
             droga(u, b, z, e, 0.0, 1.0, 1.0, g * wl[z][e]);
-            droga(u, b, z, e, t, 1.0, 1.0, -g * krzyz * wl[z][1 - e]);
+            droga(u, b, z, e, t, 1.0, 1.0, g * bok);
         }
 }
 

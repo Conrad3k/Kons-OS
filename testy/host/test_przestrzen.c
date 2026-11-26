@@ -213,6 +213,15 @@ static void zrodlo_z_lewej(void)
     ton(&s, K1_DZW_WYJSCIE_GLOSNIKI, 1000.0, 0.5, 0.5, a);
     printf("głośniki, z lewej: 1 kHz lewy kanał głośniej o %.1f dB\n", db(a[0] / fmax(a[1], 1e-9)));
     EXPECT(db(a[0] / fmax(a[1], 1e-9)) > 20.0 && a[0] <= 0.5 * 1.001);
+    for (double hz = 300.0; hz < 5000.0; hz *= 2.0) { /* the widest ready scene on the speakers: the middle (a voice) stays
+                                                       * within 3.5 dB — 1.2 of it Kino's distance of 20 % */
+        k1_prz_scena_gotowa(K1_PRZ_KINO, &s);
+        ton(&s, K1_DZW_WYJSCIE_GLOSNIKI, hz, 0.5, 0.5, a);
+        printf("%s%.0f Hz %.1f dB (P %+.2f)", hz < 400.0 ? "głośniki, Kino, ton mono: " : ", ", hz, db(a[0] / 0.5),
+               db(a[1] / a[0]));
+        EXPECT(db(a[0] / 0.5) > -3.5 && fabs(db(a[0] / a[1])) < 1.0); /* the reflections alternate L and R */
+    }
+    printf("\n");
     scena_wszedzie(&s, 150, 60, 0); /* behind on the speakers: mirrored to the front (as at 30°) */
     {
         double b[2];

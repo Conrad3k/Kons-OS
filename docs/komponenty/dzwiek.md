@@ -106,7 +106,8 @@ przechodzi sama):
 - **słuchawki** — model głowy (Brown, Duda): opóźnienie między uszami (do 656 µs), cień głowy (góra dalszego ucha ciszej),
   łagodniejsza góra źródła z tyłu; odległość: bliżej głośniej i suszej, dalej ciszej z sześcioma wczesnymi odbiciami
   (7–27 ms, bez długiego pogłosu);
-- **głośniki** (D3: A) — szerszy dźwięk: boki głośniej niż środek (najwyżej 1,6 ×), łagodne krzyżowe wygaszanie, kierunek
+- **głośniki** (D3: A) — szerszy dźwięk: boki głośniej niż środek (najwyżej 1,4 ×), łagodne krzyżowe wygaszanie samych boków
+  (głos zostaje na swoim poziomie), kierunek
   za plecami odbity do przodu — bez „dźwięku z tyłu”, którego dwa małe głośniki nie zagrają.
 Scena **nigdy nie gra głośniej niż 100 %** (granica dźwięku mono i mocy dwóch kanałów bez związku na siatce częstotliwości —
 `k1_prz_moc`; ogranicznik zostaje na końcu toru). **Wyłączona nie liczy nic** — tor przezroczysty próbka w próbkę; trzyma

@@ -344,9 +344,13 @@ static void scena_z_lewej(const struct k1_opis_el *el, int n)
     for (int i = 0; i < K1_PRZ_PASMA_N; i++)
         s.pasma[i] = (struct k1_prz_miejsce){ -90, 0, 0 };
     fd = kanal();
-    if (fd >= 0)
+    if (fd >= 0 && stan(fd, 5, NULL) >= 0) { /* the service has the channel (as wrogi_klient), then the scene, told back */
+        struct k1_prz_scena t;
         wyslij_scene(fd, K1_DZW_WYJSCIE_GLOSNIKI, &s);
-    k1_log(TAG, "dźwięk: scena z lewej — %s", fd >= 0 ? "ustawiona" : "NIE ustawiona");
+        for (int i = 0; i < 3 && zrobione != 2; i++) /* the first ones: the scenes as they were (a new client's) */
+            zrobione = scena_stan(fd, K1_DZW_WYJSCIE_GLOSNIKI, &t, 1000) && k1_prz_rowne(&s, &t) ? 2 : 1;
+    }
+    k1_log(TAG, "dźwięk: scena z lewej — %s", zrobione == 2 ? "ustawiona" : "NIE ustawiona");
     if (fd >= 0)
         close(fd);
 }

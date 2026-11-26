@@ -130,14 +130,17 @@ dithera.
    zmianę lewe i prawe ucho, łagodniejsze powyżej 5 kHz), ich udział do 0,35 przy 100 %; bez długiego pogłosu. Zbiór HRTF
    z pomiarów głowy — „Później” (T7).
 16. **Głośniki laptopa (D3: A) — szerszy dźwięk.** Kierunek za plecami odbity do przodu (150° gra jak 30°), para źródeł
-   przesunięta tam z równą mocą (1 na środku), boki × w (szerokość / 60° — normalne stereo, najwyżej 1,6), a szerzej niż
-   normalnie — łagodne krzyżowe wygaszanie (do 0,3 drugiego kanału, 3 ramki później). Bez obietnicy „dźwięku z tyłu”.
-   Pomiar: pasma z lewej — 1 kHz w prawym kanale 101 dB ciszej, w lewym tak głośno jak bez sceny.
+   przesunięta tam z równą mocą (1 na środku), boki × w (szerokość / 60° — normalne stereo, najwyżej 1,4), a szerzej niż
+   normalnie — łagodne krzyżowe wygaszanie samych boków (różnica kanałów jeszcze raz, do 0,2, 3 ramki później, ze znakiem
+   każdego głośnika): to, co jest takie samo w obu kanałach (głos), zostaje na swoim poziomie. Pierwsza wersja odejmowała
+   drugi kanał w całości — próba w QEMU pokazała głos o 3–4 dB cichszy (plik WAV testu); poprawione przed scaleniem. Bez
+   obietnicy „dźwięku z tyłu”. Pomiar: pasma z lewej — 1 kHz w prawym kanale 101 dB ciszej, w lewym tak głośno jak bez
+   sceny; Kino — ton mono 2,5–3,2 dB ciszej (z tego 1,2 dB to odległość sceny 20 %).
 17. **Poziom: scena nigdy nie gra głośniej niż 100 %.** Dla każdego ucha i częstotliwości (siatka 481 punktów 20 Hz–20 kHz
    i zwrotnice) usługa liczy granicę wzmocnienia: dźwięku takiego samego w obu wejściach (moduł sumy dróg) i mocy dwóch
    wejść bez związku (pierwiastek sumy kwadratów), plus odbicia z nierówności trójkąta; pasma ważone wagami zwrotnic
    (|X| pasm sumują się do 1). Gdy granica przekracza 1, cała scena ścisza się o nią (`k1_prz_moc`, `wzm`). Ściszenie
-   gotowych scen: głośniki — Naturalny, Pokój, Głos 0 dB, Koncert −0,9, Kino −2,0 dB (poszerzenie dodaje mocy bokom);
+   gotowych scen: głośniki — Naturalny, Pokój, Głos 0 dB, Koncert −0,2, Kino −1,7 dB (poszerzenie dodaje mocy bokom);
    słuchawki −3,2…−5,4 dB — tam każde ucho słyszy oba źródła pasma, więc dźwięk mono byłby dwa razy głośniejszy, a
    ściszenie przywraca jego poziom. Pomiar: granica najwyżej +0,017 dB na gęstej siatce (gotowe i 100 losowych scen), ton
    w obu wejściach przez działającą scenę najwyżej −0,085 dB, szum bez związku najwyżej −1,2 dB mocy. Ogranicznik z pkt 2
