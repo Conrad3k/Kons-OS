@@ -14,7 +14,7 @@ słychać które częstotliwości, albo wybierasz gotową scenę (Naturalny, Kin
 szum po kolei w każdym paśmie, żeby usłyszeć, gdzie jest. W słuchawkach dźwięk naprawdę rozkłada się wokół głowy, na
 głośnikach laptopa — szerzej. Przełącznik jest też w okienku „Dźwięk” na górnym pasku.
 
-Opis w K1: Czystszy dźwięk, korektor w Ustawieniach → Dźwięk i Kons Spatial Audio — dźwięk przestrzenny: przeciągasz
+Opis w K1: Czystszy dźwięk, korektor w Ustawieniach (Dźwięk) i Kons Spatial Audio — dźwięk przestrzenny: przeciągasz
 pasma dźwięku wokół głowy albo wybierasz gotową scenę, np. Kino. Najlepiej słychać w słuchawkach.
 
 ### Dodane
