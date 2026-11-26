@@ -178,15 +178,9 @@ int dzwiek_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     return zmiana;
 }
 
-void dzwiek_korektor_pokaz(void)
+void dzwiek_miejsce(int miejsce)
 {
-    zakladka = Z_KOREKTOR;
-    ustawienia_pokaz(S_DZWIEK);
-}
-
-void dzwiek_przestrzen_pokaz(void)
-{
-    zakladka = Z_PRZESTRZEN;
+    zakladka = miejsce == K1_UST_MIEJSCE_PRZESTRZEN ? Z_PRZESTRZEN : Z_KOREKTOR;
     ustawienia_pokaz(S_DZWIEK);
 }
 

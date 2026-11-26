@@ -149,8 +149,9 @@ void dzwiek_dane(void);     /* what the sound service said */
 void dzwiek_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 int dzwiek_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk); /* x < 0: not on its content; 1 = redraw */
 void dzwiek_pokazany(void); /* the section was opened (the tests: its state in the log) */
-void dzwiek_korektor_pokaz(void); /* 0.12.3 step 2: the section on its tab Korektor (nadzorca's USTAWIENIA_MIEJSCE) */
-void dzwiek_przestrzen_pokaz(void); /* step 4: … on its tab Kons Spatial Audio */
+/* 0.12.3 steps 2, 4: the section on its tab Korektor or Kons Spatial Audio (nadzorca's USTAWIENIA_MIEJSCE a: KOREKTOR,
+ * PRZESTRZEN) */
+void dzwiek_miejsce(int miejsce);
 void dzwiek_klawisz(unsigned kod, int wartosc, unsigned mody); /* step 4: the keys of the scene */
 
 /* korektor.c (0.12.3 step 2, D2: A): Dźwięk → Korektor — the ten bands of an output, the ready settings */

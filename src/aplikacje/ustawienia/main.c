@@ -410,10 +410,8 @@ void ustawienia_pokaz(int s)
 
 void ustawienia_miejsce(int miejsce)
 {
-    if (miejsce == K1_UST_MIEJSCE_KOREKTOR) /* 0.12.3 step 2: the row "Korektor" of gui's popover */
-        dzwiek_korektor_pokaz();
-    else if (miejsce == K1_UST_MIEJSCE_PRZESTRZEN) /* step 4: the row "Kons Spatial Audio" of gui's popover */
-        dzwiek_przestrzen_pokaz();
+    if (miejsce == K1_UST_MIEJSCE_KOREKTOR || miejsce == K1_UST_MIEJSCE_PRZESTRZEN) /* 0.12.3: rows of gui's popover */
+        dzwiek_miejsce(miejsce);
     else if (miejsce == K1_UST_MIEJSCE_BATERIA) /* 0.11.8 step 3: "Ustawienia baterii" in gui */
         ustawienia_pokaz(S_BATERIA);
     else if (miejsce == K1_UST_MIEJSCE_AKTUALIZACJE) /* 0.10.5 step 1: the Instalator's link, gui's failed try */

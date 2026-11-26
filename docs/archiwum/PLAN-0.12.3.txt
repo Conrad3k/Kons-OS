@@ -120,9 +120,9 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [x]  2  Korektor systemowy (D1: A, D2: A) — PR #239          L7–L9            1           D1, D2, T6      M        0055 (uzup.)
 [x]  3  Kons Spatial Audio — silnik i gotowe sceny (D3: A,    L10–L11          1           D3, D5, D7, T7  L        0055 (uzup.)
         D5: cała lista, D7: A) — PR #240
-[ ]  4  Kons Spatial Audio — scena w Ustawieniach              L12–L13          3           D4, D6          M        0055 (uzup.)
-        [w toku: Claude, gałąź claude/dazzling-darwin-2ce7g2]
-[ ]  5  Porządki; wydanie                                      L14              1–4         —               S–M      —
+[x]  4  Kons Spatial Audio — scena w Ustawieniach (D4: A,      L12–L13          3           D4, D6          M        0055 (uzup.)
+        D6: A) — PR #241
+[x]  5  Porządki; wydanie 0.12.3 — PR #242                     L14              1–4         —               S–M      —
 (ADR 0055: następny wolny po 0054.)
 
 
@@ -401,4 +401,9 @@ na stałe; wiersz w okienku „Dźwięk” z przełącznikiem — jak na szkicu;
     przy „Kino” (Niski środek z tyłu?) i przy własnej scenie (przeciągnij „Górę” w prawo i „Posłuchaj” — czy góra idzie
     z prawej?); przeciąganie w trakcie muzyki — bez trzasków; kafelek „Własna” po „Kino” — wraca Twoja scena; okienko
     „Dźwięk” — przełącznik i nazwa sceny; touchpad przy przeciąganiu punktów.
-
+Krok 5 (2026-11-26, wydanie 0.12.3; robot stał — Issue #216, #217 — więc numer z planu był wolny):
+  - Porządki: okienko „Dźwięk” — wiersze „Korektor” i „Kons Spatial Audio” rysuje jedna funkcja (`wiersz_do_ustawien`);
+    Ustawienia — jedna funkcja zakładek otwieranych przez nadzorcę (`dzwiek_miejsce`) zamiast dwóch; komunikaty: wolne
+    numery 185 (nic nie zajęło go w kroku 4). Przegląd „Tymczasowe”: w kodzie nie ma żadnego. Pliki blisko limitu (dla
+    następnej pracy — najpierw podział): `src/dzwiek/main.c` 507 i `src/aplikacje/ustawienia/main.c` 505 wierszy.
+  - Lista „co posłuchać” — docs/DO_ZROBIENIA.txt, punkt 4 („Najpierw — nowe w 0.12.3”).

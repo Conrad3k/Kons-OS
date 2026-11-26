@@ -1,10 +1,10 @@
 # 0055. Tor dźwięku wysokiej jakości: liczby zmiennoprzecinkowe w usłudze, ogranicznik, dither, 24 bity do karty, formaty strefy
 
-- Status: Przyjęty, krok 1 wdrożony (plan 0.12.3), krok 2 (korektor, pkt 9–13) wdrożony, krok 3 (Kons Spatial Audio —
-  silnik i gotowe sceny, pkt 14–19) wdrożony; krok 4 (scena do przeciągania) dopisze swoje
+- Status: Przyjęty, wdrożony w 0.12.3 (krok 1 — tor, pkt 1–8; krok 2 — korektor, pkt 9–13; krok 3 — Kons Spatial Audio,
+  silnik i gotowe sceny, pkt 14–19; krok 4 — scena do przeciągania, „Własna”, „Posłuchaj”, pkt 20)
 - Data: 2026-11-26
 - Dotyczy: ADR 0054 pkt 3 (jeden format i głośność w usłudze — **zastąpiony** punktami 1–5 niżej), pkt 13–16 (dźwięk
-  stref — formaty gościa, punkt 6); plan `docs/PLAN-0.12.3.txt` (krok 1, T1–T5, T8); opisy: `docs/komponenty/dzwiek.md`,
+  stref — formaty gościa, punkt 6); plan `docs/archiwum/PLAN-0.12.3.txt` (krok 1, T1–T5, T8); opisy: `docs/komponenty/dzwiek.md`,
   `docs/komponenty/strefa.md`
 
 ## Kontekst
