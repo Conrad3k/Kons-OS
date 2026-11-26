@@ -7,7 +7,9 @@
  * stereo (D3: A); when the output changes its scene takes over across one period, as any other change. Off: nothing is
  * computed. The cost is measured: once a minute in the log, the mean time of a period (T6). The scene is numbers from a
  * client: checked field by field (k1_kom_dzwiek.c) and again here (k1_prz_z_pol) before anything is computed from it. The
- * log: the scene's name ("Kino", "Własna", "Wyłączony") at most twice a second — step 4 will drag its points. */
+ * log: the scene's name ("Kino", "Własna", "Wyłączony") at most twice a second (step 4 drags its points: a message a
+ * move). Step 4 (D6: A): each output's "Własna" — the places last set by hand — kept here for the steering clients
+ * (DZWIEK_SCENA / _STAN with a = the output + K1_DZW_SCENA_WLASNA), never played, not in the log. */
 #include <string.h>
 #include <time.h>
 

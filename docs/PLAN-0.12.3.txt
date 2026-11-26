@@ -385,4 +385,20 @@ przestrzenny”):
     rozmowie; na głośnikach „Kino” i „Koncert” (szerzej?, głos nie za cicho?); przełączanie scen w trakcie muzyki — bez
     trzasków; słuchawki włożone i wyjęte — każde wyjście ma swoją scenę; po wyłączeniu K1 scena zostaje; log K1-DZWIEK
     „scena: średnio … µs”.
+Krok 4 (2026-11-26, ADR 0055 pkt 20; decyzje właściciela: D4 = A — widok z góry, D6 = A — jedna „Własna”, zapamiętana
+na stałe; wiersz w okienku „Dźwięk” z przełącznikiem — jak na szkicu; szkice A/B z hosta, funkcjami K1, w obu motywach):
+  - Scena (`scena.c`): pasma w tym samym miejscu (gotowe sceny mają prawie wszystko z przodu) nachodziły na siebie —
+    każde pasmo ma swój tor (12 px dalej); bas to pierścień wokół głowy (silnik i tak trzyma go w środku — tylko odległość);
+    szerokość przeciąganiem końców łuku najmniej 20° (koniec nie chowa się pod punktem), klawiaturą od 0°.
+  - „Własna” (D6: A) przez usługę: Ustawienia i gui nie mają wspólnego kanału — usługa trzyma „Własną” obu wyjść
+    (a = wyjście + 16 w tym samym komunikacie; bez nowego numeru), gui pamięta (rekord „K1G4”). Gotowa scena jej nie kasuje.
+  - „Posłuchaj”: szum różowy przez te same zwrotnice co scena, −24 dBFS w paśmie (bas −21), 4 s. W pliku WAV z QEMU (scena
+    z lewej na głośnikach): bas L − P +0,3 dB, Niski środek +17 dB (jego zbocze poniżej 120 Hz to bas, który zostaje
+    w środku), Środek +50 dB, Góra +51 dB; częstotliwość rośnie pasmo po paśmie (42, 303, 2032, 11817 Hz). POTWIERDZONE.
+  - Przeciągnięcie w QEMU: punkt „Środek” po opisie ekranu, „Kino”, kafelek „Własna” — punkt wraca co do piksela.
+  - Wzorce: zakładka Kons Spatial Audio i okienko „Dźwięk” (300 × 238) w obu motywach — przyjęte po „OK” właściciela.
+  - Co posłuchać (właściciel, X230 i IdeaPad, w słuchawkach): Ustawienia → Dźwięk → Kons Spatial Audio — „Posłuchaj”
+    przy „Kino” (Niski środek z tyłu?) i przy własnej scenie (przeciągnij „Górę” w prawo i „Posłuchaj” — czy góra idzie
+    z prawej?); przeciąganie w trakcie muzyki — bez trzasków; kafelek „Własna” po „Kino” — wraca Twoja scena; okienko
+    „Dźwięk” — przełącznik i nazwa sceny; touchpad przy przeciąganiu punktów.
 

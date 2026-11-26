@@ -76,8 +76,13 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   (`DZWIEK_KOREKTOR`); log przy starcie „dźwięk: zapamiętany korektor — głośniki: …, słuchawki: …”. **Scena Kons Spatial
   Audio** (0.12.3 krok 3) tak samo: rekord „K1G3” (54 B: „K1G2” i po nim scena głośników i słuchawek, po 13 B — włączona,
   kierunki, szerokości, odległości pasm; „K1G2” i „K1G1” czyta dalej — sceny wyłączone), `DZWIEK_SCENA_STAN` od usługi,
-  `DZWIEK_SCENA` każdej nowej; log przy starcie „dźwięk: zapamiętana scena — głośniki: …, słuchawki: …”; przełącznik
-  w okienku — krok 4. Log: „dźwięk: zapamiętana głośność —
+  `DZWIEK_SCENA` każdej nowej; log przy starcie „dźwięk: zapamiętana scena — głośniki: …, słuchawki: …”. **Krok 4**
+  (D6: A): też „Własna” obu wyjść — rekord „K1G4” (80 B: „K1G3” i po nim „Własna” głośników i słuchawek po 13 B; włączona =
+  jest), `DZWIEK_SCENA` z a = wyjście + 16 każdej nowej usłudze; w okienku pod „Korektor” wiersz 36 px: przełącznik Kons
+  Spatial Audio (scena wyjścia, które gra — log „okienko dźwięku: Kons Spatial Audio włączony (Słuchawki)”) i nazwa sceny
+  („Kino”, „Własna”, „Wyłączony”) ze strzałką; reszta wiersza: `POKAZ_USTAWIENIA` a = PRZESTRZEN (Ustawienia na scenie;
+  opis ekranu: „Kons Spatial Audio” — przełącznik, „Scena” — wiersz); okienko ma 300 × 238 (powierzchnia rośnie jak przy
+  „Grają teraz”). Log: „dźwięk: zapamiętana głośność —
   głośniki P%, słuchawki P%”, „dźwięk: głośność zapamiętana”. **Krok 3** (D2: B, D6: A): lista **„Grają teraz”** pod
   kreską okienka — wiersz dla każdej sesji, która gra (`DZWIEK_SESJA` od usługi): kropka w kolorze sesji, jej nazwa,
   okrągły przycisk wyciszenia 24 px, suwak głośności sesji, procenty; okienko rośnie o wiersze (powierzchnia okienka paska
@@ -215,7 +220,8 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
 - Do nadzorcy (fd 4) od 0.11.8 krok 3: `BATERIA_OKIENKO` — a = 1 okienko baterii otwarte, 0 zamknięte, 2 „Ustawienia
   baterii” (nadzorca uruchamia Ustawienia, wysyła im `USTAWIENIA_MIEJSCE` (Bateria) i pulpitowi `POKAZ_APL`, jak `OTWORZ_AKTUALIZACJE`);
   od ekranu hasła nadzorca go nie przyjmuje. Od 0.12.3 krok 2: `POKAZ_USTAWIENIA` — a = miejsce Ustawień z tabeli
-  `K1_UST_MIEJSCA` (`k1_komunikat.h`; dziś KOREKTOR — wiersz „Korektor” okienka „Dźwięk”): nadzorca uruchamia Ustawienia,
+  `K1_UST_MIEJSCA` (`k1_komunikat.h`; KOREKTOR — wiersz „Korektor” okienka „Dźwięk”, od kroku 4 PRZESTRZEN — wiersz
+  „Kons Spatial Audio”): nadzorca uruchamia Ustawienia,
   wysyła im `USTAWIENIA_MIEJSCE` i pulpitowi `POKAZ_APL`.
 - Do ekranu (0.7.5): `ZAMKNIJ_OKNO` — „Zamknij okno” z paska; ekran prosi aplikację (`ZAMKNIJ`).
 - Zmiana rozdzielczości (M4.1): ekran wysyła ponownie `WITAJ` z nowym rozmiarem → gui zamyka menu,
