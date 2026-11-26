@@ -123,6 +123,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
         ogłoszenia, data z HTTPS, akcje przypięte skrótem                                                                    #238 (p. 2)
 [ ]  2  TPM i odwoływanie: TPM w jądrze, SBAT w k1.efi,        L6–L11           1           T3–T6          L        0057     #235 (p. 2)
         licznik wersji, cofnięcie skarbca
+        [w toku: Claude, gałąź claude/ecstatic-ritchie-eemw1a]
 [ ]  3  Tryb ratunkowy; GRUB zostaje (ADR)                     L12–L14          1, 2        D2, D3, T7     L        0058
 [ ]  4  Obraz wydania: bez portu szeregowego, błąd startu na  L15–L19          1           D4, D5, T8, T9  M       —/0059   #234 (p. 3),
         ekranie, hwsim tylko w testach, mniej kodu z zewnątrz                                                                #231 (p. 1), #237
