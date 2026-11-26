@@ -6,7 +6,7 @@ testy na laptopach, rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki 
 Bez historii: co się zmieniło — CHANGELOG.md, decyzje — docs/adr/, zamknięte plany — docs/archiwum/.
 Stan: 0.12.3 „Dźwięk wysokiej jakości” — czystszy dźwięk (liczenie z zapasem, 24 bity do karty), korektor systemowy
 i Kons Spatial Audio (dźwięk przestrzenny ze sceną do przeciągania). Temat 0.12 Dźwięk zamknięty. Następna — 0.13
-„Bezpieczny start” (plan napisze pierwszy czat tej wersji — PLAN-0.13.0.txt w katalogu docs).
+„Bezpieczny start” (docs/PLAN-0.13.0.txt, punkt 1).
 Data: 2026-11-26.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
@@ -20,11 +20,15 @@ w Ustawieniach, w okienku „Dźwięk” jeden wiersz; D2: A — 10 pasm; D3: A 
 w słuchawkach; D4: A — scena z góry; D5: cała lista scen; D6: A — jedna „Własna”; D7: A — „Kons Spatial Audio”). Pięć
 kroków, PR #229, #239, #240, #241 i #242. Posłuchaj jej na laptopach — punkt 4, „Najpierw — nowe w 0.12.3”.
 
-Następna: 0.13 „Bezpieczny start” (punkt 3: tryb ratunkowy, licznik wersji w TPM, GRUB — zostaje czy zastępujemy, obraz
-produkcyjny bez logu na porcie szeregowym, klucze). Plan napisze pierwszy czat tej wersji (PLAN-0.13.0.txt w katalogu
-docs; ADR 0035).
+Plan następnej: docs/PLAN-0.13.0.txt (Twoja prośba z 2026-11-26: na podstawie tego pliku i zgłoszeń bezpieczeństwa
+#230–#238). Osiem kroków: 1 — łańcuch wydań (poczekalnia albo drugi podpis, termin ogłoszenia, data z HTTPS), 2 — TPM
+i odwoływanie starszych wersji (SBAT, licznik wersji, cofnięcie danych), 3 — tryb ratunkowy (GRUB zostaje — ADR),
+4 — obraz wydania bez portu szeregowego, błąd startu na ekranie, 5 — zgoda na nowe klawiatury USB i zachęta do hasła,
+6 — zaufany ekran K1 (skrót, hasło tylko na ekranie K1), 7 — RANDSTRUCT i decyzja o ochronie jądra „piętro niżej”,
+8 — porządki i wydanie. Twoje decyzje D1–D8 i działania (Secure Boot i TPM w BIOS-ie) — punkt 4 planu. Reszta zgłoszeń
+bezpieczeństwa (nadzorca w klatce, łącznik poza VMM-em, DNS, Firefox) — 0.14 Audyt (punkt 6 planu).
 Co wpisać w nowym czacie:
-    „Korzystając ze skilla kons-dev, napisz plan wersji 0.13 Bezpieczny start.”
+    „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.13.0.txt.”
 
 
 2. MAPA DROGI (ADR 0035, 0053; dawne numery etapów M w nawiasach)
@@ -37,7 +41,8 @@ Co wpisać w nowym czacie:
     0.11     Pliki ze stref — gotowe: 0.11.0, poprawki 0.11.1–0.11.5, 0.11.8 Menu Start i górny pasek  (M9)
     0.12     Dźwięk — gotowe: 0.12.0 (głośność, klawisze, słuchawki, dźwięk z przeglądarki)  (część dawnego M5.3)
              0.12.3 Dźwięk wysokiej jakości — gotowe (korektor, czystszy tor, Kons Spatial Audio)
-    0.13     Bezpieczny start — reszta: tryb ratunkowy, TPM — NASTĘPNA             (M10)
+    0.13     Bezpieczny start — NASTĘPNA (docs/PLAN-0.13.0.txt: łańcuch wydań, TPM, tryb ratunkowy, obraz wydania,
+             dostęp fizyczny, zaufany ekran K1, jądro)                              (M10)
     0.14     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
 Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kroki i poprawki w temacie. Od 0.10.5 wersje
@@ -47,15 +52,9 @@ PATCH z poprawionym jądrem i pakietami przeglądarki wydaje też robot (ADR 004
 
 3. NASTĘPNE WERSJE I PÓŹNIEJ (zakres wstępny — dokładny plan pisze pierwszy czat danej wersji: docs/PLAN-<wersja>.txt)
 -------------------------------------------------------------------------------------------------------------------
-0.13 Bezpieczny start — reszta
-    [ ] tryb ratunkowy (recovery); licznik wersji w TPM (X230: TPM 1.2), odwoływanie starszych podpisanych wersji
-        (RYZYKA R44); świeżość ogłoszenia wydania (codziennie podpisywana data)
-    [ ] GRUB w ISO i na pendrive'ie (ADR 0010, 0022): zostaje czy zastępujemy — ADR
-    [ ] obraz produkcyjny bez logu na porcie szeregowym (RYZYKA R10, R21); komunikat o błędzie startu na ekranie
-        (dziś tylko port szeregowy, RYZYKA R17)
-    [ ] klucze: podpis wydań offline (RYZYKA R91, R94), RANDSTRUCT w jądrze (punkt 7)
-    [ ] do rozważenia: ochrona jądra „piętro niżej” (jak VBS/HVCI w Windows 11, pKVM w Androidzie) — Twój pomysł
-        z 2026-11-08
+0.13 Bezpieczny start — plan: docs/PLAN-0.13.0.txt (stąd wziął: tryb ratunkowy, licznik wersji w TPM i odwoływanie
+    starszych wersji — R44, świeżość ogłoszenia, GRUB — ADR, obraz bez portu szeregowego — R10, R17, R21, klucze — R91,
+    R94, RANDSTRUCT, ochrona jądra „piętro niżej” — decyzja; ze zgłoszeń: #230, #235, #236, część #231, #234, #237, #238)
 
 0.14 Audyt → 1.0
     [ ] fuzzing, testy penetracyjne i izolacji, analiza statyczna, dokumentacja końcowa; „opakowanie” pośrednika grafiki
@@ -252,6 +251,8 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
     GitHub Actions to create and approve pull requests” (docs/komponenty/robot.md) — bez tego nie wyda poprawek jądra.
 [x] 0.12.0 — decyzje D1–D6 podjęte (docs/archiwum/PLAN-0.12.0.txt, punkt 4).
 [x] 0.12.3 — decyzje D1–D7 podjęte (docs/archiwum/PLAN-0.12.3.txt, punkt 4).
+[!] 0.13.0 — decyzje D1–D8 (docs/PLAN-0.13.0.txt, punkt 4): czat zada je na początku kroków. Przed krokiem 2: Secure
+    Boot i TPM włączone w BIOS-ie obu laptopów (punkt 4 planu, „Działania”).
 [!] 0.10.5 — decyzje D4, D5, D7 i D10 weszły jako rekomendacje (kroki szły bez Ciebie) — do potwierdzenia albo zmiany:
     D4 K1 sprawdza sam po połączeniu i co 6 godzin, pobiera od razu, instaluje po „Zainstaluj”; D5 przez sieć aktualizuje
     się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach; D10 przegląd dokumentacji: powtórzenia →
@@ -291,5 +292,6 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
 ---------------------------------------------------------------------------------------
-    0.13   RANDSTRUCT w jądrze; zarządzanie kluczami (podpis offline); ochrona jądra przez wirtualizację — tak/nie
+    0.13   (docs/PLAN-0.13.0.txt, T1–T13): termin ogłoszenia, TPM bez TSS, SBAT, licznik wersji, tryb ratunkowy, dwie linie
+           poleceń, zgoda USB, RANDSTRUCT, Clang/kCFI, ochrona jądra przez wirtualizację — tak/nie
     Podjęte wcześniej: docs/adr/README.md (spis wszystkich decyzji).

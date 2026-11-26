@@ -1,0 +1,405 @@
+K1 — PLAN WERSJI 0.13.0 „BEZPIECZNY START” (nowy temat z mapy drogi: 0.13, ADR 0053; dawne M10)
+=================================================================================================
+
+Data: 2026-11-26 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-26, w trakcie
+wydania 0.12.3): „stwórz plan na 0.13.0, uwzględniając uwagi bezpieczeństwa w Issues; zobacz też DO_ZROBIENIA i na nim
+oprzyj ten plan”. Źródła: docs/DO_ZROBIENIA.txt (punkt 3 „0.13 Bezpieczny start — reszta”, punkt 6 „Tymczasowe” — GRUB,
+punkt 7 — RANDSTRUCT, klucze, ochrona jądra przez wirtualizację) i przegląd bezpieczeństwa 2026-11-26 (Issues #230–#238,
+etykieta „bezpieczeństwo”, z priorytetami: #230 — 1, #231 i #235 — 2, #232 — 3, #234 — 4).
+Wersja stoi na 0.12.3: start shim → GRUB → podpisany `k1.efi` z miejsca A/B (ADR 0022), rdzeń pod dm-verity,
+aktualizacje przez sieć z podpisem EdDSA (ADR 0046), robot wydaje PATCH (ADR 0047; od 2026-11-24 stoi — Issue #216,
+#217), skarbiec szyfrowany hasłem (ADR 0015). Brakuje: TPM, odwoływania starszych wersji, trybu ratunkowego, obrazu bez
+portu szeregowego, ochrony przed przejętym CI.
+Ten plik jest SAMODZIELNY: cel, kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+Plik jest planem, nie specyfikacją: każdy krok ze zmianą architektury ustala swój ADR (od 0056, kolejne wolne).
+
+
+CEL WERSJI (jednym akapitem)
+----------------------------
+Po 0.13.0 laptop z K1 jest odporny na to, co dziś najłatwiej go złamie: przejęte CI nie wyda po cichu złośliwej wersji
+na wszystkie laptopy (poczekalnia albo drugi podpis — D1), starsza podpisana wersja z dziurą nie uruchomi się (SBAT,
+licznik wersji w TPM), cofnięcie dysku z danymi do starszej kopii zostanie wykryte, a gdy start się nie uda, K1 ma tryb
+ratunkowy (poprzednia wersja, raport, naprawa, przywrócenie) i pokazuje błąd na ekranie, nie tylko na porcie szeregowym.
+Obraz wydania nie pisze już nic na port szeregowy i ma mniej kodu osiągalnego z zewnątrz. Nowa klawiatura z USB
+(„pendrive”, który udaje klawiaturę) musi dostać Twoją zgodę, a K1 przy pierwszym starcie zachęca do hasła. Jeden skrót
+klawiszowy zawsze prowadzi do prawdziwego ekranu K1 — okno strefy nie podrobi prośby o hasło.
+
+Kroki: OSIEM. 1 — łańcuch wydań (klucze, poczekalnia, świeżość ogłoszenia). 2 — TPM i odwoływanie starszych wersji
+(SBAT, licznik wersji, cofnięcie skarbca). 3 — tryb ratunkowy i GRUB (ADR: zostaje czy zastępujemy). 4 — obraz wydania
+(bez portu szeregowego, błąd startu na ekranie, mniej kodu z zewnątrz). 5 — dostęp fizyczny (zgoda na nowe klawiatury
+USB, zachęta do hasła). 6 — zaufany ekran K1 (skrót, hasło tylko na ekranie K1). 7 — jądro: RANDSTRUCT i „piętro
+niżej” (decyzja, ADR). 8 — porządki i wydanie.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe kroki i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”); wyjątek:
+błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; wydanie jest zawsze ostatnim
+krokiem (nowy krok bierze numer kroku wydania, wydanie przesuwa się na koniec, póki się nie zaczęło); jeśli krok nie
+zmieści się w jednym czacie, dzieli się na 2a/2b … (wydanie w ostatniej części ostatniego kroku).
+
+Oznaczenia:  [!] decyzja albo działanie właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.12.3, 2026-11-26), ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą;
+źródła jądra: Linux 7.3.6, jadro/wersja.env, sprawdzone 2026-11-26), POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia
+w kroku — nie zakładać).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejność: 1, 2, 3, 4, 5, 6, 7, 8. Krok 1 pierwszy, bo #230 ma
+priorytet 1 (najsłabsze ogniwo dziś). Kroki 2 i 3 dotykają startu (GRUB, `k1.efi`, grubenv) — po kroku 1, przed 4.
+Kroki 5, 6 i 7 nie zależą od siebie. Krok 8 (wydanie) — po wszystkich.
+
+Właściciel: co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.13.0.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku; przy wyglądzie najpierw pokaże szkice. Twoje działania (punkt 4,
+„Działania”) — najlepiej przed krokiem 2: bez Secure Boot i TPM włączonych w BIOS-ie kroków 2–3 nie sprawdzisz na
+sprzęcie.
+
+Nowy czat: przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y i Issue robota, ostatni run CI na main).
+  2. Przeczytaj CEL WERSJI, swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4), „Ustalenia z wykonania” kroków
+     wcześniejszych; zawsze ADR 0021, 0022 (start, A/B, Secure Boot), 0046, 0047 (aktualizacje, robot), RYZYKA
+     wymienione przy kroku i jego Issue (pełny tekst na GitHubie).
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: Z KODU (2026-11-26) blisko limitu 600 wierszy: src/dzwiek/main.c 507,
+     src/aplikacje/ustawienia/main.c 505 — dotykasz ich, najpierw podział (osobny commit).
+  5. Nowy format (ogłoszenie z terminem, licznik w TPM, raport ratunkowy) albo komunikat: przepis z SKILL (sprawdzanie
+     pole po polu, test na hoście, fuzzing, test negatywny w systemie, wpis w dokumencie kanału). Polecenia TPM — tabela
+     (zasada 5), parser odpowiedzi TPM czysty, z testem i fuzzingiem (TPM to też obce dane).
+  6. Opcja jądra: przepis z SKILL (jadro/k1.config z komentarzem, k1-odrzucone.txt — zmienia tylko człowiek; Kconfig
+     z build/zrodla, nie z pamięci). Zmiana drogi startu (GRUB, grubenv, `k1.efi`) i drogi aktualizacji — test-m5f,
+     test-m6 (Secure Boot w OVMF), test-m6 z kluczem wydania, test-aktualizacji przez sieć.
+  7. Testy: lokalnie test-m1 i skrypty zmienianej części (docs/TESTY.md); pełny komplet — CI na PR-ze (etykieta
+     „testy”); scalasz przy zielonym. Czekaj poleceniem, bez innych wywołań (CLAUDE.md). QEMU ma TPM programowy (swtpm)
+     — NIEPEWNE, czy jest w kontenerze i na runnerze CI (krok 2 to sprawdza; bez niego test TPM na hoście z udawanym
+     TPM).
+  8. Dokumenty w tym samym PR-ze: ADR kroku, docs/komponenty/ (nadzorca, initramfs, instalator, skarbiec, jadro, robot),
+     RYZYKA (zmienione wiersze), SLOWNIK, TESTY, WYGLAD (okna). VERSION i CHANGELOG zmienia krok 8; kroki 1–7 opisują
+     zmianę w opisie PR-a. Issue zamykasz, gdy krok zrobił całą jego część z tego planu; resztę (0.14) zostawiasz
+     otwartą z komentarzem, co zostało.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
+     w swoim kroku. Raport dla właściciela: co się zmieniło dla niego, co sprawdzić na laptopie.
+
+Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
+  - Robot stoi od 2026-11-24 (Issue #216, #217 — uprawnienie w Settings → Actions do włączenia przez Ciebie). Kroki 1, 2
+    i 4 zmieniają drogę wydania i startu (format ogłoszenia, SBAT, linia poleceń wydania): idą **z wyłączonym robotem**
+    (wpis „Tymczasowe” w DO_ZROBIENIA z terminem „koniec kroku 4”) — inaczej wydanie robota zaniosłoby połowę zmiany do
+    laptopów. Po kroku 4 robot może wrócić (z poczekalnią z kroku 1, jeśli D1 = A albo C).
+  - Każdy scalony krok trafia do laptopów z najbliższym wydaniem — krok w main musi być gotowy dla użytkownika.
+  - Zmiana formatu ogłoszenia albo `k1.efi` musi być czytelna dla K1 0.12.3 na dysku (inaczej laptopy utkną na 0.12.3):
+    stary K1 musi umieć pobrać i zainstalować 0.13 (zgodność wstecz — test aktualizacji z 0.12.3).
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+  - Krok 1 (#230, priorytet 1): dziś kto przejmie konto GitHub albo CI, może wydać podpisaną wersję, która trafi na
+    każdy laptop. Po kroku 1: wydanie czeka w „poczekalni” (np. 24 h — w tym czasie możesz je zatrzymać, usuwając je na
+    GitHubie) albo potrzebuje drugiego podpisu — Twojego, poza CI (D1). Ogłoszenie wydania ma termin ważności (K1 nie da
+    się „zamrozić” na starej, dziurawej wersji, podsuwając mu stare ogłoszenie), a zegar K1 sprawdza też datę z serwera
+    HTTPS (#238). Akcje GitHuba przypięte na stałe (skrót commita zamiast nazwy).
+  - Krok 2 (#235, R44, R38): K1 korzysta z układu TPM (X230: TPM 1.2; IdeaPad — NIEPEWNE, sprawdzi log). Starsza wersja
+    K1 z poprawioną dziurą nie uruchomi się (SBAT i licznik wersji), a dysk z danymi cofnięty do starszej kopii — K1 to
+    wykryje i powie. Wymaga TPM włączonego w BIOS-ie (Twoje działanie).
+  - Krok 3: tryb ratunkowy — gdy K1 nie wstaje albo coś się zepsuło: uruchom poprzednią wersję, zapisz raport na
+    pendrive, sprawdź dane, przywróć ustawienia fabryczne, zainstaluj od nowa (lista — D2). Wejście: klawisz przy
+    starcie i samo po dwóch nieudanych startach (D3). ADR: GRUB zostaje (jest potrzebny do Secure Boot z kluczami
+    Microsoftu) — termin z „Tymczasowe” zamknięty decyzją.
+  - Krok 4 (R10, R17, R21, #234, #231, #237): wydanie nie pisze nic na port szeregowy (logi zostają w pamięci, „Zapisz
+    raport” — D4); błąd przy starcie widać na ekranie (z kodem QR do zgłoszenia — NIEPEWNE); udawane karty Wi-Fi do
+    testów tylko w obrazie testowym; szybka grafika w Ogólnej — zostaje czy domyślnie wyłączona do audytu (D5).
+  - Krok 5 (#235, R33, R41): nowa klawiatura albo mysz z USB — okienko „Pozwolić?” (D6); pendrive'y z plikami bez
+    pytania. Przy pierwszym starcie bez hasła — zachęta do ustawienia hasła (D7). Twoje działanie: Secure Boot włączony
+    na obu laptopach.
+  - Krok 6 (#236): skrót klawiszowy, który zawsze prowadzi do prawdziwego ekranu K1 (jak Ctrl+Alt+Del w Windows); hasło
+    K1 wpisujesz tylko na pełnym ekranie rysowanym przez K1 — okno przeglądarki nie podrobi prośby o hasło (D8, szkice).
+  - Krok 7 (DO_ZROBIENIA punkt 7, #231): jądro z losowym układem struktur (RANDSTRUCT — trudniej o gotowy exploit) i
+    decyzja o „ochronie jądra piętro niżej” (Twój pomysł z 2026-11-08: jak VBS w Windows 11) — ADR, bez wdrożenia, jeśli
+    wyjdzie za duże.
+  - Krok 8: porządki, lista „co sprawdzić” na laptopach, wydanie 0.13.0.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar  ADR      Issue
+[ ]  1  Łańcuch wydań: poczekalnia / drugi podpis, termin     L1–L5            0.12.3      D1, T1, T2     M        0056     #230,
+        ogłoszenia, data z HTTPS, akcje przypięte skrótem                                                                    #238 (p. 2)
+[ ]  2  TPM i odwoływanie: TPM w jądrze, SBAT w k1.efi,        L6–L11           1           T3–T6          L        0057     #235 (p. 2)
+        licznik wersji, cofnięcie skarbca
+[ ]  3  Tryb ratunkowy; GRUB zostaje (ADR)                     L12–L14          1, 2        D2, D3, T7     L        0058
+[ ]  4  Obraz wydania: bez portu szeregowego, błąd startu na  L15–L19          1           D4, D5, T8, T9  M       —/0059   #234 (p. 3),
+        ekranie, hwsim tylko w testach, mniej kodu z zewnątrz                                                                #231 (p. 1), #237
+[ ]  5  Dostęp fizyczny: zgoda na nowe klawiatury i myszy USB, L20–L22          —           D6, D7, T10    M        0060     #235 (p. 3, 4)
+        zachęta do hasła
+[ ]  6  Zaufany ekran K1: skrót do ekranu K1, hasło tylko na   L23–L25          —           D8, T11        M        0061     #236
+        ekranie K1
+[ ]  7  Jądro: RANDSTRUCT; „piętro niżej” — decyzja            L26–L27          —           T12, T13       S–M      0062     #231 (p. 3)
+[ ]  8  Porządki; wydanie 0.13.0                               L28              1–7         —              S–M      —
+(ADR: 0056 to następny wolny po 0055; kolejne numery biorą kroki po kolei — numer w tabeli jest przewidywany.)
+
+
+3. KROKI
+--------
+KROK 1: Łańcuch wydań                                                   M · D1, T1, T2 · ADR 0056 · #230, #238
+  a. D1 — ochrona przed przejętym CI. A: poczekalnia — K1 instaluje wydanie dopiero, gdy jego ogłoszenie ma co najmniej
+     24 h (czas wydania jest w ogłoszeniu — Z KODU: `k1_ogloszenie.h`, pole „release time”), a wydanie usunięte z
+     GitHuba w tym czasie nie dociera nigdzie; Ty dostajesz powiadomienie o każdym wydaniu (GitHub „Watch → Releases”).
+     B: drugi podpis właściciela poza CI (narzędzie `narzedzia/podpisz` na Twoim komputerze, sekret tylko u Ciebie) — K1
+     przyjmuje wydanie z dwoma podpisami; robot przygotowuje wydanie, Ty je podpisujesz. C: oba.
+  b. Termin ważności ogłoszenia (DO_ZROBIENIA: „świeżość ogłoszenia, codziennie podpisywana data”): CI codziennie
+     podpisuje świeże „ogłoszenie dnia” (najnowsza wersja + data); K1 odrzuca ogłoszenie starsze niż N dni (T1) i mówi
+     w Ustawieniach → Aktualizacje „Nie mogę sprawdzić, czy to najnowsza wersja” zamiast „Masz najnowszą”.
+  c. Zegar (#238 p. 2): przy każdym sprawdzeniu aktualizacji K1 porównuje swój czas z nagłówkiem `Date` odpowiedzi HTTPS
+     z GitHuba (strefa pobierania ma TLS) — duża różnica (np. > 1 h) wobec czasu z SNTP: wpis w logu i czas z HTTPS
+     wygrywa przy sprawdzaniu terminu ogłoszenia (atakujący na łączu nie przesunie zegaru, żeby stare ogłoszenie było
+     „świeże”). Sam SNTP bez zmian (NTS — „Później”).
+  d. Workflow: wszystkie akcje (`actions/checkout`, `actions/cache/*`, `actions/upload-artifact` …) przypięte pełnym
+     skrótem commita z komentarzem wersji (T2); robot (robot.yml) tak samo.
+  e. Zgodność: K1 0.12.3 na dysku musi przyjąć 0.13 (nowe pola ogłoszenia tak, żeby stary czytnik ich nie odrzucił —
+     T1); test aktualizacji przez sieć z 0.12.3 → 0.13 (test-aktualizacji: ogłoszenie z terminem, przeterminowane,
+     „poczekalnia” — za świeże wydanie nie jest proponowane).
+  Dokumenty: ADR 0056, aktualizacja.md, robot.md, RYZYKA R91, R94, R14, R96, Issue #230 (zamknąć), #238 (komentarz: p. 2
+  zrobione, p. 1 i 3 → 0.14).
+
+KROK 2: TPM i odwoływanie starszych wersji                              L · T3–T6 · ADR 0057 · #235 (p. 2), R44, R38
+  a. Jądro: `TCG_TPM`, `TCG_TIS` (X230: TPM 1.2 na LPC — ZE ŹRÓDEŁ: drivers/char/tpm/Kconfig; który układ — NIEPEWNE,
+     log), `TCG_CRB` (TPM 2.0 w firmware Intela — IdeaPad Skylake: PTT, NIEPEWNE, czy włączony w BIOS-ie). Węzeł
+     `/dev/tpm0` dostaje tylko nadzorca (jak karta dźwiękowa usługi dźwięku: jeden właściciel zasobu); log „TPM 1.2 /
+     2.0 / brak”.
+  b. Rozmowa z TPM bez obcej biblioteki (T3): mała tabela poleceń (odczyt licznika, zwiększenie, odczyt/zapis indeksu
+     NV), surowe ramki do `/dev/tpm0`; parser odpowiedzi czysty (`src/wspolne/k1_tpm.c`, test na hoście, fuzzing). Bez
+     TSS, bez tpm2-tools (docs/ZALEZNOSCI.md — nic nowego).
+  c. SBAT (T4): `EFI_SBAT_FILE` (ZE ŹRÓDEŁ: drivers/firmware/efi/Kconfig — sekcja .sbat w `k1.efi`, „k1,<generacja>”);
+     generacja podnoszona przy poważnej dziurze (tabela w jadro/). NIEPEWNE: czy shim sprawdza SBAT obrazu, który GRUB
+     weryfikuje przez shim_lock, i kto ustawia minimalną generację „k1” (zmienna SbatLevel) — sprawdzić w QEMU z OVMF
+     (test-m6). Jeśli shim tego nie robi: odwoływanie tylko licznikiem z punktu d.
+  d. Licznik wersji (T5): przy zatwierdzeniu nowej wersji (`rozruch.c`, po 15 s) nadzorca zapisuje w TPM (indeks NV
+     chroniony przed zapisem bez PCR … — NIEPEWNE dla TPM 1.2) numer wersji; K1 starszy niż licznik po starcie mówi
+     „Ta wersja K1 jest starsza niż ta, którą miałeś — ma znane dziury” i proponuje tryb ratunkowy (krok 3) /
+     aktualizację; skarbiec nie otwiera danych takiej wersji (do decyzji w ADR: twarda blokada czy ostrzeżenie — D2
+     kroku 3 w razie wątpliwości pyta właściciela). Zapis do NV rzadko (raz na wersję) — TPM ma ograniczoną liczbę
+     zapisów.
+  e. Cofnięcie skarbca (R38, T6): numer „epoki” w nagłówku K1-DANE i w TPM (zwiększany raz na start, przy pierwszym
+     zapisie) — przy starcie mniejszy numer na dysku niż w TPM = dysk z danymi cofnięty do starszej kopii: okienko
+     z wyjaśnieniem, dane tylko do odczytu, decyzja człowieka. Pendrive z K1 na innym komputerze (inny TPM) — bez
+     fałszywego alarmu (TPM innego komputera nie zna tej K1-DANE).
+  f. Bez TPM (wyłączony w BIOS-ie, maszyna wirtualna): K1 działa jak dziś, Ustawienia → Informacje mówią „bez TPM: K1
+     nie wykryje cofnięcia danych ani starszej wersji”.
+  g. Testy: host (`test_tpm`: ramki, odpowiedzi błędne i obcięte, `fuzz_tpm`), QEMU z swtpm (jeśli jest — punkt 0.7):
+     licznik, cofnięcie obrazu K1-DANE (kopia przed startem → start → podmiana → okienko), stara wersja po nowszej.
+  Dokumenty: ADR 0057, nadzorca.md, skarbiec.md, jadro.md, RYZYKA R44, R38, R2 (nowe: TPM jako obcy kod / R?), SLOWNIK
+  („TPM”, „licznik wersji”, „epoka danych”), Issue #235 (komentarz: p. 2 zrobione).
+
+KROK 3: Tryb ratunkowy; GRUB zostaje                                    L · D2, D3, T7 · ADR 0058
+  a. ADR (DO_ZROBIENIA punkt 6, ADR 0010 „GRUB tymczasowy do M10”): GRUB zostaje — z kluczami Microsoftu w firmware
+     laptopów jedyna droga to shim (Microsoft) → program podpisany przez Canonical (GRUB, MokManager) albo własny shim
+     podpisany przez Microsoft (proces dla firm, nie dla K1 dziś). Wpis „Tymczasowe” zamknięty decyzją; własny
+     bootloader — „Później”.
+  b. Tryb ratunkowy (T7): osobny, podpisany `ratunek.efi` w K1-EFI (to samo jądro, mały initramfs z programem ratunkowym
+     K1 w C — bez powłoki, jak reszta K1) albo ten sam `k1.efi` z flagą — decyzja w ADR (linia poleceń `k1.efi` jest
+     wbudowana i zamknięta — ADR 0022, więc flaga musi przyjść inną drogą: plik albo zmienna EFI czytana przez
+     initramfs). Program ratunkowy rysuje na ekranie (prosty tekst, klawiatura) — lista z D2.
+  c. Wejście (D3): klawisz przy starcie (GRUB z ukrytym menu na 1–2 s: Esc → „K1” / „K1 — tryb ratunkowy”) i samo po
+     dwóch nieudanych startach z rzędu (licznik w grubenv — działa dziś dla prób A/B: ADR 0022 pkt 4).
+  d. „Zapisz raport”: logi startu (z bufora — krok 4) i stan (wersje A/B, dyski, TPM) na pendrive w pliku tekstowym, bez
+     treści użytkownika i bez sekretów (niezmiennik 8).
+  e. „Przywróć ustawienia fabryczne”: K1-DANE od nowa po wpisaniu „USUŃ” (jak w Instalatorze); „Uruchom poprzednią
+     wersję”: grubenv na drugie miejsce A/B (tylko wersja nie starsza niż licznik z kroku 2).
+  f. Testy: QEMU — wejście klawiszem, dwa nieudane starty (zepsute miejsce), raport na pendrive (obraz FAT sprawdzony na
+     hoście), przywrócenie fabryczne, NEGATYWNE: raport bez sekretów, przywrócenie bez „USUŃ” nic nie robi.
+  Dokumenty: ADR 0058, nowy opis komponentu ratunek.md (w katalogu komponentów), instalator.md, start w ARCHITEKTURA.md, WYGLAD (ekran
+  ratunkowy), DO_ZROBIENIA („Tymczasowe” — GRUB zamknięty).
+
+KROK 4: Obraz wydania i mniej kodu z zewnątrz                           M · D4, D5, T8, T9 · #234, #231, #237, R10, R17,
+R21
+  a. Linia poleceń wydania bez `console=ttyS0` (Z KODU: jadro/cmdline — `console=ttyS0 panic=-1 oops=panic
+     k1.rdzen=/dev/vda mac80211_hwsim.radios=0`); obraz testowy dalej z konsolą — dwie linie poleceń (T8: jak je
+     zbudować bez drugiego pełnego jądra; `k1.efi` wydania i `bzImage` testów już się różnią linią — ADR 0022 pkt 1).
+  b. Logi (D4): K1 trzyma log startu i usług w pamięci (bufor w nadzorcy, tylko tekst K1 jak dziś — bez treści, ≤ 2/s),
+     „Zapisz raport” w Ustawieniach → Informacje i w trybie ratunkowym (krok 3 d).
+  c. Błąd krytyczny startu na ekranie (R17): `DRM_PANIC` + `DRM_PANIC_SCREEN` (ZE ŹRÓDEŁ: drivers/gpu/drm/Kconfig; ekran
+     paniki jądra na i915 i simpledrm — NIEPEWNE na X230 przed i915) i ekran awarii K1 z `k1_awaria()` w init /
+     initramfs (dziś tylko port szeregowy): krótki tekst po polsku „K1 nie może wystartować: …”, kod błędu, co zrobić
+     (tryb ratunkowy). Kod QR z danymi (`DRM_PANIC_SCREEN_QR_CODE`) — NIEPEWNE (Rust w jądrze?) — tylko jeśli bez nowej
+     zależności.
+  d. `mac80211_hwsim` (#234 p. 3): w jądrze wydania wyłączony, w obrazie testowym zostaje (T9: osobny fragment
+     konfiguracji dla testów — koszt drugiego jądra w CI vs zysk; jeśli za drogo — ADR z uzasadnieniem i hwsim zostaje
+     z `radios=0`).
+  e. D5 (#231 p. 1, #237 p. 2): szybka grafika i filmy kartą — Z KODU (`K1_STREFY`, kolumna „grafika”; Twoja decyzja D5
+     planu 0.10.9): domyślnie tylko Ogólna, Bank i Prywatna bez (to już spełnia #237 p. 2). Zostaje #231 p. 1: także
+     Ogólna domyślnie bez do audytu 0.14 — według D5; przełącznik w Ustawieniach → Przeglądarka bez zmian.
+  f. IOMMU (#237 p. 1): Z KODU — już `INTEL_IOMMU_DEFAULT_ON`, `IOMMU_DEFAULT_DMA_STRICT` (jadro/k1.config); zostaje
+     potwierdzenie na sprzęcie (log DMAR na X230 i IdeaPadzie) — wpis do listy „co sprawdzić”; bez zmian w kodzie.
+  g. Testy: test-m1 (wydanie bez konsoli — `k1.efi` w QEMU nic nie pisze na port, ekran pokazuje pulpit; negatywne
+     starty: ekran awarii w zrzucie zamiast logu), test-wifi (hwsim w obrazie testowym), sprawdz-kspp.
+  Dokumenty: jadro.md, init.md, initramfs.md, RYZYKA R10, R17, R21, R100, Issue #234 (komentarz: p. 3 zrobione, p. 1–2 →
+  0.14), #231 (p. 1 według D5), #237 (p. 1 i 2 — już w kodzie, potwierdzenie na sprzęcie; p. 3 → 0.14).
+
+KROK 5: Dostęp fizyczny                                                 M · D6, D7, T10 · ADR 0060 · #235 (p. 3, 4),
+R33, R41
+  a. Nowe urządzenia wejścia z USB (D6, T10): `USB_DEFAULT_AUTHORIZATION_MODE` = 2 (ZE ŹRÓDEŁ: drivers/usb/core/Kconfig
+     — wewnętrzne urządzenia dopuszczone, zewnętrzne czekają na zgodę) albo zgoda na poziomie interfejsu HID; nadzorca
+     dopuszcza od razu pamięci masowe, a nową klawiaturę / mysz — dopiero po „Pozwól” w okienku K1 (rysuje ekran, nie
+     aplikacja). Urządzenia podłączone przed startem i znane (zapamiętane w skarbcu) — bez pytania. NIEPEWNE: klawiatura
+     i touchpad IdeaPada (i8042 czy USB wewnętrzne) — log wejścia; komputer stacjonarny tylko z myszą USB nie może
+     utknąć (pierwsza klawiatura przy ekranie hasła/pierwszym starcie — dopuszczona).
+  b. Hasło (D7, R41): przy pierwszym starcie bez hasła okno „Ustaw hasło — bez niego każdy, kto weźmie laptop, przeczyta
+     Twoje pliki” z „Ustaw hasło” / „Później”; przypomnienie w Ustawieniach → Hasło.
+  c. Testy: QEMU — klawiatura USB podłączona po starcie (QMP device_add usb-kbd): klawisze nie dochodzą, okienko,
+     „Pozwól” → działa; pamięć USB bez pytania; NEGATYWNE: „Nie pozwól” — urządzenie dalej bez dostępu.
+  Dokumenty: ADR 0060, wejscie.md, nadzorca.md, gui.md, WYGLAD (okienko zgody), RYZYKA R33, R41, Issue #235 (zamknąć,
+  jeśli działania właściciela z punktu 4 zrobione).
+
+KROK 6: Zaufany ekran K1                                                M · D8, T11 · ADR 0061 · #236, R26, R40, R50,
+R54, R80
+  a. Skrót do ekranu K1 (D8): stała kombinacja (propozycja: Ctrl+Alt+Del) przechwytywana w usłudze `wejscie` /
+     `ekranie` — nigdy nie dochodzi do strefy ani aplikacji — zawsze otwiera ekran K1 (blokada / „Zablokuj, Wyloguj,
+     Uruchom ponownie”, rysowany przez ekran na pełnym ekranie).
+  b. Hasło K1 tylko na pełnym ekranie rysowanym przez ekran / logowanie: dziś Ustawienia → Hasło pyta w oknie aplikacji
+     (Z KODU: src/aplikacje/ustawienia/haslo.c) — przenieść do ekranu K1 (logowanie) albo pokazać nad nim znak, którego
+     okno nie narysuje (T11).
+  c. Znak na górnym pasku (rysowany przez gui/ekran), gdy fokus ma okno strefy: „to jest strona, nie K1” — wybór w D8.
+  d. Testy: QEMU — skrót przy fokusie strefy próbnej (nie dochodzi do gościa: log VMM), ekran K1 na wierzchu; wzorce.
+  Dokumenty: ADR 0061, ekran.md, logowanie.md, aplikacje.md, WYGLAD, RYZYKA R26, R40, R50, R54, R80, Issue #236 (p. 3 —
+  przegląd ścieżki klawiszy hasła → 0.14).
+
+KROK 7: Jądro: RANDSTRUCT; „piętro niżej”                               S–M · T12, T13 · ADR 0062 · #231 (p. 3)
+  a. RANDSTRUCT (DO_ZROBIENIA punkt 7, T12): `RANDSTRUCT_FULL` z GCC wymaga wtyczek GCC (`GCC_PLUGINS`) — NIEPEWNE, czy
+     są w kompilatorze budowy; ziarno losowania stałe dla wydania (powtarzalny build — niezmiennik 9) i tajne? (jawne
+     ziarno w publicznym repo osłabia sens) — decyzja w ADR z pomiarem (sprawdz-powtarzalnosc, rozmiar, czas startu).
+  b. Clang i kCFI (#231 p. 3): ocena — zmiana kompilatora jądra (powtarzalność, robot, czas budowy); wdrożenie tylko,
+     jeśli mieści się w kroku, inaczej → 0.14 z ADR.
+  c. „Piętro niżej” (Twój pomysł z 2026-11-08: ochrona jądra przez wirtualizację, jak VBS/HVCI, pKVM): ADR — co dałoby
+     K1 (jądro pod nadzorem małego hiperwizora), ile to pracy, czego wymaga sprzęt X230 i IdeaPada; decyzja: tak (osobny
+     temat po 1.0?), nie, później. Bez wdrożenia w 0.13.
+  Dokumenty: ADR 0062, jadro.md, ZALEZNOSCI (jeśli Clang), Issue #231 (komentarz).
+
+KROK 8: Porządki; wydanie 0.13.0                                        S–M
+  Porządki (co usunąć, scalić, uprościć — CHANGELOG „Porządki”; MINOR), przegląd „Tymczasowe” (robot wraca, jeśli był
+  wyłączony — wpis zamknięty), README (tabela, „Co już jest”), lista „co sprawdzić” w docs/DO_ZROBIENIA.txt punkt 4,
+  plan do docs/archiwum/, CHANGELOG z „Opis w K1:”, VERSION 0.13.0; Issue — przegląd: zamknięte, przeniesione do 0.14.
+
+
+4. DECYZJE
+----------
+[!] D1 (krok 1) Ochrona przed przejętym CI (#230):
+      A — poczekalnia 24 h: wydanie trafia do laptopów dopiero po dobie, w tym czasie możesz je zatrzymać (usunąć na
+          GitHubie); powiadomienie o każdym wydaniu (rekomendacja: nic nie musisz robić przy każdym wydaniu);
+      B — drugi podpis Twój, poza CI: każde wydanie (także robota) czeka, aż je podpiszesz na swoim komputerze;
+      C — oba (najbezpieczniej, najwięcej Twojej pracy).
+[!] D2 (krok 3) Co ma tryb ratunkowy (wybierz): uruchom poprzednią wersję; zapisz raport na pendrive; sprawdź dane
+    (skarbiec, naprawa przy starcie jak dziś); przywróć ustawienia fabryczne (usuwa dane, po „USUŃ”); zainstaluj od nowa
+    z pendrive'a. Rekomendacja: wszystkie pięć.
+[!] D3 (krok 3) Jak wejść: A — klawisz przy starcie i samo po dwóch nieudanych startach (rekomendacja); B — tylko
+    klawisz.
+[!] D4 (krok 4) Logi wydania: A — w pamięci, „Zapisz raport” na pendrive gdy chcesz zgłosić błąd (rekomendacja);
+    B — żadnych logów w wydaniu (trudniej zgłaszać błędy).
+[!] D5 (krok 4) Szybka grafika i filmy kartą w Ogólnej (#231 p. 1; Bank i Prywatna już dziś bez — Twoje D5 z 0.10.9):
+    A — bez zmian: Ogólna domyślnie z szybką grafiką (rekomendacja: to Twoje filmy i strony na IdeaPadzie; ryzyko R100
+    zostaje do audytu 0.14); B — Ogólna też domyślnie bez do audytu 0.14 (włączasz sam w Ustawieniach → Przeglądarka).
+[!] D6 (krok 5) Nowa klawiatura / mysz z USB: A — okienko „Pozwolić?” (rekomendacja); B — tylko wpis w logu.
+[!] D7 (krok 5) Hasło przy pierwszym starcie: A — zachęta z „Później” (rekomendacja); B — hasło obowiązkowe.
+[!] D8 (krok 6) Zaufany ekran (szkice przed wyborem): A — skrót Ctrl+Alt+Del zawsze otwiera ekran K1, hasło tylko tam
+    (rekomendacja); B — A i dodatkowo znak „strona, nie K1” na górnym pasku przy oknie strefy.
+Działania (Twoje, najlepiej przed krokiem 2):
+[!] Secure Boot włączony na X230 i IdeaPadzie (klucz K1 przez MokManagera — Instalator → „Secure Boot…”; wydania są
+    podpisane od 2026-11-12) — #235 p. 1: testy w docelowym ustawieniu.
+[!] TPM włączony w BIOS-ie (X230: Security → Security Chip → Active; IdeaPad: Intel PTT / TPM — NIEPEWNE, nazwa w
+    BIOS-ie).
+[!] Robot: uprawnienie z Issue #216, #217 (Settings → Actions → General → Workflow permissions) — robot wraca po kroku
+    4.
+[!] GitHub: logowanie dwuetapowe kluczem sprzętowym (jeśli jeszcze nie) i „Watch → Releases” (powiadomienia o wydaniach
+    — potrzebne przy D1 = A).
+
+Decyzje techniczne (ADR — decyduje czat kroku, Ty dostajesz krótkie wyjaśnienie):
+  T1 (krok 1) Termin ogłoszenia: nowe pole tak, by K1 0.12.3 nie odrzucił ogłoszenia (Z KODU: format 1,
+     `k1_ogloszenie.h`; NIEPEWNE, czy czytnik toleruje dłuższy nagłówek — sprawdzić; inaczej drugie ogłoszenie obok
+     starego); ile dni — 7?
+  T2 (krok 1) Przypięcie akcji skrótem — kto je odświeża (robot zgłasza nowsze wersje akcji jako PR?).
+  T3 (krok 2) TPM bez TSS: własne ramki TPM 1.2 (TCPA) i 2.0 — dwa zestawy poleceń w jednej tabeli; tylko nadzorca.
+  T4 (krok 2) SBAT: czy działa dla obrazu ładowanego przez GRUB (NIEPEWNE — próba w OVMF).
+  T5 (krok 2) Licznik wersji: indeks NV z zapisem tylko w górę (TPM 2.0: NV counter; TPM 1.2: monotonic counter albo NV
+     z PCR) — i co robi K1, gdy wersja jest starsza: blokada czy ostrzeżenie.
+  T6 (krok 2) Epoka danych: ile zapisów NV na dzień (wytrzymałość TPM), co przy przeniesieniu pendrive'a na inny
+     komputer.
+  T7 (krok 3) Ratunek: osobny `ratunek.efi` czy flaga dla `k1.efi`; jak initramfs czyta flagę bez zmiany linii poleceń.
+  T8 (krok 4) Dwie linie poleceń (wydanie / testy) bez drugiego pełnego jądra.
+  T9 (krok 4) hwsim tylko w testach — koszt drugiej konfiguracji jądra w CI.
+  T10 (krok 5) Zgoda USB: tryb 2 jądra czy zgoda na interfejs; gdzie pamiętać znane urządzenia (skarbiec, właściciel:
+     nadzorca).
+  T11 (krok 6) Hasło w Ustawieniach: przeniesione do ekranu logowania czy okno z nieuchwytnym znakiem.
+  T12 (krok 7) RANDSTRUCT: wtyczki GCC, ziarno, powtarzalność.
+  T13 (krok 7) Clang/kCFI — teraz czy 0.14.
+
+
+5. LUKI (co dziś brakuje — Z KODU, 2026-11-26, chyba że napisano inaczej)
+-------------------------------------------------------------------------
+Krok 1:
+  L1 Klucz `K1_KLUCZ_PODPISU` tylko w GitHub Actions; jeden podpis wydania (ADR 0021, 0046); robot wydaje sam (ADR
+     0047).
+  L2 Ogłoszenie ma czas wydania, ale nie ma terminu ważności — stare ogłoszenie (podsunięte przez łącze) K1 przyjmie
+     jako „najnowsze” (DO_ZROBIENIA punkt 3).
+  L3 Zegar tylko z SNTP (większość zgodnych serwerów; bez podpisu — RYZYKA R83).
+  L4 Akcje w .github/workflows przypięte tagiem (`@v5`, `@v4`), nie skrótem (#230).
+  L5 Ustawienia → Aktualizacje nie odróżniają „najnowsza” od „nie wiem, ogłoszenie stare”.
+Krok 2:
+  L6 Jądro bez sterowników TPM (jadro/k1.config — brak `TCG_*`).
+  L7 Brak sekcji .sbat w `k1.efi`; shim przyjmie każdą starszą podpisaną wersję (RYZYKA R44).
+  L8 Brak licznika wersji poza „Instalator nie zapisze starszej” (M6a) i A/B.
+  L9 Brak wykrywania cofnięcia K1-DANE (RYZYKA R38; ADR 0015).
+  L10 Brak węzła TPM dla nadzorcy i wpisu w klatkach (nadzorca bez klatki — #234, 0.14).
+  L11 Brak testu z TPM w QEMU (swtpm — NIEPEWNE w kontenerze i na runnerze).
+Krok 3:
+  L12 Brak trybu ratunkowego; po dwóch nieudanych startach GRUB pokazuje tylko komunikat (ADR 0022 pkt 4).
+  L13 GRUB z terminem „tymczasowy do 0.13” bez decyzji (DO_ZROBIENIA punkt 6, ADR 0010).
+  L14 Brak raportu do zgłoszenia błędu poza logiem portu szeregowego.
+Krok 4:
+  L15 Wydanie z `console=ttyS0` — log K1 na porcie szeregowym (RYZYKA R10, R21).
+  L16 Błąd krytyczny startu widać tylko na porcie szeregowym (RYZYKA R17); jądro bez `DRM_PANIC`.
+  L17 `MAC80211_HWSIM=y` w jądrze wydania (jadro/k1.config; `radios=0` w linii poleceń) — #234 p. 3.
+  L18 Szybka grafika i filmy kartą domyślnie włączone w Ogólnej (Bank i Prywatna — nie; `K1_STREFY`) — #231 p. 1.
+  L19 IOMMU: w konfiguracji włączone i ścisłe (Z KODU) — brak potwierdzenia na sprzęcie.
+Krok 5:
+  L20 Każde urządzenie USB dopuszczone od razu (RYZYKA R33; `USB_DEFAULT_AUTHORIZATION_MODE` domyślnie 1).
+  L21 Bez hasła klucz skarbca ze stałej etykiety — dane czytelne dla złodzieja (RYZYKA R41); pierwszy start nie zachęca.
+  L22 Brak listy znanych urządzeń wejścia.
+Krok 6:
+  L23 Strefa rysuje dowolne piksele w swoim prostokącie — może narysować „okno K1” (#236).
+  L24 Ustawienia → Hasło pyta o hasło w oknie aplikacji.
+  L25 Brak skrótu, którego nie dostaje strefa ani aplikacja, prowadzącego do ekranu K1 (Alt+Tab i Start rozpoznaje ekran
+      — wzór: 0.10.5 krok 6).
+Krok 7:
+  L26 Jądro bez RANDSTRUCT i kCFI (GCC; DO_ZROBIENIA punkt 7, #231 p. 3).
+  L27 Brak decyzji o ochronie jądra przez wirtualizację (DO_ZROBIENIA punkt 3).
+Krok 8:
+  L28 README, „co sprawdzić”, CHANGELOG.
+
+
+6. NIE W TEJ WERSJI (→ 0.14 Audyt albo „Później” w docs/DO_ZROBIENIA.txt)
+-------------------------------------------------------------------------
+  - 0.14: nadzorca w klatce — własny seccomp, mniej capabilities, czytanie danych z zewnątrz (nl80211, GPT pendrive'a)
+    w usługach w klatkach (#234 p. 1–2); łącznik SOCKS5/DNS w osobnym procesie, fuzzing wszystkich urządzeń VMM-a,
+    GPU 3D w osobnym procesie (#232); przegląd opcji jądra osiągalnych z zewnątrz, radio Wi-Fi wyłączone przy kablu
+    (#231 p. 2, 4); ścieżka klawiszy hasła (#236 p. 3); „opakowanie” pośrednika grafiki (R100); pilne wydanie przy
+    krytycznej poprawce Firefoksa i znak „czeka poprawka przeglądarki” (#233 p. 1–2); wymiana albo wyłączenie i965 (#237
+    p. 3); DNS przez HTTPS/TLS w łączniku, sesje Bank i Prywatna bez sieci lokalnej (#238 p. 1, 3).
+  - Do Twojej decyzji (bez wersji): test „przeglądarka startuje i rysuje stronę” przed wydaniem robota (#233 p. 3 —
+    dziś świadomie bez testu przeglądarki w CI, decyzja z 2026-11-17).
+  - Później: własny bootloader zamiast GRUB-a (krok 3 a), NTS (czas z podpisem), ochrona jądra „piętro niżej” —
+    wdrożenie (jeśli ADR kroku 7 powie „tak”).
+
+
+7. RYZYKA (wiersze w docs/RYZYKA.md — zmienia krok, który je dotyka)
+-------------------------------------------------------------------
+  - Krok 1: poczekalnia opóźnia też pilne poprawki o dobę (świadomy koszt; wyjątek dla pilnych — tylko z drugim
+    podpisem, jeśli D1 = C). Przeterminowane ogłoszenie na laptopie bez sieci przez tydzień — tylko komunikat, nie
+    blokada.
+  - Krok 2: TPM to obce oprogramowanie w układzie (jak firmware kart — #237) i nowa droga danych do nadzorcy (parser
+    odpowiedzi czysty, z fuzzingiem); zły licznik (np. po aktualizacji BIOS-u czyszczącej TPM) nie może zamknąć dostępu
+    do danych bez wyjścia — tryb ratunkowy i hasło zawsze wystarczą.
+  - Krok 3: tryb ratunkowy to druga droga startu — podpisana jak `k1.efi`, bez powłoki; „przywróć fabryczne” niszczy
+    dane (tylko po „USUŃ”).
+  - Krok 4: bez portu szeregowego trudniej zgłaszać błędy — raport (D4) musi działać, zanim konsola zniknie.
+  - Krok 5: zgoda USB nie może odciąć jedynej klawiatury.
+
+
+USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
+-----------------------------------------------------
+(puste)
