@@ -10,6 +10,7 @@
 #include <stdint.h>
 
 #include "k1_dzwiek.h"
+#include "k1_uslugi.h"
 
 struct k1_dzw_polaczenie {
     const char *tag;                       /* the log's (K1-GUI, K1-USTAWIENIA) */
@@ -19,20 +20,27 @@ struct k1_dzw_polaczenie {
     int pierscien_fd;
     int gra, zamknieto;                    /* the sample plays; its end was said (ZAMKNIJ) */
     uint32_t zapisane, wolne, poz;         /* frames written in all, free in the ring, of the sample written */
+    struct k1_dzw_sesja {                  /* step 3: each zone's session, as DZWIEK_SESJA said */
+        int gra, glosnosc, wyciszona;
+    } sesje[K1_STREFY_MAKS + 1];
 };
 #define K1_DZW_POLACZENIE_START(tag)                                                                                  \
-    { (tag), -1, K1_DZW_KARTA_SZUKA, K1_DZW_GLOSNOSC_START, 0, K1_DZW_WYJSCIE_BRAK, NULL, -1, 0, 0, 0, 0, 0 }
+    { (tag), -1, K1_DZW_KARTA_SZUKA, K1_DZW_GLOSNOSC_START, 0, K1_DZW_WYJSCIE_BRAK, NULL, -1, 0, 0, 0, 0, 0, { { 0 } } }
 
-/* A new channel from nadzorca (the caller closes `fd`; it is duplicated): the old one and its stream are gone. */
+/* A new channel from nadzorca (the caller closes `fd`; it is duplicated): the old one and its stream are gone; the
+ * sessions as at the start (the new service says which are not). */
 void k1_dzwk_kanal(struct k1_dzw_polaczenie *k, int fd);
 /* What the service said. Bits of the answer: what changed. */
 #define K1_DZWK_STAN 1   /* DZWIEK_STAN (redraw) */
 #define K1_DZWK_PROBA 2  /* the sample ended */
 #define K1_DZWK_KONIEC 4 /* the channel closed (the service ended: a new one comes from nadzorca) */
+#define K1_DZWK_SESJE 8  /* step 3: DZWIEK_SESJA — a session started or stopped playing, its volume, its mute */
 int k1_dzwk_odbierz(struct k1_dzw_polaczenie *k);
 /* The volume and the mute of `wyjscie` (K1_DZW_WYJSCIE_*; BRAK: the one playing now) to the service; of the one playing
  * now: also in our state at once (the service confirms with STAN). */
 void k1_dzwk_glosnosc(struct k1_dzw_polaczenie *k, int glosnosc, int wyciszone, int wyjscie);
+/* Step 3: the volume and the mute of zone nr's session (DZWIEK_GLOSNOSC d = nr); in our state at once. */
+void k1_dzwk_sesja(struct k1_dzw_polaczenie *k, int nr, int glosnosc, int wyciszona);
 /* "Odtwórz próbę": 0 started, -1 not (no card, no channel, it plays already). */
 int k1_dzwk_proba(struct k1_dzw_polaczenie *k);
 /* The speaker of the state: muted or 0 — with a ×; under 50 % — one wave; else two. */

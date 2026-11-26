@@ -68,7 +68,13 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   każdego wyjścia w skarbcu (obiekt gui `K1_OB_GLOSNOSC`, rekord „K1G1”, 8 B — `k1_dzw_zapamietane_*`), zapis 2 s po
   ostatniej zmianie (także zmianie z Ustawień — gui słyszy `DZWIEK_STAN`), odczyt przy starcie gui; każda nowa usługa
   dźwięku (i nowe gui) dostaje obie głośności (`DZWIEK_GLOSNOSC` z `c` = wyjście). Log: „dźwięk: zapamiętana głośność —
-  głośniki P%, słuchawki P%”, „dźwięk: głośność zapamiętana”.
+  głośniki P%, słuchawki P%”, „dźwięk: głośność zapamiętana”. **Krok 3** (D2: B, D6: A): lista **„Grają teraz”** pod
+  kreską okienka — wiersz dla każdej sesji, która gra (`DZWIEK_SESJA` od usługi): kropka w kolorze sesji, jej nazwa,
+  okrągły przycisk wyciszenia 24 px, suwak głośności sesji, procenty; okienko rośnie o wiersze (powierzchnia okienka paska
+  robiona od nowa, gdy się nie mieści — nigdy mniejsza niż na starcie). Opis ekranu: „Wycisz sesję N”, „Głośność sesji N”
+  (numer strefy — nigdy nazwa sesji). Która sesja gra i czy wyciszona — do ekranu (`STREFA_DZWIEK`: głośnik na pasku okna
+  sesji, `ekran.md`); kliknięcie głośnika wraca od ekranu (`STREFA_WYCISZ`). Log: „dźwięk: grają sesje: N”, „dźwięk: sesja
+  N wyciszona / gra (głośnik na pasku okna)”.
 - **okienko baterii** (0.11.8 krok 3, D4 właściciela: A; `bateria.c`): kliknięcie baterii na górnym pasku → procent (duży)
   i symbol baterii, stan (te same słowa co Zasoby i Ustawienia — `k1_bateria_stan`), wiersz „Zostało” / „Do pełna” z czasem
   „ok. 3 h 20 min” (`k1_minuty`; nieznany — „nieznany”; bez ładowania i rozładowywania — „Zasilacz: podłączony /

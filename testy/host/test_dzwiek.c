@@ -11,6 +11,7 @@
 #include "k1_dzwiek.h"
 #include "k1_komunikat.h"
 #include "k1_test_host.h"
+#include "k1_uslugi.h"
 
 #define K(t, a, b, c, d, e) k1_komunikat_nowy(t, 0, a, b, c, d, e)
 
@@ -211,7 +212,7 @@ static void komunikaty_kroku2(void)
     EXPECT(ok(K(K1_KOM_DZWIEK_GLOSNOSC, 40, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 0, 0), K1_KIER_DO_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_GLOSNOSC, 40, 0, K1_DZW_WYJSCIE_MAKS + 1, 0, 0), K1_KIER_DO_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_GLOSNOSC, 40, 0, -1, 0, 0), K1_KIER_DO_DZWIEKU));
-    EXPECT(!ok(K(K1_KOM_DZWIEK_GLOSNOSC, 40, 0, 0, 1, 0), K1_KIER_DO_DZWIEKU)); /* d: 0 */
+    EXPECT(!ok(K(K1_KOM_DZWIEK_GLOSNOSC, 40, 0, 0, 0, 1), K1_KIER_DO_DZWIEKU)); /* e: 0 */
     EXPECT(ok(K(K1_KOM_DZWIEK_STAN, K1_DZW_KARTA_JEST, 50, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 0), K1_KIER_OD_DZWIEKU));
     EXPECT(!ok(K(K1_KOM_DZWIEK_STAN, K1_DZW_KARTA_JEST, 50, 0, K1_DZW_WYJSCIE_MAKS + 1, 0), K1_KIER_OD_DZWIEKU));
     EXPECT(ok(K(K1_KOM_GLOSNOSC_POKAZ, 45, 1, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0), K1_KIER_DO_EKRANU));
@@ -226,6 +227,40 @@ static void komunikaty_kroku2(void)
            strcmp(k1_dzw_klient_nazwa(K1_DZW_KLIENT_USTAWIENIA), "Ustawienia") == 0);
 }
 
+/* Step 3: the zones' channels, a session's volume and state, the speaker on its bar; a session's gain on its samples. */
+static void krok3(void)
+{
+    int32_t suma[4] = { 0, 0, 0, 0 };
+    const int16_t pr[4] = { 32767, -32768, 1000, -3 };
+    EXPECT(ok(K(K1_KOM_DZWIEK_KLIENT, K1_DZW_KLIENT_STREFA, 300, 2, 0, 0), K1_KIER_STEROWANIE));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KLIENT, K1_DZW_KLIENT_STREFA, 300, 0, 0, 0), K1_KIER_STEROWANIE)); /* which zone */
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KLIENT, K1_DZW_KLIENT_STREFA, 300, K1_STREFY_MAKS + 1, 0, 0), K1_KIER_STEROWANIE));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_KLIENT, K1_DZW_KLIENT_GUI, 102, 2, 0, 0), K1_KIER_STEROWANIE)); /* gui is no zone */
+    EXPECT(!k1_dzw_klient_steruje(K1_DZW_KLIENT_STREFA)); /* a zone never sets the volume */
+    EXPECT(ok(K(K1_KOM_DZWIEK_GLOSNOSC, 30, 1, 0, 2, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_GLOSNOSC, 30, 1, K1_DZW_WYJSCIE_GLOSNIKI, 2, 0), K1_KIER_DO_DZWIEKU)); /* both */
+    EXPECT(!ok(K(K1_KOM_DZWIEK_GLOSNOSC, 30, 1, 0, K1_STREFY_MAKS + 1, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(ok(K(K1_KOM_DZWIEK_SESJA, 2, 1, 100, 0, 0), K1_KIER_OD_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SESJA, 0, 1, 100, 0, 0), K1_KIER_OD_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SESJA, 2, 2, 100, 0, 0), K1_KIER_OD_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SESJA, 2, 1, 101, 0, 0), K1_KIER_OD_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SESJA, 2, 1, 100, 0, 0), K1_KIER_DO_DZWIEKU));
+    EXPECT(ok(K(K1_KOM_STREFA_DZWIEK, 2, 1, 1, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(!ok(K(K1_KOM_STREFA_DZWIEK, 2, 1, 1, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(!ok(K(K1_KOM_STREFA_DZWIEK, K1_STREFY_MAKS + 1, 1, 0, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(!ok(K(K1_KOM_STREFA_DZWIEK, 2, 1, 2, 0, 0), K1_KIER_DO_EKRANU));
+    EXPECT(ok(K(K1_KOM_STREFA_WYCISZ, 2, 0, 0, 0, 0), K1_KIER_OD_EKRANU));
+    EXPECT(!ok(K(K1_KOM_STREFA_WYCISZ, 2, 0, 0, 0, 0), K1_KIER_DO_EKRANU)); /* only ekran tells the shell */
+    EXPECT(!ok(K(K1_KOM_STREFA_WYCISZ, 0, 0, 0, 0, 0), K1_KIER_OD_EKRANU));
+    k1_dzw_dodaj_wzm(suma, pr, 2, k1_dzw_wzmocnienie(50, 0));
+    EXPECT(suma[0] > 4000 && suma[0] < 4300 && suma[1] < -4000 && suma[1] > -4300 && suma[3] == 0); /* ~ 1/8 */
+    k1_dzw_dodaj_wzm(suma, pr, 2, K1_DZW_JEDEN);
+    EXPECT(suma[2] > 1000 && suma[2] < 1200);
+    memset(suma, 0, sizeof suma);
+    k1_dzw_dodaj_wzm(suma, pr, 2, k1_dzw_wzmocnienie(80, 1)); /* muted: nothing */
+    EXPECT(suma[0] == 0 && suma[1] == 0 && suma[2] == 0);
+}
+
 int main(void)
 {
     pierscien();
@@ -236,5 +271,6 @@ int main(void)
     klawisze();
     zapamietane();
     komunikaty_kroku2();
+    krok3();
     return K1_TEST_KONIEC("test_dzwiek");
 }

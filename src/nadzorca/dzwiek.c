@@ -7,8 +7,9 @@
  *    punkt 6).
  *  - The clients (k1_dzwiek.h, K1_DZW_KLIENCI): a new socketpair for each, the service's end with the client's row and UID
  *    (DZWIEK_KLIENT), the client's end: gui on its fd 5 (DZWIEK_KANAL), Ustawienia on its fd 4 (step 2: the section Dźwięk),
- *    the test program in TEST_GNIAZDO. Both ends check the sender. A new service, a new gui or new Ustawienia: the channel
- *    again. */
+ *    the test program in TEST_GNIAZDO, and (step 3) the VMM of each zone with a window on its fd 7 (for its guest's
+ *    virtio-snd; the zone's number with it). Both ends check the sender. A new service, a new gui, new Ustawienia or a
+ *    new zone: the channel again. The download zone gets none (no window, nothing to play). */
 #include "nadzorca.h"
 
 #include <dirent.h>
@@ -18,11 +19,20 @@
 int dzwiek_kanal = -1; /* our end of the service's fd 3 (KN_DO: one way) */
 int uevent_dzwiek;      /* a kernel event of "sound" since the last loop pass (urzadzenia.c) */
 static int karta_wyslana, bez_karty_wyslano, gui_wyslano, ustawienia_wyslano;
+static int strefa_wyslano[K1_STREFY_MAKS + 1];
 
 /* A new service: the card and the clients again (KANAL_DZWIEKU, kanaly.h). */
 void dzwiek_nowy_kanal(void)
 {
     karta_wyslana = bez_karty_wyslano = gui_wyslano = ustawienia_wyslano = 0;
+    memset(strefa_wyslano, 0, sizeof strefa_wyslano);
+}
+
+/* Zone nr's channel ended (strefy_siec.c): its next VMM gets a channel of its own. */
+void dzwiek_strefa_koniec(int nr)
+{
+    if (nr >= 1 && nr <= K1_STREFY_MAKS)
+        strefa_wyslano[nr] = 0;
 }
 
 /* A new gui (KANAL_BATERII's new channel): its channel to the service again. */
@@ -109,9 +119,9 @@ static int wyslij_karte(void)
 }
 
 /* A new channel of client `rodzaj` (K1_DZW_KLIENT_*) with UID `uid`: the service gets its end, we return the client's. */
-static int kanal_klienta(int rodzaj, int uid)
+static int kanal_klienta(int rodzaj, int uid, int strefa)
 {
-    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_DZWIEK_KLIENT, 0, rodzaj, uid, 0, 0, 0);
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_DZWIEK_KLIENT, 0, rodzaj, uid, strefa, 0, 0);
     int para[2], tak = 1;
     if (dzwiek_kanal < 0 || k1_kanal_utworz(para) != 0) /* para[0] checks its sender: the service's end */
         return -1;
@@ -129,17 +139,17 @@ static int kanal_klienta(int rodzaj, int uid)
 /* TEST_DZWIEK: the test program as a client (its UID 0), or -1 without the service. */
 int dzwiek_dla_testu(void)
 {
-    return kanal_klienta(K1_DZW_KLIENT_TEST, 0);
+    return kanal_klienta(K1_DZW_KLIENT_TEST, 0, 0);
 }
 
 /* A client's channel in DZWIEK_KANAL on `kanal` (ours to it): 1 when sent (or the client is not there to get one). */
-static int dla_klienta(int kanal, int rodzaj, int uid)
+static int dla_klienta(int kanal, int rodzaj, int uid, int strefa)
 {
     struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_DZWIEK_KANAL, 0, 0, 0, 0, 0, 0);
     int fd;
     if (kanal < 0)
         return 0;
-    fd = kanal_klienta(rodzaj, uid);
+    fd = kanal_klienta(rodzaj, uid, strefa);
     if (fd < 0)
         return 0;
     if (k1_kanal_wyslij(kanal, &k, sizeof k, fd) != 0)
@@ -169,7 +179,10 @@ void dzwiek_okresowe(double t)
     }
     uevent_dzwiek = 0;
     if (!gui_wyslano && gui_kanal_uid == K1_UID_GUI) /* not the password screen */
-        gui_wyslano = dla_klienta(bateria_kanal, K1_DZW_KLIENT_GUI, K1_UID_GUI);
+        gui_wyslano = dla_klienta(bateria_kanal, K1_DZW_KLIENT_GUI, K1_UID_GUI, 0);
     if (!ustawienia_wyslano)
-        ustawienia_wyslano = dla_klienta(ustaw_kanal, K1_DZW_KLIENT_USTAWIENIA, K1_UID_USTAWIENIA);
+        ustawienia_wyslano = dla_klienta(ustaw_kanal, K1_DZW_KLIENT_USTAWIENIA, K1_UID_USTAWIENIA, 0);
+    for (int nr = 1; nr <= K1_STREFY_MAKS; nr++) /* step 3: the VMMs of the zones with a window */
+        if (!strefa_wyslano[nr] && k1_strefa(nr)->okno && strefa_kanal[nr] >= 0)
+            strefa_wyslano[nr] = dla_klienta(strefa_kanal[nr], K1_DZW_KLIENT_STREFA, k1_strefa(nr)->uid, nr);
 }

@@ -389,6 +389,12 @@ static void od_nadzorcy(void)
             vsock_wyslij();
             continue;
         }
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_DZWIEK_KANAL && fd >= 0) { /* 0.12.0 step 3: sound (dzwiek.c) */
+            dzwiek_kanal(fd);
+            close(fd);
+            fd = -1;
+            continue;
+        }
         if (w == K1_ODB_JEST && k.typ == K1_KOM_STREFA_ZAMKNIJ) { /* 0.10.2 step 1: K1 powers off (main.c closes) */
             mz.prosba_nadzorcy = 1;
             continue;

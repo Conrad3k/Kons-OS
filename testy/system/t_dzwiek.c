@@ -4,7 +4,8 @@
  * lives; the service killed — nadzorca starts it again and gui gets a new channel. The sound itself (a tone in a WAV file,
  * the volume, the mute) is scripts/test-dzwiek.sh with QEMU's sound card. Also the scenario of test-dzwiek.sh: the test
  * program kills the service when the script unmutes for the second time (t_dzwiek_opis, from t_opis_scenariusz), and
- * (step 2) gui when the pill of the volume says "muted" for the second time. */
+ * (step 2) gui when the pill of the volume says "muted" for the second time; (step 3) then the test zone that plays a
+ * tone, and the one hostile to its sound card. */
 #include "k1_test.h"
 
 #include "k1_dzwiek.h"
@@ -189,7 +190,7 @@ static int wezly_karty(int *dzwiek)
 
 /* 0.12.0 step 2 (D5): gui killed when the pill of the volume shows "muted" for the second time — right after the mute
  * key, before gui wrote the mute: the new gui gives the service the volume it remembers (unmuted). */
-static void pigulka(const struct k1_opis_el *el, int n)
+static int pigulka(const struct k1_opis_el *el, int n)
 {
     static int bylo, razy, zabity;
     int wyciszona = 0;
@@ -202,13 +203,39 @@ static void pigulka(const struct k1_opis_el *el, int n)
         k1_log(TAG, "dźwięk: pulpit %s (pid %ld)", zabity ? "zabity" : "nie zabity", pid);
     }
     bylo = wyciszona;
+    return zabity;
+}
+
+/* 0.12.0 step 3: after gui was killed and the script closed Ustawienia — the test zone with a tone (TRYB_DZWIEK: the script
+ * clicks the speaker on its bar); when it ended — the zone hostile to the sound card (its VMM must end it). Never waits
+ * here: the description goes on while the zone plays. */
+static void strefy(const struct k1_opis_el *el, int n, int pulpit_zabity)
+{
+    static int ustawienia, etap, dzialala;
+    int jest = 0;
+    for (int i = 0; i < n; i++)
+        jest |= el[i].rodzaj == K1_EL_OKNO && strncmp(el[i].nazwa, "Ustawienia", sizeof el[i].nazwa) == 0;
+    if (etap == 0 && pulpit_zabity && ustawienia && !jest) {
+        etap = 1;
+        k1_log(TAG, "dźwięk: strefa próbna gra ton — %s",
+               zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_DZWIEK, 0, 0, 0), NULL,
+                       10) == 0 ? "uruchomiona" : "NIE uruchomiona");
+    } else if (etap == 1 && find_process("strefa") > 0) {
+        dzialala = 1;
+    } else if (etap == 1 && dzialala) {
+        etap = 2;
+        k1_log(TAG, "dźwięk: strefa złośliwa dla karty — %s",
+               zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_DZWIEK_ZLY, 0, 0, 0),
+                       NULL, 10) == 0 ? "uruchomiona" : "NIE uruchomiona");
+    }
+    ustawienia |= jest;
 }
 
 void t_dzwiek_opis(const struct k1_opis_el *el, int n)
 {
     static int bylo_wyciszone, odciszenia, zabita, sprawdzone;
     int wyciszone = -1;
-    pigulka(el, n);
+    strefy(el, n, pigulka(el, n));
     for (int i = 0; i < n; i++)
         if (strncmp(el[i].nazwa, "Wycisz", sizeof el[i].nazwa) == 0)
             wyciszone = (el[i].stan & K1_EL_WYBRANY) != 0;

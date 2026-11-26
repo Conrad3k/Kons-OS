@@ -8,7 +8,9 @@
  * (DZWIEK_GLOSNOSC); every client hears the state (DZWIEK_STAN) and how much of its ring was played (DZWIEK_ODTWORZONO).
  * Nothing plays for K1_DZW_CISZA_S seconds: the card stops and frees its buffer (T8). Step 2: the output — the headphones
  * while something is in their jack (kontrolki.c; the kernel mutes the speakers itself), each output with a volume and a
- * mute of its own (D5: gui remembers them and gives them to every new service).
+ * mute of its own (D5: gui remembers them and gives them to every new service). Step 3: a zone's VMM is a client for
+ * its guest (virtio-snd) — one per zone; each session has a volume and a mute of its own (DZWIEK_GLOSNOSC d), and the
+ * steering clients hear which session plays (DZWIEK_SESJA: gui's list "Grają teraz", the speaker on its window's bar).
  * Trust boundary: the clients are hostile (from step 3 a zone's VMM speaks for the guest): every message checked field by
  * field (k1_komunikat_sprawdz, sender UID), the frames counted by the service (k1_dzw_zapisano), the ring copied before
  * use. Sandbox: UID 111, no paths, seccomp: the base + the ALSA ioctls it uses (KLATKA_DZWIEK). The log: numbers and the
@@ -29,16 +31,18 @@
 #include "k1_log.h"
 #include "k1_odbior.h"
 
-#define KLIENCI_MAKS 8      /* channels at once (gui, the test program; step 3: the zones with a window) */
+#define KLIENCI_MAKS 12     /* channels at once (gui, Ustawienia, the test program, a VMM per zone with a window) */
 #define ODRZUCONE_MAKS 16   /* a client that sends this many bad messages loses its channel */
-#define ZGLOS_CO (4 * K1_DZW_OKRES) /* DZWIEK_ODTWORZONO after this many frames taken (or at the end) */
+#define ZGLOS_CO K1_DZW_OKRES /* DZWIEK_ODTWORZONO after each period taken (or at the end): a zone gives its guest
+                               * back each transfer when it was played (step 3) */
 
 struct klient {
-    int fd, rodzaj;
+    int fd, rodzaj, strefa;   /* strefa: the zone of a client STREFA (1..K1_STREFY_MAKS), else 0 */
     uid_t uid;
     const int16_t *pierscien; /* mapped read only; NULL: no stream */
     struct k1_dzw_pierscien p;
     int zamyka;               /* ZAMKNIJ after what was written plays */
+    int zerwany;              /* step 3: the card failed while it played — ZAPISANO already on its way is no broken rule */
     uint32_t niezgloszone;    /* taken since the last ODTWORZONO */
     unsigned odrzucone;
 };
@@ -48,6 +52,11 @@ static int stan_karty = K1_DZW_KARTA_SZUKA;
 static int glosnosc[K1_DZW_WYJSCIE_MAKS + 1] = { 0, K1_DZW_GLOSNOSC_START, K1_DZW_GLOSNOSC_START };
 static int wyciszone[K1_DZW_WYJSCIE_MAKS + 1];
 static double cisza_od;   /* CLOCK_MONOTONIC when the last stream ended */
+static struct sesja {
+    int glosnosc, wyciszona; /* the session's own, on top of K1's (step 3) */
+    int gra, zgloszona;      /* it plays now; what the steering clients were told (-1: nothing yet) */
+    double gral;             /* when frames of it were last taken */
+} sesje[K1_STREFY_MAKS + 1];
 static unsigned long przyciete;
 
 static double teraz(void)
@@ -74,6 +83,36 @@ static void stan_wszystkim(void)
     for (int i = 0; i < KLIENCI_MAKS; i++)
         if (klienci[i].fd >= 0)
             wyslij(&klienci[i], stan());
+}
+
+static struct k1_komunikat sesja(int nr)
+{
+    const struct sesja *z = &sesje[nr];
+    return k1_komunikat_nowy(K1_KOM_DZWIEK_SESJA, 0, nr, z->gra, z->glosnosc, z->wyciszona, 0);
+}
+
+/* Which session plays (K1_DZW_GRA_S after its last frames), its volume, its mute — to the steering clients when it
+ * changed; to one new steering client `nowy`: every session that is not as at the start. */
+static void sesje_zglos(struct klient *nowy)
+{
+    double t = teraz();
+    for (int nr = 1; nr <= K1_STREFY_MAKS; nr++) {
+        struct sesja *z = &sesje[nr];
+        int stan;
+        z->gra = z->gral > 0 && t - z->gral < K1_DZW_GRA_S;
+        stan = z->gra | z->wyciszona << 1 | z->glosnosc << 2;
+        if (nowy != NULL) {
+            if (stan != (K1_DZW_SESJA_START << 2))
+                wyslij(nowy, sesja(nr));
+            continue;
+        }
+        if (stan == z->zgloszona)
+            continue;
+        z->zgloszona = stan;
+        for (int i = 0; i < KLIENCI_MAKS; i++)
+            if (klienci[i].fd >= 0 && k1_dzw_klient_steruje(klienci[i].rodzaj))
+                wyslij(&klienci[i], sesja(nr));
+    }
 }
 
 static void zamknij_strumien(struct klient *k, int zglos)
@@ -135,9 +174,12 @@ static int od_klienta(struct klient *k, const struct k1_komunikat *m, int fd)
     case K1_KOM_DZWIEK_OTWORZ:
         if (k->pierscien != NULL)
             return -1; /* one stream per client */
+        k->zerwany = 0;
         otworz(k, fd);
         break;
     case K1_KOM_DZWIEK_ZAPISANO:
+        if (k->pierscien == NULL && k->zerwany)
+            break; /* written before it heard that the card failed and its stream ended */
         if (k->pierscien == NULL || k->zamyka || k1_dzw_zapisano(&k->p, (uint32_t)m->a) != 0)
             return -1; /* more than the ring holds, or no stream: the rules broken */
         break;
@@ -153,6 +195,13 @@ static int od_klienta(struct klient *k, const struct k1_komunikat *m, int fd)
         int w = m->c != K1_DZW_WYJSCIE_BRAK ? m->c : kontrolki_wyjscie();
         if (!k1_dzw_klient_steruje(k->rodzaj))
             return -1;
+        if (m->d != 0) { /* step 3: a session's own (no number of it in the log: only that one changed) */
+            sesje[m->d].glosnosc = m->a;
+            sesje[m->d].wyciszona = m->b;
+            k1_log(TAG, "sesja %d: głośność %d%%%s", m->d, m->a, m->b ? ", wyciszona" : "");
+            sesje_zglos(NULL);
+            break;
+        }
         if (m->a == glosnosc[w] && m->b == wyciszone[w])
             break;
         k1_log(TAG, "głośność %d%%%s (%s)", m->a, m->b ? ", wyciszone" : "", k1_dzw_wyjscie_nazwa(w));
@@ -198,8 +247,11 @@ static void nowy_klient(const struct k1_komunikat *m, int fd)
             klienci[i].fd = fd;
             klienci[i].rodzaj = m->a;
             klienci[i].uid = (uid_t)m->b;
+            klienci[i].strefa = m->c;
             k1_log(TAG, "klient %s: kanał", k1_dzw_klient_nazwa(m->a));
             wyslij(&klienci[i], stan());
+            if (k1_dzw_klient_steruje(m->a))
+                sesje_zglos(&klienci[i]);
             return;
         }
     k1_log(TAG, "za dużo klientów: kanał zamknięty");
@@ -260,7 +312,14 @@ static void okres(void)
         if (k->fd < 0 || k->pierscien == NULL)
             continue;
         n = k1_dzw_pobierz(&k->p, k->pierscien, kopia, K1_DZW_OKRES); /* copied first: the client may write meanwhile */
-        k1_dzw_dodaj(suma, kopia, n);                                  /* missing frames are silence */
+        if (k->strefa == 0) {
+            k1_dzw_dodaj(suma, kopia, n); /* missing frames are silence */
+        } else { /* step 3: a session at its own volume */
+            struct sesja *z = &sesje[k->strefa];
+            k1_dzw_dodaj_wzm(suma, kopia, n, k1_dzw_wzmocnienie(z->glosnosc, z->wyciszona));
+            if (n > 0)
+                z->gral = teraz();
+        }
         k->niezgloszone += n;
         if (k->zamyka && k1_dzw_czeka(&k->p) == 0)
             zamknij_strumien(k, 1);
@@ -276,8 +335,10 @@ static void okres(void)
         k1_log(TAG, "karta przestała grać");
         stan_karty = K1_DZW_KARTA_BLAD;
         for (int i = 0; i < KLIENCI_MAKS; i++)
-            if (klienci[i].fd >= 0 && klienci[i].pierscien != NULL)
+            if (klienci[i].fd >= 0 && klienci[i].pierscien != NULL) {
                 zamknij_strumien(&klienci[i], 1);
+                klienci[i].zerwany = 1;
+            }
         stan_wszystkim();
     }
 }
@@ -317,6 +378,8 @@ int main(void)
     k1_klatka_w_usludze(TAG);
     for (int i = 0; i < KLIENCI_MAKS; i++)
         klienci[i].fd = -1;
+    for (int nr = 0; nr <= K1_STREFY_MAKS; nr++)
+        sesje[nr] = (struct sesja){ K1_DZW_SESJA_START, 0, 0, -1, 0 };
     k1_log(TAG, "gotowa (48 kHz, 16 bitów, stereo; głośność %d%%)", glosnosc[K1_DZW_WYJSCIE_GLOSNIKI]);
     for (;;) {
         struct pollfd pfd[3 + KLIENCI_MAKS];
@@ -328,6 +391,9 @@ int main(void)
             pfd[n++] = (struct pollfd){ klienci[i].fd, POLLIN, 0 };
         if (kfd >= 0 && strumienie() == 0)
             czas = 250; /* the silence after the last stream: look whether it is time to sleep */
+        for (int nr = 1; nr <= K1_STREFY_MAKS; nr++)
+            if (sesje[nr].gra && (czas < 0 || czas > 250))
+                czas = 250; /* step 3: a session that stopped playing is said within a quarter of a second */
         if (poll(pfd, (nfds_t)n, czas) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
         if (pfd[0].revents & (POLLIN | POLLHUP | POLLERR))
@@ -341,5 +407,6 @@ int main(void)
                 obsluz_klienta(&klienci[i]);
         if (kfd >= 0)
             graj((pfd[1].revents & (POLLOUT | POLLERR)) != 0);
+        sesje_zglos(NULL);
     }
 }

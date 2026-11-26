@@ -157,6 +157,9 @@ i tak ma całą swoją maszynę; testy złośliwego gościa). Bez PCI, ACPI, mod
 zabijały przeglądarkę; jądro K1 dalej bez swapu — niezmiennik 3 dotyczy świata natywnego, ADR 0042 T4); SquashFS
 `FILE_DIRECT` i `COMPILE_DECOMP_MULTI_PERCPU` — bloki obrazu rozpakowywane wprost do pamięci podręcznej stron i na każdym
 procesorze osobno (S30: szybszy start przeglądarki).
+0.12.0 krok 3 (ADR 0054 T5): **`SOUND`, `SND`, `SND_VIRTIO`** — karta virtio-snd, którą udaje VMM strefy (przeglądarka gra
+przez ALSA); wprost wyłączone opcje „default y” (OSS, timery, `/proc/asound`, stare ioctl, karty PCI/USB/FireWire/x86/SoC,
+sekwencer, zastępcze), żeby robot nie miał pytań (`porownaj-jadro.sh`: 0).
 0.10.0 krok 5: **`EXT4_FS`** — dysk sesji, która pamięta (`/dev/vdb`): ext4 z dziennikiem (przerwane wyłączenie naprawia
 jądro gościa przy montowaniu; `JBD2`, `CRC32` jako biblioteka, bez `CRYPTO`); pusty system plików robi budowa
 (`mke2fs`), w strefie nie ma `mkfs` (ADR 0042 T11).

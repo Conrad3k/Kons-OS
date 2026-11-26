@@ -10,6 +10,7 @@
  *   fd 7 = the channel to nadzorca for the browser's connections (polaczenia.c; 0.10.0 step 2, ADR 0043 T9),
  *   fd 8, 9 = a zone that remembers: a channel to skarbiec and its empty disk (dane.c; 0.10.0 step 5) — or neither,
  *   fd 10 = a session with fast graphics on (0.10.9 step 6): the channel to its graphics broker (gpu_lacze.c) — or none
+ *   (0.12.0 step 3: the channel to K1's sound service comes later on fd 7 — DZWIEK_KANAL, dzwiek.c)
  *   (fd 8, 9 then hold /dev/null when the zone forgets).
  * Trust boundary: the guest is hostile (strefa.h); ekran and nadzorca are trusted. The machine ends when the guest
  * ends, when it does something only a hostile guest does (the reason in the log), or ZAMKNIJ_S after "close" (K1_KOM_ZAMKNIJ
@@ -168,19 +169,26 @@ static void zamknij(const char *kto)
 static void petla(void)
 {
     while (!mz.koniec) {
-        struct pollfd p[2 + 2 + K1_STREFA_POLACZENIA_MAKS] = { { mz.budzik, POLLIN, 0 }, { okno_fd(), POLLIN, 0 } };
+        struct pollfd p[3 + 2 + K1_STREFA_POLACZENIA_MAKS] = { { mz.budzik, POLLIN, 0 }, { okno_fd(), POLLIN, 0 },
+                                                                { dzwiek_fd(), POLLIN, 0 } };
         int czas = zamknij_do > 0 ? 500 : 1000, n;
         if (okno_czas_ms() >= 0)
             czas = okno_czas_ms(); /* the start screen's bar moves */
         if (schowek_czeka_ms() >= 0 && schowek_czeka_ms() < czas)
             czas = schowek_czeka_ms(); /* 0.11.0 step 5: keys held for the clipboard go on time */
+        if (dzwiek_czas_ms() >= 0 && dzwiek_czas_ms() < czas)
+            czas = dzwiek_czas_ms(); /* 0.12.0 step 3: the sound card's own clock (no sound service) */
         petla_krok("deskryptory połączeń");
-        n = 2 + pol_deskryptory(p + 2, 2 + K1_STREFA_POLACZENIA_MAKS);
+        n = 3 + pol_deskryptory(p + 3, 2 + K1_STREFA_POLACZENIA_MAKS);
         petla_krok("poll");
         if (poll(p, (nfds_t)n, czas) < 0 && errno != EINTR)
             koniec("poll nieudane");
         petla_krok("gniazda połączeń");
-        pol_obsluz(p + 2, n - 2);
+        pol_obsluz(p + 3, n - 3);
+        petla_krok("dźwięk");
+        if (p[2].fd >= 0 && (p[2].revents & (POLLIN | POLLHUP | POLLERR)))
+            dzwiek_odbierz();
+        dzwiek_zegar();
         if (p[0].revents & POLLIN) {
             uint64_t v;
             if (read(mz.budzik, &v, sizeof v) < 0)
@@ -251,6 +259,7 @@ int main(int argc, char **argv)
     dane_koniec();
     gpu_lacze_koniec();
     pol_podsumowanie();
+    dzwiek_podsumowanie();
     pliki_podsumowanie();
     wejscie_podsumowanie();
     vsock_podsumowanie();

@@ -45,7 +45,8 @@
     X(EKRAN, gpu_ops)     \
     X(VSOCK, vsock_ops)   \
     X(DANE, dane_ops)     \
-    X(BALON, balon_ops)
+    X(BALON, balon_ops)   \
+    X(DZWIEK, dzwiek_ops) /* 0.12.0 step 3: virtio-snd (dzwiek.c) */
 #define X_URZ(n, ops) URZ_##n,
 enum { K1_URZADZENIA(X_URZ) URZ_LICZBA };
 #undef X_URZ
@@ -101,7 +102,7 @@ extern struct maszyna mz;
 #define ST_TRYB_ZLOSLIWY 4 /* test modes 1..4 and K1_STREFA_TRYB_BALON_OD..DO: a hostile guest (gosc/zlosliwy.c) */
 static inline int zlosliwy_gosc(void)
 {
-    return (mz.tryb >= 1 && mz.tryb <= ST_TRYB_ZLOSLIWY) ||
+    return (mz.tryb >= 1 && mz.tryb <= ST_TRYB_ZLOSLIWY) || mz.tryb == K1_STREFA_TRYB_DZWIEK_ZLY ||
            (mz.tryb >= K1_STREFA_TRYB_BALON_OD && mz.tryb <= K1_STREFA_TRYB_BALON_DO) ||
            (mz.tryb >= K1_STREFA_TRYB_VSOCK_OD && mz.tryb <= K1_STREFA_TRYB_VSOCK_DO);
 }
@@ -111,6 +112,8 @@ static inline int zlosliwy_slot(void)
 {
     if (!zlosliwy_gosc())
         return -1;
+    if (mz.tryb == K1_STREFA_TRYB_DZWIEK_ZLY)
+        return URZ_DZWIEK; /* 0.12.0 step 3 */
     return mz.tryb >= K1_STREFA_TRYB_VSOCK_OD ? URZ_VSOCK : URZ_LOSOWOSC;
 }
 
@@ -184,6 +187,15 @@ void balon_stan(struct balon_stan *s);                       /* vsock.c: the las
 int dane_start(void);   /* dane.c: the disk (fd 8, 9 — or none) and its thread; 0, or -1 */
 void dane_koniec(void); /* its thread ends, the dirty pieces are saved (at most 20 s), the numbers to the log */
 extern const struct mmio_ops blk_ops, konsola_ops, rng_ops, klawiatura_ops, mysz_ops, gpu_ops, vsock_ops, dane_ops,
-    balon_ops;
+    balon_ops, dzwiek_ops;
+
+/* dzwiek.c (0.12.0 step 3, ADR 0054 T5): the guest's sound card and the channel to K1's sound service (from nadzorca on
+ * fd 7: DZWIEK_KANAL; the main thread) */
+void dzwiek_kanal(int fd);   /* a new channel (the caller holds mz.zamek and closes `fd`; it is duplicated) */
+int dzwiek_fd(void);         /* for poll, -1 */
+void dzwiek_odbierz(void);   /* what the service said */
+int dzwiek_czas_ms(void);    /* without the service the device keeps its own clock: how soon to come back (-1: no need) */
+void dzwiek_zegar(void);     /* every loop: the transfers the own clock allows */
+void dzwiek_podsumowanie(void);
 
 #endif

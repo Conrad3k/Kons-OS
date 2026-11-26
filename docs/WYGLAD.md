@@ -111,6 +111,13 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   i 0 %, blada (krem 27%) i przekreślona bez karty (jak sieć bez karty) — `K1_IK_GLOSNIK`, `_CICHO`, `_WYCISZONY`.
   Od 0.12.0 krok 2 w prawym górnym rogu nazwa wyjścia, które gra („Głośniki” / „Słuchawki”); suwak to wspólny `k1_suwak`
   przybornika (okienko, Ustawienia → Dźwięk, pigułka głośności).
+- **Grają teraz** (0.12.0 krok 3, D2: B — szkic „lista” z 2026-11-25): pod kreską okienka „Dźwięk” napis „Grają teraz”
+  (Sans 13, tekst drugi), potem wiersz 36 px na sesję: kropka 10 px w kolorze sesji, nazwa (Medium 13), okrągły przycisk
+  wyciszenia 24 px (wyciszona — akcent), suwak sesji (`k1_suwak`) i procenty z prawej; „Odtwórz próbę” pod listą. Bez sesji,
+  które grają, okienko wygląda jak w kroku 1 (wzorce bez zmian).
+- **Głośnik na pasku sesji** (0.12.0 krok 3, szkic A — decyzja właściciela D6 z 2026-11-25): zaraz po nazwie sesji (i znaku
+  szybkiej grafiki) 6 px odstępu, pole 30 × 24 z ikoną głośnika 16 px w kolorze ikony paska; pod kursorem tło
+  „najechanie”; wyciszona — pole w akcencie (pełne zaokrąglenie), głośnik z × w kolorze „na akcencie”.
 - **Pigułka głośności** (0.12.0 krok 2, szkic A — decyzja właściciela D4 z 2026-11-25): rysuje ekran na 1,5 s po klawiszu
   głośności, 300 × 44, zaokrąglenie 22 (pełne), tło motywu (alfa 245), cienka obwódka (tekst 9%), cień; wyśrodkowana,
   16 px pod górnym paskiem (przy pełnym ekranie 16 px od krawędzi). Z lewej głośnik stanu 18 px (16 px od brzegu), od 48 px

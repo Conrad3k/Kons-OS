@@ -10,7 +10,10 @@
  * 0.10.5 step 5 (Raptor Bridge, S35): in TRYB_VSOCK_* the VMM leaves the vsock device out of the kernel's command line
  * instead, and this program speaks vsock itself (zlosliwy_vsock): 14 more connections than places, packets to ports
  * nobody listens on and of unknown kinds (refused, the machine lives), then more bytes than the credit allows — the
- * machine ends; 15 a packet with a wrong address — the machine ends (scripts/test-most.sh). */
+ * machine ends; 15 a packet with a wrong address — the machine ends (scripts/test-most.sh).
+ * 0.12.0 step 3: in TRYB_DZWIEK_ZLY (22) the VMM leaves its sound card (virtio-snd, slot DZWIEK) out instead: a format
+ * K1 does not play (answered "not supported", the machine lives), then a request with no room for its answer — the
+ * machine ends (scripts/test-dzwiek.sh). */
 #include <fcntl.h>
 #include <poll.h>
 #include <string.h>
@@ -19,12 +22,14 @@
 
 #include <linux/virtio_mmio.h>
 #include <linux/virtio_ring.h>
+#include <linux/virtio_snd.h>
 #include <linux/virtio_vsock.h>
 
 #include "gosc.h"
 
 #define REJESTRY 0xd0002000ul    /* slot 2 of src/strefa/strefa.h: MMIO_BAZA + 2 × 4 KiB */
 #define REJESTRY_VSOCK 0xd0006000ul /* slot 6: URZ_VSOCK */
+#define REJESTRY_DZWIEK 0xd0009000ul /* slot 9: URZ_DZWIEK (0.12.0 step 3) */
 #define OBSZAR 0x3f00000ul       /* memmap=1M$0x3f00000 (src/strefa/main.c) */
 #define OBSZAR_DL (1ul << 20)
 #define DESC 0x0
@@ -194,6 +199,46 @@ void zlosliwy_vsock(int tryb)
     for (i = 0; i < 3; i++) /* 3 × 30000 B without waiting for credit: more than the 65536 B the VMM gave */
         v_pakiet(3, 1000, 2, VIRTIO_VSOCK_OP_RW, 30000);
     v_wyslij();
+    sleep(10);
+}
+
+/* One request on the control queue (entry `nr`): `req` (n bytes) and an answer of `odp` bytes; its answer's code (0: none
+ * within 3 s — the machine may be gone). */
+static uint32_t d_prosba(uint16_t nr, const void *req, uint32_t n, uint32_t odp)
+{
+    uint32_t kod = 0;
+    uint16_t uzyte, idx = (uint16_t)(nr + 1);
+    memcpy(pam + DANE, req, n);
+    memset(pam + DANE + 256, 0, 64);
+    opis(2 * nr, OBSZAR + DANE, n, VRING_DESC_F_NEXT, (uint16_t)(2 * nr + 1));
+    opis(2 * nr + 1, OBSZAR + DANE + 256, odp, VRING_DESC_F_WRITE, 0);
+    memcpy(pam + AVAIL + 4 + 2 * nr, &(uint16_t){ (uint16_t)(2 * nr) }, 2);
+    __atomic_thread_fence(__ATOMIC_SEQ_CST);
+    memcpy(pam + AVAIL + 2, &idx, 2);
+    pisz(VIRTIO_MMIO_QUEUE_NOTIFY, 0);
+    for (int i = 0; i < 300; i++) {
+        memcpy(&uzyte, pam + USED + 2, 2);
+        if (uzyte == idx)
+            break;
+        poll(NULL, 0, 10);
+    }
+    memcpy(&kod, pam + DANE + 256, 4);
+    return kod;
+}
+
+void zlosliwy_dzwiek(void)
+{
+    struct virtio_snd_pcm_set_params p = { .hdr = { { VIRTIO_SND_R_PCM_SET_PARAMS }, 0 }, .buffer_bytes = 16384,
+                                           .period_bytes = 4096, .channels = 2, .format = VIRTIO_SND_PCM_FMT_U8,
+                                           .rate = VIRTIO_SND_PCM_RATE_48000 };
+    struct virtio_snd_query_info q = { { VIRTIO_SND_R_PCM_INFO }, 0, 1, sizeof(struct virtio_snd_pcm_info) };
+    if (mapuj(TRYB_DZWIEK_ZLY, REJESTRY_DZWIEK) != 0)
+        return;
+    przygotuj(0);
+    loguj("tryb %d: dźwięk — format, którego K1 nie gra: odpowiedź %#x", TRYB_DZWIEK_ZLY,
+          (unsigned)d_prosba(0, &p, sizeof p, 4));
+    loguj("tryb %d: dźwięk — prośba bez miejsca na odpowiedź", TRYB_DZWIEK_ZLY);
+    d_prosba(1, &q, sizeof q, 2);
     sleep(10);
 }
 

@@ -22,6 +22,10 @@ int obraz_zmiany_fd(void);              /* 0.10.5 step 4: readable when K1 gave 
 int obraz_zmiana(void);                 /* 1: a new size (draw again) */
 int obraz_rozmiar(uint32_t *w, uint32_t *h); /* 0.10.11 step 2: the display's size; -1: no display */
 
+/* dzwiek.c (0.12.0 step 3): TRYB_DZWIEK — a tone through virtio-snd, then the end */
+void dzwiek_ton(void);
+void zlosliwy_dzwiek(void); /* zlosliwy.c: TRYB_DZWIEK_ZLY — a format K1 refuses, then a request with no room for its answer */
+
 /* przegladarka.c — the browser zone (0.10.0 step 2): the image has the compositor and the browser */
 int przegladarka_jest(void);
 void przegladarka(int ster);            /* returns when the machine should end */
@@ -59,7 +63,8 @@ enum { TRYB_ZWYKLY = 0, TRYB_ZLY_ADRES = 1, TRYB_PETLA = 2, TRYB_DLUGOSC = 3, TR
        TRYB_VSOCK_KREDYT = 14, TRYB_VSOCK_ADRES = 15 /* 0.10.5 step 5: hostile to vsock (zlosliwy_vsock.c) */,
        TRYB_GRAFIKA = 16, TRYB_GRAFIKA_ZLA = 17 /* 0.10.9 step 6: fast graphics, honest / hostile (grafika.c) */,
        TRYB_POBRANIE = 18, TRYB_POBRANIE_ZLE = 19 /* 0.11.0 step 2: files into Pliki, honest / hostile (pobrane.c) */,
-       TRYB_ODBIOR = 20 /* 0.11.0 step 3: files from K1 and their changed versions back (odbior.c) */ };
+       TRYB_ODBIOR = 20 /* 0.11.0 step 3: files from K1 and their changed versions back (odbior.c) */,
+       TRYB_DZWIEK = 21, TRYB_DZWIEK_ZLY = 22 /* 0.12.0 step 3: a tone (dzwiek.c) / hostile to the sound card (zlosliwy.c) */ };
 #define OKNO_PO_S 8
 #define ZAMYKANIE_S 6
 int zlosliwy(int tryb);                 /* returns only when the VMM did not stop the machine */

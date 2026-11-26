@@ -256,6 +256,13 @@ static void tryb_jednorazowy(int t)
         odbior();
         wylacz();
     }
+    if (t == TRYB_DZWIEK || t == TRYB_DZWIEK_ZLY) { /* 0.12.0 step 3: the sound card, then the end */
+        if (t == TRYB_DZWIEK)
+            dzwiek_ton();
+        else
+            zlosliwy_dzwiek();
+        wylacz();
+    }
     if (t == TRYB_PAMIEC) { /* 0.10.1 step 2: the balloon's scenario, then the end */
         pamiec_proba();
         wylacz();
