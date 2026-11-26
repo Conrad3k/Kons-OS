@@ -156,7 +156,7 @@ int k1_dzwk_odbierz(struct k1_dzw_polaczenie *k)
         } else if (m.typ == K1_KOM_DZWIEK_KOREKTOR_STAN) { /* 0.12.3 step 2 (checked: k1_kom_dzwiek.c) */
             int32_t f[3] = { m.b, m.c, m.d };
             int8_t p[K1_KOR_PASMA_N];
-            if (k1_kor_z_pol(f, p) == 0 && memcmp(p, k->korektor[m.a], sizeof p) != 0) {
+            if (k1_kor_z_pol(f, p) == 0) { /* every one: gui learns that the service has its remembered bands */
                 memcpy(k->korektor[m.a], p, sizeof p);
                 r |= K1_DZWK_KOREKTOR;
             }

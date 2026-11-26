@@ -37,7 +37,7 @@ void k1_dzwk_kanal(struct k1_dzw_polaczenie *k, int fd);
 #define K1_DZWK_PROBA 2  /* the sample ended */
 #define K1_DZWK_KONIEC 4 /* the channel closed (the service ended: a new one comes from nadzorca) */
 #define K1_DZWK_SESJE 8  /* step 3: DZWIEK_SESJA — a session started or stopped playing, its volume, its mute */
-#define K1_DZWK_KOREKTOR 16 /* 0.12.3 step 2: DZWIEK_KOREKTOR_STAN — an output's equalizer changed */
+#define K1_DZWK_KOREKTOR 16 /* 0.12.3 step 2: DZWIEK_KOREKTOR_STAN — an output's equalizer (changed or not) */
 int k1_dzwk_odbierz(struct k1_dzw_polaczenie *k);
 /* The volume and the mute of `wyjscie` (K1_DZW_WYJSCIE_*; BRAK: the one playing now) to the service; of the one playing
  * now: also in our state at once (the service confirms with STAN). */

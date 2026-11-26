@@ -257,17 +257,23 @@ static int pigulka(const struct k1_opis_el *el, int n)
 static void strefy(const struct k1_opis_el *el, int n, int pulpit_zabity)
 {
     static int ustawienia, etap, dzialala;
-    int jest = 0;
-    for (int i = 0; i < n; i++)
+    int jest = 0, okno_strefy = 0;
+    for (int i = 0; i < n; i++) {
         jest |= el[i].rodzaj == K1_EL_OKNO && strncmp(el[i].nazwa, "Ustawienia", sizeof el[i].nazwa) == 0;
+        okno_strefy |= el[i].rodzaj == K1_EL_OKNO && strncmp(el[i].nazwa, "Strefa próbna", sizeof el[i].nazwa) == 0;
+    }
     if (etap == 0 && pulpit_zabity && ustawienia && !jest) {
         etap = 1;
         k1_log(TAG, "dźwięk: strefa próbna gra ton — %s",
                zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_DZWIEK, 0, 0, 0), NULL,
                        10) == 0 ? "uruchomiona" : "NIE uruchomiona");
-    } else if (etap == 1 && find_process("strefa") > 0) {
+    } else if (etap == 1 && (okno_strefy || (!dzialala && find_process("strefa") > 0))) {
         dzialala = 1;
     } else if (etap == 1 && dzialala) {
+        /* its window gone: the description may not change again, so the VMM's end is awaited here (in emulation
+         * nadzorca collected it after the last description — the hostile zone never started; 0.12.3 step 2) */
+        for (int i = 0; i < 100 && find_process("strefa") > 0; i++)
+            msleep(100);
         etap = 2;
         k1_log(TAG, "dźwięk: strefa złośliwa dla karty — %s",
                zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_DZWIEK_ZLY, 0, 0, 0),
