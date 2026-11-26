@@ -1,0 +1,371 @@
+K1 — PLAN WERSJI 0.13.2 „FILMY KARTĄ” (krok w temacie 0.10 Strefy, wydany po 0.13.0; ADR 0049)
+=============================================================================================
+
+Data: 2026-11-26 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-26, w trakcie
+prac nad 0.13.0): „napisz plan na 0.13.2, w której dodamy dekodowanie filmów GPU w przeglądarce, gdyż obecnie to
+idiotyczne, że robi to CPU”. To powrót „może: filmy kartą” z docs/DO_ZROBIENIA.txt (punkt 3): filmy kartą wypadły
+z 0.10.9 (decyzja właściciela 2026-11-20), a strona K1 — usługa „dekoder filmów” — jest w systemie od 0.10.9 krok 2
+i czeka uśpiona (docs/komponenty/filmy.md). Brakuje całej strony strefy: drogi VMM → dekoder filmów, sterownika VA
+w strefie, FFmpeg w strefie, prefów Firefoksa i linii w Ustawieniach.
+Wersja stoi na 0.13.0 „Bezpieczny start” (docs/PLAN-0.13.0.txt — jest w trakcie) i na 0.10.9–0.10.11 (szybka grafika:
+pośrednik grafiki, most native context, bufory karty strefy na ekranie K1; ADR 0049, 0051). Numer 0.13.2 wybrał właściciel
+(robot może zająć 0.13.1 i dalsze — punkt 0). Źródła: docs/archiwum/PLAN-0.10.9.txt (krok 3 — zadania strony strefy, luki
+S18–S25, decyzje D4, D9, T3–T9), ADR 0049 (pkt 4–6, 8), docs/komponenty/filmy.md, posrednik.md, strefa.md.
+Ten plik jest SAMODZIELNY: cel, kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+Plik jest planem, nie specyfikacją: zmiany w ADR 0049 (droga w strefie, kiedy startuje dekoder strefy, bramka zysku)
+ustala ADR kroku 1 (następny wolny numer — 0.13.0 przewiduje 0056–0062, więc tu prawdopodobnie 0063).
+
+
+CEL WERSJI (jednym akapitem)
+----------------------------
+Po 0.13.2 film w przeglądarce (YouTube i inne strony) rozpakowuje karta graficzna laptopa, nie procesor: płynniej,
+ciszej, chłodniej i dłużej na baterii. Strefa dalej nie steruje kartą: wysyła do K1 tylko skompresowane dane filmu,
+a mały proces K1 w klatce (dekoder filmów, jeden na sesję) sprawdza każde pole i dopiero wtedy daje je karcie. Gotowa
+klatka wraca do przeglądarki — w sesji z szybką grafiką bez kopiowania przez procesor (jeśli krok 1 to potwierdzi).
+Działa na IdeaPadzie (sesja z szybką grafiką); X230 — tylko jeśli krok 1 pokaże, że Firefox przyjmie kartę do filmów
+bez szybkiej grafiki (D4). Przy okazji przeglądarka zaczyna w ogóle odtwarzać filmy H.264 (dziś nie gra ich wcale —
+w strefie nie ma FFmpeg).
+
+Kroki: PIĘĆ. 1 — próba ze źródeł i na stanowisku, ADR (jak dokładnie płynie film i klatka). 2 — FFmpeg i libva
+w strefie (H.264 gra, na razie procesorem). 3 — droga w K1: kontekst filmów w VMM-ie, dekoder filmów strefy na prośbę.
+4 — sterownik VA w strefie, prefy Firefoksa, prośba o H.264, Ustawienia; test właściciela na IdeaPadzie. 5 — porządki
+i wydanie 0.13.2.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe kroki i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”); wyjątek:
+błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; wydanie jest zawsze ostatnim
+krokiem (nowy krok bierze numer kroku wydania, wydanie przesuwa się na koniec, póki się nie zaczęło); krok, który nie
+zmieści się w jednym czacie, dzieli się na 3a/3b, 4a/4b … (wydanie w ostatniej części ostatniego kroku).
+
+Oznaczenia:  [!] decyzja albo działanie właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.12.3, 2026-11-26), ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą),
+POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku — nie zakładać). Plan pisany bez build/zrodla (kontener bez
+pobranych źródeł) — każda nazwa prefu, ioctl i funkcji VA spoza kodu K1 jest NIEPEWNA, póki krok 1 jej nie sprawdzi.
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejność: 1, 2, 3, 4, 5. Pierwszy krok zaczyna się PO WYDANIU
+0.13.0 (SPEC §2: jeden etap naraz; 0.13.0 krok 4 decyduje D5 — czy Ogólna ma szybką grafikę domyślnie, a filmy kartą
+idą za tym przełącznikiem). Kroki 2 i 3 nie zależą od siebie (po kroku 1 można je zamienić); krok 4 stoi na obu.
+
+Właściciel: co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.13.2.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku: krok 1 — D3, D4 (D4 tylko, jeśli próba L2 wyjdzie „da się”); krok 4 —
+D1 (przy „B” szkice znaku). W kroku 4 czat poprosi Cię o uruchomienie obrazu z pendrive'a na IdeaPadzie (i na X230 przy
+D4 „A”): link do obrazu USB z PR-a i krótka lista „co kliknąć, co powinno się stać” — karty Intela nie da się udać
+w QEMU ani w CI, a przeglądarki CI nie testuje (decyzja z 2026-11-17).
+
+Nowy czat: przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y i Issue robota, ostatni run CI na main).
+  2. Przeczytaj CEL WERSJI, swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4), „Ustalenia z wykonania”
+     kroków wcześniejszych; zawsze ADR 0049, 0050, 0051, ADR kroku 1, docs/komponenty/filmy.md, posrednik.md,
+     strefa.md i docs/archiwum/PLAN-0.10.9.txt (krok 1 — ustalenia S4–S9, S26; krok 3 — zadania, które tu wracają).
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: Z KODU (2026-11-26) blisko limitu 600 wierszy: src/strefa/gpu_lacze.c 522,
+     src/aplikacje/ustawienia/main.c 505 — dotykasz ich, najpierw podział (osobny commit). Do rozbudowy też gpu.c 402,
+     gpu_most.c 387, gosc/przegladarka.c 388, ustawienia/przegladarka.c 449.
+  5. Nowy format albo komunikat (kontekst filmów, prośba VMM → nadzorca, dma-buf dla dekodera): przepis z SKILL —
+     sprawdzanie pole po polu, test na hoście, fuzzing, test negatywny w systemie (strefa próbna w trybie złośliwym),
+     wpis w dokumencie kanału. Typ komunikatu niesie deskryptor zawsze albo nigdy (skill §7, pułapki Wi-Fi).
+  6. Nie wymyślaj nazw prefów Firefoksa, funkcji VA-API, ioctl virtio-gpu i zachowań i965 — sprawdzaj w źródłach
+     (Firefox ESR w wersji z obrazu strefy: modules/libpref/init/StaticPrefList.yaml, dom/media/platforms/ffmpeg,
+     widget/gtk, security/sandbox/linux; libva va_backend.h; intel-vaapi-driver; jądro strefy drivers/gpu/drm/virtio);
+     NIEPEWNE zamieniasz na POTWIERDZONE albo poprawiasz w „Ustaleniach z wykonania”.
+  7. Testy: lokalnie test-m1 i skrypty zmienianej części (docs/TESTY.md: test-strefa, test-m4, test-wzorce przy
+     Ustawieniach); pełny komplet — CI na PR-ze (etykieta „testy”); scalasz przy zielonym. Czekaj poleceniem, bez innych
+     wywołań (CLAUDE.md). Film w Firefoksie: stanowisko (scripts/stanowisko.sh) i właściciel na sprzęcie.
+  8. Dokumenty w tym samym PR-ze: ADR kroku 1, docs/komponenty/ (filmy, strefa, posrednik, nadzorca, aplikacje),
+     ZALEZNOSCI (FFmpeg, libva w strefie), RYZYKA (R98, R99, nowy wiersz dla FFmpeg i sterownika VA w strefie), SLOWNIK
+     („kontekst filmów”, „sterownik VA strefy”), TESTY, skill kons-dev (mapa kodu). VERSION i CHANGELOG zmienia krok 5;
+     kroki 1–4 opisują zmianę w opisie PR-a.
+  9. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”, chyba że PR to sama dokumentacja — krok 1, jeśli
+     zostanie bez kodu); po scaleniu: w tabeli „[x] PR #n”, ustalenia w swoim kroku. Raport dla właściciela: co się
+     zmieniło dla niego, co sprawdzić na laptopie.
+
+Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
+  - Każdy scalony krok trafia do laptopów z najbliższym wydaniem robota — krok w main musi być gotowy dla użytkownika.
+    Krok 2 (H.264 procesorem) i krok 3 (droga w K1, której strefa jeszcze nie używa) są bezpieczne same w sobie.
+    Krok 4 włącza filmy kartą w sesjach z szybką grafiką — scalany dopiero po teście właściciela na IdeaPadzie (obraz
+    z PR-a; wzór: wydanie 0.10.9). Żaden krok nie zmienia drogi aktualizacji — robot może działać.
+  - Krok 2 dopisuje pakiety do strefy (strefy/przegladarka.txt — libva) i nową tabelę FFmpeg: ręczna zmiana pakietów
+    strefy tylko w kroku planu i nigdy równolegle z otwartym PR-em robota (AGENTS.md). Robot później aktualizuje libva
+    jak inne pakiety; FFmpeg (własna budowa) i sterownik VA strefy zmienia człowiek (jak Mesa).
+  - Robot aktualizuje Firefoksa codziennie: sterownik VA strefy i prefy muszą przetrwać nowe wydanie ESR — test
+    w kroku 4 (stanowisko) ma sprawdzać to, co Firefox naprawdę robi (about:support, log RDD), a nie numer wersji.
+  - Numer: robot może zająć 0.13.1 i 0.13.2. Temat i plik planu zostają („0.13.2 Filmy kartą”), a wydanie bierze
+    następny wolny numer PATCH w chwili wydania (tuż przed scaleniem: gałąź z main, VERSION na main; wpis w CHANGELOG
+    nad wpisem robota).
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+Dziś: film w przeglądarce rozpakowuje procesor strefy (Firefox sam, VP9 i AV1); filmów H.264 strefa nie gra wcale. Karta
+obu laptopów umie rozpakować H.264 (IdeaPad też HEVC i VP8; VP9 i AV1 żadna — ADR 0049, S9), a w K1 od 0.10.9 jest
+gotowy, uśpiony dekoder filmów, który z tej karty korzysta.
+  - Krok 1: przed kodem sprawdzam w źródłach Firefoksa, sterownika i jądra strefy (i na stanowisku — Firefox na
+    komputerze budowy), jak dokładnie przeglądarka odda film naszemu sterownikowi i jak przyjmie gotową klatkę. Wynik —
+    ADR i odpowiedź, czy X230 też może dostać filmy kartą (D4). Ty: D3 (co, jeśli zysk wyjdzie mały).
+  - Krok 2: w strefie pojawia się FFmpeg (tylko H.264, mała własna budowa) i biblioteka VA — filmy H.264 zaczynają
+    grać (jeszcze procesorem). Zobaczysz to na stronach, które dają tylko H.264.
+  - Krok 3: droga w K1 — VMM sesji przekazuje prośby filmu do dekodera filmów; dekoder startuje dopiero przy pierwszym
+    filmie (nie z każdą sesją — mniej pamięci). Dla Ciebie jeszcze nic się nie zmienia.
+  - Krok 4: nasz sterownik VA w strefie, prefy Firefoksa tylko w sesji z filmami kartą, przeglądarka prosi strony
+    o H.264 (Twoje D4 z 0.10.9 — inaczej YouTube wysyła VP9/AV1, których karta nie umie; skutek: na YouTube najwyżej
+    1080p). Ustawienia → Przeglądarka: przełącznik „Szybka grafika i filmy” i linia „Karta rozpakowuje filmy: H.264”
+    (D1). Przed scaleniem: Ty na IdeaPadzie — YouTube 1080p, Zasoby z przełącznikiem i bez.
+  - Krok 5: porządki, lista „co sprawdzić”, wydanie 0.13.2.
+
+Bezpieczeństwo: strefa dalej nie steruje kartą ani obrazem. Złośliwa strona może co najwyżej zepsuć dekoder filmów
+swojej sesji — film idzie wtedy na procesor, sesja, K1 i inne sesje żyją (RYZYKA R98, R99). Filmy kartą idą za
+przełącznikiem szybkiej grafiki — Bank i Prywatna domyślnie bez (Twoje D5 z 0.10.9; Ogólna — wg D5 planu 0.13.0).
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                      Luki (punkt 5)   Zależy od   Decyzje          Rozmiar  ADR
+[ ]  1  Próba ze źródeł i na stanowisku; ADR                  L1–L6            0.13.0      D3, D4, T1–T3    M        0063
+[ ]  2  FFmpeg i libva w strefie: H.264 gra (procesorem)      L6, L7, L15      1           T4               M        —
+[ ]  3  Droga w K1: kontekst filmów w VMM-ie, dekoder strefy  L4, L8, L9, L12  1           T1, T5, T7, T8   L        —
+        na prośbę, złośliwy gość
+[ ]  4  Sterownik VA strefy, prefy, prośba o H.264,           L1–L3, L5,       2, 3        D1, D2, T2, T3,  L        —
+        Ustawienia; test na IdeaPadzie                         L10, L11, L14               T6, T8
+[ ]  5  Porządki; wydanie 0.13.2                               L13, L16         1–4         —                S        —
+(ADR: 0063 przewidywany — następny wolny po krokach 0.13.0.)
+
+
+3. KROKI
+--------
+KROK 1: Próba ze źródeł i na stanowisku; ADR                           M · D3, D4, T1–T3 · ADR 0063
+  Cel: przed kodem do utrzymania wiedzieć, którą drogą film i klatka przejdą przez Firefoksa, sterownik VA strefy,
+  jądro strefy i VMM — i czy X230 w ogóle może z tego skorzystać. Wzór: krok 1 planu 0.10.9 (ustalenia ze źródeł zamiast
+  zgadywania); kod prób nie trafia do main.
+  Co widzi użytkownik: nic.
+  Zadania:
+  a. Firefox (L1, L2, L3, L6): źródła Firefoksa ESR w wersji z obrazu strefy — (1) czy dekodowanie VA-API w procesie RDD
+     wymaga eksportu powierzchni jako dma-buf (vaExportSurfaceHandle) czy umie też kopię klatki do zwykłej pamięci
+     (vaGetImage / av_hwframe_transfer_data), osobno przy rysowaniu kartą i procesorem; (2) czy blokadę „bez
+     sprzętowego GL — bez VA-API” (ADR 0049 pkt 5) omija oficjalny pref (np. media.hardware-video-decoding.force-enabled —
+     NIEPEWNE) bez udawania glxtest (odrzuconego w ADR 0049); (3) piaskownica RDD: czy wczyta nasz plik sterownika VA,
+     zmienne LIBVA_DRIVER_NAME / LIBVA_DRIVERS_PATH i ioctl virtio-gpu (DRM_IOCTL_VIRTGPU_*); (4) które wersje libavcodec
+     ładuje (FFmpegRuntimeLinker) i nazwy prefów z T6.
+  b. Jądro strefy (L4): drivers/gpu/drm/virtio — czy CONTEXT_INIT przyjmie kontekst z drugim, własnym capset K1 (maska
+     capset z urządzenia), jak gość mapuje zasoby blob i czeka na płot; wolny numer capset.
+  c. i965 (L5): czy rozpakuje wprost do bufora z zewnątrz (import DRM PRIME jako powierzchni — kafelki, wyrównanie);
+     od tego zależy droga klatki bez kopii (T3 a).
+  d. Stanowisko (scripts/stanowisko.sh): Firefox z obrazu strefy z próbnym sterownikiem VA (szare klatki, bez K1) i
+     z FFmpeg z kroku 2 w wersji próbnej — about:support „Media” pokazuje dekodowanie sprzętowe? film gra szarymi
+     klatkami? przy rysowaniu procesorem też (pytanie o X230)? Najwyżej 1–2 próby wyjaśnienia dziwnego zachowania
+     Firefoksa (skill §7), potem zapis „NIEPEWNE” i decyzja w ADR.
+  e. ADR 0063: droga w strefie (T1), sterownik VA (T2), klatka (T3: bez kopii albo z kopią), kiedy startuje dekoder
+     strefy (T5 — korekta T6 z 0.10.9), bramka zysku (D3 — korekta ADR 0049 pkt 6), X230 (D4); dopisek w ADR 0049
+     („pkt 4–6: [korekta: ADR 0063]”).
+  Testy i dowód: wyniki prób (zrzut about:support ze stanowiska, log RDD) w opisie PR-a; make bez ostrzeżeń dla kodu prób.
+  Gotowe, gdy: ADR scalony, L1–L6 rozstrzygnięte, D3 i (jeśli dotyczy) D4 podjęte.
+  Jeśli (a) wyjdzie źle we wszystkich wariantach (Firefox nie przyjmie klatek od sterownika spoza swojej listy) —
+  zatrzymaj wersję i opisz właścicielowi, co dalej; nie zgaduj dalej.
+
+KROK 2: FFmpeg i libva w strefie                                        M · T4
+  Cel: przeglądarka odtwarza H.264 (dziś nie gra go wcale — L7), na razie procesorem; jest wszystko, czego krok 4
+  potrzebuje od strony bibliotek.
+  Co widzi użytkownik: filmy na stronach, które dają tylko H.264 (np. niektóre serwisy informacyjne, pliki .mp4 w karcie),
+  zaczynają grać. YouTube bez zmian (dalej VP9/AV1 procesorem).
+  Zadania:
+  a. FFmpeg (T4, ADR 0049 pkt 8): własna budowa tylko libavcodec + libavutil, dekoder i parser H.264, hwaccel
+     h264_vaapi, `--enable-small`, bez programów, bez GPL (LGPL — ZALEZNOSCI); wersja, którą ładuje Firefox (krok 1 a 4);
+     źródła i sumy w src/zewnetrzne/ffmpeg/zrodla.txt, budowa scripts/zbuduj-ffmpeg.sh (wzór: zbuduj-mese.sh — komputer
+     budowy z glibc 2.39, w strefie Debian 13; znak tabeli i skryptu; pamięć podręczna CI), powtarzalnie
+     (SOURCE_DATE_EPOCH, build-id z treści; sprawdz-powtarzalnosc).
+  b. libva w strefie: pakiety Debiana (libva2, libva-drm2 — dokładne nazwy z repozytorium, NIEPEWNE) w tabeli
+     strefy (strefy/przegladarka.txt) — FFmpeg z VA-API bez nich się nie wczyta. Bez sterownika VA (krok 4) VA-API
+     zostaje wyłączone (k1.js: media.hardware-video-decoding.enabled, media.ffmpeg.vaapi.enabled — false, bez zmian).
+  c. Pref FFmpeg (media.ffmpeg.enabled — NIEPEWNE nazwa) włączony we wszystkich sesjach; rozmiar obrazu przeglądarki
+     przed i po (miejsce A/B ma zapas ok. 620 MiB — skill §7).
+  Testy i dowód: budowa i powtarzalność; obraz strefy ma pliki (lista w zbuduj-strefe.sh); stanowisko: about:support
+  pokazuje FFmpeg, plik H.264 gra (procesorem). CI: pełny komplet (obraz strefy się zmienia).
+  Dokumenty: ZALEZNOSCI (FFmpeg, libva), strefa.md, RYZYKA (nowy wiersz: FFmpeg H.264 w strefie — obce dane ze stron,
+  zamknięte w strefie i piaskownicy RDD; robot go nie aktualizuje — „Później”).
+
+KROK 3: Droga w K1 — kontekst filmów w VMM-ie, dekoder strefy na prośbę    L · T1, T5, T7, T8
+  Cel: gość strefy ma przez virtio-gpu drugi rodzaj kontekstu — „kontekst filmów” — a VMM przekazuje jego prośby
+  dekoderowi filmów swojej strefy; nadzorca uruchamia dekoder przy pierwszym filmie. Wszystko sprawdzone strefą próbną
+  z dekoderem testowym (QEMU nie ma karty Intela).
+  Co widzi użytkownik: nic (strefa z Firefoksem jeszcze z tego nie korzysta — sterownik VA przychodzi w kroku 4).
+  Zadania:
+  a. VMM (T1, L8): drugi capset w get_capset_info (dziś tylko DRM, indeks 0 — gpu_most.c), kontekst z capset filmów
+     → osobna ścieżka obok pośrednika (podział gpu_lacze.c przed rozbudową); polecenia virtio-gpu sprawdzane jak
+     w gpu_most.c (kontekst, zasoby, długości, adresy w pamięci gościa — gp_wsk); treści prośby VMM nie rozumie,
+     kopiuje ją do okna dekodera (format k1_filmy — sprawdza dekoder, k1_filmy_sprawdz). Działa też bez szybkiej
+     grafiki (wtedy urządzenie ma tylko capset filmów — tylko przy D4 „A”; inaczej capset filmów tylko z pośrednikiem).
+  b. Nadzorca (T5, L9): prośba VMM-a o dekoder (nowy komunikat, kanał VMM ↔ nadzorca), warunki: przełącznik sesji
+     włączony, pytanie przy starcie dało „umie”, pamięć w rozdzielaczu (ADR 0044); odmowa = gość dostaje „brak”, film
+     procesorem. filmy_dla_strefy już jest (dziś tylko dla TEST_FILMY); koniec dekodera z VMM-em (filmy_strefa_koniec).
+  c. Klatka (T3): droga wybrana w ADR kroku 1. Przy „bez kopii”: VMM daje dekoderowi dma-buf bufora strefy z pośrednika
+     (nowy komunikat z deskryptorem, rozmiar przez lseek, sprawdzony z wymiarami filmu), dekoder rozpakowuje wprost do
+     niego. Przy „z kopią”: klatka NV12 z okna dekodera do zasobu blob w pamięci gościa (adresy jak virtq.c).
+  d. Strefa próbna (T8, L12): TRYB_FILMY (23) — uczciwy gość statyczny (src/strefa/gosc/filmy.c) mówi kontekstem
+     filmów wprost (bez libva): otwórz film, klatka, pobierz, suma szarej klatki z dekodera testowego; TRYB_FILMY_ZLE
+     (24) — złe polecenia virtio-gpu, zalew prośbami, adresy poza pamięcią, prośba po zabiciu dekodera → odrzucone,
+     strefa i K1 żyją; przełącznik wyłączony = żadnego dekodera (log nadzorcy).
+  Testy i dowód: test_gpu_most / nowy test kontekstu filmów (ASan/UBSan) i fuzzing; t_filmy (system); test-strefa.sh
+  z trybami 23 i 24; t_proby (klatki filmy-N bez zmian). Zasoby: dekoder sesji pokazuje się (L13).
+  Dokumenty: filmy.md (dekoder strefy na prośbę, nowe komunikaty), strefa.md (kontekst filmów), nadzorca.md, RYZYKA R98.
+
+KROK 4: Sterownik VA strefy, prefy, prośba o H.264, Ustawienia           L · D1, D2, T2, T3, T6, T8
+  Cel: Firefox w sesji z filmami kartą rozpakowuje H.264 naszym sterownikiem VA, który mówi kontekstem filmów z kroku 3.
+  Podział, jeśli nie zmieści się w czacie: 4a — sterownik VA i prefy (droga z kopią), 4b — klatka bez kopii (jeśli T3 a)
+  i Ustawienia.
+  Na początku: D1 (przy „B” — szkice znaku w obu motywach).
+  Co widzi użytkownik (IdeaPad, sesja z przełącznikiem): YouTube daje H.264 (najwyżej 1080p — D2), film płynny,
+  procesor sesji w Zasobach wyraźnie mniejszy niż bez przełącznika, wiersz „Dekoder filmów” sesji w Zasobach.
+  Ustawienia → Przeglądarka: przełącznik „Szybka grafika i filmy” i linia o tym, co rozpakowuje karta (D1).
+  Zadania:
+  a. Sterownik VA strefy (T2, L3): src/strefa/gosc/va/ → k1_drv_video.so (nazwa NIEPEWNA — wg libva), w C, budowany
+     pod glibc jak Mesa (krok 2 a — ten sam sposób), tylko profile H.264 z K1_KODEKI; tłumaczy wywołania VA (konfiguracja,
+     powierzchnie, kontekst, bufory obrazu, macierzy i plastrów, Begin/Render/EndPicture, SyncSurface, eksport albo obraz
+     klatki — T3) na prośby k1_filmy przez kontekst filmów; błąd K1 = błąd VA (Firefox przechodzi na procesor).
+  b. Prefy (T6, L11): VMM dodaje `k1.filmy=1` do linii poleceń gościa (jak k1.grafika=1) tylko przy włączonym
+     przełączniku i karcie, która umie; gosc/przegladarka.c dopisuje do user.js włączenie VA-API, a w sesji bez filmów
+     wyłączenie (oba sposoby zawsze — jak dziś przy szybkiej grafice); środowisko RDD (LIBVA_*).
+  c. Prośba o H.264 (D2; S23 z 0.10.9): w sesji z filmami kartą przeglądarka nie zgłasza stronom VP9 i AV1 (prefy
+     MSE — nazwy z kroku 1 a 4); bez filmów kartą — jak dziś.
+  d. Ustawienia (D1, L10): napis przełącznika i linia „Karta graficzna tego komputera rozpakowuje filmy: H.264” /
+     „… nie rozpakowuje filmów” (FILMY_KARTA już przychodzi — dziś tylko log); opis ekranu (k1_el), test-m4, wzorce
+     Ustawień jasny/ciemny — przed / po do Twojego „OK” (D3 z 0.10.2).
+  e. Stanowisko (T8): Firefox z naszym sterownikiem VA, który na stanowisku mówi z dekoderem testowym na hoście —
+     about:support „dekodowanie sprzętowe: tak”, film gra szarymi klatkami, YouTube (jeśli sieć stanowiska pozwala)
+     wybiera avc1; zrzut w opisie PR-a.
+  f. Sprzęt (Ty, obraz USB z PR-a): IdeaPad — Ogólna z przełącznikiem: YouTube 1080p, Zasoby (procesor sesji, „Dekoder
+     filmów”), to samo bez przełącznika; dźwięk zgodny z obrazem; przewijanie strony w czasie filmu; pełny ekran; 10 min
+     filmu — sesja żyje. X230 przy D4 „A” — to samo. Wynik wg D3 (pomiar to dowód, a filmy wchodzą, chyba że są gorsze).
+  Testy i dowód: test sterownika VA na hoście (tłumaczenie wywołań VA na prośby — czyste, z ASan; fuzzing odpowiedzi
+  od K1), test-strefa (tryby z kroku 3), test-m4, test-wzorce, stanowisko, wynik właściciela w opisie PR-a.
+  Gotowe, gdy: CI zielone, właściciel potwierdził film na IdeaPadzie (albo D3 kazało przełącznik zostawić bez filmów).
+
+KROK 5: Porządki; wydanie 0.13.2                                        S
+  a. Porządki (PATCH — małe): nic tymczasowego bez terminu (DO_ZROBIENIA punkt 6); RYZYKA, ZALEZNOSCI, SLOWNIK, TESTY,
+     skill (mapa kodu: src/strefa/gosc/va/, kontekst filmów) zgodne z kodem; najdłuższe pliki .c sprawdzone.
+  b. Wydanie (albo następny wolny PATCH — punkt 0): VERSION, CHANGELOG („co widzisz”, potem technika; wiersz „Opis w
+     K1:” prostym językiem), DO_ZROBIENIA (stan, mapa, punkt 4 — lista niżej, „może: filmy kartą” → [x]), README, ten
+     plan → docs/archiwum/. Przed scaleniem: gałąź z main, VERSION na main (robot). Po scaleniu: CI na main, tag,
+     wydanie (get_release_by_tag), raport z linkami.
+  Lista dla właściciela (do DO_ZROBIENIA, punkt 4): IdeaPad — Ustawienia → Przeglądarka: „rozpakowuje filmy: H.264”,
+  przełącznik „Szybka grafika i filmy”; YouTube 1080p w Ogólnej z przełącznikiem i bez — Zasoby (procesor sesji,
+  „Dekoder filmów”), bateria (Ustawienia → Bateria: pobór przy filmie); Bank bez przełącznika — film gra procesorem;
+  strona z filmem .mp4 (H.264) gra w każdej sesji. X230 — wg D4.
+
+
+4. DECYZJE
+----------
+Twoje (produkt):
+  [!] D1 (krok 4) Przełącznik w Ustawieniach → Przeglądarka:
+      A (zalecane): filmy kartą idą za przełącznikiem szybkiej grafiki, który znowu nazywa się „Szybka grafika i filmy”
+         (Twoje D9 „A” z 0.10.9); wraca cicha linia „Karta graficzna tego komputera rozpakowuje filmy: H.264”; znak na
+         ramce bez zmian (układ scalony).
+      B: osobny przełącznik „Filmy kartą”, aktywny tylko przy włączonej szybkiej grafice (więcej przełączników; znak
+         filmów na ramce — szkice).
+  [x] D2 Prośba o H.264 — przyjęte z 0.10.9 (D4 „A”, 2026-11-20): w sesji z filmami kartą przeglądarka prosi strony
+      o H.264, bo karta nie umie VP9 ani AV1. Skutek: na YouTube najwyżej 1080p (wyższych jakości YouTube w H.264 nie
+      daje — NIEPEWNE, potwierdzi krok 4). Zmień, jeśli wolisz B: nie prosić (YouTube zostaje przy VP9/AV1 — karta nic
+      nie pomoże).
+  [!] D3 (krok 1) Bramka zysku (ADR 0049 pkt 6: „co najmniej połowa mniej procesora, inaczej filmy wypadają”):
+      A (zalecane): pomiar na IdeaPadzie to dowód w raporcie, nie bramka — filmy kartą wchodzą, chyba że są gorsze niż
+         procesorem (więcej procesora, zacinanie, błędy obrazu, rozjechany dźwięk); wtedy krok 4 zostaje bez prefów
+         filmów do poprawki.
+      B: bramka jak w 0.10.9 (co najmniej połowa mniej procesora sesji).
+  [!] D4 (krok 1 — tylko, jeśli próba L2 pokaże, że Firefox przyjmie kartę do filmów bez szybkiej grafiki) X230:
+      A (zalecane, jeśli się da): X230 też dostaje filmy kartą — ten sam przełącznik, na X230 obejmuje tylko filmy
+         (napis „Filmy kartą”). Kartę dotyka wtedy tylko dekoder filmów K1, nie strefa (mniejsze ryzyko niż szybka
+         grafika — R98, nie R100); zysk mniejszy, bo Firefox składa obraz procesorem (pomiar w kroku 4).
+      B: X230 bez filmów kartą (jak dziś).
+
+Techniczne (decyduje Claude w ADR kroku 1 — Ty dostajesz krótkie wyjaśnienie):
+  T1 — Droga w strefie: drugi rodzaj kontekstu virtio-gpu (własny capset K1 — „kontekst filmów”) w tym samym urządzeniu
+       gpu, które ma szybka grafika (ADR 0049 pkt 4: jeden most w VMM-ie). VMM rozdziela po capset: DRM → pośrednik
+       grafiki, filmy → dekoder filmów. Odrzucone: vsock (piaskownica RDD nie tworzy gniazd — S7 z 0.10.9), nowe
+       urządzenie virtio-video / virtio-media (sterownik gościa w jądrze strefy i obsługa V4L2 w Firefoksie — NIEPEWNE,
+       więcej kodu po obu stronach; krok 1 tylko zapisuje, czy to zmienia ocenę).
+  T2 — Sterownik VA strefy: nasz, w C (src/strefa/gosc/va/), biblioteka pod glibc strefy (jak Mesa — S21 z 0.10.9),
+       tylko H.264; tłumaczy VA na format k1_filmy, który już sprawdza dekoder (k1_filmy_sprawdz, test_filmy,
+       fuzz_filmy) — VMM nie rozbiera treści. Odrzucone: i965 w strefie (mówi i915, a strefa ma virtio-gpu), frontend VA
+       Mesy (tylko sterowniki gallium — nie iris; NIEPEWNE), iHD (C++, ADR 0049).
+  T3 — Klatka: (a) bez kopii — powierzchnia VA to bufor szybkiej grafiki (blob kontekstu DRM pośrednika), dekoder filmów
+       dostaje jego dma-buf i rozpakowuje wprost do niego, Firefox bierze klatkę jako dma-buf i składa kartą; pamięć
+       liczy się do pośrednika (T14 z 0.10.9) — jedno liczenie; (b) z kopią — poziom 1 z ADR 0049 pkt 6: NV12 z okna
+       dekodera do pamięci gościa. Kierunek: (a), jeśli krok 1 potwierdzi import w i965 (L5) i to, że Firefox i tak chce
+       dma-buf (L1); (b) dla X230 (D4 „A”) i gdy (a) nie wyjdzie.
+  T4 — FFmpeg w strefie: własna, mała budowa (ADR 0049 pkt 8) — libavcodec + libavutil, H.264 + VA-API, LGPL; libva
+       z pakietów Debiana (robot je aktualizuje). FFmpeg aktualizuje człowiek (tabela z sumami); robot dla FFmpeg —
+       „Później” (jak dla musl).
+  T5 — Kiedy dekoder strefy: na prośbę VMM-a przy pierwszym kontekście filmów (nie razem z VMM-em, jak T6 z 0.10.9) —
+       większość sesji nie gra filmów, a dekoder rezerwuje do 512 MiB; koniec z VMM-em, restartu nie ma (do następnego
+       otwarcia sesji), odmowa = film procesorem.
+  T6 — Prefy tylko w sesji z filmami: `k1.filmy=1` od VMM-a (jak `k1.grafika=1`), user.js zapisywany przy każdym starcie
+       w obie strony (dziś tak robi szybka grafika — gosc/przegladarka.c, prefy()); nazwy prefów i zmiennych RDD z kroku 1.
+  T7 — Sprawdzanie: VMM sprawdza polecenia virtio-gpu (jak gpu_most.c), dekoder — treść prośby (jak dziś); nowe
+       komunikaty (prośba VMM → nadzorca, dma-buf dla dekodera) — przepis z SKILL, typ z deskryptorem zawsze.
+  T8 — Testy bez karty: dekoder testowy tylko w obrazie testowym (TEST_FILMY b = 1, już jest) i wybierany dla strefy
+       próbnej w trybach 23/24, nigdy dla prawdziwej sesji; sterownik VA — test na hoście i stanowisko; karta —
+       właściciel na sprzęcie (QEMU nie udaje karty Intela).
+
+
+5. LUKI (co dziś brakuje albo jest niepewne — Z KODU 2026-11-26, chyba że napisano inaczej)
+------------------------------------------------------------------------------------------
+Waga: WYSOKA (blokuje krok), ŚREDNIA, NISKA.
+  L1 WYSOKA, NIEPEWNE. Czy VA-API w Firefoksie (proces RDD) wymaga eksportu powierzchni jako dma-buf, czy umie kopię
+     klatki; jak to wygląda przy rysowaniu kartą i procesorem (dom/media/platforms/ffmpeg). Rozstrzyga T3 i D4.
+  L2 WYSOKA, NIEPEWNE. Blokada VA-API bez sprzętowego GL (ADR 0049 pkt 5, widget/gtk/GfxInfo.cpp): czy omija ją
+     oficjalny pref (force-enabled) — jedyna droga do filmów kartą na X230 (D4).
+  L3 WYSOKA, NIEPEWNE. Piaskownica RDD a nasz sterownik VA: wczytanie biblioteki z katalogu sterowników, zmienne
+     LIBVA_*, ioctl virtio-gpu (S7 z 0.10.9 mówi „każdy ioctl DRM” — potwierdzić dla DRM_IOCTL_VIRTGPU_*).
+  L4 ŚREDNIA, NIEPEWNE. Jądro strefy (drivers/gpu/drm/virtio): kontekst z capset spoza znanych numerów; wolny numer
+     capset; Z KODU: VMM ma dziś tylko capset DRM pod indeksem 0 (gpu_most.c, capset()).
+  L5 ŚREDNIA, NIEPEWNE. i965: rozpakowanie do bufora z zewnątrz (import DRM PRIME, kafelki Y, wyrównanie) — T3 (a).
+  L6 ŚREDNIA, NIEPEWNE. Wersje libavcodec, które ładuje Firefox ESR z obrazu strefy (wybór wersji FFmpeg); licencja
+     LGPL bez części GPL.
+  L7 ŚREDNIA, Z KODU. Obraz strefy nie ma FFmpeg ani libva (strefy/przegladarka.txt) — H.264 dziś nie gra wcale;
+     VA-API wyłączone na stałe w strefy/przegladarka/k1.js (media.hardware-video-decoding.enabled,
+     media.ffmpeg.vaapi.enabled — false).
+  L8 ŚREDNIA, Z KODU. VMM: gpu_lacze.c 522 wiersze (podział przed rozbudową), gpu.c 402, gpu_most.c 387 — kontekst gościa
+     tylko z capset DRM (most_kontekst: inny capset → odmowa).
+  L9 ŚREDNIA, Z KODU. Nadzorca filmy.c (136): filmy_dla_strefy uruchamia dziś dekoder tylko dla TEST_FILMY; nie ma
+     prośby VMM → nadzorca ani warunku „przełącznik sesji”; pamięć dekodera już w rozdzielaczu (filmy_pamiec_mib).
+  L10 ŚREDNIA, Z KODU. Ustawienia przegladarka.c (449): GRAFIKA_NAPIS „Szybka grafika”; linia o filmach usunięta
+     w 0.10.9 krok 6 (FILMY_KARTA przychodzi, tylko log — test-m4); wzorce Ustawień zmienią się (D3 z 0.10.2).
+  L11 NISKA, Z KODU. gosc/przegladarka.c (388): z_grafika() czyta k1.grafika=1, prefy() pisze user.js — miejsce na
+     k1.filmy=1 i prefy filmów.
+  L12 ŚREDNIA, Z KODU. Strefa próbna: tryby do 22 (gosc.h) — nowe 23/24; dekoder testowy daje szare klatki (jasność 16 +
+     pierwszy bajt danych mod 220 — test widzi, która prośba ją zrobiła).
+  L13 NISKA. Zasoby: dekoder filmów sesji pokaże się sam (wiersz K1_SYSTEM); czy jego procesor doliczyć do sesji
+     (S25 z 0.10.9) — w kroku 5 najwyżej opis.
+  L14 ŚREDNIA, NIEPEWNE. Dźwięk z filmem (0.12): opóźnienie klatki z karty a zgodność ust z głosem — sprawdza
+     właściciel (krok 4 f).
+  L15 ŚREDNIA. Robot aktualizuje Firefoksa codziennie — nowe ESR może zmienić prefy albo listę wersji FFmpeg; FFmpeg
+     i sterownik VA robot nie zmienia (RYZYKA, „Później”).
+  L16 NISKA, Z KODU. Zależność od planu 0.13.0 krok 4 D5: jeśli Ogólna dostanie domyślnie przełącznik wyłączony, filmy
+     kartą też są domyślnie wyłączone — lista dla właściciela musi mówić „włącz przełącznik”.
+
+
+6. NIE W TEJ WERSJI (→ „Później” w docs/DO_ZROBIENIA.txt)
+-----------------------------------------------------------
+  - VP9 i AV1 kartą (YouTube 1440p/4K): i965 ich nie umie, iHD to C++ (ADR 0049); karty z AV1 (nowsze Intele, sterownik
+    xe) — razem z „karty Intela ze sterownikiem xe” z planu 0.10.11.
+  - HEVC i VP8 kartą na IdeaPadzie (nowy wiersz K1_KODEKI i jego sprawdzanie) — gdy pokaże się strona, która ich używa.
+  - Klatka prosto na ekran K1 (poziom 2 z T9 planu 0.10.9, warstwa sprzętowa).
+  - Filmy kartą poza przeglądarką (odtwarzacz wideo w Plikach — DO_ZROBIENIA, „Później”).
+  - Robot dla FFmpeg strefy; długi fuzzing sterownika VA i i965 — 0.14 Audyt (R98, R99).
+
+
+7. RYZYKA (wiersze w docs/RYZYKA.md — zmienia krok, który je dotyka)
+-------------------------------------------------------------------
+  - R98 (krok 3, 4): prośby dekodera filmów pierwszy raz naprawdę przychodzą ze strefy — sprawdzanie pole po polu już
+    jest; dochodzi dma-buf od VMM-a (T3 a) i dekoder na prośbę.
+  - R99 (krok 4): i965 w zasięgu stron internetowych — bez zmian w łagodzeniu, przegląd w 0.14.
+  - Nowy (krok 2): FFmpeg (H.264) i libva w strefie — obce dane ze stron, ale wewnątrz strefy i piaskownicy RDD; FFmpeg
+    bez robota (aktualizuje człowiek).
+  - Nowy (krok 4): nasz sterownik VA w procesie RDD Firefoksa — błąd w nim psuje tylko filmy tej sesji; odpowiedzi od K1
+    sprawdzane (fuzzing).
+
+
+USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
+-----------------------------------------------------
+(puste)
