@@ -3,11 +3,16 @@
  *
  *   wydanie paczka ESP WYJSCIE                  the package (k1_paczka.h) from the K1-EFI image ESP: its slot A (the
  *                                               system and both manifests), the front and the back of the image
- *   wydanie ogloszenie PACZKA OPISY CZAS WYJSCIE [nowa-linia]
+ *   wydanie ogloszenie PACZKA OPISY CZAS WYJSCIE WYJSCIE2 [nowa-linia]
  *                                               the announcement (k1_ogloszenie.h) of the package: its version, build
  *                                               id, size and SHA-256, the release time CZAS (s), the descriptions from
  *                                               OPISY (scripts/opisy-wersji.py: "version<TAB>opis<TAB>text" or
- *                                               "version<TAB>poprawki"), signed with the release key
+ *                                               "version<TAB>poprawki"), signed with the release key — format 1 into
+ *                                               WYJSCIE (K1 up to 0.12.x), format 2 signed at CZAS into WYJSCIE2
+ *                                               (0.13.0, ADR 0056: k1-ogloszenie2.bin)
+ *   wydanie odswiez WE CZAS WYJSCIE              0.13.0 ("Ogłoszenie dnia", .github/workflows/ogloszenie.yml): the
+ *                                               announcement of format 2 in WE, signed by this very key, signed again
+ *                                               at CZAS (never earlier than it was) — nothing else changes
  *
  * Every text is checked as K1 checks it (k1_ogl_tekst_dobry): what K1 would refuse is not signed. The key:
  * K1_KLUCZ_PODPISU (klucz.c); without it the announcement is unsigned (a developer build — K1 takes it only in the
@@ -23,6 +28,7 @@
 #include "k1_ogloszenie_podpis.h"
 #include "k1_paczka.h"
 #include "k1_sha256.h"
+#include "k1_stopka.h"
 #include "klucz.h"
 #include "monocypher.h"
 
@@ -161,18 +167,43 @@ zle:
     return -1;
 }
 
-static int ogloszenie(const char *plik, const char *plik_opisow, const char *czas, const char *wyjscie, int nowa_linia)
+/* The announcement `o` built, signed (with `tajny` when `jest`), read back and checked, written into `wyjscie`. */
+static int zapisz_ogloszenie(struct k1_ogloszenie *o, int jest, const uint8_t tajny[64], const uint8_t pub[32],
+                             const char *wyjscie)
 {
-    static uint8_t b[K1_OGL_MAKS], naglowek[K1_PACZKA_NAGLOWEK];
-    static struct k1_ogloszenie o, r;
+    static uint8_t b[K1_OGL_MAKS];
+    static struct k1_ogloszenie r;
+    size_t dl = k1_ogloszenie_zbuduj(o, b, sizeof b);
+    FILE *wy;
+    if (dl == 0) {
+        fprintf(stderr, "wydanie: ogłoszenie niezgodne z zasadami (opisy od najnowszej wersji, nie nowsze od wydania)\n");
+        return 1;
+    }
+    k1_ogloszenie_podpisz(b, dl, jest ? tajny : NULL);
+    if (k1_ogloszenie_czytaj(b, dl + 64, &r) != 0 || r.format != (o->format == 0 ? 1u : o->format) ||
+        (jest && k1_ogloszenie_sprawdz_podpis(b, dl + 64, pub) != 0))
+        return 1;
+    wy = fopen(wyjscie, "wb");
+    if (wy == NULL || fwrite(b, 1, dl + 64, wy) != dl + 64 || fclose(wy) != 0) {
+        fprintf(stderr, "wydanie: zapis %s nieudany\n", wyjscie);
+        return 1;
+    }
+    printf("%s: ogłoszenie %u.%u.%u, format %u (%u opisów, %zu B), %s\n", wyjscie, o->wersja >> 16, o->wersja >> 8 & 255,
+           o->wersja & 255, r.format, o->n, dl + 64, jest ? "podpisane" : "BEZ podpisu");
+    return 0;
+}
+
+static int ogloszenie(const char *plik, const char *plik_opisow, const char *czas, const char *wyjscie,
+                      const char *wyjscie2, int nowa_linia)
+{
+    static uint8_t naglowek[K1_PACZKA_NAGLOWEK];
+    static struct k1_ogloszenie o;
     uint8_t tajny[64], pub[32];
     struct k1_paczka p;
     struct k1_sha256 c;
     off_t rozm;
     uint64_t i;
-    size_t dl;
-    int fd = open(plik, O_RDONLY), jest;
-    FILE *wy;
+    int fd = open(plik, O_RDONLY), jest, r;
     rozm = fd < 0 ? -1 : lseek(fd, 0, SEEK_END);
     if (rozm <= 0 || czytaj(fd, naglowek, sizeof naglowek, 0) != 0 || k1_paczka_czytaj(naglowek, &p) != 0 ||
         k1_paczka_bajty(&p) != (uint64_t)rozm) {
@@ -199,33 +230,60 @@ static int ogloszenie(const char *plik, const char *plik_opisow, const char *cza
     jest = klucze(tajny, pub);
     if (jest)
         k1_klucz_id(pub, o.klucz_id);
-    dl = k1_ogloszenie_zbuduj(&o, b, sizeof b);
-    if (dl == 0) {
-        fprintf(stderr, "wydanie ogloszenie: opisy niezgodne z zasadami (wersje od najnowszej, nie nowsze od %s)\n",
-                p.slot.tekst);
+    r = zapisz_ogloszenie(&o, jest, tajny, pub, wyjscie);
+    o.format = 2; /* 0.13.0: the same, signed at the release time — the daily workflow signs it again later */
+    o.podpisano = o.czas;
+    if (r == 0)
+        r = zapisz_ogloszenie(&o, jest, tajny, pub, wyjscie2);
+    crypto_wipe(tajny, sizeof tajny);
+    return r;
+}
+
+/* 0.13.0 (ADR 0056, "Ogłoszenie dnia"): the announcement of format 2 signed again at `czas`. Only with the key, only one
+ * this key signed: the workflow never signs what it did not make. */
+static int odswiez(const char *plik, const char *czas, const char *wyjscie)
+{
+    static uint8_t b[K1_OGL_MAKS + 1];
+    static struct k1_ogloszenie o;
+    uint8_t tajny[64], pub[32], id[8];
+    uint64_t c = strtoull(czas, NULL, 10);
+    FILE *we = fopen(plik, "rb");
+    size_t n = we != NULL ? fread(b, 1, sizeof b, we) : 0;
+    int r;
+    if (we != NULL)
+        fclose(we);
+    if (!klucze(tajny, pub)) {
+        fprintf(stderr, "wydanie odswiez: bez klucza wydania (K1_KLUCZ_PODPISU) nic nie podpisuję\n");
+        return 1;
+    }
+    k1_klucz_id(pub, id);
+    if (n == 0 || n > K1_OGL_MAKS || k1_ogloszenie_czytaj(b, n, &o) != 0 || o.format != 2 ||
+        k1_ogloszenie_sprawdz_podpis(b, n, pub) != 0 || memcmp(o.klucz_id, id, 8) != 0) {
+        fprintf(stderr, "wydanie odswiez: %s nie jest ogłoszeniem formatu 2 podpisanym tym kluczem — nic nie podpisuję\n",
+                plik);
         crypto_wipe(tajny, sizeof tajny);
         return 1;
     }
-    k1_ogloszenie_podpisz(b, dl, jest ? tajny : NULL);
-    crypto_wipe(tajny, sizeof tajny);
-    if (k1_ogloszenie_czytaj(b, dl + 64, &r) != 0 || (jest && k1_ogloszenie_sprawdz_podpis(b, dl + 64, pub) != 0))
-        return 1;
-    wy = fopen(wyjscie, "wb");
-    if (wy == NULL || fwrite(b, 1, dl + 64, wy) != dl + 64 || fclose(wy) != 0) {
-        fprintf(stderr, "wydanie ogloszenie: zapis %s nieudany\n", wyjscie);
+    if (c < o.podpisano || c < K1_STOPKA_OD) {
+        fprintf(stderr, "wydanie odswiez: czas %s wcześniejszy niż podpis ogłoszenia — nic nie podpisuję\n", czas);
+        crypto_wipe(tajny, sizeof tajny);
         return 1;
     }
-    printf("%s: ogłoszenie %s (%u opisów, %zu B), %s\n", wyjscie, p.slot.tekst, o.n, dl + 64,
-           jest ? "podpisane" : "BEZ podpisu");
-    return 0;
+    o.podpisano = c;
+    r = zapisz_ogloszenie(&o, 1, tajny, pub, wyjscie);
+    crypto_wipe(tajny, sizeof tajny);
+    return r;
 }
 
 int main(int argc, char **argv)
 {
     if (argc == 4 && strcmp(argv[1], "paczka") == 0)
         return paczka(argv[2], argv[3]);
-    if ((argc == 6 || (argc == 7 && strcmp(argv[6], "nowa-linia") == 0)) && strcmp(argv[1], "ogloszenie") == 0)
-        return ogloszenie(argv[2], argv[3], argv[4], argv[5], argc == 7);
-    fprintf(stderr, "użycie: wydanie paczka ESP WYJSCIE | ogloszenie PACZKA OPISY CZAS WYJSCIE [nowa-linia]\n");
+    if ((argc == 7 || (argc == 8 && strcmp(argv[7], "nowa-linia") == 0)) && strcmp(argv[1], "ogloszenie") == 0)
+        return ogloszenie(argv[2], argv[3], argv[4], argv[5], argv[6], argc == 8);
+    if (argc == 5 && strcmp(argv[1], "odswiez") == 0)
+        return odswiez(argv[2], argv[3], argv[4]);
+    fprintf(stderr, "użycie: wydanie paczka ESP WYJSCIE | ogloszenie PACZKA OPISY CZAS WYJSCIE WYJSCIE2 [nowa-linia] | "
+                    "odswiez WE CZAS WYJSCIE\n");
     return 2;
 }

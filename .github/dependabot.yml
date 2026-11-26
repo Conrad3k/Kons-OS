@@ -1,0 +1,9 @@
+# 0.13.0 krok 1 (ADR 0056, T2; Issue #230): akcje GitHuba w workflow są przypięte pełnym skrótem commita (tag można
+# przesunąć, skrót nie). Dependabot raz w miesiącu proponuje PR z nowszym skrótem i wersją w komentarzu; scala go
+# człowiek po zielonych testach (jak każdą zmianę CI) — robot (ADR 0047) akcji nie zmienia.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"

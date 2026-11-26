@@ -12,6 +12,7 @@
 #define LN1000 6.90775527898213705205
 #define Q_PASMA 1.41421356237309504880 /* √2: one octave between the points 3 dB from the middle's gain */
 #define SIATKA 241                     /* the grid of the curve's loudest point: 20 Hz … 20 kHz */
+#define NAD_20K 8                      /* …and above it, up to 24 kHz (0.13.0) */
 #define MALE 1e-30                     /* below this the filters' memory is 0 (no denormal numbers after silence) */
 
 #define K1_X_KOR_SRODEK(i, hz, ...) hz,
@@ -122,18 +123,39 @@ static struct k1_kor_filtr filtr(double hz, int pol)
     return f;
 }
 
-/* |H|² of all bands at the angle whose cosine is c (cos 2w = 2c² − 1). */
+/* |H|² of one biquad at the angle whose cosine is c. */
+static double moc_filtra(const struct k1_kor_filtr *f, double c)
+{
+    double c2 = 2.0 * c * c - 1.0;
+    double l = f->b0 * f->b0 + f->b1 * f->b1 + f->b2 * f->b2 + 2.0 * (f->b0 * f->b1 + f->b1 * f->b2) * c +
+               2.0 * f->b0 * f->b2 * c2;
+    double d = 1.0 + f->a1 * f->a1 + f->a2 * f->a2 + 2.0 * (f->a1 + f->a1 * f->a2) * c + 2.0 * f->a2 * c2;
+    return l / d;
+}
+
+/* |H|² of all bands at the angle whose cosine is c. */
 static double moc_przy(const struct k1_kor_ustawienie *u, double c)
 {
-    double c2 = 2.0 * c * c - 1.0, m = 1.0;
-    for (int i = 0; i < K1_KOR_PASMA_N; i++) {
-        const struct k1_kor_filtr *f = &u->f[i];
-        double l = f->b0 * f->b0 + f->b1 * f->b1 + f->b2 * f->b2 + 2.0 * (f->b0 * f->b1 + f->b1 * f->b2) * c +
-                   2.0 * f->b0 * f->b2 * c2;
-        double d = 1.0 + f->a1 * f->a1 + f->a2 * f->a2 + 2.0 * (f->a1 + f->a1 * f->a2) * c + 2.0 * f->a2 * c2;
-        m *= l / d;
-    }
+    double m = 1.0;
+    for (int i = 0; i < K1_KOR_PASMA_N; i++)
+        m *= moc_filtra(&u->f[i], c);
     return m;
+}
+
+/* The K weighting of ITU-R BS.1770-4 (what LUFS measures), its two filters at 48 kHz as the standard gives them: the
+ * shelf of the head (+4 dB above 2 kHz) and the high-pass RLB (the lowest octaves count less). */
+_Static_assert(K1_DZW_CZESTOTLIWOSC == 48000, "k1_korektor: the coefficients of BS.1770 are those of 48 kHz");
+static const struct k1_kor_filtr WAGA[2] = {
+    { 1.53512485958697, -2.69169618940638, 1.19839281085285, -1.69065929318241, 0.73248077421585 },
+    { 1.0, -2.0, 1.0, -1.99004745483398, 0.99007225036621 },
+};
+
+double k1_kor_waga(double hz)
+{
+    double c;
+    hz = hz < 0.0 ? 0.0 : hz > K1_DZW_CZESTOTLIWOSC / 2.0 ? K1_DZW_CZESTOTLIWOSC / 2.0 : hz;
+    c = k1_kor_cos(2.0 * PI * hz / K1_DZW_CZESTOTLIWOSC);
+    return moc_filtra(&WAGA[0], c) * moc_filtra(&WAGA[1], c);
 }
 
 double k1_kor_moc(const struct k1_kor_ustawienie *u, double hz)
@@ -146,7 +168,7 @@ double k1_kor_moc(const struct k1_kor_ustawienie *u, double hz)
 
 void k1_kor_policz(struct k1_kor_ustawienie *u, const int8_t pasma[K1_KOR_PASMA_N])
 {
-    double maks = 1.0;
+    double maks = 0.0, srednia = 0.0, wagi = 0.0;
     memset(u, 0, sizeof *u);
     for (int i = 0; i < K1_KOR_PASMA_N; i++) /* the caller checked them (k1_kor_z_pol); never trusted beyond ±12 dB */
         u->pasma[i] = (int8_t)(pasma[i] > K1_KOR_MAKS ? K1_KOR_MAKS : pasma[i] < -K1_KOR_MAKS ? -K1_KOR_MAKS : pasma[i]);
@@ -156,13 +178,24 @@ void k1_kor_policz(struct k1_kor_ustawienie *u, const int8_t pasma[K1_KOR_PASMA_
         return;
     for (int i = 0; i < K1_KOR_PASMA_N; i++)
         u->f[i] = filtr(srodki[i], u->pasma[i]);
-    for (int k = 0; k < SIATKA + K1_KOR_PASMA_N; k++) { /* the loudest point: the grid and every band's middle */
-        double hz = k < SIATKA ? 20.0 * k1_kor_exp(LN1000 * k / (SIATKA - 1)) : srodki[k - SIATKA];
+    /* the loudest point: the grid, every band's middle and (0.13.0) above 20 kHz up to the half of 48 kHz — where all
+     * the bands come back to 0 dB, a level that lifted a curve cut at the top would lift those tones too */
+    for (int k = 0; k < SIATKA + K1_KOR_PASMA_N + NAD_20K; k++) {
+        double hz = k < SIATKA                   ? 20.0 * k1_kor_exp(LN1000 * k / (SIATKA - 1))
+                    : k < SIATKA + K1_KOR_PASMA_N ? srodki[k - SIATKA]
+                                                  : 20000.0 + 4000.0 * (k - SIATKA - K1_KOR_PASMA_N + 1) / NAD_20K;
         double m = k1_kor_moc(u, hz);
         if (m > maks)
             maks = m;
+        if (k < SIATKA) { /* the grid is even in octaves (a music-like, pink sound), K-weighted: its loudness */
+            srednia += k1_kor_waga(hz) * m;
+            wagi += k1_kor_waga(hz);
+        }
     }
-    u->wzm = 1.0 / k1_kor_pierw(maks);
+    /* 0.13.0 (ADR 0055 point 21): the same loudness as without it — up to K1_DZW_ZAPAS above 100 % at the loudest point */
+    u->wzm = k1_kor_pierw(wagi / srednia);
+    if (u->wzm * k1_kor_pierw(maks) > K1_DZW_ZAPAS)
+        u->wzm = K1_DZW_ZAPAS / k1_kor_pierw(maks);
 }
 
 void k1_kor_start(struct k1_korektor *k)

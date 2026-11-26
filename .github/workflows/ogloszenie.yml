@@ -1,0 +1,50 @@
+name: Ogłoszenie dnia
+
+# 0.13.0 krok 1 (ADR 0056, T1; Issue #230). Raz dziennie podpisuje od nowa ogłoszenie najnowszego wydania
+# (k1-ogloszenie2.bin, format 2) z dzisiejszym czasem podpisu — nic innego się w nim nie zmienia (narzedzia/wydanie
+# odswiez: tylko ogłoszenie podpisane tym samym kluczem, nigdy czas wcześniejszy). K1 od 0.13 nie bierze ogłoszenia
+# podpisanego ponad 7 dni temu: stare ogłoszenie podsunięte przez łącze nie zatrzyma laptopa na starej wersji dłużej.
+# Gdy ten workflow nie działa ponad 7 dni (np. GitHub wyłączył zaplanowane workflow po 60 dniach bez zmian w repo),
+# K1 mówi „Nie mogę sprawdzić, czy masz najnowszą wersję” i nie pobiera nic, dopóki ogłoszenie nie będzie świeże.
+# Wydanie sprzed 0.13.0 nie ma tego pliku — wtedy nie ma czego odświeżać. Opis: docs/komponenty/aktualizacja.md.
+
+on:
+  schedule:
+    - cron: "23 4 * * *" # 04:23 UTC, raz dziennie
+  workflow_dispatch:
+
+permissions:
+  contents: write # plik ogłoszenia w najnowszym wydaniu
+
+concurrency:
+  group: ogloszenie-dnia
+  cancel-in-progress: false
+
+jobs:
+  ogloszenie:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Pobierz kod
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Narzędzie wydania
+        run: make build/obj/wydanie
+
+      - name: Podpisz ogłoszenie najnowszego wydania z dzisiejszym czasem
+        env:
+          GH_TOKEN: ${{ github.token }}
+          K1_KLUCZ_PODPISU: ${{ secrets.K1_KLUCZ_PODPISU }}
+        run: |
+          set -eu
+          if [ -z "${K1_KLUCZ_PODPISU:-}" ]; then
+            echo "brak sekretu K1_KLUCZ_PODPISU — bez niego nie ma czego podpisać"; exit 1
+          fi
+          TAG=$(gh release view --json tagName -q .tagName)
+          mkdir -p build/ogl/we build/ogl/wy
+          if ! gh release download "$TAG" -p k1-ogloszenie2.bin -D build/ogl/we; then
+            echo "$TAG nie ma k1-ogloszenie2.bin (wydanie sprzed 0.13.0) — nie ma czego odświeżać"; exit 0
+          fi
+          build/obj/wydanie odswiez build/ogl/we/k1-ogloszenie2.bin "$(date -u +%s)" build/ogl/wy/k1-ogloszenie2.bin
+          gh release upload "$TAG" build/ogl/wy/k1-ogloszenie2.bin --clobber
+          echo "### Ogłoszenie dnia: $TAG podpisane $(date -u '+%Y-%m-%d %H:%M') UTC" >> "$GITHUB_STEP_SUMMARY"

@@ -93,6 +93,7 @@ void k1_prz_start(struct k1_przestrzen *p)
     struct k1_prz_scena s;
     memset(p, 0, sizeof *p);
     k1_prz_scena_start(&s);
+    s.wlaczona = 0;
     k1_prz_policz(&p->teraz, &s, K1_DZW_WYJSCIE_GLOSNIKI);
     p->nowe = p->teraz;
     p->odb_k = 1.0 - k1_kor_exp(-2.0 * PI * ODBICIA_HZ / FS);

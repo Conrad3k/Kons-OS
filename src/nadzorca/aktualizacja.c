@@ -18,17 +18,21 @@
 #include <sys/socket.h>
 #include <time.h>
 
+#include "k1_ogloszenie.h"
+
 #define CO_ILE (6.0 * 3600) /* D4: every 6 hours */
 #define PO_SIECI 30.0       /* the first check after the network came up */
 #define LIMIT_S (40.0 * 60) /* one job at most: then the zone and the writing program are ended */
-#define OGL_CEL "latest/download/k1-ogloszenie.bin"
+#define OGL_CEL "latest/download/" K1_OGL_PLIK /* 0.13.0 (ADR 0056): format 2; K1 up to 0.12.x reads k1-ogloszenie.bin */
+#define POTWIERDZ_PO (K1_OGL_ZWLOKA + 60.0) /* D1: A — the check that ends the waiting of a downloaded version */
+#define POTWIERDZ_TEST 20.0                 /* …in the test of updates (its server's time jumps ahead instead) */
 #define ZNAK_TESTU "k1-test-aktualizacji"
 
 static int praca = -1;             /* the writing program's mode now (K1_INST_SIEC_*), -1: none */
 static int z_sieci, z_ustawien;    /* this STAN has an announcement from the zone; "Sprawdź teraz" asked for it */
 static int sam = 1, test = -1;     /* "Sprawdzaj sam"; the test of updates (-1: not looked yet) */
 static int stan_jest, start_zrobiony;
-static double nastepne = -1, praca_od, siec_od = -1;
+static double nastepne = -1, praca_od, siec_od = -1, potwierdz = -1; /* potwierdz: the check after the waiting */
 static int32_t procent, wynik_spr = K1_AKT_W_NIC, wynik_pracy;
 static int64_t sprawdzono;
 static struct k1_komunikat stan;   /* the last INST_SIEC */
@@ -78,11 +82,14 @@ static int etap(void)
 static void wyslij(int zawsze)
 {
     struct k1_komunikat s, e;
+    int zwloka = stan_jest && (stan.d & K1_SIEC_FL_ZWLOKA) && stan.b != 0;
     int32_t fl = (stan.d & K1_SIEC_FL_NOWA_LINIA ? K1_AKT_FL_NOWA_LINIA : 0) |
                  (stan.d & K1_SIEC_FL_BEZ_MIEJSCA ? K1_AKT_FL_PENDRIVE : stan_jest ? K1_AKT_FL_DYSK : 0) |
-                 (sam ? K1_AKT_FL_SAM : 0) | (stan.d & K1_SIEC_FL_PROBA ? K1_AKT_FL_PROBA : 0);
-    s = k1_komunikat_nowy(K1_KOM_AKT_STAN, 0, stan_jest ? stan.a : 0, stan_jest ? stan.b : 0, stan_jest ? stan.c : 0,
-                          stan_jest ? stan.e : 0, fl);
+                 (sam ? K1_AKT_FL_SAM : 0) | (stan.d & K1_SIEC_FL_PROBA ? K1_AKT_FL_PROBA : 0) |
+                 (zwloka ? K1_AKT_FL_ZWLOKA : 0);
+    /* 0.13.0 (D1: A): a version in its waiting is no "Zainstaluj" yet — the windows get it as c with K1_AKT_FL_ZWLOKA */
+    s = k1_komunikat_nowy(K1_KOM_AKT_STAN, 0, stan_jest ? stan.a : 0, stan_jest && !zwloka ? stan.b : 0,
+                          zwloka ? stan.b : stan_jest ? stan.c : 0, stan_jest ? stan.e : 0, fl);
     e = k1_komunikat_nowy(K1_KOM_AKT_ETAP, 0, etap(), procent, wynik_spr, (int32_t)(sprawdzono & 0x7fffffff), wynik_pracy);
     if (zawsze || memcmp(&s, &wyslane_stan, sizeof s) != 0)
         do_okien(&s, -1);
@@ -196,7 +203,16 @@ static void po_stanie(int r)
     int pobierz = 0;
     if (z_sieci)
         wynik_spr = r != 0 ? K1_AKT_W_NIEUDANE : stan.d & K1_SIEC_FL_OGL ? K1_AKT_W_OK
+                    : stan.d & K1_SIEC_FL_OGL_STARE ? K1_AKT_W_STARE
                     : stan.d & K1_SIEC_FL_OGL_ZLE ? K1_AKT_W_ODRZUCONE : K1_AKT_W_NIEUDANE;
+    if (r == 0 && stan_jest && (stan.d & K1_SIEC_FL_ZWLOKA) && stan.b != 0) { /* D1: A — once more after the waiting */
+        if (potwierdz < 0 || z_sieci)
+            potwierdz = k1_teraz() + (test == 1 ? POTWIERDZ_TEST : POTWIERDZ_PO);
+        k1_log(TAG, "aktualizacja: nowa wersja czeka — sprawdzę wydanie jeszcze raz za %.0f min",
+               (potwierdz - k1_teraz()) / 60.0);
+    } else if (r == 0) {
+        potwierdz = -1;
+    }
     if (z_sieci && wynik_spr == K1_AKT_W_OK)
         sprawdzono = (int64_t)time(NULL);
     if (r == 0)
@@ -253,7 +269,7 @@ void akt_prosba(int a)
     } else if (a == K1_AKT_P_SPRAWDZ) {
         z_ustawien = 1;
         sprawdz();
-    } else if (a == K1_AKT_P_ZAINSTALUJ && stan_jest && stan.b != 0) {
+    } else if (a == K1_AKT_P_ZAINSTALUJ && stan_jest && stan.b != 0 && !(stan.d & K1_SIEC_FL_ZWLOKA)) {
         zacznij(K1_INST_SIEC_ZAINSTALUJ, NULL);
     } else if (a == K1_AKT_P_WROC && stan_jest && stan.e != 0) {
         zacznij(K1_INST_SIEC_WROC, NULL);
@@ -294,6 +310,12 @@ void akt_okresowe(double t)
     if (siec && sam && akt_ustawienie_wczytane() && (access(TEST, X_OK) != 0 || test == 1) && praca < 0 &&
         nastepna < 0 && !zajete() && nastepne >= 0 && t >= nastepne) {
         nastepne = t + CO_ILE;
+        sprawdz();
+    } else if (siec && potwierdz >= 0 && t >= potwierdz && praca < 0 && nastepna < 0 && !zajete()) {
+        /* 0.13.0 (D1: A): the waiting of a downloaded version is over — is the release still on GitHub? (also with
+         * "Sprawdzaj sam" off: it ends what the owner started with "Sprawdź teraz") */
+        potwierdz = -1;
+        k1_log(TAG, "aktualizacja: koniec zwłoki wydania — sprawdzam, czy wydanie wciąż jest najnowsze");
         sprawdz();
     }
     if (praca >= 0 && t - praca_od > LIMIT_S) {

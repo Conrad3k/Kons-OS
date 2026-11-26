@@ -64,12 +64,17 @@ w `src/instalator/siec.c` i `siec_instaluj.c`. Program zapisujący to jedyne mie
   startuje, jej nie czyta. Pendrive jej nie ma (partycja = FAT) — K1 z pendrive'a przez sieć się nie aktualizuje.
 - **`STAN`** (fd 4: ogłoszenie ze strefy albo nic, fd 6: pusty memfd) → `INST_SIEC`: a = wersja, która działa, b = czeka
   w poczekalni, c = nowsza do pobrania, d = `K1_SIEC_FL_*` (nowa linia jądra, ogłoszenie przyjęte / odrzucone, brak
-  poczekalni, próba w toku), e = poprzednia wersja w wolnym miejscu (dla „Wróć”). Ogłoszenie do pokazania → memfd.
+  poczekalni, próba w toku; od 0.13.0 też zwłoka wydania i ogłoszenie za stare), e = poprzednia wersja w wolnym miejscu
+  (dla „Wróć”). Ogłoszenie do pokazania → memfd. Od 0.13.0 (ADR 0056): za plikiem stopka strefy (czas serwera HTTPS —
+  terminy liczone według niego, różnica ponad godzinę w logu); z sieci tylko format 2, podpisany najwyżej 7 dni temu
+  (starsze: `K1_SIEC_FL_OGL_STARE`); to, co czeka, i świeże ogłoszenie tego samego wydania 20 minut po pobraniu —
+  znak „potwierdzone”; ogłoszenie starszej wersji — wydanie wycofane, znak zerami.
 - **`POBIERZ`** (fd 4: paczka ze strefy, fd 6: ogłoszenie z `STAN`): podpis ogłoszenia jeszcze raz; nagłówek paczki,
   podpisy obu manifestów, wersja i identyfikator wydania — **zanim cokolwiek zostanie zapisane**; potem strumieniem do
-  poczekalni z SHA-256 całości i BLAKE2b systemu; za dużo albo za mało bajtów = `K1_INST_BLAD_SIEC`; odczyt i SHA-256
-  z dysku; na końcu ogłoszenie i znak.
-- **`ZAINSTALUJ`**: wszystko jeszcze raz z dysku (znak, ogłoszenie, SHA-256, manifesty, skrót systemu, skrót plików
+  poczekalni z SHA-256 całości i BLAKE2b systemu; za dużo albo za mało bajtów, brak stopki strefy po paczce (0.13.0) =
+  `K1_INST_BLAD_SIEC`; odczyt i SHA-256 z dysku; na końcu ogłoszenie i znak (format 2: „widziane” = czas serwera).
+- **`ZAINSTALUJ`**: tylko wersja po zwłoce (0.13.0: znak „potwierdzone”, inaczej `K1_INST_BLAD_MIEJSCE`, nic nie
+  zapisane); wszystko jeszcze raz z dysku (znak, ogłoszenie, SHA-256, manifesty, skrót systemu, skrót plików
   startowych z przodu i tyłu paczki w pamięci) → pliki startowe obok starych (`start.c`) → system do wolnego miejsca
   (odczyt, porównanie) → manifesty → grubenv `k1_nowy` → znak zerami. `INST_GOTOWE` b = 1.
 - **`WROC`** („Wróć do poprzedniej wersji”, D7): wolne miejsce ma starszą wersję — podpis i skrót sprawdzone → `k1_nowy`.

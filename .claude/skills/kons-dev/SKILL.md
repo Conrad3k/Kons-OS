@@ -83,6 +83,12 @@ odmawia niepodpisanych i starszych wersji. Klucz Secure Boot K1 wpisuje się prz
 `MokNew`/`MokAuth`). Pliki startowe (shim, GRUB, `grub.cfg`…) sprawdza **manifest plików startowych** (format 3, obok
 manifestu miejsca A: skrót drzewa plików `k1_fat32`, bez grubenv i miejsc); aktualizacja je wymienia, gdy się różnią —
 nowe obok starych, przełączenie jednym zapisem sektora startowego FAT (`src/instalator/start.c`, 0.9.0, ADR 0038).
+**Łańcuch wydań (0.13.0, ADR 0056):** przez sieć K1 czyta `k1-ogloszenie2.bin` (format 2 z czasem podpisu, ważne 7 dni;
+`k1-ogloszenie.bin` format 1 zostaje bajt w bajt dla K1 do 0.12.x — zgodność pilnuje zamrożony czytnik 0.12.3 w
+`testy/host/zgodnosc/`, nigdy nie zmieniaj formatu 1); workflow „Ogłoszenie dnia” (`ogloszenie.yml`) podpisuje go co dzień
+od nowa; strefa pobierania dokleja **stopkę** z czasem `Date` serwera HTTPS (`k1_stopka.h`) — według niego liczone są
+terminy; pobrana wersja czeka **20 minut** (zwłoka wydania, D1 właściciela) i dopiero ogłoszenie tego samego wydania po
+zwłoce ją potwierdza (znak poczekalni format 2), starsze — wycofuje. Akcje GitHuba przypięte skrótem commita (Dependabot).
 
 **Sprzęt właściciela:** ThinkPad X230 (8 GB, SATA/AHCI, PS/2, EHCI+xHCI, Intel HD 4000 — od 0.10.9 krok 2 przez i915, wcześniej simpledrm,
 TPM 1.2; kabel: Intel 82579LM, `e1000e`) i od 2026-11-13 Lenovo IdeaPad 110-15ISK (Skylake, tylko xHCI, Intel HD 520;

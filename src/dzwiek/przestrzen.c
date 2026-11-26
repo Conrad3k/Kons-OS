@@ -33,7 +33,8 @@ void przestrzen_start(void)
 {
     for (int w = 0; w <= K1_DZW_WYJSCIE_MAKS; w++) {
         k1_prz_scena_start(&sceny[w]);
-        k1_prz_scena_start(&wlasne[w]); /* none yet: gui gives the remembered one */
+        k1_prz_scena_start(&wlasne[w]);
+        wlasne[w].wlaczona = 0; /* none yet: gui gives the remembered one */
     }
     k1_prz_start(&prz);
 }

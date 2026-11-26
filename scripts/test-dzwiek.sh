@@ -29,6 +29,9 @@
 # poprzedniego); przeciągnięcie punktu „Środek” robi „Własną” (usługa ją trzyma, pulpit zapamiętuje), „Kino” i z powrotem
 # „Własna” — punkt wraca tam, gdzie go postawiono; okienko „Dźwięk”: przełącznik Kons Spatial Audio — wyłączony, wiersz
 # „Scena” otwiera Ustawienia na scenie.
+# 0.13.0 (zgłoszenie właściciela: „cały dźwięk dużo cichszy, spłaszczony”; ADR 0055 punkt 21): Kons Spatial Audio
+# domyślnie włączony („Koncert”, bas na 4 %) — test wyłącza go przełącznikiem okienka przed pierwszą próbą; korektor i scena
+# zachowują głośność (szósta próba: nuty w proporcji nowego poziomu; siódma: moc obu kanałów jak w piątej, ±1,5 dB).
 # Komputer bez karty: test-m4 (okienko mówi „nie ma karty dźwiękowej”). Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -62,6 +65,15 @@ q.klik_w("Pasek górny", "Dźwięk")
 q.sprawdz("okienko „Dźwięk”: wyciszenie, głośność, „Odtwórz próbę”",
           q.czekaj_na_element(OK, "Odtwórz próbę", czas=30) and q.element(OK, "Wycisz") and q.element(OK, "Głośność"))
 q.zrzut("dzwiek-okienko", gdy=lambda w, h, px: True)
+# 0.13.0 (the owner's choice): Kons Spatial Audio on from the start — Koncert, its bass at 4 %; the samples below are
+# compared sample for sample with the program's, so the switch turns it off first (the steps 3–4 below switch it on)
+q.sprawdz("0.13.0: Kons Spatial Audio domyślnie włączony (przełącznik w okienku)",
+          q.czekaj_na(lambda: (q.element(OK, "Kons Spatial Audio") or {}).get("stan", 0) & 1, czas=30))
+n_sc = q.ile(r"K1-DZWIEK: scena \(Głośniki\): Wyłączony")
+q.klik_w(OK, "Kons Spatial Audio")
+q.sprawdz("przełącznik w okienku: scena głośników wyłączona (próby niżej bez sceny)",
+          q.czekaj(r"K1-DZWIEK: scena \(Głośniki\): Wyłączony", od=n_sc, czas=30) and
+          q.czekaj_na(lambda: not (q.element(OK, "Kons Spatial Audio") or {}).get("stan", 1) & 1, czas=30))
 q.sprawdz("NEGATYWNY/węzły: /dev/snd ma tylko usługa dźwięku (program testowy patrzy na deskryptory)",
           q.czekaj(r"K1-TEST: dźwięk: węzły karty ma tylko usługa dźwięku", czas=30))
 

@@ -212,6 +212,7 @@ static void t_pobieranie(void)
     EXPECT(lacznik_cel(&c, 1, 0) == CEL_ODMOWA); /* NEGATIVE: an address given as numbers */
     EXPECT(lacznik_cel(&c, 1, 1) == CEL_SIEC);   /* …in the test of updates only */
     EXPECT(lacznik_cel_dobry("latest/download/k1-ogloszenie.bin"));
+    EXPECT(lacznik_cel_dobry("latest/download/k1-ogloszenie2.bin")); /* 0.13.0 (ADR 0056) */
     EXPECT(lacznik_cel_dobry("download/k1-v0.10.6/k1-0.10.6.k1a"));
     EXPECT(!lacznik_cel_dobry(""));
     EXPECT(!lacznik_cel_dobry("/etc/passwd"));

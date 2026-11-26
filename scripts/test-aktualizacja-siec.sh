@@ -17,6 +17,11 @@
 #      otwarte, zamknięte i otwarte jeszcze raz, potem „Sprawdź teraz” — okno Ustawień żyje cały czas (do 0.10.7 widok
 #      „Sprawdzono o …” kończył Ustawienia kodem 159: musl czytał strefę czasową z /etc/localtime, a klatka nie ma open);
 #      opis ekranu (dysk „k1-test-opis”) — test klika po nazwach
+# 0.13.0 (ADR 0056; D1: A, T1): K1 czyta k1-ogloszenie2.bin (format 2 z czasem podpisu), strefa dokleja stopkę z czasem
+#   z nagłówka Date serwera. Serwer testowy przesuwa swój Date: po podaniu paczki o 25 min naprzód — zwłoka wydania
+#   (20 min) mija bez czekania: K1 sprawdza jeszcze raz (w teście po 20 s), wydanie wciąż jest — dopiero wtedy okienko
+#   „Jest nowa wersja K1” (nie wcześniej); w przebiegu 3 najpierw Date o 8 dni naprzód — „ogłoszenie za stare”
+#   (Ustawienia: „Nie mogę sprawdzić, czy masz najnowszą wersję”), potem bez przesunięcia „Sprawdź teraz” — najnowsza.
 # Bez KVM (emulacja QEMU, kontener) — ten sam pełny scenariusz (2026-11-18: ok. 8 min, paczka 130 MB też).
 # Dowody: build/testy/akt-*.log, akt-*.png.
 . "$(dirname "$0")/wspolne.sh"
@@ -26,7 +31,7 @@ mkdir -p "$TESTY"; rm -f "$TESTY"/akt-*
 CMDLINE="$(cat "$K1_REPO/jadro/cmdline")"
 ESP=$K1_BUDOWA/usb/esp.img
 PACZKA=$K1_WYNIK/k1-$K1_WERSJA.k1a
-OGL=$K1_WYNIK/k1-ogloszenie.bin
+OGL=$K1_WYNIK/k1-ogloszenie2.bin # 0.13.0 (ADR 0056): the file K1 0.13+ reads
 for f in "$ESP" "$PACZKA" "$OGL" "$K1_WYNIK/rdzen-test.squashfs"; do [ -f "$f" ] || blad "brak $f — najpierw scripts/zbuduj.sh"; done
 command -v openssl >/dev/null || blad "brak openssl (certyfikat serwera testowego)"
 EMULACJA=--emulacja
@@ -77,18 +82,21 @@ with open(dysk, "r+b") as p:
     p.seek(MIB + SLOT_A + MAN + 8); p.write(struct.pack("<I", 1))
     p.seek(MIB + SLOT_A + MAN + 24); p.write(b"0.0.1".ljust(24, b"\0"))
 
-dane = {"zla": False, "zapytania": []}
+dane = {"zla": False, "zapytania": [], "przesun": 0}
 class Serwer(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
+    def date_time_string(self, timestamp=None):  # 0.13.0: the header Date — the time K1 counts by, moved by the test
+        import email.utils, time
+        return email.utils.formatdate(time.time() + dane["przesun"], usegmt=True)
     def do_GET(self):
         dane["zapytania"].append(self.path)
-        if self.path == "/latest/download/k1-ogloszenie.bin":  # as GitHub: to the newest release
+        if self.path == "/latest/download/k1-ogloszenie2.bin":  # as GitHub: to the newest release
             self.send_response(302)
-            self.send_header("Location", f"/download/k1-v{wersja}/k1-ogloszenie.bin")
+            self.send_header("Location", f"/download/k1-v{wersja}/k1-ogloszenie2.bin")
             self.end_headers()
             return
-        pliki = {f"/download/k1-v{wersja}/k1-ogloszenie.bin": ogl, f"/download/k1-v{wersja}/k1-{wersja}.k1a": paczka}
+        pliki = {f"/download/k1-v{wersja}/k1-ogloszenie2.bin": ogl, f"/download/k1-v{wersja}/k1-{wersja}.k1a": paczka}
         if self.path not in pliki:
             self.send_response(404); self.end_headers(); return
         b = open(pliki[self.path], "rb").read()
@@ -98,6 +106,8 @@ class Serwer(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(b)))
         self.end_headers()
         self.wfile.write(b)
+        if self.path.endswith(".k1a") and dane["przesun"] == 0:
+            dane["przesun"] = 25 * 60  # 0.13.0 (D1: A): from now on the server is 25 minutes later — the waiting is over
 
 serwer = http.server.ThreadingHTTPServer(("127.0.0.1", 8443), Serwer)
 kontekst = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -141,8 +151,18 @@ sprawdz("strefa pobierania nie ma okna (ekran jej nie zna)", "strefa bez okna" i
         "bez kanału do ekranu" in q.tekst())
 p = czekaj(r"K1-INSTALATOR: gotowe: (\S+) czeka w poczekalni", czas=1200)
 sprawdz("paczka pobrana do poczekalni (skrót i podpisy sprawdzone)", p and p.group(1) == wersja, p.group(0) if p else "brak")
+sprawdz("0.13.0 (D1: A): nowa wersja czeka 20 minut (zwłoka wydania) — K1 sprawdzi wydanie jeszcze raz",
+        czekaj(r"K1-INSTALATOR: aktualizacja przez sieć: .* \(zwłoka wydania\)", czas=120) and
+        czekaj(r"K1-NADZORCA: aktualizacja: nowa wersja czeka — sprawdzę wydanie jeszcze raz", czas=60))
+pt = czekaj(r"K1-INSTALATOR: (\S+): wydanie wciąż jest najnowsze (\d+) min po pierwszym zobaczeniu — gotowe do instalacji",
+            czas=900)
+# the minutes come from the server's Date (25 min ahead after the package) through the zone's footer: the footer works
+sprawdz("koniec zwłoki: K1 sprawdza jeszcze raz, wydanie wciąż jest (czas ze stopki strefy: serwer 25 min później)",
+        pt and pt.group(1) == wersja and int(pt.group(2)) >= 20 and
+        "koniec zwłoki wydania — sprawdzam" in q.tekst(), pt.group(0) if pt else "brak")
 b = czekaj(r"K1-GUI: okienko \(jest nowa wersja\): Zainstaluj (\d+),(\d+); Później (\d+),(\d+)", czas=120)
-sprawdz("okienko „Jest nowa wersja K1” na pulpicie", b)
+sprawdz("okienko „Jest nowa wersja K1” na pulpicie — dopiero po zwłoce (NEGATYWNE: nie wcześniej)", b and pt and
+        q.tekst().find("okienko (jest nowa wersja)") > q.tekst().find("wydanie wciąż jest najnowsze"))
 if b:
     q.zrzut("2-okienko")
     q.klik(int(b.group(1)), int(b.group(2)))
@@ -184,26 +204,37 @@ q2.monitor("quit")
 with open(dysk, "r+b") as p:
     p.seek(MIB + SLOT_A + MAN); p.write(MANIFEST_A)
 dane["zla"] = False
+dane["przesun"] = 8 * 86400  # 0.13.0 (T1): the server 8 days later — the announcement signed at the build is too old
 q3 = uruchom("3", opis=True)
 NAJNOWSZA = r"K1-USTAWIENIA: aktualizacje: sieć — najnowsza"
+STARE = r"K1-USTAWIENIA: aktualizacje: sieć — ogłoszenie za stare"
 KONIEC_UST = r"K1-NADZORCA: ustawienia zakończ"
 
-def ustawienia_aktualizacje(raz):
-    n = q3.ile(NAJNOWSZA)
+def ustawienia_aktualizacje(raz, wzor=NAJNOWSZA, opis="„masz najnowszą wersję”"):
+    n = q3.ile(wzor)
     q3.klik(*q3.srodek(q3.czekaj_na_element("Pasek", "Start", czas=60) or {"x": 0, "y": 0, "w": 0, "h": 0}))
     q3.klik_w("Menu Start", "Ustawienia")
     for _ in range(3):  # the list may still change under the click (Bateria goes when nadzorca says there is none)
         q3.klik_w("Ustawienia", "Aktualizacje", "zakladka", czas=60)
         if q3.czekaj_na(lambda: (q3.element("Ustawienia", "Aktualizacje", "zakladka") or {"stan": 0})["stan"] & 1, 10):
             break
-    q3.sprawdz(f"Ustawienia → Aktualizacje ({raz}): „masz najnowszą wersję”", q3.czekaj(NAJNOWSZA, od=n, czas=60))
+    q3.sprawdz(f"Ustawienia → Aktualizacje ({raz}): {opis}", q3.czekaj(wzor, od=n, czas=60))
     q3.sprawdz(f"…i okno Ustawień żyje ({raz})", q3.cisza(KONIEC_UST, 10) and q3.element("Ustawienia") is not None,
                "\n".join(l for l in q3.tekst().splitlines() if "ustawienia zakończ" in l)[-300:])
 
-q3.sprawdz("na dysku ta sama wersja: K1 sprawdza i nie ma nic do pobrania", q3.czekaj(
-    r"K1-INSTALATOR: ogłoszenie wydania: \d+ B, podpis i format poprawne", czas=1200) and
+q3.sprawdz("0.13.0 (T1), NEGATYWNE: serwer 8 dni później — ogłoszenie za stare, nic do pobrania", q3.czekaj(
+    r"K1-INSTALATOR: zegar K1 różni się od czasu serwera HTTPS o \d+ min — terminy liczę według serwera", czas=1200) and
+    q3.czekaj(r"K1-INSTALATOR: ogłoszenie wydania: podpisane \d+ dni temu — za stare \(termin 7 dni\)", czas=120) and
     q3.czekaj(r"K1-INSTALATOR: aktualizacja przez sieć: działa \S+, czeka \S+, do pobrania 0\.0\.0", od=1, czas=120))
-ustawienia_aktualizacje("pierwsze otwarcie")
+ustawienia_aktualizacje("pierwsze otwarcie", STARE, "„Nie mogę sprawdzić, czy masz najnowszą wersję”")
+q3.zrzut("3-za-stare")
+dane["przesun"] = 0
+n, ns = q3.ile(NAJNOWSZA), q3.ile(r"K1-NADZORCA: aktualizacja: sprawdzam")
+q3.klik_w("Ustawienia", "Sprawdź teraz", "przycisk")
+q3.sprawdz("serwer znów na czas, „Sprawdź teraz”: ta sama wersja na dysku — nic do pobrania, „masz najnowszą wersję”",
+           q3.czekaj(r"K1-NADZORCA: aktualizacja: sprawdzam", od=ns, czas=60) and q3.czekaj(
+               r"K1-INSTALATOR: ogłoszenie wydania: \d+ B, podpis i format poprawne", czas=900) and
+           q3.czekaj(NAJNOWSZA, od=n, czas=900))
 q3.klik_w("Ustawienia", "Zamknij", "przycisk")
 q3.sprawdz("Ustawienia zamknięte przyciskiem", q3.czekaj(KONIEC_UST + r"\S* pracę, kod 0", czas=30))
 ustawienia_aktualizacje("drugie otwarcie")

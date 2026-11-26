@@ -2,13 +2,17 @@
  * built and read back; a signature of another key, a changed byte, a wrong length; the texts (T18): letters with the
  * Polish ones and plain punctuation pass, a character outside the table, a control character, broken UTF-8, an
  * address, too long — refused; descriptions out of order, newer than the release, a fix with text; what K1 shows
- * (k1_ogl_wybierz): only versions newer than the running one, fixes in a row as one line, "oraz wcześniejsze". */
+ * (k1_ogl_wybierz): only versions newer than the running one, fixes in a row as one line, "oraz wcześniejsze". 0.13.0
+ * (ADR 0056): format 2 with its signed time of signing, fresh for 7 days; NEGATIVE: format 2 without the time, format 1
+ * with one, format 3; format 1 of this build read field by field by the frozen reader of K1 0.12.3, format 2 refused by
+ * it (testy/host/zgodnosc/). */
 #include <stdio.h>
 #include <string.h>
 
 #include "k1_manifest.h"
 #include "k1_ogloszenie.h"
 #include "k1_ogloszenie_podpis.h"
+#include "ogloszenie_0123.h"
 #include "k1_test_host.h"
 #include "monocypher.h"
 
@@ -195,6 +199,64 @@ static void wybor(void)
     EXPECT(w.n == 7 && !w.wczesniejsze);
 }
 
+/* 0.13.0 (ADR 0056, T1): format 2 — the time of signing, fresh for K1_OGL_WAZNE; format 1 never carries one. */
+static void format2(void)
+{
+    static uint8_t b[K1_OGL_MAKS];
+    static struct k1_ogloszenie o, r;
+    size_t n;
+    wzor(&o);
+    o.format = 2;
+    o.podpisano = 1795719669ull;
+    n = zbuduj(&o, tajny, b);
+    EXPECT(n > 0 && b[4] == 2 && k1_ogloszenie_czytaj(b, n, &r) == 0 && r.format == 2 && r.podpisano == o.podpisano &&
+           k1_ogloszenie_sprawdz_podpis(b, n, pub) == 0);
+    EXPECT(k1_ogl_swieze(&r, o.podpisano) && k1_ogl_swieze(&r, o.podpisano + K1_OGL_WAZNE));
+    EXPECT(!k1_ogl_swieze(&r, o.podpisano + K1_OGL_WAZNE + 1)); /* signed more than 7 days ago: not fresh */
+    EXPECT(k1_ogl_swieze(&r, o.podpisano - 86400));             /* K1's clock behind: fresh */
+    EXPECT(K1_OGL_WAZNE == 7u * 86400u && strcmp(K1_OGL_PLIK, "k1-ogloszenie2.bin") == 0);
+    b[96] ^= 1; /* NEGATIVE: the time of signing is signed */
+    EXPECT(k1_ogloszenie_sprawdz_podpis(b, n, pub) != 0);
+    wzor(&o);
+    o.format = 2; /* NEGATIVE: format 2 without a time, format 1 with one, format 3 */
+    EXPECT(k1_ogloszenie_zbuduj(&o, b, sizeof b) == 0);
+    o.format = 1;
+    o.podpisano = 5;
+    EXPECT(k1_ogloszenie_zbuduj(&o, b, sizeof b) == 0);
+    o.format = 3;
+    EXPECT(k1_ogloszenie_zbuduj(&o, b, sizeof b) == 0);
+    wzor(&o);
+    n = zbuduj(&o, tajny, b); /* format 1: never fresh for K1 0.13 */
+    EXPECT(n > 0 && k1_ogloszenie_czytaj(b, n, &r) == 0 && r.format == 1 && r.podpisano == 0 && !k1_ogl_swieze(&r, 0));
+    b[4] = 2; /* format 2 named, no time in it */
+    EXPECT(k1_ogloszenie_czytaj(b, n, &r) != 0);
+    b[4] = 1;
+    b[100] = 1; /* format 1 with a time */
+    EXPECT(k1_ogloszenie_czytaj(b, n, &r) != 0);
+}
+
+/* 0.13.0 (ADR 0056, T1): what this build makes as format 1 (k1-ogloszenie.bin) K1 0.12.3 still reads, field by field
+ * (its reader, frozen: testy/host/zgodnosc/); format 2 it refuses — so it never sees k1-ogloszenie2.bin as its own. */
+static void zgodnosc(void)
+{
+    static uint8_t b[K1_OGL_MAKS];
+    static struct k1_ogloszenie o;
+    static struct ogl0123 r;
+    size_t n;
+    wzor(&o);
+    o.flagi = K1_OGL_NOWA_LINIA;
+    n = zbuduj(&o, tajny, b);
+    EXPECT(n > 0 && ogl0123_czytaj(b, n, &r) == 0 && r.wersja == o.wersja && r.flagi == o.flagi && r.n == o.n &&
+           r.paczka_bajty == o.paczka_bajty && r.czas == o.czas && memcmp(r.sha256, o.sha256, 32) == 0 &&
+           memcmp(r.wydanie, o.wydanie, 16) == 0 && strcmp(r.opis[1].tekst, o.opis[1].tekst) == 0 &&
+           k1_ogloszenie_sprawdz_podpis(b, n, pub) == 0);
+    wzor(&o);
+    o.format = 2;
+    o.podpisano = 1795719669ull;
+    n = zbuduj(&o, tajny, b);
+    EXPECT(n > 0 && ogl0123_czytaj(b, n, &r) != 0);
+}
+
 int main(void)
 {
     klucze();
@@ -202,5 +264,7 @@ int main(void)
     format();
     zasady();
     wybor();
+    format2();
+    zgodnosc();
     return K1_TEST_KONIEC("test_ogloszenie");
 }

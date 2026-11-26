@@ -1,8 +1,9 @@
 /* K1 — host test: the system equalizer (src/wspolne/k1_korektor.c; 0.12.3 step 2, ADR 0055 points 9–13). Our own sine,
  * cosine, e^x and root against libm; the tables (ten bands, the ready settings within ±12 dB, each recognised by its name);
  * the bands in a message and back (beyond ±12 dB, the unused bytes — refused); each band alone at ±6 and ±12 dB: its
- * middle within ±0.1 dB, three octaves away within 0.5 dB of 0; the level before the filters: no setting louder than
- * 100 % anywhere on a fine grid; a tone through the running filters (+6 dB in its band against a tone three octaves
+ * middle within ±0.1 dB, three octaves away within 0.5 dB of 0; the level before the filters (0.13.0, ADR 0055 point
+ * 21): the loudness of a pink sound K-weighted (BS.1770, computed here with libm) as without the equalizer, and no setting
+ * more than K1_DZW_ZAPAS above 100 % anywhere on a fine grid; the K weighting against the standard's points; a tone through the running filters (+6 dB in its band against a tone three octaves
  * away); flat — transparent sample for sample, nothing computed; a change without a click (no jump bigger than the tone's
  * own), and back to flat exact after one period; the worst settings on full-scale noise — finite, no blow-up; silence
  * leaves no denormal numbers. The numbers are printed: ADR 0055 quotes them. */
@@ -95,6 +96,54 @@ static void pola(void)
     EXPECT(k1_kor_z_pol(f, q) == 0 && q[8] == 24 && q[9] == 24 && q[0] == 0);
 }
 
+/* The K weighting of BS.1770 with libm, at 48 kHz (a biquad's |H|²) — independent of k1_kor_waga. */
+static double bq_moc(const double b[3], const double a[3], double hz)
+{
+    double w = 2.0 * PI * hz / FS, lr = 0, li = 0, mr = 0, mi = 0;
+    for (int k = 0; k < 3; k++) {
+        lr += b[k] * cos(-w * k), li += b[k] * sin(-w * k);
+        mr += a[k] * cos(-w * k), mi += a[k] * sin(-w * k);
+    }
+    return (lr * lr + li * li) / (mr * mr + mi * mi);
+}
+
+static double waga_k(double hz)
+{
+    static const double b1[3] = { 1.53512485958697, -2.69169618940638, 1.19839281085285 },
+                        a1[3] = { 1.0, -1.69065929318241, 0.73248077421585 }, b2[3] = { 1.0, -2.0, 1.0 },
+                        a2[3] = { 1.0, -1.99004745483398, 0.99007225036621 };
+    return bq_moc(b1, a1, hz) * bq_moc(b2, a2, hz);
+}
+
+/* The loudness of a pink sound through `u` (with its level), K-weighted, in dB against the sound itself. */
+static double glosnosc(const struct k1_kor_ustawienie *u)
+{
+    double s = 0.0, w = 0.0;
+    for (int k = 0; k <= 2000; k++) {
+        double hz = 20.0 * pow(1000.0, k / 2000.0);
+        s += waga_k(hz) * k1_kor_moc(u, hz) * u->wzm * u->wzm;
+        w += waga_k(hz);
+    }
+    return db_mocy(s / w);
+}
+
+static void waga(void)
+{
+    /* the standard's shape: about +4 dB high above 2 kHz, about −1 dB at 100 Hz, much less at 20 Hz; ours equal to it */
+    double r = 0.0;
+    for (int k = 0; k <= 200; k++) {
+        double hz = 20.0 * pow(1000.0, k / 200.0);
+        r = fmax(r, fabs(db_mocy(k1_kor_waga(hz)) - db_mocy(waga_k(hz))));
+    }
+    printf("test_korektor: waga K — 100 Hz %+.2f dB, 1 kHz %+.2f dB, 10 kHz %+.2f dB; nasza od libm najwyżej %.5f dB\n",
+           db_mocy(waga_k(100.0)), db_mocy(waga_k(1000.0)), db_mocy(waga_k(10000.0)), r);
+    EXPECT(r < 0.001);
+    EXPECT(fabs(db_mocy(waga_k(10000.0)) - 4.0) < 0.3 && db_mocy(waga_k(20.0)) < -10.0);
+    EXPECT(fabs(db_mocy(waga_k(1000.0))) < 1.0);
+}
+
+static double najglosniej(const int8_t *p);
+
 /* Each band alone: the middle exactly its gain (±0.1 dB), three octaves away ~0 dB. */
 static void pasma_same(void)
 {
@@ -109,7 +158,9 @@ static void pasma_same(void)
             k1_kor_policz(&u, p);
             najgorzej = fmax(najgorzej, fabs(db_mocy(k1_kor_moc(&u, hz)) - zyski[z] / 2.0));
             daleko = fmax(daleko, fabs(db_mocy(k1_kor_moc(&u, dalej))));
-            EXPECT(u.wzm <= 1.0 && (zyski[z] < 0 ? u.wzm == 1.0 : fabs(20.0 * log10(u.wzm) + zyski[z] / 2.0) < 0.05));
+            /* 0.13.0: the loudness as without it — or, a band raised much, its peak at K1_DZW_ZAPAS */
+            EXPECT(fabs(glosnosc(&u)) < 0.02 || fabs(najglosniej(p) - 20.0 * log10(K1_DZW_ZAPAS)) < 0.05);
+            EXPECT(zyski[z] < 0 ? u.wzm > 1.0 : u.wzm < 1.0);
         }
     printf("test_korektor: pasmo samo — środek najwyżej %.4f dB od celu, trzy oktawy dalej najwyżej %.3f dB\n",
            najgorzej, daleko);
@@ -117,7 +168,7 @@ static void pasma_same(void)
     EXPECT(daleko < 0.5);
 }
 
-/* Nothing louder than 100 %: |H|·wzm ≤ 1 on a fine grid (every ready setting, the worst ones, random ones). */
+/* The loudest point: |H|·wzm on a fine grid (every ready setting, the worst ones, random ones) — at most K1_DZW_ZAPAS. */
 static double najglosniej(const int8_t *p)
 {
     struct k1_kor_ustawienie u;
@@ -135,7 +186,11 @@ static void poziom(void)
     for (int nr = 0; nr < K1_KOR_GOTOWYCH; nr++) {
         k1_kor_gotowe_pasma(nr, p);
         double g = najglosniej(p);
-        printf("test_korektor: %-14s najgłośniej %+.3f dB\n", k1_kor_gotowe_nazwa(nr), g);
+        struct k1_kor_ustawienie u;
+        k1_kor_policz(&u, p);
+        printf("test_korektor: %-14s głośność %+.3f dB, najgłośniej %+.3f dB, poziom %+.2f dB\n", k1_kor_gotowe_nazwa(nr),
+               glosnosc(&u), g, 20.0 * log10(u.wzm));
+        EXPECT(fabs(glosnosc(&u)) < 0.02); /* 0.13.0: every ready setting as loud as without the equalizer */
         m = fmax(m, g);
     }
     memset(p, K1_KOR_MAKS, sizeof p);
@@ -146,8 +201,9 @@ static void poziom(void)
             p[i] = (int8_t)(rand() % (2 * K1_KOR_MAKS + 1) - K1_KOR_MAKS);
         m = fmax(m, najglosniej(p));
     }
-    printf("test_korektor: poziom — najgłośniejszy punkt wszystkich ustawień %+.3f dB\n", m);
-    EXPECT(m < 0.05); /* the grids differ: the service's misses no peak by more than this */
+    printf("test_korektor: poziom — najgłośniejszy punkt wszystkich ustawień %+.3f dB (zapas %+.2f dB)\n", m,
+           20.0 * log10(K1_DZW_ZAPAS));
+    EXPECT(m < 20.0 * log10(K1_DZW_ZAPAS) + 0.05); /* the grids differ: the service's misses no peak by more than this */
 }
 
 /* RMS of the left channel over the last half of `n` frames */
@@ -192,7 +248,7 @@ static void ton_przez_pasmo(void)
     r8 = 20.0 * log10(rms(a, DL) / (0.5 / sqrt(2.0)));
     printf("test_korektor: +6 dB przy 1 kHz — ton 1 kHz %+.2f dB, ton 8 kHz %+.2f dB (różnica %.2f dB)\n", r1, r8, r1 - r8);
     EXPECT(fabs((r1 - r8) - 6.0) < 0.2);
-    EXPECT(r1 < 0.05); /* the level before the filters: not louder */
+    EXPECT(r1 > 4.0 && r1 < 6.0 && r8 < 0.0 && r8 > -1.0); /* 0.13.0: the band louder, the rest a little quieter */
 }
 
 static void przezroczystosc(void)
@@ -276,6 +332,7 @@ int main(void)
     funkcje();
     tabele();
     pola();
+    waga();
     pasma_same();
     poziom();
     ton_przez_pasmo();

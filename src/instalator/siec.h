@@ -2,7 +2,8 @@
  * program. nadzorca starts it with
  *   fd 3  the channel (INST_ZADANIE in; INST_ETAP, INST_SIEC, INST_GOTOWE out)
  *   fd 4  STAN: the announcement from the download zone (a pipe; empty when K1 only looks at the disk); POBIERZ: the
- *         package from the download zone (a pipe); else /dev/null
+ *         package from the download zone (a pipe); each with the zone's footer after it (0.13.0, k1_stopka.h);
+ *         else /dev/null
  *   fd 5  the K1-EFI partition of the disk K1 runs from (read and written; the data partition is never ours)
  *   fd 6  STAN: an empty memfd for the announcement to show (Ustawienia, gui); POBIERZ: the announcement STAN accepted
  * Only this program reads what came from the network; nothing it reads changes what starts before "Zainstaluj". */
@@ -13,6 +14,7 @@
 
 #include "k1_efi.h"
 #include "k1_ogloszenie.h"
+#include "k1_paczka.h"
 
 #define FD_KANAL 3
 #define FD_ZRODLO 4
@@ -35,7 +37,9 @@ struct siec_dysk {
 };
 int siec_ogl_dobre(const uint8_t *b, size_t n, int test, struct k1_ogloszenie *o);
 int siec_man_dobry(const uint8_t *man, int test);
-int siec_czeka(const struct siec_dysk *d, int test, struct k1_ogloszenie *o, uint8_t sha[32], uint64_t *bajty);
+/* What waits in the waiting room (checked: the mark, the announcement it came with, newer than what runs): 1 and its
+ * mark (0.13.0: seen, confirmed) and announcement, or 0. */
+int siec_czeka(const struct siec_dysk *d, int test, struct k1_ogloszenie *o, struct k1_pocz *z);
 
 /* siec_instaluj.c: "Zainstaluj" (the waiting version into the free slot, the boot files, k1_nowy) and "Wróć do
  * poprzedniej wersji" (k1_nowy = the free slot holding the previous, older version). */

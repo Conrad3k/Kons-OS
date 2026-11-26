@@ -11,6 +11,9 @@
 # Aktualizacje przez sieć (0.10.5 krok 2, ADR 0046): z gotowej K1-EFI także paczka aktualizacji
 # (build/wynik/k1-<wersja>.k1a: miejsce A i pliki startowe) i jej ogłoszenie (build/wynik/k1-ogloszenie.bin: wersja,
 # skrót paczki, opisy wersji z CHANGELOG.md — scripts/opisy-wersji.py), podpisane tym samym kluczem co manifesty.
+# Od 0.13.0 (ADR 0056) dwa ogłoszenia: k1-ogloszenie.bin (format 1 — dla K1 do 0.12.x, nigdy się nie zmienia)
+# i k1-ogloszenie2.bin (format 2 z czasem podpisu — czyta je K1 od 0.13; workflow „Ogłoszenie dnia” podpisuje je co dzień
+# od nowa, więc nie ma go w SHA256SUMS: chroni je własny podpis).
 # Wymaga: scripts/zbuduj.sh (jądro, programy, obrazy, k1.efi).
 . "$(dirname "$0")/wspolne.sh"
 
@@ -119,10 +122,11 @@ GENV=$(miejsce /boot/grub/grubenv 1024) A=$(miejsce /k1/a.img $((SLOT_MIB << 20)
 # 0.10.5 step 2 (ADR 0046): the update package and its signed announcement, from the finished K1-EFI
 PACZKA=$K1_WYNIK/k1-$K1_WERSJA.k1a
 OGL=$K1_WYNIK/k1-ogloszenie.bin
+OGL2=$K1_WYNIK/k1-ogloszenie2.bin
 python3 -I "$K1_REPO/scripts/opisy-wersji.py" "$K1_REPO/CHANGELOG.md" "$K1_WERSJA" > "$USB/opisy.txt" || blad "opisy wersji (CHANGELOG.md)"
 NOWA_LINIA=; python3 -I "$K1_REPO/scripts/opisy-wersji.py" --nowa-linia "$K1_REPO/CHANGELOG.md" "$K1_WERSJA" && NOWA_LINIA=nowa-linia
 "$WYDANIE" paczka "$ESP" "$PACZKA" || blad "paczka aktualizacji"
-"$WYDANIE" ogloszenie "$PACZKA" "$USB/opisy.txt" "$SOURCE_DATE_EPOCH" "$OGL" $NOWA_LINIA || blad "ogłoszenie wydania"
+"$WYDANIE" ogloszenie "$PACZKA" "$USB/opisy.txt" "$SOURCE_DATE_EPOCH" "$OGL" "$OGL2" $NOWA_LINIA || blad "ogłoszenie wydania"
 
 # The disk: GPT with fixed GUIDs, the EFI partition copied in, K1-DANE left as zeros.
 rm -f "$WYJSCIE" "$WYJSCIE.xz"

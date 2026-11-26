@@ -342,8 +342,9 @@ enum k1_komunikat_typ {
                                * version that runs (0: not known) — a try A/B did not start, the previous version runs */
     /* 0.10.5 step 2b (ADR 0046): updates through the network — nadzorca → Ustawienia (fd 7) and gui (fd 5) */
     K1_KOM_AKT_STAN = 189,    /* obiekt=0, a=the version that runs (0: not known), b=waiting for "Zainstaluj" (0: none),
-                               * c=a newer one in the newest release (0: none), d=the previous one, to go back to (0:
-                               * none), e=K1_AKT_FL_* */
+                               * c=a newer one in the newest release (0: none; with K1_AKT_FL_ZWLOKA — 0.13.0 — the one
+                               * downloaded that waits out the 20 minutes, b then 0), d=the previous one, to go back to
+                               * (0: none), e=K1_AKT_FL_* */
     K1_KOM_AKT_ETAP = 190,    /* obiekt=0, a=K1_AKT_E_* what runs now, b=percent 0..100, c=K1_AKT_W_* the last check,
                                * d=when it was (s since 1970, 0: never), e=the last job's result (0 or K1_INST_BLAD_*) */
     K1_KOM_AKT_OPIS = 191,    /* obiekt=0, a=bytes 1..K1_OGL_MAKS, b..e=0; + 1 fd: a sealed memfd with the announcement
@@ -360,8 +361,9 @@ enum k1_komunikat_typ {
                                * b..e=0 — K1 is powering off: ekran covers everything with the screen "Wyłączanie" (or
                                * "Ponowne uruchamianie") until the end and gives no input to the windows. Once; not on log out */
     K1_KOM_INST_SIEC = 188,   /* writing program → nadzorca (0.10.5 step 2, after STAN): obiekt=0, a=the version that runs
-                               * (1..), b=the version waiting in the waiting room (0: none), c=the newer version to
-                               * download (0: none), d=K1_SIEC_FL_*, e=the previous version in the free slot (0: none) */
+                               * (1..), b=the version waiting in the waiting room (0: none; K1_SIEC_FL_ZWLOKA: not yet
+                               * confirmed), c=the newer version to download (0: none), d=K1_SIEC_FL_*, e=the previous
+                               * version in the free slot (0: none) */
     /* client (Pliki, gui) → skarbiec (0.8.0, ADR 0029): files and folders; what a client may do comes from
      * the table of rights in skarbiec (dokumenty.c). Entry numbers: 1..K1_FOLDERY_MAKS standard folders,
      * K1_DOK_PIERWSZY..K1_DOK_ID_MAKS the user's. Names and content travel in a sealed memfd. Since 0.8.1 (step 4,
@@ -871,19 +873,24 @@ enum { K1_INST_SIEC_STAN = 3, K1_INST_SIEC_POBIERZ = 4, K1_INST_SIEC_ZAINSTALUJ 
 #define K1_SIEC_FL_OGL_ZLE 4     /* a fresh announcement came and was refused (signature, format) */
 #define K1_SIEC_FL_BEZ_MIEJSCA 8 /* no waiting room (the K1-EFI partition too small): updates from a stick only */
 #define K1_SIEC_FL_PROBA 16      /* a new slot waits to be tried or confirmed: nothing is downloaded or installed */
-#define K1_SIEC_FL_MAKS 31
+#define K1_SIEC_FL_ZWLOKA 32     /* 0.13.0 (ADR 0056, D1: A): the version waiting (b) waits out K1_OGL_ZWLOKA — not yet for
+                                  * "Zainstaluj" */
+#define K1_SIEC_FL_OGL_STARE 64  /* 0.13.0: a fresh announcement came, signed, but signed more than K1_OGL_WAZNE ago */
+#define K1_SIEC_FL_MAKS 127
 /* 0.10.5 step 2b: what nadzorca says of updates through the network (AKT_STAN e, AKT_ETAP a, c; AKT_PROSBA a) */
 #define K1_AKT_FL_NOWA_LINIA 1 /* the newer version has a new line of the Linux kernel (T3) */
 #define K1_AKT_FL_PENDRIVE 2   /* K1 runs from a stick (or a disk without a waiting room): "nagraj nowy pendrive" (D5) */
 #define K1_AKT_FL_SAM 4        /* "Sprawdzaj sam" is on (D4) */
 #define K1_AKT_FL_PROBA 8      /* a new version waits to be tried or confirmed */
 #define K1_AKT_FL_DYSK 16      /* K1 runs from a disk with K1 installed */
-#define K1_AKT_FL_MAKS 31
+#define K1_AKT_FL_ZWLOKA 32    /* 0.13.0 (ADR 0056, D1: A): c is downloaded and waits out the 20 minutes (K1_OGL_ZWLOKA) */
+#define K1_AKT_FL_MAKS 63
 enum { K1_AKT_E_NIC = 0, K1_AKT_E_SPRAWDZA = 1, K1_AKT_E_POBIERA = 2, K1_AKT_E_INSTALUJE = 3, K1_AKT_E_WRACA = 4 };
 #define K1_AKT_E_MAKS 4
 enum { K1_AKT_W_NIC = 0 /* not yet */, K1_AKT_W_OK = 1, K1_AKT_W_BRAK_SIECI = 2 /* K1 has no network */,
-       K1_AKT_W_NIEUDANE = 3 /* no announcement came */, K1_AKT_W_ODRZUCONE = 4 /* it came, refused */ };
-#define K1_AKT_W_MAKS 4
+       K1_AKT_W_NIEUDANE = 3 /* no announcement came */, K1_AKT_W_ODRZUCONE = 4 /* it came, refused */,
+       K1_AKT_W_STARE = 5 /* 0.13.0: it came signed, but older than K1_OGL_WAZNE — "nie wiem, czy to najnowsza" */ };
+#define K1_AKT_W_MAKS 5
 enum { K1_AKT_P_SPRAWDZ = 1, K1_AKT_P_ZAINSTALUJ = 2, K1_AKT_P_WROC = 3, K1_AKT_P_SAM_WL = 4, K1_AKT_P_SAM_WYL = 5 };
 #define K1_AKT_P_MAKS 5
 #define K1_OGL_MAKS_BAJTOW 8192 /* AKT_OPIS a: K1_OGL_MAKS (k1_ogloszenie.h; checked there) */

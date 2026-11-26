@@ -101,7 +101,8 @@ $(OBJ)/podpisz: narzedzia/podpisz.c narzedzia/klucz.c narzedzia/klucz.h $(MANIFE
 # 0.10.5 step 2 (ADR 0046): the release announcement and the update package — formats in src/wspolne/, the tool that
 # makes both at build time (narzedzia/wydanie.c; the signature in k1_ogloszenie_podpis.c)
 OGLOSZENIE := src/wspolne/k1_ogloszenie.c
-PACZKA     := src/wspolne/k1_paczka.c src/wspolne/k1_ogloszenie_podpis.c src/wspolne/k1_sha256.c # + $(OGLOSZENIE) (in USLUGI)
+PACZKA     := src/wspolne/k1_paczka.c src/wspolne/k1_ogloszenie_podpis.c src/wspolne/k1_sha256.c \
+              src/wspolne/k1_stopka.c # + $(OGLOSZENIE) (in USLUGI); k1_stopka: 0.13.0, ADR 0056 — the footer of the download zone
 $(OBJ)/wydanie: narzedzia/wydanie.c narzedzia/klucz.c narzedzia/klucz.h $(PACZKA) $(MANIFEST) $(NAGL) | $(OBJ)
 	$(CC_HOST) -std=c11 -O2 -D_GNU_SOURCE -Wall -Wextra -Werror -Isrc/wspolne -Isrc/zewnetrzne/monocypher \
 		-o $@ narzedzia/wydanie.c narzedzia/klucz.c $(PACZKA) $(OGLOSZENIE) $(MANIFEST)
@@ -210,8 +211,8 @@ STREFA_PRZYB := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przyborn
                 $(GEN)/k1_czcionki_dane.c
 $(BIN)/strefa: $(STREFA) $(wildcard src/strefa/*.h) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(NAGL) $(NAGL_P) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(STREFA) $(STREFA_PRZYB) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
-GOSC := $(sort $(wildcard src/strefa/gosc/*.c)) src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c
-$(BIN)/gosc: $(GOSC) $(wildcard src/strefa/gosc/*.h) src/wspolne/k1_pliki_strefy.h | $(BIN)
+GOSC := $(sort $(wildcard src/strefa/gosc/*.c)) src/wspolne/k1_pliki_strefy.c src/wspolne/k1_schowek.c src/wspolne/k1_stopka.c
+$(BIN)/gosc: $(GOSC) $(wildcard src/strefa/gosc/*.h) src/wspolne/k1_pliki_strefy.h src/wspolne/k1_stopka.h | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(GOSC) $(LDFLAGS_K1)
 # 0.10.0 step 2 (ADR 0043): the browser zone's own programs — the Wayland compositor (with gosc's display, kms.c) and
 # the relay of the browser's connections; they run inside the machine, built like gosc
@@ -302,6 +303,10 @@ $(OBJ)/test_korektor: testy/host/test_korektor.c src/wspolne/k1_korektor.c $(NAG
 # 0.12.3 step 3 (ADR 0055 points 14–19): Kons Spatial Audio — the crossovers, the head model, the speakers, the level
 $(OBJ)/test_przestrzen: testy/host/test_przestrzen.c src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c src/wspolne/k1_prz_proba.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przestrzen.c src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c src/wspolne/k1_prz_proba.c -lm
+
+# 0.13.0 (ADR 0056): the footer of the download zone — the time of HTTPS
+$(OBJ)/test_stopka: testy/host/test_stopka.c src/wspolne/k1_stopka.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_stopka.c src/wspolne/k1_stopka.c
 
 $(OBJ)/test_filmy: testy/host/test_filmy.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_filmy.c $(KOMUNIKAT) $(DOK_C)
@@ -454,8 +459,11 @@ $(OBJ)/test_start: testy/host/test_start.c src/instalator/start.c src/instalator
 		$(FAT32) src/wspolne/k1_log.c $(MONOCYPHER)
 
 # 0.10.5 step 2 (ADR 0046): the release announcement and the update package
-$(OBJ)/test_ogloszenie: testy/host/test_ogloszenie.c $(OGLOSZENIE) src/wspolne/k1_ogloszenie_podpis.c $(MANIFEST) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/zewnetrzne/monocypher -o $@ testy/host/test_ogloszenie.c $(OGLOSZENIE) \
+# 0.13.0 (ADR 0056, T1): also against the frozen reader of K1 0.12.3 (testy/host/zgodnosc/)
+$(OBJ)/test_ogloszenie: testy/host/test_ogloszenie.c $(OGLOSZENIE) src/wspolne/k1_ogloszenie_podpis.c $(MANIFEST) $(NAGL) testy/host/k1_test_host.h \
+		$(wildcard testy/host/zgodnosc/*) | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -Isrc/zewnetrzne/monocypher -Itesty/host/zgodnosc -o $@ testy/host/test_ogloszenie.c \
+		testy/host/zgodnosc/ogloszenie_0123.c $(OGLOSZENIE) \
 		src/wspolne/k1_ogloszenie_podpis.c src/wspolne/k1_manifest.c $(MONOCYPHER)
 
 $(OBJ)/test_paczka: testy/host/test_paczka.c src/wspolne/k1_paczka.c $(MANIFEST) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
@@ -549,7 +557,7 @@ TESTY_HOST := test_gpu_most test_ogloszenie test_paczka test_odcinki test_odcink
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_edid test_pliki_strefy test_schowek test_agent_foldery test_palce \
-	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_virtio_dzwiek test_dzw_tor test_korektor test_przestrzen
+	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_virtio_dzwiek test_dzw_tor test_korektor test_przestrzen test_stopka
 TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania
 
@@ -606,7 +614,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek virtio_dzwiek korektor przestrzen
+        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek virtio_dzwiek korektor przestrzen stopka
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -623,6 +631,8 @@ FUZZ_ZR_bat_arch  := src/wspolne/k1_bat_arch.c
 FUZZ_DL_bat_arch  := 9000
 FUZZ_ZR_ogloszenie := $(OGLOSZENIE) src/wspolne/k1_ogloszenie_podpis.c src/wspolne/k1_manifest.c $(MONOCYPHER)
 FUZZ_DL_ogloszenie := 8300
+FUZZ_ZR_stopka    := src/wspolne/k1_stopka.c
+FUZZ_DL_stopka    := 64
 FUZZ_ZR_paczka    := src/wspolne/k1_paczka.c $(MANIFEST)
 FUZZ_DL_paczka    := 8800
 FUZZ_ZR_manifest  := src/wspolne/k1_manifest.c $(MONOCYPHER)

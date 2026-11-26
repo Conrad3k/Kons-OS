@@ -19,6 +19,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (k1_ogloszenie_czytaj(data, size, &o) == 0) {
         if (o.wersja == 0 || o.n > K1_OGL_OPISOW_MAKS || (size_t)o.dl + 64 != size || o.paczka_bajty > K1_OGL_PACZKA_MAKS)
             abort();
+        if ((o.format != 1 && o.format != 2) || (o.format == 2) != (o.podpisano != 0) ||
+            (o.format == 1 && k1_ogl_swieze(&o, o.czas)))
+            abort(); /* 0.13.0: format 2 always has the time of signing, format 1 never; format 1 is never fresh */
+        {
+            static uint8_t b[K1_OGL_MAKS];
+            if (k1_ogloszenie_zbuduj(&o, b, sizeof b) != (size_t)o.dl || memcmp(b, data, o.dl) != 0)
+                abort(); /* accepted only what builds back the same */
+        }
         for (i = 0; i < o.n; i++)
             if (o.opis[i].wersja > o.wersja || strlen(o.opis[i].tekst) != o.opis[i].dl ||
                 (o.opis[i].rodzaj == K1_OGL_OPIS && !k1_ogl_tekst_dobry(o.opis[i].tekst, o.opis[i].dl)))

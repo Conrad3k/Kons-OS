@@ -4,7 +4,9 @@
 #   nowa.img     K1-EFI wydania 0.11.0 (miejsce A: system 0.11.0, nowe pliki startowe) — z niej paczka i ogłoszenie
 #   dysk.img     K1-EFI na dysku: działa miejsce A (0.10.9), w miejscu B poprzednia 0.10.8, stare pliki startowe;
 #                partycja 512 MiB (FAT 300 MiB — za nią poczekalnia)
-#   paczka.k1a, ogloszenie.bin   wydanie 0.11.0 (narzedzia/wydanie), podpisane kluczem testowym (K1_KLUCZ_PODPISU)
+#   paczka.k1a, ogloszenie.bin   wydanie 0.11.0 (narzedzia/wydanie), podpisane kluczem testowym (K1_KLUCZ_PODPISU);
+#                ogloszenie.bin to format 2 (0.13.0: k1-ogloszenie2.bin, podpisane 1795000000), ogloszenie1.bin — format 1;
+#                odswiezone.bin — to samo podpisane 6 dni później (wydanie odswiez)
 #   obcy.bin     to samo ogłoszenie podpisane innym kluczem; stare.bin — ogłoszenie wersji 0.10.8
 #   inna.k1a, inna.bin   wydanie 0.11.0 z miejscami po 129 MiB (0.10.9 krok 4b: inny układ niż dysk — odmowa)
 # Użycie: obrazy_paczki.sh KATALOG BUDOWA_OBJ (podpisz i wydanie są w BUDOWA_OBJ)
@@ -61,16 +63,23 @@ efi "$OUT/dysk.img" "$Z/dysk-a.img" "$Z/dysk-b.img" 3
 truncate -s 512M "$OUT/dysk.img" # the partition: 512 MiB, the FAT 300 MiB
 "$OBJ/wydanie" paczka "$OUT/nowa.img" "$OUT/paczka.k1a" >/dev/null
 printf '0.11.0\topis\tPliki ze stref: kopia zostaje w Plikach.\n0.10.9\tpoprawki\n' > "$Z/opisy"
-"$OBJ/wydanie" ogloszenie "$OUT/paczka.k1a" "$Z/opisy" 1763400000 "$OUT/ogloszenie.bin" >/dev/null
-K1_KLUCZ_PODPISU=AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI= "$OBJ/wydanie" ogloszenie "$OUT/paczka.k1a" "$Z/opisy" 1763400000 \
-    "$OUT/obcy.bin" >/dev/null
+"$OBJ/wydanie" ogloszenie "$OUT/paczka.k1a" "$Z/opisy" 1795000000 "$OUT/ogloszenie1.bin" "$OUT/ogloszenie.bin" >/dev/null
+K1_KLUCZ_PODPISU=AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI= "$OBJ/wydanie" ogloszenie "$OUT/paczka.k1a" "$Z/opisy" 1795000000 \
+    "$Z/obcy1.bin" "$OUT/obcy.bin" >/dev/null
+# 0.13.0 (ADR 0056): "Ogłoszenie dnia" — the same announcement signed again 6 days later; NEGATIVE: earlier, another key's
+"$OBJ/wydanie" odswiez "$OUT/ogloszenie.bin" $((1795000000 + 6 * 86400)) "$OUT/odswiezone.bin" >/dev/null
+nie() { if "$@" 2>/dev/null; then echo "obrazy_paczki: przyjęte, a nie powinno: $*" >&2; exit 1; fi; }
+nie "$OBJ/wydanie" odswiez "$OUT/ogloszenie.bin" 1794900000 "$Z/x.bin"
+nie "$OBJ/wydanie" odswiez "$OUT/obcy.bin" $((1795000000 + 86400)) "$Z/x.bin"
+nie "$OBJ/wydanie" odswiez "$OUT/ogloszenie1.bin" $((1795000000 + 86400)) "$Z/x.bin"
+nie env K1_KLUCZ_PODPISU= "$OBJ/wydanie" odswiez "$OUT/ogloszenie.bin" $((1795000000 + 86400)) "$Z/x.bin"
 # an announcement of 0.10.8: the package's header names another version — built from a slot of that version
 slot "$Z/stara-a.img" 0.10.8 8; efi "$Z/stara.img" "$Z/stara-a.img" "$Z/pusty.img" 3
 "$OBJ/wydanie" paczka "$Z/stara.img" "$Z/stara.k1a" >/dev/null
 # 0.10.9 step 4b: the same version with slots of 129 MiB — a layout the disk does not have
 slot "$Z/inna-a.img" 0.11.0 11 129; truncate -s 129M "$Z/pusty129.img"; efi "$Z/inna.img" "$Z/inna-a.img" "$Z/pusty129.img" 5
 "$OBJ/wydanie" paczka "$Z/inna.img" "$OUT/inna.k1a" >/dev/null
-"$OBJ/wydanie" ogloszenie "$OUT/inna.k1a" "$Z/opisy" 1763400000 "$OUT/inna.bin" >/dev/null
+"$OBJ/wydanie" ogloszenie "$OUT/inna.k1a" "$Z/opisy" 1795000000 "$Z/inna1.bin" "$OUT/inna.bin" >/dev/null
 printf '' > "$Z/bez"
-"$OBJ/wydanie" ogloszenie "$Z/stara.k1a" "$Z/bez" 1763300000 "$OUT/stare.bin" >/dev/null
+"$OBJ/wydanie" ogloszenie "$Z/stara.k1a" "$Z/bez" 1794900000 "$Z/stare1.bin" "$OUT/stare.bin" >/dev/null
 rm -rf "$Z"

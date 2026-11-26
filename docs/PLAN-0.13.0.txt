@@ -119,7 +119,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar  ADR      Issue
-[ ]  1  Łańcuch wydań: poczekalnia / drugi podpis, termin     L1–L5            0.12.3      D1, T1, T2     M        0056     #230,
+[x]  1  Łańcuch wydań: poczekalnia / drugi podpis, termin     L1–L5            0.12.3      D1, T1, T2     M        0056     #230,
         ogłoszenia, data z HTTPS, akcje przypięte skrótem                                                                    #238 (p. 2)
 [ ]  2  TPM i odwoływanie: TPM w jądrze, SBAT w k1.efi,        L6–L11           1           T3–T6          L        0057     #235 (p. 2)
         licznik wersji, cofnięcie skarbca
@@ -402,4 +402,25 @@ Krok 8:
 
 USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
 -----------------------------------------------------
-(puste)
+Krok 1 (2026-11-26, Claude, PR #245, CI przebieg 371 zielony; ADR 0056):
+  - D1 właściciela: A, ale **20 minut** zamiast doby („gdyby przejęto mi gita, to dostatecznie dużo czasu na zatrzymanie
+    katastrofy”). Robot: „i tak stoi” (uprawnienie z #216/#217 niewłączone) — nie wyłączany, bez wpisu „Tymczasowe”;
+    gdy właściciel włączy uprawnienie przed krokiem 4, robot wyda połowę zmian kroków 2 i 4 — wtedy go wyłączyć.
+  - Zwłokę liczy laptop od pobrania (nie czas z CI — ten wpisze każdy, kto przejmie CI); potwierdza ją dopiero świeże
+    ogłoszenie TEGO SAMEGO wydania (wersja, SHA-256, identyfikator budowy) po 20 minutach; starsze — wycofuje (znak zerami).
+  - T1: format 1 nie da się rozszerzyć (czytnik 0.12.3 wymaga zer w 96–127 i dokładnej długości) → drugi plik
+    `k1-ogloszenie2.bin`; termin 7 dni; „Ogłoszenie dnia” (`ogloszenie.yml`, `wydanie odswiez`). Do końca formatu 1 —
+    decyzja w audycie 0.14.
+  - Czas z HTTPS: curl `--write-out %output{…}%header{date}`, stopka tylko po całym pliku (kod 0) — brak stopki = pobieranie
+    niepełne, nie „odrzucone”. Wpisy gościa strefy pobierania nie trafiają do logu K1: test sprawdza stopkę przez minuty,
+    które K1 z niej policzył (serwer testowy przesuwa `Date` o 25 min → „26 min po pierwszym zobaczeniu”). W logu K1 nie
+    może być słowa „GitHub” (test: niezmiennik 8) — wpisy mówią „najnowsze wydanie”.
+  - T2: akcje przypięte skrótem tego, na co wskazywał tag 2026-11-26 (checkout v5.1.0, cache v4.3.0, upload-artifact
+    v5.0.0); odświeża Dependabot (miesięcznie), scala człowiek.
+  - Przy okazji (prośba właściciela w trakcie kroku, osobny commit, ADR 0055 pkt 21): Kons Spatial Audio i korektor
+    zachowują głośność (waga K z BS.1770; zapas +6 dB, ogranicznik bierze resztę) — było „Koncert” w słuchawkach −4,7 dB,
+    z „Więcej basu” −9,9 dB; słuchawki: środek z jednego źródła (grzebień −6,6 dB przy 1 kHz znika); na start „Koncert”
+    z basem 4 %, włączony (wybór właściciela). Wzorce okienka „Dźwięk” i zakładki Kons Spatial Audio — przyjęte przez
+    właściciela.
+  - Testy lokalnie: test-m1, test-aktualizacja-siec (31 sprawdzeń), test-dzwiek, test-wzorce (po przyjęciu wzorców),
+    testy na hoście, fuzzing ogloszenie, stopka, paczka, korektor, przestrzen po 60 s.

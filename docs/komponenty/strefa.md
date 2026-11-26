@@ -274,7 +274,9 @@ Wiersz `POBIERANIE` w `K1_STREFY` — jedyny bez okna (kolumna „okno” = 0): 
 Obraz przeglądarki z curl i zaufanymi certyfikatami (`strefy/przegladarka.txt`; plik certyfikatów robi
 `scripts/zbuduj-strefe.sh`); argv[4] VMM = co pobrać (`lacznik_cel_dobry`: a–z, 0–9, `.`, `-`, `/`, bez `..`) → `k1.pobierz=`
 w linii jądra → `gosc/pobieranie.c`: przekaźnik, połączenie SOCKS5 do `pobrane.k1:1` (VMM prosi nadzorcę o gniazdo
-`K1_STREFA_POBRANE` — koniec pary do programu zapisującego), curl z `--socks5-hostname` pisze plik w to połączenie. Łącznik tej
+`K1_STREFA_POBRANE` — koniec pary do programu zapisującego), curl z `--socks5-hostname` pisze plik w to połączenie; od
+0.13.0 (ADR 0056) curl zapisuje też nagłówek `Date` serwera (`--write-out %output{/tmp/k1-data}%header{date}`), a po całym
+pliku (kod 0) gość dokleja **stopkę** z tym czasem (`k1_stopka.h`, 16 B). Łącznik tej
 strefy: tylko nazwy z `K1_HOSTY_POBIERANIA` na porcie 443 (`lacznik_cel`); adres liczbami — tylko w teście aktualizacji
 (tryb `K1_STREFA_TRYB_AKTUALIZACJA`, serwer testowy, curl `-k`). Odmowy liczy podsumowanie połączeń („poza listą hostów”).
 Popupów gui o tej strefie nie ma (nadzorca `zglos` ją pomija). Cała droga: `docs/komponenty/aktualizacja.md`.

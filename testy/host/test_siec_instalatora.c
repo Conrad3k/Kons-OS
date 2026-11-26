@@ -9,6 +9,11 @@
  *    while the try is pending everything else waits;
  *  - after a failed try (slot B newer than what runs): 0.11.0 is not offered again, "Wróć" refuses;
  *  - WRÓĆ: slot B with 0.10.8 → grubenv "try B once"; NEGATIVE: slot B changed — refused.
+ * 0.13.0 (ADR 0056; the owner's D1: A): every stream from the zone with its footer (the server's time); the announcement
+ * of format 2 only — format 1 refused; one signed 8 days before the server's time: too old (K1_SIEC_FL_OGL_STARE), the
+ * same signed again 6 days later ("Ogłoszenie dnia"): fresh; NEGATIVE: no footer — taken as nothing; a package without
+ * its footer — refused; a downloaded version waits (K1_SIEC_FL_ZWLOKA, "Zainstaluj" refused) until an announcement
+ * still names it 20 minutes after it was seen; an announcement of an older version withdraws it (the release deleted).
  * Usage: test_siec_instalatora DIR (obrazy_paczki.sh DIR first). */
 #include <fcntl.h>
 #include <stdio.h>
@@ -22,12 +27,14 @@
 #include "k1_io.h"
 #include "k1_komunikat.h"
 #include "k1_paczka.h"
+#include "k1_stopka.h"
 #include "k1_test_host.h"
 #include "siec.h"
 
 #define SLOT (128ull << 20) /* the slots of these images: the size up to 0.10.9 step 4 (still read) */
 
 #define W(a, b, c) ((int32_t)((a) << 16 | (b) << 8 | (c)))
+#define T0 1795000000ull /* when the announcements of obrazy_paczki.sh were signed */
 
 static const char *dir;
 static char sciezki[4][512];
@@ -44,6 +51,32 @@ static const char *p(const char *nazwa) /* four at once: several in one call */
     char *s = sciezki[nast++ % 4];
     snprintf(s, sizeof sciezki[0], "%s/%s", dir, nazwa);
     return s;
+}
+
+/* 0.13.0: `nazwa` as the zone gives it — the file and its footer with the server's time `czas`; its path. */
+static const char *ze_stopka(const char *nazwa, uint64_t czas)
+{
+    static uint8_t b[1u << 16];
+    static int nr;
+    char z[64];
+    const char *we = p(nazwa), *wy;
+    uint8_t s[K1_STOPKA];
+    FILE *f = fopen(we, "rb"), *g;
+    size_t n;
+    snprintf(z, sizeof z, "s%d.%s", nr++ % 4, nazwa);
+    wy = p(z);
+    g = fopen(wy, "wb");
+    if (f == NULL || g == NULL) {
+        fprintf(stderr, "ze_stopka: %s\n", we);
+        return wy;
+    }
+    while ((n = fread(b, 1, sizeof b, f)) > 0)
+        fwrite(b, 1, n, g);
+    k1_stopka_zbuduj(czas, s);
+    fwrite(s, 1, sizeof s, g);
+    fclose(f);
+    fclose(g);
+    return wy;
 }
 
 static void powlok(const char *polecenie)
@@ -141,22 +174,32 @@ static void stan(void)
     int nowy;
     char a[512], b[512];
     nowy_dysk();
-    EXPECT(uruchom(K1_INST_SIEC_STAN, p("ogloszenie.bin"), p("pokaz.bin"), &s, &nowy) == 0);
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("ogloszenie.bin", T0 + 60), p("pokaz.bin"), &s, &nowy) == 0);
     EXPECT(s.a == W(0, 10, 9) && s.b == 0 && s.c == W(0, 11, 0) && s.e == W(0, 10, 8) && (s.d & K1_SIEC_FL_OGL) &&
-           !(s.d & (K1_SIEC_FL_OGL_ZLE | K1_SIEC_FL_BEZ_MIEJSCA | K1_SIEC_FL_PROBA)));
+           !(s.d & (K1_SIEC_FL_OGL_ZLE | K1_SIEC_FL_BEZ_MIEJSCA | K1_SIEC_FL_PROBA | K1_SIEC_FL_OGL_STARE)));
     snprintf(a, sizeof a, "cmp -s %s/ogloszenie.bin %s/pokaz.bin", dir, dir);
-    EXPECT(system(a) == 0); /* the announcement to show */
-    EXPECT(uruchom(K1_INST_SIEC_STAN, p("obcy.bin"), p("pokaz.bin"), &s, &nowy) == 0);
+    EXPECT(system(a) == 0); /* the announcement to show (without the footer) */
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("obcy.bin", T0 + 60), p("pokaz.bin"), &s, &nowy) == 0);
     EXPECT(s.c == 0 && (s.d & K1_SIEC_FL_OGL_ZLE));      /* NEGATIVE: another key */
-    EXPECT(uruchom(K1_INST_SIEC_STAN, p("stare.bin"), p("pokaz.bin"), &s, &nowy) == 0);
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("stare.bin", T0 + 60), p("pokaz.bin"), &s, &nowy) == 0);
     EXPECT(s.c == 0 && (s.d & K1_SIEC_FL_OGL));          /* an older version: nothing to download */
+    /* 0.13.0 (ADR 0056) */
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("ogloszenie1.bin", T0 + 60), p("pokaz.bin"), &s, &nowy) == 0);
+    EXPECT(s.c == 0 && (s.d & K1_SIEC_FL_OGL_ZLE));      /* NEGATIVE: format 1 (K1 0.12's file) */
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("ogloszenie.bin", T0 + 8 * 86400), p("pokaz.bin"), &s, &nowy) == 0);
+    EXPECT(s.c == 0 && (s.d & K1_SIEC_FL_OGL_STARE) && !(s.d & (K1_SIEC_FL_OGL | K1_SIEC_FL_OGL_ZLE))); /* too old */
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("odswiezone.bin", T0 + 8 * 86400), p("pokaz.bin"), &s, &nowy) == 0);
+    EXPECT(s.c == W(0, 11, 0) && (s.d & K1_SIEC_FL_OGL)); /* signed again 6 days later: fresh */
+    EXPECT(uruchom(K1_INST_SIEC_STAN, p("ogloszenie.bin"), p("pokaz.bin"), &s, &nowy) == 0);
+    EXPECT(s.c == 0 && !(s.d & (K1_SIEC_FL_OGL | K1_SIEC_FL_OGL_ZLE))); /* NEGATIVE: no footer — a download cut short */
     EXPECT(uruchom(K1_INST_SIEC_STAN, "/dev/null", p("pokaz.bin"), &s, &nowy) == 0);
     EXPECT(s.c == 0 && s.b == 0 && !(s.d & (K1_SIEC_FL_OGL | K1_SIEC_FL_OGL_ZLE)));
     snprintf(b, sizeof b, "truncate -s 300M %s/d.img", dir); /* the stick's K1-EFI: no waiting room */
     powlok(b);
-    EXPECT(uruchom(K1_INST_SIEC_STAN, p("ogloszenie.bin"), p("pokaz.bin"), &s, &nowy) == 0 && (s.d & K1_SIEC_FL_BEZ_MIEJSCA) &&
-           s.c == W(0, 11, 0)); /* it says there is a newer one (D5: "nagraj nowy pendrive") but cannot take it */
-    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, p("paczka.k1a"), p("ogloszenie.bin"), &s, &nowy) == K1_INST_BLAD_MIEJSCE);
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("ogloszenie.bin", T0 + 60), p("pokaz.bin"), &s, &nowy) == 0 &&
+           (s.d & K1_SIEC_FL_BEZ_MIEJSCA) && s.c == W(0, 11, 0)); /* D5: "nagraj nowy pendrive" — it cannot take it */
+    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, ze_stopka("paczka.k1a", T0 + 60), p("ogloszenie.bin"), &s, &nowy) ==
+           K1_INST_BLAD_MIEJSCE);
 }
 
 /* NEGATIVE downloads: each refused, and nothing waits after it. */
@@ -176,23 +219,31 @@ static void pobieranie(void)
     nowy_dysk();
     kopia("paczka.k1a", "zla.k1a", "");
     zmien(p("zla.k1a"), K1_PACZKA_NAGLOWEK + 4096); /* a byte of the system */
-    zle_pobranie(p("zla.k1a"), K1_INST_BLAD_PODPIS);
+    zle_pobranie(ze_stopka("zla.k1a", T0 + 60), K1_INST_BLAD_PODPIS);
     kopia("paczka.k1a", "zla.k1a", "");
     zmien(p("zla.k1a"), 0); /* not a package */
-    zle_pobranie(p("zla.k1a"), K1_INST_BLAD_SIEC);
+    zle_pobranie(ze_stopka("zla.k1a", T0 + 60), K1_INST_BLAD_SIEC);
     snprintf(c, sizeof c, "head -c 1500000 %s/paczka.k1a > %s/zla.k1a", dir, dir); /* cut */
     powlok(c);
-    zle_pobranie(p("zla.k1a"), K1_INST_BLAD_SIEC);
+    zle_pobranie(ze_stopka("zla.k1a", T0 + 60), K1_INST_BLAD_SIEC);
     snprintf(c, sizeof c, "cp %s/paczka.k1a %s/zla.k1a && printf x >> %s/zla.k1a", dir, dir, dir); /* a byte too many */
     powlok(c);
-    zle_pobranie(p("zla.k1a"), K1_INST_BLAD_SIEC);
-    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, p("paczka.k1a"), p("obcy.bin"), &s, &nowy) == K1_INST_BLAD_PODPIS);
+    zle_pobranie(ze_stopka("zla.k1a", T0 + 60), K1_INST_BLAD_SIEC);
+    zle_pobranie(p("paczka.k1a"), K1_INST_BLAD_SIEC); /* 0.13.0, NEGATIVE: no footer after it */
+    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, ze_stopka("paczka.k1a", T0 + 60), p("obcy.bin"), &s, &nowy) == K1_INST_BLAD_PODPIS);
+    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, ze_stopka("paczka.k1a", T0 + 60), p("ogloszenie1.bin"), &s, &nowy) ==
+           K1_INST_BLAD_PODPIS); /* 0.13.0, NEGATIVE: format 1 */
     /* the real one */
-    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, p("paczka.k1a"), p("ogloszenie.bin"), &s, &nowy) == 0 && !nowy);
-    EXPECT(uruchom(K1_INST_SIEC_STAN, "/dev/null", p("pokaz.bin"), &s, &nowy) == 0 && s.b == W(0, 11, 0) && s.c == 0);
+    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, ze_stopka("paczka.k1a", T0 + 100), p("ogloszenie.bin"), &s, &nowy) == 0 && !nowy);
+    EXPECT(uruchom(K1_INST_SIEC_STAN, "/dev/null", p("pokaz.bin"), &s, &nowy) == 0 && s.b == W(0, 11, 0) && s.c == 0 &&
+           (s.d & K1_SIEC_FL_ZWLOKA)); /* 0.13.0 (D1: A): it waits */
     snprintf(c, sizeof c, "cmp -s %s/ogloszenie.bin %s/pokaz.bin", dir, dir); /* after a restart: the waiting one's */
     EXPECT(system(c) == 0);
-    EXPECT(uruchom(K1_INST_SIEC_STAN, p("ogloszenie.bin"), p("pokaz.bin"), &s, &nowy) == 0 && s.b == W(0, 11, 0) && s.c == 0);
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("ogloszenie.bin", T0 + 100 + 600), p("pokaz.bin"), &s, &nowy) == 0 &&
+           s.b == W(0, 11, 0) && s.c == 0 && (s.d & K1_SIEC_FL_ZWLOKA)); /* 10 minutes after: still waits */
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("ogloszenie.bin", T0 + 100 + 1200), p("pokaz.bin"), &s, &nowy) == 0 &&
+           s.b == W(0, 11, 0) && s.c == 0 && !(s.d & K1_SIEC_FL_ZWLOKA)); /* 20 minutes, still released: confirmed */
+    EXPECT(uruchom(K1_INST_SIEC_STAN, "/dev/null", p("pokaz.bin"), &s, &nowy) == 0 && !(s.d & K1_SIEC_FL_ZWLOKA));
     EXPECT(czytaj_dysk().env.nowy == 0); /* nothing starts otherwise */
 }
 
@@ -235,7 +286,12 @@ static void instalacja(void)
     int fd;
     nowy_dysk();
     EXPECT(uruchom(K1_INST_SIEC_ZAINSTALUJ, "/dev/null", "/dev/null", &s, &nowy) == K1_INST_BLAD_MIEJSCE && !nowy);
-    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, p("paczka.k1a"), p("ogloszenie.bin"), &s, &nowy) == 0);
+    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, ze_stopka("paczka.k1a", T0 + 100), p("ogloszenie.bin"), &s, &nowy) == 0);
+    /* 0.13.0 (D1: A), NEGATIVE: "Zainstaluj" in the waiting — nothing written */
+    EXPECT(uruchom(K1_INST_SIEC_ZAINSTALUJ, "/dev/null", "/dev/null", &s, &nowy) == K1_INST_BLAD_MIEJSCE && !nowy);
+    EXPECT(czytaj_dysk().env.nowy == 0);
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("ogloszenie.bin", T0 + 100 + 1300), p("pokaz.bin"), &s, &nowy) == 0 &&
+           !(s.d & K1_SIEC_FL_ZWLOKA));
     e = czytaj_dysk();
     zmien(p("d.img"), k1_pocz_od(e.uklad.fat_bajty) + K1_POCZ_PACZKA_OFF + K1_PACZKA_NAGLOWEK + 777);
     EXPECT(uruchom(K1_INST_SIEC_ZAINSTALUJ, "/dev/null", "/dev/null", &s, &nowy) == K1_INST_BLAD_PODPIS && !nowy);
@@ -249,7 +305,8 @@ static void instalacja(void)
     EXPECT(pliki_startowe_wydania());
     EXPECT(uruchom(K1_INST_SIEC_STAN, "/dev/null", p("pokaz.bin"), &s, &nowy) == 0 && s.b == 0 && (s.d & K1_SIEC_FL_PROBA));
     EXPECT(uruchom(K1_INST_SIEC_WROC, "/dev/null", "/dev/null", &s, &nowy) == K1_INST_BLAD_TRWA);
-    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, p("paczka.k1a"), p("ogloszenie.bin"), &s, &nowy) == K1_INST_BLAD_MIEJSCE);
+    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, ze_stopka("paczka.k1a", T0 + 100), p("ogloszenie.bin"), &s, &nowy) ==
+           K1_INST_BLAD_MIEJSCE);
     /* the try failed: GRUB went back to A, nadzorca cleared the try (rozruch.c) — B holds 0.11.0, newer than A */
     env = e.env;
     env.nowy = 0;
@@ -260,8 +317,8 @@ static void instalacja(void)
     EXPECT(fd >= 0 && k1_pisz_calosc(fd, g, sizeof g, e.uklad.grubenv_off) == 0);
     if (fd >= 0)
         close(fd);
-    EXPECT(uruchom(K1_INST_SIEC_STAN, p("ogloszenie.bin"), p("pokaz.bin"), &s, &nowy) == 0 && s.c == 0 && s.b == 0 &&
-           s.e == 0); /* not offered again; no going "back" to a newer one */
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("ogloszenie.bin", T0 + 2000), p("pokaz.bin"), &s, &nowy) == 0 && s.c == 0 &&
+           s.b == 0 && s.e == 0); /* not offered again; no going "back" to a newer one */
     EXPECT(uruchom(K1_INST_SIEC_WROC, "/dev/null", "/dev/null", &s, &nowy) == K1_INST_BLAD_ARG);
 }
 
@@ -273,10 +330,30 @@ static void inny_uklad(void)
     struct k1_efi e;
     int nowy;
     nowy_dysk();
-    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, p("inna.k1a"), p("inna.bin"), &s, &nowy) == 0);
+    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, ze_stopka("inna.k1a", T0 + 100), p("inna.bin"), &s, &nowy) == 0);
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("inna.bin", T0 + 100 + 1200), p("pokaz.bin"), &s, &nowy) == 0 &&
+           !(s.d & K1_SIEC_FL_ZWLOKA));
     EXPECT(uruchom(K1_INST_SIEC_ZAINSTALUJ, "/dev/null", "/dev/null", &s, &nowy) == K1_INST_BLAD_UKLAD && !nowy);
     e = czytaj_dysk();
     EXPECT(e.env.nowy == 0 && e.slot[1].wersja == (uint32_t)W(0, 10, 8) && e.slot[0].wersja == (uint32_t)W(0, 10, 9));
+}
+
+/* 0.13.0 (ADR 0056, D1: A): the owner deleted the release in its 20 minutes — the newest on GitHub is older again: the
+ * waiting one is withdrawn (the mark zeroed), nothing to install, nothing starts. */
+static void wycofane(void)
+{
+    struct k1_komunikat s;
+    int nowy;
+    nowy_dysk();
+    EXPECT(uruchom(K1_INST_SIEC_POBIERZ, ze_stopka("paczka.k1a", T0 + 100), p("ogloszenie.bin"), &s, &nowy) == 0);
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("stare.bin", T0 + 700), p("pokaz.bin"), &s, &nowy) == 0 && s.b == 0 &&
+           s.c == 0 && !(s.d & K1_SIEC_FL_ZWLOKA));
+    EXPECT(uruchom(K1_INST_SIEC_STAN, "/dev/null", p("pokaz.bin"), &s, &nowy) == 0 && s.b == 0); /* the mark is gone */
+    EXPECT(uruchom(K1_INST_SIEC_ZAINSTALUJ, "/dev/null", "/dev/null", &s, &nowy) == K1_INST_BLAD_MIEJSCE && !nowy);
+    EXPECT(czytaj_dysk().env.nowy == 0);
+    /* it comes back (the release again): downloaded anew, waits anew */
+    EXPECT(uruchom(K1_INST_SIEC_STAN, ze_stopka("ogloszenie.bin", T0 + 800), p("pokaz.bin"), &s, &nowy) == 0 &&
+           s.c == W(0, 11, 0) && s.b == 0);
 }
 
 static void powrot(void)
@@ -304,6 +381,7 @@ int main(int argc, char **argv)
     pobieranie();
     instalacja();
     inny_uklad();
+    wycofane();
     powrot();
     return K1_TEST_KONIEC("test_siec_instalatora");
 }

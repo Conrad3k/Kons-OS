@@ -50,6 +50,19 @@ przebieg nie skończył się” (tak było 2026-11-24 i 2026-11-25: Issue #216, 
   („Tymczasowe”, z terminem), żeby robot nie został wyłączony na zawsze.
 - **Tryb próbny:** `ROBOT_PROBNY: "1"` w `robot.yml` (do wydania 0.10.5 i od kroku 4 planu 0.10.9 do wydania 0.10.9; dziś `"0"` — pełny tryb) albo ręczne uruchomienie z `proba`.
 
+## Łańcuch wydań (0.13.0, ADR 0056)
+- **Zwłoka wydania:** wydanie robota — jak każde — laptop zainstaluje najwcześniej 20 minut po pobraniu i tylko wtedy,
+  gdy wciąż jest na GitHubie. Obce wydanie (przejęte konto albo CI) właściciel zatrzymuje, **usuwając je** na GitHubie
+  (Releases → wydanie → Delete) w te 20 minut — laptopy, które je pobrały, usuną je z poczekalni.
+- **„Ogłoszenie dnia”** (`.github/workflows/ogloszenie.yml`, 04:23 UTC): podpisuje `k1-ogloszenie2.bin` najnowszego
+  wydania od nowa z dzisiejszym czasem (`narzedzia/wydanie odswiez` — tylko ogłoszenie tego klucza, nigdy wstecz).
+  K1 nie bierze ogłoszenia podpisanego ponad 7 dni temu. Nie działa ponad 7 dni (np. GitHub wyłączył zaplanowane
+  workflow po 60 dniach bez zmian w repo: Actions → „Ogłoszenie dnia” → Enable workflow) — laptopy mówią „Nie mogę
+  sprawdzić, czy masz najnowszą wersję” i nic nie pobierają. Ręcznie: Actions → „Ogłoszenie dnia” → Run workflow.
+- **Akcje GitHuba przypięte pełnym skrótem commita** (`uses: actions/…@<skrót> # vX.Y.Z`) w `k1.yml`, `robot.yml`,
+  `ogloszenie.yml`. Nowsze proponuje Dependabot raz w miesiącu (`.github/dependabot.yml`) — PR scala człowiek po
+  zielonych testach; robot ich nie zmienia (zmiana workflow jest poza jego plikami).
+
 ## Jak przetestować
 - **Ręcznie:** Actions → „Robot — poprawki jądra i przeglądarki” → Run workflow (`proba` = tak, `start` = gałąź startowa —
   np. z celowo starszym jądrem w `jadro/wersja.env`).

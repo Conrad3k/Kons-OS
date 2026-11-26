@@ -43,7 +43,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     wb = data[33] & 1 ? K1_DZW_WYJSCIE_SLUCHAWKI : K1_DZW_WYJSCIE_GLOSNIKI;
     k1_prz_start(&p);
     k1_prz_ustaw(&p, &a, wa);
-    if (!(p.nowe.wzm > 0.0 && p.nowe.wzm <= 1.0))
+    if (!(p.nowe.wzm > 0.0 && p.nowe.wzm <= 8.0)) /* 0.13.0: the level keeps the loudness (ADR 0055 point 21) */
         abort();
     for (int okres = 0; okres < 6; okres++) {
         for (size_t i = 0; i < K1_DZW_OKRES * K1_DZW_KANALY; i++, od += 2) { /* the sum: up to 12 streams at full scale */
