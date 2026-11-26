@@ -115,9 +115,8 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar  ADR
-[ ]  1  Tor najwyższej jakości: 32 bity w środku, dither,      L1–L6            0.12.0      T1–T5, T8      L        0055
-        ogranicznik, 24 bity do karty, formaty strefy
-        [w toku: Claude, gałąź claude/plan-0-12-3-krok-1-07dz9b]
+[x]  1  Tor najwyższej jakości: 32 bity w środku, dither,      L1–L6            0.12.0      T1–T5, T8      L        0055
+        ogranicznik, 24 bity do karty, formaty strefy — PR #229
 [ ]  2  Korektor systemowy                                     L7–L9            1           D1, D2, T6      M        0055 (uzup.)
 [ ]  3  Kons Spatial Audio — silnik i gotowe sceny             L10–L11          1           D3, D5, D7, T7  L        0055 (uzup.)
 [ ]  4  Kons Spatial Audio — scena w Ustawieniach              L12–L13          3           D4, D6          M        0055 (uzup.)
