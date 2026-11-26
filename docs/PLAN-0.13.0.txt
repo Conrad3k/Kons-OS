@@ -119,8 +119,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
 --------------------------------------------------------------------------------------------------
      Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar  ADR      Issue
-[w toku: Claude, gałąź claude/amazing-pascal-w7ml2y]
-[ ]  1  Łańcuch wydań: poczekalnia / drugi podpis, termin     L1–L5            0.12.3      D1, T1, T2     M        0056     #230,
+[x]  1  Łańcuch wydań: poczekalnia / drugi podpis, termin     L1–L5            0.12.3      D1, T1, T2     M        0056     #230,
         ogłoszenia, data z HTTPS, akcje przypięte skrótem                                                                    #238 (p. 2)
 [ ]  2  TPM i odwoływanie: TPM w jądrze, SBAT w k1.efi,        L6–L11           1           T3–T6          L        0057     #235 (p. 2)
         licznik wersji, cofnięcie skarbca
@@ -403,7 +402,7 @@ Krok 8:
 
 USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
 -----------------------------------------------------
-Krok 1 (2026-11-26, Claude, gałąź claude/amazing-pascal-w7ml2y; ADR 0056):
+Krok 1 (2026-11-26, Claude, PR #245, CI przebieg 371 zielony; ADR 0056):
   - D1 właściciela: A, ale **20 minut** zamiast doby („gdyby przejęto mi gita, to dostatecznie dużo czasu na zatrzymanie
     katastrofy”). Robot: „i tak stoi” (uprawnienie z #216/#217 niewłączone) — nie wyłączany, bez wpisu „Tymczasowe”;
     gdy właściciel włączy uprawnienie przed krokiem 4, robot wyda połowę zmian kroków 2 i 4 — wtedy go wyłączyć.
