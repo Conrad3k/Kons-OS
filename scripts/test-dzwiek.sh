@@ -120,8 +120,12 @@ q.klik_w("Ustawienia", "Odtwórz próbę")
 q.sprawdz("próba z Ustawień zagrana (40 %)", q.czekaj(r"K1-USTAWIENIA: próba: zagrana", od=n, czas=120))
 
 n_zap = q.ile(r"K1-GUI: dźwięk: głośność zapamiętana")
+PIG_WYC = lambda: bool((q.element("Pigułka głośności", "Głośność") or {}).get("stan", 0) & 1)
 q.sprawdz("klawisz „wycisz”: wyciszone; „głośniej”: 45 %, nie wyciszone; gui zapamiętuje",
           klawisz("audiomute", r"K1-DZWIEK: głośność 40%, wyciszone \(Głośniki\)") and
+          # the test program counts the muted pills (the second one is its cue): it must see this one too — with KVM
+          # the next key came before the description showed it (CI run 352)
+          q.czekaj_na(PIG_WYC, czas=30) and
           klawisz("volumeup", r"K1-DZWIEK: głośność 45% \(Głośniki\)") and
           q.czekaj(r"K1-GUI: dźwięk: głośność zapamiętana", od=n_zap, czas=30))
 n_gui = q.ile(r"K1-GUI: dźwięk: zapamiętana głośność — głośniki 45%")
