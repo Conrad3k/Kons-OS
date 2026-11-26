@@ -407,6 +407,16 @@ extern char ab_nieudana[32];
 void obsluz_ekran(void); /* 0.10.9 step 2 (S3): EKRAN_OBRAZ on ekran's control channel */
 void rozruch_wydanie(void);
 void rozruch_po_starcie(double t);
+/* tpm.c (0.13.0 step 2, ADR 0057): the generation of K1 and the state of the vaults in the TPM */
+void tpm_start(void);
+int tpm_blokada(void); /* 1: an older K1 than the TPM knows — skarbiec gets no K1-DANE */
+void tpm_potwierdzony(void);
+void tpm_epoka(const struct k1_komunikat *k);
+void tpm_moje_dane(void);
+void tpm_test(int generacja);
+void tpm_nowy_gui(void);
+void tpm_nowe_ustawienia(void);
+void tpm_okresowe(void);
 /* obraz_strefy.c (0.10.9 step 4, ADR 0050): a zone image for the VMM (fd, read only), from the core or from the slot of
  * this build under dm-verity; -1 when there is none that verifies */
 int obraz_strefy_otworz(const char *nazwa);

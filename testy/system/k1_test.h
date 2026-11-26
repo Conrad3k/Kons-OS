@@ -137,5 +137,7 @@ void t_dzwiek_opis(const struct k1_opis_el *el, int n); /* …the scenario of sc
 int znak_dysku(const char *serial); /* a disk with this serial number: a test's mark (t_opis.c) */
 int tryb_opisu(void);           /* test-m4: the description for the script (t_opis_scenariusz) */
 int t_opis_scenariusz(void);
+void t_tpm(void);              /* 0.13.0 step 2 (ADR 0057): the TPM (t_tpm.c) */
+int t_tpm_scenariusz(int generacja);     /* …the scenario of scripts/test-tpm.sh */
 
 #endif

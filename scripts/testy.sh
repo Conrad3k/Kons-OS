@@ -18,7 +18,7 @@ if [ -z "$ROWNOLEGLE" ]; then
 fi
 # The longest first (CI run 310: test-aktualizacja-siec 16 min, test-most, test-strefa 8 min…): with a few at a time the
 # whole set ends soonest that way.
-TESTY="test-aktualizacja-siec test-most test-strefa test-pobrane test-pliki test-m4 test-wzorce test-dzwiek test-pendrive test-m5f test-m6 test-wifi test-skarbiec test-siec test-m5"
+TESTY="test-aktualizacja-siec test-most test-strefa test-pobrane test-pliki test-m4 test-wzorce test-dzwiek test-pendrive test-m5f test-m6 test-wifi test-skarbiec test-siec test-m5 test-tpm"
 [ -z "${K1_TESTY_TYLKO:-}" ] || TESTY=$K1_TESTY_TYLKO
 # How many at once: as many as the processors (each QEMU has 2 of them, zones run nested inside): all 14 at once on
 # the 4 processors of a GitHub runner (0.11.1, PR #207) slowed everything down sevenfold — zones missed their times,

@@ -152,6 +152,10 @@ void obsluz_skarbiec(void)
             powieksz_na_prosbe();
             continue;
         }
+        if (w == K1_ODB_JEST && k.typ == K1_KOM_SKARB_EPOKA) { /* 0.13.0 step 2: the vault's generation (tpm.c) */
+            tpm_epoka(&k);
+            continue;
+        }
         if (w == K1_ODB_JEST && k.typ == K1_KOM_SKARB_ZWOLNIONO) { /* 0.10.10 step 1: the Instalator, anew */
             od_nowa_zwolnione();
             continue;

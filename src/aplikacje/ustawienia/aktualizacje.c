@@ -29,6 +29,7 @@ static const char *const nazwy_stanow[] = { "sprawdzam", "bez instalacji", "na d
                                             "błąd" };
 
 static int kanal = -1;
+static struct k1_komunikat ochrona; /* OCHRONA STAN (0.13.0 step 2; typ 0: none yet) */
 static struct {
     int32_t k1, zajety, ab_zapas, ab_slot, ab_fl, ab_podpis;
 } dyski[K1_INST_DYSKI_MAKS];
@@ -168,6 +169,9 @@ static void komunikat(const struct k1_komunikat *k)
         k1_log(TAG, "aktualizacje: otwarte na prośbę nadzorcy");
         ustawienia_miejsce(k->a);
         break;
+    case K1_KOM_OCHRONA: /* 0.13.0 step 2 (ADR 0057): the TPM — in the tile; an older K1 — a line under it */
+        ochrona = *k;
+        break;
     case K1_KOM_INST_DYSK:
         if (!lista && (int)k->obiekt == n_dyskow + 1) {
             memset(&dyski[n_dyskow], 0, sizeof dyski[0]);
@@ -285,8 +289,11 @@ static void kafel(struct k1_obraz *o, const struct k1_motyw *m)
     k1_ikona(o, K1_IK_AKTUALIZACJE, (float)TRESC_X + 24, (float)KAFEL_Y + 24, 24, k1_kolor(m->tekst, 255));
     snprintf(w, sizeof w, "%s", K1_WERSJA); /* the owner (2026-11-17): the number alone */
     k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X + 72, KAFEL_Y + 32, w, k1_kolor(m->tekst, 255), 0);
+    static const char *const tpm[] = { [K1_TPM_BRAK] = " · bez TPM", [K1_TPM_12] = " · TPM 1.2 nieużywany",
+                                       [K1_TPM_20] = " · chroni TPM", [K1_TPM_ZAJETY] = " · TPM niedostępny" };
     if (lista)
-        snprintf(pod, sizeof pod, "%s%s%s", podpis, podpis[0] ? " · " : "", skad);
+        snprintf(pod, sizeof pod, "%s%s%s%s", podpis, podpis[0] ? " · " : "", skad,
+                 ochrona.typ == K1_KOM_OCHRONA ? tpm[ochrona.b] : "");
     else
         pod[0] = '\0';
     k1_tekst(o, K1_CZ_MALA, TRESC_X + 72, KAFEL_Y + 54, pod, k1_kolor(m->tekst2, 255), szer - 88);
@@ -347,6 +354,10 @@ void aktualizacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     enum stan s = stan();
     naglowek(o, m, "Aktualizacje");
     kafel(o, m);
+    if (ochrona.typ == K1_KOM_OCHRONA && (ochrona.c & K1_OCHR_FL_STARSZA))
+        k1_tekst(o, K1_CZ_MALA, TRESC_X, KAFEL_Y + KAFEL_H + 18,
+                 "Ta wersja K1 jest za stara dla tego komputera: dane są zamknięte do aktualizacji.",
+                 k1_kolor(m->akcent_tekst, 255), apl.szer - TRESC_X - 28);
     wersja(cel >= 0 ? wersja_dysku(cel) : -1, a, sizeof a);
     wersja(wersja_zrodla, b, sizeof b);
     switch (s) {

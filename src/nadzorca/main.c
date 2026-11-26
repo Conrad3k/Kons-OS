@@ -45,6 +45,7 @@ static int przygotuj(void)
 
     k1_bat_hist_init(&bat_hist, BATERIA_PROBKA);
     rozruch_wydanie();
+    tpm_start(); /* 0.13.0 step 2: before skarbiec (an older K1 does not open the data) */
     for (i = 0; i < N_USLUG; i++) /* PRZY_STARCIE in k1_uslugi.h; applications start on request of gui */
         if (uslugi[i].kiedy == START_PRZY_STARCIE)
             start(&uslugi[i]);
@@ -139,6 +140,7 @@ static void okresowe(void)
     strefy_do_okresowe(); /* 0.11.0 step 3: a file waiting for its zone's VMM */
     bateria_archiwum(t);
     rozruch_po_starcie(t);
+    tpm_okresowe(); /* 0.13.0 step 2: OCHRONA to gui and Ustawienia */
     obrazy_stref_po_starcie();
     od_nowa_krok(t); /* 0.10.10 step 1: the Instalator installs anew on the disk of the data */
     akt_ustawienie_okresowe(); /* 0.10.5 step 2b: updates through the network */

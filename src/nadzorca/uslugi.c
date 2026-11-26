@@ -263,6 +263,11 @@ static void start_skarbiec(struct usluga *u, const struct k1_profil *p)
         u->nastepny = k1_teraz() + 0.25;
         return;
     }
+    if (dysk >= 0 && tpm_blokada()) { /* 0.13.0 step 2 (ADR 0057): an older K1 than this computer had */
+        k1_log(TAG, "partycja K1-DANE nie dla skarbca: ta wersja K1 jest starsza niż generacja w TPM");
+        close(dysk);
+        dysk = -1;
+    }
     przejdz(E_STAN, dysk >= 0 ? "partycja danych jest" : "bez partycji danych");
     skarb_bez_dysku = dysk < 0 && ile == 0;
     if (ile > 1 && dysk < 0 && errno != EBUSY)
@@ -537,13 +542,16 @@ void obsluz_gui(void)
             (k.typ != K1_KOM_URUCHOM && k.typ != K1_KOM_WYLACZ && k.typ != K1_KOM_URUCHOM_STREFE &&
              k.typ != K1_KOM_STREFA_FOKUS && k.typ != K1_KOM_OTWORZ_AKTUALIZACJE && k.typ != K1_KOM_POBRANIE_DECYZJA &&
              k.typ != K1_KOM_BATERIA_OKIENKO && k.typ != K1_KOM_POKAZ_USTAWIENIA && /* 0.11.8, 0.12.3: popovers */
+             (k.typ != K1_KOM_OCHRONA || k.a != K1_OCHR_MOJE_DANE) && /* 0.13.0 step 2: "To moje dane" */
              (k.typ != K1_KOM_AKT_PROSBA || k.a != K1_AKT_P_ZAINSTALUJ)) || /* 0.10.5 step 2b: the window's button */
             ((k.typ != K1_KOM_WYLACZ || k.a == 2) && gui_kanal_uid != K1_UID_GUI) ||
             (k.typ == K1_KOM_URUCHOM_STREFE && k.b != 0)) { /* a hostile test guest: the test program only */
             k1_log(TAG, "odrzucono prośbę od pulpitu");
             continue;
         }
-        if (k.typ == K1_KOM_BATERIA_OKIENKO) {
+        if (k.typ == K1_KOM_OCHRONA) {
+            tpm_moje_dane();
+        } else if (k.typ == K1_KOM_BATERIA_OKIENKO) {
             bateria_okienko_prosba(k.a);
         } else if (k.typ == K1_KOM_POKAZ_USTAWIENIA) {
             ustawienia_miejsce_prosba(k.a);

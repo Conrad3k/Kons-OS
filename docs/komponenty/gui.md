@@ -192,7 +192,13 @@ ekran do 4096×2160 w dwóch połowach, 0.7.5).
   raz po starcie, gdy nowa wersja A/B nie wystartowała i GRUB wrócił) → okienko na środku ekranu „Nowa wersja K1 nie
   uruchomiła się”: „K1 X nie wystartowała na tym komputerze.”, „Komputer sam wrócił do poprzedniej wersji (Y). Nic nie
   zginęło.”, przyciski „Pokaż w Ustawieniach” (`OTWORZ_AKTUALIZACJE` do nadzorcy, fd 4 — Ustawienia → Aktualizacje) i
-  „Rozumiem”; kliknięcie obok zamyka. Log „okienko (nieudana próba nowej wersji): Rozumiem x,y; Pokaż w Ustawieniach x,y”. Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
+  „Rozumiem”; kliknięcie obok zamyka. Log „okienko (nieudana próba nowej wersji): Rozumiem x,y; Pokaż w Ustawieniach x,y”. Od 0.13.0
+  krok 2 (ADR 0057; ten sam wygląd, `ochrona.c`): `OCHRONA` od nadzorcy (fd 5, raz na gui i po zmianie) z flagą
+  „starsza wersja” → okienko „Ta wersja K1 jest za stara” („Ten komputer miał już nowszą wersję K1, z poprawionymi
+  poważnymi błędami. Twoje dane są zamknięte, dopóki nie zaktualizujesz K1.”) z „Pokaż w Ustawieniach” i „Rozumiem”; z flagą
+  „dane cofnięte” → „Dane na dysku są starsze niż ostatnio” („Ktoś mógł podmienić dysk na wcześniejszą kopię…”) z „To moje
+  dane” (`OCHRONA` a = `K1_OCHR_MOJE_DANE` do nadzorcy, fd 4) i „Później”. Log „okienko (starsza wersja): …” / „okienko
+  (dane cofnięte): Później x,y; To moje dane x,y”. Okienka „nie może ruszyć” / „zamknęła się” i pierwszy wiersz menu paska
   mówią „Przeglądarka · <sesja>”.
   Od 0.10.5 krok 6 (D12 właściciela: szkic A „ikona + okna sesji”; T17): **Przeglądarka na pasku i pulpicie** — wiersz
   `K1_STREFY` z linią menu Start to w gui osobna pozycja (`POZYCJA_MENU_STREFY`, obok okien sesji `POZYCJA_STREFY`), w

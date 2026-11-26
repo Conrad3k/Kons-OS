@@ -355,6 +355,7 @@ int main(void)
                     zal_oproznij(&kl[i].zal, kl[i].fd);
                 obsluz_klienta(&kl[i]); /* nothing while replies still wait; a closed channel ends here */
             }
+        epoka_sprawdz(); /* 0.13.0 step 2: the first write of this opening, for the TPM */
         if (k1_teraz() >= kosz_kontrola) { /* Kosz: older than 30 days goes for good */
             kosz_kontrola = k1_teraz() + GODZINA;
             if (dok_co_godzine())

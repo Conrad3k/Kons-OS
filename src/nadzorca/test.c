@@ -47,6 +47,8 @@ void obsluz_test(void)
         odpowiedz_testowi(-1, fd);
         if (fd >= 0)
             close(fd);
+    } else if (k.typ == K1_KOM_OCHRONA && k.a == K1_OCHR_TEST) { /* 0.13.0 step 2: a newer K1's generation */
+        tpm_test(k.b);
     } else if (k.typ == K1_KOM_URUCHOM) {
         uruchom_aplikacje(k.a);
         odpowiedz_testowi(0, -1);

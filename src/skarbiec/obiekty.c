@@ -53,6 +53,7 @@ static void utworz(off_t rozmiar)
         trwaly = 1;
         k1_log(TAG, "utworzono nowy magazyn na pustej partycji K1-DANE (%lld MiB, zaszyfrowany, bez hasła)",
                (long long)(rozmiar >> 20));
+        epoka_otwarta();
     } else {
         k1_log(TAG, "nie udało się utworzyć magazynu: %s — dane tylko w pamięci", k1_mag_opis(w));
     }
@@ -114,6 +115,7 @@ void ob_po_otwarciu(void)
     /* a partition larger than the vault: a grow cut off after the new table (ADR 0033) — finish it */
     if (trwaly)
         ob_powieksz(dysk.bajty, "dokończenie po starcie");
+    epoka_otwarta();
 }
 
 /* 0.10.10 step 1 (nadzorca's SKARB_ZWOLNIJ): the Instalator installs anew on the disk of this K1-DANE — the vault is

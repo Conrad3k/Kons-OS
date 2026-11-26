@@ -139,10 +139,10 @@ NADZORCA := $(sort $(wildcard src/nadzorca/*.c))
 # 0.10.9 step 4 (ADR 0050): the zone images outside the core (obraz_strefy.c)
 OBRAZ_STREFY := src/wspolne/k1_obraz_strefy.c src/wspolne/k1_obraz_strefy.h src/wspolne/k1_verity.c src/wspolne/k1_verity.h
 # 0.8.0 step 5: nadzorca grows an empty K1-DANE to the end of the stick with the installer's GPT code (powieksz.c)
-$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(OBRAZ_STREFY) src/wspolne/k1_karta_pomiar.c src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c src/wspolne/k1_dzwiek.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+$(BIN)/nadzorca: $(NADZORCA) $(wildcard src/nadzorca/*.h) $(OBRAZ_STREFY) src/wspolne/k1_karta_pomiar.c src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/instalator/gpt.c src/instalator/gpt.h $(EFI) $(GEN)/sb/k1_sb_cert.h src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c src/wspolne/k1_dzwiek.c src/wspolne/k1_tpm.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -DK1_CZAS_BUDOWY=$(CZAS_BUDOWY) -Isrc/zewnetrzne/monocypher -Isrc/instalator -I$(GEN)/sb -o $@ $(NADZORCA) src/instalator/gpt.c $(EFI) \
 		$(filter %.c,$(OBRAZ_STREFY)) src/wspolne/k1_karta_pomiar.c src/wspolne/k1_sha256.c src/wspolne/k1_sha1.c src/wspolne/k1_nl.c \
-		src/wspolne/k1_dzwiek.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+		src/wspolne/k1_dzwiek.c src/wspolne/k1_tpm.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 # M5f (ADR 0018): the program that writes the disk, and its partition table (host test: test_gpt)
 # 0.9.0 step 3 (ADR 0038): start.c — the boot files swapped beside the old ones (host test: test_start)
@@ -305,6 +305,8 @@ $(OBJ)/test_przestrzen: testy/host/test_przestrzen.c src/wspolne/k1_korektor.c s
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_przestrzen.c src/wspolne/k1_korektor.c src/wspolne/k1_przestrzen.c src/wspolne/k1_prz_licz.c src/wspolne/k1_prz_proba.c -lm
 
 # 0.13.0 (ADR 0056): the footer of the download zone — the time of HTTPS
+$(OBJ)/test_tpm: testy/host/test_tpm.c src/wspolne/k1_tpm.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_tpm.c src/wspolne/k1_tpm.c
 $(OBJ)/test_stopka: testy/host/test_stopka.c src/wspolne/k1_stopka.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_stopka.c src/wspolne/k1_stopka.c
 
@@ -519,7 +521,7 @@ $(OBJ)/test_rozmieszczenie: testy/host/test_rozmieszczenie.c src/gui/rozmieszcze
 # 0.8.0: the user's files — names, types, the entry layout, folders, Kosz, the rights of the channel; a fixed build time
 # (2026-11-18) so that the tests' clock (2027) stays after it whenever they run
 CZAS_TESTU := 1795000000
-DOK_TEST := src/skarbiec/dokumenty.c $(wildcard src/skarbiec/dok_*.c) src/skarbiec/dostep.c src/skarbiec/obiekty.c src/skarbiec/przerwy.c src/skarbiec/miejsce.c src/skarbiec/strefy.c $(MAGAZYN) $(DOK_C) \
+DOK_TEST := src/skarbiec/dokumenty.c $(wildcard src/skarbiec/dok_*.c) src/skarbiec/dostep.c src/skarbiec/obiekty.c src/skarbiec/przerwy.c src/skarbiec/miejsce.c src/skarbiec/strefy.c src/skarbiec/epoka.c $(MAGAZYN) $(DOK_C) \
             src/wspolne/k1_log.c $(KOMUNIKAT) src/wspolne/k1_kanal.c src/wspolne/k1_memfd.c src/wspolne/k1_uslugi.c
 $(OBJ)/test_dokumenty: $(wildcard testy/host/test_dokumenty*.c) testy/host/test_dokumenty.h $(DOK_TEST) $(wildcard src/skarbiec/*.h) $(NAGL) | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -Wno-conversion -DK1_CZAS_BUDOWY=$(CZAS_TESTU) -Isrc/skarbiec -Isrc/zewnetrzne/monocypher -o $@ \
@@ -557,7 +559,7 @@ TESTY_HOST := test_gpu_most test_ogloszenie test_paczka test_odcinki test_odcink
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_edid test_pliki_strefy test_schowek test_agent_foldery test_palce \
-	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_virtio_dzwiek test_dzw_tor test_korektor test_przestrzen test_stopka
+	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_virtio_dzwiek test_dzw_tor test_korektor test_przestrzen test_stopka test_tpm
 TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania
 
@@ -614,7 +616,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek virtio_dzwiek korektor przestrzen stopka
+        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek virtio_dzwiek korektor przestrzen stopka tpm
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -633,6 +635,8 @@ FUZZ_ZR_ogloszenie := $(OGLOSZENIE) src/wspolne/k1_ogloszenie_podpis.c src/wspol
 FUZZ_DL_ogloszenie := 8300
 FUZZ_ZR_stopka    := src/wspolne/k1_stopka.c
 FUZZ_DL_stopka    := 64
+FUZZ_ZR_tpm       := src/wspolne/k1_tpm.c
+FUZZ_DL_tpm       := 160
 FUZZ_ZR_paczka    := src/wspolne/k1_paczka.c $(MANIFEST)
 FUZZ_DL_paczka    := 8800
 FUZZ_ZR_manifest  := src/wspolne/k1_manifest.c $(MONOCYPHER)

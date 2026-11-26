@@ -3,6 +3,7 @@
 #include "k1_kom_wew.h"
 
 #include "k1_bat_arch.h"
+#include "k1_tpm.h"
 #include "k1_uslugi.h"
 
 /* K1_KOM_BATERIA_HIST: at least one sample, each 0..100 (+ mains bit), 0xFF only after the last one,
@@ -34,6 +35,19 @@ static int klient(const struct k1_komunikat *k)
     if (k->a == K1_ROLA_STREFA)
         return w(k->b, 1, K1_STREFY_MAKS);
     return k->b == 0;
+}
+
+/* K1_KOM_OCHRONA: the state of the TPM to gui and Ustawienia; "To moje dane" from gui; a generation from the test program
+ * (never 0). */
+static int ochrona(const struct k1_komunikat *k, enum k1_kanal_kierunek kier)
+{
+    if (k->obiekt != 0)
+        return 0;
+    if (kier == K1_KIER_OD_NADZORCY)
+        return k->a == K1_OCHR_STAN && w(k->b, K1_TPM_BRAK, K1_TPM_ZAJETY) && w(k->c, 0, K1_OCHR_FL_MAKS) &&
+               w(k->d, 0, K1_GEN_MAKS) && k->e == 0;
+    return kier == K1_KIER_DO_NADZORCY &&
+           ((k->a == K1_OCHR_MOJE_DANE && zera(k, 1)) || (k->a == K1_OCHR_TEST && w(k->b, 1, K1_GEN_MAKS) && zera(k, 2)));
 }
 
 /* Messages of nadzorca's control channels and the installer (Instalator, Ustawienia → Aktualizacje ↔ nadzorca ↔ instalator); 0 also for a type of another group. */
@@ -101,6 +115,8 @@ int k1_kom_sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierun
     case K1_KOM_SB_KLUCZ:
     case K1_KOM_OTWORZ_AKTUALIZACJE:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && zera(k, 0);
+    case K1_KOM_OCHRONA: /* 0.13.0 step 2 (ADR 0057) */
+        return ochrona(k, kier);
     case K1_KOM_AB_NIEUDANA:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_INST_WERSJA - 1) &&
                w(k->b, 0, K1_INST_WERSJA - 1) && zera(k, 2);

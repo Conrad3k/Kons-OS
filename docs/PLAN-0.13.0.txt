@@ -425,3 +425,22 @@ Krok 1 (2026-11-26, Claude, PR #245, CI przebieg 371 zielony; ADR 0056):
     właściciela.
   - Testy lokalnie: test-m1, test-aktualizacja-siec (31 sprawdzeń), test-dzwiek, test-wzorce (po przyjęciu wzorców),
     testy na hoście, fuzzing ogloszenie, stopka, paczka, korektor, przestrzen po 60 s.
+
+Krok 2 (2026-11-26, Claude; ADR 0057):
+  - T5 — decyzja właściciela: starsza wersja → **blokada danych** (skarbiec bez K1-DANE, okienko „Ta wersja K1 jest za
+    stara”, wyjście: aktualizacja). Dane cofnięte — okienko z „To moje dane” / „Później”, dane działają (to dane
+    właściciela, nie znana dziura); znak „cofnięte” w TPM zostaje do decyzji.
+  - T3: tylko TPM 2.0, cztery polecenia NV z sesją pustego hasła, bez TSS. TPM 1.2 (X230) w jądrze wymaga PNP
+    (`PNP0C31` — tpm_tis_pnp) i właściciela TPM (RSA kluczem EK) — K1 go nie używa; X230 zostaje bez tych ochron.
+  - Licznik wersji = **generacja K1** (`K1_GENERACJA`, nie numer wersji): podnoszona tylko przy dziurze, która nie może
+    wrócić — mniej zapisów NV, wersja bez poważnej dziury nie odcina poprzedniej. 0.13.0 = 1.
+  - T6: „epoka” = generacja nagłówka magazynu (rośnie z każdym zapisem nagłówka) — format skarbca bez zmian; do TPM tylko
+    generacja już na dysku (`na_dysku`), po otwarciu i po pierwszym zapisie sesji; najwyżej jeden zapis NV na start.
+  - T4: shim sprawdza SBAT obrazu od GRUB-a tylko, gdy sekcja jest, a `SbatLevel` pisze sam shim z listy wydawcy —
+    „k1” tam nie będzie. `.sbat` jest w `k1.efi` (test-m6 z Secure Boot zielony), odwołanie robi TPM.
+  - swtpm jest w Ubuntu 24.04 (pakiet `swtpm` w `przygotuj-srodowisko.sh`) — test QEMU `test-tpm.sh` z prawdziwym
+    stanem TPM między startami. Numer seryjny dysku virtio ≤ 20 znaków (znak „k1-test-tpm-gen”).
+  - `jadro/k1-odrzucone.txt` zmienia tylko człowiek (zablokowane też dla asystenta) — `HW_RANDOM_TPM` wyłączone wprost
+    we fragmencie; `porownaj-jadro.sh`: nic do rozstrzygnięcia.
+  - Testy lokalnie: test-tpm (31 sprawdzeń), test-m1 (z `t_tpm`), test-m6 (SBAT), test-wzorce (bez zmian), testy na
+    hoście (`test_tpm`, `test_komunikat`), fuzzing tpm 40 s.

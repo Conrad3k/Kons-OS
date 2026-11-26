@@ -64,7 +64,11 @@ enum k1_komunikat_typ {
     K1_KOM_ZEGAR_PRZESUNIETY = 137, /* nadzorca → skarbiec (0.9.0 step 8): the clock was set from the internet; a,b = by
                                      * how many seconds (signed 64 bits: k1_kom_u64; at most ±200 years) — skarbiec moves
                                      * the time of the files in Kosz by as much (their age does not change) */
-    /* 118: START_POTWIERDZONY (0.8.2–0.9.1, the move of a vault of format 1 to format 2) — gone in 0.10.0 */
+    /* 118: START_POTWIERDZONY (0.8.2–0.9.1) until 0.10.0; since 0.13.0 step 2 (ADR 0057): */
+    K1_KOM_SKARB_EPOKA = 118, /* skarbiec → nadzorca (K1_KIER_DO_NADZORCY): obiekt=0, a,b=the vault's id (the first 8 bytes
+                               * of its uuid as two little-endian u32), c,d=a generation of its header that is on the
+                               * disk (k1_kom_u64, below 2^62), e=0 just opened / 1 the first write of this opening —
+                               * nadzorca compares and remembers it in the TPM (k1_tpm.h; never in the log) */
     K1_KOM_SKARB_WYCZYSC = 168, /* nadzorca → skarbiec (0.10.0 step 5): obiekt=0, a=the owner of a zone (the profile of a
                                  * row of K1_STREFY), b..e=0 — delete every piece of its disk ("Wyczyść dane sesji") */
     K1_KOM_SKARB_WYCZYSZCZONO = 169, /* skarbiec → nadzorca (K1_KIER_DO_NADZORCY): obiekt=0, a=that owner, b=0 or
@@ -336,7 +340,12 @@ enum k1_komunikat_typ {
     /* 0.10.5 step 1: updates moved to Ustawienia → Aktualizacje (KANAL_AKTUALIZACJI: Ustawienia's fd 7 — INST_DYSKI,
      * INST_START with K1_INST_AKTUALIZUJ only, WYLACZ a=1 after a finished update; back INST_DYSK, INST_AB, INST_LISTA,
      * INST_POSTEP, INST_WYNIK) */
-    /* 185: AKT_POKAZ (0.10.5–0.12.2) — a row of K1_UST_MIEJSCA since 0.12.3 step 3 */
+    /* 185: AKT_POKAZ (0.10.5–0.12.2) — a row of K1_UST_MIEJSCA since 0.12.3 step 3; since 0.13.0 step 2 (ADR 0057): */
+    K1_KOM_OCHRONA = 185,     /* obiekt=0. a=K1_OCHR_STAN: nadzorca → gui (fd 5), Ustawienia (fd 7): b=K1_TPM_* what TPM
+                               * K1 found, c=K1_OCHR_FL_*, d=the generation in the TPM 0..K1_GEN_MAKS, e=0.
+                               * a=K1_OCHR_MOJE_DANE: gui → nadzorca, b..e=0 — the owner's "To moje dane" for a vault
+                               * rolled back. a=K1_OCHR_TEST: the test program → nadzorca, b=a generation 1..K1_GEN_MAKS
+                               * to put in the TPM (test image only), c..e=0 */
     K1_KOM_OTWORZ_AKTUALIZACJE = 186, /* Instalator, gui → nadzorca: obiekt=0, all 0 — open Ustawienia on Aktualizacje */
     K1_KOM_AB_NIEUDANA = 187, /* nadzorca → gui (fd 5): obiekt=0, a=the version that did not start (0: not known), b=the
                                * version that runs (0: not known) — a try A/B did not start, the previous version runs */
@@ -885,6 +894,15 @@ enum { K1_INST_SIEC_STAN = 3, K1_INST_SIEC_POBIERZ = 4, K1_INST_SIEC_ZAINSTALUJ 
 #define K1_AKT_FL_DYSK 16      /* K1 runs from a disk with K1 installed */
 #define K1_AKT_FL_ZWLOKA 32    /* 0.13.0 (ADR 0056, D1: A): c is downloaded and waits out the 20 minutes (K1_OGL_ZWLOKA) */
 #define K1_AKT_FL_MAKS 63
+/* 0.13.0 step 2 (ADR 0057): OCHRONA — the TPM and what it found */
+enum { K1_OCHR_STAN = 1, K1_OCHR_MOJE_DANE = 2, K1_OCHR_TEST = 3 };
+enum { K1_TPM_BRAK = 0,       /* no TPM (or off in the BIOS): K1 sees neither an older version nor a rolled-back disk */
+       K1_TPM_12 = 1,         /* TPM 1.2 (ThinkPad X230): K1 uses only TPM 2.0 */
+       K1_TPM_20 = 2,         /* TPM 2.0 with K1's record */
+       K1_TPM_ZAJETY = 3 };   /* TPM 2.0 K1 cannot use (another system set its password, no room, an error) */
+#define K1_OCHR_FL_STARSZA 1  /* this K1's generation is lower than the TPM's: the data stays closed (the owner's decision) */
+#define K1_OCHR_FL_COFNIETE 2 /* the vault is older than the TPM remembers: waiting for "To moje dane" */
+#define K1_OCHR_FL_MAKS 3
 enum { K1_AKT_E_NIC = 0, K1_AKT_E_SPRAWDZA = 1, K1_AKT_E_POBIERA = 2, K1_AKT_E_INSTALUJE = 3, K1_AKT_E_WRACA = 4 };
 #define K1_AKT_E_MAKS 4
 enum { K1_AKT_W_NIC = 0 /* not yet */, K1_AKT_W_OK = 1, K1_AKT_W_BRAK_SIECI = 2 /* K1 has no network */,
