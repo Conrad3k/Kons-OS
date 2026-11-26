@@ -4,29 +4,27 @@ K1 — PLAN I CO DO ZROBIENIA
 Jedno miejsce na plan (ADR 0035): tu jest mapa drogi, co teraz, co w kolejnych wersjach, Twoje otwarte decyzje,
 testy na laptopach, rozwiązania tymczasowe i otwarte decyzje techniczne. Kroki bieżącej wersji — w jej planie (punkt 1).
 Bez historii: co się zmieniło — CHANGELOG.md, decyzje — docs/adr/, zamknięte plany — docs/archiwum/.
-Stan: 0.12.0 „Dźwięk” — laptop gra: usługa dźwięku K1, okienko „Dźwięk” z głośnością i listą „Grają teraz”, klawisze
-głośności z pigułką, słuchawki, Ustawienia → Dźwięk, przeglądarka gra przez K1 (głośnik na pasku sesji). Następna —
-0.12.3 „Dźwięk wysokiej jakości” (docs/PLAN-0.12.3.txt, punkt 1).
+Stan: 0.12.3 „Dźwięk wysokiej jakości” — czystszy dźwięk (liczenie z zapasem, 24 bity do karty), korektor systemowy
+i Kons Spatial Audio (dźwięk przestrzenny ze sceną do przeciągania). Temat 0.12 Dźwięk zamknięty. Następna — 0.13
+„Bezpieczny start” (plan napisze pierwszy czat tej wersji — PLAN-0.13.0.txt w katalogu docs).
 Data: 2026-11-26.
 
 Oznaczenia:  [!] Twoja decyzja albo działanie   [ ] do zrobienia   [~] częściowo   [x] zrobione
 Praca we dwóch (AGENTS.md): punkt, który ktoś zaczyna, dostaje „[w toku: Claude|Codex, gałąź …]”.
 
 
-1. TERAZ — po wydaniu 0.12.0 „Dźwięk”: następna 0.12.3 „Dźwięk wysokiej jakości”
--------------------------------------------------------------------------------
-Wersja 0.12.0 „Dźwięk” wydana 2026-11-26 (plan w docs/archiwum/PLAN-0.12.0.txt, ADR 0054; Twoje decyzje D1: A — bez
-mikrofonu, D2: B — okienko z listą „Grają teraz”, D3: A — K1 nie wydaje własnych dźwięków, D4: A — pigułka po klawiszu,
-D5: A — głośność jak przy wyłączaniu, D6: A — głośnik na pasku sesji). Cztery kroki, PR #223, #225, #226 i #227.
-Sprawdź ją na laptopach — punkt 4, „Najpierw — nowe w 0.12.0”.
+1. TERAZ — po wydaniu 0.12.3 „Dźwięk wysokiej jakości”: następna 0.13 „Bezpieczny start”
+---------------------------------------------------------------------------------------
+Wersja 0.12.3 wydana 2026-11-26 (plan w docs/archiwum/PLAN-0.12.3.txt, ADR 0055; Twoje decyzje D1: A — korektor
+w Ustawieniach, w okienku „Dźwięk” jeden wiersz; D2: A — 10 pasm; D3: A — na głośnikach szerszy dźwięk, wokół głowy
+w słuchawkach; D4: A — scena z góry; D5: cała lista scen; D6: A — jedna „Własna”; D7: A — „Kons Spatial Audio”). Pięć
+kroków, PR #229, #239, #240, #241 i #242. Posłuchaj jej na laptopach — punkt 4, „Najpierw — nowe w 0.12.3”.
 
-Plan następnej: docs/PLAN-0.12.3.txt (Twoja prośba z 2026-11-26). Pięć kroków: 1 — tor najwyższej jakości (32 bity
-w środku, dither, miękki ogranicznik, 24 bity do karty, przeglądarka we własnym formacie), 2 — korektor systemowy,
-3 — Kons Spatial Audio: silnik i gotowe sceny, 4 — Kons Spatial Audio: scena w Ustawieniach, 5 — porządki i wydanie.
-Twoje decyzje D1–D7 (punkt 4 planu) czat zada na początku kroków. Co wpisać w nowym czacie:
-    „Korzystając ze skilla kons-dev, wykonaj Krok 1 z docs/PLAN-0.12.3.txt.”
-Robot wydaje w tym czasie poprawki jądra i przeglądarki (0.12.1, 0.12.2…); jeśli zajmie też 0.12.3, wydanie planu
-bierze następny wolny numer.
+Następna: 0.13 „Bezpieczny start” (punkt 3: tryb ratunkowy, licznik wersji w TPM, GRUB — zostaje czy zastępujemy, obraz
+produkcyjny bez logu na porcie szeregowym, klucze). Plan napisze pierwszy czat tej wersji (PLAN-0.13.0.txt w katalogu
+docs; ADR 0035).
+Co wpisać w nowym czacie:
+    „Korzystając ze skilla kons-dev, napisz plan wersji 0.13 Bezpieczny start.”
 
 
 2. MAPA DROGI (ADR 0035, 0053; dawne numery etapów M w nawiasach)
@@ -38,8 +36,8 @@ bierze następny wolny numer.
              0.10.7 Wygląd, 0.10.9 Szybka grafika, 0.10.11 Szybsza grafika   (M8, z dawnym M11)
     0.11     Pliki ze stref — gotowe: 0.11.0, poprawki 0.11.1–0.11.5, 0.11.8 Menu Start i górny pasek  (M9)
     0.12     Dźwięk — gotowe: 0.12.0 (głośność, klawisze, słuchawki, dźwięk z przeglądarki)  (część dawnego M5.3)
-             0.12.3 Dźwięk wysokiej jakości — NASTĘPNA (korektor, jakość, Kons Spatial Audio; docs/PLAN-0.12.3.txt)
-    0.13     Bezpieczny start — reszta: tryb ratunkowy, TPM                        (M10)
+             0.12.3 Dźwięk wysokiej jakości — gotowe (korektor, czystszy tor, Kons Spatial Audio)
+    0.13     Bezpieczny start — reszta: tryb ratunkowy, TPM — NASTĘPNA             (M10)
     0.14     Audyt → 1.0                                                           (M12)
     Laptop   małe kroki po Twoich zgłoszeniach, w dowolnej wersji jako PATCH       (M5.3)
 Wersje: MINOR (0.9, 0.10…) = nowy temat z mapy; PATCH (0.9.1…) = kolejne kroki i poprawki w temacie. Od 0.10.5 wersje
@@ -117,12 +115,26 @@ Zgłoszenia na GitHubie (Issues) — naprawiać w kroku, który dotyka tej czę�
 
 4. TESTY NA PRAWDZIWYM SPRZĘCIE (ThinkPad X230, Lenovo IdeaPad 110-15ISK)
 -------------------------------------------------------------------------
-Jedna lista, ułożona tematami; w nawiasie wersja, która to wprowadziła. Sprawdzasz na najnowszym wydaniu (dziś 0.12.0;
+Jedna lista, ułożona tematami; w nawiasie wersja, która to wprowadziła. Sprawdzasz na najnowszym wydaniu (dziś 0.12.3;
 aktualizacja: Ustawienia → Aktualizacje → „Sprawdź teraz”). Wydania do 0.8.1 — uznane za przetestowane (Twoja decyzja
 z 2026-11-11). Potwierdzone przez Ciebie: Wi-Fi (2026-11-14), pulpit z i915 na obu laptopach (2026-11-20), instalacja
 0.10.9 od nowa (2026-11-20), przeglądarka i szybka grafika na IdeaPadzie (Speedometer, 2026-11-22).
 [!] Raz na każdym laptopie: wirtualizacja w BIOS-ie (README, punkt 8) — bez niej przeglądarka nie ruszy.
-Najpierw — nowe w 0.12.0 (dźwięk):
+Najpierw — nowe w 0.12.3 (dźwięk wysokiej jakości; najlepiej w słuchawkach i na głośnikach obu laptopów):
+    [ ] log K1-DZWIEK „karta gra … bity” — 24 czy 16 bitów na X230 i IdeaPadzie; cicha muzyka przy 5–10 % — bez „ziarna”
+        i szumu; dwie głośne rzeczy naraz (film i „Odtwórz próbę”) — bez trzasków
+    [ ] film w przeglądarce: log K1-STREFA „gość gra w formacie …”; usta zgadzają się z głosem
+    [ ] Ustawienia → Dźwięk → Korektor: „Więcej basu”, „Wyraźny głos”, „Laptop” na głośnikach, „Słuchawki” w słuchawkach
+        (każde wyjście ma swoje ustawienie, przełącza się samo); szybkie przeciąganie suwaka w trakcie muzyki — bez trzasków;
+        okienko „Dźwięk” → wiersz „Korektor” otwiera Ustawienia; po wyłączeniu i włączeniu ustawienie zostaje
+    [ ] Kons Spatial Audio w słuchawkach: „Naturalny” (dźwięk wychodzi „z głowy” do przodu?), „Kino” przy filmie (otoczenie
+        po bokach i z tyłu?), „Koncert”, „Głos” przy rozmowie; „Posłuchaj” — skąd gra każde pasmo; na głośnikach „Kino”
+        i „Koncert” — szerzej, a głos nie za cicho?
+    [ ] scena: przeciągnij „Górę” w prawo (myszą i touchpadem), „Posłuchaj” — góra z prawej?; przeciąganie w trakcie
+        muzyki — bez trzasków; potem „Kino” i kafelek „Własna” — wraca Twoja scena; okienko „Dźwięk” — przełącznik Kons
+        Spatial Audio i nazwa sceny, kliknięcie nazwy otwiera scenę
+    [ ] log K1-DZWIEK raz na minutę: „korektor: średnio … µs”, „scena: średnio … µs” — czy X230 zostaje chłodny
+Nowe w 0.12.0 (dźwięk):
     [ ] górny pasek → głośnik → „Odtwórz próbę”: dwie miękkie nuty z głośników; suwak, „Wycisz”; ikona głośnika zmienia się
         z głośnością; log „K1-DZWIEK: karta 0: …, kodek …” — który kodek mają laptopy
     [ ] klawisze głośności (X230: nad klawiaturą; IdeaPad: Fn+F2 / Fn+F3, wycisz Fn+F1): głośność o 5 %, pigułka u góry
@@ -239,7 +251,7 @@ Uwagi i błędy: GitHub → Issues (etykiety „feedback”, „błąd”, „po
 [!] Robot stoi od 2026-11-24 (Issue #216, #217): raz włącz Settings → Actions → General → Workflow permissions → „Allow
     GitHub Actions to create and approve pull requests” (docs/komponenty/robot.md) — bez tego nie wyda poprawek jądra.
 [x] 0.12.0 — decyzje D1–D6 podjęte (docs/archiwum/PLAN-0.12.0.txt, punkt 4).
-[!] 0.12.3 — decyzje D1–D7 (docs/PLAN-0.12.3.txt, punkt 4): czat zada je na początku kroków (D3, D5, D7 w kroku 3).
+[x] 0.12.3 — decyzje D1–D7 podjęte (docs/archiwum/PLAN-0.12.3.txt, punkt 4).
 [!] 0.10.5 — decyzje D4, D5, D7 i D10 weszły jako rekomendacje (kroki szły bez Ciebie) — do potwierdzenia albo zmiany:
     D4 K1 sprawdza sam po połączeniu i co 6 godzin, pobiera od razu, instaluje po „Zainstaluj”; D5 przez sieć aktualizuje
     się tylko K1 na dysku; D7 „Wróć do poprzedniej wersji” w Ustawieniach; D10 przegląd dokumentacji: powtórzenia →
@@ -272,14 +284,12 @@ Twoje ustalenia, które obowiązują (szczegóły w ADR-ach i docs/WYGLAD.md):
     scripts/sprawdz-czytelnosc.py (testy) pilnuje, żeby żadne nie zostało bez wpisu.
     [ ] GRUB w ISO i obrazie USB (ADR 0010, „tymczasowy do M10” = 0.13 po ADR 0053); od 0.7.0 GRUB jest też częścią
         startu A/B (grubenv, ADR 0022), więc w 0.13 decyzja: zostaje czy zastępujemy (ADR)
-    [x] przegląd przy porządkach 0.12.0 (2026-11-26): w kodzie nie ma żadnego rozwiązania tymczasowego (dźwięk wszedł bez
-        nich). Przegląd przed 0.12 (2026-11-22): termin GRUB-a przesunięty z 0.12 na 0.13 (ADR 0053). Wcześniejsze
+    [x] przegląd przy porządkach 0.12.3 i 0.12.0 (2026-11-26): w kodzie nie ma żadnego rozwiązania tymczasowego (dźwięk
+        wszedł bez nich). Przegląd przed 0.12 (2026-11-22): termin GRUB-a przesunięty z 0.12 na 0.13 (ADR 0053). Wcześniejsze
         przeglądy (0.7.5–0.11.0) i usunięte rozwiązania — CHANGELOG, „Porządki”.
 
 
 7. OTWARTE DECYZJE TECHNICZNE (ADR — decyduje Claude, Ty dostajesz krótkie wyjaśnienie)
 ---------------------------------------------------------------------------------------
-    0.12.3 dźwięk wysokiej jakości: gdzie liczyć korektor i dźwięk przestrzenny (usługa dźwięku), format 24/32 bity
-           i inne częstotliwości (karta, virtio-snd), opóźnienie — ADR w planie 0.12.3
     0.13   RANDSTRUCT w jądrze; zarządzanie kluczami (podpis offline); ochrona jądra przez wirtualizację — tak/nie
     Podjęte wcześniej: docs/adr/README.md (spis wszystkich decyzji).

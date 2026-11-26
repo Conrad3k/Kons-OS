@@ -3,6 +3,57 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.12.3] — 2026-11-26
+
+**Dźwięk wysokiej jakości** (drugi plan tematu 0.12, ADR 0055; Twoja prośba z 2026-11-26). Dźwięk jest czystszy: K1 liczy
+go z zapasem, cichy dźwięk nie ma już „ziarna”, głośne nakładające się dźwięki nie trzeszczą, a karta dostaje 24 bity,
+gdy je przyjmuje. W Ustawieniach → Dźwięk jest **korektor** — dziesięć pasm i gotowe ustawienia (Więcej basu, Wyraźny głos,
+Laptop…), osobno dla głośników i słuchawek. I znak firmowy K1: **Kons Spatial Audio** — dźwięk przestrzenny. Na scenie
+widzisz głowę z góry i kolorowe pasma dźwięku (bas, niski środek, środek, góra): przeciągasz je, żeby zdecydować, skąd
+słychać które częstotliwości, albo wybierasz gotową scenę (Naturalny, Kino, Koncert, Pokój, Głos). „Posłuchaj” puszcza
+szum po kolei w każdym paśmie, żeby usłyszeć, gdzie jest. W słuchawkach dźwięk naprawdę rozkłada się wokół głowy, na
+głośnikach laptopa — szerzej. Przełącznik jest też w okienku „Dźwięk” na górnym pasku.
+
+Opis w K1: Czystszy dźwięk, korektor w Ustawieniach → Dźwięk i Kons Spatial Audio — dźwięk przestrzenny: przeciągasz
+pasma dźwięku wokół głowy albo wybierasz gotową scenę, np. Kino. Najlepiej słychać w słuchawkach.
+
+### Dodane
+- **Tor najwyższej jakości** (krok 1, PR #229): usługa dźwięku liczy w liczbach zmiennoprzecinkowych, miękki ogranicznik
+  zamiast przycinania, delikatny szum maskujący (dither) przy zamianie na format karty — przy 5 % głośności zniekształcenia
+  45 dB pod dźwiękiem na karcie 16-bitowej i 94 dB na 24-bitowej (było 14 dB). Karta dostaje 24 bity, gdy je przyjmuje;
+  przeglądarka oddaje dźwięk w swoim formacie (32 bity, liczby zmiennoprzecinkowe). Przy 100 % jeden dźwięk przechodzi przez
+  K1 bez żadnej zmiany (test porównuje plik próbka w próbkę).
+- **Korektor systemowy** (krok 2, PR #239; Twoje decyzje D1: A, D2: A): Ustawienia → Dźwięk → Korektor — 10 pasm
+  (31 Hz … 16 kHz, ±12 dB), gotowe ustawienia (Płaski, Więcej basu, Wyraźny głos, Laptop, Słuchawki, Muzyka, Film), osobno
+  dla głośników i słuchawek; nigdy głośniej niż 100 %; w okienku „Dźwięk” wiersz „Korektor”. K1 go pamięta.
+- **Kons Spatial Audio** (krok 3, PR #240; D3: A, D5, D7: A): cztery pasma, każde w swoim miejscu wokół głowy — w słuchawkach
+  model głowy (opóźnienie i cień między uszami), na głośnikach szerszy dźwięk; gotowe sceny Naturalny, Kino, Koncert, Pokój,
+  Głos; scena nigdy nie gra głośniej niż 100 %; wyłączona nic nie liczy.
+- **Scena do przeciągania** (krok 4, PR #241; D4: A, D6: A): widok z góry z głową i pasmami w kolorach, przeciąganie
+  kierunku, odległości i szerokości (mysz, touchpad, klawiatura), kafelki scen, **„Własna”** (K1 pamięta jedną własną
+  scenę dla głośników i jedną dla słuchawek — gotowa scena jej nie kasuje), **„Posłuchaj”**; w okienku „Dźwięk” przełącznik
+  Kons Spatial Audio i nazwa sceny.
+- Komunikaty `DZWIEK_KOREKTOR`, `DZWIEK_KOREKTOR_STAN`, `DZWIEK_SCENA`, `DZWIEK_SCENA_STAN` (także „Własna”),
+  `POKAZ_USTAWIENIA`, `USTAWIENIA_MIEJSCE`; format pierścienia w `DZWIEK_OTWORZ`; pamięć dźwięku w gui — rekord „K1G4”.
+- Testy: na hoście `test_dzw_tor`, `test_korektor`, `test_przestrzen` (pomiary z ADR 0055 jako granice), fuzzing
+  `fuzz_korektor`, `fuzz_przestrzen`; `test-dzwiek` słucha pliku WAV z QEMU: przezroczystość, odpowiedź korektora, pasma
+  sceny z lewej, „Posłuchaj” pasmo po paśmie, przeciąganie i powrót „Własnej”; `test-wzorce` — Ustawienia → Dźwięk,
+  Korektor, Kons Spatial Audio, okienko „Dźwięk” (zatwierdzone przez Ciebie).
+
+### Zmienione
+- Ustawienia → Dźwięk: zakładki „Głośność | Korektor | Kons Spatial Audio”; okienko „Dźwięk” wyższe (dwa nowe wiersze).
+- Strefa: karta virtio-snd ogłasza też formaty 32-bitowe i zmiennoprzecinkowe; VMM przelicza je bez strat.
+- RYZYKA: R108 i R77 uzupełnione o formaty od strefy, nowe R109 (korektor od klienta), R110 (scena od klienta).
+
+### Porządki
+- `BATERIA_POKAZ` i `AKT_POKAZ` to dziś wiersze tabeli miejsc Ustawień (`K1_UST_MIEJSCA`, jeden komunikat
+  `USTAWIENIA_MIEJSCE`) — dwa numery komunikatów wolne.
+- Okienko „Dźwięk”: oba wiersze prowadzące do Ustawień rysuje jedna funkcja; Ustawienia — jedna funkcja zakładek otwieranych
+  przez nadzorcę zamiast dwóch.
+- Liczenie dźwięku w osobnych, czystych plikach (`k1_dzw_tor.c`, `k1_korektor.c`, `k1_przestrzen.c`, `k1_prz_licz.c`,
+  `k1_prz_proba.c`) zamiast w pętli usługi; kolory pasm — kolumna tabeli pasm.
+- Przegląd „Tymczasowe”: w kodzie nie ma żadnego rozwiązania tymczasowego.
+
 ## [0.12.0] — 2026-11-26
 
 **Dźwięk** (wersja 0.12, ADR 0054). Laptop gra. Na górnym pasku jest głośnik: kliknięcie otwiera okienko „Dźwięk”
