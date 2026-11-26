@@ -216,6 +216,8 @@ wyjścia albo 128 + sygnał); `URUCHOM` jak od gui. W obrazie produkcyjnym tego 
   otwiera i zamyka: póki jest otwarte, odczyt co 5 s (`BATERIA_CO_ZASOBY`, jak przy otwartych Zasobach) i raz od razu przy
   otwarciu; log „okienko baterii otwarte: odczyt baterii co 5 s” / „zamknięte: … co 15 s”. a = 2 („Ustawienia baterii”):
   Ustawienia, `BATERIA_POKAZ` do nich (pokaż sekcję Bateria), `POKAZ_APL` do gui; log „otwieram Ustawienia → Bateria”.
+  Od 0.12.3 krok 2 tak samo `POKAZ_USTAWIENIA` od gui (a = miejsce `K1_UST_MIEJSCA`: KOREKTOR) — `USTAWIENIA_MIEJSCE` do
+  Ustawień; log „otwieram Ustawienia → Dźwięk → Korektor”.
   Nowy kanał do gui: okienko uznane za zamknięte, pomiar idzie od nowa.
   Od 0.5.5: historia od uruchomienia — próbka co 30 s (procent + bit zasilacza), do 1440 próbek; po
   zapełnieniu łączy pary (odstęp ×2), więc zawsze obejmuje cały czas od startu. Ustawienia dostają stan

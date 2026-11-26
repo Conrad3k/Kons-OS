@@ -114,6 +114,18 @@ void wyslij_baterie(void)
     }
 }
 
+/* Ustawienia started (or brought to the front) and told what to show (`k` on its fd 4), as otworz_aktualizacje does. */
+static void pokaz_w_ustawieniach(struct k1_komunikat k, const char *gdzie)
+{
+    uruchom_aplikacje(K1_APL_USTAWIENIA);
+    if (ustaw_kanal >= 0)
+        k1_kanal_wyslij(ustaw_kanal, &k, sizeof k, -1);
+    k = k1_komunikat_nowy(K1_KOM_POKAZ_APL, 0, K1_APL_USTAWIENIA, 0, 0, 0, 0);
+    if (bateria_kanal >= 0)
+        k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1);
+    k1_log(TAG, "otwieram Ustawienia → %s", gdzie);
+}
+
 /* gui's battery popover (0.11.8 step 3, K1_KOM_BATERIA_OKIENKO a): opened — read the battery at once and then every
  * BATERIA_CO_ZASOBY s (fresh numbers while someone looks); closed — every BATERIA_CO s again; its button "Ustawienia
  * baterii" (the popover closes) — Ustawienia on Bateria, as otworz_aktualizacje does for Aktualizacje. */
@@ -126,15 +138,16 @@ void bateria_okienko_prosba(int a)
         k1_log(TAG, "okienko baterii %s: odczyt baterii co %d s", a == K1_BOK_OTWARTE ? "otwarte" : "zamknięte",
                a == K1_BOK_OTWARTE ? (int)BATERIA_CO_ZASOBY : (int)BATERIA_CO);
     bateria_okienko = a == K1_BOK_OTWARTE;
-    if (a != K1_BOK_USTAWIENIA)
-        return;
-    uruchom_aplikacje(K1_APL_USTAWIENIA);
-    if (ustaw_kanal >= 0)
-        k1_kanal_wyslij(ustaw_kanal, &k, sizeof k, -1);
-    k = k1_komunikat_nowy(K1_KOM_POKAZ_APL, 0, K1_APL_USTAWIENIA, 0, 0, 0, 0);
-    if (bateria_kanal >= 0)
-        k1_kanal_wyslij(bateria_kanal, &k, sizeof k, -1);
-    k1_log(TAG, "otwieram Ustawienia → Bateria");
+    if (a == K1_BOK_USTAWIENIA)
+        pokaz_w_ustawieniach(k, "Bateria");
+}
+
+/* 0.12.3 step 2: a row of a popover of the top bar (K1_KOM_POKAZ_USTAWIENIA a: K1_UST_MIEJSCA) — Ustawienia there. */
+void ustawienia_miejsce_prosba(int a)
+{
+#define K1_X_UST_NAZWA(n, nr, nazwa) nr == a ? nazwa:
+    pokaz_w_ustawieniach(k1_komunikat_nowy(K1_KOM_USTAWIENIA_MIEJSCE, 0, a, 0, 0, 0, 0), K1_UST_MIEJSCA(K1_X_UST_NAZWA) "?");
+#undef K1_X_UST_NAZWA
 }
 
 /* Ustawienia → Bateria: the state when it changed and the history not sent yet, as long as the

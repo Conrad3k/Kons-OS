@@ -62,7 +62,7 @@ GRAFIKA := src/grafika/k1_grafika.c src/grafika/k1_grafika.h
 PRZYB   := src/przybornik/k1_rysuj.c src/przybornik/k1_ikony.c src/przybornik/k1_wachlarz.c src/przybornik/k1_liczba.c src/przybornik/k1_czas.c src/przybornik/k1_klawiatura.c \
            src/przybornik/k1_okno.c src/przybornik/k1_klient.c src/przybornik/k1_opis_klient.c src/przybornik/k1_aplikacja.c \
            src/przybornik/k1_dekodowanie.c src/przybornik/k1_menu.c src/przybornik/k1_przeciaganie.c src/przybornik/k1_prz_okienko.c \
-           src/przybornik/k1_zaznaczenie.c src/przybornik/k1_wycinek.c src/przybornik/k1_dzwiek_klient.c src/wspolne/k1_dzwiek.c \
+           src/przybornik/k1_zaznaczenie.c src/przybornik/k1_wycinek.c src/przybornik/k1_dzwiek_klient.c src/wspolne/k1_dzwiek.c src/wspolne/k1_korektor.c \
            src/wspolne/k1_skaluj.c src/grafika/k1_grafika.c \
            $(GEN)/k1_czcionki_dane.c
 # Host: without the sandbox, the app skeleton and what uses it (they need our kernel's headers).
@@ -179,8 +179,9 @@ $(BIN)/posrednik: $(POSREDNIK) $(wildcard src/posrednik/*.h) $(WSPOLNE) $(USLUGI
 
 # 0.12.0 step 1 (ADR 0054): the sound service — ALSA without alsa-lib (sound/asound.h from build/naglowki); a client's ring
 # in src/wspolne/k1_dzwiek.c, the path (mixing, the volume, the limiter, the dither; 0.12.3, ADR 0055) in k1_dzw_tor.c
-# (host tests: test_dzwiek, test_dzw_tor; fuzzing: fuzz_dzwiek)
-DZWIEK := $(sort $(wildcard src/dzwiek/*.c)) src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c
+# (host tests: test_dzwiek, test_dzw_tor; fuzzing: fuzz_dzwiek); the system equalizer (0.12.3 step 2) in k1_korektor.c
+# (test_korektor, fuzz_korektor)
+DZWIEK := $(sort $(wildcard src/dzwiek/*.c)) src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c src/wspolne/k1_korektor.c
 $(BIN)/dzwiek: $(DZWIEK) $(wildcard src/dzwiek/*.h) $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
 	$(CC_K1) $(CFLAGS_K1) -o $@ $(DZWIEK) $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
@@ -258,8 +259,8 @@ $(GEN)/k1_czcionki_dane.c: $(OBJ)/czcionki | $(GEN)
 	$(OBJ)/czcionki $(CZCIONKI) > $@.tmp && mv $@.tmp $@
 
 TEST_SYS := $(sort $(wildcard testy/system/*.c))
-$(BIN)/k1-test-systemu: $(TEST_SYS) testy/system/k1_test.h src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/wspolne/k1_sha1.c src/wspolne/k1_aes.c src/wspolne/k1_dzwiek.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
-	$(CC_K1) $(CFLAGS_K1) -o $@ $(TEST_SYS) src/wspolne/k1_nl.c src/wspolne/k1_sha1.c src/wspolne/k1_aes.c src/wspolne/k1_dzwiek.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
+$(BIN)/k1-test-systemu: $(TEST_SYS) testy/system/k1_test.h src/wspolne/k1_nl.c src/wspolne/k1_nl.h src/wspolne/k1_sha1.c src/wspolne/k1_aes.c src/wspolne/k1_dzwiek.c src/wspolne/k1_korektor.c $(WSPOLNE) $(USLUGI) $(NAGL) | $(BIN)
+	$(CC_K1) $(CFLAGS_K1) -o $@ $(TEST_SYS) src/wspolne/k1_nl.c src/wspolne/k1_sha1.c src/wspolne/k1_aes.c src/wspolne/k1_dzwiek.c src/wspolne/k1_korektor.c $(WSPOLNE) $(USLUGI) $(LDFLAGS_K1)
 
 $(BIN) $(OBJ) $(GEN):
 	mkdir -p $@
@@ -285,13 +286,16 @@ $(OBJ)/test_obraz_strefy: testy/host/test_obraz_strefy.c src/wspolne/k1_obraz_st
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_obraz_strefy.c src/wspolne/k1_obraz_strefy.c
 
 # 0.10.9 step 2 (ADR 0049 pkt 3): the film decoder's requests and messages
-$(OBJ)/test_dzwiek: testy/host/test_dzwiek.c src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
-	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_dzwiek.c src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c $(KOMUNIKAT) $(DOK_C) -lm
+$(OBJ)/test_dzwiek: testy/host/test_dzwiek.c src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c src/wspolne/k1_korektor.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_dzwiek.c src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c src/wspolne/k1_korektor.c $(KOMUNIKAT) $(DOK_C) -lm
 
 # 0.12.3 step 1 (ADR 0055): the sound path — the measurements of the plan (noise, harmonics, the quietest tone), the
 # limiter, the dither, "przezroczystość", the card's formats
 $(OBJ)/test_dzw_tor: testy/host/test_dzw_tor.c src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_dzw_tor.c src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c -lm
+
+$(OBJ)/test_korektor: testy/host/test_korektor.c src/wspolne/k1_korektor.c $(NAGL) testy/host/k1_test_host.h | $(OBJ)
+	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_korektor.c src/wspolne/k1_korektor.c -lm
 
 $(OBJ)/test_filmy: testy/host/test_filmy.c $(KOMUNIKAT) $(NAGL) testy/host/k1_test_host.h | $(OBJ)
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ testy/host/test_filmy.c $(KOMUNIKAT) $(DOK_C)
@@ -539,7 +543,7 @@ TESTY_HOST := test_gpu_most test_ogloszenie test_paczka test_odcinki test_odcink
 	test_rozmieszczenie test_kalkulator test_podglad test_manifest test_efi test_sha256 test_bat_arch test_odbior \
 	test_uevent test_cmdline test_log test_bateria test_zdarzenie test_komunikat test_przybornik test_menu \
 	test_przeciaganie test_lacznik test_touchpad test_dysk_strefy test_sesje test_powod_strefy test_pamiec_stref test_inst_prawa test_balon test_tlo test_edid test_pliki_strefy test_schowek test_agent_foldery test_palce \
-	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_virtio_dzwiek test_dzw_tor
+	test_opis test_obraz_strefy test_filmy test_posrednik test_karta_pomiar test_pomiar test_dzwiek test_virtio_dzwiek test_dzw_tor test_korektor
 TESTY_HOST_PLIKI := test_siec_instalatora test_dekoder test_fat test_start test_uklad test_instalator podglad_grafiki \
 	podglad_wylaczania
 
@@ -596,7 +600,7 @@ host-podglad_grafiki: $(OBJ)/podglad_grafiki
 # in FUZZ_ZR_<name>; its corpus in build/fuzz-korpus-<name> (plus testy/host/korpus-<name> when there is one),
 # inputs up to FUZZ_DL_<name> bytes. A new one: its .c file and these two lines.
 FUZZ := cmdline zdarzenie komunikat magazyn uevent bat_arch manifest uklad rozmieszczenie dokument fat pendrive dekoder fat32 dhcp sntp wifi eapol virtq \
-        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek virtio_dzwiek
+        lacznik balon opis ogloszenie paczka vsock filmy posrednik gpu_most pliki_strefy schowek dzwiek virtio_dzwiek korektor
 FUZZ_ZR_cmdline   := src/wspolne/k1_cmdline.c
 FUZZ_DL_cmdline   := 8192
 FUZZ_ZR_zdarzenie := src/wspolne/k1_zdarzenie.c
@@ -660,6 +664,8 @@ FUZZ_ZR_schowek   := src/wspolne/k1_schowek.c
 FUZZ_DL_schowek   := 4096
 FUZZ_ZR_dzwiek    := src/wspolne/k1_dzwiek.c src/wspolne/k1_dzw_tor.c
 FUZZ_DL_dzwiek    := 4096
+FUZZ_ZR_korektor  := src/wspolne/k1_korektor.c
+FUZZ_DL_korektor  := 4096
 FUZZ_ZR_virtio_dzwiek := src/strefa/dzwiek_prosby.c
 FUZZ_DL_virtio_dzwiek := 4096
 FUZZ_DL_gpu_most  := 8192

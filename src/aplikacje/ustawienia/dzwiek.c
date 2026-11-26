@@ -2,7 +2,8 @@
  * headphone jack, it switches by itself), the mute and the volume of that output, "Odtwórz próbę". Ustawienia is a steering
  * client of the sound service like gui (przybornik k1_dzwiek_klient — one way for both): its channel comes from nadzorca
  * on fd 4 (DZWIEK_KANAL; again after the service starts anew). gui remembers the volume (D5): it hears every change.
- * Part of Ustawienia (ustawienia.h). */
+ * 0.12.3 step 2: two tabs, "Głośność" (the above) and "Korektor" (korektor.c); the row "Korektor" of gui's popover opens
+ * the second (nadzorca's USTAWIENIA_MIEJSCE). Part of Ustawienia (ustawienia.h). */
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -11,14 +12,17 @@
 #include "k1_log.h"
 #include "ustawienia.h"
 
-#define WIERSZ_Y (seg_y() + 64) /* the mute and the slider */
+#define DZW_Y (ZAKLADKI_Y + 50)  /* 0.12.3 step 2: the content under the tabs (as Sieć's) */
+#define WIERSZ_Y (DZW_Y + 64)    /* the mute and the slider */
 #define SUWAK_X (TRESC_X + 52)
 #define SUWAK_W 280
 #define PROBA_Y (WIERSZ_Y + 64)
 
 static struct k1_dzw_polaczenie dz = K1_DZW_POLACZENIE_START(TAG);
-static int hover = -1, wcisniete = -1;
+static int hover = -1, wcisniete = -1, zakladka, hover_zakladki = -1;
 enum { C_WYCISZ = 0, C_SUWAK, C_PROBA };
+enum { Z_GLOSNOSC = 0, Z_KOREKTOR = 1 }; /* the tabs (0.12.3 step 2) */
+static const char *const zakladki[] = { "Głośność", "Korektor" };
 
 static struct k1_przycisk przycisk_proby(void)
 {
@@ -59,9 +63,14 @@ void dzwiek_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         bez_karty(o, m);
         return;
     }
-    k1_tekst(o, K1_CZ_MALA, TRESC_X, seg_y() + 14, "Wyjście", k1_kolor(m->tekst2, 255), 0);
-    k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X, seg_y() + 38, k1_dzw_wyjscie_nazwa(dz.wyjscie), k1_kolor(m->tekst, 255), 0);
-    k1_tekst(o, K1_CZ_MALA, TRESC_X + 120, seg_y() + 38, "Słuchawki przejmują dźwięk same po podłączeniu.",
+    k1_segment(o, m, TRESC_X, ZAKLADKI_Y, ZAKLADKI_W, ZAKLADKI_H, zakladki, 2, zakladka, hover_zakladki);
+    if (zakladka == Z_KOREKTOR) {
+        korektor_rysuj(o, m, &dz);
+        return;
+    }
+    k1_tekst(o, K1_CZ_MALA, TRESC_X, DZW_Y + 14, "Wyjście", k1_kolor(m->tekst2, 255), 0);
+    k1_tekst(o, K1_CZ_TEKST_MOCNA, TRESC_X, DZW_Y + 38, k1_dzw_wyjscie_nazwa(dz.wyjscie), k1_kolor(m->tekst, 255), 0);
+    k1_tekst(o, K1_CZ_MALA, TRESC_X + 120, DZW_Y + 38, "Słuchawki przejmują dźwięk same po podłączeniu.",
              k1_kolor(m->tekst3, 255), 0);
     k1_zaokraglony(o, (float)TRESC_X, (float)WIERSZ_Y, 36, 36, 18,
                    k1_kolor(dz.wyciszone ? m->akcent : hover == C_WYCISZ ? m->najechanie : m->pole, 255));
@@ -101,9 +110,38 @@ static void suwak_do(int32_t x)
         k1_dzwk_glosnosc(&dz, v, 0, K1_DZW_WYJSCIE_BRAK); /* moving the slider unmutes */
 }
 
+/* 0.12.3 step 2: the tabs; 1 = handled (the pointer was on them, or the tab Korektor has it) */
+static int zakladki_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk, int *zmiana)
+{
+    int z = rodzaj == K1_WSK_WYJSCIE || x < 0 || dz.karta != K1_DZW_KARTA_JEST
+                ? -1
+                : k1_segment_trafienie(TRESC_X, ZAKLADKI_Y, ZAKLADKI_W, ZAKLADKI_H, 2, x, y);
+    *zmiana = z != hover_zakladki;
+    hover_zakladki = z;
+    if (z >= 0 && rodzaj == K1_WSK_PUSZCZENIE && przycisk == K1_PRZYCISK_LEWY && z != zakladka) {
+        zakladka = z;
+        k1_log(TAG, "dźwięk: zakładka %s", zakladki[z]);
+        if (z == Z_KOREKTOR)
+            korektor_pokazany(&dz);
+        hover = wcisniete = -1;
+        *zmiana = 1;
+    }
+    if (z >= 0 && rodzaj != K1_WSK_RUCH)
+        return 1;
+    if (zakladka == Z_KOREKTOR) {
+        *zmiana |= korektor_wskaznik(&dz, rodzaj, dz.karta == K1_DZW_KARTA_JEST ? x : -1, y, przycisk);
+        return 1;
+    }
+    return 0;
+}
+
 int dzwiek_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
 {
-    int c = rodzaj == K1_WSK_WYJSCIE ? -1 : pod(x, y), zmiana = c != hover;
+    int zz, c, zmiana;
+    if (zakladki_wskaznik(rodzaj, x, y, przycisk, &zz))
+        return zz;
+    c = rodzaj == K1_WSK_WYJSCIE ? -1 : pod(x, y);
+    zmiana = c != hover || zz;
     hover = c;
     if (rodzaj == K1_WSK_WCISNIECIE && przycisk == K1_PRZYCISK_LEWY) {
         wcisniete = c;
@@ -126,9 +164,17 @@ int dzwiek_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk)
     return zmiana;
 }
 
+void dzwiek_korektor_pokaz(void)
+{
+    zakladka = Z_KOREKTOR;
+    ustawienia_pokaz(S_DZWIEK);
+}
+
 void dzwiek_pokazany(void)
 {
-    hover = wcisniete = -1;
+    hover = wcisniete = hover_zakladki = -1;
+    if (zakladka == Z_KOREKTOR)
+        korektor_pokazany(&dz);
     k1_log(TAG, "dźwięk: karta %d, wyjście %d, głośność %d%%%s", dz.karta, dz.wyjscie, dz.glosnosc,
            dz.wyciszone ? ", wyciszone" : "");
 }

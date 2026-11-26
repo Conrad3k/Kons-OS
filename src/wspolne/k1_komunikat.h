@@ -223,6 +223,9 @@ enum k1_komunikat_typ {
                                    * opened / closed (nadzorca reads the battery every 5 s while it is open), or its button
                                    * "Ustawienia baterii" (open Ustawienia on Bateria); b..e=0 */
     K1_KOM_BATERIA_POKAZ = 251,   /* nadzorca → Ustawienia (its fd 4): obiekt=0, all 0 — show the section Bateria */
+    K1_KOM_POKAZ_USTAWIENIA = 253, /* 0.12.3 step 2: gui → nadzorca (its fd 4): obiekt=0, a=a place K1_UST_MIEJSCA, b..e=0 —
+                                    * a row of a popover on the top bar ("Korektor"): open Ustawienia there */
+    K1_KOM_USTAWIENIA_MIEJSCE = 254, /* nadzorca → Ustawienia (its fd 4): obiekt=0, a=that place, b..e=0 — show it */
     K1_KOM_STREFA_DZWIEK = 47,    /* 0.12.0 step 3 (D6: A): the shell → ekran: obiekt=0, a=the zone 1..K1_STREFY_MAKS,
                                    * b=1 its session plays, c=1 it is muted, d,e=0 — ekran shows the speaker on the
                                    * bar of the zone's window while b = 1 */
@@ -251,7 +254,12 @@ enum k1_komunikat_typ {
                                     * b=1 muted / 0, c=of which output K1_DZW_WYJSCIE_* (step 2, D5; BRAK: the one
                                     * playing now), d=0 — or (step 3) d=a zone 1..K1_STREFY_MAKS: the volume and the
                                     * mute of its session (c=0), e=0 */
+    K1_KOM_DZWIEK_KOREKTOR = 29,   /* 0.12.3 step 2 (ADR 0055), a steering client only: a=the output K1_DZW_WYJSCIE_GLOSNIKI /
+                                    * SLUCHAWKI, b,c,d=its ten bands, half-decibels −K1_KOR_MAKS..K1_KOR_MAKS, four a field
+                                    * (k1_kor_do_pol; the unused bytes 0), e=0 — the equalizer of that output */
     /* dzwiek → its client (K1_KIER_OD_DZWIEKU) */
+    K1_KOM_DZWIEK_KOREKTOR_STAN = 49, /* 0.12.3 step 2, to a steering client: as DZWIEK_KOREKTOR — first (both outputs), and
+                                       * after every change */
     K1_KOM_DZWIEK_STAN = 42,       /* a=K1_DZW_KARTA_*, b=the volume 0..K1_DZW_GLOSNOSC_MAKS, c=1 muted, d=K1_DZW_WYJSCIE_*
                                     * (BRAK unless a=JEST, then not BRAK; step 2: SLUCHAWKI while something is in their
                                     * jack), e=0 — b, c of that output; first, and after every change */
@@ -910,6 +918,13 @@ static inline int k1_bateria_niska(int32_t procent, int32_t stan)
     return procent >= 0 && procent <= 15 && stan == K1_BAT_ROZLADOWANIE;
 }
 enum { K1_BOK_ZAMKNIETE = 0, K1_BOK_OTWARTE = 1, K1_BOK_USTAWIENIA = 2 }; /* K1_KOM_BATERIA_OKIENKO a */
+/* The places of Ustawienia a popover of the top bar opens (K1_KOM_POKAZ_USTAWIENIA a; rule 5: a new one is a row —
+ * plan 0.12.3 step 4 adds the scene). X(NAME, number 1.., the name in the log). */
+#define K1_UST_MIEJSCA(X) X(KOREKTOR, 1, "Dźwięk → Korektor")
+#define K1_X_UST_MIEJSCE(n, nr, ...) K1_UST_MIEJSCE_##n = nr,
+enum { K1_UST_MIEJSCA(K1_X_UST_MIEJSCE) };
+#define K1_X_UST_LICZ(...) +1
+enum { K1_UST_MIEJSCA_MAKS = 0 K1_UST_MIEJSCA(K1_X_UST_LICZ) };
 #define K1_MOC_MAKS_MW 1000000  /* 1 kW: anything above is a firmware error */
 #define K1_KARTA_MHZ_MAKS 5000  /* 0.10.10 step 2: a card's clock above it is a driver's error (ZASOBY_KARTA) */
 #define K1_BAT_MINUT_MAKS (99 * 60)

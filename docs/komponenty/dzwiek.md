@@ -56,7 +56,7 @@ ADR 0054 pkt 1); swoje kopie zamyka od razu. Bez `open`, `socket`, `memfd_create
 5. **Mieszanie (tor dźwięku, od 0.12.3 — ADR 0055)** — za każdym razem, gdy karta ma miejsce na okres (`poll` POLLOUT,
    `avail_min` = okres): z każdego strumienia kopia do 1024 ramek, zamiana na liczby zmiennoprzecinkowe (S16 dokładnie;
    F32 sprawdzone — NaN i nieskończoność → 0, ponad ±1,0 → ±1,0, liczone), suma (sesja strefy z głośnością sesji),
-   głośność K1 (`k1_dzw_wzmocnienie`: sześcian, 50 % = 0,125 ≈ −18 dB; wyciszenie = 0), **ogranicznik** (nigdy ponad pełną
+   od 0.12.3 krok 2 **korektor** wyjścia, które gra (niżej; płaski — nic nie liczy), głośność K1 (`k1_dzw_wzmocnienie`: sześcian, 50 % = 0,125 ≈ −18 dB; wyciszenie = 0), **ogranicznik** (nigdy ponad pełną
    skalę: łagodnie w dół do 1 ms przed głośną ramką, z powrotem 6 dB na 50 ms), zamiana na format karty z **ditherem**
    TPDF (±1 krok; bez niego, gdy każda próbka okresu już jest pełnym krokiem — przezroczystość 100 % i cisza), zapis okresu
    (`WRITEI_FRAMES`). Raz na minutę gry (gdy coś było): „ostatnia minuta: ogranicznik w N okresach, złe próbki od
@@ -76,6 +76,24 @@ i kart sieciowych (usypianie urządzeń). Bez pomiaru na laptopach właściciela
 zakresie wersji K1 zostaje bez `PM`: karta po 5 s ciszy nie gra (DROP + HW_FREE), kodek nie usypia. Pomiar i decyzja —
 w „Później” (`DO_ZROBIENIA.txt`).
 
+## Korektor (0.12.3 krok 2, ADR 0055 pkt 9–13; D1: A, D2: A)
+Korektor systemowy zmienia barwę całego dźwięku K1: **dziesięć pasm** co oktawę (31, 62, 125, 250, 500 Hz, 1, 2, 4, 8,
+16 kHz — tabela `K1_KOR_PASMA`), każde −12…+12 dB co 0,5 dB, osobno dla **głośników** i **słuchawek** (gra korektor wyjścia,
+które gra; po podłączeniu słuchawek przechodzi sam). **Gotowe ustawienia** — tabela `K1_KOR_GOTOWE` (Płaski, Więcej basu,
+Wyraźny głos, Laptop, Słuchawki, Muzyka, Film); każde inne położenie suwaków to „Własne”. Liczenie (`src/wspolne/k1_korektor.c`,
+czyste): pasmo = filtr szczytowy (biquad, „Audio EQ Cookbook”, Q = √2 — oktawa) w liczbach `double`; przed filtrami poziom
+schodzi o najgłośniejszy punkt całej krzywej (siatka 20 Hz–20 kHz i środki pasm), więc korektor **nigdy nie gra głośniej
+niż 100 %** (ogranicznik z kroku 1 i tak zostaje na końcu toru). Współczynniki liczone raz po zmianie, własnymi szeregami
+(sin, cos, eˣ, pierwiastek — bez libm, te same liczby na hoście, w fuzzerze i w K1). Zmiana (także wyjścia) przechodzi
+przez jeden okres: stare i nowe filtry na tym samym okresie, płynnie z jednych w drugie (bez trzasku); filtry startujące
+z płaskiego korektora zaczynają od dwóch ostatnich ramek sumy. Płaski korektor nie liczy nic — tor zostaje przezroczysty
+próbka w próbkę. Usługa (`src/dzwiek/korektor.c`): pasma od klienta sterującego (`DZWIEK_KOREKTOR`) sprawdzone pole po
+polu, wszystkim klientom sterującym `DZWIEK_KOREKTOR_STAN` (nowemu — obu wyjść); w logu nazwa ustawienia („korektor
+(Głośniki): Więcej basu”), najwyżej dwa razy na sekundę (przeciągany suwak wysyła wiele zmian), raz na minutę gry koszt
+(„korektor: średnio N µs na okres (P % jednego rdzenia)” — T6: cel < 5 % rdzenia X230). Pamięta je gui (rekord „K1G2”,
+`gui.md`) i daje każdej nowej usłudze; zmienia je Ustawienia → Dźwięk → Korektor (`aplikacje.md`), a okienko „Dźwięk”
+pokazuje nazwę ustawienia wyjścia, które gra (wiersz „Korektor”, D1: A).
+
 ## Komunikaty
 Typy i pola: `k1_komunikat.h` (sekcja „0.12.0 step 1”), sprawdzanie: `k1_kom_dzwiek.c`; obiekt zawsze 0.
 | Typ | Kierunek | Pola |
@@ -88,6 +106,8 @@ Typy i pola: `k1_komunikat.h` (sekcja „0.12.0 step 1”), sprawdzanie: `k1_kom
 | `DZWIEK_ZAMKNIJ` | klient → usługa | a = 0 po odegraniu / 1 od razu |
 | `DZWIEK_GLOSNOSC` | klient sterujący → usługa | a = głośność 0…100, b = wyciszone 0/1, c = wyjście (krok 2; 0 — to, które gra), d = strefa (krok 3: głośność i wyciszenie jej sesji; wtedy c = 0) |
 | `DZWIEK_SESJA` (krok 3) | usługa → klient sterujący | a = strefa, b = 1 jej sesja gra (ramki w ostatniej sekundzie), c = głośność sesji, d = wyciszona; po każdej zmianie, nowemu klientowi — każda inna niż na starcie |
+| `DZWIEK_KOREKTOR` (0.12.3 krok 2) | klient sterujący → usługa | a = wyjście (Głośniki / Słuchawki), b, c, d = dziesięć pasm w półdecybelach −24…24, po cztery na pole (bajt na pasmo, `k1_kor_do_pol`; nieużyte bajty 0) |
+| `DZWIEK_KOREKTOR_STAN` (0.12.3 krok 2) | usługa → klient sterujący | jak `DZWIEK_KOREKTOR`; nowemu klientowi obu wyjść, potem po każdej zmianie |
 | `DZWIEK_STAN` | usługa → klient | a = karta (SZUKA, BRAK, JEST, BLAD), b = głośność, c = wyciszone (wyjścia, które gra), d = wyjście (tylko z kartą: Głośniki albo — krok 2 — Słuchawki) |
 | `DZWIEK_ODTWORZONO` | usługa → klient | a = ramki zabrane 0…16384, b = 1 strumień się skończył (wtedy a może być 0) |
 | `DZWIEK_KANAL` | nadzorca → gui (fd 5), Ustawienia (fd 4; krok 2), VMM strefy z oknem (fd 7; krok 3) (+ fd) | wszystko 0 |
@@ -150,5 +170,16 @@ zapisuje ją w skarbcu (`gui.md`) i daje każdej nowej usłudze.
   formatach z dowolnych bajtów, suma zawsze skończona, po ograniczniku nigdy ponad ±1,0; `t_dzwiek` — pierścień F32,
   NEGATYWNY: pierścień 16 bitów zgłoszony jako F32 odrzucony; `test-dzwiek.sh` — karta QEMU przyjmuje tylko 16 bitów
   (log), pierwsza próba w pliku WAV próbka w próbkę taka jak w programie, strefa gra ton w S32 (log VMM).
+- 0.12.3 krok 2 (korektor): `test_korektor` — własne sin, cos, eˣ, pierwiastek wobec libm; tabele (pasma co oktawę, gotowe
+  ustawienia w ±12 dB, każde rozpoznane po nazwie); pasma w komunikacie i z powrotem (ponad ±12 dB, nieużyte bajty —
+  odrzucone); każde pasmo samo: środek ±0,1 dB od celu, trzy oktawy dalej ±0,5 dB; poziom przed filtrami — żadne ustawienie
+  nie jest głośniejsze niż 100 % (gęsta siatka); ton przez pasmo +6 dB wobec tonu trzy oktawy dalej; płaski —
+  przezroczysty; zmiana w trakcie tonu bez skoku, powrót do płaskiego dokładny po okresie; najgorsze ustawienia na szumie
+  pełnej skali — skończone, bez rozbiegania; cisza zeruje pamięć filtrów. `fuzz_korektor` (wrogi klient sterujący: dowolne
+  pola, dowolna suma, zmiana w trakcie); `test_dzwiek` — komunikaty korektora, rekord „K1G2” (i „K1G1”); `t_dzwiek` —
+  korektor ustawiony i powiedziany z powrotem, NEGATYWNE: pasmo ponad +12 dB, nieistniejące pasmo. `test-dzwiek.sh`:
+  Ustawienia → Dźwięk → Korektor po nazwach, pasmo 1k na +12 dB, szósta próba — w pliku nuta 660 Hz o 7,0 dB i 880 Hz
+  o 1,7 dB ciszej niż piąta (krzywa liczona w `k1dzwiek.py` jak w `k1_korektor.c`, ±0,75 dB), wiersz „Korektor” w okienku
+  otwiera Ustawienia na korektorze, „Płaski”.
 - Na sprzęcie (właściciel): próba słychać na X230 i IdeaPadzie; log z nazwami karty i kodeka; krok 2 — klawisze (log
   wejścia: „z klawiszami głośności”), słuchawki w gnieździe (log „gniazdo słuchawek: …”, „wyjście: Słuchawki”).

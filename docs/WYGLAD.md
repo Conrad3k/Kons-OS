@@ -126,7 +126,19 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
 - **Ustawienia → Dźwięk** (0.12.0 krok 2; sekcja przed Informacjami, ikona głośnika): pod tytułem „Wyjście” (Sans 13, tekst
   drugi) i nazwa wyjścia (Medium 15) z podpowiedzią obok (tekst trzeci); niżej okrągły przycisk „Wycisz” 36 px jak
   w okienku, suwak 280 px i procenty (Medium 15); przycisk „Odtwórz próbę” (zwykły, 180 × 36); pod nim dopisek „K1 pamięta
-  głośność głośników i słuchawek osobno.”
+  głośność głośników i słuchawek osobno.” Od 0.12.3 krok 2 pod tytułem zakładki „Głośność | Korektor” (260 × 32, jak w Sieci),
+  treść „Głośność” 50 px niżej.
+- **Korektor** (0.12.3 krok 2, szkic A „10 pasm” — decyzja właściciela D2 z 2026-11-26; szkice A/B/C w obu motywach
+  z hosta, funkcjami K1): pod zakładkami przełącznik „Głośniki | Słuchawki” (230 × 32) z „Gra teraz: …” obok (tekst trzeci)
+  i „Zeruj” z prawej (zwykły, 84 × 32); niżej gotowe ustawienia jako kafelki 28 px (pełne zaokrąglenie, Medium 13, pole
+  z cienką obwódką; wybrane — akcent i tekst „na akcencie”; przy innym położeniu suwaków dodatkowy kafelek „Własne”
+  w akcencie), w rzędach co 36 px; pod nimi skala „+12 / 0 dB / −12” (tekst trzeci, linia 0 dB mocniejsza) i dziesięć
+  pionowych suwaków (tor 150 px, 4 px; część od 0 dB do gałki w akcencie; gałka jak w `k1_suwak`), nad każdym wartość
+  („+6”, „−1,5”; różna od zera — kolor akcentu jako tekst), pod nim pasmo („31” … „16k”).
+- **Wiersz „Korektor” okienka „Dźwięk”** (0.12.3 krok 2, szkic A „jeden wiersz” — decyzja właściciela D1 z 2026-11-26):
+  pod kreską wiersz 36 px (zaokrąglenie 9; pod kursorem tło „najechanie”): z lewej „Korektor” (Sans 13, tekst drugi),
+  z prawej nazwa ustawienia wyjścia, które gra (Medium 13) i strzałka „›” (kreski 1,5 px, tekst drugi); okienko ma
+  300 × 202.
 - **Okienko baterii** (0.11.8 krok 3, szkic A — decyzja właściciela D4 z 2026-11-25; 272×202, okienko paska): z lewej u góry
   procent IBM Plex Serif 24 („73 %”), z prawej symbol baterii 30×16 (zaokrąglenie 4, linia 1,5) w kolorze tekstu motywu,
   wypełnienie jak procent (≤ 15 % przy rozładowywaniu — terakota); pod procentem stan (Sans 13, tekst drugi: „Ładowanie”,

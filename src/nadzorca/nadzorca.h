@@ -431,6 +431,7 @@ void odczytaj_baterie(double t);
 void wyslij_baterie(void);
 extern int bateria_okienko;         /* gui's battery popover is open (0.11.8 step 3) */
 void bateria_okienko_prosba(int a); /* K1_KOM_BATERIA_OKIENKO from gui: a = K1_BOK_* */
+void ustawienia_miejsce_prosba(int a); /* 0.12.3 step 2: K1_KOM_POKAZ_USTAWIENIA from gui: a = K1_UST_MIEJSCE_* */
 int blokada_mozliwa(void);
 void bateria_nowy_kanal(void);
 void ustawienia_nowy_kanal(void);

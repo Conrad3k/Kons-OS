@@ -8,6 +8,9 @@ step 3: after them the test zone's tone, 480 Hz, at least a second of it, with a
 from the speaker on its window's bar). 0.12.3 step 1 (ADR 0055, "przezroczystość"): the first sound (the sample at 100 %, one
 16-bit stream; QEMU's card takes 16 bits only) is the sample itself, sample for sample — the same numbers as
 k1_dzw_proba (src/wspolne/k1_dzwiek.c, computed here in the same order: Python's floats are IEEE doubles as C's).
+0.12.3 step 2 (the equalizer): the sixth sound is the sample at 45 % with the band 1 kHz at +12 dB — each note as loud as
+the equalizer's curve says against the fifth (the same sample flat): its filters and the level before them computed here
+as in k1_korektor.c (660 Hz −7.0 dB, 880 Hz −1.7 dB); the zone's tone comes after it.
 
     python3 -I testy/qemu/k1dzwiek.py PLIK.wav   — exit 0 when all hold"""
 import array
@@ -108,6 +111,30 @@ def przezroczystosc(s, a, z, wzor):
     return dopasowane, obce
 
 
+def korektor_db(hz, pasmo_hz, pol):
+    """The equalizer of one band at `pol` half-decibels (k1_korektor.c: the Audio EQ Cookbook's peaking filter, Q = √2,
+    the level before it from the curve's loudest point on its grid) at `hz`: dB."""
+    import math
+    fs = CZESTOTLIWOSC
+
+    def moc(f, h):
+        b0, b1, b2, a1, a2 = f
+        c = math.cos(2 * math.pi * h / fs)
+        c2 = 2 * c * c - 1
+        return (b0 * b0 + b1 * b1 + b2 * b2 + 2 * (b0 * b1 + b1 * b2) * c + 2 * b0 * b2 * c2) / \
+            (1 + a1 * a1 + a2 * a2 + 2 * (a1 + a1 * a2) * c + 2 * a2 * c2)
+    w0, a = 2 * math.pi * pasmo_hz / fs, 10 ** (pol / 2 / 40)
+    al, c = math.sin(w0) / (2 * math.sqrt(2)), math.cos(w0)
+    a0 = 1 + al / a
+    f = ((1 + al * a) / a0, -2 * c / a0, (1 - al * a) / a0, -2 * c / a0, (1 - al / a) / a0)
+    m = max([moc(f, 20 * 1000 ** (k / 240)) for k in range(241)] + [moc(f, pasmo_hz), 1.0])
+    return 10 * math.log10(moc(f, hz) / m)
+
+
+def rms(s):
+    return (sum(v * v for v in s) / max(len(s), 1)) ** 0.5
+
+
 def czestotliwosc(s):
     przejscia = sum(1 for i in range(1, len(s)) if (s[i - 1] < 0) != (s[i] < 0))
     return przejscia / 2 * CZESTOTLIWOSC / max(len(s), 1)
@@ -125,11 +152,11 @@ def main():
         sprawdz("plik WAV od QEMU (48 kHz, 16 bitów)", False, sys.argv[1])
         return 1
     d = dzwieki(s)
-    sprawdz("pięć prób (100 %, 50 %, 50 % po restarcie usługi, 40 %, 45 %; wyciszona — cisza), po nich ton strefy",
-            len(d) >= 6,
+    sprawdz("sześć prób (100 %, 50 %, 50 % po restarcie usługi, 40 %, 45 %, 45 % z korektorem; wyciszona — cisza), "
+            "po nich ton strefy", len(d) >= 7,
             f"{len(d)}: " + ", ".join(f"{a / CZESTOTLIWOSC:.2f}–{z / CZESTOTLIWOSC:.2f} s" for a, z in d))
     szczyty = []
-    for nr, (a, z) in enumerate(d[:5], 1):
+    for nr, (a, z) in enumerate(d[:6], 1):
         pol = (a + z) // 2
         f1, f2 = czestotliwosc(s[a:pol]), czestotliwosc(s[pol:z])
         szczyty.append(max(abs(v) for v in s[a:z]))
@@ -147,8 +174,18 @@ def main():
         dop, obce = przezroczystosc(s, max(0, a - BLOK), min(len(s), z + BLOK), wzor)
         sprawdz("100 %: próba w pliku próbka w próbkę taka jak w programie (przezroczystość, 0.12.3)",
                 obce == 0 and dop >= 0.9 * len(wzor), f"zgodne {dop} z {len(wzor)}, inne głośne {obce}")
-    if len(d) >= 6:  # step 3: the zone's tone (in emulation it may come in pieces), one gap of the muted session
-        reszta = d[5:]
+    if len(d) >= 6:  # 0.12.3 step 2: the sixth (1 kHz +12 dB) against the fifth (flat), note by note
+        for i, hz in enumerate((660, 880)):
+            czesci = []
+            for a, z in d[4:6]:
+                pol = (a + z) // 2
+                a, z = (a, pol) if i == 0 else (pol, z)
+                czesci.append(rms(s[a + (z - a) // 5:z - (z - a) // 5]))  # the middle of the note, its envelope aside
+            db, cel = 20 * __import__("math").log10(max(czesci[1], 1e-9) / max(czesci[0], 1e-9)), korektor_db(hz, 1000, 24)
+            sprawdz(f"korektor (1 kHz +12 dB): nuta {hz} Hz o {cel:+.1f} dB wobec próby bez korektora", abs(db - cel) < 0.75,
+                    f"{db:+.2f} dB")
+    if len(d) >= 7:  # step 3: the zone's tone (in emulation it may come in pieces), one gap of the muted session
+        reszta = d[6:]
         ton = [v for a, z in reszta for v in s[a:z]]
         przerwa = max((reszta[i + 1][0] - reszta[i][1]) / CZESTOTLIWOSC for i in range(len(reszta) - 1)) \
             if len(reszta) > 1 else 0
@@ -156,7 +193,7 @@ def main():
                 len(ton) >= CZESTOTLIWOSC and 450 < czestotliwosc(ton) < 510,
                 f"{len(ton) / CZESTOTLIWOSC:.1f} s, {czestotliwosc(ton):.0f} Hz, części {len(reszta)}")
         sprawdz("strefa: sesja wyciszona głośnikiem na pasku — przerwa co najmniej 2 s", przerwa >= 2.0, f"{przerwa:.1f} s")
-    if len(szczyty) == 5:  # step 2: the keys (40 %) and the remembered volume (45 %), against 50 %: (0.8)³ = 0.512, (0.9)³ = 0.729
+    if len(szczyty) >= 5:  # step 2: the keys (40 %) and the remembered volume (45 %), against 50 %: (0.8)³ = 0.512, (0.9)³ = 0.729
         sprawdz("40 % (klawisze, próba z Ustawień) ≈ 0,51 amplitudy 50 %", 0.42 < szczyty[3] / szczyty[1] < 0.62,
                 f"{szczyty[3] / szczyty[1]:.3f}")
         sprawdz("45 % (nowy pulpit, głośność ze skarbca) ≈ 0,73 amplitudy 50 %", 0.62 < szczyty[4] / szczyty[1] < 0.85,

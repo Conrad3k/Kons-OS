@@ -156,6 +156,14 @@ z procentami (ten sam `k1_suwak` co w okienku „Dźwięk” i pigułce), „Odt
 głośników i słuchawek osobno.”; bez karty — jedno zdanie. Ustawienia są klientem sterującym usługi dźwięku jak gui
 (wspólny `k1_dzwiek_klient` w przyborniku): kanał od nadzorcy na fd 4 (`DZWIEK_KANAL`, od nowa po restarcie usługi albo
 Ustawień), stan, głośność wyjścia, które gra, próba we własnym pierścieniu. Głośność zapamiętuje gui (słyszy każdą zmianę).
+Od 0.12.3 krok 2 Dźwięk ma pod tytułem zakładki „Głośność | Korektor” (jak Sieć). **Korektor** (`korektor.c`, D2: A — szkic
+z 2026-11-26): przełącznik „Głośniki | Słuchawki” (na start wyjście, które gra; obok „Gra teraz: …”), „Zeruj”, gotowe
+ustawienia jako kafelki (Płaski, Więcej basu, Wyraźny głos, Laptop, Słuchawki, Muzyka, Film; wybrane — w akcencie; inne
+położenie suwaków — dodatkowy kafelek „Własne”), skala +12 / 0 dB / −12 i dziesięć pionowych suwaków (31 Hz … 16 kHz,
+krok 0,5 dB; nad każdym wartość, pod nim pasmo). Każda zmiana idzie od razu do usługi (`DZWIEK_KOREKTOR`); log
+„korektor (Głośniki): Więcej basu”. Opis ekranu: kafelki po nazwach ustawień, suwaki „Pasmo 31” … „Pasmo 16k”.
+`USTAWIENIA_MIEJSCE` od nadzorcy (fd 4; a = KOREKTOR — wiersz „Korektor” okienka „Dźwięk” na górnym pasku) otwiera Dźwięk
+na zakładce Korektor.
 Informacje (`informacje.c`): wersja, ekran, jądro, gdzie są dane.
 Od 0.10.7 krok 1 sekcje mają sam tytuł, bez opisu pod nim (zasada właściciela Z2, `docs/WYGLAD.md`); treść zaczyna się
 32 px pod tytułem (`seg_y()` w `ustawienia.h`), w Sieci w tym miejscu stoją zakładki, a jej treść pod nimi (`SIEC_Y`).

@@ -5,7 +5,8 @@
  * the volume, the mute) is scripts/test-dzwiek.sh with QEMU's sound card. Also the scenario of test-dzwiek.sh: the test
  * program kills the service when the script unmutes for the second time (t_dzwiek_opis, from t_opis_scenariusz), and
  * (step 2) gui when the pill of the volume says "muted" for the second time; (step 3) then the test zone that plays a
- * tone, and the one hostile to its sound card. */
+ * tone, and the one hostile to its sound card. 0.12.3 step 2: the equalizer set by the test program and told back, bands
+ * beyond ±12 dB refused. */
 #include "k1_test.h"
 
 #include "k1_dzwiek.h"
@@ -94,6 +95,42 @@ static int zamkniety(int fd, int s)
     return 0;
 }
 
+/* 0.12.3 step 2: the next KOREKTOR_STAN of `wyjscie` within `ms`: 1 and its bands; 0 none. */
+static int korektor_stan(int fd, int wyjscie, int8_t *p, int ms)
+{
+    struct k1_komunikat k;
+    for (int i = 0; i < 20; i++) {
+        int r = odbierz(fd, &k, ms);
+        int32_t f[3] = { k.b, k.c, k.d };
+        if (r <= 0)
+            return 0;
+        if (k.typ == K1_KOM_DZWIEK_KOREKTOR_STAN && k.a == wyjscie)
+            return k1_kor_z_pol(f, p) == 0;
+    }
+    return 0;
+}
+
+/* 0.12.3 step 2: the equalizer of the speakers set by a steering client, told back; bands beyond ±12 dB refused. */
+static void korektor(int fd)
+{
+    int8_t p[K1_KOR_PASMA_N], q[K1_KOR_PASMA_N];
+    int32_t f[3];
+    k1_kor_gotowe_pasma(K1_KOR_WIECEJ_BASU, p);
+    k1_kor_do_pol(p, f);
+    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], 0), -1);
+    memset(q, 0, sizeof q);
+    int ok = korektor_stan(fd, K1_DZW_WYJSCIE_GLOSNIKI, q, 1000) && memcmp(p, q, sizeof p) == 0; /* before its name */
+    check(ok, "dźwięk: korektor głośników ustawiony (0.12.3) — usługa mówi go klientom sterującym", "%s", k1_kor_nazwa(q));
+    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, 25, 0, 0, 0), -1); /* +12.5 dB */
+    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0x10000, 0), -1); /* band 10 */
+    check(!korektor_stan(fd, K1_DZW_WYJSCIE_GLOSNIKI, q, 1000),
+          "NEGATYWNY: pasmo korektora ponad +12 dB i nieistniejące pasmo — odrzucone, nic się nie zmienia", "");
+    memset(p, 0, sizeof p);
+    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0, 0), -1);
+    check(korektor_stan(fd, K1_DZW_WYJSCIE_GLOSNIKI, q, 1000) && k1_kor_plaski(q),
+          "dźwięk: korektor z powrotem płaski, kanał po złych komunikatach działa", "");
+}
+
 static void wrogi_klient(long pid)
 {
     int fd = kanal(), ring = pierscien(K1_DZW_PIERSCIEN_BAJTY), maly = pierscien(4096), g = 0, r;
@@ -114,6 +151,7 @@ static void wrogi_klient(long pid)
     check(r == K1_DZW_KARTA_BRAK && g == 30, "dźwięk: klient sterujący zmienia głośność (stan wraca do wszystkich)",
           "głośność %d", g);
     wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_GLOSNOSC, 0, K1_DZW_GLOSNOSC_START, 0, 0, 0, 0), -1);
+    korektor(fd);
     wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_ZAPISANO, 0, 100, 0, 0, 0, 0), -1);
     check(zamkniety(fd, 5) && find_process("dzwiek") == pid,
           "NEGATYWNY: ramki bez strumienia — klient traci kanał, usługa działa", "pid %ld", pid);
@@ -220,17 +258,23 @@ static int pigulka(const struct k1_opis_el *el, int n)
 static void strefy(const struct k1_opis_el *el, int n, int pulpit_zabity)
 {
     static int ustawienia, etap, dzialala;
-    int jest = 0;
-    for (int i = 0; i < n; i++)
+    int jest = 0, okno_strefy = 0;
+    for (int i = 0; i < n; i++) {
         jest |= el[i].rodzaj == K1_EL_OKNO && strncmp(el[i].nazwa, "Ustawienia", sizeof el[i].nazwa) == 0;
+        okno_strefy |= el[i].rodzaj == K1_EL_OKNO && strncmp(el[i].nazwa, "Strefa próbna", sizeof el[i].nazwa) == 0;
+    }
     if (etap == 0 && pulpit_zabity && ustawienia && !jest) {
         etap = 1;
         k1_log(TAG, "dźwięk: strefa próbna gra ton — %s",
                zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_DZWIEK, 0, 0, 0), NULL,
                        10) == 0 ? "uruchomiona" : "NIE uruchomiona");
-    } else if (etap == 1 && find_process("strefa") > 0) {
+    } else if (etap == 1 && (okno_strefy || (!dzialala && find_process("strefa") > 0))) {
         dzialala = 1;
     } else if (etap == 1 && dzialala) {
+        /* its window gone: the description may not change again, so the VMM's end is awaited here (in emulation
+         * nadzorca collected it after the last description — the hostile zone never started; 0.12.3 step 2) */
+        for (int i = 0; i < 100 && find_process("strefa") > 0; i++)
+            msleep(100);
         etap = 2;
         k1_log(TAG, "dźwięk: strefa złośliwa dla karty — %s",
                zapytaj(k1_komunikat_nowy(K1_KOM_URUCHOM_STREFE, 0, K1_STREFA_PROBNA, K1_STREFA_TRYB_DZWIEK_ZLY, 0, 0, 0),

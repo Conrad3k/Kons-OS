@@ -7,7 +7,10 @@
  * and ekran shows its pill (GLOSNOSC_POKAZ, D4: A); the volume and the mute of each output are remembered in skarbiec
  * (gui's object K1_OB_GLOSNOSC, D5: A) and given to every new service. Step 3 (D2: B, D6: A): the list "Grają teraz" —
  * each session that plays (DZWIEK_SESJA from the service) with its dot, its name, its mute and its volume; which session
- * plays goes on to ekran (STREFA_DZWIEK: the speaker on its window's bar), whose click comes back (STREFA_WYCISZ). */
+ * plays goes on to ekran (STREFA_DZWIEK: the speaker on its window's bar), whose click comes back (STREFA_WYCISZ).
+ * 0.12.3 step 2 (D1: A): the row "Korektor" with the name of the output's setting ("Więcej basu", "Własne") — a click
+ * opens Ustawienia → Dźwięk → Korektor (POKAZ_USTAWIENIA to nadzorca); the bands of both outputs are remembered with the
+ * volume (record K1G2) and given to every new service. */
 #include <stdio.h>
 #include <string.h>
 
@@ -24,17 +27,20 @@
 static struct k1_dzw_polaczenie dz = K1_DZW_POLACZENIE_START(TAG);
 static struct k1_dzw_zapamietane zap;
 static int zgodne;          /* the service has what we remember (its STAN after a new channel said so) */
+static int kor_zgodne;      /* bit w: the service has our bands of output w (its KOREKTOR_STAN said so) */
 static double zmiana_t;     /* when the remembered volume changed (0: nothing to write) */
 static int hover = -1, wcisniete = -1; /* the control under the pointer / pressed (C_*) */
 
-enum { C_WYCISZ = 0, C_SUWAK, C_PROBA, C_SESJA = 10 }; /* C_SESJA + 2·row: its mute, + 1: its volume */
+enum { C_WYCISZ = 0, C_SUWAK, C_PROBA, C_KOREKTOR, C_SESJA = 10 }; /* C_SESJA + 2·row: its mute, + 1: its volume */
 #define P 16
 #define WYC_X (MARG + P) /* the mute: a round button 36 px */
 #define WYC_Y (MARG + 46)
 #define SUW_X (MARG + P + 52) /* the slider's track */
 #define SUW_W (DZWIEK_OKIENKO_SZER - 2 * P - 52 - 52)
 #define SUW_Y (MARG + 64)
-#define LISTA_Y (MARG + 106)                 /* "Grają teraz" under the line */
+#define KOR_Y (MARG + 106)                   /* 0.12.3 step 2: the row "Korektor" under the line */
+#define KOR_H 36
+#define LISTA_Y (KOR_Y + KOR_H + 8)          /* "Grają teraz" under it */
 #define WIERSZ 36
 #define SES_WYC_X (MARG + P + 92)            /* a row: the dot, the name, the mute (24 px), the slider, the percent */
 #define SES_SUW_X (MARG + P + 126)
@@ -59,7 +65,7 @@ int32_t dzwiek_okienko_wys(void)
 
 static struct k1_przycisk przycisk_proby(void)
 {
-    struct k1_przycisk p = { MARG + 8, MARG + 110 + lista_wys(), DZWIEK_OKIENKO_SZER - 16, 36, "Odtwórz próbę",
+    struct k1_przycisk p = { MARG + 8, LISTA_Y + 4 + lista_wys(), DZWIEK_OKIENKO_SZER - 16, 36, "Odtwórz próbę",
                              K1_PRZ_CICHY };
     return p;
 }
@@ -114,6 +120,8 @@ void dzwiek_wczytaj(void)
                zap.glosnosc[K1_DZW_WYJSCIE_SLUCHAWKI], zap.wyciszone[K1_DZW_WYJSCIE_SLUCHAWKI] ? " (wyciszone)" : "");
     else
         k1_log(TAG, "dźwięk: głośność domyślna (%d%%)", K1_DZW_GLOSNOSC_START);
+    k1_log(TAG, "dźwięk: zapamiętany korektor — głośniki: %s, słuchawki: %s",
+           k1_kor_nazwa(zap.korektor[K1_DZW_WYJSCIE_GLOSNIKI]), k1_kor_nazwa(zap.korektor[K1_DZW_WYJSCIE_SLUCHAWKI]));
 }
 
 /* Written ZAPISZ_PO_S after the last change (every loop of gui, at least once a second). */
@@ -134,8 +142,28 @@ void dzwiek_kanal_nowy(int fd)
     k1_dzwk_kanal(&dz, fd);
     zgodne = 0;
     sesje(1); /* step 3: no session plays until the new service says so */
-    for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++)
+    kor_zgodne = 0;
+    for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
         k1_dzwk_glosnosc(&dz, zap.glosnosc[w], zap.wyciszone[w], w);
+        k1_dzwk_korektor(&dz, w, zap.korektor[w]); /* 0.12.3 step 2 */
+    }
+}
+
+/* 0.12.3 step 2: the bands of the outputs as the service says them (Ustawienia changed them) remembered — once the
+ * service has ours (its first KOREKTOR_STAN on a new channel still says flat). */
+static void zapamietaj_korektor(void)
+{
+    for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
+        int rowne = memcmp(dz.korektor[w], zap.korektor[w], K1_KOR_PASMA_N) == 0;
+        if (!(kor_zgodne & 1 << w)) {
+            kor_zgodne |= rowne << w;
+            continue;
+        }
+        if (!rowne) {
+            memcpy(zap.korektor[w], dz.korektor[w], K1_KOR_PASMA_N);
+            zmiana_t = k1_teraz();
+        }
+    }
 }
 
 /* The volume of the output playing now remembered: our own change (`wlasna`), or DZWIEK_STAN (Ustawienia changed it) —
@@ -162,6 +190,8 @@ void dzwiek_odbierz(void)
     int r = k1_dzwk_odbierz(&dz);
     if (r & K1_DZWK_STAN)
         zapamietaj(0);
+    if (r & K1_DZWK_KOREKTOR)
+        zapamietaj_korektor();
     if (r & (K1_DZWK_SESJE | K1_DZWK_KONIEC))
         sesje(0);
     if (r)
@@ -240,6 +270,21 @@ static void lista_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
     }
 }
 
+/* 0.12.3 step 2 (D1: A): "Korektor" and the name of the setting of the output playing now, an arrow — to Ustawienia */
+static void korektor_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
+{
+    const char *nazwa = k1_kor_nazwa(dz.korektor[dz.wyjscie]);
+    float sx = MARG + DZWIEK_OKIENKO_SZER - P - 4, sy = KOR_Y + KOR_H / 2;
+    if (hover == C_KOREKTOR)
+        k1_zaokraglony(o, MARG + 8, KOR_Y, DZWIEK_OKIENKO_SZER - 16, KOR_H, 9, k1_kolor(m->najechanie, 255));
+    k1_tekst(o, K1_CZ_MALA, MARG + P, KOR_Y + 23, "Korektor", k1_kolor(m->tekst2, 255), 0);
+    k1_tekst(o, K1_CZ_MALA_MOCNA, (int32_t)sx - 10 - k1_tekst_szer(K1_CZ_MALA_MOCNA, nazwa), KOR_Y + 23, nazwa,
+             k1_kolor(m->tekst, 255), 0);
+    k1_kreska(o, sx - 3, sy - 5, sx + 2, sy, 1.5f, k1_kolor(m->tekst2, 255));
+    k1_kreska(o, sx + 2, sy, sx - 3, sy + 5, 1.5f, k1_kolor(m->tekst2, 255));
+    k1_el(K1_EL_PRZYCISK, "Korektor", MARG + 8, KOR_Y, DZWIEK_OKIENKO_SZER - 16, KOR_H, 0);
+}
+
 void dzwiek_okienko(struct k1_obraz *o, const struct k1_motyw *m)
 {
     struct k1_przycisk p = przycisk_proby();
@@ -266,6 +311,7 @@ void dzwiek_okienko(struct k1_obraz *o, const struct k1_motyw *m)
     k1_tekst(o, K1_CZ_MALA_MOCNA, MARG + DZWIEK_OKIENKO_SZER - P - k1_tekst_szer(K1_CZ_MALA_MOCNA, proc), SUW_Y + 5, proc,
              k1_kolor(dz.wyciszone ? m->tekst3 : m->tekst, 255), 0);
     k1_prostokat(o, MARG + P, MARG + 98, DZWIEK_OKIENKO_SZER - 2 * P, 1, k1_kolor(m->tekst, 22));
+    korektor_rysuj(o, m);
     lista_rysuj(o, m);
     k1_przycisk(o, m, &p, K1_CZ_MALA_MOCNA, hover == C_PROBA, !dz.gra);
 }
@@ -281,6 +327,8 @@ static int pod(int32_t x, int32_t y)
         return C_WYCISZ;
     if (x >= SUW_X - 10 && x <= SUW_X + SUW_W + 10 && y >= SUW_Y - 12 && y <= SUW_Y + 12)
         return C_SUWAK;
+    if (x >= MARG + 8 && x < MARG + DZWIEK_OKIENKO_SZER - 8 && y >= KOR_Y && y < KOR_Y + KOR_H)
+        return C_KOREKTOR;
     for (int i = 0; i < n_listy; i++) {
         int32_t sy = LISTA_Y + 26 + WIERSZ * i + WIERSZ / 2, ddx = x - (SES_WYC_X + 12), ddy = y - sy;
         if (ddx * ddx + ddy * ddy <= 12 * 12)
@@ -347,6 +395,13 @@ void dzwiek_okienko_wskaznik(const struct k1_komunikat *m)
             glosnosc(dz.glosnosc, !dz.wyciszone);
         else if (c == C_PROBA && wcisniete == C_PROBA && k1_dzwk_proba(&dz) == 0)
             okienko_paska.brudna = 1;
+        else if (c == C_KOREKTOR && wcisniete == C_KOREKTOR) { /* 0.12.3 step 2: Ustawienia on the equalizer */
+            k1_log(TAG, "okienko dźwięku: Korektor");
+            do_nadzorcy(k1_komunikat_nowy(K1_KOM_POKAZ_USTAWIENIA, 0, K1_UST_MIEJSCE_KOREKTOR, 0, 0, 0, 0));
+            wcisniete = -1;
+            okienko_paska_zamknij();
+            return;
+        }
         wcisniete = -1;
         okienko_paska.brudna = 1;
     }

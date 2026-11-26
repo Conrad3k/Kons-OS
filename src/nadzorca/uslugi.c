@@ -536,7 +536,7 @@ void obsluz_gui(void)
         if (w != K1_ODB_JEST ||
             (k.typ != K1_KOM_URUCHOM && k.typ != K1_KOM_WYLACZ && k.typ != K1_KOM_URUCHOM_STREFE &&
              k.typ != K1_KOM_STREFA_FOKUS && k.typ != K1_KOM_OTWORZ_AKTUALIZACJE && k.typ != K1_KOM_POBRANIE_DECYZJA &&
-             k.typ != K1_KOM_BATERIA_OKIENKO && /* 0.11.8 step 3: the battery's popover */
+             k.typ != K1_KOM_BATERIA_OKIENKO && k.typ != K1_KOM_POKAZ_USTAWIENIA && /* 0.11.8, 0.12.3: popovers */
              (k.typ != K1_KOM_AKT_PROSBA || k.a != K1_AKT_P_ZAINSTALUJ)) || /* 0.10.5 step 2b: the window's button */
             ((k.typ != K1_KOM_WYLACZ || k.a == 2) && gui_kanal_uid != K1_UID_GUI) ||
             (k.typ == K1_KOM_URUCHOM_STREFE && k.b != 0)) { /* a hostile test guest: the test program only */
@@ -545,6 +545,8 @@ void obsluz_gui(void)
         }
         if (k.typ == K1_KOM_BATERIA_OKIENKO) {
             bateria_okienko_prosba(k.a);
+        } else if (k.typ == K1_KOM_POKAZ_USTAWIENIA) {
+            ustawienia_miejsce_prosba(k.a);
         } else if (k.typ == K1_KOM_POBRANIE_DECYZJA) { /* 0.11.0 step 2: the user's answer in the window (strefy_pliki.c) */
             pobranie_decyzja(&k);
         } else if (k.typ == K1_KOM_OTWORZ_AKTUALIZACJE) { /* 0.10.5 step 1: from the window of a failed try */
