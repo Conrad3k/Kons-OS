@@ -118,6 +118,7 @@ Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
 [x]  1  Tor najwyższej jakości: 32 bity w środku, dither,      L1–L6            0.12.0      T1–T5, T8      L        0055
         ogranicznik, 24 bity do karty, formaty strefy — PR #229
 [ ]  2  Korektor systemowy                                     L7–L9            1           D1, D2, T6      M        0055 (uzup.)
+        [w toku: Claude, gałąź claude/laughing-edison-t49gd6]
 [ ]  3  Kons Spatial Audio — silnik i gotowe sceny             L10–L11          1           D3, D5, D7, T7  L        0055 (uzup.)
 [ ]  4  Kons Spatial Audio — scena w Ustawieniach              L12–L13          3           D4, D6          M        0055 (uzup.)
 [ ]  5  Porządki; wydanie                                      L14              1–4         —               S–M      —
