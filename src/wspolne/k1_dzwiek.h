@@ -17,6 +17,7 @@
 #include <stdint.h>
 
 #include "k1_korektor.h"
+#include "k1_przestrzen.h"
 
 #define K1_DZW_CZESTOTLIWOSC 48000
 #define K1_DZW_KANALY 2
@@ -116,17 +117,22 @@ int k1_dzw_gniazdo_sluchawek(const char *nazwa);
 
 /* D5: the volume and the mute of each output, remembered by gui in skarbiec (its object K1_OB_GLOSNOSC):
  * "K1G1", then for the speakers and the headphones: the volume 0..100, muted 0/1. 0.12.3 step 2: "K1G2" — the same and
- * then the equalizer's ten bands of the speakers and of the headphones (half-decibels, two's complement, ±K1_KOR_MAKS);
- * a record "K1G1" is still read (the equalizer flat). */
+ * then the equalizer's ten bands of the speakers and of the headphones (half-decibels, two's complement, ±K1_KOR_MAKS).
+ * Step 3: "K1G3" — the same and then the scene of Kons Spatial Audio of the speakers and of the headphones, 13 bytes each:
+ * on 0/1, the four directions, the four widths (in steps of K1_PRZ_KROK) and the four distances — as in a message
+ * (k1_prz_z_pol checks them). Records "K1G1" and "K1G2" are still read (the equalizer flat, the scenes as at the start). */
 #define K1_DZW_ZAPIS_G1_BAJTY 8
-#define K1_DZW_ZAPIS_BAJTY (8 + 2 * K1_KOR_PASMA_N)
+#define K1_DZW_ZAPIS_G2_BAJTY (8 + 2 * K1_KOR_PASMA_N)
+#define K1_DZW_ZAPIS_SCENA 13
+#define K1_DZW_ZAPIS_BAJTY (K1_DZW_ZAPIS_G2_BAJTY + 2 * K1_DZW_ZAPIS_SCENA)
 struct k1_dzw_zapamietane {
     int glosnosc[K1_DZW_WYJSCIE_MAKS + 1], wyciszone[K1_DZW_WYJSCIE_MAKS + 1]; /* by output; [BRAK] unused */
     int8_t korektor[K1_DZW_WYJSCIE_MAKS + 1][K1_KOR_PASMA_N];                    /* 0.12.3 step 2 */
+    struct k1_prz_scena scena[K1_DZW_WYJSCIE_MAKS + 1];                         /* 0.12.3 step 3 */
 };
 void k1_dzw_zapamietane_domyslne(struct k1_dzw_zapamietane *z);
 size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *buf); /* K1_DZW_ZAPIS_BAJTY */
 int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapamietane *z); /* 0, or -1 (z unchanged);
-                                                                                            * K1G1 or K1G2 */
+                                                                                            * K1G1, K1G2 or K1G3 */
 
 #endif

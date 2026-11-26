@@ -101,8 +101,6 @@ int k1_kom_sprawdz_sterowanie(const struct k1_komunikat *k, enum k1_kanal_kierun
     case K1_KOM_SB_KLUCZ:
     case K1_KOM_OTWORZ_AKTUALIZACJE:
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && zera(k, 0);
-    case K1_KOM_AKT_POKAZ:
-        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && zera(k, 0);
     case K1_KOM_AB_NIEUDANA:
         return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && w(k->a, 0, K1_INST_WERSJA - 1) &&
                w(k->b, 0, K1_INST_WERSJA - 1) && zera(k, 2);
@@ -178,8 +176,6 @@ int k1_kom_sprawdz_nadzorca(const struct k1_komunikat *k, enum k1_kanal_kierunek
         return w(k->b, -1, 100) && w(k->c, K1_BAT_NIEZNANY, K1_BAT_STAN_MAKS);
     case K1_KOM_BATERIA_OKIENKO: /* 0.11.8 step 3 */
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, K1_BOK_ZAMKNIETE, K1_BOK_USTAWIENIA) && zera(k, 1);
-    case K1_KOM_BATERIA_POKAZ:
-        return kier == K1_KIER_OD_NADZORCY && k->obiekt == 0 && zera(k, 0);
     case K1_KOM_POKAZ_USTAWIENIA: /* 0.12.3 step 2 */
         return kier == K1_KIER_DO_NADZORCY && k->obiekt == 0 && w(k->a, 1, K1_UST_MIEJSCA_MAKS) && zera(k, 1);
     case K1_KOM_USTAWIENIA_MIEJSCE:

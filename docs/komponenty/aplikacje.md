@@ -79,7 +79,7 @@ ekran ma zdjęcie ustawione w Plikach — bez niego podpowiedź, jak je ustawić
 zmiana w locie, ADR 0012), Bateria (0.5.5: procent, stan, wykres naładowania od uruchomienia — linia
 w kolorze akcentu z delikatnym wypełnieniem, pasek pod wykresem = zasilacz podłączony, godzina startu,
 najniższy poziom; od 0.6.0 pod wykresem ostatnie wcześniejsze uruchomienie z małym wykresem — archiwum
-od nadzorcy jako zapieczętowany memfd `BATERIA_ARCH`; bez baterii — napis; od 0.11.8 krok 3 `BATERIA_POKAZ` od nadzorcy —
+od nadzorcy jako zapieczętowany memfd `BATERIA_ARCH`; bez baterii — napis; od 0.11.8 krok 3 `USTAWIENIA_MIEJSCE` (Bateria; do 0.12.3 krok 3: `BATERIA_POKAZ`) od nadzorcy —
 przycisk „Ustawienia baterii” w okienku baterii na górnym pasku — pokazuje tę sekcję), Hasło (0.5.7: włącz / zmień / wyłącz, pola z kropkami, Tab/Enter/Esc;
 przez skarbiec — fd 5), Mysz (prędkość),
 Data i czas (sekundy na pasku), Aplikacje (0.8.0, `aplikacje.c`; od 0.8.2 krok 5 — **każdy** typ pliku i jego
@@ -145,7 +145,7 @@ D3; dane zostają, bez wpisywania), w trakcie „Aktualizuję K1 na dysku… <et
 dysku obok X.” i „Uruchom ponownie”; ta sama wersja na dysku — „Zapisz K1 na dysku jeszcze raz” (zwykły przycisk: wersja
 deweloperska ma za każdym razem ten sam numer — tak pozwalał Instalator); nowsza wersja na dysku, dysk bez K1, dwa pendrive'y K1 — zdanie bez
 przycisku; błąd — tekst z `k1_inst_teksty.h` i „Sprawdź jeszcze raz”. Kanał od nadzorcy fd 7 (`KANAL_AKTUALIZACJI`: te same
-`INST_*` co Instalator, ale nadzorca przyjmuje od Ustawień tylko aktualizację — `inst_prawa.c`); `AKT_POKAZ` pokazuje sekcję
+`INST_*` co Instalator, ale nadzorca przyjmuje od Ustawień tylko aktualizację — `inst_prawa.c`); `USTAWIENIA_MIEJSCE` (Aktualizacje; do 0.12.3 krok 3: `AKT_POKAZ`) pokazuje sekcję
 (link Instalatora, okienko pulpitu po nieudanej próbie). Log „aktualizacje: <stan> (dysk: X, pendrive: Y); przycisk x,y”
 (stany: sprawdzam, bez instalacji, na dysku, nieudana próba, dysk starszy, ta sama wersja, dysk nowszy, dysk bez K1, dwa
 pendrive'y, trwa, gotowe, błąd). Aktualizacja przez sieć — w kroku 2 tej wersji. Okno Ustawień od 0.10.5 krok 1 ma
@@ -163,7 +163,14 @@ położenie suwaków — dodatkowy kafelek „Własne”), skala +12 / 0 dB / �
 krok 0,5 dB; nad każdym wartość, pod nim pasmo). Każda zmiana idzie od razu do usługi (`DZWIEK_KOREKTOR`); log
 „korektor (Głośniki): Więcej basu”. Opis ekranu: kafelki po nazwach ustawień, suwaki „Pasmo 31” … „Pasmo 16k”.
 `USTAWIENIA_MIEJSCE` od nadzorcy (fd 4; a = KOREKTOR — wiersz „Korektor” okienka „Dźwięk” na górnym pasku) otwiera Dźwięk
-na zakładce Korektor.
+na zakładce Korektor. Od 0.12.3 krok 3 trzecia zakładka **Kons Spatial Audio** (`przestrzen.c`; D3: A, D5, D7: A; zakładki
+450 × 32): przełącznik „Głośniki | Słuchawki” (na start wyjście, które gra; obok „Gra teraz: …”), przełącznik „Kons Spatial
+Audio” z dopiskiem „dźwięk przestrzenny”, zdanie, co robi na tym wyjściu („W słuchawkach: pasma dźwięku w miejscach wokół
+głowy.” / „Na głośnikach: szerszy dźwięk. Dźwięk wokół głowy tylko w słuchawkach.”), a pod nim gotowe sceny jako wiersze
+z opisem (Naturalny, Kino, Koncert, Pokój, Głos; inne miejsca pasm — wiersz „Własna”, tylko pokazany). Kliknięcie sceny ją
+też włącza; przełącznik wyłącza i włącza, miejsca pasm zostają. Każda zmiana idzie od razu do usługi (`DZWIEK_SCENA`); log
+„scena (Słuchawki): Kino”. Opis ekranu: przełącznik „Kons Spatial Audio” (przycisk; wybrany — włączony), wiersze po nazwach
+scen (wybrany — ta gra).
 Informacje (`informacje.c`): wersja, ekran, jądro, gdzie są dane.
 Od 0.10.7 krok 1 sekcje mają sam tytuł, bez opisu pod nim (zasada właściciela Z2, `docs/WYGLAD.md`); treść zaczyna się
 32 px pod tytułem (`seg_y()` w `ustawienia.h`), w Sieci w tym miejscu stoją zakładki, a jej treść pod nimi (`SIEC_Y`).

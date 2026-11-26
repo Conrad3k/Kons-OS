@@ -3,7 +3,7 @@
 # (testy/wzorce/*.png, testy/qemu/k1wzorce.py). Obraz testowy z opisem ekranu (dysk „k1-test-opis”, ADR 0045) i pustym
 # dyskiem danych; okna z decyzji właściciela D4, w obu motywach: dolny i górny pasek, ikony pulpitu, menu Start, okienko
 # „Którą sesję otworzyć?”, Ustawienia (każda sekcja), Pliki (pusty folder, zaznaczony folder, Kosz — 0.10.7 krok 3), Zasoby,
-# Kalkulator, przełącznik okien (0.10.5 krok 6), okienko „Dźwięk” (0.12.0 krok 1, z kartą dźwiękową QEMU; od 0.12.3 krok 2 z wierszem „Korektor”), Ustawienia → Dźwięk → Korektor (0.12.3 krok 2); ekran „Wyłączanie” (0.10.7 krok 6, na hoście: k1_wylaczanie); okienko
+# Kalkulator, przełącznik okien (0.10.5 krok 6), okienko „Dźwięk” (0.12.0 krok 1, z kartą dźwiękową QEMU; od 0.12.3 krok 2 z wierszem „Korektor”), Ustawienia → Dźwięk → Korektor (0.12.3 krok 2), Ustawienia → Dźwięk → Kons Spatial Audio (krok 3); ekran „Wyłączanie” (0.10.7 krok 6, na hoście: k1_wylaczanie); okienko
 # baterii (0.11.8 krok 3) — w osobnym przebiegu z tablicą ACPI baterii (z baterią Ustawienia i Zasoby wyglądają inaczej).
 # Ramkę strefy sprawdza test-strefa.
 # Każde okno wycięte według opisu ekranu; miejsca zmienne (zegar, liczby, wykresy, wersja) się nie liczą; kursor poza
@@ -71,6 +71,10 @@ def ustawienia(motyw):
             q.klik_w("Ustawienia", "Korektor", "zakladka")
             if q.sprawdz(f"Ustawienia → Dźwięk → Korektor ({motyw})", q.czekaj_na_element("Ustawienia", "Pasmo 16k", czas=30)):
                 q.wzorzec(f"ustawienia-korektor-{motyw}", "Ustawienia")
+            q.klik_w("Ustawienia", "Kons Spatial Audio", "zakladka")  # 0.12.3 step 3: off, the speakers
+            if q.sprawdz(f"Ustawienia → Dźwięk → Kons Spatial Audio ({motyw})",
+                         q.czekaj_na_element("Ustawienia", "Głos", czas=30)):
+                q.wzorzec(f"ustawienia-przestrzen-{motyw}", "Ustawienia")
             q.klik_w("Ustawienia", "Głośność", "zakladka")
             q.czekaj_na_element("Ustawienia", "Odtwórz próbę", czas=30)
     q.klik_w("Ustawienia", "Wygląd", "zakladka")

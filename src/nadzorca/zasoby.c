@@ -131,7 +131,7 @@ static void pokaz_w_ustawieniach(struct k1_komunikat k, const char *gdzie)
  * baterii" (the popover closes) — Ustawienia on Bateria, as otworz_aktualizacje does for Aktualizacje. */
 void bateria_okienko_prosba(int a)
 {
-    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_BATERIA_POKAZ, 0, 0, 0, 0, 0, 0);
+    struct k1_komunikat k = k1_komunikat_nowy(K1_KOM_USTAWIENIA_MIEJSCE, 0, K1_UST_MIEJSCE_BATERIA, 0, 0, 0, 0);
     if (a == K1_BOK_OTWARTE && !bateria_okienko)
         uevent_zasilanie = 1;
     if ((a == K1_BOK_OTWARTE) != bateria_okienko)

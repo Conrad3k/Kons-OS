@@ -17,6 +17,14 @@ static int korektor(const struct k1_komunikat *k)
     return w(k->a, K1_DZW_WYJSCIE_GLOSNIKI, K1_DZW_WYJSCIE_MAKS) && k1_kor_z_pol(pola, pasma) == 0 && k->e == 0;
 }
 
+/* DZWIEK_SCENA and its STAN (0.12.3 step 3): an output that exists, on 0/1, every band in its ranges */
+static int scena(const struct k1_komunikat *k)
+{
+    int32_t pola[4] = { k->b, k->c, k->d, k->e };
+    struct k1_prz_scena s;
+    return w(k->a, K1_DZW_WYJSCIE_GLOSNIKI, K1_DZW_WYJSCIE_MAKS) && k1_prz_z_pol(pola, &s) == 0;
+}
+
 static int do_dzwieku(const struct k1_komunikat *k)
 {
     switch (k->typ) {
@@ -31,6 +39,8 @@ static int do_dzwieku(const struct k1_komunikat *k)
                w(k->d, 0, K1_STREFY_MAKS) && (k->d == 0 || k->c == K1_DZW_WYJSCIE_BRAK) && k->e == 0;
     case K1_KOM_DZWIEK_KOREKTOR:
         return korektor(k);
+    case K1_KOM_DZWIEK_SCENA:
+        return scena(k);
     default:
         return 0;
     }
@@ -51,6 +61,8 @@ static int od_dzwieku(const struct k1_komunikat *k)
                k->e == 0;
     case K1_KOM_DZWIEK_KOREKTOR_STAN:
         return korektor(k);
+    case K1_KOM_DZWIEK_SCENA_STAN:
+        return scena(k);
     default:
         return 0;
     }
@@ -86,11 +98,13 @@ int k1_kom_sprawdz_dzwiek(const struct k1_komunikat *k, enum k1_kanal_kierunek k
     case K1_KOM_DZWIEK_ZAMKNIJ:
     case K1_KOM_DZWIEK_GLOSNOSC:
     case K1_KOM_DZWIEK_KOREKTOR:
+    case K1_KOM_DZWIEK_SCENA:
         return kier == K1_KIER_DO_DZWIEKU && do_dzwieku(k);
     case K1_KOM_DZWIEK_STAN:
     case K1_KOM_DZWIEK_ODTWORZONO:
     case K1_KOM_DZWIEK_SESJA:
     case K1_KOM_DZWIEK_KOREKTOR_STAN:
+    case K1_KOM_DZWIEK_SCENA_STAN:
         return kier == K1_KIER_OD_DZWIEKU && od_dzwieku(k);
     case K1_KOM_DZWIEK_KANAL:
         return kier == K1_KIER_OD_NADZORCY && zera(k, 0);

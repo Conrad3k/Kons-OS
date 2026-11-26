@@ -3,7 +3,8 @@
  * client of the sound service like gui (przybornik k1_dzwiek_klient — one way for both): its channel comes from nadzorca
  * on fd 4 (DZWIEK_KANAL; again after the service starts anew). gui remembers the volume (D5): it hears every change.
  * 0.12.3 step 2: two tabs, "Głośność" (the above) and "Korektor" (korektor.c); the row "Korektor" of gui's popover opens
- * the second (nadzorca's USTAWIENIA_MIEJSCE). Part of Ustawienia (ustawienia.h). */
+ * the second (nadzorca's USTAWIENIA_MIEJSCE). Step 3: the third, "Kons Spatial Audio" (przestrzen.c). Part of Ustawienia
+ * (ustawienia.h). */
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -13,6 +14,7 @@
 #include "ustawienia.h"
 
 #define DZW_Y (ZAKLADKI_Y + 50)  /* 0.12.3 step 2: the content under the tabs (as Sieć's) */
+#define DZW_ZAKLADKI_W 450       /* step 3: three tabs, "Kons Spatial Audio" the longest */
 #define WIERSZ_Y (DZW_Y + 64)    /* the mute and the slider */
 #define SUWAK_X (TRESC_X + 52)
 #define SUWAK_W 280
@@ -21,8 +23,8 @@
 static struct k1_dzw_polaczenie dz = K1_DZW_POLACZENIE_START(TAG);
 static int hover = -1, wcisniete = -1, zakladka, hover_zakladki = -1;
 enum { C_WYCISZ = 0, C_SUWAK, C_PROBA };
-enum { Z_GLOSNOSC = 0, Z_KOREKTOR = 1 }; /* the tabs (0.12.3 step 2) */
-static const char *const zakladki[] = { "Głośność", "Korektor" };
+enum { Z_GLOSNOSC = 0, Z_KOREKTOR = 1, Z_PRZESTRZEN = 2, Z_ILE }; /* the tabs (0.12.3 steps 2–3) */
+static const char *const zakladki[Z_ILE] = { "Głośność", "Korektor", "Kons Spatial Audio" };
 
 static struct k1_przycisk przycisk_proby(void)
 {
@@ -63,9 +65,13 @@ void dzwiek_rysuj(struct k1_obraz *o, const struct k1_motyw *m)
         bez_karty(o, m);
         return;
     }
-    k1_segment(o, m, TRESC_X, ZAKLADKI_Y, ZAKLADKI_W, ZAKLADKI_H, zakladki, 2, zakladka, hover_zakladki);
+    k1_segment(o, m, TRESC_X, ZAKLADKI_Y, DZW_ZAKLADKI_W, ZAKLADKI_H, zakladki, Z_ILE, zakladka, hover_zakladki);
     if (zakladka == Z_KOREKTOR) {
         korektor_rysuj(o, m, &dz);
+        return;
+    }
+    if (zakladka == Z_PRZESTRZEN) {
+        przestrzen_rysuj(o, m, &dz);
         return;
     }
     k1_tekst(o, K1_CZ_MALA, TRESC_X, DZW_Y + 14, "Wyjście", k1_kolor(m->tekst2, 255), 0);
@@ -110,12 +116,12 @@ static void suwak_do(int32_t x)
         k1_dzwk_glosnosc(&dz, v, 0, K1_DZW_WYJSCIE_BRAK); /* moving the slider unmutes */
 }
 
-/* 0.12.3 step 2: the tabs; 1 = handled (the pointer was on them, or the tab Korektor has it) */
+/* 0.12.3 steps 2–3: the tabs; 1 = handled (the pointer was on them, or the tab Korektor or Kons Spatial Audio has it) */
 static int zakladki_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk, int *zmiana)
 {
     int z = rodzaj == K1_WSK_WYJSCIE || x < 0 || dz.karta != K1_DZW_KARTA_JEST
                 ? -1
-                : k1_segment_trafienie(TRESC_X, ZAKLADKI_Y, ZAKLADKI_W, ZAKLADKI_H, 2, x, y);
+                : k1_segment_trafienie(TRESC_X, ZAKLADKI_Y, DZW_ZAKLADKI_W, ZAKLADKI_H, Z_ILE, x, y);
     *zmiana = z != hover_zakladki;
     hover_zakladki = z;
     if (z >= 0 && rodzaj == K1_WSK_PUSZCZENIE && przycisk == K1_PRZYCISK_LEWY && z != zakladka) {
@@ -123,6 +129,8 @@ static int zakladki_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk, int
         k1_log(TAG, "dźwięk: zakładka %s", zakladki[z]);
         if (z == Z_KOREKTOR)
             korektor_pokazany(&dz);
+        if (z == Z_PRZESTRZEN)
+            przestrzen_pokazany(&dz);
         hover = wcisniete = -1;
         *zmiana = 1;
     }
@@ -130,6 +138,10 @@ static int zakladki_wskaznik(int rodzaj, int32_t x, int32_t y, int przycisk, int
         return 1;
     if (zakladka == Z_KOREKTOR) {
         *zmiana |= korektor_wskaznik(&dz, rodzaj, dz.karta == K1_DZW_KARTA_JEST ? x : -1, y, przycisk);
+        return 1;
+    }
+    if (zakladka == Z_PRZESTRZEN) {
+        *zmiana |= przestrzen_wskaznik(&dz, rodzaj, dz.karta == K1_DZW_KARTA_JEST ? x : -1, y, przycisk);
         return 1;
     }
     return 0;
@@ -175,6 +187,8 @@ void dzwiek_pokazany(void)
     hover = wcisniete = hover_zakladki = -1;
     if (zakladka == Z_KOREKTOR)
         korektor_pokazany(&dz);
+    if (zakladka == Z_PRZESTRZEN)
+        przestrzen_pokazany(&dz);
     k1_log(TAG, "dźwięk: karta %d, wyjście %d, głośność %d%%%s", dz.karta, dz.wyjscie, dz.glosnosc,
            dz.wyciszone ? ", wyciszone" : "");
 }

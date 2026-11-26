@@ -6,7 +6,8 @@
  * program kills the service when the script unmutes for the second time (t_dzwiek_opis, from t_opis_scenariusz), and
  * (step 2) gui when the pill of the volume says "muted" for the second time; (step 3) then the test zone that plays a
  * tone, and the one hostile to its sound card. 0.12.3 step 2: the equalizer set by the test program and told back, bands
- * beyond ±12 dB refused. */
+ * beyond ±12 dB refused. Step 3: the scene of Kons Spatial Audio set and told back, a scene beyond its ranges refused;
+ * in test-dzwiek.sh the test program puts every band of the speakers' scene on the left once the script chose "Kino". */
 #include "k1_test.h"
 
 #include "k1_dzwiek.h"
@@ -131,6 +132,49 @@ static void korektor(int fd)
           "dźwięk: korektor z powrotem płaski, kanał po złych komunikatach działa", "");
 }
 
+/* 0.12.3 step 3: the next SCENA_STAN of `wyjscie` within `ms`: 1 and its scene; 0 none. */
+static int scena_stan(int fd, int wyjscie, struct k1_prz_scena *s, int ms)
+{
+    struct k1_komunikat k;
+    for (int i = 0; i < 20; i++) {
+        int r = odbierz(fd, &k, ms);
+        int32_t f[4] = { k.b, k.c, k.d, k.e };
+        if (r <= 0)
+            return 0;
+        if (k.typ == K1_KOM_DZWIEK_SCENA_STAN && k.a == wyjscie)
+            return k1_prz_z_pol(f, s) == 0;
+    }
+    return 0;
+}
+
+static void wyslij_scene(int fd, int wyjscie, const struct k1_prz_scena *s)
+{
+    int32_t f[4];
+    k1_prz_do_pol(s, f);
+    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, wyjscie, f[0], f[1], f[2], f[3]), -1);
+}
+
+/* 0.12.3 step 3: the headphones' scene set by a steering client, told back; out of range — refused; off again. */
+static void scena(int fd)
+{
+    struct k1_prz_scena s, t;
+    k1_prz_scena_gotowa(K1_PRZ_KINO, &s);
+    wyslij_scene(fd, K1_DZW_WYJSCIE_SLUCHAWKI, &s);
+    memset(&t, 0, sizeof t);
+    check(scena_stan(fd, K1_DZW_WYJSCIE_SLUCHAWKI, &t, 1000) && k1_prz_rowne(&s, &t),
+          "dźwięk: scena słuchawek ustawiona (0.12.3) — usługa mówi ją klientom sterującym", "%s", k1_prz_nazwa(&t));
+    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 2, 0, 0, 0), -1);  /* on: 2 */
+    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 1, 91, 0, 0), -1); /* 182° */
+    wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, K1_DZW_WYJSCIE_SLUCHAWKI, 1, 0, 0, 101), -1); /* 101 % */
+    check(!scena_stan(fd, K1_DZW_WYJSCIE_SLUCHAWKI, &t, 1000),
+          "NEGATYWNY: scena poza zakresem (włączona = 2, kierunek 182°, odległość 101 %) — odrzucona, nic się nie zmienia",
+          "");
+    s.wlaczona = 0;
+    wyslij_scene(fd, K1_DZW_WYJSCIE_SLUCHAWKI, &s);
+    check(scena_stan(fd, K1_DZW_WYJSCIE_SLUCHAWKI, &t, 1000) && !t.wlaczona,
+          "dźwięk: scena wyłączona, kanał po złych komunikatach działa", "%s", k1_prz_nazwa(&t));
+}
+
 static void wrogi_klient(long pid)
 {
     int fd = kanal(), ring = pierscien(K1_DZW_PIERSCIEN_BAJTY), maly = pierscien(4096), g = 0, r;
@@ -152,6 +196,7 @@ static void wrogi_klient(long pid)
           "głośność %d", g);
     wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_GLOSNOSC, 0, K1_DZW_GLOSNOSC_START, 0, 0, 0, 0), -1);
     korektor(fd);
+    scena(fd);
     wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_ZAPISANO, 0, 100, 0, 0, 0, 0), -1);
     check(zamkniety(fd, 5) && find_process("dzwiek") == pid,
           "NEGATYWNY: ramki bez strumienia — klient traci kanał, usługa działa", "pid %ld", pid);
@@ -283,11 +328,39 @@ static void strefy(const struct k1_opis_el *el, int n, int pulpit_zabity)
     ustawienia |= jest;
 }
 
+/* 0.12.3 step 3: once the script chose "Kino" for the speakers — every band of the speakers' scene on the left (straight
+ * to the service as a steering client: Ustawienia hear it and show "Własna"; the script plays the sample through it). */
+static void scena_z_lewej(const struct k1_opis_el *el, int n)
+{
+    static int zrobione;
+    struct k1_prz_scena s;
+    int kino = 0, fd;
+    for (int i = 0; i < n; i++)
+        kino |= strncmp(el[i].nazwa, "Kino", sizeof el[i].nazwa) == 0 && (el[i].stan & K1_EL_WYBRANY);
+    if (!kino || zrobione)
+        return;
+    zrobione = 1;
+    s.wlaczona = 1;
+    for (int i = 0; i < K1_PRZ_PASMA_N; i++)
+        s.pasma[i] = (struct k1_prz_miejsce){ -90, 0, 0 };
+    fd = kanal();
+    if (fd >= 0 && stan(fd, 5, NULL) >= 0) { /* the service has the channel (as wrogi_klient), then the scene, told back */
+        struct k1_prz_scena t;
+        wyslij_scene(fd, K1_DZW_WYJSCIE_GLOSNIKI, &s);
+        for (int i = 0; i < 3 && zrobione != 2; i++) /* the first ones: the scenes as they were (a new client's) */
+            zrobione = scena_stan(fd, K1_DZW_WYJSCIE_GLOSNIKI, &t, 1000) && k1_prz_rowne(&s, &t) ? 2 : 1;
+    }
+    k1_log(TAG, "dźwięk: scena z lewej — %s", zrobione == 2 ? "ustawiona" : "NIE ustawiona");
+    if (fd >= 0)
+        close(fd);
+}
+
 void t_dzwiek_opis(const struct k1_opis_el *el, int n)
 {
     static int bylo_wyciszone, odciszenia, zabita, sprawdzone;
     int wyciszone = -1;
     strefy(el, n, pigulka(el, n));
+    scena_z_lewej(el, n);
     for (int i = 0; i < n; i++)
         if (strncmp(el[i].nazwa, "Wycisz", sizeof el[i].nazwa) == 0)
             wyciszone = (el[i].stan & K1_EL_WYBRANY) != 0;

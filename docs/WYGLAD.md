@@ -127,7 +127,7 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   drugi) i nazwa wyjścia (Medium 15) z podpowiedzią obok (tekst trzeci); niżej okrągły przycisk „Wycisz” 36 px jak
   w okienku, suwak 280 px i procenty (Medium 15); przycisk „Odtwórz próbę” (zwykły, 180 × 36); pod nim dopisek „K1 pamięta
   głośność głośników i słuchawek osobno.” Od 0.12.3 krok 2 pod tytułem zakładki „Głośność | Korektor” (260 × 32, jak w Sieci),
-  treść „Głośność” 50 px niżej.
+  treść „Głośność” 50 px niżej; od kroku 3 trzy zakładki (450 × 32, z „Kons Spatial Audio”).
 - **Korektor** (0.12.3 krok 2, szkic A „10 pasm” — decyzja właściciela D2 z 2026-11-26; szkice A/B/C w obu motywach
   z hosta, funkcjami K1): pod zakładkami przełącznik „Głośniki | Słuchawki” (230 × 32) z „Gra teraz: …” obok (tekst trzeci)
   i „Zeruj” z prawej (zwykły, 84 × 32); niżej gotowe ustawienia jako kafelki 28 px (pełne zaokrąglenie, Medium 13, pole
@@ -135,6 +135,13 @@ Wybór: **Ustawienia → Wygląd → Tapeta** (miniatury z tego samego kodu).
   w akcencie), w rzędach co 36 px; pod nimi skala „+12 / 0 dB / −12” (tekst trzeci, linia 0 dB mocniejsza) i dziesięć
   pionowych suwaków (tor 150 px, 4 px; część od 0 dB do gałki w akcencie; gałka jak w `k1_suwak`), nad każdym wartość
   („+6”, „−1,5”; różna od zera — kolor akcentu jako tekst), pod nim pasmo („31” … „16k”).
+- **Kons Spatial Audio** (0.12.3 krok 3; nazwa — decyzja właściciela D7: A z 2026-11-26; wygląd z części, które już są —
+  scena do przeciągania ze szkicami w kroku 4): zakładki „Głośność | Korektor | Kons Spatial Audio” (450 × 32); pod nimi
+  przełącznik „Głośniki | Słuchawki” (230 × 32) z „Gra teraz: …”; niżej `k1_przelacznik` (36 × 20) i obok „Kons Spatial
+  Audio” (Medium 15), pod nim „dźwięk przestrzenny” (Sans 13, tekst drugi); zdanie o wyjściu (Sans 13, tekst trzeci); gotowe
+  sceny jako wiersze 32 px co 36 px przez całą szerokość treści (pole, zaokrąglenie 9, cienka obwódka; pod kursorem
+  „najechanie”): kółko 6 px (wybrana i włączona — kółko i kropka w akcencie, obwódka wiersza w akcencie), nazwa (Medium 13),
+  opis od 128 px (Sans 13, tekst drugi); przy wyłączonym — nazwy i opisy bledsze, wybrana tylko z bladą obwódką akcentu.
 - **Wiersz „Korektor” okienka „Dźwięk”** (0.12.3 krok 2, szkic A „jeden wiersz” — decyzja właściciela D1 z 2026-11-26):
   pod kreską wiersz 36 px (zaokrąglenie 9; pod kursorem tło „najechanie”): z lewej „Korektor” (Sans 13, tekst drugi),
   z prawej nazwa ustawienia wyjścia, które gra (Medium 13) i strzałka „›” (kreski 1,5 px, tekst drugi); okienko ma

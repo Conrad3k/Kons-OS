@@ -1,5 +1,6 @@
 /* K1 dzwiek — the sound service: what its parts share (main.c the channels and the streams, karta.c the card's playback
- * node, kontrolki.c the card's controls, korektor.c the system equalizer — 0.12.3 step 2). */
+ * node, kontrolki.c the card's controls, korektor.c the system equalizer — 0.12.3 step 2, przestrzen.c Kons Spatial
+ * Audio — step 3). */
 #ifndef K1_DZWIEK_USLUGA_H
 #define K1_DZWIEK_USLUGA_H
 
@@ -40,5 +41,13 @@ int korektor_ustaw(const struct k1_komunikat *m, double t); /* DZWIEK_KOREKTOR: 
 int korektor_zalegle(double t);                   /* the log's line it owes: ms until it says it, -1 none */
 void korektor_licz(float *suma, uint32_t ramki, int wyjscie); /* one period of the sum, the bands of `wyjscie` */
 void korektor_minuta(void);                       /* the log once a minute: the mean cost of a period (T6) */
+
+/* przestrzen.c — Kons Spatial Audio (0.12.3 step 3, ADR 0055): the scene of each output, after the equalizer. */
+void przestrzen_start(void);                       /* both outputs off */
+struct k1_komunikat przestrzen_stan(int wyjscie); /* DZWIEK_SCENA_STAN of that output */
+int przestrzen_ustaw(const struct k1_komunikat *m, double t); /* DZWIEK_SCENA: 1 changed, 0 the same, -1 refused */
+int przestrzen_zalegle(double t);                 /* the log's line it owes: ms until it says it, -1 none */
+void przestrzen_licz(float *suma, uint32_t ramki, int wyjscie); /* one period of the sum, the scene of `wyjscie` */
+void przestrzen_minuta(void);                     /* the log once a minute: the mean cost of a period (T6) */
 
 #endif
