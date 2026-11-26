@@ -1,0 +1,311 @@
+K1 — PLAN WERSJI 0.12.3 „DŹWIĘK WYSOKIEJ JAKOŚCI” (drugi plan tematu 0.12 Dźwięk, ADR 0053, 0054)
+=====================================================================================================
+
+Data: 2026-11-26 (porządek w planie: ADR 0035). Plan napisany na prośbę właściciela (rozmowa z 2026-11-26, przed
+wydaniem 0.12.0): „Gdy wydasz na main 0.12.0, stwórz plan na 0.12.3 »dźwięk wysokiej jakości«. Będzie tam dodanie
+Equalizera Systemowego, upewnienie się, że protokół dźwięku jest najwyższej jakości, oraz — tu wejdzie na salony
+»Ficzer« systemu — »Kons Spatial Audio«: opcjonalny dźwięk przestrzenny, który fajnym interfejsem i paroma presetami
+będzie pozwalać na konfigurowanie, jakie częstotliwości idą skąd, i tak dalej.”
+Wersja stoi na 0.12.0: usługa dźwięku K1 (jedyny właściciel karty), okienko „Dźwięk” z głośnością i listą „Grają teraz”,
+klawisze głośności z pigułką, słuchawki, Ustawienia → Dźwięk, przeglądarka gra przez virtio-snd w VMM-ie strefy.
+Ten plik jest SAMODZIELNY: cel, kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi: docs/DO_ZROBIENIA.txt.
+Plik jest planem, nie specyfikacją: tor dźwięku (formaty, liczenie, korektor, dźwięk przestrzenny) ustala ADR 0055
+w kroku 1.
+
+Numer: 0.12.3 to wybór właściciela (temat w ramach 0.12, nie nowa wersja MINOR). Robot wydaje PATCH z main — 0.12.1
+i 0.12.2 zajmie najpewniej on, a jeśli zajmie też 0.12.3, wydanie tego planu bierze następny wolny numer (AGENTS.md).
+
+
+CEL WERSJI (jednym akapitem)
+----------------------------
+Po 0.12.3 dźwięk w K1 jest tak czysty, jak pozwala karta: K1 liczy go z zapasem (bez przycinania i bez gubienia cichych
+szczegółów przy małej głośności), wysyła do karty 24 bity, gdy karta je przyjmuje, a przeglądarka oddaje mu dźwięk bez
+zbędnego przeliczania. Korektor systemowy (Ustawienia → Dźwięk → Korektor) zmienia barwę całego dźwięku — osobno dla
+głośników i słuchawek, z kilkoma gotowymi ustawieniami. A Kons Spatial Audio — znak firmowy K1, włączany na życzenie —
+rozkłada dźwięk w przestrzeni wokół głowy: na „scenie” widzisz głowę z góry i kolorowe punkty pasm (bas, środek, góra…),
+które przeciągasz, żeby zdecydować, skąd słychać które częstotliwości; gotowe sceny (np. Kino, Koncert, Pokój) robią to
+jednym kliknięciem. Wszystko liczy usługa dźwięku w swojej klatce — strefy i aplikacje dalej tylko oddają próbki.
+
+Kroki: PIĘĆ. Krok 1 — tor najwyższej jakości (fundament, ADR 0055, pomiary). Krok 2 — korektor systemowy. Krok 3 — Kons
+Spatial Audio: silnik w usłudze dźwięku. Krok 4 — Kons Spatial Audio: scena w Ustawieniach i przełącznik w okienku
+„Dźwięk”. Krok 5 — porządki i wydanie.
+
+ZAKRES ZAMROŻONY (ADR 0035): poniższe kroki i nic więcej. Nowy pomysł: do docs/DO_ZROBIENIA.txt („Później”); wyjątek:
+błąd, przez który giną dane albo system nie startuje. Numery kroków się nie zmieniają; wydanie jest zawsze ostatnim
+krokiem; jeśli krok nie zmieści się w jednym czacie, dzieli się na 3a/3b … (wydanie w ostatniej części ostatniego kroku).
+
+Oznaczenia:  [!] decyzja właściciela   [ ] do zrobienia   [x] zrobione
+Statusy wiedzy: Z KODU (z czytania kodu K1 po 0.12.0, 2026-11-26), ZE ŹRÓDEŁ (z dokumentacji albo źródeł — z nazwą),
+POTWIERDZONE (próbą), NIEPEWNE (do sprawdzenia w kroku — nie zakładać).
+
+
+0. JAK PRACOWAĆ Z TYM PLANEM (właściciel i nowy czat)
+-----------------------------------------------------
+Jeden krok = jeden nowy czat = jeden PR scalony do main. Kolejno: 1, 2, 3, 4, 5. Krok 1 jest fundamentem (liczenie
+z zapasem, na którym stoją korektor i dźwięk przestrzenny); krok 2 i krok 3 stoją na nim, ale nie na sobie nawzajem;
+krok 4 (scena) — po kroku 3; krok 5 (wydanie) — po wszystkich.
+
+Właściciel: co wpisać w nowym czacie (podmień N):
+    „Korzystając ze skilla kons-dev, wykonaj Krok N z docs/PLAN-0.12.3.txt.”
+Decyzje [!] (punkt 4) czat zada na początku kroku. Przy wyglądzie czat najpierw pokaże szkice albo obrazy „przed / po”.
+Słuchać musisz Ty: żaden test nie powie, czy korektor „brzmi dobrze”, a scena „gra z tyłu” — po każdym kroku dostaniesz
+listę „co posłuchać” (najlepiej w słuchawkach i na głośnikach obu laptopów).
+
+Nowy czat: przebieg każdego kroku:
+  1. Skill kons-dev (świeży main, gałąź claude/…, otwarte PR-y i Issue robota, ostatni run CI na main).
+  2. Przeczytaj CEL WERSJI, swój krok (punkt 3), jego luki (punkt 5) i decyzje (punkt 4); kroki 2–5 także ADR 0055
+     i „Ustalenia z wykonania” kroków wcześniejszych; zawsze ADR 0054 (usługa dźwięku) i docs/komponenty/dzwiek.md.
+  3. Pierwszy commit: w tabeli z punktu 2 przy swoim kroku „[w toku: Claude, gałąź …]” (Codex: „Codex”).
+  4. „Dziel przed rozbudową”: plik blisko 600 wierszy najpierw osobny commit z podziałem. Z KODU (2026-11-26):
+     src/dzwiek/main.c 412, src/wspolne/k1_dzwiek.c 195 (liczenie: nowe — osobne pliki, np. k1_korektor.c,
+     k1_przestrzen.c), src/aplikacje/ustawienia/main.c 492 (sekcja Dźwięk w dzwiek.c; korektor i scena — osobne pliki),
+     src/gui/dzwiek.c 360.
+  5. Liczenie dźwięku jest CZYSTE (bez wywołań systemu) i w src/wspolne/ — test na hoście z liczbami (odpowiedź filtra
+     w dB, opóźnienie między uszami w µs, poziom szumu), fuzzing ustawień (każde pole z Ustawień sprawdzane: zakresy,
+     NaN, nieskończoności). Ustawienia korektora i sceny to dane od klienta sterującego — usługa sprawdza każde pole,
+     zanim policzy z nich współczynniki.
+  6. Nowy komunikat albo format: przepis z SKILL (sprawdzanie pole po polu, test na hoście, fuzzing, test negatywny
+     w systemie, wpis w dokumencie kanału). Komunikat ma 32 B — ustawienia korektora i sceny idą kilkoma komunikatami
+     albo jako mały blok w memfd (decyzja T4).
+  7. Testy: QEMU z kartą, która zapisuje dźwięk do pliku (test-dzwiek.sh) — test słucha pliku: „przezroczystość” (przy
+     100 % bez korektora i sceny wyjście = wejście, próbka w próbkę), odpowiedź korektora (ton przez pasmo), różnica
+     lewo–prawo sceny; okna K1 — po nazwach (ADR 0045), wzorce po „OK” właściciela. Firefoksa CI nie testuje.
+  8. Przed scaleniem: make bez ostrzeżeń, python3 -I scripts/sprawdz-czytelnosc.py, scripts/test-m1.sh, scripts/test-
+     dzwiek.sh, przy wyglądzie scripts/test-wzorce.sh; pełny komplet: CI na PR-ze (etykieta „testy”), scalasz przy
+     zielonym (AGENTS.md). Czekaj poleceniem, bez innych wywołań (CLAUDE.md).
+  9. Dokumenty w tym samym PR-ze: ADR 0055 (krok 1, uzupełnienia w 2–4), dzwiek.md, gui.md, aplikacje.md (Ustawienia),
+     strefa.md (formaty virtio-snd), SLOWNIK („korektor”, „pasmo”, „scena”, „dźwięk przestrzenny”…), RYZYKA (punkt 7),
+     WYGLAD (korektor, scena). VERSION i CHANGELOG zmienia krok 5; kroki 1–4 zapisują „co słychać” w opisie PR-a.
+ 10. PR po polsku, squash z własnym opisem commita (bez „[skip ci]”); po scaleniu: w tabeli „[x] PR #n”, ustalenia
+     w swoim kroku. Raport dla właściciela: co słychać, co widać, co posłuchać na laptopie.
+
+Robot i wydania (ADR 0046, 0047; AGENTS.md „Robot aktualizacji”):
+  - Robot zostaje włączony: każdy scalony krok trafia do laptopów z najbliższym wydaniem robota (0.12.1, 0.12.2…). Kroki
+    są samodzielne: krok 1 — czystszy dźwięk bez nowych przycisków; krok 2 — korektor; krok 3 — silnik sceny z gotowymi
+    scenami (wybór w Ustawieniach jako lista, bez „sceny” do przeciągania); krok 4 — scena. Krok w main musi być gotowy
+    dla użytkownika: żadnego przełącznika, który nic nie robi.
+  - Jądro: krok 1 może dodać opcję jądra tylko wtedy, gdy 24 bity tego wymagają (NIEPEWNE, raczej nie) — wtedy bez
+    otwartego PR-a robota (zamknij go, zrobi nowy następnego dnia).
+  - Numer: zob. nagłówek. Tuż przed scaleniem wydania: gałąź z main, sprawdź VERSION; wpis w CHANGELOG nad wpisem robota.
+
+
+1. W SKRÓCIE (dla właściciela)
+------------------------------
+  - Krok 1: „protokół najwyższej jakości”. K1 liczy dźwięk z dużym zapasem (32 bity zamiast 16) i dopiero na końcu
+    zamienia go na format karty — z delikatnym szumem maskującym (dither), który przy małej głośności usuwa „ziarno”
+    i trzaski cichych fragmentów. Zamiast twardego przycinania głośnych miejsc — miękki ogranicznik. Karta dostaje 24
+    bity, jeśli je przyjmuje (X230 i IdeaPad mają kodeki Realteka — NIEPEWNE, sprawdzi log). Przeglądarka może oddać
+    dźwięk w swoim własnym formacie (32 bity), bez przeliczania na 16. Przy 100 % i bez korektora dźwięk przechodzi
+    przez K1 bez żadnej zmiany (test to sprawdza). Nowych przycisków nie ma — po prostu czyściej.
+  - Krok 2: korektor systemowy w Ustawieniach → Dźwięk → Korektor: pasma (D2) jako suwaki albo krzywa do przeciągania,
+    gotowe ustawienia (Płaski, Więcej basu, Wyraźny głos, Laptop — mniej „puszki”, Słuchawki…), osobno dla głośników
+    i słuchawek; K1 pamięta je po wyłączeniu. Głośne pasmo nie przesteruje dźwięku — K1 sam obniża poziom przed
+    korektorem.
+  - Krok 3: Kons Spatial Audio — silnik. Dźwięk dzielony na pasma (np. bas, niski środek, środek, góra), każde z nich
+    K1 umieszcza w miejscu wokół głowy: kierunek, szerokość, odległość. W słuchawkach — tak jak słyszy ucho (różnica
+    czasu i barwy między uszami, liczona z modelu głowy); na głośnikach laptopa — poszerzenie sceny (D3). Kilka gotowych
+    scen (D5) do wyboru w Ustawieniach. Wyłączony — dźwięk jak dziś.
+  - Krok 4: Kons Spatial Audio — scena. W Ustawieniach widok z góry: głowa na środku, wokół kolorowe punkty pasm, które
+    przeciągasz (kierunek i odległość) i rozszerzasz (szerokość); kafelki gotowych scen; przycisk „Posłuchaj” (krótki
+    dźwięk przechodzi po kolei przez pasma, żeby usłyszeć, skąd idzie które). W okienku „Dźwięk” na górnym pasku —
+    przełącznik „Kons Spatial Audio” i nazwa sceny. Wygląd — szkice do wyboru (D4).
+  - Krok 5: porządki (co usunąć, scalić, uprościć), lista „co posłuchać” na laptopach, wydanie.
+
+
+2. STAN KROKÓW (aktualizuje każdy czat: „[w toku: …]” w pierwszym commicie, „[x] PR #n” po scaleniu)
+--------------------------------------------------------------------------------------------------
+     Krok                                                      Luki (punkt 5)   Zależy od   Decyzje        Rozmiar  ADR
+[ ]  1  Tor najwyższej jakości: 32 bity w środku, dither,      L1–L6            0.12.0      T1–T5, T8      L        0055
+        ogranicznik, 24 bity do karty, formaty strefy
+[ ]  2  Korektor systemowy                                     L7–L9            1           D1, D2, T6      M        0055 (uzup.)
+[ ]  3  Kons Spatial Audio — silnik i gotowe sceny             L10–L11          1           D3, D5, D7, T7  L        0055 (uzup.)
+[ ]  4  Kons Spatial Audio — scena w Ustawieniach              L12–L13          3           D4, D6          M        0055 (uzup.)
+[ ]  5  Porządki; wydanie                                      L14              1–4         —               S–M      —
+(ADR 0055: następny wolny po 0054.)
+
+
+3. KROKI
+--------
+KROK 1: Tor najwyższej jakości                                       L · T1–T5, T8 · ADR 0055
+  a. Pomiar „przed” (test na hoście + plik z QEMU): szum i zniekształcenia toru przy 100 %, 50 %, 10 %, 5 % głośności
+     (ton 1 kHz i cisza z najmłodszym bitem); wynik w Ustaleniach — punkt odniesienia dla „po”.
+  b. Liczenie w usłudze dźwięku z zapasem: suma strumieni, głośność sesji i głośność K1 w 32 bitach (T2: liczby
+     zmiennoprzecinkowe albo stałoprzecinkowe Q-format), bez obcinania w połowie drogi (dziś dzielenie całkowite
+     ucina w stronę zera — L2).
+  c. Koniec toru: miękki ogranicznik zamiast przycinania (głośne nakładające się strumienie nie „trzeszczą”; liczba
+     ograniczeń w logu co minutę, jak dziś przycięte próbki) i dither TPDF przy zamianie na 16 albo 24 bity (T3).
+  d. Format karty: usługa pyta kartę o S32_LE (24 bity w 32-bitowym słowie — tak HDA podaje 24 bity) i S24_3LE, gdy nie
+     — S16_LE jak dziś; log „karta: 24 bity” / „16 bitów” (T1). Częstotliwość zostaje 48 kHz (T5).
+  e. Głośność K1 częściowo w kodeku (T8): duże ściszenie dostaje wzmacniacz kodeka (kontrolka „Master” w dB), resztę
+     — liczenie w usłudze; wtedy cichy dźwięk nie traci rozdzielczości ani na 16-bitowej karcie. Albo zostaje cała
+     w usłudze, jeśli pomiar (a) pokaże, że po (b)–(d) to wystarcza — decyzja w ADR z liczbami.
+  f. Formaty klientów: pierścień klienta może nieść S16 (jak dziś) albo F32 (liczby zmiennoprzecinkowe, 8 bajtów
+     ramka) — pole w DZWIEK_OTWORZ, sprawdzane; usługa sprawdza każdą próbkę F32 (NaN, nieskończoność, |x| > 1 → zero
+     albo ograniczenie; strumień, który to robi, jest zamykany jak dziś zły pierścień). Strefa: virtio-snd ogłasza też
+     FLOAT (i S32), VMM przekazuje bez przeliczania (T4); Firefox (cubeb, ALSA w gościu) gra wtedy we własnym formacie
+     zmiennoprzecinkowym — NIEPEWNE: log formatu z VMM-a na stanowisku i na sprzęcie.
+  g. Test „przezroczystości”: przy 100 %, bez korektora i sceny, jeden strumień S16 → plik z QEMU jest identyczny
+     z wejściem, próbka w próbkę (dither tylko wtedy, gdy liczenie coś zmieniło); test na hoście: szum po ditherze
+     w zadanych granicach, ogranicznik nie przekracza pełnej skali, F32 z NaN — strumień zamknięty.
+  h. Opóźnienie i zgodność obrazu z dźwiękiem: zmierzyć i zapisać (dziś VMM trzyma do ~170 ms — L6); jeśli da się
+     bez ryzyka skrócić bufor VMM-a, zrobić to tutaj, z testem niedoboru w strefie próbnej.
+  Dokumenty: ADR 0055 (format wewnętrzny, dither, ogranicznik, formaty klientów, podział głośności), dzwiek.md,
+  strefa.md, komunikaty (pole formatu), RYZYKA (formaty od strefy — punkt 7).
+
+KROK 2: Korektor systemowy                                              M · D1, D2, T6
+  a. Liczenie (src/wspolne/k1_korektor.c, czyste): filtry dwubiegunowe (biquad, wzory RBJ „Audio EQ Cookbook”), pasma
+     wg D2, wzmocnienie każdego −12…+12 dB co 0,5 dB, automatyczne obniżenie poziomu przed korektorem o największe
+     wzmocnienie (bez przesterowania). Współczynniki liczone raz po zmianie, nie przy każdej próbce (T6).
+  b. Usługa dźwięku: korektor po sumie strumieni, przed głośnością K1 i sceną; osobny dla każdego wyjścia (głośniki,
+     słuchawki) — przełącza się razem z wyjściem. Zmiana ustawień bez trzasku (płynne przejście przez jeden okres).
+  c. Ustawienia → Dźwięk → Korektor (D1): wybór wyjścia, gotowe ustawienia (D2), suwaki pasm albo krzywa, „Zeruj”.
+     Ustawienia są klientem sterującym — nowe komunikaty od niego, sprawdzane pole po polu.
+  d. Pamięć: zapis gui (obiekt K1_OB_GLOSNOSC, rekord „K1G2” z korektorem obu wyjść; odczyt „K1G1” dalej działa).
+  e. Testy: na hoście — odpowiedź w dB w środku każdego pasma (±0,1 dB), płaski = przezroczysty, fuzzing ustawień;
+     test-dzwiek — ton przez podbite pasmo w pliku głośniejszy o zadane dB; wzorce Ustawień po „OK” (D1).
+
+KROK 3: Kons Spatial Audio — silnik i gotowe sceny                       L · D3, D5, D7, T7
+  a. Liczenie (src/wspolne/k1_przestrzen.c, czyste): podział na pasma zwrotnicami Linkwitza-Rileya (suma pasm =
+     sygnał, bez dziur i garbów), w każdym paśmie lewy i prawy kanał jako dwa wirtualne źródła: kierunek (−180…180°),
+     szerokość (0…180°), odległość (bliżej = głośniej i suszej; dalej = ciszej, łagodne odbicia — bez długiego pogłosu).
+  b. Słuchawki: model głowy (T7) — różnica czasu między uszami (do ~0,7 ms) i cień głowy (filtr barwy) dla każdego
+     źródła; „z tyłu” — lekka zmiana barwy, bo samo czasowe przesunięcie nie odróżnia przodu od tyłu. Bas (poniżej
+     ~120 Hz) zawsze blisko środka — ucho go nie lokalizuje, a rozsunięty brzmi słabo.
+  c. Głośniki laptopa (D3): poszerzenie sceny (środek/bok, łagodne krzyżowe wygaszanie) — bez obietnicy „dźwięku z tyłu”,
+     której dwa małe głośniki nie spełnią.
+  d. Gotowe sceny (D5) jako wiersze tabeli (zasada 5: nowa scena = jeden wiersz), Wyłączony = dźwięk jak po kroku 2.
+  e. Usługa: scena po korektorze, przed głośnością K1; osobna dla wyjść; płynne przejście przy zmianie; koszt mierzony
+     (T6: czas na okres w logu raz na minutę; X230 ma zostać chłodny).
+  f. Ustawienia → Dźwięk: „Kons Spatial Audio” — wł./wył. i lista gotowych scen (scena do przeciągania — krok 4).
+  g. Testy: na hoście — suma pasm zwrotnic = wejście (±0,01 dB), źródło z lewej: lewe ucho wcześniej o zadane µs
+     i głośniej w górze pasma, „Wyłączony” = przezroczysty, fuzzing scen; test-dzwiek — ton w paśmie ustawionym z lewej
+     głośniejszy w lewym kanale pliku.
+
+KROK 4: Kons Spatial Audio — scena w Ustawieniach                        M · D4, D6
+  a. Scena (D4): widok z góry, głowa na środku (nos pokazuje przód), okrąg odległości, punkt każdego pasma w swoim
+     kolorze (WYGLAD: kolory nowe — wpis), łuk pokazujący szerokość; przeciąganie myszą i touchpadem, klawiatura
+     (Tab między pasmami, strzałki). Nazwy pasm słowami (Bas, Niski środek, Środek, Góra), w podpowiedzi zakres Hz.
+  b. Kafelki gotowych scen; zmiana punktu robi z gotowej sceny „Własna” (D6: ile własnych scen zapamiętać).
+  c. „Posłuchaj”: krótki dźwięk (szum różowy w paśmie, liczony w programie — jak próba z 0.12.0, D3 tamtego planu:
+     jedyne dźwięki K1 to próby) przechodzi po kolei przez pasma.
+  d. Okienko „Dźwięk” na górnym pasku: przełącznik „Kons Spatial Audio” z nazwą sceny; kliknięcie nazwy otwiera
+     Ustawienia na scenie (jak „Ustawienia baterii” z 0.11.8).
+  e. Pamięć sceny (rekord gui jak w kroku 2). Opis ekranu (ADR 0045): punkty pasm i kafelki po nazwach — test bez
+     pikseli; wzorce sceny w obu motywach po „OK” właściciela.
+
+KROK 5: Porządki; wydanie                                               S–M
+  Porządki (co usunąć, scalić, uprościć — CHANGELOG „Porządki”), przegląd „Tymczasowe”, README (tabela, „Co już jest”),
+  lista „co posłuchać” w docs/DO_ZROBIENIA.txt, punkt 4, plan do docs/archiwum/, CHANGELOG z „Opis w K1:”, VERSION.
+
+
+4. DECYZJE
+----------
+[!] D1 (krok 2) Gdzie korektor:
+      A — Ustawienia → Dźwięk → Korektor; w okienku „Dźwięk” tylko nazwa ustawienia (np. „Korektor: Więcej basu”)
+          z przejściem do Ustawień (rekomendacja: okienko zostaje małe);
+      B — także szybki wybór gotowego ustawienia w okienku „Dźwięk”.
+    Szkice z hosta (oba motywy) przed wyborem.
+[!] D2 (krok 2) Ile pasm i jakie gotowe ustawienia:
+      A — 10 pasm (31 Hz … 16 kHz, jak klasyczny korektor graficzny) — rekomendacja: znany wygląd, dość dokładny;
+      B — 5 pasm (prostszy, mniej suwaków);
+      C — krzywa z kilkoma punktami do przeciągania (korektor parametryczny; najwięcej możliwości, trudniejszy).
+    Gotowe ustawienia (propozycja): Płaski, Więcej basu, Wyraźny głos, Laptop (mniej „puszki” małych głośników),
+    Słuchawki, Muzyka, Film. Lista — do Twojej zmiany.
+[!] D3 (krok 3) Kons Spatial Audio na głośnikach laptopa:
+      A — tak, ale jako poszerzenie sceny; pełne 3D tylko w słuchawkach (rekomendacja: uczciwe — dwa małe głośniki
+          nie zagrają „z tyłu”);
+      B — tylko w słuchawkach (na głośnikach przełącznik wyszarzony z wyjaśnieniem).
+[!] D4 (krok 4) Wygląd sceny (szkice A/B, jasny i ciemny):
+      A — widok z góry: głowa w środku, okrąg wokół, punkty pasm (rekomendacja: pokazuje i kierunek, i „z tyłu”);
+      B — scena jak w sali koncertowej: półkole przed słuchaczem, pasma jak muzycy na scenie (prostsze, bez „z tyłu”).
+[!] D5 (krok 3) Gotowe sceny (propozycja, do Twojej zmiany): Wyłączony; Naturalny (szeroko z przodu, jak dobre
+    głośniki); Kino (szeroko, góra i środek z przodu, otoczenie po bokach i z tyłu); Koncert (dalej, szeroko, z łagodnym
+    odbiciem sali); Pokój (blisko, wąsko — jak głośniki na biurku); Głos (środek blisko i wyraźnie, reszta dalej).
+[!] D6 (krok 4) Własne sceny: A — jedna „Własna” (zmiana gotowej ją nadpisuje; rekomendacja: prosto); B — kilka
+    nazwanych własnych scen (lista, „Zapisz jako…”).
+[!] D7 (krok 3) Nazwa w K1. Zasada: komunikaty po polsku, jedno słowo = jedno znaczenie (SLOWNIK). Propozycja:
+      A — „Kons Spatial Audio” jako nazwa własna funkcji (jak nazwa produktu), a w opisie pod nią po polsku: „dźwięk
+          przestrzenny” (rekomendacja: Twój znak firmowy zostaje, a każdy rozumie, co robi);
+      B — tylko po polsku: „Dźwięk przestrzenny Kons”.
+
+Decyzje techniczne (ADR 0055 — decyduje czat kroku, Ty dostajesz krótkie wyjaśnienie):
+  T1 (krok 1) Format karty: S32_LE / S24_3LE, gdy karta przyjmie, inaczej S16_LE. NIEPEWNE: czy kodeki X230 (Realtek
+     ALC269 — ZE ŹRÓDEŁ: sound/hda/codecs/realtek, NIEPEWNE: który dokładnie) i IdeaPada (log K1-DZWIEK z 0.12.0)
+     przyjmują 24 bity przez sterownik HDA Intela; QEMU `hda-output` ogłasza chyba tylko 16 bitów (NIEPEWNE — sprawdzić;
+     wtedy 24 bity testuje host i sprzęt, a QEMU — ścieżkę 16-bitową).
+  T2 (krok 1) Liczby w środku toru: float (32 bity, x86-64 zawsze ma SSE2) albo stałoprzecinkowe int32/int64. Float:
+     prostsze filtry korektora i sceny; warunek — te same wyniki na hoście i w K1 (bez -ffast-math; kompilator ten sam
+     musl-gcc / gcc). Rekomendacja: float w korektorze i scenie, a suma i głośność — jak wyjdzie z pomiaru.
+  T3 (krok 1) Dither: TPDF (dwa losowe o rozkładzie równym), generator liczb pseudolosowych w programie (deterministyczny
+     — testy); tylko gdy liczenie zmieniło próbkę (przezroczystość przy 100 %). Bez kształtowania szumu (noise shaping)
+     w tej wersji — „Później”, jeśli odsłuch pokaże potrzebę.
+  T4 (krok 1–3) Ustawienia korektora i sceny do usługi: kilka komunikatów 32 B (pasmo po paśmie) albo mały zapieczętowany
+     memfd z blokiem ustawień (jak pierścień), sprawdzany w całości przed użyciem. Rekomendacja: komunikaty, jeśli
+     zmieszczą się w ~20 na zmianę; inaczej memfd. Format strefy (virtio-snd FLOAT/S32): pola sprawdzane w
+     dzwiek_prosby.c, fuzzing jak dziś.
+  T5 (krok 1) Częstotliwość: zostaje 48 kHz w całym torze (karta, usługa, strefa). 44,1 kHz (płyty CD, część muzyki)
+     przelicza Firefox; wyższe (96/192 kHz) — bez korzyści słyszalnej, większy koszt na X230 → „Później”. Jakość
+     przeliczania w Firefoksie (cubeb, resampler speex) — NIEPEWNE, sprawdzić preferencję jakości w k1.js.
+  T6 (krok 2–3) Koszt liczenia: budżet — usługa dźwięku < 5 % jednego rdzenia X230 przy włączonym korektorze i scenie
+     (pomiar w Zasobach i w logu); współczynniki filtrów liczone raz po zmianie. Funkcje sin/cos/pow/sqrt do
+     współczynników: libm z musl (statycznie) albo własne wielomiany jak w próbie 0.12.0 — decyzja w ADR (te same wyniki
+     na hoście i w fuzzerze).
+  T7 (krok 3) Model głowy: parametryczny (Brown i Duda 1998: kulista głowa — opóźnienie i filtr cienia; prosty model
+     małżowiny do przód/tył), liczony w programie — bez obcego zbioru HRTF (licencje, rozmiar, nowa zależność:
+     docs/ZALEZNOSCI.md). Zbiór HRTF (np. z pomiarów głowy KEMAR) — „Później”, jeśli odsłuch pokaże potrzebę.
+  T8 (krok 1) Głośność w kodeku: kontrolki „Master Playback Volume” (dziś usługa ustawia je na 0 dB — ADR 0054, T3
+     planu 0.12.0) — czy przesuwać tam część ściszenia; uwaga na słyszalne kroki i trzaski przy zmianie wzmacniacza
+     (zmieniać tylko w ciszy albo małymi krokami). Decyzja z pomiaru 1a/1e.
+
+
+5. LUKI (co dziś brakuje — Z KODU, 2026-11-26, chyba że napisano inaczej)
+-------------------------------------------------------------------------
+Krok 1:
+  L1 Cały tor ma 16 bitów: K1_DZW_RAMKA_BAJTY 4 (src/wspolne/k1_dzwiek.h), karta S16_LE (src/dzwiek/karta.c, hw_params),
+     strefa tylko VIRTIO_SND_PCM_FMT_S16 (src/strefa/dzwiek_prosby.c — informacje() i parametry()).
+  L2 Głośność K1 to mnożenie i dzielenie całkowite w k1_dzw_wyjscie (ucina w stronę zera, bez dithera); przy 10 %
+     (wzmocnienie 0,001, ok. −60 dB) zostaje ~6 bitów — „ziarno” i szum przy małej głośności (do sprawdzenia na X230
+     było już w 0.12.0, T3).
+  L3 Przycinanie twarde (k1_dzw_wyjscie liczy przycięte próbki) — głośne nakładające się strumienie trzeszczą.
+  L4 Głośność sesji (k1_dzw_dodaj_wzm) — też dzielenie całkowite na 16-bitowych próbkach.
+  L5 Kontrolki kodeka ustawione na 0 dB (src/dzwiek/kontrolki.c) — wzmacniacz kodeka nie pomaga w ściszaniu.
+  L6 VMM strefy trzyma do ~170 ms dźwięku (ustalenia kroku 3 planu 0.12.0) — zgodność obrazu z dźwiękiem do pomiaru.
+Krok 2:
+  L7 Brak korektora; usługa dźwięku nie ma żadnego filtra (src/dzwiek/main.c: suma → głośność → karta).
+  L8 Ustawienia → Dźwięk (src/aplikacje/ustawienia/dzwiek.c) — tylko wyjście, wyciszenie, suwak, próba.
+  L9 Pamięć gui: rekord „K1G1” 8 bajtów (K1_DZW_ZAPIS_BAJTY) — tylko głośność i wyciszenie wyjść.
+Krok 3:
+  L10 Brak podziału na pasma i dźwięku przestrzennego; brak trybu strefy próbnej, który gra szum w pasmach (gosc/dzwiek.c
+      gra tylko ton 480 Hz).
+  L11 Brak tabeli scen (zasada 5) i komunikatów do ich ustawiania.
+Krok 4:
+  L12 Brak widoku sceny w Ustawieniach (przeciąganie punktów — wzór: przeciąganie ikon pulpitu w gui/pulpit.c, suwak
+      k1_suwak w przyborniku).
+  L13 Okienko „Dźwięk” (src/gui/dzwiek.c) bez przełącznika dźwięku przestrzennego.
+Krok 5:
+  L14 README, „co posłuchać”, CHANGELOG.
+
+
+6. NIE W TEJ WERSJI (→ „Później” w docs/DO_ZROBIENIA.txt)
+---------------------------------------------------------
+  - śledzenie ruchu głowy (słuchawki z czujnikami), zbiory HRTF z pomiarów (T7), osobiste dopasowanie do uszu;
+  - kształtowanie szumu (noise shaping), 96/192 kHz w torze (T5), dźwięk „bit-perfect” do zewnętrznego przetwornika
+    na USB (USB audio — dalej „Później” z 0.12.0);
+  - korektor i scena osobno dla każdej sesji przeglądarki (systemowe: jedne dla wszystkiego, osobno dla wyjść);
+  - wyrównywanie głośności między stronami (normalizacja), kompresor dynamiki, „tryb nocny”;
+  - wielokanałowy dźwięk z filmów (5.1) — Firefox oddaje dziś stereo; mikrofon (D1 = A planu 0.12.0).
+
+
+7. RYZYKA (nowe wiersze w docs/RYZYKA.md — dopisuje krok, który je wprowadza)
+-----------------------------------------------------------------------------
+  - Krok 1: nowe formaty od strefy (FLOAT/S32 przez virtio-snd) — próbki od gościa to liczby niezaufane: NaN,
+    nieskończoności i wartości poza skalą sprawdzane w usłudze, zanim wejdą do sumy; uzupełnić R108 / R77 i fuzzing.
+  - Krok 2–3: ustawienia korektora i sceny od klienta sterującego — złe wartości (wzmocnienie +100 dB, NaN) mogłyby
+    dać ogłuszający dźwięk albo niestabilny filtr: każde pole w zakresie, filtr sprawdzony na stabilność, ogranicznik
+    na końcu toru zawsze (krok 1). Uwaga na słuch: korektor nigdy nie podnosi poziomu ponad dzisiejsze 100 %.
+  - Krok 3: koszt liczenia na X230 (ciepło, bateria) — T6, pomiar; scena „Wyłączony” nie liczy nic.
+
+
+USTALENIA Z WYKONANIA (dopisuje czat po każdym kroku)
+-----------------------------------------------------
+(pusto)

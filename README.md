@@ -38,7 +38,7 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.10.11 Szybsza grafika | obraz przeglądarki prosto z karty na ekran (bez kopiowania), nowsze karty zintegrowane Intela do Meteor / Arrow Lake | PRZETESTOWANE w QEMU z KVM (ADR 0051); karta — na sprzęcie |
 | 0.11 Pliki ze stref | pobrane pliki w Plikach → Pobrane (z pochodzeniem), „Wyślij do” i „Otwórz za pomocą” sesji, „Zapisać zmiany w oryginale?”, przeciąganie między oknami i na okno przeglądarki, schowek, pełny ekran; 0.11.1–0.11.5: „Zapisz obraz jako…” (okno zapisu w oknie sesji, pytanie o plik zapisany w dowolnym folderze), szybsza przeglądarka (wszystkie procesory komputera), „Zablokuj” w menu Start tylko z hasłem; 0.11.8: niższe, przewijane menu Start, nowy górny pasek, okienko baterii (czas, pobór mocy) | PRZETESTOWANE w QEMU z KVM (ADR 0052); Firefox — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
 | 0.12 Dźwięk | karta dźwiękowa tylko dla usługi dźwięku K1, okienko „Dźwięk” (głośność, „Grają teraz”), klawisze głośności z pigułką, słuchawki, Ustawienia → Dźwięk, przeglądarka gra przez K1 (głośnik na pasku sesji) | PRZETESTOWANE w QEMU (karta Intel HD Audio zapisuje dźwięk do pliku; ADR 0054); głośniki, słuchawki i Firefox — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
-| 0.12.3 Dźwięk wysokiej jakości | korektor systemowy, najwyższa jakość dźwięku, Kons Spatial Audio (dźwięk przestrzenny) | PLANOWANE |
+| 0.12.3 Dźwięk wysokiej jakości | korektor systemowy, najwyższa jakość dźwięku, Kons Spatial Audio (dźwięk przestrzenny) | PLANOWANE (`docs/PLAN-0.12.3.txt`) |
 | 0.13–0.14 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |
 
 Od 0.9 etapy to numery wersji (ADR 0035, 0053); wcześniejsze etapy M0–M6 zostały w tabeli jako historia.
