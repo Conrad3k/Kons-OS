@@ -3,7 +3,7 @@
 - Status: Przyjęty
 - Data: 2026-11-22
 - Dotyczy: ADR 0035 (mapa drogi według wersji — **zmienia jej tabelę**), SPEC §14, `docs/DO_ZROBIENIA.txt` (mapa drogi),
-  `README.md`, `docs/RYZYKA.md` (kolumna „Plan”), skill `kons-dev` §8; plan `docs/PLAN-0.12.0.txt`
+  `README.md`, `docs/RYZYKA.md` (kolumna „Plan”), skill `kons-dev` §8; plan `docs/archiwum/PLAN-0.12.0.txt`
 
 ## Kontekst
 Mapa drogi z ADR 0035 miała po 0.11 „Pliki ze stref” wersję 0.12 „Bezpieczny start” (tryb ratunkowy, TPM, los GRUB-a),
@@ -40,7 +40,7 @@ Właściciel, 2026-11-22: „myślę, by w wersji 0.12 zająć się dźwiękiem�
   `docs/komponenty/jadro.md` i `aplikacje.md` — nowe terminy.
 - Bezpieczny start czeka jedną wersję dłużej: GRUB zostaje w ISO i na pendrive'ie do 0.13 (wpis „Tymczasowe”
   w `DO_ZROBIENIA.txt`), RYZYKA R10, R17, R21, R44 — termin 0.13.
-- Plan wersji: `docs/PLAN-0.12.0.txt`.
+- Plan wersji: `docs/archiwum/PLAN-0.12.0.txt`.
 
 ## Rozważane alternatywy
 - **Dźwięk jako kroki „Laptop” (PATCH) w 0.12 Bezpieczny start** — mieszałby dwa duże tematy w jednej wersji; zakres

@@ -76,5 +76,5 @@ Wersje użyte w danym buildzie zapisuje `build/wynik/srodowisko.txt`.
 | kernel-hardening-checker | v0.6.17.1 (`afc376f2…`) | GitHub | **tylko dane**: lista zaleceń KSPP czytana jako tekst przez `scripts/sprawdz-kspp.sh`; kod narzędzia nie jest uruchamiany |
 
 ## Planowane (do decyzji)
-- Dźwięk (0.12, `docs/PLAN-0.12.0.txt`): bez obcej biblioteki w K1 — ALSA przez ioctl z nagłówków UAPI (jak DRM bez
+- Dźwięk (0.12, `docs/archiwum/PLAN-0.12.0.txt`): bez obcej biblioteki w K1 — ALSA przez ioctl z nagłówków UAPI (jak DRM bez
   libdrm); w strefie przeglądarki biblioteka ALSA z Debiana już jest (`libasound2t64`, zależność Firefoksa).
