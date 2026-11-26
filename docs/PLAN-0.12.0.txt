@@ -387,8 +387,9 @@ Krok 2 (2026-11-25): D4: A, D5: A (szkice z hosta). ADR 0054 pkt 8–12. Wzorce 
   - L10 / D5: pamięta gui (obiekt `K1_OB_GLOSNOSC`, rekord „K1G1”), zapis 2 s po zmianie; usługa skarbca nie dostaje.
   - T8: PM — nie w tej wersji (zmienia USB, i915, sieć; bez pomiaru) → „Później”.
   - test-strefa w emulacji raz zawiesił całą maszynę po Alt+Tab (log urwany) — drugi przebieg zielony; to emulacja, nie
-    zmiana kroku. test-wzorce: okienko baterii różni się tylko tapetą za marginesem (godzina na pasku przesuwa ikony?) —
-    nie przyjęte, do obejrzenia, jeśli CI to pokaże.
+    zmiana kroku. test-wzorce (CI 350): okienko baterii różniło się tapetą za nim — data na pasku („śr. 25 lis” przy
+    przyjęciu, w czwartek „czw. 26 lis”) przesuwa ikony, a okienko stoi pod ikoną baterii; test wzorców ma teraz stałą
+    datę (`-rtc base=2026-11-25T10:00:00`).
   - Do sprawdzenia na sprzęcie: klawisze głośności (X230: nad klawiaturą; IdeaPad: Fn+F2/F3, Fn+F1), pigułka nad pełnym
     ekranem przeglądarki, słuchawki w gnieździe (log „gniazdo słuchawek”, „wyjście: Słuchawki”), głośność po ponownym
     uruchomieniu, szum przy małej głośności (T3).
