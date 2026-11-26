@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | ZAIMPLEMENTOWANE (0.12.0 krok 1: usługa, kanał klientów, okienko „Dźwięk” w gui); PRZETESTOWANE na hoście (`test_dzwiek`, `fuzz_dzwiek`, `test_uevent`, `test_komunikat`), w systemie w QEMU bez karty (`t_dzwiek`: klatka, „brak karty”, wrogi klient, restart) i w QEMU z kartą Intel HD Audio (`scripts/test-dzwiek.sh`: dźwięk zapisany do pliku WAV). Prawdziwy głośnik X230 i IdeaPada — sprawdza właściciel. Krok 3 (dźwięk stref): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_virtio_dzwiek`, `fuzz_virtio_dzwiek`, `test_dzwiek`) i w `test-dzwiek.sh` (strefa próbna gra ton, głośnik na pasku, wyciszenie sesji, złośliwy gość); Firefox w strefie (ALSA) — stanowisko i właściciel na sprzęcie. Krok 2: słuchawki (gniazdo z kontrolek karty — ZAIMPLEMENTOWANE, test na hoście nazw gniazd; QEMU gniazda nie udaje: sprawdza właściciel), osobna głośność głośników i słuchawek, klient Ustawienia — PRZETESTOWANE w `test-dzwiek.sh` (klawisze, Ustawienia → Dźwięk, pamięć głośności po nowym pulpicie); dźwięk ze stref — krok 3; **0.12.3 krok 1** (ADR 0055, tor wysokiej jakości): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_dzw_tor` — pomiary, ogranicznik, dither, formaty karty; `test_virtio_dzwiek`, `fuzz_dzwiek`, `fuzz_virtio_dzwiek`), w systemie (`t_dzwiek`: pierścień F32) i w `test-dzwiek.sh` (karta QEMU — 16 bitów, przezroczystość próby, ton strefy w S32); 24 bity i odsłuch — właściciel na X230 i IdeaPadzie |
-| **Pliki** | `src/dzwiek/main.c` (kanały, klienci i ich strumienie, mieszanie, stan), `karta.c` (węzeł odtwarzania: ALSA bez alsa-lib), `kontrolki.c` (wyjścia kodeka na 0 dB, nazwa karty do logu), `dzwiek.h`; `src/wspolne/k1_dzwiek.{h,c}` (formaty pierścienia `K1_DZW_FORMATY`, tabela klientów `K1_DZW_KLIENCI`, liczenie pierścienia, próba), `k1_dzw_tor.{h,c}` (0.12.3: tor dźwięku — mieszanie, głośność, ogranicznik, dither, format karty), `k1_kom_dzwiek.c` (komunikaty); `src/nadzorca/dzwiek.c` (karta z sysfs i zdarzeń jądra, kanały klientów), `profile.c` (`KLATKA_DZWIEK`); `src/gui/dzwiek.c` (ikona na pasku, okienko „Dźwięk”, próba); `jadro/k1.config` (sekcja „0.12.0 Dźwięk”) |
-| **Decyzje** | ADR 0054 (plan 0.12.0: T1–T4, T7, T8; właściciel: D1 = A, D2 = B, D3 = A; krok 2: D4 = A, D5 = A; krok 3: D6 = A, T5, T6 = A); ADR 0055 (plan 0.12.3 krok 1: T1–T5, T8 — tor wysokiej jakości) |
+| **Status** | ZAIMPLEMENTOWANE (0.12.0 krok 1: usługa, kanał klientów, okienko „Dźwięk” w gui); PRZETESTOWANE na hoście (`test_dzwiek`, `fuzz_dzwiek`, `test_uevent`, `test_komunikat`), w systemie w QEMU bez karty (`t_dzwiek`: klatka, „brak karty”, wrogi klient, restart) i w QEMU z kartą Intel HD Audio (`scripts/test-dzwiek.sh`: dźwięk zapisany do pliku WAV). Prawdziwy głośnik X230 i IdeaPada — sprawdza właściciel. Krok 3 (dźwięk stref): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_virtio_dzwiek`, `fuzz_virtio_dzwiek`, `test_dzwiek`) i w `test-dzwiek.sh` (strefa próbna gra ton, głośnik na pasku, wyciszenie sesji, złośliwy gość); Firefox w strefie (ALSA) — stanowisko i właściciel na sprzęcie. Krok 2: słuchawki (gniazdo z kontrolek karty — ZAIMPLEMENTOWANE, test na hoście nazw gniazd; QEMU gniazda nie udaje: sprawdza właściciel), osobna głośność głośników i słuchawek, klient Ustawienia — PRZETESTOWANE w `test-dzwiek.sh` (klawisze, Ustawienia → Dźwięk, pamięć głośności po nowym pulpicie); dźwięk ze stref — krok 3; **0.12.3 krok 1** (ADR 0055, tor wysokiej jakości): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_dzw_tor` — pomiary, ogranicznik, dither, formaty karty; `test_virtio_dzwiek`, `fuzz_dzwiek`, `fuzz_virtio_dzwiek`), w systemie (`t_dzwiek`: pierścień F32) i w `test-dzwiek.sh` (karta QEMU — 16 bitów, przezroczystość próby, ton strefy w S32); 24 bity i odsłuch — właściciel na X230 i IdeaPadzie; **0.12.3 krok 2** (korektor): ZAIMPLEMENTOWANE, PRZETESTOWANE (`test_korektor`, `fuzz_korektor`, `t_dzwiek`, `test-dzwiek.sh`); **krok 3** (Kons Spatial Audio — silnik i gotowe sceny): ZAIMPLEMENTOWANE, PRZETESTOWANE na hoście (`test_przestrzen` — zwrotnice, model głowy, głośniki, poziom, przejścia; `fuzz_przestrzen`, `test_dzwiek`), w systemie (`t_dzwiek`) i w `test-dzwiek.sh` (głośniki: pasma z lewej w pliku WAV); słuchawki i odsłuch („z tyłu”, „szerzej”) — właściciel na sprzęcie |
+| **Pliki** | `src/dzwiek/main.c` (kanały, klienci i ich strumienie, mieszanie, stan), `karta.c` (węzeł odtwarzania: ALSA bez alsa-lib), `kontrolki.c` (wyjścia kodeka na 0 dB, nazwa karty do logu), `dzwiek.h`; `src/wspolne/k1_dzwiek.{h,c}` (formaty pierścienia `K1_DZW_FORMATY`, tabela klientów `K1_DZW_KLIENCI`, liczenie pierścienia, próba), `k1_dzw_tor.{h,c}` (0.12.3: tor dźwięku — mieszanie, głośność, ogranicznik, dither, format karty), `k1_korektor.{h,c}` (krok 2: korektor), `k1_przestrzen.{h,c}` + `k1_prz_licz.c` (krok 3: Kons Spatial Audio), `k1_kom_dzwiek.c` (komunikaty); `src/dzwiek/korektor.c`, `przestrzen.c` (korektor i scena w usłudze); `src/nadzorca/dzwiek.c` (karta z sysfs i zdarzeń jądra, kanały klientów), `profile.c` (`KLATKA_DZWIEK`); `src/gui/dzwiek.c` (ikona na pasku, okienko „Dźwięk”, próba); `jadro/k1.config` (sekcja „0.12.0 Dźwięk”) |
+| **Decyzje** | ADR 0054 (plan 0.12.0: T1–T4, T7, T8; właściciel: D1 = A, D2 = B, D3 = A; krok 2: D4 = A, D5 = A; krok 3: D6 = A, T5, T6 = A); ADR 0055 (plan 0.12.3 krok 1: T1–T5, T8 — tor wysokiej jakości; krok 2: D1 = A, D2 = A, T6 — korektor; krok 3: D3 = A, D5 = cała lista, D7 = A, T7 — Kons Spatial Audio) |
 
 ## Cel
 Laptop gra dźwięk K1 i (od kroku 3) przeglądarki, a kartę dźwiękową — jak obraz — ma tylko jeden mały proces w klatce.
@@ -56,7 +56,8 @@ ADR 0054 pkt 1); swoje kopie zamyka od razu. Bez `open`, `socket`, `memfd_create
 5. **Mieszanie (tor dźwięku, od 0.12.3 — ADR 0055)** — za każdym razem, gdy karta ma miejsce na okres (`poll` POLLOUT,
    `avail_min` = okres): z każdego strumienia kopia do 1024 ramek, zamiana na liczby zmiennoprzecinkowe (S16 dokładnie;
    F32 sprawdzone — NaN i nieskończoność → 0, ponad ±1,0 → ±1,0, liczone), suma (sesja strefy z głośnością sesji),
-   od 0.12.3 krok 2 **korektor** wyjścia, które gra (niżej; płaski — nic nie liczy), głośność K1 (`k1_dzw_wzmocnienie`: sześcian, 50 % = 0,125 ≈ −18 dB; wyciszenie = 0), **ogranicznik** (nigdy ponad pełną
+   od 0.12.3 krok 2 **korektor** wyjścia, które gra (niżej; płaski — nic nie liczy), od kroku 3 **scena** Kons Spatial Audio
+   tego wyjścia (niżej; wyłączona — nic nie liczy), głośność K1 (`k1_dzw_wzmocnienie`: sześcian, 50 % = 0,125 ≈ −18 dB; wyciszenie = 0), **ogranicznik** (nigdy ponad pełną
    skalę: łagodnie w dół do 1 ms przed głośną ramką, z powrotem 6 dB na 50 ms), zamiana na format karty z **ditherem**
    TPDF (±1 krok; bez niego, gdy każda próbka okresu już jest pełnym krokiem — przezroczystość 100 % i cisza), zapis okresu
    (`WRITEI_FRAMES`). Raz na minutę gry (gdy coś było): „ostatnia minuta: ogranicznik w N okresach, złe próbki od
@@ -94,6 +95,29 @@ polu, wszystkim klientom sterującym `DZWIEK_KOREKTOR_STAN` (nowemu — obu wyj�
 `gui.md`) i daje każdej nowej usłudze; zmienia je Ustawienia → Dźwięk → Korektor (`aplikacje.md`), a okienko „Dźwięk”
 pokazuje nazwę ustawienia wyjścia, które gra (wiersz „Korektor”, D1: A).
 
+## Kons Spatial Audio (0.12.3 krok 3, ADR 0055 pkt 14–19; D3: A, D5: cała lista, D7: A)
+Dźwięk przestrzenny K1 — nazwa własna „Kons Spatial Audio”, pod nią „dźwięk przestrzenny”. Usługa dzieli sumę (po
+korektorze) na **cztery pasma** zwrotnicami Linkwitza-Rileya przy 120, 500 i 4000 Hz (Bas, Niski środek, Środek, Góra —
+tabela `K1_PRZ_PASMA`; suma pasm = wejście, tylko faza obrócona) i stawia lewy i prawy kanał każdego pasma jako dwa wirtualne
+źródła tam, gdzie mówi **scena**: kierunek (−180…180°), szerokość (0…180°), odległość (0…100 %). **Gotowe sceny** — tabela
+`K1_PRZ_SCENY` (Naturalny, Kino, Koncert, Pokój, Głos); wyłączona — „Wyłączony”, inne miejsca pasm — „Własna” (krok 4:
+przeciąganie). Bas zostaje tam, gdzie jest. Każde wyjście ma swoją scenę (gra ta wyjścia, które gra; po podłączeniu słuchawek
+przechodzi sama):
+- **słuchawki** — model głowy (Brown, Duda): opóźnienie między uszami (do 656 µs), cień głowy (góra dalszego ucha ciszej),
+  łagodniejsza góra źródła z tyłu; odległość: bliżej głośniej i suszej, dalej ciszej z sześcioma wczesnymi odbiciami
+  (7–27 ms, bez długiego pogłosu);
+- **głośniki** (D3: A) — szerszy dźwięk: boki głośniej niż środek (najwyżej 1,6 ×), łagodne krzyżowe wygaszanie, kierunek
+  za plecami odbity do przodu — bez „dźwięku z tyłu”, którego dwa małe głośniki nie zagrają.
+Scena **nigdy nie gra głośniej niż 100 %** (granica dźwięku mono i mocy dwóch kanałów bez związku na siatce częstotliwości —
+`k1_prz_moc`; ogranicznik zostaje na końcu toru). **Wyłączona nie liczy nic** — tor przezroczysty próbka w próbkę; trzyma
+tylko kopię ostatniego okresu, od której zaczynają zwrotnice po włączeniu (bez stuknięcia). Każda zmiana (scena, wyjście,
+włączenie) przechodzi przez jeden okres płynnie. Liczenie czyste (`k1_przestrzen.c`, `k1_prz_licz.c`; w `double`, bez libm),
+usługa (`src/dzwiek/przestrzen.c`): scena od klienta sterującego (`DZWIEK_SCENA`) sprawdzona pole po polu, wszystkim klientom
+sterującym `DZWIEK_SCENA_STAN` (nowemu — obu wyjść); w logu nazwa sceny („scena (Słuchawki): Kino”, „Własna”, „Wyłączony”)
+najwyżej dwa razy na sekundę, raz na minutę gry koszt („scena: średnio N µs na okres (P % jednego rdzenia)”). Pamięta je gui
+(rekord „K1G3”, `gui.md`) i daje każdej nowej usłudze; zmienia je Ustawienia → Dźwięk → Kons Spatial Audio (`aplikacje.md`);
+przełącznik w okienku „Dźwięk” i scena do przeciągania — krok 4.
+
 ## Komunikaty
 Typy i pola: `k1_komunikat.h` (sekcja „0.12.0 step 1”), sprawdzanie: `k1_kom_dzwiek.c`; obiekt zawsze 0.
 | Typ | Kierunek | Pola |
@@ -108,6 +132,8 @@ Typy i pola: `k1_komunikat.h` (sekcja „0.12.0 step 1”), sprawdzanie: `k1_kom
 | `DZWIEK_SESJA` (krok 3) | usługa → klient sterujący | a = strefa, b = 1 jej sesja gra (ramki w ostatniej sekundzie), c = głośność sesji, d = wyciszona; po każdej zmianie, nowemu klientowi — każda inna niż na starcie |
 | `DZWIEK_KOREKTOR` (0.12.3 krok 2) | klient sterujący → usługa | a = wyjście (Głośniki / Słuchawki), b, c, d = dziesięć pasm w półdecybelach −24…24, po cztery na pole (bajt na pasmo, `k1_kor_do_pol`; nieużyte bajty 0) |
 | `DZWIEK_KOREKTOR_STAN` (0.12.3 krok 2) | usługa → klient sterujący | jak `DZWIEK_KOREKTOR`; nowemu klientowi obu wyjść, potem po każdej zmianie |
+| `DZWIEK_SCENA` (0.12.3 krok 3) | klient sterujący → usługa | a = wyjście (Głośniki / Słuchawki), b = 1 Kons Spatial Audio włączone / 0, c = kierunki czterech pasm, d = ich szerokości (bajt na pasmo w krokach 2°: −90…90 i 0…90), e = ich odległości (bajt 0…100) — `k1_prz_do_pol` |
+| `DZWIEK_SCENA_STAN` (0.12.3 krok 3) | usługa → klient sterujący | jak `DZWIEK_SCENA`; nowemu klientowi obu wyjść, potem po każdej zmianie |
 | `DZWIEK_STAN` | usługa → klient | a = karta (SZUKA, BRAK, JEST, BLAD), b = głośność, c = wyciszone (wyjścia, które gra), d = wyjście (tylko z kartą: Głośniki albo — krok 2 — Słuchawki) |
 | `DZWIEK_ODTWORZONO` | usługa → klient | a = ramki zabrane 0…16384, b = 1 strumień się skończył (wtedy a może być 0) |
 | `DZWIEK_KANAL` | nadzorca → gui (fd 5), Ustawienia (fd 4; krok 2), VMM strefy z oknem (fd 7; krok 3) (+ fd) | wszystko 0 |
@@ -181,5 +207,16 @@ zapisuje ją w skarbcu (`gui.md`) i daje każdej nowej usłudze.
   Ustawienia → Dźwięk → Korektor po nazwach, pasmo 1k na +12 dB, szósta próba — w pliku nuta 660 Hz o 7,0 dB i 880 Hz
   o 1,7 dB ciszej niż piąta (krzywa liczona w `k1dzwiek.py` jak w `k1_korektor.c`, ±0,75 dB), wiersz „Korektor” w okienku
   otwiera Ustawienia na korektorze, „Płaski”.
+- 0.12.3 krok 3 (Kons Spatial Audio): `test_przestrzen` — tabele (pasma krawędź w krawędź, gotowe sceny rozpoznane po nazwie,
+  „Wyłączony”, „Własna”), scena w komunikacie i z powrotem (poza zakresem — odrzucona); zwrotnice: suma pasm ±0,01 dB od
+  wejścia, każde pasmo jak wzór; model głowy: 656 µs z boku, źródło z lewej — lewe ucho wcześniej (impuls) i głośniej w górze,
+  bas zostaje; głośniki: pasma z lewej w lewym kanale, kierunek z tyłu jak z przodu; poziom: granica ≤ 1 na gęstej siatce
+  (gotowe i 100 losowych scen), ton w obu wejściach i szum bez związku przez działającą scenę nie głośniej; wyłączony —
+  przezroczysty; zmiana bez skoku, wyłączony dokładny po okresie; najgorsze sceny na szumie pełnej skali — skończone; cisza
+  zeruje filtry. `fuzz_przestrzen` (wrogi klient sterujący: dowolne pola dwóch scen, dowolne wyjścia, zmiana w trakcie);
+  `test_dzwiek` — komunikaty sceny, rekord „K1G3” (i „K1G2”, „K1G1”); `t_dzwiek` — scena ustawiona i powiedziana z powrotem,
+  NEGATYWNE: włączona = 2, kierunek 182°, odległość 101 %. `test-dzwiek.sh`: Ustawienia → Dźwięk → Kons Spatial Audio po
+  nazwach, „Kino” (usługa gra, gui zapamiętuje), program testowy stawia wszystkie pasma z lewej („Własna”), siódma próba —
+  w pliku prawy kanał co najmniej 20 dB ciszej, lewy jak piąta ±1 dB; przełącznik — wyłączony.
 - Na sprzęcie (właściciel): próba słychać na X230 i IdeaPadzie; log z nazwami karty i kodeka; krok 2 — klawisze (log
   wejścia: „z klawiszami głośności”), słuchawki w gnieździe (log „gniazdo słuchawek: …”, „wyjście: Słuchawki”).

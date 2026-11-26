@@ -157,6 +157,12 @@ void korektor_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const struct k
 int korektor_wskaznik(struct k1_dzw_polaczenie *dz, int rodzaj, int32_t x, int32_t y, int przycisk); /* 1 = redraw */
 void korektor_pokazany(const struct k1_dzw_polaczenie *dz); /* the tab opened: the output playing now, its log line */
 
+/* przestrzen.c (0.12.3 step 3, D3: A, D5, D7: A): Dźwięk → Kons Spatial Audio — the switch and the ready scenes of an
+ * output */
+void przestrzen_rysuj(struct k1_obraz *o, const struct k1_motyw *m, const struct k1_dzw_polaczenie *dz);
+int przestrzen_wskaznik(struct k1_dzw_polaczenie *dz, int rodzaj, int32_t x, int32_t y, int przycisk); /* 1 = redraw */
+void przestrzen_pokazany(const struct k1_dzw_polaczenie *dz); /* the tab opened: the output playing now, its log line */
+
 /* informacje.c */
 void informacje_rysuj(struct k1_obraz *o, const struct k1_motyw *m);
 

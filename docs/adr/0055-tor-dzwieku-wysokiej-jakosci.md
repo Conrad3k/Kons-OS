@@ -1,7 +1,7 @@
 # 0055. Tor dźwięku wysokiej jakości: liczby zmiennoprzecinkowe w usłudze, ogranicznik, dither, 24 bity do karty, formaty strefy
 
-- Status: Przyjęty, krok 1 wdrożony (plan 0.12.3), krok 2 (korektor, pkt 9–13) wdrożony; kroki 3–4 (Kons Spatial Audio)
-  dopiszą swoje punkty
+- Status: Przyjęty, krok 1 wdrożony (plan 0.12.3), krok 2 (korektor, pkt 9–13) wdrożony, krok 3 (Kons Spatial Audio —
+  silnik i gotowe sceny, pkt 14–19) wdrożony; krok 4 (scena do przeciągania) dopisze swoje
 - Data: 2026-11-26
 - Dotyczy: ADR 0054 pkt 3 (jeden format i głośność w usłudze — **zastąpiony** punktami 1–5 niżej), pkt 13–16 (dźwięk
   stref — formaty gościa, punkt 6); plan `docs/PLAN-0.12.3.txt` (krok 1, T1–T5, T8); opisy: `docs/komponenty/dzwiek.md`,
@@ -107,6 +107,57 @@ dithera.
    Okienko „Dźwięk” (D1: A) pokazuje nazwę ustawienia i otwiera Ustawienia na korektorze: `POKAZ_USTAWIENIA` (gui →
    nadzorca) i `USTAWIENIA_MIEJSCE` (nadzorca → Ustawienia) z tabelą miejsc `K1_UST_MIEJSCA` (krok 4 dopisze scenę).
 
+14. **Kons Spatial Audio (krok 3; decyzje właściciela D3: A, D5: cała lista, D7: A z 2026-11-26).** Nazwa własna funkcji
+   „Kons Spatial Audio”, pod nią po polsku „dźwięk przestrzenny”. Dźwięk dzielą na **cztery pasma** zwrotnice
+   Linkwitza-Rileya 4. rzędu (dwie sekcje Butterwortha) przy 120, 500 i 4000 Hz: Bas, Niski środek, Środek, Góra (tabela
+   `K1_PRZ_PASMA`). Gałąź niska dostaje filtr wszechprzepustowy zwrotnicy 4 kHz, wysoka — 120 Hz, więc suma pasm to sygnał
+   z obróconą tylko fazą: pomiar — najwyżej 0,0001 dB od wejścia od 20 Hz do 20 kHz. W każdym paśmie lewy i prawy kanał
+   to dwa wirtualne źródła; **scena** daje pasmu **kierunek** (−180…180°, 0 — przód, + w prawo), **szerokość** (0…180°:
+   kąt między jego dwoma źródłami) i **odległość** (0…100 %); kroki 2° (bajt w komunikacie). Gotowe sceny — tabela
+   `K1_PRZ_SCENY` (D5): Naturalny (wszystkie pasma z przodu, 60°, 20 %), Kino (głos — Środek 50°, 15 %, Góra 90° z przodu,
+   Niski środek 150° za słuchaczem — źródła po bokach i z tyłu, 40 %), Koncert (90–100°, 70 %), Pokój (40°, 5 %), Głos (Środek
+   30°, 0 %, reszta 70°, 50 %); **Wyłączony** to scena wyłączona (jej miejsca zostają: po włączeniu gra jak przedtem), inne
+   miejsca — „Własna”. Bas (poniżej 120 Hz) zostaje tam, gdzie jest: ucho go nie umiejscawia, a rozsunięty brzmi słabo.
+   Kod: `src/wspolne/k1_przestrzen.c` (tabele, scena w liczbach, poziom), `k1_prz_licz.c` (zwrotnice, drogi, przejście),
+   `src/dzwiek/przestrzen.c` (usługa).
+15. **Słuchawki — model głowy (T7).** Kulista głowa (C. P. Brown, R. O. Duda 1998; promień 8,75 cm, dźwięk 343 m/s): każde
+   źródło dochodzi do każdego ucha z opóźnieniem Woodwortha (z boku 656 µs między uszami — pomiar na impulsie: 667 µs,
+   z własnym opóźnieniem filtra cienia) i przez **cień głowy** — filtr pierwszego rzędu, którego góra ma wzmocnienie α:
+   2 (+6 dB) od strony źródła, 0,1 (−20 dB) 150° od osi ucha, zakręt przy 2c/a. Źródło z tyłu ma łagodniejszą górę (do −6 dB
+   powyżej 4 kHz prosto z tyłu) — samo opóźnienie nie odróżnia przodu od tyłu. Opóźnienie ułamkowe: filtr Lagrange'a
+   3. rzędu. Pomiar: źródło z lewej — 6 kHz w lewym uchu o 15,4 dB głośniej, 250 Hz o 0,7 dB (tam działa opóźnienie).
+   **Odległość:** bliżej — głośniej i suszej (0 % = 0 dB, 100 % = −6 dB), dalej — **wczesne odbicia**: sześć (7–27 ms, na
+   zmianę lewe i prawe ucho, łagodniejsze powyżej 5 kHz), ich udział do 0,35 przy 100 %; bez długiego pogłosu. Zbiór HRTF
+   z pomiarów głowy — „Później” (T7).
+16. **Głośniki laptopa (D3: A) — szerszy dźwięk.** Kierunek za plecami odbity do przodu (150° gra jak 30°), para źródeł
+   przesunięta tam z równą mocą (1 na środku), boki × w (szerokość / 60° — normalne stereo, najwyżej 1,6), a szerzej niż
+   normalnie — łagodne krzyżowe wygaszanie (do 0,3 drugiego kanału, 3 ramki później). Bez obietnicy „dźwięku z tyłu”.
+   Pomiar: pasma z lewej — 1 kHz w prawym kanale 101 dB ciszej, w lewym tak głośno jak bez sceny.
+17. **Poziom: scena nigdy nie gra głośniej niż 100 %.** Dla każdego ucha i częstotliwości (siatka 481 punktów 20 Hz–20 kHz
+   i zwrotnice) usługa liczy granicę wzmocnienia: dźwięku takiego samego w obu wejściach (moduł sumy dróg) i mocy dwóch
+   wejść bez związku (pierwiastek sumy kwadratów), plus odbicia z nierówności trójkąta; pasma ważone wagami zwrotnic
+   (|X| pasm sumują się do 1). Gdy granica przekracza 1, cała scena ścisza się o nią (`k1_prz_moc`, `wzm`). Ściszenie
+   gotowych scen: głośniki — Naturalny, Pokój, Głos 0 dB, Koncert −0,9, Kino −2,0 dB (poszerzenie dodaje mocy bokom);
+   słuchawki −3,2…−5,4 dB — tam każde ucho słyszy oba źródła pasma, więc dźwięk mono byłby dwa razy głośniejszy, a
+   ściszenie przywraca jego poziom. Pomiar: granica najwyżej +0,017 dB na gęstej siatce (gotowe i 100 losowych scen), ton
+   w obu wejściach przez działającą scenę najwyżej −0,085 dB, szum bez związku najwyżej −1,2 dB mocy. Ogranicznik z pkt 2
+   zostaje na końcu toru.
+18. **Liczby, koszt, przejścia (T6).** Liczenie w `double` (jak korektor), własne sin, cos, eˣ, pierwiastek (pkt 11), stan
+   filtrów zerowany poniżej 10⁻³⁰. Scena po korektorze, przed głośnością K1; osobna dla każdego wyjścia, gra ta wyjścia,
+   które gra. **Wyłączona nie liczy nic** (przezroczystość z pkt 3), trzyma tylko kopię ostatniego okresu: włączona po ciszy
+   zwrotnic przepuszcza najpierw ten okres (bez stuknięcia filtrów 120 Hz). Każda zmiana (inna scena, inne wyjście,
+   włączenie, wyłączenie) przechodzi przez jeden okres: stara i nowa scena (albo dźwięk bez sceny) na tym samym okresie,
+   płynnie; pomiar: ton 1 kHz przez Wyłączony → Kino → Głos → głośniki → Wyłączony — największy krok między próbkami równy
+   krokowi tonu, po wyłączeniu wyjście = wejście po jednym okresie. Koszt na hoście (bez ASan): 179 µs na okres 21 ms
+   (0,8 % rdzenia; najcięższe sceny); usługa loguje raz na minutę „scena: średnio N µs na okres” — X230 NIEPEWNE do logu.
+19. **Komunikaty i pamięć (T4).** `DZWIEK_SCENA` (klient sterujący → usługa, numer 255) i `DZWIEK_SCENA_STAN` (usługa →
+   klienci sterujący, 251): a = wyjście, b = włączona, c = cztery kierunki, d = cztery szerokości (bajty w krokach 2°),
+   e = cztery odległości — jedna zmiana, jeden komunikat. Numery zwolnił porządek tego kroku: `BATERIA_POKAZ` (251)
+   i `AKT_POKAZ` (185) to dziś wiersze tabeli `K1_UST_MIEJSCA` (Bateria, Aktualizacje) w `USTAWIENIA_MIEJSCE`; 185 czeka
+   na krok 4. Pamięć: gui, rekord „K1G3” (54 B: „K1G2” i po nim scena głośników i słuchawek, po 13 B jak w komunikacie;
+   „K1G2” i „K1G1” czytane dalej — sceny wyłączone). Ustawienia → Dźwięk → **Kons Spatial Audio** (trzecia zakładka):
+   wyjście, przełącznik, lista gotowych scen z opisami; scena do przeciągania i przełącznik w okienku „Dźwięk” — krok 4.
+
 ## Skutki
 - Cichy dźwięk bez „ziarna”, głośne nakładające się dźwięki bez trzasków; na kartach 24-bitowych szum toru 48 dB niżej.
 - Jeden strumień 16 bitów przy 100 % dalej przechodzi bez żadnej zmiany — pilnuje tego `test-dzwiek.sh` (plik WAV od QEMU
@@ -120,3 +171,8 @@ dithera.
 - Krok 2: korektor — `test_korektor` (liczby z pkt 9–12 jako granice), `fuzz_korektor`, `test_dzwiek` (komunikaty,
   „K1G2”), `t_dzwiek` (NEGATYWNE: pasmo ponad +12 dB, nieistniejące pasmo), `test-dzwiek.sh` (pasmo 1 kHz +12 dB:
   w pliku WAV nuta 660 Hz −7,0 dB i 880 Hz −1,7 dB wobec próby bez korektora); RYZYKA R109.
+- Krok 3: Kons Spatial Audio — `test_przestrzen` (liczby z pkt 14–18 jako granice), `fuzz_przestrzen`, `test_dzwiek`
+  (komunikaty sceny, „K1G3”), `t_dzwiek` (scena ustawiona i powiedziana z powrotem; NEGATYWNE: włączona = 2, kierunek 182°,
+  odległość 101 %), `test-dzwiek.sh` (Ustawienia → Dźwięk → Kons Spatial Audio po nazwach, „Kino”; pasma z lewej — w pliku
+  WAV prawy kanał co najmniej 20 dB ciszej, lewy jak bez sceny ±1 dB); RYZYKA R110. Odsłuch („z tyłu”, „szerzej”) — tylko
+  właściciel na sprzęcie.

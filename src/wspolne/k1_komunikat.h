@@ -258,9 +258,15 @@ enum k1_komunikat_typ {
     K1_KOM_DZWIEK_KOREKTOR = 29,   /* 0.12.3 step 2 (ADR 0055), a steering client only: a=the output K1_DZW_WYJSCIE_GLOSNIKI /
                                     * SLUCHAWKI, b,c,d=its ten bands, half-decibels −K1_KOR_MAKS..K1_KOR_MAKS, four a field
                                     * (k1_kor_do_pol; the unused bytes 0), e=0 — the equalizer of that output */
+    K1_KOM_DZWIEK_SCENA = 255,     /* 0.12.3 step 3 (ADR 0055), a steering client only: a=the output GLOSNIKI / SLUCHAWKI,
+                                    * b=1 Kons Spatial Audio on / 0 off, c=the four bands' directions, d=their widths (bytes in
+                                    * steps of K1_PRZ_KROK: −90..90, 0..90), e=their distances (bytes 0..100) — k1_prz_do_pol
+                                    * — the scene of that output */
     /* dzwiek → its client (K1_KIER_OD_DZWIEKU) */
     K1_KOM_DZWIEK_KOREKTOR_STAN = 49, /* 0.12.3 step 2, to a steering client: as DZWIEK_KOREKTOR — first (both outputs), and
                                        * after every change */
+    K1_KOM_DZWIEK_SCENA_STAN = 251, /* 0.12.3 step 3, to a steering client: as DZWIEK_SCENA — first (both outputs), and after
+                                     * every change */
     K1_KOM_DZWIEK_STAN = 42,       /* a=K1_DZW_KARTA_*, b=the volume 0..K1_DZW_GLOSNOSC_MAKS, c=1 muted, d=K1_DZW_WYJSCIE_*
                                     * (BRAK unless a=JEST, then not BRAK; step 2: SLUCHAWKI while something is in their
                                     * jack), e=0 — b, c of that output; first, and after every change */

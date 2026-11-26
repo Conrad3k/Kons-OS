@@ -10,7 +10,9 @@ from the speaker on its window's bar). 0.12.3 step 1 (ADR 0055, "przezroczystoś
 k1_dzw_proba (src/wspolne/k1_dzwiek.c, computed here in the same order: Python's floats are IEEE doubles as C's).
 0.12.3 step 2 (the equalizer): the sixth sound is the sample at 45 % with the band 1 kHz at +12 dB — each note as loud as
 the equalizer's curve says against the fifth (the same sample flat): its filters and the level before them computed here
-as in k1_korektor.c (660 Hz −7.0 dB, 880 Hz −1.7 dB); the zone's tone comes after it.
+as in k1_korektor.c (660 Hz −7.0 dB, 880 Hz −1.7 dB). 0.12.3 step 3 (Kons Spatial Audio): the seventh sound is the
+sample at 45 % with every band of the speakers' scene on the left — the right channel at least 20 dB under the left, the
+left as loud as the fifth (a scene never louder than 100 %: ±1 dB); the zone's tone comes after it.
 
     python3 -I testy/qemu/k1dzwiek.py PLIK.wav   — exit 0 when all hold"""
 import array
@@ -23,8 +25,8 @@ BLOK = 240         # 5 ms
 PRZERWA = 0.25     # a gap shorter than this does not end a sound (an underrun in emulation)
 
 
-def probki(sciezka):
-    """The left channel as a list of ints. QEMU writes the header's sizes only when it closes the file: the data is
+def probki(sciezka, kanal=0):
+    """One channel (0 left, 1 right) as a list of ints. QEMU writes the header's sizes only when it closes the file: the data is
     read up to the end of the file whatever the header says."""
     b = open(sciezka, "rb").read()
     if len(b) < 44 or b[:4] != b"RIFF" or b[8:12] != b"WAVE":
@@ -45,7 +47,7 @@ def probki(sciezka):
     if dane is None:
         return None
     n = len(dane) // (2 * kanaly)
-    return list(struct.unpack_from(f"<{n * kanaly}h", dane))[::kanaly]
+    return list(struct.unpack_from(f"<{n * kanaly}h", dane))[kanal::kanaly]
 
 
 def dzwieki(s):
@@ -152,11 +154,11 @@ def main():
         sprawdz("plik WAV od QEMU (48 kHz, 16 bitów)", False, sys.argv[1])
         return 1
     d = dzwieki(s)
-    sprawdz("sześć prób (100 %, 50 %, 50 % po restarcie usługi, 40 %, 45 %, 45 % z korektorem; wyciszona — cisza), "
-            "po nich ton strefy", len(d) >= 7,
+    sprawdz("siedem prób (100 %, 50 %, 50 % po restarcie usługi, 40 %, 45 %, 45 % z korektorem, 45 % ze sceną z lewej; "
+            "wyciszona — cisza), po nich ton strefy", len(d) >= 8,
             f"{len(d)}: " + ", ".join(f"{a / CZESTOTLIWOSC:.2f}–{z / CZESTOTLIWOSC:.2f} s" for a, z in d))
     szczyty = []
-    for nr, (a, z) in enumerate(d[:6], 1):
+    for nr, (a, z) in enumerate(d[:7], 1):
         pol = (a + z) // 2
         f1, f2 = czestotliwosc(s[a:pol]), czestotliwosc(s[pol:z])
         szczyty.append(max(abs(v) for v in s[a:z]))
@@ -184,8 +186,23 @@ def main():
             db, cel = 20 * __import__("math").log10(max(czesci[1], 1e-9) / max(czesci[0], 1e-9)), korektor_db(hz, 1000, 24)
             sprawdz(f"korektor (1 kHz +12 dB): nuta {hz} Hz o {cel:+.1f} dB wobec próby bez korektora", abs(db - cel) < 0.75,
                     f"{db:+.2f} dB")
-    if len(d) >= 7:  # step 3: the zone's tone (in emulation it may come in pieces), one gap of the muted session
-        reszta = d[6:]
+    if len(d) >= 7:  # 0.12.3 step 3: the seventh — the scene on the left: the right channel quiet, the left as the fifth
+        prawy = probki(sys.argv[1], 1)
+        for i, hz in enumerate((660, 880)):
+            lewy_db, prawy_db = [], []
+            for a, z in (d[4], d[6]):
+                pol = (a + z) // 2
+                a, z = (a, pol) if i == 0 else (pol, z)
+                a, z = a + (z - a) // 5, z - (z - a) // 5
+                lewy_db.append(rms(s[a:z]))
+                prawy_db.append(rms(prawy[a:z]))
+            log = __import__("math").log10
+            roznica, wobec = 20 * log(max(lewy_db[1], 1e-9) / max(prawy_db[1], 1e-9)), \
+                20 * log(max(lewy_db[1], 1e-9) / max(lewy_db[0], 1e-9))
+            sprawdz(f"scena z lewej (głośniki): nuta {hz} Hz — prawy kanał co najmniej 20 dB ciszej, lewy jak bez sceny",
+                    roznica >= 20.0 and abs(wobec) < 1.0, f"lewy − prawy {roznica:+.1f} dB, lewy wobec piątej {wobec:+.2f} dB")
+    if len(d) >= 8:  # step 3 of 0.12.0: the zone's tone (in emulation it may come in pieces), one gap of the muted session
+        reszta = d[7:]
         ton = [v for a, z in reszta for v in s[a:z]]
         przerwa = max((reszta[i + 1][0] - reszta[i][1]) / CZESTOTLIWOSC for i in range(len(reszta) - 1)) \
             if len(reszta) > 1 else 0

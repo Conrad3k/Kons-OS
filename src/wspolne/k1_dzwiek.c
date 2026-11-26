@@ -146,18 +146,41 @@ int k1_dzw_gniazdo_sluchawek(const char *nazwa)
 void k1_dzw_zapamietane_domyslne(struct k1_dzw_zapamietane *z)
 {
     memset(z, 0, sizeof *z);
-    for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++)
-        z->glosnosc[w] = K1_DZW_GLOSNOSC_START;
+    for (int w = K1_DZW_WYJSCIE_BRAK; w <= K1_DZW_WYJSCIE_MAKS; w++) {
+        z->glosnosc[w] = w != K1_DZW_WYJSCIE_BRAK ? K1_DZW_GLOSNOSC_START : 0;
+        k1_prz_scena_start(&z->scena[w]);
+    }
+}
+
+/* A scene in its 13 bytes: as the fields of a message (k1_prz_do_pol), little endian. */
+static void scena_zapisz(const struct k1_prz_scena *s, uint8_t *b)
+{
+    int32_t f[4];
+    k1_prz_do_pol(s, f);
+    b[0] = (uint8_t)f[0];
+    for (int j = 0; j < 3; j++)
+        for (int i = 0; i < 4; i++)
+            b[1 + 4 * j + i] = (uint8_t)((uint32_t)f[1 + j] >> (8 * i));
+}
+
+static int scena_czytaj(const uint8_t *b, struct k1_prz_scena *s)
+{
+    int32_t f[4] = { b[0], 0, 0, 0 };
+    for (int j = 0; j < 3; j++)
+        f[1 + j] = (int32_t)((uint32_t)b[1 + 4 * j] | (uint32_t)b[2 + 4 * j] << 8 | (uint32_t)b[3 + 4 * j] << 16 |
+                             (uint32_t)b[4 + 4 * j] << 24);
+    return k1_prz_z_pol(f, s);
 }
 
 size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *buf)
 {
-    memcpy(buf, "K1G2", 4);
+    memcpy(buf, "K1G3", 4);
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
         buf[4 + 2 * (w - 1)] = (uint8_t)z->glosnosc[w];
         buf[5 + 2 * (w - 1)] = (uint8_t)(z->wyciszone[w] != 0);
         for (int i = 0; i < K1_KOR_PASMA_N; i++)
             buf[K1_DZW_ZAPIS_G1_BAJTY + K1_KOR_PASMA_N * (w - 1) + i] = (uint8_t)z->korektor[w][i];
+        scena_zapisz(&z->scena[w], buf + K1_DZW_ZAPIS_G2_BAJTY + K1_DZW_ZAPIS_SCENA * (w - 1));
     }
     return K1_DZW_ZAPIS_BAJTY;
 }
@@ -165,10 +188,11 @@ size_t k1_dzw_zapamietane_zapisz(const struct k1_dzw_zapamietane *z, uint8_t *bu
 int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapamietane *z)
 {
     struct k1_dzw_zapamietane t;
-    int g2 = n == K1_DZW_ZAPIS_BAJTY && memcmp(buf, "K1G2", 4) == 0;
+    int g3 = n == K1_DZW_ZAPIS_BAJTY && memcmp(buf, "K1G3", 4) == 0;
+    int g2 = g3 || (n == K1_DZW_ZAPIS_G2_BAJTY && memcmp(buf, "K1G2", 4) == 0);
     if (!g2 && (n != K1_DZW_ZAPIS_G1_BAJTY || memcmp(buf, "K1G1", 4) != 0))
         return -1;
-    memset(&t, 0, sizeof t);
+    k1_dzw_zapamietane_domyslne(&t);
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
         uint8_t v = buf[4 + 2 * (w - 1)], m = buf[5 + 2 * (w - 1)];
         if (v > K1_DZW_GLOSNOSC_MAKS || m > 1)
@@ -181,6 +205,8 @@ int k1_dzw_zapamietane_czytaj(const uint8_t *buf, size_t n, struct k1_dzw_zapami
                 return -1;
             t.korektor[w][i] = p;
         }
+        if (g3 && scena_czytaj(buf + K1_DZW_ZAPIS_G2_BAJTY + K1_DZW_ZAPIS_SCENA * (w - 1), &t.scena[w]) != 0)
+            return -1; /* 0.12.3 step 3 */
     }
     *z = t;
     return 0;

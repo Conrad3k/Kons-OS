@@ -10,7 +10,8 @@
  * plays goes on to ekran (STREFA_DZWIEK: the speaker on its window's bar), whose click comes back (STREFA_WYCISZ).
  * 0.12.3 step 2 (D1: A): the row "Korektor" with the name of the output's setting ("Więcej basu", "Własne") — a click
  * opens Ustawienia → Dźwięk → Korektor (POKAZ_USTAWIENIA to nadzorca); the bands of both outputs are remembered with the
- * volume (record K1G2) and given to every new service. */
+ * volume (record K1G2) and given to every new service. Step 3: so is the scene of Kons Spatial Audio of each output
+ * (record K1G3; Ustawienia → Dźwięk → Kons Spatial Audio sets it — the popover's switch comes in step 4). */
 #include <stdio.h>
 #include <string.h>
 
@@ -28,6 +29,7 @@ static struct k1_dzw_polaczenie dz = K1_DZW_POLACZENIE_START(TAG);
 static struct k1_dzw_zapamietane zap;
 static int zgodne;          /* the service has what we remember (its STAN after a new channel said so) */
 static int kor_zgodne;      /* bit w: the service has our bands of output w (its KOREKTOR_STAN said so) */
+static int sc_zgodne;       /* bit w: the service has our scene of output w (its SCENA_STAN said so; 0.12.3 step 3) */
 static double zmiana_t;     /* when the remembered volume changed (0: nothing to write) */
 static int hover = -1, wcisniete = -1; /* the control under the pointer / pressed (C_*) */
 
@@ -122,6 +124,8 @@ void dzwiek_wczytaj(void)
         k1_log(TAG, "dźwięk: głośność domyślna (%d%%)", K1_DZW_GLOSNOSC_START);
     k1_log(TAG, "dźwięk: zapamiętany korektor — głośniki: %s, słuchawki: %s",
            k1_kor_nazwa(zap.korektor[K1_DZW_WYJSCIE_GLOSNIKI]), k1_kor_nazwa(zap.korektor[K1_DZW_WYJSCIE_SLUCHAWKI]));
+    k1_log(TAG, "dźwięk: zapamiętana scena — głośniki: %s, słuchawki: %s",
+           k1_prz_nazwa(&zap.scena[K1_DZW_WYJSCIE_GLOSNIKI]), k1_prz_nazwa(&zap.scena[K1_DZW_WYJSCIE_SLUCHAWKI]));
 }
 
 /* Written ZAPISZ_PO_S after the last change (every loop of gui, at least once a second). */
@@ -142,10 +146,29 @@ void dzwiek_kanal_nowy(int fd)
     k1_dzwk_kanal(&dz, fd);
     zgodne = 0;
     sesje(1); /* step 3: no session plays until the new service says so */
-    kor_zgodne = 0;
+    kor_zgodne = sc_zgodne = 0;
     for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
         k1_dzwk_glosnosc(&dz, zap.glosnosc[w], zap.wyciszone[w], w);
         k1_dzwk_korektor(&dz, w, zap.korektor[w]); /* 0.12.3 step 2 */
+        k1_dzwk_scena(&dz, w, &zap.scena[w]);      /* step 3 */
+    }
+}
+
+/* 0.12.3 step 3: the scenes of the outputs as the service says them, as zapamietaj_korektor (also its places while off:
+ * switched on again, it plays as before). */
+static void zapamietaj_sceny(void)
+{
+    for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++) {
+        const struct k1_prz_scena *a = &dz.scena[w], *b = &zap.scena[w];
+        int rowne = a->wlaczona == b->wlaczona && memcmp(a->pasma, b->pasma, sizeof a->pasma) == 0;
+        if (!(sc_zgodne & 1 << w)) {
+            sc_zgodne |= rowne << w;
+            continue;
+        }
+        if (!rowne) {
+            zap.scena[w] = *a;
+            zmiana_t = k1_teraz();
+        }
     }
 }
 
@@ -192,6 +215,8 @@ void dzwiek_odbierz(void)
         zapamietaj(0);
     if (r & K1_DZWK_KOREKTOR)
         zapamietaj_korektor();
+    if (r & K1_DZWK_SCENA)
+        zapamietaj_sceny();
     if (r & (K1_DZWK_SESJE | K1_DZWK_KONIEC))
         sesje(0);
     if (r)

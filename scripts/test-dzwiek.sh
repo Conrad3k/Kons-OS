@@ -20,6 +20,10 @@
 # „Własne”, pulpit zapamiętuje), szósta próba z korektorem (w pliku: nuta 660 Hz o 7,0 dB, 880 Hz o 1,7 dB ciszej niż
 # piąta — krzywa liczona w k1dzwiek.py jak w k1_korektor.c), wiersz „Korektor” w okienku „Dźwięk” otwiera Ustawienia na
 # korektorze, „Płaski” — z powrotem płaski.
+# 0.12.3 krok 3 (Kons Spatial Audio, D3: A, D5, D7: A): Ustawienia → Dźwięk → Kons Spatial Audio — przełącznik i gotowe
+# sceny po nazwach; „Kino” na głośnikach (usługa gra, pulpit zapamiętuje), potem program testowy stawia wszystkie pasma
+# z lewej (Ustawienia pokazują „Własna”), siódma próba — w pliku lewy kanał co najmniej 20 dB głośniej niż prawy i tak
+# głośny jak piąta próba (scena nie podnosi poziomu), przełącznik — wyłączony.
 # Komputer bez karty: test-m4 (okienko mówi „nie ma karty dźwiękowej”). Wymaga: scripts/zbuduj.sh.
 . "$(dirname "$0")/wspolne.sh"
 TESTY=$K1_BUDOWA/testy
@@ -184,6 +188,34 @@ q.sprawdz("wiersz „Korektor” otwiera Ustawienia na korektorze (nadzorca), ok
 n_kor = q.ile(r"K1-DZWIEK: korektor \(Głośniki\): Płaski")
 q.klik_w("Ustawienia", "Płaski")
 q.sprawdz("„Płaski”: korektor głośników znów płaski", q.czekaj(r"K1-DZWIEK: korektor \(Głośniki\): Płaski", od=n_kor, czas=30))
+
+# ---- 0.12.3 step 3: Kons Spatial Audio (D3: A — on the speakers a wider stereo; D5: the ready scenes; D7: A) ----
+q.klik_w("Ustawienia", "Kons Spatial Audio", "zakladka")
+q.sprawdz("Ustawienia → Dźwięk → Kons Spatial Audio: przełącznik i gotowe sceny (głośniki, wyłączony)",
+          q.czekaj_na_element("Ustawienia", "Kino", czas=30) and q.element("Ustawienia", "Naturalny") and
+          q.element("Ustawienia", "Kons Spatial Audio", "przycisk") and
+          q.czekaj(r"K1-USTAWIENIA: scena \(Głośniki\): Wyłączony", czas=30))
+q.zrzut("przestrzen", gdy=lambda w, h, px: True)
+n_sc, n_zap = q.ile(r"K1-DZWIEK: scena \(Głośniki\): Kino"), q.ile(r"K1-GUI: dźwięk: głośność zapamiętana")
+q.klik_w("Ustawienia", "Kino")
+q.sprawdz("„Kino”: usługa gra scenę na głośnikach, pulpit ją zapamiętuje w skarbcu (K1G3)",
+          q.czekaj(r"K1-DZWIEK: scena \(Głośniki\): Kino", od=n_sc, czas=30) and
+          q.czekaj(r"K1-GUI: dźwięk: głośność zapamiętana", od=n_zap, czas=30))
+q.sprawdz("program testowy stawia wszystkie pasma z lewej (klient sterujący): usługa gra „Własna”, Ustawienia ją pokazują",
+          q.czekaj(r"K1-TEST: dźwięk: scena z lewej — ustawiona", czas=30) and
+          q.czekaj(r"K1-DZWIEK: scena \(Głośniki\): Własna", czas=30) and
+          q.czekaj_na(lambda: (q.element("Ustawienia", "Własna") or {}).get("stan", 0) & 1, czas=30))
+q.zrzut("przestrzen-wlasna", gdy=lambda w, h, px: True)
+q.klik_w("Ustawienia", "Głośność", "zakladka")
+n = q.ile(r"K1-USTAWIENIA: próba: zagrana")
+q.klik_w("Ustawienia", "Odtwórz próbę")
+q.sprawdz("próba ze sceną z lewej (45 %) zagrana — w pliku lewy kanał głośniej",
+          q.czekaj(r"K1-USTAWIENIA: próba: zagrana", od=n, czas=120))
+q.klik_w("Ustawienia", "Kons Spatial Audio", "zakladka")
+n_sc = q.ile(r"K1-DZWIEK: scena \(Głośniki\): Wyłączony")
+q.klik_w("Ustawienia", "Kons Spatial Audio", "przycisk")
+q.sprawdz("przełącznik „Kons Spatial Audio”: scena głośników wyłączona",
+          q.czekaj(r"K1-DZWIEK: scena \(Głośniki\): Wyłączony", od=n_sc, czas=30))
 
 # ---- 0.12.0 step 3: a zone plays (D6: A — the speaker on its bar, the list "Grają teraz"); the hostile one ----
 q.klik_w("Ustawienia", "Zamknij", "przycisk")  # the cue: the test program starts the test zone with a tone

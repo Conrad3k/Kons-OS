@@ -126,6 +126,30 @@ static void korektor_komunikaty(void)
     EXPECT(!ok(K(K1_KOM_USTAWIENIA_MIEJSCE, K1_UST_MIEJSCA_MAKS + 1, 0, 0, 0, 0), K1_KIER_OD_NADZORCY));
 }
 
+/* 0.12.3 step 3: DZWIEK_SCENA (a steering client → dzwiek) and its STAN */
+static void scena_komunikaty(void)
+{
+    struct k1_prz_scena sc;
+    int32_t f[4];
+    k1_prz_scena_gotowa(K1_PRZ_KONCERT, &sc);
+    k1_prz_do_pol(&sc, f);
+    EXPECT(ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_SLUCHAWKI, f[0], f[1], f[2], f[3]), K1_KIER_DO_DZWIEKU));
+    EXPECT(ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU)); /* off, all in front */
+    EXPECT(ok(K(K1_KOM_DZWIEK_SCENA_STAN, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], f[3]), K1_KIER_OD_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], f[3]), K1_KIER_OD_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA_STAN, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], f[3]), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_BRAK, f[0], f[1], f[2], f[3]), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_MAKS + 1, f[0], f[1], f[2], f[3]), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, 2, f[1], f[2], f[3]), K1_KIER_DO_DZWIEKU));
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, 1, 91, f[2], f[3]), K1_KIER_DO_DZWIEKU));   /* 182° */
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, 1, 0, 91 << 8, f[3]), K1_KIER_DO_DZWIEKU)); /* 182° wide */
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, 1, 0, 0, 101 << 24), K1_KIER_DO_DZWIEKU)); /* 101 % */
+    EXPECT(!ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, 1, 0, 0, -1), K1_KIER_DO_DZWIEKU));
+    EXPECT(ok(K(K1_KOM_DZWIEK_SCENA, K1_DZW_WYJSCIE_GLOSNIKI, 1, (int32_t)0xa6a65a5au, 0, 0x64646464),
+              K1_KIER_DO_DZWIEKU)); /* −180°, 180°, 100 %: the ends */
+    EXPECT(!k1_komunikat_z_deskryptorem(K1_KOM_DZWIEK_SCENA, K1_KIER_DO_DZWIEKU));
+}
+
 static void komunikaty(void)
 {
     EXPECT(ok(K(K1_KOM_DZWIEK_KARTA, K1_DZW_WEZEL_ODTWARZANIE, 0, 0, 0, 0), K1_KIER_STEROWANIE));
@@ -168,6 +192,7 @@ static void komunikaty(void)
     EXPECT(!ok(K(K1_KOM_DZWIEK_KANAL, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
     EXPECT(ok(K(K1_KOM_TEST_DZWIEK, 0, 0, 0, 0, 0), K1_KIER_DO_NADZORCY));
     korektor_komunikaty();
+    scena_komunikaty();
     EXPECT(!ok(k1_komunikat_nowy(K1_KOM_DZWIEK_OTWORZ, 1, 0, 0, 0, 0, 0), K1_KIER_DO_DZWIEKU)); /* obiekt: 0 */
     EXPECT(k1_komunikat_z_deskryptorem(K1_KOM_DZWIEK_OTWORZ, K1_KIER_DO_DZWIEKU) &&
            k1_komunikat_z_deskryptorem(K1_KOM_DZWIEK_KARTA, K1_KIER_STEROWANIE) &&
@@ -225,23 +250,43 @@ static void zapamietane(void)
     b[7] = 1;
     b[0] = 'X';
     EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
-    /* 0.12.3 step 2: K1G2 with the equalizer; K1G1 (0.12.0) still read, flat */
+    /* 0.12.3 step 2: the equalizer; step 3: K1G3 with the scenes; K1G2 (step 2) and K1G1 (0.12.0) still read */
     k1_kor_gotowe_pasma(K1_KOR_WIECEJ_BASU, z.korektor[K1_DZW_WYJSCIE_GLOSNIKI]);
     k1_kor_gotowe_pasma(K1_KOR_LAPTOP, z.korektor[K1_DZW_WYJSCIE_SLUCHAWKI]);
-    EXPECT(k1_dzw_zapamietane_zapisz(&z, b) == 28 && memcmp(b, "K1G2", 4) == 0);
+    k1_prz_scena_gotowa(K1_PRZ_KINO, &z.scena[K1_DZW_WYJSCIE_SLUCHAWKI]);
+    k1_prz_scena_gotowa(K1_PRZ_GLOS, &z.scena[K1_DZW_WYJSCIE_GLOSNIKI]);
+    z.scena[K1_DZW_WYJSCIE_GLOSNIKI].wlaczona = 0; /* off: its places are remembered */
+    EXPECT(k1_dzw_zapamietane_zapisz(&z, b) == 54 && sizeof b == 54 && memcmp(b, "K1G3", 4) == 0);
     EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) == 0 && c.glosnosc[1] == 35 && c.wyciszone[2] == 1 &&
-           memcmp(c.korektor, z.korektor, sizeof c.korektor) == 0);
+           memcmp(c.korektor, z.korektor, sizeof c.korektor) == 0 &&
+           k1_prz_rowne(&c.scena[2], &z.scena[2]) && k1_prz_rozpoznaj(&c.scena[2]) == K1_PRZ_KINO &&
+           !c.scena[1].wlaczona && k1_prz_rozpoznaj(&c.scena[1]) == K1_PRZ_GLOS);
+    b[28] = 2; /* the speakers' scene neither on nor off */
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    b[28] = 0;
+    b[28 + 1] = 91; /* the speakers' first band at 182° */
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    b[28 + 1] = 0;
+    b[28 + 13 + 9] = 101; /* the headphones' first band 101 % away */
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    b[28 + 13 + 9] = 20;
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) == 0);
+    memcpy(b, "K1G2", 4); /* step 2's record: 28 bytes, the scenes as at the start */
+    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G2_BAJTY, &c) == 0 && c.glosnosc[1] == 35 &&
+           memcmp(c.korektor, z.korektor, sizeof c.korektor) == 0 && !c.scena[2].wlaczona &&
+           k1_prz_rozpoznaj(&c.scena[2]) == K1_PRZ_NATURALNY);
     b[8 + 3] = 25; /* the speakers' band 3 at +12.5 dB */
-    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G2_BAJTY, &c) != 0);
     b[8 + 3] = (uint8_t)-25;
-    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G2_BAJTY, &c) != 0);
     b[8 + 3] = 4;
-    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b - 1, &c) != 0);
+    EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G2_BAJTY - 1, &c) != 0);
     EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G1_BAJTY, &c) != 0); /* "K1G2" of 8 bytes */
     memcpy(b, "K1G1", 4);
-    EXPECT(k1_dzw_zapamietane_czytaj(b, sizeof b, &c) != 0); /* "K1G1" of 28 bytes */
+    EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G2_BAJTY, &c) != 0); /* "K1G1" of 28 bytes */
     EXPECT(k1_dzw_zapamietane_czytaj(b, K1_DZW_ZAPIS_G1_BAJTY, &c) == 0 && c.glosnosc[1] == 35 &&
-           k1_kor_plaski(c.korektor[1]) && k1_kor_plaski(c.korektor[2]));
+           k1_kor_plaski(c.korektor[1]) && k1_kor_plaski(c.korektor[2]) && !c.scena[1].wlaczona);
 }
 
 /* Step 2: the volume of an output, the output in the state, the pill (the shell → ekran). */

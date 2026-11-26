@@ -14,7 +14,8 @@
  * 0.12.3 step 1 (ADR 0055): the path in floats (k1_dzw_tor.c) — a ring of S16 or F32 (DZWIEK_OTWORZ a), the sum, the
  * volume, the limiter instead of clipping, the card's best format (karta.c: 24 bits when it takes them) with a dither.
  * Step 2: the system equalizer of each output on the sum, before the volume (korektor.c; DZWIEK_KOREKTOR from a steering
- * client, DZWIEK_KOREKTOR_STAN to them all).
+ * client, DZWIEK_KOREKTOR_STAN to them all). Step 3: Kons Spatial Audio — the scene of each output after the equalizer
+ * (przestrzen.c; DZWIEK_SCENA, DZWIEK_SCENA_STAN in the same way).
  * Trust boundary: the clients are hostile (from step 3 a zone's VMM speaks for the guest): every message checked field by
  * field (k1_komunikat_sprawdz, sender UID), the frames counted by the service (k1_dzw_zapisano), the ring copied before
  * use. Sandbox: UID 111, no paths, seccomp: the base + the ALSA ioctls it uses (KLATKA_DZWIEK). The log: numbers and the
@@ -97,8 +98,9 @@ static void stan_wszystkim(void)
             wyslij(&klienci[i], stan());
 }
 
-/* 0.12.3 step 2: the bands of `wyjscie` to every steering client (BRAK: of both outputs to `jeden` only, a new one). */
-static void korektor_zglos(struct klient *jeden, int wyjscie)
+/* 0.12.3 steps 2–3: what an output plays (its equalizer: korektor_stan, its scene: przestrzen_stan) of `wyjscie` to every
+ * steering client (BRAK: of both outputs to `jeden` only, a new one). */
+static void wyjscie_zglos(struct klient *jeden, int wyjscie, struct k1_komunikat (*stan_wyjscia)(int))
 {
     for (int i = 0; i < KLIENCI_MAKS; i++) {
         struct klient *k = &klienci[i];
@@ -106,7 +108,7 @@ static void korektor_zglos(struct klient *jeden, int wyjscie)
             continue;
         for (int w = K1_DZW_WYJSCIE_GLOSNIKI; w <= K1_DZW_WYJSCIE_MAKS; w++)
             if (wyjscie == K1_DZW_WYJSCIE_BRAK || w == wyjscie)
-                wyslij(k, korektor_stan(w));
+                wyslij(k, stan_wyjscia(w));
     }
 }
 
@@ -243,7 +245,15 @@ static int od_klienta(struct klient *k, const struct k1_komunikat *m, int fd)
         if (r < 0)
             return -1;
         if (r > 0)
-            korektor_zglos(NULL, m->a);
+            wyjscie_zglos(NULL, m->a, korektor_stan);
+        break;
+    }
+    case K1_KOM_DZWIEK_SCENA: { /* 0.12.3 step 3: the scene of an output */
+        int r = k1_dzw_klient_steruje(k->rodzaj) ? przestrzen_ustaw(m, teraz()) : -1;
+        if (r < 0)
+            return -1;
+        if (r > 0)
+            wyjscie_zglos(NULL, m->a, przestrzen_stan);
         break;
     }
     default:
@@ -288,7 +298,8 @@ static void nowy_klient(const struct k1_komunikat *m, int fd)
             wyslij(&klienci[i], stan());
             if (k1_dzw_klient_steruje(m->a)) {
                 sesje_zglos(&klienci[i]);
-                korektor_zglos(&klienci[i], K1_DZW_WYJSCIE_BRAK);
+                wyjscie_zglos(&klienci[i], K1_DZW_WYJSCIE_BRAK, korektor_stan);
+                wyjscie_zglos(&klienci[i], K1_DZW_WYJSCIE_BRAK, przestrzen_stan);
             }
             return;
         }
@@ -366,7 +377,8 @@ static void zmieszaj(float *suma)
     }
 }
 
-/* One period of every stream, mixed, at K1's volume, limited, in the card's format, to the card. */
+/* One period of every stream, mixed, through the equalizer and the scene, at K1's volume, limited, in the card's format,
+ * to the card. */
 static void okres(void)
 {
     static float suma[K1_DZW_OKRES * K1_DZW_KANALY];
@@ -375,6 +387,7 @@ static void okres(void)
     memset(suma, 0, sizeof suma);
     zmieszaj(suma);
     korektor_licz(suma, K1_DZW_OKRES, w);
+    przestrzen_licz(suma, K1_DZW_OKRES, w);
     k1_dzw_glosnosc(suma, K1_DZW_OKRES, k1_dzw_wzmocnienie(glosnosc[w], wyciszone[w]));
     ograniczone += (unsigned long)k1_dzw_ogranicz(&ogranicznik, suma, K1_DZW_OKRES);
     k1_dzw_na_karte(wyj, suma, K1_DZW_OKRES, karta_bajty(), karta_bity(), &dither);
@@ -402,6 +415,7 @@ static void co_minute(void)
         k1_log(TAG, "ostatnia minuta: ogranicznik w %lu okresach, złe próbki od klientów: %lu",
                ograniczone - minuta.ograniczone, zle_probki - minuta.zle_probki);
     korektor_minuta();
+    przestrzen_minuta();
     minuta.od = t;
     minuta.ograniczone = ograniczone;
     minuta.zle_probki = zle_probki;
@@ -451,6 +465,7 @@ int main(void)
     k1_dzw_ogranicznik_start(&ogranicznik);
     k1_dzw_dither_start(&dither);
     korektor_start();
+    przestrzen_start();
     k1_log(TAG, "gotowa (48 kHz, stereo, liczy w liczbach zmiennoprzecinkowych; głośność %d%%)",
            glosnosc[K1_DZW_WYJSCIE_GLOSNIKI]);
     for (;;) {
@@ -466,9 +481,11 @@ int main(void)
         for (int nr = 1; nr <= K1_STREFY_MAKS; nr++)
             if (sesje[nr].gra && (czas < 0 || czas > 250))
                 czas = 250; /* step 3: a session that stopped playing is said within a quarter of a second */
-        int zal = korektor_zalegle(teraz()); /* 0.12.3 step 2: the last change of the bands said within half a second */
-        if (zal >= 0 && (czas < 0 || czas > zal))
-            czas = zal;
+        for (int j = 0; j < 2; j++) { /* 0.12.3 steps 2–3: the last change of the bands, of a scene, said within 0.5 s */
+            int zal = j == 0 ? korektor_zalegle(teraz()) : przestrzen_zalegle(teraz());
+            if (zal >= 0 && (czas < 0 || czas > zal))
+                czas = zal;
+        }
         if (poll(pfd, (nfds_t)n, czas) < 0 && errno != EINTR)
             k1_koniec(TAG, "poll: %s", strerror(errno));
         if (pfd[0].revents & (POLLIN | POLLHUP | POLLERR))

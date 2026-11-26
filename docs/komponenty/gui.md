@@ -73,7 +73,11 @@ Rysuje pulpit i jego panele i obsługuje je myszą:
   zamyka (log „okienko dźwięku: Korektor”). Pasma obu wyjść gui pamięta razem z głośnością (rekord „K1G2”, 28 B: „K1G1”
   i po nim po dziesięć pasm głośników i słuchawek; stary „K1G1” czyta dalej — korektor płaski), słyszy je od usługi
   (`DZWIEK_KOREKTOR_STAN`, zmiana z Ustawień — po tym, jak usługa ma już zapamiętane), daje każdej nowej usłudze
-  (`DZWIEK_KOREKTOR`); log przy starcie „dźwięk: zapamiętany korektor — głośniki: …, słuchawki: …”. Log: „dźwięk: zapamiętana głośność —
+  (`DZWIEK_KOREKTOR`); log przy starcie „dźwięk: zapamiętany korektor — głośniki: …, słuchawki: …”. **Scena Kons Spatial
+  Audio** (0.12.3 krok 3) tak samo: rekord „K1G3” (54 B: „K1G2” i po nim scena głośników i słuchawek, po 13 B — włączona,
+  kierunki, szerokości, odległości pasm; „K1G2” i „K1G1” czyta dalej — sceny wyłączone), `DZWIEK_SCENA_STAN` od usługi,
+  `DZWIEK_SCENA` każdej nowej; log przy starcie „dźwięk: zapamiętana scena — głośniki: …, słuchawki: …”; przełącznik
+  w okienku — krok 4. Log: „dźwięk: zapamiętana głośność —
   głośniki P%, słuchawki P%”, „dźwięk: głośność zapamiętana”. **Krok 3** (D2: B, D6: A): lista **„Grają teraz”** pod
   kreską okienka — wiersz dla każdej sesji, która gra (`DZWIEK_SESJA` od usługi): kropka w kolorze sesji, jej nazwa,
   okrągły przycisk wyciszenia 24 px, suwak głośności sesji, procenty; okienko rośnie o wiersze (powierzchnia okienka paska

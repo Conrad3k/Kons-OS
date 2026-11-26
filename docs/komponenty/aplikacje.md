@@ -163,7 +163,14 @@ położenie suwaków — dodatkowy kafelek „Własne”), skala +12 / 0 dB / �
 krok 0,5 dB; nad każdym wartość, pod nim pasmo). Każda zmiana idzie od razu do usługi (`DZWIEK_KOREKTOR`); log
 „korektor (Głośniki): Więcej basu”. Opis ekranu: kafelki po nazwach ustawień, suwaki „Pasmo 31” … „Pasmo 16k”.
 `USTAWIENIA_MIEJSCE` od nadzorcy (fd 4; a = KOREKTOR — wiersz „Korektor” okienka „Dźwięk” na górnym pasku) otwiera Dźwięk
-na zakładce Korektor.
+na zakładce Korektor. Od 0.12.3 krok 3 trzecia zakładka **Kons Spatial Audio** (`przestrzen.c`; D3: A, D5, D7: A; zakładki
+450 × 32): przełącznik „Głośniki | Słuchawki” (na start wyjście, które gra; obok „Gra teraz: …”), przełącznik „Kons Spatial
+Audio” z dopiskiem „dźwięk przestrzenny”, zdanie, co robi na tym wyjściu („W słuchawkach: pasma dźwięku w miejscach wokół
+głowy.” / „Na głośnikach: szerszy dźwięk. Dźwięk wokół głowy tylko w słuchawkach.”), a pod nim gotowe sceny jako wiersze
+z opisem (Naturalny, Kino, Koncert, Pokój, Głos; inne miejsca pasm — wiersz „Własna”, tylko pokazany). Kliknięcie sceny ją
+też włącza; przełącznik wyłącza i włącza, miejsca pasm zostają. Każda zmiana idzie od razu do usługi (`DZWIEK_SCENA`); log
+„scena (Słuchawki): Kino”. Opis ekranu: przełącznik „Kons Spatial Audio” (przycisk; wybrany — włączony), wiersze po nazwach
+scen (wybrany — ta gra).
 Informacje (`informacje.c`): wersja, ekran, jądro, gdzie są dane.
 Od 0.10.7 krok 1 sekcje mają sam tytuł, bez opisu pod nim (zasada właściciela Z2, `docs/WYGLAD.md`); treść zaczyna się
 32 px pod tytułem (`seg_y()` w `ustawienia.h`), w Sieci w tym miejscu stoją zakładki, a jej treść pod nimi (`SIEC_Y`).

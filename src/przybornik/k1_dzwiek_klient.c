@@ -65,6 +65,16 @@ void k1_dzwk_korektor(struct k1_dzw_polaczenie *k, int wyjscie, const int8_t pas
     wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, wyjscie, f[0], f[1], f[2], 0));
 }
 
+void k1_dzwk_scena(struct k1_dzw_polaczenie *k, int wyjscie, const struct k1_prz_scena *s)
+{
+    int32_t f[4];
+    if (wyjscie < K1_DZW_WYJSCIE_GLOSNIKI || wyjscie > K1_DZW_WYJSCIE_MAKS)
+        return;
+    k->scena[wyjscie] = *s;
+    k1_prz_do_pol(s, f);
+    wyslij(k, k1_komunikat_nowy(K1_KOM_DZWIEK_SCENA, 0, wyjscie, f[0], f[1], f[2], f[3]));
+}
+
 /* The sample into the ring as far as it is free; at its end: close after it plays. */
 static void dopisz(struct k1_dzw_polaczenie *k)
 {
@@ -159,6 +169,13 @@ int k1_dzwk_odbierz(struct k1_dzw_polaczenie *k)
             if (k1_kor_z_pol(f, p) == 0) { /* every one: gui learns that the service has its remembered bands */
                 memcpy(k->korektor[m.a], p, sizeof p);
                 r |= K1_DZWK_KOREKTOR;
+            }
+        } else if (m.typ == K1_KOM_DZWIEK_SCENA_STAN) { /* 0.12.3 step 3 (checked: k1_kom_dzwiek.c) */
+            int32_t f[4] = { m.b, m.c, m.d, m.e };
+            struct k1_prz_scena s;
+            if (k1_prz_z_pol(f, &s) == 0) {
+                k->scena[m.a] = s;
+                r |= K1_DZWK_SCENA;
             }
         } else if (m.typ == K1_KOM_DZWIEK_ODTWORZONO && k->gra) {
             k->wolne += (uint32_t)m.a;
