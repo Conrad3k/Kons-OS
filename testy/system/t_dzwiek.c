@@ -118,8 +118,9 @@ static void korektor(int fd)
     k1_kor_gotowe_pasma(K1_KOR_WIECEJ_BASU, p);
     k1_kor_do_pol(p, f);
     wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, f[0], f[1], f[2], 0), -1);
-    check(korektor_stan(fd, K1_DZW_WYJSCIE_GLOSNIKI, q, 1000) && memcmp(p, q, sizeof p) == 0,
-          "dźwięk: korektor głośników ustawiony (0.12.3) — usługa mówi go klientom sterującym", "%s", k1_kor_nazwa(q));
+    memset(q, 0, sizeof q);
+    int ok = korektor_stan(fd, K1_DZW_WYJSCIE_GLOSNIKI, q, 1000) && memcmp(p, q, sizeof p) == 0; /* before its name */
+    check(ok, "dźwięk: korektor głośników ustawiony (0.12.3) — usługa mówi go klientom sterującym", "%s", k1_kor_nazwa(q));
     wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, 25, 0, 0, 0), -1); /* +12.5 dB */
     wyslij(fd, k1_komunikat_nowy(K1_KOM_DZWIEK_KOREKTOR, 0, K1_DZW_WYJSCIE_GLOSNIKI, 0, 0, 0x10000, 0), -1); /* band 10 */
     check(!korektor_stan(fd, K1_DZW_WYJSCIE_GLOSNIKI, q, 1000),

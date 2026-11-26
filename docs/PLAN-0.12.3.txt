@@ -337,3 +337,22 @@ Krok 1 (2026-11-26, ADR 0055):
   - Co posłuchać (właściciel, na X230 i IdeaPadzie, najlepiej słuchawki): log K1-DZWIEK „karta gra … bity”; cicha muzyka
     przy 5–10 % — bez „ziarna” i szumu; dwie głośne rzeczy naraz (film i próba) — bez trzasków; film w przeglądarce —
     log K1-STREFA „gość gra w formacie …”, czy usta zgadzają się z głosem.
+Krok 2 (2026-11-26, ADR 0055 pkt 9–13; decyzje właściciela: D1 = A — w okienku „Dźwięk” jeden wiersz „Korektor: … ›”,
+D2 = A — 10 pasm, gotowe ustawienia jak w punkcie 4; szkice A/B/C z hosta, funkcjami K1, w obu motywach):
+  - Pasma co oktawę 31 Hz … 16 kHz (31,25 · 2ⁿ), filtry szczytowe Q = √2 w double, poziom przed nimi z najgłośniejszego
+    punktu krzywej. Pomiar (test_korektor): środek pasma 0,0000 dB od celu, trzy oktawy dalej ≤ 0,13 dB; najgłośniejszy
+    punkt każdego ustawienia ≤ +0,028 dB (gotowe ≤ +0,007 dB) — korektor nie gra głośniej niż 100 %. POTWIERDZONE.
+  - T6: współczynniki raz po zmianie, własne sin/cos/eˣ/pierwiastek (błąd wobec libm < 10⁻¹²); koszt w logu usługi raz na
+    minutę („korektor: średnio N µs na okres”) — na X230 NIEPEWNE do logu właściciela.
+  - T4: komunikaty 32 B (pasma po bajcie, cztery na pole) — memfd niepotrzebny; pamięć gui: rekord „K1G2” (K1G1 czytany).
+  - QEMU (test-dzwiek.sh): pasmo 1 kHz +12 dB — w pliku WAV nuta 660 Hz −7,02 dB i 880 Hz −1,48 dB wobec próby bez
+    korektora (liczone: −7,0 i −1,7). POTWIERDZONE. Zmiana bez trzasku — test na hoście (największy krok = krok tonu).
+  - Wzorce: Ustawienia → Dźwięk (zakładki), Korektor (nowy, oba motywy), okienko „Dźwięk” (wiersz) — przyjęte po „OK”
+    właściciela 2026-11-26. Program testowy: złośliwa strefa w test-dzwiek ruszała po opisie ekranu, który w emulacji
+    przychodził przed końcem VMM-a poprzedniej — teraz czeka na jego koniec.
+  - Wolne numery komunikatów: zostały 255 (po 29, 49, 253, 254 z tego kroku) — przy porządkach (krok 5) warto scalić
+    BATERIA_POKAZ i AKT_POKAZ w USTAWIENIA_MIEJSCE (tabela K1_UST_MIEJSCA).
+  - Co posłuchać (właściciel, X230 i IdeaPad): Ustawienia → Dźwięk → Korektor — „Więcej basu”, „Wyraźny głos”, „Laptop”
+    na głośnikach; „Słuchawki” w słuchawkach (osobne ustawienie, przełącza się samo); szybkie przeciąganie suwaka w trakcie
+    muzyki — bez trzasków; po wyłączeniu i włączeniu — ustawienie zostaje; log K1-DZWIEK „korektor: średnio … µs”.
+
