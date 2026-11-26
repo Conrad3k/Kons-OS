@@ -7,7 +7,7 @@ i będzie można scrollować między wszystkimi aplikacjami, z czego te co się 
 nich scrollować. Druga rzecz: ładniejszy górny pasek i małe pod-menu baterii po kliknięciu jej ikony; najlepiej ile czasu
 pozostało i pobór mocy.”
 Wersja stoi na 0.11.5. Ten plik jest SAMODZIELNY: cel, kroki, ich stan, luki (punkt 5) i decyzje (punkt 4). Mapa drogi:
-docs/DO_ZROBIENIA.txt. Po tej wersji — 0.12 „Dźwięk” (docs/PLAN-0.12.0.txt), bez zmian w jej zakresie.
+docs/DO_ZROBIENIA.txt. Po tej wersji — 0.12 „Dźwięk” (docs/archiwum/PLAN-0.12.0.txt), bez zmian w jej zakresie.
 
 
 CEL WERSJI (jednym akapitem)
@@ -276,7 +276,7 @@ Krok 3:
   - okienko sieci po kliknięciu jej ikony (dziś: Ustawienia → Sieć); kalendarz po kliknięciu zegara;
   - wyszukiwanie w menu Start (pisanie nazwy aplikacji), przypięte / ostatnio używane na górze menu, foldery w menu;
   - przewijanie menu Start klawiszami strzałek;
-  - prawdziwy dźwięk w okienku „Dźwięk” — 0.12 (docs/PLAN-0.12.0.txt).
+  - prawdziwy dźwięk w okienku „Dźwięk” — 0.12 (docs/archiwum/PLAN-0.12.0.txt).
 
 
 7. RYZYKA

@@ -37,14 +37,15 @@ w osobnej „klatce”, a system sprawdza przy starcie, czy nikt go nie podmieni
 | 0.10.10 Poprawka | Instalator z pendrive'a instaluje od nowa także na dysku z K1 i danymi; Zasoby → „Karta graficzna” (obciążenie, taktowanie, pobór mocy karty i laptopa) | PRZETESTOWANE w QEMU (bez karty Intela: „nie podaje”); karta — na sprzęcie |
 | 0.10.11 Szybsza grafika | obraz przeglądarki prosto z karty na ekran (bez kopiowania), nowsze karty zintegrowane Intela do Meteor / Arrow Lake | PRZETESTOWANE w QEMU z KVM (ADR 0051); karta — na sprzęcie |
 | 0.11 Pliki ze stref | pobrane pliki w Plikach → Pobrane (z pochodzeniem), „Wyślij do” i „Otwórz za pomocą” sesji, „Zapisać zmiany w oryginale?”, przeciąganie między oknami i na okno przeglądarki, schowek, pełny ekran; 0.11.1–0.11.5: „Zapisz obraz jako…” (okno zapisu w oknie sesji, pytanie o plik zapisany w dowolnym folderze), szybsza przeglądarka (wszystkie procesory komputera), „Zablokuj” w menu Start tylko z hasłem; 0.11.8: niższe, przewijane menu Start, nowy górny pasek, okienko baterii (czas, pobór mocy) | PRZETESTOWANE w QEMU z KVM (ADR 0052); Firefox — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
-| 0.12 Dźwięk | karta dźwiękowa, głośność na górnym pasku i klawiszami, słuchawki, dźwięk z przeglądarki | PLANOWANE (`docs/PLAN-0.12.0.txt`, ADR 0053) |
+| 0.12 Dźwięk | karta dźwiękowa tylko dla usługi dźwięku K1, okienko „Dźwięk” (głośność, „Grają teraz”), klawisze głośności z pigułką, słuchawki, Ustawienia → Dźwięk, przeglądarka gra przez K1 (głośnik na pasku sesji) | PRZETESTOWANE w QEMU (karta Intel HD Audio zapisuje dźwięk do pliku; ADR 0054); głośniki, słuchawki i Firefox — na sprzęcie (lista w `docs/DO_ZROBIENIA.txt`) |
+| 0.12.3 Dźwięk wysokiej jakości | korektor systemowy, najwyższa jakość dźwięku, Kons Spatial Audio (dźwięk przestrzenny) | PLANOWANE |
 | 0.13–0.14 | tryb ratunkowy i TPM, audyt końcowy → 1.0 | PLANOWANE |
 
 Od 0.9 etapy to numery wersji (ADR 0035, 0053); wcześniejsze etapy M0–M6 zostały w tabeli jako historia.
 Plan — co teraz, co dalej i czego potrzeba od właściciela: [`docs/DO_ZROBIENIA.txt`](docs/DO_ZROBIENIA.txt). Zasady:
 [`docs/SPEC.md`](docs/SPEC.md). Co się zmieniło: [`CHANGELOG.md`](CHANGELOG.md).
 
-**Co już jest (0.11.8):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
+**Co już jest (0.12.0):** K1 działa w maszynie wirtualnej i z pendrive'a na laptopach (ThinkPad X230, Lenovo IdeaPad
 110), a Instalator zapisuje go na dysk. Pulpit jak w Windows 11, w stylu K1: ikony na pulpicie (aplikacje, Kosz, Twoje
 pliki i foldery z folderu Pulpit), pasek na dole z menu Start i przypiętymi aplikacjami (Zegar, Notatki, Ustawienia, Zasoby,
 Kalkulator, Pliki, Przeglądarka; w menu Start też Instalator i Podgląd), pasek na górze (sieć, bateria — kliknięcie pokazuje czas i pobór
@@ -60,9 +61,12 @@ i nowsze karty zintegrowane Intela do Meteor / Arrow Lake — na X230 karta nie 
 i pełny ekran. **Pliki ze stref** (0.11.0): pobrane pliki w Plikach → Pobrane (za Twoją zgodą, z pochodzeniem),
 „Wyślij do” i „Otwórz za pomocą” sesji przeglądarki, zmieniony plik wraca tylko po „Zapisz”, przeciąganie plików między
 oknami (Ctrl — kopia) i na okno przeglądarki, schowek (Ctrl+C / Ctrl+V w Notatkach, polach K1 i przeglądarce).
-**Aktualizacje**: K1 na dysku sam sprawdza wydania na GitHubie, pobiera nową wersję i pyta przed instalacją (Ustawienia →
-Aktualizacje). Czego jeszcze nie ma: innych obcych aplikacji, dźwięku, jasności ekranu i klawiszy Fn. Wygląd:
-[`docs/WYGLAD.md`](docs/WYGLAD.md).
+**Dźwięk** (0.12.0): głośnik na górnym pasku — głośność, wyciszenie, próba i lista „Grają teraz” (sesje przeglądarki,
+każda z własnym suwakiem); klawisze głośności laptopa z pigułką na ekranie; słuchawki przejmują dźwięk same; Ustawienia →
+Dźwięk; K1 pamięta głośność. Przeglądarka gra przez K1 (kartę dźwiękową ma tylko usługa dźwięku), a sesja, która gra, ma
+głośnik na pasku okna — kliknięcie ją wycisza. **Aktualizacje**: K1 na dysku sam sprawdza wydania na GitHubie, pobiera
+nową wersję i pyta przed instalacją (Ustawienia → Aktualizacje). Czego jeszcze nie ma: innych obcych aplikacji,
+mikrofonu, dźwięku przez HDMI i USB, jasności ekranu i innych klawiszy Fn. Wygląd: [`docs/WYGLAD.md`](docs/WYGLAD.md).
 
 ## Uruchom w maszynie wirtualnej
 1. Pobierz obraz: **Releases** → najnowsze `k1-vX.Y.Z` → plik `k1-X.Y.Z.iso` (ok. 27 MB; od 0.10.9 bez przeglądarki — K1 nie ma
@@ -78,7 +82,8 @@ Aktualizacje). Czego jeszcze nie ma: innych obcych aplikacji, dźwięku, jasnoś
      **Ustawienia → Ekran**. Gdyby przy VMSVGA obraz w ogóle się nie pojawił, zmień kontroler na
      **VBoxSVGA** — wtedy K1 użyje obrazu z firmware (z EFI tylko 1024×768; większy:
      `"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" setextradata "NAZWA MASZYNY" VBoxInternal2/EfiGraphicsResolution 1920x1080`).
-   - Pamięć masowa: napęd optyczny → wybierz pobrany plik ISO. Sieć i dźwięk można wyłączyć (dźwięku K1 jeszcze nie ma — będzie w 0.12).
+   - Pamięć masowa: napęd optyczny → wybierz pobrany plik ISO. Sieć można wyłączyć. Dźwięk: kontroler „Intel HD
+     Audio” (od 0.12.0 K1 gra przez niego; bez karty okienko „Dźwięk” pisze, że komputer jej nie ma).
    - Przeglądarki z ISO nie ma (od 0.10.9 jej obraz leży obok systemu na pendrive'ie albo dysku, a K1 nie czyta płyt) —
      K1 pokaże okienko, że przeglądarka nie może ruszyć.
 3. Uruchom. Po kilku sekundach pojawi się pulpit. Kliknij w okno maszyny, żeby „złapać” mysz

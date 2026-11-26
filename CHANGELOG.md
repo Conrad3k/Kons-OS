@@ -3,6 +3,51 @@
 Format: każda wersja ma sekcje **Dodane**, **Zmienione**, **Naprawione**, **Usunięte** (tylko potrzebne).
 Numeracja: [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md#wersjonowanie). Tagi wersji K1: `k1-vX.Y.Z`.
 
+## [0.12.0] — 2026-11-26
+
+**Dźwięk** (wersja 0.12, ADR 0054). Laptop gra. Na górnym pasku jest głośnik: kliknięcie otwiera okienko „Dźwięk”
+z głośnością, wyciszeniem, „Odtwórz próbę” i listą „Grają teraz”. Klawisze głośności laptopa zmieniają głośność, a na
+ekranie na chwilę pojawia się pigułka z poziomem — także nad przeglądarką na pełnym ekranie. Słuchawki w gnieździe
+przejmują dźwięk same, głośniki milkną; każde wyjście ma swoją głośność, a K1 pamięta ją po wyłączeniu. Ustawienia mają
+sekcję Dźwięk. Przeglądarka gra filmy i muzykę przez K1 — kartę dźwiękową ma tylko usługa dźwięku, nie strefa — a okno
+sesji, która gra, ma na pasku mały głośnik: kliknięcie ją wycisza.
+
+Opis w K1: Laptop gra. Głośnik na górnym pasku otwiera okienko z głośnością i listą tego, co gra. Klawisze głośności
+działają, słuchawki przejmują dźwięk same, a przeglądarka gra filmy — sesję, która gra, wyciszasz głośnikiem na pasku
+jej okna.
+
+### Dodane
+- **Usługa dźwięku** (krok 1, PR #223; ADR 0054): jedyny właściciel karty dźwiękowej (Intel HD Audio, sterownik w jądrze),
+  w swojej klatce (UID 111, tylko ioctl ALSA — 14 numerów). Klienci piszą próbki do własnego pierścienia (zapieczętowany
+  memfd), usługa miesza je, liczy głośność i pilnuje każdego pola komunikatu. Po 5 s ciszy zwalnia kartę.
+- **Okienko „Dźwięk”** (krok 1, Twoja decyzja D2: B): głośnik na górnym pasku (ikona z poziomem), suwak, „Wycisz”,
+  „Odtwórz próbę” (dwie nuty — jedyny dźwięk samego K1, D3: A); bez karty — „Ten komputer nie ma karty dźwiękowej.”
+- **Klawisze głośności i pigułka** (krok 2, PR #225; D4: A): głośność o 5 %, wyciszenie; pigułkę rysuje ekran, więc
+  widać ją nad pełnym ekranem; strona w przeglądarce klawiszy nie dostaje.
+- **Słuchawki** (krok 2): gniazdo słuchawek z kontrolek karty — włożone przejmują dźwięk; osobna głośność dla głośników
+  i słuchawek. **Pamięć głośności** (D5: A): po włączeniu komputera taka jak przed wyłączeniem.
+- **Ustawienia → Dźwięk** (krok 2): wyjście, wyciszenie, suwak, „Odtwórz próbę”.
+- **Dźwięk z przeglądarki** (krok 3, PR #226; D6: A): karta virtio-snd w każdej strefie (jeden strumień 48 kHz, 16 bitów,
+  stereo — bez mikrofonu, D1: A), VMM oddaje próbki usłudze dźwięku; Firefox gra przez ALSA. Na pasku okna sesji, która
+  gra, mały głośnik (kliknięcie — sesja cicha); w okienku „Dźwięk” lista „Grają teraz” z suwakiem każdej sesji.
+- Komunikaty `DZWIEK_*`, `GLOSNOSC_POKAZ`, `DZWIEK_SESJA`, `STREFA_DZWIEK`, `STREFA_WYCISZ` (dokumenty kanałów).
+- Testy: `test-dzwiek` (karta Intel HD Audio w QEMU zapisuje dźwięk do pliku WAV — próba, głośność, wyciszenie, klawisze,
+  strefa próbna z tonem 480 Hz, wyciszenie sesji, gość złośliwy), na hoście `test_dzwiek`, `test_virtio_dzwiek`,
+  fuzzing `fuzz_virtio_dzwiek` i komunikatów dźwięku; `test-wzorce` — okienko „Dźwięk” i Ustawienia (zatwierdzone przez
+  Ciebie).
+
+### Zmienione
+- Jądro K1: sterownik Intel HD Audio i kodeki laptopów; jądro strefy: `SND_VIRTIO`.
+- Górny pasek: głośnik z poziomem głośności zamiast stałej ikony; okno sesji: głośnik na pasku, gdy gra.
+- RYZYKA: R107 (sterownik karty osiągalny z usługi dźwięku), R108 (dźwięk strefy), R77 uzupełnione o virtio-snd.
+
+### Porządki
+- `k1_rysuj.c` podzielony (ikony do `k1_ikony.c`) przed nowymi ikonami głośnika; wspólny klient usługi dźwięku
+  w przyborniku (`k1_dzwiek_klient.c`) zamiast osobnego w gui i Ustawieniach; suwak `k1_suwak` wspólny.
+- Długie funkcje skrócone przed dopisaniem dźwięku (ekran: komunikaty od powłoki, sprawdzanie komunikatów ekranu).
+- Przegląd „Tymczasowe”: w kodzie nie ma żadnego rozwiązania tymczasowego (dźwięk wszedł bez nich).
+- README i dokumenty komponentów: dźwięk opisany, „czego jeszcze nie ma” bez dźwięku.
+
 ## [0.11.9] — 2026-11-25
 
 <!-- k1: poprawki -->

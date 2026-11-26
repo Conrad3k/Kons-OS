@@ -3,7 +3,7 @@
 - Status: Przyjęty, kroki 1–3 wdrożone (0.12.0)
 - Data: 2026-11-25
 - Dotyczy: SPEC §5 (usługi), §7 (klatki), niezmiennik 7 skilla (jeden właściciel zasobu — **rozszerza go o kartę
-  dźwiękową**), ADR 0007 (klatki), ADR 0053 (0.12 = Dźwięk); plan `docs/PLAN-0.12.0.txt` (T1–T4, T7, T8, D1–D3);
+  dźwiękową**), ADR 0007 (klatki), ADR 0053 (0.12 = Dźwięk); plan `docs/archiwum/PLAN-0.12.0.txt` (T1–T4, T7, T8, D1–D3);
   opis: `docs/komponenty/dzwiek.md`
 
 ## Kontekst
